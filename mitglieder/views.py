@@ -18,11 +18,12 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
+from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied
 from verfahren.models import AuditEintrag
 
 
-class RegistrierungsFormular(forms.Form):
+class RegistrierungsFormular(BotschutzMixin, forms.Form):
     vorname = forms.CharField(label="Vorname", max_length=80)
     nachname = forms.CharField(label="Nachname", max_length=80)
     email = forms.EmailField(label="E-Mail-Adresse")
@@ -55,14 +56,16 @@ class RegistrierungsFormular(forms.Form):
         return email
 
 
-class LoginFormular(forms.Form):
+class LoginFormular(BotschutzMixin, forms.Form):
     email = forms.EmailField(label="E-Mail-Adresse")
 
 
 def registrieren(request):
     if request.method == "POST":
         form = RegistrierungsFormular(request.POST)
-        if form.is_valid():
+        if drossel_zuviel(request, "registrierung", limit=5):
+            form.add_error(None, "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut.")
+        elif form.is_valid():
             d = form.cleaned_data
             mitglied = Mitglied.objects.create(
                 username=d["email"],
@@ -111,15 +114,49 @@ def bestaetigen(request, token: str):
     return redirect("mitglieder:willkommen")
 
 
+IBAN = "AT57 2033 0000 0006 9435"
+BEITRAG_RICHTWERT = "30"
+
+
+def _beitrags_qr(referenz: str) -> str:
+    """EPC-QR-Code („Zahlen mit Code") für die Beitragsüberweisung (F-38).
+
+    Standardformat des European Payments Council — jede österreichische
+    Banking-App liest ihn. Die Überweisung läuft als (Echtzeit-)Überweisung
+    direkt von Konto zu Konto: kein Zahlungsdienstleister, keine Prozente.
+    Betrag ist in der App änderbar (Selbsteinschätzung, § 4 Abs 3)."""
+    import segno
+
+    nutzlast = "\n".join(
+        [
+            "BCD",
+            "002",
+            "1",
+            "SCT",
+            "",  # BIC (im EWR optional)
+            "Direkte Demokratie Oesterreich",
+            IBAN.replace(" ", ""),
+            f"EUR{BEITRAG_RICHTWERT}",
+            "",  # Zweck-Code
+            "",  # strukturierte Referenz
+            f"{referenz} Mitgliedsbeitrag",
+        ]
+    )
+    return segno.make(nutzlast, error="m").svg_inline(scale=3.2)
+
+
 def willkommen(request):
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
+    referenz = beitragsreferenz(request.user)
     return render(
         request,
         "mitglieder/willkommen.html",
         {
-            "referenz": beitragsreferenz(request.user),
-            "iban": "AT57 2033 0000 0006 9435",
+            "referenz": referenz,
+            "iban": IBAN,
+            "richtwert": BEITRAG_RICHTWERT,
+            "qr_svg": _beitrags_qr(referenz),
         },
     )
 
@@ -127,7 +164,9 @@ def willkommen(request):
 def login_anfordern(request):
     if request.method == "POST":
         form = LoginFormular(request.POST)
-        if form.is_valid():
+        if drossel_zuviel(request, "anmeldelink", limit=10):
+            form.add_error(None, "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut.")
+        elif form.is_valid():
             email = form.cleaned_data["email"].lower()
             mitglied = Mitglied.objects.filter(email__iexact=email, is_active=True).first()
             if mitglied:

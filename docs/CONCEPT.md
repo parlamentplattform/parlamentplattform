@@ -67,6 +67,7 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-05 | Rollen: Mitglied, Integritätsrat, Koordinationsrat, Systembetrieb — mit minimalen Rechten je Rolle; jede Organaktion ist protokolliert und öffentlich begründet | M | § 6 |
 | F-06 | ID-Austria-Login als zusätzliche Identitätsstufe über OIDC | K | § 2 Abs 4 |
 | F-07 | Offline-Mitglieder: Erfassung von Präsenz-Identitätsfeststellung, Stimmabgabe auf Papier durch berechtigte Erfasser mit Vier-Augen-Protokoll | S | § 13 Abs 2–3 |
+| F-49 | **Menschlichkeitsprüfung bei Registrierung und Anmeldelink (umgesetzt):** vier Lagen ohne Drittanbieter und ohne JavaScript-Pflicht — Honigtopf-Feld, signierte Mindestzeit, Rechenfrage, IP-Drossel je Stunde. Gegen gezielte Angriffe wirkt die Identitätsstufen-Architektur (§ 4) plus Beitrittswellen-Detektor (F-04); kein reCAPTCHA, keine Datenweitergabe | M | § 4, § 8 |
 
 ### 3.2 Antragsverfahren (der Kern)
 
@@ -126,6 +127,7 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-32 | Barrierefreiheit WCAG 2.1 AA; vollständige Tastaturbedienung; Systemschriften; funktioniert ohne JavaScript für Lesen und Abstimmen | S | § 13 Abs 4 |
 | F-33 | Deutsch zuerst, Übersetzungsgerüst (i18n) von Beginn an; Englisch in Phase 3 | K | § 13 Abs 4 |
 | F-34 | KI-Zusammenfassung langer Beratungen: klar gelabelt, Modellversion angegeben, von Menschen freigegeben, Original ein Klick entfernt; abschaltbar pro Nutzer | K | § 2 Abs 6 |
+| F-48 | **App mit Bereich „Für dich vorgeschlagen“ (Zukunft):** Eine spätere ParlamentPlattform-App bildet alle Bereiche des Hauptfensters ab und ergänzt einen klar gekennzeichneten, streng persönlichen Empfehlungsbereich (aus eigenen Favoriten, Region und Aktivität). Grundsatz-Schranken: nur opt-in, Kriterien offengelegt und erklärbar, Daten bleiben auf der Plattform — und der Bereich beeinflusst niemals die gemeinsame Reihung, Schwellen oder Ergebnisse (F-31, § 5 Abs 10 bleiben unberührt) | K | § 2 Abs 6 |
 
 ### 3.6 Nichtfunktionale Anforderungen
 

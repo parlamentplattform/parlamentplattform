@@ -64,6 +64,28 @@ lebensbereiche:
     - referendum
     - e voting
     - stimmzettel
+    unterkategorien:
+    - slug: wahlrecht-verfahren
+      name: Wahlrecht & Wahlverfahren
+      schlagworte:
+      - wahlrecht
+      - wahlalter
+      - wahlordnung
+      - vorzugsstimme
+      - wahlkreis
+    - slug: brief-auslandswahl
+      name: Brief- & Auslandswahl
+      schlagworte:
+      - briefwahl
+      - wahlkarte
+      - auslandsoesterreicher wahl
+    - slug: volksbegehren-instrumente
+      name: Volksbegehren & Volksabstimmung
+      schlagworte:
+      - volksbegehren
+      - volksabstimmung
+      - volksbefragung
+      - eintragungswoche
   - slug: parteien-parlament
     name: Parteien & Parlament
     schlagworte:
@@ -74,6 +96,27 @@ lebensbereiche:
     - landtag
     - abgeordnete
     - untersuchungsausschuss
+    unterkategorien:
+    - slug: parteifinanzen
+      name: Parteienfinanzierung
+      schlagworte:
+      - parteienfinanzierung
+      - parteispende
+      - wahlkampfkosten
+      - rechenschaftsbericht
+    - slug: mandat-abgeordnete
+      name: Mandat & Abgeordnete
+      schlagworte:
+      - mandat
+      - klubzwang
+      - immunitaet
+      - abgeordnetenbezuege
+    - slug: kontrolle-untersuchung
+      name: Parlamentarische Kontrolle
+      schlagworte:
+      - untersuchungsausschuss
+      - anfragebeantwortung
+      - misstrauensantrag
   - slug: verwaltung-behoerden
     name: Verwaltung & Behörden
     schlagworte:
@@ -84,6 +127,28 @@ lebensbereiche:
     - digitale verwaltung
     - beamte
     - verwaltungsreform
+    unterkategorien:
+    - slug: digitale-amtswege
+      name: Digitale Amtswege
+      schlagworte:
+      - digitales amt
+      - online formular
+      - elektronischer bescheid
+      - once only
+    - slug: verwaltungsreform
+      name: Verwaltungsvereinfachung
+      schlagworte:
+      - buerokratieabbau
+      - doppelgleisigkeit
+      - verwaltungsreform
+      - amtszeiten
+    - slug: oeffentlicher-dienst
+      name: Öffentlicher Dienst
+      schlagworte:
+      - beamtendienstrecht
+      - planstellen
+      - besoldung
+      - pragmatisierung
   - slug: transparenz-korruption
     name: Transparenz & Korruptionsbekämpfung
     schlagworte:
@@ -94,6 +159,28 @@ lebensbereiche:
     - inserate
     - postenschacher
     - offenlegung
+    unterkategorien:
+    - slug: informationszugang
+      name: Informationsfreiheit
+      schlagworte:
+      - informationsfreiheitsgesetz
+      - auskunftspflicht
+      - dokumentenzugang
+      - amtsgeheimnis
+    - slug: lobbying-offenlegung
+      name: Lobbying & Offenlegung
+      schlagworte:
+      - lobbyregister
+      - nebeneinkuenfte
+      - interessenkonflikt
+      - drehtuereffekt
+    - slug: inseratenpolitik
+      name: Inserate & Medientransparenz
+      schlagworte:
+      - inserate
+      - medienkooperation
+      - regierungswerbung
+      - medientransparenzgesetz
   - slug: buergerbeteiligung
     name: Bürgerbeteiligung
     schlagworte:
@@ -103,6 +190,20 @@ lebensbereiche:
     - mitbestimmung
     - direkte demokratie
     - beteiligungsverfahren
+    unterkategorien:
+    - slug: buergerraete
+      name: Bürgerräte
+      schlagworte:
+      - buergerrat
+      - klimarat
+      - losverfahren
+      - deliberation
+    - slug: petitionen
+      name: Petitionen & Initiativen
+      schlagworte:
+      - petition
+      - buergerinitiative
+      - unterschriftenaktion
 - slug: recht-justiz
   name: Recht & Justiz
   beschreibung: Gesetzgebung, Gerichte, Strafrecht, Zivilrecht und Rechtsdurchsetzung.
@@ -136,6 +237,29 @@ lebensbereiche:
     - bewährung
     - resozialisierung
     - jugendstrafe
+    unterkategorien:
+    - slug: strafmass-delikte
+      name: Strafmaß & Delikte
+      schlagworte:
+      - strafmass
+      - strafrahmen
+      - verjaehrung
+      - diversion
+    - slug: strafvollzug-detail
+      name: Strafvollzug & Resozialisierung
+      schlagworte:
+      - strafvollzug
+      - haftbedingungen
+      - fussfessel
+      - entlassenenhilfe
+      - massnahmenvollzug
+    - slug: opferschutz
+      name: Opferschutz
+      schlagworte:
+      - opferschutz
+      - prozessbegleitung
+      - gewaltambulanz
+      - verbrechensopfergesetz
   - slug: zivilrecht
     name: Zivil- & Vertragsrecht
     schlagworte:
@@ -145,6 +269,21 @@ lebensbereiche:
     - erbrecht
     - scheidungsrecht
     - abgb
+    unterkategorien:
+    - slug: miet-nachbarrecht
+      name: Miet- & Nachbarschaftsrecht
+      schlagworte:
+      - mietrechtsklage
+      - nachbarschaftsstreit
+      - besitzstoerung
+    - slug: familien-erbrecht
+      name: Familien- & Erbrecht
+      schlagworte:
+      - obsorgeverfahren
+      - erbrecht
+      - pflichtteil
+      - testament
+      - scheidungsfolgen
   - slug: gerichte-verfahren
     name: Gerichte & Verfahren
     schlagworte:
@@ -154,6 +293,21 @@ lebensbereiche:
     - prozesskosten
     - sachverständige
     - justizpersonal
+    unterkategorien:
+    - slug: verfahrensdauer-kosten
+      name: Verfahrensdauer & Kosten
+      schlagworte:
+      - verfahrensdauer
+      - gerichtsgebuehren
+      - verfahrenshilfe
+      - prozesskostenrisiko
+    - slug: justizpersonal-detail
+      name: Justizpersonal & Ausstattung
+      schlagworte:
+      - richterplanstellen
+      - staatsanwaelte
+      - kanzleipersonal
+      - justizbudget
 - slug: grundrechte-gleichstellung
   name: Grundrechte & Gleichstellung
   beschreibung: Menschen- und Bürgerrechte, Datenschutz, Diskriminierungsschutz, Gleichstellung.
@@ -186,6 +340,21 @@ lebensbereiche:
     - gesichtserkennung
     - bundestrojaner
     - privatsphäre
+    unterkategorien:
+    - slug: ueberwachung-detail
+      name: Staatliche Überwachung
+      schlagworte:
+      - bundestrojaner
+      - messengerueberwachung
+      - vorratsdatenspeicherung
+      - videoueberwachung
+    - slug: datenschutz-alltag
+      name: Datenschutz im Alltag
+      schlagworte:
+      - cookiebanner
+      - datenweitergabe
+      - profilbildung
+      - auskunftsrecht dsgvo
   - slug: gleichstellung-antidiskriminierung
     name: Gleichstellung & Antidiskriminierung
     schlagworte:
@@ -196,6 +365,21 @@ lebensbereiche:
     - rassismus
     - antisemitismus
     - lgbtiq
+    unterkategorien:
+    - slug: frauen-gleichstellung
+      name: Gleichstellung von Frauen
+      schlagworte:
+      - lohnschere
+      - frauenquote
+      - gewaltschutz frauen
+      - einkommenstransparenz
+    - slug: vielfalt-antidiskriminierung
+      name: Vielfalt & Antidiskriminierung
+      schlagworte:
+      - lgbtiq
+      - rassismus
+      - levelling up
+      - diskriminierungsschutz
   - slug: meinungs-pressefreiheit
     name: Meinungs- & Pressefreiheit
     schlagworte:
@@ -204,6 +388,14 @@ lebensbereiche:
     - zensur
     - medienfreiheit
     - whistleblow
+    unterkategorien:
+    - slug: presseschutz
+      name: Schutz journalistischer Arbeit
+      schlagworte:
+      - redaktionsgeheimnis
+      - quellenschutz
+      - slapp klagen
+      - pressefoerderung
   - slug: inklusion-barrierefreiheit
     name: Inklusion & Barrierefreiheit
     schlagworte:
@@ -212,6 +404,15 @@ lebensbereiche:
     - gebärdensprache
     - assistenz
     - behindertengerecht
+    unterkategorien:
+    - slug: barrierefrei-bauen-digital
+      name: Barrierefreiheit baulich & digital
+      schlagworte:
+      - barrierefreier zugang
+      - rampe
+      - leichte sprache
+      - screenreader
+      - untertitel
 - slug: sicherheit-verteidigung
   name: Sicherheit & Verteidigung
   beschreibung: Polizei, Katastrophenschutz, Landesverteidigung, Neutralität, Cybersicherheit.
@@ -244,6 +445,29 @@ lebensbereiche:
     - gewaltschutz
     - bodycam
     - prävention
+    unterkategorien:
+    - slug: polizeiarbeit
+      name: Polizeiarbeit & Ausstattung
+      schlagworte:
+      - polizeiinspektion
+      - planstellen polizei
+      - bodycam
+      - polizeigewalt
+      - beschwerdestelle
+    - slug: gewaltschutz-detail
+      name: Gewaltschutz
+      schlagworte:
+      - betretungsverbot
+      - gewaltschutzzentrum
+      - annaeherungsverbot
+      - femizid
+    - slug: suchtkriminalitaet
+      name: Sucht- & Beschaffungskriminalität
+      schlagworte:
+      - drogenhandel
+      - suchtgiftgesetz
+      - substitution
+      - drug checking
   - slug: bundesheer-neutralitaet
     name: Bundesheer & Neutralität
     schlagworte:
@@ -254,6 +478,21 @@ lebensbereiche:
     - neutralität
     - landesverteidigung
     - abfangjäger
+    unterkategorien:
+    - slug: wehrsystem
+      name: Wehrpflicht & Miliz
+      schlagworte:
+      - wehrpflicht
+      - grundwehrdienst
+      - miliz
+      - zivildienst dauer
+    - slug: heeresausruestung
+      name: Ausrüstung & Budget
+      schlagworte:
+      - heeresbudget
+      - abfangjaeger
+      - kasernen
+      - luftraumueberwachung
   - slug: katastrophenschutz-rettung
     name: Katastrophenschutz & Rettung
     schlagworte:
@@ -264,6 +503,21 @@ lebensbereiche:
     - hochwasserschutz
     - blaulicht
     - sirene
+    unterkategorien:
+    - slug: hochwasser-praevention
+      name: Hochwasser- & Naturgefahrenschutz
+      schlagworte:
+      - hochwasserschutz
+      - verbauung wildbach
+      - lawinenschutz
+      - retentionsraum
+    - slug: blaulichtorganisationen
+      name: Feuerwehr & Rettungswesen
+      schlagworte:
+      - freiwillige feuerwehr
+      - rettungsdienst finanzierung
+      - notarztsystem
+      - leitstelle
   - slug: cybersicherheit
     name: Cybersicherheit
     schlagworte:
@@ -272,6 +526,14 @@ lebensbereiche:
     - it sicherheit
     - ransomware
     - kritische infrastruktur
+    unterkategorien:
+    - slug: kritische-infrastruktur
+      name: Schutz kritischer Infrastruktur
+      schlagworte:
+      - kritische infrastruktur
+      - nis richtlinie
+      - blackout vorsorge
+      - cyberabwehr
 - slug: europa-internationales
   name: Europa & Internationales
   beschreibung: Europäische Union, Außenpolitik, internationale Zusammenarbeit und Abkommen.
@@ -304,6 +566,21 @@ lebensbereiche:
     - eu parlament
     - brüssel
     - subsidiarität
+    unterkategorien:
+    - slug: eu-rechtsetzung
+      name: EU-Rechtsetzung & Umsetzung
+      schlagworte:
+      - eu richtlinie umsetzung
+      - verordnung
+      - vertragsverletzung
+      - subsidiaritaet
+    - slug: eu-budget-foerderung
+      name: EU-Budget & Förderungen
+      schlagworte:
+      - eu foerderung
+      - kohaesionsfonds
+      - agrarfoerderung eu
+      - nettozahler
   - slug: aussenpolitik-diplomatie
     name: Außenpolitik & Diplomatie
     schlagworte:
@@ -312,6 +589,14 @@ lebensbereiche:
     - konsulat
     - auslandsösterreicher
     - staatsvertrag
+    unterkategorien:
+    - slug: konsularwesen
+      name: Botschaften & Konsulate
+      schlagworte:
+      - botschaft
+      - konsulat
+      - reisewarnung
+      - auslandsservice
   - slug: entwicklungszusammenarbeit
     name: Entwicklungszusammenarbeit
     schlagworte:
@@ -319,6 +604,13 @@ lebensbereiche:
     - entwicklungshilfe
     - humanitäre hilfe
     - auslandskatastrophenfonds
+    unterkategorien:
+    - slug: humanitaere-hilfe
+      name: Humanitäre Hilfe
+      schlagworte:
+      - auslandskatastrophenfonds
+      - humanitaere hilfe
+      - nothilfe
 - slug: migration-integration
   name: Migration & Integration
   beschreibung: Zuwanderung, Asyl, Staatsbürgerschaft, Integration und Zusammenleben.
@@ -346,6 +638,21 @@ lebensbereiche:
     - grundversorgung
     - flüchtling
     - abschiebung
+    unterkategorien:
+    - slug: asylverfahren-detail
+      name: Asylverfahren
+      schlagworte:
+      - asylverfahren dauer
+      - bundesamt fremdenwesen
+      - rechtsberatung asyl
+      - dublin
+    - slug: grundversorgung-unterbringung
+      name: Grundversorgung & Unterbringung
+      schlagworte:
+      - grundversorgung
+      - asylquartier
+      - betreuungseinrichtung
+      - schubhaft
   - slug: zuwanderung-aufenthalt
     name: Zuwanderung & Aufenthalt
     schlagworte:
@@ -354,6 +661,14 @@ lebensbereiche:
     - arbeitsmigration
     - familiennachzug
     - saisonnier
+    unterkategorien:
+    - slug: arbeitsmigration-detail
+      name: Arbeits- & Fachkräftemigration
+      schlagworte:
+      - rot weiss rot karte
+      - mangelberufsliste
+      - saisonnier
+      - anerkennung qualifikation
   - slug: integration-sprache
     name: Integration & Sprache
     schlagworte:
@@ -361,6 +676,14 @@ lebensbereiche:
     - integrationsjahr
     - wertekurs
     - integrationsfonds
+    unterkategorien:
+    - slug: sprachfoerderung
+      name: Sprach- & Wertevermittlung
+      schlagworte:
+      - deutschkurs
+      - integrationspruefung
+      - wertekurs
+      - dolmetsch
   - slug: staatsbuergerschaft
     name: Staatsbürgerschaft
     schlagworte:
@@ -368,6 +691,14 @@ lebensbereiche:
     - einbürgerung
     - doppelstaatsbürgerschaft
     - pass
+    unterkategorien:
+    - slug: einbuergerung-detail
+      name: Einbürgerung
+      schlagworte:
+      - einbuergerung dauer
+      - doppelstaatsbuergerschaft
+      - staatsbuergerschaftstest
+      - abstammungsprinzip
 - slug: geld-steuern-budget
   name: Geld, Steuern & Budget
   beschreibung: Steuern, Abgaben, Staatshaushalt, Geldpolitik, Finanzmärkte und Währung.
@@ -408,6 +739,38 @@ lebensbereiche:
     - kalte progression
     - steuerreform
     - abgabenquote
+    unterkategorien:
+    - slug: arbeit-einkommen-steuern
+      name: Steuern auf Arbeit & Einkommen
+      schlagworte:
+      - lohnsteuer
+      - einkommensteuer
+      - kalte progression
+      - absetzbetrag
+      - lohnnebenkosten
+    - slug: konsum-steuern
+      name: Steuern auf Konsum
+      schlagworte:
+      - mehrwertsteuer
+      - umsatzsteuer
+      - mineraloelsteuer
+      - tabaksteuer
+      - zuckersteuer
+    - slug: vermoegen-erbschaft-steuern
+      name: Vermögens- & Erbschaftssteuern
+      schlagworte:
+      - vermoegenssteuer
+      - erbschaftssteuer
+      - schenkungssteuer
+      - grundsteuer
+      - stiftung
+    - slug: unternehmens-steuern
+      name: Unternehmenssteuern
+      schlagworte:
+      - koerperschaftsteuer
+      - gewinnverschiebung
+      - mindestbesteuerung
+      - digitalsteuer
   - slug: staatshaushalt
     name: Staatshaushalt & Schulden
     schlagworte:
@@ -417,6 +780,22 @@ lebensbereiche:
     - finanzausgleich
     - rechnungshof
     - nulldefizit
+    unterkategorien:
+    - slug: budgetvollzug
+      name: Budget & Schuldenregeln
+      schlagworte:
+      - budgetdefizit
+      - maastricht
+      - schuldenbremse
+      - budgetpfad
+      - rechnungsabschluss
+    - slug: finanzausgleich-detail
+      name: Finanzausgleich
+      schlagworte:
+      - finanzausgleich
+      - ertragsanteile
+      - gemeindefinanzierung
+      - laenderfinanzen
   - slug: banken-finanzmaerkte
     name: Banken & Finanzmärkte
     schlagworte:
@@ -427,6 +806,23 @@ lebensbereiche:
     - spareinlage
     - kryptowährung
     - aktien
+    unterkategorien:
+    - slug: verbraucher-finanzen
+      name: Kredite & Sparen
+      schlagworte:
+      - kreditzinsen
+      - kontogebuehren
+      - sparzinsen
+      - kim verordnung
+      - ueberziehungszinsen
+    - slug: finanzaufsicht
+      name: Finanzmarktaufsicht
+      schlagworte:
+      - finanzmarktaufsicht
+      - einlagensicherung
+      - geldwaesche
+      - anlegerbetrug
+      - kryptoregulierung
 - slug: wirtschaft-unternehmen
   name: Wirtschaft & Unternehmen
   beschreibung: Wirtschaftspolitik, Unternehmen, Handel, Wettbewerb, Industrie und Gewerbe.
@@ -523,6 +919,30 @@ lebensbereiche:
     - öffnungszeiten
     - onlinehandel
     - greißler
+    unterkategorien:
+    - slug: einzelhandel-detail
+      name: Einzelhandel & Nahversorgung
+      schlagworte:
+      - einzelhandel
+      - greissler
+      - oeffnungszeiten
+      - sonntagsoeffnung
+      - ladensterben
+    - slug: gewerberecht
+      name: Gewerbeordnung & Betriebsanlagen
+      schlagworte:
+      - gewerbeordnung
+      - gewerbeschein
+      - betriebsanlagengenehmigung
+      - meisterpflicht
+    - slug: onlinehandel-detail
+      name: Onlinehandel & Plattformen
+      schlagworte:
+      - onlinehandel
+      - temu
+      - zollfreigrenze
+      - retouren
+      - plattformhaftung handel
   - slug: industrie-produktion
     name: Industrie & Produktion
     schlagworte:
@@ -532,6 +952,21 @@ lebensbereiche:
     - zulieferer
     - stahlindustrie
     - chemieindustrie
+    unterkategorien:
+    - slug: standort-energieintensiv
+      name: Industriestandort & Energiekosten
+      schlagworte:
+      - industriestandort
+      - abwanderung industrie
+      - energiekosten industrie
+      - carbon leakage
+    - slug: lieferketten-detail
+      name: Lieferketten & Rohstoffe
+      schlagworte:
+      - lieferkettengesetz
+      - rohstoffsicherheit
+      - seltene erden
+      - chip produktion
   - slug: dienstleistungen-freie-berufe
     name: Dienstleistungen & freie Berufe
     schlagworte:
@@ -542,6 +977,21 @@ lebensbereiche:
     - friseur
     - dienstleister
     - architekturbüro
+    unterkategorien:
+    - slug: planung-technik
+      name: Planung & Technik
+      schlagworte:
+      - ziviltechniker
+      - ingenieurbuero
+      - planungsbuero
+      - vermessung
+    - slug: beratung-kanzleien
+      name: Beratung & Kanzleien
+      schlagworte:
+      - steuerberatung
+      - notariatstarif
+      - rechtsanwaltskosten
+      - unternehmensberatung
   - slug: tourismus-gastronomie
     name: Tourismus & Gastronomie
     schlagworte:
@@ -552,6 +1002,23 @@ lebensbereiche:
     - seilbahn
     - gastgarten
     - trinkgeld
+    unterkategorien:
+    - slug: gastro-arbeitswelt
+      name: Gastronomie & Personal
+      schlagworte:
+      - gastronomie personal
+      - trinkgeldpauschale
+      - sperrstunde
+      - registrierkasse
+      - allergenverordnung
+    - slug: tourismus-lenkung
+      name: Tourismuslenkung & Ortsbild
+      schlagworte:
+      - overtourism
+      - zweitwohnsitzabgabe
+      - nachhaltiger tourismus
+      - seilbahnausbau
+      - kurtaxe
 - slug: arbeit-beruf
   name: Arbeit & Beruf
   beschreibung: Arbeitsrecht, Löhne, Arbeitszeit, Arbeitslosigkeit, Arbeitsschutz und Berufsbilder.
@@ -589,6 +1056,30 @@ lebensbereiche:
     - kündigungsschutz
     - arbeitsvertrag
     - karfreitag
+    unterkategorien:
+    - slug: arbeitszeitmodelle
+      name: Arbeitszeitmodelle
+      schlagworte:
+      - vier tage woche
+      - gleitzeit
+      - zwoelfstundentag
+      - arbeitszeitverkuerzung
+      - zeitausgleich
+    - slug: homeoffice-detail
+      name: Homeoffice & mobiles Arbeiten
+      schlagworte:
+      - homeoffice pauschale
+      - telearbeit
+      - erreichbarkeit
+      - arbeitsmittel zuhause
+    - slug: kuendigungsschutz-detail
+      name: Kündigung & Befristung
+      schlagworte:
+      - kuendigungsschutz
+      - kettenvertrag
+      - befristung
+      - abfertigung
+      - probezeit
   - slug: loehne-gehaelter
     name: Löhne & Gehälter
     schlagworte:
@@ -598,6 +1089,21 @@ lebensbereiche:
     - lohnnebenkosten
     - abschlagsfrei
     - gehaltsschema
+    unterkategorien:
+    - slug: mindestentlohnung
+      name: Mindestlöhne & Kollektivverträge
+      schlagworte:
+      - mindestlohn
+      - kollektivvertragsverhandlung
+      - ist lohn
+      - unterentlohnung
+      - lohndumping
+    - slug: lohnnebenkosten-detail
+      name: Lohnnebenkosten
+      schlagworte:
+      - lohnnebenkosten
+      - dienstgeberbeitrag
+      - kommunalsteuer arbeit
   - slug: arbeitsmarkt-vermittlung
     name: Arbeitsmarkt & AMS
     schlagworte:
@@ -608,6 +1114,29 @@ lebensbereiche:
     - umschulung
     - fachkräftemangel
     - zumutbarkeit
+    unterkategorien:
+    - slug: arbeitslosenversicherung
+      name: Arbeitslosengeld & Zumutbarkeit
+      schlagworte:
+      - arbeitslosengeld hoehe
+      - notstandshilfe
+      - zumutbarkeitsbestimmung
+      - degressives arbeitslosengeld
+      - zuverdienstgrenze
+    - slug: qualifizierung
+      name: Umschulung & Qualifizierung
+      schlagworte:
+      - umschulung
+      - fachkraeftestipendium
+      - bildungskarenz
+      - implacementstiftung
+    - slug: aeltere-arbeitsmarkt
+      name: Ältere & Langzeitarbeitslose
+      schlagworte:
+      - langzeitarbeitslos
+      - aktion sprungbrett
+      - altersteilzeit
+      - wiedereinstieg
   - slug: lehre-berufsausbildung
     name: Lehre & Berufsausbildung
     schlagworte:
@@ -617,6 +1146,15 @@ lebensbereiche:
     - berufsschule
     - fachkräfteausbildung
     - meisterprüfung
+    unterkategorien:
+    - slug: lehrlingsausbildung
+      name: Lehrlingsausbildung
+      schlagworte:
+      - lehrlingsentschaedigung
+      - berufsschule
+      - lehrbetrieb foerderung
+      - lehre mit matura
+      - ueberbetriebliche lehre
   - slug: arbeitsschutz
     name: Arbeitsschutz & Gesundheit am Arbeitsplatz
     schlagworte:
@@ -625,6 +1163,15 @@ lebensbereiche:
     - burnout
     - schwerarbeit
     - arbeitnehmerschutz
+    unterkategorien:
+    - slug: gesundheit-arbeitsplatz
+      name: Gesundheit am Arbeitsplatz
+      schlagworte:
+      - arbeitsinspektorat
+      - burnout praevention
+      - hitzefrei bau
+      - schwerarbeit
+      - arbeitsunfall
 - slug: konsum-verbraucherschutz
   name: Konsum & Verbraucherschutz
   beschreibung: Verbraucherrechte, Produktsicherheit, Preise, Gewährleistung und faire Märkte.
@@ -654,6 +1201,21 @@ lebensbereiche:
     - inhaltsstoffe
     - rückruf
     - spielzeugsicherheit
+    unterkategorien:
+    - slug: lebensmittel-kennzeichnung-detail
+      name: Lebensmittelkennzeichnung
+      schlagworte:
+      - herkunftskennzeichnung
+      - naehrwertampel
+      - zutatenliste
+      - gentechnikfrei kennzeichnung
+    - slug: produktrueckrufe
+      name: Produktsicherheit & Rückrufe
+      schlagworte:
+      - produktrueckruf
+      - spielzeugsicherheit
+      - ce kennzeichnung
+      - marktueberwachung
   - slug: preise-gebuehren
     name: Preise & Gebühren
     schlagworte:
@@ -663,6 +1225,22 @@ lebensbereiche:
     - indexanpassung
     - preisvergleich
     - mogelpackung
+    unterkategorien:
+    - slug: preistransparenz-detail
+      name: Preistransparenz & Preistreiberei
+      schlagworte:
+      - preisvergleich
+      - mogelpackung
+      - shrinkflation
+      - preisabsprachen
+      - wucher
+    - slug: gebuehren-indexierung
+      name: Gebühren & Indexanpassungen
+      schlagworte:
+      - gebuehrenerhoehung
+      - indexanpassung miete
+      - kanalgebuehr
+      - vignettenpreis
   - slug: gewaehrleistung-reparatur
     name: Gewährleistung & Reparatur
     schlagworte:
@@ -672,6 +1250,14 @@ lebensbereiche:
     - ersatzteil
     - geplante obsoleszenz
     - umtausch
+    unterkategorien:
+    - slug: reparatur-kreislauf
+      name: Reparatur & Langlebigkeit
+      schlagworte:
+      - reparaturbonus
+      - ersatzteilpflicht
+      - geplante obsoleszenz
+      - recht auf reparatur
   - slug: digitale-verbraucherrechte
     name: Digitale Verbraucherrechte
     schlagworte:
@@ -681,6 +1267,15 @@ lebensbereiche:
     - fake shop
     - kundenkonto
     - agb
+    unterkategorien:
+    - slug: online-abzocke
+      name: Abofallen & Fake-Shops
+      schlagworte:
+      - abofalle
+      - fake shop
+      - in app kaeufe kinder
+      - dark patterns
+      - kuendigungsbutton
 - slug: gesundheit-pflege
   name: Gesundheit & Pflege
   beschreibung: Gesundheitssystem, Vorsorge, Medikamente, Pflege und psychische Gesundheit.
@@ -720,6 +1315,30 @@ lebensbereiche:
     - kassenarzt
     - hausarzt
     - gastpatient
+    unterkategorien:
+    - slug: kassenmedizin
+      name: Kassenärztliche Versorgung
+      schlagworte:
+      - kassenstellen
+      - wahlarzt
+      - primaerversorgungszentrum
+      - landarztmangel
+      - e card system
+    - slug: spitaeler-detail
+      name: Spitäler & Ambulanzen
+      schlagworte:
+      - gangbetten
+      - op wartezeiten
+      - ambulanzgebuehr
+      - spitalsfinanzierung
+      - personalmangel pflege spital
+    - slug: wartezeiten-detail
+      name: Wartezeiten & Versorgungslücken
+      schlagworte:
+      - mrt wartezeit
+      - kassentermin
+      - kinderarztmangel
+      - versorgungsluecke land
   - slug: pflege-betreuung
     name: Pflege & Betreuung
     schlagworte:
@@ -730,6 +1349,28 @@ lebensbereiche:
     - pflegelehre
     - angehörigenpflege
     - hospiz
+    unterkategorien:
+    - slug: pflegepersonal
+      name: Pflegepersonal & Ausbildung
+      schlagworte:
+      - pflegelehre
+      - pflegestipendium
+      - personalschluessel pflege
+      - pflegebonus
+    - slug: pflege-zuhause
+      name: Pflege zuhause & Angehörige
+      schlagworte:
+      - 24 stunden betreuung
+      - pflegekarenz
+      - angehoerigenbonus
+      - pflegegeld einstufung
+    - slug: heime-hospiz
+      name: Heime & Hospiz
+      schlagworte:
+      - pflegeheim qualitaet
+      - heimkosten
+      - hospiz ausbau
+      - palliativversorgung
   - slug: medikamente-heilmittel
     name: Medikamente & Heilmittel
     schlagworte:
@@ -740,6 +1381,15 @@ lebensbereiche:
     - rezeptgebühr
     - generika
     - medizinprodukt
+    unterkategorien:
+    - slug: medikamente-versorgung
+      name: Verfügbarkeit & Kosten
+      schlagworte:
+      - medikamentenknappheit
+      - rezeptgebuehr
+      - generika
+      - erstattungskodex
+      - apothekendichte
   - slug: psychische-gesundheit
     name: Psychische Gesundheit
     schlagworte:
@@ -749,6 +1399,14 @@ lebensbereiche:
     - suizidprävention
     - kassenplätze psychotherapie
     - kinderpsychiatrie
+    unterkategorien:
+    - slug: psychotherapie-versorgung
+      name: Therapieplätze & Kassenleistung
+      schlagworte:
+      - kassenpsychotherapie
+      - therapieplatz wartezeit
+      - kinder jugendpsychiatrie
+      - psychiater mangel
   - slug: praevention-vorsorge
     name: Prävention & Vorsorge
     schlagworte:
@@ -758,6 +1416,15 @@ lebensbereiche:
     - suchtprävention
     - gesundheitsförderung
     - bewegungsprogramm
+    unterkategorien:
+    - slug: impf-vorsorgeprogramme
+      name: Impf- & Vorsorgeprogramme
+      schlagworte:
+      - impfprogramm
+      - hpv impfung
+      - vorsorgeuntersuchung
+      - brustkrebsscreening
+      - zahngesundheit kinder
 - slug: soziales-absicherung
   name: Soziales & Absicherung
   beschreibung: Pensionen, Sozialversicherung, Armutsbekämpfung, Behinderung und Teilhabe.
@@ -787,6 +1454,23 @@ lebensbereiche:
     - pensionsanpassung
     - witwenpension
     - aliquotierung
+    unterkategorien:
+    - slug: pensionsantritt-detail
+      name: Antrittsalter & Modelle
+      schlagworte:
+      - pensionsantrittsalter
+      - korridorpension
+      - schwerarbeiterpension
+      - teilpension
+      - aliquotierung
+    - slug: pensionshoehe
+      name: Pensionshöhe & Anpassung
+      schlagworte:
+      - pensionsanpassung
+      - pensionskonto
+      - ausgleichszulage
+      - luxuspension
+      - witwenpension
   - slug: sozialversicherung
     name: Sozialversicherung
     schlagworte:
@@ -795,6 +1479,14 @@ lebensbereiche:
     - selbstversicherung
     - beitragsgrundlage
     - geringfügig
+    unterkategorien:
+    - slug: selbststaendige-sv
+      name: SV der Selbstständigen & Geringfügigen
+      schlagworte:
+      - svs beitraege
+      - geringfuegigkeitsgrenze
+      - mehrfachversicherung
+      - gewerbepension
   - slug: mindestsicherung-armut
     name: Mindestsicherung & Armut
     schlagworte:
@@ -804,6 +1496,21 @@ lebensbereiche:
     - delogierung
     - energiearmut
     - lebensmittelausgabe
+    unterkategorien:
+    - slug: wohnungslosigkeit
+      name: Wohnungslosigkeit & Delogierung
+      schlagworte:
+      - delogierungspraevention
+      - wohnungslosenhilfe
+      - housing first
+      - winterpaket
+    - slug: energiearmut-detail
+      name: Energie- & Kinderarmut
+      schlagworte:
+      - energiearmut
+      - kinderarmut
+      - schulstartpaket
+      - heizkostenzuschuss
   - slug: behinderung-teilhabe
     name: Behinderung & Teilhabe
     schlagworte:
@@ -812,6 +1519,14 @@ lebensbereiche:
     - werkstätte
     - invalidität
     - teilhabegesetz
+    unterkategorien:
+    - slug: assistenz-teilhabe
+      name: Persönliche Assistenz & Arbeit
+      schlagworte:
+      - persoenliche assistenz
+      - werkstatt entlohnung
+      - behindertenanwalt
+      - inklusiver arbeitsmarkt
 - slug: familie-generationen
   name: Familie & Generationen
   beschreibung: Familienleistungen, Kinderbetreuung, Jugend, Alter und Generationengerechtigkeit.
@@ -843,6 +1558,21 @@ lebensbereiche:
     - betreuungsplatz
     - elementarpädagog
     - öffnungszeiten kindergarten
+    unterkategorien:
+    - slug: betreuungsausbau
+      name: Plätze & Öffnungszeiten
+      schlagworte:
+      - betreuungsplatz rechtsanspruch
+      - kindergarten oeffnungszeiten
+      - schliesstage
+      - nachmittagsbetreuung
+    - slug: elementarpaedagogik-personal
+      name: Elementarpädagogisches Personal
+      schlagworte:
+      - elementarpaedagogen mangel
+      - gruppengroesse kindergarten
+      - assistenzkraefte
+      - ausbildung elementar
   - slug: familienleistungen
     name: Familienleistungen
     schlagworte:
@@ -853,6 +1583,23 @@ lebensbereiche:
     - papamonat
     - elternteilzeit
     - unterhaltsvorschuss
+    unterkategorien:
+    - slug: karenz-elternzeit
+      name: Karenz & Elternzeit
+      schlagworte:
+      - kinderbetreuungsgeld
+      - papamonat
+      - elternteilzeit
+      - karenzanrechnung
+      - familienzeitbonus
+    - slug: beihilfen-detail
+      name: Beihilfen & Familienbonus
+      schlagworte:
+      - familienbeihilfe
+      - familienbonus plus
+      - mehrkindzuschlag
+      - schulstartgeld
+      - unterhaltsvorschuss
   - slug: jugend
     name: Jugend
     schlagworte:
@@ -861,6 +1608,14 @@ lebensbereiche:
     - jugendarbeit
     - ausgehzeiten
     - taschengeld
+    unterkategorien:
+    - slug: jugendschutz-detail
+      name: Jugendschutz
+      schlagworte:
+      - jugendschutzgesetz
+      - ausgehzeiten
+      - alkohol jugendliche
+      - vape verbot jugend
   - slug: senioren
     name: Seniorinnen & Senioren
     schlagworte:
@@ -869,6 +1624,14 @@ lebensbereiche:
     - einsamkeit im alter
     - generationenhaus
     - aktiv altern
+    unterkategorien:
+    - slug: aktiv-altern
+      name: Aktives Altern & Einsamkeit
+      schlagworte:
+      - einsamkeit alter
+      - seniorentreff
+      - generationenprojekt
+      - digitalkurs senioren
 - slug: bildung
   name: Bildung
   beschreibung: Kindergarten, Schule, Lehre, Hochschule und Erwachsenenbildung.
@@ -905,6 +1668,37 @@ lebensbereiche:
     - nachhilfe
     - schulstartgeld
     - suspendierung
+    unterkategorien:
+    - slug: schularten-uebertritt
+      name: Schularten & Übertritte
+      schlagworte:
+      - gesamtschule
+      - gymnasium aufnahme
+      - mittelschule
+      - bildungswegentscheidung
+      - aufnahmetest
+    - slug: lehrplan-inhalte
+      name: Lehrpläne & Inhalte
+      schlagworte:
+      - lehrplan reform
+      - politische bildung
+      - finanzbildung
+      - ernaehrungsbildung
+      - digitale grundbildung
+    - slug: ganztag-nachhilfe
+      name: Ganztagsschule & Nachhilfe
+      schlagworte:
+      - ganztagsschule
+      - verschraenkte form
+      - nachhilfekosten
+      - lernbetreuung
+    - slug: schulbau-ausstattung
+      name: Schulbau & Ausstattung
+      schlagworte:
+      - schulsanierung
+      - containerklassen
+      - klimafitte schule
+      - schulwegsicherheit
   - slug: hochschule-studium
     name: Hochschule & Studium
     schlagworte:
@@ -915,6 +1709,21 @@ lebensbereiche:
     - stipendium
     - aufnahmeverfahren
     - doktorat
+    unterkategorien:
+    - slug: studienplaetze-zugang
+      name: Studienplätze & Zugang
+      schlagworte:
+      - aufnahmeverfahren medizin
+      - studienplatzfinanzierung
+      - numerus clausus
+      - fachhochschulplaetze
+    - slug: studienfoerderung
+      name: Studienbeihilfe & Wohnen
+      schlagworte:
+      - studienbeihilfe
+      - studiengebuehr
+      - studierendenwohnheim
+      - selbsterhalterstipendium
   - slug: paedagogisches-personal
     name: Pädagogisches Personal
     schlagworte:
@@ -923,6 +1732,21 @@ lebensbereiche:
     - lehrerausbildung
     - schulpsycholog
     - assistenzpersonal
+    unterkategorien:
+    - slug: lehrermangel-detail
+      name: Lehrkräftemangel & Quereinstieg
+      schlagworte:
+      - lehrermangel
+      - quereinstieg lehramt
+      - supplierungen
+      - lehrerausbildung dauer
+    - slug: unterstuetzungspersonal
+      name: Unterstützungspersonal
+      schlagworte:
+      - schulpsychologie
+      - schulsozialarbeit
+      - assistenzpersonal schule
+      - administrative entlastung
   - slug: erwachsenenbildung
     name: Erwachsenenbildung
     schlagworte:
@@ -931,6 +1755,14 @@ lebensbereiche:
     - bildungskarenz
     - nachholen abschluss
     - alphabetisierung
+    unterkategorien:
+    - slug: zweiter-bildungsweg
+      name: Zweiter Bildungsweg
+      schlagworte:
+      - nachholen pflichtschulabschluss
+      - berufsreifepruefung
+      - abendschule
+      - basisbildung
 - slug: wissenschaft-innovation
   name: Wissenschaft, Forschung & Innovation
   beschreibung: Forschungspolitik, Technologieentwicklung, Innovationsförderung und Ethik der Forschung.
@@ -957,6 +1789,14 @@ lebensbereiche:
     - fwf
     - forschungsprämie
     - exzellenzcluster
+    unterkategorien:
+    - slug: grundlagen-angewandt
+      name: Grundlagen- & angewandte Forschung
+      schlagworte:
+      - fwf budget
+      - ffg foerderung
+      - forschungspraemie
+      - exzellenzinitiative
   - slug: technologie-transfer
     name: Technologie & Transfer
     schlagworte:
@@ -965,6 +1805,14 @@ lebensbereiche:
     - technologietransfer
     - prototyp
     - reallabor
+    unterkategorien:
+    - slug: ausgruendungen
+      name: Ausgründungen & Patente
+      schlagworte:
+      - spin off
+      - patentverwertung
+      - gruendungsfoerderung forschung
+      - reallabor
   - slug: wissenschaftsethik
     name: Wissenschaftsethik & -vertrauen
     schlagworte:
@@ -972,6 +1820,14 @@ lebensbereiche:
     - wissenschaftsskepsis
     - gute wissenschaftliche praxis
     - tierversuchsethik
+    unterkategorien:
+    - slug: wissenschaftsvertrauen
+      name: Wissenschaftsvertrauen & Skepsis
+      schlagworte:
+      - wissenschaftsskepsis
+      - wissenschaftskommunikation
+      - fake science
+      - citizen science
 - slug: digitales-medien
   name: Digitales & Medien
   beschreibung: Digitalisierung, Internet, Künstliche Intelligenz, Medien, Presse- und Informationsfreiheit.
@@ -1011,6 +1867,15 @@ lebensbereiche:
     - mobilfunk
     - funkloch
     - netzabdeckung
+    unterkategorien:
+    - slug: breitband-funkloch
+      name: Breitband & Funklöcher
+      schlagworte:
+      - glasfaserausbau
+      - funkloch
+      - 5g ausbau
+      - breitbandmilliarde
+      - leerverrohrung
   - slug: kuenstliche-intelligenz
     name: Künstliche Intelligenz
     schlagworte:
@@ -1021,6 +1886,21 @@ lebensbereiche:
     - deepfake
     - ai act
     - maschinelles lernen
+    unterkategorien:
+    - slug: ki-regeln
+      name: KI-Regulierung & Kennzeichnung
+      schlagworte:
+      - ai act umsetzung
+      - ki kennzeichnung
+      - deepfake verbot
+      - algorithmen transparenz
+    - slug: ki-verwaltung-wirtschaft
+      name: KI in Verwaltung & Wirtschaft
+      schlagworte:
+      - ki verwaltung
+      - ki foerderung
+      - ki kompetenz
+      - automatisierte entscheidung
   - slug: datenpolitik-plattformen
     name: Datenpolitik & Plattformen
     schlagworte:
@@ -1030,6 +1910,21 @@ lebensbereiche:
     - interoperabilität
     - cloud
     - digitale souveränität
+    unterkategorien:
+    - slug: plattformregeln
+      name: Plattform-Regeln & DSA
+      schlagworte:
+      - digital services act
+      - plattformhaftung
+      - altersverifikation
+      - empfehlungsalgorithmen
+    - slug: open-data-detail
+      name: Open Data & Register
+      schlagworte:
+      - open data
+      - registerzugang
+      - datenaltruismus
+      - verwaltungsdaten forschung
   - slug: medien-rundfunk
     name: Medien & Rundfunk
     schlagworte:
@@ -1039,6 +1934,21 @@ lebensbereiche:
     - medienvielfalt
     - desinformation
     - inseratenkorruption
+    unterkategorien:
+    - slug: orf-detail
+      name: ORF & Haushaltsabgabe
+      schlagworte:
+      - orf beitrag
+      - orf gremien
+      - orf digital
+      - gebuehrenfinanzierung
+    - slug: medienvielfalt-detail
+      name: Medienvielfalt & Förderung
+      schlagworte:
+      - pressefoerderung
+      - qualitaetsjournalismus foerderung
+      - medienkonzentration
+      - regionalmedien
   - slug: e-government
     name: E-Government & digitale Verwaltung
     schlagworte:
@@ -1047,6 +1957,14 @@ lebensbereiche:
     - elektronische signatur
     - e rechnung
     - once only
+    unterkategorien:
+    - slug: id-austria-detail
+      name: ID Austria & digitale Identität
+      schlagworte:
+      - id austria
+      - handysignatur
+      - digitale identitaet
+      - eidas wallet
 - slug: kultur-sport-freizeit
   name: Kultur, Sport & Freizeit
   beschreibung: Kunst, Kulturförderung, Vereinsleben, Sport, Tourismus und Freizeitgestaltung.
@@ -1080,6 +1998,21 @@ lebensbereiche:
     - denkmalschutz
     - künstlersozialversicherung
     - volkskultur
+    unterkategorien:
+    - slug: kulturfoerderung-detail
+      name: Kulturförderung & Fair Pay
+      schlagworte:
+      - kulturfoerderung
+      - fair pay kunst
+      - kuenstlersozialversicherung
+      - atelierfoerderung
+    - slug: kulturerbe
+      name: Denkmalschutz & Kulturerbe
+      schlagworte:
+      - denkmalschutz
+      - unesco welterbe
+      - restaurierung
+      - volkskultur brauchtum
   - slug: sport
     name: Sport
     schlagworte:
@@ -1090,6 +2023,21 @@ lebensbereiche:
     - schwimmkurs
     - tägliche turnstunde
     - stadion
+    unterkategorien:
+    - slug: breitensport
+      name: Breiten- & Schulsport
+      schlagworte:
+      - taegliche bewegungseinheit
+      - schwimmkurs kinder
+      - vereinssport foerderung
+      - sportstaettenbau
+    - slug: spitzensport-detail
+      name: Spitzensport
+      schlagworte:
+      - spitzensportfoerderung
+      - olympiazentrum
+      - sportlerkarriere
+      - doping
   - slug: vereine-ehrenamt
     name: Vereine & Ehrenamt
     schlagworte:
@@ -1098,6 +2046,14 @@ lebensbereiche:
     - freiwilligenarbeit
     - vereinsstatut
     - gemeinnützigkeit
+    unterkategorien:
+    - slug: ehrenamt-detail
+      name: Ehrenamt & Freiwilligenwesen
+      schlagworte:
+      - ehrenamtsbonus
+      - freiwilligenpauschale
+      - vereinsrecht
+      - haftung ehrenamt
 - slug: wohnen-bauen
   name: Wohnen & Bauen
   beschreibung: Mieten, Eigentum, sozialer Wohnbau, Bauordnung und Bodenpolitik.
@@ -1131,6 +2087,22 @@ lebensbereiche:
     - maklerprovision
     - mietrechtsgesetz
     - lagezuschlag
+    unterkategorien:
+    - slug: mietpreise-detail
+      name: Mietpreise & Befristungen
+      schlagworte:
+      - mietpreisbremse
+      - richtwertmiete
+      - kategoriemiete
+      - befristungsabschlag
+      - lagezuschlag
+    - slug: betriebskosten-detail
+      name: Betriebskosten & Kautionen
+      schlagworte:
+      - betriebskostenabrechnung
+      - kaution rueckzahlung
+      - heizkostenabrechnung
+      - maklerprovision bestellerprinzip
   - slug: gemeinnuetziger-wohnbau
     name: Gemeinnütziger & sozialer Wohnbau
     schlagworte:
@@ -1139,6 +2111,14 @@ lebensbereiche:
     - sozialer wohnbau
     - wohnbauförderung
     - gemeinnützige bauvereinigung
+    unterkategorien:
+    - slug: gemeindebau-genossenschaft
+      name: Gemeindebau & Genossenschaften
+      schlagworte:
+      - gemeindewohnung vergabe
+      - genossenschaftsbeitrag
+      - wohnbaufoerderung
+      - kaufoption genossenschaft
   - slug: eigentum-grund
     name: Eigentum & Grund
     schlagworte:
@@ -1148,6 +2128,21 @@ lebensbereiche:
     - leerstandsabgabe
     - zweitwohnsitz
     - vorsorgewohnung
+    unterkategorien:
+    - slug: eigentumserwerb
+      name: Eigentumserwerb & Nebenkosten
+      schlagworte:
+      - grunderwerbsteuer
+      - eintragungsgebuehr
+      - eigenmittelquote
+      - erste eigene wohnung
+    - slug: leerstand-spekulation
+      name: Leerstand & Spekulation
+      schlagworte:
+      - leerstandsabgabe
+      - spekulation wohnraum
+      - airbnb regulierung
+      - vorsorgewohnung
   - slug: bauordnung-sanierung
     name: Bauordnung & Sanierung
     schlagworte:
@@ -1157,6 +2152,14 @@ lebensbereiche:
     - thermische sanierung
     - heizungstausch
     - barrierefreier umbau
+    unterkategorien:
+    - slug: sanierungsoffensive
+      name: Thermische Sanierung & Heizungstausch
+      schlagworte:
+      - thermische sanierung
+      - heizungstausch foerderung
+      - sanierungsbonus
+      - dekarbonisierung gebaeude
 - slug: verkehr-mobilitaet
   name: Verkehr & Mobilität
   beschreibung: Öffentlicher Verkehr, Straße, Schiene, Rad- und Fußwege, Luftfahrt und Verkehrssicherheit.
@@ -1199,6 +2202,29 @@ lebensbereiche:
     - taktverkehr
     - nightjet
     - öbb
+    unterkategorien:
+    - slug: klimaticket-tarife
+      name: Klimaticket & Tarife
+      schlagworte:
+      - klimaticket preis
+      - jahreskarte
+      - tarifverbund
+      - sozialtarif oeffi
+    - slug: bahnausbau
+      name: Bahnausbau & Regionalbahnen
+      schlagworte:
+      - bahnausbau
+      - regionalbahn reaktivierung
+      - elektrifizierung
+      - nahverkehrstakt
+      - bahnhofsmodernisierung
+    - slug: landbus-mikrooev
+      name: Bus & Mikro-ÖV am Land
+      schlagworte:
+      - busverbindung land
+      - rufbus
+      - anrufsammeltaxi
+      - letzte meile
   - slug: strassen-individualverkehr
     name: Straßen & Individualverkehr
     schlagworte:
@@ -1211,6 +2237,29 @@ lebensbereiche:
     - fahrverbot
     - lückenschluss
     - umfahrung
+    unterkategorien:
+    - slug: tempo-verkehrsberuhigung
+      name: Tempolimits & Verkehrsberuhigung
+      schlagworte:
+      - tempo 30
+      - tempolimit autobahn
+      - begegnungszone
+      - verkehrsberuhigung ortskern
+    - slug: strassenbau-maut
+      name: Straßenbau & Maut
+      schlagworte:
+      - strassenbauprojekt
+      - umfahrung
+      - vignette
+      - lkw maut
+      - strassensanierung
+    - slug: e-mobilitaet
+      name: E-Mobilität & Ladeinfrastruktur
+      schlagworte:
+      - ladestation
+      - e auto foerderung
+      - ladeinfrastruktur
+      - verbrenner aus
   - slug: rad-fussverkehr
     name: Rad- & Fußverkehr
     schlagworte:
@@ -1220,6 +2269,22 @@ lebensbereiche:
     - zebrastreifen
     - schulstraße
     - radabstellanlage
+    unterkategorien:
+    - slug: radinfrastruktur
+      name: Radwege & Abstellanlagen
+      schlagworte:
+      - radweg luecke
+      - radschnellweg
+      - fahrradstrasse
+      - radabstellanlage
+      - radfoerderung
+    - slug: schulwege-gehen
+      name: Gehwege & Schulwege
+      schlagworte:
+      - schulstrasse
+      - gehsteigbreite
+      - zebrastreifen sicherheit
+      - fussgaengerzone
   - slug: gueterverkehr-logistik
     name: Güterverkehr & Logistik
     schlagworte:
@@ -1229,6 +2294,15 @@ lebensbereiche:
     - brenner
     - rollende landstraße
     - zustelldienst
+    unterkategorien:
+    - slug: transit-detail
+      name: Transit & Verlagerung
+      schlagworte:
+      - lkw transit
+      - brenner transit
+      - rollende landstrasse
+      - verlagerung schiene
+      - nachtfahrverbot
 - slug: energie
   name: Energie
   beschreibung: Energieversorgung, erneuerbare Energie, Netze, Preise und Energiesparen.
@@ -1265,6 +2339,29 @@ lebensbereiche:
     - geothermie
     - erneuerbaren ausbau
     - balkonkraftwerk
+    unterkategorien:
+    - slug: photovoltaik-detail
+      name: Photovoltaik & Speicher
+      schlagworte:
+      - pv foerderung
+      - balkonkraftwerk
+      - einspeisetarif
+      - stromspeicher
+      - agri pv
+    - slug: windkraft-detail
+      name: Windkraft
+      schlagworte:
+      - windrad widmung
+      - windkraftausbau
+      - repowering
+      - windzonen
+    - slug: wasserkraft-biomasse
+      name: Wasserkraft & Biomasse
+      schlagworte:
+      - kleinwasserkraft
+      - pumpspeicher
+      - biomasse heizwerk
+      - biogas einspeisung
   - slug: netze-versorgung
     name: Netze & Versorgungssicherheit
     schlagworte:
@@ -1275,6 +2372,21 @@ lebensbereiche:
     - netzgebühr
     - versorgungssicherheit
     - smart meter
+    unterkategorien:
+    - slug: stromnetz-detail
+      name: Netzausbau & Netzgebühren
+      schlagworte:
+      - netzausbau strom
+      - netzgebuehren
+      - netzanschluss wartezeit
+      - smart meter
+      - blackout uebung
+    - slug: energiegemeinschaften
+      name: Energiegemeinschaften
+      schlagworte:
+      - energiegemeinschaft
+      - gemeinschaftliche erzeugungsanlage
+      - buergerbeteiligung energie
   - slug: energiepreise
     name: Energiepreise & -kosten
     schlagworte:
@@ -1284,6 +2396,15 @@ lebensbereiche:
     - strompreisbremse
     - netzentgelt
     - merit order
+    unterkategorien:
+    - slug: strom-gaspreise
+      name: Strom- & Gaspreise
+      schlagworte:
+      - strompreisbremse
+      - energiekostenzuschuss
+      - grundversorgung tarif
+      - merit order
+      - netzentgelt
   - slug: raus-aus-fossil
     name: Raus aus Öl und Gas
     schlagworte:
@@ -1293,6 +2414,15 @@ lebensbereiche:
     - wärmepumpe
     - dekarbonisierung
     - russisches gas
+    unterkategorien:
+    - slug: heizungstausch-detail
+      name: Raus aus Öl- und Gasheizungen
+      schlagworte:
+      - oelheizung verbot
+      - gasheizung tausch
+      - fernwaermeausbau
+      - waermepumpe foerderung
+      - erneuerbare waerme gesetz
 - slug: umwelt-klima
   name: Umwelt, Natur & Klima
   beschreibung: Klimaschutz, Naturschutz, Luft, Wasser, Boden, Abfall und Kreislaufwirtschaft.
@@ -1332,6 +2462,21 @@ lebensbereiche:
     - klimabonus
     - pariser abkommen
     - klimakleber
+    unterkategorien:
+    - slug: co2-bepreisung
+      name: CO2-Bepreisung & Klimabonus
+      schlagworte:
+      - co2 preis
+      - klimabonus
+      - emissionshandel
+      - klimaschutzgesetz ziele
+    - slug: klimaanpassung
+      name: Klimawandelanpassung
+      schlagworte:
+      - hitzeplan
+      - stadtbegruenung
+      - duerrevorsorge
+      - klimawandelanpassung gemeinde
   - slug: naturschutz-artenvielfalt
     name: Naturschutz & Artenvielfalt
     schlagworte:
@@ -1342,6 +2487,23 @@ lebensbereiche:
     - renaturierung
     - moorschutz
     - bienensterben
+    unterkategorien:
+    - slug: schutzgebiete
+      name: Schutzgebiete & Renaturierung
+      schlagworte:
+      - nationalpark erweiterung
+      - natura 2000
+      - renaturierungsverordnung
+      - moorschutz
+      - flussrenaturierung
+    - slug: artenschutz-detail
+      name: Artenschutz
+      schlagworte:
+      - artensterben
+      - bienenschutz
+      - lichtverschmutzung
+      - neophyten
+      - vogelschutz glas
   - slug: wasser-boden-luft
     name: Wasser, Boden & Luft
     schlagworte:
@@ -1352,6 +2514,22 @@ lebensbereiche:
     - pestizidbelastung
     - altlasten
     - gewässerschutz
+    unterkategorien:
+    - slug: trinkwasser-detail
+      name: Trinkwasser & Grundwasser
+      schlagworte:
+      - trinkwasserschutz
+      - grundwasserpegel
+      - pfas belastung
+      - nitrat grundwasser
+      - wasserprivatisierung verbot
+    - slug: luftqualitaet
+      name: Luftqualität
+      schlagworte:
+      - feinstaub
+      - stickoxid
+      - luftguetemessung
+      - heizung emissionen
   - slug: abfall-kreislauf
     name: Abfall & Kreislaufwirtschaft
     schlagworte:
@@ -1361,6 +2539,22 @@ lebensbereiche:
     - recyclingquote
     - deponien
     - lebensmittelverschwendung
+    unterkategorien:
+    - slug: pfand-verpackung
+      name: Pfand & Verpackung
+      schlagworte:
+      - einwegpfand
+      - mehrwegquote
+      - verpackungsreduktion
+      - einwegplastik verbot
+    - slug: muelltrennung-detail
+      name: Trennung & Recycling
+      schlagworte:
+      - muelltrennung einheitlich
+      - gelber sack
+      - recyclingquote
+      - sperrmuell
+      - littering strafe
 - slug: landwirtschaft-ernaehrung
   name: Landwirtschaft & Ernährung
   beschreibung: Bäuerliche Betriebe, Wald, Fischerei, Lebensmittelqualität und Ernährungssicherheit.
@@ -1396,6 +2590,23 @@ lebensbereiche:
     - direktvermarktung
     - almwirtschaft
     - bergbauern
+    unterkategorien:
+    - slug: agrarfoerderung-detail
+      name: Agrarförderung & Einkommen
+      schlagworte:
+      - gap zahlungen
+      - flaechenpraemie
+      - bergbauernfoerderung
+      - erzeugerpreis milch
+      - hofuebergabe steuer
+    - slug: direktvermarktung-detail
+      name: Direktvermarktung & Regionalität
+      schlagworte:
+      - direktvermarktung
+      - hofladen
+      - bauernmarkt
+      - regional einkaufen
+      - ab hof verkauf
   - slug: wald-forstwirtschaft
     name: Wald & Forstwirtschaft
     schlagworte:
@@ -1405,6 +2616,15 @@ lebensbereiche:
     - holznutzung
     - schutzwald
     - waldbrand
+    unterkategorien:
+    - slug: waldpflege
+      name: Waldpflege & Schutzwald
+      schlagworte:
+      - borkenkaefer
+      - aufforstung klimafit
+      - schutzwald sanierung
+      - waldbrandpraevention
+      - wildverbiss
   - slug: lebensmittel-qualitaet
     name: Lebensmittel & Qualität
     schlagworte:
@@ -1414,6 +2634,15 @@ lebensbereiche:
     - zuckergehalt
     - ampelkennzeichnung
     - lebensmittelsicherheit
+    unterkategorien:
+    - slug: herkunft-qualitaet
+      name: Herkunft & Täuschungsschutz
+      schlagworte:
+      - herkunftskennzeichnung gastronomie
+      - ama guetesiegel
+      - palmoel
+      - zuckergehalt kinderlebensmittel
+      - taeuschung verpackung
   - slug: bio-landbau
     name: Biologische Landwirtschaft
     schlagworte:
@@ -1422,6 +2651,14 @@ lebensbereiche:
     - pestizidfrei
     - glyphosat
     - bodengesundheit
+    unterkategorien:
+    - slug: pestizidreduktion
+      name: Bio-Ausbau & Pestizidreduktion
+      schlagworte:
+      - bio anteil steigern
+      - glyphosat ausstieg
+      - pestizidreduktion
+      - bio in oeffentlicher kueche
 - slug: tiere-tierschutz
   name: Tiere & Tierschutz
   beschreibung: Tierschutz, Tierhaltung, Heimtiere, Wildtiere und Artenschutz.
@@ -1454,6 +2691,29 @@ lebensbereiche:
     - anbindehaltung
     - weidehaltung
     - schweinemast
+    unterkategorien:
+    - slug: schweinehaltung
+      name: Schweine- & Rinderhaltung
+      schlagworte:
+      - vollspaltenboden verbot
+      - anbindehaltung ende
+      - weidepraemie
+      - schlachthof kontrolle
+      - kastenstand
+    - slug: tiertransporte-detail
+      name: Tiertransporte
+      schlagworte:
+      - tiertransport dauer
+      - kaelberexport
+      - lebendtierexport
+      - transportkontrolle
+    - slug: gefluegel-detail
+      name: Geflügel & Eier
+      schlagworte:
+      - kuekenschreddern verbot
+      - bodenhaltung
+      - gefluegelmast
+      - eierkennzeichnung
   - slug: heimtiere
     name: Heimtiere
     schlagworte:
@@ -1463,6 +2723,15 @@ lebensbereiche:
     - chippflicht
     - welpenhandel
     - katzenkastration
+    unterkategorien:
+    - slug: heimtierschutz
+      name: Haltung & Handel
+      schlagworte:
+      - qualzucht verbot
+      - welpenhandel illegal
+      - chippflicht
+      - tierheim finanzierung
+      - listenhunde
   - slug: wildtiere-jagd
     name: Wildtiere & Jagd
     schlagworte:
@@ -1472,6 +2741,21 @@ lebensbereiche:
     - biber
     - wildtierkorridor
     - gatterjagd
+    unterkategorien:
+    - slug: grosse-beutegreifer
+      name: Wolf, Bär & Fischotter
+      schlagworte:
+      - wolf abschuss
+      - herdenschutz
+      - fischotter management
+      - baer entnahme
+    - slug: jagdrecht
+      name: Jagdrecht & Wildmanagement
+      schlagworte:
+      - jagdgesetz novelle
+      - gatterjagd verbot
+      - abschussplan
+      - fuetterung wild
   - slug: tierversuche
     name: Tierversuche
     schlagworte:
@@ -1479,6 +2763,14 @@ lebensbereiche:
     - versuchstier
     - alternativmethoden
     - 3r prinzip
+    unterkategorien:
+    - slug: alternativmethoden
+      name: Alternativen zu Tierversuchen
+      schlagworte:
+      - alternativmethoden foerderung
+      - 3r zentrum
+      - tierversuchsstatistik
+      - organchip
 - slug: gemeinden-raumordnung
   name: Gemeinden, Regionen & Raumordnung
   beschreibung: Gemeindeleben, Regionalentwicklung, Raumplanung, ländlicher Raum und Stadtentwicklung.
@@ -1512,6 +2804,21 @@ lebensbereiche:
     - gemeindebudget
     - gemeindekooperation
     - ortstafel
+    unterkategorien:
+    - slug: gemeindefinanzen
+      name: Gemeindefinanzen
+      schlagworte:
+      - gemeindebudget
+      - kommunalinvestition
+      - gemeindekooperation
+      - verwaltungsgemeinschaft
+    - slug: ortsdemokratie
+      name: Ortsdemokratie & Ehrenamt
+      schlagworte:
+      - buergermeister direktwahl
+      - gemeinderat verkleinerung
+      - ortsteilbeirat
+      - buergerversammlung
   - slug: raumplanung
     name: Raumplanung & Flächenwidmung
     schlagworte:
@@ -1521,6 +2828,14 @@ lebensbereiche:
     - baulandmobilisierung
     - ortsbild
     - zersiedelung
+    unterkategorien:
+    - slug: widmung-baulandmobilisierung
+      name: Widmung & Baulandmobilisierung
+      schlagworte:
+      - umwidmungsgewinn
+      - baulandmobilisierung
+      - vertragsraumordnung
+      - widmungskategorie
   - slug: laendlicher-raum
     name: Ländlicher Raum & Nahversorgung
     schlagworte:
@@ -1530,6 +2845,15 @@ lebensbereiche:
     - leerstand ortskern
     - postpartner
     - wirtshaussterben
+    unterkategorien:
+    - slug: nahversorgung-detail
+      name: Nahversorgung & Ortskerne
+      schlagworte:
+      - dorfladen foerderung
+      - ortskernbelebung
+      - leerstand ortszentrum
+      - wirtshauspaket
+      - postpartner
   - slug: bodenverbrauch
     name: Bodenverbrauch & Versiegelung
     schlagworte:
@@ -1538,3 +2862,11 @@ lebensbereiche:
     - supermarkt wiese
     - parkplatzflächen
     - entsiegelung
+    unterkategorien:
+    - slug: versiegelung-detail
+      name: Versiegelung & Entsiegelung
+      schlagworte:
+      - bodenverbrauch obergrenze
+      - supermarkt parkplatz
+      - entsiegelung foerderung
+      - brachflaechen recycling

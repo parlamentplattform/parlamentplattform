@@ -28,14 +28,14 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).</p>
         <p class="leer">Noch keine Favoriten — der Stern &#9734; bei jedem Antrag merkt ihn hier vor.</p>
       {% endif %}
       {% if themen_neu %}
-        <p class="erk" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">Neu in Ihren <a href="{% url 'verfahren:kategorien' %}">Lebensbereichen</a>:</p>
+        <p class="erk" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">Neu aus Ihren favorisierten <a href="{% url 'verfahren:kategorien' %}">Lebensbereichen</a>:</p>
         {% for a in themen_neu %}
           <div class="eintrag" style="border-top:0;padding-top:2px">
             <span><span class="badge badge--hell">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
           </div>
         {% endfor %}
       {% else %}
-        <p class="erk" style="margin-top:10px"><a href="{% url 'verfahren:kategorien' %}">Lebensbereiche abonnieren</a> — Neues daraus erscheint hier.</p>
+        <p class="erk" style="margin-top:10px"><a href="{% url 'verfahren:kategorien' %}">Lebensbereiche favorisieren</a> — Neues daraus erscheint hier.</p>
       {% endif %}
     {% else %}
       <p class="erk">Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon gerade

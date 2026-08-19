@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.5.0] — 2026-08-19 · Menschlichkeitsprüfung, Beitrags-QR, voller Kategorienbaum
+
+### Hinzugefügt
+- **Menschlichkeitsprüfung** (F-49) bei Registrierung und Anmeldelink — vier Lagen, ohne Drittanbieter, ohne JavaScript-Pflicht: Honigtopf-Feld, signierte Mindestzeit, Rechenfrage, IP-Drossel (5 Registrierungen bzw. 10 Anmeldelinks je Stunde und IP)
+- **Zahlen mit Code** (F-38): EPC-QR-Code auf der Willkommensseite — Banking-App scannt, Empfänger/IBAN/persönliche Referenz sind vorausgefüllt; Überweisung direkt von Konto zu Konto, ohne Zahlungsdienstleister, ohne Prozentgebühren (neue Abhängigkeit: segno)
+- **Kategorienbaum voll ausgebaut:** 295 Knoten — 24 Hauptkategorien, 96 Unterkategorien, 175 Detailkategorien über alle Lebensbereiche; die automatische Zuordnung trifft die Detailebene (z. B. „Tempo 30 vor Schulen" → Verkehr › Straßen › Tempolimits & Verkehrsberuhigung)
+- Konzept: F-48 (spätere App mit klar getrenntem, opt-in „Für dich"-Bereich — beeinflusst nie die gemeinsame Reihung), F-49 dokumentiert
+
+### Geändert
+- Einheitliches **Favoriten**-Wording für Lebensbereiche (statt „Abo"): „Favorisieren Sie, was Sie betrifft: Neues daraus erscheint in Ihrem Hauptfenster unter Favoriten. Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis." — Detailkategorien sind einzeln favorisierbar
+- 5 neue Tests (92 gesamt)
+
 ## [0.4.0] — 2026-08-19 · Kategorienbaum, automatische Zuordnung, Regionalbindung
 
 ### Hinzugefügt

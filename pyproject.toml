@@ -9,6 +9,7 @@ authors = [{ name = "Direkte Demokratie Österreich", email = "didide@ddoe.at" }
 dependencies = [
     "Django>=5.0,<5.3",
     "PyYAML>=6.0",
+    "segno>=1.6",
 ]
 
 [project.optional-dependencies]

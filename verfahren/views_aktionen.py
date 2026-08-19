@@ -298,11 +298,11 @@ def kategorie_abonnieren(request, slug):
     _, neu = KategorieAbo.objects.get_or_create(kategorie=kategorie, mitglied=request.user)
     if neu:
         messages.success(
-            request, f"„{kategorie.name}“ abonniert — Neues daraus erscheint in Ihrem Hauptfenster."
+            request, f"„{kategorie.name}“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster."
         )
     else:
         KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
-        messages.info(request, f"Abo für „{kategorie.name}“ beendet.")
+        messages.info(request, f"Favorit „{kategorie.name}“ entfernt.")
     weiter = request.POST.get("weiter", "")
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)

@@ -4,10 +4,12 @@
 <h1>Lebensbereiche</h1>
 <p style="max-width:46em">Jeder Antrag wird automatisch in diesen Kategorienbaum eingeordnet — von der
 Hauptkategorie bis zur Detailebene (zum Beispiel Wirtschaft › Bauwirtschaft › Installateur).
-Abonnieren Sie, was Sie betrifft: Ein Abo gilt für den ganzen Ast, Neues daraus erscheint in Ihrem
-Hauptfenster. Abos sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
+Favorisieren Sie, was Sie betrifft: Neues daraus erscheint in Ihrem Hauptfenster unter Favoriten.
+Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
+<p class="hilfe">Ein Favorit auf einer Haupt- oder Unterkategorie umfasst den ganzen Ast —
+Detailkategorien lassen sich genauso einzeln favorisieren (Stern).</p>
 {% if not user.is_authenticated %}
-<p class="hilfe">Zum Abonnieren bitte <a href="{% url 'mitglieder:login' %}">anmelden</a> oder
+<p class="hilfe">Zum Favorisieren bitte <a href="{% url 'mitglieder:login' %}">anmelden</a> oder
 <a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>.</p>
 {% endif %}
 
@@ -21,8 +23,8 @@ Hauptfenster. Abos sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
     </div>
     {% if user.is_authenticated %}
     <form method="post" action="{% url 'verfahren:kategorie_abonnieren' h.k.slug %}">{% csrf_token %}
-      {% if h.abonniert %}<button type="submit" class="btn-still">Abonniert ✓</button>
-      {% else %}<button type="submit" class="btn-linie">Abonnieren</button>{% endif %}
+      {% if h.abonniert %}<button type="submit" class="btn-still">&#9733; Favorit ✓</button>
+      {% else %}<button type="submit" class="btn-linie">&#9734; Favorisieren</button>{% endif %}
     </form>
     {% endif %}
   </div>
@@ -34,11 +36,11 @@ Hauptfenster. Abos sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
       <span>{{ u.k.name }}
         {% if u.laufend %}<span class="badge badge--hell">{{ u.laufend }}</span>{% endif %}
         {% for d in u.kinder %}<br><small class="erk" style="padding-left:16px">› {{ d.k.name }}{% if d.laufend %} · {{ d.laufend }} laufend{% endif %}
-          {% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' d.k.slug %}" style="display:inline">{% csrf_token %}<button type="submit" class="stern {% if not d.abonniert %}aus{% endif %}" title="{% if d.abonniert %}Abo beenden{% else %}Abonnieren{% endif %}">{% if d.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button></form>{% endif %}</small>{% endfor %}
+          {% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' d.k.slug %}" style="display:inline">{% csrf_token %}<button type="submit" class="stern {% if not d.abonniert %}aus{% endif %}" title="{% if d.abonniert %}Favorit entfernen{% else %}Favorisieren{% endif %}">{% if d.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button></form>{% endif %}</small>{% endfor %}
       </span>
       {% if user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:kategorie_abonnieren' u.k.slug %}">{% csrf_token %}
-        <button type="submit" class="stern {% if not u.abonniert %}aus{% endif %}" title="{% if u.abonniert %}Abo beenden{% else %}Abonnieren{% endif %}">{% if u.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
+        <button type="submit" class="stern {% if not u.abonniert %}aus{% endif %}" title="{% if u.abonniert %}Favorit entfernen{% else %}Favorisieren{% endif %}">{% if u.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
       </form>
       {% endif %}
     </div>

@@ -1,0 +1,50 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Lebensbereiche{% endblock %}
+{% block inhalt %}
+<h1>Lebensbereiche</h1>
+<p style="max-width:46em">Jeder Antrag wird automatisch in diesen Kategorienbaum eingeordnet — von der
+Hauptkategorie bis zur Detailebene (zum Beispiel Wirtschaft › Bauwirtschaft › Installateur).
+Abonnieren Sie, was Sie betrifft: Ein Abo gilt für den ganzen Ast, Neues daraus erscheint in Ihrem
+Hauptfenster. Abos sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
+{% if not user.is_authenticated %}
+<p class="hilfe">Zum Abonnieren bitte <a href="{% url 'mitglieder:login' %}">anmelden</a> oder
+<a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>.</p>
+{% endif %}
+
+{% for h in baum %}
+<div class="karte">
+  <div class="stimmzeile" style="justify-content:space-between">
+    <div style="flex:1 1 30em">
+      <strong>{{ h.k.name }}</strong>
+      {% if h.laufend %}<span class="badge badge--hell">{{ h.laufend }} laufend</span>{% endif %}
+      <br><small class="erk">{{ h.k.beschreibung }}</small>
+    </div>
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'verfahren:kategorie_abonnieren' h.k.slug %}">{% csrf_token %}
+      {% if h.abonniert %}<button type="submit" class="btn-still">Abonniert ✓</button>
+      {% else %}<button type="submit" class="btn-linie">Abonnieren</button>{% endif %}
+    </form>
+    {% endif %}
+  </div>
+  {% if h.kinder %}
+  <details style="margin-top:8px">
+    <summary style="cursor:pointer;color:var(--deep);font-size:14.5px">Unterkategorien ({{ h.kinder|length }})</summary>
+    {% for u in h.kinder %}
+    <div class="eintrag">
+      <span>{{ u.k.name }}
+        {% if u.laufend %}<span class="badge badge--hell">{{ u.laufend }}</span>{% endif %}
+        {% for d in u.kinder %}<br><small class="erk" style="padding-left:16px">› {{ d.k.name }}{% if d.laufend %} · {{ d.laufend }} laufend{% endif %}
+          {% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' d.k.slug %}" style="display:inline">{% csrf_token %}<button type="submit" class="stern {% if not d.abonniert %}aus{% endif %}" title="{% if d.abonniert %}Abo beenden{% else %}Abonnieren{% endif %}">{% if d.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button></form>{% endif %}</small>{% endfor %}
+      </span>
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:kategorie_abonnieren' u.k.slug %}">{% csrf_token %}
+        <button type="submit" class="stern {% if not u.abonniert %}aus{% endif %}" title="{% if u.abonniert %}Abo beenden{% else %}Abonnieren{% endif %}">{% if u.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,12 +1,106 @@
 {% extends "verfahren/base.html" %}
 {% block inhalt %}
-<h1>Was steht zur Entscheidung</h1>
-<p style="max-width:44em">Anträge sortieren sich hier ausschließlich nach Phase und Frist — nie nach Beliebtheit, nie durch einen Algorithmus. So bleibt die Tagesordnung das, was Menschen unterstützen.</p>
-<p style="margin-top:14px"><a class="btn" href="{% url 'verfahren:einbringen' %}">Eigenen Antrag einbringen</a></p>
-{% for titel, liste in gruppen %}
-<h2>{{ titel }}</h2>
-{% for a in liste %}
-<div class="karte"><span class="badge">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a><br><small>eingebracht {{ a.eingebracht_am|date:"d.m.Y" }} · Phase seit {{ a.phase_beginn|date:"d.m.Y H:i" }}</small></div>
-{% empty %}<p class="leer">Derzeit keine Anträge in dieser Phase.</p>{% endfor %}
-{% endfor %}
+<h1>Das Hauptfenster</h1>
+<p style="max-width:46em">Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,
+Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen
+Reihung (§ 5 Abs 10 des Satzungsentwurfs).</p>
+
+<div class="hf-grid">
+
+  <section class="bereich">
+    <span class="bk">Bereich a · persönlich</span>
+    <h2>Meine Favoriten</h2>
+    {% if user.is_authenticated %}
+      <p class="erk">Ihre gemerkten Themen — Abstimmungen zuerst.</p>
+      {% for a in favoriten_abstimmung %}
+        <div class="eintrag">
+          <span><span class="badge">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          <form method="post" action="{% url 'verfahren:favorisieren' a.pk %}">{% csrf_token %}<input type="hidden" name="weiter" value="/"><button class="stern" title="Favorit entfernen">&#9733;</button></form>
+        </div>
+      {% endfor %}
+      {% for a in favoriten_sonstige %}
+        <div class="eintrag">
+          <span><span class="badge badge--hell">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          <form method="post" action="{% url 'verfahren:favorisieren' a.pk %}">{% csrf_token %}<input type="hidden" name="weiter" value="/"><button class="stern" title="Favorit entfernen">&#9733;</button></form>
+        </div>
+      {% endfor %}
+      {% if not favoriten_abstimmung and not favoriten_sonstige %}
+        <p class="leer">Noch keine Favoriten — der Stern &#9734; bei jedem Antrag merkt ihn hier vor.</p>
+      {% endif %}
+      {% if themen_neu %}
+        <p class="erk" style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">Neu in Ihren <a href="{% url 'verfahren:kategorien' %}">Lebensbereichen</a>:</p>
+        {% for a in themen_neu %}
+          <div class="eintrag" style="border-top:0;padding-top:2px">
+            <span><span class="badge badge--hell">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="erk" style="margin-top:10px"><a href="{% url 'verfahren:kategorien' %}">Lebensbereiche abonnieren</a> — Neues daraus erscheint hier.</p>
+      {% endif %}
+    {% else %}
+      <p class="erk">Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon gerade
+      zur Abstimmung steht. <a href="{% url 'mitglieder:login' %}">Anmelden</a> oder
+      <a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>.</p>
+    {% endif %}
+  </section>
+
+  <section class="bereich">
+    <span class="bk">Bereich b · hervorgehoben</span>
+    <h2>Wichtige Abstimmungen</h2>
+    <p class="erk">Was alle angeht, aber wenig Aufmerksamkeit bekommt — oder vor Beeinflussung zu
+    schützen ist. Hervorhebung nur durch begründeten, veröffentlichten Beschluss des Integritätsrats,
+    nie durch einen Algorithmus.</p>
+    {% for a in wichtige %}
+      <div class="eintrag">
+        <span><span class="badge">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
+        {% if a.hervorhebung_begruendung %}<br><small class="erk">{{ a.hervorhebung_begruendung }}</small>{% endif %}</span>
+      </div>
+    {% empty %}
+      <p class="leer">Derzeit ist nichts hervorgehoben.</p>
+    {% endfor %}
+  </section>
+
+  <section class="bereich">
+    <span class="bk">Bereich c · regional</span>
+    <h2>Meine Region</h2>
+    <p class="erk">Anträge auf Gemeinde-, Bezirks- und Landesebene — Ergebnisse sind Richtschnur für
+    DDÖ-Mandatsträger der jeweiligen Ebene.</p>
+    {% for a in regionale %}
+      <div class="eintrag">
+        <span><span class="badge badge--hell">{{ a.get_ebene_display }} · {{ a.gebiet }}</span><br>
+        <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+      </div>
+    {% empty %}
+      <p class="leer">Derzeit keine regionalen Anträge — der erste kann Ihrer sein.</p>
+    {% endfor %}
+  </section>
+
+</div>
+
+<section>
+  <span class="bk" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.75">Bereich d · Anträge &amp; Gesetzesvorschläge</span>
+  <h2 style="margin-top:4px">Was steht zur Entscheidung</h2>
+  <p style="max-width:46em">Jede Eingabe zeigt zuerst ähnliche, laufende Anträge samt Beteiligung — unterstützen
+  ist oft wirksamer als ein Parallelantrag. Einbringen bleibt trotzdem immer möglich.</p>
+  <p style="margin:14px 0 6px"><a class="btn" href="{% url 'verfahren:einbringen' %}">Eigenen Antrag einbringen</a></p>
+
+  {% for titel, liste in gruppen %}
+  <h2>{{ titel }}</h2>
+  {% for a in liste %}
+  <div class="karte">
+    <span class="badge">{{ a.phase }}</span>
+    {% if a.ebene != "bund" %}<span class="badge badge--hell">{{ a.get_ebene_display }} · {{ a.gebiet }}</span>{% endif %}
+    <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:favorisieren' a.pk %}" style="display:inline;float:right">{% csrf_token %}
+        <input type="hidden" name="weiter" value="/">
+        {% if a.pk in meine_favoriten %}<button class="stern" title="Favorit entfernen">&#9733;</button>
+        {% else %}<button class="stern aus" title="Als Favorit merken">&#9734;</button>{% endif %}
+      </form>
+    {% endif %}
+    <br><small>eingebracht {{ a.eingebracht_am|date:"d.m.Y" }} · Phase seit {{ a.phase_beginn|date:"d.m.Y H:i" }}</small>
+  </div>
+  {% empty %}<p class="leer">Derzeit keine Anträge in dieser Phase.</p>{% endfor %}
+  {% endfor %}
+</section>
 {% endblock %}

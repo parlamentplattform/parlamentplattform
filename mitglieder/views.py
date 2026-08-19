@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
-from mitglieder.models import Identitaetsstufe, Mitglied
+from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied
 from verfahren.models import AuditEintrag
 
 
@@ -28,6 +28,11 @@ class RegistrierungsFormular(forms.Form):
     email = forms.EmailField(label="E-Mail-Adresse")
     geburtsjahr = forms.IntegerField(label="Geburtsjahr", min_value=1900, max_value=2100)
     gemeinde = forms.CharField(label="Wohnsitz-Gemeinde", max_length=120)
+    bundesland = forms.ChoiceField(
+        label="Bundesland",
+        choices=Bundesland.choices,
+        help_text="Wohnsitz bestimmt, für welche Region Sie regionale Anträge einbringen können (F-43).",
+    )
     grundsaetze = forms.BooleanField(
         label="Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
         "(ein Mensch – eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
@@ -68,6 +73,7 @@ def registrieren(request):
                 is_active=False,  # aktiv erst nach E-Mail-Bestätigung
             )
             mitglied.gemeinde = d["gemeinde"]
+            mitglied.bundesland = d["bundesland"]
             mitglied.set_unusable_password()
             mitglied.save()
             token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)

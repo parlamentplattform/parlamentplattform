@@ -55,6 +55,20 @@ input:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px;bord
 .checkzeile{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
 .checkzeile input{margin-top:5px}
 code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#fff;border:1px dashed var(--deep);border-radius:8px;padding:8px 14px}
+.hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
+@media(max-width:900px){.hf-grid{grid-template-columns:1fr}}
+.bereich{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.bereich h2{margin:2px 0 6px;font-size:21px}
+.bk{display:block;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8}
+.erk{font-size:13.5px;color:#6b7a84;margin:0 0 6px}
+.eintrag{border-top:1px solid var(--line);padding:10px 0 8px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.eintrag a{color:var(--deep)}
+.badge--hell{background:#EDF3F5;color:var(--deep)}
+.stern{background:none;border:0;cursor:pointer;font-size:18px;color:var(--gold);padding:0 2px;line-height:1.3}
+.stern.aus{color:#b9c2c7}
+.stern:hover{color:var(--gold)}
+#id_ebene{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
+#id_ebene label{font-weight:400;display:flex;gap:7px;align-items:center;font-size:15px;margin:0}
 </style>
 </head>
 <body>
@@ -62,6 +76,7 @@ code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#
   <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em></a>
   <nav>
     <a href="{% url 'verfahren:index' %}">Anträge</a>
+    <a href="{% url 'verfahren:kategorien' %}">Lebensbereiche</a>
     <a href="{% url 'verfahren:einbringen' %}">Antrag einbringen</a>
     {% if user.is_authenticated %}
       <span class="wer">{{ user.anzeigename }}</span>

@@ -21,6 +21,7 @@ ANMELDUNG = {
     "email": "eva@example.org",
     "geburtsjahr": 1990,
     "gemeinde": "Sankt Marienkirchen an der Polsenz",
+    "bundesland": "oberoesterreich",
     "grundsaetze": "on",
 }
 
@@ -38,6 +39,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     assert m.is_active is False  # Double-Opt-in: erst Mail bestätigen
     assert m.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
     assert m.gemeinde == ANMELDUNG["gemeinde"]
+    assert m.bundesland == "oberoesterreich"  # Wohnsitz für regionale Anträge (F-43)
     assert not m.has_usable_password()  # passwortlos by design
     assert len(mail.outbox) == 1
 

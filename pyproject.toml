@@ -20,6 +20,7 @@ dev = [
     "coverage[toml]>=7.4",
 ]
 postgres = ["psycopg[binary]>=3.1"]
+prod = ["gunicorn>=22.0", "whitenoise>=6.6"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"

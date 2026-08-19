@@ -8,11 +8,20 @@ für den Alltag (get_or_create).
 
 from datetime import date, timedelta
 
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from mitglieder.models import Identitaetsstufe, Mitglied
-from verfahren.models import Antrag, Verfahrensordnung, antrag_einbringen, stimme_abgeben
+from verfahren.models import (
+    Antrag,
+    Kategorie,
+    KategorieAbo,
+    Verfahrensordnung,
+    antrag_einbringen,
+    kategorien_zuordnen,
+    stimme_abgeben,
+)
 
 
 class Command(BaseCommand):
@@ -42,9 +51,12 @@ class Command(BaseCommand):
             m, neu = Mitglied.objects.get_or_create(
                 username=f"demo{i}",
                 defaults={
+                    "email": f"demo{i}@example.org",
                     "beitritt": date.today() - timedelta(days=200),
                     "identitaetsstufe": Identitaetsstufe.GEPRUEFT,
                     "pseudonym_oeffentlich": f"Mitglied {i}",
+                    "gemeinde": "Sankt Marienkirchen an der Polsenz",
+                    "bundesland": "oberoesterreich",
                 },
             )
             if neu:
@@ -102,9 +114,61 @@ class Command(BaseCommand):
             a3.phase_beginn = timezone.now() - timedelta(days=8)
             a3.save(update_fields=["phase_beginn"])
             a3.fortschreiben()  # -> Ergebnis
+
+            # a4: laufende Abstimmung, vom Integritätsrat hervorgehoben (Bereich b)
+            a4 = antrag_einbringen(
+                leute[3],
+                "Jede Ratssitzung als Livestream mit Archiv",
+                "Alle Sitzungen der Parteigremien werden live übertragen und dauerhaft archiviert. "
+                "Ausnahmen nur bei Personaldebatten mit Persönlichkeitsrechten.",
+                "Wer Transparenz verspricht, zeigt sich bei der Arbeit.",
+                ordnung,
+            )
+            for m in leute[:3]:
+                a4.unterstuetzungen.create(mitglied=m)
+            a4.fortschreiben()
+            a4.phase_beginn = timezone.now() - timedelta(days=22)
+            a4.save(update_fields=["phase_beginn"])
+            a4.fortschreiben()  # -> Abstimmung
+            a4.hervorgehoben = True
+            a4.hervorhebung_begruendung = (
+                "Betrifft alle Gremien dauerhaft, hat aber bisher wenig Beteiligung. "
+                "Beschluss IR-2026-03 vom 12.08.2026."
+            )
+            a4.save(update_fields=["hervorgehoben", "hervorhebung_begruendung"])
+            stimme_abgeben(a4, leute[1], "ja")
+            stimme_abgeben(a4, leute[2], "nein")
+
+            # a5: regionaler Antrag (Bereich c)
+            a5 = antrag_einbringen(
+                leute[4],
+                "Photovoltaik auf dem Dach des Gemeindeamts",
+                "Die DDÖ-Mitglieder der Gemeinde sprechen sich dafür aus, das Dach des "
+                "Gemeindeamts mit einer Photovoltaikanlage auszustatten und den Ertrag "
+                "öffentlich auszuweisen.",
+                "Kleine, sichtbare Projekte bauen Vertrauen in direkte Entscheidungen auf.",
+                ordnung,
+                ebene="gemeinde",
+                gebiet="Sankt Marienkirchen an der Polsenz",
+            )
+
+            # Favoriten für das Demo-Mitglied 1 (Bereich a)
+            a4.favoriten.create(mitglied=leute[0])
+            a2.favoriten.create(mitglied=leute[0])
+
+            # Lebensbereiche automatisch zuordnen (F-47) und abonnieren (F-46)
+            call_command("kategorien_laden")
+            for antrag in (a1, a2, a3, a4, a5):
+                kategorien_zuordnen(antrag)
+            for slug in ["energie", "umwelt-klima"]:
+                KategorieAbo.objects.get_or_create(
+                    kategorie=Kategorie.objects.get(slug=slug), mitglied=leute[0]
+                )
+
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Demo bereit: {a1.pk} (Unterstützung), {a2.pk} (Beratung), {a3.pk} ({a3.phase})."
+                    f"Demo bereit: {a1.pk} (Unterstützung), {a2.pk} (Beratung), {a3.pk} ({a3.phase}), "
+                    f"{a4.pk} (Abstimmung, hervorgehoben), {a5.pk} (regional)."
                 )
             )
         else:

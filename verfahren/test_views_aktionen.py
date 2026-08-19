@@ -39,13 +39,21 @@ def ordnung():
     return Verfahrensordnung.objects.create(policy_id="test-ordnung", version=1, regeln=REGELN, aktiv=True)
 
 
-def mitglied_anlegen(name="anna", tage=200, stufe=Identitaetsstufe.GEPRUEFT):
+def mitglied_anlegen(
+    name="anna",
+    tage=200,
+    stufe=Identitaetsstufe.GEPRUEFT,
+    gemeinde="Sankt Marienkirchen an der Polsenz",
+    bundesland="oberoesterreich",
+):
     m = Mitglied.objects.create(
         username=name,
         email=f"{name}@example.org",
         is_active=True,
         beitritt=timezone.now().date() - timedelta(days=tage),
         identitaetsstufe=stufe,
+        gemeinde=gemeinde,
+        bundesland=bundesland,
     )
     m.set_unusable_password()
     m.save()

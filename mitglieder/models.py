@@ -13,6 +13,18 @@ from django.db import models
 from plattform_core import Gegenstand, stimmberechtigt
 
 
+class Bundesland(models.TextChoices):
+    BURGENLAND = "burgenland", "Burgenland"
+    KAERNTEN = "kaernten", "Kärnten"
+    NIEDEROESTERREICH = "niederoesterreich", "Niederösterreich"
+    OBEROESTERREICH = "oberoesterreich", "Oberösterreich"
+    SALZBURG = "salzburg", "Salzburg"
+    STEIERMARK = "steiermark", "Steiermark"
+    TIROL = "tirol", "Tirol"
+    VORARLBERG = "vorarlberg", "Vorarlberg"
+    WIEN = "wien", "Wien"
+
+
 class Identitaetsstufe(models.TextChoices):
     UNGEPRUEFT = "ungeprueft", "ungeprüft"
     GEPRUEFT = "geprueft", "geprüft (Einladungscode nach Identitätsfeststellung)"
@@ -40,6 +52,12 @@ class Mitglied(AbstractUser):
         max_length=120,
         blank=True,
         help_text="Wohnsitz-Gemeinde — Grundlage der territorialen Zuordnung (§ 14 Abs 3).",
+    )
+    bundesland = models.CharField(
+        max_length=20,
+        choices=Bundesland.choices,
+        blank=True,
+        help_text="Wohnsitz-Bundesland — regionale Anträge sind nur in der eigenen Region möglich (F-43).",
     )
 
     class Meta:

@@ -3,7 +3,17 @@
 {% block inhalt %}
 <p><a href="{% url 'verfahren:index' %}">&larr; Übersicht</a></p>
 <h1>{{ antrag.titel }}</h1>
-<p><span class="badge">{{ antrag.phase }}</span> · eingebracht {{ antrag.eingebracht_am|date:"d.m.Y" }} von {{ antrag.eingebracht_von.anzeigename }} · Unterstützungen: {{ unterstuetzungen }}{% if frist %} · Frist: {{ frist|date:"d.m.Y, H:i" }} Uhr{% endif %}</p>
+<p><span class="badge">{{ antrag.phase }}</span>
+{% if antrag.ebene != "bund" %}<span class="badge badge--hell">{{ antrag.get_ebene_display }} · {{ antrag.gebiet }}</span>{% endif %}
+{% for k in antrag.kategorien.all %}<span class="badge badge--hell" title="automatisch zugeordnet (F-47)">{{ k.pfad }}</span> {% endfor %}
+· eingebracht {{ antrag.eingebracht_am|date:"d.m.Y" }} von {{ antrag.eingebracht_von.anzeigename }} · Unterstützungen: {{ unterstuetzungen }}{% if frist %} · Frist: {{ frist|date:"d.m.Y, H:i" }} Uhr{% endif %}
+{% if user.is_authenticated %}
+<form method="post" action="{% url 'verfahren:favorisieren' antrag.pk %}" style="display:inline">{% csrf_token %}
+  {% if ist_favorit %}<button class="stern" title="Favorit entfernen">&#9733; Favorit</button>
+  {% else %}<button class="stern aus" title="Als Favorit merken">&#9734; merken</button>{% endif %}
+</form>
+{% endif %}</p>
+{% if antrag.hervorgehoben %}<div class="karte hinweis"><strong>Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):</strong> {{ antrag.hervorhebung_begruendung|default:"Begründung folgt." }}</div>{% endif %}
 {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>Formal zurückgewiesen (§ 5 Abs 2):</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
 
 <h2>Wortlaut (Fassung {{ fassung.nummer }})</h2>

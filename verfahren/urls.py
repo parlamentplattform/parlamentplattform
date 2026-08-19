@@ -6,8 +6,13 @@ app_name = "verfahren"
 urlpatterns = [
     path("", views.index, name="index"),
     path("einbringen/", views_aktionen.einbringen, name="einbringen"),
+    path("kategorien/", views_aktionen.kategorien_uebersicht, name="kategorien"),
+    path(
+        "kategorien/<slug:slug>/abonnieren/", views_aktionen.kategorie_abonnieren, name="kategorie_abonnieren"
+    ),
     path("antrag/<int:pk>/", views.antrag_detail, name="antrag"),
     path("antrag/<int:pk>/unterstuetzen/", views_aktionen.unterstuetzen, name="unterstuetzen"),
+    path("antrag/<int:pk>/favorisieren/", views_aktionen.favorisieren, name="favorisieren"),
     path("antrag/<int:pk>/kommentieren/", views_aktionen.kommentieren, name="kommentieren"),
     path("antrag/<int:pk>/abstimmen/", views_aktionen.abstimmen, name="abstimmen"),
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),

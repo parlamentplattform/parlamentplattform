@@ -3,7 +3,15 @@ NICHT im Admin auf (F-25) — es gibt keinen bequemen Klickpfad zum Stimmverhalt
 
 from django.contrib import admin
 
-from verfahren.models import Antrag, AntragsFassung, AuditEintrag, Unterstuetzung, Verfahrensordnung
+from verfahren.models import (
+    Antrag,
+    AntragsFassung,
+    AuditEintrag,
+    Kategorie,
+    Kommentar,
+    Unterstuetzung,
+    Verfahrensordnung,
+)
 
 
 class FassungInline(admin.StackedInline):
@@ -13,8 +21,8 @@ class FassungInline(admin.StackedInline):
 
 @admin.register(Antrag)
 class AntragAdmin(admin.ModelAdmin):
-    list_display = ("id", "titel", "phase", "phase_beginn", "eingebracht_von")
-    list_filter = ("phase",)
+    list_display = ("id", "titel", "phase", "ebene", "hervorgehoben", "phase_beginn", "eingebracht_von")
+    list_filter = ("phase", "ebene", "hervorgehoben")
     inlines = [FassungInline]
     readonly_fields = ("policy_snapshot", "phase", "phase_beginn")
 
@@ -41,3 +49,14 @@ class AuditAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Kommentar)
+class KommentarAdmin(admin.ModelAdmin):
+    list_display = ("antrag", "mitglied", "erstellt_am")
+
+
+@admin.register(Kategorie)
+class KategorieAdmin(admin.ModelAdmin):
+    list_display = ("reihenfolge", "slug", "name", "aktiv")
+    list_filter = ("aktiv",)

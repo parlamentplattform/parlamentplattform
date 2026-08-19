@@ -104,6 +104,19 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-38 | **Beitragsreferenz:** Nach Registrierung persönlicher Verwendungszweck für die Beitragsüberweisung; Zahlungsdienstleister-Integration später als eigene Ausbaustufe mit PartG-konformer Dokumentation | S | § 4 Abs 3 |
 | F-39 | **ID-Austria-Pflichtlogin (später):** Sobald verfügbar, ersetzt die ID-Austria-Anmeldung Benutzername/Passwort bzw. Magic-Link bei jedem Einstieg; technisch als Identity-Broker-Umschaltung vorbereitet, keine Architekturänderung | K | § 2 Abs 4 |
 
+**Das Hauptfenster in vier Bereichen** (Leitgestalt aus Satzung 1.3, Technischer Entwicklungsrat; verankert als § 5 Abs 10 des Satzungsentwurfs 2.2):
+
+| Nr. | Anforderung | Prio | Satzung |
+|---|---|---|---|
+| F-40 | **Vier-Bereiche-Hauptfenster:** Die Startseite gliedert sich in a) Favoriten, b) hervorgehobene Abstimmungen, c) regional, d) Anträge & Gesetzesvorschläge. Reihung innerhalb der Bereiche ausschließlich nach Phase und Frist (F-31 gilt fort) | M | § 5 Abs 10 |
+| F-41 | **Favoriten (Bereich a):** Jedes Mitglied merkt sich Themen; laufende Abstimmungen der eigenen Favoriten erscheinen zuerst. Favoriten sind rein persönlich und wirken nie auf Reihung, Schwellen oder Ergebnis | M | § 5 Abs 10 lit a |
+| F-42 | **Hervorhebung (Bereich b):** Wichtige Abstimmungen, die alle angehen, aber wenig Aufmerksamkeit erhalten, oder bei denen Beeinflussungsgefahr besteht, hebt der Integritätsrat durch veröffentlichten, begründeten Beschluss hervor — niemals ein Algorithmus. Die Begründung ist Teil der Anzeige | M | § 5 Abs 10 lit b |
+| F-43 | **Regionale Ebenen (Bereich c):** Anträge tragen eine Ebene (Bund/Land/Bezirk/Gemeinde) und ein Gebiet. **Regionale Anträge sind nur in der ansässigen Region möglich:** Das Gebiet kommt zwingend aus dem Wohnsitzprofil (Gemeinde + Bundesland, erfasst bei der Registrierung) — keine freie Eingabe. Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene (§ 7); Bezirksebene folgt mit dem Gemeindeverzeichnis-Import | M | § 5 Abs 10 lit c, § 14 |
+| F-44 | **Ähnlichkeitsübersicht mit Beteiligung (Bereich d):** Die Übersicht ähnlicher Anträge (F-35) zeigt je Treffer die aktuelle Beteiligung, damit sichtbar ist, wo Unterstützung am meisten bewegt; Ergebnisse der StaatsSimulation erscheinen dort als gekennzeichnete Modellrechnung, sobald verfügbar (F-36) | M | § 5 Abs 10 lit d |
+| F-45 | **Kategorienbaum (ADR-007):** 24 Hauptkategorien (Lebensbereiche) mit rund 100 Unter- und Detailkategorien (z. B. Wirtschaft › Bauwirtschaft › Installateur) in `policies/kategorien-v*.yaml` — versioniert, stabile Slugs, Deaktivieren statt Löschen, ohne Restablage; EuroVoc-Domänen als Anschluss-Ebene (RIS/EUR-Lex, Mehrsprachigkeit); Mehrfachzuordnung je Antrag | M | § 5 Abs 10 |
+| F-46 | **Kategorie-Abos mit Ast-Wirkung:** Mitglieder abonnieren beliebige Knoten des Baums; ein Abo umfasst alle Unterkategorien. Neues daraus erscheint im Bereich a des Hauptfensters und fließt in den E-Mail-Überblick (F-30). Abos sind rein persönlich und wirken nie auf Reihung oder Ergebnis | M | § 5 Abs 10 lit a |
+| F-47 | **Automatische Baum-Zuordnung:** Beim Einbringen ordnet die Plattform jeden Antrag selbst in den Kategorienbaum ein — tiefste passende Ebene gewinnt (Stufe 1: deterministische Schlagwort-Klassifikation, auditiert; Stufe 2: lokales Embedding-Modell, kein Text verlässt die Plattform). Kein Nutzer-Pflichtfeld; Korrektur durch den Integritätsrat möglich und protokolliert | M | § 2 Abs 6, § 6 Abs 4 |
+
 ### 3.5 Kommunikation und Zugänglichkeit
 
 | Nr. | Anforderung | Prio | Satzung |

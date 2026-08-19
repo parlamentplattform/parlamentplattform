@@ -1,0 +1,75 @@
+# Render-Blueprint für den öffentlichen Testbetrieb (https://render.com).
+#
+# Einrichten: Render-Dashboard -> New -> Blueprint -> dieses Repository wählen.
+# Render liest diese Datei, legt Web-Service und PostgreSQL in Frankfurt an
+# und verdrahtet die Zugangsdaten automatisch.
+#
+# Nach dem ersten Deploy im Dashboard unter "Environment" ausfüllen (sync: false):
+#   DDOE_SMTP_HOST / DDOE_SMTP_PORT / DDOE_SMTP_USER / DDOE_SMTP_PASSWORT
+#   (SMTP-Zugang des Mail-Postfachs plattform@ddoe.at, z. B. bei World4You)
+#
+# Hinweis Datenschutz: Render ist ein US-Anbieter (Rechenzentrum Frankfurt).
+# Für den TESTBETRIEB mit Einwilligung der Testmitglieder vertretbar —
+# für den Echtbetrieb mit Mitgliederdaten (Art 9 DSGVO: politische Meinung!)
+# ist ein EU-/AT-Anbieter vorzuziehen. Siehe docs/BETRIEB-RENDER.md.
+
+services:
+  - type: web
+    name: parlamentplattform
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    healthCheckPath: /gesund/
+    dockerCommand: >-
+      sh -c "python manage.py migrate --noinput
+      && python manage.py collectstatic --noinput
+      && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60"
+    envVars:
+      - key: DDOE_DEBUG
+        value: "0"
+      - key: DDOE_SECRET_KEY
+        generateValue: true
+      - key: DDOE_ALLOWED_HOSTS
+        value: parlamentplattform.onrender.com,plattform.ddoe.at
+      - key: DDOE_CSRF_ORIGINS
+        value: https://parlamentplattform.onrender.com,https://plattform.ddoe.at
+      - key: DDOE_STATIK
+        value: whitenoise
+      - key: DDOE_UEBERGANGSREGEL
+        value: "1"
+      - key: DDOE_MAIL_ABSENDER
+        value: plattform@ddoe.at
+      - key: DDOE_SMTP_HOST
+        sync: false
+      - key: DDOE_SMTP_PORT
+        sync: false
+      - key: DDOE_SMTP_USER
+        sync: false
+      - key: DDOE_SMTP_PASSWORT
+        sync: false
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: plattform-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: plattform-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: plattform-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: plattform-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: plattform-db
+          property: password
+
+databases:
+  - name: plattform-db
+    region: frankfurt
+    plan: basic-256mb
+    postgresMajorVersion: "16"

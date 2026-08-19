@@ -118,3 +118,20 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_REFERRER_POLICY = "same-origin"
+    # Hinter einem TLS-terminierenden Proxy (z. B. Render, Traefik) sagt uns
+    # dieser Header, dass die ursprüngliche Verbindung verschlüsselt war —
+    # sonst schleift SECURE_SSL_REDIRECT endlos um.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# HTTPS-Ursprünge, denen Formulare vertrauen (Komma-getrennt), z. B.
+# "https://plattform.ddoe.at,https://parlamentplattform.onrender.com"
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DDOE_CSRF_ORIGINS", "").split(",") if o]
+
+# Statische Dateien in Produktion direkt aus der Anwendung (WhiteNoise),
+# aktiviert per Umgebungsvariable — Entwicklung und Tests bleiben unberührt.
+if os.environ.get("DDOE_STATIK") == "whitenoise":
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+    }

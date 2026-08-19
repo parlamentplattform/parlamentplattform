@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY plattform_core ./plattform_core
-RUN pip install --no-cache-dir ".[postgres]"
+RUN pip install --no-cache-dir ".[postgres,prod]"
 
 COPY . .
 

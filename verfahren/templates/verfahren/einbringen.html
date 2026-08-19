@@ -15,7 +15,7 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
   unverändert einbringen (§ 2 Abs 6 — kein Algorithmus entscheidet über Zulassung).</p>
   {% for t in aehnliche %}
     <div class="kommentar">
-      <div class="kopf">Übereinstimmung ~{{ t.prozent }} % · Phase: {{ t.antrag.phase }}</div>
+      <div class="kopf">Übereinstimmung ~{{ t.prozent }} % · Phase: {{ t.antrag.phase }} · Beteiligung: {{ t.beteiligung }} Unterstützung{{ t.beteiligung|pluralize:"en" }}</div>
       <div><a href="{% url 'verfahren:antrag' t.antrag.pk %}">{{ t.antrag.titel }}</a></div>
     </div>
   {% endfor %}
@@ -42,6 +42,9 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
   <p class="hilfe" style="margin-top:12px">Vor dem Einbringen gleicht die Plattform Ihren Text
   automatisch mit laufenden Anträgen ab (ADR-006). Der Hinweis schlägt vor — er blockiert nie.
   Titel und Wortlaut sind öffentlich.</p>
+  <p class="hilfe">In Entwicklung (§ 5 Abs 10 lit d): die Folgenabschätzung — welche bestehenden
+  Gesetze Ihr Antrag berühren würde und welche Branchen betroffen wären, berechnet mit der
+  StaatsSimulation und stets als Modellrechnung gekennzeichnet.</p>
 </form>
 </div>
 {% endblock %}

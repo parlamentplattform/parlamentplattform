@@ -60,6 +60,82 @@ class Verfahrensordnung(models.Model):
         return Policy.aus_dict(self.regeln)
 
 
+class Ebene(models.TextChoices):
+    """Territoriale Ebene eines Antrags (§ 14; Bereich c des Hauptfensters, F-43)."""
+
+    BUND = "bund", "Bund"
+    LAND = "land", "Land"
+    BEZIRK = "bezirk", "Bezirk"
+    GEMEINDE = "gemeinde", "Gemeinde"
+
+
+class Kategorie(models.Model):
+    """Ein Lebensbereich des Kategoriesystems (F-45, ADR-007).
+
+    Quelle ist policies/kategorien-v*.yaml (versioniert, per Management-Befehl
+    `kategorien_laden` importiert). Slugs sind stabil über Versionen hinweg;
+    nicht mehr geführte Bereiche werden deaktiviert, nie gelöscht — bestehende
+    Zuordnungen bleiben nachvollziehbar."""
+
+    slug = models.SlugField(max_length=60, unique=True)
+    name = models.CharField(max_length=120)
+    eltern = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="kinder",
+        help_text="Übergeordnete Kategorie — leer bei Hauptkategorien. Der Baum trägt die Drill-down-Zuordnung (F-45).",
+    )
+    beschreibung = models.CharField(max_length=300, blank=True)
+    eurovoc = models.CharField(
+        max_length=300,
+        blank=True,
+        help_text="Zugeordnete EuroVoc-Domänen (Ebene 2, für Feinverschlagwortung und RIS/EUR-Lex-Anschluss).",
+    )
+    schlagworte = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Schlagwortliste für die automatische Zuordnung (F-47, Stufe 1) — gepflegt in der YAML-Quelle.",
+    )
+    reihenfolge = models.PositiveIntegerField(default=0)
+    aktiv = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["reihenfolge", "slug"]
+        verbose_name = "Kategorie"
+        verbose_name_plural = "Kategorien"
+
+    def __str__(self) -> str:
+        return self.name
+
+    @property
+    def pfad(self) -> str:
+        """Voller Pfad, z. B. „Wirtschaft & Unternehmen › Bauwirtschaft › Installateur“."""
+        teile, knoten = [], self
+        while knoten is not None:
+            teile.append(knoten.name)
+            knoten = knoten.eltern
+        return " › ".join(reversed(teile))
+
+    @property
+    def tiefe(self) -> int:
+        t, knoten = 0, self.eltern
+        while knoten is not None:
+            t += 1
+            knoten = knoten.eltern
+        return t
+
+    def nachfahren_ids(self) -> set[int]:
+        """IDs dieses Knotens und aller Unterkategorien (Abo eines Astes gilt für den ganzen Ast)."""
+        ids, rand = {self.pk}, [self.pk]
+        while rand:
+            kinder = list(Kategorie.objects.filter(eltern_id__in=rand).values_list("id", flat=True))
+            rand = [k for k in kinder if k not in ids]
+            ids.update(kinder)
+        return ids
+
+
 class Antrag(models.Model):
     """Ein Antrag nach § 5 — mit eingefrorener Policy."""
 
@@ -83,6 +159,34 @@ class Antrag(models.Model):
     zurueckweisung_begruendung = models.TextField(
         blank=True,
         help_text="Nur bei formaler Zurückweisung durch den Integritätsrat — wird veröffentlicht (§ 5 Abs 2).",
+    )
+    ebene = models.CharField(
+        max_length=12,
+        choices=Ebene.choices,
+        default=Ebene.BUND,
+        help_text="Territoriale Ebene (§ 14) — regionale Anträge erscheinen im Bereich c des Hauptfensters (F-43).",
+    )
+    gebiet = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Name des Landes, Bezirks bzw. der Gemeinde bei regionalen Anträgen.",
+    )
+    hervorgehoben = models.BooleanField(
+        default=False,
+        help_text="Bereich b des Hauptfensters (F-42): wichtige Abstimmung, die alle angeht, aber wenig "
+        "Aufmerksamkeit bekommt — oder bei der Beeinflussungsrisiko besteht. Entscheidung des "
+        "Integritätsrats, nie eines Algorithmus.",
+    )
+    hervorhebung_begruendung = models.TextField(
+        blank=True,
+        help_text="Öffentliche Begründung der Hervorhebung — Transparenz ist Bedingung (§ 2 Abs 5).",
+    )
+    kategorien = models.ManyToManyField(
+        Kategorie,
+        blank=True,
+        related_name="antraege",
+        help_text="Lebensbereiche des Antrags (F-45) — automatisch zugeordnet (F-47), "
+        "durch den Integritätsrat korrigierbar.",
     )
 
     class Meta:
@@ -236,6 +340,43 @@ class StimmRegister(models.Model):
         super().save(*args, **kwargs)
 
 
+class KategorieAbo(models.Model):
+    """Abonnement eines Lebensbereichs (F-46): erscheint im Bereich a des
+    Hauptfensters; künftig Grundlage der Benachrichtigungen (F-30)."""
+
+    kategorie = models.ForeignKey(Kategorie, on_delete=models.CASCADE, related_name="abos")
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="kategorie_abos"
+    )
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("kategorie", "mitglied")]
+        verbose_name = "Kategorie-Abo"
+        verbose_name_plural = "Kategorie-Abos"
+
+    def __str__(self) -> str:
+        return f"Abo {self.kategorie_id} von Mitglied {self.mitglied_id}"
+
+
+class Favorit(models.Model):
+    """Bereich a des Hauptfensters (§ 5 Abs 10 lit a, F-41): ein Mitglied merkt
+    sich einen Antrag. Rein persönlich — Favoriten beeinflussen niemals
+    Reihung, Schwellen oder Ergebnis (F-31)."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="favoriten")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favoriten")
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("antrag", "mitglied")]
+        verbose_name = "Favorit"
+        verbose_name_plural = "Favoriten"
+
+    def __str__(self) -> str:
+        return f"Favorit Antrag {self.antrag_id} von Mitglied {self.mitglied_id}"
+
+
 class AuditEintrag(models.Model):
     """Append-only-Audit-Log mit Hash-Kette (F-22, ADR-005).
     Einträge werden nie geändert oder gelöscht — dafür gibt es keinen Code-Pfad,
@@ -265,11 +406,23 @@ class AuditEintrag(models.Model):
 
 
 def antrag_einbringen(
-    mitglied, titel: str, wortlaut: str, begruendung: str, ordnung: Verfahrensordnung
+    mitglied,
+    titel: str,
+    wortlaut: str,
+    begruendung: str,
+    ordnung: Verfahrensordnung,
+    ebene: str = Ebene.BUND,
+    gebiet: str = "",
 ) -> Antrag:
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren."""
     policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
-    antrag = Antrag.objects.create(titel=titel, eingebracht_von=mitglied, policy_snapshot=policy.als_dict())
+    antrag = Antrag.objects.create(
+        titel=titel,
+        eingebracht_von=mitglied,
+        policy_snapshot=policy.als_dict(),
+        ebene=Ebene(ebene),
+        gebiet=gebiet,
+    )
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
     AuditEintrag.anhaengen(
         {
@@ -326,3 +479,29 @@ class Kommentar(models.Model):
 
     def __str__(self) -> str:
         return f"Kommentar von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+
+def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:
+    """F-47 Stufe 1: automatische Zuordnung zu Lebensbereichen — deterministisch,
+    nachrechenbar (plattform_core.klassifikation), auditiert. Die Zuordnung ist
+    Vorschlag ohne Sperrwirkung; der Integritätsrat kann sie korrigieren."""
+    from plattform_core.klassifikation import zuordnen
+
+    fassung = antrag.aktueller_text()
+    text = " ".join(
+        [antrag.titel, fassung.wortlaut if fassung else "", fassung.begruendung if fassung else ""]
+    )
+    aktive = list(Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id", "schlagworte"))
+    treffer = zuordnen(text, aktive)
+    kategorien = list(Kategorie.objects.filter(id__in=[kid for kid, _ in treffer]))
+    kategorien.sort(key=lambda k: [kid for kid, _ in treffer].index(k.pk))
+    antrag.kategorien.set(kategorien)
+    AuditEintrag.anhaengen(
+        {
+            "typ": "kategorien_zugeordnet",
+            "antrag": antrag.pk,
+            "kategorien": [k.slug for k in kategorien],
+            "methode": "schlagworte-v1",
+        }
+    )
+    return kategorien

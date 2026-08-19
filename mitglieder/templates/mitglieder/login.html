@@ -11,6 +11,7 @@ Sobald die ID&nbsp;Austria angebunden ist, ersetzt sie diesen Schritt.</p>
   {% for feld in form.visible_fields %}
     <p>
       <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+      {% if feld.name == "rechenfrage" %}<div style="margin:6px 0">{{ form.captcha_svg|safe }}</div>{% endif %}
       {{ feld }}
       {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </p>

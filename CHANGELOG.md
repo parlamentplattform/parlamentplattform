@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.6.0] — 2026-08-19 · Captcha-Bild und amtliches Gemeindeverzeichnis
+
+### Hinzugefügt
+- **Sichtbares Captcha** (F-49): Die Sicherheits-Rechenfrage steht jetzt als verzerrtes Bild im Formular (selbst erzeugtes SVG mit Störlinien — kein Drittanbieter, keine Datenweitergabe); die Aufgabe erscheint nicht mehr im Seitentext. Temporär bis zur ID-Austria-Anbindung; Barrierefreiheits-Ausweich per E-Mail-Hinweis
+- **Amtliches Gemeindeverzeichnis** (F-43): 2.092 Gemeinden (Statistik Austria, Gebietsstand 2026, CC BY 4.0) als `daten/gemeinden.csv` + `manage.py gemeinden_laden`. Die Wohnsitz-Gemeinde wird beim Registrieren live vorgeschlagen (natives Auswahlfeld, ohne JavaScript-Pflicht) und gegen das Verzeichnis geprüft: Tippfehler werden abgewiesen (mit Vorschlägen), mehrdeutige Namen wie „Krumbach" verlangen die Präzisierung „Name (Bezirk)", „Sankt"/„St." wird toleriert
+- Bezirk und **Bundesland werden automatisch zugeordnet** (Feld entfällt im Formular); neuer Verweis `Mitglied.wohnsitz` ins Verzeichnis — Grundlage für die spätere Bezirks-Ebene regionaler Anträge
+
+### Geändert
+- Demo-Daten und Tests auf amtliche Gemeindenamen umgestellt; 2 neue Tests (94 gesamt)
+
 ## [0.5.0] — 2026-08-19 · Menschlichkeitsprüfung, Beitrags-QR, voller Kategorienbaum
 
 ### Hinzugefügt

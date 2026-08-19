@@ -24,6 +24,13 @@ def _drossel_zuruecksetzen():
     cache.clear()  # IP-Drossel zwischen Tests zurücksetzen
 
 
+@pytest.fixture(autouse=True)
+def _gemeindeverzeichnis(db):
+    from django.core.management import call_command
+
+    call_command("gemeinden_laden")
+
+
 def botschutz(a=3, b=4, alter=10.0, antwort=None, honigtopf=""):
     """Gültige (oder gezielt ungültige) Menschlichkeitsprüfungs-Felder (F-49)."""
     token = signing.dumps({"a": a, "b": b, "t": time.time() - alter}, salt=SALZ)
@@ -36,7 +43,6 @@ ANMELDUNG = {
     "email": "eva@example.org",
     "geburtsjahr": 1990,
     "gemeinde": "Sankt Marienkirchen an der Polsenz",
-    "bundesland": "oberoesterreich",
     "grundsaetze": "on",
 }
 
@@ -53,8 +59,9 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     m = Mitglied.objects.get(email="eva@example.org")
     assert m.is_active is False  # Double-Opt-in: erst Mail bestätigen
     assert m.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
-    assert m.gemeinde == ANMELDUNG["gemeinde"]
-    assert m.bundesland == "oberoesterreich"  # Wohnsitz für regionale Anträge (F-43)
+    assert m.gemeinde == "St. Marienkirchen an der Polsenz"  # amtlicher Name („Sankt“ toleriert)
+    assert m.bundesland == "oberoesterreich"  # automatisch aus dem Gemeindeverzeichnis (F-43)
+    assert m.wohnsitz.bezirk == "Eferding"
     assert not m.has_usable_password()  # passwortlos by design
     assert len(mail.outbox) == 1
 
@@ -171,3 +178,28 @@ def test_willkommensseite_zeigt_beitrags_qr(client):
     inhalt = antwort.content.decode()
     assert "<svg" in inhalt  # EPC-QR-Code (F-38): Zahlen mit Code, ohne Zahlungsdienstleister
     assert "Zahlen mit Code" in inhalt
+
+
+# --- Gemeindeverzeichnis (F-43) --------------------------------------------------
+
+
+def test_unbekannte_gemeinde_wird_abgelehnt(client):
+    daten = {**ANMELDUNG, "gemeinde": "Entenhausen", **botschutz()}
+    antwort = client.post(reverse("mitglieder:registrieren"), daten)
+    assert "amtlichen Gemeindeverzeichnis" in antwort.content.decode()
+    assert Mitglied.objects.count() == 0
+
+
+def test_mehrdeutige_gemeinde_verlangt_praezisierung(client):
+    daten = {**ANMELDUNG, "gemeinde": "Krumbach", **botschutz()}
+    antwort = client.post(reverse("mitglieder:registrieren"), daten)
+    inhalt = antwort.content.decode()
+    assert "mehrmals" in inhalt and "Bregenz" in inhalt  # beide Kandidaten angeboten
+    assert Mitglied.objects.count() == 0
+
+    daten["gemeinde"] = "Krumbach (Bregenz)"
+    daten.update(botschutz())
+    client.post(reverse("mitglieder:registrieren"), daten)
+    m = Mitglied.objects.get()
+    assert m.bundesland == "vorarlberg"
+    assert m.wohnsitz.kennziffer.startswith("8")

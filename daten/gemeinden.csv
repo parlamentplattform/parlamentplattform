@@ -1,0 +1,2097 @@
+# Amtliches Gemeindeverzeichnis Oesterreich, Gebietsstand 2026.
+# Quelle: Statistik Austria (statistik.at, Gemeindeliste sortiert nach Gemeindekennziffer,
+# erstellt 13.08.2026), Nutzung gemaess Open-Data-Bedingungen (CC BY 4.0). Aktualisierung:
+# neue Liste herunterladen, dieses Format erzeugen, `manage.py gemeinden_laden` ausfuehren.
+kennziffer;name;bezirk;bundesland
+10101;Eisenstadt;Eisenstadt(Stadt);Burgenland
+10201;Rust;Rust(Stadt);Burgenland
+10301;Breitenbrunn am Neusiedler See;Eisenstadt-Umgebung;Burgenland
+10302;Donnerskirchen;Eisenstadt-Umgebung;Burgenland
+10303;Großhöflein;Eisenstadt-Umgebung;Burgenland
+10304;Hornstein;Eisenstadt-Umgebung;Burgenland
+10305;Klingenbach;Eisenstadt-Umgebung;Burgenland
+10306;Leithaprodersdorf;Eisenstadt-Umgebung;Burgenland
+10307;Mörbisch am See;Eisenstadt-Umgebung;Burgenland
+10308;Müllendorf;Eisenstadt-Umgebung;Burgenland
+10309;Neufeld an der Leitha;Eisenstadt-Umgebung;Burgenland
+10310;Oggau am Neusiedler See;Eisenstadt-Umgebung;Burgenland
+10311;Oslip;Eisenstadt-Umgebung;Burgenland
+10312;Purbach am Neusiedler See;Eisenstadt-Umgebung;Burgenland
+10313;Sankt Margarethen im Burgenland;Eisenstadt-Umgebung;Burgenland
+10314;Schützen am Gebirge;Eisenstadt-Umgebung;Burgenland
+10315;Siegendorf;Eisenstadt-Umgebung;Burgenland
+10316;Steinbrunn;Eisenstadt-Umgebung;Burgenland
+10317;Trausdorf an der Wulka;Eisenstadt-Umgebung;Burgenland
+10318;Wimpassing an der Leitha;Eisenstadt-Umgebung;Burgenland
+10319;Wulkaprodersdorf;Eisenstadt-Umgebung;Burgenland
+10320;Loretto;Eisenstadt-Umgebung;Burgenland
+10321;Stotzing;Eisenstadt-Umgebung;Burgenland
+10322;Zillingtal;Eisenstadt-Umgebung;Burgenland
+10323;Zagersdorf;Eisenstadt-Umgebung;Burgenland
+10401;Bocksdorf;Güssing;Burgenland
+10402;Burgauberg-Neudauberg;Güssing;Burgenland
+10403;Eberau;Güssing;Burgenland
+10404;Gerersdorf-Sulz;Güssing;Burgenland
+10405;Güssing;Güssing;Burgenland
+10406;Güttenbach;Güssing;Burgenland
+10407;Heiligenbrunn;Güssing;Burgenland
+10408;Kukmirn;Güssing;Burgenland
+10409;Neuberg im Burgenland;Güssing;Burgenland
+10410;Neustift bei Güssing;Güssing;Burgenland
+10411;Olbendorf;Güssing;Burgenland
+10412;Ollersdorf im Burgenland;Güssing;Burgenland
+10413;Sankt Michael im Burgenland;Güssing;Burgenland
+10414;Stegersbach;Güssing;Burgenland
+10415;Stinatz;Güssing;Burgenland
+10416;Strem;Güssing;Burgenland
+10417;Tobaj;Güssing;Burgenland
+10418;Hackerberg;Güssing;Burgenland
+10419;Wörterberg;Güssing;Burgenland
+10420;Großmürbisch;Güssing;Burgenland
+10421;Inzenhof;Güssing;Burgenland
+10422;Kleinmürbisch;Güssing;Burgenland
+10423;Tschanigraben;Güssing;Burgenland
+10424;Heugraben;Güssing;Burgenland
+10425;Rohr im Burgenland;Güssing;Burgenland
+10426;Bildein;Güssing;Burgenland
+10427;Rauchwart;Güssing;Burgenland
+10428;Moschendorf;Güssing;Burgenland
+10501;Deutsch Kaltenbrunn;Jennersdorf;Burgenland
+10502;Eltendorf;Jennersdorf;Burgenland
+10503;Heiligenkreuz im Lafnitztal;Jennersdorf;Burgenland
+10504;Jennersdorf;Jennersdorf;Burgenland
+10505;Minihof-Liebau;Jennersdorf;Burgenland
+10506;Mogersdorf;Jennersdorf;Burgenland
+10507;Neuhaus am Klausenbach;Jennersdorf;Burgenland
+10508;Rudersdorf;Jennersdorf;Burgenland
+10509;Sankt Martin an der Raab;Jennersdorf;Burgenland
+10510;Weichselbaum;Jennersdorf;Burgenland
+10511;Königsdorf;Jennersdorf;Burgenland
+10512;Mühlgraben;Jennersdorf;Burgenland
+10601;Draßburg;Mattersburg;Burgenland
+10602;Forchtenstein;Mattersburg;Burgenland
+10603;Hirm;Mattersburg;Burgenland
+10604;Loipersbach im Burgenland;Mattersburg;Burgenland
+10605;Marz;Mattersburg;Burgenland
+10606;Mattersburg;Mattersburg;Burgenland
+10607;Neudörfl;Mattersburg;Burgenland
+10608;Pöttelsdorf;Mattersburg;Burgenland
+10609;Pöttsching;Mattersburg;Burgenland
+10610;Rohrbach bei Mattersburg;Mattersburg;Burgenland
+10611;Bad Sauerbrunn;Mattersburg;Burgenland
+10612;Schattendorf;Mattersburg;Burgenland
+10613;Sieggraben;Mattersburg;Burgenland
+10614;Sigleß;Mattersburg;Burgenland
+10615;Wiesen;Mattersburg;Burgenland
+10616;Antau;Mattersburg;Burgenland
+10617;Baumgarten;Mattersburg;Burgenland
+10618;Zemendorf-Stöttera;Mattersburg;Burgenland
+10619;Krensdorf;Mattersburg;Burgenland
+10701;Andau;Neusiedl am See;Burgenland
+10702;Apetlon;Neusiedl am See;Burgenland
+10703;Bruckneudorf;Neusiedl am See;Burgenland
+10704;Deutsch Jahrndorf;Neusiedl am See;Burgenland
+10705;Frauenkirchen;Neusiedl am See;Burgenland
+10706;Gattendorf;Neusiedl am See;Burgenland
+10707;Gols;Neusiedl am See;Burgenland
+10708;Halbturn;Neusiedl am See;Burgenland
+10709;Illmitz;Neusiedl am See;Burgenland
+10710;Jois;Neusiedl am See;Burgenland
+10711;Kittsee;Neusiedl am See;Burgenland
+10712;Mönchhof;Neusiedl am See;Burgenland
+10713;Neusiedl am See;Neusiedl am See;Burgenland
+10714;Nickelsdorf;Neusiedl am See;Burgenland
+10715;Pama;Neusiedl am See;Burgenland
+10716;Pamhagen;Neusiedl am See;Burgenland
+10717;Parndorf;Neusiedl am See;Burgenland
+10718;Podersdorf am See;Neusiedl am See;Burgenland
+10719;Sankt Andrä am Zicksee;Neusiedl am See;Burgenland
+10720;Tadten;Neusiedl am See;Burgenland
+10721;Wallern im Burgenland;Neusiedl am See;Burgenland
+10722;Weiden am See;Neusiedl am See;Burgenland
+10723;Winden am See;Neusiedl am See;Burgenland
+10724;Zurndorf;Neusiedl am See;Burgenland
+10725;Neudorf;Neusiedl am See;Burgenland
+10726;Potzneusiedl;Neusiedl am See;Burgenland
+10727;Edelstal;Neusiedl am See;Burgenland
+10801;Deutschkreutz;Oberpullendorf;Burgenland
+10802;Draßmarkt;Oberpullendorf;Burgenland
+10803;Frankenau-Unterpullendorf;Oberpullendorf;Burgenland
+10804;Großwarasdorf;Oberpullendorf;Burgenland
+10805;Horitschon;Oberpullendorf;Burgenland
+10806;Kaisersdorf;Oberpullendorf;Burgenland
+10807;Kobersdorf;Oberpullendorf;Burgenland
+10808;Lackenbach;Oberpullendorf;Burgenland
+10809;Lockenhaus;Oberpullendorf;Burgenland
+10810;Lutzmannsburg;Oberpullendorf;Burgenland
+10811;Mannersdorf an der Rabnitz;Oberpullendorf;Burgenland
+10812;Markt Sankt Martin;Oberpullendorf;Burgenland
+10813;Neckenmarkt;Oberpullendorf;Burgenland
+10814;Neutal;Oberpullendorf;Burgenland
+10815;Nikitsch;Oberpullendorf;Burgenland
+10816;Oberpullendorf;Oberpullendorf;Burgenland
+10817;Pilgersdorf;Oberpullendorf;Burgenland
+10818;Piringsdorf;Oberpullendorf;Burgenland
+10819;Raiding;Oberpullendorf;Burgenland
+10820;Ritzing;Oberpullendorf;Burgenland
+10821;Steinberg-Dörfl;Oberpullendorf;Burgenland
+10822;Stoob;Oberpullendorf;Burgenland
+10823;Weppersdorf;Oberpullendorf;Burgenland
+10824;Lackendorf;Oberpullendorf;Burgenland
+10825;Unterfrauenhaid;Oberpullendorf;Burgenland
+10826;Unterrabnitz-Schwendgraben;Oberpullendorf;Burgenland
+10827;Weingraben;Oberpullendorf;Burgenland
+10828;Oberloisdorf;Oberpullendorf;Burgenland
+10901;Bad Tatzmannsdorf;Oberwart;Burgenland
+10902;Bernstein;Oberwart;Burgenland
+10903;Deutsch Schützen-Eisenberg;Oberwart;Burgenland
+10904;Grafenschachen;Oberwart;Burgenland
+10905;Großpetersdorf;Oberwart;Burgenland
+10906;Hannersdorf;Oberwart;Burgenland
+10907;Kemeten;Oberwart;Burgenland
+10908;Kohfidisch;Oberwart;Burgenland
+10909;Litzelsdorf;Oberwart;Burgenland
+10910;Loipersdorf-Kitzladen;Oberwart;Burgenland
+10911;Mariasdorf;Oberwart;Burgenland
+10912;Markt Allhau;Oberwart;Burgenland
+10913;Markt Neuhodis;Oberwart;Burgenland
+10914;Mischendorf;Oberwart;Burgenland
+10915;Oberdorf im Burgenland;Oberwart;Burgenland
+10916;Oberschützen;Oberwart;Burgenland
+10917;Oberwart;Oberwart;Burgenland
+10918;Pinkafeld;Oberwart;Burgenland
+10919;Rechnitz;Oberwart;Burgenland
+10920;Riedlingsdorf;Oberwart;Burgenland
+10921;Rotenturm an der Pinka;Oberwart;Burgenland
+10922;Schachendorf;Oberwart;Burgenland
+10923;Stadtschlaining;Oberwart;Burgenland
+10924;Unterkohlstätten;Oberwart;Burgenland
+10925;Unterwart;Oberwart;Burgenland
+10926;Weiden bei Rechnitz;Oberwart;Burgenland
+10927;Wiesfleck;Oberwart;Burgenland
+10928;Wolfau;Oberwart;Burgenland
+10929;Neustift an der Lafnitz;Oberwart;Burgenland
+10930;Jabing;Oberwart;Burgenland
+10931;Badersdorf;Oberwart;Burgenland
+10932;Schandorf;Oberwart;Burgenland
+20101;Klagenfurt am Wörthersee;Klagenfurt Stadt;Kärnten
+20201;Villach;Villach Stadt;Kärnten
+20302;Dellach;Hermagor;Kärnten
+20305;Hermagor-Pressegger See;Hermagor;Kärnten
+20306;Kirchbach;Hermagor;Kärnten
+20307;Kötschach-Mauthen;Hermagor;Kärnten
+20316;St. Stefan im Gailtal;Hermagor;Kärnten
+20320;Gitschtal;Hermagor;Kärnten
+20321;Lesachtal;Hermagor;Kärnten
+20402;Ebenthal in Kärnten;Klagenfurt Land;Kärnten
+20403;Feistritz im Rosental;Klagenfurt Land;Kärnten
+20405;Ferlach;Klagenfurt Land;Kärnten
+20409;Grafenstein;Klagenfurt Land;Kärnten
+20412;Keutschach am See;Klagenfurt Land;Kärnten
+20414;Köttmannsdorf;Klagenfurt Land;Kärnten
+20415;Krumpendorf am Wörthersee;Klagenfurt Land;Kärnten
+20416;Ludmannsdorf;Klagenfurt Land;Kärnten
+20417;Maria Rain;Klagenfurt Land;Kärnten
+20418;Maria Saal;Klagenfurt Land;Kärnten
+20419;Maria Wörth;Klagenfurt Land;Kärnten
+20421;Moosburg;Klagenfurt Land;Kärnten
+20424;Pörtschach am Wörther See;Klagenfurt Land;Kärnten
+20425;Poggersdorf;Klagenfurt Land;Kärnten
+20428;St. Margareten im Rosental;Klagenfurt Land;Kärnten
+20432;Schiefling am Wörthersee;Klagenfurt Land;Kärnten
+20435;Techelsberg am Wörther See;Klagenfurt Land;Kärnten
+20441;Zell;Klagenfurt Land;Kärnten
+20442;Magdalensberg;Klagenfurt Land;Kärnten
+20501;Althofen;Sankt Veit an der Glan;Kärnten
+20502;Brückl;Sankt Veit an der Glan;Kärnten
+20503;Deutsch-Griffen;Sankt Veit an der Glan;Kärnten
+20504;Eberstein;Sankt Veit an der Glan;Kärnten
+20505;Friesach;Sankt Veit an der Glan;Kärnten
+20506;Glödnitz;Sankt Veit an der Glan;Kärnten
+20508;Gurk;Sankt Veit an der Glan;Kärnten
+20509;Guttaring;Sankt Veit an der Glan;Kärnten
+20511;Hüttenberg;Sankt Veit an der Glan;Kärnten
+20512;Kappel am Krappfeld;Sankt Veit an der Glan;Kärnten
+20513;Klein St. Paul;Sankt Veit an der Glan;Kärnten
+20515;Liebenfels;Sankt Veit an der Glan;Kärnten
+20518;Metnitz;Sankt Veit an der Glan;Kärnten
+20519;Micheldorf;Sankt Veit an der Glan;Kärnten
+20520;Mölbling;Sankt Veit an der Glan;Kärnten
+20523;St. Georgen am Längsee;Sankt Veit an der Glan;Kärnten
+20527;St. Veit an der Glan;Sankt Veit an der Glan;Kärnten
+20530;Straßburg;Sankt Veit an der Glan;Kärnten
+20531;Weitensfeld im Gurktal;Sankt Veit an der Glan;Kärnten
+20534;Frauenstein;Sankt Veit an der Glan;Kärnten
+20601;Bad Kleinkirchheim;Spittal an der Drau;Kärnten
+20602;Baldramsdorf;Spittal an der Drau;Kärnten
+20603;Berg im Drautal;Spittal an der Drau;Kärnten
+20604;Dellach im Drautal;Spittal an der Drau;Kärnten
+20605;Großkirchheim;Spittal an der Drau;Kärnten
+20607;Flattach;Spittal an der Drau;Kärnten
+20608;Gmünd in Kärnten;Spittal an der Drau;Kärnten
+20609;Greifenburg;Spittal an der Drau;Kärnten
+20610;Heiligenblut am Großglockner;Spittal an der Drau;Kärnten
+20611;Irschen;Spittal an der Drau;Kärnten
+20613;Kleblach-Lind;Spittal an der Drau;Kärnten
+20616;Lendorf;Spittal an der Drau;Kärnten
+20618;Mallnitz;Spittal an der Drau;Kärnten
+20619;Malta;Spittal an der Drau;Kärnten
+20620;Millstatt am See;Spittal an der Drau;Kärnten
+20622;Mörtschach;Spittal an der Drau;Kärnten
+20624;Mühldorf;Spittal an der Drau;Kärnten
+20625;Oberdrauburg;Spittal an der Drau;Kärnten
+20627;Obervellach;Spittal an der Drau;Kärnten
+20630;Radenthein;Spittal an der Drau;Kärnten
+20631;Rangersdorf;Spittal an der Drau;Kärnten
+20632;Rennweg am Katschberg;Spittal an der Drau;Kärnten
+20633;Sachsenburg;Spittal an der Drau;Kärnten
+20634;Seeboden am Millstätter See;Spittal an der Drau;Kärnten
+20635;Spittal an der Drau;Spittal an der Drau;Kärnten
+20636;Stall;Spittal an der Drau;Kärnten
+20637;Steinfeld;Spittal an der Drau;Kärnten
+20638;Trebesing;Spittal an der Drau;Kärnten
+20639;Weißensee;Spittal an der Drau;Kärnten
+20640;Winklern;Spittal an der Drau;Kärnten
+20642;Krems in Kärnten;Spittal an der Drau;Kärnten
+20643;Lurnfeld;Spittal an der Drau;Kärnten
+20644;Reißeck;Spittal an der Drau;Kärnten
+20701;Afritz am See;Villach Land;Kärnten
+20702;Arnoldstein;Villach Land;Kärnten
+20703;Arriach;Villach Land;Kärnten
+20705;Bad Bleiberg;Villach Land;Kärnten
+20707;Feistritz an der Gail;Villach Land;Kärnten
+20708;Feld am See;Villach Land;Kärnten
+20710;Ferndorf;Villach Land;Kärnten
+20711;Finkenstein am Faaker See;Villach Land;Kärnten
+20712;Fresach;Villach Land;Kärnten
+20713;Hohenthurn;Villach Land;Kärnten
+20719;Nötsch im Gailtal;Villach Land;Kärnten
+20720;Paternion;Villach Land;Kärnten
+20721;Rosegg;Villach Land;Kärnten
+20722;St. Jakob im Rosental;Villach Land;Kärnten
+20723;Stockenboi;Villach Land;Kärnten
+20724;Treffen am Ossiacher See;Villach Land;Kärnten
+20725;Velden am Wörther See;Villach Land;Kärnten
+20726;Weißenstein;Villach Land;Kärnten
+20727;Wernberg;Villach Land;Kärnten
+20801;Bleiburg;Völkermarkt;Kärnten
+20802;Diex;Völkermarkt;Kärnten
+20803;Eberndorf;Völkermarkt;Kärnten
+20804;Eisenkappel-Vellach;Völkermarkt;Kärnten
+20805;Feistritz ob Bleiburg;Völkermarkt;Kärnten
+20806;Gallizien;Völkermarkt;Kärnten
+20807;Globasnitz;Völkermarkt;Kärnten
+20808;Griffen;Völkermarkt;Kärnten
+20810;Neuhaus;Völkermarkt;Kärnten
+20812;Ruden;Völkermarkt;Kärnten
+20813;St. Kanzian am Klopeiner See;Völkermarkt;Kärnten
+20815;Sittersdorf;Völkermarkt;Kärnten
+20817;Völkermarkt;Völkermarkt;Kärnten
+20901;Bad St. Leonhard im Lavanttal;Wolfsberg;Kärnten
+20905;Frantschach-St. Gertraud;Wolfsberg;Kärnten
+20909;Lavamünd;Wolfsberg;Kärnten
+20911;Preitenegg;Wolfsberg;Kärnten
+20912;Reichenfels;Wolfsberg;Kärnten
+20913;St. Andrä;Wolfsberg;Kärnten
+20914;St. Georgen im Lavanttal;Wolfsberg;Kärnten
+20918;St. Paul im Lavanttal;Wolfsberg;Kärnten
+20923;Wolfsberg;Wolfsberg;Kärnten
+21001;Albeck;Feldkirchen;Kärnten
+21002;Feldkirchen in Kärnten;Feldkirchen;Kärnten
+21003;Glanegg;Feldkirchen;Kärnten
+21004;Gnesau;Feldkirchen;Kärnten
+21005;Himmelberg;Feldkirchen;Kärnten
+21006;Ossiach;Feldkirchen;Kärnten
+21007;Reichenau;Feldkirchen;Kärnten
+21008;St. Urban;Feldkirchen;Kärnten
+21009;Steindorf am Ossiacher See;Feldkirchen;Kärnten
+21010;Steuerberg;Feldkirchen;Kärnten
+30101;Krems an der Donau;Krems an der Donau(Stadt);Niederösterreich
+30201;St. Pölten;Sankt Pölten(Stadt);Niederösterreich
+30301;Waidhofen an der Ybbs;Waidhofen an der Ybbs(Stadt);Niederösterreich
+30401;Wiener Neustadt;Wiener Neustadt(Stadt);Niederösterreich
+30501;Allhartsberg;Amstetten;Niederösterreich
+30502;Amstetten;Amstetten;Niederösterreich
+30503;Ardagger;Amstetten;Niederösterreich
+30504;Aschbach-Markt;Amstetten;Niederösterreich
+30506;Behamberg;Amstetten;Niederösterreich
+30507;Biberbach;Amstetten;Niederösterreich
+30508;Ennsdorf;Amstetten;Niederösterreich
+30509;Ernsthofen;Amstetten;Niederösterreich
+30510;Ertl;Amstetten;Niederösterreich
+30511;Euratsfeld;Amstetten;Niederösterreich
+30512;Ferschnitz;Amstetten;Niederösterreich
+30514;Haag;Amstetten;Niederösterreich
+30515;Haidershofen;Amstetten;Niederösterreich
+30516;Hollenstein an der Ybbs;Amstetten;Niederösterreich
+30517;Kematen an der Ybbs;Amstetten;Niederösterreich
+30520;Neuhofen an der Ybbs;Amstetten;Niederösterreich
+30521;Neustadtl an der Donau;Amstetten;Niederösterreich
+30522;Oed-Oehling;Amstetten;Niederösterreich
+30524;Opponitz;Amstetten;Niederösterreich
+30526;St. Georgen am Reith;Amstetten;Niederösterreich
+30527;St. Georgen am Ybbsfelde;Amstetten;Niederösterreich
+30529;St. Pantaleon-Erla;Amstetten;Niederösterreich
+30530;St. Peter in der Au;Amstetten;Niederösterreich
+30531;St. Valentin;Amstetten;Niederösterreich
+30532;Seitenstetten;Amstetten;Niederösterreich
+30533;Sonntagberg;Amstetten;Niederösterreich
+30534;Strengberg;Amstetten;Niederösterreich
+30536;Viehdorf;Amstetten;Niederösterreich
+30538;Wallsee-Sindelburg;Amstetten;Niederösterreich
+30539;Weistrach;Amstetten;Niederösterreich
+30541;Winklarn;Amstetten;Niederösterreich
+30542;Wolfsbach;Amstetten;Niederösterreich
+30543;Ybbsitz;Amstetten;Niederösterreich
+30544;Zeillern;Amstetten;Niederösterreich
+30601;Alland;Baden;Niederösterreich
+30602;Altenmarkt an der Triesting;Baden;Niederösterreich
+30603;Bad Vöslau;Baden;Niederösterreich
+30604;Baden;Baden;Niederösterreich
+30605;Berndorf;Baden;Niederösterreich
+30607;Ebreichsdorf;Baden;Niederösterreich
+30608;Enzesfeld-Lindabrunn;Baden;Niederösterreich
+30609;Furth an der Triesting;Baden;Niederösterreich
+30612;Günselsdorf;Baden;Niederösterreich
+30613;Heiligenkreuz;Baden;Niederösterreich
+30614;Hernstein;Baden;Niederösterreich
+30615;Hirtenberg;Baden;Niederösterreich
+30616;Klausen-Leopoldsdorf;Baden;Niederösterreich
+30618;Kottingbrunn;Baden;Niederösterreich
+30620;Leobersdorf;Baden;Niederösterreich
+30621;Mitterndorf an der Fischa;Baden;Niederösterreich
+30623;Oberwaltersdorf;Baden;Niederösterreich
+30625;Pfaffstätten;Baden;Niederösterreich
+30626;Pottendorf;Baden;Niederösterreich
+30627;Pottenstein;Baden;Niederösterreich
+30629;Reisenberg;Baden;Niederösterreich
+30631;Schönau an der Triesting;Baden;Niederösterreich
+30633;Seibersdorf;Baden;Niederösterreich
+30635;Sooß;Baden;Niederösterreich
+30636;Tattendorf;Baden;Niederösterreich
+30637;Teesdorf;Baden;Niederösterreich
+30639;Traiskirchen;Baden;Niederösterreich
+30641;Trumau;Baden;Niederösterreich
+30645;Weissenbach an der Triesting;Baden;Niederösterreich
+30646;Blumau-Neurißhof;Baden;Niederösterreich
+30701;Au am Leithaberge;Bruck an der Leitha;Niederösterreich
+30702;Bad Deutsch-Altenburg;Bruck an der Leitha;Niederösterreich
+30703;Berg;Bruck an der Leitha;Niederösterreich
+30704;Bruck an der Leitha;Bruck an der Leitha;Niederösterreich
+30706;Enzersdorf an der Fischa;Bruck an der Leitha;Niederösterreich
+30708;Göttlesbrunn-Arbesthal;Bruck an der Leitha;Niederösterreich
+30709;Götzendorf an der Leitha;Bruck an der Leitha;Niederösterreich
+30710;Hainburg a.d. Donau;Bruck an der Leitha;Niederösterreich
+30711;Haslau-Maria Ellend;Bruck an der Leitha;Niederösterreich
+30712;Höflein;Bruck an der Leitha;Niederösterreich
+30713;Hof am Leithaberge;Bruck an der Leitha;Niederösterreich
+30715;Hundsheim;Bruck an der Leitha;Niederösterreich
+30716;Mannersdorf am Leithagebirge;Bruck an der Leitha;Niederösterreich
+30718;Petronell-Carnuntum;Bruck an der Leitha;Niederösterreich
+30719;Prellenkirchen;Bruck an der Leitha;Niederösterreich
+30721;Rohrau;Bruck an der Leitha;Niederösterreich
+30722;Scharndorf;Bruck an der Leitha;Niederösterreich
+30724;Sommerein;Bruck an der Leitha;Niederösterreich
+30726;Trautmannsdorf an der Leitha;Bruck an der Leitha;Niederösterreich
+30728;Wolfsthal;Bruck an der Leitha;Niederösterreich
+30729;Ebergassing;Bruck an der Leitha;Niederösterreich
+30730;Fischamend;Bruck an der Leitha;Niederösterreich
+30731;Gramatneusiedl;Bruck an der Leitha;Niederösterreich
+30732;Himberg;Bruck an der Leitha;Niederösterreich
+30733;Klein-Neusiedl;Bruck an der Leitha;Niederösterreich
+30734;Lanzendorf;Bruck an der Leitha;Niederösterreich
+30735;Leopoldsdorf;Bruck an der Leitha;Niederösterreich
+30736;Maria-Lanzendorf;Bruck an der Leitha;Niederösterreich
+30737;Moosbrunn;Bruck an der Leitha;Niederösterreich
+30738;Rauchenwarth;Bruck an der Leitha;Niederösterreich
+30739;Schwadorf;Bruck an der Leitha;Niederösterreich
+30740;Schwechat;Bruck an der Leitha;Niederösterreich
+30741;Zwölfaxing;Bruck an der Leitha;Niederösterreich
+30801;Aderklaa;Gänserndorf;Niederösterreich
+30802;Andlersdorf;Gänserndorf;Niederösterreich
+30803;Angern an der March;Gänserndorf;Niederösterreich
+30804;Auersthal;Gänserndorf;Niederösterreich
+30805;Bad Pirawarth;Gänserndorf;Niederösterreich
+30808;Deutsch-Wagram;Gänserndorf;Niederösterreich
+30810;Drösing;Gänserndorf;Niederösterreich
+30811;Dürnkrut;Gänserndorf;Niederösterreich
+30812;Ebenthal;Gänserndorf;Niederösterreich
+30813;Eckartsau;Gänserndorf;Niederösterreich
+30814;Engelhartstetten;Gänserndorf;Niederösterreich
+30817;Gänserndorf;Gänserndorf;Niederösterreich
+30819;Glinzendorf;Gänserndorf;Niederösterreich
+30821;Groß-Enzersdorf;Gänserndorf;Niederösterreich
+30822;Großhofen;Gänserndorf;Niederösterreich
+30824;Groß-Schweinbarth;Gänserndorf;Niederösterreich
+30825;Haringsee;Gänserndorf;Niederösterreich
+30826;Hauskirchen;Gänserndorf;Niederösterreich
+30827;Hohenau an der March;Gänserndorf;Niederösterreich
+30828;Hohenruppersdorf;Gänserndorf;Niederösterreich
+30829;Jedenspeigen;Gänserndorf;Niederösterreich
+30830;Lassee;Gänserndorf;Niederösterreich
+30831;Leopoldsdorf im Marchfeld;Gänserndorf;Niederösterreich
+30834;Mannsdorf an der Donau;Gänserndorf;Niederösterreich
+30835;Marchegg;Gänserndorf;Niederösterreich
+30836;Markgrafneusiedl;Gänserndorf;Niederösterreich
+30838;Matzen-Raggendorf;Gänserndorf;Niederösterreich
+30841;Neusiedl an der Zaya;Gänserndorf;Niederösterreich
+30842;Obersiebenbrunn;Gänserndorf;Niederösterreich
+30844;Orth an der Donau;Gänserndorf;Niederösterreich
+30845;Palterndorf-Dobermannsdorf;Gänserndorf;Niederösterreich
+30846;Parbasdorf;Gänserndorf;Niederösterreich
+30848;Prottes;Gänserndorf;Niederösterreich
+30849;Raasdorf;Gänserndorf;Niederösterreich
+30850;Ringelsdorf-Niederabsdorf;Gänserndorf;Niederösterreich
+30852;Schönkirchen-Reyersdorf;Gänserndorf;Niederösterreich
+30854;Spannberg;Gänserndorf;Niederösterreich
+30856;Strasshof an der Nordbahn;Gänserndorf;Niederösterreich
+30857;Sulz im Weinviertel;Gänserndorf;Niederösterreich
+30858;Untersiebenbrunn;Gänserndorf;Niederösterreich
+30859;Velm-Götzendorf;Gänserndorf;Niederösterreich
+30860;Weikendorf;Gänserndorf;Niederösterreich
+30863;Zistersdorf;Gänserndorf;Niederösterreich
+30865;Weiden an der March;Gänserndorf;Niederösterreich
+30902;Amaliendorf-Aalfang;Gmünd;Niederösterreich
+30903;Brand-Nagelberg;Gmünd;Niederösterreich
+30904;Eggern;Gmünd;Niederösterreich
+30906;Eisgarn;Gmünd;Niederösterreich
+30908;Gmünd;Gmünd;Niederösterreich
+30909;Großdietmanns;Gmünd;Niederösterreich
+30910;Bad Großpertholz;Gmünd;Niederösterreich
+30912;Großschönau;Gmünd;Niederösterreich
+30913;Moorbad Harbach;Gmünd;Niederösterreich
+30915;Haugschlag;Gmünd;Niederösterreich
+30916;Heidenreichstein;Gmünd;Niederösterreich
+30917;Hirschbach;Gmünd;Niederösterreich
+30920;Hoheneich;Gmünd;Niederösterreich
+30921;Kirchberg am Walde;Gmünd;Niederösterreich
+30925;Litschau;Gmünd;Niederösterreich
+30929;Reingers;Gmünd;Niederösterreich
+30932;St. Martin;Gmünd;Niederösterreich
+30935;Schrems;Gmünd;Niederösterreich
+30939;Unserfrau-Altweitra;Gmünd;Niederösterreich
+30940;Waldenstein;Gmünd;Niederösterreich
+30942;Weitra;Gmünd;Niederösterreich
+31001;Alberndorf im Pulkautal;Hollabrunn;Niederösterreich
+31008;Göllersdorf;Hollabrunn;Niederösterreich
+31009;Grabern;Hollabrunn;Niederösterreich
+31014;Guntersdorf;Hollabrunn;Niederösterreich
+31015;Hadres;Hollabrunn;Niederösterreich
+31016;Hardegg;Hollabrunn;Niederösterreich
+31018;Haugsdorf;Hollabrunn;Niederösterreich
+31019;Heldenberg;Hollabrunn;Niederösterreich
+31021;Hohenwarth-Mühlbach a.M.;Hollabrunn;Niederösterreich
+31022;Hollabrunn;Hollabrunn;Niederösterreich
+31025;Mailberg;Hollabrunn;Niederösterreich
+31026;Maissau;Hollabrunn;Niederösterreich
+31028;Nappersdorf-Kammersdorf;Hollabrunn;Niederösterreich
+31033;Pernersdorf;Hollabrunn;Niederösterreich
+31035;Pulkau;Hollabrunn;Niederösterreich
+31036;Ravelsbach;Hollabrunn;Niederösterreich
+31037;Retz;Hollabrunn;Niederösterreich
+31038;Retzbach;Hollabrunn;Niederösterreich
+31041;Schrattenthal;Hollabrunn;Niederösterreich
+31042;Seefeld-Kadolz;Hollabrunn;Niederösterreich
+31043;Sitzendorf an der Schmida;Hollabrunn;Niederösterreich
+31051;Wullersdorf;Hollabrunn;Niederösterreich
+31052;Zellerndorf;Hollabrunn;Niederösterreich
+31053;Ziersdorf;Hollabrunn;Niederösterreich
+31101;Altenburg;Horn;Niederösterreich
+31102;Brunn an der Wild;Horn;Niederösterreich
+31103;Burgschleinitz-Kühnring;Horn;Niederösterreich
+31104;Drosendorf-Zissersdorf;Horn;Niederösterreich
+31105;Eggenburg;Horn;Niederösterreich
+31106;Gars am Kamp;Horn;Niederösterreich
+31107;Geras;Horn;Niederösterreich
+31109;Horn;Horn;Niederösterreich
+31110;Irnfritz-Messern;Horn;Niederösterreich
+31111;Japons;Horn;Niederösterreich
+31113;Langau;Horn;Niederösterreich
+31114;Meiseldorf;Horn;Niederösterreich
+31117;Pernegg;Horn;Niederösterreich
+31119;Röhrenbach;Horn;Niederösterreich
+31120;Röschitz;Horn;Niederösterreich
+31121;Rosenburg-Mold;Horn;Niederösterreich
+31123;St. Bernhard-Frauenhofen;Horn;Niederösterreich
+31124;Sigmundsherberg;Horn;Niederösterreich
+31129;Weitersfeld;Horn;Niederösterreich
+31130;Straning-Grafenberg;Horn;Niederösterreich
+31201;Bisamberg;Korneuburg;Niederösterreich
+31202;Enzersfeld im Weinviertel;Korneuburg;Niederösterreich
+31203;Ernstbrunn;Korneuburg;Niederösterreich
+31204;Großmugl;Korneuburg;Niederösterreich
+31205;Großrußbach;Korneuburg;Niederösterreich
+31206;Hagenbrunn;Korneuburg;Niederösterreich
+31207;Harmannsdorf;Korneuburg;Niederösterreich
+31208;Hausleiten;Korneuburg;Niederösterreich
+31213;Korneuburg;Korneuburg;Niederösterreich
+31214;Langenzersdorf;Korneuburg;Niederösterreich
+31215;Leitzersdorf;Korneuburg;Niederösterreich
+31216;Leobendorf;Korneuburg;Niederösterreich
+31224;Rußbach;Korneuburg;Niederösterreich
+31226;Sierndorf;Korneuburg;Niederösterreich
+31227;Spillern;Korneuburg;Niederösterreich
+31228;Stetteldorf am Wagram;Korneuburg;Niederösterreich
+31229;Stetten;Korneuburg;Niederösterreich
+31230;Stockerau;Korneuburg;Niederösterreich
+31234;Niederhollabrunn;Korneuburg;Niederösterreich
+31235;Gerasdorf bei Wien;Korneuburg;Niederösterreich
+31301;Aggsbach;Krems(Land);Niederösterreich
+31302;Albrechtsberg an der Großen Krems;Krems(Land);Niederösterreich
+31303;Bergern im Dunkelsteinerwald;Krems(Land);Niederösterreich
+31304;Dürnstein;Krems(Land);Niederösterreich
+31308;Grafenegg;Krems(Land);Niederösterreich
+31309;Furth bei Göttweig;Krems(Land);Niederösterreich
+31310;Gedersdorf;Krems(Land);Niederösterreich
+31311;Gföhl;Krems(Land);Niederösterreich
+31315;Hadersdorf-Kammern;Krems(Land);Niederösterreich
+31319;Jaidhof;Krems(Land);Niederösterreich
+31321;Krumau am Kamp;Krems(Land);Niederösterreich
+31322;Langenlois;Krems(Land);Niederösterreich
+31323;Lengenfeld;Krems(Land);Niederösterreich
+31324;Lichtenau im Waldviertel;Krems(Land);Niederösterreich
+31326;Maria Laach am Jauerling;Krems(Land);Niederösterreich
+31327;Mautern an der Donau;Krems(Land);Niederösterreich
+31330;Mühldorf;Krems(Land);Niederösterreich
+31333;Paudorf;Krems(Land);Niederösterreich
+31336;Rastenfeld;Krems(Land);Niederösterreich
+31337;Rohrendorf bei Krems;Krems(Land);Niederösterreich
+31338;Rossatz-Arnsdorf;Krems(Land);Niederösterreich
+31340;St. Leonhard am Hornerwald;Krems(Land);Niederösterreich
+31343;Senftenberg;Krems(Land);Niederösterreich
+31344;Spitz;Krems(Land);Niederösterreich
+31346;Straß im Straßertale;Krems(Land);Niederösterreich
+31347;Stratzing;Krems(Land);Niederösterreich
+31350;Weinzierl am Walde;Krems(Land);Niederösterreich
+31351;Weißenkirchen in der Wachau;Krems(Land);Niederösterreich
+31355;Schönberg am Kamp;Krems(Land);Niederösterreich
+31356;Droß;Krems(Land);Niederösterreich
+31401;Annaberg;Lilienfeld;Niederösterreich
+31402;Eschenau;Lilienfeld;Niederösterreich
+31403;Hainfeld;Lilienfeld;Niederösterreich
+31404;Hohenberg;Lilienfeld;Niederösterreich
+31405;Kaumberg;Lilienfeld;Niederösterreich
+31406;Kleinzell;Lilienfeld;Niederösterreich
+31407;Lilienfeld;Lilienfeld;Niederösterreich
+31408;Mitterbach am Erlaufsee;Lilienfeld;Niederösterreich
+31409;Ramsau;Lilienfeld;Niederösterreich
+31410;Rohrbach an der Gölsen;Lilienfeld;Niederösterreich
+31411;St. Aegyd am Neuwalde;Lilienfeld;Niederösterreich
+31412;St. Veit an der Gölsen;Lilienfeld;Niederösterreich
+31413;Traisen;Lilienfeld;Niederösterreich
+31414;Türnitz;Lilienfeld;Niederösterreich
+31502;Artstetten-Pöbring;Melk;Niederösterreich
+31503;Bergland;Melk;Niederösterreich
+31504;Bischofstetten;Melk;Niederösterreich
+31505;Blindenmarkt;Melk;Niederösterreich
+31506;Dorfstetten;Melk;Niederösterreich
+31507;Dunkelsteinerwald;Melk;Niederösterreich
+31508;Erlauf;Melk;Niederösterreich
+31509;Golling an der Erlauf;Melk;Niederösterreich
+31511;Hofamt Priel;Melk;Niederösterreich
+31513;Hürm;Melk;Niederösterreich
+31514;Kilb;Melk;Niederösterreich
+31515;Kirnberg an der Mank;Melk;Niederösterreich
+31516;Klein-Pöchlarn;Melk;Niederösterreich
+31517;Krummnußbaum;Melk;Niederösterreich
+31519;Leiben;Melk;Niederösterreich
+31520;Loosdorf;Melk;Niederösterreich
+31521;Mank;Melk;Niederösterreich
+31522;Marbach an der Donau;Melk;Niederösterreich
+31523;Maria Taferl;Melk;Niederösterreich
+31524;Melk;Melk;Niederösterreich
+31525;Münichreith-Laimbach;Melk;Niederösterreich
+31527;Neumarkt an der Ybbs;Melk;Niederösterreich
+31528;Nöchling;Melk;Niederösterreich
+31530;Persenbeug-Gottsdorf;Melk;Niederösterreich
+31531;Petzenkirchen;Melk;Niederösterreich
+31533;Pöchlarn;Melk;Niederösterreich
+31534;Pöggstall;Melk;Niederösterreich
+31535;Raxendorf;Melk;Niederösterreich
+31537;Ruprechtshofen;Melk;Niederösterreich
+31539;St. Leonhard am Forst;Melk;Niederösterreich
+31540;St. Martin-Karlsbach;Melk;Niederösterreich
+31541;St. Oswald;Melk;Niederösterreich
+31542;Schönbühel-Aggsbach;Melk;Niederösterreich
+31543;Schollach;Melk;Niederösterreich
+31546;Weiten;Melk;Niederösterreich
+31549;Ybbs an der Donau;Melk;Niederösterreich
+31550;Zelking-Matzleinsdorf;Melk;Niederösterreich
+31551;Texingtal;Melk;Niederösterreich
+31552;Yspertal;Melk;Niederösterreich
+31553;Emmersdorf an der Donau;Melk;Niederösterreich
+31601;Altlichtenwarth;Mistelbach;Niederösterreich
+31603;Asparn an der Zaya;Mistelbach;Niederösterreich
+31604;Bernhardsthal;Mistelbach;Niederösterreich
+31605;Bockfließ;Mistelbach;Niederösterreich
+31606;Drasenhofen;Mistelbach;Niederösterreich
+31608;Falkenstein;Mistelbach;Niederösterreich
+31609;Fallbach;Mistelbach;Niederösterreich
+31611;Gaubitsch;Mistelbach;Niederösterreich
+31612;Gaweinstal;Mistelbach;Niederösterreich
+31613;Gnadendorf;Mistelbach;Niederösterreich
+31614;Großebersdorf;Mistelbach;Niederösterreich
+31615;Großengersdorf;Mistelbach;Niederösterreich
+31616;Großharras;Mistelbach;Niederösterreich
+31617;Großkrut;Mistelbach;Niederösterreich
+31620;Hausbrunn;Mistelbach;Niederösterreich
+31621;Herrnbaumgarten;Mistelbach;Niederösterreich
+31622;Hochleithen;Mistelbach;Niederösterreich
+31627;Kreuttal;Mistelbach;Niederösterreich
+31628;Kreuzstetten;Mistelbach;Niederösterreich
+31629;Laa an der Thaya;Mistelbach;Niederösterreich
+31630;Ladendorf;Mistelbach;Niederösterreich
+31633;Mistelbach;Mistelbach;Niederösterreich
+31634;Neudorf im Weinviertel;Mistelbach;Niederösterreich
+31636;Niederleis;Mistelbach;Niederösterreich
+31642;Pillichsdorf;Mistelbach;Niederösterreich
+31644;Poysdorf;Mistelbach;Niederösterreich
+31645;Rabensburg;Mistelbach;Niederösterreich
+31646;Schrattenberg;Mistelbach;Niederösterreich
+31649;Staatz;Mistelbach;Niederösterreich
+31650;Stronsdorf;Mistelbach;Niederösterreich
+31651;Ulrichskirchen-Schleinbach;Mistelbach;Niederösterreich
+31652;Unterstinkenbrunn;Mistelbach;Niederösterreich
+31653;Wildendürnbach;Mistelbach;Niederösterreich
+31654;Wilfersdorf;Mistelbach;Niederösterreich
+31655;Wolkersdorf im Weinviertel;Mistelbach;Niederösterreich
+31658;Ottenthal;Mistelbach;Niederösterreich
+31701;Achau;Mödling;Niederösterreich
+31702;Biedermannsdorf;Mödling;Niederösterreich
+31703;Breitenfurt bei Wien;Mödling;Niederösterreich
+31704;Brunn am Gebirge;Mödling;Niederösterreich
+31706;Gaaden;Mödling;Niederösterreich
+31707;Gießhübl;Mödling;Niederösterreich
+31709;Gumpoldskirchen;Mödling;Niederösterreich
+31710;Guntramsdorf;Mödling;Niederösterreich
+31711;Hennersdorf;Mödling;Niederösterreich
+31712;Hinterbrühl;Mödling;Niederösterreich
+31713;Kaltenleutgeben;Mödling;Niederösterreich
+31714;Laab im Walde;Mödling;Niederösterreich
+31715;Laxenburg;Mödling;Niederösterreich
+31716;Maria Enzersdorf;Mödling;Niederösterreich
+31717;Mödling;Mödling;Niederösterreich
+31718;Münchendorf;Mödling;Niederösterreich
+31719;Perchtoldsdorf;Mödling;Niederösterreich
+31723;Vösendorf;Mödling;Niederösterreich
+31725;Wiener Neudorf;Mödling;Niederösterreich
+31726;Wienerwald;Mödling;Niederösterreich
+31801;Altendorf;Neunkirchen;Niederösterreich
+31802;Aspang-Markt;Neunkirchen;Niederösterreich
+31803;Aspangberg-St. Peter;Neunkirchen;Niederösterreich
+31804;Breitenau;Neunkirchen;Niederösterreich
+31805;Breitenstein;Neunkirchen;Niederösterreich
+31806;Buchbach;Neunkirchen;Niederösterreich
+31807;Edlitz;Neunkirchen;Niederösterreich
+31808;Enzenreith;Neunkirchen;Niederösterreich
+31809;Feistritz am Wechsel;Neunkirchen;Niederösterreich
+31810;Gloggnitz;Neunkirchen;Niederösterreich
+31811;Grafenbach-St. Valentin;Neunkirchen;Niederösterreich
+31812;Grimmenstein;Neunkirchen;Niederösterreich
+31813;Grünbach am Schneeberg;Neunkirchen;Niederösterreich
+31814;Kirchberg am Wechsel;Neunkirchen;Niederösterreich
+31815;Mönichkirchen;Neunkirchen;Niederösterreich
+31817;Natschbach-Loipersbach;Neunkirchen;Niederösterreich
+31818;Neunkirchen;Neunkirchen;Niederösterreich
+31820;Otterthal;Neunkirchen;Niederösterreich
+31821;Payerbach;Neunkirchen;Niederösterreich
+31823;Pitten;Neunkirchen;Niederösterreich
+31825;Prigglitz;Neunkirchen;Niederösterreich
+31826;Puchberg am Schneeberg;Neunkirchen;Niederösterreich
+31827;Raach am Hochgebirge;Neunkirchen;Niederösterreich
+31829;Reichenau an der Rax;Neunkirchen;Niederösterreich
+31830;St. Corona am Wechsel;Neunkirchen;Niederösterreich
+31831;St. Egyden am Steinfeld;Neunkirchen;Niederösterreich
+31832;Scheiblingkirchen-Thernberg;Neunkirchen;Niederösterreich
+31833;Schottwien;Neunkirchen;Niederösterreich
+31834;Schrattenbach;Neunkirchen;Niederösterreich
+31835;Schwarzau am Steinfeld;Neunkirchen;Niederösterreich
+31836;Schwarzau im Gebirge;Neunkirchen;Niederösterreich
+31837;Seebenstein;Neunkirchen;Niederösterreich
+31838;Semmering;Neunkirchen;Niederösterreich
+31839;Ternitz;Neunkirchen;Niederösterreich
+31840;Thomasberg;Neunkirchen;Niederösterreich
+31841;Trattenbach;Neunkirchen;Niederösterreich
+31842;Bürg-Vöstenhof;Neunkirchen;Niederösterreich
+31843;Warth;Neunkirchen;Niederösterreich
+31844;Wartmannstetten;Neunkirchen;Niederösterreich
+31845;Willendorf;Neunkirchen;Niederösterreich
+31846;Wimpassing im Schwarzatale;Neunkirchen;Niederösterreich
+31847;Würflach;Neunkirchen;Niederösterreich
+31848;Zöbern;Neunkirchen;Niederösterreich
+31849;Höflein an der Hohen Wand;Neunkirchen;Niederösterreich
+31901;Altlengbach;Sankt Pölten(Land);Niederösterreich
+31902;Asperhofen;Sankt Pölten(Land);Niederösterreich
+31903;Böheimkirchen;Sankt Pölten(Land);Niederösterreich
+31904;Brand-Laaben;Sankt Pölten(Land);Niederösterreich
+31905;Eichgraben;Sankt Pölten(Land);Niederösterreich
+31906;Frankenfels;Sankt Pölten(Land);Niederösterreich
+31907;Gerersdorf;Sankt Pölten(Land);Niederösterreich
+31909;Hofstetten-Grünau;Sankt Pölten(Land);Niederösterreich
+31910;Hafnerbach;Sankt Pölten(Land);Niederösterreich
+31911;Haunoldstein;Sankt Pölten(Land);Niederösterreich
+31912;Herzogenburg;Sankt Pölten(Land);Niederösterreich
+31913;Inzersdorf-Getzersdorf;Sankt Pölten(Land);Niederösterreich
+31915;Kapelln;Sankt Pölten(Land);Niederösterreich
+31916;Karlstetten;Sankt Pölten(Land);Niederösterreich
+31917;Kasten bei Böheimkirchen;Sankt Pölten(Land);Niederösterreich
+31918;Kirchberg an der Pielach;Sankt Pölten(Land);Niederösterreich
+31919;Kirchstetten;Sankt Pölten(Land);Niederösterreich
+31920;Loich;Sankt Pölten(Land);Niederösterreich
+31921;Maria Anzbach;Sankt Pölten(Land);Niederösterreich
+31922;Markersdorf-Haindorf;Sankt Pölten(Land);Niederösterreich
+31923;Michelbach;Sankt Pölten(Land);Niederösterreich
+31925;Neidling;Sankt Pölten(Land);Niederösterreich
+31926;Neulengbach;Sankt Pölten(Land);Niederösterreich
+31927;Neustift-Innermanzing;Sankt Pölten(Land);Niederösterreich
+31928;Nußdorf ob der Traisen;Sankt Pölten(Land);Niederösterreich
+31929;Ober-Grafendorf;Sankt Pölten(Land);Niederösterreich
+31930;Obritzberg-Rust;Sankt Pölten(Land);Niederösterreich
+31932;Prinzersdorf;Sankt Pölten(Land);Niederösterreich
+31934;Pyhra;Sankt Pölten(Land);Niederösterreich
+31935;Rabenstein an der Pielach;Sankt Pölten(Land);Niederösterreich
+31938;St. Margarethen an der Sierning;Sankt Pölten(Land);Niederösterreich
+31939;Schwarzenbach an der Pielach;Sankt Pölten(Land);Niederösterreich
+31940;Statzendorf;Sankt Pölten(Land);Niederösterreich
+31941;Stössing;Sankt Pölten(Land);Niederösterreich
+31943;Traismauer;Sankt Pölten(Land);Niederösterreich
+31945;Weinburg;Sankt Pölten(Land);Niederösterreich
+31946;Perschling;Sankt Pölten(Land);Niederösterreich
+31947;Wilhelmsburg;Sankt Pölten(Land);Niederösterreich
+31948;Wölbling;Sankt Pölten(Land);Niederösterreich
+31949;Gablitz;Sankt Pölten(Land);Niederösterreich
+31950;Mauerbach;Sankt Pölten(Land);Niederösterreich
+31951;Pressbaum;Sankt Pölten(Land);Niederösterreich
+31952;Purkersdorf;Sankt Pölten(Land);Niederösterreich
+31953;Tullnerbach;Sankt Pölten(Land);Niederösterreich
+31954;Wolfsgraben;Sankt Pölten(Land);Niederösterreich
+32001;Gaming;Scheibbs;Niederösterreich
+32002;Göstling an der Ybbs;Scheibbs;Niederösterreich
+32003;Gresten;Scheibbs;Niederösterreich
+32004;Gresten-Land;Scheibbs;Niederösterreich
+32005;Lunz am See;Scheibbs;Niederösterreich
+32006;Oberndorf an der Melk;Scheibbs;Niederösterreich
+32007;Puchenstuben;Scheibbs;Niederösterreich
+32008;Purgstall an der Erlauf;Scheibbs;Niederösterreich
+32009;Randegg;Scheibbs;Niederösterreich
+32010;Reinsberg;Scheibbs;Niederösterreich
+32011;St. Anton an der Jeßnitz;Scheibbs;Niederösterreich
+32012;St. Georgen an der Leys;Scheibbs;Niederösterreich
+32013;Scheibbs;Scheibbs;Niederösterreich
+32014;Steinakirchen am Forst;Scheibbs;Niederösterreich
+32015;Wang;Scheibbs;Niederösterreich
+32016;Wieselburg;Scheibbs;Niederösterreich
+32017;Wieselburg-Land;Scheibbs;Niederösterreich
+32018;Wolfpassing;Scheibbs;Niederösterreich
+32101;Absdorf;Tulln;Niederösterreich
+32104;Atzenbrugg;Tulln;Niederösterreich
+32106;Fels am Wagram;Tulln;Niederösterreich
+32107;Grafenwörth;Tulln;Niederösterreich
+32109;Großriedenthal;Tulln;Niederösterreich
+32110;Großweikersdorf;Tulln;Niederösterreich
+32112;Judenau-Baumgarten;Tulln;Niederösterreich
+32114;Kirchberg am Wagram;Tulln;Niederösterreich
+32115;Königsbrunn am Wagram;Tulln;Niederösterreich
+32116;Königstetten;Tulln;Niederösterreich
+32119;Langenrohr;Tulln;Niederösterreich
+32120;Michelhausen;Tulln;Niederösterreich
+32131;Sieghartskirchen;Tulln;Niederösterreich
+32132;Sitzenberg-Reidling;Tulln;Niederösterreich
+32134;Tulbing;Tulln;Niederösterreich
+32135;Tulln an der Donau;Tulln;Niederösterreich
+32139;Würmla;Tulln;Niederösterreich
+32140;Zeiselmauer-Wolfpassing;Tulln;Niederösterreich
+32141;Zwentendorf an der Donau;Tulln;Niederösterreich
+32142;St. Andrä-Wördern;Tulln;Niederösterreich
+32143;Muckendorf-Wipfing;Tulln;Niederösterreich
+32144;Klosterneuburg;Tulln;Niederösterreich
+32202;Dietmanns;Waidhofen an der Thaya;Niederösterreich
+32203;Dobersberg;Waidhofen an der Thaya;Niederösterreich
+32206;Gastern;Waidhofen an der Thaya;Niederösterreich
+32207;Groß-Siegharts;Waidhofen an der Thaya;Niederösterreich
+32209;Karlstein an der Thaya;Waidhofen an der Thaya;Niederösterreich
+32210;Kautzen;Waidhofen an der Thaya;Niederösterreich
+32212;Ludweis-Aigen;Waidhofen an der Thaya;Niederösterreich
+32214;Pfaffenschlag bei Waidhofen a.d.Thaya;Waidhofen an der Thaya;Niederösterreich
+32216;Raabs an der Thaya;Waidhofen an der Thaya;Niederösterreich
+32217;Thaya;Waidhofen an der Thaya;Niederösterreich
+32219;Vitis;Waidhofen an der Thaya;Niederösterreich
+32220;Waidhofen an der Thaya;Waidhofen an der Thaya;Niederösterreich
+32221;Waidhofen an der Thaya-Land;Waidhofen an der Thaya;Niederösterreich
+32222;Waldkirchen an der Thaya;Waidhofen an der Thaya;Niederösterreich
+32223;Windigsteig;Waidhofen an der Thaya;Niederösterreich
+32301;Bad Fischau-Brunn;Wiener Neustadt(Land);Niederösterreich
+32302;Bad Schönau;Wiener Neustadt(Land);Niederösterreich
+32304;Ebenfurth;Wiener Neustadt(Land);Niederösterreich
+32305;Eggendorf;Wiener Neustadt(Land);Niederösterreich
+32306;Bad Erlach;Wiener Neustadt(Land);Niederösterreich
+32307;Felixdorf;Wiener Neustadt(Land);Niederösterreich
+32308;Gutenstein;Wiener Neustadt(Land);Niederösterreich
+32309;Hochneukirchen-Gschaidt;Wiener Neustadt(Land);Niederösterreich
+32310;Hochwolkersdorf;Wiener Neustadt(Land);Niederösterreich
+32311;Hohe Wand;Wiener Neustadt(Land);Niederösterreich
+32312;Hollenthon;Wiener Neustadt(Land);Niederösterreich
+32313;Katzelsdorf;Wiener Neustadt(Land);Niederösterreich
+32314;Kirchschlag in der Buckligen Welt;Wiener Neustadt(Land);Niederösterreich
+32315;Krumbach;Wiener Neustadt(Land);Niederösterreich
+32316;Lanzenkirchen;Wiener Neustadt(Land);Niederösterreich
+32317;Lichtenegg;Wiener Neustadt(Land);Niederösterreich
+32318;Lichtenwörth;Wiener Neustadt(Land);Niederösterreich
+32319;Markt Piesting;Wiener Neustadt(Land);Niederösterreich
+32320;Matzendorf-Hölles;Wiener Neustadt(Land);Niederösterreich
+32321;Miesenbach;Wiener Neustadt(Land);Niederösterreich
+32322;Muggendorf;Wiener Neustadt(Land);Niederösterreich
+32323;Pernitz;Wiener Neustadt(Land);Niederösterreich
+32324;Rohr im Gebirge;Wiener Neustadt(Land);Niederösterreich
+32325;Bromberg;Wiener Neustadt(Land);Niederösterreich
+32326;Schwarzenbach;Wiener Neustadt(Land);Niederösterreich
+32327;Sollenau;Wiener Neustadt(Land);Niederösterreich
+32330;Theresienfeld;Wiener Neustadt(Land);Niederösterreich
+32331;Waidmannsfeld;Wiener Neustadt(Land);Niederösterreich
+32332;Waldegg;Wiener Neustadt(Land);Niederösterreich
+32333;Walpersbach;Wiener Neustadt(Land);Niederösterreich
+32334;Weikersdorf am Steinfelde;Wiener Neustadt(Land);Niederösterreich
+32335;Wiesmath;Wiener Neustadt(Land);Niederösterreich
+32336;Winzendorf-Muthmannsdorf;Wiener Neustadt(Land);Niederösterreich
+32337;Wöllersdorf-Steinabrückl;Wiener Neustadt(Land);Niederösterreich
+32338;Zillingdorf;Wiener Neustadt(Land);Niederösterreich
+32501;Allentsteig;Zwettl;Niederösterreich
+32502;Arbesbach;Zwettl;Niederösterreich
+32503;Bärnkopf;Zwettl;Niederösterreich
+32504;Echsenbach;Zwettl;Niederösterreich
+32505;Göpfritz an der Wild;Zwettl;Niederösterreich
+32506;Grafenschlag;Zwettl;Niederösterreich
+32508;Groß Gerungs;Zwettl;Niederösterreich
+32509;Großgöttfritz;Zwettl;Niederösterreich
+32511;Gutenbrunn;Zwettl;Niederösterreich
+32514;Kirchschlag;Zwettl;Niederösterreich
+32515;Kottes-Purk;Zwettl;Niederösterreich
+32516;Langschlag;Zwettl;Niederösterreich
+32517;Martinsberg;Zwettl;Niederösterreich
+32518;Ottenschlag;Zwettl;Niederösterreich
+32519;Altmelon;Zwettl;Niederösterreich
+32520;Pölla;Zwettl;Niederösterreich
+32521;Rappottenstein;Zwettl;Niederösterreich
+32522;Sallingberg;Zwettl;Niederösterreich
+32523;Schönbach;Zwettl;Niederösterreich
+32524;Schwarzenau;Zwettl;Niederösterreich
+32525;Schweiggers;Zwettl;Niederösterreich
+32528;Bad Traunstein;Zwettl;Niederösterreich
+32529;Waldhausen;Zwettl;Niederösterreich
+32530;Zwettl-Niederösterreich;Zwettl;Niederösterreich
+40101;Linz;Stadt Linz;Oberösterreich
+40201;Steyr;Stadt Steyr;Oberösterreich
+40301;Wels;Stadt Wels;Oberösterreich
+40401;Altheim;Braunau;Oberösterreich
+40402;Aspach;Braunau;Oberösterreich
+40403;Auerbach;Braunau;Oberösterreich
+40404;Braunau am Inn;Braunau;Oberösterreich
+40405;Burgkirchen;Braunau;Oberösterreich
+40406;Eggelsberg;Braunau;Oberösterreich
+40407;Feldkirchen bei Mattighofen;Braunau;Oberösterreich
+40408;Franking;Braunau;Oberösterreich
+40409;Geretsberg;Braunau;Oberösterreich
+40410;Gilgenberg am Weilhart;Braunau;Oberösterreich
+40411;Haigermoos;Braunau;Oberösterreich
+40412;Handenberg;Braunau;Oberösterreich
+40413;Helpfau-Uttendorf;Braunau;Oberösterreich
+40414;Hochburg-Ach;Braunau;Oberösterreich
+40415;Höhnhart;Braunau;Oberösterreich
+40416;Jeging;Braunau;Oberösterreich
+40417;Kirchberg bei Mattighofen;Braunau;Oberösterreich
+40418;Lengau;Braunau;Oberösterreich
+40419;Lochen am See;Braunau;Oberösterreich
+40420;Maria Schmolln;Braunau;Oberösterreich
+40421;Mattighofen;Braunau;Oberösterreich
+40422;Mauerkirchen;Braunau;Oberösterreich
+40423;Mining;Braunau;Oberösterreich
+40424;Moosbach;Braunau;Oberösterreich
+40425;Moosdorf;Braunau;Oberösterreich
+40426;Munderfing;Braunau;Oberösterreich
+40427;Neukirchen an der Enknach;Braunau;Oberösterreich
+40428;Ostermiething;Braunau;Oberösterreich
+40429;Palting;Braunau;Oberösterreich
+40430;Perwang am Grabensee;Braunau;Oberösterreich
+40431;Pfaffstätt;Braunau;Oberösterreich
+40432;Pischelsdorf am Engelbach;Braunau;Oberösterreich
+40433;Polling im Innkreis;Braunau;Oberösterreich
+40434;Roßbach;Braunau;Oberösterreich
+40435;St. Georgen am Fillmannsbach;Braunau;Oberösterreich
+40436;St. Johann am Walde;Braunau;Oberösterreich
+40437;St. Pantaleon;Braunau;Oberösterreich
+40438;St. Peter am Hart;Braunau;Oberösterreich
+40439;St. Radegund;Braunau;Oberösterreich
+40440;St. Veit im Innkreis;Braunau;Oberösterreich
+40441;Schalchen;Braunau;Oberösterreich
+40442;Schwand im Innkreis;Braunau;Oberösterreich
+40443;Tarsdorf;Braunau;Oberösterreich
+40444;Treubach;Braunau;Oberösterreich
+40445;Überackern;Braunau;Oberösterreich
+40446;Weng im Innkreis;Braunau;Oberösterreich
+40501;Alkoven;Eferding;Oberösterreich
+40502;Aschach an der Donau;Eferding;Oberösterreich
+40503;Eferding;Eferding;Oberösterreich
+40504;Fraham;Eferding;Oberösterreich
+40505;Haibach ob der Donau;Eferding;Oberösterreich
+40506;Hartkirchen;Eferding;Oberösterreich
+40507;Hinzenbach;Eferding;Oberösterreich
+40508;Prambachkirchen;Eferding;Oberösterreich
+40509;Pupping;Eferding;Oberösterreich
+40510;St. Marienkirchen an der Polsenz;Eferding;Oberösterreich
+40511;Scharten;Eferding;Oberösterreich
+40512;Stroheim;Eferding;Oberösterreich
+40601;Freistadt;Freistadt;Oberösterreich
+40602;Grünbach;Freistadt;Oberösterreich
+40603;Gutau;Freistadt;Oberösterreich
+40604;Hagenberg im Mühlkreis;Freistadt;Oberösterreich
+40605;Hirschbach im Mühlkreis;Freistadt;Oberösterreich
+40606;Kaltenberg;Freistadt;Oberösterreich
+40607;Kefermarkt;Freistadt;Oberösterreich
+40608;Königswiesen;Freistadt;Oberösterreich
+40609;Lasberg;Freistadt;Oberösterreich
+40610;Leopoldschlag;Freistadt;Oberösterreich
+40611;Liebenau;Freistadt;Oberösterreich
+40612;Neumarkt im Mühlkreis;Freistadt;Oberösterreich
+40613;Pierbach;Freistadt;Oberösterreich
+40614;Pregarten;Freistadt;Oberösterreich
+40615;Rainbach im Mühlkreis;Freistadt;Oberösterreich
+40616;Sandl;Freistadt;Oberösterreich
+40617;St. Leonhard bei Freistadt;Freistadt;Oberösterreich
+40618;St. Oswald bei Freistadt;Freistadt;Oberösterreich
+40619;Schönau im Mühlkreis;Freistadt;Oberösterreich
+40620;Tragwein;Freistadt;Oberösterreich
+40621;Unterweißenbach;Freistadt;Oberösterreich
+40622;Unterweitersdorf;Freistadt;Oberösterreich
+40623;Waldburg;Freistadt;Oberösterreich
+40624;Wartberg ob der Aist;Freistadt;Oberösterreich
+40625;Weitersfelden;Freistadt;Oberösterreich
+40626;Windhaag bei Freistadt;Freistadt;Oberösterreich
+40627;Bad Zell;Freistadt;Oberösterreich
+40701;Altmünster;Gmunden;Oberösterreich
+40702;Bad Goisern am Hallstättersee;Gmunden;Oberösterreich
+40703;Bad Ischl;Gmunden;Oberösterreich
+40704;Ebensee am Traunsee;Gmunden;Oberösterreich
+40705;Gmunden;Gmunden;Oberösterreich
+40706;Gosau;Gmunden;Oberösterreich
+40707;Grünau im Almtal;Gmunden;Oberösterreich
+40708;Gschwandt;Gmunden;Oberösterreich
+40709;Hallstatt;Gmunden;Oberösterreich
+40710;Kirchham;Gmunden;Oberösterreich
+40711;Laakirchen;Gmunden;Oberösterreich
+40712;Obertraun;Gmunden;Oberösterreich
+40713;Ohlsdorf;Gmunden;Oberösterreich
+40714;Pinsdorf;Gmunden;Oberösterreich
+40715;Roitham am Traunfall;Gmunden;Oberösterreich
+40716;St. Konrad;Gmunden;Oberösterreich
+40717;St. Wolfgang im Salzkammergut;Gmunden;Oberösterreich
+40718;Traunkirchen;Gmunden;Oberösterreich
+40719;Scharnstein;Gmunden;Oberösterreich
+40720;Vorchdorf;Gmunden;Oberösterreich
+40801;Aistersheim;Grieskirchen;Oberösterreich
+40802;Bad Schallerbach;Grieskirchen;Oberösterreich
+40804;Eschenau im Hausruckkreis;Grieskirchen;Oberösterreich
+40805;Gallspach;Grieskirchen;Oberösterreich
+40806;Gaspoltshofen;Grieskirchen;Oberösterreich
+40807;Geboltskirchen;Grieskirchen;Oberösterreich
+40808;Grieskirchen;Grieskirchen;Oberösterreich
+40809;Haag am Hausruck;Grieskirchen;Oberösterreich
+40810;Heiligenberg;Grieskirchen;Oberösterreich
+40811;Hofkirchen an der Trattnach;Grieskirchen;Oberösterreich
+40812;Kallham;Grieskirchen;Oberösterreich
+40813;Kematen am Innbach;Grieskirchen;Oberösterreich
+40814;Meggenhofen;Grieskirchen;Oberösterreich
+40815;Michaelnbach;Grieskirchen;Oberösterreich
+40816;Natternbach;Grieskirchen;Oberösterreich
+40817;Neukirchen am Walde;Grieskirchen;Oberösterreich
+40818;Neumarkt im Hausruckkreis;Grieskirchen;Oberösterreich
+40820;Pötting;Grieskirchen;Oberösterreich
+40821;Pollham;Grieskirchen;Oberösterreich
+40822;Pram;Grieskirchen;Oberösterreich
+40823;Rottenbach;Grieskirchen;Oberösterreich
+40824;St. Agatha;Grieskirchen;Oberösterreich
+40825;St. Georgen bei Grieskirchen;Grieskirchen;Oberösterreich
+40826;St. Thomas;Grieskirchen;Oberösterreich
+40827;Schlüßlberg;Grieskirchen;Oberösterreich
+40828;Steegen;Grieskirchen;Oberösterreich
+40829;Taufkirchen an der Trattnach;Grieskirchen;Oberösterreich
+40830;Tollet;Grieskirchen;Oberösterreich
+40831;Waizenkirchen;Grieskirchen;Oberösterreich
+40832;Wallern an der Trattnach;Grieskirchen;Oberösterreich
+40833;Weibern;Grieskirchen;Oberösterreich
+40834;Wendling;Grieskirchen;Oberösterreich
+40835;Peuerbach;Grieskirchen;Oberösterreich
+40901;Edlbach;Kirchdorf;Oberösterreich
+40902;Grünburg;Kirchdorf;Oberösterreich
+40903;Hinterstoder;Kirchdorf;Oberösterreich
+40904;Inzersdorf im Kremstal;Kirchdorf;Oberösterreich
+40905;Kirchdorf an der Krems;Kirchdorf;Oberösterreich
+40906;Klaus an der Pyhrnbahn;Kirchdorf;Oberösterreich
+40907;Kremsmünster;Kirchdorf;Oberösterreich
+40908;Micheldorf in Oberösterreich;Kirchdorf;Oberösterreich
+40909;Molln;Kirchdorf;Oberösterreich
+40910;Nußbach;Kirchdorf;Oberösterreich
+40911;Oberschlierbach;Kirchdorf;Oberösterreich
+40912;Pettenbach;Kirchdorf;Oberösterreich
+40913;Ried im Traunkreis;Kirchdorf;Oberösterreich
+40914;Rosenau am Hengstpaß;Kirchdorf;Oberösterreich
+40915;Roßleithen;Kirchdorf;Oberösterreich
+40916;St. Pankraz;Kirchdorf;Oberösterreich
+40917;Schlierbach;Kirchdorf;Oberösterreich
+40918;Spital am Pyhrn;Kirchdorf;Oberösterreich
+40919;Steinbach am Ziehberg;Kirchdorf;Oberösterreich
+40920;Steinbach an der Steyr;Kirchdorf;Oberösterreich
+40921;Vorderstoder;Kirchdorf;Oberösterreich
+40922;Wartberg an der Krems;Kirchdorf;Oberösterreich
+40923;Windischgarsten;Kirchdorf;Oberösterreich
+41001;Allhaming;Linz-Land;Oberösterreich
+41002;Ansfelden;Linz-Land;Oberösterreich
+41003;Asten;Linz-Land;Oberösterreich
+41004;Eggendorf im Traunkreis;Linz-Land;Oberösterreich
+41005;Enns;Linz-Land;Oberösterreich
+41006;Hargelsberg;Linz-Land;Oberösterreich
+41007;Hörsching;Linz-Land;Oberösterreich
+41008;Hofkirchen im Traunkreis;Linz-Land;Oberösterreich
+41009;Kematen an der Krems;Linz-Land;Oberösterreich
+41010;Kirchberg-Thening;Linz-Land;Oberösterreich
+41011;Kronstorf;Linz-Land;Oberösterreich
+41012;Leonding;Linz-Land;Oberösterreich
+41013;St. Florian;Linz-Land;Oberösterreich
+41014;Neuhofen an der Krems;Linz-Land;Oberösterreich
+41015;Niederneukirchen;Linz-Land;Oberösterreich
+41016;Oftering;Linz-Land;Oberösterreich
+41017;Pasching;Linz-Land;Oberösterreich
+41018;Piberbach;Linz-Land;Oberösterreich
+41019;Pucking;Linz-Land;Oberösterreich
+41020;St. Marien;Linz-Land;Oberösterreich
+41021;Traun;Linz-Land;Oberösterreich
+41022;Wilhering;Linz-Land;Oberösterreich
+41101;Allerheiligen im Mühlkreis;Perg;Oberösterreich
+41102;Arbing;Perg;Oberösterreich
+41103;Baumgartenberg;Perg;Oberösterreich
+41104;Dimbach;Perg;Oberösterreich
+41105;Grein;Perg;Oberösterreich
+41106;Katsdorf;Perg;Oberösterreich
+41107;Klam;Perg;Oberösterreich
+41108;Bad Kreuzen;Perg;Oberösterreich
+41109;Langenstein;Perg;Oberösterreich
+41110;Luftenberg an der Donau;Perg;Oberösterreich
+41111;Mauthausen;Perg;Oberösterreich
+41112;Mitterkirchen im Machland;Perg;Oberösterreich
+41113;Münzbach;Perg;Oberösterreich
+41114;Naarn im Machlande;Perg;Oberösterreich
+41115;Pabneukirchen;Perg;Oberösterreich
+41116;Perg;Perg;Oberösterreich
+41117;Rechberg;Perg;Oberösterreich
+41118;Ried in der Riedmark;Perg;Oberösterreich
+41119;St. Georgen am Walde;Perg;Oberösterreich
+41120;St. Georgen an der Gusen;Perg;Oberösterreich
+41121;St. Nikola an der Donau;Perg;Oberösterreich
+41122;St. Thomas am Blasenstein;Perg;Oberösterreich
+41123;Saxen;Perg;Oberösterreich
+41124;Schwertberg;Perg;Oberösterreich
+41125;Waldhausen im Strudengau;Perg;Oberösterreich
+41126;Windhaag bei Perg;Perg;Oberösterreich
+41201;Andrichsfurt;Ried;Oberösterreich
+41202;Antiesenhofen;Ried;Oberösterreich
+41203;Aurolzmünster;Ried;Oberösterreich
+41204;Eberschwang;Ried;Oberösterreich
+41205;Eitzing;Ried;Oberösterreich
+41206;Geiersberg;Ried;Oberösterreich
+41207;Geinberg;Ried;Oberösterreich
+41208;Gurten;Ried;Oberösterreich
+41209;Hohenzell;Ried;Oberösterreich
+41210;Kirchdorf am Inn;Ried;Oberösterreich
+41211;Kirchheim im Innkreis;Ried;Oberösterreich
+41212;Lambrechten;Ried;Oberösterreich
+41213;Lohnsburg am Kobernaußerwald;Ried;Oberösterreich
+41214;Mehrnbach;Ried;Oberösterreich
+41215;Mettmach;Ried;Oberösterreich
+41216;Mörschwang;Ried;Oberösterreich
+41217;Mühlheim am Inn;Ried;Oberösterreich
+41218;Neuhofen im Innkreis;Ried;Oberösterreich
+41219;Obernberg am Inn;Ried;Oberösterreich
+41220;Ort im Innkreis;Ried;Oberösterreich
+41221;Pattigham;Ried;Oberösterreich
+41222;Peterskirchen;Ried;Oberösterreich
+41223;Pramet;Ried;Oberösterreich
+41224;Reichersberg;Ried;Oberösterreich
+41225;Ried im Innkreis;Ried;Oberösterreich
+41226;St. Georgen bei Obernberg am Inn;Ried;Oberösterreich
+41227;St. Marienkirchen am Hausruck;Ried;Oberösterreich
+41228;St. Martin im Innkreis;Ried;Oberösterreich
+41229;Schildorn;Ried;Oberösterreich
+41230;Senftenbach;Ried;Oberösterreich
+41231;Taiskirchen im Innkreis;Ried;Oberösterreich
+41232;Tumeltsham;Ried;Oberösterreich
+41233;Utzenaich;Ried;Oberösterreich
+41234;Waldzell;Ried;Oberösterreich
+41235;Weilbach;Ried;Oberösterreich
+41236;Wippenham;Ried;Oberösterreich
+41304;Altenfelden;Rohrbach;Oberösterreich
+41305;Arnreit;Rohrbach;Oberösterreich
+41306;Atzesberg;Rohrbach;Oberösterreich
+41307;Auberg;Rohrbach;Oberösterreich
+41309;Haslach an der Mühl;Rohrbach;Oberösterreich
+41311;Hörbich;Rohrbach;Oberösterreich
+41312;Hofkirchen im Mühlkreis;Rohrbach;Oberösterreich
+41313;Julbach;Rohrbach;Oberösterreich
+41314;Kirchberg ob der Donau;Rohrbach;Oberösterreich
+41315;Klaffer am Hochficht;Rohrbach;Oberösterreich
+41316;Kleinzell im Mühlkreis;Rohrbach;Oberösterreich
+41317;Kollerschlag;Rohrbach;Oberösterreich
+41318;Lembach im Mühlkreis;Rohrbach;Oberösterreich
+41319;Lichtenau im Mühlkreis;Rohrbach;Oberösterreich
+41320;Nebelberg;Rohrbach;Oberösterreich
+41321;Neufelden;Rohrbach;Oberösterreich
+41322;Niederkappel;Rohrbach;Oberösterreich
+41323;Niederwaldkirchen;Rohrbach;Oberösterreich
+41324;Oberkappel;Rohrbach;Oberösterreich
+41325;Oepping;Rohrbach;Oberösterreich
+41326;Peilstein im Mühlviertel;Rohrbach;Oberösterreich
+41327;Pfarrkirchen im Mühlkreis;Rohrbach;Oberösterreich
+41328;Putzleinsdorf;Rohrbach;Oberösterreich
+41329;Neustift im Mühlkreis;Rohrbach;Oberösterreich
+41331;St. Johann am Wimberg;Rohrbach;Oberösterreich
+41332;St. Martin im Mühlkreis;Rohrbach;Oberösterreich
+41333;St. Oswald bei Haslach;Rohrbach;Oberösterreich
+41334;St. Peter am Wimberg;Rohrbach;Oberösterreich
+41336;St. Ulrich im Mühlkreis;Rohrbach;Oberösterreich
+41337;St. Veit im Mühlkreis;Rohrbach;Oberösterreich
+41338;Sarleinsbach;Rohrbach;Oberösterreich
+41341;Schwarzenberg am Böhmerwald;Rohrbach;Oberösterreich
+41342;Ulrichsberg;Rohrbach;Oberösterreich
+41343;Aigen-Schlägl;Rohrbach;Oberösterreich
+41344;Rohrbach-Berg;Rohrbach;Oberösterreich
+41345;Helfenberg;Rohrbach;Oberösterreich
+41346;St. Stefan-Afiesl;Rohrbach;Oberösterreich
+41401;Altschwendt;Schärding;Oberösterreich
+41402;Andorf;Schärding;Oberösterreich
+41403;Brunnenthal;Schärding;Oberösterreich
+41404;Diersbach;Schärding;Oberösterreich
+41405;Dorf an der Pram;Schärding;Oberösterreich
+41406;Eggerding;Schärding;Oberösterreich
+41407;Engelhartszell;Schärding;Oberösterreich
+41408;Enzenkirchen;Schärding;Oberösterreich
+41409;Esternberg;Schärding;Oberösterreich
+41410;Freinberg;Schärding;Oberösterreich
+41411;Kopfing im Innkreis;Schärding;Oberösterreich
+41412;Mayrhof;Schärding;Oberösterreich
+41413;Münzkirchen;Schärding;Oberösterreich
+41414;Raab;Schärding;Oberösterreich
+41415;Rainbach im Innkreis;Schärding;Oberösterreich
+41416;Riedau;Schärding;Oberösterreich
+41417;St. Aegidi;Schärding;Oberösterreich
+41418;St. Florian am Inn;Schärding;Oberösterreich
+41419;St. Marienkirchen bei Schärding;Schärding;Oberösterreich
+41420;St. Roman;Schärding;Oberösterreich
+41421;St. Willibald;Schärding;Oberösterreich
+41422;Schärding;Schärding;Oberösterreich
+41423;Schardenberg;Schärding;Oberösterreich
+41424;Sigharting;Schärding;Oberösterreich
+41425;Suben;Schärding;Oberösterreich
+41426;Taufkirchen an der Pram;Schärding;Oberösterreich
+41427;Vichtenstein;Schärding;Oberösterreich
+41428;Waldkirchen am Wesen;Schärding;Oberösterreich
+41429;Wernstein am Inn;Schärding;Oberösterreich
+41430;Zell an der Pram;Schärding;Oberösterreich
+41501;Adlwang;Steyr-Land;Oberösterreich
+41502;Aschach an der Steyr;Steyr-Land;Oberösterreich
+41503;Bad Hall;Steyr-Land;Oberösterreich
+41504;Dietach;Steyr-Land;Oberösterreich
+41505;Gaflenz;Steyr-Land;Oberösterreich
+41506;Garsten;Steyr-Land;Oberösterreich
+41507;Großraming;Steyr-Land;Oberösterreich
+41508;Laussa;Steyr-Land;Oberösterreich
+41509;Losenstein;Steyr-Land;Oberösterreich
+41510;Maria Neustift;Steyr-Land;Oberösterreich
+41511;Pfarrkirchen bei Bad Hall;Steyr-Land;Oberösterreich
+41512;Reichraming;Steyr-Land;Oberösterreich
+41513;Rohr im Kremstal;Steyr-Land;Oberösterreich
+41514;St. Ulrich bei Steyr;Steyr-Land;Oberösterreich
+41515;Schiedlberg;Steyr-Land;Oberösterreich
+41516;Sierning;Steyr-Land;Oberösterreich
+41517;Ternberg;Steyr-Land;Oberösterreich
+41518;Waldneukirchen;Steyr-Land;Oberösterreich
+41521;Wolfern;Steyr-Land;Oberösterreich
+41522;Weyer;Steyr-Land;Oberösterreich
+41601;Alberndorf in der Riedmark;Urfahr-Umgebung;Oberösterreich
+41602;Altenberg bei Linz;Urfahr-Umgebung;Oberösterreich
+41603;Bad Leonfelden;Urfahr-Umgebung;Oberösterreich
+41604;Eidenberg;Urfahr-Umgebung;Oberösterreich
+41605;Engerwitzdorf;Urfahr-Umgebung;Oberösterreich
+41606;Feldkirchen an der Donau;Urfahr-Umgebung;Oberösterreich
+41607;Gallneukirchen;Urfahr-Umgebung;Oberösterreich
+41608;Goldwörth;Urfahr-Umgebung;Oberösterreich
+41609;Gramastetten;Urfahr-Umgebung;Oberösterreich
+41610;Haibach im Mühlkreis;Urfahr-Umgebung;Oberösterreich
+41611;Hellmonsödt;Urfahr-Umgebung;Oberösterreich
+41612;Herzogsdorf;Urfahr-Umgebung;Oberösterreich
+41613;Kirchschlag bei Linz;Urfahr-Umgebung;Oberösterreich
+41614;Lichtenberg;Urfahr-Umgebung;Oberösterreich
+41615;Oberneukirchen;Urfahr-Umgebung;Oberösterreich
+41616;Ottenschlag im Mühlkreis;Urfahr-Umgebung;Oberösterreich
+41617;Ottensheim;Urfahr-Umgebung;Oberösterreich
+41618;Puchenau;Urfahr-Umgebung;Oberösterreich
+41619;Reichenau im Mühlkreis;Urfahr-Umgebung;Oberösterreich
+41620;Reichenthal;Urfahr-Umgebung;Oberösterreich
+41621;St. Gotthard im Mühlkreis;Urfahr-Umgebung;Oberösterreich
+41622;Schenkenfelden;Urfahr-Umgebung;Oberösterreich
+41623;Sonnberg im Mühlkreis;Urfahr-Umgebung;Oberösterreich
+41624;Steyregg;Urfahr-Umgebung;Oberösterreich
+41626;Walding;Urfahr-Umgebung;Oberösterreich
+41627;Zwettl an der Rodl;Urfahr-Umgebung;Oberösterreich
+41628;Vorderweißenbach;Urfahr-Umgebung;Oberösterreich
+41701;Ampflwang im Hausruckwald;Vöcklabruck;Oberösterreich
+41702;Attersee am Attersee;Vöcklabruck;Oberösterreich
+41703;Attnang-Puchheim;Vöcklabruck;Oberösterreich
+41704;Atzbach;Vöcklabruck;Oberösterreich
+41705;Aurach am Hongar;Vöcklabruck;Oberösterreich
+41706;Berg im Attergau;Vöcklabruck;Oberösterreich
+41707;Desselbrunn;Vöcklabruck;Oberösterreich
+41708;Fornach;Vöcklabruck;Oberösterreich
+41709;Frankenburg am Hausruck;Vöcklabruck;Oberösterreich
+41710;Frankenmarkt;Vöcklabruck;Oberösterreich
+41711;Gampern;Vöcklabruck;Oberösterreich
+41712;Innerschwand am Mondsee;Vöcklabruck;Oberösterreich
+41713;Lenzing an der Ager;Vöcklabruck;Oberösterreich
+41714;Manning;Vöcklabruck;Oberösterreich
+41715;Mondsee;Vöcklabruck;Oberösterreich
+41716;Neukirchen an der Vöckla;Vöcklabruck;Oberösterreich
+41717;Niederthalheim;Vöcklabruck;Oberösterreich
+41718;Nußdorf am Attersee;Vöcklabruck;Oberösterreich
+41719;Oberhofen am Irrsee;Vöcklabruck;Oberösterreich
+41720;Oberndorf bei Schwanenstadt;Vöcklabruck;Oberösterreich
+41721;Oberwang;Vöcklabruck;Oberösterreich
+41722;Ottnang am Hausruck;Vöcklabruck;Oberösterreich
+41723;Pfaffing;Vöcklabruck;Oberösterreich
+41724;Pilsbach;Vöcklabruck;Oberösterreich
+41725;Pitzenberg;Vöcklabruck;Oberösterreich
+41726;Pöndorf;Vöcklabruck;Oberösterreich
+41727;Puchkirchen am Trattberg;Vöcklabruck;Oberösterreich
+41728;Pühret;Vöcklabruck;Oberösterreich
+41729;Redleiten;Vöcklabruck;Oberösterreich
+41730;Redlham;Vöcklabruck;Oberösterreich
+41731;Regau;Vöcklabruck;Oberösterreich
+41732;Rüstorf;Vöcklabruck;Oberösterreich
+41733;Rutzenham;Vöcklabruck;Oberösterreich
+41734;St. Georgen im Attergau;Vöcklabruck;Oberösterreich
+41735;St. Lorenz;Vöcklabruck;Oberösterreich
+41736;Schlatt;Vöcklabruck;Oberösterreich
+41737;Schörfling am Attersee;Vöcklabruck;Oberösterreich
+41738;Schwanenstadt;Vöcklabruck;Oberösterreich
+41739;Seewalchen am Attersee;Vöcklabruck;Oberösterreich
+41740;Steinbach am Attersee;Vöcklabruck;Oberösterreich
+41741;Straß im Attergau;Vöcklabruck;Oberösterreich
+41742;Tiefgraben;Vöcklabruck;Oberösterreich
+41743;Timelkam;Vöcklabruck;Oberösterreich
+41744;Ungenach;Vöcklabruck;Oberösterreich
+41745;Unterach am Attersee;Vöcklabruck;Oberösterreich
+41746;Vöcklabruck;Vöcklabruck;Oberösterreich
+41747;Vöcklamarkt;Vöcklabruck;Oberösterreich
+41748;Weißenkirchen im Attergau;Vöcklabruck;Oberösterreich
+41749;Weyregg am Attersee;Vöcklabruck;Oberösterreich
+41750;Wolfsegg am Hausruck;Vöcklabruck;Oberösterreich
+41751;Zell am Moos;Vöcklabruck;Oberösterreich
+41752;Zell am Pettenfirst;Vöcklabruck;Oberösterreich
+41801;Aichkirchen;Wels-Land;Oberösterreich
+41802;Bachmanning;Wels-Land;Oberösterreich
+41803;Bad Wimsbach-Neydharting;Wels-Land;Oberösterreich
+41804;Buchkirchen;Wels-Land;Oberösterreich
+41805;Eberstalzell;Wels-Land;Oberösterreich
+41806;Edt bei Lambach;Wels-Land;Oberösterreich
+41807;Fischlham;Wels-Land;Oberösterreich
+41808;Gunskirchen;Wels-Land;Oberösterreich
+41809;Holzhausen;Wels-Land;Oberösterreich
+41810;Krenglbach;Wels-Land;Oberösterreich
+41811;Lambach;Wels-Land;Oberösterreich
+41812;Marchtrenk;Wels-Land;Oberösterreich
+41813;Neukirchen bei Lambach;Wels-Land;Oberösterreich
+41814;Offenhausen;Wels-Land;Oberösterreich
+41815;Pennewang;Wels-Land;Oberösterreich
+41816;Pichl bei Wels;Wels-Land;Oberösterreich
+41817;Sattledt;Wels-Land;Oberösterreich
+41818;Schleißheim;Wels-Land;Oberösterreich
+41819;Sipbachzell;Wels-Land;Oberösterreich
+41820;Stadl-Paura;Wels-Land;Oberösterreich
+41821;Steinerkirchen an der Traun;Wels-Land;Oberösterreich
+41822;Steinhaus;Wels-Land;Oberösterreich
+41823;Thalheim bei Wels;Wels-Land;Oberösterreich
+41824;Weißkirchen an der Traun;Wels-Land;Oberösterreich
+50101;Salzburg;Salzburg(Stadt);Salzburg
+50201;Abtenau;Hallein;Salzburg
+50202;Adnet;Hallein;Salzburg
+50203;Annaberg-Lungötz;Hallein;Salzburg
+50204;Golling an der Salzach;Hallein;Salzburg
+50205;Hallein;Hallein;Salzburg
+50206;Krispl;Hallein;Salzburg
+50207;Kuchl;Hallein;Salzburg
+50208;Oberalm;Hallein;Salzburg
+50209;Puch bei Hallein;Hallein;Salzburg
+50210;Rußbach am Paß Gschütt;Hallein;Salzburg
+50211;St. Koloman;Hallein;Salzburg
+50212;Scheffau am Tennengebirge;Hallein;Salzburg
+50213;Bad Vigaun;Hallein;Salzburg
+50301;Anif;Salzburg-Umgebung;Salzburg
+50302;Anthering;Salzburg-Umgebung;Salzburg
+50303;Bergheim;Salzburg-Umgebung;Salzburg
+50304;Berndorf bei Salzburg;Salzburg-Umgebung;Salzburg
+50305;Bürmoos;Salzburg-Umgebung;Salzburg
+50306;Dorfbeuern;Salzburg-Umgebung;Salzburg
+50307;Ebenau;Salzburg-Umgebung;Salzburg
+50308;Elixhausen;Salzburg-Umgebung;Salzburg
+50309;Elsbethen;Salzburg-Umgebung;Salzburg
+50310;Eugendorf;Salzburg-Umgebung;Salzburg
+50311;Faistenau;Salzburg-Umgebung;Salzburg
+50312;Fuschl am See;Salzburg-Umgebung;Salzburg
+50313;Göming;Salzburg-Umgebung;Salzburg
+50314;Grödig;Salzburg-Umgebung;Salzburg
+50315;Großgmain;Salzburg-Umgebung;Salzburg
+50316;Hallwang;Salzburg-Umgebung;Salzburg
+50317;Henndorf am Wallersee;Salzburg-Umgebung;Salzburg
+50318;Hintersee;Salzburg-Umgebung;Salzburg
+50319;Hof bei Salzburg;Salzburg-Umgebung;Salzburg
+50320;Köstendorf;Salzburg-Umgebung;Salzburg
+50321;Koppl;Salzburg-Umgebung;Salzburg
+50322;Lamprechtshausen;Salzburg-Umgebung;Salzburg
+50323;Mattsee;Salzburg-Umgebung;Salzburg
+50324;Neumarkt am Wallersee;Salzburg-Umgebung;Salzburg
+50325;Nußdorf am Haunsberg;Salzburg-Umgebung;Salzburg
+50326;Oberndorf bei Salzburg;Salzburg-Umgebung;Salzburg
+50327;Obertrum am See;Salzburg-Umgebung;Salzburg
+50328;Plainfeld;Salzburg-Umgebung;Salzburg
+50329;St. Georgen bei Salzburg;Salzburg-Umgebung;Salzburg
+50330;St. Gilgen;Salzburg-Umgebung;Salzburg
+50331;Schleedorf;Salzburg-Umgebung;Salzburg
+50332;Seeham;Salzburg-Umgebung;Salzburg
+50335;Straßwalchen;Salzburg-Umgebung;Salzburg
+50336;Strobl;Salzburg-Umgebung;Salzburg
+50337;Thalgau;Salzburg-Umgebung;Salzburg
+50338;Wals-Siezenheim;Salzburg-Umgebung;Salzburg
+50339;Seekirchen am Wallersee;Salzburg-Umgebung;Salzburg
+50401;Altenmarkt im Pongau;Sankt Johann im Pongau;Salzburg
+50402;Bad Hofgastein;Sankt Johann im Pongau;Salzburg
+50403;Bad Gastein;Sankt Johann im Pongau;Salzburg
+50404;Bischofshofen;Sankt Johann im Pongau;Salzburg
+50405;Dorfgastein;Sankt Johann im Pongau;Salzburg
+50406;Eben im Pongau;Sankt Johann im Pongau;Salzburg
+50407;Filzmoos;Sankt Johann im Pongau;Salzburg
+50408;Flachau;Sankt Johann im Pongau;Salzburg
+50409;Forstau;Sankt Johann im Pongau;Salzburg
+50410;Goldegg;Sankt Johann im Pongau;Salzburg
+50411;Großarl;Sankt Johann im Pongau;Salzburg
+50412;Hüttau;Sankt Johann im Pongau;Salzburg
+50413;Hüttschlag;Sankt Johann im Pongau;Salzburg
+50414;Kleinarl;Sankt Johann im Pongau;Salzburg
+50415;Mühlbach am Hochkönig;Sankt Johann im Pongau;Salzburg
+50416;Pfarrwerfen;Sankt Johann im Pongau;Salzburg
+50417;Radstadt;Sankt Johann im Pongau;Salzburg
+50418;St. Johann im Pongau;Sankt Johann im Pongau;Salzburg
+50419;St. Martin am Tennengebirge;Sankt Johann im Pongau;Salzburg
+50420;St. Veit im Pongau;Sankt Johann im Pongau;Salzburg
+50421;Schwarzach im Pongau;Sankt Johann im Pongau;Salzburg
+50422;Untertauern;Sankt Johann im Pongau;Salzburg
+50423;Wagrain;Sankt Johann im Pongau;Salzburg
+50424;Werfen;Sankt Johann im Pongau;Salzburg
+50425;Werfenweng;Sankt Johann im Pongau;Salzburg
+50501;Göriach;Tamsweg;Salzburg
+50502;Lessach;Tamsweg;Salzburg
+50503;Mariapfarr;Tamsweg;Salzburg
+50504;Mauterndorf;Tamsweg;Salzburg
+50505;Muhr;Tamsweg;Salzburg
+50506;Ramingstein;Tamsweg;Salzburg
+50507;St. Andrä im Lungau;Tamsweg;Salzburg
+50508;St. Margarethen im Lungau;Tamsweg;Salzburg
+50509;St. Michael im Lungau;Tamsweg;Salzburg
+50510;Tamsweg;Tamsweg;Salzburg
+50511;Thomatal;Tamsweg;Salzburg
+50512;Tweng;Tamsweg;Salzburg
+50513;Unternberg;Tamsweg;Salzburg
+50514;Weißpriach;Tamsweg;Salzburg
+50515;Zederhaus;Tamsweg;Salzburg
+50601;Bramberg am Wildkogel;Zell am See;Salzburg
+50602;Bruck an der Großglocknerstraße;Zell am See;Salzburg
+50603;Dienten am Hochkönig;Zell am See;Salzburg
+50604;Fusch an der Großglocknerstraße;Zell am See;Salzburg
+50605;Hollersbach im Pinzgau;Zell am See;Salzburg
+50606;Kaprun;Zell am See;Salzburg
+50607;Krimml;Zell am See;Salzburg
+50608;Lend;Zell am See;Salzburg
+50609;Leogang;Zell am See;Salzburg
+50610;Lofer;Zell am See;Salzburg
+50611;Maishofen;Zell am See;Salzburg
+50612;Maria Alm am Steinernen Meer;Zell am See;Salzburg
+50613;Mittersill;Zell am See;Salzburg
+50614;Neukirchen am Großvenediger;Zell am See;Salzburg
+50615;Niedernsill;Zell am See;Salzburg
+50616;Piesendorf;Zell am See;Salzburg
+50617;Rauris;Zell am See;Salzburg
+50618;Saalbach-Hinterglemm;Zell am See;Salzburg
+50619;Saalfelden am Steinernen Meer;Zell am See;Salzburg
+50620;St. Martin bei Lofer;Zell am See;Salzburg
+50621;Stuhlfelden;Zell am See;Salzburg
+50622;Taxenbach;Zell am See;Salzburg
+50623;Unken;Zell am See;Salzburg
+50624;Uttendorf;Zell am See;Salzburg
+50625;Viehhofen;Zell am See;Salzburg
+50626;Wald im Pinzgau;Zell am See;Salzburg
+50627;Weißbach bei Lofer;Zell am See;Salzburg
+50628;Zell am See;Zell am See;Salzburg
+60101;Graz;Graz(Stadt);Steiermark
+60305;Frauental an der Laßnitz;Deutschlandsberg;Steiermark
+60318;Lannach;Deutschlandsberg;Steiermark
+60323;Pölfing-Brunn;Deutschlandsberg;Steiermark
+60324;Preding;Deutschlandsberg;Steiermark
+60326;Sankt Josef (Weststeiermark);Deutschlandsberg;Steiermark
+60329;Sankt Peter im Sulmtal;Deutschlandsberg;Steiermark
+60341;Wettmannstätten;Deutschlandsberg;Steiermark
+60344;Deutschlandsberg;Deutschlandsberg;Steiermark
+60345;Eibiswald;Deutschlandsberg;Steiermark
+60346;Groß Sankt Florian;Deutschlandsberg;Steiermark
+60347;Sankt Martin im Sulmtal;Deutschlandsberg;Steiermark
+60348;Sankt Stefan ob Stainz;Deutschlandsberg;Steiermark
+60349;Bad Schwanberg;Deutschlandsberg;Steiermark
+60350;Stainz;Deutschlandsberg;Steiermark
+60351;Wies;Deutschlandsberg;Steiermark
+60608;Feldkirchen bei Graz;Graz-Umgebung;Steiermark
+60611;Gössendorf;Graz-Umgebung;Steiermark
+60613;Gratkorn;Graz-Umgebung;Steiermark
+60617;Hart bei Graz;Graz-Umgebung;Steiermark
+60618;Haselsdorf-Tobelbad;Graz-Umgebung;Steiermark
+60619;Hausmannstätten;Graz-Umgebung;Steiermark
+60623;Kainbach bei Graz;Graz-Umgebung;Steiermark
+60624;Kalsdorf bei Graz;Graz-Umgebung;Steiermark
+60626;Kumberg;Graz-Umgebung;Steiermark
+60628;Laßnitzhöhe;Graz-Umgebung;Steiermark
+60629;Lieboch;Graz-Umgebung;Steiermark
+60632;Peggau;Graz-Umgebung;Steiermark
+60639;Sankt Bartholomä;Graz-Umgebung;Steiermark
+60641;Sankt Oswald bei Plankenwarth;Graz-Umgebung;Steiermark
+60642;Sankt Radegund bei Graz;Graz-Umgebung;Steiermark
+60645;Semriach;Graz-Umgebung;Steiermark
+60646;Stattegg;Graz-Umgebung;Steiermark
+60647;Stiwoll;Graz-Umgebung;Steiermark
+60648;Thal;Graz-Umgebung;Steiermark
+60651;Übelbach;Graz-Umgebung;Steiermark
+60653;Vasoldsberg;Graz-Umgebung;Steiermark
+60654;Weinitzen;Graz-Umgebung;Steiermark
+60655;Werndorf;Graz-Umgebung;Steiermark
+60656;Wundschuh;Graz-Umgebung;Steiermark
+60659;Deutschfeistritz;Graz-Umgebung;Steiermark
+60660;Dobl-Zwaring;Graz-Umgebung;Steiermark
+60661;Eggersdorf bei Graz;Graz-Umgebung;Steiermark
+60662;Fernitz-Mellach;Graz-Umgebung;Steiermark
+60663;Frohnleiten;Graz-Umgebung;Steiermark
+60664;Gratwein-Straßengel;Graz-Umgebung;Steiermark
+60665;Hitzendorf;Graz-Umgebung;Steiermark
+60666;Nestelbach bei Graz;Graz-Umgebung;Steiermark
+60667;Raaba-Grambach;Graz-Umgebung;Steiermark
+60668;Sankt Marein bei Graz;Graz-Umgebung;Steiermark
+60669;Seiersberg-Pirka;Graz-Umgebung;Steiermark
+60670;Premstätten;Graz-Umgebung;Steiermark
+61001;Allerheiligen bei Wildon;Leibnitz;Steiermark
+61002;Arnfels;Leibnitz;Steiermark
+61007;Empersdorf;Leibnitz;Steiermark
+61008;Gabersdorf;Leibnitz;Steiermark
+61012;Gralla;Leibnitz;Steiermark
+61013;Großklein;Leibnitz;Steiermark
+61016;Heimschuh;Leibnitz;Steiermark
+61017;Hengsberg;Leibnitz;Steiermark
+61019;Kitzeck im Sausal;Leibnitz;Steiermark
+61020;Lang;Leibnitz;Steiermark
+61021;Lebring-Sankt Margarethen;Leibnitz;Steiermark
+61024;Oberhaag;Leibnitz;Steiermark
+61027;Ragnitz;Leibnitz;Steiermark
+61030;Sankt Andrä-Höch;Leibnitz;Steiermark
+61032;Sankt Johann im Saggautal;Leibnitz;Steiermark
+61033;Sankt Nikolai im Sausal;Leibnitz;Steiermark
+61043;Tillmitsch;Leibnitz;Steiermark
+61045;Wagna;Leibnitz;Steiermark
+61049;Ehrenhausen an der Weinstraße;Leibnitz;Steiermark
+61050;Gamlitz;Leibnitz;Steiermark
+61051;Gleinstätten;Leibnitz;Steiermark
+61052;Heiligenkreuz am Waasen;Leibnitz;Steiermark
+61053;Leibnitz;Leibnitz;Steiermark
+61054;Leutschach an der Weinstraße;Leibnitz;Steiermark
+61055;Sankt Georgen an der Stiefing;Leibnitz;Steiermark
+61057;Schwarzautal;Leibnitz;Steiermark
+61059;Wildon;Leibnitz;Steiermark
+61060;Sankt Veit in der Südsteiermark;Leibnitz;Steiermark
+61061;Straß in Steiermark;Leibnitz;Steiermark
+61101;Eisenerz;Leoben;Steiermark
+61105;Kalwang;Leoben;Steiermark
+61106;Kammern im Liesingtal;Leoben;Steiermark
+61107;Kraubath an der Mur;Leoben;Steiermark
+61108;Leoben;Leoben;Steiermark
+61109;Mautern in Steiermark;Leoben;Steiermark
+61110;Niklasdorf;Leoben;Steiermark
+61111;Proleb;Leoben;Steiermark
+61112;Radmer;Leoben;Steiermark
+61113;Sankt Michael in Obersteiermark;Leoben;Steiermark
+61114;Sankt Peter-Freienstein;Leoben;Steiermark
+61115;Sankt Stefan ob Leoben;Leoben;Steiermark
+61116;Traboch;Leoben;Steiermark
+61118;Vordernberg;Leoben;Steiermark
+61119;Wald am Schoberpaß;Leoben;Steiermark
+61120;Trofaiach;Leoben;Steiermark
+61203;Aigen im Ennstal;Liezen;Steiermark
+61204;Altaussee;Liezen;Steiermark
+61205;Altenmarkt bei Sankt Gallen;Liezen;Steiermark
+61206;Ardning;Liezen;Steiermark
+61207;Bad Aussee;Liezen;Steiermark
+61213;Gröbming;Liezen;Steiermark
+61215;Grundlsee;Liezen;Steiermark
+61217;Haus;Liezen;Steiermark
+61222;Lassing;Liezen;Steiermark
+61236;Ramsau am Dachstein;Liezen;Steiermark
+61243;Selzthal;Liezen;Steiermark
+61247;Trieben;Liezen;Steiermark
+61251;Wildalpen;Liezen;Steiermark
+61252;Wörschach;Liezen;Steiermark
+61253;Admont;Liezen;Steiermark
+61254;Aich;Liezen;Steiermark
+61255;Bad Mitterndorf;Liezen;Steiermark
+61256;Gaishorn am See;Liezen;Steiermark
+61257;Irdning-Donnersbachtal;Liezen;Steiermark
+61258;Landl;Liezen;Steiermark
+61259;Liezen;Liezen;Steiermark
+61260;Michaelerberg-Pruggern;Liezen;Steiermark
+61261;Mitterberg-Sankt Martin;Liezen;Steiermark
+61262;Öblarn;Liezen;Steiermark
+61263;Rottenmann;Liezen;Steiermark
+61264;Sankt Gallen;Liezen;Steiermark
+61265;Schladming;Liezen;Steiermark
+61266;Sölk;Liezen;Steiermark
+61267;Stainach-Pürgg;Liezen;Steiermark
+61410;Mühlen;Murau;Steiermark
+61413;Niederwölz;Murau;Steiermark
+61425;St. Peter am Kammersberg;Murau;Steiermark
+61428;Schöder;Murau;Steiermark
+61437;Krakau;Murau;Steiermark
+61438;Murau;Murau;Steiermark
+61439;Neumarkt in der Steiermark;Murau;Steiermark
+61440;Oberwölz;Murau;Steiermark
+61441;Ranten;Murau;Steiermark
+61442;Sankt Georgen am Kreischberg;Murau;Steiermark
+61443;Sankt Lambrecht;Murau;Steiermark
+61444;Scheifling;Murau;Steiermark
+61445;Stadl-Predlitz;Murau;Steiermark
+61446;Teufenbach-Katsch;Murau;Steiermark
+61611;Krottendorf-Gaisfeld;Voitsberg;Steiermark
+61612;Ligist;Voitsberg;Steiermark
+61615;Mooskirchen;Voitsberg;Steiermark
+61618;Rosental an der Kainach;Voitsberg;Steiermark
+61621;Sankt Martin am Wöllmißberg;Voitsberg;Steiermark
+61624;Stallhofen;Voitsberg;Steiermark
+61625;Voitsberg;Voitsberg;Steiermark
+61626;Bärnbach;Voitsberg;Steiermark
+61627;Edelschrott;Voitsberg;Steiermark
+61628;Geistthal-Södingberg;Voitsberg;Steiermark
+61629;Hirschegg-Pack;Voitsberg;Steiermark
+61630;Kainach bei Voitsberg;Voitsberg;Steiermark
+61631;Köflach;Voitsberg;Steiermark
+61632;Maria Lankowitz;Voitsberg;Steiermark
+61633;Söding-Sankt Johann;Voitsberg;Steiermark
+61701;Albersdorf-Prebuch;Weiz;Steiermark
+61708;Fischbach;Weiz;Steiermark
+61710;Floing;Weiz;Steiermark
+61711;Gasen;Weiz;Steiermark
+61716;Markt Hartmannsdorf;Weiz;Steiermark
+61719;Hofstätten an der Raab;Weiz;Steiermark
+61727;Ludersdorf-Wilfersdorf;Weiz;Steiermark
+61728;Miesenbach bei Birkfeld;Weiz;Steiermark
+61729;Mitterdorf an der Raab;Weiz;Steiermark
+61730;Mortantsch;Weiz;Steiermark
+61731;Naas;Weiz;Steiermark
+61740;Puch bei Weiz;Weiz;Steiermark
+61741;Ratten;Weiz;Steiermark
+61743;Rettenegg;Weiz;Steiermark
+61744;St. Kathrein am Hauenstein;Weiz;Steiermark
+61745;Sankt Kathrein am Offenegg;Weiz;Steiermark
+61746;St. Margarethen an der Raab;Weiz;Steiermark
+61748;Sinabelkirchen;Weiz;Steiermark
+61750;Strallegg;Weiz;Steiermark
+61751;Thannhausen;Weiz;Steiermark
+61756;Anger;Weiz;Steiermark
+61757;Birkfeld;Weiz;Steiermark
+61758;Fladnitz an der Teichalm;Weiz;Steiermark
+61759;Gersdorf an der Feistritz;Weiz;Steiermark
+61760;Gleisdorf;Weiz;Steiermark
+61761;Gutenberg;Weiz;Steiermark
+61762;Ilztal;Weiz;Steiermark
+61763;Passail;Weiz;Steiermark
+61764;Pischelsdorf am Kulm;Weiz;Steiermark
+61765;Sankt Ruprecht an der Raab;Weiz;Steiermark
+61766;Weiz;Weiz;Steiermark
+62007;Fohnsdorf;Murtal;Steiermark
+62008;Gaal;Murtal;Steiermark
+62010;Hohentauern;Murtal;Steiermark
+62014;Kobenz;Murtal;Steiermark
+62021;Pusterwald;Murtal;Steiermark
+62026;Sankt Georgen ob Judenburg;Murtal;Steiermark
+62032;Sankt Peter ob Judenburg;Murtal;Steiermark
+62034;Seckau;Murtal;Steiermark
+62036;Unzmarkt-Frauenburg;Murtal;Steiermark
+62038;Zeltweg;Murtal;Steiermark
+62039;Lobmingtal;Murtal;Steiermark
+62040;Judenburg;Murtal;Steiermark
+62041;Knittelfeld;Murtal;Steiermark
+62042;Obdach;Murtal;Steiermark
+62043;Pöls-Oberkurzheim;Murtal;Steiermark
+62044;Pölstal;Murtal;Steiermark
+62045;Sankt Marein-Feistritz;Murtal;Steiermark
+62046;Sankt Margarethen bei Knittelfeld;Murtal;Steiermark
+62047;Spielberg;Murtal;Steiermark
+62048;Weißkirchen in Steiermark;Murtal;Steiermark
+62105;Breitenau am Hochlantsch;Bruck-Mürzzuschlag;Steiermark
+62115;Krieglach;Bruck-Mürzzuschlag;Steiermark
+62116;Langenwang;Bruck-Mürzzuschlag;Steiermark
+62125;Pernegg an der Mur;Bruck-Mürzzuschlag;Steiermark
+62128;Sankt Lorenzen im Mürztal;Bruck-Mürzzuschlag;Steiermark
+62131;Spital am Semmering;Bruck-Mürzzuschlag;Steiermark
+62132;Stanz im Mürztal;Bruck-Mürzzuschlag;Steiermark
+62135;Turnau;Bruck-Mürzzuschlag;Steiermark
+62138;Aflenz;Bruck-Mürzzuschlag;Steiermark
+62139;Bruck an der Mur;Bruck-Mürzzuschlag;Steiermark
+62140;Kapfenberg;Bruck-Mürzzuschlag;Steiermark
+62141;Kindberg;Bruck-Mürzzuschlag;Steiermark
+62142;Mariazell;Bruck-Mürzzuschlag;Steiermark
+62143;Mürzzuschlag;Bruck-Mürzzuschlag;Steiermark
+62144;Neuberg an der Mürz;Bruck-Mürzzuschlag;Steiermark
+62145;Sankt Barbara im Mürztal;Bruck-Mürzzuschlag;Steiermark
+62146;Sankt Marein im Mürztal;Bruck-Mürzzuschlag;Steiermark
+62147;Thörl;Bruck-Mürzzuschlag;Steiermark
+62148;Tragöß-Sankt Katharein;Bruck-Mürzzuschlag;Steiermark
+62202;Bad Blumau;Hartberg-Fürstenfeld;Steiermark
+62205;Buch-St. Magdalena;Hartberg-Fürstenfeld;Steiermark
+62206;Burgau;Hartberg-Fürstenfeld;Steiermark
+62209;Ebersdorf;Hartberg-Fürstenfeld;Steiermark
+62211;Friedberg;Hartberg-Fürstenfeld;Steiermark
+62214;Greinbach;Hartberg-Fürstenfeld;Steiermark
+62216;Großsteinbach;Hartberg-Fürstenfeld;Steiermark
+62219;Hartberg;Hartberg-Fürstenfeld;Steiermark
+62220;Hartberg Umgebung;Hartberg-Fürstenfeld;Steiermark
+62226;Lafnitz;Hartberg-Fürstenfeld;Steiermark
+62232;Ottendorf an der Rittschein;Hartberg-Fürstenfeld;Steiermark
+62233;Pinggau;Hartberg-Fürstenfeld;Steiermark
+62235;Pöllauberg;Hartberg-Fürstenfeld;Steiermark
+62242;Sankt Jakob im Walde;Hartberg-Fürstenfeld;Steiermark
+62244;Sankt Johann in der Haide;Hartberg-Fürstenfeld;Steiermark
+62245;Sankt Lorenzen am Wechsel;Hartberg-Fürstenfeld;Steiermark
+62247;Schäffern;Hartberg-Fürstenfeld;Steiermark
+62256;Stubenberg;Hartberg-Fürstenfeld;Steiermark
+62262;Wenigzell;Hartberg-Fürstenfeld;Steiermark
+62264;Bad Waltersdorf;Hartberg-Fürstenfeld;Steiermark
+62265;Dechantskirchen;Hartberg-Fürstenfeld;Steiermark
+62266;Feistritztal;Hartberg-Fürstenfeld;Steiermark
+62268;Grafendorf bei Hartberg;Hartberg-Fürstenfeld;Steiermark
+62269;Großwilfersdorf;Hartberg-Fürstenfeld;Steiermark
+62270;Hartl;Hartberg-Fürstenfeld;Steiermark
+62271;Ilz;Hartberg-Fürstenfeld;Steiermark
+62272;Kaindorf;Hartberg-Fürstenfeld;Steiermark
+62273;Bad Loipersdorf;Hartberg-Fürstenfeld;Steiermark
+62274;Neudau;Hartberg-Fürstenfeld;Steiermark
+62275;Pöllau;Hartberg-Fürstenfeld;Steiermark
+62276;Rohr bei Hartberg;Hartberg-Fürstenfeld;Steiermark
+62277;Rohrbach an der Lafnitz;Hartberg-Fürstenfeld;Steiermark
+62278;Vorau;Hartberg-Fürstenfeld;Steiermark
+62279;Waldbach-Mönichwald;Hartberg-Fürstenfeld;Steiermark
+62280;Fürstenfeld;Hartberg-Fürstenfeld;Steiermark
+62311;Edelsbach bei Feldbach;Südoststeiermark;Steiermark
+62314;Eichkögl;Südoststeiermark;Steiermark
+62326;Halbenrain;Südoststeiermark;Steiermark
+62330;Jagerberg;Südoststeiermark;Steiermark
+62332;Kapfenstein;Südoststeiermark;Steiermark
+62335;Klöch;Südoststeiermark;Steiermark
+62343;Mettersdorf am Saßbach;Südoststeiermark;Steiermark
+62368;Tieschen;Südoststeiermark;Steiermark
+62372;Unterlamm;Südoststeiermark;Steiermark
+62375;Bad Gleichenberg;Südoststeiermark;Steiermark
+62376;Bad Radkersburg;Südoststeiermark;Steiermark
+62377;Deutsch Goritz;Südoststeiermark;Steiermark
+62378;Fehring;Südoststeiermark;Steiermark
+62379;Feldbach;Südoststeiermark;Steiermark
+62380;Gnas;Südoststeiermark;Steiermark
+62381;Kirchbach-Zerlach;Südoststeiermark;Steiermark
+62382;Kirchberg an der Raab;Südoststeiermark;Steiermark
+62383;Mureck;Südoststeiermark;Steiermark
+62384;Paldau;Südoststeiermark;Steiermark
+62385;Pirching am Traubenberg;Südoststeiermark;Steiermark
+62386;Riegersburg;Südoststeiermark;Steiermark
+62387;Sankt Anna am Aigen;Südoststeiermark;Steiermark
+62388;Sankt Peter am Ottersbach;Südoststeiermark;Steiermark
+62389;Sankt Stefan im Rosental;Südoststeiermark;Steiermark
+62390;Straden;Südoststeiermark;Steiermark
+70101;Innsbruck;Innsbruck-Stadt;Tirol
+70201;Arzl im Pitztal;Imst;Tirol
+70202;Haiming;Imst;Tirol
+70203;Imst;Imst;Tirol
+70204;Imsterberg;Imst;Tirol
+70205;Jerzens;Imst;Tirol
+70206;Karres;Imst;Tirol
+70207;Karrösten;Imst;Tirol
+70208;Längenfeld;Imst;Tirol
+70209;Mieming;Imst;Tirol
+70210;Mils bei Imst;Imst;Tirol
+70211;Mötz;Imst;Tirol
+70212;Nassereith;Imst;Tirol
+70213;Obsteig;Imst;Tirol
+70214;Oetz;Imst;Tirol
+70215;Rietz;Imst;Tirol
+70216;Roppen;Imst;Tirol
+70217;St. Leonhard im Pitztal;Imst;Tirol
+70218;Sautens;Imst;Tirol
+70219;Silz;Imst;Tirol
+70220;Sölden;Imst;Tirol
+70221;Stams;Imst;Tirol
+70222;Tarrenz;Imst;Tirol
+70223;Umhausen;Imst;Tirol
+70224;Wenns;Imst;Tirol
+70301;Absam;Innsbruck-Land;Tirol
+70302;Aldrans;Innsbruck-Land;Tirol
+70303;Ampass;Innsbruck-Land;Tirol
+70304;Axams;Innsbruck-Land;Tirol
+70305;Baumkirchen;Innsbruck-Land;Tirol
+70306;Birgitz;Innsbruck-Land;Tirol
+70307;Ellbögen;Innsbruck-Land;Tirol
+70308;Flaurling;Innsbruck-Land;Tirol
+70309;Fritzens;Innsbruck-Land;Tirol
+70310;Fulpmes;Innsbruck-Land;Tirol
+70311;Gnadenwald;Innsbruck-Land;Tirol
+70312;Götzens;Innsbruck-Land;Tirol
+70313;Gries am Brenner;Innsbruck-Land;Tirol
+70314;Gries im Sellrain;Innsbruck-Land;Tirol
+70315;Grinzens;Innsbruck-Land;Tirol
+70317;Gschnitz;Innsbruck-Land;Tirol
+70318;Hatting;Innsbruck-Land;Tirol
+70319;Inzing;Innsbruck-Land;Tirol
+70320;Kematen in Tirol;Innsbruck-Land;Tirol
+70322;Kolsass;Innsbruck-Land;Tirol
+70323;Kolsassberg;Innsbruck-Land;Tirol
+70325;Lans;Innsbruck-Land;Tirol
+70326;Leutasch;Innsbruck-Land;Tirol
+70328;Mieders;Innsbruck-Land;Tirol
+70329;Mils;Innsbruck-Land;Tirol
+70331;Mutters;Innsbruck-Land;Tirol
+70332;Natters;Innsbruck-Land;Tirol
+70333;Navis;Innsbruck-Land;Tirol
+70334;Neustift im Stubaital;Innsbruck-Land;Tirol
+70335;Oberhofen im Inntal;Innsbruck-Land;Tirol
+70336;Obernberg am Brenner;Innsbruck-Land;Tirol
+70337;Oberperfuss;Innsbruck-Land;Tirol
+70338;Patsch;Innsbruck-Land;Tirol
+70339;Pettnau;Innsbruck-Land;Tirol
+70340;Pfaffenhofen;Innsbruck-Land;Tirol
+70342;Polling in Tirol;Innsbruck-Land;Tirol
+70343;Ranggen;Innsbruck-Land;Tirol
+70344;Reith bei Seefeld;Innsbruck-Land;Tirol
+70345;Rinn;Innsbruck-Land;Tirol
+70346;Rum;Innsbruck-Land;Tirol
+70347;St. Sigmund im Sellrain;Innsbruck-Land;Tirol
+70348;Scharnitz;Innsbruck-Land;Tirol
+70349;Schmirn;Innsbruck-Land;Tirol
+70350;Schönberg im Stubaital;Innsbruck-Land;Tirol
+70351;Seefeld in Tirol;Innsbruck-Land;Tirol
+70352;Sellrain;Innsbruck-Land;Tirol
+70353;Sistrans;Innsbruck-Land;Tirol
+70354;Hall in Tirol;Innsbruck-Land;Tirol
+70355;Steinach am Brenner;Innsbruck-Land;Tirol
+70356;Telfes im Stubai;Innsbruck-Land;Tirol
+70357;Telfs;Innsbruck-Land;Tirol
+70358;Thaur;Innsbruck-Land;Tirol
+70359;Trins;Innsbruck-Land;Tirol
+70360;Tulfes;Innsbruck-Land;Tirol
+70361;Unterperfuss;Innsbruck-Land;Tirol
+70362;Vals;Innsbruck-Land;Tirol
+70364;Völs;Innsbruck-Land;Tirol
+70365;Volders;Innsbruck-Land;Tirol
+70366;Wattenberg;Innsbruck-Land;Tirol
+70367;Wattens;Innsbruck-Land;Tirol
+70368;Wildermieming;Innsbruck-Land;Tirol
+70369;Zirl;Innsbruck-Land;Tirol
+70370;Matrei am Brenner;Innsbruck-Land;Tirol
+70401;Aurach bei Kitzbühel;Kitzbühel;Tirol
+70402;Brixen im Thale;Kitzbühel;Tirol
+70403;Fieberbrunn;Kitzbühel;Tirol
+70404;Going am Wilden Kaiser;Kitzbühel;Tirol
+70405;Hochfilzen;Kitzbühel;Tirol
+70406;Hopfgarten im Brixental;Kitzbühel;Tirol
+70407;Itter;Kitzbühel;Tirol
+70408;Jochberg;Kitzbühel;Tirol
+70409;Kirchberg in Tirol;Kitzbühel;Tirol
+70410;Kirchdorf in Tirol;Kitzbühel;Tirol
+70411;Kitzbühel;Kitzbühel;Tirol
+70412;Kössen;Kitzbühel;Tirol
+70413;Oberndorf in Tirol;Kitzbühel;Tirol
+70414;Reith bei Kitzbühel;Kitzbühel;Tirol
+70415;St. Jakob in Haus;Kitzbühel;Tirol
+70416;St. Johann in Tirol;Kitzbühel;Tirol
+70417;St. Ulrich am Pillersee;Kitzbühel;Tirol
+70418;Schwendt;Kitzbühel;Tirol
+70419;Waidring;Kitzbühel;Tirol
+70420;Westendorf;Kitzbühel;Tirol
+70501;Alpbach;Kufstein;Tirol
+70502;Angath;Kufstein;Tirol
+70503;Bad Häring;Kufstein;Tirol
+70504;Brandenberg;Kufstein;Tirol
+70505;Breitenbach am Inn;Kufstein;Tirol
+70506;Brixlegg;Kufstein;Tirol
+70508;Ebbs;Kufstein;Tirol
+70509;Ellmau;Kufstein;Tirol
+70510;Erl;Kufstein;Tirol
+70511;Kirchbichl;Kufstein;Tirol
+70512;Kramsach;Kufstein;Tirol
+70513;Kufstein;Kufstein;Tirol
+70514;Kundl;Kufstein;Tirol
+70515;Langkampfen;Kufstein;Tirol
+70516;Mariastein;Kufstein;Tirol
+70517;Münster;Kufstein;Tirol
+70518;Niederndorf;Kufstein;Tirol
+70519;Niederndorferberg;Kufstein;Tirol
+70520;Radfeld;Kufstein;Tirol
+70521;Rattenberg;Kufstein;Tirol
+70522;Reith im Alpbachtal;Kufstein;Tirol
+70523;Rettenschöss;Kufstein;Tirol
+70524;Scheffau am Wilden Kaiser;Kufstein;Tirol
+70525;Schwoich;Kufstein;Tirol
+70526;Söll;Kufstein;Tirol
+70527;Thiersee;Kufstein;Tirol
+70528;Angerberg;Kufstein;Tirol
+70529;Walchsee;Kufstein;Tirol
+70530;Wildschönau;Kufstein;Tirol
+70531;Wörgl;Kufstein;Tirol
+70601;Faggen;Landeck;Tirol
+70602;Fendels;Landeck;Tirol
+70603;Fiss;Landeck;Tirol
+70604;Fließ;Landeck;Tirol
+70605;Flirsch;Landeck;Tirol
+70606;Galtür;Landeck;Tirol
+70607;Grins;Landeck;Tirol
+70608;Ischgl;Landeck;Tirol
+70609;Kappl;Landeck;Tirol
+70610;Kaunerberg;Landeck;Tirol
+70611;Kaunertal;Landeck;Tirol
+70612;Kauns;Landeck;Tirol
+70613;Ladis;Landeck;Tirol
+70614;Landeck;Landeck;Tirol
+70615;Nauders;Landeck;Tirol
+70616;Pettneu am Arlberg;Landeck;Tirol
+70617;Pfunds;Landeck;Tirol
+70618;Pians;Landeck;Tirol
+70619;Prutz;Landeck;Tirol
+70620;Ried im Oberinntal;Landeck;Tirol
+70621;St. Anton am Arlberg;Landeck;Tirol
+70622;Schönwies;Landeck;Tirol
+70623;See;Landeck;Tirol
+70624;Serfaus;Landeck;Tirol
+70625;Spiss;Landeck;Tirol
+70626;Stanz bei Landeck;Landeck;Tirol
+70627;Strengen;Landeck;Tirol
+70628;Tobadill;Landeck;Tirol
+70629;Tösens;Landeck;Tirol
+70630;Zams;Landeck;Tirol
+70701;Abfaltersbach;Lienz;Tirol
+70702;Ainet;Lienz;Tirol
+70703;Amlach;Lienz;Tirol
+70704;Anras;Lienz;Tirol
+70705;Assling;Lienz;Tirol
+70706;Außervillgraten;Lienz;Tirol
+70707;Dölsach;Lienz;Tirol
+70708;Gaimberg;Lienz;Tirol
+70709;Hopfgarten in Defereggen;Lienz;Tirol
+70710;Innervillgraten;Lienz;Tirol
+70711;Iselsberg-Stronach;Lienz;Tirol
+70712;Kals am Großglockner;Lienz;Tirol
+70713;Kartitsch;Lienz;Tirol
+70714;Lavant;Lienz;Tirol
+70715;Leisach;Lienz;Tirol
+70716;Lienz;Lienz;Tirol
+70717;Matrei in Osttirol;Lienz;Tirol
+70718;Nikolsdorf;Lienz;Tirol
+70719;Nußdorf-Debant;Lienz;Tirol
+70720;Oberlienz;Lienz;Tirol
+70721;Obertilliach;Lienz;Tirol
+70723;Prägraten am Großvenediger;Lienz;Tirol
+70724;St. Jakob in Defereggen;Lienz;Tirol
+70725;St. Johann im Walde;Lienz;Tirol
+70726;St. Veit in Defereggen;Lienz;Tirol
+70727;Schlaiten;Lienz;Tirol
+70728;Sillian;Lienz;Tirol
+70729;Strassen;Lienz;Tirol
+70731;Thurn;Lienz;Tirol
+70732;Tristach;Lienz;Tirol
+70733;Untertilliach;Lienz;Tirol
+70734;Virgen;Lienz;Tirol
+70735;Heinfels;Lienz;Tirol
+70801;Bach;Reutte;Tirol
+70802;Berwang;Reutte;Tirol
+70803;Biberwier;Reutte;Tirol
+70804;Bichlbach;Reutte;Tirol
+70805;Breitenwang;Reutte;Tirol
+70806;Ehenbichl;Reutte;Tirol
+70807;Ehrwald;Reutte;Tirol
+70808;Elbigenalp;Reutte;Tirol
+70809;Elmen;Reutte;Tirol
+70810;Forchach;Reutte;Tirol
+70811;Grän;Reutte;Tirol
+70812;Gramais;Reutte;Tirol
+70813;Häselgehr;Reutte;Tirol
+70814;Heiterwang;Reutte;Tirol
+70815;Hinterhornbach;Reutte;Tirol
+70816;Höfen;Reutte;Tirol
+70817;Holzgau;Reutte;Tirol
+70818;Jungholz;Reutte;Tirol
+70819;Kaisers;Reutte;Tirol
+70820;Lechaschau;Reutte;Tirol
+70821;Lermoos;Reutte;Tirol
+70822;Musau;Reutte;Tirol
+70823;Namlos;Reutte;Tirol
+70824;Nesselwängle;Reutte;Tirol
+70825;Pfafflar;Reutte;Tirol
+70826;Pflach;Reutte;Tirol
+70827;Pinswang;Reutte;Tirol
+70828;Reutte;Reutte;Tirol
+70829;Schattwald;Reutte;Tirol
+70830;Stanzach;Reutte;Tirol
+70831;Steeg;Reutte;Tirol
+70832;Tannheim;Reutte;Tirol
+70833;Vils;Reutte;Tirol
+70834;Vorderhornbach;Reutte;Tirol
+70835;Wängle;Reutte;Tirol
+70836;Weißenbach am Lech;Reutte;Tirol
+70837;Zöblen;Reutte;Tirol
+70901;Achenkirch;Schwaz;Tirol
+70902;Aschau im Zillertal;Schwaz;Tirol
+70903;Brandberg;Schwaz;Tirol
+70904;Bruck am Ziller;Schwaz;Tirol
+70905;Buch in Tirol;Schwaz;Tirol
+70907;Eben am Achensee;Schwaz;Tirol
+70908;Finkenberg;Schwaz;Tirol
+70909;Fügen;Schwaz;Tirol
+70910;Fügenberg;Schwaz;Tirol
+70911;Gallzein;Schwaz;Tirol
+70912;Gerlos;Schwaz;Tirol
+70913;Gerlosberg;Schwaz;Tirol
+70914;Hainzenberg;Schwaz;Tirol
+70915;Hart im Zillertal;Schwaz;Tirol
+70916;Hippach;Schwaz;Tirol
+70917;Jenbach;Schwaz;Tirol
+70918;Kaltenbach;Schwaz;Tirol
+70920;Mayrhofen;Schwaz;Tirol
+70921;Pill;Schwaz;Tirol
+70922;Ramsau im Zillertal;Schwaz;Tirol
+70923;Ried im Zillertal;Schwaz;Tirol
+70924;Rohrberg;Schwaz;Tirol
+70925;Schlitters;Schwaz;Tirol
+70926;Schwaz;Schwaz;Tirol
+70927;Schwendau;Schwaz;Tirol
+70928;Stans;Schwaz;Tirol
+70929;Steinberg am Rofan;Schwaz;Tirol
+70930;Strass im Zillertal;Schwaz;Tirol
+70931;Stumm;Schwaz;Tirol
+70932;Stummerberg;Schwaz;Tirol
+70933;Terfens;Schwaz;Tirol
+70934;Tux;Schwaz;Tirol
+70935;Uderns;Schwaz;Tirol
+70936;Vomp;Schwaz;Tirol
+70937;Weer;Schwaz;Tirol
+70938;Weerberg;Schwaz;Tirol
+70939;Wiesing;Schwaz;Tirol
+70940;Zell am Ziller;Schwaz;Tirol
+70941;Zellberg;Schwaz;Tirol
+80101;Bartholomäberg;Bludenz;Vorarlberg
+80102;Blons;Bludenz;Vorarlberg
+80103;Bludenz;Bludenz;Vorarlberg
+80104;Bludesch;Bludenz;Vorarlberg
+80105;Brand;Bludenz;Vorarlberg
+80106;Bürs;Bludenz;Vorarlberg
+80107;Bürserberg;Bludenz;Vorarlberg
+80108;Dalaas;Bludenz;Vorarlberg
+80109;Fontanella;Bludenz;Vorarlberg
+80110;Gaschurn;Bludenz;Vorarlberg
+80111;Innerbraz;Bludenz;Vorarlberg
+80112;Klösterle;Bludenz;Vorarlberg
+80113;Lech;Bludenz;Vorarlberg
+80114;Lorüns;Bludenz;Vorarlberg
+80115;Ludesch;Bludenz;Vorarlberg
+80116;Nenzing;Bludenz;Vorarlberg
+80117;Nüziders;Bludenz;Vorarlberg
+80118;Raggal;Bludenz;Vorarlberg
+80119;St. Anton im Montafon;Bludenz;Vorarlberg
+80120;St. Gallenkirch;Bludenz;Vorarlberg
+80121;St. Gerold;Bludenz;Vorarlberg
+80122;Schruns;Bludenz;Vorarlberg
+80123;Silbertal;Bludenz;Vorarlberg
+80124;Sonntag;Bludenz;Vorarlberg
+80125;Stallehr;Bludenz;Vorarlberg
+80126;Thüringen;Bludenz;Vorarlberg
+80127;Thüringerberg;Bludenz;Vorarlberg
+80128;Tschagguns;Bludenz;Vorarlberg
+80129;Vandans;Bludenz;Vorarlberg
+80201;Alberschwende;Bregenz;Vorarlberg
+80202;Andelsbuch;Bregenz;Vorarlberg
+80203;Au;Bregenz;Vorarlberg
+80204;Bezau;Bregenz;Vorarlberg
+80205;Bildstein;Bregenz;Vorarlberg
+80206;Bizau;Bregenz;Vorarlberg
+80207;Bregenz;Bregenz;Vorarlberg
+80208;Buch;Bregenz;Vorarlberg
+80209;Damüls;Bregenz;Vorarlberg
+80210;Doren;Bregenz;Vorarlberg
+80211;Egg;Bregenz;Vorarlberg
+80212;Eichenberg;Bregenz;Vorarlberg
+80213;Fußach;Bregenz;Vorarlberg
+80214;Gaißau;Bregenz;Vorarlberg
+80215;Hard;Bregenz;Vorarlberg
+80216;Hittisau;Bregenz;Vorarlberg
+80217;Höchst;Bregenz;Vorarlberg
+80218;Hörbranz;Bregenz;Vorarlberg
+80219;Hohenweiler;Bregenz;Vorarlberg
+80220;Kennelbach;Bregenz;Vorarlberg
+80221;Krumbach;Bregenz;Vorarlberg
+80222;Langen bei Bregenz;Bregenz;Vorarlberg
+80223;Langenegg;Bregenz;Vorarlberg
+80224;Lauterach;Bregenz;Vorarlberg
+80225;Lingenau;Bregenz;Vorarlberg
+80226;Lochau;Bregenz;Vorarlberg
+80227;Mellau;Bregenz;Vorarlberg
+80228;Mittelberg;Bregenz;Vorarlberg
+80229;Möggers;Bregenz;Vorarlberg
+80230;Reuthe;Bregenz;Vorarlberg
+80231;Riefensberg;Bregenz;Vorarlberg
+80232;Schnepfau;Bregenz;Vorarlberg
+80233;Schoppernau;Bregenz;Vorarlberg
+80234;Schröcken;Bregenz;Vorarlberg
+80235;Schwarzach;Bregenz;Vorarlberg
+80236;Schwarzenberg;Bregenz;Vorarlberg
+80237;Sibratsgfäll;Bregenz;Vorarlberg
+80238;Sulzberg;Bregenz;Vorarlberg
+80239;Warth;Bregenz;Vorarlberg
+80240;Wolfurt;Bregenz;Vorarlberg
+80301;Dornbirn;Dornbirn;Vorarlberg
+80302;Hohenems;Dornbirn;Vorarlberg
+80303;Lustenau;Dornbirn;Vorarlberg
+80401;Altach;Feldkirch;Vorarlberg
+80402;Düns;Feldkirch;Vorarlberg
+80403;Dünserberg;Feldkirch;Vorarlberg
+80404;Feldkirch;Feldkirch;Vorarlberg
+80405;Frastanz;Feldkirch;Vorarlberg
+80406;Fraxern;Feldkirch;Vorarlberg
+80407;Göfis;Feldkirch;Vorarlberg
+80408;Götzis;Feldkirch;Vorarlberg
+80409;Klaus;Feldkirch;Vorarlberg
+80410;Koblach;Feldkirch;Vorarlberg
+80411;Laterns;Feldkirch;Vorarlberg
+80412;Mäder;Feldkirch;Vorarlberg
+80413;Meiningen;Feldkirch;Vorarlberg
+80414;Rankweil;Feldkirch;Vorarlberg
+80415;Röns;Feldkirch;Vorarlberg
+80416;Röthis;Feldkirch;Vorarlberg
+80417;Satteins;Feldkirch;Vorarlberg
+80418;Schlins;Feldkirch;Vorarlberg
+80419;Schnifis;Feldkirch;Vorarlberg
+80420;Sulz;Feldkirch;Vorarlberg
+80421;Übersaxen;Feldkirch;Vorarlberg
+80422;Viktorsberg;Feldkirch;Vorarlberg
+80423;Weiler;Feldkirch;Vorarlberg
+80424;Zwischenwasser;Feldkirch;Vorarlberg
+90001;Wien;Wien;Wien

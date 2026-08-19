@@ -12,7 +12,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from mitglieder.models import Identitaetsstufe, Mitglied
+from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied
 from verfahren.models import (
     Antrag,
     Kategorie,
@@ -28,6 +28,7 @@ class Command(BaseCommand):
     help = "Erzeugt Demo-Daten für die lokale Entwicklung."
 
     def handle(self, *args, **opts):
+        call_command("gemeinden_laden")
         ordnung, _ = Verfahrensordnung.objects.get_or_create(
             policy_id="sachantrag-standard",
             version=1,
@@ -55,11 +56,12 @@ class Command(BaseCommand):
                     "beitritt": date.today() - timedelta(days=200),
                     "identitaetsstufe": Identitaetsstufe.GEPRUEFT,
                     "pseudonym_oeffentlich": f"Mitglied {i}",
-                    "gemeinde": "Sankt Marienkirchen an der Polsenz",
+                    "gemeinde": "St. Marienkirchen an der Polsenz",
                     "bundesland": "oberoesterreich",
                 },
             )
             if neu:
+                m.wohnsitz = Gemeinde.finden(m.gemeinde)[0]
                 m.set_unusable_password()
                 m.save()
             leute.append(m)
@@ -149,7 +151,7 @@ class Command(BaseCommand):
                 "Kleine, sichtbare Projekte bauen Vertrauen in direkte Entscheidungen auf.",
                 ordnung,
                 ebene="gemeinde",
-                gebiet="Sankt Marienkirchen an der Polsenz",
+                gebiet="St. Marienkirchen an der Polsenz",
             )
 
             # Favoriten für das Demo-Mitglied 1 (Bereich a)

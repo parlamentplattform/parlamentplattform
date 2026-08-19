@@ -2,6 +2,15 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.6.1] — 2026-08-19 · Robuster Mailversand
+
+### Behoben
+- **Versandstörungen hinterlassen kein „halbes" Konto mehr:** Konto-Anlage und Bestätigungs-Mail laufen in einer Transaktion — scheitert der Versand (z. B. SMTP nicht erreichbar), wird alles zurückgerollt, die Adresse bleibt frei, und das Formular meldet die Störung ehrlich statt einer „E-Mail unterwegs"-Seite ohne E-Mail. Gleiches offenes Verhalten beim Anmeldelink
+- **SMTP-Timeout** (`DDOE_SMTP_TIMEOUT`, Standard 20 s): Ein hängender Mailserver hält den Web-Worker nicht mehr bis zum Gunicorn-Timeout fest (vorher: 60 s Blockade + Fehler 500)
+
+### Geändert
+- 2 neue Tests (96 gesamt)
+
 ## [0.6.0] — 2026-08-19 · Captcha-Bild und amtliches Gemeindeverzeichnis
 
 ### Hinzugefügt

@@ -7,11 +7,15 @@ präzise und ohne Marketing — wie alles hier.
 
 from __future__ import annotations
 
+import logging
+from smtplib import SMTPException
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import login as dj_login
 from django.contrib.auth import logout as dj_logout
 from django.core.mail import send_mail
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -21,6 +25,13 @@ from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied
 from verfahren.models import AuditEintrag
+
+log = logging.getLogger(__name__)
+
+MAIL_STOERUNG = (
+    "Unser E-Mail-Versand ist im Moment gestört — bitte versuchen Sie es in einigen "
+    "Minuten erneut. Bleibt das Problem bestehen, schreiben Sie uns an didide@ddoe.at."
+)
 
 
 class RegistrierungsFormular(BotschutzMixin, forms.Form):
@@ -94,36 +105,45 @@ def registrieren(request):
             form.add_error(None, "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut.")
         elif form.is_valid():
             d = form.cleaned_data
-            mitglied = Mitglied.objects.create(
-                username=d["email"],
-                email=d["email"],
-                first_name=d["vorname"],
-                last_name=d["nachname"],
-                identitaetsstufe=Identitaetsstufe.UNGEPRUEFT,
-                is_active=False,  # aktiv erst nach E-Mail-Bestätigung
-            )
-            gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
-            mitglied.gemeinde = gemeinde.name
-            mitglied.bundesland = gemeinde.bundesland
-            mitglied.wohnsitz = gemeinde
-            mitglied.set_unusable_password()
-            mitglied.save()
-            token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
-            link = request.build_absolute_uri(reverse("mitglieder:bestaetigen", args=[token]))
-            send_mail(
-                "Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform",
-                f"Guten Tag {d['vorname']} {d['nachname']},\n\n"
-                f"mit diesem Link bestätigen Sie Ihre Adresse und aktivieren Ihren Zugang "
-                f"(gültig 48 Stunden):\n\n{link}\n\n"
-                f"Wenn Sie sich nicht registriert haben, ignorieren Sie diese Nachricht.\n\n"
-                f"Direkte Demokratie Österreich — Wir sind das Werkzeug.",
-                None,
-                [d["email"]],
-            )
-            AuditEintrag.anhaengen({"typ": "registrierung", "mitglied": mitglied.pk})
-            return render(
-                request, "mitglieder/mail_gesendet.html", {"zweck": "Bestätigung", "email": d["email"]}
-            )
+            try:
+                # Konto und Mailversand stehen und fallen gemeinsam: Scheitert der
+                # Versand, wird alles zurückgerollt — die Adresse bleibt frei und
+                # ein zweiter Versuch ist jederzeit möglich (kein „halbes“ Konto).
+                with transaction.atomic():
+                    mitglied = Mitglied.objects.create(
+                        username=d["email"],
+                        email=d["email"],
+                        first_name=d["vorname"],
+                        last_name=d["nachname"],
+                        identitaetsstufe=Identitaetsstufe.UNGEPRUEFT,
+                        is_active=False,  # aktiv erst nach E-Mail-Bestätigung
+                    )
+                    gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
+                    mitglied.gemeinde = gemeinde.name
+                    mitglied.bundesland = gemeinde.bundesland
+                    mitglied.wohnsitz = gemeinde
+                    mitglied.set_unusable_password()
+                    mitglied.save()
+                    token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
+                    link = request.build_absolute_uri(reverse("mitglieder:bestaetigen", args=[token]))
+                    send_mail(
+                        "Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform",
+                        f"Guten Tag {d['vorname']} {d['nachname']},\n\n"
+                        f"mit diesem Link bestätigen Sie Ihre Adresse und aktivieren Ihren Zugang "
+                        f"(gültig 48 Stunden):\n\n{link}\n\n"
+                        f"Wenn Sie sich nicht registriert haben, ignorieren Sie diese Nachricht.\n\n"
+                        f"Direkte Demokratie Österreich — Wir sind das Werkzeug.",
+                        None,
+                        [d["email"]],
+                    )
+            except (SMTPException, OSError):
+                log.exception("Bestätigungs-Mail nicht versendbar — Registrierung zurückgerollt.")
+                form.add_error(None, f"Ihre Registrierung wurde nicht gespeichert: {MAIL_STOERUNG}")
+            else:
+                AuditEintrag.anhaengen({"typ": "registrierung", "mitglied": mitglied.pk})
+                return render(
+                    request, "mitglieder/mail_gesendet.html", {"zweck": "Bestätigung", "email": d["email"]}
+                )
     else:
         form = RegistrierungsFormular()
     gemeinden = [f"{name} ({bezirk})" for name, bezirk in Gemeinde.objects.values_list("name", "bezirk")]
@@ -202,13 +222,21 @@ def login_anfordern(request):
             if mitglied:
                 token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.LOGIN)
                 link = request.build_absolute_uri(reverse("mitglieder:login_einloesen", args=[token]))
-                send_mail(
-                    "Ihr Anmeldelink — ParlamentPlattform",
-                    f"Guten Tag,\n\nmit diesem Link melden Sie sich an (gültig 30 Minuten):\n\n{link}\n\n"
-                    f"Wenn Sie keinen Login angefordert haben, ignorieren Sie diese Nachricht.",
-                    None,
-                    [email],
-                )
+                try:
+                    send_mail(
+                        "Ihr Anmeldelink — ParlamentPlattform",
+                        f"Guten Tag,\n\nmit diesem Link melden Sie sich an (gültig 30 Minuten):\n\n{link}\n\n"
+                        f"Wenn Sie keinen Login angefordert haben, ignorieren Sie diese Nachricht.",
+                        None,
+                        [email],
+                    )
+                except (SMTPException, OSError):
+                    # Eine Betriebsstörung wird offen gemeldet statt einer „unterwegs“-Seite
+                    # ohne Mail. (Ob eine Adresse registriert ist, zeigt ohnehin schon das
+                    # Registrierungsformular — hier entsteht kein neuer Auskunftskanal.)
+                    log.exception("Anmeldelink nicht versendbar.")
+                    form.add_error(None, MAIL_STOERUNG)
+                    return render(request, "mitglieder/login.html", {"form": form})
             # Absichtlich identische Antwort, ob das Konto existiert oder nicht
             # (keine Adress-Enumeration).
             return render(request, "mitglieder/mail_gesendet.html", {"zweck": "Anmeldung", "email": email})

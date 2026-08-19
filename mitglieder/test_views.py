@@ -203,3 +203,37 @@ def test_mehrdeutige_gemeinde_verlangt_praezisierung(client):
     m = Mitglied.objects.get()
     assert m.bundesland == "vorarlberg"
     assert m.wohnsitz.kennziffer.startswith("8")
+
+
+# --- Versandstörung: kein halbes Konto, ehrliche Meldung -------------------------
+
+
+def _versand_kaputt(monkeypatch):
+    def kaputt(*args, **kwargs):
+        raise OSError("SMTP nicht erreichbar")
+
+    monkeypatch.setattr("mitglieder.views.send_mail", kaputt)
+
+
+def test_versandstoerung_rollt_die_registrierung_zurueck(client, monkeypatch):
+    _versand_kaputt(monkeypatch)
+    antwort = client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz()})
+    assert antwort.status_code == 200  # Formular mit Meldung, kein 500
+    assert "gestört" in antwort.content.decode()
+    assert Mitglied.objects.count() == 0  # nichts halb angelegt — die Adresse bleibt frei
+
+    monkeypatch.undo()  # Versand repariert: derselbe Mensch kann es sofort erneut versuchen
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz()})
+    assert Mitglied.objects.filter(email="eva@example.org").exists()
+    assert len(mail.outbox) == 1
+
+
+def test_versandstoerung_beim_anmelden_wird_offen_gemeldet(client, monkeypatch):
+    m = Mitglied.objects.create(username="eva@example.org", email="eva@example.org", is_active=True)
+    m.set_unusable_password()
+    m.save()
+    _versand_kaputt(monkeypatch)
+    antwort = client.post(reverse("mitglieder:login"), {"email": "eva@example.org", **botschutz()})
+    assert antwort.status_code == 200
+    assert "gestört" in antwort.content.decode()
+    assert "Postfach" not in antwort.content.decode()  # keine falsche „unterwegs“-Seite

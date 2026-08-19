@@ -100,6 +100,9 @@ if os.environ.get("DDOE_SMTP_HOST"):
     EMAIL_HOST_USER = os.environ.get("DDOE_SMTP_USER", "")
     EMAIL_HOST_PASSWORD = os.environ.get("DDOE_SMTP_PASSWORT", "")
     EMAIL_USE_TLS = True
+    # Hängt der Mailserver (oder blockiert das Netz den Port), soll der Request
+    # nach Sekunden sauber scheitern — nicht den Worker bis zum Timeout halten.
+    EMAIL_TIMEOUT = int(os.environ.get("DDOE_SMTP_TIMEOUT", "20"))
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "plattform@ddoe.at")

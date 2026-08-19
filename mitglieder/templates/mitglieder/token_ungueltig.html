@@ -1,0 +1,10 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Link nicht mehr gültig{% endblock %}
+{% block inhalt %}
+<h1>Dieser Link ist nicht mehr gültig</h1>
+<div class="karte">
+<p>Der Link wurde bereits verwendet oder seine Gültigkeit ist abgelaufen.
+Das ist kein Problem: Fordern Sie einfach einen neuen an.</p>
+<p style="margin-top:14px"><a class="btn" href="{% url 'mitglieder:login' %}">Neuen Anmeldelink anfordern</a></p>
+</div>
+{% endblock %}

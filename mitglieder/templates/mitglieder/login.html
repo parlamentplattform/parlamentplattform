@@ -1,0 +1,20 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Anmelden{% endblock %}
+{% block inhalt %}
+<h1>Anmelden</h1>
+<p>Kein Passwort — Sie erhalten einen Anmeldelink per E-Mail (gültig 30 Minuten).
+Sobald die ID&nbsp;Austria angebunden ist, ersetzt sie diesen Schritt.</p>
+<div class="karte" style="margin-top:20px">
+<form method="post">{% csrf_token %}
+  {% for feld in form %}
+    <p>
+      <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+      {{ feld }}
+      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </p>
+  {% endfor %}
+  <button type="submit" class="btn">Anmeldelink senden</button>
+</form>
+</div>
+<p class="hilfe">Noch kein Zugang? <a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a></p>
+{% endblock %}

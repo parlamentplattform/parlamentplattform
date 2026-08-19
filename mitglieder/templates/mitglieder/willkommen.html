@@ -1,0 +1,30 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Willkommen{% endblock %}
+{% block inhalt %}
+<h1>Willkommen, {{ user.first_name }}!</h1>
+<p>Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter.
+Ab heute läuft Ihre Anwartschaft (§ 4 Abs 4): nach drei Monaten sind Sie bei Sachfragen
+stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen.</p>
+
+<h2>Mitgliedsbeitrag</h2>
+<div class="karte hinweis">
+<p>Mit dem Beitrag (Selbsteinschätzung, Richtwert 30&nbsp;€ im Jahr — niemand wird aus
+finanziellen Gründen ausgeschlossen) schließen Sie Ihren Beitritt ab:</p>
+<p style="margin:14px 0">
+Empfänger: <strong>Direkte Demokratie Österreich</strong><br>
+IBAN: <code class="gross">{{ iban }}</code><br>
+Verwendungszweck: <code class="gross">{{ referenz }}</code>
+</p>
+<p class="hilfe">Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,
+damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr Konto als
+geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail.</p>
+</div>
+
+<h2>Was Sie jetzt schon können</h2>
+<div class="karte">
+<p>Lesen können Sie alles — <a href="{% url 'verfahren:index' %}">alle Anträge, Beratungen und
+Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der Freischaltung können
+Sie Anträge einbringen, unterstützen und mitberaten; mit abgeschlossener Anwartschaft stimmen
+Sie ab.</p>
+</div>
+{% endblock %}

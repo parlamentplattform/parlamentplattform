@@ -94,7 +94,17 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-24 | **Rechenschaftsregister:** je Parlamentsabstimmung Beschluss der Plattform, tatsächliche Stimme, Begründung des Mandatars, Zeitstempel ≤ 7 Tage, dauerhaft, filterbar | S | § 7 Abs 5 |
 | F-25 | Kein personenbezogenes Stimmverhalten öffentlich; Klarnamen-Zuordnung der Pseudonyme nur intern, zugriffsbeschränkt, protokolliert | M | § 8 Abs 5 |
 
-### 3.4 Kommunikation und Zugänglichkeit
+### 3.4 Assistenz beim Einbringen und Beitritt (Ergänzung 19.08.2026)
+
+| Nr. | Anforderung | Prio | Satzung |
+|---|---|---|---|
+| F-35 | **Ähnlichkeitshinweis beim Einbringen:** Vor der Veröffentlichung zeigt das System die drei ähnlichsten offenen Anträge mit nachrechenbarem Score und der Option, stattdessen zu unterstützen. „Trotzdem einbringen" ist stets gleichwertig möglich — der Hinweis blockiert nie (ADR-006, Stufe 1 lexikalisch, Stufe 2 semantisch lokal) | M | § 2 Abs 6 |
+| F-36 | **Normbezüge und Folgenabschätzung:** Anzeige, welche bestehenden Normen ein Antrag berührt (RIS-Abgleich) und was die StaatsSimulation berechnet — als gekennzeichnete Modellrechnung mit Annahmen, ohne Bindungswirkung (ADR-006, Stufe 3) | K | § 6 Abs 4 |
+| F-37 | **Selbstregistrierung:** Formular auf Plattform und ddoe.at (Name, E-Mail, Geburtsjahr, Wohnsitz-Gemeinde), Double-Opt-in per E-Mail, danach sofort Zugang als **Anwärter** (lesen, erkunden); Mitgliedsrechte nach Bestätigung durch den Koordinationsrat, Stimmrechte nach Anwartschaft | M | § 4 Abs 1, Abs 4 |
+| F-38 | **Beitragsreferenz:** Nach Registrierung persönlicher Verwendungszweck für die Beitragsüberweisung; Zahlungsdienstleister-Integration später als eigene Ausbaustufe mit PartG-konformer Dokumentation | S | § 4 Abs 3 |
+| F-39 | **ID-Austria-Pflichtlogin (später):** Sobald verfügbar, ersetzt die ID-Austria-Anmeldung Benutzername/Passwort bzw. Magic-Link bei jedem Einstieg; technisch als Identity-Broker-Umschaltung vorbereitet, keine Architekturänderung | K | § 2 Abs 4 |
+
+### 3.5 Kommunikation und Zugänglichkeit
 
 | Nr. | Anforderung | Prio | Satzung |
 |---|---|---|---|
@@ -104,7 +114,7 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-33 | Deutsch zuerst, Übersetzungsgerüst (i18n) von Beginn an; Englisch in Phase 3 | K | § 13 Abs 4 |
 | F-34 | KI-Zusammenfassung langer Beratungen: klar gelabelt, Modellversion angegeben, von Menschen freigegeben, Original ein Klick entfernt; abschaltbar pro Nutzer | K | § 2 Abs 6 |
 
-### 3.5 Nichtfunktionale Anforderungen
+### 3.6 Nichtfunktionale Anforderungen
 
 | Nr. | Anforderung | Messlatte |
 |---|---|---|

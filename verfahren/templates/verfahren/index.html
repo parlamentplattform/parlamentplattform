@@ -2,6 +2,7 @@
 {% block inhalt %}
 <h1>Was steht zur Entscheidung</h1>
 <p style="max-width:44em">Anträge sortieren sich hier ausschließlich nach Phase und Frist — nie nach Beliebtheit, nie durch einen Algorithmus. So bleibt die Tagesordnung das, was Menschen unterstützen.</p>
+<p style="margin-top:14px"><a class="btn" href="{% url 'verfahren:einbringen' %}">Eigenen Antrag einbringen</a></p>
 {% for titel, liste in gruppen %}
 <h2>{{ titel }}</h2>
 {% for a in liste %}

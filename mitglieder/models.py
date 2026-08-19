@@ -24,15 +24,22 @@ class Mitglied(AbstractUser):
     """Ein Mensch, ein Konto (§ 4 Abs 4 lit e)."""
 
     beitritt = models.DateField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="Beginn der aktuellen, ununterbrochenen Mitgliedschaft — Basis der Anwartschaft (§ 4 Abs 4).",
     )
     identitaetsstufe = models.CharField(
         max_length=20, choices=Identitaetsstufe.choices, default=Identitaetsstufe.UNGEPRUEFT
     )
     pseudonym_oeffentlich = models.CharField(
-        max_length=50, blank=True,
+        max_length=50,
+        blank=True,
         help_text="Beständiges öffentliches Pseudonym für Anträge (§ 5 Abs 3 lit a). Leer = Klarname.",
+    )
+    gemeinde = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Wohnsitz-Gemeinde — Grundlage der territorialen Zuordnung (§ 14 Abs 3).",
     )
 
     class Meta:
@@ -49,3 +56,18 @@ class Mitglied(AbstractUser):
     @property
     def anzeigename(self) -> str:
         return self.pseudonym_oeffentlich or self.get_full_name() or self.username
+
+
+def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:
+    """Zahl der am Stichtag stimmberechtigten Mitglieder (§ 4 Abs 4 lit a).
+    Wird bei Abstimmungsbeginn festgestellt, am Antrag gespeichert und
+    veröffentlicht — danach nie mehr verändert."""
+    anzahl = 0
+    for m in (
+        Mitglied.objects.filter(is_active=True)
+        .exclude(beitritt=None)
+        .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
+    ):
+        if m.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang):
+            anzahl += 1
+    return anzahl

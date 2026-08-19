@@ -1,0 +1,35 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Mitglied werden{% endblock %}
+{% block inhalt %}
+<h1>Mitglied werden</h1>
+<p>Mitglied kann jede natürliche Person ab dem vollendeten 16. Lebensjahr werden, die sich zu
+den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an Staatsbürgerschaft oder Wohnsitz
+gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgabe der Satzung.</p>
+
+<div class="karte" style="margin-top:20px">
+<form method="post">{% csrf_token %}
+  {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  {% for feld in form %}
+    <p>
+      {% if feld.name == "grundsaetze" %}
+        <span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}" style="font-weight:400">{{ feld.label }}</label></span>
+      {% else %}
+        <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+        {{ feld }}
+      {% endif %}
+      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </p>
+  {% endfor %}
+  <button type="submit" class="btn">Beitritt beantragen</button>
+  <p class="hilfe" style="margin-top:12px">Sie erhalten eine E-Mail mit einem Bestätigungslink
+  (gültig 48 Stunden). Erst mit der Bestätigung wird Ihr Zugang aktiv — ein Passwort gibt es
+  bewusst nicht: Sie melden sich künftig per E-Mail-Link an, später per ID Austria.</p>
+</form>
+</div>
+
+<div class="karte">
+<p><strong>Was mit Ihren Daten geschieht:</strong> Name, Geburtsjahr und Gemeinde dienen der
+Mitgliederverwaltung nach der Satzung. Öffentlich erscheint nur Ihr Anzeigename bei Anträgen
+und Beiträgen; Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung.</p>
+</div>
+{% endblock %}

@@ -8,11 +8,16 @@
 :root{--ink:#0E2230;--deep:#0E4C5C;--gold:#D9A441;--goldsoft:#E8C27A;--paper:#F6F3EC;--line:rgba(14,34,48,.12)}
 *{box-sizing:border-box;margin:0}
 body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);line-height:1.65}
-header{background:linear-gradient(120deg,#0B1B26,#0E2230 60%,#0E3D4C);color:#fff;padding:20px 0}
+header{background:linear-gradient(120deg,#0B1B26,#0E2230 60%,#0E3D4C);color:#fff;padding:16px 0}
 header .w, main{max-width:900px;margin:0 auto;padding:0 20px}
+header .w{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
 header a{color:#fff;text-decoration:none}
 header .marke{font-family:Georgia,serif;font-size:22px}
 header .marke em{color:var(--goldsoft);font-style:italic}
+nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14.5px}
+nav a{opacity:.92}
+nav a:hover{color:var(--goldsoft)}
+nav .wer{opacity:.65;font-size:13px}
 main{padding:36px 20px 80px}
 h1,h2{font-family:Georgia,serif;font-weight:400}
 h2{margin:34px 0 12px;font-size:24px}
@@ -22,11 +27,55 @@ h2{margin:34px 0 12px;font-size:24px}
 .leer{color:#6b7a84;font-style:italic}
 footer{border-top:1px solid var(--line);padding:20px;text-align:center;font-size:13px;color:#6b7a84}
 pre{white-space:pre-wrap;font-family:inherit}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:var(--ink);border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600}
+.btn:hover{background:var(--goldsoft)}
+.btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none}
+.btn-linie:hover{background:var(--deep);color:#fff}
+.btn-still{display:inline-block;cursor:pointer;font:inherit;font-size:14px;background:transparent;color:#6b7a84;border:1px solid var(--line);border-radius:999px;padding:8px 16px;text-decoration:none}
+nav .btn{padding:7px 16px;font-size:14px}
+nav form{display:inline}
+nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:#fff;opacity:.92;padding:0}
+nav button.aus:hover{color:var(--goldsoft)}
+form p{margin:0 0 16px}
+form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
+input[type=text],input[type=email],input[type=number],textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+textarea{resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--gold)}
+.hilfe{font-size:13px;color:#6b7a84;margin-top:4px}
+.fehlerliste{list-style:none;padding:0;margin:0 0 8px;color:#8C2B2B;font-size:14px}
+.hinweis{border-left:4px solid var(--gold);background:#FBF6EA}
+.meldung{border-radius:12px;padding:12px 18px;margin:0 0 18px;font-size:15px;border:1px solid var(--line);background:#fff}
+.meldung.success{border-color:#2E6B4F;background:#EFF6F1;color:#1E4736}
+.meldung.info{border-color:var(--deep);background:#EDF3F5;color:var(--deep)}
+.meldung.error{border-color:#8C2B2B;background:#F9EFEE;color:#6E2222}
+.stimmzeile{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.kommentar{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:12px}
+.kommentar:first-of-type{border-top:0;margin-top:0}
+.kommentar .kopf{font-size:13.5px;color:#6b7a84;margin-bottom:4px}
+.checkzeile{display:flex;gap:10px;align-items:flex-start;font-size:14.5px}
+.checkzeile input{margin-top:5px}
+code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#fff;border:1px dashed var(--deep);border-radius:8px;padding:8px 14px}
 </style>
 </head>
 <body>
-<header><div class="w"><a href="/" class="marke">Parlament<em>Plattform</em></a> <span style="opacity:.6;font-size:13px">· Prototyp Phase 0</span></div></header>
-<main>{% block inhalt %}{% endblock %}</main>
+<header><div class="w">
+  <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em></a>
+  <nav>
+    <a href="{% url 'verfahren:index' %}">Anträge</a>
+    <a href="{% url 'verfahren:einbringen' %}">Antrag einbringen</a>
+    {% if user.is_authenticated %}
+      <span class="wer">{{ user.anzeigename }}</span>
+      <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">Abmelden</button></form>
+    {% else %}
+      <a href="{% url 'mitglieder:login' %}">Anmelden</a>
+      <a class="btn" href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>
+    {% endif %}
+  </nav>
+</div></header>
+<main>
+{% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+{% block inhalt %}{% endblock %}
+</main>
 <footer>Direkte Demokratie Österreich · Wir sind das Werkzeug. · <a href="/verwaltung/">Verwaltung</a></footer>
 </body>
 </html>

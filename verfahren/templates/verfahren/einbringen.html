@@ -1,0 +1,47 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Antrag einbringen{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'verfahren:index' %}">&larr; Übersicht</a></p>
+<h1>Antrag einbringen</h1>
+<p>Jedes bestätigte Mitglied kann Anträge einbringen (§ 5 Abs 1). Es gilt die
+Verfahrensordnung <strong>{{ ordnung.policy_id }} v{{ ordnung.version }}</strong> — sie wird
+beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum Ende (§ 5 Abs 5).</p>
+
+{% if aehnliche %}
+<div class="karte hinweis">
+  <h2 style="margin:0 0 8px;font-size:20px">Ähnliche Anträge gefunden</h2>
+  <p>Vielleicht gibt es Ihr Anliegen schon — dann ist eine Unterstützung wirksamer als ein
+  Parallelantrag. <strong>Der Hinweis ist ein Angebot, keine Hürde:</strong> Sie können
+  unverändert einbringen (§ 2 Abs 6 — kein Algorithmus entscheidet über Zulassung).</p>
+  {% for t in aehnliche %}
+    <div class="kommentar">
+      <div class="kopf">Übereinstimmung ~{{ t.prozent }} % · Phase: {{ t.antrag.phase }}</div>
+      <div><a href="{% url 'verfahren:antrag' t.antrag.pk %}">{{ t.antrag.titel }}</a></div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="karte">
+<form method="post">{% csrf_token %}
+  {% for feld in form %}
+    <p>
+      <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+      {{ feld }}
+      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </p>
+  {% endfor %}
+  <div class="stimmzeile">
+    {% if aehnliche %}
+      <button type="submit" name="trotzdem" value="1" class="btn">Trotzdem einbringen</button>
+      <a class="btn-still" href="{% url 'verfahren:index' %}">Lieber einen bestehenden Antrag unterstützen</a>
+    {% else %}
+      <button type="submit" class="btn">Antrag einbringen</button>
+    {% endif %}
+  </div>
+  <p class="hilfe" style="margin-top:12px">Vor dem Einbringen gleicht die Plattform Ihren Text
+  automatisch mit laufenden Anträgen ab (ADR-006). Der Hinweis schlägt vor — er blockiert nie.
+  Titel und Wortlaut sind öffentlich.</p>
+</form>
+</div>
+{% endblock %}

@@ -64,17 +64,25 @@ class Antrag(models.Model):
     """Ein Antrag nach § 5 — mit eingefrorener Policy."""
 
     titel = models.CharField(max_length=200)
-    eingebracht_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege")
+    eingebracht_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege"
+    )
     eingebracht_am = models.DateTimeField(default=timezone.now)
-    phase = models.CharField(max_length=20, choices=[(p.value, p.value) for p in Phase], default=Phase.UNTERSTUETZUNG.value)
+    phase = models.CharField(
+        max_length=20, choices=[(p.value, p.value) for p in Phase], default=Phase.UNTERSTUETZUNG.value
+    )
     phase_beginn = models.DateTimeField(default=timezone.now)
-    policy_snapshot = models.JSONField(help_text="Unveränderliche Kopie der Policy zum Einbringungszeitpunkt (§ 5 Abs 5).")
+    policy_snapshot = models.JSONField(
+        help_text="Unveränderliche Kopie der Policy zum Einbringungszeitpunkt (§ 5 Abs 5)."
+    )
     stimmberechtigte_anzahl = models.PositiveIntegerField(
-        null=True, blank=True,
+        null=True,
+        blank=True,
         help_text="Zahl der Stimmberechtigten, festgestellt und veröffentlicht bei Abstimmungsbeginn (§ 4 Abs 4 lit a).",
     )
     zurueckweisung_begruendung = models.TextField(
-        blank=True, help_text="Nur bei formaler Zurückweisung durch den Integritätsrat — wird veröffentlicht (§ 5 Abs 2)."
+        blank=True,
+        help_text="Nur bei formaler Zurückweisung durch den Integritätsrat — wird veröffentlicht (§ 5 Abs 2).",
     )
 
     class Meta:
@@ -103,7 +111,10 @@ class Antrag(models.Model):
         if phase is Phase.ABSTIMMUNG:
             ausz = self.auszaehlen()
         uebergang = naechster_uebergang(
-            phase, self.phase_beginn, jetzt, policy,
+            phase,
+            self.phase_beginn,
+            jetzt,
+            policy,
             unterstuetzungen=self.unterstuetzungen.count(),
             auszaehlung=ausz,
         )
@@ -111,14 +122,34 @@ class Antrag(models.Model):
             return False
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab
-        self.save(update_fields=["phase", "phase_beginn"])
-        AuditEintrag.anhaengen({
-            "typ": "phasenwechsel",
-            "antrag": self.pk,
-            "neue_phase": uebergang.neue_phase.value,
-            "wirksam_ab": uebergang.wirksam_ab.isoformat(),
-            "grund": uebergang.grund,
-        })
+        felder = ["phase", "phase_beginn"]
+        if uebergang.neue_phase is Phase.ABSTIMMUNG and self.stimmberechtigte_anzahl is None:
+            # § 4 Abs 4 lit a: Zahl der Stimmberechtigten wird bei Abstimmungsbeginn
+            # festgestellt, veröffentlicht und danach nie mehr verändert.
+            from django.conf import settings as dj_settings
+
+            from mitglieder.models import stimmberechtigte_zaehlen
+            from plattform_core import Gegenstand
+
+            self.stimmberechtigte_anzahl = max(
+                1,
+                stimmberechtigte_zaehlen(
+                    Gegenstand.SACHFRAGE,
+                    uebergang.wirksam_ab.date(),
+                    uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
+                ),
+            )
+            felder.append("stimmberechtigte_anzahl")
+        self.save(update_fields=felder)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "phasenwechsel",
+                "antrag": self.pk,
+                "neue_phase": uebergang.neue_phase.value,
+                "wirksam_ab": uebergang.wirksam_ab.isoformat(),
+                "grund": uebergang.grund,
+            }
+        )
         return True
 
     def stimme_zulaessig(self, jetzt=None) -> bool:
@@ -232,17 +263,22 @@ class AuditEintrag(models.Model):
 
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------
 
-def antrag_einbringen(mitglied, titel: str, wortlaut: str, begruendung: str, ordnung: Verfahrensordnung) -> Antrag:
+
+def antrag_einbringen(
+    mitglied, titel: str, wortlaut: str, begruendung: str, ordnung: Verfahrensordnung
+) -> Antrag:
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren."""
     policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
-    antrag = Antrag.objects.create(
-        titel=titel, eingebracht_von=mitglied, policy_snapshot=policy.als_dict()
-    )
+    antrag = Antrag.objects.create(titel=titel, eingebracht_von=mitglied, policy_snapshot=policy.als_dict())
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
-    AuditEintrag.anhaengen({
-        "typ": "antrag_eingebracht", "antrag": antrag.pk, "titel": titel,
-        "policy": f"{policy.id} v{policy.version}",
-    })
+    AuditEintrag.anhaengen(
+        {
+            "typ": "antrag_eingebracht",
+            "antrag": antrag.pk,
+            "titel": titel,
+            "policy": f"{policy.id} v{policy.version}",
+        }
+    )
     return antrag
 
 
@@ -260,12 +296,33 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
         antrag=antrag, mitglied=mitglied, defaults={"pseudonym": uuid.uuid4()}
     )
     abgabe, _ = Stimmabgabe.objects.update_or_create(
-        antrag=antrag, pseudonym=register.pseudonym,
+        antrag=antrag,
+        pseudonym=register.pseudonym,
         defaults={"stimme": stimme, "abgegeben_am": jetzt},
     )
-    AuditEintrag.anhaengen({
-        "typ": "stimme" if neu else "stimme_geaendert",
-        "antrag": antrag.pk, "pseudonym": register.pseudonym.hex,
-        # bewusst OHNE Stimmwert und OHNE Mitglieds-ID: Das Audit-Log ist öffentlich.
-    })
+    AuditEintrag.anhaengen(
+        {
+            "typ": "stimme" if neu else "stimme_geaendert",
+            "antrag": antrag.pk,
+            "pseudonym": register.pseudonym.hex,
+            # bewusst OHNE Stimmwert und OHNE Mitglieds-ID: Das Audit-Log ist öffentlich.
+        }
+    )
     return abgabe
+
+
+class Kommentar(models.Model):
+    """Beitrag zur Beratungsphase (§ 5 Abs 3 lit c). Nur Mitglieder; öffentlich lesbar."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    text = models.TextField(max_length=4000)
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["erstellt_am"]
+        verbose_name = "Kommentar"
+        verbose_name_plural = "Kommentare"
+
+    def __str__(self) -> str:
+        return f"Kommentar von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"

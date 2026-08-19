@@ -92,6 +92,24 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# E-Mail: Entwicklung -> Konsole; Produktion -> EU-SMTP per Umgebungsvariablen
+if os.environ.get("DDOE_SMTP_HOST"):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ["DDOE_SMTP_HOST"]
+    EMAIL_PORT = int(os.environ.get("DDOE_SMTP_PORT", "587"))
+    EMAIL_HOST_USER = os.environ.get("DDOE_SMTP_USER", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("DDOE_SMTP_PASSWORT", "")
+    EMAIL_USE_TLS = True
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "plattform@ddoe.at")
+
+LOGIN_URL = "/anmelden/"
+
+# § 4 Abs 4 lit d: Übergangsregel für den Aufbau — Anwartschaftsfristen entfallen,
+# bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat.
+DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
+
 # Sicherheit — greift, sobald DEBUG aus ist
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

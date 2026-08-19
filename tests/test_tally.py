@@ -8,10 +8,14 @@ from plattform_core import Policy, Stimme, auszaehlen
 from plattform_core.tally import AuszaehlungsFehler
 
 POLICY = Policy(
-    id="test", version=1,
-    unterstuetzung_schwelle=5, unterstuetzung_frist_tage=14,
-    beratung_tage=21, abstimmung_tage=7,
-    mindestbeteiligung=0.05, mehrheitsbasis="ja_nein",
+    id="test",
+    version=1,
+    unterstuetzung_schwelle=5,
+    unterstuetzung_frist_tage=14,
+    beratung_tage=21,
+    abstimmung_tage=7,
+    mindestbeteiligung=0.05,
+    mehrheitsbasis="ja_nein",
 )
 POLICY_ABGEGEBEN = Policy(**{**POLICY.als_dict(), "mehrheitsbasis": "abgegeben"})
 
@@ -64,7 +68,9 @@ class TestBeispiele:
 
 
 @given(
-    ja=st.integers(0, 300), nein=st.integers(0, 300), enthaltung=st.integers(0, 300),
+    ja=st.integers(0, 300),
+    nein=st.integers(0, 300),
+    enthaltung=st.integers(0, 300),
     berechtigte=st.integers(1, 5000),
 )
 def test_eigenschaft_reihenfolge_ist_egal(ja, nein, enthaltung, berechtigte):
@@ -76,7 +82,9 @@ def test_eigenschaft_reihenfolge_ist_egal(ja, nein, enthaltung, berechtigte):
 
 
 @given(
-    ja=st.integers(0, 300), nein=st.integers(0, 300), enthaltung=st.integers(0, 300),
+    ja=st.integers(0, 300),
+    nein=st.integers(0, 300),
+    enthaltung=st.integers(0, 300),
     berechtigte=st.integers(1, 5000),
 )
 def test_eigenschaft_annahme_impliziert_beteiligung_und_mehrheit(ja, nein, enthaltung, berechtigte):

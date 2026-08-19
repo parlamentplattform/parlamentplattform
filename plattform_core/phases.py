@@ -37,9 +37,10 @@ class Phase(enum.StrEnum):
     ABSTIMMUNG = "abstimmung"
     ANGENOMMEN = "angenommen"
     ABGELEHNT = "abgelehnt"
-    VERFALLEN = "verfallen"                 # Unterstützungsschwelle verfehlt
-    ZURUECKGEWIESEN = "zurueckgewiesen"     # formal, nur durch Integritätsrat (§ 5 Abs 2)
-    ZURUECKGEZOGEN = "zurueckgezogen"       # durch die Antragstellerin
+    VERFALLEN = "verfallen"  # Unterstützungsschwelle verfehlt
+    ZURUECKGEWIESEN = "zurueckgewiesen"  # formal, nur durch Integritätsrat (§ 5 Abs 2)
+    ZURUECKGEZOGEN = "zurueckgezogen"  # durch die Antragstellerin
+
 
 END_PHASEN = frozenset(
     {Phase.ANGENOMMEN, Phase.ABGELEHNT, Phase.VERFALLEN, Phase.ZURUECKGEWIESEN, Phase.ZURUECKGEZOGEN}
@@ -52,7 +53,7 @@ class Transition:
 
     neue_phase: Phase
     wirksam_ab: datetime  # der Zeitpunkt, ab dem die neue Phase gilt (deterministisch)
-    grund: str            # menschenlesbare Begründung für das Audit-Log
+    grund: str  # menschenlesbare Begründung für das Audit-Log
 
 
 def unterstuetzung_frist_ende(phase_beginn: datetime, policy: Policy) -> datetime:
@@ -138,12 +139,8 @@ def naechster_uebergang(
                     "der Aufrufer muss vor dem Übergang auszählen."
                 )
             if auszaehlung.angenommen:
-                return Transition(
-                    Phase.ANGENOMMEN, wirksam_ab=frist, grund=auszaehlung.begruendung
-                )
-            return Transition(
-                Phase.ABGELEHNT, wirksam_ab=frist, grund=auszaehlung.begruendung
-            )
+                return Transition(Phase.ANGENOMMEN, wirksam_ab=frist, grund=auszaehlung.begruendung)
+            return Transition(Phase.ABGELEHNT, wirksam_ab=frist, grund=auszaehlung.begruendung)
         return None
 
     raise ValueError(f"Unbehandelte Phase: {phase!r}")  # pragma: no cover

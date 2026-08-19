@@ -13,9 +13,9 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
-SATZUNG_MIN_BERATUNG_TAGE = 21   # § 5 Abs 3 lit c
+SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
 SATZUNG_MIN_ABSTIMMUNG_TAGE = 7  # § 5 Abs 3 lit d
-SATZUNG_MIN_BETEILIGUNG = 0.05   # § 5 Abs 4 — satzungsfeste Untergrenze
+SATZUNG_MIN_BETEILIGUNG = 0.05  # § 5 Abs 4 — satzungsfeste Untergrenze
 
 
 class PolicyFehler(ValueError):
@@ -27,14 +27,14 @@ class Policy:
     """Eingefrorene Verfahrensregeln. `frozen=True` ist Absicht: Instanzen sind
     unveränderlich, so wie es § 5 Abs 5 für laufende Verfahren verlangt."""
 
-    id: str                      # z. B. "sachantrag-standard"
-    version: int                 # Version der Verfahrensordnung
-    unterstuetzung_schwelle: int         # absolute Zahl an Unterstützungen
-    unterstuetzung_frist_tage: int       # Frist für die Unterstützungsphase
-    beratung_tage: int                   # Dauer der Beratungsphase (>= 21)
-    abstimmung_tage: int                 # Dauer der Abstimmungsphase (>= 7)
-    mindestbeteiligung: float            # Anteil der Stimmberechtigten (>= 0.05)
-    mehrheitsbasis: str = "ja_nein"      # "ja_nein": Ja > Nein.
+    id: str  # z. B. "sachantrag-standard"
+    version: int  # Version der Verfahrensordnung
+    unterstuetzung_schwelle: int  # absolute Zahl an Unterstützungen
+    unterstuetzung_frist_tage: int  # Frist für die Unterstützungsphase
+    beratung_tage: int  # Dauer der Beratungsphase (>= 21)
+    abstimmung_tage: int  # Dauer der Abstimmungsphase (>= 7)
+    mindestbeteiligung: float  # Anteil der Stimmberechtigten (>= 0.05)
+    mehrheitsbasis: str = "ja_nein"  # "ja_nein": Ja > Nein.
     #                                      "abgegeben": Ja > Hälfte aller
     #                                      abgegebenen Stimmen inkl. Enthaltung.
     #                                      Welche Basis gilt, beschließt die

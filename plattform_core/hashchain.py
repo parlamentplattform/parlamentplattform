@@ -25,9 +25,7 @@ def _kanonisch(ereignis: dict[str, Any]) -> bytes:
     """Kanonische JSON-Serialisierung: sortierte Schlüssel, keine Leerzeichen,
     UTF-8 unverändert. Zwei inhaltsgleiche Ereignisse ergeben byte-identische
     Serialisierungen — die Grundvoraussetzung reproduzierbarer Hashes."""
-    return json.dumps(
-        ereignis, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-    ).encode("utf-8")
+    return json.dumps(ereignis, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
 def ereignis_hash(vorgaenger_hash: str, ereignis: dict[str, Any]) -> str:

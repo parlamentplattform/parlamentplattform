@@ -7,8 +7,9 @@ from plattform_core import GENESIS, ereignis_hash, kette_pruefen
 
 EREIGNIS = st.dictionaries(
     keys=st.sampled_from(["typ", "antrag", "wert", "zeit", "akteur"]),
-    values=st.one_of(st.text(max_size=30), st.integers(-10**6, 10**6), st.booleans()),
-    min_size=1, max_size=5,
+    values=st.one_of(st.text(max_size=30), st.integers(-(10**6), 10**6), st.booleans()),
+    min_size=1,
+    max_size=5,
 )
 
 

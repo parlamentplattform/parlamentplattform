@@ -1,5 +1,6 @@
 """Admin: Der Audit-Log ist strikt read-only; das Stimmregister taucht bewusst
 NICHT im Admin auf (F-25) — es gibt keinen bequemen Klickpfad zum Stimmverhalten."""
+
 from django.contrib import admin
 
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag, Unterstuetzung, Verfahrensordnung

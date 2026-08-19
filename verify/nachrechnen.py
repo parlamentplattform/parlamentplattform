@@ -16,6 +16,7 @@ Erwartetes Format (der JSON-Export jeder Ergebnisseite):
   "stimmen": [{"pseudonym": "…", "stimme": "ja"}, …]
 }
 """
+
 import json
 import sys
 from fractions import Fraction

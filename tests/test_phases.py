@@ -11,10 +11,14 @@ from plattform_core.phases import END_PHASEN, abstimmung_frist_ende, stimme_zula
 
 T0 = datetime(2026, 9, 1, 12, 0, tzinfo=UTC)
 POLICY = Policy(
-    id="test", version=1,
-    unterstuetzung_schwelle=10, unterstuetzung_frist_tage=14,
-    beratung_tage=21, abstimmung_tage=7,
-    mindestbeteiligung=0.05, mehrheitsbasis="ja_nein",
+    id="test",
+    version=1,
+    unterstuetzung_schwelle=10,
+    unterstuetzung_frist_tage=14,
+    beratung_tage=21,
+    abstimmung_tage=7,
+    mindestbeteiligung=0.05,
+    mehrheitsbasis="ja_nein",
 )
 
 
@@ -46,7 +50,9 @@ class TestUnterstuetzung:
 
 class TestBeratungUndAbstimmung:
     def test_beratung_endet_exakt_nach_21_tagen(self):
-        assert naechster_uebergang(Phase.BERATUNG, T0, T0 + tage(21) - timedelta(seconds=1), POLICY, 0) is None
+        assert (
+            naechster_uebergang(Phase.BERATUNG, T0, T0 + tage(21) - timedelta(seconds=1), POLICY, 0) is None
+        )
         t = naechster_uebergang(Phase.BERATUNG, T0, T0 + tage(21), POLICY, 0)
         assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == T0 + tage(21)
 

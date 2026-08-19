@@ -1,0 +1,11 @@
+{% extends "verfahren/base.html" %}
+{% block inhalt %}
+<h1>Was steht zur Entscheidung</h1>
+<p style="max-width:44em">Anträge sortieren sich hier ausschließlich nach Phase und Frist — nie nach Beliebtheit, nie durch einen Algorithmus. So bleibt die Tagesordnung das, was Menschen unterstützen.</p>
+{% for titel, liste in gruppen %}
+<h2>{{ titel }}</h2>
+{% for a in liste %}
+<div class="karte"><span class="badge">{{ a.phase }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a><br><small>eingebracht {{ a.eingebracht_am|date:"d.m.Y" }} · Phase seit {{ a.phase_beginn|date:"d.m.Y H:i" }}</small></div>
+{% empty %}<p class="leer">Derzeit keine Anträge in dieser Phase.</p>{% endfor %}
+{% endfor %}
+{% endblock %}

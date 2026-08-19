@@ -1,0 +1,21 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}{{ antrag.titel }}{% endblock %}
+{% block inhalt %}
+<p><a href="/">&larr; Übersicht</a></p>
+<h1>{{ antrag.titel }}</h1>
+<p><span class="badge">{{ antrag.phase }}</span> · eingebracht {{ antrag.eingebracht_am|date:"d.m.Y" }} von {{ antrag.eingebracht_von.anzeigename }} · Unterstützungen: {{ unterstuetzungen }}</p>
+{% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>Formal zurückgewiesen (§ 5 Abs 2):</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
+<h2>Wortlaut (Fassung {{ fassung.nummer }})</h2>
+<div class="karte"><pre>{{ fassung.wortlaut }}</pre></div>
+{% if fassung.begruendung %}<h2>Begründung</h2><div class="karte"><pre>{{ fassung.begruendung }}</pre></div>{% endif %}
+{% if ergebnis %}
+<h2>Ergebnis</h2>
+<div class="karte">
+<p><strong>{{ ergebnis.begruendung }}</strong></p>
+<p>Ja {{ ergebnis.ja }} · Nein {{ ergebnis.nein }} · Enthaltung {{ ergebnis.enthaltung }} · Stimmberechtigte {{ ergebnis.stimmberechtigte }}</p>
+<p><small>Nachrechnen: Stimmliste exportieren und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8).</small></p>
+</div>
+{% endif %}
+<h2>Eingefrorene Verfahrensregeln (§ 5 Abs 5)</h2>
+<div class="karte"><pre>{{ antrag.policy_snapshot }}</pre></div>
+{% endblock %}

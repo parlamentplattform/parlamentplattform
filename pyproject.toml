@@ -1,0 +1,51 @@
+[project]
+name = "parlamentplattform"
+version = "0.1.0"
+description = "Offene Beteiligungs- und Entscheidungsinfrastruktur der Direkte Demokratie Österreich (DDÖ)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Direkte Demokratie Österreich", email = "didide@ddoe.at" }]
+dependencies = [
+    "Django>=5.0,<5.3",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "hypothesis>=6.100",
+    "ruff>=0.4",
+    "coverage[toml]>=7.4",
+]
+postgres = ["psycopg[binary]>=3.1"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests", "verfahren", "mitglieder"]
+python_files = ["test_*.py", "tests.py"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ"]
+ignore = ["E501"]
+
+[tool.coverage.run]
+source = ["plattform_core"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["plattform_core"]

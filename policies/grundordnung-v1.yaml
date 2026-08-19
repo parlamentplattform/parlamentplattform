@@ -1,0 +1,32 @@
+# Verfahrensordnung der ParlamentPlattform — maschinenlesbare Fassung.
+#
+# Diese Datei ist die QUELLE der Policies. Sie wird von der Mitgliederversammlung
+# beschlossen (§ 5 Abs 7) und beim Deployment in die Datenbank importiert.
+# Beim Einbringen eines Antrags wird die dann aktive Policy als unveränderliche
+# Kopie am Antrag gespeichert (§ 5 Abs 5) — spätere Änderungen dieser Datei
+# wirken daher NIE auf laufende Verfahren.
+#
+# Werte hier sind der VORSCHLAG für den Testbetrieb Phase 1 (kleine Gruppe!).
+# Die satzungsfesten Untergrenzen (Beratung >= 21 Tage, Abstimmung >= 7 Tage,
+# Mindestbeteiligung >= 5 %) erzwingt der Code in plattform_core/policy.py —
+# eine satzungswidrige Policy lässt sich technisch nicht laden.
+
+- id: sachantrag-standard
+  version: 1
+  unterstuetzung_schwelle: 3        # Testbetrieb; Echtbetrieb: von der VO zu beschließen
+  unterstuetzung_frist_tage: 14
+  beratung_tage: 21                 # Satzungsminimum § 5 Abs 3 lit c
+  abstimmung_tage: 7                # Satzungsminimum § 5 Abs 3 lit d
+  mindestbeteiligung: 0.05          # Satzungsminimum § 5 Abs 4
+  mehrheitsbasis: ja_nein           # Alternative: "abgegeben" (Enthaltung wirkt wie Nein)
+  wiedereinbringung_sperre_monate: 6
+
+- id: sachantrag-dringlich          # § 5 Abs 3 lit c: doppelte Schwelle, verkürzte Beratung
+  version: 1                        # (Verkürzung unter 21 Tage erst nach VO-Beschluss über
+  unterstuetzung_schwelle: 6        #  eine Satzungsauslegung — bis dahin gilt das Minimum)
+  unterstuetzung_frist_tage: 7
+  beratung_tage: 21
+  abstimmung_tage: 7
+  mindestbeteiligung: 0.05
+  mehrheitsbasis: ja_nein
+  wiedereinbringung_sperre_monate: 6

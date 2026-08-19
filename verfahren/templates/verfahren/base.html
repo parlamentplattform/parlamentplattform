@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<style>
+:root{--ink:#0E2230;--deep:#0E4C5C;--gold:#D9A441;--goldsoft:#E8C27A;--paper:#F6F3EC;--line:rgba(14,34,48,.12)}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);line-height:1.65}
+header{background:linear-gradient(120deg,#0B1B26,#0E2230 60%,#0E3D4C);color:#fff;padding:20px 0}
+header .w, main{max-width:900px;margin:0 auto;padding:0 20px}
+header a{color:#fff;text-decoration:none}
+header .marke{font-family:Georgia,serif;font-size:22px}
+header .marke em{color:var(--goldsoft);font-style:italic}
+main{padding:36px 20px 80px}
+h1,h2{font-family:Georgia,serif;font-weight:400}
+h2{margin:34px 0 12px;font-size:24px}
+.karte{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin:12px 0}
+.karte a{color:var(--deep)}
+.badge{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--goldsoft);border-radius:999px;padding:4px 12px}
+.leer{color:#6b7a84;font-style:italic}
+footer{border-top:1px solid var(--line);padding:20px;text-align:center;font-size:13px;color:#6b7a84}
+pre{white-space:pre-wrap;font-family:inherit}
+</style>
+</head>
+<body>
+<header><div class="w"><a href="/" class="marke">Parlament<em>Plattform</em></a> <span style="opacity:.6;font-size:13px">· Prototyp Phase 0</span></div></header>
+<main>{% block inhalt %}{% endblock %}</main>
+<footer>Direkte Demokratie Österreich · Wir sind das Werkzeug. · <a href="/verwaltung/">Verwaltung</a></footer>
+</body>
+</html>

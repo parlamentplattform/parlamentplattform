@@ -95,11 +95,11 @@ def test_regionale_antraege_erscheinen_im_bereich_c(client, ordnung):  # noqa: F
         "",
         ordnung,
         ebene="gemeinde",
-        gebiet="Sankt Marienkirchen an der Polsenz",
+        gebiet="St. Marienkirchen an der Polsenz",
     )
     antwort = client.get(reverse("verfahren:index"))
     assert [a.pk for a in antwort.context["regionale"]] == [regional.pk]
-    assert "Sankt Marienkirchen an der Polsenz" in antwort.content.decode()
+    assert "St. Marienkirchen an der Polsenz" in antwort.content.decode()
 
 
 def test_regionaler_antrag_ist_an_die_eigene_region_gebunden(client, ordnung):  # noqa: F811
@@ -110,7 +110,7 @@ def test_regionaler_antrag_ist_an_die_eigene_region_gebunden(client, ordnung):  
     assert antwort.status_code == 302
     antrag = Antrag.objects.get()
     assert antrag.ebene == "gemeinde"
-    assert antrag.gebiet == "Sankt Marienkirchen an der Polsenz"  # Wohnsitz, nicht „Wien“
+    assert antrag.gebiet == "St. Marienkirchen an der Polsenz"  # Wohnsitz, nicht „Wien“
 
     antwort = client.post(
         reverse("verfahren:einbringen"),

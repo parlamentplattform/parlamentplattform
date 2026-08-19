@@ -8,6 +8,7 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
 
 <div class="karte" style="margin-top:20px">
 <form method="post">{% csrf_token %}
+  <datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
   {% for h in form.hidden_fields %}{{ h }}{% endfor %}
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   {% for feld in form.visible_fields %}
@@ -16,6 +17,7 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
         <span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}" style="font-weight:400">{{ feld.label }}</label></span>
       {% else %}
         <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+        {% if feld.name == "rechenfrage" %}<div style="margin:6px 0">{{ form.captcha_svg|safe }}</div>{% endif %}
         {{ feld }}
       {% endif %}
       {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}

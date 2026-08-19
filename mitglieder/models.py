@@ -59,6 +59,14 @@ class Mitglied(AbstractUser):
         blank=True,
         help_text="Wohnsitz-Bundesland — regionale Anträge sind nur in der eigenen Region möglich (F-43).",
     )
+    wohnsitz = models.ForeignKey(
+        "Gemeinde",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="mitglieder",
+        help_text="Eindeutiger Verweis ins amtliche Gemeindeverzeichnis — Quelle für gemeinde und bundesland.",
+    )
 
     class Meta:
         verbose_name = "Mitglied"
@@ -89,3 +97,54 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
         if m.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang):
             anzahl += 1
     return anzahl
+
+
+class Gemeinde(models.Model):
+    """Amtliches Gemeindeverzeichnis (Statistik Austria, Gebietsstand 2026).
+
+    Grundlage der territorialen Zuordnung (§ 14, F-43): Die Wohnsitz-Gemeinde
+    wird bei der Registrierung gegen diese Liste geprüft — keine Freitexte,
+    keine Tippfehler, eindeutige Zuordnung zu Bezirk und Bundesland. Mit der
+    ID Austria kommt die Zuordnung später amtlich; bis dahin gilt diese Liste.
+    Aktualisierung per `manage.py gemeinden_laden` aus daten/gemeinden.csv."""
+
+    kennziffer = models.CharField(max_length=5, unique=True)
+    name = models.CharField(max_length=120, db_index=True)
+    bezirk = models.CharField(max_length=120)
+    bundesland = models.CharField(max_length=20, choices=Bundesland.choices)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Gemeinde"
+        verbose_name_plural = "Gemeinden"
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.bezirk})"
+
+    @property
+    def anzeige(self) -> str:
+        return f"{self.name} ({self.bezirk})"
+
+    @staticmethod
+    def name_normalisieren(text: str) -> str:
+        """Tolerantes Matching: Groß/klein egal, „Sankt“ = „St.“."""
+        t = " ".join(text.strip().casefold().split())
+        return t.replace("sankt ", "st. ").replace("st ", "st. ")
+
+    @classmethod
+    def finden(cls, eingabe: str) -> tuple[Gemeinde | None, list[Gemeinde]]:
+        """Findet die Gemeinde zur Eingabe (Name oder „Name (Bezirk)“).
+
+        Rückgabe (treffer, kandidaten): genau einer -> (gemeinde, []);
+        mehrdeutig -> (None, [kandidaten]); unbekannt -> (None, [])."""
+        norm = cls.name_normalisieren(eingabe)
+        alle = list(cls.objects.all())
+        # 1) exakte Anzeige „Name (Bezirk)“
+        volltreffer = [g for g in alle if cls.name_normalisieren(g.anzeige) == norm]
+        if len(volltreffer) == 1:
+            return volltreffer[0], []
+        # 2) exakter Gemeindename
+        treffer = [g for g in alle if cls.name_normalisieren(g.name) == norm]
+        if len(treffer) == 1:
+            return treffer[0], []
+        return None, treffer

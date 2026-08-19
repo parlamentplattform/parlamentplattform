@@ -43,7 +43,7 @@ def mitglied_anlegen(
     name="anna",
     tage=200,
     stufe=Identitaetsstufe.GEPRUEFT,
-    gemeinde="Sankt Marienkirchen an der Polsenz",
+    gemeinde="St. Marienkirchen an der Polsenz",
     bundesland="oberoesterreich",
 ):
     m = Mitglied.objects.create(

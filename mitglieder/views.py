@@ -19,7 +19,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
-from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied
+from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied
 from verfahren.models import AuditEintrag
 
 
@@ -28,12 +28,39 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
     nachname = forms.CharField(label="Nachname", max_length=80)
     email = forms.EmailField(label="E-Mail-Adresse")
     geburtsjahr = forms.IntegerField(label="Geburtsjahr", min_value=1900, max_value=2100)
-    gemeinde = forms.CharField(label="Wohnsitz-Gemeinde", max_length=120)
-    bundesland = forms.ChoiceField(
-        label="Bundesland",
-        choices=Bundesland.choices,
-        help_text="Wohnsitz bestimmt, für welche Region Sie regionale Anträge einbringen können (F-43).",
+    gemeinde = forms.CharField(
+        label="Wohnsitz-Gemeinde",
+        max_length=140,
+        widget=forms.TextInput(
+            attrs={
+                "list": "gemeinden",
+                "autocomplete": "off",
+                "placeholder": "Tippen und aus der Liste wählen …",
+            }
+        ),
+        help_text="Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
+        "ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später amtlich.",
     )
+
+    def clean_gemeinde(self):
+        eingabe = self.cleaned_data["gemeinde"]
+        treffer, kandidaten = Gemeinde.finden(eingabe)
+        if treffer:
+            self.gemeinde_objekt = treffer
+            return treffer.name
+        if kandidaten:
+            optionen = "; ".join(g.anzeige for g in kandidaten)
+            raise forms.ValidationError(
+                f"Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: {optionen}."
+            )
+        vorschlaege = list(
+            Gemeinde.objects.filter(name__istartswith=eingabe.strip()[:10]).values_list("name", flat=True)[:5]
+        )
+        hinweis = f" Meinten Sie: {', '.join(vorschlaege)}?" if vorschlaege else ""
+        raise forms.ValidationError(
+            f"„{eingabe}“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der Liste wählen.{hinweis}"
+        )
+
     grundsaetze = forms.BooleanField(
         label="Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
         "(ein Mensch – eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
@@ -75,8 +102,10 @@ def registrieren(request):
                 identitaetsstufe=Identitaetsstufe.UNGEPRUEFT,
                 is_active=False,  # aktiv erst nach E-Mail-Bestätigung
             )
-            mitglied.gemeinde = d["gemeinde"]
-            mitglied.bundesland = d["bundesland"]
+            gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
+            mitglied.gemeinde = gemeinde.name
+            mitglied.bundesland = gemeinde.bundesland
+            mitglied.wohnsitz = gemeinde
             mitglied.set_unusable_password()
             mitglied.save()
             token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
@@ -97,7 +126,8 @@ def registrieren(request):
             )
     else:
         form = RegistrierungsFormular()
-    return render(request, "mitglieder/registrieren.html", {"form": form})
+    gemeinden = [f"{name} ({bezirk})" for name, bezirk in Gemeinde.objects.values_list("name", "bezirk")]
+    return render(request, "mitglieder/registrieren.html", {"form": form, "gemeinden": gemeinden})
 
 
 def bestaetigen(request, token: str):

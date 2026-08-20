@@ -70,7 +70,8 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     assert m.is_active is True
     assert m.beitritt == timezone.now().date()  # Anwartschaft beginnt (§ 4 Abs 4)
     assert antwort.status_code == 200
-    inhalt = antwort.content.decode()
+    assert antwort.request["PATH_INFO"] == "/einfuehrung/1/"  # F-53: erst die Einführung …
+    inhalt = client.get(reverse("mitglieder:willkommen")).content.decode()  # … ihr Abschluss: der Beitrag
     assert "AT57 2033 0000 0006 9435" in inhalt  # Beitragsdaten auf der Willkommensseite
     assert f"DDOE-{m.pk:04d}-" in inhalt  # persönliche Beitragsreferenz (F-38)
 
@@ -174,8 +175,8 @@ def test_ip_drossel_stoppt_massenregistrierung(client):
 
 def test_willkommensseite_zeigt_beitrags_qr(client):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz()})
-    antwort = client.get(link_aus_mail(mail.outbox[0]), follow=True)
-    inhalt = antwort.content.decode()
+    client.get(link_aus_mail(mail.outbox[0]), follow=True)  # bestätigen (landet in der Einführung)
+    inhalt = client.get(reverse("mitglieder:willkommen")).content.decode()
     assert "<svg" in inhalt  # EPC-QR-Code (F-38): Zahlen mit Code, ohne Zahlungsdienstleister
     assert "Zahlen mit Code" in inhalt
 

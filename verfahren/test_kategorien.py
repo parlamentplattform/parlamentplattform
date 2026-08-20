@@ -1,4 +1,5 @@
-"""Kategorienbaum (F-45), Abos mit Ast-Wirkung (F-46) und automatische Zuordnung (F-47)."""
+"""Kategorienbaum (F-45: eine Wurzel, vier Säulen), Abos mit Ast-Wirkung (F-46),
+automatische Zuordnung (F-47) und die Fokus-Ansicht mit Suche."""
 
 import pytest
 from django.core.management import call_command
@@ -17,8 +18,7 @@ pytestmark = pytest.mark.django_db
 def test_kategorien_laden_ist_idempotent_und_deaktiviert_statt_zu_loeschen():
     call_command("kategorien_laden")
     anzahl = Kategorie.objects.count()
-    assert anzahl >= 100  # Baum: Haupt-, Unter- und Detailkategorien
-    assert Kategorie.objects.filter(eltern=None).count() >= 20  # Hauptkategorien
+    assert anzahl >= 300  # Wurzel, Säulen, Bereiche, Haupt-, Unter- und Detailkategorien
     call_command("kategorien_laden")  # zweiter Lauf ändert nichts
     assert Kategorie.objects.count() == anzahl
 
@@ -26,6 +26,26 @@ def test_kategorien_laden_ist_idempotent_und_deaktiviert_statt_zu_loeschen():
     Kategorie.objects.create(slug="altbereich", name="Alt", reihenfolge=999)
     call_command("kategorien_laden")
     assert Kategorie.objects.get(slug="altbereich").aktiv is False
+
+
+def test_baum_fuehrt_auf_eine_wurzel_zurueck():
+    """Michaels Leitbild: wenige Säulen, die alles abbilden — und am Ende führt
+    alles auf „Das gesellschaftliche Zusammenleben“ zurück."""
+    call_command("kategorien_laden")
+    wurzeln = Kategorie.objects.filter(eltern=None, aktiv=True)
+    assert wurzeln.count() == 1
+    wurzel = wurzeln.get()
+    assert wurzel.name == "Das gesellschaftliche Zusammenleben"
+    assert wurzel.kinder.count() == 4  # die vier Säulen
+    assert sum(s.kinder.count() for s in wurzel.kinder.all()) == 12  # zwölf Bereiche
+
+    # Jede Kategorie hängt an der Wurzel — keine Waisen, keine zweite Wurzel.
+    for k in Kategorie.objects.filter(aktiv=True).exclude(pk=wurzel.pk):
+        assert k.pfad.startswith("Das gesellschaftliche Zusammenleben › ")
+
+    # Slugs der Version 1 sind stabil geblieben (Favoriten überleben den Umbau).
+    for slug in ("energie", "umwelt-klima", "installateur", "wirtschaft-unternehmen"):
+        assert Kategorie.objects.filter(slug=slug, aktiv=True).exists()
 
 
 def test_zuordnung_findet_die_tiefste_passende_ebene(ordnung):  # noqa: F811
@@ -39,11 +59,12 @@ def test_zuordnung_findet_die_tiefste_passende_ebene(ordnung):  # noqa: F811
         "",
         ordnung,
     )
-    pfade = [k.pfad for k in kategorien_zuordnen(antrag)]
-    assert "Wirtschaft & Unternehmen › Bauwirtschaft & Baugewerbe › Installateur & Gebäudetechnik" in pfade
-    assert all("›" in p or p.count("›") == 0 for p in pfade)
-    # Der Elternknoten wird nicht zusätzlich vergeben — der Baum impliziert ihn.
-    assert "Wirtschaft & Unternehmen" not in pfade
+    zugeordnet = kategorien_zuordnen(antrag)
+    kurz = [k.pfad_kurz for k in zugeordnet]
+    assert "Wirtschaft & Unternehmen › Bauwirtschaft & Baugewerbe › Installateur & Gebäudetechnik" in kurz
+    # Der volle Pfad läuft bis zur Wurzel; Wurzel/Säulen selbst werden nie zugeordnet.
+    assert all(k.pfad.startswith("Das gesellschaftliche Zusammenleben") for k in zugeordnet)
+    assert all(k.tiefe >= 3 for k in zugeordnet)
 
 
 def test_einbringen_ordnet_automatisch_zu_ohne_nutzereingabe(client, ordnung):  # noqa: F811
@@ -86,11 +107,52 @@ def test_abo_eines_astes_umfasst_unterkategorien(client, ordnung):  # noqa: F811
     assert anna.kategorie_abos.count() == 0
 
 
-def test_kategorienbaum_zaehlt_laufende_je_ast(client, ordnung):  # noqa: F811
+# --- Fokus-Ansicht (F-45): Brotkrume, Hineinklicken, Suche ------------------------
+
+
+def test_fokus_ansicht_zaehlt_laufende_je_ast_ueber_alle_ebenen(client, ordnung):  # noqa: F811
     call_command("kategorien_laden")
     erneuerbar = Kategorie.objects.get(slug="erneuerbare-energie")
     a = antrag_einbringen(mitglied_anlegen(), **ANTRAG, ordnung=ordnung)
     a.kategorien.add(erneuerbar)
-    antwort = client.get(reverse("verfahren:kategorien"))
-    energie_knoten = next(k for k in antwort.context["baum"] if k["k"].slug == "energie")
-    assert energie_knoten["laufend"] == 1  # Zählung schließt Unterkategorien ein
+
+    # Die Zählung wandert den ganzen Stamm hinauf — bis in Säule und Wurzel.
+    antwort = client.get(reverse("verfahren:kategorie", args=["energie"]))
+    assert antwort.context["laufend_gesamt"] == 1
+    antwort = client.get(reverse("verfahren:kategorien"))  # Wurzel
+    assert antwort.context["laufend_gesamt"] >= 1
+    assert antwort.context["ist_wurzel"] is True
+    assert len(antwort.context["kinder"]) == 4  # die vier Säulen als Karten
+
+
+def test_fokus_ansicht_zeigt_stamm_und_unterbereiche(client):
+    call_command("kategorien_laden")
+    antwort = client.get(reverse("verfahren:kategorie", args=["installateur"]))
+    stamm = [k.slug for k in antwort.context["stamm"]]
+    assert stamm[0] == "gesellschaftliches-zusammenleben"  # Brotkrume beginnt an der Wurzel
+    assert "wirtschaft-unternehmen" in stamm
+    inhalt = antwort.content.decode()
+    assert "Das gesellschaftliche Zusammenleben" in inhalt  # Stamm ist verlinkt sichtbar
+    assert "Installateur" in inhalt
+
+
+def test_suche_findet_kategorie_ueber_name_und_schlagwort(client):
+    call_command("kategorien_laden")
+    antwort = client.get(reverse("verfahren:kategorien"), {"q": "Installateur"})
+    treffer = [t["k"].slug for t in antwort.context["treffer"]]
+    assert "installateur" in treffer
+    antwort = client.get(reverse("verfahren:kategorien"), {"q": "gibtesnicht123"})
+    assert antwort.context["treffer"] == []
+    assert "Nichts gefunden" in antwort.content.decode()
+
+
+def test_favorisieren_aus_der_fokus_ansicht_fuehrt_zurueck(client, ordnung):  # noqa: F811
+    call_command("kategorien_laden")
+    anna = mitglied_anlegen()
+    client.force_login(anna)
+    antwort = client.post(
+        reverse("verfahren:kategorie_abonnieren", args=["saeule-lebensraum-infrastruktur"]),
+        {"weiter": "/kategorien/saeule-lebensraum-infrastruktur/"},
+    )
+    assert antwort.url == "/kategorien/saeule-lebensraum-infrastruktur/"
+    assert anna.kategorie_abos.count() == 1  # eine Säule favorisiert = ganzer Ast (F-46)

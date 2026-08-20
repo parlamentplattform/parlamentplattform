@@ -159,7 +159,7 @@ def einbringen(request):
             )
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
             if zugeordnet:
-                namen = ", ".join(k.pfad for k in zugeordnet)
+                namen = ", ".join(k.pfad_kurz for k in zugeordnet)
                 messages.success(
                     request,
                     _(
@@ -290,27 +290,95 @@ def favorisieren(request, pk):
     return redirect("verfahren:antrag", pk=pk)
 
 
-def kategorien_uebersicht(request):
-    """F-45/F-46: der Kategorienbaum (Haupt- -> Unter- -> Detailkategorien) mit
-    Antragszahlen; Mitglieder abonnieren hier — ein Abo gilt für den ganzen Ast."""
+def _laufend_je_ast() -> dict[int, int]:
+    """Laufende Anträge je Knoten EINSCHLIESSLICH aller Unterkategorien —
+    mit zwei Datenbankabfragen statt einer je Knoten."""
+    from django.db.models import Count
+
+    direkt: dict[int, int] = {
+        zeile["kategorien"]: zeile["n"]
+        for zeile in Antrag.objects.filter(phase__in=OFFENE_PHASEN, kategorien__isnull=False)
+        .values("kategorien")
+        .annotate(n=Count("id", distinct=True))
+    }
+    kinder: dict[int | None, list[int]] = {}
+    for kid, eid in Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id"):
+        kinder.setdefault(eid, []).append(kid)
+    summen: dict[int, int] = {}
+
+    def summe(kid: int) -> int:
+        if kid not in summen:
+            summen[kid] = direkt.get(kid, 0) + sum(summe(c) for c in kinder.get(kid, []))
+        return summen[kid]
+
+    for geschwister in kinder.values():
+        for kid in geschwister:
+            summe(kid)
+    return summen
+
+
+def kategorie_fokus(request, slug=None):
+    """F-45: die Fokus-Ansicht des Kategorienbaums — von der einen Wurzel
+    („Das gesellschaftliche Zusammenleben“) über Säulen und Bereiche bis in die
+    Detailkategorie. Oben der Stamm als Brotkrume, in der Mitte der aktuelle
+    Bereich, darunter die Unterbereiche zum Weiterklicken; jede Ebene ist
+    favorisierbar (F-46, Ast-Wirkung), die Suche findet Namen und Schlagworte.
+    Alles ohne JavaScript: jeder Klick ist eine Seite."""
+    if slug:
+        knoten = get_object_or_404(Kategorie, slug=slug, aktiv=True)
+    else:
+        knoten = Kategorie.objects.filter(aktiv=True, eltern=None).order_by("reihenfolge").first()
+        if knoten is None:
+            return render(request, "verfahren/keine_ordnung.html", status=503)
+
     abonniert: set[int] = set()
     if request.user.is_authenticated:
         abonniert = set(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
+    laufend = _laufend_je_ast()
 
-    alle = list(Kategorie.objects.filter(aktiv=True))
-    zaehler = {k.pk: k.antraege.filter(phase__in=OFFENE_PHASEN).count() for k in alle}
+    suchtext = request.GET.get("q", "").strip()
+    treffer = []
+    if suchtext:
+        norm = suchtext.casefold()
+        for k in Kategorie.objects.filter(aktiv=True):
+            if (
+                norm in k.name.casefold()
+                or norm in k.beschreibung.casefold()
+                or any(norm in wort.casefold() for wort in k.schlagworte)
+            ):
+                treffer.append({"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert})
+        treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
+        treffer = treffer[:40]
 
-    def knoten(k):
-        kinder = [knoten(c) for c in alle if c.eltern_id == k.pk]
-        return {
-            "k": k,
-            "laufend": zaehler[k.pk] + sum(c["laufend"] for c in kinder),
-            "abonniert": k.pk in abonniert,
-            "kinder": kinder,
+    kinder = [
+        {
+            "k": kind,
+            "laufend": laufend.get(kind.pk, 0),
+            "abonniert": kind.pk in abonniert,
+            "anzahl_unter": kind.kinder.filter(aktiv=True).count(),
         }
-
-    baum = [knoten(k) for k in alle if k.eltern_id is None]
-    return render(request, "verfahren/kategorien.html", {"baum": baum})
+        for kind in knoten.kinder.filter(aktiv=True).order_by("reihenfolge")
+    ]
+    ast_antraege = (
+        Antrag.objects.filter(phase__in=OFFENE_PHASEN, kategorien__in=knoten.nachfahren_ids())
+        .distinct()
+        .order_by("phase_beginn")[:6]
+    )
+    return render(
+        request,
+        "verfahren/kategorie_fokus.html",
+        {
+            "knoten": knoten,
+            "stamm": knoten.vorfahren(),
+            "kinder": kinder,
+            "abonniert": knoten.pk in abonniert,
+            "laufend_gesamt": laufend.get(knoten.pk, 0),
+            "ast_antraege": ast_antraege,
+            "suchtext": suchtext,
+            "treffer": treffer,
+            "ist_wurzel": knoten.eltern_id is None,
+        },
+    )
 
 
 @login_required

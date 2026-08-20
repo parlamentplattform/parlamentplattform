@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.9.0] — 2026-08-20 · Eine Wurzel, vier Säulen — und die Einführung
+
+### Hinzugefügt
+- **Kategorienbaum v2** (F-45): Alles führt jetzt auf **„Das gesellschaftliche Zusammenleben"** zurück — darunter vier Säulen (Sicherheit & Soziales Fundament · Wirtschaft, Arbeit & Finanzen · Lebensraum & Infrastruktur · Bildung, Entwicklung & Gesellschaft) und zwölf Bereiche mit den Beschreibungen des Parteigründers; darunter unverändert die bisherigen 295 Kategorien (312 Knoten, 6 Ebenen). Alle Slugs sind stabil geblieben — bestehende Favoriten und Zuordnungen überleben den Umbau
+- **Fokus-Ansicht** (F-45): Jede Kategorie ist eine eigene Seite — oben der Stamm als klickbare Brotkrume bis zur Wurzel, in der Mitte der aktuelle Bereich mit Stern und laufenden Anträgen des Astes, darunter die Unterbereiche als Karten zum Hineinklicken. Dazu eine **Suche** über Namen, Beschreibungen und Schlagworte. Ohne JavaScript; die Ast-Zählung läuft jetzt mit zwei Datenbankabfragen statt einer je Knoten
+- **Einführung nach der Bestätigung** (F-53): drei geführte, bebilderte Schritte — Lebensbereiche finden, die erste Abstimmung verstehen, einen Antrag einbringen lernen — mit Fortschrittsleiste, jederzeit überspringbar; Abschluss ist der Beitrags-QR. Der Bestätigungslink führt jetzt hierher
+- Kategorie-Chips bei Anträgen sind verlinkt und zeigen den kurzen Pfad (letzte drei Ebenen)
+
+### Geändert
+- Alte Gesamtbaum-Seite durch die Fokus-Ansicht ersetzt; neue Texte vollständig übersetzt (Deutsch/Englisch)
+- 8 neue Tests (120 gesamt)
+
 ## [0.8.0] — 2026-08-20 · Zweisprachig: Deutsch und Englisch
 
 ### Hinzugefügt

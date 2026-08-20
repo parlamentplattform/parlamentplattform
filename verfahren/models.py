@@ -111,12 +111,26 @@ class Kategorie(models.Model):
 
     @property
     def pfad(self) -> str:
-        """Voller Pfad, z. B. „Wirtschaft & Unternehmen › Bauwirtschaft › Installateur“."""
+        """Voller Pfad von der Wurzel, z. B. „Das gesellschaftliche Zusammenleben › … › Installateur“."""
         teile, knoten = [], self
         while knoten is not None:
             teile.append(knoten.name)
             knoten = knoten.eltern
         return " › ".join(reversed(teile))
+
+    @property
+    def pfad_kurz(self) -> str:
+        """Die letzten drei Ebenen — genug Kontext für Chips und Meldungen,
+        ohne die ganze Säulen-Kette auszuschreiben (F-45)."""
+        return " › ".join(self.pfad.split(" › ")[-3:])
+
+    def vorfahren(self) -> list[Kategorie]:
+        """Stamm von der Wurzel bis zum Elternknoten (für die Brotkrume der Fokus-Ansicht)."""
+        kette, knoten = [], self.eltern
+        while knoten is not None:
+            kette.append(knoten)
+            knoten = knoten.eltern
+        return list(reversed(kette))
 
     @property
     def tiefe(self) -> int:

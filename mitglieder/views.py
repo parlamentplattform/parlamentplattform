@@ -174,7 +174,9 @@ def bestaetigen(request, token: str):
     dj_login(request, mitglied)
     AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     messages.success(request, _("E-Mail bestätigt — willkommen! Sie sind jetzt Anwärterin bzw. Anwärter."))
-    return redirect("mitglieder:willkommen")
+    # F-53: Neue Mitglieder landen in der Einführung (jederzeit überspringbar);
+    # der Beitrags-QR (Willkommensseite) ist ihr Abschluss.
+    return redirect("mitglieder:einfuehrung", schritt=1)
 
 
 IBAN = "AT57 2033 0000 0006 9435"

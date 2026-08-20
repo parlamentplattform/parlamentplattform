@@ -6,7 +6,7 @@
 <h1>{{ antrag.titel }}</h1>
 <p><span class="badge">{{ antrag.phase|phase_name }}</span>
 {% if antrag.ebene != "bund" %}<span class="badge badge--hell">{{ antrag.get_ebene_display }} · {{ antrag.gebiet }}</span>{% endif %}
-{% for k in antrag.kategorien.all %}<span class="badge badge--hell" title="{% translate 'automatisch zugeordnet (F-47)' %}">{{ k.pfad }}</span> {% endfor %}
+{% for k in antrag.kategorien.all %}<a href="{% url 'verfahren:kategorie' k.slug %}" class="badge badge--hell" style="text-decoration:none" title="{% translate 'automatisch zugeordnet (F-47)' %}">{{ k.pfad_kurz }}</a> {% endfor %}
 · {% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }} · {% translate "Unterstützungen:" %} {{ unterstuetzungen }}{% if frist %} · {% translate "Frist:" %} {{ frist|date:"d.m.Y, H:i" }}{% endif %}
 {% if user.is_authenticated %}
 <form method="post" action="{% url 'verfahren:favorisieren' antrag.pk %}" style="display:inline">{% csrf_token %}

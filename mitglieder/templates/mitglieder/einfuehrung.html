@@ -1,0 +1,130 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Einführung" %}{% endblock %}
+{% block inhalt %}
+
+<div class="stimmzeile" style="justify-content:space-between">
+  <h1 style="margin:0">
+    {% if schritt == 1 %}{% translate "Willkommen! Finden Sie Ihre Lebensbereiche" %}
+    {% elif schritt == 2 %}{% translate "Ihre erste Abstimmung" %}
+    {% else %}{% translate "So bringen Sie einen Antrag ein" %}{% endif %}
+  </h1>
+  <a class="btn-still" href="{% url 'verfahren:index' %}">{% translate "Einführung überspringen" %}</a>
+</div>
+
+<div class="schrittleiste" aria-label="{% translate 'Fortschritt der Einführung' %}">
+  {% for s in schritte %}
+    <span class="punkt {% if s == schritt %}aktiv{% elif s < schritt %}fertig{% endif %}">{% if s < schritt %}✓{% else %}{{ s }}{% endif %}</span>
+    {% if s == 1 %}{% translate "Lebensbereiche" %}{% elif s == 2 %}{% translate "Abstimmen" %}{% else %}{% translate "Antrag" %}{% endif %}
+    {% if not forloop.last %}<span style="opacity:.4">—</span>{% endif %}
+  {% endfor %}
+  <span style="opacity:.4">—</span><span class="punkt">€</span> {% translate "Beitrag" %}
+</div>
+
+{% if schritt == 1 %}
+<div class="karte">
+<div class="stimmzeile" style="align-items:flex-start;gap:24px">
+  <svg width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Baum mit Sternen an den Ästen' %}" style="flex:0 0 auto">
+    <path d="M55 100 V58 M55 58 C55 42 30 46 26 30 M55 58 C55 40 80 46 84 28 M55 76 C55 66 38 68 34 56" stroke="#0E4C5C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M26 24 l2.2 4.6 5 .7 -3.6 3.5 .9 5 -4.5 -2.4 -4.5 2.4 .9 -5 -3.6 -3.5 5 -.7 z" fill="#D9A441"/>
+    <path d="M84 22 l2.2 4.6 5 .7 -3.6 3.5 .9 5 -4.5 -2.4 -4.5 2.4 .9 -5 -3.6 -3.5 5 -.7 z" fill="#D9A441"/>
+    <circle cx="34" cy="52" r="4" fill="#2C89B0"/>
+    <rect x="40" y="100" width="30" height="3" rx="1.5" fill="#0E2230" opacity=".5"/>
+  </svg>
+  <div style="flex:1 1 24em">
+    <p>{% blocktranslate %}Alles Leben in Österreich ist hier in einem Baum geordnet — von einer Wurzel über vier Säulen
+    bis in die einzelne Tätigkeit. <strong>Favorisieren Sie, was Sie betrifft</strong> (der Stern ☆):
+    Neues daraus erscheint dann auf Ihrer Startseite unter „Meine Favoriten“. Ein Stern auf einer Säule
+    oder einem Bereich umfasst den ganzen Ast. Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis
+    — und nichts davon ist Pflicht.{% endblocktranslate %}</p>
+    {% if gewaehlt %}<p class="erk" style="margin-top:8px">{% blocktranslate count n=gewaehlt %}Sie haben bereits {{ n }} Favoriten gewählt.{% plural %}Sie haben bereits {{ n }} Favoriten gewählt.{% endblocktranslate %}</p>{% endif %}
+  </div>
+</div>
+</div>
+
+<div class="kat-grid">
+  {% for s in saeulen %}
+  <div class="bereich">
+    <p style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">
+      <a href="{% url 'verfahren:kategorie' s.k.slug %}" style="color:var(--deep);font-weight:600">{{ s.k.name }}</a>
+      <form method="post" action="{% url 'verfahren:kategorie_abonnieren' s.k.slug %}">{% csrf_token %}
+        <input type="hidden" name="weiter" value="{% url 'mitglieder:einfuehrung' 1 %}">
+        <button type="submit" class="stern {% if not s.abonniert %}aus{% endif %}" title="{% if s.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Favorisieren' %}{% endif %}">{% if s.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
+      </form>
+    </p>
+    <p class="erk">{{ s.k.beschreibung|truncatechars:120 }}</p>
+    <p class="erk" style="margin-top:6px"><a href="{% url 'verfahren:kategorie' s.k.slug %}">{% translate "Genauer wählen: hinein in die Bereiche" %} →</a></p>
+  </div>
+  {% endfor %}
+</div>
+<p class="hilfe">{% blocktranslate %}Sie können auch gezielt suchen — zum Beispiel Ihren Beruf oder Ihr Anliegen:
+auf der Seite <a href="/kategorien/">Lebensbereiche</a> oben rechts. Mit dem Zurück-Knopf Ihres
+Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
+
+<div class="stimmzeile" style="margin-top:18px">
+  <a class="btn" href="{% url 'mitglieder:einfuehrung' 2 %}">{% translate "Weiter: Ihre erste Abstimmung" %} →</a>
+</div>
+
+{% elif schritt == 2 %}
+<div class="karte">
+<div class="stimmzeile" style="align-items:flex-start;gap:24px">
+  <svg width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Stimmzettel fällt in eine Urne' %}" style="flex:0 0 auto">
+    <rect x="20" y="52" width="70" height="44" rx="6" fill="none" stroke="#0E4C5C" stroke-width="2.5"/>
+    <rect x="42" y="48" width="26" height="7" rx="3" fill="#0E4C5C"/>
+    <g transform="rotate(-12 55 28)"><rect x="41" y="14" width="28" height="34" rx="3" fill="#fff" stroke="#0E2230" stroke-width="2"/>
+    <path d="M47 28 l5 5 9 -10" stroke="#D9A441" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+  </svg>
+  <div style="flex:1 1 24em">
+    <p>{% blocktranslate %}Abgestimmt wird mit <strong>Ja, Nein oder Enthaltung</strong> — mindestens sieben Tage lang,
+    und bis zum Fristende können Sie Ihre Stimme ändern. Ihre Stimme steht unter einem
+    <strong>Pseudonym</strong> in der öffentlichen Stimmliste; mit Ihrem persönlichen Prüfcode finden
+    Sie sie dort wieder und können das Ergebnis selbst nachrechnen. Das Ergebnis erscheint erst
+    nach dem Fristende — niemand läuft einer Mehrheit hinterher.{% endblocktranslate %}</p>
+    <p class="erk" style="margin-top:8px">{% blocktranslate %}Ansehen können Sie alles sofort — Ihre erste eigene Stimme folgt,
+    sobald Ihr Konto nach dem Beitragseingang freigeschaltet ist.{% endblocktranslate %}</p>
+  </div>
+</div>
+</div>
+
+{% if abstimmung %}
+<div class="karte hinweis">
+  <p><strong>{% translate "Gerade läuft zum Beispiel:" %}</strong></p>
+  <p style="margin-top:6px"><a href="{% url 'verfahren:antrag' abstimmung.pk %}"><strong>{{ abstimmung.titel }}</strong></a></p>
+  <p class="erk" style="margin-top:6px"><a href="{% url 'verfahren:antrag' abstimmung.pk %}">{% translate "Diese Abstimmung ansehen" %} →</a></p>
+</div>
+{% endif %}
+
+<div class="stimmzeile" style="margin-top:18px">
+  <a class="btn-still" href="{% url 'mitglieder:einfuehrung' 1 %}">← {% translate "Zurück" %}</a>
+  <a class="btn" href="{% url 'mitglieder:einfuehrung' 3 %}">{% translate "Weiter: Antrag einbringen" %} →</a>
+</div>
+
+{% else %}
+<div class="karte">
+<div class="stimmzeile" style="align-items:flex-start;gap:24px">
+  <svg width="110" height="110" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Antrag und ähnliche Anträge daneben' %}" style="flex:0 0 auto">
+    <rect x="18" y="16" width="44" height="58" rx="4" fill="#fff" stroke="#0E2230" stroke-width="2"/>
+    <path d="M25 28 h30 M25 36 h30 M25 44 h22" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+    <rect x="56" y="40" width="36" height="46" rx="4" fill="#F6F3EC" stroke="#0E4C5C" stroke-width="2"/>
+    <path d="M63 52 h22 M63 60 h22 M63 68 h16" stroke="#0E4C5C" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+    <path d="M74 92 c8 6 16 6 22 0" stroke="#D9A441" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>
+  <div style="flex:1 1 24em">
+    <p>{% blocktranslate %}Jedes bestätigte Mitglied kann Anträge einbringen: Titel, Wortlaut, Begründung — fertig.
+    Vor der Veröffentlichung zeigt die Plattform <strong>ähnliche laufende Anträge</strong> samt Beteiligung:
+    Oft bewegt eine Unterstützung mehr als ein Parallelantrag. Einbringen bleibt trotzdem immer möglich —
+    kein Algorithmus entscheidet über Zulassung. Die passenden Lebensbereiche ordnet die Plattform
+    automatisch zu.{% endblocktranslate %}</p>
+    <p class="erk" style="margin-top:8px">{% blocktranslate %}Der Weg danach: Unterstützung sammeln → mindestens 21 Tage öffentliche
+    Beratung → mindestens 7 Tage Abstimmung → dauerhaft veröffentlichtes, nachrechenbares Ergebnis.{% endblocktranslate %}</p>
+  </div>
+</div>
+</div>
+
+<div class="stimmzeile" style="margin-top:18px">
+  <a class="btn-still" href="{% url 'mitglieder:einfuehrung' 2 %}">← {% translate "Zurück" %}</a>
+  <a class="btn-linie" href="{% url 'verfahren:index' %}">{% translate "Alle Anträge ansehen" %}</a>
+  <a class="btn" href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Abschluss: Ihr Mitgliedsbeitrag" %} →</a>
+</div>
+{% endif %}
+{% endblock %}

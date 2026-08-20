@@ -1,67 +1,81 @@
-# Testbetrieb auf Render — Schritt für Schritt
+# Betrieb auf Render — Stand 20.08.2026
 
-Ziel: Die Plattform öffentlich erreichbar machen (z. B. `plattform.ddoe.at`),
-damit Interessierte sich registrieren und den Verfahrensweg ausprobieren können.
+Der Prototyp läuft öffentlich unter **https://parlament.ddoe.at**
+(Ausweich-Adresse: https://parlamentplattform.onrender.com, Gesundheitscheck: `/gesund/`).
 
-## Warum Render, und warum nur für den Testbetrieb
+## Was tatsächlich läuft
 
-Der bestehende Webhoster von ddoe.at (World4You, Shared Hosting) kann PHP/MySQL,
-aber keine Python-Anwendungen und keine Container — die Plattform kann dort
-nicht laufen. Render kann beides, deployt direkt aus diesem Repository und
-betreibt Dienst und Datenbank im **Rechenzentrum Frankfurt**.
+| Baustein | Ausprägung |
+|---|---|
+| Web-Service `parlamentplattform` | Render Frankfurt, Python 3.12, Instance Type **Starter** (0,5 CPU / 512 MB, 7 $/Monat) |
+| PostgreSQL `plattform-db` | Render Frankfurt, **basic-256mb** (6 $/Monat), PostgreSQL 16 — Konten und Verfahren überleben jeden Deploy |
+| Domain | `parlament.ddoe.at` per **CNAME** in der World4You-DNS-Zone auf `parlamentplattform.onrender.com` (nicht die W4Y-„Subdomain“-Funktion — die mappt nur Webspace-Ordner). Zertifikat stellt Render automatisch aus |
+| E-Mail | World4You-Postfach `plattform@ddoe.at`, SMTP `smtp.world4you.com:587` (STARTTLS) |
+| Workspace-Plan | **Hobby (0 $)** genügt — der Workspace-Plan schaltet nur Team-Funktionen frei, Rechenleistung wird je Dienst gebucht |
 
-**Datenschutz-Einordnung:** Render Services, Inc. ist ein US-Unternehmen.
-Mitgliedschaftsdaten einer Partei sind besondere Kategorien personenbezogener
-Daten (Art 9 DSGVO — politische Meinung). Für den **Testbetrieb** mit
-ausdrücklich einwilligenden Testnutzerinnen und -nutzern und einem klaren
-Hinweis auf der Registrierungsseite ist das vertretbar. Für den **Echtbetrieb**
-mit echten Mitgliederdaten empfehlen wir den Umzug auf einen EU-/AT-Anbieter
-(z. B. Hetzner Deutschland, Anexia Österreich) — das Repository ist darauf
-vorbereitet (`docker-compose.yml`, 12-Factor-Konfiguration), der Umzug ist ein
-Datenbank-Export/-Import plus DNS-Wechsel.
+Gesamtkosten: **rund 13 $ im Monat.**
 
-## Einrichtung (einmalig, ca. 15 Minuten)
+Zwei Render-Eigenheiten, die man kennen muss:
 
-1. **Render mit GitHub verbinden:** render.com → Dashboard → *New* → *Blueprint*
-   → Repository `parlamentplattform/parlamentplattform` autorisieren und wählen.
-   Render liest `render.yaml` und schlägt an: Web-Service `parlamentplattform`
-   + Datenbank `plattform-db` (beide Frankfurt). Bestätigen.
-2. **Warten:** Erster Build dauert einige Minuten. Der Dienst ist danach unter
-   `https://parlamentplattform.onrender.com` erreichbar; `/gesund/` muss
-   `{"status": "ok"}` liefern.
-3. **SMTP eintragen** (sonst landen Bestätigungs-Mails nur im Log):
-   Service → *Environment* → `DDOE_SMTP_HOST`, `DDOE_SMTP_PORT` (587),
-   `DDOE_SMTP_USER`, `DDOE_SMTP_PASSWORT` — die Zugangsdaten des Postfachs
-   `plattform@ddoe.at` (bei World4You anlegbar). *Save* löst einen Neustart aus.
-4. **Verwaltungskonto anlegen:** Service → *Shell* →
-   `python manage.py createsuperuser`
-5. **Verfahrensordnung laden:** Für den Start genügt die Demo-Ordnung:
-   Service-Shell → `python manage.py demo_seed` (legt auch Beispiel-Anträge an)
-   — oder nur die Verfahrensordnung von Hand über `/verwaltung/`.
-6. **Eigene Adresse `plattform.ddoe.at`:** Service → *Settings* → *Custom Domain*
-   `plattform.ddoe.at` hinzufügen; im World4You-DNS einen **CNAME**
-   `plattform` → `parlamentplattform.onrender.com` setzen. Zertifikat stellt
-   Render automatisch aus. (`DDOE_ALLOWED_HOSTS`/`DDOE_CSRF_ORIGINS` in
-   `render.yaml` enthalten die Domain bereits.)
+1. **Free-Instanzen können keine E-Mails versenden:** Render blockiert dort seit
+   September 2025 ausgehenden SMTP-Verkehr (Ports 25/465/587) komplett. Der
+   bezahlte Instance Type ist also nicht nur gegen das Einschlafen, sondern
+   Voraussetzung für Bestätigungs- und Anmelde-Mails.
+2. **Kein automatischer Deploy bei Push:** Der Dienst wurde per API angelegt und
+   hat keinen GitHub-Webhook. Nach jedem Push auf `main` im Dashboard
+   **Manual Deploy → Deploy latest commit** klicken (oder einmalig unter
+   *Settings → Build & Deploy* das GitHub-Repo verbinden, dann deployt jeder
+   Push automatisch).
 
-## Laufende Kosten (Stand der Blueprint-Pläne)
+## Start und Build
 
-Web-Service *Starter* und PostgreSQL *basic-256mb* liegen zusammen bei rund
-**15 US-Dollar im Monat**. Kleiner geht es mit dem Free-Web-Service (schläft
-nach Inaktivität ein, erster Aufruf dauert dann ~1 Minute) — für eine erste
-stille Testphase ausreichend, für den verlinkten Button auf ddoe.at nicht.
+- Build: `pip install ".[postgres]" gunicorn whitenoise`
+- Start: `migrate` → `kategorien_laden` → `demo_seed` → `collectstatic` → Gunicorn
+  (2 Worker, 60 s Timeout). Alle Schritte sind idempotent — `demo_seed` legt nur
+  auf leerer Datenbank an, `kategorien_laden` und `gemeinden_laden` aktualisieren.
+
+## Umgebungsvariablen (Werte nur im Render-Dashboard, nie im Repo)
+
+| Variable | Zweck |
+|---|---|
+| `DDOE_SECRET_KEY`, `DDOE_DEBUG=0` | Django-Grundschutz |
+| `DDOE_ALLOWED_HOSTS`, `DDOE_CSRF_ORIGINS` | erlaubte Domains (onrender.com + parlament.ddoe.at) |
+| `DDOE_STATIK=whitenoise` | statische Dateien aus der Anwendung |
+| `POSTGRES_HOST/PORT/DB/USER/PASSWORD` | aus der *Internal Database URL* von `plattform-db` |
+| `DDOE_SMTP_HOST/PORT/USER/PASSWORT` | Postfach `plattform@ddoe.at` (World4You, Port 587) |
+| `DDOE_SMTP_TIMEOUT` | optional, Standard 20 s — hängender Mailserver blockiert keinen Worker |
+| `DDOE_MAIL_ABSENDER` | Absenderadresse (Standard `plattform@ddoe.at`) |
+| `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
+| `DDOE_FIX_ADMIN` | optional — fixer Verwaltungs-Erstzugang (Standard `didide@ddoe.at`, F-51) |
+| `PYTHON_VERSION=3.12.6` | Laufzeitversion |
+
+## Verwaltung — ohne Superuser
+
+Es gibt keinen Django-Admin und kein `createsuperuser` mehr. Die
+**Mitgliederverwaltung** liegt unter `/verwaltung/` (F-51): Das Konto mit der
+`DDOE_FIX_ADMIN`-Adresse meldet sich ganz normal per E-Mail-Link an und sieht
+den Menüpunkt „Verwaltung“; weitere Admins werden dort ernannt. Jede Handlung
+steht im öffentlichen Audit-Log. Die öffentliche Übersichtsseite (`/uebersicht/`,
+F-50) braucht gar keinen Zugang.
 
 ## Betriebliches
 
-- **Deploys:** Jeder Push auf `main` deployt automatisch (CI muss grün sein —
-  Branch-Schutz). Rollback im Render-Dashboard per Klick.
 - **Backups:** Render-Postgres hat tägliche Snapshots; zusätzlich monatlich
-  `pg_dump` ziehen und verschlüsselt ablegen (Verantwortung: Technischer
-  Entwicklungsrat, § 6 Abs 4).
-- **Phasenübergänge:** Fristabläufe werden beim nächsten Seitenaufruf
-  verarbeitet (lazy, idempotent). Für einen ruhenden Dienst optional einen
-  Render-Cron-Job anlegen: `python manage.py shell -c "from verfahren.models
-  import Antrag; [a.fortschreiben() for a in Antrag.objects.all()]"` täglich.
-- **Nicht geeignet:** Netlify und Cloudflare Pages sind Static-/Edge-Hosting —
-  dort kann die Django-Anwendung nicht laufen. Cloudflare kann später als
-  DNS/Schutzschicht vor die Domain, ist für den Start aber nicht nötig.
+  `pg_dump` ziehen und verschlüsselt ablegen (Technischer Entwicklungsrat, § 6 Abs 4).
+- **Phasenübergänge:** Fristabläufe werden beim nächsten Seitenaufruf verarbeitet
+  (lazy, idempotent). Optional täglicher Render-Cron:
+  `python manage.py shell -c "from verfahren.models import Antrag; [a.fortschreiben() for a in Antrag.objects.all()]"`.
+- **Logs:** Dashboard → Logs; der SMTP-Versand meldet Fehler dort mit vollem Traceback.
+
+## Datenschutz-Einordnung
+
+Render Services, Inc. ist ein US-Unternehmen; Dienst und Datenbank laufen in
+Frankfurt. Mitgliedschaftsdaten einer Partei sind besondere Kategorien
+personenbezogener Daten (Art 9 DSGVO — politische Meinung). Für den
+**Testbetrieb** mit ausdrücklich einwilligenden Testnutzerinnen und -nutzern ist
+das mit klarem Hinweis vertretbar; für den **Echtbetrieb** ist der Umzug auf
+einen EU-/AT-Anbieter (z. B. Hetzner, Anexia) vorgesehen — das Repository ist
+darauf vorbereitet (`docker-compose.yml`, 12-Factor-Konfiguration), der Umzug
+ist ein Datenbank-Export/-Import plus DNS-Wechsel. Die Plattform selbst setzt
+keine Tracker und keine Dienste Dritter ein; Besuche werden datensparsam als
+Tages-Summen gezählt (F-52, ADR-008).

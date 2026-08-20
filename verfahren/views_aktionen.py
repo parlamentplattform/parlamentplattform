@@ -19,7 +19,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from mitglieder.models import Identitaetsstufe
+from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
 from plattform_core import Gegenstand, Phase
 from plattform_core.similarity import aehnlichste
 from verfahren.models import (
@@ -40,8 +40,21 @@ from verfahren.models import (
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
 
-def _ist_bestaetigt(user) -> bool:
-    return user.is_authenticated and user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
+def _mitwirkung_gesperrt(request):
+    """403-Antwort, wenn Mitwirkungsrechte fehlen — sonst None.
+
+    Zwei Gründe: unbestätigte Identität (§ 4) oder ruhender Status (F-51:
+    pausiert bis zum Beitragseingang bzw. ausgeschlossen nach § 4 Abs 6)."""
+    if request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
+        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+    if request.user.status != Mitgliedsstatus.AKTIV:
+        return render(
+            request,
+            "verfahren/mitwirkung_ruht.html",
+            {"pausiert": request.user.status == Mitgliedsstatus.PAUSIERT},
+            status=403,
+        )
+    return None
 
 
 class AntragsFormular(forms.Form):
@@ -91,8 +104,9 @@ class KommentarFormular(forms.Form):
 def einbringen(request):
     """F-10 + F-35: Einbringen mit Ähnlichkeitshinweis — der Hinweis schlägt vor,
     er blockiert nie. „Trotzdem einbringen" ist immer gleichwertig möglich."""
-    if not _ist_bestaetigt(request.user):
-        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
     ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
     if ordnung is None:
         return render(request, "verfahren/keine_ordnung.html", status=503)
@@ -161,8 +175,9 @@ def einbringen(request):
 @require_POST
 def unterstuetzen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
-    if not _ist_bestaetigt(request.user):
-        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
     antrag.fortschreiben()
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
         messages.error(request, "Die Unterstützungsphase dieses Antrags ist beendet.")
@@ -181,8 +196,9 @@ def unterstuetzen(request, pk):
 @require_POST
 def kommentieren(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
-    if not _ist_bestaetigt(request.user):
-        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
     antrag.fortschreiben()
     if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
         messages.error(request, "Die Beratung dieses Antrags ist beendet.")

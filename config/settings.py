@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "mitglieder",
     "verfahren",
+    "uebersicht",
 ]
 
 MIDDLEWARE = [
@@ -35,6 +36,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "uebersicht.middleware.Besuchszaehlung",  # zählt Tages-Summen, nie Personen (F-52)
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -112,6 +114,11 @@ LOGIN_URL = "/anmelden/"
 # § 4 Abs 4 lit d: Übergangsregel für den Aufbau — Anwartschaftsfristen entfallen,
 # bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat.
 DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
+
+# F-51: Der satzungsgebende Erstzugang der Mitgliederverwaltung. Dieses Konto ist
+# immer Admin, kann weder pausiert noch ausgeschlossen noch entmachtet werden —
+# damit die Verwaltung nie herrenlos wird. Weitere Admins ernennen Admins einander.
+DDOE_FIX_ADMIN = os.environ.get("DDOE_FIX_ADMIN", "didide@ddoe.at").lower()
 
 # Sicherheit — greift, sobald DEBUG aus ist
 if not DEBUG:

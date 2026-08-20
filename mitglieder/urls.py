@@ -1,6 +1,6 @@
 from django.urls import path
 
-from mitglieder import views
+from mitglieder import verwaltung, views
 
 app_name = "mitglieder"
 urlpatterns = [
@@ -10,4 +10,6 @@ urlpatterns = [
     path("anmelden/", views.login_anfordern, name="login"),
     path("anmelden/<str:token>/", views.login_einloesen, name="login_einloesen"),
     path("abmelden/", views.abmelden, name="abmelden"),
+    path("verwaltung/", verwaltung.liste, name="verwaltung"),
+    path("verwaltung/<int:pk>/", verwaltung.mitglied, name="verwaltung_mitglied"),
 ]

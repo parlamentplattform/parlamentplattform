@@ -4,6 +4,10 @@
 # Render liest diese Datei, legt Web-Service und PostgreSQL in Frankfurt an
 # und verdrahtet die Zugangsdaten automatisch.
 #
+# Hinweis: Der seit 08/2026 laufende Dienst (parlament.ddoe.at) wurde per API
+# mit Python-Runtime angelegt — dieselben Befehle, Variablen und Pläne wie hier.
+# Diese Datei ist der reproduzierbare Weg für einen Neuaufbau (docs/BETRIEB-RENDER.md).
+#
 # Nach dem ersten Deploy im Dashboard unter "Environment" ausfüllen (sync: false):
 #   DDOE_SMTP_HOST / DDOE_SMTP_PORT / DDOE_SMTP_USER / DDOE_SMTP_PASSWORT
 #   (SMTP-Zugang des Mail-Postfachs plattform@ddoe.at, z. B. bei World4You)
@@ -22,17 +26,19 @@ services:
     healthCheckPath: /gesund/
     dockerCommand: >-
       sh -c "python manage.py migrate --noinput
+      && python manage.py kategorien_laden
+      && python manage.py demo_seed
       && python manage.py collectstatic --noinput
-      && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 60"
+      && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
     envVars:
       - key: DDOE_DEBUG
         value: "0"
       - key: DDOE_SECRET_KEY
         generateValue: true
       - key: DDOE_ALLOWED_HOSTS
-        value: parlamentplattform.onrender.com,plattform.ddoe.at
+        value: parlamentplattform.onrender.com,parlament.ddoe.at
       - key: DDOE_CSRF_ORIGINS
-        value: https://parlamentplattform.onrender.com,https://plattform.ddoe.at
+        value: https://parlamentplattform.onrender.com,https://parlament.ddoe.at
       - key: DDOE_STATIK
         value: whitenoise
       - key: DDOE_UEBERGANGSREGEL

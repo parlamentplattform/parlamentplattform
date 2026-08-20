@@ -7,6 +7,7 @@ Keycloak macht nur den Login.
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -30,6 +31,17 @@ class Identitaetsstufe(models.TextChoices):
     GEPRUEFT = "geprueft", "geprüft (Einladungscode nach Identitätsfeststellung)"
     PRAESENZ = "praesenz", "Präsenz-Identitätsfeststellung (§ 13 Abs 2)"
     EID = "eid", "elektronischer Identitätsnachweis (§ 2 Abs 4)"
+
+
+class Mitgliedsstatus(models.TextChoices):
+    """Stand der Mitgliedschaft (F-51). „pausiert“ lässt Lesen und Anmelden zu,
+    Mitwirkungsrechte (einbringen, unterstützen, beraten, abstimmen) ruhen,
+    bis der Mitgliedsbeitrag wieder eingegangen ist (§ 4 Abs 3).
+    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6)."""
+
+    AKTIV = "aktiv", "aktiv"
+    PAUSIERT = "pausiert", "pausiert (Beitrag ausständig)"
+    AUSGESCHLOSSEN = "ausgeschlossen", "ausgeschlossen"
 
 
 class Mitglied(AbstractUser):
@@ -67,6 +79,26 @@ class Mitglied(AbstractUser):
         related_name="mitglieder",
         help_text="Eindeutiger Verweis ins amtliche Gemeindeverzeichnis — Quelle für gemeinde und bundesland.",
     )
+    status = models.CharField(
+        max_length=16,
+        choices=Mitgliedsstatus.choices,
+        default=Mitgliedsstatus.AKTIV,
+        help_text="Stand der Mitgliedschaft (F-51) — jede Änderung läuft über die Verwaltung und wird auditiert.",
+    )
+    status_grund = models.TextField(
+        blank=True,
+        help_text="Begründung des aktuellen Status (z. B. Beschlussreferenz bei Ausschluss, § 4 Abs 6).",
+    )
+    beitrag_zuletzt_am = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Letzter vermerkter Beitragseingang (§ 4 Abs 3) — bis zum Kontoauszug-Import händisch gepflegt.",
+    )
+    ist_admin = models.BooleanField(
+        default=False,
+        help_text="Zugang zur Mitgliederverwaltung (F-51). Ernennen und Entziehen können nur Admins; "
+        "jeder Wechsel wird auditiert.",
+    )
 
     class Meta:
         verbose_name = "Mitglied"
@@ -77,11 +109,29 @@ class Mitglied(AbstractUser):
             return False
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
+        if self.status != Mitgliedsstatus.AKTIV:
+            return False  # pausiert oder ausgeschlossen: Mitwirkungsrechte ruhen (F-51)
         return stimmberechtigt(self.beitritt, gegenstand, stichtag, uebergang=uebergang)
 
     @property
     def anzeigename(self) -> str:
         return self.pseudonym_oeffentlich or self.get_full_name() or self.username
+
+    @property
+    def ist_fixer_admin(self) -> bool:
+        """Der satzungsgebende Erstzugang (DDOE_FIX_ADMIN): immer Admin, kann weder
+        pausiert noch ausgeschlossen werden, und niemand kann ihm die Rechte entziehen —
+        damit die Verwaltung nie herrenlos wird."""
+        return (self.email or "").lower() == getattr(settings, "DDOE_FIX_ADMIN", "").lower()
+
+    @property
+    def hat_adminrechte(self) -> bool:
+        return self.is_active and (self.ist_admin or self.ist_fixer_admin)
+
+    @property
+    def darf_mitwirken(self) -> bool:
+        """Einbringen, unterstützen, beraten — nur mit aktivem Status (F-51)."""
+        return self.is_active and self.status == Mitgliedsstatus.AKTIV
 
 
 def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:
@@ -90,7 +140,7 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
     veröffentlicht — danach nie mehr verändert."""
     anzahl = 0
     for m in (
-        Mitglied.objects.filter(is_active=True)
+        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV)
         .exclude(beitritt=None)
         .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
     ):

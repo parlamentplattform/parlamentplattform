@@ -4,7 +4,7 @@
 
 Eine Partei ohne inhaltliches Programm braucht ein Verfahren, dem man nicht glauben muss, weil man es nachrechnen kann. Dieses Repository ist dieses Verfahren: Anträge einbringen → unterstützen → beraten → abstimmen → dauerhaft veröffentlichen — mit Regeln, die beim Einbringen eingefroren werden, einem Audit-Log, das Manipulation erkennbar macht, und einer Auszählung, die jede und jeder unabhängig überprüfen kann.
 
-**Status: Phase 0 — Fundament.** Der Verfahrenskern steht und ist getestet; Weboberfläche und Betrieb sind Prototyp. Fahrplan und vollständiges Lastenheft: [`docs/CONCEPT.md`](docs/CONCEPT.md). *English summary below.*
+**Status: Phase 1 — der Prototyp ist öffentlich:** **[parlament.ddoe.at](https://parlament.ddoe.at)**. Der Verfahrenskern steht und ist getestet; Registrierung, Verfahrensweg, Kategorienbaum, öffentliche Übersicht und Mitgliederverwaltung laufen. Fahrplan und vollständiges Lastenheft: [`docs/CONCEPT.md`](docs/CONCEPT.md), Betrieb: [`docs/BETRIEB-RENDER.md`](docs/BETRIEB-RENDER.md). *English summary below.*
 
 ---
 
@@ -22,7 +22,7 @@ Mit Docker (PostgreSQL wie in Produktion):
 
 ```bash
 docker compose up --build
-# → http://localhost:8000  ·  Admin: http://localhost:8000/verwaltung/
+# → http://localhost:8000  ·  Übersicht: /uebersicht/  ·  Verwaltung (Admins): /verwaltung/
 ```
 
 Ohne Docker (SQLite, Python ≥ 3.11):
@@ -44,8 +44,9 @@ python3 verify/nachrechnen.py export.json
 
 | Pfad | Inhalt |
 |---|---|
-| `plattform_core/` | Der Verfahrenskern: Phasenautomat, Fristen, Stimmberechtigung, Auszählung, Audit-Hash-Kette. Frameworkfrei, vollständig getestet. |
-| `verfahren/`, `mitglieder/` | Django-Anwendung: Datenmodelle, Admin, Ansichten. Speichert Zustand, ruft den Kern. |
+| `plattform_core/` | Der Verfahrenskern: Phasenautomat, Fristen, Stimmberechtigung, Auszählung, Audit-Hash-Kette, SVG-Diagramme. Frameworkfrei, vollständig getestet. |
+| `verfahren/`, `mitglieder/` | Django-Anwendung: Datenmodelle, Ansichten, Mitgliederverwaltung (F-51). Speichert Zustand, ruft den Kern. |
+| `uebersicht/` | Öffentliche Übersichtsseite und datensparsame Besuchszählung — Tages-Summen, keine IP-Adressen, keine Cookies ([ADR-008](docs/adr/ADR-008-uebersicht-und-zaehlung.md)). |
 | `policies/` | Die Verfahrensordnung als versionierte, maschinenlesbare Daten ([ADR-004](docs/adr/ADR-004-policies-als-daten.md)). |
 | `verify/` | Unabhängiges Nachrechen-Skript, nur Standardbibliothek. |
 | `docs/CONCEPT.md` | Lastenheft und technisches Konzept mit Satzungs-Traceability. |
@@ -62,4 +63,4 @@ Lizenz: [AGPL-3.0-or-later](LICENSE) — wer diese Software betreibt, auch verä
 
 ## English summary
 
-**ParlamentPlattform** is the open deliberation and decision infrastructure of Direct Democracy Austria (DDÖ): propose → support → deliberate (≥ 21 days) → vote (≥ 7 days) → publish permanently. Its distinguishing properties: procedural rules are **frozen per motion at submission** (no majority can change a running game), every tally is **independently recomputable by laypeople** (a stdlib-only second implementation lives in `verify/`), an **append-only hash-chained audit log** with externally published anchors makes tampering detectable, and votes are **pseudonymous-verifiable rather than cryptographically secret** — a deliberate, documented choice ([ADR-003](docs/adr/ADR-003-offene-verifizierbare-abstimmung.md)). Core logic is a small framework-free Python package; the web layer is boring-by-design Django. We welcome international collaboration: didide@ddoe.at.
+**ParlamentPlattform** is the open deliberation and decision infrastructure of Direct Democracy Austria (DDÖ): propose → support → deliberate (≥ 21 days) → vote (≥ 7 days) → publish permanently. A public prototype is live at [parlament.ddoe.at](https://parlament.ddoe.at). Its distinguishing properties: procedural rules are **frozen per motion at submission** (no majority can change a running game), every tally is **independently recomputable by laypeople** (a stdlib-only second implementation lives in `verify/`), an **append-only hash-chained audit log** with externally published anchors makes tampering detectable, and votes are **pseudonymous-verifiable rather than cryptographically secret** — a deliberate, documented choice ([ADR-003](docs/adr/ADR-003-offene-verifizierbare-abstimmung.md)). Core logic is a small framework-free Python package; the web layer is boring-by-design Django. We welcome international collaboration: didide@ddoe.at.

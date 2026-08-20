@@ -69,6 +69,13 @@ code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#
 .stern:hover{color:var(--gold)}
 #id_ebene{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
 #id_ebene label{font-weight:400;display:flex;gap:7px;align-items:center;font-size:15px;margin:0}
+.tabelle{width:100%;border-collapse:collapse;font-size:14.5px}
+.tabelle th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#6b7a84;padding:6px 10px 8px;border-bottom:1px solid var(--line)}
+.tabelle td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tabelle tr:last-child td{border-bottom:0}
+.tabelle a{color:var(--deep)}
+select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -77,8 +84,10 @@ code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#
   <nav>
     <a href="{% url 'verfahren:index' %}">Anträge</a>
     <a href="{% url 'verfahren:kategorien' %}">Lebensbereiche</a>
+    <a href="{% url 'uebersicht:index' %}">Übersicht</a>
     <a href="{% url 'verfahren:einbringen' %}">Antrag einbringen</a>
     {% if user.is_authenticated %}
+      {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
       <span class="wer">{{ user.anzeigename }}</span>
       <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">Abmelden</button></form>
     {% else %}
@@ -89,8 +98,12 @@ code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:#
 </div></header>
 <main>
 {% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+{% if user.is_authenticated and user.status == "pausiert" %}
+<div class="meldung info">Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist —
+Lesen und Anmelden bleiben möglich. <a href="{% url 'mitglieder:willkommen' %}">Beitrag jetzt überweisen →</a></div>
+{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
-<footer>Direkte Demokratie Österreich · Wir sind das Werkzeug. · <a href="/verwaltung/">Verwaltung</a></footer>
+<footer>Direkte Demokratie Österreich · Wir sind das Werkzeug. · <a href="{% url 'uebersicht:index' %}">Die Plattform in Zahlen</a></footer>
 </body>
 </html>

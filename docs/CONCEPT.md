@@ -35,6 +35,8 @@ Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzun
 
 Jede Phase endet mit einem öffentlich überprüfbaren Ergebnis. Keine Phase beginnt, bevor das Tor der vorigen dokumentiert bestanden ist — das diszipliniert uns und ist zugleich unser Marketing: Die Partei, die liefert, bevor sie verspricht.
 
+*(Stand 20.08.2026: Tor der Phase 0 bestanden; Phase 1 läuft — der Prototyp ist unter [parlament.ddoe.at](https://parlament.ddoe.at) öffentlich erreichbar, inklusive Registrierung, Kategorienbaum, Übersichtsseite und Mitgliederverwaltung. Offen für das Phase-1-Tor: der reale Testlauf mit 20–50 Personen.)*
+
 ### Phase 0 — Fundament (2 Wochen)
 Repository anlegen, Lizenz und Governance festlegen, dieses Dokument einchecken, Architekturentscheidungen als ADRs (Architecture Decision Records) schriftlich begründen, Domänenmodell festziehen, CI-Pipeline mit erstem Test grün.
 **Tor:** Öffentliches Repo mit README, CONCEPT, 5 ADRs, laufender CI. Jeder kann `docker compose up` ausführen und sieht eine leere, laufende Plattform.
@@ -129,7 +131,15 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-34 | KI-Zusammenfassung langer Beratungen: klar gelabelt, Modellversion angegeben, von Menschen freigegeben, Original ein Klick entfernt; abschaltbar pro Nutzer | K | § 2 Abs 6 |
 | F-48 | **App mit Bereich „Für dich vorgeschlagen“ (Zukunft):** Eine spätere ParlamentPlattform-App bildet alle Bereiche des Hauptfensters ab und ergänzt einen klar gekennzeichneten, streng persönlichen Empfehlungsbereich (aus eigenen Favoriten, Region und Aktivität). Grundsatz-Schranken: nur opt-in, Kriterien offengelegt und erklärbar, Daten bleiben auf der Plattform — und der Bereich beeinflusst niemals die gemeinsame Reihung, Schwellen oder Ergebnisse (F-31, § 5 Abs 10 bleiben unberührt) | K | § 2 Abs 6 |
 
-### 3.6 Nichtfunktionale Anforderungen
+### 3.6 Übersicht und Mitgliederverwaltung (Ergänzung 20.08.2026)
+
+| Nr. | Anforderung | Prio | Satzung |
+|---|---|---|---|
+| F-50 | **Öffentliche Übersichtsseite (umgesetzt):** `/uebersicht/` zeigt ohne Login, was sich auf der Plattform tut — Mitgliederzahl mit Verlauf, Anträge je Phase, neue Anträge je Woche, Besuche je Tag, meistgelesene Anträge sowie **je Abstimmung** Ergebnis (Ja/Nein/Enthaltung) und Beteiligung. Abstimmungsverhalten erscheint ausschließlich als Summe — Einzelstimmen bleiben pseudonym (F-25). Diagramme entstehen serverseitig als SVG (kein JavaScript, keine Diagramm-Bibliothek, `plattform_core/diagramme.py`); die Farbpalette ist auf Farbfehlsichtigkeit geprüft, native Tooltips über SVG-`<title>` | M | § 2 Abs 5, § 8 Abs 1 |
+| F-51 | **Mitgliederverwaltung (umgesetzt):** `/verwaltung/` ersetzt den Django-Admin. Statusmodell je Mitglied — `aktiv` / `pausiert` (Beitrag ausständig: Anmelden und Lesen bleiben, Mitwirkungs- und Stimmrechte ruhen, § 4 Abs 3) / `ausgeschlossen` (Konto deaktiviert; der Knopf vollzieht den satzungsmäßigen Beschluss nach § 4 Abs 6, er ersetzt ihn nicht). Dazu: Stammdaten korrigieren (Gemeinde stets gegen das amtliche Verzeichnis), Identitätsstufe setzen, Beitragseingang vermerken (hebt eine Pause automatisch auf). **Adminrollen:** ein fixer Erstzugang per `DDOE_FIX_ADMIN` (unantastbar — nie pausierbar, ausschließbar oder entmachtbar), weitere Admins ernennen und entziehen Admins einander; niemand wirkt auf das eigene Konto. Jede Handlung landet im öffentlichen Audit-Log (F-22) mit Aktion, Mitgliedsnummer und Begründung — nie mit personenbezogenen Werten | M | § 4 Abs 3, § 4 Abs 6, § 6, § 8 Abs 5 |
+| F-52 | **Datensparsame Besuchszählung (umgesetzt):** Gezählt werden nur Tages-Summen (Seitenaufrufe gesamt und je Antrag) — ohne Cookies, ohne Speicherung von IP-Adressen, ohne Dritte (N-03). Die Besucherzahl je Tag entsteht über eine anonyme Einwegkennung aus IP + Browserkennung + Tagesdatum + Serverschlüssel, die nicht zurückrechenbar ist und um Mitternacht wertlos wird; Suchmaschinen und technische Zugriffe werden herausgefiltert. Die Zählweise ist auf der Übersichtsseite öffentlich erklärt | S | § 8 Abs 1 |
+
+### 3.7 Nichtfunktionale Anforderungen
 
 | Nr. | Anforderung | Messlatte |
 |---|---|---|

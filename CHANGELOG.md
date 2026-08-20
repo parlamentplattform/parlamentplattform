@@ -2,6 +2,20 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.7.0] — 2026-08-20 · Öffentliche Übersicht und Mitgliederverwaltung
+
+### Hinzugefügt
+- **Öffentliche Übersichtsseite** `/uebersicht/` (F-50): Mitglieder mit Verlauf, Anträge je Phase, neue Anträge je Woche, Besuche je Tag, meistgelesene Anträge — und je Abstimmung Ergebnis (Ja/Nein/Enthaltung) samt Beteiligung als 100-%-Balken. Abstimmungsverhalten ausschließlich als Summe; Einzelstimmen bleiben pseudonym. In Navigation und Fußzeile verlinkt
+- **Servergerenderte SVG-Diagramme** (`plattform_core/diagramme.py`): Linie, Säulen, Anteilsbalken — ohne JavaScript, ohne Diagramm-Bibliothek; Farbpalette auf Farbfehlsichtigkeit geprüft, native Tooltips, Werte immer auch als Text (ADR-008)
+- **Datensparsame Besuchszählung** (F-52): Tages-Summen je Plattform und je Antrag — keine Cookies, keine IP-Speicherung; anonyme Tageskennung, die um Mitternacht wertlos wird; Maschinen ausgefiltert; Zählweise öffentlich erklärt
+- **Mitgliederverwaltung** `/verwaltung/` (F-51, ersetzt den Django-Admin): Suche und Filter, Stammdaten korrigieren (Gemeinde stets gegen das amtliche Verzeichnis), Identitätsstufe setzen, Beitragseingang vermerken, **pausieren** (Mitwirkungsrechte ruhen bis zum Beitragseingang), **ausschließen** (vollzieht den Beschluss nach § 4 Abs 6, umkehrbar), Admins ernennen und entziehen. Fixer Erstzugang per `DDOE_FIX_ADMIN` (Standard didide@ddoe.at) — immer Admin, unantastbar; niemand wirkt auf das eigene Konto. Jede Handlung im öffentlichen Audit-Log, ohne personenbezogene Werte
+- Mitglied: Felder `status`, `status_grund`, `beitrag_zuletzt_am`, `ist_admin`; pausierte Mitglieder sehen einen Hinweis mit Beitrags-QR-Link, Mitwirkungs-Sperren greifen in allen handelnden Ansichten und in der Stimmberechtigung
+
+### Geändert
+- Django-Admin aus den URLs entfernt — `/verwaltung/` ist jetzt die eigene, auditierte Verwaltung
+- Dokumentation auf den echten Stand gebracht: README (Phase 1, Live-Adresse), `docs/BETRIEB-RENDER.md` (Starter-Instanz, SMTP-Sperre auf Free-Instanzen, manueller Deploy nach Push, Postgres, `DDOE_FIX_ADMIN`), CONCEPT (F-50–F-52, Phasenstand), `render.yaml` (parlament.ddoe.at, vollständiger Startbefehl), neue ADR-008
+- 18 neue Tests (107 gesamt)
+
 ## [0.6.1] — 2026-08-19 · Robuster Mailversand
 
 ### Behoben

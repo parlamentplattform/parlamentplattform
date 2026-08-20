@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.9.1] — 2026-08-20 · Lastenheft: Systemgrenzen und Selbstregulation
+
+### Hinzugefügt (nur Dokumentation)
+- **Leitplanke L6** („Das System kennt seine Grenzen und zeigt sie"), neuer Abschnitt **3.7 Lastmanagement und Vollzug** mit F-54 Taktung, F-55 Umsetzungsregister, F-56 Vollzugsbericht, F-57 Überlastungsmeldung, F-58 Lastmetriken, neues **Kapitel 9 „Systemgrenzen und Selbstregulation"** (Engpasskette, Regelkreis, Simulationsszenario „Lastgrenze"), Risiko **Beschluss-Inflation** und Traceability-Ergänzung — übernommen aus dem freigegebenen Begleitdokument vom 20.08.2026, dort als F-40–F-44 nummeriert (hier F-54–F-58, da F-40–F-44 bereits das Vier-Bereiche-Hauptfenster bezeichnen)
+- Satzungsbezüge zeigen auf den **Satzungsentwurf 2.3** (§ 2 Abs 7 Selbstregulation, § 5 Abs 11 Taktung und Überlastungsschutz, § 6 Abs 10 Vollzugsrückmeldung und Umsetzungsregister) — im Bausteindokument noch als § 5 Abs 10 geplant, in 2.2/2.3 ist Abs 10 bereits die Leitgestalt des Hauptzugangs
+
 ## [0.9.0] — 2026-08-20 · Eine Wurzel, vier Säulen — und die Einführung
 
 ### Hinzugefügt

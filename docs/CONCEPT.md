@@ -13,7 +13,7 @@ Jede funktionale Anforderung trägt eine Referenz auf den Satzungsentwurf 2.1 (z
 
 ---
 
-## 1. Fünf Leitplanken, aus denen alles folgt
+## 1. Sechs Leitplanken, aus denen alles folgt
 
 Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzung und aus der Auswertung von rund 25 Vorgängerprojekten weltweit — und sie entscheiden mehr über die Architektur als jede Technologiewahl.
 
@@ -26,6 +26,8 @@ Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzun
 **L4 — Beteiligung ist der Engpass, nicht Technik.** Die Piraten erreichten unter 3 % Mitgliederbeteiligung, Rousseau nie mehr als ein Drittel der Registrierten. Konsequenz: Die Plattform wird für die Person gebaut, die zweimal im Monat zehn Minuten hat — nicht für den Power-User. Wenige Klicks bis zur Stimme, verständliche Zusammenfassungen, E-Mail-Digest statt Login-Zwang, und keine Pflicht, zu allem eine Meinung zu haben.
 
 **L5 — Offenheit ohne Kaperung (→ § 4 Abs 4).** Ein Konto pro Mensch, geprüfte Identität, Anwartschaftsfristen, automatische Erkennung von Beitrittswellen. Verifikation kommt **vor** Anonymität — das ist seit den KI-Astroturfing-Fällen 2025/26 (20.000 Fake-Mails an eine US-Behörde vor einer einzigen Abstimmung) keine theoretische Sorge mehr.
+
+**L6 — Das System kennt seine Grenzen und zeigt sie (→ § 2 Abs 7, § 5 Abs 11, § 6 Abs 10).** Ein Beschluss, den niemand umsetzt, ist schlimmer als keiner: Er entwertet das Verfahren. Österreichs Klimarat 2022 hat es vorgeführt — 93 Empfehlungen, keine Behandlungspflicht, kaum Wirkung. Konsequenz: Der Durchsatz wird getaktet, der Vollzug berichtet standardisiert zurück, und Überlastung ist ein sichtbarer Systemzustand mit definierter Reaktion — kein Flurfunk. Die Plattform misst ihre eigenen Grenzen und veröffentlicht sie wie jedes andere Ergebnis.
 
 **Explizite Nicht-Ziele** (ebenso wichtig): kein staatliches E-Voting und kein Anspruch darauf (→ § 2 Abs 5); keine geheime Online-Personenwahl, solange Geheimheit und Laien-Überprüfbarkeit nicht vereinbar sind — geheime Wahlen laufen per Präsenz/Brief (→ § 13 Abs 3); keine Blockchain (löst kein einziges unserer Probleme, kostet Verständlichkeit); keine Mobile-Apps im ersten Jahr (responsive Web genügt); keine Eigenentwicklung von Krypto-Primitiven, je.
 
@@ -140,7 +142,19 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | F-51 | **Mitgliederverwaltung (umgesetzt):** `/verwaltung/` ersetzt den Django-Admin. Statusmodell je Mitglied — `aktiv` / `pausiert` (Beitrag ausständig: Anmelden und Lesen bleiben, Mitwirkungs- und Stimmrechte ruhen, § 4 Abs 3) / `ausgeschlossen` (Konto deaktiviert; der Knopf vollzieht den satzungsmäßigen Beschluss nach § 4 Abs 6, er ersetzt ihn nicht). Dazu: Stammdaten korrigieren (Gemeinde stets gegen das amtliche Verzeichnis), Identitätsstufe setzen, Beitragseingang vermerken (hebt eine Pause automatisch auf). **Adminrollen:** ein fixer Erstzugang per `DDOE_FIX_ADMIN` (unantastbar — nie pausierbar, ausschließbar oder entmachtbar), weitere Admins ernennen und entziehen Admins einander; niemand wirkt auf das eigene Konto. Jede Handlung landet im öffentlichen Audit-Log (F-22) mit Aktion, Mitgliedsnummer und Begründung — nie mit personenbezogenen Werten | M | § 4 Abs 3, § 4 Abs 6, § 6, § 8 Abs 5 |
 | F-52 | **Datensparsame Besuchszählung (umgesetzt):** Gezählt werden nur Tages-Summen (Seitenaufrufe gesamt und je Antrag) — ohne Cookies, ohne Speicherung von IP-Adressen, ohne Dritte (N-03). Die Besucherzahl je Tag entsteht über eine anonyme Einwegkennung aus IP + Browserkennung + Tagesdatum + Serverschlüssel, die nicht zurückrechenbar ist und um Mitternacht wertlos wird; Suchmaschinen und technische Zugriffe werden herausgefiltert. Die Zählweise ist auf der Übersichtsseite öffentlich erklärt | S | § 8 Abs 1 |
 
-### 3.7 Nichtfunktionale Anforderungen
+### 3.7 Lastmanagement und Vollzug (Ergänzung 20.08.2026)
+
+*Die Selbstregulation aus Satzungsentwurf 2.3 (§ 2 Abs 7, § 5 Abs 11, § 6 Abs 10), als Plattform-Anforderungen. Hinweis zur Nummerierung: Das Begleitdokument der Satzungsbausteine schlug F-40–F-44 vor — diese Nummern waren hier bereits durch das Vier-Bereiche-Hauptfenster (Abschnitt 3.4) vergeben; vergeben sind daher F-54–F-58.*
+
+| Nr. | Anforderung | Prio | Satzung |
+|---|---|---|---|
+| F-54 | **Taktung:** Policy-Parameter für die Höchstzahl gleichzeitig laufender Beratungen/Abstimmungen und für gebündelte Abstimmungsfenster; Anträge oberhalb der Grenze in öffentlicher Warteliste; Reihung deterministisch aus offengelegten Kriterien (Unterstützung, Wartezeit, Los mit veröffentlichtem Seed) — nie durch Organe oder KI; Einbringen und Unterstützen bleiben unbegrenzt | S | § 5 Abs 11 |
+| F-55 | **Umsetzungsregister:** je angenommenem Antrag ein öffentlicher Vollzugsstatus (offen / in Umsetzung / blockiert / umgesetzt / zurückgestellt) mit vollständiger Historie, verknüpft mit der Ergebnisseite (F-20), filter- und exportierbar (F-23) | S | § 6 Abs 10 |
+| F-56 | **Vollzugsbericht:** standardisiertes Berichtsraster für berichtspflichtige Stellen (Stand, Hindernis, Kapazität, nächster Schritt, Termin); Erinnerungsautomatik vor Fälligkeit; Säumigkeit öffentlich sichtbar — keine weiteren Sanktionen | S | § 6 Abs 10 |
+| F-57 | **Überlastungsmeldung** als eigener, auditierter Ereignistyp (F-22): automatische Veröffentlichung, 30-Tage-Timer für den Priorisierungsvorschlag des Koordinationsrats, Verknüpfung mit den betroffenen Anträgen im Umsetzungsregister | K | § 6 Abs 10 |
+| F-58 | **Lastmetriken öffentlich:** Zahl gleichzeitiger Verfahren, Wartelistenlänge, Median der Dauer Beschluss→Umsetzung, Beteiligung je Abstimmungsfenster — ohne Login lesbar, als Erweiterung der Übersichtsseite (F-50), nicht versteckt | K | § 2 Abs 7 |
+
+### 3.8 Nichtfunktionale Anforderungen
 
 | Nr. | Anforderung | Messlatte |
 |---|---|---|
@@ -248,6 +262,7 @@ MVP bis 10.000 Mitglieder: **ein** Server (4 vCPU/16 GB, ~25–45 €/Monat) plu
 | DSGVO-Beanstandung (Art-9-Daten) | mittel | DSFA vor Echtbetrieb, Datenminimierung, EU-only, anwaltliche Prüfung des Löschkonzepts |
 | Kaperung/Manipulation des Testbetriebs | niedrig–mittel | F-01 Einladungscodes, F-04 Wellen-Detektor, Audit-Log; im Zweifel Aussetzung durch Integritätsrat nach § 6 Abs 3 lit d |
 | Scope-Explosion („können wir noch schnell…") | hoch | dieses Lastenheft ist die Grenze; Neues nur per dokumentierter Änderung mit Begründung — auch das ist gelebte Verfahrensdisziplin |
+| **Beschluss-Inflation:** Es wird mehr beschlossen, als die Organe umsetzen können; unbearbeitete Beschlüsse entwerten das Verfahren („Klimarat-Effekt") | mittel–hoch (wächst mit dem Erfolg) | Taktung begrenzt den Zufluss (F-54); das Umsetzungsregister macht den Rückstau öffentlich (F-55); die Überlastungsmeldung erzwingt binnen 30 Tagen eine Priorisierungsentscheidung (F-57) |
 
 ---
 
@@ -267,6 +282,43 @@ MVP bis 10.000 Mitglieder: **ein** Server (4 vCPU/16 GB, ~25–45 €/Monat) plu
 
 ---
 
+## 9. Systemgrenzen und Selbstregulation (Ergänzung 20.08.2026)
+
+### 9.1 Die Engpasskette
+
+Der Engpass eines direktdemokratischen Systems ist nicht konstant — er wandert mit der Reife des Systems:
+
+1. **Aufmerksamkeit der Mitglieder** (heute, → L4). Der empirisch belegte Killer aller Vorgängerprojekte: Piraten unter 3 % Beteiligung, Rousseau nie über ein Drittel der Registrierten. Gegenmittel: Digest, wenige Klicks, Bündelung (F-30, F-31, F-54).
+2. **Beratungsqualität** (ab einigen hundert aktiven Mitgliedern). Viele parallele Beratungen verdünnen Expertise und Aufmerksamkeit pro Antrag. Gegenmittel: Taktung (F-54), Expertenrat, KI-Zusammenfassungen unter menschlicher Freigabe (F-34).
+3. **Umsetzungskapazität der eigenen Organe** (ab den ersten realen Beschlüssen). Beschlossen ist nicht getan; eine Partei mit fünf Ehrenamtlichen kann nicht zwanzig Beschlüsse pro Monat vollziehen. Gegenmittel: Vollzugsbericht, Umsetzungsregister, Überlastungsmeldung (F-55–F-57).
+4. **Staatliche Exekutive** (Fernhorizont, Stufen 3/4 nach § 9 der Satzung). Der heutige Staat setzt zentral Beschlossenes routinemäßig binnen Wochen um — genau diese Umsetzungsmaschine wird zum neuralgischen Punkt, wenn die Beschlussfrequenz um Größenordnungen steigt: Normkollisionen, Vollzugsrückstau, Rechtsunsicherheit. Ein System, das Durchsatz maximiert, ohne die Rückmeldung des umsetzenden Endes einzubauen, erzeugt **Beschluss-Inflation** — Beschlüsse ohne Wirkung, die das Vertrauen schneller zerstören als jede Ablehnung.
+
+Wer nur Stufe 1 entwirft, baut ein Spielzeug; wer nur Stufe 4 entwirft, baut Science-Fiction. Die Plattform behandelt alle vier Stufen mit demselben Muster: **Zufluss taktweise begrenzen, Abfluss messen, Rückstau veröffentlichen, Priorisierung erzwingen.**
+
+### 9.2 Der Regelkreis
+
+```
+Beschluss → Zuweisung → Vollzugsbericht → Umsetzungsregister
+                ↑                               │
+                │        (bei Kapazitätsüberschreitung)
+                │                               ↓
+   Priorisierungsbeschluss  ←  30 Tage  ←  Überlastungsmeldung
+   der Mitgliederversammlung                (öffentlich, auditiert)
+```
+
+Vier Eigenschaften machen den Kreis funktionsfähig:
+
+- **Standardisiert** (F-56): Rückmeldung ist ein Formular, kein Aufsatz — sonst berichtet unter Last niemand.
+- **Öffentlich** (F-55): Der Rückstau ist für jedes Mitglied sichtbar, bevor er zum Vorwurf wird.
+- **Sanktionsfrei für die meldende Stelle** (§ 6 Abs 10 letzter Satz): Wer Überlastungsmeldungen bestraft, bekommt keine Meldungen, sondern stille Rückstände.
+- **Entscheidungserzwingend** (F-57): Die Meldung erzwingt keine bestimmte Entscheidung, aber binnen 30 Tagen *eine* Entscheidung der Mitgliederversammlung — Reihung, Streckung oder Rückstellung. Selbstregulation heißt: Das System priorisiert sich selbst, statt still zu verstopfen.
+
+### 9.3 Das Fernszenario als Simulationsauftrag
+
+Für die Stufen 3/4 sind Rückmeldeprotokolle der **staatlichen** Exekutive kein Plattform-Feature, sondern künftige Gesetzesmaterie — Vorbild ist das Ostbelgien-Modell (Behandlungspflicht, Begründungspflicht, Umsetzungsbericht), das die DDÖ ohnehin als ersten Gesetzesvorschlag verfolgt. Die **StaatsSimulation** erhält dafür ein stehendes Szenario **„Lastgrenze"**: Was geschieht bei 10-facher und 100-facher Beschlussfrequenz mit Umsetzungsdauer, Normkollisionen und Rückmeldevolumen? Welche Taktung hält die Kette stabil? Die Ergebnisse fließen als gekennzeichnete Modellrechnung in die Beratungsphase realer Anträge ein (§ 5 Abs 3 lit c) und binden — wie alle Simulationsergebnisse — keine Abstimmung.
+
+---
+
 ## Anhang A — Offene Entscheidungen (bewusst noch nicht getroffen)
 
 1. **Repo-Heimat und Name:** Vorschlag `ddoe/parlamentplattform` auf GitHub + Codeberg-Mirror. Braucht: GitHub-Organisation der DDÖ (legst du an, ich richte alles ein).
@@ -276,4 +328,4 @@ MVP bis 10.000 Mitglieder: **ein** Server (4 vCPU/16 GB, ~25–45 €/Monat) plu
 
 ## Anhang B — Traceability Satzung → Lastenheft
 
-§ 2 Abs 4 → F-01, F-06, F-07 · § 2 Abs 6 → F-34, L3 · § 4 Abs 4 → F-03, F-04 · § 5 Abs 2 → F-10, F-17, F-18 · § 5 Abs 3 → F-10…F-15, F-20 · § 5 Abs 4 → F-16 · § 5 Abs 5 → F-11 (L2) · § 5 Abs 6 → F-19 · § 5 Abs 8 → F-21, F-22, N-05, Pentest · § 5 Abs 9 → N-07 (Ausfallprotokoll) · § 6 → F-05, F-17 · § 7 Abs 5 → F-24 · § 8 → F-02, F-25, N-03 · § 13 Abs 2–4 → F-07, F-32, F-33
+§ 2 Abs 4 → F-01, F-06, F-07 · § 2 Abs 6 → F-34, L3 · § 4 Abs 4 → F-03, F-04 · § 5 Abs 2 → F-10, F-17, F-18 · § 5 Abs 3 → F-10…F-15, F-20 · § 5 Abs 4 → F-16 · § 5 Abs 5 → F-11 (L2) · § 5 Abs 6 → F-19 · § 5 Abs 8 → F-21, F-22, N-05, Pentest · § 5 Abs 9 → N-07 (Ausfallprotokoll) · § 6 → F-05, F-17 · § 7 Abs 5 → F-24 · § 8 → F-02, F-25, N-03 · § 13 Abs 2–4 → F-07, F-32, F-33 · **Selbstregulation (Satzungsentwurf 2.3):** § 2 Abs 7 → F-58, L6 · § 5 Abs 11 → F-54 · § 6 Abs 10 → F-55, F-56, F-57

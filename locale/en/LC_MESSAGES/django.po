@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-20 04:05+0200\n"
+"POT-Creation-Date: 2026-08-20 05:13+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -113,7 +113,10 @@ msgid ""
 "auf der Seite <a href=\"/kategorien/\">Lebensbereiche</a> oben rechts. Mit "
 "dem Zurück-Knopf Ihres\n"
 "Browsers kommen Sie hierher zurück."
-msgstr "You can also search directly — for example your occupation or your concern: on the <a href=\"/kategorien/\">areas of life</a> page, top right. Your browser's back button brings you back here."
+msgstr ""
+"You can also search directly — for example your occupation or your concern: "
+"on the <a href=\"/kategorien/\">areas of life</a> page, top right. Your "
+"browser's back button brings you back here."
 
 #, fuzzy
 #| msgid "Wichtige Abstimmungen"
@@ -767,6 +770,38 @@ msgstr ""
 msgid "Meine Stimme in der Liste finden"
 msgstr "Find my vote in the list"
 
+#, fuzzy
+#| msgid "Unterstützung"
+msgid "Umsetzung"
+msgstr "Support"
+
+msgid "offen"
+msgstr "open"
+
+msgid ""
+"Öffentlicher Stand der Umsetzung (§ 6 Abs 10) — geführt im <a href=\"/"
+"umsetzung/\">Umsetzungsregister</a>."
+msgstr "Public implementation status (§ 6 (10)) — kept in the <a href=\"/umsetzung/\">implementation register</a>."
+
+#, fuzzy
+#| msgid "Noch keine Beiträge."
+msgid "Noch kein Vollzugseintrag."
+msgstr "No contributions yet."
+
+msgid "Stand fortschreiben (Verwaltung)"
+msgstr "Update the status (administration)"
+
+msgid "Öffentlicher Vermerk (Stand, Hindernis, nächster Schritt, Termin)"
+msgstr "Public note (status, obstacle, next step, date)"
+
+#, fuzzy
+#| msgid "Beitrag veröffentlichen"
+msgid "Eintrag veröffentlichen"
+msgstr "Publish contribution"
+
+msgid "Dauerhaft und auditiert — Einträge werden nie geändert oder gelöscht."
+msgstr "Permanent and audited — entries are never changed or deleted."
+
 msgid "Beratung"
 msgstr "Deliberation"
 
@@ -1209,6 +1244,53 @@ msgstr ""
 "<a href=\"/willkommen/\">welcome page</a>) — once received and checked, your "
 "account is unlocked and your qualifying period continues."
 
+msgid "Umsetzungsregister"
+msgstr "Implementation register"
+
+msgid ""
+"Ein Beschluss, den niemand umsetzt, entwertet das Verfahren. Deshalb steht "
+"hier\n"
+"zu jedem angenommenen Antrag der Stand der Umsetzung — öffentlich, "
+"fortlaufend und mit voller\n"
+"Geschichte (§ 6 Abs 10). Geführt wird das Register vom Integrations- und "
+"Berichtswesenrat;\n"
+"bis dieses Organ besetzt ist, schreiben die Admins der Plattform fort. Jeder "
+"Eintrag ist dauerhaft\n"
+"und im Audit-Log verzeichnet."
+msgstr "A decision that nobody implements devalues the procedure. That is why the implementation status of every adopted motion is shown here — public, continuous and with its full history (§ 6 (10)). The register is kept by the Integration and Reporting Council; until that body is staffed, the platform's admins keep it current. Every entry is permanent and recorded in the audit log."
+
+#, fuzzy
+#| msgid "verfallen"
+msgid "alle"
+msgstr "lapsed"
+
+#, fuzzy
+#| msgid "angenommen"
+msgid "angenommen am"
+msgstr "adopted"
+
+msgid "Stand vom"
+msgstr "As of"
+
+msgid "ganze Geschichte"
+msgstr "full history"
+
+msgid "Noch kein Vollzugseintrag — der Stand gilt als offen."
+msgstr "No implementation entry yet — the status counts as open."
+
+msgid ""
+"Noch keine angenommenen Anträge — sobald der erste Beschluss fällt, beginnt "
+"hier seine Umsetzungsgeschichte."
+msgstr "No adopted motions yet — as soon as the first decision falls, its implementation history starts here."
+
+#, fuzzy
+#| msgid "Stimmliste exportieren"
+msgid "Register als JSON exportieren"
+msgstr "Export the ballot list"
+
+msgid "maschinenlesbar, mit voller Historie (F-23)."
+msgstr "machine-readable, with full history (F-23)."
+
 msgid "Unterstützung"
 msgstr "Support"
 
@@ -1219,6 +1301,22 @@ msgid "verfallen"
 msgstr "lapsed"
 
 msgid "zurückgewiesen"
+msgstr "returned"
+
+#, fuzzy
+#| msgid "in Unterstützung"
+msgid "in Umsetzung"
+msgstr "gathering support"
+
+msgid "blockiert"
+msgstr "blocked"
+
+msgid "umgesetzt"
+msgstr "implemented"
+
+#, fuzzy
+#| msgid "zurückgewiesen"
+msgid "zurückgestellt"
 msgstr "returned"
 
 msgid "Laufende Abstimmungen"
@@ -1294,6 +1392,12 @@ msgstr ""
 
 msgid "Favorit entfernt."
 msgstr "Favourite removed."
+
+msgid "Umsetzungsstand fortgeschrieben — öffentlich im Register sichtbar."
+msgstr "Implementation status updated — publicly visible in the register."
+
+msgid "Das Umsetzungsregister führt nur angenommene Anträge."
+msgstr "The implementation register lists only adopted motions."
 
 #, python-format
 msgid "„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster."

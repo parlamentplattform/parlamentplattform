@@ -5,10 +5,11 @@ import json
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from plattform_core import Phase
-from verfahren.models import Antrag, Kategorie
+from verfahren.models import Antrag, Kategorie, Vollzugsstatus
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
@@ -110,11 +111,19 @@ def antrag_detail(request, pk):
             ab = antrag.stimmabgaben.filter(pseudonym=reg.pseudonym).first()
             meine_stimme = ab.stimme if ab else None
     ist_favorit = request.user.is_authenticated and antrag.favoriten.filter(mitglied=request.user).exists()
+    vollzug = None
+    if antrag.phase == Phase.ANGENOMMEN.value:
+        vollzug = list(antrag.vollzug.select_related("durch"))
     return render(
         request,
         "verfahren/antrag.html",
         {
             "antrag": antrag,
+            "vollzug": vollzug,
+            "vollzug_statuswahl": Vollzugsstatus.choices,
+            "darf_vollzug": antrag.phase == Phase.ANGENOMMEN.value
+            and request.user.is_authenticated
+            and request.user.hat_adminrechte,
             "ist_favorit": ist_favorit,
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
             "fassung": antrag.aktueller_text(),
@@ -128,6 +137,71 @@ def antrag_detail(request, pk):
             "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value,
         },
     )
+
+
+def _register_zeilen():
+    """Alle angenommenen Anträge mit aktuellem Vollzugsstand (F-55) — ohne Eintrag gilt „offen"."""
+    angenommene = (
+        Antrag.objects.filter(phase=Phase.ANGENOMMEN.value)
+        .order_by("-phase_beginn")
+        .prefetch_related("vollzug__durch")
+    )
+    zeilen = []
+    for a in angenommene:
+        stand = a.vollzugsstand()
+        zeilen.append({"antrag": a, "stand": stand, "status": stand.status if stand else "offen"})
+    return zeilen
+
+
+def umsetzung(request):
+    """F-55, § 6 Abs 10: das öffentliche Umsetzungsregister. Ein Beschluss, den
+    niemand umsetzt, entwertet das Verfahren (L6) — deshalb steht hier zu jedem
+    angenommenen Antrag der Stand der Umsetzung, offen für alle, mit voller Historie."""
+    zeilen = _register_zeilen()
+    zaehlung = [(wert, sum(1 for z in zeilen if z["status"] == wert)) for wert, _n in Vollzugsstatus.choices]
+    gewaehlt = request.GET.get("status", "")
+    if gewaehlt in Vollzugsstatus.values:
+        zeilen = [z for z in zeilen if z["status"] == gewaehlt]
+    else:
+        gewaehlt = ""
+    return render(
+        request,
+        "verfahren/umsetzung.html",
+        {
+            "zeilen": zeilen,
+            "zaehlung": zaehlung,
+            "gewaehlt": gewaehlt,
+            "statuswahl": Vollzugsstatus.choices,
+        },
+    )
+
+
+def umsetzung_json(request):
+    """F-23: das Umsetzungsregister maschinenlesbar — Stand und volle Historie."""
+    daten = [
+        {
+            "antrag": z["antrag"].pk,
+            "titel": z["antrag"].titel,
+            "angenommen_am": z["antrag"].phase_beginn.isoformat(),
+            "status": z["status"],
+            "historie": [
+                {
+                    "status": v.status,
+                    "vermerk": v.vermerk,
+                    "am": v.erstellt_am.isoformat(),
+                    "durch": v.durch.anzeigename,
+                }
+                for v in reversed(list(z["antrag"].vollzug.all()))
+            ],
+        }
+        for z in _register_zeilen()
+    ]
+    antwort = JsonResponse(
+        {"register": daten, "exportiert_am": timezone.now().isoformat()},
+        json_dumps_params={"ensure_ascii": False, "indent": 1},
+    )
+    antwort["Content-Disposition"] = 'attachment; filename="umsetzungsregister.json"'
+    return antwort
 
 
 def gesund(request):

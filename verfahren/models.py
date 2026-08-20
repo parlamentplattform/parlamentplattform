@@ -278,6 +278,11 @@ class Antrag(models.Model):
         stimmen = [(s.pseudonym.hex, s.stimme) for s in self.stimmabgaben.all()]
         return auszaehlen(stimmen, self.stimmberechtigte_anzahl or 1, self.policy())
 
+    def vollzugsstand(self):
+        """Jüngster Eintrag im Umsetzungsregister (F-55) — None, solange keiner existiert
+        (ein angenommener Antrag ohne Eintrag gilt als „offen")."""
+        return self.vollzug.first()
+
 
 class AntragsFassung(models.Model):
     """Vollständige Versionshistorie des Wortlauts (§ 5 Abs 3 — abgestimmt wird
@@ -389,6 +394,58 @@ class Favorit(models.Model):
 
     def __str__(self) -> str:
         return f"Favorit Antrag {self.antrag_id} von Mitglied {self.mitglied_id}"
+
+
+class Vollzugsstatus(models.TextChoices):
+    """Stand der Umsetzung eines angenommenen Antrags (F-55, § 6 Abs 10)."""
+
+    OFFEN = "offen", "offen"
+    IN_UMSETZUNG = "in_umsetzung", "in Umsetzung"
+    BLOCKIERT = "blockiert", "blockiert"
+    UMGESETZT = "umgesetzt", "umgesetzt"
+    ZURUECKGESTELLT = "zurueckgestellt", "zurückgestellt"
+
+
+class Vollzugseintrag(models.Model):
+    """Ein Schritt im öffentlichen Umsetzungsregister (F-55, § 6 Abs 10).
+
+    Append-only wie das Audit-Log: Der aktuelle Stand ist stets der jüngste
+    Eintrag; frühere Einträge werden nie geändert oder gelöscht — die
+    Geschichte der Umsetzung bleibt vollständig nachlesbar. Bis das
+    Rollensystem (F-05) den Integrations- und Berichtswesenrat technisch
+    abbildet, schreiben die Admins der Mitgliederverwaltung fort."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="vollzug")
+    status = models.CharField(max_length=20, choices=Vollzugsstatus.choices)
+    vermerk = models.TextField(
+        blank=True,
+        max_length=2000,
+        help_text="Öffentlicher Vermerk: Stand, Hindernis, nächster Schritt, Termin (F-56-Raster).",
+    )
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    durch = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+
+    class Meta:
+        ordering = ["-erstellt_am", "-pk"]
+        verbose_name = "Vollzugseintrag"
+        verbose_name_plural = "Umsetzungsregister"
+
+    def __str__(self) -> str:
+        return f"Antrag {self.antrag_id}: {self.status}"
+
+
+def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = "") -> Vollzugseintrag:
+    """F-55: den Umsetzungsstand fortschreiben — nur für angenommene Anträge,
+    immer als neuer Eintrag, immer auditiert."""
+    if antrag.phase != Phase.ANGENOMMEN.value:
+        raise ValueError("Das Umsetzungsregister führt nur angenommene Anträge (§ 6 Abs 10).")
+    eintrag = Vollzugseintrag.objects.create(
+        antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
+    )
+    AuditEintrag.anhaengen(
+        {"typ": "vollzug", "antrag": antrag.pk, "status": eintrag.status, "durch": mitglied.pk}
+    )
+    return eintrag
 
 
 class AuditEintrag(models.Model):

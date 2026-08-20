@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.10.0] — 2026-08-20 · Das Umsetzungsregister
+
+### Hinzugefügt
+- **Umsetzungsregister** (F-55, § 6 Abs 10): öffentliches Register unter `/umsetzung/` — jeder angenommene Antrag mit Vollzugsstatus (offen / in Umsetzung / blockiert / umgesetzt / zurückgestellt), Statusfilter mit Zählung, JSON-Export mit voller Historie (F-23). In der Navigation verlinkt
+- **Vollzugsgeschichte auf der Antragsseite:** bei angenommenen Anträgen erscheint der aktuelle Stand samt vollständiger, append-only geführter Historie (Vermerk, Zeitpunkt, eintragende Person); Admins schreiben direkt dort fort — mit öffentlichem Vermerk nach dem F-56-Raster (Stand, Hindernis, nächster Schritt, Termin)
+- Jeder Eintrag ist dauerhaft (nie ändern, nie löschen) und landet im öffentlichen Audit-Log (F-22); geführt wird das Register laut Satzung vom Integrations- und Berichtswesenrat — bis das Rollensystem (F-05) kommt, übernehmen die Admins
+- Demo-Daten: der angenommene Beispielantrag trägt eine zweistufige Vollzugsgeschichte; 5 neue Tests (125 gesamt); vollständig zweisprachig
+
 ## [0.9.1] — 2026-08-20 · Lastenheft: Systemgrenzen und Selbstregulation
 
 ### Hinzugefügt (nur Dokumentation)

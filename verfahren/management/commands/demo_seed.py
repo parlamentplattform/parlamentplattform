@@ -21,6 +21,7 @@ from verfahren.models import (
     antrag_einbringen,
     kategorien_zuordnen,
     stimme_abgeben,
+    vollzug_fortschreiben,
 )
 
 
@@ -116,6 +117,21 @@ class Command(BaseCommand):
             a3.phase_beginn = timezone.now() - timedelta(days=8)
             a3.save(update_fields=["phase_beginn"])
             a3.fortschreiben()  # -> Ergebnis
+
+            # Umsetzungsregister (F-55): der angenommene Antrag bekommt eine Vollzugsgeschichte
+            vollzug_fortschreiben(
+                a3,
+                leute[0],
+                "in_umsetzung",
+                "Der Namenszug wird in allen Vorlagen, im Repository und auf der Website "
+                "vereinheitlicht; Abschluss bis Monatsende geplant.",
+            )
+            vollzug_fortschreiben(
+                a3,
+                leute[0],
+                "umgesetzt",
+                "Alle Auftritte führen den Namen ParlamentPlattform — Beschluss vollzogen.",
+            )
 
             # a4: laufende Abstimmung, vom Integritätsrat hervorgehoben (Bereich b)
             a4 = antrag_einbringen(

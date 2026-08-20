@@ -65,6 +65,40 @@
 </div>
 {% endif %}
 
+{% if vollzug is not None %}
+<h2 id="umsetzung">{% translate "Umsetzung" %}</h2>
+<div class="karte">
+  {% with stand=vollzug|first %}
+  <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    {% if stand %}<span class="badge" style="{{ stand.status|vollzug_stil }}">{{ stand.status|phase_name }}</span>
+    {% else %}<span class="badge" style="{{ 'offen'|vollzug_stil }}">{% translate "offen" %}</span>{% endif %}
+    <span class="erk">{% blocktranslate %}Öffentlicher Stand der Umsetzung (§ 6 Abs 10) — geführt im <a href="/umsetzung/">Umsetzungsregister</a>.{% endblocktranslate %}</span>
+  </p>
+  {% endwith %}
+  {% for v in vollzug %}
+    <div class="kommentar">
+      <div class="kopf"><span class="badge" style="{{ v.status|vollzug_stil }}">{{ v.status|phase_name }}</span>
+      {{ v.erstellt_am|date:"d.m.Y, H:i" }} · {{ v.durch.anzeigename }}</div>
+      {% if v.vermerk %}<div>{{ v.vermerk|linebreaksbr }}</div>{% endif %}
+    </div>
+  {% empty %}
+    <p class="leer" style="margin-top:8px">{% translate "Noch kein Vollzugseintrag." %}</p>
+  {% endfor %}
+  {% if darf_vollzug %}
+  <form method="post" action="{% url 'verfahren:vollzug' antrag.pk %}" style="margin-top:14px;border-top:1px solid var(--line);padding-top:14px">{% csrf_token %}
+    <p><label for="id_vstatus">{% translate "Stand fortschreiben (Verwaltung)" %}</label>
+    <select name="status" id="id_vstatus">
+      {% for wert, name in vollzug_statuswahl %}<option value="{{ wert }}">{{ wert|phase_name }}</option>{% endfor %}
+    </select></p>
+    <p><label for="id_vermerk">{% translate "Öffentlicher Vermerk (Stand, Hindernis, nächster Schritt, Termin)" %}</label>
+    <textarea name="vermerk" id="id_vermerk" rows="3" maxlength="2000"></textarea></p>
+    <button type="submit" class="btn-linie">{% translate "Eintrag veröffentlichen" %}</button>
+    <span class="hilfe">{% translate "Dauerhaft und auditiert — Einträge werden nie geändert oder gelöscht." %}</span>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
 <h2>{% translate "Beratung" %}{% if kommentare %} ({{ kommentare|length }}){% endif %}</h2>
 <div class="karte">
   {% for k in kommentare %}

@@ -93,6 +93,7 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
     <a href="{% url 'verfahren:index' %}">{% translate "Anträge" %}</a>
     <a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a>
     <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
+    <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzung" %}</a>
     <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
       {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}

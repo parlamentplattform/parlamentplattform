@@ -1,0 +1,40 @@
+{% extends "verfahren/base.html" %}
+{% load i18n phasen %}
+{% block titel %}{% translate "Umsetzungsregister" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Umsetzungsregister" %}</h1>
+<p style="max-width:46em">{% blocktranslate %}Ein Beschluss, den niemand umsetzt, entwertet das Verfahren. Deshalb steht hier
+zu jedem angenommenen Antrag der Stand der Umsetzung — öffentlich, fortlaufend und mit voller
+Geschichte (§ 6 Abs 10). Geführt wird das Register vom Integrations- und Berichtswesenrat;
+bis dieses Organ besetzt ist, schreiben die Admins der Plattform fort. Jeder Eintrag ist dauerhaft
+und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
+
+<div class="stimmzeile" style="margin:18px 0 6px">
+  <a class="btn-still {% if not gewaehlt %}btn-linie{% endif %}" href="{% url 'verfahren:umsetzung' %}">{% translate "alle" %}</a>
+  {% for wert, name in statuswahl %}
+    <a class="btn-still {% if gewaehlt == wert %}btn-linie{% endif %}" href="{% url 'verfahren:umsetzung' %}?status={{ wert }}">{{ wert|phase_name }}
+    {% for zwert, zahl in zaehlung %}{% if zwert == wert %}({{ zahl }}){% endif %}{% endfor %}</a>
+  {% endfor %}
+</div>
+
+{% for z in zeilen %}
+<div class="karte">
+  <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <span class="badge" style="{{ z.status|vollzug_stil }}">{{ z.status|phase_name }}</span>
+    <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
+    <span class="erk">{% translate "angenommen am" %} {{ z.antrag.phase_beginn|date:"d.m.Y" }}</span>
+  </p>
+  {% if z.stand %}
+    {% if z.stand.vermerk %}<p style="margin-top:8px">{{ z.stand.vermerk|linebreaksbr }}</p>{% endif %}
+    <p class="erk" style="margin-top:6px">{% translate "Stand vom" %} {{ z.stand.erstellt_am|date:"d.m.Y, H:i" }} · {{ z.stand.durch.anzeigename }}
+    · <a href="{% url 'verfahren:antrag' z.antrag.pk %}#umsetzung">{% translate "ganze Geschichte" %} ({{ z.antrag.vollzug.all|length }})</a></p>
+  {% else %}
+    <p class="erk" style="margin-top:6px">{% translate "Noch kein Vollzugseintrag — der Stand gilt als offen." %}</p>
+  {% endif %}
+</div>
+{% empty %}
+<p class="leer">{% translate "Noch keine angenommenen Anträge — sobald der erste Beschluss fällt, beginnt hier seine Umsetzungsgeschichte." %}</p>
+{% endfor %}
+
+<p class="hilfe" style="margin-top:16px"><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON exportieren" %}</a> — {% translate "maschinenlesbar, mit voller Historie (F-23)." %}</p>
+{% endblock %}

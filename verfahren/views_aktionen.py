@@ -37,6 +37,7 @@ from verfahren.models import (
     antrag_einbringen,
     kategorien_zuordnen,
     stimme_abgeben,
+    vollzug_fortschreiben,
 )
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
@@ -287,6 +288,25 @@ def favorisieren(request, pk):
     weiter = request.POST.get("weiter", "")
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)
+    return redirect("verfahren:antrag", pk=pk)
+
+
+@login_required
+@require_POST
+def vollzug_eintragen(request, pk):
+    """F-55, § 6 Abs 10: den Umsetzungsstand fortschreiben. Bis das Rollensystem
+    (F-05) den Integrations- und Berichtswesenrat abbildet, schreiben Admins fort —
+    jeder Eintrag ist öffentlich, dauerhaft und auditiert."""
+    antrag = get_object_or_404(Antrag, pk=pk)
+    if not request.user.hat_adminrechte:
+        return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    try:
+        vollzug_fortschreiben(
+            antrag, request.user, request.POST.get("status", ""), request.POST.get("vermerk", "")
+        )
+        messages.success(request, _("Umsetzungsstand fortgeschrieben — öffentlich im Register sichtbar."))
+    except ValueError:
+        messages.error(request, _("Das Umsetzungsregister führt nur angenommene Anträge."))
     return redirect("verfahren:antrag", pk=pk)
 
 

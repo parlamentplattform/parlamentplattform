@@ -31,6 +31,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",  # F-33: Sprache aus Sitzung/Cookie/Browser
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -88,6 +89,13 @@ LANGUAGE_CODE = "de-at"
 TIME_ZONE = "Europe/Vienna"
 USE_I18N = True
 USE_TZ = True
+
+# F-33: Deutsch zuerst, Englisch dazu. Der Umschalter (DE/EN) steht in der
+# Kopfzeile; ohne Wahl entscheidet die Browsersprache. Übersetzt wird die
+# Oberfläche — Inhalte (Anträge, Beratungen) bleiben in ihrer Originalsprache,
+# Kategorienamen werden mit dem EuroVoc-Anschluss mehrsprachig (ADR-007).
+LANGUAGES = [("de", "Deutsch"), ("en", "English")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

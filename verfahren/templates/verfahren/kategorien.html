@@ -1,16 +1,16 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Lebensbereiche{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Lebensbereiche" %}{% endblock %}
 {% block inhalt %}
-<h1>Lebensbereiche</h1>
-<p style="max-width:46em">Jeder Antrag wird automatisch in diesen Kategorienbaum eingeordnet — von der
+<h1>{% translate "Lebensbereiche" %}</h1>
+<p style="max-width:46em">{% blocktranslate %}Jeder Antrag wird automatisch in diesen Kategorienbaum eingeordnet — von der
 Hauptkategorie bis zur Detailebene (zum Beispiel Wirtschaft › Bauwirtschaft › Installateur).
 Favorisieren Sie, was Sie betrifft: Neues daraus erscheint in Ihrem Hauptfenster unter Favoriten.
-Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis.</p>
-<p class="hilfe">Ein Favorit auf einer Haupt- oder Unterkategorie umfasst den ganzen Ast —
-Detailkategorien lassen sich genauso einzeln favorisieren (Stern).</p>
+Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis.{% endblocktranslate %}</p>
+<p class="hilfe">{% translate "Ein Favorit auf einer Haupt- oder Unterkategorie umfasst den ganzen Ast — Detailkategorien lassen sich genauso einzeln favorisieren (Stern)." %}</p>
 {% if not user.is_authenticated %}
-<p class="hilfe">Zum Favorisieren bitte <a href="{% url 'mitglieder:login' %}">anmelden</a> oder
-<a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>.</p>
+<p class="hilfe">{% translate "Zum Favorisieren bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %}
+<a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>
 {% endif %}
 
 {% for h in baum %}
@@ -18,29 +18,29 @@ Detailkategorien lassen sich genauso einzeln favorisieren (Stern).</p>
   <div class="stimmzeile" style="justify-content:space-between">
     <div style="flex:1 1 30em">
       <strong>{{ h.k.name }}</strong>
-      {% if h.laufend %}<span class="badge badge--hell">{{ h.laufend }} laufend</span>{% endif %}
+      {% if h.laufend %}<span class="badge badge--hell">{{ h.laufend }} {% translate "laufend" %}</span>{% endif %}
       <br><small class="erk">{{ h.k.beschreibung }}</small>
     </div>
     {% if user.is_authenticated %}
     <form method="post" action="{% url 'verfahren:kategorie_abonnieren' h.k.slug %}">{% csrf_token %}
-      {% if h.abonniert %}<button type="submit" class="btn-still">&#9733; Favorit ✓</button>
-      {% else %}<button type="submit" class="btn-linie">&#9734; Favorisieren</button>{% endif %}
+      {% if h.abonniert %}<button type="submit" class="btn-still">&#9733; {% translate "Favorit" %} ✓</button>
+      {% else %}<button type="submit" class="btn-linie">&#9734; {% translate "Favorisieren" %}</button>{% endif %}
     </form>
     {% endif %}
   </div>
   {% if h.kinder %}
   <details style="margin-top:8px">
-    <summary style="cursor:pointer;color:var(--deep);font-size:14.5px">Unterkategorien ({{ h.kinder|length }})</summary>
+    <summary style="cursor:pointer;color:var(--deep);font-size:14.5px">{% translate "Unterkategorien" %} ({{ h.kinder|length }})</summary>
     {% for u in h.kinder %}
     <div class="eintrag">
       <span>{{ u.k.name }}
         {% if u.laufend %}<span class="badge badge--hell">{{ u.laufend }}</span>{% endif %}
-        {% for d in u.kinder %}<br><small class="erk" style="padding-left:16px">› {{ d.k.name }}{% if d.laufend %} · {{ d.laufend }} laufend{% endif %}
-          {% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' d.k.slug %}" style="display:inline">{% csrf_token %}<button type="submit" class="stern {% if not d.abonniert %}aus{% endif %}" title="{% if d.abonniert %}Favorit entfernen{% else %}Favorisieren{% endif %}">{% if d.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button></form>{% endif %}</small>{% endfor %}
+        {% for d in u.kinder %}<br><small class="erk" style="padding-left:16px">› {{ d.k.name }}{% if d.laufend %} · {{ d.laufend }} {% translate "laufend" %}{% endif %}
+          {% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' d.k.slug %}" style="display:inline">{% csrf_token %}<button type="submit" class="stern {% if not d.abonniert %}aus{% endif %}" title="{% if d.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Favorisieren' %}{% endif %}">{% if d.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button></form>{% endif %}</small>{% endfor %}
       </span>
       {% if user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:kategorie_abonnieren' u.k.slug %}">{% csrf_token %}
-        <button type="submit" class="stern {% if not u.abonniert %}aus{% endif %}" title="{% if u.abonniert %}Favorit entfernen{% else %}Favorisieren{% endif %}">{% if u.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
+        <button type="submit" class="stern {% if not u.abonniert %}aus{% endif %}" title="{% if u.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Favorisieren' %}{% endif %}">{% if u.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
       </form>
       {% endif %}
     </div>
@@ -49,4 +49,5 @@ Detailkategorien lassen sich genauso einzeln favorisieren (Stern).</p>
   {% endif %}
 </div>
 {% endfor %}
+<p class="hilfe">{% translate "Die Namen der Lebensbereiche erscheinen derzeit auf Deutsch — mehrsprachige Kategorienamen folgen mit dem EuroVoc-Anschluss." %}</p>
 {% endblock %}

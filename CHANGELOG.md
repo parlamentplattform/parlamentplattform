@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.8.0] — 2026-08-20 · Zweisprachig: Deutsch und Englisch
+
+### Hinzugefügt
+- **Vollständige englische Oberfläche** (F-33, vorgezogen): alle mitgliederseitigen Seiten, Formulare, Meldungen, Diagrammbeschriftungen und System-E-Mails; 232 übersetzte Texte. Umschalter **DE/EN** in der Kopfzeile (ohne JavaScript, per Django-`set_language`); ohne Wahl entscheidet die Browsersprache. Übersetzte, menschliche Phasennamen (Filter `phase_name`) statt technischer Werte — auch auf Deutsch eine Verbesserung („Unterstützung" statt „unterstuetzung")
+- Kompilierter Sprachkatalog (`locale/en/…/django.mo`) ist eingecheckt — der Betrieb braucht kein gettext
+
+### Geändert
+- Inhalte (Anträge, Beratungen, Kategorienamen) bleiben bewusst in ihrer Originalsprache; mehrsprachige Kategorienamen folgen mit dem EuroVoc-Anschluss (ADR-007). Die Mitgliederverwaltung bleibt vorerst deutsch (internes Werkzeug)
+- 5 neue Tests (112 gesamt)
+
 ## [0.7.0] — 2026-08-20 · Öffentliche Übersicht und Mitgliederverwaltung
 
 ### Hinzugefügt

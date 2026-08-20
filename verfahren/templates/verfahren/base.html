@@ -1,5 +1,5 @@
-<!doctype html>
-<html lang="de">
+{% load i18n %}{% get_current_language as SPRACHE %}<!doctype html>
+<html lang="{{ SPRACHE }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -82,28 +82,36 @@ input[type=date]{font:inherit;padding:9px 12px;border:1px solid var(--line);bord
 <header><div class="w">
   <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em></a>
   <nav>
-    <a href="{% url 'verfahren:index' %}">Anträge</a>
-    <a href="{% url 'verfahren:kategorien' %}">Lebensbereiche</a>
-    <a href="{% url 'uebersicht:index' %}">Übersicht</a>
-    <a href="{% url 'verfahren:einbringen' %}">Antrag einbringen</a>
+    <a href="{% url 'verfahren:index' %}">{% translate "Anträge" %}</a>
+    <a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a>
+    <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
+    <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
       {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
       <span class="wer">{{ user.anzeigename }}</span>
-      <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">Abmelden</button></form>
+      <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">{% translate "Abmelden" %}</button></form>
     {% else %}
-      <a href="{% url 'mitglieder:login' %}">Anmelden</a>
-      <a class="btn" href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a>
+      <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
+      <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>
     {% endif %}
+    <form method="post" action="{% url 'set_language' %}" title="{% translate "Sprache wechseln" %}">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% if SPRACHE == "en" %}
+        <input type="hidden" name="language" value="de"><button type="submit" class="aus" lang="de">DE</button>
+      {% else %}
+        <input type="hidden" name="language" value="en"><button type="submit" class="aus" lang="en">EN</button>
+      {% endif %}
+    </form>
   </nav>
 </div></header>
 <main>
 {% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 {% if user.is_authenticated and user.status == "pausiert" %}
-<div class="meldung info">Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist —
-Lesen und Anmelden bleiben möglich. <a href="{% url 'mitglieder:willkommen' %}">Beitrag jetzt überweisen →</a></div>
+<div class="meldung info">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}
+<a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>
 {% endif %}
 {% block inhalt %}{% endblock %}
 </main>
-<footer>Direkte Demokratie Österreich · Wir sind das Werkzeug. · <a href="{% url 'uebersicht:index' %}">Die Plattform in Zahlen</a></footer>
+<footer>Direkte Demokratie Österreich · {% translate "Wir sind das Werkzeug." %} · <a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></footer>
 </body>
 </html>

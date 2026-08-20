@@ -1,16 +1,17 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Mitwirkung ruht{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Mitwirkung ruht" %}{% endblock %}
 {% block inhalt %}
-<h1>Ihre Mitwirkungsrechte ruhen derzeit</h1>
+<h1>{% translate "Ihre Mitwirkungsrechte ruhen derzeit" %}</h1>
 <div class="karte">
 {% if pausiert %}
-<p>Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 Abs 3).
+<p>{% blocktranslate %}Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 Abs 3).
 Lesen und Anmelden bleiben selbstverständlich möglich — einbringen, unterstützen,
-beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist.</p>
-<p style="margin-top:12px"><a class="btn" href="{% url 'mitglieder:willkommen' %}">Beitrag jetzt überweisen (QR-Code)</a></p>
+beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist.{% endblocktranslate %}</p>
+<p style="margin-top:12px"><a class="btn" href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen (QR-Code)" %}</a></p>
 {% else %}
-<p>Dieses Konto ist von der Mitwirkung ausgeschlossen (§ 4 Abs 6). Die Begründung
-steht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch erheben möchten.</p>
+<p>{% blocktranslate %}Dieses Konto ist von der Mitwirkung ausgeschlossen (§ 4 Abs 6). Die Begründung
+steht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch erheben möchten.{% endblocktranslate %}</p>
 {% endif %}
 </div>
 {% endblock %}

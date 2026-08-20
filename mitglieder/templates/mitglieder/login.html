@@ -1,9 +1,10 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Anmelden{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Anmelden" %}{% endblock %}
 {% block inhalt %}
-<h1>Anmelden</h1>
-<p>Kein Passwort — Sie erhalten einen Anmeldelink per E-Mail (gültig 30 Minuten).
-Sobald die ID&nbsp;Austria angebunden ist, ersetzt sie diesen Schritt.</p>
+<h1>{% translate "Anmelden" %}</h1>
+<p>{% blocktranslate %}Kein Passwort — Sie erhalten einen Anmeldelink per E-Mail (gültig 30 Minuten).
+Sobald die ID Austria angebunden ist, ersetzt sie diesen Schritt.{% endblocktranslate %}</p>
 <div class="karte" style="margin-top:20px">
 <form method="post">{% csrf_token %}
   {% for h in form.hidden_fields %}{{ h }}{% endfor %}
@@ -13,11 +14,12 @@ Sobald die ID&nbsp;Austria angebunden ist, ersetzt sie diesen Schritt.</p>
       <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
       {% if feld.name == "rechenfrage" %}<div style="margin:6px 0">{{ form.captcha_svg|safe }}</div>{% endif %}
       {{ feld }}
+      {% if feld.help_text %}<span class="hilfe">{{ feld.help_text }}</span>{% endif %}
       {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </p>
   {% endfor %}
-  <button type="submit" class="btn">Anmeldelink senden</button>
+  <button type="submit" class="btn">{% translate "Anmeldelink senden" %}</button>
 </form>
 </div>
-<p class="hilfe">Noch kein Zugang? <a href="{% url 'mitglieder:registrieren' %}">Mitglied werden</a></p>
+<p class="hilfe">{% translate "Noch kein Zugang?" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a></p>
 {% endblock %}

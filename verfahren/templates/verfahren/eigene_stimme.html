@@ -1,20 +1,21 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Meine Stimme{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Meine Stimme" %}{% endblock %}
 {% block inhalt %}
-<p><a href="{% url 'verfahren:antrag' antrag.pk %}">&larr; Zurück zum Antrag</a></p>
-<h1>Meine Stimme prüfen</h1>
+<p><a href="{% url 'verfahren:antrag' antrag.pk %}">&larr; {% translate "Zurück zum Antrag" %}</a></p>
+<h1>{% translate "Meine Stimme prüfen" %}</h1>
 {% if eintrag %}
 <div class="karte">
-<p>Ihre Stimme zu <strong>{{ antrag.titel }}</strong> steht unter diesem Pseudonym in der
-öffentlichen Stimmliste:</p>
+<p>{% blocktranslate with titel=antrag.titel %}Ihre Stimme zu <strong>{{ titel }}</strong> steht unter diesem Pseudonym in der
+öffentlichen Stimmliste:{% endblocktranslate %}</p>
 <p style="margin:14px 0"><code class="gross">{{ eintrag.pseudonym.hex }}</code></p>
-<p class="hilfe">Notieren Sie sich den Code. Nach Abstimmungsende können Sie in der
-<a href="{% url 'verfahren:export' antrag.pk %}">exportierten Stimmliste</a> nachsehen, ob Ihre
-Stimme korrekt erfasst ist — und mit <code>verify/nachrechnen.py</code> das Gesamtergebnis
-unabhängig nachrechnen (§ 5 Abs 8). Die Zuordnung Pseudonym → Person kennt nur die Plattform;
-sie wird nach der satzungsmäßigen Frist gelöscht.</p>
+<p class="hilfe">{% blocktranslate %}Notieren Sie sich den Code. Nach Abstimmungsende können Sie in der
+exportierten Stimmliste nachsehen, ob Ihre Stimme korrekt erfasst ist — und mit
+<code>verify/nachrechnen.py</code> das Gesamtergebnis unabhängig nachrechnen (§ 5 Abs 8).
+Die Zuordnung Pseudonym → Person kennt nur die Plattform; sie wird nach der
+satzungsmäßigen Frist gelöscht.{% endblocktranslate %}</p>
 </div>
 {% else %}
-<div class="karte"><p class="leer">Für diesen Antrag ist von Ihnen keine Stimme erfasst.</p></div>
+<div class="karte"><p class="leer">{% translate "Für diesen Antrag ist von Ihnen keine Stimme erfasst." %}</p></div>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,943 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-20 03:17+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Sicherheitsfrage"
+msgstr "Security question"
+
+msgid "Sicherheitsfrage: Ergebnis der Rechnung im Bild"
+msgstr "Security question: the result of the sum in the image"
+
+msgid ""
+"Bitte lösen Sie die kleine Rechnung im Bild. Falls Sie das Bild nicht lesen "
+"können, schreiben Sie uns an didide@ddoe.at — wir helfen sofort."
+msgstr "Please solve the small sum shown in the image. If you cannot read the image, write to didide@ddoe.at — we will help right away."
+
+msgid ""
+"Die Sicherheitsfrage wurde nicht richtig beantwortet — bitte erneut "
+"versuchen."
+msgstr "The security question was not answered correctly — please try again."
+
+msgid "Anmelden"
+msgstr "Sign in"
+
+msgid ""
+"Kein Passwort — Sie erhalten einen Anmeldelink per E-Mail (gültig 30 "
+"Minuten).\n"
+"Sobald die ID Austria angebunden ist, ersetzt sie diesen Schritt."
+msgstr "No password — you receive a sign-in link by email (valid for 30 minutes). Once ID Austria is connected, it will replace this step."
+
+msgid "Anmeldelink senden"
+msgstr "Send sign-in link"
+
+msgid "Noch kein Zugang?"
+msgstr "No account yet?"
+
+msgid "Mitglied werden"
+msgstr "Become a member"
+
+msgid "E-Mail unterwegs"
+msgstr "Email on its way"
+
+msgid "Bitte sehen Sie in Ihr Postfach"
+msgstr "Please check your inbox"
+
+#, python-format
+msgid ""
+"Wenn zu <strong>%(email)s</strong> ein Zugang gehört beziehungsweise "
+"angelegt wurde, ist\n"
+"soeben eine E-Mail zur %(zweck)s unterwegs. Der Link darin ist zeitlich "
+"begrenzt und nur\n"
+"einmal gültig."
+msgstr "If an account belongs to <strong>%(email)s</strong> (or has just been created), a %(zweck)s email is on its way. The link inside is time-limited and valid only once."
+
+msgid ""
+"Keine E-Mail erhalten? Prüfen Sie den Spam-Ordner\n"
+"oder fordern Sie den Link erneut an. Aus Sicherheitsgründen zeigt diese "
+"Seite nicht an, ob\n"
+"zu einer Adresse ein Konto existiert."
+msgstr "No email? Check your spam folder or request a new link. For security reasons this page does not reveal whether an account exists for an address."
+
+msgid ""
+"Mitglied kann jede natürliche Person ab dem vollendeten 16. Lebensjahr "
+"werden, die sich zu\n"
+"den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an "
+"Staatsbürgerschaft oder Wohnsitz\n"
+"gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach "
+"Maßgabe der Satzung."
+msgstr "Any natural person aged 16 or over who subscribes to the principles of § 3 can become a member. Membership is not tied to citizenship or residence — voting rights on state-related questions follow the statutes."
+
+msgid "Beitritt beantragen"
+msgstr "Apply to join"
+
+msgid ""
+"Sie erhalten eine E-Mail mit einem Bestätigungslink\n"
+"  (gültig 48 Stunden). Erst mit der Bestätigung wird Ihr Zugang aktiv — ein "
+"Passwort gibt es\n"
+"  bewusst nicht: Sie melden sich künftig per E-Mail-Link an, später per ID "
+"Austria."
+msgstr "You will receive an email with a confirmation link (valid for 48 hours). Your access becomes active only after confirmation — there is deliberately no password: you sign in via email link, later via ID Austria."
+
+msgid "Was mit Ihren Daten geschieht:"
+msgstr "What happens to your data:"
+
+msgid ""
+"Name, Geburtsjahr und Gemeinde dienen der\n"
+"Mitgliederverwaltung nach der Satzung. Öffentlich erscheint nur Ihr "
+"Anzeigename bei Anträgen\n"
+"und Beiträgen; Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine "
+"Weitergabe, keine Werbung."
+msgstr "Name, year of birth and municipality serve membership administration under the statutes. Publicly, only your display name appears on motions and contributions; votes are cast under a pseudonym (§ 5 (3)). No sharing, no advertising."
+
+msgid "Link nicht mehr gültig"
+msgstr "Link no longer valid"
+
+msgid "Dieser Link ist nicht mehr gültig"
+msgstr "This link is no longer valid"
+
+msgid ""
+"Der Link wurde bereits verwendet oder seine Gültigkeit ist abgelaufen.\n"
+"Das ist kein Problem: Fordern Sie einfach einen neuen an."
+msgstr "The link has already been used or has expired. No problem at all: simply request a new one."
+
+msgid "Neuen Anmeldelink anfordern"
+msgstr "Request a new sign-in link"
+
+msgid "Willkommen"
+msgstr "Welcome"
+
+#, python-format
+msgid "Willkommen, %(vorname)s!"
+msgstr "Welcome, %(vorname)s!"
+
+msgid ""
+"Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin "
+"beziehungsweise Anwärter.\n"
+"Ab heute läuft Ihre Anwartschaft (§ 4 Abs 4): nach drei Monaten sind Sie bei "
+"Sachfragen\n"
+"stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen."
+msgstr "Your email address is confirmed — you are now a candidate member. Your qualifying period starts today (§ 4 (4)): after three months you may vote on substantive questions, after twelve on personnel and statute questions."
+
+msgid "Mitgliedsbeitrag — am schnellsten per QR-Code"
+msgstr "Membership fee — fastest by QR code"
+
+msgid ""
+"<strong>Banking-App öffnen → „Zahlen mit Code\" → diesen Code scannen.</"
+"strong>\n"
+"    Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt "
+"— Sie bestätigen nur noch.\n"
+"    Die Überweisung läuft direkt von Konto zu Konto (Echtzeitüberweisung): "
+"ohne Zahlungsdienstleister,\n"
+"    ohne Gebührenprozente."
+msgstr "<strong>Open your banking app → “Pay by code” → scan this code.</strong> Recipient, IBAN and your personal reference are already filled in — you only confirm. The transfer runs directly from account to account (instant transfer): no payment provider, no percentage fees."
+
+#, python-format
+msgid ""
+"Richtwert: <strong>%(richtwert)s&nbsp;€ im Jahr</strong> — "
+"Selbsteinschätzung,\n"
+"    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen "
+"Gründen ausgeschlossen."
+msgstr "Guide amount: <strong>%(richtwert)s&nbsp;€ per year</strong> — self-assessed; you can change the amount in your app. Nobody is excluded for financial reasons."
+
+msgid "Oder von Hand:"
+msgstr "Or manually:"
+
+msgid "Empfänger"
+msgstr "Recipient"
+
+msgid "Verwendungszweck"
+msgstr "Payment reference"
+
+msgid ""
+"Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,\n"
+"damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr "
+"Konto als\n"
+"geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail."
+msgstr "The reference is your personal payment purpose — please enter it exactly so the payment can be matched to your account. Once received, your account is verified and unlocked; you will receive an email confirmation."
+
+msgid "Was Sie jetzt schon können"
+msgstr "What you can do already"
+
+msgid ""
+"Lesen können Sie alles — <a href=\"/\">alle Anträge, Beratungen und\n"
+"Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der "
+"Freischaltung können\n"
+"Sie Anträge einbringen, unterstützen und mitberaten; mit abgeschlossener "
+"Anwartschaft stimmen\n"
+"Sie ab."
+msgstr "You can read everything — <a href=\"/\">all motions, deliberations and results</a> are public without restriction (§ 2 (5)). After verification you can submit, support and deliberate; once your qualifying period is complete, you vote."
+
+msgid ""
+"Unser E-Mail-Versand ist im Moment gestört — bitte versuchen Sie es in "
+"einigen Minuten erneut. Bleibt das Problem bestehen, schreiben Sie uns an "
+"didide@ddoe.at."
+msgstr "Our email delivery is currently disrupted — please try again in a few minutes. If the problem persists, write to didide@ddoe.at."
+
+msgid "Vorname"
+msgstr "First name"
+
+msgid "Nachname"
+msgstr "Last name"
+
+msgid "E-Mail-Adresse"
+msgstr "Email address"
+
+msgid "Geburtsjahr"
+msgstr "Year of birth"
+
+msgid "Wohnsitz-Gemeinde"
+msgstr "Municipality of residence"
+
+msgid "Tippen und aus der Liste wählen …"
+msgstr "Start typing and pick from the list …"
+
+msgid ""
+"Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
+"ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später "
+"amtlich."
+msgstr "Please pick from the official municipal register — district and province are then assigned automatically (F-43). With ID Austria this will later happen officially."
+
+#, python-format
+msgid "Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: %s."
+msgstr "This municipality name exists more than once — please specify: %s."
+
+#, python-format
+msgid " Meinten Sie: %s?"
+msgstr "Did you mean: %s?"
+
+#, python-format
+msgid ""
+"„%(eingabe)s“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der "
+"Liste wählen."
+msgstr "“%(eingabe)s” is not in the official municipal register — please pick from the list."
+
+msgid ""
+"Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs (ein Mensch "
+"– eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
+msgstr "I subscribe to the principles of § 3 of the draft statutes (one person – one vote, human dignity, rule of law, non-violence)."
+
+msgid "Mitglied kann werden, wer das 16. Lebensjahr vollendet hat (§ 4 Abs 1)."
+msgstr "Anyone aged 16 or over can become a member (§ 4 (1))."
+
+msgid ""
+"Für diese Adresse existiert bereits ein Konto — nutzen Sie den Login per E-"
+"Mail-Link."
+msgstr "An account already exists for this address — use the email-link sign-in."
+
+msgid "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."
+msgstr "Too many attempts from this connection — please try again in an hour."
+
+msgid "Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform"
+msgstr "Please confirm your email address — ParlamentPlattform"
+
+#, python-format
+msgid ""
+"Guten Tag %(vorname)s %(nachname)s,\n"
+"\n"
+"mit diesem Link bestätigen Sie Ihre Adresse und aktivieren Ihren Zugang "
+"(gültig 48 Stunden):\n"
+"\n"
+"%(link)s\n"
+"\n"
+"Wenn Sie sich nicht registriert haben, ignorieren Sie diese Nachricht.\n"
+"\n"
+"Direkte Demokratie Österreich — Wir sind das Werkzeug."
+msgstr "Good day %(vorname)s %(nachname)s,\n\nuse this link to confirm your address and activate your access (valid for 48 hours):\n\n%(link)s\n\nIf you did not register, please ignore this message.\n\nDirect Democracy Austria — We are the tool."
+
+#, python-format
+msgid "Ihre Registrierung wurde nicht gespeichert: %s"
+msgstr "Your registration was not saved: %s"
+
+msgid "Bestätigung"
+msgstr "confirmation"
+
+msgid "E-Mail bestätigt — willkommen! Sie sind jetzt Anwärterin bzw. Anwärter."
+msgstr "Email confirmed — welcome! You are now a candidate member."
+
+msgid "Ihr Anmeldelink — ParlamentPlattform"
+msgstr "Your sign-in link — ParlamentPlattform"
+
+#, python-format
+msgid ""
+"Guten Tag,\n"
+"\n"
+"mit diesem Link melden Sie sich an (gültig 30 Minuten):\n"
+"\n"
+"%(link)s\n"
+"\n"
+"Wenn Sie keinen Login angefordert haben, ignorieren Sie diese Nachricht."
+msgstr "Good day,\n\nuse this link to sign in (valid for 30 minutes):\n\n%(link)s\n\nIf you did not request a sign-in, please ignore this message."
+
+msgid "Anmeldung"
+msgstr "sign-in"
+
+msgid "Sie sind abgemeldet."
+msgstr "You are signed out."
+
+msgid "Übersicht"
+msgstr "Overview"
+
+msgid "Die Plattform in Zahlen"
+msgstr "The platform in numbers"
+
+msgid ""
+"Was sich hier tut — offen für alle, laufend aktualisiert. "
+"Abstimmungsverhalten erscheint\n"
+"ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben "
+"pseudonym (§ 5 Abs 3)."
+msgstr "What is happening here — open to everyone, continuously updated. Voting behaviour appears only as totals per vote: individual ballots are and remain pseudonymous (§ 5 (3))."
+
+msgid "Mitglieder"
+msgstr "Members"
+
+#, python-format
+msgid "bestätigte Mitglieder · %(neu)s neu in den letzten 7 Tagen"
+msgstr "confirmed members · %(neu)s new in the last 7 days"
+
+msgid "Anträge"
+msgstr "Motions"
+
+#, python-format
+msgid "laufende Anträge von %(gesamt)s insgesamt · %(neu)s neu diese Woche"
+msgstr "active motions of %(gesamt)s in total · %(neu)s new this week"
+
+msgid "Besuche"
+msgstr "Visits"
+
+#, python-format
+msgid ""
+"Seitenaufrufe heute · %(besucher)s Besucher:innen heute · %(woche)s Aufrufe "
+"in 7 Tagen"
+msgstr "page views today · %(besucher)s visitors today · %(woche)s views in 7 days"
+
+msgid "Anträge nach Phase"
+msgstr "Motions by phase"
+
+msgid "Abstimmungen: Ergebnisse und Beteiligung"
+msgstr "Votes: results and turnout"
+
+msgid "Abstimmung läuft"
+msgstr "voting under way"
+
+msgid "angenommen"
+msgstr "adopted"
+
+msgid "abgelehnt"
+msgstr "rejected"
+
+msgid "Ja"
+msgstr "Yes"
+
+msgid "Nein"
+msgstr "No"
+
+msgid "Enthaltung"
+msgstr "Abstention"
+
+#, python-format
+msgid "%(abgegeben)s von %(berechtigte)s Stimmberechtigten"
+msgstr "%(abgegeben)s of %(berechtigte)s eligible voters"
+
+msgid "Beteiligung"
+msgstr "turnout"
+
+msgid "Noch keine Abstimmungen."
+msgstr "No votes yet."
+
+msgid "Entwicklung"
+msgstr "Trends"
+
+msgid "Mitglieder im Zeitverlauf (kumuliert)"
+msgstr "Members over time (cumulative)"
+
+msgid "Noch keine Daten."
+msgstr "No data yet."
+
+msgid "Neue Anträge je Woche (letzte 8 Wochen)"
+msgstr "New motions per week (last 8 weeks)"
+
+msgid "Seitenaufrufe je Tag (letzte 30 Tage)"
+msgstr "Page views per day (last 30 days)"
+
+msgid "Meistgelesene Anträge"
+msgstr "Most-read motions"
+
+msgid "Aufrufe"
+msgstr "views"
+
+msgid "Noch keine gezählten Aufrufe — die Zählung beginnt mit dieser Version."
+msgstr "No counted views yet — counting starts with this release."
+
+msgid "Wie hier gezählt wird:"
+msgstr "How we count:"
+
+msgid ""
+"ohne Cookies, ohne Werbe-Skripte und ohne Speicherung\n"
+"von IP-Adressen. Für die Besucherzahl wird flüchtig eine anonyme "
+"Tageskennung gebildet, die sich\n"
+"nicht zur Person zurückrechnen lässt und um Mitternacht wertlos wird. "
+"Suchmaschinen und technische\n"
+"Zugriffe werden nach Möglichkeit nicht mitgezählt. Der Prototyp enthält zur "
+"Veranschaulichung\n"
+"einige Demo-Daten."
+msgstr "without cookies, without ad scripts and without storing IP addresses. For the visitor count, an anonymous one-way daily token is derived on the fly; it cannot be traced back to a person and becomes worthless at midnight. Search engines and technical requests are excluded where possible. The prototype contains some demo data for illustration."
+
+#, python-format
+msgid "ab %s"
+msgstr "from %s"
+
+#, python-format
+msgid ""
+"Ergebnis zu „%(titel)s“: %(ja)s Ja, %(nein)s Nein, %(enthaltung)s "
+"Enthaltungen"
+msgstr "Result for “%(titel)s”: %(ja)s yes, %(nein)s no, %(enthaltung)s abstentions"
+
+msgid "in Unterstützung"
+msgstr "gathering support"
+
+msgid "in Beratung"
+msgstr "in deliberation"
+
+msgid "in Abstimmung"
+msgstr "in voting"
+
+msgid "Mitgliederentwicklung als Verlaufslinie"
+msgstr "Membership trend as a line chart"
+
+msgid "Neue Anträge je Woche, letzte acht Wochen"
+msgstr "New motions per week, last eight weeks"
+
+msgid "Seitenaufrufe je Tag, letzte 30 Tage"
+msgstr "Page views per day, last 30 days"
+
+msgid "automatisch zugeordnet (F-47)"
+msgstr "assigned automatically (F-47)"
+
+msgid "eingebracht"
+msgstr "submitted"
+
+msgid "von"
+msgstr "by"
+
+msgid "Unterstützungen:"
+msgstr "Supporters:"
+
+msgid "Frist:"
+msgstr "Deadline:"
+
+msgid "Favorit entfernen"
+msgstr "Remove favourite"
+
+msgid "Favorit"
+msgstr "Favourite"
+
+msgid "Als Favorit merken"
+msgstr "Mark as favourite"
+
+msgid "merken"
+msgstr "save"
+
+msgid "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):"
+msgstr "Highlighted by the Integrity Council (§ 5 (10) lit b):"
+
+msgid "Begründung folgt."
+msgstr "Reasons to follow."
+
+msgid "Formal zurückgewiesen (§ 5 Abs 2):"
+msgstr "Formally returned (§ 5 (2)):"
+
+#, python-format
+msgid "Wortlaut (Fassung %(nummer)s)"
+msgstr "Text (version %(nummer)s)"
+
+msgid "Begründung"
+msgstr "Reasons"
+
+msgid "Unterstützen"
+msgstr "Support"
+
+msgid "Sie unterstützen diesen Antrag."
+msgstr "You support this motion."
+
+msgid "Unterstützung zurückziehen"
+msgstr "Withdraw support"
+
+msgid "Diesen Antrag unterstützen"
+msgstr "Support this motion"
+
+msgid "Zum Unterstützen bitte"
+msgstr "To support, please"
+
+msgid "anmelden"
+msgstr "sign in"
+
+msgid "oder"
+msgstr "or"
+
+msgid "Abstimmen"
+msgstr "Vote"
+
+msgid "Ihre aktuelle Stimme:"
+msgstr "Your current vote:"
+
+msgid "Sie können sie bis zum Fristende ändern."
+msgstr "You can change it until the deadline."
+
+msgid "Prüfcode anzeigen"
+msgstr "Show verification code"
+
+msgid ""
+"Ihre Stimme wird unter einem Pseudonym erfasst und nach Abstimmungsende in "
+"der nachrechenbaren Stimmliste veröffentlicht (§ 5 Abs 3 lit c)."
+msgstr "Your vote is recorded under a pseudonym and published in the recountable ballot list after the vote ends (§ 5 (3) lit c)."
+
+msgid "Zum Abstimmen bitte"
+msgstr "To vote, please"
+
+msgid "Ergebnis"
+msgstr "Result"
+
+msgid "Stimmberechtigte"
+msgstr "Eligible voters"
+
+msgid "Nachrechnen:"
+msgstr "Recount:"
+
+msgid "Stimmliste exportieren"
+msgstr "Export the ballot list"
+
+msgid ""
+"und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8)."
+msgstr "and verify independently with <code>verify/nachrechnen.py</code> (§ 5 (8))."
+
+msgid "Meine Stimme in der Liste finden"
+msgstr "Find my vote in the list"
+
+msgid "Beratung"
+msgstr "Deliberation"
+
+msgid "Noch keine Beiträge."
+msgstr "No contributions yet."
+
+msgid "Beitrag zur Beratung"
+msgstr "Contribution to the deliberation"
+
+msgid ""
+"Sachlich und respektvoll — Beiträge erscheinen unter Ihrem Anzeigenamen."
+msgstr "Factual and respectful — contributions appear under your display name."
+
+msgid "Beitrag veröffentlichen"
+msgstr "Publish contribution"
+
+msgid "Zum Mitberaten bitte"
+msgstr "To join the deliberation, please"
+
+msgid "Eingefrorene Verfahrensregeln (§ 5 Abs 5)"
+msgstr "Frozen procedural rules (§ 5 (5))"
+
+msgid "Lebensbereiche"
+msgstr "Areas of life"
+
+msgid "Antrag einbringen"
+msgstr "Submit a motion"
+
+msgid "Abmelden"
+msgstr "Sign out"
+
+msgid "Sprache wechseln"
+msgstr "Change language"
+
+msgid ""
+"Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — "
+"Lesen und Anmelden bleiben möglich."
+msgstr "Your membership is paused until the membership fee arrives — reading and signing in remain available."
+
+msgid "Beitrag jetzt überweisen →"
+msgstr "Transfer the fee now →"
+
+msgid "Wir sind das Werkzeug."
+msgstr "We are the tool."
+
+msgid "Meine Stimme"
+msgstr "My vote"
+
+msgid "Zurück zum Antrag"
+msgstr "Back to the motion"
+
+msgid "Meine Stimme prüfen"
+msgstr "Verify my vote"
+
+#, python-format
+msgid ""
+"Ihre Stimme zu <strong>%(titel)s</strong> steht unter diesem Pseudonym in "
+"der\n"
+"öffentlichen Stimmliste:"
+msgstr "Your vote on <strong>%(titel)s</strong> appears in the public ballot list under this pseudonym:"
+
+msgid ""
+"Notieren Sie sich den Code. Nach Abstimmungsende können Sie in der\n"
+"exportierten Stimmliste nachsehen, ob Ihre Stimme korrekt erfasst ist — und "
+"mit\n"
+"<code>verify/nachrechnen.py</code> das Gesamtergebnis unabhängig nachrechnen "
+"(§ 5 Abs 8).\n"
+"Die Zuordnung Pseudonym → Person kennt nur die Plattform; sie wird nach der\n"
+"satzungsmäßigen Frist gelöscht."
+msgstr "Write down the code. After the vote ends you can check in the exported ballot list that your vote was recorded correctly — and recount the overall result independently with <code>verify/nachrechnen.py</code> (§ 5 (8)). Only the platform knows the pseudonym-to-person mapping; it is deleted after the period set by the statutes."
+
+msgid "Für diesen Antrag ist von Ihnen keine Stimme erfasst."
+msgstr "No vote of yours is recorded for this motion."
+
+#, python-format
+msgid ""
+"Jedes bestätigte Mitglied kann Anträge einbringen (§ 5 Abs 1). Es gilt die\n"
+"Verfahrensordnung <strong>%(policy_id)s v%(version)s</strong> — sie wird\n"
+"beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum "
+"Ende (§ 5 Abs 5)."
+msgstr "Every confirmed member can submit motions (§ 5 (1)). Procedure <strong>%(policy_id)s v%(version)s</strong> applies — it is frozen at submission and governs this motion unchanged until the end (§ 5 (5))."
+
+msgid "Ähnliche Anträge gefunden"
+msgstr "Similar motions found"
+
+msgid ""
+"Vielleicht gibt es Ihr Anliegen schon — dann ist eine Unterstützung "
+"wirksamer als ein\n"
+"  Parallelantrag. <strong>Der Hinweis ist ein Angebot, keine Hürde:</strong> "
+"Sie können\n"
+"  unverändert einbringen (§ 2 Abs 6 — kein Algorithmus entscheidet über "
+"Zulassung)."
+msgstr "Perhaps your concern already exists — then supporting is more effective than a parallel motion. <strong>The hint is an offer, not a hurdle:</strong> you can submit unchanged (§ 2 (6) — no algorithm decides on admission)."
+
+msgid "Übereinstimmung"
+msgstr "Match"
+
+msgid "Phase:"
+msgstr "Phase:"
+
+msgid "Beteiligung:"
+msgstr "Participation:"
+
+msgid "Trotzdem einbringen"
+msgstr "Submit anyway"
+
+msgid "Lieber einen bestehenden Antrag unterstützen"
+msgstr "Rather support an existing motion"
+
+msgid ""
+"Vor dem Einbringen gleicht die Plattform Ihren Text\n"
+"  automatisch mit laufenden Anträgen ab (ADR-006). Der Hinweis schlägt vor — "
+"er blockiert nie.\n"
+"  Titel und Wortlaut sind öffentlich."
+msgstr "Before submission, the platform automatically compares your text with active motions (ADR-006). The hint suggests — it never blocks. Title and text are public."
+
+msgid ""
+"In Entwicklung (§ 5 Abs 10 lit d): die Folgenabschätzung — welche "
+"bestehenden\n"
+"  Gesetze Ihr Antrag berühren würde und welche Branchen betroffen wären, "
+"berechnet mit der\n"
+"  StaatsSimulation und stets als Modellrechnung gekennzeichnet."
+msgstr "In development (§ 5 (10) lit d): the impact assessment — which existing laws your motion would touch and which sectors would be affected, computed by the StaatsSimulation and always labelled as a model calculation."
+
+msgid "Das Hauptfenster"
+msgstr "The main window"
+
+msgid ""
+"Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich "
+"Phase,\n"
+"Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer "
+"verdeckten algorithmischen\n"
+"Reihung (§ 5 Abs 10 des Satzungsentwurfs)."
+msgstr "Four areas, one principle: arrangement and selection follow only phase, deadline and the members' decisions — never popularity, never a hidden algorithmic ranking (§ 5 (10) of the draft statutes)."
+
+msgid "Bereich a · persönlich"
+msgstr "Area a · personal"
+
+msgid "Meine Favoriten"
+msgstr "My favourites"
+
+msgid "Ihre gemerkten Themen — Abstimmungen zuerst."
+msgstr "Your saved topics — votes first."
+
+msgid "Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor."
+msgstr "No favourites yet — the star ☆ on any motion saves it here."
+
+msgid ""
+"Neu aus Ihren favorisierten <a href=\"/kategorien/\">Lebensbereichen</a>:"
+msgstr "New from your favourite <a href=\"/kategorien/\">areas of life</a>:"
+
+msgid "Lebensbereiche favorisieren"
+msgstr "Pick favourite areas of life"
+
+msgid "Neues daraus erscheint hier."
+msgstr "New items from them appear here."
+
+msgid ""
+"Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon "
+"gerade zur Abstimmung steht."
+msgstr "As a member you save your topics here and see immediately which of them are up for a vote."
+
+msgid "Bereich b · hervorgehoben"
+msgstr "Area b · highlighted"
+
+msgid "Wichtige Abstimmungen"
+msgstr "Important votes"
+
+msgid ""
+"Was alle angeht, aber wenig Aufmerksamkeit bekommt — oder vor Beeinflussung "
+"zu\n"
+"    schützen ist. Hervorhebung nur durch begründeten, veröffentlichten "
+"Beschluss des Integritätsrats,\n"
+"    nie durch einen Algorithmus."
+msgstr "What concerns everyone but gets little attention — or needs protection from undue influence. Highlighting only by a reasoned, published decision of the Integrity Council, never by an algorithm."
+
+msgid "Derzeit ist nichts hervorgehoben."
+msgstr "Nothing is highlighted at the moment."
+
+msgid "Bereich c · regional"
+msgstr "Area c · regional"
+
+msgid "Meine Region"
+msgstr "My region"
+
+msgid ""
+"Anträge auf Gemeinde-, Bezirks- und Landesebene — Ergebnisse sind "
+"Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene."
+msgstr "Motions at municipal, district and provincial level — results guide DDÖ representatives at each level."
+
+msgid "Derzeit keine regionalen Anträge — der erste kann Ihrer sein."
+msgstr "No regional motions yet — the first one could be yours."
+
+msgid "Bereich d · Anträge & Gesetzesvorschläge"
+msgstr "Area d · motions & legislative proposals"
+
+msgid "Was steht zur Entscheidung"
+msgstr "What is up for decision"
+
+msgid ""
+"Jede Eingabe zeigt zuerst ähnliche, laufende Anträge samt Beteiligung — "
+"unterstützen\n"
+"  ist oft wirksamer als ein Parallelantrag. Einbringen bleibt trotzdem immer "
+"möglich."
+msgstr "Every submission first shows similar active motions with their participation — supporting is often more effective than a parallel motion. Submitting always remains possible."
+
+msgid "Eigenen Antrag einbringen"
+msgstr "Submit your own motion"
+
+msgid "Phase seit"
+msgstr "phase since"
+
+msgid "Derzeit keine Anträge in dieser Phase."
+msgstr "No motions in this phase at the moment."
+
+msgid ""
+"Jeder Antrag wird automatisch in diesen Kategorienbaum eingeordnet — von "
+"der\n"
+"Hauptkategorie bis zur Detailebene (zum Beispiel Wirtschaft › Bauwirtschaft "
+"› Installateur).\n"
+"Favorisieren Sie, was Sie betrifft: Neues daraus erscheint in Ihrem "
+"Hauptfenster unter Favoriten.\n"
+"Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis."
+msgstr "Every motion is placed automatically in this category tree — from main category down to detail level (for example Economy › Construction › Plumber). Pick as favourites whatever concerns you: new items appear in your main window under favourites. Favourites are strictly personal and never influence any result."
+
+msgid ""
+"Ein Favorit auf einer Haupt- oder Unterkategorie umfasst den ganzen Ast — "
+"Detailkategorien lassen sich genauso einzeln favorisieren (Stern)."
+msgstr "A favourite on a main or sub-category covers the whole branch — detail categories can just as well be picked individually (star)."
+
+msgid "Zum Favorisieren bitte"
+msgstr "To pick favourites, please"
+
+msgid "laufend"
+msgstr "active"
+
+msgid "Favorisieren"
+msgstr "Add favourite"
+
+msgid "Unterkategorien"
+msgstr "Subcategories"
+
+msgid ""
+"Die Namen der Lebensbereiche erscheinen derzeit auf Deutsch — mehrsprachige "
+"Kategorienamen folgen mit dem EuroVoc-Anschluss."
+msgstr "Category names currently appear in German — multilingual names follow with the EuroVoc integration."
+
+msgid "Keine aktive Verfahrensordnung"
+msgstr "No active procedure"
+
+msgid "Derzeit nicht möglich"
+msgstr "Not possible right now"
+
+msgid ""
+"Es ist keine aktive Verfahrensordnung hinterlegt — ohne eingefrorene Regeln\n"
+"wird kein Antrag angenommen (§ 5 Abs 5). Bitte versuchen Sie es später "
+"erneut;\n"
+"die Betreiber sind informiert."
+msgstr "No active procedural rules are on file — without frozen rules no motion is accepted (§ 5 (5)). Please try again later; the operators have been notified."
+
+msgid "Mitwirkung ruht"
+msgstr "Participation suspended"
+
+msgid "Ihre Mitwirkungsrechte ruhen derzeit"
+msgstr "Your participation rights are currently suspended"
+
+msgid ""
+"Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 "
+"Abs 3).\n"
+"Lesen und Anmelden bleiben selbstverständlich möglich — einbringen, "
+"unterstützen,\n"
+"beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist."
+msgstr "Your membership is paused because the membership fee is outstanding (§ 4 (3)). Reading and signing in remain available, of course — you can submit, support, deliberate and vote again as soon as the fee has arrived."
+
+msgid "Beitrag jetzt überweisen (QR-Code)"
+msgstr "Transfer the fee now (QR code)"
+
+msgid ""
+"Dieses Konto ist von der Mitwirkung ausgeschlossen (§ 4 Abs 6). Die "
+"Begründung\n"
+"steht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch "
+"erheben möchten."
+msgstr "This account is excluded from participation (§ 4 (6)). The reasons are in the audit log. Contact didide@ddoe.at if you wish to appeal."
+
+msgid "Noch nicht stimmberechtigt"
+msgstr "Not yet eligible to vote"
+
+msgid ""
+"Stimmberechtigt ist, wer am Stichtag seit mindestens drei Monaten "
+"ununterbrochen\n"
+"Mitglied ist (Sachfragen) beziehungsweise zwölf Monaten (Personal- und "
+"Satzungsfragen)\n"
+"— § 4 Abs 4. Diese Anwartschaft schützt Abstimmungen vor kurzfristiger "
+"Übernahme."
+msgstr "Eligible to vote is whoever has been a member without interruption for at least three months on the record date (substantive questions) or twelve months (personnel and statute questions) — § 4 (4). This qualifying period protects votes from short-term takeover."
+
+msgid ""
+"Ihre Anwartschaft läuft bereits: mitberaten und unterstützen können Sie "
+"sofort,\n"
+"und mit jedem Tag Mitgliedschaft rückt die erste Abstimmung näher."
+msgstr "Your qualifying period is already running: you can deliberate and support right away, and every day of membership brings your first vote closer."
+
+msgid "Bestätigung erforderlich"
+msgstr "Confirmation required"
+
+msgid "Noch einen Schritt"
+msgstr "One more step"
+
+msgid ""
+"Einbringen, Unterstützen und Mitberaten steht bestätigten Mitgliedern "
+"offen.\n"
+"Ihr Konto ist angelegt, aber Ihre Identität ist noch nicht geprüft (§ 4 Abs "
+"2)."
+msgstr "Submitting, supporting and deliberating are open to confirmed members. Your account exists, but your identity has not been verified yet (§ 4 (2))."
+
+msgid ""
+"So geht es weiter: Überweisen Sie den Mitgliedsbeitrag mit Ihrer "
+"persönlichen\n"
+"Referenz (siehe <a href=\"/willkommen/\">Willkommensseite</a>) — nach "
+"Eingang und\n"
+"Prüfung wird Ihr Konto freigeschaltet und Ihre Anwartschaft läuft weiter."
+msgstr "Next step: transfer the membership fee with your personal reference (see the <a href=\"/willkommen/\">welcome page</a>) — once received and checked, your account is unlocked and your qualifying period continues."
+
+msgid "Unterstützung"
+msgstr "Support"
+
+msgid "Abstimmung"
+msgstr "Voting"
+
+msgid "verfallen"
+msgstr "lapsed"
+
+msgid "zurückgewiesen"
+msgstr "returned"
+
+msgid "Laufende Abstimmungen"
+msgstr "Votes under way"
+
+msgid "In Beratung"
+msgstr "In deliberation"
+
+msgid "Sammeln Unterstützung"
+msgstr "Gathering support"
+
+msgid "Abgeschlossen"
+msgstr "Completed"
+
+msgid "Titel"
+msgstr "Title"
+
+msgid "Wortlaut des Antrags"
+msgstr "Text of the motion"
+
+msgid "Gilt für"
+msgstr "Applies to"
+
+msgid "Ganz Österreich"
+msgstr "All of Austria"
+
+#, python-format
+msgid "Mein Bundesland (%s)"
+msgstr "My province (%s)"
+
+#, python-format
+msgid "Meine Gemeinde (%s)"
+msgstr "My municipality (%s)"
+
+#, python-format
+msgid ""
+"Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung. Automatisch "
+"zugeordnet: %s."
+msgstr "Your motion has been submitted and is now gathering support. Automatically assigned: %s."
+
+msgid "Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung."
+msgstr "Your motion has been submitted and is now gathering support."
+
+msgid "Die Unterstützungsphase dieses Antrags ist beendet."
+msgstr "The support phase of this motion has ended."
+
+msgid "Danke — Ihre Unterstützung ist erfasst."
+msgstr "Thank you — your support has been recorded."
+
+msgid "Ihre Unterstützung wurde zurückgezogen."
+msgstr "Your support has been withdrawn."
+
+msgid "Die Beratung dieses Antrags ist beendet."
+msgstr "The deliberation of this motion has ended."
+
+msgid "Ihr Beitrag ist veröffentlicht."
+msgstr "Your contribution has been published."
+
+msgid "Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern."
+msgstr "Your vote has been recorded — you can change it until the deadline."
+
+msgid "Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."
+msgstr "This vote could not be recorded (is the vote still open?)."
+
+msgid ""
+"Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der "
+"Startseite."
+msgstr "Saved as a favourite — you will now find the topic in your area on the home page."
+
+msgid "Favorit entfernt."
+msgstr "Favourite removed."
+
+#, python-format
+msgid "„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster."
+msgstr "“%s” is now a favourite — new items from it appear in your main window."
+
+#, python-format
+msgid "Favorit „%s“ entfernt."
+msgstr "Favourite “%s” removed."

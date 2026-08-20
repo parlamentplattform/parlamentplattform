@@ -24,6 +24,8 @@ from django import forms
 from django.conf import settings
 from django.core import signing
 from django.core.cache import cache
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 SALZ = "ddoe-botschutz"
 GUELTIG_SEKUNDEN = 3600
@@ -64,7 +66,7 @@ def aufgabe_als_bild(a: int, b: int) -> str:
         )
         x += 24
     linien = []
-    for _ in range(3):
+    for _nr in range(3):
         linien.append(
             f'<path d="M{zufall(8) + 4},{20 + zufall(14)} C{60 + zufall(30)},{zufall(28) + 18} '
             f'{140 + zufall(30)},{44 + zufall(16)} {x + 4},{28 + zufall(18)}" '
@@ -72,11 +74,11 @@ def aufgabe_als_bild(a: int, b: int) -> str:
         )
     punkte = "".join(
         f'<circle cx="{secrets.randbelow(x + 8)}" cy="{secrets.randbelow(56) + 4}" r="1.1" fill="#0E4C5C" opacity="0.5"/>'
-        for _ in range(24)
+        for _punkt in range(24)
     )
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{x + 12}" height="64" '
-        f'viewBox="0 0 {x + 12} 64" role="img" aria-label="Sicherheitsaufgabe als Bild">'
+        f'viewBox="0 0 {x + 12} 64" role="img" aria-label="{_("Sicherheitsaufgabe als Bild")}">'
         f'<rect width="100%" height="100%" rx="10" fill="#F6F3EC"/>'
         f"{''.join(linien)}{''.join(teile)}{punkte}</svg>"
     )
@@ -109,7 +111,7 @@ class BotschutzMixin(forms.Form):
     # Honigtopf: heißt absichtlich harmlos „website“ — Menschen sehen es nie.
     website = forms.CharField(required=False, widget=forms.HiddenInput, label="")
     pruefung = forms.CharField(widget=forms.HiddenInput)
-    rechenfrage = forms.IntegerField(label="Sicherheitsfrage")
+    rechenfrage = forms.IntegerField(label=gettext_lazy("Sicherheitsfrage"))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -119,8 +121,8 @@ class BotschutzMixin(forms.Form):
                 nutzlast = signing.loads(self.data.get("pruefung", ""), salt=SALZ, max_age=GUELTIG_SEKUNDEN)
             except signing.BadSignature:
                 nutzlast = None
-        self.fields["rechenfrage"].label = "Sicherheitsfrage: Ergebnis der Rechnung im Bild"
-        self.fields["rechenfrage"].help_text = (
+        self.fields["rechenfrage"].label = _("Sicherheitsfrage: Ergebnis der Rechnung im Bild")
+        self.fields["rechenfrage"].help_text = _(
             "Bitte lösen Sie die kleine Rechnung im Bild. Falls Sie das Bild nicht lesen können, "
             "schreiben Sie uns an didide@ddoe.at — wir helfen sofort."
         )
@@ -133,7 +135,7 @@ class BotschutzMixin(forms.Form):
 
     def clean(self):
         daten = super().clean()
-        fehler = "Die Sicherheitsfrage wurde nicht richtig beantwortet — bitte erneut versuchen."
+        fehler = _("Die Sicherheitsfrage wurde nicht richtig beantwortet — bitte erneut versuchen.")
         if daten.get("website"):
             raise forms.ValidationError(fehler)  # Honigtopf gefüllt
         try:

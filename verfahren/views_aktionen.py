@@ -17,6 +17,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
@@ -63,21 +65,23 @@ class AntragsFormular(forms.Form):
     kommt aus dem Mitgliedsprofil, nie aus freier Eingabe. Lebensbereiche wählt
     niemand von Hand — die ordnet die Plattform automatisch zu (F-47)."""
 
-    titel = forms.CharField(label="Titel", max_length=200)
-    wortlaut = forms.CharField(label="Wortlaut des Antrags", widget=forms.Textarea(attrs={"rows": 10}))
-    begruendung = forms.CharField(
-        label="Begründung", widget=forms.Textarea(attrs={"rows": 6}), required=False
+    titel = forms.CharField(label=gettext_lazy("Titel"), max_length=200)
+    wortlaut = forms.CharField(
+        label=gettext_lazy("Wortlaut des Antrags"), widget=forms.Textarea(attrs={"rows": 10})
     )
-    ebene = forms.ChoiceField(label="Gilt für", widget=forms.RadioSelect, required=False)
+    begruendung = forms.CharField(
+        label=gettext_lazy("Begründung"), widget=forms.Textarea(attrs={"rows": 6}), required=False
+    )
+    ebene = forms.ChoiceField(label=gettext_lazy("Gilt für"), widget=forms.RadioSelect, required=False)
 
     def __init__(self, *args, mitglied=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.mitglied = mitglied
-        wahlen = [(Ebene.BUND.value, "Ganz Österreich")]
+        wahlen = [(Ebene.BUND.value, _("Ganz Österreich"))]
         if mitglied is not None and mitglied.bundesland:
-            wahlen.append((Ebene.LAND.value, f"Mein Bundesland ({mitglied.get_bundesland_display()})"))
+            wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % mitglied.get_bundesland_display()))
         if mitglied is not None and mitglied.gemeinde:
-            wahlen.append((Ebene.GEMEINDE.value, f"Meine Gemeinde ({mitglied.gemeinde})"))
+            wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % mitglied.gemeinde))
         self.fields["ebene"].choices = wahlen
         self.fields["ebene"].initial = Ebene.BUND.value
 
@@ -96,7 +100,7 @@ class AntragsFormular(forms.Form):
 
 class KommentarFormular(forms.Form):
     text = forms.CharField(
-        label="Beitrag zur Beratung", widget=forms.Textarea(attrs={"rows": 4}), max_length=4000
+        label=gettext_lazy("Beitrag zur Beratung"), widget=forms.Textarea(attrs={"rows": 4}), max_length=4000
     )
 
 
@@ -158,11 +162,13 @@ def einbringen(request):
                 namen = ", ".join(k.pfad for k in zugeordnet)
                 messages.success(
                     request,
-                    f"Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung. "
-                    f"Automatisch zugeordnet: {namen}.",
+                    _(
+                        "Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung. Automatisch zugeordnet: %s."
+                    )
+                    % namen,
                 )
             else:
-                messages.success(request, "Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung.")
+                messages.success(request, _("Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung."))
             return redirect("verfahren:antrag", pk=antrag.pk)
     else:
         form = AntragsFormular(mitglied=request.user)
@@ -180,15 +186,15 @@ def unterstuetzen(request, pk):
         return sperre
     antrag.fortschreiben()
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
-        messages.error(request, "Die Unterstützungsphase dieses Antrags ist beendet.")
+        messages.error(request, _("Die Unterstützungsphase dieses Antrags ist beendet."))
         return redirect("verfahren:antrag", pk=pk)
-    _, neu = antrag.unterstuetzungen.get_or_create(mitglied=request.user)
+    _egal, neu = antrag.unterstuetzungen.get_or_create(mitglied=request.user)
     if neu:
-        messages.success(request, "Danke — Ihre Unterstützung ist erfasst.")
+        messages.success(request, _("Danke — Ihre Unterstützung ist erfasst."))
         antrag.fortschreiben()  # Schwelle eventuell gerade erreicht
     else:
         antrag.unterstuetzungen.filter(mitglied=request.user).delete()
-        messages.info(request, "Ihre Unterstützung wurde zurückgezogen.")
+        messages.info(request, _("Ihre Unterstützung wurde zurückgezogen."))
     return redirect("verfahren:antrag", pk=pk)
 
 
@@ -201,12 +207,12 @@ def kommentieren(request, pk):
         return sperre
     antrag.fortschreiben()
     if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
-        messages.error(request, "Die Beratung dieses Antrags ist beendet.")
+        messages.error(request, _("Die Beratung dieses Antrags ist beendet."))
         return redirect("verfahren:antrag", pk=pk)
     form = KommentarFormular(request.POST)
     if form.is_valid():
         Kommentar.objects.create(antrag=antrag, mitglied=request.user, text=form.cleaned_data["text"])
-        messages.success(request, "Ihr Beitrag ist veröffentlicht.")
+        messages.success(request, _("Ihr Beitrag ist veröffentlicht."))
     return redirect("verfahren:antrag", pk=pk)
 
 
@@ -223,9 +229,9 @@ def abstimmen(request, pk):
     wahl = request.POST.get("stimme", "")
     try:
         stimme_abgeben(antrag, request.user, wahl)
-        messages.success(request, "Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern.")
+        messages.success(request, _("Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern."))
     except (StimmabgabeFehler, ValueError):
-        messages.error(request, "Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?).")
+        messages.error(request, _("Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."))
     return redirect("verfahren:antrag", pk=pk)
 
 
@@ -269,14 +275,15 @@ def favorisieren(request, pk):
     """Bereich a (§ 5 Abs 10 lit a, F-41): Favorit setzen bzw. entfernen.
     Favoriten sind rein persönlich und wirken nie auf Reihung oder Ergebnis."""
     antrag = get_object_or_404(Antrag, pk=pk)
-    _, neu = Favorit.objects.get_or_create(antrag=antrag, mitglied=request.user)
+    _egal, neu = Favorit.objects.get_or_create(antrag=antrag, mitglied=request.user)
     if neu:
         messages.success(
-            request, "Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der Startseite."
+            request,
+            _("Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der Startseite."),
         )
     else:
         Favorit.objects.filter(antrag=antrag, mitglied=request.user).delete()
-        messages.info(request, "Favorit entfernt.")
+        messages.info(request, _("Favorit entfernt."))
     weiter = request.POST.get("weiter", "")
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)
@@ -311,14 +318,15 @@ def kategorien_uebersicht(request):
 def kategorie_abonnieren(request, slug):
     """Abo umschalten — rein persönlich, wirkt nie auf Reihung oder Ergebnis."""
     kategorie = get_object_or_404(Kategorie, slug=slug, aktiv=True)
-    _, neu = KategorieAbo.objects.get_or_create(kategorie=kategorie, mitglied=request.user)
+    _egal, neu = KategorieAbo.objects.get_or_create(kategorie=kategorie, mitglied=request.user)
     if neu:
         messages.success(
-            request, f"„{kategorie.name}“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster."
+            request,
+            _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % kategorie.name,
         )
     else:
         KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
-        messages.info(request, f"Favorit „{kategorie.name}“ entfernt.")
+        messages.info(request, _("Favorit „%s“ entfernt.") % kategorie.name)
     weiter = request.POST.get("weiter", "")
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)

@@ -1,13 +1,14 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}E-Mail unterwegs{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "E-Mail unterwegs" %}{% endblock %}
 {% block inhalt %}
-<h1>Bitte sehen Sie in Ihr Postfach</h1>
+<h1>{% translate "Bitte sehen Sie in Ihr Postfach" %}</h1>
 <div class="karte">
-<p>Wenn zu <strong>{{ email }}</strong> ein Zugang gehört beziehungsweise angelegt wurde, ist
+<p>{% blocktranslate %}Wenn zu <strong>{{ email }}</strong> ein Zugang gehört beziehungsweise angelegt wurde, ist
 soeben eine E-Mail zur {{ zweck }} unterwegs. Der Link darin ist zeitlich begrenzt und nur
-einmal gültig.</p>
-<p class="hilfe" style="margin-top:10px">Keine E-Mail erhalten? Prüfen Sie den Spam-Ordner
+einmal gültig.{% endblocktranslate %}</p>
+<p class="hilfe" style="margin-top:10px">{% blocktranslate %}Keine E-Mail erhalten? Prüfen Sie den Spam-Ordner
 oder fordern Sie den Link erneut an. Aus Sicherheitsgründen zeigt diese Seite nicht an, ob
-zu einer Adresse ein Konto existiert.</p>
+zu einer Adresse ein Konto existiert.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

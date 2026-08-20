@@ -1,26 +1,27 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Übersicht{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Übersicht" %}{% endblock %}
 {% block inhalt %}
-<h1>Die Plattform in Zahlen</h1>
-<p>Was sich hier tut — offen für alle, laufend aktualisiert. Abstimmungsverhalten erscheint
-ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseudonym (§ 5 Abs 3).</p>
+<h1>{% translate "Die Plattform in Zahlen" %}</h1>
+<p>{% blocktranslate %}Was sich hier tut — offen für alle, laufend aktualisiert. Abstimmungsverhalten erscheint
+ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseudonym (§ 5 Abs 3).{% endblocktranslate %}</p>
 
 <div class="hf-grid" style="margin-top:22px">
-  <div class="bereich"><span class="bk">Mitglieder</span>
+  <div class="bereich"><span class="bk">{% translate "Mitglieder" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ mitglieder_gesamt }}</h2>
-    <p class="erk">bestätigte Mitglieder · {{ mitglieder_neu_woche }} neu in den letzten 7 Tagen</p>
+    <p class="erk">{% blocktranslate with neu=mitglieder_neu_woche %}bestätigte Mitglieder · {{ neu }} neu in den letzten 7 Tagen{% endblocktranslate %}</p>
   </div>
-  <div class="bereich"><span class="bk">Anträge</span>
+  <div class="bereich"><span class="bk">{% translate "Anträge" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ antraege_aktiv }}</h2>
-    <p class="erk">laufende Anträge von {{ antraege_gesamt }} insgesamt · {{ neu_diese_woche }} neu diese Woche</p>
+    <p class="erk">{% blocktranslate with gesamt=antraege_gesamt neu=neu_diese_woche %}laufende Anträge von {{ gesamt }} insgesamt · {{ neu }} neu diese Woche{% endblocktranslate %}</p>
   </div>
-  <div class="bereich"><span class="bk">Besuche</span>
+  <div class="bereich"><span class="bk">{% translate "Besuche" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ aufrufe_heute }}</h2>
-    <p class="erk">Seitenaufrufe heute · {{ besucher_heute }} Besucher:innen heute · {{ aufrufe_woche }} Aufrufe in 7 Tagen</p>
+    <p class="erk">{% blocktranslate with besucher=besucher_heute woche=aufrufe_woche %}Seitenaufrufe heute · {{ besucher }} Besucher:innen heute · {{ woche }} Aufrufe in 7 Tagen{% endblocktranslate %}</p>
   </div>
 </div>
 
-<h2>Anträge nach Phase</h2>
+<h2>{% translate "Anträge nach Phase" %}</h2>
 <div class="karte">
   <div style="display:flex;gap:22px;flex-wrap:wrap">
     {% for name, anzahl in je_phase %}
@@ -29,59 +30,59 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
   </div>
 </div>
 
-<h2>Abstimmungen: Ergebnisse und Beteiligung</h2>
+<h2>{% translate "Abstimmungen: Ergebnisse und Beteiligung" %}</h2>
 {% for z in abstimmungen %}
   <div class="karte">
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
-      {% if z.laeuft %}<span class="badge badge--hell">Abstimmung läuft</span>
-      {% elif z.antrag.phase == "angenommen" %}<span class="badge" style="background:#EFF6F1;color:#1E4736">angenommen</span>
-      {% else %}<span class="badge" style="background:#F9EFEE;color:#6E2222">abgelehnt</span>{% endif %}
+      {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
+      {% elif z.antrag.phase == "angenommen" %}<span class="badge" style="background:#EFF6F1;color:#1E4736">{% translate "angenommen" %}</span>
+      {% else %}<span class="badge" style="background:#F9EFEE;color:#6E2222">{% translate "abgelehnt" %}</span>{% endif %}
     </p>
     {{ z.balken|safe }}
     <p class="erk" style="margin-top:8px">
-      <span style="color:#2C89B0;font-weight:700">■</span> Ja {{ z.ja }} ·
-      <span style="color:#8C2B2B;font-weight:700">■</span> Nein {{ z.nein }} ·
-      <span style="color:#D9A441;font-weight:700">■</span> Enthaltung {{ z.enthaltung }}
-      — {{ z.abgegeben }} von {{ z.antrag.stimmberechtigte_anzahl }} Stimmberechtigten
-      {% if z.beteiligung != None %}({{ z.beteiligung }} % Beteiligung){% endif %}
+      <span style="color:#2C89B0;font-weight:700">■</span> {% translate "Ja" %} {{ z.ja }} ·
+      <span style="color:#8C2B2B;font-weight:700">■</span> {% translate "Nein" %} {{ z.nein }} ·
+      <span style="color:#D9A441;font-weight:700">■</span> {% translate "Enthaltung" %} {{ z.enthaltung }}
+      — {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
+      {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
     </p>
   </div>
 {% empty %}
-  <p class="leer">Noch keine Abstimmungen.</p>
+  <p class="leer">{% translate "Noch keine Abstimmungen." %}</p>
 {% endfor %}
 
-<h2>Entwicklung</h2>
+<h2>{% translate "Entwicklung" %}</h2>
 <div class="karte">
-  <p class="erk">Mitglieder im Zeitverlauf (kumuliert)</p>
-  {% if diagramm_mitglieder %}{{ diagramm_mitglieder|safe }}{% else %}<p class="leer">Noch keine Daten.</p>{% endif %}
+  <p class="erk">{% translate "Mitglieder im Zeitverlauf (kumuliert)" %}</p>
+  {% if diagramm_mitglieder %}{{ diagramm_mitglieder|safe }}{% else %}<p class="leer">{% translate "Noch keine Daten." %}</p>{% endif %}
 </div>
 <div class="karte">
-  <p class="erk">Neue Anträge je Woche (letzte 8 Wochen)</p>
-  {% if diagramm_antraege %}{{ diagramm_antraege|safe }}{% else %}<p class="leer">Noch keine Daten.</p>{% endif %}
+  <p class="erk">{% translate "Neue Anträge je Woche (letzte 8 Wochen)" %}</p>
+  {% if diagramm_antraege %}{{ diagramm_antraege|safe }}{% else %}<p class="leer">{% translate "Noch keine Daten." %}</p>{% endif %}
 </div>
 <div class="karte">
-  <p class="erk">Seitenaufrufe je Tag (letzte 30 Tage)</p>
-  {% if diagramm_besuche %}{{ diagramm_besuche|safe }}{% else %}<p class="leer">Noch keine Daten.</p>{% endif %}
+  <p class="erk">{% translate "Seitenaufrufe je Tag (letzte 30 Tage)" %}</p>
+  {% if diagramm_besuche %}{{ diagramm_besuche|safe }}{% else %}<p class="leer">{% translate "Noch keine Daten." %}</p>{% endif %}
 </div>
 
-<h2>Meistgelesene Anträge</h2>
+<h2>{% translate "Meistgelesene Anträge" %}</h2>
 <div class="karte">
   {% for m in meistgelesen %}
     <div class="eintrag">
       <a href="{% url 'verfahren:antrag' m.antrag.pk %}">{{ m.antrag.titel }}</a>
-      <span class="erk">{{ m.aufrufe }} Aufrufe</span>
+      <span class="erk">{{ m.aufrufe }} {% translate "Aufrufe" %}</span>
     </div>
   {% empty %}
-    <p class="leer">Noch keine gezählten Aufrufe — die Zählung beginnt mit dieser Version.</p>
+    <p class="leer">{% translate "Noch keine gezählten Aufrufe — die Zählung beginnt mit dieser Version." %}</p>
   {% endfor %}
 </div>
 
 <div class="karte hinweis">
-<p><strong>Wie hier gezählt wird:</strong> ohne Cookies, ohne Werbe-Skripte und ohne Speicherung
+<p><strong>{% translate "Wie hier gezählt wird:" %}</strong> {% blocktranslate %}ohne Cookies, ohne Werbe-Skripte und ohne Speicherung
 von IP-Adressen. Für die Besucherzahl wird flüchtig eine anonyme Tageskennung gebildet, die sich
 nicht zur Person zurückrechnen lässt und um Mitternacht wertlos wird. Suchmaschinen und technische
 Zugriffe werden nach Möglichkeit nicht mitgezählt. Der Prototyp enthält zur Veranschaulichung
-einige Demo-Daten.</p>
+einige Demo-Daten.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

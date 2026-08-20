@@ -5,6 +5,7 @@ import json
 
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils.translation import gettext as _
 
 from plattform_core import Phase
 from verfahren.models import Antrag, Kategorie
@@ -51,11 +52,14 @@ def index(request):
 
     # Bereich d — alle Verfahren nach Phase und Frist
     gruppen = [
-        ("Laufende Abstimmungen", antraege.filter(phase=Phase.ABSTIMMUNG.value).order_by("phase_beginn")),
-        ("In Beratung", antraege.filter(phase=Phase.BERATUNG.value).order_by("phase_beginn")),
-        ("Sammeln Unterstützung", antraege.filter(phase=Phase.UNTERSTUETZUNG.value).order_by("phase_beginn")),
+        (_("Laufende Abstimmungen"), antraege.filter(phase=Phase.ABSTIMMUNG.value).order_by("phase_beginn")),
+        (_("In Beratung"), antraege.filter(phase=Phase.BERATUNG.value).order_by("phase_beginn")),
         (
-            "Abgeschlossen",
+            _("Sammeln Unterstützung"),
+            antraege.filter(phase=Phase.UNTERSTUETZUNG.value).order_by("phase_beginn"),
+        ),
+        (
+            _("Abgeschlossen"),
             antraege.filter(
                 phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value]
             ).order_by("-phase_beginn")[:20],

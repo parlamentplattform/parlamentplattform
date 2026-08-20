@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.db.models import Count, Sum
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from mitglieder.models import Mitglied
 from plattform_core import Phase
@@ -55,7 +56,7 @@ def _antraege_je_woche(heute, wochen: int = 8) -> list[tuple[str, float]]:
         woche = d - timedelta(days=d.weekday())
         if woche in zaehler:
             zaehler[woche] += 1
-    return [(f"ab {w.strftime('%d.%m.')}", float(n)) for w, n in sorted(zaehler.items())]
+    return [(_("ab %s") % w.strftime("%d.%m."), float(n)) for w, n in sorted(zaehler.items())]
 
 
 def _besuche_je_tag(heute, tage: int = 30) -> list[tuple[str, float]]:
@@ -89,8 +90,9 @@ def _abstimmungen() -> list[dict]:
                 "beteiligung": beteiligung,
                 "laeuft": a.phase == Phase.ABSTIMMUNG.value,
                 "balken": anteils_balken(
-                    [("Ja", ja, BLAU), ("Nein", nein, ROT), ("Enthaltung", enthaltung, GOLD)],
-                    f"Ergebnis zu „{a.titel}“: {ja} Ja, {nein} Nein, {enthaltung} Enthaltungen",
+                    [(_("Ja"), ja, BLAU), (_("Nein"), nein, ROT), (_("Enthaltung"), enthaltung, GOLD)],
+                    _("Ergebnis zu „%(titel)s“: %(ja)s Ja, %(nein)s Nein, %(enthaltung)s Enthaltungen")
+                    % {"titel": a.titel, "ja": ja, "nein": nein, "enthaltung": enthaltung},
                 ),
             }
         )
@@ -114,11 +116,11 @@ def index(request):
         "antraege_gesamt": Antrag.objects.count(),
         "antraege_aktiv": sum(je_phase.get(p, 0) for p in OFFEN),
         "je_phase": [
-            ("in Unterstützung", je_phase.get(Phase.UNTERSTUETZUNG.value, 0)),
-            ("in Beratung", je_phase.get(Phase.BERATUNG.value, 0)),
-            ("in Abstimmung", je_phase.get(Phase.ABSTIMMUNG.value, 0)),
-            ("angenommen", je_phase.get(Phase.ANGENOMMEN.value, 0)),
-            ("abgelehnt", je_phase.get(Phase.ABGELEHNT.value, 0)),
+            (_("in Unterstützung"), je_phase.get(Phase.UNTERSTUETZUNG.value, 0)),
+            (_("in Beratung"), je_phase.get(Phase.BERATUNG.value, 0)),
+            (_("in Abstimmung"), je_phase.get(Phase.ABSTIMMUNG.value, 0)),
+            (_("angenommen"), je_phase.get(Phase.ANGENOMMEN.value, 0)),
+            (_("abgelehnt"), je_phase.get(Phase.ABGELEHNT.value, 0)),
         ],
         "neu_diese_woche": Antrag.objects.filter(eingebracht_am__date__gte=woche_start).count(),
         "abstimmungen": _abstimmungen(),
@@ -129,11 +131,13 @@ def index(request):
         or 0,
         "meistgelesen": meistgelesen,
         "diagramm_mitglieder": linien_diagramm(
-            _mitglieder_verlauf(heute), "Mitgliederentwicklung als Verlaufslinie"
+            _mitglieder_verlauf(heute), _("Mitgliederentwicklung als Verlaufslinie")
         ),
         "diagramm_antraege": balken_diagramm(
-            _antraege_je_woche(heute), "Neue Anträge je Woche, letzte acht Wochen"
+            _antraege_je_woche(heute), _("Neue Anträge je Woche, letzte acht Wochen")
         ),
-        "diagramm_besuche": balken_diagramm(_besuche_je_tag(heute), "Seitenaufrufe je Tag, letzte 30 Tage"),
+        "diagramm_besuche": balken_diagramm(
+            _besuche_je_tag(heute), _("Seitenaufrufe je Tag, letzte 30 Tage")
+        ),
     }
     return render(request, "uebersicht/uebersicht.html", kontext)

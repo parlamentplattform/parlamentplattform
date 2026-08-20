@@ -19,6 +19,8 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
@@ -28,29 +30,31 @@ from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
 
-MAIL_STOERUNG = (
+MAIL_STOERUNG = gettext_lazy(
     "Unser E-Mail-Versand ist im Moment gestört — bitte versuchen Sie es in einigen "
     "Minuten erneut. Bleibt das Problem bestehen, schreiben Sie uns an didide@ddoe.at."
 )
 
 
 class RegistrierungsFormular(BotschutzMixin, forms.Form):
-    vorname = forms.CharField(label="Vorname", max_length=80)
-    nachname = forms.CharField(label="Nachname", max_length=80)
-    email = forms.EmailField(label="E-Mail-Adresse")
-    geburtsjahr = forms.IntegerField(label="Geburtsjahr", min_value=1900, max_value=2100)
+    vorname = forms.CharField(label=gettext_lazy("Vorname"), max_length=80)
+    nachname = forms.CharField(label=gettext_lazy("Nachname"), max_length=80)
+    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
+    geburtsjahr = forms.IntegerField(label=gettext_lazy("Geburtsjahr"), min_value=1900, max_value=2100)
     gemeinde = forms.CharField(
-        label="Wohnsitz-Gemeinde",
+        label=gettext_lazy("Wohnsitz-Gemeinde"),
         max_length=140,
         widget=forms.TextInput(
             attrs={
                 "list": "gemeinden",
                 "autocomplete": "off",
-                "placeholder": "Tippen und aus der Liste wählen …",
+                "placeholder": gettext_lazy("Tippen und aus der Liste wählen …"),
             }
         ),
-        help_text="Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
-        "ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später amtlich.",
+        help_text=gettext_lazy(
+            "Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
+            "ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später amtlich."
+        ),
     )
 
     def clean_gemeinde(self):
@@ -62,26 +66,30 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
         if kandidaten:
             optionen = "; ".join(g.anzeige for g in kandidaten)
             raise forms.ValidationError(
-                f"Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: {optionen}."
+                _("Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: %s.") % optionen
             )
         vorschlaege = list(
             Gemeinde.objects.filter(name__istartswith=eingabe.strip()[:10]).values_list("name", flat=True)[:5]
         )
-        hinweis = f" Meinten Sie: {', '.join(vorschlaege)}?" if vorschlaege else ""
+        hinweis = (_(" Meinten Sie: %s?") % ", ".join(vorschlaege)) if vorschlaege else ""
         raise forms.ValidationError(
-            f"„{eingabe}“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der Liste wählen.{hinweis}"
+            _("„%(eingabe)s“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der Liste wählen.")
+            % {"eingabe": eingabe}
+            + hinweis
         )
 
     grundsaetze = forms.BooleanField(
-        label="Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
-        "(ein Mensch – eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
+        label=gettext_lazy(
+            "Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
+            "(ein Mensch – eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
+        )
     )
 
     def clean_geburtsjahr(self):
         jahr = self.cleaned_data["geburtsjahr"]
         if timezone.now().year - jahr < 16:
             raise forms.ValidationError(
-                "Mitglied kann werden, wer das 16. Lebensjahr vollendet hat (§ 4 Abs 1)."
+                _("Mitglied kann werden, wer das 16. Lebensjahr vollendet hat (§ 4 Abs 1).")
             )
         return jahr
 
@@ -89,20 +97,20 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
         email = self.cleaned_data["email"].lower()
         if Mitglied.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(
-                "Für diese Adresse existiert bereits ein Konto — nutzen Sie den Login per E-Mail-Link."
+                _("Für diese Adresse existiert bereits ein Konto — nutzen Sie den Login per E-Mail-Link.")
             )
         return email
 
 
 class LoginFormular(BotschutzMixin, forms.Form):
-    email = forms.EmailField(label="E-Mail-Adresse")
+    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
 
 
 def registrieren(request):
     if request.method == "POST":
         form = RegistrierungsFormular(request.POST)
         if drossel_zuviel(request, "registrierung", limit=5):
-            form.add_error(None, "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut.")
+            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
         elif form.is_valid():
             d = form.cleaned_data
             try:
@@ -127,22 +135,27 @@ def registrieren(request):
                     token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
                     link = request.build_absolute_uri(reverse("mitglieder:bestaetigen", args=[token]))
                     send_mail(
-                        "Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform",
-                        f"Guten Tag {d['vorname']} {d['nachname']},\n\n"
-                        f"mit diesem Link bestätigen Sie Ihre Adresse und aktivieren Ihren Zugang "
-                        f"(gültig 48 Stunden):\n\n{link}\n\n"
-                        f"Wenn Sie sich nicht registriert haben, ignorieren Sie diese Nachricht.\n\n"
-                        f"Direkte Demokratie Österreich — Wir sind das Werkzeug.",
+                        _("Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform"),
+                        _(
+                            "Guten Tag %(vorname)s %(nachname)s,\n\n"
+                            "mit diesem Link bestätigen Sie Ihre Adresse und aktivieren Ihren Zugang "
+                            "(gültig 48 Stunden):\n\n%(link)s\n\n"
+                            "Wenn Sie sich nicht registriert haben, ignorieren Sie diese Nachricht.\n\n"
+                            "Direkte Demokratie Österreich — Wir sind das Werkzeug."
+                        )
+                        % {"vorname": d["vorname"], "nachname": d["nachname"], "link": link},
                         None,
                         [d["email"]],
                     )
             except (SMTPException, OSError):
                 log.exception("Bestätigungs-Mail nicht versendbar — Registrierung zurückgerollt.")
-                form.add_error(None, f"Ihre Registrierung wurde nicht gespeichert: {MAIL_STOERUNG}")
+                form.add_error(None, _("Ihre Registrierung wurde nicht gespeichert: %s") % MAIL_STOERUNG)
             else:
                 AuditEintrag.anhaengen({"typ": "registrierung", "mitglied": mitglied.pk})
                 return render(
-                    request, "mitglieder/mail_gesendet.html", {"zweck": "Bestätigung", "email": d["email"]}
+                    request,
+                    "mitglieder/mail_gesendet.html",
+                    {"zweck": _("Bestätigung"), "email": d["email"]},
                 )
     else:
         form = RegistrierungsFormular()
@@ -160,7 +173,7 @@ def bestaetigen(request, token: str):
     mitglied.save(update_fields=["is_active", "beitritt"])
     dj_login(request, mitglied)
     AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
-    messages.success(request, "E-Mail bestätigt — willkommen! Sie sind jetzt Anwärterin bzw. Anwärter.")
+    messages.success(request, _("E-Mail bestätigt — willkommen! Sie sind jetzt Anwärterin bzw. Anwärter."))
     return redirect("mitglieder:willkommen")
 
 
@@ -215,7 +228,7 @@ def login_anfordern(request):
     if request.method == "POST":
         form = LoginFormular(request.POST)
         if drossel_zuviel(request, "anmeldelink", limit=10):
-            form.add_error(None, "Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut.")
+            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
         elif form.is_valid():
             email = form.cleaned_data["email"].lower()
             mitglied = Mitglied.objects.filter(email__iexact=email, is_active=True).first()
@@ -224,9 +237,12 @@ def login_anfordern(request):
                 link = request.build_absolute_uri(reverse("mitglieder:login_einloesen", args=[token]))
                 try:
                     send_mail(
-                        "Ihr Anmeldelink — ParlamentPlattform",
-                        f"Guten Tag,\n\nmit diesem Link melden Sie sich an (gültig 30 Minuten):\n\n{link}\n\n"
-                        f"Wenn Sie keinen Login angefordert haben, ignorieren Sie diese Nachricht.",
+                        _("Ihr Anmeldelink — ParlamentPlattform"),
+                        _(
+                            "Guten Tag,\n\nmit diesem Link melden Sie sich an (gültig 30 Minuten):\n\n%(link)s\n\n"
+                            "Wenn Sie keinen Login angefordert haben, ignorieren Sie diese Nachricht."
+                        )
+                        % {"link": link},
                         None,
                         [email],
                     )
@@ -239,7 +255,7 @@ def login_anfordern(request):
                     return render(request, "mitglieder/login.html", {"form": form})
             # Absichtlich identische Antwort, ob das Konto existiert oder nicht
             # (keine Adress-Enumeration).
-            return render(request, "mitglieder/mail_gesendet.html", {"zweck": "Anmeldung", "email": email})
+            return render(request, "mitglieder/mail_gesendet.html", {"zweck": _("Anmeldung"), "email": email})
     else:
         form = LoginFormular()
     return render(request, "mitglieder/login.html", {"form": form})
@@ -256,5 +272,5 @@ def login_einloesen(request, token: str):
 @require_POST
 def abmelden(request):
     dj_logout(request)
-    messages.info(request, "Sie sind abgemeldet.")
+    messages.info(request, _("Sie sind abgemeldet."))
     return redirect("verfahren:index")

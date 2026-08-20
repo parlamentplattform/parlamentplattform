@@ -1,38 +1,39 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Willkommen{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Willkommen" %}{% endblock %}
 {% block inhalt %}
-<h1>Willkommen, {{ user.first_name }}!</h1>
-<p>Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter.
+<h1>{% blocktranslate with vorname=user.first_name %}Willkommen, {{ vorname }}!{% endblocktranslate %}</h1>
+<p>{% blocktranslate %}Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter.
 Ab heute läuft Ihre Anwartschaft (§ 4 Abs 4): nach drei Monaten sind Sie bei Sachfragen
-stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen.</p>
+stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen.{% endblocktranslate %}</p>
 
-<h2>Mitgliedsbeitrag — am schnellsten per QR-Code</h2>
+<h2>{% translate "Mitgliedsbeitrag — am schnellsten per QR-Code" %}</h2>
 <div class="karte hinweis">
 <div class="stimmzeile" style="align-items:flex-start;gap:24px">
   <div style="flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px">{{ qr_svg|safe }}</div>
   <div style="flex:1 1 22em">
-    <p><strong>Banking-App öffnen → „Zahlen mit Code" → diesen Code scannen.</strong>
+    <p>{% blocktranslate %}<strong>Banking-App öffnen → „Zahlen mit Code" → diesen Code scannen.</strong>
     Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt — Sie bestätigen nur noch.
     Die Überweisung läuft direkt von Konto zu Konto (Echtzeitüberweisung): ohne Zahlungsdienstleister,
-    ohne Gebührenprozente.</p>
-    <p style="margin-top:10px">Richtwert: <strong>{{ richtwert }}&nbsp;€ im Jahr</strong> — Selbsteinschätzung,
-    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen Gründen ausgeschlossen.</p>
+    ohne Gebührenprozente.{% endblocktranslate %}</p>
+    <p style="margin-top:10px">{% blocktranslate with richtwert=richtwert %}Richtwert: <strong>{{ richtwert }}&nbsp;€ im Jahr</strong> — Selbsteinschätzung,
+    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen Gründen ausgeschlossen.{% endblocktranslate %}</p>
   </div>
 </div>
-<p style="margin:14px 0">Oder von Hand:
-Empfänger <strong>Direkte Demokratie Österreich</strong> ·
+<p style="margin:14px 0">{% translate "Oder von Hand:" %}
+{% translate "Empfänger" %} <strong>Direkte Demokratie Österreich</strong> ·
 IBAN <code class="gross">{{ iban }}</code> ·
-Verwendungszweck <code class="gross">{{ referenz }}</code></p>
-<p class="hilfe">Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,
+{% translate "Verwendungszweck" %} <code class="gross">{{ referenz }}</code></p>
+<p class="hilfe">{% blocktranslate %}Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,
 damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr Konto als
-geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail.</p>
+geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail.{% endblocktranslate %}</p>
 </div>
 
-<h2>Was Sie jetzt schon können</h2>
+<h2>{% translate "Was Sie jetzt schon können" %}</h2>
 <div class="karte">
-<p>Lesen können Sie alles — <a href="{% url 'verfahren:index' %}">alle Anträge, Beratungen und
+<p>{% blocktranslate %}Lesen können Sie alles — <a href="/">alle Anträge, Beratungen und
 Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der Freischaltung können
 Sie Anträge einbringen, unterstützen und mitberaten; mit abgeschlossener Anwartschaft stimmen
-Sie ab.</p>
+Sie ab.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

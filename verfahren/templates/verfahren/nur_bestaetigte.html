@@ -1,12 +1,13 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Bestätigung erforderlich{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Bestätigung erforderlich" %}{% endblock %}
 {% block inhalt %}
-<h1>Noch einen Schritt</h1>
+<h1>{% translate "Noch einen Schritt" %}</h1>
 <div class="karte">
-<p>Einbringen, Unterstützen und Mitberaten steht bestätigten Mitgliedern offen.
-Ihr Konto ist angelegt, aber Ihre Identität ist noch nicht geprüft (§ 4 Abs 2).</p>
-<p style="margin-top:10px">So geht es weiter: Überweisen Sie den Mitgliedsbeitrag mit Ihrer persönlichen
-Referenz (siehe <a href="{% url 'mitglieder:willkommen' %}">Willkommensseite</a>) — nach Eingang und
-Prüfung wird Ihr Konto freigeschaltet und Ihre Anwartschaft läuft weiter.</p>
+<p>{% blocktranslate %}Einbringen, Unterstützen und Mitberaten steht bestätigten Mitgliedern offen.
+Ihr Konto ist angelegt, aber Ihre Identität ist noch nicht geprüft (§ 4 Abs 2).{% endblocktranslate %}</p>
+<p style="margin-top:10px">{% blocktranslate %}So geht es weiter: Überweisen Sie den Mitgliedsbeitrag mit Ihrer persönlichen
+Referenz (siehe <a href="/willkommen/">Willkommensseite</a>) — nach Eingang und
+Prüfung wird Ihr Konto freigeschaltet und Ihre Anwartschaft läuft weiter.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

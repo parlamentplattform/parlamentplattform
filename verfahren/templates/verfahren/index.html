@@ -1,7 +1,27 @@
 {% extends "verfahren/base.html" %}
 {% load i18n phasen %}
 {% block inhalt %}
+{% if not user.is_authenticated %}
+<section class="held">
+  <p class="vorzeile">{% translate "Direkte Demokratie Österreich" %}</p>
+  <h1>{% translate "Wir sind das Werkzeug." %}</h1>
+  <p class="untertitel">{% blocktranslate %}Hier entscheiden die Mitglieder selbst: Anträge einbringen, beraten, abstimmen —
+  und jede Auszählung lässt sich unabhängig nachrechnen. Mandatare setzen um, was beschlossen wurde;
+  den Stand zeigt das öffentliche Umsetzungsregister.{% endblocktranslate %}</p>
+  <div class="wege">
+    <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>
+    <a class="btn-hell" href="#entscheidung">{% translate "Zu den laufenden Abstimmungen" %}</a>
+  </div>
+  <div class="zahlenband">
+    <div class="zahl"><strong>{{ buehne.mitglieder }}</strong><span>{% translate "bestätigte Mitglieder" %}</span></div>
+    <div class="zahl"><strong>{{ buehne.laufend }}</strong><span>{% translate "laufende Verfahren" %}</span></div>
+    <div class="zahl"><strong>{{ buehne.beschluesse }}</strong><span>{% translate "gefasste Beschlüsse" %}</span></div>
+  </div>
+</section>
+<h2 style="margin-top:0">{% translate "Das Hauptfenster" %}</h2>
+{% else %}
 <h1>{% translate "Das Hauptfenster" %}</h1>
+{% endif %}
 <p style="max-width:46em">{% blocktranslate %}Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,
 Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen
 Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
@@ -77,7 +97,7 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
 
 </div>
 
-<section>
+<section id="entscheidung">
   <span class="bk" style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.75">{% translate "Bereich d · Anträge & Gesetzesvorschläge" %}</span>
   <h2 style="margin-top:4px">{% translate "Was steht zur Entscheidung" %}</h2>
   <p style="max-width:46em">{% blocktranslate %}Jede Eingabe zeigt zuerst ähnliche, laufende Anträge samt Beteiligung — unterstützen

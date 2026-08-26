@@ -25,7 +25,7 @@ prod = ["gunicorn>=22.0", "whitenoise>=6.6"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
-testpaths = ["tests", "verfahren", "mitglieder"]
+testpaths = ["tests", "verfahren", "mitglieder", "uebersicht", "plattform_core"]
 python_files = ["test_*.py", "tests.py"]
 
 [tool.ruff]
@@ -40,6 +40,7 @@ ignore = ["E501"]
 [tool.coverage.run]
 source = ["plattform_core"]
 branch = true
+omit = ["*/test_*.py"]
 
 [tool.coverage.report]
 fail_under = 90

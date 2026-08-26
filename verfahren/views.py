@@ -20,6 +20,17 @@ def index(request):
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
 
+    # Bühne für Gäste: drei öffentliche Kennzahlen (identisch mit der Übersichtsseite, F-50).
+    buehne = None
+    if not request.user.is_authenticated:
+        from mitglieder.models import Mitglied
+
+        buehne = {
+            "mitglieder": Mitglied.objects.filter(is_active=True).count(),
+            "laufend": laufend.count(),
+            "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
+        }
+
     # Bereich a — persönliche Favoriten und abonnierte Lebensbereiche (F-41, F-46)
     favoriten_abstimmung = favoriten_sonstige = themen_neu = None
     meine_favoriten: set[int] = set()
@@ -70,6 +81,7 @@ def index(request):
         request,
         "verfahren/index.html",
         {
+            "buehne": buehne,
             "gruppen": gruppen,
             "favoriten_abstimmung": favoriten_abstimmung,
             "favoriten_sonstige": favoriten_sonstige,

@@ -28,21 +28,23 @@ Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.<
 
 <div class="karte" style="overflow-x:auto">
 <table class="tabelle">
-  <tr><th>Mitglied</th><th>E-Mail</th><th>Gemeinde</th><th>Identität</th><th>Status</th><th>Beitritt</th><th></th></tr>
+  <thead><tr><th>Mitglied</th><th>E-Mail</th><th>Gemeinde</th><th>Identität</th><th>Status</th><th>Beitritt</th><th></th></tr></thead>
+  <tbody>
   {% for m in mitglieder %}
   <tr>
-    <td><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
+    <td data-label="Mitglied"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
       {% if m.hat_adminrechte %} <span class="badge badge--hell">Admin</span>{% endif %}</td>
-    <td>{{ m.email }}</td>
-    <td>{{ m.gemeinde|default:"—" }}</td>
-    <td>{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
-    <td>{% if not m.is_active and m.status != "ausgeschlossen" %}unbestätigt{% else %}{{ m.get_status_display }}{% endif %}</td>
-    <td>{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>
+    <td data-label="E-Mail">{{ m.email }}</td>
+    <td data-label="Gemeinde">{{ m.gemeinde|default:"—" }}</td>
+    <td data-label="Identität">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
+    <td data-label="Status">{% if not m.is_active and m.status != "ausgeschlossen" %}unbestätigt{% else %}{{ m.get_status_display }}{% endif %}</td>
+    <td data-label="Beitritt">{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>
     <td><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">öffnen →</a></td>
   </tr>
   {% empty %}
   <tr><td colspan="7" class="leer">Keine Treffer.</td></tr>
   {% endfor %}
+  </tbody>
 </table>
 </div>
 {% endblock %}

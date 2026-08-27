@@ -26,10 +26,14 @@ SCHRIFT = "font-family='system-ui,-apple-system,Segoe UI,Roboto,sans-serif'"
 
 
 def _kopf(breite: int, hoehe: int, beschreibung: str) -> str:
+    """SVG-Wurzel samt eigenem Papiergrund: Das Diagramm bleibt auch auf
+    dunklen Seiten (Dark Mode) ein lesbares Blatt — die validierte Farbwahl
+    gilt für hellen Grund, also bringt jedes Diagramm ihn selbst mit."""
     return (
         f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {breite} {hoehe}' "
         f"width='100%' role='img' aria-label='{escape(beschreibung)}' "
         f"style='max-width:{breite}px;display:block'>"
+        f"<rect width='{breite}' height='{hoehe}' rx='10' fill='#FDFCF8'/>"
     )
 
 

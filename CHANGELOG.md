@@ -2,6 +2,26 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.11.0] — 2026-08-26 · Neues Gewand: Bühne, Dark Mode, Mobilmenü
+
+### Hinzugefügt
+- **Startseiten-Bühne für Gäste:** Auftakt in Nachtblau mit dem Leitsatz „Wir sind das Werkzeug.", zwei Wegen (Mitglied werden · zu den laufenden Abstimmungen) und drei öffentlichen Kennzahlen (bestätigte Mitglieder, laufende Verfahren, gefasste Beschlüsse — identisch mit der Übersichtsseite). Angemeldete Mitglieder sehen weiterhin sofort ihr Hauptfenster
+- **Dark Mode:** Die gesamte Plattform folgt `prefers-color-scheme` — dunkle Flächen, angepasste Meldungs- und Statusfarben, ausreichende Kontraste; die servergerenderten SVG-Diagramme bringen ihren eigenen Papiergrund mit und bleiben so auf dunklen Seiten lesbare Blätter (validierte Farbpalette unverändert)
+- **Mobilmenü ohne JavaScript:** aufklappbare Navigation über einen reinen CSS-Schalter (Checkbox), animierter Burger, große Touch-Ziele — das Versprechen „ohne Skriptzwang" gilt auch fürs Menü. Dazu ein Skip-Link („Zum Inhalt springen") und sichtbare Fokusringe für Tastaturbedienung
+- **Neuer Fußbereich:** dreispaltig mit Kurzporträt, Plattform-Wegen und Offenheit (Quellcode AGPL, Register-JSON, Satzungsentwurf, ddoe.at) samt Schlusszeile „Ohne Skriptzwang, ohne Tracking, ohne verdeckte Reihung."
+- Die Mitglieder-Tabelle der Verwaltung wird auf schmalen Bildschirmen zu beschrifteten Karten (`data-label`)
+
+### Geändert
+- Vollständige Überarbeitung des zentralen Stylesheets: durchgängige Farbvariablen (hell/dunkel), weiche Schatten, Karten-Hover in den Lebensbereichen, verfeinerte Formulare und Chips, Kopfzeile mit Goldlinie, Marken-Untertitel und Punktgitter; `prefers-reduced-motion` und eine Druckansicht werden respektiert
+
+### Behoben
+- **23 falsch zugeordnete englische Übersetzungen** (stumme msgmerge-Übernahmen aus 0.9/0.10): u. a. „Umsetzung" → *Support*, „in Umsetzung" → *gathering support*, „zurückgestellt" → *returned*, „Suchen" → *Visits*, „alle" → *lapsed*, „Ihre erste Abstimmung" → *No votes yet.* — alle Stellen tragen jetzt die richtige Übersetzung (310 Einträge, 0 fuzzy)
+
+## [0.10.1] — 2026-08-26 · CI repariert: alle Testsuiten zählen
+
+### Behoben
+- **CI schlug mit „Abdeckung 81 % < 90 %" fehl:** pytest sammelte die Testsuiten von `uebersicht` und `plattform_core` gar nicht ein (fehlende `testpaths`) — 11 Tests liefen weder lokal noch in CI, und `test_diagramme.py` zählte zugleich als unabgedeckter Kern-Code. Jetzt laufen alle **136 Tests**, Testdateien sind aus der Abdeckungsmessung ausgenommen (`omit`), Kern-Abdeckung **99 %**
+
 ## [0.10.0] — 2026-08-20 · Das Umsetzungsregister
 
 ### Hinzugefügt

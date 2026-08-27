@@ -42,7 +42,7 @@ def test_anteils_balken_teilt_proportional_und_traegt_tooltips():
     wohlgeformt(svg)
     assert "Ja: 3 (75 %)" in svg and "Nein: 1 (25 %)" in svg
     assert "Enthaltung" not in svg  # leere Segmente entfallen (kein 0-Pixel-Rauschen)
-    assert svg.count("<rect") == 2
+    assert svg.count("<rect") == 3  # zwei Segmente + der eigene Papiergrund (Dark-Mode-fest)
 
 
 def test_anteils_balken_ohne_stimmen_zeigt_neutrale_flaeche():

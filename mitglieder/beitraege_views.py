@@ -192,6 +192,43 @@ def beitrag_erinnern(request):
 
 @nur_admins
 @require_POST
+def auszug_hochladen(request):
+    """Kontoauszug-Upload (camt.053 oder CSV aus dem Online-Banking) — der Weg
+    ohne Drittanbieter: gleiche Zuordnung, gleiche Verbuchung, gleiche Hinweise.
+    Die Datei wird nur gelesen, nie gespeichert."""
+    datei = request.FILES.get("auszug")
+    if datei is None:
+        messages.error(request, _("Keine Datei ausgewählt."))
+        return redirect("mitglieder:verwaltung_beitraege")
+    if datei.size > 5 * 1024 * 1024:
+        messages.error(request, _("Die Datei ist größer als 5 MB — bitte einen kürzeren Zeitraum exportieren."))
+        return redirect("mitglieder:verwaltung_beitraege")
+    roh = datei.read()
+    try:
+        inhalt = roh.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        inhalt = roh.decode("latin-1")
+
+    from plattform_core.bankauszug import auszug_lesen
+
+    umsaetze = auszug_lesen(inhalt)
+    if not umsaetze:
+        messages.error(request, _("Aus der Datei ließ sich kein Umsatz lesen — erwartet wird ein camt.053-XML oder ein Umsatz-CSV mit Kopfzeile."))
+        return redirect("mitglieder:verwaltung_beitraege")
+    neu, gesamt = bank.verbuchen_aus_umsaetzen(umsaetze)
+    from mitglieder.verwaltung import _auditieren
+
+    _auditieren(request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu)
+    messages.success(
+        request,
+        _("Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, %(neu)d neu verbucht.")
+        % {"umsaetze": len(umsaetze), "gesamt": gesamt, "neu": neu},
+    )
+    return redirect("mitglieder:verwaltung_beitraege")
+
+
+@nur_admins
+@require_POST
 def bank_koppeln(request):
     institution = request.POST.get("institution_id", "").strip()
     if not bank.eingerichtet():

@@ -165,3 +165,33 @@ def test_erinnerung_geht_an_alle_faelligen_mit_referenz_und_wird_auditiert(clien
     mail.outbox.clear()
     antwort = client.post(reverse("mitglieder:beitrag_erinnern"), {"mitglied": []}, follow=True)
     assert len(mail.outbox) == 0  # ohne Auswahl wird niemand angeschrieben
+
+
+def test_auszug_upload_verbucht_und_dedupliziert(client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    m = mitglied_anlegen("csvzahler")
+    admin = mitglied_anlegen("chefin3")
+    admin.ist_admin = True
+    admin.save(update_fields=["ist_admin"])
+
+    csv_inhalt = (
+        "Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n"
+        f"28.08.2026;Zahler CSV;{beitragsreferenz(m)} Beitrag;30,00;EUR\n"
+        "27.08.2026;Strom AG;Rechnung 123;-55,10;EUR\n"
+    ).encode()
+
+    client.force_login(admin)
+    url = reverse("mitglieder:auszug_hochladen")
+    antwort = client.post(url, {"auszug": SimpleUploadedFile("auszug.csv", csv_inhalt)}, follow=True)
+    assert "1 neu verbucht" in antwort.content.decode()
+    m.refresh_from_db()
+    assert m.beitrag_zuletzt_am == date(2026, 8, 28)
+    assert AuditEintrag.objects.filter(ereignis__aktion="auszug_abgleich").exists()
+
+    # Derselbe Auszug noch einmal: nichts doppelt (Fingerabdruck-Dedupe)
+    client.post(url, {"auszug": SimpleUploadedFile("auszug.csv", csv_inhalt)}, follow=True)
+    assert Beitragseingang.objects.count() == 1
+
+    kaputt = client.post(url, {"auszug": SimpleUploadedFile("leer.csv", b"nur text")}, follow=True)
+    assert "kein Umsatz" in kaputt.content.decode()

@@ -42,6 +42,18 @@ als das Ergebnis. Erinnerungen versendet nie ein Automatismus — sondern Sie, a
   {% endif %}
 </div>
 
+<div class="karte">
+  <h2 style="margin-top:0;font-size:20px">Kontoauszug hochladen</h2>
+  <p>Der Weg ohne Drittanbieter: Im Online-Banking (George) die Umsatzliste des Vereinskontos
+  exportieren — <strong>camt.053-XML</strong> (am genauesten) oder <strong>CSV</strong> — und hier
+  abgleichen. Gleiche Zuordnung, gleiche Freischaltung wie beim automatischen Abruf; jeder Umsatz
+  zählt nur einmal, die Datei selbst wird nicht gespeichert.</p>
+  <form method="post" action="{% url 'mitglieder:auszug_hochladen' %}" enctype="multipart/form-data" class="stimmzeile" style="margin-top:10px">{% csrf_token %}
+    <input type="file" name="auszug" accept=".xml,.csv,.txt,.camt" required style="font:inherit">
+    <button type="submit" class="btn">Auszug abgleichen</button>
+  </form>
+</div>
+
 {% if hinweise %}
 <h2>Prüfhinweise</h2>
 <div class="karte">

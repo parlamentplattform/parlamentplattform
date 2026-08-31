@@ -157,7 +157,15 @@ def abgleich_ausfuehren(erzwungen: bool = False) -> tuple[int, str]:
     kopplung.abruf_vermerken()
 
     gebucht = daten.get("transactions", {}).get("booked", [])
-    treffer = eingaenge_zuordnen(gebucht, _offene_referenzen())
+    neu, _gesamt = verbuchen_aus_umsaetzen(gebucht)
+    return neu, "ok"
+
+
+def verbuchen_aus_umsaetzen(umsaetze: list[dict]) -> tuple[int, int]:
+    """Der gemeinsame Kern hinter API-Abruf und Kontoauszug-Upload:
+    ordnet Umsätze den Beitragsreferenzen zu und verbucht jeden Treffer
+    (idempotent). Rückgabe (neu verbucht, Referenz-Treffer gesamt)."""
+    treffer = eingaenge_zuordnen(umsaetze, _offene_referenzen())
     mitglieder = Mitglied.objects.in_bulk([mid for mid, _e in treffer])
     neu = 0
     for mid, eingang in treffer:
@@ -167,4 +175,4 @@ def abgleich_ausfuehren(erzwungen: bool = False) -> tuple[int, str]:
         ok = name_passt(eingang.absender, mitglied.first_name, mitglied.last_name)
         if beitrag_verbuchen(mitglied, eingang, namens_ok=ok):
             neu += 1
-    return neu, "ok"
+    return neu, len(treffer)

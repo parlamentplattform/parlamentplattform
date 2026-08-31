@@ -16,6 +16,7 @@ urlpatterns = [
     path("verwaltung/", verwaltung.liste, name="verwaltung"),
     path("verwaltung/beitraege/", beitraege_views.verwaltung_beitraege, name="verwaltung_beitraege"),
     path("verwaltung/beitraege/erinnern/", beitraege_views.beitrag_erinnern, name="beitrag_erinnern"),
+    path("verwaltung/beitraege/auszug/", beitraege_views.auszug_hochladen, name="auszug_hochladen"),
     path("verwaltung/beitraege/abgleichen/", beitraege_views.verwaltung_abgleichen, name="verwaltung_abgleichen"),
     path("verwaltung/bank/koppeln/", beitraege_views.bank_koppeln, name="bank_koppeln"),
     path("verwaltung/bank/rueckkehr/", beitraege_views.bank_rueckkehr, name="bank_rueckkehr"),

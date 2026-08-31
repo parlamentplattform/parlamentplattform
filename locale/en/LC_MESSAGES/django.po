@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 00:33+0200\n"
+"POT-Creation-Date: 2026-09-01 01:25+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -71,6 +71,28 @@ msgstr "%d reminder(s) could not be sent (mail server)."
 
 msgid "Niemand ausgewählt."
 msgstr "Nobody selected."
+
+msgid "Keine Datei ausgewählt."
+msgstr "No file selected."
+
+msgid ""
+"Die Datei ist größer als 5 MB — bitte einen kürzeren Zeitraum exportieren."
+msgstr "The file is larger than 5 MB — please export a shorter period."
+
+msgid ""
+"Aus der Datei ließ sich kein Umsatz lesen — erwartet wird ein camt.053-XML "
+"oder ein Umsatz-CSV mit Kopfzeile."
+msgstr ""
+"No transactions could be read from the file — expected is a camt.053 XML or "
+"a transaction CSV with a header row."
+
+#, python-format
+msgid ""
+"Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, "
+"%(neu)d neu verbucht."
+msgstr ""
+"Statement read: %(umsaetze)d transactions, %(gesamt)d with a fee reference, "
+"%(neu)d newly recorded."
 
 msgid ""
 "Die Dienst-Schlüssel (DDOE_BANK_SECRET_ID/KEY) sind noch nicht gesetzt."

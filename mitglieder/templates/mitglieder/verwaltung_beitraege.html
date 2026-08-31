@@ -1,0 +1,99 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Beiträge & Bank{% endblock %}
+{% block inhalt %}
+<h1>Beiträge &amp; Bank</h1>
+<p style="max-width:46em">Der Beitragsabgleich (F-59): Die Plattform liest nur das Vereinskonto,
+verbucht Eingänge anhand der persönlichen Referenz und merkt sich von den Umsätzen nichts
+als das Ergebnis. Erinnerungen versendet nie ein Automatismus — sondern Sie, auf Knopfdruck.
+<a href="{% url 'mitglieder:verwaltung' %}">← zur Mitgliederliste</a></p>
+
+<div class="karte">
+  <h2 style="margin-top:0;font-size:20px">Bankkopplung</h2>
+  {% if not eingerichtet %}
+    <p class="leer">Die Dienst-Schlüssel fehlen noch: <code>DDOE_BANK_SECRET_ID</code> und
+    <code>DDOE_BANK_SECRET_KEY</code> als Umgebungsvariablen setzen (GoCardless Bank Account Data),
+    dann erscheint hier die Kopplung.</p>
+  {% elif kopplung %}
+    <p><strong>Gekoppelt.</strong> Zustimmung gültig bis {{ kopplung.consent_bis|date:"d.m.Y" }} ·
+    heute {{ kopplung.abrufe_heute }}/4 Abrufe ·
+    zuletzt abgeglichen {{ kopplung.zuletzt_abgerufen|date:"d.m.Y H:i"|default:"noch nie" }}</p>
+    <p class="hilfe">Die Bank verlangt alle 180 Tage eine neue Zustimmung — rechtzeitig vor dem
+    Ablaufdatum hier einfach neu koppeln.</p>
+    <div class="stimmzeile" style="margin-top:10px">
+      <form method="post" action="{% url 'mitglieder:verwaltung_abgleichen' %}">{% csrf_token %}
+        <button type="submit" class="btn-linie">Jetzt abgleichen</button>
+      </form>
+    </div>
+  {% else %}
+    <p>Noch kein Konto gekoppelt. Die Zustimmung erteilen Sie gleich selbst im Online-Banking —
+    die Plattform sieht Ihre Bankzugangsdaten dabei nie.</p>
+    <form method="post" action="{% url 'mitglieder:bank_koppeln' %}" class="stimmzeile" style="margin-top:10px">{% csrf_token %}
+      {% if institutionen %}
+        <select name="institution_id" required>
+          <option value="">Bank wählen …</option>
+          {% for i in institutionen %}<option value="{{ i.id }}">{{ i.name }}</option>{% endfor %}
+        </select>
+      {% else %}
+        <input type="text" name="institution_id" placeholder="Institutions-ID (z. B. SPARKASSE_OOE_ASPKAT2L)" style="min-width:280px" required>
+        {% if institutionen_fehler %}<span class="hilfe">Bankliste gerade nicht abrufbar — ID von Hand eintragen.</span>{% endif %}
+      {% endif %}
+      <button type="submit" class="btn">Konto koppeln →</button>
+    </form>
+  {% endif %}
+</div>
+
+{% if hinweise %}
+<h2>Prüfhinweise</h2>
+<div class="karte">
+  <p class="erk">Bei diesen Eingängen wich der Absendername erkennbar vom Mitgliedsnamen ab —
+  verbucht wurde trotzdem; hier nur zum kurzen Draufschauen (Name und IBAN wurden nicht gespeichert).</p>
+  {% for e in hinweise %}
+  <div class="eintrag"><span>{{ e.gebucht_am|date:"d.m.Y" }} ·
+    <a href="{% url 'mitglieder:verwaltung_mitglied' e.mitglied.pk %}">{{ e.mitglied.anzeigename }}</a></span>
+    <span>{{ e.betrag }} €</span></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<h2>Länger als 12 Monate ohne Eingang</h2>
+<div class="karte">
+{% if faellige %}
+  <form method="post" action="{% url 'mitglieder:beitrag_erinnern' %}">{% csrf_token %}
+    <table class="tabelle">
+      <thead><tr><th></th><th>Mitglied</th><th>E-Mail</th><th>Letzter Eingang</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for m in faellige %}
+      <tr>
+        <td><input type="checkbox" name="mitglied" value="{{ m.pk }}" aria-label="{{ m.anzeigename }} auswählen"></td>
+        <td data-label="Mitglied"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a></td>
+        <td data-label="E-Mail">{{ m.email }}</td>
+        <td data-label="Letzter Eingang">{{ m.beitrag_zuletzt_am|date:"d.m.Y"|default:"noch nie" }}</td>
+        <td data-label="Status">{{ m.get_status_display }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="stimmzeile" style="margin-top:14px">
+      <button type="submit" class="btn-linie">Ausgewählte erinnern</button>
+      <button type="submit" name="alle" value="1" class="btn">Alle {{ faellige|length }} erinnern</button>
+    </div>
+    <p class="hilfe" style="margin-top:8px">Die E-Mail erinnert freundlich, nennt die persönliche Referenz
+    und verlinkt die Beitragsseite — ausgeschlossen wird wegen des Beitrags niemand (§ 4 Abs 3).</p>
+  </form>
+{% else %}
+  <p class="leer">Niemand fällig — alle Eingänge liegen innerhalb der letzten zwölf Monate.</p>
+{% endif %}
+</div>
+
+{% if letzte %}
+<h2>Zuletzt verbucht</h2>
+<div class="karte">
+  {% for e in letzte %}
+  <div class="eintrag"><span>{{ e.gebucht_am|date:"d.m.Y" }} ·
+    <a href="{% url 'mitglieder:verwaltung_mitglied' e.mitglied.pk %}">{{ e.mitglied.anzeigename }}</a>
+    {% if e.namens_hinweis %}<span class="badge badge--hell">Namenshinweis</span>{% endif %}</span>
+    <span>{{ e.betrag }} €</span></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

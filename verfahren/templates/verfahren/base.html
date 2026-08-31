@@ -191,6 +191,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
     <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzung" %}</a>
     <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
+      <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
       {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
       <span class="wer">{{ user.anzeigename }}</span>
       <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">{% translate "Abmelden" %}</button></form>

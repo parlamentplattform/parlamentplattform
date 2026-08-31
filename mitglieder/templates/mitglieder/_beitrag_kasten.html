@@ -1,0 +1,21 @@
+{% load i18n %}
+<div class="karte hinweis">
+<div class="stimmzeile" style="align-items:flex-start;gap:24px">
+  <div style="flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px">{{ qr_svg|safe }}</div>
+  <div style="flex:1 1 22em">
+    <p>{% blocktranslate %}<strong>Banking-App öffnen → „Zahlen mit Code" → diesen Code scannen.</strong>
+    Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt — Sie bestätigen nur noch.
+    Die Überweisung läuft direkt von Konto zu Konto (Echtzeitüberweisung): ohne Zahlungsdienstleister,
+    ohne Gebührenprozente.{% endblocktranslate %}</p>
+    <p style="margin-top:10px">{% blocktranslate with richtwert=richtwert %}Richtwert: <strong>{{ richtwert }}&nbsp;€ im Jahr</strong> — Selbsteinschätzung,
+    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen Gründen ausgeschlossen.{% endblocktranslate %}</p>
+  </div>
+</div>
+<p style="margin:14px 0">{% translate "Oder von Hand:" %}
+{% translate "Empfänger" %} <strong>Direkte Demokratie Österreich</strong> ·
+IBAN <code class="gross">{{ iban }}</code> ·
+{% translate "Verwendungszweck" %} <code class="gross">{{ referenz }}</code></p>
+<p class="hilfe">{% blocktranslate %}Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,
+damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr Konto als
+geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail.{% endblocktranslate %}</p>
+</div>

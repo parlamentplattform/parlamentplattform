@@ -1,0 +1,35 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mitgliedsbeitrag" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Mitgliedsbeitrag" %}</h1>
+<p style="max-width:46em">{% blocktranslate %}Diese Seite ist jederzeit für Sie da — für den ersten Beitrag genauso wie
+für jeden weiteren. Die Höhe bleibt Ihre Selbsteinschätzung (§ 4 Abs 3).{% endblocktranslate %}</p>
+
+{% include "mitglieder/_beitrag_kasten.html" %}
+
+<div class="karte">
+  <h2 style="margin-top:0;font-size:20px">{% translate "Schon überwiesen?" %}</h2>
+  {% if abgleich_aktiv %}
+  <p>{% blocktranslate %}Sagen Sie es uns — die Plattform sieht dann sofort auf dem Vereinskonto nach.
+  Bei einer Echtzeitüberweisung ist Ihr Eingang meist im selben Moment erkannt und Ihre
+  Mitwirkung freigeschaltet.{% endblocktranslate %}</p>
+  {% else %}
+  <p>{% blocktranslate %}Sagen Sie es uns — Eingänge werden regelmäßig geprüft und Ihrem Konto
+  zugeordnet; Sie erhalten eine Bestätigung per E-Mail.{% endblocktranslate %}</p>
+  {% endif %}
+  <form method="post" action="{% url 'mitglieder:beitrag_gemeldet' %}" style="margin-top:12px">{% csrf_token %}
+    <button type="submit" class="btn">{% translate "Ich habe überwiesen" %}</button>
+  </form>
+</div>
+
+{% if eingaenge %}
+<h2>{% translate "Ihre verbuchten Beiträge" %}</h2>
+<div class="karte">
+  {% for e in eingaenge %}
+  <div class="eintrag"><span>{{ e.gebucht_am|date:"d.m.Y" }}</span><strong>{{ e.betrag }} €</strong></div>
+  {% endfor %}
+  <p class="hilfe" style="margin-top:8px">{% translate "Nur Sie und die Verwaltung sehen diese Liste — Beitragshöhen sind privat." %}</p>
+</div>
+{% endif %}
+{% endblock %}

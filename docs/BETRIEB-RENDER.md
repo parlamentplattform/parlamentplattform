@@ -47,6 +47,8 @@ Zwei Render-Eigenheiten, die man kennen muss:
 | `DDOE_MAIL_ABSENDER` | Absenderadresse (Standard `plattform@ddoe.at`) |
 | `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
 | `DDOE_FIX_ADMIN` | optional — fixer Verwaltungs-Erstzugang (Standard `didide@ddoe.at`, F-51) |
+| `DDOE_BANK_SECRET_ID` / `DDOE_BANK_SECRET_KEY` | Beitragsabgleich F-59: Schlüsselpaar des Kontoinformationsdiensts (GoCardless Bank Account Data → User Secrets). Ohne sie bleibt die Bankanbindung schlicht aus |
+| `DDOE_BASIS_URL` | optional, Standard `https://parlament.ddoe.at` — Basis für Rückkehr-Link der Bankkopplung und Links in Beitragsmails |
 | `PYTHON_VERSION=3.12.6` | Laufzeitversion |
 
 ## Verwaltung — ohne Superuser

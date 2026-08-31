@@ -128,6 +128,13 @@ DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
 # damit die Verwaltung nie herrenlos wird. Weitere Admins ernennen Admins einander.
 DDOE_FIX_ADMIN = os.environ.get("DDOE_FIX_ADMIN", "didide@ddoe.at").lower()
 
+# F-59 Beitragsabgleich: Zugang zum Kontoinformationsdienst (GoCardless Bank
+# Account Data). Ohne diese Schlüssel bleibt die Bankanbindung einfach aus —
+# die Plattform kennt in keinem Fall Bankzugangsdaten, nur diese Dienst-Kennungen.
+DDOE_BANK_SECRET_ID = os.environ.get("DDOE_BANK_SECRET_ID", "")
+DDOE_BANK_SECRET_KEY = os.environ.get("DDOE_BANK_SECRET_KEY", "")
+DDOE_BASIS_URL = os.environ.get("DDOE_BASIS_URL", "https://parlament.ddoe.at")
+
 # Sicherheit — greift, sobald DEBUG aus ist
 if not DEBUG:
     SECURE_SSL_REDIRECT = True

@@ -2,6 +2,15 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.12.0] — 2026-08-31 · Der Beitragsabgleich: das Konto meldet sich selbst
+
+### Hinzugefügt
+- **Beitragsabgleich (F-59, § 4 Abs 3):** Die Plattform liest — nur lesend, über einen PSD2-Kontoinformationsdienst (GoCardless Bank Account Data) — die Umsätze des Vereinskontos und verbucht Eingänge anhand der persönlichen Beitragsreferenz (F-38): Beitragsdatum aktualisiert, Beitragspause beendet, Erstkonto freigeschaltet („geprüft"), Audit-Eintrag (ohne Betrag — die Höhe ist Selbsteinschätzung und bleibt privat), Bestätigungsmail. **Datensparsam:** gespeichert werden nur Betrag, Buchungstag, Umsatz-Kennung und ein Ja/Nein-Namenshinweis — nie IBAN oder Absendername
+- **Beitragsseite `/beitrag/` im Hauptmenü:** QR-Kasten jederzeit erreichbar (nicht mehr nur auf der Willkommensseite) samt **„Ich habe überwiesen"** — der Klick löst sofort einen Kontoabruf aus; bei Echtzeitüberweisung ist der Eingang meist im selben Moment verbucht und die Mitwirkung frei. Eigene Eingänge als private Liste
+- **Verwaltung „Beiträge & Bank":** Kopplung des Vereinskontos per Klick (die Zustimmung erteilt die Kontoinhaberin selbst im Online-Banking — die Plattform sieht nie Bankzugangsdaten; Erneuerung alle 180 Tage), Abrufstand (PSD2-Kontingent 4/Tag), Prüfhinweise bei abweichendem Absendernamen, manueller Sofort-Abgleich — und die **Erinnerungsliste:** alle Mitglieder, deren letzter Eingang über zwölf Monate zurückliegt (oder die nie eingezahlt haben), mit Haken je Zeile oder „Alle erinnern"; die E-Mail nennt die persönliche Referenz und verlinkt die Beitragsseite. Versendet wird ausschließlich auf Knopfdruck
+- Nachholender Abgleich beim Öffnen der Beitragsverwaltung (wenn der letzte Abruf länger als sechs Stunden zurückliegt); Management-Kommando `beitraege_abrufen` für einen späteren Zeitplan-Dienst
+- 12 neue Tests (148 gesamt); alles vollständig zweisprachig; F-59 im Lastenheft, neue Umgebungsvariablen in der Betriebsdoku
+
 ## [0.11.0] — 2026-08-26 · Neues Gewand: Bühne, Dark Mode, Mobilmenü
 
 ### Hinzugefügt

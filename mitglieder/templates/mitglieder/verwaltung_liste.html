@@ -3,7 +3,8 @@
 {% block inhalt %}
 <h1>Mitgliederverwaltung</h1>
 <p>Zugang nur für Admins. Jede Handlung hier wird im öffentlichen
-Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.</p>
+Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.
+<a href="{% url 'mitglieder:verwaltung_beitraege' %}">Beiträge &amp; Bank →</a></p>
 
 <div class="hf-grid" style="margin-top:18px">
   <div class="bereich"><span class="bk">Bestand</span>

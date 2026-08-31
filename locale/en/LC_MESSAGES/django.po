@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 21:49+0200\n"
+"POT-Creation-Date: 2026-09-01 00:33+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,101 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid ""
+"Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet"
+" — Eingänge werden derzeit von der Verwaltung geprüft."
+msgstr ""
+"Thanks for letting us know! Automatic matching is not set up yet — payments "
+"are currently checked by the administration."
+
+msgid ""
+"Der letzte Abgleich ist keine drei Minuten her — bitte gleich noch einmal "
+"versuchen."
+msgstr ""
+"The last check ran less than three minutes ago — please try again in a "
+"moment."
+
+msgid ""
+"Ihre Zahlung ist angekommen und verbucht — Ihre Mitwirkungsrechte sind "
+"aktiv. Danke!"
+msgstr ""
+"Your payment has arrived and been recorded — your participation rights are "
+"active. Thank you!"
+
+msgid ""
+"Die Bank erlaubt nur wenige Abrufe pro Tag und das heutige Kontingent ist "
+"verbraucht — Ihr Eingang wird beim nächsten Abgleich automatisch erkannt."
+msgstr ""
+"The bank allows only a few checks per day and today's quota is used up — "
+"your payment will be recognised automatically at the next check."
+
+msgid ""
+"Die Bank war gerade nicht erreichbar — wir gleichen automatisch wieder ab, "
+"Ihr Eingang geht nicht verloren."
+msgstr ""
+"The bank could not be reached just now — we will check again automatically; "
+"your payment will not be lost."
+
+msgid ""
+"Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine "
+"Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Wir prüfen "
+"automatisch weiter."
+msgstr ""
+"No payment with your reference is visible yet — depending on the bank, a "
+"transfer takes seconds (instant) up to one business day. We keep checking "
+"automatically."
+
+#, python-format
+msgid "%d Erinnerung(en) versendet."
+msgstr "%d reminder(s) sent."
+
+#, python-format
+msgid "%d Erinnerung(en) konnten nicht versendet werden (Mailserver)."
+msgstr "%d reminder(s) could not be sent (mail server)."
+
+msgid "Niemand ausgewählt."
+msgstr "Nobody selected."
+
+msgid ""
+"Die Dienst-Schlüssel (DDOE_BANK_SECRET_ID/KEY) sind noch nicht gesetzt."
+msgstr "The service keys (DDOE_BANK_SECRET_ID/KEY) are not set yet."
+
+msgid "Bitte eine Bank auswählen."
+msgstr "Please choose a bank."
+
+msgid ""
+"Der Kontoinformationsdienst war nicht erreichbar — bitte später erneut "
+"versuchen."
+msgstr ""
+"The account information service could not be reached — please try again "
+"later."
+
+#, python-format
+msgid ""
+"Bankkonto gekoppelt — Zustimmung gültig bis %s. Der Abgleich läuft ab jetzt "
+"automatisch."
+msgstr ""
+"Bank account linked — consent valid until %s. Matching now runs "
+"automatically."
+
+msgid "Die Kopplung wurde nicht abgeschlossen — bitte erneut starten."
+msgstr "The linking was not completed — please start again."
+
+#, python-format
+msgid "Abgleich ausgeführt — %d neue(r) Eingang/Eingänge verbucht."
+msgstr "Check completed — %d new payment(s) recorded."
+
+msgid ""
+"Das heutige Abruf-Kontingent der Bank (4) ist verbraucht — morgen geht es "
+"weiter."
+msgstr "Today's bank query quota (4) is used up — it continues tomorrow."
+
+msgid "Noch kein Bankkonto gekoppelt."
+msgstr "No bank account linked yet."
+
+msgid "Abruf gescheitert — die Bank oder der Dienst war nicht erreichbar."
+msgstr "Query failed — the bank or the service could not be reached."
 
 msgid "Sicherheitsfrage"
 msgstr "Security question"
@@ -34,6 +129,84 @@ msgid ""
 "Die Sicherheitsfrage wurde nicht richtig beantwortet — bitte erneut "
 "versuchen."
 msgstr "The security question was not answered correctly — please try again."
+
+msgid ""
+"<strong>Banking-App öffnen → „Zahlen mit Code\" → diesen Code scannen.</strong>\n"
+"    Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt — Sie bestätigen nur noch.\n"
+"    Die Überweisung läuft direkt von Konto zu Konto (Echtzeitüberweisung): ohne Zahlungsdienstleister,\n"
+"    ohne Gebührenprozente."
+msgstr ""
+"<strong>Open your banking app → “Pay by code” → scan this code.</strong> "
+"Recipient, IBAN and your personal reference are already filled in — you only"
+" confirm. The transfer runs directly from account to account (instant "
+"transfer): no payment provider, no percentage fees."
+
+#, python-format
+msgid ""
+"Richtwert: <strong>%(richtwert)s&nbsp;€ im Jahr</strong> — Selbsteinschätzung,\n"
+"    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen Gründen ausgeschlossen."
+msgstr ""
+"Guide amount: <strong>%(richtwert)s&nbsp;€ per year</strong> — self-"
+"assessed; you can change the amount in your app. Nobody is excluded for "
+"financial reasons."
+
+msgid "Oder von Hand:"
+msgstr "Or manually:"
+
+msgid "Empfänger"
+msgstr "Recipient"
+
+msgid "Verwendungszweck"
+msgstr "Payment reference"
+
+msgid ""
+"Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,\n"
+"damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr Konto als\n"
+"geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail."
+msgstr ""
+"The reference is your personal payment purpose — please enter it exactly so "
+"the payment can be matched to your account. Once received, your account is "
+"verified and unlocked; you will receive an email confirmation."
+
+msgid "Mitgliedsbeitrag"
+msgstr "Membership fee"
+
+msgid ""
+"Diese Seite ist jederzeit für Sie da — für den ersten Beitrag genauso wie\n"
+"für jeden weiteren. Die Höhe bleibt Ihre Selbsteinschätzung (§ 4 Abs 3)."
+msgstr ""
+"This page is here for you at any time — for your first fee as well as every "
+"further one. The amount remains your own assessment (§ 4 (3))."
+
+msgid "Schon überwiesen?"
+msgstr "Already transferred?"
+
+msgid ""
+"Sagen Sie es uns — die Plattform sieht dann sofort auf dem Vereinskonto nach.\n"
+"  Bei einer Echtzeitüberweisung ist Ihr Eingang meist im selben Moment erkannt und Ihre\n"
+"  Mitwirkung freigeschaltet."
+msgstr ""
+"Tell us — the platform will look at the party's account right away. With an "
+"instant transfer, your payment is usually recognised the same moment and "
+"your participation is activated."
+
+msgid ""
+"Sagen Sie es uns — Eingänge werden regelmäßig geprüft und Ihrem Konto\n"
+"  zugeordnet; Sie erhalten eine Bestätigung per E-Mail."
+msgstr ""
+"Tell us — payments are checked regularly and assigned to your account; you "
+"will receive a confirmation by e-mail."
+
+msgid "Ich habe überwiesen"
+msgstr "I have transferred"
+
+msgid "Ihre verbuchten Beiträge"
+msgstr "Your recorded fees"
+
+msgid ""
+"Nur Sie und die Verwaltung sehen diese Liste — Beitragshöhen sind privat."
+msgstr ""
+"Only you and the administration see this list — fee amounts are private."
 
 msgid "Einführung"
 msgstr "Introduction"
@@ -288,42 +461,11 @@ msgid "Mitgliedsbeitrag — am schnellsten per QR-Code"
 msgstr "Membership fee — fastest by QR code"
 
 msgid ""
-"<strong>Banking-App öffnen → „Zahlen mit Code\" → diesen Code scannen.</strong>\n"
-"    Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt — Sie bestätigen nur noch.\n"
-"    Die Überweisung läuft direkt von Konto zu Konto (Echtzeitüberweisung): ohne Zahlungsdienstleister,\n"
-"    ohne Gebührenprozente."
+"Diese Seite finden Sie jederzeit wieder: Menüpunkt „Beitrag\" — dort können Sie\n"
+"nach der Überweisung auch den sofortigen Abgleich anstoßen."
 msgstr ""
-"<strong>Open your banking app → “Pay by code” → scan this code.</strong> "
-"Recipient, IBAN and your personal reference are already filled in — you only"
-" confirm. The transfer runs directly from account to account (instant "
-"transfer): no payment provider, no percentage fees."
-
-#, python-format
-msgid ""
-"Richtwert: <strong>%(richtwert)s&nbsp;€ im Jahr</strong> — Selbsteinschätzung,\n"
-"    der Betrag ist in Ihrer App änderbar. Niemand wird aus finanziellen Gründen ausgeschlossen."
-msgstr ""
-"Guide amount: <strong>%(richtwert)s&nbsp;€ per year</strong> — self-"
-"assessed; you can change the amount in your app. Nobody is excluded for "
-"financial reasons."
-
-msgid "Oder von Hand:"
-msgstr "Or manually:"
-
-msgid "Empfänger"
-msgstr "Recipient"
-
-msgid "Verwendungszweck"
-msgstr "Payment reference"
-
-msgid ""
-"Die Referenz ist Ihr persönlicher Verwendungszweck — bitte exakt angeben,\n"
-"damit die Zahlung Ihrem Konto zugeordnet werden kann. Nach Eingang wird Ihr Konto als\n"
-"geprüft freigeschaltet; Sie erhalten eine Bestätigung per E-Mail."
-msgstr ""
-"The reference is your personal payment purpose — please enter it exactly so "
-"the payment can be matched to your account. Once received, your account is "
-"verified and unlocked; you will receive an email confirmation."
+"You can always find this page again: menu item “Fee” — after transferring "
+"you can also trigger the immediate check there."
 
 msgid "Was Sie jetzt schon können"
 msgstr "What you can do already"
@@ -777,6 +919,10 @@ msgstr "Menu"
 
 msgid "Antrag einbringen"
 msgstr "Submit a motion"
+
+msgctxt "mitgliedsbeitrag"
+msgid "Beitrag"
+msgstr "Fee"
 
 msgid "Abmelden"
 msgstr "Sign out"

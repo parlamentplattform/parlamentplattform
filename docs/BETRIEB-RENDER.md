@@ -21,11 +21,16 @@ Zwei Render-Eigenheiten, die man kennen muss:
    September 2025 ausgehenden SMTP-Verkehr (Ports 25/465/587) komplett. Der
    bezahlte Instance Type ist also nicht nur gegen das Einschlafen, sondern
    Voraussetzung für Bestätigungs- und Anmelde-Mails.
-2. **Kein automatischer Deploy bei Push:** Der Dienst wurde per API angelegt und
-   hat keinen GitHub-Webhook. Nach jedem Push auf `main` im Dashboard
-   **Manual Deploy → Deploy latest commit** klicken (oder einmalig unter
-   *Settings → Build & Deploy* das GitHub-Repo verbinden, dann deployt jeder
-   Push automatisch).
+2. **Automatischer Deploy läuft über die CI, nicht über Render:** Der Dienst ist
+   als öffentliche Git-URL verbunden (kein Render-Webhook; das `autoDeploy: yes`
+   im Dashboard feuert deshalb nie). Stattdessen stößt der CI-Job **ausrollen**
+   nach jeder **bestandenen** Prüfung auf `main` den Render-Deploy-Hook an —
+   rote Commits gehen so nie live. Einmalige Einrichtung: In Render unter
+   *Settings → Deploy Hook* die URL kopieren und im GitHub-Repo als
+   Actions-Secret **`RENDER_DEPLOY_HOOK`** hinterlegen (*Settings → Secrets and
+   variables → Actions*). Solange das Secret fehlt, überspringt die CI den
+   Schritt und es gilt der manuelle Weg: Dashboard → **Manual Deploy → Deploy
+   latest commit**.
 
 ## Start und Build
 

@@ -9,7 +9,7 @@
   und jede Auszählung lässt sich unabhängig nachrechnen. Mandatare setzen um, was beschlossen wurde;
   den Stand zeigt das öffentliche Umsetzungsregister.{% endblocktranslate %}</p>
   <div class="wege">
-    <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>
+    <a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
     <a class="btn-hell" href="#entscheidung">{% translate "Zu den laufenden Abstimmungen" %}</a>
   </div>
   <div class="zahlenband">
@@ -61,7 +61,7 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
     {% else %}
       <p class="erk">{% translate "Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon gerade zur Abstimmung steht." %}
       <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> {% translate "oder" %}
-      <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>
+      <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>.</p>
     {% endif %}
   </section>
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 06:43+0200\n"
+"POT-Creation-Date: 2026-09-01 07:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -413,6 +413,262 @@ msgstr ""
 "No email? Check your spam folder or request a new link. For security reasons"
 " this page does not reveal whether an account exists for an address."
 
+msgid "Ihre Stimme, direkt."
+msgstr "Your voice, direct."
+
+msgid ""
+"Als Mitglied der DDÖ entscheiden Sie selbst: Sie bringen Anträge ein, beraten mit,\n"
+"  stimmen ab — und können jedes Ergebnis eigenhändig nachrechnen. Lesen dürfen hier alle;\n"
+"  Mitgliedschaft heißt mitentscheiden."
+msgstr ""
+"As a member of the DDÖ you decide for yourself: you submit motions, join the"
+" deliberation, cast your vote — and you can verify every result with your "
+"own hands. Everyone may read here; membership means deciding."
+
+msgid "Jetzt Mitglied werden"
+msgstr "Become a member now"
+
+msgid "So entsteht ein Beschluss"
+msgstr "How a decision is made"
+
+msgid "Was Sie als Mitglied können"
+msgstr "What you can do as a member"
+
+msgid "Ein Blatt mit Stift"
+msgstr "A sheet with a pen"
+
+msgid "Anträge einbringen"
+msgstr "Submit motions"
+
+msgid ""
+"Jedes Mitglied kann jeden Vorschlag einbringen — ohne inhaltliche "
+"Vorprüfung, öffentlich vom ersten Tag."
+msgstr ""
+"Every member can submit any proposal — without content screening, public "
+"from day one."
+
+msgid "Drei erhobene Hände"
+msgstr "Three raised hands"
+
+msgid "Unterstützen"
+msgstr "Support"
+
+msgid ""
+"Sie geben Anträgen anderer den Rückenwind über die Schwelle — Unterstützen "
+"ist oft wirksamer als ein Parallelantrag."
+msgstr ""
+"You give other people's motions the tailwind across the threshold — "
+"supporting is often more effective than a parallel motion."
+
+msgid "Zwei Sprechblasen"
+msgstr "Two speech bubbles"
+
+msgid "Mitberaten"
+msgstr "Join the deliberation"
+
+msgid ""
+"In der Beratungsphase schärfen Ihre Beiträge den Antrag — öffentlich, "
+"sachlich, festgehalten."
+msgstr ""
+"During deliberation your contributions sharpen the motion — public, factual,"
+" on the record."
+
+msgid ""
+"Am Ende entscheiden alle Stimmberechtigten — eine Person, eine Stimme, auf "
+"jeder Ebene: Gemeinde, Land, Bund."
+msgstr ""
+"In the end all eligible members decide — one person, one vote, on every "
+"level: municipality, province, federation."
+
+msgid "Eine Lupe über einer Ergebnisliste"
+msgstr "A magnifying glass over a list of results"
+
+msgid "Selbst nachrechnen"
+msgstr "Verify it yourself"
+
+msgid ""
+"Jede Auszählung ist aus den veröffentlichten Daten ohne Spezialkenntnisse "
+"überprüfbar — Vertrauen ist hier keine Voraussetzung."
+msgstr ""
+"Every count can be checked from the published data without special skills — "
+"trust is not a prerequisite here."
+
+msgid "Ein Zahnrad mit Häkchen"
+msgstr "A gear with a check mark"
+
+msgid "Umsetzung verfolgen"
+msgstr "Follow the implementation"
+
+msgid ""
+"Das öffentliche Umsetzungsregister zeigt zu jedem Beschluss, was daraus wird"
+" — Stillstand kann sich nicht verstecken."
+msgstr ""
+"The public implementation register shows what becomes of every decision — "
+"standstill cannot hide."
+
+msgid "Vom Antrag zum Beschluss"
+msgstr "From motion to decision"
+
+msgid "Einbringen"
+msgstr "Submitting"
+
+msgid ""
+"Sie schreiben Ihren Vorschlag — die Plattform zeigt sofort ähnliche Anträge:\n"
+"      unterstützen oder selbst einbringen, Ihre Wahl."
+msgstr ""
+"You write your proposal — the platform immediately shows similar motions: "
+"support one or submit your own, your choice."
+
+msgid "Unterstützung sammeln"
+msgstr "Gathering support"
+
+msgid ""
+"Erreicht der Antrag die veröffentlichte Schwelle, geht er weiter — sonst bleibt er\n"
+"      offen einsehbar, nichts verschwindet."
+msgstr ""
+"If the motion reaches the published threshold, it moves on — otherwise it "
+"remains openly visible; nothing disappears."
+
+msgid "Beratung"
+msgstr "Deliberation"
+
+msgid ""
+"Mindestens 21 Tage öffentliche Erörterung. Die <a href=\"/staatssimulation/\">StaatsSimulation</a>\n"
+"      rechnet durch, welche Gesetze berührt wären und was die Umsetzung kosten würde; der Expertenrat gibt seine\n"
+"      Stellungnahme im Wortlaut ab."
+msgstr ""
+"At least 21 days of public deliberation. The <a "
+"href=\"/staatssimulation/\">StaatsSimulation</a> works out which laws would "
+"be affected and what implementation would cost; the Expert Council issues "
+"its statement verbatim."
+
+msgid "Abstimmung"
+msgstr "Voting"
+
+msgid ""
+"Alle Stimmberechtigten entscheiden — mit allen Unterlagen am Stimmzettel.\n"
+"      Eine Person, eine Stimme."
+msgstr ""
+"All eligible members decide — with all documents attached to the ballot. One"
+" person, one vote."
+
+msgid "Ergebnis — nachrechenbar"
+msgstr "Result — verifiable"
+
+msgid ""
+"Ergebnis, Beteiligung und aggregierte Rohdaten werden veröffentlicht;\n"
+"      jede und jeder kann die Auszählung unabhängig wiederholen."
+msgstr ""
+"Result, turnout and aggregated raw data are published; anyone can repeat the"
+" count independently."
+
+msgid "Umsetzung"
+msgstr "Implementation"
+
+msgid ""
+"Angenommene Anträge wandern ins öffentliche Umsetzungsregister: Stand, Hindernisse\n"
+"      und Fortschritt — bis der Beschluss Wirklichkeit ist. Als Partei setzen unsere Mandatare um, was Sie beschließen."
+msgstr ""
+"Adopted motions move into the public implementation register: status, "
+"obstacles and progress — until the decision is reality. As a party, our "
+"representatives implement what you decide."
+
+msgid "Die Mitgliedschaft im Detail"
+msgstr "Membership in detail"
+
+msgid "Anwartschaft"
+msgstr "Qualifying period"
+
+msgid "Mitentscheiden mit Anlauf"
+msgstr "Deciding, with a run-up"
+
+msgid ""
+"Nach der Satzung sind Sie bei Sachfragen nach drei Monaten stimmberechtigt, bei\n"
+"    Personal- und Satzungsfragen nach zwölf — ein Schutz gegen feindliche Übernahmen. In der Aufbauphase gilt die\n"
+"    Übergangsregel: Die Fristen entfallen, bis die Mitglieder die erste Verfahrensordnung beschlossen haben."
+msgstr ""
+"Under the statutes you may vote on substantive questions after three months,"
+" on personnel and statute questions after twelve — a safeguard against "
+"hostile takeovers. During the founding phase the transitional rule applies: "
+"the periods are waived until the members have adopted the first rules of "
+"procedure."
+
+msgid "Selbsteinschätzung statt Tarif"
+msgstr "Self-assessment instead of a tariff"
+
+msgid ""
+"Richtwert 30 € im Jahr — die Höhe bestimmen Sie selbst, und niemand wird aus\n"
+"    finanziellen Gründen ausgeschlossen. Bezahlt wird per QR-Code direkt von Konto zu Konto, ohne\n"
+"    Zahlungsdienstleister."
+msgstr ""
+"Guide value € 30 a year — you set the amount yourself, and nobody is "
+"excluded for financial reasons. Payment is by QR code directly from account "
+"to account, without payment providers."
+
+msgid "Identität"
+msgstr "Identity"
+
+msgid "Ein Mensch, eine Stimme — pseudonym nach außen"
+msgstr "One person, one vote — pseudonymous in public"
+
+msgid ""
+"Ein Konto je Person, mit geprüfter Identität — das schützt vor gekauften Mehrheiten.\n"
+"    Öffentlich treten Sie unter einem beständigen Pseudonym auf, wenn Sie möchten; Ihre Stimme bleibt bei\n"
+"    Abstimmungen pseudonym."
+msgstr ""
+"One account per person, with verified identity — that protects against "
+"bought majorities. In public you appear under a stable pseudonym if you "
+"wish; your ballot remains pseudonymous."
+
+msgid "Ihre Region"
+msgstr "Your region"
+
+msgid "Gemeinde, Land, Bund"
+msgstr "Municipality, province, federation"
+
+msgid ""
+"Regionale Anträge entscheidet, wen sie betreffen: Ihre Gemeinde stimmt über\n"
+"    Gemeindesachen ab, Ihr Land über Landessachen. Ihre Lebensbereiche wählen Sie als Favoriten — Neues daraus\n"
+"    erscheint direkt in Ihrem Parlament."
+msgstr ""
+"Regional motions are decided by those they affect: your municipality votes "
+"on municipal matters, your province on provincial ones. You choose your "
+"areas of life as favourites — new items from them appear right in your "
+"parliament."
+
+msgid "Ihr Werkzeug dazu"
+msgstr "Your instrument for it"
+
+msgid "Die StaatsSimulation"
+msgstr "The StaatsSimulation"
+
+msgid ""
+"Zu jedem Antrag liefert die StaatsSimulation eine mit amtlichen Quellen belegte Einschätzung:\n"
+"  berührte Gesetze, Aufwand für den Staatsapparat, Ausschreibungspflichten, realistische Dauer. Sie berät alle\n"
+"  und entscheidet nie — Entscheidungen treffen die Mitglieder."
+msgstr ""
+"For every motion the StaatsSimulation delivers an assessment backed by "
+"official sources: affected laws, effort for the machinery of state, "
+"tendering obligations, a realistic timeline. It advises everyone and never "
+"decides — decisions are made by the members."
+
+msgid "Wie die StaatsSimulation arbeitet →"
+msgstr "How the StaatsSimulation works →"
+
+msgid "Bereit, mitzuentscheiden?"
+msgstr "Ready to decide with us?"
+
+msgid ""
+"Die Registrierung dauert zwei Minuten: Name, E-Mail, Wohnsitz-Gemeinde — Bestätigungslink,\n"
+"  fertig. Alles Weitere zeigt Ihnen die Plattform Schritt für Schritt."
+msgstr ""
+"Registration takes two minutes: name, e-mail, municipality of residence — "
+"confirmation link, done. The platform walks you through everything else step"
+" by step."
+
+msgid "Ich bin schon Mitglied — anmelden"
+msgstr "I am already a member — sign in"
+
 msgid ""
 "Mitglied kann jede natürliche Person ab dem vollendeten 16. Lebensjahr werden, die sich zu\n"
 "den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an Staatsbürgerschaft oder Wohnsitz\n"
@@ -421,6 +677,9 @@ msgstr ""
 "Any natural person aged 16 or over who subscribes to the principles of § 3 "
 "can become a member. Membership is not tied to citizenship or residence — "
 "voting rights on state-related questions follow the statutes."
+
+msgid "Was die Mitgliedschaft bedeutet →"
+msgstr "What membership means →"
 
 msgid "Beitritt beantragen"
 msgstr "Apply to join"
@@ -819,9 +1078,6 @@ msgstr "Text (version %(nummer)s)"
 msgid "Begründung"
 msgstr "Reasons"
 
-msgid "Unterstützen"
-msgstr "Support"
-
 msgid "Sie unterstützen diesen Antrag."
 msgstr "You support this motion."
 
@@ -879,9 +1135,6 @@ msgstr ""
 msgid "Meine Stimme in der Liste finden"
 msgstr "Find my vote in the list"
 
-msgid "Umsetzung"
-msgstr "Implementation"
-
 msgid "offen"
 msgstr "open"
 
@@ -906,9 +1159,6 @@ msgstr "Publish entry"
 
 msgid "Dauerhaft und auditiert — Einträge werden nie geändert oder gelöscht."
 msgstr "Permanent and audited — entries are never changed or deleted."
-
-msgid "Beratung"
-msgstr "Deliberation"
 
 msgid "Noch keine Beiträge."
 msgstr "No contributions yet."
@@ -938,6 +1188,9 @@ msgstr "Direct Democracy Austria"
 
 msgid "Menü"
 msgstr "Menu"
+
+msgid "Parlament"
+msgstr "Parliament"
 
 msgid "Umsetzungsregister"
 msgstr "Implementation register"
@@ -1366,9 +1619,6 @@ msgstr ""
 msgid "Ein offenes Lernwerkzeug der Demokratie"
 msgstr "An open learning instrument of democracy"
 
-msgid "Die StaatsSimulation"
-msgstr "The StaatsSimulation"
-
 msgid ""
 "Was würde Ihr Antrag im Staat bewegen? Die StaatsSimulation ist der digitale\n"
 "  Zwilling des Staatswesens in wachsender Auflösung: Sie schätzt für jeden Antrag ab, welche Gesetze er\n"
@@ -1658,9 +1908,6 @@ msgstr "machine-readable, with full history (F-23)."
 
 msgid "Unterstützung"
 msgstr "Support"
-
-msgid "Abstimmung"
-msgstr "Voting"
 
 msgid "verfallen"
 msgstr "lapsed"

@@ -145,6 +145,13 @@ pre{white-space:pre-wrap;font-family:inherit}
 .kat-grid>*:hover{transform:translateY(-2px);box-shadow:var(--schatten-hoch)}
 .brotkrume{font-size:13.5px;color:var(--matt)}
 .brotkrume a{color:var(--linkfarbe)}
+.fluss{display:grid;gap:0;position:relative}
+.fluss .station{display:flex;gap:16px;align-items:flex-start;position:relative;padding:0 0 22px 6px}
+.fluss .station:not(:last-child)::before{content:"";position:absolute;left:19px;top:30px;bottom:-4px;width:2px;background:linear-gradient(var(--deep),var(--gold));opacity:.45}
+.fluss .punkt{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--deep);color:var(--paper);font-weight:600;font-size:14px;position:relative;z-index:1}
+@media (prefers-color-scheme: dark){.fluss .punkt{color:#0C151E}}
+.fluss .station:last-child .punkt{background:var(--gold);color:#14232E}
+.fluss p{margin:2px 0 0}
 .schrittleiste{display:flex;gap:8px;align-items:center;margin:10px 0 22px;font-size:13.5px;color:var(--matt);flex-wrap:wrap}
 .schrittleiste .punkt{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--karton);font-weight:600}
 .schrittleiste .punkt.aktiv{background:var(--deep);color:var(--paper);border-color:var(--deep)}
@@ -186,7 +193,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
   <input type="checkbox" id="menue-schalter" class="menue-schalter" aria-label="{% translate 'Menü' %}">
   <label for="menue-schalter" class="menue-knopf" aria-hidden="true"><span></span><span></span><span></span></label>
   <nav>
-    <a href="{% url 'verfahren:index' %}">{% translate "Anträge" %}</a>
+    <a href="{% url 'verfahren:index' %}">{% translate "Parlament" %}</a>
     <a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a>
     <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
     <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a>
@@ -199,7 +206,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
       <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">{% translate "Abmelden" %}</button></form>
     {% else %}
       <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
-      <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>
+      <a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
     {% endif %}
     <form method="post" action="{% url 'set_language' %}" title="{% translate "Sprache wechseln" %}">{% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">
@@ -229,7 +236,8 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
     <div>
       <h3>{% translate "Plattform" %}</h3>
       <ul>
-        <li><a href="{% url 'verfahren:index' %}">{% translate "Anträge" %}</a></li>
+        <li><a href="{% url 'verfahren:index' %}">{% translate "Parlament" %}</a></li>
+        <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
         <li><a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a></li>
         <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
         <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>

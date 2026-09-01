@@ -5,7 +5,8 @@
 <h1>{% translate "Mitglied werden" %}</h1>
 <p>{% blocktranslate %}Mitglied kann jede natürliche Person ab dem vollendeten 16. Lebensjahr werden, die sich zu
 den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an Staatsbürgerschaft oder Wohnsitz
-gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgabe der Satzung.{% endblocktranslate %}</p>
+gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgabe der Satzung.{% endblocktranslate %}
+<a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Was die Mitgliedschaft bedeutet →" %}</a></p>
 
 <div class="karte" style="margin-top:20px">
 <form method="post">{% csrf_token %}

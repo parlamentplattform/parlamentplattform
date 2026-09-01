@@ -1,0 +1,174 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mitglied werden" %}{% endblock %}
+{% block inhalt %}
+
+<section class="held">
+  <p class="vorzeile">{% translate "Mitglied werden" %}</p>
+  <h1>{% translate "Ihre Stimme, direkt." %}</h1>
+  <p class="untertitel">{% blocktranslate %}Als Mitglied der DDÖ entscheiden Sie selbst: Sie bringen Anträge ein, beraten mit,
+  stimmen ab — und können jedes Ergebnis eigenhändig nachrechnen. Lesen dürfen hier alle;
+  Mitgliedschaft heißt mitentscheiden.{% endblocktranslate %}</p>
+  <div class="wege">
+    <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Jetzt Mitglied werden" %}</a>
+    <a class="btn-hell" href="#weg">{% translate "So entsteht ein Beschluss" %}</a>
+  </div>
+</section>
+
+<h2>{% translate "Was Sie als Mitglied können" %}</h2>
+<div class="kat-grid">
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Blatt mit Stift' %}">
+      <rect x="24" y="14" width="50" height="70" rx="4" fill="#fff" stroke="#0E2230" stroke-width="2.5"/>
+      <path d="M33 30 h32 M33 40 h32 M33 50 h24" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M62 88 l22 -22 8 8 -22 22 -10 2 z" fill="#D9A441" stroke="#0E2230" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Anträge einbringen" %}</h2>
+    <p class="erk">{% translate "Jedes Mitglied kann jeden Vorschlag einbringen — ohne inhaltliche Vorprüfung, öffentlich vom ersten Tag." %}</p>
+  </div>
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Drei erhobene Hände' %}">
+      <path d="M25 96 V64 c0 -8 12 -8 12 0 V56 c0 -8 12 -8 12 0 V52 c0 -8 12 -8 12 0 V64" fill="none" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M61 64 c2 -10 14 -8 14 2 l-2 18 c-1 8 -6 12 -14 12 H39 c-8 0 -14 -6 -14 -14" fill="none" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M78 30 l3.1 6.4 7 1 -5 4.9 1.2 7 -6.3 -3.3 -6.3 3.3 1.2 -7 -5 -4.9 7 -1 z" fill="#D9A441"/>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Unterstützen" %}</h2>
+    <p class="erk">{% translate "Sie geben Anträgen anderer den Rückenwind über die Schwelle — Unterstützen ist oft wirksamer als ein Parallelantrag." %}</p>
+  </div>
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Zwei Sprechblasen' %}">
+      <path d="M18 24 h48 a6 6 0 0 1 6 6 v20 a6 6 0 0 1 -6 6 H40 l-12 10 v-10 h-10 a6 6 0 0 1 -6 -6 V30 a6 6 0 0 1 6 -6 z" fill="#fff" stroke="#0E2230" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M26 36 h32 M26 44 h24" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M52 66 h34 a6 6 0 0 1 6 6 v12 a6 6 0 0 1 -6 6 h-6 v8 l-10 -8 H52 a6 6 0 0 1 -6 -6 V72 a6 6 0 0 1 6 -6 z" fill="#EDF3F5" stroke="#0E4C5C" stroke-width="2.5" stroke-linejoin="round"/>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Mitberaten" %}</h2>
+    <p class="erk">{% translate "In der Beratungsphase schärfen Ihre Beiträge den Antrag — öffentlich, sachlich, festgehalten." %}</p>
+  </div>
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Stimmzettel fällt in eine Urne' %}">
+      <rect x="20" y="52" width="70" height="44" rx="6" fill="none" stroke="#0E4C5C" stroke-width="2.5"/>
+      <rect x="42" y="48" width="26" height="7" rx="3" fill="#0E4C5C"/>
+      <g transform="rotate(-12 55 28)"><rect x="41" y="14" width="28" height="34" rx="3" fill="#fff" stroke="#0E2230" stroke-width="2"/>
+      <path d="M47 28 l5 5 9 -10" stroke="#D9A441" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Abstimmen" %}</h2>
+    <p class="erk">{% translate "Am Ende entscheiden alle Stimmberechtigten — eine Person, eine Stimme, auf jeder Ebene: Gemeinde, Land, Bund." %}</p>
+  </div>
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Eine Lupe über einer Ergebnisliste' %}">
+      <rect x="18" y="18" width="52" height="66" rx="4" fill="#fff" stroke="#0E2230" stroke-width="2.5"/>
+      <path d="M26 32 h28 M26 42 h28 M26 52 h20" stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="70" cy="62" r="18" fill="none" stroke="#D9A441" stroke-width="4"/>
+      <path d="M83 75 l12 12" stroke="#D9A441" stroke-width="5" stroke-linecap="round"/>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Selbst nachrechnen" %}</h2>
+    <p class="erk">{% translate "Jede Auszählung ist aus den veröffentlichten Daten ohne Spezialkenntnisse überprüfbar — Vertrauen ist hier keine Voraussetzung." %}</p>
+  </div>
+  <div class="karte">
+    <svg width="64" height="64" viewBox="0 0 110 110" role="img" aria-label="{% translate 'Ein Zahnrad mit Häkchen' %}">
+      <circle cx="55" cy="55" r="20" fill="none" stroke="#0E4C5C" stroke-width="2.5"/>
+      <g stroke="#0E4C5C" stroke-width="2.5" stroke-linecap="round">
+        <path d="M55 24 v-8 M55 86 v8 M24 55 h-8 M86 55 h8 M33 33 l-6 -6 M77 77 l6 6 M77 33 l6 -6 M33 77 l-6 6"/>
+      </g>
+      <path d="M45 55 l7 7 14 -15" stroke="#D9A441" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2 style="font-size:19px;margin:8px 0 4px">{% translate "Umsetzung verfolgen" %}</h2>
+    <p class="erk">{% translate "Das öffentliche Umsetzungsregister zeigt zu jedem Beschluss, was daraus wird — Stillstand kann sich nicht verstecken." %}</p>
+  </div>
+</div>
+
+<h2 id="weg">{% translate "Vom Antrag zum Beschluss" %}</h2>
+<div class="karte">
+  <div class="fluss">
+    <div class="station">
+      <span class="punkt">1</span>
+      <div><strong>{% translate "Einbringen" %}</strong>
+      <p class="erk">{% blocktranslate %}Sie schreiben Ihren Vorschlag — die Plattform zeigt sofort ähnliche Anträge:
+      unterstützen oder selbst einbringen, Ihre Wahl.{% endblocktranslate %}</p></div>
+    </div>
+    <div class="station">
+      <span class="punkt">2</span>
+      <div><strong>{% translate "Unterstützung sammeln" %}</strong>
+      <p class="erk">{% blocktranslate %}Erreicht der Antrag die veröffentlichte Schwelle, geht er weiter — sonst bleibt er
+      offen einsehbar, nichts verschwindet.{% endblocktranslate %}</p></div>
+    </div>
+    <div class="station">
+      <span class="punkt">3</span>
+      <div><strong>{% translate "Beratung" %}</strong>
+      <p class="erk">{% blocktranslate %}Mindestens 21 Tage öffentliche Erörterung. Die <a href="/staatssimulation/">StaatsSimulation</a>
+      rechnet durch, welche Gesetze berührt wären und was die Umsetzung kosten würde; der Expertenrat gibt seine
+      Stellungnahme im Wortlaut ab.{% endblocktranslate %}</p></div>
+    </div>
+    <div class="station">
+      <span class="punkt">4</span>
+      <div><strong>{% translate "Abstimmung" %}</strong>
+      <p class="erk">{% blocktranslate %}Alle Stimmberechtigten entscheiden — mit allen Unterlagen am Stimmzettel.
+      Eine Person, eine Stimme.{% endblocktranslate %}</p></div>
+    </div>
+    <div class="station">
+      <span class="punkt">5</span>
+      <div><strong>{% translate "Ergebnis — nachrechenbar" %}</strong>
+      <p class="erk">{% blocktranslate %}Ergebnis, Beteiligung und aggregierte Rohdaten werden veröffentlicht;
+      jede und jeder kann die Auszählung unabhängig wiederholen.{% endblocktranslate %}</p></div>
+    </div>
+    <div class="station">
+      <span class="punkt">6</span>
+      <div><strong>{% translate "Umsetzung" %}</strong>
+      <p class="erk">{% blocktranslate %}Angenommene Anträge wandern ins öffentliche Umsetzungsregister: Stand, Hindernisse
+      und Fortschritt — bis der Beschluss Wirklichkeit ist. Als Partei setzen unsere Mandatare um, was Sie beschließen.{% endblocktranslate %}</p></div>
+    </div>
+  </div>
+</div>
+
+<h2>{% translate "Die Mitgliedschaft im Detail" %}</h2>
+<div class="hf-grid hf-grid--zwei">
+  <div class="bereich">
+    <span class="bk">{% translate "Anwartschaft" %}</span>
+    <h2 style="font-size:19px">{% translate "Mitentscheiden mit Anlauf" %}</h2>
+    <p class="erk">{% blocktranslate %}Nach der Satzung sind Sie bei Sachfragen nach drei Monaten stimmberechtigt, bei
+    Personal- und Satzungsfragen nach zwölf — ein Schutz gegen feindliche Übernahmen. In der Aufbauphase gilt die
+    Übergangsregel: Die Fristen entfallen, bis die Mitglieder die erste Verfahrensordnung beschlossen haben.{% endblocktranslate %}</p>
+  </div>
+  <div class="bereich">
+    <span class="bk">{% translate "Beitrag" %}</span>
+    <h2 style="font-size:19px">{% translate "Selbsteinschätzung statt Tarif" %}</h2>
+    <p class="erk">{% blocktranslate %}Richtwert 30 € im Jahr — die Höhe bestimmen Sie selbst, und niemand wird aus
+    finanziellen Gründen ausgeschlossen. Bezahlt wird per QR-Code direkt von Konto zu Konto, ohne
+    Zahlungsdienstleister.{% endblocktranslate %}</p>
+  </div>
+  <div class="bereich">
+    <span class="bk">{% translate "Identität" %}</span>
+    <h2 style="font-size:19px">{% translate "Ein Mensch, eine Stimme — pseudonym nach außen" %}</h2>
+    <p class="erk">{% blocktranslate %}Ein Konto je Person, mit geprüfter Identität — das schützt vor gekauften Mehrheiten.
+    Öffentlich treten Sie unter einem beständigen Pseudonym auf, wenn Sie möchten; Ihre Stimme bleibt bei
+    Abstimmungen pseudonym.{% endblocktranslate %}</p>
+  </div>
+  <div class="bereich">
+    <span class="bk">{% translate "Ihre Region" %}</span>
+    <h2 style="font-size:19px">{% translate "Gemeinde, Land, Bund" %}</h2>
+    <p class="erk">{% blocktranslate %}Regionale Anträge entscheidet, wen sie betreffen: Ihre Gemeinde stimmt über
+    Gemeindesachen ab, Ihr Land über Landessachen. Ihre Lebensbereiche wählen Sie als Favoriten — Neues daraus
+    erscheint direkt in Ihrem Parlament.{% endblocktranslate %}</p>
+  </div>
+</div>
+
+<div class="karte" style="margin-top:22px">
+  <span class="bk">{% translate "Ihr Werkzeug dazu" %}</span>
+  <h2 style="font-size:21px;margin:4px 0 6px">{% translate "Die StaatsSimulation" %}</h2>
+  <p>{% blocktranslate %}Zu jedem Antrag liefert die StaatsSimulation eine mit amtlichen Quellen belegte Einschätzung:
+  berührte Gesetze, Aufwand für den Staatsapparat, Ausschreibungspflichten, realistische Dauer. Sie berät alle
+  und entscheidet nie — Entscheidungen treffen die Mitglieder.{% endblocktranslate %}
+  <a href="{% url 'verfahren:staatssimulation' %}">{% translate "Wie die StaatsSimulation arbeitet →" %}</a></p>
+</div>
+
+<div class="karte hinweis" style="margin-top:22px">
+  <h2 style="margin-top:0;font-size:21px">{% translate "Bereit, mitzuentscheiden?" %}</h2>
+  <p>{% blocktranslate %}Die Registrierung dauert zwei Minuten: Name, E-Mail, Wohnsitz-Gemeinde — Bestätigungslink,
+  fertig. Alles Weitere zeigt Ihnen die Plattform Schritt für Schritt.{% endblocktranslate %}</p>
+  <div class="stimmzeile" style="margin-top:12px">
+    <a class="btn" href="{% url 'mitglieder:registrieren' %}">{% translate "Jetzt Mitglied werden" %}</a>
+    <a class="btn-linie" href="{% url 'mitglieder:login' %}">{% translate "Ich bin schon Mitglied — anmelden" %}</a>
+  </div>
+</div>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from mitglieder import beitraege_views, einfuehrung, verwaltung, views
 
 app_name = "mitglieder"
 urlpatterns = [
+    path("mitgliedschaft/", views.mitgliedschaft, name="mitgliedschaft"),
     path("mitglied-werden/", views.registrieren, name="registrieren"),
     path("bestaetigen/<str:token>/", views.bestaetigen, name="bestaetigen"),
     path("willkommen/", views.willkommen, name="willkommen"),

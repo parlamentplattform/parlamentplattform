@@ -2,6 +2,20 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.14.0] — 2026-09-01 · Das Schaufenster der Mitgliedschaft
+
+### Hinzugefügt
+- **Öffentliche Seite `/mitgliedschaft/`** (deutsch und englisch): erst plakativ, was Mitglieder können — sechs illustrierte Rechte-Karten (einbringen, unterstützen, mitberaten, abstimmen, selbst nachrechnen, Umsetzung verfolgen) —, dann das **Flussdiagramm „Vom Antrag zum Beschluss"** (sechs Stationen samt StaatsSimulation und Expertenrat in der Beratung), die Details ehrlich erklärt (Anwartschaft samt Übergangsregel, Beitrag als Selbsteinschätzung, Identität und Pseudonym, regionale Zuständigkeit) und der StaatsSimulations-Block mit Verweis auf die Erklärseite. Alle „Mitglied werden"-Einstiege (Menü, Startseiten-Bühne, Fußbereich) führen jetzt zuerst hierher; das Registrierungsformular bleibt direkt verlinkt
+- Neue Fluss-Strecken-Gestaltung (nummerierte Stationen mit Verbindungslinie) im zentralen Stylesheet
+
+### Geändert
+- Das Hauptfenster heißt im Menü und Fußbereich jetzt **„Parlament"** (englisch „Parliament")
+
+## [0.13.1] — 2026-09-01 · Die CI rollt selbst aus
+
+### Hinzugefügt
+- **CI-Job „ausrollen":** Nach jeder bestandenen Prüfung auf `main` stößt die CI den Render-Deploy-Hook an — Deploys passieren damit automatisch nach jedem Push, aber **nur bei grüner Prüfung** (rote Commits gehen nie live; das kann Renders natives Auto-Deploy nicht). Einmalig nötig: Deploy-Hook-URL aus dem Render-Dashboard als GitHub-Actions-Secret `RENDER_DEPLOY_HOOK` hinterlegen; ohne Secret wird der Schritt sauber übersprungen. Hintergrund: Der Dienst ist als öffentliche Git-URL verbunden — Renders eigenes Auto-Deploy hat keinen Webhook und feuert nie (alle bisherigen Deploys liefen per API)
+
 ## [0.13.0] — 2026-09-01 · Die StaatsSimulation bekommt ihr Schaufenster
 
 ### Hinzugefügt

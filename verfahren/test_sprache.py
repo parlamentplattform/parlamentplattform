@@ -56,3 +56,25 @@ def test_staatssimulation_oeffentlich_und_zweisprachig(client):
     inhalt = antwort.content.decode()
     assert "The AI proposes, it never decides." in inhalt
     assert "laboratory of democracies" in inhalt
+
+
+def test_mitgliedschaftsseite_oeffentlich_und_zweisprachig(client):
+    """Das Schaufenster der Mitgliedschaft: plakative Rechte, der Weg zum Beschluss, ehrlich."""
+    antwort = client.get(reverse("mitglieder:mitgliedschaft"))
+    assert antwort.status_code == 200
+    inhalt = antwort.content.decode()
+    assert "Was Sie als Mitglied können" in inhalt
+    assert "Vom Antrag zum Beschluss" in inhalt
+    assert "StaatsSimulation" in inhalt
+
+    antwort = client.get(reverse("mitglieder:mitgliedschaft"), HTTP_ACCEPT_LANGUAGE="en")
+    inhalt = antwort.content.decode()
+    assert "What you can do as a member" in inhalt
+    assert "One person, one vote" in inhalt
+
+
+def test_nav_heisst_parlament(client):
+    inhalt = client.get(reverse("verfahren:index")).content.decode()
+    assert ">Parlament</a>" in inhalt
+    inhalt = client.get(reverse("verfahren:index"), HTTP_ACCEPT_LANGUAGE="en").content.decode()
+    assert ">Parliament</a>" in inhalt

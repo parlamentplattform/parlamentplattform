@@ -279,3 +279,10 @@ def abmelden(request):
     dj_logout(request)
     messages.info(request, _("Sie sind abgemeldet."))
     return redirect("verfahren:index")
+
+
+def mitgliedschaft(request):
+    """Öffentliche Schaufenster-Seite der Mitgliedschaft: erst plakativ, was
+    Mitglieder können, dann die Details (Anwartschaft, Beitrag, Identität)
+    und der Weg vom Antrag zum Beschluss — ehrlich und ohne Kleingedrucktes."""
+    return render(request, "mitglieder/mitgliedschaft.html")

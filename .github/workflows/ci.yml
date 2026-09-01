@@ -23,3 +23,23 @@ jobs:
           coverage report
       - name: Django-Systemcheck
         run: python manage.py check
+
+  ausrollen:
+    # Deploy erst nach bestandener Prüfung — besser als naives Auto-Deploy,
+    # das auch rote Commits ausrollen würde. Braucht das Repository-Secret
+    # RENDER_DEPLOY_HOOK (Render: Settings → Deploy Hook); ohne Secret wird
+    # der Schritt sauber übersprungen.
+    needs: pruefen
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Render-Deploy anstoßen
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "Kein RENDER_DEPLOY_HOOK-Secret hinterlegt — Ausrollen übersprungen."
+            exit 0
+          fi
+          curl -fsS "$HOOK" > /dev/null
+          echo "Deploy angestoßen."

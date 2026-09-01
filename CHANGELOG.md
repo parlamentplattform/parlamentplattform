@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.15.0] — 2026-09-01 · Aufgeräumtes Menü und die neuen Fristen
+
+### Geändert
+- **Menü verschlankt:** „Lebensbereiche" ist aus dem Hauptmenü genommen (die Fokus-Ansicht bleibt über den Favoriten-Bereich, Kategorie-Chips und den Fußbereich erreichbar); **„Antrag einbringen"** ist jetzt ein hervorgehobener Menü-Knopf; der doppelte Button im Bereich d der Parlament-Seite ist entfernt
+- **Verfahrensordnung Version 2** (per Daten-Migration, § 5 Abs 5-konform — laufende Verfahren behalten ihre eingefrorenen Regeln): Unterstützungsfrist **60 Tage** (vorher 14), Beratung **21 Tage** (unverändert — deckt die drei Wochen des Expertenrats-Erstvorschlags), Endabstimmung **28 Tage** (vorher 7). Die Fristen der künftigen Entwurfsschleife (je zwei Wochen Unterstützer-Review und Überarbeitung) sind als Zielwerte im Oberflächen-Fahrplan festgehalten und werden mit der Expertenrats-Station (F-66/F-67) wirksam
+
 ## [0.14.0] — 2026-09-01 · Das Schaufenster der Mitgliedschaft
 
 ### Hinzugefügt

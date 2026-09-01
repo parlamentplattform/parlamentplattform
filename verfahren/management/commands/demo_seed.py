@@ -32,15 +32,15 @@ class Command(BaseCommand):
         call_command("gemeinden_laden")
         ordnung, _ = Verfahrensordnung.objects.get_or_create(
             policy_id="sachantrag-standard",
-            version=1,
+            version=2,
             defaults={
                 "regeln": {
                     "id": "sachantrag-standard",
-                    "version": 1,
+                    "version": 2,
                     "unterstuetzung_schwelle": 3,
-                    "unterstuetzung_frist_tage": 14,
+                    "unterstuetzung_frist_tage": 60,
                     "beratung_tage": 21,
-                    "abstimmung_tage": 7,
+                    "abstimmung_tage": 28,
                     "mindestbeteiligung": 0.05,
                     "mehrheitsbasis": "ja_nein",
                     "wiedereinbringung_sperre_monate": 6,
@@ -114,7 +114,7 @@ class Command(BaseCommand):
             a3.fortschreiben()  # -> Abstimmung (stellt die Stimmberechtigten automatisch fest)
             for m, wahl in zip(leute, ["ja", "ja", "ja", "nein", "enthaltung"], strict=True):
                 stimme_abgeben(a3, m, wahl)
-            a3.phase_beginn = timezone.now() - timedelta(days=8)
+            a3.phase_beginn = timezone.now() - timedelta(days=30)
             a3.save(update_fields=["phase_beginn"])
             a3.fortschreiben()  # -> Ergebnis
 

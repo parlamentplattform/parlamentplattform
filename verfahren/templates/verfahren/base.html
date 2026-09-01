@@ -61,6 +61,8 @@ nav .btn{padding:8px 18px;font-size:14px}
 nav form{display:inline}
 nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:#fff;opacity:.92;padding:0}
 nav button.aus:hover{color:var(--goldsoft)}
+.nav-cta{border:1px solid var(--goldsoft);border-radius:999px;padding:6px 14px !important;color:var(--goldsoft) !important;font-weight:600}
+.nav-cta:hover{background:var(--goldsoft);color:#14232E !important;border-bottom-color:transparent}
 .sprache{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px !important;font-size:12.5px !important;letter-spacing:.06em}
 .sprache:hover{border-color:var(--goldsoft)}
 @media(max-width:759px){
@@ -194,11 +196,10 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
   <label for="menue-schalter" class="menue-knopf" aria-hidden="true"><span></span><span></span><span></span></label>
   <nav>
     <a href="{% url 'verfahren:index' %}">{% translate "Parlament" %}</a>
-    <a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a>
     <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
     <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a>
     <a href="{% url 'verfahren:staatssimulation' %}">{% translate "StaatsSimulation" %}</a>
-    <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
+    <a class="nav-cta" href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
       <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
       {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}

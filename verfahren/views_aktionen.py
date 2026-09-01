@@ -32,6 +32,7 @@ from verfahren.models import (
     BewerbungsZustimmung,
     Ebene,
     Favorit,
+    FilterProfil,
     Kategorie,
     KategorieAbo,
     Kommentar,
@@ -288,6 +289,89 @@ def abstimmen(request, pk):
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)
     return redirect("verfahren:antrag", pk=pk)
+
+
+def _zurueck_zum_parlament(request):
+    weiter = request.POST.get("weiter", "")
+    if weiter.startswith("/") and not weiter.startswith("//"):
+        return redirect(weiter)
+    return redirect("verfahren:parlament")
+
+
+def _regler_aus_post(request):
+    from plattform_core.weicherfilter import REGLER, regler_bereinigen
+
+    return regler_bereinigen({name: request.POST.get(f"r_{name}") for name in REGLER})
+
+
+@login_required
+@require_POST
+def filter_anwenden(request):
+    """P5: Regler anwenden — ins aktive Profil speichern oder als neues Profil
+    anlegen (höchstens fünf). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
+    regler = _regler_aus_post(request)
+    profile = request.user.filterprofile
+    name_neu = (request.POST.get("profilname") or "").strip()[:40]
+
+    if request.POST.get("als_neues"):
+        if not name_neu:
+            messages.error(request, _("Bitte einen Namen für das neue Profil angeben."))
+            return _zurueck_zum_parlament(request)
+        if profile.count() >= FilterProfil.HOECHSTZAHL and not profile.filter(name=name_neu).exists():
+            messages.error(
+                request, _("Höchstens fünf Profile — bitte zuerst eines löschen oder überschreiben.")
+            )
+            return _zurueck_zum_parlament(request)
+        profil, _egal = FilterProfil.objects.update_or_create(
+            mitglied=request.user, name=name_neu, defaults={"regler": regler}
+        )
+    else:
+        profil = profile.filter(aktiv=True).first()
+        if profil is None:
+            if profile.count() >= FilterProfil.HOECHSTZAHL:
+                messages.error(
+                    request, _("Höchstens fünf Profile — bitte zuerst eines löschen oder überschreiben.")
+                )
+                return _zurueck_zum_parlament(request)
+            profil, _egal = FilterProfil.objects.get_or_create(
+                mitglied=request.user, name=str(_("Eigenes")), defaults={"regler": regler}
+            )
+        profil.regler = regler
+    profil.aktiv = True
+    profil.save()
+    profile.exclude(pk=profil.pk).update(aktiv=False)
+    messages.success(
+        request,
+        _("Ihr Filter „%s“ ist aktiv — die Reihung folgt jetzt Ihren offenen Reglern.") % profil.name,
+    )
+    return _zurueck_zum_parlament(request)
+
+
+@login_required
+@require_POST
+def filter_waehlen(request, pk):
+    profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
+    request.user.filterprofile.update(aktiv=False)
+    profil.aktiv = True
+    profil.save(update_fields=["aktiv"])
+    return _zurueck_zum_parlament(request)
+
+
+@login_required
+@require_POST
+def filter_neutral(request):
+    """Zurück zur strengen Voreinstellung: Phase und Frist, chronologisch."""
+    request.user.filterprofile.update(aktiv=False)
+    return _zurueck_zum_parlament(request)
+
+
+@login_required
+@require_POST
+def filter_loeschen(request, pk):
+    profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
+    profil.delete()
+    messages.info(request, _("Profil „%s“ gelöscht.") % profil.name)
+    return _zurueck_zum_parlament(request)
 
 
 @login_required

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:14+0200\n"
+"POT-Creation-Date: 2026-09-01 23:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1840,15 +1840,61 @@ msgstr ""
 msgid "WeicherFilter"
 msgstr "WeicherFilter"
 
+msgid "Profil:"
+msgstr "Profile:"
+
 msgid "Voreinstellung: neutral"
 msgstr "Default: neutral"
 
+msgid "Neutral"
+msgstr "Neutral"
+
+msgid "Profil anwenden"
+msgstr "Apply profile"
+
+msgid "Regler"
+msgstr "Sliders"
+
+msgid "Anwenden & speichern"
+msgstr "Apply & save"
+
+msgid "Profilname"
+msgstr "Profile name"
+
+msgid "Als neues Profil"
+msgstr "As a new profile"
+
 msgid ""
-"Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten "
-"Ausbaustufe. Bis dahin: streng neutral."
+"Offene Regel v1: Punkte = Regler × Merkmal, je Antrag aufgeschlüsselt und nachrechenbar.\n"
+"Ihr Profil wirkt nur auf Ihre eigene Ansicht — nie auf Reihung, Schwellen oder Ergebnisse (§ 2 Abs 6)."
 msgstr ""
-"Your filter, your sliders — the adjustable ordering arrives in a coming "
-"stage. Until then: strictly neutral."
+"Open rule v1: points = slider × feature, itemised per motion and "
+"recomputable. Your profile affects only your own view — never ranking, "
+"thresholds or results (§ 2 (6))."
+
+msgid "Aktives Profil löschen"
+msgstr "Delete active profile"
+
+msgid "neutral gereiht"
+msgstr "ranked neutrally"
+
+msgid "Derzeit läuft kein Verfahren."
+msgstr "No procedure is running at the moment."
+
+msgid ""
+"Gereiht nach Ihren offenen Reglern — der kleine Punktewert zeigt die "
+"Rechnung je Antrag; abgeschlossene Verfahren finden Sie über die neutrale "
+"Ansicht."
+msgstr ""
+"Ranked by your open sliders — the small points value shows the calculation "
+"per motion; completed procedures are in the neutral view."
+
+msgid ""
+"Ihr Filter, Ihre Regler — über ⚙ stellen Sie die Reihung selbst ein. "
+"Voreinstellung: streng neutral nach Phase und Frist."
+msgstr ""
+"Your filter, your sliders — use ⚙ to set the ranking yourself. Default: "
+"strictly neutral by phase and deadline."
 
 msgid "Meine Favoriten"
 msgstr "My favourites"
@@ -2244,6 +2290,30 @@ msgstr "implemented"
 msgid "zurückgestellt"
 msgstr "deferred"
 
+msgid "Mehr, wo ich schon abgestimmt habe"
+msgstr "More where I have already voted"
+
+msgid "Mehr, wo ich unterstützt habe"
+msgstr "More where I have supported"
+
+msgid "Entdeckungen außerhalb meiner Favoriten"
+msgstr "Discoveries outside my favourites"
+
+msgid "Mehr Unterstützungsphase"
+msgstr "More support phase"
+
+msgid "Mehr laufende Abstimmungen"
+msgstr "More votes under way"
+
+msgid "Neues zuerst"
+msgstr "Newest first"
+
+msgid "Bald ablaufende zuerst"
+msgstr "Expiring soon first"
+
+msgid "Knapp vor der Schwelle zuerst"
+msgstr "Close to the threshold first"
+
 msgid "Laufende Abstimmungen"
 msgstr "Votes under way"
 
@@ -2341,6 +2411,26 @@ msgstr "Your vote has been recorded — you can change it until the deadline."
 
 msgid "Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."
 msgstr "This vote could not be recorded (is the vote still open?)."
+
+msgid "Bitte einen Namen für das neue Profil angeben."
+msgstr "Please give the new profile a name."
+
+msgid ""
+"Höchstens fünf Profile — bitte zuerst eines löschen oder überschreiben."
+msgstr "At most five profiles — please delete or overwrite one first."
+
+msgid "Eigenes"
+msgstr "My own"
+
+#, python-format
+msgid ""
+"Ihr Filter „%s“ ist aktiv — die Reihung folgt jetzt Ihren offenen Reglern."
+msgstr ""
+"Your filter “%s” is active — the ranking now follows your open sliders."
+
+#, python-format
+msgid "Profil „%s“ gelöscht."
+msgstr "Profile “%s” deleted."
 
 msgid ""
 "Bitte bestätigen Sie, dass Sie die gesetzlichen Voraussetzungen der "

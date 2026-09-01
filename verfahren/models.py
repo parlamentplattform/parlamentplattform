@@ -551,6 +551,35 @@ def antrag_einbringen(
     return antrag
 
 
+class FilterProfil(models.Model):
+    """Ein gespeichertes Regler-Profil des WeicherFilters (P5, § 5 Abs 10 lit d).
+
+    Profile liegen serverseitig beim Mitglied; höchstens fünf (durchgesetzt in
+    der Ansicht), genau eines ist aktiv. Sie wirken ausschließlich auf die
+    EIGENE Ansicht des Mitglieds — nie auf gemeinsame Reihung, Schwellen oder
+    Ergebnisse (§ 2 Abs 6 letzter Satz: mitgliedereigene Reihung ist keine
+    Sortierung durch die Partei; die Voreinstellung bleibt neutral)."""
+
+    HOECHSTZAHL = 5
+
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="filterprofile"
+    )
+    name = models.CharField(max_length=40)
+    regler = models.JSONField(default=dict, help_text="Reglerstellungen 0–100 je Regel (plattform_core.weicherfilter).")
+    aktiv = models.BooleanField(default=False)
+    geaendert_am = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [("mitglied", "name")]
+        ordering = ["pk"]
+        verbose_name = "WeicherFilter-Profil"
+        verbose_name_plural = "WeicherFilter-Profile"
+
+    def __str__(self) -> str:
+        return f"{self.name}{' (aktiv)' if self.aktiv else ''}"
+
+
 class Bewerbung(models.Model):
     """Eine Bewerbung um das Mandat eines Kandidatur-Antrags (§ 7 Abs 1 E-2.5).
 

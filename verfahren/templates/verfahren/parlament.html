@@ -14,13 +14,65 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
 
 <div class="parlament" id="parlament">
 
-  {# ── Feld 1: WeicherFilter (Bereich d — Anträge & Gesetzesvorschläge) ── #}
-  <section class="feld">
+  {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}
+  <section class="feld" id="feld-filter">
     <div class="feld-kopf">
       <h2>{% translate "WeicherFilter" %}</h2>
-      <span class="bk">{% translate "Voreinstellung: neutral" %}</span>
+      <span class="bk">{% if filter_lage.aktiv %}{% translate "Profil:" %} {{ filter_lage.aktiv.name }}{% else %}{% translate "Voreinstellung: neutral" %}{% endif %}</span>
     </div>
+    {% if filter_lage %}
+    <div class="filter-leiste">
+      <form method="post" action="{% url 'verfahren:filter_neutral' %}" class="chipform"
+        hx-post="{% url 'verfahren:filter_neutral' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="chip{% if not filter_lage.aktiv %} an{% endif %}">{% translate "Neutral" %}</button></form>
+      {% for p in filter_lage.profile %}
+      <form method="post" action="{% url 'verfahren:filter_waehlen' p.pk %}" class="chipform"
+        hx-post="{% url 'verfahren:filter_waehlen' p.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="chip{% if p.aktiv %} an{% endif %}" title="{% translate 'Profil anwenden' %}">{{ p.name }}</button></form>
+      {% endfor %}
+      <details class="regler-klappe">
+        <summary class="chip">&#9881; {% translate "Regler" %}</summary>
+        <div class="regler-feld">
+          <form method="post" action="{% url 'verfahren:filter_anwenden' %}">
+            {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+            {% for name, beschriftung, wert in filter_lage.regler_meta %}
+            <label class="regler"><span>{{ beschriftung }} <output>{{ wert }}</output></span>
+              <input type="range" name="r_{{ name }}" min="0" max="100" step="5" value="{{ wert }}"
+                oninput="this.closest('label').querySelector('output').textContent=this.value"></label>
+            {% endfor %}
+            <div class="regler-aktionen">
+              <button type="submit" class="btn">{% translate "Anwenden & speichern" %}</button>
+              <span class="neu"><input type="text" name="profilname" maxlength="40" placeholder="{% translate 'Profilname' %}">
+              <button type="submit" class="btn-linie" name="als_neues" value="1">{% translate "Als neues Profil" %}</button></span>
+            </div>
+            <p class="hilfe" style="margin-top:8px">{% blocktranslate %}Offene Regel v1: Punkte = Regler × Merkmal, je Antrag aufgeschlüsselt und nachrechenbar.
+Ihr Profil wirkt nur auf Ihre eigene Ansicht — nie auf Reihung, Schwellen oder Ergebnisse (§ 2 Abs 6).{% endblocktranslate %}</p>
+          </form>
+          {% if filter_lage.aktiv %}
+          <form method="post" action="{% url 'verfahren:filter_loeschen' filter_lage.aktiv.pk %}" style="margin-top:6px">
+            {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+            <button class="btn-still">{% translate "Aktives Profil löschen" %}</button></form>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+    {% endif %}
     <div class="feld-korpus">
+      {% if gereiht %}
+        {% for z in gereiht %}
+        <div class="zeile">
+          <span><a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
+            {% if z.antrag.ebene != "bund" %}<span class="badge badge--hell">{{ z.antrag.get_ebene_display }}</span>{% endif %}
+            <br><span class="meta">{{ z.antrag.phase|phase_name }} · {% translate "seit" %} {{ z.antrag.phase_beginn|date:"d.m." }}
+            · <span class="punkte" title="{{ z.aufschluesselung|default:_('neutral gereiht') }}">{{ z.punkte }}&nbsp;P</span></span></span>
+          {% include "verfahren/_stern.html" with antrag=z.antrag %}
+        </div>
+        {% empty %}
+        <p class="leer" style="margin-top:10px">{% translate "Derzeit läuft kein Verfahren." %}</p>
+        {% endfor %}
+      {% else %}
       {% for titel, liste in gruppen %}
         {% if liste %}
         <p class="phasen-titel">{{ titel }}</p>
@@ -34,8 +86,9 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
         {% endfor %}
         {% endif %}
       {% endfor %}
+      {% endif %}
     </div>
-    <div class="feld-fuss">{% translate "Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten Ausbaustufe. Bis dahin: streng neutral." %}</div>
+    <div class="feld-fuss">{% if gereiht %}{% translate "Gereiht nach Ihren offenen Reglern — der kleine Punktewert zeigt die Rechnung je Antrag; abgeschlossene Verfahren finden Sie über die neutrale Ansicht." %}{% else %}{% translate "Ihr Filter, Ihre Regler — über ⚙ stellen Sie die Reihung selbst ein. Voreinstellung: streng neutral nach Phase und Frist." %}{% endif %}</div>
   </section>
 
   {# ── Feld 2: Meine Favoriten (Bereich a) — Liste oder Fächer (P2) ── #}

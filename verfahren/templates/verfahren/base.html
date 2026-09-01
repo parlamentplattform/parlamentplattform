@@ -131,7 +131,23 @@ pre{white-space:pre-wrap;font-family:inherit}
 /* ── Vier-Felder-Parlament (P1) ── */
 main.breit{max-width:1500px}
 .parlament{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
-.feld{background:var(--karton);border:1px solid var(--line);border-radius:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;height:calc(50vh - 66px);min-height:360px;overflow:hidden}
+.feld{background:var(--karton);border:1px solid var(--line);border-radius:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;height:calc(50vh - 66px);min-height:360px;overflow:hidden;position:relative}
+.filter-leiste{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
+.chipform{display:inline}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink);line-height:1.4}
+.chip:hover{border-color:var(--gold)}
+.chip.an{background:var(--gold);color:#14232E;border-color:transparent;font-weight:600}
+.regler-klappe summary{list-style:none;display:inline-block}
+.regler-klappe summary::-webkit-details-marker{display:none}
+.regler-feld{position:absolute;right:8px;top:46px;bottom:8px;z-index:30;width:min(330px,calc(100% - 16px));overflow:auto;background:var(--karton);background:color-mix(in srgb,var(--karton) 90%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--schatten-hoch)}
+.regler{display:block;margin-bottom:9px;font-size:13px}
+.regler span{display:flex;justify-content:space-between;gap:8px;color:var(--ink)}
+.regler output{color:var(--goldtief);font-weight:600;font-variant-numeric:tabular-nums}
+.regler input[type=range]{width:100%;accent-color:var(--gold);margin-top:2px}
+.regler-aktionen{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.regler-aktionen .neu{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.regler-aktionen input[type=text]{width:11em;padding:7px 10px}
+.punkte{font-variant-numeric:tabular-nums;color:var(--goldtief);font-weight:600;cursor:help}
 .feld-kopf{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--line)}
 .feld-kopf h2{margin:0;font-size:19px}
 .feld-kopf .bk{margin-left:auto;opacity:.7}

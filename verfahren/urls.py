@@ -32,6 +32,10 @@ urlpatterns = [
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),
     path("antrag/<int:pk>/meine-stimme/", views_aktionen.eigene_stimme, name="eigene_stimme"),
     path("antrag/<int:pk>/vollzug/", views_aktionen.vollzug_eintragen, name="vollzug"),
+    path("filter/anwenden/", views_aktionen.filter_anwenden, name="filter_anwenden"),
+    path("filter/<int:pk>/waehlen/", views_aktionen.filter_waehlen, name="filter_waehlen"),
+    path("filter/<int:pk>/loeschen/", views_aktionen.filter_loeschen, name="filter_loeschen"),
+    path("filter/neutral/", views_aktionen.filter_neutral, name="filter_neutral"),
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
     path(
         "staatssimulation/",

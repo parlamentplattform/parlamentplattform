@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.25.0] — 2026-09-01 · P5: Der WeicherFilter — der Bereich, in dem man den Algorithmus selbst steuert
+
+### Hinzugefügt
+- **Acht offene Regler** im Feld d des Parlaments (⚙ im Kopf): mehr aus Lebensbereichen, in denen ich abgestimmt bzw. unterstützt habe · Entdeckungen außerhalb meiner Favoriten · mehr Unterstützungsphase · mehr laufende Abstimmungen · Neues zuerst · bald Ablaufendes zuerst · knapp vor der Schwelle zuerst. **Bis zu fünf speicherbare Profile** (serverseitig beim Mitglied), umschaltbar über die Chip-Leiste am oberen Feldrand; der Regler-Bereich liegt als halbtransparentes Overlay am rechten Rand mit „Anwenden & speichern" und „Als neues Profil"
+- **Die Reihung ist eine offene, versionierte, nachrechenbare Regel** (§ 2 Abs 6, § 5 Abs 10 lit d): Der Kern (`plattform_core/weicherfilter.py`, Regel v1) rechnet Punkte = Regler × Merkmal, alle Merkmale liegen in [0, 1] und sind dokumentiert; **jeder Antrag zeigt seinen Punktewert samt Aufschlüsselung** (Titel-Hinweis). Bei Punktgleichheit bleibt die neutrale Grundordnung erhalten
+- **Die Voreinstellung bleibt streng neutral** (Phase und Frist, chronologisch) — genau wie bisher; der „Neutral"-Chip stellt sie jederzeit wieder her. Profile wirken ausschließlich auf die eigene Ansicht, nie auf gemeinsame Reihung, Schwellen oder Ergebnisse; Gäste sehen immer die neutrale Ordnung. Ohne JavaScript voll bedienbar (native Schieberegler, echte Formulare); mit htmx wechselt nur das Feld
+
 ## [0.24.0] — 2026-09-01 · P3/P4: Kacheln für Wichtige Abstimmungen und Meine Region
 
 ### Geändert

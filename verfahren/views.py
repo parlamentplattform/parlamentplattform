@@ -9,9 +9,90 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from plattform_core import Phase
-from verfahren.models import Antrag, Antragsart, BewerbungsZustimmung, Kategorie, Vollzugsstatus
+from plattform_core.phases import (
+    abstimmung_frist_ende,
+    beratung_frist_ende,
+    unterstuetzung_frist_ende,
+)
+from verfahren.models import (
+    Antrag,
+    Antragsart,
+    BewerbungsZustimmung,
+    Kategorie,
+    Stimmabgabe,
+    StimmRegister,
+    Vollzugsstatus,
+)
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+
+
+def _frist_fuer(antrag, policy=None):
+    """Fristende der laufenden Phase — None für Endphasen."""
+    policy = policy or antrag.policy()
+    if antrag.phase == Phase.UNTERSTUETZUNG.value:
+        return unterstuetzung_frist_ende(antrag.phase_beginn, policy)
+    if antrag.phase == Phase.BERATUNG.value:
+        return beratung_frist_ende(antrag.phase_beginn, policy)
+    if antrag.phase == Phase.ABSTIMMUNG.value:
+        return abstimmung_frist_ende(antrag.phase_beginn, policy)
+    return None
+
+
+def _kachel(antrag, jetzt, meine_stimmen=None):
+    """Eine Kachel für P3/P4 (F-42/F-43): Frist, Resttage und der phasengerechte
+    Stand. Während einer laufenden Abstimmung zeigt die Kachel NUR die
+    Beteiligung — nie die Tendenz (F-15: kein Bandwagon; das Ergebnis erscheint
+    nach Fristende auf der Antragsseite)."""
+    policy = antrag.policy()
+    frist = _frist_fuer(antrag, policy)
+    resttage = max(0, (frist - jetzt).days) if frist else None
+    stat = None
+    if antrag.phase == Phase.UNTERSTUETZUNG.value:
+        n = antrag.unterstuetzungen.count()
+        schwelle = max(1, policy.unterstuetzung_schwelle)
+        stat = {"typ": "unterstuetzung", "n": n, "schwelle": schwelle,
+                "prozent": min(100, round(100 * n / schwelle))}
+    elif antrag.phase == Phase.BERATUNG.value:
+        stat = {"typ": "beratung", "beitraege": antrag.kommentare.count()}
+    elif antrag.phase == Phase.ABSTIMMUNG.value:
+        if antrag.art == Antragsart.MANDAT:
+            abgegeben = (
+                BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag)
+                .values("pseudonym")
+                .distinct()
+                .count()
+            )
+        else:
+            abgegeben = antrag.stimmabgaben.count()
+        basis = max(1, antrag.stimmberechtigte_anzahl or 1)
+        stat = {"typ": "abstimmung", "abgegeben": abgegeben,
+                "prozent": min(100, round(100 * abgegeben / basis))}
+    return {
+        "antrag": antrag,
+        "frist": frist,
+        "resttage": resttage,
+        "stat": stat,
+        "meine_stimme": (meine_stimmen or {}).get(antrag.pk),
+    }
+
+
+def _meine_stimmen(nutzer, antraege):
+    """Bulk: {antrag_id: eigene Sach-Stimme} für die Kachel-Markierung."""
+    pks = [a.pk for a in antraege if a.phase == Phase.ABSTIMMUNG.value and a.art != Antragsart.MANDAT]
+    if not (pks and nutzer.is_authenticated):
+        return {}
+    je_pseudonym = dict(
+        StimmRegister.objects.filter(mitglied=nutzer, antrag_id__in=pks).values_list(
+            "pseudonym", "antrag_id"
+        )
+    )
+    if not je_pseudonym:
+        return {}
+    stimmen = {}
+    for ab in Stimmabgabe.objects.filter(antrag_id__in=pks, pseudonym__in=je_pseudonym):
+        stimmen[ab.antrag_id] = ab.stimme
+    return stimmen
 
 
 def index(request):
@@ -82,11 +163,42 @@ def parlament(request):
             .order_by("phase_beginn")[:6]
         )
 
-    # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie algorithmisch)
-    wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")
+    jetzt = timezone.now()
 
-    # Bereich c — regionale Anträge (Gemeinde/Bezirk/Land, F-43)
+    # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
+    # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage.
+    wichtige = list(laufend.filter(hervorgehoben=True).order_by("phase_beginn"))
+
+    # Bereich c — Meine Region (F-43, P4): drei Zeilen Gemeinde/Bezirk/Land.
+    # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
+    # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = laufend.exclude(ebene="bund").order_by("phase_beginn")
+    mein_ort = {"gemeinde": "", "bezirk": "", "land": ""}
+    if request.user.is_authenticated:
+        mein_ort["gemeinde"] = request.user.gemeinde or ""
+        mein_ort["land"] = (
+            request.user.get_bundesland_display() if request.user.bundesland else ""
+        )
+        if request.user.wohnsitz_id:
+            mein_ort["bezirk"] = request.user.wohnsitz.bezirk or ""
+
+    meine_stimmen = _meine_stimmen(request.user, list(regionale) + wichtige)
+
+    region_zeilen = []
+    for ebene, ort in (("gemeinde", mein_ort["gemeinde"]), ("bezirk", mein_ort["bezirk"]),
+                       ("land", mein_ort["land"])):
+        zeile = regionale.filter(ebene=ebene)
+        if ort:
+            zeile = zeile.filter(gebiet=ort)
+        region_zeilen.append(
+            {
+                "ebene": ebene,
+                "ort": ort,
+                "kacheln": [_kachel(a, jetzt, meine_stimmen) for a in zeile],
+            }
+        )
+
+    wichtige_kacheln = [_kachel(a, jetzt, meine_stimmen) for a in wichtige]
 
     # Bereich d — alle Verfahren nach Phase und Frist
     gruppen = [
@@ -113,8 +225,9 @@ def parlament(request):
             "favoriten_sonstige": favoriten_sonstige,
             "themen_neu": themen_neu,
             "meine_favoriten": meine_favoriten,
-            "wichtige": wichtige,
-            "regionale": regionale,
+            "wichtige_kacheln": wichtige_kacheln,
+            "region_zeilen": region_zeilen,
+            "region_gefiltert": any(mein_ort.values()),
         },
     )
 

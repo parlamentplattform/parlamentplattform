@@ -84,21 +84,16 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
       hx-get="{{ request.path }}?fach=" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{% translate "Lebensbereiche als Fächer entdecken →" %}</a>{% endif %}</div>
   </section>
 
-  {# ── Feld 3: Wichtige Abstimmungen (Bereich b) ── #}
-  <section class="feld">
+  {# ── Feld 3: Wichtige Abstimmungen als Kacheln (Bereich b, P3) ── #}
+  <section class="feld" id="feld-wichtig">
     <div class="feld-kopf">
       <h2>{% translate "Wichtige Abstimmungen" %}</h2>
-      <span class="bk">{% translate "Beschluss des Integritätsrats" %}</span>
+      <span class="bk">{% if wichtige_kacheln %}{{ wichtige_kacheln|length }} · {% endif %}{% translate "Beschluss des Integritätsrats" %}</span>
     </div>
     <div class="feld-korpus">
-      <div class="mini-kacheln">
-      {% for a in wichtige %}
-        <div class="mini-kachel">
-          <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
-          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
-          <div class="meta" style="margin-top:4px"><span class="badge">{{ a.phase|phase_name }}</span></div>
-          {% if a.hervorhebung_begruendung %}<p class="erk" style="margin-top:6px">{{ a.hervorhebung_begruendung }}</p>{% endif %}
-        </div>
+      <div class="kacheln">
+      {% for k in wichtige_kacheln %}
+        {% include "verfahren/_kachel.html" with k=k zeige_begruendung=True ziel="#feld-wichtig" %}
       {% empty %}
         <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
       {% endfor %}
@@ -107,26 +102,27 @@ Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
     <div class="feld-fuss">{% translate "Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch einen Algorithmus." %}</div>
   </section>
 
-  {# ── Feld 4: Meine Region (Bereich c) ── #}
-  <section class="feld">
+  {# ── Feld 4: Meine Region als Kachel-Raster (Bereich c, P4) ── #}
+  <section class="feld" id="feld-region">
     <div class="feld-kopf">
       <h2>{% translate "Meine Region" %}</h2>
       <span class="bk">{% translate "Gemeinde · Bezirk · Land" %}</span>
     </div>
     <div class="feld-korpus">
-      {% regroup regionale by get_ebene_display as ebenen %}
-      {% for ebene in ebenen %}
-        <p class="phasen-titel">{{ ebene.grouper }}</p>
-        {% for a in ebene.list %}
-        <div class="zeile">
-          <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-            <br><span class="meta">{{ a.gebiet }} · {{ a.phase|phase_name }}</span></span>
-          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
+      {% for zeile in region_zeilen %}
+        <p class="phasen-titel">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
+        {% if zeile.kacheln %}
+        <div class="kacheln dreier">
+          {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort %}{% endfor %}
         </div>
-        {% endfor %}
-      {% empty %}
-        <p class="leer" style="margin-top:10px">{% translate "Derzeit keine regionalen Anträge — der erste kann Ihrer sein." %}</p>
+        {% else %}
+        <p class="leer" style="margin:4px 0 10px">{% if zeile.ebene == "gemeinde" %}{% translate "Kein laufender Antrag in Ihrer Gemeinde — der erste kann Ihrer sein." %}{% elif zeile.ebene == "bezirk" %}{% translate "Kein laufender Antrag in Ihrem Bezirk." %}{% else %}{% translate "Kein laufender Antrag in Ihrem Land." %}{% endif %}
+        <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a></p>
+        {% endif %}
       {% endfor %}
+      {% if not region_gefiltert and user.is_authenticated %}
+      <p class="erk" style="margin-top:8px">{% translate "Hinterlegen Sie Ihre Wohnsitz-Gemeinde im Profil, damit hier gezielt Ihre Region erscheint." %}</p>
+      {% endif %}
     </div>
     <div class="feld-fuss">{% translate "Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene." %}</div>
   </section>

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 19:23+0200\n"
+"POT-Creation-Date: 2026-09-01 23:14+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1175,6 +1175,38 @@ msgstr "Mark as favourite"
 msgid "%(n)s Unterbereiche"
 msgstr "%(n)s subareas"
 
+msgid "Personenwahl"
+msgstr "Election of persons"
+
+#, python-format
+msgid "%(n)s von %(s)s Unterstützungen"
+msgstr "%(n)s of %(s)s endorsements"
+
+#, python-format
+msgid "%(b)s Beitrag in der Beratung"
+msgid_plural "%(b)s Beiträge in der Beratung"
+msgstr[0] "%(b)s contribution in deliberation"
+msgstr[1] "%(b)s contributions in deliberation"
+
+#, python-format
+msgid "%(p)s %% der Stimmberechtigten haben abgestimmt"
+msgstr "%(p)s %% of those eligible have voted"
+
+msgid "Tendenz verdeckt bis Fristende"
+msgstr "Leaning hidden until the deadline"
+
+msgid "Frist endet heute"
+msgstr "Deadline ends today"
+
+#, python-format
+msgid "noch <strong>%(t)s</strong> Tag"
+msgid_plural "noch <strong>%(t)s</strong> Tage"
+msgstr[0] "<strong>%(t)s</strong> day left"
+msgstr[1] "<strong>%(t)s</strong> days left"
+
+msgid "Zur Wahl der Bewerbungen →"
+msgstr "To the vote on the applications →"
+
 msgid "Zum Parlament"
 msgstr "To the Parliament"
 
@@ -1859,8 +1891,33 @@ msgstr "My region"
 msgid "Gemeinde · Bezirk · Land"
 msgstr "Municipality · District · Province"
 
-msgid "Derzeit keine regionalen Anträge — der erste kann Ihrer sein."
-msgstr "No regional motions yet — the first one could be yours."
+msgid "Gemeinde"
+msgstr "Municipality"
+
+msgid "Bezirk"
+msgstr "District"
+
+msgid "Land"
+msgstr "Province"
+
+msgid "Kein laufender Antrag in Ihrer Gemeinde — der erste kann Ihrer sein."
+msgstr "No motion running in your municipality — the first can be yours."
+
+msgid "Kein laufender Antrag in Ihrem Bezirk."
+msgstr "No motion running in your district."
+
+msgid "Kein laufender Antrag in Ihrem Land."
+msgstr "No motion running in your province."
+
+msgid "Antrag einbringen →"
+msgstr "Submit a motion →"
+
+msgid ""
+"Hinterlegen Sie Ihre Wohnsitz-Gemeinde im Profil, damit hier gezielt Ihre "
+"Region erscheint."
+msgstr ""
+"Add your municipality of residence to your profile so this area shows your "
+"own region."
 
 msgid ""
 "Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen "
@@ -2241,6 +2298,10 @@ msgstr "All of Austria"
 #, python-format
 msgid "Mein Bundesland (%s)"
 msgstr "My province (%s)"
+
+#, python-format
+msgid "Mein Bezirk (%s)"
+msgstr "My district (%s)"
 
 #, python-format
 msgid "Meine Gemeinde (%s)"

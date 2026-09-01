@@ -77,8 +77,9 @@ def test_hervorgehobene_antraege_erscheinen_im_bereich_b(client, ordnung):  # no
         hervorgehoben=True, hervorhebung_begruendung="Beschluss IR-2026-01."
     )
     antwort = client.get(reverse("verfahren:parlament"))
-    assert [a.pk for a in antwort.context["wichtige"]] == [wichtig.pk]
-    assert normal.pk not in [a.pk for a in antwort.context["wichtige"]]
+    kacheln = antwort.context["wichtige_kacheln"]
+    assert [k["antrag"].pk for k in kacheln] == [wichtig.pk]
+    assert normal.pk not in [k["antrag"].pk for k in kacheln]
     assert "Beschluss IR-2026-01." in antwort.content.decode()
 
 
@@ -98,7 +99,8 @@ def test_regionale_antraege_erscheinen_im_bereich_c(client, ordnung):  # noqa: F
         gebiet="St. Marienkirchen an der Polsenz",
     )
     antwort = client.get(reverse("verfahren:parlament"))
-    assert [a.pk for a in antwort.context["regionale"]] == [regional.pk]
+    gemeinde_zeile = next(z for z in antwort.context["region_zeilen"] if z["ebene"] == "gemeinde")
+    assert [k["antrag"].pk for k in gemeinde_zeile["kacheln"]] == [regional.pk]
     assert "St. Marienkirchen an der Polsenz" in antwort.content.decode()
 
 

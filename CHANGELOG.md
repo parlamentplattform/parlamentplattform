@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.24.0] — 2026-09-01 · P3/P4: Kacheln für Wichtige Abstimmungen und Meine Region
+
+### Geändert
+- **Wichtige Abstimmungen als Kacheln (P3):** Thema + Stern, phasengerechter Stand als schmaler Fortschrittsbalken — Unterstützungen zur Schwelle, Beiträge in der Beratung, **Beteiligung in Prozent der Stimmberechtigten** während der Abstimmung — dazu **Resttage bis Fristende** und die Begründung des Integritätsrats. Bewusste Klarstellung zur Fahrplan-Zeile „Tendenz wofür": **Die Tendenz bleibt bis Fristende verdeckt** (die Kachel sagt das offen dazu) — alles andere widerspräche F-15 (kein Bandwagon-Effekt); das Ergebnis zeigt die Antragsseite nach Fristende
+- **Meine Region als Kachel-Raster (P4):** immer drei Zeilen — Gemeinde, Bezirk, Land — mit **direkt abstimmbaren Feldern**: Ja/Nein/Enthaltung sitzen in der Kachel, die eigene Stimme ist markiert, ohne JavaScript kehrt man aufs Parlament zurück, mit htmx wechselt nur das Feld. Mit hinterlegtem Wohnsitz zeigt jede Zeile **die eigene Region** (leere Zeilen sagen es ehrlich und laden zum ersten Antrag ein); Gäste sehen alle regionalen Anträge samt Ortsangabe. Personenwahl-Kacheln führen zur Wahl der Bewerbungen statt zu Ja/Nein
+- **Bezirks-Anträge** sind jetzt einbringbar: Wer seine Wohnsitz-Gemeinde hinterlegt hat, kann „Mein Bezirk" wählen — das Gebiet kommt wie immer aus dem Profil, nie aus freier Eingabe (F-43); damit ist § 14 auf allen vier Ebenen bespielbar
+
 ## [0.23.0] — 2026-09-01 · M1: Die Mandatare-Seite
 
 ### Hinzugefügt

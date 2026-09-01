@@ -144,10 +144,23 @@ main.breit{max-width:1500px}
 .zeile .meta{font-size:12px;color:var(--matt)}
 .phasen-titel{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;margin:14px 0 2px}
 .phasen-titel:first-child{margin-top:6px}
+.kacheln{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.kacheln.dreier{grid-template-columns:repeat(3,1fr);margin:4px 0 12px}
+.kachel{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:6px;min-width:0}
+.kachel .kt{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
+.kachel .kt a{font-weight:600;line-height:1.35;color:var(--linkfarbe)}
+.kachel .rest{font-size:12.5px;color:var(--matt)}
+.kachel .rest.ort{display:block;margin-top:3px}
+.kachel .rest strong{color:var(--goldtief)}
+.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.balken b{display:block;height:100%;background:var(--gold)}
+.stimmreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.stimmreihe button{font-size:12.5px;padding:4px 12px}
+.stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
 .mini-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .mini-kachel{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
 .mini-kachel a{color:var(--linkfarbe);font-weight:600}
-@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.mini-kacheln{grid-template-columns:1fr}}
+@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.mini-kacheln{grid-template-columns:1fr}.kacheln,.kacheln.dreier{grid-template-columns:1fr}}
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
 .hf-grid--zwei{grid-template-columns:repeat(2,1fr)}

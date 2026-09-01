@@ -114,6 +114,8 @@ class AntragsFormular(forms.Form):
         wahlen = [(Ebene.BUND.value, _("Ganz Österreich"))]
         if mitglied is not None and mitglied.bundesland:
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % mitglied.get_bundesland_display()))
+        if mitglied is not None and mitglied.wohnsitz_id and mitglied.wohnsitz.bezirk:
+            wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % mitglied.wohnsitz.bezirk))
         if mitglied is not None and mitglied.gemeinde:
             wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % mitglied.gemeinde))
         self.fields["ebene"].choices = wahlen
@@ -131,6 +133,8 @@ class AntragsFormular(forms.Form):
         ebene = self.cleaned_data["ebene"]
         if ebene == Ebene.GEMEINDE.value:
             return self.mitglied.gemeinde
+        if ebene == Ebene.BEZIRK.value:
+            return self.mitglied.wohnsitz.bezirk if self.mitglied.wohnsitz_id else ""
         if ebene == Ebene.LAND.value:
             return self.mitglied.get_bundesland_display()
         return ""
@@ -279,6 +283,10 @@ def abstimmen(request, pk):
         messages.success(request, _("Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern."))
     except (StimmabgabeFehler, ValueError):
         messages.error(request, _("Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."))
+    # P4: Direktabstimmung aus der Regions-Kachel kehrt aufs Parlament zurück.
+    weiter = request.POST.get("weiter", "")
+    if weiter.startswith("/") and not weiter.startswith("//"):
+        return redirect(weiter)
     return redirect("verfahren:antrag", pk=pk)
 
 

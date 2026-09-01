@@ -1,0 +1,42 @@
+{% load i18n phasen %}
+<div class="kachel">
+  <div class="kt">
+    <a href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>
+    {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=k.antrag %}{% endif %}
+  </div>
+  <div class="meta"><span class="badge">{{ k.antrag.phase|phase_name }}</span>
+    {% if k.antrag.art == "mandat" %} <span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% endif %}
+    {% if k.antrag.gebiet and not ort_versteckt %}<span class="rest ort">{{ k.antrag.gebiet }}</span>{% endif %}</div>
+
+  {% if k.stat.typ == "unterstuetzung" %}
+    <div class="balken" aria-hidden="true"><b style="width:{{ k.stat.prozent }}%"></b></div>
+    <span class="rest">{% blocktranslate with n=k.stat.n s=k.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}</span>
+  {% elif k.stat.typ == "beratung" %}
+    <span class="rest">{% blocktranslate count b=k.stat.beitraege %}{{ b }} Beitrag in der Beratung{% plural %}{{ b }} Beiträge in der Beratung{% endblocktranslate %}</span>
+  {% elif k.stat.typ == "abstimmung" %}
+    <div class="balken" aria-hidden="true"><b style="width:{{ k.stat.prozent }}%"></b></div>
+    <span class="rest">{% blocktranslate with p=k.stat.prozent %}{{ p }} % der Stimmberechtigten haben abgestimmt{% endblocktranslate %} · {% translate "Tendenz verdeckt bis Fristende" %}</span>
+  {% endif %}
+
+  {% if k.resttage is not None %}
+    <span class="rest">{% if k.resttage == 0 %}<strong>{% translate "Frist endet heute" %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}</span>
+  {% endif %}
+
+  {% if k.stat.typ == "abstimmung" and user.is_authenticated %}
+    {% if k.antrag.art == "mandat" %}
+      <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
+    {% else %}
+      <form method="post" action="{% url 'verfahren:abstimmen' k.antrag.pk %}" class="stimmreihe"
+        hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button name="stimme" value="ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
+        <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
+        <button name="stimme" value="enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
+      </form>
+    {% endif %}
+  {% endif %}
+
+  {% if zeige_begruendung and k.antrag.hervorhebung_begruendung %}
+    <p class="erk" style="margin:2px 0 0">{{ k.antrag.hervorhebung_begruendung|truncatechars:110 }}</p>
+  {% endif %}
+</div>

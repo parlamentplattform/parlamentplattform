@@ -245,6 +245,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
   <label for="menue-schalter" class="menue-knopf" aria-hidden="true"><span></span><span></span><span></span></label>
   <nav>
     <a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a>
+    <a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a>
     <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
     <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a>
     <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a>
@@ -288,6 +289,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
       <h3>{% translate "Plattform" %}</h3>
       <ul>
         <li><a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></li>
+        <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
         <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
         <li><a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a></li>
         <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>

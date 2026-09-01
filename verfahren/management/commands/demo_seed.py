@@ -15,10 +15,13 @@ from django.utils import timezone
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied
 from verfahren.models import (
     Antrag,
+    Antragsart,
     Kategorie,
     KategorieAbo,
     Verfahrensordnung,
     antrag_einbringen,
+    bewerbung_einreichen,
+    bewerbung_zustimmen,
     kategorien_zuordnen,
     stimme_abgeben,
     vollzug_fortschreiben,
@@ -191,3 +194,37 @@ class Command(BaseCommand):
             )
         else:
             self.stdout.write("Anträge existieren bereits — nichts zu tun.")
+
+        # Mandats-Kandidatur (§ 7 Abs 1, F-70) — eigener Wächter, damit auch
+        # bestehende Datenbanken die neue Antragsart als Testlauf bekommen.
+        if not Antrag.objects.filter(art=Antragsart.MANDAT).exists():
+            k1 = antrag_einbringen(
+                leute[0],
+                "Testlauf: Listenreihung Gemeinderat St. Marienkirchen an der Polsenz",
+                "Reihung des DDÖ-Wahlvorschlags für die nächste Gemeinderatswahl. "
+                "Jedes wählbare Mitglied kann sich an diesem Antrag bewerben; die Mitglieder "
+                "stimmen den Bewerbungen zu — die meiste Zustimmung führt die Liste an (§ 7 Abs 1).",
+                "Das Parlament wird von Anfang an auch für Personenwahlen genutzt (Mandatar-Steuerung).",
+                ordnung,
+                ebene="gemeinde",
+                gebiet="St. Marienkirchen an der Polsenz",
+                art=Antragsart.MANDAT,
+            )
+            bewerbung_einreichen(
+                k1, leute[1], "Seit drei Jahren im Gemeindeleben aktiv; ich stehe für offene Sitzungen."
+            )
+            bewerbung_einreichen(
+                k1, leute[2], "Technikerin — ich will die Plattform-Beschlüsse in die Gemeindearbeit tragen."
+            )
+            for m in leute[:3]:
+                k1.unterstuetzungen.create(mitglied=m)
+            k1.fortschreiben()  # Schwelle -> Beratung
+            k1.phase_beginn = timezone.now() - timedelta(days=22)
+            k1.save(update_fields=["phase_beginn"])
+            k1.fortschreiben()  # Beratungsfrist um -> Abstimmung
+            for waehler, bewerber in ((leute[3], leute[1]), (leute[4], leute[1]), (leute[0], leute[2])):
+                bewerbung_zustimmen(k1, waehler, k1.bewerbungen.get(mitglied=bewerber))
+            kategorien_zuordnen(k1)
+            self.stdout.write(
+                self.style.SUCCESS(f"Mandats-Kandidatur bereit: {k1.pk} ({k1.phase}, 2 Bewerbungen).")
+            )

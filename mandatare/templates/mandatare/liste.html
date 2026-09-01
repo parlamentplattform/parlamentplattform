@@ -1,0 +1,62 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mandatare" %}{% endblock %}
+{% block inhalt %}
+<style>
+  .mandatar-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:18px}
+  .mkarte{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--schatten)}
+  .mkopf{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+  .mfoto,.mplatzhalter{width:72px;height:72px;border-radius:50%;object-fit:cover;flex:none}
+  .mplatzhalter{background:linear-gradient(135deg,var(--nacht2),var(--nacht3));color:var(--goldsoft);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:26px}
+  .mkarte .meta{font-size:13.5px;color:var(--matt)}
+  .maufgabe{border-top:1px solid var(--line);padding:8px 0 2px;font-size:14px}
+  .maufgabe .frist{color:var(--matt);font-size:12.5px}
+  .maufgabe .frist.spaet{color:var(--warn-text);font-weight:600}
+</style>
+<h1>{% translate "Mandatare" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Die Mandatar-Steuerung (§ 7 Abs 9 des Satzungsentwurfs): Jeder Mandatsträger der DDÖ
+zeigt hier öffentlich seine aktuellen Aufgaben und Entscheidungsprozesse samt Fristen — und die daraus
+entstehenden, von ihm betreuten Abstimmungen im Parlament. Die Ergebnisse sind seine Richtschnur;
+das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
+
+{% if karten %}
+<div class="mandatar-karten">
+  {% for k in karten %}
+  <div class="mkarte">
+    <div class="mkopf">
+      {% if k.mandat.foto_typ %}<img class="mfoto" src="{% url 'mandatare:foto' k.mandat.pk %}" alt="{{ k.mandat.mitglied.anzeigename }}">
+      {% else %}<span class="mplatzhalter" aria-hidden="true">{{ k.mandat.initialen }}</span>{% endif %}
+      <span><strong><a href="{% url 'mandatare:detail' k.mandat.pk %}">{{ k.mandat.mitglied.anzeigename }}</a></strong>
+      <br><span class="meta">{{ k.mandat.bezeichnung }} · {{ k.mandat.gebiet|default:k.mandat.get_ebene_display }}</span>
+      <br><span class="meta">{% translate "seit" %} {{ k.mandat.angetreten|date:"m/Y" }}</span></span>
+    </div>
+    {% for a in k.aufgaben %}
+    <div class="maufgabe">{{ a.titel }}
+      {% if a.frist %}<br><span class="frist{% if a.ueberfaellig %} spaet{% endif %}">{% translate "Frist:" %} {{ a.frist|date:"d.m.Y" }}</span>{% endif %}
+    </div>
+    {% empty %}
+    <div class="maufgabe leer">{% translate "Derzeit keine offenen Aufgaben eingetragen." %}</div>
+    {% endfor %}
+    <p style="margin-top:10px"><a href="{% url 'mandatare:detail' k.mandat.pk %}">{% translate "Aufgaben und Abstimmungen ansehen →" %}</a></p>
+  </div>
+  {% endfor %}
+</div>
+{% if ehemalige %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=ehemalige %}Ein beendetes Mandat bleibt dokumentiert.{% plural %}{{ n }} beendete Mandate bleiben dokumentiert.{% endblocktranslate %}</p>{% endif %}
+{% else %}
+<div class="karte">
+  <p><strong>{% translate "Noch hält die DDÖ kein öffentliches Mandat." %}</strong>
+  {% translate "Ehrlich gesagt: Genau dafür bauen wir — und die Wahl der Kandidaten läuft bereits jetzt über das Parlament." %}</p>
+  {% if kandidaturen %}
+  <p class="phasen-titel" style="margin-top:12px">{% translate "Laufende Mandats-Kandidaturen" %}</p>
+  {% for a in kandidaturen %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+    <br><span class="meta">{% if a.gebiet %}{{ a.gebiet }} · {% endif %}{{ a.phase }}</span></span></div>
+  {% endfor %}
+  {% else %}
+  <p class="leer" style="margin-top:8px">{% translate "Derzeit läuft keine Mandats-Kandidatur — jedes Mitglied kann eine einbringen." %}</p>
+  {% endif %}
+  <p style="margin-top:14px"><a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
+  <a class="btn-linie" href="{% url 'verfahren:einbringen' %}" style="margin-left:8px">{% translate "Kandidatur-Antrag einbringen" %}</a></p>
+</div>
+{% endif %}
+{% endblock %}

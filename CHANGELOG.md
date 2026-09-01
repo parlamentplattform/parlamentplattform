@@ -2,6 +2,22 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.23.0] — 2026-09-01 · M1: Die Mandatare-Seite
+
+### Hinzugefügt
+- **Öffentliche Mandatare-Seite `/mandatare/` (§ 7 Abs 9 des Satzungsentwurfs 2.5, F-71)** — neuer Menüpunkt: jeder Mandatsträger mit **Foto, aktuellen Aufgaben und Entscheidungsprozessen samt Fristen**; überfällige Fristen werden markiert, und wo eine Aufgabe zur Abstimmung geworden ist, führt sie direkt zum **betreuten Antrag** im Parlament (F-70). Beendete Mandate verschwinden aus der Liste, bleiben aber dokumentiert
+- **Ehrlicher Leerzustand:** Solange die DDÖ kein Mandat hält, sagt die Seite genau das — und zeigt die laufenden Mandats-Kandidaturen, denn die Wahl der Kandidaten läuft bereits über das Parlament
+- **Verwaltungsbereich „Mandatare"** (bis die Mandatar-Rolle M2 die Pflege an die Mandatare selbst übergibt): Mandat anlegen/beenden, Aufgaben mit Frist und Antrags-Verknüpfung veröffentlichen, Statusführung — jede Handlung auditiert. Fotos liegen als streng begrenztes Binärfeld in der Datenbank (JPEG/PNG/WebP, max. 800 kB, Magic-Byte-Prüfung ohne Zusatzbibliothek) und überleben so jeden Neustart des flüchtigen Dienst-Speichers
+- Neue App `mandatare` mit acht Tests; Fahrplan Abschnitt F: M1 und M3 damit umgesetzt, M2 (Instant-Reports) folgt auf dem Rollen-Fundament aus Ring 0a
+
+## [0.22.0] — 2026-09-01 · M3: Mandats-Kandidaturen als Anträge
+
+### Hinzugefügt
+- **Neue Antragsart „Mandats-Kandidatur" (§ 7 Abs 1 des Satzungsentwurfs 2.5, F-70):** Das Parlament wählt jetzt auch Personen. Jedes Mitglied kann für ein Mandat einen Antrag stellen — besteht bereits einer, **beteiligt man sich daran** und wird im Antragsfenster als wählbar geführt (Bewerben bis zum Abstimmungsbeginn, mit öffentlicher Vorstellung und Wählbarkeits-Bestätigung; ein Rückzug bleibt dokumentiert)
+- **Zustimmungswahl:** In der Abstimmungsphase stimmt man den einzelnen Bewerbungen zu — mehreren gleichzeitig, jede Zustimmung bis Fristende zurücknehmbar. **Die meiste Zustimmung gewinnt**, die Zustimmungsreihenfolge ergibt die Listenreihung; bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn (offene, nachrechenbare Regel). Zwischenstände werden nicht angezeigt (kein Bandwagon, wie F-15)
+- **Geheim und nachrechenbar wie jede Stimme:** Zustimmungen laufen über dasselbe Stimmregister (Pseudonym + Prüfcode, F-25); die Anwartschaft folgt der Personenwahl-Regel (§ 4 Abs 4); die Mindestbeteiligung der eingefrorenen Policy gilt auch hier. Der JSON-Export enthält Bewerbungen und Zustimmungen zum unabhängigen Nachrechnen; ausgezählt wird im framework-freien Kern (`plattform_core.tally.personenwahl_auszaehlen`)
+- Ja/Nein-Abstimmen ist bei Kandidaturen gesperrt; der Ähnlichkeitshinweis entfällt bewusst — Kandidaturen für dasselbe Mandat sollen sich am bestehenden Antrag beteiligen. Demo: „Testlauf: Listenreihung Gemeinderat" mit zwei Bewerbungen läuft als Abstimmung
+
 ## [0.21.0] — 2026-09-01 · P2: Der Favoriten-Fächer
 
 ### Hinzugefügt

@@ -150,10 +150,25 @@ class Kategorie(models.Model):
         return ids
 
 
+class Antragsart(models.TextChoices):
+    """§ 7 Abs 1 (E-2.5): Mandats-Kandidaturen laufen als eigene Antragsart —
+    Bewerbungen statt Ja/Nein, Zustimmung je Bewerbung, die meiste Zustimmung
+    gewinnt, die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags."""
+
+    SACHE = "sache", "Sachantrag"
+    MANDAT = "mandat", "Mandats-Kandidatur"
+
+
 class Antrag(models.Model):
     """Ein Antrag nach § 5 — mit eingefrorener Policy."""
 
     titel = models.CharField(max_length=200)
+    art = models.CharField(
+        max_length=12,
+        choices=Antragsart.choices,
+        default=Antragsart.SACHE,
+        help_text="Sachantrag (§ 5) oder Mandats-Kandidatur (§ 7 Abs 1, F-70).",
+    )
     eingebracht_von = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege"
     )
@@ -249,10 +264,14 @@ class Antrag(models.Model):
             from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
 
+            # § 4 Abs 4: Personenwahlen haben eine längere Anwartschaft als Sachfragen.
+            gegenstand = (
+                Gegenstand.PERSONENWAHL if self.art == Antragsart.MANDAT else Gegenstand.SACHFRAGE
+            )
             self.stimmberechtigte_anzahl = max(
                 1,
                 stimmberechtigte_zaehlen(
-                    Gegenstand.SACHFRAGE,
+                    gegenstand,
                     uebergang.wirksam_ab.date(),
                     uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
                 ),
@@ -275,8 +294,30 @@ class Antrag(models.Model):
         return stimme_zulaessig(Phase(self.phase), self.phase_beginn, jetzt, self.policy())
 
     def auszaehlen(self):
+        if self.art == Antragsart.MANDAT:
+            return self.kandidatur_auszaehlen()
         stimmen = [(s.pseudonym.hex, s.stimme) for s in self.stimmabgaben.all()]
         return auszaehlen(stimmen, self.stimmberechtigte_anzahl or 1, self.policy())
+
+    def kandidatur_auszaehlen(self):
+        """§ 7 Abs 1 (E-2.5): Zustimmungswahl über die wählbaren Bewerbungen —
+        gerechnet im framework-freien Kern (plattform_core.tally)."""
+        from plattform_core.tally import personenwahl_auszaehlen
+
+        waehlbar = list(
+            self.bewerbungen.filter(zurueckgezogen=False)
+            .order_by("erstellt_am", "pk")
+            .values_list("pk", flat=True)
+        )
+        zustimmungen = [
+            (z.pseudonym.hex, z.bewerbung_id)
+            for z in BewerbungsZustimmung.objects.filter(
+                bewerbung__antrag=self, bewerbung__zurueckgezogen=False
+            )
+        ]
+        return personenwahl_auszaehlen(
+            zustimmungen, waehlbar, self.stimmberechtigte_anzahl or 1, self.policy()
+        )
 
     def vollzugsstand(self):
         """Jüngster Eintrag im Umsetzungsregister (F-55) — None, solange keiner existiert
@@ -484,8 +525,10 @@ def antrag_einbringen(
     ordnung: Verfahrensordnung,
     ebene: str = Ebene.BUND,
     gebiet: str = "",
+    art: str = Antragsart.SACHE,
 ) -> Antrag:
-    """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren."""
+    """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren.
+    `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70)."""
     policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
     antrag = Antrag.objects.create(
         titel=titel,
@@ -493,6 +536,7 @@ def antrag_einbringen(
         policy_snapshot=policy.als_dict(),
         ebene=Ebene(ebene),
         gebiet=gebiet,
+        art=Antragsart(art),
     )
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
     AuditEintrag.anhaengen(
@@ -500,10 +544,118 @@ def antrag_einbringen(
             "typ": "antrag_eingebracht",
             "antrag": antrag.pk,
             "titel": titel,
+            "art": str(antrag.art),
             "policy": f"{policy.id} v{policy.version}",
         }
     )
     return antrag
+
+
+class Bewerbung(models.Model):
+    """Eine Bewerbung um das Mandat eines Kandidatur-Antrags (§ 7 Abs 1 E-2.5).
+
+    Bewerben ist bis zum Beginn der Abstimmung möglich — wer sich beteiligt,
+    wird im Antragsfenster als wählbar geführt. Anders als das Stimmverhalten
+    ist die Bewerbung offen: Wer gewählt werden will, tritt sichtbar an.
+    Ein Rückzug bleibt dokumentiert; die Bewerbung zählt dann nicht mehr."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="bewerbungen")
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="bewerbungen"
+    )
+    vorstellung = models.TextField(
+        max_length=2000, blank=True, help_text="Wer bin ich, wofür stehe ich — öffentlich sichtbar."
+    )
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    zurueckgezogen = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = [("antrag", "mitglied")]  # eine Bewerbung je Mensch je Mandat
+        ordering = ["erstellt_am", "pk"]
+        verbose_name = "Bewerbung"
+        verbose_name_plural = "Bewerbungen"
+
+    def __str__(self) -> str:
+        return f"Bewerbung von Mitglied {self.mitglied_id} für Antrag {self.antrag_id}"
+
+
+class BewerbungsZustimmung(models.Model):
+    """Die veröffentlichte Seite einer Personenwahl-Stimme: Pseudonym + Bewerbung.
+
+    Zustimmungswahl (§ 7 Abs 1 E-2.5): Jedes Mitglied kann mehreren Bewerbungen
+    zustimmen — jeder aber nur einmal — und jede Zustimmung bis Fristende wieder
+    zurücknehmen. Das Pseudonym kommt aus demselben Stimmregister wie bei
+    Sachfragen (F-25): geheim für Dritte, nachrechenbar für alle, auffindbar
+    für das eigene Mitglied über den Prüfcode. KEIN Personenbezug."""
+
+    bewerbung = models.ForeignKey(Bewerbung, on_delete=models.CASCADE, related_name="zustimmungen")
+    pseudonym = models.UUIDField()
+    abgegeben_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("bewerbung", "pseudonym")]
+        verbose_name = "Bewerbungs-Zustimmung"
+        verbose_name_plural = "Bewerbungs-Zustimmungen"
+
+    def __str__(self) -> str:
+        return f"Zustimmung {self.pseudonym.hex[:8]}… zu Bewerbung {self.bewerbung_id}"
+
+
+class BewerbungsFehler(Exception):
+    """Bewerbung derzeit nicht möglich (falsche Antragsart oder Phase)."""
+
+
+def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str) -> Bewerbung:
+    """Sich um das Mandat bewerben bzw. die eigene Bewerbung erneuern (§ 7 Abs 1).
+    Möglich bis zum Beginn der Abstimmung; ein früherer Rückzug wird aufgehoben."""
+    if antrag.art != Antragsart.MANDAT:
+        raise BewerbungsFehler("Dieser Antrag ist keine Mandats-Kandidatur.")
+    antrag.fortschreiben()
+    if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
+        raise BewerbungsFehler("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1).")
+    text = (vorstellung or "").strip()[:2000]
+    bewerbung, neu = Bewerbung.objects.get_or_create(
+        antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text}
+    )
+    if not neu:
+        bewerbung.vorstellung = text or bewerbung.vorstellung
+        bewerbung.zurueckgezogen = False
+        bewerbung.save(update_fields=["vorstellung", "zurueckgezogen"])
+    AuditEintrag.anhaengen(
+        {"typ": "bewerbung" if neu else "bewerbung_erneuert", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
+    )
+    return bewerbung
+
+
+def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=None) -> bool:
+    """Zustimmung zu einer Bewerbung geben oder zurücknehmen (Umschalter).
+    Rückgabe: True = zugestimmt, False = zurückgenommen. Läuft über das
+    Stimmregister des Antrags — geheim und nachrechenbar wie jede Stimme."""
+    jetzt = jetzt or timezone.now()
+    if antrag.art != Antragsart.MANDAT or bewerbung.antrag_id != antrag.pk:
+        raise StimmabgabeFehler("Diese Bewerbung gehört nicht zu dieser Kandidatur.")
+    if bewerbung.zurueckgezogen:
+        raise StimmabgabeFehler("Diese Bewerbung wurde zurückgezogen und ist nicht wählbar.")
+    if not antrag.stimme_zulaessig(jetzt):
+        raise StimmabgabeFehler("Für diese Kandidatur läuft derzeit keine Abstimmung.")
+    register, _neu = StimmRegister.objects.get_or_create(
+        antrag=antrag, mitglied=mitglied, defaults={"pseudonym": uuid.uuid4()}
+    )
+    zustimmung, angelegt = BewerbungsZustimmung.objects.get_or_create(
+        bewerbung=bewerbung, pseudonym=register.pseudonym, defaults={"abgegeben_am": jetzt}
+    )
+    if not angelegt:
+        zustimmung.delete()
+    AuditEintrag.anhaengen(
+        {
+            "typ": "personenwahl_stimme",
+            "antrag": antrag.pk,
+            "pseudonym": register.pseudonym.hex,
+            # bewusst OHNE Bewerbungs-ID und OHNE Mitglieds-ID: Das Audit-Log ist
+            # öffentlich — wem zugestimmt wurde, zeigt erst die Auszählung nach Fristende.
+        }
+    )
+    return angelegt
 
 
 class StimmabgabeFehler(Exception):

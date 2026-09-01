@@ -126,3 +126,106 @@ def auszaehlen(
         beteiligung_erreicht=beteiligung_erreicht,
         begruendung=begruendung,
     )
+
+
+# ---------------------------------------------------------------------------
+# Personenwahl (§ 7 Abs 1 E-2.5, F-70): Zustimmungswahl über Bewerbungen.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PersonenwahlPlatz:
+    bewerbung_id: int
+    stimmen: int
+    platz: int
+
+
+@dataclass(frozen=True)
+class Personenwahl:
+    """Ergebnis einer Mandats-Kandidatur: die Zustimmungsreihenfolge ergibt die
+    Reihung des Wahlvorschlags; die Bewerbung mit der meisten Zustimmung gewinnt.
+    Attribute `angenommen`/`beteiligung_erreicht`/`begruendung` sind bewusst
+    kompatibel zur Sach-Auszählung, damit die Phasenmaschine beide versteht."""
+
+    plaetze: tuple[PersonenwahlPlatz, ...]
+    beteiligung: int
+    stimmberechtigte: int
+    mindestbeteiligung: float
+    beteiligung_erreicht: bool
+    angenommen: bool
+    gewonnen_id: int | None
+    begruendung: str
+
+
+def personenwahl_auszaehlen(
+    zustimmungen: Iterable[tuple[str, int]],
+    bewerbungen: Iterable[int],
+    stimmberechtigte: int,
+    policy: Policy,
+) -> Personenwahl:
+    """Zählt eine Zustimmungswahl aus (§ 7 Abs 1 E-2.5).
+
+    `zustimmungen`: Folge von (pseudonym, bewerbungs_id) — jedes Paar höchstens
+    einmal (ein Mitglied kann mehreren Bewerbungen zustimmen, jeder Bewerbung
+    aber nur einmal). `bewerbungen`: die wählbaren Bewerbungs-IDs in
+    Einreichungsreihenfolge; bei Stimmengleichheit steht die früher
+    eingereichte Bewerbung vorn — eine offene, nachrechenbare Regel.
+    Beteiligung = Zahl der Pseudonyme mit mindestens einer Zustimmung; die
+    Mindestbeteiligung der eingefrorenen Policy gilt wie bei Sachfragen."""
+    reihenfolge = {b: i for i, b in enumerate(bewerbungen)}
+    if len(reihenfolge) == 0:
+        return Personenwahl(
+            plaetze=(),
+            beteiligung=0,
+            stimmberechtigte=stimmberechtigte,
+            mindestbeteiligung=policy.mindestbeteiligung,
+            beteiligung_erreicht=False,
+            angenommen=False,
+            gewonnen_id=None,
+            begruendung="Keine wählbare Bewerbung — die Kandidatur bleibt ohne Ergebnis (§ 7 Abs 1).",
+        )
+    gesehen: set[tuple[str, int]] = set()
+    zaehler = dict.fromkeys(reihenfolge, 0)
+    waehler: set[str] = set()
+    for pseudonym, bid in zustimmungen:
+        if bid not in reihenfolge:
+            raise AuszaehlungsFehler(f"Zustimmung für unbekannte Bewerbung {bid!r}.")
+        paar = (pseudonym, bid)
+        if paar in gesehen:
+            raise AuszaehlungsFehler(f"Doppelte Zustimmung desselben Pseudonyms: {paar!r}.")
+        gesehen.add(paar)
+        zaehler[bid] += 1
+        waehler.add(pseudonym)
+    if stimmberechtigte < 1:
+        raise AuszaehlungsFehler("Stimmberechtigte müssen mindestens 1 sein.")
+    reihung = sorted(reihenfolge, key=lambda b: (-zaehler[b], reihenfolge[b]))
+    plaetze = tuple(
+        PersonenwahlPlatz(bewerbung_id=b, stimmen=zaehler[b], platz=i + 1) for i, b in enumerate(reihung)
+    )
+    beteiligung = len(waehler)
+    schwelle = Fraction(policy.mindestbeteiligung).limit_denominator(10_000)
+    erreicht = Fraction(beteiligung, stimmberechtigte) >= schwelle
+    gewonnen = reihung[0] if erreicht and zaehler[reihung[0]] > 0 else None
+    if gewonnen is not None:
+        begruendung = (
+            f"Gewählt ist Bewerbung {gewonnen} mit {zaehler[gewonnen]} Zustimmungen; "
+            f"Beteiligung {beteiligung}/{stimmberechtigte} erreicht die Mindestbeteiligung "
+            f"von {policy.mindestbeteiligung:.0%} (§ 5 Abs 4, § 7 Abs 1)."
+        )
+    elif not erreicht:
+        begruendung = (
+            f"Mindestbeteiligung verfehlt: {beteiligung}/{stimmberechtigte} bei geforderten "
+            f"{policy.mindestbeteiligung:.0%} (§ 5 Abs 4) — keine Bewerbung gilt als gewählt."
+        )
+    else:
+        begruendung = "Keine Bewerbung erhielt eine Zustimmung — niemand gilt als gewählt."
+    return Personenwahl(
+        plaetze=plaetze,
+        beteiligung=beteiligung,
+        stimmberechtigte=stimmberechtigte,
+        mindestbeteiligung=policy.mindestbeteiligung,
+        beteiligung_erreicht=erreicht,
+        angenommen=gewonnen is not None,
+        gewonnen_id=gewonnen,
+        begruendung=begruendung,
+    )

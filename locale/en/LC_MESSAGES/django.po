@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 14:04+0200\n"
+"POT-Creation-Date: 2026-09-01 19:23+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,6 +53,100 @@ msgstr "You are writing anonymously — as a member, we could follow up."
 
 msgid "Absenden"
 msgstr "Send"
+
+msgid "Alle Mandatare"
+msgstr "All mandate holders"
+
+msgid "seit"
+msgstr "since"
+
+msgid "beendet am"
+msgstr "ended on"
+
+msgid "Aktuelle Aufgaben und Entscheidungsprozesse"
+msgstr "Current tasks and decision processes"
+
+msgid ""
+"Was gerade ansteht, mit Fristen — und wo eine Aufgabe zur Abstimmung geworden ist,\n"
+"führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9)."
+msgstr ""
+"What is on the table right now, with deadlines — and where a task has become"
+" a vote, it leads straight to the motion in their care in the Parliament (§ "
+"7 (9))."
+
+msgid "Frist:"
+msgstr "Deadline:"
+
+msgid "Zur betreuten Abstimmung:"
+msgstr "To the vote in their care:"
+
+msgid "Noch keine Aufgaben eingetragen."
+msgstr "No tasks listed yet."
+
+msgid ""
+"Richtschnur und Rechenschaft: Die Ergebnisse der betreuten Abstimmungen sind Beschlusslage\n"
+"(§ 7 Abs 4 und 5); Abweichungen werden samt Begründung veröffentlicht. Das freie Mandat (§ 7 Abs 2)\n"
+"bleibt unberührt — unser Instrument ist Öffentlichkeit, nicht Zwang."
+msgstr ""
+"Guiding line and accountability: the results of the votes in their care are "
+"the decided position (§ 7 (4) and (5)); deviations are published together "
+"with the reasoning. The free mandate (§ 7 (2)) remains untouched — our "
+"instrument is publicity, not coercion."
+
+msgid "Zum Umsetzungsregister →"
+msgstr "To the implementation register →"
+
+msgid "Mandatare"
+msgstr "Mandate holders"
+
+msgid ""
+"Die Mandatar-Steuerung (§ 7 Abs 9 des Satzungsentwurfs): Jeder Mandatsträger der DDÖ\n"
+"zeigt hier öffentlich seine aktuellen Aufgaben und Entscheidungsprozesse samt Fristen — und die daraus\n"
+"entstehenden, von ihm betreuten Abstimmungen im Parlament. Die Ergebnisse sind seine Richtschnur;\n"
+"das freie Mandat bleibt unberührt (§ 7 Abs 2)."
+msgstr ""
+"Mandate steering (§ 7 (9) of the draft statutes): every DDÖ mandate holder "
+"publicly shows their current tasks and decision processes here, with "
+"deadlines — and the votes in the Parliament that arise from them, in their "
+"care. The results are their guiding line; the free mandate remains untouched"
+" (§ 7 (2))."
+
+msgid "Derzeit keine offenen Aufgaben eingetragen."
+msgstr "No open tasks listed at the moment."
+
+msgid "Aufgaben und Abstimmungen ansehen →"
+msgstr "See tasks and votes →"
+
+#, python-format
+msgid "Ein beendetes Mandat bleibt dokumentiert."
+msgid_plural "%(n)s beendete Mandate bleiben dokumentiert."
+msgstr[0] "One ended mandate remains documented."
+msgstr[1] "%(n)s ended mandates remain documented."
+
+msgid "Noch hält die DDÖ kein öffentliches Mandat."
+msgstr "The DDÖ does not yet hold a public mandate."
+
+msgid ""
+"Ehrlich gesagt: Genau dafür bauen wir — und die Wahl der Kandidaten läuft "
+"bereits jetzt über das Parlament."
+msgstr ""
+"Honestly: that is exactly what we are building for — and the election of "
+"candidates already runs through the Parliament."
+
+msgid "Laufende Mandats-Kandidaturen"
+msgstr "Ongoing mandate candidacies"
+
+msgid ""
+"Derzeit läuft keine Mandats-Kandidatur — jedes Mitglied kann eine "
+"einbringen."
+msgstr ""
+"No mandate candidacy is running at the moment — any member can submit one."
+
+msgid "Mitglied werden"
+msgstr "Become a member"
+
+msgid "Kandidatur-Antrag einbringen"
+msgstr "Submit a candidacy motion"
 
 msgid ""
 "Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet"
@@ -422,9 +516,6 @@ msgstr "Send sign-in link"
 
 msgid "Noch kein Zugang?"
 msgstr "No account yet?"
-
-msgid "Mitglied werden"
-msgstr "Become a member"
 
 msgid "E-Mail unterwegs"
 msgstr "Email on its way"
@@ -1003,7 +1094,7 @@ msgid "%(abgegeben)s von %(berechtigte)s Stimmberechtigten"
 msgstr "%(abgegeben)s of %(berechtigte)s eligible voters"
 
 msgid "Beteiligung"
-msgstr "turnout"
+msgstr "Turnout"
 
 msgid "Noch keine Abstimmungen."
 msgstr "No votes yet."
@@ -1087,6 +1178,9 @@ msgstr "%(n)s subareas"
 msgid "Zum Parlament"
 msgstr "To the Parliament"
 
+msgid "Mandats-Kandidatur"
+msgstr "Mandate candidacy"
+
 msgid "automatisch zugeordnet (F-47)"
 msgstr "assigned automatically (F-47)"
 
@@ -1098,9 +1192,6 @@ msgstr "by"
 
 msgid "Unterstützungen:"
 msgstr "Supporters:"
-
-msgid "Frist:"
-msgstr "Deadline:"
 
 msgid "Favorit"
 msgstr "Favourite"
@@ -1142,14 +1233,118 @@ msgstr "sign in"
 msgid "oder"
 msgstr "or"
 
+msgid "Bewerbungen"
+msgstr "Applications"
+
+msgid ""
+"Zustimmungswahl: Sie können mehreren Bewerbungen zustimmen und jede "
+"Zustimmung bis zum Fristende zurücknehmen. Zwischenstände werden nicht "
+"angezeigt — das Ergebnis erscheint erst nach Fristende."
+msgstr ""
+"Approval voting: you can approve several applications and withdraw any "
+"approval until the deadline. No interim results are shown — the outcome "
+"appears only after the deadline."
+
+msgid ""
+"Wer sich beteiligt, wird hier als wählbar geführt. Die Bewerbung mit der "
+"meisten Zustimmung gewinnt die Wahl; die Zustimmungsreihenfolge ergibt die "
+"Reihung des Wahlvorschlags (§ 7 Abs 1)."
+msgstr ""
+"Whoever joins is listed here as electable. The application with the most "
+"approval wins the election; the order of approval forms the ranking of the "
+"electoral list (§ 7 (1))."
+
+msgid "beworben am"
+msgstr "applied on"
+
+msgid "Zugestimmt — zurücknehmen"
+msgstr "Approved — withdraw"
+
+msgid "Zustimmen"
+msgstr "Approve"
+
+msgid "Noch keine Bewerbung — die erste kann Ihre sein."
+msgstr "No application yet — the first can be yours."
+
+#, python-format
+msgid "Eine Bewerbung wurde zurückgezogen — dokumentiert im Audit-Log."
+msgid_plural ""
+"%(n)s Bewerbungen wurden zurückgezogen — dokumentiert im Audit-Log."
+msgstr[0] "One application was withdrawn — documented in the audit log."
+msgstr[1] "%(n)s applications were withdrawn — documented in the audit log."
+
+msgid ""
+"Ihre Zustimmungen werden unter einem Pseudonym erfasst und nach Fristende in"
+" der nachrechenbaren Liste veröffentlicht."
+msgstr ""
+"Your approvals are recorded under a pseudonym and published in the "
+"verifiable list after the deadline."
+
+msgid "Prüfcode anzeigen"
+msgstr "Show verification code"
+
+msgid "Zum Zustimmen bitte"
+msgstr "To approve, please"
+
+msgid "Zum Bewerben bitte"
+msgstr "To apply, please"
+
+msgid "Ihre Bewerbung steht — Sie werden als wählbar geführt."
+msgstr "Your application stands — you are listed as electable."
+
+msgid "Bewerbung zurückziehen"
+msgstr "Withdraw application"
+
+msgid "Um dieses Mandat bewerben — Ihre Vorstellung (öffentlich)"
+msgstr "Apply for this mandate — your introduction (public)"
+
+msgid "Wer bin ich, wofür stehe ich, was bringe ich mit."
+msgstr "Who I am, what I stand for, what I bring."
+
+msgid ""
+"Ich bestätige, die gesetzlichen Voraussetzungen der Wählbarkeit zu erfüllen "
+"— insbesondere das passive Wahlalter (Art 26 Abs 4 B-VG, § 7 Abs 1 des "
+"Satzungsentwurfs)."
+msgstr ""
+"I confirm that I meet the legal requirements of eligibility — in particular "
+"the minimum age to stand for election (Art 26 (4) B-VG, § 7 (1) of the draft"
+" statutes)."
+
+msgid "Bewerbung einreichen"
+msgstr "Submit application"
+
+msgid "Ergebnis"
+msgstr "Result"
+
+msgid "Platz"
+msgstr "Rank"
+
+msgid "Bewerbung"
+msgstr "Application"
+
+msgid "Zustimmungen"
+msgstr "Approvals"
+
+msgid "gewählt"
+msgstr "elected"
+
+msgid "Stimmberechtigte"
+msgstr "Eligible voters"
+
+msgid "Nachrechnen:"
+msgstr "Recount:"
+
+msgid "Stimmliste exportieren"
+msgstr "Export the ballot list"
+
+msgid "Meine Stimme in der Liste finden"
+msgstr "Find my vote in the list"
+
 msgid "Ihre aktuelle Stimme:"
 msgstr "Your current vote:"
 
 msgid "Sie können sie bis zum Fristende ändern."
 msgstr "You can change it until the deadline."
-
-msgid "Prüfcode anzeigen"
-msgstr "Show verification code"
 
 msgid ""
 "Ihre Stimme wird unter einem Pseudonym erfasst und nach Abstimmungsende in "
@@ -1161,25 +1356,10 @@ msgstr ""
 msgid "Zum Abstimmen bitte"
 msgstr "To vote, please"
 
-msgid "Ergebnis"
-msgstr "Result"
-
-msgid "Stimmberechtigte"
-msgstr "Eligible voters"
-
-msgid "Nachrechnen:"
-msgstr "Recount:"
-
-msgid "Stimmliste exportieren"
-msgstr "Export the ballot list"
-
 msgid ""
 "und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8)."
 msgstr ""
 "and verify independently with <code>verify/nachrechnen.py</code> (§ 5 (8))."
-
-msgid "Meine Stimme in der Liste finden"
-msgstr "Find my vote in the list"
 
 msgid "offen"
 msgstr "open"
@@ -1631,9 +1811,6 @@ msgstr "WeicherFilter"
 msgid "Voreinstellung: neutral"
 msgstr "Default: neutral"
 
-msgid "seit"
-msgstr "since"
-
 msgid ""
 "Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten "
 "Ausbaustufe. Bis dahin: streng neutral."
@@ -2022,11 +2199,38 @@ msgstr "Gathering support"
 msgid "Abgeschlossen"
 msgstr "Completed"
 
+msgid "Art des Antrags"
+msgstr "Type of motion"
+
+msgid "Sachantrag — ein Beschluss in der Sache"
+msgstr "Substantive motion — a decision on the matter"
+
+msgid ""
+"Mandats-Kandidatur — eine Personenwahl (§ 7 Abs 1): Mitglieder bewerben sich"
+" am Antrag, die meiste Zustimmung gewinnt, die Reihenfolge ergibt die Liste"
+msgstr ""
+"Mandate candidacy — an election of persons (§ 7 (1)): members apply on the "
+"motion, the most approval wins, the order forms the list"
+
 msgid "Titel"
 msgstr "Title"
 
+msgid ""
+"Bei einer Mandats-Kandidatur: das Mandat, z. B. „Listenreihung Gemeinderat "
+"…“."
+msgstr ""
+"For a mandate candidacy: the mandate, e.g. “list ranking municipal council "
+"…”."
+
 msgid "Wortlaut des Antrags"
 msgstr "Text of the motion"
+
+msgid ""
+"Bei einer Mandats-Kandidatur: Beschreibung des Mandats — Aufgabe, Zeitraum, "
+"Zuständigkeit."
+msgstr ""
+"For a mandate candidacy: description of the mandate — task, period, "
+"responsibility."
 
 msgid "Gilt für"
 msgstr "Applies to"
@@ -2068,11 +2272,43 @@ msgstr "The deliberation of this motion has ended."
 msgid "Ihr Beitrag ist veröffentlicht."
 msgstr "Your contribution has been published."
 
+msgid "Bei einer Mandats-Kandidatur stimmen Sie den einzelnen Bewerbungen zu."
+msgstr "For a mandate candidacy you approve the individual applications."
+
 msgid "Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern."
 msgstr "Your vote has been recorded — you can change it until the deadline."
 
 msgid "Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."
 msgstr "This vote could not be recorded (is the vote still open?)."
+
+msgid ""
+"Bitte bestätigen Sie, dass Sie die gesetzlichen Voraussetzungen der "
+"Wählbarkeit erfüllen."
+msgstr "Please confirm that you meet the legal requirements of eligibility."
+
+msgid ""
+"Ihre Bewerbung ist erfasst — Sie werden im Antragsfenster als wählbar "
+"geführt."
+msgstr ""
+"Your application has been recorded — you are listed as electable on the "
+"motion."
+
+msgid "Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."
+msgstr "Applying is possible only until voting begins (§ 7 (1))."
+
+msgid "Ihre Bewerbung ist zurückgezogen — das bleibt öffentlich dokumentiert."
+msgstr ""
+"Your application has been withdrawn — this remains publicly documented."
+
+msgid "Zustimmung erfasst — bis zum Fristende können Sie sie zurücknehmen."
+msgstr "Approval recorded — you can withdraw it until the deadline."
+
+msgid "Zustimmung zurückgenommen."
+msgstr "Approval withdrawn."
+
+msgid ""
+"Diese Zustimmung konnte nicht erfasst werden (läuft die Abstimmung noch?)."
+msgstr "This approval could not be recorded (is the vote still open?)."
 
 msgid ""
 "Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der "

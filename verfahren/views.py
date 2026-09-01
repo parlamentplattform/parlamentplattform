@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from plattform_core import Phase
-from verfahren.models import Antrag, Kategorie, Vollzugsstatus
+from verfahren.models import Antrag, Antragsart, BewerbungsZustimmung, Kategorie, Vollzugsstatus
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
@@ -122,9 +122,50 @@ def parlament(request):
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
+    beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
     ergebnis = None
-    if antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
+    if beendet and antrag.art != Antragsart.MANDAT:
         ergebnis = antrag.auszaehlen()
+
+    # Mandats-Kandidatur (§ 7 Abs 1, F-70): Bewerbungen, eigene Zustimmungen, Ergebnis
+    kandidatur = None
+    if antrag.art == Antragsart.MANDAT:
+        bewerbungen = list(antrag.bewerbungen.select_related("mitglied"))
+        meine_bewerbung = None
+        meine_zustimmungen: set[int] = set()
+        if request.user.is_authenticated:
+            meine_bewerbung = next((b for b in bewerbungen if b.mitglied_id == request.user.pk), None)
+            reg = antrag.stimmregister.filter(mitglied=request.user).first()
+            if reg:
+                meine_zustimmungen = set(
+                    BewerbungsZustimmung.objects.filter(
+                        bewerbung__antrag=antrag, pseudonym=reg.pseudonym
+                    ).values_list("bewerbung_id", flat=True)
+                )
+        wahl = antrag.kandidatur_auszaehlen() if beendet else None
+        ergebnis_zeilen = []
+        if wahl is not None:
+            namen = {b.pk: b.mitglied.anzeigename for b in bewerbungen}
+            ergebnis_zeilen = [
+                {
+                    "platz": p.platz,
+                    "name": namen.get(p.bewerbung_id, f"#{p.bewerbung_id}"),
+                    "stimmen": p.stimmen,
+                    "gewonnen": p.bewerbung_id == wahl.gewonnen_id,
+                }
+                for p in wahl.plaetze
+            ]
+        kandidatur = {
+            "aktive": [b for b in bewerbungen if not b.zurueckgezogen],
+            "zurueckgezogene": [b for b in bewerbungen if b.zurueckgezogen],
+            "meine_bewerbung": meine_bewerbung,
+            "meine_zustimmungen": meine_zustimmungen,
+            "bewerben_offen": antrag.phase
+            in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
+            "zustimmen_offen": antrag.phase == Phase.ABSTIMMUNG.value,
+            "wahl": wahl,
+            "ergebnis_zeilen": ergebnis_zeilen,
+        }
     from plattform_core.phases import (
         abstimmung_frist_ende,
         beratung_frist_ende,
@@ -166,6 +207,7 @@ def antrag_detail(request, pk):
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
             "fassung": antrag.aktueller_text(),
             "ergebnis": ergebnis,
+            "kandidatur": kandidatur,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
             "kommentare": antrag.kommentare.select_related("mitglied"),
             "frist": frist,

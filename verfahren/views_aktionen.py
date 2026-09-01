@@ -26,6 +26,10 @@ from plattform_core import Gegenstand, Phase
 from plattform_core.similarity import aehnlichste
 from verfahren.models import (
     Antrag,
+    Antragsart,
+    Bewerbung,
+    BewerbungsFehler,
+    BewerbungsZustimmung,
     Ebene,
     Favorit,
     Kategorie,
@@ -35,6 +39,8 @@ from verfahren.models import (
     StimmRegister,
     Verfahrensordnung,
     antrag_einbringen,
+    bewerbung_einreichen,
+    bewerbung_zustimmen,
     kategorien_zuordnen,
     stimme_abgeben,
     vollzug_fortschreiben,
@@ -66,9 +72,36 @@ class AntragsFormular(forms.Form):
     kommt aus dem Mitgliedsprofil, nie aus freier Eingabe. Lebensbereiche wählt
     niemand von Hand — die ordnet die Plattform automatisch zu (F-47)."""
 
-    titel = forms.CharField(label=gettext_lazy("Titel"), max_length=200)
+    art = forms.ChoiceField(
+        label=gettext_lazy("Art des Antrags"),
+        widget=forms.RadioSelect,
+        required=False,
+        initial=Antragsart.SACHE.value,
+        choices=[
+            (
+                Antragsart.SACHE.value,
+                gettext_lazy("Sachantrag — ein Beschluss in der Sache"),
+            ),
+            (
+                Antragsart.MANDAT.value,
+                gettext_lazy(
+                    "Mandats-Kandidatur — eine Personenwahl (§ 7 Abs 1): Mitglieder bewerben sich "
+                    "am Antrag, die meiste Zustimmung gewinnt, die Reihenfolge ergibt die Liste"
+                ),
+            ),
+        ],
+    )
+    titel = forms.CharField(
+        label=gettext_lazy("Titel"),
+        max_length=200,
+        help_text=gettext_lazy("Bei einer Mandats-Kandidatur: das Mandat, z. B. „Listenreihung Gemeinderat …“."),
+    )
     wortlaut = forms.CharField(
-        label=gettext_lazy("Wortlaut des Antrags"), widget=forms.Textarea(attrs={"rows": 10})
+        label=gettext_lazy("Wortlaut des Antrags"),
+        widget=forms.Textarea(attrs={"rows": 10}),
+        help_text=gettext_lazy(
+            "Bei einer Mandats-Kandidatur: Beschreibung des Mandats — Aufgabe, Zeitraum, Zuständigkeit."
+        ),
     )
     begruendung = forms.CharField(
         label=gettext_lazy("Begründung"), widget=forms.Textarea(attrs={"rows": 6}), required=False
@@ -88,6 +121,10 @@ class AntragsFormular(forms.Form):
 
     def clean_ebene(self):
         return self.cleaned_data.get("ebene") or Ebene.BUND.value
+
+    def clean_art(self):
+        wert = self.cleaned_data.get("art") or Antragsart.SACHE.value
+        return wert if wert in Antragsart.values else Antragsart.SACHE.value
 
     def gebiet(self) -> str:
         """Das Gebiet folgt zwingend dem Wohnsitz (F-43) — keine freie Eingabe."""
@@ -121,7 +158,10 @@ def einbringen(request):
         form = AntragsFormular(request.POST, mitglied=request.user)
         if form.is_valid():
             d = form.cleaned_data
-            if not request.POST.get("trotzdem"):
+            # Ähnlichkeitshinweis nur für Sachanträge — Kandidaturen für dasselbe
+            # Mandat sollen sich am BESTEHENDEN Antrag beteiligen (§ 7 Abs 1);
+            # darauf weist die Antragsseite selbst hin.
+            if not request.POST.get("trotzdem") and d["art"] == Antragsart.SACHE.value:
                 offene = list(Antrag.objects.filter(phase__in=OFFENE_PHASEN).values_list("id", "titel"))
                 texte = {a.pk: a for a in Antrag.objects.filter(id__in=[i for i, _ in offene])}
                 kandidaten = []
@@ -157,6 +197,7 @@ def einbringen(request):
                 ordnung,
                 ebene=d["ebene"],
                 gebiet=form.gebiet(),
+                art=d["art"],
             )
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
             if zugeordnet:
@@ -222,6 +263,11 @@ def kommentieren(request, pk):
 def abstimmen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     antrag.fortschreiben()
+    if antrag.art == Antragsart.MANDAT:
+        messages.error(
+            request, _("Bei einer Mandats-Kandidatur stimmen Sie den einzelnen Bewerbungen zu.")
+        )
+        return redirect("verfahren:antrag", pk=pk)
     stichtag = antrag.phase_beginn.date()
     if not request.user.ist_stimmberechtigt(
         Gegenstand.SACHFRAGE, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
@@ -236,6 +282,79 @@ def abstimmen(request, pk):
     return redirect("verfahren:antrag", pk=pk)
 
 
+@login_required
+@require_POST
+def bewerben(request, pk):
+    """§ 7 Abs 1 (F-70): sich am Kandidatur-Antrag beteiligen — man wird im
+    Antragsfenster als wählbar geführt. Möglich bis zum Abstimmungsbeginn."""
+    antrag = get_object_or_404(Antrag, pk=pk)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
+    if not request.user.ist_stimmberechtigt(
+        Gegenstand.PERSONENWAHL, timezone.now().date(), uebergang=settings.DDOE_UEBERGANGSREGEL
+    ):
+        return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+    if not request.POST.get("waehlbar"):
+        messages.error(
+            request,
+            _("Bitte bestätigen Sie, dass Sie die gesetzlichen Voraussetzungen der Wählbarkeit erfüllen."),
+        )
+        return redirect("verfahren:antrag", pk=pk)
+    try:
+        bewerbung_einreichen(antrag, request.user, request.POST.get("vorstellung", ""))
+        messages.success(
+            request, _("Ihre Bewerbung ist erfasst — Sie werden im Antragsfenster als wählbar geführt.")
+        )
+    except BewerbungsFehler:
+        messages.error(request, _("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."))
+    return redirect("verfahren:antrag", pk=pk)
+
+
+@login_required
+@require_POST
+def bewerbung_zurueckziehen(request, pk):
+    """Der Rückzug bleibt dokumentiert; die Bewerbung zählt nicht mehr."""
+    antrag = get_object_or_404(Antrag, pk=pk)
+    bewerbung = antrag.bewerbungen.filter(mitglied=request.user, zurueckgezogen=False).first()
+    if bewerbung:
+        bewerbung.zurueckgezogen = True
+        bewerbung.save(update_fields=["zurueckgezogen"])
+        from verfahren.models import AuditEintrag
+
+        AuditEintrag.anhaengen(
+            {"typ": "bewerbung_zurueckgezogen", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
+        )
+        messages.info(request, _("Ihre Bewerbung ist zurückgezogen — das bleibt öffentlich dokumentiert."))
+    return redirect("verfahren:antrag", pk=pk)
+
+
+@login_required
+@require_POST
+def kandidatur_zustimmen(request, pk, bewerbung_pk):
+    """Zustimmungswahl (§ 7 Abs 1): Zustimmung geben oder zurücknehmen —
+    geheim über das Stimmregister, änderbar bis zum Fristende."""
+    antrag = get_object_or_404(Antrag, pk=pk)
+    antrag.fortschreiben()
+    stichtag = antrag.phase_beginn.date()
+    if not request.user.ist_stimmberechtigt(
+        Gegenstand.PERSONENWAHL, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+    ):
+        return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+    bewerbung = get_object_or_404(Bewerbung, pk=bewerbung_pk, antrag=antrag)
+    try:
+        dazu = bewerbung_zustimmen(antrag, request.user, bewerbung)
+        if dazu:
+            messages.success(request, _("Zustimmung erfasst — bis zum Fristende können Sie sie zurücknehmen."))
+        else:
+            messages.info(request, _("Zustimmung zurückgenommen."))
+    except StimmabgabeFehler:
+        messages.error(
+            request, _("Diese Zustimmung konnte nicht erfasst werden (läuft die Abstimmung noch?).")
+        )
+    return redirect("verfahren:antrag", pk=pk)
+
+
 def export_json(request, pk):
     """F-21/F-23: maschinenlesbarer Export zum unabhängigen Nachrechnen —
     kompatibel mit verify/nachrechnen.py. Erst nach Abstimmungsende verfügbar,
@@ -247,6 +366,7 @@ def export_json(request, pk):
     daten = {
         "antrag": antrag.pk,
         "titel": antrag.titel,
+        "art": antrag.art,
         "policy": antrag.policy_snapshot,
         "stimmberechtigte": antrag.stimmberechtigte_anzahl,
         "stimmen": [
@@ -255,6 +375,25 @@ def export_json(request, pk):
         ],
         "exportiert_am": timezone.now().isoformat(),
     }
+    if antrag.art == Antragsart.MANDAT:
+        # Personenwahl (§ 7 Abs 1): Bewerbungen in Einreichungsreihenfolge und alle
+        # Zustimmungen (Pseudonym → Bewerbung) — jede Person kann das Ergebnis
+        # damit unabhängig nachrechnen; die eigene Stimme findet man per Prüfcode.
+        daten["bewerbungen"] = [
+            {
+                "bewerbung": b.pk,
+                "name": b.mitglied.anzeigename,
+                "eingereicht_am": b.erstellt_am.isoformat(),
+                "zurueckgezogen": b.zurueckgezogen,
+            }
+            for b in antrag.bewerbungen.all()
+        ]
+        daten["zustimmungen"] = [
+            {"pseudonym": z.pseudonym.hex, "bewerbung": z.bewerbung_id}
+            for z in BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).order_by(
+                "pseudonym", "bewerbung_id"
+            )
+        ]
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
     antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-export.json"'
     return antwort

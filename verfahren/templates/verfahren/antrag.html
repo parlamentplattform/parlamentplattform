@@ -5,6 +5,7 @@
 <p><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Zum Parlament" %}</a></p>
 <h1>{{ antrag.titel }}</h1>
 <p><span class="badge">{{ antrag.phase|phase_name }}</span>
+{% if antrag.art == "mandat" %}<span class="badge">{% translate "Mandats-Kandidatur" %}</span>{% endif %}
 {% if antrag.ebene != "bund" %}<span class="badge badge--hell">{{ antrag.get_ebene_display }} · {{ antrag.gebiet }}</span>{% endif %}
 {% for k in antrag.kategorien.all %}<a href="{% url 'verfahren:kategorie' k.slug %}" class="badge badge--hell" style="text-decoration:none" title="{% translate 'automatisch zugeordnet (F-47)' %}">{{ k.pfad_kurz }}</a> {% endfor %}
 · {% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }} · {% translate "Unterstützungen:" %} {{ unterstuetzungen }}{% if frist %} · {% translate "Frist:" %} {{ frist|date:"d.m.Y, H:i" }}{% endif %}
@@ -39,7 +40,77 @@
 </div>
 {% endif %}
 
-{% if abstimmung_laeuft %}
+{% if kandidatur %}
+<h2 id="bewerbungen">{% translate "Bewerbungen" %} ({{ kandidatur.aktive|length }})</h2>
+<div class="karte">
+  <p class="erk">{% if kandidatur.zustimmen_offen %}{% translate "Zustimmungswahl: Sie können mehreren Bewerbungen zustimmen und jede Zustimmung bis zum Fristende zurücknehmen. Zwischenstände werden nicht angezeigt — das Ergebnis erscheint erst nach Fristende." %}{% else %}{% translate "Wer sich beteiligt, wird hier als wählbar geführt. Die Bewerbung mit der meisten Zustimmung gewinnt die Wahl; die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags (§ 7 Abs 1)." %}{% endif %}</p>
+  {% for b in kandidatur.aktive %}
+  <div class="kommentar">
+    <div class="kopf" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <span><strong>{{ b.mitglied.anzeigename }}</strong> · {% translate "beworben am" %} {{ b.erstellt_am|date:"d.m.Y" }}</span>
+      {% if kandidatur.zustimmen_offen and user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:kandidatur_zustimmen' antrag.pk b.pk %}">{% csrf_token %}
+        {% if b.pk in kandidatur.meine_zustimmungen %}
+          <button type="submit" class="btn">&#10003; {% translate "Zugestimmt — zurücknehmen" %}</button>
+        {% else %}
+          <button type="submit" class="btn-linie">{% translate "Zustimmen" %}</button>
+        {% endif %}
+      </form>
+      {% endif %}
+    </div>
+    {% if b.vorstellung %}<div>{{ b.vorstellung|linebreaksbr }}</div>{% endif %}
+  </div>
+  {% empty %}
+  <p class="leer">{% translate "Noch keine Bewerbung — die erste kann Ihre sein." %}</p>
+  {% endfor %}
+  {% if kandidatur.zurueckgezogene %}<p class="erk" style="margin-top:8px">{% blocktranslate count n=kandidatur.zurueckgezogene|length %}Eine Bewerbung wurde zurückgezogen — dokumentiert im Audit-Log.{% plural %}{{ n }} Bewerbungen wurden zurückgezogen — dokumentiert im Audit-Log.{% endblocktranslate %}</p>{% endif %}
+  {% if kandidatur.zustimmen_offen and user.is_authenticated %}
+  <p class="hilfe" style="margin-top:10px">{% translate "Ihre Zustimmungen werden unter einem Pseudonym erfasst und nach Fristende in der nachrechenbaren Liste veröffentlicht." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>
+  {% elif kandidatur.zustimmen_offen %}
+  <p class="hilfe" style="margin-top:10px">{% translate "Zum Zustimmen bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+  {% endif %}
+
+  {% if kandidatur.bewerben_offen %}
+  <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px">
+  {% if not user.is_authenticated %}
+    <p class="hilfe">{% translate "Zum Bewerben bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a> {% translate "oder" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a>.</p>
+  {% elif kandidatur.meine_bewerbung and not kandidatur.meine_bewerbung.zurueckgezogen %}
+    <form method="post" action="{% url 'verfahren:bewerbung_zurueckziehen' antrag.pk %}" class="stimmzeile">{% csrf_token %}
+      <span>{% translate "Ihre Bewerbung steht — Sie werden als wählbar geführt." %}</span>
+      <button type="submit" class="btn-still">{% translate "Bewerbung zurückziehen" %}</button>
+    </form>
+  {% else %}
+    <form method="post" action="{% url 'verfahren:bewerben' antrag.pk %}">{% csrf_token %}
+      <p><label for="id_vorstellung">{% translate "Um dieses Mandat bewerben — Ihre Vorstellung (öffentlich)" %}</label>
+      <textarea name="vorstellung" id="id_vorstellung" rows="4" maxlength="2000" placeholder="{% translate 'Wer bin ich, wofür stehe ich, was bringe ich mit.' %}"></textarea></p>
+      <p><label style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" name="waehlbar" value="1" required style="width:auto;margin-top:5px">
+      <span class="hilfe">{% translate "Ich bestätige, die gesetzlichen Voraussetzungen der Wählbarkeit zu erfüllen — insbesondere das passive Wahlalter (Art 26 Abs 4 B-VG, § 7 Abs 1 des Satzungsentwurfs)." %}</span></label></p>
+      <button type="submit" class="btn-linie">{% translate "Bewerbung einreichen" %}</button>
+    </form>
+  {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if kandidatur.wahl %}
+<h2>{% translate "Ergebnis" %}</h2>
+<div class="karte">
+<p><strong>{{ kandidatur.wahl.begruendung }}</strong></p>
+<div style="overflow-x:auto"><table class="tabelle">
+  <thead><tr><th>{% translate "Platz" %}</th><th>{% translate "Bewerbung" %}</th><th>{% translate "Zustimmungen" %}</th></tr></thead>
+  <tbody>
+  {% for z in kandidatur.ergebnis_zeilen %}
+  <tr{% if z.gewonnen %} style="font-weight:700"{% endif %}><td>{{ z.platz }}</td><td>{{ z.name }}{% if z.gewonnen %} · {% translate "gewählt" %}{% endif %}</td><td>{{ z.stimmen }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p>{% translate "Beteiligung" %} {{ kandidatur.wahl.beteiligung }} / {{ kandidatur.wahl.stimmberechtigte }} {% translate "Stimmberechtigte" %}</p>
+<p><small>{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}</small></p>
+</div>
+{% endif %}
+
+{% if abstimmung_laeuft and antrag.art != "mandat" %}
 <h2>{% translate "Abstimmen" %}</h2>
 <div class="karte">
   {% if user.is_authenticated %}

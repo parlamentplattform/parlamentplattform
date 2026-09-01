@@ -18,6 +18,17 @@ urlpatterns = [
     path("antrag/<int:pk>/favorisieren/", views_aktionen.favorisieren, name="favorisieren"),
     path("antrag/<int:pk>/kommentieren/", views_aktionen.kommentieren, name="kommentieren"),
     path("antrag/<int:pk>/abstimmen/", views_aktionen.abstimmen, name="abstimmen"),
+    path("antrag/<int:pk>/bewerben/", views_aktionen.bewerben, name="bewerben"),
+    path(
+        "antrag/<int:pk>/bewerbung-zurueckziehen/",
+        views_aktionen.bewerbung_zurueckziehen,
+        name="bewerbung_zurueckziehen",
+    ),
+    path(
+        "antrag/<int:pk>/zustimmen/<int:bewerbung_pk>/",
+        views_aktionen.kandidatur_zustimmen,
+        name="kandidatur_zustimmen",
+    ),
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),
     path("antrag/<int:pk>/meine-stimme/", views_aktionen.eigene_stimme, name="eigene_stimme"),
     path("antrag/<int:pk>/vollzug/", views_aktionen.vollzug_eintragen, name="vollzug"),

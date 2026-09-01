@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 10:51+0200\n"
+"POT-Creation-Date: 2026-09-01 11:29+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1040,6 +1040,9 @@ msgstr "New motions per week, last eight weeks"
 msgid "Seitenaufrufe je Tag, letzte 30 Tage"
 msgstr "Page views per day, last 30 days"
 
+msgid "Als Favorit merken"
+msgstr "Mark as favourite"
+
 msgid "automatisch zugeordnet (F-47)"
 msgstr "assigned automatically (F-47)"
 
@@ -1057,9 +1060,6 @@ msgstr "Deadline:"
 
 msgid "Favorit"
 msgstr "Favourite"
-
-msgid "Als Favorit merken"
-msgstr "Mark as favourite"
 
 msgid "merken"
 msgstr "save"
@@ -1361,9 +1361,6 @@ msgstr "ongoing procedures"
 msgid "gefasste Beschlüsse"
 msgstr "decisions taken"
 
-msgid "Das Hauptfenster"
-msgstr "The main window"
-
 msgid ""
 "Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,\n"
 "Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen\n"
@@ -1373,27 +1370,31 @@ msgstr ""
 "deadline and the members' decisions — never popularity, never a hidden "
 "algorithmic ranking (§ 5 (10) of the draft statutes)."
 
-msgid "Bereich a · persönlich"
-msgstr "Area a · personal"
+msgid "WeicherFilter"
+msgstr "WeicherFilter"
+
+msgid "Voreinstellung: neutral"
+msgstr "Default: neutral"
+
+msgid "seit"
+msgstr "since"
+
+msgid ""
+"Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten "
+"Ausbaustufe. Bis dahin: streng neutral."
+msgstr ""
+"Your filter, your sliders — the adjustable ordering arrives in a coming "
+"stage. Until then: strictly neutral."
 
 msgid "Meine Favoriten"
 msgstr "My favourites"
-
-msgid "Ihre gemerkten Themen — Abstimmungen zuerst."
-msgstr "Your saved topics — votes first."
 
 msgid ""
 "Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor."
 msgstr "No favourites yet — the star ☆ on any motion saves it here."
 
-msgid "Neu aus Ihren favorisierten <a href=\"/kategorien/\">Lebensbereichen</a>:"
-msgstr "New from your favourite <a href=\"/kategorien/\">areas of life</a>:"
-
-msgid "Lebensbereiche favorisieren"
-msgstr "Pick favourite areas of life"
-
-msgid "Neues daraus erscheint hier."
-msgstr "New items from them appear here."
+msgid "Neu aus Ihren Lebensbereichen"
+msgstr "New from your areas of life"
 
 msgid ""
 "Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon "
@@ -1402,59 +1403,37 @@ msgstr ""
 "As a member you save your topics here and see immediately which of them are "
 "up for a vote."
 
-msgid "Bereich b · hervorgehoben"
-msgstr "Area b · highlighted"
+msgid "Lebensbereiche entdecken und favorisieren →"
+msgstr "Discover and favourite areas of life →"
 
 msgid "Wichtige Abstimmungen"
 msgstr "Important votes"
 
-msgid ""
-"Was alle angeht, aber wenig Aufmerksamkeit bekommt — oder vor Beeinflussung zu\n"
-"    schützen ist. Hervorhebung nur durch begründeten, veröffentlichten Beschluss des Integritätsrats,\n"
-"    nie durch einen Algorithmus."
-msgstr ""
-"What concerns everyone but gets little attention — or needs protection from "
-"undue influence. Highlighting only by a reasoned, published decision of the "
-"Integrity Council, never by an algorithm."
+msgid "Beschluss des Integritätsrats"
+msgstr "Decision of the Integrity Council"
 
 msgid "Derzeit ist nichts hervorgehoben."
 msgstr "Nothing is highlighted at the moment."
 
-msgid "Bereich c · regional"
-msgstr "Area c · regional"
+msgid ""
+"Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch "
+"einen Algorithmus."
+msgstr ""
+"Highlighted only by a reasoned, published decision — never by an algorithm."
 
 msgid "Meine Region"
 msgstr "My region"
 
-msgid ""
-"Anträge auf Gemeinde-, Bezirks- und Landesebene — Ergebnisse sind "
-"Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene."
-msgstr ""
-"Motions at municipal, district and provincial level — results guide DDÖ "
-"representatives at each level."
+msgid "Gemeinde · Bezirk · Land"
+msgstr "Municipality · District · Province"
 
 msgid "Derzeit keine regionalen Anträge — der erste kann Ihrer sein."
 msgstr "No regional motions yet — the first one could be yours."
 
-msgid "Bereich d · Anträge & Gesetzesvorschläge"
-msgstr "Area d · motions & legislative proposals"
-
-msgid "Was steht zur Entscheidung"
-msgstr "What is up for decision"
-
 msgid ""
-"Jede Eingabe zeigt zuerst ähnliche, laufende Anträge samt Beteiligung — unterstützen\n"
-"  ist oft wirksamer als ein Parallelantrag. Einbringen bleibt trotzdem immer möglich."
-msgstr ""
-"Every submission first shows similar active motions with their participation"
-" — supporting is often more effective than a parallel motion. Submitting "
-"always remains possible."
-
-msgid "Phase seit"
-msgstr "phase since"
-
-msgid "Derzeit keine Anträge in dieser Phase."
-msgstr "No motions in this phase at the moment."
+"Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen "
+"Ebene."
+msgstr "Regional results guide DDÖ representatives at the respective level."
 
 msgid ""
 "Alles führt auf eine Kategorie zurück — und verzweigt sich von dort über vier Säulen\n"

@@ -286,6 +286,14 @@ def favorisieren(request, pk):
         Favorit.objects.filter(antrag=antrag, mitglied=request.user).delete()
         messages.info(request, _("Favorit entfernt."))
     weiter = request.POST.get("weiter", "")
+    if request.headers.get("HX-Request"):
+        # App-Verhalten (P1): Der Stern tauscht sich selbst aus, ohne Neuladen —
+        # ohne JavaScript läuft derselbe POST als gewöhnlicher Redirect weiter.
+        return render(
+            request,
+            "verfahren/_stern.html",
+            {"antrag": antrag, "ist_favorit": neu, "weiter": weiter or "/"},
+        )
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)
     return redirect("verfahren:antrag", pk=pk)

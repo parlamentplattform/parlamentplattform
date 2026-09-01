@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.17.0] — 2026-09-01 · P1: Das Parlament als Vier-Felder-Raster
+
+### Hinzugefügt
+- **Die Parlament-Seite ist jetzt ein bildschirmfüllendes 2×2-Raster** gleich großer, direkt bedienbarer Felder (mobil untereinander), je mit eigenem Kopf, scrollbarem Korpus und Fußzeile: **WeicherFilter** (Bereich d — vorerst streng neutrale Reihung nach Phase und Frist; die Regler folgen in P5), **Meine Favoriten** (Bereich a — samt „Neu aus Ihren Lebensbereichen"), **Wichtige Abstimmungen** (Bereich b — Kacheln mit Begründung des Integritätsrats) und **Meine Region** (Bereich c — gruppiert nach Gemeinde/Bezirk/Land). Die Leitgestalt des § 5 Abs 10 bleibt exakt gewahrt
+- **App-Fundament:** htmx 2.0.10 und Alpine.js 3.17.1 als **eingecheckte statische Dateien** (kein CDN, kein Tracking, kein Build-Schritt). Erster Nutzen: Favoriten-Sterne schalten ohne Seiten-Neuladen — ohne JavaScript funktioniert derselbe Klick wie bisher als normale Übermittlung
+- Terminus-Beschluss im Satzungsentwurf 2.4 nachgezogen: Der Expertenrat erarbeitet einen **„Vorschlag"** (nicht „Vorlage") — § 5 Abs 3 lit d und Abs 12; Satzungsseite auf ddoe.at aktualisiert
+- Fahrplan ergänzt: P2-Fächer mit **Mitte-Anker ab der dritten Ebene**, P7-**Abstimmungs-Chat** über den Vorschlag des Expertenrats (Zustimmen/Ablehnen je Kommentar, offene nachrechenbare Reihung, „Passt alles" > 50 % stuft hoch, Archiv-Registerkarte mit Export) und **P9 Internationale-Partner-Seite** (Strategie-Darstellung, Kooperations-Fahrplan, Kontakt; später Konto mit bestätigter Rolle „Internationaler Partner")
+
 ## [0.16.0] — 2026-09-01 · Die Zukunftswerkstatt bekommt ihren Namen
 
 ### Geändert

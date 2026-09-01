@@ -1,4 +1,4 @@
-{% load i18n %}{% get_current_language as SPRACHE %}<!doctype html>
+{% load i18n static %}{% get_current_language as SPRACHE %}<!doctype html>
 <html lang="{{ SPRACHE }}">
 <head>
 <meta charset="utf-8">
@@ -128,6 +128,26 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-of
 .checkzeile input{margin-top:5px}
 code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:var(--karton);border:1px dashed var(--deep);border-radius:8px;padding:8px 14px}
 pre{white-space:pre-wrap;font-family:inherit}
+/* ── Vier-Felder-Parlament (P1) ── */
+main.breit{max-width:1500px}
+.parlament{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+.feld{background:var(--karton);border:1px solid var(--line);border-radius:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;height:calc(50vh - 66px);min-height:360px;overflow:hidden}
+.feld-kopf{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+.feld-kopf h2{margin:0;font-size:19px}
+.feld-kopf .bk{margin-left:auto;opacity:.7}
+.feld-korpus{overflow-y:auto;padding:6px 18px 26px;flex:1;position:relative;scrollbar-width:thin}
+.feld::after{content:"";position:absolute}
+.feld-fuss{border-top:1px solid var(--line);padding:8px 18px;font-size:13px;color:var(--matt);background:linear-gradient(transparent,var(--karton))}
+.zeile{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
+.zeile:first-child{border-top:0}
+.zeile a{color:var(--linkfarbe)}
+.zeile .meta{font-size:12px;color:var(--matt)}
+.phasen-titel{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;margin:14px 0 2px}
+.phasen-titel:first-child{margin-top:6px}
+.mini-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.mini-kachel{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
+.mini-kachel a{color:var(--linkfarbe);font-weight:600}
+@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.mini-kacheln{grid-template-columns:1fr}}
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
 .hf-grid--zwei{grid-template-columns:repeat(2,1fr)}
@@ -187,8 +207,11 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
 @media print{header,footer,nav,.menue-knopf{display:none}body{background:#fff}main{padding:0}}
 </style>
+<script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>
+<script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>
+<meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip" href="#inhalt">{% translate "Zum Inhalt springen" %}</a>
 <header><div class="w">
   <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em><small>{% translate "Direkte Demokratie Österreich" %}</small></a>
@@ -219,7 +242,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
     </form>
   </nav>
 </div></header>
-<main id="inhalt">
+<main id="inhalt" class="{% block mainklasse %}{% endblock %}">
 {% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 {% if user.is_authenticated and user.status == "pausiert" %}
 <div class="meldung info">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}

@@ -2,6 +2,15 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.13.0] — 2026-09-01 · Die StaatsSimulation bekommt ihr Schaufenster
+
+### Hinzugefügt
+- **Öffentliche Seite `/staatssimulation/`** (deutsch und englisch, im Hauptmenü und Fußbereich verlinkt): die Gesamtstrategie der StaatsSimulation als Aufklärung für alle und als Einladung an die verwandten demokratischen Bewegungen weltweit — die zwei Gesichter (politische Bildung nach außen, Sinnesorgan der Selbstregulation nach innen), die vier Grundsätze („Die KI schlägt vor, sie entscheidet nie" · „Der Demos darf atmen, die Stimme wiegt immer gleich" · „Das Gedächtnis ist der Schatz, nicht das Modell" · „Auf Unwissen gebaut"), der Antragsweg im Zielbild (inklusive Expertenrat und Unterstützer-Schleife, ehrlich als Zielbild gekennzeichnet), Faktenbasis, Aufsicht und Kontakt
+- **Lastenheft, Abschnitt 3.9** „Die StaatsSimulation" mit F-60–F-68 (Simulations-Fundament, Ähnlichkeit Stufe 2, Rechtsfolgen-Check, Vollzug und Lastampel, Vergabe-Check, Lernschleife mit Prognose-Register, Gremien-Werkstatt mit den Oberflächen für Expertenrat 1/2 und Koordinationsrat, Expertenrats-Station im Antragsweg, Parameterregister) und **Leitplanke L7** („Die Simulation berät alle und regiert niemanden")
+
+### Geändert
+- Menüpunkt heißt jetzt klarer **„Umsetzungsregister"** statt „Umsetzung"
+
 ## [0.12.0] — 2026-08-31 · Der Beitragsabgleich: das Konto meldet sich selbst
 
 ### Hinzugefügt

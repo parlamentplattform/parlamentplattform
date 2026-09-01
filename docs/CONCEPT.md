@@ -13,7 +13,7 @@ Jede funktionale Anforderung trägt eine Referenz auf den Satzungsentwurf 2.1 (z
 
 ---
 
-## 1. Sechs Leitplanken, aus denen alles folgt
+## 1. Sieben Leitplanken, aus denen alles folgt
 
 Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzung und aus der Auswertung von rund 25 Vorgängerprojekten weltweit — und sie entscheiden mehr über die Architektur als jede Technologiewahl.
 
@@ -28,6 +28,8 @@ Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzun
 **L5 — Offenheit ohne Kaperung (→ § 4 Abs 4).** Ein Konto pro Mensch, geprüfte Identität, Anwartschaftsfristen, automatische Erkennung von Beitrittswellen. Verifikation kommt **vor** Anonymität — das ist seit den KI-Astroturfing-Fällen 2025/26 (20.000 Fake-Mails an eine US-Behörde vor einer einzigen Abstimmung) keine theoretische Sorge mehr.
 
 **L6 — Das System kennt seine Grenzen und zeigt sie (→ § 2 Abs 7, § 5 Abs 11, § 6 Abs 10).** Ein Beschluss, den niemand umsetzt, ist schlimmer als keiner: Er entwertet das Verfahren. Österreichs Klimarat 2022 hat es vorgeführt — 93 Empfehlungen, keine Behandlungspflicht, kaum Wirkung. Konsequenz: Der Durchsatz wird getaktet, der Vollzug berichtet standardisiert zurück, und Überlastung ist ein sichtbarer Systemzustand mit definierter Reaktion — kein Flurfunk. Die Plattform misst ihre eigenen Grenzen und veröffentlicht sie wie jedes andere Ergebnis.
+
+**L7 — Die Simulation berät alle und regiert niemanden (→ § 2 Abs 6/7, § 5 lit c).** Die StaatsSimulation liefert Einschätzungen mit Quellen und Kontextstand — sie bewertet, priorisiert oder verwirft keine Anträge, sie lenkt keine Aufmerksamkeit und sie ändert keine Regel. Ihre Vorschläge münden in Berichte an den Koordinationsrat und in versioniert beschlossene Verfahrensänderungen; ihre Prognosen werden öffentlich gegen die Wirklichkeit gehalten (Prognose-Register, F-65). Der Demos darf atmen, die Stimme wiegt immer gleich: Zuschnitts-Fragen (wer gehört zum Kreis der Entscheidenden) sind lernbare Parameter — das Stimmgewicht im Kreis ist unantastbar.
 
 **Explizite Nicht-Ziele** (ebenso wichtig): kein staatliches E-Voting und kein Anspruch darauf (→ § 2 Abs 5); keine geheime Online-Personenwahl, solange Geheimheit und Laien-Überprüfbarkeit nicht vereinbar sind — geheime Wahlen laufen per Präsenz/Brief (→ § 13 Abs 3); keine Blockchain (löst kein einziges unserer Probleme, kostet Verständlichkeit); keine Mobile-Apps im ersten Jahr (responsive Web genügt); keine Eigenentwicklung von Krypto-Primitiven, je.
 
@@ -167,6 +169,22 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | N-06 | Performance bescheiden und ehrlich: ausgelegt auf 10.000 Konten, 100 gleichzeitige Nutzer, 1.000 Stimmen/Minute Spitze — das deckt Jahre; ein Server genügt | Lasttest-Skript im Repo |
 | N-07 | Betrieb: alles als Code (Compose + Ansible), tägliche verschlüsselte Backups an zweiten Standort, dokumentierte Wiederherstellung < 4 h, Ausfall-Protokollpflicht ab 24 h | Restore-Übung |
 | N-08 | Reproduzierbare Builds: gepinnte Abhängigkeiten, Container-Digest im Release, signierte Releases | Release-Check |
+
+### 3.9 Die StaatsSimulation (F-60–F-68)
+
+*Erfüllt den Satzungsauftrag aus § 5 („soweit möglich Durchrechnung in der StaatsSimulation") und § 2 Abs 6/7. Gesamtstrategie: Arbeitspapier „Die StaatsSimulation — Gesamtstrategie" (Fassung 3, 1.9.2026); öffentliche Darstellung unter `/staatssimulation/`. Architekturprinzip: Der Kontext wohnt bei uns (kuratierte, versionierte Faktenbasis in eigener Datenbank; keine KI schreibt je hinein), das Modell ist Gast (austauschbarer Steckplatz im offenen Chat-API-Format — Anbieterwahl ist eine Umgebungsvariable). Wertprinzip: Das Gedächtnis ist der Schatz — jede Einschätzung wird append-only archiviert und später öffentlich gegen die Wirklichkeit gehalten.*
+
+| Nr. | Anforderung | Prio | Bezug |
+|---|---|---|---|
+| F-60 | **Simulations-Fundament:** Modell-Steckplatz (offenes Chat-API-Format, konfiguriert per Umgebungsvariablen), Simulationslauf-Archiv append-only (Eingabe, Kontextausschnitt, Kontextstand, Modell, Prompt-Version, Ergebnis, Quellen), Warteschlange mit Tagesbudget, unübersehbare Kennzeichnung „Einschätzung einer KI — Entscheidungen treffen Menschen"; jeder Lauf auditiert (F-22); Beanstandung durch jedes Mitglied → Korrekturlauf mit Vermerk, nie stilles Ändern | S | § 2 Abs 6 |
+| F-61 | **Ähnlichkeit Stufe 2:** Embedding-gestützte Ähnlichkeitsprüfung beim Einbringen mit begründeter Gegenüberstellung und klarer Wahl (bestehenden Antrag unterstützen — samt Erbschaft seiner Simulationsergebnisse — oder eigenen stellen); ersetzt die Wortvergleich-Stufe (F-16) nicht, sondern verfeinert sie | S | § 5 |
+| F-62 | **Rechtsfolgen-Check:** je Antrag die Einschätzung, welche Normen berührt wären — RIS-gestützt (OGD-API des Bundes), jede Behauptung mit RIS-Link; Normen-Kerntabelle samt Querverweis-Graph wächst nutzungsgetrieben, nächtliches Delta hält Bekanntes aktuell | S | § 5 lit c |
+| F-63 | **Vollzug und Last:** Aufwand, Personalauf-/-abbau (amtliche Personal-Aggregate des Bundes — nie personenbezogene Listen, L5) und realistische Dauer bis Inkrafttreten; **Lastampel** gegen die laufenden Umsetzungen des Registers (F-55) | S | § 5 Abs 11, § 6 Abs 10 |
+| F-64 | **Vergabe-Check:** Ausschreibungspflicht nach BVergG (Auftragsart, Schwellenwerte) mit Begründung; offene Vergabe-Kerndaten als Faktenbasis; „mögliche Bieter" nur als ehrlich gekennzeichnete Näherung über die Vergabe-Historie | K | § 5 lit c |
+| F-65 | **Lernschleife:** **Prognose-Register** neben dem Umsetzungsregister (Einschätzung vs. tatsächlicher Vollzug, öffentlich, mit gemessenem Prognosefehler); Muster-Berichte als öffentliche Berichte an den Koordinationsrat; Verfahrensänderungen daraus laufen als dokumentierte Experimente (Hypothese, Messgröße, Probezeitraum, Rückweg) über die versionierte Verfahrensordnung | S | § 2 Abs 7 |
+| F-66 | **Gremien-Werkstatt** (zieht F-05 vor): generisches Gremien-Modul — Rollen auf Zeit (befristete Berufung, automatisches Erlöschen, auditiert), Gremien-Bereich mit Entwurfsfenster (append-only-Versionen) und internen, dokumentierten Abstimmungen, Übergabe-Handlungen (einreichen, validieren, begründet zurückgeben, Austausch beantragen); darauf die Oberflächen für Expertenrat 1 (Entwurf), Expertenrat 2 (Prüfung bei direkten Aufgaben: validieren/zurückgeben/Austausch — Korruptions-Redundanz) und Koordinationsrat (Aufgaben, Simulationsberichte, Parameterregister, Beschlüsse) | S | § 6 |
+| F-67 | **Expertenrats-Station im Antragsweg:** Vorlage des Expertenrats im Wortlaut samt Interessenbindungen (§ 6 Abs 7); **Entwurfsschleife**: Vorlage geht zuerst an die Unterstützer (nachbessern lassen oder zur Endabstimmung; höchstens N Runden — Parameter), Fristlogik ohne Blockademacht (bleibt eine Stellungnahme aus, öffnet die Endabstimmung nach Fristablauf). Hinweis: Die Unterstützer-Schleife ist Zielbild des Gründers und erhält vor Einführung einen eigenen Satzungsbaustein | K | § 5, § 6 Abs 7 |
+| F-68 | **Parameterregister:** öffentliches Register aller Stellgrößen (Name, Bedeutung, aktueller Wert, Rechtsgrund, Änderungshistorie, laufende Experimente) mit sprachneutraler Schema-Kennung für den internationalen Vergleich (§ 12, „Labor der Demokratien"); Arbeitsoberfläche des Koordinationsrats, Lerndatensatz der Simulation, gemeinsames Vokabular der Partnerparteien; Erstbestand: die heutigen Stellgrößen der Verfahrensordnung | S | § 2 Abs 7, § 12 |
 
 ---
 
@@ -329,4 +347,4 @@ Für die Stufen 3/4 sind Rückmeldeprotokolle der **staatlichen** Exekutive kein
 
 ## Anhang B — Traceability Satzung → Lastenheft
 
-§ 2 Abs 4 → F-01, F-06, F-07 · § 2 Abs 6 → F-34, L3 · § 4 Abs 4 → F-03, F-04 · § 5 Abs 2 → F-10, F-17, F-18 · § 5 Abs 3 → F-10…F-15, F-20 · § 5 Abs 4 → F-16 · § 5 Abs 5 → F-11 (L2) · § 5 Abs 6 → F-19 · § 5 Abs 8 → F-21, F-22, N-05, Pentest · § 5 Abs 9 → N-07 (Ausfallprotokoll) · § 6 → F-05, F-17 · § 7 Abs 5 → F-24 · § 8 → F-02, F-25, N-03 · § 13 Abs 2–4 → F-07, F-32, F-33 · **Selbstregulation (Satzungsentwurf 2.3):** § 2 Abs 7 → F-58, L6 · § 5 Abs 11 → F-54 · § 6 Abs 10 → F-55, F-56, F-57 · **Beitragswesen:** § 4 Abs 3 → F-38, F-59
+§ 2 Abs 4 → F-01, F-06, F-07 · § 2 Abs 6 → F-34, L3 · § 4 Abs 4 → F-03, F-04 · § 5 Abs 2 → F-10, F-17, F-18 · § 5 Abs 3 → F-10…F-15, F-20 · § 5 Abs 4 → F-16 · § 5 Abs 5 → F-11 (L2) · § 5 Abs 6 → F-19 · § 5 Abs 8 → F-21, F-22, N-05, Pentest · § 5 Abs 9 → N-07 (Ausfallprotokoll) · § 6 → F-05, F-17 · § 7 Abs 5 → F-24 · § 8 → F-02, F-25, N-03 · § 13 Abs 2–4 → F-07, F-32, F-33 · **Selbstregulation (Satzungsentwurf 2.3):** § 2 Abs 7 → F-58, L6 · § 5 Abs 11 → F-54 · § 6 Abs 10 → F-55, F-56, F-57 · **Beitragswesen:** § 4 Abs 3 → F-38, F-59 · **StaatsSimulation (§ 5 lit c, § 2 Abs 6/7, § 12):** F-60–F-68, L7

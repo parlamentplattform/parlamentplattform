@@ -218,3 +218,10 @@ def umsetzung_json(request):
 
 def gesund(request):
     return JsonResponse({"status": "ok"})
+
+
+def staatssimulation(request):
+    """Die öffentliche Seite zur StaatsSimulation — Aufklärung für alle und
+    Einladung an die verwandten Bewegungen weltweit (§ 12). Reiner Inhalt,
+    keine Datenbankabfragen; die Strategie dahinter liegt im Repository."""
+    return render(request, "verfahren/staatssimulation.html")

@@ -45,25 +45,18 @@ def test_favorit_weiterleitung_nur_auf_interne_pfade(client, ordnung):  # noqa: 
     assert antwort.url == "/"
 
 
-def test_startseite_zeigt_eigene_favoriten_abstimmungen_zuerst(client, ordnung):  # noqa: F811
+def test_gemerkte_antraege_bleiben_am_stern_erkennbar(client, ordnung):  # noqa: F811
+    """Bereich a ist seit 1.9. abends der Fächer selbst; gemerkte Anträge
+    tragen ihren Stern weiterhin überall (Kacheln, Antragsseite)."""
     leute = [mitglied_anlegen(f"m{i}") for i in range(3)]
     laufend = antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung)
-    abstimmung = in_abstimmung_bringen(
-        antrag_einbringen(leute[0], "Zweiter Antrag zur Abstimmung", "Wortlaut.", "", ordnung),
-        leute[1:],
-    )
     anna = mitglied_anlegen()
     laufend.favoriten.create(mitglied=anna)
-    abstimmung.favoriten.create(mitglied=anna)
 
     client.force_login(anna)
     antwort = client.get(reverse("verfahren:parlament"))
-    assert list(antwort.context["favoriten_abstimmung"]) == [abstimmung]
-    assert list(antwort.context["favoriten_sonstige"]) == [laufend]
-
-    client.logout()
-    antwort = client.get(reverse("verfahren:parlament"))
-    assert antwort.context["favoriten_abstimmung"] is None  # anonym: kein Bereich a
+    assert laufend.pk in antwort.context["meine_favoriten"]
+    assert 'class="faecher"' in antwort.content.decode()  # das Feld gehört dem Fächer
 
 
 # --- Bereich b: Hervorhebung (F-42) ---------------------------------------------

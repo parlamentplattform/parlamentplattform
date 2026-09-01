@@ -192,6 +192,31 @@ def index(request):
     return render(request, "verfahren/index.html", {"buehne": buehne, "wichtige": wichtige})
 
 
+def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
+    """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
+    Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
+    Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
+    from verfahren.views_aktionen import _laufend_je_ast
+
+    abonniert: set[int] = set()
+    if nutzer.is_authenticated:
+        abonniert = set(nutzer.kategorie_abos.values_list("kategorie_id", flat=True))
+    laufend = _laufend_je_ast()
+    norm = suchtext.casefold()
+    treffer = []
+    for k in Kategorie.objects.filter(aktiv=True):
+        if (
+            norm in k.name.casefold()
+            or norm in k.beschreibung.casefold()
+            or any(norm in wort.casefold() for wort in k.schlagworte)
+        ):
+            treffer.append(
+                {"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert}
+            )
+    treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
+    return treffer[:24]
+
+
 def parlament(request):
     """Das Parlament in vier Bereichen (§ 5 Abs 10, F-40) — die Arbeitsansicht.
     Reihung immer nur nach Phase und Frist, nie nach Beliebtheit oder
@@ -200,29 +225,29 @@ def parlament(request):
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
 
-    # Der Favoriten-Fächer (P2, F-46): ?fach= schaltet den Bereich a auf den
-    # grafischen Themenbaum — ohne JavaScript voll klickbar, htmx als Zugabe.
-    fach = request.GET.get("fach")
-    faecher = None
-    if fach is not None:
-        from plattform_core.faecher import faecher_layout
+    # Bereich a — der Favoriten-Fächer (P2, F-46): erscheint DIREKT im Feld
+    # (Vorgabe des Gründers, 1.9. abends): kein Liste/Fächer-Umschalter, keine
+    # eigene Lebensbereiche-Seite mehr — oben eine Suche als Tiefen-Ansicht.
+    # ?fach= steuert den Knoten, ?suche= die Suche; ohne JavaScript ist jeder
+    # Klick eine Seite, mit htmx wechselt nur das Feld.
+    from plattform_core.faecher import faecher_layout
 
-        zeilen = list(Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id"))
-        faecher = faecher_layout(zeilen, fokus_slug=fach or None)
-        faecher["abos"] = (
-            set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
-            if request.user.is_authenticated
-            else set()
-        )
+    zeilen = list(Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id"))
+    for zeile in zeilen:  # die Wurzel heißt im Fächer schlicht „Lebensbereiche"
+        if zeile["eltern_id"] is None:
+            zeile["name"] = str(_("Lebensbereiche"))
+    faecher = faecher_layout(zeilen, fokus_slug=request.GET.get("fach") or None)
+    faecher["abos"] = (
+        set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
+        if request.user.is_authenticated
+        else set()
+    )
+    suchtext = (request.GET.get("suche") or "").strip()
+    suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
 
-    # Bereich a — persönliche Favoriten und abonnierte Lebensbereiche (F-41, F-46)
-    favoriten_abstimmung = favoriten_sonstige = themen_neu = None
     meine_favoriten: set[int] = set()
     if request.user.is_authenticated:
         meine_favoriten = set(request.user.favoriten.values_list("antrag_id", flat=True))
-        eigene = laufend.filter(id__in=meine_favoriten)
-        favoriten_abstimmung = eigene.filter(phase=Phase.ABSTIMMUNG.value).order_by("phase_beginn")
-        favoriten_sonstige = eigene.exclude(phase=Phase.ABSTIMMUNG.value).order_by("phase_beginn")
         # Ein Abo gilt für den ganzen Ast: Unterkategorien der abonnierten Bereiche zählen mit.
         abo_ids = set(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
         kinder: dict[int | None, list[int]] = {}
@@ -233,12 +258,6 @@ def parlament(request):
             neue = [k for e in rand for k in kinder.get(e, []) if k not in abo_ids]
             abo_ids.update(neue)
             rand = neue
-        themen_neu = (
-            laufend.filter(kategorien__in=abo_ids)
-            .exclude(id__in=meine_favoriten)
-            .distinct()
-            .order_by("phase_beginn")[:6]
-        )
 
     jetzt = timezone.now()
 
@@ -318,10 +337,9 @@ def parlament(request):
         "verfahren/parlament.html",
         {
             "faecher": faecher,
+            "suchtext": suchtext,
+            "suchtreffer": suchtreffer,
             "gruppen": gruppen,
-            "favoriten_abstimmung": favoriten_abstimmung,
-            "favoriten_sonstige": favoriten_sonstige,
-            "themen_neu": themen_neu,
             "meine_favoriten": meine_favoriten,
             "filter_lage": filter_lage,
             "gereiht": gereiht,

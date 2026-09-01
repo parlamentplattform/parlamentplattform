@@ -16,6 +16,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -576,68 +577,14 @@ def _laufend_je_ast() -> dict[int, int]:
     return summen
 
 
-def kategorie_fokus(request, slug=None):
-    """F-45: die Fokus-Ansicht des Kategorienbaums — von der einen Wurzel
-    („Das gesellschaftliche Zusammenleben“) über Säulen und Bereiche bis in die
-    Detailkategorie. Oben der Stamm als Brotkrume, in der Mitte der aktuelle
-    Bereich, darunter die Unterbereiche zum Weiterklicken; jede Ebene ist
-    favorisierbar (F-46, Ast-Wirkung), die Suche findet Namen und Schlagworte.
-    Alles ohne JavaScript: jeder Klick ist eine Seite."""
+def kategorie_weiter(request, slug=None):
+    """Die alte Lebensbereiche-Seite ist bewusst gefallen (Vorgabe 1.9. abends):
+    Der Fächer wohnt direkt im Parlament, die Suche im Feldkopf. Alte Adressen
+    und Lesezeichen landen sanft am richtigen Ort."""
+    ziel = reverse("verfahren:parlament")
     if slug:
-        knoten = get_object_or_404(Kategorie, slug=slug, aktiv=True)
-    else:
-        knoten = Kategorie.objects.filter(aktiv=True, eltern=None).order_by("reihenfolge").first()
-        if knoten is None:
-            return render(request, "verfahren/keine_ordnung.html", status=503)
-
-    abonniert: set[int] = set()
-    if request.user.is_authenticated:
-        abonniert = set(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
-    laufend = _laufend_je_ast()
-
-    suchtext = request.GET.get("q", "").strip()
-    treffer = []
-    if suchtext:
-        norm = suchtext.casefold()
-        for k in Kategorie.objects.filter(aktiv=True):
-            if (
-                norm in k.name.casefold()
-                or norm in k.beschreibung.casefold()
-                or any(norm in wort.casefold() for wort in k.schlagworte)
-            ):
-                treffer.append({"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert})
-        treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
-        treffer = treffer[:40]
-
-    kinder = [
-        {
-            "k": kind,
-            "laufend": laufend.get(kind.pk, 0),
-            "abonniert": kind.pk in abonniert,
-            "anzahl_unter": kind.kinder.filter(aktiv=True).count(),
-        }
-        for kind in knoten.kinder.filter(aktiv=True).order_by("reihenfolge")
-    ]
-    ast_antraege = (
-        Antrag.objects.filter(phase__in=OFFENE_PHASEN, kategorien__in=knoten.nachfahren_ids())
-        .distinct()
-        .order_by("phase_beginn")[:6]
-    )
-    return render(
-        request,
-        "verfahren/kategorie_fokus.html",
-        {
-            "knoten": knoten,
-            "stamm": knoten.vorfahren(),
-            "kinder": kinder,
-            "abonniert": knoten.pk in abonniert,
-            "laufend_gesamt": laufend.get(knoten.pk, 0),
-            "ast_antraege": ast_antraege,
-            "suchtext": suchtext,
-            "treffer": treffer,
-            "ist_wurzel": knoten.eltern_id is None,
-        },
-    )
+        return redirect(f"{ziel}?fach={slug}#feld-favoriten")
+    return redirect(f"{ziel}#feld-favoriten")
 
 
 @login_required
@@ -657,4 +604,4 @@ def kategorie_abonnieren(request, slug):
     weiter = request.POST.get("weiter", "")
     if weiter.startswith("/") and not weiter.startswith("//"):
         return redirect(weiter)
-    return redirect("verfahren:kategorien")
+    return redirect("verfahren:parlament")

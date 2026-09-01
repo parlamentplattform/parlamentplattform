@@ -65,7 +65,8 @@ def test_htmx_bekommt_fragment_statt_umleitung(client):
         reverse("anstoss:senden"), {"text": "Per htmx gesendet.", "seite": "/"}, HTTP_HX_REQUEST="true"
     )
     assert antwort.status_code == 200
-    assert "Danke" in antwort.content.decode()
+    # Erfolg schließt das Widget und zeigt die Bestätigungsblase (Vorgabe 1.9. abends).
+    assert "anstoss-blase" in antwort.content.decode()
     assert Anstoss.objects.count() == 1
 
 

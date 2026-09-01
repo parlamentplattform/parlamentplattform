@@ -17,6 +17,8 @@
   --info-grund:#EDF3F5;--info-text:#0E4C5C;
   --warn-rand:#8C2B2B;--warn-grund:#F9EFEE;--warn-text:#6E2222;
   --hinweis-grund:#FBF6EA;--stern-aus:#b9c2c7;--serif:Georgia,'Times New Roman',serif;
+  --sans:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI Variable Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --glanz:rgba(255,255,255,.55);
 }
 @media (prefers-color-scheme: dark){
   :root{
@@ -25,6 +27,7 @@
     --paper:#0C151E;--karton:#132029;--line:rgba(233,228,216,.16);
     --schatten:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
     --schatten-hoch:0 2px 4px rgba(0,0,0,.4),0 14px 34px rgba(0,0,0,.45);
+    --glanz:rgba(255,255,255,.04);
     --ok-rand:#4E8B6D;--ok-grund:#15251C;--ok-text:#A9D8BD;
     --info-grund:#122630;--info-text:#A5CFDB;
     --warn-rand:#B0554D;--warn-grund:#2B1614;--warn-text:#E7B3AC;
@@ -192,8 +195,8 @@ main.breit{max-width:1500px}
 .faecher{position:relative;margin-top:6px;min-width:0}
 .faecher svg.faeden{position:absolute;inset:0;width:100%;height:100%;display:block}
 .faecher .faden{stroke:var(--line);stroke-width:1.4}
-.fknoten{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;background:var(--karton);padding:1px 6px;border-radius:8px;font-family:var(--serif);line-height:1.25}
-.fknoten.f24{max-width:min(340px,72%)}.fknoten.f22{max-width:min(224px,44%)}.fknoten.f20{max-width:min(170px,32%)}.fknoten.f18{max-width:min(200px,40%)}
+.fknoten{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;background:var(--karton);padding:2px 8px;border-radius:10px;font-family:var(--sans);font-weight:600;letter-spacing:-.02em;line-height:1.25;box-shadow:0 1px 3px rgba(14,34,48,.07)}
+.fknoten.f24{max-width:min(390px,78%)}.fknoten.f22{max-width:min(252px,48%)}.fknoten.f20{max-width:min(190px,35%)}.fknoten.f18{max-width:min(214px,42%)}
 .fknoten a{color:var(--linkfarbe);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fknoten a:hover{text-decoration:underline}
 .fknoten .fname{font-weight:600;color:var(--ink);white-space:nowrap}
@@ -250,8 +253,59 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .fuss-grid a{color:var(--linkfarbe);text-decoration:none}
 .fuss-grid a:hover{text-decoration:underline}
 .fuss-unten{max-width:960px;margin:26px auto 0;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
-.anstoss-fleck{position:fixed;right:18px;bottom:18px;z-index:80}
+.anstoss-ecke{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.anstoss-fleck{position:relative}
+.anstoss-x{position:absolute;top:8px;right:12px;font-size:22px;line-height:1;color:var(--matt);text-decoration:none;padding:2px 6px;border-radius:8px}
+.anstoss-x:hover{color:var(--ink);background:color-mix(in srgb,var(--line) 50%,transparent)}
+.anstoss-bestaetigung{background:var(--ok-grund);border:1px solid var(--ok-rand);color:var(--ok-text);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--schatten-hoch);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen .4s cubic-bezier(.22,.8,.3,1) both}
+.anstoss-bestaetigung .anstoss-bx{position:absolute;top:6px;right:10px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7;padding:2px 4px}
+.anstoss-bestaetigung .anstoss-bx:hover{opacity:1}
 .ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--nacht2);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
+
+/* ── Politur (Auftrag 1.9. abends): Hochglanz und behutsame Bewegung.
+   Alles ist Zugabe — ohne JavaScript und mit reduzierter Bewegung bleibt
+   jede Funktion unverändert bedienbar. ─────────────────────────────── */
+@keyframes auftauchen{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes hineingleiten{from{opacity:0;transform:translateY(12px) scale(.955)}to{opacity:1;transform:none}}
+@keyframes einfahren-oben{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@keyframes einfahren-rechts{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes wachsen{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes blase-auf{0%{opacity:0;transform:translateY(8px) scale(.96)}12%{opacity:1;transform:none}88%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
+main .feld,main .karte,main .held,main .willkommen-karten .wk,main .weg-schritte .schritt,main .grundsatz{animation:auftauchen .55s cubic-bezier(.22,.8,.3,1) both}
+main .feld:nth-child(2),main .wk:nth-child(2),main .schritt:nth-child(2){animation-delay:.06s}
+main .feld:nth-child(3),main .wk:nth-child(3),main .schritt:nth-child(3){animation-delay:.12s}
+main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animation-delay:.18s}
+main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:.24s}
+main .wk:nth-child(6){animation-delay:.3s}
+.faecher{animation:hineingleiten .42s cubic-bezier(.22,.8,.3,1) both}
+.fknoten a,.fknoten .fname{transition:color .15s}
+.filter-leiste{animation:einfahren-oben .4s ease-out both}
+.regler-feld{animation:einfahren-rechts .32s cubic-bezier(.22,.8,.3,1) both}
+.balken b{transform-origin:left;animation:wachsen .8s .25s cubic-bezier(.22,.8,.3,1) both;transition:width .4s}
+.kachel{transition:transform .18s cubic-bezier(.22,.8,.3,1),box-shadow .18s,border-color .18s}
+.kachel:hover{transform:translateY(-3px);box-shadow:var(--schatten-hoch);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+.karte,.feld{background-image:linear-gradient(180deg,var(--glanz),transparent 46px)}
+.zeile{transition:background .15s}
+.zeile:hover{background:color-mix(in srgb,var(--gold) 5%,transparent)}
+.btn,.btn-linie,.btn-hell,.btn-still,.chip{transition:transform .16s cubic-bezier(.22,.8,.3,1),box-shadow .16s,background .16s,border-color .16s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.22)}
+.btn:active,.btn-linie:active,.chip:active{transform:scale(.965)}
+.chip:hover{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.stern{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.stern:hover{transform:scale(1.22)}
+.stern:active{transform:scale(.9)}
+a,button{outline-color:color-mix(in srgb,var(--gold) 70%,var(--ink))}
+:focus-visible{outline:2px solid color-mix(in srgb,var(--gold) 70%,var(--ink));outline-offset:2px;border-radius:6px}
+.feld-suche{margin-left:auto;flex:0 1 15em;min-width:0}
+.feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--paper)}
+.feld-suche input:focus{background:var(--karton)}
+@view-transition{navigation:auto}
+::view-transition-old(root){animation-duration:.16s}
+::view-transition-new(root){animation-duration:.24s}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
+  ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*){animation:none!important}
+}
 .anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#14232E;font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:0 8px 22px rgba(0,0,0,.22);transition:background .15s}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
 .anstoss-fleck summary:hover{background:var(--goldsoft)}
@@ -323,7 +377,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
         <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
         <li><a href="{% url 'gremien:uebersicht' %}">{% translate "Gremien" %}</a></li>
         <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
-        <li><a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a></li>
+        <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
         <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
         <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>
         <li><a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a></li>

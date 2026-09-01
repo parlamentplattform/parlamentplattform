@@ -8,11 +8,11 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("parlament/", views.parlament, name="parlament"),
     path("einbringen/", views_aktionen.einbringen, name="einbringen"),
-    path("kategorien/", views_aktionen.kategorie_fokus, name="kategorien"),
+    path("kategorien/", views_aktionen.kategorie_weiter, name="kategorien"),
     path(
         "kategorien/<slug:slug>/abonnieren/", views_aktionen.kategorie_abonnieren, name="kategorie_abonnieren"
     ),
-    path("kategorien/<slug:slug>/", views_aktionen.kategorie_fokus, name="kategorie"),
+    path("kategorien/<slug:slug>/", views_aktionen.kategorie_weiter, name="kategorie"),
     path("antrag/<int:pk>/", views.antrag_detail, name="antrag"),
     path("antrag/<int:pk>/unterstuetzen/", views_aktionen.unterstuetzen, name="unterstuetzen"),
     path("antrag/<int:pk>/favorisieren/", views_aktionen.favorisieren, name="favorisieren"),

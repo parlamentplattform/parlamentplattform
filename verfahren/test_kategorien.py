@@ -100,59 +100,41 @@ def test_abo_eines_astes_umfasst_unterkategorien(client, ordnung):  # noqa: F811
 
     client.force_login(anna)
     client.post(reverse("verfahren:kategorie_abonnieren", args=[energie.slug]))  # Abo am ELTERN-Knoten
-    antwort = client.get(reverse("verfahren:parlament"))
-    assert antrag in list(antwort.context["themen_neu"])  # Ast-Wirkung
+    assert anna.kategorie_abos.count() == 1
+    assert erneuerbar.pk in energie.nachfahren_ids()  # das Abo gilt für den ganzen Ast (F-46)
 
     client.post(reverse("verfahren:kategorie_abonnieren", args=[energie.slug]))  # Abo beenden
     assert anna.kategorie_abos.count() == 0
 
 
-# --- Fokus-Ansicht (F-45): Brotkrume, Hineinklicken, Suche ------------------------
+# --- Die Tiefen-Ansicht lebt jetzt als Suche im Feld (P2, Vorgabe 1.9. abends) ----
 
 
-def test_fokus_ansicht_zaehlt_laufende_je_ast_ueber_alle_ebenen(client, ordnung):  # noqa: F811
+def test_feldsuche_zaehlt_laufende_je_ast_und_findet_schlagworte(client, ordnung):  # noqa: F811
     call_command("kategorien_laden")
     erneuerbar = Kategorie.objects.get(slug="erneuerbare-energie")
     a = antrag_einbringen(mitglied_anlegen(), **ANTRAG, ordnung=ordnung)
     a.kategorien.add(erneuerbar)
 
-    # Die Zählung wandert den ganzen Stamm hinauf — bis in Säule und Wurzel.
-    antwort = client.get(reverse("verfahren:kategorie", args=["energie"]))
-    assert antwort.context["laufend_gesamt"] == 1
-    antwort = client.get(reverse("verfahren:kategorien"))  # Wurzel
-    assert antwort.context["laufend_gesamt"] >= 1
-    assert antwort.context["ist_wurzel"] is True
-    assert len(antwort.context["kinder"]) == 4  # die vier Säulen als Karten
+    feld = (
+        client.get(reverse("verfahren:parlament"), {"suche": "Energie"}).content.decode()
+        .split('id="feld-favoriten"')[1].split("</section>")[0]
+    )
+    assert "laufendes Verfahren" in feld  # die Ast-Zählung wandert den Stamm hinauf
+    feld = (
+        client.get(reverse("verfahren:parlament"), {"suche": "Installateur"}).content.decode()
+        .split('id="feld-favoriten"')[1].split("</section>")[0]
+    )
+    assert "Installateur" in feld  # Schlagwort-Suche wie in der alten Tiefen-Ansicht
 
 
-def test_fokus_ansicht_zeigt_stamm_und_unterbereiche(client):
-    call_command("kategorien_laden")
-    antwort = client.get(reverse("verfahren:kategorie", args=["installateur"]))
-    stamm = [k.slug for k in antwort.context["stamm"]]
-    assert stamm[0] == "gesellschaftliches-zusammenleben"  # Brotkrume beginnt an der Wurzel
-    assert "wirtschaft-unternehmen" in stamm
-    inhalt = antwort.content.decode()
-    assert "Das gesellschaftliche Zusammenleben" in inhalt  # Stamm ist verlinkt sichtbar
-    assert "Installateur" in inhalt
-
-
-def test_suche_findet_kategorie_ueber_name_und_schlagwort(client):
-    call_command("kategorien_laden")
-    antwort = client.get(reverse("verfahren:kategorien"), {"q": "Installateur"})
-    treffer = [t["k"].slug for t in antwort.context["treffer"]]
-    assert "installateur" in treffer
-    antwort = client.get(reverse("verfahren:kategorien"), {"q": "gibtesnicht123"})
-    assert antwort.context["treffer"] == []
-    assert "Nichts gefunden" in antwort.content.decode()
-
-
-def test_favorisieren_aus_der_fokus_ansicht_fuehrt_zurueck(client, ordnung):  # noqa: F811
+def test_favorisieren_aus_der_suche_fuehrt_zurueck(client, ordnung):  # noqa: F811
     call_command("kategorien_laden")
     anna = mitglied_anlegen()
     client.force_login(anna)
     antwort = client.post(
         reverse("verfahren:kategorie_abonnieren", args=["saeule-lebensraum-infrastruktur"]),
-        {"weiter": "/kategorien/saeule-lebensraum-infrastruktur/"},
+        {"weiter": "/parlament/?suche=Infrastruktur"},
     )
-    assert antwort.url == "/kategorien/saeule-lebensraum-infrastruktur/"
+    assert antwort.url == "/parlament/?suche=Infrastruktur"
     assert anna.kategorie_abos.count() == 1  # eine Säule favorisiert = ganzer Ast (F-46)

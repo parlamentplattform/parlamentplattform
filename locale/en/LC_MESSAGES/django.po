@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 00:57+0200\n"
+"POT-Creation-Date: 2026-09-02 01:49+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,20 +17,26 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-msgid "Danke — Ihr Anstoß ist gespeichert."
-msgstr "Thank you — your feedback has been saved."
-
 msgid "Bitte einen Moment warten, bevor Sie den nächsten Anstoß senden."
 msgstr "Please wait a moment before sending the next message."
 
 msgid "Bitte schreiben Sie zuerst eine Nachricht."
 msgstr "Please write a message first."
 
+msgid "Danke — Ihre Meldung ist gespeichert."
+msgstr "Thank you — your message has been saved."
+
+msgid "Bestätigung schließen"
+msgstr "Close confirmation"
+
 msgid "Anstoß geben — Feedback und Wünsche"
 msgstr "Give feedback — ideas and wishes"
 
 msgid "Anstoß"
 msgstr "Feedback"
+
+msgid "Schließen"
+msgstr "Close"
 
 msgid "Anstoß geben"
 msgstr "Give feedback"
@@ -678,14 +684,14 @@ msgstr "Mandate holders"
 msgid ""
 "Die Mandatar-Steuerung (§ 7 Abs 9 des Satzungsentwurfs): Jeder Mandatsträger der DDÖ\n"
 "zeigt hier öffentlich seine aktuellen Aufgaben und Entscheidungsprozesse samt Fristen — und die daraus\n"
-"entstehenden, von ihm betreuten Abstimmungen im Parlament. Die Ergebnisse sind seine Richtschnur;\n"
+"entstehenden, von ihm betreuten Abstimmungen auf dieser Plattform. Die Ergebnisse sind seine Richtschnur;\n"
 "das freie Mandat bleibt unberührt (§ 7 Abs 2)."
 msgstr ""
-"Mandate steering (§ 7 (9) of the draft statutes): every DDÖ mandate holder "
-"publicly shows their current tasks and decision processes here, with "
-"deadlines — and the votes in the Parliament that arise from them, in their "
-"care. The results are their guiding line; the free mandate remains untouched"
-" (§ 7 (2))."
+"Mandate-holder steering (§ 7 para. 9 of the draft statutes): every DDÖ "
+"mandate holder publicly shows their current tasks and decision processes "
+"with deadlines here — and the votes arising from them, which they oversee on"
+" this platform. The results are their guiding line; the free mandate remains"
+" untouched (§ 7 para. 2)."
 
 msgid "Derzeit keine offenen Aufgaben eingetragen."
 msgstr "No open tasks listed at the moment."
@@ -703,11 +709,13 @@ msgid "Noch hält die DDÖ kein öffentliches Mandat."
 msgstr "The DDÖ does not yet hold a public mandate."
 
 msgid ""
-"Ehrlich gesagt: Genau dafür bauen wir — und die Wahl der Kandidaten läuft "
-"bereits jetzt über das Parlament."
+"Ehrlich gesagt: Genau dafür bauen wir — und die Wahl unserer Kandidaten "
+"läuft bereits, hier auf der ParlamentPlattform (nicht im österreichischen "
+"Parlament: Die DDÖ reiht ihre eigenen Wahlvorschläge)."
 msgstr ""
-"Honestly: that is exactly what we are building for — and the election of "
-"candidates already runs through the Parliament."
+"Frankly: that is exactly what we are building for — and the election of our "
+"candidates is already running, right here on the ParlamentPlattform (not in "
+"the Austrian parliament: the DDÖ ranks its own electoral proposals)."
 
 msgid "Laufende Mandats-Kandidaturen"
 msgstr "Ongoing mandate candidacies"
@@ -2284,6 +2292,103 @@ msgstr ""
 "implementation register; the mandate holders show publicly what they make of"
 " them."
 
+msgid "Die Wege durch die Plattform"
+msgstr "The paths through the platform"
+
+msgid ""
+"Zwei Antragswege, eine Werkstatt-Schleife — jede Frist ist ein offener "
+"Parameter."
+msgstr ""
+"Two motion paths, one workshop loop — every deadline is an open parameter."
+
+msgid "Flussdiagramm: Sachantrag mit Entwurfsschleife und Mandats-Kandidatur"
+msgstr ""
+"Flowchart: substantive motion with drafting loop, and mandate candidacy"
+
+msgid "SACHANTRAG"
+msgstr "SUBSTANTIVE MOTION"
+
+msgid "einbringen"
+msgstr "submit"
+
+msgid "Unterstützung"
+msgstr "Support"
+
+msgid "60 Tage · Schwelle"
+msgstr "60 days · threshold"
+
+msgid "21 Tage · alle Mitglieder"
+msgstr "21 days · all members"
+
+msgid "Endabstimmung"
+msgstr "Final vote"
+
+msgid "28 Tage · geheim"
+msgstr "28 days · secret"
+
+msgid "Beschluss"
+msgstr "Decision"
+
+msgid "Umsetzung · Mandatare"
+msgstr "Implementation · mandate holders"
+
+msgid "Werkstatt kann öffnen"
+msgstr "workshop may open"
+
+msgid "ENTWURFSSCHLEIFE · § 5 ABS 12"
+msgstr "DRAFTING LOOP · § 5 PARA. 12"
+
+msgid "Expertenrat"
+msgstr "Expert council"
+
+msgid "erarbeitet den Vorschlag"
+msgstr "works out the proposal"
+
+msgid "Prüfung Gruppe 2"
+msgstr "Review group 2"
+
+msgid "bei Vollzugsbezug · § 6 Abs 7"
+msgstr "if execution-related · § 6 para. 7"
+
+msgid "Unterstützer-Votum"
+msgstr "Supporters' vote"
+
+msgid "annehmen oder zurückgeben"
+msgstr "accept or return"
+
+msgid "zurück mit Wünschen · höchstens 3 Runden"
+msgstr "back with requests · at most 3 rounds"
+
+msgid "angenommen — oder Frist um:"
+msgstr "accepted — or deadline passed:"
+
+msgid "Untätigkeit hemmt nie"
+msgstr "inactivity never blocks"
+
+msgid "MANDATS-KANDIDATUR · § 7 ABS 1"
+msgstr "MANDATE CANDIDACY · § 7 PARA. 1"
+
+msgid "Kandidatur-Antrag"
+msgstr "Candidacy motion"
+
+msgid "je Mandat einer — jederzeit"
+msgstr "one per mandate — any time"
+
+msgid "jedes wählbare Mitglied"
+msgstr "every eligible member"
+
+msgid "Zustimmungswahl"
+msgstr "Approval vote"
+
+msgid "geheim · mehreren zustimmbar"
+msgstr "secret · approve several"
+
+msgid "Listenreihung des Wahlvorschlags"
+msgstr "List order of the electoral proposal"
+
+msgid "meiste Zustimmung führt die Liste an"
+msgstr "most approval leads the list"
+
 msgid "Woran sich alles messen lässt"
 msgstr "What everything is measured against"
 
@@ -2335,12 +2440,11 @@ msgid "Das Parlament"
 msgstr "The Parliament"
 
 msgid ""
-"Die Arbeitsansicht: Meine Themen (mit Themen-Fächer und eigenen Filter-"
-"Profilen), alle laufenden Verfahren, wichtige Abstimmungen und meine Region "
-"als Kacheln."
+"Die Arbeitsansicht: der Lebensbereiche-Fächer mit Suche, der WeicherFilter "
+"mit eigenen Profilen, wichtige Abstimmungen und meine Region als Kacheln."
 msgstr ""
-"The working view: my topics (with the topic fan and personal filter "
-"profiles), all ongoing procedures, important votes, and my region as tiles."
+"The working view: the areas-of-life fan with search, the SoftFilter with "
+"personal profiles, important votes, and my region as tiles."
 
 msgid "Zum Parlament →"
 msgstr "To the Parliament →"
@@ -2374,16 +2478,6 @@ msgstr ""
 
 msgid "Besetzung ansehen →"
 msgstr "View composition →"
-
-msgid ""
-"Alle Themenfelder von Bildung bis Verkehr — abonnierbar, damit Neues aus den"
-" eigenen Bereichen sofort auffällt."
-msgstr ""
-"All topic areas from education to transport — subscribable, so news from "
-"your own areas stands out immediately."
-
-msgid "Bereiche ansehen →"
-msgstr "View areas →"
 
 msgid ""
 "Mitglieder, Verfahren, Beteiligung, Beschlüsse — der öffentliche "
@@ -2444,83 +2538,6 @@ msgid ""
 "einen Algorithmus."
 msgstr ""
 "Highlighted only by a reasoned, published decision — never by an algorithm."
-
-msgid ""
-"Alles führt auf eine Kategorie zurück — und verzweigt sich von dort über vier Säulen\n"
-"      und zwölf Bereiche bis in die einzelne Tätigkeit. Klicken Sie sich hinein, so tief Sie möchten.\n"
-"      Favorisieren Sie, was Sie betrifft: Neues daraus erscheint in Ihrem Hauptfenster unter Favoriten.\n"
-"      Favoriten sind rein persönlich und beeinflussen nie ein Ergebnis."
-msgstr ""
-"Everything leads back to one category — and branches out from there across four pillars\n"
-"      and twelve areas down to the single activity. Click your way in, as deep as you like.\n"
-"      Favourite what concerns you: new items from it appear in your main window under favourites.\n"
-"      Favourites are purely personal and never influence any result."
-
-msgid "Stamm"
-msgstr "Trunk"
-
-msgid "Lebensbereich suchen …"
-msgstr "Search areas of life …"
-
-msgid "Lebensbereich suchen"
-msgstr "Search areas of life"
-
-msgid "Suchen"
-msgstr "Search"
-
-#, python-format
-msgid "Suchergebnisse für „%(suchtext)s“"
-msgstr "Search results for “%(suchtext)s”"
-
-msgid "laufend"
-msgstr "active"
-
-msgid ""
-"Nichts gefunden — versuchen Sie ein anderes Wort oder klicken Sie sich über "
-"die Bereiche hinein."
-msgstr ""
-"Nothing found — try another word or click your way in through the areas."
-
-msgid "Zurück zur Übersicht"
-msgstr "Back to the overview"
-
-#, python-format
-msgid "%(n)s laufender Antrag in diesem Bereich"
-msgid_plural "%(n)s laufende Anträge in diesem Bereich"
-msgstr[0] "%(n)s active motion in this area"
-msgstr[1] "%(n)s active motions in this area"
-
-msgid "Derzeit keine laufenden Anträge in diesem Bereich."
-msgstr "No ongoing motions in this area at the moment."
-
-msgid "Zum Favorisieren bitte"
-msgstr "To pick favourites, please"
-
-msgid ""
-"Ein Favorit hier umfasst den ganzen Ast — alle Unterbereiche eingeschlossen."
-msgstr "A favourite here covers the whole branch — all sub-areas included."
-
-msgid "Die vier Säulen"
-msgstr "The four pillars"
-
-msgid "Hinein in die Unterbereiche"
-msgstr "Into the sub-areas"
-
-msgid "Unterbereiche"
-msgstr "Subareas"
-
-msgid "Detailkategorie öffnen"
-msgstr "Open detail category"
-
-msgid "Laufende Anträge aus diesem Ast"
-msgstr "Active motions from this branch"
-
-msgid ""
-"Die Namen der Lebensbereiche erscheinen derzeit auf Deutsch — mehrsprachige "
-"Kategorienamen folgen mit dem EuroVoc-Anschluss."
-msgstr ""
-"Category names currently appear in German — multilingual names follow with "
-"the EuroVoc integration."
 
 msgid "Keine aktive Verfahrensordnung"
 msgstr "No active procedure"
@@ -2682,31 +2699,23 @@ msgstr ""
 msgid "Meine Favoriten"
 msgstr "My favourites"
 
-msgid "Liste"
-msgstr "List"
+msgid "Lebensbereich suchen …"
+msgstr "Search areas of life …"
 
-msgid "Fächer"
-msgstr "Fan"
+msgid "Lebensbereich suchen"
+msgstr "Search areas of life"
 
-msgid ""
-"Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor."
-msgstr "No favourites yet — the star ☆ on any motion saves it here."
+#, python-format
+msgid "ein laufendes Verfahren"
+msgid_plural "%(n)s laufende Verfahren"
+msgstr[0] "one ongoing procedure"
+msgstr[1] "%(n)s ongoing procedures"
 
-msgid "Neu aus Ihren Lebensbereichen"
-msgstr "New from your areas of life"
+msgid "Nichts gefunden — andere Schreibweise oder ein Schlagwort versuchen."
+msgstr "Nothing found — try another spelling or a keyword."
 
-msgid ""
-"Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon "
-"gerade zur Abstimmung steht."
-msgstr ""
-"As a member you save your topics here and see immediately which of them are "
-"up for a vote."
-
-msgid "Tiefen-Ansicht mit Suche →"
-msgstr "Deep view with search →"
-
-msgid "Lebensbereiche als Fächer entdecken →"
-msgstr "Explore areas of life as a fan →"
+msgid "Zurück zum Fächer"
+msgstr "Back to the fan"
 
 msgid "Beschluss des Integritätsrats"
 msgstr "Decision of the Integrity Council"
@@ -3095,9 +3104,6 @@ msgstr ""
 "Assessments of the Zukunftswerkstatt are civic education, not legal advice. "
 "The complete strategy with all expansion stages is part of the open "
 "requirements document in the source repository."
-
-msgid "Unterstützung"
-msgstr "Support"
 
 msgid "verfallen"
 msgstr "lapsed"

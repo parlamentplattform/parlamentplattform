@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.31.0] — 2026-09-01 · Detail-Nachschärfung nach den Gründer-Vorgaben: Fächer direkt, Suche statt Seiten, Politur
+
+### Geändert
+- **Der Favoriten-Fächer erscheint direkt im Feld** (P2 präzisiert): kein Liste/Fächer-Umschalter, kein Tiefen-Ansicht-Link mehr — der Fächer *ist* der Bereich, unten die Wurzel **„Lebensbereiche"**. **Oben im Feldkopf sitzt jetzt die Suche** (Name, Beschreibung, Schlagworte — Treffer mit Pfad, laufenden Verfahren im ganzen Ast und Abo-Stern; Klick öffnet den Fächer am Treffer). **Die alte Lebensbereiche-Seite `/kategorien/` ist komplett weggefallen** — alte Adressen leiten in den Fächer, Kategorie-Chips an Anträgen und alle Verweise zeigen direkt dorthin. Knoten-Beschriftungen in **moderner Sans-Schrift** und mit mehr Platz
+- **Bewegung und Hochglanz (Look-Auftrag):** Der Fächer **gleitet hinein** statt zu springen; dazu weiche Seitenübergänge (View Transitions), gestaffeltes Auftauchen der Felder, Karten und Schritte, einfahrende Filter-Leiste und Regler-Overlay, wachsende Fortschrittsbalken, Hover-Tiefe mit Gold-Kante auf Kacheln, Stern-Pop, Glanz-Verlauf auf Karten, einheitliche Fokus-Ringe. Alles Zugabe: ohne JavaScript und bei reduzierter Bewegung (`prefers-reduced-motion`) bleibt jede Funktion unverändert
+- **Anstoß-Widget:** trägt jetzt ein **X zum Schließen**, und **nach dem Absenden schließt es sich von selbst** — eine Bestätigungsblase „Danke — Ihre Meldung ist gespeichert" (mit eigenem X) übernimmt die Rückmeldung; Fehlerhinweise (warte/leer) halten das Fenster offen
+- **Willkommensseite:** neues **Flussdiagramm „Die Wege durch die Plattform"** — Sachantrag mit Fristen, die Entwurfsschleife als eigene Bahn (inkl. Gruppe-2-Prüfung, Rückschleife „höchstens 3 Runden" und Gold-Pfeil „Untätigkeit hemmt nie") und die Mandats-Kandidatur; als zweisprachiges, dark-mode-fähiges Inline-SVG
+- **Mandatare:** Der Leerzustand sagt unmissverständlich, dass die Kandidaten-Wahl **hier auf der ParlamentPlattform** läuft — nicht im österreichischen Parlament
+- Die frühere Feld-Liste gemerkter Anträge ist mit der Präzisierung bewusst entfallen (der Stern bleibt überall; eine eigene Anzeige kann als WeicherFilter-Regler zurückkehren); Tests entsprechend fortgeschrieben (262 gesamt)
+
 ## [0.30.0] — 2026-09-01 · Ring 0b, Teil 2: Das Parameterregister (F-68)
 
 ### Hinzugefügt

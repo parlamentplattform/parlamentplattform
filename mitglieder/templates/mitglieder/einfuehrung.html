@@ -46,14 +46,14 @@
   {% for s in saeulen %}
   <div class="bereich">
     <p style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">
-      <a href="{% url 'verfahren:kategorie' s.k.slug %}" style="color:var(--deep);font-weight:600">{{ s.k.name }}</a>
+      <a href="{% url 'verfahren:parlament' %}?fach={{ s.k.slug }}#feld-favoriten" style="color:var(--deep);font-weight:600">{{ s.k.name }}</a>
       <form method="post" action="{% url 'verfahren:kategorie_abonnieren' s.k.slug %}">{% csrf_token %}
         <input type="hidden" name="weiter" value="{% url 'mitglieder:einfuehrung' 1 %}">
         <button type="submit" class="stern {% if not s.abonniert %}aus{% endif %}" title="{% if s.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Favorisieren' %}{% endif %}">{% if s.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
       </form>
     </p>
     <p class="erk">{{ s.k.beschreibung|truncatechars:120 }}</p>
-    <p class="erk" style="margin-top:6px"><a href="{% url 'verfahren:kategorie' s.k.slug %}">{% translate "Genauer wählen: hinein in die Bereiche" %} →</a></p>
+    <p class="erk" style="margin-top:6px"><a href="{% url 'verfahren:parlament' %}?fach={{ s.k.slug }}#feld-favoriten">{% translate "Genauer wählen: hinein in die Bereiche" %} →</a></p>
   </div>
   {% endfor %}
 </div>

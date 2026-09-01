@@ -24,8 +24,8 @@ from __future__ import annotations
 
 BREITE = 1000  # Koordinatenraum; die Darstellung skaliert per Prozent/viewBox
 ENKEL_HOECHSTZAHL = 12
-KURZ_KIND = 20
-KURZ_ENKEL = 14
+KURZ_KIND = 23
+KURZ_ENKEL = 16
 
 
 def _kuerzen(name: str, laenge: int) -> str:
@@ -96,7 +96,7 @@ def faecher_layout(zeilen, fokus_slug: str | None = None):
             {
                 "slug": z["slug"],
                 "name": z["name"],
-                "kurz": _kuerzen(z["name"], 24 if groesse == 24 else KURZ_KIND if groesse >= 22 else KURZ_ENKEL),
+                "kurz": _kuerzen(z["name"], 30 if groesse == 24 else KURZ_KIND if groesse >= 22 else KURZ_ENKEL),
                 "x": round(x, 1),
                 "x_prozent": round(x / 10, 2),
                 "y": round(y, 1),

@@ -79,7 +79,7 @@ def test_unbekannter_fokus_faellt_auf_die_wurzel():
 def test_lange_namen_werden_gekuerzt():
     zeilen = _zeilen((1, "nutztiere-und-landwirtschaftliche-tierhaltung", None))
     (anker,) = faecher_layout(zeilen)["knoten"]
-    assert anker["kurz"].endswith("…") and len(anker["kurz"]) <= 24
+    assert anker["kurz"].endswith("…") and len(anker["kurz"]) <= 30
 
 
 # --- Einbau im Parlament ----------------------------------------------------------
@@ -118,8 +118,38 @@ def test_stern_im_faecher_schaltet_das_abo(client):
     assert "&#9733;" in inhalt  # der Anker trägt jetzt den vollen Stern
 
 
-def test_liste_bleibt_die_voreinstellung(client):
+def test_faecher_erscheint_direkt_mit_suche_im_kopf(client):
+    """Vorgabe 1.9. abends: kein Liste/Fächer-Umschalter mehr — der Fächer
+    ist das Feld, oben sitzt die Suche als Tiefen-Ansicht."""
     _kategorien()
     inhalt = client.get("/parlament/").content.decode()
-    assert 'class="faecher"' not in inhalt
-    assert "Lebensbereiche als Fächer entdecken" in inhalt
+    assert 'class="faecher"' in inhalt  # direkt sichtbar, ohne ?fach=
+    feld = inhalt.split('id="feld-favoriten"')[1].split("</section>")[0]
+    assert 'name="suche"' in feld  # die Suche im Feldkopf
+    assert "Fächer entdecken" not in inhalt and "Tiefen-Ansicht" not in inhalt
+
+
+def test_feldsuche_findet_und_verlinkt_in_den_faecher(client):
+    w, u, e, s = _kategorien()
+    anna = mitglied_anlegen()
+    client.force_login(anna)
+    feld = (
+        client.get("/parlament/?suche=solar").content.decode()
+        .split('id="feld-favoriten"')[1].split("</section>")[0]
+    )
+    assert "Solarstrom" in feld and 'href="?fach=solar#feld-favoriten"' in feld
+    assert "abonnieren" in feld  # der Stern direkt am Treffer
+    assert "Zurück zum Fächer" in feld
+    leer = (
+        client.get("/parlament/?suche=zzz-gibts-nicht").content.decode()
+        .split('id="feld-favoriten"')[1].split("</section>")[0]
+    )
+    assert "Nichts gefunden" in leer
+
+
+def test_alte_lebensbereiche_adressen_landen_im_faecher(client):
+    _kategorien()
+    antwort = client.get("/kategorien/")
+    assert antwort.status_code == 302 and antwort.url.endswith("#feld-favoriten")
+    antwort = client.get("/kategorien/energie/")
+    assert antwort.url.endswith("?fach=energie#feld-favoriten")

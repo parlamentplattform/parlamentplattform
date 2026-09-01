@@ -32,8 +32,8 @@ def test_browsersprache_englisch_wird_erkannt(client):
 
 
 def test_willkommen_und_parlament_sind_getrennte_seiten(client, django_user_model):
-    """P1-Leitidee: „/" ist das Schaufenster für Gäste, „/parlament/" die
-    Arbeitsansicht; angemeldete Mitglieder landen ohne Umweg im Parlament."""
+    """P1-Leitidee: „/" ist der erklärende Einstieg (auch übers Header-Logo),
+    „/parlament/" die Arbeitsansicht — für Gäste wie Mitglieder."""
     inhalt = client.get("/").content.decode()
     assert "Wir sind das Werkzeug." in inhalt
     assert 'class="parlament"' not in inhalt  # das Raster wohnt nicht auf der Willkommensseite
@@ -44,8 +44,24 @@ def test_willkommen_und_parlament_sind_getrennte_seiten(client, django_user_mode
 
     nutzer = django_user_model.objects.create_user(username="willa", password="x")
     client.force_login(nutzer)
-    antwort = client.get("/")
-    assert antwort.status_code == 302 and antwort.url == "/parlament/"
+    inhalt = client.get("/").content.decode()
+    assert "Wir sind das Werkzeug." in inhalt  # auch Mitglieder sehen den Einstieg
+
+
+def test_willkommensseite_erklaert_das_system(client):
+    """Der Einstieg erklärt das Verfahren Schritt für Schritt und stellt
+    alle Bereiche mit Link vor — der Überblick über die ganze Plattform."""
+    inhalt = client.get("/").content.decode()
+    assert "So funktioniert das System" in inhalt
+    for schritt in ("Einbringen", "Unterstützen", "Beraten", "Abstimmen", "Nachrechnen und umsetzen"):
+        assert schritt in inhalt
+    assert "Alle Bereiche im Überblick" in inhalt
+    for ziel in (
+        "/parlament/", "/einbringen/", "/mandatare/", "/gremien/",
+        "/kategorien/", "/uebersicht/", "/umsetzung/", "/zukunftswerkstatt/", "/mitgliedschaft/",
+    ):
+        assert f'href="{ziel}"' in inhalt, ziel
+    assert "KI schlägt vor, entscheidet nie" in inhalt  # die Grundsätze stehen am Einstieg
 
 
 def test_uebersichtsseite_auf_englisch(client):

@@ -1,0 +1,48 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Rollen-Verwaltung{% endblock %}
+{% block inhalt %}
+<h1>Gremien-Rollen</h1>
+<p>Rollen auf Zeit (§ 6 Abs 8): Berufung, Bestätigung durch die Mitgliederversammlung und jede
+vorzeitige Beendigung werden hier gepflegt — alles im öffentlichen Audit-Log, die Besetzung auf
+<a href="{% url 'gremien:uebersicht' %}">/gremien/</a> sichtbar.
+<a href="{% url 'mitglieder:verwaltung' %}">← Mitgliederverwaltung</a></p>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">Rolle berufen</p>
+  <form method="post" action="{% url 'gremien:rollen_aktion' %}">{% csrf_token %}
+    <input type="hidden" name="aktion" value="berufen">
+    {{ form.as_p }}
+    <button type="submit" class="btn">Berufen</button>
+  </form>
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">Alle Rollen</p>
+  {% for r in rollen %}
+  <div class="zeile"><span>
+    <strong>{{ r.mitglied.anzeigename }}</strong> — {{ r.get_gremium_display }}
+    <br><span class="meta">berufen {{ r.berufen_am|date:"d.m.Y" }} · bis {{ r.endet_am|date:"d.m.Y" }}
+    {% if r.beendet_grund %} · beendet: {{ r.beendet_grund }}
+    {% elif r.endet_am < heute %} · abgelaufen
+    {% elif r.bestaetigt %} · MV-bestätigt{% else %} · Bestätigung ausständig{% endif %}</span>
+    {% if not r.beendet_grund and r.endet_am >= heute %}
+    <span style="display:block;margin-top:6px">
+      {% if not r.bestaetigt %}
+      <form method="post" action="{% url 'gremien:rollen_aktion' %}" style="display:inline">{% csrf_token %}
+        <input type="hidden" name="aktion" value="bestaetigen"><input type="hidden" name="rolle" value="{{ r.pk }}">
+        <button type="submit" class="btn-linie">MV-Bestätigung vermerken</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'gremien:rollen_aktion' %}" style="display:inline;margin-left:6px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="beenden"><input type="hidden" name="rolle" value="{{ r.pk }}">
+        <input type="text" name="grund" placeholder="Grund (bleibt dokumentiert)" required style="width:220px">
+        <button type="submit" class="btn-linie">Beenden</button>
+      </form>
+    </span>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">Noch keine Rollen berufen.</p>
+  {% endfor %}
+</div>
+{% endblock %}

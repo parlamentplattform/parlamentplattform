@@ -228,3 +228,41 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS(f"Mandats-Kandidatur bereit: {k1.pk} ({k1.phase}, 2 Bewerbungen).")
             )
+
+        # Gremien-Werkstatt (Ring 0a, F-66) — eigener Wächter: Rollen auf Zeit
+        # und ein Entwurfsfenster am Beratungs-Antrag, auch für bestehende Datenbanken.
+        from gremien.models import Entwurf, EntwurfsFassung, Gremium, Rolle, standard_ende
+
+        if not Rolle.objects.exists():
+            for mitglied, gremium in (
+                (leute[1], Gremium.EXPERTENRAT_1),
+                (leute[2], Gremium.EXPERTENRAT_1),
+                (leute[3], Gremium.EXPERTENRAT_2),
+                (leute[0], Gremium.KOORDINATIONSRAT),
+            ):
+                Rolle.objects.create(
+                    mitglied=mitglied, gremium=gremium, endet_am=standard_ende(), bestaetigt=True
+                )
+            beratung = (
+                Antrag.objects.filter(phase="beratung", art=Antragsart.SACHE)
+                .exclude(entwurf__isnull=False)
+                .first()
+            )
+            if beratung is not None:
+                entwurf = Entwurf.objects.create(antrag=beratung)
+                grundlage = beratung.aktueller_text()
+                EntwurfsFassung.objects.create(
+                    entwurf=entwurf,
+                    nummer=1,
+                    wortlaut=grundlage.wortlaut if grundlage else "",
+                    begruendung="Arbeitsgrundlage: übernommener Antragswortlaut.",
+                    verfasst_von=leute[1],
+                )
+                entwurf.beitraege.create(
+                    mitglied=leute[2],
+                    text="Vorschlag: den Berichtsrhythmus präzisieren und eine feste Rubrik "
+                    "„Was schiefging“ aufnehmen — das greift den Wunsch aus der Beratung auf.",
+                )
+            self.stdout.write(
+                self.style.SUCCESS("Gremien bereit: 2× Gruppe 1, 1× Gruppe 2, 1× Koordinationsrat.")
+            )

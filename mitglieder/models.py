@@ -133,6 +133,14 @@ class Mitglied(AbstractUser):
         """Einbringen, unterstützen, beraten — nur mit aktivem Status (F-51)."""
         return self.is_active and self.status == Mitgliedsstatus.AKTIV
 
+    @property
+    def hat_gremienrolle(self) -> bool:
+        """Aktive Rolle in einem Gremium (F-66)? Lazy importiert — die
+        Gremien-Werkstatt hängt von den Mitgliedern ab, nicht umgekehrt."""
+        from gremien.models import Gremium, Rolle
+
+        return Rolle.hat(self, *Gremium.values)
+
 
 def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:
     """Zahl der am Stichtag stimmberechtigten Mitglieder (§ 4 Abs 4 lit a).

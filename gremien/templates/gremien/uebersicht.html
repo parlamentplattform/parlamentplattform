@@ -1,0 +1,29 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Gremien" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Gremien" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Rollen auf Zeit (§ 6 Abs 8 des Satzungsentwurfs): Der Koordinationsrat bestellt auf
+öffentliche Ausschreibung für zwei Jahre, die Mitgliederversammlung bestätigt, danach erlischt die Rolle
+automatisch. Alle Besetzungen stehen hier — jede Berufung, Bestätigung und Beendigung auch im
+öffentlichen Audit-Log.{% endblocktranslate %}</p>
+
+<div class="hf-grid" style="margin-top:18px">
+  {% for b in bloecke %}
+  <div class="bereich">
+    <span class="bk">{{ b.name }}</span>
+    {% for r in b.rollen %}
+    <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong>
+      <br><span class="meta">{% translate "berufen" %} {{ r.berufen_am|date:"d.m.Y" }} · {% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}
+      {% if r.bestaetigt %} · {% translate "von der Mitgliederversammlung bestätigt" %}{% else %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
+    {% empty %}
+    <p class="leer">{% translate "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat." %}</p>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if beendete %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=beendete %}Eine beendete Rolle bleibt mit Grund dokumentiert.{% plural %}{{ n }} beendete Rollen bleiben mit Grund dokumentiert.{% endblocktranslate %}</p>{% endif %}
+<p class="erk" style="margin-top:6px">{% blocktranslate %}Im Alpha-Betrieb besetzt die Verwaltung die Rollen von Hand — die Ausschreibungs- und
+Bestätigungsabläufe wachsen Schritt für Schritt in die Plattform.{% endblocktranslate %}</p>
+{% endblock %}

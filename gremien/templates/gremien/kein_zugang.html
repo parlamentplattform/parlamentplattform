@@ -1,0 +1,11 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Nur für Rolleninhaber" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Nur für Rolleninhaber" %}</h1>
+<div class="karte">
+<p>{% blocktranslate %}Dieser Arbeitsbereich steht Mitgliedern mit einer aktiven Rolle im jeweiligen Gremium offen.
+Rollen sind Rollen auf Zeit (§ 6 Abs 8) — die aktuelle Besetzung ist öffentlich.{% endblocktranslate %}</p>
+<p style="margin-top:10px"><a href="{% url 'gremien:uebersicht' %}">{% translate "Zur öffentlichen Gremien-Übersicht →" %}</a></p>
+</div>
+{% endblock %}

@@ -280,6 +280,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
     <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a>
     <a class="nav-cta" href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
+      {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
       <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
       {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
       <span class="wer">{{ user.anzeigename }}</span>
@@ -319,6 +320,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
       <ul>
         <li><a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></li>
         <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
+        <li><a href="{% url 'gremien:uebersicht' %}">{% translate "Gremien" %}</a></li>
         <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
         <li><a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a></li>
         <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>

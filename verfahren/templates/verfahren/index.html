@@ -1,15 +1,28 @@
 {% extends "verfahren/base.html" %}
 {% load i18n phasen %}
+{% block titel %}{% translate "Willkommen" %}{% endblock %}
 {% block inhalt %}
 <style>
-  .willkommen-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:26px 0 30px}
+  .willkommen-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0 8px}
   .wk{display:block;background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:20px 18px;text-decoration:none;transition:transform .15s ease,box-shadow .15s ease}
   .wk:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(20,35,46,.10);text-decoration:none}
-  .wk h2{font-size:18px;margin-bottom:8px;color:var(--ink)}
+  .wk h3{font-size:17px;margin-bottom:8px;color:var(--ink)}
   .wk p{font-size:14px;color:var(--matt);margin-bottom:12px}
   .wk .weiter{color:var(--linkfarbe);font-weight:600;font-size:14px}
   .willkommen-wichtig{margin:0 0 34px}
   .willkommen-wichtig .zeile{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  .weg-schritte{counter-reset:schritt;display:grid;gap:0;margin:18px 0 8px}
+  .schritt{position:relative;padding:14px 0 16px 58px;border-left:0}
+  .schritt::before{counter-increment:schritt;content:counter(schritt);position:absolute;left:0;top:12px;width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--nacht2),var(--nacht3));color:var(--goldsoft);display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:19px}
+  .schritt::after{content:"";position:absolute;left:19px;top:54px;bottom:-6px;width:1px;background:var(--line)}
+  .schritt:last-child::after{display:none}
+  .schritt h3{font-size:17px;margin-bottom:4px}
+  .schritt p{font-size:14.5px;color:var(--matt);max-width:60em}
+  .grundsatz-band{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:18px 0 8px}
+  .grundsatz{background:var(--karton);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:14px}
+  .grundsatz strong{display:block;margin-bottom:4px}
+  .abschnitt{margin:40px 0 8px}
+  .abschnitt h2{margin-bottom:4px}
 </style>
 
 <section class="held">
@@ -29,26 +42,107 @@
   </div>
 </section>
 
-<div class="willkommen-karten">
-  <a class="wk" href="{% url 'verfahren:parlament' %}">
-    <h2>{% translate "Das Parlament" %}</h2>
-    <p>{% translate "Alle laufenden Verfahren, offen einsehbar: unterstützen, beraten, abstimmen — gereiht nur nach Phase und Frist." %}</p>
-    <span class="weiter">{% translate "Zum Parlament →" %}</span>
-  </a>
-  <a class="wk" href="{% url 'mitglieder:mitgliedschaft' %}">
-    <h2>{% translate "Die Mitgliedschaft" %}</h2>
-    <p>{% translate "Sechs Rechte, ein Weg vom Antrag zum Beschluss — und ein Beitrag nach Selbsteinschätzung." %}</p>
-    <span class="weiter">{% translate "Rechte ansehen →" %}</span>
-  </a>
-  <a class="wk" href="{% url 'verfahren:zukunftswerkstatt' %}">
-    <h2>{% translate "Die Zukunftswerkstatt" %}</h2>
-    <p>{% translate "Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — die KI schlägt vor, sie entscheidet nie." %}</p>
-    <span class="weiter">{% translate "Werkstatt ansehen →" %}</span>
-  </a>
-</div>
+<section class="abschnitt" id="so-funktioniert-es">
+  <h2>{% translate "So funktioniert das System" %}</h2>
+  <p class="erk">{% translate "Der Weg jedes Antrags — festgelegt in einer offenen Verfahrensordnung, deren Regeln jede Antragsseite mitliefert." %}</p>
+  <div class="weg-schritte">
+    <div class="schritt">
+      <h3>{% translate "Einbringen" %}</h3>
+      <p>{% blocktranslate %}Jedes Mitglied kann einen Antrag stellen — für den Bund, das Land, den Bezirk oder die
+Gemeinde des eigenen Wohnsitzes. Ein Hinweis auf ähnliche Anträge hilft, Kräfte zu bündeln statt zu zersplittern.{% endblocktranslate %}</p>
+    </div>
+    <div class="schritt">
+      <h3>{% translate "Unterstützen" %}</h3>
+      <p>{% blocktranslate %}Der Antrag sammelt öffentliche Unterstützungen. Erreicht er die Schwelle der
+Verfahrensordnung innerhalb der Frist, geht er weiter — sonst verfällt er, ehrlich dokumentiert.{% endblocktranslate %}</p>
+    </div>
+    <div class="schritt">
+      <h3>{% translate "Beraten" %}</h3>
+      <p>{% blocktranslate %}Alle Mitglieder beraten offen mit. Der Expertenrat kann in seiner Werkstatt einen
+Vorschlag erarbeiten — Fassung für Fassung dokumentiert; die Unterstützer des Antrags nehmen ihn an oder geben
+ihn mit konkreten Wünschen zurück (Entwurfsschleife). Niemand kann dabei blockieren: Verstreichen Fristen,
+geht es automatisch weiter.{% endblocktranslate %}</p>
+    </div>
+    <div class="schritt">
+      <h3>{% translate "Abstimmen" %}</h3>
+      <p>{% blocktranslate %}Abgestimmt wird geheim über ein Stimmregister mit Pseudonymen: Jede Stimme ist
+veröffentlicht und zählbar, aber keinem Menschen zuzuordnen. Zwischenstände bleiben bis zum Fristende
+verdeckt — niemand soll der Mehrheit hinterherlaufen.{% endblocktranslate %}</p>
+    </div>
+    <div class="schritt">
+      <h3>{% translate "Nachrechnen und umsetzen" %}</h3>
+      <p>{% blocktranslate %}Nach Fristende zählt die Plattform aus — und jeder kann das Ergebnis mit dem
+offenen Datenexport unabhängig nachrechnen. Beschlüsse wandern ins Umsetzungsregister; die Mandatare
+zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
+    </div>
+  </div>
+</section>
+
+<section class="abschnitt" id="grundsaetze">
+  <h2>{% translate "Woran sich alles messen lässt" %}</h2>
+  <div class="grundsatz-band">
+    <div class="grundsatz"><strong>{% translate "Nachrechenbar" %}</strong>{% translate "Jede Auszählung ist mit dem offenen Export unabhängig prüfbar; jede Verwaltungs-Handlung steht im Audit-Log." %}</div>
+    <div class="grundsatz"><strong>{% translate "Keine verdeckte Reihung" %}</strong>{% translate "Die Grundordnung ist neutral (Phase und Frist). Wer anders reihen will, stellt die offenen Regler selbst — die Rechnung wird angezeigt." %}</div>
+    <div class="grundsatz"><strong>{% translate "KI schlägt vor, entscheidet nie" %}</strong>{% translate "Automatische Zuordnungen und Hinweise sind Vorschläge; jede Entscheidung treffen Menschen." %}</div>
+    <div class="grundsatz"><strong>{% translate "Ohne Hürden" %}</strong>{% translate "Alles funktioniert ohne JavaScript, zweisprachig und ohne Tracking — die Plattform ist quelloffen (AGPL)." %}</div>
+  </div>
+</section>
+
+<section class="abschnitt" id="bereiche">
+  <h2>{% translate "Alle Bereiche im Überblick" %}</h2>
+  <div class="willkommen-karten">
+    <a class="wk" href="{% url 'verfahren:parlament' %}">
+      <h3>{% translate "Das Parlament" %}</h3>
+      <p>{% translate "Die Arbeitsansicht: Meine Themen (mit Themen-Fächer und eigenen Filter-Profilen), alle laufenden Verfahren, wichtige Abstimmungen und meine Region als Kacheln." %}</p>
+      <span class="weiter">{% translate "Zum Parlament →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'verfahren:einbringen' %}">
+      <h3>{% translate "Antrag einbringen" %}</h3>
+      <p>{% translate "Titel, Wortlaut, Begründung — Ebene und Gebiet kommen aus dem eigenen Profil. Auch Mandats-Kandidaturen laufen als Antrag." %}</p>
+      <span class="weiter">{% translate "Einbringen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'mandatare:liste' %}">
+      <h3>{% translate "Mandatare" %}</h3>
+      <p>{% translate "Jeder Mandatsträger zeigt öffentlich seine Aufgaben und Fristen — und die Abstimmungen, die er betreut. Die Ergebnisse sind seine Richtschnur." %}</p>
+      <span class="weiter">{% translate "Mandatare ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'gremien:uebersicht' %}">
+      <h3>{% translate "Gremien" %}</h3>
+      <p>{% translate "Expertenrat (zwei getrennte Gruppen), Koordinationsrat, Integritätsrat: Rollen auf Zeit, öffentlich besetzt — mit dokumentierter Werkstatt." %}</p>
+      <span class="weiter">{% translate "Besetzung ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'verfahren:kategorien' %}">
+      <h3>{% translate "Lebensbereiche" %}</h3>
+      <p>{% translate "Alle Themenfelder von Bildung bis Verkehr — abonnierbar, damit Neues aus den eigenen Bereichen sofort auffällt." %}</p>
+      <span class="weiter">{% translate "Bereiche ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'uebersicht:index' %}">
+      <h3>{% translate "Die Plattform in Zahlen" %}</h3>
+      <p>{% translate "Mitglieder, Verfahren, Beteiligung, Beschlüsse — der öffentliche Maschinenraum, laufend aktualisiert." %}</p>
+      <span class="weiter">{% translate "Zahlen ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'verfahren:umsetzung' %}">
+      <h3>{% translate "Umsetzungsregister" %}</h3>
+      <p>{% translate "Was aus Beschlüssen wird: Jeder angenommene Antrag trägt seinen Umsetzungsstand — öffentlich und mit Verlauf." %}</p>
+      <span class="weiter">{% translate "Register ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'verfahren:zukunftswerkstatt' %}">
+      <h3>{% translate "Die Zukunftswerkstatt" %}</h3>
+      <p>{% translate "Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — Verbesserungen am System gehen denselben Antragsweg wie alles andere." %}</p>
+      <span class="weiter">{% translate "Werkstatt ansehen →" %}</span>
+    </a>
+    <a class="wk" href="{% url 'mitglieder:mitgliedschaft' %}">
+      <h3>{% translate "Die Mitgliedschaft" %}</h3>
+      <p>{% translate "Sechs Rechte, ein Weg vom Antrag zum Beschluss — und ein Beitrag nach Selbsteinschätzung." %}</p>
+      <span class="weiter">{% translate "Rechte ansehen →" %}</span>
+    </a>
+  </div>
+  <p class="erk" style="margin-top:10px">{% blocktranslate %}Die Plattform ist im Alpha-Betrieb: Alles hier ist echt bedienbar, wächst aber
+sichtbar weiter — was sich ändert, steht offen im Änderungsprotokoll und in der Zukunftswerkstatt.{% endblocktranslate %}</p>
+</section>
 
 {% if wichtige %}
-<section class="willkommen-wichtig">
+<section class="willkommen-wichtig abschnitt">
   <h2>{% translate "Wichtige Abstimmungen" %}</h2>
   <p class="erk">{% translate "Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch einen Algorithmus." %}</p>
   {% for a in wichtige %}

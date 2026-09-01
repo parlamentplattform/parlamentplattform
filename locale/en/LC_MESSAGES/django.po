@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 23:54+0200\n"
+"POT-Creation-Date: 2026-09-02 00:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,6 +53,558 @@ msgstr "You are writing anonymously — as a member, we could follow up."
 
 msgid "Absenden"
 msgstr "Send"
+
+msgid "Entwurfsschleife"
+msgstr "Drafting loop"
+
+msgid "Abs"
+msgstr "para."
+
+msgid ""
+"Der Expertenrat erarbeitet zu diesem Antrag einen Vorschlag (Runde 1). Das hält nichts auf:\n"
+"Läuft die Beratungsfrist ab, geht der Antrag regulär weiter."
+msgstr ""
+"The expert council is working on a proposal for this motion (round 1). "
+"Nothing is held up by this: if the deliberation period ends, the motion "
+"proceeds as usual."
+
+#, python-format
+msgid ""
+"Der Vorschlag wurde mit Wünschen an den Expertenrat zurückgegeben — "
+"Überarbeitung läuft (Runde %(n)s)."
+msgstr ""
+"The proposal was returned to the expert council with requests — revision in "
+"progress (round %(n)s)."
+
+#, python-format
+msgid ""
+"Ohne neue Einreichung bis %(frist)s geht die zuletzt vorgelegte Fassung zur "
+"Endabstimmung — Untätigkeit hemmt nie."
+msgstr ""
+"Without a new submission by %(frist)s, the most recently presented version "
+"proceeds to the final vote — inactivity never blocks."
+
+msgid ""
+"Der Vorschlag des Expertenrats hat Vollzugs- oder Beschaffungsbezug und liegt der zweiten,\n"
+"getrennt besetzten Gruppe zur Prüfung vor (§ 6 Abs 7) — ihr Ergebnis wird samt Begründung veröffentlicht."
+msgstr ""
+"The expert council's proposal concerns execution or procurement and is being"
+" reviewed by the second, separately staffed group (§ 6 para. 7) — its "
+"finding is published together with its reasoning."
+
+#, python-format
+msgid ""
+"Der Vorschlag des Expertenrats (Runde %(n)s) liegt den Unterstützern dieses Antrags vor:\n"
+"annehmen — oder mit einem konkreten Wunsch zurückgeben."
+msgstr ""
+"The expert council's proposal (round %(n)s) is now before this motion's "
+"supporters: accept it — or return it with a specific request."
+
+#, python-format
+msgid ""
+"Frist: %(frist)s. Danach wertet der Fristablauf aus — bleibt es still, geht "
+"der Vorschlag zur Endabstimmung."
+msgstr ""
+"Deadline: %(frist)s. After that, the deadline decides — if all stays quiet, "
+"the proposal proceeds to the final vote."
+
+msgid "Der Vorschlag im Wortlaut"
+msgstr "The proposal in full"
+
+#, python-format
+msgid ""
+"Voten bisher: %(ja)s annehmen, %(nein)s zurückgeben — von %(alle)s "
+"Unterstützern. Offen geführt:"
+msgstr ""
+"Votes so far: %(ja)s accept, %(nein)s return — out of %(alle)s supporters. "
+"Kept in the open:"
+
+msgid "annehmen"
+msgstr "accept"
+
+msgid "zurückgeben"
+msgstr "return"
+
+msgid "Bei Rückgabe: Was soll anders werden?"
+msgstr "If returning: what should change?"
+
+msgid "Vorschlag annehmen"
+msgstr "Accept proposal"
+
+msgid "Mit Wunsch zurückgeben"
+msgstr "Return with request"
+
+msgid ""
+"Das Votum steht den Unterstützern dieses Antrags zu — Unterstützung ist "
+"öffentlich, das Votum auch."
+msgstr ""
+"This vote belongs to the motion's supporters — support is public, and so is "
+"the vote."
+
+#, python-format
+msgid ""
+"Der Vorschlag des Expertenrats (Runde %(n)s) wurde als neue Antragsfassung übernommen —\n"
+"darüber wird abgestimmt (§ 5 Abs 3 lit d)."
+msgstr ""
+"The expert council's proposal (round %(n)s) has been adopted as the new "
+"version of the motion — that is what the vote is on (§ 5 para. 3 lit d)."
+
+msgid "Prüfungen der Gruppe 2 (§ 6 Abs 7 — Begründungen öffentlich)"
+msgstr "Reviews by group 2 (§ 6 para. 7 — reasonings public)"
+
+#, python-format
+msgid "Runde %(n)s"
+msgstr "Round %(n)s"
+
+msgid "Koordinationsrat:"
+msgstr "Coordination council:"
+
+msgid "Expertenrat — Werkstatt"
+msgstr "Expert council — workshop"
+
+msgid "Expertenrat — Werkstatt (Gruppe 1)"
+msgstr "Expert council — workshop (group 1)"
+
+msgid ""
+"Jeder Sachantrag in der Beratung kann ein Entwurfsfenster bekommen: Dort entsteht der\n"
+"Vorschlag des Expertenrats — Fassung um Fassung, alles bleibt stehen, die Einreichung entscheidet die Gruppe\n"
+"in offener, dokumentierter Abstimmung. Danach läuft die Entwurfsschleife mit den Unterstützern des Antrags\n"
+"(§ 5 Abs 12). Untätigkeit hemmt nie: Verstreichen Fristen, geht es ohne uns weiter."
+msgstr ""
+"Every substantive motion in deliberation can get a drafting window: this is "
+"where the expert council's proposal takes shape — version by version, "
+"everything stays on record, and the group decides on submission in an open, "
+"documented vote. Then the drafting loop runs with the motion's supporters (§"
+" 5 para. 12). Inactivity never blocks: if deadlines pass, things move on "
+"without us."
+
+msgid ""
+"Du siehst diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur "
+"aktive Rolleninhaber."
+msgstr ""
+"You are viewing this area as oversight (administration) — only active role "
+"holders can write here."
+
+msgid "Anträge in der Beratung"
+msgstr "Motions in deliberation"
+
+msgid "Vollzugsbezug — Gruppe 2 prüft"
+msgstr "Execution-related — group 2 reviews"
+
+msgid "Noch kein Entwurfsfenster geöffnet."
+msgstr "No drafting window opened yet."
+
+msgid "Derzeit ist kein Sachantrag in der Beratung."
+msgstr "No substantive motion is currently in deliberation."
+
+msgid "Zuletzt übergebene Entwürfe"
+msgstr "Recently handed-over drafts"
+
+msgid "Entwurfsfenster"
+msgstr "Drafting window"
+
+msgid "Zurück zur Werkstatt"
+msgstr "Back to the workshop"
+
+msgid "Der Antrag daneben"
+msgstr "The motion alongside"
+
+#, python-format
+msgid "Antragsfassung %(n)s"
+msgstr "Motion version %(n)s"
+
+msgid "Zur öffentlichen Antragsseite →"
+msgstr "To the public motion page →"
+
+msgid "Noch kein Entwurfsfenster."
+msgstr "No drafting window yet."
+
+msgid ""
+"Beim Öffnen wird der Antragswortlaut als Fassung 1 übernommen — die "
+"Arbeitsgrundlage."
+msgstr ""
+"Opening it adopts the motion's wording as version 1 — the working basis."
+
+msgid "Entwurfsfenster öffnen"
+msgstr "Open drafting window"
+
+msgid "Der Antrag ist nicht (mehr) in der Beratung."
+msgstr "The motion is not (or no longer) in deliberation."
+
+msgid "Stand der Schleife"
+msgstr "State of the loop"
+
+#, python-format
+msgid ""
+"Die Unterstützer haben bis %(frist)s Zeit — danach wertet die Frist aus "
+"(Untätigkeit hemmt nie)."
+msgstr ""
+"The supporters have until %(frist)s — after that, the deadline decides "
+"(inactivity never blocks)."
+
+#, python-format
+msgid ""
+"Überarbeitung bis %(frist)s — ohne neue Einreichung geht die zuletzt "
+"vorgelegte Fassung zur Endabstimmung."
+msgstr ""
+"Revision until %(frist)s — without a new submission, the most recently "
+"presented version proceeds to the final vote."
+
+#, python-format
+msgid ""
+"Voten: %(ja)s annehmen, %(nein)s zurückgeben — von %(alle)s Unterstützern."
+msgstr "Votes: %(ja)s accept, %(nein)s return — out of %(alle)s supporters."
+
+msgid "Fassungen (alles bleibt stehen)"
+msgstr "Versions (everything stays on record)"
+
+#, python-format
+msgid "Fassung %(n)s · %(wer)s · %(wann)s"
+msgstr "Version %(n)s · %(wer)s · %(wann)s"
+
+#, python-format
+msgid "Eine frühere Fassung"
+msgid_plural "%(n)s frühere Fassungen"
+msgstr[0] "One earlier version"
+msgstr[1] "%(n)s earlier versions"
+
+msgid "Neue Fassung anhängen"
+msgstr "Append a new version"
+
+msgid "Was wurde geändert, und warum?"
+msgstr "What was changed, and why?"
+
+msgid "Fassung anhängen"
+msgstr "Append version"
+
+msgid "Einreichen (interne, dokumentierte Abstimmung)"
+msgstr "Submit (internal, documented vote)"
+
+#, python-format
+msgid ""
+"Stand: %(ja)s Ja, %(nein)s Nein — nötig sind %(noetig)s Ja bei %(aktive)s "
+"aktiven Rollen."
+msgstr ""
+"Current state: %(ja)s yes, %(nein)s no — %(noetig)s yes votes are required "
+"with %(aktive)s active roles."
+
+msgid "Ja, einreichen"
+msgstr "Yes, submit"
+
+msgid "Noch nicht"
+msgstr "Not yet"
+
+msgid ""
+"Unmittelbarer Vollzugs- oder Beschaffungsbezug — dann prüft Gruppe 2 vor den"
+" Unterstützern (§ 6 Abs 7)."
+msgstr ""
+"Direct execution or procurement relevance — then group 2 reviews before the "
+"supporters (§ 6 para. 7)."
+
+msgid "Merken"
+msgstr "Save"
+
+msgid "Vorschlag jetzt einreichen"
+msgstr "Submit proposal now"
+
+msgid "Interne Beratung (dokumentiert, § 6 Abs 9)"
+msgstr "Internal deliberation (documented, § 6 para. 9)"
+
+msgid "Noch keine Beiträge."
+msgstr "No contributions yet."
+
+msgid "Beitrag zur internen Beratung …"
+msgstr "Contribution to the internal deliberation …"
+
+msgid "Beitrag festhalten"
+msgstr "Record contribution"
+
+msgid "Nur für Rolleninhaber"
+msgstr "Role holders only"
+
+msgid ""
+"Dieser Arbeitsbereich steht Mitgliedern mit einer aktiven Rolle im jeweiligen Gremium offen.\n"
+"Rollen sind Rollen auf Zeit (§ 6 Abs 8) — die aktuelle Besetzung ist öffentlich."
+msgstr ""
+"This workspace is open to members holding an active role in the respective "
+"body. Roles are time-limited (§ 6 para. 8) — the current composition is "
+"public."
+
+msgid "Zur öffentlichen Gremien-Übersicht →"
+msgstr "To the public bodies overview →"
+
+msgid "Koordinationsrat"
+msgstr "Coordination council"
+
+msgid ""
+"Der Koordinationsrat entscheidet über Austauschanträge der Gruppe 2 (§ 6 Abs 7) und hält\n"
+"die Rollenübersicht — Bestellungen laufen auf öffentliche Ausschreibung, alles bleibt dokumentiert (§ 6 Abs 8)."
+msgstr ""
+"The coordination council decides on exchange requests from group 2 (§ 6 "
+"para. 7) and keeps the role overview — appointments follow a public call, "
+"everything stays documented (§ 6 para. 8)."
+
+msgid "Offene Austauschanträge"
+msgstr "Open exchange requests"
+
+msgid "Begründung der Gruppe 2:"
+msgstr "Group 2's reasoning:"
+
+msgid "Begründung der Entscheidung (wird veröffentlicht)"
+msgstr "Reasoning for the decision (will be published)"
+
+msgid "Stattgeben — Gruppe 1 austauschen"
+msgstr "Grant — exchange group 1"
+
+msgid "Ablehnen"
+msgstr "Reject"
+
+msgid ""
+"Stattgeben beendet alle aktiven Rollen der Gruppe 1 — mit dokumentiertem "
+"Grund; der Entwurf geht an die neu besetzte Gruppe."
+msgstr ""
+"Granting ends all active roles of group 1 — with a documented reason; the "
+"draft passes to the newly staffed group."
+
+msgid "Kein Austauschantrag offen."
+msgstr "No exchange request open."
+
+msgid "Austauschantrag"
+msgstr "Exchange request"
+
+msgid "Aktive Rollen"
+msgstr "Active roles"
+
+msgid "bis"
+msgstr "until"
+
+msgid "Bestätigung ausständig"
+msgstr "confirmation pending"
+
+msgid "Keine aktiven Rollen."
+msgstr "No active roles."
+
+msgid ""
+"Berufen und beenden läuft im Alpha-Betrieb über die Verwaltung — der "
+"Ausschreibungsablauf wächst in die Plattform."
+msgstr ""
+"During the alpha phase, appointing and ending roles runs via the "
+"administration — the public-call workflow is growing into the platform."
+
+msgid "Zukunftswerkstatt-Posteingang"
+msgstr "Future workshop inbox"
+
+msgid ""
+"Hier landen künftig die Vorschläge aus der Zukunftswerkstatt zur Sichtung durch den\n"
+"Koordinationsrat — samt KI-Vorprüfung als Vorschlag, nie als Entscheidung (Ring 0b)."
+msgstr ""
+"Proposals from the future workshop will land here for review by the "
+"coordination council — including an AI pre-check as a suggestion, never a "
+"decision (ring 0b)."
+
+msgid "Zur Zukunftswerkstatt →"
+msgstr "To the future workshop →"
+
+msgid "Prüfung — Gruppe 2"
+msgstr "Review — group 2"
+
+msgid "Expertenrat — Prüfung (Gruppe 2)"
+msgstr "Expert council — review (group 2)"
+
+msgid ""
+"Die Korruptions-Redundanz (§ 6 Abs 7): Vorschläge mit unmittelbarem Vollzugs- oder\n"
+"Beschaffungsbezug prüft eine zweite, getrennt besetzte Gruppe. Sie kann validieren, mit veröffentlichter\n"
+"Begründung zurückgeben oder beim Koordinationsrat den Austausch der ersten Gruppe beantragen."
+msgstr ""
+"The anti-corruption redundancy (§ 6 para. 7): proposals with direct "
+"execution or procurement relevance are reviewed by a second, separately "
+"staffed group. It can validate, return with a published reasoning, or "
+"request the exchange of the first group from the coordination council."
+
+msgid "Zur Prüfung vorgelegt"
+msgstr "Submitted for review"
+
+msgid ""
+"Ein Austauschantrag liegt beim Koordinationsrat — seine Entscheidung steht "
+"aus."
+msgstr ""
+"An exchange request is with the coordination council — its decision is "
+"pending."
+
+msgid "Begründung (wird veröffentlicht)"
+msgstr "Reasoning (will be published)"
+
+msgid "Validieren"
+msgstr "Validate"
+
+msgid "Begründet zurückgeben"
+msgstr "Return with reasoning"
+
+msgid "Austausch beim KoRat beantragen"
+msgstr "Request exchange from the council"
+
+msgid "Derzeit liegt kein Vorschlag zur Prüfung vor."
+msgstr "No proposal is currently up for review."
+
+msgid "Zuletzt abgeschlossene Prüfungen"
+msgstr "Recently completed reviews"
+
+msgid "Gremien"
+msgstr "Bodies"
+
+msgid ""
+"Rollen auf Zeit (§ 6 Abs 8 des Satzungsentwurfs): Der Koordinationsrat bestellt auf\n"
+"öffentliche Ausschreibung für zwei Jahre, die Mitgliederversammlung bestätigt, danach erlischt die Rolle\n"
+"automatisch. Alle Besetzungen stehen hier — jede Berufung, Bestätigung und Beendigung auch im\n"
+"öffentlichen Audit-Log."
+msgstr ""
+"Time-limited roles (§ 6 para. 8 of the draft statutes): the coordination "
+"council appoints for two years following a public call, the general assembly"
+" confirms, and the role then expires automatically. All appointments are "
+"listed here — every appointment, confirmation and termination also goes to "
+"the public audit log."
+
+msgid "berufen"
+msgstr "appointed"
+
+msgid "von der Mitgliederversammlung bestätigt"
+msgstr "confirmed by the general assembly"
+
+msgid "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat."
+msgstr "Still vacant — the public call runs via the coordination council."
+
+#, python-format
+msgid "Eine beendete Rolle bleibt mit Grund dokumentiert."
+msgid_plural "%(n)s beendete Rollen bleiben mit Grund dokumentiert."
+msgstr[0] "One ended role remains documented with its reason."
+msgstr[1] "%(n)s ended roles remain documented with their reasons."
+
+msgid ""
+"Im Alpha-Betrieb besetzt die Verwaltung die Rollen von Hand — die Ausschreibungs- und\n"
+"Bestätigungsabläufe wachsen Schritt für Schritt in die Plattform."
+msgstr ""
+"During the alpha phase, roles are assigned manually by the administration — "
+"the public-call and confirmation workflows are growing into the platform "
+"step by step."
+
+msgid "Schreiben kann hier nur, wer eine aktive Rolle in Gruppe 1 hat."
+msgstr "Only holders of an active role in group 1 can write here."
+
+msgid "Ein Entwurfsfenster öffnet nur während der Beratung."
+msgstr "A drafting window only opens during deliberation."
+
+msgid ""
+"Entwurfsfenster geöffnet — der Antragswortlaut ist die Arbeitsgrundlage."
+msgstr "Drafting window opened — the motion's wording is the working basis."
+
+msgid ""
+"Der Vorschlag ist eingereicht — die Werkstatt ruht, bis er zurückkommt."
+msgstr ""
+"The proposal has been submitted — the workshop rests until it comes back."
+
+msgid "Eine Fassung braucht einen Wortlaut."
+msgstr "A version needs wording."
+
+msgid "Neue Fassung angehängt — alle früheren bleiben stehen."
+msgstr "New version appended — all earlier ones stay on record."
+
+msgid "Beitrag festgehalten."
+msgstr "Contribution recorded."
+
+#, python-format
+msgid "Vollzugs-/Beschaffungsbezug: %(wert)s."
+msgstr "Execution/procurement relevance: %(wert)s."
+
+msgid "ja — Gruppe 2 prüft"
+msgstr "yes — group 2 reviews"
+
+msgid "nein"
+msgstr "no"
+
+msgid "Deine Stimme zur Einreichung ist festgehalten — offen, wie alles hier."
+msgstr ""
+"Your vote on submission has been recorded — in the open, like everything "
+"here."
+
+#, python-format
+msgid ""
+"Noch nicht einreichbar: %(ja)s Ja bei %(noetig)s nötigen Stimmen (aktive "
+"Rollen: %(aktive)s)."
+msgstr ""
+"Not yet submittable: %(ja)s yes with %(noetig)s votes required (active "
+"roles: %(aktive)s)."
+
+msgid "Eingereicht — der Vorschlag geht zuerst an Gruppe 2 (§ 6 Abs 7)."
+msgstr "Submitted — the proposal goes to group 2 first (§ 6 para. 7)."
+
+msgid ""
+"Eingereicht — der Vorschlag liegt jetzt den Unterstützern vor (§ 5 Abs 12)."
+msgstr "Submitted — the proposal is now before the supporters (§ 5 para. 12)."
+
+msgid "Der Vorschlag liegt gerade nicht zum Votum vor."
+msgstr "The proposal is not currently up for a vote."
+
+msgid "Das Votum steht den Unterstützern dieses Antrags zu (§ 5 Abs 12)."
+msgstr "This vote belongs to the supporters of this motion (§ 5 para. 12)."
+
+msgid ""
+"Eine Rückgabe braucht einen konkreten Wunsch — sonst weiß die Werkstatt "
+"nicht, wohin."
+msgstr ""
+"Returning requires a specific request — otherwise the workshop doesn't know "
+"where to go."
+
+msgid "Angenommen — danke."
+msgstr "Accepted — thank you."
+
+msgid "Zurückgegeben — dein Wunsch geht offen an die Werkstatt."
+msgstr "Returned — your request goes to the workshop, in the open."
+
+msgid "Prüfen kann hier nur, wer eine aktive Rolle in Gruppe 2 hat."
+msgstr "Only holders of an active role in group 2 can review here."
+
+msgid "Dieser Vorschlag liegt nicht (mehr) zur Prüfung vor."
+msgstr "This proposal is not (or no longer) up for review."
+
+msgid ""
+"Bitte Ergebnis wählen und begründen — die Begründung wird veröffentlicht."
+msgstr ""
+"Please choose a result and give a reasoning — the reasoning will be "
+"published."
+
+msgid ""
+"Validiert — der Vorschlag liegt jetzt den Unterstützern vor (§ 5 Abs 12)."
+msgstr "Validated — the proposal is now before the supporters (§ 5 para. 12)."
+
+msgid "Mit Begründung zurückgegeben — die Werkstatt ist wieder am Zug."
+msgstr "Returned with reasoning — the workshop is back at work."
+
+msgid ""
+"Austausch beantragt — der Koordinationsrat entscheidet; die Begründung ist "
+"öffentlich."
+msgstr ""
+"Exchange requested — the coordination council decides; the reasoning is "
+"public."
+
+msgid ""
+"Entscheiden kann hier nur, wer eine aktive Rolle im Koordinationsrat hat."
+msgstr ""
+"Only holders of an active role in the coordination council can decide here."
+
+msgid ""
+"Bitte entscheiden und begründen — die Entscheidung wird veröffentlicht."
+msgstr "Please decide and give a reasoning — the decision will be published."
+
+#, python-format
+msgid ""
+"Stattgegeben — %(n)s Rollen der Gruppe 1 beendet (dokumentiert); die neue "
+"Gruppe übernimmt den Entwurf."
+msgstr ""
+"Granted — %(n)s group 1 roles ended (documented); the new group takes over "
+"the draft."
+
+msgid "Abgelehnt — der Vorschlag bleibt bei Gruppe 2 zur Prüfung."
+msgstr "Rejected — the proposal stays with group 2 for review."
 
 msgid "Alle Mandatare"
 msgstr "All mandate holders"
@@ -1418,9 +1970,6 @@ msgstr "Publish entry"
 msgid "Dauerhaft und auditiert — Einträge werden nie geändert oder gelöscht."
 msgstr "Permanent and audited — entries are never changed or deleted."
 
-msgid "Noch keine Beiträge."
-msgstr "No contributions yet."
-
 msgid "Beitrag zur Beratung"
 msgstr "Contribution to the deliberation"
 
@@ -1458,6 +2007,9 @@ msgstr "Zukunftswerkstatt"
 
 msgid "Antrag einbringen"
 msgstr "Submit a motion"
+
+msgid "Mein Gremium"
+msgstr "My body"
 
 msgctxt "mitgliedsbeitrag"
 msgid "Beitrag"
@@ -1617,18 +2169,199 @@ msgstr "ongoing procedures"
 msgid "gefasste Beschlüsse"
 msgstr "decisions taken"
 
+msgid "So funktioniert das System"
+msgstr "How the system works"
+
+msgid ""
+"Der Weg jedes Antrags — festgelegt in einer offenen Verfahrensordnung, deren"
+" Regeln jede Antragsseite mitliefert."
+msgstr ""
+"The path of every motion — laid down in an open rules of procedure, "
+"delivered with every motion page."
+
+msgid ""
+"Jedes Mitglied kann einen Antrag stellen — für den Bund, das Land, den Bezirk oder die\n"
+"Gemeinde des eigenen Wohnsitzes. Ein Hinweis auf ähnliche Anträge hilft, Kräfte zu bündeln statt zu zersplittern."
+msgstr ""
+"Every member can submit a motion — for the federal level, the state, the "
+"district or the municipality of their own residence. A hint about similar "
+"motions helps to join forces instead of splintering them."
+
+msgid ""
+"Der Antrag sammelt öffentliche Unterstützungen. Erreicht er die Schwelle der\n"
+"Verfahrensordnung innerhalb der Frist, geht er weiter — sonst verfällt er, ehrlich dokumentiert."
+msgstr ""
+"The motion gathers public support. If it reaches the threshold of the rules "
+"of procedure within the deadline, it moves on — otherwise it lapses, "
+"honestly documented."
+
+msgid "Beraten"
+msgstr "Deliberate"
+
+msgid ""
+"Alle Mitglieder beraten offen mit. Der Expertenrat kann in seiner Werkstatt einen\n"
+"Vorschlag erarbeiten — Fassung für Fassung dokumentiert; die Unterstützer des Antrags nehmen ihn an oder geben\n"
+"ihn mit konkreten Wünschen zurück (Entwurfsschleife). Niemand kann dabei blockieren: Verstreichen Fristen,\n"
+"geht es automatisch weiter."
+msgstr ""
+"All members deliberate in the open. The expert council can work out a "
+"proposal in its workshop — documented version by version; the motion's "
+"supporters accept it or return it with specific requests (the drafting "
+"loop). Nobody can block the process: if deadlines pass, things move on "
+"automatically."
+
+msgid ""
+"Abgestimmt wird geheim über ein Stimmregister mit Pseudonymen: Jede Stimme ist\n"
+"veröffentlicht und zählbar, aber keinem Menschen zuzuordnen. Zwischenstände bleiben bis zum Fristende\n"
+"verdeckt — niemand soll der Mehrheit hinterherlaufen."
+msgstr ""
+"Voting is secret via a voting register with pseudonyms: every vote is "
+"published and countable, but cannot be traced to a person. Interim results "
+"stay hidden until the deadline — nobody should chase the majority."
+
+msgid "Nachrechnen und umsetzen"
+msgstr "Verify and implement"
+
+msgid ""
+"Nach Fristende zählt die Plattform aus — und jeder kann das Ergebnis mit dem\n"
+"offenen Datenexport unabhängig nachrechnen. Beschlüsse wandern ins Umsetzungsregister; die Mandatare\n"
+"zeigen öffentlich, was sie daraus machen."
+msgstr ""
+"After the deadline the platform counts the votes — and anyone can verify the"
+" result independently with the open data export. Decisions move to the "
+"implementation register; the mandate holders show publicly what they make of"
+" them."
+
+msgid "Woran sich alles messen lässt"
+msgstr "What everything is measured against"
+
+msgid "Nachrechenbar"
+msgstr "Verifiable"
+
+msgid ""
+"Jede Auszählung ist mit dem offenen Export unabhängig prüfbar; jede "
+"Verwaltungs-Handlung steht im Audit-Log."
+msgstr ""
+"Every count can be verified independently with the open export; every "
+"administrative action goes to the audit log."
+
+msgid "Keine verdeckte Reihung"
+msgstr "No hidden ranking"
+
+msgid ""
+"Die Grundordnung ist neutral (Phase und Frist). Wer anders reihen will, "
+"stellt die offenen Regler selbst — die Rechnung wird angezeigt."
+msgstr ""
+"The default order is neutral (phase and deadline). Anyone who wants a "
+"different order sets the open sliders themselves — the calculation is "
+"displayed."
+
+msgid "KI schlägt vor, entscheidet nie"
+msgstr "AI suggests, never decides"
+
+msgid ""
+"Automatische Zuordnungen und Hinweise sind Vorschläge; jede Entscheidung "
+"treffen Menschen."
+msgstr ""
+"Automatic classifications and hints are suggestions; every decision is made "
+"by people."
+
+msgid "Ohne Hürden"
+msgstr "Without barriers"
+
+msgid ""
+"Alles funktioniert ohne JavaScript, zweisprachig und ohne Tracking — die "
+"Plattform ist quelloffen (AGPL)."
+msgstr ""
+"Everything works without JavaScript, bilingually and without tracking — the "
+"platform is open source (AGPL)."
+
+msgid "Alle Bereiche im Überblick"
+msgstr "All areas at a glance"
+
 msgid "Das Parlament"
 msgstr "The Parliament"
 
 msgid ""
-"Alle laufenden Verfahren, offen einsehbar: unterstützen, beraten, abstimmen "
-"— gereiht nur nach Phase und Frist."
+"Die Arbeitsansicht: Meine Themen (mit Themen-Fächer und eigenen Filter-"
+"Profilen), alle laufenden Verfahren, wichtige Abstimmungen und meine Region "
+"als Kacheln."
 msgstr ""
-"All ongoing procedures, open for anyone to inspect: support, deliberate, "
-"vote — ordered only by phase and deadline."
+"The working view: my topics (with the topic fan and personal filter "
+"profiles), all ongoing procedures, important votes, and my region as tiles."
 
 msgid "Zum Parlament →"
 msgstr "To the Parliament →"
+
+msgid ""
+"Titel, Wortlaut, Begründung — Ebene und Gebiet kommen aus dem eigenen "
+"Profil. Auch Mandats-Kandidaturen laufen als Antrag."
+msgstr ""
+"Title, wording, reasoning — level and area come from your own profile. "
+"Mandate candidacies also run as motions."
+
+msgid "Einbringen →"
+msgstr "Submitting"
+
+msgid ""
+"Jeder Mandatsträger zeigt öffentlich seine Aufgaben und Fristen — und die "
+"Abstimmungen, die er betreut. Die Ergebnisse sind seine Richtschnur."
+msgstr ""
+"Every mandate holder publicly shows their tasks and deadlines — and the "
+"votes they oversee. The results are their guiding line."
+
+msgid "Mandatare ansehen →"
+msgstr "View mandate holders →"
+
+msgid ""
+"Expertenrat (zwei getrennte Gruppen), Koordinationsrat, Integritätsrat: "
+"Rollen auf Zeit, öffentlich besetzt — mit dokumentierter Werkstatt."
+msgstr ""
+"Expert council (two separate groups), coordination council, integrity "
+"council: time-limited roles, publicly staffed — with a documented workshop."
+
+msgid "Besetzung ansehen →"
+msgstr "View composition →"
+
+msgid ""
+"Alle Themenfelder von Bildung bis Verkehr — abonnierbar, damit Neues aus den"
+" eigenen Bereichen sofort auffällt."
+msgstr ""
+"All topic areas from education to transport — subscribable, so news from "
+"your own areas stands out immediately."
+
+msgid "Bereiche ansehen →"
+msgstr "View areas →"
+
+msgid ""
+"Mitglieder, Verfahren, Beteiligung, Beschlüsse — der öffentliche "
+"Maschinenraum, laufend aktualisiert."
+msgstr ""
+"Members, procedures, participation, decisions — the public engine room, "
+"continuously updated."
+
+msgid "Zahlen ansehen →"
+msgstr "View numbers →"
+
+msgid ""
+"Was aus Beschlüssen wird: Jeder angenommene Antrag trägt seinen "
+"Umsetzungsstand — öffentlich und mit Verlauf."
+msgstr ""
+"What becomes of decisions: every adopted motion carries its implementation "
+"status — public and with history."
+
+msgid "Register ansehen →"
+msgstr "View register →"
+
+msgid ""
+"Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — "
+"Verbesserungen am System gehen denselben Antragsweg wie alles andere."
+msgstr ""
+"How the platform learns: open parameters, verifiable rules — improvements to"
+" the system take the same motion path as everything else."
+
+msgid "Werkstatt ansehen →"
+msgstr "Visit the workshop →"
 
 msgid "Die Mitgliedschaft"
 msgstr "Membership"
@@ -1644,14 +2377,12 @@ msgid "Rechte ansehen →"
 msgstr "See the rights →"
 
 msgid ""
-"Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — die KI "
-"schlägt vor, sie entscheidet nie."
+"Die Plattform ist im Alpha-Betrieb: Alles hier ist echt bedienbar, wächst aber\n"
+"sichtbar weiter — was sich ändert, steht offen im Änderungsprotokoll und in der Zukunftswerkstatt."
 msgstr ""
-"How the platform learns: open parameters, verifiable rules — the AI "
-"proposes, it never decides."
-
-msgid "Werkstatt ansehen →"
-msgstr "Visit the workshop →"
+"The platform is in alpha operation: everything here is genuinely usable but "
+"visibly growing — changes are openly listed in the changelog and the future "
+"workshop."
 
 msgid "Wichtige Abstimmungen"
 msgstr "Important votes"

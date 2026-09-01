@@ -1,0 +1,38 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Expertenrat — Werkstatt" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Expertenrat — Werkstatt (Gruppe 1)" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Jeder Sachantrag in der Beratung kann ein Entwurfsfenster bekommen: Dort entsteht der
+Vorschlag des Expertenrats — Fassung um Fassung, alles bleibt stehen, die Einreichung entscheidet die Gruppe
+in offener, dokumentierter Abstimmung. Danach läuft die Entwurfsschleife mit den Unterstützern des Antrags
+(§ 5 Abs 12). Untätigkeit hemmt nie: Verstreichen Fristen, geht es ohne uns weiter.{% endblocktranslate %}</p>
+{% if not darf_schreiben %}<p class="erk">{% translate "Du siehst diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Anträge in der Beratung" %}</p>
+  {% for z in zeilen %}
+  <div class="zeile"><span>
+    <a href="{% url 'gremien:fenster' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
+    <br><span class="meta">
+    {% if z.entwurf %}
+      {{ z.entwurf.get_status_display }} · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}{% if z.entwurf.vollzugsbezug %} · {% translate "Vollzugsbezug — Gruppe 2 prüft" %}{% endif %}
+    {% else %}
+      {% translate "Noch kein Entwurfsfenster geöffnet." %}
+    {% endif %}
+    </span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Derzeit ist kein Sachantrag in der Beratung." %}</p>
+  {% endfor %}
+</div>
+
+{% if zurueckliegend %}
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Zuletzt übergebene Entwürfe" %}</p>
+  {% for e in zurueckliegend %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' e.antrag.pk %}">{{ e.antrag.titel }}</a>
+    <br><span class="meta">{{ e.get_status_display }} · {% blocktranslate with n=e.runde %}Runde {{ n }}{% endblocktranslate %}</span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

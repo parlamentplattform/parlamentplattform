@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "uebersicht",
     "anstoss",
     "mandatare",
+    "gremien",
 ]
 
 MIDDLEWARE = [

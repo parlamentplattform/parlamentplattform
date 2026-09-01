@@ -170,6 +170,8 @@
 </div>
 {% endif %}
 
+{% if schleife %}{% include "gremien/_schleife.html" %}{% endif %}
+
 <h2>{% translate "Beratung" %}{% if kommentare %} ({{ kommentare|length }}){% endif %}</h2>
 <div class="karte">
   {% for k in kommentare %}

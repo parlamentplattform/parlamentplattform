@@ -1,0 +1,53 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Koordinationsrat" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Koordinationsrat" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Der Koordinationsrat entscheidet über Austauschanträge der Gruppe 2 (§ 6 Abs 7) und hält
+die Rollenübersicht — Bestellungen laufen auf öffentliche Ausschreibung, alles bleibt dokumentiert (§ 6 Abs 8).{% endblocktranslate %}</p>
+{% if not darf_schreiben %}<p class="erk">{% translate "Du siehst diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Offene Austauschanträge" %}</p>
+  {% for p in offene %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}"><strong>{{ p.entwurf.antrag.titel }}</strong></a>
+    <span class="meta"> · {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %} · {{ p.erstellt_am|date:"d.m.Y" }}</span>
+    <p style="white-space:pre-line;margin-top:6px"><em>{% translate "Begründung der Gruppe 2:" %}</em> {{ p.begruendung }}</p>
+    {% if darf_schreiben %}
+    <form method="post" action="{% url 'gremien:koordination_aktion' p.pk %}" style="margin-top:8px">{% csrf_token %}
+      <label for="kb-{{ p.pk }}">{% translate "Begründung der Entscheidung (wird veröffentlicht)" %}</label>
+      <textarea id="kb-{{ p.pk }}" name="begruendung" style="width:100%;min-height:60px" required></textarea>
+      <button type="submit" name="entscheid" value="stattgegeben" class="btn" style="margin-top:6px">{% translate "Stattgeben — Gruppe 1 austauschen" %}</button>
+      <button type="submit" name="entscheid" value="abgelehnt" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Ablehnen" %}</button>
+    </form>
+    <p class="erk" style="margin-top:6px">{% translate "Stattgeben beendet alle aktiven Rollen der Gruppe 1 — mit dokumentiertem Grund; der Entwurf geht an die neu besetzte Gruppe." %}</p>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Kein Austauschantrag offen." %}</p>
+  {% endfor %}
+  {% for p in entschiedene %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}">{{ p.entwurf.antrag.titel }}</a>
+    <br><span class="meta">{% translate "Austauschantrag" %} {{ p.get_korat_entscheid_display|default:p.korat_entscheid }} · {{ p.korat_begruendung }}</span></span></div>
+  {% endfor %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Aktive Rollen" %}</p>
+  {% for r in rollen %}
+  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong> — {{ r.get_gremium_display }}
+    <br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Keine aktiven Rollen." %}</p>
+  {% endfor %}
+  <p class="erk" style="margin-top:8px">{% translate "Berufen und beenden läuft im Alpha-Betrieb über die Verwaltung — der Ausschreibungsablauf wächst in die Plattform." %}</p>
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Zukunftswerkstatt-Posteingang" %}</p>
+  <p class="leer">{% blocktranslate %}Hier landen künftig die Vorschläge aus der Zukunftswerkstatt zur Sichtung durch den
+Koordinationsrat — samt KI-Vorprüfung als Vorschlag, nie als Entscheidung (Ring 0b).{% endblocktranslate %}
+  <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zur Zukunftswerkstatt →" %}</a></p>
+</div>
+{% endblock %}

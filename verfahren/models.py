@@ -239,6 +239,22 @@ class Antrag(models.Model):
         Rückgabe: True, wenn sich die Phase geändert hat."""
         jetzt = jetzt or timezone.now()
         phase = Phase(self.phase)
+        # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
+        # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung
+        # über den Vorschlag öffnen. Verfahren ohne Entwurf laufen unverändert (§ 5 Abs 5).
+        # Frische Abfrage statt Related-Cache: Der Descriptor merkt sich „kein Entwurf"
+        # und übersähe ein später geöffnetes Fenster. Lazy geladen — verfahren bleibt
+        # unabhängig von gremien, solange die App fehlt.
+        entwurf = None
+        if phase is Phase.BERATUNG:
+            from django.apps import apps
+
+            if apps.is_installed("gremien"):
+                entwurf = (
+                    apps.get_model("gremien", "Entwurf").objects.filter(antrag_id=self.pk).first()
+                )
+        if entwurf is not None and entwurf.fortschreiben(self, jetzt):
+            return True
         policy = self.policy()
         ausz = None
         if phase is Phase.ABSTIMMUNG:
@@ -252,6 +268,16 @@ class Antrag(models.Model):
             auszaehlung=ausz,
         )
         if uebergang is None:
+            return False
+        if (
+            entwurf is not None
+            and phase is Phase.BERATUNG
+            and uebergang.neue_phase is Phase.ABSTIMMUNG
+            and entwurf.haelt_beratung_offen(jetzt)
+        ):
+            # Die Entwurfsschleife arbeitet gerade (eingereicht, in Prüfung, im Review
+            # oder in laufender Überarbeitung) — der Regelübergang wartet auf sie.
+            # Ein bloß offenes, nie eingereichtes Fenster hält dagegen nichts auf.
             return False
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab

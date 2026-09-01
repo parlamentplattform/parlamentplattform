@@ -1,0 +1,50 @@
+{% load i18n %}{% comment %}Die Entwurfsschleife auf der Antragsseite (§ 5 Abs 12, F-67).
+Erwartet "schleife" (entwurf, vorschlag, stand, voten, mein_votum) und "unterstuetzt_von_mir".{% endcomment %}
+{% with e=schleife.entwurf %}
+<h2>{% translate "Entwurfsschleife" %} <span class="meta">§ 5 {% translate "Abs" %} 12</span></h2>
+<div class="karte">
+  {% if e.status == "in_arbeit" %}
+    <p>{% if e.runde == 1 %}{% blocktranslate %}Der Expertenrat erarbeitet zu diesem Antrag einen Vorschlag (Runde 1). Das hält nichts auf:
+Läuft die Beratungsfrist ab, geht der Antrag regulär weiter.{% endblocktranslate %}
+    {% else %}{% blocktranslate with n=e.runde %}Der Vorschlag wurde mit Wünschen an den Expertenrat zurückgegeben — Überarbeitung läuft (Runde {{ n }}).{% endblocktranslate %}
+    {% if e.ueberarbeitung_frist %}<br><span class="meta">{% blocktranslate with frist=e.ueberarbeitung_frist|date:"d.m.Y H:i" %}Ohne neue Einreichung bis {{ frist }} geht die zuletzt vorgelegte Fassung zur Endabstimmung — Untätigkeit hemmt nie.{% endblocktranslate %}</span>{% endif %}
+    {% endif %}</p>
+  {% elif e.status == "pruefung" %}
+    <p>{% blocktranslate %}Der Vorschlag des Expertenrats hat Vollzugs- oder Beschaffungsbezug und liegt der zweiten,
+getrennt besetzten Gruppe zur Prüfung vor (§ 6 Abs 7) — ihr Ergebnis wird samt Begründung veröffentlicht.{% endblocktranslate %}</p>
+  {% elif e.status == "unterstuetzer" %}
+    <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) liegt den Unterstützern dieses Antrags vor:
+annehmen — oder mit einem konkreten Wunsch zurückgeben.{% endblocktranslate %}
+    {% if e.review_frist %}<br><span class="meta">{% blocktranslate with frist=e.review_frist|date:"d.m.Y H:i" %}Frist: {{ frist }}. Danach wertet der Fristablauf aus — bleibt es still, geht der Vorschlag zur Endabstimmung.{% endblocktranslate %}</span>{% endif %}</p>
+    <p class="phasen-titel" style="margin-top:12px">{% translate "Der Vorschlag im Wortlaut" %}</p>
+    <pre>{{ schleife.vorschlag.wortlaut }}</pre>
+    {% if schleife.vorschlag.begruendung %}<p class="meta" style="white-space:pre-line;margin-top:6px">{{ schleife.vorschlag.begruendung }}</p>{% endif %}
+    <p class="meta" style="margin-top:10px">{% blocktranslate with ja=schleife.stand.annahmen nein=schleife.stand.rueckgaben alle=schleife.stand.unterstuetzer %}Voten bisher: {{ ja }} annehmen, {{ nein }} zurückgeben — von {{ alle }} Unterstützern. Offen geführt:{% endblocktranslate %}</p>
+    {% for v in schleife.voten %}
+    <div class="zeile"><span><strong>{{ v.mitglied.anzeigename }}</strong> — {% if v.annehmen %}{% translate "annehmen" %}{% else %}{% translate "zurückgeben" %}{% endif %}
+      {% if v.wunsch %}<br><span class="meta" style="white-space:pre-line">{{ v.wunsch }}</span>{% endif %}</span></div>
+    {% endfor %}
+    {% if unterstuetzt_von_mir %}
+    <form method="post" action="{% url 'gremien:votum' e.pk %}" style="margin-top:12px">{% csrf_token %}
+      <label for="wunsch">{% translate "Bei Rückgabe: Was soll anders werden?" %}</label>
+      <textarea id="wunsch" name="wunsch" style="width:100%;min-height:60px">{% if schleife.mein_votum %}{{ schleife.mein_votum.wunsch }}{% endif %}</textarea>
+      <button type="submit" name="votum" value="annehmen" class="btn" style="margin-top:8px">{% translate "Vorschlag annehmen" %}{% if schleife.mein_votum and schleife.mein_votum.annehmen %} ✓{% endif %}</button>
+      <button type="submit" name="votum" value="zurueckgeben" class="btn-linie" style="margin-top:8px;margin-left:8px">{% translate "Mit Wunsch zurückgeben" %}{% if schleife.mein_votum and not schleife.mein_votum.annehmen %} ✓{% endif %}</button>
+    </form>
+    {% else %}
+    <p class="erk" style="margin-top:10px">{% translate "Das Votum steht den Unterstützern dieses Antrags zu — Unterstützung ist öffentlich, das Votum auch." %}</p>
+    {% endif %}
+  {% elif e.status == "angenommen" %}
+    <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) wurde als neue Antragsfassung übernommen —
+darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
+  {% endif %}
+  {% if schleife.pruefungen %}
+  <p class="phasen-titel" style="margin-top:12px">{% translate "Prüfungen der Gruppe 2 (§ 6 Abs 7 — Begründungen öffentlich)" %}</p>
+  {% for p in schleife.pruefungen %}
+  <div class="zeile"><span><strong>{{ p.get_ergebnis_display }}</strong> <span class="meta">· {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %} · {{ p.erstellt_am|date:"d.m.Y" }}</span>
+    <br><span class="meta" style="white-space:pre-line">{{ p.begruendung }}</span>
+    {% if p.korat_entscheid %}<br><span class="meta"><em>{% translate "Koordinationsrat:" %} {{ p.korat_entscheid }} — {{ p.korat_begruendung }}</em></span>{% endif %}</span></div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endwith %}

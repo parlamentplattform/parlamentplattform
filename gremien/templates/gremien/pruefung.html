@@ -1,0 +1,44 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Prüfung — Gruppe 2" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Expertenrat — Prüfung (Gruppe 2)" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Die Korruptions-Redundanz (§ 6 Abs 7): Vorschläge mit unmittelbarem Vollzugs- oder
+Beschaffungsbezug prüft eine zweite, getrennt besetzte Gruppe. Sie kann validieren, mit veröffentlichter
+Begründung zurückgeben oder beim Koordinationsrat den Austausch der ersten Gruppe beantragen.{% endblocktranslate %}</p>
+{% if not darf_schreiben %}<p class="erk">{% translate "Du siehst diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Zur Prüfung vorgelegt" %}</p>
+  {% for z in zeilen %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' z.entwurf.antrag.pk %}"><strong>{{ z.entwurf.antrag.titel }}</strong></a>
+    <span class="meta"> · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}</span>
+    <p style="white-space:pre-line;margin-top:6px">{{ z.fassung.wortlaut }}</p>
+    {% if z.austausch_offen %}
+    <p class="erk" style="margin-top:6px">{% translate "Ein Austauschantrag liegt beim Koordinationsrat — seine Entscheidung steht aus." %}</p>
+    {% elif darf_schreiben %}
+    <form method="post" action="{% url 'gremien:pruefung_aktion' z.entwurf.pk %}" style="margin-top:8px">{% csrf_token %}
+      <label for="beg-{{ z.entwurf.pk }}">{% translate "Begründung (wird veröffentlicht)" %}</label>
+      <textarea id="beg-{{ z.entwurf.pk }}" name="begruendung" style="width:100%;min-height:60px" required></textarea>
+      <button type="submit" name="ergebnis" value="validiert" class="btn" style="margin-top:6px">{% translate "Validieren" %}</button>
+      <button type="submit" name="ergebnis" value="zurueck" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Begründet zurückgeben" %}</button>
+      <button type="submit" name="ergebnis" value="austausch" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Austausch beim KoRat beantragen" %}</button>
+    </form>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Derzeit liegt kein Vorschlag zur Prüfung vor." %}</p>
+  {% endfor %}
+</div>
+
+{% if erledigte %}
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Zuletzt abgeschlossene Prüfungen" %}</p>
+  {% for p in erledigte %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}">{{ p.entwurf.antrag.titel }}</a>
+    <br><span class="meta">{{ p.get_ergebnis_display }} · {{ p.erstellt_am|date:"d.m.Y" }}</span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

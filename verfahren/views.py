@@ -4,7 +4,7 @@ Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)
 import json
 
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
@@ -173,12 +173,12 @@ def _meine_stimmen(nutzer, antraege):
 
 
 def index(request):
-    """Die Willkommensseite unter „/": das Schaufenster für Gäste. Leitidee P1:
-    das Parlament ist zum Benutzen da, erklärt und beworben wird gesondert —
-    darum sind Willkommensseite und Parlament getrennte Seiten. Angemeldete
-    Mitglieder landen ohne Umweg im Parlament."""
-    if request.user.is_authenticated:
-        return redirect("verfahren:parlament")
+    """Die Willkommensseite unter „/" — der Einstieg für alle (auch übers
+    Header-Logo): Hier wird das System erklärt und jeder Bereich vorgestellt.
+    Leitidee P1 bleibt: Das Parlament ist zum Benutzen da, erklärt wird hier —
+    darum sind Willkommensseite und Parlament getrennte Seiten. Der frühere
+    Mitglieder-Redirect ist bewusst gefallen: Der Einstieg zeigt allen die
+    Übersicht, das Parlament ist von überall einen Klick entfernt."""
     from mitglieder.models import Mitglied
 
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
@@ -403,6 +403,25 @@ def antrag_detail(request, pk):
             ab = antrag.stimmabgaben.filter(pseudonym=reg.pseudonym).first()
             meine_stimme = ab.stimme if ab else None
     ist_favorit = request.user.is_authenticated and antrag.favoriten.filter(mitglied=request.user).exists()
+    # Entwurfsschleife (§ 5 Abs 12, F-66/F-67): der Vorschlag des Expertenrats am Antrag.
+    entwurf = getattr(antrag, "entwurf", None)
+    schleife = None
+    if entwurf is not None:
+        mein_votum = None
+        if request.user.is_authenticated:
+            mein_votum = entwurf.unterstuetzer_voten.filter(
+                mitglied=request.user, runde=entwurf.runde
+            ).first()
+        schleife = {
+            "entwurf": entwurf,
+            "vorschlag": entwurf.aktuelle_fassung(),
+            "pruefungen": list(entwurf.pruefungen.all()),  # § 6 Abs 7: Begründungen öffentlich
+            "stand": entwurf.votum_stand(),
+            "voten": list(
+                entwurf.unterstuetzer_voten.filter(runde=entwurf.runde).select_related("mitglied")
+            ),
+            "mein_votum": mein_votum,
+        }
     vollzug = None
     if antrag.phase == Phase.ANGENOMMEN.value:
         vollzug = list(antrag.vollzug.select_related("durch"))
@@ -421,6 +440,7 @@ def antrag_detail(request, pk):
             "fassung": antrag.aktueller_text(),
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
+            "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
             "kommentare": antrag.kommentare.select_related("mitglied"),
             "frist": frist,

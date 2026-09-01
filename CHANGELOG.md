@@ -2,6 +2,29 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.28.0] — 2026-09-01 · Die Willkommensseite erklärt das System
+
+### Geändert
+- **Die Startseite `/` ist jetzt der erklärende Einstieg für alle** — erreichbar auch übers Header-Logo. Neu darauf: **„So funktioniert das System"** (der Weg jedes Antrags in fünf Schritten: Einbringen → Unterstützen → Beraten samt Entwurfsschleife → geheim Abstimmen mit verdeckten Zwischenständen → Nachrechnen und Umsetzen), ein **Grundsätze-Band** (nachrechenbar · keine verdeckte Reihung · KI schlägt vor, entscheidet nie · ohne Hürden/AGPL) und der **vollständige Bereichs-Überblick** mit neun erklärten Karten (Parlament, Antrag einbringen, Mandatare, Gremien, Lebensbereiche, Zahlen, Umsetzungsregister, Zukunftswerkstatt, Mitgliedschaft) plus ehrlichem Alpha-Hinweis
+- Der frühere Mitglieder-Redirect von `/` ins Parlament ist bewusst gefallen: Der Einstieg zeigt allen dieselbe Übersicht, das Parlament bleibt von überall einen Klick entfernt (Nav und Held-Knopf). Zwei Tests fortgeschrieben/ergänzt; Seite vollständig zweisprachig
+
+## [0.27.0] — 2026-09-01 · Ring 0a, Teil 2: Gruppe 2 und der Koordinationsrat
+
+### Hinzugefügt
+- **Prüfbereich der Gruppe 2 `/gremien/pruefung/` (§ 6 Abs 7):** Die Korruptions-Redundanz hat ihre Oberfläche. Vorschläge mit Vollzugs-/Beschaffungsbezug erscheinen mit vollem Wortlaut; Gruppe 2 kann **validieren** (weiter zu den Unterstützern), **begründet zurückgeben** (die Werkstatt ist wieder am Zug — eine laufende Überarbeitung bekommt frische Zeit, ohne Rundenzählung) oder den **Austausch der Gruppe 1 beim Koordinationsrat beantragen**. Jede Prüfung wird auditiert, und **jede Begründung steht öffentlich auf der Antragsseite** — auch die spätere Entscheidung des KoRats
+- **Koordinationsrats-Bereich `/gremien/koordination/`:** offene Austauschanträge samt Begründung der Gruppe 2, Entscheidung mit veröffentlichter Begründung — **Stattgeben beendet alle aktiven Rollen der Gruppe 1** (dokumentierter Grund „Austausch durch den Koordinationsrat", § 6 Abs 7) und übergibt den Entwurf der neu besetzten Gruppe; Ablehnen lässt die Prüfung bei Gruppe 2. Dazu die Übersicht aller aktiven Rollen und der **Zukunftswerkstatt-Posteingang als Platzhalter** für Ring 0b (KI-Vorprüfung als Vorschlag, nie als Entscheidung)
+- „Mein Gremium" verzweigt jetzt je Rolle (Gruppe 1 → Werkstatt, Gruppe 2 → Prüfung, KoRat → Koordination); der `demo_seed` besetzt die Gremien selbstständig auch auf bestehenden Datenbanken (2× Gruppe 1, 1× Gruppe 2, 1× KoRat) und öffnet ein Demo-Entwurfsfenster am Beratungs-Antrag
+- 9 neue Tests (Zugriffe, alle drei Prüfwege, beide KoRat-Entscheide, Blockadefreiheit der Prüfphase); F-66 und F-67 sind damit in Erstfassung umgesetzt
+
+## [0.26.0] — 2026-09-01 · Ring 0a, Teil 1: Die Gremien-Werkstatt — Rollen auf Zeit, Entwurfsfenster, Entwurfsschleife
+
+### Hinzugefügt
+- **Neue App `gremien` (F-66, § 6): Rollen auf Zeit.** Berufungen in Expertenrat Gruppe 1/Gruppe 2, Koordinationsrat und Integritätsrat sind befristet (Standard: zwei Jahre, § 6 Abs 8), erlöschen automatisch am Ablaufdatum und tragen die MV-Bestätigung als eigenes Merkmal; eine vorzeitige Beendigung braucht einen dokumentierten Grund. Öffentliche Besetzungsseite **`/gremien/`** (zweisprachig, mit Ausschreibungs-Hinweis und ehrlichem Alpha-Vermerk), Verwaltungsbereich „Gremien-Rollen" (berufen/bestätigen/beenden — jede Handlung im Audit-Log), Nav-Punkt **„Mein Gremium"** nur für aktive Rolleninhaber
+- **Das Entwurfsfenster des Expertenrats (F-66):** Zu jedem Sachantrag in der Beratung kann Gruppe 1 ein Fenster öffnen — der Antragswortlaut wird als Fassung 1 übernommen. **Fassungen sind append-only** (nichts wird überschrieben, nichts gelöscht), die interne Beratung wird als dokumentierte Beiträge geführt (§ 6 Abs 9), und die **Einreichung entscheidet eine offene, dokumentierte interne Abstimmung** (nötig: mindestens die Hälfte der aktiven Rollen als Ja und mehr Ja als Nein). Ein Vollzugs-/Beschaffungs-Häkchen schickt den Vorschlag zuerst zur getrennt besetzten Gruppe 2 (§ 6 Abs 7; deren Oberfläche folgt in 0.27.0). Admins sehen die Werkstatt als Aufsicht, schreiben können nur Rolleninhaber
+- **Die Entwurfsschleife (§ 5 Abs 12, F-67):** Der eingereichte Vorschlag liegt den Unterstützern des Antrags offen vor — **annehmen oder mit konkretem Wunsch zurückgeben** (14 Tage; Voten offen geführt, direkt auf der Antragsseite samt Vorschlags-Wortlaut). Eine Rückgabe-Mehrheit startet eine Überarbeitungsrunde (14 Tage, höchstens 3 Runden — Zielwerte, wandern mit F-68 ins Register); die Annahme macht den Vorschlag zur **neuen letzten Antragsfassung** und öffnet die Endabstimmung (§ 5 Abs 3 lit d)
+- **Fristlogik ohne Blockademacht — „Untätigkeit hemmt nie":** Die Beratung bleibt nur offen, solange die Schleife *arbeitet* (eingereicht, in Prüfung, im Review oder in laufender Überarbeitung). Ein bloß geöffnetes, nie eingereichtes Fenster hält nichts auf; bleibt das Unterstützer-Review still, geht der Vorschlag nach Fristablauf zur Endabstimmung; verstreicht eine Überarbeitungsfrist, geht die zuletzt vorgelegte Fassung. **Verfahren ohne Entwurfsfenster laufen exakt wie bisher** (§ 5 Abs 5)
+- 19 neue Tests (Rollen, Fenster, Schleife inkl. aller Fristfälle und Blockadefreiheit); alle Oberflächen ohne JavaScript voll bedienbar; öffentliche und Mitglieder-Seiten vollständig übersetzt
+
 ## [0.25.0] — 2026-09-01 · P5: Der WeicherFilter — der Bereich, in dem man den Algorithmus selbst steuert
 
 ### Hinzugefügt

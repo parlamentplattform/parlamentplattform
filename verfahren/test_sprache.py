@@ -9,24 +9,43 @@ pytestmark = pytest.mark.django_db
 def test_standard_ist_deutsch(client):
     inhalt = client.get("/").content.decode()
     assert "Antrag einbringen" in inhalt
+    assert "Wir sind das Werkzeug." in inhalt  # Willkommensseite
+    inhalt = client.get("/parlament/").content.decode()
     assert "WeicherFilter" in inhalt and "Meine Region" in inhalt  # Vier-Felder-Parlament (P1)
 
 
 def test_umschalter_wechselt_auf_englisch_und_zurueck(client):
-    antwort = client.post(reverse("set_language"), {"language": "en", "next": "/"}, follow=True)
+    antwort = client.post(reverse("set_language"), {"language": "en", "next": "/parlament/"}, follow=True)
     inhalt = antwort.content.decode()
     assert "Submit a motion" in inhalt  # Navigation
     assert "My region" in inhalt  # Vier-Felder-Parlament (P1)
     assert "Become a member" in inhalt
     assert 'lang="en"' in inhalt
 
-    antwort = client.post(reverse("set_language"), {"language": "de", "next": "/"}, follow=True)
+    antwort = client.post(reverse("set_language"), {"language": "de", "next": "/parlament/"}, follow=True)
     assert "Meine Favoriten" in antwort.content.decode()
 
 
 def test_browsersprache_englisch_wird_erkannt(client):
-    inhalt = client.get("/", HTTP_ACCEPT_LANGUAGE="en-GB,en;q=0.9").content.decode()
+    inhalt = client.get("/parlament/", HTTP_ACCEPT_LANGUAGE="en-GB,en;q=0.9").content.decode()
     assert "Important votes" in inhalt  # Vier-Felder-Parlament (P1)
+
+
+def test_willkommen_und_parlament_sind_getrennte_seiten(client, django_user_model):
+    """P1-Leitidee: „/" ist das Schaufenster für Gäste, „/parlament/" die
+    Arbeitsansicht; angemeldete Mitglieder landen ohne Umweg im Parlament."""
+    inhalt = client.get("/").content.decode()
+    assert "Wir sind das Werkzeug." in inhalt
+    assert 'class="parlament"' not in inhalt  # das Raster wohnt nicht auf der Willkommensseite
+
+    inhalt = client.get("/parlament/").content.decode()
+    assert 'class="parlament"' in inhalt
+    assert "als Gast" in inhalt  # Gast-Hinweisleiste
+
+    nutzer = django_user_model.objects.create_user(username="willa", password="x")
+    client.force_login(nutzer)
+    antwort = client.get("/")
+    assert antwort.status_code == 302 and antwort.url == "/parlament/"
 
 
 def test_uebersichtsseite_auf_englisch(client):

@@ -4,7 +4,7 @@ Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)
 import json
 
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -15,21 +15,47 @@ LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.va
 
 
 def index(request):
-    """Das Hauptfenster in vier Bereichen (§ 5 Abs 10, F-40) — Reihung immer nur
-    nach Phase und Frist, nie nach Beliebtheit oder verdeckter Gewichtung (F-31)."""
+    """Die Willkommensseite unter „/": das Schaufenster für Gäste. Leitidee P1:
+    das Parlament ist zum Benutzen da, erklärt und beworben wird gesondert —
+    darum sind Willkommensseite und Parlament getrennte Seiten. Angemeldete
+    Mitglieder landen ohne Umweg im Parlament."""
+    if request.user.is_authenticated:
+        return redirect("verfahren:parlament")
+    from mitglieder.models import Mitglied
+
+    antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
+    laufend = antraege.filter(phase__in=LAUFEND)
+    buehne = {
+        "mitglieder": Mitglied.objects.filter(is_active=True).count(),
+        "laufend": laufend.count(),
+        "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
+    }
+    wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[:3]
+    return render(request, "verfahren/index.html", {"buehne": buehne, "wichtige": wichtige})
+
+
+def parlament(request):
+    """Das Parlament in vier Bereichen (§ 5 Abs 10, F-40) — die Arbeitsansicht.
+    Reihung immer nur nach Phase und Frist, nie nach Beliebtheit oder
+    verdeckter Gewichtung (F-31). Ohne Login lesbar (F-20), abstimmen können
+    Mitglieder."""
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
 
-    # Bühne für Gäste: drei öffentliche Kennzahlen (identisch mit der Übersichtsseite, F-50).
-    buehne = None
-    if not request.user.is_authenticated:
-        from mitglieder.models import Mitglied
+    # Der Favoriten-Fächer (P2, F-46): ?fach= schaltet den Bereich a auf den
+    # grafischen Themenbaum — ohne JavaScript voll klickbar, htmx als Zugabe.
+    fach = request.GET.get("fach")
+    faecher = None
+    if fach is not None:
+        from plattform_core.faecher import faecher_layout
 
-        buehne = {
-            "mitglieder": Mitglied.objects.filter(is_active=True).count(),
-            "laufend": laufend.count(),
-            "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
-        }
+        zeilen = list(Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id"))
+        faecher = faecher_layout(zeilen, fokus_slug=fach or None)
+        faecher["abos"] = (
+            set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
+            if request.user.is_authenticated
+            else set()
+        )
 
     # Bereich a — persönliche Favoriten und abonnierte Lebensbereiche (F-41, F-46)
     favoriten_abstimmung = favoriten_sonstige = themen_neu = None
@@ -79,9 +105,9 @@ def index(request):
     ]
     return render(
         request,
-        "verfahren/index.html",
+        "verfahren/parlament.html",
         {
-            "buehne": buehne,
+            "faecher": faecher,
             "gruppen": gruppen,
             "favoriten_abstimmung": favoriten_abstimmung,
             "favoriten_sonstige": favoriten_sonstige,

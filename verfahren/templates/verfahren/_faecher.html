@@ -1,0 +1,24 @@
+{% load i18n l10n %}{% localize off %}
+<div class="faecher" style="height:{{ faecher.hoehe }}px">
+  <svg class="faeden" viewBox="0 0 1000 {{ faecher.hoehe }}" preserveAspectRatio="none" aria-hidden="true">
+    {% for f in faecher.faeden %}<line class="faden" x1="{{ f.x1 }}" y1="{{ f.y1 }}" x2="{{ f.x2 }}" y2="{{ f.y2 }}" vector-effect="non-scaling-stroke"/>{% endfor %}
+  </svg>
+  {% for k in faecher.knoten %}
+  <span class="fknoten {{ k.rolle }} f{{ k.groesse }}" style="left:{{ k.x_prozent }}%;top:{{ k.y }}px">
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'verfahren:kategorie_abonnieren' k.slug %}"
+      hx-post="{% url 'verfahren:kategorie_abonnieren' k.slug %}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">
+      {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+      {% if k.slug in faecher.abos %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
+      {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}
+    </form>
+    {% endif %}
+    {% if k.rolle == "anker" %}<span class="fname" title="{{ k.name }}">{{ k.kurz }}</span>
+    {% else %}<a href="?fach={{ k.slug }}#feld-favoriten" title="{{ k.name }}"
+      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{{ k.kurz }}</a>{% endif %}
+    {% if k.mehr %}<a class="mehr" href="?fach={{ k.slug }}#feld-favoriten" title="{% blocktranslate with n=k.mehr %}{{ n }} Unterbereiche{% endblocktranslate %}"
+      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">+{{ k.mehr }}</a>{% endif %}
+  </span>
+  {% endfor %}
+</div>
+{% endlocalize %}

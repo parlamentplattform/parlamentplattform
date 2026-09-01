@@ -1,0 +1,55 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Anstöße{% endblock %}
+{% block inhalt %}
+<h1>Anstöße</h1>
+<p>Feedback und Wünsche aus dem begleitenden Widget — von jeder Seite der Plattform.
+Zur gemeinsamen Auswertung stehen die Exporte bereit.
+<a href="{% url 'mitglieder:verwaltung' %}">← zur Mitgliederliste</a></p>
+
+<div class="hf-grid" style="margin-top:18px">
+  <div class="bereich"><span class="bk">Bestand</span>
+    <p class="erk" style="margin-top:6px"><strong>{{ gesamt }}</strong> gesamt ·
+    <strong>{{ zaehlung.neu }}</strong> neu · <strong>{{ zaehlung.gesichtet }}</strong> gesichtet ·
+    <strong>{{ zaehlung.erledigt }}</strong> erledigt</p>
+  </div>
+  <div class="bereich"><span class="bk">Filter</span>
+    <p class="erk" style="margin-top:6px">
+      <a href="{% url 'anstoss:verwaltung' %}"{% if not gewaehlt %} style="font-weight:700"{% endif %}>alle</a>
+      {% for wert, name in statuswahl %} · <a href="?status={{ wert }}"{% if gewaehlt == wert %} style="font-weight:700"{% endif %}>{{ name }}</a>{% endfor %}
+    </p>
+  </div>
+  <div class="bereich"><span class="bk">Export</span>
+    <p class="erk" style="margin-top:6px">
+      <a href="{% url 'anstoss:export_csv' %}">anstoesse.csv</a> ·
+      <a href="{% url 'anstoss:export_json' %}">anstoesse.json</a></p>
+  </div>
+</div>
+
+<div class="karte" style="overflow-x:auto;margin-top:14px">
+<table class="tabelle">
+  <thead><tr><th>Wann</th><th>Anstoß</th><th>Seite</th><th>Von</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for a in anstoesse %}
+  <tr>
+    <td data-label="Wann">{{ a.erstellt|date:"d.m.Y H:i" }}</td>
+    <td data-label="Anstoß" style="max-width:34em;white-space:pre-wrap">{{ a.text }}{% if a.vermerk %}<br><span class="erk">Vermerk: {{ a.vermerk }}</span>{% endif %}</td>
+    <td data-label="Seite"><code>{{ a.seite }}</code></td>
+    <td data-label="Von">{% if a.nutzer %}{{ a.nutzer.anzeigename }}{% else %}<span class="leer">anonym</span>{% endif %}</td>
+    <td data-label="Status"><span class="badge{% if a.status != 'neu' %} badge--hell{% endif %}">{{ a.get_status_display }}</span></td>
+    <td data-label="">
+      <form method="post" action="{% url 'anstoss:status' a.pk %}" style="display:flex;gap:6px;flex-wrap:wrap">
+        {% csrf_token %}
+        <input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        {% if a.status == "neu" %}<button class="btn-linie" name="status" value="gesichtet">gesichtet</button>{% endif %}
+        {% if a.status != "erledigt" %}<button class="btn-linie" name="status" value="erledigt">erledigt</button>
+        {% else %}<button class="btn-linie" name="status" value="neu">wieder öffnen</button>{% endif %}
+      </form>
+    </td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6"><p class="leer" style="margin:10px 0">Noch keine Anstöße{% if gewaehlt %} mit diesem Status{% endif %}.</p></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

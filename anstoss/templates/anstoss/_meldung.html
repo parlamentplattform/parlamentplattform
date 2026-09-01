@@ -1,0 +1,1 @@
+{% load i18n %}{% if ergebnis == "danke" %}<p class="anstoss-echo danke">{% translate "Danke — Ihr Anstoß ist gespeichert." %}</p>{% elif ergebnis == "warte" %}<p class="anstoss-echo">{% translate "Bitte einen Moment warten, bevor Sie den nächsten Anstoß senden." %}</p>{% else %}<p class="anstoss-echo">{% translate "Bitte schreiben Sie zuerst eine Nachricht." %}</p>{% endif %}

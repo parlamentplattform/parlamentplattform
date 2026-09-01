@@ -2,6 +2,37 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.21.0] — 2026-09-01 · P2: Der Favoriten-Fächer
+
+### Hinzugefügt
+- **Der Favoriten-Fächer** im Bereich „Meine Favoriten" des Parlaments (`/parlament/?fach=`): der Kategoriebaum als grafischer Fächer — unten (bzw. ab der dritten Ebene **in der Mitte**) der aktuelle Knoten in Schrift 24, darüber die Unterebenen in 2-Punkt-Schritten kleiner, mit Fäden verbunden; unter dem Mitte-Anker bleibt der Weg zurück nach oben klickbar (Beschluss 1.9. gegen das Festzoomen am unteren Rand). **An jedem Knoten sitzt der Favoriten-Stern** (Lebensbereich-Abo, mit Rücksprung auf den Fächer); werden die Enkel zu viele (mehr als zwölf), zeigt jedes Kind stattdessen „+n"
+- **Ohne JavaScript voll bedienbar:** Knoten sind echte Links, Sterne echte Formulare; die Fäden liegen als SVG-Ebene hinter HTML-Beschriftungen (lesbar, barrierefrei, dunkelmodus-fest). Mit JavaScript wechselt htmx nur das Favoriten-Feld statt der ganzen Seite. Die Fokus-Ansicht `/kategorien/` bleibt als Tiefen-Ansicht mit Suche bestehen
+- Layout-Mathematik als reines, framework-freies Modul `plattform_core/faecher.py` mit eigenen Tests (Modus-Wechsel ab Ebene 3, Schriftgrößen-Treppe, Enkel-Deckelung, Rückfall auf die Wurzel)
+
+## [0.20.0] — 2026-09-01 · Das Postfach der Plattform
+
+### Geändert
+- Alle Plattform-Mails (E-Mail-Bestätigung, Anmeldelink, Beitragsbestätigung, Beitragserinnerung) tragen als Absender jetzt **„ParlamentPlattform <plattform@ddoe.at>"** — das neue Postfach ist zugleich Antwort- und öffentliche Kontaktadresse (Zukunftswerkstatt-Seite, künftig P9-Kontaktknopf). Der SMTP-Anschluss war vorbereitet; es fehlen nur die drei Werte im Render-Dashboard (`DDOE_SMTP_HOST`, `DDOE_SMTP_USER`, `DDOE_SMTP_PASSWORT` — siehe Betriebsdoku)
+
+### Hinzugefügt
+- Lastenheft: **F-70 Mandats-Kandidaturen als Anträge** und **F-71 Mandatar-Steuerung** (Mandatare-Seite mit Foto/Aufgaben/Entscheidungsprozessen, Rolle „Mandatar" mit Instant-Reports und betreuten Abstimmungen) aufgenommen — satzungsfest im Entwurf 2.5 (§ 7 Abs 1 und Abs 9); Bauschritte M1–M3 im Oberflächen-Fahrplan, Abschnitt F
+
+## [0.19.0] — 2026-09-01 · Der Anstoß: Feedback auf jeder Seite
+
+### Hinzugefügt
+- **Das Anstoß-Widget (F-69)** begleitet jetzt jede Seite der Plattform: ein goldener Knopf rechts unten öffnet eine kleine Karte für Feedback und Wünsche — von Mitgliedern (dem Konto zugeordnet, Rückfragen möglich) wie von Gästen (anonym). Ohne JavaScript voll funktionsfähig (Formular mit Rücksprung auf die Ausgangsseite); mit JavaScript sendet htmx ohne Neuladen. Schutz ohne Captcha: Honigtopf-Feld und Sendeabstand (60 Sekunden, Tagesgrenze je Sitzung)
+- **Gespeichert wird in der eigenen Datenbank der Plattform** — bewusst kein Dritt- oder FTP-Server: keine zusätzlichen Zugangsdaten, automatische Sicherung mit der Render-Postgres, DSGVO-Hoheit bleibt vollständig bei uns. Neue Verwaltungsseite „Anstöße" (`/verwaltung/anstoesse/`) mit Statusführung (neu → gesichtet → erledigt), Filter und Export als CSV und JSON zur gemeinsamen Auswertung
+- Neue App `anstoss` mit eigenem Datenmodell, neun Tests und Lastenheft-Eintrag F-69
+
+## [0.18.0] — 2026-09-01 · Willkommensseite und Parlament getrennt
+
+### Geändert
+- **„/" und „/parlament/" sind jetzt zwei Seiten** (P1-Leitidee: das Parlament ist zum Benutzen da, erklärt und beworben wird gesondert): Die Willkommensseite zeigt Gästen die Bühne mit Kennzahlen, drei Wegweiser-Karten (Parlament · Mitgliedschaft · Zukunftswerkstatt) und die wichtigen Abstimmungen; das Vier-Felder-Parlament wohnt unter `/parlament/`. Angemeldete Mitglieder landen auf „/" ohne Umweg im Parlament — auch direkt nach der Anmeldung; Gäste sehen im Parlament eine schlanke Hinweisleiste statt der großen Bühne
+- Alle „zurück"-Wege (Antragsseite, Einbringen-Formular, Einführung) führen jetzt zielgenau ins Parlament; der Favoriten-Stern kehrt ohne JavaScript standardmäßig auf genau die Seite zurück, von der aus er gedrückt wurde
+
+### Entfernt
+- Verwaiste Vorlage `staatssimulation.html` entfernt — sie war beim Geräteabgleich zurückgeblieben, weil der Archiv-Abgleich keine Löschungen überträgt (die Weiterleitung `/staatssimulation/` → `/zukunftswerkstatt/` bleibt selbstverständlich bestehen)
+
 ## [0.17.0] — 2026-09-01 · P1: Das Parlament als Vier-Felder-Raster
 
 ### Hinzugefügt

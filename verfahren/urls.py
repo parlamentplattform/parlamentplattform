@@ -6,6 +6,7 @@ from verfahren import views, views_aktionen
 app_name = "verfahren"
 urlpatterns = [
     path("", views.index, name="index"),
+    path("parlament/", views.parlament, name="parlament"),
     path("einbringen/", views_aktionen.einbringen, name="einbringen"),
     path("kategorien/", views_aktionen.kategorie_fokus, name="kategorien"),
     path(

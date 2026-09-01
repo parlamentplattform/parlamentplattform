@@ -2,7 +2,7 @@
 {% load i18n phasen %}
 {% block titel %}{{ antrag.titel }}{% endblock %}
 {% block inhalt %}
-<p><a href="{% url 'verfahren:index' %}">&larr; {% translate "Übersicht" %}</a></p>
+<p><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Zum Parlament" %}</a></p>
 <h1>{{ antrag.titel }}</h1>
 <p><span class="badge">{{ antrag.phase|phase_name }}</span>
 {% if antrag.ebene != "bund" %}<span class="badge badge--hell">{{ antrag.get_ebene_display }} · {{ antrag.gebiet }}</span>{% endif %}

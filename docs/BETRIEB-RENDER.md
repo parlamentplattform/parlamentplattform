@@ -49,7 +49,7 @@ Zwei Render-Eigenheiten, die man kennen muss:
 | `POSTGRES_HOST/PORT/DB/USER/PASSWORD` | aus der *Internal Database URL* von `plattform-db` |
 | `DDOE_SMTP_HOST/PORT/USER/PASSWORT` | Postfach `plattform@ddoe.at` (World4You, Port 587) |
 | `DDOE_SMTP_TIMEOUT` | optional, Standard 20 s — hängender Mailserver blockiert keinen Worker |
-| `DDOE_MAIL_ABSENDER` | Absenderadresse (Standard `plattform@ddoe.at`) |
+| `DDOE_MAIL_ABSENDER` | Absender (Standard `ParlamentPlattform <plattform@ddoe.at>`) |
 | `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
 | `DDOE_FIX_ADMIN` | optional — fixer Verwaltungs-Erstzugang (Standard `didide@ddoe.at`, F-51) |
 | `DDOE_BANK_SECRET_ID` / `DDOE_BANK_SECRET_KEY` | Beitragsabgleich F-59: Schlüsselpaar des Kontoinformationsdiensts (GoCardless Bank Account Data → User Secrets). Ohne sie bleibt die Bankanbindung schlicht aus |

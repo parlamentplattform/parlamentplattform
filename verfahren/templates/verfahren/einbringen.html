@@ -2,7 +2,7 @@
 {% load i18n phasen %}
 {% block titel %}{% translate "Antrag einbringen" %}{% endblock %}
 {% block inhalt %}
-<p><a href="{% url 'verfahren:index' %}">&larr; {% translate "Übersicht" %}</a></p>
+<p><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Zum Parlament" %}</a></p>
 <h1>{% translate "Antrag einbringen" %}</h1>
 <p>{% blocktranslate with policy_id=ordnung.policy_id version=ordnung.version %}Jedes bestätigte Mitglied kann Anträge einbringen (§ 5 Abs 1). Es gilt die
 Verfahrensordnung <strong>{{ policy_id }} v{{ version }}</strong> — sie wird
@@ -35,7 +35,7 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
   <div class="stimmzeile">
     {% if aehnliche %}
       <button type="submit" name="trotzdem" value="1" class="btn">{% translate "Trotzdem einbringen" %}</button>
-      <a class="btn-still" href="{% url 'verfahren:index' %}">{% translate "Lieber einen bestehenden Antrag unterstützen" %}</a>
+      <a class="btn-still" href="{% url 'verfahren:parlament' %}">{% translate "Lieber einen bestehenden Antrag unterstützen" %}</a>
     {% else %}
       <button type="submit" class="btn">{% translate "Antrag einbringen" %}</button>
     {% endif %}

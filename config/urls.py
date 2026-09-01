@@ -10,5 +10,6 @@ urlpatterns = [
     path("", include("verfahren.urls")),
     path("", include("mitglieder.urls")),
     path("", include("uebersicht.urls")),
+    path("", include("anstoss.urls")),  # das begleitende Feedback-Widget (F-69)
     path("i18n/", include("django.conf.urls.i18n")),  # Sprachumschalter (F-33), ohne JavaScript
 ]

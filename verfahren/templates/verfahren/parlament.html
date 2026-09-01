@@ -1,0 +1,135 @@
+{% extends "verfahren/base.html" %}
+{% load i18n phasen %}
+{% block mainklasse %}breit{% endblock %}
+{% block inhalt %}
+{% if not user.is_authenticated %}
+<div class="meldung info">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}
+  <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> ·
+  <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>
+{% endif %}
+
+<p class="erk" style="max-width:56em;margin-bottom:2px">{% blocktranslate %}Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,
+Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen
+Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
+
+<div class="parlament" id="parlament">
+
+  {# ── Feld 1: WeicherFilter (Bereich d — Anträge & Gesetzesvorschläge) ── #}
+  <section class="feld">
+    <div class="feld-kopf">
+      <h2>{% translate "WeicherFilter" %}</h2>
+      <span class="bk">{% translate "Voreinstellung: neutral" %}</span>
+    </div>
+    <div class="feld-korpus">
+      {% for titel, liste in gruppen %}
+        {% if liste %}
+        <p class="phasen-titel">{{ titel }}</p>
+        {% for a in liste %}
+        <div class="zeile">
+          <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+            {% if a.ebene != "bund" %}<span class="badge badge--hell">{{ a.get_ebene_display }}</span>{% endif %}
+            <br><span class="meta">{{ a.phase|phase_name }} · {% translate "seit" %} {{ a.phase_beginn|date:"d.m." }}</span></span>
+          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+      {% endfor %}
+    </div>
+    <div class="feld-fuss">{% translate "Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten Ausbaustufe. Bis dahin: streng neutral." %}</div>
+  </section>
+
+  {# ── Feld 2: Meine Favoriten (Bereich a) — Liste oder Fächer (P2) ── #}
+  <section class="feld" id="feld-favoriten">
+    <div class="feld-kopf">
+      <h2>{% translate "Meine Favoriten" %}</h2>
+      <span class="bk">{% if faecher %}<a href="{{ request.path }}#feld-favoriten"
+          hx-get="{{ request.path }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{% translate "Liste" %}</a> · <strong>{% translate "Fächer" %}</strong>
+        {% else %}<strong>{% translate "Liste" %}</strong> · <a href="?fach=#feld-favoriten"
+          hx-get="{{ request.path }}?fach=" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{% translate "Fächer" %}</a>{% endif %}</span>
+    </div>
+    <div class="feld-korpus">
+      {% if faecher %}{% include "verfahren/_faecher.html" %}{% else %}
+      {% if user.is_authenticated %}
+        {% for a in favoriten_abstimmung %}
+        <div class="zeile">
+          <span><span class="badge">{{ a.phase|phase_name }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          {% include "verfahren/_stern.html" with antrag=a ist_favorit=True %}
+        </div>
+        {% endfor %}
+        {% for a in favoriten_sonstige %}
+        <div class="zeile">
+          <span><span class="badge badge--hell">{{ a.phase|phase_name }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          {% include "verfahren/_stern.html" with antrag=a ist_favorit=True %}
+        </div>
+        {% endfor %}
+        {% if not favoriten_abstimmung and not favoriten_sonstige %}
+          <p class="leer" style="margin-top:10px">{% translate "Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor." %}</p>
+        {% endif %}
+        {% if themen_neu %}
+          <p class="phasen-titel">{% translate "Neu aus Ihren Lebensbereichen" %}</p>
+          {% for a in themen_neu %}
+          <div class="zeile">
+            <span><span class="badge badge--hell">{{ a.phase|phase_name }}</span> <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a></span>
+          </div>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        <p class="erk" style="margin-top:10px">{% translate "Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon gerade zur Abstimmung steht." %}
+        <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> {% translate "oder" %}
+        <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>.</p>
+      {% endif %}
+      {% endif %}
+    </div>
+    <div class="feld-fuss">{% if faecher %}<a href="{% url 'verfahren:kategorien' %}">{% translate "Tiefen-Ansicht mit Suche →" %}</a>{% else %}<a href="?fach=#feld-favoriten"
+      hx-get="{{ request.path }}?fach=" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{% translate "Lebensbereiche als Fächer entdecken →" %}</a>{% endif %}</div>
+  </section>
+
+  {# ── Feld 3: Wichtige Abstimmungen (Bereich b) ── #}
+  <section class="feld">
+    <div class="feld-kopf">
+      <h2>{% translate "Wichtige Abstimmungen" %}</h2>
+      <span class="bk">{% translate "Beschluss des Integritätsrats" %}</span>
+    </div>
+    <div class="feld-korpus">
+      <div class="mini-kacheln">
+      {% for a in wichtige %}
+        <div class="mini-kachel">
+          <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
+          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
+          <div class="meta" style="margin-top:4px"><span class="badge">{{ a.phase|phase_name }}</span></div>
+          {% if a.hervorhebung_begruendung %}<p class="erk" style="margin-top:6px">{{ a.hervorhebung_begruendung }}</p>{% endif %}
+        </div>
+      {% empty %}
+        <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
+      {% endfor %}
+      </div>
+    </div>
+    <div class="feld-fuss">{% translate "Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch einen Algorithmus." %}</div>
+  </section>
+
+  {# ── Feld 4: Meine Region (Bereich c) ── #}
+  <section class="feld">
+    <div class="feld-kopf">
+      <h2>{% translate "Meine Region" %}</h2>
+      <span class="bk">{% translate "Gemeinde · Bezirk · Land" %}</span>
+    </div>
+    <div class="feld-korpus">
+      {% regroup regionale by get_ebene_display as ebenen %}
+      {% for ebene in ebenen %}
+        <p class="phasen-titel">{{ ebene.grouper }}</p>
+        {% for a in ebene.list %}
+        <div class="zeile">
+          <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+            <br><span class="meta">{{ a.gebiet }} · {{ a.phase|phase_name }}</span></span>
+          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
+        </div>
+        {% endfor %}
+      {% empty %}
+        <p class="leer" style="margin-top:10px">{% translate "Derzeit keine regionalen Anträge — der erste kann Ihrer sein." %}</p>
+      {% endfor %}
+    </div>
+    <div class="feld-fuss">{% translate "Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene." %}</div>
+  </section>
+
+</div>
+{% endblock %}

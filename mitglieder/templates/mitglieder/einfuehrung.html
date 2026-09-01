@@ -9,7 +9,7 @@
     {% elif schritt == 2 %}{% translate "Ihre erste Abstimmung" %}
     {% else %}{% translate "So bringen Sie einen Antrag ein" %}{% endif %}
   </h1>
-  <a class="btn-still" href="{% url 'verfahren:index' %}">{% translate "Einführung überspringen" %}</a>
+  <a class="btn-still" href="{% url 'verfahren:parlament' %}">{% translate "Einführung überspringen" %}</a>
 </div>
 
 <div class="schrittleiste" aria-label="{% translate 'Fortschritt der Einführung' %}">
@@ -123,7 +123,7 @@ Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
 
 <div class="stimmzeile" style="margin-top:18px">
   <a class="btn-still" href="{% url 'mitglieder:einfuehrung' 2 %}">← {% translate "Zurück" %}</a>
-  <a class="btn-linie" href="{% url 'verfahren:index' %}">{% translate "Alle Anträge ansehen" %}</a>
+  <a class="btn-linie" href="{% url 'verfahren:parlament' %}">{% translate "Alle Anträge ansehen" %}</a>
   <a class="btn" href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Abschluss: Ihr Mitgliedsbeitrag" %} →</a>
 </div>
 {% endif %}

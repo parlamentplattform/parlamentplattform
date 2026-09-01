@@ -100,7 +100,7 @@ def test_abo_eines_astes_umfasst_unterkategorien(client, ordnung):  # noqa: F811
 
     client.force_login(anna)
     client.post(reverse("verfahren:kategorie_abonnieren", args=[energie.slug]))  # Abo am ELTERN-Knoten
-    antwort = client.get(reverse("verfahren:index"))
+    antwort = client.get(reverse("verfahren:parlament"))
     assert antrag in list(antwort.context["themen_neu"])  # Ast-Wirkung
 
     client.post(reverse("verfahren:kategorie_abonnieren", args=[energie.slug]))  # Abo beenden

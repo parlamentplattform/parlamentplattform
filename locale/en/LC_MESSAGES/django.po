@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 11:29+0200\n"
+"POT-Creation-Date: 2026-09-01 14:04+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,6 +16,43 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Danke — Ihr Anstoß ist gespeichert."
+msgstr "Thank you — your feedback has been saved."
+
+msgid "Bitte einen Moment warten, bevor Sie den nächsten Anstoß senden."
+msgstr "Please wait a moment before sending the next message."
+
+msgid "Bitte schreiben Sie zuerst eine Nachricht."
+msgstr "Please write a message first."
+
+msgid "Anstoß geben — Feedback und Wünsche"
+msgstr "Give feedback — ideas and wishes"
+
+msgid "Anstoß"
+msgstr "Feedback"
+
+msgid "Anstoß geben"
+msgstr "Give feedback"
+
+msgid ""
+"Was fehlt? Was stört? Was wünschen Sie sich? Jede Nachricht wird gespeichert"
+" und fließt in die Weiterentwicklung der Plattform ein."
+msgstr ""
+"What's missing? What bothers you? What do you wish for? Every message is "
+"stored and feeds into the platform's further development."
+
+msgid "Ihr Anliegen — so konkret wie möglich"
+msgstr "Your feedback — as concrete as possible"
+
+msgid "Wird Ihrem Konto zugeordnet, damit wir nachfragen können."
+msgstr "Linked to your account so we can follow up."
+
+msgid "Sie schreiben anonym — als Mitglied könnten wir nachfragen."
+msgstr "You are writing anonymously — as a member, we could follow up."
+
+msgid "Absenden"
+msgstr "Send"
 
 msgid ""
 "Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet"
@@ -1043,6 +1080,13 @@ msgstr "Page views per day, last 30 days"
 msgid "Als Favorit merken"
 msgstr "Mark as favourite"
 
+#, python-format
+msgid "%(n)s Unterbereiche"
+msgstr "%(n)s subareas"
+
+msgid "Zum Parlament"
+msgstr "To the Parliament"
+
 msgid "automatisch zugeordnet (F-47)"
 msgstr "assigned automatically (F-47)"
 
@@ -1349,8 +1393,8 @@ msgstr ""
 "implement what has been decided; the public implementation register shows "
 "where things stand."
 
-msgid "Zu den laufenden Abstimmungen"
-msgstr "See the votes in progress"
+msgid "Das Parlament ansehen"
+msgstr "View the Parliament"
 
 msgid "bestätigte Mitglieder"
 msgstr "confirmed members"
@@ -1361,79 +1405,50 @@ msgstr "ongoing procedures"
 msgid "gefasste Beschlüsse"
 msgstr "decisions taken"
 
+msgid "Das Parlament"
+msgstr "The Parliament"
+
 msgid ""
-"Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,\n"
-"Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen\n"
-"Reihung (§ 5 Abs 10 des Satzungsentwurfs)."
+"Alle laufenden Verfahren, offen einsehbar: unterstützen, beraten, abstimmen "
+"— gereiht nur nach Phase und Frist."
 msgstr ""
-"Four areas, one principle: arrangement and selection follow only phase, "
-"deadline and the members' decisions — never popularity, never a hidden "
-"algorithmic ranking (§ 5 (10) of the draft statutes)."
+"All ongoing procedures, open for anyone to inspect: support, deliberate, "
+"vote — ordered only by phase and deadline."
 
-msgid "WeicherFilter"
-msgstr "WeicherFilter"
+msgid "Zum Parlament →"
+msgstr "To the Parliament →"
 
-msgid "Voreinstellung: neutral"
-msgstr "Default: neutral"
-
-msgid "seit"
-msgstr "since"
+msgid "Die Mitgliedschaft"
+msgstr "Membership"
 
 msgid ""
-"Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten "
-"Ausbaustufe. Bis dahin: streng neutral."
+"Sechs Rechte, ein Weg vom Antrag zum Beschluss — und ein Beitrag nach "
+"Selbsteinschätzung."
 msgstr ""
-"Your filter, your sliders — the adjustable ordering arrives in a coming "
-"stage. Until then: strictly neutral."
+"Six rights, one path from motion to resolution — and a fee based on self-"
+"assessment."
 
-msgid "Meine Favoriten"
-msgstr "My favourites"
-
-msgid ""
-"Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor."
-msgstr "No favourites yet — the star ☆ on any motion saves it here."
-
-msgid "Neu aus Ihren Lebensbereichen"
-msgstr "New from your areas of life"
+msgid "Rechte ansehen →"
+msgstr "See the rights →"
 
 msgid ""
-"Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon "
-"gerade zur Abstimmung steht."
+"Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — die KI "
+"schlägt vor, sie entscheidet nie."
 msgstr ""
-"As a member you save your topics here and see immediately which of them are "
-"up for a vote."
+"How the platform learns: open parameters, verifiable rules — the AI "
+"proposes, it never decides."
 
-msgid "Lebensbereiche entdecken und favorisieren →"
-msgstr "Discover and favourite areas of life →"
+msgid "Werkstatt ansehen →"
+msgstr "Visit the workshop →"
 
 msgid "Wichtige Abstimmungen"
 msgstr "Important votes"
-
-msgid "Beschluss des Integritätsrats"
-msgstr "Decision of the Integrity Council"
-
-msgid "Derzeit ist nichts hervorgehoben."
-msgstr "Nothing is highlighted at the moment."
 
 msgid ""
 "Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch "
 "einen Algorithmus."
 msgstr ""
 "Highlighted only by a reasoned, published decision — never by an algorithm."
-
-msgid "Meine Region"
-msgstr "My region"
-
-msgid "Gemeinde · Bezirk · Land"
-msgstr "Municipality · District · Province"
-
-msgid "Derzeit keine regionalen Anträge — der erste kann Ihrer sein."
-msgstr "No regional motions yet — the first one could be yours."
-
-msgid ""
-"Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen "
-"Ebene."
-msgstr "Regional results guide DDÖ representatives at the respective level."
 
 msgid ""
 "Alles führt auf eine Kategorie zurück — und verzweigt sich von dort über vier Säulen\n"
@@ -1593,6 +1608,87 @@ msgstr ""
 "Next step: transfer the membership fee with your personal reference (see the"
 " <a href=\"/willkommen/\">welcome page</a>) — once received and checked, "
 "your account is unlocked and your qualifying period continues."
+
+msgid ""
+"Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können"
+" Mitglieder."
+msgstr ""
+"You are viewing the Parliament as a guest — reading is open to all, deciding"
+" is for members."
+
+msgid ""
+"Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,\n"
+"Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen\n"
+"Reihung (§ 5 Abs 10 des Satzungsentwurfs)."
+msgstr ""
+"Four areas, one principle: arrangement and selection follow only phase, "
+"deadline and the members' decisions — never popularity, never a hidden "
+"algorithmic ranking (§ 5 (10) of the draft statutes)."
+
+msgid "WeicherFilter"
+msgstr "WeicherFilter"
+
+msgid "Voreinstellung: neutral"
+msgstr "Default: neutral"
+
+msgid "seit"
+msgstr "since"
+
+msgid ""
+"Ihr Filter, Ihre Regler — die einstellbare Reihung folgt in einer nächsten "
+"Ausbaustufe. Bis dahin: streng neutral."
+msgstr ""
+"Your filter, your sliders — the adjustable ordering arrives in a coming "
+"stage. Until then: strictly neutral."
+
+msgid "Meine Favoriten"
+msgstr "My favourites"
+
+msgid "Liste"
+msgstr "List"
+
+msgid "Fächer"
+msgstr "Fan"
+
+msgid ""
+"Noch keine Favoriten — der Stern ☆ bei jedem Antrag merkt ihn hier vor."
+msgstr "No favourites yet — the star ☆ on any motion saves it here."
+
+msgid "Neu aus Ihren Lebensbereichen"
+msgstr "New from your areas of life"
+
+msgid ""
+"Als Mitglied merken Sie sich hier Ihre Themen und sehen sofort, was davon "
+"gerade zur Abstimmung steht."
+msgstr ""
+"As a member you save your topics here and see immediately which of them are "
+"up for a vote."
+
+msgid "Tiefen-Ansicht mit Suche →"
+msgstr "Deep view with search →"
+
+msgid "Lebensbereiche als Fächer entdecken →"
+msgstr "Explore areas of life as a fan →"
+
+msgid "Beschluss des Integritätsrats"
+msgstr "Decision of the Integrity Council"
+
+msgid "Derzeit ist nichts hervorgehoben."
+msgstr "Nothing is highlighted at the moment."
+
+msgid "Meine Region"
+msgstr "My region"
+
+msgid "Gemeinde · Bezirk · Land"
+msgstr "Municipality · District · Province"
+
+msgid "Derzeit keine regionalen Anträge — der erste kann Ihrer sein."
+msgstr "No regional motions yet — the first one could be yours."
+
+msgid ""
+"Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen "
+"Ebene."
+msgstr "Regional results guide DDÖ representatives at the respective level."
 
 msgid ""
 "Ein Beschluss, den niemand umsetzt, entwertet das Verfahren. Deshalb steht hier\n"

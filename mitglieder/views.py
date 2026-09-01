@@ -271,7 +271,7 @@ def login_einloesen(request, token: str):
     if mitglied is None:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
-    return redirect("verfahren:index")
+    return redirect("verfahren:parlament")
 
 
 @require_POST

@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "mitglieder",
     "verfahren",
     "uebersicht",
+    "anstoss",
 ]
 
 MIDDLEWARE = [
@@ -115,7 +116,7 @@ if os.environ.get("DDOE_SMTP_HOST"):
     EMAIL_TIMEOUT = int(os.environ.get("DDOE_SMTP_TIMEOUT", "20"))
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "plattform@ddoe.at")
+DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "ParlamentPlattform <plattform@ddoe.at>")
 
 LOGIN_URL = "/anmelden/"
 

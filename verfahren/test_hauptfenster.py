@@ -57,12 +57,12 @@ def test_startseite_zeigt_eigene_favoriten_abstimmungen_zuerst(client, ordnung):
     abstimmung.favoriten.create(mitglied=anna)
 
     client.force_login(anna)
-    antwort = client.get(reverse("verfahren:index"))
+    antwort = client.get(reverse("verfahren:parlament"))
     assert list(antwort.context["favoriten_abstimmung"]) == [abstimmung]
     assert list(antwort.context["favoriten_sonstige"]) == [laufend]
 
     client.logout()
-    antwort = client.get(reverse("verfahren:index"))
+    antwort = client.get(reverse("verfahren:parlament"))
     assert antwort.context["favoriten_abstimmung"] is None  # anonym: kein Bereich a
 
 
@@ -76,7 +76,7 @@ def test_hervorgehobene_antraege_erscheinen_im_bereich_b(client, ordnung):  # no
     Antrag.objects.filter(pk=wichtig.pk).update(
         hervorgehoben=True, hervorhebung_begruendung="Beschluss IR-2026-01."
     )
-    antwort = client.get(reverse("verfahren:index"))
+    antwort = client.get(reverse("verfahren:parlament"))
     assert [a.pk for a in antwort.context["wichtige"]] == [wichtig.pk]
     assert normal.pk not in [a.pk for a in antwort.context["wichtige"]]
     assert "Beschluss IR-2026-01." in antwort.content.decode()
@@ -97,7 +97,7 @@ def test_regionale_antraege_erscheinen_im_bereich_c(client, ordnung):  # noqa: F
         ebene="gemeinde",
         gebiet="St. Marienkirchen an der Polsenz",
     )
-    antwort = client.get(reverse("verfahren:index"))
+    antwort = client.get(reverse("verfahren:parlament"))
     assert [a.pk for a in antwort.context["regionale"]] == [regional.pk]
     assert "St. Marienkirchen an der Polsenz" in antwort.content.decode()
 

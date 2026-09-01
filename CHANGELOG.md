@@ -12,6 +12,10 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 - **Kontoauszug-Upload als Weg ohne Drittanbieter:** In „Beiträge & Bank" lässt sich der Umsatz-Export aus dem Online-Banking (George) direkt abgleichen — **camt.053-XML** (ISO-20022, exakte Umsatz-Kennungen) oder **CSV** (Spalten werden tolerant über die Kopfzeile erkannt, deutsche Beträge und Datumsformate inklusive; Dedupe über einen Fingerabdruck aus Datum, Betrag und Verwendungszweck). Gleiche Zuordnung, gleiche Freischaltung, gleiche Prüfhinweise wie beim API-Abruf; die Datei wird nur gelesen, nie gespeichert. Damit funktioniert der Abgleich sofort — die PSD2-Kopplung bleibt eingebaut und wartet auf einen verfügbaren Kontoinformationsdienst
 - 17 neue Tests (153 gesamt); alles vollständig zweisprachig; F-59 im Lastenheft, neue Umgebungsvariablen in der Betriebsdoku
 
+### Behoben
+- Erster 0.12.0-Deploy scheiterte mit `ModuleNotFoundError: requests` — die Bibliothek für die Dienst-Abrufe fehlte in den Produktionsabhängigkeiten (in der Entwicklungsumgebung war sie global vorhanden); jetzt in `dependencies` deklariert
+- **QR-Code: Empfängername mit Umlaut** — „Direkte Demokratie Österreich" statt „Oesterreich": Der EPC-Payload deklariert UTF-8 (dritte Zeile „1"), und seit der EU-Empfängerprüfung (Verification of Payee) zählt der exakte Kontowortlaut
+
 ## [0.11.0] — 2026-08-26 · Neues Gewand: Bühne, Dark Mode, Mobilmenü
 
 ### Hinzugefügt

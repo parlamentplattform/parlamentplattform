@@ -10,6 +10,7 @@ dependencies = [
     "Django>=5.0,<5.3",
     "PyYAML>=6.0",
     "segno>=1.6",
+    "requests>=2.31",  # F-59: Kontoinformationsdienst-Abrufe (mitglieder/bank.py)
 ]
 
 [project.optional-dependencies]

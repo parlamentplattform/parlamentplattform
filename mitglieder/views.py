@@ -189,7 +189,10 @@ def _beitrags_qr(referenz: str) -> str:
     Standardformat des European Payments Council — jede österreichische
     Banking-App liest ihn. Die Überweisung läuft als (Echtzeit-)Überweisung
     direkt von Konto zu Konto: kein Zahlungsdienstleister, keine Prozente.
-    Betrag ist in der App änderbar (Selbsteinschätzung, § 4 Abs 3)."""
+    Betrag ist in der App änderbar (Selbsteinschätzung, § 4 Abs 3).
+    Der Empfängername steht mit Umlaut im Code: Die dritte Payload-Zeile
+    („1") deklariert UTF-8, und seit der EU-Empfängerprüfung (Verification
+    of Payee) zählt der exakte Kontowortlaut „Direkte Demokratie Österreich"."""
     import segno
 
     nutzlast = "\n".join(
@@ -199,7 +202,7 @@ def _beitrags_qr(referenz: str) -> str:
             "1",
             "SCT",
             "",  # BIC (im EWR optional)
-            "Direkte Demokratie Oesterreich",
+            "Direkte Demokratie Österreich",
             IBAN.replace(" ", ""),
             f"EUR{BEITRAG_RICHTWERT}",
             "",  # Zweck-Code

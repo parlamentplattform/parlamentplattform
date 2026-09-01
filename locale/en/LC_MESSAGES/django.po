@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 00:32+0200\n"
+"POT-Creation-Date: 2026-09-02 00:57+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -310,6 +310,12 @@ msgstr "Submit proposal now"
 msgid "Interne Beratung (dokumentiert, § 6 Abs 9)"
 msgstr "Internal deliberation (documented, § 6 para. 9)"
 
+msgid "Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv."
+msgstr "From the model socket — every run is in the public archive."
+
+msgid "KI-Vorschlag"
+msgstr "AI suggestion"
+
 msgid "Noch keine Beiträge."
 msgstr "No contributions yet."
 
@@ -318,6 +324,17 @@ msgstr "Contribution to the internal deliberation …"
 
 msgid "Beitrag festhalten"
 msgstr "Record contribution"
+
+msgid "KI-Einschätzung einholen"
+msgstr "Request AI assessment"
+
+msgid ""
+"Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert (F-60)."
+msgstr "It suggests, it never decides — the run is archived (F-60)."
+
+msgid ""
+"Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer."
+msgstr "No provider is currently connected — the socket is honestly empty."
 
 msgid "Nur für Rolleninhaber"
 msgstr "Role holders only"
@@ -510,6 +527,13 @@ msgstr "New version appended — all earlier ones stay on record."
 
 msgid "Beitrag festgehalten."
 msgstr "Contribution recorded."
+
+msgid ""
+"KI-Einschätzung festgehalten — deutlich gekennzeichnet: Sie schlägt vor, "
+"entschieden wird hier."
+msgstr ""
+"AI assessment recorded — clearly labelled: it suggests, deciding happens "
+"here."
 
 #, python-format
 msgid "Vollzugs-/Beschaffungsbezug: %(wert)s."
@@ -1578,6 +1602,34 @@ msgstr "sign-in"
 
 msgid "Sie sind abgemeldet."
 msgstr "You are signed out."
+
+msgid "Offene Parameter"
+msgstr "Open parameters"
+
+msgid ""
+"An diesen Stellschrauben lernt das System (F-68): Fristen, Runden, Budgets — jede mit\n"
+"Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.\n"
+"Änderungen sind nur dokumentiert möglich: heute durch die Verwaltung mit veröffentlichtem Grund im\n"
+"Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung."
+msgstr ""
+"These are the dials the system learns at (F-68): deadlines, rounds, budgets "
+"— each with a description and its origin. The code reads from here; if an "
+"entry is missing, the built-in target value applies. Changes are only "
+"possible documented: today by the administration with a published reason in "
+"the audit log, in future by the general assembly via the versioned rules of "
+"procedure."
+
+msgid "Register als JSON →"
+msgstr "Register as JSON →"
+
+msgid "Quelle:"
+msgstr "Source:"
+
+msgid "Stand:"
+msgstr "As of:"
+
+msgid "Noch keine Parameter eingetragen."
+msgstr "No parameters recorded yet."
 
 msgid "Übersicht"
 msgstr "Overview"
@@ -2962,6 +3014,50 @@ msgstr ""
 "proposals for conflicts of interest and can return them with reasons. And "
 "<strong>every member</strong> can publicly contest any assessment — the "
 "answer is a correction run with a note, never a silent edit."
+
+msgid "Der Modell-Steckplatz — Rechenschaft in Zahlen"
+msgstr "The model socket — accountability in numbers"
+
+msgid ""
+"Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt\n"
+"  einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Ein hartes\n"
+"  Monats-Tokenbudget deckelt die Kosten; ist es erschöpft, wird der Steckplatz stumm. Und immer gilt:\n"
+"  Die KI schlägt vor, sie entscheidet nie."
+msgstr ""
+"Every AI call on the platform goes through a provider-neutral socket and "
+"leaves an archived run: purpose, model, token usage, duration — including "
+"the failed ones. A hard monthly token budget caps the costs; once it is "
+"spent, the socket goes silent. And it always holds: the AI suggests, it "
+"never decides."
+
+msgid "Angeschlossen:"
+msgstr "Connected:"
+
+msgid "Derzeit ist kein Anbieter angeschlossen"
+msgstr "No provider is currently connected"
+
+msgid ""
+"der Steckplatz ist ehrlich leer; die Oberflächen sagen das an Ort und "
+"Stelle."
+msgstr ""
+"the socket is honestly empty; the interfaces say so right where it matters."
+
+#, python-format
+msgid "Archivierte Läufe: %(n)s"
+msgstr "Archived runs: %(n)s"
+
+#, python-format
+msgid "Tokens diesen Monat: %(verbrauch)s von %(budget)s"
+msgstr "Tokens this month: %(verbrauch)s of %(budget)s"
+
+msgid "Alle offenen Parameter →"
+msgstr "All open parameters →"
+
+msgid "Zuletzt archivierte Läufe"
+msgstr "Recently archived runs"
+
+msgid "gescheitert"
+msgstr "failed"
 
 msgid "An die demokratischen Bewegungen weltweit"
 msgstr "To the democratic movements of the world"

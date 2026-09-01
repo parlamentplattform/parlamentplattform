@@ -30,10 +30,23 @@ from gremien.models import (
     UnterstuetzerVotum,
     standard_ende,
 )
+from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.models import Zweck, lauf_ausfuehren
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
 from verfahren.models import Antrag, Antragsart, AuditEintrag
+
+# Der Auftrag an den Modell-Steckplatz (F-60) für die Werkstatt-Einschätzung —
+# bewusst öffentlich im Quellcode: Auch der Auftrag ist Teil der Rechenschaft.
+EINSCHAETZUNGS_AUFTRAG = (
+    "Du bist Fach-Assistent des Expertenrats der ParlamentPlattform (Direkte Demokratie "
+    "Österreich). Prüfe den folgenden Antragsentwurf: Fasse ihn in drei bis fünf Sätzen "
+    "zusammen, benenne Unklarheiten im Wortlaut, offene Vollzugs- oder Kostenfragen und "
+    "mache konkrete Formulierungsvorschläge. Liegen Wünsche der Unterstützer bei, prüfe, "
+    "ob die Fassung sie aufgreift. Du machst Vorschläge — jede Entscheidung treffen "
+    "Menschen. Antworte auf Deutsch, nüchtern und knapp, in Fließtext ohne Listen."
+)
 
 
 def nur_gremium(*gremien: str):
@@ -139,6 +152,7 @@ def fenster(request, antrag_id: int):
             "voten": list(entwurf.unterstuetzer_voten.filter(runde=entwurf.runde)) if entwurf else [],
             "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
             "in_beratung": antrag.phase == Phase.BERATUNG.value,
+            "steckplatz_bereit": anbieter_waehlen() is not None,
         },
     )
 
@@ -198,6 +212,32 @@ def fenster_aktion(request, antrag_id: int):
         if text:
             EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=request.user, text=text[:4000])
             messages.success(request, _("Beitrag festgehalten."))
+
+    elif aktion == "ki_einschaetzung":
+        fassung = entwurf.aktuelle_fassung()
+        eingabe = f"Titel: {antrag.titel}\n\nEntwurfsfassung {fassung.nummer} (Runde {entwurf.runde}):\n{fassung.wortlaut}"
+        if fassung.begruendung:
+            eingabe += f"\n\nBegründung der Fassung:\n{fassung.begruendung}"
+        wuensche = [
+            v.wunsch
+            for v in entwurf.unterstuetzer_voten.filter(runde=entwurf.runde - 1).exclude(wunsch="")
+        ]
+        if wuensche:
+            eingabe += "\n\nWünsche der Unterstützer aus der Vorrunde:\n- " + "\n- ".join(wuensche)
+        try:
+            lauf = lauf_ausfuehren(
+                Zweck.EINSCHAETZUNG, EINSCHAETZUNGS_AUFTRAG, eingabe, request.user, antrag=antrag
+            )
+        except SteckplatzStumm as grund:
+            messages.info(request, str(grund))
+        else:
+            EntwurfsBeitrag.objects.create(
+                entwurf=entwurf, mitglied=request.user, text=lauf.antwort[:4000], ki_lauf=lauf
+            )
+            messages.success(
+                request,
+                _("KI-Einschätzung festgehalten — deutlich gekennzeichnet: Sie schlägt vor, entschieden wird hier."),
+            )
 
     elif aktion == "vollzugsbezug":
         entwurf.vollzugsbezug = request.POST.get("vollzugsbezug") == "ja"

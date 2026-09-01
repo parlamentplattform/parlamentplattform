@@ -1,0 +1,23 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Offene Parameter" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Offene Parameter" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}An diesen Stellschrauben lernt das System (F-68): Fristen, Runden, Budgets — jede mit
+Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.
+Änderungen sind nur dokumentiert möglich: heute durch die Verwaltung mit veröffentlichtem Grund im
+Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung.{% endblocktranslate %}
+<a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a></p>
+
+<div class="karte" style="margin-top:16px">
+  {% for p in parameter %}
+  <div class="zeile"><span>
+    <strong>{{ p.schluessel }}</strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}
+    <br><span class="meta">{{ p.beschreibung }}</span>
+    <br><span class="meta">{% translate "Quelle:" %} {{ p.quelle }} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}</span>
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch keine Parameter eingetragen." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

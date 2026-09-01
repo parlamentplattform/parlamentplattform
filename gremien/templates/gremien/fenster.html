@@ -113,6 +113,7 @@
       <p class="phasen-titel">{% translate "Interne Beratung (dokumentiert, § 6 Abs 9)" %}</p>
       {% for b in beitraege %}
       <div class="zeile"><span><strong>{{ b.mitglied.anzeigename }}</strong> <span class="meta">{{ b.erstellt_am|date:"d.m.Y H:i" }}</span>
+        {% if b.ki_lauf %}<span class="ki-kennzeichen" title="{% translate 'Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv.' %}">{% translate "KI-Vorschlag" %} · {{ b.ki_lauf.modell }}</span>{% endif %}
         <br><span style="white-space:pre-line">{{ b.text }}</span></span></div>
       {% empty %}
       <p class="leer">{% translate "Noch keine Beiträge." %}</p>
@@ -122,6 +123,11 @@
         <input type="hidden" name="aktion" value="beitrag">
         <textarea name="text" style="min-height:70px" required placeholder="{% translate 'Beitrag zur internen Beratung …' %}"></textarea>
         <button type="submit" class="btn-linie" style="margin-top:6px">{% translate "Beitrag festhalten" %}</button>
+      </form>
+      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:10px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="ki_einschaetzung">
+        <button type="submit" class="btn-linie">{% translate "KI-Einschätzung einholen" %}</button>
+        <span class="meta" style="margin-left:8px">{% if steckplatz_bereit %}{% translate "Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert (F-60)." %}{% else %}{% translate "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer." %}{% endif %}</span>
       </form>
       {% endif %}
     </div>

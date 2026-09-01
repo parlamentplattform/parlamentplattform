@@ -105,6 +105,31 @@
   mit Vermerk, nie ein stilles Ändern.{% endblocktranslate %}</p>
 </div>
 
+<h2>{% translate "Der Modell-Steckplatz — Rechenschaft in Zahlen" %}</h2>
+<div class="karte" id="steckplatz">
+  <p>{% blocktranslate %}Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt
+  einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Ein hartes
+  Monats-Tokenbudget deckelt die Kosten; ist es erschöpft, wird der Steckplatz stumm. Und immer gilt:
+  Die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</p>
+  <p style="margin-top:10px">
+    {% if steckplatz.angeschlossen %}
+      <strong>{% translate "Angeschlossen:" %}</strong> {{ steckplatz.anbieter }} · {{ steckplatz.modell }}
+    {% else %}
+      <strong>{% translate "Derzeit ist kein Anbieter angeschlossen" %}</strong> — {% translate "der Steckplatz ist ehrlich leer; die Oberflächen sagen das an Ort und Stelle." %}
+    {% endif %}
+    <br>{% blocktranslate with n=steckplatz.laeufe %}Archivierte Läufe: {{ n }}{% endblocktranslate %}
+    · {% blocktranslate with verbrauch=steckplatz.monatsverbrauch budget=steckplatz.monatsbudget %}Tokens diesen Monat: {{ verbrauch }} von {{ budget }}{% endblocktranslate %}
+    · <a href="{% url 'parameter:liste' %}">{% translate "Alle offenen Parameter →" %}</a>
+  </p>
+  {% if letzte_laeufe %}
+  <p class="phasen-titel" style="margin-top:12px">{% translate "Zuletzt archivierte Läufe" %}</p>
+  {% for l in letzte_laeufe %}
+  <div class="zeile"><span>{{ l.get_zweck_display }}{% if l.antrag %} — <a href="{% url 'verfahren:antrag' l.antrag.pk %}">{{ l.antrag.titel }}</a>{% endif %}
+    <br><span class="meta">{{ l.modell }} · {{ l.tokens_ein }}+{{ l.tokens_aus }} Tokens · {{ l.dauer_ms }} ms · {{ l.erstellt_am|date:"d.m.Y H:i" }}{% if not l.erfolgreich %} · {% translate "gescheitert" %}: {{ l.fehler }}{% endif %}</span></span></div>
+  {% endfor %}
+  {% endif %}
+</div>
+
 <h2>{% translate "An die demokratischen Bewegungen weltweit" %}</h2>
 <div class="karte hinweis">
   <p>{% blocktranslate %}Auf mehreren Kontinenten arbeiten Parteien und Bewegungen an derselben Idee: Die Bürgerinnen und

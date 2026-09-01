@@ -266,3 +266,11 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS("Gremien bereit: 2× Gruppe 1, 1× Gruppe 2, 1× Koordinationsrat.")
             )
+
+        # Parameterregister (Ring 0b, F-68): Erstbestand sicherstellen — läuft
+        # bei jedem Deploy mit, bestehende Werte bleiben unangetastet.
+        from parameter.models import erstbestand_sicherstellen
+
+        neu = erstbestand_sicherstellen()
+        if neu:
+            self.stdout.write(self.style.SUCCESS(f"Parameterregister: {neu} Einträge angelegt."))

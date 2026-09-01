@@ -1,0 +1,23 @@
+{% extends "verfahren/base.html" %}
+{% block titel %}Parameter-Verwaltung{% endblock %}
+{% block inhalt %}
+<h1>Parameterregister</h1>
+<p>Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf
+<a href="{% url 'parameter:liste' %}">/parameter/</a>.
+<a href="{% url 'mitglieder:verwaltung' %}">← Mitgliederverwaltung</a></p>
+
+<div class="karte" style="margin-top:16px">
+  {% for p in parameter %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{{ p.schluessel }}</strong> <span class="meta">{{ p.einheit }} · {{ p.quelle }}</span>
+    <br><span class="meta">{{ p.beschreibung }}</span>
+    <form method="post" action="{% url 'parameter:verwaltung_aktion' %}" style="margin-top:6px">{% csrf_token %}
+      <input type="hidden" name="parameter" value="{{ p.pk }}">
+      <input type="text" name="wert" value="{{ p.wert }}" style="width:120px">
+      <input type="text" name="grund" placeholder="Grund (wird veröffentlicht)" required style="width:280px">
+      <button type="submit" class="btn-linie">Ändern</button>
+    </form>
+  </span></div>
+  {% endfor %}
+</div>
+{% endblock %}

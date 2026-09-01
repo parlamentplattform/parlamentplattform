@@ -524,5 +524,15 @@ def gesund(request):
 def zukunftswerkstatt(request):
     """Die öffentliche Seite zur Zukunftswerkstatt (§ 6 Abs 11) — Aufklärung
     für alle und Einladung an die verwandten Bewegungen weltweit (§ 12).
-    Reiner Inhalt, keine Datenbankabfragen; Strategie im Repository."""
-    return render(request, "verfahren/zukunftswerkstatt.html")
+    Seit Ring 0b (F-60) zeigt sie zusätzlich die Rechenschaft des
+    Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
+    from ki.models import KILauf, steckplatz_stand
+
+    return render(
+        request,
+        "verfahren/zukunftswerkstatt.html",
+        {
+            "steckplatz": steckplatz_stand(),
+            "letzte_laeufe": list(KILauf.objects.select_related("antrag")[:8]),
+        },
+    )

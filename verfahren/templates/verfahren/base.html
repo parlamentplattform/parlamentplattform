@@ -251,6 +251,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .fuss-grid a:hover{text-decoration:underline}
 .fuss-unten{max-width:960px;margin:26px auto 0;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
 .anstoss-fleck{position:fixed;right:18px;bottom:18px;z-index:80}
+.ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--nacht2);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
 .anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#14232E;font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:0 8px 22px rgba(0,0,0,.22);transition:background .15s}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
 .anstoss-fleck summary:hover{background:var(--goldsoft)}
@@ -333,6 +334,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
       <ul>
         <li><a href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode (AGPL)" %}</a></li>
         <li><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON" %}</a></li>
+        <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>
         <li><a href="https://www.ddoe.at/satzung/" rel="noopener">{% translate "Satzungsentwurf" %}</a></li>
         <li><a href="https://www.ddoe.at/" rel="noopener">ddoe.at</a></li>
       </ul>

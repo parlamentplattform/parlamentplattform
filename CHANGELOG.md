@@ -2,6 +2,23 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.30.0] — 2026-09-01 · Ring 0b, Teil 2: Das Parameterregister (F-68)
+
+### Hinzugefügt
+- **Neue App `parameter`: die offenen Stellschrauben des Systems an einem Ort** — öffentlich unter **`/parameter/`** (auch in der Fußzeile), je Eintrag mit Wert, Einheit, Beschreibung und **Herkunft** (Satzungs-/Konzeptstelle), dazu `/parameter.json` als offener Export. **Erstbestand** (wird bei jedem Deploy sichergestellt, bestehende Werte bleiben unangetastet): die Entwurfsschleifen-Fristen (14 + 14 Tage), die Höchstrunden (3), die Rollen-Dauer (730 Tage, § 6 Abs 8) und das KI-Monatsbudget (1 Mio. Tokens)
+- **Der Code liest jetzt aus dem Register** — mit ehrlichem Rückfall auf die eingebauten Zielwerte, wenn ein Eintrag fehlt oder unlesbar ist: Die Gremien-Werkstatt holt Review-/Überarbeitungsfrist, Höchstrunden und Rollen-Dauer von hier, der Modell-Steckplatz sein Monatsbudget (das Register führt; die Umgebungsvariable bleibt Rückfall vor dem Erstbestand)
+- **Änderungen nur dokumentiert:** Verwaltungsbereich mit Pflicht-Grund je Änderung — alt, neu und Grund landen im öffentlichen Audit-Log („parameter_geaendert"). Künftig beschließt die Mitgliederversammlung über die versionierte Verfahrensordnung (F-65: Änderungen als dokumentierte Experimente); die Seite sagt diesen Weg offen an
+- 8 neue Tests (Erstbestand idempotent und nie überschreibend, Rückfall-Logik, öffentliche Seite + JSON, Pflicht-Grund + Audit, Register-Durchgriff in Schleifen-Frist, Rollen-Dauer und KI-Budget). **Ring 0b ist damit komplett** — F-60 und F-68 in Erstfassung umgesetzt
+
+## [0.29.0] — 2026-09-01 · Ring 0b, Teil 1: Der Modell-Steckplatz (F-60)
+
+### Hinzugefügt
+- **Neue App `ki`: der anbieterneutrale Modell-Steckplatz.** Welcher Anbieter dahinter steckt, ist eine Einstellung, kein Code-Umbau: Erster Stecker ist **Mistral** (Envs `DDOE_KI_SCHLUESSEL`, optional `DDOE_KI_MODELL`, Standard mistral-small-latest) — über die Standardbibliothek, ohne Anbieter-SDK; eine **Attrappe** trägt Tests und Vorführungen ohne Netz. **Ohne Schlüssel ist der Steckplatz ehrlich leer:** Die Oberflächen sagen das an Ort und Stelle, nichts bricht
+- **Lauf-Archiv (append-only):** Jeder Aufruf hinterlässt einen `KILauf` — Zweck, Eingabe, Antwort, Anbieter, Modell, Tokenverbrauch, Dauer; **auch der gescheiterte**. Ein **hartes Monats-Tokenbudget** (`DDOE_KI_MONATSTOKENS`, Standard 1 Mio.; Zielwert → F-68) deckelt die Kosten: erschöpft heißt stumm bis zum Monatswechsel, geprüft *vor* jedem Anbieter-Aufruf
+- **Erste Nutzung — die Werkstatt-Einschätzung:** Gruppe 1 kann im Entwurfsfenster eine **KI-Einschätzung einholen** (Zusammenfassung, Unklarheiten, Vollzugs-/Kostenfragen, Formulierungsvorschläge; ab Runde 2 samt Abgleich mit den Unterstützer-Wünschen der Vorrunde). Das Ergebnis erscheint als Beitrag in der dokumentierten internen Beratung — **deutlich gekennzeichnet** („KI-Vorschlag · Modell"): Sie schlägt vor, sie entscheidet nie (L7). Der Auftragstext steht bewusst offen im Quellcode
+- **Öffentliche Rechenschaft:** Die Zukunftswerkstatt-Seite zeigt den Steckplatz in Zahlen — angeschlossener Anbieter samt Modell (oder ehrlich „kein Anbieter angeschlossen"), archivierte Läufe, Tokens diesen Monat gegen das Budget, die letzten Läufe samt gescheiterten
+- 9 neue Tests (leerer Steckplatz, Archivierung, Budget-Stopp, Fehler-Archivierung, Mistral-Anfragebau ohne Netz, Werkstatt-Kennzeichnung, öffentliche Zahlen)
+
 ## [0.28.0] — 2026-09-01 · Die Willkommensseite erklärt das System
 
 ### Geändert

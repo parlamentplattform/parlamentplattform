@@ -18,9 +18,9 @@ Bleiben Stimmen aus, wertet der Fristablauf aus; bleibt eine Überarbeitung
 aus, geht die zuletzt vorgelegte Fassung zur Endabstimmung. Die Beratung
 eines Antrags bleibt nur offen, solange die Schleife tatsächlich arbeitet.
 
-Offene Parameter (Zielwerte des Fahrplans, wandern mit F-68 ins Register):
-REVIEW_TAGE = 14 (Unterstützer), UEBERARBEITUNG_TAGE = 14 (Expertenrat),
-HOECHSTRUNDEN = 3 (Rundenzahl der Schleife, „per Verfahrensordnung")."""
+Offene Parameter: Seit F-68 liest die Schleife ihre Fristen und Runden aus
+dem öffentlichen Parameterregister (/parameter/); die Konstanten unten sind
+die eingebauten Zielwerte und bleiben der ehrliche Rückfall."""
 
 from __future__ import annotations
 
@@ -35,6 +35,15 @@ from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 REVIEW_TAGE = 14
 UEBERARBEITUNG_TAGE = 14
 HOECHSTRUNDEN = 3
+ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
+
+
+def _registerzahl(schluessel: str, standard: int) -> int:
+    """Seit F-68 liest die Schleife ihre Fristen aus dem offenen
+    Parameterregister — die Konstanten oben bleiben die Zielwerte/Fallbacks."""
+    from parameter.models import zahl
+
+    return zahl(schluessel, standard)
 
 
 class Gremium(models.TextChoices):
@@ -91,7 +100,7 @@ class Rolle(models.Model):
 
 
 def standard_ende():
-    return timezone.localdate() + timedelta(days=730)  # zwei Jahre, § 6 Abs 8
+    return timezone.localdate() + timedelta(days=_registerzahl("gremien-rollen-dauer-tage", ROLLEN_DAUER_TAGE))
 
 
 class EntwurfsStatus(models.TextChoices):
@@ -181,7 +190,7 @@ class Entwurf(models.Model):
             self.status = EntwurfsStatus.PRUEFUNG
         else:
             self.status = EntwurfsStatus.UNTERSTUETZER
-            self.review_frist = jetzt + timedelta(days=REVIEW_TAGE)
+            self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
         self.ueberarbeitung_frist = None
         self.save()
         AuditEintrag.anhaengen(
@@ -196,7 +205,7 @@ class Entwurf(models.Model):
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
         jetzt = jetzt or timezone.now()
         self.status = EntwurfsStatus.UNTERSTUETZER
-        self.review_frist = jetzt + timedelta(days=REVIEW_TAGE)
+        self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
         self.save(update_fields=["status", "review_frist"])
 
     def zurueck_an_gruppe_1(
@@ -209,9 +218,13 @@ class Entwurf(models.Model):
         self.status = EntwurfsStatus.IN_ARBEIT
         if neue_runde:
             self.runde += 1
-            self.ueberarbeitung_frist = jetzt + timedelta(days=UEBERARBEITUNG_TAGE)
+            self.ueberarbeitung_frist = jetzt + timedelta(
+                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+            )
         elif frist_erneuern and self.runde > 1:
-            self.ueberarbeitung_frist = jetzt + timedelta(days=UEBERARBEITUNG_TAGE)
+            self.ueberarbeitung_frist = jetzt + timedelta(
+                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+            )
         self.save()
         AuditEintrag.anhaengen(
             {"typ": "vorschlag_zurueckgegeben", "antrag": self.antrag_id, "runde": self.runde, "grund": grund}
@@ -279,7 +292,9 @@ class Entwurf(models.Model):
             )
             if not alle_da and (self.review_frist is None or jetzt < self.review_frist):
                 return False
-            if stand["rueckgaben"] > stand["annahmen"] and self.runde < HOECHSTRUNDEN:
+            if stand["rueckgaben"] > stand["annahmen"] and self.runde < _registerzahl(
+                "gremien-hoechstrunden", HOECHSTRUNDEN
+            ):
                 self.zurueck_an_gruppe_1(
                     f"Unterstützer-Mehrheit gibt zurück ({stand['rueckgaben']}:{stand['annahmen']}).",
                     jetzt,
@@ -330,11 +345,16 @@ class EntwurfsFassung(models.Model):
 
 
 class EntwurfsBeitrag(models.Model):
-    """Interne Beratung der Gruppe 1 — dokumentiert (§ 6 Abs 9)."""
+    """Interne Beratung der Gruppe 1 — dokumentiert (§ 6 Abs 9). Ein Beitrag
+    mit gesetztem ki_lauf ist eine KI-Einschätzung aus dem Modell-Steckplatz
+    (F-60) — deutlich gekennzeichnet: Sie schlägt vor, sie entscheidet nie."""
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="beitraege")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     text = models.TextField(max_length=4000)
+    ki_lauf = models.ForeignKey(
+        "ki.KILauf", null=True, blank=True, on_delete=models.PROTECT, related_name="beitraege"
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
 
     class Meta:

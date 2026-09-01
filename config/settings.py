@@ -29,6 +29,8 @@ INSTALLED_APPS = [
     "anstoss",
     "mandatare",
     "gremien",
+    "ki",
+    "parameter",
 ]
 
 MIDDLEWARE = [
@@ -163,3 +165,10 @@ if os.environ.get("DDOE_STATIK") == "whitenoise":
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
     }
+
+# Der Modell-Steckplatz (F-60, Ring 0b) — anbieterneutral, ohne Schlüssel leer.
+# Grundsatz L7: Die KI schlägt vor, sie entscheidet nie.
+DDOE_KI_ANBIETER = os.environ.get("DDOE_KI_ANBIETER", "mistral")
+DDOE_KI_SCHLUESSEL = os.environ.get("DDOE_KI_SCHLUESSEL", "")
+DDOE_KI_MODELL = os.environ.get("DDOE_KI_MODELL", "mistral-small-latest")
+DDOE_KI_MONATSTOKENS = int(os.environ.get("DDOE_KI_MONATSTOKENS", "1000000"))

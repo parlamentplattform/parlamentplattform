@@ -44,18 +44,22 @@ def test_registrierungsformular_auf_englisch(client):
     assert "Security question" in inhalt
 
 
-def test_staatssimulation_oeffentlich_und_zweisprachig(client):
-    """Die Aufklärungsseite (F-60ff.): ohne Login lesbar, deutsch wie englisch."""
-    antwort = client.get(reverse("verfahren:staatssimulation"))
+def test_zukunftswerkstatt_oeffentlich_und_zweisprachig(client):
+    """Die Aufklärungsseite (F-60ff., § 6 Abs 11): ohne Login lesbar, deutsch wie englisch."""
+    antwort = client.get(reverse("verfahren:zukunftswerkstatt"))
     assert antwort.status_code == 200
     inhalt = antwort.content.decode()
+    assert "Die Zukunftswerkstatt" in inhalt
     assert "Die KI schlägt vor, sie entscheidet nie." in inhalt
     assert "plattform@ddoe.at" in inhalt
 
-    antwort = client.get(reverse("verfahren:staatssimulation"), HTTP_ACCEPT_LANGUAGE="en")
+    antwort = client.get(reverse("verfahren:zukunftswerkstatt"), HTTP_ACCEPT_LANGUAGE="en")
     inhalt = antwort.content.decode()
     assert "The AI proposes, it never decides." in inhalt
     assert "laboratory of democracies" in inhalt
+
+    # Die alte Adresse bleibt gültig und leitet dauerhaft weiter (keine toten Links).
+    assert client.get("/staatssimulation/").status_code == 301
 
 
 def test_mitgliedschaftsseite_oeffentlich_und_zweisprachig(client):

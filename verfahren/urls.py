@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from verfahren import views, views_aktionen
 
@@ -19,7 +20,12 @@ urlpatterns = [
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),
     path("antrag/<int:pk>/meine-stimme/", views_aktionen.eigene_stimme, name="eigene_stimme"),
     path("antrag/<int:pk>/vollzug/", views_aktionen.vollzug_eintragen, name="vollzug"),
-    path("staatssimulation/", views.staatssimulation, name="staatssimulation"),
+    path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
+    path(
+        "staatssimulation/",
+        RedirectView.as_view(pattern_name="verfahren:zukunftswerkstatt", permanent=True),
+        name="staatssimulation",
+    ),
     path("umsetzung/", views.umsetzung, name="umsetzung"),
     path("umsetzung.json", views.umsetzung_json, name="umsetzung_json"),
     path("gesund/", views.gesund, name="gesund"),

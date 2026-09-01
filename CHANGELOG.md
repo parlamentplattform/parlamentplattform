@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.16.0] — 2026-09-01 · Die Zukunftswerkstatt bekommt ihren Namen
+
+### Geändert
+- **Die StaatsSimulation heißt jetzt „Zukunftswerkstatt"** — Untertitel: *Werkzeug zur rekursiven Optimierung der gesamtgesellschaftlichen Selbstorganisation* (Beschluss des Parteigründers, Satzungsentwurf 2.4 § 6 Abs 11). Die StaatsSimulation bleibt als **Rechenkern** der Zukunftswerkstatt bestehen — neben Parameterregister, Prognose-Register und Kennzahlenwesen
+- Plattform durchgängig umbenannt: Route `/zukunftswerkstatt/` (die alte Adresse `/staatssimulation/` leitet dauerhaft weiter — keine toten Links), Menü, Fußbereich, Erklär- und Mitgliedschafts-Seite, Lastenheft (Abschnitt 3.9, Leitplanke L7), englische Übersetzungen
+- Der geplante selbstgeregelte Feed (P5 des Oberflächen-Fahrplans) heißt **„WeicherFilter"** — satzungsfest verankert in § 5 Abs 10 lit d des Entwurfs 2.4
+
 ## [0.15.0] — 2026-09-01 · Aufgeräumtes Menü und die neuen Fristen
 
 ### Geändert

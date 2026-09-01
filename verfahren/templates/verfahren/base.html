@@ -198,7 +198,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
     <a href="{% url 'verfahren:index' %}">{% translate "Parlament" %}</a>
     <a href="{% url 'uebersicht:index' %}">{% translate "Übersicht" %}</a>
     <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a>
-    <a href="{% url 'verfahren:staatssimulation' %}">{% translate "StaatsSimulation" %}</a>
+    <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a>
     <a class="nav-cta" href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
     {% if user.is_authenticated %}
       <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
@@ -242,7 +242,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
         <li><a href="{% url 'verfahren:kategorien' %}">{% translate "Lebensbereiche" %}</a></li>
         <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
         <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>
-        <li><a href="{% url 'verfahren:staatssimulation' %}">{% translate "StaatsSimulation" %}</a></li>
+        <li><a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a></li>
       </ul>
     </div>
     <div>

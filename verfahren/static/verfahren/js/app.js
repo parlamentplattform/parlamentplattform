@@ -118,7 +118,7 @@ document.addEventListener("alpine:init", function () {
           if (!konfig || !ausloeser || !ausloeser.closest) return;
           if (konfig.verb === "get" && ausloeser.classList.contains("treffer-link")) { self.treffer(); return; }
           if (konfig.verb !== "post") return;
-          var quelle = ausloeser.closest(".kachel");
+          var quelle = ausloeser.closest(".kachel, .fz");
           if (!quelle || !quelle.dataset.antrag) return;
           self.markiere(quelle.dataset.antrag);
         });
@@ -131,7 +131,7 @@ document.addEventListener("alpine:init", function () {
         setTimeout(function () { anker.classList.remove("treffer"); }, 1500);
       },
       markiere: function (antrag) {
-        var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"]');
+        var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"], .fz[data-antrag="' + antrag + '"]');
         if (!kachel) return;
         kachel.classList.add("erfasst");
         setTimeout(function () { kachel.classList.remove("erfasst"); }, 1500);
@@ -186,7 +186,7 @@ document.addEventListener("alpine:init", function () {
           var kante = korpus.scrollTop + korpus.clientHeight;
           self.sichtbar = korpus.scrollHeight - kante > 12;
           self.rest = Array.prototype.filter.call(
-            korpus.querySelectorAll(".kacheln > .kachel, .zeile, .rband"),
+            korpus.querySelectorAll(".kacheln > .kachel, .zeile, .fz, .rband"),
             function (k) { return k.offsetTop + 8 >= kante; }
           ).length;
         };
@@ -221,6 +221,63 @@ document.addEventListener("alpine:init", function () {
       weiter: function () {
         var spur = this.$refs.spur;
         if (spur) spur.scrollBy({ left: spur.clientWidth, behavior: reduziert() ? "auto" : "smooth" });
+      }
+    };
+  });
+
+  /* WeicherFilter (FB-B4/B5): Profil-Leiste ein- und ausfahren (je Gerät gemerkt), Zustand
+     „● Ungespeichert“ (Regler weichen vom gespeicherten Stand ab), Zurücksetzen, Overlay öffnen
+     und schließen mit Fokusrückgabe. Die Live-Vorschau selbst macht htmx (hx-trigger am Formular);
+     ohne JavaScript bleibt die Leiste ausgefahren und das Overlay ein natives <details>. */
+  Alpine.data("weicherfilter", function (gespeichert) {
+    gespeichert = gespeichert || {};
+    return {
+      offen: true,
+      geaendert: false,
+      init: function () {
+        try { this.offen = localStorage.getItem("ddoe.filterleiste") !== "zu"; } catch (fehler) { this.offen = true; }
+        var self = this;
+        this.$el.addEventListener("input", function (e) {
+          var ziel = e.target;
+          if (ziel && (ziel.type === "range" || ziel.type === "checkbox")) self.pruefe();
+        });
+      },
+      leiste: function (auf) {
+        this.offen = auf === undefined ? !this.offen : auf;
+        try { localStorage.setItem("ddoe.filterleiste", this.offen ? "auf" : "zu"); } catch (fehler) { /* Speicher gesperrt */ }
+      },
+      pruefe: function () {
+        var anders = false;
+        Array.prototype.forEach.call(this.$root.querySelectorAll(".regler-feld input[type=range]"), function (r) {
+          if (Number(r.value) !== Number(gespeichert[r.dataset.regler] || 0)) anders = true;
+        });
+        var schalter = this.$root.querySelector('.regler-feld input[name="favoriten_zuerst"]');
+        if (schalter && Boolean(gespeichert.favoriten_zuerst) !== schalter.checked) anders = true;
+        this.geaendert = anders;
+      },
+      zuruecksetzen: function () {
+        Array.prototype.forEach.call(this.$root.querySelectorAll(".regler-feld input[type=range]"), function (r) {
+          r.value = 0;
+          r.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      },
+      klappe: function () { return this.$root.querySelector(".regler-klappe"); },
+      oeffne: function () {
+        var k = this.klappe();
+        if (!k) return;
+        // erst nach dem laufenden Klick öffnen — sonst schließt der Außenklick-Wächter des Menüs sofort wieder
+        setTimeout(function () {
+          k.open = true;
+          var kopf = k.querySelector(".regler-kopf b");
+          if (kopf) kopf.focus();
+        }, 0);
+      },
+      schliesse: function () {
+        var k = this.klappe();
+        if (!k || !k.open) return;
+        k.open = false;
+        var ausloeser = k.querySelector("summary");
+        if (ausloeser) ausloeser.focus();
       }
     };
   });

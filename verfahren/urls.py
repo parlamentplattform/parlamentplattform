@@ -36,6 +36,9 @@ urlpatterns = [
     path("filter/<int:pk>/waehlen/", views_aktionen.filter_waehlen, name="filter_waehlen"),
     path("filter/<int:pk>/loeschen/", views_aktionen.filter_loeschen, name="filter_loeschen"),
     path("filter/neutral/", views_aktionen.filter_neutral, name="filter_neutral"),
+    path("filter/vorschau/", views_aktionen.filter_vorschau, name="filter_vorschau"),
+    path("filter/favoriten/", views_aktionen.filter_favoriten, name="filter_favoriten"),
+    path("filter/<int:pk>/umbenennen/", views_aktionen.filter_umbenennen, name="filter_umbenennen"),
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
     path("partner/", views.partner, name="partner"),
     path(

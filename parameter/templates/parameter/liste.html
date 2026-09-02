@@ -20,4 +20,17 @@ Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfa
   <p class="leer">{% translate "Noch keine Parameter eingetragen." %}</p>
   {% endfor %}
 </div>
+
+<h2 id="weicherfilter" style="margin-top:28px">{% translate "WeicherFilter — Regel v2" %}</h2>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Der WeicherFilter reiht die laufenden Verfahren nur nach den Reglern des Mitglieds selbst (§ 5 Abs 10 lit d, § 2 Abs 6).
+Voreinstellung: neutral — Phase (Abstimmung, Beratung, Unterstützung), dann Frist, dann Datum; Anträge aus abonnierten
+Lebensbereichen stehen mit dem sichtbaren Schalter „★ Favoriten zuerst“ vorn. Punkte = Summe Regler × Merkmal, jedes Merkmal
+in [0, 1]; bei Gleichstand bleibt die neutrale Grundordnung. Jede Zeile zeigt ihre Rechnung unter „Warum hier?“.{% endblocktranslate %}</p>
+<div class="karte" style="margin-top:12px">
+  {% for nummer, name, merkmal in weicherfilter_regler %}
+  <div class="zeile"><span><strong>{{ nummer }} · {{ name }}</strong><br><span class="meta">{{ merkmal }}</span></span></div>
+  {% endfor %}
+  <div class="zeile"><span><strong>★ {% translate "Favoriten zuerst" %}</strong><br><span class="meta">{% translate "Schalter je Konfiguration und für die Voreinstellung: Anträge aus abonnierten Lebensbereichen stehen vor allen anderen; innerhalb beider Teile gilt die Punkteordnung." %}</span></span></div>
+  <div class="zeile"><span class="meta">{% translate "Quelle:" %} <code>plattform_core/weicherfilter.py</code> · VERSION 2 · {% translate "Stand:" %} 02.09.2026</span></div>
+</div>
 {% endblock %}

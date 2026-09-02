@@ -9,78 +9,50 @@
 {% block inhalt %}
 <div class="parlament" id="parlament" x-data="parlament">
 
-  {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}
+  {# ── Feld 1: WeicherFilter (Bereich d, P5; FB-B1–B6) — Profil-Leiste mit Pfeil, Feed, Regler-Overlay ── #}
   <section class="feld" id="feld-filter" aria-labelledby="h-filter" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
+    <div class="filter-rahmen" x-data='weicherfilter({{ filter_lage.gespeichert_json|default:"{}" }})'>
     <div class="feld-kopf">
       <h2 id="h-filter">{% translate "WeicherFilter" %}</h2>
+      {% if filter_lage %}
+      <form method="post" action="{% url 'verfahren:filter_favoriten' %}" class="chipform"
+        hx-post="{% url 'verfahren:filter_favoriten' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="chip{% if filter_lage.favoriten_zuerst %} an{% endif %}" aria-pressed="{% if filter_lage.favoriten_zuerst %}true{% else %}false{% endif %}" title="{% translate 'Favoriten zuerst umschalten' %}">★ {% translate "Favoriten zuerst" %}</button>
+      </form>
       <span class="bk">{% if filter_lage.aktiv %}{% translate "Profil:" %} {{ filter_lage.aktiv.name }}{% else %}{% translate "Voreinstellung: neutral" %}{% endif %}</span>
+      <button type="button" class="ikon" x-cloak @click="oeffne()" aria-label="{% translate 'Regler öffnen' %}" title="{% translate 'Regler' %}">&#9881;</button>
+      {% else %}
+      <span class="bk">{% translate "Voreinstellung: neutral" %}</span>
+      {% endif %}
     </div>
     {% if filter_lage %}
-    <div class="filter-leiste">
-      <form method="post" action="{% url 'verfahren:filter_neutral' %}" class="chipform"
-        hx-post="{% url 'verfahren:filter_neutral' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="chip{% if not filter_lage.aktiv %} an{% endif %}">{% translate "Neutral" %}</button></form>
-      {% for p in filter_lage.profile %}
-      <form method="post" action="{% url 'verfahren:filter_waehlen' p.pk %}" class="chipform"
-        hx-post="{% url 'verfahren:filter_waehlen' p.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="chip{% if p.aktiv %} an{% endif %}" title="{% translate 'Profil anwenden' %}">{{ p.name }}</button></form>
-      {% endfor %}
-      <details class="regler-klappe">
-        <summary class="chip">&#9881; {% translate "Regler" %}</summary>
-        <div class="regler-feld">
-          <form method="post" action="{% url 'verfahren:filter_anwenden' %}">
-            {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-            {% for name, beschriftung, wert in filter_lage.regler_meta %}
-            <label class="regler" x-data="{wert:{{ wert }}}"><span>{{ beschriftung }} <output x-text="wert">{{ wert }}</output></span>
-              <input type="range" name="r_{{ name }}" min="0" max="100" step="5" value="{{ wert }}" x-model.number="wert"></label>
-            {% endfor %}
-            <div class="regler-aktionen">
-              <button type="submit" class="btn">{% translate "Anwenden & speichern" %}</button>
-              <span class="neu"><input type="text" name="profilname" maxlength="40" placeholder="{% translate 'Profilname' %}">
-              <button type="submit" class="btn-linie" name="als_neues" value="1">{% translate "Als neues Profil" %}</button></span>
-            </div>
-            <p class="hilfe"><a href="{% url 'parameter:liste' %}">{% translate "Offene Regel v1 ›" %}</a></p>
-          </form>
-          {% if filter_lage.aktiv %}
-          <form method="post" action="{% url 'verfahren:filter_loeschen' filter_lage.aktiv.pk %}" class="loeschen-form">
-            {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-            <button class="btn-still">{% translate "Aktives Profil löschen" %}</button></form>
-          {% endif %}
-        </div>
-      </details>
+    <div class="filter-leiste" id="filter-leiste" :class="{zu: !offen}">
+      <div class="innen">
+        <form method="post" action="{% url 'verfahren:filter_neutral' %}" class="chipform"
+          hx-post="{% url 'verfahren:filter_neutral' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+          <button class="chip{% if not filter_lage.aktiv %} an{% endif %}">{% translate "Neutral" %}</button></form>
+        {% for p in filter_lage.profile %}
+        <form method="post" action="{% url 'verfahren:filter_waehlen' p.pk %}" class="chipform"
+          hx-post="{% url 'verfahren:filter_waehlen' p.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+          <button class="chip{% if p.aktiv %} an{% endif %}" title="{% translate 'Konfiguration anwenden' %}">{{ p.name }}</button></form>
+        {% endfor %}
+        <span class="chip still" x-show="geaendert" x-cloak>● {% translate "Ungespeichert" %}</span>
+        <details class="regler-klappe" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
+          <summary class="chip" x-ref="ausloeser" :aria-expanded="offen">&#9881; {% translate "Regler" %}</summary>
+          {% include "verfahren/_filter_regler.html" %}
+        </details>
+        <button type="button" class="pfeil" x-cloak @click="leiste()" :aria-expanded="offen" aria-controls="filter-leiste" :aria-label="offen ? '{% translate "Profil-Leiste einfahren" %}' : '{% translate "Profil-Leiste ausfahren" %}'"><span x-text="offen ? '˄' : '˅'">˄</span></button>
+      </div>
+      <button type="button" class="griff" x-cloak @click="leiste(true)" aria-label="{% translate 'Profil-Leiste ausfahren' %}">˅</button>
     </div>
     {% endif %}
     <div class="feld-korpus" tabindex="0">
       {% include "verfahren/_skelett.html" with art="zeilen" n=5 %}
-      {% if gereiht %}
-        {% for z in gereiht %}
-        <div class="zeile">
-          <span><a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
-            {% if z.antrag.ebene != "bund" %}<span class="badge badge--hell">{{ z.antrag.get_ebene_display }}</span>{% endif %}
-            <br><span class="meta">{{ z.antrag.phase|phase_name }} · {% translate "seit" %} {{ z.antrag.phase_beginn|date:"d.m." }}
-            · <span class="punkte" title="{{ z.aufschluesselung|default:_('neutral gereiht') }}">{{ z.punkte }}&nbsp;P</span></span></span>
-          {% include "verfahren/_stern.html" with antrag=z.antrag %}
-        </div>
-        {% empty %}
-        <p class="leer abstand">{% translate "Derzeit läuft kein Verfahren." %}</p>
-        {% endfor %}
-      {% else %}
-      {% for titel, liste in gruppen %}
-        {% if liste %}
-        <p class="phasen-titel">{{ titel }}</p>
-        {% for a in liste %}
-        <div class="zeile">
-          <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-            {% if a.ebene != "bund" %}<span class="badge badge--hell">{{ a.get_ebene_display }}</span>{% endif %}
-            <br><span class="meta">{{ a.phase|phase_name }} · {% translate "seit" %} {{ a.phase_beginn|date:"d.m." }}</span></span>
-          {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=a %}{% endif %}
-        </div>
-        {% endfor %}
-        {% endif %}
-      {% endfor %}
-      {% endif %}
+      {% include "verfahren/_filter_liste.html" %}
+    </div>
     </div>
     {% include "verfahren/_feld_mehr.html" %}
   </section>

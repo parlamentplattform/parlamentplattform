@@ -251,7 +251,7 @@ def test_felder_ohne_erklaersaetze_acht_woerter_regel(client):
                 assert len(satz.split()) <= 8, f"{feld_id} ({'Mitglied' if angemeldet else 'Gast'}): {satz.strip()}"
     assert "Offene Regel v1: Punkte" not in html
     assert "Hinterlegen Sie Ihre Wohnsitz-Gemeinde" not in html
-    assert 'href="/parameter/">Offene Regel v1 ›</a>' in html
+    assert 'href="/parameter/#weicherfilter">Regel v2 nachlesen ›</a>' in html
 
 
 def test_kachel_zeigt_gaesten_den_anmeldeweg(client, ordnung):  # noqa: F811

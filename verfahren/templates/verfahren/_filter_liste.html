@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}
+Der Feed des WeicherFilters (FB-B1): bei gesetzten Reglern EINE punktgereihte Liste, sonst die
+neutralen Gruppen (Laufende Abstimmungen · In Beratung · Sammeln Unterstützung · Abgeschlossen).
+Die Live-Vorschau (FB-B2) tauscht genau dieses Element (#filter-liste).
+{% endcomment %}<div id="filter-liste">
+{% if feed.gereiht is not None %}
+  {% for z in feed.gereiht %}{% include "verfahren/_filter_zeile.html" with z=z %}{% empty %}<p class="leer abstand">{% translate "Derzeit läuft kein Verfahren." %}</p>{% endfor %}
+{% else %}
+  {% for titel, liste in feed.gruppen %}{% if liste %}
+  <p class="gruppe">{{ titel }}</p>
+  {% for z in liste %}{% include "verfahren/_filter_zeile.html" with z=z %}{% endfor %}
+  {% endif %}{% endfor %}
+  {% if feed.leer %}<p class="leer abstand">{% translate "Derzeit läuft kein Verfahren." %}</p>{% endif %}
+{% endif %}
+</div>

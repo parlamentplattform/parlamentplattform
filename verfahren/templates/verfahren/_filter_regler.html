@@ -1,0 +1,66 @@
+{% load i18n %}{% comment %}
+Der Reglerbereich des WeicherFilters (FB-B2, B3, B5, B6) als halbtransparentes Overlay am rechten
+Feldrand — Inhalt des <details class="regler-klappe">. Kopfzeile: aktive Konfiguration, „● Ungespeichert“
+(Alpine), Stift zum Umbenennen, X. Darunter der Schalter „★ Favoriten zuerst“ und die neun Regler;
+jede Änderung schickt htmx nach 400 ms Ruhe als Vorschau an filter_vorschau (nur die Liste wird
+getauscht, nichts gespeichert). Unten die Aktionen: Speichern · Als neue Konfiguration speichern ·
+Zurücksetzen · Löschen (mit Rückfrage). Ohne JavaScript: natives <details>, „Speichern“ lädt neu.
+{% endcomment %}<div class="regler-feld" role="dialog" aria-modal="false" aria-label="{% translate 'Regler des WeicherFilters' %}">
+  <div class="regler-kopf">
+    <b tabindex="-1">{% if filter_lage.aktiv %}{{ filter_lage.aktiv.name }}{% else %}{% translate "Neutral" %}{% endif %}</b>
+    <span class="pkt" x-show="geaendert" x-cloak>● {% translate "Ungespeichert" %}</span>
+    {% if filter_lage.aktiv %}
+    <details class="umbenennen"><summary class="ikon" title="{% translate 'Umbenennen' %}" aria-label="{% translate 'Umbenennen' %}">&#9998;</summary>
+      <form method="post" action="{% url 'verfahren:filter_umbenennen' filter_lage.aktiv.pk %}"
+        hx-post="{% url 'verfahren:filter_umbenennen' filter_lage.aktiv.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <input type="text" name="name" value="{{ filter_lage.aktiv.name }}" maxlength="24" required aria-label="{% translate 'Neuer Name' %}">
+        <button class="btn-linie klein">{% translate "Umbenennen" %}</button>
+      </form>
+    </details>
+    {% endif %}
+    <button type="button" class="ikon zu-knopf" x-cloak @click="zu()" aria-label="{% translate 'Schließen' %}">&#10005;</button>
+  </div>
+  <form method="post" action="{% url 'verfahren:filter_anwenden' %}" class="regler-form"
+    hx-post="{% url 'verfahren:filter_vorschau' %}" hx-trigger="input[target.type!=='text'] delay:400ms" hx-target="#filter-liste" hx-swap="outerHTML transition:true">
+    {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+    <div class="regler-korpus">
+      <label class="schalter"><span>★ {% translate "Favoriten zuerst" %}</span><input type="checkbox" name="favoriten_zuerst" value="1" role="switch"{% if filter_lage.favoriten_zuerst %} checked{% endif %}></label>
+      {% for name, beschriftung, wert in filter_lage.regler_meta %}
+      <label class="regler" x-data="{wert:{{ wert }}}"><span>{{ beschriftung }} <output x-text="wert">{{ wert }}</output></span>
+        <input type="range" name="r_{{ name }}" data-regler="{{ name }}" min="0" max="100" step="5" value="{{ wert }}" x-model.number="wert" :aria-valuetext="wert + ' {% translate 'von 100' %}'" aria-valuetext="{{ wert }} {% translate 'von 100' %}"></label>
+      {% endfor %}
+      <p class="regel-hinweis">{% translate "Punkte = Regler × Merkmal." %} <a href="{% url 'parameter:liste' %}#weicherfilter">{% translate "Regel v2 nachlesen ›" %}</a></p>
+    </div>
+    <div class="regler-aktionen">
+      {% if filter_lage.aktiv %}
+      <button type="submit" name="speichern" value="1" class="btn klein" :disabled="!geaendert"
+        hx-post="{% url 'verfahren:filter_anwenden' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">{% translate "Speichern" %}</button>
+      {% else %}
+      <button type="submit" name="speichern" value="1" class="btn klein" disabled title="{% translate 'Als neue Konfiguration speichern' %}">{% translate "Speichern" %}</button>
+      {% endif %}
+      {% if filter_lage.voll %}
+      <span class="regel-hinweis" style="margin:0">{% translate "5 von 5 — eine löschen oder überschreiben" %}</span>
+      {% else %}
+      <details class="neu"><summary class="btn-linie klein">{% translate "Als neue Konfiguration speichern" %}</summary>
+        <span class="neu-feld"><input type="text" name="profilname" maxlength="24" placeholder="{% translate 'Name' %}" aria-label="{% translate 'Name der Konfiguration' %}">
+          <button type="submit" name="als_neues" value="1" class="btn-linie klein"
+            hx-post="{% url 'verfahren:filter_anwenden' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">{% translate "Anlegen" %}</button></span>
+      </details>
+      {% endif %}
+      <button type="button" class="btn-still klein" x-cloak @click="zuruecksetzen()">{% translate "Zurücksetzen" %}</button>
+    </div>
+  </form>
+  {% if filter_lage.aktiv %}
+  <div class="regler-loeschen">
+    <details class="loeschen"><summary class="btn-still klein">{% translate "Löschen" %}</summary>
+      <form method="post" action="{% url 'verfahren:filter_loeschen' filter_lage.aktiv.pk %}" class="rueckfrage"
+        hx-post="{% url 'verfahren:filter_loeschen' filter_lage.aktiv.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <span>{% blocktranslate with name=filter_lage.aktiv.name %}Konfiguration „{{ name }}“ löschen?{% endblocktranslate %}</span>
+        <button class="btn-still klein">{% translate "Ja, löschen" %}</button>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+</div>

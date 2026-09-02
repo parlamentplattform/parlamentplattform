@@ -6,6 +6,7 @@ import json
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
@@ -28,28 +29,101 @@ from verfahren.models import (
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
-# Die acht offenen Regler des WeicherFilters (P5) mit ihren Anzeigenamen.
+# Die neun offenen Regler des WeicherFilters (FB-B2, Regel v2): Wortlaut im UI und das Merkmal,
+# das sie gewichten (nachrechenbar, in [0, 1]; nachzulesen unter /parameter/#weicherfilter).
 REGLER_NAMEN = {
-    "gestimmt": gettext_lazy("Mehr, wo ich schon abgestimmt habe"),
-    "unterstuetzt": gettext_lazy("Mehr, wo ich unterstützt habe"),
-    "entdeckungen": gettext_lazy("Entdeckungen außerhalb meiner Favoriten"),
-    "unterstuetzungsphase": gettext_lazy("Mehr Unterstützungsphase"),
-    "abstimmungen": gettext_lazy("Mehr laufende Abstimmungen"),
-    "chronologisch": gettext_lazy("Neues zuerst"),
-    "ablaufend": gettext_lazy("Bald ablaufende zuerst"),
-    "schwelle": gettext_lazy("Knapp vor der Schwelle zuerst"),
+    "ja": gettext_lazy("Mehr wie das, wofür ich gestimmt habe"),
+    "nein": gettext_lazy("Mehr wie das, wogegen ich gestimmt habe"),
+    "unterstuetzt": gettext_lazy("Mehr wie das, was ich unterstützt habe"),
+    "entdeckungen": gettext_lazy("Interessantes außerhalb meiner Favoriten"),
+    "unterstuetzungsphase": gettext_lazy("Mehr Unterstützungsanträge"),
+    "abstimmungen": gettext_lazy("Mehr Abstimmungen"),
+    "chronologisch": gettext_lazy("Mehr chronologisch (Neues zuerst)"),
+    "ablaufend": gettext_lazy("Nur noch kurz online"),
+    "schwelle": gettext_lazy("Wenig fehlt"),
+}
+REGLER_MERKMALE = {
+    "ja": gettext_lazy(
+        "Anteil der Lebensbereiche des Antrags, die in Anträgen vorkommen, bei denen meine eigene Stimme Ja war "
+        "(die eigene Stimme kennt nur das Mitglied selbst über das Stimmregister)"
+    ),
+    "nein": gettext_lazy("Anteil der Lebensbereiche des Antrags, die in Anträgen vorkommen, bei denen meine eigene Stimme Nein war"),
+    "unterstuetzt": gettext_lazy("Anteil der Lebensbereiche, die in meinen unterstützten Anträgen vorkommen"),
+    "entdeckungen": gettext_lazy("1, wenn kein Lebensbereich des Antrags in meinem Abo-Ast liegt; sonst 0"),
+    "unterstuetzungsphase": gettext_lazy("1 in der Unterstützungsphase, sonst 0"),
+    "abstimmungen": gettext_lazy("1 in der Abstimmungsphase, sonst 0"),
+    "chronologisch": gettext_lazy("Altersrang: jüngster Antrag 1, ältester 0"),
+    "ablaufend": gettext_lazy("Anteil der eigenen Phasendauer, der schon verstrichen ist (0 bis 1)"),
+    "schwelle": gettext_lazy(
+        "Unterstützung: Unterstützungen / Schwelle · Abstimmung: Beteiligung / Mindestbeteiligung (gedeckelt 1) · Beratung: 0"
+    ),
 }
 
 
-def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids):
-    """P5: Merkmale (0..1) je laufendem Antrag bauen und im offenen Kern reihen.
+def _abo_ids(nutzer) -> set[int]:
+    """Abonnierte Lebensbereiche samt allen Unterkategorien — ein Abo gilt für den ganzen Ast."""
+    ids: set[int] = set()
+    if not nutzer.is_authenticated:
+        return ids
+    ids.update(nutzer.kategorie_abos.values_list("kategorie_id", flat=True))
+    kinder: dict[int | None, list[int]] = {}
+    for kid, eid in Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id"):
+        kinder.setdefault(eid, []).append(kid)
+    rand = list(ids)
+    while rand:
+        neue = [k for e in rand for k in kinder.get(e, []) if k not in ids]
+        ids.update(neue)
+        rand = neue
+    return ids
 
-    Grundordnung der Eingabe = die neutrale Ordnung (Abstimmung, Beratung,
-    Unterstützung; innerhalb der Phase nach Fristnähe) — bei Punktgleichheit
-    bleibt sie erhalten. Die Merkmale sind absichtlich einfach und offen:
-    Kategorien-Überschneidung mit dem eigenen Stimm-/Unterstützungs-Verlauf,
-    Phasen-Zugehörigkeit, Alters-Rang, Fristnähe (60-Tage-Horizont),
-    Schwellen-Fortschritt."""
+
+def _eigene_stimm_kategorien(nutzer):
+    """Lebensbereiche der Anträge, bei denen die eigene Stimme Ja bzw. Nein war — nur dem
+    Mitglied selbst bekannt (Stimmregister → Pseudonym → Stimmabgabe), nie anderen (F-15)."""
+    je_pseudonym = dict(StimmRegister.objects.filter(mitglied=nutzer).values_list("pseudonym", "antrag_id"))
+    if not je_pseudonym:
+        return set(), set()
+    ja_ids: set[int] = set()
+    nein_ids: set[int] = set()
+    abgaben = Stimmabgabe.objects.filter(pseudonym__in=je_pseudonym).values_list("antrag_id", "pseudonym", "stimme")
+    for antrag_id, pseudonym, stimme in abgaben:
+        if je_pseudonym.get(pseudonym) != antrag_id:
+            continue
+        if stimme == "ja":
+            ja_ids.add(antrag_id)
+        elif stimme == "nein":
+            nein_ids.add(antrag_id)
+
+    def kategorien(ids):
+        return set(Kategorie.objects.filter(antraege__in=ids).values_list("pk", flat=True)) if ids else set()
+
+    return kategorien(ja_ids), kategorien(nein_ids)
+
+
+def _anteil(eigene: set, menge: set) -> float:
+    return len(eigene & menge) / len(eigene) if eigene else 0.0
+
+
+def _beteiligung(antrag):
+    """(abgegebene Stimmen, Stimmberechtigte) einer laufenden Abstimmung — bei Personenwahlen
+    zählen die Pseudonyme mit mindestens einer Zustimmung."""
+    if antrag.art == Antragsart.MANDAT:
+        abgegeben = (
+            BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()
+        )
+    else:
+        abgegeben = antrag.stimmabgaben.count()
+    return abgegeben, max(1, antrag.stimmberechtigte_anzahl or 1)
+
+
+def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zuerst=False):
+    """FB-B1/B2: Merkmale (0..1) je laufendem Antrag bauen und im offenen Kern reihen (Regel v2).
+
+    Grundordnung der Eingabe = die neutrale Ordnung (Abstimmung, Beratung, Unterstützung;
+    innerhalb der Phase nach Fristnähe) — bei Punktgleichheit bleibt sie erhalten. Die
+    Merkmale sind einfach und offen: Überschneidung der Lebensbereiche mit dem eigenen
+    Ja-/Nein-/Unterstützungs-Verlauf, außerhalb der Favoriten, Phase, Altersrang,
+    verstrichener Anteil der eigenen Phasendauer, Nähe zur Schwelle bzw. Mindestbeteiligung."""
     from plattform_core.weicherfilter import reihen
 
     phasen_rang = {Phase.ABSTIMMUNG.value: 0, Phase.BERATUNG.value: 1, Phase.UNTERSTUETZUNG.value: 2}
@@ -60,9 +134,7 @@ def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids):
     if not antraege:
         return []
     kats = {a.pk: {k.pk for k in a.kategorien.all()} for a in antraege}
-    gestimmt_kats = set(
-        Kategorie.objects.filter(antraege__stimmregister__mitglied=nutzer).values_list("pk", flat=True)
-    )
+    ja_kats, nein_kats = _eigene_stimm_kategorien(nutzer)
     unterstuetzt_kats = set(
         Kategorie.objects.filter(antraege__unterstuetzungen__mitglied=nutzer).values_list("pk", flat=True)
     )
@@ -75,34 +147,95 @@ def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids):
     for a in antraege:
         policy = a.policy()
         frist = _frist_fuer(a, policy)
-        resttage = max(0, (frist - jetzt).days) if frist else 60
         eigene = kats[a.pk]
+        ablaufend = 0.0
+        if frist and a.phase_beginn:
+            dauer = (frist - a.phase_beginn).total_seconds()
+            if dauer > 0:
+                ablaufend = min(1.0, max(0.0, (jetzt - a.phase_beginn).total_seconds() / dauer))
+        schwelle = 0.0
+        if a.phase == Phase.UNTERSTUETZUNG.value:
+            schwelle = min(1.0, a.unterstuetzungen.count() / max(1, policy.unterstuetzung_schwelle))
+        elif a.phase == Phase.ABSTIMMUNG.value:
+            abgegeben, basis = _beteiligung(a)
+            schwelle = min(1.0, (abgegeben / basis) / max(policy.mindestbeteiligung, 0.0001))
         merkmale = {
-            "gestimmt": len(eigene & gestimmt_kats) / len(eigene) if eigene else 0.0,
-            "unterstuetzt": len(eigene & unterstuetzt_kats) / len(eigene) if eigene else 0.0,
+            "ja": _anteil(eigene, ja_kats),
+            "nein": _anteil(eigene, nein_kats),
+            "unterstuetzt": _anteil(eigene, unterstuetzt_kats),
             "entdeckungen": 1.0 if eigene and not (eigene & abo_ids) else 0.0,
             "unterstuetzungsphase": 1.0 if a.phase == Phase.UNTERSTUETZUNG.value else 0.0,
             "abstimmungen": 1.0 if a.phase == Phase.ABSTIMMUNG.value else 0.0,
             "chronologisch": chrono[a.pk],
-            "ablaufend": max(0.0, 1.0 - resttage / 60.0),
-            "schwelle": 0.0,
+            "ablaufend": ablaufend,
+            "schwelle": schwelle,
         }
-        if a.phase == Phase.UNTERSTUETZUNG.value:
-            schwelle = max(1, policy.unterstuetzung_schwelle)
-            merkmale["schwelle"] = min(1.0, a.unterstuetzungen.count() / schwelle)
-        eintraege.append({"id": a.pk, "merkmale": merkmale})
-    lage = reihen(eintraege, regler)
+        eintraege.append({"id": a.pk, "merkmale": merkmale, "favorit": bool(eigene & abo_ids)})
+    lage = reihen(eintraege, regler, favoriten_zuerst)
     je_pk = {a.pk: a for a in antraege}
     return [
         {
             "antrag": je_pk[e["id"]],
-            "punkte": f"{e['punkte']:g}",
-            "aufschluesselung": " · ".join(
-                f"{REGLER_NAMEN[name]} {anteil:g}" for name, anteil in e["anteile"].items()
-            ),
+            "punkte": e["punkte"],
+            "favorit": e["favorit"],
+            "anteile": [(REGLER_NAMEN[name], wert) for name, wert in e["anteile"].items()],
         }
         for e in lage
     ]
+
+
+def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst):
+    """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
+    Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
+    Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme)."""
+    from plattform_core.weicherfilter import ist_neutral
+
+    def zeile(a, extra=None):
+        z = _kachel(a, jetzt, meine_stimmen, abo_ids)
+        z.update({"favorit": False, "anteile": [], "punkte": 0})
+        z.update(extra or {})
+        return z
+
+    if nutzer.is_authenticated and not ist_neutral(regler):
+        gereiht = _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zuerst)
+        return {"gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "leer": not gereiht}
+
+    fav_ids: set[int] = set()
+    if abo_ids and favoriten_zuerst:
+        fav_ids = set(laufend.filter(kategorien__in=abo_ids).values_list("pk", flat=True))
+
+    def ordnen(qs):
+        return sorted(qs.prefetch_related("kategorien"), key=lambda a: (0 if a.pk in fav_ids else 1, a.phase_beginn))
+
+    def gruppe(phase):
+        return [zeile(a, {"favorit": a.pk in fav_ids}) for a in ordnen(laufend.filter(phase=phase))]
+
+    abgeschlossen = antraege.filter(
+        phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value]
+    ).order_by("-phase_beginn")[:20]
+    gruppen = [
+        (_("Laufende Abstimmungen"), gruppe(Phase.ABSTIMMUNG.value)),
+        (_("In Beratung"), gruppe(Phase.BERATUNG.value)),
+        (_("Sammeln Unterstützung"), gruppe(Phase.UNTERSTUETZUNG.value)),
+        (_("Abgeschlossen"), [zeile(a) for a in abgeschlossen.prefetch_related("kategorien")]),
+    ]
+    return {"gereiht": None, "gruppen": gruppen, "leer": not any(liste for _titel, liste in gruppen[:3])}
+
+
+def _filter_lage(profile, aktives, regler, favoriten_zuerst):
+    """Was Leiste und Overlay des WeicherFilters brauchen (FB-B3–B5)."""
+    from verfahren.models import FilterProfil
+
+    return {
+        "profile": profile,
+        "aktiv": aktives,
+        "regler_meta": [(name, REGLER_NAMEN[name], regler[name]) for name in REGLER_NAMEN],
+        "favoriten_zuerst": favoriten_zuerst,
+        "hoechstzahl": FilterProfil.HOECHSTZAHL,
+        "voll": len(profile) >= FilterProfil.HOECHSTZAHL,
+        # der gespeicherte Stand für die Anzeige „● Ungespeichert“ (nur bekannte Schlüssel und Zahlen)
+        "gespeichert_json": mark_safe(json.dumps({**regler, "favoriten_zuerst": bool(favoriten_zuerst)})),
+    }
 
 
 def _frist_fuer(antrag, policy=None):
@@ -143,16 +276,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None):
     elif antrag.phase == Phase.BERATUNG.value:
         stat = {"typ": "beratung", "beitraege": antrag.kommentare.count()}
     elif antrag.phase == Phase.ABSTIMMUNG.value:
-        if antrag.art == Antragsart.MANDAT:
-            abgegeben = (
-                BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag)
-                .values("pseudonym")
-                .distinct()
-                .count()
-            )
-        else:
-            abgegeben = antrag.stimmabgaben.count()
-        basis = max(1, antrag.stimmberechtigte_anzahl or 1)
+        abgegeben, basis = _beteiligung(antrag)
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
                 "prozent": min(100, round(100 * abgegeben / basis))}
     return {
@@ -263,19 +387,9 @@ def parlament(request):
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
 
     meine_favoriten: set[int] = set()
-    abo_ids: set[int] = set()
     if request.user.is_authenticated:
         meine_favoriten = set(request.user.favoriten.values_list("antrag_id", flat=True))
-        # Ein Abo gilt für den ganzen Ast: Unterkategorien der abonnierten Bereiche zählen mit.
-        abo_ids.update(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
-        kinder: dict[int | None, list[int]] = {}
-        for kid, eid in Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id"):
-            kinder.setdefault(eid, []).append(kid)
-        rand = list(abo_ids)
-        while rand:
-            neue = [k for e in rand for k in kinder.get(e, []) if k not in abo_ids]
-            abo_ids.update(neue)
-            rand = neue
+    abo_ids = _abo_ids(request.user)  # ein Abo gilt für den ganzen Ast
 
     jetzt = timezone.now()
 
@@ -298,7 +412,7 @@ def parlament(request):
         if request.user.wohnsitz_id:
             mein_ort["bezirk"] = request.user.wohnsitz.bezirk or ""
 
-    meine_stimmen = _meine_stimmen(request.user, list(regionale) + wichtige)
+    meine_stimmen = _meine_stimmen(request.user, list(laufend))  # Kacheln und Feed-Zeilen
     meine_unterstuetzungen: set[int] = set()
     if request.user.is_authenticated:
         meine_unterstuetzungen = set(
@@ -321,42 +435,23 @@ def parlament(request):
 
     wichtige_kacheln = [_kachel(a, jetzt, meine_stimmen, abo_ids) for a in wichtige]
 
-    # Bereich d — der WeicherFilter (P5): das aktive Profil reiht die laufenden
-    # Verfahren nach den offenen Reglern des Mitglieds; sonst gilt die strenge
-    # Voreinstellung (Phase und Frist, chronologisch — die Gruppen unten).
+    # Bereich d — der WeicherFilter (FB-B1–B6): das aktive Profil reiht die laufenden
+    # Verfahren nach den offenen Reglern des Mitglieds (Regel v2); sonst gilt die neutrale
+    # Voreinstellung (Phase und Frist, chronologisch) — Favoriten zuerst, wenn der Schalter steht.
     filter_lage = None
-    gereiht = None
+    regler: dict[str, int] = {}
+    favoriten_zuerst = False
     if request.user.is_authenticated:
-        from plattform_core.weicherfilter import ist_neutral, regler_bereinigen
-        from verfahren.models import FilterProfil
+        from plattform_core.weicherfilter import regler_bereinigen
 
         profile = list(request.user.filterprofile.all())
         aktives = next((p for p in profile if p.aktiv), None)
         regler = regler_bereinigen(aktives.regler if aktives else {})
-        if aktives and not ist_neutral(regler):
-            gereiht = _weicherfilter_reihen(request.user, laufend, jetzt, regler, abo_ids)
-        filter_lage = {
-            "profile": profile,
-            "aktiv": aktives,
-            "regler_meta": [(name, REGLER_NAMEN[name], regler[name]) for name in REGLER_NAMEN],
-            "hoechstzahl": FilterProfil.HOECHSTZAHL,
-        }
-
-    # Bereich d — alle Verfahren nach Phase und Frist
-    gruppen = [
-        (_("Laufende Abstimmungen"), antraege.filter(phase=Phase.ABSTIMMUNG.value).order_by("phase_beginn")),
-        (_("In Beratung"), antraege.filter(phase=Phase.BERATUNG.value).order_by("phase_beginn")),
-        (
-            _("Sammeln Unterstützung"),
-            antraege.filter(phase=Phase.UNTERSTUETZUNG.value).order_by("phase_beginn"),
-        ),
-        (
-            _("Abgeschlossen"),
-            antraege.filter(
-                phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value]
-            ).order_by("-phase_beginn")[:20],
-        ),
-    ]
+        favoriten_zuerst = aktives.favoriten_zuerst if aktives else request.user.favoriten_zuerst
+        filter_lage = _filter_lage(profile, aktives, regler, favoriten_zuerst)
+    feed = _weicherfilter_feed(
+        request.user, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst
+    )
     return render(
         request,
         "verfahren/parlament.html",
@@ -364,10 +459,9 @@ def parlament(request):
             "faecher": faecher,
             "suchtext": suchtext,
             "suchtreffer": suchtreffer,
-            "gruppen": gruppen,
+            "feed": feed,
             "meine_favoriten": meine_favoriten,
             "filter_lage": filter_lage,
-            "gereiht": gereiht,
             "wichtige_kacheln": wichtige_kacheln,
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,

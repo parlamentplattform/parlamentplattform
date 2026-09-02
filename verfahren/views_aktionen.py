@@ -311,33 +311,34 @@ def filter_anwenden(request):
     """P5: Regler anwenden — ins aktive Profil speichern oder als neues Profil
     anlegen (höchstens fünf). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
     regler = _regler_aus_post(request)
+    favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
     profile = request.user.filterprofile
-    name_neu = (request.POST.get("profilname") or "").strip()[:40]
+    name_neu = (request.POST.get("profilname") or "").strip()[:24]
+    werte = {"regler": regler, "favoriten_zuerst": favoriten_zuerst}
 
     if request.POST.get("als_neues"):
         if not name_neu:
-            messages.error(request, _("Bitte einen Namen für das neue Profil angeben."))
+            messages.error(request, _("Bitte einen Namen für die neue Konfiguration angeben."))
             return _zurueck_zum_parlament(request)
         if profile.count() >= FilterProfil.HOECHSTZAHL and not profile.filter(name=name_neu).exists():
             messages.error(
-                request, _("Höchstens fünf Profile — bitte zuerst eines löschen oder überschreiben.")
+                request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
             )
             return _zurueck_zum_parlament(request)
-        profil, _egal = FilterProfil.objects.update_or_create(
-            mitglied=request.user, name=name_neu, defaults={"regler": regler}
-        )
+        profil, _egal = FilterProfil.objects.update_or_create(mitglied=request.user, name=name_neu, defaults=werte)
     else:
         profil = profile.filter(aktiv=True).first()
         if profil is None:
             if profile.count() >= FilterProfil.HOECHSTZAHL:
                 messages.error(
-                    request, _("Höchstens fünf Profile — bitte zuerst eines löschen oder überschreiben.")
+                    request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
                 )
                 return _zurueck_zum_parlament(request)
             profil, _egal = FilterProfil.objects.get_or_create(
-                mitglied=request.user, name=str(_("Eigenes")), defaults={"regler": regler}
+                mitglied=request.user, name=str(_("Eigenes")), defaults=werte
             )
         profil.regler = regler
+        profil.favoriten_zuerst = favoriten_zuerst
     profil.aktiv = True
     profil.save()
     profile.exclude(pk=profil.pk).update(aktiv=False)
@@ -345,6 +346,66 @@ def filter_anwenden(request):
         request,
         _("Ihr Filter „%s“ ist aktiv — die Reihung folgt jetzt Ihren offenen Reglern.") % profil.name,
     )
+    return _zurueck_zum_parlament(request)
+
+
+@login_required
+@require_POST
+def filter_vorschau(request):
+    """FB-B2 Live-Vorschau: reiht mit den gerade gezogenen Reglern, speichert nichts —
+    die Antwort ist nur die Liste (#filter-liste), htmx tauscht sie sanft aus."""
+    from verfahren.models import Unterstuetzung
+    from verfahren.views import LAUFEND, _abo_ids, _meine_stimmen, _weicherfilter_feed
+
+    regler = _regler_aus_post(request)
+    favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
+    antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
+    laufend = antraege.filter(phase__in=LAUFEND)
+    jetzt = timezone.now()
+    feed = _weicherfilter_feed(
+        request.user, antraege, laufend, jetzt, _abo_ids(request.user),
+        _meine_stimmen(request.user, list(laufend)), regler, favoriten_zuerst,
+    )
+    return render(
+        request,
+        "verfahren/_filter_liste.html",
+        {
+            "feed": feed,
+            "meine_unterstuetzungen": set(
+                Unterstuetzung.objects.filter(mitglied=request.user).values_list("antrag_id", flat=True)
+            ),
+        },
+    )
+
+
+@login_required
+@require_POST
+def filter_favoriten(request):
+    """FB-B1: Schalter „★ Favoriten zuerst“ umschalten — in der aktiven Konfiguration,
+    sonst in der Voreinstellung des Mitglieds."""
+    profil = request.user.filterprofile.filter(aktiv=True).first()
+    if profil is not None:
+        profil.favoriten_zuerst = not profil.favoriten_zuerst
+        profil.save(update_fields=["favoriten_zuerst"])
+    else:
+        request.user.favoriten_zuerst = not request.user.favoriten_zuerst
+        request.user.save(update_fields=["favoriten_zuerst"])
+    return _zurueck_zum_parlament(request)
+
+
+@login_required
+@require_POST
+def filter_umbenennen(request, pk):
+    """FB-B3: Konfiguration umbenennen (≤ 24 Zeichen, je Mitglied eindeutig)."""
+    profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
+    name = (request.POST.get("name") or "").strip()[:24]
+    if not name:
+        messages.error(request, _("Bitte einen Namen angeben."))
+    elif request.user.filterprofile.exclude(pk=profil.pk).filter(name=name).exists():
+        messages.error(request, _("Eine Konfiguration mit diesem Namen gibt es schon."))
+    else:
+        profil.name = name
+        profil.save(update_fields=["name"])
     return _zurueck_zum_parlament(request)
 
 

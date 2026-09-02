@@ -1,0 +1,38 @@
+{% load i18n %}
+<footer>
+  <div class="fuss-grid">
+    <div>
+      <p class="marke2">Parlament<em>Plattform</em></p>
+      <p class="fuss-satz">{% translate "Direkte Demokratie Österreich — die Mitglieder entscheiden, die Mandatare setzen um, jede Auszählung ist unabhängig nachrechenbar." %}</p>
+      <p class="fuss-leitsatz">{% translate "Wir sind das Werkzeug." %}</p>
+    </div>
+    <div>
+      <h3>{% translate "Plattform" %}</h3>
+      <ul>
+        <li><a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></li>
+        <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
+        <li><a href="{% url 'gremien:uebersicht' %}">{% translate "Gremien" %}</a></li>
+        <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
+        <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
+        <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
+        <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>
+        <li><a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a></li>
+      </ul>
+    </div>
+    <div>
+      <h3>{% translate "Offenheit" %}</h3>
+      <ul>
+        <li><a href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode (AGPL)" %}</a></li>
+        <li><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON" %}</a></li>
+        <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>
+        <li><a href="{% url 'verfahren:partner' %}">{% translate "Internationale Partner" %}</a></li>
+        <li><a href="https://www.ddoe.at/satzung/" rel="noopener">{% translate "Satzungsentwurf" %}</a></li>
+        <li><a href="https://www.ddoe.at/" rel="noopener">ddoe.at</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="fuss-unten">
+    <span>{% translate "Direkte Demokratie Österreich" %}</span>
+    <span>{% translate "Ohne Skriptzwang, ohne Tracking, ohne verdeckte Reihung." %}</span>
+  </div>
+</footer>

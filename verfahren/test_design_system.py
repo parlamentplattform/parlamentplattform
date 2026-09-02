@@ -111,7 +111,7 @@ def test_sans_ueberall_serif_nur_wortmarke_und_buehne():
         for regel in rest.split("}")
         if "var(--serif)" in regel
     ]
-    erlaubt = {"header .marke", ".marke", ".fuss-grid .marke2", ".held h1"}
+    erlaubt = {".leiste .marke", ".panel-kopf .marke", ".fuss-grid .marke2", ".held h1"}
     assert set(serif_regeln) <= erlaubt, f"Serif außerhalb von Wortmarke und Bühne: {serif_regeln}"
     assert "system-ui" not in rest and "Georgia" not in rest
     for pfad in _templates():

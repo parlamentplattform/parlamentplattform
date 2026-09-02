@@ -1,0 +1,79 @@
+{% load i18n leiste %}{% nav_aktiv as AKTIV %}
+{% comment %}
+Die App-Leiste (Design-Spezifikation 3.1, FB-A1, FB-N3, FB-N8): eine Zeile — Wortmarke, sechs
+Hauptpunkte, rechts der gefüllte „＋ Antrag einbringen“-Knopf, Anstoß (im Parlament), Konto-Avatar
+mit Popover; Gäste: ⋯ Mehr · Anmelden · Mitglied werden · Sprache. Am Handy Wortmarke + Burger,
+das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <details>; Alpine
+(klappmenue) ergänzt Außenklick, Escape, Fokusrückgabe und Fokusfalle.
+{% endcomment %}
+<header class="leiste">
+  <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em></a>
+  <nav class="haupt" aria-label="{% translate 'Hauptbereiche' %}">
+    <a href="{% url 'verfahren:parlament' %}"{% if AKTIV == "parlament" %} class="an" aria-current="page"{% endif %}>{% translate "Parlament" %}</a>
+    <a href="{% url 'mandatare:liste' %}"{% if AKTIV == "mandatare" %} class="an" aria-current="page"{% endif %}>{% translate "Mandatare" %}</a>
+    <a href="{% url 'gremien:uebersicht' %}"{% if AKTIV == "gremien" %} class="an" aria-current="page"{% endif %}>{% translate "Gremien" %}</a>
+    <a href="{% url 'verfahren:umsetzung' %}"{% if AKTIV == "umsetzung" %} class="an" aria-current="page"{% endif %}>{% translate "Umsetzungsregister" %}</a>
+    <a href="{% url 'verfahren:zukunftswerkstatt' %}"{% if AKTIV == "zukunftswerkstatt" %} class="an" aria-current="page"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
+    <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an" aria-current="page"{% endif %}>{% translate "Übersicht" %}</a>
+  </nav>
+  <div class="rechts">
+    {% if user.is_authenticated %}<a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>{% endif %}
+    {% if anstoss_lage == "leiste" %}{% include "anstoss/_widget.html" with lage="leiste" %}{% endif %}
+    {% if user.is_authenticated %}
+    <details class="konto" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
+      <summary class="avatar{% if user.hat_gremienrolle %} ring{% endif %}" x-ref="ausloeser" :aria-expanded="offen" aria-label="{% translate 'Konto' %}" title="{{ user.anzeigename }}">{{ user.anzeigename|initiale }}</summary>
+      <div class="pop">
+        <p class="pop-kopf">{{ user.anzeigename }}</p>
+        {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
+        <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
+        {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
+        {% include "verfahren/_sprache.html" %}
+        {% include "verfahren/_thema.html" %}
+        <details class="pop-mehr"><summary>{% translate "Mehr" %}</summary>{% include "verfahren/_mehr_links.html" %}</details>
+        <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>
+      </div>
+    </details>
+    {% else %}
+    <details class="mehr" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
+      <summary class="ikon" x-ref="ausloeser" :aria-expanded="offen" aria-label="{% translate 'Mehr' %}" title="{% translate 'Mehr' %}"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></summary>
+      <div class="pop">
+        {% include "verfahren/_thema.html" %}
+        {% include "verfahren/_mehr_links.html" %}
+      </div>
+    </details>
+    <a class="anmelden" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
+    <a class="btn klein" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
+    {% include "verfahren/_sprache.html" with knapp=True %}
+    {% endif %}
+    <details class="menue" x-data="klappmenue({panel:true})" @keydown.escape.window="zu()" @keydown="tab($event)">
+      <summary class="ikon burger" x-ref="ausloeser" :aria-expanded="offen" aria-label="{% translate 'Menü' %}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></summary>
+      <div class="scrim" @click="zu()"></div>
+      <div class="panel">
+        <div class="panel-kopf"><span class="marke">Parlament<em>Plattform</em></span><a class="ikon" href="{{ request.get_full_path }}" aria-label="{% translate 'Menü schließen' %}" @click.prevent="zu()">&times;</a></div>
+        <nav class="panel-nav" aria-label="{% translate 'Hauptbereiche' %}">
+          <a href="{% url 'verfahren:parlament' %}"{% if AKTIV == "parlament" %} class="an"{% endif %}>{% translate "Parlament" %}</a>
+          <a href="{% url 'mandatare:liste' %}"{% if AKTIV == "mandatare" %} class="an"{% endif %}>{% translate "Mandatare" %}</a>
+          <a href="{% url 'gremien:uebersicht' %}"{% if AKTIV == "gremien" %} class="an"{% endif %}>{% translate "Gremien" %}</a>
+          <a href="{% url 'verfahren:umsetzung' %}"{% if AKTIV == "umsetzung" %} class="an"{% endif %}>{% translate "Umsetzungsregister" %}</a>
+          <a href="{% url 'verfahren:zukunftswerkstatt' %}"{% if AKTIV == "zukunftswerkstatt" %} class="an"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
+          <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an"{% endif %}>{% translate "Übersicht" %}</a>
+        </nav>
+        {% if user.is_authenticated %}
+        <a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>
+        <p class="pop-titel">{{ user.anzeigename }}</p>
+        {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
+        <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
+        {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
+        <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>
+        {% else %}
+        <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
+        <a class="cta" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
+        {% endif %}
+        {% include "verfahren/_sprache.html" %}
+        {% include "verfahren/_thema.html" %}
+        <p class="pop-titel">{% translate "Mehr" %}</p>
+        {% include "verfahren/_mehr_links.html" %}
+      </div>
+    </details>
+  </div>
+</header>

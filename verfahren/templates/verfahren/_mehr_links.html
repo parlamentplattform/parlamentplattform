@@ -1,0 +1,11 @@
+{% load i18n %}
+<ul class="mehr-links">
+  <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
+  <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
+  <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>
+  <li><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON" %}</a></li>
+  <li><a href="{% url 'verfahren:partner' %}">{% translate "Internationale Partner" %}</a></li>
+  <li><a href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode (AGPL)" %}</a></li>
+  <li><a href="https://www.ddoe.at/satzung/" rel="noopener">{% translate "Satzungsentwurf" %}</a></li>
+  <li><a href="https://www.ddoe.at/" rel="noopener">ddoe.at</a></li>
+</ul>

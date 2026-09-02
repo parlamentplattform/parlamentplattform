@@ -71,42 +71,74 @@ h3{font-size:16px;line-height:1.3;font-weight:600}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
 .skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
-/* ── Kopf ── */
-header{background:linear-gradient(120deg,var(--nacht1),var(--nacht2) 55%,var(--nacht3));color:var(--bar-ink);padding:14px 0;position:relative;border-bottom:2px solid var(--gold)}
-header::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.13) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
-header .w, main{max-width:960px;margin:0 auto;padding:0 20px}
-header .w{display:flex;align-items:center;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;position:relative}
-header a{color:var(--bar-ink);text-decoration:none}
-header .marke{font-family:var(--serif);font-size:23px;line-height:1.15;display:block}
-header .marke em{color:var(--goldsoft);font-style:italic}
-header .marke small{display:block;font-family:var(--sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.6}
-.menue-schalter{position:absolute;opacity:0;width:0;height:0}
-.menue-knopf{display:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px 6px;border-radius:8px}
-.menue-knopf span{display:block;width:24px;height:2px;background:var(--goldsoft);border-radius:2px;transition:transform var(--d-fast),opacity var(--d-fast)}
-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14.5px}
-nav a{opacity:.92;padding:6px 12px;border-radius:999px;transition:background var(--d-fast),color var(--d-fast),opacity var(--d-fast)}
-nav a:hover{color:var(--goldsoft);background:rgba(232,194,122,.12);opacity:1}
-nav a.an{color:var(--goldsoft);background:rgba(232,194,122,.16);font-weight:600;opacity:1}
-nav .wer{opacity:.65;font-size:13px}
-nav .btn{padding:8px 18px;font-size:14px}
-nav form{display:inline}
-nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:var(--bar-ink);opacity:.92;padding:0}
-nav button.aus:hover{color:var(--goldsoft)}
-.nav-cta{border:1px solid var(--goldsoft);border-radius:999px;padding:6px 14px !important;color:var(--goldsoft) !important;font-weight:600}
-.nav-cta:hover{background:var(--goldsoft);color:var(--on-gold) !important;border-bottom-color:transparent}
-.sprache{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px !important;font-size:12.5px !important;letter-spacing:.06em}
-.sprache:hover{border-color:var(--goldsoft)}
+/* ── App-Leiste (Spec 3.1, FB-A1/N3/N8): eine Zeile, 56 px (Handy 52 px), klebt oben ── */
+.leiste{height:var(--bar);background:linear-gradient(90deg,var(--night-1),var(--night-2) 60%,var(--night-3));border-bottom:1px solid var(--gold);color:var(--bar-ink);display:flex;align-items:center;gap:6px;padding:0 16px;position:sticky;top:0;z-index:40}
+.leiste a{color:var(--bar-ink);text-decoration:none}
+.leiste .marke{font-family:var(--serif);font-size:20px;line-height:1;white-space:nowrap;margin-right:14px;color:var(--papier)}
+.leiste .marke em{color:var(--gold-soft);font-style:italic}
+.leiste nav.haupt{display:flex;gap:2px;min-width:0;overflow:hidden}
+.leiste nav.haupt a{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px;white-space:nowrap;transition:background var(--d-fast),color var(--d-fast)}
+.leiste nav.haupt a:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
+.leiste nav.haupt a.an{background:color-mix(in srgb,var(--gold-soft) 16%,transparent);color:var(--gold-soft)}
+.leiste .rechts{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.cta{background:var(--gold);color:var(--on-gold)!important;font-weight:700;font-size:14px;padding:0 16px;height:36px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:transform var(--d-fast),background var(--d-fast)}
+.cta:hover{background:var(--gold-soft);transform:translateY(-1px)}
+.leiste .btn.klein{padding:0 16px;height:36px;display:inline-flex;align-items:center;font-size:14px}
+.leiste .anmelden{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
+.leiste .anmelden:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
+.ikon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
+.ikon:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
+.leiste details{position:relative}
+.leiste summary{list-style:none;cursor:pointer}
+.leiste summary::-webkit-details-marker{display:none}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;transition:box-shadow var(--d-fast)}
+.avatar.ring{box-shadow:0 0 0 2px var(--gold-soft)}
+.avatar:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--gold-soft) 60%,transparent)}
+.sprache-form{display:inline}
+.sprache{border:1px solid color-mix(in srgb,var(--bar-ink) 35%,transparent);border-radius:999px;padding:4px 12px;font-size:12.5px;letter-spacing:.06em;background:none;color:var(--bar-ink);cursor:pointer;font-family:inherit}
+.sprache:hover{border-color:var(--gold-soft)}
+/* Popover (Spec 4): kommt von oben in 200 ms, mit Pfeilspitze; Escape und Außenklick schließen (Alpine) */
+@keyframes pop-auf{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.pop{position:absolute;top:calc(100% + 8px);right:0;width:240px;background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:var(--shadow-lift);padding:8px;z-index:50;transform-origin:top right;animation:pop-auf var(--d-pop) var(--e-out)}
+.pop::before{content:"";position:absolute;top:-6px;right:14px;width:12px;height:12px;background:var(--surface);transform:rotate(45deg);border-radius:2px}
+.pop-kopf{padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:600}
+.pop a,.pop button.z,.pop summary{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:10px;color:var(--ink);font:inherit;font-size:14px;background:none;border:0;cursor:pointer;text-decoration:none}
+.pop a:hover,.pop button.z:hover,.pop summary:hover{background:var(--surface-2)}
+.pop .pop-form{display:block}
+.pop-mehr{position:static}
+.pop-mehr summary::after{content:"\25BE";float:right;color:var(--muted)}
+.pop-mehr[open] summary::after{content:"\25B4"}
+.mehr-links{list-style:none;margin:0;padding:0}
+.pop .mehr-links a{font-size:13.5px;padding:6px 12px 6px 20px}
+.thema{display:flex;gap:4px;padding:6px 8px}
+.thema button{flex:1;font:inherit;font-size:12px;font-weight:600;padding:6px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer}
+.thema button.an{background:var(--gold);color:var(--on-gold);border-color:var(--gold)}
+/* Handy (< 760): Burger, Panel gleitet von rechts, Schleier dahinter (Spec 3.1) */
+@keyframes panel-rein{from{transform:translateX(100%)}to{transform:none}}
+@keyframes einblenden{from{opacity:0}to{opacity:1}}
+.menue{display:none}
 @media(max-width:759px){
-  .menue-knopf{display:flex}
-  nav{display:none;width:100%;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 2px 8px;border-top:1px solid rgba(232,194,122,.25);margin-top:10px}
-  nav a,nav .wer,nav form{padding:8px 0;font-size:16px}
-  nav .btn{margin:6px 0}
-  .menue-schalter:checked ~ nav{display:flex;animation:einfahren-oben var(--d-base) var(--e-out) both}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(2){opacity:0}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  :root{--bar:52px}
+  .leiste{padding:0 8px 0 12px;gap:4px}
+  .leiste nav.haupt,.leiste .cta,.leiste .konto,.leiste .mehr,.leiste .anmelden,.leiste .btn.klein,.leiste .rechts>.sprache-form{display:none}
+  .menue{display:block;position:static}
+  .scrim{position:fixed;inset:var(--bar) 0 0 0;background:var(--scrim);z-index:45;animation:einblenden var(--d-pop) both}
+  .panel{position:fixed;top:var(--bar);right:0;bottom:0;width:min(84vw,380px);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lift);z-index:46;overflow-y:auto;padding:8px 12px 24px;display:flex;flex-direction:column;gap:2px;animation:panel-rein var(--d-slide) var(--e-out) both}
+  .panel-kopf{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .panel-kopf .marke{color:var(--ink);font-family:var(--serif);font-size:18px}
+  .panel-kopf .marke em{color:var(--gold-deep)}
+  .panel-kopf .ikon{color:var(--muted)}
+  .panel a,.panel button.z{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;color:var(--ink);font:inherit;font-size:16px;background:none;border:0;cursor:pointer;text-decoration:none}
+  .panel a:hover{background:var(--surface-2)}
+  .panel a.an{background:var(--surface-2);color:var(--gold-deep);font-weight:600}
+  .panel .cta{display:inline-flex;justify-content:center;margin:8px 0;color:var(--on-gold)}
+  .panel .pop-titel{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
+  .panel .mehr-links a{font-size:14px;padding:8px 12px}
+  .panel .thema{padding:6px 12px}
+  .panel .sprache-form{display:block}
+  body.menue-offen{overflow:hidden}
 }
-main{padding:36px 20px 90px}
+main{max-width:960px;margin:0 auto;padding:36px 20px 90px}
 /* ── Bühne (Startseite für Gäste) ── */
 .held{background:linear-gradient(135deg,var(--nacht1),var(--nacht2) 50%,var(--nacht3));color:var(--bar-ink);border-radius:20px;padding:clamp(28px,5vw,52px);margin:4px 0 34px;position:relative;overflow:hidden;box-shadow:var(--schatten-hoch)}
 .held::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.12) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
@@ -342,7 +374,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .anstoss-echo.danke{color:var(--gold-deep);font-weight:600}
 .anstoss-hinweis{margin:6px 0 10px}
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
-@media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
+@media print{header,footer,nav,.tabs,.band,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
 /* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:1ms!important;animation-delay:0s!important;transition-duration:1ms!important;scroll-behavior:auto!important}
@@ -356,38 +388,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip" href="#inhalt">{% translate "Zum Inhalt springen" %}</a>
-<header><div class="w">
-  <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em><small>{% translate "Direkte Demokratie Österreich" %}</small></a>
-  <input type="checkbox" id="menue-schalter" class="menue-schalter" aria-label="{% translate 'Menü' %}">
-  <label for="menue-schalter" class="menue-knopf" aria-hidden="true"><span></span><span></span><span></span></label>
-  <nav>
-    {% url 'verfahren:parlament' as u_parl %}{% url 'mandatare:liste' as u_mand %}{% url 'uebersicht:index' as u_ueb %}{% url 'verfahren:umsetzung' as u_ums %}{% url 'verfahren:zukunftswerkstatt' as u_zw %}
-    <a href="{{ u_parl }}"{% if request.path == u_parl %} class="an"{% endif %}>{% translate "Parlament" %}</a>
-    <a href="{{ u_mand }}"{% if request.path == u_mand %} class="an"{% endif %}>{% translate "Mandatare" %}</a>
-    <a href="{{ u_ueb }}"{% if request.path == u_ueb %} class="an"{% endif %}>{% translate "Übersicht" %}</a>
-    <a href="{{ u_ums }}"{% if request.path == u_ums %} class="an"{% endif %}>{% translate "Umsetzungsregister" %}</a>
-    <a href="{{ u_zw }}"{% if request.path == u_zw %} class="an"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
-    <a class="nav-cta" href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
-    {% if user.is_authenticated %}
-      {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
-      <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
-      {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
-      <span class="wer">{{ user.anzeigename }}</span>
-      <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">{% translate "Abmelden" %}</button></form>
-    {% else %}
-      <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
-      <a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
-    {% endif %}
-    <form method="post" action="{% url 'set_language' %}" title="{% translate "Sprache wechseln" %}">{% csrf_token %}
-      <input type="hidden" name="next" value="{{ request.path }}">
-      {% if SPRACHE == "en" %}
-        <input type="hidden" name="language" value="de"><button type="submit" class="aus sprache" lang="de">DE</button>
-      {% else %}
-        <input type="hidden" name="language" value="en"><button type="submit" class="aus sprache" lang="en">EN</button>
-      {% endif %}
-    </form>
-  </nav>
-</div></header>
+{% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
 {% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 {% if user.is_authenticated and user.status == "pausiert" %}
@@ -397,42 +398,6 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 {% block inhalt %}{% endblock %}
 </main>
 {% include "anstoss/_widget.html" %}
-<footer>
-  <div class="fuss-grid">
-    <div>
-      <p class="marke2">Parlament<em>Plattform</em></p>
-      <p class="fuss-satz">{% translate "Direkte Demokratie Österreich — die Mitglieder entscheiden, die Mandatare setzen um, jede Auszählung ist unabhängig nachrechenbar." %}</p>
-      <p class="fuss-leitsatz">{% translate "Wir sind das Werkzeug." %}</p>
-    </div>
-    <div>
-      <h3>{% translate "Plattform" %}</h3>
-      <ul>
-        <li><a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></li>
-        <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
-        <li><a href="{% url 'gremien:uebersicht' %}">{% translate "Gremien" %}</a></li>
-        <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
-        <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
-        <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
-        <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>
-        <li><a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a></li>
-      </ul>
-    </div>
-    <div>
-      <h3>{% translate "Offenheit" %}</h3>
-      <ul>
-        <li><a href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode (AGPL)" %}</a></li>
-        <li><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON" %}</a></li>
-        <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>
-        <li><a href="{% url 'verfahren:partner' %}">{% translate "Internationale Partner" %}</a></li>
-        <li><a href="https://www.ddoe.at/satzung/" rel="noopener">{% translate "Satzungsentwurf" %}</a></li>
-        <li><a href="https://www.ddoe.at/" rel="noopener">ddoe.at</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="fuss-unten">
-    <span>{% translate "Direkte Demokratie Österreich" %}</span>
-    <span>{% translate "Ohne Skriptzwang, ohne Tracking, ohne verdeckte Reihung." %}</span>
-  </div>
-</footer>
+{% block fuss %}{% include "verfahren/_fuss.html" %}{% endblock %}
 </body>
 </html>

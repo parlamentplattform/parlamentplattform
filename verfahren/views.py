@@ -539,6 +539,14 @@ def gesund(request):
     return JsonResponse({"status": "ok"})
 
 
+def partner(request):
+    """P9-Erststufe (§ 12, „Labor der Demokratien"): die Einladung an die
+    verwandten Parteien weltweit — Strategie, Fahrplan der Zusammenarbeit,
+    Kontakt. Bewusst unaufdringlich über die Fußzeile erreichbar; die
+    Partner-Rolle mit eigener Oberfläche folgt auf dem Rollen-Fundament."""
+    return render(request, "verfahren/partner.html")
+
+
 def zukunftswerkstatt(request):
     """Die öffentliche Seite zur Zukunftswerkstatt (§ 6 Abs 11) — Aufklärung
     für alle und Einladung an die verwandten Bewegungen weltweit (§ 12).

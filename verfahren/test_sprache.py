@@ -119,3 +119,32 @@ def test_nav_heisst_parlament(client):
     assert ">Parlament</a>" in inhalt
     inhalt = client.get(reverse("verfahren:index"), HTTP_ACCEPT_LANGUAGE="en").content.decode()
     assert ">Parliament</a>" in inhalt
+
+
+def test_arbeitsbereiche_ohne_erklaer_und_werbesaetze(client):
+    """Vorgabe 2.9.: Erklärt und beworben wird nur, wo Nichtmitglieder lesen —
+    das Parlament und die Gremien-Arbeitsbereiche bleiben Werkzeug."""
+    inhalt = client.get("/parlament/").content.decode()
+    assert "Vier Bereiche, ein Grundsatz" not in inhalt
+    assert "Richtschnur für DDÖ-Mandatsträger" not in inhalt
+    assert "Hervorhebung nur durch begründeten" not in inhalt
+    assert "Gereiht nach Ihren offenen Reglern" not in inhalt
+
+
+def test_partner_seite_oeffentlich_und_zweisprachig(client):
+    """P9-Erststufe (§ 12): Einladung, Fahrplan der Zusammenarbeit, Kontakt."""
+    inhalt = client.get(reverse("verfahren:partner")).content.decode()
+    assert "Labor der Demokratien" in inhalt
+    assert "Software bereitstellen" in inhalt and "Parameter gemeinsam erheben" in inhalt
+    assert "mailto:plattform@ddoe.at" in inhalt
+    assert "Partner-Konto" in inhalt  # die kommende Rolle ist angekündigt
+    inhalt = client.get(reverse("verfahren:partner"), HTTP_ACCEPT_LANGUAGE="en").content.decode()
+    assert "laboratory of democracies" in inhalt.lower() or "Laboratory of democracies" in inhalt
+    fusszeile = client.get("/parlament/").content.decode()
+    assert 'href="/partner/"' in fusszeile  # unaufdringlich über die Fußzeile
+
+
+def test_uebersicht_zeigt_ki_verbrauch(client):
+    inhalt = client.get(reverse("uebersicht:index")).content.decode()
+    assert "KI-Verbrauch des Modell-Steckplatzes" in inhalt
+    assert "archivierte Läufe" in inhalt and "Monatswechsel" in inhalt

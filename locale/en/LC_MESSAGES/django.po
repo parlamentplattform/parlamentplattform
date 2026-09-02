@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 01:49+0200\n"
+"POT-Creation-Date: 2026-09-02 02:19+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -170,19 +170,6 @@ msgstr "Expert council — workshop"
 
 msgid "Expertenrat — Werkstatt (Gruppe 1)"
 msgstr "Expert council — workshop (group 1)"
-
-msgid ""
-"Jeder Sachantrag in der Beratung kann ein Entwurfsfenster bekommen: Dort entsteht der\n"
-"Vorschlag des Expertenrats — Fassung um Fassung, alles bleibt stehen, die Einreichung entscheidet die Gruppe\n"
-"in offener, dokumentierter Abstimmung. Danach läuft die Entwurfsschleife mit den Unterstützern des Antrags\n"
-"(§ 5 Abs 12). Untätigkeit hemmt nie: Verstreichen Fristen, geht es ohne uns weiter."
-msgstr ""
-"Every substantive motion in deliberation can get a drafting window: this is "
-"where the expert council's proposal takes shape — version by version, "
-"everything stays on record, and the group decides on submission in an open, "
-"documented vote. Then the drafting loop runs with the motion's supporters (§"
-" 5 para. 12). Inactivity never blocks: if deadlines pass, things move on "
-"without us."
 
 msgid ""
 "Du siehst diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur "
@@ -359,14 +346,6 @@ msgstr "To the public bodies overview →"
 msgid "Koordinationsrat"
 msgstr "Coordination council"
 
-msgid ""
-"Der Koordinationsrat entscheidet über Austauschanträge der Gruppe 2 (§ 6 Abs 7) und hält\n"
-"die Rollenübersicht — Bestellungen laufen auf öffentliche Ausschreibung, alles bleibt dokumentiert (§ 6 Abs 8)."
-msgstr ""
-"The coordination council decides on exchange requests from group 2 (§ 6 "
-"para. 7) and keeps the role overview — appointments follow a public call, "
-"everything stays documented (§ 6 para. 8)."
-
 msgid "Offene Austauschanträge"
 msgstr "Open exchange requests"
 
@@ -433,16 +412,6 @@ msgstr "Review — group 2"
 
 msgid "Expertenrat — Prüfung (Gruppe 2)"
 msgstr "Expert council — review (group 2)"
-
-msgid ""
-"Die Korruptions-Redundanz (§ 6 Abs 7): Vorschläge mit unmittelbarem Vollzugs- oder\n"
-"Beschaffungsbezug prüft eine zweite, getrennt besetzte Gruppe. Sie kann validieren, mit veröffentlichter\n"
-"Begründung zurückgeben oder beim Koordinationsrat den Austausch der ersten Gruppe beantragen."
-msgstr ""
-"The anti-corruption redundancy (§ 6 para. 7): proposals with direct "
-"execution or procurement relevance are reviewed by a second, separately "
-"staffed group. It can validate, return with a published reasoning, or "
-"request the exchange of the first group from the coordination council."
 
 msgid "Zur Prüfung vorgelegt"
 msgstr "Submitted for review"
@@ -1711,6 +1680,37 @@ msgstr "Turnout"
 msgid "Noch keine Abstimmungen."
 msgstr "No votes yet."
 
+msgid "KI-Verbrauch des Modell-Steckplatzes"
+msgstr "AI usage of the model socket"
+
+msgid "kein Anbieter angeschlossen"
+msgstr "no provider connected"
+
+msgid "archivierte Läufe"
+msgstr "archived runs"
+
+msgid "davon gescheitert (bleiben dokumentiert)"
+msgstr "of which failed (they stay documented)"
+
+#, python-format
+msgid "Tokens diesen Monat: %(verbrauch)s von %(budget)s"
+msgstr "Tokens this month: %(verbrauch)s of %(budget)s"
+
+#, python-format
+msgid "Monatsbudget zu %(p)s Prozent verbraucht"
+msgstr "Monthly budget %(p)s percent used"
+
+msgid ""
+"Ist das Budget erschöpft, wird der Steckplatz stumm bis zum Monatswechsel."
+msgstr ""
+"Once the budget is spent, the socket goes silent until the month changes."
+
+msgid "Läufe im Detail →"
+msgstr "Runs in detail →"
+
+msgid "Budget im Parameterregister →"
+msgstr "Budget in the parameter register →"
+
 msgid "Entwicklung"
 msgstr "Trends"
 
@@ -2113,6 +2113,9 @@ msgstr "Source code (AGPL)"
 msgid "Register als JSON"
 msgstr "Register as JSON"
 
+msgid "Internationale Partner"
+msgstr "International partners"
+
 msgid "Satzungsentwurf"
 msgstr "Draft statutes"
 
@@ -2317,8 +2320,8 @@ msgstr "Support"
 msgid "60 Tage · Schwelle"
 msgstr "60 days · threshold"
 
-msgid "21 Tage · alle Mitglieder"
-msgstr "21 days · all members"
+msgid "21 Tage"
+msgstr "21 days"
 
 msgid "Endabstimmung"
 msgstr "Final vote"
@@ -2329,11 +2332,20 @@ msgstr "28 days · secret"
 msgid "Beschluss"
 msgstr "Decision"
 
-msgid "Umsetzung · Mandatare"
-msgstr "Implementation · mandate holders"
+msgid "öffentlich · mit Verlauf"
+msgstr "public · with history"
 
-msgid "Werkstatt kann öffnen"
-msgstr "workshop may open"
+msgid "Staatsapparat"
+msgstr "State apparatus"
+
+msgid "Mandatare bringen ein"
+msgstr "mandate holders introduce it"
+
+msgid "Vollzug · Prognoseabgleich"
+msgstr "execution · forecast comparison"
+
+msgid "KI: Ähnlichkeitshinweis · Themen-Zuordnung"
+msgstr "AI: similarity hint · topic classification"
 
 msgid "ENTWURFSSCHLEIFE · § 5 ABS 12"
 msgstr "DRAFTING LOOP · § 5 PARA. 12"
@@ -2356,6 +2368,9 @@ msgstr "Supporters' vote"
 msgid "annehmen oder zurückgeben"
 msgstr "accept or return"
 
+msgid "Werkstatt kann öffnen"
+msgstr "workshop may open"
+
 msgid "zurück mit Wünschen · höchstens 3 Runden"
 msgstr "back with requests · at most 3 rounds"
 
@@ -2364,6 +2379,12 @@ msgstr "accepted — or deadline passed:"
 
 msgid "Untätigkeit hemmt nie"
 msgstr "inactivity never blocks"
+
+msgid "KI: Durchrechnung · Einschätzung in der Werkstatt"
+msgstr "AI: calculation · assessment in the workshop"
+
+msgid "gekennzeichnet und archiviert — sie schlägt vor, sie entscheidet nie"
+msgstr "labelled and archived — it suggests, it never decides"
 
 msgid "MANDATS-KANDIDATUR · § 7 ABS 1"
 msgstr "MANDATE CANDIDACY · § 7 PARA. 1"
@@ -2628,15 +2649,6 @@ msgstr ""
 "You are viewing the Parliament as a guest — reading is open to all, deciding"
 " is for members."
 
-msgid ""
-"Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,\n"
-"Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen\n"
-"Reihung (§ 5 Abs 10 des Satzungsentwurfs)."
-msgstr ""
-"Four areas, one principle: arrangement and selection follow only phase, "
-"deadline and the members' decisions — never popularity, never a hidden "
-"algorithmic ranking (§ 5 (10) of the draft statutes)."
-
 msgid "WeicherFilter"
 msgstr "WeicherFilter"
 
@@ -2680,21 +2692,6 @@ msgstr "ranked neutrally"
 
 msgid "Derzeit läuft kein Verfahren."
 msgstr "No procedure is running at the moment."
-
-msgid ""
-"Gereiht nach Ihren offenen Reglern — der kleine Punktewert zeigt die "
-"Rechnung je Antrag; abgeschlossene Verfahren finden Sie über die neutrale "
-"Ansicht."
-msgstr ""
-"Ranked by your open sliders — the small points value shows the calculation "
-"per motion; completed procedures are in the neutral view."
-
-msgid ""
-"Ihr Filter, Ihre Regler — über ⚙ stellen Sie die Reihung selbst ein. "
-"Voreinstellung: streng neutral nach Phase und Frist."
-msgstr ""
-"Your filter, your sliders — use ⚙ to set the ranking yourself. Default: "
-"strictly neutral by phase and deadline."
 
 msgid "Meine Favoriten"
 msgstr "My favourites"
@@ -2758,9 +2755,116 @@ msgstr ""
 "own region."
 
 msgid ""
-"Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen "
-"Ebene."
-msgstr "Regional results guide DDÖ representatives at the respective level."
+"Das Labor der Demokratien — die Einladung an die verwandten Bewegungen "
+"weltweit (§ 12 des Satzungsentwurfs)."
+msgstr ""
+"The laboratory of democracies — the invitation to the kindred movements "
+"worldwide (§ 12 of the draft statutes)."
+
+msgid ""
+"Auf mehreren Kontinenten arbeiten Parteien an demselben Grundversprechen: Die Bürgerinnen\n"
+"und Bürger entscheiden selbst, die Technik ist das Werkzeug, die Mandatare sind die Umsetzer. Unser Schlüssel\n"
+"zur Zusammenarbeit ist die Trennung von <strong>System</strong> und <strong>Parametern</strong>: Jedes Land baut sein eigenes\n"
+"lernendes System — zugeschnitten auf seine Menschen und seine Rechtsordnung. Aber die Parameter, an denen\n"
+"Demokratien lernen (Schwellen, Fristen, Beteiligung, Revisionsraten, Prognosegüte), sprechen überall dieselbe\n"
+"Sprache. Was ein Land lernt, wird für alle vergleichbar — ohne dass ein System dem anderen gleichen müsste."
+msgstr ""
+"On several continents, parties are working on the same basic promise: "
+"citizens decide themselves, technology is the tool, mandate holders are the "
+"implementers. Our key to cooperation is the separation of "
+"<strong>system</strong> and <strong>parameters</strong>: every country "
+"builds its own learning system — tailored to its people and its legal order."
+" But the parameters democracies learn at (thresholds, deadlines, "
+"participation, revision rates, forecast quality) speak the same language "
+"everywhere. What one country learns becomes comparable for all — without any"
+" system having to resemble another."
+
+msgid "Der Fahrplan der Zusammenarbeit"
+msgstr "The roadmap of cooperation"
+
+msgid "1 · Software bereitstellen und gemeinsam einrichten"
+msgstr "1 · Provide the software and set it up together"
+
+msgid ""
+"Die ParlamentPlattform ist vollständig quelloffen (AGPL), zweisprachig und dokumentiert —\n"
+"inklusive nachrechenbarer Auszählung, manipulationssicherem Audit-Log, Gremien-Werkstatt und Parameterregister.\n"
+"Wir helfen beim Aufsetzen und bei der Anpassung an euer Land."
+msgstr ""
+"The ParlamentPlattform is fully open source (AGPL), bilingual and documented"
+" — including verifiable counting, a tamper-evident audit log, the council "
+"workshop and the parameter register. We help with setup and adaptation to "
+"your country."
+
+msgid "2 · Gemeinsame Standards und Werkzeuge"
+msgstr "2 · Shared standards and tools"
+
+msgid ""
+"Ein offener Standard „Nachrechenbare Abstimmung\" (Exportformat plus unabhängige\n"
+"Prüfwerkzeuge), Werkzeugtausch unter freien Lizenzen und ein gemeinsames Schema für Beteiligungskennzahlen —\n"
+"ehrlicher Vergleich statt Marketingzahlen."
+msgstr ""
+"An open standard for verifiable voting (export format plus independent "
+"checking tools), tool exchange under free licences, and a shared schema for "
+"participation metrics — honest comparison instead of marketing numbers."
+
+msgid "3 · Lernfortschritt und Parameter gemeinsam erheben"
+msgstr "3 · Gather learning progress and parameters together"
+
+msgid ""
+"Das Parameterregister trägt sprachneutrale Schema-Kennungen: Was Österreich über\n"
+"Fristen lernt und andere über Delegation oder Schwellen, wird strukturiert getauscht — ein ständiger\n"
+"Austausch der Plattform-Verantwortlichen, auf Jahrzehnte angelegt."
+msgstr ""
+"The parameter register carries language-neutral schema identifiers: what "
+"Austria learns about deadlines and others about delegation or thresholds is "
+"exchanged in a structured way — a standing exchange of the platform "
+"maintainers, designed for decades."
+
+msgid "Was wir mitbringen — und was wir suchen"
+msgstr "What we bring — and what we seek"
+
+msgid ""
+"<strong>Wir bringen mit:</strong> die nachrechenbare Auszählung ohne Vertrauensbedarf, das Regel-Einfrieren\n"
+"(laufende Verfahren behalten ihre Regeln), die Bindung mit Rückkanal (Umsetzungsregister und\n"
+"Vollzugsrückmeldung), Selbstregulation ohne Antragsverfall — Satzung und Software aus einem Guss."
+msgstr ""
+"<strong>We bring:</strong> verifiable counting without a need for trust, "
+"rule freezing (ongoing procedures keep their rules), binding with a feedback"
+" channel (implementation register and execution reports), self-regulation "
+"without motions lapsing — statutes and software cast in one piece."
+
+msgid ""
+"<strong>Wir suchen:</strong> Betriebspraxis gebundener Mandate, Kampagnen- und Reichweitenerfahrung,\n"
+"Breitenhörungs-Werkzeuge und eID-Praxis — die Stärken derer, die schon Wahlen gewonnen oder Jahrzehnte\n"
+"Regelpraxis gesammelt haben."
+msgstr ""
+"<strong>We seek:</strong> operational practice of bound mandates, campaign "
+"and reach experience, broad-listening tools and eID practice — the strengths"
+" of those who have already won elections or gathered decades of rulebook "
+"practice."
+
+msgid "Sprechen wir."
+msgstr "Let's talk."
+
+msgid ""
+"Kurz und konkret — mit einem Angebot und einer Lernfrage. Arbeitssprache Englisch\n"
+"oder Deutsch."
+msgstr ""
+"Short and concrete — with one offer and one learning question. Working "
+"language English or German."
+
+msgid "Kontakt aufnehmen"
+msgstr "Get in touch"
+
+msgid "Quellcode ansehen"
+msgstr "View the source code"
+
+msgid ""
+"In Vorbereitung: das Partner-Konto mit eigener Rolle und Oberfläche auf dieser\n"
+"Plattform — das Rollen-Fundament dafür steht bereits."
+msgstr ""
+"In preparation: the partner account with its own role and interface on this "
+"platform — the role foundation for it is already in place."
 
 msgid ""
 "Ein Beschluss, den niemand umsetzt, entwertet das Verfahren. Deshalb steht hier\n"
@@ -3055,10 +3159,6 @@ msgstr ""
 msgid "Archivierte Läufe: %(n)s"
 msgstr "Archived runs: %(n)s"
 
-#, python-format
-msgid "Tokens diesen Monat: %(verbrauch)s von %(budget)s"
-msgstr "Tokens this month: %(verbrauch)s of %(budget)s"
-
 msgid "Alle offenen Parameter →"
 msgstr "All open parameters →"
 
@@ -3096,6 +3196,9 @@ msgstr ""
 
 msgid "Quellcode auf GitHub"
 msgstr "Source code on GitHub"
+
+msgid "Zur Partner-Seite →"
+msgstr "To the partners page →"
 
 msgid ""
 "Einschätzungen der Zukunftswerkstatt sind politische Bildung, keine Rechtsberatung.\n"

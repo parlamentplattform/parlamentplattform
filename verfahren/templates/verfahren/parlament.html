@@ -8,10 +8,6 @@
   <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>
 {% endif %}
 
-<p class="erk" style="max-width:56em;margin-bottom:2px">{% blocktranslate %}Vier Bereiche, ein Grundsatz: Anordnung und Auswahl folgen ausschließlich Phase,
-Frist und den Entscheidungen der Mitglieder — nie Beliebtheit, nie einer verdeckten algorithmischen
-Reihung (§ 5 Abs 10 des Satzungsentwurfs).{% endblocktranslate %}</p>
-
 <div class="parlament" id="parlament">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}
@@ -88,7 +84,6 @@ Ihr Profil wirkt nur auf Ihre eigene Ansicht — nie auf Reihung, Schwellen oder
       {% endfor %}
       {% endif %}
     </div>
-    <div class="feld-fuss">{% if gereiht %}{% translate "Gereiht nach Ihren offenen Reglern — der kleine Punktewert zeigt die Rechnung je Antrag; abgeschlossene Verfahren finden Sie über die neutrale Ansicht." %}{% else %}{% translate "Ihr Filter, Ihre Regler — über ⚙ stellen Sie die Reihung selbst ein. Voreinstellung: streng neutral nach Phase und Frist." %}{% endif %}</div>
   </section>
 
   {# ── Feld 2: Der Favoriten-Fächer (Bereich a, P2) — direkt sichtbar, oben die Suche ── #}
@@ -144,7 +139,6 @@ Ihr Profil wirkt nur auf Ihre eigene Ansicht — nie auf Reihung, Schwellen oder
       {% endfor %}
       </div>
     </div>
-    <div class="feld-fuss">{% translate "Hervorhebung nur durch begründeten, veröffentlichten Beschluss — nie durch einen Algorithmus." %}</div>
   </section>
 
   {# ── Feld 4: Meine Region als Kachel-Raster (Bereich c, P4) ── #}
@@ -169,7 +163,6 @@ Ihr Profil wirkt nur auf Ihre eigene Ansicht — nie auf Reihung, Schwellen oder
       <p class="erk" style="margin-top:8px">{% translate "Hinterlegen Sie Ihre Wohnsitz-Gemeinde im Profil, damit hier gezielt Ihre Region erscheint." %}</p>
       {% endif %}
     </div>
-    <div class="feld-fuss">{% translate "Regionale Ergebnisse sind Richtschnur für DDÖ-Mandatsträger der jeweiligen Ebene." %}</div>
   </section>
 
 </div>

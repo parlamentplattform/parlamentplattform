@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.32.0] — 2026-09-02 · Nachschärfung 2: Werkzeug statt Werbung, vollständiges Flussdiagramm, KI-Verbrauch, Partner-Seite
+
+### Geändert
+- **Arbeitsbereiche sind Werkzeug, keine Werbefläche (Grundsatz des Gründers):** Alle Erklär- und Werbesätze sind aus den Mitglieder-Arbeitsbereichen entfernt — der „Vier Bereiche"-Satz über dem Parlament, die drei Feld-Fußsätze (Regler-Rechnung, Mandatars-Richtschnur, Hervorhebungs-Hinweis) und die Intro-Absätze der Gremien-Bereiche (Werkstatt, Prüfung, Koordination). Erklärt und beworben wird nur noch dort, wo Nichtmitglieder lesen (Willkommensseite, Mitgliedschaft, öffentliche Seiten)
+- **Flussdiagramm vervollständigt:** Die Sachantrag-Bahn führt jetzt bis zum Ende — Beschluss → **Umsetzungsregister** (öffentlich, mit Verlauf) → **Staatsapparat** (Standardprozedur: Mandatare bringen ein · Vollzug · Prognoseabgleich). Und die **KI ist eingezeichnet**, wo sie wirklich auftritt: beim Einbringen (Ähnlichkeitshinweis · Themen-Zuordnung) und in der Werkstatt (Durchrechnung · Einschätzung) — als gestrichelte Gold-Plaketten mit der Kennzeichnung „sie schlägt vor, sie entscheidet nie". Das Diagramm bricht aus der Textspalte aus und ist am Desktop vollständig ohne Scrollen sichtbar
+- **Übersicht („Die Plattform in Zahlen"): KI-Verbrauch veranschaulicht** — Anbieter/Modell, archivierte und gescheiterte Läufe, Tokens gegen das Monatsbudget als Meter mit Prozent, samt Verweisen auf Lauf-Archiv und Parameterregister
+- **Menü-Politur:** Pill-Hover statt Unterstreichung, die aktuelle Seite ist markiert, das mobile Menü gleitet auf. **Favoriten-Sterne** deutlich sichtbarer (größer, goldener Schein am aktiven Stern). **Aufgleiten statt Aufspringen** auch für Anstoß-Fenster und Regler-Overlay; Felder gleiten mit mehr Weg auf
+
+### Hinzugefügt
+- **P9-Erststufe: die Partner-Seite `/partner/`** (§ 12, „Labor der Demokratien") — System und Parameter getrennt gedacht, der Fahrplan der Zusammenarbeit in drei Stufen (Software bereitstellen und gemeinsam einrichten → gemeinsame Standards und Werkzeuge → Lernfortschritt und Parameter gemeinsam erheben), was wir mitbringen und was wir suchen, Kontakt-Knopf; unaufdringlich über die Fußzeile erreichbar, die Partner-Rolle mit eigener Oberfläche ist angekündigt (Rollen-Fundament steht). Quellen: Strategie Fassung 3 (Kap. 10) und das Kooperationspapier vom 24.8. mit den Linien A–E
+- 3 neue Tests (Arbeitsbereichs-Regel, Partner-Seite DE/EN, KI-Verbrauch in der Übersicht) — 265 gesamt
+
 ## [0.31.0] — 2026-09-01 · Detail-Nachschärfung nach den Gründer-Vorgaben: Fächer direkt, Suche statt Seiten, Politur
 
 ### Geändert

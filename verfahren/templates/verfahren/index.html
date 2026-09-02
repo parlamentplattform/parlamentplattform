@@ -23,8 +23,8 @@
   .grundsatz strong{display:block;margin-bottom:4px}
   .abschnitt{margin:40px 0 8px}
   .abschnitt h2{margin-bottom:4px}
-  .fluss-rahmen{background:var(--karton);border:1px solid var(--line);border-radius:16px;box-shadow:var(--schatten);padding:14px;overflow-x:auto;margin-top:14px}
-  .fluss{display:block;min-width:880px;width:100%;height:auto}
+  .fluss-rahmen{background:var(--karton);border:1px solid var(--line);border-radius:16px;box-shadow:var(--schatten);padding:14px;overflow-x:auto;margin-top:14px;width:min(1272px,calc(100vw - 40px));margin-left:calc((100% - min(1272px,100vw - 40px))/2)}
+  .fluss{display:block;min-width:1120px;width:100%;height:auto}
 </style>
 
 <section class="held">
@@ -82,7 +82,7 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
   <h2 style="margin-top:34px">{% translate "Die Wege durch die Plattform" %}</h2>
   <p class="erk">{% translate "Zwei Antragswege, eine Werkstatt-Schleife — jede Frist ist ein offener Parameter." %}</p>
   <div class="fluss-rahmen" role="img" aria-label="{% translate 'Flussdiagramm: Sachantrag mit Entwurfsschleife und Mandats-Kandidatur' %}">
-    <svg class="fluss" viewBox="0 0 980 434" xmlns="http://www.w3.org/2000/svg">
+    <svg class="fluss" viewBox="0 0 1240 448" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <marker id="pf" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M0 0 L10 5 L0 10 z" fill="var(--matt)"/>
@@ -92,76 +92,97 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
         </marker>
       </defs>
       <style>
-        .fluss .kasten{fill:var(--karton);stroke:var(--line);rx:12px}
+        .fluss .kasten{fill:var(--karton);stroke:var(--line)}
         .fluss .kasten.dunkel{fill:var(--nacht2);stroke:var(--nacht3)}
         .fluss .kasten.gold{stroke:var(--gold);stroke-width:1.6}
+        .fluss .ki-plakette{fill:color-mix(in srgb,var(--goldsoft) 14%,var(--karton));stroke:var(--gold);stroke-dasharray:4 3}
         .fluss text{font-family:var(--sans);font-size:13.5px;font-weight:600;fill:var(--ink)}
         .fluss text.hell{fill:#F3EFE6}
-        .fluss text.klein{font-size:11px;font-weight:400;fill:var(--matt)}
+        .fluss text.klein{font-size:10.5px;font-weight:400;fill:var(--matt)}
         .fluss text.klein.hell{fill:rgba(243,239,230,.75)}
+        .fluss text.ki{font-size:11px;font-weight:600;fill:var(--goldtief)}
+        .fluss text.ki-klein{font-size:10px;font-weight:400;fill:var(--matt)}
         .fluss .pfeil{stroke:var(--matt);stroke-width:1.6;fill:none;marker-end:url(#pf)}
         .fluss .pfeil.gold{stroke:var(--gold);marker-end:url(#pfgold)}
         .fluss .pfeil.zart{stroke-dasharray:5 4}
         .fluss .bahn{font-size:11px;font-weight:700;letter-spacing:.14em;fill:var(--matt)}
       </style>
 
-      <text class="bahn" x="10" y="26">{% translate "SACHANTRAG" %}</text>
-      <rect class="kasten dunkel" x="10" y="44" width="150" height="58" rx="12"/>
-      <text class="hell" x="85" y="70" text-anchor="middle">{% translate "Antrag" %}</text>
-      <text class="klein hell" x="85" y="88" text-anchor="middle">{% translate "einbringen" %}</text>
-      <path class="pfeil" d="M160 73 H196"/>
-      <rect class="kasten" x="200" y="44" width="160" height="58" rx="12"/>
-      <text x="280" y="70" text-anchor="middle">{% translate "Unterstützung" %}</text>
-      <text class="klein" x="280" y="88" text-anchor="middle">{% translate "60 Tage · Schwelle" %}</text>
-      <path class="pfeil" d="M360 73 H396"/>
-      <rect class="kasten" x="400" y="44" width="150" height="58" rx="12"/>
-      <text x="475" y="70" text-anchor="middle">{% translate "Beratung" %}</text>
-      <text class="klein" x="475" y="88" text-anchor="middle">{% translate "21 Tage · alle Mitglieder" %}</text>
-      <path class="pfeil" d="M550 73 H616"/>
-      <rect class="kasten gold" x="620" y="44" width="150" height="58" rx="12"/>
-      <text x="695" y="70" text-anchor="middle">{% translate "Endabstimmung" %}</text>
-      <text class="klein" x="695" y="88" text-anchor="middle">{% translate "28 Tage · geheim" %}</text>
-      <path class="pfeil gold" d="M770 73 H816"/>
-      <rect class="kasten dunkel" x="820" y="44" width="150" height="58" rx="12"/>
-      <text class="hell" x="895" y="70" text-anchor="middle">{% translate "Beschluss" %}</text>
-      <text class="klein hell" x="895" y="88" text-anchor="middle">{% translate "Umsetzung · Mandatare" %}</text>
+      <text class="bahn" x="10" y="24">{% translate "SACHANTRAG" %}</text>
+      <rect class="kasten dunkel" x="10" y="40" width="136" height="56" rx="12"/>
+      <text class="hell" x="78" y="64" text-anchor="middle">{% translate "Antrag" %}</text>
+      <text class="klein hell" x="78" y="82" text-anchor="middle">{% translate "einbringen" %}</text>
+      <path class="pfeil" d="M146 68 H178"/>
+      <rect class="kasten" x="182" y="40" width="140" height="56" rx="12"/>
+      <text x="252" y="64" text-anchor="middle">{% translate "Unterstützung" %}</text>
+      <text class="klein" x="252" y="82" text-anchor="middle">{% translate "60 Tage · Schwelle" %}</text>
+      <path class="pfeil" d="M322 68 H354"/>
+      <rect class="kasten" x="358" y="40" width="136" height="56" rx="12"/>
+      <text x="426" y="64" text-anchor="middle">{% translate "Beratung" %}</text>
+      <text class="klein" x="426" y="82" text-anchor="middle">{% translate "21 Tage" %}</text>
+      <path class="pfeil" d="M494 68 H526"/>
+      <rect class="kasten gold" x="530" y="40" width="146" height="56" rx="12"/>
+      <text x="603" y="64" text-anchor="middle">{% translate "Endabstimmung" %}</text>
+      <text class="klein" x="603" y="82" text-anchor="middle">{% translate "28 Tage · geheim" %}</text>
+      <path class="pfeil gold" d="M676 68 H708"/>
+      <rect class="kasten dunkel" x="712" y="40" width="128" height="56" rx="12"/>
+      <text class="hell" x="776" y="64" text-anchor="middle">{% translate "Beschluss" %}</text>
+      <text class="klein hell" x="776" y="82" text-anchor="middle">{% translate "angenommen" %}</text>
+      <path class="pfeil" d="M840 68 H872"/>
+      <rect class="kasten" x="876" y="40" width="160" height="56" rx="12"/>
+      <text x="956" y="64" text-anchor="middle">{% translate "Umsetzungsregister" %}</text>
+      <text class="klein" x="956" y="82" text-anchor="middle">{% translate "öffentlich · mit Verlauf" %}</text>
+      <path class="pfeil" d="M1036 68 H1068"/>
+      <rect class="kasten dunkel" x="1072" y="40" width="158" height="56" rx="12"/>
+      <text class="hell" x="1151" y="60" text-anchor="middle">{% translate "Staatsapparat" %}</text>
+      <text class="klein hell" x="1151" y="76" text-anchor="middle">{% translate "Mandatare bringen ein" %}</text>
+      <text class="klein hell" x="1151" y="90" text-anchor="middle">{% translate "Vollzug · Prognoseabgleich" %}</text>
 
-      <path class="pfeil zart" d="M475 102 C 475 142, 390 152, 330 172"/>
-      <text class="klein" x="490" y="128">{% translate "Werkstatt kann öffnen" %}</text>
-      <text class="bahn" x="10" y="160">{% translate "ENTWURFSSCHLEIFE · § 5 ABS 12" %}</text>
-      <rect class="kasten" x="180" y="176" width="180" height="58" rx="12"/>
-      <text x="270" y="202" text-anchor="middle">{% translate "Expertenrat" %}</text>
-      <text class="klein" x="270" y="220" text-anchor="middle">{% translate "erarbeitet den Vorschlag" %}</text>
-      <path class="pfeil" d="M360 205 H406"/>
-      <rect class="kasten" x="410" y="176" width="170" height="58" rx="12"/>
-      <text x="495" y="202" text-anchor="middle">{% translate "Prüfung Gruppe 2" %}</text>
-      <text class="klein" x="495" y="220" text-anchor="middle">{% translate "bei Vollzugsbezug · § 6 Abs 7" %}</text>
-      <path class="pfeil" d="M580 205 H626"/>
-      <rect class="kasten" x="630" y="176" width="180" height="58" rx="12"/>
-      <text x="720" y="202" text-anchor="middle">{% translate "Unterstützer-Votum" %}</text>
-      <text class="klein" x="720" y="220" text-anchor="middle">{% translate "annehmen oder zurückgeben" %}</text>
-      <path class="pfeil zart" d="M630 226 C 500 268, 400 268, 274 238" />
-      <text class="klein" x="400" y="270" text-anchor="middle">{% translate "zurück mit Wünschen · höchstens 3 Runden" %}</text>
-      <path class="pfeil gold" d="M760 176 C 760 140, 730 120, 706 106"/>
-      <text class="klein" x="812" y="140" text-anchor="middle">{% translate "angenommen — oder Frist um:" %}</text>
-      <text class="klein" x="812" y="155" text-anchor="middle">{% translate "Untätigkeit hemmt nie" %}</text>
+      <rect class="ki-plakette" x="24" y="122" width="256" height="30" rx="9"/>
+      <text class="ki" x="152" y="141" text-anchor="middle">{% translate "KI: Ähnlichkeitshinweis · Themen-Zuordnung" %}</text>
+      <path class="pfeil zart" d="M152 122 C 152 110, 152 106, 148 100"/>
 
-      <text class="bahn" x="10" y="316">{% translate "MANDATS-KANDIDATUR · § 7 ABS 1" %}</text>
-      <rect class="kasten dunkel" x="10" y="332" width="180" height="58" rx="12"/>
-      <text class="hell" x="100" y="358" text-anchor="middle">{% translate "Kandidatur-Antrag" %}</text>
-      <text class="klein hell" x="100" y="376" text-anchor="middle">{% translate "je Mandat einer — jederzeit" %}</text>
-      <path class="pfeil" d="M190 361 H236"/>
-      <rect class="kasten" x="240" y="332" width="180" height="58" rx="12"/>
-      <text x="330" y="358" text-anchor="middle">{% translate "Bewerbungen" %}</text>
-      <text class="klein" x="330" y="376" text-anchor="middle">{% translate "jedes wählbare Mitglied" %}</text>
-      <path class="pfeil" d="M420 361 H466"/>
-      <rect class="kasten gold" x="470" y="332" width="180" height="58" rx="12"/>
-      <text x="560" y="358" text-anchor="middle">{% translate "Zustimmungswahl" %}</text>
-      <text class="klein" x="560" y="376" text-anchor="middle">{% translate "geheim · mehreren zustimmbar" %}</text>
-      <path class="pfeil gold" d="M650 361 H696"/>
-      <rect class="kasten dunkel" x="700" y="332" width="270" height="58" rx="12"/>
-      <text class="hell" x="835" y="358" text-anchor="middle">{% translate "Listenreihung des Wahlvorschlags" %}</text>
-      <text class="klein hell" x="835" y="376" text-anchor="middle">{% translate "meiste Zustimmung führt die Liste an" %}</text>
+      <text class="bahn" x="10" y="182">{% translate "ENTWURFSSCHLEIFE · § 5 ABS 12" %}</text>
+      <rect class="kasten" x="180" y="196" width="180" height="56" rx="12"/>
+      <text x="270" y="220" text-anchor="middle">{% translate "Expertenrat" %}</text>
+      <text class="klein" x="270" y="238" text-anchor="middle">{% translate "erarbeitet den Vorschlag" %}</text>
+      <path class="pfeil" d="M360 224 H402"/>
+      <rect class="kasten" x="406" y="196" width="170" height="56" rx="12"/>
+      <text x="491" y="220" text-anchor="middle">{% translate "Prüfung Gruppe 2" %}</text>
+      <text class="klein" x="491" y="238" text-anchor="middle">{% translate "bei Vollzugsbezug · § 6 Abs 7" %}</text>
+      <path class="pfeil" d="M576 224 H618"/>
+      <rect class="kasten" x="622" y="196" width="180" height="56" rx="12"/>
+      <text x="712" y="220" text-anchor="middle">{% translate "Unterstützer-Votum" %}</text>
+      <text class="klein" x="712" y="238" text-anchor="middle">{% translate "annehmen oder zurückgeben" %}</text>
+      <path class="pfeil zart" d="M426 100 C 426 140, 350 160, 300 192"/>
+      <text class="klein" x="446" y="146">{% translate "Werkstatt kann öffnen" %}</text>
+      <path class="pfeil zart" d="M622 246 C 500 286, 400 286, 274 258"/>
+      <text class="klein" x="452" y="290" text-anchor="middle">{% translate "zurück mit Wünschen · höchstens 3 Runden" %}</text>
+      <path class="pfeil gold" d="M756 196 C 756 160, 700 140, 650 104"/>
+      <text class="klein" x="806" y="158" text-anchor="middle">{% translate "angenommen — oder Frist um:" %}</text>
+      <text class="klein" x="806" y="172" text-anchor="middle">{% translate "Untätigkeit hemmt nie" %}</text>
+
+      <rect class="ki-plakette" x="860" y="196" width="370" height="56" rx="9"/>
+      <text class="ki" x="1045" y="218" text-anchor="middle">{% translate "KI: Durchrechnung · Einschätzung in der Werkstatt" %}</text>
+      <text class="ki-klein" x="1045" y="236" text-anchor="middle">{% translate "gekennzeichnet und archiviert — sie schlägt vor, sie entscheidet nie" %}</text>
+      <path class="pfeil zart" d="M860 224 H810"/>
+
+      <text class="bahn" x="10" y="330">{% translate "MANDATS-KANDIDATUR · § 7 ABS 1" %}</text>
+      <rect class="kasten dunkel" x="10" y="346" width="180" height="56" rx="12"/>
+      <text class="hell" x="100" y="370" text-anchor="middle">{% translate "Kandidatur-Antrag" %}</text>
+      <text class="klein hell" x="100" y="388" text-anchor="middle">{% translate "je Mandat einer — jederzeit" %}</text>
+      <path class="pfeil" d="M190 374 H234"/>
+      <rect class="kasten" x="238" y="346" width="180" height="56" rx="12"/>
+      <text x="328" y="370" text-anchor="middle">{% translate "Bewerbungen" %}</text>
+      <text class="klein" x="328" y="388" text-anchor="middle">{% translate "jedes wählbare Mitglied" %}</text>
+      <path class="pfeil" d="M418 374 H462"/>
+      <rect class="kasten gold" x="466" y="346" width="180" height="56" rx="12"/>
+      <text x="556" y="370" text-anchor="middle">{% translate "Zustimmungswahl" %}</text>
+      <text class="klein" x="556" y="388" text-anchor="middle">{% translate "geheim · mehreren zustimmbar" %}</text>
+      <path class="pfeil gold" d="M646 374 H690"/>
+      <rect class="kasten dunkel" x="694" y="346" width="280" height="56" rx="12"/>
+      <text class="hell" x="834" y="370" text-anchor="middle">{% translate "Listenreihung des Wahlvorschlags" %}</text>
+      <text class="klein hell" x="834" y="388" text-anchor="middle">{% translate "meiste Zustimmung führt die Liste an" %}</text>
     </svg>
   </div>
 </section>

@@ -52,6 +52,21 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
   <p class="leer">{% translate "Noch keine Abstimmungen." %}</p>
 {% endfor %}
 
+<h2>{% translate "KI-Verbrauch des Modell-Steckplatzes" %}</h2>
+<div class="karte">
+  <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
+    <div><strong style="font-size:22px">{% if steckplatz.angeschlossen %}{{ steckplatz.anbieter }}{% else %}—{% endif %}</strong>
+      <br><span class="erk">{% if steckplatz.angeschlossen %}{{ steckplatz.modell }}{% else %}{% translate "kein Anbieter angeschlossen" %}{% endif %}</span></div>
+    <div><strong style="font-size:22px">{{ steckplatz.laeufe }}</strong><br><span class="erk">{% translate "archivierte Läufe" %}</span></div>
+    <div><strong style="font-size:22px">{{ steckplatz.fehlgeschlagen }}</strong><br><span class="erk">{% translate "davon gescheitert (bleiben dokumentiert)" %}</span></div>
+  </div>
+  <p class="erk" style="margin:14px 0 4px">{% blocktranslate with verbrauch=steckplatz.monatsverbrauch budget=steckplatz.monatsbudget %}Tokens diesen Monat: {{ verbrauch }} von {{ budget }}{% endblocktranslate %} · {{ steckplatz.prozent }}%</p>
+  <div class="balken" style="height:6px;max-width:34em" role="img" aria-label="{% blocktranslate with p=steckplatz.prozent %}Monatsbudget zu {{ p }} Prozent verbraucht{% endblocktranslate %}"><b style="width:{{ steckplatz.prozent }}%"></b></div>
+  <p class="erk" style="margin-top:10px">{% translate "Ist das Budget erschöpft, wird der Steckplatz stumm bis zum Monatswechsel." %}
+    <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Läufe im Detail →" %}</a> ·
+    <a href="{% url 'parameter:liste' %}">{% translate "Budget im Parameterregister →" %}</a></p>
+</div>
+
 <h2>{% translate "Entwicklung" %}</h2>
 <div class="karte">
   <p class="erk">{% translate "Mitglieder im Zeitverlauf (kumuliert)" %}</p>

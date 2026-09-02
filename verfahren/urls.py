@@ -37,6 +37,7 @@ urlpatterns = [
     path("filter/<int:pk>/loeschen/", views_aktionen.filter_loeschen, name="filter_loeschen"),
     path("filter/neutral/", views_aktionen.filter_neutral, name="filter_neutral"),
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
+    path("partner/", views.partner, name="partner"),
     path(
         "staatssimulation/",
         RedirectView.as_view(pattern_name="verfahren:zukunftswerkstatt", permanent=True),

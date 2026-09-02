@@ -1,0 +1,51 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Internationale Partner" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Internationale Partner" %}</h1>
+<p class="erk" style="max-width:56em">{% translate "Das Labor der Demokratien — die Einladung an die verwandten Bewegungen weltweit (§ 12 des Satzungsentwurfs)." %}</p>
+
+<div class="karte">
+  <p>{% blocktranslate %}Auf mehreren Kontinenten arbeiten Parteien an demselben Grundversprechen: Die Bürgerinnen
+und Bürger entscheiden selbst, die Technik ist das Werkzeug, die Mandatare sind die Umsetzer. Unser Schlüssel
+zur Zusammenarbeit ist die Trennung von <strong>System</strong> und <strong>Parametern</strong>: Jedes Land baut sein eigenes
+lernendes System — zugeschnitten auf seine Menschen und seine Rechtsordnung. Aber die Parameter, an denen
+Demokratien lernen (Schwellen, Fristen, Beteiligung, Revisionsraten, Prognosegüte), sprechen überall dieselbe
+Sprache. Was ein Land lernt, wird für alle vergleichbar — ohne dass ein System dem anderen gleichen müsste.{% endblocktranslate %}</p>
+</div>
+
+<h2>{% translate "Der Fahrplan der Zusammenarbeit" %}</h2>
+<div class="karte">
+  <div class="zeile"><span><strong>{% translate "1 · Software bereitstellen und gemeinsam einrichten" %}</strong>
+    <br><span class="meta">{% blocktranslate %}Die ParlamentPlattform ist vollständig quelloffen (AGPL), zweisprachig und dokumentiert —
+inklusive nachrechenbarer Auszählung, manipulationssicherem Audit-Log, Gremien-Werkstatt und Parameterregister.
+Wir helfen beim Aufsetzen und bei der Anpassung an euer Land.{% endblocktranslate %}</span></span></div>
+  <div class="zeile"><span><strong>{% translate "2 · Gemeinsame Standards und Werkzeuge" %}</strong>
+    <br><span class="meta">{% blocktranslate %}Ein offener Standard „Nachrechenbare Abstimmung" (Exportformat plus unabhängige
+Prüfwerkzeuge), Werkzeugtausch unter freien Lizenzen und ein gemeinsames Schema für Beteiligungskennzahlen —
+ehrlicher Vergleich statt Marketingzahlen.{% endblocktranslate %}</span></span></div>
+  <div class="zeile"><span><strong>{% translate "3 · Lernfortschritt und Parameter gemeinsam erheben" %}</strong>
+    <br><span class="meta">{% blocktranslate %}Das Parameterregister trägt sprachneutrale Schema-Kennungen: Was Österreich über
+Fristen lernt und andere über Delegation oder Schwellen, wird strukturiert getauscht — ein ständiger
+Austausch der Plattform-Verantwortlichen, auf Jahrzehnte angelegt.{% endblocktranslate %}</span></span></div>
+</div>
+
+<h2>{% translate "Was wir mitbringen — und was wir suchen" %}</h2>
+<div class="karte">
+  <p>{% blocktranslate %}<strong>Wir bringen mit:</strong> die nachrechenbare Auszählung ohne Vertrauensbedarf, das Regel-Einfrieren
+(laufende Verfahren behalten ihre Regeln), die Bindung mit Rückkanal (Umsetzungsregister und
+Vollzugsrückmeldung), Selbstregulation ohne Antragsverfall — Satzung und Software aus einem Guss.{% endblocktranslate %}</p>
+  <p style="margin-top:10px">{% blocktranslate %}<strong>Wir suchen:</strong> Betriebspraxis gebundener Mandate, Kampagnen- und Reichweitenerfahrung,
+Breitenhörungs-Werkzeuge und eID-Praxis — die Stärken derer, die schon Wahlen gewonnen oder Jahrzehnte
+Regelpraxis gesammelt haben.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte hinweis">
+  <p><strong>{% translate "Sprechen wir." %}</strong> {% blocktranslate %}Kurz und konkret — mit einem Angebot und einer Lernfrage. Arbeitssprache Englisch
+oder Deutsch.{% endblocktranslate %}</p>
+  <p style="margin-top:12px"><a class="btn" href="mailto:plattform@ddoe.at">{% translate "Kontakt aufnehmen" %}</a>
+  <a class="btn-linie" style="margin-left:8px" href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode ansehen" %}</a></p>
+  <p class="erk" style="margin-top:12px">{% blocktranslate %}In Vorbereitung: das Partner-Konto mit eigener Rolle und Oberfläche auf dieser
+Plattform — das Rollen-Fundament dafür steht bereits.{% endblocktranslate %}</p>
+</div>
+{% endblock %}

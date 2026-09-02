@@ -140,4 +140,15 @@ def index(request):
             _besuche_je_tag(heute), _("Seitenaufrufe je Tag, letzte 30 Tage")
         ),
     }
+
+    # KI-Verbrauch des Modell-Steckplatzes (F-60): dieselbe Rechenschaft wie
+    # auf der Zukunftswerkstatt-Seite, hier als Zahlenbild mit Budget-Meter.
+    from ki.models import KILauf, steckplatz_stand
+
+    steckplatz = steckplatz_stand()
+    steckplatz["prozent"] = min(
+        100, round(100 * steckplatz["monatsverbrauch"] / max(1, steckplatz["monatsbudget"]))
+    )
+    steckplatz["fehlgeschlagen"] = KILauf.objects.filter(erfolgreich=False).count()
+    kontext["steckplatz"] = steckplatz
     return render(request, "uebersicht/uebersicht.html", kontext)

@@ -3481,3 +3481,6 @@ msgstr "Dismiss message"
 
 msgid "Was fehlt? Was stört? Was wünschen Sie sich?"
 msgstr "What is missing? What bothers you? What would you like?"
+
+msgid "Pfad im Fächer"
+msgstr "Path in the fan"

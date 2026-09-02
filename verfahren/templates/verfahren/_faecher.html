@@ -1,23 +1,24 @@
-{% load i18n l10n %}{% localize off %}
-<div class="faecher" style="height:{{ faecher.hoehe }}px">
-  <svg class="faeden" viewBox="0 0 1000 {{ faecher.hoehe }}" preserveAspectRatio="none" aria-hidden="true">
-    {% for f in faecher.faeden %}<line class="faden" x1="{{ f.x1 }}" y1="{{ f.y1 }}" x2="{{ f.x2 }}" y2="{{ f.y2 }}" vector-effect="non-scaling-stroke"/>{% endfor %}
+{% load i18n l10n %}{% localize off %}{% comment %}
+Der Favoriten-Fächer (FB-C1–C4, F-46): Pillen in Prozentlage über einer SVG-Fadenebene, berechnet in
+plattform_core.faecher (Regel v2). Jeder Knoten ist ein Link (?fach=…); ohne JavaScript bleibt der
+Ruhe-Ast sichtbar (x-cloak versteckt die übrigen Äste), mit Alpine wechselt der Zeiger den Ast,
+der Faden zur Wurzel leuchtet, und ein Klick zoomt vom Klickpunkt hinein, bevor htmx das Feld tauscht.
+{% endcomment %}
+<div class="faecher{% if faecher.modus == 'mitte' %} mitte{% endif %}" style="min-height:{{ faecher.hoehe }}px" x-data="faecher('{{ faecher.ast_standard }}')" @mouseleave="senke()">
+  <svg class="faeden" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    {% for f in faecher.faeden %}<path class="faden" data-bis="{{ f.bis }}"{% if f.ast %} data-ast="{{ f.ast }}" x-show="ast === '{{ f.ast }}'"{% if f.ast != faecher.ast_standard %} x-cloak{% endif %}{% endif %} d="M{{ f.x1 }},{{ f.y1 }} C{{ f.x1 }},{{ f.ym }} {{ f.x2 }},{{ f.ym }} {{ f.x2 }},{{ f.y2 }}" vector-effect="non-scaling-stroke"/>{% endfor %}
   </svg>
   {% for k in faecher.knoten %}
-  <span class="fknoten {{ k.rolle }} f{{ k.groesse }}" style="left:{{ k.x_prozent }}%;top:{{ k.y }}px">
-    {% if user.is_authenticated %}
-    <form method="post" action="{% url 'verfahren:kategorie_abonnieren' k.slug %}"
-      hx-post="{% url 'verfahren:kategorie_abonnieren' k.slug %}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">
-      {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-      {% if k.slug in faecher.abos %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
-      {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}
-    </form>
-    {% endif %}
-    {% if k.rolle == "anker" %}<span class="fname" title="{{ k.name }}">{{ k.kurz }}</span>
+  <span class="fknoten {{ k.rolle }} f{{ k.groesse }}{% if k.saeule %} p{{ k.saeule }}{% endif %}{% if k.stapel %} stapel{% endif %}"
+    style="left:{{ k.x_prozent }}%;top:{{ k.y_prozent }}%;max-width:{{ k.breite_prozent }}%"
+    data-slug="{{ k.slug }}" data-eltern="{{ k.eltern }}"{% if k.ast %} data-ast="{{ k.ast }}" x-show="ast === '{{ k.ast }}'"{% if not k.sichtbar %} x-cloak{% endif %}{% endif %}
+    @mouseenter="hebe('{{ k.slug }}'){% if k.ast_kandidat %}; entfalte('{{ k.slug }}'){% endif %}" @focusin="hebe('{{ k.slug }}'){% if k.ast_kandidat %}; entfalte('{{ k.slug }}'){% endif %}">
+    {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=k.slug name=k.name abonniert=k.abonniert %}{% endif %}
+    {% if k.rolle == "anker" %}<span class="fname" title="{{ k.name }}">{{ k.name }}</span>
     {% else %}<a href="?fach={{ k.slug }}#feld-favoriten" title="{{ k.name }}"
-      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">{{ k.kurz }}</a>{% endif %}
-    {% if k.mehr %}<a class="mehr" href="?fach={{ k.slug }}#feld-favoriten" title="{% blocktranslate with n=k.mehr %}{{ n }} Unterbereiche{% endblocktranslate %}"
-      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML">+{{ k.mehr }}</a>{% endif %}
+      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten" @click="zoome($event)">{{ k.name }}</a>{% endif %}
+    {% if k.mehr %}<a class="mehr" href="?fach={{ k.eltern }}#feld-favoriten" title="{% blocktranslate with n=k.mehr %}{{ n }} Unterbereiche{% endblocktranslate %}"
+      hx-get="{{ request.path }}?fach={{ k.eltern }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten" @click="zoome($event)">+{{ k.mehr }}</a>{% endif %}
   </span>
   {% endfor %}
 </div>

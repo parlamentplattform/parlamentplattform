@@ -304,23 +304,35 @@ body.voll main{max-width:none;padding:0}
 .stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
 .stern.aus{color:var(--stern-aus);text-shadow:none}
 .stern:hover{color:var(--gold);text-shadow:0 0 10px color-mix(in srgb,var(--gold) 75%,transparent)}
-.faecher{position:relative;margin-top:6px;min-width:0}
-.faecher svg.faeden{position:absolute;inset:0;width:100%;height:100%;display:block}
-.faecher .faden{stroke:var(--line);stroke-width:1.4}
-.fknoten{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;background:var(--karton);padding:2px 8px;border-radius:10px;font-family:var(--sans);font-weight:600;letter-spacing:-.02em;line-height:1.25;box-shadow:0 1px 3px rgba(14,34,48,.07)}
-.fknoten.f24{max-width:min(390px,78%)}.fknoten.f22{max-width:min(252px,48%)}.fknoten.f20{max-width:min(190px,35%)}.fknoten.f18{max-width:min(214px,42%)}
-.fknoten a{color:var(--linkfarbe);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Der Favoriten-Fächer (FB-C1–C4, Spec 4): Pillen in Prozentlage über einer SVG-Fadenebene.
+   Breite ≥ 600 px (darunter rollt das Feld waagrecht), Höhe nach Bedarf des Baums. */
+.faecher-korpus{padding:0;overflow:auto;display:flex;flex-direction:column-reverse}
+.faecher{position:relative;flex:1 0 auto;width:100%;min-width:600px}
+.faecher svg.faeden{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.faecher .faden{fill:none;stroke:var(--line);stroke-width:1.2}
+.faecher .faden.an{stroke:var(--gold);stroke-width:2}
+.fknoten{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:2px;box-sizing:border-box;padding:1px 8px 1px 5px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-family:var(--sans);font-weight:600;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;box-shadow:0 1px 3px rgba(14,34,48,.07);z-index:1}
+.fknoten.p1{background:color-mix(in srgb,var(--pillar-1) 12%,var(--surface))}
+.fknoten.p2{background:color-mix(in srgb,var(--pillar-2) 12%,var(--surface))}
+.fknoten.p3{background:color-mix(in srgb,var(--pillar-3) 12%,var(--surface))}
+.fknoten.p4{background:color-mix(in srgb,var(--pillar-4) 12%,var(--surface))}
+.fknoten.anker{border:1.5px solid var(--gold);box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 15%,transparent);z-index:2}
+.fknoten.weg{opacity:.85}
+.fknoten:hover{z-index:3;box-shadow:var(--schatten-hoch)}
+.fknoten a,.fknoten .fname{color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .fknoten a:hover{text-decoration:underline}
-.fknoten .fname{font-weight:600;color:var(--ink);white-space:nowrap}
 .fknoten.f24 a,.fknoten.f24 .fname{font-size:24px}
-.fknoten.f22 a{font-size:22px}
-.fknoten.f20 a{font-size:20px}
-.fknoten.f18 a{font-size:18px}
-.fknoten form{display:inline;line-height:1}
-.fknoten .stern{font-size:15px;padding:0}
-.fknoten a.mehr{font-size:12.5px;color:var(--matt);font-family:var(--sans)}
-.fknoten.anker{z-index:2}
-@media(max-width:640px){.fknoten{max-width:64%}.fknoten.f24 a,.fknoten.f24 .fname{font-size:20px}.fknoten.f22 a{font-size:18px}.fknoten.f20 a{font-size:16px}.fknoten.f18 a{font-size:15px}}
+.fknoten.f22 a,.fknoten.f22 .fname{font-size:22px}
+.fknoten.f20 a,.fknoten.f20 .fname{font-size:20px}
+.fknoten.f18 a,.fknoten.f18 .fname{font-size:18px}
+.fknoten.f16 a,.fknoten.f16 .fname{font-size:16px;font-weight:500}
+.fknoten form{display:inline;line-height:1;flex:none}
+.fknoten .stern{font-size:13px;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.fknoten a.mehr{flex:none;font-size:12px;color:var(--matt);padding:0 5px;border-radius:999px;background:var(--surface-2);text-decoration:none}
+.fknoten a.mehr:hover{color:var(--ink)}
+.brot{font-size:12.5px;color:var(--matt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brot a{color:var(--matt)}.brot b{color:var(--ink);font-weight:600}
+@media(max-width:640px){.fknoten.f24 a,.fknoten.f24 .fname{font-size:20px}.fknoten.f22 a,.fknoten.f22 .fname{font-size:18px}.fknoten.f20 a,.fknoten.f20 .fname{font-size:16px}.fknoten.f18 a,.fknoten.f18 .fname{font-size:15px}.fknoten.f16 a,.fknoten.f16 .fname{font-size:14px}}
 #id_ebene{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
 #id_ebene label{font-weight:400;display:flex;gap:7px;align-items:center;font-size:15px;margin:0}
 .kat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:12px 0}
@@ -393,7 +405,15 @@ main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animati
 main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:200ms}
 main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-delay:250ms}
 .faecher{animation:hineingleiten var(--d-slide) var(--e-out) both}
+.faecher.zoom{animation:zoomrein var(--d-slide) var(--e-out) both}
+.fknoten{transition:box-shadow var(--d-fast),border-color var(--d-fast)}
 .fknoten a,.fknoten .fname{transition:color var(--d-fast)}
+.faecher .faden{transition:stroke var(--d-fast),stroke-width var(--d-fast)}
+.fknoten .stern-form.htmx-added .stern{animation:stern-pop 220ms var(--e-spring)}
+.fknoten.treffer{animation:treffer-gold 1.5s var(--e-out) both}
+@keyframes zoomrein{to{transform:scale(1.12);opacity:.35}}
+@keyframes stern-pop{from{transform:scale(1.4)}to{transform:scale(1)}}
+@keyframes treffer-gold{0%,60%{box-shadow:0 0 0 6px color-mix(in srgb,var(--gold) 45%,transparent)}100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 15%,transparent)}}
 .filter-leiste{animation:einfahren-oben var(--d-base) var(--e-out) both}
 .regler-feld{animation:einfahren-rechts var(--d-slide) var(--e-out) both}
 .balken b{transform-origin:left;animation:wachsen var(--d-grow) 150ms var(--e-out) both;transition:width var(--d-grow)}

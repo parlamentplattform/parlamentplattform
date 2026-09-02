@@ -88,27 +88,25 @@
   <section class="feld" id="feld-favoriten" aria-labelledby="h-favoriten">
     <div class="feld-kopf">
       <h2 id="h-favoriten">{% translate "Meine Favoriten" %}</h2>
+      {% if suchtreffer is None and faecher.brotkrume|length > 1 %}
+      <nav class="brot" aria-label="{% translate 'Pfad im Fächer' %}">{% for b in faecher.brotkrume %}{% if forloop.last %}<b>{{ b.name }}</b>{% else %}<a href="?fach={{ b.slug }}#feld-favoriten"
+        hx-get="{{ request.path }}?fach={{ b.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten">{{ b.name }}</a> › {% endif %}{% endfor %}</nav>
+      {% endif %}
       <form method="get" action="{{ request.path }}" class="feld-suche" role="search"
         hx-get="{{ request.path }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten">
         <input type="search" name="suche" value="{{ suchtext }}" placeholder="{% translate 'Lebensbereich suchen …' %}"
           aria-label="{% translate 'Lebensbereich suchen' %}">
       </form>
     </div>
-    <div class="feld-korpus" tabindex="0">
+    <div class="feld-korpus{% if suchtreffer is None %} faecher-korpus{% endif %}" tabindex="0">
       {% include "verfahren/_skelett.html" with art="zeilen" n=4 %}
       {% if suchtreffer is not None %}
         {% for t in suchtreffer %}
         <div class="zeile">
-          <span><a href="?fach={{ t.k.slug }}#feld-favoriten"
-              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
+          <span><a class="treffer-link" href="?fach={{ t.k.slug }}#feld-favoriten"
+              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
             <br><span class="meta">{{ t.k.pfad_kurz }}{% if t.laufend %} · {% blocktranslate count n=t.laufend %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% endif %}</span></span>
-          {% if user.is_authenticated %}
-          <form method="post" action="{% url 'verfahren:kategorie_abonnieren' t.k.slug %}"
-            hx-post="{% url 'verfahren:kategorie_abonnieren' t.k.slug %}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten">
-            {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-            <button class="stern{% if not t.abonniert %} aus{% endif %}" title="{% if t.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Als Favorit merken' %}{% endif %}">{% if t.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
-          </form>
-          {% endif %}
+          {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k.name abonniert=t.abonniert %}{% endif %}
         </div>
         {% empty %}
         <p class="leer abstand">{% translate "Nichts gefunden — andere Schreibweise oder ein Schlagwort versuchen." %}</p>

@@ -593,15 +593,23 @@ def kategorie_abonnieren(request, slug):
     """Abo umschalten — rein persönlich, wirkt nie auf Reihung oder Ergebnis."""
     kategorie = get_object_or_404(Kategorie, slug=slug, aktiv=True)
     _egal, neu = KategorieAbo.objects.get_or_create(kategorie=kategorie, mitglied=request.user)
+    if not neu:
+        KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
+    weiter = request.POST.get("weiter", "")
+    if not (weiter.startswith("/") and not weiter.startswith("//")):
+        weiter = reverse("verfahren:parlament")
+    if request.headers.get("HX-Request"):
+        # FB-C4: mit htmx wechselt nur der Stern selbst — kein Feldtausch, keine Flash-Meldung
+        return render(
+            request,
+            "verfahren/_kategorie_stern.html",
+            {"slug": slug, "name": kategorie.name, "abonniert": neu, "weiter": weiter},
+        )
     if neu:
         messages.success(
             request,
             _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % kategorie.name,
         )
     else:
-        KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
         messages.info(request, _("Favorit „%s“ entfernt.") % kategorie.name)
-    weiter = request.POST.get("weiter", "")
-    if weiter.startswith("/") and not weiter.startswith("//"):
-        return redirect(weiter)
-    return redirect("verfahren:parlament")
+    return redirect(weiter)

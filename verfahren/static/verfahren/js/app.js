@@ -114,17 +114,59 @@ document.addEventListener("alpine:init", function () {
         var self = this;
         this.$el.addEventListener("htmx:afterSettle", function (e) {
           var konfig = e.detail && e.detail.requestConfig;
-          if (!konfig || konfig.verb !== "post") return;
-          var quelle = konfig.elt && konfig.elt.closest ? konfig.elt.closest(".kachel") : null;
+          var ausloeser = (e.detail && e.detail.elt) || (konfig && konfig.elt);
+          if (!konfig || !ausloeser || !ausloeser.closest) return;
+          if (konfig.verb === "get" && ausloeser.classList.contains("treffer-link")) { self.treffer(); return; }
+          if (konfig.verb !== "post") return;
+          var quelle = ausloeser.closest(".kachel");
           if (!quelle || !quelle.dataset.antrag) return;
           self.markiere(quelle.dataset.antrag);
         });
+      },
+      /* Suchtreffer (FB-C4): der Fächer öffnet am Treffer und hebt den Anker 1,5 s gold hervor. */
+      treffer: function () {
+        var anker = this.$el.querySelector("#feld-favoriten .fknoten.anker");
+        if (!anker) return;
+        anker.classList.add("treffer");
+        setTimeout(function () { anker.classList.remove("treffer"); }, 1500);
       },
       markiere: function (antrag) {
         var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"]');
         if (!kachel) return;
         kachel.classList.add("erfasst");
         setTimeout(function () { kachel.classList.remove("erfasst"); }, 1500);
+      }
+    };
+  });
+
+  /* Der Favoriten-Fächer (FB-C1–C4, Spec 4): Der Server liefert alle entfaltbaren Äste vorab
+     (data-ast, nur der Ruhe-Ast sichtbar); hier wechselt der Zeiger den Ast, der Faden zur
+     Wurzel leuchtet gold, und ein Klick zoomt vom Klickpunkt hinein, bevor htmx das Feld tauscht.
+     Ohne JavaScript bleibt der Ruhe-Ast stehen und jeder Knoten ist ein gewöhnlicher Link. */
+  Alpine.data("faecher", function (standard) {
+    return {
+      ast: standard || "",
+      entfalte: function (slug) { if (slug) this.ast = slug; },
+      /* Hinweis: this.$el ist in Alpine das Element, auf dem der Ausdruck läuft (die Pille) —
+         die Fadenebene hängt an der Wurzel, darum überall this.$root. */
+      hebe: function (slug) {
+        var wurzel = this.$root, lauf = slug, runden = 0;
+        while (lauf && runden++ < 8) {
+          Array.prototype.forEach.call(wurzel.querySelectorAll('.faden[data-bis="' + lauf + '"]'), function (f) { f.classList.add("an"); });
+          var knoten = wurzel.querySelector('.fknoten[data-slug="' + lauf + '"]');
+          lauf = knoten ? knoten.dataset.eltern : "";
+        }
+      },
+      senke: function () {
+        Array.prototype.forEach.call(this.$root.querySelectorAll(".faden.an"), function (f) { f.classList.remove("an"); });
+      },
+      zoome: function (e) {
+        if (reduziert()) return;
+        var wurzel = this.$root, ziel = e.currentTarget.closest(".fknoten");
+        if (!ziel) return;
+        var r = ziel.getBoundingClientRect(), w = wurzel.getBoundingClientRect();
+        wurzel.style.transformOrigin = (r.left + r.width / 2 - w.left) + "px " + (r.top + r.height / 2 - w.top) + "px";
+        wurzel.classList.add("zoom");
       }
     };
   });

@@ -8,14 +8,7 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
   <div class="k-kopf">
     {% if k.thema %}
     <span class="k-thema">
-      {% if user.is_authenticated %}
-      <form method="post" action="{% url 'verfahren:kategorie_abonnieren' k.thema.slug %}" class="stern-form"
-        hx-post="{% url 'verfahren:kategorie_abonnieren' k.thema.slug %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="stern klein{% if not k.thema_abonniert %} aus{% endif %}" aria-pressed="{% if k.thema_abonniert %}true{% else %}false{% endif %}"
-          title="{% if k.thema_abonniert %}{% translate 'Lebensbereich nicht mehr abonnieren' %}{% else %}{% translate 'Lebensbereich abonnieren' %}{% endif %}">{% if k.thema_abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
-      </form>
-      {% endif %}
+      {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=k.thema.slug name=k.thema.name abonniert=k.thema_abonniert klein=True %}{% endif %}
       <span class="k-thema-name" title="{{ k.thema.pfad_kurz }}">{{ k.thema.name }}</span>
     </span>
     {% endif %}

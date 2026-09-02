@@ -245,16 +245,20 @@ def parlament(request):
     # Klick eine Seite, mit htmx wechselt nur das Feld.
     from plattform_core.faecher import faecher_layout
 
-    zeilen = list(Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id"))
+    zeilen = list(
+        Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id", "reihenfolge")
+    )
     for zeile in zeilen:  # die Wurzel heißt im Fächer schlicht „Lebensbereiche"
         if zeile["eltern_id"] is None:
             zeile["name"] = str(_("Lebensbereiche"))
-    faecher = faecher_layout(zeilen, fokus_slug=request.GET.get("fach") or None)
-    faecher["abos"] = (
+    abo_slugs = (
         set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
         if request.user.is_authenticated
         else set()
     )
+    # FB-C3: im Ruhezustand ist der Ast des ersten Favoriten entfaltet
+    faecher = faecher_layout(zeilen, fokus_slug=request.GET.get("fach") or None, abos=abo_slugs)
+    faecher["abos"] = abo_slugs
     suchtext = (request.GET.get("suche") or "").strip()
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
 

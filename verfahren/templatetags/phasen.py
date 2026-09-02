@@ -49,3 +49,16 @@ KLASSEN = {
 @register.filter
 def vollzug_klasse(wert: str) -> str:
     return KLASSEN.get(wert, "badge-still")
+
+
+RING_UMFANG = 50.3  # 2·π·8 — der Kreis mit r = 8 im 20-px-Fristring (FB-D2)
+
+
+@register.filter
+def rest_ring(prozent) -> str:
+    """stroke-dashoffset für den Fristring: 0 % verstrichen = voller Versatz, 100 % = 0."""
+    try:
+        anteil = min(100, max(0, float(prozent))) / 100
+    except (TypeError, ValueError):
+        anteil = 0
+    return f"{RING_UMFANG * (1 - anteil):.1f}"

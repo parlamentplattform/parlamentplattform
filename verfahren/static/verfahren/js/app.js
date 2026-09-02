@@ -105,6 +105,30 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  /* Rückmeldung in der Kachel (FB-A2): Nach einer Handlung tauscht htmx das Feld; die neue
+     Kachel desselben Antrags zeigt 1,5 s den Gold-Haken „Erfasst“ statt einer Flash-Meldung.
+     Der Auslöser kennt seinen Antrag (data-antrag), darum braucht es keinen Server-Umweg. */
+  Alpine.data("parlament", function () {
+    return {
+      init: function () {
+        var self = this;
+        this.$el.addEventListener("htmx:afterSettle", function (e) {
+          var konfig = e.detail && e.detail.requestConfig;
+          if (!konfig || konfig.verb !== "post") return;
+          var quelle = konfig.elt && konfig.elt.closest ? konfig.elt.closest(".kachel") : null;
+          if (!quelle || !quelle.dataset.antrag) return;
+          self.markiere(quelle.dataset.antrag);
+        });
+      },
+      markiere: function (antrag) {
+        var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"]');
+        if (!kachel) return;
+        kachel.classList.add("erfasst");
+        setTimeout(function () { kachel.classList.remove("erfasst"); }, 1500);
+      }
+    };
+  });
+
   /* Flash-Meldung: im Parlament (body.voll) nach sechs Sekunden ausblenden; × schließt sofort. */
   Alpine.data("meldung", function () {
     return {

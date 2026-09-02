@@ -22,6 +22,7 @@ from verfahren.models import (
     Kategorie,
     Stimmabgabe,
     StimmRegister,
+    Unterstuetzung,
     Vollzugsstatus,
 )
 
@@ -116,14 +117,23 @@ def _frist_fuer(antrag, policy=None):
     return None
 
 
-def _kachel(antrag, jetzt, meine_stimmen=None):
-    """Eine Kachel für P3/P4 (F-42/F-43): Frist, Resttage und der phasengerechte
-    Stand. Während einer laufenden Abstimmung zeigt die Kachel NUR die
-    Beteiligung — nie die Tendenz (F-15: kein Bandwagon; das Ergebnis erscheint
-    nach Fristende auf der Antragsseite)."""
+def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None):
+    """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
+    Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
+    laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
+    (F-15: kein Bandwagon; das Ergebnis erscheint nach Fristende auf der
+    Antragsseite)."""
     policy = antrag.policy()
     frist = _frist_fuer(antrag, policy)
     resttage = max(0, (frist - jetzt).days) if frist else None
+    # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
+    verstrichen = None
+    if frist and antrag.phase_beginn:
+        ganze = (frist - antrag.phase_beginn).total_seconds()
+        if ganze > 0:
+            verstrichen = min(100, max(0, round(100 * (jetzt - antrag.phase_beginn).total_seconds() / ganze)))
+    # Thema: der erste zugeordnete Lebensbereich, mit eigenem Abo-Stern
+    thema = next(iter(antrag.kategorien.all()), None)
     stat = None
     if antrag.phase == Phase.UNTERSTUETZUNG.value:
         n = antrag.unterstuetzungen.count()
@@ -149,7 +159,10 @@ def _kachel(antrag, jetzt, meine_stimmen=None):
         "antrag": antrag,
         "frist": frist,
         "resttage": resttage,
+        "verstrichen": verstrichen,
         "stat": stat,
+        "thema": thema,
+        "thema_abonniert": bool(thema and abo_ids and thema.pk in abo_ids),
         "meine_stimme": (meine_stimmen or {}).get(antrag.pk),
     }
 
@@ -246,10 +259,11 @@ def parlament(request):
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
 
     meine_favoriten: set[int] = set()
+    abo_ids: set[int] = set()
     if request.user.is_authenticated:
         meine_favoriten = set(request.user.favoriten.values_list("antrag_id", flat=True))
         # Ein Abo gilt für den ganzen Ast: Unterkategorien der abonnierten Bereiche zählen mit.
-        abo_ids = set(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
+        abo_ids.update(request.user.kategorie_abos.values_list("kategorie_id", flat=True))
         kinder: dict[int | None, list[int]] = {}
         for kid, eid in Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id"):
             kinder.setdefault(eid, []).append(kid)
@@ -263,12 +277,14 @@ def parlament(request):
 
     # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
     # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage.
-    wichtige = list(laufend.filter(hervorgehoben=True).order_by("phase_beginn"))
+    wichtige = list(
+        laufend.filter(hervorgehoben=True).order_by("phase_beginn").prefetch_related("kategorien")
+    )
 
     # Bereich c — Meine Region (F-43, P4): drei Zeilen Gemeinde/Bezirk/Land.
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
-    regionale = laufend.exclude(ebene="bund").order_by("phase_beginn")
+    regionale = laufend.exclude(ebene="bund").order_by("phase_beginn").prefetch_related("kategorien")
     mein_ort = {"gemeinde": "", "bezirk": "", "land": ""}
     if request.user.is_authenticated:
         mein_ort["gemeinde"] = request.user.gemeinde or ""
@@ -279,6 +295,11 @@ def parlament(request):
             mein_ort["bezirk"] = request.user.wohnsitz.bezirk or ""
 
     meine_stimmen = _meine_stimmen(request.user, list(regionale) + wichtige)
+    meine_unterstuetzungen: set[int] = set()
+    if request.user.is_authenticated:
+        meine_unterstuetzungen = set(
+            Unterstuetzung.objects.filter(mitglied=request.user).values_list("antrag_id", flat=True)
+        )
 
     region_zeilen = []
     for ebene, ort in (("gemeinde", mein_ort["gemeinde"]), ("bezirk", mein_ort["bezirk"]),
@@ -290,11 +311,11 @@ def parlament(request):
             {
                 "ebene": ebene,
                 "ort": ort,
-                "kacheln": [_kachel(a, jetzt, meine_stimmen) for a in zeile],
+                "kacheln": [_kachel(a, jetzt, meine_stimmen, abo_ids) for a in zeile],
             }
         )
 
-    wichtige_kacheln = [_kachel(a, jetzt, meine_stimmen) for a in wichtige]
+    wichtige_kacheln = [_kachel(a, jetzt, meine_stimmen, abo_ids) for a in wichtige]
 
     # Bereich d — der WeicherFilter (P5): das aktive Profil reiht die laufenden
     # Verfahren nach den offenen Reglern des Mitglieds; sonst gilt die strenge
@@ -344,6 +365,7 @@ def parlament(request):
             "filter_lage": filter_lage,
             "gereiht": gereiht,
             "wichtige_kacheln": wichtige_kacheln,
+        "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
             "region_gefiltert": any(mein_ort.values()),
         },

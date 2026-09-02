@@ -7,7 +7,7 @@
 {% block bodyklasse %}voll{% if not user.is_authenticated %} mit-band{% endif %}{% endblock %}
 {% block band %}{{ block.super }}{% if not user.is_authenticated %}<div class="band gast"><span class="band-text">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}</span><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% endif %}{% endblock %}
 {% block inhalt %}
-<div class="parlament" id="parlament">
+<div class="parlament" id="parlament" x-data="parlament">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}
   <section class="feld" id="feld-filter" aria-labelledby="h-filter">
@@ -131,13 +131,13 @@
     </div>
     <div class="feld-korpus" tabindex="0">
       {% include "verfahren/_skelett.html" with art="kacheln" n=4 %}
+      {% if wichtige_kacheln %}
       <div class="kacheln">
-      {% for k in wichtige_kacheln %}
-        {% include "verfahren/_kachel.html" with k=k zeige_begruendung=True ziel="#feld-wichtig" %}
-      {% empty %}
-        <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
-      {% endfor %}
+      {% for k in wichtige_kacheln %}{% include "verfahren/_kachel.html" with k=k zeige_begruendung=True ziel="#feld-wichtig" %}{% endfor %}
       </div>
+      {% else %}
+      <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
+      {% endif %}
     </div>
   </section>
 

@@ -1,11 +1,31 @@
 {% load i18n phasen %}
-<div class="kachel">
-  <div class="kt">
-    <a href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>
-    {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=k.antrag %}{% endif %}
+{% comment %}
+Die Kachel (FB-D2): Thema mit eigenem Stern · Titel · Stand mit Balken · Frist mit Ring ·
+Direkt-Handlung der Phase · (nur in „Wichtige Abstimmungen") der Hervorhebungsgrund.
+Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
+{% endcomment %}
+<article class="kachel" data-antrag="{{ k.antrag.pk }}">
+  <div class="k-kopf">
+    {% if k.thema %}
+    <span class="k-thema">
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:kategorie_abonnieren' k.thema.slug %}" class="stern-form"
+        hx-post="{% url 'verfahren:kategorie_abonnieren' k.thema.slug %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="stern klein{% if not k.thema_abonniert %} aus{% endif %}" aria-pressed="{% if k.thema_abonniert %}true{% else %}false{% endif %}"
+          title="{% if k.thema_abonniert %}{% translate 'Lebensbereich nicht mehr abonnieren' %}{% else %}{% translate 'Lebensbereich abonnieren' %}{% endif %}">{% if k.thema_abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>
+      </form>
+      {% endif %}
+      <span class="k-thema-name" title="{{ k.thema.pfad_kurz }}">{{ k.thema.name }}</span>
+    </span>
+    {% endif %}
+    {% if user.is_authenticated %}<span class="k-stern">{% include "verfahren/_stern.html" with antrag=k.antrag %}</span>{% endif %}
   </div>
-  <div class="meta"><span class="badge">{{ k.antrag.phase|phase_name }}</span>
-    {% if k.antrag.art == "mandat" %} <span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% endif %}
+
+  <a class="k-titel" href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>
+
+  <div class="k-meta"><span class="badge">{{ k.antrag.phase|phase_name }}</span>
+    {% if k.antrag.art == "mandat" %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% endif %}
     {% if k.antrag.gebiet and not ort_versteckt %}<span class="rest ort">{{ k.antrag.gebiet }}</span>{% endif %}</div>
 
   {% if k.stat.typ == "unterstuetzung" %}
@@ -18,27 +38,42 @@
     <span class="rest">{% blocktranslate with p=k.stat.prozent %}{{ p }} % der Stimmberechtigten haben abgestimmt{% endblocktranslate %} · {% translate "Tendenz verdeckt bis Fristende" %}</span>
   {% endif %}
 
-  {% if k.resttage is not None %}
-    <span class="rest">{% if k.resttage == 0 %}<strong>{% translate "Frist endet heute" %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}</span>
-  {% endif %}
-
-  {% if k.stat.typ == "abstimmung" and not user.is_authenticated %}
-    <span class="rest"><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden zum Abstimmen" %}</a></span>
-  {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}
-    {% if k.antrag.art == "mandat" %}
-      <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
-    {% else %}
-      <form method="post" action="{% url 'verfahren:abstimmen' k.antrag.pk %}" class="stimmreihe"
-        hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button name="stimme" value="ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
-        <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
-        <button name="stimme" value="enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
-      </form>
+  <div class="k-fuss">
+    {% if k.resttage is not None %}
+    <span class="rest frist{% if k.resttage <= 3 %} knapp{% endif %}">
+      {% if k.verstrichen is not None %}{% include "verfahren/_ring.html" with wert=k.verstrichen %}{% endif %}
+      {% if k.resttage == 0 %}<strong>{% translate "Frist endet heute" %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}
+    </span>
     {% endif %}
-  {% endif %}
+
+    {% if k.stat.typ == "abstimmung" and not user.is_authenticated %}
+      <span class="rest"><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden zum Abstimmen" %}</a></span>
+    {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}
+      {% if k.antrag.art == "mandat" %}
+        <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
+      {% else %}
+        <form method="post" action="{% url 'verfahren:abstimmen' k.antrag.pk %}" class="stimmreihe"
+          hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+          <button name="stimme" value="ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
+          <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
+          <button name="stimme" value="enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
+        </form>
+      {% endif %}
+    {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" class="stimmreihe"
+        hx-post="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="btn-linie{% if k.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}">{% if k.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
+      </form>
+    {% elif k.stat.typ == "beratung" %}
+      <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#beratung">{% translate "Mitreden" %}</a></span>
+    {% endif %}
+  </div>
 
   {% if zeige_begruendung and k.antrag.hervorhebung_begruendung %}
-    <p class="erk grund">{{ k.antrag.hervorhebung_begruendung|truncatechars:110 }}</p>
+    <p class="erk grund" title="{{ k.antrag.hervorhebung_begruendung }}">{{ k.antrag.hervorhebung_begruendung|truncatechars:90 }}</p>
   {% endif %}
-</div>
+
+  <span class="k-erfasst" role="status">✓ {% translate "Erfasst" %}</span>
+</article>

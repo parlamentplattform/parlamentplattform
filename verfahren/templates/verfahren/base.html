@@ -240,23 +240,40 @@ body.voll main{max-width:none;padding:0}
 .zeile .meta{font-size:12px;color:var(--matt)}
 .phasen-titel{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;margin:14px 0 2px}
 .phasen-titel:first-child{margin-top:6px}
-.kacheln{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-.kacheln.dreier{grid-template-columns:repeat(3,1fr);margin:4px 0 12px}
-.kachel{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:6px;min-width:0}
-.kachel .kt{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
-.kachel .kt a{font-weight:600;line-height:1.35;color:var(--linkfarbe)}
-.kachel .rest{font-size:12.5px;color:var(--matt)}
-.kachel .rest.ort{display:block;margin-top:3px}
-.kachel .rest strong{color:var(--gold-deep)}
-.kachel .grund{margin:2px 0 0}
-.leer.abstand{margin-top:10px}
-.leer.leer-zeile{margin:4px 0 10px}
-.loeschen-form{margin-top:6px}
+/* ── Kacheln (FB-D1/D2): gleich große Plätze, 2 oder 3 Spalten je Feldbreite, scrollen in ganzen Reihen ── */
+.feld-korpus{container-type:inline-size}
+.kacheln{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(186px,calc(50% - 5px));gap:10px;height:100%;align-content:start}
+@container (min-width:700px){.kacheln{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kacheln.dreier{grid-template-columns:repeat(3,minmax(0,1fr));height:auto}
+.kachel{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}
+.kachel .k-kopf{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}
+.kachel .k-thema{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kachel .k-thema-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kachel .k-stern{margin-left:auto;flex:none}
+.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kachel .k-titel:hover{text-decoration:underline}
+.kachel .k-titel::before{content:"";position:absolute;inset:0}
+.kachel .k-kopf,.kachel .k-meta,.kachel .k-fuss{position:relative;z-index:1}
+.kachel .k-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.kachel .rest{font-size:12.5px;color:var(--muted)}
+.kachel .rest strong{color:var(--ink)}
+.kachel .k-fuss{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.kachel .frist{display:inline-flex;align-items:center;gap:6px}
+.kachel .frist.knapp,.kachel .frist.knapp strong{color:var(--warn)}
+.kachel .grund{margin:2px 0 0;font-size:11.5px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stern.klein{font-size:14px;padding:0;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
 .stern-form{display:inline}
+.ring{width:20px;height:20px;transform:rotate(-90deg);flex:none}
+.ring circle{fill:none;stroke-width:3}
+.ring .bahn{stroke:var(--line)}
+.ring .wert{stroke:var(--gold);stroke-dasharray:50.3;transition:stroke-dashoffset var(--d-grow) var(--e-out)}
+.k-erfasst{position:absolute;right:8px;bottom:8px;z-index:2;background:var(--ok-bg);color:var(--ok);font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;display:none}
+.kachel.erfasst .k-erfasst{display:inline-block;animation:toast 1.5s var(--e-out) both}
+@keyframes toast{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .balken b{display:block;height:100%;background:var(--gold)}
-.stimmreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
-.stimmreihe button{font-size:12.5px;padding:4px 12px}
+.stimmreihe{display:flex;gap:6px;flex-wrap:wrap}
+.stimmreihe button{font-size:12px;padding:3px 10px;height:28px}
 .stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
 /* Tableiste am Handy (Spec 3.2 und 4, FB-A1): fest unten, vier Ziele, Gold-＋ in der Mitte */
 .tabs{display:none;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;height:var(--tabs);background:var(--surface);border-top:1px solid var(--line);z-index:40}
@@ -272,7 +289,7 @@ body.voll main{max-width:none;padding:0}
   .parlament{display:block;height:calc(100vh - var(--bar) - var(--band) - var(--tabs));height:calc(100dvh - var(--bar) - var(--band) - var(--tabs));min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;padding:8px;overscroll-behavior:contain}
   .feld{height:100%;min-height:0;scroll-snap-align:start;margin-bottom:8px}
   .feld:last-child{margin-bottom:0}
-  .kacheln,.kacheln.dreier{grid-template-columns:1fr}
+  .kacheln,.kacheln.dreier{grid-template-columns:repeat(2,minmax(0,1fr))}
   .tabs{display:grid}
 }
 /* ── Hauptfenster & Listen ── */
@@ -407,7 +424,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .skelett::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--glanz),transparent);animation:schimmer 1.6s linear infinite}
 .feld.htmx-request .feld-korpus>:not(.skelett-feld){visibility:hidden}
 .feld.htmx-request .skelett-feld.zeilen{display:flex;flex-direction:column}
-.feld.htmx-request .skelett-feld.kacheln{display:grid;grid-template-columns:repeat(2,1fr)}
+.feld.htmx-request .skelett-feld.kacheln{display:grid;grid-template-columns:repeat(2,1fr);height:auto;grid-auto-rows:auto}
 .anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:13.5px;padding:7px 12px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background var(--d-fast)}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
 .anstoss-fleck summary:hover{background:var(--gold-soft)}

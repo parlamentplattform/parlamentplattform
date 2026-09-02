@@ -52,6 +52,31 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/parlament/")
     halte_fest(p, "parlament-desktop-dunkel-mitglied")
 
+    # Der Favoriten-Fächer (FB-C1–C4): Wurzel mit fünf Ebenen, entfalteter Ast beim Hover,
+    # Mitte-Modus mit Rückweg und Brotkrume, Handy-Variante
+    def halte_feld(p, name):
+        _ruhe(p)
+        ziel = sichtpruefung / f"{name}.png"
+        p.locator("#feld-favoriten").screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    halte_feld(p, "faecher-wurzel")
+    p.locator("#feld-favoriten .fknoten.enkel").nth(6).hover()
+    p.wait_for_timeout(300)
+    halte_feld(p, "faecher-hover-ast")
+    p.locator("#feld-favoriten .fknoten.kind a").first.click()
+    p.wait_for_timeout(900)
+    p.locator("#feld-favoriten .fknoten.kind a").first.click()
+    p.wait_for_timeout(900)
+    halte_feld(p, "faecher-mitte")
+
+    p = seite(viewport=HANDY, als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/#feld-favoriten")
+    p.wait_for_timeout(500)
+    halte_feld(p, "faecher-handy")
+
     # Konto-Menü und Anstoß-Popover geöffnet
     p = seite(als=_mitglied())
     p.goto(f"{live_server.url}/parlament/")
@@ -85,6 +110,6 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/antrag/{antrag}/")
     halte_fest(p, "antragsseite-mit-fusszeile")
 
-    assert len(bilder) == 10
+    assert len(bilder) == 14
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

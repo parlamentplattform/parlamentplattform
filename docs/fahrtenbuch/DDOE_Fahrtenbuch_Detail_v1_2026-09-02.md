@@ -203,7 +203,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 **Ist (0.33.0):** ✅ Raster `minmax(0,1fr)`-Zeilen auf `calc(100dvh − var(--bar) − var(--band))`, Lücke/Rand 12 px, Feldkopf 44 px, Körper scrollt innen (`base.html:212-217`, `:230-233`); eine App-Leiste 56/52 px (`_leiste.html`, `base.html:74-77`); keine Fußzeile im Parlament (`parlament.html:7`, Block `fuss` in `base.html:396`); Handy-Snap + Tableiste (`base.html:257-270`, `_tabs.html`); Anstoß in der Leiste (FB-K3). Belegt durch `tests/e2e/test_app_rahmen.py` (Abnahmen 1–4, mit und ohne JavaScript) und `verfahren/test_app_rahmen.py:143-215`.
 **Delta:** keiner für S1. Der „mehr vorhanden"-Hinweis (FB-A5) und das Kachel-Raster folgen mit S2; die Tableiste bekommt mit S6 ihr fünftes Ziel „Chats" (D-G3).
 
-#### FB-A2 · Die vier Bereiche: direkt bedienbar, selbsterklärend — 🟡
+#### FB-A2 · Die vier Bereiche: direkt bedienbar, selbsterklärend — ✅
 **Quelle:** A0-05 — *„Die anderen Bereiche sind Meine Favoriten, Wichtige Abstimmungen, Meine Region. Alle 4 Bereiche sollten so aufgebaut sein, dass sie direkt bedienbar sind und selbsterklärend sind."*
 
 **Spezifikation**
@@ -213,7 +213,8 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - Alles, was man anklicken kann, sieht anklickbar aus (Hover-Lift 2 px, Cursor, Fokusring).
 
 **Abnahme:** In keinem der vier Felder kommt ein Satz mit mehr als 8 Wörtern vor, der nicht Antragstitel, Begründung oder Leerzustand ist. Jede Kachel-Handlung bleibt ohne Seitenwechsel; Flash-Meldungen (`messages`) erscheinen im Parlament nicht mehr oben, sondern in der Kachel.
-**Ist (0.33.0):** 🟡 Direktbedienung in Kacheln ✅ (`_kachel.html:29-40`); **Acht-Wörter-Regel erfüllt und getestet** (`verfahren/test_app_rahmen.py:219-241`) — Regler-Hilfetext ist ein Link auf `/parameter/` (`parlament.html:47`), der Profil-Hinweis entfiel; Flash-Meldungen stehen im Parlament in einem festen Stapel unter der Leiste statt über dem Raster (`base.html:159-166`, `:360`).
+**Ist (0.34.0):** ✅ Direktbedienung in Kacheln (`_kachel.html`); Acht-Wörter-Regel erfüllt und getestet (`verfahren/test_app_rahmen.py`); **Rückmeldung in der Kachel:** nach Unterstützen oder Abstimmen zeigt die neue Kachel 1,5 s den Gold-Haken „Erfasst" (`app.js` `parlament.markiere`, `.kachel.erfasst`), der Stern-Tausch bleibt ohne Feldtausch (FB-C4); Flash-Meldungen bleiben nur für Seitenwechsel ohne JavaScript.
+**Ist (0.33.0):** 🟡 Direktbedienung in Kacheln ✅; Acht-Wörter-Regel ✅ — Regler-Hilfetext ist ein Link auf `/parameter/`, der Profil-Hinweis entfiel; Flash-Meldungen im festen Stapel unter der Leiste.
 **Delta:** Rückmeldung in der Kachel statt im Stapel und kürzere Leerzustände bleiben S2 (FB-E3).
 
 #### FB-A3 · App-Anmutung als Qualitätsmaßstab — 🟡
@@ -323,7 +324,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 ### Bereich C · Meine Favoriten — der Fächer (Feld rechts oben)
 
-#### FB-C1 · Der grafische Themenbaum mit Fäden — 🟡
+#### FB-C1 · Der grafische Themenbaum mit Fäden — ✅
 **Quelle:** A0-05 — *„Meine Favoriten sollte direkt einen Themenbaum anzeigen und zwar grafisch, ganz unten Lebensbereiche etwas größer, sagen wir Schriftgröße 24 und darunter die Unterkategorien in 2er schritten kleiner werden verbunden mit Fäden mit der Überkategorie, also in dem die vier Säulen aber ohne diese so zu benennen."*
 
 **Spezifikation**
@@ -334,9 +335,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Ohne JavaScript:* Knoten sind Links (`?fach=<slug>`), Sterne Formulare; Fäden SVG. Bereits heute so — bleibt.
 
 **Abnahme:** Auf 1440×900 sind Wurzel (24 px), 4 Säulen (22 px) und 12 Bereiche (20 px) gleichzeitig lesbar, **kein Knotentext ist abgeschnitten oder überlappt** (heute: „Bildungssy", „Infrastruktu" — Screenshot 2.9.); Hover auf einen Bereich färbt den Faden bis zur Wurzel gold.
-**Ist:** 🟡 Fächer direkt im Feld ✅ (0.31.0), Wurzel „Lebensbereiche" ✅, Fäden ✅, Schriftgrößen 24/22/20 ✅ — aber **Beschriftungen überlappen und sind abgeschnitten** (Kürzung auf 16 Zeichen bei Enkeln, `faecher.py:25-28`; drei Enkel-Reihen à 30 px sind zu eng), keine Säulenfarbe, keine Hover-Fadenhervorhebung.
+**Ist (0.34.0):** ✅ Layout-Regel v2 in `plattform_core/faecher.py` (VERSION 2): Randpillen bündig, bis zu drei versetzte Reihen, Pillenbreite b = r·Spanne/(n−1+r) als `max-width` in Prozent mit CSS-Ellipse, voller Name als `title`; **Rechenprobe über alle 312 Anker × alle Äste ohne Überlappung** (`tests/test_faecher_layout.py`) und Bildschirmprobe (`tests/e2e/test_faecher.py`). Säulentöne `.fknoten.p1–p4` (`base.html`, `color-mix` 12 %), Faden bis zur Wurzel gold beim Zeigen (`app.js` `faecher.hebe`), Suchtreffer 1,5 s gold (`treffer-link`, `parlament.treffer`). **Abweichung zur Abnahme:** die zwölf Bereiche stehen in 20 px in drei Reihen mit 7–11 sichtbaren Zeichen (Ellipse) — bei 26 Zeichen Median passen zwölf volle Namen in kein Feld; die vier Säulen zeigen ≥ 17 Zeichen, Wurzel und Anker immer voll.
+**Ist (0.31.0):** 🟡 Fächer direkt im Feld ✅, Wurzel „Lebensbereiche" ✅, Fäden ✅, Schriftgrößen 24/22/20 ✅ — aber Beschriftungen überlappten und waren abgeschnitten, keine Säulenfarbe, keine Hover-Fadenhervorhebung.
 
-#### FB-C2 · Fünf Ebenen im Fächer — ❌ (heute drei)
+#### FB-C2 · Fünf Ebenen im Fächer — ✅
 **Quelle:** A0-05 — *„und so geht es weiter mit den weiteren Unterkategorien so, dass sich ein Fächer mit 5 Ebenen ergibt."*
 
 **Spezifikation**
@@ -350,9 +352,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Performance:* Layout wird serverseitig berechnet (wie heute), die Ebene-5-Entfaltung liefert htmx als Teilantwort (`?fach=<slug>&entfalten=<slug>`) oder kommt vorab als versteckte Knoten mit (bevorzugt: vorab mitgeliefert, Alpine blendet ein — keine Netzlast beim Hover).
 
 **Abnahme:** An der Wurzel sind 5 Ebenen sichtbar (Lebensbereiche · 4 · 12 · 24 · entfalteter Ast); nichts überlappt; Hover über „Gesundheitswesen & Prävention" fächert dessen Unterkategorien auf 16 px auf; ohne JavaScript sind vier Ebenen sichtbar.
-**Ist:** ❌ maximal drei Ebenen über dem Anker (`faecher.py:111-135`), Enkel-Deckel 12 (`ENKEL_HOECHSTZAHL`), ab Tiefe 5 Lücken (Inventar Frage 2).
+**Ist (0.34.0):** ✅ fünf Ebenen (Anker 24 + 22/20/18/16), Auffächer-Regel mit Deckel 12 (`VOLL_HOECHSTZAHL`), die erste zu große Ebene nur im entfalteten Ast: drei Kinder nebeneinander (`AST_ABSTAND` 160 px), deren Kinder als senkrechte Säule (Pillenhöhe + 1 px), ab dem vierten „+n" (Link auf den Elternknoten). Alle Äste werden vorab mitgeliefert (`data-ast`, `x-show`, `x-cloak`), Ruhezustand = Ast des ersten Favoriten (`abos`), sonst der erste Bereich; ohne JavaScript bleibt der Ruhe-Ast mit allen fünf Ebenen sichtbar. Höhe knapp gerechnet (336 px an der Wurzel = Feldkörper bei 1440×900 als Gast), Prozentlagen dehnen sich mit dem Feld; ist das Feld niedriger, rollt der Körper und zeigt zuerst den Anker (`column-reverse`). Handy 20/18/16/15/14 px, `min-width:600px`, waagrecht rollbar. **Offen (klein):** Touch „erster Tipp entfaltet, zweiter navigiert" (der htmx-Klick geht vor; am Handy sieht man den Ruhe-Ast, andere Äste über den Klick auf den Bereich) und das gestaffelte Herausgleiten (180 ms/20 ms) — heute schlichtes Umblenden.
+**Ist (0.33.0):** ❌ maximal drei Ebenen über dem Anker, Enkel-Deckel 12, ab Tiefe 5 Lücken.
 
-#### FB-C3 · Hineinbewegen beim Klick; ab der dritten Ebene sitzt der Anker in der Mitte — 🟡
+#### FB-C3 · Hineinbewegen beim Klick; ab der dritten Ebene sitzt der Anker in der Mitte — ✅
 **Quelle:** A0-05 — *„wenn man auf ein element klickt bewegt sich die ansicht hinein auf dieses element was dann zu dem in Schriftgröße 24 am unteren rand des bereiches ist."* · A0-07 — *„Bei P2 ist mir aufgefallen, dass wenn die ausgewählte kategorie dann nach ganz unten kommt, man nicht mehr herauszoomen kann. Wir sollten die Auswahl ab der dritten ebene immer in die Mitte des Fächers bringen als den 24er Anker damit man auch zurück nach oben klicken kann."*
 
 **Spezifikation**
@@ -363,10 +366,11 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Ohne JavaScript:* Sprung ohne Zoom (Seitenwechsel), Modus Mitte/Boden identisch.
 
 **Abnahme:** Klick auf „Energie" (Tiefe 4): Anker mittig, darunter Kette „Wirtschaft, Arbeit & Finanzen ‹ Lebensbereiche" klickbar; die Bewegung ist ein Zoom auf den Knoten (kein Springen); Klick auf „Lebensbereiche" zoomt heraus.
-**Ist:** 🟡 Mitte-Modus ab Tiefe 3 ✅ (`faecher.py:67,84-89`), Rückweg auf 2 Vorfahren + Wurzel begrenzt (Lücke ab Tiefe 5) 🟡; Bewegung = pauschales `hineingleiten` von unten (`base.html:281`), **kein Zoom auf den geklickten Knoten** ❌; Brotkrume ❌ (CSS-Leiche `.brotkrume`).
+**Ist (0.34.0):** ✅ Klick zoomt vom Klickpunkt hinein (`app.js` `faecher.zoome`: `transform-origin` = Knotenmitte, `.faecher.zoom` scale 1 → 1.12, 320 ms `--e-out`), htmx tauscht erst danach (`hx-swap="outerHTML transition:true swap:220ms"`), die View-Transition glättet den Rest; Mitte-Modus ab Tiefe 3 mit **vollständigem Rückweg** bis zur Wurzel (22/20/18 px, `rolle: weg`) und **Brotkrume** im Feldkopf (`parlament.html`, `.brot`, `aria-label` „Pfad im Fächer"). Rückwärts (Klick auf einen Vorfahren oder die Brotkrume) spielt die View-Transition — kein eigener Zoom heraus. Ohne JavaScript Seitenwechsel ohne Zoom.
+**Ist (0.33.0):** 🟡 Mitte-Modus ✅, Rückweg auf 2 Vorfahren begrenzt, kein Zoom, keine Brotkrume.
 
 #### FB-C4 · Stern an jedem Element — ✅
-**Quelle:** A0-05 — *„Alle mit dem Stern zum favorisieren daneben."* **Spezifikation:** Stern links vor dem Knotentext (☆ grau / ★ gold mit Schein), 18 px Klickfläche ≥ 32 px, Tipp schaltet das Abo (Ast-Wirkung) mit Pop-Animation (scale 1.25 → 1, 220 ms) — Tausch nur des Sterns, nicht des Feldes (kein Flackern). `aria-pressed`. **Ist:** ✅ Stern je Knoten (`_faecher.html`), htmx tauscht das ganze Feld 🟡 (→ nur Stern tauschen), `aria-pressed` ❌.
+**Quelle:** A0-05 — *„Alle mit dem Stern zum favorisieren daneben."* **Spezifikation:** Stern links vor dem Knotentext (☆ grau / ★ gold mit Schein), 18 px Klickfläche ≥ 32 px, Tipp schaltet das Abo (Ast-Wirkung) mit Pop-Animation (scale 1.25 → 1, 220 ms) — Tausch nur des Sterns, nicht des Feldes (kein Flackern). `aria-pressed`. **Ist (0.34.0):** ✅ Stern je Knoten, htmx tauscht **nur den Stern** (`views_aktionen.kategorie_abonnieren`, HX-Zweig → `_kategorie_stern.html`, `hx-swap="outerHTML"`), `aria-pressed`, Pop 220 ms (`stern-pop` auf `htmx-added`); derselbe Baustein in der Feldsuche und im Kachelkopf. Getestet in `verfahren/test_faecher.py` und `tests/e2e/test_faecher.py`.
 
 #### FB-C5 · Was das Favoriten-Feld sonst noch zeigt — ❓
 **Ausarbeitung:** § 5 Abs 10 lit a verlangt im persönlichen Bereich auch *„die dazu aktuell laufenden Abstimmungen"*. Vorschlag: Unter dem Anker-Knoten steht bei Fokus auf einen Lebensbereich eine kleine Zahl-Pille „3 laufend"; Tipp darauf blendet **im Feld** eine kompakte Liste der laufenden Verfahren dieses Astes ein (mit Direkt-Handlung wie im WeicherFilter), zurück per „‹ Fächer". Damit erfüllt das Feld Satzung und Anweisung zugleich. ❓ D-C5: Zustimmung des Gründers (er hatte die frühere Liste bewusst entfernt; dies ist die kleinstmögliche Form). **Ist:** ❌ (Ast-Zähler nur in der Suche).
@@ -375,7 +379,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 ### Bereich D · Wichtige Abstimmungen (Feld links unten)
 
-#### FB-D1 · 4 oder 6 Kacheln, gleichmäßig — 🟡
+#### FB-D1 · 4 oder 6 Kacheln, gleichmäßig — ✅
 **Quelle:** A0-05 — *„Der Wichtige Abstimmungen Bereich ist ein Bereich der direkt 4 oder 6 wichtige Abstimmungen gleichmäßig positioniert anzeigt…"*
 
 **Spezifikation**
@@ -384,9 +388,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Kachel (gilt für D und E gleich, siehe FB-D2).*
 
 **Abnahme:** Mit 6 hervorgehobenen Anträgen füllt das Feld auf 1440×900 ein 3×2-Raster ohne Scroll; mit 7 erscheint „↓ 1 weitere"; mit 1 ist die Kachel so groß wie ein Rasterplatz, nicht feldfüllend.
-**Ist:** 🟡 `.kacheln` 2 Spalten, kein Zeilenmaß, kein Limit, Kacheln wachsen mit Inhalt (`base.html:167-169`, `views.py:266`).
+**Ist (0.34.0):** ✅ Raster 2 Spalten, ab 700 px Feldbreite 3 Spalten (Container-Query auf `.feld-korpus`), Zeilen `minmax(186px, calc(50% − 5px))` — 4 bzw. 6 gleich große Kacheln füllen das Feld, weitere rollen in ganzen Reihen (`base.html`, `verfahren/test_kachel_raster.py`). Der Hinweis „↓ n weitere" folgt mit FB-A5.
+**Ist (0.33.0):** 🟡 `.kacheln` 2 Spalten, kein Zeilenmaß, Kacheln wuchsen mit Inhalt.
 
-#### FB-D2 · Inhalt einer Kachel — 🟡
+#### FB-D2 · Inhalt einer Kachel — ✅
 **Quelle:** A0-05 — *„wobei bei jedem das Thema dabei steht, welches ebenfalls einen Favorisier-Stern daneben hat, dann steht dabei wo die Abstimmung gerade steht also wieviel % abgestimmt haben und wofür, wie lange noch bis zum Fristende in Tagen, Wenn man draufklickt wird der Antrag oder die Unterstützungserklärung usw. aufgerufen."*
 
 **Spezifikation — Aufbau von oben nach unten (Kachel ≈ 300 × 190 px)**
@@ -400,10 +405,11 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 **❓ D-D2 · „wieviel % abgestimmt haben und wofür".** Die Anweisung verlangt die Tendenz („wofür"). Lastenheft F-15 und die bisherige Umsetzung verbergen sie bis Fristende (Mitläufer-Effekt; § 5 Abs 3 lit e nennt Veröffentlichung *nach* der Abstimmung). Drei Wege: **(a)** verdeckt lassen und es in der Kachel sagen (heute); **(b)** Tendenz zeigen, sobald die Mindestbeteiligung erreicht ist (dann kann eine Stimme das Ergebnis nicht mehr durch Fernbleiben kippen); **(c)** immer zeigen. Empfehlung: (a) als Voreinstellung, (b) als Parameter `abstimmung-tendenz-ab-beteiligung` (Wert 0 = nie, 1 = immer) im Parameterregister — dann ist die Frage ein lernbarer Parameter statt einer Glaubensfrage. Bis zur Entscheidung: (a).
 
-**Ist:** 🟡 Kachel mit Titel, Stern (Antrag), Phase, Balken, Beteiligung, Resttage, Begründung, Direktabstimmung ✅ (`_kachel.html`); Thema-Chip mit Themen-Stern ❌; Kreisring ❌; „Mitreden" ❌; Tendenz verdeckt ⚠️ (D-D2).
+**Ist (0.34.0):** ✅ Thema-Chip mit eigenem Themen-Stern (Abo des Lebensbereichs, Tausch nur des Sterns, FB-C4), Antrags-Stern rechts, Titel, Phasen-Chip + Balken, Frist mit Kreisring (`_ring.html`, `phasen.rest_ring`), Direkt-Handlung je Phase (Unterstützen / Ja · Nein · Enthaltung / Mitreden / Zur Wahl), Hervorhebungsgrund nur im Feld D (`_kachel.html`). Tendenz verdeckt ⚠️ (D-D2).
+**Ist (0.33.0):** 🟡 Titel, Stern (Antrag), Phase, Balken, Beteiligung, Resttage, Begründung, Direktabstimmung ✅; Thema-Chip ❌, Kreisring ❌, „Mitreden" ❌.
 
 #### FB-D3 · Klick öffnet Antrag oder Unterstützungserklärung — ✅
-**Ist:** ✅ Titel-Link (`_kachel.html`). Delta: ganze Kachel klickbar (Ausarbeitung).
+**Ist (0.34.0):** ✅ Titel-Link; die ganze Kachel ist klickbar (`.k-titel::before` deckt die Kachel, Knöpfe und Sterne liegen darüber als eigene Ziele — `_kachel.html`, `base.html`).
 
 #### FB-D4 · Wer hebt hervor — Integritätsrat mit Oberfläche, Koordinationsrat beantragt — ❌ (Oberfläche fehlt ganz)
 **Quelle:** A0-04 — *„Wichtige Abstimmungen werden durch beschluss des koordinationsrates veröffentlicht so wie ich das in der satzung lese oder erinnere ich mich falsch?"* · A0-02 — *„Wieso dem Integritätsrat? Das müsste den Koordinationsrat betreffen."*

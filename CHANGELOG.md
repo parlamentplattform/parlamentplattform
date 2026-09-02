@@ -2,6 +2,23 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.34.0] — 2026-09-02 · S2/S4: Kacheln nach Vorgabe und der Favoriten-Fächer mit fünf Ebenen
+
+### Hinzugefügt
+- **Der Favoriten-Fächer nach Layout-Regel v2 (FB-C1, FB-C2, FB-C3):** immer **fünf Ebenen** — Anker 24 px, darüber 22/20/18/16 px — nach der Auffächer-Regel: Ebenen bis zwölf Knoten vollständig, die erste größere nur für den **entfalteten Ast** (drei Kinder nebeneinander, deren Kinder als kleine Säule, ab dem vierten „+n"). Im Ruhezustand ist der Ast des ersten Favoriten entfaltet; alle Äste kommen vorab mit, Alpine blendet beim Zeigen um — keine Netzlast. Neuer deterministischer Kern `plattform_core/faecher.py` (VERSION 2): Randpillen bündig, bis zu drei versetzte Reihen, jede Pille mit zugeteilter Breite b = r·Spanne/(n−1+r) als `max-width` und CSS-Ellipse, voller Name als Tooltip, Prozentlagen, damit der Fächer sein Feld füllt und bei mehr Platz luftiger wird. **Rechenprobe über alle 312 Anker und alle Äste: keine zwei Pillen überlappen** (`tests/test_faecher_layout.py`, 320 Fälle), dazu die Bildschirmprobe in `tests/e2e/test_faecher.py`
+- **Optik und Bewegung des Fächers:** Säulentöne (12 % je Säule, ohne Beschriftung), Faden bis zur Wurzel wird beim Zeigen gold und 2 px, Klick zoomt vom Klickpunkt hinein (320 ms) bevor htmx das Feld tauscht, Mitte-Modus ab Tiefe 3 mit **vollständigem Rückweg** bis zur Wurzel, **Brotkrume** im Feldkopf, Suchtreffer heben den Anker 1,5 s gold hervor. Handy: 20/18/16/15/14 px, Fächer ≥ 600 px breit und waagrecht rollbar, der Feldkörper zeigt zuerst den Anker
+- **Stern-Tausch ohne Feldflackern (FB-C4):** `kategorie_abonnieren` antwortet auf htmx nur mit dem Stern (`_kategorie_stern.html`, `aria-pressed`, Pop 220 ms) — im Fächer, in der Feldsuche und im Kachelkopf; ohne JavaScript wie bisher Seitenwechsel mit Meldung
+- **Kachel nach Vorgabe (FB-D1, FB-D2, FB-D3):** Thema-Chip mit eigenem Themen-Stern, Titel (ganze Kachel klickbar, Knöpfe bleiben eigene Ziele), Phasen-Chip mit Balken, Frist mit Kreisring, Direkt-Handlung je Phase (Unterstützen · Ja/Nein/Enthaltung · Mitreden · Zur Wahl), Hervorhebungsgrund nur bei „Wichtige Abstimmungen"; Raster 2×2, ab 700 px Feldbreite 3×2, gleich große Kacheln
+- **Rückmeldung in der Kachel (FB-A2):** nach Unterstützen oder Abstimmen zeigt die Kachel 1,5 s den Gold-Haken „Erfasst" statt einer Flash-Meldung
+- 45 neue Tests (Fächer-Rechenprobe, Fächer-Einbau, Kachel-Raster, fünf Bildschirmtests) — 633 gesamt, dazu vier Fächer-Bilder in der Sichtprüfung
+
+### Geändert
+- `faecher_layout` erwartet jetzt `reihenfolge` in den Kategoriezeilen (Geschwister in Baumreihenfolge) und bekommt die Favoriten-Slugs (`abos`) für den Ruhe-Ast; Ausgabe in Prozent statt in 1000er-Einheiten
+
+### Behoben
+- Beschriftungen im Fächer überlappten und waren hart abgeschnitten („Bildungssy", „Infrastruktu") — jetzt Ellipse innerhalb der zugeteilten Breite, nie unter sechs Zeichen
+- Der Rückweg im Mitte-Modus brach ab Tiefe 5 ab
+
 ## [0.33.0] — 2026-09-02 · S1 App-Rahmen: eine Leiste, bildschirmfüllendes Parlament, Konto-Menü, Handy-Tableiste
 
 ### Geändert

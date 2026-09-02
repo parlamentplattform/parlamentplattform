@@ -54,10 +54,10 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
 
     # Der Favoriten-Fächer (FB-C1–C4): Wurzel mit fünf Ebenen, entfalteter Ast beim Hover,
     # Mitte-Modus mit Rückweg und Brotkrume, Handy-Variante
-    def halte_feld(p, name):
+    def halte_feld(p, name, feld="#feld-favoriten"):
         _ruhe(p)
         ziel = sichtpruefung / f"{name}.png"
-        p.locator("#feld-favoriten").screenshot(path=str(ziel))
+        p.locator(feld).screenshot(path=str(ziel))
         bilder.append(ziel)
 
     p = seite(als=_mitglied())
@@ -76,6 +76,25 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/parlament/#feld-favoriten")
     p.wait_for_timeout(500)
     halte_feld(p, "faecher-handy")
+
+    # Der WeicherFilter (FB-B1–B5): Overlay von rechts, Live-Vorschau mit „Warum hier?", eingefahrene Leiste
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    p.locator("#feld-filter .regler-klappe > summary").click()
+    p.wait_for_timeout(450)
+    halte_feld(p, "filter-overlay", "#feld-filter")
+    p.locator('#feld-filter input[name="r_unterstuetzungsphase"]').focus()
+    p.keyboard.press("End")
+    p.wait_for_function("() => document.querySelector('#filter-liste .warum') !== null")
+    p.keyboard.press("Escape")
+    p.wait_for_timeout(250)
+    p.locator("#filter-liste .warum > summary").first.click()
+    p.wait_for_timeout(300)
+    halte_feld(p, "filter-vorschau-warum", "#feld-filter")
+    p.locator("#feld-filter .pfeil").click()
+    p.wait_for_timeout(450)
+    halte_feld(p, "filter-leiste-zu", "#feld-filter")
 
     # Konto-Menü und Anstoß-Popover geöffnet
     p = seite(als=_mitglied())
@@ -110,6 +129,6 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/antrag/{antrag}/")
     halte_fest(p, "antragsseite-mit-fusszeile")
 
-    assert len(bilder) == 14
+    assert len(bilder) == 17
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

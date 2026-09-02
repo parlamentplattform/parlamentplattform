@@ -248,7 +248,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 ### Bereich B · Der WeicherFilter (Feld links oben)
 
-#### FB-B1 · Der selbstgesteuerte Feed — 🟡
+#### FB-B1 · Der selbstgesteuerte Feed — ✅
 **Quelle:** A0-05 — *„wie könnte ich einen Feed benennen in dem man selbst einstellt wie er funktioniert. Er basiert auf den ausgewählten Favoriten und auf selbst einstellbare Parameter was vermehrt angezeigt werden soll. Man steuert sozusagen selbst den Algorythmus."* · A0-06/07: Name **WeicherFilter**.
 
 **Spezifikation**
@@ -260,9 +260,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Gäste:* immer neutral, ohne Favoriten-Bevorzugung, ohne Regler.
 
 **Abnahme:** Als Mitglied mit Abo „Energie" steht ein Energie-Antrag in der Unterstützungsphase vor einem gleich alten Nicht-Energie-Antrag; Chip „★ Favoriten zuerst" ist sichtbar; Abschalten stellt die reine Grundordnung her. Tipp auf „Warum hier?" zeigt die Punkte je Regler.
-**Ist:** Regel v1 mit 8 Reglern ✅ (`plattform_core/weicherfilter.py`); Favoriten-Bevorzugung in der Voreinstellung ❌ (Voreinstellung ist rein Phase/Frist, `views.py:321-334`); Aufschlüsselung nur als `title`-Tooltip 🟡; Direkt-Handlung in der Zeile ❌.
+**Ist (0.35.0):** ✅ Regel v2 (`plattform_core/weicherfilter.py`, VERSION 2, `reihen(…, favoriten_zuerst)`); Favoriten zuerst in der Voreinstellung als offene Partition, Chip „★ Favoriten zuerst" im Feldkopf (`filter_favoriten`, Feld `favoriten_zuerst` an `FilterProfil` und `Mitglied`); Feed-Zeile nach Spezifikation (`_filter_zeile.html`: Titel + Stern, Chips Phase/Ebene/Lebensbereich, Mini-Balken + Stand, Direkt-Handlung rechts, „Erfasst"-Haken); „Warum hier?" als `<details>` je Zeile mit Rechnung je Regler; neutral = Gruppen, aktives Profil = eine Liste (`_weicherfilter_feed` in `verfahren/views.py`); Gäste neutral ohne Schalter. Tests: `verfahren/test_weicherfilter_ansicht.py`. **Hinweis:** die Gruppe „Abgeschlossen" (letzte 20) bleibt im neutralen Zustand als vierte Gruppe stehen — kein zehnter Regler.
+**Ist (0.34.0):** Regel v1 mit 8 Reglern; Favoriten-Bevorzugung ❌; Aufschlüsselung nur als Tooltip; Direkt-Handlung ❌.
 
-#### FB-B2 · Die Regler — 🟡 (7 von 9 vorhanden, einer falsch)
+#### FB-B2 · Die Regler — ✅
 **Quelle:** A0-05 — *„Bspw. der Parameter: mehr von dem wofür oder wogegen ich bereits gestimmt habe. mehr von dem was ich bereits unterstützt habe. Abstimmungen oder Unterstützungsanträge die mich interessieren könnten außerhalb meiner Favoriten. vermehrt Unterstützungsanträge, vermehrt Abstimmungen, vermehrt chronologisch was mein Feed zeigt, vermehrt Anträge usw. die nur noch kurz online sind, Anträge usw. denen nur noch wenig Unterstützung fehlt oder Abstimmungen fehlen. Das alles sind Schieberegler…"*
 
 **Spezifikation — die neun Regler (Reihenfolge = Anzeige), je 0–100 in 5er-Schritten, Voreinstellung 0**
@@ -285,15 +286,17 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* `aria-valuetext="40 von 100"`, Beschriftung als `<label>`; Tastatur ±5.
 
 **Abnahme:** Neun Regler in dieser Reihenfolge und mit diesem Wortlaut; Regler 1 auf 100 hebt einen Antrag aus einem Lebensbereich, in dem ich mit Ja gestimmt habe, über einen aus einem Lebensbereich, in dem ich mit Nein gestimmt habe (und Regler 2 umgekehrt); Ziehen ordnet live um.
-**Ist:** 8 Regler (`views.py:31-40`); „gestimmt" richtungslos (`views.py:62-64,80`); `ablaufend` pauschal /60 (`views.py:77`); keine Live-Vorschau (Formular „Anwenden & speichern").
+**Ist (0.35.0):** ✅ neun Regler in dieser Reihenfolge und mit diesem Wortlaut (`REGLER_NAMEN` in `verfahren/views.py`, Merkmale in `_weicherfilter_reihen`): wofür/wogegen getrennt über die eigene Stimme im Stimmregister (`_eigene_stimm_kategorien`, nur dem Mitglied bekannt), „Nur noch kurz online" = verstrichener Anteil der eigenen Phasendauer, „Wenig fehlt" mit Mindestbeteiligung; Live-Vorschau per htmx (`hx-trigger="input … delay:400ms"` → `filter_vorschau`, tauscht nur `#filter-liste`, speichert nichts); Wert rechts am Regler, `aria-valuetext`, native `<input type=range>`. Datenmigration `0011`: `gestimmt` → `ja` und `nein`.
+**Ist (0.34.0):** 8 Regler, „gestimmt" richtungslos, `ablaufend` pauschal /60, keine Live-Vorschau.
 
-#### FB-B3 · Bis zu fünf gespeicherte Konfigurationen — ✅ (Feinschliff)
+#### FB-B3 · Bis zu fünf gespeicherte Konfigurationen — ✅
 **Quelle:** A0-05 — *„…deren Gesamteinstellungen gespeichert werden können, bis zu 5, die man jederzeit umschalten oder anpassen kann."*
 
 **Spezifikation:** Konfiguration = Name (≤ 24 Zeichen) + neun Reglerwerte + Schalter „★ Favoriten zuerst"; serverseitig beim Mitglied; höchstens 5; genau eine ist aktiv (oder „Neutral"). Umschalten wirkt sofort (Feldtausch). Umbenennen per Doppelklick/Stift-Symbol im Overlay. Löschen mit Rückfrage „Konfiguration ‚Abend' löschen?" (Inline-Bestätigung, kein Browser-Dialog). Reihenfolge der Chips = Reihenfolge der Erstellung; per Drag umsortierbar (Zugabe).
-**Ist:** ✅ `FilterProfil` (max. 5, `verfahren/models.py:580-606`, `views_aktionen.py:321-336`); Umbenennen ❌, Löschen ohne Rückfrage 🟡.
+**Ist (0.35.0):** ✅ `FilterProfil` mit Name (≤ 24), neun Reglern und `favoriten_zuerst`; höchstens 5, eines aktiv oder „Neutral"; Umschalten per Chip (Feldtausch); Umbenennen per Stift im Overlay (`filter_umbenennen`, Inline-Formular); Löschen mit Inline-Rückfrage „Konfiguration ‚Abend' löschen?" (`<details>` + Formular, kein Browser-Dialog). **Offen (Zugabe):** Umsortieren per Drag.
+**Ist (0.34.0):** max. 5 ✅; Umbenennen ❌, Löschen ohne Rückfrage.
 
-#### FB-B4 · Das Umschaltmenü am oberen Rand mit Pfeil (Slide) — ❌
+#### FB-B4 · Das Umschaltmenü am oberen Rand mit Pfeil (Slide) — ✅
 **Quelle:** A0-05 — *„Umschalten über ein kleines Menü wo diese gespeicherten Gesamteinstellungen schnell aktiviert werden können am oberen Rand mit Pfeil zum einfahren des Menüs (slide animation)."*
 
 **Spezifikation**
@@ -303,9 +306,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* Pfeil = `<button aria-expanded aria-controls="filter-leiste">`; Chips sind Formular-Knöpfe.
 
 **Abnahme:** Pfeil sichtbar; Klick fährt die Leiste in ~0,25 s ein, Griff bleibt; erneuter Klick fährt aus; Zustand überlebt Neuladen; aktives Profil bleibt im Feldkopf lesbar.
-**Ist:** ❌ feste Chip-Leiste (`parlament.html:20-56`), nur Lade-Animation `einfahren-oben` (`base.html:283`).
+**Ist (0.35.0):** ✅ Profil-Leiste 40 px auf `--paper` (`.filter-leiste` in `base.html`, `parlament.html`): Chips Neutral · Konfigurationen (aktiv gold) · „● Ungespeichert" · ⚙ Regler, rechts der runde Pfeil (28 px, `aria-expanded`, `aria-controls="filter-leiste"`); Einfahren 40 → 14 px in 260 ms (`--d-base`, `--e-in`), Griff mit ˅ am oberen Feldrand, Zustand je Gerät in `localStorage` `ddoe.filterleiste` (Alpine `weicherfilter.leiste`); der Feldkopf zeigt den aktiven Namen immer. Ohne JavaScript: Leiste ausgefahren, Pfeil und Griff `x-cloak`. Bildschirmtest `tests/e2e/test_weicherfilter.py::test_leiste_faehrt_ein_und_merkt_sich_das`.
+**Ist (0.34.0):** ❌ feste Chip-Leiste.
 
-#### FB-B5 · Der Reglerbereich als halbtransparentes Overlay rechts — 🟡
+#### FB-B5 · Der Reglerbereich als halbtransparentes Overlay rechts — ✅
 **Quelle:** A0-05 — *„am rechten Rand ist der Schieberegler Bereich wo alle Schieberegler drauf sind, wobei die aktuell gewählte Konfiguration angezeigt wird aber man die Schieberegler einzeln anpassen kann und dann auf speichern drücken falls es eine ausgewählte Konfiguration ist oder auf neue Konfiguration speichern klicken falls man noch keine 5 Konfigurationen hat. Alles als halbtransparentes Overlay über dem Feed Bereich…"*
 
 **Spezifikation**
@@ -316,10 +320,11 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* `role="dialog" aria-modal="false" aria-label="Regler des WeicherFilters"`; Fokus geht beim Öffnen auf die Kopfzeile, beim Schließen zurück auf den Auslöser.
 
 **Abnahme:** Overlay gleitet von rechts, Feed bleibt sichtbar; „Speichern" ist bei „Neutral" ausgegraut; bei 5 Konfigurationen fehlt „Als neue…"; Escape schließt.
-**Ist:** 🟡 `<details>`-Overlay mit `einfahren-rechts` (`base.html:146,284`); Aktionen „Anwenden & speichern" + „Als neues Profil" (`parlament.html:31-55`); keine Änderungsanzeige, kein Stift, kein Löschen mit Rückfrage, kein Escape/Fokus-Management.
+**Ist (0.35.0):** ✅ `_filter_regler.html` als Inhalt des nativen `<details class="regler-klappe">` (Alpine `klappmenue`: Escape, Außenklick, Fokusrückgabe): `.regler-feld` 340 px (Handy 100 %), Höhe = Feldkörper, `--overlay` mit `backdrop-filter: blur(10px)`, gleitet von rechts (`overlay-rein`, 320 ms), `role="dialog" aria-modal="false"`, Fokus auf die Kopfzeile. Kopfzeile: Name / „Neutral", „● Ungespeichert" (Alpine `weicherfilter.pruefe`), Stift (Umbenennen inline), ×. Schalter „★ Favoriten zuerst", neun Regler, „Punkte = Regler × Merkmal. Regel v2 nachlesen ›". Aktionen: Speichern (`:disabled` ohne Änderung, bei Neutral immer aus) · Als neue Konfiguration speichern (Inline-Namensfeld „Anlegen"; bei 5/5 der Satz „5 von 5 — eine löschen oder überschreiben") · Zurücksetzen · Löschen mit Rückfrage. Auch das ⚙-Symbol im Feldkopf öffnet. Ohne JavaScript: dasselbe `<details>`, Speichern lädt neu.
+**Ist (0.34.0):** 🟡 `<details>`-Overlay ohne Änderungsanzeige, Stift, Rückfrage, Escape.
 
 #### FB-B6 · Voreinstellung neutral, Regel offen — ✅
-**Quelle:** Satzung § 5 Abs 10 lit d, § 2 Abs 6 letzter Satz; L3. **Spezifikation:** Voreinstellung = neutral (Phase, Frist, chronologisch) + „★ Favoriten zuerst" (offen sichtbar, abschaltbar); die Regel steht versioniert im Code und in Kurzform als Link „Regel v2 nachlesen" im Overlay-Fuß (öffnet `/parameter/#weicherfilter`). **Ist:** ✅ neutral; Regeltext heute als Satz im Overlay (`parlament.html`) — wird zum Link.
+**Quelle:** Satzung § 5 Abs 10 lit d, § 2 Abs 6 letzter Satz; L3. **Spezifikation:** Voreinstellung = neutral (Phase, Frist, chronologisch) + „★ Favoriten zuerst" (offen sichtbar, abschaltbar); die Regel steht versioniert im Code und in Kurzform als Link „Regel v2 nachlesen" im Overlay-Fuß (öffnet `/parameter/#weicherfilter`). **Ist (0.35.0):** ✅ neutral + „★ Favoriten zuerst" sichtbar und abschaltbar; im Overlay-Fuß der Link „Regel v2 nachlesen ›" auf `/parameter/#weicherfilter`, wo die Parameterseite Regel v2 Regler für Regler erklärt (`parameter/templates/parameter/liste.html`, `REGLER_MERKMALE`).
 
 ---
 

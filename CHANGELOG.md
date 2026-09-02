@@ -2,6 +2,22 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.35.0] — 2026-09-02 · S3: Der WeicherFilter komplett — neun Regler, Favoriten zuerst, Profil-Leiste, Overlay, Live-Vorschau
+
+### Hinzugefügt
+- **Regel v2 des WeicherFilters (FB-B1, FB-B2, FB-B6)** in `plattform_core/weicherfilter.py`: neun Regler mit dem Wortlaut des Fahrtenbuchs — *Mehr wie das, wofür ich gestimmt habe · … wogegen ich gestimmt habe · … was ich unterstützt habe · Interessantes außerhalb meiner Favoriten · Mehr Unterstützungsanträge · Mehr Abstimmungen · Mehr chronologisch (Neues zuerst) · Nur noch kurz online · Wenig fehlt*. Wofür und wogegen sind zwei Regler (D-B2); „Nur noch kurz online" misst die eigene Phasendauer statt pauschal 60 Tage; „Wenig fehlt" kennt jetzt auch die Mindestbeteiligung einer Abstimmung. Punkte = Σ Regler × Merkmal, jedes Merkmal in [0, 1], Gleichstand behält die Grundordnung — nachzulesen unter `/parameter/#weicherfilter`
+- **„★ Favoriten zuerst" (FB-B1):** in der neutralen Voreinstellung stehen Anträge aus abonnierten Lebensbereichen innerhalb jeder Phase vorn; der Schalter ist als Chip im Feldkopf sichtbar und abschaltbar (je Konfiguration und für die Voreinstellung, `favoriten_zuerst` an `FilterProfil` und `Mitglied`) — eine offene Partition, keine verdeckte Reihung
+- **Die Feed-Zeile (FB-B1):** Titel mit Stern, farbige Chips (Abstimmung gold, Beratung petrol, Unterstützung grau; Ebene · Ort; Lebensbereich), Mini-Balken mit „2 von 3 Unterstützungen · noch 59 Tage" bzw. „40 % Beteiligung", rechts die Direkt-Handlung der Phase (Unterstützen / Abstimmen ▸ mit Ja · Nein · Enthaltung inline / Mitreden / Zur Wahl ›), Gold-Haken „Erfasst" nach der Handlung. Bei aktivem Profil eine einzige punktgereihte Liste und je Zeile das Aufklapp-Feld **„Warum hier?"** mit der Rechnung je Regler (statt des Tooltips, der auf Touch unerreichbar war)
+- **Profil-Leiste mit Pfeil (FB-B4):** 40 px unter dem Feldkopf mit Chips Neutral · Konfigurationen · „● Ungespeichert" · ⚙ Regler; der runde Pfeil fährt sie in 260 ms ein, übrig bleibt ein 14-px-Griff, der Zustand wird je Gerät gemerkt (`localStorage` `ddoe.filterleiste`); der aktive Name bleibt im Feldkopf lesbar
+- **Regler-Overlay von rechts (FB-B5):** 340 px (Handy: volle Feldbreite), halbtransparent mit Weichzeichner, gleitet in 320 ms herein, der Feed darunter bleibt sichtbar. Kopfzeile mit Name, „● Ungespeichert", Stift (Umbenennen inline) und ×; Schalter, neun Regler mit Wert und `aria-valuetext`; Aktionszeile Speichern (nur bei Änderung) · Als neue Konfiguration speichern (Inline-Namensfeld; bei 5/5 „eine löschen oder überschreiben") · Zurücksetzen · Löschen mit Inline-Rückfrage; Escape und Außenklick schließen, der Fokus kehrt zum Auslöser zurück; auch das ⚙-Symbol im Feldkopf öffnet
+- **Live-Vorschau (FB-B2):** beim Ziehen eines Reglers ordnet htmx nach 400 ms Ruhe nur die Liste neu (`filter/vorschau/`, speichert nichts); ohne JavaScript bleiben Regler und Formular nativ bedienbar
+- **Konfigurationen (FB-B3):** Umbenennen (`filter/<pk>/umbenennen/`), Löschen mit Rückfrage, Namen bis 24 Zeichen, Schalter je Konfiguration; Datenmigration übernimmt alte Reglerstände (`gestimmt` → `ja` und `nein`)
+- 35 neue Tests (Kern v2, Einbau, Parameterseite, Datenmigration, fünf Bildschirmtests) — 646 gesamt
+
+### Geändert
+- Die Parameterseite erklärt die Regel v2 Regler für Regler (Anker `#weicherfilter`); der Link im Overlay heißt „Regel v2 nachlesen ›"
+- Englischer Katalog um 57 Texte ergänzt (darunter Reste aus S2: „Mitreden", „Erfasst", „Unterstützt")
+
 ## [0.34.0] — 2026-09-02 · S2/S4: Kacheln nach Vorgabe und der Favoriten-Fächer mit fünf Ebenen
 
 ### Hinzugefügt

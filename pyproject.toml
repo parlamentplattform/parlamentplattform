@@ -21,6 +21,10 @@ dev = [
     "ruff>=0.4",
     "coverage[toml]>=7.4",
 ]
+e2e = [
+    "playwright>=1.47",       # Bildschirmtests, laut CLAUDE.md ohne ADR zulässig
+    "pytest-playwright>=0.5",
+]
 postgres = ["psycopg[binary]>=3.1"]
 prod = ["gunicorn>=22.0", "whitenoise>=6.6"]
 
@@ -28,6 +32,7 @@ prod = ["gunicorn>=22.0", "whitenoise>=6.6"]
 DJANGO_SETTINGS_MODULE = "config.settings"
 testpaths = ["tests", "verfahren", "mitglieder", "uebersicht", "plattform_core", "anstoss", "mandatare", "gremien", "ki", "parameter"]
 python_files = ["test_*.py", "tests.py"]
+markers = ["e2e: Bildschirmtests mit Playwright und Chromium (tests/e2e)"]
 
 [tool.ruff]
 line-length = 110

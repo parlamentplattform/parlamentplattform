@@ -24,6 +24,30 @@ jobs:
       - name: Django-Systemcheck
         run: python manage.py check
 
+  sichtpruefung:
+    # Bildschirmtests (Design-Spezifikation 8, FB-A1 Abnahmen 1-4). Eigener Job, weil der
+    # Chromium-Download den Pflicht-Check `pruefen` sonst um Minuten verlängert; ohne
+    # Playwright überspringen sich die Tests, `pruefen` bleibt davon unberührt.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Abhängigkeiten samt Browser
+        run: |
+          pip install -e ".[dev,e2e]"
+          python -m playwright install --with-deps chromium
+      - name: Bildschirmtests
+        run: python -m pytest tests/e2e -q
+      - name: Bilder der Sichtprüfung sichern
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sichtpruefung
+          path: docs/sichtpruefung/
+          if-no-files-found: ignore
+
   ausrollen:
     # Deploy erst nach bestandener Prüfung — besser als naives Auto-Deploy,
     # das auch rote Commits ausrollen würde. Braucht das Repository-Secret

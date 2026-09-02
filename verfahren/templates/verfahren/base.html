@@ -59,7 +59,7 @@
   --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
   --stern-aus:#4E5B63;--glanz:rgba(255,255,255,.04);
 }
-[x-cloak]{display:none!important}
+[x-cloak],[hidden]{display:none!important}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
 /* Typografie (Spec 2.2, D-P2): Sans für alles Bedienbare; Serif nur Wortmarke und Bühnen-H1 */
@@ -99,7 +99,7 @@ a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px
 .sprache:hover{border-color:var(--gold-soft)}
 /* Popover (Spec 4): kommt von oben in 200 ms, mit Pfeilspitze; Escape und Außenklick schließen (Alpine) */
 @keyframes pop-auf{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-.pop{position:absolute;top:calc(100% + 8px);right:0;width:240px;background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:var(--shadow-lift);padding:8px;z-index:50;transform-origin:top right;animation:pop-auf var(--d-pop) var(--e-out)}
+.pop{position:absolute;top:calc(100% + 18px);right:0;width:240px;background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:var(--shadow-lift);padding:8px;z-index:50;transform-origin:top right;animation:pop-auf var(--d-pop) var(--e-out)}
 .pop::before{content:"";position:absolute;top:-6px;right:14px;width:12px;height:12px;background:var(--surface);transform:rotate(45deg);border-radius:2px}
 .pop-kopf{padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:600}
 .pop a,.pop button.z,.pop summary{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:10px;color:var(--ink);font:inherit;font-size:14px;background:none;border:0;cursor:pointer;text-decoration:none}
@@ -212,7 +212,7 @@ pre{white-space:pre-wrap;font-family:inherit}
 /* ── Das Parlament (Spec 3.2, FB-A1): 2×2-Raster füllt den Bildschirm unter Leiste und Band, kein Seiten-Scroll ── */
 body.voll{overflow:hidden}
 body.voll main{max-width:none;padding:0}
-.parlament{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;padding:12px;max-width:1500px;margin:0 auto;height:calc(100vh - var(--bar) - var(--band));height:calc(100dvh - var(--bar) - var(--band))}
+.parlament{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px;max-width:1500px;margin:0 auto;height:calc(100vh - var(--bar) - var(--band));height:calc(100dvh - var(--bar) - var(--band))}
 .feld{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
 .filter-leiste{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
 .chipform{display:inline}
@@ -350,8 +350,8 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .anstoss-leiste{position:relative;display:flex;align-items:center}
 .anstoss-leiste .anstoss-fleck summary{width:36px;height:36px;padding:0;justify-content:center;background:none;color:var(--bar-ink);border:0;box-shadow:none;font-size:0}
 .anstoss-leiste .anstoss-fleck summary:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
-.anstoss-leiste .anstoss-karte{position:absolute;top:calc(100% + 8px);right:0;bottom:auto;width:min(340px,calc(100vw - 24px));color:var(--ink);z-index:50;animation:pop-auf var(--d-pop) var(--e-out);transform-origin:top right}
-.anstoss-leiste .anstoss-bestaetigung{position:absolute;top:calc(100% + 8px);right:0;z-index:50;white-space:nowrap}
+.anstoss-leiste .anstoss-karte{position:absolute;top:calc(100% + 18px);right:0;bottom:auto;width:min(340px,calc(100vw - 24px));color:var(--ink);z-index:50;animation:pop-auf var(--d-pop) var(--e-out);transform-origin:top right}
+.anstoss-leiste .anstoss-bestaetigung{position:absolute;top:calc(100% + 18px);right:0;z-index:50;white-space:nowrap}
 .nur-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .anstoss-fleck{position:relative}
 .anstoss-x{position:absolute;top:8px;right:12px;font-size:22px;line-height:1;color:var(--matt);text-decoration:none;padding:2px 6px;border-radius:8px}

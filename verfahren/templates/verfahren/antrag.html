@@ -14,6 +14,7 @@
   {% if ist_favorit %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733; {% translate "Favorit" %}</button>
   {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734; {% translate "merken" %}</button>{% endif %}
 </form>
+{% else %}<a class="stern aus gast" href="{% url 'mitglieder:login' %}" title="{% translate 'Anmelden, um Favoriten zu merken' %}">&#9734; {% translate "merken" %}</a>
 {% endif %}</p>
 {% if antrag.hervorgehoben %}<div class="karte hinweis"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
 {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
@@ -141,14 +142,14 @@
 <div class="karte">
   {% with stand=vollzug|first %}
   <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    {% if stand %}<span class="badge" style="{{ stand.status|vollzug_stil }}">{{ stand.status|phase_name }}</span>
-    {% else %}<span class="badge" style="{{ 'offen'|vollzug_stil }}">{% translate "offen" %}</span>{% endif %}
+    {% if stand %}<span class="badge {{ stand.status|vollzug_klasse }}">{{ stand.status|phase_name }}</span>
+    {% else %}<span class="badge badge-still">{% translate "offen" %}</span>{% endif %}
     <span class="erk">{% blocktranslate %}Öffentlicher Stand der Umsetzung (§ 6 Abs 10) — geführt im <a href="/umsetzung/">Umsetzungsregister</a>.{% endblocktranslate %}</span>
   </p>
   {% endwith %}
   {% for v in vollzug %}
     <div class="kommentar">
-      <div class="kopf"><span class="badge" style="{{ v.status|vollzug_stil }}">{{ v.status|phase_name }}</span>
+      <div class="kopf"><span class="badge {{ v.status|vollzug_klasse }}">{{ v.status|phase_name }}</span>
       {{ v.erstellt_am|date:"d.m.Y, H:i" }} · {{ v.durch.anzeigename }}</div>
       {% if v.vermerk %}<div>{{ v.vermerk|linebreaksbr }}</div>{% endif %}
     </div>

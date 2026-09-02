@@ -1,0 +1,6 @@
+{% load i18n %}{% get_current_language as SPRACHE %}
+<form method="post" action="{% url 'set_language' %}" class="sprache-form" title="{% translate 'Sprache wechseln' %}">{% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.path }}">
+  {% if SPRACHE == "en" %}<input type="hidden" name="language" value="de"><button type="submit" class="{% if knapp %}sprache{% else %}z{% endif %}" lang="de">{% if knapp %}DE{% else %}DE · Deutsch{% endif %}</button>
+  {% else %}<input type="hidden" name="language" value="en"><button type="submit" class="{% if knapp %}sprache{% else %}z{% endif %}" lang="en">{% if knapp %}EN{% else %}EN · English{% endif %}</button>{% endif %}
+</form>

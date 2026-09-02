@@ -5,10 +5,10 @@
 <h1>{{ person.get_full_name|default:person.anzeigename }}</h1>
 <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
   {% if not person.is_active and person.status != "ausgeschlossen" %}
-    <span class="badge" style="background:#EDF3F5;color:#0E4C5C">unbestätigt (E-Mail offen)</span>
-  {% elif person.status == "aktiv" %}<span class="badge" style="background:#EFF6F1;color:#1E4736">aktiv</span>
-  {% elif person.status == "pausiert" %}<span class="badge" style="background:#FBF6EA;color:#7A5A16">pausiert</span>
-  {% else %}<span class="badge" style="background:#F9EFEE;color:#6E2222">ausgeschlossen</span>{% endif %}
+    <span class="badge badge-info">unbestätigt (E-Mail offen)</span>
+  {% elif person.status == "aktiv" %}<span class="badge badge-ok">aktiv</span>
+  {% elif person.status == "pausiert" %}<span class="badge badge-hinweis">pausiert</span>
+  {% else %}<span class="badge badge-warn">ausgeschlossen</span>{% endif %}
   {% if person.ist_fixer_admin %}<span class="badge badge--hell">fixer Admin</span>
   {% elif person.ist_admin %}<span class="badge badge--hell">Admin</span>{% endif %}
   <span class="erk">Mitglied #{{ person.pk }} · beigetreten {{ person.beitritt|date:"d.m.Y"|default:"—" }} ·

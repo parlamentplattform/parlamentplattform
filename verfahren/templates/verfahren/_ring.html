@@ -1,0 +1,2 @@
+{% load i18n phasen %}{% comment %}Fristring (FB-D2): zeigt den Anteil der verstrichenen Phase. Umfang 2πr = 50.3 bei r = 8.{% endcomment %}
+<svg class="ring" viewBox="0 0 20 20" role="img" aria-label="{% blocktranslate %}{{ wert }} % der Frist verstrichen{% endblocktranslate %}"><circle class="bahn" cx="10" cy="10" r="8"/><circle class="wert" cx="10" cy="10" r="8" style="stroke-dashoffset:{{ wert|rest_ring }}"/></svg>

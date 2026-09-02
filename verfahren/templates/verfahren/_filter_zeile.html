@@ -1,0 +1,59 @@
+{% load i18n phasen %}{% comment %}
+Eine Zeile des WeicherFilter-Feeds (FB-B1): Titel mit Stern rechts, Chips (Phase farbig, Ebene,
+Lebensbereich), Stand mit Mini-Balken und Frist, Direkt-Handlung der Phase rechts; bei aktivem
+Profil das Aufklapp-Feld „Warum hier?“ mit der offenen Rechnung. Erwartet z (wie _kachel plus
+favorit, anteile, punkte).
+{% endcomment %}<div class="fz{% if z.favorit %} favorit{% endif %}" data-antrag="{{ z.antrag.pk }}">
+  <a class="zt" href="{% url 'verfahren:antrag' z.antrag.pk %}{% if z.stat.typ == 'abstimmung' %}#abstimmen{% endif %}">{{ z.antrag.titel }}</a>
+  <div class="zm">
+    <span class="badge b-{{ z.antrag.phase }}">{{ z.antrag.phase|phase_name }}</span>
+    {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% endif %}
+    {% if z.antrag.ebene != "bund" %}<span class="chip klein">{{ z.antrag.get_ebene_display }}{% if z.antrag.gebiet %} · {{ z.antrag.gebiet }}{% endif %}</span>{% endif %}
+    {% if z.thema %}<span class="chip klein{% if z.favorit %} still{% endif %}" title="{{ z.thema.pfad_kurz }}">{% if z.favorit %}★ {% endif %}{{ z.thema.name }}</span>{% endif %}
+  </div>
+  {% if z.stat %}
+  <div class="zs{% if z.stat.typ == 'beratung' %} ohne{% endif %}">
+    {% if z.stat.typ != "beratung" %}<span class="balken" aria-hidden="true"><b style="width:{{ z.stat.prozent }}%"></b></span>{% endif %}
+    <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
+  </div>
+  {% else %}
+  <div class="zs ohne"><span>{{ z.antrag.phase|phase_name }} · {{ z.antrag.phase_beginn|date:"d.m.Y" }}</span></div>
+  {% endif %}
+  {% if z.anteile %}
+  <details class="warum"><summary>{% translate "Warum hier?" %}</summary>
+    <ul class="aufk">
+      <li><b>{{ z.punkte|floatformat:"-1" }}</b> {% translate "Punkte" %}{% if z.favorit %} · ★ {% translate "Favorit" %}{% endif %}</li>
+      {% for name, wert in z.anteile %}
+      <li>{{ name }} <b>{{ wert|floatformat:"-1" }}</b></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  <div class="za">
+    {% include "verfahren/_stern.html" with antrag=z.antrag %}
+    {% if z.stat.typ == "abstimmung" and not user.is_authenticated %}
+      <a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
+    {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}
+      <a class="knopf gold" href="{% url 'verfahren:antrag' z.antrag.pk %}#bewerbungen">{% translate "Zur Wahl ›" %}</a>
+    {% elif z.stat.typ == "abstimmung" %}
+      <details class="abstimmen"><summary class="knopf gold">{% if z.meine_stimme %}{{ z.meine_stimme|phase_name }} ✓{% else %}{% translate "Abstimmen" %}{% endif %} ▸</summary>
+        <form method="post" action="{% url 'verfahren:abstimmen' z.antrag.pk %}" class="stimmreihe"
+          hx-post="{% url 'verfahren:abstimmen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+          <button name="stimme" value="ja" class="btn-linie klein{% if z.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
+          <button name="stimme" value="nein" class="btn-linie klein{% if z.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
+          <button name="stimme" value="enthaltung" class="btn-still klein{% if z.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
+        </form>
+      </details>
+    {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated %}
+      <form method="post" action="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" class="stimmreihe"
+        hx-post="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <button class="knopf{% if z.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}">{% if z.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
+      </form>
+    {% elif z.stat.typ == "beratung" %}
+      <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#beratung">{% translate "Mitreden" %}</a>
+    {% endif %}
+  </div>
+  <span class="k-erfasst" role="status">✓ {% translate "Erfasst" %}</span>
+</div>

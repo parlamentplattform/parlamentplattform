@@ -2,6 +2,66 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.35.0] — 2026-09-02 · S3: Der WeicherFilter komplett — neun Regler, Favoriten zuerst, Profil-Leiste, Overlay, Live-Vorschau
+
+### Hinzugefügt
+- **Regel v2 des WeicherFilters (FB-B1, FB-B2, FB-B6)** in `plattform_core/weicherfilter.py`: neun Regler mit dem Wortlaut des Fahrtenbuchs — *Mehr wie das, wofür ich gestimmt habe · … wogegen ich gestimmt habe · … was ich unterstützt habe · Interessantes außerhalb meiner Favoriten · Mehr Unterstützungsanträge · Mehr Abstimmungen · Mehr chronologisch (Neues zuerst) · Nur noch kurz online · Wenig fehlt*. Wofür und wogegen sind zwei Regler (D-B2); „Nur noch kurz online" misst die eigene Phasendauer statt pauschal 60 Tage; „Wenig fehlt" kennt jetzt auch die Mindestbeteiligung einer Abstimmung. Punkte = Σ Regler × Merkmal, jedes Merkmal in [0, 1], Gleichstand behält die Grundordnung — nachzulesen unter `/parameter/#weicherfilter`
+- **„★ Favoriten zuerst" (FB-B1):** in der neutralen Voreinstellung stehen Anträge aus abonnierten Lebensbereichen innerhalb jeder Phase vorn; der Schalter ist als Chip im Feldkopf sichtbar und abschaltbar (je Konfiguration und für die Voreinstellung, `favoriten_zuerst` an `FilterProfil` und `Mitglied`) — eine offene Partition, keine verdeckte Reihung
+- **Die Feed-Zeile (FB-B1):** Titel mit Stern, farbige Chips (Abstimmung gold, Beratung petrol, Unterstützung grau; Ebene · Ort; Lebensbereich), Mini-Balken mit „2 von 3 Unterstützungen · noch 59 Tage" bzw. „40 % Beteiligung", rechts die Direkt-Handlung der Phase (Unterstützen / Abstimmen ▸ mit Ja · Nein · Enthaltung inline / Mitreden / Zur Wahl ›), Gold-Haken „Erfasst" nach der Handlung. Bei aktivem Profil eine einzige punktgereihte Liste und je Zeile das Aufklapp-Feld **„Warum hier?"** mit der Rechnung je Regler (statt des Tooltips, der auf Touch unerreichbar war)
+- **Profil-Leiste mit Pfeil (FB-B4):** 40 px unter dem Feldkopf mit Chips Neutral · Konfigurationen · „● Ungespeichert" · ⚙ Regler; der runde Pfeil fährt sie in 260 ms ein, übrig bleibt ein 14-px-Griff, der Zustand wird je Gerät gemerkt (`localStorage` `ddoe.filterleiste`); der aktive Name bleibt im Feldkopf lesbar
+- **Regler-Overlay von rechts (FB-B5):** 340 px (Handy: volle Feldbreite), halbtransparent mit Weichzeichner, gleitet in 320 ms herein, der Feed darunter bleibt sichtbar. Kopfzeile mit Name, „● Ungespeichert", Stift (Umbenennen inline) und ×; Schalter, neun Regler mit Wert und `aria-valuetext`; Aktionszeile Speichern (nur bei Änderung) · Als neue Konfiguration speichern (Inline-Namensfeld; bei 5/5 „eine löschen oder überschreiben") · Zurücksetzen · Löschen mit Inline-Rückfrage; Escape und Außenklick schließen, der Fokus kehrt zum Auslöser zurück; auch das ⚙-Symbol im Feldkopf öffnet
+- **Live-Vorschau (FB-B2):** beim Ziehen eines Reglers ordnet htmx nach 400 ms Ruhe nur die Liste neu (`filter/vorschau/`, speichert nichts); ohne JavaScript bleiben Regler und Formular nativ bedienbar
+- **Konfigurationen (FB-B3):** Umbenennen (`filter/<pk>/umbenennen/`), Löschen mit Rückfrage, Namen bis 24 Zeichen, Schalter je Konfiguration; Datenmigration übernimmt alte Reglerstände (`gestimmt` → `ja` und `nein`)
+- 35 neue Tests (Kern v2, Einbau, Parameterseite, Datenmigration, fünf Bildschirmtests) — 646 gesamt
+
+### Geändert
+- **Der Stern steht überall (FB-C4):** an jedem Antrag und jedem Lebensbereich — im Fächer, im Feed, in den Kacheln, in der Feldsuche, auf der Startseite, der Antragsseite und im Umsetzungsregister. Mitglieder schalten ihn, Gäste sehen denselben Stern als Weg zur Anmeldung (bisher sahen Gäste gar keinen)
+- Die Parameterseite erklärt die Regel v2 Regler für Regler (Anker `#weicherfilter`); der Link im Overlay heißt „Regel v2 nachlesen ›"
+- Englischer Katalog um 57 Texte ergänzt (darunter Reste aus S2: „Mitreden", „Erfasst", „Unterstützt")
+
+## [0.34.0] — 2026-09-02 · S2/S4: Kacheln nach Vorgabe und der Favoriten-Fächer mit fünf Ebenen
+
+### Hinzugefügt
+- **Der Favoriten-Fächer nach Layout-Regel v2 (FB-C1, FB-C2, FB-C3):** immer **fünf Ebenen** — Anker 24 px, darüber 22/20/18/16 px — nach der Auffächer-Regel: Ebenen bis zwölf Knoten vollständig, die erste größere nur für den **entfalteten Ast** (drei Kinder nebeneinander, deren Kinder als kleine Säule, ab dem vierten „+n"). Im Ruhezustand ist der Ast des ersten Favoriten entfaltet; alle Äste kommen vorab mit, Alpine blendet beim Zeigen um — keine Netzlast. Neuer deterministischer Kern `plattform_core/faecher.py` (VERSION 2): Randpillen bündig, bis zu drei versetzte Reihen, jede Pille mit zugeteilter Breite b = r·Spanne/(n−1+r) als `max-width` und CSS-Ellipse, voller Name als Tooltip, Prozentlagen, damit der Fächer sein Feld füllt und bei mehr Platz luftiger wird. **Rechenprobe über alle 312 Anker und alle Äste: keine zwei Pillen überlappen** (`tests/test_faecher_layout.py`, 320 Fälle), dazu die Bildschirmprobe in `tests/e2e/test_faecher.py`
+- **Optik und Bewegung des Fächers:** Säulentöne (12 % je Säule, ohne Beschriftung), Faden bis zur Wurzel wird beim Zeigen gold und 2 px, Klick zoomt vom Klickpunkt hinein (320 ms) bevor htmx das Feld tauscht, Mitte-Modus ab Tiefe 3 mit **vollständigem Rückweg** bis zur Wurzel, **Brotkrume** im Feldkopf, Suchtreffer heben den Anker 1,5 s gold hervor. Handy: 20/18/16/15/14 px, Fächer ≥ 600 px breit und waagrecht rollbar, der Feldkörper zeigt zuerst den Anker
+- **Stern-Tausch ohne Feldflackern (FB-C4):** `kategorie_abonnieren` antwortet auf htmx nur mit dem Stern (`_kategorie_stern.html`, `aria-pressed`, Pop 220 ms) — im Fächer, in der Feldsuche und im Kachelkopf; ohne JavaScript wie bisher Seitenwechsel mit Meldung
+- **Kachel nach Vorgabe (FB-D1, FB-D2, FB-D3):** Thema-Chip mit eigenem Themen-Stern, Titel (ganze Kachel klickbar, Knöpfe bleiben eigene Ziele), Phasen-Chip mit Balken, Frist mit Kreisring, Direkt-Handlung je Phase (Unterstützen · Ja/Nein/Enthaltung · Mitreden · Zur Wahl), Hervorhebungsgrund nur bei „Wichtige Abstimmungen"; Raster 2×2, ab 700 px Feldbreite 3×2, gleich große Kacheln
+- **Rückmeldung in der Kachel (FB-A2):** nach Unterstützen oder Abstimmen zeigt die Kachel 1,5 s den Gold-Haken „Erfasst" statt einer Flash-Meldung
+- **Meine Region als 3×3-Raster (FB-E1):** drei Bänder Gemeinde · Bezirk · Land teilen sich die Feldhöhe, jedes mit senkrechtem Zeilenkopf (Ebene · Ort, farbiger Balken) und einer waagrecht wischbaren Spur mit drei gleich großen Kacheln (Scroll-Snap; am Handy ragt die nächste an); ab der vierten Kachel „› n weitere". **Leerzustände kurz (FB-E3):** „Noch nichts in Ihrer Gemeinde. Antrag einbringen →"
+- **„Mehr vorhanden" (FB-A5):** sobald ein Feldkörper mehr enthält als sichtbar, liegt unten ein weicher Verlauf mit der Pille „↓ n weitere" (n = Kacheln, Zeilen oder Bänder unter der Sichtkante); Klick rollt eine Feldhöhe weiter, am Ende verschwindet sie; neu gerechnet beim Rollen, bei Größenänderung und nach jedem htmx-Tausch. Das Favoriten-Feld bleibt ohne Pille (der Fächer zeigt zuerst den Anker)
+- 48 neue Tests (Fächer-Rechenprobe, Fächer-Einbau, Kachel-Raster, Regionsbänder, sieben Bildschirmtests) — 636 gesamt, dazu vier Fächer-Bilder in der Sichtprüfung
+
+### Geändert
+- `faecher_layout` erwartet jetzt `reihenfolge` in den Kategoriezeilen (Geschwister in Baumreihenfolge) und bekommt die Favoriten-Slugs (`abos`) für den Ruhe-Ast; Ausgabe in Prozent statt in 1000er-Einheiten
+
+### Behoben
+- Beschriftungen im Fächer überlappten und waren hart abgeschnitten („Bildungssy", „Infrastruktu") — jetzt Ellipse innerhalb der zugeteilten Breite, nie unter sechs Zeichen
+- Der Rückweg im Mitte-Modus brach ab Tiefe 5 ab
+
+## [0.33.0] — 2026-09-02 · S1 App-Rahmen: eine Leiste, bildschirmfüllendes Parlament, Konto-Menü, Handy-Tableiste
+
+### Geändert
+- **Eine App-Leiste statt zwei Nav-Zeilen (FB-A1, FB-N3, FB-N8):** 56 px hoch (am Handy 52), klebt oben; links die Wortmarke, in der Mitte sechs Hauptpunkte in der beschlossenen Reihenfolge **Parlament · Mandatare · Gremien · Umsetzungsregister · Zukunftswerkstatt · Übersicht** (Gremien ist neu im Hauptmenü, D-N8), rechts der **gefüllte Gold-Knopf „＋ Antrag einbringen"** und der **Konto-Avatar** mit Popover: Mein Gremium · Beitrag · Verwaltung · Sprache · Erscheinungsbild · Mehr · Abmelden. Der aktive Punkt folgt jetzt dem Bereich, nicht dem genauen Pfad — auch eine Antragsseite markiert „Parlament". Gäste sehen ⋯ Mehr · Anmelden · Mitglied werden · EN
+- **Das Parlament füllt den Bildschirm (FB-A1):** Das 2×2-Raster misst `100dvh` minus Leiste und Band, Lücke und Rand je 12 px, Feldkopf 44 px — die Seite scrollt nicht mehr, nur die Feldkörper scrollen innen. Auf dem Tablet bleiben zwei Spalten mit Mindesthöhe; **am Handy ist jedes Feld ein Bildschirm, der einrastet**, darunter die feste **Tableiste** (Filter · Favoriten · ＋ · Wichtig · Region) mit 48-px-Goldkreis in der Mitte. **Auf `/parlament/` gibt es keine Fußzeile mehr** — ihre Links stehen im ⋯-Menü und im Konto-Menü
+- **Gast- und Pausiert-Hinweis als 32-px-Band unter der Leiste (FB-A6)** statt als Kasten über dem Raster; beide zählen in der Höhenrechnung mit, das Raster verrutscht nicht. Flash-Meldungen liegen im Parlament als schließbarer Stapel unter der Leiste (die Rückmeldung in der Kachel folgt mit S2)
+- **Anstoß im Parlament in der App-Leiste (FB-K3):** als Sprechblasen-Symbol mit Popover darunter — es verdeckt „Meine Region" nicht mehr; auf allen anderen Seiten bleibt die schwebende Pille, 12 px kleiner
+- **Sans-Schrift für alles Bedienbare (FB-P2, D-P2):** Body 16/1.55, H1 26/700, H2 19/600, H3 16/600. Serif bleibt der Wortmarke und dem Bühnen-Titel der Erklärseiten vorbehalten
+- **Werkzeug statt Werbefläche (FB-A2):** Der zweisätzige Regler-Hilfetext weicht dem Link „Offene Regel v1 ›" auf das Parameterregister, der Hinweis auf eine noch nicht gebaute Profilseite entfällt. Ein Test lässt in keinem Feld einen Satz über acht Wörter zu. Gäste sehen in Abstimmungskacheln „Anmelden zum Abstimmen"
+
+### Hinzugefügt
+- **Erscheinungsbild-Schalter System / Hell / Dunkel (FB-P3)** im Konto- und ⋯-Menü, gemerkt je Gerät; ein winziges Skript im Kopf setzt das Thema vor dem ersten Zeichnen, damit nichts aufblitzt. Ohne JavaScript bleibt der Schalter verborgen und die Systemeinstellung gilt
+- **Alpine.js wird endlich benutzt (FB-P4):** Komponenten für Menüs, Anstoß, Erscheinungsbild, Tableiste und Meldungen liegen in `app.js`; die Templates tragen **keinen einzigen Inline-Handler** mehr und kein Inline-Skript. Die Anstoß-Rückmeldung läuft über den `HX-Trigger`-Header. Jedes Aufklappen ist ein natives `<details>` — ohne JavaScript öffnet und schließt alles wie zuvor
+- **Skelett-Zustände** für den htmx-Feldtausch und **Bewegungs-Tokens** nach Spezifikation (160/260/320/420 ms, eine Easing-Familie); die beiden `prefers-reduced-motion`-Blöcke sind zu einem zusammengeführt
+- **Dark Mode ohne Lücken (FB-P3):** alle Farben über Tokens mit den Namen der Design-Spezifikation, dunkel doppelt hinterlegt (Systemeinstellung und Schalter); Vollzugsampel, Status-Badges, Ergebnislegende und QR-Kasten laufen über Token-Klassen statt fester Hex-Werte
+- **Bildschirmtests mit Playwright** (`tests/e2e/`, Chromium): die vier Abnahmen aus FB-A1 mit und ohne JavaScript, hell und dunkel, dazu Menüs, Erscheinungsbild und reduzierte Bewegung; ein eigener Lauf legt die zehn Bilder der Sichtprüfung unter `docs/sichtpruefung/0.33.0/` ab. Ohne Playwright überspringen sie sich, der Pflicht-Check bleibt grün
+- **`tools/po_pruefen.py`** prüft den Übersetzungskatalog und schreibt die `.mo` — ein Ersatz für `compilemessages` auf Rechnern ohne gettext; zwanzig neue englische Texte, „Verwaltung" war bisher gar nicht übersetzbar
+- 33 neue Tests (App-Rahmen, Design-System, Bildschirmtests) — 316 gesamt
+
+### Behoben
+- Die Rasterzeilen des Parlaments wuchsen mit ihrem Inhalt, statt den Bildschirm zu teilen (`1fr` bedeutet `minmax(auto, 1fr)`)
+- `hidden` wurde von Komponentenregeln überstimmt — die Erscheinungsbild-Gruppe war ohne JavaScript sichtbar, aber wirkungslos
+- Die Versionsnummern in `pyproject.toml` und `plattform_core.__version__` standen noch auf 0.1.0 und folgen jetzt dem Änderungsprotokoll
+
 ## [0.32.0] — 2026-09-02 · Nachschärfung 2: Werkzeug statt Werbung, vollständiges Flussdiagramm, KI-Verbrauch, Partner-Seite
 
 ### Geändert

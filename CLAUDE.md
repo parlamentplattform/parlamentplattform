@@ -4,7 +4,7 @@ Diese Datei steuert Claude Code in diesem Repository. Sie ist knapp; die Tiefe s
 
 ## 1. Was das hier ist
 
-Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.32.0 am 2.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
+Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.35.0 am 2.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
 
 ## 2. Die maßgeblichen Dokumente (in dieser Reihenfolge lesen)
 
@@ -35,7 +35,9 @@ make test       # coverage run -m pytest -q  (plattform_core ≥ 90 % Zweigabdec
 make lint       # ruff check .
 make run        # migrate + runserver
 make seed       # demo_seed (Demo-Mitglieder demo1…demo5, Anträge je Phase, Gremien-Rollen)
-python manage.py makemessages -l en && python manage.py compilemessages   # nach jedem neuen Text
+python manage.py makemessages -l en --no-location && python manage.py compilemessages  # nach jedem neuen Text
+python tools/po_pruefen.py --mo   # Ersatz ohne gettext: Katalog prüfen und .mo schreiben
+python -m pytest tests/e2e -q     # Bildschirmtests (Playwright); DDOE_SICHTPRUEFUNG=1 legt die Bilder ab
 ```
 - Python ≥ 3.11, Django 5.x; **keine neuen Abhängigkeiten ohne ADR** (Ausnahme: `playwright` als dev-Abhängigkeit für `tests/e2e/`, `sentence-transformers` für Ähnlichkeit Stufe 2 mit ADR).
 - Sprache im Code: **Deutsch** für Fachbegriffe (Antrag, Unterstuetzung, Entwurf, Fassung, Rolle, Gremium, Kachel, Feld), englische Framework-Begriffe bleiben englisch. Kein Denglisch in Nutzer-Texten.

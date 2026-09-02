@@ -1,7 +1,7 @@
 {% load i18n %}
 <div class="karte hinweis">
 <div class="stimmzeile" style="align-items:flex-start;gap:24px">
-  <div style="flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px">{{ qr_svg|safe }}</div>
+  <div class="papier" style="flex:0 0 auto;border:1px solid var(--line);border-radius:12px;padding:10px">{{ qr_svg|safe }}</div>
   <div style="flex:1 1 22em">
     <p>{% blocktranslate %}<strong>Banking-App öffnen → „Zahlen mit Code" → diesen Code scannen.</strong>
     Empfänger, IBAN und Ihre persönliche Referenz sind dann schon ausgefüllt — Sie bestätigen nur noch.

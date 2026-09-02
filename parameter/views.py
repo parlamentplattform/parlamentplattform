@@ -13,8 +13,21 @@ from verfahren.models import AuditEintrag
 
 
 def liste(request):
+    from plattform_core.weicherfilter import REGLER
+    from verfahren.views import REGLER_MERKMALE, REGLER_NAMEN
+
     erstbestand_sicherstellen()
-    return render(request, "parameter/liste.html", {"parameter": Parameter.objects.all()})
+    return render(
+        request,
+        "parameter/liste.html",
+        {
+            "parameter": Parameter.objects.all(),
+            # FB-B6: die offene Regel v2 des WeicherFilters, Regler für Regler nachlesbar
+            "weicherfilter_regler": [
+                (i + 1, REGLER_NAMEN[name], REGLER_MERKMALE[name]) for i, name in enumerate(REGLER)
+            ],
+        },
+    )
 
 
 def export_json(request):

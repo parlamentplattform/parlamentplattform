@@ -1,0 +1,6 @@
+{% load i18n %}{% comment %}Erscheinungsbild System/Hell/Dunkel (FB-P3). Ohne JavaScript verborgen — dann gilt die Systemeinstellung.{% endcomment %}
+<div class="thema" role="group" aria-label="{% translate 'Erscheinungsbild' %}" hidden x-data="thema">
+  <button type="button" @click="setzen('')" :class="{an: wahl===''}" :aria-pressed="wahl===''">{% translate "System" %}</button>
+  <button type="button" @click="setzen('light')" :class="{an: wahl==='light'}" :aria-pressed="wahl==='light'">{% translate "Hell" %}</button>
+  <button type="button" @click="setzen('dark')" :class="{an: wahl==='dark'}" :aria-pressed="wahl==='dark'">{% translate "Dunkel" %}</button>
+</div>

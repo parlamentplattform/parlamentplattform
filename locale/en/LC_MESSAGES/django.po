@@ -3421,3 +3421,268 @@ msgstr ""
 #, python-format
 msgid "Favorit „%s“ entfernt."
 msgstr "Favourite “%s” removed."
+
+msgid "Hauptbereiche"
+msgstr "Main sections"
+
+msgid "Konto"
+msgstr "Account"
+
+msgid "Mehr"
+msgstr "More"
+
+msgid "Verwaltung"
+msgstr "Administration"
+
+msgid "Erscheinungsbild"
+msgstr "Appearance"
+
+msgid "System"
+msgstr "System"
+
+msgid "Hell"
+msgstr "Light"
+
+msgid "Dunkel"
+msgstr "Dark"
+
+msgid "DE · Deutsch"
+msgstr "DE · German"
+
+msgid "EN · English"
+msgstr "EN · English"
+
+msgid "Bereiche"
+msgstr "Sections"
+
+msgid "Filter"
+msgstr "Filter"
+
+msgid "Favoriten"
+msgstr "Favourites"
+
+msgid "Wichtig"
+msgstr "Important"
+
+msgid "Region"
+msgstr "Region"
+
+msgid "Menü schließen"
+msgstr "Close menu"
+
+msgid "Anmelden zum Abstimmen"
+msgstr "Sign in to vote"
+
+msgid "Offene Regel v1 ›"
+msgstr "Open rule v1 ›"
+
+msgid "Meldung schließen"
+msgstr "Dismiss message"
+
+msgid "Was fehlt? Was stört? Was wünschen Sie sich?"
+msgstr "What is missing? What bothers you? What would you like?"
+
+msgid "Pfad im Fächer"
+msgstr "Path in the fan"
+
+msgid "Weitere Einträge anzeigen"
+msgstr "Show more entries"
+
+msgid "weitere"
+msgstr "more"
+
+msgid "mehr"
+msgstr "more"
+
+msgid "Weitere Kacheln anzeigen"
+msgstr "Show more tiles"
+
+msgid "Noch nichts in Ihrer Gemeinde."
+msgstr "Nothing here yet in your municipality."
+
+msgid "Noch nichts in Ihrem Bezirk."
+msgstr "Nothing here yet in your district."
+
+msgid "Noch nichts in Ihrem Land."
+msgstr "Nothing here yet in your state."
+
+msgid "%(p)s %% Beteiligung"
+msgstr "%(p)s %% turnout"
+
+msgid "1 in der Abstimmungsphase, sonst 0"
+msgstr "1 in the voting phase, otherwise 0"
+
+msgid "1 in der Unterstützungsphase, sonst 0"
+msgstr "1 in the support phase, otherwise 0"
+
+msgid "1, wenn kein Lebensbereich des Antrags in meinem Abo-Ast liegt; sonst 0"
+msgstr "1 if no area of life of the motion lies in my subscribed branch; otherwise 0"
+
+msgid "5 von 5 — eine löschen oder überschreiben"
+msgstr "5 of 5 — delete or overwrite one"
+
+msgid "Als neue Konfiguration speichern"
+msgstr "Save as new configuration"
+
+msgid "Altersrang: jüngster Antrag 1, ältester 0"
+msgstr "Age rank: newest motion 1, oldest 0"
+
+msgid "Anlegen"
+msgstr "Create"
+
+msgid "Anteil der Lebensbereiche des Antrags, die in Anträgen vorkommen, bei denen meine eigene Stimme Ja war (die eigene Stimme kennt nur das Mitglied selbst über das Stimmregister)"
+msgstr "Share of the motion’s areas of life that occur in motions where my own vote was Yes (only the member knows their own vote, via the vote register)"
+
+msgid "Anteil der Lebensbereiche des Antrags, die in Anträgen vorkommen, bei denen meine eigene Stimme Nein war"
+msgstr "Share of the motion’s areas of life that occur in motions where my own vote was No"
+
+msgid "Anteil der Lebensbereiche, die in meinen unterstützten Anträgen vorkommen"
+msgstr "Share of areas of life that occur in motions I supported"
+
+msgid "Anteil der eigenen Phasendauer, der schon verstrichen ist (0 bis 1)"
+msgstr "Share of the motion’s own phase duration already elapsed (0 to 1)"
+
+msgid "Bitte einen Namen angeben."
+msgstr "Please enter a name."
+
+msgid "Bitte einen Namen für die neue Konfiguration angeben."
+msgstr "Please enter a name for the new configuration."
+
+msgid "Der WeicherFilter reiht die laufenden Verfahren nur nach den Reglern des Mitglieds selbst (§ 5 Abs 10 lit d, § 2 Abs 6).\nVoreinstellung: neutral — Phase (Abstimmung, Beratung, Unterstützung), dann Frist, dann Datum; Anträge aus abonnierten\nLebensbereichen stehen mit dem sichtbaren Schalter „★ Favoriten zuerst“ vorn. Punkte = Summe Regler × Merkmal, jedes Merkmal\nin [0, 1]; bei Gleichstand bleibt die neutrale Grundordnung. Jede Zeile zeigt ihre Rechnung unter „Warum hier?“."
+msgstr "The WeicherFilter orders the running procedures solely by the member’s own sliders (§ 5 para 10 lit d, § 2 para 6).\nDefault: neutral — phase (vote, deliberation, support), then deadline, then date; motions from subscribed\nareas of life come first via the visible switch “★ Favourites first”. Points = sum of slider × feature, each feature\nin [0, 1]; ties keep the neutral base order. Every row shows its calculation under “Why here?”."
+
+msgid "Eine Konfiguration mit diesem Namen gibt es schon."
+msgstr "A configuration with this name already exists."
+
+msgid "Erfasst"
+msgstr "Recorded"
+
+msgid "Favoriten zuerst"
+msgstr "Favourites first"
+
+msgid "Favoriten zuerst umschalten"
+msgstr "Toggle favourites first"
+
+msgid "Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben."
+msgstr "At most five configurations — please delete or overwrite one first."
+
+msgid "Interessantes außerhalb meiner Favoriten"
+msgstr "Interesting things outside my favourites"
+
+msgid "Ja, löschen"
+msgstr "Yes, delete"
+
+msgid "Konfiguration anwenden"
+msgstr "Apply configuration"
+
+msgid "Konfiguration „%(name)s“ löschen?"
+msgstr "Delete configuration “%(name)s”?"
+
+msgid "Löschen"
+msgstr "Delete"
+
+msgid "Mehr Abstimmungen"
+msgstr "More votes"
+
+msgid "Mehr Unterstützungsanträge"
+msgstr "More support motions"
+
+msgid "Mehr chronologisch (Neues zuerst)"
+msgstr "More chronological (newest first)"
+
+msgid "Mehr wie das, was ich unterstützt habe"
+msgstr "More like what I supported"
+
+msgid "Mehr wie das, wofür ich gestimmt habe"
+msgstr "More like what I voted for"
+
+msgid "Mehr wie das, wogegen ich gestimmt habe"
+msgstr "More like what I voted against"
+
+msgid "Mitreden"
+msgstr "Join the discussion"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "Name der Konfiguration"
+msgstr "Name of the configuration"
+
+msgid "Neuer Name"
+msgstr "New name"
+
+msgid "Nur noch kurz online"
+msgstr "Only briefly online"
+
+msgid "Profil-Leiste ausfahren"
+msgstr "Expand profile bar"
+
+msgid "Profil-Leiste einfahren"
+msgstr "Collapse profile bar"
+
+msgid "Punkte"
+msgstr "points"
+
+msgid "Punkte = Regler × Merkmal."
+msgstr "Points = slider × feature."
+
+msgid "Regel v2 nachlesen ›"
+msgstr "Read rule v2 ›"
+
+msgid "Regler des WeicherFilters"
+msgstr "Sliders of the WeicherFilter"
+
+msgid "Regler öffnen"
+msgstr "Open sliders"
+
+msgid "Schalter je Konfiguration und für die Voreinstellung: Anträge aus abonnierten Lebensbereichen stehen vor allen anderen; innerhalb beider Teile gilt die Punkteordnung."
+msgstr "Switch per configuration and for the default: motions from subscribed areas of life come before all others; within both parts the point order applies."
+
+msgid "Speichern"
+msgstr "Save"
+
+msgid "Umbenennen"
+msgstr "Rename"
+
+msgid "Ungespeichert"
+msgstr "Unsaved"
+
+msgid "Unterstützt"
+msgstr "Supported"
+
+msgid "Unterstützung: Unterstützungen / Schwelle · Abstimmung: Beteiligung / Mindestbeteiligung (gedeckelt 1) · Beratung: 0"
+msgstr "Support: supporters / threshold · vote: turnout / minimum turnout (capped at 1) · deliberation: 0"
+
+msgid "Warum hier?"
+msgstr "Why here?"
+
+msgid "WeicherFilter — Regel v2"
+msgstr "WeicherFilter — rule v2"
+
+msgid "Wenig fehlt"
+msgstr "Little missing"
+
+msgid "Zur Wahl ›"
+msgstr "To the election ›"
+
+msgid "Zurücksetzen"
+msgstr "Reset"
+
+msgid "von 100"
+msgstr "of 100"
+
+msgid "noch %(t)s Tag"
+msgid_plural "noch %(t)s Tage"
+msgstr[0] "%(t)s day left"
+msgstr[1] "%(t)s days left"
+
+msgid "%(b)s Beitrag"
+msgid_plural "%(b)s Beiträge"
+msgstr[0] "%(b)s contribution"
+msgstr[1] "%(b)s contributions"
+
+msgid "Anmelden, um Favoriten zu merken"
+msgstr "Sign in to keep favourites"
+
+msgid "Anmelden, um Lebensbereiche zu abonnieren"
+msgstr "Sign in to subscribe to areas of life"

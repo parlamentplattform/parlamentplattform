@@ -1,24 +1,28 @@
-{% load i18n %}
-<div class="anstoss-ecke">
-  <div class="anstoss-bestaetigung" id="anstoss-blase" role="status"{% if request.GET.anstoss != "danke" %} hidden{% endif %}>
+{% load i18n anstoss_tags %}{% pfad_ohne_anstoss as ZURUECK %}
+{% comment %}
+Das Anstoß-Widget (FB-K3). Zwei Lagen: lage="leiste" — im Parlament als Symbol in der App-Leiste
+mit Popover-Karte darunter; sonst (Standard) als schwebende Pille rechts unten. Alpine (anstoss)
+schließt die Karte auf den HX-Trigger des Servers und zeigt die Blase; ohne JavaScript läuft
+alles über <details>, Formular und die Umleitung mit ?anstoss=danke|warte|leer.
+{% endcomment %}
+<div class="{% if lage == 'leiste' %}anstoss-leiste{% else %}anstoss-ecke{% endif %}" x-data="anstoss" @anstoss-danke.window="danke()" @anstoss-warte.window="auf()" @anstoss-leer.window="auf()" @keydown.escape.window="zu()" @click.outside="zu()">
+  <div class="anstoss-bestaetigung" id="anstoss-blase" role="status" x-ref="blase"{% if request.GET.anstoss != "danke" %} hidden{% endif %}>
     <span aria-hidden="true">✓</span> {% translate "Danke — Ihre Meldung ist gespeichert." %}
-    <a class="anstoss-bx" href="{{ request.path }}" aria-label="{% translate 'Bestätigung schließen' %}"
-      onclick="this.parentElement.hidden=true;return false">&times;</a>
+    <a class="anstoss-bx" href="{{ ZURUECK }}" aria-label="{% translate 'Bestätigung schließen' %}" @click.prevent="blaseZu()">&times;</a>
   </div>
-  <details class="anstoss-fleck"{% if request.GET.anstoss == "warte" or request.GET.anstoss == "leer" %} open{% endif %}>
-    <summary aria-label="{% translate 'Anstoß geben — Feedback und Wünsche' %}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.14-2.9-.4L4 20l1.3-3.1C3.9 15.6 3 13.6 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg><span>{% translate "Anstoß" %}</span></summary>
+  <details class="anstoss-fleck" x-ref="klappe"{% if request.GET.anstoss == "warte" or request.GET.anstoss == "leer" %} open{% endif %}>
+    <summary aria-label="{% translate 'Anstoß geben — Feedback und Wünsche' %}" title="{% translate 'Anstoß geben' %}"><svg width="{% if lage == 'leiste' %}20{% else %}15{% endif %}" height="{% if lage == 'leiste' %}20{% else %}15{% endif %}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.14-2.9-.4L4 20l1.3-3.1C3.9 15.6 3 13.6 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg><span{% if lage == 'leiste' %} class="nur-sr"{% endif %}>{% translate "Anstoß" %}</span></summary>
     <div class="anstoss-karte">
-      <a class="anstoss-x" href="{{ request.path }}" aria-label="{% translate 'Schließen' %}"
-        onclick="this.closest('details').open=false;return false">&times;</a>
+      <a class="anstoss-x" href="{{ ZURUECK }}" aria-label="{% translate 'Schließen' %}" @click.prevent="zu()">&times;</a>
       <h3>{% translate "Anstoß geben" %}</h3>
-      <p class="erk">{% translate "Was fehlt? Was stört? Was wünschen Sie sich? Jede Nachricht wird gespeichert und fließt in die Weiterentwicklung der Plattform ein." %}</p>
-      <div id="anstoss-echo" aria-live="polite">{% if request.GET.anstoss == "warte" %}<p class="anstoss-echo">{% translate "Bitte einen Moment warten, bevor Sie den nächsten Anstoß senden." %}</p>{% elif request.GET.anstoss == "leer" %}<p class="anstoss-echo">{% translate "Bitte schreiben Sie zuerst eine Nachricht." %}</p>{% endif %}</div>
-      <form method="post" action="{% url 'anstoss:senden' %}" hx-post="{% url 'anstoss:senden' %}" hx-target="#anstoss-echo" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful) this.reset()">
+      <p class="erk">{% translate "Was fehlt? Was stört? Was wünschen Sie sich?" %}</p>
+      <div id="anstoss-echo" aria-live="polite" x-ref="echo">{% if request.GET.anstoss == "warte" %}<p class="anstoss-echo">{% translate "Bitte einen Moment warten, bevor Sie den nächsten Anstoß senden." %}</p>{% elif request.GET.anstoss == "leer" %}<p class="anstoss-echo">{% translate "Bitte schreiben Sie zuerst eine Nachricht." %}</p>{% endif %}</div>
+      <form method="post" action="{% url 'anstoss:senden' %}" hx-post="{% url 'anstoss:senden' %}" hx-target="#anstoss-echo" hx-swap="innerHTML" x-ref="form">
         {% csrf_token %}
         <input type="hidden" name="seite" value="{{ request.get_full_path }}">
         <p class="honig" aria-hidden="true"><label>Webseite <input type="text" name="webseite" tabindex="-1" autocomplete="off"></label></p>
         <textarea name="text" rows="4" maxlength="4000" required placeholder="{% translate 'Ihr Anliegen — so konkret wie möglich' %}"></textarea>
-        <p class="erk" style="margin:6px 0 10px">{% if user.is_authenticated %}{% translate "Wird Ihrem Konto zugeordnet, damit wir nachfragen können." %}{% else %}{% translate "Sie schreiben anonym — als Mitglied könnten wir nachfragen." %}{% endif %}</p>
+        <p class="erk anstoss-hinweis">{% if user.is_authenticated %}{% translate "Wird Ihrem Konto zugeordnet, damit wir nachfragen können." %}{% else %}{% translate "Sie schreiben anonym — als Mitglied könnten wir nachfragen." %}{% endif %}</p>
         <button class="btn" type="submit">{% translate "Absenden" %}</button>
       </form>
     </div>

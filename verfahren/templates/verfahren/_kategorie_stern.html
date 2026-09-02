@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+Der Stern an einem Lebensbereich (FB-C4): mit htmx wechselt nur dieser Stern (outerHTML, kein
+Feldtausch); ohne JavaScript ein Seitenwechsel über „weiter". Gäste sehen den Stern als Weg zur
+Anmeldung. Erwartet slug, name, abonniert, optional klein (Kachelkopf) und weiter.
+{% endcomment %}{% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:kategorie_abonnieren' slug %}" class="stern-form"
+  hx-post="{% url 'verfahren:kategorie_abonnieren' slug %}" hx-swap="outerHTML">
+  {% csrf_token %}<input type="hidden" name="weiter" value="{{ weiter|default:request.get_full_path }}">
+  {% if abonniert %}<button class="stern{% if klein %} klein{% endif %}" aria-pressed="true" aria-label="{{ name }}: {% translate 'Favorit entfernen' %}" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
+  {% else %}<button class="stern{% if klein %} klein{% endif %} aus" aria-pressed="false" aria-label="{{ name }}: {% translate 'Als Favorit merken' %}" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}
+</form>{% else %}<a class="stern{% if klein %} klein{% endif %} aus gast" href="{% url 'mitglieder:login' %}" title="{% translate 'Anmelden, um Lebensbereiche zu abonnieren' %}" aria-label="{{ name }}: {% translate 'Anmelden, um Lebensbereiche zu abonnieren' %}">&#9734;</a>{% endif %}

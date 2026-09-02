@@ -99,6 +99,10 @@ class Mitglied(AbstractUser):
         help_text="Zugang zur Mitgliederverwaltung (F-51). Ernennen und Entziehen können nur Admins; "
         "jeder Wechsel wird auditiert.",
     )
+    favoriten_zuerst = models.BooleanField(
+        default=True,
+        help_text="WeicherFilter in der Voreinstellung: ★ Favoriten zuerst (FB-B1). Gilt, solange kein Profil aktiv ist.",
+    )
 
     class Meta:
         verbose_name = "Mitglied"

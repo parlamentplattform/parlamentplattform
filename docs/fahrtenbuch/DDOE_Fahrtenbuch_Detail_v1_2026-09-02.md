@@ -176,12 +176,26 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 | 12 | Parlament von Anfang an für Abstimmungen nutzen: Kandidaturen als Anträge; Beteiligung am bestehenden Antrag; meiste Zustimmung gewinnt | FB-L3 ✅ |
 | 13 | Ab wann? (Frage) — Vorgang gehört in die Satzung | FB-L4 (✅ § 7 Abs 1: von Anfang an) |
 
+### A0-09 · Internationale Zusammenarbeit: gemeinsame Grundsoftware, Übertragungspaket, echter Einstieg — Nachricht vom 2.9. (abends)
+
+*Wörtlich in `DDOE_Original_Anweisungen_A0.txt` unter [A0-09]. Eingegangen als Frage „ist der Bereich für die internationale Zusammenarbeit fertig?" — Antwort: nein, Erststufe (FB-M1); der Rest ist S14.*
+
+| Nr. | Forderung | FB |
+|---|---|---|
+| 1 | Der Bereich ist wichtig: grundlegende Vorschläge zur Zusammenarbeit inkl. Schnittstellenbeschreibung und technischen Angaben — „zeigen, dass wir einen Plan haben, dem man sich anschließen kann" | FB-M1 🟡, FB-M5, FB-M6 |
+| 2 | Gemeinsame Grundsoftware: jeder Staat betreibt dieselbe ParlamentPlattform auf eigenen Servern, sie lernt dort selbst; die Weiterentwicklung findet gemeinsam statt, mit regelmäßigem Austausch und Abgleich der Grundsoftware | FB-M6 |
+| 3 | Parameter werden gemeinsam eingeführt, wirken aber auf jeder Landesplattform in eigener Weise und verbessern sich dort selbst — Einstellungen und Umgang sind den Ländern eigen | FB-M5, FB-M6 |
+| 4 | Eine Struktur, wie man ParlamentPlattform und Satzung für die eigene Partei übertragen bekommt, und was zu tun ist, um sich anzuschließen bzw. die Partei im eigenen Land zu gründen | FB-M7 |
+| 5 | Echter Einstieg auf beiden Wegen: bestehende Partei zur direkten Demokratie umgestalten oder neu gründen | FB-M7 |
+| 6 | Unterstützung beim Aufsetzen der staatseigenen Plattform, der Schnittstellen und der Infrastruktur zur gemeinsamen kontinuierlichen Verbesserung des Grundsystems | FB-M4, FB-M6, FB-M7 |
+| 7 | Angebot, sich zusammenzuschließen und gemeinsam weiterzuarbeiten; keine Parteiprogramme, sondern eine gemeinsame Vision, die konkretisiert und angeglichen wird | FB-M8 |
+
 ---
 ## Teil B · Die Detailspezifikationen
 
 ### Bereich A · Das Parlament als Ganzes (Hauptfenster)
 
-#### FB-A1 · Vier gleich große Bereiche über den ganzen Bildschirm — 🟡
+#### FB-A1 · Vier gleich große Bereiche über den ganzen Bildschirm — ✅ (0.33.0, S1)
 **Quelle:** A0-05 — *„Alles als halbtransparentes Overlay über dem Feed Bereich der einer von 4 im Rechteck über den ganzen Bildschirm (responsiv - bei handys untereinander) angeordneten gleichgroßen Bereichen ist."*
 
 **Spezifikation**
@@ -200,10 +214,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 3. Keine Fußzeile auf `/parlament/`; auf `/antrag/1/` ist sie da.
 4. Mit deaktiviertem JavaScript gilt 1–3 unverändert.
 
-**Ist (2.9.2026):** `.parlament{grid 1fr 1fr; gap:16px}`, `.feld{height:calc(50vh − 66px); min-height:360px}` (`base.html:137-138`) — Raster füllt nur näherungsweise; darunter Fußzeile (Seite scrollt); Header hat zwei Zeilen; mobil `max-height:72vh` ohne Snap, ohne Tableiste; Anstoß-Knopf überlappt „Meine Region" (`base.html:257`).
-**Delta:** Rasterhöhe an `100dvh` binden, Fußzeile auf `/parlament/` entfernen, App-Leiste auf eine Zeile bringen (Konto-Menü), mobile Snap-Ansicht + Tableiste, Anstoß-Knopf ins Feld-Raster einpassen (FB-K3).
+**Ist (0.33.0):** ✅ Raster `minmax(0,1fr)`-Zeilen auf `calc(100dvh − var(--bar) − var(--band))`, Lücke/Rand 12 px, Feldkopf 44 px, Körper scrollt innen (`base.html:212-217`, `:230-233`); eine App-Leiste 56/52 px (`_leiste.html`, `base.html:74-77`); keine Fußzeile im Parlament (`parlament.html:7`, Block `fuss` in `base.html:396`); Handy-Snap + Tableiste (`base.html:257-270`, `_tabs.html`); Anstoß in der Leiste (FB-K3). Belegt durch `tests/e2e/test_app_rahmen.py` (Abnahmen 1–4, mit und ohne JavaScript) und `verfahren/test_app_rahmen.py:143-215`.
+**Delta:** keiner für S1. Der „mehr vorhanden"-Hinweis (FB-A5) und das Kachel-Raster folgen mit S2; die Tableiste bekommt mit S6 ihr fünftes Ziel „Chats" (D-G3).
 
-#### FB-A2 · Die vier Bereiche: direkt bedienbar, selbsterklärend — 🟡
+#### FB-A2 · Die vier Bereiche: direkt bedienbar, selbsterklärend — ✅
 **Quelle:** A0-05 — *„Die anderen Bereiche sind Meine Favoriten, Wichtige Abstimmungen, Meine Region. Alle 4 Bereiche sollten so aufgebaut sein, dass sie direkt bedienbar sind und selbsterklärend sind."*
 
 **Spezifikation**
@@ -213,20 +227,21 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - Alles, was man anklicken kann, sieht anklickbar aus (Hover-Lift 2 px, Cursor, Fokusring).
 
 **Abnahme:** In keinem der vier Felder kommt ein Satz mit mehr als 8 Wörtern vor, der nicht Antragstitel, Begründung oder Leerzustand ist. Jede Kachel-Handlung bleibt ohne Seitenwechsel; Flash-Meldungen (`messages`) erscheinen im Parlament nicht mehr oben, sondern in der Kachel.
-**Ist:** Direktbedienung in Kacheln ✅ (`_kachel.html:25-36`); Flash-Meldungen gehen bei htmx-Tausch verloren (Inventar Auffälligkeit 6); Feldfüße mit Erklärsätzen wurden 0.32.0 entfernt ✅.
-**Delta:** Kachel-Rückmeldung statt Flash; Leerzustände kürzen (siehe FB-E3).
+**Ist (0.34.0):** ✅ Direktbedienung in Kacheln (`_kachel.html`); Acht-Wörter-Regel erfüllt und getestet (`verfahren/test_app_rahmen.py`); **Rückmeldung in der Kachel:** nach Unterstützen oder Abstimmen zeigt die neue Kachel 1,5 s den Gold-Haken „Erfasst" (`app.js` `parlament.markiere`, `.kachel.erfasst`), der Stern-Tausch bleibt ohne Feldtausch (FB-C4); Flash-Meldungen bleiben nur für Seitenwechsel ohne JavaScript.
+**Ist (0.33.0):** 🟡 Direktbedienung in Kacheln ✅; Acht-Wörter-Regel ✅ — Regler-Hilfetext ist ein Link auf `/parameter/`, der Profil-Hinweis entfiel; Flash-Meldungen im festen Stapel unter der Leiste.
+**Delta:** Rückmeldung in der Kachel statt im Stapel und kürzere Leerzustände bleiben S2 (FB-E3).
 
 #### FB-A3 · App-Anmutung als Qualitätsmaßstab — 🟡
 **Quelle:** A0-05 — *„Wir bauen eine benutzerfreundliche Oberfläche für die User, die mehr nach app aussieht als nach homepage und das mitmachen möglichst direkt und einfach gestaltet."*
 
 **Spezifikation:** siehe Design-Spezifikation (`DDOE_Design_Spezifikation_App-Look.md`), verbindlich für Parlament, Antragsseite, Gremien-Bereiche, Mandatare, Einbringen. Kernpunkte: eine App-Leiste; Sans-Schrift für alles Bedienbare (Serif nur noch in der Wortmarke und auf Erklärseiten — ❓ FB-P2); Bewegungen gerichtet (Felder tauschen mit Wischrichtung, Overlays gleiten von ihrem Rand, Fächer zoomt vom Klickpunkt); Zustände (Laden = Skeleton, Leer, Fehler) gestaltet; Touch-Ziele ≥ 44 px; keine Tabellen im Parlament; Zahlen zählen beim ersten Erscheinen hoch.
-**Ist:** Erststand Politur 0.31/0.32 (Auftauchen, Hover-Lift, View Transitions) — aber Serif-Überschriften, zwei Nav-Zeilen, Fußzeile, keine Skeletons, keine gerichteten Übergänge (Inventar Frage 28).
+**Ist (0.33.0):** 🟡 Rahmen steht: eine App-Leiste, Sans-Typografie, Tokens und Bewegungsdauern nach Spezifikation, Skelett-Zustände beim Feldtausch (`base.html:305-313`, `_skelett.html`), ein Reduced-Motion-Block (`base.html:400-403`). Offen bleiben die Feld-Innereien aus S2–S5 (Kachel-Raster, Fächer, Antragsseite) und gerichtete Übergänge je Wischrichtung.
 **Delta:** Design-Spezifikation umsetzen, Feld für Feld, mit Sichtprüfung des Gründers.
 
 #### FB-A4 · Willkommensseite und Parlament getrennt — ✅
 **Quelle:** Klarstellung 1.9. (Fahrplan P1) — `/` erklärt, `/parlament/` ist Werkzeug. Bleibt so. **Ist:** ✅ (`index.html`, `parlament.html`).
 
-#### FB-A5 · „Mehr vorhanden"-Hinweis an scrollenden Feldern — ❌
+#### FB-A5 · „Mehr vorhanden"-Hinweis an scrollenden Feldern — ✅
 **Quelle:** A0-05 — *„Bei beiden Bereichen soll man erkennen wenn es mehr zum anzeigen gibt als auf dem ersten blick darstellbar ist und dann soll man scrollen können."*
 
 **Spezifikation**
@@ -237,16 +252,17 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* Pille ist ein `<button>` mit `aria-label="3 weitere Einträge anzeigen"`; `aria-hidden` auf dem Verlauf.
 
 **Abnahme:** Mit 7 hervorgehobenen Anträgen zeigt „Wichtige Abstimmungen" auf 1440×900 vier Kacheln und die Pille „↓ 3 weitere"; Klick scrollt; am Ende verschwindet sie. In „Meine Region" mit 5 Gemeinde-Anträgen erscheint sie ebenso.
-**Ist:** ❌ — `.feld::after` ist ein leerer Stummel (`base.html:159`).
+**Ist (0.34.0):** ✅ Alpine-Komponente `feldmehr` auf den Feldern WeicherFilter, Wichtige Abstimmungen und Meine Region (`app.js`, `_feld_mehr.html`): Pille „↓ n weitere" (n = Kacheln, Zeilen oder Bänder unter der Sichtkante, sonst „↓ mehr") über einem 28-px-Verlauf (`.feld.mehr-da::after`), Klick rollt eine Feldhöhe weiter, neu gerechnet beim Rollen, bei Größenänderung (ResizeObserver) und nach jedem htmx-Tausch; `aria-label`, am Ende verschwindet sie. In den Regionsbändern waagrecht als „› n weitere" (FB-E1). **Abweichungen:** Das Favoriten-Feld hat keine Pille — sein Fächer rollt von unten und zeigt zuerst den Anker; ohne JavaScript bleibt die dünne Scrollleiste der einzige Hinweis (der reine CSS-Verlauf scheitert an den deckenden Kacheln).
+**Ist (0.33.0):** ❌ — `.feld::after` war ein leerer Stummel.
 
-#### FB-A6 · Gäste im Parlament — ✅ (Politur)
-**Ausarbeitung:** Gäste sehen alle vier Felder lesend; statt der Regler ein Chip „Neutral"; statt Stern nichts; Kacheln ohne Stimmknöpfe, dafür „Anmelden zum Abstimmen" als Link in der Kachel. Der heutige Hinweisbalken oben („Sie sehen das Parlament als Gast…") wird zu einem **schmalen Band unter der App-Leiste** (32 px, Info-Farbe) mit zwei Links, damit das Raster nicht verrutscht. **Ist:** Hinweis als `.meldung.info` über dem Raster (`parlament.html:5-9`) — verschiebt das Raster.
+#### FB-A6 · Gäste im Parlament — ✅ (0.33.0, S1)
+**Ausarbeitung:** Gäste sehen alle vier Felder lesend; statt der Regler ein Chip „Neutral"; statt Stern nichts; Kacheln ohne Stimmknöpfe, dafür „Anmelden zum Abstimmen" als Link in der Kachel. Der heutige Hinweisbalken oben („Sie sehen das Parlament als Gast…") wird zu einem **schmalen Band unter der App-Leiste** (32 px, Info-Farbe) mit zwei Links, damit das Raster nicht verrutscht. **Ist (0.33.0):** ✅ Gastband 32 px unter der App-Leiste (`parlament.html:9`, `base.html:167-171`), zählt über `--band` in der Höhenrechnung mit — das Raster verrutscht nicht; Kacheln zeigen Gästen „Anmelden zum Abstimmen" statt der Stimmknöpfe (`_kachel.html:25-26`). Dasselbe Band trägt den Pausiert-Hinweis auf allen Seiten (`base.html:329`).
 
 ---
 
 ### Bereich B · Der WeicherFilter (Feld links oben)
 
-#### FB-B1 · Der selbstgesteuerte Feed — 🟡
+#### FB-B1 · Der selbstgesteuerte Feed — ✅
 **Quelle:** A0-05 — *„wie könnte ich einen Feed benennen in dem man selbst einstellt wie er funktioniert. Er basiert auf den ausgewählten Favoriten und auf selbst einstellbare Parameter was vermehrt angezeigt werden soll. Man steuert sozusagen selbst den Algorythmus."* · A0-06/07: Name **WeicherFilter**.
 
 **Spezifikation**
@@ -258,9 +274,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Gäste:* immer neutral, ohne Favoriten-Bevorzugung, ohne Regler.
 
 **Abnahme:** Als Mitglied mit Abo „Energie" steht ein Energie-Antrag in der Unterstützungsphase vor einem gleich alten Nicht-Energie-Antrag; Chip „★ Favoriten zuerst" ist sichtbar; Abschalten stellt die reine Grundordnung her. Tipp auf „Warum hier?" zeigt die Punkte je Regler.
-**Ist:** Regel v1 mit 8 Reglern ✅ (`plattform_core/weicherfilter.py`); Favoriten-Bevorzugung in der Voreinstellung ❌ (Voreinstellung ist rein Phase/Frist, `views.py:321-334`); Aufschlüsselung nur als `title`-Tooltip 🟡; Direkt-Handlung in der Zeile ❌.
+**Ist (0.35.0):** ✅ Regel v2 (`plattform_core/weicherfilter.py`, VERSION 2, `reihen(…, favoriten_zuerst)`); Favoriten zuerst in der Voreinstellung als offene Partition, Chip „★ Favoriten zuerst" im Feldkopf (`filter_favoriten`, Feld `favoriten_zuerst` an `FilterProfil` und `Mitglied`); Feed-Zeile nach Spezifikation (`_filter_zeile.html`: Titel + Stern, Chips Phase/Ebene/Lebensbereich, Mini-Balken + Stand, Direkt-Handlung rechts, „Erfasst"-Haken); „Warum hier?" als `<details>` je Zeile mit Rechnung je Regler; neutral = Gruppen, aktives Profil = eine Liste (`_weicherfilter_feed` in `verfahren/views.py`); Gäste neutral ohne Schalter. Tests: `verfahren/test_weicherfilter_ansicht.py`. **Hinweis:** die Gruppe „Abgeschlossen" (letzte 20) bleibt im neutralen Zustand als vierte Gruppe stehen — kein zehnter Regler.
+**Ist (0.34.0):** Regel v1 mit 8 Reglern; Favoriten-Bevorzugung ❌; Aufschlüsselung nur als Tooltip; Direkt-Handlung ❌.
 
-#### FB-B2 · Die Regler — 🟡 (7 von 9 vorhanden, einer falsch)
+#### FB-B2 · Die Regler — ✅
 **Quelle:** A0-05 — *„Bspw. der Parameter: mehr von dem wofür oder wogegen ich bereits gestimmt habe. mehr von dem was ich bereits unterstützt habe. Abstimmungen oder Unterstützungsanträge die mich interessieren könnten außerhalb meiner Favoriten. vermehrt Unterstützungsanträge, vermehrt Abstimmungen, vermehrt chronologisch was mein Feed zeigt, vermehrt Anträge usw. die nur noch kurz online sind, Anträge usw. denen nur noch wenig Unterstützung fehlt oder Abstimmungen fehlen. Das alles sind Schieberegler…"*
 
 **Spezifikation — die neun Regler (Reihenfolge = Anzeige), je 0–100 in 5er-Schritten, Voreinstellung 0**
@@ -283,15 +300,17 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* `aria-valuetext="40 von 100"`, Beschriftung als `<label>`; Tastatur ±5.
 
 **Abnahme:** Neun Regler in dieser Reihenfolge und mit diesem Wortlaut; Regler 1 auf 100 hebt einen Antrag aus einem Lebensbereich, in dem ich mit Ja gestimmt habe, über einen aus einem Lebensbereich, in dem ich mit Nein gestimmt habe (und Regler 2 umgekehrt); Ziehen ordnet live um.
-**Ist:** 8 Regler (`views.py:31-40`); „gestimmt" richtungslos (`views.py:62-64,80`); `ablaufend` pauschal /60 (`views.py:77`); keine Live-Vorschau (Formular „Anwenden & speichern").
+**Ist (0.35.0):** ✅ neun Regler in dieser Reihenfolge und mit diesem Wortlaut (`REGLER_NAMEN` in `verfahren/views.py`, Merkmale in `_weicherfilter_reihen`): wofür/wogegen getrennt über die eigene Stimme im Stimmregister (`_eigene_stimm_kategorien`, nur dem Mitglied bekannt), „Nur noch kurz online" = verstrichener Anteil der eigenen Phasendauer, „Wenig fehlt" mit Mindestbeteiligung; Live-Vorschau per htmx (`hx-trigger="input … delay:400ms"` → `filter_vorschau`, tauscht nur `#filter-liste`, speichert nichts); Wert rechts am Regler, `aria-valuetext`, native `<input type=range>`. Datenmigration `0011`: `gestimmt` → `ja` und `nein`.
+**Ist (0.34.0):** 8 Regler, „gestimmt" richtungslos, `ablaufend` pauschal /60, keine Live-Vorschau.
 
-#### FB-B3 · Bis zu fünf gespeicherte Konfigurationen — ✅ (Feinschliff)
+#### FB-B3 · Bis zu fünf gespeicherte Konfigurationen — ✅
 **Quelle:** A0-05 — *„…deren Gesamteinstellungen gespeichert werden können, bis zu 5, die man jederzeit umschalten oder anpassen kann."*
 
 **Spezifikation:** Konfiguration = Name (≤ 24 Zeichen) + neun Reglerwerte + Schalter „★ Favoriten zuerst"; serverseitig beim Mitglied; höchstens 5; genau eine ist aktiv (oder „Neutral"). Umschalten wirkt sofort (Feldtausch). Umbenennen per Doppelklick/Stift-Symbol im Overlay. Löschen mit Rückfrage „Konfiguration ‚Abend' löschen?" (Inline-Bestätigung, kein Browser-Dialog). Reihenfolge der Chips = Reihenfolge der Erstellung; per Drag umsortierbar (Zugabe).
-**Ist:** ✅ `FilterProfil` (max. 5, `verfahren/models.py:580-606`, `views_aktionen.py:321-336`); Umbenennen ❌, Löschen ohne Rückfrage 🟡.
+**Ist (0.35.0):** ✅ `FilterProfil` mit Name (≤ 24), neun Reglern und `favoriten_zuerst`; höchstens 5, eines aktiv oder „Neutral"; Umschalten per Chip (Feldtausch); Umbenennen per Stift im Overlay (`filter_umbenennen`, Inline-Formular); Löschen mit Inline-Rückfrage „Konfiguration ‚Abend' löschen?" (`<details>` + Formular, kein Browser-Dialog). **Offen (Zugabe):** Umsortieren per Drag.
+**Ist (0.34.0):** max. 5 ✅; Umbenennen ❌, Löschen ohne Rückfrage.
 
-#### FB-B4 · Das Umschaltmenü am oberen Rand mit Pfeil (Slide) — ❌
+#### FB-B4 · Das Umschaltmenü am oberen Rand mit Pfeil (Slide) — ✅
 **Quelle:** A0-05 — *„Umschalten über ein kleines Menü wo diese gespeicherten Gesamteinstellungen schnell aktiviert werden können am oberen Rand mit Pfeil zum einfahren des Menüs (slide animation)."*
 
 **Spezifikation**
@@ -301,9 +320,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* Pfeil = `<button aria-expanded aria-controls="filter-leiste">`; Chips sind Formular-Knöpfe.
 
 **Abnahme:** Pfeil sichtbar; Klick fährt die Leiste in ~0,25 s ein, Griff bleibt; erneuter Klick fährt aus; Zustand überlebt Neuladen; aktives Profil bleibt im Feldkopf lesbar.
-**Ist:** ❌ feste Chip-Leiste (`parlament.html:20-56`), nur Lade-Animation `einfahren-oben` (`base.html:283`).
+**Ist (0.35.0):** ✅ Profil-Leiste 40 px auf `--paper` (`.filter-leiste` in `base.html`, `parlament.html`): Chips Neutral · Konfigurationen (aktiv gold) · „● Ungespeichert" · ⚙ Regler, rechts der runde Pfeil (28 px, `aria-expanded`, `aria-controls="filter-leiste"`); Einfahren 40 → 14 px in 260 ms (`--d-base`, `--e-in`), Griff mit ˅ am oberen Feldrand, Zustand je Gerät in `localStorage` `ddoe.filterleiste` (Alpine `weicherfilter.leiste`); der Feldkopf zeigt den aktiven Namen immer. Ohne JavaScript: Leiste ausgefahren, Pfeil und Griff `x-cloak`. Bildschirmtest `tests/e2e/test_weicherfilter.py::test_leiste_faehrt_ein_und_merkt_sich_das`.
+**Ist (0.34.0):** ❌ feste Chip-Leiste.
 
-#### FB-B5 · Der Reglerbereich als halbtransparentes Overlay rechts — 🟡
+#### FB-B5 · Der Reglerbereich als halbtransparentes Overlay rechts — ✅
 **Quelle:** A0-05 — *„am rechten Rand ist der Schieberegler Bereich wo alle Schieberegler drauf sind, wobei die aktuell gewählte Konfiguration angezeigt wird aber man die Schieberegler einzeln anpassen kann und dann auf speichern drücken falls es eine ausgewählte Konfiguration ist oder auf neue Konfiguration speichern klicken falls man noch keine 5 Konfigurationen hat. Alles als halbtransparentes Overlay über dem Feed Bereich…"*
 
 **Spezifikation**
@@ -314,16 +334,17 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* `role="dialog" aria-modal="false" aria-label="Regler des WeicherFilters"`; Fokus geht beim Öffnen auf die Kopfzeile, beim Schließen zurück auf den Auslöser.
 
 **Abnahme:** Overlay gleitet von rechts, Feed bleibt sichtbar; „Speichern" ist bei „Neutral" ausgegraut; bei 5 Konfigurationen fehlt „Als neue…"; Escape schließt.
-**Ist:** 🟡 `<details>`-Overlay mit `einfahren-rechts` (`base.html:146,284`); Aktionen „Anwenden & speichern" + „Als neues Profil" (`parlament.html:31-55`); keine Änderungsanzeige, kein Stift, kein Löschen mit Rückfrage, kein Escape/Fokus-Management.
+**Ist (0.35.0):** ✅ `_filter_regler.html` als Inhalt des nativen `<details class="regler-klappe">` (Alpine `klappmenue`: Escape, Außenklick, Fokusrückgabe): `.regler-feld` 340 px (Handy 100 %), Höhe = Feldkörper, `--overlay` mit `backdrop-filter: blur(10px)`, gleitet von rechts (`overlay-rein`, 320 ms), `role="dialog" aria-modal="false"`, Fokus auf die Kopfzeile. Kopfzeile: Name / „Neutral", „● Ungespeichert" (Alpine `weicherfilter.pruefe`), Stift (Umbenennen inline), ×. Schalter „★ Favoriten zuerst", neun Regler, „Punkte = Regler × Merkmal. Regel v2 nachlesen ›". Aktionen: Speichern (`:disabled` ohne Änderung, bei Neutral immer aus) · Als neue Konfiguration speichern (Inline-Namensfeld „Anlegen"; bei 5/5 der Satz „5 von 5 — eine löschen oder überschreiben") · Zurücksetzen · Löschen mit Rückfrage. Auch das ⚙-Symbol im Feldkopf öffnet. Ohne JavaScript: dasselbe `<details>`, Speichern lädt neu.
+**Ist (0.34.0):** 🟡 `<details>`-Overlay ohne Änderungsanzeige, Stift, Rückfrage, Escape.
 
 #### FB-B6 · Voreinstellung neutral, Regel offen — ✅
-**Quelle:** Satzung § 5 Abs 10 lit d, § 2 Abs 6 letzter Satz; L3. **Spezifikation:** Voreinstellung = neutral (Phase, Frist, chronologisch) + „★ Favoriten zuerst" (offen sichtbar, abschaltbar); die Regel steht versioniert im Code und in Kurzform als Link „Regel v2 nachlesen" im Overlay-Fuß (öffnet `/parameter/#weicherfilter`). **Ist:** ✅ neutral; Regeltext heute als Satz im Overlay (`parlament.html`) — wird zum Link.
+**Quelle:** Satzung § 5 Abs 10 lit d, § 2 Abs 6 letzter Satz; L3. **Spezifikation:** Voreinstellung = neutral (Phase, Frist, chronologisch) + „★ Favoriten zuerst" (offen sichtbar, abschaltbar); die Regel steht versioniert im Code und in Kurzform als Link „Regel v2 nachlesen" im Overlay-Fuß (öffnet `/parameter/#weicherfilter`). **Ist (0.35.0):** ✅ neutral + „★ Favoriten zuerst" sichtbar und abschaltbar; im Overlay-Fuß der Link „Regel v2 nachlesen ›" auf `/parameter/#weicherfilter`, wo die Parameterseite Regel v2 Regler für Regler erklärt (`parameter/templates/parameter/liste.html`, `REGLER_MERKMALE`).
 
 ---
 
 ### Bereich C · Meine Favoriten — der Fächer (Feld rechts oben)
 
-#### FB-C1 · Der grafische Themenbaum mit Fäden — 🟡
+#### FB-C1 · Der grafische Themenbaum mit Fäden — ✅
 **Quelle:** A0-05 — *„Meine Favoriten sollte direkt einen Themenbaum anzeigen und zwar grafisch, ganz unten Lebensbereiche etwas größer, sagen wir Schriftgröße 24 und darunter die Unterkategorien in 2er schritten kleiner werden verbunden mit Fäden mit der Überkategorie, also in dem die vier Säulen aber ohne diese so zu benennen."*
 
 **Spezifikation**
@@ -334,9 +355,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Ohne JavaScript:* Knoten sind Links (`?fach=<slug>`), Sterne Formulare; Fäden SVG. Bereits heute so — bleibt.
 
 **Abnahme:** Auf 1440×900 sind Wurzel (24 px), 4 Säulen (22 px) und 12 Bereiche (20 px) gleichzeitig lesbar, **kein Knotentext ist abgeschnitten oder überlappt** (heute: „Bildungssy", „Infrastruktu" — Screenshot 2.9.); Hover auf einen Bereich färbt den Faden bis zur Wurzel gold.
-**Ist:** 🟡 Fächer direkt im Feld ✅ (0.31.0), Wurzel „Lebensbereiche" ✅, Fäden ✅, Schriftgrößen 24/22/20 ✅ — aber **Beschriftungen überlappen und sind abgeschnitten** (Kürzung auf 16 Zeichen bei Enkeln, `faecher.py:25-28`; drei Enkel-Reihen à 30 px sind zu eng), keine Säulenfarbe, keine Hover-Fadenhervorhebung.
+**Ist (0.34.0):** ✅ Layout-Regel v2 in `plattform_core/faecher.py` (VERSION 2): Randpillen bündig, bis zu drei versetzte Reihen, Pillenbreite b = r·Spanne/(n−1+r) als `max-width` in Prozent mit CSS-Ellipse, voller Name als `title`; **Rechenprobe über alle 312 Anker × alle Äste ohne Überlappung** (`tests/test_faecher_layout.py`) und Bildschirmprobe (`tests/e2e/test_faecher.py`). Säulentöne `.fknoten.p1–p4` (`base.html`, `color-mix` 12 %), Faden bis zur Wurzel gold beim Zeigen (`app.js` `faecher.hebe`), Suchtreffer 1,5 s gold (`treffer-link`, `parlament.treffer`). **Abweichung zur Abnahme:** die zwölf Bereiche stehen in 20 px in drei Reihen mit 7–11 sichtbaren Zeichen (Ellipse) — bei 26 Zeichen Median passen zwölf volle Namen in kein Feld; die vier Säulen zeigen ≥ 17 Zeichen, Wurzel und Anker immer voll.
+**Ist (0.31.0):** 🟡 Fächer direkt im Feld ✅, Wurzel „Lebensbereiche" ✅, Fäden ✅, Schriftgrößen 24/22/20 ✅ — aber Beschriftungen überlappten und waren abgeschnitten, keine Säulenfarbe, keine Hover-Fadenhervorhebung.
 
-#### FB-C2 · Fünf Ebenen im Fächer — ❌ (heute drei)
+#### FB-C2 · Fünf Ebenen im Fächer — ✅
 **Quelle:** A0-05 — *„und so geht es weiter mit den weiteren Unterkategorien so, dass sich ein Fächer mit 5 Ebenen ergibt."*
 
 **Spezifikation**
@@ -350,9 +372,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Performance:* Layout wird serverseitig berechnet (wie heute), die Ebene-5-Entfaltung liefert htmx als Teilantwort (`?fach=<slug>&entfalten=<slug>`) oder kommt vorab als versteckte Knoten mit (bevorzugt: vorab mitgeliefert, Alpine blendet ein — keine Netzlast beim Hover).
 
 **Abnahme:** An der Wurzel sind 5 Ebenen sichtbar (Lebensbereiche · 4 · 12 · 24 · entfalteter Ast); nichts überlappt; Hover über „Gesundheitswesen & Prävention" fächert dessen Unterkategorien auf 16 px auf; ohne JavaScript sind vier Ebenen sichtbar.
-**Ist:** ❌ maximal drei Ebenen über dem Anker (`faecher.py:111-135`), Enkel-Deckel 12 (`ENKEL_HOECHSTZAHL`), ab Tiefe 5 Lücken (Inventar Frage 2).
+**Ist (0.34.0):** ✅ fünf Ebenen (Anker 24 + 22/20/18/16), Auffächer-Regel mit Deckel 12 (`VOLL_HOECHSTZAHL`), die erste zu große Ebene nur im entfalteten Ast: drei Kinder nebeneinander (`AST_ABSTAND` 160 px), deren Kinder als senkrechte Säule (Pillenhöhe + 1 px), ab dem vierten „+n" (Link auf den Elternknoten). Alle Äste werden vorab mitgeliefert (`data-ast`, `x-show`, `x-cloak`), Ruhezustand = Ast des ersten Favoriten (`abos`), sonst der erste Bereich; ohne JavaScript bleibt der Ruhe-Ast mit allen fünf Ebenen sichtbar. Höhe knapp gerechnet (336 px an der Wurzel = Feldkörper bei 1440×900 als Gast), Prozentlagen dehnen sich mit dem Feld; ist das Feld niedriger, rollt der Körper und zeigt zuerst den Anker (`column-reverse`). Handy 20/18/16/15/14 px, `min-width:600px`, waagrecht rollbar. **Offen (klein):** Touch „erster Tipp entfaltet, zweiter navigiert" (der htmx-Klick geht vor; am Handy sieht man den Ruhe-Ast, andere Äste über den Klick auf den Bereich) und das gestaffelte Herausgleiten (180 ms/20 ms) — heute schlichtes Umblenden.
+**Ist (0.33.0):** ❌ maximal drei Ebenen über dem Anker, Enkel-Deckel 12, ab Tiefe 5 Lücken.
 
-#### FB-C3 · Hineinbewegen beim Klick; ab der dritten Ebene sitzt der Anker in der Mitte — 🟡
+#### FB-C3 · Hineinbewegen beim Klick; ab der dritten Ebene sitzt der Anker in der Mitte — ✅
 **Quelle:** A0-05 — *„wenn man auf ein element klickt bewegt sich die ansicht hinein auf dieses element was dann zu dem in Schriftgröße 24 am unteren rand des bereiches ist."* · A0-07 — *„Bei P2 ist mir aufgefallen, dass wenn die ausgewählte kategorie dann nach ganz unten kommt, man nicht mehr herauszoomen kann. Wir sollten die Auswahl ab der dritten ebene immer in die Mitte des Fächers bringen als den 24er Anker damit man auch zurück nach oben klicken kann."*
 
 **Spezifikation**
@@ -363,10 +386,11 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Ohne JavaScript:* Sprung ohne Zoom (Seitenwechsel), Modus Mitte/Boden identisch.
 
 **Abnahme:** Klick auf „Energie" (Tiefe 4): Anker mittig, darunter Kette „Wirtschaft, Arbeit & Finanzen ‹ Lebensbereiche" klickbar; die Bewegung ist ein Zoom auf den Knoten (kein Springen); Klick auf „Lebensbereiche" zoomt heraus.
-**Ist:** 🟡 Mitte-Modus ab Tiefe 3 ✅ (`faecher.py:67,84-89`), Rückweg auf 2 Vorfahren + Wurzel begrenzt (Lücke ab Tiefe 5) 🟡; Bewegung = pauschales `hineingleiten` von unten (`base.html:281`), **kein Zoom auf den geklickten Knoten** ❌; Brotkrume ❌ (CSS-Leiche `.brotkrume`).
+**Ist (0.34.0):** ✅ Klick zoomt vom Klickpunkt hinein (`app.js` `faecher.zoome`: `transform-origin` = Knotenmitte, `.faecher.zoom` scale 1 → 1.12, 320 ms `--e-out`), htmx tauscht erst danach (`hx-swap="outerHTML transition:true swap:220ms"`), die View-Transition glättet den Rest; Mitte-Modus ab Tiefe 3 mit **vollständigem Rückweg** bis zur Wurzel (22/20/18 px, `rolle: weg`) und **Brotkrume** im Feldkopf (`parlament.html`, `.brot`, `aria-label` „Pfad im Fächer"). Rückwärts (Klick auf einen Vorfahren oder die Brotkrume) spielt die View-Transition — kein eigener Zoom heraus. Ohne JavaScript Seitenwechsel ohne Zoom.
+**Ist (0.33.0):** 🟡 Mitte-Modus ✅, Rückweg auf 2 Vorfahren begrenzt, kein Zoom, keine Brotkrume.
 
 #### FB-C4 · Stern an jedem Element — ✅
-**Quelle:** A0-05 — *„Alle mit dem Stern zum favorisieren daneben."* **Spezifikation:** Stern links vor dem Knotentext (☆ grau / ★ gold mit Schein), 18 px Klickfläche ≥ 32 px, Tipp schaltet das Abo (Ast-Wirkung) mit Pop-Animation (scale 1.25 → 1, 220 ms) — Tausch nur des Sterns, nicht des Feldes (kein Flackern). `aria-pressed`. **Ist:** ✅ Stern je Knoten (`_faecher.html`), htmx tauscht das ganze Feld 🟡 (→ nur Stern tauschen), `aria-pressed` ❌.
+**Quelle:** A0-05 — *„Alle mit dem Stern zum favorisieren daneben."* **Spezifikation:** Stern links vor dem Knotentext (☆ grau / ★ gold mit Schein), 18 px Klickfläche ≥ 32 px, Tipp schaltet das Abo (Ast-Wirkung) mit Pop-Animation (scale 1.25 → 1, 220 ms) — Tausch nur des Sterns, nicht des Feldes (kein Flackern). `aria-pressed`. **Ist (0.34.0):** ✅ Stern je Knoten, htmx tauscht **nur den Stern** (`views_aktionen.kategorie_abonnieren`, HX-Zweig → `_kategorie_stern.html`, `hx-swap="outerHTML"`), `aria-pressed`, Pop 220 ms (`stern-pop` auf `htmx-added`); derselbe Baustein in der Feldsuche und im Kachelkopf. Getestet in `verfahren/test_faecher.py` und `tests/e2e/test_faecher.py`.
 
 #### FB-C5 · Was das Favoriten-Feld sonst noch zeigt — ❓
 **Ausarbeitung:** § 5 Abs 10 lit a verlangt im persönlichen Bereich auch *„die dazu aktuell laufenden Abstimmungen"*. Vorschlag: Unter dem Anker-Knoten steht bei Fokus auf einen Lebensbereich eine kleine Zahl-Pille „3 laufend"; Tipp darauf blendet **im Feld** eine kompakte Liste der laufenden Verfahren dieses Astes ein (mit Direkt-Handlung wie im WeicherFilter), zurück per „‹ Fächer". Damit erfüllt das Feld Satzung und Anweisung zugleich. ❓ D-C5: Zustimmung des Gründers (er hatte die frühere Liste bewusst entfernt; dies ist die kleinstmögliche Form). **Ist:** ❌ (Ast-Zähler nur in der Suche).
@@ -375,7 +399,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 ### Bereich D · Wichtige Abstimmungen (Feld links unten)
 
-#### FB-D1 · 4 oder 6 Kacheln, gleichmäßig — 🟡
+#### FB-D1 · 4 oder 6 Kacheln, gleichmäßig — ✅
 **Quelle:** A0-05 — *„Der Wichtige Abstimmungen Bereich ist ein Bereich der direkt 4 oder 6 wichtige Abstimmungen gleichmäßig positioniert anzeigt…"*
 
 **Spezifikation**
@@ -384,9 +408,10 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Kachel (gilt für D und E gleich, siehe FB-D2).*
 
 **Abnahme:** Mit 6 hervorgehobenen Anträgen füllt das Feld auf 1440×900 ein 3×2-Raster ohne Scroll; mit 7 erscheint „↓ 1 weitere"; mit 1 ist die Kachel so groß wie ein Rasterplatz, nicht feldfüllend.
-**Ist:** 🟡 `.kacheln` 2 Spalten, kein Zeilenmaß, kein Limit, Kacheln wachsen mit Inhalt (`base.html:167-169`, `views.py:266`).
+**Ist (0.34.0):** ✅ Raster 2 Spalten, ab 700 px Feldbreite 3 Spalten (Container-Query auf `.feld-korpus`), Zeilen `minmax(186px, calc(50% − 5px))` — 4 bzw. 6 gleich große Kacheln füllen das Feld, weitere rollen in ganzen Reihen (`base.html`, `verfahren/test_kachel_raster.py`). Der Hinweis „↓ n weitere" folgt mit FB-A5.
+**Ist (0.33.0):** 🟡 `.kacheln` 2 Spalten, kein Zeilenmaß, Kacheln wuchsen mit Inhalt.
 
-#### FB-D2 · Inhalt einer Kachel — 🟡
+#### FB-D2 · Inhalt einer Kachel — ✅
 **Quelle:** A0-05 — *„wobei bei jedem das Thema dabei steht, welches ebenfalls einen Favorisier-Stern daneben hat, dann steht dabei wo die Abstimmung gerade steht also wieviel % abgestimmt haben und wofür, wie lange noch bis zum Fristende in Tagen, Wenn man draufklickt wird der Antrag oder die Unterstützungserklärung usw. aufgerufen."*
 
 **Spezifikation — Aufbau von oben nach unten (Kachel ≈ 300 × 190 px)**
@@ -400,10 +425,11 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 
 **❓ D-D2 · „wieviel % abgestimmt haben und wofür".** Die Anweisung verlangt die Tendenz („wofür"). Lastenheft F-15 und die bisherige Umsetzung verbergen sie bis Fristende (Mitläufer-Effekt; § 5 Abs 3 lit e nennt Veröffentlichung *nach* der Abstimmung). Drei Wege: **(a)** verdeckt lassen und es in der Kachel sagen (heute); **(b)** Tendenz zeigen, sobald die Mindestbeteiligung erreicht ist (dann kann eine Stimme das Ergebnis nicht mehr durch Fernbleiben kippen); **(c)** immer zeigen. Empfehlung: (a) als Voreinstellung, (b) als Parameter `abstimmung-tendenz-ab-beteiligung` (Wert 0 = nie, 1 = immer) im Parameterregister — dann ist die Frage ein lernbarer Parameter statt einer Glaubensfrage. Bis zur Entscheidung: (a).
 
-**Ist:** 🟡 Kachel mit Titel, Stern (Antrag), Phase, Balken, Beteiligung, Resttage, Begründung, Direktabstimmung ✅ (`_kachel.html`); Thema-Chip mit Themen-Stern ❌; Kreisring ❌; „Mitreden" ❌; Tendenz verdeckt ⚠️ (D-D2).
+**Ist (0.34.0):** ✅ Thema-Chip mit eigenem Themen-Stern (Abo des Lebensbereichs, Tausch nur des Sterns, FB-C4), Antrags-Stern rechts, Titel, Phasen-Chip + Balken, Frist mit Kreisring (`_ring.html`, `phasen.rest_ring`), Direkt-Handlung je Phase (Unterstützen / Ja · Nein · Enthaltung / Mitreden / Zur Wahl), Hervorhebungsgrund nur im Feld D (`_kachel.html`). Tendenz verdeckt ⚠️ (D-D2).
+**Ist (0.33.0):** 🟡 Titel, Stern (Antrag), Phase, Balken, Beteiligung, Resttage, Begründung, Direktabstimmung ✅; Thema-Chip ❌, Kreisring ❌, „Mitreden" ❌.
 
 #### FB-D3 · Klick öffnet Antrag oder Unterstützungserklärung — ✅
-**Ist:** ✅ Titel-Link (`_kachel.html`). Delta: ganze Kachel klickbar (Ausarbeitung).
+**Ist (0.34.0):** ✅ Titel-Link; die ganze Kachel ist klickbar (`.k-titel::before` deckt die Kachel, Knöpfe und Sterne liegen darüber als eigene Ziele — `_kachel.html`, `base.html`).
 
 #### FB-D4 · Wer hebt hervor — Integritätsrat mit Oberfläche, Koordinationsrat beantragt — ❌ (Oberfläche fehlt ganz)
 **Quelle:** A0-04 — *„Wichtige Abstimmungen werden durch beschluss des koordinationsrates veröffentlicht so wie ich das in der satzung lese oder erinnere ich mich falsch?"* · A0-02 — *„Wieso dem Integritätsrat? Das müsste den Koordinationsrat betreffen."*
@@ -432,13 +458,14 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Handy:* Zeilen untereinander, je Zeile horizontal wischbar (eine Kachel ≈ 78 % Feldbreite sichtbar, die nächste ragt an — der sichtbare Anschnitt ist der „mehr vorhanden"-Hinweis).
 
 **Abnahme:** Auf 1440×900 sind drei Bänder mit je bis zu drei gleich großen Kacheln sichtbar, kein vertikaler Scroll nötig; die vierte Gemeinde-Kachel ist durch Wischen erreichbar und wird durch „› 1 weitere" angekündigt; Ja/Nein/Enthaltung funktioniert in der Kachel ohne Seitenwechsel.
-**Ist:** 🟡 drei Zeilen ✅ mit `.kacheln.dreier` (3 Spalten, aber Zeilenumbruch statt Wischen, keine Höhenteilung) — auf 1440×900 ist nur die Gemeinde-Zeile sichtbar (Screenshot 2.9.); Direktabstimmung ✅; Wasserzeichen/Zeilenköpfe ❌; Profil-Link ❌.
+**Ist (0.34.0):** 🟡 Drei **Bänder** Gemeinde · Bezirk · Land teilen sich die Feldhöhe (`.baender`, `repeat(3, minmax(0,1fr))`, Mindesthöhe 300 px), jedes mit senkrechtem Zeilenkopf (Ebene · Ort, farbiger Balken petrol/gold/tinte) und einer **waagrecht wischbaren Spur** mit drei gleich großen Kacheln (Scroll-Snap; Handy 78 % Breite, die nächste ragt an); ab der vierten Kachel die Pille „› n weitere" (Alpine `spur`, FB-A5). Kacheln wie FB-D2 in kompakter Form (Titel einzeilig, ohne Balken und Hervorhebungsgrund), Direktabstimmung ✅, Gold-Haken „Erfasst" ✅ (FB-A2). Leerkachel je Band mit Handlung (FB-E3). Auf 1440×900 sind alle drei Bänder ohne vertikalen Scroll sichtbar (`verfahren/test_region_baender.py`, `tests/e2e/test_mehr_vorhanden.py`). **Offen:** Wasserzeichen-Icons je Ebene ❌; Leerkachel „Wohnsitz hinterlegen ›" → Profil ❌ (FB-K5, es gibt keine Profilseite).
+**Ist (0.33.0):** 🟡 drei Zeilen mit `.kacheln.dreier` (Zeilenumbruch statt Wischen, keine Höhenteilung).
 
 #### FB-E2 · Gleicher Seitenaufbau wie Wichtige Abstimmungen (KI-Einschätzung, Chat) — ❌ (folgt aus FB-F)
 **Quelle:** A0-05 — *„Ähnlich aufgebaut wie bei Wichtige Abstimmungen also mit KI Einschätzung und Chatbereich."* → Regionale Antragsseiten sind normale Antragsseiten (FB-F1–F3). Zusätzlich: die Zukunftswerkstatt kennt die Ebene (Gemeinde-Antrag → Gemeindeordnung, Landesgesetze; keine Bundes-Personalaggregate).
 
-#### FB-E3 · Leerzustände — 🟡
-**Ausarbeitung:** kurz und mit einer Handlung (siehe FB-E1). **Ist:** drei Sätze mit Link (`parlament.html:145-166`) — kürzen.
+#### FB-E3 · Leerzustände — ✅
+**Ausarbeitung:** kurz und mit einer Handlung (siehe FB-E1). **Ist (0.34.0):** ✅ je Band eine schmale Leerkachel „Noch nichts in Ihrer Gemeinde. Antrag einbringen →" (vier Wörter + Handlung; Bezirk/Land analog), `parlament.html`, getestet in `verfahren/test_region_baender.py`. Die anderen Felder: „Derzeit läuft kein Verfahren." / „Derzeit ist nichts hervorgehoben." (je vier Wörter).
 
 ---
 
@@ -802,7 +829,7 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 #### FB-K3 · Das Anstoß-Widget auf jeder Seite; Speicherung zur späteren Auswertung — ✅ / ⚠️ (Speicherort)
 **Quelle:** A0-08 — *„…über ein widges, dass den user auf allen seiten die auf der parlamentplattform besucht werden begleitet und dass er jederzeit für feedback und wünsche nützen kann. Dabei wird seine nachricht gespeichert um sie später mit deiner hilfe auszuwerten. nutze dafür einenen online webserver wo wir sowas speichern können. vielleicht den eigenen und ich gebe dir einen ftp zugriff…"*
 **Spezifikation:** Umgesetzt mit Speicherung **in der eigenen Datenbank** der Plattform statt FTP (⚠️ Abweichung mit Grund: keine Fremdzugänge, Backup mit der Datenbank, DSGVO-Hoheit; Export CSV/JSON für die Auswertung mit Claude — ❓ D-K3 bestätigen). Ergänzungen: (1) Position: im Parlament liegt der Knopf **in der App-Leiste** (Sprechblasen-Symbol rechts neben „＋"), nicht schwebend über dem Raster (er verdeckt heute „Meine Region"); auf allen anderen Seiten bleibt die schwebende Pille rechts unten, aber 12 px kleiner. (2) Verwaltung: Eingabefeld „Vermerk" (heute fehlt es), Antwortmöglichkeit per Mail an Mitglieder („Rückfrage senden"), Verknüpfung „→ Fahrtenbuch-Nr." (Freitext). (3) Export enthält die Seite als Klartext-Titel, nicht nur den Pfad.
-**Ist:** ✅ Widget, DB, Verwaltung, Export, X, Auto-Schließen (`anstoss/`); ❌ Vermerk-Feld (Inventar 12), Position im Parlament (Inventar 3.7).
+**Ist (0.33.0):** ✅ Widget, DB, Verwaltung, Export (`anstoss/`); **Position erledigt**: im Parlament in der App-Leiste mit Popover darunter, sonst schwebende Pille 12 px kleiner (`_widget.html`, `base.html:344-350`, `_leiste.html:23`) — „Meine Region" wird nicht mehr verdeckt. Rückmeldung per `HX-Trigger` statt Inline-Skript (`anstoss/views.py:63-69`). ❌ offen: Vermerk-Feld in der Verwaltung, Klartext-Titel im Export (Inventar 12).
 
 #### FB-K4 · Einführung nach der Bestätigung — ✅ (Korrektur)
 **Ist:** ✅ drei Schritte (`einfuehrung.html`); ❌ Schritt 1 verweist auf die abgeschaffte Seite `/kategorien/` („oben rechts") → Text auf die Suche im Favoriten-Feld umstellen; Schritt 2/3 nennen „mindestens sieben Tage" / „7 Tage Abstimmung" → Registerwerte (28) einsetzen.
@@ -862,6 +889,34 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 **Spezifikation:** Jeder Parameter trägt `schema_key` (englisch, stabil, z. B. `support.window_days`), `schema_version`; `/parameter.json` und neu `/kennzahlen.json` (aggregiert) sind das Austauschformat (dokumentiert in `docs/SCHEMA.md`, versioniert); Import-Command `partner_import <url>` liest fremde Exporte in `PartnerParameter` (system_id, schema_key, wert, stand) für die Gegenüberstellung. Keine personenbezogenen Daten, je.
 **Ist:** ❌ (`/parameter.json` ohne Schema).
 
+#### FB-M6 · Gemeinsame Grundsoftware: ein Kern, viele Landesinstanzen, regelmäßiger Abgleich — ❌
+**Quelle:** A0-09 — *„…jeder verwendet die selbe Grundsoftware also Parlamentplattform die auf deren servern liegt und dort selbst lernt, die weiterentwicklung dieser plattform findet aber gemeinsam statt wobei es regelmäßigen austausch und abgleich der grundsoftware geben soll damit wir gemeinsam an der grundsoftware arbeiten und parametter einführen aber diese parameter auf jeder plattform der länder in der dort eigenen weise wirkt und sich selbst verbessert…"*
+
+**Spezifikation (Vorschlag, Ausarbeitung)**
+- *Kern und Instanzen:* Das gemeinsame Repo `parlamentplattform/parlamentplattform` ist der **Kern**; jedes Land betreibt eine **Instanz** aus einer versionierten Kern-Freigabe (SemVer, `CHANGELOG`) mit eigener Datenbank, eigenem Parameterregister, eigenem Kategorienbaum und eigener Satzungsfassung. Landesspezifisches liegt in **Konfiguration, nicht im Code**: `policies/*.yaml` (Kategorien, Grundordnung), Erstbestand der Parameter je Land, Übersetzungen, `.env`.
+- *Abgleich:* Vierteljährliche Kern-Freigabe; Instanzen ziehen sie mit `git pull` + `migrate` nach (Datenmigrationen idempotent, Grundregel 7). Landeserweiterungen kommen als PR in den Kern, wenn sie parametrisierbar sind — sonst bleiben sie dokumentiertes Modul der Instanz. Ein **Plattform-Rat** (je Land eine Person, Arbeitssprache Englisch) beschließt die Freigaben, Protokoll öffentlich.
+- *Parameter gemeinsam, Wirkung eigen:* Neue Parameter entstehen im Kern mit `schema_key` und Zielwert-Empfehlung (FB-M5); jede Instanz setzt ihren Wert selbst und lernt ihn über ihr Register (F-68). Der Austausch läuft über `/parameter.json` und `/kennzahlen.json` — aggregiert, nie personenbezogen.
+- *Auf `/partner/`:* Schaubild **„Ein Kern, viele Instanzen"** (Inline-SVG: Kern-Kasten, Instanz-Kästen je Land, Pfeile Freigabe ↓, Parameter-Schema ↔, Lernfortschritt ↑) und die Schnittstellenbeschreibung als Kurzfassung mit Link auf `docs/SCHEMA.md`.
+
+**Abnahme:** Auf `/partner/` steht das Modell verständlich mit Schaubild; `docs/SCHEMA.md` beschreibt die Austauschformate; eine zweite Instanz lässt sich aus der Vorlage in unter einer Stunde starten (dokumentiert).
+**Ist:** ❌ (nur Prosa „System und Parameter" auf `/partner/`).
+
+#### FB-M7 · Das Übertragungspaket und der Einstiegs-Fahrplan (umgestalten oder neu gründen) — ❌
+**Quelle:** A0-09 — *„Wir wollen eine Struktur anbieten wie man die ParlamentPlattform und die Satzung für die eigene Partei des eigenen Landes übertragen bekommt und was man tun muss wenn um sich dieser idee anzuschließen bzw. um im eigenen Land ebenfalls diese Partei zu gründen. Es soll ein echter Einstieg möglich sein, ob man nun die bereits bestehende Partei umgestalten will zur direkten demokratie oder eine neue gründen möchte. Man bekommt von uns Unterstützung beim aufsetzen der Staatseigenen Plattform und der Schnittstellen und Infrastruktur…"*
+
+**Spezifikation (Vorschlag, Ausarbeitung)**
+- *Paket `docs/partner/` (EN/DE):* (1) **Satzungs-Baukasten** — Satzung 2.5 als Vorlage mit Länder-Platzhaltern (Name, Rechtsform, Sitz, Wahlrecht) und Kommentar je §: was zwingend zum Modell gehört (§ 2 Werkzeug-Grundsatz, § 5 Verfahren, § 6 Zukunftswerkstatt, § 12 Zusammenarbeit) und was landesspezifisch ist; (2) **Instanz-Vorlage** — `docker-compose`, `.env`-Vorlage, `render.yaml`, Erstbestand der Parameter (JSON), Kategorienbaum (YAML, länderneutral), Demo-Daten; (3) **Einrichtungs-Checkliste** (Domain, E-Mail, eID-Optionen, Datenschutz, Sicherung); (4) **Einstiegs-Fahrplan** in zwei Spuren — *bestehende Partei umgestalten* (Satzungsänderung, Übergangsregeln, Mitgliederabstimmung) und *neu gründen* (Gründungsschritte nach Landesrecht als Platzhalter, erste Mitglieder, Alpha-Betrieb) — je Spur die Schritte, was wir beisteuern (Einrichtung, Schulung, Schnittstellen) und was das Land selbst tut.
+- *Auf `/partner/`:* Abschnitt **„So steigt ihr ein"** mit den zwei Spuren als Karten, das Paket zum Herunterladen (`/partner/paket/` als ZIP aus dem Repo-Stand) und das Kontakt-/Partner-Konto-Formular (FB-M3).
+
+**Abnahme:** Beide Spuren sind auf `/partner/` als Schrittfolge lesbar; das Paket lässt sich herunterladen und enthält Satzungs-Baukasten, Instanz-Vorlage und Checkliste.
+**Ist:** ❌.
+
+#### FB-M8 · Die gemeinsame Vision statt Parteiprogramme — ❓ (Text des Gründers)
+**Quelle:** A0-09 — *„Wir bieten an, sich zusammen zu schließen und gemeinsam weiter an diesem System zu arbeiten. Wir sollten den Faktor nützen, dass wir keine Parteiprogramme haben die wir niemals abgleichen könnten sondern eine gemeinsame Vision die wir konkretisieren und angleichen sollten um uns gegenseitig und die Sache zu fördern."*
+
+**Spezifikation (Vorschlag):** Ein kurzer Text **„Gemeinsame Vision"** (≤ 1 Seite, EN/DE) als Kopf von `/partner/`: das Werkzeug-Prinzip (§ 2 Abs 1), die logisch nächste Form der gesamtgesellschaftlichen Selbstorganisation, Betroffene und Fachkundige, Nachrechenbarkeit, keine Programme — und die Einladung, ihn gemeinsam zu konkretisieren (Fassungen versioniert, Änderungen im Plattform-Rat). ❓ D-M8: Der Gründer schreibt oder gibt den Text frei; Claude legt einen Entwurf als eigene Datei vor (Prinzip „Anfügen statt Einschieben").
+**Ist:** ❌.
+
 ---
 
 ### Bereich N · Menü, Navigation, Namen
@@ -872,9 +927,9 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 #### FB-N2 · Hauptfenster heißt „Parlament" und ist Menüpunkt — ✅
 **Quelle:** A0-04 — *„Das Hauptfenster heißt nun Parlament als Menüeintrag und ist darüber erreichbar."* **Ist:** ✅ (`base.html:333`, Test `test_nav_heisst_parlament`).
 
-#### FB-N3 · „Antrag einbringen" prominenter und hervorgehoben; kein Button im Bereich — 🟡
+#### FB-N3 · „Antrag einbringen" prominenter und hervorgehoben; kein Button im Bereich — ✅ (0.33.0, S1)
 **Quelle:** A0-05 — *„Der „Eigenen Antrag einbringen" Button kann dort weg weil es ein Menüeintrag ist. Der könnte etwas Prominenter positioniert sein und hervorgehoben werden."*
-**Spezifikation:** In der App-Leiste ganz rechts vor dem Konto: **gefüllter Gold-Knopf „＋ Antrag einbringen"** (Desktop), auf dem Handy als Gold-„＋" in der Mitte der Tableiste (FB-A1). Kein weiterer Einbring-Knopf in den Feldern (außer in Leerzuständen als Textlink). **Ist:** 🟡 Umriss-Pille im Header (`.nav-cta`), zweite Nav-Zeile drückt sie optisch nach oben; im Bereich entfernt ✅.
+**Spezifikation:** In der App-Leiste ganz rechts vor dem Konto: **gefüllter Gold-Knopf „＋ Antrag einbringen"** (Desktop), auf dem Handy als Gold-„＋" in der Mitte der Tableiste (FB-A1). Kein weiterer Einbring-Knopf in den Feldern (außer in Leerzuständen als Textlink). **Ist (0.33.0):** ✅ gefüllte Goldpille „＋ Antrag einbringen" (36 px) rechts in der einen App-Leiste (`_leiste.html:19`, `base.html:84-85`); am Handy als 48-px-Goldkreis in der Mitte der Tableiste (`_tabs.html:11`, `base.html:259-260`). In den Feldern steht kein Einbring-Knopf außer im Leerzustand.
 
 #### FB-N4 · Seite „Lebensbereiche" aus dem Menü — ✅
 **Quelle:** A0-05 — *„Die Seite Lebensbereiche können wir aus dem Menü entfernen weil der Favoritenbereich auf der Parlament Seite absolut reicht."* **Ist:** ✅ (`/kategorien/` → Redirect in den Fächer; Fußzeilenlink bleibt — zulässig).
@@ -890,6 +945,8 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 
 #### FB-N8 · Menüstruktur der App-Leiste (Ausarbeitung, aus FB-A1)
 **Desktop:** [Wortmarke] Parlament · Mandatare · Gremien · Umsetzungsregister · Zukunftswerkstatt · Übersicht | **＋ Antrag einbringen** | [Anstoß-Symbol] [Konto-Avatar ▾: Mein Gremium · Profil · Beitrag · Verwaltung · Sprache · Abmelden] — Gäste: … | Anmelden · **Mitglied werden** · EN. Gremien wandert ins Hauptmenü (öffentliche Besetzung), Übersicht nach hinten. **Handy:** Wortmarke + Burger (Menü gleitet von rechts) + Tableiste im Parlament. ❓ D-N8.
+
+**Ist (0.33.0):** ✅ so gebaut (`_leiste.html`), D-N8 nach Empfehlung angewendet; der aktive Punkt folgt dem Bereich statt dem genauen Pfad (`templatetags/leiste.py:11-35`). **Abweichung:** „Profil" fehlt bewusst, weil `/profil/` erst mit S10 entsteht (FB-K5) — kein toter Link; das Konto-Menü führt stattdessen den Abschnitt „Mehr" mit den Fußzeilen-Links, Gäste haben dafür ein eigenes ⋯-Menü (`_mehr_links.html`). Tests: `verfahren/test_app_rahmen.py:40-125`.
 
 ---
 
@@ -915,14 +972,18 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 **Spezifikation:** verbindlich in `DDOE_Design_Spezifikation_App-Look.md`: Tokens, Typografie (FB-P2), Bewegungssystem (Dauern 160/260/320/420 ms, eine Easing-Familie, gerichtete Übergänge: Feldtausch gleitet in Wischrichtung, Overlays von ihrem Rand, Fächer-Zoom vom Klickpunkt, Zahlen zählen hoch, Balken wachsen, Skelette beim Laden), Zustände (Laden/Leer/Fehler/Erfolg), Komponentenkatalog (App-Leiste, Feld, Kachel, Zeile, Chip, Regler, Overlay, Panel, Reiter, Sprechblase, Plakette, Ampel, Zeitstrahl, Ring), Responsive-Raster, Dark Mode ohne Lücken, Reduced Motion, Fokus.
 **Ist:** 🟡 Erststand 0.31/0.32.
 
-#### FB-P2 · Schrift: Sans für alles Bedienbare — ❓
+#### FB-P2 · Schrift: Sans für alles Bedienbare — ✅ (0.33.0, D-P2 angewendet)
 **Ausarbeitung:** Serif (Georgia) in H1–H3 wirkt auf Parlament, Antragsseite und Gremien wie Zeitung, nicht wie App. Vorschlag: **Sans überall auf der Plattform** (System-Stack, kein Webfont — Datenschutz), Serif nur in der Wortmarke „Parlament*Plattform*" und optional auf `/` und `/zukunftswerkstatt/` als Erzähl-Akzent. ❓ D-P2.
 
-#### FB-P3 · Dark Mode vollständig, manueller Schalter — 🟡
-**Ausarbeitung:** heute nur `prefers-color-scheme`; Lücken (hart kodierte Badge-/Ikonenfarben, QR-Kasten). Ziel: alle Farben über Tokens; Schalter im Konto-Menü (System / Hell / Dunkel), `localStorage`, `data-theme`-Attribut. **Ist:** 🟡.
+**Ist (0.33.0):** ✅ Sans für alles Bedienbare mit der Skala aus 2.2 (`base.html:65-70`); Serif nur in der Wortmarke (Leiste und Fuß) und im Bühnen-H1 der drei Erklärseiten (`base.html:77`, `:112`, `:277`). Serif-Reste auf der Startseite und in den Mandatar-Platzhaltern entfernt; ein statischer Test hält die Ausnahmeliste fest (`verfahren/test_design_system.py:103-121`).
 
-#### FB-P4 · Technik für das App-Gefühl: htmx + Alpine.js, eingecheckt — ✅ / 🟡
-**Quelle:** A0-05 — *„Nütze Skills die ich bereits installiert habe oder sag mir welche skills oder plug ins ich dir installieren soll … such mir ein github repository raus das ich installieren soll."* → Entscheidung (Fahrplan E): htmx 2 + Alpine.js 3 als statische Dateien. **Ist:** htmx 2.0.10 ✅ genutzt; **Alpine 3.17.1 geladen, aber nirgends benutzt** → die Overlays, Leisten, Panels, Reiter, Regler-Livevorschau, Scroll-Hinweise, Zähler werden mit Alpine gebaut (ersetzt Inline-`onclick`). Keine weiteren Abhängigkeiten. Für Claude Code sind keine Plugins nötig; empfohlen: Playwright im Repo für Bildschirm-Tests (`tests/e2e/`) — siehe Übergabepaket.
+#### FB-P3 · Dark Mode vollständig, manueller Schalter — ✅ (0.33.0, S1)
+**Ausarbeitung:** heute nur `prefers-color-scheme`; Lücken (hart kodierte Badge-/Ikonenfarben, QR-Kasten). Ziel: alle Farben über Tokens; Schalter im Konto-Menü (System / Hell / Dunkel), `localStorage`, `data-theme`-Attribut.
+
+**Ist (0.33.0):** ✅ Tokens mit den Spezifikationsnamen, dunkel doppelt hinterlegt (Systemeinstellung und `data-theme="dark"`, `base.html:14-61`); Schalter System/Hell/Dunkel im Konto- und ⋯-Menü (`_thema.html`), gemerkt in `localStorage`, vor dem ersten Zeichnen gesetzt (`static/verfahren/js/thema.js`). Vollzugsampel, Status-Badges, Ergebnislegende und QR-Kasten laufen über Token-Klassen (`templatetags/phasen.py:38-50`, `uebersicht.html:39-46`, `verwaltung_mitglied.html:8-11`, `_beitrag_kasten.html:4`). Statische Tests: `verfahren/test_design_system.py:52-101`; im Browser geprüft (`tests/e2e/test_app_rahmen.py`). 🟡 Rest: Inline-SVG-Grafiken der Erklärseiten und das Captcha bleiben hell — als „Grafiken mit eigenem Papier" zulässig (Spezifikation 8.8).
+
+#### FB-P4 · Technik für das App-Gefühl: htmx + Alpine.js, eingecheckt — ✅ (0.33.0, S1)
+**Quelle:** A0-05 — *„Nütze Skills die ich bereits installiert habe oder sag mir welche skills oder plug ins ich dir installieren soll … such mir ein github repository raus das ich installieren soll."* → Entscheidung (Fahrplan E): htmx 2 + Alpine.js 3 als statische Dateien. **Ist (0.33.0):** ✅ htmx 2.0.10 genutzt (Feldtausch jetzt mit `transition:true` und `hx-indicator`); **Alpine 3.17.1 wird verwendet**: Komponenten `klappmenue`, `anstoss`, `thema`, `tabs`, `meldung` in `static/verfahren/js/app.js`, dazu das kleine `thema.js` im Kopf. **Kein Inline-Handler und kein Inline-Skript mehr** in irgendeinem Template (Test `verfahren/test_design_system.py:141-148`), damit ist eine strikte CSP möglich. Playwright liegt als eigene Abhängigkeitsgruppe `e2e` im `pyproject.toml`; die Bildschirmtests überspringen sich ohne Browser.
 
 #### FB-P5 · Sichtprüfung des Gründers je Politur-Schritt — Prozessregel
 Jeder Bauschritt aus Teil C endet mit Screenshots (Desktop 1440×900, Handy 390×844, hell und dunkel) und einem kurzen Bewegungs-Video/GIF, abgelegt unter `docs/sichtpruefung/<version>/`; der Gründer bestätigt oder korrigiert im Fahrtenbuch (Eintrag → Status).
@@ -935,7 +996,7 @@ Jeder Schritt ist in sich abnehmbar, hat Tests und endet mit einer Sichtprüfung
 
 | Schritt | Version | Inhalt | FB-Einträge | Abnahme (Kurz) |
 |---|---|---|---|---|
-| **S1 · App-Rahmen** | 0.33 | Eine App-Leiste (Konto-Menü), gefüllter „＋ Antrag"-Knopf, Parlament ohne Fußzeile, Raster auf `100dvh`, Handy-Snap + Tableiste, Anstoß in die Leiste, Gastband, Sans-Typografie (nach D-P2), Alpine aktivieren, Skelett-Zustände, Dark-Mode-Lücken | A1, A2, A6, N3, N8, K3(Position), P2, P3, P4 | Screenshots 1440/390, kein Seiten-Scroll im Parlament |
+| **S1 · App-Rahmen** ✅ 2.9.2026 | 0.33.0 | Eine App-Leiste (Konto-Menü), gefüllter „＋ Antrag"-Knopf, Parlament ohne Fußzeile, Raster auf `100dvh`, Handy-Snap + Tableiste, Anstoß in die Leiste, Gastband, Sans-Typografie (nach D-P2), Alpine aktivieren, Skelett-Zustände, Dark-Mode-Lücken | A1, A2, A6, N3, N8, K3(Position), P2, P3, P4 | Screenshots 1440/390, kein Seiten-Scroll im Parlament |
 | **S2 · „Mehr vorhanden" + Kachel-Raster** | 0.34 | Scroll-Hinweis an allen Feldern; Wichtige Abstimmungen 2×2/3×2 gleich groß; Meine Region 3×3-Bänder mit horizontalem Wischen; Kachel-Inhalt (Thema-Chip + Themen-Stern, Frist-Ring, „Mitreden"); Rückmeldung in der Kachel statt Flash; Leerzustände kurz | A5, D1, D2, D3, E1, E3, A2 | 7 hervorgehobene → 6 sichtbar + „↓ 1 weitere"; Region wischt |
 | **S3 · WeicherFilter komplett** | 0.35 | Neun Regler (zwei Richtungen), Favoriten-zuerst-Schalter, Live-Vorschau, einfahrbare Profil-Leiste mit Pfeil, Overlay mit Speichern/Neu/Umbenennen/Löschen/Zurücksetzen, „Warum hier?"-Aufklapp, Direkt-Handlung in der Zeile, Regel v2 dokumentiert + Parameter | B1–B6 | Abnahmen B2, B4, B5 |
 | **S4 · Der Fächer mit fünf Ebenen** | 0.36 | Neuer Layout-Algorithmus (keine Überlappung, Tests über alle 312 Anker), Auffächer-Regel (Ebene 5 entfaltet), Säulenfarben, Faden-Hover, Zoom-Animation vom Klickpunkt, Mitte-Modus mit vollem Rückweg, Brotkrume, Handy-Variante, Stern-Tausch ohne Feldflackern, laufende Verfahren je Ast (nach D-C5) | C1–C5 | Abnahmen C1, C2, C3 |
@@ -966,23 +1027,25 @@ Bitte je Zeile: **Ja / Nein / anders (Text)**. Ohne Antwort gilt die Empfehlung.
 | D-D2 | Kachel „wieviel % und wofür": (a) Tendenz verdeckt bis Fristende (heute), (b) Tendenz ab erreichter Mindestbeteiligung, (c) immer sichtbar? | (a) jetzt, (b) als Parameter vorbereiten |
 | D-D4 | Hervorhebung bleibt beim **Integritätsrat** (Satzung), der Koordinationsrat **beantragt**; oder Satzung auf KoRat ändern? | Satzung belassen |
 | D-G1 | Reaktionen (👍) auch außerhalb des Abstimmungs-Chats, rein informativ? | Ja, nur Zustimmung |
-| D-G3 | Chat-Panel (Griff links) nur im Parlament oder auf jeder Seite? | Auf jeder Seite der Plattform |
+| D-G3 | Chat-Panel (Griff links) nur im Parlament oder auf jeder Seite? | Auf jeder Seite der Plattform; die Handy-Tableiste hat in S1 vier Ziele + ＋, „Chats" kommt als fünftes mit S6 |
 | D-G5 | Der eingefrorene Abstimmungs-Chat wird in der Endabstimmung als aufklappbarer Block „So kam der Vorschlag zustande" gezeigt? | Ja |
 | D-G6a | Reagieren im Abstimmungs-Chat: nur Unterstützer (= das Votum) — oder alle Mitglieder, Unterstützer gesondert gezählt? | Nur Unterstützer |
 | D-G6b | Hochstufung nur, wenn „Passt alles" **oben steht und** > 50 % hat (beides), sonst Rückgabe? | Ja, beides |
 | D-G6c | Reaktionen im Abstimmungs-Chat offen mit Namen (wie heute das Votum) oder pseudonym? | Offen (§ 6 Abs 9-Logik, Unterstützung ist ohnehin öffentlich) |
 | D-J7 | Verweildauer-Kennzahl: Opt-out (Voreinstellung an) oder Opt-in? | Opt-out, vor Produktivsetzung DSFA |
-| D-K3 | Anstoß-Speicherung in der eigenen Datenbank (statt FTP-Webserver) bleibt? | Ja |
+| D-K3 | Anstoß-Speicherung in der eigenen Datenbank (statt FTP-Webserver) bleibt? | Ja — **angewendet in S1 (0.33.0)**, S1 änderte nur die Position |
 | D-L2a | Mandatsfrage (Instant-Report → Abstimmung) **ohne** Unterstützungsphase, eigene Antragsart mit kürzerer Frist (Parameter, Start 7 Tage)? | Ja |
 | D-L2b | Mandatsfragen automatisch in „Wichtige Abstimmungen"? | Nein (bleibt beim Integritätsrat) |
 | D-M3 | Partner-Konto: lesen überall, schreiben nur im Partner-Bereich; keine Mitgliedsrechte? | Ja |
 | D-M4 | Umfang der Partner-Oberfläche in der Erststufe: (1) Software-Start + (4) Kontakt zuerst, (2)/(3) später? | Ja |
-| D-N8 | Neue Menüreihenfolge (Gremien ins Hauptmenü, Übersicht nach hinten, Konto-Menü)? | Ja |
+| D-N8 | Neue Menüreihenfolge (Gremien ins Hauptmenü, Übersicht nach hinten, Konto-Menü)? | Ja — **angewendet in S1 (0.33.0)**; „Profil" erst mit S10 |
 | D-O3 | ddoe.at: Wort „Minderheiten" (3×) durch „Betroffene und Fachkundige" ersetzen (Regel aus ddoe_konzept)? | Ja |
 | D-O8 | Satzungsseite ddoe.at: Link auf die Änderungsübersicht 1.3 → 2.x? | Ja |
-| D-P2 | Sans-Schrift überall auf der Plattform, Serif nur Wortmarke (+ optional Erklärseiten)? | Ja |
+| D-P2 | Sans-Schrift überall auf der Plattform, Serif nur Wortmarke (+ optional Erklärseiten)? | Ja — **angewendet in S1 (0.33.0)**, Serif auf den drei Bühnen-H1 |
 | D-Z1 | Satzung-Anhang: doppelte Nummerierung (zweimal 9 und 10) bereinigen → 11, 12 | Ja |
 | D-Z2 | Strategie-Papier Fassung 4: „Vorlage" → „Vorschlag", Zukunftswerkstatt-Name durchziehen, Ringe mit Stand 0.32 | Ja |
+| D-M8 | Text „Gemeinsame Vision" für `/partner/` (FB-M8): Claude legt einen Entwurf als eigene Datei vor, der Gründer schreibt oder gibt frei? | Ja, Entwurf vorlegen |
+| D-S14 | S14 „Internationale Partner" vorziehen? Der Gründer nennt den Bereich am 2.9. abends wichtig (A0-09) | Empfehlung: ja, zweigeteilt — S14a sofort (Partner-Seite mit Schaubild, Gemeinsame Vision, Einstiegs-Fahrplan, Übertragungspaket, `docs/SCHEMA.md`, Schema-Kennungen im Register), S14b nach S5 (Partner-Konto, Rolle, Partner-Bereich, `partner_import`) |
 
 ---
 
@@ -1003,4 +1066,4 @@ Was **gut** war und übernommen wurde: die Namensentscheidungen (Abschnitt C), d
 
 ---
 
-*Fahrtenbuch Detailfassung 1.0 · 2.9.2026 · Nächste Fortschreibung: nach den Antworten zu Teil D und nach Sichtprüfung von S1.*
+*Fahrtenbuch Detailfassung 1.0 · 2.9.2026 · S1 (0.33.0) gebaut und fortgeschrieben am 2.9.2026 — Bilder unter `docs/sichtpruefung/0.33.0/`. Nächste Fortschreibung: nach der Sichtprüfung des Gründers und nach den Antworten zu Teil D.*

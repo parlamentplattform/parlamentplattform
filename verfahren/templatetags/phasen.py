@@ -35,16 +35,30 @@ def phase_name(wert: str) -> str:
     return str(NAMEN.get(wert, wert))
 
 
-# Ampelfarben des Umsetzungsregisters (F-55) — identisch mit den Meldungsfarben der Plattform.
-FARBEN = {
-    "umgesetzt": "background:#EFF6F1;color:#1E4736",
-    "in_umsetzung": "background:#EDF3F5;color:#0E4C5C",
-    "blockiert": "background:#F9EFEE;color:#6E2222",
-    "zurueckgestellt": "background:#FBF6EA;color:#7A5A16",
-    "offen": "background:#F6F3EC;color:#4a5b66",
+# Ampelfarben des Umsetzungsregisters (F-55) als Token-Klassen aus base.html —
+# dieselben Farben wie die Meldungen, in hell und dunkel (FB-P3).
+KLASSEN = {
+    "umgesetzt": "badge-ok",
+    "in_umsetzung": "badge-info",
+    "blockiert": "badge-warn",
+    "zurueckgestellt": "badge-hinweis",
+    "offen": "badge-still",
 }
 
 
 @register.filter
-def vollzug_stil(wert: str) -> str:
-    return FARBEN.get(wert, "")
+def vollzug_klasse(wert: str) -> str:
+    return KLASSEN.get(wert, "badge-still")
+
+
+RING_UMFANG = 50.3  # 2·π·8 — der Kreis mit r = 8 im 20-px-Fristring (FB-D2)
+
+
+@register.filter
+def rest_ring(prozent) -> str:
+    """stroke-dashoffset für den Fristring: 0 % verstrichen = voller Versatz, 100 % = 0."""
+    try:
+        anteil = min(100, max(0, float(prozent))) / 100
+    except (TypeError, ValueError):
+        anteil = 0
+    return f"{RING_UMFANG * (1 - anteil):.1f}"

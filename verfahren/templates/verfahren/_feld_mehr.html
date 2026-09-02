@@ -1,0 +1,6 @@
+{% load i18n %}{% comment %}
+„Mehr vorhanden"-Pille (FB-A5): erscheint am unteren Feldrand, sobald der Feldkörper mehr enthält
+als sichtbar (Alpine „feldmehr" auf der <section>); zählt Kacheln und Zeilen unter der Sichtkante,
+Klick rollt eine Feldhöhe weiter. Ohne JavaScript bleibt sie verborgen (x-cloak) — die dünne
+Scrollleiste bleibt der Hinweis.
+{% endcomment %}<button type="button" class="feld-mehr" x-cloak x-show="sichtbar" @click="weiter()" aria-label="{% translate 'Weitere Einträge anzeigen' %}">↓ <span x-show="rest > 0"><span x-text="rest"></span> {% translate "weitere" %}</span><span x-show="!rest">{% translate "mehr" %}</span></button>

@@ -5,116 +5,180 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<script src="{% static 'verfahren/js/thema.js' %}"></script>
 <style>
+/* ── Tokens (Design-Spezifikation App-Look, Abschnitt 2) ──
+   Hell auf :root; dunkel zweimal gleichlautend: über die Systemeinstellung
+   (solange kein data-theme="light" gesetzt ist) und über den manuellen
+   Schalter data-theme="dark" (FB-P3). Kein Hex außerhalb dieser Blöcke. */
 :root{
-  --ink:#14232E;--matt:#5E6F7A;--deep:#0E4C5C;--linkfarbe:#0E4C5C;
-  --gold:#D9A441;--goldsoft:#E8C27A;--goldtief:#8A6415;
-  --paper:#F4F1E9;--karton:#FFFFFF;--line:rgba(20,35,46,.14);
-  --nacht1:#0A1722;--nacht2:#0E2230;--nacht3:#10394A;
-  --schatten:0 1px 2px rgba(14,34,48,.06),0 6px 18px rgba(14,34,48,.05);
-  --schatten-hoch:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
-  --ok-rand:#2E6B4F;--ok-grund:#EFF6F1;--ok-text:#1E4736;
-  --info-grund:#EDF3F5;--info-text:#0E4C5C;
-  --warn-rand:#8C2B2B;--warn-grund:#F9EFEE;--warn-text:#6E2222;
-  --hinweis-grund:#FBF6EA;--stern-aus:#b9c2c7;--serif:Georgia,'Times New Roman',serif;
+  --bg:#F4F1E9;--surface:#FFFFFF;--surface-2:#F8F6F0;--ink:#14232E;--muted:#5E6F7A;--line:rgba(20,35,46,.14);
+  --deep:#0E4C5C;--gold:#D9A441;--gold-soft:#E8C27A;--gold-deep:#8A6415;
+  --night-1:#0A1722;--night-2:#0E2230;--night-3:#10394A;
+  --ok:#2E6B4F;--ok-bg:#EFF6F1;--warn:#8C2B2B;--warn-bg:#F9EFEE;--info:#0E4C5C;--info-bg:#EDF3F5;
+  --hinweis:#7A5A16;--hinweis-bg:#FBF6EA;--still:#4A5B66;--still-bg:#F6F3EC;
+  --pillar-1:#2E6B4F;--pillar-2:#B07A1C;--pillar-3:#2C89B0;--pillar-4:#7A4E9E;
+  --shadow:0 1px 2px rgba(14,34,48,.06),0 6px 18px rgba(14,34,48,.05);
+  --shadow-lift:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
+  --overlay:rgba(255,255,255,.86);--scrim:rgba(14,34,48,.35);
+  --bar-ink:#E9E4D8;--on-gold:#14232E;--papier:#FFFFFF;--stern-aus:#b9c2c7;--glanz:rgba(255,255,255,.55);
+  /* Typografie (2.2) */
   --sans:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI Variable Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-  --glanz:rgba(255,255,255,.55);
+  --serif:Georgia,'Times New Roman',serif;
+  /* Maße (2.3): App-Leiste, Band unter der Leiste, Tableiste am Handy */
+  --bar:56px;--band:0px;--tabs:60px;
+  /* Bewegung (2.4) */
+  --d-fast:160ms;--d-base:260ms;--d-slide:320ms;--d-grow:420ms;--d-pop:200ms;
+  --e-out:cubic-bezier(.22,.8,.3,1);--e-in:cubic-bezier(.4,0,1,1);--e-spring:cubic-bezier(.3,1.6,.5,1);
+  /* Altnamen als Aliase — bis die Erklärseiten-Templates auf die Spezifikationsnamen umgestellt sind */
+  --paper:var(--bg);--karton:var(--surface);--matt:var(--muted);--linkfarbe:var(--deep);
+  --goldsoft:var(--gold-soft);--goldtief:var(--gold-deep);--nacht1:var(--night-1);--nacht2:var(--night-2);--nacht3:var(--night-3);
+  --schatten:var(--shadow);--schatten-hoch:var(--shadow-lift);
+  --ok-rand:var(--ok);--ok-grund:var(--ok-bg);--ok-text:var(--ok);--info-grund:var(--info-bg);--info-text:var(--info);
+  --warn-rand:var(--warn);--warn-grund:var(--warn-bg);--warn-text:var(--warn);--hinweis-grund:var(--hinweis-bg);
 }
-@media (prefers-color-scheme: dark){
-  :root{
-    --ink:#E9E4D8;--matt:#98A6AE;--deep:#8CC0CF;--linkfarbe:#9BCBD8;
-    --goldtief:#E0B866;
-    --paper:#0C151E;--karton:#132029;--line:rgba(233,228,216,.16);
-    --schatten:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
-    --schatten-hoch:0 2px 4px rgba(0,0,0,.4),0 14px 34px rgba(0,0,0,.45);
-    --glanz:rgba(255,255,255,.04);
-    --ok-rand:#4E8B6D;--ok-grund:#15251C;--ok-text:#A9D8BD;
-    --info-grund:#122630;--info-text:#A5CFDB;
-    --warn-rand:#B0554D;--warn-grund:#2B1614;--warn-text:#E7B3AC;
-    --hinweis-grund:#241D0D;--stern-aus:#4E5B63;
-  }
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);
+  --deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info:#9BCBD8;--info-bg:#12222B;
+  --hinweis:#E0B866;--hinweis-bg:#241D0D;--still:#98A6AE;--still-bg:#182833;
+  --pillar-1:#7FCBA4;--pillar-2:#E0B866;--pillar-3:#8CC0CF;--pillar-4:#C6A6E0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
+  --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --stern-aus:#4E5B63;--glanz:rgba(255,255,255,.04);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);
+  --deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info:#9BCBD8;--info-bg:#12222B;
+  --hinweis:#E0B866;--hinweis-bg:#241D0D;--still:#98A6AE;--still-bg:#182833;
+  --pillar-1:#7FCBA4;--pillar-2:#E0B866;--pillar-3:#8CC0CF;--pillar-4:#C6A6E0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
+  --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --stern-aus:#4E5B63;--glanz:rgba(255,255,255,.04);
 }
+[x-cloak],[hidden]{display:none!important}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
-body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);line-height:1.65;font-size:16px}
-h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em;text-wrap:balance}
-h1{font-size:clamp(28px,4.5vw,38px);line-height:1.2;margin:0 0 10px}
-h2{margin:38px 0 12px;font-size:24px}
+/* Typografie (Spec 2.2, D-P2): Sans für alles Bedienbare; Serif nur Wortmarke und Bühnen-H1 */
+body{font-family:var(--sans);color:var(--ink);background:var(--bg);line-height:1.55;font-size:16px;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--sans);letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:26px;line-height:1.2;font-weight:700;margin:0 0 10px}
+h2{margin:32px 0 10px;font-size:19px;line-height:1.25;font-weight:600}
+h3{font-size:16px;line-height:1.3;font-weight:600}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
-.skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:#14232E;padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
+.skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
-/* ── Kopf ── */
-header{background:linear-gradient(120deg,var(--nacht1),var(--nacht2) 55%,var(--nacht3));color:#fff;padding:14px 0;position:relative;border-bottom:2px solid var(--gold)}
-header::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.13) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
-header .w, main{max-width:960px;margin:0 auto;padding:0 20px}
-header .w{display:flex;align-items:center;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;position:relative}
-header a{color:#fff;text-decoration:none}
-header .marke{font-family:var(--serif);font-size:23px;line-height:1.15;display:block}
-header .marke em{color:var(--goldsoft);font-style:italic}
-header .marke small{display:block;font-family:system-ui,sans-serif;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.6}
-.menue-schalter{position:absolute;opacity:0;width:0;height:0}
-.menue-knopf{display:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px 6px;border-radius:8px}
-.menue-knopf span{display:block;width:24px;height:2px;background:var(--goldsoft);border-radius:2px;transition:transform .2s,opacity .2s}
-nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14.5px}
-nav a{opacity:.92;padding:6px 12px;border-radius:999px;transition:background .16s,color .16s,opacity .16s}
-nav a:hover{color:var(--goldsoft);background:rgba(232,194,122,.12);opacity:1}
-nav a.an{color:var(--goldsoft);background:rgba(232,194,122,.16);font-weight:600;opacity:1}
-nav .wer{opacity:.65;font-size:13px}
-nav .btn{padding:8px 18px;font-size:14px}
-nav form{display:inline}
-nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:#fff;opacity:.92;padding:0}
-nav button.aus:hover{color:var(--goldsoft)}
-.nav-cta{border:1px solid var(--goldsoft);border-radius:999px;padding:6px 14px !important;color:var(--goldsoft) !important;font-weight:600}
-.nav-cta:hover{background:var(--goldsoft);color:#14232E !important;border-bottom-color:transparent}
-.sprache{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px !important;font-size:12.5px !important;letter-spacing:.06em}
-.sprache:hover{border-color:var(--goldsoft)}
+/* ── App-Leiste (Spec 3.1, FB-A1/N3/N8): eine Zeile, 56 px (Handy 52 px), klebt oben ── */
+.leiste{height:var(--bar);background:linear-gradient(90deg,var(--night-1),var(--night-2) 60%,var(--night-3));border-bottom:1px solid var(--gold);color:var(--bar-ink);display:flex;align-items:center;gap:6px;padding:0 16px;position:sticky;top:0;z-index:40}
+.leiste a{color:var(--bar-ink);text-decoration:none}
+.leiste .marke{font-family:var(--serif);font-size:20px;line-height:1;white-space:nowrap;margin-right:14px;color:var(--papier)}
+.leiste .marke em{color:var(--gold-soft);font-style:italic}
+.leiste nav.haupt{display:flex;gap:2px;min-width:0;overflow:hidden}
+.leiste nav.haupt a{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px;white-space:nowrap;transition:background var(--d-fast),color var(--d-fast)}
+.leiste nav.haupt a:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
+.leiste nav.haupt a.an{background:color-mix(in srgb,var(--gold-soft) 16%,transparent);color:var(--gold-soft)}
+.leiste .rechts{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.cta{background:var(--gold);color:var(--on-gold)!important;font-weight:700;font-size:14px;padding:0 16px;height:36px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:transform var(--d-fast),background var(--d-fast)}
+.cta:hover{background:var(--gold-soft);transform:translateY(-1px)}
+.leiste .btn.klein{padding:0 16px;height:36px;display:inline-flex;align-items:center;font-size:14px}
+.leiste .anmelden{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
+.leiste .anmelden:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
+.ikon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
+.ikon:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
+.leiste details{position:relative}
+.leiste summary{list-style:none;cursor:pointer}
+.leiste summary::-webkit-details-marker{display:none}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;transition:box-shadow var(--d-fast)}
+.avatar.ring{box-shadow:0 0 0 2px var(--gold-soft)}
+.avatar:hover{box-shadow:0 0 0 3px color-mix(in srgb,var(--gold-soft) 60%,transparent)}
+.sprache-form{display:inline}
+.sprache{border:1px solid color-mix(in srgb,var(--bar-ink) 35%,transparent);border-radius:999px;padding:4px 12px;font-size:12.5px;letter-spacing:.06em;background:none;color:var(--bar-ink);cursor:pointer;font-family:inherit}
+.sprache:hover{border-color:var(--gold-soft)}
+/* Popover (Spec 4): kommt von oben in 200 ms, mit Pfeilspitze; Escape und Außenklick schließen (Alpine) */
+@keyframes pop-auf{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.pop{position:absolute;top:calc(100% + 18px);right:0;width:240px;background:var(--surface);color:var(--ink);border-radius:16px;box-shadow:var(--shadow-lift);padding:8px;z-index:50;transform-origin:top right;animation:pop-auf var(--d-pop) var(--e-out)}
+.pop::before{content:"";position:absolute;top:-6px;right:14px;width:12px;height:12px;background:var(--surface);transform:rotate(45deg);border-radius:2px}
+.pop-kopf{padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px;font-weight:600}
+.pop a,.pop button.z,.pop summary{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:10px;color:var(--ink);font:inherit;font-size:14px;background:none;border:0;cursor:pointer;text-decoration:none}
+.pop a:hover,.pop button.z:hover,.pop summary:hover{background:var(--surface-2)}
+.pop .pop-form{display:block}
+.pop-mehr{position:static}
+.pop-mehr summary::after{content:"\25BE";float:right;color:var(--muted)}
+.pop-mehr[open] summary::after{content:"\25B4"}
+.mehr-links{list-style:none;margin:0;padding:0}
+.pop .mehr-links a{font-size:13.5px;padding:6px 12px 6px 20px}
+.thema{display:flex;gap:4px;padding:6px 8px}
+.thema button{flex:1;font:inherit;font-size:12px;font-weight:600;padding:6px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer}
+.thema button.an{background:var(--gold);color:var(--on-gold);border-color:var(--gold)}
+/* Handy (< 760): Burger, Panel gleitet von rechts, Schleier dahinter (Spec 3.1) */
+@keyframes panel-rein{from{transform:translateX(100%)}to{transform:none}}
+@keyframes einblenden{from{opacity:0}to{opacity:1}}
+.menue{display:none}
 @media(max-width:759px){
-  .menue-knopf{display:flex}
-  nav{display:none;width:100%;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 2px 8px;border-top:1px solid rgba(232,194,122,.25);margin-top:10px}
-  nav a,nav .wer,nav form{padding:8px 0;font-size:16px}
-  nav .btn{margin:6px 0}
-  .menue-schalter:checked ~ nav{display:flex;animation:einfahren-oben .28s ease-out both}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(2){opacity:0}
-  .menue-schalter:checked ~ .menue-knopf span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+  :root{--bar:52px}
+  .leiste{padding:0 8px 0 12px;gap:4px}
+  .leiste nav.haupt,.leiste .cta,.leiste .konto,.leiste .mehr,.leiste .anmelden,.leiste .btn.klein,.leiste .rechts>.sprache-form{display:none}
+  .menue{display:block;position:static}
+  .scrim{position:fixed;inset:var(--bar) 0 0 0;background:var(--scrim);z-index:45;animation:einblenden var(--d-pop) both}
+  .panel{position:fixed;top:var(--bar);right:0;bottom:0;width:min(84vw,380px);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lift);z-index:46;overflow-y:auto;padding:8px 12px 24px;display:flex;flex-direction:column;gap:2px;animation:panel-rein var(--d-slide) var(--e-out) both}
+  .panel-kopf{display:flex;align-items:center;justify-content:space-between;padding:4px 4px 8px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .panel-kopf .marke{color:var(--ink);font-family:var(--serif);font-size:18px}
+  .panel-kopf .marke em{color:var(--gold-deep)}
+  .panel-kopf .ikon{color:var(--muted)}
+  .panel a,.panel button.z{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;color:var(--ink);font:inherit;font-size:16px;background:none;border:0;cursor:pointer;text-decoration:none}
+  .panel a:hover{background:var(--surface-2)}
+  .panel a.an{background:var(--surface-2);color:var(--gold-deep);font-weight:600}
+  .panel .cta{display:inline-flex;justify-content:center;margin:8px 0;color:var(--on-gold)}
+  .panel .pop-titel{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:12px 12px 4px}
+  .panel .mehr-links a{font-size:14px;padding:8px 12px}
+  .panel .thema{padding:6px 12px}
+  .panel .sprache-form{display:block}
+  body.menue-offen{overflow:hidden}
+  .anstoss-leiste{position:static}
+  .anstoss-leiste .anstoss-karte,.anstoss-leiste .anstoss-bestaetigung{position:fixed;left:8px;right:8px;top:calc(var(--bar) + 6px);width:auto}
 }
-main{padding:36px 20px 90px}
+main{max-width:960px;margin:0 auto;padding:36px 20px 90px}
 /* ── Bühne (Startseite für Gäste) ── */
-.held{background:linear-gradient(135deg,var(--nacht1),var(--nacht2) 50%,var(--nacht3));color:#F3EFE6;border-radius:20px;padding:clamp(28px,5vw,52px);margin:4px 0 34px;position:relative;overflow:hidden;box-shadow:var(--schatten-hoch)}
+.held{background:linear-gradient(135deg,var(--nacht1),var(--nacht2) 50%,var(--nacht3));color:var(--bar-ink);border-radius:20px;padding:clamp(28px,5vw,52px);margin:4px 0 34px;position:relative;overflow:hidden;box-shadow:var(--schatten-hoch)}
 .held::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.12) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
 .held>*{position:relative}
 .held .vorzeile{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--goldsoft);margin-bottom:12px}
-.held h1{font-size:clamp(32px,5.5vw,48px);color:#fff;margin-bottom:14px}
+.held h1{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5.5vw,48px);line-height:1.15;color:var(--papier);margin-bottom:14px}
 .held .untertitel{max-width:36em;font-size:clamp(15.5px,2vw,17.5px);color:rgba(243,239,230,.85);margin-bottom:24px}
 .held .wege{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-.btn-hell{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:#F3EFE6;border:1px solid rgba(243,239,230,.5);border-radius:999px;padding:10px 22px;text-decoration:none}
+.btn-hell{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--bar-ink);border:1px solid rgba(243,239,230,.5);border-radius:999px;padding:10px 22px;text-decoration:none}
 .btn-hell:hover{border-color:var(--goldsoft);color:var(--goldsoft)}
 .zahlenband{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px}
 @media(max-width:620px){.zahlenband{grid-template-columns:1fr}}
 .zahl{background:rgba(255,255,255,.055);border:1px solid rgba(232,194,122,.28);border-radius:14px;padding:14px 18px}
-.zahl strong{display:block;font-family:var(--serif);font-size:clamp(26px,3.5vw,34px);color:var(--goldsoft);line-height:1.2}
+.zahl strong{display:block;font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(26px,3.5vw,34px);color:var(--goldsoft);line-height:1.2}
 .zahl span{font-size:13px;color:rgba(243,239,230,.75)}
 /* ── Flächen ── */
 .karte{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:12px 0;box-shadow:var(--schatten)}
 .karte a{color:var(--linkfarbe)}
-.badge{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:#132A3A;color:var(--goldsoft);border-radius:999px;padding:4px 12px}
-.badge--hell{background:rgba(14,76,92,.1);color:var(--deep)}
-@media (prefers-color-scheme: dark){.badge--hell{background:rgba(140,192,207,.14)}}
+.badge{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:var(--night-2);color:var(--gold-soft);border-radius:999px;padding:4px 12px}
+.badge--hell{background:color-mix(in srgb,var(--deep) 12%,transparent);color:var(--deep)}
+/* Status-Badges über Tokens (FB-P3): Meldungsfarben, Vollzugsampel, Verwaltungsstatus */
+.badge-ok{background:var(--ok-bg);color:var(--ok)}.badge-info{background:var(--info-bg);color:var(--info)}
+.badge-warn{background:var(--warn-bg);color:var(--warn)}.badge-hinweis{background:var(--hinweis-bg);color:var(--hinweis)}
+.badge-still{background:var(--still-bg);color:var(--still)}
+.legende-ja{color:var(--pillar-3);font-weight:700}.legende-nein{color:var(--warn);font-weight:700}.legende-enthaltung{color:var(--gold);font-weight:700}
+.papier{background:var(--papier)}
 .leer{color:var(--matt);font-style:italic}
 .erk{font-size:13.5px;color:var(--matt);margin:0 0 6px}
 .hilfe{font-size:13px;color:var(--matt);margin-top:4px}
 /* ── Bedienung ── */
-.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:#14232E;border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2);transition:background .15s,transform .15s,box-shadow .15s}
-.btn:hover{background:var(--goldsoft);transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.25)}
-.btn:active{transform:translateY(0)}
-.btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none;transition:background .15s,color .15s}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:var(--on-gold);border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2)}
+.btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none}
 .btn-linie:hover{background:var(--deep);color:var(--paper)}
 .btn-still{display:inline-block;cursor:pointer;font:inherit;font-size:14px;background:transparent;color:var(--matt);border:1px solid var(--line);border-radius:999px;padding:8px 16px;text-decoration:none}
 .btn-still:hover{border-color:var(--deep);color:var(--deep)}
 form p{margin:0 0 16px}
 form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
-input[type=text],input[type=email],input[type=number],input[type=search],input[type=date],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=email],input[type=number],input[type=search],input[type=date],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color var(--d-fast),box-shadow var(--d-fast)}
 input[type=search],input[type=date],select{width:auto}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--gold)}
@@ -124,6 +188,18 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-of
 .meldung.success{border-color:var(--ok-rand);background:var(--ok-grund);color:var(--ok-text)}
 .meldung.info{border-color:var(--deep);background:var(--info-grund);color:var(--info-text)}
 .meldung.error{border-color:var(--warn-rand);background:var(--warn-grund);color:var(--warn-text)}
+.meldung.warning{border-color:var(--hinweis);background:var(--hinweis-bg);color:var(--hinweis)}
+.meldung-x{float:right;margin-left:12px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7}
+.meldung-x:hover{opacity:1}
+/* Im Parlament (body.voll) liegen Meldungen als fester Stapel unter der Leiste — das Raster verrutscht nicht (FB-A2, bis S2 sie in die Kachel legt) */
+body.voll .meldungen{position:fixed;top:calc(var(--bar) + var(--band) + 8px);right:12px;z-index:45;width:min(420px,calc(100vw - 24px))}
+body.voll .meldung{box-shadow:var(--shadow-lift)}
+/* Band unter der Leiste (FB-A6): 32 px, Info-Farbe, zwei Links; zählt im 100dvh-Rechenweg über --band */
+body.mit-band{--band:32px}
+.band{height:var(--band);display:flex;align-items:center;gap:10px;padding:0 16px;font-size:13px;background:var(--info-bg);color:var(--info);overflow:hidden}
+.band .band-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.band a{color:inherit;font-weight:600;flex:none;white-space:nowrap}
+.band.pausiert{background:var(--hinweis-bg);color:var(--hinweis)}
 .stimmzeile{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .kommentar{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:12px}
 .kommentar:first-of-type{border-top:0;margin-top:0}
@@ -133,30 +209,77 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-of
 code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:var(--karton);border:1px dashed var(--deep);border-radius:8px;padding:8px 14px}
 pre{white-space:pre-wrap;font-family:inherit}
 /* ── Vier-Felder-Parlament (P1) ── */
-main.breit{max-width:1500px}
-.parlament{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
-.feld{background:var(--karton);border:1px solid var(--line);border-radius:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;height:calc(50vh - 66px);min-height:360px;overflow:hidden;position:relative}
-.filter-leiste{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
-.chipform{display:inline}
-.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink);line-height:1.4}
-.chip:hover{border-color:var(--gold)}
-.chip.an{background:var(--gold);color:#14232E;border-color:transparent;font-weight:600}
+/* ── Das Parlament (Spec 3.2, FB-A1): 2×2-Raster füllt den Bildschirm unter Leiste und Band, kein Seiten-Scroll ── */
+body.voll{overflow:hidden}
+body.voll main{max-width:none;padding:0}
+.parlament{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px;max-width:1500px;margin:0 auto;height:calc(100vh - var(--bar) - var(--band));height:calc(100dvh - var(--bar) - var(--band))}
+.feld{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+/* ── WeicherFilter (FB-B1–B6): Profil-Leiste mit Pfeil, Feed-Zeilen, Regler-Overlay von rechts ── */
+.filter-rahmen{display:contents}
+.filter-leiste{flex:none;overflow:hidden;height:40px;transition:height var(--d-base) var(--e-in)}  /* nicht positioniert: Overlay und Griff hängen am Feld */
+.filter-leiste .innen{height:40px;display:flex;align-items:center;gap:6px;padding:0 10px 0 14px;background:var(--paper);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;transition:opacity var(--d-fast)}
+.filter-leiste.zu{height:14px}
+.filter-leiste.zu .innen{opacity:0;pointer-events:none}
+.chipform{display:inline;flex:none}
+.chip{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;cursor:pointer;color:var(--ink);line-height:1.4;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.chip.an{background:var(--gold);color:var(--on-gold);border-color:transparent}
+.chip.klein{font-size:11.5px;font-weight:500;padding:1px 8px;cursor:default}
+.chip.still{color:var(--goldtief);border-style:dashed;cursor:default}
+.pfeil{flex:none;margin-left:auto;width:28px;height:28px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--matt);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:14px;position:sticky;right:0}
+.griff{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:3;height:14px;width:64px;display:none;align-items:center;justify-content:center;font:inherit;font-size:10px;line-height:1;color:var(--matt);background:var(--paper);border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;cursor:pointer;padding:0}
+.filter-leiste.zu .griff{display:flex}
 .regler-klappe summary{list-style:none;display:inline-block}
 .regler-klappe summary::-webkit-details-marker{display:none}
-.regler-feld{position:absolute;right:8px;top:46px;bottom:8px;z-index:30;width:min(330px,calc(100% - 16px));overflow:auto;background:var(--karton);background:color-mix(in srgb,var(--karton) 90%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--schatten-hoch)}
+.regler-feld{position:absolute;right:0;top:44px;bottom:0;z-index:30;width:min(340px,100%);display:flex;flex-direction:column;background:var(--overlay);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(14,34,48,.12)}
+.regler-kopf{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex:none}
+.regler-kopf b{font-size:15px;outline:none}
+.regler-kopf .pkt{color:var(--goldtief);font-size:12px;font-weight:600}
+.regler-kopf .zu-knopf{margin-left:auto}
+.regler-form{flex:1;min-height:0;display:flex;flex-direction:column}
+.regler-korpus{flex:1;min-height:0;overflow:auto;padding:8px 14px}
+.schalter{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:8px;font-size:13.5px;font-weight:600;cursor:pointer}
+.schalter input{appearance:none;-webkit-appearance:none;width:38px;height:22px;border-radius:999px;background:var(--line);position:relative;margin:0;cursor:pointer;flex:none;transition:background var(--d-fast)}
+.schalter input::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:999px;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform var(--d-fast) var(--e-out)}
+.schalter input:checked{background:var(--gold)}.schalter input:checked::after{transform:translateX(16px)}
 .regler{display:block;margin-bottom:9px;font-size:13px}
 .regler span{display:flex;justify-content:space-between;gap:8px;color:var(--ink)}
 .regler output{color:var(--goldtief);font-weight:600;font-variant-numeric:tabular-nums}
 .regler input[type=range]{width:100%;accent-color:var(--gold);margin-top:2px}
-.regler-aktionen{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.regler-aktionen .neu{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.regler-aktionen input[type=text]{width:11em;padding:7px 10px}
-.punkte{font-variant-numeric:tabular-nums;color:var(--goldtief);font-weight:600;cursor:help}
-.feld-kopf{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--line)}
-.feld-kopf h2{margin:0;font-size:19px}
+.regler-aktionen{flex:none;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.regler-aktionen .neu summary,.loeschen summary,.umbenennen summary{list-style:none;cursor:pointer}
+.regler-aktionen .neu summary::-webkit-details-marker,.loeschen summary::-webkit-details-marker,.umbenennen summary::-webkit-details-marker{display:none}
+.neu-feld,.rueckfrage,.umbenennen form{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px}
+.regler-aktionen input[type=text],.umbenennen input[type=text]{width:10em;padding:5px 10px;font-size:13px}
+.regler-loeschen{flex:none;padding:0 14px 10px}
+.btn.klein,.btn-linie.klein,.btn-still.klein{font-size:12.5px;padding:5px 12px}
+.btn[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.regel-hinweis{font-size:12px;color:var(--matt);margin:10px 0 0}
+/* Feed-Zeilen (FB-B1): Titel · Chips · Stand · Direkt-Handlung rechts · „Warum hier?“ */
+.fz{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.fz:first-child,.gruppe+.fz{border-top:0}
+.fz .zt{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fz .zt:hover{text-decoration:underline}
+.fz .zm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--matt)}
+.fz .zs{display:grid;grid-template-columns:80px minmax(0,1fr);gap:10px;align-items:center;font-size:12.5px;color:var(--matt)}
+.fz .zs.ohne{grid-template-columns:minmax(0,1fr)}
+.fz .za{grid-column:2;grid-row:1 / span 4;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.fz .badge{font-size:11px;padding:2px 8px;letter-spacing:.06em}
+.badge.b-abstimmung{background:var(--gold);color:var(--on-gold)}.badge.b-beratung{background:var(--deep);color:var(--bar-ink)}.badge.b-unterstuetzung{background:var(--surface-2);color:var(--matt);border:1px solid var(--line)}
+.warum summary{list-style:none;font-size:11.5px;color:var(--matt);text-decoration:underline dotted;cursor:pointer;display:inline-block}
+.warum summary::-webkit-details-marker{display:none}
+.warum .aufk{display:flex;flex-wrap:wrap;gap:4px 12px;list-style:none;margin:6px 0 0;background:var(--surface-2);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--ink)}
+.knopf{font:inherit;height:30px;padding:0 12px;border-radius:999px;border:1.5px solid var(--deep);background:transparent;color:var(--deep);font-size:12.5px;font-weight:600;white-space:nowrap;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.knopf:hover{background:var(--deep);color:var(--bar-ink)}
+.knopf.gold{background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
+.knopf.gewaehlt{background:var(--deep);color:var(--bar-ink)}
+.abstimmen summary{list-style:none}.abstimmen summary::-webkit-details-marker{display:none}
+.abstimmen .stimmreihe{display:flex;gap:4px;margin-top:6px;justify-content:flex-end}
+.gruppe{padding:14px 0 4px;margin:0;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;border-bottom:1px solid var(--line)}
+.gruppe:first-child{padding-top:4px}
+.feld-kopf{height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
+.feld-kopf h2{margin:0;font-size:19px;font-weight:600}
 .feld-kopf .bk{margin-left:auto;opacity:.7}
-.feld-korpus{overflow-y:auto;padding:6px 18px 26px;flex:1;position:relative;scrollbar-width:thin}
-.feld::after{content:"";position:absolute}
+.feld-korpus{flex:1;min-height:0;overflow:auto;padding:8px 16px 32px;position:relative;scrollbar-width:thin;overscroll-behavior:contain}
 .feld-fuss{border-top:1px solid var(--line);padding:8px 18px;font-size:13px;color:var(--matt);background:linear-gradient(transparent,var(--karton))}
 .zeile{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
 .zeile:first-child{border-top:0}
@@ -164,70 +287,136 @@ main.breit{max-width:1500px}
 .zeile .meta{font-size:12px;color:var(--matt)}
 .phasen-titel{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;margin:14px 0 2px}
 .phasen-titel:first-child{margin-top:6px}
-.kacheln{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
-.kacheln.dreier{grid-template-columns:repeat(3,1fr);margin:4px 0 12px}
-.kachel{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--paper);display:flex;flex-direction:column;gap:6px;min-width:0}
-.kachel .kt{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}
-.kachel .kt a{font-weight:600;line-height:1.35;color:var(--linkfarbe)}
-.kachel .rest{font-size:12.5px;color:var(--matt)}
-.kachel .rest.ort{display:block;margin-top:3px}
-.kachel .rest strong{color:var(--goldtief)}
+/* ── Kacheln (FB-D1/D2): gleich große Plätze, 2 oder 3 Spalten je Feldbreite, scrollen in ganzen Reihen ── */
+.feld-korpus{container-type:inline-size}
+.kacheln{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(186px,calc(50% - 5px));gap:10px;height:100%;align-content:start}
+@container (min-width:700px){.kacheln{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Meine Region (FB-E1): drei Bänder Gemeinde · Bezirk · Land als 3×3-Raster; jede Spur wischt waagrecht (Scroll-Snap). */
+.baender{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;height:100%;min-height:300px}
+.rband{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;min-height:0;position:relative}
+.rband .rkopf{margin:0;min-height:0;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--matt);border-right:3px solid var(--deep);padding:4px 0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rband.r2 .rkopf{border-color:var(--gold)}.rband.r3 .rkopf{border-color:var(--ink)}
+.rband .spur{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;min-height:0;height:100%}
+.rband .spur>.kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:3px}
+.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1}
+.rband .spur .balken,.rband .spur .grund,.rband .spur>.kachel>.rest,.rband .spur .badge--hell{display:none}
+.rband .spur .rest{font-size:11.5px}
+.rband .spur .k-fuss{margin-top:auto}
+.rband .spur.leer{display:flex;align-items:center;border:1px dashed var(--line);border-radius:12px;padding:0 12px}
+.rband .spur.leer p{margin:0;font-size:13px}
+.rband .spur-mehr{position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:2}
+/* „Mehr vorhanden" (FB-A5): Verlauf am unteren Feldrand und Pille „↓ n weitere" */
+.feld-mehr,.spur-mehr{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:999px;font:600 12px var(--sans);padding:3px 12px;box-shadow:var(--schatten);cursor:pointer;white-space:nowrap}
+.feld-mehr:hover,.spur-mehr:hover{border-color:var(--gold)}
+.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3}
+.feld.mehr-da::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--surface));pointer-events:none;z-index:2}
+.kachel{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}
+.kachel .k-kopf{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}
+.kachel .k-thema{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kachel .k-thema-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kachel .k-stern{margin-left:auto;flex:none}
+.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kachel .k-titel:hover{text-decoration:underline}
+.kachel .k-titel::before{content:"";position:absolute;inset:0}
+.kachel .k-kopf,.kachel .k-meta,.kachel .k-fuss{position:relative;z-index:1}
+.kachel .k-meta{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.kachel .rest{font-size:12.5px;color:var(--muted)}
+.kachel .rest strong{color:var(--ink)}
+.kachel .k-fuss{margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.kachel .frist{display:inline-flex;align-items:center;gap:6px}
+.kachel .frist.knapp,.kachel .frist.knapp strong{color:var(--warn)}
+.kachel .grund{margin:2px 0 0;font-size:11.5px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stern.klein{font-size:14px;padding:0;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+.stern-form{display:inline}
+.ring{width:20px;height:20px;transform:rotate(-90deg);flex:none}
+.ring circle{fill:none;stroke-width:3}
+.ring .bahn{stroke:var(--line)}
+.ring .wert{stroke:var(--gold);stroke-dasharray:50.3;transition:stroke-dashoffset var(--d-grow) var(--e-out)}
+.k-erfasst{position:absolute;right:8px;bottom:8px;z-index:2;background:var(--ok-bg);color:var(--ok);font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;display:none}
+.kachel.erfasst .k-erfasst{display:inline-block;animation:toast 1.5s var(--e-out) both}
+@keyframes toast{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .balken b{display:block;height:100%;background:var(--gold)}
-.stimmreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
-.stimmreihe button{font-size:12.5px;padding:4px 12px}
+.stimmreihe{display:flex;gap:6px;flex-wrap:wrap}
+.stimmreihe button{font-size:12px;padding:3px 10px;height:28px}
 .stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
-.mini-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.mini-kachel{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
-.mini-kachel a{color:var(--linkfarbe);font-weight:600}
-@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.mini-kacheln{grid-template-columns:1fr}.kacheln,.kacheln.dreier{grid-template-columns:1fr}}
+/* Tableiste am Handy (Spec 3.2 und 4, FB-A1): fest unten, vier Ziele, Gold-＋ in der Mitte */
+.tabs{display:none;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;height:var(--tabs);background:var(--surface);border-top:1px solid var(--line);z-index:40}
+.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:color var(--d-fast)}
+.tabs a svg{width:22px;height:22px;transition:transform var(--d-fast)}
+.tabs a.an{color:var(--gold-deep)}
+.tabs a.an svg{transform:scale(1.1)}
+.tabs .plus span{width:48px;height:48px;border-radius:999px;background:var(--gold);color:var(--on-gold);display:flex;align-items:center;justify-content:center;font-size:26px;margin-top:-16px;box-shadow:var(--shadow-lift)}
+/* Tablet (760–1023): zwei Spalten bleiben, Felder mindestens 380 px, die Seite darf scrollen (Spec 3.2) */
+@media(max-width:1023px){body.voll{overflow:auto}.parlament{height:auto;min-height:calc(100dvh - var(--bar) - var(--band))}.feld{min-height:380px}}
+/* Handy (< 760): jedes Feld ein Bildschirm, rastet ein; Tableiste unten (FB-A1) */
+@media(max-width:759px){
+  .parlament{display:block;height:calc(100vh - var(--bar) - var(--band) - var(--tabs));height:calc(100dvh - var(--bar) - var(--band) - var(--tabs));min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;padding:8px;overscroll-behavior:contain}
+  .feld{height:100%;min-height:0;scroll-snap-align:start;margin-bottom:8px}
+  .feld:last-child{margin-bottom:0}
+  .kacheln{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rband .spur{grid-auto-columns:78%}
+  .regler-feld{width:100%}
+  .tabs{display:grid}
+}
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
 .hf-grid--zwei{grid-template-columns:repeat(2,1fr)}
 @media(max-width:900px){.hf-grid,.hf-grid--zwei{grid-template-columns:1fr}}
 .bereich{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--schatten)}
-.bereich h2{margin:2px 0 6px;font-size:21px}
+.bereich h2{margin:2px 0 6px;font-size:19px}
 .bk{display:block;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--deep);opacity:.85}
 .eintrag{border-top:1px solid var(--line);padding:10px 0 8px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
 .eintrag a{color:var(--linkfarbe)}
 .stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
 .stern.aus{color:var(--stern-aus);text-shadow:none}
 .stern:hover{color:var(--gold);text-shadow:0 0 10px color-mix(in srgb,var(--gold) 75%,transparent)}
-.faecher{position:relative;margin-top:6px;min-width:0}
-.faecher svg.faeden{position:absolute;inset:0;width:100%;height:100%;display:block}
-.faecher .faden{stroke:var(--line);stroke-width:1.4}
-.fknoten{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:3px;background:var(--karton);padding:2px 8px;border-radius:10px;font-family:var(--sans);font-weight:600;letter-spacing:-.02em;line-height:1.25;box-shadow:0 1px 3px rgba(14,34,48,.07)}
-.fknoten.f24{max-width:min(390px,78%)}.fknoten.f22{max-width:min(252px,48%)}.fknoten.f20{max-width:min(190px,35%)}.fknoten.f18{max-width:min(214px,42%)}
-.fknoten a{color:var(--linkfarbe);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+a.stern{text-decoration:none;display:inline-block}
+.stern.gast{color:var(--stern-aus);text-shadow:none}
+.register-kopf{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+/* Der Favoriten-Fächer (FB-C1–C4, Spec 4): Pillen in Prozentlage über einer SVG-Fadenebene.
+   Breite ≥ 600 px (darunter rollt das Feld waagrecht), Höhe nach Bedarf des Baums. */
+.faecher-korpus{padding:0;overflow:auto;display:flex;flex-direction:column-reverse}
+.faecher{position:relative;flex:1 0 auto;width:100%;min-width:600px}
+.faecher svg.faeden{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.faecher .faden{fill:none;stroke:var(--line);stroke-width:1.2}
+.faecher .faden.an{stroke:var(--gold);stroke-width:2}
+.fknoten{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:2px;box-sizing:border-box;padding:1px 8px 1px 5px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-family:var(--sans);font-weight:600;letter-spacing:-.01em;line-height:1.15;white-space:nowrap;box-shadow:0 1px 3px rgba(14,34,48,.07);z-index:1}
+.fknoten.p1{background:color-mix(in srgb,var(--pillar-1) 12%,var(--surface))}
+.fknoten.p2{background:color-mix(in srgb,var(--pillar-2) 12%,var(--surface))}
+.fknoten.p3{background:color-mix(in srgb,var(--pillar-3) 12%,var(--surface))}
+.fknoten.p4{background:color-mix(in srgb,var(--pillar-4) 12%,var(--surface))}
+.fknoten.anker{border:1.5px solid var(--gold);box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 15%,transparent);z-index:2}
+.fknoten.weg{opacity:.85}
+.fknoten:hover{z-index:3;box-shadow:var(--schatten-hoch)}
+.fknoten a,.fknoten .fname{color:var(--ink);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .fknoten a:hover{text-decoration:underline}
-.fknoten .fname{font-weight:600;color:var(--ink);white-space:nowrap}
 .fknoten.f24 a,.fknoten.f24 .fname{font-size:24px}
-.fknoten.f22 a{font-size:22px}
-.fknoten.f20 a{font-size:20px}
-.fknoten.f18 a{font-size:18px}
-.fknoten form{display:inline;line-height:1}
-.fknoten .stern{font-size:15px;padding:0}
-.fknoten a.mehr{font-size:12.5px;color:var(--matt);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-.fknoten.anker{z-index:2}
-@media(max-width:640px){.fknoten{max-width:64%}.fknoten.f24 a,.fknoten.f24 .fname{font-size:20px}.fknoten.f22 a{font-size:18px}.fknoten.f20 a{font-size:16px}.fknoten.f18 a{font-size:15px}}
+.fknoten.f22 a,.fknoten.f22 .fname{font-size:22px}
+.fknoten.f20 a,.fknoten.f20 .fname{font-size:20px}
+.fknoten.f18 a,.fknoten.f18 .fname{font-size:18px}
+.fknoten.f16 a,.fknoten.f16 .fname{font-size:16px;font-weight:500}
+.fknoten form{display:inline;line-height:1;flex:none}
+.fknoten .stern{font-size:13px;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.fknoten a.mehr{flex:none;font-size:12px;color:var(--matt);padding:0 5px;border-radius:999px;background:var(--surface-2);text-decoration:none}
+.fknoten a.mehr:hover{color:var(--ink)}
+.brot{font-size:12.5px;color:var(--matt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brot a{color:var(--matt)}.brot b{color:var(--ink);font-weight:600}
+@media(max-width:640px){.fknoten.f24 a,.fknoten.f24 .fname{font-size:20px}.fknoten.f22 a,.fknoten.f22 .fname{font-size:18px}.fknoten.f20 a,.fknoten.f20 .fname{font-size:16px}.fknoten.f18 a,.fknoten.f18 .fname{font-size:15px}.fknoten.f16 a,.fknoten.f16 .fname{font-size:14px}}
 #id_ebene{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
 #id_ebene label{font-weight:400;display:flex;gap:7px;align-items:center;font-size:15px;margin:0}
 .kat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:12px 0}
-.kat-grid>*{transition:transform .15s,box-shadow .15s}
+.kat-grid>*{transition:transform var(--d-fast),box-shadow var(--d-fast)}
 .kat-grid>*:hover{transform:translateY(-2px);box-shadow:var(--schatten-hoch)}
-.brotkrume{font-size:13.5px;color:var(--matt)}
-.brotkrume a{color:var(--linkfarbe)}
 .fluss{display:grid;gap:0;position:relative}
 .fluss .station{display:flex;gap:16px;align-items:flex-start;position:relative;padding:0 0 22px 6px}
 .fluss .station:not(:last-child)::before{content:"";position:absolute;left:19px;top:30px;bottom:-4px;width:2px;background:linear-gradient(var(--deep),var(--gold));opacity:.45}
 .fluss .punkt{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--deep);color:var(--paper);font-weight:600;font-size:14px;position:relative;z-index:1}
-@media (prefers-color-scheme: dark){.fluss .punkt{color:#0C151E}}
-.fluss .station:last-child .punkt{background:var(--gold);color:#14232E}
+.fluss .station:last-child .punkt{background:var(--gold);color:var(--on-gold)}
 .fluss p{margin:2px 0 0}
 .schrittleiste{display:flex;gap:8px;align-items:center;margin:10px 0 22px;font-size:13.5px;color:var(--matt);flex-wrap:wrap}
 .schrittleiste .punkt{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--karton);font-weight:600}
 .schrittleiste .punkt.aktiv{background:var(--deep);color:var(--paper);border-color:var(--deep)}
-@media (prefers-color-scheme: dark){.schrittleiste .punkt.aktiv{color:#0C151E}}
 .schrittleiste .punkt.fertig{background:var(--ok-grund);color:var(--ok-text);border-color:var(--ok-rand)}
 .tabelle{width:100%;border-collapse:collapse;font-size:14.5px}
 .tabelle th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--matt);padding:6px 10px 8px;border-bottom:1px solid var(--line)}
@@ -246,161 +435,120 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .fuss-grid{max-width:960px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:26px}
 @media(max-width:700px){.fuss-grid{grid-template-columns:1fr}}
 .fuss-grid .marke2{font-family:var(--serif);font-size:19px;color:var(--ink)}
-.fuss-grid .marke2 em{color:var(--goldtief);font-style:italic}
-@media (prefers-color-scheme: dark){.fuss-grid .marke2 em{color:var(--goldsoft)}}
-.fuss-grid h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:system-ui,sans-serif;color:var(--matt);margin:0 0 10px}
+.fuss-grid .marke2 em{color:var(--gold-deep);font-style:italic}
+.fuss-grid h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--matt);margin:0 0 10px}
+.fuss-satz{margin-top:8px;max-width:34em}
+.fuss-leitsatz{margin-top:10px;font-style:italic}
 .fuss-grid ul{list-style:none;margin:0;padding:0}
 .fuss-grid li{margin:0 0 7px}
 .fuss-grid a{color:var(--linkfarbe);text-decoration:none}
 .fuss-grid a:hover{text-decoration:underline}
 .fuss-unten{max-width:960px;margin:26px auto 0;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
-.anstoss-ecke{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.anstoss-ecke{position:fixed;right:12px;bottom:12px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+/* Im Parlament sitzt der Anstoß in der App-Leiste: Symbol, Karte als Popover darunter (FB-K3) */
+.anstoss-leiste{position:relative;display:flex;align-items:center}
+.anstoss-leiste .anstoss-fleck summary{width:36px;height:36px;padding:0;justify-content:center;background:none;color:var(--bar-ink);border:0;box-shadow:none;font-size:0}
+.anstoss-leiste .anstoss-fleck summary:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
+.anstoss-leiste .anstoss-karte{position:absolute;top:calc(100% + 18px);right:0;bottom:auto;width:min(340px,calc(100vw - 24px));color:var(--ink);z-index:50;animation:pop-auf var(--d-pop) var(--e-out);transform-origin:top right}
+.anstoss-leiste .anstoss-bestaetigung{position:absolute;top:calc(100% + 18px);right:0;z-index:50;white-space:nowrap}
+.nur-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .anstoss-fleck{position:relative}
 .anstoss-x{position:absolute;top:8px;right:12px;font-size:22px;line-height:1;color:var(--matt);text-decoration:none;padding:2px 6px;border-radius:8px}
 .anstoss-x:hover{color:var(--ink);background:color-mix(in srgb,var(--line) 50%,transparent)}
-.anstoss-bestaetigung{background:var(--ok-grund);border:1px solid var(--ok-rand);color:var(--ok-text);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--schatten-hoch);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen .4s cubic-bezier(.22,.8,.3,1) both}
+.anstoss-bestaetigung{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--shadow-lift);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen var(--d-base) var(--e-out) both}
 .anstoss-bestaetigung .anstoss-bx{position:absolute;top:6px;right:10px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7;padding:2px 4px}
 .anstoss-bestaetigung .anstoss-bx:hover{opacity:1}
-.ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--nacht2);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
+.ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--ink);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
 
-/* ── Politur (Auftrag 1.9. abends): Hochglanz und behutsame Bewegung.
-   Alles ist Zugabe — ohne JavaScript und mit reduzierter Bewegung bleibt
-   jede Funktion unverändert bedienbar. ─────────────────────────────── */
-@keyframes auftauchen{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+/* ── Bewegung (Spec 2.4): gerichtet, kurz, alles Zugabe — ohne JavaScript und mit
+   reduzierter Bewegung bleibt jede Funktion unverändert bedienbar. ─────────── */
+@keyframes auftauchen{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes hineingleiten{from{opacity:0;transform:translateY(12px) scale(.955)}to{opacity:1;transform:none}}
 @keyframes einfahren-oben{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes einfahren-rechts{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes wachsen{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes blase-auf{0%{opacity:0;transform:translateY(8px) scale(.96)}12%{opacity:1;transform:none}88%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
-main .feld,main .karte,main .held,main .willkommen-karten .wk,main .weg-schritte .schritt,main .grundsatz,main .fluss-rahmen{animation:auftauchen .6s cubic-bezier(.22,.8,.3,1) both}
-main .feld:nth-child(2),main .wk:nth-child(2),main .schritt:nth-child(2){animation-delay:.06s}
-main .feld:nth-child(3),main .wk:nth-child(3),main .schritt:nth-child(3){animation-delay:.12s}
-main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animation-delay:.18s}
-main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:.24s}
-main .wk:nth-child(6){animation-delay:.3s}
-.faecher{animation:hineingleiten .42s cubic-bezier(.22,.8,.3,1) both}
-.fknoten a,.fknoten .fname{transition:color .15s}
-.filter-leiste{animation:einfahren-oben .4s ease-out both}
-.regler-feld{animation:einfahren-rechts .32s cubic-bezier(.22,.8,.3,1) both}
-.balken b{transform-origin:left;animation:wachsen .8s .25s cubic-bezier(.22,.8,.3,1) both;transition:width .4s}
-.kachel{transition:transform .18s cubic-bezier(.22,.8,.3,1),box-shadow .18s,border-color .18s}
-.kachel:hover{transform:translateY(-3px);box-shadow:var(--schatten-hoch);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+@keyframes schimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+main .feld,main .karte,main .held,main .willkommen-karten .wk,main .weg-schritte .schritt,main .grundsatz,main .fluss-rahmen{animation:auftauchen var(--d-grow) var(--e-out) both}
+main .feld:nth-child(2),main .wk:nth-child(2),main .schritt:nth-child(2){animation-delay:50ms}
+main .feld:nth-child(3),main .wk:nth-child(3),main .schritt:nth-child(3){animation-delay:100ms}
+main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animation-delay:150ms}
+main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:200ms}
+main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-delay:250ms}
+.faecher{animation:hineingleiten var(--d-slide) var(--e-out) both}
+.faecher.zoom{animation:zoomrein var(--d-slide) var(--e-out) both}
+.fknoten{transition:box-shadow var(--d-fast),border-color var(--d-fast)}
+.fknoten a,.fknoten .fname{transition:color var(--d-fast)}
+.faecher .faden{transition:stroke var(--d-fast),stroke-width var(--d-fast)}
+.fknoten .stern-form.htmx-added .stern{animation:stern-pop 220ms var(--e-spring)}
+.fknoten.treffer{animation:treffer-gold 1.5s var(--e-out) both}
+@keyframes zoomrein{to{transform:scale(1.12);opacity:.35}}
+@keyframes stern-pop{from{transform:scale(1.4)}to{transform:scale(1)}}
+@keyframes treffer-gold{0%,60%{box-shadow:0 0 0 6px color-mix(in srgb,var(--gold) 45%,transparent)}100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 15%,transparent)}}
+/* Die Profil-Leiste bekommt keine eigene Eingangsanimation: Transform oder Deckkraft auf .innen würden
+   einen Stapelkontext bilden und das Regler-Overlay unter den Feldkörper legen. */
+.regler-feld{animation:overlay-rein var(--d-slide) var(--e-out) both}
+@keyframes overlay-rein{from{transform:translateX(100%)}to{transform:none}}
+.fz .aufk{animation:auftauchen var(--d-base) var(--e-out) both}
+.fz .balken b{transform-origin:left;animation:wachsen var(--d-grow) 150ms var(--e-out) both}
+.balken b{transform-origin:left;animation:wachsen var(--d-grow) 150ms var(--e-out) both;transition:width var(--d-grow)}
+.kachel{transition:transform var(--d-fast) var(--e-out),box-shadow var(--d-fast),border-color var(--d-fast)}
+.kachel:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
 .karte,.feld{background-image:linear-gradient(180deg,var(--glanz),transparent 46px)}
-.zeile{transition:background .15s}
+.zeile{transition:background var(--d-fast)}
 .zeile:hover{background:color-mix(in srgb,var(--gold) 5%,transparent)}
-.btn,.btn-linie,.btn-hell,.btn-still,.chip{transition:transform .16s cubic-bezier(.22,.8,.3,1),box-shadow .16s,background .16s,border-color .16s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.22)}
+.btn,.btn-linie,.btn-hell,.btn-still,.chip{transition:transform var(--d-fast) var(--e-out),box-shadow var(--d-fast),background var(--d-fast),border-color var(--d-fast),color var(--d-fast)}
+.btn:hover{background:var(--gold-soft);transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.22)}
 .btn:active,.btn-linie:active,.chip:active{transform:scale(.965)}
 .chip:hover{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
-.stern{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.stern{transition:transform var(--d-fast) var(--e-spring)}
 .stern:hover{transform:scale(1.22)}
 .stern:active{transform:scale(.9)}
-a,button{outline-color:color-mix(in srgb,var(--gold) 70%,var(--ink))}
-:focus-visible{outline:2px solid color-mix(in srgb,var(--gold) 70%,var(--ink));outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
 .feld-suche{margin-left:auto;flex:0 1 15em;min-width:0}
-.feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--paper)}
-.feld-suche input:focus{background:var(--karton)}
+.feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--surface-2)}
+.feld-suche input:focus{background:var(--surface)}
 @view-transition{navigation:auto}
-::view-transition-old(root){animation-duration:.16s}
-::view-transition-new(root){animation-duration:.24s}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
-  ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*){animation:none!important}
-}
-.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#14232E;font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:0 8px 22px rgba(0,0,0,.22);transition:background .15s}
+::view-transition-old(root){animation-duration:var(--d-fast)}
+::view-transition-new(root){animation-duration:var(--d-base)}
+/* Skelett-Zustände (Spec 4 und 6): liegen über dem Feldkörper, nur während eines htmx-Feldtauschs sichtbar */
+.skelett-feld{display:none;position:absolute;left:16px;right:16px;top:8px;gap:10px}
+.skelett{background:var(--surface-2);border-radius:10px;height:14px;position:relative;overflow:hidden}
+.skelett.kachel-form{height:96px;border-radius:12px}
+.skelett.b70{width:70%}.skelett.b45{width:45%}
+.skelett::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--glanz),transparent);animation:schimmer 1.6s linear infinite}
+.feld.htmx-request .feld-korpus>:not(.skelett-feld){visibility:hidden}
+.feld.htmx-request .skelett-feld.zeilen{display:flex;flex-direction:column}
+.feld.htmx-request .skelett-feld.kacheln{display:grid;grid-template-columns:repeat(2,1fr);height:auto;grid-auto-rows:auto}
+.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:13.5px;padding:7px 12px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background var(--d-fast)}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
-.anstoss-fleck summary:hover{background:var(--goldsoft)}
-.anstoss-karte{animation:auftauchen .32s cubic-bezier(.22,.8,.3,1) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 18px 44px rgba(0,0,0,.28)}
+.anstoss-fleck summary:hover{background:var(--gold-soft)}
+.anstoss-karte{animation:auftauchen var(--d-slide) var(--e-out) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
 .anstoss-karte h3{font-size:16px;margin-bottom:6px}
 .anstoss-echo{font-size:13.5px;margin:2px 0 8px;color:var(--matt)}
-.anstoss-echo.danke{color:var(--goldtief);font-weight:600}
+.anstoss-echo.danke{color:var(--gold-deep);font-weight:600}
+.anstoss-hinweis{margin:6px 0 10px}
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
-@media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:#fff}main{padding:0}}
+@media print{header,footer,nav,.tabs,.band,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
+/* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0s!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
 </style>
 <script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>
+<script defer src="{% static 'verfahren/js/app.js' %}"></script>
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>
 <meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="{% block bodyklasse %}{% endblock %}{% if user.is_authenticated and user.status == "pausiert" %} mit-band{% endif %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip" href="#inhalt">{% translate "Zum Inhalt springen" %}</a>
-<header><div class="w">
-  <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em><small>{% translate "Direkte Demokratie Österreich" %}</small></a>
-  <input type="checkbox" id="menue-schalter" class="menue-schalter" aria-label="{% translate 'Menü' %}">
-  <label for="menue-schalter" class="menue-knopf" aria-hidden="true"><span></span><span></span><span></span></label>
-  <nav>
-    {% url 'verfahren:parlament' as u_parl %}{% url 'mandatare:liste' as u_mand %}{% url 'uebersicht:index' as u_ueb %}{% url 'verfahren:umsetzung' as u_ums %}{% url 'verfahren:zukunftswerkstatt' as u_zw %}
-    <a href="{{ u_parl }}"{% if request.path == u_parl %} class="an"{% endif %}>{% translate "Parlament" %}</a>
-    <a href="{{ u_mand }}"{% if request.path == u_mand %} class="an"{% endif %}>{% translate "Mandatare" %}</a>
-    <a href="{{ u_ueb }}"{% if request.path == u_ueb %} class="an"{% endif %}>{% translate "Übersicht" %}</a>
-    <a href="{{ u_ums }}"{% if request.path == u_ums %} class="an"{% endif %}>{% translate "Umsetzungsregister" %}</a>
-    <a href="{{ u_zw }}"{% if request.path == u_zw %} class="an"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
-    <a class="nav-cta" href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen" %}</a>
-    {% if user.is_authenticated %}
-      {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
-      <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
-      {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">Verwaltung</a>{% endif %}
-      <span class="wer">{{ user.anzeigename }}</span>
-      <form method="post" action="{% url 'mitglieder:abmelden' %}">{% csrf_token %}<button type="submit" class="aus">{% translate "Abmelden" %}</button></form>
-    {% else %}
-      <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
-      <a class="btn" href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a>
-    {% endif %}
-    <form method="post" action="{% url 'set_language' %}" title="{% translate "Sprache wechseln" %}">{% csrf_token %}
-      <input type="hidden" name="next" value="{{ request.path }}">
-      {% if SPRACHE == "en" %}
-        <input type="hidden" name="language" value="de"><button type="submit" class="aus sprache" lang="de">DE</button>
-      {% else %}
-        <input type="hidden" name="language" value="en"><button type="submit" class="aus sprache" lang="en">EN</button>
-      {% endif %}
-    </form>
-  </nav>
-</div></header>
+{% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
+{% block band %}{% if user.is_authenticated and user.status == "pausiert" %}<div class="band pausiert"><span class="band-text">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}</span><a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>{% endif %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
-{% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
-{% if user.is_authenticated and user.status == "pausiert" %}
-<div class="meldung info">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}
-<a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>
-{% endif %}
+{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
-{% include "anstoss/_widget.html" %}
-<footer>
-  <div class="fuss-grid">
-    <div>
-      <p class="marke2">Parlament<em>Plattform</em></p>
-      <p style="margin-top:8px;max-width:34em">{% translate "Direkte Demokratie Österreich — die Mitglieder entscheiden, die Mandatare setzen um, jede Auszählung ist unabhängig nachrechenbar." %}</p>
-      <p style="margin-top:10px;font-family:var(--serif);font-style:italic">{% translate "Wir sind das Werkzeug." %}</p>
-    </div>
-    <div>
-      <h3>{% translate "Plattform" %}</h3>
-      <ul>
-        <li><a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></li>
-        <li><a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></li>
-        <li><a href="{% url 'gremien:uebersicht' %}">{% translate "Gremien" %}</a></li>
-        <li><a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></li>
-        <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
-        <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
-        <li><a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a></li>
-        <li><a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zukunftswerkstatt" %}</a></li>
-      </ul>
-    </div>
-    <div>
-      <h3>{% translate "Offenheit" %}</h3>
-      <ul>
-        <li><a href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode (AGPL)" %}</a></li>
-        <li><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON" %}</a></li>
-        <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>
-        <li><a href="{% url 'verfahren:partner' %}">{% translate "Internationale Partner" %}</a></li>
-        <li><a href="https://www.ddoe.at/satzung/" rel="noopener">{% translate "Satzungsentwurf" %}</a></li>
-        <li><a href="https://www.ddoe.at/" rel="noopener">ddoe.at</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class="fuss-unten">
-    <span>{% translate "Direkte Demokratie Österreich" %}</span>
-    <span>{% translate "Ohne Skriptzwang, ohne Tracking, ohne verdeckte Reihung." %}</span>
-  </div>
-</footer>
+{% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}
+{% block fuss %}{% include "verfahren/_fuss.html" %}{% endblock %}
 </body>
 </html>

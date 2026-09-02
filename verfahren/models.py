@@ -593,6 +593,9 @@ class FilterProfil(models.Model):
     )
     name = models.CharField(max_length=40)
     regler = models.JSONField(default=dict, help_text="Reglerstellungen 0–100 je Regel (plattform_core.weicherfilter).")
+    favoriten_zuerst = models.BooleanField(
+        default=True, help_text="★ Favoriten zuerst: Anträge aus abonnierten Lebensbereichen stehen vorn (FB-B1)."
+    )
     aktiv = models.BooleanField(default=False)
     geaendert_am = models.DateTimeField(auto_now=True)
 

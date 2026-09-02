@@ -61,7 +61,11 @@ def senden(request):
         request.session["anstoss_anzahl"] = anzahl + 1
 
     if request.headers.get("HX-Request"):
-        return render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
+        # Rückmeldung als Ereignis (HX-Trigger), nicht als Inline-Script: Alpine schließt die
+        # Karte und zeigt die Blase; ohne JavaScript greift die Umleitung mit ?anstoss=…
+        antwort = render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
+        antwort["HX-Trigger"] = f"anstoss-{ergebnis}"
+        return antwort
     return redirect(_mit_param(seite, ergebnis))
 
 

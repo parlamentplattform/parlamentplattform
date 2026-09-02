@@ -65,9 +65,22 @@ def test_htmx_bekommt_fragment_statt_umleitung(client):
         reverse("anstoss:senden"), {"text": "Per htmx gesendet.", "seite": "/"}, HTTP_HX_REQUEST="true"
     )
     assert antwort.status_code == 200
-    # Erfolg schließt das Widget und zeigt die Bestätigungsblase (Vorgabe 1.9. abends).
-    assert "anstoss-blase" in antwort.content.decode()
+    # Erfolg meldet sich als Ereignis (HX-Trigger) statt per Inline-Script — Alpine schließt das
+    # Widget und zeigt die Bestätigungsblase (FB-P4, Vorgabe 1.9. abends).
+    assert antwort["HX-Trigger"] == "anstoss-danke"
+    inhalt = antwort.content.decode()
+    assert "<script" not in inhalt and "gespeichert" in inhalt
     assert Anstoss.objects.count() == 1
+    zweite = client.post(reverse("anstoss:senden"), {"text": "Gleich noch einer.", "seite": "/"}, HTTP_HX_REQUEST="true")
+    assert zweite["HX-Trigger"] == "anstoss-warte"
+
+
+def test_schliesslinks_behalten_die_abfrage_ohne_anstoss_parameter(client):
+    html = client.get("/parlament/?fach=umwelt&anstoss=danke").content.decode()
+    assert 'href="/parlament/?fach=umwelt"' in html
+    assert 'id="anstoss-blase" role="status" x-ref="blase">' in html  # Blase sichtbar (kein hidden)
+    warte = client.get("/parlament/?anstoss=warte").content.decode()
+    assert 'x-ref="klappe" open' in warte
 
 
 def test_widget_begleitet_auf_allen_seiten(client):

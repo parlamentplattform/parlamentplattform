@@ -138,6 +138,23 @@ def test_ein_reduced_motion_block_und_bewegung_ueber_tokens():
         assert css.count(einmal) == 1, f"{einmal} mehrfach definiert"
 
 
+def test_keine_inline_handler_und_inline_skripte():
+    """FB-P4, Spec 5: keine on…=-Attribute, kein hx-on, kein <script> ohne src — CSP-fähig."""
+    treffer = []
+    for pfad in _templates():
+        text = pfad.read_text(encoding="utf-8")
+        for m in re.finditer(r"\s(on[a-z]+)=|(hx-on[:\w-]*)=|(<script)(?![^>]*\ssrc=)", text):
+            treffer.append(f"{pfad.relative_to(WURZEL)}: {m.group(0).strip()}")
+    assert not treffer, "\n".join(treffer)
+
+
+def test_skripte_in_der_richtigen_reihenfolge():
+    kopf = BASE.read_text(encoding="utf-8").split("</head>", 1)[0]
+    assert kopf.index("verfahren/js/thema.js") < kopf.index("<style>"), "thema.js vor dem Stil (kein Aufblitzen)"
+    assert kopf.index("verfahren/js/app.js") < kopf.index("verfahren/js/alpine.min.js"), "Komponenten vor Alpine"
+    assert "defer" not in kopf.split("thema.js", 1)[0].rsplit("<script", 1)[1]
+
+
 def test_skelett_partial():
     from django.template.loader import render_to_string
 

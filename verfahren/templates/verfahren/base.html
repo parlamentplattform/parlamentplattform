@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<script src="{% static 'verfahren/js/thema.js' %}"></script>
 <style>
 /* ── Tokens (Design-Spezifikation App-Look, Abschnitt 2) ──
    Hell auf :root; dunkel zweimal gleichlautend: über die Systemeinstellung
@@ -338,7 +339,8 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .anstoss-karte{animation:auftauchen var(--d-slide) var(--e-out) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
 .anstoss-karte h3{font-size:16px;margin-bottom:6px}
 .anstoss-echo{font-size:13.5px;margin:2px 0 8px;color:var(--matt)}
-.anstoss-echo.danke{color:var(--goldtief);font-weight:600}
+.anstoss-echo.danke{color:var(--gold-deep);font-weight:600}
+.anstoss-hinweis{margin:6px 0 10px}
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
 @media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
 /* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
@@ -348,6 +350,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 }
 </style>
 <script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>
+<script defer src="{% static 'verfahren/js/app.js' %}"></script>
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>
 <meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
 </head>

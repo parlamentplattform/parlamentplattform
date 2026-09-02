@@ -98,3 +98,24 @@ def test_vollzug_badges_ueber_token_klassen():
     css = _style()
     for klasse in set(KLASSEN.values()):
         assert f".{klasse}{{" in css
+
+
+def test_sans_ueberall_serif_nur_wortmarke_und_buehne():
+    """D-P2: Sans für alles Bedienbare; Serif nur in der Wortmarke und im Bühnen-H1 der Erklärseiten."""
+    css = _style()
+    _, _, _, rest = _bloecke(css)
+    assert re.search(r"body\{[^}]*font-family:var\(--sans\)", rest)
+    assert not re.search(r"h1,h2,h3\{[^}]*--serif", rest)
+    serif_regeln = [
+        regel.split("{")[0].strip()
+        for regel in rest.split("}")
+        if "var(--serif)" in regel
+    ]
+    erlaubt = {"header .marke", ".marke", ".fuss-grid .marke2", ".held h1"}
+    assert set(serif_regeln) <= erlaubt, f"Serif außerhalb von Wortmarke und Bühne: {serif_regeln}"
+    assert "system-ui" not in rest and "Georgia" not in rest
+    for pfad in _templates():
+        if pfad.name == "base.html":
+            continue
+        text = pfad.read_text(encoding="utf-8")
+        assert "var(--serif)" not in text and "Georgia" not in text, f"Serif in {pfad.name}"

@@ -20,7 +20,7 @@ und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
 {% for z in zeilen %}
 <div class="karte">
   <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <span class="badge" style="{{ z.status|vollzug_stil }}">{{ z.status|phase_name }}</span>
+    <span class="badge {{ z.status|vollzug_klasse }}">{{ z.status|phase_name }}</span>
     <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
     <span class="erk">{% translate "angenommen am" %} {{ z.antrag.phase_beginn|date:"d.m.Y" }}</span>
   </p>

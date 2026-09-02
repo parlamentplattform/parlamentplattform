@@ -141,14 +141,14 @@
 <div class="karte">
   {% with stand=vollzug|first %}
   <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    {% if stand %}<span class="badge" style="{{ stand.status|vollzug_stil }}">{{ stand.status|phase_name }}</span>
-    {% else %}<span class="badge" style="{{ 'offen'|vollzug_stil }}">{% translate "offen" %}</span>{% endif %}
+    {% if stand %}<span class="badge {{ stand.status|vollzug_klasse }}">{{ stand.status|phase_name }}</span>
+    {% else %}<span class="badge badge-still">{% translate "offen" %}</span>{% endif %}
     <span class="erk">{% blocktranslate %}Öffentlicher Stand der Umsetzung (§ 6 Abs 10) — geführt im <a href="/umsetzung/">Umsetzungsregister</a>.{% endblocktranslate %}</span>
   </p>
   {% endwith %}
   {% for v in vollzug %}
     <div class="kommentar">
-      <div class="kopf"><span class="badge" style="{{ v.status|vollzug_stil }}">{{ v.status|phase_name }}</span>
+      <div class="kopf"><span class="badge {{ v.status|vollzug_klasse }}">{{ v.status|phase_name }}</span>
       {{ v.erstellt_am|date:"d.m.Y, H:i" }} · {{ v.durch.anzeigename }}</div>
       {% if v.vermerk %}<div>{{ v.vermerk|linebreaksbr }}</div>{% endif %}
     </div>

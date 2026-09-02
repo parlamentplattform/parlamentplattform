@@ -6,34 +6,59 @@
 <meta name="color-scheme" content="light dark">
 <title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
 <style>
+/* ── Tokens (Design-Spezifikation App-Look, Abschnitt 2) ──
+   Hell auf :root; dunkel zweimal gleichlautend: über die Systemeinstellung
+   (solange kein data-theme="light" gesetzt ist) und über den manuellen
+   Schalter data-theme="dark" (FB-P3). Kein Hex außerhalb dieser Blöcke. */
 :root{
-  --ink:#14232E;--matt:#5E6F7A;--deep:#0E4C5C;--linkfarbe:#0E4C5C;
-  --gold:#D9A441;--goldsoft:#E8C27A;--goldtief:#8A6415;
-  --paper:#F4F1E9;--karton:#FFFFFF;--line:rgba(20,35,46,.14);
-  --nacht1:#0A1722;--nacht2:#0E2230;--nacht3:#10394A;
-  --schatten:0 1px 2px rgba(14,34,48,.06),0 6px 18px rgba(14,34,48,.05);
-  --schatten-hoch:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
-  --ok-rand:#2E6B4F;--ok-grund:#EFF6F1;--ok-text:#1E4736;
-  --info-grund:#EDF3F5;--info-text:#0E4C5C;
-  --warn-rand:#8C2B2B;--warn-grund:#F9EFEE;--warn-text:#6E2222;
-  --hinweis-grund:#FBF6EA;--stern-aus:#b9c2c7;--serif:Georgia,'Times New Roman',serif;
+  --bg:#F4F1E9;--surface:#FFFFFF;--surface-2:#F8F6F0;--ink:#14232E;--muted:#5E6F7A;--line:rgba(20,35,46,.14);
+  --deep:#0E4C5C;--gold:#D9A441;--gold-soft:#E8C27A;--gold-deep:#8A6415;
+  --night-1:#0A1722;--night-2:#0E2230;--night-3:#10394A;
+  --ok:#2E6B4F;--ok-bg:#EFF6F1;--warn:#8C2B2B;--warn-bg:#F9EFEE;--info:#0E4C5C;--info-bg:#EDF3F5;
+  --hinweis:#7A5A16;--hinweis-bg:#FBF6EA;--still:#4A5B66;--still-bg:#F6F3EC;
+  --pillar-1:#2E6B4F;--pillar-2:#B07A1C;--pillar-3:#2C89B0;--pillar-4:#7A4E9E;
+  --shadow:0 1px 2px rgba(14,34,48,.06),0 6px 18px rgba(14,34,48,.05);
+  --shadow-lift:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
+  --overlay:rgba(255,255,255,.86);--scrim:rgba(14,34,48,.35);
+  --bar-ink:#E9E4D8;--on-gold:#14232E;--papier:#FFFFFF;--stern-aus:#b9c2c7;--glanz:rgba(255,255,255,.55);
+  /* Typografie (2.2) */
   --sans:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI Variable Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
-  --glanz:rgba(255,255,255,.55);
+  --serif:Georgia,'Times New Roman',serif;
+  /* Maße (2.3): App-Leiste, Band unter der Leiste, Tableiste am Handy */
+  --bar:56px;--band:0px;--tabs:60px;
+  /* Bewegung (2.4) */
+  --d-fast:160ms;--d-base:260ms;--d-slide:320ms;--d-grow:420ms;--d-pop:200ms;
+  --e-out:cubic-bezier(.22,.8,.3,1);--e-in:cubic-bezier(.4,0,1,1);--e-spring:cubic-bezier(.3,1.6,.5,1);
+  /* Altnamen als Aliase — bis die Erklärseiten-Templates auf die Spezifikationsnamen umgestellt sind */
+  --paper:var(--bg);--karton:var(--surface);--matt:var(--muted);--linkfarbe:var(--deep);
+  --goldsoft:var(--gold-soft);--goldtief:var(--gold-deep);--nacht1:var(--night-1);--nacht2:var(--night-2);--nacht3:var(--night-3);
+  --schatten:var(--shadow);--schatten-hoch:var(--shadow-lift);
+  --ok-rand:var(--ok);--ok-grund:var(--ok-bg);--ok-text:var(--ok);--info-grund:var(--info-bg);--info-text:var(--info);
+  --warn-rand:var(--warn);--warn-grund:var(--warn-bg);--warn-text:var(--warn);--hinweis-grund:var(--hinweis-bg);
 }
-@media (prefers-color-scheme: dark){
-  :root{
-    --ink:#E9E4D8;--matt:#98A6AE;--deep:#8CC0CF;--linkfarbe:#9BCBD8;
-    --goldtief:#E0B866;
-    --paper:#0C151E;--karton:#132029;--line:rgba(233,228,216,.16);
-    --schatten:0 1px 2px rgba(0,0,0,.3),0 6px 18px rgba(0,0,0,.25);
-    --schatten-hoch:0 2px 4px rgba(0,0,0,.4),0 14px 34px rgba(0,0,0,.45);
-    --glanz:rgba(255,255,255,.04);
-    --ok-rand:#4E8B6D;--ok-grund:#15251C;--ok-text:#A9D8BD;
-    --info-grund:#122630;--info-text:#A5CFDB;
-    --warn-rand:#B0554D;--warn-grund:#2B1614;--warn-text:#E7B3AC;
-    --hinweis-grund:#241D0D;--stern-aus:#4E5B63;
-  }
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);
+  --deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info:#9BCBD8;--info-bg:#12222B;
+  --hinweis:#E0B866;--hinweis-bg:#241D0D;--still:#98A6AE;--still-bg:#182833;
+  --pillar-1:#7FCBA4;--pillar-2:#E0B866;--pillar-3:#8CC0CF;--pillar-4:#C6A6E0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
+  --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --stern-aus:#4E5B63;--glanz:rgba(255,255,255,.04);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);
+  --deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info:#9BCBD8;--info-bg:#12222B;
+  --hinweis:#E0B866;--hinweis-bg:#241D0D;--still:#98A6AE;--still-bg:#182833;
+  --pillar-1:#7FCBA4;--pillar-2:#E0B866;--pillar-3:#8CC0CF;--pillar-4:#C6A6E0;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
+  --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --stern-aus:#4E5B63;--glanz:rgba(255,255,255,.04);
 }
+[x-cloak]{display:none!important}
 *{box-sizing:border-box;margin:0}
 html{scroll-behavior:smooth}
 body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper);line-height:1.65;font-size:16px}
@@ -42,14 +67,14 @@ h1{font-size:clamp(28px,4.5vw,38px);line-height:1.2;margin:0 0 10px}
 h2{margin:38px 0 12px;font-size:24px}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
-.skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:#14232E;padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
+.skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
 /* ── Kopf ── */
-header{background:linear-gradient(120deg,var(--nacht1),var(--nacht2) 55%,var(--nacht3));color:#fff;padding:14px 0;position:relative;border-bottom:2px solid var(--gold)}
+header{background:linear-gradient(120deg,var(--nacht1),var(--nacht2) 55%,var(--nacht3));color:var(--bar-ink);padding:14px 0;position:relative;border-bottom:2px solid var(--gold)}
 header::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.13) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
 header .w, main{max-width:960px;margin:0 auto;padding:0 20px}
 header .w{display:flex;align-items:center;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;position:relative}
-header a{color:#fff;text-decoration:none}
+header a{color:var(--bar-ink);text-decoration:none}
 header .marke{font-family:var(--serif);font-size:23px;line-height:1.15;display:block}
 header .marke em{color:var(--goldsoft);font-style:italic}
 header .marke small{display:block;font-family:system-ui,sans-serif;font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.6}
@@ -63,10 +88,10 @@ nav a.an{color:var(--goldsoft);background:rgba(232,194,122,.16);font-weight:600;
 nav .wer{opacity:.65;font-size:13px}
 nav .btn{padding:8px 18px;font-size:14px}
 nav form{display:inline}
-nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:#fff;opacity:.92;padding:0}
+nav button.aus{background:none;border:0;cursor:pointer;font:inherit;font-size:14.5px;color:var(--bar-ink);opacity:.92;padding:0}
 nav button.aus:hover{color:var(--goldsoft)}
 .nav-cta{border:1px solid var(--goldsoft);border-radius:999px;padding:6px 14px !important;color:var(--goldsoft) !important;font-weight:600}
-.nav-cta:hover{background:var(--goldsoft);color:#14232E !important;border-bottom-color:transparent}
+.nav-cta:hover{background:var(--goldsoft);color:var(--on-gold) !important;border-bottom-color:transparent}
 .sprache{border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 12px !important;font-size:12.5px !important;letter-spacing:.06em}
 .sprache:hover{border-color:var(--goldsoft)}
 @media(max-width:759px){
@@ -81,14 +106,14 @@ nav button.aus:hover{color:var(--goldsoft)}
 }
 main{padding:36px 20px 90px}
 /* ── Bühne (Startseite für Gäste) ── */
-.held{background:linear-gradient(135deg,var(--nacht1),var(--nacht2) 50%,var(--nacht3));color:#F3EFE6;border-radius:20px;padding:clamp(28px,5vw,52px);margin:4px 0 34px;position:relative;overflow:hidden;box-shadow:var(--schatten-hoch)}
+.held{background:linear-gradient(135deg,var(--nacht1),var(--nacht2) 50%,var(--nacht3));color:var(--bar-ink);border-radius:20px;padding:clamp(28px,5vw,52px);margin:4px 0 34px;position:relative;overflow:hidden;box-shadow:var(--schatten-hoch)}
 .held::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(232,194,122,.12) 1px,transparent 1.6px);background-size:22px 22px;pointer-events:none}
 .held>*{position:relative}
 .held .vorzeile{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--goldsoft);margin-bottom:12px}
-.held h1{font-size:clamp(32px,5.5vw,48px);color:#fff;margin-bottom:14px}
+.held h1{font-size:clamp(32px,5.5vw,48px);color:var(--papier);margin-bottom:14px}
 .held .untertitel{max-width:36em;font-size:clamp(15.5px,2vw,17.5px);color:rgba(243,239,230,.85);margin-bottom:24px}
 .held .wege{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
-.btn-hell{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:#F3EFE6;border:1px solid rgba(243,239,230,.5);border-radius:999px;padding:10px 22px;text-decoration:none}
+.btn-hell{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--bar-ink);border:1px solid rgba(243,239,230,.5);border-radius:999px;padding:10px 22px;text-decoration:none}
 .btn-hell:hover{border-color:var(--goldsoft);color:var(--goldsoft)}
 .zahlenband{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px}
 @media(max-width:620px){.zahlenband{grid-template-columns:1fr}}
@@ -98,14 +123,19 @@ main{padding:36px 20px 90px}
 /* ── Flächen ── */
 .karte{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:12px 0;box-shadow:var(--schatten)}
 .karte a{color:var(--linkfarbe)}
-.badge{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:#132A3A;color:var(--goldsoft);border-radius:999px;padding:4px 12px}
-.badge--hell{background:rgba(14,76,92,.1);color:var(--deep)}
-@media (prefers-color-scheme: dark){.badge--hell{background:rgba(140,192,207,.14)}}
+.badge{display:inline-block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:var(--night-2);color:var(--gold-soft);border-radius:999px;padding:4px 12px}
+.badge--hell{background:color-mix(in srgb,var(--deep) 12%,transparent);color:var(--deep)}
+/* Status-Badges über Tokens (FB-P3): Meldungsfarben, Vollzugsampel, Verwaltungsstatus */
+.badge-ok{background:var(--ok-bg);color:var(--ok)}.badge-info{background:var(--info-bg);color:var(--info)}
+.badge-warn{background:var(--warn-bg);color:var(--warn)}.badge-hinweis{background:var(--hinweis-bg);color:var(--hinweis)}
+.badge-still{background:var(--still-bg);color:var(--still)}
+.legende-ja{color:var(--pillar-3);font-weight:700}.legende-nein{color:var(--warn);font-weight:700}.legende-enthaltung{color:var(--gold);font-weight:700}
+.papier{background:var(--papier)}
 .leer{color:var(--matt);font-style:italic}
 .erk{font-size:13.5px;color:var(--matt);margin:0 0 6px}
 .hilfe{font-size:13px;color:var(--matt);margin-top:4px}
 /* ── Bedienung ── */
-.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:#14232E;border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2);transition:background .15s,transform .15s,box-shadow .15s}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:var(--on-gold);border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2);transition:background .15s,transform .15s,box-shadow .15s}
 .btn:hover{background:var(--goldsoft);transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.25)}
 .btn:active{transform:translateY(0)}
 .btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none;transition:background .15s,color .15s}
@@ -124,6 +154,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-of
 .meldung.success{border-color:var(--ok-rand);background:var(--ok-grund);color:var(--ok-text)}
 .meldung.info{border-color:var(--deep);background:var(--info-grund);color:var(--info-text)}
 .meldung.error{border-color:var(--warn-rand);background:var(--warn-grund);color:var(--warn-text)}
+.meldung.warning{border-color:var(--hinweis);background:var(--hinweis-bg);color:var(--hinweis)}
 .stimmzeile{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .kommentar{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:12px}
 .kommentar:first-of-type{border-top:0;margin-top:0}
@@ -140,7 +171,7 @@ main.breit{max-width:1500px}
 .chipform{display:inline}
 .chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink);line-height:1.4}
 .chip:hover{border-color:var(--gold)}
-.chip.an{background:var(--gold);color:#14232E;border-color:transparent;font-weight:600}
+.chip.an{background:var(--gold);color:var(--on-gold);border-color:transparent;font-weight:600}
 .regler-klappe summary{list-style:none;display:inline-block}
 .regler-klappe summary::-webkit-details-marker{display:none}
 .regler-feld{position:absolute;right:8px;top:46px;bottom:8px;z-index:30;width:min(330px,calc(100% - 16px));overflow:auto;background:var(--karton);background:color-mix(in srgb,var(--karton) 90%,transparent);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--schatten-hoch)}
@@ -221,13 +252,11 @@ main.breit{max-width:1500px}
 .fluss .station{display:flex;gap:16px;align-items:flex-start;position:relative;padding:0 0 22px 6px}
 .fluss .station:not(:last-child)::before{content:"";position:absolute;left:19px;top:30px;bottom:-4px;width:2px;background:linear-gradient(var(--deep),var(--gold));opacity:.45}
 .fluss .punkt{flex:0 0 auto;width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--deep);color:var(--paper);font-weight:600;font-size:14px;position:relative;z-index:1}
-@media (prefers-color-scheme: dark){.fluss .punkt{color:#0C151E}}
-.fluss .station:last-child .punkt{background:var(--gold);color:#14232E}
+.fluss .station:last-child .punkt{background:var(--gold);color:var(--on-gold)}
 .fluss p{margin:2px 0 0}
 .schrittleiste{display:flex;gap:8px;align-items:center;margin:10px 0 22px;font-size:13.5px;color:var(--matt);flex-wrap:wrap}
 .schrittleiste .punkt{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--karton);font-weight:600}
 .schrittleiste .punkt.aktiv{background:var(--deep);color:var(--paper);border-color:var(--deep)}
-@media (prefers-color-scheme: dark){.schrittleiste .punkt.aktiv{color:#0C151E}}
 .schrittleiste .punkt.fertig{background:var(--ok-grund);color:var(--ok-text);border-color:var(--ok-rand)}
 .tabelle{width:100%;border-collapse:collapse;font-size:14.5px}
 .tabelle th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--matt);padding:6px 10px 8px;border-bottom:1px solid var(--line)}
@@ -246,8 +275,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .fuss-grid{max-width:960px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:26px}
 @media(max-width:700px){.fuss-grid{grid-template-columns:1fr}}
 .fuss-grid .marke2{font-family:var(--serif);font-size:19px;color:var(--ink)}
-.fuss-grid .marke2 em{color:var(--goldtief);font-style:italic}
-@media (prefers-color-scheme: dark){.fuss-grid .marke2 em{color:var(--goldsoft)}}
+.fuss-grid .marke2 em{color:var(--gold-deep);font-style:italic}
 .fuss-grid h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-family:system-ui,sans-serif;color:var(--matt);margin:0 0 10px}
 .fuss-grid ul{list-style:none;margin:0;padding:0}
 .fuss-grid li{margin:0 0 7px}
@@ -261,7 +289,7 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .anstoss-bestaetigung{background:var(--ok-grund);border:1px solid var(--ok-rand);color:var(--ok-text);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--schatten-hoch);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen .4s cubic-bezier(.22,.8,.3,1) both}
 .anstoss-bestaetigung .anstoss-bx{position:absolute;top:6px;right:10px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7;padding:2px 4px}
 .anstoss-bestaetigung .anstoss-bx:hover{opacity:1}
-.ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--nacht2);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
+.ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--ink);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
 
 /* ── Politur (Auftrag 1.9. abends): Hochglanz und behutsame Bewegung.
    Alles ist Zugabe — ohne JavaScript und mit reduzierter Bewegung bleibt
@@ -307,16 +335,16 @@ a,button{outline-color:color-mix(in srgb,var(--gold) 70%,var(--ink))}
   *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
   ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*){animation:none!important}
 }
-.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:#14232E;font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:0 8px 22px rgba(0,0,0,.22);transition:background .15s}
+.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background .15s}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
 .anstoss-fleck summary:hover{background:var(--goldsoft)}
-.anstoss-karte{animation:auftauchen .32s cubic-bezier(.22,.8,.3,1) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 18px 44px rgba(0,0,0,.28)}
+.anstoss-karte{animation:auftauchen .32s cubic-bezier(.22,.8,.3,1) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
 .anstoss-karte h3{font-size:16px;margin-bottom:6px}
 .anstoss-echo{font-size:13.5px;margin:2px 0 8px;color:var(--matt)}
 .anstoss-echo.danke{color:var(--goldtief);font-weight:600}
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
-@media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:#fff}main{padding:0}}
+@media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
 </style>
 <script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>

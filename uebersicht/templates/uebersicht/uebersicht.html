@@ -36,14 +36,14 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
       {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
-      {% elif z.antrag.phase == "angenommen" %}<span class="badge" style="background:#EFF6F1;color:#1E4736">{% translate "angenommen" %}</span>
-      {% else %}<span class="badge" style="background:#F9EFEE;color:#6E2222">{% translate "abgelehnt" %}</span>{% endif %}
+      {% elif z.antrag.phase == "angenommen" %}<span class="badge badge-ok">{% translate "angenommen" %}</span>
+      {% else %}<span class="badge badge-warn">{% translate "abgelehnt" %}</span>{% endif %}
     </p>
     {{ z.balken|safe }}
     <p class="erk" style="margin-top:8px">
-      <span style="color:#2C89B0;font-weight:700">■</span> {% translate "Ja" %} {{ z.ja }} ·
-      <span style="color:#8C2B2B;font-weight:700">■</span> {% translate "Nein" %} {{ z.nein }} ·
-      <span style="color:#D9A441;font-weight:700">■</span> {% translate "Enthaltung" %} {{ z.enthaltung }}
+      <span class="legende-ja">■</span> {% translate "Ja" %} {{ z.ja }} ·
+      <span class="legende-nein">■</span> {% translate "Nein" %} {{ z.nein }} ·
+      <span class="legende-enthaltung">■</span> {% translate "Enthaltung" %} {{ z.enthaltung }}
       — {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
       {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
     </p>

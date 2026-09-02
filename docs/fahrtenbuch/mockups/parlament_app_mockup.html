@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Parlament App-Mockup</title>
+</head>
+<body>
+<style>
+:root{
+  --bg:#F4F1E9;--surface:#FFFFFF;--surface-2:#F8F6F0;--ink:#14232E;--muted:#5E6F7A;--line:rgba(20,35,46,.14);
+  --deep:#0E4C5C;--gold:#D9A441;--gold-soft:#E8C27A;--gold-deep:#8A6415;--night-1:#0A1722;--night-2:#0E2230;--night-3:#10394A;
+  --ok:#2E6B4F;--ok-bg:#EFF6F1;--warn:#8C2B2B;--warn-bg:#F9EFEE;--info-bg:#EDF3F5;--info:#0E4C5C;
+  --p1:#2E6B4F;--p2:#B07A1C;--p3:#2C89B0;--p4:#7A4E9E;
+  --shadow:0 1px 2px rgba(14,34,48,.06),0 6px 18px rgba(14,34,48,.05);--shadow-lift:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
+  --overlay:rgba(255,255,255,.86);--scrim:rgba(14,34,48,.35);
+  --sans:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI Variable Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --serif:Georgia,'Times New Roman',serif;
+  --d-fast:160ms;--d-base:260ms;--d-slide:320ms;--d-grow:420ms;--e-out:cubic-bezier(.22,.8,.3,1);--e-in:cubic-bezier(.4,0,1,1);--e-spring:cubic-bezier(.3,1.6,.5,1);
+  --bar:56px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);--deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info-bg:#12222B;--info:#9BCBD8;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);--shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);--overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --p1:#7FCBA4;--p2:#E0B866;--p3:#8CC0CF;--p4:#C6A6E0;}}
+:root[data-theme="dark"]{
+  --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);--deep:#8CC0CF;--gold-deep:#E0B866;
+  --ok:#7FCBA4;--ok-bg:#12291F;--warn:#E08A8A;--warn-bg:#2E1616;--info-bg:#12222B;--info:#9BCBD8;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);--shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);--overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
+  --p1:#7FCBA4;--p2:#E0B866;--p3:#8CC0CF;--p4:#C6A6E0;}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--deep)}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+h1,h2,h3{margin:0;text-wrap:balance}
+.kap{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tab{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- Mockup-Kopf (nicht Teil der Plattform) ---------- */
+.mock{background:var(--surface-2);border-bottom:1px dashed var(--line);padding:8px 16px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13px;color:var(--muted)}
+.mock strong{color:var(--ink)}
+.mock .seiten{display:flex;gap:6px;margin-left:auto}
+.mock .seiten button{padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;font-weight:600}
+.mock .seiten button.an{background:var(--gold);color:var(--night-1);border-color:var(--gold)}
+
+/* ---------- App-Leiste ---------- */
+.leiste{height:var(--bar);background:linear-gradient(90deg,var(--night-1),var(--night-2) 60%,var(--night-3));border-bottom:1px solid var(--gold);display:flex;align-items:center;gap:6px;padding:0 16px;color:#E9E4D8;position:sticky;top:0;z-index:40}
+.marke{font-family:var(--serif);font-size:20px;color:#fff;text-decoration:none;margin-right:14px;white-space:nowrap}
+.marke i{color:var(--gold-soft)}
+.leiste nav{display:flex;gap:2px}
+.leiste nav a{color:#E9E4D8;text-decoration:none;font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px;transition:background var(--d-fast)}
+.leiste nav a:hover{background:rgba(232,194,122,.12)}
+.leiste nav a.an{background:rgba(232,194,122,.16);color:var(--gold-soft)}
+.leiste .rechts{margin-left:auto;display:flex;align-items:center;gap:8px}
+.cta{background:var(--gold);color:var(--night-1);font-weight:700;font-size:14px;padding:0 16px;height:36px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;transition:transform var(--d-fast),background var(--d-fast);white-space:nowrap}
+.cta:hover{background:var(--gold-soft);transform:translateY(-1px)}
+.ikon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:#E9E4D8;transition:background var(--d-fast)}
+.ikon:hover{background:rgba(232,194,122,.14)}
+.avatar{width:32px;height:32px;border-radius:999px;background:var(--gold);color:var(--night-1);font-weight:700;font-size:14px;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px var(--gold-soft)}
+.burger{display:none}
+.pop{position:absolute;top:calc(var(--bar) + 6px);right:12px;width:240px;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-lift);padding:8px;z-index:50;transform-origin:top right;animation:auf var(--d-base) var(--e-out)}
+.pop[hidden]{display:none}
+.pop .kopf{padding:8px 12px 10px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.pop .kopf b{display:block}
+.pop .kopf small{color:var(--muted)}
+.pop a,.pop button.z{display:block;width:100%;text-align:left;padding:8px 12px;border-radius:10px;color:var(--ink);text-decoration:none;font-size:14px}
+.pop a:hover,.pop button.z:hover{background:var(--surface-2)}
+.pop .thema{display:flex;gap:4px;padding:6px 8px}
+.pop .thema button{flex:1;font-size:12px;font-weight:600;padding:6px;border-radius:999px;border:1px solid var(--line)}
+.pop .thema button.an{background:var(--gold);color:var(--night-1);border-color:var(--gold)}
+
+/* ---------- Parlament-Raster ---------- */
+.parlament{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;height:calc(100dvh - var(--bar) - 38px);padding:12px;max-width:1500px;margin:0 auto}
+.feld{display:flex;flex-direction:column;min-height:0;background:var(--surface);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;position:relative;animation:auf var(--d-grow) var(--e-out) both}
+.feld:nth-child(2){animation-delay:.05s}.feld:nth-child(3){animation-delay:.1s}.feld:nth-child(4){animation-delay:.15s}
+.fk{height:44px;padding:0 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);flex:none}
+.fk h2{font-size:19px;font-weight:600}
+.fk .w{margin-left:auto;display:flex;align-items:center;gap:8px}
+.korpus{flex:1;min-height:0;overflow:auto;padding:8px 16px 36px;scrollbar-width:thin;overscroll-behavior:contain;position:relative}
+.mehr{position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(transparent,var(--surface) 55%);display:flex;justify-content:center;align-items:flex-end;padding-bottom:4px;pointer-events:none;transition:opacity var(--d-base)}
+.mehr button{pointer-events:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:600;padding:3px 12px;box-shadow:var(--shadow);transition:transform var(--d-fast)}
+.mehr button:hover{transform:translateY(-1px)}
+.mehr.aus{opacity:0;pointer-events:none}
+.chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:999px;border:1px solid var(--line);font-size:12.5px;font-weight:600;background:var(--surface);transition:transform var(--d-fast),background var(--d-fast);white-space:nowrap}
+.chip:hover{transform:translateY(-1px)}
+.chip.an{background:var(--gold);border-color:var(--gold);color:var(--night-1)}
+.badge{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.b-abst{background:var(--gold);color:var(--night-1)}.b-berat{background:var(--deep);color:#fff}.b-unt{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.stern{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;color:#b9c2c7;border-radius:999px;transition:transform var(--d-fast) var(--e-spring),color var(--d-fast)}
+.stern.an{color:var(--gold);text-shadow:0 0 8px rgba(217,164,65,.6)}
+.stern:hover{transform:scale(1.2)}
+.balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.balken b{display:block;height:100%;background:var(--gold);transform-origin:left;animation:wachs var(--d-grow) var(--e-out) .15s both}
+
+/* WeicherFilter */
+.pleiste{overflow:hidden;transition:height var(--d-base) var(--e-out);height:40px;flex:none;position:relative}
+.pleiste .innen{height:40px;background:var(--surface-2);display:flex;align-items:center;gap:6px;padding:0 12px 0 16px;border-bottom:1px solid var(--line);transition:opacity var(--d-fast);overflow-x:auto;scrollbar-width:none}
+.pleiste .pfeil{position:sticky;right:0;flex:none}
+.pleiste.zu{height:14px}
+.pleiste.zu .innen{opacity:0;pointer-events:none}
+.pfeil{width:28px;height:28px;border-radius:999px;margin-left:auto;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);background:var(--surface);transition:transform var(--d-base)}
+.griff{position:absolute;left:50%;top:0;transform:translateX(-50%);height:14px;width:60px;display:none;align-items:center;justify-content:center;font-size:10px;color:var(--muted);background:var(--surface-2);border-radius:0 0 8px 8px;cursor:pointer}
+.pleiste.zu .griff{display:flex}
+.zeile{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center;transition:background var(--d-fast)}
+.zeile:hover{background:rgba(217,164,65,.05)}
+.zeile .t{font-weight:600;line-height:1.3;color:var(--ink);text-decoration:none}
+.zeile .t:hover{text-decoration:underline}
+.zeile .m{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.zeile .st{grid-column:1;display:grid;grid-template-columns:90px 1fr;gap:10px;align-items:center;font-size:12.5px;color:var(--muted)}
+.zeile .aktion{grid-column:2;grid-row:1 / span 3;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.knopf{height:30px;padding:0 12px;border-radius:999px;border:1.5px solid var(--deep);color:var(--deep);font-size:12.5px;font-weight:600;transition:all var(--d-fast);white-space:nowrap}
+.knopf:hover{background:var(--deep);color:#fff;transform:translateY(-1px)}
+.knopf.gold{background:var(--gold);border-color:var(--gold);color:var(--night-1)}
+.knopf.still{border-color:var(--line);color:var(--muted)}
+.warum{font-size:11.5px;color:var(--muted);text-decoration:underline dotted;cursor:pointer}
+.aufk{grid-column:1 / -1;background:var(--surface-2);border-radius:10px;padding:8px 12px;font-size:12.5px;display:none}
+.aufk.an{display:block;animation:auf var(--d-base) var(--e-out)}
+.gruppe{padding:14px 0 4px;border-bottom:1px solid var(--line)}
+.overlay{position:absolute;top:44px;right:0;bottom:0;width:min(340px,100%);background:var(--overlay);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-left:1px solid var(--line);box-shadow:-12px 0 30px rgba(14,34,48,.12);z-index:30;display:flex;flex-direction:column;transform:translateX(100%);transition:transform var(--d-slide) var(--e-out)}
+.overlay.an{transform:none}
+.overlay .ok{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.overlay .ok b{font-size:15px}
+.overlay .ok .pkt{color:var(--gold-deep);font-size:12px;font-weight:600}
+.overlay .regler{flex:1;overflow:auto;padding:8px 14px}
+.schalter{display:flex;justify-content:space-between;align-items:center;padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:6px;font-size:13.5px;font-weight:600}
+.sw{width:38px;height:22px;border-radius:999px;background:var(--gold);position:relative}
+.sw::after{content:"";position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:999px;background:#fff}
+.regl{display:grid;grid-template-columns:1fr 34px;gap:2px 8px;align-items:center;padding:7px 0;font-size:13px}
+.regl output{text-align:right;font-weight:600;color:var(--gold-deep);font-variant-numeric:tabular-nums}
+.regl input{grid-column:1 / -1;width:100%;accent-color:var(--gold);height:22px}
+.overlay .aktionen{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.overlay .aktionen .still{margin-left:auto;font-size:12.5px;color:var(--muted)}
+
+/* Fächer */
+.faecher{position:relative;height:100%;min-height:340px}
+.faeden{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.faeden path{fill:none;stroke:var(--line);stroke-width:1.2;transition:stroke var(--d-fast),stroke-width var(--d-fast)}
+.faeden path.an{stroke:var(--gold);stroke-width:2}
+.kn{position:absolute;transform:translate(-50%,-50%);display:inline-flex;align-items:center;gap:2px;padding:3px 10px 3px 4px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-weight:600;letter-spacing:-.01em;white-space:nowrap;cursor:pointer;transition:transform var(--d-fast),box-shadow var(--d-fast),border-color var(--d-fast);animation:auf var(--d-base) var(--e-out) both}
+.kn:hover{transform:translate(-50%,-50%) translateY(-2px);box-shadow:var(--shadow-lift)}
+.kn.anker{border:1.5px solid var(--gold);box-shadow:0 0 0 4px rgba(217,164,65,.15);cursor:default}
+.kn .s{width:20px;height:20px;font-size:14px;color:#b9c2c7;display:inline-flex;align-items:center;justify-content:center;border-radius:999px}
+.kn .s.an{color:var(--gold)}
+.kn.p1{background:color-mix(in srgb,var(--p1) 12%,var(--surface))}.kn.p2{background:color-mix(in srgb,var(--p2) 12%,var(--surface))}.kn.p3{background:color-mix(in srgb,var(--p3) 12%,var(--surface))}.kn.p4{background:color-mix(in srgb,var(--p4) 12%,var(--surface))}
+.f24{font-size:24px}.f22{font-size:22px}.f20{font-size:20px}.f18{font-size:18px}.f16{font-size:16px;font-weight:500}
+.kn.f16{animation:pop 180ms var(--e-out) both}
+.suche{height:32px;width:220px;border:1px solid var(--line);border-radius:999px;padding:0 12px;background:var(--surface-2);font:inherit;font-size:13.5px;color:var(--ink)}
+.brot{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brot a{color:var(--muted)}
+.faecher.zoom{animation:zoomrein var(--d-slide) var(--e-out)}
+
+/* Kacheln */
+.kacheln{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(186px,1fr);gap:10px;min-height:100%}
+.kachel{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0;position:relative;transition:transform var(--d-fast),box-shadow var(--d-fast),border-color var(--d-fast);animation:auf var(--d-base) var(--e-out) both}
+.kachel:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:var(--gold)}
+.kachel .th{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);min-width:0}
+.kachel .th span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kachel .th .stern,.kachel .ks{width:24px;height:24px;font-size:14px}
+.kachel .ks{position:absolute;top:8px;right:8px}
+.kachel .ti{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kachel .ti:hover{text-decoration:underline}
+.kachel .stand{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.kachel .frist{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-top:auto}
+.kachel .frist b{color:var(--ink)}
+.ring{width:20px;height:20px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:3}
+.ring .bahn{stroke:var(--line)}.ring .wert{stroke:var(--gold);stroke-dasharray:50.3;animation:ring var(--d-grow) var(--e-out) both}
+.stimm{display:flex;gap:6px}
+.stimm button{height:28px;padding:0 10px;border-radius:999px;border:1.5px solid var(--deep);color:var(--deep);font-size:12px;font-weight:600;transition:all var(--d-fast)}
+.stimm button:hover{background:var(--deep);color:#fff}
+.stimm button.w{border-color:var(--gold);background:var(--gold);color:var(--night-1);box-shadow:0 0 0 2px rgba(217,164,65,.3)}
+.stimm button.e{border-color:var(--line);color:var(--muted)}
+.grund{font-size:11.5px;font-style:italic;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:absolute;inset:auto 8px 8px auto;background:var(--ok-bg);color:var(--ok);font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;animation:toast 1.7s var(--e-out) both}
+/* Region */
+.baender{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;height:100%}
+.band{display:grid;grid-template-columns:24px 1fr;gap:8px;min-height:0;overflow:hidden}
+.band .kopf{writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-right:3px solid var(--deep);padding:4px 0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.band.b2 .kopf{border-color:var(--gold)}.band.b3 .kopf{border-color:var(--night-3)}
+.band .spur{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:thin;padding-bottom:2px;min-height:0}
+.band .spur .kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:2px}
+.band .spur .kachel .ti{font-size:14px;-webkit-line-clamp:1}
+.band .spur .kachel .stand span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.band .spur .kachel .stimm{margin-top:2px}
+.band .spur .kachel .balken{display:none}
+.band .spur .kachel .frist{margin-top:auto}
+.band .spur .kachel .balken{margin-right:0}
+.band .spur .kachel{overflow:hidden}
+.band .wm{display:none}
+.band .spur .kachel .stand{font-size:11.5px}
+.band .spur .kachel .frist{margin-top:auto;font-size:12px}
+.band .spur .kachel .stimm button{height:26px;padding:0 9px}
+.band .leer{grid-auto-columns:1fr}
+.leerk{border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);gap:6px;padding:8px}
+.leerk a{font-weight:600}
+.band .spur .kachel .th{display:none}
+.band .wm{position:absolute;right:8px;bottom:8px;opacity:.09;font-size:34px;pointer-events:none}
+
+/* Chat-Griff und Panel */
+.griffl{position:fixed;left:0;top:50%;transform:translateY(-50%);width:26px;height:96px;background:var(--surface);border:1px solid var(--line);border-left:0;border-radius:0 14px 14px 0;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;z-index:35;cursor:pointer}
+.griffl .z{position:absolute;top:-6px;right:-6px;background:var(--gold);color:var(--night-1);font-size:11px;font-weight:700;width:18px;height:18px;border-radius:999px;display:flex;align-items:center;justify-content:center}
+.scrim{position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity 200ms;z-index:45}
+.scrim.an{opacity:1;pointer-events:auto}
+.panel{position:fixed;left:0;top:0;bottom:0;width:min(380px,92vw);background:var(--surface);box-shadow:var(--shadow-lift);z-index:46;transform:translateX(-100%);transition:transform var(--d-slide) var(--e-out);display:flex;flex-direction:column}
+.panel.an{transform:none}
+.panel .pk{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.panel .pk h3{font-size:16px}
+.panel .pk .x{margin-left:auto}
+.panel .filt{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.panel .liste{flex:1;overflow:auto;position:relative}
+.gesp{display:grid;grid-template-columns:56px 1fr 120px;gap:8px;padding:10px 16px;border-bottom:1px solid var(--line);align-items:start;text-decoration:none;color:inherit;transition:background var(--d-fast)}
+.gesp:hover{background:var(--surface-2)}
+.gesp .th{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:6px;line-height:1.2}
+.gesp .an-t{font-weight:600;font-size:13.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.gesp .an-t small{display:block;color:var(--muted);font-weight:500;font-size:11.5px}
+.gesp .pa{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:12px;color:var(--muted)}
+.gesp .pa b{color:var(--ink);display:flex;align-items:center;gap:6px}
+.gesp .pa i{font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:112px}
+.gesp .pa .ungel{width:8px;height:8px;border-radius:999px;background:var(--gold);display:inline-block}
+.av{width:22px;height:22px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+
+/* Tableiste + Gastband */
+.tabs{display:none}
+.gast{display:none;height:32px;background:var(--info-bg);color:var(--info);font-size:13px;align-items:center;gap:12px;padding:0 16px}
+
+/* ---------- Antragsseite ---------- */
+.antrag{max-width:1200px;margin:0 auto;padding:20px 16px 60px;display:none}
+.antrag.an{display:block}
+.zurueck{font-size:13.5px;text-decoration:none;font-weight:600}
+.antrag h1{font-size:26px;font-weight:700;line-height:1.2;margin:8px 0 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.meta{font-size:13px;color:var(--muted);margin:8px 0 14px;display:flex;flex-wrap:wrap;gap:6px 14px}
+.band-gold{background:var(--gold);color:var(--night-1);border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:14px}
+.zonen{position:sticky;top:var(--bar);height:44px;background:var(--bg);display:flex;gap:4px;border-bottom:1px solid var(--line);z-index:20;margin-bottom:20px}
+.zonen button{padding:0 14px;font-size:14px;font-weight:600;color:var(--muted);position:relative}
+.zonen button.an{color:var(--ink)}
+.zonen button.an::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:3px;background:var(--gold);border-radius:2px 2px 0 0}
+.zraster{display:grid;grid-template-columns:58fr 42fr;gap:24px;align-items:start}
+.z1,.z2,.z3{min-width:0}
+.z2{position:sticky;top:calc(var(--bar) + 54px);max-height:calc(100dvh - var(--bar) - 70px);overflow:auto;display:flex;flex-direction:column;gap:12px;padding-right:2px;scrollbar-width:thin}
+.z3{grid-column:1 / -1;margin-top:28px}
+.karte{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:16px 18px}
+.karte h2{font-size:19px;font-weight:600;margin-bottom:8px}
+.karte h3{font-size:14px;font-weight:600;margin-bottom:6px}
+.wortlaut{font-size:17px;line-height:1.6;max-width:65ch}
+.karte + .karte{margin-top:12px}
+.regeln{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted)}
+.regeln b{color:var(--ink)}
+.plak{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--gold);color:var(--gold-deep);border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.klein{font-size:12.5px;color:var(--muted)}
+.norm{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.norm .b{margin-left:auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--gold);color:var(--night-1)}
+.norm .b.auf{background:var(--warn-bg);color:var(--warn)}
+.graph{width:100%;height:120px}
+.graph circle{transform-origin:center;animation:wachs var(--d-grow) var(--e-out) both}
+.graph line{stroke:var(--line);stroke-width:1}
+.graph text{font-size:10px;fill:var(--muted)}
+.pbalk{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;align-items:center;font-size:13px}
+.pbalk .spur{position:relative;height:14px;background:var(--surface-2);border-radius:7px}
+.pbalk .spur i{position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
+.pbalk .spur b{position:absolute;top:2px;bottom:2px;border-radius:5px;background:var(--gold);transform-origin:left;animation:wachs var(--d-grow) var(--e-out) both}
+.pbalk .spur b.ab{background:var(--deep);transform-origin:right}
+.ampel{display:flex;align-items:center;gap:10px}
+.ampel span{width:14px;height:14px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.ampel span.gruen{background:var(--ok)}.ampel span.gelb{background:var(--gold);animation:puls 2s ease-in-out infinite}.ampel span.rot{background:var(--warn)}
+.strahl{position:relative;height:56px;margin-top:10px}
+.strahl .l{position:absolute;left:0;right:0;top:12px;height:3px;background:var(--line);border-radius:2px}
+.strahl .l b{display:block;height:100%;width:100%;background:var(--gold);transform-origin:left;animation:wachs 1s var(--e-out) both}
+.strahl .p{position:absolute;top:6px;transform:translateX(-50%);text-align:center;font-size:11px;color:var(--muted);white-space:nowrap}
+.strahl .p::before{content:"";display:block;width:12px;height:12px;border-radius:999px;background:var(--surface);border:2px solid var(--gold);margin:0 auto 4px}
+.skel{background:var(--surface-2);border-radius:10px;height:14px;position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:schimmer 1.6s linear infinite}
+.chatkopf{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.chatkopf h2{font-size:19px;font-weight:600}
+.blase{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:10px 0}
+.blase .av{width:32px;height:32px;font-size:13px}
+.blase .k{background:var(--surface);border-radius:16px;box-shadow:var(--shadow);padding:10px 14px;position:relative}
+.blase.eigen .k{border-left:3px solid var(--gold)}
+.blase.antw{margin-left:16px;border-left:1px solid var(--line);padding-left:12px}
+.blase.sys .k{border:1.5px dashed var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--surface))}
+.blase .n{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.blase .n b{color:var(--ink)}
+.blase p{margin:4px 0 6px;font-size:15px;line-height:1.5}
+.blase .z{display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted)}
+.blase .z button{color:var(--deep);font-weight:600;font-size:12.5px}
+.reakt{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12.5px;transition:transform var(--d-fast) var(--e-spring)}
+.reakt.an{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--surface))}
+.reakt:hover{transform:scale(1.08)}
+.krit{position:absolute;top:-8px;right:12px;background:var(--warn-bg);color:var(--warn);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase}
+.trenn{display:flex;align-items:center;gap:10px;color:var(--gold-deep);font-size:12px;font-weight:600;margin:6px 0}
+.trenn::before,.trenn::after{content:"";flex:1;height:1px;background:var(--gold)}
+.eingabe{position:sticky;bottom:0;background:var(--bg);padding:12px 0 4px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.eingabe textarea{width:100%;min-height:44px;max-height:160px;resize:vertical;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;background:var(--surface);color:var(--ink)}
+.eingabe .cta{height:44px}
+.phase{background:var(--info-bg);color:var(--info);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+.diff ins{background:var(--ok-bg);color:var(--ok);text-decoration:none}.diff del{background:var(--warn-bg);color:var(--warn)}
+
+/* ---------- Animationen ---------- */
+@keyframes auf{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.8)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes wachs{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes ring{from{stroke-dashoffset:50.3}to{stroke-dashoffset:var(--off)}}
+@keyframes toast{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+@keyframes puls{0%,100%{opacity:.7}50%{opacity:1}}
+@keyframes schimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@keyframes zoomrein{from{opacity:.4;transform:scale(1.08)}to{opacity:1;transform:none}}
+.kn:nth-child(n+2){animation-delay:calc(var(--i,0) * 18ms)}
+
+/* ---------- Responsiv ---------- */
+@media (max-width:1099px){.zraster{grid-template-columns:1fr}.z2{position:static;max-height:none}}
+@media (max-width:1023px){.parlament{height:auto;min-height:calc(100dvh - var(--bar))}.feld{min-height:380px}}
+@media (max-width:759px){
+  .leiste nav,.leiste .rechts .cta span,.leiste .ikon.anst{display:none}.burger{display:inline-flex}
+  .parlament{display:block;height:calc(100dvh - 52px - 60px);overflow-y:auto;scroll-snap-type:y mandatory;padding:8px}
+  .feld{height:100%;scroll-snap-align:start;margin-bottom:8px}
+  .tabs{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;height:60px;background:var(--surface);border-top:1px solid var(--line);z-index:40}
+  .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none}
+  .tabs a.an{color:var(--gold-deep)}
+  .tabs .plus{position:relative}
+  .tabs .plus span{width:48px;height:48px;border-radius:999px;background:var(--gold);color:var(--night-1);display:flex;align-items:center;justify-content:center;font-size:26px;margin-top:-16px;box-shadow:var(--shadow-lift)}
+  .kacheln{grid-template-columns:1fr 1fr}
+  .band .spur{grid-auto-columns:78%}
+  .griffl{display:none}
+  .f24{font-size:20px}.f22{font-size:18px}.f20{font-size:16px}.f18{font-size:15px}.f16{font-size:14px}
+  .suche{width:140px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}}
+</style>
+
+<div class="mock">
+  <strong>Mockup · ParlamentPlattform im App-Look</strong> · Referenz für Fahrtenbuch Bereiche A–G (Stand 2.9.2026) · Demo-Daten aus <code>demo_seed</code> · Alles klickbar, nichts wird gespeichert
+  <div class="seiten"><button class="an" data-seite="parlament">Parlament</button><button data-seite="antrag">Antragsseite (3 Zonen)</button></div>
+</div>
+
+<header class="leiste">
+  <a class="marke" href="#">Parlament<i>Plattform</i></a>
+  <nav><a class="an" href="#">Parlament</a><a href="#">Mandatare</a><a href="#">Gremien</a><a href="#">Umsetzungsregister</a><a href="#">Zukunftswerkstatt</a><a href="#">Übersicht</a></nav>
+  <div class="rechts">
+    <a class="cta" href="#">＋ <span>Antrag einbringen</span></a>
+    <button class="ikon anst" title="Anstoß geben" aria-label="Anstoß geben">💬</button>
+    <button class="avatar" id="konto" aria-haspopup="true" aria-expanded="false" title="Konto">M</button>
+    <button class="ikon burger" aria-label="Menü">☰</button>
+  </div>
+  <div class="pop" id="kontopop" hidden>
+    <div class="kopf"><b>Mitglied 5</b><small>demo5@example.org · Koordinationsrat</small></div>
+    <a href="#">Mein Gremium</a><a href="#">Profil</a><a href="#">Beitrag</a><a href="#">Verwaltung</a>
+    <div class="thema" role="group" aria-label="Erscheinungsbild"><button data-theme="">System</button><button data-theme="light">Hell</button><button data-theme="dark">Dunkel</button></div>
+    <a href="#">EN · English</a><a href="#">Abmelden</a>
+  </div>
+</header>
+
+<div class="gast">Sie sehen das Parlament als Gast — <a href="#">Anmelden</a> · <a href="#">Mitglied werden</a></div>
+
+<!-- ================= PARLAMENT ================= -->
+<main class="parlament" id="parlament">
+
+  <!-- Feld 1: WeicherFilter -->
+  <section class="feld" id="feld-filter" aria-labelledby="h-filter">
+    <div class="fk"><h2 id="h-filter">WeicherFilter</h2><div class="w"><span class="chip" id="aktivchip">Profil: Abend</span><button class="chip" id="reglerauf" aria-expanded="false">⚙ Regler</button></div></div>
+    <div class="pleiste" id="pleiste">
+      <div class="innen">
+        <button class="chip">Neutral</button><button class="chip an">Abend</button><button class="chip">Region zuerst</button><button class="chip">Entdecken</button>
+        <button class="pfeil" id="pfeil" aria-label="Profil-Leiste einfahren" aria-expanded="true" aria-controls="pleiste">˄</button>
+      </div>
+      <div class="griff" id="griff" role="button" aria-label="Profil-Leiste ausfahren">˅</div>
+    </div>
+    <div class="korpus" id="filterkorpus">
+      <div id="liste"></div>
+    </div>
+    <div class="mehr" data-fuer="filterkorpus"><button>↓ mehr</button></div>
+    <div class="overlay" id="overlay" role="dialog" aria-label="Regler des WeicherFilters">
+      <div class="ok"><b>Abend</b><span class="pkt" id="ungesp" hidden>● ungespeichert</span><button class="ikon" style="color:var(--muted)" title="Umbenennen">✎</button><button class="ikon" id="overlayzu" style="color:var(--muted);margin-left:auto" aria-label="Schließen">✕</button></div>
+      <div class="regler">
+        <div class="schalter"><span>★ Favoriten zuerst</span><span class="sw" role="switch" aria-checked="true"></span></div>
+        <div id="reglerliste"></div>
+        <p class="klein" style="margin:10px 0 0">Offene Regel v2: Punkte = Regler × Merkmal. <a href="#">Regel nachlesen</a></p>
+      </div>
+      <div class="aktionen"><button class="knopf gold" id="speichern" disabled style="opacity:.5">Speichern</button><button class="knopf">Als neue Konfiguration speichern</button><button class="still">Zurücksetzen</button></div>
+    </div>
+  </section>
+
+  <!-- Feld 2: Meine Favoriten -->
+  <section class="feld" id="feld-favoriten" aria-labelledby="h-fav">
+    <div class="fk"><h2 id="h-fav">Meine Favoriten</h2><div class="w"><span class="brot" id="brot"></span><input class="suche" type="search" placeholder="Lebensbereich suchen …" aria-label="Lebensbereich suchen"></div></div>
+    <div class="korpus" style="padding:0 8px 8px"><div class="faecher" id="faecher"><svg class="faeden" id="faeden" aria-hidden="true"></svg></div></div>
+  </section>
+
+  <!-- Feld 3: Wichtige Abstimmungen -->
+  <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig">
+    <div class="fk"><h2 id="h-wichtig">Wichtige Abstimmungen</h2><div class="w"><span class="kap">7 · Beschluss des Integritätsrats · nach Frist</span></div></div>
+    <div class="korpus" id="wichtigkorpus"><div class="kacheln" id="wichtig"></div></div>
+    <div class="mehr" data-fuer="wichtigkorpus"><button>↓ 1 weitere</button></div>
+  </section>
+
+  <!-- Feld 4: Meine Region -->
+  <section class="feld" id="feld-region" aria-labelledby="h-region">
+    <div class="fk"><h2 id="h-region">Meine Region</h2><div class="w"><span class="kap">Gemeinde · Bezirk · Land</span></div></div>
+    <div class="korpus" style="padding-bottom:8px"><div class="baender" id="baender"></div></div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Bereiche">
+  <a class="an" href="#feld-filter">⚙<span>Filter</span></a><a href="#feld-favoriten">★<span>Favoriten</span></a><a class="plus" href="#"><span>＋</span></a><a href="#feld-wichtig">📣<span>Wichtig</span></a><a href="#feld-region">🗺<span>Region</span></a>
+</nav>
+
+<!-- Chat-Griff + Panel -->
+<div class="griffl" id="griffl" role="button" aria-label="Meine Gespräche öffnen" tabindex="0">💬<span class="z">2</span></div>
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" role="dialog" aria-label="Meine Gespräche">
+  <div class="pk"><h3>Meine Gespräche</h3><button class="ikon x" id="panelzu" style="color:var(--muted)" aria-label="Schließen">✕</button></div>
+  <div class="filt"><button class="chip an">Alle</button><button class="chip">Ungelesen · 2</button></div>
+  <div class="liste" id="gespraeche"></div>
+</aside>
+
+<!-- ================= ANTRAGSSEITE ================= -->
+<main class="antrag" id="antrag">
+  <a class="zurueck" href="#" data-seite="parlament">‹ Parlament</a>
+  <h1>Jede Ratssitzung als Livestream mit Archiv</h1>
+  <div class="chips"><span class="badge b-abst">Abstimmung</span><span class="chip">Demokratie, Staat &amp; Verwaltung</span><span class="chip">Digitales &amp; Medien</span><button class="stern an" style="margin-left:auto" aria-pressed="true">★</button></div>
+  <div class="meta"><span>eingebracht 02.09.2026 · Mitglied 4</span><span>3 Unterstützungen</span><span>Frist 29.09.2026 · noch <b class="tab">26</b> Tage</span></div>
+  <div class="band-gold"><b>Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):</b> Betrifft alle Gremien dauerhaft, hat aber bisher wenig Beteiligung. Beschluss IR-2026-03.</div>
+  <div class="zonen" id="zonen"><button class="an">Text</button><button>Einschätzung</button><button>Chat (5)</button><button>Archiv</button></div>
+
+  <div class="zraster">
+    <div class="z1">
+      <div class="karte"><h2>Wortlaut · Fassung 2</h2><p class="wortlaut diff">Alle Sitzungen der Parteigremien werden live übertragen und dauerhaft archiviert. Ausnahmen nur bei Personaldebatten mit Persönlichkeitsrechten<ins> und bei Beratungen des Parteischiedsgerichts</ins>.</p><p class="klein">Fassung 2 = Vorschlag des Expertenrats, Runde 1 (§ 5 Abs 12). <a href="#">Fassung 1 ansehen</a></p></div>
+      <div class="karte"><h2>Begründung</h2><p class="wortlaut">Wer Transparenz verspricht, zeigt sich bei der Arbeit.</p></div>
+      <div class="karte"><h2>Abstimmen</h2><div class="stimm" style="gap:8px"><button class="w" style="height:36px;padding:0 16px">Ja</button><button style="height:36px;padding:0 16px">Nein</button><button class="e" style="height:36px;padding:0 16px">Enthaltung</button></div><p class="klein" style="margin:10px 0 0">Ihre Stimme: <b>Ja</b> — änderbar bis 29.09. · Pseudonym in der Stimmliste · <a href="#">Prüfcode anzeigen</a></p></div>
+      <div class="karte"><h2>Verfahrensregeln (§ 5 Abs 5, eingefroren)</h2><div class="regeln"><span>Schwelle <b>3</b></span><span>Unterstützung <b>60 Tage</b></span><span>Beratung <b>21 Tage</b></span><span>Abstimmung <b>28 Tage</b></span><span>Mindestbeteiligung <b>5 %</b></span><span>Mehrheit <b>Ja &gt; Nein</b></span><a href="#" class="klein">Rohdaten (JSON)</a></div></div>
+    </div>
+
+    <div class="z2">
+      <div class="karte"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">Einschätzung der Zukunftswerkstatt</h2><span class="plak">Modellrechnung</span></div><p class="klein" style="margin:6px 0 0">Sie schlägt vor, sie entscheidet nie · mistral-small-latest · Kontextstand 02.09.2026 · Lauf #41 · <a href="#">Beanstanden</a></p></div>
+      <div class="karte"><h3>Berührte Gesetze</h3>
+        <div class="norm">Parteiengesetz 2012 § 1 Abs 4<span class="b">ändern</span></div>
+        <div class="norm">DSGVO Art 6, Art 9 (Bildaufnahmen)<span class="b">berührt</span></div>
+        <div class="norm">Mediengesetz § 1 Abs 1 Z 5a<span class="b">berührt</span></div>
+        <svg class="graph" viewBox="0 0 320 120" role="img" aria-label="Normen-Graph: drei berührte Normen und ihre Querverweise"><line x1="80" y1="60" x2="160" y2="30"/><line x1="80" y1="60" x2="160" y2="90"/><line x1="160" y1="30" x2="240" y2="60"/><line x1="160" y1="90" x2="240" y2="60"/><circle cx="80" cy="60" r="16" fill="var(--gold)"/><circle cx="160" cy="30" r="12" fill="var(--gold)" style="animation-delay:.1s"/><circle cx="160" cy="90" r="12" fill="var(--gold)" style="animation-delay:.2s"/><circle cx="240" cy="60" r="10" fill="var(--line)" style="animation-delay:.3s"/><text x="80" y="90" text-anchor="middle">PartG</text><text x="160" y="14" text-anchor="middle">DSGVO</text><text x="160" y="112" text-anchor="middle">MedienG</text><text x="240" y="82" text-anchor="middle">B-VG</text></svg>
+      </div>
+      <div class="karte"><h3>Folgen für Vollzug und Personal</h3><p class="klein" style="margin:0 0 8px">Parteiintern: Technik und Archivpflege; kein staatlicher Vollzug.</p>
+        <div class="pbalk"><span>Beamte</span><div class="spur"><i></i></div><span>Vertragsbedienstete</span><div class="spur"><i></i><b style="left:50%;width:18%"></b></div><span></span><span class="klein">+0 · Partei: +0,3 bis +0,5 VZÄ (Streaming/Archiv)</span></div>
+      </div>
+      <div class="karte"><h3>Aufwand, Last, Dauer</h3><div class="ampel"><span class="gruen"></span><span></span><span></span><em class="klein" style="font-style:normal">Vertretbar neben 1 laufender Umsetzung · <a href="#">Lastbild</a></em></div>
+        <div class="strahl"><div class="l"><b></b></div><span class="p" style="left:6%">Beschluss</span><span class="p" style="left:38%">Technik ~2 Mon.</span><span class="p" style="left:70%">Probebetrieb</span><span class="p" style="left:94%">läuft</span></div>
+      </div>
+      <div class="karte"><h3>Ausschreibung</h3><span class="plak" style="border-color:var(--line);color:var(--muted)">Nein</span><p class="klein" style="margin:8px 0 0">Geschätzter Wert &lt; 100.000 € — Direktvergabe zulässig (BVergG § 46). <a href="#">Vergabe-Kerndaten</a></p></div>
+      <div class="karte"><h3>Prognose-Abgleich</h3><div class="skel" style="width:70%"></div><div class="skel" style="width:45%;margin-top:8px"></div><p class="klein" style="margin:8px 0 0">Erscheint nach dem Vollzug.</p></div>
+    </div>
+
+    <div class="z3">
+      <div class="chatkopf"><h2>Chat · Vorschlag des Expertenrats — Runde 1</h2><span class="chip">Reihung: Engagement · Regel v1</span><span class="chip">chronologisch</span><span class="klein" style="margin-left:auto">Unterstützer-Frist bis 16.09. · noch <b class="tab">13</b> Tage</span></div>
+      <div class="phase">Beratung begonnen am 05.09. — 14 Beiträge aus der Unterstützungsphase im <a href="#">Archiv</a> · Reagieren können die 3 Unterstützer dieses Antrags</div>
+      <div class="blase sys"><div class="av" style="background:var(--gold);color:var(--night-1)">✓</div><div class="k"><div class="n"><b>Passt alles</b> · Systemeintrag · gepinnt</div><p>Der Vorschlag kann so zur Endabstimmung.</p><div class="z"><span class="reakt an">👍 <b>2</b></span><span class="reakt">👎 <b>1</b></span><span>67 % Zustimmung · oben</span></div></div></div>
+      <div class="blase"><div class="av" style="background:var(--p3)">M3</div><div class="k"><span class="krit">Kritik · Absatz 2</span><div class="n"><b>Mitglied 3</b> · vor 2 Std.</div><p>Die Ausnahme für das Schiedsgericht ist richtig, aber „Personaldebatten" ist zu weit — bitte auf Verfahren mit Bezug zu einzelnen Personen eingrenzen.</p><div class="z"><span class="reakt an">👍 <b>2</b></span><span class="reakt">👎 <b>0</b></span><button>Antworten</button><span>#k-131</span></div></div></div>
+      <div class="blase antw eigen"><div class="av" style="background:var(--deep)">M5</div><div class="k"><div class="n"><b>Mitglied 5</b> · vor 1 Std. · ↳ Mitglied 3</div><p>Einverstanden — „Beratungen über einzelne Personen" wäre präziser.</p><div class="z"><span class="reakt">👍 <b>1</b></span><span class="reakt">👎 <b>0</b></span><button>Antworten</button><span>#k-132</span></div></div></div>
+      <div class="trenn">3 neue Beiträge seit deinem letzten Besuch</div>
+      <div class="blase"><div class="av" style="background:var(--p1)">M2</div><div class="k"><div class="n"><b>Mitglied 2</b> · vor 20 Min.</div><p>Was ist mit der Aufbewahrungsfrist des Archivs? Unbegrenzt kann datenschutzrechtlich heikel sein.</p><div class="z"><span class="reakt">👍 <b>0</b></span><span class="reakt">👎 <b>0</b></span><button>Antworten</button><span>#k-133</span></div></div></div>
+      <div class="eingabe"><textarea placeholder="Beitrag schreiben … (Kritik am Vorschlag: Umschalter unten)" aria-label="Beitrag"></textarea><button class="cta">Senden</button><label class="klein" style="grid-column:1"><input type="checkbox"> Das ist konkrete Kritik am Vorschlag (mit Bezug auf einen Absatz)</label></div>
+    </div>
+  </div>
+</main>
+
+<script>
+(function(){
+  /* ---------- Demo-Daten (aus demo_seed) ---------- */
+  const antraege=[
+    {id:4,t:'Jede Ratssitzung als Livestream mit Archiv',ph:'abst',th:'Demokratie, Staat & Verwaltung',stand:'40 % haben abgestimmt',bet:.4,tage:26,dauer:28,fav:true,gestimmt:'ja'},
+    {id:6,t:'Testlauf: Listenreihung Gemeinderat St. Marienkirchen',ph:'abst',th:'Demokratie, Staat & Verwaltung',stand:'60 % haben abgestimmt · Personenwahl',bet:.6,tage:26,dauer:28,ebene:'Gemeinde'},
+    {id:2,t:'Testlauf: monatlicher öffentlicher Entwicklungsbericht',ph:'berat',th:'Digitales & Medien',stand:'5 Beiträge · Expertenrat arbeitet',bet:.55,tage:12,dauer:21},
+    {id:1,t:'Sitzungsprotokolle binnen 48 Stunden veröffentlichen',ph:'unt',th:'Demokratie, Staat & Verwaltung',stand:'2 von 3 Unterstützungen',bet:.67,tage:59,dauer:60,unt:true},
+    {id:5,t:'Photovoltaik auf dem Dach des Gemeindeamts',ph:'unt',th:'Energie',stand:'0 von 3 Unterstützungen',bet:0,tage:59,dauer:60,ebene:'Gemeinde',fav:true},
+    {id:7,t:'Öffentliches Lastbild des Umsetzungsregisters',ph:'unt',th:'Verwaltung & Digitalisierung',stand:'1 von 3 Unterstützungen',bet:.33,tage:41,dauer:60},
+    {id:8,t:'Radweg entlang der Polsenz — Bezirksantrag',ph:'berat',th:'Mobilität & Verkehr',stand:'2 Beiträge',bet:.2,tage:18,dauer:21,ebene:'Bezirk'},
+    {id:9,t:'Landes-Förderung für Bürgerräte in Gemeinden',ph:'abst',th:'Demokratie, Staat & Verwaltung',stand:'12 % haben abgestimmt',bet:.12,tage:9,dauer:28,ebene:'Land'},
+  ];
+  const badge={abst:['b-abst','Abstimmung'],berat:['b-berat','Beratung'],unt:['b-unt','Unterstützung']};
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+
+  /* ---------- Regler ---------- */
+  const regler=[['Mehr wie das, wofür ich gestimmt habe',60],['Mehr wie das, wogegen ich gestimmt habe',0],['Mehr wie das, was ich unterstützt habe',40],['Interessantes außerhalb meiner Favoriten',20],['Mehr Unterstützungsanträge',0],['Mehr Abstimmungen',50],['Mehr chronologisch (Neues zuerst)',0],['Nur noch kurz online',30],['Wenig fehlt',0]];
+  const rl=$('#reglerliste');
+  regler.forEach((r,i)=>{const l=document.createElement('label');l.className='regl';l.innerHTML=`<span>${r[0]}</span><output>${r[1]}</output><input type="range" min="0" max="100" step="5" value="${r[1]}" aria-valuetext="${r[1]} von 100" data-i="${i}">`;rl.appendChild(l);});
+  rl.addEventListener('input',e=>{const inp=e.target;inp.previousElementSibling.textContent=inp.value;inp.setAttribute('aria-valuetext',inp.value+' von 100');regler[+inp.dataset.i][1]=+inp.value;$('#ungesp').hidden=false;$('#speichern').disabled=false;$('#speichern').style.opacity=1;$('#aktivchip').textContent='Profil: Abend ●';clearTimeout(rl._t);rl._t=setTimeout(reihen,400);});
+
+  function punkte(a){const[w1,w2,w3,w4,w5,w6,w7,w8,w9]=regler.map(r=>r[1]);const m={gestimmt:a.gestimmt==='ja'?1:0,gegen:0,unt:a.unt?1:0,ent:a.th==='Energie'||a.th==='Mobilität & Verkehr'?1:0,phU:a.ph==='unt'?1:0,phA:a.ph==='abst'?1:0,chron:(10-a.id)/10,kurz:Math.max(0,1-a.tage/a.dauer),fehlt:a.ph==='unt'?a.bet:0};const teile=[[w1,m.gestimmt,'wofür'],[w2,m.gegen,'wogegen'],[w3,m.unt,'unterstützt'],[w4,m.ent,'Entdeckung'],[w5,m.phU,'Unterstützung'],[w6,m.phA,'Abstimmung'],[w7,m.chron,'Neues'],[w8,m.kurz,'kurz online'],[w9,m.fehlt,'wenig fehlt']].filter(t=>t[0]>0&&t[1]>0).map(t=>[t[2],Math.round(t[0]*t[1])]);return{p:teile.reduce((s,t)=>s+t[1],0),teile};}
+  function zeile(a){const[bc,bt]=badge[a.ph];const{p,teile}=punkte(a);const aktion=a.ph==='unt'?`<button class="knopf">${a.unt?'✓ Unterstützt':'Unterstützen'}</button>`:a.ph==='abst'?`<button class="knopf gold">Abstimmen ▸</button>`:`<button class="knopf still">Mitreden</button>`;return`<div class="zeile" data-id="${a.id}"><a class="t" href="#" data-seite="antrag">${a.t}</a><div class="aktion">${aktion}<button class="stern ${a.fav?'an':''}" aria-pressed="${!!a.fav}">${a.fav?'★':'☆'}</button></div><div class="m"><span class="badge ${bc}">${bt}</span>${a.ebene?`<span class="chip" style="height:20px;font-size:11px">${a.ebene}</span>`:''}<span>${a.th}</span></div><div class="st"><span class="balken"><b style="width:${Math.round(a.bet*100)}%"></b></span><span>${a.stand} · noch <b class="tab" style="color:var(--ink)">${a.tage}</b> Tage · <span class="warum" data-w>${p} P — warum hier?</span></span></div><div class="aufk">${teile.length?teile.map(t=>`<span class="chip" style="height:22px;font-size:11.5px;margin:2px 4px 2px 0">${t[0]} ${t[1]}</span>`).join(''):'neutral gereiht'}</div></div>`;}
+  function reihen(){const liste=$('#liste');const alt=new Map($$('.zeile',liste).map(z=>[z.dataset.id,z.getBoundingClientRect().top]));const neutral=regler.every(r=>r[1]===0);let sorted=[...antraege];if(!neutral){sorted.sort((a,b)=>punkte(b).p-punkte(a).p||a.id-b.id);liste.innerHTML=sorted.map(zeile).join('');}else{const g={abst:'Laufende Abstimmungen',berat:'In Beratung',unt:'Sammeln Unterstützung'};liste.innerHTML=['abst','berat','unt'].map(k=>`<div class="gruppe kap">${g[k]}</div>`+sorted.filter(a=>a.ph===k).map(zeile).join('')).join('');}
+    $$('.zeile',liste).forEach(z=>{const o=alt.get(z.dataset.id);if(o==null)return;const d=o-z.getBoundingClientRect().top;if(d){z.animate([{transform:`translateY(${d}px)`},{transform:'none'}],{duration:320,easing:'cubic-bezier(.22,.8,.3,1)'});}});
+    mehrPruefen();}
+  reihen();
+  $('#liste').addEventListener('click',e=>{const w=e.target.closest('[data-w]');if(w){const k=w.closest('.zeile').querySelector('.aufk');k.classList.toggle('an');return;}const s=e.target.closest('.stern');if(s){s.classList.toggle('an');s.textContent=s.classList.contains('an')?'★':'☆';s.setAttribute('aria-pressed',s.classList.contains('an'));}});
+
+  /* Profil-Leiste + Overlay */
+  const pl=$('#pleiste');const pf=$('#pfeil');
+  function leiste(zu){pl.classList.toggle('zu',zu);pf.setAttribute('aria-expanded',!zu);try{localStorage.setItem('ddoe.filterleiste',zu?'zu':'auf')}catch(e){}}
+  pf.addEventListener('click',()=>leiste(true));$('#griff').addEventListener('click',()=>leiste(false));
+  try{if(localStorage.getItem('ddoe.filterleiste')==='zu')leiste(true)}catch(e){}
+  const ov=$('#overlay');
+  function overlay(an){ov.classList.toggle('an',an);$('#reglerauf').setAttribute('aria-expanded',an);if(an)ov.querySelector('b').focus?.();}
+  $('#reglerauf').addEventListener('click',()=>overlay(!ov.classList.contains('an')));$('#overlayzu').addEventListener('click',()=>overlay(false));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){overlay(false);panel(false);$('#kontopop').hidden=true;}});
+
+  /* ---------- Fächer ---------- */
+  const baum={n:'Lebensbereiche',k:[
+    {n:'Sicherheit & Soziales Fundament',p:1,k:[{n:'Gesundheitswesen & Prävention',k:[{n:'Gesundheitsversorgung',k:['Kassenärztliche Versorgung','Spitäler','Pflege']},{n:'Prävention & Vorsorge',k:['Impfwesen','Suchtprävention','Bewegung']}]},{n:'Innere & Äußere Sicherheit',k:[{n:'Polizei & Justizvollzug',k:['Streifendienst','Kriminalprävention','Strafvollzug']},{n:'Landesverteidigung',k:['Bundesheer','Zivilschutz','Katastrophenhilfe']}]},{n:'Soziale Absicherung',k:[{n:'Pensionen',k:['Regelpension','Korridorpension','Ausgleichszulage']},{n:'Sozialhilfe',k:['Mindestsicherung','Wohnbeihilfe','Notstandshilfe']}]}]},
+    {n:'Wirtschaft, Arbeit & Finanzen',p:2,k:[{n:'Arbeit & Beschäftigung',k:[{n:'Arbeitsrecht',k:['Arbeitszeit','Kündigungsschutz','Kollektivverträge']},{n:'Arbeitsmarkt',k:['AMS-Förderung','Lehrlinge','Zuwanderung']}]},{n:'Staatsfinanzen & Steuern',k:[{n:'Einkommensteuer',k:['Tarifstufen','Absetzbeträge','Familienbonus']},{n:'Budget',k:['Schuldenbremse','Förderungen','Transfers']}]},{n:'Wirtschaftsordnung',k:[{n:'Energie',k:['Netzausbau','Photovoltaik','Speicher']},{n:'Gewerbe & Handwerk',k:['Gewerbeordnung','Installateure','Meisterprüfung']}]}]},
+    {n:'Lebensraum & Infrastruktur',p:3,k:[{n:'Mobilität & Verkehr',k:[{n:'Öffentlicher Verkehr',k:['Bahn','Bus','Klimaticket']},{n:'Radverkehr',k:['Radwege','Abstellanlagen','Sicherheit']}]},{n:'Umwelt, Klima & Naturschutz',k:[{n:'Klimaschutz',k:['CO₂-Bepreisung','Gebäude','Verkehr']},{n:'Naturschutz',k:['Schutzgebiete','Artenvielfalt','Bodenverbrauch']}]},{n:'Infrastruktur & Digitales',k:[{n:'Digitales & Medien',k:['Breitband','Medienförderung','Plattformregeln']},{n:'Wohnen & Bauen',k:['Mietrecht','Wohnbauförderung','Raumordnung']}]}]},
+    {n:'Bildung, Entwicklung & Gesellschaft',p:4,k:[{n:'Bildungssystem',k:[{n:'Schule',k:['Ganztagsschule','Lehrpläne','Lehrkräfte']},{n:'Hochschule & Forschung',k:['Studienplätze','Forschungsförderung','Fachhochschulen']}]},{n:'Kultur, Medien & Sport',k:[{n:'Kultur',k:['Kulturförderung','Denkmalschutz','Bibliotheken']},{n:'Sport',k:['Vereinsförderung','Sportstätten','Schulsport']}]},{n:'Zusammenleben & Außenbeziehungen',k:[{n:'Demokratie, Staat & Verwaltung',k:['Bürgerräte','Transparenz','Verwaltungsreform']},{n:'Europa & Internationales',k:['EU-Politik','Entwicklungszusammenarbeit','Neutralität']}]}]}
+  ]};
+  const fav=new Set(['Energie','Umwelt, Klima & Naturschutz','Demokratie, Staat & Verwaltung']);
+  let anker=baum, weg=[], entfaltet='Wirtschaftsordnung';
+  const F=$('#faecher'), S=$('#faeden');
+  function norm(k){return typeof k==='string'?{n:k,k:[]}:k;}
+  function zaehl(kn,tiefe){kn=norm(kn);if(tiefe===0)return 1;return (kn.k||[]).reduce((a,c)=>a+zaehl(c,tiefe-1),0);}
+  function render(zoomVon){
+    $$('.kn',F).forEach(e=>e.remove());S.innerHTML='';
+    const W=F.clientWidth,H=F.clientHeight;const mitte=weg.length>=2;const gr=[24,22,20,18,16];
+    const nodes=[];const faeden=[];
+    const yA=mitte?H*0.55:H-34;
+    const pos=(list,y,x0,x1,groesse,eltern,ebene,pil,ast)=>{const n=list.length;if(!n)return;const span=x1-x0;const est=list.reduce((a,k)=>a+norm(k).n.length,0)/n*0.55*groesse+44;const rows=Math.min(3,Math.max(1,Math.ceil(n*est/span)));const proRow=Math.ceil(n/rows);const maxChars=ebene===4?16:Math.max(6,Math.floor((span/proRow-44)/(0.55*groesse)));list.forEach((k,i)=>{const kk=norm(k);let x=n===1?(x0+x1)/2:x0+span*(i+0.5)/n;const bogen=(ebene===1?-10:ebene===2?-6:0)*Math.cos((x/W-.5)*Math.PI);let dy=rows>1?((i%rows)-(rows-1)/2)*(groesse+12):0;if(ebene===4){x=(x0+x1)/2;dy=-i*(groesse+10);}const lab=kk.n.length>maxChars?kk.n.slice(0,maxChars-1)+'…':kk.n;const halb=(lab.length*0.55*groesse+44)/2;x=Math.min(W-halb,Math.max(halb,x));const node={k:kk,x,y:y+bogen+dy,g:groesse,eltern,ebene,pil:pil||kk.p,lab};nodes.push(node);faeden.push([eltern,node]);if(kk.k&&kk.k.length&&ebene<4){const sp=span/n;const kinder=kk.k.slice(0,ebene>=3?3:99);const imAst=ast||entfaltet===kk.n;const alleZeigen=zaehl(anker,ebene+1)<=12;if(!alleZeigen&&!imAst)return;const extra=ebene===2?90:ebene>=3?0:0;pos(kinder,y-(ebene===1?H*0.2:ebene===2?H*0.16:H*0.11),x-sp/2-extra,x+sp/2+extra,gr[ebene+1]||16,node,ebene+1,node.pil,imAst);}});};
+    const root={k:anker,x:W/2,y:yA,g:24,ebene:0,pil:anker.p||(weg[0]&&weg[0].p)};nodes.push(root);
+    const kinder=anker.k||[];
+    if(kinder.length){pos(kinder,yA-(mitte?H*0.2:H*0.22),W*0.04,W*0.96,22,root,1,root.pil,false);}
+    if(mitte){let y=yA+46;const chain=[...weg].reverse();chain.forEach((v,i)=>{const node={k:v,x:W/2,y:y+i*40,g:i===0?22:20,ebene:-1-i,rueck:true};nodes.push(node);faeden.push([i===0?root:nodes[nodes.length-2],node]);});}
+    faeden.forEach(([a,b])=>{if(!a)return;const p=document.createElementNS('http://www.w3.org/2000/svg','path');const my=(a.y+b.y)/2;p.setAttribute('d',`M${a.x},${a.y} C${a.x},${my} ${b.x},${my} ${b.x},${b.y}`);p.dataset.n=b.k.n;S.appendChild(p);});
+    nodes.forEach((n,i)=>{const el=document.createElement('span');const ist=n===root;el.className=`kn f${n.g} ${ist?'anker':''} ${n.pil?'p'+n.pil:''}`;el.style.left=n.x+'px';el.style.top=n.y+'px';el.style.setProperty('--i',i);el.innerHTML=`<span class="s ${fav.has(n.k.n)?'an':''}" role="button" aria-label="Favorit">${fav.has(n.k.n)?'★':'☆'}</span>${n.lab||n.k.n}`;el.title=n.k.n;el.dataset.n=n.k.n;
+      el.addEventListener('mouseenter',()=>{let cur=n;while(cur){const p=S.querySelector(`path[data-n="${CSS.escape(cur.k.n)}"]`);if(p)p.classList.add('an');cur=cur.eltern;}if(n.ebene===2&&entfaltet!==n.k.n){entfaltet=n.k.n;render();}});
+      el.addEventListener('mouseleave',()=>$$('path.an',S).forEach(p=>p.classList.remove('an')));
+      el.addEventListener('click',e=>{if(e.target.classList.contains('s')){e.target.classList.toggle('an');if(e.target.classList.contains('an')){fav.add(n.k.n);e.target.textContent='★'}else{fav.delete(n.k.n);e.target.textContent='☆'}e.target.animate([{transform:'scale(1.3)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(.3,1.6,.5,1)'});return;}
+        if(ist)return;
+        if(n.rueck){const idx=weg.indexOf(n.k);weg=weg.slice(0,idx);anker=n.k;}else{weg=[...weg,anker];anker=n.k;}
+        entfaltet=(n.k.k&&n.k.k[0]&&norm(n.k.k[0]).n)||null;F.style.transformOrigin=`${n.x}px ${n.y}px`;F.classList.remove('zoom');void F.offsetWidth;F.classList.add('zoom');render();});
+      F.appendChild(el);});
+    $('#brot').innerHTML=[...weg,anker].map((k,i,a)=>i===a.length-1?`<b>${k.n}</b>`:`<a href="#">${k.n}</a> › `).join('');
+  }
+  render();new ResizeObserver(()=>render()).observe(F);
+
+  /* ---------- Kacheln ---------- */
+  function ring(v){const off=(50.3*(1-v)).toFixed(1);return`<svg class="ring" viewBox="0 0 20 20" aria-hidden="true"><circle class="bahn" cx="10" cy="10" r="8"/><circle class="wert" cx="10" cy="10" r="8" style="--off:${off}"/></svg>`;}
+  function kachel(a,grund){const[bc,bt]=badge[a.ph];const handlung=a.ph==='abst'?`<div class="stimm" data-stimm><button>Ja</button><button>Nein</button><button class="e">Enthaltung</button></div>`:a.ph==='unt'?`<div class="stimm"><button class="${a.unt?'w':''}">${a.unt?'✓ Unterstützt':'Unterstützen'}</button></div>`:`<div class="stimm"><button class="e">Mitreden</button></div>`;return`<article class="kachel"><div class="th"><span>${a.th}</span><button class="stern ${fav.has(a.th)?'an':''}" aria-label="Lebensbereich abonnieren">${fav.has(a.th)?'★':'☆'}</button></div><button class="stern ks ${a.fav?'an':''}" aria-label="Antrag merken">${a.fav?'★':'☆'}</button><a class="ti" href="#" data-seite="antrag">${a.t}</a><div class="stand"><span class="badge ${bc}">${bt}</span><span>${a.stand}</span></div><div class="balken"><b style="width:${Math.round(a.bet*100)}%"></b></div><div class="frist">${ring(1-a.tage/a.dauer)}<span>noch <b class="tab">${a.tage}</b> Tage</span></div>${handlung}${grund?`<div class="grund" title="${grund}">${grund}</div>`:''}</article>`;}
+  const wichtig=[antraege[0],antraege[7],antraege[2],antraege[1],antraege[5],antraege[3],antraege[6]];
+  $('#wichtig').innerHTML=wichtig.map((a,i)=>kachel(a,['Integritätsrat, 12.08.: betrifft alle Gremien, wenig Beteiligung. IR-2026-03','Integritätsrat, 20.08.: Werbekampagne Dritter erkannt. IR-2026-04','Integritätsrat, 25.08.: betrifft die Arbeitsweise aller Mitglieder. IR-2026-05','Integritätsrat, 25.08.: erste Personenwahl. IR-2026-06','Integritätsrat, 28.08.: Grundlage der Selbstregulation. IR-2026-07','Integritätsrat, 30.08.: Transparenzpflicht. IR-2026-08','Integritätsrat, 01.09.: Bezirksweite Wirkung. IR-2026-09'][i])).join('');
+  const region=[{k:'Gemeinde · St. Marienkirchen',c:'b1',a:[antraege[1],antraege[4],{...antraege[0],id:10,t:'Tempo 30 vor der Volksschule',ph:'unt',stand:'1 von 3 Unterstützungen',bet:.33,tage:50,dauer:60},{...antraege[2],id:11,t:'Gemeindezeitung digital-first',ph:'berat',stand:'3 Beiträge',bet:.3,tage:15,dauer:21}]},{k:'Bezirk · Eferding',c:'b2',a:[antraege[6]]},{k:'Land · Oberösterreich',c:'b3',a:[antraege[7],{...antraege[0],id:12,t:'Landesweites Klimaticket-Zuschussmodell',ph:'unt',stand:'2 von 3 Unterstützungen',bet:.67,tage:33,dauer:60}]}];
+  $('#baender').innerHTML=region.map(r=>`<div class="band ${r.c}"><div class="kopf" title="${r.k}">${r.k}</div><div class="spur ${r.a.length?'':'leer'}">${r.a.length?r.a.map(a=>kachel(a).replace('</article>',`<span class="wm">${r.c==='b1'?'🏛':r.c==='b2'?'🗺':'🏔'}</span></article>`)).join(''):'<div class="leerk">Noch nichts in deinem Bezirk — <a href="#">Antrag einbringen ›</a></div>'}</div></div>`).join('');
+  document.addEventListener('click',e=>{const st=e.target.closest('[data-stimm] button');if(st){$$('button',st.parentElement).forEach(b=>b.classList.remove('w'));st.classList.add('w');const k=st.closest('.kachel');const t=document.createElement('span');t.className='toast';t.textContent='✓ Erfasst';k.appendChild(t);setTimeout(()=>t.remove(),1700);}
+    const s=e.target.closest('.kachel .stern');if(s){s.classList.toggle('an');s.textContent=s.classList.contains('an')?'★':'☆';s.animate([{transform:'scale(1.3)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(.3,1.6,.5,1)'});}});
+
+  /* ---------- „mehr vorhanden" ---------- */
+  function mehrPruefen(){$$('.mehr').forEach(m=>{const k=document.getElementById(m.dataset.fuer);if(!k)return;const rest=k.scrollHeight-k.clientHeight-k.scrollTop;const kacheln=$$('.kachel,.zeile',k).filter(el=>el.offsetTop+el.offsetHeight/2>k.scrollTop+k.clientHeight).length;m.classList.toggle('aus',rest<12);m.querySelector('button').textContent=kacheln?`↓ ${kacheln} weitere`:'↓ mehr';});}
+  $$('.mehr button').forEach(b=>b.addEventListener('click',()=>{const k=document.getElementById(b.parentElement.dataset.fuer);k.scrollBy({top:k.clientHeight-40,behavior:'smooth'});}));
+  $$('.korpus').forEach(k=>k.addEventListener('scroll',mehrPruefen));new ResizeObserver(mehrPruefen).observe(document.body);setTimeout(mehrPruefen,50);
+
+  /* ---------- Chat-Panel ---------- */
+  const ges=[{th:'Digitales & Medien',p:3,t:'Testlauf: monatlicher öffentlicher Entwicklungsbericht',ph:'Beratung · Runde 1',pa:'Mitglied 3',c:'var(--p3)',txt:'„…auf Verfahren mit Bezug zu einzelnen…"',z:'vor 1 Std.',neu:true},{th:'Demokratie, Staat',p:4,t:'Jede Ratssitzung als Livestream mit Archiv',ph:'Abstimmung',pa:'Mitglied 2',c:'var(--p1)',txt:'„Was ist mit der Aufbewahrungsfrist…"',z:'vor 20 Min.',neu:true},{th:'Energie',p:2,t:'Photovoltaik auf dem Dach des Gemeindeamts',ph:'Unterstützung',pa:'Mitglied 1',c:'var(--p2)',txt:'„Danke für den Hinweis, ich ergänze…"',z:'gestern'},{th:'Mobilität',p:3,t:'Radweg entlang der Polsenz — Bezirksantrag',ph:'Beratung',pa:'Mitglied 4',c:'var(--p4)',txt:'„Die Trasse über den Damm wäre…"',z:'vor 3 Tagen'}];
+  $('#gespraeche').innerHTML=ges.map(g=>`<a class="gesp" href="#" data-seite="antrag"><span class="th" style="background:color-mix(in srgb,var(--p${g.p}) 14%,var(--surface));color:var(--p${g.p})">${g.th}</span><span class="an-t">${g.t}<small>${g.ph}</small></span><span class="pa"><b><span class="av" style="background:${g.c}">${g.pa.slice(-1)}</span>${g.pa}${g.neu?'<span class="ungel"></span>':''}</b><i>${g.txt}</i><span>${g.z}</span></span></a>`).join('')+'<div class="klein" style="padding:12px 16px">Gespräche verschwinden hier, sobald der Antrag hochgestuft wird — sie liegen dann im Archiv.</div>';
+  function panel(an){$('#panel').classList.toggle('an',an);$('#scrim').classList.toggle('an',an);}
+  $('#griffl').addEventListener('click',()=>panel(true));$('#panelzu').addEventListener('click',()=>panel(false));$('#scrim').addEventListener('click',()=>panel(false));
+
+  /* ---------- Konto-Popover + Thema ---------- */
+  const kp=$('#kontopop');$('#konto').addEventListener('click',e=>{e.stopPropagation();kp.hidden=!kp.hidden;$('#konto').setAttribute('aria-expanded',!kp.hidden);});document.addEventListener('click',e=>{if(!kp.contains(e.target))kp.hidden=true;});
+  $$('.thema button').forEach(b=>b.addEventListener('click',()=>{$$('.thema button').forEach(x=>x.classList.remove('an'));b.classList.add('an');const t=b.dataset.theme;if(t)document.documentElement.setAttribute('data-theme',t);else document.documentElement.removeAttribute('data-theme');}));
+
+  /* ---------- Seitenwechsel Parlament / Antrag ---------- */
+  document.addEventListener('click',e=>{const s=e.target.closest('[data-seite]');if(!s)return;e.preventDefault();const seite=s.dataset.seite;$$('.mock .seiten button').forEach(b=>b.classList.toggle('an',b.dataset.seite===seite));$('#parlament').style.display=seite==='parlament'?'':'none';$('#antrag').classList.toggle('an',seite==='antrag');document.querySelector('.tabs').style.display=seite==='parlament'?'':'none';panel(false);window.scrollTo({top:0});if(seite==='parlament')setTimeout(()=>{render();mehrPruefen();},30);});
+  $$('#zonen button').forEach((b,i)=>b.addEventListener('click',()=>{$$('#zonen button').forEach(x=>x.classList.remove('an'));b.classList.add('an');const ziel=[$('.z1'),$('.z2'),$('.z3'),$('.z3')][i];ziel.scrollIntoView({behavior:'smooth',block:'start'});}));
+  document.addEventListener('click',e=>{const r=e.target.closest('.reakt');if(r){const grp=r.parentElement;$$('.reakt',grp).forEach(x=>x.classList.remove('an'));r.classList.add('an');r.animate([{transform:'scale(1.25)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(.3,1.6,.5,1)'});}});
+})();
+</script>
+
+</body>
+</html>

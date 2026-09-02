@@ -125,17 +125,15 @@ def test_burger_menue_ist_details_ohne_checkbox(client):
     assert re.findall(r'href="(/[a-z]+/)"', menue.split('<nav class="panel-nav"', 1)[1].split("</nav>", 1)[0]) == HAUPTPUNKTE
 
 
-def test_regler_ohne_inline_handler_mit_alpine(client):
-    client.force_login(mitglied_anlegen())
-    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-filter")
-    assert "oninput" not in feld
-    assert feld.count('type="range"') >= 8
-    assert feld.count('x-model.number="wert"') == feld.count('type="range"')
-    assert '<output x-text="wert">' in feld
+# ── Anstoß (FB-K3, Position) ───────────────────────────────────────────────────────
 
 
-def test_thema_skript_vor_dem_stil_und_html_ohne_serverseitiges_thema(client):
-    html = client.get("/").content.decode()
-    kopf = html.split("</head>", 1)[0]
-    assert kopf.index("verfahren/js/thema.js") < kopf.index("<style>")
-    assert "data-theme" not in html.split("<head>", 1)[0]
+def test_anstoss_im_parlament_in_der_leiste_sonst_schwebend(client):
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert 'class="anstoss-leiste"' in _leiste(html) and 'class="anstoss-ecke"' not in html
+    assert html.count('class="anstoss-fleck"') == 1 and 'title="Anstoß geben"' in html
+    for pfad in ["/", reverse("mitglieder:mitgliedschaft"), reverse("verfahren:umsetzung")]:
+        html = client.get(pfad).content.decode()
+        assert 'class="anstoss-leiste"' not in html and html.count('class="anstoss-fleck"') == 1, pfad
+        assert html.index("</main>") < html.index('class="anstoss-ecke"'), pfad
+

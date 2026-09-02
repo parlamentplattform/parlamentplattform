@@ -1,6 +1,8 @@
 {% extends "verfahren/base.html" %}
 {% load i18n phasen %}
 {% block mainklasse %}breit{% endblock %}
+{% block leiste %}{% include "verfahren/_leiste.html" with anstoss_lage="leiste" %}{% endblock %}
+{% block anstoss %}{% endblock %}
 {% block inhalt %}
 {% if not user.is_authenticated %}
 <div class="meldung info">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}

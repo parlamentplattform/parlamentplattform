@@ -1,11 +1,17 @@
 {% load i18n anstoss_tags %}{% pfad_ohne_anstoss as ZURUECK %}
-<div class="anstoss-ecke" x-data="anstoss" @anstoss-danke.window="danke()" @anstoss-warte.window="auf()" @anstoss-leer.window="auf()" @keydown.escape.window="zu()" @click.outside="zu()">
+{% comment %}
+Das Anstoß-Widget (FB-K3). Zwei Lagen: lage="leiste" — im Parlament als Symbol in der App-Leiste
+mit Popover-Karte darunter; sonst (Standard) als schwebende Pille rechts unten. Alpine (anstoss)
+schließt die Karte auf den HX-Trigger des Servers und zeigt die Blase; ohne JavaScript läuft
+alles über <details>, Formular und die Umleitung mit ?anstoss=danke|warte|leer.
+{% endcomment %}
+<div class="{% if lage == 'leiste' %}anstoss-leiste{% else %}anstoss-ecke{% endif %}" x-data="anstoss" @anstoss-danke.window="danke()" @anstoss-warte.window="auf()" @anstoss-leer.window="auf()" @keydown.escape.window="zu()" @click.outside="zu()">
   <div class="anstoss-bestaetigung" id="anstoss-blase" role="status" x-ref="blase"{% if request.GET.anstoss != "danke" %} hidden{% endif %}>
     <span aria-hidden="true">✓</span> {% translate "Danke — Ihre Meldung ist gespeichert." %}
     <a class="anstoss-bx" href="{{ ZURUECK }}" aria-label="{% translate 'Bestätigung schließen' %}" @click.prevent="blaseZu()">&times;</a>
   </div>
   <details class="anstoss-fleck" x-ref="klappe"{% if request.GET.anstoss == "warte" or request.GET.anstoss == "leer" %} open{% endif %}>
-    <summary aria-label="{% translate 'Anstoß geben — Feedback und Wünsche' %}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.14-2.9-.4L4 20l1.3-3.1C3.9 15.6 3 13.6 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg><span>{% translate "Anstoß" %}</span></summary>
+    <summary aria-label="{% translate 'Anstoß geben — Feedback und Wünsche' %}" title="{% translate 'Anstoß geben' %}"><svg width="{% if lage == 'leiste' %}20{% else %}15{% endif %}" height="{% if lage == 'leiste' %}20{% else %}15{% endif %}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.14-2.9-.4L4 20l1.3-3.1C3.9 15.6 3 13.6 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z"/></svg><span{% if lage == 'leiste' %} class="nur-sr"{% endif %}>{% translate "Anstoß" %}</span></summary>
     <div class="anstoss-karte">
       <a class="anstoss-x" href="{{ ZURUECK }}" aria-label="{% translate 'Schließen' %}" @click.prevent="zu()">&times;</a>
       <h3>{% translate "Anstoß geben" %}</h3>

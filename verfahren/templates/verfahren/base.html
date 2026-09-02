@@ -137,6 +137,8 @@ a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px
   .panel .thema{padding:6px 12px}
   .panel .sprache-form{display:block}
   body.menue-offen{overflow:hidden}
+  .anstoss-leiste{position:static}
+  .anstoss-leiste .anstoss-karte,.anstoss-leiste .anstoss-bestaetigung{position:fixed;left:8px;right:8px;top:calc(var(--bar) + 6px);width:auto}
 }
 main{max-width:960px;margin:0 auto;padding:36px 20px 90px}
 /* ── Bühne (Startseite für Gäste) ── */
@@ -309,7 +311,14 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .fuss-grid a{color:var(--linkfarbe);text-decoration:none}
 .fuss-grid a:hover{text-decoration:underline}
 .fuss-unten{max-width:960px;margin:26px auto 0;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
-.anstoss-ecke{position:fixed;right:18px;bottom:18px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.anstoss-ecke{position:fixed;right:12px;bottom:12px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+/* Im Parlament sitzt der Anstoß in der App-Leiste: Symbol, Karte als Popover darunter (FB-K3) */
+.anstoss-leiste{position:relative;display:flex;align-items:center}
+.anstoss-leiste .anstoss-fleck summary{width:36px;height:36px;padding:0;justify-content:center;background:none;color:var(--bar-ink);border:0;box-shadow:none;font-size:0}
+.anstoss-leiste .anstoss-fleck summary:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
+.anstoss-leiste .anstoss-karte{position:absolute;top:calc(100% + 8px);right:0;bottom:auto;width:min(340px,calc(100vw - 24px));color:var(--ink);z-index:50;animation:pop-auf var(--d-pop) var(--e-out);transform-origin:top right}
+.anstoss-leiste .anstoss-bestaetigung{position:absolute;top:calc(100% + 8px);right:0;z-index:50;white-space:nowrap}
+.nur-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .anstoss-fleck{position:relative}
 .anstoss-x{position:absolute;top:8px;right:12px;font-size:22px;line-height:1;color:var(--matt);text-decoration:none;padding:2px 6px;border-radius:8px}
 .anstoss-x:hover{color:var(--ink);background:color-mix(in srgb,var(--line) 50%,transparent)}
@@ -365,7 +374,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .feld.htmx-request .feld-korpus>:not(.skelett-feld){visibility:hidden}
 .feld.htmx-request .skelett-feld.zeilen{display:flex;flex-direction:column}
 .feld.htmx-request .skelett-feld.kacheln{display:grid;grid-template-columns:repeat(2,1fr)}
-.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background var(--d-fast)}
+.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:13.5px;padding:7px 12px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background var(--d-fast)}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
 .anstoss-fleck summary:hover{background:var(--gold-soft)}
 .anstoss-karte{animation:auftauchen var(--d-slide) var(--e-out) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
@@ -397,7 +406,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 {% endif %}
 {% block inhalt %}{% endblock %}
 </main>
-{% include "anstoss/_widget.html" %}
+{% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}
 {% block fuss %}{% include "verfahren/_fuss.html" %}{% endblock %}
 </body>
 </html>

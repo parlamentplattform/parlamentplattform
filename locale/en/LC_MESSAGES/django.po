@@ -3421,3 +3421,63 @@ msgstr ""
 #, python-format
 msgid "Favorit „%s“ entfernt."
 msgstr "Favourite “%s” removed."
+
+msgid "Hauptbereiche"
+msgstr "Main sections"
+
+msgid "Konto"
+msgstr "Account"
+
+msgid "Mehr"
+msgstr "More"
+
+msgid "Verwaltung"
+msgstr "Administration"
+
+msgid "Erscheinungsbild"
+msgstr "Appearance"
+
+msgid "System"
+msgstr "System"
+
+msgid "Hell"
+msgstr "Light"
+
+msgid "Dunkel"
+msgstr "Dark"
+
+msgid "DE · Deutsch"
+msgstr "DE · German"
+
+msgid "EN · English"
+msgstr "EN · English"
+
+msgid "Bereiche"
+msgstr "Sections"
+
+msgid "Filter"
+msgstr "Filter"
+
+msgid "Favoriten"
+msgstr "Favourites"
+
+msgid "Wichtig"
+msgstr "Important"
+
+msgid "Region"
+msgstr "Region"
+
+msgid "Menü schließen"
+msgstr "Close menu"
+
+msgid "Anmelden zum Abstimmen"
+msgstr "Sign in to vote"
+
+msgid "Offene Regel v1 ›"
+msgstr "Open rule v1 ›"
+
+msgid "Meldung schließen"
+msgstr "Dismiss message"
+
+msgid "Was fehlt? Was stört? Was wünschen Sie sich?"
+msgstr "What is missing? What bothers you? What would you like?"

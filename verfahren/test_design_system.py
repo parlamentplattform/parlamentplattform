@@ -155,6 +155,38 @@ def test_skripte_in_der_richtigen_reihenfolge():
     assert "defer" not in kopf.split("thema.js", 1)[0].rsplit("<script", 1)[1]
 
 
+def test_uebersetzungen_vollstaendig_und_kompiliert():
+    """Definition of Done 3: keine leeren oder unsicheren Einträge, App-Rahmen auf Englisch."""
+    import sys
+
+    sys.path.insert(0, str(WURZEL / "tools"))
+    from po_pruefen import lesen
+
+    eintraege = [e for e in lesen() if e.msgid]
+    leer = [e.schluessel for e in eintraege if not e.uebersetzt]
+    assert not leer, f"Ohne Übersetzung: {leer}"
+    assert not [e.schluessel for e in eintraege if e.fuzzy], "Unsichere (fuzzy) Einträge im Katalog"
+
+    from django.utils import translation
+
+    with translation.override("en"):
+        from django.utils.translation import gettext
+
+        for deutsch, englisch in [
+            ("Verwaltung", "Administration"),
+            ("Erscheinungsbild", "Appearance"),
+            ("Hell", "Light"),
+            ("Dunkel", "Dark"),
+            ("Bereiche", "Sections"),
+            ("Mehr", "More"),
+            ("Menü schließen", "Close menu"),
+            ("Anmelden zum Abstimmen", "Sign in to vote"),
+            ("Favoriten", "Favourites"),
+            ("Antrag einbringen", "Submit a motion"),
+        ]:
+            assert gettext(deutsch) == englisch, f"{deutsch!r} ist nicht kompiliert übersetzt"
+
+
 def test_skelett_partial():
     from django.template.loader import render_to_string
 

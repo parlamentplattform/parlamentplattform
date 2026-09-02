@@ -27,7 +27,7 @@
       <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
     {% else %}
       <form method="post" action="{% url 'verfahren:abstimmen' k.antrag.pk %}" class="stimmreihe"
-        hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML">
+        hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
         {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
         <button name="stimme" value="ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
         <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
@@ -37,6 +37,6 @@
   {% endif %}
 
   {% if zeige_begruendung and k.antrag.hervorhebung_begruendung %}
-    <p class="erk" style="margin:2px 0 0">{{ k.antrag.hervorhebung_begruendung|truncatechars:110 }}</p>
+    <p class="erk grund">{{ k.antrag.hervorhebung_begruendung|truncatechars:110 }}</p>
   {% endif %}
 </div>

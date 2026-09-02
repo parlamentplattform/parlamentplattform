@@ -1,5 +1,5 @@
 {% load i18n %}<form method="post" action="{% url 'verfahren:favorisieren' antrag.pk %}"
-  hx-post="{% url 'verfahren:favorisieren' antrag.pk %}" hx-swap="outerHTML" style="display:inline">
+  hx-post="{% url 'verfahren:favorisieren' antrag.pk %}" hx-swap="outerHTML transition:true" class="stern-form">
   {% csrf_token %}<input type="hidden" name="weiter" value="{{ weiter|default:request.get_full_path }}">
   {% if ist_favorit or antrag.pk in meine_favoriten %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
   {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}

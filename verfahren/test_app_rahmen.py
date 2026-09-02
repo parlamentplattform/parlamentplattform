@@ -183,6 +183,45 @@ def test_flash_im_parlament_im_stapel_nicht_im_raster(client):
     assert 'class="meldung ' in stapel and 'x-data="meldung"' in stapel and 'class="meldung-x"' in stapel
 
 
+# ── Raster, Landmarken, Tableiste, Skelette (FB-A1, FB-A3) ──────────────────────
+
+
+def test_felder_sind_landmarken_mit_tastatur_scroll(client):
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    for feld in ("filter", "favoriten", "wichtig", "region"):
+        assert html.count(f'id="feld-{feld}"') == 1
+        assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}">' in html
+        assert f'<h2 id="h-{feld}">' in html
+    assert html.count('<div class="feld-korpus" tabindex="0">') == 4
+    assert '<body class="voll mit-band"' in html
+
+
+def test_tableiste_nur_im_parlament(client):
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    tabs = html.split('<nav class="tabs"', 1)[1].split("</nav>", 1)[0]
+    assert re.findall(r'href="([^"]+)"', tabs) == [
+        "#feld-filter", "#feld-favoriten", "/einbringen/", "#feld-wichtig", "#feld-region",
+    ]
+    assert 'class="plus"' in tabs and 'aria-label="Bereiche"' in html
+    assert html.index('class="parlament"') < html.index('<nav class="tabs"')
+    assert '<nav class="tabs"' not in client.get("/").content.decode()
+
+
+def test_skelette_und_feldtausch_mit_uebergang(client):
+    client.force_login(mitglied_anlegen())
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert _feld(html, "feld-filter").count('class="skelett b70"') == 5
+    assert _feld(html, "feld-favoriten").count('class="skelett b70"') == 4
+    assert _feld(html, "feld-wichtig").count("kachel-form") == 4
+    assert _feld(html, "feld-region").count("kachel-form") == 3
+    for feld in ("filter", "favoriten"):
+        treffer = re.findall(rf'hx-select="#feld-{feld}"[^>]*', html)
+        assert treffer, feld
+        for tag in treffer:
+            assert 'hx-swap="outerHTML transition:true"' in tag and f'hx-indicator="#feld-{feld}"' in tag
+    assert 'hx-swap="outerHTML"' not in html.split('class="parlament"', 1)[1]
+
+
 def test_regler_ohne_inline_handler_mit_alpine(client):
     client.force_login(mitglied_anlegen())
     feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-filter")

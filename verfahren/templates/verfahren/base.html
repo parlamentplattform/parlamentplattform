@@ -209,9 +209,11 @@ body.mit-band{--band:32px}
 code.gross{display:inline-block;font-size:19px;letter-spacing:.06em;background:var(--karton);border:1px dashed var(--deep);border-radius:8px;padding:8px 14px}
 pre{white-space:pre-wrap;font-family:inherit}
 /* ── Vier-Felder-Parlament (P1) ── */
-main.breit{max-width:1500px}
-.parlament{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
-.feld{background:var(--karton);border:1px solid var(--line);border-radius:18px;box-shadow:var(--schatten);display:flex;flex-direction:column;height:calc(50vh - 66px);min-height:360px;overflow:hidden;position:relative}
+/* ── Das Parlament (Spec 3.2, FB-A1): 2×2-Raster füllt den Bildschirm unter Leiste und Band, kein Seiten-Scroll ── */
+body.voll{overflow:hidden}
+body.voll main{max-width:none;padding:0}
+.parlament{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:12px;padding:12px;max-width:1500px;margin:0 auto;height:calc(100vh - var(--bar) - var(--band));height:calc(100dvh - var(--bar) - var(--band))}
+.feld{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
 .filter-leiste{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
 .chipform{display:inline}
 .chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink);line-height:1.4}
@@ -227,10 +229,10 @@ main.breit{max-width:1500px}
 .regler-aktionen .neu{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .regler-aktionen input[type=text]{width:11em;padding:7px 10px}
 .punkte{font-variant-numeric:tabular-nums;color:var(--goldtief);font-weight:600;cursor:help}
-.feld-kopf{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+.feld-kopf{height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
 .feld-kopf h2{margin:0;font-size:19px;font-weight:600}
 .feld-kopf .bk{margin-left:auto;opacity:.7}
-.feld-korpus{overflow-y:auto;padding:6px 18px 26px;flex:1;position:relative;scrollbar-width:thin}
+.feld-korpus{flex:1;min-height:0;overflow:auto;padding:8px 16px 32px;position:relative;scrollbar-width:thin;overscroll-behavior:contain}
 .feld-fuss{border-top:1px solid var(--line);padding:8px 18px;font-size:13px;color:var(--matt);background:linear-gradient(transparent,var(--karton))}
 .zeile{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
 .zeile:first-child{border-top:0}
@@ -245,13 +247,31 @@ main.breit{max-width:1500px}
 .kachel .kt a{font-weight:600;line-height:1.35;color:var(--linkfarbe)}
 .kachel .rest{font-size:12.5px;color:var(--matt)}
 .kachel .rest.ort{display:block;margin-top:3px}
-.kachel .rest strong{color:var(--goldtief)}
+.kachel .rest strong{color:var(--gold-deep)}
+.kachel .grund{margin:2px 0 0}
+.stern-form{display:inline}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .balken b{display:block;height:100%;background:var(--gold)}
 .stimmreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .stimmreihe button{font-size:12.5px;padding:4px 12px}
 .stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
-@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.kacheln,.kacheln.dreier{grid-template-columns:1fr}}
+/* Tableiste am Handy (Spec 3.2 und 4, FB-A1): fest unten, vier Ziele, Gold-＋ in der Mitte */
+.tabs{display:none;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;height:var(--tabs);background:var(--surface);border-top:1px solid var(--line);z-index:40}
+.tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:color var(--d-fast)}
+.tabs a svg{width:22px;height:22px;transition:transform var(--d-fast)}
+.tabs a.an{color:var(--gold-deep)}
+.tabs a.an svg{transform:scale(1.1)}
+.tabs .plus span{width:48px;height:48px;border-radius:999px;background:var(--gold);color:var(--on-gold);display:flex;align-items:center;justify-content:center;font-size:26px;margin-top:-16px;box-shadow:var(--shadow-lift)}
+/* Tablet (760–1023): zwei Spalten bleiben, Felder mindestens 380 px, die Seite darf scrollen (Spec 3.2) */
+@media(max-width:1023px){body.voll{overflow:auto}.parlament{height:auto;min-height:calc(100dvh - var(--bar) - var(--band))}.feld{min-height:380px}}
+/* Handy (< 760): jedes Feld ein Bildschirm, rastet ein; Tableiste unten (FB-A1) */
+@media(max-width:759px){
+  .parlament{display:block;height:calc(100vh - var(--bar) - var(--band) - var(--tabs));height:calc(100dvh - var(--bar) - var(--band) - var(--tabs));min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;padding:8px;overscroll-behavior:contain}
+  .feld{height:100%;min-height:0;scroll-snap-align:start;margin-bottom:8px}
+  .feld:last-child{margin-bottom:0}
+  .kacheln,.kacheln.dreier{grid-template-columns:1fr}
+  .tabs{display:grid}
+}
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
 .hf-grid--zwei{grid-template-columns:repeat(2,1fr)}

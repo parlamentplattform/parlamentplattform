@@ -1,0 +1,14 @@
+{% load i18n %}
+{% comment %}
+Tableiste am Handy (FB-A1, Design-Spezifikation 3.2 und 4): fest am unteren Rand, vier Ziele als
+Anker-Links auf die Felder und das Gold-＋ in der Mitte. Ohne JavaScript springen die Anker in den
+Snap-Container; Alpine (tabs) führt das aktive Feld beim Einrasten nach und scrollt weich.
+Das fünfte Ziel „Chats“ kommt mit dem Chat-Panel (S6, FB-G3).
+{% endcomment %}
+<nav class="tabs" aria-label="{% translate 'Bereiche' %}" x-data="tabs">
+  <a href="#feld-filter" class="an" :class="{an: aktiv==='feld-filter'}" :aria-current="aktiv==='feld-filter' ? 'true' : null" @click.prevent="springe('feld-filter')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.5"/><circle cx="10" cy="17" r="2.5"/></svg><span>{% translate "Filter" %}</span></a>
+  <a href="#feld-favoriten" :class="{an: aktiv==='feld-favoriten'}" :aria-current="aktiv==='feld-favoriten' ? 'true' : null" @click.prevent="springe('feld-favoriten')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z"/></svg><span>{% translate "Favoriten" %}</span></a>
+  <a href="{% url 'verfahren:einbringen' %}" class="plus" aria-label="{% translate 'Antrag einbringen' %}"><span aria-hidden="true">＋</span></a>
+  <a href="#feld-wichtig" :class="{an: aktiv==='feld-wichtig'}" :aria-current="aktiv==='feld-wichtig' ? 'true' : null" @click.prevent="springe('feld-wichtig')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4h3l8 4V6l-8 4z"/><path d="M17 9.5a3.5 3.5 0 010 5" stroke-linecap="round"/></svg><span>{% translate "Wichtig" %}</span></a>
+  <a href="#feld-region" :class="{an: aktiv==='feld-region'}" :aria-current="aktiv==='feld-region' ? 'true' : null" @click.prevent="springe('feld-region')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span>{% translate "Region" %}</span></a>
+</nav>

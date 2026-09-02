@@ -222,6 +222,51 @@ def test_skelette_und_feldtausch_mit_uebergang(client):
     assert 'hx-swap="outerHTML"' not in html.split('class="parlament"', 1)[1]
 
 
+# ── Werkzeug statt Werbefläche (FB-A2, Grundregel 1) ───────────────────────────
+
+
+def _saetze(feld: str) -> list[str]:
+    """Sichtbarer Text eines Feldes in Sätzen — ohne Antragstitel, Leerzustände und Begründungen."""
+    ohne_tags = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", feld, flags=re.S)
+    # Antragstitel, Leerzustände und die Hervorhebungsbegründung sind laut Abnahme ausgenommen
+    ohne_tags = re.sub(r'<a [^>]*href="/antrag/[^"]*"[^>]*>.*?</a>', " ", ohne_tags, flags=re.S)
+    ohne_tags = re.sub(r'<p class="leer[^"]*">.*?</p>', " ", ohne_tags, flags=re.S)
+    ohne_tags = re.sub(r'<p class="erk grund">.*?</p>', " ", ohne_tags, flags=re.S)
+    text = re.sub(r"<[^>]+>", " ", ohne_tags)
+    text = re.sub(r"&[a-z]+;|&#\d+;", " ", text)
+    return [s for s in re.split(r"[.!?]\s|\n", text) if s.strip()]
+
+
+def test_felder_ohne_erklaersaetze_acht_woerter_regel(client):
+    """FB-A2 Abnahme: In keinem der vier Felder steht ein Satz mit mehr als acht Wörtern."""
+    for angemeldet in (False, True):
+        if angemeldet:
+            client.force_login(mitglied_anlegen())
+        html = client.get(reverse("verfahren:parlament")).content.decode()
+        for feld_id in ("feld-filter", "feld-favoriten", "feld-wichtig", "feld-region"):
+            for satz in _saetze(_feld(html, feld_id)):
+                assert len(satz.split()) <= 8, f"{feld_id} ({'Mitglied' if angemeldet else 'Gast'}): {satz.strip()}"
+    assert "Offene Regel v1: Punkte" not in html
+    assert "Hinterlegen Sie Ihre Wohnsitz-Gemeinde" not in html
+    assert 'href="/parameter/">Offene Regel v1 ›</a>' in html
+
+
+def test_kachel_zeigt_gaesten_den_anmeldeweg(client, ordnung):  # noqa: F811
+    from verfahren.models import antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, in_abstimmung_bringen
+
+    m, zweite = mitglied_anlegen(), mitglied_anlegen("berta")
+    antrag = in_abstimmung_bringen(antrag_einbringen(m, **ANTRAG, ordnung=ordnung), [m, zweite])
+    antrag.hervorgehoben = True
+    antrag.save(update_fields=["hervorgehoben"])
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
+    assert 'href="/anmelden/">Anmelden zum Abstimmen</a>' in feld
+    assert 'name="stimme"' not in feld
+    client.force_login(m)
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
+    assert 'name="stimme" value="ja"' in feld and "Anmelden zum Abstimmen" not in feld
+
+
 def test_regler_ohne_inline_handler_mit_alpine(client):
     client.force_login(mitglied_anlegen())
     feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-filter")

@@ -22,7 +22,9 @@
     <span class="rest">{% if k.resttage == 0 %}<strong>{% translate "Frist endet heute" %}</strong>{% else %}{% blocktranslate count t=k.resttage %}noch <strong>{{ t }}</strong> Tag{% plural %}noch <strong>{{ t }}</strong> Tage{% endblocktranslate %}{% endif %}</span>
   {% endif %}
 
-  {% if k.stat.typ == "abstimmung" and user.is_authenticated %}
+  {% if k.stat.typ == "abstimmung" and not user.is_authenticated %}
+    <span class="rest"><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden zum Abstimmen" %}</a></span>
+  {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}
     {% if k.antrag.art == "mandat" %}
       <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
     {% else %}

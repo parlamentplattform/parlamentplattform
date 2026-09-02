@@ -187,6 +187,16 @@ def test_uebersetzungen_vollstaendig_und_kompiliert():
             assert gettext(deutsch) == englisch, f"{deutsch!r} ist nicht kompiliert übersetzt"
 
 
+def test_versionen_stimmen_ueberein():
+    """Definition of Done 4: CHANGELOG, pyproject und plattform_core nennen dieselbe Version."""
+    from plattform_core import __version__
+
+    changelog = re.search(r"^## \[(\d+\.\d+\.\d+)\]", (WURZEL / "CHANGELOG.md").read_text(encoding="utf-8"), re.M)
+    pyproject = re.search(r'^version = "(\d+\.\d+\.\d+)"', (WURZEL / "pyproject.toml").read_text(encoding="utf-8"), re.M)
+    assert changelog and pyproject
+    assert changelog.group(1) == pyproject.group(1) == __version__
+
+
 def test_skelett_partial():
     from django.template.loader import render_to_string
 

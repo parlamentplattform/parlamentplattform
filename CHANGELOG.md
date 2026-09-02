@@ -2,6 +2,30 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.33.0] — 2026-09-02 · S1 App-Rahmen: eine Leiste, bildschirmfüllendes Parlament, Konto-Menü, Handy-Tableiste
+
+### Geändert
+- **Eine App-Leiste statt zwei Nav-Zeilen (FB-A1, FB-N3, FB-N8):** 56 px hoch (am Handy 52), klebt oben; links die Wortmarke, in der Mitte sechs Hauptpunkte in der beschlossenen Reihenfolge **Parlament · Mandatare · Gremien · Umsetzungsregister · Zukunftswerkstatt · Übersicht** (Gremien ist neu im Hauptmenü, D-N8), rechts der **gefüllte Gold-Knopf „＋ Antrag einbringen"** und der **Konto-Avatar** mit Popover: Mein Gremium · Beitrag · Verwaltung · Sprache · Erscheinungsbild · Mehr · Abmelden. Der aktive Punkt folgt jetzt dem Bereich, nicht dem genauen Pfad — auch eine Antragsseite markiert „Parlament". Gäste sehen ⋯ Mehr · Anmelden · Mitglied werden · EN
+- **Das Parlament füllt den Bildschirm (FB-A1):** Das 2×2-Raster misst `100dvh` minus Leiste und Band, Lücke und Rand je 12 px, Feldkopf 44 px — die Seite scrollt nicht mehr, nur die Feldkörper scrollen innen. Auf dem Tablet bleiben zwei Spalten mit Mindesthöhe; **am Handy ist jedes Feld ein Bildschirm, der einrastet**, darunter die feste **Tableiste** (Filter · Favoriten · ＋ · Wichtig · Region) mit 48-px-Goldkreis in der Mitte. **Auf `/parlament/` gibt es keine Fußzeile mehr** — ihre Links stehen im ⋯-Menü und im Konto-Menü
+- **Gast- und Pausiert-Hinweis als 32-px-Band unter der Leiste (FB-A6)** statt als Kasten über dem Raster; beide zählen in der Höhenrechnung mit, das Raster verrutscht nicht. Flash-Meldungen liegen im Parlament als schließbarer Stapel unter der Leiste (die Rückmeldung in der Kachel folgt mit S2)
+- **Anstoß im Parlament in der App-Leiste (FB-K3):** als Sprechblasen-Symbol mit Popover darunter — es verdeckt „Meine Region" nicht mehr; auf allen anderen Seiten bleibt die schwebende Pille, 12 px kleiner
+- **Sans-Schrift für alles Bedienbare (FB-P2, D-P2):** Body 16/1.55, H1 26/700, H2 19/600, H3 16/600. Serif bleibt der Wortmarke und dem Bühnen-Titel der Erklärseiten vorbehalten
+- **Werkzeug statt Werbefläche (FB-A2):** Der zweisätzige Regler-Hilfetext weicht dem Link „Offene Regel v1 ›" auf das Parameterregister, der Hinweis auf eine noch nicht gebaute Profilseite entfällt. Ein Test lässt in keinem Feld einen Satz über acht Wörter zu. Gäste sehen in Abstimmungskacheln „Anmelden zum Abstimmen"
+
+### Hinzugefügt
+- **Erscheinungsbild-Schalter System / Hell / Dunkel (FB-P3)** im Konto- und ⋯-Menü, gemerkt je Gerät; ein winziges Skript im Kopf setzt das Thema vor dem ersten Zeichnen, damit nichts aufblitzt. Ohne JavaScript bleibt der Schalter verborgen und die Systemeinstellung gilt
+- **Alpine.js wird endlich benutzt (FB-P4):** Komponenten für Menüs, Anstoß, Erscheinungsbild, Tableiste und Meldungen liegen in `app.js`; die Templates tragen **keinen einzigen Inline-Handler** mehr und kein Inline-Skript. Die Anstoß-Rückmeldung läuft über den `HX-Trigger`-Header. Jedes Aufklappen ist ein natives `<details>` — ohne JavaScript öffnet und schließt alles wie zuvor
+- **Skelett-Zustände** für den htmx-Feldtausch und **Bewegungs-Tokens** nach Spezifikation (160/260/320/420 ms, eine Easing-Familie); die beiden `prefers-reduced-motion`-Blöcke sind zu einem zusammengeführt
+- **Dark Mode ohne Lücken (FB-P3):** alle Farben über Tokens mit den Namen der Design-Spezifikation, dunkel doppelt hinterlegt (Systemeinstellung und Schalter); Vollzugsampel, Status-Badges, Ergebnislegende und QR-Kasten laufen über Token-Klassen statt fester Hex-Werte
+- **Bildschirmtests mit Playwright** (`tests/e2e/`, Chromium): die vier Abnahmen aus FB-A1 mit und ohne JavaScript, hell und dunkel, dazu Menüs, Erscheinungsbild und reduzierte Bewegung; ein eigener Lauf legt die zehn Bilder der Sichtprüfung unter `docs/sichtpruefung/0.33.0/` ab. Ohne Playwright überspringen sie sich, der Pflicht-Check bleibt grün
+- **`tools/po_pruefen.py`** prüft den Übersetzungskatalog und schreibt die `.mo` — ein Ersatz für `compilemessages` auf Rechnern ohne gettext; zwanzig neue englische Texte, „Verwaltung" war bisher gar nicht übersetzbar
+- 33 neue Tests (App-Rahmen, Design-System, Bildschirmtests) — 316 gesamt
+
+### Behoben
+- Die Rasterzeilen des Parlaments wuchsen mit ihrem Inhalt, statt den Bildschirm zu teilen (`1fr` bedeutet `minmax(auto, 1fr)`)
+- `hidden` wurde von Komponentenregeln überstimmt — die Erscheinungsbild-Gruppe war ohne JavaScript sichtbar, aber wirkungslos
+- Die Versionsnummern in `pyproject.toml` und `plattform_core.__version__` standen noch auf 0.1.0 und folgen jetzt dem Änderungsprotokoll
+
 ## [0.32.0] — 2026-09-02 · Nachschärfung 2: Werkzeug statt Werbung, vollständiges Flussdiagramm, KI-Verbrauch, Partner-Seite
 
 ### Geändert

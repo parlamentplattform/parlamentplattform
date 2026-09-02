@@ -190,7 +190,7 @@ def test_felder_sind_landmarken_mit_tastatur_scroll(client):
     html = client.get(reverse("verfahren:parlament")).content.decode()
     for feld in ("filter", "favoriten", "wichtig", "region"):
         assert html.count(f'id="feld-{feld}"') == 1
-        assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}">' in html
+        assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}"' in html
         assert f'<h2 id="h-{feld}">' in html
     korpusse = html.count('<div class="feld-korpus" tabindex="0">') + html.count(
         '<div class="feld-korpus faecher-korpus" tabindex="0">'

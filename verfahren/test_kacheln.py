@@ -59,8 +59,8 @@ def test_meine_region_filtert_nach_wohnsitz_und_zeigt_drei_zeilen(client, ordnun
     region = client.get("/parlament/").content.decode().split('id="feld-region"')[1]
     assert "Radweg sanieren" in region
     assert "Welser Stadtpark" not in region  # fremde Gemeinde gefiltert (im Regions-Feld)
-    assert "Kein laufender Antrag in Ihrem Bezirk." in region  # Zeile 2 immer da
-    assert "Kein laufender Antrag in Ihrem Land." in region  # Zeile 3 immer da
+    assert "Noch nichts in Ihrem Bezirk." in region  # Band 2 immer da (FB-E3: kurz)
+    assert "Noch nichts in Ihrem Land." in region  # Band 3 immer da
 
     client.logout()
     region = client.get("/parlament/").content.decode().split('id="feld-region"')[1]

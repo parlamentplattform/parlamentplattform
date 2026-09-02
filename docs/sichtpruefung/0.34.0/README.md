@@ -9,7 +9,7 @@ DDOE_SICHTPRUEFUNG=1 python -m pytest tests/e2e/test_sichtpruefung.py -q
 | Bild | Was zu prüfen ist |
 |---|---|
 | `parlament-desktop-hell-gast.png` | 1440×900, Gast: Gastband, vier Felder bildschirmfüllend; im Feld „Meine Favoriten" der Fächer mit fünf Ebenen (Lebensbereiche · 4 Säulen · 12 Bereiche · Hauptkategorien des entfalteten Bereichs · deren Unterkategorien als Säule) |
-| `parlament-desktop-hell-mitglied.png` | dasselbe als Mitglied demo1: Sterne an jedem Knoten, Kacheln mit Thema-Chip, Themen-Stern, Fristring und Direkt-Handlung |
+| `parlament-desktop-hell-mitglied.png` | dasselbe als Mitglied demo1: Sterne an jedem Knoten, Kacheln mit Thema-Chip, Themen-Stern, Fristring und Direkt-Handlung; **Meine Region** als drei Bänder Gemeinde · Bezirk · Land mit senkrechtem Zeilenkopf und Leerkacheln „Noch nichts in Ihrem Bezirk. Antrag einbringen →" (FB-E1, FB-E3); im WeicherFilter unten die Pille „↓ n weitere" über dem Verlauf (FB-A5) |
 | `parlament-desktop-dunkel-mitglied.png` | Dunkelmodus: Säulentöne und Fäden bleiben lesbar |
 | `faecher-wurzel.png` | Nahaufnahme des Fächers an der Wurzel (FB-C1, FB-C2): nichts überlappt, Randpillen bündig, Beschriftungen mit Ellipse, Säulentöne |
 | `faecher-hover-ast.png` | Zeiger über dem siebten Bereich: sein Ast ist entfaltet (drei Kinder + Säule, „+n"), der Faden bis zur Wurzel ist gold (FB-C2, FB-C1) |

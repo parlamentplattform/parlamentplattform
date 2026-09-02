@@ -10,7 +10,7 @@
 <div class="parlament" id="parlament" x-data="parlament">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}
-  <section class="feld" id="feld-filter" aria-labelledby="h-filter">
+  <section class="feld" id="feld-filter" aria-labelledby="h-filter" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
     <div class="feld-kopf">
       <h2 id="h-filter">{% translate "WeicherFilter" %}</h2>
       <span class="bk">{% if filter_lage.aktiv %}{% translate "Profil:" %} {{ filter_lage.aktiv.name }}{% else %}{% translate "Voreinstellung: neutral" %}{% endif %}</span>
@@ -82,6 +82,7 @@
       {% endfor %}
       {% endif %}
     </div>
+    {% include "verfahren/_feld_mehr.html" %}
   </section>
 
   {# ── Feld 2: Der Favoriten-Fächer (Bereich a, P2) — direkt sichtbar, oben die Suche ── #}
@@ -122,7 +123,7 @@
   </section>
 
   {# ── Feld 3: Wichtige Abstimmungen als Kacheln (Bereich b, P3) ── #}
-  <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig">
+  <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
     <div class="feld-kopf">
       <h2 id="h-wichtig">{% translate "Wichtige Abstimmungen" %}</h2>
       <span class="bk">{% if wichtige_kacheln %}{{ wichtige_kacheln|length }} · {% endif %}{% translate "Beschluss des Integritätsrats" %}</span>
@@ -137,28 +138,36 @@
       <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
       {% endif %}
     </div>
+    {% include "verfahren/_feld_mehr.html" %}
   </section>
 
   {# ── Feld 4: Meine Region als Kachel-Raster (Bereich c, P4) ── #}
-  <section class="feld" id="feld-region" aria-labelledby="h-region">
+  <section class="feld" id="feld-region" aria-labelledby="h-region" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
     <div class="feld-kopf">
       <h2 id="h-region">{% translate "Meine Region" %}</h2>
       <span class="bk">{% translate "Gemeinde · Bezirk · Land" %}</span>
     </div>
     <div class="feld-korpus" tabindex="0">
       {% include "verfahren/_skelett.html" with art="kacheln" n=3 %}
+      {# FB-E1: drei Bänder Gemeinde · Bezirk · Land, je Band eine waagrecht wischbare Spur mit drei sichtbaren Kacheln #}
+      <div class="baender">
       {% for zeile in region_zeilen %}
-        <p class="phasen-titel">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
-        {% if zeile.kacheln %}
-        <div class="kacheln dreier">
-          {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort %}{% endfor %}
+        <div class="rband r{{ forloop.counter }}" x-data="spur">
+          <p class="rkopf" id="rk-{{ zeile.ebene }}">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
+          {% if zeile.kacheln %}
+          <div class="spur" x-ref="spur" aria-labelledby="rk-{{ zeile.ebene }}">
+            {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort %}{% endfor %}
+          </div>
+          <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>
+          {% else %}
+          <div class="spur leer"><p class="leer leer-zeile">{% if zeile.ebene == "gemeinde" %}{% translate "Noch nichts in Ihrer Gemeinde." %}{% elif zeile.ebene == "bezirk" %}{% translate "Noch nichts in Ihrem Bezirk." %}{% else %}{% translate "Noch nichts in Ihrem Land." %}{% endif %}
+            <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a></p></div>
+          {% endif %}
         </div>
-        {% else %}
-        <p class="leer leer-zeile">{% if zeile.ebene == "gemeinde" %}{% translate "Kein laufender Antrag in Ihrer Gemeinde — der erste kann Ihrer sein." %}{% elif zeile.ebene == "bezirk" %}{% translate "Kein laufender Antrag in Ihrem Bezirk." %}{% else %}{% translate "Kein laufender Antrag in Ihrem Land." %}{% endif %}
-        <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a></p>
-        {% endif %}
       {% endfor %}
+      </div>
     </div>
+    {% include "verfahren/_feld_mehr.html" %}
   </section>
 
 </div>

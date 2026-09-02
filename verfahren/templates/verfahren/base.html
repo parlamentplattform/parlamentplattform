@@ -244,7 +244,25 @@ body.voll main{max-width:none;padding:0}
 .feld-korpus{container-type:inline-size}
 .kacheln{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(186px,calc(50% - 5px));gap:10px;height:100%;align-content:start}
 @container (min-width:700px){.kacheln{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.kacheln.dreier{grid-template-columns:repeat(3,minmax(0,1fr));height:auto}
+/* Meine Region (FB-E1): drei Bänder Gemeinde · Bezirk · Land als 3×3-Raster; jede Spur wischt waagrecht (Scroll-Snap). */
+.baender{display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;height:100%;min-height:300px}
+.rband{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;min-height:0;position:relative}
+.rband .rkopf{margin:0;min-height:0;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--matt);border-right:3px solid var(--deep);padding:4px 0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rband.r2 .rkopf{border-color:var(--gold)}.rband.r3 .rkopf{border-color:var(--ink)}
+.rband .spur{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;min-height:0;height:100%}
+.rband .spur>.kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:3px}
+.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1}
+.rband .spur .balken,.rband .spur .grund,.rband .spur>.kachel>.rest{display:none}
+.rband .spur .rest{font-size:11.5px}
+.rband .spur .k-fuss{margin-top:auto}
+.rband .spur.leer{display:flex;align-items:center;border:1px dashed var(--line);border-radius:12px;padding:0 12px}
+.rband .spur.leer p{margin:0;font-size:13px}
+.rband .spur-mehr{position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:2}
+/* „Mehr vorhanden" (FB-A5): Verlauf am unteren Feldrand und Pille „↓ n weitere" */
+.feld-mehr,.spur-mehr{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:999px;font:600 12px var(--sans);padding:3px 12px;box-shadow:var(--schatten);cursor:pointer;white-space:nowrap}
+.feld-mehr:hover,.spur-mehr:hover{border-color:var(--gold)}
+.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3}
+.feld.mehr-da::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--surface));pointer-events:none;z-index:2}
 .kachel{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}
 .kachel .k-kopf{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}
 .kachel .k-thema{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -289,7 +307,8 @@ body.voll main{max-width:none;padding:0}
   .parlament{display:block;height:calc(100vh - var(--bar) - var(--band) - var(--tabs));height:calc(100dvh - var(--bar) - var(--band) - var(--tabs));min-height:0;overflow-y:auto;scroll-snap-type:y mandatory;padding:8px;overscroll-behavior:contain}
   .feld{height:100%;min-height:0;scroll-snap-align:start;margin-bottom:8px}
   .feld:last-child{margin-bottom:0}
-  .kacheln,.kacheln.dreier{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kacheln{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rband .spur{grid-auto-columns:78%}
   .tabs{display:grid}
 }
 /* ── Hauptfenster & Listen ── */

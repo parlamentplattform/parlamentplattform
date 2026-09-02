@@ -171,6 +171,60 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  /* „Mehr vorhanden" (FB-A5): auf der <section class="feld">. Sobald der Feldkörper mehr enthält
+     als sichtbar, erscheint unten die Pille „↓ n weitere" (n = Kacheln, Zeilen oder Bänder unter
+     der Sichtkante) über einem weichen Verlauf; Klick rollt eine Feldhöhe weiter. Neu gerechnet
+     beim Rollen, bei Größenänderung und nach jedem htmx-Tausch (die Komponente entsteht dann neu). */
+  Alpine.data("feldmehr", function () {
+    return {
+      rest: 0,
+      sichtbar: false,
+      init: function () {
+        var self = this, korpus = this.$el.querySelector(".feld-korpus");
+        if (!korpus) return;
+        var rechne = function () {
+          var kante = korpus.scrollTop + korpus.clientHeight;
+          self.sichtbar = korpus.scrollHeight - kante > 12;
+          self.rest = Array.prototype.filter.call(
+            korpus.querySelectorAll(".kacheln > .kachel, .zeile, .rband"),
+            function (k) { return k.offsetTop + 8 >= kante; }
+          ).length;
+        };
+        korpus.addEventListener("scroll", rechne, { passive: true });
+        window.addEventListener("resize", rechne);
+        if ("ResizeObserver" in window) new ResizeObserver(rechne).observe(korpus);
+        setTimeout(rechne, 0);
+      },
+      weiter: function () {
+        var korpus = this.$root.querySelector(".feld-korpus");
+        if (korpus) korpus.scrollBy({ top: korpus.clientHeight - 24, behavior: reduziert() ? "auto" : "smooth" });
+      }
+    };
+  });
+
+  /* Regionsband (FB-E1): eine waagrecht wischbare Spur mit drei sichtbaren Kacheln; rechts die
+     Pille „› n weitere" für die Kacheln hinter der Kante. */
+  Alpine.data("spur", function () {
+    return {
+      rest: 0,
+      init: function () {
+        var self = this, spur = this.$refs.spur;
+        if (!spur) return;
+        var rechne = function () {
+          var kante = spur.scrollLeft + spur.clientWidth;
+          self.rest = Array.prototype.filter.call(spur.children, function (k) { return k.offsetLeft + 8 >= kante; }).length;
+        };
+        spur.addEventListener("scroll", rechne, { passive: true });
+        window.addEventListener("resize", rechne);
+        setTimeout(rechne, 0);
+      },
+      weiter: function () {
+        var spur = this.$refs.spur;
+        if (spur) spur.scrollBy({ left: spur.clientWidth, behavior: reduziert() ? "auto" : "smooth" });
+      }
+    };
+  });
+
   /* Flash-Meldung: im Parlament (body.voll) nach sechs Sekunden ausblenden; × schließt sofort. */
   Alpine.data("meldung", function () {
     return {

@@ -227,7 +227,7 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 #### FB-A4 · Willkommensseite und Parlament getrennt — ✅
 **Quelle:** Klarstellung 1.9. (Fahrplan P1) — `/` erklärt, `/parlament/` ist Werkzeug. Bleibt so. **Ist:** ✅ (`index.html`, `parlament.html`).
 
-#### FB-A5 · „Mehr vorhanden"-Hinweis an scrollenden Feldern — ❌
+#### FB-A5 · „Mehr vorhanden"-Hinweis an scrollenden Feldern — ✅
 **Quelle:** A0-05 — *„Bei beiden Bereichen soll man erkennen wenn es mehr zum anzeigen gibt als auf dem ersten blick darstellbar ist und dann soll man scrollen können."*
 
 **Spezifikation**
@@ -238,7 +238,8 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Barrierefreiheit:* Pille ist ein `<button>` mit `aria-label="3 weitere Einträge anzeigen"`; `aria-hidden` auf dem Verlauf.
 
 **Abnahme:** Mit 7 hervorgehobenen Anträgen zeigt „Wichtige Abstimmungen" auf 1440×900 vier Kacheln und die Pille „↓ 3 weitere"; Klick scrollt; am Ende verschwindet sie. In „Meine Region" mit 5 Gemeinde-Anträgen erscheint sie ebenso.
-**Ist:** ❌ — `.feld::after` ist ein leerer Stummel (`base.html:159`).
+**Ist (0.34.0):** ✅ Alpine-Komponente `feldmehr` auf den Feldern WeicherFilter, Wichtige Abstimmungen und Meine Region (`app.js`, `_feld_mehr.html`): Pille „↓ n weitere" (n = Kacheln, Zeilen oder Bänder unter der Sichtkante, sonst „↓ mehr") über einem 28-px-Verlauf (`.feld.mehr-da::after`), Klick rollt eine Feldhöhe weiter, neu gerechnet beim Rollen, bei Größenänderung (ResizeObserver) und nach jedem htmx-Tausch; `aria-label`, am Ende verschwindet sie. In den Regionsbändern waagrecht als „› n weitere" (FB-E1). **Abweichungen:** Das Favoriten-Feld hat keine Pille — sein Fächer rollt von unten und zeigt zuerst den Anker; ohne JavaScript bleibt die dünne Scrollleiste der einzige Hinweis (der reine CSS-Verlauf scheitert an den deckenden Kacheln).
+**Ist (0.33.0):** ❌ — `.feld::after` war ein leerer Stummel.
 
 #### FB-A6 · Gäste im Parlament — ✅ (0.33.0, S1)
 **Ausarbeitung:** Gäste sehen alle vier Felder lesend; statt der Regler ein Chip „Neutral"; statt Stern nichts; Kacheln ohne Stimmknöpfe, dafür „Anmelden zum Abstimmen" als Link in der Kachel. Der heutige Hinweisbalken oben („Sie sehen das Parlament als Gast…") wird zu einem **schmalen Band unter der App-Leiste** (32 px, Info-Farbe) mit zwei Links, damit das Raster nicht verrutscht. **Ist (0.33.0):** ✅ Gastband 32 px unter der App-Leiste (`parlament.html:9`, `base.html:167-171`), zählt über `--band` in der Höhenrechnung mit — das Raster verrutscht nicht; Kacheln zeigen Gästen „Anmelden zum Abstimmen" statt der Stimmknöpfe (`_kachel.html:25-26`). Dasselbe Band trägt den Pausiert-Hinweis auf allen Seiten (`base.html:329`).
@@ -438,13 +439,14 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 - *Handy:* Zeilen untereinander, je Zeile horizontal wischbar (eine Kachel ≈ 78 % Feldbreite sichtbar, die nächste ragt an — der sichtbare Anschnitt ist der „mehr vorhanden"-Hinweis).
 
 **Abnahme:** Auf 1440×900 sind drei Bänder mit je bis zu drei gleich großen Kacheln sichtbar, kein vertikaler Scroll nötig; die vierte Gemeinde-Kachel ist durch Wischen erreichbar und wird durch „› 1 weitere" angekündigt; Ja/Nein/Enthaltung funktioniert in der Kachel ohne Seitenwechsel.
-**Ist:** 🟡 drei Zeilen ✅ mit `.kacheln.dreier` (3 Spalten, aber Zeilenumbruch statt Wischen, keine Höhenteilung) — auf 1440×900 ist nur die Gemeinde-Zeile sichtbar (Screenshot 2.9.); Direktabstimmung ✅; Wasserzeichen/Zeilenköpfe ❌; Profil-Link ❌.
+**Ist (0.34.0):** 🟡 Drei **Bänder** Gemeinde · Bezirk · Land teilen sich die Feldhöhe (`.baender`, `repeat(3, minmax(0,1fr))`, Mindesthöhe 300 px), jedes mit senkrechtem Zeilenkopf (Ebene · Ort, farbiger Balken petrol/gold/tinte) und einer **waagrecht wischbaren Spur** mit drei gleich großen Kacheln (Scroll-Snap; Handy 78 % Breite, die nächste ragt an); ab der vierten Kachel die Pille „› n weitere" (Alpine `spur`, FB-A5). Kacheln wie FB-D2 in kompakter Form (Titel einzeilig, ohne Balken und Hervorhebungsgrund), Direktabstimmung ✅, Gold-Haken „Erfasst" ✅ (FB-A2). Leerkachel je Band mit Handlung (FB-E3). Auf 1440×900 sind alle drei Bänder ohne vertikalen Scroll sichtbar (`verfahren/test_region_baender.py`, `tests/e2e/test_mehr_vorhanden.py`). **Offen:** Wasserzeichen-Icons je Ebene ❌; Leerkachel „Wohnsitz hinterlegen ›" → Profil ❌ (FB-K5, es gibt keine Profilseite).
+**Ist (0.33.0):** 🟡 drei Zeilen mit `.kacheln.dreier` (Zeilenumbruch statt Wischen, keine Höhenteilung).
 
 #### FB-E2 · Gleicher Seitenaufbau wie Wichtige Abstimmungen (KI-Einschätzung, Chat) — ❌ (folgt aus FB-F)
 **Quelle:** A0-05 — *„Ähnlich aufgebaut wie bei Wichtige Abstimmungen also mit KI Einschätzung und Chatbereich."* → Regionale Antragsseiten sind normale Antragsseiten (FB-F1–F3). Zusätzlich: die Zukunftswerkstatt kennt die Ebene (Gemeinde-Antrag → Gemeindeordnung, Landesgesetze; keine Bundes-Personalaggregate).
 
-#### FB-E3 · Leerzustände — 🟡
-**Ausarbeitung:** kurz und mit einer Handlung (siehe FB-E1). **Ist:** drei Sätze mit Link (`parlament.html:145-166`) — kürzen.
+#### FB-E3 · Leerzustände — ✅
+**Ausarbeitung:** kurz und mit einer Handlung (siehe FB-E1). **Ist (0.34.0):** ✅ je Band eine schmale Leerkachel „Noch nichts in Ihrer Gemeinde. Antrag einbringen →" (vier Wörter + Handlung; Bezirk/Land analog), `parlament.html`, getestet in `verfahren/test_region_baender.py`. Die anderen Felder: „Derzeit läuft kein Verfahren." / „Derzeit ist nichts hervorgehoben." (je vier Wörter).
 
 ---
 

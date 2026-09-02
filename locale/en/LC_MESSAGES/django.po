@@ -3484,3 +3484,24 @@ msgstr "What is missing? What bothers you? What would you like?"
 
 msgid "Pfad im Fächer"
 msgstr "Path in the fan"
+
+msgid "Weitere Einträge anzeigen"
+msgstr "Show more entries"
+
+msgid "weitere"
+msgstr "more"
+
+msgid "mehr"
+msgstr "more"
+
+msgid "Weitere Kacheln anzeigen"
+msgstr "Show more tiles"
+
+msgid "Noch nichts in Ihrer Gemeinde."
+msgstr "Nothing here yet in your municipality."
+
+msgid "Noch nichts in Ihrem Bezirk."
+msgstr "Nothing here yet in your district."
+
+msgid "Noch nichts in Ihrem Land."
+msgstr "Nothing here yet in your state."

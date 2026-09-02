@@ -1,0 +1,8 @@
+{% comment %}
+Skelett-Zustand eines Feldes (Design-Spezifikation 4 und 6). Parameter: art = "zeilen" | "kacheln",
+n = Anzahl der Formen. Liegt unsichtbar im Feldkörper und erscheint nur, solange htmx dieses
+Feld tauscht (Klasse htmx-request über hx-indicator). Ohne JavaScript nie sichtbar.
+{% endcomment %}
+<div class="skelett-feld {{ art }}" aria-hidden="true">
+{% for _ in "x"|rjust:n %}{% if art == "kacheln" %}<div class="skelett kachel-form"></div>{% else %}<div class="skelett b70"></div><div class="skelett b45"></div>{% endif %}{% endfor %}
+</div>

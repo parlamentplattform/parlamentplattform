@@ -119,3 +119,30 @@ def test_sans_ueberall_serif_nur_wortmarke_und_buehne():
             continue
         text = pfad.read_text(encoding="utf-8")
         assert "var(--serif)" not in text and "Georgia" not in text, f"Serif in {pfad.name}"
+
+
+def test_ein_reduced_motion_block_und_bewegung_ueber_tokens():
+    """Spec 2.4: alle Dauern über --d-*, genau ein prefers-reduced-motion-Block, keine Keyframe-Leichen."""
+    css = _style()
+    assert css.count("prefers-reduced-motion") == 1
+    block = css.split("@media (prefers-reduced-motion:reduce)", 1)[1]
+    for pflicht in ("animation-duration:1ms!important", "transition-duration:1ms!important",
+                    "scroll-behavior:auto!important", "::view-transition-group(*)"):
+        assert pflicht in block
+    literale = re.findall(r"(?<![\w-])\.\d+s\b", css)
+    assert not literale, f"Literale Dauern statt Tokens: {literale}"
+    assert "cubic-bezier(" not in _bloecke(css)[3], "Easings nur als --e-* Tokens"
+    for leiche in ("blase-auf", ".mini-kachel", ".brotkrume", ".feld::after"):
+        assert leiche not in css
+    for einmal in (":focus-visible{", ".btn:hover{", ".chip:hover{"):
+        assert css.count(einmal) == 1, f"{einmal} mehrfach definiert"
+
+
+def test_skelett_partial():
+    from django.template.loader import render_to_string
+
+    zeilen = render_to_string("verfahren/_skelett.html", {"art": "zeilen", "n": 5})
+    assert zeilen.count('class="skelett b70"') == 5 and 'aria-hidden="true"' in zeilen
+    kacheln = render_to_string("verfahren/_skelett.html", {"art": "kacheln", "n": 4})
+    assert kacheln.count("kachel-form") == 4
+    assert "punkte" not in zeilen  # test_weicherfilter_ansicht verbietet das Wort im Filter-Feld

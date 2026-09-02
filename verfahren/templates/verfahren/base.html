@@ -68,7 +68,6 @@ h1{font-size:26px;line-height:1.2;font-weight:700;margin:0 0 10px}
 h2{margin:32px 0 10px;font-size:19px;line-height:1.25;font-weight:600}
 h3{font-size:16px;line-height:1.3;font-weight:600}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:4px}
 .skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
 /* ── Kopf ── */
@@ -82,9 +81,9 @@ header .marke em{color:var(--goldsoft);font-style:italic}
 header .marke small{display:block;font-family:var(--sans);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.6}
 .menue-schalter{position:absolute;opacity:0;width:0;height:0}
 .menue-knopf{display:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px 6px;border-radius:8px}
-.menue-knopf span{display:block;width:24px;height:2px;background:var(--goldsoft);border-radius:2px;transition:transform .2s,opacity .2s}
+.menue-knopf span{display:block;width:24px;height:2px;background:var(--goldsoft);border-radius:2px;transition:transform var(--d-fast),opacity var(--d-fast)}
 nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:14.5px}
-nav a{opacity:.92;padding:6px 12px;border-radius:999px;transition:background .16s,color .16s,opacity .16s}
+nav a{opacity:.92;padding:6px 12px;border-radius:999px;transition:background var(--d-fast),color var(--d-fast),opacity var(--d-fast)}
 nav a:hover{color:var(--goldsoft);background:rgba(232,194,122,.12);opacity:1}
 nav a.an{color:var(--goldsoft);background:rgba(232,194,122,.16);font-weight:600;opacity:1}
 nav .wer{opacity:.65;font-size:13px}
@@ -101,7 +100,7 @@ nav button.aus:hover{color:var(--goldsoft)}
   nav{display:none;width:100%;flex-direction:column;align-items:flex-start;gap:4px;padding:14px 2px 8px;border-top:1px solid rgba(232,194,122,.25);margin-top:10px}
   nav a,nav .wer,nav form{padding:8px 0;font-size:16px}
   nav .btn{margin:6px 0}
-  .menue-schalter:checked ~ nav{display:flex;animation:einfahren-oben .28s ease-out both}
+  .menue-schalter:checked ~ nav{display:flex;animation:einfahren-oben var(--d-base) var(--e-out) both}
   .menue-schalter:checked ~ .menue-knopf span:nth-child(1){transform:translateY(7px) rotate(45deg)}
   .menue-schalter:checked ~ .menue-knopf span:nth-child(2){opacity:0}
   .menue-schalter:checked ~ .menue-knopf span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
@@ -137,16 +136,14 @@ main{padding:36px 20px 90px}
 .erk{font-size:13.5px;color:var(--matt);margin:0 0 6px}
 .hilfe{font-size:13px;color:var(--matt);margin-top:4px}
 /* ── Bedienung ── */
-.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:var(--on-gold);border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2);transition:background .15s,transform .15s,box-shadow .15s}
-.btn:hover{background:var(--goldsoft);transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.25)}
-.btn:active{transform:translateY(0)}
-.btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none;transition:background .15s,color .15s}
+.btn{display:inline-block;border:0;cursor:pointer;font:inherit;font-size:15px;background:var(--gold);color:var(--on-gold);border-radius:999px;padding:10px 22px;text-decoration:none;font-weight:600;box-shadow:0 1px 2px rgba(14,34,48,.2)}
+.btn-linie{display:inline-block;cursor:pointer;font:inherit;font-size:15px;background:transparent;color:var(--deep);border:1px solid var(--deep);border-radius:999px;padding:9px 20px;text-decoration:none}
 .btn-linie:hover{background:var(--deep);color:var(--paper)}
 .btn-still{display:inline-block;cursor:pointer;font:inherit;font-size:14px;background:transparent;color:var(--matt);border:1px solid var(--line);border-radius:999px;padding:8px 16px;text-decoration:none}
 .btn-still:hover{border-color:var(--deep);color:var(--deep)}
 form p{margin:0 0 16px}
 form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
-input[type=text],input[type=email],input[type=number],input[type=search],input[type=date],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color .15s,box-shadow .15s}
+input[type=text],input[type=email],input[type=number],input[type=search],input[type=date],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color var(--d-fast),box-shadow var(--d-fast)}
 input[type=search],input[type=date],select{width:auto}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--gold)}
@@ -172,7 +169,6 @@ main.breit{max-width:1500px}
 .filter-leiste{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line)}
 .chipform{display:inline}
 .chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 12px;cursor:pointer;color:var(--ink);line-height:1.4}
-.chip:hover{border-color:var(--gold)}
 .chip.an{background:var(--gold);color:var(--on-gold);border-color:transparent;font-weight:600}
 .regler-klappe summary{list-style:none;display:inline-block}
 .regler-klappe summary::-webkit-details-marker{display:none}
@@ -189,7 +185,6 @@ main.breit{max-width:1500px}
 .feld-kopf h2{margin:0;font-size:19px;font-weight:600}
 .feld-kopf .bk{margin-left:auto;opacity:.7}
 .feld-korpus{overflow-y:auto;padding:6px 18px 26px;flex:1;position:relative;scrollbar-width:thin}
-.feld::after{content:"";position:absolute}
 .feld-fuss{border-top:1px solid var(--line);padding:8px 18px;font-size:13px;color:var(--matt);background:linear-gradient(transparent,var(--karton))}
 .zeile{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
 .zeile:first-child{border-top:0}
@@ -210,10 +205,7 @@ main.breit{max-width:1500px}
 .stimmreihe{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .stimmreihe button{font-size:12.5px;padding:4px 12px}
 .stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
-.mini-kacheln{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.mini-kachel{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
-.mini-kachel a{color:var(--linkfarbe);font-weight:600}
-@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.mini-kacheln{grid-template-columns:1fr}.kacheln,.kacheln.dreier{grid-template-columns:1fr}}
+@media(max-width:980px){.parlament{grid-template-columns:1fr}.feld{height:auto;max-height:72vh}.kacheln,.kacheln.dreier{grid-template-columns:1fr}}
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
 .hf-grid--zwei{grid-template-columns:repeat(2,1fr)}
@@ -246,10 +238,8 @@ main.breit{max-width:1500px}
 #id_ebene{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:20px;flex-wrap:wrap}
 #id_ebene label{font-weight:400;display:flex;gap:7px;align-items:center;font-size:15px;margin:0}
 .kat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:12px 0}
-.kat-grid>*{transition:transform .15s,box-shadow .15s}
+.kat-grid>*{transition:transform var(--d-fast),box-shadow var(--d-fast)}
 .kat-grid>*:hover{transform:translateY(-2px);box-shadow:var(--schatten-hoch)}
-.brotkrume{font-size:13.5px;color:var(--matt)}
-.brotkrume a{color:var(--linkfarbe)}
 .fluss{display:grid;gap:0;position:relative}
 .fluss .station{display:flex;gap:16px;align-items:flex-start;position:relative;padding:0 0 22px 6px}
 .fluss .station:not(:last-child)::before{content:"";position:absolute;left:19px;top:30px;bottom:-4px;width:2px;background:linear-gradient(var(--deep),var(--gold));opacity:.45}
@@ -290,65 +280,72 @@ footer{border-top:1px solid var(--line);padding:34px 20px 40px;font-size:14px;co
 .anstoss-fleck{position:relative}
 .anstoss-x{position:absolute;top:8px;right:12px;font-size:22px;line-height:1;color:var(--matt);text-decoration:none;padding:2px 6px;border-radius:8px}
 .anstoss-x:hover{color:var(--ink);background:color-mix(in srgb,var(--line) 50%,transparent)}
-.anstoss-bestaetigung{background:var(--ok-grund);border:1px solid var(--ok-rand);color:var(--ok-text);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--schatten-hoch);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen .4s cubic-bezier(.22,.8,.3,1) both}
+.anstoss-bestaetigung{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:12px;padding:10px 38px 10px 14px;font-size:14px;font-weight:600;box-shadow:var(--shadow-lift);position:relative;max-width:min(340px,calc(100vw - 36px));animation:auftauchen var(--d-base) var(--e-out) both}
 .anstoss-bestaetigung .anstoss-bx{position:absolute;top:6px;right:10px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7;padding:2px 4px}
 .anstoss-bestaetigung .anstoss-bx:hover{opacity:1}
 .ki-kennzeichen{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid var(--goldsoft);border-radius:999px;font-size:11.5px;letter-spacing:.02em;color:var(--ink);background:color-mix(in srgb,var(--goldsoft) 22%,transparent);vertical-align:1px}
 
-/* ── Politur (Auftrag 1.9. abends): Hochglanz und behutsame Bewegung.
-   Alles ist Zugabe — ohne JavaScript und mit reduzierter Bewegung bleibt
-   jede Funktion unverändert bedienbar. ─────────────────────────────── */
-@keyframes auftauchen{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+/* ── Bewegung (Spec 2.4): gerichtet, kurz, alles Zugabe — ohne JavaScript und mit
+   reduzierter Bewegung bleibt jede Funktion unverändert bedienbar. ─────────── */
+@keyframes auftauchen{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
 @keyframes hineingleiten{from{opacity:0;transform:translateY(12px) scale(.955)}to{opacity:1;transform:none}}
 @keyframes einfahren-oben{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 @keyframes einfahren-rechts{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
 @keyframes wachsen{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-@keyframes blase-auf{0%{opacity:0;transform:translateY(8px) scale(.96)}12%{opacity:1;transform:none}88%{opacity:1}100%{opacity:0;transform:translateY(-4px)}}
-main .feld,main .karte,main .held,main .willkommen-karten .wk,main .weg-schritte .schritt,main .grundsatz,main .fluss-rahmen{animation:auftauchen .6s cubic-bezier(.22,.8,.3,1) both}
-main .feld:nth-child(2),main .wk:nth-child(2),main .schritt:nth-child(2){animation-delay:.06s}
-main .feld:nth-child(3),main .wk:nth-child(3),main .schritt:nth-child(3){animation-delay:.12s}
-main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animation-delay:.18s}
-main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:.24s}
-main .wk:nth-child(6){animation-delay:.3s}
-.faecher{animation:hineingleiten .42s cubic-bezier(.22,.8,.3,1) both}
-.fknoten a,.fknoten .fname{transition:color .15s}
-.filter-leiste{animation:einfahren-oben .4s ease-out both}
-.regler-feld{animation:einfahren-rechts .32s cubic-bezier(.22,.8,.3,1) both}
-.balken b{transform-origin:left;animation:wachsen .8s .25s cubic-bezier(.22,.8,.3,1) both;transition:width .4s}
-.kachel{transition:transform .18s cubic-bezier(.22,.8,.3,1),box-shadow .18s,border-color .18s}
-.kachel:hover{transform:translateY(-3px);box-shadow:var(--schatten-hoch);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
+@keyframes schimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+main .feld,main .karte,main .held,main .willkommen-karten .wk,main .weg-schritte .schritt,main .grundsatz,main .fluss-rahmen{animation:auftauchen var(--d-grow) var(--e-out) both}
+main .feld:nth-child(2),main .wk:nth-child(2),main .schritt:nth-child(2){animation-delay:50ms}
+main .feld:nth-child(3),main .wk:nth-child(3),main .schritt:nth-child(3){animation-delay:100ms}
+main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animation-delay:150ms}
+main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:200ms}
+main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-delay:250ms}
+.faecher{animation:hineingleiten var(--d-slide) var(--e-out) both}
+.fknoten a,.fknoten .fname{transition:color var(--d-fast)}
+.filter-leiste{animation:einfahren-oben var(--d-base) var(--e-out) both}
+.regler-feld{animation:einfahren-rechts var(--d-slide) var(--e-out) both}
+.balken b{transform-origin:left;animation:wachsen var(--d-grow) 150ms var(--e-out) both;transition:width var(--d-grow)}
+.kachel{transition:transform var(--d-fast) var(--e-out),box-shadow var(--d-fast),border-color var(--d-fast)}
+.kachel:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift);border-color:color-mix(in srgb,var(--gold) 45%,var(--line))}
 .karte,.feld{background-image:linear-gradient(180deg,var(--glanz),transparent 46px)}
-.zeile{transition:background .15s}
+.zeile{transition:background var(--d-fast)}
 .zeile:hover{background:color-mix(in srgb,var(--gold) 5%,transparent)}
-.btn,.btn-linie,.btn-hell,.btn-still,.chip{transition:transform .16s cubic-bezier(.22,.8,.3,1),box-shadow .16s,background .16s,border-color .16s}
-.btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.22)}
+.btn,.btn-linie,.btn-hell,.btn-still,.chip{transition:transform var(--d-fast) var(--e-out),box-shadow var(--d-fast),background var(--d-fast),border-color var(--d-fast),color var(--d-fast)}
+.btn:hover{background:var(--gold-soft);transform:translateY(-1px);box-shadow:0 3px 10px rgba(14,34,48,.22)}
 .btn:active,.btn-linie:active,.chip:active{transform:scale(.965)}
 .chip:hover{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
-.stern{transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.stern{transition:transform var(--d-fast) var(--e-spring)}
 .stern:hover{transform:scale(1.22)}
 .stern:active{transform:scale(.9)}
-a,button{outline-color:color-mix(in srgb,var(--gold) 70%,var(--ink))}
-:focus-visible{outline:2px solid color-mix(in srgb,var(--gold) 70%,var(--ink));outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
 .feld-suche{margin-left:auto;flex:0 1 15em;min-width:0}
-.feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--paper)}
-.feld-suche input:focus{background:var(--karton)}
+.feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--surface-2)}
+.feld-suche input:focus{background:var(--surface)}
 @view-transition{navigation:auto}
-::view-transition-old(root){animation-duration:.16s}
-::view-transition-new(root){animation-duration:.24s}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation-duration:.001s!important;animation-delay:0s!important;transition-duration:.001s!important}
-  ::view-transition-old(*),::view-transition-new(*),::view-transition-group(*){animation:none!important}
-}
-.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background .15s}
+::view-transition-old(root){animation-duration:var(--d-fast)}
+::view-transition-new(root){animation-duration:var(--d-base)}
+/* Skelett-Zustände (Spec 4 und 6): liegen über dem Feldkörper, nur während eines htmx-Feldtauschs sichtbar */
+.skelett-feld{display:none;position:absolute;left:16px;right:16px;top:8px;gap:10px}
+.skelett{background:var(--surface-2);border-radius:10px;height:14px;position:relative;overflow:hidden}
+.skelett.kachel-form{height:96px;border-radius:12px}
+.skelett.b70{width:70%}.skelett.b45{width:45%}
+.skelett::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,var(--glanz),transparent);animation:schimmer 1.6s linear infinite}
+.feld.htmx-request .feld-korpus>:not(.skelett-feld){visibility:hidden}
+.feld.htmx-request .skelett-feld.zeilen{display:flex;flex-direction:column}
+.feld.htmx-request .skelett-feld.kacheln{display:grid;grid-template-columns:repeat(2,1fr)}
+.anstoss-fleck summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;background:var(--gold);color:var(--on-gold);font-weight:700;font-size:14.5px;padding:10px 16px;border-radius:999px;border:1px solid rgba(20,35,46,.18);box-shadow:var(--shadow-lift);transition:background var(--d-fast)}
 .anstoss-fleck summary::-webkit-details-marker{display:none}
-.anstoss-fleck summary:hover{background:var(--goldsoft)}
-.anstoss-karte{animation:auftauchen .32s cubic-bezier(.22,.8,.3,1) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
+.anstoss-fleck summary:hover{background:var(--gold-soft)}
+.anstoss-karte{animation:auftauchen var(--d-slide) var(--e-out) both;position:absolute;right:0;bottom:54px;width:min(340px,calc(100vw - 36px));background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-lift)}
 .anstoss-karte h3{font-size:16px;margin-bottom:6px}
 .anstoss-echo{font-size:13.5px;margin:2px 0 8px;color:var(--matt)}
 .anstoss-echo.danke{color:var(--goldtief);font-weight:600}
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
 @media print{header,footer,nav,.menue-knopf,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
+/* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0s!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
 </style>
 <script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>

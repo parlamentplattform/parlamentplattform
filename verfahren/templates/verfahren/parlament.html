@@ -79,7 +79,7 @@
           <span><a class="treffer-link" href="?fach={{ t.k.slug }}#feld-favoriten"
               hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
             <br><span class="meta">{{ t.k.pfad_kurz }}{% if t.laufend %} · {% blocktranslate count n=t.laufend %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% endif %}</span></span>
-          {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k.name abonniert=t.abonniert %}{% endif %}
+          {% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k.name abonniert=t.abonniert %}
         </div>
         {% empty %}
         <p class="leer abstand">{% translate "Nichts gefunden — andere Schreibweise oder ein Schlagwort versuchen." %}</p>

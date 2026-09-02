@@ -8,11 +8,11 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
   <div class="k-kopf">
     {% if k.thema %}
     <span class="k-thema">
-      {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=k.thema.slug name=k.thema.name abonniert=k.thema_abonniert klein=True %}{% endif %}
+      {% include "verfahren/_kategorie_stern.html" with slug=k.thema.slug name=k.thema.name abonniert=k.thema_abonniert klein=True %}
       <span class="k-thema-name" title="{{ k.thema.pfad_kurz }}">{{ k.thema.name }}</span>
     </span>
     {% endif %}
-    {% if user.is_authenticated %}<span class="k-stern">{% include "verfahren/_stern.html" with antrag=k.antrag %}</span>{% endif %}
+    <span class="k-stern">{% include "verfahren/_stern.html" with antrag=k.antrag %}</span>
   </div>
 
   <a class="k-titel" href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>

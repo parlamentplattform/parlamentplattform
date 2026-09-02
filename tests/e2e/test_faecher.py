@@ -75,13 +75,13 @@ def test_klick_zoomt_hinein_und_ab_tiefe_drei_sitzt_der_anker_in_der_mitte(seite
     p = seite()
     p.goto(f"{live_server.url}/parlament/")
     _ruhe(p)
-    saeule = p.locator("#feld-favoriten .fknoten.kind a").first
+    saeule = p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first
     name = saeule.get_attribute("title")
     saeule.click()
     _anker_heisst(p, name)
     _ruhe(p)
     assert p.locator("#feld-favoriten .brot").inner_text().startswith("Lebensbereiche")
-    bereich = p.locator("#feld-favoriten .fknoten.kind a").first
+    bereich = p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first
     name2 = bereich.get_attribute("title")
     bereich.click()
     _anker_heisst(p, name2)
@@ -108,7 +108,7 @@ def test_ohne_javascript_bleibt_der_ruhe_ast_und_jeder_knoten_ein_link(seite, li
     andere = fach.locator(".fknoten[x-cloak]")
     assert andere.count() > 0 and not andere.first.is_visible()
     assert {"anker", "kind", "enkel", "urenkel", "ururenkel"} <= set(p.evaluate(SICHTBARE_ROLLEN))
-    saeule = fach.locator(".fknoten.kind a").first
+    saeule = fach.locator(".fknoten.kind a[href^='?fach=']").first
     name = saeule.get_attribute("title")
     saeule.click()
     p.wait_for_load_state()

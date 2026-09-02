@@ -66,9 +66,9 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.locator("#feld-favoriten .fknoten.enkel").nth(6).hover()
     p.wait_for_timeout(300)
     halte_feld(p, "faecher-hover-ast")
-    p.locator("#feld-favoriten .fknoten.kind a").first.click()
+    p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first.click()
     p.wait_for_timeout(900)
-    p.locator("#feld-favoriten .fknoten.kind a").first.click()
+    p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first.click()
     p.wait_for_timeout(900)
     halte_feld(p, "faecher-mitte")
 

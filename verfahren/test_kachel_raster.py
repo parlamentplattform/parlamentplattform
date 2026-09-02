@@ -33,7 +33,8 @@ def test_kachel_traegt_thema_mit_eigenem_stern(client, ordnung):  # noqa: F811
     feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
     assert f'<article class="kachel" data-antrag="{antrag.pk}">' in feld
     assert 'class="k-thema-name" title="Energie">Energie</span>' in feld
-    assert "stern klein" not in feld  # Gäste sehen keinen Stern
+    assert 'class="stern klein aus gast"' in feld  # Gäste sehen den Stern als Weg zur Anmeldung (FB-C4)
+    assert "abonnieren/" not in feld  # aber kein Formular
     client.force_login(anna)
     feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
     assert 'action="/kategorien/energie/abonnieren/"' in feld

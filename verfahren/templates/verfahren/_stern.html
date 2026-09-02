@@ -1,6 +1,9 @@
-{% load i18n %}<form method="post" action="{% url 'verfahren:favorisieren' antrag.pk %}"
+{% load i18n %}{% comment %}
+Der Antrags-Stern (FB-C4, FB-D2): Mitglieder merken sich den Antrag (htmx tauscht nur den Stern);
+Gäste sehen denselben Stern als Weg zur Anmeldung. Erwartet antrag, optional ist_favorit/weiter/klein.
+{% endcomment %}{% if user.is_authenticated %}<form method="post" action="{% url 'verfahren:favorisieren' antrag.pk %}"
   hx-post="{% url 'verfahren:favorisieren' antrag.pk %}" hx-swap="outerHTML transition:true" class="stern-form">
   {% csrf_token %}<input type="hidden" name="weiter" value="{{ weiter|default:request.get_full_path }}">
-  {% if ist_favorit or antrag.pk in meine_favoriten %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
-  {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}
-</form>
+  {% if ist_favorit or antrag.pk in meine_favoriten %}<button class="stern{% if klein %} klein{% endif %}" aria-pressed="true" title="{% translate 'Favorit entfernen' %}">&#9733;</button>
+  {% else %}<button class="stern{% if klein %} klein{% endif %} aus" aria-pressed="false" title="{% translate 'Als Favorit merken' %}">&#9734;</button>{% endif %}
+</form>{% else %}<a class="stern{% if klein %} klein{% endif %} aus gast" href="{% url 'mitglieder:login' %}" title="{% translate 'Anmelden, um Favoriten zu merken' %}" aria-label="{% translate 'Anmelden, um Favoriten zu merken' %}">&#9734;</a>{% endif %}

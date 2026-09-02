@@ -326,7 +326,18 @@ def index(request):
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
     wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[:3]
-    return render(request, "verfahren/index.html", {"buehne": buehne, "wichtige": wichtige})
+    return render(
+        request,
+        "verfahren/index.html",
+        {"buehne": buehne, "wichtige": wichtige, "meine_favoriten": _meine_favoriten(request.user)},
+    )
+
+
+def _meine_favoriten(nutzer) -> set[int]:
+    """Antrags-IDs, die das Mitglied sich gemerkt hat — für den Stern an jeder Antragszeile (FB-C4)."""
+    if not nutzer.is_authenticated:
+        return set()
+    return set(nutzer.favoriten.values_list("antrag_id", flat=True))
 
 
 def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
@@ -623,6 +634,7 @@ def umsetzung(request):
             "zaehlung": zaehlung,
             "gewaehlt": gewaehlt,
             "statuswahl": Vollzugsstatus.choices,
+            "meine_favoriten": _meine_favoriten(request.user),
         },
     )
 

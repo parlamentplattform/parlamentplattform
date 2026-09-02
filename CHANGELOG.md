@@ -15,6 +15,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 - 35 neue Tests (Kern v2, Einbau, Parameterseite, Datenmigration, fünf Bildschirmtests) — 646 gesamt
 
 ### Geändert
+- **Der Stern steht überall (FB-C4):** an jedem Antrag und jedem Lebensbereich — im Fächer, im Feed, in den Kacheln, in der Feldsuche, auf der Startseite, der Antragsseite und im Umsetzungsregister. Mitglieder schalten ihn, Gäste sehen denselben Stern als Weg zur Anmeldung (bisher sahen Gäste gar keinen)
 - Die Parameterseite erklärt die Regel v2 Regler für Regler (Anker `#weicherfilter`); der Link im Overlay heißt „Regel v2 nachlesen ›"
 - Englischer Katalog um 57 Texte ergänzt (darunter Reste aus S2: „Mitreden", „Erfasst", „Unterstützt")
 

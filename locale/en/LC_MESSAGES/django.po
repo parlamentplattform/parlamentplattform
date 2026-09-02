@@ -3680,3 +3680,9 @@ msgid "%(b)s Beitrag"
 msgid_plural "%(b)s Beiträge"
 msgstr[0] "%(b)s contribution"
 msgstr[1] "%(b)s contributions"
+
+msgid "Anmelden, um Favoriten zu merken"
+msgstr "Sign in to keep favourites"
+
+msgid "Anmelden, um Lebensbereiche zu abonnieren"
+msgstr "Sign in to subscribe to areas of life"

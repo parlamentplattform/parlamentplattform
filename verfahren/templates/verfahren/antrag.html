@@ -14,6 +14,7 @@
   {% if ist_favorit %}<button class="stern" title="{% translate 'Favorit entfernen' %}">&#9733; {% translate "Favorit" %}</button>
   {% else %}<button class="stern aus" title="{% translate 'Als Favorit merken' %}">&#9734; {% translate "merken" %}</button>{% endif %}
 </form>
+{% else %}<a class="stern aus gast" href="{% url 'mitglieder:login' %}" title="{% translate 'Anmelden, um Favoriten zu merken' %}">&#9734; {% translate "merken" %}</a>
 {% endif %}</p>
 {% if antrag.hervorgehoben %}<div class="karte hinweis"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
 {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}

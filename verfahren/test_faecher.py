@@ -124,7 +124,8 @@ def test_faecher_im_parlament_auch_fuer_gaeste(client):
     inhalt = client.get("/parlament/?fach=").content.decode()
     assert 'class="faecher"' in inhalt and "Leben" in inhalt
     assert 'href="?fach=umwelt#feld-favoriten"' in inhalt  # echte Links, kein JavaScript nötig
-    assert "abonnieren" not in inhalt  # Gäste sehen keine Stern-Formulare
+    assert "abonnieren/" not in inhalt  # Gäste sehen keine Stern-Formulare …
+    assert 'class="stern aus gast"' in inhalt  # … aber den Stern als Weg zur Anmeldung (FB-C4)
     assert 'class="parlament"' in inhalt  # die übrigen Felder bleiben
     assert 'class="fknoten kind f22 p1"' in inhalt  # Säulenfarbe der ersten Säule
     assert 'class="brot"' not in inhalt  # an der Wurzel keine Brotkrume

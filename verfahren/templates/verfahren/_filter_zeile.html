@@ -30,7 +30,7 @@ favorit, anteile, punkte).
   </details>
   {% endif %}
   <div class="za">
-    {% if user.is_authenticated %}{% include "verfahren/_stern.html" with antrag=z.antrag %}{% endif %}
+    {% include "verfahren/_stern.html" with antrag=z.antrag %}
     {% if z.stat.typ == "abstimmung" and not user.is_authenticated %}
       <a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
     {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}

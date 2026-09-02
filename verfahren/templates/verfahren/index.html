@@ -253,6 +253,7 @@ sichtbar weiter — was sich ändert, steht offen im Änderungsprotokoll und in 
   <div class="zeile">
     <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
       <br><span class="meta">{{ a.phase|phase_name }}</span></span>
+    {% include "verfahren/_stern.html" with antrag=a %}
   </div>
   {% endfor %}
 </section>

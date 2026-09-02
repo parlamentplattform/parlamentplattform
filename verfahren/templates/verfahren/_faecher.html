@@ -13,7 +13,7 @@ der Faden zur Wurzel leuchtet, und ein Klick zoomt vom Klickpunkt hinein, bevor 
     style="left:{{ k.x_prozent }}%;top:{{ k.y_prozent }}%;max-width:{{ k.breite_prozent }}%"
     data-slug="{{ k.slug }}" data-eltern="{{ k.eltern }}"{% if k.ast %} data-ast="{{ k.ast }}" x-show="ast === '{{ k.ast }}'"{% if not k.sichtbar %} x-cloak{% endif %}{% endif %}
     @mouseenter="hebe('{{ k.slug }}'){% if k.ast_kandidat %}; entfalte('{{ k.slug }}'){% endif %}" @focusin="hebe('{{ k.slug }}'){% if k.ast_kandidat %}; entfalte('{{ k.slug }}'){% endif %}">
-    {% if user.is_authenticated %}{% include "verfahren/_kategorie_stern.html" with slug=k.slug name=k.name abonniert=k.abonniert %}{% endif %}
+    {% include "verfahren/_kategorie_stern.html" with slug=k.slug name=k.name abonniert=k.abonniert %}
     {% if k.rolle == "anker" %}<span class="fname" title="{{ k.name }}">{{ k.name }}</span>
     {% else %}<a href="?fach={{ k.slug }}#feld-favoriten" title="{{ k.name }}"
       hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten" @click="zoome($event)">{{ k.name }}</a>{% endif %}

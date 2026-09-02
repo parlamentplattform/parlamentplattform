@@ -189,6 +189,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-of
 .meldung.info{border-color:var(--deep);background:var(--info-grund);color:var(--info-text)}
 .meldung.error{border-color:var(--warn-rand);background:var(--warn-grund);color:var(--warn-text)}
 .meldung.warning{border-color:var(--hinweis);background:var(--hinweis-bg);color:var(--hinweis)}
+.meldung-x{float:right;margin-left:12px;font-size:20px;line-height:1;color:inherit;text-decoration:none;opacity:.7}
+.meldung-x:hover{opacity:1}
+/* Im Parlament (body.voll) liegen Meldungen als fester Stapel unter der Leiste — das Raster verrutscht nicht (FB-A2, bis S2 sie in die Kachel legt) */
+body.voll .meldungen{position:fixed;top:calc(var(--bar) + var(--band) + 8px);right:12px;z-index:45;width:min(420px,calc(100vw - 24px))}
+body.voll .meldung{box-shadow:var(--shadow-lift)}
+/* Band unter der Leiste (FB-A6): 32 px, Info-Farbe, zwei Links; zählt im 100dvh-Rechenweg über --band */
+body.mit-band{--band:32px}
+.band{height:var(--band);display:flex;align-items:center;gap:10px;padding:0 16px;font-size:13px;background:var(--info-bg);color:var(--info);overflow:hidden}
+.band .band-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.band a{color:inherit;font-weight:600;flex:none;white-space:nowrap}
+.band.pausiert{background:var(--hinweis-bg);color:var(--hinweis)}
 .stimmzeile{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .kommentar{border-top:1px solid var(--line);padding:14px 0 4px;margin-top:12px}
 .kommentar:first-of-type{border-top:0;margin-top:0}
@@ -395,15 +406,12 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>
 <meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="{% block bodyklasse %}{% endblock %}{% if user.is_authenticated and user.status == "pausiert" %} mit-band{% endif %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip" href="#inhalt">{% translate "Zum Inhalt springen" %}</a>
 {% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
+{% block band %}{% if user.is_authenticated and user.status == "pausiert" %}<div class="band pausiert"><span class="band-text">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}</span><a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>{% endif %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
-{% if messages %}{% for m in messages %}<div class="meldung {{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
-{% if user.is_authenticated and user.status == "pausiert" %}
-<div class="meldung info">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}
-<a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>
-{% endif %}
+{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
 {% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}

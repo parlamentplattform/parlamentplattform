@@ -137,3 +137,63 @@ def test_anstoss_im_parlament_in_der_leiste_sonst_schwebend(client):
         assert 'class="anstoss-leiste"' not in html and html.count('class="anstoss-fleck"') == 1, pfad
         assert html.index("</main>") < html.index('class="anstoss-ecke"'), pfad
 
+# ── Bänder, Fußzeile, Meldungen (FB-A6, FB-A1, FB-A2) ──────────────────────────
+
+
+def test_parlament_ohne_fusszeile_andere_seiten_mit(client):
+    assert "<footer" not in client.get(reverse("verfahren:parlament")).content.decode()
+    client.force_login(mitglied_anlegen())
+    assert "<footer" not in client.get(reverse("verfahren:parlament")).content.decode()
+    for pfad in ["/", reverse("verfahren:umsetzung"), reverse("mitglieder:mitgliedschaft")]:
+        assert "<footer" in client.get(pfad).content.decode(), pfad
+
+
+def test_gastband_unter_der_leiste(client):
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    zwischen = html.split("</header>", 1)[1].split("<main", 1)[0]
+    assert 'class="band gast"' in zwischen and "als Gast" in zwischen
+    assert 'href="/anmelden/"' in zwischen and 'href="/mitgliedschaft/"' in zwischen
+    assert '<body class="voll mit-band"' in html
+    assert 'class="meldung info"' not in html.split("<main", 1)[1]
+    client.force_login(mitglied_anlegen())
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert 'class="band' not in html and '<body class="voll"' in html
+    assert 'class="band' not in client.get("/").content.decode()
+
+
+def test_pausiert_band_unter_der_leiste(client):
+    m = mitglied_anlegen()
+    m.status = "pausiert"
+    m.save(update_fields=["status"])
+    client.force_login(m)
+    for pfad in ["/", reverse("verfahren:parlament")]:
+        html = client.get(pfad).content.decode()
+        zwischen = html.split("</header>", 1)[1].split("<main", 1)[0]
+        assert 'class="band pausiert"' in zwischen and 'href="/willkommen/"' in zwischen, pfad
+        assert "mit-band" in html.split("<body", 1)[1].split(">", 1)[0], pfad
+
+
+def test_flash_im_parlament_im_stapel_nicht_im_raster(client):
+    client.force_login(mitglied_anlegen())
+    antwort = client.post(
+        reverse("verfahren:filter_anwenden"), {"weiter": "/parlament/", "r_chronologisch": "40"}, follow=True
+    )
+    html = antwort.content.decode()
+    stapel = html.split('<div class="meldungen">', 1)[1].split('class="parlament"', 1)[0]
+    assert 'class="meldung ' in stapel and 'x-data="meldung"' in stapel and 'class="meldung-x"' in stapel
+
+
+def test_regler_ohne_inline_handler_mit_alpine(client):
+    client.force_login(mitglied_anlegen())
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-filter")
+    assert "oninput" not in feld
+    assert feld.count('type="range"') >= 8
+    assert feld.count('x-model.number="wert"') == feld.count('type="range"')
+    assert '<output x-text="wert">' in feld
+
+
+def test_thema_skript_vor_dem_stil_und_html_ohne_serverseitiges_thema(client):
+    html = client.get("/").content.decode()
+    kopf = html.split("</head>", 1)[0]
+    assert kopf.index("verfahren/js/thema.js") < kopf.index("<style>")
+    assert "data-theme" not in html.split("<head>", 1)[0]

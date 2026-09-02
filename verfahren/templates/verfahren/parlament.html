@@ -3,13 +3,10 @@
 {% block mainklasse %}breit{% endblock %}
 {% block leiste %}{% include "verfahren/_leiste.html" with anstoss_lage="leiste" %}{% endblock %}
 {% block anstoss %}{% endblock %}
+{% block fuss %}{% endblock %}
+{% block bodyklasse %}voll{% if not user.is_authenticated %} mit-band{% endif %}{% endblock %}
+{% block band %}{{ block.super }}{% if not user.is_authenticated %}<div class="band gast"><span class="band-text">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}</span><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% endif %}{% endblock %}
 {% block inhalt %}
-{% if not user.is_authenticated %}
-<div class="meldung info">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}
-  <a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> ·
-  <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>
-{% endif %}
-
 <div class="parlament" id="parlament">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5) — Regler, Profile, offene Reihung ── #}

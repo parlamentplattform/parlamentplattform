@@ -176,6 +176,20 @@ Jede der acht Nachrichten ist hier in nummerierte Forderungen zerlegt (Spalte �
 | 12 | Parlament von Anfang an für Abstimmungen nutzen: Kandidaturen als Anträge; Beteiligung am bestehenden Antrag; meiste Zustimmung gewinnt | FB-L3 ✅ |
 | 13 | Ab wann? (Frage) — Vorgang gehört in die Satzung | FB-L4 (✅ § 7 Abs 1: von Anfang an) |
 
+### A0-09 · Internationale Zusammenarbeit: gemeinsame Grundsoftware, Übertragungspaket, echter Einstieg — Nachricht vom 2.9. (abends)
+
+*Wörtlich in `DDOE_Original_Anweisungen_A0.txt` unter [A0-09]. Eingegangen als Frage „ist der Bereich für die internationale Zusammenarbeit fertig?" — Antwort: nein, Erststufe (FB-M1); der Rest ist S14.*
+
+| Nr. | Forderung | FB |
+|---|---|---|
+| 1 | Der Bereich ist wichtig: grundlegende Vorschläge zur Zusammenarbeit inkl. Schnittstellenbeschreibung und technischen Angaben — „zeigen, dass wir einen Plan haben, dem man sich anschließen kann" | FB-M1 🟡, FB-M5, FB-M6 |
+| 2 | Gemeinsame Grundsoftware: jeder Staat betreibt dieselbe ParlamentPlattform auf eigenen Servern, sie lernt dort selbst; die Weiterentwicklung findet gemeinsam statt, mit regelmäßigem Austausch und Abgleich der Grundsoftware | FB-M6 |
+| 3 | Parameter werden gemeinsam eingeführt, wirken aber auf jeder Landesplattform in eigener Weise und verbessern sich dort selbst — Einstellungen und Umgang sind den Ländern eigen | FB-M5, FB-M6 |
+| 4 | Eine Struktur, wie man ParlamentPlattform und Satzung für die eigene Partei übertragen bekommt, und was zu tun ist, um sich anzuschließen bzw. die Partei im eigenen Land zu gründen | FB-M7 |
+| 5 | Echter Einstieg auf beiden Wegen: bestehende Partei zur direkten Demokratie umgestalten oder neu gründen | FB-M7 |
+| 6 | Unterstützung beim Aufsetzen der staatseigenen Plattform, der Schnittstellen und der Infrastruktur zur gemeinsamen kontinuierlichen Verbesserung des Grundsystems | FB-M4, FB-M6, FB-M7 |
+| 7 | Angebot, sich zusammenzuschließen und gemeinsam weiterzuarbeiten; keine Parteiprogramme, sondern eine gemeinsame Vision, die konkretisiert und angeglichen wird | FB-M8 |
+
 ---
 ## Teil B · Die Detailspezifikationen
 
@@ -875,6 +889,34 @@ Bereich `/gremien/integritaet/` mit Hervorhebung, Zurückweisung (§ 5 Abs 2), B
 **Spezifikation:** Jeder Parameter trägt `schema_key` (englisch, stabil, z. B. `support.window_days`), `schema_version`; `/parameter.json` und neu `/kennzahlen.json` (aggregiert) sind das Austauschformat (dokumentiert in `docs/SCHEMA.md`, versioniert); Import-Command `partner_import <url>` liest fremde Exporte in `PartnerParameter` (system_id, schema_key, wert, stand) für die Gegenüberstellung. Keine personenbezogenen Daten, je.
 **Ist:** ❌ (`/parameter.json` ohne Schema).
 
+#### FB-M6 · Gemeinsame Grundsoftware: ein Kern, viele Landesinstanzen, regelmäßiger Abgleich — ❌
+**Quelle:** A0-09 — *„…jeder verwendet die selbe Grundsoftware also Parlamentplattform die auf deren servern liegt und dort selbst lernt, die weiterentwicklung dieser plattform findet aber gemeinsam statt wobei es regelmäßigen austausch und abgleich der grundsoftware geben soll damit wir gemeinsam an der grundsoftware arbeiten und parametter einführen aber diese parameter auf jeder plattform der länder in der dort eigenen weise wirkt und sich selbst verbessert…"*
+
+**Spezifikation (Vorschlag, Ausarbeitung)**
+- *Kern und Instanzen:* Das gemeinsame Repo `parlamentplattform/parlamentplattform` ist der **Kern**; jedes Land betreibt eine **Instanz** aus einer versionierten Kern-Freigabe (SemVer, `CHANGELOG`) mit eigener Datenbank, eigenem Parameterregister, eigenem Kategorienbaum und eigener Satzungsfassung. Landesspezifisches liegt in **Konfiguration, nicht im Code**: `policies/*.yaml` (Kategorien, Grundordnung), Erstbestand der Parameter je Land, Übersetzungen, `.env`.
+- *Abgleich:* Vierteljährliche Kern-Freigabe; Instanzen ziehen sie mit `git pull` + `migrate` nach (Datenmigrationen idempotent, Grundregel 7). Landeserweiterungen kommen als PR in den Kern, wenn sie parametrisierbar sind — sonst bleiben sie dokumentiertes Modul der Instanz. Ein **Plattform-Rat** (je Land eine Person, Arbeitssprache Englisch) beschließt die Freigaben, Protokoll öffentlich.
+- *Parameter gemeinsam, Wirkung eigen:* Neue Parameter entstehen im Kern mit `schema_key` und Zielwert-Empfehlung (FB-M5); jede Instanz setzt ihren Wert selbst und lernt ihn über ihr Register (F-68). Der Austausch läuft über `/parameter.json` und `/kennzahlen.json` — aggregiert, nie personenbezogen.
+- *Auf `/partner/`:* Schaubild **„Ein Kern, viele Instanzen"** (Inline-SVG: Kern-Kasten, Instanz-Kästen je Land, Pfeile Freigabe ↓, Parameter-Schema ↔, Lernfortschritt ↑) und die Schnittstellenbeschreibung als Kurzfassung mit Link auf `docs/SCHEMA.md`.
+
+**Abnahme:** Auf `/partner/` steht das Modell verständlich mit Schaubild; `docs/SCHEMA.md` beschreibt die Austauschformate; eine zweite Instanz lässt sich aus der Vorlage in unter einer Stunde starten (dokumentiert).
+**Ist:** ❌ (nur Prosa „System und Parameter" auf `/partner/`).
+
+#### FB-M7 · Das Übertragungspaket und der Einstiegs-Fahrplan (umgestalten oder neu gründen) — ❌
+**Quelle:** A0-09 — *„Wir wollen eine Struktur anbieten wie man die ParlamentPlattform und die Satzung für die eigene Partei des eigenen Landes übertragen bekommt und was man tun muss wenn um sich dieser idee anzuschließen bzw. um im eigenen Land ebenfalls diese Partei zu gründen. Es soll ein echter Einstieg möglich sein, ob man nun die bereits bestehende Partei umgestalten will zur direkten demokratie oder eine neue gründen möchte. Man bekommt von uns Unterstützung beim aufsetzen der Staatseigenen Plattform und der Schnittstellen und Infrastruktur…"*
+
+**Spezifikation (Vorschlag, Ausarbeitung)**
+- *Paket `docs/partner/` (EN/DE):* (1) **Satzungs-Baukasten** — Satzung 2.5 als Vorlage mit Länder-Platzhaltern (Name, Rechtsform, Sitz, Wahlrecht) und Kommentar je §: was zwingend zum Modell gehört (§ 2 Werkzeug-Grundsatz, § 5 Verfahren, § 6 Zukunftswerkstatt, § 12 Zusammenarbeit) und was landesspezifisch ist; (2) **Instanz-Vorlage** — `docker-compose`, `.env`-Vorlage, `render.yaml`, Erstbestand der Parameter (JSON), Kategorienbaum (YAML, länderneutral), Demo-Daten; (3) **Einrichtungs-Checkliste** (Domain, E-Mail, eID-Optionen, Datenschutz, Sicherung); (4) **Einstiegs-Fahrplan** in zwei Spuren — *bestehende Partei umgestalten* (Satzungsänderung, Übergangsregeln, Mitgliederabstimmung) und *neu gründen* (Gründungsschritte nach Landesrecht als Platzhalter, erste Mitglieder, Alpha-Betrieb) — je Spur die Schritte, was wir beisteuern (Einrichtung, Schulung, Schnittstellen) und was das Land selbst tut.
+- *Auf `/partner/`:* Abschnitt **„So steigt ihr ein"** mit den zwei Spuren als Karten, das Paket zum Herunterladen (`/partner/paket/` als ZIP aus dem Repo-Stand) und das Kontakt-/Partner-Konto-Formular (FB-M3).
+
+**Abnahme:** Beide Spuren sind auf `/partner/` als Schrittfolge lesbar; das Paket lässt sich herunterladen und enthält Satzungs-Baukasten, Instanz-Vorlage und Checkliste.
+**Ist:** ❌.
+
+#### FB-M8 · Die gemeinsame Vision statt Parteiprogramme — ❓ (Text des Gründers)
+**Quelle:** A0-09 — *„Wir bieten an, sich zusammen zu schließen und gemeinsam weiter an diesem System zu arbeiten. Wir sollten den Faktor nützen, dass wir keine Parteiprogramme haben die wir niemals abgleichen könnten sondern eine gemeinsame Vision die wir konkretisieren und angleichen sollten um uns gegenseitig und die Sache zu fördern."*
+
+**Spezifikation (Vorschlag):** Ein kurzer Text **„Gemeinsame Vision"** (≤ 1 Seite, EN/DE) als Kopf von `/partner/`: das Werkzeug-Prinzip (§ 2 Abs 1), die logisch nächste Form der gesamtgesellschaftlichen Selbstorganisation, Betroffene und Fachkundige, Nachrechenbarkeit, keine Programme — und die Einladung, ihn gemeinsam zu konkretisieren (Fassungen versioniert, Änderungen im Plattform-Rat). ❓ D-M8: Der Gründer schreibt oder gibt den Text frei; Claude legt einen Entwurf als eigene Datei vor (Prinzip „Anfügen statt Einschieben").
+**Ist:** ❌.
+
 ---
 
 ### Bereich N · Menü, Navigation, Namen
@@ -1002,6 +1044,8 @@ Bitte je Zeile: **Ja / Nein / anders (Text)**. Ohne Antwort gilt die Empfehlung.
 | D-P2 | Sans-Schrift überall auf der Plattform, Serif nur Wortmarke (+ optional Erklärseiten)? | Ja — **angewendet in S1 (0.33.0)**, Serif auf den drei Bühnen-H1 |
 | D-Z1 | Satzung-Anhang: doppelte Nummerierung (zweimal 9 und 10) bereinigen → 11, 12 | Ja |
 | D-Z2 | Strategie-Papier Fassung 4: „Vorlage" → „Vorschlag", Zukunftswerkstatt-Name durchziehen, Ringe mit Stand 0.32 | Ja |
+| D-M8 | Text „Gemeinsame Vision" für `/partner/` (FB-M8): Claude legt einen Entwurf als eigene Datei vor, der Gründer schreibt oder gibt frei? | Ja, Entwurf vorlegen |
+| D-S14 | S14 „Internationale Partner" vorziehen? Der Gründer nennt den Bereich am 2.9. abends wichtig (A0-09) | Empfehlung: ja, zweigeteilt — S14a sofort (Partner-Seite mit Schaubild, Gemeinsame Vision, Einstiegs-Fahrplan, Übertragungspaket, `docs/SCHEMA.md`, Schema-Kennungen im Register), S14b nach S5 (Partner-Konto, Rolle, Partner-Bereich, `partner_import`) |
 
 ---
 

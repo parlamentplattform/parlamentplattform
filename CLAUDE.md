@@ -4,15 +4,18 @@ Diese Datei steuert Claude Code in diesem Repository. Sie ist knapp; die Tiefe s
 
 ## 1. Was das hier ist
 
-Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.35.0 am 2.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
+Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.36.0 am 3.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
 
 ## 2. Die maßgeblichen Dokumente (in dieser Reihenfolge lesen)
+
+> **Der Ordner `docs/fahrtenbuch/` ist intern und liegt nicht im Repository** (`.gitignore`, seit 3.9.2026): Er trägt die wörtlichen Anweisungen des Gründers, Bauplan, Soll/Ist, Inventar, Website-Prüfung und den Satzungsentwurf. Auf dem Arbeitsplatz des Gründers liegt er unter `parlamentplattform-phase0/docs/fahrtenbuch/`, Kopien im Arbeitsordner (`DDOE-code/claude-code-uebergabe/`). Wer ohne diesen Ordner arbeitet (CI, fremder Klon), findet die öffentliche Fassung der Zusammenarbeit in `docs/partner/` und `docs/SCHEMA.md`.
 
 1. `docs/fahrtenbuch/DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md` — **der Bauplan.** Jede Forderung des Gründers als FB-Kennung mit Zitat, Spezifikation, Abnahme, Ist, Delta. Teil C = Reihenfolge der Bauschritte S1–S14. Teil D = offene Entscheidungen (ohne Antwort gilt die Empfehlung).
 2. `docs/fahrtenbuch/DDOE_Design_Spezifikation_App-Look.md` — Tokens, Layouts, Komponenten, Bewegung, Zustände, Barrierefreiheit, Bildschirmtests.
 3. `docs/fahrtenbuch/DDOE_SollIst_Abgleich_2026-09-02.md` — was fehlt, was anders ist, Widersprüche im Code.
 4. `docs/fahrtenbuch/Funktionsinventar_Ist_2026-09-02.md` — der Code, Seite für Seite, mit Datei:Zeile (Stand 0.32.0).
-5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 009).
+5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 010).
+   Öffentlich für Schwesterparteien: `docs/SCHEMA.md` (Austauschformate, § 12 Abs 5) und `docs/partner/` (Vision, Einstieg, Einrichtung, Satzungs-Baukasten — Erzeugnis von `tools/satzung_baukasten.py`).
 6. `docs/fahrtenbuch/Satzung_DDOE_2.5_Entwurf.md` — die Regeln, auf die sich alles bezieht (§ 2 Abs 6, § 5, § 6, § 7, § 12).
 
 Wenn Fahrtenbuch und Code sich widersprechen, gilt das Fahrtenbuch. Wenn Fahrtenbuch und Satzung sich widersprechen, gilt die Satzung — und das Fahrtenbuch bekommt einen ❓-Eintrag.

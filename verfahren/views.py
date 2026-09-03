@@ -2,15 +2,17 @@
 Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)."""
 
 import json
+from pathlib import Path
 
-from django.http import JsonResponse
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-from plattform_core import Phase
+from plattform_core import Phase, __version__
 from plattform_core.phases import (
     abstimmung_frist_ende,
     beratung_frist_ende,
@@ -671,12 +673,80 @@ def gesund(request):
     return JsonResponse({"status": "ok"})
 
 
+# Das Übertragungspaket (FB-M7): (Name im ZIP, Pfad relativ zur Repo-Wurzel) — alles aus dem
+# Repo-Stand, nichts aus der Datenbank dieser Instanz.
+PAKET_DATEIEN = (
+    ("GEMEINSAME_VISION.md", "docs/partner/GEMEINSAME_VISION.md"),
+    ("EINSTIEG.md", "docs/partner/EINSTIEG.md"),
+    ("EINRICHTUNG.md", "docs/partner/EINRICHTUNG.md"),
+    ("SATZUNG_BAUKASTEN.md", "docs/partner/SATZUNG_BAUKASTEN.md"),
+    ("SCHEMA.md", "docs/SCHEMA.md"),
+    ("instanz/docker-compose.yml", "docs/partner/instanz/docker-compose.yml"),
+    ("instanz/env.example", "docs/partner/instanz/env.example"),
+    ("instanz/render.yaml", "docs/partner/instanz/render.yaml"),
+    ("policies/kategorien-v2.yaml", "policies/kategorien-v2.yaml"),
+    ("policies/grundordnung-v1.yaml", "policies/grundordnung-v1.yaml"),
+)
+PAKET_ERZEUGT = ("README-PAKET.md", "parameter-erstbestand.json")
+
+
 def partner(request):
-    """P9-Erststufe (§ 12, „Labor der Demokratien"): die Einladung an die
-    verwandten Parteien weltweit — Strategie, Fahrplan der Zusammenarbeit,
-    Kontakt. Bewusst unaufdringlich über die Fußzeile erreichbar; die
-    Partner-Rolle mit eigener Oberfläche folgt auf dem Rollen-Fundament."""
-    return render(request, "verfahren/partner.html")
+    """§ 12, FB-M1/M6/M7/M8 („Labor der Demokratien"): die Einladung an die verwandten
+    Parteien weltweit — gemeinsame Vision, das Modell „ein Kern, viele Instanzen" mit
+    Schaubild, die Schnittstelle, der Einstiegs-Fahrplan in zwei Spuren, das
+    Übertragungspaket, Kontakt. Unaufdringlich über die Fußzeile erreichbar; das
+    Partner-Konto mit eigener Oberfläche folgt (S14b)."""
+    return render(
+        request,
+        "verfahren/partner.html",
+        {
+            "version": __version__,
+            "system_id": settings.DDOE_SYSTEM_ID,
+            "paket": [name for name, _pfad in PAKET_DATEIEN] + list(PAKET_ERZEUGT),
+        },
+    )
+
+
+def _paket_readme() -> str:
+    zeilen = "\n".join(f"- `{name}`" for name in [n for n, _p in PAKET_DATEIEN] + list(PAKET_ERZEUGT))
+    return (
+        f"# ParlamentPlattform — Übertragungspaket {__version__}\n\n"
+        "Alles, was eine Schwesterpartei braucht, um die ParlamentPlattform und die Satzung für das\n"
+        "eigene Land zu übernehmen (Satzung § 12, Fahrtenbuch FB-M7). Reihenfolge: EINSTIEG.md lesen,\n"
+        "SATZUNG_BAUKASTEN.md anpassen, EINRICHTUNG.md abarbeiten, Instanz aus `instanz/` starten,\n"
+        "SCHEMA.md für den Austausch. Quellcode und aktuelle Fassung:\n"
+        "https://github.com/parlamentplattform/parlamentplattform — Kontakt: plattform@ddoe.at\n\n"
+        "Everything a sister party needs to adopt the ParlamentPlattform and the statutes for its own\n"
+        "country. Order: read EINSTIEG.md, adapt SATZUNG_BAUKASTEN.md, work through EINRICHTUNG.md,\n"
+        "start an instance from `instanz/`, use SCHEMA.md for the exchange between instances.\n\n"
+        f"## Inhalt / Contents\n\n{zeilen}\n"
+    )
+
+
+def partner_paket(request):
+    """FB-M7: das Übertragungspaket als ZIP — Satzungs-Baukasten, Einstiegs-Fahrplan, Checkliste,
+    Instanz-Vorlage, Schema, Kategorienbaum, Verfahrensordnung und der Erstbestand der Stellgrößen
+    mit Schema-Kennungen. Erzeugt aus dem Repo-Stand, ohne Daten dieser Instanz."""
+    import io
+    import zipfile
+
+    from parameter.models import ERSTBESTAND
+    from plattform_core.schema import SCHEMA_VERSION, schema_key
+
+    wurzel = Path(__file__).resolve().parent.parent
+    puffer = io.BytesIO()
+    with zipfile.ZipFile(puffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("README-PAKET.md", _paket_readme())
+        for name, pfad in PAKET_DATEIEN:
+            zf.write(wurzel / pfad, name)
+        erstbestand = [{**e, "schema_key": schema_key(e["schluessel"])} for e in ERSTBESTAND]
+        zf.writestr(
+            "parameter-erstbestand.json",
+            json.dumps({"schema_version": SCHEMA_VERSION, "parameter": erstbestand}, ensure_ascii=False, indent=1),
+        )
+    antwort = HttpResponse(puffer.getvalue(), content_type="application/zip")
+    antwort["Content-Disposition"] = f'attachment; filename="parlamentplattform-paket-{__version__}.zip"'
+    return antwort
 
 
 def zukunftswerkstatt(request):

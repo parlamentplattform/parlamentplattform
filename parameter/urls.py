@@ -6,6 +6,7 @@ app_name = "parameter"
 urlpatterns = [
     path("parameter/", views.liste, name="liste"),
     path("parameter.json", views.export_json, name="export"),
+    path("kennzahlen.json", views.kennzahlen_json, name="kennzahlen"),
     path("verwaltung/parameter/", views.verwaltung, name="verwaltung"),
     path("verwaltung/parameter/aktion/", views.verwaltung_aktion, name="verwaltung_aktion"),
 ]

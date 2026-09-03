@@ -11,3 +11,8 @@ htmlcov/
 *.egg-info/
 dist/
 .sichtpruefung-fluechtig/
+
+# Das Fahrtenbuch und die Übergabe-Dokumente sind intern (Anweisungen des Gründers, Soll/Ist,
+# Inventar, Website-Prüfung, Satzungsentwurf). Sie liegen lokal in docs/fahrtenbuch/ und werden
+# NICHT veröffentlicht; der daraus erzeugte Satzungs-Baukasten in docs/partner/ ist der öffentliche Teil.
+docs/fahrtenbuch/

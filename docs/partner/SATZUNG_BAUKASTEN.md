@@ -1,57 +1,89 @@
-# Satzung der Direkte Demokratie Österreich (DDÖ)
+# Satzungs-Baukasten — Vorlage für eine Schwesterpartei
 
-**Version 2.5 — Entwurf vom 1. September 2026**
-**Ersetzt Version 1.3 vom 29.10.2024**
-**Änderung gegenüber 2.4 (Mandatar-Steuerung):** § 7 Abs 1 neu gefasst — Mandats-Kandidaturen laufen als **Anträge** auf der ParlamentPlattform (jedes wählbare Mitglied kann jederzeit kandidieren oder sich einem bestehenden Kandidatur-Antrag anschließen; die meiste Zustimmung gewinnt, die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags); § 7 Abs 9 neu (**Mandatar-Steuerung**: öffentlicher Mandatars-Bereich mit Lichtbild, Aufgaben und Entscheidungsprozessen; Rolle „Mandatar" mit Instant-Berichten samt Fristen und betreuten Abstimmungen); § 7 Abs 3 lit b entsprechend ergänzt; Anhang-Prüfpunkt 10 neu, Prüfpunkt-Zählung berichtigt.
-**Änderung gegenüber 2.1:** § 5 Abs 10 neu (Leitgestalt des Hauptzugangs — die vier Bereiche aus Satzung 1.3, Technischer Entwicklungsrat); § 5 Abs 7 und § 6 Abs 4 entsprechend angepasst.
-**Änderung gegenüber 2.3 (Zukunftswerkstatt):** Die StaatsSimulation wird Rechenkern der neu benannten **Zukunftswerkstatt** — Werkzeug zur rekursiven Optimierung der gesamtgesellschaftlichen Selbstorganisation (§ 6 Abs 11 neu: Bestandteile, Parameterverfahren, Kennzahlen-Schranken, Lernschleife); § 5 Abs 12 neu (Entwurfsschleife); § 5 Abs 10 lit d um den mitgliedergesteuerten Filter („WeicherFilter“) ergänzt; § 6 Abs 7 um die Zwei-Gruppen-Struktur des Expertenrats erweitert; § 12 Abs 5 neu (Arbeitsweise der internationalen Zusammenarbeit); § 2 Abs 6 klargestellt; Begriffsanpassungen in § 5 Abs 3 und 6, § 6 Abs 3 und 4; Anhang-Prüfpunkt 8 neu.
-**Änderung gegenüber 2.2 (Selbstregulation):** § 2 Abs 7 um die Selbstregulation ergänzt; § 5 Abs 11 neu (Taktung und Überlastungsschutz); § 6 Abs 10 neu (Vollzugsrückmeldung und Umsetzungsregister); Querverweis in § 5 Abs 7 („Absätze 1 bis 11") und Prüfpunkt 2 des Anhangs entsprechend angepasst.
+*Abgeleitet aus der Satzung der DDÖ, Version 2.5 (Entwurf vom 1. September 2026), erzeugt von `tools/satzung_baukasten.py`. Die Satzung der DDÖ selbst ändert nur ihr Gründer; diese Vorlage ist ein Vorschlag im Sinne von § 12 Abs 2 (Austausch bewährter Verfahren) — kein Rechtsrat.*
 
-> **Status:** Arbeitsentwurf, rechtlich geprüft, aber nicht anwaltlich freigegeben. Die im Anhang genannten Punkte sind vor der Hinterlegung beim Bundesminister für Inneres von einer Rechtsanwältin oder einem Rechtsanwalt mit Schwerpunkt Verfassungs- und Parteienrecht abzunehmen. Mit **[…]** markierte Stellen sind vor der Beschlussfassung zu befüllen.
+## 1. Platzhalter ersetzen
+
+| Platzhalter | Bedeutung |
+|---|---|
+| `[PARTEINAME]` | voller Name der Partei |
+| `[KÜRZEL]` | Kurzbezeichnung |
+| `[LAND]` | Staat, in dem die Partei wirkt |
+| `[SITZ]` | Ort, Gemeinde, Region des Sitzes |
+| `[REGISTRIERUNGSBEHÖRDE]` | Behörde, bei der die Satzung hinterlegt oder die Partei registriert wird |
+| `[PARTEIENGESETZ]` | das Parteien- oder Vereinsrecht des Landes samt Fundstelle |
+| `[PARLAMENT]` | das nationale Parlament |
+| `[LANDESPARLAMENT]` | die Parlamente der Gliedstaaten oder Regionen — entfällt in Einheitsstaaten |
+| `[WÄHRUNG]` | Landeswährung |
+
+## 2. Kern behalten, Landesrecht anpassen
+
+Die Paragrafen des **Kerns** machen das Modell aus — wer sie ändert, betreibt eine andere Partei. Die **Landesrecht**-Paragrafen sind bewusst offen: Sie tragen das Modell in die eigene Rechtsordnung.
+
+| Paragraf | Einordnung | Hinweis |
+|---|---|---|
+| § 2 Ziel, Zweck und Wesen | **Kern** | Werkzeug-Grundsatz, keine Programme, offene Reihung — unverändert übernehmen |
+| § 3 Grundsätze des Wesenskerns | **Kern** | unverändert übernehmen |
+| § 5 ParlamentPlattform und Verfahren | **Kern** | Phasen, Einfrieren der Regeln, Nachrechenbarkeit, die vier Bereiche, WeicherFilter, Entwurfsschleife — unverändert; Zahlenwerte gehören in die eigene Verfahrensordnung |
+| § 6 Organe | **Kern** | Rollen, Expertenrat, Koordinationsrat, Zukunftswerkstatt, Umsetzungsregister — Namen der Organe dürfen dem Landesrecht folgen |
+| § 7 Mandaterteilung | **Kern** | Kandidaturen als Anträge, Mandatsvereinbarung, Rechenschaft — Wahlrecht des Landes beachten |
+| § 9 Stufen der Zielverwirklichung | **Kern** | Zeithorizont und Stufen ans Land anpassen |
+| § 12 Internationale Zusammenarbeit | **Kern** | Abs 5 (Arbeitsweise: Schema, offene Werkzeuge, Austausch) unverändert; Abs 3 (Spenden aus dem Ausland) nach Landesrecht |
+| § 1 Name, Sitz, Vertretung | **Landesrecht** | Platzhalter füllen; Vertretungsregel nach Landesrecht |
+| § 4 Mitgliedschaft | **Landesrecht** | Beitritt, Beitrag, Anwartschaft: Grundsatz „ein Konto je Mensch, geprüfte Identität“ behalten, Fristen und Beiträge frei |
+| § 8 Transparenz, Ethik, Datenschutz | **Landesrecht** | Datenschutzrecht des Landes einsetzen (DSGVO oder Entsprechung); der Grundsatz bleibt |
+| § 10 Finanzierung | **Landesrecht** | Parteienfinanzierung des Landes |
+| § 11 Schiedsgericht | **Landesrecht** | Streitbeilegung nach Landesrecht |
+| § 13 Teilhabe, Barrierefreiheit | **Kern + Landesrecht** | Präsenz- und Schriftverfahren behalten; Identitätsfeststellung nach den Mitteln des Landes |
+| § 14 Gliederung | **Landesrecht** | der territorialen Gliederung des Landes folgen |
+| § 15–17 Satzungsänderung, Auflösung, Inkrafttreten | **Landesrecht** | Mehrheiten und Fristen nach Landesrecht; Änderungen bleiben Beschlüsse der Mitgliederversammlung auf der Plattform |
+
+## 3. Prüfung im eigenen Land
+
+Der Anhang am Ende listet die Punkte, die in Österreich anwaltlich zu prüfen waren. Sie sind ein Raster für die eigene Prüfung — jedes Land hat seine eigenen Fallstricke (Registrierung, Parteienfinanzierung, Datenschutz, Wahlrecht).
 
 ---
-
 ## § 1 Name, Sitz, Tätigkeitsbereich und Vertretung
 
-1. Die Partei führt den Namen **Direkte Demokratie Österreich**, Kurzbezeichnung **DDÖ**.
+1. Die Partei führt den Namen **[PARTEINAME]**, Kurzbezeichnung **[KÜRZEL]**.
 
-2. Der Sitz der Partei ist Unterfreundorf, Gemeinde Sankt Marienkirchen an der Polsenz, Bundesland Oberösterreich. Ihr Tätigkeitsbereich erstreckt sich auf das gesamte Bundesgebiet der Republik Österreich.
+2. Der Sitz der Partei ist [SITZ]. Ihr Tätigkeitsbereich erstreckt sich auf das gesamte Bundesgebiet der [LAND].
 
-3. Die Partei hat mit der Hinterlegung ihrer Satzung beim Bundesminister für Inneres Rechtspersönlichkeit erlangt. Änderungen dieser Satzung werden mit ihrer Hinterlegung beim Bundesminister für Inneres wirksam.
+3. Die Partei hat mit der Hinterlegung ihrer Satzung beim [REGISTRIERUNGSBEHÖRDE] Rechtspersönlichkeit erlangt. Änderungen dieser Satzung werden mit ihrer Hinterlegung beim [REGISTRIERUNGSBEHÖRDE] wirksam.
 
-4. **Vertretung.** Die Partei wird durch jeweils zwei Mitglieder des Koordinationsrats gemeinsam vertreten. Der Koordinationsrat bestellt aus seiner Mitte die vertretungsbefugten Personen, bestimmt den Umfang ihrer Vertretungsbefugnis und kann die Bestellung jederzeit widerrufen. Die Bestellung gilt für die Dauer der Funktionsperiode des Koordinationsrats. Die vertretungsbefugten Personen sowie jede Änderung sind dem Bundesminister für Inneres unverzüglich bekanntzugeben.
+4. **Vertretung.** Die Partei wird durch jeweils zwei Mitglieder des Koordinationsrats gemeinsam vertreten. Der Koordinationsrat bestellt aus seiner Mitte die vertretungsbefugten Personen, bestimmt den Umfang ihrer Vertretungsbefugnis und kann die Bestellung jederzeit widerrufen. Die Bestellung gilt für die Dauer der Funktionsperiode des Koordinationsrats. Die vertretungsbefugten Personen sowie jede Änderung sind dem [REGISTRIERUNGSBEHÖRDE] unverzüglich bekanntzugeben.
 
 ---
 
 ## § 2 Ziel, Zweck und Wesen
 
-1. **Selbstverständnis.** Die DDÖ versteht sich nicht als Trägerin eines inhaltlichen Programms, sondern als **Werkzeug**: als organisatorische und technische Infrastruktur, mit der die Bevölkerung Österreichs ihren eigenen Willen ordnen, prüfen und wirksam werden lassen kann.
+1. **Selbstverständnis.** Die [KÜRZEL] versteht sich nicht als Trägerin eines inhaltlichen Programms, sondern als **Werkzeug**: als organisatorische und technische Infrastruktur, mit der die Bevölkerung [LAND]s ihren eigenen Willen ordnen, prüfen und wirksam werden lassen kann.
 
-2. **Ziel.** Ziel der DDÖ ist es, der Bevölkerung Österreichs die unmittelbare Mitwirkung an der Gesetzgebung zu eröffnen, sodass sich ihr Wille sachkundig, überprüfbar und für das Gemeinwesen wirksam entfalten kann. Dieses Ziel wird ausschließlich auf verfassungsmäßigem Weg verfolgt (§ 9).
+2. **Ziel.** Ziel der [KÜRZEL] ist es, der Bevölkerung [LAND]s die unmittelbare Mitwirkung an der Gesetzgebung zu eröffnen, sodass sich ihr Wille sachkundig, überprüfbar und für das Gemeinwesen wirksam entfalten kann. Dieses Ziel wird ausschließlich auf verfassungsmäßigem Weg verfolgt (§ 9).
 
 3. **Zweck.** Zweck der Partei ist die Entwicklung, der Betrieb, die laufende Prüfung und die Verbesserung der **ParlamentPlattform** sowie der begleitenden **Zukunftswerkstatt** (§ 6 Abs 11), ferner die Teilnahme an Wahlen zu allgemeinen Vertretungskörpern mit dem Ziel, die auf der ParlamentPlattform gebildeten Beschlüsse in die staatliche Willensbildung einzubringen.
 
 4. **Zugang und Identität.** Der Zugang zur ParlamentPlattform erfolgt über ein staatlich anerkanntes elektronisches Identitätsnachweisverfahren, derzeit ID Austria. Für Personen, die ein solches Verfahren nicht nutzen können oder wollen, steht das Identitätsfeststellungsverfahren nach § 13 Abs 2 dauerhaft und gleichwertig zur Verfügung. Jede natürliche Person darf höchstens ein Konto führen.
 
-5. **Verhältnis zu staatlichen Wahlen.** Nach geltender Rechtslage strebt die DDÖ **keine** Änderung der Verfahren staatlicher Wahlen an. Wahlen zu allgemeinen Vertretungskörpern und Volksabstimmungen werden ausschließlich nach den geltenden Wahlordnungen der Republik Österreich durchgeführt. Die ParlamentPlattform ist ein Instrument der **innerparteilichen Willensbildung** und der Meinungsbildung; sie ersetzt kein staatliches Wahlverfahren und erhebt diesen Anspruch nicht. Die Partei bekennt sich zu den Wahlrechtsgrundsätzen des Art 26 B-VG, insbesondere zur Persönlichkeit und Geheimheit der Wahl. Eine Änderung staatlicher Verfahren kommt nur auf dem in § 9 Abs 3 beschriebenen Weg und nur nach unmittelbarer Entscheidung der Bevölkerung in Betracht.
+5. **Verhältnis zu staatlichen Wahlen.** Nach geltender Rechtslage strebt die [KÜRZEL] **keine** Änderung der Verfahren staatlicher Wahlen an. Wahlen zu allgemeinen Vertretungskörpern und Volksabstimmungen werden ausschließlich nach den geltenden Wahlordnungen der [LAND] durchgeführt. Die ParlamentPlattform ist ein Instrument der **innerparteilichen Willensbildung** und der Meinungsbildung; sie ersetzt kein staatliches Wahlverfahren und erhebt diesen Anspruch nicht. Die Partei bekennt sich zu den Wahlrechtsgrundsätzen des Art 26 B-VG, insbesondere zur Persönlichkeit und Geheimheit der Wahl. Eine Änderung staatlicher Verfahren kommt nur auf dem in § 9 Abs 3 beschriebenen Weg und nur nach unmittelbarer Entscheidung der Bevölkerung in Betracht.
 
 6. **Rolle automatisierter Systeme.** Auf der ParlamentPlattform eingesetzte automatisierte Systeme, einschließlich künstlicher Intelligenz, dürfen ausschließlich **unterstützend** verwendet werden, namentlich zum Zusammenfassen, Übersetzen, Erkennen von Dubletten, Erschließen von Fundstellen, Kategorisieren nach offengelegten Kriterien und zur Aufbereitung von Entscheidungsgrundlagen. Sie dürfen Anträge weder eigenständig inhaltlich bewerten noch priorisieren, zurückweisen oder von der Abstimmung ausschließen. Jede automatisierte Sortierung oder Auswahl erfolgt nach **offengelegten, versionierten und nachrechenbaren Regeln**. Modelle, Regelwerke und Änderungen daran sind mit Datum und Begründung öffentlich zu dokumentieren; der Integritätsrat prüft sie mindestens jährlich. Eine Reihung, die das einzelne Mitglied für die eigene Ansicht nach offengelegten Regeln selbst einstellt, ist keine Sortierung durch die Partei im Sinne dieses Absatzes; ihre Voreinstellung bleibt neutral nach § 5 Abs 10.
 
-7. **Entwicklungscharakter und Selbstregulation.** Die DDÖ befindet sich im Aufbau. Verfahren, Schwellen und Gewichtungen werden erprobt, gemessen und verbessert. Zur gewollten Veränderlichkeit gehört die Selbstregulation: Das Verfahren erkennt seine eigene Überlastung, macht sie öffentlich und löst sie durch geregelte Reihung auf (§ 5 Abs 11, § 6 Abs 10). Diese Veränderlichkeit ist gewollt; sie findet ihre Grenze an § 3 sowie an § 5 Abs 5 und Abs 8.
+7. **Entwicklungscharakter und Selbstregulation.** Die [KÜRZEL] befindet sich im Aufbau. Verfahren, Schwellen und Gewichtungen werden erprobt, gemessen und verbessert. Zur gewollten Veränderlichkeit gehört die Selbstregulation: Das Verfahren erkennt seine eigene Überlastung, macht sie öffentlich und löst sie durch geregelte Reihung auf (§ 5 Abs 11, § 6 Abs 10). Diese Veränderlichkeit ist gewollt; sie findet ihre Grenze an § 3 sowie an § 5 Abs 5 und Abs 8.
 
 ---
 
 ## § 3 Grundsätze des Wesenskerns
 
-1. Folgende Grundsätze bilden den Wesenskern der DDÖ. Sie sind einer Änderung, Aufhebung oder Aussetzung nicht zugänglich; hilfsweise gilt für sie das erschwerte Verfahren nach § 15 Abs 3:
+1. Folgende Grundsätze bilden den Wesenskern der [KÜRZEL]. Sie sind einer Änderung, Aufhebung oder Aussetzung nicht zugänglich; hilfsweise gilt für sie das erschwerte Verfahren nach § 15 Abs 3:
 
-   a) Die Würde des Menschen ist unantastbar. Die Partei bindet sich in allen ihren Verfahren an die Gewährleistungen der Europäischen Menschenrechtskonvention und der Charta der Grundrechte der Europäischen Union.
+   a) Die Würde des Menschen ist unantastbar. Die Partei bindet sich in allen ihren Verfahren an die Gewährleistungen der [WÄHRUNG]päischen Menschenrechtskonvention und der Charta der Grundrechte der [WÄHRUNG]päischen Union.
 
    b) **Ein Mensch — eine Stimme.** Jedes stimmberechtigte Mitglied hat bei jeder Abstimmung eine Stimme gleichen Gewichts. Eine Abweichung ist ausschließlich bei Sachfragen und nur nach Maßgabe des § 5 Abs 6 zulässig; sie ist bei Personenwahlen, Mandatsnominierungen, Satzungsänderungen und der Auflösung stets unzulässig. Eine Differenzierung nach Vermögen, Beitragshöhe, Parteiverdienst, Dauer der Mitgliedschaft über § 4 Abs 4 hinaus, Herkunft, Geschlecht, Religion, Weltanschauung, Behinderung oder sexueller Orientierung ist in jedem Fall unzulässig.
 
    c) Die Verfahren der ParlamentPlattform sind öffentlich, protokolliert und nachprüfbar. Ergebnisse werden vollständig veröffentlicht, auch wenn sie den Organen der Partei ungelegen sind.
 
-   d) Die DDÖ bekennt sich zur demokratischen Republik, zum Rechtsstaat, zur Gewaltfreiheit und zur Unabhängigkeit der Gerichtsbarkeit. Sie verfolgt ihre Ziele ausschließlich mit rechtsstaatlichen Mitteln.
+   d) Die [KÜRZEL] bekennt sich zur demokratischen Republik, zum Rechtsstaat, zur Gewaltfreiheit und zur Unabhängigkeit der Gerichtsbarkeit. Sie verfolgt ihre Ziele ausschließlich mit rechtsstaatlichen Mitteln.
 
    e) Kein Beschluss darf einzelnen Mitgliedern oder Gruppen von Mitgliedern die Teilhabe am Verfahren als solche entziehen.
 
@@ -67,7 +99,7 @@
 
 2. **Rechte.** Mitglieder haben das Recht auf Teilnahme an Versammlungen, auf Einbringung, Unterstützung und Erörterung von Anträgen, auf Einsicht in alle nach dieser Satzung zu veröffentlichenden Unterlagen, auf Bewertung der Mandatsträger, auf Einleitung eines Abberufungsverfahrens nach Maßgabe der Verfahrensordnung sowie — nach Maßgabe des Abs 4 — auf Stimm- und Wahlrecht auf der ParlamentPlattform.
 
-3. **Pflichten.** Mitglieder führen ein Konto auf der ParlamentPlattform, unterstützen den Parteizweck, halten den Ethik-Kodex (§ 8 Abs 2) ein und leisten einen Mitgliedsbeitrag, dessen Höhe die Mitgliederversammlung festlegt. Der Mindestbeitrag beträgt **einen Euro je Kalenderjahr**; er kann auf Antrag erlassen werden. Die Höhe des geleisteten Beitrags hat keinerlei Einfluss auf Rechte, Stimmkraft oder Ämter.
+3. **Pflichten.** Mitglieder führen ein Konto auf der ParlamentPlattform, unterstützen den Parteizweck, halten den Ethik-Kodex (§ 8 Abs 2) ein und leisten einen Mitgliedsbeitrag, dessen Höhe die Mitgliederversammlung festlegt. Der Mindestbeitrag beträgt **einen [WÄHRUNG] je Kalenderjahr**; er kann auf Antrag erlassen werden. Die Höhe des geleisteten Beitrags hat keinerlei Einfluss auf Rechte, Stimmkraft oder Ämter.
 
 4. **Stimmberechtigung und Schutz vor Unterwanderung.** Weil die Beitrittsschwelle bewusst niedrig ist, gelten folgende Sicherungen:
 
@@ -91,7 +123,7 @@
 
 ## § 5 Die ParlamentPlattform und das Verfahren der Willensbildung
 
-1. **Rechtsstellung.** Die ParlamentPlattform ist die **Mitgliederversammlung** der DDÖ im Sinne des § 1 Abs 4 Z 1 Parteiengesetz 2012. Sie ist dauernd versammelt. Ihre Beschlüsse binden die Organe der Partei, soweit sie dieser Satzung und dem geltenden Recht entsprechen.
+1. **Rechtsstellung.** Die ParlamentPlattform ist die **Mitgliederversammlung** der [KÜRZEL] im Sinne des § 1 Abs 4 Z 1 [PARTEIENGESETZ]. Sie ist dauernd versammelt. Ihre Beschlüsse binden die Organe der Partei, soweit sie dieser Satzung und dem geltenden Recht entsprechen.
 
 2. **Antragsrecht.** Jedes Mitglied kann einen Antrag einbringen. Anträge werden **ohne inhaltliche Vorprüfung** veröffentlicht. Ausgenommen sind Anträge, die offensichtlich rechtswidrig sind, gegen § 3 verstoßen oder mit einem bereits anhängigen Antrag inhaltlich übereinstimmen; ihre Zurückweisung erfolgt durch schriftlich begründeten Beschluss des Integritätsrats und ist beim Parteischiedsgericht bekämpfbar. Für rechtswidrige Inhalte Dritter richtet die Partei ein Melde- und Abhilfeverfahren nach Art 16 der Verordnung (EU) 2022/2065 ein; strafbare, ehrenrührige oder rechteverletzende Inhalte werden entfernt.
 
@@ -133,7 +165,7 @@
 
    b) einen Bereich für **hervorgehobene Abstimmungen**, die alle angehen, aber wenig Aufmerksamkeit erhalten, oder bei denen die begründete Gefahr besteht, dass das Ergebnis durch Werbung oder unlautere Zusammenschlüsse verzerrt wird. Die Hervorhebung beschließt der Integritätsrat durch veröffentlichten, begründeten Beschluss; sie erfolgt niemals durch einen Algorithmus;
 
-   c) einen **regionalen Bereich** für Anträge auf Gemeinde-, Bezirks- und Landesebene. Deren Ergebnisse sind für Mandats- und Funktionsträger der DDÖ auf der jeweiligen Ebene Richtschnur ihres Handelns nach Maßgabe des § 7;
+   c) einen **regionalen Bereich** für Anträge auf Gemeinde-, Bezirks- und Landesebene. Deren Ergebnisse sind für Mandats- und Funktionsträger der [KÜRZEL] auf der jeweiligen Ebene Richtschnur ihres Handelns nach Maßgabe des § 7;
 
    d) einen Bereich für **Anträge und Gesetzesvorschläge**. Jede Eingabe führt zunächst zu einer Übersicht bereits gestellter ähnlicher Anträge samt deren Beteiligung — mit der freien Wahl, einen bestehenden Antrag zu unterstützen oder den eigenen unverändert einzubringen (Abs 2 bleibt unberührt). Verfügbare Ergebnisse der Zukunftswerkstatt, insbesondere zu Auswirkungen eines Antrags auf bestehende Gesetze sowie auf betroffene Branchen und Unternehmen, werden dort als gekennzeichnete Modellrechnung angezeigt (§ 6 Abs 11). Innerhalb dieses Bereichs kann jedes Mitglied die Reihung durch offene, selbst eingestellte und jederzeit änderbare Filterregeln bestimmen (**WeicherFilter**, § 2 Abs 6 letzter Satz); die Voreinstellung folgt ausschließlich Phase und Frist.
 
@@ -170,9 +202,9 @@
 
    e) *Beschlussfassung.* Der Koordinationsrat ist bei Anwesenheit der Hälfte seiner Mitglieder beschlussfähig und entscheidet mit einfacher Mehrheit der abgegebenen Stimmen.
 
-3. **Integritätsrat.** Er ist das Aufsichtsorgan der Partei im Sinne des § 1 Abs 4 Z 1 Parteiengesetz 2012.
+3. **Integritätsrat.** Er ist das Aufsichtsorgan der Partei im Sinne des § 1 Abs 4 Z 1 [PARTEIENGESETZ].
 
-   a) Er besteht aus drei bis sieben Mitgliedern, die von der Mitgliederversammlung für vier Jahre gewählt werden. Seine Mitglieder dürfen keinem anderen Rat angehören, kein Mandat für die DDÖ ausüben und in keinem Dienst- oder Auftragsverhältnis zur Partei stehen. Für Abberufung und Nachbesetzung gilt Abs 2 lit c sinngemäß; er beschließt nach Abs 2 lit e.
+   a) Er besteht aus drei bis sieben Mitgliedern, die von der Mitgliederversammlung für vier Jahre gewählt werden. Seine Mitglieder dürfen keinem anderen Rat angehören, kein Mandat für die [KÜRZEL] ausüben und in keinem Dienst- oder Auftragsverhältnis zur Partei stehen. Für Abberufung und Nachbesetzung gilt Abs 2 lit c sinngemäß; er beschließt nach Abs 2 lit e.
 
    b) Er überwacht die Einhaltung dieser Satzung und der Verfahrensordnung, die Integrität und Sicherheit von ParlamentPlattform und Zukunftswerkstatt, die Einhaltung des § 2 Abs 6 und die Anwendung des § 5 Abs 6.
 
@@ -214,7 +246,7 @@
 
 1. **Mandats-Kandidaturen als Anträge.** Kandidaturen für Wahlvorschläge und für zu vergebende Mandate und Funktionen werden auf der ParlamentPlattform als **Anträge** geführt (Antragsart „Mandats-Kandidatur"). Einen solchen Antrag kann jedes stimmberechtigte Mitglied, das die gesetzlichen Voraussetzungen der Wählbarkeit erfüllt — insbesondere das passive Wahlalter nach Art 26 Abs 4 B-VG und die jeweiligen Wahlordnungen —, **jederzeit selbst stellen**, auch bevor die Partei ein Mandat der betreffenden Ebene innehat; zu vergebende Mandate schreibt die Partei zusätzlich aus. Besteht für ein Mandat bereits ein Kandidatur-Antrag, wird kein zweiter daneben eröffnet: Man **beteiligt sich** an dem bestehenden Antrag und wird dort als wählbar geführt. Die Mitglieder stimmen den einzelnen Bewerbungen zu; **die Bewerbung mit der meisten Zustimmung gewinnt die Wahl**, die weitere Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags. Erringt die Partei das Mandat, ist die personelle Entscheidung damit bereits getroffen; Nachbesetzungen folgen der fortbestehenden Reihung oder einem neuen Kandidatur-Antrag. Für Mandats-Kandidaturen gilt: eine Person, eine Stimme, ohne jede Gewichtung (§ 5 Abs 6 lit a). Das Nähere — Fenster, Fristen, Nachrücken — regelt die Verfahrensordnung.
 
-2. **Grenze der Bindung.** Die Freiheit des Mandats — für Nationalrat und Bundesrat nach Art 56 B-VG, für Landtage und Gemeindevertretungen nach den jeweiligen Landesverfassungen und Gemeindeordnungen — bleibt unberührt. Diese Satzung begründet **keine** Verpflichtung eines Mitglieds eines allgemeinen Vertretungskörpers zu einem bestimmten Stimmverhalten, sieht dafür **keine** Sanktion vor und kann eine solche nicht wirksam vorsehen. Die DDÖ benennt diese Grenze offen und begegnet ihr mit Öffentlichkeit (Abs 5) und mit der Entscheidung über die erneute Kandidatur (Abs 6).
+2. **Grenze der Bindung.** Die Freiheit des Mandats — für [PARLAMENT] und Bundesrat nach Art 56 B-VG, für [LANDESPARLAMENT]e und Gemeindevertretungen nach den jeweiligen Landesverfassungen und Gemeindeordnungen — bleibt unberührt. Diese Satzung begründet **keine** Verpflichtung eines Mitglieds eines allgemeinen Vertretungskörpers zu einem bestimmten Stimmverhalten, sieht dafür **keine** Sanktion vor und kann eine solche nicht wirksam vorsehen. Die [KÜRZEL] benennt diese Grenze offen und begegnet ihr mit Öffentlichkeit (Abs 5) und mit der Entscheidung über die erneute Kandidatur (Abs 6).
 
 3. **Mandatsvereinbarung.** Vor der Aufnahme in einen Wahlvorschlag schließt jede Bewerberin und jeder Bewerber mit der Partei eine schriftliche **Mandatsvereinbarung** über Leistungen, die von der Ausübung des freien Mandats unabhängig sind. Bei minderjährigen Bewerbern bedarf sie der Zustimmung des gesetzlichen Vertreters. Sie umfasst:
 
@@ -226,7 +258,7 @@
 
    d) die Abführung eines Anteils des Mandatsbezugs an die Partei, **solange die Person dem Parlamentsklub oder der Fraktion der Partei angehört**. Der Anteil beträgt höchstens **[Prozentsatz, Empfehlung: 8] Prozent** des Bruttobezugs; eine Änderung wirkt frühestens für die folgende Gesetzgebungsperiode. Die Mandatsvereinbarung führt die Gegenleistungen der Partei (Infrastruktur, Büro, Kommunikation, Rechtsberatung, Weiterbildung) einzeln und bewertet an. Mit dem Ausscheiden aus Klub oder Fraktion endet die Zahlungspflicht;
 
-   e) die zeitanteilig degressive Rückerstattung nachweislich personenbezogener Ausbildungs- und Qualifizierungsaufwendungen, die die Partei für die Person getragen hat, gedeckelt mit **[Betrag]** Euro; ausgeschlossen bei Ausschluss durch die Partei und bei Austritt aus wichtigem Grund. Wahlkampfaufwendungen der Partei sind nicht rückerstattungsfähig;
+   e) die zeitanteilig degressive Rückerstattung nachweislich personenbezogener Ausbildungs- und Qualifizierungsaufwendungen, die die Partei für die Person getragen hat, gedeckelt mit **[Betrag]** [WÄHRUNG]; ausgeschlossen bei Ausschluss durch die Partei und bei Austritt aus wichtigem Grund. Wahlkampfaufwendungen der Partei sind nicht rückerstattungsfähig;
 
    f) die unverzügliche Rückgabe aller Kennzeichen, Namensrechte, Konten und Kommunikationskanäle der Partei bei Beendigung der Parteizugehörigkeit;
 
@@ -236,7 +268,7 @@
 
 4. **Abweichung von der Beschlusslage.** Weicht ein Mandatsträger von einem Beschluss der ParlamentPlattform ab, so wird dies nach Abs 5 veröffentlicht und begründet. Die Abweichung als solche begründet keine parteiinterne Sanktion. Über einen Ausschluss aus der Partei entscheidet ausschließlich das Parteischiedsgericht nach Gewährung rechtlichen Gehörs und nur aus einem wichtigen Grund, der nicht im Stimmverhalten liegt. Das staatliche Mandat bleibt in jedem Fall unberührt; die Partei kann es nicht entziehen. Die Zusammensetzung eines Parlamentsklubs richtet sich nach dessen eigener Geschäftsordnung und ist nicht Gegenstand dieser Satzung.
 
-5. **Rechenschaftsregister.** Für jede Abstimmung im Vertretungskörper werden der Beschluss der ParlamentPlattform, das tatsächliche Stimmverhalten und die schriftliche Begründung des Mandatsträgers binnen sieben Tagen nebeneinander dauerhaft veröffentlicht. Dieses Register ist das zentrale Instrument der **öffentlichen Rechenschaft** der DDÖ.
+5. **Rechenschaftsregister.** Für jede Abstimmung im Vertretungskörper werden der Beschluss der ParlamentPlattform, das tatsächliche Stimmverhalten und die schriftliche Begründung des Mandatsträgers binnen sieben Tagen nebeneinander dauerhaft veröffentlicht. Dieses Register ist das zentrale Instrument der **öffentlichen Rechenschaft** der [KÜRZEL].
 
 6. **Erneute Kandidatur.** Eine erneute Kandidatur setzt eine gesonderte Bestätigung durch die Mitgliederversammlung voraus, der das Rechenschaftsregister und der Bericht der abgelaufenen Periode zugrunde liegen.
 
@@ -244,13 +276,13 @@
 
 8. **Öffentlichkeitsarbeit.** Mandatsträger unterrichten die Bevölkerung laufend über die Entwicklungen in ihrem Zuständigkeitsbereich, über die Kanäle der Partei und über allgemein zugängliche Medien.
 
-9. **Mandatar-Steuerung auf der ParlamentPlattform.** Die ParlamentPlattform führt für jeden Mandatsträger der DDÖ — auf Bundes-, Landes-, Bezirks- und Gemeindeebene — einen **öffentlichen Bereich** mit Lichtbild, aktuellen Aufgaben und laufenden Entscheidungsprozessen samt Fristen. Mandatsträger erhalten auf der Plattform die **Rolle „Mandatar"**; sie ermöglicht insbesondere unverzügliche Kurzberichte („Instant-Reports") zu aktuellen Aufgaben und Themen samt Fristen sowie die daraus entstehenden, **vom Mandatsträger betreuten Abstimmungen** der Mitgliederversammlung. Deren Ergebnisse sind Beschlusslage im Sinne der Abs 4 und 5 und Richtschnur des Handelns nach Maßgabe dieses Paragraphen; Abs 2 bleibt unberührt. Die Pflicht, die dafür nötigen Informationen einzustellen, ist Teil der Mandatsvereinbarung nach Abs 3 lit b.
+9. **Mandatar-Steuerung auf der ParlamentPlattform.** Die ParlamentPlattform führt für jeden Mandatsträger der [KÜRZEL] — auf Bundes-, Landes-, Bezirks- und Gemeindeebene — einen **öffentlichen Bereich** mit Lichtbild, aktuellen Aufgaben und laufenden Entscheidungsprozessen samt Fristen. Mandatsträger erhalten auf der Plattform die **Rolle „Mandatar"**; sie ermöglicht insbesondere unverzügliche Kurzberichte („Instant-Reports") zu aktuellen Aufgaben und Themen samt Fristen sowie die daraus entstehenden, **vom Mandatsträger betreuten Abstimmungen** der Mitgliederversammlung. Deren Ergebnisse sind Beschlusslage im Sinne der Abs 4 und 5 und Richtschnur des Handelns nach Maßgabe dieses Paragraphen; Abs 2 bleibt unberührt. Die Pflicht, die dafür nötigen Informationen einzustellen, ist Teil der Mandatsvereinbarung nach Abs 3 lit b.
 
 ---
 
 ## § 8 Transparenz, Ethik und Datenschutz
 
-1. Die DDÖ bekennt sich zu Transparenz und Informationsfreiheit. Der Quellcode der ParlamentPlattform und der Zukunftswerkstatt ist quelloffen und öffentlich einsehbar.
+1. Die [KÜRZEL] bekennt sich zu Transparenz und Informationsfreiheit. Der Quellcode der ParlamentPlattform und der Zukunftswerkstatt ist quelloffen und öffentlich einsehbar.
 
 2. Alle Mitglieder, Organmitglieder und Mandatsträger befolgen einen **Ethik-Kodex**, der Ehrlichkeit, Transparenz, Gleichberechtigung, sachliche Auseinandersetzung und respektvollen Umgang verlangt. Der Kodex wird von der Mitgliederversammlung beschlossen und veröffentlicht.
 
@@ -266,17 +298,17 @@
 
 ## § 9 Stufen der Zielverwirklichung
 
-1. **Stufe 1 — ab dem ersten Mandat.** Mandatsträger der DDÖ bringen die auf der ParlamentPlattform gefassten Beschlüsse auf Bundes-, Landes-, Bezirks- und Gemeindeebene in die Willensbildung ein und vertreten sie öffentlich, im Rahmen des freien Mandats und nach Maßgabe des § 7.
+1. **Stufe 1 — ab dem ersten Mandat.** Mandatsträger der [KÜRZEL] bringen die auf der ParlamentPlattform gefassten Beschlüsse auf Bundes-, Landes-, Bezirks- und Gemeindeebene in die Willensbildung ein und vertreten sie öffentlich, im Rahmen des freien Mandats und nach Maßgabe des § 7.
 
-2. **Stufe 2 — bei maßgeblichem Stimmengewicht.** Erlangt die DDÖ Verhandlungs- oder Sperrpositionen, so werden Verhandlungsmandate und Kompromissgrenzen vorab auf der ParlamentPlattform beschlossen und Verhandlungsergebnisse ihr zur Bestätigung vorgelegt.
+2. **Stufe 2 — bei maßgeblichem Stimmengewicht.** Erlangt die [KÜRZEL] Verhandlungs- oder Sperrpositionen, so werden Verhandlungsmandate und Kompromissgrenzen vorab auf der ParlamentPlattform beschlossen und Verhandlungsergebnisse ihr zur Bestätigung vorgelegt.
 
-3. **Stufe 3 — Ausbau der unmittelbaren Demokratie.** Der Ausbau direktdemokratischer Instrumente — etwa verbindliche Volksabstimmungen auf Verlangen einer bestimmten Zahl von Wahlberechtigten, obligatorische Referenden in bestimmten Materien oder verbindliche Volksbegehren — ist **keine** Gesamtänderung der Bundesverfassung, solange der Nationalrat als Gesetzgebungsorgan erhalten bleibt. Dieser Weg ist der vorrangig zu verfolgende. Er erfordert ein Bundesverfassungsgesetz nach Art 44 Abs 1 B-VG, das heißt die Anwesenheit von mindestens der Hälfte der Mitglieder des Nationalrats, eine Mehrheit von zwei Dritteln der abgegebenen Stimmen und die ausdrückliche Bezeichnung als Verfassungsbestimmung; die Zustimmung des Bundesrats nach Art 44 Abs 2 B-VG ist erforderlich, soweit Zuständigkeiten der Länder eingeschränkt werden.
+3. **Stufe 3 — Ausbau der unmittelbaren Demokratie.** Der Ausbau direktdemokratischer Instrumente — etwa verbindliche Volksabstimmungen auf Verlangen einer bestimmten Zahl von Wahlberechtigten, obligatorische Referenden in bestimmten Materien oder verbindliche Volksbegehren — ist **keine** Gesamtänderung der Bundesverfassung, solange der [PARLAMENT] als Gesetzgebungsorgan erhalten bleibt. Dieser Weg ist der vorrangig zu verfolgende. Er erfordert ein Bundesverfassungsgesetz nach Art 44 Abs 1 B-VG, das heißt die Anwesenheit von mindestens der Hälfte der Mitglieder des [PARLAMENT]s, eine Mehrheit von zwei Dritteln der abgegebenen Stimmen und die ausdrückliche Bezeichnung als Verfassungsbestimmung; die Zustimmung des Bundesrats nach Art 44 Abs 2 B-VG ist erforderlich, soweit Zuständigkeiten der Länder eingeschränkt werden.
 
-4. **Stufe 4 — Übertragung der Gesetzgebung auf die Wahlberechtigten.** Die vollständige Überführung der parlamentarischen Willensbildung auf alle Wahlberechtigten wäre nach herrschender Lehre eine **Gesamtänderung der Bundesverfassung** und daher nach Art 44 Abs 3 B-VG vor der Beurkundung durch den Bundespräsidenten zwingend einer **Volksabstimmung** zu unterziehen, bei der nach Art 45 B-VG die unbedingte Mehrheit der gültig abgegebenen Stimmen entscheidet. Die DDÖ bekennt sich ausdrücklich dazu, jede Änderung dieser Größenordnung der Bevölkerung zur unmittelbaren Entscheidung vorzulegen. Sie erkennt darüber hinaus an, dass
+4. **Stufe 4 — Übertragung der Gesetzgebung auf die Wahlberechtigten.** Die vollständige Überführung der parlamentarischen Willensbildung auf alle Wahlberechtigten wäre nach herrschender Lehre eine **Gesamtänderung der Bundesverfassung** und daher nach Art 44 Abs 3 B-VG vor der Beurkundung durch den Bundespräsidenten zwingend einer **Volksabstimmung** zu unterziehen, bei der nach Art 45 B-VG die unbedingte Mehrheit der gültig abgegebenen Stimmen entscheidet. Die [KÜRZEL] bekennt sich ausdrücklich dazu, jede Änderung dieser Größenordnung der Bevölkerung zur unmittelbaren Entscheidung vorzulegen. Sie erkennt darüber hinaus an, dass
 
    a) Art 3 des 1. Zusatzprotokolls zur EMRK und das Unionsrecht eigenständige Schranken setzen, und
 
-   b) ein staatliches digitales Abstimmungsverfahren nur zulässig ist, wenn es Geheimheit und individuelle Überprüfbarkeit zugleich gewährleistet — ein Maßstab, an dem der Verfassungsgerichtshof mit Erkenntnis vom 13.12.2011, V 85-96/11, das E-Voting bei der Hochschülerschaftswahl gemessen und aufgehoben hat. Solange dieser Maßstab technisch nicht erfüllbar ist, verfolgt die DDÖ Stufe 4 nicht.
+   b) ein staatliches digitales Abstimmungsverfahren nur zulässig ist, wenn es Geheimheit und individuelle Überprüfbarkeit zugleich gewährleistet — ein Maßstab, an dem der Verfassungsgerichtshof mit Erkenntnis vom 13.12.2011, V 85-96/11, das E-Voting bei der Hochschülerschaftswahl gemessen und aufgehoben hat. Solange dieser Maßstab technisch nicht erfüllbar ist, verfolgt die [KÜRZEL] Stufe 4 nicht.
 
 5. Nach Verwirklichung der Stufe 4 bleiben gewählte Mandatsträger als Ansprechpartner tätig und informieren die Bevölkerung über die laufenden Prozesse auf der ParlamentPlattform.
 
@@ -286,11 +318,11 @@
 
 1. Die Partei finanziert sich durch Mitgliedsbeiträge, Beiträge der Mandatsträger nach § 7 Abs 3 lit d, Spenden, Zuwendungen, Vermächtnisse, gesetzliche Förderungen und sonstige Einnahmen.
 
-2. Die Partei hält die Bestimmungen des Parteiengesetzes 2012 über Spenden ein, insbesondere die quartalsweise Meldung von Einzelspenden über 150 Euro an den Rechnungshof, die Veröffentlichung von Spenden über 500 Euro, die Obergrenze von 7.500 Euro je Spender und Kalenderjahr, die Gesamtobergrenze von 750.000 Euro je Kalenderjahr sowie die Verbote anonymer und weitergeleiteter Spenden ab 150 Euro und von Auslandsspenden ab 500 Euro.
+2. Die Partei hält die Bestimmungen des Parteiengesetzes 2012 über Spenden ein, insbesondere die quartalsweise Meldung von Einzelspenden über 150 [WÄHRUNG] an den Rechnungshof, die Veröffentlichung von Spenden über 500 [WÄHRUNG], die Obergrenze von 7.500 [WÄHRUNG] je Spender und Kalenderjahr, die Gesamtobergrenze von 750.000 [WÄHRUNG] je Kalenderjahr sowie die Verbote anonymer und weitergeleiteter Spenden ab 150 [WÄHRUNG] und von Auslandsspenden ab 500 [WÄHRUNG].
 
 3. Über alle Einnahmen und Ausgaben wird ein jährlicher Rechenschaftsbericht erstellt, der auf der ParlamentPlattform einsehbar ist. Die Partei erfüllt alle Rechenschafts- und Vorlagepflichten gegenüber dem Rechnungshof.
 
-4. Über die gesetzlichen Pflichten hinaus veröffentlicht die Partei jede Spende über 500 Euro unverzüglich selbst auf der ParlamentPlattform, sofern der Spender darin ausdrücklich eingewilligt hat. Die Einwilligung wird bei jeder Spende über dieser Grenze eingeholt; wird sie verweigert, wird die Spende betraglich, aber ohne Namensnennung ausgewiesen.
+4. Über die gesetzlichen Pflichten hinaus veröffentlicht die Partei jede Spende über 500 [WÄHRUNG] unverzüglich selbst auf der ParlamentPlattform, sofern der Spender darin ausdrücklich eingewilligt hat. Die Einwilligung wird bei jeder Spende über dieser Grenze eingeholt; wird sie verweigert, wird die Spende betraglich, aber ohne Namensnennung ausgewiesen.
 
 ---
 
@@ -300,7 +332,7 @@
 
 2. Das Parteischiedsgericht besteht aus fünf Personen. Bei zwei Streitparteien macht jede zwei Mitglieder namhaft; diese wählen einvernehmlich die vorsitzende Person. Kommt binnen 14 Tagen keine Einigung zustande, entscheidet das Los aus einer öffentlich geführten Liste. Bei mehr als zwei Streitparteien sowie in Verfahren ohne Gegenpartei — insbesondere im Nichtigkeitsverfahren nach § 3 Abs 2, im Aussetzungsverfahren nach § 6 Abs 3 lit d und im Ausschlussverfahren — werden alle fünf Mitglieder durch Los aus dieser Liste bestimmt; im Ausschluss- und Aufnahmeverfahren kann die betroffene Person zwei Mitglieder namhaft machen.
 
-3. Mitglieder des Parteischiedsgerichts dürfen keinem anderen Organ der Partei angehören, kein Mandat für die DDÖ ausüben und an der Sache nicht beteiligt sein. Sie sind unabhängig und an keine Weisung gebunden.
+3. Mitglieder des Parteischiedsgerichts dürfen keinem anderen Organ der Partei angehören, kein Mandat für die [KÜRZEL] ausüben und an der Sache nicht beteiligt sein. Sie sind unabhängig und an keine Weisung gebunden.
 
 4. Das Verfahren wahrt das rechtliche Gehör aller Beteiligten. Die Entscheidung ergeht schriftlich mit Begründung binnen sechs Monaten ab Anrufung und wird unter Wahrung des Datenschutzes veröffentlicht.
 
@@ -314,11 +346,11 @@
 
 1. Die Partei strebt die Zusammenarbeit mit politischen Organisationen und Parteien im In- und Ausland an, die vergleichbare Ziele der direkten Demokratie verfolgen.
 
-2. Kooperationen dienen dem Austausch von Wissen, Software und bewährten Verfahren. Die Übernahme geldwerter Leistungen aus dem Ausland ist nur zulässig, soweit sie nach dem Parteiengesetz 2012 erlaubt ist.
+2. Kooperationen dienen dem Austausch von Wissen, Software und bewährten Verfahren. Die Übernahme geldwerter Leistungen aus dem Ausland ist nur zulässig, soweit sie nach dem [PARTEIENGESETZ] erlaubt ist.
 
-3. **Spenden und geldwerte Zuwendungen ausländischer Personen und Einrichtungen über 500 Euro sind unzulässig** (§ 6 Abs 6 Parteiengesetz 2012). Zulässige Zuwendungen aus dem Ausland werden gesondert ausgewiesen.
+3. **Spenden und geldwerte Zuwendungen ausländischer Personen und Einrichtungen über 500 [WÄHRUNG] sind unzulässig** (§ 6 Abs 6 [PARTEIENGESETZ]). Zulässige Zuwendungen aus dem Ausland werden gesondert ausgewiesen.
 
-4. Die Unabhängigkeit der DDÖ bleibt in jeder Kooperation gewahrt.
+4. Die Unabhängigkeit der [KÜRZEL] bleibt in jeder Kooperation gewahrt.
 
 5. **Arbeitsweise.** Die Zusammenarbeit erfolgt bevorzugt über offene technische Schnittstellen und quelloffene Werkzeuge: ein gemeinsames, sprachneutrales **Parameter-Schema** samt standardisierten, dokumentierten Exportformaten für Kennzahlen und Abstimmungsdaten; gemeinsam gepflegte, öffentlich zugängliche Quellcode-Bestände unter freien Lizenzen; sowie regelmäßige, dokumentierte Austauschformate der Koordinationsräte. Ausgetauscht werden ausschließlich aggregierte, personenbezugsfreie Daten sowie Erfahrungen über Parameter, Kennzahlen und Lernergebnisse der Zukunftswerkstätten. Ziel ist nicht die Vereinheitlichung der Werte, sondern die gemeinsame Art zu lernen: Jedes Partnersystem bleibt auf seine Bevölkerung zugeschnitten und reguliert sich mit ihr gemeinsam fort.
 
@@ -338,9 +370,9 @@
 
 ---
 
-## § 14 Gliederung der DDÖ
+## § 14 Gliederung der [KÜRZEL]
 
-1. Die DDÖ gliedert sich in **Ortsorganisationen** (Gemeindeebene), **Bezirksorganisationen**, **Landesorganisationen** und die **Bundesorganisation**. Die Gliederung folgt der politischen territorialen Gliederung der Republik.
+1. Die [KÜRZEL] gliedert sich in **Ortsorganisationen** (Gemeindeebene), **Bezirksorganisationen**, **Landesorganisationen** und die **Bundesorganisation**. Die Gliederung folgt der politischen territorialen Gliederung der Republik.
 
 2. **Rechtspersönlichkeit.** Die Gliederungen haben **keine** eigene Rechtspersönlichkeit. Sie handeln als Untergliederungen der Bundesorganisation; diese haftet für ihre Verbindlichkeiten und erfasst ihre Einnahmen und Ausgaben im Rechenschaftsbericht nach § 10 Abs 3.
 
@@ -362,7 +394,7 @@
 
 3. **Erschwertes Verfahren für den Wesenskern.** § 3 und § 2 Abs 2 sind einer Änderung nicht zugänglich. Sollte diese Unabänderlichkeit von einem Gericht nicht anerkannt werden, so gilt an ihrer Stelle: Eine Änderung des § 3 oder des § 2 Abs 2 bedarf einer Mehrheit von 90 Prozent der abgegebenen Stimmen bei einer Teilnahme von mindestens 30 Prozent der stimmberechtigten Mitglieder, einer Vorlauffrist von 90 Tagen und einer zweiten, gleichlautenden Beschlussfassung frühestens sechs Monate nach der ersten.
 
-4. Jede Änderung ist unverzüglich beim Bundesminister für Inneres zu hinterlegen und wird mit der Hinterlegung wirksam. Sie ist auf der ParlamentPlattform mit Versionsnummer und Datum zu veröffentlichen; frühere Fassungen bleiben dauerhaft abrufbar.
+4. Jede Änderung ist unverzüglich beim [REGISTRIERUNGSBEHÖRDE] zu hinterlegen und wird mit der Hinterlegung wirksam. Sie ist auf der ParlamentPlattform mit Versionsnummer und Datum zu veröffentlichen; frühere Fassungen bleiben dauerhaft abrufbar.
 
 ---
 
@@ -370,7 +402,7 @@
 
 1. Die freiwillige Auflösung kann nur durch Abstimmung auf der ParlamentPlattform beschlossen werden. Erforderlich sind eine Zweidrittelmehrheit der abgegebenen Stimmen und die Teilnahme von mindestens 30 Prozent der für die Auflösung stimmberechtigten Mitglieder. Der Antrag ist mindestens 60 Tage vor Beginn der Abstimmung zu veröffentlichen.
 
-2. Die freiwillige Auflösung ist dem Bundesminister für Inneres unverzüglich bekanntzugeben (§ 1 Abs 5 Parteiengesetz 2012). Die Rechtspersönlichkeit erlischt mit dem Abschluss der Liquidation.
+2. Die freiwillige Auflösung ist dem [REGISTRIERUNGSBEHÖRDE] unverzüglich bekanntzugeben (§ 1 Abs 5 [PARTEIENGESETZ]). Die Rechtspersönlichkeit erlischt mit dem Abschluss der Liquidation.
 
 3. Die Liquidation führt der Koordinationsrat gemeinsam mit einer unabhängigen Wirtschaftsprüfung durch; er vertritt die Partei bis zum Abschluss der Liquidation. Der Schlussbericht wird veröffentlicht.
 
@@ -380,17 +412,17 @@
 
 ## § 17 Inkrafttreten
 
-Diese Satzung tritt mit ihrer Hinterlegung beim Bundesminister für Inneres in Kraft und ersetzt die Satzung in der Fassung vom 29.10.2024.
+Diese Satzung tritt mit ihrer Hinterlegung beim [REGISTRIERUNGSBEHÖRDE] in Kraft und ersetzt die Satzung in der Fassung vom 29.10.2024.
 
 ---
 
-## Anhang: Punkte für die anwaltliche Prüfung
+## Anhang: Punkte für die rechtliche Prüfung im eigenen Land
 
 1. **§ 7 Abs 3 lit d und lit e** — Vereinbarkeit mit OGH 6 Ob 54/10z (24.06.2010): Parteisteuern sind zulässig, wenn ihnen konkrete, in Geld bewertbare Gegenleistungen gegenüberstehen; sittenwidrig ist die Erstreckung der Zahlungspflicht auf die Zeit nach dem Ausscheiden aus der Fraktion. Zu prüfen sind die Angemessenheit des Prozentsatzes, die Dokumentation der Gegenleistungen sowie eine mögliche gröbliche Benachteiligung nach § 879 Abs 3 ABGB und eine ungewöhnliche Bestimmung nach § 864a ABGB.
 
 2. **§ 7 Abs 3 lit g** — Bestimmtheit, Staffelung und Angemessenheit der Vertragsstrafe; Formulierung der Vereinbarung nach § 1336 Abs 3 ABGB. Dabei mitzuprüfen: ob § 6 Abs 10 letzter Satz als Rechtfertigungsgrund sauber ausgestaltet ist — eine wahrheitsgemäße Überlastungsmeldung darf keinen Verzugs- oder Pflichtverletzungstatbestand nach lit a bis f auslösen.
 
-3. **§ 7 Abs 3 lit d** — Qualifikation der Zahlungen als Mandatsträgerbeitrag oder als Spende nach dem Parteiengesetz 2012, vor Festlegung des Prozentsatzes.
+3. **§ 7 Abs 3 lit d** — Qualifikation der Zahlungen als Mandatsträgerbeitrag oder als Spende nach dem [PARTEIENGESETZ], vor Festlegung des Prozentsatzes.
 
 4. **§ 4 Abs 4 lit b bis d** — Vereinbarkeit der Anwartschaftsfristen mit dem Erfordernis eines nach demokratischen Grundsätzen legitimierten Leitungsorgans (§ 1 Abs 4 Z 1 PartG).
 

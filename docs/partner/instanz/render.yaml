@@ -1,0 +1,74 @@
+# Render-Blueprint einer Landesinstanz (Muster, FB-M7). Platzhalter ersetzen:
+#   [KURZNAME]  Kurzname der Partei (klein, ohne Leerzeichen), z. B. ddk
+#   [DOMAIN]    eigene Domain, z. B. parlament.partei.example
+#   [REGION]    Render-Region nahe am Land (frankfurt, …) — Daten sollten im eigenen Rechtsraum liegen
+# Hinweis Datenschutz: Ein Plattformdienst außerhalb des eigenen Rechtsraums ist für den Alpha-Betrieb
+# mit Einwilligung vertretbar, für den Echtbetrieb ist ein Anbieter im eigenen Land vorzuziehen.
+
+services:
+  - type: web
+    name: parlamentplattform-[KURZNAME]
+    runtime: docker
+    region: [REGION]
+    plan: starter
+    healthCheckPath: /gesund/
+    dockerCommand: >-
+      sh -c "python manage.py migrate --noinput
+      && python manage.py kategorien_laden
+      && python manage.py collectstatic --noinput
+      && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
+    envVars:
+      - key: DDOE_SYSTEM_ID
+        value: "xx-[KURZNAME]"
+      - key: DDOE_SYSTEM_NAME
+        value: "Name der Partei"
+      - key: DDOE_DEBUG
+        value: "0"
+      - key: DDOE_SECRET_KEY
+        generateValue: true
+      - key: DDOE_ALLOWED_HOSTS
+        value: parlamentplattform-[KURZNAME].onrender.com,[DOMAIN]
+      - key: DDOE_CSRF_ORIGINS
+        value: https://parlamentplattform-[KURZNAME].onrender.com,https://[DOMAIN]
+      - key: DDOE_BASIS_URL
+        value: https://[DOMAIN]
+      - key: DDOE_STATIK
+        value: whitenoise
+      - key: DDOE_UEBERGANGSREGEL
+        value: "1"
+      - key: DDOE_MAIL_ABSENDER
+        value: plattform@[DOMAIN]
+      - key: DDOE_SMTP_HOST
+        sync: false
+      - key: DDOE_SMTP_PORT
+        sync: false
+      - key: DDOE_SMTP_USER
+        sync: false
+      - key: DDOE_SMTP_PASSWORT
+        sync: false
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: plattform-db-[KURZNAME]
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: plattform-db-[KURZNAME]
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: plattform-db-[KURZNAME]
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: plattform-db-[KURZNAME]
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: plattform-db-[KURZNAME]
+          property: password
+
+databases:
+  - name: plattform-db-[KURZNAME]
+    region: [REGION]
+    plan: basic-256mb
+    postgresMajorVersion: "16"

@@ -3686,3 +3686,159 @@ msgstr "Sign in to keep favourites"
 
 msgid "Anmelden, um Lebensbereiche zu abonnieren"
 msgstr "Sign in to subscribe to areas of life"
+
+msgid "Gemeinsame Vision"
+msgstr "Shared vision"
+
+msgid "Fassung 0.1 · Entwurf"
+msgstr "Version 0.1 · draft"
+
+msgid "Wir haben kein Parteiprogramm, das wir abgleichen müssten. Wir haben eine Vision, die wir gemeinsam konkretisieren."
+msgstr "We have no party programme to reconcile. We have a vision that we make concrete together."
+
+msgid "Vollständiger Text in beiden Sprachen:"
+msgstr "Full text in both languages:"
+
+msgid "(im Paket unten und im Quellcode)."
+msgstr "(in the package below and in the source code)."
+
+msgid "Ein Kern, viele Instanzen"
+msgstr "One core, many instances"
+
+msgid "Ein gemeinsamer Kern, je Land eine eigene Instanz; dazwischen das Parameter-Schema als Brücke"
+msgstr "One shared core, one instance per country; between them the parameter schema as a bridge"
+
+msgid "Gemeinsamer Kern"
+msgstr "Shared core"
+
+msgid "Quellcode · Freigaben · Schema"
+msgstr "Source code · releases · schema"
+
+msgid "versionierte Freigabe"
+msgstr "versioned release"
+
+msgid "Lernfortschritt"
+msgstr "Learning progress"
+
+msgid "Parameter-Schema · parameter.json · kennzahlen.json"
+msgstr "Parameter schema · parameter.json · kennzahlen.json"
+
+msgid "Österreich"
+msgstr "Austria"
+
+msgid "eigene Server · eigene Satzung · lernt selbst"
+msgstr "own servers · own statutes · learns for itself"
+
+msgid "Land B"
+msgstr "Country B"
+
+msgid "Land C"
+msgstr "Country C"
+
+msgid "Die Schnittstelle"
+msgstr "The interface"
+
+msgid "Adresse"
+msgstr "Address"
+
+msgid "Inhalt"
+msgstr "Content"
+
+msgid "Kennungen (Beispiele)"
+msgstr "Keys (examples)"
+
+msgid "Stellgrößen und Verfahrensordnung dieser Instanz"
+msgstr "Settings and procedural rules of this instance"
+
+msgid "Aggregierter Lernfortschritt: Mitglieder, Anträge je Phase, Beteiligung, Umsetzung"
+msgstr "Aggregated learning progress: members, motions per phase, turnout, implementation"
+
+msgid "Nachrechenbare Auszählung einer Abstimmung samt Prüfwerkzeug"
+msgstr "Verifiable count of a vote including the checking tool"
+
+msgid "Umsetzungsregister mit voller Historie"
+msgstr "Implementation register with full history"
+
+msgid "Kategorienbaum (312 Lebensbereiche, sprachneutrale Slugs) und Verfahrensordnung als Daten"
+msgstr "Category tree (312 areas of life, language-neutral slugs) and procedural rules as data"
+
+msgid "Vollständige Beschreibung:"
+msgstr "Full description:"
+
+msgid "Kennung dieser Instanz:"
+msgstr "Id of this instance:"
+
+msgid "So steigt ihr ein"
+msgstr "How to get started"
+
+msgid "Spur A · Bestehende Partei umgestalten"
+msgstr "Track A · transform an existing party"
+
+msgid "Vision teilen und intern beschließen: Werkzeug statt Programm."
+msgstr "Share the vision and decide internally: a tool, not a programme."
+
+msgid "Satzungs-Baukasten über die eigene Satzung legen — Kern übernehmen, Landesrecht einarbeiten."
+msgstr "Lay the statutes kit over your own statutes — adopt the core, work in national law."
+
+msgid "Mitglieder entscheiden — auf Wunsch schon auf einer Alpha-Instanz, nachrechenbar."
+msgstr "The members decide — on request already on an alpha instance, verifiably."
+
+msgid "Eigene Instanz aufsetzen (Checkliste), Gremien in Rollen und Mandatare in die Steuerung überführen."
+msgstr "Set up your own instance (checklist), move bodies into roles and representatives into representative steering."
+
+msgid "Exporte veröffentlichen, Sitz im Plattform-Rat, erster Abgleich."
+msgstr "Publish the exports, take a seat in the platform council, first alignment."
+
+msgid "Spur B · Neu gründen"
+msgstr "Track B · found a new party"
+
+msgid "Kern-Gruppe von fünf bis zehn Menschen, Arbeitssprache festlegen."
+msgstr "A core group of five to ten people, agree on a working language."
+
+msgid "Satzungs-Baukasten ausfüllen, rechtlich im eigenen Land prüfen lassen."
+msgstr "Fill in the statutes kit, have it reviewed legally in your own country."
+
+msgid "Gründung und Registrierung nach Landesrecht."
+msgstr "Foundation and registration under national law."
+
+msgid "Eigene Instanz aufsetzen (Checkliste), Alpha-Betrieb mit ersten Mitgliedern und Anträgen."
+msgstr "Set up your own instance (checklist), run an alpha with first members and motions."
+
+msgid "Das Übertragungspaket"
+msgstr "The transfer package"
+
+msgid "Alles in einer Datei, erzeugt aus dem aktuellen Stand des Quellcodes — ohne Daten dieser Instanz:"
+msgstr "Everything in one file, generated from the current state of the source code — without any data of this instance:"
+
+msgid "Paket herunterladen"
+msgstr "Download the package"
+
+msgid "<strong>Die Bürgerinnen und Bürger entscheiden selbst.</strong> Eine Partei dieser Art trägt keine Meinungen, sie ist das Werkzeug, mit dem eine Gesellschaft ihre Entscheidungen selbst trifft, nachvollzieht und umsetzt — die logisch nächste Form der gesamtgesellschaftlichen Selbstorganisation."
+msgstr "<strong>Citizens decide for themselves.</strong> A party of this kind carries no opinions, it is the tool with which a society takes, traces and implements its own decisions — the logically next form of society-wide self-organisation."
+
+msgid "<strong>Nachrechenbar statt vertrauensbedürftig.</strong> Jedes Verfahren kann jeder Mensch ohne Spezialwissen nachrechnen; Regeln frieren beim Einbringen ein; nichts wird verdeckt gereiht; nichts, was ein Verfahren betrifft, wird gelöscht. <strong>Betroffene und Fachkundige zuerst.</strong> <strong>Die Technik schlägt vor, sie entscheidet nie.</strong> <strong>Mandatare setzen um</strong> — gebunden, offen berichtend, von den Mitgliedern gesteuert."
+msgstr "<strong>Verifiable instead of trust-dependent.</strong> Every procedure can be recalculated by anyone without special knowledge; rules freeze when a motion is submitted; nothing is ranked in secret; nothing concerning a procedure is ever deleted. <strong>Those affected and those with expertise come first.</strong> <strong>Technology proposes, it never decides.</strong> <strong>Representatives implement</strong> — bound, reporting openly, steered by the members."
+
+msgid "<strong>Ein Kern, viele Instanzen.</strong> Jedes Land betreibt dieselbe Grundsoftware auf eigenen Servern, unter eigener Satzung, in eigener Sprache — und lernt dort selbst. Den Kern entwickeln wir gemeinsam weiter, mit regelmäßigem Austausch und Abgleich. Parameter werden gemeinsam eingeführt, ihre Werte bleiben jedem Land eigen. <strong>Angleichen statt abgleichen:</strong> Weil wir keine Programme haben, gibt es nichts zu verhandeln außer der Vision selbst — Fassung für Fassung, im Plattform-Rat mit einer Stimme je Land. Verbunden durch Werkzeug, Schema und Vision, nicht durch Geld."
+msgstr "<strong>One core, many instances.</strong> Each country runs the same base software on its own servers, under its own statutes, in its own language — and learns there. We develop the core together, with regular exchange and alignment. Parameters are introduced jointly, their values stay each country's own. <strong>Aligning instead of reconciling:</strong> as we have no programmes, there is nothing to negotiate but the vision itself — version by version, in the platform council with one vote per country. Connected by tool, schema and vision, not by money."
+
+msgid "<strong>Kern und Instanzen.</strong> Der gemeinsame Kern ist das Repository der ParlamentPlattform: Quellcode, versionierte Freigaben, das Schema. Jedes Land betreibt daraus seine eigene Instanz — eigene Datenbank auf eigenen Servern, eigenes Parameterregister, eigener Kategorienbaum, eigene Satzung. Landesspezifisches liegt in Konfiguration und Daten, nicht im Code."
+msgstr "<strong>Core and instances.</strong> The shared core is the ParlamentPlattform repository: source code, versioned releases, the schema. From it each country runs its own instance — its own database on its own servers, its own parameter register, its own category tree, its own statutes. What is country-specific lives in configuration and data, not in the code."
+
+msgid "<strong>Abgleich.</strong> Vierteljährlich gibt der Kern eine Freigabe; die Instanzen ziehen sie nach. Erweiterungen eines Landes kommen in den Kern, wenn sie sich parametrisieren lassen — sonst bleiben sie dokumentiertes Modul der Instanz. Ein Plattform-Rat mit einer Person je Land beschließt die Freigaben; das Protokoll ist öffentlich."
+msgstr "<strong>Alignment.</strong> Every quarter the core issues a release; the instances pull it in. Extensions made by one country enter the core if they can be parameterised — otherwise they stay a documented module of that instance. A platform council with one person per country decides on the releases; the minutes are public."
+
+msgid "<strong>Parameter gemeinsam, Wirkung eigen.</strong> Neue Stellgrößen entstehen im Kern mit einer sprachneutralen Kennung und einer Empfehlung. Ihren Wert setzt jede Instanz selbst und lernt ihn in ihrem Register weiter — so wirkt derselbe Parameter in jedem Land auf dessen eigene Weise."
+msgstr "<strong>Parameters jointly, effect your own.</strong> New settings arise in the core with a language-neutral key and a recommendation. Each instance sets its value itself and keeps learning it in its own register — so the same parameter works in each country in that country's own way."
+
+msgid "<strong>Lernfortschritt.</strong> Was ein Land über Fristen, Schwellen oder Beteiligung lernt, wird über die Schnittstelle vergleichbar — aggregiert, nie personenbezogen. Verglichen wird, übernommen nur durch Beschluss der eigenen Mitgliederversammlung."
+msgstr "<strong>Learning progress.</strong> What one country learns about deadlines, thresholds or turnout becomes comparable through the interface — aggregated, never personal. It is compared; adopting it takes a decision of your own assembly."
+
+msgid "Getauscht wird nur, was überall dasselbe bedeutet: Stellgrößen mit sprachneutralen Kennungen und aggregierte Kennzahlen. Werte bleiben jedem Land eigen; personenbezogene Daten verlassen eine Instanz nie. Alle Adressen sind öffentlich, ohne Anmeldung. Schema-Version 1.0."
+msgstr "Only what means the same everywhere is exchanged: settings with language-neutral keys and aggregated metrics. Values stay each country's own; personal data never leaves an instance. All addresses are public, without sign-in. Schema version 1.0."
+
+msgid "<strong>Was wir beisteuern:</strong> die Software unter freier Lizenz mit Docker- und Render-Vorlage, den Satzungs-Baukasten mit Kommentar und der österreichischen Rechtsprüfung als Erfahrungswert, das gemeinsame Aufsetzen der Instanz und der Schnittstellen, vierteljährliche Kern-Freigaben und den Plattform-Rat."
+msgstr "<strong>What we contribute:</strong> the software under a free licence with Docker and Render templates, the statutes kit with commentary and the Austrian legal review as experience, setting up the instance and the interfaces together, quarterly core releases and the platform council."
+
+msgid "<strong>Was das Land selbst tut:</strong> Server und Daten im eigenen Land, eigene Identitätsprüfung, Satzung und Verfahrensordnung nach eigenem Recht und in eigener Sprache, die Werte der Stellgrößen selbst lernen — und ehrliche Kennzahlen zurückgeben."
+msgstr "<strong>What your country does itself:</strong> servers and data in your own country, your own identity verification, statutes and procedural rules under your own law and in your own language, learning the values of the settings yourself — and returning honest metrics."

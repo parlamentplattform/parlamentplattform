@@ -544,14 +544,13 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .schaubild .pfeil.lern{stroke:var(--matt);stroke-dasharray:4 4}
 .schaubild .spitze{fill:var(--deep)}
 .schaubild .bruecke{stroke:var(--gold);stroke-width:2.5;stroke-linecap:round}
-.schaubild .punkt{fill:var(--gold);animation:wandern 3.6s linear infinite}
-.schaubild .punkt.p2{animation-delay:-1.2s}.schaubild .punkt.p3{animation-delay:-2.4s}
-@keyframes wandern{from{transform:translateX(0)}to{transform:translateX(520px)}}
+.schaubild .punkt{fill:var(--gold)}  /* die Anschlusspunkte der Brücke — ruhig, keine Dauerbewegung */
 .spuren{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:12px}
 .spur-karte h3{margin:0 0 8px}
 .spur-karte ol{padding-left:1.2em;margin:0}
 .spur-karte li{margin-bottom:6px}
-.schnittstelle{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+.tabelle-rollt{overflow-x:auto;scrollbar-width:thin;margin-top:8px}  /* breite Tabellen rollen in sich, die Seite nie */
+.schnittstelle{width:100%;min-width:520px;border-collapse:collapse;font-size:14px}
 .schnittstelle th,.schnittstelle td{padding:7px 8px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
 .schnittstelle th{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--matt);border-top:0}
 .paket-liste{columns:2;column-gap:24px;padding-left:1.2em;margin:8px 0 14px}

@@ -2,6 +2,21 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.36.0] — 2026-09-03 · S14a: Internationale Zusammenarbeit — ein Kern, viele Instanzen
+
+### Hinzugefügt
+- **Das sprachneutrale Parameter-Schema (FB-M5, § 12 Abs 5)** in `plattform_core/schema.py` (Version 1.0, rein und getestet): jede Stellgröße trägt neben ihrem deutschen Registerschlüssel eine englische, stabile Kennung (`support.threshold`, `deliberation.window_days`, `draft_loop.max_rounds` …). Dazu sieben aggregierte Kennzahlen (`members.active`, `votes.turnout_mean`, `implementation.by_status` …) und eine Prüfung, die fremde Exporte gegen das Schema hält und personenbezogene Felder beanstandet. Dokumentiert in **`docs/SCHEMA.md`**, entschieden in **ADR-009**
+- **`/kennzahlen.json`** — der aggregierte Lernfortschritt dieser Instanz (Mitglieder, Anträge je Phase, abgeschlossene Abstimmungen, mittlere Beteiligung, Umsetzungsstände, Lebensbereiche). Zählungen und Anteile über das Ganze, nie über einen Menschen
+- **`/parameter.json` erweitert:** Kopf mit `schema_version`, `system_id`, `system_name` und Softwarestand, Schema-Kennung je Eintrag und die aktive Verfahrensordnung als Kennungsliste. Die bisherigen Felder bleiben unverändert; neues Feld `schema_key` im Register (Migration trägt die Kennungen nach), Instanz-Kennung über `DDOE_SYSTEM_ID`
+- **Die Partner-Seite neu (FB-M1, M6, M7, M8):** die **Gemeinsame Vision** (Fassung 0.1, Entwurf zur Freigabe), das Modell **„Ein Kern, viele Instanzen"** mit Schaubild (Kern, Landesinstanzen, Parameter-Schema als Brücke, wandernde Kennzahlen), die **Schnittstelle** als Tabelle mit allen offenen Adressen, der **Einstieg in zwei Spuren** (bestehende Partei umgestalten · neu gründen) und das Übertragungspaket
+- **Das Übertragungspaket (FB-M7)** unter `/partner/paket/` als ZIP, erzeugt aus dem Repo-Stand: Gemeinsame Vision, Einstiegs-Fahrplan, Einrichtungs-Checkliste, **Satzungs-Baukasten**, Schema, Instanz-Vorlagen (`docker-compose.yml`, `env.example`, `render.yaml`), Kategorienbaum, Verfahrensordnung und der Erstbestand der Stellgrößen mit Kennungen
+- **`tools/satzung_baukasten.py`** erzeugt den Satzungs-Baukasten aus der Satzung: österreichische Eigennamen und Rechtsbezüge werden zu Platzhaltern (`[PARTEINAME]`, `[LAND]`, `[REGISTRIERUNGSBEHÖRDE]` …), vorangestellt eine Einordnung, welche Paragrafen den Kern des Modells bilden und welche Landesrecht sind
+- 19 neue Tests (Schema-Kern, Exporte, Partner-Seite, Paket, Baukasten) — 656 gesamt
+
+### Geändert
+- **Der Ordner `docs/fahrtenbuch/` ist nicht mehr im Repository** (`.gitignore`): Bauplan, wörtliche Anweisungen des Gründers, Soll/Ist, Inventar, Website-Prüfung und Satzungsentwurf sind interne Arbeitsdokumente. Öffentlich ist das Erzeugnis in `docs/partner/`. Werkzeug und Test arbeiten ohne den Ordner weiter; die Dateien der Historie bleiben davon unberührt
+- 52 englische Texte für die Partner-Seite ergänzt
+
 ## [0.35.0] — 2026-09-02 · S3: Der WeicherFilter komplett — neun Regler, Favoriten zuerst, Profil-Leiste, Overlay, Live-Vorschau
 
 ### Hinzugefügt

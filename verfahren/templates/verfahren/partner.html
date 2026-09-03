@@ -53,9 +53,9 @@ der Fahrplan der Zusammenarbeit, Kontakt. Erklärseite — hier darf erklärt we
     <text class="klein" x="590" y="130" text-anchor="middle">{% translate "Lernfortschritt" %}</text>
     <line class="bruecke" x1="150" y1="166" x2="670" y2="166"/>
     <text class="klein" x="410" y="158" text-anchor="middle">{% translate "Parameter-Schema · parameter.json · kennzahlen.json" %}</text>
-    <circle class="punkt p1" cx="150" cy="166" r="5"/>
-    <circle class="punkt p2" cx="150" cy="166" r="5"/>
-    <circle class="punkt p3" cx="150" cy="166" r="5"/>
+    <circle class="punkt" cx="150" cy="166" r="5"/>
+    <circle class="punkt" cx="410" cy="166" r="5"/>
+    <circle class="punkt" cx="670" cy="166" r="5"/>
     <rect class="kasten" x="40" y="200" width="220" height="96" rx="14"/>
     <text class="titel" x="150" y="230" text-anchor="middle">{% translate "Österreich" %}</text>
     <text class="klein" x="150" y="252" text-anchor="middle">{{ system_id }}</text>
@@ -99,7 +99,7 @@ der Fahrplan der Zusammenarbeit, Kontakt. Erklärseite — hier darf erklärt we
     Kennzahlen. Werte bleiben jedem Land eigen; personenbezogene Daten verlassen eine Instanz nie. Alle Adressen sind
     öffentlich, ohne Anmeldung. Schema-Version 1.0.
   {% endblocktranslate %}</p>
-  <table class="schnittstelle">
+  <div class="tabelle-rollt"><table class="schnittstelle">
     <thead><tr><th>{% translate "Adresse" %}</th><th>{% translate "Inhalt" %}</th><th>{% translate "Kennungen (Beispiele)" %}</th></tr></thead>
     <tbody>
       <tr><td><a href="{% url 'parameter:export' %}">/parameter.json</a></td><td>{% translate "Stellgrößen und Verfahrensordnung dieser Instanz" %}</td><td><code>support.threshold</code> · <code>deliberation.window_days</code> · <code>draft_loop.max_rounds</code></td></tr>
@@ -108,7 +108,7 @@ der Fahrplan der Zusammenarbeit, Kontakt. Erklärseite — hier darf erklärt we
       <tr><td><a href="{% url 'verfahren:umsetzung_json' %}">/umsetzung.json</a></td><td>{% translate "Umsetzungsregister mit voller Historie" %}</td><td>—</td></tr>
       <tr><td><code>policies/*.yaml</code></td><td>{% translate "Kategorienbaum (312 Lebensbereiche, sprachneutrale Slugs) und Verfahrensordnung als Daten" %}</td><td><code>kategorien-v2.yaml</code> · <code>grundordnung-v1.yaml</code></td></tr>
     </tbody>
-  </table>
+  </table></div>
   <p class="erk">{% translate "Vollständige Beschreibung:" %} <a href="https://github.com/parlamentplattform/parlamentplattform/blob/main/docs/SCHEMA.md" rel="noopener">docs/SCHEMA.md</a> · <a href="https://github.com/parlamentplattform/parlamentplattform/blob/main/docs/adr/ADR-009-parameter-schema-und-austauschformate.md" rel="noopener">ADR-009</a> · {% translate "Kennung dieser Instanz:" %} <code>{{ system_id }}</code></p>
 </div>
 

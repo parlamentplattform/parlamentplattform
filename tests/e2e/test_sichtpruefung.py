@@ -129,6 +129,24 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/antrag/{antrag}/")
     halte_fest(p, "antragsseite-mit-fusszeile")
 
-    assert len(bilder) == 17
+    # Die Partner-Seite (S14a): Vision und Schaubild, der Einstieg mit dem Paket
+    p = seite()
+    p.goto(f"{live_server.url}/partner/")
+    _ruhe(p)
+    p.locator("#modell").scroll_into_view_if_needed()
+    p.wait_for_timeout(400)
+    halte_fest(p, "partner-schaubild")
+    p.locator("#einstieg").scroll_into_view_if_needed()
+    p.wait_for_timeout(400)
+    halte_fest(p, "partner-einstieg")
+
+    p = seite(dunkel=True)
+    p.goto(f"{live_server.url}/partner/")
+    _ruhe(p)
+    p.locator("#modell").scroll_into_view_if_needed()
+    p.wait_for_timeout(400)
+    halte_fest(p, "partner-schaubild-dunkel")
+
+    assert len(bilder) == 20
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

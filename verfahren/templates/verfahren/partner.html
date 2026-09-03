@@ -2,16 +2,158 @@
 {% load i18n %}
 {% block titel %}{% translate "Internationale Partner" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Die Partner-Seite (§ 12; FB-M1, M6, M7, M8; A0-09): Gemeinsame Vision, das Modell „ein Kern, viele
+Instanzen“ mit Schaubild, die Schnittstelle, der Einstieg in zwei Spuren, das Übertragungspaket,
+der Fahrplan der Zusammenarbeit, Kontakt. Erklärseite — hier darf erklärt werden.
+{% endcomment %}
+<div class="partner">
 <h1>{% translate "Internationale Partner" %}</h1>
 <p class="erk" style="max-width:56em">{% translate "Das Labor der Demokratien — die Einladung an die verwandten Bewegungen weltweit (§ 12 des Satzungsentwurfs)." %}</p>
 
+<h2 id="vision">{% translate "Gemeinsame Vision" %} <span class="fassung">{% translate "Fassung 0.1 · Entwurf" %}</span></h2>
+<div class="karte vision">
+  <p><strong>{% translate "Wir haben kein Parteiprogramm, das wir abgleichen müssten. Wir haben eine Vision, die wir gemeinsam konkretisieren." %}</strong></p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Die Bürgerinnen und Bürger entscheiden selbst.</strong> Eine Partei dieser Art trägt keine Meinungen,
+    sie ist das Werkzeug, mit dem eine Gesellschaft ihre Entscheidungen selbst trifft, nachvollzieht und umsetzt —
+    die logisch nächste Form der gesamtgesellschaftlichen Selbstorganisation.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Nachrechenbar statt vertrauensbedürftig.</strong> Jedes Verfahren kann jeder Mensch ohne Spezialwissen
+    nachrechnen; Regeln frieren beim Einbringen ein; nichts wird verdeckt gereiht; nichts, was ein Verfahren betrifft,
+    wird gelöscht. <strong>Betroffene und Fachkundige zuerst.</strong> <strong>Die Technik schlägt vor, sie entscheidet nie.</strong>
+    <strong>Mandatare setzen um</strong> — gebunden, offen berichtend, von den Mitgliedern gesteuert.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Ein Kern, viele Instanzen.</strong> Jedes Land betreibt dieselbe Grundsoftware auf eigenen Servern, unter
+    eigener Satzung, in eigener Sprache — und lernt dort selbst. Den Kern entwickeln wir gemeinsam weiter, mit
+    regelmäßigem Austausch und Abgleich. Parameter werden gemeinsam eingeführt, ihre Werte bleiben jedem Land eigen.
+    <strong>Angleichen statt abgleichen:</strong> Weil wir keine Programme haben, gibt es nichts zu verhandeln außer der
+    Vision selbst — Fassung für Fassung, im Plattform-Rat mit einer Stimme je Land. Verbunden durch Werkzeug, Schema
+    und Vision, nicht durch Geld.
+  {% endblocktranslate %}</p>
+  <p class="erk">{% translate "Vollständiger Text in beiden Sprachen:" %} <code>GEMEINSAME_VISION.md</code> {% translate "(im Paket unten und im Quellcode)." %}</p>
+</div>
+
+<h2 id="modell">{% translate "Ein Kern, viele Instanzen" %}</h2>
 <div class="karte">
-  <p>{% blocktranslate %}Auf mehreren Kontinenten arbeiten Parteien an demselben Grundversprechen: Die Bürgerinnen
-und Bürger entscheiden selbst, die Technik ist das Werkzeug, die Mandatare sind die Umsetzer. Unser Schlüssel
-zur Zusammenarbeit ist die Trennung von <strong>System</strong> und <strong>Parametern</strong>: Jedes Land baut sein eigenes
-lernendes System — zugeschnitten auf seine Menschen und seine Rechtsordnung. Aber die Parameter, an denen
-Demokratien lernen (Schwellen, Fristen, Beteiligung, Revisionsraten, Prognosegüte), sprechen überall dieselbe
-Sprache. Was ein Land lernt, wird für alle vergleichbar — ohne dass ein System dem anderen gleichen müsste.{% endblocktranslate %}</p>
+  <svg class="schaubild" viewBox="0 0 820 320" role="img" aria-labelledby="schaubild-titel">
+    <title id="schaubild-titel">{% translate "Ein gemeinsamer Kern, je Land eine eigene Instanz; dazwischen das Parameter-Schema als Brücke" %}</title>
+    <defs><marker id="spitze" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="spitze" d="M0,0 L8,4 L0,8 z"/></marker></defs>
+    <rect class="kasten kern" x="290" y="16" width="240" height="66" rx="14"/>
+    <text class="titel" x="410" y="44" text-anchor="middle">{% translate "Gemeinsamer Kern" %}</text>
+    <text class="klein" x="410" y="66" text-anchor="middle">{% translate "Quellcode · Freigaben · Schema" %}</text>
+    <path class="pfeil" d="M340 84 L160 196"/>
+    <path class="pfeil" d="M410 84 L410 196"/>
+    <path class="pfeil" d="M480 84 L660 196"/>
+    <text class="klein" x="246" y="130" text-anchor="middle">{% translate "versionierte Freigabe" %}</text>
+    <path class="pfeil lern" d="M120 196 L300 74"/>
+    <path class="pfeil lern" d="M700 196 L520 74"/>
+    <text class="klein" x="590" y="130" text-anchor="middle">{% translate "Lernfortschritt" %}</text>
+    <line class="bruecke" x1="150" y1="166" x2="670" y2="166"/>
+    <text class="klein" x="410" y="158" text-anchor="middle">{% translate "Parameter-Schema · parameter.json · kennzahlen.json" %}</text>
+    <circle class="punkt p1" cx="150" cy="166" r="5"/>
+    <circle class="punkt p2" cx="150" cy="166" r="5"/>
+    <circle class="punkt p3" cx="150" cy="166" r="5"/>
+    <rect class="kasten" x="40" y="200" width="220" height="96" rx="14"/>
+    <text class="titel" x="150" y="230" text-anchor="middle">{% translate "Österreich" %}</text>
+    <text class="klein" x="150" y="252" text-anchor="middle">{{ system_id }}</text>
+    <text class="klein" x="150" y="276" text-anchor="middle">{% translate "eigene Server · eigene Satzung · lernt selbst" %}</text>
+    <rect class="kasten" x="300" y="200" width="220" height="96" rx="14"/>
+    <text class="titel" x="410" y="230" text-anchor="middle">{% translate "Land B" %}</text>
+    <text class="klein" x="410" y="252" text-anchor="middle">xx-partei</text>
+    <text class="klein" x="410" y="276" text-anchor="middle">{% translate "eigene Server · eigene Satzung · lernt selbst" %}</text>
+    <rect class="kasten" x="560" y="200" width="220" height="96" rx="14"/>
+    <text class="titel" x="670" y="230" text-anchor="middle">{% translate "Land C" %}</text>
+    <text class="klein" x="670" y="252" text-anchor="middle">yy-partei</text>
+    <text class="klein" x="670" y="276" text-anchor="middle">{% translate "eigene Server · eigene Satzung · lernt selbst" %}</text>
+  </svg>
+  <p>{% blocktranslate trimmed %}
+    <strong>Kern und Instanzen.</strong> Der gemeinsame Kern ist das Repository der ParlamentPlattform: Quellcode,
+    versionierte Freigaben, das Schema. Jedes Land betreibt daraus seine eigene Instanz — eigene Datenbank auf eigenen
+    Servern, eigenes Parameterregister, eigener Kategorienbaum, eigene Satzung. Landesspezifisches liegt in Konfiguration
+    und Daten, nicht im Code.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Abgleich.</strong> Vierteljährlich gibt der Kern eine Freigabe; die Instanzen ziehen sie nach. Erweiterungen
+    eines Landes kommen in den Kern, wenn sie sich parametrisieren lassen — sonst bleiben sie dokumentiertes Modul der
+    Instanz. Ein Plattform-Rat mit einer Person je Land beschließt die Freigaben; das Protokoll ist öffentlich.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Parameter gemeinsam, Wirkung eigen.</strong> Neue Stellgrößen entstehen im Kern mit einer sprachneutralen
+    Kennung und einer Empfehlung. Ihren Wert setzt jede Instanz selbst und lernt ihn in ihrem Register weiter — so wirkt
+    derselbe Parameter in jedem Land auf dessen eigene Weise.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Lernfortschritt.</strong> Was ein Land über Fristen, Schwellen oder Beteiligung lernt, wird über die
+    Schnittstelle vergleichbar — aggregiert, nie personenbezogen. Verglichen wird, übernommen nur durch Beschluss der
+    eigenen Mitgliederversammlung.
+  {% endblocktranslate %}</p>
+</div>
+
+<h2 id="schnittstelle">{% translate "Die Schnittstelle" %}</h2>
+<div class="karte">
+  <p>{% blocktranslate trimmed %}
+    Getauscht wird nur, was überall dasselbe bedeutet: Stellgrößen mit sprachneutralen Kennungen und aggregierte
+    Kennzahlen. Werte bleiben jedem Land eigen; personenbezogene Daten verlassen eine Instanz nie. Alle Adressen sind
+    öffentlich, ohne Anmeldung. Schema-Version 1.0.
+  {% endblocktranslate %}</p>
+  <table class="schnittstelle">
+    <thead><tr><th>{% translate "Adresse" %}</th><th>{% translate "Inhalt" %}</th><th>{% translate "Kennungen (Beispiele)" %}</th></tr></thead>
+    <tbody>
+      <tr><td><a href="{% url 'parameter:export' %}">/parameter.json</a></td><td>{% translate "Stellgrößen und Verfahrensordnung dieser Instanz" %}</td><td><code>support.threshold</code> · <code>deliberation.window_days</code> · <code>draft_loop.max_rounds</code></td></tr>
+      <tr><td><a href="{% url 'parameter:kennzahlen' %}">/kennzahlen.json</a></td><td>{% translate "Aggregierter Lernfortschritt: Mitglieder, Anträge je Phase, Beteiligung, Umsetzung" %}</td><td><code>members.active</code> · <code>votes.turnout_mean</code> · <code>implementation.by_status</code></td></tr>
+      <tr><td><code>/antrag/‹id›/export.json</code></td><td>{% translate "Nachrechenbare Auszählung einer Abstimmung samt Prüfwerkzeug" %}</td><td><code>verify/nachrechnen.py</code></td></tr>
+      <tr><td><a href="{% url 'verfahren:umsetzung_json' %}">/umsetzung.json</a></td><td>{% translate "Umsetzungsregister mit voller Historie" %}</td><td>—</td></tr>
+      <tr><td><code>policies/*.yaml</code></td><td>{% translate "Kategorienbaum (312 Lebensbereiche, sprachneutrale Slugs) und Verfahrensordnung als Daten" %}</td><td><code>kategorien-v2.yaml</code> · <code>grundordnung-v1.yaml</code></td></tr>
+    </tbody>
+  </table>
+  <p class="erk">{% translate "Vollständige Beschreibung:" %} <a href="https://github.com/parlamentplattform/parlamentplattform/blob/main/docs/SCHEMA.md" rel="noopener">docs/SCHEMA.md</a> · <a href="https://github.com/parlamentplattform/parlamentplattform/blob/main/docs/adr/ADR-009-parameter-schema-und-austauschformate.md" rel="noopener">ADR-009</a> · {% translate "Kennung dieser Instanz:" %} <code>{{ system_id }}</code></p>
+</div>
+
+<h2 id="einstieg">{% translate "So steigt ihr ein" %}</h2>
+<div class="spuren">
+  <div class="karte spur-karte">
+    <h3>{% translate "Spur A · Bestehende Partei umgestalten" %}</h3>
+    <ol>
+      <li>{% translate "Vision teilen und intern beschließen: Werkzeug statt Programm." %}</li>
+      <li>{% translate "Satzungs-Baukasten über die eigene Satzung legen — Kern übernehmen, Landesrecht einarbeiten." %}</li>
+      <li>{% translate "Mitglieder entscheiden — auf Wunsch schon auf einer Alpha-Instanz, nachrechenbar." %}</li>
+      <li>{% translate "Eigene Instanz aufsetzen (Checkliste), Gremien in Rollen und Mandatare in die Steuerung überführen." %}</li>
+      <li>{% translate "Exporte veröffentlichen, Sitz im Plattform-Rat, erster Abgleich." %}</li>
+    </ol>
+  </div>
+  <div class="karte spur-karte">
+    <h3>{% translate "Spur B · Neu gründen" %}</h3>
+    <ol>
+      <li>{% translate "Kern-Gruppe von fünf bis zehn Menschen, Arbeitssprache festlegen." %}</li>
+      <li>{% translate "Satzungs-Baukasten ausfüllen, rechtlich im eigenen Land prüfen lassen." %}</li>
+      <li>{% translate "Gründung und Registrierung nach Landesrecht." %}</li>
+      <li>{% translate "Eigene Instanz aufsetzen (Checkliste), Alpha-Betrieb mit ersten Mitgliedern und Anträgen." %}</li>
+      <li>{% translate "Exporte veröffentlichen, Sitz im Plattform-Rat, erster Abgleich." %}</li>
+    </ol>
+  </div>
+</div>
+<div class="karte">
+  <p>{% blocktranslate trimmed %}
+    <strong>Was wir beisteuern:</strong> die Software unter freier Lizenz mit Docker- und Render-Vorlage, den
+    Satzungs-Baukasten mit Kommentar und der österreichischen Rechtsprüfung als Erfahrungswert, das gemeinsame Aufsetzen
+    der Instanz und der Schnittstellen, vierteljährliche Kern-Freigaben und den Plattform-Rat.
+  {% endblocktranslate %}</p>
+  <p>{% blocktranslate trimmed %}
+    <strong>Was das Land selbst tut:</strong> Server und Daten im eigenen Land, eigene Identitätsprüfung, Satzung und
+    Verfahrensordnung nach eigenem Recht und in eigener Sprache, die Werte der Stellgrößen selbst lernen — und ehrliche
+    Kennzahlen zurückgeben.
+  {% endblocktranslate %}</p>
+</div>
+
+<h2 id="paket">{% translate "Das Übertragungspaket" %}</h2>
+<div class="karte">
+  <p>{% translate "Alles in einer Datei, erzeugt aus dem aktuellen Stand des Quellcodes — ohne Daten dieser Instanz:" %}</p>
+  <ul class="paket-liste">{% for datei in paket %}<li><code>{{ datei }}</code></li>{% endfor %}</ul>
+  <p><a class="btn" href="{% url 'verfahren:partner_paket' %}">{% translate "Paket herunterladen" %} ({{ version }})</a>
+  <a class="btn-linie" style="margin-left:8px" href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode ansehen" %}</a></p>
 </div>
 
 <h2>{% translate "Der Fahrplan der Zusammenarbeit" %}</h2>
@@ -44,8 +186,9 @@ Regelpraxis gesammelt haben.{% endblocktranslate %}</p>
   <p><strong>{% translate "Sprechen wir." %}</strong> {% blocktranslate %}Kurz und konkret — mit einem Angebot und einer Lernfrage. Arbeitssprache Englisch
 oder Deutsch.{% endblocktranslate %}</p>
   <p style="margin-top:12px"><a class="btn" href="mailto:plattform@ddoe.at">{% translate "Kontakt aufnehmen" %}</a>
-  <a class="btn-linie" style="margin-left:8px" href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode ansehen" %}</a></p>
+  <a class="btn-linie" style="margin-left:8px" href="{% url 'verfahren:partner_paket' %}">{% translate "Paket herunterladen" %}</a></p>
   <p class="erk" style="margin-top:12px">{% blocktranslate %}In Vorbereitung: das Partner-Konto mit eigener Rolle und Oberfläche auf dieser
 Plattform — das Rollen-Fundament dafür steht bereits.{% endblocktranslate %}</p>
+</div>
 </div>
 {% endblock %}

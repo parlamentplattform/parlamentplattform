@@ -18,6 +18,12 @@ from django.utils import timezone
 
 class Parameter(models.Model):
     schluessel = models.SlugField(max_length=60, unique=True, allow_unicode=False)
+    schema_key = models.CharField(
+        max_length=80,
+        blank=True,
+        default="",
+        help_text="Sprachneutrale Kennung im gemeinsamen Schema (docs/SCHEMA.md), z. B. „draft_loop.review_days“; leer = nur lokal.",
+    )
     wert = models.CharField(max_length=100)
     einheit = models.CharField(max_length=30, blank=True)
     beschreibung = models.TextField(max_length=1000)
@@ -89,11 +95,19 @@ ERSTBESTAND = [
 
 def erstbestand_sicherstellen() -> int:
     """Fehlende Erstbestands-Einträge anlegen (bestehende Werte bleiben
-    unangetastet — das Register gehört den Menschen, nicht dem Code)."""
+    unangetastet — das Register gehört den Menschen, nicht dem Code). Die
+    Schema-Kennung (FB-M5) wird nachgetragen, wenn sie fehlt — sie ist Bedeutung,
+    kein Wert."""
+    from plattform_core.schema import schema_key
+
     neu = 0
     for eintrag in ERSTBESTAND:
-        _, angelegt = Parameter.objects.get_or_create(
-            schluessel=eintrag["schluessel"], defaults=eintrag
+        vorlage = {**eintrag, "schema_key": schema_key(eintrag["schluessel"])}
+        parameter, angelegt = Parameter.objects.get_or_create(
+            schluessel=eintrag["schluessel"], defaults=vorlage
         )
         neu += int(angelegt)
+        if not angelegt and not parameter.schema_key and vorlage["schema_key"]:
+            parameter.schema_key = vorlage["schema_key"]
+            parameter.save(update_fields=["schema_key"])
     return neu

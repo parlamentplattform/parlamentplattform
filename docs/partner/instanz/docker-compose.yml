@@ -1,0 +1,51 @@
+# ParlamentPlattform — Landesinstanz (FB-M7): Datenbank und Plattform auf einem eigenen Server.
+#
+#   cp env.example .env   # ausfüllen
+#   docker compose -f instanz/docker-compose.yml up -d
+#
+# Davor liegt üblicherweise ein Reverse-Proxy mit TLS (Caddy, nginx, Traefik) auf Port 8000.
+# Sicherung: das Volume `dbdata` täglich sichern (pg_dump), verschlüsselt, im eigenen Land.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-plattform}
+      POSTGRES_USER: ${POSTGRES_USER:-plattform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-plattform}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build:
+      context: ..
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: db
+      DDOE_DEBUG: "0"
+      DDOE_STATIK: whitenoise
+    command: >-
+      sh -c "python manage.py migrate --noinput
+      && python manage.py kategorien_laden
+      && python manage.py collectstatic --noinput
+      && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 60"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/gesund/')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  dbdata:

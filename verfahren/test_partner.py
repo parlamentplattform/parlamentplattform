@@ -56,11 +56,15 @@ def test_uebertragungspaket_als_zip(client):
 
 
 def test_satzung_baukasten_ist_aktuell_und_ohne_eigennamen():
+    """Der Baukasten ist eingecheckt und öffentlich; seine Quelle (die Satzung im internen
+    Fahrtenbuch-Ordner) ist es nicht — fehlt sie, wird nur das Erzeugnis geprüft."""
+    baukasten = (WURZEL / "docs" / "partner" / "SATZUNG_BAUKASTEN.md").read_text(encoding="utf-8")
     spec = importlib.util.spec_from_file_location("satzung_baukasten", WURZEL / "tools" / "satzung_baukasten.py")
     modul = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modul)
-    text = modul.erzeugen()
-    assert (WURZEL / "docs" / "partner" / "SATZUNG_BAUKASTEN.md").read_text(encoding="utf-8") == text
+    if modul.QUELLE.exists():
+        assert baukasten == modul.erzeugen(), "tools/satzung_baukasten.py neu ausführen"
+    text = baukasten
     rumpf = text.split("## § 1 ")[1]
     assert "Direkte Demokratie Österreich" not in rumpf and "DDÖ" not in rumpf and "Österreich" not in rumpf
     for platzhalter in ("[PARTEINAME]", "[KÜRZEL]", "[LAND]", "[SITZ]", "[REGISTRIERUNGSBEHÖRDE]", "[PARTEIENGESETZ]"):

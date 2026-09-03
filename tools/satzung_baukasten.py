@@ -3,10 +3,15 @@
     python tools/satzung_baukasten.py            # schreibt docs/partner/SATZUNG_BAUKASTEN.md
     python tools/satzung_baukasten.py --pruefen  # Rückgabe 1, wenn die Datei nicht mehr aktuell ist
 
-Quelle ist die Satzung der DDÖ (docs/fahrtenbuch/Satzung_DDOE_2.5_Entwurf.md) — sie selbst bleibt
+Quelle ist die Satzung der DDÖ (`docs/fahrtenbuch/Satzung_DDOE_2.5_Entwurf.md`) — sie selbst bleibt
 unangetastet (nur der Gründer ändert sie). Der Baukasten ersetzt die österreichischen Eigennamen und
 Rechtsbezüge durch Platzhalter und stellt einen Kommentar voran, welche Paragrafen den Kern des
 Modells bilden und welche Landesrecht sind. Deterministisch: gleiche Quelle, gleiche Ausgabe.
+
+Der Ordner `docs/fahrtenbuch/` ist **intern und nicht im Repository** (siehe `.gitignore`): Er trägt
+die wörtlichen Anweisungen des Gründers, Soll/Ist, Inventar und den Satzungsentwurf. Öffentlich ist
+allein das Erzeugnis `docs/partner/SATZUNG_BAUKASTEN.md`. Fehlt die Quelle (frischer Klon, CI), tut
+dieses Werkzeug nichts und sagt das — der eingecheckte Baukasten bleibt gültig.
 """
 
 from __future__ import annotations
@@ -113,6 +118,9 @@ def erzeugen() -> str:
 
 
 def main(argv: list[str]) -> int:
+    if not QUELLE.exists():
+        print(f"Quelle {QUELLE.relative_to(WURZEL)} fehlt (interner Ordner) — nichts zu tun.")
+        return 0
     text = erzeugen()
     if "--pruefen" in argv:
         aktuell = ZIEL.exists() and ZIEL.read_text(encoding="utf-8") == text

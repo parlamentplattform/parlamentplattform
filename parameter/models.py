@@ -49,6 +49,9 @@ def zahl(schluessel: str, standard: int) -> int:
         return standard
 
 
+#: Kürzel interner Dokumente — sie gehören nicht in die öffentliche Quellenangabe.
+INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "· L7", "Ring 0")
+
 ERSTBESTAND = [
     {
         "schluessel": "gremien-review-tage",
@@ -56,7 +59,7 @@ ERSTBESTAND = [
         "einheit": "Tage",
         "beschreibung": "Frist der Unterstützer in der Entwurfsschleife: Vorschlag annehmen oder mit "
         "konkretem Wunsch zurückgeben. Nach Ablauf wertet die Frist aus — Untätigkeit hemmt nie.",
-        "quelle": "§ 5 Abs 12 · F-67",
+        "quelle": "§ 5 Abs 12",
     },
     {
         "schluessel": "gremien-ueberarbeitung-tage",
@@ -64,7 +67,7 @@ ERSTBESTAND = [
         "einheit": "Tage",
         "beschreibung": "Überarbeitungsfrist des Expertenrats je Rückgabe-Runde. Verstreicht sie ohne "
         "neue Einreichung, geht die zuletzt vorgelegte Fassung zur Endabstimmung.",
-        "quelle": "§ 5 Abs 12 · F-67",
+        "quelle": "§ 5 Abs 12",
     },
     {
         "schluessel": "gremien-hoechstrunden",
@@ -72,7 +75,7 @@ ERSTBESTAND = [
         "einheit": "Runden",
         "beschreibung": "Höchstzahl der Runden der Entwurfsschleife; danach geht der Vorschlag in jedem "
         "Fall zur Endabstimmung.",
-        "quelle": "§ 5 Abs 12 („Rundenzahl per Verfahrensordnung“) · F-67",
+        "quelle": "§ 5 Abs 12 („Rundenzahl per Verfahrensordnung“)",
     },
     {
         "schluessel": "vorschlag-annahme-prozent",
@@ -81,7 +84,7 @@ ERSTBESTAND = [
         "beschreibung": "Zustimmungsanteil, den der Beitrag „Passt alles“ im Abstimmungs-Chat "
         "überschreiten muss, damit der Vorschlag zur Endabstimmung geht — zusätzlich muss er an "
         "erster Stelle stehen.",
-        "quelle": "A0-07 („mehr als 50%“) · § 5 Abs 12 · FB-G6",
+        "quelle": "§ 5 Abs 12 · Anweisung des Gründers: „mehr als 50%“",
     },
     {
         "schluessel": "vorschlag-chat-reihung",
@@ -90,7 +93,7 @@ ERSTBESTAND = [
         "beschreibung": "Fassung der Reihungsregel des Abstimmungs-Chats (engagement-v1): "
         "Engagement = Zustimmungen + Ablehnungen absteigend, dann Zustimmungsanteil, dann Zeit. "
         "Offengelegt und nachrechenbar (§ 2 Abs 6).",
-        "quelle": "A0-07 („die kommentare mit dem meisten engagement erscheinen ganz oben“) · FB-G6",
+        "quelle": "Anweisung des Gründers: „die kommentare mit dem meisten engagement erscheinen ganz oben“",
     },
     {
         "schluessel": "gremien-rollen-dauer-tage",
@@ -98,7 +101,7 @@ ERSTBESTAND = [
         "einheit": "Tage",
         "beschreibung": "Regeldauer einer Gremien-Rolle (zwei Jahre): Bestellung auf öffentliche "
         "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen.",
-        "quelle": "§ 6 Abs 8 · F-66",
+        "quelle": "§ 6 Abs 8",
     },
     {
         "schluessel": "ki-monatstokens",
@@ -106,7 +109,7 @@ ERSTBESTAND = [
         "einheit": "Tokens/Monat",
         "beschreibung": "Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
         "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt.",
-        "quelle": "F-60 · L7",
+        "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
     },
 ]
 
@@ -125,7 +128,16 @@ def erstbestand_sicherstellen() -> int:
             schluessel=eintrag["schluessel"], defaults=vorlage
         )
         neu += int(angelegt)
+        felder = []
         if not angelegt and not parameter.schema_key and vorlage["schema_key"]:
             parameter.schema_key = vorlage["schema_key"]
-            parameter.save(update_fields=["schema_key"])
+            felder.append("schema_key")
+        # Interne Kennungen aus der Quelle nehmen (Entscheidung 4.9.2026): Sie verweisen auf
+        # Dokumente, die Besuchern nichts sagen — teils auf nicht öffentliche. Der Wert bleibt
+        # unangetastet, die Quelle ist Beschreibung.
+        if not angelegt and any(k in (parameter.quelle or "") for k in INTERNE_KENNUNGEN):
+            parameter.quelle = vorlage["quelle"]
+            felder.append("quelle")
+        if felder:
+            parameter.save(update_fields=felder)
     return neu

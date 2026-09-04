@@ -2,7 +2,7 @@
 
 Grundsätze: ohne JavaScript voll funktionsfähig (htmx nur als Zugabe),
 Honigtopf und Sendeabstand statt Captcha, keine Anmeldepflicht. Die
-Verwaltungsansicht ist — wie die gesamte Verwaltung — bewusst nur deutsch."""
+Verwaltungsansicht ist wie jede andere Seite übersetzbar (seit 0.40.0)."""
 
 import csv
 

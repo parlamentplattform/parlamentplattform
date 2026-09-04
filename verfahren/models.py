@@ -87,7 +87,7 @@ class Kategorie(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="kinder",
-        help_text="Übergeordnete Kategorie — leer bei Hauptkategorien. Der Baum trägt die Drill-down-Zuordnung (F-45).",
+        help_text="Übergeordnete Kategorie — leer bei Hauptkategorien. Der Baum trägt die Drill-down-Zuordnung.",
     )
     beschreibung = models.CharField(max_length=300, blank=True)
     eurovoc = models.CharField(
@@ -98,7 +98,7 @@ class Kategorie(models.Model):
     schlagworte = models.JSONField(
         default=list,
         blank=True,
-        help_text="Schlagwortliste für die automatische Zuordnung (F-47, Stufe 1) — gepflegt in der YAML-Quelle.",
+        help_text="Schlagwortliste für die automatische Zuordnung — gepflegt in der YAML-Quelle.",
     )
     reihenfolge = models.PositiveIntegerField(default=0)
     aktiv = models.BooleanField(default=True)
@@ -169,7 +169,7 @@ class Antrag(models.Model):
         max_length=12,
         choices=Antragsart.choices,
         default=Antragsart.SACHE,
-        help_text="Sachantrag (§ 5) oder Mandats-Kandidatur (§ 7 Abs 1, F-70).",
+        help_text="Sachantrag (§ 5) oder Mandats-Kandidatur (§ 7 Abs 1).",
     )
     eingebracht_von = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege"
@@ -195,7 +195,7 @@ class Antrag(models.Model):
         max_length=12,
         choices=Ebene.choices,
         default=Ebene.BUND,
-        help_text="Territoriale Ebene (§ 14) — regionale Anträge erscheinen im Bereich c des Hauptfensters (F-43).",
+        help_text="Territoriale Ebene (§ 14) — regionale Anträge erscheinen im Bereich c des Hauptfensters.",
     )
     gebiet = models.CharField(
         max_length=120,
@@ -204,7 +204,7 @@ class Antrag(models.Model):
     )
     hervorgehoben = models.BooleanField(
         default=False,
-        help_text="Bereich b des Hauptfensters (F-42): wichtige Abstimmung, die alle angeht, aber wenig "
+        help_text="Bereich b des Hauptfensters: wichtige Abstimmung, die alle angeht, aber wenig "
         "Aufmerksamkeit bekommt — oder bei der Beeinflussungsrisiko besteht. Entscheidung des "
         "Integritätsrats, nie eines Algorithmus.",
     )
@@ -216,7 +216,7 @@ class Antrag(models.Model):
         Kategorie,
         blank=True,
         related_name="antraege",
-        help_text="Lebensbereiche des Antrags (F-45) — automatisch zugeordnet (F-47), "
+        help_text="Lebensbereiche des Antrags — automatisch zugeordnet, "
         "durch den Integritätsrat korrigierbar.",
     )
 
@@ -505,7 +505,7 @@ class Vollzugseintrag(models.Model):
     vermerk = models.TextField(
         blank=True,
         max_length=2000,
-        help_text="Öffentlicher Vermerk: Stand, Hindernis, nächster Schritt, Termin (F-56-Raster).",
+        help_text="Öffentlicher Vermerk: Stand, Hindernis, nächster Schritt, Termin.",
     )
     erstellt_am = models.DateTimeField(default=timezone.now)
     durch = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
@@ -612,7 +612,7 @@ class FilterProfil(models.Model):
     name = models.CharField(max_length=40)
     regler = models.JSONField(default=dict, help_text="Reglerstellungen 0–100 je Regel (plattform_core.weicherfilter).")
     favoriten_zuerst = models.BooleanField(
-        default=True, help_text="★ Favoriten zuerst: Anträge aus abonnierten Lebensbereichen stehen vorn (FB-B1)."
+        default=True, help_text="★ Favoriten zuerst: Anträge aus abonnierten Lebensbereichen stehen vorn."
     )
     aktiv = models.BooleanField(default=False)
     geaendert_am = models.DateTimeField(auto_now=True)
@@ -780,7 +780,7 @@ class Kommentar(models.Model):
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
     mitglied = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
-        help_text="Leer beim Systembeitrag der Plattform („Passt alles“, FB-G6) — sonst der Verfasser.",
+        help_text="Leer beim Systembeitrag der Plattform („Passt alles“) — sonst der Verfasser.",
     )
     text = models.TextField(max_length=4000)
     antwort_auf = models.ForeignKey(
@@ -794,7 +794,7 @@ class Kommentar(models.Model):
     erstellt_am = models.DateTimeField(default=timezone.now)
     bearbeitet_am = models.DateTimeField(null=True, blank=True)
     archiviert_am = models.DateTimeField(
-        null=True, blank=True, help_text="Bei Hochstufung gesetzt: der Beitrag wandert ins Archiv (FB-G5)."
+        null=True, blank=True, help_text="Bei Hochstufung gesetzt: der Beitrag wandert ins Archiv."
     )
     geloescht = models.BooleanField(default=False, help_text="Vom Verfasser entfernt — die Struktur bleibt.")
     ausgeblendet_am = models.DateTimeField(null=True, blank=True)
@@ -802,10 +802,10 @@ class Kommentar(models.Model):
         max_length=200, blank=True, help_text="Öffentlicher Grund der Verwaltung (Art 17 DSA)."
     )
     system = models.BooleanField(
-        default=False, help_text="Von der Plattform angelegt — der „Passt alles“-Eintrag des Abstimmungs-Chats (FB-G6)."
+        default=False, help_text="Von der Plattform angelegt — der „Passt alles“-Eintrag des Abstimmungs-Chats."
     )
     ist_kritik = models.BooleanField(
-        default=False, help_text="Konkrete Kritik am Vorschlag des Expertenrats — geht bei Rückgabe an ihn (FB-G6)."
+        default=False, help_text="Konkrete Kritik am Vorschlag des Expertenrats — geht bei Rückgabe an ihn."
     )
     bezug_absatz = models.PositiveIntegerField(
         null=True, blank=True, help_text="Absatz des Vorschlags, auf den sich die Kritik bezieht (ab 1)."

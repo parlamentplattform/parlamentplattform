@@ -1,0 +1,44 @@
+{% load i18n %}<!doctype html>
+{% comment %}
+Serverfehler. Diese Seite erbt bewusst NICHT von base.html: Sie muss auch dann noch stehen,
+wenn die Anwendung selbst nicht mehr trägt — Django rendert sie ohne Kontextprozessoren, und
+wäre die Datenbank ausgefallen, dürfte die Fehlerseite daran nicht ein zweites Mal scheitern.
+Darum trägt sie ihre wenigen Farben selbst und kommt ohne Skript, ohne Bilder und ohne
+Datenbankzugriff aus. Der Weg zurück ist ein gewöhnlicher Link.
+{% endcomment %}<html lang="{{ LANGUAGE_CODE|default:'de' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% translate "Serverfehler" %} · ParlamentPlattform</title>
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#F7F5F0;color:#12242C;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:34rem;padding:32px 24px;text-align:center}
+  .marke{font-size:15px;letter-spacing:.02em;margin-bottom:24px}
+  .marke b{font-weight:700}
+  .marke i{font-style:italic;color:#8A6415}
+  .nummer{font-size:56px;font-weight:700;color:#D9A441;margin:0;line-height:1}
+  h1{font-size:22px;margin:8px 0 12px}
+  p{margin:0 0 16px}
+  a.zurueck{display:inline-block;margin-top:8px;padding:10px 18px;border-radius:12px;
+    background:#0E4C5C;color:#fff;text-decoration:none;font-weight:600}
+  a.zurueck:focus-visible{outline:3px solid #D9A441;outline-offset:2px}
+  @media (prefers-color-scheme:dark){
+    body{background:#0E1A20;color:#E8EDEF}
+    .marke i{color:#E0B866}
+    a.zurueck{background:#8CC0CF;color:#0E1A20}
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="marke"><b>Parlament</b><i>Plattform</i></p>
+  <p class="nummer" aria-hidden="true">500</p>
+  <h1>{% translate "Hier ist etwas schiefgegangen" %}</h1>
+  <p>{% blocktranslate %}Der Fehler liegt bei uns, nicht bei Ihnen. Er ist protokolliert und wird angesehen.
+Nichts von dem, was bereits abgestimmt oder eingebracht wurde, geht dabei verloren.{% endblocktranslate %}</p>
+  <p><a class="zurueck" href="/parlament/">{% translate "Zurück ins Parlament" %}</a></p>
+</main>
+</body>
+</html>

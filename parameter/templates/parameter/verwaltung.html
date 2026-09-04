@@ -1,10 +1,11 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Parameter-Verwaltung{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Parameter-Verwaltung" %}{% endblock %}
 {% block inhalt %}
-<h1>Parameterregister</h1>
-<p>Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf
-<a href="{% url 'parameter:liste' %}">/parameter/</a>.
-<a href="{% url 'mitglieder:verwaltung' %}">← Mitgliederverwaltung</a></p>
+<h1>{% translate "Parameterregister" %}</h1>{% url 'parameter:liste' as parameter_liste_url %}
+<p>{% blocktranslate %}Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf
+<a href="{{ parameter_liste_url }}">/parameter/</a>.{% endblocktranslate %}
+<a href="{% url 'mitglieder:verwaltung' %}">← {% translate "Mitgliederverwaltung" %}</a></p>
 
 <div class="karte" style="margin-top:16px">
   {% for p in parameter %}
@@ -14,8 +15,8 @@
     <form method="post" action="{% url 'parameter:verwaltung_aktion' %}" style="margin-top:6px">{% csrf_token %}
       <input type="hidden" name="parameter" value="{{ p.pk }}">
       <input type="text" name="wert" value="{{ p.wert }}" style="width:120px">
-      <input type="text" name="grund" placeholder="Grund (wird veröffentlicht)" required style="width:280px">
-      <button type="submit" class="btn-linie">Ändern</button>
+      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" required style="width:280px">
+      <button type="submit" class="btn-linie">{% translate "Ändern" %}</button>
     </form>
   </span></div>
   {% endfor %}

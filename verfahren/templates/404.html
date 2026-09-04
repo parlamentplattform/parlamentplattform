@@ -1,0 +1,19 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}{% comment %}
+Seite nicht gefunden. Django zieht diese Vorlage von selbst, sobald DEBUG aus ist — ohne sie
+stünde hier Djangos englische Minimalseite ohne Leiste und ohne Weg zurück. Der Weg zurück ist
+der Zweck dieser Seite: ins Parlament, das Hauptfenster der Plattform.
+{% endcomment %}
+{% block titel %}{% translate "Seite nicht gefunden" %}{% endblock %}
+{% block inhalt %}
+<div class="fehlerseite">
+  <p class="fehlernummer" aria-hidden="true">404</p>
+  <h1>{% translate "Diese Seite gibt es nicht" %}</h1>
+  <p>{% blocktranslate %}Vielleicht ist der Verweis veraltet, vielleicht hat sich ein Tippfehler eingeschlichen.
+Der Inhalt selbst ist nicht verloren — Verfahren werden auf dieser Plattform nicht gelöscht.{% endblocktranslate %}</p>
+  <p class="fehlerwege">
+    <a class="btn" href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>
+    <a class="btn-linie" href="/">{% translate "Zur Startseite" %}</a>
+  </p>
+</div>
+{% endblock %}

@@ -69,7 +69,7 @@ class Mitglied(AbstractUser):
         max_length=20,
         choices=Bundesland.choices,
         blank=True,
-        help_text="Wohnsitz-Bundesland — regionale Anträge sind nur in der eigenen Region möglich (F-43).",
+        help_text="Wohnsitz-Bundesland — regionale Anträge sind nur in der eigenen Region möglich.",
     )
     wohnsitz = models.ForeignKey(
         "Gemeinde",
@@ -83,7 +83,7 @@ class Mitglied(AbstractUser):
         max_length=16,
         choices=Mitgliedsstatus.choices,
         default=Mitgliedsstatus.AKTIV,
-        help_text="Stand der Mitgliedschaft (F-51) — jede Änderung läuft über die Verwaltung und wird auditiert.",
+        help_text="Stand der Mitgliedschaft — jede Änderung läuft über die Verwaltung und wird auditiert.",
     )
     status_grund = models.TextField(
         blank=True,
@@ -92,16 +92,16 @@ class Mitglied(AbstractUser):
     beitrag_zuletzt_am = models.DateField(
         null=True,
         blank=True,
-        help_text="Letzter Beitragseingang (§ 4 Abs 3) — verbucht der Bankabgleich (F-59) oder die Verwaltung.",
+        help_text="Letzter Beitragseingang (§ 4 Abs 3) — verbucht der Bankabgleich oder die Verwaltung.",
     )
     ist_admin = models.BooleanField(
         default=False,
-        help_text="Zugang zur Mitgliederverwaltung (F-51). Ernennen und Entziehen können nur Admins; "
+        help_text="Zugang zur Mitgliederverwaltung. Ernennen und Entziehen können nur Admins; "
         "jeder Wechsel wird auditiert.",
     )
     favoriten_zuerst = models.BooleanField(
         default=True,
-        help_text="WeicherFilter in der Voreinstellung: ★ Favoriten zuerst (FB-B1). Gilt, solange kein Profil aktiv ist.",
+        help_text="WeicherFilter in der Voreinstellung: ★ Favoriten zuerst. Gilt, solange kein Profil aktiv ist.",
     )
 
     class Meta:

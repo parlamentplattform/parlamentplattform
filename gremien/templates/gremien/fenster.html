@@ -140,7 +140,7 @@
       <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:10px">{% csrf_token %}
         <input type="hidden" name="aktion" value="ki_einschaetzung">
         <button type="submit" class="btn-linie">{% translate "KI-Einschätzung einholen" %}</button>
-        <span class="meta" style="margin-left:8px">{% if steckplatz_bereit %}{% translate "Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert (F-60)." %}{% else %}{% translate "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer." %}{% endif %}</span>
+        <span class="meta" style="margin-left:8px">{% if steckplatz_bereit %}{% translate "Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert." %}{% else %}{% translate "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer." %}{% endif %}</span>
       </form>
       {% endif %}
     </div>

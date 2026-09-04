@@ -1,18 +1,19 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Mandatare-Verwaltung{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Mandatare-Verwaltung" %}{% endblock %}
 {% block inhalt %}
-<h1>Mandatare</h1>
-<p>Pflege der öffentlichen Mandatare-Seite (§ 7 Abs 9) — bis die Mandatar-Rolle (M2)
-die Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert.
-<a href="{% url 'mitglieder:verwaltung' %}">← zur Mitgliederliste</a> ·
-<a href="{% url 'mandatare:liste' %}">öffentliche Seite ansehen →</a></p>
+<h1>{% translate "Mandatare" %}</h1>
+<p>{% blocktranslate %}Pflege der öffentlichen Mandatare-Seite (§ 7 Abs 9) — bis die Mandatar-Rolle (M2)
+die Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert.{% endblocktranslate %}
+<a href="{% url 'mitglieder:verwaltung' %}">{% translate "← zur Mitgliederliste" %}</a> ·
+<a href="{% url 'mandatare:liste' %}">{% translate "öffentliche Seite ansehen →" %}</a></p>
 
 <div class="karte" style="margin-top:16px">
-  <h2 style="margin-top:0">Mandat anlegen</h2>
+  <h2 style="margin-top:0">{% translate "Mandat anlegen" %}</h2>
   <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}">{% csrf_token %}
     <input type="hidden" name="aktion" value="anlegen">
     {{ form.as_p }}
-    <button type="submit" class="btn">Mandat anlegen</button>
+    <button type="submit" class="btn">{% translate "Mandat anlegen" %}</button>
   </form>
 </div>
 
@@ -21,53 +22,53 @@ die Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert.
   <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <strong>{{ m.mitglied.anzeigename }}</strong>
     <span class="badge{% if m.beendet %} badge--hell{% endif %}">{{ m.bezeichnung }}</span>
-    <span class="erk">{{ m.gebiet|default:m.get_ebene_display }} · seit {{ m.angetreten|date:"d.m.Y" }}{% if m.beendet %} · beendet {{ m.beendet|date:"d.m.Y" }}{% endif %}</span>
-    <a href="{% url 'mandatare:detail' m.pk %}">öffentlich →</a>
+    <span class="erk">{{ m.gebiet|default:m.get_ebene_display }} · {% translate "seit" %} {{ m.angetreten|date:"d.m.Y" }}{% if m.beendet %} · {% translate "beendet" %} {{ m.beendet|date:"d.m.Y" }}{% endif %}</span>
+    <a href="{% url 'mandatare:detail' m.pk %}">{% translate "öffentlich →" %}</a>
   </p>
   <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px">
     <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">{% csrf_token %}
       <input type="hidden" name="aktion" value="foto"><input type="hidden" name="mandat" value="{{ m.pk }}">
       <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" style="width:auto">
-      <button type="submit" class="btn-linie">Foto speichern</button>
+      <button type="submit" class="btn-linie">{% translate "Foto speichern" %}</button>
     </form>
     {% if not m.beendet %}
     <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="beenden"><input type="hidden" name="mandat" value="{{ m.pk }}">
-      <button type="submit" class="btn-still">Mandat beenden</button>
+      <button type="submit" class="btn-still">{% translate "Mandat beenden" %}</button>
     </form>
     {% endif %}
   </div>
 
-  <h3 style="margin-top:14px">Aufgaben</h3>
+  <h3 style="margin-top:14px">{% translate "Aufgaben" %}</h3>
   {% for a in m.aufgaben.all %}
   <div class="kommentar">
     <div class="kopf" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <span class="badge{% if a.status != 'offen' %} badge--hell{% endif %}">{{ a.get_status_display }}</span>
-      {{ a.titel }}{% if a.frist %} · Frist {{ a.frist|date:"d.m.Y" }}{% endif %}
-      {% if a.antrag %} · Antrag #{{ a.antrag.pk }}{% endif %}
+      {{ a.titel }}{% if a.frist %} · {% translate "Frist" %} {{ a.frist|date:"d.m.Y" }}{% endif %}
+      {% if a.antrag %} · {% blocktranslate with nr=a.antrag.pk %}Antrag #{{ nr }}{% endblocktranslate %}{% endif %}
       <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:inline-flex;gap:6px">{% csrf_token %}
         <input type="hidden" name="aktion" value="aufgabe_status"><input type="hidden" name="aufgabe" value="{{ a.pk }}">
-        {% if a.status == "offen" %}<button class="btn-linie" name="status" value="laufend">laufend</button>{% endif %}
-        {% if a.status != "erledigt" %}<button class="btn-linie" name="status" value="erledigt">erledigt</button>
-        {% else %}<button class="btn-linie" name="status" value="offen">wieder öffnen</button>{% endif %}
+        {% if a.status == "offen" %}<button class="btn-linie" name="status" value="laufend">{% translate "laufend" %}</button>{% endif %}
+        {% if a.status != "erledigt" %}<button class="btn-linie" name="status" value="erledigt">{% translate "erledigt" %}</button>
+        {% else %}<button class="btn-linie" name="status" value="offen">{% translate "wieder öffnen" %}</button>{% endif %}
       </form>
     </div>
   </div>
   {% empty %}
-  <p class="leer">Noch keine Aufgaben.</p>
+  <p class="leer">{% translate "Noch keine Aufgaben." %}</p>
   {% endfor %}
   <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px">{% csrf_token %}
     <input type="hidden" name="aktion" value="aufgabe"><input type="hidden" name="mandat" value="{{ m.pk }}">
-    <p><label>Titel <input type="text" name="titel" maxlength="200" required></label></p>
-    <p><label>Beschreibung (öffentlich)<br><textarea name="beschreibung" rows="2" maxlength="4000"></textarea></label></p>
+    <p><label>{% translate "Titel" %} <input type="text" name="titel" maxlength="200" required></label></p>
+    <p><label>{% translate "Beschreibung (öffentlich)" %}<br><textarea name="beschreibung" rows="2" maxlength="4000"></textarea></label></p>
     <p style="display:flex;gap:14px;flex-wrap:wrap">
-      <label>Frist <input type="date" name="frist"></label>
-      <label>Antrags-Nr. (betreute Abstimmung, optional) <input type="number" name="antrag" min="1" style="width:8em"></label>
+      <label>{% translate "Frist" %} <input type="date" name="frist"></label>
+      <label>{% translate "Antrags-Nr. (betreute Abstimmung, optional)" %} <input type="number" name="antrag" min="1" style="width:8em"></label>
     </p>
-    <button type="submit" class="btn-linie">Aufgabe veröffentlichen</button>
+    <button type="submit" class="btn-linie">{% translate "Aufgabe veröffentlichen" %}</button>
   </form>
 </div>
 {% empty %}
-<p class="leer" style="margin-top:14px">Noch kein Mandat angelegt.</p>
+<p class="leer" style="margin-top:14px">{% translate "Noch kein Mandat angelegt." %}</p>
 {% endfor %}
 {% endblock %}

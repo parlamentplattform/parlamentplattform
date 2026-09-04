@@ -564,16 +564,74 @@ def _chat_lage(antrag, nutzer) -> dict:
         letzte_phase = letzter.phase if letzter else ""
     from verfahren.models import Meldung
 
-    return {
-        "faden": chatkern.faden(antrag, nutzer),
+    entwurf = chatkern.abstimmungschat(antrag)
+    lage = {
+        "faden": chatkern.faden(antrag, nutzer, nach_engagement=entwurf is not None),
         "meldegruende": Meldung.Grund.choices,
         "anzahl": antrag.kommentare.filter(archiviert_am__isnull=True).count(),
         "neue": chatkern.neue_zaehlen(antrag, nutzer),
         "offen": chatkern.chat_offen(antrag),
+        "ruht": chatkern.ruht_wegen_werkstatt(antrag),
         "archiviert": archiviert,
         "archiv_phase": letzte_phase,
+        "darf_reagieren": chatkern.darf_reagieren(antrag, nutzer),
+    }
+    if entwurf is not None:
+        lage.update(_abstimmungslage(antrag, entwurf, nutzer))
+    return lage
+
+
+def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
+    """Der Abstimmungs-Chat (FB-G6): der Vorschlag als gepinnte Karte, sein Diff zum Antrag,
+    die Absätze als Bezugsstellen der Kritik und der offene Zwischenstand."""
+    from plattform_core import vorschlagschat, wortdiff
+    from verfahren import chat as chatkern
+
+    fassung = entwurf.aktuelle_fassung()
+    vorlage = antrag.aktueller_text()
+    wortlaut = fassung.wortlaut if fassung else ""
+    teile = wortdiff.vergleichen(vorlage.wortlaut if vorlage else "", wortlaut)
+    return {
+        "abstimmung": {
+            "entwurf": entwurf,
+            "vorschlag": fassung,
+            "frist": entwurf.review_frist,
+            "diff": teile,
+            "diff_stand": wortdiff.zusammenfassung(teile),
+            "absaetze": wortdiff.absaetze(wortlaut),
+            "stand": chatkern.abstimmung_stand(antrag, entwurf),
+            "reihung": vorschlagschat.REIHUNG,
+            "unterstuetzer": antrag.unterstuetzungen.count(),
+        }
     }
 
+
+
+
+def _archiv_lage(antrag) -> dict:
+    """Zone „Archiv" (FB-G7): die Zeitleiste, die Werkstattrunden und die Audit-Spur."""
+    from verfahren import archiv as archivkern
+
+    return {
+        "zeitleiste": archivkern.zeitleiste(antrag),
+        "entwurf": archivkern.entwurf_bloecke(antrag),
+        "audit": archivkern.audit_spur(antrag),
+    }
+
+def archiv_export(request, pk, art):
+    """Das Archiv eines Antrags zum Mitnehmen (FB-G7): JSON vollständig, Markdown lesbar.
+
+    Öffentlich wie die Antragsseite selbst — mit Anzeigenamen, ohne Kontaktdaten."""
+    from verfahren import archiv as archivkern
+
+    antrag = get_object_or_404(Antrag, pk=pk)
+    if art == "json":
+        inhalt, typ = archivkern.als_json(antrag), "application/json; charset=utf-8"
+    else:
+        inhalt, typ = archivkern.als_markdown(antrag), "text/markdown; charset=utf-8"
+    antwort = HttpResponse(inhalt, content_type=typ)
+    antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-archiv.{art}"'
+    return antwort
 
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
@@ -650,20 +708,10 @@ def antrag_detail(request, pk):
     entwurf = getattr(antrag, "entwurf", None)
     schleife = None
     if entwurf is not None:
-        mein_votum = None
-        if request.user.is_authenticated:
-            mein_votum = entwurf.unterstuetzer_voten.filter(
-                mitglied=request.user, runde=entwurf.runde
-            ).first()
         schleife = {
             "entwurf": entwurf,
             "vorschlag": entwurf.aktuelle_fassung(),
             "pruefungen": list(entwurf.pruefungen.all()),  # § 6 Abs 7: Begründungen öffentlich
-            "stand": entwurf.votum_stand(),
-            "voten": list(
-                entwurf.unterstuetzer_voten.filter(runde=entwurf.runde).select_related("mitglied")
-            ),
-            "mein_votum": mein_votum,
         }
     vollzug = None
     if antrag.phase == Phase.ANGENOMMEN.value:
@@ -690,6 +738,7 @@ def antrag_detail(request, pk):
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
             "chat": _chat_lage(antrag, request.user),
+            "archiv": _archiv_lage(antrag),
             "frist": frist,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,
             "meine_stimme": meine_stimme,

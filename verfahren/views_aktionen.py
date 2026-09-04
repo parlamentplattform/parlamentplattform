@@ -284,10 +284,21 @@ def kommentieren(request, pk):
     if not form.is_valid():
         messages.error(request, _("Bitte einen Text eingeben."))
         return _chat_antwort(request, antrag)
+    ist_kritik = request.POST.get("ist_kritik") == "1"
+    absatz = request.POST.get("bezug_absatz") or ""
     try:
-        beitrag = beitrag_schreiben(antrag, request.user, form.cleaned_data["text"], antwort_auf)
-    except ChatGesperrt:
-        messages.error(request, _("Die Beratung dieses Antrags ist beendet."))
+        beitrag = beitrag_schreiben(
+            antrag, request.user, form.cleaned_data["text"], antwort_auf,
+            ist_kritik=ist_kritik, bezug_absatz=int(absatz) if absatz.isdigit() else None,
+        )
+    except ChatGesperrt as fehler:
+        messages.error(request, str(fehler))
+        return _chat_antwort(request, antrag)
+    except ValueError:
+        messages.error(request, _(
+            "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
+            "so kann der Expertenrat damit arbeiten."
+        ))
         return _chat_antwort(request, antrag)
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
 
@@ -335,11 +346,13 @@ def beitrag_entfernen(request, pk, beitrag_pk):
 @login_required
 @require_POST
 def reagieren(request, pk, beitrag_pk):
-    """Zustimmen oder die Zustimmung zurücknehmen (FB-G1, D-G1).
+    """Zustimmen, ablehnen oder die eigene Reaktion zurücknehmen (FB-G1, FB-G6).
 
-    Rein informativ: Die Reihung des Chats bleibt chronologisch (Grundregel 6). Die Wahl im
-    Abstimmungs-Chat des Expertenrats-Vorschlags folgt mit S7."""
-    from verfahren.chat import reaktion_umschalten
+    Außerhalb des Abstimmungs-Chats ist nur Zustimmung möglich und rein informativ: Die Reihung
+    bleibt chronologisch (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags
+    ist die Reaktion das Votum der Unterstützer — dort reagieren nur sie (§ 5 Abs 12)."""
+    from verfahren.chat import abstimmungschat, darf_reagieren, reaktion_umschalten
+    from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     sperre = _mitwirkung_gesperrt(request)
@@ -348,7 +361,13 @@ def reagieren(request, pk, beitrag_pk):
     if beitrag.archiviert_am or beitrag.geloescht:
         messages.error(request, _("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    reaktion_umschalten(beitrag, request.user)
+    if not darf_reagieren(antrag, request.user):
+        messages.error(request, _("Reagieren können die Unterstützer dieses Antrags."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    art = Reaktionsart.ZUSTIMMUNG
+    if request.POST.get("art") == Reaktionsart.ABLEHNUNG and abstimmungschat(antrag) is not None:
+        art = Reaktionsart.ABLEHNUNG
+    reaktion_umschalten(beitrag, request.user, art)
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
 
 

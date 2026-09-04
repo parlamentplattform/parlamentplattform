@@ -48,12 +48,25 @@
       {% if entwurf.status == "in_arbeit" and entwurf.runde > 1 and entwurf.ueberarbeitung_frist %}
       <p class="meta" style="margin-top:6px">{% blocktranslate with frist=entwurf.ueberarbeitung_frist|date:"d.m.Y H:i" %}Überarbeitung bis {{ frist }} — ohne neue Einreichung geht die zuletzt vorgelegte Fassung zur Endabstimmung.{% endblocktranslate %}</p>
       {% endif %}
-      {% if entwurf.status == "unterstuetzer" %}
-      {% with s=entwurf.votum_stand %}
-      <p class="meta" style="margin-top:6px">{% blocktranslate with ja=s.annahmen nein=s.rueckgaben alle=s.unterstuetzer %}Voten: {{ ja }} annehmen, {{ nein }} zurückgeben — von {{ alle }} Unterstützern.{% endblocktranslate %}</p>
-      {% endwith %}
+      {% if abstimmung %}
+      <p class="meta" style="margin-top:6px">{% blocktranslate with ja=abstimmung.ja nein=abstimmung.nein anteil=abstimmung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 ({{ anteil }} %){% endblocktranslate %}
+        · {% blocktranslate count n=abstimmung.kritik|length %}{{ n }} Kritik-Beitrag{% plural %}{{ n }} Kritik-Beiträge{% endblocktranslate %}
+        · <a href="{% url 'verfahren:antrag' antrag.pk %}#zone-chat">{% translate "in den Abstimmungs-Chat" %}</a></p>
       {% endif %}
     </div>
+
+    {% if wuensche_vorrunde %}
+    <div class="karte" style="margin-top:16px">
+      <p class="phasen-titel">{% blocktranslate with n=entwurf.runde|add:"-1" %}Wünsche der Unterstützer (Runde {{ n }}){% endblocktranslate %}</p>
+      <p class="meta">{% translate "Nach Engagement gereiht — oben steht, was die meisten bewegt hat." %}</p>
+      {% for k in wuensche_vorrunde %}
+      <div class="zeile"><span>
+        {% if k.absatz %}<span class="etikett kritik">{% blocktranslate with n=k.absatz %}Absatz {{ n }}{% endblocktranslate %}</span> {% endif %}
+        <strong>{{ k.name }}</strong> <span class="meta">· {{ k.ja }} 👍 / {{ k.nein }} 👎</span>
+        <br><span style="white-space:pre-line">{{ k.text }}</span></span></div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="karte" style="margin-top:16px">
       <p class="phasen-titel">{% translate "Fassungen (alles bleibt stehen)" %}</p>

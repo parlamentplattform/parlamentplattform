@@ -1,0 +1,78 @@
+{% load i18n chat phasen %}{% comment %}
+Zone 4 — das Archiv eines Antrags (FB-G7): eine Zeitleiste von der Antragstellung bis heute.
+Je Phase ein aufklappbarer Block mit den Beiträgen, die dort geschrieben wurden — auch die,
+die bei einer Hochstufung geräumt wurden (FB-G5). Dazu die Runden des Expertenrats, die
+Auswertung des Abstimmungs-Chats und die Audit-Spur. Alles öffentlich lesbar, alles
+exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript.
+{% endcomment %}
+<div class="archiv">
+  <div class="archiv-kopf">
+    <h2>{% translate "Archiv" %}</h2>
+    <p class="meta">{% translate "Der ganze Weg dieses Antrags — nichts wird gelöscht (§ 5 Abs 3 lit e)." %}</p>
+    <p class="archiv-export">
+      <a class="btn-linie klein" href="{% url 'verfahren:archiv_export' antrag.pk 'json' %}">{% translate "Als JSON" %}</a>
+      <a class="btn-linie klein" href="{% url 'verfahren:archiv_export' antrag.pk 'md' %}">{% translate "Als Markdown" %}</a>
+    </p>
+  </div>
+
+  {% for block in archiv.zeitleiste %}
+  <details class="archiv-block{% if block.laufend %} laufend{% endif %}"{% if block.laufend %} open{% endif %}>
+    <summary>
+      <strong>{{ block.name }}</strong>
+      <span class="meta">{% blocktranslate count n=block.anzahl %}{{ n }} Beitrag{% plural %}{{ n }} Beiträge{% endblocktranslate %}{% if block.laufend %} · {% translate "läuft" %}{% endif %}</span>
+    </summary>
+    {% if block.auswertung %}
+    <p class="archiv-auswertung">{% blocktranslate with ja=block.auswertung.ja nein=block.auswertung.nein anteil=block.auswertung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 = {{ anteil }} %{% endblocktranslate %}
+      · {% if block.auswertung.oben %}{% translate "an erster Stelle" %}{% else %}{% translate "nicht an erster Stelle" %}{% endif %}
+      · {% if block.auswertung.angenommen %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
+      <span class="meta">({{ block.auswertung.reihung }})</span></p>
+    {% endif %}
+    {% for b in block.beitraege %}
+    <div class="archiv-beitrag{% if b.antwort_auf %} eingerueckt{% endif %}" id="a-{{ b.id }}">
+      <span class="avatar-initiale klein{% if b.system %} system{% endif %}" aria-hidden="true">{% if b.system %}&#10003;{% else %}{{ b.verfasser|initiale }}{% endif %}</span>
+      <div>
+        <div class="blase-kopf">
+          <strong>{{ b.verfasser }}</strong>
+          {% if b.ist_kritik %}<span class="etikett kritik">{% if b.bezug_absatz %}{% blocktranslate with n=b.bezug_absatz %}Kritik · Absatz {{ n }}{% endblocktranslate %}{% else %}{% translate "Kritik" %}{% endif %}</span>{% endif %}
+          <span class="meta">{{ b.geschrieben_am|slice:":16" }}</span>
+          {% if b.zustimmungen or b.ablehnungen %}<span class="meta">· &#128077; {{ b.zustimmungen }} / &#128078; {{ b.ablehnungen }}</span>{% endif %}
+        </div>
+        <div class="archiv-text">{{ b.text|linebreaksbr }}</div>
+      </div>
+    </div>
+    {% empty %}
+    <p class="leer">{% translate "Kein Beitrag in dieser Phase." %}</p>
+    {% endfor %}
+  </details>
+  {% endfor %}
+
+  {% for e in archiv.entwurf %}
+  <details class="archiv-block">
+    <summary><strong>{% blocktranslate with n=e.runde %}Expertenrat — Runde {{ n }}{% endblocktranslate %}</strong>
+      <span class="meta">{{ e.status }}{% if e.vollzugsbezug %} · {% translate "mit Vollzugsbezug" %}{% endif %}</span></summary>
+    {% for f in e.fassungen %}
+    <div class="archiv-fassung">
+      <p class="meta">{% blocktranslate with n=f.nummer wer=f.verfasst_von wann=f.erstellt_am|slice:":10" %}Fassung {{ n }} · {{ wer }} · {{ wann }}{% endblocktranslate %}</p>
+      <pre class="wortlaut">{{ f.wortlaut }}</pre>
+      {% if f.begruendung %}<p class="meta">{{ f.begruendung }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    {% for p in e.pruefungen %}
+    <p class="archiv-pruefung"><strong>{{ p.ergebnis }}</strong> <span class="meta">· {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>
+      <span class="meta">{{ p.begruendung }}</span></p>
+    {% endfor %}
+  </details>
+  {% endfor %}
+
+  {% if archiv.audit %}
+  <details class="archiv-block">
+    <summary><strong>{% translate "Audit-Spur" %}</strong> <span class="meta">{% translate "Hash-Kette, fortlaufend (F-22)" %}</span></summary>
+    <ol class="auditspur">
+      {% for e in archiv.audit %}
+      <li><span class="meta">{{ e.zeit|slice:":16" }}</span> <strong>{{ e.typ }}</strong> <code>{{ e.hash }}</code>
+        {% if e.grund %}<br><span class="meta">{{ e.grund }}</span>{% endif %}</li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+</div>

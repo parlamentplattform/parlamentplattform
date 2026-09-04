@@ -14,33 +14,89 @@ from __future__ import annotations
 
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
+from plattform_core import vorschlagschat
 from verfahren.models import Kommentar, Lesestand, Reaktion, Reaktionsart
+
+KRITIK_MINDESTLAENGE = 80  # FB-G6: Kritik muss konkret sein
 
 
 class ChatGesperrt(Exception):
     """Der Chat dieses Antrags nimmt gerade keine Beiträge an."""
 
 
-def chat_offen(antrag) -> bool:
-    """Geschrieben wird, solange das Verfahren läuft. Nach dem Ende bleibt das Archiv lesbar.
+def entwurf_von(antrag):
+    """Das Entwurfsfenster des Antrags — oder None, solange keines geöffnet wurde."""
+    try:
+        return antrag.entwurf
+    except Exception:  # ObjectDoesNotExist, ohne gremien zu importieren
+        return None
 
-    Während der Expertenrat am Vorschlag arbeitet, ruht der Chat (FB-G6) — diese Sperre kommt
-    mit dem Abstimmungs-Chat (S7); bis dahin gilt allein die Phase."""
+
+def ruht_wegen_werkstatt(antrag) -> bool:
+    """Der Chat ruht, während der Expertenrat am Vorschlag arbeitet (FB-G6, A0-07).
+
+    Die Sperre beginnt mit dem Öffnen des Entwurfsfensters und endet, sobald der Vorschlag
+    den Unterstützern vorliegt. Gelesen wird weiter — geschrieben nicht."""
+    from gremien.models import EntwurfsStatus
+
+    entwurf = entwurf_von(antrag)
+    return entwurf is not None and entwurf.status in (
+        EntwurfsStatus.IN_ARBEIT,
+        EntwurfsStatus.PRUEFUNG,
+    )
+
+
+def abstimmungschat(antrag):
+    """Der Entwurf, dessen Vorschlag gerade zur Abstimmung im Chat steht — sonst None (FB-G6)."""
+    from gremien.models import EntwurfsStatus
+
+    entwurf = entwurf_von(antrag)
+    return entwurf if entwurf is not None and entwurf.status == EntwurfsStatus.UNTERSTUETZER else None
+
+
+def chat_phase(antrag) -> str:
+    """Die Phase, unter der ein neuer Beitrag im Archiv erscheint.
+
+    Im Abstimmungs-Chat trägt sie die Runde, damit das Archiv die Vorschlagsberatungen
+    auseinanderhält („vorschlag-r1", „vorschlag-r2", …)."""
+    entwurf = abstimmungschat(antrag)
+    return f"vorschlag-r{entwurf.runde}" if entwurf is not None else antrag.phase
+
+
+def chat_offen(antrag) -> bool:
+    """Geschrieben wird, solange das Verfahren läuft und der Expertenrat nicht arbeitet.
+
+    Nach dem Ende bleibt das Archiv lesbar (FB-G1); während der Werkstattarbeit ruht der
+    Chat (FB-G6)."""
     from plattform_core import Phase
 
-    return antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value)
+    if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value):
+        return False
+    return not ruht_wegen_werkstatt(antrag)
 
 
-def beitrag_schreiben(antrag, mitglied, text: str, antwort_auf=None, jetzt=None) -> Kommentar:
+def beitrag_schreiben(
+    antrag, mitglied, text: str, antwort_auf=None, jetzt=None, ist_kritik: bool = False,
+    bezug_absatz: int | None = None,
+) -> Kommentar:
     """Der einzige Schreibweg für Chat-Beiträge (FB-G1).
 
     Der Beitrag merkt sich die Phase, in der er entsteht — daraus lebt die Archivierung.
     Eine Antwort hängt immer am Wurzelbeitrag ihres Fadens und nur an einem Beitrag desselben,
     noch nicht archivierten Antrags."""
     jetzt = jetzt or timezone.now()
+    if ruht_wegen_werkstatt(antrag):
+        raise ChatGesperrt("Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag.")
     if not chat_offen(antrag):
         raise ChatGesperrt("Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar.")
+    if ist_kritik:
+        if abstimmungschat(antrag) is None:
+            raise ValueError("Kritik am Vorschlag gibt es nur im Abstimmungs-Chat.")
+        if len((text or "").strip()) < KRITIK_MINDESTLAENGE or not bezug_absatz:
+            raise ValueError("Kritik braucht einen Textstellenbezug und mindestens "
+                             f"{KRITIK_MINDESTLAENGE} Zeichen.")
     text = (text or "").strip()
     if not text:
         raise ValueError("Ein Beitrag braucht Text.")
@@ -54,12 +110,14 @@ def beitrag_schreiben(antrag, mitglied, text: str, antwort_auf=None, jetzt=None)
         mitglied=mitglied,
         text=text[:4000],
         antwort_auf=wurzel,
-        phase=antrag.phase,
+        phase=chat_phase(antrag),
         erstellt_am=jetzt,
+        ist_kritik=bool(ist_kritik),
+        bezug_absatz=bezug_absatz if ist_kritik else None,
     )
 
 
-def faden(antrag, nutzer=None):
+def faden(antrag, nutzer=None, nach_engagement: bool = False):
     """Die laufenden Beiträge als Faden: Wurzelbeiträge chronologisch, Antworten darunter.
 
     Jeder Eintrag trägt, was die Anzeige braucht — eigene Reaktion, Zahl der Zustimmungen,
@@ -71,22 +129,28 @@ def faden(antrag, nutzer=None):
         .order_by("erstellt_am")
     )
     gelesen_bis = None
-    meine = set()
+    meine: dict[int, str] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, antrag=antrag).first()
         gelesen_bis = stand.gelesen_bis if stand else None
         meine = {
-            r.kommentar_id
+            r.kommentar_id: r.art
             for r in Reaktion.objects.filter(mitglied=nutzer, kommentar__antrag=antrag)
         }
 
     def schmuecken(k: Kommentar) -> dict:
+        ja = sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ZUSTIMMUNG)
+        nein = sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ABLEHNUNG)
         return {
             "k": k,
-            "zustimmungen": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ZUSTIMMUNG),
-            "ich_zustimme": k.pk in meine,
+            "zustimmungen": ja,
+            "ablehnungen": nein,
+            "engagement": ja + nein,
+            "ich_zustimme": meine.get(k.pk) == Reaktionsart.ZUSTIMMUNG,
+            "ich_lehne_ab": meine.get(k.pk) == Reaktionsart.ABLEHNUNG,
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
-            "eigener": nutzer is not None and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "eigener": nutzer is not None and k.mitglied_id is not None
+            and getattr(nutzer, "pk", None) == k.mitglied_id,
         }
 
     je_wurzel: dict[int, list[dict]] = {}
@@ -98,6 +162,17 @@ def faden(antrag, nutzer=None):
         for k in beitraege
         if not k.antwort_auf_id
     ]
+    if nach_engagement:
+        # FB-G6: Im Abstimmungs-Chat steht oben, was am meisten bewegt — die Regel ist offengelegt
+        gereiht = vorschlagschat.reihen(
+            [
+                {"id": e["k"].pk, "ja": e["zustimmungen"], "nein": e["ablehnungen"],
+                 "zeit": e["k"].erstellt_am, "system": e["k"].system, "ist_kritik": e["k"].ist_kritik}
+                for e in faden
+            ]
+        )
+        stelle = {x["id"]: i for i, x in enumerate(gereiht)}
+        faden.sort(key=lambda e: stelle[e["k"].pk])
     # Die Trennlinie „n neue Beiträge" steht genau einmal — vor dem ersten neuen Beitrag (FB-G2)
     for eintrag in faden:
         if eintrag["neu"]:
@@ -166,6 +241,7 @@ def gespraeche(nutzer, grenze: int = 30) -> list[dict]:
     antworten = (
         Kommentar.objects.filter(archiviert_am__isnull=True, antwort_auf__isnull=False)
         .filter(Q(mitglied=nutzer) | Q(antwort_auf__mitglied=nutzer))
+        .filter(mitglied__isnull=False, antwort_auf__mitglied__isnull=False)
         .exclude(Q(mitglied=nutzer) & Q(antwort_auf__mitglied=nutzer))  # Selbstgespräche zählen nicht
         .select_related("antrag", "mitglied", "antwort_auf__mitglied")
         .prefetch_related("antrag__kategorien")
@@ -198,3 +274,79 @@ def gespraeche(nutzer, grenze: int = 30) -> list[dict]:
 def ungelesene_gespraeche(nutzer) -> int:
     """Der Zähler am Griff (FB-G3)."""
     return sum(1 for g in gespraeche(nutzer) if g["ungelesen"])
+
+
+# ── Der Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ──────────────────────────
+
+
+def passt_alles_text() -> str:
+    """Der Wortlaut des Systembeitrags — hier, damit er an einer Stelle steht."""
+    return str(_("✓ Passt alles — der Vorschlag kann so zur Endabstimmung."))
+
+
+def passt_alles_anlegen(antrag, entwurf, jetzt=None) -> Kommentar:
+    """Beim Öffnen des Abstimmungs-Chats legt die Plattform den Beitrag an, auf den sich
+    die Auswertung bezieht (FB-G6) — ohne Verfasser, deutlich als Systembeitrag.
+
+    Idempotent: Ein zweiter Aufruf in derselben Runde gibt den vorhandenen Beitrag zurück."""
+    jetzt = jetzt or timezone.now()
+    phase = f"vorschlag-r{entwurf.runde}"
+    vorhanden = antrag.kommentare.filter(system=True, phase=phase, archiviert_am__isnull=True).first()
+    if vorhanden is not None:
+        return vorhanden
+    return Kommentar.objects.create(
+        antrag=antrag, mitglied=None, text=passt_alles_text(), phase=phase, system=True, erstellt_am=jetzt,
+    )
+
+
+def darf_reagieren(antrag, mitglied) -> bool:
+    """Im Abstimmungs-Chat reagieren nur die Unterstützer des Antrags — das ist ihre
+    Abstimmung über den Vorschlag (A0-03, § 5 Abs 12). Sonst darf jedes Mitglied zustimmen."""
+    if mitglied is None or not mitglied.is_authenticated:
+        return False
+    if abstimmungschat(antrag) is None:
+        return True
+    return antrag.unterstuetzungen.filter(mitglied=mitglied).exists()
+
+
+def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None) -> dict | None:
+    """Die Rechnung des Abstimmungs-Chats (FB-G6) — offen, damit sie jeder nachvollziehen kann.
+
+    Gibt None zurück, wenn gerade kein Vorschlag zur Abstimmung steht."""
+    entwurf = entwurf or abstimmungschat(antrag)
+    if entwurf is None:
+        return None
+    if schwelle is None:
+        from parameter.models import zahl
+
+        schwelle = zahl("vorschlag-annahme-prozent", 50) / 100
+    beitraege = [
+        {"id": k.pk, "ja": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ZUSTIMMUNG),
+         "nein": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ABLEHNUNG),
+         "zeit": k.erstellt_am, "system": k.system, "ist_kritik": k.ist_kritik, "text": k.sichtbarer_text(),
+         "absatz": k.bezug_absatz}
+        for k in antrag.kommentare.filter(
+            archiviert_am__isnull=True, phase=f"vorschlag-r{entwurf.runde}"
+        ).prefetch_related("reaktionen")
+    ]
+    ergebnis = vorschlagschat.auswerten(beitraege, schwelle)
+    ergebnis["kritik"] = vorschlagschat.kritik_uebergeben(beitraege)
+    ergebnis["runde"] = entwurf.runde
+    return ergebnis
+
+
+def kritik_der_runde(antrag, runde: int) -> list[dict]:
+    """Die Kritik-Beiträge einer Vorschlagsrunde — auch die schon archivierten (FB-G6).
+
+    Sie sind die „Wünsche der Unterstützer", mit denen der Expertenrat in die nächste Runde
+    geht; gereiht nach Engagement, damit oben steht, was die meisten bewegt."""
+    beitraege = [
+        {"id": k.pk, "ja": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ZUSTIMMUNG),
+         "nein": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ABLEHNUNG),
+         "zeit": k.erstellt_am, "system": k.system, "ist_kritik": k.ist_kritik,
+         "text": k.sichtbarer_text(), "absatz": k.bezug_absatz,
+         "name": k.mitglied.anzeigename if k.mitglied_id else ""}
+        for k in antrag.kommentare.filter(phase=f"vorschlag-r{runde}", ist_kritik=True)
+        .select_related("mitglied").prefetch_related("reaktionen")
+    ]
+    return vorschlagschat.kritik_uebergeben(beitraege)

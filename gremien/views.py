@@ -27,7 +27,6 @@ from gremien.models import (
     Gremium,
     Pruefung,
     Rolle,
-    UnterstuetzerVotum,
     standard_ende,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
@@ -35,6 +34,8 @@ from ki.models import Zweck, lauf_ausfuehren
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
+from verfahren.chat import abstimmung_stand as _abstimmung_stand
+from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag
 
 # Der Auftrag an den Modell-Steckplatz (F-60) für die Werkstatt-Einschätzung —
@@ -149,7 +150,10 @@ def fenster(request, antrag_id: int):
             "beitraege": list(entwurf.beitraege.select_related("mitglied")) if entwurf else [],
             "stand": stand,
             "meine_stimme": meine_stimme,
-            "voten": list(entwurf.unterstuetzer_voten.filter(runde=entwurf.runde)) if entwurf else [],
+            "abstimmung": _abstimmung_stand(antrag, entwurf) if entwurf else None,
+            "wuensche_vorrunde": _kritik_der_runde(antrag, entwurf.runde - 1)
+            if entwurf and entwurf.runde > 1
+            else [],
             "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
             "in_beratung": antrag.phase == Phase.BERATUNG.value,
             "steckplatz_bereit": anbieter_waehlen() is not None,
@@ -219,8 +223,8 @@ def fenster_aktion(request, antrag_id: int):
         if fassung.begruendung:
             eingabe += f"\n\nBegründung der Fassung:\n{fassung.begruendung}"
         wuensche = [
-            v.wunsch
-            for v in entwurf.unterstuetzer_voten.filter(runde=entwurf.runde - 1).exclude(wunsch="")
+            f"Absatz {k['absatz']}: {k['text']}" if k["absatz"] else k["text"]
+            for k in _kritik_der_runde(antrag, entwurf.runde - 1)
         ]
         if wuensche:
             eingabe += "\n\nWünsche der Unterstützer aus der Vorrunde:\n- " + "\n- ".join(wuensche)
@@ -274,41 +278,6 @@ def fenster_aktion(request, antrag_id: int):
                 messages.success(request, _("Eingereicht — der Vorschlag liegt jetzt den Unterstützern vor (§ 5 Abs 12)."))
 
     return redirect("gremien:fenster", antrag_id=antrag.pk)
-
-
-# ── Entwurfsschleife: das offene Votum der Unterstützer (§ 5 Abs 12) ─────────
-
-
-@require_POST
-def votum(request, entwurf_id: int):
-    if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
-    entwurf = get_object_or_404(Entwurf.objects.select_related("antrag"), pk=entwurf_id)
-    antrag = entwurf.antrag
-    if entwurf.status != EntwurfsStatus.UNTERSTUETZER:
-        messages.error(request, _("Der Vorschlag liegt gerade nicht zum Votum vor."))
-        return redirect("verfahren:antrag", pk=antrag.pk)
-    if not antrag.unterstuetzungen.filter(mitglied=request.user).exists():
-        messages.error(request, _("Das Votum steht den Unterstützern dieses Antrags zu (§ 5 Abs 12)."))
-        return redirect("verfahren:antrag", pk=antrag.pk)
-    annehmen = request.POST.get("votum") == "annehmen"
-    wunsch = (request.POST.get("wunsch") or "").strip()[:2000]
-    if not annehmen and not wunsch:
-        messages.error(request, _("Eine Rückgabe braucht einen konkreten Wunsch — sonst weiß die Werkstatt nicht, wohin."))
-        return redirect("verfahren:antrag", pk=antrag.pk)
-    UnterstuetzerVotum.objects.update_or_create(
-        entwurf=entwurf,
-        mitglied=request.user,
-        runde=entwurf.runde,
-        defaults={"annehmen": annehmen, "wunsch": wunsch, "abgegeben_am": timezone.now()},
-    )
-    messages.success(
-        request,
-        _("Angenommen — danke.") if annehmen else _("Zurückgegeben — dein Wunsch geht offen an die Werkstatt."),
-    )
-    # Haben alle Unterstützer gestimmt, wertet die Schleife sofort aus.
-    antrag.fortschreiben()
-    return redirect("verfahren:antrag", pk=antrag.pk)
 
 
 # ── Verwaltung: Rollen auf Zeit (bewusst nur deutsch) ────────────────────────

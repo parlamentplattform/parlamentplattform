@@ -193,6 +193,8 @@ class Entwurf(models.Model):
             self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
         self.ueberarbeitung_frist = None
         self.save()
+        if self.status == EntwurfsStatus.UNTERSTUETZER:
+            self.abstimmungschat_eroeffnen(jetzt)
         AuditEintrag.anhaengen(
             {
                 "typ": "vorschlag_eingereicht",
@@ -207,6 +209,29 @@ class Entwurf(models.Model):
         self.status = EntwurfsStatus.UNTERSTUETZER
         self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
         self.save(update_fields=["status", "review_frist"])
+        self.abstimmungschat_eroeffnen(jetzt)
+
+    @transaction.atomic
+    def abstimmungschat_eroeffnen(self, jetzt=None) -> None:
+        """Der Vorschlag liegt vor — Zone 3 beginnt als Abstimmungs-Chat (FB-G6).
+
+        Die Beiträge der Beratung wandern ins Archiv (FB-G5: Beginn der Vorschlagsberatung
+        ist eine Hochstufung), und die Plattform legt den „Passt alles“-Beitrag an, auf den
+        sich die Auswertung bezieht. Idempotent — ein zweiter Aufruf ändert nichts."""
+        from verfahren.chat import passt_alles_anlegen
+
+        jetzt = jetzt or timezone.now()
+        archiviert = self.antrag.chat_archivieren(jetzt)
+        passt_alles_anlegen(self.antrag, self, jetzt)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "abstimmungschat_eroeffnet",
+                "antrag": self.antrag_id,
+                "runde": self.runde,
+                "wirksam_ab": jetzt.isoformat(),
+                "chat_archiviert": archiviert,
+            }
+        )
 
     def zurueck_an_gruppe_1(
         self, grund: str, jetzt=None, neue_runde: bool = False, frist_erneuern: bool = False
@@ -289,25 +314,32 @@ class Entwurf(models.Model):
           zuletzt vorgelegte Fassung geht zur Endabstimmung."""
         jetzt = jetzt or timezone.now()
         if self.status == EntwurfsStatus.UNTERSTUETZER:
-            stand = self.votum_stand()
-            alle_da = stand["unterstuetzer"] > 0 and (
-                stand["annahmen"] + stand["rueckgaben"] >= stand["unterstuetzer"]
-            )
-            if not alle_da and (self.review_frist is None or jetzt < self.review_frist):
+            # FB-G6: Ausgewertet wird nach Fristablauf — bis dahin sind Reaktionen umschaltbar
+            if self.review_frist is None or jetzt < self.review_frist:
                 return False
-            if stand["rueckgaben"] > stand["annahmen"] and self.runde < _registerzahl(
+            from verfahren.chat import abstimmung_stand
+
+            stand = abstimmung_stand(antrag, self)
+            rechnung = (
+                f"„Passt alles“ {stand['ja']}:{stand['nein']} = {stand['prozent']} % "
+                f"(Schwelle {round(stand['schwelle'] * 100)} %), "
+                f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
+                f"Regel {stand['reihung']}"
+            )
+            if not stand["angenommen"] and self.runde < _registerzahl(
                 "gremien-hoechstrunden", HOECHSTRUNDEN
             ):
                 self.zurueck_an_gruppe_1(
-                    f"Unterstützer-Mehrheit gibt zurück ({stand['rueckgaben']}:{stand['annahmen']}).",
+                    f"Der Abstimmungs-Chat gibt zurück: {rechnung}. "
+                    f"{len(stand['kritik'])} Kritik-Beiträge gehen als Wünsche an den Expertenrat.",
                     jetzt,
                     neue_runde=True,
                 )
+                antrag.chat_archivieren(jetzt)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
             self._endabstimmung_oeffnen(
                 antrag,
-                "Vorschlag des Expertenrats angenommen "
-                f"({stand['annahmen']}:{stand['rueckgaben']}, Runde {self.runde}, § 5 Abs 12).",
+                f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
                 jetzt,
             )
             return True

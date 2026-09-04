@@ -1,13 +1,42 @@
 {% load i18n %}{% comment %}
-Zone 3 — der Chat eines Antrags (FB-G1, G2, G5). Enthält den Faden (Wurzelbeiträge chronologisch,
-Antworten eine Ebene eingerückt), die Trennlinie „n neue Beiträge", das Phasen-Band nach einer
-Hochstufung und die klebende Eingabezeile mit Antwort-Modus. htmx tauscht nach jeder Handlung
-genau dieses Element; ohne JavaScript ist es ein gewöhnliches Formular mit Ankersprung.
+Zone 3 — der Chat eines Antrags (FB-G1, G2, G5) und, sobald der Vorschlag des Expertenrats
+vorliegt, der Abstimmungs-Chat (FB-G6): oben der Vorschlag als gepinnte Karte mit Wort-Diff,
+darunter der Faden nach Engagement gereiht, in der Eingabe der Umschalter für konkrete Kritik.
+htmx tauscht nach jeder Handlung genau dieses Element; ohne JavaScript ist es ein gewöhnliches
+Formular mit Ankersprung, der Diff steht in einem <details>.
 {% endcomment %}<div id="chat-faden" x-data="chat({{ antrag.pk }})">
-  {% if chat.archiviert %}
+  {% if chat.ruht %}
+  <p class="phasenband ruht">{% translate "Der Expertenrat arbeitet am Vorschlag — der Chat öffnet, sobald der Vorschlag vorliegt." %}
+    <span class="erk">{% translate "Mitlesen bleibt möglich (§ 5 Abs 12)." %}</span></p>
+  {% elif chat.archiviert %}
   <p class="phasenband">{% blocktranslate count n=chat.archiviert %}Ein Beitrag aus der vorigen Phase liegt im Archiv.{% plural %}{{ n }} Beiträge aus der vorigen Phase liegen im Archiv.{% endblocktranslate %}
     <span class="erk">{% translate "Bei jeder Hochstufung beginnt der Chat neu — gelöscht wird nichts (§ 5 Abs 3 lit e)." %}</span></p>
   {% endif %}
+
+  {% if chat.abstimmung %}{% with a=chat.abstimmung %}
+  <div class="vorschlagskopf">
+    <h3>{% blocktranslate with n=a.entwurf.runde %}Vorschlag des Expertenrats — Runde {{ n }}{% endblocktranslate %}</h3>
+    <p class="meta">
+      {% if a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
+      <a href="{% url 'parameter:liste' %}#vorschlag-chat-reihung">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
+    </p>
+  </div>
+  <article class="karte vorschlag gepinnt">
+    <p class="phasen-titel">{% translate "Der Vorschlag im Wortlaut" %}</p>
+    <pre class="wortlaut">{{ a.vorschlag.wortlaut }}</pre>
+    {% if a.vorschlag.begruendung %}<p class="meta vorschlag-grund">{{ a.vorschlag.begruendung }}</p>{% endif %}
+    <details class="diff">
+      <summary>{% translate "Änderungen zum Antrag zeigen" %}
+        <span class="meta">{% if a.diff_stand.unveraendert %}{% translate "wortgleich" %}{% else %}{% blocktranslate with ein=a.diff_stand.ein aus=a.diff_stand.aus %}+{{ ein }} / −{{ aus }} Wörter{% endblocktranslate %}{% endif %}</span></summary>
+      <p class="diff-text">{% for art, stueck in a.diff %}{% if art == "ein" %}<ins>{{ stueck }}</ins>{% elif art == "aus" %}<del>{{ stueck }}</del>{% else %}{{ stueck }}{% endif %}{% endfor %}</p>
+    </details>
+    {% if a.stand %}
+    <p class="meta stand">{% blocktranslate with ja=a.stand.ja nein=a.stand.nein %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎{% endblocktranslate %}
+      {% if a.stand.stimmen %}· {{ a.stand.prozent }} %{% endif %}
+      {% if a.stand.oben %}· {% translate "an erster Stelle" %}{% endif %}</p>
+    {% endif %}
+  </article>
+  {% endwith %}{% endif %}
 
   <div class="faden">
     {% for b in chat.faden %}
@@ -37,6 +66,20 @@ genau dieses Element; ohne JavaScript ist es ein gewöhnliches Formular mit Anke
       <label for="id_text" class="nur-lesbar">{% translate "Beitrag schreiben" %}</label>
       <textarea name="text" id="id_text" rows="2" maxlength="4000" required x-ref="feld" @input="wachsen()"
         placeholder="{% translate 'Sachlich und respektvoll — unter Ihrem Anzeigenamen.' %}"></textarea>
+      {% if chat.abstimmung %}
+      <div class="kritikwahl">
+        <label class="schalter"><input type="checkbox" name="ist_kritik" value="1" x-model="kritik">
+          {% translate "Das ist konkrete Kritik am Vorschlag" %}</label>
+        <label class="absatzwahl" x-show="kritik" x-cloak>
+          <span class="nur-lesbar">{% translate "Bezug auf einen Absatz" %}</span>
+          <select name="bezug_absatz">
+            <option value="">{% translate "Absatz wählen …" %}</option>
+            {% for absatz in chat.abstimmung.absaetze %}<option value="{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Absatz {{ n }}{% endblocktranslate %}: {{ absatz|truncatechars:60 }}</option>{% endfor %}
+          </select>
+        </label>
+        <p class="erk" x-show="kritik" x-cloak>{% translate "Kritik braucht einen Textstellenbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten." %}</p>
+      </div>
+      {% endif %}
       <div class="chatzeile-fuss">
         <span class="zaehler" x-show="rest() < 500" x-cloak x-text="rest()"></span>
         <button type="submit" class="btn klein">{% translate "Senden" %}</button>
@@ -45,6 +88,8 @@ genau dieses Element; ohne JavaScript ist es ein gewöhnliches Formular mit Anke
     {% else %}
     <p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
     {% endif %}
+  {% elif chat.ruht %}
+    <p class="hilfe chat-hinweis">{% translate "Bis der Vorschlag vorliegt, wird hier nicht geschrieben." %}</p>
   {% else %}
     <p class="hilfe chat-hinweis">{% translate "Das Verfahren ist beendet — der Chat bleibt lesbar." %}</p>
   {% endif %}

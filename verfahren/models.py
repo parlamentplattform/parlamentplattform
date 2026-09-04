@@ -778,7 +778,10 @@ class Kommentar(models.Model):
     BEARBEITUNGSFENSTER = timedelta(minutes=5)  # danach ist der Text unveränderlich (FB-G1)
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
-    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+        help_text="Leer beim Systembeitrag der Plattform („Passt alles“, FB-G6) — sonst der Verfasser.",
+    )
     text = models.TextField(max_length=4000)
     antwort_auf = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.CASCADE, related_name="antworten",
@@ -797,6 +800,15 @@ class Kommentar(models.Model):
     ausgeblendet_am = models.DateTimeField(null=True, blank=True)
     ausgeblendet_grund = models.CharField(
         max_length=200, blank=True, help_text="Öffentlicher Grund der Verwaltung (Art 17 DSA)."
+    )
+    system = models.BooleanField(
+        default=False, help_text="Von der Plattform angelegt — der „Passt alles“-Eintrag des Abstimmungs-Chats (FB-G6)."
+    )
+    ist_kritik = models.BooleanField(
+        default=False, help_text="Konkrete Kritik am Vorschlag des Expertenrats — geht bei Rückgabe an ihn (FB-G6)."
+    )
+    bezug_absatz = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Absatz des Vorschlags, auf den sich die Kritik bezieht (ab 1)."
     )
 
     class Meta:

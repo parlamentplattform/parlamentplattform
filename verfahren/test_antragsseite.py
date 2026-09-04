@@ -28,7 +28,7 @@ def test_drei_zonen_mit_reiterleiste(client, ordnung):  # noqa: F811
     for zone in ("zone-text", "zone-einschaetzung", "zone-chat"):
         assert f'href="#{zone}"' in inhalt, zone
         assert f'id="{zone}"' in inhalt or zone == "zone-einschaetzung"
-    assert inhalt.count('class="zreiter"') == 3
+    assert inhalt.count('class="zreiter"') == 4  # Text · Einschätzung · Chat · Archiv
     # Ohne JavaScript sind die Reiter gewöhnliche Ankerlinks und alle Zonen stehen da
     assert 'class="zone z-text"' in inhalt and 'class="zone z-chat"' in inhalt
     assert "oninput" not in inhalt and "onclick" not in inhalt
@@ -96,7 +96,7 @@ def test_personenwahl_ohne_einschaetzungszone(client, ordnung):  # noqa: F811
     anna = mitglied_anlegen("anna")
     antrag = antrag_einbringen(anna, "Listenreihung Gemeinderat", "Wortlaut.", "", ordnung, art=Antragsart.MANDAT)
     inhalt = _seite(client, antrag)
-    assert 'href="#zone-einschaetzung"' not in inhalt and inhalt.count('class="zreiter"') == 2
+    assert 'href="#zone-einschaetzung"' not in inhalt and inhalt.count('class="zreiter"') == 3
     assert "Modellrechnung" not in inhalt
     assert "Mandats-Kandidatur" in inhalt and 'class="avatar-initiale"' not in inhalt  # noch keine Bewerbung
 

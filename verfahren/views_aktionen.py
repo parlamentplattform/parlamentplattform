@@ -351,6 +351,44 @@ def filter_anwenden(request):
 
 @login_required
 @require_POST
+def beanstanden(request, pk):
+    """FB-F2 (§ 6 Abs 11 lit b): eine Einschätzung der Zukunftswerkstatt beanstanden.
+    Der Vermerk ist öffentlich und bleibt stehen; er ist zugleich die Anforderung eines
+    Korrekturlaufs. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest."""
+    from ki.models import KILauf
+    from verfahren.models import AuditEintrag, Beanstandung
+
+    antrag = get_object_or_404(Antrag, pk=pk)
+    text = (request.POST.get("text") or "").strip()[:2000]
+    if not text:
+        messages.error(request, _("Bitte beschreiben Sie, was an der Einschätzung falsch ist."))
+        return _zurueck_zum_antrag(request, antrag)
+    lauf = KILauf.objects.filter(antrag=antrag, erfolgreich=True).order_by("-erstellt_am").first()
+    beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
+    AuditEintrag.anhaengen(
+        {
+            "art": "einschaetzung_beanstandet",
+            "antrag": antrag.pk,
+            "beanstandung": beanstandung.pk,
+            "lauf": lauf.pk if lauf else None,
+        }
+    )
+    messages.success(
+        request,
+        _("Ihre Beanstandung ist öffentlich vermerkt — die Zukunftswerkstatt rechnet den Punkt nach."),
+    )
+    return _zurueck_zum_antrag(request, antrag)
+
+
+def _zurueck_zum_antrag(request, antrag):
+    weiter = request.POST.get("weiter", "")
+    if weiter.startswith("/") and not weiter.startswith("//"):
+        return redirect(weiter)
+    return redirect("verfahren:antrag", pk=antrag.pk)
+
+
+@login_required
+@require_POST
 def filter_vorschau(request):
     """FB-B2 Live-Vorschau: reiht mit den gerade gezogenen Reglern, speichert nichts —
     die Antwort ist nur die Liste (#filter-liste), htmx tauscht sie sanft aus."""

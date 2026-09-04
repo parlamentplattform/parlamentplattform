@@ -762,6 +762,34 @@ class Kommentar(models.Model):
         return f"Kommentar von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
 
 
+class Beanstandung(models.Model):
+    """Beanstandung einer Einschätzung der Zukunftswerkstatt (§ 6 Abs 11 lit b, FB-F2).
+
+    Die Modellrechnung schlägt vor, sie entscheidet nie (Grundregel 5) — und sie kann irren.
+    Wer einen Fehler sieht, hält ihn hier fest: öffentlich, mit Namen, append-only. Der Eintrag
+    ist zugleich die Anforderung eines Korrekturlaufs; die Antwort der Werkstatt kommt als
+    `erledigt_vermerk` dazu, der Text selbst wird nie geändert (Grundregel 7)."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="beanstandungen")
+    lauf = models.ForeignKey(
+        "ki.KILauf", null=True, blank=True, on_delete=models.SET_NULL, related_name="beanstandungen",
+        help_text="Der beanstandete Lauf — leer, wenn die Einschätzung inzwischen ersetzt wurde.",
+    )
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    text = models.TextField(max_length=2000, help_text="Was ist falsch? Sachlich, mit Beleg wenn möglich.")
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    erledigt_am = models.DateTimeField(null=True, blank=True)
+    erledigt_vermerk = models.TextField(max_length=2000, blank=True)
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        verbose_name = "Beanstandung einer Einschätzung"
+        verbose_name_plural = "Beanstandungen von Einschätzungen"
+
+    def __str__(self) -> str:
+        return f"Beanstandung von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+
 def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:
     """F-47 Stufe 1: automatische Zuordnung zu Lebensbereichen — deterministisch,
     nachrechenbar (plattform_core.klassifikation), auditiert. Die Zuordnung ist

@@ -2,6 +2,19 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.37.0] — 2026-09-04 · S5: Die Antragsseite in drei Zonen — Text · Einschätzung · Chat
+
+### Geändert
+- **Die Antragsseite ist neu gebaut (FB-F1):** aus einer langen Spalte werden drei Zonen. Auf dem Desktop stehen **Text (58 %) links** und **Einschätzung (42 %, klebend) rechts** nebeneinander — die Einschätzung ist die Lesehilfe zum Text —, der **Chat** darunter über die volle Breite. Darüber eine **Reiterleiste**, die unter der App-Leiste klebt: Beim Scrollen markiert sie die Zone, in der man liest (am Seitenende gewinnt der Chat). Am Handy ist nur eine Zone sichtbar; die Reiter schalten um, waagrechtes **Wischen** blättert weiter. Ohne JavaScript stehen alle Zonen untereinander und die Reiter sind gewöhnliche Ankerlinks
+- **Der Kopf ist aufgeräumt:** Zurück-Pfeil, Titel, Chip-Zeile (Phase farbig, Ebene · Ort, Lebensbereiche als klickbare Chips), Stern rechts, eine Meta-Zeile, bei Hervorhebung ein Gold-Band
+- **Zone „Text":** Wortlaut in Lesegröße (17 px, höchstens 75 Zeichen je Zeile), darunter die **Handlungskarte der Phase** (Unterstützen · Bewerbungen · Abstimmen · Ergebnis · Umsetzung) mit goldener Kante. Bewerbungen erscheinen als Karten mit Initialen-Zeichen (FB-F4)
+- **Die eingefrorenen Regeln stehen jetzt lesbar (FB-F1):** „Unterstützungsschwelle 3 · Frist zum Unterstützen 60 Tage · Beratung 21 Tage · Abstimmung 7 Tage · Mindestbeteiligung 5 % · Mehrheit: Ja mehr als Nein" — statt eines JSON-Blocks. Das JSON bleibt eine Ebene tiefer unter „Rohdaten"; alle Fassungen sind aufklappbar
+
+### Hinzugefügt
+- **Zone „Einschätzung" (FB-F2):** die Kopfkarte mit der Kennzeichnung **„Modellrechnung — sie schlägt vor, sie entscheidet nie"** (Grundregel 5), Modell, Stand und Lauf-Nummer mit Link ins Archiv. Liegt noch keine Rechnung vor, sagt die Zone das ehrlich und zeigt als **Skelett-Umrisse**, was kommen wird (Ähnliche Anträge · Berührte Gesetze · Folgen für Judikatur und Exekutive · Aufwand, Last und Dauer · Ausschreibung). Bei **Personenwahlen entfällt die Zone** — über Menschen rechnet keine Maschine (FB-F4)
+- **Beanstanden (§ 6 Abs 11 lit b):** Mitglieder halten einen Fehler in der Einschätzung öffentlich fest; der Vermerk trägt den Namen, bleibt stehen (append-only) und ist zugleich die Anforderung eines Korrekturlaufs. Jede Beanstandung geht in die Audit-Kette; die Antwort der Werkstatt erscheint darunter
+- 12 neue Tests (7 Einbau, 5 Bildschirmtests) und vier Bilder der Antragsseite in der Sichtprüfung — 668 gesamt
+
 ## [0.36.0] — 2026-09-03 · S14a: Internationale Zusammenarbeit — ein Kern, viele Instanzen
 
 ### Hinzugefügt

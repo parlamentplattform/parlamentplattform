@@ -129,6 +129,22 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/antrag/{antrag}/")
     halte_fest(p, "antragsseite-mit-fusszeile")
 
+    # Die Antragsseite in drei Zonen (S5, FB-F1/F2)
+    beratung = (Antrag.objects.filter(phase="beratung").first() or Antrag.objects.first()).pk
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/antrag/{beratung}/")
+    halte_fest(p, "antragsseite-drei-zonen")
+    p.keyboard.press("End")
+    p.wait_for_timeout(500)
+    halte_fest(p, "antragsseite-chat-unten")
+
+    p = seite(viewport=HANDY, als=_mitglied())
+    p.goto(f"{live_server.url}/antrag/{beratung}/")
+    halte_fest(p, "antragsseite-handy-text")
+    p.locator('.zreiter[href="#zone-einschaetzung"]').click()
+    p.wait_for_timeout(400)
+    halte_fest(p, "antragsseite-handy-einschaetzung")
+
     # Die Partner-Seite (S14a): Vision und Schaubild, der Einstieg mit dem Paket
     p = seite()
     p.goto(f"{live_server.url}/partner/")
@@ -147,6 +163,6 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.wait_for_timeout(400)
     halte_fest(p, "partner-schaubild-dunkel")
 
-    assert len(bilder) == 20
+    assert len(bilder) == 24
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

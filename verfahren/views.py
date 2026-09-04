@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext
 
 from plattform_core import Phase, __version__
 from plattform_core.phases import (
@@ -483,6 +483,51 @@ def parlament(request):
     )
 
 
+def _regeln_lesbar(policy) -> list[tuple[str, str]]:
+    """Die eingefrorenen Verfahrensregeln als lesbare Liste statt als JSON-Block (FB-F1).
+    § 5 Abs 5: Was beim Einbringen galt, gilt bis zum Ende — man muss es lesen können."""
+    mehrheit = (
+        _("Ja mehr als Nein")
+        if policy.mehrheitsbasis == "ja_nein"
+        else _("Ja mehr als die Hälfte aller abgegebenen Stimmen")
+    )
+    return [
+        (_("Unterstützungsschwelle"), ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle),
+        (_("Frist zum Unterstützen"), ngettext("%d Tag", "%d Tage", policy.unterstuetzung_frist_tage) % policy.unterstuetzung_frist_tage),
+        (_("Beratung"), ngettext("%d Tag", "%d Tage", policy.beratung_tage) % policy.beratung_tage),
+        (_("Abstimmung"), ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage),
+        (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
+        (_("Mehrheit"), mehrheit),
+        (_("Sperre für Wiedereinbringung"), ngettext("%d Monat", "%d Monate", policy.wiedereinbringung_sperre_monate) % policy.wiedereinbringung_sperre_monate),
+        (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
+    ]
+
+
+def _einschaetzung(antrag):
+    """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte und
+    Beanstandungen. Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11);
+    bis dahin zeigt die Zone ehrlich, dass noch nichts vorliegt."""
+    from ki.anbieter import anbieter_waehlen
+    from ki.models import KILauf
+
+    lauf = KILauf.objects.filter(antrag=antrag, erfolgreich=True).order_by("-erstellt_am").first()
+    anbieter = anbieter_waehlen()
+    return {
+        "lauf": lauf,
+        "anbieter_da": anbieter is not None,
+        "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
+        "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
+        # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
+        "kommende_karten": [
+            _("Ähnliche Anträge"),
+            _("Berührte Gesetze"),
+            _("Folgen für Judikatur und Exekutive"),
+            _("Aufwand, Last und Dauer"),
+            _("Ausschreibung"),
+        ],
+    }
+
+
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
@@ -588,7 +633,11 @@ def antrag_detail(request, pk):
             and request.user.hat_adminrechte,
             "ist_favorit": ist_favorit,
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
+            "regeln": _regeln_lesbar(policy),
             "fassung": antrag.aktueller_text(),
+            "fassungen": list(antrag.fassungen.order_by("-nummer")),
+            # Zone 2 entfällt bei Personenwahlen — über Menschen rechnet keine Maschine (FB-F4)
+            "einschaetzung": None if antrag.art == Antragsart.MANDAT else _einschaetzung(antrag),
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,

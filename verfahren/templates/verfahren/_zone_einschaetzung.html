@@ -1,0 +1,59 @@
+{% load i18n %}{% comment %}
+Zone 2 der Antragsseite (FB-F2): die Einschätzung der Zukunftswerkstatt. Oben die Kopfkarte mit
+Kennzeichnung „Modellrechnung — sie schlägt vor, sie entscheidet nie" (Grundregel 5), Modell,
+Kontextstand, Lauf und dem Knopf „Beanstanden" (§ 6 Abs 11 lit b). Liegt noch kein Lauf vor,
+zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
+{% endcomment %}
+<h2>{% translate "Einschätzung" %}</h2>
+
+<div class="karte kopfkarte">
+  <p class="kennzeichnung">{% translate "Modellrechnung — sie schlägt vor, sie entscheidet nie" %}</p>
+  <dl class="lauf-daten">
+    <dt>{% translate "Modell" %}</dt>
+    <dd>{{ einschaetzung.modell|default:_("kein Anbieter angeschlossen") }}</dd>
+    <dt>{% translate "Stand" %}</dt>
+    <dd>{% if einschaetzung.lauf %}{{ einschaetzung.lauf.erstellt_am|date:"d.m.Y, H:i" }}{% else %}{% translate "noch kein Lauf" %}{% endif %}</dd>
+    {% if einschaetzung.lauf %}
+    <dt>{% translate "Lauf" %}</dt>
+    <dd>#{{ einschaetzung.lauf.pk }} · <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Lauf-Archiv" %}</a></dd>
+    {% endif %}
+  </dl>
+  {% if user.is_authenticated %}
+  <details class="beanstanden">
+    <summary class="btn-still klein">{% translate "Beanstanden" %}</summary>
+    <form method="post" action="{% url 'verfahren:beanstanden' antrag.pk %}">
+      {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+      <label for="id_beanstandung">{% translate "Was ist an der Einschätzung falsch?" %}</label>
+      <textarea name="text" id="id_beanstandung" rows="3" maxlength="2000" required
+        placeholder="{% translate 'Sachlich, mit Beleg wenn möglich.' %}"></textarea>
+      <p class="hilfe">{% translate "Ihr Vermerk ist öffentlich und bleibt stehen; die Werkstatt rechnet den Punkt nach (§ 6 Abs 11 lit b)." %}</p>
+      <button type="submit" class="btn-linie klein">{% translate "Beanstandung veröffentlichen" %}</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+
+{% if einschaetzung.beanstandungen %}
+<div class="karte">
+  <h3>{% blocktranslate count n=einschaetzung.beanstandungen|length %}Eine Beanstandung{% plural %}{{ n }} Beanstandungen{% endblocktranslate %}</h3>
+  {% for b in einschaetzung.beanstandungen %}
+  <div class="kommentar">
+    <div class="kopf">{{ b.mitglied.anzeigename }} · {{ b.erstellt_am|date:"d.m.Y, H:i" }}{% if b.erledigt_am %} · <span class="badge badge-ok">{% translate "nachgerechnet" %}</span>{% endif %}</div>
+    <div>{{ b.text|linebreaksbr }}</div>
+    {% if b.erledigt_vermerk %}<div class="erk">{% translate "Antwort der Werkstatt:" %} {{ b.erledigt_vermerk|linebreaksbr }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not einschaetzung.lauf %}
+<div class="karte leerkarte">
+  <p class="leer">{% if not einschaetzung.anbieter_da %}{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}{% elif antrag.phase == "unterstuetzung" %}{% translate "Noch keine Einschätzung — sie entsteht mit dem Eintritt in die Beratung." %}{% else %}{% translate "Für diesen Antrag liegt noch keine Einschätzung vor." %}{% endif %}</p>
+  <p class="erk">{% translate "Was hier stehen wird:" %}</p>
+  <ul class="kommende">
+    {% for karte in einschaetzung.kommende_karten %}
+    <li><span class="skelett-karte" aria-hidden="true"></span><span class="kommende-name">{{ karte }}</span></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

@@ -530,6 +530,71 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .honig{position:absolute!important;left:-9999px!important;height:1px;overflow:hidden}
 @media print{header,footer,nav,.tabs,.band,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
 /* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
+/* ── Antragsseite in drei Zonen (FB-F1/F2): Text · Einschätzung · Chat ── */
+.antragsseite{max-width:1500px;margin:0 auto;padding:0 12px 32px}
+.a-kopf{padding-top:8px}
+.a-kopf .zurueck{margin:0 0 4px;font-size:13.5px}
+.a-kopf h1{margin:0 0 8px;font-size:26px;line-height:1.25}
+.a-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.a-chips .a-stern{margin-left:auto}
+.a-chips a.chip{text-decoration:none}
+.a-meta{margin:0 0 10px;font-size:13px;color:var(--matt)}
+.band-gold{background:color-mix(in srgb,var(--gold) 18%,var(--surface));border:1px solid var(--gold);border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:12px}
+.zonenleiste{position:sticky;top:var(--bar);z-index:20;display:flex;gap:2px;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.zreiter{flex:none;padding:10px 16px;font-size:14px;font-weight:600;color:var(--matt);text-decoration:none;border-bottom:2.5px solid transparent;white-space:nowrap}
+.zreiter:hover{color:var(--ink)}
+.zreiter.an{color:var(--ink);border-bottom-color:var(--gold)}
+.zonen{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+.zone h2{margin:0 0 10px;font-size:19px}
+.zone h3{margin:0 0 8px;font-size:16px}
+.wortlaut h3{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.nur-lesbar{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.text-lang{font-size:17px;line-height:1.65;max-width:75ch}
+.wortlaut .fassungsnummer{margin:0 0 8px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--matt)}
+.karte.handlung{border-left:3px solid var(--gold)}
+.karte.handlung .stimmzeile{margin-top:4px}
+.btn.gewaehlt,.btn-linie.gewaehlt,.btn-still.gewaehlt{outline:2px solid var(--gold);outline-offset:2px}
+.bewerbung{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--line);padding:10px 0}
+.bewerbung .b-inhalt{flex:1;min-width:0}
+.bewerbung .b-kopf{font-size:13.5px;color:var(--matt);margin-bottom:2px}
+.avatar-initiale{flex:none;width:34px;height:34px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--deep)}
+.bewerbungsform,.vollzugsform{border-top:1px solid var(--line);margin-top:14px;padding-top:14px}
+.ankreuz{display:flex;gap:8px;align-items:flex-start}
+.ankreuz input{width:auto;margin-top:5px}
+.vollzug-kopf{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tabelle .gewonnen{font-weight:700}
+.klappe{border-top:1px solid var(--line);padding:10px 0 0;margin-top:10px}
+.klappe>summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--deep);list-style:none}
+.klappe>summary::-webkit-details-marker{display:none}
+.klappe>summary::before{content:"▸ ";color:var(--matt)}
+.klappe[open]>summary::before{content:"▾ "}
+.klappe .fassung{border-top:1px solid var(--line);padding:10px 0}
+.klappe .fassung .kopf{font-size:12.5px;color:var(--matt);margin-bottom:4px}
+.klappe.roh{border-top:0;margin-top:6px}
+.klappe.roh pre{font-size:12px;overflow-x:auto}
+.regelliste{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:8px 0 0;font-size:14px}
+.regelliste dt{color:var(--matt)}
+.regelliste dd{margin:0;font-weight:600}
+/* Zone 2: Kopfkarte, Beanstanden, Skelett-Leerzustand */
+.kopfkarte{border:1.5px solid var(--gold)}
+.kennzeichnung{margin:0 0 8px;font-size:13.5px;font-weight:700;color:var(--goldtief)}
+.lauf-daten{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0 0 10px;font-size:13.5px}
+.lauf-daten dt{color:var(--matt)}
+.lauf-daten dd{margin:0}
+.beanstanden>summary{list-style:none;display:inline-block;cursor:pointer}
+.beanstanden>summary::-webkit-details-marker{display:none}
+.beanstanden form{margin-top:8px}
+.beanstanden label{display:block;font-size:13.5px;font-weight:600;margin-bottom:4px}
+.leerkarte .kommende{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.leerkarte .kommende li{display:flex;gap:10px;align-items:center}
+.leerkarte .kommende-name{font-size:13.5px;color:var(--matt)}
+.skelett-karte{flex:none;width:52px;height:34px;border-radius:8px;background:var(--surface-2);border:1px dashed var(--line)}
+@media(min-width:1100px){
+  .zonen{grid-template-columns:58fr 42fr}
+  .z-text{grid-column:1}
+  .z-einschaetzung{grid-column:2;position:sticky;top:calc(var(--bar) + 52px)}
+  .z-chat{grid-column:1 / -1}
+}
 /* ── Partner-Seite (§ 12, FB-M6/M7): Schaubild „Ein Kern, viele Instanzen“, Spuren, Schnittstelle ── */
 .partner h2{margin-top:28px}
 .partner .fassung{font-size:11.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--goldtief);margin-left:8px;vertical-align:middle}

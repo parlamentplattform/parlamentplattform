@@ -380,3 +380,49 @@ def test_altverfahren_ohne_entwurf_bleiben_unberuehrt(client, ordnung):  # noqa:
     assert antrag.phase == "abstimmung"
     assert not Entwurf.objects.filter(antrag=antrag).exists()
     assert Antrag.objects.get(pk=antrag.pk).aktueller_text().nummer == 1
+
+
+def test_das_fenster_nennt_die_frist_fuer_den_erstvorschlag(client, ordnung):  # noqa: F811
+    """FB-J1: Der Expertenrat muss sehen, bis wann sein erster Vorschlag da sein muss.
+
+    Das Fenster zeigte bisher nur die Fristen der späteren Runden. Genannt wird das Datum aus
+    der **eingefrorenen** Ordnung des Antrags (§ 5 Abs 5) — eine kürzere Frist im Register darf
+    einem laufenden Verfahren keine Zeit nehmen."""
+    from datetime import timedelta
+
+    from django.utils.timezone import localtime
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    client.force_login(er[0])
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    # In Ortszeit vergleichen: Die Vorlage zeigt Wiener Zeit, gespeichert wird UTC — abends
+    # liegen die beiden Daten einen Tag auseinander.
+    ende = localtime(antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage))
+    assert "Erstvorschlag bis" in inhalt
+    assert ende.strftime("%d.%m.%Y") in inhalt
+    assert "Untätigkeit hemmt nie" in inhalt
+
+    # Auch mit offenem Fenster in Runde 1 steht die Frist da — dann wird ja gearbeitet
+    fenster_oeffnen(client, antrag, er[0])
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    assert "Erstvorschlag bis" in inhalt
+
+
+def test_die_frist_folgt_der_eingefrorenen_ordnung_nicht_dem_register(client, ordnung):  # noqa: F811
+    """Wer im Register kürzt, verkürzt kein laufendes Verfahren (§ 5 Abs 5)."""
+    from datetime import timedelta
+
+    from django.utils.timezone import localtime
+
+    from parameter.models import Parameter
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    Parameter.objects.update_or_create(
+        schluessel="expertenrat-erstvorschlag-tage",
+        defaults={"wert": "21", "beschreibung": "x", "quelle": "Test"},
+    )
+    Parameter.objects.filter(schluessel="expertenrat-erstvorschlag-tage").update(wert="1")
+    client.force_login(er[0])
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    ende = localtime(antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage))
+    assert ende.strftime("%d.%m.%Y") in inhalt

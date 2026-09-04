@@ -36,6 +36,8 @@ REVIEW_TAGE = 14
 UEBERARBEITUNG_TAGE = 14
 HOECHSTRUNDEN = 3
 ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
+BESCHLUSS_TAGE = 7  # Rückfall für die Frist eines internen Beschlusses (§ 6 Abs 2 lit e)
+PRUEFUNG_TAGE = 7  # Rückfall für die Frist der Prüfung durch Gruppe 2 (§ 6 Abs 7)
 
 
 def _registerzahl(schluessel: str, standard: int) -> int:
@@ -193,6 +195,8 @@ class Entwurf(models.Model):
             self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
         self.ueberarbeitung_frist = None
         self.save()
+        if self.status == EntwurfsStatus.PRUEFUNG:
+            self.pruefbeschluss_anlegen(jetzt)
         if self.status == EntwurfsStatus.UNTERSTUETZER:
             self.abstimmungschat_eroeffnen(jetzt)
         AuditEintrag.anhaengen(
@@ -202,6 +206,34 @@ class Entwurf(models.Model):
                 "runde": self.runde,
                 "weg": "pruefung" if self.vollzugsbezug else "unterstuetzer",
             }
+        )
+
+    def pruefbeschluss_anlegen(self, jetzt=None):
+        """Legt die interne Abstimmung der Gruppe 2 zu diesem Vorschlag an (FB-I3).
+
+        Ohne aktive Rolle in Gruppe 2 entsteht keine Abstimmung — dann bliebe der Vorschlag
+        liegen, bis jemand berufen ist. Das ist der einzige Fall, in dem hier nichts geschieht;
+        die Ansicht sagt es dann auch so, statt eine leere Abstimmung zu zeigen."""
+        jetzt = jetzt or timezone.now()
+        if self.beschluesse.filter(gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN).exists():
+            return None
+        angelegt_von = Rolle.aktive(Gremium.EXPERTENRAT_2).select_related("mitglied").first()
+        if angelegt_von is None:
+            return None
+        return GremienBeschluss.objects.create(
+            gremium=Gremium.EXPERTENRAT_2,
+            gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
+            beschreibung=(
+                "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
+                "Zu prüfen sind Interessenbindungen, Bieterkreis, Schwellenwerte und "
+                "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
+            ),
+            optionen=PRUEFOPTIONEN,
+            frist=jetzt + timedelta(days=_registerzahl("gremien-pruefung-tage", PRUEFUNG_TAGE)),
+            antrag=self.antrag,
+            entwurf=self,
+            angelegt_von=angelegt_von.mitglied,
+            angelegt_am=jetzt,
         )
 
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
@@ -313,6 +345,30 @@ class Entwurf(models.Model):
         - Verstreicht eine Überarbeitungsfrist ohne neue Einreichung → die
           zuletzt vorgelegte Fassung geht zur Endabstimmung."""
         jetzt = jetzt or timezone.now()
+        if self.status == EntwurfsStatus.PRUEFUNG:
+            if self.pruefungen.filter(
+                ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""
+            ).exists():
+                return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+            offene = list(
+                self.beschluesse.filter(
+                    gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN
+                )
+            )
+            if not offene:
+                # Erst hier, nicht schon beim Einreichen: Beim Einreichen ist manchmal noch
+                # niemand in Gruppe 2 berufen, und die Frist einer Gruppe kann nicht laufen,
+                # bevor es die Gruppe gibt.
+                self.pruefbeschluss_anlegen(jetzt)
+                return False
+            # Die Prüfung der Gruppe 2 hat ihre eigene Frist (FB-I3). Läuft sie ab, wertet der
+            # Beschluss aus — sonst hinge ein Beschaffungsantrag an der Aufmerksamkeit eines
+            # einzelnen Rates, und genau das soll die Frist verhindern (§ 5 Abs 12).
+            for beschluss in offene:
+                if beschluss.abschliessen(jetzt):
+                    self.refresh_from_db()
+                    return True
+            return False
         if self.status == EntwurfsStatus.UNTERSTUETZER:
             # FB-G6: Ausgewertet wird nach Fristablauf — bis dahin sind Reaktionen umschaltbar
             if self.review_frist is None or jetzt < self.review_frist:
@@ -427,7 +483,21 @@ class Pruefung(models.Model):
     runde = models.PositiveIntegerField()
     ergebnis = models.CharField(max_length=12, choices=Ergebnis.choices)
     begruendung = models.TextField(max_length=4000)
-    durch = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    durch = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        help_text="Leer, wenn das Gremium gemeinsam entschieden hat — dann steht alles am Beschluss.",
+    )
+    beschluss = models.OneToOneField(
+        "gremien.GremienBeschluss",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pruefung",
+        help_text="Die interne Abstimmung, aus der dieses Urteil hervorging (§ 6 Abs 2 lit e).",
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
     korat_entscheid = models.CharField(
         max_length=12,
@@ -464,3 +534,256 @@ class UnterstuetzerVotum(models.Model):
 
     def __str__(self) -> str:
         return f"Votum von Mitglied {self.mitglied_id} zu Entwurf {self.entwurf_id} (Runde {self.runde})"
+
+
+class BeschlussStatus(models.TextChoices):
+    """Wo ein interner Beschluss steht (FB-I4)."""
+
+    OFFEN = "offen", "offen"
+    ENTSCHIEDEN = "entschieden", "entschieden"
+    OHNE_ERGEBNIS = "ohne_ergebnis", "ohne Ergebnis (Frist abgelaufen)"
+
+
+class GremienBeschluss(models.Model):
+    """Eine interne Abstimmung eines Rates (§ 6 Abs 2 lit e, § 6 Abs 9).
+
+    Generisch, weil jedes Gremium dieselbe Art zu entscheiden braucht: Gruppe 2 über eine
+    Prüfung, der Koordinationsrat über einen Austauschantrag oder einen Parametertest, der
+    Integritätsrat über eine Hervorhebung. Ein eigenes Modell je Anlass hätte vier Oberflächen
+    und vier Auszählungen ergeben — und irgendwann vier verschiedene Mehrheitsregeln.
+
+    Öffentlich mit Namen (§ 6 Abs 9): Wer in einem Rat sitzt, entscheidet über andere; das
+    geschieht sichtbar. Gelöscht wird nichts (Grundregel 7) — auch ein Beschluss ohne Ergebnis
+    bleibt stehen, denn dass ein Gremium nicht beschlussfähig war, ist selbst eine Auskunft."""
+
+    gremium = models.CharField(max_length=20, choices=Gremium.choices)
+    gegenstand = models.CharField(max_length=200)
+    beschreibung = models.TextField(max_length=4000, blank=True)
+    optionen = models.JSONField(
+        help_text="Liste aus {„wert“, „name“} — „wert“ zählt die Regel, „name“ liest der Mensch."
+    )
+    frist = models.DateTimeField(
+        null=True, blank=True, help_text="Danach wird mit den vorliegenden Stimmen ausgewertet."
+    )
+    status = models.CharField(max_length=16, choices=BeschlussStatus.choices, default=BeschlussStatus.OFFEN)
+    ergebnis = models.CharField(max_length=40, blank=True)
+    regel_version = models.PositiveIntegerField(
+        default=0, help_text="Fassung der Auszählregel, mit der entschieden wurde."
+    )
+    umsetzungsvermerk = models.TextField(
+        max_length=2000, blank=True, help_text="Was wie umgesetzt wird — nach der Entscheidung."
+    )
+
+    antrag = models.ForeignKey(
+        Antrag, on_delete=models.CASCADE, null=True, blank=True, related_name="gremienbeschluesse"
+    )
+    entwurf = models.ForeignKey(
+        "gremien.Entwurf", on_delete=models.CASCADE, null=True, blank=True, related_name="beschluesse"
+    )
+    angelegt_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="angelegte_beschluesse"
+    )
+    angelegt_am = models.DateTimeField(default=timezone.now)
+    entschieden_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-angelegt_am"]
+        verbose_name = "Gremienbeschluss"
+        verbose_name_plural = "Gremienbeschlüsse"
+
+    def __str__(self) -> str:
+        return f"{self.get_gremium_display()}: {self.gegenstand}"
+
+    @property
+    def offen(self) -> bool:
+        return self.status == BeschlussStatus.OFFEN
+
+    def optionswerte(self) -> list[str]:
+        return [eintrag["wert"] for eintrag in self.optionen]
+
+    def name_von(self, wert: str) -> str:
+        for eintrag in self.optionen:
+            if eintrag["wert"] == wert:
+                return eintrag.get("name", wert)
+        return wert
+
+    def aktive_rollen(self) -> int:
+        return Rolle.aktive(self.gremium).count()
+
+    def auswertung(self):
+        """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist."""
+        from plattform_core.gremienbeschluss import auswerten
+
+        return auswerten(
+            [stimme.option for stimme in self.stimmen.all()], self.optionswerte(), self.aktive_rollen()
+        )
+
+    def alle_haben_gestimmt(self) -> bool:
+        aktive = self.aktive_rollen()
+        return aktive > 0 and self.stimmen.count() >= aktive
+
+    @transaction.atomic
+    def abschliessen(self, jetzt=None) -> bool:
+        """Wertet aus und schreibt das Ergebnis fest. Gibt zurück, ob sich etwas geändert hat.
+
+        Ein Beschluss schließt aus zwei Gründen: Alle haben gestimmt, oder die Frist ist um.
+        Der zweite Fall ist der wichtigere — sonst könnte ein einzelner Rat durch Schweigen
+        alles aufhalten, und „Untätigkeit hemmt nie" gälte im Verfahren, aber nicht im Gremium."""
+        if self.status != BeschlussStatus.OFFEN:
+            return False
+        jetzt = jetzt or timezone.now()
+        frist_um = self.frist is not None and jetzt >= self.frist
+        if not (frist_um or self.alle_haben_gestimmt()):
+            return False
+        ergebnis = self.auswertung()
+        self.regel_version = ergebnis.version
+        self.entschieden_am = jetzt
+        if ergebnis.ergebnis is not None:
+            self.status = BeschlussStatus.ENTSCHIEDEN
+            self.ergebnis = ergebnis.ergebnis
+        else:
+            self.status = BeschlussStatus.OHNE_ERGEBNIS
+            self.ergebnis = ""
+        self.save(update_fields=["status", "ergebnis", "regel_version", "entschieden_am"])
+        # Die Wirkungstabelle steht am Ende des Moduls. Sie hier auszulösen und nicht bei den
+        # Aufrufern ist Absicht: Ein Aufrufer, der sie vergisst, hinterließe einen Beschluss,
+        # der entschieden aussieht und nichts bewirkt hat.
+        wirkung_anwenden(self, jetzt)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_ausgewertet",
+                "gremium": self.gremium,
+                "beschluss": self.pk,
+                "status": self.status,
+                "ergebnis": self.ergebnis,
+                "zaehlung": ergebnis.zaehlung,
+                "abgegeben": ergebnis.abgegeben,
+                "noetig": ergebnis.noetig,
+                "regel_version": ergebnis.version,
+            }
+        )
+        return True
+
+    @classmethod
+    def faellige_abschliessen(cls, jetzt=None) -> int:
+        """Schließt alle Beschlüsse, deren Frist um ist (lazy, wie die Phasenautomatik)."""
+        jetzt = jetzt or timezone.now()
+        geschlossen = 0
+        for beschluss in cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt):
+            geschlossen += int(beschluss.abschliessen(jetzt))
+        return geschlossen
+
+
+class GremienStimme(models.Model):
+    """Eine Stimme in einer internen Abstimmung — mit Namen und Begründung (§ 6 Abs 9).
+
+    Nur aktive Rollen dürfen stimmen; geprüft wird beim Abgeben, nicht erst beim Zählen, damit
+    niemand eine Stimme abgibt, die später stillschweigend verfällt."""
+
+    beschluss = models.ForeignKey(GremienBeschluss, on_delete=models.CASCADE, related_name="stimmen")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    option = models.CharField(max_length=40)
+    begruendung = models.TextField(max_length=4000, blank=True)
+    abgegeben_am = models.DateTimeField(default=timezone.now)
+    geaendert_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = [("beschluss", "mitglied")]
+        ordering = ["abgegeben_am"]
+        verbose_name = "Stimme im Gremium"
+        verbose_name_plural = "Stimmen im Gremium"
+
+    def __str__(self) -> str:
+        return f"{self.mitglied_id} → {self.option}"
+
+
+def beschluss_frist(tage_schluessel: str = "gremien-beschluss-tage", standard: int = BESCHLUSS_TAGE):
+    """Wann ein neu angelegter Beschluss ausgewertet wird."""
+    return timezone.now() + timedelta(days=_registerzahl(tage_schluessel, standard))
+
+
+#: Die drei Wege der Gruppe 2 (§ 6 Abs 7). Der Wert steht im Code, der Name auf dem Knopf.
+PRUEFOPTIONEN = [
+    {"wert": "validiert", "name": "validieren"},
+    {"wert": "zurueck", "name": "mit Begründung zurückgeben"},
+    {"wert": "austausch", "name": "Austausch bei Gruppe 1 beantragen"},
+]
+
+#: Die Prüfpunkte der Gruppe 2 (§ 6 Abs 7). Abgehakte Punkte wandern in die Begründung —
+#: eine Liste, die niemand sieht, prüft nichts.
+PRUEFPUNKTE = [
+    ("interessen", "Interessenbindungen der Gruppe 1 offengelegt und unauffällig"),
+    ("bieter", "Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter"),
+    ("schwellen", "Schwellenwerte des Vergaberechts beachtet"),
+    ("vergleich", "Vergleichsangebote oder eine Begründung, warum es keine gibt"),
+]
+
+
+def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
+    """Setzt das Ergebnis einer Gruppe-2-Abstimmung ins Verfahren um (FB-I3).
+
+    Kein Ergebnis heißt hier **nicht** „validiert": Gruppe 2 ist eine Korruptionsprüfung, und
+    Schweigen darf nicht als Unbedenklichkeitsbescheinigung gelten. Es heißt aber auch nicht
+    „zurück" — sonst könnte ein Rat durch Nichtstun jeden Beschaffungsantrag aufhalten
+    (§ 5 Abs 12: Untätigkeit hemmt nie). Der Vorschlag geht deshalb weiter an die Unterstützer,
+    und der offengelegte Vermerk sagt, dass die Prüfung ohne Ergebnis blieb — die Unterstützer
+    entscheiden dann in Kenntnis dieser Tatsache."""
+    entwurf = beschluss.entwurf
+    if entwurf is None or entwurf.status != EntwurfsStatus.PRUEFUNG:
+        return
+    jetzt = jetzt or timezone.now()
+    auswertung = beschluss.auswertung()
+    stimmen = list(beschluss.stimmen.select_related("mitglied"))
+    if beschluss.ergebnis:
+        ergebnis = beschluss.ergebnis
+        begruendung = "\n\n".join(
+            f"{stimme.mitglied.anzeigename}: {beschluss.name_von(stimme.option)} — {stimme.begruendung}"
+            for stimme in stimmen
+            if stimme.begruendung
+        )
+    else:
+        ergebnis = Pruefung.Ergebnis.VALIDIERT
+        begruendung = (
+            "Die Prüfung der Gruppe 2 blieb ohne Ergebnis: "
+            + (
+                "Gleichstand der Stimmen."
+                if auswertung.gleichstand
+                else f"{auswertung.abgegeben} von {auswertung.noetig} nötigen Stimmen bis zum Fristende."
+            )
+            + " Der Vorschlag geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
+            "(§ 5 Abs 12: Untätigkeit hemmt nie)."
+        )
+    Pruefung.objects.create(
+        entwurf=entwurf,
+        runde=entwurf.runde,
+        ergebnis=ergebnis,
+        begruendung=begruendung[:4000],
+        durch=None,
+        beschluss=beschluss,
+        erstellt_am=jetzt,
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vorschlag_geprueft",
+            "antrag": entwurf.antrag_id,
+            "runde": entwurf.runde,
+            "ergebnis": ergebnis,
+            "beschluss": beschluss.pk,
+            "ohne_ergebnis": not beschluss.ergebnis,
+        }
+    )
+    if ergebnis == Pruefung.Ergebnis.VALIDIERT:
+        entwurf.zu_den_unterstuetzern(jetzt)
+    elif ergebnis == Pruefung.Ergebnis.ZURUECK:
+        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
+
+
+def wirkung_anwenden(beschluss, jetzt=None) -> None:
+    """Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
+
+    Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
+    Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats. Ein
+    Beschluss ohne Eintrag hier bewirkt nichts außer sich selbst — das ist der Normalfall für
+    innere Angelegenheiten eines Rates und keine Lücke."""
+    if beschluss.gremium == Gremium.EXPERTENRAT_2 and beschluss.entwurf_id:
+        pruefbeschluss_wirkung(beschluss, jetzt)

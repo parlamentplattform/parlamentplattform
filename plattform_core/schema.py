@@ -101,6 +101,14 @@ PARAMETER = {
         "feedback.daily_limit", "messages",
         "How many feedback messages a person may send per day",
     ),
+    "gremien-pruefung-tage": (
+        "council.review_days", "days",
+        "How long the second expert group has to check a proposal with implementation or procurement relevance",
+    ),
+    "gremien-beschluss-tage": (
+        "council.decision_days", "days",
+        "Default deadline for an internal decision in a council body",
+    ),
     "verfahren-unterstuetzung-schwelle": (
         "support.threshold", "supporters",
         "Number of supporters a motion needs to enter deliberation",

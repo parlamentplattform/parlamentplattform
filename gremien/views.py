@@ -19,11 +19,15 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from gremien.models import (
+    PRUEFPUNKTE,
+    BeschlussStatus,
     EinreichStimme,
     Entwurf,
     EntwurfsBeitrag,
     EntwurfsFassung,
     EntwurfsStatus,
+    GremienBeschluss,
+    GremienStimme,
     Gremium,
     Pruefung,
     Rolle,
@@ -123,6 +127,8 @@ def expertenrat(request):
             "zeilen": zeilen,
             "zurueckliegend": zurueckliegend,
             "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
+            "beschluesse": beschluesse_fuer(Gremium.EXPERTENRAT_1, request.user),
+            "darf_stimmen": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
         },
     )
 
@@ -382,21 +388,37 @@ def rollen_aktion(request):
 
 @nur_gremium(Gremium.EXPERTENRAT_2)
 def pruefung(request):
-    """Korruptions-Redundanz: Vorschläge mit Vollzugs- oder Beschaffungsbezug —
-    validieren, begründet zurückgeben oder den Austausch beim KoRat beantragen."""
+    """Korruptions-Redundanz der Gruppe 2 (§ 6 Abs 7) — als Beschluss des Gremiums.
+
+    Bis 0.41 entschied, wer zuerst auf einen der drei Knöpfe drückte. Eine Redundanz aus einer
+    Person ist keine; jetzt stimmt die Gruppe ab, mit Frist und veröffentlichter Begründung."""
+    GremienBeschluss.faellige_abschliessen()
     offene = list(
         Entwurf.objects.filter(status=EntwurfsStatus.PRUEFUNG).select_related("antrag")
     )
-    zeilen = [
-        {
-            "entwurf": e,
-            "fassung": e.aktuelle_fassung(),
-            "austausch_offen": e.pruefungen.filter(
-                ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""
-            ).exists(),
-        }
-        for e in offene
-    ]
+    zeilen = []
+    for entwurf in offene:
+        entwurf.fortschreiben(entwurf.antrag)  # legt eine fehlende Abstimmung an, wertet fällige aus
+        beschluss = entwurf.beschluesse.filter(
+            gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN
+        ).first()
+        zeilen.append(
+            {
+                "entwurf": entwurf,
+                "fassung": entwurf.aktuelle_fassung(),
+                "beschluss": beschluss,
+                "auswertung": beschluss.auswertung() if beschluss else None,
+                "stimmen": list(beschluss.stimmen.select_related("mitglied")) if beschluss else [],
+                "meine_stimme": (
+                    beschluss.stimmen.filter(mitglied=request.user).first()
+                    if beschluss and request.user.is_authenticated
+                    else None
+                ),
+                "austausch_offen": entwurf.pruefungen.filter(
+                    ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""
+                ).exists(),
+            }
+        )
     erledigte = list(
         Pruefung.objects.exclude(entwurf__status=EntwurfsStatus.PRUEFUNG)
         .select_related("entwurf__antrag", "durch")
@@ -408,44 +430,113 @@ def pruefung(request):
         {
             "zeilen": zeilen,
             "erledigte": erledigte,
+            "pruefpunkte": PRUEFPUNKTE,
             "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_2),
         },
     )
 
 
-@nur_gremium(Gremium.EXPERTENRAT_2)
-@require_POST
-def pruefung_aktion(request, entwurf_id: int):
-    entwurf = get_object_or_404(Entwurf.objects.select_related("antrag"), pk=entwurf_id)
-    if not Rolle.hat(request.user, Gremium.EXPERTENRAT_2):
-        messages.error(request, _("Prüfen kann hier nur, wer eine aktive Rolle in Gruppe 2 hat."))
-        return redirect("gremien:pruefung")
-    if entwurf.status != EntwurfsStatus.PRUEFUNG:
-        messages.error(request, _("Dieser Vorschlag liegt nicht (mehr) zur Prüfung vor."))
-        return redirect("gremien:pruefung")
-    ergebnis = request.POST.get("ergebnis", "")
-    begruendung = (request.POST.get("begruendung") or "").strip()
-    if ergebnis not in Pruefung.Ergebnis.values or not begruendung:
-        messages.error(request, _("Bitte Ergebnis wählen und begründen — die Begründung wird veröffentlicht."))
-        return redirect("gremien:pruefung")
-    Pruefung.objects.create(
-        entwurf=entwurf, runde=entwurf.runde, ergebnis=ergebnis, begruendung=begruendung[:4000],
-        durch=request.user,
+
+def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
+    """Die Beschlüsse eines Rates für seinen Bereich (FB-I4).
+
+    Offene zuerst, danach die zuletzt entschiedenen — wer den Bereich öffnet, soll sehen, was
+    von ihm erwartet wird, und dann, was zuletzt galt. Erledigte verschwinden nie (Grundregel 7),
+    sie rücken nur nach hinten."""
+    GremienBeschluss.faellige_abschliessen()
+    offene = list(
+        GremienBeschluss.objects.filter(gremium=gremium, status=BeschlussStatus.OFFEN)
+        .prefetch_related("stimmen__mitglied")
+        .order_by("frist", "angelegt_am")
     )
-    AuditEintrag.anhaengen(
-        {"typ": "vorschlag_geprueft", "antrag": entwurf.antrag_id, "runde": entwurf.runde, "ergebnis": ergebnis}
+    erledigte = list(
+        GremienBeschluss.objects.filter(gremium=gremium)
+        .exclude(status=BeschlussStatus.OFFEN)
+        .prefetch_related("stimmen__mitglied")
+        .order_by("-entschieden_am")[:grenze]
     )
-    if ergebnis == Pruefung.Ergebnis.VALIDIERT:
-        entwurf.zu_den_unterstuetzern()
-        messages.success(request, _("Validiert — der Vorschlag liegt jetzt den Unterstützern vor (§ 5 Abs 12)."))
-    elif ergebnis == Pruefung.Ergebnis.ZURUECK:
-        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
-        messages.success(request, _("Mit Begründung zurückgegeben — die Werkstatt ist wieder am Zug."))
-    else:
-        messages.success(
-            request, _("Austausch beantragt — der Koordinationsrat entscheidet; die Begründung ist öffentlich.")
+    zeilen = []
+    for beschluss in offene + erledigte:
+        stimmen = list(beschluss.stimmen.all())
+        zeilen.append(
+            {
+                "beschluss": beschluss,
+                "auswertung": beschluss.auswertung(),
+                "stimmen": stimmen,
+                "meine_stimme": next(
+                    (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
+                ),
+            }
         )
-    return redirect("gremien:pruefung")
+    return zeilen
+
+@require_POST
+def beschluss_stimme(request, beschluss_id: int):
+    """Eine Stimme in einer internen Abstimmung (FB-I4, § 6 Abs 9: öffentlich mit Namen).
+
+    Stimmberechtigt ist nur, wer im betreffenden Gremium eine **aktive** Rolle hat — geprüft
+    wird beim Abgeben, nicht erst beim Zählen: Eine Stimme, die später stillschweigend verfällt,
+    wäre schlimmer als eine, die gar nicht erst angenommen wird."""
+    beschluss = get_object_or_404(GremienBeschluss, pk=beschluss_id)
+    zurueck = _beschluss_zurueck(beschluss)
+    if not Rolle.hat(request.user, beschluss.gremium):
+        messages.error(request, _("Abstimmen kann nur, wer in diesem Gremium eine aktive Rolle hat."))
+        return redirect(zurueck)
+    if not beschluss.offen:
+        messages.error(request, _("Dieser Beschluss ist bereits ausgewertet."))
+        return redirect(zurueck)
+    option = request.POST.get("option", "")
+    if option not in beschluss.optionswerte():
+        messages.error(request, _("Bitte eine der vorgesehenen Optionen wählen."))
+        return redirect(zurueck)
+    begruendung = (request.POST.get("begruendung") or "").strip()
+    if not begruendung:
+        messages.error(request, _("Bitte begründen — die Begründung wird veröffentlicht (§ 6 Abs 9)."))
+        return redirect(zurueck)
+    haken = [name for schluessel, name in PRUEFPUNKTE if request.POST.get(f"punkt_{schluessel}")]
+    if haken:
+        # Abgehakte Prüfpunkte gehören in die Begründung, nicht in eine Datenspalte: Sie sind
+        # Teil dessen, was das Gremium öffentlich behauptet zu haben (§ 6 Abs 7).
+        begruendung = begruendung + "\n\nGeprüft: " + "; ".join(haken) + "."
+    stimme, neu = GremienStimme.objects.update_or_create(
+        beschluss=beschluss,
+        mitglied=request.user,
+        defaults={"option": option, "begruendung": begruendung[:4000]},
+    )
+    if not neu:
+        stimme.geaendert_am = timezone.now()
+        stimme.save(update_fields=["geaendert_am"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "gremienstimme_abgegeben",
+            "gremium": beschluss.gremium,
+            "beschluss": beschluss.pk,
+            "option": option,
+            "geaendert": not neu,
+        }
+    )
+    if beschluss.abschliessen():
+        beschluss.refresh_from_db()
+        if beschluss.ergebnis:
+            messages.success(
+                request,
+                _("Beschlossen: %(ergebnis)s — alle aktiven Rollen haben abgestimmt.")
+                % {"ergebnis": beschluss.name_von(beschluss.ergebnis)},
+            )
+        else:
+            messages.info(request, _("Abgestimmt haben alle, ein Ergebnis kam nicht zustande."))
+    else:
+        messages.success(request, _("Stimme abgegeben — sie steht mit Ihrem Namen öffentlich."))
+    return redirect(zurueck)
+
+
+def _beschluss_zurueck(beschluss) -> str:
+    """Wohin nach einer Stimme — in den Bereich, aus dem der Beschluss stammt."""
+    return {
+        Gremium.EXPERTENRAT_1: "gremien:expertenrat",
+        Gremium.EXPERTENRAT_2: "gremien:pruefung",
+        Gremium.KOORDINATIONSRAT: "gremien:koordination",
+    }.get(beschluss.gremium, "gremien:uebersicht")
 
 
 # ── Koordinationsrat: Austauschanträge und Rollenübersicht (§ 6 Abs 8) ───────
@@ -474,6 +565,8 @@ def koordination(request):
         request,
         "gremien/koordination.html",
         {
+            "beschluesse": beschluesse_fuer(Gremium.KOORDINATIONSRAT, request.user),
+            "darf_stimmen": Rolle.hat(request.user, Gremium.KOORDINATIONSRAT),
             "offene": offene,
             "entschiedene": entschiedene,
             "rollen": rollen,

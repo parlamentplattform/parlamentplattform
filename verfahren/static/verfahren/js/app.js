@@ -282,6 +282,80 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  /* Die drei Zonen der Antragsseite (FB-F1). Breit (≥ 1100 px): alle Zonen stehen nebeneinander,
+     die Reiter springen hin und die Leiste zeigt beim Scrollen die aktuelle Zone (Scroll-Spy).
+     Schmal: nur eine Zone ist sichtbar, die Reiter schalten um, Wischen wechselt weiter.
+     Ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks. */
+  Alpine.data("zonen", function () {
+    return {
+      zone: "text",
+      breit: true,
+      init: function () {
+        var self = this;
+        var messen = function () { self.breit = window.innerWidth >= 1100; };
+        messen();
+        window.addEventListener("resize", messen);
+        if (window.location.hash.indexOf("#zone-") === 0) this.zone = window.location.hash.slice(6);
+        this.spy();
+        this.wisch();
+      },
+      namen: function () {
+        return Array.prototype.map.call(this.$el.querySelectorAll(".zonenleiste .zreiter"), function (r) {
+          return r.getAttribute("href").slice(6);
+        });
+      },
+      waehle: function (name, e) {
+        this.zone = name;
+        if (!this.breit) {
+          if (e) e.preventDefault();  // schmal: umschalten statt springen
+          window.scrollTo({ top: 0, behavior: reduziert() ? "auto" : "smooth" });
+        }
+      },
+      /* Breit: der aktive Reiter folgt dem Scrollen — es gewinnt die Zone, deren Oberkante der
+         Unterkante der klebenden Leiste am nächsten ist, ohne sie schon verlassen zu haben. */
+      spy: function () {
+        var self = this;
+        var pruefe = function () {
+          if (!self.breit) return;
+          var leiste = self.$el.querySelector(".zonenleiste");
+          var kante = leiste ? leiste.getBoundingClientRect().bottom : 0;
+          // Die klebende Einschätzung steht immer oben — sie scrollt nicht vorbei und zählt nicht mit
+          var zonen = Array.prototype.filter.call(self.$el.querySelectorAll(".zone[id]"), function (z) {
+            return getComputedStyle(z).position !== "sticky";
+          });
+          if (!zonen.length) return;
+          // Am Seitenende gewinnt die letzte Zone — sonst erreicht sie die Oberkante nie
+          var ende = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+          if (ende) { self.zone = zonen[zonen.length - 1].id.slice(5); return; }
+          var beste = null, bester = -Infinity;
+          zonen.forEach(function (z) {
+            var oben = z.getBoundingClientRect().top - kante;
+            if (oben <= 1 && oben > bester) { bester = oben; beste = z; }
+          });
+          if (beste) self.zone = beste.id.slice(5);
+        };
+        window.addEventListener("scroll", pruefe, { passive: true });
+        setTimeout(pruefe, 0);
+      },
+      /* Schmal: waagrechtes Wischen wechselt zur Nachbarzone (gerichtet, wie Blättern). */
+      wisch: function () {
+        var self = this, start = null;
+        this.$el.addEventListener("touchstart", function (e) {
+          start = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+        }, { passive: true });
+        this.$el.addEventListener("touchend", function (e) {
+          if (!start || self.breit) return;
+          var dx = e.changedTouches[0].clientX - start.x;
+          var dy = e.changedTouches[0].clientY - start.y;
+          start = null;
+          if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+          var namen = self.namen(), i = namen.indexOf(self.zone) + (dx < 0 ? 1 : -1);
+          if (i >= 0 && i < namen.length) self.zone = namen[i];
+        }, { passive: true });
+      }
+    };
+  });
+
   /* Flash-Meldung: im Parlament (body.voll) nach sechs Sekunden ausblenden; × schließt sofort. */
   Alpine.data("meldung", function () {
     return {

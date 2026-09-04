@@ -3842,3 +3842,162 @@ msgstr "<strong>What we contribute:</strong> the software under a free licence w
 
 msgid "<strong>Was das Land selbst tut:</strong> Server und Daten im eigenen Land, eigene Identitätsprüfung, Satzung und Verfahrensordnung nach eigenem Recht und in eigener Sprache, die Werte der Stellgrößen selbst lernen — und ehrliche Kennzahlen zurückgeben."
 msgstr "<strong>What your country does itself:</strong> servers and data in your own country, your own identity verification, statutes and procedural rules under your own law and in your own language, learning the values of the settings yourself — and returning honest metrics."
+
+msgid "Frist"
+msgstr "Deadline"
+
+msgid "Zonen dieser Seite"
+msgstr "Sections of this page"
+
+msgid "Text"
+msgstr "Text"
+
+msgid "Einschätzung"
+msgstr "Assessment"
+
+msgid "Chat"
+msgstr "Chat"
+
+msgid "Zugestimmt"
+msgstr "Approved"
+
+msgid "Eingefrorene Regeln (§ 5 Abs 5)"
+msgstr "Frozen rules (§ 5 para 5)"
+
+msgid "Diese Regeln galten beim Einbringen und gelten bis zum Ende — keine spätere Änderung wirkt auf dieses Verfahren."
+msgstr "These rules applied when the motion was submitted and apply until the end — no later change affects this procedure."
+
+msgid "Rohdaten"
+msgstr "Raw data"
+
+msgid "Sachlich und respektvoll — unter Ihrem Anzeigenamen."
+msgstr "Factual and respectful — under your display name."
+
+msgid "%(n)s Unterstützung"
+msgid_plural "%(n)s Unterstützungen"
+msgstr[0] "%(n)s supporter"
+msgstr[1] "%(n)s supporters"
+
+msgid "Fassung %(nummer)s"
+msgstr "Version %(nummer)s"
+
+msgid "Alle Fassungen (%(n)s)"
+msgid_plural "Alle Fassungen (%(n)s)"
+msgstr[0] "All versions (%(n)s)"
+msgstr[1] "All versions (%(n)s)"
+
+msgid "Modellrechnung — sie schlägt vor, sie entscheidet nie"
+msgstr "A model calculation — it proposes, it never decides"
+
+msgid "Modell"
+msgstr "Model"
+
+msgid "Stand"
+msgstr "As of"
+
+msgid "noch kein Lauf"
+msgstr "no run yet"
+
+msgid "Lauf"
+msgstr "Run"
+
+msgid "Lauf-Archiv"
+msgstr "Run archive"
+
+msgid "Beanstanden"
+msgstr "Object"
+
+msgid "Was ist an der Einschätzung falsch?"
+msgstr "What is wrong with the assessment?"
+
+msgid "Sachlich, mit Beleg wenn möglich."
+msgstr "Factual, with evidence where possible."
+
+msgid "Ihr Vermerk ist öffentlich und bleibt stehen; die Werkstatt rechnet den Punkt nach (§ 6 Abs 11 lit b)."
+msgstr "Your note is public and stays on the record; the workshop recalculates the point (§ 6 para 11 lit b)."
+
+msgid "Beanstandung veröffentlichen"
+msgstr "Publish objection"
+
+msgid "nachgerechnet"
+msgstr "recalculated"
+
+msgid "Antwort der Werkstatt:"
+msgstr "Reply from the workshop:"
+
+msgid "Kein Anbieter angeschlossen — es wird nichts gerechnet."
+msgstr "No provider connected — nothing is being calculated."
+
+msgid "Noch keine Einschätzung — sie entsteht mit dem Eintritt in die Beratung."
+msgstr "No assessment yet — it is produced when deliberation begins."
+
+msgid "Für diesen Antrag liegt noch keine Einschätzung vor."
+msgstr "No assessment exists for this motion yet."
+
+msgid "Was hier stehen wird:"
+msgstr "What will appear here:"
+
+msgid "Eine Beanstandung"
+msgid_plural "%(n)s Beanstandungen"
+msgstr[0] "One objection"
+msgstr[1] "%(n)s objections"
+
+msgid "Ja mehr als Nein"
+msgstr "More Yes than No"
+
+msgid "Ja mehr als die Hälfte aller abgegebenen Stimmen"
+msgstr "Yes more than half of all votes cast"
+
+msgid "Unterstützungsschwelle"
+msgstr "Support threshold"
+
+msgid "%d Unterstützung"
+msgid_plural "%d Unterstützungen"
+msgstr[0] "%d supporter"
+msgstr[1] "%d supporters"
+
+msgid "Frist zum Unterstützen"
+msgstr "Support deadline"
+
+msgid "%d Tag"
+msgid_plural "%d Tage"
+msgstr[0] "%d day"
+msgstr[1] "%d days"
+
+msgid "Mindestbeteiligung"
+msgstr "Minimum turnout"
+
+msgid "Mehrheit"
+msgstr "Majority"
+
+msgid "Sperre für Wiedereinbringung"
+msgstr "Block on resubmission"
+
+msgid "%d Monat"
+msgid_plural "%d Monate"
+msgstr[0] "%d month"
+msgstr[1] "%d months"
+
+msgid "Verfahrensordnung"
+msgstr "Procedural rules"
+
+msgid "Ähnliche Anträge"
+msgstr "Similar motions"
+
+msgid "Berührte Gesetze"
+msgstr "Laws affected"
+
+msgid "Folgen für Judikatur und Exekutive"
+msgstr "Consequences for the judiciary and the executive"
+
+msgid "Aufwand, Last und Dauer"
+msgstr "Effort, load and duration"
+
+msgid "Ausschreibung"
+msgstr "Public tender"
+
+msgid "Bitte beschreiben Sie, was an der Einschätzung falsch ist."
+msgstr "Please describe what is wrong with the assessment."
+
+msgid "Ihre Beanstandung ist öffentlich vermerkt — die Zukunftswerkstatt rechnet den Punkt nach."
+msgstr "Your objection is on the public record — the future workshop recalculates the point."

@@ -564,6 +564,44 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .neu-punkt{color:var(--gold)}
 .phasenband{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13.5px;margin-bottom:10px}
 .phasenband .erk{display:block;margin-top:2px}
+/* ── Archiv eines Antrags (FB-G7) ── */
+.archiv-kopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:10px}
+.archiv-kopf h2{margin:0}
+.archiv-export{margin-left:auto;display:flex;gap:8px}
+.archiv-block{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:10px 14px;margin-bottom:10px}
+.archiv-block.laufend{border-color:var(--gold)}
+.archiv-block summary{cursor:pointer;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.archiv-auswertung{margin:10px 0 4px;font-weight:600;font-size:13.5px}
+.archiv-beitrag{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.archiv-beitrag.eingerueckt{margin-left:22px;border-left:2px solid var(--line);padding-left:10px}
+.archiv-text{white-space:pre-line;font-size:14.5px;line-height:1.6;margin-top:2px}
+.archiv-fassung{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.archiv-fassung .wortlaut{white-space:pre-wrap;font:inherit;font-size:14.5px;line-height:1.6;margin:4px 0 0}
+.archiv-pruefung{border-top:1px solid var(--line);padding-top:8px;margin-top:8px;font-size:14px}
+.auditspur{margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.7}
+.auditspur code{font-size:12px;color:var(--matt)}
+/* ── Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ── */
+.vorschlagskopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;margin:0 0 8px}
+.vorschlagskopf h3{margin:0;font-size:16px}
+.karte.vorschlag.gepinnt{border:2px solid var(--gold);box-shadow:var(--shadow);margin-bottom:12px}
+.karte.vorschlag .wortlaut{white-space:pre-wrap;font:inherit;font-size:15px;line-height:1.6;margin:4px 0 0}
+.karte.vorschlag .vorschlag-grund{white-space:pre-line;margin-top:6px}
+.karte.vorschlag .stand{margin-top:8px;font-weight:600}
+.diff{margin-top:10px}
+.diff summary{cursor:pointer;font-size:13.5px;color:var(--deep)}
+.diff-text{white-space:pre-wrap;line-height:1.7;margin-top:8px;font-size:14.5px}
+.diff-text ins{background:var(--ok-bg);color:var(--ink);text-decoration:none;border-radius:3px}
+.diff-text del{background:var(--warn-bg);color:var(--matt);border-radius:3px}
+.blase.system{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 7%,var(--surface))}
+.blase.kritik{border-left:3px solid var(--warn)}
+.avatar-initiale.system{background:var(--gold);color:var(--on-gold)}
+.etikett{font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);color:var(--matt)}
+.etikett.kritik{background:var(--warn-bg);border-color:var(--warn);color:var(--warn-text)}
+.blase-knopf.ablehnen.an{background:var(--warn-bg);color:var(--warn-text)}
+.kritikwahl{margin-top:8px;display:grid;gap:6px}
+.kritikwahl .schalter{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+.kritikwahl select{width:100%;font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.phasenband.ruht{border-color:var(--gold)}
 .chatzeile{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 10px;margin-top:12px;box-shadow:var(--shadow)}
 .chatzeile textarea{max-height:9em;resize:vertical}
 .chatzeile-fuss{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:6px}
@@ -665,7 +703,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
   .zonen{grid-template-columns:58fr 42fr}
   .z-text{grid-column:1}
   .z-einschaetzung{grid-column:2;position:sticky;top:calc(var(--bar) + 52px)}
-  .z-chat{grid-column:1 / -1}
+  .z-chat,.z-archiv{grid-column:1 / -1}
 }
 /* ── Partner-Seite (§ 12, FB-M6/M7): Schaubild „Ein Kern, viele Instanzen“, Spuren, Schnittstelle ── */
 .partner h2{margin-top:28px}

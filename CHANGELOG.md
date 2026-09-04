@@ -2,6 +2,31 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.0] — 2026-09-04 · S7: Der Abstimmungs-Chat zum Vorschlag und das Archiv
+
+### Hinzugefügt
+- **Der Abstimmungs-Chat (FB-G6):** Sobald der Expertenrat seinen Vorschlag eingereicht hat, öffnet sich Zone 3 neu — als Abstimmung, die als Gespräch geführt wird. Oben steht der **Vorschlag als gepinnte Karte** mit Gold-Rahmen und einem aufklappbaren **Wort-Diff zum Antrag** (Einfügungen grün, Streichungen rot durchgestrichen, „+12 / −3 Wörter“). Darunter der Faden, **nach Engagement gereiht**
+- **Der Systembeitrag „✓ Passt alles"**: Die Plattform legt ihn beim Öffnen an — ohne Verfasser, deutlich als Systembeitrag. Er ist der Beitrag, auf den sich die Auswertung bezieht, damit niemand raten muss, welcher Beitrag Zustimmung zum Vorschlag bedeutet
+- **Zustimmen und Ablehnen (👍 / 👎)** an jedem Beitrag: eine Reaktion je Mitglied, umschaltbar bis Fristende. **Reagieren dürfen nur die Unterstützer** des Antrags — das ist ihre Abstimmung nach § 5 Abs 12; alle anderen sehen die Zähler und dürfen mitreden
+- **Kritik mit Textstellenbezug:** Ein Umschalter „Das ist konkrete Kritik am Vorschlag" verlangt einen **Absatz des Vorschlags** und mindestens 80 Zeichen — ohne beides wird der Beitrag nicht als Kritik angenommen. Kritik-Beiträge tragen ein rotes Etikett „Kritik · Absatz 3" und gehen bei einer Rückgabe als **Wünsche der Unterstützer** ins Entwurfsfenster, nach Engagement gereiht
+- **Das Archiv (FB-G7):** ein vierter Reiter an jeder Antragsseite. Eine **Zeitleiste** von der Antragstellung bis heute, je Phase ein aufklappbarer Block mit den Beiträgen, die dort geschrieben wurden — auch denen, die bei einer Hochstufung geräumt wurden. Dazu die Runden des Expertenrats mit Fassungen und Prüfungen, die **Auswertung jeder Vorschlagsrunde** („Passt alles 67 % · an erster Stelle · zur Endabstimmung") und die **Audit-Spur** mit Hash-Kurzform. Öffentlich lesbar wie die Antragsseite
+- **Export des Archivs** als **JSON** (vollständig, mit Antwortbezug und Reaktionszählern) und **Markdown** (lesbar, gleiche Gliederung), Dateiname `antrag-<id>-archiv.<ext>`. Ohne Kontaktdaten — Anzeigenamen wie überall
+- **Die Ruhephase (FB-G6):** Während der Expertenrat am Vorschlag arbeitet, ruht der Chat. Ein Band sagt es, Mitlesen bleibt möglich, die Eingabezeile weicht einem Hinweis
+- Die Demo zeigt den Abstimmungs-Chat jetzt: ein Antrag mit eingereichtem Vorschlag, „Passt alles" mit 2 👍 / 1 👎 und einer Kritik am ersten Absatz
+
+### Geändert
+- **Das Votum-Formular ist abgelöst (FB-G6):** Wo die Unterstützer bisher „annehmen / mit Wunsch zurückgeben" angeklickt haben, entscheiden sie jetzt im Chat. Die Auswertung nach Fristablauf verlangt **beides** — der Beitrag „Passt alles" muss **an erster Stelle stehen** *und* **mehr als 50 %** Zustimmung tragen (Parameter `vorschlag-annahme-prozent`); sonst geht der Vorschlag mit der Kritik zurück an den Expertenrat. **Stille hemmt nie**: Liegt keine einzige Reaktion vor, geht der Vorschlag weiter (§ 5 Abs 12)
+- Ausgewertet wird **erst nach Fristablauf** — vorher sind Reaktionen umschaltbar. Bisher wertete die Schleife sofort aus, sobald alle Unterstützer gestimmt hatten
+- Das Entwurfsfenster zeigt statt der Votenliste den Live-Stand „Passt alles: 2 👍 / 1 👎 (67 %) · 1 Kritik-Beitrag" mit Weg in den Chat, und bei einer Überarbeitung die **Wünsche der Vorrunde** mit Absatzbezug und Zählern
+- Bestehende Voten wurden in den Chat überführt: annehmen → 👍, zurückgeben → 👎 samt Wunsch als Kritik-Beitrag. Die Voten selbst bleiben als Nachweis stehen (Grundregel 7)
+
+### Technisch
+- Neu: `plattform_core/vorschlagschat.py` (Regel `engagement-v1`, versioniert und nachrechenbar) und `plattform_core/wortdiff.py` (Wort-Diff auf Wortebene statt Zeilenebene), beide framework-frei und einzeln getestet
+- Neu: `verfahren/archiv.py` — eine Quelle für Anzeige, JSON und Markdown
+- `Kommentar` um `system`, `ist_kritik` und `bezug_absatz` erweitert; `mitglied` darf leer sein (Systembeitrag). Migrationen `verfahren.0014_abstimmungschat` und `gremien.0003_voten_in_den_abstimmungschat`
+- Neue Registereinträge `vorschlag-annahme-prozent` (50) und `vorschlag-chat-reihung` (1) mit Schema-Kennungen in `docs/SCHEMA.md`
+- Tests: `plattform_core/test_vorschlagschat.py` (11), `plattform_core/test_wortdiff.py` (7), `verfahren/test_archiv.py` (7), `tests/e2e/test_abstimmungschat.py` (5); 703 Tests und 51 Bildschirmtests grün, Katalog vollständig (1045 Einträge)
+
 ## [0.38.0] — 2026-09-04 · S6: Das Chatsystem — Faden, Gedächtnis, Gespräche, Räumung
 
 ### Hinzugefügt

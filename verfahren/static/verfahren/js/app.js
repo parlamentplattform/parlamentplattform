@@ -376,6 +376,7 @@ document.addEventListener("alpine:init", function () {
     var schluessel = "ddoe.chat." + antragId;
     return {
       antwortAuf: null,
+      kritik: false,  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6)
       antwortName: "",
       init: function () {
         this.stelleWiederHer();
@@ -394,6 +395,7 @@ document.addEventListener("alpine:init", function () {
       abbrechen: function () { this.antwortAuf = null; this.antwortName = ""; },
       leeren: function () {
         if (this.$refs.feld) { this.$refs.feld.value = ""; this.wachsen(); this.$refs.feld.focus(); }
+        this.kritik = false;
         this.abbrechen();
       },
       wachsen: function () {

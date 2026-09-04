@@ -41,6 +41,16 @@ PARAMETER = {
         "bodies.role_term_days", "days",
         "Regular term of a body role (public call, confirmation by the assembly, automatic expiry)",
     ),
+    "vorschlag-annahme-prozent": (
+        "draft_loop.acceptance_percent", "percent",
+        "Approval share the „fine as it is\" post must exceed in the proposal chat so the draft "
+        "goes to the final vote (it must also rank first)",
+    ),
+    "vorschlag-chat-reihung": (
+        "draft_loop.chat_ordering_version", "rule version",
+        "Version of the proposal-chat ordering rule (engagement-v1: engagement desc, then approval "
+        "share, then time)",
+    ),
     "ki-monatstokens": (
         "ai.monthly_token_budget", "tokens/month",
         "Hard monthly token budget of the model slot (cost cap of the future workshop)",

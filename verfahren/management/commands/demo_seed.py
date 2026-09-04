@@ -267,6 +267,57 @@ class Command(BaseCommand):
                 self.style.SUCCESS("Gremien bereit: 2× Gruppe 1, 1× Gruppe 2, 1× Koordinationsrat.")
             )
 
+        # Abstimmungs-Chat (Ring 0a, FB-G6) — eigener Wächter: ein Antrag, dessen Vorschlag
+        # den Unterstützern vorliegt, mit „Passt alles", Reaktionen und einer Kritik.
+        from verfahren.chat import beitrag_schreiben, passt_alles_anlegen, reaktion_umschalten
+        from verfahren.models import Reaktionsart
+
+        if not Antrag.objects.filter(entwurf__status="unterstuetzer").exists():
+            a6 = antrag_einbringen(
+                leute[2],
+                "Testlauf: Vorschlag des Expertenrats zur Fahrradabstellanlage",
+                "Vor jedem Amtsgebäude der Gemeinde entsteht eine überdachte Abstellanlage für "
+                "mindestens zwanzig Fahrräder.\n\n"
+                "Die Anlage wird beleuchtet und ist rund um die Uhr zugänglich.",
+                "",
+                ordnung,
+            )
+            for m in leute[:4]:
+                a6.unterstuetzungen.create(mitglied=m)
+            a6.fortschreiben()  # Schwelle erreicht → Beratung
+            a6.refresh_from_db()
+            entwurf6 = Entwurf.objects.create(antrag=a6)
+            grundlage = a6.aktueller_text()
+            EntwurfsFassung.objects.create(
+                entwurf=entwurf6,
+                nummer=1,
+                wortlaut=(grundlage.wortlaut if grundlage else "").replace(
+                    "mindestens zwanzig Fahrräder", "mindestens dreißig Fahrräder"
+                )
+                + "\n\nDie Gemeinde berichtet jährlich über Auslastung und Instandhaltung.",
+                begruendung="Der Expertenrat hat die Zahl an den erhobenen Bedarf angepasst und "
+                "eine Berichtspflicht ergänzt.",
+                verfasst_von=leute[1],
+            )
+            entwurf6.einreichen()  # ohne Vollzugsbezug: direkt zu den Unterstützern
+            passt = passt_alles_anlegen(a6, entwurf6)
+            for m in leute[:2]:
+                reaktion_umschalten(passt, m, Reaktionsart.ZUSTIMMUNG)
+            reaktion_umschalten(passt, leute[3], Reaktionsart.ABLEHNUNG)
+            kritik = beitrag_schreiben(
+                a6,
+                leute[3],
+                "Dreißig Stellplätze sind vor dem kleinen Amtshaus zu viel — dort passen "
+                "höchstens zwölf, ohne den Gehsteig zu verstellen.",
+                ist_kritik=True,
+                bezug_absatz=1,
+            )
+            reaktion_umschalten(kritik, leute[3], Reaktionsart.ZUSTIMMUNG)
+            beitrag_schreiben(a6, leute[0], "Die Berichtspflicht finde ich gut — die bleibt hoffentlich drin.")
+            self.stdout.write(
+                self.style.SUCCESS(f"Abstimmungs-Chat bereit: Antrag {a6.pk} (Vorschlag Runde 1).")
+            )
+
         # Parameterregister (Ring 0b, F-68): Erstbestand sicherstellen — läuft
         # bei jedem Deploy mit, bestehende Werte bleiben unangetastet.
         from parameter.models import erstbestand_sicherstellen

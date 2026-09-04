@@ -14,6 +14,7 @@ urlpatterns = [
     ),
     path("kategorien/<slug:slug>/", views_aktionen.kategorie_weiter, name="kategorie"),
     path("antrag/<int:pk>/", views.antrag_detail, name="antrag"),
+    path("antrag/<int:pk>/archiv.<slug:art>", views.archiv_export, name="archiv_export"),
     path("antrag/<int:pk>/unterstuetzen/", views_aktionen.unterstuetzen, name="unterstuetzen"),
     path("antrag/<int:pk>/favorisieren/", views_aktionen.favorisieren, name="favorisieren"),
     path("antrag/<int:pk>/kommentieren/", views_aktionen.kommentieren, name="kommentieren"),

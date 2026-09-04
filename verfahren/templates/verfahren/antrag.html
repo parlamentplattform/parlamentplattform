@@ -32,6 +32,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <a href="#zone-text" class="zreiter" :class="{an: zone === 'text'}" @click="waehle('text', $event)" :aria-current="zone === 'text' ? 'true' : 'false'">{% translate "Text" %}</a>
   {% if einschaetzung %}<a href="#zone-einschaetzung" class="zreiter" :class="{an: zone === 'einschaetzung'}" @click="waehle('einschaetzung', $event)" :aria-current="zone === 'einschaetzung' ? 'true' : 'false'">{% translate "Einschätzung" %}</a>{% endif %}
   <a href="#zone-chat" class="zreiter" :class="{an: zone === 'chat'}" @click="waehle('chat', $event)" :aria-current="zone === 'chat' ? 'true' : 'false'">{% translate "Chat" %}{% if chat.anzahl %} ({{ chat.anzahl }}){% endif %}{% if chat.neue %} <span class="neu-punkt" title="{% blocktranslate count n=chat.neue %}{{ n }} neuer Beitrag{% plural %}{{ n }} neue Beiträge{% endblocktranslate %}">●</span>{% endif %}</a>
+  <a href="#zone-archiv" class="zreiter" :class="{an: zone === 'archiv'}" @click="waehle('archiv', $event)" :aria-current="zone === 'archiv' ? 'true' : 'false'">{% translate "Archiv" %}</a>
 </nav>
 
 <div class="zonen">
@@ -237,6 +238,10 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <section class="zone z-chat" id="zone-chat" x-show="breit || zone === 'chat'">
     <h2>{% translate "Chat" %}{% if chat.anzahl %} ({{ chat.anzahl }}){% endif %}</h2>
     {% include "verfahren/_chat.html" %}
+  </section>
+
+  <section class="zone z-archiv" id="zone-archiv" x-show="breit || zone === 'archiv'">
+    {% include "verfahren/_zone_archiv.html" %}
   </section>
 </div>
 </div>

@@ -4160,3 +4160,157 @@ msgstr "Please choose a reason."
 
 msgid "Danke — die Meldung liegt der Verwaltung vor."
 msgstr "Thank you — the report is with the administration."
+
+msgid "Der Expertenrat arbeitet am Vorschlag — der Chat öffnet, sobald der Vorschlag vorliegt."
+msgstr "The expert council is working on the proposal — the chat opens once it arrives."
+
+msgid "Mitlesen bleibt möglich (§ 5 Abs 12)."
+msgstr "Reading along stays possible (§ 5 para 12)."
+
+msgid "Änderungen zum Antrag zeigen"
+msgstr "Show changes against the motion"
+
+msgid "wortgleich"
+msgstr "word for word"
+
+msgid "an erster Stelle"
+msgstr "in first place"
+
+msgid "Das ist konkrete Kritik am Vorschlag"
+msgstr "This is concrete criticism of the proposal"
+
+msgid "Bezug auf einen Absatz"
+msgstr "Reference to a paragraph"
+
+msgid "Absatz wählen …"
+msgstr "Choose a paragraph …"
+
+msgid "Kritik braucht einen Textstellenbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten."
+msgstr "Criticism needs a reference to a passage and at least 80 characters — that is what lets the expert council work with it."
+
+msgid "Bis der Vorschlag vorliegt, wird hier nicht geschrieben."
+msgstr "Until the proposal arrives, nothing is written here."
+
+msgid "Vorschlag des Expertenrats — Runde %(n)s"
+msgstr "Proposal of the expert council — round %(n)s"
+
+msgid "Beratung bis %(frist)s"
+msgstr "Deliberation until %(frist)s"
+
+msgid "Reihung: Engagement, Regel %(r)s"
+msgstr "Ordering: engagement, rule %(r)s"
+
+msgid "+%(ein)s / −%(aus)s Wörter"
+msgstr "+%(ein)s / −%(aus)s words"
+
+msgid "„Passt alles\": %(ja)s 👍 / %(nein)s 👎"
+msgstr "„Fine as it is\": %(ja)s 👍 / %(nein)s 👎"
+
+msgid "Absatz %(n)s"
+msgstr "Paragraph %(n)s"
+
+msgid "Die Plattform"
+msgstr "The platform"
+
+msgid "Systembeitrag"
+msgstr "System post"
+
+msgid "Kritik"
+msgstr "Criticism"
+
+msgid "Ablehnung zurücknehmen"
+msgstr "Take back rejection"
+
+msgid "Reagieren können die Unterstützer dieses Antrags"
+msgstr "The supporters of this motion can react"
+
+msgid "Ablehnungen"
+msgstr "Rejections"
+
+msgid "Kritik · Absatz %(n)s"
+msgstr "Criticism · paragraph %(n)s"
+
+msgid "Archiv"
+msgstr "Archive"
+
+msgid "Der ganze Weg dieses Antrags — nichts wird gelöscht (§ 5 Abs 3 lit e)."
+msgstr "The whole path of this motion — nothing is deleted (§ 5 para 3 lit e)."
+
+msgid "Als JSON"
+msgstr "As JSON"
+
+msgid "Als Markdown"
+msgstr "As Markdown"
+
+msgid "läuft"
+msgstr "running"
+
+msgid "nicht an erster Stelle"
+msgstr "not in first place"
+
+msgid "zur Endabstimmung"
+msgstr "to the final vote"
+
+msgid "zurück an den Expertenrat"
+msgstr "back to the expert council"
+
+msgid "Kein Beitrag in dieser Phase."
+msgstr "No posts in this phase."
+
+msgid "mit Vollzugsbezug"
+msgstr "with implementation relevance"
+
+msgid "Audit-Spur"
+msgstr "Audit trail"
+
+msgid "Hash-Kette, fortlaufend (F-22)"
+msgstr "Hash chain, continuous (F-22)"
+
+msgid "%(n)s Beitrag"
+msgid_plural "%(n)s Beiträge"
+msgstr[0] "%(n)s post"
+msgstr[1] "%(n)s posts"
+
+msgid "„Passt alles\": %(ja)s 👍 / %(nein)s 👎 = %(anteil)s %"
+msgstr "„Fine as it is\": %(ja)s 👍 / %(nein)s 👎 = %(anteil)s %"
+
+msgid "Expertenrat — Runde %(n)s"
+msgstr "Expert council — round %(n)s"
+
+msgid "Zum Abstimmungs-Chat"
+msgstr "To the decision chat"
+
+msgid "Der Vorschlag des Expertenrats (Runde %(n)s) liegt den Unterstützern dieses Antrags vor —\nentschieden wird im Abstimmungs-Chat unter dem Antrag (§ 5 Abs 12)."
+msgstr "The expert council's proposal (round %(n)s) is before the supporters of this motion —\nthe decision is made in the decision chat below the motion (§ 5 para 12)."
+
+msgid "in den Abstimmungs-Chat"
+msgstr "to the decision chat"
+
+msgid "Nach Engagement gereiht — oben steht, was die meisten bewegt hat."
+msgstr "Ordered by engagement — what moved the most people stands on top."
+
+msgid "„Passt alles\": %(ja)s 👍 / %(nein)s 👎 (%(anteil)s %)"
+msgstr "„Fine as it is\": %(ja)s 👍 / %(nein)s 👎 (%(anteil)s %)"
+
+msgid "%(n)s Kritik-Beitrag"
+msgid_plural "%(n)s Kritik-Beiträge"
+msgstr[0] "%(n)s critical post"
+msgstr[1] "%(n)s critical posts"
+
+msgid "Wünsche der Unterstützer (Runde %(n)s)"
+msgstr "Wishes of the supporters (round %(n)s)"
+
+msgid "Vorschlagsberatung — Runde %s"
+msgstr "Proposal deliberation — round %s"
+
+msgid "ohne Phase"
+msgstr "no phase"
+
+msgid "✓ Passt alles — der Vorschlag kann so zur Endabstimmung."
+msgstr "✓ Fine as it is — the proposal can go to the final vote like this."
+
+msgid "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten."
+msgstr "Criticism of the proposal needs a paragraph reference and at least 80 characters — that is what lets the expert council work with it."
+
+msgid "Reagieren können die Unterstützer dieses Antrags."
+msgstr "The supporters of this motion can react."

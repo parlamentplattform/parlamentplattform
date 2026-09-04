@@ -49,6 +49,32 @@ def werkstatt_lage(ordnung, raete=2):  # noqa: F811
     return antrag, unterstuetzer, er
 
 
+def systembeitrag(antrag):
+    """Der Beitrag „Passt alles", den die Plattform beim Öffnen des Abstimmungs-Chats anlegt."""
+    return antrag.kommentare.get(system=True, archiviert_am__isnull=True)
+
+
+def reagieren(client, antrag, beitrag, mitglied, art="zustimmung"):
+    client.force_login(mitglied)
+    return client.post(reverse("verfahren:reagieren", args=[antrag.pk, beitrag.pk]), {"art": art})
+
+
+def schreiben(client, antrag, mitglied, text, kritik=False, absatz=None):
+    client.force_login(mitglied)
+    daten = {"text": text}
+    if kritik:
+        daten["ist_kritik"] = "1"
+        if absatz:
+            daten["bezug_absatz"] = str(absatz)
+    client.post(reverse("verfahren:kommentieren", args=[antrag.pk]), daten)
+    return antrag.kommentare.filter(mitglied=mitglied).order_by("-erstellt_am").first()
+
+
+def frist_verstreichen(entwurf):
+    """Ausgewertet wird nach Fristablauf — bis dahin sind Reaktionen umschaltbar (FB-G6)."""
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+
+
 def fenster_oeffnen(client, antrag, rat):
     client.force_login(rat)
     client.post(reverse("gremien:fenster_aktion", args=[antrag.pk]), {"aktion": "oeffnen"})
@@ -201,55 +227,94 @@ def test_unfertiges_fenster_hat_keine_blockademacht(client, ordnung):  # noqa: F
     assert antrag.phase == "abstimmung"  # die Beratung endet regulär
 
 
-def test_annahme_der_unterstuetzer_oeffnet_die_endabstimmung(client, ordnung):  # noqa: F811
+def test_zustimmung_im_chat_oeffnet_die_endabstimmung(client, ordnung):  # noqa: F811
+    """FB-G6: „Passt alles" steht oben und trägt mehr als 50 % — der Vorschlag geht weiter."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     einreichen(client, antrag, er)
     aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
     client.post(aktion, {"aktion": "fassung", "wortlaut": "Egal."})  # Werkstatt ruht: abgewiesen
     entwurf = Entwurf.objects.get(antrag=antrag)
+    passt = systembeitrag(antrag)
     for u in unterstuetzer:
-        client.force_login(u)
-        client.post(reverse("gremien:votum", args=[entwurf.pk]), {"votum": "annehmen"})
+        reagieren(client, antrag, passt, u)
+    frist_verstreichen(entwurf)
     antrag.refresh_from_db()
+    antrag.fortschreiben()
     entwurf.refresh_from_db()
     assert antrag.phase == "abstimmung" and entwurf.status == EntwurfsStatus.ANGENOMMEN
     assert antrag.aktueller_text().wortlaut == ANTRAG["wortlaut"]  # der Vorschlag als neue Fassung
     assert "§ 5 Abs 12" in antrag.aktueller_text().begruendung
+    from verfahren.models import AuditEintrag
+
+    gruende = [e.ereignis.get("grund", "") for e in AuditEintrag.objects.all()]
+    assert any("an erster Stelle" in g for g in gruende), "die Rechnung steht offen im Audit"
     assert antrag.stimmberechtigte_anzahl is not None
 
 
-def test_rueckgabe_mehrheit_startet_neue_runde(client, ordnung):  # noqa: F811
+def test_kritik_mit_mehr_engagement_startet_eine_neue_runde(client, ordnung):  # noqa: F811
+    """Steht ein Kritik-Beitrag oben, geht der Vorschlag zurück — auch wenn „Passt alles"
+    für sich genommen Zustimmung hätte (D-G6b: oben *und* über der Schwelle)."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Die Frist von 48 Stunden ist zu lang — binnen 24 Stunden muss das Protokoll stehen.",
+        kritik=True, absatz=1,
+    )
+    assert kritik is not None and kritik.ist_kritik and kritik.bezug_absatz == 1
     for u in unterstuetzer:
-        client.force_login(u)
-        client.post(
-            reverse("gremien:votum", args=[entwurf.pk]),
-            {"votum": "zurueckgeben", "wunsch": "Bitte die Frist auf 24 Stunden schärfen."},
-        )
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
     antrag.refresh_from_db()
+    antrag.fortschreiben()
     entwurf.refresh_from_db()
     assert antrag.phase == "beratung"  # zurück in die Werkstatt …
     assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 2
     assert entwurf.ueberarbeitung_frist is not None
     assert entwurf.haelt_beratung_offen()  # … und die Überarbeitung hält die Beratung offen
+    from verfahren.chat import kritik_der_runde
+
+    wuensche = kritik_der_runde(antrag, 1)
+    assert len(wuensche) == 1 and wuensche[0]["absatz"] == 1, "die Kritik liegt als Wunsch bereit"
 
 
-def test_rueckgabe_braucht_einen_wunsch(client, ordnung):  # noqa: F811
+def test_kritik_braucht_bezug_und_konkretheit(client, ordnung):  # noqa: F811
+    """A0-07: „muss konkrete Kritik beinhalten" — ohne Textstelle und Länge keine Kritik."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
-    entwurf = einreichen(client, antrag, er)
-    client.force_login(unterstuetzer[0])
-    client.post(reverse("gremien:votum", args=[entwurf.pk]), {"votum": "zurueckgeben", "wunsch": ""})
-    assert entwurf.unterstuetzer_voten.count() == 0  # ohne Wunsch kein Votum
+    einreichen(client, antrag, er)
+    knapp = schreiben(client, antrag, unterstuetzer[0], "Gefällt mir nicht.", kritik=True, absatz=1)
+    assert knapp is None, "zu kurz — kein Beitrag"
+    ohne_bezug = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Die Frist von 48 Stunden ist zu lang — binnen 24 Stunden muss das Protokoll stehen.",
+        kritik=True,
+    )
+    assert ohne_bezug is None, "ohne Absatzbezug keine Kritik"
 
 
-def test_votum_nur_fuer_unterstuetzer(client, ordnung):  # noqa: F811
+def test_reagieren_nur_fuer_unterstuetzer(client, ordnung):  # noqa: F811
+    """Im Abstimmungs-Chat wählen die Unterstützer (§ 5 Abs 12) — mitreden dürfen alle."""
     antrag, _, er = werkstatt_lage(ordnung)
-    entwurf = einreichen(client, antrag, er)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
     fremde = mitglied_anlegen("fremde")
-    client.force_login(fremde)
-    client.post(reverse("gremien:votum", args=[entwurf.pk]), {"votum": "annehmen"})
-    assert entwurf.unterstuetzer_voten.count() == 0
+    reagieren(client, antrag, passt, fremde)
+    assert passt.reaktionen.count() == 0
+    assert schreiben(client, antrag, fremde, "Ich lese hier mit und möchte etwas anmerken.") is not None
+
+
+def test_ablehnung_zaehlt_und_laesst_sich_umschalten(client, ordnung):  # noqa: F811
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0], art="ablehnung")
+    assert passt.reaktionen.get().art == "ablehnung"
+    reagieren(client, antrag, passt, unterstuetzer[0], art="zustimmung")
+    assert passt.reaktionen.get().art == "zustimmung", "eine Reaktion je Mitglied, umschaltbar"
+    reagieren(client, antrag, passt, unterstuetzer[0], art="zustimmung")
+    assert passt.reaktionen.count() == 0, "derselbe Knopf nimmt zurück"
 
 
 def test_stille_hemmt_nie(client, ordnung):  # noqa: F811
@@ -266,12 +331,16 @@ def test_stille_hemmt_nie(client, ordnung):  # noqa: F811
 def test_verstrichene_ueberarbeitung_geht_zur_endabstimmung(client, ordnung):  # noqa: F811
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
     for u in unterstuetzer:
-        client.force_login(u)
-        client.post(
-            reverse("gremien:votum", args=[entwurf.pk]),
-            {"votum": "zurueckgeben", "wunsch": "Schärfer bitte."},
-        )
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()  # Rückgabe: Runde 2 läuft
     Entwurf.objects.filter(pk=entwurf.pk).update(
         ueberarbeitung_frist=timezone.now() - timedelta(hours=1)
     )
@@ -282,19 +351,21 @@ def test_verstrichene_ueberarbeitung_geht_zur_endabstimmung(client, ordnung):  #
     assert entwurf.status == EntwurfsStatus.ANGENOMMEN
 
 
-def test_antragsseite_zeigt_vorschlag_und_voten_offen(client, ordnung):  # noqa: F811
+def test_antragsseite_zeigt_den_abstimmungschat_offen(client, ordnung):  # noqa: F811
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
-    entwurf = einreichen(client, antrag, er)
-    client.force_login(unterstuetzer[0])
-    client.post(
-        reverse("gremien:votum", args=[entwurf.pk]),
-        {"votum": "zurueckgeben", "wunsch": "Auch Ausschüsse erfassen."},
+    einreichen(client, antrag, er)
+    schreiben(
+        client, antrag, unterstuetzer[0],
+        "Auch die Ausschüsse gehören erfasst — der erste Absatz nennt nur die Sitzungen des Gemeinderats.",
+        kritik=True, absatz=1,
     )
     inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
     assert "Entwurfsschleife" in inhalt
-    assert ANTRAG["wortlaut"] in inhalt  # der Vorschlag im Wortlaut
-    assert "Auch Ausschüsse erfassen." in inhalt  # Voten offen geführt
-    assert "Mit Wunsch zurückgeben ✓" in inhalt  # mein Votum markiert
+    assert ANTRAG["wortlaut"] in inhalt  # der Vorschlag im Wortlaut, gepinnt
+    assert "Passt alles" in inhalt  # der Systembeitrag, auf den sich die Auswertung bezieht
+    assert "Auch die Ausschüsse gehören erfasst" in inhalt  # die Kritik steht offen
+    assert "Kritik · Absatz 1" in inhalt  # mit Textstellenbezug
+    assert "Reihung: Engagement" in inhalt  # die Regel ist offengelegt (§ 2 Abs 6)
     # Gäste sehen die Schleife, aber kein Formular:
     client.logout()
     gast = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()

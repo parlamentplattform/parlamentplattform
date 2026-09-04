@@ -4,7 +4,7 @@ Diese Datei steuert Claude Code in diesem Repository. Sie ist knapp; die Tiefe s
 
 ## 1. Was das hier ist
 
-Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.37.0 am 4.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
+Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.39.0 am 4.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
 
 ## 2. Die maßgeblichen Dokumente (in dieser Reihenfolge lesen)
 

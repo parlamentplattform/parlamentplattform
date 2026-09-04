@@ -199,7 +199,9 @@ def test_hochstufung_raeumt_den_chat_ohne_zu_loeschen(client, ordnung):  # noqa:
     assert {k.phase for k in antrag.kommentare.all()} == {"unterstuetzung"}
 
     inhalt = _seite(client, antrag)
-    assert "Beitrag in der Unterstützungsphase." not in inhalt
+    faden = inhalt.split('<div class="faden">', 1)[1].split("</div>\n\n", 1)[0]
+    assert "Beitrag in der Unterstützungsphase." not in faden, "aus dem laufenden Chat verschwunden"
+    assert "Beitrag in der Unterstützungsphase." in inhalt, "im Archiv weiter lesbar (FB-G7)"
     assert "2 Beiträge aus der vorigen Phase liegen im Archiv." in inhalt
     letzter = AuditEintrag.objects.order_by("-lfd").first()
     assert letzter.ereignis["typ"] == "phasenwechsel" and letzter.ereignis["chat_archiviert"] == 2

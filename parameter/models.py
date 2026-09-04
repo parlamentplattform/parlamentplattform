@@ -75,6 +75,24 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 12 („Rundenzahl per Verfahrensordnung“) · F-67",
     },
     {
+        "schluessel": "vorschlag-annahme-prozent",
+        "wert": "50",
+        "einheit": "Prozent",
+        "beschreibung": "Zustimmungsanteil, den der Beitrag „Passt alles“ im Abstimmungs-Chat "
+        "überschreiten muss, damit der Vorschlag zur Endabstimmung geht — zusätzlich muss er an "
+        "erster Stelle stehen.",
+        "quelle": "A0-07 („mehr als 50%“) · § 5 Abs 12 · FB-G6",
+    },
+    {
+        "schluessel": "vorschlag-chat-reihung",
+        "wert": "1",
+        "einheit": "Regelfassung",
+        "beschreibung": "Fassung der Reihungsregel des Abstimmungs-Chats (engagement-v1): "
+        "Engagement = Zustimmungen + Ablehnungen absteigend, dann Zustimmungsanteil, dann Zeit. "
+        "Offengelegt und nachrechenbar (§ 2 Abs 6).",
+        "quelle": "A0-07 („die kommentare mit dem meisten engagement erscheinen ganz oben“) · FB-G6",
+    },
+    {
         "schluessel": "gremien-rollen-dauer-tage",
         "wert": "730",
         "einheit": "Tage",

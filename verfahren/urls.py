@@ -52,6 +52,7 @@ urlpatterns = [
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
     path("partner/", views.partner, name="partner"),
     path("partner/paket/", views.partner_paket, name="partner_paket"),
+    path("partner/<slug:sprache>/", views.partner_kurz, name="partner_kurz"),
     path(
         "staatssimulation/",
         RedirectView.as_view(pattern_name="verfahren:zukunftswerkstatt", permanent=True),

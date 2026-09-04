@@ -2,6 +2,18 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.40.0] — 2026-09-04 · Die Partner-Seite spricht sechs Sprachen
+
+### Hinzugefügt
+- **Vier eigene Seiten für die Kurzfassungen (FB-M9):** `/partner/fr/`, `/partner/es/`, `/partner/it/` und `/partner/ja/`. Der Text steht in der Landessprache und trägt sein eigenes `lang` — der Rahmen bleibt englisch, denn die Plattform selbst gibt es nur auf Deutsch und Englisch, und mehr zu versprechen hieße, eine Übersetzungspflege zuzusagen, die niemand leisten kann
+- **Eine Sprachleiste** auf allen Partner-Seiten: `English · Deutsch · Français · Español · Italiano · 日本語`. Die aktuelle Fassung ist markiert (`aria-current`), Deutsch und Englisch führen auf die vollständige Seite
+- **Die Sprachautomatik führt weiter:** Wer mit spanischem Browser `/partner/` aufruft, landet auf `/partner/es/` statt auf der englischen Seite. Zwei Ausnahmen sind eingebaut — eine eigene Sprachwahl schlägt die Automatik, und **wer von der Plattform selbst kommt, wird nicht umgeleitet**: Sonst hätte der Weg „Kurzfassung → vollständige Seite auf Englisch" sofort wieder auf der Kurzfassung geendet
+- `hreflang`-Angaben samt `x-default` auf allen sechs Fassungen, damit Suchmaschinen die richtige ausliefern
+
+### Technisch
+- Neu: `plattform_core/kurztext.py` (VERSION 1) — liest die Kurzfassungen aus `docs/partner/kurz/`. Bewusst **kein** Markdown-Übersetzer: Für Überschrift, Absätze und den kursiven Schlusssatz braucht es keine neue Abhängigkeit, und was die Datei sonst enthält, soll nicht unbemerkt durchrutschen. Das Arbeitsmaterial hinter dem waagrechten Strich (Glossar, offene Punkte) bleibt draußen
+- Ein Test lädt **jede ausgelieferte Sprachfassung** und prüft, dass sie sich anzeigen lässt — sonst fiele eine kaputte Datei erst im Betrieb auf
+
 ## [0.39.7] — 2026-09-04 · Die Einladung an Partnerparteien in vier Sprachen
 
 ### Hinzugefügt

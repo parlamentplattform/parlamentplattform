@@ -1,7 +1,14 @@
 {% extends "verfahren/base.html" %}
 {% load i18n %}
 {% block titel %}{% translate "Internationale Partner" %}{% endblock %}
+{% block kopfzusatz %}
+<link rel="alternate" hreflang="de" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner' %}">
+<link rel="alternate" hreflang="en" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner' %}">
+<link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner' %}">
+{% for code, name in sprachen %}<link rel="alternate" hreflang="{{ code }}" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner_kurz' code %}">
+{% endfor %}{% endblock %}
 {% block inhalt %}
+{% include "verfahren/_partner_sprachen.html" %}
 {% comment %}
 Die Partner-Seite (§ 12; FB-M1, M6, M7, M8; A0-09): Gemeinsame Vision, das Modell „ein Kern, viele
 Instanzen“ mit Schaubild, die Schnittstelle, der Einstieg in zwei Spuren, das Übertragungspaket,

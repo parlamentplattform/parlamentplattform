@@ -564,6 +564,18 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .neu-punkt{color:var(--gold)}
 .phasenband{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13.5px;margin-bottom:10px}
 .phasenband .erk{display:block;margin-top:2px}
+/* ── Partner-Seite in mehreren Sprachen (FB-M9) ── */
+.partnersprachen{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 18px;font-size:13.5px}
+.partnersprachen form{display:contents}
+.partnersprachen a,.partnersprachen button{font:inherit;font-size:13.5px;padding:4px 10px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--matt);text-decoration:none;cursor:pointer}
+.partnersprachen a:hover,.partnersprachen button:hover{background:var(--surface-2)}
+.partnersprachen .an{border-color:var(--gold);color:var(--ink);font-weight:600}
+.partnerkurz{max-width:44rem}
+.partnerkurz h1{margin-bottom:14px}
+.partnerkurz p{font-size:16px;line-height:1.7;margin:0 0 14px}
+.partnerkurz .schlusszeile{margin-top:18px}
+.partnerwege{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 /* ── Fehlerseiten (404/403): ein Weg zurück statt einer Sackgasse ── */
 .fehlerseite{max-width:34rem;margin:8vh auto;text-align:center}
 .fehlernummer{font-size:56px;font-weight:700;color:var(--gold);margin:0;line-height:1}
@@ -745,6 +757,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 <script defer src="{% static 'verfahren/js/app.js' %}"></script>
 <script defer src="{% static 'verfahren/js/alpine.min.js' %}"></script>
 <meta name="htmx-config" content='{"defaultSwapStyle":"outerHTML"}'>
+{% block kopfzusatz %}{% endblock %}
 </head>
 <body class="{% block bodyklasse %}{% endblock %}{% if user.is_authenticated and user.status == "pausiert" %} mit-band{% endif %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 <a class="skip" href="#inhalt">{% translate "Zum Inhalt springen" %}</a>

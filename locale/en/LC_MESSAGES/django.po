@@ -4761,3 +4761,6 @@ msgstr ""
 "Most of these files are in German: the getting-started path and the setup guide carry an\n"
 "English summary, the statute construction kit and the schema do not yet. We will translate them with the\n"
 "first partner who needs them — tell us which file you need first."
+
+msgid "Sprache dieser Seite"
+msgstr "Language of this page"

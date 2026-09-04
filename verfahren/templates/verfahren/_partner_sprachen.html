@@ -1,0 +1,19 @@
+{% load i18n %}{% comment %}
+Die Sprachleiste der Partner-Seite (FB-M9). Deutsch und Englisch führen auf die vollständige
+Seite — sie sind die beiden Sprachen, in denen die ganze Plattform steht. Die vier übrigen
+führen auf die Kurzfassung in `docs/partner/kurz/`. Erwartet „sprachen" und, auf einer
+Kurzfassung, „sprache".
+{% endcomment %}{% get_current_language as JETZT %}
+<nav class="partnersprachen" aria-label="{% translate 'Sprache dieser Seite' %}">
+  <form method="post" action="{% url 'set_language' %}">{% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'verfahren:partner' %}">
+    <button type="submit" name="language" value="en" lang="en"
+      {% if not sprache and JETZT == "en" %}class="an" aria-current="true"{% endif %}>English</button>
+    <button type="submit" name="language" value="de" lang="de"
+      {% if not sprache and JETZT == "de" %}class="an" aria-current="true"{% endif %}>Deutsch</button>
+  </form>
+  {% for code, name in sprachen %}
+  <a href="{% url 'verfahren:partner_kurz' code %}" hreflang="{{ code }}" lang="{{ code }}"
+    {% if sprache == code %}class="an" aria-current="page"{% endif %}>{{ name }}</a>
+  {% endfor %}
+</nav>

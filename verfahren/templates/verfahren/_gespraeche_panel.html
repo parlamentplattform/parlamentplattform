@@ -5,8 +5,8 @@ Griff schlicht ein Link auf /gespraeche/ — dieselbe Liste als eigene Seite.
 Am Handy entfällt der Randgriff; dort führt das fünfte Ziel der Tableiste hin.
 {% endcomment %}{% if user.is_authenticated %}
 <div class="gespraeche" x-data="gespraechspanel" @keydown.escape.window="zu()">
-  {# Der Griff öffnet das Panel und holt die Liste zugleich — sie wird erst geladen, wenn sie
-     gebraucht wird. Ohne JavaScript bleibt der Griff ein Link auf /gespraeche/. #}
+  {% comment %}Der Griff öffnet das Panel und holt die Liste zugleich — sie wird erst geladen,
+  wenn sie gebraucht wird. Ohne JavaScript bleibt der Griff ein Link auf /gespraeche/.{% endcomment %}
   <a class="g-griff" href="{% url 'verfahren:gespraeche' %}" @click="auf($event)"
      hx-get="{% url 'verfahren:gespraeche' %}" hx-target="#gespraeche-liste" hx-select="#gespraeche-liste" hx-swap="outerHTML transition:true"
      :aria-expanded="offen ? 'true' : 'false'" aria-controls="gespraeche-panel"

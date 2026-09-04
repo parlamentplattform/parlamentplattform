@@ -775,7 +775,8 @@ class Kommentar(models.Model):
     Auch das Entfernen durch den Verfasser und das Ausblenden durch die Verwaltung lassen den
     Beitrag stehen; nur sein Text weicht einem Vermerk."""
 
-    BEARBEITUNGSFENSTER = timedelta(minutes=5)  # danach ist der Text unveränderlich (FB-G1)
+    #: Rückfallwert; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
+    BEARBEITUNGSFENSTER = timedelta(minutes=5)
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
     mitglied = models.ForeignKey(

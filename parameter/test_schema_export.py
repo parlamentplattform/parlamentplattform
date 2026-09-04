@@ -19,7 +19,7 @@ def test_parameter_export_traegt_kopf_und_kennungen(client):
     assert daten["schema_version"] == SCHEMA_VERSION and daten["system_id"] == "at-ddoe"
     assert daten["software"]["name"] == "ParlamentPlattform" and daten["software"]["version"]
     kennungen = {p["schema_key"] for p in daten["parameter"]}
-    assert {"draft_loop.review_days", "draft_loop.max_rounds", "ai.monthly_token_budget"} <= kennungen
+    assert {"support.review_days", "council.max_rounds", "ai.monthly_token_budget"} <= kennungen
     assert {"schluessel", "wert", "einheit", "beschreibung", "quelle", "geaendert_am"} <= set(daten["parameter"][0])
     assert pruefe_export(daten) == []
 

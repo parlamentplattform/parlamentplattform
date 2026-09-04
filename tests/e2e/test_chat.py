@@ -168,3 +168,17 @@ def test_handy_hat_chats_in_der_tableiste(seite, live_server, demo):
     p.locator(".tabs .tab-chats").click()
     p.wait_for_load_state()
     assert "/gespraeche/" in p.url
+
+
+def test_panel_laedt_auch_auf_der_gespraechsseite(seite, live_server, demo):
+    """Auf /gespraeche/ trug die Seitenliste dieselbe id wie die Liste im Panel; htmx traf
+    darum die Seite statt des Panels, und das Panel blieb auf „Wird geladen …" stehen."""
+    _faden()
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/gespraeche/")
+    _ruhe(p)
+    p.locator(".g-griff").click()
+    p.wait_for_selector(".g-panel", state="visible")
+    p.wait_for_function("() => document.querySelectorAll('.g-panel .gz').length > 0")
+    assert "Wird geladen" not in p.locator(".g-panel").inner_text(), "das Panel füllt sich"
+    assert p.locator(".g-panel .gz").count() >= 1

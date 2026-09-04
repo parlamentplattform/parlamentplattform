@@ -12,6 +12,7 @@ den Überblick. Die Zeilen führen direkt zum letzten Beitrag des Gegenübers.
   <a class="chip{% if nur_ungelesen %} an{% endif %}" href="{% url 'verfahren:gespraeche' %}?filter=ungelesen">{% translate "Ungelesen" %}{% if ungelesen %} · {{ ungelesen }}{% endif %}</a>
 </div>
 <div class="karte g-seite">
-  {% include "verfahren/_gespraeche_liste.html" %}
+  {# eigene id: das Panel auf derselben Seite zielt auf #gespraeche-liste (htmx nimmt den ersten Treffer) #}
+  {% include "verfahren/_gespraeche_liste.html" with liste_id="gespraeche-seite" %}
 </div>
 {% endblock %}

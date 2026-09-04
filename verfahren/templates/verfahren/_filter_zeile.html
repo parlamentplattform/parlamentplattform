@@ -17,7 +17,7 @@ favorit, anteile, punkte).
     <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
   </div>
   {% else %}
-  <div class="zs ohne"><span>{{ z.antrag.phase|phase_name }} · {{ z.antrag.phase_beginn|date:"d.m.Y" }}</span></div>
+  <div class="zs ohne"><span>{% blocktranslate with wann=z.antrag.phase_beginn|date:"d.m.Y" %}seit {{ wann }}{% endblocktranslate %}</span></div>
   {% endif %}
   {% if z.anteile %}
   <details class="warum"><summary>{% translate "Warum hier?" %}</summary>

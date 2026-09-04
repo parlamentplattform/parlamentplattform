@@ -3,7 +3,7 @@ Die Liste „Meine Gespräche" (FB-G3) in drei Spalten: Thema · Antrag · Chatp
 entsteht, sobald zwischen zwei Menschen an einem Antrag eine Antwort liegt — niemand muss jemanden
 benennen. Klick führt direkt zum letzten Beitrag des Gegenübers. Wird vom Panel und von der Seite
 /gespraeche/ gleichermaßen verwendet.
-{% endcomment %}<div id="gespraeche-liste">
+{% endcomment %}<div id="{{ liste_id|default:'gespraeche-liste' }}">
   {% for g in gespraeche %}
   <a class="gz{% if g.ungelesen %} ungelesen{% endif %}" href="{% url 'verfahren:antrag' g.antrag.pk %}#k-{{ g.letzter.pk }}">
     <span class="gz-thema">{% if g.thema %}<span class="chip klein" title="{{ g.thema.pfad_kurz }}">{{ g.thema.name }}</span>{% else %}<span class="chip klein still">—</span>{% endif %}</span>

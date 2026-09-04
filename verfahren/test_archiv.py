@@ -102,3 +102,28 @@ def test_phasenname_benennt_die_vorschlagsrunden(ordnung):  # noqa: F811
     assert archivkern.phasenname("vorschlag-r2") == "Vorschlagsberatung — Runde 2"
     assert archivkern.phasenname("beratung") == "Beratung"
     assert archivkern.phasenname("") == "ohne Phase"
+
+
+def test_phasennamen_folgen_der_sprache(ordnung):  # noqa: F811
+    """Die Blocküberschriften des Archivs stehen in der Sprache der Oberfläche."""
+    from django.utils import translation
+
+    with translation.override("en"):
+        assert archivkern.phasenname("unterstuetzung") == "Support phase"
+        assert archivkern.phasenname("beratung") == "Deliberation"
+        assert archivkern.phasenname("vorschlag-r2") == "Proposal deliberation — round 2"
+
+
+def test_abgeschlossene_phasen_laufen_nicht_mehr(ordnung):  # noqa: F811
+    """FB-G7: „· läuft" gehört an die laufende Phase, nicht an einen Endzustand."""
+    from plattform_core import Phase
+
+    antrag = _antrag(ordnung)
+    antrag.phase = Phase.ANGENOMMEN.value
+    antrag.save(update_fields=["phase"])
+    assert not any(b["laufend"] for b in archivkern.zeitleiste(antrag)), "angenommen läuft nicht"
+
+    antrag.phase = Phase.BERATUNG.value
+    antrag.save(update_fields=["phase"])
+    laufend = [b["name"] for b in archivkern.zeitleiste(antrag) if b["laufend"]]
+    assert laufend == ["Beratung"]

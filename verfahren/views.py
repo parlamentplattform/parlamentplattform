@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -529,6 +530,7 @@ def _einschaetzung(antrag):
     }
 
 
+@login_required
 def gespraeche(request):
     """Meine Gespräche (FB-G3): dieselbe Liste, die das Panel zeigt — als eigene Seite, damit
     sie auch ohne JavaScript erreichbar ist. Mit htmx antwortet nur die Liste."""

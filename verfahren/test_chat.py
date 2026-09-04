@@ -294,3 +294,10 @@ def test_gespraechsseite_filtert_ungelesene(client, ordnung):  # noqa: F811
     chatkern.gelesen_merken(antrag, anna)
     leer = client.get("/gespraeche/?filter=ungelesen").content.decode()
     assert "Nichts Ungelesenes." in leer
+
+
+@pytest.mark.django_db
+def test_gespraeche_sind_gaesten_verschlossen(client):
+    """Die eigene Gesprächsliste geht niemanden sonst etwas an — Gäste landen bei der Anmeldung."""
+    antwort = client.get(reverse("verfahren:gespraeche"))
+    assert antwort.status_code == 302 and "/anmelden/" in antwort["Location"]

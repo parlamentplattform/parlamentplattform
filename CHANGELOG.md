@@ -2,6 +2,21 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.7] — 2026-09-04 · Die Einladung an Partnerparteien in vier Sprachen
+
+### Hinzugefügt
+- **Die Partner-Kurzfassung in fünf Sprachen** (`docs/partner/kurz/`): `de.md` als Ausgangstext mit Belegtabelle, dazu **Französisch, Spanisch, Italienisch und Japanisch**. Acht bis zehn kurze Sätze — worum es geht, was wir geben, was wir suchen, wie es weitergeht —, gedacht als erster Kontakt für Menschen, die kein Deutsch lesen (FB-M9)
+- **Ein Glossar je Sprache**, verbindlich für alles Weitere in dieser Sprache: Satzungs-Baukasten, Plattform-Rat, Übertragungspaket, Alpha-Phase, Instanz. Was hier festgelegt ist, gilt auf jeder künftigen Seite — deshalb steht es in der Datei und nicht im Kopf
+- Jede Datei nennt am Ende, **was eine Muttersprachlerin noch ansehen sollte**. Das betrifft den Klang, nicht den Inhalt
+
+### Wie die Übersetzungen geprüft wurden
+- Jede Fassung wurde von einer zweiten Instanz **wörtlich ins Deutsche zurückübersetzt, bevor sie das Original gesehen hat**, und erst dann verglichen. Über zwei Runden: **kein einziger sinnändernder Fehler, keine verschobene Aussage** — die Unterscheidung frei/kostenlos, „eigene Server, eigenes Recht, eigene Sprache", „Daten verlassen die Instanz nie", „eine Stimme je Land", „Alpha-Phase" (nie „Prototyp") stehen überall unverändert
+- Eine dritte Runde hat die benannten Idiomatik-Stellen behoben — etwa die Kollokation `dépouiller le scrutin` statt `les voix`, oder `移管パッケージ` (Übergang einer Behördenzuständigkeit) → `導入パッケージ`
+- **Was offenbleibt:** Ob die Fassungen für Muttersprachler völlig unauffällig klingen, lässt sich so nicht abschließend prüfen; das Urteil darüber schwankte zwischen den Durchgängen. Die Sachtreue ist gesichert, die letzte Politur braucht einen Menschen mit dieser Muttersprache
+
+### Dokumentation
+- **Fahrtenbuch:** FB-M9 auf 🟡 — die Texte liegen vor, offen ist die Einbindung (Seiten `/partner/<sprache>/`, Sprachleiste, `hreflang`, Erweiterung der Sprachautomatik) und die Umstellung der drei Links auf ddoe.at; beides mit S14b
+
 ## [0.39.6] — 2026-09-04 · Kennzahlen ohne Schalter, ehrliche Angabe zum Übertragungspaket
 
 ### Geändert

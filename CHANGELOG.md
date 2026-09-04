@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.1] — 2026-09-04 · Behoben: Kommentartext stand auf jeder Seite
+
+### Behoben
+- **Am linken Rand jeder Seite stand roher Kommentartext** (vom Gründer gemeldet). Ursache: In `_gespraeche_panel.html` war eine Entwickler-Anmerkung als `{# … #}` über **zwei Zeilen** geschrieben. Django wertet diese Kurzform nur **einzeilig** aus — mehrzeilig wird der Kommentar zum Seiteninhalt. Weil das Gesprächs-Panel über den Kontextprozessor auf jeder Seite liegt, war der Text überall zu sehen, seit 0.38.0. Die Anmerkung steht jetzt in einem `{% comment %}`-Block
+
+### Hinzugefügt
+- **Ein Wächter gegen genau diesen Fehler** (`verfahren/test_vorlagen.py`): Kein Template darf einen mehrzeiligen `{# … #}`-Kommentar enthalten, jeder `{% comment %}` muss geschlossen sein, und **keine ausgelieferte Seite** darf Reste der Vorlagensprache im sichtbaren Text tragen — geprüft als Gast und als Mitglied über Startseite, Parlament, Antragsseite, Archiv-Export, Parameterregister und Gespräche. Der Wächter wurde gegen den echten Fehler geprüft: Mit dem alten Kommentar schlägt er an und nennt Datei und Zeile
+
 ## [0.39.0] — 2026-09-04 · S7: Der Abstimmungs-Chat zum Vorschlag und das Archiv
 
 ### Hinzugefügt

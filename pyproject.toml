@@ -1,6 +1,6 @@
 [project]
 name = "parlamentplattform"
-version = "0.39.0"
+version = "0.39.1"
 description = "Offene Beteiligungs- und Entscheidungsinfrastruktur der Direkte Demokratie Österreich (DDÖ)"
 readme = "README.md"
 requires-python = ">=3.11"

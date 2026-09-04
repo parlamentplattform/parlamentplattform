@@ -152,6 +152,9 @@ der Fahrplan der Zusammenarbeit, Kontakt. Erklärseite — hier darf erklärt we
 <div class="karte">
   <p>{% translate "Alles in einer Datei, erzeugt aus dem aktuellen Stand des Quellcodes — ohne Daten dieser Instanz:" %}</p>
   <ul class="paket-liste">{% for datei in paket %}<li><code>{{ datei }}</code></li>{% endfor %}</ul>
+  <p class="erk">{% blocktranslate %}Die Dateien sind überwiegend auf Deutsch: Einstieg und Einrichtung tragen
+eine englische Zusammenfassung, der Satzungs-Baukasten und das Schema noch nicht. Wir übersetzen sie mit dem
+ersten Partner, der sie braucht — sagen Sie uns, welche Datei Sie zuerst brauchen.{% endblocktranslate %}</p>
   <p><a class="btn" href="{% url 'verfahren:partner_paket' %}">{% translate "Paket herunterladen" %} ({{ version }})</a>
   <a class="btn-linie" style="margin-left:8px" href="https://github.com/parlamentplattform/parlamentplattform" rel="noopener">{% translate "Quellcode ansehen" %}</a></p>
 </div>

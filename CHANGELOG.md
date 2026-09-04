@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.6] — 2026-09-04 · Kennzahlen ohne Schalter, ehrliche Angabe zum Übertragungspaket
+
+### Geändert
+- **Die Zählerklärung auf `/uebersicht/` nennt jetzt auch die Kennzahlen der Zukunftswerkstatt:** Sie entstehen als Summen, nie als Einzelwerte — „deshalb gibt es dafür nichts ein- oder auszuschalten (§ 6 Abs 11 lit d)". Das ist die sichtbare Seite der Entscheidung zu D-J7: Die Frage Opt-in oder Opt-out setzt eine personenbezogene Messung voraus, die die Satzung gar nicht erlaubt. Wird zusammengefasst, **bevor** etwas gespeichert wird, entstehen keine personenbezogenen Daten — dann braucht es keine Einwilligung und folgerichtig auch keinen Schalter
+- **Das Übertragungspaket sagt jetzt, in welcher Sprache es vorliegt.** Weder die Partner-Seite noch der neue Text auf ddoe.at erwähnten, dass es überwiegend deutsch ist: Der Satzungs-Baukasten (rund 60.000 Zeichen) und das Schema haben gar keinen englischen Teil, Einstieg und Einrichtung je eine englische Zusammenfassung. Wer aus dem Ausland herunterlädt, wurde enttäuscht. Der Hinweis steht jetzt beim Knopf — mit dem Angebot, mit dem ersten Partner zu übersetzen, der es braucht. Derselbe Satz ist auf ddoe.at nachgezogen
+
+### Dokumentation
+- **Satzung (vom Gründer freigegeben):** § 5 Abs 13 neu (Form der Entscheidung der Unterstützer) und § 6 Abs 11 lit d präzisiert (Kennzahlen ohne Einwilligung). Der Satzungs-Baukasten für Partnerparteien trägt beide Änderungen automatisch — ein Test hat gemeldet, dass er nachzuziehen war
+- **Fahrtenbuch:** FB-M9 neu (Partner-Seite in mehreren Sprachen, freigegeben, Zuordnung S14b); FB-M2 auf ✅ (die Bausteine sind auf ddoe.at eingespielt); D-J7 als entschieden eingetragen, mit vier Bauvorschriften für S13 — kein Ereignisprotokoll, keine Kennung im Erhebungsweg, Mindestzahl gegen Rückschluss, ein Test gegen Fremdschlüssel auf Mitglieder
+
 ## [0.39.5] — 2026-09-04 · Die Partner-Seite begrüßt die Welt auf Englisch
 
 ### Geändert

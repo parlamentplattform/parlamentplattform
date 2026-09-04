@@ -1,0 +1,52 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{{ eintrag.beschluss.nummer }}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Ein einzelner Beschluss unter seiner zitierfähigen Nummer — damit eine Begründung, die sich auf
+„IR-2026-04" beruft, auch irgendwohin führt (§ 5 Abs 10 lit b).
+{% endcomment %}
+<h1>{{ eintrag.beschluss.nummer }}</h1>
+<p class="erk">{{ eintrag.beschluss.get_gremium_display }} · {{ eintrag.beschluss.get_anlass_display }}
+  · {% blocktranslate with datum=eintrag.beschluss.angelegt_am|date:"d.m.Y" %}angelegt am {{ datum }}{% endblocktranslate %}
+  · <a href="{% url 'gremien:beschluesse' %}">{% translate "alle Beschlüsse" %}</a></p>
+
+<div class="karte">
+  <p class="phasen-titel">{{ eintrag.beschluss.gegenstand }}</p>
+  {% if eintrag.beschluss.beschreibung %}<p>{{ eintrag.beschluss.beschreibung|linebreaksbr }}</p>{% endif %}
+  {% if eintrag.beschluss.antrag %}
+  <p class="meta">{% translate "Betrifft:" %} <a href="{% url 'verfahren:antrag' eintrag.beschluss.antrag.pk %}">{{ eintrag.beschluss.antrag.titel }}</a></p>
+  {% endif %}
+  <p class="meta">{% blocktranslate with a=eintrag.auswertung.abgegeben n=eintrag.auswertung.noetig r=eintrag.auswertung.aktive %}{{ a }} von {{ n }} nötigen Stimmen bei {{ r }} aktiven Rollen{% endblocktranslate %}
+    {% if eintrag.beschluss.frist %} · {% blocktranslate with frist=eintrag.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}
+    {% if eintrag.beschluss.regel_version %} · {% blocktranslate with v=eintrag.beschluss.regel_version %}Auszählregel Fassung {{ v }}{% endblocktranslate %}{% endif %}</p>
+
+  {% for o in eintrag.beschluss.optionen %}
+  <div class="zeile"><span>{{ o.name }}</span><span class="meta">{% for wert, anzahl in eintrag.auswertung.zaehlung.items %}{% if wert == o.wert %}{{ anzahl }}{% endif %}{% endfor %}</span></div>
+  {% endfor %}
+
+  {% if eintrag.beschluss.status == "entschieden" %}
+  <p style="margin-top:10px"><strong>{% translate "Beschlossen:" %} {% for o in eintrag.beschluss.optionen %}{% if o.wert == eintrag.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>
+    {% if eintrag.beschluss.entschieden_am %}<span class="meta"> · {{ eintrag.beschluss.entschieden_am|date:"d.m.Y H:i" }}</span>{% endif %}</p>
+  {% if eintrag.beschluss.umsetzungsvermerk %}<p class="meta">{{ eintrag.beschluss.umsetzungsvermerk|linebreaksbr }}</p>{% endif %}
+  {% elif eintrag.beschluss.status == "ohne_ergebnis" %}
+  <p style="margin-top:10px"><strong>{% translate "Ohne Ergebnis" %}</strong>
+    <br><span class="meta">{% translate "Zu wenige Stimmen oder Gleichstand bis zum Fristende. Ein Gleichstand ist kein Beschluss — sonst entschiede die Reihenfolge der Optionen." %}</span></p>
+  {% else %}
+  <p style="margin-top:10px" class="meta">{% translate "Noch offen." %}</p>
+  {% endif %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Die Stimmen" %}</p>
+  {% for s in eintrag.stimmen %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in eintrag.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}
+    <span class="meta"> · {{ s.abgegeben_am|date:"d.m.Y H:i" }}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}</span>
+    {% if s.begruendung %}<br><span class="meta">{{ s.begruendung|linebreaksbr }}</span>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch hat niemand abgestimmt." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

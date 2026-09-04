@@ -5,10 +5,11 @@ Rat gleich aus — Absicht: Wer in zwei Räten sitzt, soll nicht zweimal lernen,
 Erwartet: beschluesse (Liste aus {beschluss, auswertung, stimmen, meine_stimme}), darf_stimmen.
 {% endcomment %}
 <div class="karte" style="margin-top:16px">
-  <p class="phasen-titel">{% translate "Beschlüsse" %}</p>
-  <p class="erk">{% translate "Beschlussfähig ab der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Jede Stimme steht mit Namen und Begründung öffentlich (§ 6 Abs 9)." %}</p>
+  {% if not ohne_kopf %}<p class="phasen-titel">{% translate "Beschlüsse" %}</p>
+  <p class="erk">{% translate "Beschlussfähig ab der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Jede Stimme steht mit Namen und Begründung öffentlich (§ 6 Abs 9)." %}</p>{% endif %}
   {% for b in beschluesse %}
   <div class="zeile"><span style="width:100%">
+    <a href="{% url 'gremien:beschluss' b.beschluss.nummer %}" class="meta">{{ b.beschluss.nummer }}</a>
     <strong>{{ b.beschluss.gegenstand }}</strong>
     {% if b.beschluss.status != "offen" %}<span class="chip klein">{{ b.beschluss.get_status_display }}</span>{% endif %}
     {% if b.beschluss.beschreibung %}<br><span class="meta">{{ b.beschluss.beschreibung }}</span>{% endif %}

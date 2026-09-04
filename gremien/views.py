@@ -470,6 +470,70 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
         )
     return zeilen
 
+
+def beschluesse_oeffentlich(request):
+    """Alle Beschlüsse aller Räte, für jeden lesbar (§ 6 Abs 9).
+
+    Ohne Anmeldung: Wer in einem Rat sitzt, entscheidet über andere — das geschieht sichtbar,
+    auch für Menschen, die (noch) nicht Mitglied sind. Gefiltert wird nach Gremium, gereiht nach
+    Zeit; eine andere Reihung gibt es nicht und soll es nicht geben (Grundregel 6)."""
+    GremienBeschluss.faellige_abschliessen()
+    gewaehlt = request.GET.get("gremium", "")
+    beschluesse = GremienBeschluss.objects.prefetch_related("stimmen__mitglied").order_by(
+        "-angelegt_am"
+    )
+    if gewaehlt in Gremium.values:
+        beschluesse = beschluesse.filter(gremium=gewaehlt)
+    zeilen = [
+        {
+            "beschluss": b,
+            "auswertung": b.auswertung(),
+            "stimmen": list(b.stimmen.all()),
+            "meine_stimme": None,
+        }
+        for b in beschluesse[: _register("gremien-beschluesse-seite", 50)]
+    ]
+    return render(
+        request,
+        "gremien/beschluesse.html",
+        {
+            "beschluesse": zeilen,
+            "darf_stimmen": False,
+            "gremien": Gremium.choices,
+            "gewaehlt": gewaehlt,
+        },
+    )
+
+
+def beschluss_oeffentlich(request, nummer: str):
+    """Ein einzelner Beschluss unter seiner zitierfähigen Nummer (§ 5 Abs 10 lit b).
+
+    Damit eine Begründung, die sich auf „IR-2026-04" beruft, auch irgendwohin führt."""
+    beschluss = get_object_or_404(
+        GremienBeschluss.objects.prefetch_related("stimmen__mitglied"), nummer=nummer
+    )
+    beschluss.abschliessen()
+    beschluss.refresh_from_db()
+    return render(
+        request,
+        "gremien/beschluss.html",
+        {
+            "eintrag": {
+                "beschluss": beschluss,
+                "auswertung": beschluss.auswertung(),
+                "stimmen": list(beschluss.stimmen.all()),
+                "meine_stimme": None,
+            },
+            "darf_stimmen": False,
+        },
+    )
+
+
+def _register(schluessel: str, standard: int) -> int:
+    from parameter.models import zahl
+
+    return zahl(schluessel, standard)
+
 @require_POST
 def beschluss_stimme(request, beschluss_id: int):
     """Eine Stimme in einer internen Abstimmung (FB-I4, § 6 Abs 9: öffentlich mit Namen).

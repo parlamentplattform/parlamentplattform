@@ -68,3 +68,23 @@ def test_die_auswertung_traegt_ihre_regelfassung():
     """Ein alter Beschluss muss nach seiner eigenen Regel nachrechenbar bleiben."""
     a = auswerten(["validieren"], OPTIONEN, aktive=1)
     assert isinstance(a, Auswertung) and a.version == VERSION == 1
+
+
+def test_ein_gremium_ohne_mitglieder_beschliesst_nichts():
+    """Sonst entschiede eine einzelne Stimme allein — die Hälfte von null ist null.
+
+    Über die Stimmabgabe ist das nicht erreichbar (sie verlangt eine aktive Rolle), wohl aber
+    danach: Läuft die Berufung ab und die Frist des Beschlusses danach aus, stünde am Ende eine
+    Stimme gegen ein leeres Gremium."""
+    a = auswerten(["validieren"], OPTIONEN, aktive=0)
+    assert a.beschlussfaehig is False and a.ergebnis is None and a.offen is True
+    assert a.noetig == 0 and a.abgegeben == 1
+
+
+def test_ausgeschiedene_stimmen_zaehlen_weiter_der_nenner_schrumpft_mit():
+    """Wer beim Abgeben berufen war, dessen Stimme bleibt gültig (FB-I1).
+
+    Der Nenner ist die Zahl der Rollen im Augenblick der Auszählung. Drei Stimmen bei nur noch
+    einer aktiven Rolle sind deshalb beschlussfähig — abgestimmt haben sie, als sie durften."""
+    a = auswerten(["validieren", "validieren", "zurueck"], OPTIONEN, aktive=1)
+    assert a.beschlussfaehig is True and a.ergebnis == "validieren"

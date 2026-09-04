@@ -222,6 +222,7 @@ class Entwurf(models.Model):
             return None
         return GremienBeschluss.objects.create(
             gremium=Gremium.EXPERTENRAT_2,
+            anlass=Anlass.PRUEFUNG,
             gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
             beschreibung=(
                 "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
@@ -536,6 +537,35 @@ class UnterstuetzerVotum(models.Model):
         return f"Votum von Mitglied {self.mitglied_id} zu Entwurf {self.entwurf_id} (Runde {self.runde})"
 
 
+class Anlass(models.TextChoices):
+    """Wozu ein Beschluss gefasst wird — und damit, was er auslöst (FB-I4).
+
+    Ein Feld, nicht vier Sonderbedingungen: Die Wirkungstabelle am Ende des Moduls verzweigt
+    ausschließlich hierüber. Neue Anlässe kommen erst, wenn ihre Wirkung gebaut ist — ein Anlass
+    ohne Wirkung wäre ein Knopf, der schweigend nichts tut."""
+
+    INTERN = "intern", "innere Angelegenheit des Rates"
+    PRUEFUNG = "pruefung", "Prüfung eines Vorschlags (§ 6 Abs 7)"
+
+
+#: Kürzel der Gremien in der Beschlussnummer. Kurz, weil die Nummer zitiert wird — in
+#: Begründungen, in Anträgen, im Gespräch.
+GREMIUMSKUERZEL = {
+    "expertenrat1": "E1",
+    "expertenrat2": "E2",
+    "koordinationsrat": "KR",
+    "integritaetsrat": "IR",
+}
+
+
+def beschlussnummer(gremium: str, jahr: int, laufend: int) -> str:
+    """Die zitierfähige Kennung eines Beschlusses, z. B. „IR-2026-04“.
+
+    Je Gremium und Jahr fortlaufend. Zwei Stellen sind kein Limit — die Nummer wächst mit,
+    sie beginnt nur nicht bei „1“, damit „IR-2026-04“ und „IR-2026-12“ gleich lang aussehen."""
+    return f"{GREMIUMSKUERZEL.get(gremium, 'GR')}-{jahr}-{laufend:02d}"
+
+
 class BeschlussStatus(models.TextChoices):
     """Wo ein interner Beschluss steht (FB-I4)."""
 
@@ -557,6 +587,14 @@ class GremienBeschluss(models.Model):
     bleibt stehen, denn dass ein Gremium nicht beschlussfähig war, ist selbst eine Auskunft."""
 
     gremium = models.CharField(max_length=20, choices=Gremium.choices)
+    nummer = models.CharField(
+        max_length=20, unique=True, blank=True,
+        help_text="Zitierfähige Kennung, je Gremium und Jahr fortlaufend — z. B. „IR-2026-04“.",
+    )
+    anlass = models.CharField(
+        max_length=30, choices=Anlass.choices, default=Anlass.INTERN,
+        help_text="Wozu der Beschluss gefasst wird; die Wirkungstabelle verzweigt hierüber.",
+    )
     gegenstand = models.CharField(max_length=200)
     beschreibung = models.TextField(max_length=4000, blank=True)
     optionen = models.JSONField(
@@ -592,7 +630,25 @@ class GremienBeschluss(models.Model):
         verbose_name_plural = "Gremienbeschlüsse"
 
     def __str__(self) -> str:
-        return f"{self.get_gremium_display()}: {self.gegenstand}"
+        return f"{self.nummer or self.get_gremium_display()}: {self.gegenstand}"
+
+    def save(self, *args, **kwargs):
+        """Vergibt beim ersten Speichern die Beschlussnummer.
+
+        In einer Transaktion und mit `unique=True` abgesichert: Zwei gleichzeitig angelegte
+        Beschlüsse desselben Rates bekämen sonst dieselbe Nummer, und eine Nummer, die zweimal
+        vorkommt, ist keine."""
+        if not self.nummer:
+            with transaction.atomic():
+                jahr = (self.angelegt_am or timezone.now()).year
+                bisher = (
+                    GremienBeschluss.objects.select_for_update()
+                    .filter(gremium=self.gremium, nummer__startswith=f"{GREMIUMSKUERZEL.get(self.gremium, 'GR')}-{jahr}-")
+                    .count()
+                )
+                self.nummer = beschlussnummer(self.gremium, jahr, bisher + 1)
+                return super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @property
     def offen(self) -> bool:
@@ -778,12 +834,21 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
         entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
 
 
-def wirkung_anwenden(beschluss, jetzt=None) -> None:
-    """Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
+#: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
+#: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
+#: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.
+WIRKUNGEN = {
+    Anlass.PRUEFUNG: lambda beschluss, jetzt: pruefbeschluss_wirkung(beschluss, jetzt),
+}
 
-    Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
-    Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats. Ein
-    Beschluss ohne Eintrag hier bewirkt nichts außer sich selbst — das ist der Normalfall für
-    innere Angelegenheiten eines Rates und keine Lücke."""
-    if beschluss.gremium == Gremium.EXPERTENRAT_2 and beschluss.entwurf_id:
-        pruefbeschluss_wirkung(beschluss, jetzt)
+
+def wirkung_anwenden(beschluss, jetzt=None) -> None:
+    """Setzt die Wirkung eines ausgewerteten Beschlusses um.
+
+    Verzweigt allein über den **Anlass**, nicht über Gremium und Fremdschlüssel: Die alte
+    Bedingung (`gremium == EXPERTENRAT_2 and entwurf_id`) hätte beim zweiten Anlass desselben
+    Rates schon nicht mehr getragen. Ein Anlass ohne Eintrag bewirkt nichts außer sich selbst —
+    das ist der Normalfall für innere Angelegenheiten und keine Lücke."""
+    wirkung = WIRKUNGEN.get(beschluss.anlass)
+    if wirkung is not None:
+        wirkung(beschluss, jetzt)

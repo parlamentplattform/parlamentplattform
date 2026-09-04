@@ -12,6 +12,8 @@ Rolleninhaber müssen zustimmen"; beides wäre eine andere Satzung.
 
 Ausgezählt wird mit ganzen Zahlen. Ein Gleichstand ist **kein** Beschluss: Er ergibt kein
 Ergebnis, statt eines zufällig zu wählen — die Reihenfolge der Optionen darf nicht entscheiden.
+Ebenso wenig beschließt ein Gremium ohne besetzte Rollen: Die Hälfte von null ist null, und ohne
+diese Schranke entschiede eine einzelne, längst abgelaufene Stimme allein.
 
 Enthaltungen sind hier bewusst **keine** eigene Option des Kerns. Ob ein Gremium eine Option
 „Enthaltung" führt, entscheidet der Beschluss selbst über seine Optionsliste; für die
@@ -86,7 +88,10 @@ def auswerten(stimmen: Iterable[str], optionen: Iterable[str], aktive: int) -> A
         abgegeben += 1
 
     noetig = noetige_stimmen(aktive)
-    beschlussfaehig = abgegeben >= noetig and abgegeben > 0
+    # `aktive > 0` ist keine Formsache: Ohne besetzte Rollen ist die noetige Haelfte null, und
+    # ohne diese Bedingung entschiede eine einzelne Stimme allein — auch die eines Menschen,
+    # dessen Berufung inzwischen geendet hat. Ein Gremium ohne Mitglieder beschliesst nichts.
+    beschlussfaehig = aktive > 0 and abgegeben >= noetig and abgegeben > 0
     zaehlung = {option: gezaehlt.get(option, 0) for option in zulaessig}
 
     ergebnis: str | None = None

@@ -4898,3 +4898,51 @@ msgstr "Checkpoints (§ 6 para 7) — whatever you tick appears in your stated r
 
 msgid "Sie haben bereits abgestimmt — eine neue Stimme ersetzt Ihre alte, solange der Beschluss offen ist."
 msgstr "You have already voted — a new vote replaces your old one while the decision is open."
+
+msgid "Beschlüsse der Räte"
+msgstr "Decisions of the councils"
+
+msgid "Gremium:"
+msgstr "Body:"
+
+msgid "alle Beschlüsse"
+msgstr "all decisions"
+
+msgid "Betrifft:"
+msgstr "Concerns:"
+
+msgid "Ohne Ergebnis"
+msgstr "No result"
+
+msgid "Zu wenige Stimmen oder Gleichstand bis zum Fristende. Ein Gleichstand ist kein Beschluss — sonst entschiede die Reihenfolge der Optionen."
+msgstr "Too few votes, or a tie when the deadline passed. A tie is not a decision — otherwise the order of the options would decide."
+
+msgid "Noch offen."
+msgstr "Still open."
+
+msgid "Die Stimmen"
+msgstr "The votes"
+
+msgid "Noch hat niemand abgestimmt."
+msgstr "Nobody has voted yet."
+
+msgid "Jeder Beschluss eines Rates steht hier mit Gegenstand, Frist, Auszählung und jeder einzelnen
+Stimme samt Namen und Begründung (§ 6 Abs 9). Beschlussfähig ist ein Rat ab der Hälfte seiner
+aktiven Rollen, entschieden wird mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e).
+Jeder Beschluss trägt eine zitierfähige Nummer."
+msgstr "Every decision of a council appears here with its subject, deadline, count and each individual
+vote, with name and reasons (§ 6 para 9). A council has a quorum at half of its active
+appointments and decides by a simple majority of the votes cast (§ 6 para 2 lit e). Every
+decision carries a citable number."
+
+#, python-format
+msgid "angelegt am %(datum)s"
+msgstr "opened on %(datum)s"
+
+#, python-format
+msgid "%(a)s von %(n)s nötigen Stimmen bei %(r)s aktiven Rollen"
+msgstr "%(a)s of %(n)s required votes, with %(r)s active appointments"
+
+#, python-format
+msgid "Auszählregel Fassung %(v)s"
+msgstr "Counting rule version %(v)s"

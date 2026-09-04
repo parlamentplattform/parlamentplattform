@@ -1,0 +1,26 @@
+{% load i18n chat phasen %}{% comment %}
+Die Liste „Meine Gespräche" (FB-G3) in drei Spalten: Thema · Antrag · Chatpartner. Ein Gespräch
+entsteht, sobald zwischen zwei Menschen an einem Antrag eine Antwort liegt — niemand muss jemanden
+benennen. Klick führt direkt zum letzten Beitrag des Gegenübers. Wird vom Panel und von der Seite
+/gespraeche/ gleichermaßen verwendet.
+{% endcomment %}<div id="gespraeche-liste">
+  {% for g in gespraeche %}
+  <a class="gz{% if g.ungelesen %} ungelesen{% endif %}" href="{% url 'verfahren:antrag' g.antrag.pk %}#k-{{ g.letzter.pk }}">
+    <span class="gz-thema">{% if g.thema %}<span class="chip klein" title="{{ g.thema.pfad_kurz }}">{{ g.thema.name }}</span>{% else %}<span class="chip klein still">—</span>{% endif %}</span>
+    <span class="gz-antrag">
+      <strong>{{ g.antrag.titel }}</strong>
+      <span class="meta">{{ g.antrag.phase|phase_name }}</span>
+    </span>
+    <span class="gz-partner">
+      <span class="avatar-initiale klein" aria-hidden="true">{{ g.gegenueber.anzeigename|initiale }}</span>
+      <span class="gz-partner-text">
+        <span class="gz-name">{{ g.gegenueber.anzeigename }}{% if g.beitraege > 1 %} <span class="meta">· {{ g.beitraege }}</span>{% endif %}</span>
+        <span class="gz-vorschau">{{ g.letzter.sichtbarer_text|truncatechars:60 }}</span>
+      </span>
+      <span class="gz-zeit">{{ g.letzter.erstellt_am|zeit_her }}{% if g.ungelesen %} <span class="neu-punkt" title="{% translate 'ungelesen' %}">●</span>{% endif %}</span>
+    </span>
+  </a>
+  {% empty %}
+  <p class="leer abstand">{% if nur_ungelesen %}{% translate "Nichts Ungelesenes." %}{% else %}{% translate "Noch keine Gespräche — sie entstehen, sobald jemand auf Ihren Beitrag antwortet oder Sie auf einen." %}{% endif %}</p>
+  {% endfor %}
+</div>

@@ -246,22 +246,146 @@ def unterstuetzen(request, pk):
     return redirect("verfahren:antrag", pk=pk)
 
 
+def _chat_antwort(request, antrag, anker: str = ""):
+    """Nach jeder Chat-Handlung: mit htmx nur die Zone tauschen, sonst zurück auf den Anker."""
+    from verfahren.views import _chat_lage
+
+    if request.headers.get("HX-Request"):
+        return render(
+            request,
+            "verfahren/_chat.html",
+            {"antrag": antrag, "chat": _chat_lage(antrag, request.user)},
+        )
+    ziel = reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
+    return redirect(f"{ziel}#{anker}" if anker else ziel)
+
+
 @login_required
 @require_POST
 def kommentieren(request, pk):
+    """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
+    from verfahren.chat import ChatGesperrt, beitrag_schreiben
+
     antrag = get_object_or_404(Antrag, pk=pk)
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
     antrag.fortschreiben()
-    if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
-        messages.error(request, _("Die Beratung dieses Antrags ist beendet."))
-        return redirect("verfahren:antrag", pk=pk)
+    antwort_auf = None
+    roh = request.POST.get("antwort_auf")
+    if roh:
+        antwort_auf = Kommentar.objects.filter(
+            pk=roh, antrag=antrag, archiviert_am__isnull=True
+        ).first()
+        if antwort_auf is None:
+            messages.error(request, _("Der Beitrag, auf den Sie antworten wollten, ist nicht mehr im laufenden Chat."))
+            return _chat_antwort(request, antrag)
     form = KommentarFormular(request.POST)
-    if form.is_valid():
-        Kommentar.objects.create(antrag=antrag, mitglied=request.user, text=form.cleaned_data["text"])
-        messages.success(request, _("Ihr Beitrag ist veröffentlicht."))
-    return redirect("verfahren:antrag", pk=pk)
+    if not form.is_valid():
+        messages.error(request, _("Bitte einen Text eingeben."))
+        return _chat_antwort(request, antrag)
+    try:
+        beitrag = beitrag_schreiben(antrag, request.user, form.cleaned_data["text"], antwort_auf)
+    except ChatGesperrt:
+        messages.error(request, _("Die Beratung dieses Antrags ist beendet."))
+        return _chat_antwort(request, antrag)
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+def _eigener_beitrag(request, pk, beitrag_pk):
+    """Beitrag samt Antrag holen und prüfen, dass er dem Mitglied gehört und änderbar ist."""
+    antrag = get_object_or_404(Antrag, pk=pk)
+    beitrag = get_object_or_404(Kommentar, pk=beitrag_pk, antrag=antrag)
+    return antrag, beitrag
+
+
+@login_required
+@require_POST
+def beitrag_bearbeiten(request, pk, beitrag_pk):
+    """Den eigenen Beitrag ändern — nur binnen fünf Minuten, danach steht er (FB-G1)."""
+    antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
+    if not beitrag.darf_bearbeiten(request.user):
+        messages.error(request, _("Ändern ist nur in den ersten fünf Minuten möglich."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    text = (request.POST.get("text") or "").strip()[:4000]
+    if not text:
+        messages.error(request, _("Bitte einen Text eingeben."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    beitrag.text = text
+    beitrag.bearbeitet_am = timezone.now()
+    beitrag.save(update_fields=["text", "bearbeitet_am"])
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+@login_required
+@require_POST
+def beitrag_entfernen(request, pk, beitrag_pk):
+    """Den eigenen Beitrag zurückziehen (FB-G1): Der Text weicht einem Vermerk, der Faden bleibt.
+    Gelöscht wird nichts — Antworten darunter verlören sonst ihren Bezug (Grundregel 7)."""
+    antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
+    if beitrag.mitglied_id != request.user.pk or beitrag.archiviert_am:
+        messages.error(request, _("Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    if not beitrag.geloescht:
+        beitrag.geloescht = True
+        beitrag.save(update_fields=["geloescht"])
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+@login_required
+@require_POST
+def reagieren(request, pk, beitrag_pk):
+    """Zustimmen oder die Zustimmung zurücknehmen (FB-G1, D-G1).
+
+    Rein informativ: Die Reihung des Chats bleibt chronologisch (Grundregel 6). Die Wahl im
+    Abstimmungs-Chat des Expertenrats-Vorschlags folgt mit S7."""
+    from verfahren.chat import reaktion_umschalten
+
+    antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
+    if beitrag.archiviert_am or beitrag.geloescht:
+        messages.error(request, _("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    reaktion_umschalten(beitrag, request.user)
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+@login_required
+@require_POST
+def melden(request, pk, beitrag_pk):
+    """Einen Beitrag melden (Art 16 DSA, § 5 Abs 2, FB-G1). Die Meldung geht an die Verwaltung
+    und bleibt nachlesbar; entschieden wird dort mit öffentlichem Grund."""
+    from verfahren.models import AuditEintrag, Meldung
+
+    antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
+    grund = request.POST.get("grund", "")
+    if grund not in Meldung.Grund.values:
+        messages.error(request, _("Bitte einen Grund wählen."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    meldung, neu = Meldung.objects.get_or_create(
+        kommentar=beitrag,
+        mitglied=request.user,
+        defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
+    )
+    if neu:
+        AuditEintrag.anhaengen(
+            {"art": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+        )
+    messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+@login_required
+@require_POST
+def chat_gelesen(request, pk):
+    """Den Lesestand vorrücken (FB-G2) — schickt die Zone, damit die „neu"-Linie verschwindet."""
+    from verfahren.chat import gelesen_merken
+
+    antrag = get_object_or_404(Antrag, pk=pk)
+    gelesen_merken(antrag, request.user)
+    return _chat_antwort(request, antrag)
 
 
 @login_required

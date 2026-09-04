@@ -4001,3 +4001,162 @@ msgstr "Please describe what is wrong with the assessment."
 
 msgid "Ihre Beanstandung ist öffentlich vermerkt — die Zukunftswerkstatt rechnet den Punkt nach."
 msgstr "Your objection is on the public record — the future workshop recalculates the point."
+
+msgid "Bei jeder Hochstufung beginnt der Chat neu — gelöscht wird nichts (§ 5 Abs 3 lit e)."
+msgstr "Every promotion starts a new chat — nothing is deleted (§ 5 para 3 lit e)."
+
+msgid "Noch kein Beitrag — der erste kann Ihrer sein."
+msgstr "No posts yet — the first can be yours."
+
+msgid "Noch kein Beitrag."
+msgstr "No posts yet."
+
+msgid "Antwort an"
+msgstr "Reply to"
+
+msgid "Antwort-Modus beenden"
+msgstr "Cancel reply"
+
+msgid "Beitrag schreiben"
+msgstr "Write a post"
+
+msgid "Senden"
+msgstr "Send"
+
+msgid "Mitlesen ist offen — zum Mitreden bitte"
+msgstr "Reading is open — to join in, please"
+
+msgid "Das Verfahren ist beendet — der Chat bleibt lesbar."
+msgstr "The procedure has ended — the chat stays readable."
+
+msgid "Ein Beitrag aus der vorigen Phase liegt im Archiv."
+msgid_plural "%(n)s Beiträge aus der vorigen Phase liegen im Archiv."
+msgstr[0] "One post from the previous phase is in the archive."
+msgstr[1] "%(n)s posts from the previous phase are in the archive."
+
+msgid "%(n)s neuer Beitrag"
+msgid_plural "%(n)s neue Beiträge"
+msgstr[0] "%(n)s new post"
+msgstr[1] "%(n)s new posts"
+
+msgid "bearbeitet"
+msgstr "edited"
+
+msgid "Antworten"
+msgstr "Reply"
+
+msgid "Zustimmung zurücknehmen"
+msgstr "Take back approval"
+
+msgid "Ändern"
+msgstr "Edit"
+
+msgid "Beitrag ändern"
+msgstr "Edit post"
+
+msgid "Übernehmen"
+msgstr "Apply"
+
+msgid "Ändern geht in den ersten fünf Minuten."
+msgstr "Editing is possible for the first five minutes."
+
+msgid "Beitrag zurückziehen? Der Text verschwindet, die Antworten darunter bleiben."
+msgstr "Withdraw this post? The text goes, the replies below stay."
+
+msgid "Zurückziehen"
+msgstr "Withdraw"
+
+msgid "Melden"
+msgstr "Report"
+
+msgid "Warum melden Sie diesen Beitrag?"
+msgstr "Why are you reporting this post?"
+
+msgid "Erläuterung (freiwillig)"
+msgstr "Explanation (optional)"
+
+msgid "Erläuterung"
+msgstr "Explanation"
+
+msgid "Die Meldung geht an die Verwaltung und bleibt nachlesbar (Art 16 DSA)."
+msgstr "The report goes to the administration and stays on the record (Art. 16 DSA)."
+
+msgid "Verweis auf diesen Beitrag"
+msgstr "Link to this post"
+
+msgid "Meine Gespräche"
+msgstr "My conversations"
+
+msgid "Alle"
+msgstr "All"
+
+msgid "Ungelesen"
+msgstr "Unread"
+
+msgid "Wird geladen …"
+msgstr "Loading …"
+
+msgid "ungelesen"
+msgstr "unread"
+
+msgid "Nichts Ungelesenes."
+msgstr "Nothing unread."
+
+msgid "Noch keine Gespräche — sie entstehen, sobald jemand auf Ihren Beitrag antwortet oder Sie auf einen."
+msgstr "No conversations yet — they start as soon as someone replies to your post, or you to theirs."
+
+msgid "Chats"
+msgstr "Chats"
+
+msgid "%(n)s ungelesenes Gespräch"
+msgid_plural "%(n)s ungelesene Gespräche"
+msgstr[0] "%(n)s unread conversation"
+msgstr[1] "%(n)s unread conversations"
+
+msgid "gerade eben"
+msgstr "just now"
+
+msgid "vor %d Minute"
+msgid_plural "vor %d Minuten"
+msgstr[0] "%d minute ago"
+msgstr[1] "%d minutes ago"
+
+msgid "vor %d Stunde"
+msgid_plural "vor %d Stunden"
+msgstr[0] "%d hour ago"
+msgstr[1] "%d hours ago"
+
+msgid "vor %d Tag"
+msgid_plural "vor %d Tagen"
+msgstr[0] "%d day ago"
+msgstr[1] "%d days ago"
+
+msgid "[von der Verwaltung ausgeblendet: %s]"
+msgstr "[hidden by the administration: %s]"
+
+msgid "kein Grund angegeben"
+msgstr "no reason given"
+
+msgid "[vom Verfasser entfernt]"
+msgstr "[removed by the author]"
+
+msgid "Der Beitrag, auf den Sie antworten wollten, ist nicht mehr im laufenden Chat."
+msgstr "The post you wanted to reply to is no longer in the running chat."
+
+msgid "Bitte einen Text eingeben."
+msgstr "Please enter some text."
+
+msgid "Ändern ist nur in den ersten fünf Minuten möglich."
+msgstr "Editing is only possible in the first five minutes."
+
+msgid "Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen."
+msgstr "Only your own posts in the running chat can be withdrawn."
+
+msgid "Auf diesen Beitrag lässt sich nicht mehr reagieren."
+msgstr "This post can no longer be reacted to."
+
+msgid "Bitte einen Grund wählen."
+msgstr "Please choose a reason."
+
+msgid "Danke — die Meldung liegt der Verwaltung vor."
+msgstr "Thank you — the report is with the administration."

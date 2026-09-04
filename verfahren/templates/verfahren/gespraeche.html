@@ -1,0 +1,17 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Meine Gespräche" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Dieselbe Liste wie im Panel (FB-G3), als eigene Seite — der Weg ohne JavaScript und der Ort für
+den Überblick. Die Zeilen führen direkt zum letzten Beitrag des Gegenübers.
+{% endcomment %}
+<h1>{% translate "Meine Gespräche" %}</h1>
+<div class="g-filter seite">
+  <a class="chip{% if not nur_ungelesen %} an{% endif %}" href="{% url 'verfahren:gespraeche' %}">{% translate "Alle" %}</a>
+  <a class="chip{% if nur_ungelesen %} an{% endif %}" href="{% url 'verfahren:gespraeche' %}?filter=ungelesen">{% translate "Ungelesen" %}{% if ungelesen %} · {{ ungelesen }}{% endif %}</a>
+</div>
+<div class="karte g-seite">
+  {% include "verfahren/_gespraeche_liste.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% load i18n %}{% comment %}
+Zone 3 — der Chat eines Antrags (FB-G1, G2, G5). Enthält den Faden (Wurzelbeiträge chronologisch,
+Antworten eine Ebene eingerückt), die Trennlinie „n neue Beiträge", das Phasen-Band nach einer
+Hochstufung und die klebende Eingabezeile mit Antwort-Modus. htmx tauscht nach jeder Handlung
+genau dieses Element; ohne JavaScript ist es ein gewöhnliches Formular mit Ankersprung.
+{% endcomment %}<div id="chat-faden" x-data="chat({{ antrag.pk }})">
+  {% if chat.archiviert %}
+  <p class="phasenband">{% blocktranslate count n=chat.archiviert %}Ein Beitrag aus der vorigen Phase liegt im Archiv.{% plural %}{{ n }} Beiträge aus der vorigen Phase liegen im Archiv.{% endblocktranslate %}
+    <span class="erk">{% translate "Bei jeder Hochstufung beginnt der Chat neu — gelöscht wird nichts (§ 5 Abs 3 lit e)." %}</span></p>
+  {% endif %}
+
+  <div class="faden">
+    {% for b in chat.faden %}
+      {% if b.erster_neuer %}<p class="neulinie" id="neu"><span>{% blocktranslate count n=chat.neue %}{{ n }} neuer Beitrag{% plural %}{{ n }} neue Beiträge{% endblocktranslate %}</span></p>{% endif %}
+      {% include "verfahren/_chat_beitrag.html" with b=b %}
+      {% if b.antworten %}
+      <div class="antworten">
+        {% for a in b.antworten %}{% if a.erster_neuer %}<p class="neulinie" id="neu"><span>{% blocktranslate count n=chat.neue %}{{ n }} neuer Beitrag{% plural %}{{ n }} neue Beiträge{% endblocktranslate %}</span></p>{% endif %}{% include "verfahren/_chat_beitrag.html" with b=a %}{% endfor %}
+      </div>
+      {% endif %}
+    {% empty %}
+      <p class="leer">{% if user.is_authenticated %}{% translate "Noch kein Beitrag — der erste kann Ihrer sein." %}{% else %}{% translate "Noch kein Beitrag." %}{% endif %}</p>
+    {% endfor %}
+  </div>
+
+  {% if chat.offen %}
+    {% if user.is_authenticated %}
+    <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatzeile"
+      hx-post="{% url 'verfahren:kommentieren' antrag.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
+      @htmx:after-request="leeren()">
+      {% csrf_token %}
+      <div class="antwort-chip" x-show="antwortAuf" x-cloak>
+        <span>{% translate "Antwort an" %} <b x-text="antwortName"></b></span>
+        <button type="button" class="blase-knopf" @click="abbrechen()" aria-label="{% translate 'Antwort-Modus beenden' %}">&#10005;</button>
+      </div>
+      <input type="hidden" name="antwort_auf" :value="antwortAuf || ''">
+      <label for="id_text" class="nur-lesbar">{% translate "Beitrag schreiben" %}</label>
+      <textarea name="text" id="id_text" rows="2" maxlength="4000" required x-ref="feld" @input="wachsen()"
+        placeholder="{% translate 'Sachlich und respektvoll — unter Ihrem Anzeigenamen.' %}"></textarea>
+      <div class="chatzeile-fuss">
+        <span class="zaehler" x-show="rest() < 500" x-cloak x-text="rest()"></span>
+        <button type="submit" class="btn klein">{% translate "Senden" %}</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+    {% endif %}
+  {% else %}
+    <p class="hilfe chat-hinweis">{% translate "Das Verfahren ist beendet — der Chat bleibt lesbar." %}</p>
+  {% endif %}
+</div>

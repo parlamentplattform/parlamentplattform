@@ -10,13 +10,15 @@ from pathlib import Path
 import pytest
 from django.urls import reverse
 
+from plattform_core.schema import SCHEMA_VERSION
+
 pytestmark = pytest.mark.django_db
 
 WURZEL = Path(__file__).resolve().parent.parent
 PAKET = (
     "README-PAKET.md", "GEMEINSAME_VISION.md", "EINSTIEG.md", "EINRICHTUNG.md", "SATZUNG_BAUKASTEN.md",
     "SCHEMA.md", "instanz/docker-compose.yml", "instanz/env.example", "instanz/render.yaml",
-    "policies/kategorien-v2.yaml", "policies/grundordnung-v1.yaml", "parameter-erstbestand.json",
+    "policies/kategorien-v2.yaml", "parameter-erstbestand.json", "verfahrensordnung-aktiv.yaml",
 )
 
 
@@ -49,7 +51,7 @@ def test_uebertragungspaket_als_zip(client):
         for name in PAKET:
             assert name in namen, name
         erstbestand = json.loads(zf.read("parameter-erstbestand.json"))
-        assert erstbestand["schema_version"] == "1.0"
+        assert erstbestand["schema_version"] == SCHEMA_VERSION
         assert all(p["schema_key"] for p in erstbestand["parameter"])
         assert "[PARTEINAME]" in zf.read("SATZUNG_BAUKASTEN.md").decode("utf-8")
         assert "DDOE_SYSTEM_ID" in zf.read("instanz/env.example").decode("utf-8")

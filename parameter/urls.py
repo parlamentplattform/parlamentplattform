@@ -9,4 +9,6 @@ urlpatterns = [
     path("kennzahlen.json", views.kennzahlen_json, name="kennzahlen"),
     path("verwaltung/parameter/", views.verwaltung, name="verwaltung"),
     path("verwaltung/parameter/aktion/", views.verwaltung_aktion, name="verwaltung_aktion"),
+    path("verwaltung/parameter/ordnung/", views.verwaltung_ordnung_entwurf, name="verwaltung_ordnung_entwurf"),
+    path("verwaltung/parameter/ordnung/inkraft/", views.verwaltung_ordnung_inkraft, name="verwaltung_ordnung_inkraft"),
 ]

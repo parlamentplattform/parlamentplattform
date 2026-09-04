@@ -2,6 +2,11 @@
 {% load i18n %}
 {% block titel %}{% translate "Offene Parameter" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Das Parameterregister als Seite (FB-J2). Zweiunddreißig Zeilen in einer Liste sind vollständig
+und trotzdem unbrauchbar — deshalb Karten nach Gruppen, ein sichtbares Band für Werte im Test
+und die Historie am Wert selbst. Ohne JavaScript vollständig lesbar: <details> statt Skript.
+{% endcomment %}
 <h1>{% translate "Offene Parameter" %}</h1>
 <p class="erk" style="max-width:56em">{% blocktranslate %}An diesen Stellschrauben lernt das System: Fristen, Runden, Budgets — jede mit
 Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.
@@ -9,17 +14,44 @@ Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der 
 Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung.{% endblocktranslate %}
 <a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a></p>
 
-<div class="karte" style="margin-top:16px">
-  {% for p in parameter %}
-  <div class="zeile"><span>
+{% if ordnung %}
+<p class="erk" style="max-width:56em">{% blocktranslate with n=ordnung.version %}Geltende Verfahrensordnung: Fassung {{ n }}. Sie folgt dem Register nicht von selbst — sie wird
+beschlossen und beim Einbringen als unveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5).
+Ein geänderter Wert wirkt deshalb nie auf ein laufendes Verfahren.{% endblocktranslate %}</p>
+{% endif %}
+
+<p class="erk">{% translate "Springe zu:" %}
+  {% for karte in karten %}<a href="#g-{{ karte.schluessel }}">{{ karte.name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}
+</p>
+
+{% for karte in karten %}
+<div class="karte" id="g-{{ karte.schluessel }}">
+  <h2 style="margin:0 0 4px;font-size:17px">{{ karte.name }}</h2>
+  {% for p in karte.eintraege %}
+  <div class="zeile"><span style="width:100%">
     <strong>{{ p.schluessel }}</strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}
+    {% if p.status != "gueltig" %}<span class="chip klein">{{ p.get_status_display }}</span>{% endif %}
+    {% if p.speist_ordnung %}<span class="chip klein still" title="{% translate 'Aus diesem Wert wird die Verfahrensordnung gebaut.' %}">{% translate "Verfahrensordnung" %}</span>{% endif %}
     <br><span class="meta">{{ p.beschreibung }}</span>
-    <br><span class="meta">{% translate "Quelle:" %} {{ p.quelle }} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}</span>
+    <br><span class="meta">{% translate "Quelle:" %} {{ p.quelle }}{% if p.schema_key %} · <code>{{ p.schema_key }}</code>{% endif %} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}</span>
+    {% if p.status == im_test %}
+    <div class="band-gold" style="margin-top:8px">{% translate "Im Test" %}{% if p.test_bis %} — {% blocktranslate with bis=p.test_bis|date:"d.m.Y" %}bis {{ bis }}{% endblocktranslate %}{% endif %}{% if p.test_hypothese %}: {{ p.test_hypothese }}{% endif %}
+      <br><span class="meta">{% translate "Der Wert gilt nur für Verfahren, die neu beginnen — laufende behalten ihre Fassung." %}</span></div>
+    {% endif %}
+    {% if p.historie.all %}
+    <details style="margin-top:6px">
+      <summary class="meta">{% blocktranslate count n=p.historie.all|length %}Eine dokumentierte Änderung{% plural %}{{ n }} dokumentierte Änderungen{% endblocktranslate %}</summary>
+      {% for h in p.historie.all %}
+      <div class="meta" style="margin-top:4px">{{ h.geaendert_am|date:"d.m.Y" }}: {{ h.alter_wert }} → {{ h.neuer_wert }}{% if h.durch %} · {{ h.durch }}{% endif %}<br>{{ h.grund }}</div>
+      {% endfor %}
+    </details>
+    {% endif %}
   </span></div>
-  {% empty %}
-  <p class="leer">{% translate "Noch keine Parameter eingetragen." %}</p>
   {% endfor %}
 </div>
+{% empty %}
+<p class="leer">{% translate "Noch keine Parameter eingetragen." %}</p>
+{% endfor %}
 
 <h2 id="weicherfilter" style="margin-top:28px">{% translate "WeicherFilter — Regel v2" %}</h2>
 <p class="erk" style="max-width:56em">{% blocktranslate %}Der WeicherFilter reiht die laufenden Verfahren nur nach den Reglern des Mitglieds selbst (§ 5 Abs 10 lit d, § 2 Abs 6).

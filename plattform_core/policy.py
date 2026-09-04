@@ -77,3 +77,48 @@ class Policy:
         if unbekannt:
             raise PolicyFehler(f"Unbekannte Policy-Felder: {sorted(unbekannt)}")
         return cls(**daten)
+
+
+#: Welcher Registerschlüssel welches Feld der Verfahrensordnung speist (FB-J1).
+#: Werte, die keine ganze Zahl sind, tragen ihren Umrechner mit — das Register führt nur ganze
+#: Zahlen, weil sich Dezimalwerte in einem Formular schlecht bearbeiten und schlecht vergleichen lassen.
+REGISTER_ZUORDNUNG = {
+    "unterstuetzung_schwelle": ("verfahren-unterstuetzung-schwelle", int),
+    "unterstuetzung_frist_tage": ("verfahren-unterstuetzung-tage", int),
+    "beratung_tage": ("expertenrat-erstvorschlag-tage", int),
+    "abstimmung_tage": ("verfahren-abstimmung-tage", int),
+    "mindestbeteiligung": ("verfahren-mindestbeteiligung-prozent", lambda n: n / 100),
+    "wiedereinbringung_sperre_monate": ("verfahren-wiedereinbringung-monate", int),
+}
+
+
+def aus_register(
+    werte: dict[str, int], policy_id: str, version: int, mehrheitsbasis: str = "ja_nein"
+) -> Policy:
+    """Baut eine Verfahrensordnung aus Registerwerten (FB-J1).
+
+    `werte` bildet Registerschlüssel auf ganze Zahlen ab — genau das, was `parameter.zahl`
+    liefert. Fehlt ein Schlüssel, wirft diese Funktion: Eine Ordnung mit stillschweigend
+    ergänzten Werten wäre schlimmer als gar keine, weil niemand sähe, was fehlt.
+
+    Die Satzungsminima prüft die Policy selbst (`__post_init__`) — auch eine aus dem Register
+    erzeugte Fassung darf sie nicht unterschreiten. Wer im Register eine Beratungsdauer unter
+    21 Tagen einträgt, bekommt hier einen Fehler statt einer satzungswidrigen Ordnung.
+
+    Diese Funktion erzeugt immer eine **neue** Fassung; bestehende bleiben unberührt, damit
+    laufende Verfahren ihre eingefrorene Kopie behalten (§ 5 Abs 5)."""
+    fehlend = sorted(
+        schluessel
+        for _feld, (schluessel, _wandler) in REGISTER_ZUORDNUNG.items()
+        if schluessel not in werte
+    )
+    if fehlend:
+        raise PolicyFehler(
+            "Im Register fehlen Werte für die Verfahrensordnung: " + ", ".join(fehlend)
+        )
+    felder = {
+        feld: wandler(werte[schluessel])
+        for feld, (schluessel, wandler) in REGISTER_ZUORDNUNG.items()
+    }
+    return Policy(id=policy_id, version=version, mehrheitsbasis=mehrheitsbasis, **felder)
+

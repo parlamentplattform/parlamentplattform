@@ -4868,3 +4868,33 @@ msgstr[1] "First draft due %(frist)s — %(t)s days left."
 
 msgid "Liegt bis dahin keiner vor, geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie."
 msgstr "If none is submitted by then, the motion moves on without one — inaction never blocks."
+
+msgid "Beschlüsse"
+msgstr "Decisions"
+
+msgid "Beschlussfähig ab der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Jede Stimme steht mit Namen und Begründung öffentlich (§ 6 Abs 9)."
+msgstr "A quorum is half of the active appointments; decided by a simple majority of the votes cast (§ 6 para 2 lit e). Every vote is public, with name and reasons (§ 6 para 9)."
+
+msgid "geändert"
+msgstr "changed"
+
+msgid "Beschlossen:"
+msgstr "Decided:"
+
+msgid "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende."
+msgstr "No result: too few votes, or a tie when the deadline passed."
+
+msgid "Derzeit steht kein Beschluss an."
+msgstr "No decision is pending."
+
+msgid "Für diesen Vorschlag ist keine Abstimmung offen — derzeit ist keine Rolle in Gruppe 2 aktiv. Der Vorschlag wartet, bis eine besetzt ist."
+msgstr "No vote is open on this proposal — no appointment in group 2 is currently active. The proposal waits until one is filled."
+
+msgid "Beschlussfähig bei der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Bleibt die Prüfung ohne Ergebnis, geht der Vorschlag weiter an die Unterstützer — mit offengelegtem Vermerk, dass Gruppe 2 ihn nicht validiert hat."
+msgstr "A quorum is half of the active appointments; decided by a simple majority of the votes cast (§ 6 para 2 lit e). If the check ends without a result, the proposal moves on to the supporters — with a published note that group 2 did not validate it."
+
+msgid "Prüfpunkte (§ 6 Abs 7) — was Sie abhaken, steht in Ihrer Begründung"
+msgstr "Checkpoints (§ 6 para 7) — whatever you tick appears in your stated reasons"
+
+msgid "Sie haben bereits abgestimmt — eine neue Stimme ersetzt Ihre alte, solange der Beschluss offen ist."
+msgstr "You have already voted — a new vote replaces your old one while the decision is open."

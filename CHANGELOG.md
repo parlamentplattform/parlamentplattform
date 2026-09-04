@@ -2,6 +2,17 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.3] — 2026-09-04 · Die Sprachregeln gelten überall — und ein Wächter hält sie
+
+### Geändert
+- **„Prototyp" ist aus allen Nutzer-Texten verschwunden** (FB-K2, seit 2.9. offen): Die Statuszeile der README heißt „Alpha-Phase — die Plattform ist öffentlich", der Demo-Antrag „Namenskonvention der Plattform", die Betriebs- und Konzeptdokumente sprechen von der Alpha-Phase. Damit sind die drei im Fahrtenbuch benannten Stellen erledigt
+
+### Hinzugefügt
+- **Ein Wächter über die Sprachregeln** (`verfahren/test_vorlagen.py`): Kein Nutzer-Text darf „Prototyp", „Regierungsform", „Vorlage" (im Sinne des Vorschlags) oder „Minderheiten" enthalten. Geprüft wird der Übersetzungskatalog — dort stehen genau die Texte, die Nutzer lesen; Kommentare und Bezeichner im Code sind nicht gemeint. Begründete Ausnahmen stehen benannt im Test („Docker- und Render-Vorlage" ist eine Einrichtungsdatei). Gegen einen erfundenen Verstoß gehalten: Er schlägt an und nennt Wort und Fundstelle
+
+### Anmerkung
+- Der Demo-Antrag heißt erst auf einer **frischen** Datenbank anders; in der laufenden Produktion trägt er weiter seinen alten Titel. Ihn dort umzubenennen hieße, den Titel eines abgestimmten Antrags nachträglich zu ändern — das entscheidet der Gründer, nicht der Code
+
 ## [0.39.2] — 2026-09-04 · Durchgang durch alles, was der Nutzer zu sehen bekommt
 
 Nach dem gemeldeten Kommentartext (0.39.1) haben vier unabhängige Durchgänge jede Seite auf Dinge

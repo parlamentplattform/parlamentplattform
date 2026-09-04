@@ -1,6 +1,6 @@
 # Betrieb auf Render — Stand 20.08.2026
 
-Der Prototyp läuft öffentlich unter **https://parlament.ddoe.at**
+Die Plattform läuft öffentlich unter **https://parlament.ddoe.at**
 (Ausweich-Adresse: https://parlamentplattform.onrender.com, Gesundheitscheck: `/gesund/`).
 
 ## Was tatsächlich läuft

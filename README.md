@@ -4,7 +4,7 @@
 
 Eine Partei ohne inhaltliches Programm braucht ein Verfahren, dem man nicht glauben muss, weil man es nachrechnen kann. Dieses Repository ist dieses Verfahren: Anträge einbringen → unterstützen → beraten → abstimmen → dauerhaft veröffentlichen — mit Regeln, die beim Einbringen eingefroren werden, einem Audit-Log, das Manipulation erkennbar macht, und einer Auszählung, die jede und jeder unabhängig überprüfen kann.
 
-**Status: Phase 1 — der Prototyp ist öffentlich:** **[parlament.ddoe.at](https://parlament.ddoe.at)**. Der Verfahrenskern steht und ist getestet; Registrierung, Verfahrensweg, Kategorienbaum, öffentliche Übersicht und Mitgliederverwaltung laufen — die Oberfläche zweisprachig (Deutsch/Englisch, Umschalter in der Kopfzeile). Fahrplan und vollständiges Lastenheft: [`docs/CONCEPT.md`](docs/CONCEPT.md), Betrieb: [`docs/BETRIEB-RENDER.md`](docs/BETRIEB-RENDER.md). *English summary below.*
+**Status: Alpha-Phase — die Plattform ist öffentlich:** **[parlament.ddoe.at](https://parlament.ddoe.at)**. Der Verfahrenskern steht und ist getestet; Registrierung, Verfahrensweg, Kategorienbaum, öffentliche Übersicht und Mitgliederverwaltung laufen — die Oberfläche zweisprachig (Deutsch/Englisch, Umschalter in der Kopfzeile). Fahrplan und vollständiges Lastenheft: [`docs/CONCEPT.md`](docs/CONCEPT.md), Betrieb: [`docs/BETRIEB-RENDER.md`](docs/BETRIEB-RENDER.md). *English summary below.*
 
 ---
 

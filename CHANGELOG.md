@@ -2,6 +2,28 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.2] — 2026-09-04 · Durchgang durch alles, was der Nutzer zu sehen bekommt
+
+Nach dem gemeldeten Kommentartext (0.39.1) haben vier unabhängige Durchgänge jede Seite auf Dinge
+abgesucht, die dort nicht hingehören. Von 30 Meldungen hielten 23 der Nachprüfung stand; die
+eindeutigen sind hier behoben, die Entscheidungsfragen liegen dem Gründer vor.
+
+### Behoben
+- **Das Gesprächs-Panel blieb auf „Meine Gespräche" für immer auf „Wird geladen …" stehen.** Ursache: Das Panel liegt auf jeder Seite und brachte die Kennung `#gespraeche-liste` mit; auf `/gespraeche/` trug die Seitenliste dieselbe Kennung. htmx nimmt beim Auflösen seines Ziels den **ersten** Treffer im Dokument — also tauschte das Panel die Liste hinter sich aus und füllte sich selbst nie. Die Teilvorlage nimmt jetzt eine eigene Kennung entgegen
+- **Auf `/mandatare/` stand der rohe Datenbankwert der Phase** („· abstimmung" statt „· Abstimmung") — öffentlich sichtbar, ohne Anmeldung
+- **Das Archiv beschriftete abgeschlossene Verfahren mit „· läuft"** (FB-G7). „Läuft" steht jetzt nur noch an der wirklich laufenden Phase, nie an einem Endzustand
+- **Die Phasennamen im Archiv waren hart deutsch** und blieben in der englischen Oberfläche stehen. Sie kommen jetzt aus dem gemeinsamen, übersetzten Bestand — dieselbe Phase heißt überall gleich
+- **Im WeicherFilter-Feed stand der Phasenname zweimal** in derselben Zeile („angenommen" als Abzeichen, darunter noch einmal „angenommen · 31.08.2026"). Unten steht jetzt nur noch „seit 31.08.2026"
+
+### Geändert
+- **Sprachregeln aus CLAUDE.md durchgesetzt:** „Der Prototyp enthält …" auf `/uebersicht/` heißt jetzt „Die Plattform ist in der Alpha-Phase und enthält …" (nie „Prototyp"); auf `/zukunftswerkstatt/` steht dreimal „Vorschlag" statt „Vorlage". Der englische Katalog zieht mit („proposal" statt „draft")
+- **Die drei Gremien-Ansichten siezen**, wie die ganze übrige Plattform: „Sie sehen diesen Bereich als Aufsicht (Verwaltung) …"
+
+### Hinzugefügt
+- **Ein Wächter gegen doppelte Kennungen** (`verfahren/test_vorlagen.py`): Keine Seite darf dieselbe `id` zweimal vergeben — geprüft für Gespräche, Parlament und Antragsseite. Gegen den echten Fehler gehalten: Er schlägt an und nennt die doppelte Kennung
+- Ein Bildschirmtest öffnet das Panel **auf `/gespraeche/` selbst** — dort, wo der Fehler saß (`tests/e2e/test_chat.py`)
+- Tests für die Archiv-Korrekturen: Phasennamen folgen der Sprache, Endzustände laufen nicht mehr (`verfahren/test_archiv.py`)
+
 ## [0.39.1] — 2026-09-04 · Behoben: Kommentartext stand auf jeder Seite
 
 ### Behoben

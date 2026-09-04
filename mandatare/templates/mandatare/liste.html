@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n phasen %}
 {% block titel %}{% translate "Mandatare" %}{% endblock %}
 {% block inhalt %}
 <style>
@@ -50,7 +50,7 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
   <p class="phasen-titel" style="margin-top:12px">{% translate "Laufende Mandats-Kandidaturen" %}</p>
   {% for a in kandidaturen %}
   <div class="zeile"><span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-    <br><span class="meta">{% if a.gebiet %}{{ a.gebiet }} · {% endif %}{{ a.phase }}</span></span></div>
+    <br><span class="meta">{% if a.gebiet %}{{ a.gebiet }} · {% endif %}{{ a.phase|phase_name }}</span></span></div>
   {% endfor %}
   {% else %}
   <p class="leer" style="margin-top:8px">{% translate "Derzeit läuft keine Mandats-Kandidatur — jedes Mitglied kann eine einbringen." %}</p>

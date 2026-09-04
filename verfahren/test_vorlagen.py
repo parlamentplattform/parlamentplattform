@@ -101,3 +101,25 @@ def test_seiten_liefern_kein_vorlagen_rohmaterial_aus(client, ordnung):  # noqa:
     client.force_login(mitglied)
     for pfad, name in [*ziele, (reverse("verfahren:gespraeche"), "Meine Gespräche")]:
         _pruefe(client.get(pfad).content.decode(), f"Mitglied · {name}")
+
+
+@pytest.mark.django_db
+def test_keine_doppelten_kennungen_im_dokument(client, ordnung):  # noqa: F811
+    """Jede id kommt einmal vor — sonst greifen htmx-Ziele daneben.
+
+    Anlass: Das Gesprächs-Panel liegt auf jeder Seite und brachte `#gespraeche-liste` mit;
+    auf /gespraeche/ trug die Seitenliste dieselbe id. htmx nimmt beim Auflösen von `hx-target`
+    den **ersten** Treffer im Dokument — also tauschte das Panel die Liste der Seite aus und
+    blieb selbst auf „Wird geladen …" stehen."""
+    mitglied = mitglied_anlegen("doppelt")
+    antrag = antrag_einbringen(mitglied, **ANTRAG, ordnung=ordnung)
+    client.force_login(mitglied)
+    for pfad, name in (
+        (reverse("verfahren:gespraeche"), "Meine Gespräche"),
+        (reverse("verfahren:parlament"), "Parlament"),
+        (reverse("verfahren:antrag", args=[antrag.pk]), "Antragsseite"),
+    ):
+        html = client.get(pfad).content.decode()
+        kennungen = re.findall(r'\sid="([^"]+)"', html)
+        doppelt = sorted({k for k in kennungen if kennungen.count(k) > 1})
+        assert not doppelt, f"{name}: id mehrfach vergeben — {doppelt}"

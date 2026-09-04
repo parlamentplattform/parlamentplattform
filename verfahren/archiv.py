@@ -16,25 +16,30 @@ from __future__ import annotations
 
 import json
 
+from django.utils.text import capfirst
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from plattform_core import Phase, vorschlagschat
 from verfahren.models import AuditEintrag, Kommentar, Reaktionsart
+from verfahren.templatetags.phasen import NAMEN as PHASEN_NAMEN
 
-#: Anzeigenamen der Phasen im Archiv — Vorschlagsrunden bekommen ihre Nummer.
-PHASENNAMEN = {
-    Phase.UNTERSTUETZUNG.value: "Unterstützungsphase",
-    Phase.BERATUNG.value: "Beratung",
-    Phase.ABSTIMMUNG.value: "Abstimmung",
-    Phase.ANGENOMMEN.value: "Angenommen",
-    Phase.ABGELEHNT.value: "Abgelehnt",
-}
+#: Phasen, nach denen nichts mehr läuft — ihr Block trägt kein „läuft".
+ENDZUSTAENDE = (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
+
+#: Anzeigenamen der Phasen im Archiv. Sie kommen aus dem gemeinsamen Bestand
+#: (`templatetags/phasen.py`), damit dieselbe Phase überall gleich heißt — und übersetzt wird.
+PHASENNAMEN = {Phase.UNTERSTUETZUNG.value: gettext_lazy("Unterstützungsphase")}
 
 
 def phasenname(schluessel: str) -> str:
     if schluessel.startswith("vorschlag-r"):
         return _("Vorschlagsberatung — Runde %s") % schluessel.removeprefix("vorschlag-r")
-    return PHASENNAMEN.get(schluessel, schluessel or _("ohne Phase"))
+    if schluessel in PHASENNAMEN:
+        return str(PHASENNAMEN[schluessel])
+    if schluessel in PHASEN_NAMEN:
+        return capfirst(str(PHASEN_NAMEN[schluessel]))
+    return schluessel or _("ohne Phase")
 
 
 def _beitrag(k: Kommentar) -> dict:
@@ -136,7 +141,7 @@ def zeitleiste(antrag) -> list[dict]:
             {
                 "phase": phase,
                 "name": phasenname(phase),
-                "laufend": phase == antrag.phase,
+                "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
                 "beitraege": beitraege,
                 "anzahl": len(beitraege),
                 "auswertung": _auswertung(antrag, phase, beitraege),

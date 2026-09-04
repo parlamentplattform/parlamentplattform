@@ -163,6 +163,16 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.wait_for_timeout(400)
     halte_fest(p, "partner-schaubild-dunkel")
 
-    assert len(bilder) == 24
+    # Das Parameterregister in zweiter Fassung (FB-J2): Gruppenkarten, Status, Historie —
+    # und die Verwaltung mit dem Abgleich Register/Verfahrensordnung (FB-J1)
+    p = seite()
+    p.goto(f"{live_server.url}/parameter/")
+    halte_fest(p, "parameterregister-gruppen")
+
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/verwaltung/parameter/")
+    halte_fest(p, "parameterregister-verwaltung")
+
+    assert len(bilder) == 26
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

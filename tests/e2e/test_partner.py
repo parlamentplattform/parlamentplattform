@@ -50,6 +50,8 @@ def test_uebertragungspaket_laedt_herunter(seite, live_server, demo):
 
 
 def test_schnittstellen_adressen_antworten(seite, live_server, demo):
+    from plattform_core.schema import SCHEMA_VERSION
+
     p = seite()
     for pfad in ("/parameter.json", "/kennzahlen.json", "/umsetzung.json"):
         antwort = p.request.get(f"{live_server.url}{pfad}")
@@ -57,7 +59,9 @@ def test_schnittstellen_adressen_antworten(seite, live_server, demo):
         assert antwort.headers.get("access-control-allow-origin") == "*" or pfad == "/umsetzung.json"
         daten = antwort.json()
         if pfad != "/umsetzung.json":
-            assert daten["schema_version"] == "1.0" and daten["system_id"] == "at-ddoe"
+            # Gegen die Konstante, nicht gegen eine abgeschriebene Zahl: Dass die Fassung
+            # sich nicht unbemerkt ändert, sichert plattform_core/test_schema.py.
+            assert daten["schema_version"] == SCHEMA_VERSION and daten["system_id"] == "at-ddoe"
 
 
 def test_partner_seite_am_handy(seite, live_server, demo):

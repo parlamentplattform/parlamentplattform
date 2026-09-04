@@ -132,8 +132,11 @@ def test_arbeitsbereiche_ohne_erklaer_und_werbesaetze(client):
 
 
 def test_partner_seite_oeffentlich_und_zweisprachig(client):
-    """P9-Erststufe (§ 12): Einladung, Fahrplan der Zusammenarbeit, Kontakt."""
-    inhalt = client.get(reverse("verfahren:partner")).content.decode()
+    """P9-Erststufe (§ 12): Einladung, Fahrplan der Zusammenarbeit, Kontakt.
+
+    Deutsch ausdrücklich anfordern: Ohne Sprachangabe antwortet diese Seite auf Englisch,
+    weil ihre Zielgruppe außerhalb des deutschen Sprachraums sitzt (FB-M1)."""
+    inhalt = client.get(reverse("verfahren:partner"), headers={"accept-language": "de"}).content.decode()
     assert "Labor der Demokratien" in inhalt
     assert "Software bereitstellen" in inhalt and "Parameter gemeinsam erheben" in inhalt
     assert "mailto:plattform@ddoe.at" in inhalt

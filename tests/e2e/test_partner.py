@@ -67,3 +67,19 @@ def test_partner_seite_am_handy(seite, live_server, demo):
     breite = p.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
     assert breite[0] <= breite[1] + 1, "die Seite scrollt nicht waagrecht"
     assert p.locator("svg.schaubild").is_visible()
+
+
+def test_die_welt_sieht_die_partnerseite_auf_englisch(seite, live_server, demo):
+    """FB-M1: Wer nicht ausdrücklich Deutsch möchte, wird auf Englisch begrüßt — auch bei
+    Spanisch oder Japanisch. Vorher fiel jede unbekannte Sprache auf Deutsch zurück."""
+    for sprache in ("es-ES", "fr-FR", "ja-JP", "en-US"):
+        p = seite(sprache=sprache)
+        p.goto(f"{live_server.url}/partner/")
+        _ruhe(p)
+        assert "International partners" in p.locator("h1").inner_text(), sprache
+        assert p.locator("html").get_attribute("lang") == "en", sprache
+
+    p = seite(sprache="de-AT")
+    p.goto(f"{live_server.url}/partner/")
+    _ruhe(p)
+    assert "Internationale Partner" in p.locator("h1").inner_text(), "Deutschsprachige bleiben bei Deutsch"

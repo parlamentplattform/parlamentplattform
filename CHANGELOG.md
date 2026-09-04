@@ -2,6 +2,20 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.5] — 2026-09-04 · Die Partner-Seite begrüßt die Welt auf Englisch
+
+### Geändert
+- **Wer nicht ausdrücklich Deutsch möchte, sieht `/partner/` auf Englisch (FB-M1)** — auch bei Spanisch, Französisch, Japanisch oder ganz ohne Sprachangabe. Bisher fiel jede Sprache, die weder Deutsch noch Englisch ist, auf die Voreinstellung `de-at` zurück: ausgerechnet auf der einen Seite, deren Zielgruppe per Definition nicht deutschsprachig ist. Eine **eigene Sprachwahl behält immer Vorrang** — wer auf DE stellt, bekommt Deutsch. Die Regel gilt nur für diese Seite; das Parlament bleibt unberührt
+- Die Bildschirmtests legen die Browsersprache jetzt **ausdrücklich** fest (`de-AT`). Vorher erbten sie die Sprache des Rechners — dieselben Tests prüften auf einem englischen System eine andere Oberfläche, ohne dass es auffiel
+
+### Hinzugefügt
+- Vier Tests für die Sprachregel, ein Bildschirmtest über vier Sprachen, und einer, der belegt, dass die Regel nicht auf andere Seiten abfärbt
+
+### Dokumentation
+- **Fertige Bausteine für ddoe.at** (`ddoe-at_Partner-Verlinkung_2026-09-04.md` im Arbeitsordner): der Knopf „Start a sister party — the partner page →" in der Sektion „International", ein Absatz samt Knopf **vor** dem `mailto:` unter „An invitation", je ein Link an den Absätzen FR · ES · IT, optional ein Nachsatz im Blogpost vom 19.08. Einspielen kann sie nur der Gründer — die Zugangsdaten der Website liegen nicht in diesem Ordner
+- **Satzungsbaustein § 5 Abs 13** für die Unterstützer-Schleife (`Satzungsbaustein_Unterstuetzerschleife_2026-09-04.md`): Form der Entscheidung, Bezugsbeitrag der Plattform, „oben **und** über der Schwelle", Stille als Annahme, Textstellenbezug für Einwände, Offenlegung der Reihung. Ein neuer Absatz, keine Nummer verschiebt sich
+- **Fahrtenbuch:** FB-K6 „Rollenübersicht (Wer darf was)" neu aufgenommen (vom Gründer freigegeben, Umsetzung nach S8 ff.); FB-M1 und FB-M2 nachgezogen; Kopf, Fußzeile, FB-K2 und FB-P1 auf den Stand vom 4.9. gebracht — das Dokument hinkte der Auslieferung um fünf Fassungen hinterher
+
 ## [0.39.4] — 2026-09-04 · Ein Weg zurück, eine zweisprachige Verwaltung, keine internen Kürzel mehr
 
 Drei Entscheidungen des Gründers vom 4.9.2026, umgesetzt.

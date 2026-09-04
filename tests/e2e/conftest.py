@@ -62,9 +62,13 @@ def seite(browser, live_server):
     """Fabrik für Browser-Seiten: Maße, Erscheinungsbild, Bewegung, JavaScript, Anmeldung."""
     kontexte = []
 
-    def erzeuge(*, viewport=None, dunkel=False, js=True, reduziert=False, als=None, video=None):
+    def erzeuge(*, viewport=None, dunkel=False, js=True, reduziert=False, als=None, video=None,
+                sprache="de-AT"):
+        # Die Sprache steht ausdrücklich hier: Sonst erbt der Browser die des Rechners, und
+        # dieselben Tests prüften auf einem englischen System eine andere Oberfläche.
         kontext = browser.new_context(
             viewport=viewport or DESKTOP,
+            locale=sprache,
             color_scheme="dark" if dunkel else "light",
             reduced_motion="reduce" if reduziert else "no-preference",
             java_script_enabled=js,

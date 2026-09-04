@@ -123,3 +123,55 @@ def test_keine_doppelten_kennungen_im_dokument(client, ordnung):  # noqa: F811
         kennungen = re.findall(r'\sid="([^"]+)"', html)
         doppelt = sorted({k for k in kennungen if kennungen.count(k) > 1})
         assert not doppelt, f"{name}: id mehrfach vergeben — {doppelt}"
+
+
+# ── Sprachregeln des Gründers (CLAUDE.md, Fahrtenbuch „Namen") ───────────────────────────
+
+#: Wörter, die in keinem Nutzer-Text vorkommen dürfen, mit ihrer Ersatzform.
+VERBOTEN = {
+    "Prototyp": "Alpha-Phase",
+    "Regierungsform": "die logisch nächste Form der gesamtgesellschaftlichen Selbstorganisation",
+    "Vorlage": "Vorschlag",
+    "Minderheiten": "Betroffene und Fachkundige",
+}
+
+#: Begründete Ausnahmen — hier meint das Wort etwas anderes als die Sprachregel.
+AUSNAHMEN = {
+    # „Docker- und Render-Vorlage" ist eine Einrichtungsdatei, kein Vorschlag des Expertenrats.
+    "Docker- und Render-Vorlage",
+}
+
+
+def msgids() -> list[str]:
+    """Alle deutschen Ausgangstexte des Katalogs — per Definition Nutzer-Texte."""
+    po = (WURZEL / "locale/en/LC_MESSAGES/django.po").read_text(encoding="utf-8")
+    ids, sammeln, teile = [], False, []
+    for zeile in po.splitlines():
+        if zeile.startswith("msgid "):
+            if teile:
+                ids.append("".join(teile))
+            sammeln, teile = True, [zeile[6:].strip().strip('"')]
+        elif sammeln and zeile.startswith('"'):
+            teile.append(zeile.strip().strip('"'))
+        elif sammeln:
+            ids.append("".join(teile))
+            sammeln, teile = False, []
+    if teile:
+        ids.append("".join(teile))
+    return [i.replace("\n", " ").replace('\\"', '"') for i in ids if i]
+
+
+def test_nutzer_texte_halten_die_sprachregeln():
+    """Die Namen sind entschieden (CLAUDE.md): Alpha-Phase statt Prototyp, Vorschlag statt
+    Vorlage, keine „Regierungsform", „Betroffene und Fachkundige" statt „Minderheiten".
+
+    Geprüft wird der Katalog — dort stehen genau die Texte, die Nutzer zu lesen bekommen.
+    Kommentare und Bezeichner im Code sind nicht gemeint."""
+    fehler = []
+    for text in msgids():
+        if any(a in text for a in AUSNAHMEN):
+            continue
+        for wort, ersatz in VERBOTEN.items():
+            if wort in text:
+                fehler.append(f'{wort} statt {ersatz}: {text[:90]}')
+    assert not fehler, "Sprachregel verletzt:\n  " + "\n  ".join(fehler)

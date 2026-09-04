@@ -39,7 +39,7 @@ Bevor über Frameworks geredet wird, die Grundsätze. Sie stammen aus der Satzun
 
 Jede Phase endet mit einem öffentlich überprüfbaren Ergebnis. Keine Phase beginnt, bevor das Tor der vorigen dokumentiert bestanden ist — das diszipliniert uns und ist zugleich unser Marketing: Die Partei, die liefert, bevor sie verspricht.
 
-*(Stand 20.08.2026: Tor der Phase 0 bestanden; Phase 1 läuft — der Prototyp ist unter [parlament.ddoe.at](https://parlament.ddoe.at) öffentlich erreichbar, inklusive Registrierung, Kategorienbaum, Übersichtsseite und Mitgliederverwaltung. Offen für das Phase-1-Tor: der reale Testlauf mit 20–50 Personen.)*
+*(Stand 20.08.2026: Tor der Phase 0 bestanden; Phase 1 läuft — die Plattform ist in der Alpha-Phase unter [parlament.ddoe.at](https://parlament.ddoe.at) öffentlich erreichbar, inklusive Registrierung, Kategorienbaum, Übersichtsseite und Mitgliederverwaltung. Offen für das Phase-1-Tor: der reale Testlauf mit 20–50 Personen.)*
 
 ### Phase 0 — Fundament (2 Wochen)
 Repository anlegen, Lizenz und Governance festlegen, dieses Dokument einchecken, Architekturentscheidungen als ADRs (Architecture Decision Records) schriftlich begründen, Domänenmodell festziehen, CI-Pipeline mit erstem Test grün.

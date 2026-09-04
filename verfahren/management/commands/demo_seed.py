@@ -103,8 +103,8 @@ class Command(BaseCommand):
 
             a3 = antrag_einbringen(
                 leute[2],
-                "Abgeschlossenes Beispiel: Namenskonvention des Prototyps",
-                "Der Prototyp führt den Namen ParlamentPlattform.",
+                "Abgeschlossenes Beispiel: Namenskonvention der Plattform",
+                "Die Plattform führt den Namen ParlamentPlattform.",
                 "",
                 ordnung,
             )

@@ -53,7 +53,7 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
         ),
         help_text=gettext_lazy(
             "Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
-            "ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später amtlich."
+            "ordnen wir dann automatisch zu. Mit der ID Austria erfolgt das später amtlich."
         ),
     )
 

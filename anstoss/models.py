@@ -9,12 +9,13 @@ Teil des Projekts."""
 
 from django.conf import settings
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 
 class AnstossStatus(models.TextChoices):
-    NEU = "neu", "neu"
-    GESICHTET = "gesichtet", "gesichtet"
-    ERLEDIGT = "erledigt", "erledigt"
+    NEU = "neu", _("neu")
+    GESICHTET = "gesichtet", _("gesichtet")
+    ERLEDIGT = "erledigt", _("erledigt")
 
 
 class Anstoss(models.Model):

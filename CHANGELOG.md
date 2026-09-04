@@ -2,6 +2,27 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.39.4] — 2026-09-04 · Ein Weg zurück, eine zweisprachige Verwaltung, keine internen Kürzel mehr
+
+Drei Entscheidungen des Gründers vom 4.9.2026, umgesetzt.
+
+### Hinzugefügt
+- **Eigene Fehlerseiten (404, 403, 500) — der Weg zurück.** Bisher lieferte die Produktion Djangos nackte englische Minimalseite: keine App-Leiste, keine Gestaltung, kein Weg zurück, mitten in einer deutschen Anwendung. Jetzt: **404** im App-Look mit „Zum Parlament" und „Zur Startseite" und dem Hinweis, dass der Inhalt nicht verloren ist — Verfahren werden hier nicht gelöscht; **403** für die abgelaufene Sitzung mit dem Weg zur Anmeldung; **500** bewusst **selbsttragend** — sie erbt nicht von `base.html`, bringt ihre wenigen Farben selbst mit und kommt ohne Skript und ohne Datenbankzugriff aus, damit sie auch dann steht, wenn die Anwendung fällt
+- Fünf Tests dazu, darunter einer, der eine unbekannte Adresse abruft und prüft, dass wirklich die **eigene Seite** kommt. Die bisherigen Tests prüften nur den Statuscode — deshalb fiel es nie auf
+
+### Geändert
+- **Die Verwaltung spricht Englisch (Fahrtenbuch „laufend": i18n der Verwaltung).** Acht Seiten waren komplett unübersetzt — wer umschaltete, bekam dort weiter Deutsch: Anstöße, Mitgliederliste, einzelnes Mitglied, Beiträge & Bank, kein-Zugang, Rollen, Mandate, Parameter. Jetzt sind sie es, mit **139 neuen Katalogeinträgen** (1186 gesamt, 0 ohne Übersetzung). Auch die Statuswörter der Anstöße („neu", „gesichtet", „erledigt") sind übersetzbar — sie standen als nackte Zeichenketten im Modell und wären sonst deutsch geblieben
+- **Interne Kennungen sind aus allen Nutzer-Texten verschwunden.** `F-22`, `F-23`, `F-43`, `F-47`, `F-59`, `F-60`, `F-68`, `ADR-006`, `Ring 0b` standen im Archiv jeder Antragsseite, im Parameterregister, im Beitrittsformular, im Umsetzungsregister und in den Hilfetexten der Formulare — für Besucher Rauschen, teils Verweise auf Dokumente, die gar nicht öffentlich sind. Im Quelltext (Kommentare, Docstrings) bleiben sie: dort helfen sie beim Arbeiten
+- **Die Quellenangaben des Parameterregisters nennen nur noch Nachlesbares:** statt „A0-07 („mehr als 50%") · § 5 Abs 12 · FB-G6" jetzt „§ 5 Abs 12 · Anweisung des Gründers: „mehr als 50%"". Der Satzungsbezug und das wörtliche Zitat bleiben — sie sind der eigentliche Nachweis (§ 2 Abs 6). Bestehende Registereinträge werden beim Deploy nachgezogen; der **Wert** bleibt unangetastet, die Quelle ist Beschreibung
+- Auf `/zukunftswerkstatt/` steht „Satzungsentwurf 2.5" statt 2.3, und die Unterstützer-Schleife ist nicht mehr „Zielbild", sondern gebaut — für sie liegt ein eigener **Satzungsbaustein zur Beschlussfassung** vor (§ 5 Abs 13 neu, im Arbeitsordner des Gründers)
+
+### Behoben
+- Verschachtelte doppelte Anführungszeichen in fünf Attributen (`data-label="{% translate "Wann" %}"`) — für Django gültig, im Quelltext gebrochenes HTML
+- Vier veraltete Code-Kommentare, die „die gesamte Verwaltung ist bewusst nur deutsch" behaupteten
+
+### Hinzugefügt (Wächter)
+- **Gegen interne Kennungen** in Nutzer-Texten und in den Quellenangaben des Registers. Er hat sich gleich bewährt: Er fing eine Kennung, die mit den neuen Übersetzungen hereinkam
+
 ## [0.39.3] — 2026-09-04 · Die Sprachregeln gelten überall — und ein Wächter hält sie
 
 ### Geändert

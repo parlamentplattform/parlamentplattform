@@ -1,52 +1,53 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Mitgliederverwaltung{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Mitgliederverwaltung" %}{% endblock %}
 {% block inhalt %}
-<h1>Mitgliederverwaltung</h1>
-<p>Zugang nur für Admins. Jede Handlung hier wird im öffentlichen
-Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.
-<a href="{% url 'mitglieder:verwaltung_beitraege' %}">Beiträge &amp; Bank →</a> ·
-<a href="{% url 'anstoss:verwaltung' %}">Anstöße →</a> ·
-<a href="{% url 'mandatare:verwaltung' %}">Mandatare →</a> ·
-<a href="{% url 'gremien:rollen' %}">Gremien-Rollen →</a></p>
+<h1>{% translate "Mitgliederverwaltung" %}</h1>
+<p>{% blocktranslate %}Zugang nur für Admins. Jede Handlung hier wird im öffentlichen
+Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.{% endblocktranslate %}
+<a href="{% url 'mitglieder:verwaltung_beitraege' %}">{% translate "Beiträge &amp; Bank →" %}</a> ·
+<a href="{% url 'anstoss:verwaltung' %}">{% translate "Anstöße →" %}</a> ·
+<a href="{% url 'mandatare:verwaltung' %}">{% translate "Mandatare →" %}</a> ·
+<a href="{% url 'gremien:rollen' %}">{% translate "Gremien-Rollen →" %}</a></p>
 
 <div class="hf-grid" style="margin-top:18px">
-  <div class="bereich"><span class="bk">Bestand</span>
-    <p class="erk" style="margin-top:6px"><strong>{{ zahlen.gesamt }}</strong> Konten gesamt ·
-    <strong>{{ zahlen.aktiv }}</strong> aktiv · <strong>{{ zahlen.unbestaetigt }}</strong> unbestätigt</p>
+  <div class="bereich"><span class="bk">{% translate "Bestand" %}</span>
+    <p class="erk" style="margin-top:6px">{% blocktranslate with gesamt=zahlen.gesamt aktiv=zahlen.aktiv unbestaetigt=zahlen.unbestaetigt %}<strong>{{ gesamt }}</strong> Konten gesamt ·
+    <strong>{{ aktiv }}</strong> aktiv · <strong>{{ unbestaetigt }}</strong> unbestätigt{% endblocktranslate %}</p>
   </div>
-  <div class="bereich"><span class="bk">Ruhend</span>
-    <p class="erk" style="margin-top:6px"><strong>{{ zahlen.pausiert }}</strong> pausiert (Beitrag ausständig) ·
-    <strong>{{ zahlen.ausgeschlossen }}</strong> ausgeschlossen</p>
+  <div class="bereich"><span class="bk">{% translate "Ruhend" %}</span>
+    <p class="erk" style="margin-top:6px">{% blocktranslate with pausiert=zahlen.pausiert ausgeschlossen=zahlen.ausgeschlossen %}<strong>{{ pausiert }}</strong> pausiert (Beitrag ausständig) ·
+    <strong>{{ ausgeschlossen }}</strong> ausgeschlossen{% endblocktranslate %}</p>
   </div>
-  <div class="bereich"><span class="bk">Suche</span>
+  <div class="bereich"><span class="bk">{% translate "Suche" %}</span>
     <form method="get" style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-      <input type="text" name="q" value="{{ suche }}" placeholder="Name, E-Mail, Gemeinde …" style="flex:1;min-width:140px">
+      <input type="text" name="q" value="{{ suche }}" placeholder="{% translate 'Name, E-Mail, Gemeinde …' %}" style="flex:1;min-width:140px">
       <select name="status" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:10px">
-        <option value="">alle Status</option>
+        <option value="">{% translate "alle Status" %}</option>
         {% for wert, name in statuswahl %}<option value="{{ wert }}" {% if status == wert %}selected{% endif %}>{{ name }}</option>{% endfor %}
       </select>
-      <button type="submit" class="btn-linie">Filtern</button>
+      <button type="submit" class="btn-linie">{% translate "Filtern" %}</button>
     </form>
   </div>
 </div>
 
 <div class="karte" style="overflow-x:auto">
 <table class="tabelle">
-  <thead><tr><th>Mitglied</th><th>E-Mail</th><th>Gemeinde</th><th>Identität</th><th>Status</th><th>Beitritt</th><th></th></tr></thead>
+  <thead><tr><th>{% translate "Mitglied" %}</th><th>{% translate "E-Mail" %}</th><th>{% translate "Gemeinde" %}</th><th>{% translate "Identität" %}</th><th>{% translate "Status" %}</th><th>{% translate "Beitritt" %}</th><th></th></tr></thead>
   <tbody>
   {% for m in mitglieder %}
   <tr>
-    <td data-label="Mitglied"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
-      {% if m.hat_adminrechte %} <span class="badge badge--hell">Admin</span>{% endif %}</td>
-    <td data-label="E-Mail">{{ m.email }}</td>
-    <td data-label="Gemeinde">{{ m.gemeinde|default:"—" }}</td>
-    <td data-label="Identität">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
-    <td data-label="Status">{% if not m.is_active and m.status != "ausgeschlossen" %}unbestätigt{% else %}{{ m.get_status_display }}{% endif %}</td>
-    <td data-label="Beitritt">{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>
-    <td><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">öffnen →</a></td>
+    <td data-label="{% translate 'Mitglied' %}"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
+      {% if m.hat_adminrechte %} <span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}</td>
+    <td data-label="{% translate 'E-Mail' %}">{{ m.email }}</td>
+    <td data-label="{% translate 'Gemeinde' %}">{{ m.gemeinde|default:"—" }}</td>
+    <td data-label="{% translate 'Identität' %}">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
+    <td data-label="{% translate 'Status' %}">{% if not m.is_active and m.status != "ausgeschlossen" %}{% translate "unbestätigt" %}{% else %}{{ m.get_status_display }}{% endif %}</td>
+    <td data-label="{% translate 'Beitritt' %}">{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>
+    <td><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{% translate "öffnen →" %}</a></td>
   </tr>
   {% empty %}
-  <tr><td colspan="7" class="leer">Keine Treffer.</td></tr>
+  <tr><td colspan="7" class="leer">{% translate "Keine Treffer." %}</td></tr>
   {% endfor %}
   </tbody>
 </table>

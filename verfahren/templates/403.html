@@ -1,0 +1,19 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}{% comment %}
+Zugriff verweigert — meist eine abgelaufene Sitzung beim Absenden eines Formulars (CSRF).
+Ohne diese Vorlage stünde hier Djangos eigene Kastenseite in fremdem Aussehen mit englischem
+Fenstertitel. Der Weg zurück führt zur Anmeldung, nicht in eine Sackgasse.
+{% endcomment %}
+{% block titel %}{% translate "Zugriff nicht möglich" %}{% endblock %}
+{% block inhalt %}
+<div class="fehlerseite">
+  <p class="fehlernummer" aria-hidden="true">403</p>
+  <h1>{% translate "Das ging nicht durch" %}</h1>
+  <p>{% blocktranslate %}Wahrscheinlich lag das Formular zu lange offen und Ihre Sitzung ist inzwischen abgelaufen.
+Melden Sie sich neu an und schicken Sie es noch einmal ab — eingegebene Texte gehen dabei leider verloren.{% endblocktranslate %}</p>
+  <p class="fehlerwege">
+    <a class="btn" href="{% url 'mitglieder:login' %}">{% translate "Neu anmelden" %}</a>
+    <a class="btn-linie" href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>
+  </p>
+</div>
+{% endblock %}

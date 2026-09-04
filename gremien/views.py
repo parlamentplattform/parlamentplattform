@@ -6,7 +6,7 @@ Entwurfsfenster je Antrag in der Beratung — Fassungen append-only, Beiträge
 und die interne Einreich-Abstimmung dokumentiert (§ 6 Abs 9).
 Unterstützer: das offene Votum der Entwurfsschleife (§ 5 Abs 12) — der
 Endpoint wohnt hier, das Formular auf der Antragsseite.
-Verwaltung: Rollenzuweisung auf Zeit, auditiert (bewusst nur deutsch)."""
+Verwaltung: Rollenzuweisung auf Zeit, auditiert."""
 
 from functools import wraps
 
@@ -280,7 +280,7 @@ def fenster_aktion(request, antrag_id: int):
     return redirect("gremien:fenster", antrag_id=antrag.pk)
 
 
-# ── Verwaltung: Rollen auf Zeit (bewusst nur deutsch) ────────────────────────
+# ── Verwaltung: Rollen auf Zeit ──────────────────────────────────────────────
 
 
 class RollenFormular(forms.Form):

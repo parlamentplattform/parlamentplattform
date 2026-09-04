@@ -175,3 +175,32 @@ def test_nutzer_texte_halten_die_sprachregeln():
             if wort in text:
                 fehler.append(f'{wort} statt {ersatz}: {text[:90]}')
     assert not fehler, "Sprachregel verletzt:\n  " + "\n  ".join(fehler)
+
+
+#: Kürzel interner Dokumente — im Quelltext hilfreich, in Nutzer-Texten Rauschen.
+KENNUNGSMUSTER = re.compile(r"\b(F-\d+|FB-[A-Z]\d+|A0-\d+|ADR-\d+|Ring 0[ab]|L\d)\b")
+
+
+def test_keine_internen_kennungen_in_nutzer_texten():
+    """Entscheidung des Gründers (4.9.2026): Lastenheft-, Fahrtenbuch-, ADR- und
+    Ring-Kennungen verschwinden aus allem, was Nutzer lesen — teils verweisen sie auf
+    Dokumente, die gar nicht öffentlich sind. In Kommentaren und Docstrings bleiben sie."""
+    fehler = [
+        f"{m.group(1)}: {text[:80]}"
+        for text in msgids()
+        if (m := KENNUNGSMUSTER.search(text))
+    ]
+    assert not fehler, "interne Kennung im Nutzer-Text:\n  " + "\n  ".join(fehler)
+
+
+def test_quellen_des_registers_nennen_nur_nachlesbares():
+    """Die Quellenangabe im Parameterregister ist öffentlich (§ 2 Abs 6) — sie darf auf die
+    Satzung verweisen und auf Anweisungen im Wortlaut, nicht auf interne Dokumentkennungen."""
+    from parameter.models import ERSTBESTAND
+
+    fehler = [
+        f"{e['schluessel']}: {e['quelle']}"
+        for e in ERSTBESTAND
+        if KENNUNGSMUSTER.search(e.get("quelle", ""))
+    ]
+    assert not fehler, "interne Kennung in einer Registerquelle:\n  " + "\n  ".join(fehler)

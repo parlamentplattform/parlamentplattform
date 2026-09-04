@@ -322,8 +322,8 @@ msgid "KI-Einschätzung einholen"
 msgstr "Request AI assessment"
 
 msgid ""
-"Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert (F-60)."
-msgstr "It suggests, it never decides — the run is archived (F-60)."
+"Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert."
+msgstr "It suggests, it never decides — the run is archived ."
 
 msgid ""
 "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer."
@@ -398,7 +398,7 @@ msgstr "Future workshop inbox"
 
 msgid ""
 "Hier landen künftig die Vorschläge aus der Zukunftswerkstatt zur Sichtung durch den\n"
-"Koordinationsrat — samt KI-Vorprüfung als Vorschlag, nie als Entscheidung (Ring 0b)."
+"Koordinationsrat — samt KI-Vorprüfung als Vorschlag, nie als Entscheidung."
 msgstr ""
 "Proposals from the future workshop will land here for review by the "
 "coordination council — including an AI pre-check as a suggestion, never a "
@@ -1473,11 +1473,11 @@ msgstr "Start typing and pick from the list …"
 
 msgid ""
 "Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
-"ordnen wir dann automatisch zu (F-43). Mit der ID Austria erfolgt das später"
+"ordnen wir dann automatisch zu . Mit der ID Austria erfolgt das später"
 " amtlich."
 msgstr ""
 "Please pick from the official municipal register — district and province are"
-" then assigned automatically (F-43). With ID Austria this will later happen "
+" then assigned automatically . With ID Austria this will later happen "
 "officially."
 
 #, python-format
@@ -1584,12 +1584,12 @@ msgid "Offene Parameter"
 msgstr "Open parameters"
 
 msgid ""
-"An diesen Stellschrauben lernt das System (F-68): Fristen, Runden, Budgets — jede mit\n"
+"An diesen Stellschrauben lernt das System: Fristen, Runden, Budgets — jede mit\n"
 "Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.\n"
 "Änderungen sind nur dokumentiert möglich: heute durch die Verwaltung mit veröffentlichtem Grund im\n"
 "Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung."
 msgstr ""
-"These are the dials the system learns at (F-68): deadlines, rounds, budgets "
+"These are the dials the system learns at : deadlines, rounds, budgets "
 "— each with a description and its origin. The code reads from here; if an "
 "entry is missing, the built-in target value applies. Changes are only "
 "possible documented: today by the administration with a published reason in "
@@ -1825,7 +1825,7 @@ msgstr "To the Parliament"
 msgid "Mandats-Kandidatur"
 msgstr "Mandate candidacy"
 
-msgid "automatisch zugeordnet (F-47)"
+msgid "automatisch zugeordnet"
 msgstr "assigned automatically (F-47)"
 
 msgid "eingebracht"
@@ -2194,11 +2194,11 @@ msgstr "Rather support an existing motion"
 
 msgid ""
 "Vor dem Einbringen gleicht die Plattform Ihren Text\n"
-"  automatisch mit laufenden Anträgen ab (ADR-006). Der Hinweis schlägt vor — er blockiert nie.\n"
+"  automatisch mit laufenden Anträgen ab. Der Hinweis schlägt vor — er blockiert nie.\n"
 "  Titel und Wortlaut sind öffentlich."
 msgstr ""
 "Before submission, the platform automatically compares your text with active"
-" motions (ADR-006). The hint suggests — it never blocks. Title and text are "
+" motions . The hint suggests — it never blocks. Title and text are "
 "public."
 
 msgid ""
@@ -2905,7 +2905,7 @@ msgstr ""
 msgid "Register als JSON exportieren"
 msgstr "Export the register as JSON"
 
-msgid "maschinenlesbar, mit voller Historie (F-23)."
+msgid "maschinenlesbar, mit voller Historie."
 msgstr "machine-readable, with full history (F-23)."
 
 msgid ""
@@ -3078,12 +3078,11 @@ msgstr ""
 "compares the assessment with reality. The circle closes."
 
 msgid ""
-"Die Schritte 1 bis 3 und 5 bis 6 entsprechen dem Satzungsentwurf 2.3;\n"
-"  die Unterstützer-Schleife in Schritt 4 ist Zielbild und erhält vor Einführung einen eigenen Satzungsbaustein."
+"Die Schritte 1 bis 3 und 5 bis 6 entsprechen dem Satzungsentwurf 2.5;\n"
+"  die Unterstützer-Schleife in Schritt 4 ist gebaut — für sie liegt ein eigener Satzungsbaustein zur Beschlussfassung vor."
 msgstr ""
-"Steps 1 to 3 and 5 to 6 follow draft statutes 2.3; the supporter loop in "
-"step 4 is the target picture and will receive its own statutory building "
-"block before introduction."
+"Steps 1 to 3 and 5 to 6 follow draft statutes 2.5; the supporter loop in "
+"step 4 is built — a statutory building block for it is before the assembly."
 
 msgid "Woher die Fakten kommen"
 msgstr "Where the facts come from"
@@ -4263,8 +4262,8 @@ msgstr "with implementation relevance"
 msgid "Audit-Spur"
 msgstr "Audit trail"
 
-msgid "Hash-Kette, fortlaufend (F-22)"
-msgstr "Hash chain, continuous (F-22)"
+msgid "Hash-Kette, fortlaufend"
+msgstr "Hash chain, continuous"
 
 msgid "%(n)s Beitrag"
 msgid_plural "%(n)s Beiträge"
@@ -4320,3 +4319,438 @@ msgstr "since %(wann)s"
 
 msgid "Unterstützungsphase"
 msgstr "Support phase"
+
+msgid "Anstöße"
+msgstr "Feedback"
+
+msgid "Feedback und Wünsche aus dem begleitenden Widget — von jeder Seite der Plattform.\nZur gemeinsamen Auswertung stehen die Exporte bereit."
+msgstr "Feedback and wishes from the accompanying widget — from every page of the platform.\nThe exports are ready for joint evaluation."
+
+msgid "← zur Mitgliederliste"
+msgstr "← to the member list"
+
+msgid "Bestand"
+msgstr "Total"
+
+msgid "gesamt"
+msgstr "total"
+
+msgid "neu"
+msgstr "new"
+
+msgid "gesichtet"
+msgstr "reviewed"
+
+msgid "erledigt"
+msgstr "done"
+
+msgid "Export"
+msgstr "Export"
+
+msgid "Wann"
+msgstr "When"
+
+msgid "Seite"
+msgstr "Page"
+
+msgid "Von"
+msgstr "From"
+
+msgid "Status"
+msgstr "Status"
+
+#, python-format
+msgid "Vermerk: %(vermerk)s"
+msgstr "Note: %(vermerk)s"
+
+msgid "anonym"
+msgstr "anonymous"
+
+msgid "wieder öffnen"
+msgstr "reopen"
+
+msgid "Noch keine Anstöße mit diesem Status."
+msgstr "No feedback with this status yet."
+
+msgid "Noch keine Anstöße."
+msgstr "No feedback yet."
+
+msgid "Rollen-Verwaltung"
+msgstr "Role administration"
+
+msgid "Gremien-Rollen"
+msgstr "Body roles"
+
+#, python-format
+msgid "Rollen auf Zeit (§ 6 Abs 8): Berufung, Bestätigung durch die Mitgliederversammlung und jede\nvorzeitige Beendigung werden hier gepflegt — alles im öffentlichen Audit-Log, die Besetzung auf\n<a href=\"%(gremien_url)s\">/gremien/</a> sichtbar."
+msgstr "Time-limited roles (§ 6 para. 8): appointment, confirmation by the general assembly and every\nearly termination are maintained here — all in the public audit log, the composition visible at\n<a href=\"%(gremien_url)s\">/gremien/</a>."
+
+msgid "Mitgliederverwaltung"
+msgstr "Member administration"
+
+msgid "Rolle berufen"
+msgstr "Appoint a role"
+
+msgid "Berufen"
+msgstr "Appoint"
+
+msgid "Alle Rollen"
+msgstr "All roles"
+
+#, python-format
+msgid "berufen %(wann)s · bis %(bis)s"
+msgstr "appointed %(wann)s · until %(bis)s"
+
+#, python-format
+msgid "beendet: %(grund)s"
+msgstr "terminated: %(grund)s"
+
+msgid "abgelaufen"
+msgstr "expired"
+
+msgid "MV-bestätigt"
+msgstr "assembly-confirmed"
+
+msgid "MV-Bestätigung vermerken"
+msgstr "Record assembly confirmation"
+
+msgid "Grund (bleibt dokumentiert)"
+msgstr "Reason (stays on the record)"
+
+msgid "Beenden"
+msgstr "Terminate"
+
+msgid "Noch keine Rollen berufen."
+msgstr "No roles appointed yet."
+
+msgid "Mandatare-Verwaltung"
+msgstr "Mandate holder administration"
+
+msgid "Pflege der öffentlichen Mandatare-Seite (§ 7 Abs 9) — bis die Mandatar-Rolle (M2)\ndie Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert."
+msgstr "Maintaining the public mandate holders page (§ 7 para. 9) — until the mandate-holder role (M2)\nhands maintenance over to the mandate holders themselves. Every action is audited."
+
+msgid "öffentliche Seite ansehen →"
+msgstr "view public page →"
+
+msgid "Mandat anlegen"
+msgstr "Create mandate"
+
+msgid "beendet"
+msgstr "ended"
+
+msgid "öffentlich →"
+msgstr "public →"
+
+msgid "Foto speichern"
+msgstr "Save photo"
+
+msgid "Mandat beenden"
+msgstr "End mandate"
+
+msgid "Aufgaben"
+msgstr "Tasks"
+
+#, python-format
+msgid "Antrag #%(nr)s"
+msgstr "Motion #%(nr)s"
+
+msgid "laufend"
+msgstr "in progress"
+
+msgid "Noch keine Aufgaben."
+msgstr "No tasks yet."
+
+msgid "Beschreibung (öffentlich)"
+msgstr "Description (public)"
+
+msgid "Antrags-Nr. (betreute Abstimmung, optional)"
+msgstr "Motion no. (vote in their care, optional)"
+
+msgid "Aufgabe veröffentlichen"
+msgstr "Publish task"
+
+msgid "Noch kein Mandat angelegt."
+msgstr "No mandate created yet."
+
+msgid "Beiträge &amp; Bank"
+msgstr "Fees &amp; bank"
+
+msgid "Der Beitragsabgleich: Die Plattform liest nur das Vereinskonto,\nverbucht Eingänge anhand der persönlichen Referenz und merkt sich von den Umsätzen nichts\nals das Ergebnis. Erinnerungen versendet nie ein Automatismus — sondern Sie, auf Knopfdruck."
+msgstr "Fee reconciliation (F-59): the platform reads the association account only, records payments by their personal reference and remembers nothing of the transactions but the result. Reminders are never sent by an automatism — you send them, at the push of a button."
+
+msgid "Bankkopplung"
+msgstr "Bank link"
+
+msgid "Die Dienst-Schlüssel fehlen noch: <code>DDOE_BANK_SECRET_ID</code> und\n    <code>DDOE_BANK_SECRET_KEY</code> als Umgebungsvariablen setzen (GoCardless Bank Account Data),\n    dann erscheint hier die Kopplung."
+msgstr "The service keys are still missing: set <code>DDOE_BANK_SECRET_ID</code> and <code>DDOE_BANK_SECRET_KEY</code> as environment variables (GoCardless Bank Account Data), then the link appears here."
+
+msgid "Gekoppelt."
+msgstr "Linked."
+
+#, python-format
+msgid "Zustimmung gültig bis %(bis)s ·\n    heute %(abrufe)s/4 Abrufe ·\n    zuletzt abgeglichen %(zuletzt)s"
+msgstr "Consent valid until %(bis)s · %(abrufe)s/4 queries today · last reconciled %(zuletzt)s"
+
+msgid "noch nie"
+msgstr "never yet"
+
+msgid "Die Bank verlangt alle 180 Tage eine neue Zustimmung — rechtzeitig vor dem\n    Ablaufdatum hier einfach neu koppeln."
+msgstr "The bank requires new consent every 180 days — simply link again here in good time before the expiry date."
+
+msgid "Jetzt abgleichen"
+msgstr "Reconcile now"
+
+msgid "Noch kein Konto gekoppelt. Die Zustimmung erteilen Sie gleich selbst im Online-Banking —\n    die Plattform sieht Ihre Bankzugangsdaten dabei nie."
+msgstr "No account linked yet. You grant the consent yourself in online banking — the platform never sees your banking credentials."
+
+msgid "Bank wählen …"
+msgstr "Choose a bank …"
+
+msgid "Institutions-ID (z. B. SPARKASSE_OOE_ASPKAT2L)"
+msgstr "Institution ID (e.g. SPARKASSE_OOE_ASPKAT2L)"
+
+msgid "Bankliste gerade nicht abrufbar — ID von Hand eintragen."
+msgstr "Bank list not available right now — enter the ID by hand."
+
+msgid "Konto koppeln →"
+msgstr "Link account →"
+
+msgid "Kontoauszug hochladen"
+msgstr "Upload bank statement"
+
+msgid "Der Weg ohne Drittanbieter: Im Online-Banking (George) die Umsatzliste des Vereinskontos\n  exportieren — <strong>camt.053-XML</strong> (am genauesten) oder <strong>CSV</strong> — und hier\n  abgleichen. Gleiche Zuordnung, gleiche Freischaltung wie beim automatischen Abruf; jeder Umsatz\n  zählt nur einmal, die Datei selbst wird nicht gespeichert."
+msgstr "The way without a third party: in online banking (George), export the transaction list of the association account — <strong>camt.053 XML</strong> (most precise) or <strong>CSV</strong> — and reconcile it here. Same matching, same unlocking as with the automatic query; every transaction counts only once, and the file itself is not stored."
+
+msgid "Auszug abgleichen"
+msgstr "Reconcile statement"
+
+msgid "Prüfhinweise"
+msgstr "Points to check"
+
+msgid "Bei diesen Eingängen wich der Absendername erkennbar vom Mitgliedsnamen ab —\n  verbucht wurde trotzdem; hier nur zum kurzen Draufschauen (Name und IBAN wurden nicht gespeichert)."
+msgstr "For these payments the sender name noticeably differed from the member name — they were recorded anyway; listed here just for a quick look (name and IBAN were not stored)."
+
+msgid "Länger als 12 Monate ohne Eingang"
+msgstr "More than 12 months without a payment"
+
+msgid "Mitglied"
+msgstr "Member"
+
+msgid "E-Mail"
+msgstr "Email"
+
+msgid "Letzter Eingang"
+msgstr "Last payment"
+
+#, python-format
+msgid "%(name)s auswählen"
+msgstr "Select %(name)s"
+
+msgid "Ausgewählte erinnern"
+msgstr "Remind selected"
+
+#, python-format
+msgid "Alle %(anzahl)s erinnern"
+msgstr "Remind all %(anzahl)s"
+
+msgid "Die E-Mail erinnert freundlich, nennt die persönliche Referenz\n    und verlinkt die Beitragsseite — ausgeschlossen wird wegen des Beitrags niemand (§ 4 Abs 3)."
+msgstr "The email is a friendly reminder, states the personal reference and links to the fee page — nobody is excluded because of the fee (§ 4 (3))."
+
+msgid "Niemand fällig — alle Eingänge liegen innerhalb der letzten zwölf Monate."
+msgstr "Nobody due — all payments fall within the last twelve months."
+
+msgid "Zuletzt verbucht"
+msgstr "Recently recorded"
+
+msgid "Namenshinweis"
+msgstr "Name note"
+
+msgid "Kein Zugang"
+msgstr "No access"
+
+msgid "Nur für die Verwaltung"
+msgstr "Administration only"
+
+msgid "Dieser Bereich steht Admins der Mitgliederverwaltung offen. Admins werden von\nbestehenden Admins ernannt; jede Ernennung steht im öffentlichen Audit-Log."
+msgstr "This area is open to admins of the membership administration. Admins are appointed by\nexisting admins; every appointment appears in the public audit log."
+
+msgid "Zugang nur für Admins. Jede Handlung hier wird im öffentlichen\nAudit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten."
+msgstr "Access for administrators only. Every action taken here is recorded in the public\naudit log — with action and reason, without personal data."
+
+msgid "Beiträge &amp; Bank →"
+msgstr "Fees &amp; bank →"
+
+msgid "Anstöße →"
+msgstr "Feedback →"
+
+msgid "Mandatare →"
+msgstr "Mandate holders →"
+
+msgid "Gremien-Rollen →"
+msgstr "Body roles →"
+
+#, python-format
+msgid "<strong>%(gesamt)s</strong> Konten gesamt ·\n    <strong>%(aktiv)s</strong> aktiv · <strong>%(unbestaetigt)s</strong> unbestätigt"
+msgstr "<strong>%(gesamt)s</strong> accounts in total ·\n    <strong>%(aktiv)s</strong> active · <strong>%(unbestaetigt)s</strong> unconfirmed"
+
+msgid "Ruhend"
+msgstr "Dormant"
+
+#, python-format
+msgid "<strong>%(pausiert)s</strong> pausiert (Beitrag ausständig) ·\n    <strong>%(ausgeschlossen)s</strong> ausgeschlossen"
+msgstr "<strong>%(pausiert)s</strong> paused (fee outstanding) ·\n    <strong>%(ausgeschlossen)s</strong> expelled"
+
+msgid "Suche"
+msgstr "Search"
+
+msgid "Name, E-Mail, Gemeinde …"
+msgstr "Name, e-mail, municipality …"
+
+msgid "alle Status"
+msgstr "all statuses"
+
+msgid "Filtern"
+msgstr "Filter"
+
+msgid "Beitritt"
+msgstr "Joined"
+
+msgid "Admin"
+msgstr "Admin"
+
+msgid "unbestätigt"
+msgstr "unconfirmed"
+
+msgid "öffnen →"
+msgstr "open →"
+
+msgid "Keine Treffer."
+msgstr "No matches."
+
+msgid "Mitglied verwalten"
+msgstr "Manage member"
+
+msgid "zurück zur Liste"
+msgstr "back to the list"
+
+msgid "unbestätigt (E-Mail offen)"
+msgstr "unconfirmed (email pending)"
+
+msgid "aktiv"
+msgstr "active"
+
+msgid "pausiert"
+msgstr "paused"
+
+msgid "ausgeschlossen"
+msgstr "excluded"
+
+msgid "fixer Admin"
+msgstr "fixed admin"
+
+#, python-format
+msgid "Mitglied #%(pk)s · beigetreten %(beitritt)s ·\n  letzter Beitrag %(letzter_beitrag)s"
+msgstr "Member #%(pk)s · joined %(beitritt)s · last fee %(letzter_beitrag)s"
+
+msgid "Begründung des Status:"
+msgstr "Reason for the status:"
+
+msgid "Stammdaten korrigieren"
+msgstr "Correct the master data"
+
+msgid "Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.\n  Die Änderung wird (ohne Werte) im Audit-Log vermerkt."
+msgstr "District and province follow the municipality register automatically. The change is recorded in the audit log (without values)."
+
+msgid "Beitragseingang heute vermerken"
+msgstr "Record fee received today"
+
+msgid "Hebt eine Beitragspause automatisch auf. Bis zum Kontoauszug-Import händisch."
+msgstr "Automatically lifts a fee-related pause. Done by hand until the bank statement import."
+
+msgid "Der satzungsgebende Erstzugang kann weder pausiert noch ausgeschlossen werden."
+msgstr "The constituent initial access can neither be paused nor excluded."
+
+msgid "Begründung (wird im Audit-Log veröffentlicht)"
+msgstr "Reason (published in the audit log)"
+
+msgid "z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …"
+msgstr "e.g. fee outstanding for more than a year; reminder sent on …"
+
+msgid "Pausieren (Beitrag ausständig)"
+msgstr "Pause (fee outstanding)"
+
+msgid "Ausschließen (vollzieht den Beschluss nach § 4 Abs 6)"
+msgstr "Exclude (executes the decision under § 4 (6))"
+
+msgid "Wieder aktiv setzen"
+msgstr "Set active again"
+
+msgid "Pausiert: Anmelden und Lesen bleiben möglich, Mitwirkungsrechte ruhen.\n  Ausgeschlossen: Konto wird deaktiviert. Beides ist umkehrbar („Wieder aktiv setzen“)."
+msgstr "Paused: signing in and reading remain possible, participation rights are suspended. Excluded: the account is deactivated. Both are reversible (“Set active again”)."
+
+msgid "Adminrechte"
+msgstr "Admin rights"
+
+msgid "Immer Admin (DDOE_FIX_ADMIN) — nicht entziehbar."
+msgstr "Always admin (DDOE_FIX_ADMIN) — cannot be revoked."
+
+msgid "Adminrechte entziehen"
+msgstr "Revoke admin rights"
+
+msgid "Zum Admin ernennen"
+msgstr "Appoint as admin"
+
+msgid "Parameter-Verwaltung"
+msgstr "Parameter administration"
+
+msgid "Parameterregister"
+msgstr "Parameter register"
+
+#, python-format
+msgid "Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf\n<a href=\"%(parameter_liste_url)s\">/parameter/</a>."
+msgstr "Every change needs a reason — it is recorded in the public audit log; the register is at\n<a href=\"%(parameter_liste_url)s\">/parameter/</a>."
+
+msgid "Grund (wird veröffentlicht)"
+msgstr "Reason (will be published)"
+
+msgid "Seite nicht gefunden"
+msgstr "Page not found"
+
+msgid "Diese Seite gibt es nicht"
+msgstr "This page does not exist"
+
+msgid "Zur Startseite"
+msgstr "To the start page"
+
+msgid "Vielleicht ist der Verweis veraltet, vielleicht hat sich ein Tippfehler eingeschlichen.
+Der Inhalt selbst ist nicht verloren — Verfahren werden auf dieser Plattform nicht gelöscht."
+msgstr "Perhaps the link is out of date, perhaps a typo slipped in.
+The content itself is not lost — procedures are never deleted on this platform."
+
+msgid "Zugriff nicht möglich"
+msgstr "Access not possible"
+
+msgid "Das ging nicht durch"
+msgstr "That did not go through"
+
+msgid "Neu anmelden"
+msgstr "Sign in again"
+
+msgid "Wahrscheinlich lag das Formular zu lange offen und Ihre Sitzung ist inzwischen abgelaufen.
+Melden Sie sich neu an und schicken Sie es noch einmal ab — eingegebene Texte gehen dabei leider verloren."
+msgstr "The form was probably open for too long and your session has expired in the meantime.
+Sign in again and send it once more — text you had entered is unfortunately lost."
+
+msgid "Serverfehler"
+msgstr "Server error"
+
+msgid "Hier ist etwas schiefgegangen"
+msgstr "Something went wrong here"
+
+msgid "Zurück ins Parlament"
+msgstr "Back to the parliament"
+
+msgid "Der Fehler liegt bei uns, nicht bei Ihnen. Er ist protokolliert und wird angesehen.
+Nichts von dem, was bereits abgestimmt oder eingebracht wurde, geht dabei verloren."
+msgstr "The fault is ours, not yours. It is logged and will be looked at.
+Nothing that has already been voted on or submitted is lost."

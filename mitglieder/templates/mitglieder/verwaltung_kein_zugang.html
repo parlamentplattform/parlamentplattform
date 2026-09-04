@@ -1,9 +1,10 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Kein Zugang{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Kein Zugang" %}{% endblock %}
 {% block inhalt %}
-<h1>Nur für die Verwaltung</h1>
+<h1>{% translate "Nur für die Verwaltung" %}</h1>
 <div class="karte">
-<p>Dieser Bereich steht Admins der Mitgliederverwaltung offen. Admins werden von
-bestehenden Admins ernannt; jede Ernennung steht im öffentlichen Audit-Log.</p>
+<p>{% blocktranslate %}Dieser Bereich steht Admins der Mitgliederverwaltung offen. Admins werden von
+bestehenden Admins ernannt; jede Ernennung steht im öffentlichen Audit-Log.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

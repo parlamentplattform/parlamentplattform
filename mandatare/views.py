@@ -78,7 +78,7 @@ def foto(request, pk: int):
     return antwort
 
 
-# --- Verwaltung (bewusst nur deutsch, wie die gesamte Verwaltung) -----------------
+# --- Verwaltung -------------------------------------------------------------------
 
 
 class MandatFormular(forms.Form):

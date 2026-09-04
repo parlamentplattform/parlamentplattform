@@ -1,22 +1,23 @@
 {% extends "verfahren/base.html" %}
-{% block titel %}Mitglied verwalten{% endblock %}
+{% load i18n %}
+{% block titel %}{% translate "Mitglied verwalten" %}{% endblock %}
 {% block inhalt %}
-<p><a href="{% url 'mitglieder:verwaltung' %}">← zurück zur Liste</a></p>
+<p><a href="{% url 'mitglieder:verwaltung' %}">← {% translate "zurück zur Liste" %}</a></p>
 <h1>{{ person.get_full_name|default:person.anzeigename }}</h1>
 <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
   {% if not person.is_active and person.status != "ausgeschlossen" %}
-    <span class="badge badge-info">unbestätigt (E-Mail offen)</span>
-  {% elif person.status == "aktiv" %}<span class="badge badge-ok">aktiv</span>
-  {% elif person.status == "pausiert" %}<span class="badge badge-hinweis">pausiert</span>
-  {% else %}<span class="badge badge-warn">ausgeschlossen</span>{% endif %}
-  {% if person.ist_fixer_admin %}<span class="badge badge--hell">fixer Admin</span>
-  {% elif person.ist_admin %}<span class="badge badge--hell">Admin</span>{% endif %}
-  <span class="erk">Mitglied #{{ person.pk }} · beigetreten {{ person.beitritt|date:"d.m.Y"|default:"—" }} ·
-  letzter Beitrag {{ person.beitrag_zuletzt_am|date:"d.m.Y"|default:"—" }}</span>
+    <span class="badge badge-info">{% translate "unbestätigt (E-Mail offen)" %}</span>
+  {% elif person.status == "aktiv" %}<span class="badge badge-ok">{% translate "aktiv" %}</span>
+  {% elif person.status == "pausiert" %}<span class="badge badge-hinweis">{% translate "pausiert" %}</span>
+  {% else %}<span class="badge badge-warn">{% translate "ausgeschlossen" %}</span>{% endif %}
+  {% if person.ist_fixer_admin %}<span class="badge badge--hell">{% translate "fixer Admin" %}</span>
+  {% elif person.ist_admin %}<span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}
+  <span class="erk">{% blocktranslate with pk=person.pk beitritt=person.beitritt|date:"d.m.Y"|default:"—" letzter_beitrag=person.beitrag_zuletzt_am|date:"d.m.Y"|default:"—" %}Mitglied #{{ pk }} · beigetreten {{ beitritt }} ·
+  letzter Beitrag {{ letzter_beitrag }}{% endblocktranslate %}</span>
 </p>
-{% if person.status_grund %}<div class="karte hinweis"><p><strong>Begründung des Status:</strong> {{ person.status_grund }}</p></div>{% endif %}
+{% if person.status_grund %}<div class="karte hinweis"><p><strong>{% translate "Begründung des Status:" %}</strong> {{ person.status_grund }}</p></div>{% endif %}
 
-<h2>Stammdaten korrigieren</h2>
+<h2>{% translate "Stammdaten korrigieren" %}</h2>
 <div class="karte">
 <form method="post">{% csrf_token %}
   <input type="hidden" name="aktion" value="stammdaten">
@@ -26,49 +27,49 @@
     <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
     {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   {% endfor %}
-  <button type="submit" class="btn">Speichern</button>
-  <p class="hilfe" style="margin-top:10px">Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.
-  Die Änderung wird (ohne Werte) im Audit-Log vermerkt.</p>
+  <button type="submit" class="btn">{% translate "Speichern" %}</button>
+  <p class="hilfe" style="margin-top:10px">{% blocktranslate %}Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.
+  Die Änderung wird (ohne Werte) im Audit-Log vermerkt.{% endblocktranslate %}</p>
 </form>
 </div>
 
-<h2>Beitrag</h2>
+<h2>{% translate "Beitrag" %}</h2>
 <div class="karte">
 <form method="post" class="stimmzeile">{% csrf_token %}
   <input type="hidden" name="aktion" value="beitrag">
-  <button type="submit" class="btn-linie">Beitragseingang heute vermerken</button>
-  <span class="hilfe">Hebt eine Beitragspause automatisch auf. Bis zum Kontoauszug-Import händisch.</span>
+  <button type="submit" class="btn-linie">{% translate "Beitragseingang heute vermerken" %}</button>
+  <span class="hilfe">{% translate "Hebt eine Beitragspause automatisch auf. Bis zum Kontoauszug-Import händisch." %}</span>
 </form>
 </div>
 
-<h2>Status</h2>
+<h2>{% translate "Status" %}</h2>
 <div class="karte">
   {% if person.ist_fixer_admin %}
-    <p class="erk">Der satzungsgebende Erstzugang kann weder pausiert noch ausgeschlossen werden.</p>
+    <p class="erk">{% translate "Der satzungsgebende Erstzugang kann weder pausiert noch ausgeschlossen werden." %}</p>
   {% else %}
   <form method="post" style="margin-bottom:14px">{% csrf_token %}
-    <p><label for="id_grund">Begründung (wird im Audit-Log veröffentlicht)</label>
-    <textarea id="id_grund" name="grund" rows="2" placeholder="z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …"></textarea></p>
+    <p><label for="id_grund">{% translate "Begründung (wird im Audit-Log veröffentlicht)" %}</label>
+    <textarea id="id_grund" name="grund" rows="2" placeholder="{% translate 'z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …' %}"></textarea></p>
     <div class="stimmzeile">
-      {% if person.status != "pausiert" %}<button type="submit" name="aktion" value="pausieren" class="btn-linie">Pausieren (Beitrag ausständig)</button>{% endif %}
-      {% if person.status != "ausgeschlossen" %}<button type="submit" name="aktion" value="ausschliessen" class="btn-still">Ausschließen (vollzieht den Beschluss nach § 4 Abs 6)</button>{% endif %}
-      {% if person.status != "aktiv" %}<button type="submit" name="aktion" value="reaktivieren" class="btn">Wieder aktiv setzen</button>{% endif %}
+      {% if person.status != "pausiert" %}<button type="submit" name="aktion" value="pausieren" class="btn-linie">{% translate "Pausieren (Beitrag ausständig)" %}</button>{% endif %}
+      {% if person.status != "ausgeschlossen" %}<button type="submit" name="aktion" value="ausschliessen" class="btn-still">{% translate "Ausschließen (vollzieht den Beschluss nach § 4 Abs 6)" %}</button>{% endif %}
+      {% if person.status != "aktiv" %}<button type="submit" name="aktion" value="reaktivieren" class="btn">{% translate "Wieder aktiv setzen" %}</button>{% endif %}
     </div>
   </form>
-  <p class="hilfe">Pausiert: Anmelden und Lesen bleiben möglich, Mitwirkungsrechte ruhen.
-  Ausgeschlossen: Konto wird deaktiviert. Beides ist umkehrbar („Wieder aktiv setzen“).</p>
+  <p class="hilfe">{% blocktranslate %}Pausiert: Anmelden und Lesen bleiben möglich, Mitwirkungsrechte ruhen.
+  Ausgeschlossen: Konto wird deaktiviert. Beides ist umkehrbar („Wieder aktiv setzen“).{% endblocktranslate %}</p>
   {% endif %}
 </div>
 
-<h2>Adminrechte</h2>
+<h2>{% translate "Adminrechte" %}</h2>
 <div class="karte">
 <form method="post" class="stimmzeile">{% csrf_token %}
   {% if person.ist_fixer_admin %}
-    <span class="erk">Immer Admin (DDOE_FIX_ADMIN) — nicht entziehbar.</span>
+    <span class="erk">{% translate "Immer Admin (DDOE_FIX_ADMIN) — nicht entziehbar." %}</span>
   {% elif person.ist_admin %}
-    <button type="submit" name="aktion" value="admin_nehmen" class="btn-still">Adminrechte entziehen</button>
+    <button type="submit" name="aktion" value="admin_nehmen" class="btn-still">{% translate "Adminrechte entziehen" %}</button>
   {% else %}
-    <button type="submit" name="aktion" value="admin_geben" class="btn-linie">Zum Admin ernennen</button>
+    <button type="submit" name="aktion" value="admin_geben" class="btn-linie">{% translate "Zum Admin ernennen" %}</button>
   {% endif %}
 </form>
 </div>

@@ -59,7 +59,7 @@ class Mandat(models.Model):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="mandate",
-        help_text="Der Kandidatur-Antrag (F-70), aus dem dieses Mandat hervorging.",
+        help_text="Der Kandidatur-Antrag, aus dem dieses Mandat hervorging.",
     )
     vorstellung = models.TextField(max_length=2000, blank=True)
     foto = models.BinaryField(null=True, blank=True, editable=False)

@@ -150,8 +150,23 @@ def zeitleiste(antrag) -> list[dict]:
     return bloecke
 
 
-def audit_spur(antrag, grenze: int = 60) -> list[dict]:
-    """Die Audit-Ereignisse dieses Antrags mit Hash-Kurzform (F-22) — die schmale Zeitleiste."""
+#: Rückfallwert; der gültige steht im Register unter „archiv-audit-anzeige" (FB-J2).
+AUDIT_ANZEIGE = 60
+
+
+def audit_anzeige() -> int:
+    """Wie viele Ereignisse die Zeitleiste zeigt — der Export bekommt immer alle."""
+    from parameter.models import zahl
+
+    return zahl("archiv-audit-anzeige", AUDIT_ANZEIGE)
+
+
+def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
+    """Die Audit-Ereignisse dieses Antrags mit Hash-Kurzform (F-22).
+
+    Ohne `grenze` kommt die **vollständige** Spur — so muss es für den Export sein (FB-G7,
+    Grundregel 7). Die Seite reicht `AUDIT_ANZEIGE` herein, weil eine Zeitleiste mit
+    zweihundert Zeilen niemandem hilft; dass gekürzt wurde, sagt sie dann auch dazu."""
     spur = []
     for eintrag in AuditEintrag.objects.order_by("lfd"):
         if eintrag.ereignis.get("antrag") != antrag.pk:
@@ -165,7 +180,7 @@ def audit_spur(antrag, grenze: int = 60) -> list[dict]:
                 "grund": eintrag.ereignis.get("grund", ""),
             }
         )
-    return spur[-grenze:]
+    return spur[-grenze:] if grenze else spur
 
 
 def archiv(antrag) -> dict:

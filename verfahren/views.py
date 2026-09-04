@@ -313,6 +313,21 @@ def _meine_stimmen(nutzer, antraege):
     return stimmen
 
 
+
+def fristen_fuer_das_diagramm() -> dict:
+    """Die drei Zahlen des Flussdiagramms auf der Startseite — aus dem Register (FB-J1).
+
+    Standen sie als Text im Bild, zeigte die erste Seite nach einer Änderung im Register
+    weiter den alten Wert. Wer zwei Zahlen für dieselbe Frist findet, glaubt keiner davon."""
+    from parameter.models import zahl
+
+    return {
+        "unterstuetzung": zahl("verfahren-unterstuetzung-tage", 60),
+        "beratung": zahl("expertenrat-erstvorschlag-tage", 21),
+        "abstimmung": zahl("verfahren-abstimmung-tage", 28),
+        "runden": zahl("gremien-hoechstrunden", 3),
+    }
+
 def index(request):
     """Die Willkommensseite unter „/" — der Einstieg für alle (auch übers
     Header-Logo): Hier wird das System erklärt und jeder Bereich vorgestellt.
@@ -333,7 +348,12 @@ def index(request):
     return render(
         request,
         "verfahren/index.html",
-        {"buehne": buehne, "wichtige": wichtige, "meine_favoriten": _meine_favoriten(request.user)},
+        {
+            "buehne": buehne,
+            "wichtige": wichtige,
+            "meine_favoriten": _meine_favoriten(request.user),
+            "fristen": fristen_fuer_das_diagramm(),
+        },
     )
 
 
@@ -612,10 +632,13 @@ def _archiv_lage(antrag) -> dict:
     """Zone „Archiv" (FB-G7): die Zeitleiste, die Werkstattrunden und die Audit-Spur."""
     from verfahren import archiv as archivkern
 
+    alle = archivkern.audit_spur(antrag)
     return {
         "zeitleiste": archivkern.zeitleiste(antrag),
         "entwurf": archivkern.entwurf_bloecke(antrag),
-        "audit": archivkern.audit_spur(antrag),
+        "audit": alle[-archivkern.audit_anzeige() :],
+        "audit_gesamt": len(alle),
+        "audit_gekuerzt": len(alle) > archivkern.audit_anzeige(),
     }
 
 def archiv_export(request, pk, art):
@@ -830,9 +853,8 @@ PAKET_DATEIEN = (
     ("instanz/env.example", "docs/partner/instanz/env.example"),
     ("instanz/render.yaml", "docs/partner/instanz/render.yaml"),
     ("policies/kategorien-v2.yaml", "policies/kategorien-v2.yaml"),
-    ("policies/grundordnung-v1.yaml", "policies/grundordnung-v1.yaml"),
 )
-PAKET_ERZEUGT = ("README-PAKET.md", "parameter-erstbestand.json")
+PAKET_ERZEUGT = ("README-PAKET.md", "parameter-erstbestand.json", "verfahrensordnung-aktiv.yaml")
 
 
 
@@ -906,6 +928,47 @@ def partner(request):
         },
     )
 
+
+
+def _paket_verfahrensordnung() -> str:
+    """Die aktive Verfahrensordnung als lesbare Datei fürs Übertragungspaket (FB-J1).
+
+    Früher lag hier `policies/grundordnung-v1.yaml` — eine Datei, die sich Quelle nannte, von
+    niemandem gelesen wurde und Werte aus dem ersten Testbetrieb trug. Wer sie mitnahm, baute
+    seine Instanz auf falschen Zahlen auf. Diese Fassung entsteht aus dem, was gerade gilt."""
+    from verfahren.models import Verfahrensordnung
+
+    aktiv = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    if aktiv is None:
+        return (
+            "# Diese Instanz hat noch keine aktive Verfahrensordnung.\n"
+            "# Erzeugen lässt sich eine aus dem Parameterregister (§ 5 Abs 7).\n"
+        )
+    regeln = aktiv.regeln
+    zeilen = [
+        "# Die aktive Verfahrensordnung dieser Instanz — erzeugt, nicht von Hand gepflegt.",
+        "#",
+        "# Sie entsteht aus dem Parameterregister und wird von der Mitgliederversammlung",
+        "# beschlossen (§ 5 Abs 7). Beim Einbringen eines Antrags wird sie als unveränderliche",
+        "# Kopie am Antrag gespeichert (§ 5 Abs 5) — spätere Änderungen wirken nie auf laufende",
+        "# Verfahren. Die satzungsfesten Untergrenzen (Beratung >= 21 Tage, Abstimmung >= 7 Tage,",
+        "# Mindestbeteiligung >= 5 %) erzwingt der Code; eine satzungswidrige Fassung lässt sich",
+        "# technisch nicht laden.",
+        "#",
+        "# Für eine eigene Instanz: eigene Werte setzen, eigene Fassung beschließen. Die Zahlen",
+        "# hier sind die einer Partei in Österreich, nicht das Maß für andere.",
+        "",
+        f"- id: {regeln.get('id', 'sachantrag-standard')}",
+        f"  version: {regeln.get('version', aktiv.version)}",
+    ]
+    for feld in (
+        "unterstuetzung_schwelle", "unterstuetzung_frist_tage", "beratung_tage",
+        "abstimmung_tage", "mindestbeteiligung", "mehrheitsbasis",
+        "wiedereinbringung_sperre_monate",
+    ):
+        if feld in regeln:
+            zeilen.append(f"  {feld}: {regeln[feld]}")
+    return "\n".join(zeilen) + "\n"
 
 def _paket_readme() -> str:
     zeilen = "\n".join(f"- `{name}`" for name in [n for n, _p in PAKET_DATEIEN] + list(PAKET_ERZEUGT))
@@ -981,6 +1044,7 @@ def partner_paket(request):
             "parameter-erstbestand.json",
             json.dumps({"schema_version": SCHEMA_VERSION, "parameter": erstbestand}, ensure_ascii=False, indent=1),
         )
+        zf.writestr("verfahrensordnung-aktiv.yaml", _paket_verfahrensordnung())
     antwort = HttpResponse(puffer.getvalue(), content_type="application/zip")
     antwort["Content-Disposition"] = f'attachment; filename="parlamentplattform-paket-{__version__}.zip"'
     return antwort

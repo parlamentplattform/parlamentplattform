@@ -127,6 +127,22 @@ def expertenrat(request):
     )
 
 
+
+def _beratungsfrist(antrag) -> dict | None:
+    """Wann die Beratung endet — und damit die Frist für den Erstvorschlag (FB-J1).
+
+    Die Dauer steht in der Ordnung, die beim Einbringen an den Antrag geheftet wurde
+    (§ 5 Abs 5), nicht im Register: Wer die Frist im Register verkürzt, darf einem laufenden
+    Verfahren nicht die Zeit nehmen. Läuft die Frist ab, ohne dass ein Vorschlag vorliegt,
+    geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie."""
+    from datetime import timedelta
+
+    if antrag.phase != Phase.BERATUNG.value:
+        return None
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage)
+    rest = (ende - timezone.now()).days
+    return {"ende": ende, "resttage": max(rest, 0), "abgelaufen": rest < 0}
+
 @nur_gremium(Gremium.EXPERTENRAT_1)
 def fenster(request, antrag_id: int):
     """Das Entwurfsfenster: Antragstext daneben, Fassungen append-only,
@@ -156,6 +172,7 @@ def fenster(request, antrag_id: int):
             else [],
             "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
             "in_beratung": antrag.phase == Phase.BERATUNG.value,
+            "beratungsfrist": _beratungsfrist(antrag),
             "steckplatz_bereit": anbieter_waehlen() is not None,
         },
     )

@@ -19,7 +19,24 @@ from django.utils.translation import gettext as _
 from plattform_core import vorschlagschat
 from verfahren.models import Kommentar, Lesestand, Reaktion, Reaktionsart
 
-KRITIK_MINDESTLAENGE = 80  # FB-G6: Kritik muss konkret sein
+#: Rückfallwert; der gültige steht im Register unter „kritik-mindestzeichen" (FB-J2).
+KRITIK_MINDESTLAENGE = 80
+#: dito für die Zeichengrenze eines Beitrags
+CHAT_ZEICHEN = 4000
+
+
+def kritik_mindestzeichen() -> int:
+    """Wie lang eine Kritik mindestens sein muss — aus dem Register (FB-J2)."""
+    from parameter.models import zahl
+
+    return zahl("kritik-mindestzeichen", KRITIK_MINDESTLAENGE)
+
+
+def chat_zeichen_hoechstzahl() -> int:
+    """Wie lang ein Beitrag sein darf — aus dem Register (FB-J2)."""
+    from parameter.models import zahl
+
+    return zahl("chat-zeichen-hoechstzahl", CHAT_ZEICHEN)
 
 
 class ChatGesperrt(Exception):
@@ -94,9 +111,11 @@ def beitrag_schreiben(
     if ist_kritik:
         if abstimmungschat(antrag) is None:
             raise ValueError("Kritik am Vorschlag gibt es nur im Abstimmungs-Chat.")
-        if len((text or "").strip()) < KRITIK_MINDESTLAENGE or not bezug_absatz:
-            raise ValueError("Kritik braucht einen Textstellenbezug und mindestens "
-                             f"{KRITIK_MINDESTLAENGE} Zeichen.")
+        mindestens = kritik_mindestzeichen()
+        if len((text or "").strip()) < mindestens or not bezug_absatz:
+            raise ValueError(
+                f"Kritik braucht einen Textstellenbezug und mindestens {mindestens} Zeichen."
+            )
     text = (text or "").strip()
     if not text:
         raise ValueError("Ein Beitrag braucht Text.")
@@ -108,7 +127,7 @@ def beitrag_schreiben(
     return Kommentar.objects.create(
         antrag=antrag,
         mitglied=mitglied,
-        text=text[:4000],
+        text=text[: chat_zeichen_hoechstzahl()],
         antwort_auf=wurzel,
         phase=chat_phase(antrag),
         erstellt_am=jetzt,
@@ -229,8 +248,8 @@ def reaktion_umschalten(kommentar, mitglied, art=Reaktionsart.ZUSTIMMUNG, jetzt=
     )
 
 
-def gespraeche(nutzer, grenze: int = 30) -> list[dict]:
-    """Meine Gespräche für das Panel (FB-G3): je Paar (ich, Gegenüber) an einem Antrag eine Zeile.
+def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
+    """Meine Gespräche für das Panel (FB-G3). `grenze=-1` nimmt den Registerwert, None hebt sie auf: je Paar (ich, Gegenüber) an einem Antrag eine Zeile.
 
     Ein Gespräch besteht, sobald eine Antwort zwischen uns liegt — von mir unter seinem Beitrag
     oder von ihm unter meinem. Es zählt nur der laufende Chat: Was archiviert ist, verschwindet
@@ -268,12 +287,21 @@ def gespraeche(nutzer, grenze: int = 30) -> list[dict]:
             }
         else:
             eintrag["beitraege"] += 1
-    return sorted(zeilen.values(), key=lambda z: z["letzter"].erstellt_am, reverse=True)[:grenze]
+    gereiht = sorted(zeilen.values(), key=lambda z: z["letzter"].erstellt_am, reverse=True)
+    if grenze == -1:  # Vorgabe: die Zahl steht im Register (FB-J2)
+        from parameter.models import zahl
+
+        grenze = zahl("gespraeche-liste-hoechstzahl", 30)
+    return gereiht[:grenze] if grenze else gereiht
 
 
 def ungelesene_gespraeche(nutzer) -> int:
-    """Der Zähler am Griff (FB-G3)."""
-    return sum(1 for g in gespraeche(nutzer) if g["ungelesen"])
+    """Der Zähler am Griff (FB-G3) — über **alle** Gespräche, nicht nur die angezeigten.
+
+    Die Liste im Panel ist auf `grenze` gekürzt; der Zähler darf das nicht sein. Sonst zeigt
+    er ausgerechnet dann zu wenig, wenn viel los ist — und verschweigt die Gespräche, für die
+    er da wäre."""
+    return sum(1 for g in gespraeche(nutzer, grenze=None) if g["ungelesen"])
 
 
 # ── Der Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ──────────────────────────

@@ -127,3 +127,27 @@ def test_abgeschlossene_phasen_laufen_nicht_mehr(ordnung):  # noqa: F811
     antrag.save(update_fields=["phase"])
     laufend = [b["name"] for b in archivkern.zeitleiste(antrag) if b["laufend"]]
     assert laufend == ["Beratung"]
+
+
+def test_der_export_kuerzt_die_audit_spur_nicht(ordnung):  # noqa: F811
+    """FB-G7 verspricht einen vollständigen Export; Grundregel 7 verlangt, dass nichts
+    verschwindet. Die Anzeige darf kürzen — der Export nie.
+
+    Gefunden bei der Bestandsaufnahme zu S8: `archiv()` nutzte dieselbe gekürzte Spur wie die
+    Seite, und wer mehr als 60 Ereignisse hatte, bekam sie ohne Hinweis nicht alle."""
+    from verfahren.models import AuditEintrag
+
+    antrag, _leute, _wurzel = _lage(ordnung)
+    for n in range(70):
+        AuditEintrag.anhaengen({"typ": "probe", "antrag": antrag.pk, "nr": n})
+
+    vollstaendig = archivkern.audit_spur(antrag)
+    assert len(vollstaendig) >= 70, "ohne Grenze kommt alles"
+    assert len(archivkern.audit_spur(antrag, grenze=60)) == 60, "mit Grenze kürzt sie"
+
+    import json
+
+    daten = json.loads(archivkern.als_json(antrag))
+    assert len(daten["audit"]) == len(vollstaendig), "der Export trägt jedes Ereignis"
+    nummern = [e["lfd"] for e in daten["audit"]]
+    assert nummern == sorted(nummern) and len(set(nummern)) == len(nummern)

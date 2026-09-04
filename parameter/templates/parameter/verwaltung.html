@@ -2,16 +2,67 @@
 {% load i18n %}
 {% block titel %}{% translate "Parameter-Verwaltung" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Verwaltung des Registers (FB-J1, FB-J2). Oben der Abgleich zwischen Register und geltender
+Verfahrensordnung: Erzeugen und In-Kraft-Setzen sind zwei getrennte Schritte, weil das eine
+eine Rechnung ist und das andere eine Entscheidung.
+{% endcomment %}
 <h1>{% translate "Parameterregister" %}</h1>{% url 'parameter:liste' as parameter_liste_url %}
-<p>{% blocktranslate %}Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf
-<a href="{{ parameter_liste_url }}">/parameter/</a>.{% endblocktranslate %}
+<p>{% blocktranslate %}Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log und in der Historie des
+Werts, das Register auf <a href="{{ parameter_liste_url }}">/parameter/</a>.{% endblocktranslate %}
 <a href="{% url 'mitglieder:verwaltung' %}">← {% translate "Mitgliederverwaltung" %}</a></p>
 
-<div class="karte" style="margin-top:16px">
-  {% for p in parameter %}
+<div class="karte">
+  <h2 style="margin:0 0 4px;font-size:17px">{% translate "Verfahrensordnung" %}</h2>
+  <p class="erk">{% blocktranslate %}Die geltende Ordnung folgt dem Register nicht von selbst. Sie wird beim Einbringen als
+unveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5) — ein geänderter Wert wirkt deshalb nie
+auf ein laufendes Verfahren. Über eine neue Fassung entscheidet nach § 5 Abs 7 die
+Mitgliederversammlung; solange die Plattform diese Abstimmung nicht führen kann, handelt die
+Verwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log.{% endblocktranslate %}</p>
+
+  {% if abgleich.fehler %}
+  <div class="band-gold">{% translate "Aus dem Register lässt sich derzeit keine Fassung bauen:" %} {{ abgleich.fehler }}</div>
+  {% else %}
+  <div class="zeile"><span style="width:100%">
+    {% if abgleich.aktiv %}<strong>{% blocktranslate with n=abgleich.aktiv.version %}Fassung {{ n }} gilt{% endblocktranslate %}</strong>{% else %}<strong>{% translate "Keine Fassung in Kraft" %}</strong>{% endif %}
+    ·
+    {% if abgleich.abweichungen %}<span class="chip klein">{% blocktranslate count n=abgleich.abweichungen %}{{ n }} Abweichung vom Register{% plural %}{{ n }} Abweichungen vom Register{% endblocktranslate %}</span>{% else %}<span class="chip klein still">{% translate "deckungsgleich mit dem Register" %}</span>{% endif %}
+  </span></div>
+  {% for z in abgleich.zeilen %}
+  <div class="zeile"><span style="width:100%">
+    {{ z.name }}: {% if z.abweichung %}<strong>{{ z.in_kraft }} → {{ z.register }}</strong>{% else %}{{ z.register }}{% endif %}
+    <br><span class="meta">{% translate "gespeist aus" %} <code>{{ z.schluessel }}</code></span>
+  </span></div>
+  {% endfor %}
+  <form method="post" action="{% url 'parameter:verwaltung_ordnung_entwurf' %}" style="margin-top:10px">{% csrf_token %}
+    <button type="submit" class="btn-linie">{% translate "Neue Fassung aus dem Register erzeugen" %}</button>
+    <span class="meta">{% translate "erzeugt nur — sie gilt danach noch nicht" %}</span>
+  </form>
+  {% endif %}
+
+  {% for entwurf in abgleich.beschlussreif %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{% blocktranslate with n=entwurf.fassung.version %}Fassung {{ n }} — erzeugt, gilt noch nicht{% endblocktranslate %}</strong>
+    {% for z in entwurf.zeilen %}<br><span class="meta">{{ z.name }}: {{ z.wert }}</span>{% endfor %}
+    <form method="post" action="{% url 'parameter:verwaltung_ordnung_inkraft' %}" style="margin-top:6px">{% csrf_token %}
+      <input type="hidden" name="ordnung" value="{{ entwurf.fassung.pk }}">
+      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" required style="width:280px">
+      <button type="submit" class="btn-linie">{% translate "In Kraft setzen" %}</button>
+    </form>
+  </span></div>
+  {% endfor %}
+</div>
+
+{% for karte in karten %}
+<div class="karte">
+  <h2 style="margin:0 0 4px;font-size:17px">{{ karte.name }}</h2>
+  {% for p in karte.eintraege %}
   <div class="zeile"><span style="width:100%">
     <strong>{{ p.schluessel }}</strong> <span class="meta">{{ p.einheit }} · {{ p.quelle }}</span>
+    {% if p.status != "gueltig" %}<span class="chip klein">{{ p.get_status_display }}</span>{% endif %}
+    {% if p.speist_ordnung %}<span class="chip klein still">{% translate "Verfahrensordnung" %}</span>{% endif %}
     <br><span class="meta">{{ p.beschreibung }}</span>
+    {% if p.status == im_test and p.test_hypothese %}<br><span class="meta">{% translate "Test:" %} {{ p.test_hypothese }}</span>{% endif %}
     <form method="post" action="{% url 'parameter:verwaltung_aktion' %}" style="margin-top:6px">{% csrf_token %}
       <input type="hidden" name="parameter" value="{{ p.pk }}">
       <input type="text" name="wert" value="{{ p.wert }}" style="width:120px">
@@ -21,4 +72,5 @@
   </span></div>
   {% endfor %}
 </div>
+{% endfor %}
 {% endblock %}

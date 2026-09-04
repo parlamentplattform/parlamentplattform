@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,16 +25,116 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "aehnlichkeit-schwelle-prozent": (
+        "similarity.threshold_percent", "percent",
+        "Similarity above which the platform points to an existing motion when submitting a new one",
+    ),
+    "aehnlichkeit-treffer": (
+        "similarity.max_hits", "motions",
+        "How many similar motions are shown when submitting",
+    ),
+    "kategorien-je-antrag": (
+        "areas_of_life.per_motion", "areas",
+        "How many areas of life a motion is assigned to automatically",
+    ),
+    "kategorien-regel": (
+        "areas_of_life.rule_version", "rule version",
+        "Version of the assignment rule for areas of life (keyword lists, no AI)",
+    ),
+    "chat-zeichen-hoechstzahl": (
+        "deliberation.post_max_chars", "characters",
+        "Maximum length of a post in the deliberation chat",
+    ),
+    "chat-bearbeitungsfenster-minuten": (
+        "deliberation.edit_window_minutes", "minutes",
+        "How long an author may still edit their own post",
+    ),
+    "kritik-mindestzeichen": (
+        "draft_loop.criticism_min_chars", "characters",
+        "Minimum length of a criticism so it counts as a change request to the expert council",
+    ),
+    "weicherfilter-regel": (
+        "soft_filter.rule_version", "rule version",
+        "Version of the member-controlled ordering rule (nine sliders, neutral by default)",
+    ),
+    "weicherfilter-profile-hoechstzahl": (
+        "soft_filter.max_profiles", "profiles",
+        "How many personal filter profiles a member may store",
+    ),
+    "faecher-regel": (
+        "areas_fan.rule_version", "rule version",
+        "Version of the layout algorithm for the areas-of-life fan",
+    ),
+    "faecher-kinder-hoechstzahl": (
+        "areas_fan.max_children", "branches",
+        "How many sub-branches a branch shows before it must be fanned out",
+    ),
+    "kacheln-hervorgehoben": (
+        "tiles.highlighted", "tiles",
+        "How many highlighted votes the important-votes field shows",
+    ),
+    "kacheln-abgeschlossen": (
+        "tiles.completed", "entries",
+        "How many completed procedures appear in the feed",
+    ),
+    "suche-treffer-hoechstzahl": (
+        "areas_fan.max_search_hits", "hits",
+        "Maximum number of hits shown by the search in the areas-of-life fan",
+    ),
+    "gespraeche-liste-hoechstzahl": (
+        "conversations.list_limit", "conversations",
+        "How many conversations the panel shows at once; the counter covers all of them",
+    ),
+    "archiv-audit-anzeige": (
+        "archive.audit_display_limit", "events",
+        "How many audit events the archive timeline shows; the export always contains all",
+    ),
+    "ki-antwort-hoechsttokens": (
+        "ai.max_response_tokens", "tokens",
+        "Maximum length of a model response",
+    ),
+    "anstoss-mindestabstand-sekunden": (
+        "feedback.min_interval_seconds", "seconds",
+        "Waiting time between two feedback messages from the same person",
+    ),
+    "anstoss-tagesgrenze": (
+        "feedback.daily_limit", "messages",
+        "How many feedback messages a person may send per day",
+    ),
+    "verfahren-unterstuetzung-schwelle": (
+        "support.threshold", "supporters",
+        "Number of supporters a motion needs to enter deliberation",
+    ),
+    "verfahren-unterstuetzung-tage": (
+        "support.window_days", "days",
+        "Days a motion has to reach the support threshold",
+    ),
+    "expertenrat-erstvorschlag-tage": (
+        "council.first_draft_days", "days",
+        "Days the expert council has for its first proposal; also the minimum deliberation period",
+    ),
+    "verfahren-abstimmung-tage": (
+        "vote.window_days", "days",
+        "Duration of the final vote",
+    ),
+    "verfahren-mindestbeteiligung-prozent": (
+        "vote.min_turnout_percent", "percent",
+        "Share of eligible members that must take part for a result to stand",
+    ),
+    "verfahren-wiedereinbringung-monate": (
+        "motion.resubmission_block_months", "months",
+        "Months before a rejected or lapsed motion may be resubmitted verbatim",
+    ),
     "gremien-review-tage": (
-        "draft_loop.review_days", "days",
+        "support.review_days", "days",
         "Days the supporters have to accept a draft or return it with a concrete wish (draft loop)",
     ),
     "gremien-ueberarbeitung-tage": (
-        "draft_loop.revision_days", "days",
+        "council.rework_days", "days",
         "Days the expert council has to revise a draft after it was returned",
     ),
     "gremien-hoechstrunden": (
-        "draft_loop.max_rounds", "rounds",
+        "council.max_rounds", "rounds",
         "Maximum number of draft-loop rounds before the proposal goes to the final vote",
     ),
     "gremien-rollen-dauer-tage": (

@@ -2,6 +2,27 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.41.0] — 2026-09-05 · Fristen im Register, Verfahrensordnung auf Knopfdruck
+
+### Hinzugefügt
+- **Das Parameterregister in zweiter Fassung (FB-J2):** Stellgrößen stehen jetzt in **Gruppen** (Verfahren, Gremien, WeicherFilter, Fächer, Zukunftswerkstatt, Schutz, Kacheln) statt in einer Liste aus zweiunddreißig Zeilen. Jeder Wert trägt seinen **Status** — gültig, im Test, vorgeschlagen —, ein Wert im Test sein sichtbares Band mit Hypothese und Enddatum, und jede Änderung ihre **Begründung am Wert selbst**. Im Audit-Log stand sie immer schon; dort findet sie nur niemand
+- **Fünfundzwanzig weitere Stellgrößen** aus dem Code ins Register geholt — darunter die Ähnlichkeitsschwelle, die entscheidet, wie oft die Plattform Menschen beim Einbringen zu einem bestehenden Antrag lenkt, die Mindestlänge einer Kritik an einem Entwurf und die Zahl der hervorgehobenen Abstimmungen auf der Startseite. Alle mit Schema-Kennung, damit Partnerinstanzen sie vergleichen können (Schema 1.1)
+- **„Neue Fassung aus dem Register erzeugen"** in der Verwaltung (FB-J1) — und getrennt davon **„In Kraft setzen"**. Zwei Schritte, weil das eine eine Rechnung ist und das andere eine Entscheidung: Über die Verfahrensordnung beschließt nach § 5 Abs 7 die Mitgliederversammlung; solange die Plattform diese Abstimmung nicht führen kann, handelt die Verwaltung stellvertretend — mit Pflicht-Grund, im öffentlichen Audit-Log, und die abgelöste Fassung bleibt bestehen
+- **Ein Abgleich Register ↔ geltende Ordnung**, Feld für Feld. Die Ordnung folgt dem Register absichtlich nicht von selbst: Sie wird beim Einbringen als Kopie an den Antrag geheftet (§ 5 Abs 5). Der Abgleich macht den Abstand sichtbar, statt ihn zu verschweigen
+- **Das Flussdiagramm der Startseite liest seine Fristen aus dem Register.** Vorher standen 60, 21 und 28 als Text im Bild — wer eine Frist änderte, bekam auf der ersten Seite weiter die alte Zahl zu sehen
+
+### Behoben
+- **Der Archiv-Export war nicht vollständig.** `audit_spur()` schnitt auf die letzten 60 Ereignisse — gedacht als schmale Zeitleiste für die Anzeige, aber der Export benutzte dieselbe Funktion. Wer 200 Ereignisse hatte, bekam 60 und erfuhr es nicht. Das bricht die Zusage „vollständig" (§ 5 Abs 3 lit e) und Grundregel 7. Jetzt: Anzeige gekürzt **mit Hinweis**, Export vollständig
+- **Der Zähler am Gesprächs-Griff zählte nur die ersten dreißig Gespräche** — er zeigte ausgerechnet dann zu wenig, wenn viel los ist, und verschwieg genau die Gespräche, für die er da ist
+- **`policies/grundordnung-v1.yaml` entfernt.** Sie nannte sich „die QUELLE der Policies", wurde von keiner Zeile Code gelesen und trug Werte aus dem ersten Testbetrieb (14/21/7), die allem widersprachen, was gilt (60/21/28). Sie lag im Übertragungspaket — eine Partnerpartei hätte ihre Instanz danach gebaut. An ihrer Stelle liegt jetzt eine **erzeugte** Fassung der tatsächlich aktiven Ordnung
+- Auf der Registerseite stand `ADR-007` in einer Quellenangabe — eine Kennung eines internen Dokuments, die der Wächter für Vorlagen nicht sieht, weil sie in Daten steht
+
+### Technisch
+- `plattform_core.policy.aus_register()` baut eine Verfahrensordnung aus Registerwerten. Fehlt ein Schlüssel, wirft sie: Eine Ordnung mit stillschweigend ergänzten Werten wäre schlimmer als gar keine
+- **Die Satzungsminima bleiben im Code** (Beratung ≥ 21 Tage, Abstimmung ≥ 7, Beteiligung ≥ 5 %) und sind bewusst **keine** Stellgröße — sonst könnte die Verwaltung sie über das Register aushebeln. Ein Test belegt, dass sich eine satzungswidrige Fassung nicht erzeugen lässt
+- Fünf Tests zu **Grundregel 4** (`parameter/test_grundregeln.py`): kein Parameter, der eine Stimme gewichtet; die Auszählung liest kein Register; jede Stimme zählt eins, unabhängig von der Reihenfolge; kein multiplizierender Code in den zählenden Modulen; der WeicherFilter fasst die Auszählung nicht an. Geprüft wird der Syntaxbaum, nicht der Text — sonst schlägt das Wort „Kreuzmultiplikation" in einer Erklärung Alarm
+- Neue Migration `parameter/0003_register_v2.py` (Gruppe, Status, Testfelder, Änderungshistorie)
+
 ## [0.40.0] — 2026-09-04 · Die Partner-Seite spricht sechs Sprachen
 
 ### Hinzugefügt

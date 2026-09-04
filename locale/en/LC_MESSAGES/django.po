@@ -4705,8 +4705,8 @@ msgid "Parameterregister"
 msgstr "Parameter register"
 
 #, python-format
-msgid "Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log, das Register auf\n<a href=\"%(parameter_liste_url)s\">/parameter/</a>."
-msgstr "Every change needs a reason — it is recorded in the public audit log; the register is at\n<a href=\"%(parameter_liste_url)s\">/parameter/</a>."
+msgid "Jede Änderung braucht einen Grund — er steht im öffentlichen Audit-Log und in der Historie des\nWerts, das Register auf <a href=\"%(parameter_liste_url)s\">/parameter/</a>."
+msgstr "Every change needs a reason — it is recorded in the public audit log and in the value's own\nhistory; the register is at <a href=\"%(parameter_liste_url)s\">/parameter/</a>."
 
 msgid "Grund (wird veröffentlicht)"
 msgstr "Reason (will be published)"
@@ -4764,3 +4764,107 @@ msgstr ""
 
 msgid "Sprache dieser Seite"
 msgstr "Language of this page"
+
+#, python-format
+msgid "die letzten %(gezeigt)s von %(gesamt)s — vollständig im Export"
+msgstr "the last %(gezeigt)s of %(gesamt)s — complete in the export"
+
+#, python-format
+msgid "%(n)s Tage · Schwelle"
+msgstr "%(n)s days · threshold"
+
+#, python-format
+msgid "%(n)s Tage"
+msgstr "%(n)s days"
+
+#, python-format
+msgid "%(n)s Tage · geheim"
+msgstr "%(n)s days · secret"
+
+msgid "Springe zu:"
+msgstr "Jump to:"
+
+msgid "Aus diesem Wert wird die Verfahrensordnung gebaut."
+msgstr "The rules of procedure are built from this value."
+
+msgid "Im Test"
+msgstr "Under test"
+
+msgid "Der Wert gilt nur für Verfahren, die neu beginnen — laufende behalten ihre Fassung."
+msgstr "The value applies only to procedures that start from now on — running ones keep their version."
+
+msgid "Aus dem Register lässt sich derzeit keine Fassung bauen:"
+msgstr "No version can be built from the register at the moment:"
+
+msgid "Keine Fassung in Kraft"
+msgstr "No version in force"
+
+msgid "deckungsgleich mit dem Register"
+msgstr "identical to the register"
+
+msgid "gespeist aus"
+msgstr "fed by"
+
+msgid "Neue Fassung aus dem Register erzeugen"
+msgstr "Build a new version from the register"
+
+msgid "erzeugt nur — sie gilt danach noch nicht"
+msgstr "builds it only — it does not come into force yet"
+
+msgid "In Kraft setzen"
+msgstr "Bring into force"
+
+msgid "Test:"
+msgstr "Test:"
+
+#, python-format
+msgid "bis %(bis)s"
+msgstr "until %(bis)s"
+
+#, python-format
+msgid "Fassung %(n)s gilt"
+msgstr "Version %(n)s is in force"
+
+#, python-format
+msgid "Fassung %(n)s — erzeugt, gilt noch nicht"
+msgstr "Version %(n)s — built, not in force yet"
+
+#, python-format
+msgid "Geltende Verfahrensordnung: Fassung %(n)s. Sie folgt dem Register nicht von selbst — sie wird\nbeschlossen und beim Einbringen als unveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5).\nEin geänderter Wert wirkt deshalb nie auf ein laufendes Verfahren."
+msgstr "Rules of procedure in force: version %(n)s. They do not follow the register by themselves — they\nare adopted and attached to a motion as an unchangeable copy when it is submitted (§ 5 para 5).\nA changed value therefore never affects a running procedure."
+
+msgid "Die geltende Ordnung folgt dem Register nicht von selbst. Sie wird beim Einbringen als\nunveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5) — ein geänderter Wert wirkt deshalb nie\nauf ein laufendes Verfahren. Über eine neue Fassung entscheidet nach § 5 Abs 7 die\nMitgliederversammlung; solange die Plattform diese Abstimmung nicht führen kann, handelt die\nVerwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log."
+msgstr "The rules in force do not follow the register by themselves. They are attached to a motion as an\nunchangeable copy when it is submitted (§ 5 para 5) — a changed value therefore never affects a\nrunning procedure. A new version is decided by the general meeting under § 5 para 7; as long as\nthe platform cannot hold that vote, the administration acts on its behalf, and every step is\nrecorded in the public audit log."
+
+#, python-format
+msgid "Eine dokumentierte Änderung"
+msgid_plural "%(n)s dokumentierte Änderungen"
+msgstr[0] "One documented change"
+msgstr[1] "%(n)s documented changes"
+
+#, python-format
+msgid "%(n)s Abweichung vom Register"
+msgid_plural "%(n)s Abweichungen vom Register"
+msgstr[0] "%(n)s difference from the register"
+msgstr[1] "%(n)s differences from the register"
+
+msgid "Verfahren"
+msgstr "Procedure"
+
+msgid "Fächer"
+msgstr "Areas of life"
+
+msgid "Schutz"
+msgstr "Protection"
+
+msgid "Kacheln"
+msgstr "Tiles"
+
+#, python-format
+msgid "Erstvorschlag bis %(frist)s — noch %(t)s Tag."
+msgid_plural "Erstvorschlag bis %(frist)s — noch %(t)s Tage."
+msgstr[0] "First draft due %(frist)s — %(t)s day left."
+msgstr[1] "First draft due %(frist)s — %(t)s days left."
+
+msgid "Liegt bis dahin keiner vor, geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie."
+msgstr "If none is submitted by then, the motion moves on without one — inaction never blocks."

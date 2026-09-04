@@ -303,3 +303,18 @@ def test_gespraeche_sind_gaesten_verschlossen(client):
     """Die eigene Gesprächsliste geht niemanden sonst etwas an — Gäste landen bei der Anmeldung."""
     antwort = client.get(reverse("verfahren:gespraeche"))
     assert antwort.status_code == 302 and "/anmelden/" in antwort["Location"]
+
+
+def test_der_zaehler_am_griff_zaehlt_alle_gespraeche(ordnung):  # noqa: F811
+    """FB-G3: Der Zähler stand nur über den ersten 30 Gesprächen — er zeigte ausgerechnet
+    dann zu wenig, wenn viel los ist. Gefunden bei der Bestandsaufnahme zu S8."""
+    ich = mitglied_anlegen("vielbeschaeftigt")
+    antrag = _antrag(ordnung, ich)
+    for i in range(35):
+        gegenueber = mitglied_anlegen(f"partner{i}")
+        wurzel = chatkern.beitrag_schreiben(antrag, ich, f"Mein Beitrag {i} in der Runde.")
+        chatkern.beitrag_schreiben(antrag, gegenueber, f"Meine Antwort {i} darauf.", wurzel)
+
+    assert len(chatkern.gespraeche(ich)) == 30, "die Liste im Panel bleibt gekürzt"
+    assert len(chatkern.gespraeche(ich, grenze=None)) == 35, "ohne Grenze kommen alle"
+    assert chatkern.ungelesene_gespraeche(ich) == 35, "der Zähler übergeht keines"

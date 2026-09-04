@@ -115,15 +115,15 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
       <path class="pfeil" d="M146 68 H178"/>
       <rect class="kasten" x="182" y="40" width="140" height="56" rx="12"/>
       <text x="252" y="64" text-anchor="middle">{% translate "Unterstützung" %}</text>
-      <text class="klein" x="252" y="82" text-anchor="middle">{% translate "60 Tage · Schwelle" %}</text>
+      <text class="klein" x="252" y="82" text-anchor="middle">{% blocktranslate with n=fristen.unterstuetzung %}{{ n }} Tage · Schwelle{% endblocktranslate %}</text>
       <path class="pfeil" d="M322 68 H354"/>
       <rect class="kasten" x="358" y="40" width="136" height="56" rx="12"/>
       <text x="426" y="64" text-anchor="middle">{% translate "Beratung" %}</text>
-      <text class="klein" x="426" y="82" text-anchor="middle">{% translate "21 Tage" %}</text>
+      <text class="klein" x="426" y="82" text-anchor="middle">{% blocktranslate with n=fristen.beratung %}{{ n }} Tage{% endblocktranslate %}</text>
       <path class="pfeil" d="M494 68 H526"/>
       <rect class="kasten gold" x="530" y="40" width="146" height="56" rx="12"/>
       <text x="603" y="64" text-anchor="middle">{% translate "Endabstimmung" %}</text>
-      <text class="klein" x="603" y="82" text-anchor="middle">{% translate "28 Tage · geheim" %}</text>
+      <text class="klein" x="603" y="82" text-anchor="middle">{% blocktranslate with n=fristen.abstimmung %}{{ n }} Tage · geheim{% endblocktranslate %}</text>
       <path class="pfeil gold" d="M676 68 H708"/>
       <rect class="kasten dunkel" x="712" y="40" width="128" height="56" rx="12"/>
       <text class="hell" x="776" y="64" text-anchor="middle">{% translate "Beschluss" %}</text>

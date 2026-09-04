@@ -27,6 +27,10 @@
     <div class="karte">
       <p><strong>{% translate "Noch kein Entwurfsfenster." %}</strong>
       {% translate "Beim Öffnen wird der Antragswortlaut als Fassung 1 übernommen — die Arbeitsgrundlage." %}</p>
+      {% if beratungsfrist %}
+      <p class="meta" style="margin-top:6px">{% blocktranslate with frist=beratungsfrist.ende|date:"d.m.Y" count t=beratungsfrist.resttage %}Erstvorschlag bis {{ frist }} — noch {{ t }} Tag.{% plural %}Erstvorschlag bis {{ frist }} — noch {{ t }} Tage.{% endblocktranslate %}
+        {% translate "Liegt bis dahin keiner vor, geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie." %}</p>
+      {% endif %}
       {% if in_beratung and darf_schreiben %}
       <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:10px">{% csrf_token %}
         <input type="hidden" name="aktion" value="oeffnen">
@@ -42,6 +46,10 @@
       <p><span class="stand-punkt">{{ entwurf.get_status_display }}</span>
          <span class="stand-punkt">{% blocktranslate with n=entwurf.runde %}Runde {{ n }}{% endblocktranslate %}</span>
          {% if entwurf.vollzugsbezug %}<span class="stand-punkt">{% translate "Vollzugsbezug — Gruppe 2 prüft" %}</span>{% endif %}</p>
+      {% if entwurf.status == "in_arbeit" and entwurf.runde == 1 and beratungsfrist %}
+      <p class="meta" style="margin-top:6px">{% blocktranslate with frist=beratungsfrist.ende|date:"d.m.Y" count t=beratungsfrist.resttage %}Erstvorschlag bis {{ frist }} — noch {{ t }} Tag.{% plural %}Erstvorschlag bis {{ frist }} — noch {{ t }} Tage.{% endblocktranslate %}
+        {% translate "Liegt bis dahin keiner vor, geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie." %}</p>
+      {% endif %}
       {% if entwurf.status == "unterstuetzer" and entwurf.review_frist %}
       <p class="meta" style="margin-top:6px">{% blocktranslate with frist=entwurf.review_frist|date:"d.m.Y H:i" %}Die Unterstützer haben bis {{ frist }} Zeit — danach wertet die Frist aus (Untätigkeit hemmt nie).{% endblocktranslate %}</p>
       {% endif %}

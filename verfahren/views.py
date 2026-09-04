@@ -835,12 +835,38 @@ PAKET_DATEIEN = (
 PAKET_ERZEUGT = ("README-PAKET.md", "parameter-erstbestand.json")
 
 
+
+def _welt_spricht_englisch(request) -> bool:
+    """Soll diese Anfrage die englische Fassung sehen? (FB-M1: Zielgruppe Ausland)
+
+    Wer die Sprache selbst gewählt hat, behält sie — die Wahl steht in der Sitzung und
+    hat immer Vorrang. Sonst gilt: Deutsch nur für Deutschsprachige, Englisch für alle
+    anderen. Für Sprachen, die die Plattform nicht kennt, ist Englisch die freundlichere
+    Antwort als Deutsch."""
+    from django.conf import settings as dj_settings
+
+    if request.session.get(dj_settings.LANGUAGE_COOKIE_NAME) or request.COOKIES.get(
+        dj_settings.LANGUAGE_COOKIE_NAME
+    ):
+        return False  # eigene Wahl — nicht überstimmen
+    gewuenscht = (request.headers.get("accept-language") or "").lower()
+    return not any(teil.strip().startswith("de") for teil in gewuenscht.split(","))
+
+
 def partner(request):
     """§ 12, FB-M1/M6/M7/M8 („Labor der Demokratien"): die Einladung an die verwandten
     Parteien weltweit — gemeinsame Vision, das Modell „ein Kern, viele Instanzen" mit
     Schaubild, die Schnittstelle, der Einstiegs-Fahrplan in zwei Spuren, das
     Übertragungspaket, Kontakt. Unaufdringlich über die Fußzeile erreichbar; das
-    Partner-Konto mit eigener Oberfläche folgt (S14b)."""
+    Partner-Konto mit eigener Oberfläche folgt (S14b).
+
+    Diese Seite richtet sich an Menschen außerhalb des deutschen Sprachraums — wer nicht
+    ausdrücklich Deutsch möchte, bekommt sie darum auf Englisch."""
+    from django.utils import translation
+
+    if _welt_spricht_englisch(request):
+        translation.activate("en")
+        request.LANGUAGE_CODE = "en"
     return render(
         request,
         "verfahren/partner.html",

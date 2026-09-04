@@ -2,6 +2,27 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.38.0] — 2026-09-04 · S6: Das Chatsystem — Faden, Gedächtnis, Gespräche, Räumung
+
+### Hinzugefügt
+- **Ein eigenes Chatsystem (FB-G1):** Aus der flachen Kommentarliste wird ein Faden aus Sprechblasen. Jeder Beitrag zeigt einen Initialen-Kreis (Farbton aus dem Namen), den Anzeigenamen, die Zeit relativ („vor 2 Std.“) und darunter die Zeile „Antworten · Zustimmen · Ändern · Zurückziehen · Melden“. **Antworten stehen eine Ebene eingerückt** unter ihrem Beitrag; tiefere Antworten bleiben auf dieser Ebene. Eigene Beiträge tragen eine Gold-Kante, jeder Beitrag einen Anker `#k-<id>`
+- **Die Eingabezeile klebt unten:** Das Feld wächst bis sechs Zeilen mit, der Zeichenzähler erscheint ab 3.500 von 4.000. „Antworten“ setzt die Zeile in den Antwort-Modus (Chip „Antwort an Mitglied 3 ×“). Gesendet wird per htmx — der neue Beitrag gleitet ein, das Feld leert sich, die Seite lädt nicht neu. Ohne JavaScript ist es ein gewöhnliches Formular, das auf den Anker zurückspringt
+- **Ändern und Zurückziehen:** Ändern geht in den ersten fünf Minuten (danach steht „bearbeitet“ dabei), Zurückziehen ersetzt den Text durch „[vom Verfasser entfernt]“ — die Antworten darunter bleiben stehen
+- **Zustimmen (👍):** eine Zustimmung je Mitglied und Beitrag, rein informativ. Sie ändert **keine** Reihung (Grundregel 6); die Reihung bleibt chronologisch
+- **Melden und Ausblenden (Art 16 DSA, § 5 Abs 2):** Jeder Beitrag lässt sich mit Grund melden. Die Verwaltung kann einen Beitrag ausblenden — der Grund steht öffentlich an seiner Stelle, der Vorgang im Audit
+- **Das Scroll-Gedächtnis (FB-G2):** Die Chatleiste steht wieder dort, wo man aufgehört hat zu lesen — auch nach einem Ausflug auf andere Seiten und nach einem Neustart des Browsers. Gemerkt wird nicht die Pixelzahl, sondern **welcher Beitrag** im Blick stand (gedrosselt alle zwei Sekunden und beim Verlassen der Seite, je Antrag und Gerät). Beim Öffnen wird die Stelle ohne Animation wiederhergestellt und nachgezogen, bis das Layout steht; wer selbst scrollt, wird nicht mehr angefasst. Dazu die goldene Trennlinie **„n neue Beiträge“** aus dem serverseitigen Lesestand — geräteübergreifend und auch ohne JavaScript (Anker `#neu`)
+- **„Meine Gespräche“ (FB-G3, FB-G4):** Am linken Bildschirmrand klebt ein Griff mit der Zahl ungelesener Gespräche; dahinter gleitet ein Panel von links herein (Schleier, Escape, Fokusfalle). Die Liste zeigt drei Spalten — **Thema · Antrag · Chatpartner** — mit Vorschau, Zeit und Gold-Punkt bei Ungelesenem, und führt mit einem Klick direkt zum Beitrag des Gegenübers, der dort kurz gold aufleuchtet. Ein Gespräch entsteht **implizit**, sobald zwischen zwei Menschen an einem Antrag eine Antwort liegt — niemand muss jemanden benennen. Am Handy entfällt der Randgriff; dort führt das sechste Ziel der Tableiste auf `/gespraeche/`, dieselbe Liste als eigene Seite
+
+### Geändert
+- **Chats werden bei jeder Hochstufung geräumt (FB-G5):** Rückt ein Antrag eine Phase weiter, werden alle Beiträge der vorigen Phase mit `archiviert_am` gestempelt. Sie verschwinden aus dem Chat und aus den Gesprächen; Zone 3 beginnt leer mit dem Phasen-Band „Beratung begonnen am … — n Beiträge aus der vorigen Phase im Archiv“. **Gelöscht wird nichts** (§ 5 Abs 3 lit e) — der Audit-Eintrag des Übergangs führt die Zahl mit. Der Stempel greift an beiden Stellen, an denen die Phase vorrückt (Phasenautomatik und Öffnen der Endabstimmung), ist idempotent und trägt den Zeitpunkt des Übergangs
+- Der Chat ist **geschlossen**, während der Expertenrat arbeitet, und nach Verfahrensende — mitlesen bleibt möglich, die Eingabezeile weicht einem Hinweis. Gäste lesen mit und sehen statt der Zeile den Anmeldehinweis
+- Die Tableiste am Handy hat ein sechstes Ziel „Chats“ (nur für Mitglieder)
+
+### Technisch
+- Neu: `verfahren/chat.py` (Regeln), `verfahren/kontext.py` (Zähler auf jeder Seite), `verfahren/templatetags/chat.py`, Migration `0013_chatsystem.py` mit Nachtrag der Phase für vorhandene Beiträge
+- Neue Modelle `Reaktionsart`, `Reaktion`, `Lesestand`, `Meldung`; `Kommentar` um `antwort_auf`, `phase`, `bearbeitet_am`, `archiviert_am`, `geloescht`, `ausgeblendet_am`, `ausgeblendet_grund` erweitert
+- Tests: `verfahren/test_chat.py` (14) und `tests/e2e/test_chat.py` (6); 677 Tests grün, Katalog vollständig (996 Einträge)
+
 ## [0.37.0] — 2026-09-04 · S5: Die Antragsseite in drei Zonen — Text · Einschätzung · Chat
 
 ### Geändert

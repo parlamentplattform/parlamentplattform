@@ -276,7 +276,8 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None):
         stat = {"typ": "unterstuetzung", "n": n, "schwelle": schwelle,
                 "prozent": min(100, round(100 * n / schwelle))}
     elif antrag.phase == Phase.BERATUNG.value:
-        stat = {"typ": "beratung", "beitraege": antrag.kommentare.count()}
+        # nur der laufende Chat zählt — Archiviertes gehört zur vorigen Phase (FB-G5)
+        stat = {"typ": "beratung", "beitraege": antrag.kommentare.filter(archiviert_am__isnull=True).count()}
     elif antrag.phase == Phase.ABSTIMMUNG.value:
         abgegeben, basis = _beteiligung(antrag)
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
@@ -528,6 +529,50 @@ def _einschaetzung(antrag):
     }
 
 
+def gespraeche(request):
+    """Meine Gespräche (FB-G3): dieselbe Liste, die das Panel zeigt — als eigene Seite, damit
+    sie auch ohne JavaScript erreichbar ist. Mit htmx antwortet nur die Liste."""
+    from verfahren.chat import gespraeche as gespraeche_laden
+
+    zeilen = gespraeche_laden(request.user)
+    nur_ungelesen = request.GET.get("filter") == "ungelesen"
+    if nur_ungelesen:
+        zeilen = [z for z in zeilen if z["ungelesen"]]
+    vorlage = "verfahren/_gespraeche_liste.html" if request.headers.get("HX-Request") else "verfahren/gespraeche.html"
+    return render(
+        request,
+        vorlage,
+        {
+            "gespraeche": zeilen,
+            "ungelesen": sum(1 for z in gespraeche_laden(request.user) if z["ungelesen"]),
+            "nur_ungelesen": nur_ungelesen,
+        },
+    )
+
+
+def _chat_lage(antrag, nutzer) -> dict:
+    """Zone 3 (FB-G1, G2, G5): der laufende Faden, was neu ist, ob geschrieben werden darf und
+    wie viele Beiträge im Archiv der vorigen Phasen liegen."""
+    from verfahren import chat as chatkern
+
+    archiviert = antrag.kommentare.filter(archiviert_am__isnull=False).count()
+    letzte_phase = ""
+    if archiviert:
+        letzter = antrag.kommentare.filter(archiviert_am__isnull=False).order_by("-archiviert_am").first()
+        letzte_phase = letzter.phase if letzter else ""
+    from verfahren.models import Meldung
+
+    return {
+        "faden": chatkern.faden(antrag, nutzer),
+        "meldegruende": Meldung.Grund.choices,
+        "anzahl": antrag.kommentare.filter(archiviert_am__isnull=True).count(),
+        "neue": chatkern.neue_zaehlen(antrag, nutzer),
+        "offen": chatkern.chat_offen(antrag),
+        "archiviert": archiviert,
+        "archiv_phase": letzte_phase,
+    }
+
+
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
@@ -642,7 +687,7 @@ def antrag_detail(request, pk):
             "kandidatur": kandidatur,
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
-            "kommentare": antrag.kommentare.select_related("mitglied"),
+            "chat": _chat_lage(antrag, request.user),
             "frist": frist,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,
             "meine_stimme": meine_stimme,

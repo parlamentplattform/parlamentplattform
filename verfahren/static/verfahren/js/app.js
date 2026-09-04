@@ -7,6 +7,17 @@ document.addEventListener("alpine:init", function () {
     return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   };
 
+  /* Ein Ereignis nur alle n Millisekunden ausführen — für Scroll-Handler, die sonst zu oft feuern. */
+  var drossle = function (fn, ms) {
+    var zuletzt = 0;
+    return function () {
+      var jetzt = Date.now();
+      if (jetzt - zuletzt < ms) return;
+      zuletzt = jetzt;
+      fn();
+    };
+  };
+
   /* Aufklappmenü auf <details>: Konto, ⋯ Mehr, Burger-Panel.
      Verstärkt das native Element um Außenklick, Escape, Fokusrückgabe und — bei
      einem Panel — Scroll-Sperre und Fokusfalle (Spec 7). */
@@ -352,6 +363,138 @@ document.addEventListener("alpine:init", function () {
           var namen = self.namen(), i = namen.indexOf(self.zone) + (dx < 0 ? 1 : -1);
           if (i >= 0 && i < namen.length) self.zone = namen[i];
         }, { passive: true });
+      }
+    };
+  });
+
+  /* Der Chat eines Antrags (FB-G1, FB-G2): Antwort-Modus, wachsendes Textfeld, Zeichenzähler —
+     und das Scroll-Gedächtnis. Die Leiste steht wieder dort, wo man zuletzt aufgehört hat zu
+     lesen, auch nach einem Ausflug auf andere Seiten (je Gerät in localStorage; der
+     geräteübergreifende Lesestand liegt am Server). Ohne JavaScript bleibt alles bedienbar:
+     Antworten geht dann über den Anker, das Feld ist ein gewöhnliches Textfeld. */
+  Alpine.data("chat", function (antragId) {
+    var schluessel = "ddoe.chat." + antragId;
+    return {
+      antwortAuf: null,
+      antwortName: "",
+      init: function () {
+        this.stelleWiederHer();
+        var self = this;
+        var merken = drossle(function () { self.merkeStelle(); }, 2000);
+        window.addEventListener("scroll", merken, { passive: true });
+        window.addEventListener("pagehide", function () { self.merkeStelle(); });
+        // Nach dem Lesen den Lesestand vorrücken — die „neu"-Linie hat ihren Dienst getan
+        if (this.$el.querySelector(".neulinie")) setTimeout(function () { self.gelesen(); }, 4000);
+      },
+      antworten: function (id, name) {
+        this.antwortAuf = id;
+        this.antwortName = name;
+        if (this.$refs.feld) this.$refs.feld.focus();
+      },
+      abbrechen: function () { this.antwortAuf = null; this.antwortName = ""; },
+      leeren: function () {
+        if (this.$refs.feld) { this.$refs.feld.value = ""; this.wachsen(); this.$refs.feld.focus(); }
+        this.abbrechen();
+      },
+      wachsen: function () {
+        var f = this.$refs.feld;
+        if (!f) return;
+        f.style.height = "auto";
+        f.style.height = Math.min(f.scrollHeight, 9 * 16) + "px";
+      },
+      rest: function () {
+        var f = this.$refs.feld;
+        return f ? 4000 - f.value.length : 4000;
+      },
+      /* Welcher Beitrag steht gerade im Blick — den merken wir uns, nicht die Pixelzahl:
+         Beiträge kommen dazu, Pixel verschieben sich, ein Beitrag bleibt derselbe.
+         Gesucht ist der erste, der wirklich im Fenster steht — nicht einer, der oben schon
+         herausgescrollt ist oder unten gerade erst anklopft. */
+      merkeStelle: function () {
+        var hoehe = window.innerHeight;
+        var treffer = null;
+        Array.prototype.some.call(this.$el.querySelectorAll(".blase[data-beitrag]"), function (b) {
+          var r = b.getBoundingClientRect();
+          if (r.bottom > 40 && r.top < hoehe - 40) { treffer = { id: b.dataset.beitrag, top: r.top }; return true; }
+          return false;
+        });
+        if (!treffer) return;
+        try {
+          localStorage.setItem(schluessel, JSON.stringify({ beitrag: treffer.id, versatz: Math.round(treffer.top), zeit: Date.now() }));
+        } catch (fehler) { /* Speicher gesperrt — dann eben ohne Gedächtnis */ }
+      },
+      stelleWiederHer: function () {
+        var stand = null;
+        try { stand = JSON.parse(localStorage.getItem(schluessel) || "null"); } catch (fehler) { stand = null; }
+        if (!stand || !stand.beitrag) return;
+        if (window.location.hash) return;  // ein Anker im Link hat Vorrang
+        var self = this;
+        var eigenhaendig = false;  // sobald jemand selbst scrollt, halten wir die Finger still
+        ["wheel", "touchstart", "keydown"].forEach(function (art) {
+          window.addEventListener(art, function () { eigenhaendig = true; }, { once: true, passive: true });
+        });
+        /* Die Seite wächst nach dem ersten Frame noch (Fächer, eingeblendete Bereiche, Schriften).
+           Darum wird die Stelle mehrfach nachgezogen, bis das Layout steht. */
+        var setzen = function () {
+          if (eigenhaendig) return;
+          var ziel = self.$el.querySelector('.blase[data-beitrag="' + stand.beitrag + '"]');
+          if (!ziel) return;  // archiviert oder entfernt: dann eben von vorn
+          var weg = ziel.getBoundingClientRect().top - (stand.versatz || 0);
+          if (Math.abs(weg) < 2) return;
+          window.scrollTo({ top: window.scrollY + weg, behavior: "auto" });
+        };
+        requestAnimationFrame(function () { requestAnimationFrame(setzen); });
+        window.addEventListener("load", setzen);
+        setTimeout(setzen, 250);
+      },
+      gelesen: function () {
+        var form = this.$el.querySelector("form[action*='/kommentieren/']");
+        var wert = form ? form.querySelector("[name=csrfmiddlewaretoken]") : null;
+        if (!wert) return;
+        fetch("/antrag/" + antragId + "/chat/gelesen/", {
+          method: "POST",
+          headers: { "X-CSRFToken": wert.value, "HX-Request": "true" },
+          body: new URLSearchParams(),
+        }).catch(function () { /* nicht schlimm: der Stand rückt beim nächsten Mal nach */ });
+      }
+    };
+  });
+
+  /* Das Gesprächs-Panel (FB-G3): Griff links, Panel gleitet herein, Escape und Schleier schließen,
+     der Fokus bleibt drin. Ohne JavaScript ist der Griff ein Link auf /gespraeche/. */
+  Alpine.data("gespraechspanel", function () {
+    return {
+      offen: false,
+      nurUngelesen: false,
+      ausloeser: null,
+      auf: function (e) {
+        if (e) { e.preventDefault(); this.ausloeser = e.currentTarget; }
+        this.offen = true;
+        var self = this;
+        this.$nextTick(function () {
+          var erster = self.$el.querySelector(".g-panel button, .g-panel a");
+          if (erster) erster.focus();
+        });
+      },
+      zu: function () {
+        if (!this.offen) return;
+        this.offen = false;
+        if (this.ausloeser) this.ausloeser.focus();
+      },
+      wechsle: function (e, ungelesen) {
+        if (e) e.preventDefault();  // htmx holt die Liste, die Seite bleibt stehen
+        this.nurUngelesen = ungelesen;
+      },
+      falle: function (e) {
+        if (e.key !== "Tab") return;
+        var ziele = Array.prototype.filter.call(
+          this.$el.querySelectorAll(".g-panel a, .g-panel button"),
+          function (z) { return z.offsetParent !== null; }
+        );
+        if (!ziele.length) return;
+        var erstes = ziele[0], letztes = ziele[ziele.length - 1];
+        if (e.shiftKey && document.activeElement === erstes) { e.preventDefault(); letztes.focus(); }
+        else if (!e.shiftKey && document.activeElement === letztes) { e.preventDefault(); erstes.focus(); }
       }
     };
   });

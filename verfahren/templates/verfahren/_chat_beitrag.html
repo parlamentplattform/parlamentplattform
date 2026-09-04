@@ -1,0 +1,63 @@
+{% load i18n chat %}{% comment %}
+Eine Sprechblase im Chat (FB-G1): Avatar mit Initiale, Name, Zeit (relativ, absolut im Titel),
+Text, darunter die Aktionszeile — Antworten · Zustimmen mit Zähler · Melden · Anker. Eigene
+Beiträge tragen eine Gold-Kante und in den ersten fünf Minuten „Ändern" und „Zurückziehen".
+Erwartet b (aus chat.faden) und antrag.
+{% endcomment %}<article class="blase{% if b.eigener %} eigen{% endif %}{% if b.neu %} neu{% endif %}" id="k-{{ b.k.pk }}" data-beitrag="{{ b.k.pk }}">
+  <span class="avatar-initiale{% if b.k.geloescht or b.k.ausgeblendet_am %} still{% endif %}" aria-hidden="true">{{ b.k.mitglied.anzeigename|initiale }}</span>
+  <div class="blase-inhalt">
+    <div class="blase-kopf">
+      <strong>{{ b.k.mitglied.anzeigename }}</strong>
+      <time datetime="{{ b.k.erstellt_am|date:'c' }}" title="{{ b.k.erstellt_am|date:'d.m.Y, H:i' }}">{{ b.k.erstellt_am|zeit_her }}</time>
+      {% if b.k.bearbeitet_am %}<span class="erk">· {% translate "bearbeitet" %}</span>{% endif %}
+    </div>
+    <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{{ b.k.sichtbarer_text|urlize|linebreaksbr }}</div>
+    <div class="blase-fuss">
+      {% if chat.offen and user.is_authenticated and not b.k.geloescht and not b.k.ausgeblendet_am %}
+      <button type="button" class="blase-knopf" @click="antworten({{ b.k.pk }}, '{{ b.k.mitglied.anzeigename|escapejs }}')">{% translate "Antworten" %}</button>
+      <form method="post" action="{% url 'verfahren:reagieren' antrag.pk b.k.pk %}" class="blase-form"
+        hx-post="{% url 'verfahren:reagieren' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
+        {% csrf_token %}
+        <button class="blase-knopf zustimmen{% if b.ich_zustimme %} an{% endif %}" aria-pressed="{% if b.ich_zustimme %}true{% else %}false{% endif %}"
+          title="{% if b.ich_zustimme %}{% translate 'Zustimmung zurücknehmen' %}{% else %}{% translate 'Zustimmen' %}{% endif %}">&#128077;{% if b.zustimmungen %} {{ b.zustimmungen }}{% endif %}</button>
+      </form>
+      {% elif b.zustimmungen %}
+      <span class="blase-knopf zustimmen still" title="{% translate 'Zustimmungen' %}">&#128077; {{ b.zustimmungen }}</span>
+      {% endif %}
+      {% if b.eigener and not b.k.geloescht %}
+        {% if b.k|darf_bearbeiten:user %}
+        <details class="blase-aendern">
+          <summary class="blase-knopf">{% translate "Ändern" %}</summary>
+          <form method="post" action="{% url 'verfahren:beitrag_bearbeiten' antrag.pk b.k.pk %}"
+            hx-post="{% url 'verfahren:beitrag_bearbeiten' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
+            {% csrf_token %}<textarea name="text" rows="3" maxlength="4000" required aria-label="{% translate 'Beitrag ändern' %}">{{ b.k.text }}</textarea>
+            <button class="btn-linie klein">{% translate "Übernehmen" %}</button>
+            <span class="hilfe">{% translate "Ändern geht in den ersten fünf Minuten." %}</span>
+          </form>
+        </details>
+        {% endif %}
+        <form method="post" action="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}" class="blase-form"
+          hx-post="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
+          hx-confirm="{% translate 'Beitrag zurückziehen? Der Text verschwindet, die Antworten darunter bleiben.' %}">
+          {% csrf_token %}<button class="blase-knopf">{% translate "Zurückziehen" %}</button>
+        </form>
+      {% elif user.is_authenticated and not b.k.geloescht and not b.k.ausgeblendet_am %}
+        <details class="blase-melden">
+          <summary class="blase-knopf">{% translate "Melden" %}</summary>
+          <form method="post" action="{% url 'verfahren:melden' antrag.pk b.k.pk %}"
+            hx-post="{% url 'verfahren:melden' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
+            {% csrf_token %}
+            <label for="grund-{{ b.k.pk }}">{% translate "Warum melden Sie diesen Beitrag?" %}</label>
+            <select name="grund" id="grund-{{ b.k.pk }}">
+              {% for wert, name in chat.meldegruende %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}
+            </select>
+            <input type="text" name="erlaeuterung" maxlength="500" placeholder="{% translate 'Erläuterung (freiwillig)' %}" aria-label="{% translate 'Erläuterung' %}">
+            <button class="btn-linie klein">{% translate "Melden" %}</button>
+            <span class="hilfe">{% translate "Die Meldung geht an die Verwaltung und bleibt nachlesbar (Art 16 DSA)." %}</span>
+          </form>
+        </details>
+      {% endif %}
+      <a class="blase-anker" href="#k-{{ b.k.pk }}" title="{% translate 'Verweis auf diesen Beitrag' %}">#{{ b.k.pk }}</a>
+    </div>
+  </div>
+</article>

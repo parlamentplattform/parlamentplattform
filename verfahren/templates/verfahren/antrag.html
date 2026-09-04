@@ -31,7 +31,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
 <nav class="zonenleiste" aria-label="{% translate 'Zonen dieser Seite' %}">
   <a href="#zone-text" class="zreiter" :class="{an: zone === 'text'}" @click="waehle('text', $event)" :aria-current="zone === 'text' ? 'true' : 'false'">{% translate "Text" %}</a>
   {% if einschaetzung %}<a href="#zone-einschaetzung" class="zreiter" :class="{an: zone === 'einschaetzung'}" @click="waehle('einschaetzung', $event)" :aria-current="zone === 'einschaetzung' ? 'true' : 'false'">{% translate "Einschätzung" %}</a>{% endif %}
-  <a href="#zone-chat" class="zreiter" :class="{an: zone === 'chat'}" @click="waehle('chat', $event)" :aria-current="zone === 'chat' ? 'true' : 'false'">{% translate "Chat" %}{% if kommentare %} ({{ kommentare|length }}){% endif %}</a>
+  <a href="#zone-chat" class="zreiter" :class="{an: zone === 'chat'}" @click="waehle('chat', $event)" :aria-current="zone === 'chat' ? 'true' : 'false'">{% translate "Chat" %}{% if chat.anzahl %} ({{ chat.anzahl }}){% endif %}{% if chat.neue %} <span class="neu-punkt" title="{% blocktranslate count n=chat.neue %}{{ n }} neuer Beitrag{% plural %}{{ n }} neue Beiträge{% endblocktranslate %}">●</span>{% endif %}</a>
 </nav>
 
 <div class="zonen">
@@ -235,26 +235,8 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
 
   {# ── Zone 3: Chat (der Faden folgt mit dem Chatsystem, S6) ── #}
   <section class="zone z-chat" id="zone-chat" x-show="breit || zone === 'chat'">
-    <h2>{% translate "Chat" %}{% if kommentare %} ({{ kommentare|length }}){% endif %}</h2>
-    <div class="karte">
-      {% for k in kommentare %}
-        <div class="kommentar">
-          <div class="kopf">{{ k.mitglied.anzeigename }} · {{ k.erstellt_am|date:"d.m.Y, H:i" }}</div>
-          <div>{{ k.text|linebreaksbr }}</div>
-        </div>
-      {% empty %}
-        <p class="leer">{% translate "Noch keine Beiträge." %}</p>
-      {% endfor %}
-      {% if phase_offen and user.is_authenticated %}
-      <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatform">{% csrf_token %}
-        <label for="id_text" class="nur-lesbar">{% translate "Beitrag zur Beratung" %}</label>
-        <textarea name="text" id="id_text" rows="3" maxlength="4000" required placeholder="{% translate 'Sachlich und respektvoll — unter Ihrem Anzeigenamen.' %}"></textarea>
-        <button type="submit" class="btn-linie">{% translate "Beitrag veröffentlichen" %}</button>
-      </form>
-      {% elif phase_offen %}
-      <p class="hilfe">{% translate "Zum Mitberaten bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
-      {% endif %}
-    </div>
+    <h2>{% translate "Chat" %}{% if chat.anzahl %} ({{ chat.anzahl }}){% endif %}</h2>
+    {% include "verfahren/_chat.html" %}
   </section>
 </div>
 </div>

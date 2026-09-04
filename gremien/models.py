@@ -27,7 +27,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
@@ -230,6 +230,7 @@ class Entwurf(models.Model):
             {"typ": "vorschlag_zurueckgegeben", "antrag": self.antrag_id, "runde": self.runde, "grund": grund}
         )
 
+    @transaction.atomic
     def _endabstimmung_oeffnen(self, antrag: Antrag, grund: str, jetzt) -> None:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
         Vorschlag — er wird die neue, letzte Antragsfassung."""
@@ -265,6 +266,7 @@ class Entwurf(models.Model):
             )
             felder.append("stimmberechtigte_anzahl")
         antrag.save(update_fields=felder)
+        archiviert = antrag.chat_archivieren(jetzt)  # FB-G5: Hochstufung räumt den Chat
         AuditEintrag.anhaengen(
             {
                 "typ": "phasenwechsel",
@@ -272,6 +274,7 @@ class Entwurf(models.Model):
                 "neue_phase": Phase.ABSTIMMUNG.value,
                 "wirksam_ab": jetzt.isoformat(),
                 "grund": grund,
+                "chat_archiviert": archiviert,
             }
         )
 

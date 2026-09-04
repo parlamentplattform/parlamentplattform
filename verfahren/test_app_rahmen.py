@@ -204,6 +204,15 @@ def test_tableiste_nur_im_parlament(client):
     tabs = html.split('<nav class="tabs"', 1)[1].split("</nav>", 1)[0]
     assert re.findall(r'href="([^"]+)"', tabs) == [
         "#feld-filter", "#feld-favoriten", "/einbringen/", "#feld-wichtig", "#feld-region",
+    ], "Gäste haben keine Gespräche — für sie bleibt es bei vier Zielen und ＋"
+    # Mitglieder haben „Chats" als fünftes Ziel (FB-G3, D-G3)
+    client.force_login(mitglied_anlegen("tabs-mitglied"))
+    tabs = (
+        client.get(reverse("verfahren:parlament")).content.decode()
+        .split('<nav class="tabs"', 1)[1].split("</nav>", 1)[0]
+    )
+    assert re.findall(r'href="([^"]+)"', tabs) == [
+        "#feld-filter", "#feld-favoriten", "/einbringen/", "#feld-wichtig", "#feld-region", "/gespraeche/",
     ]
     assert 'class="plus"' in tabs and 'aria-label="Bereiche"' in html
     assert html.index('class="parlament"') < html.index('<nav class="tabs"')

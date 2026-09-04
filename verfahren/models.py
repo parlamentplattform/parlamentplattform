@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import secrets
 import uuid
+from datetime import timedelta
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from plattform_core import (
     GENESIS,
@@ -234,9 +236,13 @@ class Antrag(models.Model):
     def aktueller_text(self) -> AntragsFassung | None:
         return self.fassungen.order_by("-nummer").first()
 
+    @transaction.atomic
     def fortschreiben(self, jetzt=None) -> bool:
         """Prüft fällige Übergänge und wendet sie an (idempotent).
-        Rückgabe: True, wenn sich die Phase geändert hat."""
+        Rückgabe: True, wenn sich die Phase geändert hat.
+
+        Atomar, weil ein Phasenwechsel drei Dinge zugleich sind: neue Phase, archivierter Chat
+        (FB-G5) und Audit-Eintrag. Bricht eines ab, darf keines stehenbleiben."""
         jetzt = jetzt or timezone.now()
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
@@ -304,6 +310,7 @@ class Antrag(models.Model):
             )
             felder.append("stimmberechtigte_anzahl")
         self.save(update_fields=felder)
+        archiviert = self.chat_archivieren(uebergang.wirksam_ab)
         AuditEintrag.anhaengen(
             {
                 "typ": "phasenwechsel",
@@ -311,9 +318,20 @@ class Antrag(models.Model):
                 "neue_phase": uebergang.neue_phase.value,
                 "wirksam_ab": uebergang.wirksam_ab.isoformat(),
                 "grund": uebergang.grund,
+                "chat_archiviert": archiviert,
             }
         )
         return True
+
+    def chat_archivieren(self, jetzt=None) -> int:
+        """FB-G5: Bei jeder Hochstufung wandern die Beiträge der bisherigen Phase ins Archiv.
+
+        Archivieren heißt Sichtbarkeit ändern, nicht entfernen (Grundregel 7): Der laufende
+        Chat beginnt leer, die Beiträge bleiben unter ihrer Phase lesbar. Idempotent —
+        was schon gestempelt ist, bleibt unberührt. Rückgabe: Zahl der archivierten Beiträge."""
+        return self.kommentare.filter(archiviert_am__isnull=True).update(
+            archiviert_am=jetzt or timezone.now()
+        )
 
     def stimme_zulaessig(self, jetzt=None) -> bool:
         jetzt = jetzt or timezone.now()
@@ -746,20 +764,149 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
 
 
 class Kommentar(models.Model):
-    """Beitrag zur Beratungsphase (§ 5 Abs 3 lit c). Nur Mitglieder; öffentlich lesbar."""
+    """Ein Beitrag im Chat eines Antrags (§ 5 Abs 3 lit c, FB-G1). Nur Mitglieder schreiben,
+    alle lesen mit.
+
+    Der Faden ist eine Ebene tief: `antwort_auf` zeigt auf den Wurzelbeitrag; eine Antwort auf
+    eine Antwort hängt sich an denselben Wurzelbeitrag (`wurzel()`), damit der Faden lesbar
+    bleibt. Jeder Beitrag merkt sich die `phase`, in der er geschrieben wurde — bei jeder
+    Hochstufung werden die Beiträge der bisherigen Phase mit `archiviert_am` gestempelt und
+    verschwinden aus dem laufenden Chat, ohne gelöscht zu werden (FB-G5, Grundregel 7).
+    Auch das Entfernen durch den Verfasser und das Ausblenden durch die Verwaltung lassen den
+    Beitrag stehen; nur sein Text weicht einem Vermerk."""
+
+    BEARBEITUNGSFENSTER = timedelta(minutes=5)  # danach ist der Text unveränderlich (FB-G1)
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     text = models.TextField(max_length=4000)
+    antwort_auf = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.CASCADE, related_name="antworten",
+        help_text="Wurzelbeitrag dieses Fadens — leer bei einem eigenen Faden.",
+    )
+    phase = models.CharField(
+        max_length=20, blank=True,
+        help_text="Phase des Antrags beim Schreiben — die Grundlage der Archivierung bei Hochstufung.",
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
+    bearbeitet_am = models.DateTimeField(null=True, blank=True)
+    archiviert_am = models.DateTimeField(
+        null=True, blank=True, help_text="Bei Hochstufung gesetzt: der Beitrag wandert ins Archiv (FB-G5)."
+    )
+    geloescht = models.BooleanField(default=False, help_text="Vom Verfasser entfernt — die Struktur bleibt.")
+    ausgeblendet_am = models.DateTimeField(null=True, blank=True)
+    ausgeblendet_grund = models.CharField(
+        max_length=200, blank=True, help_text="Öffentlicher Grund der Verwaltung (Art 17 DSA)."
+    )
 
     class Meta:
         ordering = ["erstellt_am"]
         verbose_name = "Kommentar"
         verbose_name_plural = "Kommentare"
+        indexes = [models.Index(fields=["antrag", "archiviert_am", "erstellt_am"])]
 
     def __str__(self) -> str:
         return f"Kommentar von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+    def wurzel(self) -> Kommentar:
+        """Der Beitrag, unter dem dieser Faden hängt — bei Wurzelbeiträgen er selbst."""
+        return self.antwort_auf or self
+
+    def sichtbarer_text(self) -> str:
+        if self.ausgeblendet_am:
+            return str(_("[von der Verwaltung ausgeblendet: %s]") % (self.ausgeblendet_grund or _("kein Grund angegeben")))
+        if self.geloescht:
+            return str(_("[vom Verfasser entfernt]"))
+        return self.text
+
+    def darf_bearbeiten(self, mitglied, jetzt=None) -> bool:
+        """Ändern nur durch den Verfasser und nur binnen fünf Minuten (FB-G1)."""
+        jetzt = jetzt or timezone.now()
+        return (
+            mitglied.is_authenticated
+            and mitglied.pk == self.mitglied_id
+            and not self.geloescht
+            and not self.ausgeblendet_am
+            and not self.archiviert_am
+            and jetzt - self.erstellt_am <= self.BEARBEITUNGSFENSTER
+        )
+
+
+class Reaktionsart(models.TextChoices):
+    ZUSTIMMUNG = "zustimmung", "Zustimmung"
+    ABLEHNUNG = "ablehnung", "Ablehnung"
+
+
+class Reaktion(models.Model):
+    """Zustimmung oder Ablehnung zu einem Beitrag (FB-G1, FB-G6).
+
+    Außerhalb des Abstimmungs-Chats nur Zustimmung, rein informativ — sie wirkt nie auf die
+    Reihung (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags (S7) ist sie
+    das Votum der Unterstützer. Eine Reaktion je Mitglied und Beitrag, umschaltbar."""
+
+    kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="reaktionen")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    art = models.CharField(max_length=12, choices=Reaktionsart.choices, default=Reaktionsart.ZUSTIMMUNG)
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("kommentar", "mitglied")]
+        verbose_name = "Reaktion"
+        verbose_name_plural = "Reaktionen"
+
+    def __str__(self) -> str:
+        return f"{self.get_art_display()} von Mitglied {self.mitglied_id} zu Beitrag {self.kommentar_id}"
+
+
+class Lesestand(models.Model):
+    """Wie weit ein Mitglied den Chat eines Antrags gelesen hat (FB-G2).
+
+    Geräteübergreifend und serverseitig — daraus entsteht die Trennlinie „n neue Beiträge"
+    und der Ungelesen-Punkt im Gesprächs-Panel. Die genaue Scrollstelle merkt sich zusätzlich
+    das Gerät selbst (localStorage); dieser Stand hier ist die gemeinsame Wahrheit."""
+
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesestaende")
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="lesestaende")
+    gelesen_bis = models.DateTimeField(default=timezone.now, help_text="Zeitpunkt des zuletzt gelesenen Beitrags.")
+
+    class Meta:
+        unique_together = [("mitglied", "antrag")]
+        verbose_name = "Lesestand"
+        verbose_name_plural = "Lesestände"
+
+    def __str__(self) -> str:
+        return f"Lesestand von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+
+class Meldung(models.Model):
+    """Meldung eines Beitrags durch ein Mitglied (Art 16 DSA, § 5 Abs 2, FB-G1).
+
+    Die Meldung geht an die Verwaltung; sie kann den Beitrag mit öffentlichem Grund ausblenden.
+    Meldungen werden nie gelöscht — auch die Entscheidung bleibt nachlesbar."""
+
+    class Grund(models.TextChoices):
+        BELEIDIGUNG = "beleidigung", "Beleidigung oder Herabwürdigung"
+        FALSCH = "falsch", "Nachweislich falsche Tatsachenbehauptung"
+        THEMA = "thema", "Kein Bezug zum Antrag"
+        RECHT = "recht", "Rechtswidriger Inhalt"
+        SONST = "sonst", "Sonstiges"
+
+    kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="meldungen")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    grund = models.CharField(max_length=20, choices=Grund.choices)
+    erlaeuterung = models.CharField(max_length=500, blank=True)
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    erledigt_am = models.DateTimeField(null=True, blank=True)
+    entscheidung = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["-erstellt_am"]
+        unique_together = [("kommentar", "mitglied")]
+        verbose_name = "Meldung"
+        verbose_name_plural = "Meldungen"
+
+    def __str__(self) -> str:
+        return f"Meldung ({self.grund}) zu Beitrag {self.kommentar_id}"
 
 
 class Beanstandung(models.Model):

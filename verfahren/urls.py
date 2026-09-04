@@ -31,6 +31,14 @@ urlpatterns = [
     ),
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),
     path("antrag/<int:pk>/beanstanden/", views_aktionen.beanstanden, name="beanstanden"),
+    # Der Chat eines Antrags (FB-G1, G2)
+    path("antrag/<int:pk>/chat/gelesen/", views_aktionen.chat_gelesen, name="chat_gelesen"),
+    path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/bearbeiten/", views_aktionen.beitrag_bearbeiten, name="beitrag_bearbeiten"),
+    path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/entfernen/", views_aktionen.beitrag_entfernen, name="beitrag_entfernen"),
+    path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/reagieren/", views_aktionen.reagieren, name="reagieren"),
+    path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/melden/", views_aktionen.melden, name="melden"),
+    # Meine Gespräche (FB-G3): eigene Seite; das Panel holt sich dieselbe Liste per htmx
+    path("gespraeche/", views.gespraeche, name="gespraeche"),
     path("antrag/<int:pk>/meine-stimme/", views_aktionen.eigene_stimme, name="eigene_stimme"),
     path("antrag/<int:pk>/vollzug/", views_aktionen.vollzug_eintragen, name="vollzug"),
     path("filter/anwenden/", views_aktionen.filter_anwenden, name="filter_anwenden"),

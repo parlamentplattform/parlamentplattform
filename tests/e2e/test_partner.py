@@ -70,9 +70,10 @@ def test_partner_seite_am_handy(seite, live_server, demo):
 
 
 def test_die_welt_sieht_die_partnerseite_auf_englisch(seite, live_server, demo):
-    """FB-M1: Wer nicht ausdrücklich Deutsch möchte, wird auf Englisch begrüßt — auch bei
-    Spanisch oder Japanisch. Vorher fiel jede unbekannte Sprache auf Deutsch zurück."""
-    for sprache in ("es-ES", "fr-FR", "ja-JP", "en-US"):
+    """FB-M1: Wer nicht ausdrücklich Deutsch möchte, wird auf Englisch begrüßt.
+
+    Sprachen mit eigener Kurzfassung (FB-M9) landen dort — geprüft im Test darunter."""
+    for sprache in ("pt-BR", "sv-SE", "en-US"):
         p = seite(sprache=sprache)
         p.goto(f"{live_server.url}/partner/")
         _ruhe(p)
@@ -83,3 +84,32 @@ def test_die_welt_sieht_die_partnerseite_auf_englisch(seite, live_server, demo):
     p.goto(f"{live_server.url}/partner/")
     _ruhe(p)
     assert "Internationale Partner" in p.locator("h1").inner_text(), "Deutschsprachige bleiben bei Deutsch"
+
+
+def test_kurzfassung_erscheint_in_der_landessprache(seite, live_server, demo):
+    """FB-M9: Vier Sprachen haben einen eigenen Text. Er trägt sein eigenes `lang`,
+    der Rahmen bleibt englisch — und die Sprachleiste führt in jede andere Fassung."""
+    erwartet = {
+        "fr-FR": ("fr", "Pour les partis"),
+        "es-ES": ("es", "Para partidos"),
+        "it-IT": ("it", "Per partiti"),
+        "ja-JP": ("ja", "世界の政党"),
+    }
+    for sprache, (code, anfang) in erwartet.items():
+        p = seite(sprache=sprache)
+        p.goto(f"{live_server.url}/partner/")
+        _ruhe(p)
+        assert p.url.endswith(f"/partner/{code}/"), f"{sprache} → {p.url}"
+        assert anfang in p.locator("h1").inner_text(), sprache
+        assert p.locator(f'article[lang="{code}"]').count() == 1
+        assert p.locator("html").get_attribute("lang") == "en", "der Rahmen bleibt englisch"
+        assert p.locator(".partnersprachen a, .partnersprachen button").count() >= 6
+
+    # Von der Kurzfassung zur vollständigen Seite — und nicht sofort zurückgeworfen werden
+    p = seite(sprache="fr-FR")
+    p.goto(f"{live_server.url}/partner/fr/")
+    _ruhe(p)
+    p.get_by_role("link", name="Full partner page (English)").click()
+    p.wait_for_load_state()
+    assert p.url.rstrip("/").endswith("/partner"), p.url
+    assert "International partners" in p.locator("h1").inner_text()

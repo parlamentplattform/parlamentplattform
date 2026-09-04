@@ -6,8 +6,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.http import Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -853,6 +853,31 @@ def _welt_spricht_englisch(request) -> bool:
     return not any(teil.strip().startswith("de") for teil in gewuenscht.split(","))
 
 
+
+def _kurzfassung_fuer(request) -> str:
+    """Gibt es für die bevorzugte Sprache dieser Anfrage eine Kurzfassung? (FB-M9)
+
+    Zurückgegeben wird der Sprachcode oder "". Wer die Sprache selbst gewählt hat, wird nicht
+    umgeleitet — und wer von der Plattform selbst kommt, auch nicht: Sonst würde der Weg
+    „Kurzfassung → vollständige Seite auf Englisch" sofort wieder auf der Kurzfassung enden."""
+    from django.conf import settings as dj_settings
+
+    if request.session.get(dj_settings.LANGUAGE_COOKIE_NAME) or request.COOKIES.get(
+        dj_settings.LANGUAGE_COOKIE_NAME
+    ):
+        return ""
+    verweis = request.headers.get("referer") or ""
+    if verweis.startswith(request.build_absolute_uri("/")):
+        return ""  # von uns selbst — die Wahl des Besuchers gilt
+    hat_kurzfassung = {code for code, _name in KURZFASSUNGEN}
+    for teil in (request.headers.get("accept-language") or "").lower().split(","):
+        code = teil.split(";")[0].strip().split("-")[0]
+        if code in hat_kurzfassung:
+            return code
+        if code:
+            return ""  # die bevorzugte Sprache entscheidet, nicht die dritte in der Liste
+    return ""
+
 def partner(request):
     """§ 12, FB-M1/M6/M7/M8 („Labor der Demokratien"): die Einladung an die verwandten
     Parteien weltweit — gemeinsame Vision, das Modell „ein Kern, viele Instanzen" mit
@@ -864,6 +889,9 @@ def partner(request):
     ausdrücklich Deutsch möchte, bekommt sie darum auf Englisch."""
     from django.utils import translation
 
+    kurz = _kurzfassung_fuer(request)
+    if kurz:
+        return redirect("verfahren:partner_kurz", sprache=kurz)
     if _welt_spricht_englisch(request):
         translation.activate("en")
         request.LANGUAGE_CODE = "en"
@@ -873,6 +901,7 @@ def partner(request):
         {
             "version": __version__,
             "system_id": settings.DDOE_SYSTEM_ID,
+            "sprachen": KURZFASSUNGEN,
             "paket": [name for name, _pfad in PAKET_DATEIEN] + list(PAKET_ERZEUGT),
         },
     )
@@ -893,6 +922,43 @@ def _paket_readme() -> str:
         f"## Inhalt / Contents\n\n{zeilen}\n"
     )
 
+
+
+#: Die Sprachen, für die eine Kurzfassung vorliegt (FB-M9). Reihenfolge = Reihenfolge in der Leiste.
+KURZFASSUNGEN = (
+    ("fr", "Français"),
+    ("es", "Español"),
+    ("it", "Italiano"),
+    ("ja", "日本語"),
+)
+
+
+def partner_kurz(request, sprache: str):
+    """Die Einladung an Partnerparteien in einer Sprache, für die es keine ganze Oberfläche gibt.
+
+    Der Rahmen bleibt englisch — die Plattform spricht Deutsch und Englisch, mehr wäre ein
+    Versprechen, das die Übersetzungspflege nicht hält (FB-M9). Der Text selbst steht in der
+    Landessprache und trägt sein eigenes `lang`, damit Vorleseprogramme richtig sprechen."""
+    from django.utils import translation
+
+    from plattform_core import kurztext
+
+    namen = dict(KURZFASSUNGEN)
+    if sprache not in namen:
+        raise Http404("Für diese Sprache gibt es keine Kurzfassung.")
+    datei = settings.BASE_DIR / "docs" / "partner" / "kurz" / f"{sprache}.md"
+    if not datei.exists():
+        raise Http404("Die Kurzfassung fehlt.")
+    gelesen = kurztext.lesen(datei.read_text(encoding="utf-8"))
+    if not kurztext.ist_vollstaendig(gelesen):
+        raise Http404("Die Kurzfassung ist unvollständig.")
+    translation.activate("en")
+    request.LANGUAGE_CODE = "en"
+    return render(
+        request,
+        "verfahren/partner_kurz.html",
+        {"kurz": gelesen, "sprache": sprache, "sprachname": namen[sprache], "sprachen": KURZFASSUNGEN},
+    )
 
 def partner_paket(request):
     """FB-M7: das Übertragungspaket als ZIP — Satzungs-Baukasten, Einstiegs-Fahrplan, Checkliste,

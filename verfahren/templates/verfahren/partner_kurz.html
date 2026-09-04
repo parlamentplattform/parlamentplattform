@@ -1,0 +1,31 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}{% comment %}
+Die Einladung an Partnerparteien in einer Sprache, für die es keine ganze Oberfläche gibt
+(FB-M9). Der Rahmen ist englisch, der Text trägt sein eigenes `lang` — so liest ein
+Vorleseprogramm die Navigation englisch und den Text französisch, spanisch, italienisch
+oder japanisch. Von hier führen zwei Wege weiter: die vollständige Seite auf Englisch
+und der unmittelbare Kontakt.
+{% endcomment %}
+{% block titel %}{{ kurz.ueberschrift }}{% endblock %}
+{% block kopfzusatz %}
+<link rel="alternate" hreflang="en" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner' %}">
+<link rel="alternate" hreflang="x-default" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner' %}">
+{% for code, name in sprachen %}<link rel="alternate" hreflang="{{ code }}" href="{{ request.scheme }}://{{ request.get_host }}{% url 'verfahren:partner_kurz' code %}">
+{% endfor %}{% endblock %}
+{% block inhalt %}
+<div class="partnerkurz">
+  {% include "verfahren/_partner_sprachen.html" %}
+
+  <article lang="{{ sprache }}">
+    <h1>{{ kurz.ueberschrift }}</h1>
+    {% for absatz in kurz.absaetze %}<p>{{ absatz }}</p>{% endfor %}
+    {% if kurz.schluss %}<p class="hilfe schlusszeile">{{ kurz.schluss }}</p>{% endif %}
+  </article>
+
+  <p class="partnerwege">
+    <a class="btn" href="mailto:plattform@ddoe.at">plattform@ddoe.at</a>
+    <a class="btn-linie" href="{% url 'verfahren:partner' %}" hreflang="en" lang="en">Full partner page (English)</a>
+    <a class="btn-linie" href="{% url 'verfahren:partner_paket' %}" hreflang="en" lang="en">Download package</a>
+  </p>
+</div>
+{% endblock %}

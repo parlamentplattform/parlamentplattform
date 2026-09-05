@@ -1,0 +1,76 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Wer darf was" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die Rollenübersicht (FB-K6). Sie stellt Satzung und Software nebeneinander: Jede Fähigkeit trägt
+● verfügbar, ◐ teilweise oder ○ geplant. Die Daten stehen in plattform_core/rollen.py, nicht
+hier — sonst wäre die Seite nach dem ersten neuen Gremium falsch, ohne dass es jemand merkt.
+Ohne JavaScript vollständig lesbar.
+{% endcomment %}
+<style>
+  .rollen-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:14px 0 8px}
+  .rk{background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px}
+  .rk h3{font-size:17px;margin:0 0 2px}
+  .rk .satzungschip{font-size:12px;color:var(--goldtief);border:1px dashed var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .rk .wasistdas{font-size:14px;color:var(--matt);margin:6px 0 10px}
+  .rk ul{list-style:none;margin:0;padding:0}
+  .rk li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:14px}
+  .rk li:first-child{border-top:0}
+  .rk .zeichen{flex:none;width:1.2em;text-align:center;font-size:13px}
+  .rk .zeichen.verfuegbar{color:var(--gold)}
+  .rk .zeichen.teilweise{color:var(--goldtief)}
+  .rk .zeichen.geplant{color:var(--matt)}
+  .rk .nachsatz{font-size:12.5px;color:var(--matt)}
+  .rk .wiehinein{margin-top:10px;padding-top:9px;border-top:1px solid var(--line);font-size:13px;color:var(--matt)}
+  .rollen-legende{display:flex;flex-wrap:wrap;gap:14px;font-size:13.5px;color:var(--matt);margin:8px 0 0}
+</style>
+
+<h1>{% translate "Wer darf was" %}</h1>
+<p class="erk" style="max-width:60em">{% blocktranslate %}Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Was jede Rolle darin darf, steht in
+der Satzung; was die Software heute davon kann, steht hier daneben. Beide Seiten sind zu sehen —
+eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung.{% endblocktranslate %}</p>
+
+<p class="rollen-legende">
+  <span><span class="zeichen verfuegbar">●</span> {% translate "verfügbar" %}</span>
+  <span><span class="zeichen teilweise">◐</span> {% translate "teilweise — die Satzung verlangt mehr, als die Software heute kann" %}</span>
+  <span><span class="zeichen geplant">○</span> {% translate "geplant — mit dem Bauschritt, der sie bringt" %}</span>
+</p>
+<p class="erk">{% blocktranslate with v=zahlen.verfuegbar t=zahlen.teilweise g=zahlen.geplant r=zahlen.rollen %}{{ r }} Rollen, {{ v }} Fähigkeiten verfügbar, {{ t }} teilweise, {{ g }} geplant.{% endblocktranslate %}
+  <span class="meta">{% blocktranslate with n=matrix_version %}Übersicht Fassung {{ n }}{% endblocktranslate %} · <code>plattform_core/rollen.py</code></span></p>
+
+{% for gruppe in gruppen %}
+<section class="abschnitt" id="g-{{ gruppe.schluessel }}">
+  <h2>{{ gruppe.name }}</h2>
+  <p class="erk">{{ gruppe.erklaerung }}</p>
+  <div class="rollen-karten">
+    {% for rolle in gruppe.rollen %}
+    <div class="rk" id="rolle-{{ rolle.schluessel }}">
+      <h3>{{ rolle.name }} <span class="satzungschip">{{ rolle.satzung }}</span></h3>
+      <p class="wasistdas">{{ rolle.was_sie_ist }}</p>
+      <ul>
+        {% for f in rolle.faehigkeiten %}
+        <li>
+          <span class="zeichen {{ f.stand.value }}" title="{{ f.stand.name_de }}">{{ f.stand.zeichen }}</span>
+          <span>
+            {% if f.urlname %}<a href="{% url f.urlname %}">{{ f.titel }}</a>{% else %}{{ f.titel }}{% endif %}
+            {% if f.ort %}<span class="nachsatz"> · {{ f.ort }}</span>{% endif %}
+            {% if f.satzung %}<span class="nachsatz"> · {{ f.satzung }}</span>{% endif %}
+            {% if f.einschraenkung %}<br><span class="nachsatz">{{ f.einschraenkung }}</span>{% endif %}
+            {% if f.bauschritt %}<br><span class="nachsatz">{% blocktranslate with s=f.bauschritt %}kommt mit {{ s }}{% endblocktranslate %}</span>{% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="wiehinein"><strong>{% translate "Wie man hineinkommt:" %}</strong> {{ rolle.wie_hinein }}</p>
+      {% if rolle.hinweis %}<p class="wiehinein">{{ rolle.hinweis }}</p>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<p class="erk" style="margin-top:24px;max-width:60em">{% blocktranslate %}Diese Seite entsteht aus einer versionierten Tabelle im Quellcode, nicht aus handgeschriebenem
+Text. Kommt ein Gremium hinzu, ohne dass die Tabelle nachgezogen wird, schlägt ein Test an —
+sonst wäre die Übersicht am Tag danach still falsch.{% endblocktranslate %}</p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Beschlüsse der Räte" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die öffentliche Beschlussliste (§ 6 Abs 9). Sie nutzt dieselbe Komponente wie die Bereiche der
+Räte, nur ohne Stimmformular — wer nicht abstimmen darf, sieht dasselbe wie die, die es dürfen.
+Gereiht wird nach Zeit, gefiltert nach Gremium; eine andere Ordnung gibt es nicht.
+{% endcomment %}
+<h1>{% translate "Beschlüsse der Räte" %}</h1>
+<p class="erk" style="max-width:56em">{% blocktranslate %}Jeder Beschluss eines Rates steht hier mit Gegenstand, Frist, Auszählung und jeder einzelnen
+Stimme samt Namen und Begründung (§ 6 Abs 9). Beschlussfähig ist ein Rat ab der Hälfte seiner
+aktiven Rollen, entschieden wird mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e).
+Jeder Beschluss trägt eine zitierfähige Nummer.{% endblocktranslate %}</p>
+
+<p class="erk">{% translate "Gremium:" %}
+  <a href="{% url 'gremien:beschluesse' %}"{% if not gewaehlt %} aria-current="page"{% endif %}>{% translate "alle" %}</a>
+  {% for wert, name in gremien %} · <a href="?gremium={{ wert }}"{% if gewaehlt == wert %} aria-current="page"{% endif %}>{{ name }}</a>{% endfor %}
+</p>
+
+{% include "gremien/_beschluesse.html" with ohne_kopf=True %}
+{% endblock %}

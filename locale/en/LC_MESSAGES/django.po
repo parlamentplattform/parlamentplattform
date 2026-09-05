@@ -4868,3 +4868,172 @@ msgstr[1] "First draft due %(frist)s — %(t)s days left."
 
 msgid "Liegt bis dahin keiner vor, geht der Antrag ohne Vorschlag weiter — Untätigkeit hemmt nie."
 msgstr "If none is submitted by then, the motion moves on without one — inaction never blocks."
+
+msgid "Beschlüsse"
+msgstr "Decisions"
+
+msgid "Beschlussfähig ab der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Jede Stimme steht mit Namen und Begründung öffentlich (§ 6 Abs 9)."
+msgstr "A quorum is half of the active appointments; decided by a simple majority of the votes cast (§ 6 para 2 lit e). Every vote is public, with name and reasons (§ 6 para 9)."
+
+msgid "geändert"
+msgstr "changed"
+
+msgid "Beschlossen:"
+msgstr "Decided:"
+
+msgid "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende."
+msgstr "No result: too few votes, or a tie when the deadline passed."
+
+msgid "Derzeit steht kein Beschluss an."
+msgstr "No decision is pending."
+
+msgid "Für diesen Vorschlag ist keine Abstimmung offen — derzeit ist keine Rolle in Gruppe 2 aktiv. Der Vorschlag wartet, bis eine besetzt ist."
+msgstr "No vote is open on this proposal — no appointment in group 2 is currently active. The proposal waits until one is filled."
+
+msgid "Beschlussfähig bei der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Bleibt die Prüfung ohne Ergebnis, geht der Vorschlag weiter an die Unterstützer — mit offengelegtem Vermerk, dass Gruppe 2 ihn nicht validiert hat."
+msgstr "A quorum is half of the active appointments; decided by a simple majority of the votes cast (§ 6 para 2 lit e). If the check ends without a result, the proposal moves on to the supporters — with a published note that group 2 did not validate it."
+
+msgid "Prüfpunkte (§ 6 Abs 7) — was Sie abhaken, steht in Ihrer Begründung"
+msgstr "Checkpoints (§ 6 para 7) — whatever you tick appears in your stated reasons"
+
+msgid "Sie haben bereits abgestimmt — eine neue Stimme ersetzt Ihre alte, solange der Beschluss offen ist."
+msgstr "You have already voted — a new vote replaces your old one while the decision is open."
+
+msgid "Beschlüsse der Räte"
+msgstr "Decisions of the councils"
+
+msgid "Gremium:"
+msgstr "Body:"
+
+msgid "alle Beschlüsse"
+msgstr "all decisions"
+
+msgid "Betrifft:"
+msgstr "Concerns:"
+
+msgid "Ohne Ergebnis"
+msgstr "No result"
+
+msgid "Zu wenige Stimmen oder Gleichstand bis zum Fristende. Ein Gleichstand ist kein Beschluss — sonst entschiede die Reihenfolge der Optionen."
+msgstr "Too few votes, or a tie when the deadline passed. A tie is not a decision — otherwise the order of the options would decide."
+
+msgid "Noch offen."
+msgstr "Still open."
+
+msgid "Die Stimmen"
+msgstr "The votes"
+
+msgid "Noch hat niemand abgestimmt."
+msgstr "Nobody has voted yet."
+
+msgid "Jeder Beschluss eines Rates steht hier mit Gegenstand, Frist, Auszählung und jeder einzelnen
+Stimme samt Namen und Begründung (§ 6 Abs 9). Beschlussfähig ist ein Rat ab der Hälfte seiner
+aktiven Rollen, entschieden wird mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e).
+Jeder Beschluss trägt eine zitierfähige Nummer."
+msgstr "Every decision of a council appears here with its subject, deadline, count and each individual
+vote, with name and reasons (§ 6 para 9). A council has a quorum at half of its active
+appointments and decides by a simple majority of the votes cast (§ 6 para 2 lit e). Every
+decision carries a citable number."
+
+#, python-format
+msgid "angelegt am %(datum)s"
+msgstr "opened on %(datum)s"
+
+#, python-format
+msgid "%(a)s von %(n)s nötigen Stimmen bei %(r)s aktiven Rollen"
+msgstr "%(a)s of %(n)s required votes, with %(r)s active appointments"
+
+#, python-format
+msgid "Auszählregel Fassung %(v)s"
+msgstr "Counting rule version %(v)s"
+
+msgid "Wer darf was"
+msgstr "Who may do what"
+
+msgid "verfügbar"
+msgstr "available"
+
+msgid "teilweise — die Satzung verlangt mehr, als die Software heute kann"
+msgstr "partly — the statute asks for more than the software can do today"
+
+msgid "geplant — mit dem Bauschritt, der sie bringt"
+msgstr "planned — with the step that will bring it"
+
+msgid "Wie man hineinkommt:"
+msgstr "How to get there:"
+
+msgid "Alle Rollen und Räte →"
+msgstr "All roles and councils →"
+
+msgid "Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Was jede Rolle darin darf, steht in
+der Satzung; was die Software heute davon kann, steht hier daneben. Beide Seiten sind zu sehen —
+eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung."
+msgstr "The general meeting is this platform (§ 5 para 1). What each role may do is set out in the
+statute; what the software can do today stands beside it. Both sides are shown — an overview
+that showed only finished work would conceal half of the statute."
+
+msgid "Diese Seite entsteht aus einer versionierten Tabelle im Quellcode, nicht aus handgeschriebenem
+Text. Kommt ein Gremium hinzu, ohne dass die Tabelle nachgezogen wird, schlägt ein Test an —
+sonst wäre die Übersicht am Tag danach still falsch."
+msgstr "This page is built from a versioned table in the source code, not from hand-written text. If a
+council is added without updating the table, a test fails — otherwise the overview would be
+quietly wrong the next day."
+
+msgid "Die Plattform kennt vierzehn Rollen — vom Gast bis zum Integritätsrat. Vier davon betreffen
+fast jeden; hier steht, was sie dürfen. Ein ● heißt verfügbar, ein ○ geplant: Auch was noch
+fehlt, steht offen da."
+msgstr "The platform knows fourteen roles — from guest to integrity council. Four of them concern
+almost everyone; what they may do is set out here. ● means available, ○ planned: what is still
+missing is stated openly too."
+
+#, python-format
+msgid "kommt mit %(s)s"
+msgstr "coming with %(s)s"
+
+#, python-format
+msgid "Übersicht Fassung %(n)s"
+msgstr "Overview version %(n)s"
+
+#, python-format
+msgid "%(r)s Rollen, %(v)s Fähigkeiten verfügbar, %(t)s teilweise, %(g)s geplant."
+msgstr "%(r)s roles; %(v)s capabilities available, %(t)s partial, %(g)s planned."
+
+#, python-format
+msgid "Alles zu „%(n)s“ →"
+msgstr "Everything about “%(n)s” →"
+
+msgid "Integritätsrat"
+msgstr "Integrity council"
+
+msgid "Beschluss anlegen"
+msgstr "Open a decision"
+
+msgid "Derzeit hervorgehoben"
+msgstr "Currently highlighted"
+
+msgid "Kein Antrag ist hervorgehoben."
+msgstr "No motion is highlighted."
+
+msgid "Zurückgewiesen"
+msgstr "Rejected"
+
+msgid "Eine Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2). Wird ihr stattgegeben, hebt der Rat sie hier auf — der Antrag setzt seine Phase mit der Restfrist fort, die er hatte."
+msgstr "A rejection can be contested before the party arbitration tribunal (§ 5 para 2). If the challenge succeeds, the council lifts it here — the motion resumes its phase with the time it had left."
+
+msgid "Kein Antrag ist zurückgewiesen."
+msgstr "No motion is rejected."
+
+msgid "Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage — beantwortet wird sie
+von der Gruppe, mit Frist und veröffentlichter Begründung. Die Begründung erscheint mit der
+Beschlussnummer am Antrag."
+msgstr "The council never decides with a single click: pressing here poses the question — the group
+answers it, with a deadline and published reasons. Those reasons appear on the motion together
+with the decision number."
+
+#, python-format
+msgid "Der Rat ist mit %(a)s von mindestens %(m)s Mitgliedern besetzt (§ 6 Abs 3 lit a). Beschlüsse lassen sich anlegen und abstimmen — Wirkung entfalten sie erst, wenn der Rat satzungsgemäß besetzt ist."
+msgstr "The council has %(a)s of at least %(m)s members (§ 6 para 3 lit a). Decisions can be opened and voted on — they take effect only once the council is properly constituted."
+
+#, python-format
+msgid "Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab."
+msgstr "Decision %(nummer)s opened — the council now votes."

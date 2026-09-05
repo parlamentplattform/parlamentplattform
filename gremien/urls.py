@@ -10,7 +10,11 @@ urlpatterns = [
     path("gremien/expertenrat/<int:antrag_id>/", views.fenster, name="fenster"),
     path("gremien/expertenrat/<int:antrag_id>/aktion/", views.fenster_aktion, name="fenster_aktion"),
     path("gremien/pruefung/", views.pruefung, name="pruefung"),
-    path("gremien/pruefung/<int:entwurf_id>/aktion/", views.pruefung_aktion, name="pruefung_aktion"),
+    path("gremien/beschluesse/", views.beschluesse_oeffentlich, name="beschluesse"),
+    path("gremien/beschluss/<slug:nummer>/", views.beschluss_oeffentlich, name="beschluss"),
+    path("gremien/beschluss/<int:beschluss_id>/stimme/", views.beschluss_stimme, name="beschluss_stimme"),
+    path("gremien/integritaet/", views.integritaet, name="integritaet"),
+    path("gremien/integritaet/beschluss/", views.integritaet_beschluss, name="integritaet_beschluss"),
     path("gremien/koordination/", views.koordination, name="koordination"),
     path(
         "gremien/koordination/<int:pruefung_id>/aktion/",

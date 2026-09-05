@@ -360,6 +360,27 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 12",
     },
     {
+        "schluessel": "gremien-pruefung-tage",
+        "wert": "7",
+        "einheit": "Tage",
+        "gruppe": "gremien",
+        "beschreibung": "Frist der Gruppe 2 für ihre Prüfung eines Vorschlags mit Vollzugs- oder "
+        "Beschaffungsbezug. Läuft sie ohne Ergebnis ab, geht der Vorschlag weiter an die "
+        "Unterstützer — mit dem offengelegten Vermerk, dass Gruppe 2 ihn nicht validiert hat. "
+        "Kurz genug, dass niemand blockieren kann; lang genug, um wirklich zu prüfen.",
+        "quelle": "§ 6 Abs 7",
+    },
+    {
+        "schluessel": "gremien-beschluss-tage",
+        "wert": "7",
+        "einheit": "Tage",
+        "gruppe": "gremien",
+        "beschreibung": "Regelfrist einer internen Abstimmung in einem Rat. Danach wird mit den "
+        "vorliegenden Stimmen ausgewertet — beschlussfähig ab der Hälfte der aktiven Rollen, "
+        "entschieden mit einfacher Mehrheit der abgegebenen Stimmen.",
+        "quelle": "§ 6 Abs 2 lit e",
+    },
+    {
         "schluessel": "gremien-hoechstrunden",
         "wert": "3",
         "einheit": "Runden",

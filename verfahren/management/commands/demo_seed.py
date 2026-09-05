@@ -28,6 +28,69 @@ from verfahren.models import (
 )
 
 
+def hervorhebung_beschliessen(antrag, leute) -> None:
+    """Hebt einen Antrag so hervor, wie es die Satzung vorsieht (§ 5 Abs 10 lit b).
+
+    Früher stand hier ein Satz mit der Nummer eines Beschlusses, den es nicht gab. Jetzt fasst
+    der Integritätsrat ihn wirklich: drei Stimmen mit Begründung, und die Wirkung setzt die
+    Hervorhebung. Läuft die Demo auf einer Datenbank ohne besetzten Rat, geschieht nichts —
+    das ist richtig so, denn ein unbesetzter Rat beschließt nicht."""
+    from gremien.models import JA_NEIN, Anlass, GremienBeschluss, Gremium, Rolle, beschluss_frist
+
+    raete = [r.mitglied for r in Rolle.aktive(Gremium.INTEGRITAETSRAT).select_related("mitglied")]
+    if not raete:
+        return
+    if GremienBeschluss.objects.filter(antrag=antrag, anlass=Anlass.HERVORHEBUNG).exists():
+        return  # der Beschluss steht schon; ein zweiter wäre keine Entscheidung, nur eine Nummer
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.HERVORHEBUNG,
+        gegenstand=f"Antrag hervorheben: {antrag.titel}"[:200],
+        beschreibung=(
+            "Betrifft alle Gremien dauerhaft, hat aber bisher wenig Beteiligung."
+        ),
+        optionen=JA_NEIN,
+        frist=beschluss_frist(),
+        antrag=antrag,
+        angelegt_von=raete[0],
+    )
+    for i, mitglied in enumerate(raete):
+        beschluss.stimmen.create(
+            mitglied=mitglied,
+            option="dafuer",
+            begruendung=(
+                "Die Beteiligung liegt weit unter dem Schnitt, die Wirkung ist dauerhaft."
+                if i == 0
+                else "Einverstanden — der Antrag geht alle an."
+            ),
+        )
+    beschluss.abschliessen()
+
+
+def hervorhebungen_ohne_beschluss_zuruecknehmen() -> int:
+    """Nimmt Hervorhebungen zurück, hinter denen kein Beschluss steht (§ 5 Abs 10 lit b).
+
+    Bis 0.41 konnte eine Hervorhebung nur von Hand gesetzt werden; die Demodaten taten das mit
+    einer erfundenen Beschlussnummer („IR-2026-03"). Einen Beschluss nachträglich zu erfinden,
+    damit die Zahl stimmt, wäre die schlechteste aller Lösungen — auf einer Plattform, deren
+    Zweck Nachprüfbarkeit ist, gerade dort. Der Antrag verliert also die Hervorhebung; will der
+    Integritätsrat sie, beschließt er sie in seinem Bereich, und dann stimmt auch die Nummer."""
+    from gremien.models import Anlass, GremienBeschluss
+    from verfahren.models import Antrag, AuditEintrag
+
+    zurueck = 0
+    for antrag in Antrag.objects.filter(hervorgehoben=True):
+        if GremienBeschluss.objects.filter(antrag=antrag, anlass=Anlass.HERVORHEBUNG).exists():
+            continue
+        antrag.hervorgehoben = False
+        antrag.hervorhebung_begruendung = ""
+        antrag.save(update_fields=["hervorgehoben", "hervorhebung_begruendung"])
+        AuditEintrag.anhaengen(
+            {"typ": "hervorhebung_ohne_beschluss_zurueckgenommen", "antrag": antrag.pk}
+        )
+        zurueck += 1
+    return zurueck
+
 class Command(BaseCommand):
     help = "Erzeugt Demo-Daten für die lokale Entwicklung."
 
@@ -151,12 +214,6 @@ class Command(BaseCommand):
             a4.phase_beginn = timezone.now() - timedelta(days=22)
             a4.save(update_fields=["phase_beginn"])
             a4.fortschreiben()  # -> Abstimmung
-            a4.hervorgehoben = True
-            a4.hervorhebung_begruendung = (
-                "Betrifft alle Gremien dauerhaft, hat aber bisher wenig Beteiligung. "
-                "Beschluss IR-2026-03 vom 12.08.2026."
-            )
-            a4.save(update_fields=["hervorgehoben", "hervorhebung_begruendung"])
             stimme_abgeben(a4, leute[1], "ja")
             stimme_abgeben(a4, leute[2], "nein")
 
@@ -239,6 +296,11 @@ class Command(BaseCommand):
                 (leute[2], Gremium.EXPERTENRAT_1),
                 (leute[3], Gremium.EXPERTENRAT_2),
                 (leute[0], Gremium.KOORDINATIONSRAT),
+                # § 6 Abs 3 lit a: drei bis sieben. Mit weniger als drei bleibt jeder Beschluss
+                # des Aufsichtsorgans ohne Wirkung — die Demo soll den Regelfall zeigen.
+                (leute[2], Gremium.INTEGRITAETSRAT),
+                (leute[3], Gremium.INTEGRITAETSRAT),
+                (leute[4], Gremium.INTEGRITAETSRAT),
             ):
                 Rolle.objects.create(
                     mitglied=mitglied, gremium=gremium, endet_am=standard_ende(), bestaetigt=True
@@ -266,6 +328,12 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS("Gremien bereit: 2× Gruppe 1, 1× Gruppe 2, 1× Koordinationsrat.")
             )
+
+        # Die Hervorhebung der Demo entsteht erst hier: Vor dem Rollenblock gibt es keinen
+        # Integritätsrat, und ein unbesetzter Rat beschließt nichts (§ 6 Abs 3 lit a).
+        livestream = Antrag.objects.filter(titel__startswith="Jede Ratssitzung als Livestream").first()
+        if livestream is not None:
+            hervorhebung_beschliessen(livestream, leute)
 
         # Abstimmungs-Chat (Ring 0a, FB-G6) — eigener Wächter: ein Antrag, dessen Vorschlag
         # den Unterstützern vorliegt, mit „Passt alles", Reaktionen und einer Kritik.
@@ -325,3 +393,13 @@ class Command(BaseCommand):
         neu = erstbestand_sicherstellen()
         if neu:
             self.stdout.write(self.style.SUCCESS(f"Parameterregister: {neu} Einträge angelegt."))
+
+        # Läuft bei jedem Deploy: Eine Hervorhebung ohne Beschluss ist seit FB-I6 ein
+        # Widerspruch zu § 5 Abs 10 lit b und wird zurückgenommen.
+        zurueck = hervorhebungen_ohne_beschluss_zuruecknehmen()
+        if zurueck:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Hervorhebungen ohne Beschluss zurückgenommen: {zurueck} (§ 5 Abs 10 lit b)."
+                )
+            )

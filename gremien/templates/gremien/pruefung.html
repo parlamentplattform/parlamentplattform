@@ -2,6 +2,11 @@
 {% load i18n %}
 {% block titel %}{% translate "Prüfung — Gruppe 2" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Die Prüfung der Gruppe 2 (FB-I3, § 6 Abs 7) als Beschluss des Gremiums: Frist, Quorum,
+Prüfpunkte, jede Stimme mit Namen und Begründung (§ 6 Abs 9). Ohne JavaScript vollständig
+bedienbar — ein Formular je Vorschlag.
+{% endcomment %}
 <h1>{% translate "Expertenrat — Prüfung (Gruppe 2)" %}</h1>
 {% if not darf_schreiben %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
 
@@ -12,16 +17,40 @@
     <a href="{% url 'verfahren:antrag' z.entwurf.antrag.pk %}"><strong>{{ z.entwurf.antrag.titel }}</strong></a>
     <span class="meta"> · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}</span>
     <p style="white-space:pre-line;margin-top:6px">{{ z.fassung.wortlaut }}</p>
+
     {% if z.austausch_offen %}
     <p class="erk" style="margin-top:6px">{% translate "Ein Austauschantrag liegt beim Koordinationsrat — seine Entscheidung steht aus." %}</p>
-    {% elif darf_schreiben %}
-    <form method="post" action="{% url 'gremien:pruefung_aktion' z.entwurf.pk %}" style="margin-top:8px">{% csrf_token %}
-      <label for="beg-{{ z.entwurf.pk }}">{% translate "Begründung (wird veröffentlicht)" %}</label>
-      <textarea id="beg-{{ z.entwurf.pk }}" name="begruendung" style="width:100%;min-height:60px" required></textarea>
-      <button type="submit" name="ergebnis" value="validiert" class="btn" style="margin-top:6px">{% translate "Validieren" %}</button>
-      <button type="submit" name="ergebnis" value="zurueck" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Begründet zurückgeben" %}</button>
-      <button type="submit" name="ergebnis" value="austausch" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Austausch beim KoRat beantragen" %}</button>
+
+    {% elif not z.beschluss %}
+    <p class="erk" style="margin-top:6px">{% translate "Für diesen Vorschlag ist keine Abstimmung offen — derzeit ist keine Rolle in Gruppe 2 aktiv. Der Vorschlag wartet, bis eine besetzt ist." %}</p>
+
+    {% else %}
+    <div class="band-gold" style="margin-top:8px">
+      {% blocktranslate with a=z.auswertung.abgegeben n=z.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}
+      {% if z.beschluss.frist %} · {% blocktranslate with frist=z.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}
+      <br><span class="meta">{% translate "Beschlussfähig bei der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Bleibt die Prüfung ohne Ergebnis, geht der Vorschlag weiter an die Unterstützer — mit offengelegtem Vermerk, dass Gruppe 2 ihn nicht validiert hat." %}</span>
+    </div>
+
+    {% for s in z.stimmen %}
+    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in z.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}<br>{{ s.begruendung|linebreaksbr }}</p>
+    {% endfor %}
+
+    {% if darf_schreiben %}
+    <form method="post" action="{% url 'gremien:beschluss_stimme' z.beschluss.pk %}" style="margin-top:8px">{% csrf_token %}
+      <fieldset style="border:0;padding:0;margin:0">
+        <legend class="meta">{% translate "Prüfpunkte (§ 6 Abs 7) — was Sie abhaken, steht in Ihrer Begründung" %}</legend>
+        {% for schluessel, punkt in pruefpunkte %}
+        <label style="display:block;font-size:13.5px"><input type="checkbox" name="punkt_{{ schluessel }}" value="1"> {{ punkt }}</label>
+        {% endfor %}
+      </fieldset>
+      <label for="beg-{{ z.beschluss.pk }}" style="margin-top:6px;display:block">{% translate "Begründung (wird veröffentlicht)" %}</label>
+      <textarea id="beg-{{ z.beschluss.pk }}" name="begruendung" style="width:100%;min-height:60px" required>{{ z.meine_stimme.begruendung|default:"" }}</textarea>
+      {% for o in z.beschluss.optionen %}
+      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %}" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}</button>
+      {% endfor %}
+      {% if z.meine_stimme %}<p class="meta" style="margin-top:4px">{% translate "Sie haben bereits abgestimmt — eine neue Stimme ersetzt Ihre alte, solange der Beschluss offen ist." %}</p>{% endif %}
     </form>
+    {% endif %}
     {% endif %}
   </span></div>
   {% empty %}

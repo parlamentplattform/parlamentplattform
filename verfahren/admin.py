@@ -24,7 +24,12 @@ class AntragAdmin(admin.ModelAdmin):
     list_display = ("id", "titel", "phase", "ebene", "hervorgehoben", "phase_beginn", "eingebracht_von")
     list_filter = ("phase", "ebene", "hervorgehoben")
     inlines = [FassungInline]
-    readonly_fields = ("policy_snapshot", "phase", "phase_beginn")
+    # Die Hervorhebung beschließt der Integritätsrat durch veröffentlichten, begründeten
+    # Beschluss — „sie erfolgt niemals durch einen Algorithmus" (§ 5 Abs 10 lit b) und ebenso
+    # wenig durch einen Haken im Admin. Aufmerksamkeit ist die härteste Währung der Plattform.
+    readonly_fields = (
+        "policy_snapshot", "phase", "phase_beginn", "hervorgehoben", "hervorhebung_begruendung",
+    )
 
 
 @admin.register(Verfahrensordnung)

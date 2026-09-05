@@ -1,0 +1,40 @@
+{% load i18n %}
+{% comment %}
+Der Block „Beschlüsse" eines Gremiums (FB-I4, § 6 Abs 2 lit e, § 6 Abs 9). Er sieht in jedem
+Rat gleich aus — Absicht: Wer in zwei Räten sitzt, soll nicht zweimal lernen, wie man abstimmt.
+Erwartet: beschluesse (Liste aus {beschluss, auswertung, stimmen, meine_stimme}), darf_stimmen.
+{% endcomment %}
+<div class="karte" style="margin-top:16px">
+  {% if not ohne_kopf %}<p class="phasen-titel">{% translate "Beschlüsse" %}</p>
+  <p class="erk">{% translate "Beschlussfähig ab der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Jede Stimme steht mit Namen und Begründung öffentlich (§ 6 Abs 9)." %}</p>{% endif %}
+  {% for b in beschluesse %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'gremien:beschluss' b.beschluss.nummer %}" class="meta">{{ b.beschluss.nummer }}</a>
+    <strong>{{ b.beschluss.gegenstand }}</strong>
+    {% if b.beschluss.status != "offen" %}<span class="chip klein">{{ b.beschluss.get_status_display }}</span>{% endif %}
+    {% if b.beschluss.beschreibung %}<br><span class="meta">{{ b.beschluss.beschreibung }}</span>{% endif %}
+    <br><span class="meta">{% blocktranslate with a=b.auswertung.abgegeben n=b.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}{% if b.beschluss.frist %} · {% blocktranslate with frist=b.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}</span>
+
+    {% for s in b.stimmen %}
+    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in b.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
+    {% endfor %}
+
+    {% if b.beschluss.status == "entschieden" %}
+    <p style="margin-top:6px"><strong>{% translate "Beschlossen:" %} {% for o in b.beschluss.optionen %}{% if o.wert == b.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>
+      {% if b.beschluss.umsetzungsvermerk %}<br><span class="meta">{{ b.beschluss.umsetzungsvermerk }}</span>{% endif %}</p>
+    {% elif b.beschluss.status == "ohne_ergebnis" %}
+    <p class="meta" style="margin-top:6px">{% translate "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende." %}</p>
+    {% elif darf_stimmen %}
+    <form method="post" action="{% url 'gremien:beschluss_stimme' b.beschluss.pk %}" style="margin-top:8px">{% csrf_token %}
+      <label for="bg-{{ b.beschluss.pk }}">{% translate "Begründung (wird veröffentlicht)" %}</label>
+      <textarea id="bg-{{ b.beschluss.pk }}" name="begruendung" style="width:100%;min-height:50px" required>{{ b.meine_stimme.begruendung|default:"" }}</textarea>
+      {% for o in b.beschluss.optionen %}
+      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}</button>
+      {% endfor %}
+    </form>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Derzeit steht kein Beschluss an." %}</p>
+  {% endfor %}
+</div>

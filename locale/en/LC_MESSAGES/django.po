@@ -4946,3 +4946,58 @@ msgstr "%(a)s of %(n)s required votes, with %(r)s active appointments"
 #, python-format
 msgid "Auszählregel Fassung %(v)s"
 msgstr "Counting rule version %(v)s"
+
+msgid "Wer darf was"
+msgstr "Who may do what"
+
+msgid "verfügbar"
+msgstr "available"
+
+msgid "teilweise — die Satzung verlangt mehr, als die Software heute kann"
+msgstr "partly — the statute asks for more than the software can do today"
+
+msgid "geplant — mit dem Bauschritt, der sie bringt"
+msgstr "planned — with the step that will bring it"
+
+msgid "Wie man hineinkommt:"
+msgstr "How to get there:"
+
+msgid "Alle Rollen und Räte →"
+msgstr "All roles and councils →"
+
+msgid "Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Was jede Rolle darin darf, steht in
+der Satzung; was die Software heute davon kann, steht hier daneben. Beide Seiten sind zu sehen —
+eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung."
+msgstr "The general meeting is this platform (§ 5 para 1). What each role may do is set out in the
+statute; what the software can do today stands beside it. Both sides are shown — an overview
+that showed only finished work would conceal half of the statute."
+
+msgid "Diese Seite entsteht aus einer versionierten Tabelle im Quellcode, nicht aus handgeschriebenem
+Text. Kommt ein Gremium hinzu, ohne dass die Tabelle nachgezogen wird, schlägt ein Test an —
+sonst wäre die Übersicht am Tag danach still falsch."
+msgstr "This page is built from a versioned table in the source code, not from hand-written text. If a
+council is added without updating the table, a test fails — otherwise the overview would be
+quietly wrong the next day."
+
+msgid "Die Plattform kennt vierzehn Rollen — vom Gast bis zum Integritätsrat. Vier davon betreffen
+fast jeden; hier steht, was sie dürfen. Ein ● heißt verfügbar, ein ○ geplant: Auch was noch
+fehlt, steht offen da."
+msgstr "The platform knows fourteen roles — from guest to integrity council. Four of them concern
+almost everyone; what they may do is set out here. ● means available, ○ planned: what is still
+missing is stated openly too."
+
+#, python-format
+msgid "kommt mit %(s)s"
+msgstr "coming with %(s)s"
+
+#, python-format
+msgid "Übersicht Fassung %(n)s"
+msgstr "Overview version %(n)s"
+
+#, python-format
+msgid "%(r)s Rollen, %(v)s Fähigkeiten verfügbar, %(t)s teilweise, %(g)s geplant."
+msgstr "%(r)s roles; %(v)s capabilities available, %(t)s partial, %(g)s planned."
+
+#, python-format
+msgid "Alles zu „%(n)s“ →"
+msgstr "Everything about “%(n)s” →"

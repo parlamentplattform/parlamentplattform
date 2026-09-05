@@ -9,6 +9,12 @@
   .wk h3{font-size:17px;margin-bottom:8px;color:var(--ink)}
   .wk p{font-size:14px;color:var(--matt);margin-bottom:12px}
   .wk .weiter{color:var(--linkfarbe);font-weight:600;font-size:14px}
+  .rollen-kurz{list-style:none;margin:0 0 12px;padding:0}
+  .rollen-kurz li{display:flex;gap:7px;align-items:flex-start;font-size:13.5px;color:var(--matt);padding:2px 0}
+  .rollen-kurz .zeichen{flex:none;width:1.1em;text-align:center;font-size:12px}
+  .rollen-kurz .zeichen.verfuegbar{color:var(--gold)}
+  .rollen-kurz .zeichen.teilweise{color:var(--goldtief)}
+  .rollen-kurz .zeichen.geplant{color:var(--matt)}
   .willkommen-wichtig{margin:0 0 34px}
   .willkommen-wichtig .zeile{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--line)}
   .weg-schritte{counter-reset:schritt;display:grid;gap:0;margin:18px 0 8px}
@@ -243,6 +249,28 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
   </div>
   <p class="erk" style="margin-top:10px">{% blocktranslate %}Die Plattform ist im Alpha-Betrieb: Alles hier ist echt bedienbar, wächst aber
 sichtbar weiter — was sich ändert, steht offen im Änderungsprotokoll und in der Zukunftswerkstatt.{% endblocktranslate %}</p>
+</section>
+
+<section class="abschnitt" id="rollen">
+  <h2>{% translate "Wer darf was" %}</h2>
+  <p class="erk" style="max-width:60em">{% blocktranslate %}Die Plattform kennt vierzehn Rollen — vom Gast bis zum Integritätsrat. Vier davon betreffen
+fast jeden; hier steht, was sie dürfen. Ein ● heißt verfügbar, ein ○ geplant: Auch was noch
+fehlt, steht offen da.{% endblocktranslate %}</p>
+  <div class="willkommen-karten">
+    {% for rolle in startrollen %}
+    <div class="wk" style="cursor:default">
+      <h3>{{ rolle.name }}</h3>
+      <p>{{ rolle.was_sie_ist }}</p>
+      <ul class="rollen-kurz">
+        {% for f in rolle.faehigkeiten|slice:":5" %}
+        <li><span class="zeichen {{ f.stand.value }}">{{ f.stand.zeichen }}</span> {{ f.titel }}</li>
+        {% endfor %}
+      </ul>
+      <a class="weiter" href="{% url 'verfahren:rollen' %}#rolle-{{ rolle.schluessel }}">{% blocktranslate with n=rolle.name %}Alles zu „{{ n }}“ →{% endblocktranslate %}</a>
+    </div>
+    {% endfor %}
+  </div>
+  <p style="margin-top:12px"><a class="btn-linie" href="{% url 'verfahren:rollen' %}">{% translate "Alle Rollen und Räte →" %}</a></p>
 </section>
 
 {% if wichtige %}

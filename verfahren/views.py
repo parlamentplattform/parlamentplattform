@@ -336,6 +336,8 @@ def index(request):
     Mitglieder-Redirect ist bewusst gefallen: Der Einstieg zeigt allen die
     Übersicht, das Parlament ist von überall einen Klick entfernt."""
     from mitglieder.models import Mitglied
+    from plattform_core.rollen import GRUPPEN as ROLLEN_GRUPPEN
+    from plattform_core.rollen import alle_rollen
 
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
@@ -353,9 +355,29 @@ def index(request):
             "wichtige": wichtige,
             "meine_favoriten": _meine_favoriten(request.user),
             "fristen": fristen_fuer_das_diagramm(),
+            # FB-K6: die vier Rollen, die fast jeden betreffen — die übrigen zehn stehen
+            # auf /rollen/. Welche vier es sind, entscheidet die Matrix, nicht die Vorlage.
+            "startrollen": [
+                r for r in alle_rollen(ROLLEN_GRUPPEN) if r.auf_der_startseite
+            ],
         },
     )
 
+
+
+def rollen(request):
+    """Die Rollenübersicht „Wer darf was" (FB-K6) — Satzung und Software nebeneinander.
+
+    Öffentlich und ohne Anmeldung: Wer wissen will, was eine Rolle auf dieser Plattform bedeutet,
+    soll das lesen können, bevor er Mitglied wird. Jede Zeile mit ○ ist ein offener Punkt; die
+    Seite ist damit der erste Ort, an dem Anspruch und Stand systematisch nebeneinanderstehen."""
+    from plattform_core.rollen import GRUPPEN, VERSION, zaehlung
+
+    return render(
+        request,
+        "verfahren/rollen.html",
+        {"gruppen": GRUPPEN, "zahlen": zaehlung(GRUPPEN), "matrix_version": VERSION},
+    )
 
 def _meine_favoriten(nutzer) -> set[int]:
     """Antrags-IDs, die das Mitglied sich gemerkt hat — für den Stern an jeder Antragszeile (FB-C4)."""

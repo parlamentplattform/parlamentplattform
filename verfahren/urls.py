@@ -50,6 +50,7 @@ urlpatterns = [
     path("filter/favoriten/", views_aktionen.filter_favoriten, name="filter_favoriten"),
     path("filter/<int:pk>/umbenennen/", views_aktionen.filter_umbenennen, name="filter_umbenennen"),
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
+    path("rollen/", views.rollen, name="rollen"),
     path("partner/", views.partner, name="partner"),
     path("partner/paket/", views.partner_paket, name="partner_paket"),
     path("partner/<slug:sprache>/", views.partner_kurz, name="partner_kurz"),

@@ -2,6 +2,34 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.42.0] — 2026-09-05 · Interne Beschlüsse, der Integritätsrat und „Wer darf was"
+
+### Hinzugefügt
+- **Interne Beschlüsse für alle Räte (FB-I4).** `plattform_core/gremienbeschluss.py` (VERSION 1) übersetzt § 6 Abs 2 lit e für ein Gremium, das sich nicht in einem Raum trifft: **Anwesend ist, wer abgestimmt hat.** Beschlussfähig ab der aufgerundeten Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen. Ein Gleichstand ist **kein** Beschluss — sonst entschiede die Reihenfolge der Optionen. Ein Beschluss schließt, wenn alle gestimmt haben oder die Frist um ist; jede Stimme steht mit Namen und Begründung (§ 6 Abs 9)
+- **Die Prüfung der Gruppe 2 ist ein Beschluss des Gremiums (FB-I3).** Bis 0.41 entschied, wer zuerst auf einen der drei Knöpfe drückte — eine einzige Person, sofort, ohne Frist. Gruppe 2 ist als Redundanz und Korruptionsprüfung gedacht (§ 6 Abs 7); eine Redundanz aus einer Person ist keine. Jetzt: Quorum, Frist aus dem Register (`gremien-pruefung-tage`), die vier Prüfpunkte als Haken, die in die **veröffentlichte** Begründung wandern — eine Prüfliste, die niemand sieht, prüft nichts
+- **Die Beschlüsse der Räte sind öffentlich:** `/gremien/beschluesse/` und `/gremien/beschluss/<nummer>/`, ohne Anmeldung, mit Auszählung, jeder Stimme und jeder Begründung. Jeder Beschluss trägt eine zitierfähige Nummer („IR-2026-04"), je Gremium und Jahr fortlaufend
+- **Der Integritätsrat bekommt seinen Bereich (FB-I6):** `/gremien/integritaet/`. Das Aufsichtsorgan war das einzige ohne Ort — „Mein Gremium" führte für seine Mitglieder auf die öffentliche Besetzungsliste. Vier Anlässe mit Wirkung: Hervorhebung und ihre Aufhebung (§ 5 Abs 10 lit b), Zurückweisung und ihre Aufhebung (§ 5 Abs 2). **Kein Knopf wirkt unmittelbar** — jeder legt einen Beschluss an, über den der Rat danach abstimmt
+- **Die Rollenübersicht „Wer darf was" (FB-K6):** `/rollen/` zeigt alle vierzehn Rollen — vom Gast bis zum Parteischiedsgericht — mit Satzungsbezug, einem Satz aus der Satzung, den Fähigkeiten und dem Weg hinein. Jede Fähigkeit trägt ● verfügbar, ◐ teilweise oder ○ geplant mit Bauschritt. Stand heute: **164 Fähigkeiten, davon 66 verfügbar, 33 teilweise, 65 geplant.** Die Willkommensseite trägt vier Karten (Gast · Mitglied · Mitglied in Aufnahme oder pausiert · Mandatar) und den Weg zur vollen Liste
+
+### Behoben
+- **Ein Gremium ohne besetzte Rollen konnte beschließen.** Die Hälfte von null ist null, und `abgegeben >= 0 and abgegeben > 0` machte eine einzelne Stimme beschlussfähig — erreichbar, sobald eine Berufung vor dem Fristende endet. Dann hätte die Stimme eines Menschen allein entschieden, dessen Amt schon abgelaufen war
+- **Das Verwaltungswerkzeug konnte die Hervorhebung setzen.** § 5 Abs 10 lit b sagt, sie erfolge niemals durch einen Algorithmus — und ebenso wenig durch einen Haken im Backend. `hervorgehoben` und `hervorhebung_begruendung` sind im Admin jetzt schreibgeschützt
+- **`_endabstimmung_oeffnen` setzte die Phase ohne jede Prüfung.** Ein zurückgewiesener Antrag bekam von der Entwurfsschleife trotzdem noch eine Endabstimmung
+- **Eine Hervorhebung ohne Beschluss.** Am Antrag „Jede Ratssitzung als Livestream mit Archiv" stand „Beschluss IR-2026-03 vom 12.08.2026" — eine Nummer ohne Beschluss, ein Datum ohne Sitzung, seit jeher ein Platzhalter in den Demodaten. Nachträglich einen Beschluss zu erfinden, damit die Zahl stimmt, wäre auf einer Plattform, deren Zweck Nachprüfbarkeit ist, das Schlechteste. Die Hervorhebung fällt deshalb bei jedem Deploy, solange kein Beschluss sie deckt; auf einer frischen Datenbank fasst die Demo ihn wirklich, mit drei Stimmen
+- Die Zurückweisung war eine Einbahnstraße. § 5 Abs 2 macht sie beim Parteischiedsgericht bekämpfbar; der Beschluss merkt sich jetzt Phase und Phasenbeginn, und die Aufhebung gibt dem Antrag genau die Restfrist zurück, die er hatte
+
+### Technisch
+- `GremienBeschluss`/`GremienStimme` sind generisch: ein Gegenstand, eine Optionsliste, eine Frist, ein **Anlass**. Die Wirkungstabelle verzweigt allein über den Anlass — die alte Bedingung (`gremium == EXPERTENRAT_2 and entwurf_id`) hätte beim zweiten Anlass desselben Rates nicht mehr getragen. Es gibt nur Anlässe, deren Wirkung gebaut ist; einer ohne wäre ein Knopf, der schweigend nichts tut
+- **Satzungsfest im Code, nicht im Register:** die Mindestbesetzung des Integritätsrats (§ 6 Abs 3 lit a: drei bis sieben). Ein unterbesetzter Rat kann abstimmen, aber seine Beschlüsse entfalten keine Wirkung — mit Vermerk am Beschluss statt stummer Unterlassung
+- `plattform_core/rollen.py` (VERSION 1) führt die Rollenmatrix als reine Daten. Zwölf Wächter-Tests halten sie gegen den Code: jede Rolle des Codes in der Matrix, `GREMIUMSKUERZEL` und `Gremium.values` deckungsgleich, jede genannte Adresse auflösbar, kein ○ ohne Bauschritt, kein ◐ ohne Angabe, was fehlt
+- Der Satzungsbezug steht bewusst nur an der **Rolle**, nicht an jeder Fähigkeit: Eine Belegprüfung fand in Stichproben mehrere falsche Paragrafen, und ein falscher Paragraf neben einer Zeile ist schlechter als keiner
+- Zwei neue Stellgrößen: `gremien-pruefung-tage` (7) und `gremien-beschluss-tage` (7), beide mit Schema-Kennung
+
+### Entschieden (Fahrtenbuch Teil D)
+- **D-I3:** Bleibt die Prüfung der Gruppe 2 ohne Ergebnis, geht der Vorschlag weiter an die Unterstützer — mit offengelegtem Vermerk, dass Gruppe 2 ihn **nicht** validiert hat. „Validiert" wäre eine Unbedenklichkeitsbescheinigung, die niemand ausgestellt hat; Liegenbleiben gäbe einem Rat die Blockademacht, die das übrige Verfahren nirgends kennt (§ 5 Abs 12)
+- **D-I1a:** § 6 Abs 7 (Los je Antrag) und § 6 Abs 8 (Bestellung auf zwei Jahre) widersprechen einander für den Expertenrat. Gelesen wird: Die Zweijahresbestellung gilt der **Fachliste**, das Los dem **einzelnen Antrag** — dann tragen beide Absätze wörtlich
+- **D-J3g:** Kein zweiter Weg zur Verfahrensordnung. Ein Parametertest darf Registerwerte setzen, aber keine Ordnung in Kraft setzen; über sie beschließt nach § 5 Abs 7 die Mitgliederversammlung
+
 ## [0.41.0] — 2026-09-05 · Fristen im Register, Verfahrensordnung auf Knopfdruck
 
 ### Hinzugefügt

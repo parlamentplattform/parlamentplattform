@@ -173,6 +173,27 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/verwaltung/parameter/")
     halte_fest(p, "parameterregister-verwaltung")
 
-    assert len(bilder) == 26
+    # Der Integritätsrat (FB-I6), die öffentliche Beschlussliste (FB-I4) und die
+    # Rollenübersicht (FB-K6)
+    from gremien.models import Gremium, Rolle, standard_ende
+
+    ir = _mitglied()
+    Rolle.objects.get_or_create(
+        mitglied=ir, gremium=Gremium.INTEGRITAETSRAT,
+        defaults={"endet_am": standard_ende(), "bestaetigt": True},
+    )
+    p = seite(als=ir)
+    p.goto(f"{live_server.url}/gremien/integritaet/")
+    halte_fest(p, "integritaetsrat")
+
+    p = seite()
+    p.goto(f"{live_server.url}/gremien/beschluesse/")
+    halte_fest(p, "beschluesse-oeffentlich")
+
+    p = seite()
+    p.goto(f"{live_server.url}/rollen/")
+    halte_fest(p, "rollen-uebersicht")
+
+    assert len(bilder) == 29
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

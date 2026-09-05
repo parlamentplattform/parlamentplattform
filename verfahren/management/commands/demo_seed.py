@@ -214,7 +214,6 @@ class Command(BaseCommand):
             a4.phase_beginn = timezone.now() - timedelta(days=22)
             a4.save(update_fields=["phase_beginn"])
             a4.fortschreiben()  # -> Abstimmung
-            hervorhebung_beschliessen(a4, leute)
             stimme_abgeben(a4, leute[1], "ja")
             stimme_abgeben(a4, leute[2], "nein")
 
@@ -329,6 +328,12 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.SUCCESS("Gremien bereit: 2× Gruppe 1, 1× Gruppe 2, 1× Koordinationsrat.")
             )
+
+        # Die Hervorhebung der Demo entsteht erst hier: Vor dem Rollenblock gibt es keinen
+        # Integritätsrat, und ein unbesetzter Rat beschließt nichts (§ 6 Abs 3 lit a).
+        livestream = Antrag.objects.filter(titel__startswith="Jede Ratssitzung als Livestream").first()
+        if livestream is not None:
+            hervorhebung_beschliessen(livestream, leute)
 
         # Abstimmungs-Chat (Ring 0a, FB-G6) — eigener Wächter: ein Antrag, dessen Vorschlag
         # den Unterstützern vorliegt, mit „Passt alles", Reaktionen und einer Kritik.

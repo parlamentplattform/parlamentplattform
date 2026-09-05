@@ -301,10 +301,15 @@ class Entwurf(models.Model):
             wortlaut=fassung.wortlaut,
             begruendung=f"Vorschlag des Expertenrats, Runde {self.runde} (§ 5 Abs 12). {fassung.begruendung}".strip(),
         )
-        self.status = EntwurfsStatus.ANGENOMMEN
-        self.save(update_fields=["status"])
         from plattform_core import Phase
 
+        if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
+            # Ein zurückgewiesener oder entschiedener Antrag bekommt keine Endabstimmung mehr.
+            # Ohne dieses Tor öffnete die Schleife sie auch dann, wenn der Integritätsrat den
+            # Antrag inzwischen zurückgewiesen hat (§ 5 Abs 2).
+            return
+        self.status = EntwurfsStatus.ANGENOMMEN
+        self.save(update_fields=["status"])
         antrag.phase = Phase.ABSTIMMUNG.value
         antrag.phase_beginn = jetzt
         felder = ["phase", "phase_beginn"]
@@ -546,6 +551,22 @@ class Anlass(models.TextChoices):
 
     INTERN = "intern", "innere Angelegenheit des Rates"
     PRUEFUNG = "pruefung", "Prüfung eines Vorschlags (§ 6 Abs 7)"
+    HERVORHEBUNG = "hervorhebung", "Hervorhebung eines Antrags (§ 5 Abs 10 lit b)"
+    HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", "Hervorhebung aufheben (§ 5 Abs 10 lit b)"
+    ZURUECKWEISUNG = "zurueckweisung", "Zurückweisung eines Antrags (§ 5 Abs 2)"
+    ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", "Zurückweisung aufheben (§ 5 Abs 2)"
+
+
+#: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
+#: entscheiden will, stimmt nicht ab — dann fehlt er in der Beschlussfähigkeit, und genau das
+#: soll er auch, statt eine dritte Farbe ins Ergebnis zu tragen.
+JA_NEIN = [{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}]
+
+#: § 6 Abs 3 lit a: „Er besteht aus drei bis sieben Mitgliedern." Ein Rat unter dieser Grenze
+#: ist kein Integritätsrat, und ein Beschluss mit Außenwirkung — Hervorhebung, Zurückweisung —
+#: darf ihm nicht gelingen. Satzungsfest, deshalb im Code und nicht im Register: Als Stellgröße
+#: könnte die Verwaltung die Aufsicht über sich selbst kleinrechnen.
+SATZUNG_MIN_INTEGRITAETSRAT = 3
 
 
 #: Kürzel der Gremien in der Beschlussnummer. Kurz, weil die Nummer zitiert wird — in
@@ -610,6 +631,13 @@ class GremienBeschluss(models.Model):
     )
     umsetzungsvermerk = models.TextField(
         max_length=2000, blank=True, help_text="Was wie umgesetzt wird — nach der Entscheidung."
+    )
+    zustand_vorher = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Was der Beschluss überschrieben hat — damit eine Aufhebung den alten Stand "
+        "wiederherstellen kann, statt ihn zu erraten (§ 5 Abs 2: die Zurückweisung ist beim "
+        "Parteischiedsgericht bekämpfbar).",
     )
 
     antrag = models.ForeignKey(
@@ -834,11 +862,164 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
         entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
 
 
+
+def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
+    """Ein Beschluss mit Außenwirkung gelingt nur einem satzungsgemäß besetzten Rat.
+
+    § 6 Abs 3 lit a verlangt drei bis sieben Mitglieder. Sinkt die Besetzung darunter, ist das
+    kein Grund, die laufende Abstimmung zu verwerfen — wohl aber einer, ihr die Wirkung zu
+    versagen: Ein Rat aus zwei Menschen soll keinen Antrag zurückweisen können."""
+    return Rolle.aktive(Gremium.INTEGRITAETSRAT).count() >= SATZUNG_MIN_INTEGRITAETSRAT
+
+
+def _vermerken(beschluss, text: str) -> None:
+    """Hält am Beschluss fest, warum eine Wirkung ausblieb — statt sie stumm zu unterlassen."""
+    beschluss.umsetzungsvermerk = (beschluss.umsetzungsvermerk + " " + text).strip()[:2000]
+    beschluss.save(update_fields=["umsetzungsvermerk"])
+
+
+def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
+    """Setzt oder nimmt die Hervorhebung eines Antrags (§ 5 Abs 10 lit b).
+
+    „Sie erfolgt niemals durch einen Algorithmus" — und ebenso wenig durch einen Haken in der
+    Verwaltung. Die Begründung, die am Antrag erscheint, ist die des Beschlusses und trägt seine
+    Nummer: Wer die goldene Zeile sieht, kann nachlesen, wer das wann und warum beschlossen hat."""
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    if not _integritaetsrat_beschlussfaehig(beschluss):
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        return
+    jetzt = jetzt or timezone.now()
+    if aufheben:
+        antrag.hervorgehoben = False
+        antrag.hervorhebung_begruendung = ""
+    else:
+        antrag.hervorgehoben = True
+        antrag.hervorhebung_begruendung = (
+            f"Beschluss {beschluss.nummer} vom {timezone.localtime(jetzt).strftime('%d.%m.%Y')}: "
+            f"{beschluss.beschreibung}".strip()
+        )
+    antrag.save(update_fields=["hervorgehoben", "hervorhebung_begruendung"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "hervorhebung_aufgehoben" if aufheben else "hervorhebung_beschlossen",
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+        }
+    )
+
+
+def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
+    """Weist einen Antrag zurück (§ 5 Abs 2) — und hält fest, was dabei überschrieben wurde.
+
+    Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar. Ein Verfahren, das sie nicht
+    zurücknehmen kann, macht dieses Recht wertlos; deshalb merkt sich der Beschluss Phase und
+    Phasenbeginn. Laufende Entwurfsschleifen und offene Beschlüsse zu diesem Antrag werden
+    geschlossen: Ein zurückgewiesener Antrag darf nicht weiter durch die Automatik wandern."""
+    from plattform_core import Phase
+
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    if antrag.phase == Phase.ZURUECKGEWIESEN.value:
+        return
+    if not _integritaetsrat_beschlussfaehig(beschluss):
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        return
+    jetzt = jetzt or timezone.now()
+    beschluss.zustand_vorher = {
+        "phase": antrag.phase,
+        "phase_beginn": antrag.phase_beginn.isoformat(),
+        "zurueckgewiesen_am": jetzt.isoformat(),
+    }
+    beschluss.save(update_fields=["zustand_vorher"])
+    antrag.phase = Phase.ZURUECKGEWIESEN.value
+    antrag.phase_beginn = jetzt
+    antrag.zurueckweisung_begruendung = (
+        f"Beschluss {beschluss.nummer} vom {timezone.localtime(jetzt).strftime('%d.%m.%Y')}: "
+        f"{beschluss.beschreibung}".strip()
+    )
+    antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
+    entwurf = getattr(antrag, "entwurf", None)
+    if entwurf is not None and entwurf.status != EntwurfsStatus.ANGENOMMEN:
+        entwurf.status = EntwurfsStatus.ANGENOMMEN  # die Schleife ruht; nichts wird gelöscht
+        entwurf.review_frist = None
+        entwurf.ueberarbeitung_frist = None
+        entwurf.save(update_fields=["status", "review_frist", "ueberarbeitung_frist"])
+    GremienBeschluss.objects.filter(
+        antrag=antrag, status=BeschlussStatus.OFFEN
+    ).exclude(pk=beschluss.pk).update(
+        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "antrag_zurueckgewiesen",
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "vorherige_phase": beschluss.zustand_vorher["phase"],
+        }
+    )
+
+
+def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
+    """Nimmt eine Zurückweisung zurück und gibt dem Antrag seine Restfrist (§ 5 Abs 2).
+
+    Der Antrag darf durch das Verfahren, das ihn zu Unrecht gestoppt hat, keine Zeit verlieren:
+    Der Phasenbeginn rückt um die Dauer der Zurückweisung nach hinten, die Restfrist ist damit
+    dieselbe wie vorher."""
+    from datetime import datetime
+
+    from plattform_core import Phase
+
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    if antrag.phase != Phase.ZURUECKGEWIESEN.value:
+        return
+    frueher = (
+        GremienBeschluss.objects.filter(
+            antrag=antrag, anlass=Anlass.ZURUECKWEISUNG, status=BeschlussStatus.ENTSCHIEDEN
+        )
+        .exclude(zustand_vorher=None)
+        .order_by("-entschieden_am")
+        .first()
+    )
+    if frueher is None:
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag ist keine Zurückweisung verzeichnet.")
+        return
+    jetzt = jetzt or timezone.now()
+    seit = datetime.fromisoformat(frueher.zustand_vorher["zurueckgewiesen_am"])
+    antrag.phase = frueher.zustand_vorher["phase"]
+    antrag.phase_beginn = datetime.fromisoformat(frueher.zustand_vorher["phase_beginn"]) + (jetzt - seit)
+    antrag.zurueckweisung_begruendung = ""
+    antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "zurueckweisung_aufgehoben",
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "wieder_in_phase": antrag.phase,
+            "gehemmt_sekunden": int((jetzt - seit).total_seconds()),
+        }
+    )
+
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
 #: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.
 WIRKUNGEN = {
     Anlass.PRUEFUNG: lambda beschluss, jetzt: pruefbeschluss_wirkung(beschluss, jetzt),
+    Anlass.HERVORHEBUNG: lambda beschluss, jetzt: hervorhebung_wirkung(beschluss, jetzt),
+    Anlass.HERVORHEBUNG_AUFHEBEN: lambda beschluss, jetzt: hervorhebung_wirkung(
+        beschluss, jetzt, aufheben=True
+    ),
+    Anlass.ZURUECKWEISUNG: lambda beschluss, jetzt: zurueckweisung_wirkung(beschluss, jetzt),
+    Anlass.ZURUECKWEISUNG_AUFHEBEN: lambda beschluss, jetzt: zurueckweisung_aufheben_wirkung(
+        beschluss, jetzt
+    ),
 }
 
 

@@ -19,7 +19,10 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from gremien.models import (
+    JA_NEIN,
     PRUEFPUNKTE,
+    SATZUNG_MIN_INTEGRITAETSRAT,
+    Anlass,
     BeschlussStatus,
     EinreichStimme,
     Entwurf,
@@ -31,6 +34,7 @@ from gremien.models import (
     Gremium,
     Pruefung,
     Rolle,
+    beschluss_frist,
     standard_ende,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
@@ -100,6 +104,8 @@ def mein(request):
         return redirect("gremien:pruefung")
     if Rolle.hat(request.user, Gremium.KOORDINATIONSRAT):
         return redirect("gremien:koordination")
+    if Rolle.hat(request.user, Gremium.INTEGRITAETSRAT):
+        return redirect("gremien:integritaet")
     return redirect("gremien:uebersicht")
 
 
@@ -600,8 +606,113 @@ def _beschluss_zurueck(beschluss) -> str:
         Gremium.EXPERTENRAT_1: "gremien:expertenrat",
         Gremium.EXPERTENRAT_2: "gremien:pruefung",
         Gremium.KOORDINATIONSRAT: "gremien:koordination",
+        Gremium.INTEGRITAETSRAT: "gremien:integritaet",
     }.get(beschluss.gremium, "gremien:uebersicht")
 
+
+
+# ── Arbeitsbereich Integritätsrat (§ 6 Abs 3) ────────────────────────────────
+
+
+#: Was der Integritätsrat beschließen kann, und worauf es sich bezieht. Ein Anlass steht hier
+#: erst, wenn seine Wirkung gebaut ist — ein Knopf, der schweigend nichts tut, wäre schlimmer
+#: als ein fehlender.
+IR_ANLAESSE = [
+    (Anlass.HERVORHEBUNG, "Antrag hervorheben", "§ 5 Abs 10 lit b"),
+    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", "§ 5 Abs 10 lit b"),
+    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", "§ 5 Abs 2"),
+    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
+]
+
+
+@nur_gremium(Gremium.INTEGRITAETSRAT)
+def integritaet(request):
+    """Der Arbeitsbereich des Aufsichtsorgans (§ 6 Abs 3).
+
+    Er überwacht die Einhaltung der Satzung, entscheidet über die Hervorhebung eines Antrags
+    (§ 5 Abs 10 lit b) und über seine Zurückweisung (§ 5 Abs 2). Beides geschieht ausschließlich
+    durch veröffentlichten, begründeten Beschluss — deshalb hat dieser Bereich keine Knöpfe, die
+    unmittelbar wirken, sondern nur solche, die einen Beschluss anlegen."""
+    aktive = Rolle.aktive(Gremium.INTEGRITAETSRAT).count()
+    hervorgehoben = list(
+        Antrag.objects.filter(hervorgehoben=True).order_by("-phase_beginn")[:20]
+    )
+    zurueckgewiesen = list(
+        Antrag.objects.filter(phase=Phase.ZURUECKGEWIESEN.value).order_by("-phase_beginn")[:20]
+    )
+    return render(
+        request,
+        "gremien/integritaet.html",
+        {
+            "beschluesse": beschluesse_fuer(Gremium.INTEGRITAETSRAT, request.user),
+            "darf_stimmen": Rolle.hat(request.user, Gremium.INTEGRITAETSRAT),
+            "anlaesse": IR_ANLAESSE,
+            "aktive": aktive,
+            "mindestbesetzung": SATZUNG_MIN_INTEGRITAETSRAT,
+            "besetzt": aktive >= SATZUNG_MIN_INTEGRITAETSRAT,
+            "hervorgehoben": hervorgehoben,
+            "zurueckgewiesen": zurueckgewiesen,
+            "offene_antraege": Antrag.objects.exclude(
+                phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)
+            ).order_by("-phase_beginn")[:50],
+        },
+    )
+
+
+@nur_gremium(Gremium.INTEGRITAETSRAT)
+@require_POST
+def integritaet_beschluss(request):
+    """Legt einen Beschluss des Integritätsrats an — abgestimmt wird danach (§ 6 Abs 2 lit e).
+
+    Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage; beantwortet wird
+    sie von der Gruppe, mit Frist und veröffentlichter Begründung."""
+    if not Rolle.hat(request.user, Gremium.INTEGRITAETSRAT):
+        messages.error(request, _("Beschlüsse anlegen kann nur, wer eine aktive Rolle im Integritätsrat hat."))
+        return redirect("gremien:integritaet")
+    anlass = request.POST.get("anlass", "")
+    erlaubt = {wert for wert, _name, _satzung in IR_ANLAESSE}
+    if anlass not in erlaubt:
+        messages.error(request, _("Für diesen Anlass gibt es keinen Beschlussweg."))
+        return redirect("gremien:integritaet")
+    antrag = get_object_or_404(Antrag, pk=request.POST.get("antrag"))
+    begruendung = (request.POST.get("beschreibung") or "").strip()
+    if not begruendung:
+        messages.error(
+            request,
+            _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."),
+        )
+        return redirect("gremien:integritaet")
+    if GremienBeschluss.objects.filter(
+        gremium=Gremium.INTEGRITAETSRAT, anlass=anlass, antrag=antrag, status=BeschlussStatus.OFFEN
+    ).exists():
+        messages.info(request, _("Zu diesem Antrag läuft bereits ein solcher Beschluss."))
+        return redirect("gremien:integritaet")
+    name = next(n for wert, n, _s in IR_ANLAESSE if wert == anlass)
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=anlass,
+        gegenstand=f"{name}: {antrag.titel}"[:200],
+        beschreibung=begruendung[:4000],
+        optionen=JA_NEIN,
+        frist=beschluss_frist(),
+        antrag=antrag,
+        angelegt_von=request.user,
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "gremienbeschluss_angelegt",
+            "gremium": Gremium.INTEGRITAETSRAT.value,
+            "anlass": anlass,
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+        }
+    )
+    messages.success(
+        request,
+        _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer},
+    )
+    return redirect("gremien:integritaet")
 
 # ── Koordinationsrat: Austauschanträge und Rollenübersicht (§ 6 Abs 8) ───────
 

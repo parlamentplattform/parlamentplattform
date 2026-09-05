@@ -113,7 +113,15 @@ def test_der_anlass_entscheidet_ueber_die_wirkung():
     desselben Rates schon nicht mehr getragen."""
     from gremien.models import WIRKUNGEN
 
-    assert set(WIRKUNGEN) == {Anlass.PRUEFUNG}
+    # Jeder Anlass mit Wirkung steht hier; jeder ohne bewirkt nichts außer sich selbst.
+    assert set(WIRKUNGEN) == {
+        Anlass.PRUEFUNG,
+        Anlass.HERVORHEBUNG,
+        Anlass.HERVORHEBUNG_AUFHEBEN,
+        Anlass.ZURUECKWEISUNG,
+        Anlass.ZURUECKWEISUNG_AUFHEBEN,
+    }
+    assert Anlass.INTERN not in WIRKUNGEN
     b = beschluss_anlegen(gremium=Gremium.KOORDINATIONSRAT, anlass=Anlass.INTERN)
     korat = mitglied_anlegen("rat")
     rolle_geben(korat, Gremium.KOORDINATIONSRAT)

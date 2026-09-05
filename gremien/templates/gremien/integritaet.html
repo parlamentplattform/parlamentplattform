@@ -1,0 +1,63 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Integritätsrat" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Der Arbeitsbereich des Aufsichtsorgans (FB-I6, § 6 Abs 3). Keine Handlung wirkt hier unmittelbar:
+Jeder Knopf legt einen Beschluss an, über den der Rat danach abstimmt (§ 5 Abs 10 lit b — die
+Hervorhebung „erfolgt niemals durch einen Algorithmus", und ebenso wenig durch einen einzelnen
+Menschen). Ohne JavaScript vollständig bedienbar.
+{% endcomment %}
+<h1>{% translate "Integritätsrat" %}</h1>
+
+{% if not besetzt %}
+<div class="band-gold">{% blocktranslate with a=aktive m=mindestbesetzung %}Der Rat ist mit {{ a }} von mindestens {{ m }} Mitgliedern besetzt (§ 6 Abs 3 lit a). Beschlüsse lassen sich anlegen und abstimmen — Wirkung entfalten sie erst, wenn der Rat satzungsgemäß besetzt ist.{% endblocktranslate %}</div>
+{% endif %}
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Beschluss anlegen" %}</p>
+  <p class="erk">{% blocktranslate %}Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage — beantwortet wird sie
+von der Gruppe, mit Frist und veröffentlichter Begründung. Die Begründung erscheint mit der
+Beschlussnummer am Antrag.{% endblocktranslate %}</p>
+  <form method="post" action="{% url 'gremien:integritaet_beschluss' %}" style="margin-top:10px">{% csrf_token %}
+    <label for="ir-antrag">{% translate "Antrag" %}</label>
+    <select id="ir-antrag" name="antrag" required style="width:100%;max-width:44em">
+      {% for a in offene_antraege %}<option value="{{ a.pk }}">{{ a.titel }} — {{ a.get_phase_display }}</option>{% endfor %}
+    </select>
+    <label for="ir-grund" style="display:block;margin-top:8px">{% translate "Begründung (wird veröffentlicht)" %}</label>
+    <textarea id="ir-grund" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px"></textarea>
+    <p style="margin-top:8px">
+      {% for wert, name, satzung in anlaesse %}
+      <button type="submit" name="anlass" value="{{ wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-right:6px">{{ name }}<span class="meta"> · {{ satzung }}</span></button>
+      {% endfor %}
+    </p>
+  </form>
+</div>
+
+{% include "gremien/_beschluesse.html" %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Derzeit hervorgehoben" %}</p>
+  {% for a in hervorgehoben %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
+    {% if a.hervorhebung_begruendung %}<br><span class="meta">{{ a.hervorhebung_begruendung }}</span>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Kein Antrag ist hervorgehoben." %}</p>
+  {% endfor %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Zurückgewiesen" %}</p>
+  <p class="erk">{% translate "Eine Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2). Wird ihr stattgegeben, hebt der Rat sie hier auf — der Antrag setzt seine Phase mit der Restfrist fort, die er hatte." %}</p>
+  {% for a in zurueckgewiesen %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
+    {% if a.zurueckweisung_begruendung %}<br><span class="meta">{{ a.zurueckweisung_begruendung }}</span>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Kein Antrag ist zurückgewiesen." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

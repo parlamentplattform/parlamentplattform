@@ -13,6 +13,8 @@ urlpatterns = [
     path("gremien/beschluesse/", views.beschluesse_oeffentlich, name="beschluesse"),
     path("gremien/beschluss/<slug:nummer>/", views.beschluss_oeffentlich, name="beschluss"),
     path("gremien/beschluss/<int:beschluss_id>/stimme/", views.beschluss_stimme, name="beschluss_stimme"),
+    path("gremien/integritaet/", views.integritaet, name="integritaet"),
+    path("gremien/integritaet/beschluss/", views.integritaet_beschluss, name="integritaet_beschluss"),
     path("gremien/koordination/", views.koordination, name="koordination"),
     path(
         "gremien/koordination/<int:pruefung_id>/aktion/",

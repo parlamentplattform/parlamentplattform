@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n phasen %}
 {% block titel %}{% translate "Integritätsrat" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -22,7 +22,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   <form method="post" action="{% url 'gremien:integritaet_beschluss' %}" style="margin-top:10px">{% csrf_token %}
     <label for="ir-antrag">{% translate "Antrag" %}</label>
     <select id="ir-antrag" name="antrag" required style="width:100%;max-width:44em">
-      {% for a in offene_antraege %}<option value="{{ a.pk }}">{{ a.titel }} — {{ a.get_phase_display }}</option>{% endfor %}
+      {% for a in offene_antraege %}<option value="{{ a.pk }}">{{ a.titel }} — {{ a.phase|phase_name }}</option>{% endfor %}
     </select>
     <label for="ir-grund" style="display:block;margin-top:8px">{% translate "Begründung (wird veröffentlicht)" %}</label>
     <textarea id="ir-grund" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px"></textarea>

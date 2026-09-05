@@ -339,6 +339,7 @@ MITGLIED_RUHT = Rolle(
         "die Beiträge zu laufenden Verfahren bleiben stehen — gelöscht wird nichts, was ein "
         "Verfahren betrifft."
     ),
+    auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
             titel="Alles lesen wie ohne Konto — Parlament, Anträge, Beschlüsse, Register",
@@ -358,6 +359,7 @@ MITGLIED_RUHT = Rolle(
         Faehigkeit(
             titel="Erfahren, warum die Mitwirkung ruht und was sie wiederherstellt",
             stand=Stand.VERFUEGBAR,
+            ort="beim Versuch, einen Antrag einzubringen oder abzustimmen",
         ),
         Faehigkeit(
             titel="Favoriten setzen und Lebensbereiche abonnieren",
@@ -760,7 +762,6 @@ VERWALTUNG = Rolle(
     satzung="§ 6 Abs 2 (laufende Geschäfte)",
     was_sie_ist="Kein Organ der Satzung, sondern der technische Notbehelf: Ein Konto mit Adminrechten führt die Geschäfte, bis die Räte nach § 6 Abs 4 bis 6 besetzt sind.",
     wie_hinein="Adminrechte vergibt und entzieht ein anderes Admin-Konto; der satzungsgebende Erstzugang (DDOE_FIX_ADMIN) ist immer Admin und kann weder pausiert noch entmachtet werden. Eine Wahl oder Bestellung gibt es nicht.",
-    auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
             titel="Mitglieder suchen und Stammdaten berichtigen",

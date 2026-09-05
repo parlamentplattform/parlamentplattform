@@ -125,9 +125,14 @@ def test_jede_rolle_sagt_was_sie_ist_und_wie_man_hineinkommt():
 
 
 def test_vier_rollen_stehen_auf_der_willkommensseite():
-    """FB-K6: Gast, Mitglied, Mandatar, Verwaltung — die, die fast jeden betreffen."""
+    """FB-K6: die vier Rollen, die fast jeden betreffen.
+
+    Entscheidung des Gründers vom 5.9.2026: „Mitglied in Aufnahme oder pausiert" statt der
+    Verwaltung. Die Verwaltung betrifft eine Handvoll Menschen; „in Aufnahme" ist der Zustand
+    jedes Neuen und jedes Beitragssäumigen — und genau der fragt sich, warum er nicht mitreden
+    kann. Die Verwaltung steht weiter auf /rollen/, nur nicht mehr auf der ersten Seite."""
     auswahl = [r.schluessel for r in alle_rollen(GRUPPEN) if r.auf_der_startseite]
-    assert auswahl == ["gast", "mitglied", "mandatar", "verwaltung"]
+    assert auswahl == ["gast", "mitglied", "mitglied_ruht", "mandatar"]
 
 
 @pytest.mark.django_db
@@ -144,6 +149,6 @@ def test_die_seite_zeigt_alle_rollen_und_den_soll_ist_abgleich(client):
 def test_die_willkommensseite_zeigt_vier_karten_und_den_weg_zur_vollen_liste(client):
     inhalt = client.get(reverse("verfahren:index")).content.decode()
     assert reverse("verfahren:rollen") in inhalt
-    for schluessel in ("gast", "mitglied", "mandatar", "verwaltung"):
+    for schluessel in ("gast", "mitglied", "mitglied_ruht", "mandatar"):
         rolle = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == schluessel)
         assert rolle.name in inhalt

@@ -20,6 +20,11 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+#: Fassung der Zuordnungsregel für Beitragseingänge (§ 2 Abs 6): Referenzmuster und
+#: Namensvergleich. Sie ordnet Geld Menschen zu und hebt darüber Beitragspausen auf —
+#: eine Änderung daran gehört dokumentiert, und dafür braucht es diese Zahl.
+VERSION = 1
+
 # DDOE-0042-A1B2C3 — Trenner optional, Kleinschreibung erlaubt (Banken mangeln).
 _REFERENZ = re.compile(r"DDOE[\s\-]?(\d{4})[\s\-]?([A-F0-9]{6})", re.IGNORECASE)
 

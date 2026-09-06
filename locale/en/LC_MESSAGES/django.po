@@ -5037,3 +5037,61 @@ msgstr "The council has %(a)s of at least %(m)s members (§ 6 para 3 lit a). Dec
 #, python-format
 msgid "Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab."
 msgstr "Decision %(nummer)s opened — the council now votes."
+
+msgid "Die Regeln der Plattform"
+msgstr "The rules of the platform"
+
+msgid "Die Regeln der Plattform →"
+msgstr "The rules of the platform →"
+
+msgid "Gilt seit"
+msgstr "In force since"
+
+msgid "Warum"
+msgstr "Why"
+
+msgid "Satzung"
+msgstr "Statute"
+
+msgid "Nachrechnen"
+msgstr "How to check it"
+
+msgid "Im Register"
+msgstr "In the register"
+
+msgid "Offen:"
+msgstr "Open:"
+
+msgid "Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6) stützt sich auf das öffentliche Regelverzeichnis."
+msgstr "The annual review of the automated rules (§ 2 para 6) rests on the public register of rules."
+
+msgid "Die Satzung erlaubt automatisierte Systeme nur unterstützend und verlangt: „Jede automatisierte
+Sortierung oder Auswahl erfolgt nach offengelegten, versionierten und nachrechenbaren Regeln.
+Modelle, Regelwerke und Änderungen daran sind mit Datum und Begründung öffentlich zu
+dokumentieren; der Integritätsrat prüft sie mindestens jährlich." Diese Seite ist diese
+Offenlegung."
+msgstr "The statute permits automated systems only in a supporting role and requires: “Every automated
+ordering or selection follows disclosed, versioned and verifiable rules. Models, rule sets and
+changes to them are to be documented publicly with date and reasons; the integrity council
+reviews them at least once a year.” This page is that disclosure."
+
+msgid "Dieses Verzeichnis ist von Hand geschrieben, nicht erzeugt: Ein Programm kann aufzählen, welche
+Regeln es gibt — eine Begründung kann es nicht schreiben, und genau die verlangt die Satzung.
+Ein Test hält die Liste gegen den Quellcode: Entsteht eine neue Regel, ohne dass sie hier steht
+oder ausdrücklich als Ausnahme begründet wird, schlägt er an."
+msgstr "This register is written by hand, not generated: a program can enumerate which rules exist — it
+cannot write a reason, and that is exactly what the statute asks for. A test holds the list
+against the source code: if a new rule appears without being listed here or explicitly excused,
+the test fails."
+
+#, python-format
+msgid "%(n)s Regeln, davon %(b)s bindend. %(l)s tragen eine offen benannte Lücke."
+msgstr "%(n)s rules, %(b)s of them binding. %(l)s carry an openly stated gap."
+
+#, python-format
+msgid "Verzeichnis Fassung %(v)s"
+msgstr "Register version %(v)s"
+
+#, python-format
+msgid "Fassung %(f)s"
+msgstr "Version %(f)s"

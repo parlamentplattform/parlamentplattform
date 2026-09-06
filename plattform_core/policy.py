@@ -12,6 +12,11 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+#: Fassung der Ordnungsregeln (§ 2 Abs 6): welche Felder eine Verfahrensordnung hat, wie
+#: sie aus dem Register entsteht und welche satzungsfesten Untergrenzen sie nicht
+#: unterschreiten darf. Die einzelne Ordnung trägt daneben ihre eigene `version`.
+VERSION = 1
+
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
 SATZUNG_MIN_ABSTIMMUNG_TAGE = 7  # § 5 Abs 3 lit d

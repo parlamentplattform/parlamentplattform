@@ -30,6 +30,11 @@ from datetime import datetime, timedelta
 from plattform_core.policy import Policy
 from plattform_core.tally import Auszaehlung
 
+#: Fassung der Übergangsregeln (§ 2 Abs 6): wann ein Antrag die Phase wechselt und mit
+#: welchem Zeitpunkt der Wechsel gilt. Welche Fristen dabei gelten, steht in der am
+#: Antrag eingefrorenen Verfahrensordnung — die trägt ihre eigene Versionsnummer.
+VERSION = 1
+
 
 class Phase(enum.StrEnum):
     UNTERSTUETZUNG = "unterstuetzung"

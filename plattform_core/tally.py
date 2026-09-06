@@ -17,6 +17,12 @@ from fractions import Fraction
 
 from plattform_core.policy import Policy
 
+#: Fassung der Auszählregel (§ 2 Abs 6). Sie beziffert das **Verfahren**, nicht die
+#: Schwellenwerte: Wie ausgezählt wird, steht hier; mit welchen Zahlen, in der am Antrag
+#: eingefrorenen Verfahrensordnung. Steigt diese Zahl, hat sich die Rechnung geändert —
+#: und dann muss im Regelverzeichnis stehen, warum.
+VERSION = 1
+
 
 class Stimme(enum.StrEnum):
     JA = "ja"

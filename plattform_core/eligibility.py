@@ -1,4 +1,4 @@
-"""Stimmberechtigung nach § 4 Abs 4 des Satzungsentwurfs 2.1.
+"""Stimmberechtigung nach § 4 Abs 4 des Satzungsentwurfs 2.5.
 
 Anwartschaft:
 - Sachfragen: 3 Monate ununterbrochene Mitgliedschaft
@@ -7,10 +7,17 @@ Anwartschaft:
   Verfahrensordnung entfällt die Anwartschaft — dafür der Parameter `uebergang`.
 
 Stichtag ist der Beginn der Abstimmung (§ 4 Abs 4 lit a). Monatsarithmetik ist
-kalendarisch: Beitritt am 31. Jänner + 3 Monate ⇒ Stichtag 30. April genügt
-nicht, 1. Mai genügt (der 31. April existiert nicht; es gilt der letzte Tag des
-Zielmonats als Erfüllungstag). Diese Regel steht hier ausformuliert, damit sie
-nie von einer Bibliotheksversion abhängt.
+kalendarisch und klemmt auf den Monatsletzten: Beitritt am 31. Jänner + 3 Monate
+ergibt den **30. April** — der 31. April existiert nicht, also ist der letzte Tag
+des Zielmonats der Erfüllungstag. Ein Stichtag am 30. April genügt damit, der
+29. April nicht.
+
+Diese Regel steht hier ausformuliert, damit sie nie von einer Bibliotheksversion
+abhängt — und weil § 2 Abs 6 die Offenlegung verlangt: Wer nachrechnet, muss auf
+denselben Tag kommen wie die Plattform. (Bis 6.9.2026 stand hier das Gegenteil —
+„30. April genügt nicht, 1. Mai genügt" —, im Widerspruch zum eigenen nächsten
+Halbsatz und zum Code. Wer den Text las und selbst rechnete, kam auf ein Datum
+zu spät.)
 """
 
 from __future__ import annotations
@@ -18,6 +25,11 @@ from __future__ import annotations
 import calendar
 import enum
 from datetime import date
+
+#: Fassung der Anwartschaftsregel (§ 2 Abs 6) — die Monatsarithmetik samt Klemmung auf
+#: den Monatsletzten. Die Fristen selbst stehen in ANWARTSCHAFT_MONATE und folgen der
+#: Satzung; ändert sich die Art zu rechnen, steigt diese Zahl.
+VERSION = 1
 
 
 class Gegenstand(enum.StrEnum):

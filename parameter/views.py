@@ -38,6 +38,27 @@ def liste(request):
     )
 
 
+
+def regeln(request):
+    """Das öffentliche Regelverzeichnis (§ 2 Abs 6).
+
+    „Jede automatisierte Sortierung oder Auswahl erfolgt nach offengelegten, versionierten und
+    nachrechenbaren Regeln. Modelle, Regelwerke und Änderungen daran sind mit Datum und
+    Begründung öffentlich zu dokumentieren; der Integritätsrat prüft sie mindestens jährlich."
+    Diese Seite ist die Offenlegung — und zugleich die Grundlage der jährlichen Prüfung."""
+    from plattform_core.regelwerk import SATZUNG, VERSION, nach_wirkung, zaehlung
+
+    return render(
+        request,
+        "parameter/regeln.html",
+        {
+            "gruppen": nach_wirkung(),
+            "zahlen": zaehlung(),
+            "verzeichnis_version": VERSION,
+            "satzung": SATZUNG,
+        },
+    )
+
 def _offen(daten) -> JsonResponse:
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
     antwort["Access-Control-Allow-Origin"] = "*"

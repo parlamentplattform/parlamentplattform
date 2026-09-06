@@ -6,12 +6,15 @@ Beide Leser geben Umsätze im selben schlanken Schema aus wie der
 Kontoinformationsdienst (Berlin-Group-Feldnamen) — dahinter läuft exakt
 derselbe Abgleich (`plattform_core.beitraege`), egal woher die Daten kommen.
 
-* **camt.053** ist der ISO-20022-Standard-Kontoauszug; er trägt echte
-  Umsatz-Kennungen (Dedupe ist exakt).
+* **camt.053** ist der ISO-20022-Standard-Kontoauszug; er trägt in der Regel
+  echte Umsatz-Kennungen der Bank — dann ist die Trennung exakt.
 * **CSV** ist je Bank verschieden — der Leser sucht die Spalten tolerant über
   die Kopfzeile und bildet als Kennung einen Fingerabdruck aus Datum, Betrag
   und Verwendungszweck. Grenze (dokumentiert): Zwei völlig identische
-  Zahlungen am selben Tag fallen im CSV zusammen; camt kennt das Problem nicht.
+  Zahlungen am selben Tag fallen dann zusammen und werden nur einmal verbucht.
+  Das betrifft **auch camt.053**, wenn die Bank keine der vier möglichen
+  Referenzen mitliefert — der Leser fällt dann auf denselben Fingerabdruck
+  zurück. Nur wo eine Bankreferenz vorhanden ist, ist die Trennung exakt.
 * Gelesen wird nur, was der Abgleich braucht; die Datei selbst wird nie
   gespeichert.
 """

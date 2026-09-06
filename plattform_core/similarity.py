@@ -14,6 +14,11 @@ from __future__ import annotations
 import re
 import unicodedata
 
+#: Fassung der Ähnlichkeitsregel (§ 2 Abs 6). Sie schlägt beim Einbringen bestehende
+#: Anträge vor und blockiert nie; die Schwelle steht als Stellgröße im Register
+#: (aehnlichkeit-schwelle-prozent), das Verfahren hier.
+VERSION = 1
+
 
 def normalisieren(text: str) -> str:
     """Kleinschreibung, Unicode-Normalform, alles außer Buchstaben/Ziffern wird Leerraum."""

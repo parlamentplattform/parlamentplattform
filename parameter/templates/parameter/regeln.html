@@ -1,0 +1,56 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Die Regeln der Plattform" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Das Regelverzeichnis nach § 2 Abs 6. Geordnet nach Wirkung, damit zuerst steht, was bindet.
+Die Daten stehen in plattform_core/regelwerk.py; ein Test schlägt an, sobald ein Modul in
+plattform_core weder verzeichnet noch begründet ausgenommen ist.
+{% endcomment %}
+<style>
+  .regel{background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:10px 0}
+  .regel h3{font-size:16px;margin:0 0 2px}
+  .regel .modul{font-size:12px;color:var(--matt)}
+  .regel .zweck{font-size:14px;margin:6px 0 8px}
+  .regel dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:13.5px}
+  .regel dt{color:var(--matt);white-space:nowrap}
+  .regel dd{margin:0}
+  .regel .luecke{margin-top:8px;font-size:13px;color:var(--goldtief)}
+  .wirkungskopf{margin:26px 0 2px}
+  .wirkungskopf .was{font-size:14px;color:var(--matt)}
+</style>
+
+<h1>{% translate "Die Regeln der Plattform" %}</h1>
+<p class="erk" style="max-width:60em">{% blocktranslate %}Die Satzung erlaubt automatisierte Systeme nur unterstützend und verlangt: „Jede automatisierte
+Sortierung oder Auswahl erfolgt nach offengelegten, versionierten und nachrechenbaren Regeln.
+Modelle, Regelwerke und Änderungen daran sind mit Datum und Begründung öffentlich zu
+dokumentieren; der Integritätsrat prüft sie mindestens jährlich." Diese Seite ist diese
+Offenlegung.{% endblocktranslate %}</p>
+
+<p class="erk">{% blocktranslate with n=zahlen.regeln b=zahlen.bindend l=zahlen.mit_luecke %}{{ n }} Regeln, davon {{ b }} bindend. {{ l }} tragen eine offen benannte Lücke.{% endblocktranslate %}
+  <span class="meta">{{ satzung }} · {% blocktranslate with v=verzeichnis_version %}Verzeichnis Fassung {{ v }}{% endblocktranslate %} · <code>plattform_core/regelwerk.py</code></span></p>
+
+{% for wirkung, regeln in gruppen %}
+<h2 class="wirkungskopf">{{ wirkung.value }} <span class="was">— {{ wirkung.erklaerung }}</span></h2>
+{% for r in regeln %}
+<div class="regel" id="regel-{{ r.modul|slice:":-3" }}">
+  <h3>{{ r.titel }}</h3>
+  <p class="modul"><code>plattform_core/{{ r.modul }}</code>{% if r.fassung %} · {% blocktranslate with f=r.fassung %}Fassung {{ f }}{% endblocktranslate %}{% endif %}</p>
+  <p class="zweck">{{ r.zweck }}</p>
+  <dl>
+    <dt>{% translate "Gilt seit" %}</dt><dd>{{ r.seit|default:"—" }}</dd>
+    <dt>{% translate "Warum" %}</dt><dd>{{ r.grund }}</dd>
+    <dt>{% translate "Satzung" %}</dt><dd>{{ r.satzung }}</dd>
+    {% if r.nachrechenbar %}<dt>{% translate "Nachrechnen" %}</dt><dd>{{ r.nachrechenbar }}</dd>{% endif %}
+    {% if r.registerschluessel %}<dt>{% translate "Im Register" %}</dt><dd><a href="{% url 'parameter:liste' %}">{{ r.registerschluessel }}</a></dd>{% endif %}
+  </dl>
+  {% if r.luecke %}<p class="luecke">{% translate "Offen:" %} {{ r.luecke }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+
+<p class="erk" style="margin-top:26px;max-width:60em">{% blocktranslate %}Dieses Verzeichnis ist von Hand geschrieben, nicht erzeugt: Ein Programm kann aufzählen, welche
+Regeln es gibt — eine Begründung kann es nicht schreiben, und genau die verlangt die Satzung.
+Ein Test hält die Liste gegen den Quellcode: Entsteht eine neue Regel, ohne dass sie hier steht
+oder ausdrücklich als Ausnahme begründet wird, schlägt er an.{% endblocktranslate %}</p>
+{% endblock %}

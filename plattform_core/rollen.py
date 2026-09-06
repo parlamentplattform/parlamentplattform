@@ -212,6 +212,11 @@ GAST = Rolle(
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:index",
         ),
+        Faehigkeit(
+            titel="Alle automatisierten Regeln nachlesen — mit Fassung, Datum und Begründung",
+            stand=Stand.VERFUEGBAR,
+            urlname="parameter:regeln",
+        ),
     ),
 )
 

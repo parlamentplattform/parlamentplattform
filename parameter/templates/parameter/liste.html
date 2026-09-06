@@ -12,7 +12,8 @@ und die Historie am Wert selbst. Ohne JavaScript vollständig lesbar: <details> 
 Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.
 Änderungen sind nur dokumentiert möglich: heute durch die Verwaltung mit veröffentlichtem Grund im
 Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung.{% endblocktranslate %}
-<a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a></p>
+<a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a>
+<a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a></p>
 
 {% if ordnung %}
 <p class="erk" style="max-width:56em">{% blocktranslate with n=ordnung.version %}Geltende Verfahrensordnung: Fassung {{ n }}. Sie folgt dem Register nicht von selbst — sie wird

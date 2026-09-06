@@ -37,7 +37,7 @@ def test_alle_kennungen_haben_das_format_und_sind_eindeutig():
     assert "support.window_days" in gemeinsam and "vote.window_days" in gemeinsam
     assert not (set(kennzahlen) & (set(register) | set(ordnung))), "Kennzahlen messen, sie stellen nicht"
 
-    assert SCHEMA_VERSION == "1.1"
+    assert SCHEMA_VERSION == "1.2"
     assert schema_key("gremien-review-tage") == "support.review_days"
     assert schema_key("expertenrat-erstvorschlag-tage") == "council.first_draft_days"
     assert schema_key("nur-lokal") == ""
@@ -95,7 +95,7 @@ def test_parameter_export_traegt_kopf_kennungen_und_verfahrensordnung():
     ]
     ordnungen = [{"id": "sachantrag-standard", "version": 1, "unterstuetzung_schwelle": 3, "beratung_tage": 21, "mindestbeteiligung": 0.05}]
     daten = parameter_export("at-ddoe", "Direkte Demokratie Österreich", "0.36.0", parameter, ordnungen, JETZT)
-    assert daten["schema_version"] == "1.1" and daten["system_id"] == "at-ddoe"
+    assert daten["schema_version"] == SCHEMA_VERSION and daten["system_id"] == "at-ddoe"
     assert daten["software"]["version"] == "0.36.0" and daten["exportiert_am"].startswith("2026-09-03")
     assert daten["parameter"][0]["schema_key"] == "support.review_days"
     assert daten["parameter"][1]["schema_key"] == ""  # lokale Stellgröße ohne gemeinsame Bedeutung

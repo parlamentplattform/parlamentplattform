@@ -5,6 +5,7 @@ from parameter import views
 app_name = "parameter"
 urlpatterns = [
     path("parameter/", views.liste, name="liste"),
+    path("regeln/", views.regeln, name="regeln"),
     path("parameter.json", views.export_json, name="export"),
     path("kennzahlen.json", views.kennzahlen_json, name="kennzahlen"),
     path("verwaltung/parameter/", views.verwaltung, name="verwaltung"),

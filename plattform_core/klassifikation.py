@@ -23,6 +23,11 @@ from __future__ import annotations
 
 from plattform_core.similarity import normalisieren
 
+#: Fassung der Zuordnungsregel für Lebensbereiche (§ 2 Abs 6) — gepflegte Schlagwortlisten,
+#: keine KI. Das Register spiegelt die Zahl unter `kategorien-regel`; hier steht sie am
+#: Code selbst, damit sie nicht nur außerhalb existiert.
+VERSION = 1
+
 
 def schlagwort_trifft(textworte: list[str], text_norm: str, schlagwort: str) -> bool:
     """True, wenn das (normalisierte) Schlagwort im Text vorkommt."""

@@ -680,4 +680,31 @@ REGELN: tuple[Regel, ...] = (
             "Aussetzungen doppelt."
         ),
     ),
+    Regel(
+        modul="losziehung.py",
+        titel="Auslosung des Expertenrats aus der Fachliste",
+        zweck=(
+            "Zieht für jeden Antrag die Fachleute aus der öffentlich geführten Liste: Jede "
+            "Kandidatin bekommt einen Loswert aus dem Anker und ihrem Schlüssel, die kleinsten "
+            "Werte kommen zuerst in Gruppe 1, dann in Gruppe 2. Beide Gruppen sind dadurch "
+            "getrennt, ohne dass jemand es prüfen müsste. Kein Gewicht, keine Reihung nach "
+            "Verdienst — die Satzung will das Los, nicht eine Auswahl."
+        ),
+        wirkung=Wirkung.ENTSCHEIDET,
+        satzung="§ 6 Abs 7 · § 6 Abs 8 · § 2 Abs 6",
+        fassung=1,
+        seit="2026-09-08",
+        grund=(
+            "Erste Fassung. Der Zufall kommt aus dem Kopf der Audit-Kette im Augenblick der "
+            "Ziehung: Er steht dann fest und ist vorher von niemandem auszurechnen. Der früheste "
+            "Eintrag eines Antrags wäre der bequemere Anker gewesen und der falsche — er entsteht "
+            "beim Einbringen, also zwei Monate vorher, und wäre die ganze Zeit bekannt."
+        ),
+        nachrechenbar=(
+            "Anker und Lostopf stehen mit dem Ergebnis. Der Loswert einer Person ist die "
+            "SHA-256-Prüfsumme über Anker, ein senkrechtes Strichzeichen und ihren Schlüssel; "
+            "aufsteigend geordnet ergibt sich daraus die Besetzung. Mit jedem "
+            "Prüfsummenwerkzeug in wenigen Minuten nachzurechnen."
+        ),
+    ),
 )

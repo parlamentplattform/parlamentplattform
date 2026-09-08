@@ -30,6 +30,7 @@ from gremien.models import (
     EntwurfsBeitrag,
     EntwurfsFassung,
     EntwurfsStatus,
+    Fachliste,
     GremienBeschluss,
     GremienStimme,
     Gremium,
@@ -39,12 +40,14 @@ from gremien.models import (
     aussetzungen_fortschreiben,
     beschluss_frist,
     standard_ende,
+    unvereinbar,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import Zweck, lauf_ausfuehren
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
+from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 from verfahren.chat import abstimmung_stand as _abstimmung_stand
 from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag
@@ -114,6 +117,37 @@ def mein(request):
 
 # ── Arbeitsbereich Expertenrat, Gruppe 1 ─────────────────────────────────────
 
+
+
+def fachliste(request):
+    """Die öffentlich geführte Liste der Fachleute (§ 6 Abs 7).
+
+    Öffentlich ohne Anmeldung: Aus dieser Liste wird der Expertenrat je Antrag ausgelost, und
+    wer das Ergebnis nachrechnen will, muss den Lostopf kennen. Interessenbindungen und Honorare
+    stehen dabei — die Satzung nennt beides ausdrücklich; ohne diese Angabe wäre die Auslosung
+    eine Auswahl unter Unbekannten."""
+    eintraege = (
+        Fachliste.objects.select_related("mitglied")
+        .prefetch_related("fachgebiete")
+        .order_by("gestrichen_am", "schluessel")
+    )
+    zeilen = [
+        {
+            "eintrag": e,
+            "unvereinbar": unvereinbar(e.mitglied) if e.gefuehrt else "",
+            "fachgebiete": list(e.fachgebiete.all()),
+        }
+        for e in eintraege
+    ]
+    return render(
+        request,
+        "gremien/fachliste.html",
+        {
+            "zeilen": zeilen,
+            "gefuehrt": sum(1 for z in zeilen if z["eintrag"].gefuehrt and not z["unvereinbar"]),
+            "mindestgroesse": SATZUNG_MIN_RATSGROESSE,
+        },
+    )
 
 @nur_gremium(Gremium.EXPERTENRAT_1)
 def expertenrat(request):

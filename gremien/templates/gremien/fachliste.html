@@ -1,0 +1,42 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Die Fachliste" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die öffentlich geführte Liste nach § 6 Abs 7 — der Lostopf des Expertenrats. Wer das Ergebnis
+einer Auslosung nachrechnen will, muss diese Liste kennen; deshalb steht sie öffentlich, mit
+Interessenbindungen und Honoraren.
+{% endcomment %}
+<h1>{% translate "Die Fachliste" %}</h1>
+<p class="erk" style="max-width:60em">{% blocktranslate %}Aus dieser Liste wird der Expertenrat für jeden einzelnen Antrag ausgelost — nach einem
+offengelegten Zufallsverfahren (§ 6 Abs 7). Wer darauf steht, legt Interessenbindungen und
+Honorare offen; ohne diese Angabe wäre die Auslosung eine Auswahl unter Unbekannten. Der
+Schlüssel neben dem Namen ist die Kennung, mit der die Ziehung rechnet.{% endblocktranslate %}</p>
+
+<p class="erk">{% blocktranslate with m=mindestgroesse count n=gefuehrt %}{{ n }} Person steht zur Auslosung bereit.{% plural %}{{ n }} Personen stehen zur Auslosung bereit.{% endblocktranslate %} {% blocktranslate with m=mindestgroesse %}Eine Gruppe des Expertenrats hat mindestens {{ m }} Mitglieder (§ 6 Abs 8); für einen Antrag mit Vollzugs- oder Beschaffungsbezug werden zwei unabhängige Gruppen gezogen.{% endblocktranslate %}
+  <a href="{% url 'parameter:regeln' %}#regel-losziehung">{% translate "Wie das Los rechnet →" %}</a></p>
+
+<div class="karte">
+  {% for z in zeilen %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{{ z.eintrag.anzeigename }}</strong>
+    <span class="meta"><code>{{ z.eintrag.schluessel }}</code> · {% blocktranslate with d=z.eintrag.seit|date:"d.m.Y" %}auf der Liste seit {{ d }}{% endblocktranslate %}</span>
+    {% if not z.eintrag.gefuehrt %}<span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}
+    {% if z.unvereinbar %}<span class="chip klein">{% translate "derzeit unvereinbar" %}</span>{% endif %}
+    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in z.fachgebiete %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
+    <br><span class="meta">{% translate "Interessenbindungen:" %} {{ z.eintrag.interessenbindungen|default:"keine angegeben" }}</span>
+    <br><span class="meta">{% translate "Honorare:" %} {{ z.eintrag.honorare|default:"keine angegeben" }}</span>
+    {% if z.unvereinbar %}<br><span class="meta">{{ z.unvereinbar }}</span>{% endif %}
+    {% if z.eintrag.gestrichen_grund %}<br><span class="meta">{{ z.eintrag.gestrichen_grund }}</span>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch steht niemand auf der Fachliste." %}</p>
+  {% endfor %}
+</div>
+
+<p class="erk" style="margin-top:20px;max-width:60em">{% blocktranslate %}Wie man auf die Liste kommt: Nach § 6 Abs 8 bestellt der Koordinationsrat ihre Mitglieder auf
+öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung; das Los
+nach § 6 Abs 7 zieht daraus für den einzelnen Antrag. Diesen Weg gibt es auf der Plattform noch
+nicht — heute trägt die Verwaltung die Liste ein. Was fehlt, steht offen in der Rollenübersicht.{% endblocktranslate %}
+  <a href="{% url 'verfahren:rollen' %}#rolle-expertenrat1">{% translate "Zur Rollenübersicht →" %}</a></p>
+{% endblock %}

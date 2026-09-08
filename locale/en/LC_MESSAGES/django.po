@@ -5148,3 +5148,65 @@ msgstr "Open the %(j)s review"
 #, python-format
 msgid "Prüfung %(nummer)s angelegt — %(n)s Regeln eingefroren."
 msgstr "Review %(nummer)s opened — %(n)s rules frozen."
+
+msgid "Die Fachliste"
+msgstr "The expert roster"
+
+msgid "Wie das Los rechnet →"
+msgstr "How the draw is computed →"
+
+msgid "gestrichen"
+msgstr "removed"
+
+msgid "derzeit unvereinbar"
+msgstr "currently incompatible"
+
+msgid "Fachgebiete:"
+msgstr "Fields:"
+
+msgid "keine angegeben — lost bei jedem Antrag mit"
+msgstr "none given — takes part in every draw"
+
+msgid "Interessenbindungen:"
+msgstr "Conflicts of interest:"
+
+msgid "Honorare:"
+msgstr "Fees:"
+
+msgid "Noch steht niemand auf der Fachliste."
+msgstr "Nobody is on the roster yet."
+
+msgid "Zur Rollenübersicht →"
+msgstr "To the role overview →"
+
+msgid "Aus dieser Liste wird der Expertenrat für jeden einzelnen Antrag ausgelost — nach einem
+offengelegten Zufallsverfahren (§ 6 Abs 7). Wer darauf steht, legt Interessenbindungen und
+Honorare offen; ohne diese Angabe wäre die Auslosung eine Auswahl unter Unbekannten. Der
+Schlüssel neben dem Namen ist die Kennung, mit der die Ziehung rechnet."
+msgstr "The expert council for each individual motion is drawn from this roster by a disclosed random
+procedure (§ 6 para 7). Everyone on it discloses conflicts of interest and fees; without that,
+the draw would be a selection among strangers. The key beside the name is the identifier the
+draw computes with."
+
+msgid "Wie man auf die Liste kommt: Nach § 6 Abs 8 bestellt der Koordinationsrat ihre Mitglieder auf
+öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung; das Los
+nach § 6 Abs 7 zieht daraus für den einzelnen Antrag. Diesen Weg gibt es auf der Plattform noch
+nicht — heute trägt die Verwaltung die Liste ein. Was fehlt, steht offen in der Rollenübersicht."
+msgstr "How to get onto the roster: under § 6 para 8 the coordination council appoints its members for
+two years after a public call, confirmed by the general meeting; the draw under § 6 para 7 then
+picks from it for the individual motion. That path does not exist on the platform yet — today
+the administration maintains the roster. What is missing is stated openly in the role overview."
+
+#, python-format
+msgid "auf der Liste seit %(d)s"
+msgstr "on the roster since %(d)s"
+
+#, python-format
+msgid "%(n)s Person steht zur Auslosung bereit."
+msgid_plural "%(n)s Personen stehen zur Auslosung bereit."
+msgstr[0] "%(n)s person is available for the draw."
+msgstr[1] "%(n)s people are available for the draw."
+
+#, python-format
+msgid "Eine Gruppe des Expertenrats hat mindestens %(m)s Mitglieder (§ 6 Abs 8); für einen Antrag mit Vollzugs- oder Beschaffungsbezug werden zwei unabhängige Gruppen gezogen."
+msgstr "A group of the expert council has at least %(m)s members (§ 6 para 8); for a motion with implementation or procurement relevance, two independent groups are drawn."

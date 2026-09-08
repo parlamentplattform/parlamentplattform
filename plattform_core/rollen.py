@@ -217,6 +217,11 @@ GAST = Rolle(
             stand=Stand.VERFUEGBAR,
             urlname="parameter:regeln",
         ),
+        Faehigkeit(
+            titel="Die öffentliche Fachliste einsehen — Lostopf des Expertenrats",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:fachliste",
+        ),
     ),
 )
 

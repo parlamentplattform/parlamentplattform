@@ -1214,6 +1214,116 @@ def aussetzungen_fortschreiben(jetzt=None) -> int:
         geschlossen += 1
     return geschlossen
 
+
+class Fachliste(models.Model):
+    """Ein Eintrag in der öffentlich geführten Liste der Fachleute (§ 6 Abs 7).
+
+    Aus dieser Liste wird der Expertenrat je Antrag ausgelost. Wer darauf steht, legt seine
+    Interessenbindungen und Honorare offen — die Satzung nennt beides ausdrücklich, und ohne
+    diese Angabe wäre die Auslosung eine Auswahl unter Unbekannten.
+
+    Der `schluessel` ist die pseudonyme Kennung, mit der die Ziehung rechnet. Er steht neben dem
+    Namen und nicht an seiner Stelle: So bleibt eine Ziehung auch dann nachrechenbar, wenn
+    jemand seine Einwilligung zur Namensnennung widerruft (§ 8 Abs 4) — Loswert und Platz
+    bleiben stehen, der Name weicht dem Schlüssel.
+
+    Gestrichen wird nicht gelöscht (Grundregel 7): Ein Eintrag, aus dem einmal gelost wurde,
+    bleibt lesbar, sonst ließe sich die Ziehung nicht mehr nachvollziehen."""
+
+    mitglied = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="fachlisteneintrag"
+    )
+    schluessel = models.CharField(
+        max_length=16,
+        unique=True,
+        help_text="Pseudonyme Kennung für die Auslosung — stabil, auch nach einem Widerruf.",
+    )
+    fachgebiete = models.ManyToManyField(
+        "verfahren.Kategorie",
+        related_name="fachleute",
+        help_text="Lebensbereiche, für die diese Person zur Verfügung steht (§ 6 Abs 7).",
+    )
+    interessenbindungen = models.TextField(
+        max_length=4000,
+        blank=True,
+        help_text="Offenzulegen (§ 6 Abs 7). Leer heißt „keine“ — und wird auch so angezeigt.",
+    )
+    honorare = models.TextField(
+        max_length=4000,
+        blank=True,
+        help_text="Entgeltliche Nebentätigkeiten und Zuwendungen — die Satzung nennt sie neben "
+        "den Interessenbindungen ausdrücklich (§ 6 Abs 7).",
+    )
+    seit = models.DateField(default=timezone.localdate)
+    gestrichen_am = models.DateField(null=True, blank=True)
+    gestrichen_grund = models.CharField(max_length=200, blank=True)
+    einwilligung_widerrufen_am = models.DateField(
+        null=True,
+        blank=True,
+        help_text="§ 8 Abs 4: Die Einwilligung ist jederzeit widerrufbar; danach steht hier der "
+        "Schlüssel statt des Namens. Der sachliche Inhalt bleibt erhalten.",
+    )
+
+    class Meta:
+        ordering = ["schluessel"]
+        verbose_name = "Fachlisten-Eintrag"
+        verbose_name_plural = "Fachliste"
+
+    def __str__(self) -> str:
+        return f"{self.schluessel}: {self.anzeigename}"
+
+    def save(self, *args, **kwargs):
+        if not self.schluessel:
+            import secrets
+
+            self.schluessel = "F-" + secrets.token_hex(4).upper()
+        return super().save(*args, **kwargs)
+
+    @property
+    def anzeigename(self) -> str:
+        """Der Name — oder der Schlüssel, wenn die Einwilligung widerrufen wurde (§ 8 Abs 4)."""
+        if self.einwilligung_widerrufen_am is not None:
+            return self.schluessel
+        return self.mitglied.anzeigename
+
+    @property
+    def gefuehrt(self) -> bool:
+        return self.gestrichen_am is None
+
+    def als_kandidat(self, ausschlussgrund: str = ""):
+        """Der Eintrag, wie ihn die Ziehung sieht (`plattform_core.losziehung.Kandidat`)."""
+        from plattform_core.losziehung import Kandidat
+
+        return Kandidat(
+            schluessel=self.schluessel,
+            fachgebiete=frozenset(self.fachgebiete.values_list("slug", flat=True)),
+            ausgeschlossen=bool(ausschlussgrund) or not self.gefuehrt,
+            ausschlussgrund=ausschlussgrund or ("gestrichen" if not self.gefuehrt else ""),
+        )
+
+
+def unvereinbar(mitglied) -> str:
+    """Warum jemand nicht in den Expertenrat gelost werden darf — oder leer.
+
+    § 6 Abs 3 lit a schließt Mitglieder des Integritätsrats von anderen Räten aus; § 7 trennt
+    Mandat und Beratung. Diese Prüfung gehört an den Lostopf und nicht an die Ansicht: Wer sie
+    dort vergisst, hat sie nie."""
+    if Rolle.hat(mitglied, Gremium.INTEGRITAETSRAT):
+        return "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
+    from django.apps import apps
+
+    if apps.is_installed("mandatare"):
+        mandat = apps.get_model("mandatare", "Mandat")
+        if mandat.objects.filter(mitglied=mitglied, beendet__isnull=True).exists():
+            return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+    return ""
+
+
+def lostopf_der_fachliste(fachgebiete=()) -> list:
+    """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt."""
+    eintraege = Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete")
+    return [e.als_kandidat(unvereinbar(e.mitglied)) for e in eintraege]
+
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
 #: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.

@@ -5210,3 +5210,75 @@ msgstr[1] "%(n)s people are available for the draw."
 #, python-format
 msgid "Eine Gruppe des Expertenrats hat mindestens %(m)s Mitglieder (§ 6 Abs 8); für einen Antrag mit Vollzugs- oder Beschaffungsbezug werden zwei unabhängige Gruppen gezogen."
 msgstr "A group of the expert council has at least %(m)s members (§ 6 para 8); for a motion with implementation or procurement relevance, two independent groups are drawn."
+
+msgid "Die Auslosung"
+msgstr "The draw"
+
+msgid "Zum Antrag →"
+msgstr "To the motion →"
+
+msgid "Anker:"
+msgstr "Anchor:"
+
+msgid "prüft ihn auf Interessenkonflikte und Korruptionsgefahr"
+msgstr "checks it for conflicts of interest and corruption risk"
+
+msgid "Loswert"
+msgstr "Draw value"
+
+msgid "So rechnet man nach"
+msgstr "How to check it"
+
+msgid "Die Regel im Verzeichnis →"
+msgstr "The rule in the register →"
+
+msgid "Die Fachliste →"
+msgstr "The expert roster →"
+
+msgid "Zu diesem Antrag wurde nicht gelost — er wird von den parteiweit berufenen Rollen beraten."
+msgstr "No draw was held for this motion — it is deliberated by the party-wide appointments."
+
+msgid "Schreiben kann hier nur, wer für diesen Antrag in Gruppe 1 gelost oder berufen ist."
+msgstr "Only someone drawn or appointed to group 1 for this motion can write here."
+
+msgid "Abstimmen kann nur, wer für diese Sache eine aktive Rolle in diesem Gremium hat."
+msgstr "Only someone with an active appointment in this body for this matter can vote."
+
+msgid "Für jede Person im Lostopf bildet man die SHA-256-Prüfsumme über den Anker, ein senkrechtes
+Strichzeichen und ihren Schlüssel — also über die Zeichenfolge „Anker|Schlüssel“. Die Werte
+aufsteigend geordnet ergeben die Reihenfolge: Die kleinsten kommen in Gruppe 1, die nächsten in
+Gruppe 2. Kein Gewicht, keine Reihung nach Verdienst."
+msgstr "For each person in the pool, take the SHA-256 checksum over the anchor, a vertical bar and
+their key — that is, over the string “anchor|key”. Sorted in ascending order, the values give
+the sequence: the smallest go into group 1, the next into group 2. No weighting, no ranking by
+merit."
+
+#, python-format
+msgid "Für den Antrag „%(t)s“. Die Fachleute werden nicht ausgesucht, sondern aus der öffentlichen
+Fachliste gelost (§ 6 Abs 7) — und jede Ziehung lässt sich nachrechnen."
+msgstr "For the motion “%(t)s”. The experts are not selected but drawn from the public roster
+(§ 6 para 7) — and every draw can be checked."
+
+#, python-format
+msgid "Losregel Fassung %(f)s"
+msgstr "Draw rule version %(f)s"
+
+#, python-format
+msgid "Gruppe %(n)s"
+msgstr "Group %(n)s"
+
+#, python-format
+msgid "Das ist der Hash des Audit-Eintrags Nr. %(n)s — des jüngsten in dem Augenblick, in dem gelost wurde. Vorher war er von niemandem auszurechnen; nachher kann ihn jeder prüfen."
+msgstr "This is the hash of audit entry no. %(n)s — the newest one at the moment of the draw. Nobody could compute it beforehand; afterwards anyone can verify it."
+
+#, python-format
+msgid "Der Lostopf: eine Person"
+msgid_plural "Der Lostopf: %(n)s Personen"
+msgstr[0] "The pool: one person"
+msgstr[1] "The pool: %(n)s people"
+
+#, python-format
+msgid "Eine Person war ausgeschlossen"
+msgid_plural "%(n)s Personen waren ausgeschlossen"
+msgstr[0] "One person was excluded"
+msgstr[1] "%(n)s people were excluded"

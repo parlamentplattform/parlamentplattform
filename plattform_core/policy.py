@@ -12,6 +12,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
+
 #: Fassung der Ordnungsregeln (§ 2 Abs 6): welche Felder eine Verfahrensordnung hat, wie
 #: sie aus dem Register entsteht und welche satzungsfesten Untergrenzen sie nicht
 #: unterschreiten darf. Die einzelne Ordnung trägt daneben ihre eigene `version`.
@@ -45,6 +47,12 @@ class Policy:
     #                                      Welche Basis gilt, beschließt die
     #                                      Verfahrensordnung — nicht der Code.
     wiedereinbringung_sperre_monate: int = 6  # § 5 Abs 3 lit b
+    # Auslosung des Expertenrats (§ 6 Abs 7). Sie geschieht erst zu Beratungsbeginn, also
+    # rund zwei Monate nach dem Einbringen — deshalb gehören Größen und Regelfassung hierher
+    # und nicht ins laufende Register: Sonst wirkte eine Änderung zurück (§ 5 Abs 5).
+    expertenrat_gruppe1: int = 3  # >= 3 (§ 6 Abs 8)
+    expertenrat_gruppe2: int = 3  # >= 3, nur bei Vollzugs- oder Beschaffungsbezug gezogen
+    losregel_fassung: int = 1  # plattform_core.losziehung.VERSION zum Zeitpunkt der Fassung
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -57,6 +65,15 @@ class Policy:
                 f"Abstimmung {self.abstimmung_tage} Tage unterschreitet Satzungsminimum "
                 f"{SATZUNG_MIN_ABSTIMMUNG_TAGE} (§ 5 Abs 3 lit d)."
             )
+        for name, wert in (
+            ("expertenrat_gruppe1", self.expertenrat_gruppe1),
+            ("expertenrat_gruppe2", self.expertenrat_gruppe2),
+        ):
+            if wert < SATZUNG_MIN_RATSGROESSE:
+                raise PolicyFehler(
+                    f"{name} = {wert} unterschreitet das Satzungsminimum "
+                    f"{SATZUNG_MIN_RATSGROESSE} (§ 6 Abs 8)."
+                )
         if self.mindestbeteiligung < SATZUNG_MIN_BETEILIGUNG:
             raise PolicyFehler(
                 f"Mindestbeteiligung {self.mindestbeteiligung} unterschreitet "
@@ -94,6 +111,8 @@ REGISTER_ZUORDNUNG = {
     "abstimmung_tage": ("verfahren-abstimmung-tage", int),
     "mindestbeteiligung": ("verfahren-mindestbeteiligung-prozent", lambda n: n / 100),
     "wiedereinbringung_sperre_monate": ("verfahren-wiedereinbringung-monate", int),
+    "expertenrat_gruppe1": ("expertenrat-gruppe1-groesse", int),
+    "expertenrat_gruppe2": ("expertenrat-gruppe2-groesse", int),
 }
 
 
@@ -125,5 +144,13 @@ def aus_register(
         feld: wandler(werte[schluessel])
         for feld, (schluessel, wandler) in REGISTER_ZUORDNUNG.items()
     }
-    return Policy(id=policy_id, version=version, mehrheitsbasis=mehrheitsbasis, **felder)
+    from plattform_core.losziehung import VERSION as LOSREGEL
+
+    return Policy(
+        id=policy_id,
+        version=version,
+        mehrheitsbasis=mehrheitsbasis,
+        losregel_fassung=LOSREGEL,
+        **felder,
+    )
 

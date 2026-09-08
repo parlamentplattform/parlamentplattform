@@ -198,6 +198,10 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/regeln/")
     halte_fest(p, "regelverzeichnis")
 
-    assert len(bilder) == 30
+    p = seite()
+    p.goto(f"{live_server.url}/gremien/fachliste/")
+    halte_fest(p, "fachliste")
+
+    assert len(bilder) == 31
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

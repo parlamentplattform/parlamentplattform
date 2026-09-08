@@ -1,0 +1,60 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Die Auslosung" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die vollzogene Auslosung eines Antrags (§ 6 Abs 7), offen zum Nachrechnen. Alles, was dafür
+nötig ist, steht hier: Anker, Lostopf, Loswerte, Ausgeschlossene mit Grund.
+{% endcomment %}
+<h1>{% translate "Die Auslosung" %}</h1>
+<p class="erk" style="max-width:60em">{% blocktranslate with t=antrag.titel %}Für den Antrag „{{ t }}“. Die Fachleute werden nicht ausgesucht, sondern aus der öffentlichen
+Fachliste gelost (§ 6 Abs 7) — und jede Ziehung lässt sich nachrechnen.{% endblocktranslate %}
+  <a href="{% url 'verfahren:antrag' antrag.pk %}">{% translate "Zum Antrag →" %}</a></p>
+
+{% for z in zeilen %}
+<div class="karte">
+  <p class="phasen-titel">{% blocktranslate with n=z.auslosung.runde %}Runde {{ n }}{% endblocktranslate %}
+    <span class="meta">· {{ z.auslosung.gezogen_am|date:"d.m.Y H:i" }} · {% blocktranslate with f=z.auslosung.regel_fassung %}Losregel Fassung {{ f }}{% endblocktranslate %}</span></p>
+
+  <p class="meta">{% translate "Anker:" %} <code>{{ z.auslosung.anker }}</code>
+    <br>{% blocktranslate with n=z.auslosung.anker_lfd %}Das ist der Hash des Audit-Eintrags Nr. {{ n }} — des jüngsten in dem Augenblick, in dem gelost wurde. Vorher war er von niemandem auszurechnen; nachher kann ihn jeder prüfen.{% endblocktranslate %}</p>
+
+  {% for gruppe in z.gruppen %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{% blocktranslate with n=gruppe.nummer %}Gruppe {{ n }}{% endblocktranslate %}</strong>
+    {% if gruppe.nummer == 1 %}<span class="meta">— {% translate "erarbeitet den Vorschlag" %}</span>
+    {% else %}<span class="meta">— {% translate "prüft ihn auf Interessenkonflikte und Korruptionsgefahr" %}</span>{% endif %}
+    {% for p in gruppe.plaetze %}
+    <br><span class="meta">{{ p.rang }}. {{ p.name }} <code>{{ p.schluessel }}</code> · {% translate "Loswert" %} <code>{{ p.loswert|slice:":16" }}…</code></span>
+    {% endfor %}
+  </span></div>
+  {% endfor %}
+
+  <details style="margin-top:10px">
+    <summary class="meta">{% blocktranslate count n=z.auslosung.lostopf|length %}Der Lostopf: eine Person{% plural %}Der Lostopf: {{ n }} Personen{% endblocktranslate %}</summary>
+    <p class="meta">{% for s in z.auslosung.lostopf %}<code>{{ s }}</code>{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+  </details>
+
+  {% if z.auslosung.ausgeschlossen %}
+  <details>
+    <summary class="meta">{% blocktranslate count n=z.auslosung.ausgeschlossen|length %}Eine Person war ausgeschlossen{% plural %}{{ n }} Personen waren ausgeschlossen{% endblocktranslate %}</summary>
+    {% for a in z.auslosung.ausgeschlossen %}
+    <p class="meta"><code>{{ a.0 }}</code> — {{ a.1 }}</p>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% empty %}
+<p class="leer">{% translate "Zu diesem Antrag wurde nicht gelost — er wird von den parteiweit berufenen Rollen beraten." %}</p>
+{% endfor %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "So rechnet man nach" %}</p>
+  <p class="erk">{% blocktranslate %}Für jede Person im Lostopf bildet man die SHA-256-Prüfsumme über den Anker, ein senkrechtes
+Strichzeichen und ihren Schlüssel — also über die Zeichenfolge „Anker|Schlüssel“. Die Werte
+aufsteigend geordnet ergeben die Reihenfolge: Die kleinsten kommen in Gruppe 1, die nächsten in
+Gruppe 2. Kein Gewicht, keine Reihung nach Verdienst.{% endblocktranslate %}
+  <a href="{% url 'parameter:regeln' %}#regel-losziehung">{% translate "Die Regel im Verzeichnis →" %}</a>
+  · <a href="{% url 'gremien:fachliste' %}">{% translate "Die Fachliste →" %}</a></p>
+</div>
+{% endblock %}

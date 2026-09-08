@@ -23,6 +23,7 @@ from gremien.models import (
     PRUEFPUNKTE,
     SATZUNG_MIN_INTEGRITAETSRAT,
     Anlass,
+    Auslosung,
     Aussetzung,
     BeschlussStatus,
     EinreichStimme,
@@ -149,6 +150,45 @@ def fachliste(request):
         },
     )
 
+
+def auslosung(request, antrag_id: int):
+    """Eine vollzogene Auslosung, offen zum Nachrechnen (§ 6 Abs 7, § 2 Abs 6).
+
+    Öffentlich ohne Anmeldung: Wer prüfen will, ob die Fachleute wirklich gelost und nicht
+    ausgesucht wurden, braucht den Anker, den Lostopf und die Loswerte — sonst ist
+    „Zufallsverfahren" eine Behauptung."""
+    antrag = get_object_or_404(Antrag, pk=antrag_id)
+    ziehungen = list(
+        Auslosung.objects.filter(antrag=antrag).prefetch_related("rollen__mitglied").order_by("runde")
+    )
+    namen = dict(
+        Fachliste.objects.select_related("mitglied").values_list("schluessel", "mitglied__username")
+    )
+    for eintrag in Fachliste.objects.select_related("mitglied"):
+        namen[eintrag.schluessel] = eintrag.anzeigename
+    zeilen = [
+        {
+            "auslosung": a,
+            "gruppen": [
+                {
+                    "nummer": nummer,
+                    "plaetze": [
+                        {**p, "name": namen.get(p["schluessel"], p["schluessel"])}
+                        for p in a.plaetze
+                        if p["gruppe"] == nummer
+                    ],
+                }
+                for nummer in sorted({p["gruppe"] for p in a.plaetze})
+            ],
+        }
+        for a in ziehungen
+    ]
+    return render(
+        request,
+        "gremien/auslosung.html",
+        {"antrag": antrag, "zeilen": zeilen, "namen": namen},
+    )
+
 @nur_gremium(Gremium.EXPERTENRAT_1)
 def expertenrat(request):
     """Alle Sachanträge in der Beratung — mit oder ohne offenes Entwurfsfenster."""
@@ -219,7 +259,8 @@ def fenster(request, antrag_id: int):
             "wuensche_vorrunde": _kritik_der_runde(antrag, entwurf.runde - 1)
             if entwurf and entwurf.runde > 1
             else [],
-            "darf_schreiben": Rolle.hat(request.user, Gremium.EXPERTENRAT_1),
+            "darf_schreiben": Rolle.hat_fuer(request.user, Gremium.EXPERTENRAT_1, antrag),
+            "auslosung": Auslosung.objects.filter(antrag=antrag).order_by("-runde").first(),
             "in_beratung": antrag.phase == Phase.BERATUNG.value,
             "beratungsfrist": _beratungsfrist(antrag),
             "steckplatz_bereit": anbieter_waehlen() is not None,
@@ -232,8 +273,14 @@ def fenster(request, antrag_id: int):
 def fenster_aktion(request, antrag_id: int):
     """Eine Werkstatt, kleine Handlungen — jede Übergabe auditiert (F-66)."""
     antrag = get_object_or_404(Antrag, pk=antrag_id, art=Antragsart.SACHE)
-    if not Rolle.hat(request.user, Gremium.EXPERTENRAT_1):
-        messages.error(request, _("Schreiben kann hier nur, wer eine aktive Rolle in Gruppe 1 hat."))
+    if not Rolle.hat_fuer(request.user, Gremium.EXPERTENRAT_1, antrag):
+        # § 6 Abs 7: Der Expertenrat wird „für die Beratung zu einzelnen Anträgen" gelost.
+        # Ohne diese Bindung schriebe eine für Antrag A geloste Fachkraft an Antrag B mit —
+        # und die Auslosung wäre eine Anzeige statt einer Zuständigkeit.
+        messages.error(
+            request,
+            _("Schreiben kann hier nur, wer für diesen Antrag in Gruppe 1 gelost oder berufen ist."),
+        )
         return redirect("gremien:fenster", antrag_id=antrag.pk)
     aktion = request.POST.get("aktion", "")
     entwurf = getattr(antrag, "entwurf", None)
@@ -586,8 +633,13 @@ def beschluss_stimme(request, beschluss_id: int):
     wäre schlimmer als eine, die gar nicht erst angenommen wird."""
     beschluss = get_object_or_404(GremienBeschluss, pk=beschluss_id)
     zurueck = _beschluss_zurueck(beschluss)
-    if not Rolle.hat(request.user, beschluss.gremium):
-        messages.error(request, _("Abstimmen kann nur, wer in diesem Gremium eine aktive Rolle hat."))
+    if not Rolle.hat_fuer(request.user, beschluss.gremium, beschluss.antrag):
+        # Bei einem Beschluss zu einem Antrag zählt die Rolle FÜR DIESEN Antrag — sonst
+        # stimmten Gelose fremder Verfahren mit, und das Quorum wäre eine andere Frage.
+        messages.error(
+            request,
+            _("Abstimmen kann nur, wer für diese Sache eine aktive Rolle in diesem Gremium hat."),
+        )
         return redirect(zurueck)
     if not beschluss.offen:
         messages.error(request, _("Dieser Beschluss ist bereits ausgewertet."))

@@ -220,6 +220,10 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <dl class="regelliste">
         {% for name, wert in regeln %}<dt>{{ name }}</dt><dd>{{ wert }}</dd>{% endfor %}
       </dl>
+      {% if auslosung %}
+      <p class="erk">{% translate "Der Expertenrat zu diesem Antrag wurde aus der öffentlichen Fachliste gelost (§ 6 Abs 7) — die Ziehung lässt sich nachrechnen." %}
+        <a href="{% url 'gremien:auslosung' antrag.pk %}">{% translate "Die Auslosung ansehen →" %}</a></p>
+      {% endif %}
       <details class="klappe roh">
         <summary>{% translate "Rohdaten" %}</summary>
         <pre>{{ policy_json }}</pre>

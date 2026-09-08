@@ -360,6 +360,27 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 12",
     },
     {
+        "schluessel": "expertenrat-gruppe1-groesse",
+        "wert": "3",
+        "einheit": "Personen",
+        "gruppe": "gremien",
+        "beschreibung": "Größe der ersten Gruppe des Expertenrats, die je Antrag aus der "
+        "Fachliste gelost wird. Die Satzung verlangt mindestens drei; nach oben ist der Wert "
+        "offen — mehr Fachleute heißt mehr Blickwinkel und mehr Aufwand. Der Wert wird beim "
+        "Einbringen an den Antrag geheftet und wirkt nie auf laufende Verfahren zurück.",
+        "quelle": "§ 6 Abs 7 · § 6 Abs 8",
+    },
+    {
+        "schluessel": "expertenrat-gruppe2-groesse",
+        "wert": "3",
+        "einheit": "Personen",
+        "gruppe": "gremien",
+        "beschreibung": "Größe der zweiten Gruppe, die Vorschläge mit Vollzugs- oder "
+        "Beschaffungsbezug auf Interessenkonflikte und Korruptionsgefahr prüft. Sie wird aus "
+        "dem Rest desselben Lostopfes gezogen und ist dadurch von der ersten getrennt.",
+        "quelle": "§ 6 Abs 7 · § 6 Abs 8",
+    },
+    {
         "schluessel": "gremien-pruefung-tage",
         "wert": "7",
         "einheit": "Tage",

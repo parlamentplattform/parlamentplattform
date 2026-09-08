@@ -318,6 +318,13 @@ class Antrag(models.Model):
             )
             felder.append("stimmberechtigte_anzahl")
         self.save(update_fields=felder)
+        if uebergang.neue_phase is Phase.BERATUNG and apps.is_installed("gremien"):
+            # § 6 Abs 7: Der Expertenrat wird für DIESEN Antrag aus der Fachliste gelost —
+            # erst jetzt, denn erst jetzt steht fest, dass beraten wird. Der Anker ist der
+            # Kopf der Audit-Kette in diesem Augenblick: vorher von niemandem auszurechnen.
+            from gremien.models import auslosen
+
+            auslosen(self, jetzt=uebergang.wirksam_ab)
         archiviert = self.chat_archivieren(uebergang.wirksam_ab)
         AuditEintrag.anhaengen(
             {

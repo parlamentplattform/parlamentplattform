@@ -2,6 +2,25 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.44.0] — 2026-09-08 · Die Fachliste und das Los des Expertenrats
+
+### Hinzugefügt
+- **Die öffentlich geführte Fachliste (§ 6 Abs 7):** `/gremien/fachliste/` — mit Fachgebieten, **Interessenbindungen und Honoraren**. Die Satzung nennt beides ausdrücklich; ohne diese Angabe wäre die Auslosung eine Auswahl unter Unbekannten. Der Schlüssel neben dem Namen ist die Kennung, mit der die Ziehung rechnet
+- **Die Auslosung des Expertenrats je Antrag.** Zu Beratungsbeginn wird aus der Fachliste gelost — erst dann, denn erst dann steht fest, dass beraten wird. `plattform_core/losziehung.py` (VERSION 1) löst dabei einen Widerspruch, der in § 6 Abs 7 mit § 2 Abs 6 steckt: **nachrechenbar und unvorhersehbar zugleich.** Der Anker ist der Kopf der Audit-Kette im Augenblick der Ziehung — er steht dann fest und war vorher von niemandem auszurechnen
+- **Die Ziehung steht öffentlich:** `/gremien/auslosung/<antrag>/` zeigt Anker, Audit-Nummer, Lostopf, jeden Loswert und jeden Ausgeschlossenen mit Grund — dazu die Anleitung, wie man sie mit einem Prüfsummenwerkzeug nachrechnet. Die Antragsseite verweist darauf
+- **Rollen gelten für einen Antrag.** Bis jetzt schrieb, wer in Gruppe 1 berufen war, an **jedem** Entwurf. § 6 Abs 7 will das Gegenteil: „für die Beratung zu einzelnen Anträgen". `Rolle.hat_fuer()` bindet Schreiben und Mitstimmen an die Sache; auch der **Nenner des Quorums** zählt nur noch die für diese Sache Gelosten
+
+### Technisch
+- **Zwei Gruppen, durch die Konstruktion getrennt (§ 6 Abs 7):** Gruppe 2 wird aus dem Rest desselben Lostopfes gezogen, nicht aus dem ganzen. Eine Prüfung, die man vergessen kann, gibt es nicht. Reicht der Topf nicht für beide, wird gar nicht gelost — eine halb besetzte zweite Gruppe sähe nach Prüfung aus und wäre keine
+- **Die Unvereinbarkeiten prüft der Lostopf, nicht die Ansicht** (§ 6 Abs 3 lit a: kein anderer Rat, kein Mandat). Wer sie in der Ansicht prüft, vergisst sie irgendwo
+- **Gruppengrößen und Losregel-Fassung stehen in der eingefrorenen Verfahrensordnung** (§ 5 Abs 5). Die Ziehung findet rund zwei Monate nach dem Einbringen statt; läse sie aus dem laufenden Register, wirkte eine Änderung rückwirkend. Zwei neue Stellgrößen (`expertenrat-gruppe1-groesse`, `expertenrat-gruppe2-groesse`) setzen die Werte für **künftige** Anträge; unter drei kommen sie nicht (§ 6 Abs 8, satzungsfest im Code). Schema 1.3
+- **Nach einem Widerruf der Einwilligung (§ 8 Abs 4)** steht der Schlüssel statt des Namens; Loswert und Platz bleiben, die Ziehung bleibt nachrechenbar
+- **Verfahren ohne Ziehung laufen unverändert weiter:** Wo keine Auslosung vorliegt, gelten die parteiweiten Rollen. Ein laufendes Verfahren wird nicht mitten im Lauf umgestellt
+
+### Behoben
+- `auslosen()` griff über `antrag.entwurf` zu und vergiftete damit den Objekt-Cache des Aufrufers: Wer danach `antrag.entwurf` las, bekam „kein Entwurf", obwohl längst einer angelegt war. Jetzt eine frische Abfrage — dieselbe Falle, vor der der Phasenautomat schon warnt
+- Ein eigener Test hing vom Los ab: Er nahm an, dieselbe Person werde nicht für zwei Anträge gelost. Sie kann es, und das ist richtig so — der Test wählt jetzt gezielt jemanden, der nur beim ersten dabei ist
+
 ## [0.43.0] — 2026-09-08 · Das Regelverzeichnis, die Aussetzung und die jährliche Prüfung
 
 ### Hinzugefügt

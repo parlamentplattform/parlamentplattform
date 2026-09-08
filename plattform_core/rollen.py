@@ -491,8 +491,11 @@ EXPERTENRAT1 = Rolle(
         ),
         Faehigkeit(
             titel="Interessenbindungen und Honorare zum Antrag offenlegen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.TEILWEISE,
+            urlname="gremien:fachliste",
+            einschraenkung=(
+                "Auf der Fachliste stehen sie — beim einzelnen Antrag noch nicht: Beim Einreichen fragt die Plattform nicht danach, ob es zu DIESER Sache eine Bindung gibt."
+            ),
         ),
         Faehigkeit(
             titel="Fassungen im Arbeitsplatz vergleichen (Diff) und Absätze kommentieren",
@@ -506,8 +509,8 @@ EXPERTENRAT1 = Rolle(
         ),
         Faehigkeit(
             titel="Fuer einen einzelnen Antrag aus der Fachliste ausgelost werden",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:fachliste",
         ),
         Faehigkeit(
             titel="Die Einschätzung der Zukunftswerkstatt als Arbeitsunterlage im Fenster nutzen",
@@ -573,8 +576,11 @@ EXPERTENRAT2 = Rolle(
         ),
         Faehigkeit(
             titel="Interessenbindungen und Honorare der eigenen Mitglieder offenlegen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.TEILWEISE,
+            urlname="gremien:fachliste",
+            einschraenkung=(
+                "Auf der Fachliste stehen sie — beim einzelnen Antrag noch nicht: Beim Einreichen fragt die Plattform nicht danach, ob es zu DIESER Sache eine Bindung gibt."
+            ),
         ),
         Faehigkeit(
             titel="Sich untereinander ueber andere Fragen abstimmen (Beschluss anlegen)",

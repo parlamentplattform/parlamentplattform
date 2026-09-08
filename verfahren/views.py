@@ -379,6 +379,18 @@ def rollen(request):
         {"gruppen": GRUPPEN, "zahlen": zaehlung(GRUPPEN), "matrix_version": VERSION},
     )
 
+
+def _auslosung_zu(antrag):
+    """Die jüngste Auslosung eines Antrags — für den Verweis auf der Antragsseite (FB-I1).
+
+    Lazy geladen, damit `verfahren` unabhängig von `gremien` bleibt, solange die App fehlt."""
+    from django.apps import apps
+
+    if not apps.is_installed("gremien"):
+        return None
+    modell = apps.get_model("gremien", "Auslosung")
+    return modell.objects.filter(antrag=antrag).order_by("-runde").first()
+
 def _meine_favoriten(nutzer) -> set[int]:
     """Antrags-IDs, die das Mitglied sich gemerkt hat — für den Stern an jeder Antragszeile (FB-C4)."""
     if not nutzer.is_authenticated:
@@ -773,6 +785,7 @@ def antrag_detail(request, pk):
             and request.user.hat_adminrechte,
             "ist_favorit": ist_favorit,
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
+            "auslosung": _auslosung_zu(antrag),
             "regeln": _regeln_lesbar(policy),
             "fassung": antrag.aktueller_text(),
             "fassungen": list(antrag.fassungen.order_by("-nummer")),

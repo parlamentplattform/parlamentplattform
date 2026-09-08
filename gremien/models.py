@@ -70,6 +70,22 @@ class Rolle(models.Model):
         default=False, help_text="Bestätigung der Bestellung durch die Mitgliederversammlung (§ 6 Abs 8)."
     )
     beendet_grund = models.CharField(max_length=200, blank=True)
+    antrag = models.ForeignKey(
+        Antrag,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="gremienrollen",
+        help_text="Gesetzt, wenn die Rolle für einen einzelnen Antrag gelost wurde (§ 6 Abs 7). "
+        "Leer heißt parteiweit — so waren alle Rollen vor der Auslosung.",
+    )
+    auslosung = models.ForeignKey(
+        "gremien.Auslosung",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rollen",
+    )
 
     class Meta:
         ordering = ["gremium", "berufen_am"]
@@ -91,6 +107,11 @@ class Rolle(models.Model):
 
     @classmethod
     def hat(cls, mitglied, *gremien: str) -> bool:
+        """Ob jemand in einem dieser Gremien überhaupt eine aktive Rolle hat.
+
+        Das öffnet den Bereich. Ob dort auch geschrieben werden darf, entscheidet `hat_fuer`:
+        Wer für einen Antrag gelost wurde, sieht die Werkstatt — schreiben darf er nur an
+        seinem eigenen."""
         if not getattr(mitglied, "is_authenticated", False):
             return False
         return cls.objects.filter(
@@ -99,6 +120,30 @@ class Rolle(models.Model):
             beendet_grund="",
             endet_am__gte=timezone.localdate(),
         ).exists()
+
+    @classmethod
+    def fuer_antrag(cls, gremium: str, antrag):
+        """Die aktiven Rollen, die für DIESEN Antrag gelten (§ 6 Abs 7).
+
+        Gibt es eine Auslosung, sind es genau die gelosten. Gibt es keine — alle Verfahren, die
+        vor der Auslosung begonnen haben —, gelten die parteiweiten Rollen weiter: Ein laufendes
+        Verfahren wird nicht mitten im Lauf umgestellt (§ 5 Abs 5)."""
+        gelost = cls.aktive(gremium).filter(antrag=antrag)
+        if gelost.exists():
+            return gelost
+        return cls.aktive(gremium).filter(antrag__isnull=True)
+
+    @classmethod
+    def hat_fuer(cls, mitglied, gremium: str, antrag) -> bool:
+        """Ob jemand an DIESEM Antrag schreiben darf.
+
+        Ohne diese Prüfung könnte eine für Antrag A geloste Fachkraft an Antrag B mitschreiben
+        und mitstimmen — und die Auslosung wäre eine Anzeige statt einer Zuständigkeit."""
+        if not getattr(mitglied, "is_authenticated", False):
+            return False
+        if antrag is None:
+            return cls.hat(mitglied, gremium)
+        return cls.fuer_antrag(gremium, antrag).filter(mitglied=mitglied).exists()
 
 
 def standard_ende():
@@ -217,7 +262,9 @@ class Entwurf(models.Model):
         jetzt = jetzt or timezone.now()
         if self.beschluesse.filter(gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN).exists():
             return None
-        angelegt_von = Rolle.aktive(Gremium.EXPERTENRAT_2).select_related("mitglied").first()
+        angelegt_von = (
+            Rolle.fuer_antrag(Gremium.EXPERTENRAT_2, self.antrag).select_related("mitglied").first()
+        )
         if angelegt_von is None:
             return None
         return GremienBeschluss.objects.create(
@@ -695,6 +742,12 @@ class GremienBeschluss(models.Model):
         return wert
 
     def aktive_rollen(self) -> int:
+        """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die gelosten Rollen.
+
+        Ohne diese Bindung zählte ein Beschluss zu Antrag A alle Rollen der Partei, auch die,
+        die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig."""
+        if self.antrag_id:
+            return Rolle.fuer_antrag(self.gremium, self.antrag).count()
         return Rolle.aktive(self.gremium).count()
 
     def auswertung(self):
@@ -1323,6 +1376,121 @@ def lostopf_der_fachliste(fachgebiete=()) -> list:
     """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt."""
     eintraege = Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete")
     return [e.als_kandidat(unvereinbar(e.mitglied)) for e in eintraege]
+
+
+class Auslosung(models.Model):
+    """Eine vollzogene Auslosung des Expertenrats (§ 6 Abs 7) — vollständig nachrechenbar.
+
+    Gespeichert wird alles, was zum Nachrechnen nötig ist: der Anker, der Lostopf in der Form,
+    in der er gelost wurde, die Ausgeschlossenen mit Grund und die gezogenen Plätze. Wer will,
+    rechnet die Ziehung mit einem Prüfsummenwerkzeug nach — genau das meint § 2 Abs 6 mit
+    „nachrechenbar"."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="auslosungen")
+    runde = models.PositiveIntegerField(default=1)
+    anker_lfd = models.BigIntegerField(help_text="Laufende Nummer des Audit-Eintrags, der den Zufall gab.")
+    anker = models.CharField(max_length=64, help_text="Sein Hash — der Anker der Ziehung.")
+    regel_fassung = models.PositiveIntegerField()
+    groessen = models.JSONField()
+    lostopf = models.JSONField()
+    ausgeschlossen = models.JSONField(default=list)
+    plaetze = models.JSONField(default=list)
+    gezogen_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("antrag", "runde")]
+        ordering = ["antrag", "runde"]
+        verbose_name = "Auslosung"
+        verbose_name_plural = "Auslosungen"
+
+    def __str__(self) -> str:
+        return f"Auslosung zu Antrag {self.antrag_id}, Runde {self.runde}"
+
+
+def auslosen(antrag, runde: int = 1, jetzt=None):
+    """Lost den Expertenrat für einen Antrag und legt die Rollen an (§ 6 Abs 7).
+
+    Der Anker ist der Kopf der Audit-Kette in diesem Augenblick: Er steht jetzt fest und war
+    vorher von niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
+    Verfahrensordnung des Antrags, nicht aus dem laufenden Register (§ 5 Abs 5).
+
+    Reicht der Lostopf nicht, geschieht nichts — und der Aufrufer erfährt es am Rückgabewert
+    `None`. Eine halb besetzte Gruppe wäre schlimmer als keine: Sie sähe nach Beratung aus."""
+    from plattform_core.losziehung import LosFehler, ziehen
+
+    jetzt = jetzt or timezone.now()
+    if Auslosung.objects.filter(antrag=antrag, runde=runde).exists():
+        return None
+    kopf = AuditEintrag.objects.order_by("-lfd").first()
+    if kopf is None:
+        return None
+    ordnung = antrag.policy()
+    groessen = [ordnung.expertenrat_gruppe1]
+    # Frische Abfrage statt des Related-Zugriffs: `antrag.entwurf` legt beim Fehlschlag einen
+    # negativen Eintrag im Objekt-Cache an — der Aufrufer bekäme danach auch dann „kein
+    # Entwurf", wenn längst einer angelegt wurde. Genau daran ist ein Test gestolpert.
+    entwurf = Entwurf.objects.filter(antrag=antrag).first()
+    if entwurf is not None and entwurf.vollzugsbezug:
+        groessen.append(ordnung.expertenrat_gruppe2)
+    fachgebiete = list(antrag.kategorien.values_list("slug", flat=True))
+    # Wer für diesen Antrag in einer früheren Runde schon gelost wurde, lost nicht noch einmal
+    # mit: Sonst könnte ein Ausgetauschter in derselben Sache wieder auftauchen.
+    frueher = set(
+        Rolle.objects.filter(antrag=antrag).values_list("mitglied__fachlisteneintrag__schluessel", flat=True)
+    )
+    kandidaten = [
+        k if k.schluessel not in frueher else type(k)(k.schluessel, k.fachgebiete, True, "in einer früheren Runde gelost")
+        for k in lostopf_der_fachliste()
+    ]
+    try:
+        ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
+    except LosFehler as fehler:
+        AuditEintrag.anhaengen(
+            {"typ": "auslosung_nicht_moeglich", "antrag": antrag.pk, "runde": runde, "grund": str(fehler)}
+        )
+        return None
+
+    auslosung = Auslosung.objects.create(
+        antrag=antrag,
+        runde=runde,
+        anker_lfd=kopf.lfd,
+        anker=kopf.hash,
+        regel_fassung=ziehung.version,
+        groessen=groessen,
+        lostopf=list(ziehung.lostopf),
+        ausgeschlossen=[list(a) for a in ziehung.ausgeschlossen],
+        plaetze=[
+            {"schluessel": p.schluessel, "gruppe": p.gruppe, "rang": p.rang, "loswert": p.loswert}
+            for p in ziehung.plaetze
+        ],
+        gezogen_am=jetzt,
+    )
+    gremien = {1: Gremium.EXPERTENRAT_1, 2: Gremium.EXPERTENRAT_2}
+    for platz in ziehung.plaetze:
+        eintrag = Fachliste.objects.filter(schluessel=platz.schluessel).first()
+        if eintrag is None:
+            continue
+        Rolle.objects.create(
+            mitglied=eintrag.mitglied,
+            gremium=gremien[platz.gruppe],
+            endet_am=standard_ende(),
+            bestaetigt=True,  # die Bestätigung liegt in der Bestellung auf die Fachliste
+            antrag=antrag,
+            auslosung=auslosung,
+        )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "expertenrat_ausgelost",
+            "antrag": antrag.pk,
+            "runde": runde,
+            "anker_lfd": kopf.lfd,
+            "anker": kopf.hash,
+            "regel_fassung": ziehung.version,
+            "groessen": groessen,
+            "plaetze": [[p.gruppe, p.schluessel] for p in ziehung.plaetze],
+        }
+    )
+    return auslosung
 
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und

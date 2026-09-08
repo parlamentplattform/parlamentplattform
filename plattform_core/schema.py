@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.2"
+SCHEMA_VERSION = "1.3"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -101,6 +101,14 @@ PARAMETER = {
         "feedback.daily_limit", "messages",
         "How many feedback messages a person may send per day",
     ),
+    "expertenrat-gruppe1-groesse": (
+        "council.group1_size", "people",
+        "Size of the first expert group drawn for a motion",
+    ),
+    "expertenrat-gruppe2-groesse": (
+        "council.group2_size", "people",
+        "Size of the second expert group, which checks proposals with procurement relevance",
+    ),
     "gremien-pruefung-tage": (
         "council.review_days", "days",
         "How long the second expert group has to check a proposal with implementation or procurement relevance",
@@ -173,6 +181,8 @@ VERFAHRENSORDNUNG = {
     "abstimmung_tage": ("vote.window_days", "days"),
     "mindestbeteiligung": ("vote.min_turnout", "share"),
     "mehrheitsbasis": ("vote.majority_basis", "enum"),
+    "expertenrat_gruppe1": ("council.group1_size", "people"),
+    "expertenrat_gruppe2": ("council.group2_size", "people"),
     "wiedereinbringung_sperre_monate": ("motion.resubmission_block_months", "months"),
 }
 

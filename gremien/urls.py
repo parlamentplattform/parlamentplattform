@@ -7,6 +7,7 @@ urlpatterns = [
     path("gremien/", views.uebersicht, name="uebersicht"),
     path("gremien/mein/", views.mein, name="mein"),
     path("gremien/fachliste/", views.fachliste, name="fachliste"),
+    path("gremien/auslosung/<int:antrag_id>/", views.auslosung, name="auslosung"),
     path("gremien/expertenrat/", views.expertenrat, name="expertenrat"),
     path("gremien/expertenrat/<int:antrag_id>/", views.fenster, name="fenster"),
     path("gremien/expertenrat/<int:antrag_id>/aktion/", views.fenster_aktion, name="fenster_aktion"),

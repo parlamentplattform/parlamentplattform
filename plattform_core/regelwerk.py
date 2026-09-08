@@ -653,4 +653,31 @@ REGELN: tuple[Regel, ...] = (
             "Listen —, erscheint unverändert als Absatz: Es verschwindet nichts unbemerkt."
         ),
     ),
+    Regel(
+        modul="aussetzung.py",
+        titel="Aussetzung: Sieben-Tage-Frist und Hemmung",
+        zweck=(
+            "Rechnet, wie lange eine Aussetzung nach § 6 Abs 3 lit d wirkt und was sie mit den "
+            "Fristen des Antrags macht. Sie endet von selbst, wenn binnen sieben Tagen kein Antrag "
+            "an das Parteischiedsgericht gestellt wird; solange sie läuft, ruht das Verfahren, und "
+            "die verlorene Zeit wird dem Antrag gutgeschrieben."
+        ),
+        wirkung=Wirkung.ENTSCHEIDET,
+        satzung="§ 6 Abs 3 lit d · § 2 Abs 6",
+        fassung=1,
+        seit="2026-09-08",
+        grund=(
+            "Erste Fassung. Die sieben Tage stehen als Konstante im Code und nicht im Register: Wer "
+            "sie dort verlängern könnte, könnte eine Abstimmung beliebig lange anhalten, ohne je "
+            "ein Gericht anzurufen. Und die Hemmung wird gerechnet statt gespeichert — eine Summe "
+            "am Antrag bekäme jede Folgephase erneut geschenkt, weil der Phasenbeginn bei jedem "
+            "Wechsel neu geschrieben wird."
+        ),
+        nachrechenbar=(
+            "Beginn der Aussetzung plus sieben Tage ergibt die Frist ans Schiedsgericht; beides "
+            "steht am Beschluss. Die Hemmung ist die Summe der Zeiträume, die zwischen Phasenbeginn "
+            "und jetzt liegen — überlappende zählen nur einmal, sonst hemmten zwei gleichzeitige "
+            "Aussetzungen doppelt."
+        ),
+    ),
 )

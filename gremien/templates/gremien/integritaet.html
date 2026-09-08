@@ -62,4 +62,46 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   <p class="leer">{% translate "Kein Antrag ist zurückgewiesen." %}</p>
   {% endfor %}
 </div>
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Aussetzungen" %}</p>
+  <p class="erk">{% translate "Eine Aussetzung ist zu begründen, zu veröffentlichen und binnen sieben Tagen durch Antrag an das Parteischiedsgericht zu bestätigen; unterbleibt der Antrag, endet sie von selbst (§ 6 Abs 3 lit d). Solange sie wirkt, ruht das Verfahren — die verlorene Zeit wird dem Antrag gutgeschrieben." %}</p>
+  {% for z in aussetzungen %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' z.aussetzung.antrag.pk %}">{{ z.aussetzung.antrag.titel }}</a>
+    <span class="chip klein{% if not z.laeuft %} still{% endif %}">{{ z.aussetzung.get_gegenstand_display }}</span>
+    <br><span class="meta"><a href="{% url 'gremien:beschluss' z.aussetzung.beschluss.nummer %}">{{ z.aussetzung.beschluss.nummer }}</a>
+      · {% blocktranslate with d=z.aussetzung.beginn|date:"d.m.Y H:i" %}seit {{ d }}{% endblocktranslate %}
+      {% if z.laeuft %}· {% blocktranslate with f=z.aussetzung.frist|date:"d.m.Y H:i" %}Antrag ans Schiedsgericht bis {{ f }}{% endblocktranslate %}{% else %}· {{ z.stand }}{% endif %}</span>
+    {% if z.aussetzung.schiedsgericht_kennung %}<br><span class="meta">{% translate "Beim Parteischiedsgericht:" %} {{ z.aussetzung.schiedsgericht_kennung }}</span>{% endif %}
+    {% if z.laeuft and not z.aussetzung.schiedsgericht_am and darf_stimmen %}
+    <form method="post" action="{% url 'gremien:integritaet_schiedsgericht' z.aussetzung.pk %}" style="margin-top:6px">{% csrf_token %}
+      <input type="text" name="kennung" placeholder="{% translate 'Kennung des Antrags beim Schiedsgericht' %}" required style="width:300px">
+      <button type="submit" class="btn-linie klein">{% translate "Antrag ans Schiedsgericht vermerken" %}</button>
+    </form>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Keine Aussetzung verzeichnet." %}</p>
+  {% endfor %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Jährliche Prüfung der Regeln" %}</p>
+  <p class="erk">{% translate "§ 2 Abs 6 verlangt, dass der Integritätsrat die automatisierten Regeln mindestens jährlich prüft. Die Prüfung friert das Verzeichnis ein, wie es in diesem Augenblick steht — ein Vermerk „geprüft am …“ wäre ohne die Liste, auf die er sich bezieht, wertlos." %}</p>
+  {% for p in regelpruefungen %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{{ p.jahr }}</strong> · <a href="{% url 'gremien:beschluss' p.beschluss.nummer %}">{{ p.beschluss.nummer }}</a>
+    <span class="meta">· {% blocktranslate with n=p.stand|length v=p.verzeichnis_fassung %}{{ n }} Regeln, Verzeichnis Fassung {{ v }}{% endblocktranslate %}</span>
+    <br><span class="meta">{% if p.geprueft_am %}{{ p.get_ergebnis_display }} · {{ p.geprueft_am|date:"d.m.Y" }}{% if p.vermerk %} — {{ p.vermerk }}{% endif %}{% else %}{% translate "läuft — der Rat stimmt ab" %}{% endif %}</span>
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch keine Prüfung verzeichnet." %}</p>
+  {% endfor %}
+  {% if darf_stimmen and not regelpruefung_offen %}
+  <form method="post" action="{% url 'gremien:integritaet_regelpruefung' %}" style="margin-top:10px">{% csrf_token %}
+    <button type="submit" class="btn-linie">{% blocktranslate with j=jahr %}Prüfung {{ j }} anlegen{% endblocktranslate %}</button>
+    <span class="meta">{% translate "friert das Verzeichnis ein; entschieden wird danach" %}</span>
+  </form>
+  {% endif %}
+</div>
 {% endblock %}

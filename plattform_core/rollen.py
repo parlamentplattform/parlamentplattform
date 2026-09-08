@@ -698,23 +698,23 @@ INTEGRITAETSRAT = Rolle(
     faehigkeiten=(
         Faehigkeit(
             titel="Einen eigenen Arbeitsbereich öffnen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
         ),
         Faehigkeit(
             titel="Eine Abstimmung durch veröffentlichten, begründeten Beschluss hervorheben",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
         ),
         Faehigkeit(
             titel="Einen Antrag durch begründeten Beschluss formal zurückweisen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
         ),
         Faehigkeit(
             titel="Den Vollzug eines Beschlusses oder eine laufende Abstimmung aussetzen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
         ),
         Faehigkeit(
             titel="Die Betroffenheit im Einzelfall feststellen",
@@ -723,8 +723,8 @@ INTEGRITAETSRAT = Rolle(
         ),
         Faehigkeit(
             titel="In einem internen Beschluss des Rates abstimmen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
         ),
         Faehigkeit(
             titel="Beschlüsse aller Räte mit Stimmen und Begründungen einsehen",
@@ -738,9 +738,8 @@ INTEGRITAETSRAT = Rolle(
         ),
         Faehigkeit(
             titel="Die offengelegten, versionierten Regelwerke prüfen",
-            stand=Stand.TEILWEISE,
-            urlname="parameter:liste",
-            einschraenkung="Die Regeln stehen öffentlich und versioniert im Parameterregister — etwa die neun Regler des WeicherFilters mit ihren Merkmalen. Ein Prüfbericht, ein Vermerk „geprüft am“ und eine vollständige Liste aller Regelwerke fehlen.",
+            stand=Stand.VERFUEGBAR,
+            urlname="parameter:regeln",
         ),
         Faehigkeit(
             titel="Die eigene Besetzung öffentlich ausweisen",

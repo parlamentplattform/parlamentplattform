@@ -2,6 +2,25 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.43.0] — 2026-09-08 · Das Regelverzeichnis, die Aussetzung und die jährliche Prüfung
+
+### Hinzugefügt
+- **Das öffentliche Regelverzeichnis (§ 2 Abs 6):** `/regeln/` zeigt **20 Regeln**, geordnet nach Wirkung — bindend zuerst, dann reihend, zuordnend, rechnend, darstellend. Je Regel: Fassung, Datum, Begründung, Satzungsbezug und eine Anleitung, wie ein Mensch das Ergebnis selbst nachrechnet. Von Hand gepflegt, nicht erzeugt: Ein Programm kann aufzählen, welche Regeln es gibt — eine **Begründung** kann es nicht schreiben, und genau die verlangt der Absatz. Ein Wächter hält die Liste gegen `plattform_core`: Ein Modul, das weder verzeichnet noch begründet ausgenommen ist, lässt ihn anschlagen
+- **Die Aussetzung nach § 6 Abs 3 lit d.** Der Integritätsrat kann eine laufende Abstimmung oder den Vollzug eines Beschlusses aussetzen. Sie ist zu begründen, zu veröffentlichen und binnen sieben Tagen durch Antrag an das Parteischiedsgericht zu bestätigen — **sonst endet sie von selbst.** Solange sie wirkt, ruht das Verfahren vollständig: Es wird nicht abgestimmt, und die Frist rückt nicht näher; danach läuft der Antrag mit genau der Restzeit weiter, die er hatte
+- **Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6 letzter Halbsatz).** Der Integritätsrat legt sie an, das Verzeichnis wird dabei **eingefroren**, wie es in diesem Augenblick steht, und der Rat beschließt „geprüft" oder „beanstandet". Der Vermerk „geprüft am …" wäre ohne die Liste, auf die er sich bezieht, wertlos — Regeln ändern sich, und ein Jahr später wüsste niemand mehr, was geprüft worden ist
+
+### Behoben
+- **Sieben Regeln ohne Fassungsnummer.** `tally`, `eligibility`, `phases`, `policy`, `similarity`, `klassifikation` und `beitraege` entscheiden oder ordnen zu und trugen keine Version. Eine Regel ohne Fassung kann keine dokumentierte Änderung haben — und genau die verlangt § 2 Abs 6. Alle sieben tragen jetzt `VERSION = 1`, mit dem Hinweis, was die Zahl beziffert: das Verfahren, nicht die Werte
+- **Die Offenlegung der Stimmberechtigung war falsch.** Im Modultext stand: „Beitritt am 31. Jänner + 3 Monate ⇒ Stichtag 30. April genügt nicht, 1. Mai genügt." Der Code klemmt auf den Monatsletzten — der 30. April genügt sehr wohl; der Satz widersprach sogar seinem eigenen nächsten Halbsatz. Wer den Text las und selbst nachrechnete, kam bei genau der Regel auf einen Tag zu spät, die darüber entscheidet, **wer überhaupt abstimmen darf**
+- **Der Kontoauszug versprach zu viel:** „camt kennt das Problem nicht." Liefert die Bank keine der vier möglichen Referenzen, fällt auch der camt-Leser auf denselben Fingerabdruck zurück und hat dieselbe Grenze wie CSV — zwei betragsgleiche Zahlungen desselben Menschen am selben Tag fallen zusammen
+- **Das Austauschschema hielt seine eigene Zusage nicht ein.** Sein Docstring verspricht, neue Kennungen erhöhen die Nebenversion; in 0.42.0 kamen zwei dazu, ohne dass sie stieg. `SCHEMA_VERSION` steht jetzt auf **1.2** — Partnerinstanzen sehen daran, dass etwas hinzugekommen ist
+- Zwei falsche Angaben im Verzeichnis selbst, gefunden von der Belegprüfung: `diagramme.py` berief sich auf „§ 2 Abs 1 lit c" — den Absatz gibt es nicht —, und die Nachrechen-Anleitung für den Kontoauszug ließ Präfix und Trennzeichen weg, führte also nicht zum selben Wert
+
+### Technisch
+- `plattform_core/aussetzung.py` (VERSION 1): Die sieben Tage sind eine **Konstante, keine Stellgröße** — wer sie im Register verlängern könnte, könnte eine Abstimmung beliebig lange anhalten, ohne je ein Gericht anzurufen. Die Hemmung wird **gerechnet, nicht gespeichert**: Eine Summe am Antrag bekäme jede Folgephase erneut geschenkt, weil der Phasenbeginn bei jedem Wechsel neu geschrieben wird. Überlappende Aussetzungen zählen einmal, sonst hemmten zwei gleichzeitige doppelt
+- `Antrag.wirksamer_phase_beginn()` — der gespeicherte Beginn bleibt unangetastet, damit die Historie lesbar bleibt; gerechnet wird mit dem wirksamen
+- Die Rollenübersicht zieht nach: Der Integritätsrat hat statt einer Zeile jetzt **neun von zwölf** Fähigkeiten verfügbar. Offen bleiben die Betroffenheit nach § 5 Abs 6, der jährliche öffentliche Bericht und das externe Sicherheitsaudit
+
 ## [0.42.0] — 2026-09-05 · Interne Beschlüsse, der Integritätsrat und „Wer darf was"
 
 ### Hinzugefügt

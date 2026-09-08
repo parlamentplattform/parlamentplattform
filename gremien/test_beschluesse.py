@@ -120,6 +120,9 @@ def test_der_anlass_entscheidet_ueber_die_wirkung():
         Anlass.HERVORHEBUNG_AUFHEBEN,
         Anlass.ZURUECKWEISUNG,
         Anlass.ZURUECKWEISUNG_AUFHEBEN,
+        Anlass.AUSSETZUNG,
+        Anlass.AUSSETZUNG_AUFHEBEN,
+        Anlass.REGELPRUEFUNG,
     }
     assert Anlass.INTERN not in WIRKUNGEN
     b = beschluss_anlegen(gremium=Gremium.KOORDINATIONSRAT, anlass=Anlass.INTERN)

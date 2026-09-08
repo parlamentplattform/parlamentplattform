@@ -555,6 +555,9 @@ class Anlass(models.TextChoices):
     HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", "Hervorhebung aufheben (§ 5 Abs 10 lit b)"
     ZURUECKWEISUNG = "zurueckweisung", "Zurückweisung eines Antrags (§ 5 Abs 2)"
     ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", "Zurückweisung aufheben (§ 5 Abs 2)"
+    AUSSETZUNG = "aussetzung", "Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)"
+    AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", "Aussetzung aufheben (§ 6 Abs 3 lit d)"
+    REGELPRUEFUNG = "regelpruefung", "Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)"
 
 
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
@@ -1007,6 +1010,210 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
         }
     )
 
+
+class Aussetzung(models.Model):
+    """Eine ausgesetzte Abstimmung oder ein ausgesetzter Vollzug (§ 6 Abs 3 lit d).
+
+    Sie braucht ein eigenes Modell, weil sie einen laufenden Zustand hat: Sie beginnt mit dem
+    Beschluss, muss binnen sieben Tagen durch Antrag an das Parteischiedsgericht bestätigt
+    werden — und endet sonst **von selbst**. Ein Zustand, der nur durch Handeln endet, wäre eine
+    Blockademacht auf Vorrat; die Satzung will das Gegenteil.
+
+    Gelöscht wird nichts (Grundregel 7): Eine beendete Aussetzung bleibt stehen, denn sie hat
+    die Fristen des Antrags verschoben, und wer das Verfahren nachrechnet, muss sie finden."""
+
+    class Gegenstand(models.TextChoices):
+        ABSTIMMUNG = "abstimmung", "laufende Abstimmung"
+        VOLLZUG = "vollzug", "Vollzug eines Beschlusses"
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="aussetzungen")
+    gegenstand = models.CharField(max_length=12, choices=Gegenstand.choices)
+    beschluss = models.OneToOneField(
+        "gremien.GremienBeschluss", on_delete=models.PROTECT, related_name="aussetzung"
+    )
+    begruendung = models.TextField(max_length=4000, help_text="Zu begründen und zu veröffentlichen.")
+    beginn = models.DateTimeField(default=timezone.now)
+    schiedsgericht_am = models.DateTimeField(
+        null=True, blank=True, help_text="Wann der Antrag an das Parteischiedsgericht gestellt wurde."
+    )
+    schiedsgericht_kennung = models.CharField(max_length=60, blank=True)
+    beendet_am = models.DateTimeField(null=True, blank=True)
+    beendet_grund = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["-beginn"]
+        verbose_name = "Aussetzung"
+        verbose_name_plural = "Aussetzungen"
+
+    def __str__(self) -> str:
+        return f"Aussetzung {self.beschluss.nummer}: {self.get_gegenstand_display()}"
+
+    @property
+    def frist(self):
+        from plattform_core.aussetzung import frist_ende
+
+        return frist_ende(self.beginn)
+
+    def laeuft(self, jetzt=None) -> bool:
+        from plattform_core.aussetzung import laeuft
+
+        return laeuft(self.beginn, jetzt or timezone.now(), self.schiedsgericht_am, self.beendet_am)
+
+    def stand(self, jetzt=None) -> str:
+        from plattform_core.aussetzung import grund_des_endes
+
+        jetzt = jetzt or timezone.now()
+        return grund_des_endes(self.beginn, jetzt, self.schiedsgericht_am, self.beendet_am)
+
+    def abschnitt(self):
+        """Der Zeitraum, den diese Aussetzung hemmt — offenes Ende, solange sie läuft."""
+        from plattform_core.aussetzung import ende_von
+
+        return (self.beginn, ende_von(self.beginn, self.schiedsgericht_am, self.beendet_am))
+
+
+class Regelpruefung(models.Model):
+    """Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6 letzter Halbsatz).
+
+    Der Vermerk „geprüft am …" wäre ohne die Liste, auf die er sich bezieht, wertlos: Regeln
+    ändern sich, und ein Jahr später wüsste niemand mehr, was geprüft worden ist. Deshalb friert
+    die Prüfung das Verzeichnis ein, wie es zum Zeitpunkt des Beschlusses stand."""
+
+    class Ergebnis(models.TextChoices):
+        GEPRUEFT = "geprueft", "geprüft, keine Beanstandung"
+        BEANSTANDET = "beanstandet", "beanstandet"
+
+    jahr = models.PositiveIntegerField()
+    beschluss = models.OneToOneField(
+        "gremien.GremienBeschluss", on_delete=models.PROTECT, related_name="regelpruefung"
+    )
+    stand = models.JSONField(help_text="Das Regelverzeichnis, wie es bei der Prüfung stand.")
+    verzeichnis_fassung = models.PositiveIntegerField(default=0)
+    ergebnis = models.CharField(max_length=12, choices=Ergebnis.choices, blank=True)
+    vermerk = models.TextField(max_length=4000, blank=True)
+    geprueft_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-jahr", "-pk"]
+        verbose_name = "Regelprüfung"
+        verbose_name_plural = "Regelprüfungen"
+
+    def __str__(self) -> str:
+        return f"Regelprüfung {self.jahr} ({self.beschluss.nummer})"
+
+
+def aussetzung_wirkung(beschluss, jetzt=None) -> None:
+    """Setzt eine Abstimmung oder einen Vollzug aus (§ 6 Abs 3 lit d)."""
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    if not _integritaetsrat_beschlussfaehig(beschluss):
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        return
+    if Aussetzung.objects.filter(antrag=antrag, beendet_am__isnull=True).exists():
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft bereits eine Aussetzung.")
+        return
+    jetzt = jetzt or timezone.now()
+    from plattform_core import Phase
+
+    aussetzung = Aussetzung.objects.create(
+        antrag=antrag,
+        gegenstand=(
+            Aussetzung.Gegenstand.ABSTIMMUNG
+            if antrag.phase == Phase.ABSTIMMUNG.value
+            else Aussetzung.Gegenstand.VOLLZUG
+        ),
+        beschluss=beschluss,
+        begruendung=beschluss.beschreibung,
+        beginn=jetzt,
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "aussetzung_beschlossen",
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "gegenstand": aussetzung.gegenstand,
+            "frist": aussetzung.frist.isoformat(),
+        }
+    )
+
+
+def aussetzung_aufheben_wirkung(beschluss, jetzt=None) -> None:
+    """Hebt eine laufende Aussetzung auf — der Antrag läuft mit seiner Restfrist weiter."""
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    jetzt = jetzt or timezone.now()
+    laufende = [a for a in Aussetzung.objects.filter(antrag=antrag) if a.laeuft(jetzt)]
+    if not laufende:
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft keine Aussetzung.")
+        return
+    for aussetzung in laufende:
+        aussetzung.beendet_am = jetzt
+        aussetzung.beendet_grund = f"Aufgehoben durch Beschluss {beschluss.nummer}."
+        aussetzung.save(update_fields=["beendet_am", "beendet_grund"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "aussetzung_aufgehoben",
+                "antrag": antrag.pk,
+                "aussetzung": aussetzung.pk,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+            }
+        )
+
+
+def regelpruefung_wirkung(beschluss, jetzt=None) -> None:
+    """Hält das Ergebnis der jährlichen Regelprüfung fest (§ 2 Abs 6)."""
+    pruefung = getattr(beschluss, "regelpruefung", None)
+    if pruefung is None or not beschluss.ergebnis:
+        return
+    jetzt = jetzt or timezone.now()
+    pruefung.ergebnis = beschluss.ergebnis
+    pruefung.vermerk = beschluss.beschreibung
+    pruefung.geprueft_am = jetzt
+    pruefung.save(update_fields=["ergebnis", "vermerk", "geprueft_am"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "regelpruefung_abgeschlossen",
+            "jahr": pruefung.jahr,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "ergebnis": pruefung.ergebnis,
+            "regeln": len(pruefung.stand),
+        }
+    )
+
+
+def aussetzungen_fortschreiben(jetzt=None) -> int:
+    """Schließt Aussetzungen, die von selbst geendet haben (§ 6 Abs 3 lit d).
+
+    Ohne diesen Schritt bliebe eine abgelaufene Aussetzung als offener Zustand stehen und hemmte
+    weiter — obwohl die Satzung sagt, sie ende von selbst."""
+    jetzt = jetzt or timezone.now()
+    geschlossen = 0
+    for aussetzung in Aussetzung.objects.filter(beendet_am__isnull=True):
+        if aussetzung.laeuft(jetzt):
+            continue
+        # Den Grund VOR dem Setzen von beendet_am holen: Danach meldete `stand` „durch
+        # Beschluss aufgehoben" — und das wäre bei einer Aussetzung, die von selbst endete,
+        # genau die falsche Auskunft.
+        grund = aussetzung.stand(jetzt)
+        aussetzung.beendet_am = min(aussetzung.frist, jetzt)
+        aussetzung.beendet_grund = grund
+        aussetzung.save(update_fields=["beendet_am", "beendet_grund"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "aussetzung_beendet",
+                "antrag": aussetzung.antrag_id,
+                "aussetzung": aussetzung.pk,
+                "grund": aussetzung.beendet_grund,
+            }
+        )
+        geschlossen += 1
+    return geschlossen
+
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
 #: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.
@@ -1020,6 +1227,11 @@ WIRKUNGEN = {
     Anlass.ZURUECKWEISUNG_AUFHEBEN: lambda beschluss, jetzt: zurueckweisung_aufheben_wirkung(
         beschluss, jetzt
     ),
+    Anlass.AUSSETZUNG: lambda beschluss, jetzt: aussetzung_wirkung(beschluss, jetzt),
+    Anlass.AUSSETZUNG_AUFHEBEN: lambda beschluss, jetzt: aussetzung_aufheben_wirkung(
+        beschluss, jetzt
+    ),
+    Anlass.REGELPRUEFUNG: lambda beschluss, jetzt: regelpruefung_wirkung(beschluss, jetzt),
 }
 
 

@@ -15,6 +15,8 @@ urlpatterns = [
     path("gremien/beschluss/<int:beschluss_id>/stimme/", views.beschluss_stimme, name="beschluss_stimme"),
     path("gremien/integritaet/", views.integritaet, name="integritaet"),
     path("gremien/integritaet/beschluss/", views.integritaet_beschluss, name="integritaet_beschluss"),
+    path("gremien/integritaet/regelpruefung/", views.integritaet_regelpruefung, name="integritaet_regelpruefung"),
+    path("gremien/integritaet/aussetzung/<int:aussetzung_id>/schiedsgericht/", views.integritaet_schiedsgericht, name="integritaet_schiedsgericht"),
     path("gremien/koordination/", views.koordination, name="koordination"),
     path(
         "gremien/koordination/<int:pruefung_id>/aktion/",

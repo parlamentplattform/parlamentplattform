@@ -265,9 +265,17 @@ class Antrag(models.Model):
         ausz = None
         if phase is Phase.ABSTIMMUNG:
             ausz = self.auszaehlen()
+        # Abgelaufene Aussetzungen zuerst schließen: Sie enden von selbst (§ 6 Abs 3 lit d),
+        # und eine, die nur noch formal offen steht, hemmte sonst weiter.
+        from django.apps import apps
+
+        if apps.is_installed("gremien"):
+            from gremien.models import aussetzungen_fortschreiben
+
+            aussetzungen_fortschreiben(jetzt)
         uebergang = naechster_uebergang(
             phase,
-            self.phase_beginn,
+            self.wirksamer_phase_beginn(jetzt),
             jetzt,
             policy,
             unterstuetzungen=self.unterstuetzungen.count(),
@@ -333,9 +341,48 @@ class Antrag(models.Model):
             archiviert_am=jetzt or timezone.now()
         )
 
+    def _aussetzungs_abschnitte(self) -> list[tuple]:
+        """Die Zeiträume, in denen dieses Verfahren nach § 6 Abs 3 lit d stillstand.
+
+        Lazy geladen: `verfahren` bleibt unabhängig von `gremien`, solange die App fehlt."""
+        from django.apps import apps
+
+        if not apps.is_installed("gremien"):
+            return []
+        modell = apps.get_model("gremien", "Aussetzung")
+        return [a.abschnitt() for a in modell.objects.filter(antrag_id=self.pk)]
+
+    def aussetzung_laeuft(self, jetzt=None) -> bool:
+        """Ob gerade eine Aussetzung wirkt — dann ruht das Verfahren vollständig."""
+        from django.apps import apps
+
+        if not apps.is_installed("gremien"):
+            return False
+        jetzt = jetzt or timezone.now()
+        modell = apps.get_model("gremien", "Aussetzung")
+        return any(
+            a.laeuft(jetzt) for a in modell.objects.filter(antrag_id=self.pk, beendet_am__isnull=True)
+        )
+
+    def wirksamer_phase_beginn(self, jetzt=None):
+        """Der Phasenbeginn, mit dem gerechnet wird — um die Stillstandszeit nach hinten gerückt.
+
+        Der gespeicherte Beginn bleibt unangetastet, damit die Historie lesbar bleibt; gerechnet
+        wird mit diesem hier (§ 6 Abs 3 lit d: die Aussetzung darf dem Antrag keine Zeit nehmen)."""
+        from plattform_core.aussetzung import wirksamer_beginn
+
+        abschnitte = self._aussetzungs_abschnitte()
+        if not abschnitte:
+            return self.phase_beginn
+        return wirksamer_beginn(self.phase_beginn, abschnitte, jetzt or timezone.now())
+
     def stimme_zulaessig(self, jetzt=None) -> bool:
         jetzt = jetzt or timezone.now()
-        return stimme_zulaessig(Phase(self.phase), self.phase_beginn, jetzt, self.policy())
+        if self.aussetzung_laeuft(jetzt):
+            return False  # § 6 Abs 3 lit d: die Abstimmung ist ausgesetzt
+        return stimme_zulaessig(
+            Phase(self.phase), self.wirksamer_phase_beginn(jetzt), jetzt, self.policy()
+        )
 
     def auszaehlen(self):
         if self.art == Antragsart.MANDAT:

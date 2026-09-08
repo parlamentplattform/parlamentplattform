@@ -5095,3 +5095,56 @@ msgstr "Register version %(v)s"
 #, python-format
 msgid "Fassung %(f)s"
 msgstr "Version %(f)s"
+
+msgid "Aussetzungen"
+msgstr "Suspensions"
+
+msgid "Eine Aussetzung ist zu begründen, zu veröffentlichen und binnen sieben Tagen durch Antrag an das Parteischiedsgericht zu bestätigen; unterbleibt der Antrag, endet sie von selbst (§ 6 Abs 3 lit d). Solange sie wirkt, ruht das Verfahren — die verlorene Zeit wird dem Antrag gutgeschrieben."
+msgstr "A suspension must be justified, published and confirmed within seven days by an application to the party arbitration tribunal; if no application is made, it ends by itself (§ 6 para 3 lit d). While it is in force the procedure rests — the time lost is credited back to the motion."
+
+msgid "Beim Parteischiedsgericht:"
+msgstr "With the arbitration tribunal:"
+
+msgid "Kennung des Antrags beim Schiedsgericht"
+msgstr "Reference of the application to the tribunal"
+
+msgid "Antrag ans Schiedsgericht vermerken"
+msgstr "Record the application to the tribunal"
+
+msgid "Keine Aussetzung verzeichnet."
+msgstr "No suspension on record."
+
+msgid "Jährliche Prüfung der Regeln"
+msgstr "Annual review of the rules"
+
+msgid "§ 2 Abs 6 verlangt, dass der Integritätsrat die automatisierten Regeln mindestens jährlich prüft. Die Prüfung friert das Verzeichnis ein, wie es in diesem Augenblick steht — ein Vermerk „geprüft am …“ wäre ohne die Liste, auf die er sich bezieht, wertlos."
+msgstr "§ 2 para 6 requires the integrity council to review the automated rules at least once a year. The review freezes the register as it stands at that moment — a note saying “reviewed on …” would be worthless without the list it refers to."
+
+msgid "läuft — der Rat stimmt ab"
+msgstr "in progress — the council is voting"
+
+msgid "Noch keine Prüfung verzeichnet."
+msgstr "No review on record yet."
+
+msgid "friert das Verzeichnis ein; entschieden wird danach"
+msgstr "freezes the register; the decision follows"
+
+#, python-format
+msgid "seit %(d)s"
+msgstr "since %(d)s"
+
+#, python-format
+msgid "Antrag ans Schiedsgericht bis %(f)s"
+msgstr "application to the tribunal by %(f)s"
+
+#, python-format
+msgid "%(n)s Regeln, Verzeichnis Fassung %(v)s"
+msgstr "%(n)s rules, register version %(v)s"
+
+#, python-format
+msgid "Prüfung %(j)s anlegen"
+msgstr "Open the %(j)s review"
+
+#, python-format
+msgid "Prüfung %(nummer)s angelegt — %(n)s Regeln eingefroren."
+msgstr "Review %(nummer)s opened — %(n)s rules frozen."

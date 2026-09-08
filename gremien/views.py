@@ -23,6 +23,7 @@ from gremien.models import (
     PRUEFPUNKTE,
     SATZUNG_MIN_INTEGRITAETSRAT,
     Anlass,
+    Aussetzung,
     BeschlussStatus,
     EinreichStimme,
     Entwurf,
@@ -33,7 +34,9 @@ from gremien.models import (
     GremienStimme,
     Gremium,
     Pruefung,
+    Regelpruefung,
     Rolle,
+    aussetzungen_fortschreiben,
     beschluss_frist,
     standard_ende,
 )
@@ -622,6 +625,8 @@ IR_ANLAESSE = [
     (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", "§ 5 Abs 10 lit b"),
     (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", "§ 5 Abs 2"),
     (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
+    (Anlass.AUSSETZUNG, "Aussetzen", "§ 6 Abs 3 lit d"),
+    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", "§ 6 Abs 3 lit d"),
 ]
 
 
@@ -652,6 +657,10 @@ def integritaet(request):
             "besetzt": aktive >= SATZUNG_MIN_INTEGRITAETSRAT,
             "hervorgehoben": hervorgehoben,
             "zurueckgewiesen": zurueckgewiesen,
+            "aussetzungen": _aussetzungen_lage(),
+            "regelpruefungen": Regelpruefung.objects.select_related("beschluss")[:5],
+            "regelpruefung_offen": Regelpruefung.objects.filter(geprueft_am__isnull=True).exists(),
+            "jahr": timezone.localdate().year,
             "offene_antraege": Antrag.objects.exclude(
                 phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)
             ).order_by("-phase_beginn")[:50],
@@ -711,6 +720,103 @@ def integritaet_beschluss(request):
     messages.success(
         request,
         _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer},
+    )
+    return redirect("gremien:integritaet")
+
+
+def _aussetzungen_lage() -> list[dict]:
+    """Laufende zuerst, danach die beendeten — mit dem Grund, warum sie endeten."""
+    aussetzungen_fortschreiben()
+    jetzt = timezone.now()
+    zeilen = [
+        {"aussetzung": a, "laeuft": a.laeuft(jetzt), "stand": a.stand(jetzt)}
+        for a in Aussetzung.objects.select_related("antrag", "beschluss")[:20]
+    ]
+    return sorted(zeilen, key=lambda z: (not z["laeuft"],))
+
+
+@nur_gremium(Gremium.INTEGRITAETSRAT)
+@require_POST
+def integritaet_schiedsgericht(request, aussetzung_id: int):
+    """Vermerkt den Antrag an das Parteischiedsgericht (§ 6 Abs 3 lit d).
+
+    Ohne diesen Vermerk endet die Aussetzung binnen sieben Tagen von selbst — die Satzung sagt
+    das ausdrücklich, und die Plattform tut es auch, ohne dass jemand daran denken muss."""
+    if not Rolle.hat(request.user, Gremium.INTEGRITAETSRAT):
+        messages.error(request, _("Das kann nur, wer eine aktive Rolle im Integritätsrat hat."))
+        return redirect("gremien:integritaet")
+    aussetzung = get_object_or_404(Aussetzung, pk=aussetzung_id)
+    kennung = (request.POST.get("kennung") or "").strip()
+    if not kennung:
+        messages.error(request, _("Bitte die Kennung des Antrags beim Parteischiedsgericht angeben."))
+        return redirect("gremien:integritaet")
+    if not aussetzung.laeuft():
+        messages.error(request, _("Diese Aussetzung wirkt nicht mehr."))
+        return redirect("gremien:integritaet")
+    aussetzung.schiedsgericht_am = timezone.now()
+    aussetzung.schiedsgericht_kennung = kennung[:60]
+    aussetzung.save(update_fields=["schiedsgericht_am", "schiedsgericht_kennung"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "aussetzung_beim_schiedsgericht",
+            "antrag": aussetzung.antrag_id,
+            "aussetzung": aussetzung.pk,
+            "kennung": aussetzung.schiedsgericht_kennung,
+        }
+    )
+    messages.success(request, _("Vermerkt — die Aussetzung endet jetzt nicht mehr mit der Frist."))
+    return redirect("gremien:integritaet")
+
+
+@nur_gremium(Gremium.INTEGRITAETSRAT)
+@require_POST
+def integritaet_regelpruefung(request):
+    """Legt die jährliche Prüfung der automatisierten Regeln an (§ 2 Abs 6).
+
+    Das Verzeichnis wird dabei eingefroren, wie es in diesem Augenblick steht: Der Vermerk
+    „geprüft am …" wäre ohne die Liste, auf die er sich bezieht, wertlos."""
+    from plattform_core.regelwerk import VERSION as VERZEICHNIS_VERSION
+    from plattform_core.regelwerk import als_dict
+
+    if not Rolle.hat(request.user, Gremium.INTEGRITAETSRAT):
+        messages.error(request, _("Das kann nur, wer eine aktive Rolle im Integritätsrat hat."))
+        return redirect("gremien:integritaet")
+    jahr = timezone.localdate().year
+    if Regelpruefung.objects.filter(jahr=jahr).exists():
+        messages.info(request, _("Für dieses Jahr läuft die Prüfung bereits oder ist abgeschlossen."))
+        return redirect("gremien:integritaet")
+    stand = als_dict()
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.REGELPRUEFUNG,
+        gegenstand=f"Jährliche Prüfung der automatisierten Regeln {jahr}",
+        beschreibung=(
+            f"{len(stand)} Regeln geprüft (Verzeichnis Fassung {VERZEICHNIS_VERSION}). "
+            "Der geprüfte Stand ist an diesem Beschluss eingefroren."
+        ),
+        optionen=[
+            {"wert": "geprueft", "name": "geprüft, keine Beanstandung"},
+            {"wert": "beanstandet", "name": "beanstandet"},
+        ],
+        frist=beschluss_frist(),
+        angelegt_von=request.user,
+    )
+    Regelpruefung.objects.create(
+        jahr=jahr, beschluss=beschluss, stand=stand, verzeichnis_fassung=VERZEICHNIS_VERSION
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "regelpruefung_angelegt",
+            "jahr": jahr,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "regeln": len(stand),
+        }
+    )
+    messages.success(
+        request,
+        _("Prüfung %(nummer)s angelegt — %(n)s Regeln eingefroren.")
+        % {"nummer": beschluss.nummer, "n": len(stand)},
     )
     return redirect("gremien:integritaet")
 

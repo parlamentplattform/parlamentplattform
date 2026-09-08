@@ -283,3 +283,124 @@ def test_eine_beschlossene_hervorhebung_bleibt(client, ordnung):  # noqa: F811
     assert hervorhebungen_ohne_beschluss_zuruecknehmen() == 0
     antrag.refresh_from_db()
     assert antrag.hervorgehoben is True
+
+
+def test_die_aussetzung_haelt_das_verfahren_an_und_endet_von_selbst(client, ordnung):  # noqa: F811
+    """§ 6 Abs 3 lit d: „unterbleibt der Antrag, endet die Aussetzung von selbst."
+
+    Solange sie wirkt, ruht das Verfahren vollständig — es wird nicht abgestimmt, und die Frist
+    rückt nicht näher. Danach läuft der Antrag mit genau der Restzeit weiter, die er hatte."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Aussetzung
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    antrag.phase = Phase.ABSTIMMUNG.value
+    antrag.phase_beginn = timezone.now() - timedelta(days=2)
+    antrag.save(update_fields=["phase", "phase_beginn"])
+    assert antrag.stimme_zulaessig() is True
+
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Begründeter Verdacht auf Manipulation.")
+    aussetzung = Aussetzung.objects.get(antrag=antrag)
+    assert aussetzung.gegenstand == Aussetzung.Gegenstand.ABSTIMMUNG
+    assert aussetzung.laeuft() is True
+    antrag.refresh_from_db()
+    assert antrag.stimme_zulaessig() is False  # die Abstimmung ruht
+
+    # Die Frist rückt nicht näher: Der wirksame Beginn wandert mit der Uhr.
+    spaeter = timezone.now() + timedelta(days=3)
+    verstrichen = spaeter - antrag.wirksamer_phase_beginn(spaeter)
+    assert timedelta(days=2) <= verstrichen < timedelta(days=2, hours=1)
+
+    # Ohne Antrag ans Schiedsgericht endet sie nach sieben Tagen von selbst.
+    danach = aussetzung.frist + timedelta(minutes=1)
+    assert aussetzung.laeuft(danach) is False
+    antrag.fortschreiben(danach)
+    aussetzung.refresh_from_db()
+    assert aussetzung.beendet_am is not None
+    assert "von selbst geendet" in aussetzung.beendet_grund
+
+
+def test_der_vermerk_ans_schiedsgericht_haelt_die_aussetzung_am_leben(client, ordnung):  # noqa: F811
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from gremien.models import Aussetzung
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Verdacht auf Manipulation.")
+    aussetzung = Aussetzung.objects.get(antrag=antrag)
+    client.force_login(leute[0])
+    client.post(
+        reverse("gremien:integritaet_schiedsgericht", args=[aussetzung.pk]),
+        {"kennung": "PSG-2026-004"},
+    )
+    aussetzung.refresh_from_db()
+    assert aussetzung.schiedsgericht_kennung == "PSG-2026-004"
+    assert aussetzung.laeuft(timezone.now() + timedelta(days=30)) is True
+
+
+def test_die_aussetzung_laesst_sich_aufheben(client, ordnung):  # noqa: F811
+    from gremien.models import Aussetzung
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Verdacht.")
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG_AUFHEBEN, "Der Verdacht hat sich nicht bestätigt.")
+    aussetzung = Aussetzung.objects.get(antrag=antrag)
+    assert aussetzung.laeuft() is False and "Aufgehoben durch Beschluss" in aussetzung.beendet_grund
+
+
+def test_zwei_aussetzungen_zum_selben_antrag_gehen_nicht(client, ordnung):  # noqa: F811
+    from gremien.models import Aussetzung
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Erster Verdacht.")
+    zweiter = beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Zweiter Verdacht.")
+    assert Aussetzung.objects.filter(antrag=antrag).count() == 1
+    assert "läuft bereits eine Aussetzung" in zweiter.umsetzungsvermerk
+
+
+def test_die_regelpruefung_friert_das_verzeichnis_ein(client, ordnung):  # noqa: F811
+    """§ 2 Abs 6: Der Vermerk „geprüft am …" ist ohne die geprüfte Liste wertlos."""
+    from django.urls import reverse
+
+    from gremien.models import Regelpruefung
+    from plattform_core.regelwerk import verzeichnis
+
+    leute = rat()
+    client.force_login(leute[0])
+    client.post(reverse("gremien:integritaet_regelpruefung"))
+    pruefung = Regelpruefung.objects.get()
+    assert len(pruefung.stand) == len(verzeichnis())
+    assert pruefung.geprueft_am is None  # erst der Beschluss macht sie fertig
+    for m in leute:
+        client.force_login(m)
+        client.post(
+            reverse("gremien:beschluss_stimme", args=[pruefung.beschluss.pk]),
+            {"option": "geprueft", "begruendung": "Alle Regeln offengelegt und nachrechenbar."},
+        )
+    pruefung.refresh_from_db()
+    assert pruefung.ergebnis == "geprueft" and pruefung.geprueft_am is not None
+    assert any(
+        e.ereignis["typ"] == "regelpruefung_abgeschlossen" for e in AuditEintrag.objects.all()
+    )
+
+
+def test_zweimal_pruefen_im_selben_jahr_geht_nicht(client, ordnung):  # noqa: F811
+    from django.urls import reverse
+
+    from gremien.models import Regelpruefung
+
+    leute = rat()
+    client.force_login(leute[0])
+    for _ in range(2):
+        client.post(reverse("gremien:integritaet_regelpruefung"))
+    assert Regelpruefung.objects.count() == 1

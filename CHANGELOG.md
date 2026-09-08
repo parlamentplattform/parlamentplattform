@@ -20,6 +20,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 ### Behoben
 - `auslosen()` griff über `antrag.entwurf` zu und vergiftete damit den Objekt-Cache des Aufrufers: Wer danach `antrag.entwurf` las, bekam „kein Entwurf", obwohl längst einer angelegt war. Jetzt eine frische Abfrage — dieselbe Falle, vor der der Phasenautomat schon warnt
 - Ein eigener Test hing vom Los ab: Er nahm an, dieselbe Person werde nicht für zwei Anträge gelost. Sie kann es, und das ist richtig so — der Test wählt jetzt gezielt jemanden, der nur beim ersten dabei ist
+- `/parameter.json` zeigte die geltende Verfahrensordnung als **gespeicherten Rohdatensatz**. Ältere Fassungen kennen die neuen Felder nicht — sie wirken über den eingebauten Vorgabewert, standen aber nicht im Export. Eine Partnerinstanz hätte eine Ordnung ohne Gruppengrößen gelesen und ihre eigene ohne sie gebaut. Exportiert wird jetzt die **wirksame** Ordnung
 
 ## [0.43.0] — 2026-09-08 · Das Regelverzeichnis, die Aussetzung und die jährliche Prüfung
 

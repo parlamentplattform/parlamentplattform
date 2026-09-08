@@ -88,10 +88,17 @@ def export_json(request):
         }
         for p in Parameter.objects.all()
     ]
-    ordnungen = [
-        {**(vo.regeln or {}), "id": vo.policy_id, "version": vo.version}
-        for vo in Verfahrensordnung.objects.filter(aktiv=True).order_by("policy_id")
-    ]
+    # Die **wirksame** Ordnung, nicht der gespeicherte Rohdatensatz: Kommt ein Feld hinzu,
+    # gilt für ältere Fassungen der eingebaute Vorgabewert — und der gehört in den Export.
+    # Sonst läse eine Partnerinstanz eine Ordnung ohne Gruppengrößen und baute ihre eigene
+    # ohne sie, obwohl sie hier sehr wohl wirken.
+    ordnungen = []
+    for vo in Verfahrensordnung.objects.filter(aktiv=True).order_by("policy_id"):
+        try:
+            werte = vo.als_policy().als_dict()
+        except Exception:  # eine unlesbare Fassung wird gezeigt, wie sie gespeichert ist
+            werte = dict(vo.regeln or {})
+        ordnungen.append({**werte, "id": vo.policy_id, "version": vo.version})
     return _offen(
         parameter_export(
             settings.DDOE_SYSTEM_ID, settings.DDOE_SYSTEM_NAME, __version__, parameter, ordnungen, timezone.now()

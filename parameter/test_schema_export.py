@@ -46,3 +46,30 @@ def test_kennzahlen_export_ohne_personenbezug(client, ordnung):  # noqa: F811
     text = json.dumps(daten)
     for wort in ("email", "pseudonym", "username", "anzeigename"):
         assert wort not in text
+
+
+@pytest.mark.django_db
+def test_der_export_zeigt_die_wirksame_ordnung_nicht_den_rohdatensatz(client):
+    """Kommt ein Feld hinzu, gilt für ältere Fassungen der eingebaute Vorgabewert.
+
+    Zeigte der Export nur das gespeicherte JSON, läse eine Partnerinstanz eine Ordnung ohne
+    Gruppengrößen — und baute ihre eigene ohne sie, obwohl sie hier sehr wohl wirken."""
+    from verfahren.models import Verfahrensordnung
+
+    Verfahrensordnung.objects.create(
+        policy_id="alt-ohne-gruppen",
+        version=1,
+        aktiv=True,
+        regeln={
+            "id": "alt-ohne-gruppen", "version": 1, "unterstuetzung_schwelle": 3,
+            "unterstuetzung_frist_tage": 60, "beratung_tage": 21, "abstimmung_tage": 28,
+            "mindestbeteiligung": 0.05, "mehrheitsbasis": "ja_nein",
+            "wiedereinbringung_sperre_monate": 6,
+        },
+    )
+    daten = client.get(reverse("parameter:export")).json()
+    ordnung = next(o for o in daten["verfahrensordnung"] if o["id"] == "alt-ohne-gruppen")
+    kennungen = {w["schema_key"] for w in ordnung["werte"]}
+    assert "council.group1_size" in kennungen and "council.group2_size" in kennungen
+    groesse = next(w for w in ordnung["werte"] if w["schema_key"] == "council.group1_size")
+    assert groesse["wert"] == 3

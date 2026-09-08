@@ -68,8 +68,10 @@ def test_der_export_zeigt_die_wirksame_ordnung_nicht_den_rohdatensatz(client):
         },
     )
     daten = client.get(reverse("parameter:export")).json()
-    ordnung = next(o for o in daten["verfahrensordnung"] if o["id"] == "alt-ohne-gruppen")
-    kennungen = {w["schema_key"] for w in ordnung["werte"]}
+    # Nicht `ordnung` nennen: So heißt die Fixture, die dieses Modul importiert — ein
+    # gleichnamiger Name verdeckt sie und liest sich später wie dieselbe Sache.
+    ausgegeben = next(o for o in daten["verfahrensordnung"] if o["id"] == "alt-ohne-gruppen")
+    kennungen = {w["schema_key"] for w in ausgegeben["werte"]}
     assert "council.group1_size" in kennungen and "council.group2_size" in kennungen
-    groesse = next(w for w in ordnung["werte"] if w["schema_key"] == "council.group1_size")
+    groesse = next(w for w in ausgegeben["werte"] if w["schema_key"] == "council.group1_size")
     assert groesse["wert"] == 3

@@ -164,11 +164,23 @@ def test_ausgeblendeter_beitrag_zeigt_den_grund(client, ordnung):  # noqa: F811
 def test_neue_beitraege_werden_gezaehlt_und_der_lesestand_rueckt_nach(client, ordnung):  # noqa: F811
     anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
     antrag = _antrag(ordnung, anna)
-    chatkern.beitrag_schreiben(antrag, anna, "Vor dem Lesen.")
+    # Alle Zeitpunkte ausdrücklich gesetzt. Nahm der Test die Uhr, konnten zwei Aufrufe in
+    # dieselbe Mikrosekunde fallen — dann zählte der zweite Beitrag nicht als neu, und der Test
+    # prüfte die Uhrauflösung statt der Zählung. Unter Python 3.12 ist er genau daran
+    # gelegentlich gescheitert, unter 3.14 nie: ein Fehler, der nur auf fremden Maschinen auftrat.
+    # Die Zeitpunkte liegen ausdrücklich in der Vergangenheit — und in dieser Reihenfolge.
+    # Nahm der Test die Uhr, konnten zwei Aufrufe in dieselbe Mikrosekunde fallen; dann zählte
+    # der zweite Beitrag nicht als neu, und der Test prüfte die Uhrauflösung statt der Zählung.
+    # In der Zukunft dürfen sie nicht liegen: Der Knopf „gelesen" setzt den Stand auf jetzt und
+    # käme sonst vor den Beiträgen zu liegen.
+    jetzt = timezone.now()
+    chatkern.beitrag_schreiben(antrag, anna, "Vor dem Lesen.", jetzt=jetzt - timedelta(minutes=3))
     assert chatkern.neue_zaehlen(antrag, bernd) == 0  # ohne Lesestand gibt es kein „neu"
-    chatkern.gelesen_merken(antrag, bernd)
-    chatkern.beitrag_schreiben(antrag, anna, "Nach dem Lesen.")
-    chatkern.beitrag_schreiben(antrag, bernd, "Eigener Beitrag zählt nicht.")
+    chatkern.gelesen_merken(antrag, bernd, jetzt=jetzt - timedelta(minutes=3))
+    chatkern.beitrag_schreiben(antrag, anna, "Nach dem Lesen.", jetzt=jetzt - timedelta(minutes=2))
+    chatkern.beitrag_schreiben(
+        antrag, bernd, "Eigener Beitrag zählt nicht.", jetzt=jetzt - timedelta(minutes=1)
+    )
     assert chatkern.neue_zaehlen(antrag, bernd) == 1
 
     client.force_login(bernd)

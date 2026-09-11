@@ -46,3 +46,10 @@ Der Erstbestand steht in `parameter/models.py` (nicht Cluster B). Vorschlag für
 ```
 
 Ohne Eintrag gilt der eingebaute Zielwert 72 (ehrlicher Rückfall von `zahl`).
+
+## Befund #55 — über den Vorschlag hinaus
+
+Die Karte „Die Zukunftswerkstatt" weiter unten auf mitgliedschaft.html behauptete dasselbe wie Station 3
+(„Zu jedem Antrag liefert die Zukunftswerkstatt … eine mit amtlichen Quellen belegte Einschätzung"). Sie ist
+jetzt als Zielbild gekennzeichnet („soll … liefern", Verweis auf den Stand der Werkstatt-Seite) — Regel 3
+(öffentliche Texte müssen wahr sein), nicht Teil des Nachprüfer-Vorschlags, deshalb hier vermerkt.

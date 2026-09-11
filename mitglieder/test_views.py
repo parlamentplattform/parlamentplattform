@@ -181,6 +181,23 @@ def test_willkommensseite_zeigt_beitrags_qr(client):
     assert "Zahlen mit Code" in inhalt
 
 
+# --- Mitgliedschaftsseite sagt, was der Code tut (Befunde #15, #51, #55) ----------------
+
+
+def test_mitgliedschaftsseite_verspricht_keinen_schutz_den_es_nicht_gibt(client):
+    """Geprüft wird heute die E-Mail-Adresse, „geprüft“ setzt der Beitragseingang; es gibt
+    keine regionale Stimmberechtigung (§ 5 Abs 6 verbietet den Ausschluss); die Durchrechnung
+    der Werkstatt ist im Aufbau. Die Seite darf nichts anderes behaupten."""
+    inhalt = client.get(reverse("mitglieder:mitgliedschaft")).content.decode()
+    assert "gekauften Mehrheiten" not in inhalt and "mit geprüfter Identität" not in inhalt
+    assert "Beitragseingang schaltet die Mitwirkung" in inhalt and "Frage des Vertrauens" in inhalt
+    assert "Ihre Gemeinde stimmt" not in inhalt
+    assert "schließt niemanden von einer Abstimmung aus (§ 5 Abs 6)" in inhalt
+    assert "rechnet durch, welche Gesetze" not in inhalt
+    assert "ist im Aufbau" in inhalt
+    assert Identitaetsstufe.GEPRUEFT.label == "geprüft (Beitragseingang verbucht)"  # kein „Einladungscode“
+
+
 # --- Gemeindeverzeichnis (F-43) --------------------------------------------------
 
 

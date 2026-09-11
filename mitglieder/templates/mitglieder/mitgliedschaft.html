@@ -95,9 +95,9 @@
     <div class="station">
       <span class="punkt">3</span>
       <div><strong>{% translate "Beratung" %}</strong>
-      <p class="erk">{% blocktranslate %}Mindestens 21 Tage öffentliche Erörterung. Die <a href="/zukunftswerkstatt/">Zukunftswerkstatt</a>
-      rechnet durch, welche Gesetze berührt wären und was die Umsetzung kosten würde; der Expertenrat gibt seine
-      Stellungnahme im Wortlaut ab.{% endblocktranslate %}</p></div>
+      <p class="erk">{% blocktranslate %}Mindestens 21 Tage öffentliche Erörterung; der Expertenrat erarbeitet einen Vorschlag,
+      den die Unterstützer annehmen oder zurückgeben. Die Durchrechnung in der <a href="/zukunftswerkstatt/">Zukunftswerkstatt</a>
+      (berührte Gesetze, Aufwand) ist im Aufbau — wie weit, steht auf der Werkstatt-Seite.{% endblocktranslate %}</p></div>
     </div>
     <div class="station">
       <span class="punkt">4</span>
@@ -139,26 +139,29 @@
   <div class="bereich">
     <span class="bk">{% translate "Identität" %}</span>
     <h2 style="font-size:19px">{% translate "Ein Mensch, eine Stimme — pseudonym nach außen" %}</h2>
-    <p class="erk">{% blocktranslate %}Ein Konto je Person, mit geprüfter Identität — das schützt vor gekauften Mehrheiten.
-    Öffentlich treten Sie unter einem beständigen Pseudonym auf, wenn Sie möchten; Ihre Stimme bleibt bei
-    Abstimmungen pseudonym.{% endblocktranslate %}</p>
+    <p class="erk">{% blocktranslate %}Heute: ein Konto je E-Mail-Adresse, Bestätigungslink, Beitragseingang schaltet die Mitwirkung
+    frei. Der Identitätsnachweis nach § 2 Abs 4 (ID Austria oder Präsenzstelle) ist geplant — bis dahin ist die
+    Ein-Mensch-eine-Stimme-Regel eine Frage des Vertrauens. Öffentlich treten Sie unter einem beständigen Pseudonym
+    auf, wenn Sie möchten; Ihre Stimme bleibt bei Abstimmungen pseudonym.{% endblocktranslate %}</p>
   </div>
   <div class="bereich">
     <span class="bk">{% translate "Ihre Region" %}</span>
     <h2 style="font-size:19px">{% translate "Gemeinde, Land, Bund" %}</h2>
-    <p class="erk">{% blocktranslate %}Regionale Anträge entscheidet, wen sie betreffen: Ihre Gemeinde stimmt über
-    Gemeindesachen ab, Ihr Land über Landessachen. Ihre Lebensbereiche wählen Sie als Favoriten — Neues daraus
-    erscheint direkt in Ihrem Parlament.{% endblocktranslate %}</p>
+    <p class="erk">{% blocktranslate %}Regionale Anträge sind nach Gemeinde, Bezirk und Land sortiert und erscheinen in Ihrem
+    Bereich „Meine Region“. Abstimmen dürfen bei jedem Antrag alle stimmberechtigten Mitglieder — die Satzung
+    schließt niemanden von einer Abstimmung aus (§ 5 Abs 6). Ob Betroffene bei Sachfragen besonders berücksichtigt
+    werden, entscheidet eine Verfahrensordnung, die die Mitglieder erst beschließen müssen. Ihre Lebensbereiche
+    wählen Sie als Favoriten — Neues daraus erscheint direkt in Ihrem Parlament.{% endblocktranslate %}</p>
   </div>
 </div>
 
 <div class="karte" style="margin-top:22px">
   <span class="bk">{% translate "Ihr Werkzeug dazu" %}</span>
   <h2 style="font-size:21px;margin:4px 0 6px">{% translate "Die Zukunftswerkstatt" %}</h2>
-  <p>{% blocktranslate %}Zu jedem Antrag liefert die Zukunftswerkstatt — mit der StaatsSimulation als Rechenkern —
-  eine mit amtlichen Quellen belegte Einschätzung: berührte Gesetze, Aufwand für den Staatsapparat,
+  <p>{% blocktranslate %}Zielbild: Zu jedem Antrag soll die Zukunftswerkstatt — mit der StaatsSimulation als Rechenkern —
+  eine mit amtlichen Quellen belegte Einschätzung liefern: berührte Gesetze, Aufwand für den Staatsapparat,
   Ausschreibungspflichten, realistische Dauer. Sie berät alle und entscheidet nie — Entscheidungen treffen
-  die Mitglieder.{% endblocktranslate %}
+  die Mitglieder. Wie weit der Aufbau ist, steht auf der Werkstatt-Seite.{% endblocktranslate %}
   <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Wie die Zukunftswerkstatt arbeitet →" %}</a></p>
 </div>
 

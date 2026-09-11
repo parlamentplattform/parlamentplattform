@@ -245,6 +245,80 @@ def test_mein_verzweigt_je_rolle(client, ordnung):  # noqa: F811
     assert client.get(reverse("gremien:mein")).url == reverse("gremien:koordination")
 
 
+def test_ohne_gruppe_2_geht_der_vorschlag_nach_der_prueffrist_weiter(client, ordnung):  # noqa: F811
+    """Befund #8: Ist niemand in Gruppe 2 berufen, entstand bis 0.45 nie ein Beschluss — und
+    `haelt_beratung_offen` hielt den Antrag unbefristet in der Beratung. Jetzt läuft die
+    Prüffrist der eingefrorenen Ordnung ab der Einreichung; verstreicht sie, geht der Vorschlag
+    mit offenem Vermerk an die Unterstützer (§ 5 Abs 12: Untätigkeit hemmt nie)."""
+    from gremien.models import Entwurf
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er, vollzugsbezug=True)
+    tage = antrag.policy().pruefung_tage
+    entwurf.fortschreiben(antrag)
+    assert entwurf.status == EntwurfsStatus.PRUEFUNG  # die Frist läuft noch
+    Entwurf.objects.filter(pk=entwurf.pk).update(eingereicht_am=timezone.now() - timedelta(days=tage, hours=1))
+    entwurf.refresh_from_db()
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER and entwurf.review_frist is not None
+    vermerk = Pruefung.objects.get(entwurf=entwurf)
+    assert vermerk.ergebnis == Pruefung.Ergebnis.VALIDIERT and vermerk.beschluss is None
+    assert "keine Rolle besetzt" in vermerk.begruendung and "Untätigkeit hemmt nie" in vermerk.begruendung
+    assert any(
+        e.ereignis["typ"] == "pruefung_frist_verstrichen" and e.ereignis["grund"] == "keine_gruppe_2"
+        for e in AuditEintrag.objects.all()
+    )
+    # Und das Verfahren läuft wirklich weiter: Nach der Unterstützerfrist folgt die Endabstimmung.
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    assert antrag.phase == "abstimmung"
+
+
+def test_schweigt_der_korat_verfristet_der_austauschantrag(client, ordnung):  # noqa: F811
+    """Befund #8, Fall b: Ein Austauschantrag ohne Entscheidung hielt den Antrag bis 0.45 ohne
+    Frist fest. Jetzt verfristet er nach der Prüffrist, der Vorschlag geht weiter — und ein
+    verspäteter Beschluss des Koordinationsrats bewirkt nichts mehr."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    pruefung = entwurf.pruefungen.get()
+    # Der Rat legt den Beschluss noch rechtzeitig an — stimmt aber nicht ab.
+    client.force_login(korat)
+    client.post(
+        reverse("gremien:koordination_beschluss"),
+        {"anlass": "austausch", "pruefung": pruefung.pk, "beschreibung": "Prüfen wir."},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    tage = antrag.policy().pruefung_tage
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=timezone.now() - timedelta(days=tage, hours=1))
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET
+    assert "Untätigkeit hemmt nie" in pruefung.korat_begruendung
+    # Der Koordinationsrat sieht den Antrag nicht mehr als offene Aufgabe, sondern als erledigt …
+    antwort = client.get(reverse("gremien:koordination"))
+    assert antwort.context["offene"] == [] and pruefung in antwort.context["entschiedene"]
+    # … ein neuer Beschluss dazu lässt sich nicht mehr anlegen …
+    antwort = client.post(
+        reverse("gremien:koordination_beschluss"),
+        {"anlass": "austausch", "pruefung": pruefung.pk, "beschreibung": "Zu spät."},
+    )
+    assert antwort.status_code == 404
+    # … und der verspätet entschiedene alte tauscht niemanden mehr aus.
+    client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Doch."})
+    beschluss.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and "Ohne Wirkung" in beschluss.umsetzungsvermerk
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert all(Rolle.objects.get(mitglied=rat).aktiv for rat in er)
+
+
 def test_ohne_gruppe_2_wartet_der_vorschlag_sichtbar(client, ordnung):  # noqa: F811
     """Ist keine Rolle besetzt, entsteht keine Abstimmung — und die Seite sagt das auch."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)

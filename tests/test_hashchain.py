@@ -1,5 +1,6 @@
 """Audit-Hash-Kette: Jede Manipulation muss auffallen."""
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
@@ -48,6 +49,35 @@ def test_eigenschaft_jede_inhaltsaenderung_wird_erkannt(ereignisse, data):
     ok, fehler_index = kette_pruefen(kette)
     assert not ok
     assert fehler_index == index
+
+
+def test_vorgaenger_zuordnung_folgt_der_kette():
+    """Befund #9: Die Spalte `vorgaenger` wird aus der bestehenden Kette gefüllt — der erste
+    Eintrag hängt am Startwert, jeder weitere am Hash seines Vorgängers."""
+    from plattform_core.hashchain import vorgaenger_zuordnen
+
+    kette = kette_bauen([{"typ": "a"}, {"typ": "b"}, {"typ": "c"}])
+    hashes = [h for _e, h in kette]
+    assert vorgaenger_zuordnen(hashes) == [GENESIS, hashes[0], hashes[1]]
+    assert vorgaenger_zuordnen([]) == []
+
+
+def test_eine_gegabelte_kette_wird_gemeldet_statt_kaschiert():
+    from plattform_core.hashchain import KettenFehler, vorgaenger_zuordnen
+
+    with pytest.raises(KettenFehler):
+        vorgaenger_zuordnen(["h1", "h1", "h2"])  # zwei Einträge mit identischem Hash → zwei am selben Kopf
+
+
+def test_die_offenlegung_verspricht_keine_veroeffentlichung_die_es_nicht_gibt():
+    """Befund #57: Die Modul-Docstring — auf /regeln/ als Offenlegung nach § 2 Abs 6 verzeichnet —
+    stützte die Manipulationserkennung auf einen „täglich veröffentlichten Kettenkopf“, den
+    kein Codepfad erzeugt. Öffentliche Texte sagen, was der Code tut."""
+    from plattform_core import hashchain
+
+    text = hashchain.__doc__
+    assert "täglich" not in text and "veröffentlichte Kettenkopf" not in text
+    assert "geplant" in text and "noch nicht gebaut" in text
 
 
 def test_kanonisierung_ist_reihenfolgeunabhaengig():

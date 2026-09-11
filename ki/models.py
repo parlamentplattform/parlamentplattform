@@ -15,6 +15,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from ki.anbieter import AnbieterFehler, SteckplatzStumm, anbieter_waehlen
 
@@ -22,8 +23,8 @@ MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
 
 
 class Zweck(models.TextChoices):
-    EINSCHAETZUNG = "einschaetzung", "Einschätzung für die Gremien-Werkstatt"
-    PARAMETERVORSCHLAG = "parametervorschlag", "Vorschlag der Zukunftswerkstatt zu einem Parametertest"
+    EINSCHAETZUNG = "einschaetzung", _("Einschätzung für die Gremien-Werkstatt")
+    PARAMETERVORSCHLAG = "parametervorschlag", _("Vorschlag der Zukunftswerkstatt zu einem Parametertest")
 
 
 class KILauf(models.Model):

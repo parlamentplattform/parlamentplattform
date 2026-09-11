@@ -55,6 +55,43 @@ def test_die_nummer_ist_zitierfaehig_und_zaehlt_je_gremium_und_jahr():
     assert dritte.nummer == f"IR-{jahr}-01"  # je Gremium eine eigene Zählung
 
 
+def test_bei_vergebener_nummer_wird_neu_gezaehlt(monkeypatch):
+    """Befund #72: `select_for_update().count()` sperrte nichts — zwei Worker zählten dieselbe
+    Zahl, und der zweite scheiterte mit HTTP 500. Das Wettrennen im Zeitraffer: Zwischen Zählen
+    und Schreiben schiebt ein Konkurrent dieselbe Nummer ein; `save` bekommt den IntegrityError,
+    zählt neu und vergibt die nächste."""
+    import gremien.models as gm
+
+    erste = beschluss_anlegen()
+    echte = gm.beschlussnummer
+    vergeben = []
+
+    def ueberholt(gremium, jahr, laufend):
+        nummer = echte(gremium, jahr, laufend)
+        vergeben.append(nummer)
+        if len(vergeben) == 1:
+            GremienBeschluss.objects.create(
+                gremium=gremium, gegenstand="Konkurrent", optionen=OPTIONEN, angelegt_von=erste.angelegt_von, nummer=nummer
+            )
+        return nummer
+
+    monkeypatch.setattr(gm, "beschlussnummer", ueberholt)
+    dritter = beschluss_anlegen()
+    assert vergeben == [erste.nummer[:-2] + "02", erste.nummer[:-2] + "03"]
+    assert dritter.nummer == vergeben[1]
+    assert GremienBeschluss.objects.filter(nummer=vergeben[0]).count() == 1
+    assert GremienBeschluss.objects.count() == 3
+
+
+def test_die_nummer_traegt_das_wiener_jahr():
+    """Befund #73/#76: Am 1. Jänner um 00:40 MEZ ist es in UTC noch der 31. Dezember — die Nummer
+    nannte das alte Jahr, die Begründung am Antrag das neue."""
+    from datetime import UTC, datetime
+
+    beschluss = beschluss_anlegen(angelegt_am=datetime(2026, 12, 31, 23, 40, tzinfo=UTC))
+    assert beschluss.nummer == "KR-2027-01"
+
+
 def test_die_nummer_bleibt_beim_speichern_stehen():
     """Sonst wanderte die Kennung unter einer Begründung weg, die sie zitiert."""
     b = beschluss_anlegen()
@@ -104,6 +141,46 @@ def test_die_liste_laesst_sich_nach_gremium_filtern(client):
     beschluss_anlegen(gremium=Gremium.INTEGRITAETSRAT, gegenstand="Sache des Integritätsrats")
     inhalt = client.get(reverse("gremien:beschluesse"), {"gremium": "integritaetsrat"}).content.decode()
     assert "Sache des Integritätsrats" in inhalt and "Sache des Koordinationsrats" not in inhalt
+
+
+def test_die_beschlussliste_rechnet_das_quorum_einmal_je_seite(client):
+    """Befund #77: Je Beschluss mit Antrag drei Abfragen (Antrag, EXISTS, COUNT) — linear zum
+    Registerwert der Seitengröße, für Gäste. Jetzt ein Nenner-Wörterbuch je Seite; die Regel
+    (gelost vorhanden → deren Personen, sonst parteiweite) bleibt dieselbe."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from gremien.models import Rolle, quoren_fuer, standard_ende
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, REGELN
+
+    ordnung_ = Verfahrensordnung.objects.create(policy_id="t", version=1, regeln=REGELN, aktiv=True)
+    parteiweit = [mitglied_anlegen(f"pw{next(_ZAEHLER)}") for _ in range(2)]
+    for m in parteiweit:
+        rolle_geben(m, Gremium.EXPERTENRAT_1)
+
+    def mit_antrag():
+        antrag = antrag_einbringen(mitglied_anlegen(f"st{next(_ZAEHLER)}"), **ANTRAG, ordnung=ordnung_)
+        gelost = mitglied_anlegen(f"gl{next(_ZAEHLER)}")
+        Rolle.objects.create(mitglied=gelost, gremium=Gremium.EXPERTENRAT_1, endet_am=standard_ende(), antrag=antrag)
+        Rolle.objects.create(mitglied=gelost, gremium=Gremium.EXPERTENRAT_1, endet_am=standard_ende(), antrag=antrag)
+        return beschluss_anlegen(Gremium.EXPERTENRAT_1, antrag=antrag, angelegt_von=gelost)
+
+    erster = mit_antrag()
+    ohne = beschluss_anlegen(Gremium.EXPERTENRAT_1)
+    with CaptureQueriesContext(connection) as klein:
+        assert client.get(reverse("gremien:beschluesse")).status_code == 200
+    weitere = [mit_antrag() for _ in range(6)]
+    with CaptureQueriesContext(connection) as gross:
+        antwort = client.get(reverse("gremien:beschluesse"))
+    assert len(gross) == len(klein), f"{len(klein)} → {len(gross)} Abfragen"
+    quoren = quoren_fuer([erster, ohne, *weitere])
+    assert quoren[erster.pk] == 1 == erster.aktive_rollen(), "gelost: eine Person, auch mit zwei Zeilen"
+    assert quoren[ohne.pk] == 9 == ohne.aktive_rollen(), "ohne Antrag: alle Personen des Gremiums (2 + 7)"
+    Rolle.objects.filter(antrag=erster.antrag).update(beendet_grund="Austausch")
+    assert quoren_fuer([erster])[erster.pk] == 2 == erster.aktive_rollen(), "ohne Geloste: die parteiweiten"
+    zeilen = {z["beschluss"].pk: z["auswertung"] for z in antwort.context["beschluesse"]}
+    assert zeilen[erster.pk].noetig == erster.auswertung().noetig
 
 
 def test_der_anlass_entscheidet_ueber_die_wirkung():

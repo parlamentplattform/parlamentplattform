@@ -120,6 +120,33 @@ def test_aus_der_fachliste_laesst_sich_wirklich_ziehen():
     assert gezogen <= set(Fachliste.objects.values_list("schluessel", flat=True))
 
 
+def test_die_unvereinbarkeit_kostet_nicht_zwei_abfragen_je_kopf(client):
+    """Befund #44: Liste und Lostopf prüften je Eintrag Integritätsrat und Mandat einzeln —
+    bei 2.000 Fachleuten 4.000 Abfragen je Aufruf, und der Lostopf läuft in der Anfrage eines
+    beliebigen Besuchers. Jetzt zwei Mengen für alle: Die Zahl der Abfragen wächst nicht mit."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    rolle_geben(eintragen().mitglied, Gremium.INTEGRITAETSRAT)
+    for _ in range(4):
+        eintragen(fachgebiete=("verkehr",))
+    with CaptureQueriesContext(connection) as klein:
+        assert client.get(reverse("gremien:fachliste")).status_code == 200
+    with CaptureQueriesContext(connection) as topf_klein:
+        lostopf_der_fachliste()
+    for _ in range(20):
+        eintragen(fachgebiete=("verkehr", "bildung"))
+    with CaptureQueriesContext(connection) as gross:
+        antwort = client.get(reverse("gremien:fachliste"))
+    with CaptureQueriesContext(connection) as topf_gross:
+        topf = lostopf_der_fachliste()
+    assert len(gross) == len(klein), f"Liste: {len(klein)} → {len(gross)} Abfragen"
+    assert len(topf_gross) == len(topf_klein), f"Lostopf: {len(topf_klein)} → {len(topf_gross)} Abfragen"
+    assert antwort.context["gefuehrt"] == 24  # die Regel gilt weiter: der Integritätsrat lost nicht mit
+    assert sum(1 for k in topf if k.ausgeschlossen) == 1
+    assert {"verkehr", "bildung"} <= {slug for k in topf for slug in k.fachgebiete}
+
+
 def test_die_seite_sagt_ehrlich_dass_der_bestellweg_fehlt(client):
     """§ 6 Abs 8 verlangt Ausschreibung und Bestätigung durch die Mitgliederversammlung.
 

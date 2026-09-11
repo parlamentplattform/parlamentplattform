@@ -157,6 +157,64 @@ def test_rollen_verwaltung_beruft_bestaetigt_und_beendet(client, ordnung):  # no
     assert {"rolle_berufen", "rolle_bestaetigt", "rolle_beendet"} <= set(typen)
 
 
+def test_eine_zweite_parteiweite_rolle_derselben_person_wird_abgewiesen(client, ordnung):  # noqa: F811
+    """Befund #38: Doppelklick oder Verlängerung vor Ablauf legten eine zweite Zeile an — und die
+    Person zählte doppelt im Quorum. Geloste Rollen bleiben unberührt: Wer für einen Antrag gelost
+    ist, darf trotzdem parteiweit berufen werden."""
+    admin = mitglied_anlegen("admin")
+    admin.ist_admin = True
+    admin.save()
+    wer = mitglied_anlegen("doppelt")
+    antrag, *_ = werkstatt_lage(ordnung)
+    Rolle.objects.create(mitglied=wer, gremium=Gremium.EXPERTENRAT_1, endet_am=standard_ende(), antrag=antrag)
+    client.force_login(admin)
+    daten = {
+        "aktion": "berufen",
+        "mitglied": wer.pk,
+        "gremium": Gremium.EXPERTENRAT_1,
+        "endet_am": standard_ende().isoformat(),
+    }
+    client.post(reverse("gremien:rollen_aktion"), daten)
+    assert Rolle.objects.filter(mitglied=wer, antrag__isnull=True).count() == 1  # trotz geloster Rolle
+    antwort = client.post(reverse("gremien:rollen_aktion"), {**daten, "endet_am": (standard_ende() + timedelta(days=30)).isoformat()}, follow=True)
+    assert Rolle.objects.filter(mitglied=wer, antrag__isnull=True).count() == 1
+    assert "schon eine aktive Rolle" in antwort.content.decode()
+    assert sum(1 for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "rolle_berufen") == 1
+
+
+def test_nach_dem_beratungsende_ruht_die_werkstatt(client, ordnung):  # noqa: F811
+    """Befund #34: Nur „öffnen“ war an die Beratung gebunden. Nach dem Phasenwechsel konnte
+    Gruppe 1 weiter Fassungen anhängen und einreichen — das archivierte den Chat der laufenden
+    Abstimmung und sperrte ihn, und niemand wertete die Schleife je wieder aus."""
+    from verfahren.models import Kommentar
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = fenster_oeffnen(client, antrag, er[0])
+    beratungsfrist_ablaufen_lassen(antrag)
+    antrag.fortschreiben()
+    assert antrag.phase == "abstimmung"  # ein unfertiges Fenster hält nichts auf
+    beitrag = antrag.kommentare.create(mitglied=unterstuetzer[0], text="Ein Beitrag zur laufenden Abstimmung.", phase="abstimmung")
+
+    client.force_login(er[0])
+    aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
+    client.post(aktion, {"aktion": "fassung", "wortlaut": "Nachgeschoben."})
+    client.post(aktion, {"aktion": "beitrag", "text": "Noch ein Beitrag."})
+    client.post(aktion, {"aktion": "vollzugsbezug", "vollzugsbezug": "ja"})
+    client.post(aktion, {"aktion": "einreichung"})
+    entwurf.refresh_from_db()
+    assert entwurf.fassungen.count() == 1 and entwurf.beitraege.count() == 0
+    assert entwurf.vollzugsbezug is False and entwurf.einreichungsbeschluss() is None
+    assert entwurf.einreichen() is False  # auch der direkte Weg (Wirkung eines späten Beschlusses)
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.eingereicht_am is None
+    beitrag.refresh_from_db()
+    assert beitrag.archiviert_am is None and not Kommentar.objects.filter(system=True).exists()
+    assert any(e.ereignis["typ"] == "vorschlag_einreichung_verworfen" for e in AuditEintrag.objects.all())
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    assert 'value="fassung"' not in inhalt and 'value="einreichung"' not in inhalt
+    assert "nicht (mehr) in der Beratung" in inhalt
+
+
 def test_nav_zeigt_mein_gremium_nur_mit_rolle(client, ordnung):  # noqa: F811
     m = mitglied_anlegen("magda")
     client.force_login(m)
@@ -310,6 +368,65 @@ def test_kritik_mit_mehr_engagement_startet_eine_neue_runde(client, ordnung):  #
     assert len(wuensche) == 1 and wuensche[0]["absatz"] == 1, "die Kritik liegt als Wunsch bereit"
 
 
+def test_die_annahme_schwelle_folgt_der_eingefrorenen_ordnung(client, ordnung):  # noqa: F811
+    """Befund #3: Die Schwelle, die über Endabstimmung oder Rückgabe entscheidet, stand bis
+    0.44 im laufenden Register — und die Verwaltung konnte sie am Tag vor der Frist ändern.
+    § 5 Abs 5 schreibt sie beim Einbringen fest; ein Verstoß macht die Abstimmung ungültig.
+    Hier: 3:2 (60 %) für „Passt alles“, das Register sagt danach 70 % — der Vorschlag geht
+    trotzdem zur Endabstimmung, weil für diesen Antrag 50 % gelten."""
+    from parameter.models import Parameter
+
+    stellerin = mitglied_anlegen("stellerin")
+    unterstuetzer = [mitglied_anlegen(f"u{i}") for i in range(5)]
+    er = [mitglied_anlegen(f"rat{i}") for i in range(2)]
+    for m in er:
+        rolle_geben(m)
+    antrag = in_beratung_bringen(antrag_einbringen(stellerin, **ANTRAG, ordnung=ordnung), unterstuetzer)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer[:3]:
+        reagieren(client, antrag, passt, u)
+    for u in unterstuetzer[3:]:
+        reagieren(client, antrag, passt, u, art="ablehnung")
+    Parameter.objects.update_or_create(
+        schluessel="vorschlag-annahme-prozent",
+        defaults={"wert": "70", "beschreibung": "x", "quelle": "Test"},
+    )
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert antrag.phase == "abstimmung" and entwurf.status == EntwurfsStatus.ANGENOMMEN
+    gruende = [e.ereignis.get("grund", "") for e in AuditEintrag.objects.all()]
+    assert any("Schwelle 50 %" in g for g in gruende), "gerechnet wurde mit der eingefrorenen Schwelle"
+
+
+def test_die_hoechstrunden_folgen_der_eingefrorenen_ordnung(client, ordnung):  # noqa: F811
+    """Befund #3/#16: `gremien-hoechstrunden` von 3 auf 1 gesenkt — ein Antrag, für den beim
+    Einbringen drei Runden galten, bekommt bei Rückgabe-Mehrheit trotzdem seine zweite Runde."""
+    from parameter.models import Parameter
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Die Frist von 48 Stunden ist zu lang — binnen 24 Stunden muss das Protokoll stehen.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    Parameter.objects.update_or_create(
+        schluessel="gremien-hoechstrunden",
+        defaults={"wert": "1", "beschreibung": "x", "quelle": "Test"},
+    )
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert antrag.phase == "beratung"
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 2
+
+
 def test_kritik_braucht_bezug_und_konkretheit(client, ordnung):  # noqa: F811
     """A0-07: „muss konkrete Kritik beinhalten" — ohne Textstelle und Länge keine Kritik."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
@@ -379,6 +496,81 @@ def test_verstrichene_ueberarbeitung_geht_zur_endabstimmung(client, ordnung):  #
     entwurf.refresh_from_db()
     assert antrag.phase == "abstimmung"  # die zuletzt vorgelegte Fassung — Untätigkeit hemmt nie
     assert entwurf.status == EntwurfsStatus.ANGENOMMEN
+
+
+def test_die_schleife_wirkt_ab_fristablauf_nicht_ab_seitenaufruf(client, ordnung):  # noqa: F811
+    """Befund #33: Niemand öffnet den Antrag fünf Tage lang — die Endabstimmung beginnt trotzdem
+    mit dem Fristzeitpunkt, nicht mit dem zufälligen Moment des Aufrufs. Sonst bekämen zwei
+    Anträge mit gleichen Fristen je nach Besucherverhalten verschiedene Abstimmungsfenster."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u)
+    frist = timezone.now() - timedelta(days=5)
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung" and antrag.phase_beginn == frist
+    assert antrag.stimmberechtigung_stichtag == timezone.localdate(frist)
+    wechsel = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "phasenwechsel"][-1]
+    assert wechsel["wirksam_ab"] == frist.isoformat()
+
+
+def test_die_ueberarbeitungsfrist_zaehlt_ab_dem_fristablauf_der_rueckgabe(client, ordnung):  # noqa: F811
+    """Befund #33, Rückgabe-Fall: Der Expertenrat bekommt keine Tage geschenkt, weil niemand hinsah."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist = timezone.now() - timedelta(days=5)
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert entwurf.runde == 2
+    assert entwurf.ueberarbeitung_frist == frist + timedelta(days=antrag.policy().ueberarbeitung_tage)
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "vorschlag_zurueckgegeben"][-1]
+    assert rueckgabe["wirksam_ab"] == frist.isoformat()
+
+
+def test_ein_nie_eingereichter_arbeitsstand_geht_nicht_zur_endabstimmung(client, ordnung):  # noqa: F811
+    """Befund #5: Nach der Rückgabe hängt Gruppe 1 einen Arbeitsstand an und schweigt dann.
+    Verstreicht die Überarbeitungsfrist, geht die zuletzt **vorgelegte** Fassung zur
+    Endabstimmung (§ 5 Abs 12) — nicht der Arbeitsstand, den kein Organ freigegeben hat."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    assert entwurf.eingereichte_fassung == 1
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()  # Rückgabe: Runde 2 läuft
+    client.force_login(er[0])
+    client.post(
+        reverse("gremien:fenster_aktion", args=[antrag.pk]),
+        {"aktion": "fassung", "wortlaut": "Arbeitsstand — Absatz 4 fehlt noch.", "begruendung": "unfertig"},
+    )
+    entwurf.refresh_from_db()
+    assert entwurf.aktuelle_fassung().nummer == 2 and entwurf.eingereichte_fassung == 1
+    Entwurf.objects.filter(pk=entwurf.pk).update(ueberarbeitung_frist=timezone.now() - timedelta(hours=1))
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    text = antrag.aktueller_text()
+    assert antrag.phase == "abstimmung"
+    assert text.wortlaut == ANTRAG["wortlaut"] and "Arbeitsstand" not in text.wortlaut
+    assert "Entwurfsfassung 1" in text.begruendung
 
 
 def test_antragsseite_zeigt_den_abstimmungschat_offen(client, ordnung):  # noqa: F811

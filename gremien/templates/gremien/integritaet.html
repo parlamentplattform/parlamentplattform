@@ -33,7 +33,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     <textarea id="ir-grund" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px"></textarea>
     <p style="margin-top:8px">
       {% for wert, name, satzung in anlaesse %}
-      <button type="submit" name="anlass" value="{{ wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-right:6px">{{ name }}<span class="meta"> · {{ satzung }}</span></button>
+      <button type="submit" name="anlass" value="{{ wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-right:6px">{% translate name %}<span class="meta"> · {{ satzung }}</span></button>
       {% endfor %}
     </p>
   </form>

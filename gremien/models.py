@@ -18,44 +18,46 @@ Bleiben Stimmen aus, wertet der Fristablauf aus; bleibt eine Überarbeitung
 aus, geht die zuletzt vorgelegte Fassung zur Endabstimmung. Die Beratung
 eines Antrags bleibt nur offen, solange die Schleife tatsächlich arbeitet.
 
-Offene Parameter: Seit F-68 liest die Schleife ihre Fristen und Runden aus
-dem öffentlichen Parameterregister (/parameter/); die Konstanten unten sind
-die eingebauten Zielwerte und bleiben der ehrliche Rückfall."""
+Stellgrößen: Fristen, Runden und Annahme-Schwelle der Schleife stehen in der
+Verfahrensordnung, die beim Einbringen an den Antrag geheftet wird
+(`plattform_core.policy`, § 5 Abs 5) — das Register speist nur künftige Ordnungen.
+Live aus dem Register kommen allein die Größen, die kein Antragsverfahren
+betreffen: die Dauer einer Rolle, die Regelfrist eines internen Beschlusses und
+die Frist des Koordinationsrats über einen Austauschantrag; die Konstanten unten
+sind dafür der ehrliche Rückfall."""
 
 from __future__ import annotations
 
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 
-REVIEW_TAGE = 14
-UEBERARBEITUNG_TAGE = 14
-HOECHSTRUNDEN = 3
 ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
 BESCHLUSS_TAGE = 7  # Rückfall für die Frist eines internen Beschlusses (§ 6 Abs 2 lit e)
-PRUEFUNG_TAGE = 7  # Rückfall für die Frist der Prüfung durch Gruppe 2 (§ 6 Abs 7)
 
 
 def _registerzahl(schluessel: str, standard: int) -> int:
-    """Seit F-68 liest die Schleife ihre Fristen aus dem offenen
-    Parameterregister — die Konstanten oben bleiben die Zielwerte/Fallbacks."""
+    """Ein Registerwert, der sofort wirkt — nur für Größen, die kein laufendes
+    Antragsverfahren betreffen (F-68). Alles, was § 5 Abs 5 festschreibt, kommt
+    aus `Antrag.policy()`."""
     from parameter.models import zahl
 
     return zahl(schluessel, standard)
 
 
 class Gremium(models.TextChoices):
-    EXPERTENRAT_1 = "expertenrat1", "Expertenrat — Gruppe 1 (Entwurf)"
-    EXPERTENRAT_2 = "expertenrat2", "Expertenrat — Gruppe 2 (Prüfung)"
-    KOORDINATIONSRAT = "koordinationsrat", "Koordinationsrat"
-    INTEGRITAETSRAT = "integritaetsrat", "Integritätsrat"
-    BERICHTSWESENRAT = "berichtswesenrat", "Integrations- und Berichtswesenrat"
-    ENTWICKLUNGSRAT = "entwicklungsrat", "Technischer Entwicklungsrat"
+    EXPERTENRAT_1 = "expertenrat1", _("Expertenrat — Gruppe 1 (Entwurf)")
+    EXPERTENRAT_2 = "expertenrat2", _("Expertenrat — Gruppe 2 (Prüfung)")
+    KOORDINATIONSRAT = "koordinationsrat", _("Koordinationsrat")
+    INTEGRITAETSRAT = "integritaetsrat", _("Integritätsrat")
+    BERICHTSWESENRAT = "berichtswesenrat", _("Integrations- und Berichtswesenrat")
+    ENTWICKLUNGSRAT = "entwicklungsrat", _("Technischer Entwicklungsrat")
 
 
 class Rolle(models.Model):
@@ -107,6 +109,15 @@ class Rolle(models.Model):
         return cls.objects.filter(
             gremium=gremium, beendet_grund="", endet_am__gte=timezone.localdate()
         )
+
+    @staticmethod
+    def personen(rollen) -> int:
+        """Wie viele MENSCHEN hinter einer Rollenmenge stehen — der Nenner jedes Quorums.
+
+        Rollen sind nicht eindeutig je Person; eine Doppelberufung (Doppelklick, Verlängerung vor
+        Ablauf) zählte sonst zweimal im Nenner, obwohl die Person nur einmal stimmen kann — ein
+        Rat aus zwei Menschen mit drei Zeilen wäre beschlussfähig gewesen (Befund #38)."""
+        return rollen.values("mitglied").distinct().count()
 
     @classmethod
     def hat(cls, mitglied, *gremien: str) -> bool:
@@ -186,6 +197,12 @@ class Entwurf(models.Model):
         help_text="Unmittelbarer Vollzugs- oder Beschaffungsbezug — dann prüft Gruppe 2 (§ 6 Abs 7).",
     )
     eingereicht_am = models.DateTimeField(null=True, blank=True)
+    eingereichte_fassung = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Nummer der Entwurfsfassung, die zuletzt eingereicht wurde — nur sie geht zur "
+        "Endabstimmung. Ein später angehängter Arbeitsstand hat kein Organ freigegeben (§ 5 Abs 12).",
+    )
     review_frist = models.DateTimeField(null=True, blank=True)
     ueberarbeitung_frist = models.DateTimeField(null=True, blank=True)
     erstellt_am = models.DateTimeField(default=timezone.now)
@@ -201,6 +218,16 @@ class Entwurf(models.Model):
 
     def aktuelle_fassung(self):
         return self.fassungen.order_by("-nummer").first()
+
+    def vorgelegte_fassung(self):
+        """Die Fassung, die zuletzt eingereicht wurde — oder None, wenn nie eingereicht.
+
+        Nicht `aktuelle_fassung()`: In einer Überarbeitungsrunde darf Gruppe 1 jederzeit
+        Arbeitsstände anhängen. Über sie hat weder die Gruppe beschlossen noch Gruppe 2 geprüft,
+        noch haben die Unterstützer sie gesehen — zur Endabstimmung geht nur, was vorgelegt war."""
+        if self.eingereichte_fassung is None:
+            return None
+        return self.fassungen.filter(nummer=self.eingereichte_fassung).first()
 
     def einreichungsbeschluss(self):
         """Der offene Beschluss der Gruppe 1 über die Einreichung — oder None."""
@@ -248,7 +275,7 @@ class Entwurf(models.Model):
         voten = list(self.unterstuetzer_voten.filter(runde=self.runde))
         annahmen = sum(1 for v in voten if v.annehmen)
         rueckgaben = len(voten) - annahmen
-        unterstuetzer = self.antrag.unterstuetzungen.count()
+        unterstuetzer = self.antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
         return {"annahmen": annahmen, "rueckgaben": rueckgaben, "unterstuetzer": unterstuetzer}
 
     def haelt_beratung_offen(self, jetzt=None) -> bool:
@@ -267,16 +294,41 @@ class Entwurf(models.Model):
 
     # ── Übergabe-Handlungen ──────────────────────────────────────────────────
 
-    def einreichen(self, jetzt=None) -> None:
+    def einreichen(self, jetzt=None) -> bool:
         """Gruppe 1 reicht den Vorschlag ein: mit Vollzugsbezug zuerst zur
-        Prüfung der Gruppe 2, sonst direkt an die Unterstützer (§ 5 Abs 12)."""
+        Prüfung der Gruppe 2, sonst direkt an die Unterstützer (§ 5 Abs 12).
+
+        Nur während der Beratung: Danach wertet niemand die Schleife mehr aus, und ein
+        Einreichen archivierte den Chat der laufenden Abstimmung oder sperrte ihn (Befund #34).
+        Rückgabe: ob eingereicht wurde."""
+        from plattform_core import Phase
+
         jetzt = jetzt or timezone.now()
+        if self.antrag.phase != Phase.BERATUNG.value:
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "vorschlag_einreichung_verworfen",
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "phase": self.antrag.phase,
+                }
+            )
+            return False
         self.eingereicht_am = jetzt
+        fassung = self.aktuelle_fassung()
+        if fassung is not None:
+            # Festhalten, WAS eingereicht wurde: Nur diese Fassung geht später zur Endabstimmung,
+            # auch wenn in einer Überarbeitungsrunde noch Arbeitsstände dazukommen (Befund #5).
+            self.eingereichte_fassung = fassung.nummer
         if self.vollzugsbezug:
+            # Spätestens jetzt braucht es Gruppe 2 — gelost, nicht berufen (§ 6 Abs 7). Das
+            # Setzen des Bezugs im Fenster zieht sie schon; dieser Aufruf fängt den Fall ab, in
+            # dem der Bezug anders gesetzt wurde. Einmalig, siehe `gruppe_2_nachziehen`.
+            gruppe_2_nachziehen(self.antrag, jetzt)
             self.status = EntwurfsStatus.PRUEFUNG
         else:
             self.status = EntwurfsStatus.UNTERSTUETZER
-            self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
+            self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.ueberarbeitung_frist = None
         self.save()
         if self.status == EntwurfsStatus.PRUEFUNG:
@@ -291,6 +343,7 @@ class Entwurf(models.Model):
                 "weg": "pruefung" if self.vollzugsbezug else "unterstuetzer",
             }
         )
+        return True
 
     def pruefbeschluss_anlegen(self, jetzt=None):
         """Legt die interne Abstimmung der Gruppe 2 zu diesem Vorschlag an (FB-I3).
@@ -316,7 +369,7 @@ class Entwurf(models.Model):
                 "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
             ),
             optionen=PRUEFOPTIONEN,
-            frist=jetzt + timedelta(days=_registerzahl("gremien-pruefung-tage", PRUEFUNG_TAGE)),
+            frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
             antrag=self.antrag,
             entwurf=self,
             angelegt_von=angelegt_von.mitglied,
@@ -326,7 +379,7 @@ class Entwurf(models.Model):
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
         jetzt = jetzt or timezone.now()
         self.status = EntwurfsStatus.UNTERSTUETZER
-        self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
+        self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.save(update_fields=["status", "review_frist"])
         self.abstimmungschat_eroeffnen(jetzt)
 
@@ -363,30 +416,46 @@ class Entwurf(models.Model):
         if neue_runde:
             self.runde += 1
             self.ueberarbeitung_frist = jetzt + timedelta(
-                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+                days=self.antrag.policy().ueberarbeitung_tage
             )
         elif frist_erneuern and self.runde > 1:
             self.ueberarbeitung_frist = jetzt + timedelta(
-                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+                days=self.antrag.policy().ueberarbeitung_tage
             )
         self.save()
         AuditEintrag.anhaengen(
-            {"typ": "vorschlag_zurueckgegeben", "antrag": self.antrag_id, "runde": self.runde, "grund": grund}
+            {
+                "typ": "vorschlag_zurueckgegeben",
+                "antrag": self.antrag_id,
+                "runde": self.runde,
+                "grund": grund,
+                "wirksam_ab": jetzt.isoformat(),
+            }
         )
 
     @transaction.atomic
     def _endabstimmung_oeffnen(self, antrag: Antrag, grund: str, jetzt) -> None:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
-        Vorschlag — er wird die neue, letzte Antragsfassung."""
-        fassung = self.aktuelle_fassung()
-        letzte = antrag.aktueller_text()
-        nummer = (letzte.nummer if letzte else 0) + 1
-        AntragsFassung.objects.create(
-            antrag=antrag,
-            nummer=nummer,
-            wortlaut=fassung.wortlaut,
-            begruendung=f"Vorschlag des Expertenrats, Runde {self.runde} (§ 5 Abs 12). {fassung.begruendung}".strip(),
-        )
+        Vorschlag — er wird die neue, letzte Antragsfassung.
+
+        „Zustande gekommen“ ist die zuletzt **eingereichte** Fassung, nicht die höchste Nummer:
+        Nach einer Rückgabe hängt Gruppe 1 Arbeitsstände an, und verstreicht dann die
+        Überarbeitungsfrist, geht die vorgelegte Fassung zur Abstimmung (§ 5 Abs 12: „über die
+        zuletzt veröffentlichte Fassung“) — nie ein Text, den kein Organ freigegeben hat.
+        Wurde nie eingereicht, bleibt der Antragstext, wie er ist."""
+        fassung = self.vorgelegte_fassung()
+        if fassung is not None:
+            letzte = antrag.aktueller_text()
+            nummer = (letzte.nummer if letzte else 0) + 1
+            AntragsFassung.objects.create(
+                antrag=antrag,
+                nummer=nummer,
+                wortlaut=fassung.wortlaut,
+                begruendung=(
+                    f"Vorschlag des Expertenrats, Runde {self.runde}, Entwurfsfassung {fassung.nummer} "
+                    f"(§ 5 Abs 12). {fassung.begruendung}"
+                ).strip(),
+            )
         from plattform_core import Phase
 
         if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
@@ -405,15 +474,18 @@ class Entwurf(models.Model):
             from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
 
+            # Stichtag im Wiener Kalender, nicht das UTC-Datum (Befund #32) — gespeichert, damit
+            # Zählung und Einzelprüfung dieselbe Zahl lesen.
+            antrag.stimmberechtigung_stichtag = timezone.localdate(jetzt)
             antrag.stimmberechtigte_anzahl = max(
                 1,
                 stimmberechtigte_zaehlen(
                     Gegenstand.SACHFRAGE,
-                    jetzt.date(),
+                    antrag.stimmberechtigung_stichtag,
                     uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
                 ),
             )
-            felder.append("stimmberechtigte_anzahl")
+            felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         antrag.save(update_fields=felder)
         archiviert = antrag.chat_archivieren(jetzt)  # FB-G5: Hochstufung räumt den Chat
         AuditEintrag.anhaengen(
@@ -423,6 +495,7 @@ class Entwurf(models.Model):
                 "neue_phase": Phase.ABSTIMMUNG.value,
                 "wirksam_ab": jetzt.isoformat(),
                 "grund": grund,
+                "entwurfsfassung": fassung.nummer if fassung is not None else None,
                 "chat_archiviert": archiviert,
             }
         )
@@ -438,10 +511,41 @@ class Entwurf(models.Model):
           zuletzt vorgelegte Fassung geht zur Endabstimmung."""
         jetzt = jetzt or timezone.now()
         if self.status == EntwurfsStatus.PRUEFUNG:
-            if self.pruefungen.filter(
-                ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""
-            ).exists():
-                return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+            # Zwei Wege führen aus der Prüfung ohne Beschluss heraus, und beide haben eine Frist
+            # (Befund #8): Sonst hinge der Antrag unbefristet in der Beratung, obwohl § 5 Abs 12
+            # sagt, dass Untätigkeit eines Organs das Verfahren nie hemmt. Die Frist ist die
+            # Prüffrist der eingefrorenen Ordnung (§ 5 Abs 5) — dieselbe, die ein Beschluss der
+            # Gruppe 2 bekäme.
+            pruefung_tage = timedelta(days=antrag.policy().pruefung_tage)
+            austausch = (
+                self.pruefungen.filter(ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid="")
+                .order_by("-erstellt_am")
+                .first()
+            )
+            if austausch is not None:
+                frist = austausch.erstellt_am + pruefung_tage
+                if jetzt < frist:
+                    return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+                # Der Koordinationsrat hat binnen der Frist nicht entschieden: Der Austauschantrag
+                # gilt als verfristet, der Vorschlag geht — offen vermerkt — an die Unterstützer.
+                austausch.korat_entscheid = Pruefung.KoratEntscheid.VERFRISTET
+                austausch.korat_begruendung = (
+                    "Frist verstrichen — keine Entscheidung des Koordinationsrats binnen "
+                    f"{antrag.policy().pruefung_tage} Tagen (§ 5 Abs 12: Untätigkeit hemmt nie)."
+                )
+                austausch.save(update_fields=["korat_entscheid", "korat_begruendung"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "pruefung_frist_verstrichen",
+                        "antrag": self.antrag_id,
+                        "runde": self.runde,
+                        "grund": "austausch_ohne_entscheid",
+                        "pruefung": austausch.pk,
+                        "wirksam_ab": frist.isoformat(),
+                    }
+                )
+                self.zu_den_unterstuetzern(frist)
+                return True
             offene = list(
                 self.beschluesse.filter(
                     gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN
@@ -451,8 +555,38 @@ class Entwurf(models.Model):
                 # Erst hier, nicht schon beim Einreichen: Beim Einreichen ist manchmal noch
                 # niemand in Gruppe 2 berufen, und die Frist einer Gruppe kann nicht laufen,
                 # bevor es die Gruppe gibt.
-                self.pruefbeschluss_anlegen(jetzt)
-                return False
+                if self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
+                    return False
+                # Keine Gruppe 2 — dann läuft die Prüffrist ab der Einreichung. Verstreicht sie,
+                # geht der Vorschlag weiter, und der Vermerk sagt offen, dass niemand geprüft hat.
+                frist = self.eingereicht_am + pruefung_tage
+                if jetzt < frist:
+                    return False
+                Pruefung.objects.create(
+                    entwurf=self,
+                    runde=self.runde,
+                    ergebnis=Pruefung.Ergebnis.VALIDIERT,
+                    begruendung=(
+                        "Die Prüfung blieb aus: In Gruppe 2 war binnen der Prüffrist von "
+                        f"{antrag.policy().pruefung_tage} Tagen keine Rolle besetzt. Der Vorschlag "
+                        "geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
+                        "(§ 5 Abs 12: Untätigkeit hemmt nie)."
+                    ),
+                    durch=None,
+                    beschluss=None,
+                    erstellt_am=frist,
+                )
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "pruefung_frist_verstrichen",
+                        "antrag": self.antrag_id,
+                        "runde": self.runde,
+                        "grund": "keine_gruppe_2",
+                        "wirksam_ab": frist.isoformat(),
+                    }
+                )
+                self.zu_den_unterstuetzern(frist)
+                return True
             # Die Prüfung der Gruppe 2 hat ihre eigene Frist (FB-I3). Läuft sie ab, wertet der
             # Beschluss aus — sonst hinge ein Beschaffungsantrag an der Aufmerksamkeit eines
             # einzelnen Rates, und genau das soll die Frist verhindern (§ 5 Abs 12).
@@ -467,28 +601,34 @@ class Entwurf(models.Model):
                 return False
             from verfahren.chat import abstimmung_stand
 
-            stand = abstimmung_stand(antrag, self)
+            # Wirksam ist der Fristzeitpunkt, nicht der zufällige Moment des Seitenaufrufs
+            # (Befund #33, Grundsatz aus plattform_core.phases): Sonst bekäme der Expertenrat
+            # Tage geschenkt, weil niemand hinsah, und zwei Anträge mit gleichen Fristen
+            # hätten je nach Besucherverhalten verschiedene Abstimmungsfenster und Stichtage.
+            wirksam = self.review_frist
+            # Schwelle und Höchstrunden aus der eingefrorenen Ordnung des Antrags — nicht aus
+            # dem Register: Eine Änderung dort träfe sonst eine laufende Schleife (§ 5 Abs 5).
+            ordnung = antrag.policy()
+            stand = abstimmung_stand(antrag, self, schwelle=ordnung.vorschlag_annahme_anteil)
             rechnung = (
                 f"„Passt alles“ {stand['ja']}:{stand['nein']} = {stand['prozent']} % "
                 f"(Schwelle {round(stand['schwelle'] * 100)} %), "
                 f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
                 f"Regel {stand['reihung']}"
             )
-            if not stand["angenommen"] and self.runde < _registerzahl(
-                "gremien-hoechstrunden", HOECHSTRUNDEN
-            ):
+            if not stand["angenommen"] and self.runde < ordnung.hoechstrunden:
                 self.zurueck_an_gruppe_1(
                     f"Der Abstimmungs-Chat gibt zurück: {rechnung}. "
                     f"{len(stand['kritik'])} Kritik-Beiträge gehen als Wünsche an den Expertenrat.",
-                    jetzt,
+                    wirksam,
                     neue_runde=True,
                 )
-                antrag.chat_archivieren(jetzt)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
+                antrag.chat_archivieren(wirksam)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
             self._endabstimmung_oeffnen(
                 antrag,
                 f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
-                jetzt,
+                wirksam,
             )
             return True
         if (
@@ -501,7 +641,7 @@ class Entwurf(models.Model):
                 antrag,
                 "Überarbeitungsfrist verstrichen — die zuletzt vorgelegte Fassung geht zur "
                 "Endabstimmung (§ 5 Abs 12: Untätigkeit hemmt nie).",
-                jetzt,
+                self.ueberarbeitung_frist,  # wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33)
             )
             return True
         return False
@@ -580,6 +720,15 @@ class Pruefung(models.Model):
         ZURUECK = "zurueck", "mit Begründung zurückgegeben"
         AUSTAUSCH = "austausch", "Austausch bei Gruppe 1 beantragt"
 
+    class KoratEntscheid(models.TextChoices):
+        """Wie der Koordinationsrat über einen Austauschantrag befand — oder dass er es nicht tat:
+        `verfristet` heißt, die Prüffrist verstrich ohne Beschluss und der Vorschlag ging weiter
+        (§ 5 Abs 12). Ein späterer Beschluss ändert daran nichts mehr."""
+
+        STATTGEGEBEN = "stattgegeben", _("stattgegeben")
+        ABGELEHNT = "abgelehnt", _("abgelehnt")
+        VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
+
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
     runde = models.PositiveIntegerField()
     ergebnis = models.CharField(max_length=12, choices=Ergebnis.choices)
@@ -603,8 +752,9 @@ class Pruefung(models.Model):
     korat_entscheid = models.CharField(
         max_length=12,
         blank=True,
-        choices=[("stattgegeben", "stattgegeben"), ("abgelehnt", "abgelehnt")],
-        help_text="Nur bei Austauschanträgen: die Entscheidung des Koordinationsrats.",
+        choices=KoratEntscheid.choices,
+        help_text="Nur bei Austauschanträgen: die Entscheidung des Koordinationsrats — oder der "
+        "Vermerk, dass sie binnen der Prüffrist ausblieb.",
     )
     korat_begruendung = models.TextField(max_length=2000, blank=True)
     korat_beschluss = models.ForeignKey(
@@ -652,21 +802,21 @@ class Anlass(models.TextChoices):
     ausschließlich hierüber. Neue Anlässe kommen erst, wenn ihre Wirkung gebaut ist — ein Anlass
     ohne Wirkung wäre ein Knopf, der schweigend nichts tut."""
 
-    INTERN = "intern", "innere Angelegenheit des Rates"
-    PRUEFUNG = "pruefung", "Prüfung eines Vorschlags (§ 6 Abs 7)"
-    HERVORHEBUNG = "hervorhebung", "Hervorhebung eines Antrags (§ 5 Abs 10 lit b)"
-    HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", "Hervorhebung aufheben (§ 5 Abs 10 lit b)"
-    ZURUECKWEISUNG = "zurueckweisung", "Zurückweisung eines Antrags (§ 5 Abs 2)"
-    ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", "Zurückweisung aufheben (§ 5 Abs 2)"
-    AUSSETZUNG = "aussetzung", "Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)"
-    AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", "Aussetzung aufheben (§ 6 Abs 3 lit d)"
-    REGELPRUEFUNG = "regelpruefung", "Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)"
-    EINREICHUNG = "einreichung", "Einreichung eines Vorschlags (§ 5 Abs 12)"
-    AUSTAUSCH = "austausch", "Austausch der Gruppe 1 (§ 6 Abs 7)"
-    HERVORHEBUNG_ANREGEN = "hervorhebung_anregen", "Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)"
-    UEBERLASTUNG = "ueberlastung", "Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)"
-    PARAMETERTEST = "parametertest", "Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)"
-    PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", "Einführung eines Registerwerts (§ 6 Abs 11 lit c)"
+    INTERN = "intern", _("innere Angelegenheit des Rates")
+    PRUEFUNG = "pruefung", _("Prüfung eines Vorschlags (§ 6 Abs 7)")
+    HERVORHEBUNG = "hervorhebung", _("Hervorhebung eines Antrags (§ 5 Abs 10 lit b)")
+    HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", _("Hervorhebung aufheben (§ 5 Abs 10 lit b)")
+    ZURUECKWEISUNG = "zurueckweisung", _("Zurückweisung eines Antrags (§ 5 Abs 2)")
+    ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", _("Zurückweisung aufheben (§ 5 Abs 2)")
+    AUSSETZUNG = "aussetzung", _("Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)")
+    AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", _("Aussetzung aufheben (§ 6 Abs 3 lit d)")
+    REGELPRUEFUNG = "regelpruefung", _("Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)")
+    EINREICHUNG = "einreichung", _("Einreichung eines Vorschlags (§ 5 Abs 12)")
+    AUSTAUSCH = "austausch", _("Austausch der Gruppe 1 (§ 6 Abs 7)")
+    HERVORHEBUNG_ANREGEN = "hervorhebung_anregen", _("Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)")
+    UEBERLASTUNG = "ueberlastung", _("Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)")
+    PARAMETERTEST = "parametertest", _("Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)")
+    PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", _("Einführung eines Registerwerts (§ 6 Abs 11 lit c)")
 
 
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
@@ -704,9 +854,9 @@ def beschlussnummer(gremium: str, jahr: int, laufend: int) -> str:
 class BeschlussStatus(models.TextChoices):
     """Wo ein interner Beschluss steht (FB-I4)."""
 
-    OFFEN = "offen", "offen"
-    ENTSCHIEDEN = "entschieden", "entschieden"
-    OHNE_ERGEBNIS = "ohne_ergebnis", "ohne Ergebnis (Frist abgelaufen)"
+    OFFEN = "offen", _("offen")
+    ENTSCHIEDEN = "entschieden", _("entschieden")
+    OHNE_ERGEBNIS = "ohne_ergebnis", _("ohne Ergebnis (Frist abgelaufen)")
 
 
 class GremienBeschluss(models.Model):
@@ -779,27 +929,49 @@ class GremienBeschluss(models.Model):
         ordering = ["-angelegt_am"]
         verbose_name = "Gremienbeschluss"
         verbose_name_plural = "Gremienbeschlüsse"
+        # `faellige_abschliessen` filtert bei jedem öffentlichen Gremien-Aufruf auf Status und Frist (Befund #81).
+        indexes = [models.Index(fields=["status", "frist"], name="beschluss_status_frist_idx")]
 
     def __str__(self) -> str:
         return f"{self.nummer or self.get_gremium_display()}: {self.gegenstand}"
 
+    #: Wie oft `save` bei einer vergebenen Nummer neu zählt, bevor es aufgibt.
+    NUMMERN_VERSUCHE = 3
+
     def save(self, *args, **kwargs):
         """Vergibt beim ersten Speichern die Beschlussnummer.
 
-        In einer Transaktion und mit `unique=True` abgesichert: Zwei gleichzeitig angelegte
-        Beschlüsse desselben Rates bekämen sonst dieselbe Nummer, und eine Nummer, die zweimal
-        vorkommt, ist keine."""
-        if not self.nummer:
-            with transaction.atomic():
-                jahr = (self.angelegt_am or timezone.now()).year
-                bisher = (
-                    GremienBeschluss.objects.select_for_update()
-                    .filter(gremium=self.gremium, nummer__startswith=f"{GREMIUMSKUERZEL.get(self.gremium, 'GR')}-{jahr}-")
-                    .count()
-                )
-                self.nummer = beschlussnummer(self.gremium, jahr, bisher + 1)
-                return super().save(*args, **kwargs)
-        return super().save(*args, **kwargs)
+        Abgesichert ist die Nummer allein durch `unique=True` — eine Sperre gibt es nicht:
+        Django lässt `select_for_update()` bei Aggregaten fallen, und eine Zeilensperre hielte
+        ohnehin keine zweite Einfügung auf (Befund #72). Wer bei einem Wettrennen die vergebene
+        Nummer erwischt, bekommt den IntegrityError, zählt neu und versucht es noch einmal —
+        außerhalb des inneren Savepoints, damit eine äußere Transaktion benutzbar bleibt.
+
+        Das Jahr ist das des Wiener Kalenders, nicht das UTC-Jahr: In der ersten Stunde des
+        1. Jänner trüge die Nummer sonst das alte Jahr, während die Begründung am Antrag das neue
+        nennt (Befund #73/#76). Vergebene Nummern bleiben, wie sie sind."""
+        if self.nummer:
+            return super().save(*args, **kwargs)
+        jahr = timezone.localtime(self.angelegt_am or timezone.now()).year
+        for _versuch in range(self.NUMMERN_VERSUCHE):
+            self.nummer = self._naechste_nummer(jahr)
+            try:
+                with transaction.atomic():
+                    return super().save(*args, **kwargs)
+            except IntegrityError:
+                continue
+        raise IntegrityError(
+            f"Beschlussnummer: {self.NUMMERN_VERSUCHE}-mal hintereinander vergeben — Beschluss nicht angelegt."
+        )
+
+    def _naechste_nummer(self, jahr: int) -> str:
+        """Die nächste freie Nummer je Gremium und Jahr — höchste vergebene plus eins."""
+        praefix = f"{GREMIUMSKUERZEL.get(self.gremium, 'GR')}-{jahr}-"
+        vergeben = GremienBeschluss.objects.filter(gremium=self.gremium, nummer__startswith=praefix).values_list(
+            "nummer", flat=True
+        )
+        hoechste = max((int(n.rsplit("-", 1)[1]) for n in vergeben if n.rsplit("-", 1)[1].isdigit()), default=0)
+        return beschlussnummer(self.gremium, jahr, hoechste + 1)
 
     @property
     def offen(self) -> bool:
@@ -815,20 +987,26 @@ class GremienBeschluss(models.Model):
         return wert
 
     def aktive_rollen(self) -> int:
-        """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die gelosten Rollen.
+        """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die dafür gelosten Personen.
 
         Ohne diese Bindung zählte ein Beschluss zu Antrag A alle Rollen der Partei, auch die,
-        die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig."""
+        die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig. Gezählt werden
+        Menschen, nicht Rollenzeilen (Befund #38)."""
         if self.antrag_id:
-            return Rolle.fuer_antrag(self.gremium, self.antrag).count()
-        return Rolle.aktive(self.gremium).count()
+            return Rolle.personen(Rolle.fuer_antrag(self.gremium, self.antrag))
+        return Rolle.personen(Rolle.aktive(self.gremium))
 
-    def auswertung(self):
-        """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist."""
+    def auswertung(self, aktive: int | None = None):
+        """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist.
+
+        `aktive` nimmt einen vorberechneten Nenner entgegen (Listen: `quoren_fuer`); ohne ihn
+        wird er hier bestimmt — so bleibt `abschliessen()` unverändert."""
         from plattform_core.gremienbeschluss import auswerten
 
         return auswerten(
-            [stimme.option for stimme in self.stimmen.all()], self.optionswerte(), self.aktive_rollen()
+            [stimme.option for stimme in self.stimmen.all()],
+            self.optionswerte(),
+            self.aktive_rollen() if aktive is None else aktive,
         )
 
     def alle_haben_gestimmt(self) -> bool:
@@ -885,6 +1063,36 @@ class GremienBeschluss(models.Model):
         for beschluss in cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt):
             geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen
+
+
+def quoren_fuer(beschluesse) -> dict[int, int]:
+    """Der Quorum-Nenner je Beschluss einer Liste — eine Abfrage statt bis zu drei je Zeile.
+
+    Dieselbe Regel wie `GremienBeschluss.aktive_rollen`: Zu einem Antrag zählen die dafür
+    gelosten Personen, ersatzweise die parteiweiten (`Rolle.fuer_antrag`); ohne Antrag alle
+    Personen mit aktiver Rolle im Gremium — nur einmal für die ganze Seite gerechnet
+    (Befund #77). Die öffentliche Liste mischt alle Räte, deshalb der Schlüssel (Gremium, Antrag)."""
+    beschluesse = list(beschluesse)
+    if not beschluesse:
+        return {}
+    je_antrag: dict[tuple, set] = {}
+    je_gremium: dict[str, set] = {}
+    zeilen = (
+        Rolle.objects.filter(beendet_grund="", endet_am__gte=timezone.localdate())
+        .values_list("gremium", "antrag_id", "mitglied_id")
+        .distinct()
+    )
+    for gremium, antrag_id, mitglied_id in zeilen:
+        je_antrag.setdefault((gremium, antrag_id), set()).add(mitglied_id)
+        je_gremium.setdefault(gremium, set()).add(mitglied_id)
+    quoren = {}
+    for beschluss in beschluesse:
+        if beschluss.antrag_id:
+            gelost = je_antrag.get((beschluss.gremium, beschluss.antrag_id))
+            quoren[beschluss.pk] = len(gelost) if gelost else len(je_antrag.get((beschluss.gremium, None), ()))
+        else:
+            quoren[beschluss.pk] = len(je_gremium.get(beschluss.gremium, ()))
+    return quoren
 
 
 class GremienStimme(models.Model):
@@ -998,7 +1206,7 @@ def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
     § 6 Abs 3 lit a verlangt drei bis sieben Mitglieder. Sinkt die Besetzung darunter, ist das
     kein Grund, die laufende Abstimmung zu verwerfen — wohl aber einer, ihr die Wirkung zu
     versagen: Ein Rat aus zwei Menschen soll keinen Antrag zurückweisen können."""
-    return Rolle.aktive(Gremium.INTEGRITAETSRAT).count() >= SATZUNG_MIN_INTEGRITAETSRAT
+    return Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT)) >= SATZUNG_MIN_INTEGRITAETSRAT
 
 
 def _vermerken(beschluss, text: str) -> None:
@@ -1149,8 +1357,8 @@ class Aussetzung(models.Model):
     die Fristen des Antrags verschoben, und wer das Verfahren nachrechnet, muss sie finden."""
 
     class Gegenstand(models.TextChoices):
-        ABSTIMMUNG = "abstimmung", "laufende Abstimmung"
-        VOLLZUG = "vollzug", "Vollzug eines Beschlusses"
+        ABSTIMMUNG = "abstimmung", _("laufende Abstimmung")
+        VOLLZUG = "vollzug", _("Vollzug eines Beschlusses")
 
     antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="aussetzungen")
     gegenstand = models.CharField(max_length=12, choices=Gegenstand.choices)
@@ -1206,8 +1414,8 @@ class Regelpruefung(models.Model):
     die Prüfung das Verzeichnis ein, wie es zum Zeitpunkt des Beschlusses stand."""
 
     class Ergebnis(models.TextChoices):
-        GEPRUEFT = "geprueft", "geprüft, keine Beanstandung"
-        BEANSTANDET = "beanstandet", "beanstandet"
+        GEPRUEFT = "geprueft", _("geprüft, keine Beanstandung")
+        BEANSTANDET = "beanstandet", _("beanstandet")
 
     jahr = models.PositiveIntegerField()
     beschluss = models.OneToOneField(
@@ -1228,6 +1436,21 @@ class Regelpruefung(models.Model):
         return f"Regelprüfung {self.jahr} ({self.beschluss.nummer})"
 
 
+def aussetzungs_gegenstand(antrag) -> str | None:
+    """Was sich an diesem Antrag aussetzen lässt — oder None (§ 6 Abs 3 lit d).
+
+    Die Satzung erlaubt dem Integritätsrat, „den Vollzug eines Beschlusses oder eine laufende
+    Abstimmung“ auszusetzen — nicht eine Sammelfrist oder eine Beratung. Bis 0.45 bekam jede
+    andere Phase das Etikett „Vollzug“ und hemmte trotzdem die Frist (Befund #31)."""
+    from plattform_core import Phase
+
+    if antrag.phase == Phase.ABSTIMMUNG.value:
+        return Aussetzung.Gegenstand.ABSTIMMUNG
+    if antrag.phase == Phase.ANGENOMMEN.value:
+        return Aussetzung.Gegenstand.VOLLZUG
+    return None
+
+
 def aussetzung_wirkung(beschluss, jetzt=None) -> None:
     """Setzt eine Abstimmung oder einen Vollzug aus (§ 6 Abs 3 lit d)."""
     antrag = beschluss.antrag
@@ -1236,19 +1459,22 @@ def aussetzung_wirkung(beschluss, jetzt=None) -> None:
     if not _integritaetsrat_beschlussfaehig(beschluss):
         _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
         return
+    gegenstand = aussetzungs_gegenstand(antrag)
+    if gegenstand is None:
+        _vermerken(
+            beschluss,
+            f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — weder eine laufende "
+            "Abstimmung noch der Vollzug eines Beschlusses (§ 6 Abs 3 lit d).",
+        )
+        return
     if Aussetzung.objects.filter(antrag=antrag, beendet_am__isnull=True).exists():
         _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft bereits eine Aussetzung.")
         return
     jetzt = jetzt or timezone.now()
-    from plattform_core import Phase
 
     aussetzung = Aussetzung.objects.create(
         antrag=antrag,
-        gegenstand=(
-            Aussetzung.Gegenstand.ABSTIMMUNG
-            if antrag.phase == Phase.ABSTIMMUNG.value
-            else Aussetzung.Gegenstand.VOLLZUG
-        ),
+        gegenstand=gegenstand,
         beschluss=beschluss,
         begruendung=beschluss.beschreibung,
         beginn=jetzt,
@@ -1394,6 +1620,7 @@ class Fachliste(models.Model):
         ordering = ["schluessel"]
         verbose_name = "Fachlisten-Eintrag"
         verbose_name_plural = "Fachliste"
+        indexes = [models.Index(fields=["gestrichen_am"], name="fachliste_gestrichen_idx")]  # Sortierfeld der Liste
 
     def __str__(self) -> str:
         return f"{self.schluessel}: {self.anzeigename}"
@@ -1422,33 +1649,53 @@ class Fachliste(models.Model):
 
         return Kandidat(
             schluessel=self.schluessel,
-            fachgebiete=frozenset(self.fachgebiete.values_list("slug", flat=True)),
+            # `.all()` statt `values_list`: nur so greift der Prefetch, sonst eine Abfrage je Kopf.
+            fachgebiete=frozenset(k.slug for k in self.fachgebiete.all()),
             ausgeschlossen=bool(ausschlussgrund) or not self.gefuehrt,
             ausschlussgrund=ausschlussgrund or ("gestrichen" if not self.gefuehrt else ""),
         )
 
 
-def unvereinbar(mitglied) -> str:
+def unvereinbarkeiten_laden() -> tuple[set[int], set[int]]:
+    """Die beiden Mengen, aus denen sich jede Unvereinbarkeit ergibt — zwei Abfragen für die
+    ganze Liste statt zwei je Kopf (Befund #44): Mitglieder mit aktiver Rolle im Integritätsrat
+    und Mitglieder mit offenem Mandat."""
+    from django.apps import apps
+
+    im_integritaetsrat = set(Rolle.aktive(Gremium.INTEGRITAETSRAT).values_list("mitglied_id", flat=True))
+    mit_mandat: set[int] = set()
+    if apps.is_installed("mandatare"):
+        mandat = apps.get_model("mandatare", "Mandat")
+        mit_mandat = set(mandat.objects.filter(beendet__isnull=True).values_list("mitglied_id", flat=True))
+    return im_integritaetsrat, mit_mandat
+
+
+def unvereinbar_fuer(mitglied_id: int, im_integritaetsrat: set[int], mit_mandat: set[int]) -> str:
     """Warum jemand nicht in den Expertenrat gelost werden darf — oder leer.
 
     § 6 Abs 3 lit a schließt Mitglieder des Integritätsrats von anderen Räten aus; § 7 trennt
     Mandat und Beratung. Diese Prüfung gehört an den Lostopf und nicht an die Ansicht: Wer sie
     dort vergisst, hat sie nie."""
-    if Rolle.hat(mitglied, Gremium.INTEGRITAETSRAT):
+    if mitglied_id in im_integritaetsrat:
         return "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
-    from django.apps import apps
-
-    if apps.is_installed("mandatare"):
-        mandat = apps.get_model("mandatare", "Mandat")
-        if mandat.objects.filter(mitglied=mitglied, beendet__isnull=True).exists():
-            return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+    if mitglied_id in mit_mandat:
+        return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
     return ""
 
 
+def unvereinbar(mitglied) -> str:
+    """Die Einzelprüfung — dünne Hülle um `unvereinbar_fuer` für eine Person."""
+    return unvereinbar_fuer(mitglied.pk, *unvereinbarkeiten_laden())
+
+
 def lostopf_der_fachliste(fachgebiete=()) -> list:
-    """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt."""
+    """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt.
+
+    Läuft bei jedem Beratungsbeginn in der Anfrage eines beliebigen Besuchers — deshalb mit
+    zwei Abfragen für alle Köpfe, nicht zwei je Kopf (Befund #44)."""
+    im_integritaetsrat, mit_mandat = unvereinbarkeiten_laden()
     eintraege = Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete")
-    return [e.als_kandidat(unvereinbar(e.mitglied)) for e in eintraege]
+    return [e.als_kandidat(unvereinbar_fuer(e.mitglied_id, im_integritaetsrat, mit_mandat)) for e in eintraege]
 
 
 class Auslosung(models.Model):
@@ -1480,12 +1727,20 @@ class Auslosung(models.Model):
         return f"Auslosung zu Antrag {self.antrag_id}, Runde {self.runde}"
 
 
-def auslosen(antrag, runde: int = 1, jetzt=None):
+def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)):
     """Lost den Expertenrat für einen Antrag und legt die Rollen an (§ 6 Abs 7).
 
     Der Anker ist der Kopf der Audit-Kette in diesem Augenblick: Er steht jetzt fest und war
     vorher von niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
     Verfahrensordnung des Antrags, nicht aus dem laufenden Register (§ 5 Abs 5).
+
+    `gruppen` sagt, welche Gruppen diese Runde zieht: `(1,)` zu Beratungsbeginn, `(2,)` sobald
+    der Vollzugs- oder Beschaffungsbezug feststeht (Befund #14/#37 — beim ersten Los gibt es
+    noch keinen Entwurf, der ihn tragen könnte), `(1,)` erneut beim Austausch der Gruppe 1.
+    Die Losregel nummeriert die gezogenen Gruppen 1-basiert; hier werden sie auf die
+    tatsächlichen Gruppennummern zurückgeführt, damit Platz, Rolle und Anzeige dieselbe Gruppe
+    nennen. Wer für diesen Antrag schon im Expertenrat sitzt oder saß, lost nicht mit — so sind
+    die Gruppen wirklich „unabhängig voneinander besetzt“.
 
     Reicht der Lostopf nicht, geschieht nichts — und der Aufrufer erfährt es am Rückgabewert
     `None`. Eine halb besetzte Gruppe wäre schlimmer als keine: Sie sähe nach Beratung aus."""
@@ -1498,31 +1753,41 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
     if kopf is None:
         return None
     ordnung = antrag.policy()
-    groessen = [ordnung.expertenrat_gruppe1]
-    # Frische Abfrage statt des Related-Zugriffs: `antrag.entwurf` legt beim Fehlschlag einen
-    # negativen Eintrag im Objekt-Cache an — der Aufrufer bekäme danach auch dann „kein
-    # Entwurf", wenn längst einer angelegt wurde. Genau daran ist ein Test gestolpert.
-    entwurf = Entwurf.objects.filter(antrag=antrag).first()
-    if entwurf is not None and entwurf.vollzugsbezug:
-        groessen.append(ordnung.expertenrat_gruppe2)
+    gruppen = tuple(gruppen)
+    groessen = [getattr(ordnung, f"expertenrat_gruppe{g}") for g in gruppen]
     fachgebiete = list(antrag.kategorien.values_list("slug", flat=True))
-    # Wer für diesen Antrag in einer früheren Runde schon gelost wurde, lost nicht noch einmal
-    # mit: Sonst könnte ein Ausgetauschter in derselben Sache wieder auftauchen.
+    # Wer für diesen Antrag schon gelost oder — parteiweit — in Gruppe 1 tätig ist, lost nicht
+    # noch einmal mit: Sonst könnte ein Ausgetauschter in derselben Sache wieder auftauchen oder
+    # jemand seinen eigenen Vorschlag prüfen (§ 6 Abs 7).
     frueher = set(
         Rolle.objects.filter(antrag=antrag).values_list("mitglied__fachlisteneintrag__schluessel", flat=True)
     )
+    if 2 in gruppen:
+        frueher |= set(
+            Rolle.fuer_antrag(Gremium.EXPERTENRAT_1, antrag).values_list(
+                "mitglied__fachlisteneintrag__schluessel", flat=True
+            )
+        )
+    frueher.discard(None)
     kandidaten = [
-        k if k.schluessel not in frueher else type(k)(k.schluessel, k.fachgebiete, True, "in einer früheren Runde gelost")
+        k if k.schluessel not in frueher else type(k)(k.schluessel, k.fachgebiete, True, "sitzt schon im Expertenrat dieses Antrags")
         for k in lostopf_der_fachliste()
     ]
     try:
         ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     except LosFehler as fehler:
         AuditEintrag.anhaengen(
-            {"typ": "auslosung_nicht_moeglich", "antrag": antrag.pk, "runde": runde, "grund": str(fehler)}
+            {
+                "typ": "auslosung_nicht_moeglich",
+                "antrag": antrag.pk,
+                "runde": runde,
+                "gruppen": list(gruppen),
+                "grund": str(fehler),
+            }
         )
         return None
 
+    nummer_von = dict(enumerate(gruppen, start=1))  # Index der Losregel → tatsächliche Gruppe
     auslosung = Auslosung.objects.create(
         antrag=antrag,
         runde=runde,
@@ -1533,7 +1798,7 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
         lostopf=list(ziehung.lostopf),
         ausgeschlossen=[list(a) for a in ziehung.ausgeschlossen],
         plaetze=[
-            {"schluessel": p.schluessel, "gruppe": p.gruppe, "rang": p.rang, "loswert": p.loswert}
+            {"schluessel": p.schluessel, "gruppe": nummer_von[p.gruppe], "rang": p.rang, "loswert": p.loswert}
             for p in ziehung.plaetze
         ],
         gezogen_am=jetzt,
@@ -1545,7 +1810,7 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
             continue
         Rolle.objects.create(
             mitglied=eintrag.mitglied,
-            gremium=gremien[platz.gruppe],
+            gremium=gremien[nummer_von[platz.gruppe]],
             endet_am=standard_ende(),
             bestaetigt=True,  # die Bestätigung liegt in der Bestellung auf die Fachliste
             antrag=antrag,
@@ -1556,14 +1821,29 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
             "typ": "expertenrat_ausgelost",
             "antrag": antrag.pk,
             "runde": runde,
+            "gruppen": list(gruppen),
             "anker_lfd": kopf.lfd,
             "anker": kopf.hash,
             "regel_fassung": ziehung.version,
             "groessen": groessen,
-            "plaetze": [[p.gruppe, p.schluessel] for p in ziehung.plaetze],
+            "plaetze": [[nummer_von[p.gruppe], p.schluessel] for p in ziehung.plaetze],
         }
     )
     return auslosung
+
+
+def gruppe_2_nachziehen(antrag, jetzt=None):
+    """Lost Gruppe 2 nach, sobald der Vollzugs- oder Beschaffungsbezug feststeht (§ 6 Abs 7).
+
+    Zu Beratungsbeginn weiß niemand, ob ein Vorschlag Vollzugsbezug haben wird — das stellt
+    Gruppe 1 erst in der Werkstatt fest. Bis 0.45 wurde Gruppe 2 deshalb im Echtbetrieb nie
+    gelost, und die Prüfung fiel an parteiweit berufene Rollen oder blieb liegen (Befund #14/#37).
+    Einmal je Antrag: Gibt es für ihn schon eine aktive geloste Gruppe 2, geschieht nichts.
+    Reicht der Lostopf nicht, bleibt es beim bisherigen Rückfall auf parteiweite Rollen."""
+    if Rolle.aktive(Gremium.EXPERTENRAT_2).filter(antrag=antrag).exists():
+        return None
+    letzte = Auslosung.objects.filter(antrag=antrag).order_by("-runde").first()
+    return auslosen(antrag, runde=(letzte.runde + 1) if letzte else 1, jetzt=jetzt, gruppen=(2,))
 
 
 #: § 6 Abs 10: „der Koordinationsrat legt der Mitgliederversammlung binnen 30 Tagen einen
@@ -1654,17 +1934,17 @@ class WunschVermerk(models.Model):
 
 
 class HinweisQuelle(models.TextChoices):
-    PARAMETERTEST = "parametertest", "Auswertung eines Parametertests"
-    HERVORHEBUNG = "hervorhebung", "Kandidat für Hervorhebung"
-    MUSTER = "muster", "Muster-Bericht"
-    LAST = "last", "Lastwarnung"
+    PARAMETERTEST = "parametertest", _("Auswertung eines Parametertests")
+    HERVORHEBUNG = "hervorhebung", _("Kandidat für Hervorhebung")
+    MUSTER = "muster", _("Muster-Bericht")
+    LAST = "last", _("Lastwarnung")
 
 
 class HinweisStatus(models.TextChoices):
-    OFFEN = "offen", "offen"
-    BESCHLUSS = "beschluss", "Beschluss angelegt"
-    VERWORFEN = "verworfen", "verworfen"
-    KENNTNIS = "kenntnis", "zur Kenntnis genommen"
+    OFFEN = "offen", _("offen")
+    BESCHLUSS = "beschluss", _("Beschluss angelegt")
+    VERWORFEN = "verworfen", _("verworfen")
+    KENNTNIS = "kenntnis", _("zur Kenntnis genommen")
 
 
 class Hinweis(models.Model):
@@ -1730,7 +2010,15 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     — nicht alle Rollen der Partei, das wäre seit der Auslosung ein Eingriff in fremde
     Verfahren — und lost eine neue Runde. Der Entwurf geht an die neue Gruppe."""
     pruefung = beschluss.pruefungen_austausch.first()
-    if pruefung is None or pruefung.korat_entscheid:
+    if pruefung is None:
+        return
+    if pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET:
+        # Der Rat hat zu spät entschieden: Die Prüffrist war um, der Vorschlag liegt schon den
+        # Unterstützern vor (§ 5 Abs 12). Der Beschluss bleibt stehen — mit dem Vermerk, warum
+        # er nichts mehr bewirkt.
+        _vermerken(beschluss, "Ohne Wirkung: Die Prüffrist war verstrichen, der Vorschlag lag schon den Unterstützern vor.")
+        return
+    if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
     entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"

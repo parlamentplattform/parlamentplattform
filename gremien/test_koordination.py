@@ -310,7 +310,14 @@ def test_austausch_lost_die_gruppe_neu(client, ordnung):  # noqa: F811
     alte = Rolle.objects.filter(auslosung=erste, gremium=Gremium.EXPERTENRAT_1)
     assert alte.exists() and all(not r.aktiv for r in alte)
     assert all(r.aktiv for r in Rolle.objects.filter(antrag=anderer)), "fremde Verfahren bleiben unberührt"
-    zweite = Auslosung.objects.get(antrag=antrag, runde=2)
-    assert Rolle.objects.filter(auslosung=zweite, gremium=Gremium.EXPERTENRAT_1).count() == 3
-    assert not ({p["schluessel"] for p in erste.plaetze} & {p["schluessel"] for p in zweite.plaetze})
+    # Runde 2 war die nachgezogene Gruppe 2 (Vollzugsbezug, Befund #14/#37); der Austausch lost
+    # Runde 3 — und zwar nur Gruppe 1, Gruppe 2 bleibt im Amt.
+    gruppe_2 = Auslosung.objects.get(antrag=antrag, runde=2)
+    assert Rolle.objects.filter(auslosung=gruppe_2, gremium=Gremium.EXPERTENRAT_2).count() == 3
+    neue = Auslosung.objects.get(antrag=antrag, runde=3)
+    assert neue.groessen == [3] and Rolle.objects.filter(auslosung=neue, gremium=Gremium.EXPERTENRAT_1).count() == 3
+    assert not Rolle.objects.filter(auslosung=neue, gremium=Gremium.EXPERTENRAT_2).exists()
+    assert all(r.aktiv for r in Rolle.objects.filter(auslosung=gruppe_2))
+    schon_dabei = {p["schluessel"] for p in erste.plaetze} | {p["schluessel"] for p in gruppe_2.plaetze}
+    assert not (schon_dabei & {p["schluessel"] for p in neue.plaetze})
     assert Antrag.objects.get(pk=antrag.pk).phase == "beratung"

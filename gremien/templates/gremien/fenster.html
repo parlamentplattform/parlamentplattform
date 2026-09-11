@@ -107,7 +107,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
         {% endif %}{% endfor %}
       </details>
       {% endif %}
-      {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+      {% if in_beratung and darf_schreiben and entwurf.status == "in_arbeit" %}
       {% if einreichung %}
       <p class="meta" style="margin-top:12px">{% blocktranslate with nummer=einreichung.beschluss.nummer %}Über die Einreichung wird abgestimmt ({{ nummer }}) — die Fassung ruht solange.{% endblocktranslate %}</p>
       {% else %}
@@ -128,7 +128,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
 {# ── rechts: die Werkzeuge ──────────────────────────────────────────────── #}
 <div class="spalte-werkzeuge" id="werkzeuge">
   {% if entwurf %}
-  {% if darf_schreiben and entwurf.status == "in_arbeit" or einreichung %}
+  {% if in_beratung and darf_schreiben and entwurf.status == "in_arbeit" or einreichung %}
   <div class="karte">
     <p class="phasen-titel">{% translate "Einreichen — Beschluss der Gruppe" %}</p>
     {% if einreichung %}
@@ -198,7 +198,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
       <strong>{{ k.name }}</strong> <span class="meta">· {{ k.ja }} 👍 / {{ k.nein }} 👎</span>
       {% if k.vermerk %}<span class="chip klein">{% blocktranslate with n=k.vermerk.fassung %}berücksichtigt in Fassung {{ n }}{% endblocktranslate %}</span>{% endif %}
       <br><span style="white-space:pre-line">{{ k.text }}</span>
-      {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+      {% if in_beratung and darf_schreiben and entwurf.status == "in_arbeit" %}
       <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:4px">{% csrf_token %}
         <input type="hidden" name="aktion" value="wunsch"><input type="hidden" name="kommentar" value="{{ k.id }}">
         <button type="submit" class="btn-still klein">{% if k.vermerk %}{% translate "Vermerk zurücknehmen" %}{% else %}{% translate "Als berücksichtigt vermerken" %}{% endif %}</button>
@@ -219,7 +219,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
     {% empty %}
     <p class="leer">{% translate "Noch keine Beiträge." %}</p>
     {% endfor %}
-    {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+    {% if in_beratung and darf_schreiben and entwurf.status == "in_arbeit" %}
     <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" class="werk-form" style="margin-top:10px">{% csrf_token %}
       <input type="hidden" name="aktion" value="beitrag">
       <label for="beitrag-text">{% translate "Beitrag zur internen Beratung" %}</label>

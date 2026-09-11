@@ -27,6 +27,9 @@ from verfahren.models import (
     vollzug_fortschreiben,
 )
 
+#: Titel des Demo-Antrags für den Abstimmungs-Chat — zugleich sein Wächter (Befund #65).
+TESTLAUF_TITEL = "Testlauf: Vorschlag des Expertenrats zur Fahrradabstellanlage"
+
 
 def hervorhebung_beschliessen(antrag, leute) -> None:
     """Hebt einen Antrag so hervor, wie es die Satzung vorsieht (§ 5 Abs 10 lit b).
@@ -38,7 +41,11 @@ def hervorhebung_beschliessen(antrag, leute) -> None:
     from gremien.models import JA_NEIN, Anlass, GremienBeschluss, Gremium, Rolle, beschluss_frist
 
     raete = [r.mitglied for r in Rolle.aktive(Gremium.INTEGRITAETSRAT).select_related("mitglied")]
-    if not raete:
+    demo = {m.pk for m in leute}
+    if not raete or any(m.pk not in demo for m in raete):
+        # Die Demo stimmt nur mit Demo-Mitgliedern ab. Sitzt ein echtes Mitglied im Rat, entstünde
+        # hier eine Stimme mit erfundener Begründung in seinem Namen — nicht löschbar (Grundregel 7)
+        # und eine Fälschung dessen, was der Rat beschlossen hat (Befund #18).
         return
     if GremienBeschluss.objects.filter(antrag=antrag, anlass=Anlass.HERVORHEBUNG).exists():
         return  # der Beschluss steht schon; ein zweiter wäre keine Entscheidung, nur eine Nummer
@@ -340,10 +347,13 @@ class Command(BaseCommand):
         from verfahren.chat import beitrag_schreiben, passt_alles_anlegen, reaktion_umschalten
         from verfahren.models import Reaktionsart
 
-        if not Antrag.objects.filter(entwurf__status="unterstuetzer").exists():
+        # Der Wächter hängt am Titel, nicht am Status „unterstuetzer“: Der Status ist vergänglich
+        # (nach der Unterstützerfrist wertet die Schleife aus), und jeder Deploy danach hätte
+        # den Antrag ein zweites Mal angelegt (Befund #65).
+        if not Antrag.objects.filter(titel__startswith=TESTLAUF_TITEL).exists():
             a6 = antrag_einbringen(
                 leute[2],
-                "Testlauf: Vorschlag des Expertenrats zur Fahrradabstellanlage",
+                TESTLAUF_TITEL,
                 "Vor jedem Amtsgebäude der Gemeinde entsteht eine überdachte Abstellanlage für "
                 "mindestens zwanzig Fahrräder.\n\n"
                 "Die Anlage wird beleuchtet und ist rund um die Uhr zugänglich.",

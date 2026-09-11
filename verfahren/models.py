@@ -22,7 +22,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -187,6 +187,12 @@ class Antrag(models.Model):
         blank=True,
         help_text="Zahl der Stimmberechtigten, festgestellt und veröffentlicht bei Abstimmungsbeginn (§ 4 Abs 4 lit a).",
     )
+    stimmberechtigung_stichtag = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Der Kalendertag (Wiener Zeit), an dem die Stimmberechtigung festgestellt wurde — "
+        "dieselbe Zahl für Zählung und Einzelprüfung (§ 4 Abs 4 lit a).",
+    )
     zurueckweisung_begruendung = models.TextField(
         blank=True,
         help_text="Nur bei formaler Zurückweisung durch den Integritätsrat — wird veröffentlicht (§ 5 Abs 2).",
@@ -224,6 +230,13 @@ class Antrag(models.Model):
         verbose_name = "Antrag"
         verbose_name_plural = "Anträge"
         ordering = ["-eingebracht_am"]
+        # Jede Listenansicht filtert auf die Phase und reiht nach Phasenbeginn; die Hervorhebung
+        # sucht drei aus allen (Befund #81). Heute nicht messbar — der billigste Schritt, der beim
+        # Wachsen als Nächstes fehlt.
+        indexes = [
+            models.Index(fields=["phase", "phase_beginn"], name="antrag_phase_beginn_idx"),
+            models.Index(fields=["hervorgehoben"], condition=models.Q(hervorgehoben=True), name="antrag_hervorgehoben_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"#{self.pk} {self.titel} [{self.phase}]"
@@ -232,6 +245,14 @@ class Antrag(models.Model):
 
     def policy(self) -> Policy:
         return Policy.aus_dict(self.policy_snapshot)
+
+    def stichtag_der_stimmberechtigung(self):
+        """Der Kalendertag, gegen den eine Stimmberechtigung geprüft wird (§ 4 Abs 4 lit a).
+
+        Gespeichert beim Übergang in die Abstimmung; für ältere Verfahren der Wiener Kalendertag
+        des Phasenbeginns. Nie `phase_beginn.date()`: Das wäre das UTC-Datum, und zwischen 0 und
+        2 Uhr läge es einen Tag vor dem, was die Seite als Abstimmungsbeginn zeigt (Befund #32)."""
+        return self.stimmberechtigung_stichtag or timezone.localdate(self.phase_beginn)
 
     def aktueller_text(self) -> AntragsFassung | None:
         return self.fassungen.order_by("-nummer").first()
@@ -278,7 +299,7 @@ class Antrag(models.Model):
             self.wirksamer_phase_beginn(jetzt),
             jetzt,
             policy,
-            unterstuetzungen=self.unterstuetzungen.count(),
+            unterstuetzungen=self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
             auszaehlung=ausz,
         )
         if uebergang is None:
@@ -308,15 +329,19 @@ class Antrag(models.Model):
             gegenstand = (
                 Gegenstand.PERSONENWAHL if self.art == Antragsart.MANDAT else Gegenstand.SACHFRAGE
             )
+            # § 4 Abs 4 lit a rechnet in Kalendertagen — im Wiener Kalender, nicht im UTC-Datum:
+            # Zwischen 0 und 2 Uhr läge der Stichtag sonst einen Tag zu früh (Befund #32). Der Tag
+            # wird gespeichert, damit Zählung und Einzelprüfung dieselbe Zahl lesen.
+            self.stimmberechtigung_stichtag = timezone.localdate(uebergang.wirksam_ab)
             self.stimmberechtigte_anzahl = max(
                 1,
                 stimmberechtigte_zaehlen(
                     gegenstand,
-                    uebergang.wirksam_ab.date(),
+                    self.stimmberechtigung_stichtag,
                     uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
                 ),
             )
-            felder.append("stimmberechtigte_anzahl")
+            felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         self.save(update_fields=felder)
         if uebergang.neue_phase is Phase.BERATUNG and apps.is_installed("gremien"):
             # § 6 Abs 7: Der Expertenrat wird für DIESEN Antrag aus der Fachliste gelost —
@@ -359,17 +384,20 @@ class Antrag(models.Model):
         modell = apps.get_model("gremien", "Aussetzung")
         return [a.abschnitt() for a in modell.objects.filter(antrag_id=self.pk)]
 
-    def aussetzung_laeuft(self, jetzt=None) -> bool:
-        """Ob gerade eine Aussetzung wirkt — dann ruht das Verfahren vollständig."""
+    def aussetzung_laeuft(self, jetzt=None, gegenstand: str | None = None) -> bool:
+        """Ob gerade eine Aussetzung wirkt — dann ruht das Verfahren vollständig.
+
+        `gegenstand` („abstimmung“ oder „vollzug“) schränkt auf eine Art ein."""
         from django.apps import apps
 
         if not apps.is_installed("gremien"):
             return False
         jetzt = jetzt or timezone.now()
         modell = apps.get_model("gremien", "Aussetzung")
-        return any(
-            a.laeuft(jetzt) for a in modell.objects.filter(antrag_id=self.pk, beendet_am__isnull=True)
-        )
+        laufende = modell.objects.filter(antrag_id=self.pk, beendet_am__isnull=True)
+        if gegenstand is not None:
+            laufende = laufende.filter(gegenstand=gegenstand)
+        return any(a.laeuft(jetzt) for a in laufende)
 
     def wirksamer_phase_beginn(self, jetzt=None):
         """Der Phasenbeginn, mit dem gerechnet wird — um die Stillstandszeit nach hinten gerückt.
@@ -409,7 +437,7 @@ class Antrag(models.Model):
         )
         zustimmungen = [
             (z.pseudonym.hex, z.bewerbung_id)
-            for z in BewerbungsZustimmung.objects.filter(
+            for z in BewerbungsZustimmung.gueltige().filter(
                 bewerbung__antrag=self, bewerbung__zurueckgezogen=False
             )
         ]
@@ -443,9 +471,19 @@ class AntragsFassung(models.Model):
 
 
 class Unterstuetzung(models.Model):
+    """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
+    Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug
+    als Zeile stehen (`zurueckgezogen_am`, Grundregel 7) statt gelöscht zu werden (Befund #27).
+    Gezählt wird nur, was nicht zurückgezogen ist: `gueltige()`."""
+
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="unterstuetzungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     erklaert_am = models.DateTimeField(default=timezone.now)
+    zurueckgezogen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Unterstützung zurückgezogen wurde — die Zeile bleibt, gezählt wird sie nicht mehr.",
+    )
 
     class Meta:
         unique_together = [("antrag", "mitglied")]  # einmal je Mensch
@@ -454,6 +492,11 @@ class Unterstuetzung(models.Model):
 
     def __str__(self) -> str:
         return f"Unterstützung Antrag {self.antrag_id} durch Mitglied {self.mitglied_id}"
+
+    @classmethod
+    def gueltige(cls):
+        """Die Unterstützungen, die zählen — ohne die zurückgezogenen."""
+        return cls.objects.filter(zurueckgezogen_am__isnull=True)
 
 
 class Stimmabgabe(models.Model):
@@ -538,11 +581,11 @@ class Favorit(models.Model):
 class Vollzugsstatus(models.TextChoices):
     """Stand der Umsetzung eines angenommenen Antrags (F-55, § 6 Abs 10)."""
 
-    OFFEN = "offen", "offen"
-    IN_UMSETZUNG = "in_umsetzung", "in Umsetzung"
-    BLOCKIERT = "blockiert", "blockiert"
-    UMGESETZT = "umgesetzt", "umgesetzt"
-    ZURUECKGESTELLT = "zurueckgestellt", "zurückgestellt"
+    OFFEN = "offen", _("offen")
+    IN_UMSETZUNG = "in_umsetzung", _("in Umsetzung")
+    BLOCKIERT = "blockiert", _("blockiert")
+    UMGESETZT = "umgesetzt", _("umgesetzt")
+    ZURUECKGESTELLT = "zurueckgestellt", _("zurückgestellt")
 
 
 class Vollzugseintrag(models.Model):
@@ -573,11 +616,21 @@ class Vollzugseintrag(models.Model):
         return f"Antrag {self.antrag_id}: {self.status}"
 
 
+class VollzugAusgesetzt(ValueError):
+    """Der Vollzug ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d)."""
+
+
 def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = "") -> Vollzugseintrag:
     """F-55: den Umsetzungsstand fortschreiben — nur für angenommene Anträge,
-    immer als neuer Eintrag, immer auditiert."""
+    immer als neuer Eintrag, immer auditiert. Ein ausgesetzter Vollzug wird nicht
+    fortgeschrieben (§ 6 Abs 3 lit d) — sonst hinderte die Aussetzung das Register nicht (Befund #31)."""
     if antrag.phase != Phase.ANGENOMMEN.value:
         raise ValueError("Das Umsetzungsregister führt nur angenommene Anträge (§ 6 Abs 10).")
+    if antrag.aussetzung_laeuft(gegenstand="vollzug"):
+        raise VollzugAusgesetzt(
+            "Der Vollzug dieses Beschlusses ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — "
+            "solange die Aussetzung läuft, wird das Umsetzungsregister nicht fortgeschrieben."
+        )
     eintrag = Vollzugseintrag.objects.create(
         antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
     )
@@ -590,11 +643,22 @@ def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = 
 class AuditEintrag(models.Model):
     """Append-only-Audit-Log mit Hash-Kette (F-22, ADR-005).
     Einträge werden nie geändert oder gelöscht — dafür gibt es keinen Code-Pfad,
-    und der Admin ist read-only registriert."""
+    und der Admin ist read-only registriert.
+
+    `vorgaenger` ist eindeutig: Zwei Einträge können nie am selben Kopf hängen. Ohne diese
+    Bedingung konnten zwei gleichzeitige Schreiber (zwei Worker, READ COMMITTED) denselben Kopf
+    lesen und beide dagegen hashen — die Kette gabelte sich still und war ab dort für jeden
+    Nachprüfer von einer Manipulation nicht zu unterscheiden (Befund #9)."""
 
     lfd = models.BigAutoField(primary_key=True)
     zeit = models.DateTimeField(default=timezone.now)
     ereignis = models.JSONField()
+    vorgaenger = models.CharField(
+        max_length=64,
+        unique=True,
+        editable=False,
+        help_text="Hash des Vorgängers — eindeutig, damit die Kette sich nicht gabeln kann.",
+    )
     hash = models.CharField(max_length=64, editable=False)
 
     class Meta:
@@ -605,11 +669,43 @@ class AuditEintrag(models.Model):
     def __str__(self) -> str:
         return f"Audit #{self.lfd} {self.ereignis.get('typ', '?')}"
 
+    #: Wie oft `anhaengen` einen überholten Kopf neu liest, bevor es aufgibt.
+    VERSUCHE = 3
+
+    @classmethod
+    def _kopf(cls) -> str:
+        letzter = cls.objects.order_by("-lfd").only("hash").first()
+        return letzter.hash if letzter else GENESIS
+
     @classmethod
     def anhaengen(cls, ereignis: dict) -> AuditEintrag:
-        letzter = cls.objects.order_by("-lfd").first()
-        vorgaenger = letzter.hash if letzter else GENESIS
-        return cls.objects.create(ereignis=ereignis, hash=ereignis_hash(vorgaenger, ereignis))
+        """Hängt ein Ereignis an die Kette — mit versiegeltem Zeitstempel und ohne Gabelung.
+
+        Der Zeitpunkt steht im Ereignis selbst (`zeit`), damit er unter dem Hash liegt: Die
+        Spalte `zeit` allein könnte jemand mit Datenbankzugriff ändern, ohne dass die Kette es
+        bemerkt (Befund #75). Ältere Einträge ohne diesen Schlüssel bleiben prüfbar.
+
+        Überholt ein zweiter Schreiber den gelesenen Kopf, weist die Eindeutigkeit von
+        `vorgaenger` den Eintrag ab; dann wird der Kopf neu gelesen und noch einmal versucht.
+        Der Fehler wird AUSSERHALB des inneren `atomic` gefangen — nur so bleibt eine äußere
+        Transaktion (etwa `Antrag.fortschreiben`) auf PostgreSQL benutzbar."""
+        jetzt = timezone.now()
+        versiegelt = {**ereignis, "zeit": jetzt.isoformat()}
+        for _versuch in range(cls.VERSUCHE):
+            vorgaenger = cls._kopf()
+            try:
+                with transaction.atomic():
+                    return cls.objects.create(
+                        zeit=jetzt,
+                        ereignis=versiegelt,
+                        vorgaenger=vorgaenger,
+                        hash=ereignis_hash(vorgaenger, versiegelt),
+                    )
+            except IntegrityError:
+                continue
+        raise IntegrityError(
+            f"Audit-Kette: Der Kopf wurde {cls.VERSUCHE}-mal hintereinander überholt — Eintrag nicht angehängt."
+        )
 
 
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------
@@ -721,6 +817,12 @@ class BewerbungsZustimmung(models.Model):
     bewerbung = models.ForeignKey(Bewerbung, on_delete=models.CASCADE, related_name="zustimmungen")
     pseudonym = models.UUIDField()
     abgegeben_am = models.DateTimeField(default=timezone.now)
+    zurueckgenommen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Zustimmung zurückgenommen wurde — Stimmdaten werden nie gelöscht "
+        "(Grundregel 7); gezählt wird sie dann nicht mehr.",
+    )
 
     class Meta:
         unique_together = [("bewerbung", "pseudonym")]
@@ -729,6 +831,11 @@ class BewerbungsZustimmung(models.Model):
 
     def __str__(self) -> str:
         return f"Zustimmung {self.pseudonym.hex[:8]}… zu Bewerbung {self.bewerbung_id}"
+
+    @classmethod
+    def gueltige(cls):
+        """Die Zustimmungen, die zählen — ohne die zurückgenommenen (Befund #27)."""
+        return cls.objects.filter(zurueckgenommen_am__isnull=True)
 
 
 class BewerbungsFehler(Exception):
@@ -774,18 +881,30 @@ def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=No
     zustimmung, angelegt = BewerbungsZustimmung.objects.get_or_create(
         bewerbung=bewerbung, pseudonym=register.pseudonym, defaults={"abgegeben_am": jetzt}
     )
-    if not angelegt:
-        zustimmung.delete()
+    # Zurücknehmen löscht nicht (Grundregel 7, Befund #27): Die Zeile bekommt einen Stempel, und
+    # das Audit unterscheidet die Richtung — sonst sähe, wer Audit und Export gegeneinander
+    # prüft, zwei Stimmereignisse und keine Stimme, ohne eine verlorene von einer
+    # zurückgenommenen unterscheiden zu können.
+    if angelegt or zustimmung.zurueckgenommen_am is not None:
+        if not angelegt:
+            zustimmung.zurueckgenommen_am = None
+            zustimmung.abgegeben_am = jetzt
+            zustimmung.save(update_fields=["zurueckgenommen_am", "abgegeben_am"])
+        dazu, typ = True, "personenwahl_stimme"
+    else:
+        zustimmung.zurueckgenommen_am = jetzt
+        zustimmung.save(update_fields=["zurueckgenommen_am"])
+        dazu, typ = False, "personenwahl_stimme_zurueckgenommen"
     AuditEintrag.anhaengen(
         {
-            "typ": "personenwahl_stimme",
+            "typ": typ,
             "antrag": antrag.pk,
             "pseudonym": register.pseudonym.hex,
             # bewusst OHNE Bewerbungs-ID und OHNE Mitglieds-ID: Das Audit-Log ist
             # öffentlich — wem zugestimmt wurde, zeigt erst die Auszählung nach Fristende.
         }
     )
-    return angelegt
+    return dazu
 
 
 class StimmabgabeFehler(Exception):
@@ -829,8 +948,8 @@ class Kommentar(models.Model):
     Auch das Entfernen durch den Verfasser und das Ausblenden durch die Verwaltung lassen den
     Beitrag stehen; nur sein Text weicht einem Vermerk."""
 
-    #: Rückfallwert; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
-    BEARBEITUNGSFENSTER = timedelta(minutes=5)
+    #: Rückfallwert in Minuten; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
+    BEARBEITUNGSFENSTER_MINUTEN = 5
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
     mitglied = models.ForeignKey(
@@ -886,8 +1005,18 @@ class Kommentar(models.Model):
             return str(_("[vom Verfasser entfernt]"))
         return self.text
 
+    @classmethod
+    def bearbeitungsfenster_minuten(cls) -> int:
+        """Wie lange ein Beitrag änderbar bleibt — aus dem Register (FB-G1, Befund #69).
+
+        Bis 0.44 stand hier eine harte Konstante, während das öffentliche Register denselben
+        Wert als Stellgröße führte und die Verwaltung ihn ändern konnte, ohne dass etwas geschah."""
+        from parameter.models import zahl
+
+        return zahl("chat-bearbeitungsfenster-minuten", cls.BEARBEITUNGSFENSTER_MINUTEN)
+
     def darf_bearbeiten(self, mitglied, jetzt=None) -> bool:
-        """Ändern nur durch den Verfasser und nur binnen fünf Minuten (FB-G1)."""
+        """Ändern nur durch den Verfasser und nur binnen des Bearbeitungsfensters (FB-G1)."""
         jetzt = jetzt or timezone.now()
         return (
             mitglied.is_authenticated
@@ -895,13 +1024,13 @@ class Kommentar(models.Model):
             and not self.geloescht
             and not self.ausgeblendet_am
             and not self.archiviert_am
-            and jetzt - self.erstellt_am <= self.BEARBEITUNGSFENSTER
+            and jetzt - self.erstellt_am <= timedelta(minutes=self.bearbeitungsfenster_minuten())
         )
 
 
 class Reaktionsart(models.TextChoices):
-    ZUSTIMMUNG = "zustimmung", "Zustimmung"
-    ABLEHNUNG = "ablehnung", "Ablehnung"
+    ZUSTIMMUNG = "zustimmung", _("Zustimmung")
+    ABLEHNUNG = "ablehnung", _("Ablehnung")
 
 
 class Reaktion(models.Model):
@@ -952,11 +1081,11 @@ class Meldung(models.Model):
     Meldungen werden nie gelöscht — auch die Entscheidung bleibt nachlesbar."""
 
     class Grund(models.TextChoices):
-        BELEIDIGUNG = "beleidigung", "Beleidigung oder Herabwürdigung"
-        FALSCH = "falsch", "Nachweislich falsche Tatsachenbehauptung"
-        THEMA = "thema", "Kein Bezug zum Antrag"
-        RECHT = "recht", "Rechtswidriger Inhalt"
-        SONST = "sonst", "Sonstiges"
+        BELEIDIGUNG = "beleidigung", _("Beleidigung oder Herabwürdigung")
+        FALSCH = "falsch", _("Nachweislich falsche Tatsachenbehauptung")
+        THEMA = "thema", _("Kein Bezug zum Antrag")
+        RECHT = "recht", _("Rechtswidriger Inhalt")
+        SONST = "sonst", _("Sonstiges")
 
     kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="meldungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)

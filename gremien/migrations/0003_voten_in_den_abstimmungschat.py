@@ -55,16 +55,15 @@ def voten_uebernehmen(apps, schema_editor):
                 )
 
 
-def zurueck(apps, schema_editor):
-    """Die Übernahme lässt sich zurücknehmen, ohne die Voten anzutasten."""
-    Kommentar = apps.get_model("verfahren", "Kommentar")
-    Kommentar.objects.filter(system=True).delete()
-
-
 class Migration(migrations.Migration):
+    """Rückwärts geschieht nichts (Befund #74): Die frühere Rückwärtsfunktion löschte ALLE
+    Systembeiträge — auch die seither im Betrieb angelegten — und mit ihnen per CASCADE die
+    Reaktionen, die im Abstimmungs-Chat das Votum der Unterstützer SIND (FB-G6, Grundregel 7).
+    Die Vorwärtsfunktion ist rein anfügend und idempotent; ein noop-Rückweg verliert nichts."""
+
     dependencies = [
         ("gremien", "0002_entwurfsbeitrag_ki_lauf"),
         ("verfahren", "0014_abstimmungschat"),
     ]
 
-    operations = [migrations.RunPython(voten_uebernehmen, zurueck)]
+    operations = [migrations.RunPython(voten_uebernehmen, migrations.RunPython.noop)]

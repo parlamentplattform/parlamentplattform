@@ -78,13 +78,34 @@ def test_gaeste_sehen_das_register_aber_nicht_die_verwaltung(client):
     assert antwort.status_code in (302, 403)  # Login-Umleitung bzw. kein Zugang
 
 
-def test_schleife_liest_ihre_frist_aus_dem_register(client, ordnung):  # noqa: F811
+def test_schleife_liest_ihre_frist_aus_der_ordnung_nicht_aus_dem_register(client, ordnung):  # noqa: F811
+    """Befund #3/#16: Bis 0.44 las die Entwurfsschleife `gremien-review-tage` bei jeder
+    Fristsetzung live — ein Registerwert traf damit ein laufendes Verfahren, obwohl die
+    Registerseite das Gegenteil versprach. Seit 0.45 speist der Schlüssel nur noch die
+    Verfahrensordnung, die beim Einbringen an den Antrag geheftet wird (§ 5 Abs 5)."""
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, REGELN
+
     Parameter.objects.create(
         schluessel="gremien-review-tage", wert="3", beschreibung="x", quelle="Test"
     )
-    antrag, _, er = werkstatt_lage(ordnung)
+    antrag, _, er = werkstatt_lage(ordnung)  # die Ordnung ohne eigenen Wert: Vorgabe 14 Tage
     entwurf = einreichen(client, antrag, er)
     rest = entwurf.review_frist - timezone.now()
+    assert timedelta(days=13, hours=23) < rest <= timedelta(days=14)
+
+    # Eine Ordnung, die den Registerwert trägt, gibt ihn an ihre Verfahren weiter.
+    kurz = Verfahrensordnung.objects.create(
+        policy_id="kurz", version=1, regeln={**REGELN, "id": "kurz", "review_tage": 3}, aktiv=False
+    )
+    from gremien.test_werkstatt import in_beratung_bringen
+
+    zweiter = in_beratung_bringen(
+        antrag_einbringen(mitglied_anlegen("stellerin2"), **ANTRAG, ordnung=kurz),
+        [mitglied_anlegen("k1"), mitglied_anlegen("k2")],
+    )
+    entwurf2 = einreichen(client, zweiter, er)
+    rest = entwurf2.review_frist - timezone.now()
     assert timedelta(days=2, hours=23) < rest <= timedelta(days=3)
 
 

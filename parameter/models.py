@@ -38,9 +38,9 @@ class Status(models.TextChoices):
     eingefrorene Fassung (§ 5 Abs 5). „Vorgeschlagen" heißt: Die Zukunftswerkstatt oder ein
     Mensch schlägt ihn vor, entschieden ist nichts."""
 
-    GUELTIG = "gueltig", "gültig"
-    IM_TEST = "im_test", "im Test"
-    VORGESCHLAGEN = "vorgeschlagen", "vorgeschlagen"
+    GUELTIG = "gueltig", _("gültig")
+    IM_TEST = "im_test", _("im Test")
+    VORGESCHLAGEN = "vorgeschlagen", _("vorgeschlagen")
 
 
 class Parameter(models.Model):

@@ -46,6 +46,19 @@ def antrag_anlegen(ordnung):  # noqa: F811
     return antrag_einbringen(mitglied_anlegen(f"stellerin{next(_ZAEHLER)}"), **ANTRAG, ordnung=ordnung)
 
 
+def antrag_in_abstimmung(ordnung):  # noqa: F811
+    """Ein Antrag, dessen Abstimmung seit zwei Tagen läuft — das, was sich aussetzen lässt (§ 6 Abs 3 lit d)."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    antrag = antrag_anlegen(ordnung)
+    antrag.phase = Phase.ABSTIMMUNG.value
+    antrag.phase_beginn = timezone.now() - timedelta(days=2)
+    antrag.save(update_fields=["phase", "phase_beginn"])
+    return antrag
+
+
 def beschluss_fassen(client, leute, antrag, anlass, grund="Wenig Beteiligung, große Wirkung."):
     """Anlegen und einstimmig beschließen — alle stimmen ab, damit sofort ausgewertet wird."""
     client.force_login(leute[0])
@@ -131,6 +144,25 @@ def test_ein_unterbesetzter_rat_hebt_nichts_hervor(client, ordnung):  # noqa: F8
     assert beschluss.ergebnis == "dafuer"
     assert antrag.hervorgehoben is False
     assert "nicht satzungsgemäß besetzt" in beschluss.umsetzungsvermerk
+
+
+def test_zwei_menschen_mit_drei_rollen_sind_kein_rat(client, ordnung):  # noqa: F811
+    """Befund #38: Der Nenner zählte Rollenzeilen. Zwei Personen mit drei Zeilen galten als
+    satzungsgemäß besetzt (§ 6 Abs 3 lit a: drei bis sieben) — und hoben Anträge hervor."""
+    from gremien.models import _integritaetsrat_beschlussfaehig, standard_ende
+
+    leute = rat(2)
+    Rolle.objects.create(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT, endet_am=standard_ende(), bestaetigt=True)
+    assert Rolle.aktive(Gremium.INTEGRITAETSRAT).count() == 3
+    assert Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT)) == 2
+    antrag = antrag_anlegen(ordnung)
+    beschluss = beschluss_fassen(client, leute, antrag, Anlass.HERVORHEBUNG)
+    assert _integritaetsrat_beschlussfaehig(beschluss) is False
+    assert beschluss.aktive_rollen() == 2 and beschluss.auswertung().noetig == 1
+    antrag.refresh_from_db()
+    assert antrag.hervorgehoben is False and "nicht satzungsgemäß besetzt" in beschluss.umsetzungsvermerk
+    client.force_login(leute[0])
+    assert client.get(reverse("gremien:integritaet")).context["aktive"] == 2
 
 
 def test_die_hervorhebung_laesst_sich_wieder_aufheben(client, ordnung):  # noqa: F811
@@ -333,7 +365,7 @@ def test_der_vermerk_ans_schiedsgericht_haelt_die_aussetzung_am_leben(client, or
     from gremien.models import Aussetzung
 
     leute = rat()
-    antrag = antrag_anlegen(ordnung)
+    antrag = antrag_in_abstimmung(ordnung)
     beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Verdacht auf Manipulation.")
     aussetzung = Aussetzung.objects.get(antrag=antrag)
     client.force_login(leute[0])
@@ -350,18 +382,79 @@ def test_die_aussetzung_laesst_sich_aufheben(client, ordnung):  # noqa: F811
     from gremien.models import Aussetzung
 
     leute = rat()
-    antrag = antrag_anlegen(ordnung)
+    antrag = antrag_in_abstimmung(ordnung)
     beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Verdacht.")
     beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG_AUFHEBEN, "Der Verdacht hat sich nicht bestätigt.")
     aussetzung = Aussetzung.objects.get(antrag=antrag)
     assert aussetzung.laeuft() is False and "Aufgehoben durch Beschluss" in aussetzung.beendet_grund
 
 
+def test_aussetzen_geht_nur_bei_laufender_abstimmung_oder_vollzug(client, ordnung):  # noqa: F811
+    """Befund #31: § 6 Abs 3 lit d erlaubt nur, „den Vollzug eines Beschlusses oder eine
+    laufende Abstimmung“ auszusetzen. Bis 0.45 bekam ein Antrag in der Unterstützung das Etikett
+    „Vollzug“ — und seine Sammelfrist rückte um sieben Tage. Jetzt weist schon das Anlegen ab,
+    und die Wirkung prüft noch einmal, falls die Phase inzwischen gewechselt hat."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Aussetzung
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)  # in der Unterstützung
+    client.force_login(leute[0])
+    daten = {"anlass": Anlass.AUSSETZUNG, "antrag": antrag.pk, "beschreibung": "Verdacht."}
+    client.post(reverse("gremien:integritaet_beschluss"), daten)
+    antrag.phase = Phase.BERATUNG.value
+    antrag.save(update_fields=["phase"])
+    client.post(reverse("gremien:integritaet_beschluss"), daten)
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.AUSSETZUNG).exists()
+    assert not Aussetzung.objects.exists()
+
+    # In der Abstimmung lässt sich der Beschluss anlegen — wechselt die Phase vor der Auswertung,
+    # bleibt er ohne Wirkung, statt einen abgelehnten Antrag mit „Vollzug“ zu etikettieren.
+    antrag.phase = Phase.ABSTIMMUNG.value
+    antrag.phase_beginn = timezone.now() - timedelta(days=2)
+    antrag.save(update_fields=["phase", "phase_beginn"])
+    client.post(reverse("gremien:integritaet_beschluss"), daten)
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSSETZUNG, antrag=antrag)
+    antrag.phase = Phase.ABGELEHNT.value
+    antrag.save(update_fields=["phase"])
+    for m in leute:
+        client.force_login(m)
+        client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Ja."})
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN
+    assert "Ohne Wirkung" in beschluss.umsetzungsvermerk and "§ 6 Abs 3 lit d" in beschluss.umsetzungsvermerk
+    assert not Aussetzung.objects.filter(antrag=antrag).exists()
+
+
+def test_der_ausgesetzte_vollzug_wird_nicht_fortgeschrieben(client, ordnung):  # noqa: F811
+    """Befund #31, Gegenprobe: Eine Aussetzung des Vollzugs hinderte das Umsetzungsregister
+    bisher nicht — die Verwaltung konnte am selben Tag „umgesetzt“ eintragen."""
+    from gremien.models import Aussetzung
+    from verfahren.models import VollzugAusgesetzt, vollzug_fortschreiben
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    antrag.phase = Phase.ANGENOMMEN.value
+    antrag.save(update_fields=["phase"])
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Die Vergabe ist zweifelhaft.")
+    aussetzung = Aussetzung.objects.get(antrag=antrag)
+    assert aussetzung.gegenstand == Aussetzung.Gegenstand.VOLLZUG and aussetzung.laeuft()
+    with pytest.raises(VollzugAusgesetzt):
+        vollzug_fortschreiben(antrag, leute[0], "in_umsetzung", "Trotzdem.")
+    assert antrag.vollzug.count() == 0
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG_AUFHEBEN, "Geklärt.")
+    vollzug_fortschreiben(antrag, leute[0], "in_umsetzung", "Jetzt schon.")
+    assert antrag.vollzug.count() == 1
+
+
 def test_zwei_aussetzungen_zum_selben_antrag_gehen_nicht(client, ordnung):  # noqa: F811
     from gremien.models import Aussetzung
 
     leute = rat()
-    antrag = antrag_anlegen(ordnung)
+    antrag = antrag_in_abstimmung(ordnung)
     beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Erster Verdacht.")
     zweiter = beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, "Zweiter Verdacht.")
     assert Aussetzung.objects.filter(antrag=antrag).count() == 1

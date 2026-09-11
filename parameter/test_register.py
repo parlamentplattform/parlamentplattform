@@ -260,3 +260,104 @@ def test_kein_wechsel_auf_eine_fremde_ordnungsreihe(client, ordnung):  # noqa: F
     fremd.refresh_from_db()
     ordnung.refresh_from_db()
     assert fremd.aktiv is False and ordnung.aktiv is True
+
+
+# ── Gesamtprüfung 0.45 (Cluster D): Das Register verspricht nur, was der Code hält ─────────
+
+#: Ordnungs-Schlüssel: gelesen über REGISTER_ZUORDNUNG (plattform_core/policy.py), wenn die
+#: Verwaltung eine neue Fassung der Verfahrensordnung erzeugt — nicht per Literal im Code.
+from plattform_core.policy import REGISTER_ZUORDNUNG  # noqa: E402
+
+ORDNUNGS_SCHLUESSEL = {schluessel for schluessel, _ in REGISTER_ZUORDNUNG.values()}
+
+#: Versionsschilder: Sie beschreiben die Fassung einer Regel (Einheit „Regelfassung“) und
+#: stellen nichts ein — „Der Code liest von hier“ gilt für sie nicht, und die Registerseite
+#: sagt das (Befund #45).
+VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", "vorschlag-chat-reihung"}
+
+#: Stellgrößen, deren lesende Stelle in Dateien anderer Cluster der Gesamtprüfung 0.45 liegt —
+#: der konkrete Änderungsvorschlag steht in NOTIZEN_D.md. Sobald eine Stelle liest, gehört ihr
+#: Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
+NOCH_NICHT_ANGEBUNDEN = {
+    "aehnlichkeit-schwelle-prozent",  # verfahren/views_aktionen.py: Aufruf von aehnlichste()
+    "aehnlichkeit-treffer",  # ebenda
+    "kategorien-je-antrag",  # verfahren/models.py: Aufruf von zuordnen()
+    "chat-bearbeitungsfenster-minuten",  # verfahren/models.py: Kommentar.BEARBEITUNGSFENSTER
+    "weicherfilter-profile-hoechstzahl",  # verfahren/views_aktionen.py: FilterProfil.HOECHSTZAHL
+    "faecher-kinder-hoechstzahl",  # verfahren/views.py: Aufruf des Fächers
+    "kacheln-hervorgehoben",  # verfahren/views.py: [:3] und unbegrenzte „wichtige“
+    "kacheln-abgeschlossen",  # verfahren/views.py: [:20]
+    "suche-treffer-hoechstzahl",  # verfahren/views.py: treffer[:24]
+    "anstoss-mindestabstand-sekunden",  # anstoss/views.py: MIN_ABSTAND_SEKUNDEN
+    "anstoss-tagesgrenze",  # anstoss/views.py: TAGESGRENZE
+}
+
+
+def _gelesene_schluessel() -> set[str]:
+    """Alle Schlüssel, die irgendwo per `zahl("…")` oder `_registerzahl("…")` gelesen werden."""
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    # Aufruf mit Literal — oder ein Schlüssel als Vorgabewert eines `…schluessel`-Parameters,
+    # der dann an zahl()/_registerzahl() durchgereicht wird (gremien/models.py: beschluss_frist).
+    muster = [
+        re.compile(r"(?:\bzahl|_registerzahl|_register)\(\s*[\"']([a-z0-9-]+)[\"']"),
+        re.compile(r"schluessel\w*\s*(?::\s*str)?\s*=\s*[\"']([a-z0-9-]+)[\"']"),
+    ]
+    gelesen: set[str] = set()
+    for datei in wurzel.rglob("*.py"):
+        teile = set(datei.parts)
+        if teile & {".venv", "venv", "migrations", "tests", "docs"} or datei.name.startswith("test_"):
+            continue
+        if datei.name == "models.py" and datei.parent.name == "parameter":
+            continue  # der Erstbestand selbst zählt nicht als Leser
+        quelle = datei.read_text(encoding="utf-8")
+        for m in muster:
+            gelesen.update(m.findall(quelle))
+    return gelesen | ORDNUNGS_SCHLUESSEL
+
+
+def test_jede_stellgroesse_wird_vom_code_gelesen():
+    """Befund #45: Zwölf Registerwerte las kein Code — die Registerseite behauptete das
+    Gegenteil (§ 2 Abs 6: „offengelegt, versioniert, nachrechenbar“). Jeder Erstbestands-
+    Schlüssel, der eine Stellgröße ist, muss eine lesende Stelle haben; was noch fehlt, steht
+    benannt in NOCH_NICHT_ANGEBUNDEN und wird beim Anbinden dort gestrichen."""
+    gelesen = _gelesene_schluessel()
+    stellgroessen = {e["schluessel"] for e in ERSTBESTAND} - VERSIONSSCHILDER
+    fehlend = sorted(stellgroessen - gelesen - NOCH_NICHT_ANGEBUNDEN)
+    assert not fehlend, f"Im Register, aber kein Code liest sie: {fehlend}"
+    assert "ki-antwort-hoechsttokens" in gelesen  # Cluster D hat seine Stelle angebunden
+
+
+def test_versionsschilder_sind_als_solche_gekennzeichnet():
+    """Die vier Versionsschilder tragen die Einheit „Regelfassung“ — und nur sie. Daran hängt
+    der Satz auf der Registerseite, der sie von den Stellgrößen unterscheidet."""
+    regelfassungen = {e["schluessel"] for e in ERSTBESTAND if e.get("einheit") == "Regelfassung"}
+    assert regelfassungen == VERSIONSSCHILDER
+
+
+def test_registerseite_verspricht_nur_fuer_stellgroessen(client):
+    inhalt = client.get(reverse("parameter:liste")).content.decode()
+    assert "Stellgrößen liest der Code von hier" in inhalt
+    assert "Regelfassung“ sind Versionsschilder" in inhalt
+
+
+def test_erstbestand_pruefung_kostet_eine_abfrage(django_assert_num_queries):
+    """Befund #78: /parameter/ und /parameter.json riefen bei jedem GET 36 einzelne
+    get_or_create auf. Ist der Bestand vollständig, bleibt es bei einer Abfrage — und
+    geschrieben wird auf GET nichts."""
+    erstbestand_sicherstellen()
+    with django_assert_num_queries(1):
+        assert erstbestand_sicherstellen() == 0
+
+
+def test_registerseite_fragt_nicht_je_eintrag(client, django_assert_max_num_queries):
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    erstbestand_sicherstellen()
+    with CaptureQueriesContext(connection) as ctx:
+        assert client.get(reverse("parameter:export")).status_code == 200
+    einzeln = [q["sql"] for q in ctx.captured_queries if 'WHERE "parameter_parameter"."schluessel" =' in q["sql"]]
+    assert not einzeln, f"{len(einzeln)} Einzelabfragen je Schlüssel"

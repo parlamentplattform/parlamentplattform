@@ -9,9 +9,11 @@ und die Historie am Wert selbst. Ohne JavaScript vollständig lesbar: <details> 
 {% endcomment %}
 <h1>{% translate "Offene Parameter" %}</h1>
 <p class="erk" style="max-width:56em">{% blocktranslate %}An diesen Stellschrauben lernt das System: Fristen, Runden, Budgets — jede mit
-Beschreibung und Herkunft. Der Code liest von hier; fehlt ein Eintrag, gilt der eingebaute Zielwert.
-Änderungen sind nur dokumentiert möglich: heute durch die Verwaltung mit veröffentlichtem Grund im
-Audit-Log, künftig durch die Mitgliederversammlung über die versionierte Verfahrensordnung.{% endblocktranslate %}
+Beschreibung und Herkunft. Stellgrößen liest der Code von hier; fehlt ein Eintrag, gilt der eingebaute
+Zielwert. Einträge mit der Einheit „Regelfassung“ sind Versionsschilder einer Regel — sie beschreiben
+ihren Stand und stellen nichts ein. Änderungen sind nur dokumentiert möglich: heute durch die
+Verwaltung mit veröffentlichtem Grund im Audit-Log, künftig durch die Mitgliederversammlung über die
+versionierte Verfahrensordnung.{% endblocktranslate %}
 <a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a>
 <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a></p>
 

@@ -59,9 +59,11 @@ def aehnlichste(
     """Die `limit` ähnlichsten Kandidaten oberhalb der Schwelle, absteigend
     nach Score; bei Gleichstand entscheidet die kleinere ID (Determinismus).
 
-    `kandidaten` ist eine Liste (id, text). Die Schwelle 0.18 ist ein
-    Startwert für den Testbetrieb und steht hier offen im Code — Änderungen
-    daran sind Verhaltensänderungen und brauchen Test plus CHANGELOG.
+    `kandidaten` ist eine Liste (id, text). `schwelle` und `limit` sind die
+    Stellgrößen „aehnlichkeit-schwelle-prozent“ (÷ 100) und „aehnlichkeit-treffer“
+    des Parameterregisters — der Aufrufer reicht sie durch, denn dieses Paket
+    bleibt Django-frei. Die Vorgaben hier sind nur die eingebauten Zielwerte,
+    auf die das Register zurückfällt, wenn ein Eintrag fehlt.
     """
     neu = trigramme(neuer_text)
     if not neu:

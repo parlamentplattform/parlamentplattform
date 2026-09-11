@@ -522,15 +522,28 @@ def erstbestand_sicherstellen() -> int:
     """Fehlende Erstbestands-Einträge anlegen (bestehende Werte bleiben
     unangetastet — das Register gehört den Menschen, nicht dem Code). Die
     Schema-Kennung (FB-M5) wird nachgetragen, wenn sie fehlt — sie ist Bedeutung,
-    kein Wert."""
+    kein Wert.
+
+    Eine Abfrage für den ganzen Bestand, nicht eine je Eintrag: Die öffentliche
+    Registerseite und /parameter.json rufen das bei jedem GET auf, und 36 einzelne
+    `get_or_create` waren dort 36 SELECTs vor der ersten eigenen Zeile (Befund #78).
+    Geschrieben wird nur, was fehlt oder abweicht."""
     from plattform_core.schema import schema_key
 
+    vorhanden = Parameter.objects.in_bulk(
+        [e["schluessel"] for e in ERSTBESTAND], field_name="schluessel"
+    )
     neu = 0
     for eintrag in ERSTBESTAND:
         vorlage = {**eintrag, "schema_key": schema_key(eintrag["schluessel"])}
-        parameter, angelegt = Parameter.objects.get_or_create(
-            schluessel=eintrag["schluessel"], defaults=vorlage
-        )
+        parameter = vorhanden.get(eintrag["schluessel"])
+        angelegt = parameter is None
+        if angelegt:
+            # get_or_create statt create: Zwei gleichzeitige erste Aufrufe dürfen sich nicht
+            # gegenseitig mit einem Eindeutigkeitsfehler abbrechen.
+            parameter, angelegt = Parameter.objects.get_or_create(
+                schluessel=eintrag["schluessel"], defaults=vorlage
+            )
         neu += int(angelegt)
         felder = []
         # Schema-Kennung, Gruppe und Quelle sind **Beschreibung**, nicht Wert: Sie folgen dem

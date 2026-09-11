@@ -21,7 +21,8 @@ alles über <details>, Formular und die Umleitung mit ?anstoss=danke|warte|leer.
         {% csrf_token %}
         <input type="hidden" name="seite" value="{{ request.get_full_path }}">
         <p class="honig" aria-hidden="true"><label>Webseite <input type="text" name="webseite" tabindex="-1" autocomplete="off"></label></p>
-        <textarea name="text" rows="4" maxlength="4000" required placeholder="{% translate 'Ihr Anliegen — so konkret wie möglich' %}"></textarea>
+        <label for="anstoss-text-{{ lage|default:'ecke' }}" class="nur-sr">{% translate "Ihr Anliegen" %}</label>
+        <textarea id="anstoss-text-{{ lage|default:'ecke' }}" name="text" rows="4" maxlength="4000" required placeholder="{% translate 'Ihr Anliegen — so konkret wie möglich' %}"></textarea>
         <p class="erk anstoss-hinweis">{% if user.is_authenticated %}{% translate "Wird Ihrem Konto zugeordnet, damit wir nachfragen können." %}{% else %}{% translate "Sie schreiben anonym — als Mitglied könnten wir nachfragen." %}{% endif %}</p>
         <button class="btn" type="submit">{% translate "Absenden" %}</button>
       </form>

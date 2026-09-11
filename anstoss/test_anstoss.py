@@ -48,6 +48,55 @@ def test_sendeabstand_wird_verlangt(client):
     assert Anstoss.objects.count() == 1
 
 
+def test_ohne_cookie_zaehlt_die_verbindung(client):
+    """Befund #67: Wer das Sitzungs-Cookie weglässt, bekommt jedes Mal eine leere Sitzung —
+    der Sendeabstand greift nie. Die Verbindungsdrossel greift trotzdem: Tagesgrenze je Stunde."""
+    for i in range(20):
+        client.cookies.clear()
+        antwort = client.post(reverse("anstoss:senden"), {"text": f"Anstoß Nummer {i}.", "seite": "/"})
+        assert "anstoss=danke" in antwort.url
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Der einundzwanzigste.", "seite": "/"})
+    assert "anstoss=warte" in antwort.url
+    assert Anstoss.objects.count() == 20
+
+
+def test_zwei_posts_ohne_cookie_innerhalb_einer_minute_werden_beide_gespeichert(client):
+    """Dokumentiert die Bauart: Der Sendeabstand hängt an der Sitzung, die Stundengrenze an der
+    Verbindung. Ohne Cookie fehlt der Abstand — bis zur Grenze zählt nur die Zahl."""
+    client.post(reverse("anstoss:senden"), {"text": "Erster.", "seite": "/"})
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Zweiter, gleich danach.", "seite": "/"})
+    assert "anstoss=danke" in antwort.url
+    assert Anstoss.objects.count() == 2
+
+
+def test_leere_und_honigtopf_posts_verbrauchen_kein_budget(client):
+    for _i in range(25):
+        client.cookies.clear()
+        client.post(reverse("anstoss:senden"), {"text": "Spam", "webseite": "http://spam", "seite": "/"})
+        client.cookies.clear()
+        client.post(reverse("anstoss:senden"), {"text": "   ", "seite": "/"})
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Ein echter Anstoß.", "seite": "/"})
+    assert "anstoss=danke" in antwort.url
+    assert Anstoss.objects.count() == 1
+
+
+def test_die_grenzen_kommen_aus_dem_register(client):
+    """Befund #45: keine harten Konstanten — Tagesgrenze und Abstand liest die Ansicht aus dem
+    Parameterregister und fällt nur ohne Eintrag auf die Zielwerte zurück."""
+    from parameter.models import Parameter
+
+    Parameter.objects.create(schluessel="anstoss-tagesgrenze", wert="2", beschreibung="Test", quelle="Test")
+    for i in range(2):
+        client.cookies.clear()
+        client.post(reverse("anstoss:senden"), {"text": f"Anstoß {i}.", "seite": "/"})
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Der dritte.", "seite": "/"})
+    assert "anstoss=warte" in antwort.url and Anstoss.objects.count() == 2
+
+
 def test_leere_nachricht_wird_nicht_gespeichert(client):
     antwort = client.post(reverse("anstoss:senden"), {"text": "   ", "seite": "/parlament/"})
     assert "anstoss=leer" in antwort.url
@@ -81,6 +130,14 @@ def test_schliesslinks_behalten_die_abfrage_ohne_anstoss_parameter(client):
     assert 'id="anstoss-blase" role="status" x-ref="blase">' in html  # Blase sichtbar (kein hidden)
     warte = client.get("/parlament/?anstoss=warte").content.decode()
     assert 'x-ref="klappe" open' in warte
+
+
+def test_textfeld_hat_ein_label_nicht_nur_einen_platzhalter(client):
+    """Befund #85: Der Platzhalter verschwindet beim Tippen — ein Screenreader hört dann nur
+    noch „Eingabefeld“. Das Label ist unsichtbar (nur-sr), aber verknüpft."""
+    html = client.get("/").content.decode()
+    assert '<label for="anstoss-text-ecke" class="nur-sr">' in html
+    assert 'id="anstoss-text-ecke" name="text"' in html
 
 
 def test_widget_begleitet_auf_allen_seiten(client):

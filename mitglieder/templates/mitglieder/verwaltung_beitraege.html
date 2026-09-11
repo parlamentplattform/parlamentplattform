@@ -30,12 +30,12 @@ als das Ergebnis. Erinnerungen versendet nie ein Automatismus — sondern Sie, a
     die Plattform sieht Ihre Bankzugangsdaten dabei nie.{% endblocktranslate %}</p>
     <form method="post" action="{% url 'mitglieder:bank_koppeln' %}" class="stimmzeile" style="margin-top:10px">{% csrf_token %}
       {% if institutionen %}
-        <select name="institution_id" required>
+        <select name="institution_id" aria-label="{% translate 'Bank' %}" required>
           <option value="">{% translate "Bank wählen …" %}</option>
           {% for i in institutionen %}<option value="{{ i.id }}">{{ i.name }}</option>{% endfor %}
         </select>
       {% else %}
-        <input type="text" name="institution_id" placeholder="{% translate 'Institutions-ID (z. B. SPARKASSE_OOE_ASPKAT2L)' %}" style="min-width:280px" required>
+        <input type="text" name="institution_id" aria-label="{% translate 'Institutions-ID' %}" placeholder="{% translate 'Institutions-ID (z. B. SPARKASSE_OOE_ASPKAT2L)' %}" style="min-width:280px" required>
         {% if institutionen_fehler %}<span class="hilfe">{% translate "Bankliste gerade nicht abrufbar — ID von Hand eintragen." %}</span>{% endif %}
       {% endif %}
       <button type="submit" class="btn">{% translate "Konto koppeln →" %}</button>
@@ -50,7 +50,7 @@ als das Ergebnis. Erinnerungen versendet nie ein Automatismus — sondern Sie, a
   abgleichen. Gleiche Zuordnung, gleiche Freischaltung wie beim automatischen Abruf; jeder Umsatz
   zählt nur einmal, die Datei selbst wird nicht gespeichert.{% endblocktranslate %}</p>
   <form method="post" action="{% url 'mitglieder:auszug_hochladen' %}" enctype="multipart/form-data" class="stimmzeile" style="margin-top:10px">{% csrf_token %}
-    <input type="file" name="auszug" accept=".xml,.csv,.txt,.camt" required style="font:inherit">
+    <label>{% translate "Kontoauszug (camt.053-XML oder CSV)" %} <input type="file" name="auszug" accept=".xml,.csv,.txt,.camt" required style="font:inherit"></label>
     <button type="submit" class="btn">{% translate "Auszug abgleichen" %}</button>
   </form>
 </div>

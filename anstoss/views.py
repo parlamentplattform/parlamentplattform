@@ -1,8 +1,9 @@
 """Anstoß-Ansichten (F-69): entgegennehmen, sichten, exportieren.
 
 Grundsätze: ohne JavaScript voll funktionsfähig (htmx nur als Zugabe),
-Honigtopf und Sendeabstand statt Captcha, keine Anmeldepflicht. Die
-Verwaltungsansicht ist wie jede andere Seite übersetzbar (seit 0.40.0)."""
+Honigtopf, Sendeabstand und Verbindungsdrossel statt Captcha, keine
+Anmeldepflicht. Die Verwaltungsansicht ist wie jede andere Seite übersetzbar
+(seit 0.40.0)."""
 
 import csv
 
@@ -13,8 +14,11 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from anstoss.models import Anstoss, AnstossStatus
+from mitglieder.botschutz import drossel_zuviel
 from mitglieder.verwaltung import nur_admins
+from parameter.models import zahl
 
+# Zielwerte — gelesen wird das Register (anstoss-mindestabstand-sekunden, anstoss-tagesgrenze).
 MIN_ABSTAND_SEKUNDEN = 60
 TAGESGRENZE = 20
 
@@ -42,13 +46,20 @@ def senden(request):
     anzahl = int(request.session.get("anstoss_anzahl", 0))
     if request.session.get("anstoss_tag") != heute:
         anzahl = 0
+    mindestabstand = zahl("anstoss-mindestabstand-sekunden", MIN_ABSTAND_SEKUNDEN)
+    tagesgrenze = zahl("anstoss-tagesgrenze", TAGESGRENZE)
 
     ergebnis = "danke"
     if honig:
         pass  # Bots freundlich ins Leere laufen lassen — nichts speichern, nichts verraten
     elif not text:
         ergebnis = "leer"
-    elif (zuletzt and jetzt.timestamp() - float(zuletzt) < MIN_ABSTAND_SEKUNDEN) or anzahl >= TAGESGRENZE:
+    elif (zuletzt and jetzt.timestamp() - float(zuletzt) < mindestabstand) or anzahl >= tagesgrenze:
+        ergebnis = "warte"
+    elif drossel_zuviel(request, "anstoss", limit=tagesgrenze):
+        # Die Sitzung gehört dem Client: Wer das Cookie weglässt, hat jedes Mal eine leere
+        # (Befund #67). Darum zusätzlich je Verbindung und Stunde — und erst hier, damit
+        # leere und Honigtopf-POSTs kein Budget verbrauchen.
         ergebnis = "warte"
     else:
         Anstoss.objects.create(

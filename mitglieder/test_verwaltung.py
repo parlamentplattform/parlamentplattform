@@ -454,6 +454,20 @@ def test_reaktivieren_eines_unbestaetigten_kontos_setzt_den_beitritt(client):
     assert eva.is_active is True and eva.beitritt == timezone.localdate()
 
 
+# --- Zugängliche Namen der Verwaltungsfelder (Befund #85) ---------------------------------
+
+
+def test_verwaltungsfelder_haben_zugaengliche_namen(client):
+    """Suchfeld, Statusfilter, Bankwahl und Datei-Eingabe hatten weder Label noch aria-label —
+    ein Screenreader sagte nur „Eingabefeld“ an."""
+    client.force_login(admin_anlegen())
+    liste = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert 'name="q" value="" aria-label="Suchbegriff"' in liste
+    assert 'name="status" aria-label="Status filtern"' in liste
+    beitraege = client.get(reverse("mitglieder:verwaltung_beitraege")).content.decode()
+    assert "<label>Kontoauszug (camt.053-XML oder CSV) <input type=\"file\"" in beitraege
+
+
 # --- Übersetzbarkeit der Verwaltung (Befund #91) ------------------------------------------
 
 

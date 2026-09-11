@@ -80,3 +80,37 @@ Deploy-Schritt. Zeilen älter als zwei Stunden räumt `drossel_zuviel` selbst ab
 Botschutz-Aufgaben liegen jetzt in der Sitzung (Befund #68) — Gäste, die ein Formular öffnen, erzeugen eine
 Sitzungszeile. Deshalb (auch für Befund #67) in `render.yaml` in die dockerCommand-Kette vor gunicorn:
 `&& python manage.py clearsessions`. Das räumt nur abgelaufene Sitzungen (Standard 14 Tage).
+
+## Befund #85 — Felder in Dateien anderer Cluster
+
+Erledigt in Cluster B: anstoss/_widget.html (Label `nur-sr` + `id="anstoss-text-<lage>"`, damit Leiste und
+Ecke keine doppelte id tragen), mitglieder/verwaltung_liste.html (aria-label Suchbegriff, Status filtern),
+mitglieder/verwaltung_beitraege.html (aria-label Bank / Institutions-ID, Datei-Eingabe mit `<label>` umschlossen).
+Offen, je Cluster:
+
+- Cluster D, `parameter/templates/parameter/verwaltung.html:68/69`:
+  `<input type="text" name="wert" value="{{ p.wert }}" aria-label="{% translate 'Neuer Wert' %} {{ p.schluessel }}">`
+  und für das Begründungsfeld daneben `aria-label="{% translate 'Begründung' %} {{ p.schluessel }}"`; Z. 49 (nur Placeholder)
+  ebenso ein aria-label.
+- Cluster A2, `mandatare/templates/mandatare/verwaltung.html:31`:
+  `<label>{% translate "Foto" %} <input type="file" name="foto" …></label>`.
+- Cluster C, `gremien/templates/gremien/integritaet.html:78`, `verwaltung_rollen.html:40`, `fenster.html:145`
+  (nur Placeholder): je Feld `aria-label="{% translate '…' %}"` mit dem Sinn des Platzhalters.
+
+## Befund #21 — Abweichung im Detail
+
+Der Nachprüfer schlug vor, am Login nur dann einen neuen Bestätigungslink zu schicken, wenn KEIN gültiges
+Bestätigungs-Token mehr existiert. Umgesetzt ist: für jedes nie bestätigte Konto (inaktiv, ohne Beitritt, nicht
+ausgeschlossen) — auch wenn der alte Link noch gilt. Grund: Wer die Mail nicht findet (Spam-Ordner), müsste
+sonst 48 Stunden warten; die Drossel (10 je Verbindung und Stunde) begrenzt den Missbrauch, und die Mail geht
+nur an die Adresse selbst. Die „gesendet"-Seite ist in allen Fällen dieselbe (keine Adress-Enumeration).
+Ausgeschlossene Konten (ebenfalls `is_active=False`) bekommen weder Link noch Neuregistrierung.
+Die Registrierung überschreibt eine nie bestätigte Zeile nur, wenn ihr Bestätigungslink abgelaufen ist
+(Audit „registrierung" mit `erneut: true`); gelöscht wird nichts.
+
+## Befund #67 — clearsessions
+
+Siehe oben unter #19/#66: `python manage.py clearsessions` in die dockerCommand-Kette (render.yaml, Cluster D).
+Die Verbindungsdrossel des Anstoß-Widgets liest die Tagesgrenze aus dem Register (`anstoss-tagesgrenze`) und
+wendet sie je Verbindung und Stunde an (Befund #45 für anstoss/views.py damit ebenfalls erledigt:
+`anstoss-mindestabstand-sekunden` und `anstoss-tagesgrenze` werden gelesen).

@@ -47,3 +47,34 @@ Verfahren“) stimmt jetzt für alle Schlüssel in `REGISTER_ZUORDNUNG`; für di
 `parameter/templates/parameter/liste.html` („Ein geänderter Wert wirkt deshalb nie auf ein
 laufendes Verfahren“): nur bei `p.speist_ordnung` zeigen oder auf „Werte der
 Verfahrensordnung“ einschränken.
+
+## Befund #5 — eingereichte Fassung
+
+Umgesetzt: `Entwurf.eingereichte_fassung` (Migration `gremien/0014`, Nachtrag für bestehende
+Entwürfe aus der höchsten Fassung zum Einreichzeitpunkt), `Entwurf.vorgelegte_fassung()`,
+`_endabstimmung_oeffnen` nimmt nur noch diese. Kein Cluster-fremder Bedarf.
+
+## Befund #8 — Fristen im PRUEFUNG-Zweig
+
+Umgesetzt in `Entwurf.fortschreiben`: (a) keine Gruppe 2 → nach `pruefung_tage` ab
+`eingereicht_am` Vermerk VALIDIERT ohne Beschluss und weiter an die Unterstützer; (b) offener
+Austauschantrag → nach `pruefung_tage` ab `Pruefung.erstellt_am` weiter an die Unterstützer.
+Beide mit Audit `pruefung_frist_verstrichen` und `wirksam_ab` = Fristzeitpunkt.
+
+**Abweichungen vom Vorschlag, mit Grund:**
+- Statt eines neuen Registerschlüssels `gremien-austausch-tage` nimmt (b) die Prüffrist
+  `pruefung_tage` der **eingefrorenen Ordnung**. Ein neuer Schlüssel bräuchte einen
+  ERSTBESTAND-Eintrag (`parameter/models.py`, Cluster D); ohne ihn würde `aus_register` jede
+  neue Fassung mit „fehlender Wert“ abweisen. Wer eine eigene Frist will: Feld
+  `austausch_tage: int = 7` in `Policy` + `REGISTER_ZUORDNUNG["austausch_tage"] =
+  ("gremien-austausch-tage", int)` + ERSTBESTAND-Eintrag (Quelle § 6 Abs 7 · § 5 Abs 12) in
+  einem Zug.
+- Statt `korat_entscheid` leer zu lassen, trägt die Prüfung den neuen Wert `verfristet`
+  (`Pruefung.KoratEntscheid`, Migration `gremien/0015`). Ein leerer Entscheid hätte den Antrag
+  bei einer späteren zweiten Prüfungsrunde erneut blockiert (der Filter `korat_entscheid=""`
+  fände den alten Austauschantrag wieder); mit dem eigenen Wert stimmen alle vier
+  Filterstellen in `gremien/views.py` ohne Änderung, und `koordination.html` zeigt die
+  Beschriftung über `get_korat_entscheid_display`.
+- „Den KoRat-Entscheid mittelfristig als GremienBeschluss mit Anlass AUSTAUSCH und Frist
+  führen“ — das ist seit 0.45 schon so (`koordination_beschluss`, Anlass AUSTAUSCH); nur die
+  **Anlage** des Beschlusses ist eine unbefristete Einzelhandlung. Genau diese Lücke schließt (b).

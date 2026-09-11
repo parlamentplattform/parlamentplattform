@@ -187,6 +187,12 @@ class Entwurf(models.Model):
         help_text="Unmittelbarer Vollzugs- oder Beschaffungsbezug — dann prüft Gruppe 2 (§ 6 Abs 7).",
     )
     eingereicht_am = models.DateTimeField(null=True, blank=True)
+    eingereichte_fassung = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Nummer der Entwurfsfassung, die zuletzt eingereicht wurde — nur sie geht zur "
+        "Endabstimmung. Ein später angehängter Arbeitsstand hat kein Organ freigegeben (§ 5 Abs 12).",
+    )
     review_frist = models.DateTimeField(null=True, blank=True)
     ueberarbeitung_frist = models.DateTimeField(null=True, blank=True)
     erstellt_am = models.DateTimeField(default=timezone.now)
@@ -202,6 +208,16 @@ class Entwurf(models.Model):
 
     def aktuelle_fassung(self):
         return self.fassungen.order_by("-nummer").first()
+
+    def vorgelegte_fassung(self):
+        """Die Fassung, die zuletzt eingereicht wurde — oder None, wenn nie eingereicht.
+
+        Nicht `aktuelle_fassung()`: In einer Überarbeitungsrunde darf Gruppe 1 jederzeit
+        Arbeitsstände anhängen. Über sie hat weder die Gruppe beschlossen noch Gruppe 2 geprüft,
+        noch haben die Unterstützer sie gesehen — zur Endabstimmung geht nur, was vorgelegt war."""
+        if self.eingereichte_fassung is None:
+            return None
+        return self.fassungen.filter(nummer=self.eingereichte_fassung).first()
 
     def einreichungsbeschluss(self):
         """Der offene Beschluss der Gruppe 1 über die Einreichung — oder None."""
@@ -273,6 +289,11 @@ class Entwurf(models.Model):
         Prüfung der Gruppe 2, sonst direkt an die Unterstützer (§ 5 Abs 12)."""
         jetzt = jetzt or timezone.now()
         self.eingereicht_am = jetzt
+        fassung = self.aktuelle_fassung()
+        if fassung is not None:
+            # Festhalten, WAS eingereicht wurde: Nur diese Fassung geht später zur Endabstimmung,
+            # auch wenn in einer Überarbeitungsrunde noch Arbeitsstände dazukommen (Befund #5).
+            self.eingereichte_fassung = fassung.nummer
         if self.vollzugsbezug:
             self.status = EntwurfsStatus.PRUEFUNG
         else:
@@ -378,16 +399,26 @@ class Entwurf(models.Model):
     @transaction.atomic
     def _endabstimmung_oeffnen(self, antrag: Antrag, grund: str, jetzt) -> None:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
-        Vorschlag — er wird die neue, letzte Antragsfassung."""
-        fassung = self.aktuelle_fassung()
-        letzte = antrag.aktueller_text()
-        nummer = (letzte.nummer if letzte else 0) + 1
-        AntragsFassung.objects.create(
-            antrag=antrag,
-            nummer=nummer,
-            wortlaut=fassung.wortlaut,
-            begruendung=f"Vorschlag des Expertenrats, Runde {self.runde} (§ 5 Abs 12). {fassung.begruendung}".strip(),
-        )
+        Vorschlag — er wird die neue, letzte Antragsfassung.
+
+        „Zustande gekommen“ ist die zuletzt **eingereichte** Fassung, nicht die höchste Nummer:
+        Nach einer Rückgabe hängt Gruppe 1 Arbeitsstände an, und verstreicht dann die
+        Überarbeitungsfrist, geht die vorgelegte Fassung zur Abstimmung (§ 5 Abs 12: „über die
+        zuletzt veröffentlichte Fassung“) — nie ein Text, den kein Organ freigegeben hat.
+        Wurde nie eingereicht, bleibt der Antragstext, wie er ist."""
+        fassung = self.vorgelegte_fassung()
+        if fassung is not None:
+            letzte = antrag.aktueller_text()
+            nummer = (letzte.nummer if letzte else 0) + 1
+            AntragsFassung.objects.create(
+                antrag=antrag,
+                nummer=nummer,
+                wortlaut=fassung.wortlaut,
+                begruendung=(
+                    f"Vorschlag des Expertenrats, Runde {self.runde}, Entwurfsfassung {fassung.nummer} "
+                    f"(§ 5 Abs 12). {fassung.begruendung}"
+                ).strip(),
+            )
         from plattform_core import Phase
 
         if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
@@ -424,6 +455,7 @@ class Entwurf(models.Model):
                 "neue_phase": Phase.ABSTIMMUNG.value,
                 "wirksam_ab": jetzt.isoformat(),
                 "grund": grund,
+                "entwurfsfassung": fassung.nummer if fassung is not None else None,
                 "chat_archiviert": archiviert,
             }
         )
@@ -439,10 +471,41 @@ class Entwurf(models.Model):
           zuletzt vorgelegte Fassung geht zur Endabstimmung."""
         jetzt = jetzt or timezone.now()
         if self.status == EntwurfsStatus.PRUEFUNG:
-            if self.pruefungen.filter(
-                ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""
-            ).exists():
-                return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+            # Zwei Wege führen aus der Prüfung ohne Beschluss heraus, und beide haben eine Frist
+            # (Befund #8): Sonst hinge der Antrag unbefristet in der Beratung, obwohl § 5 Abs 12
+            # sagt, dass Untätigkeit eines Organs das Verfahren nie hemmt. Die Frist ist die
+            # Prüffrist der eingefrorenen Ordnung (§ 5 Abs 5) — dieselbe, die ein Beschluss der
+            # Gruppe 2 bekäme.
+            pruefung_tage = timedelta(days=antrag.policy().pruefung_tage)
+            austausch = (
+                self.pruefungen.filter(ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid="")
+                .order_by("-erstellt_am")
+                .first()
+            )
+            if austausch is not None:
+                frist = austausch.erstellt_am + pruefung_tage
+                if jetzt < frist:
+                    return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+                # Der Koordinationsrat hat binnen der Frist nicht entschieden: Der Austauschantrag
+                # gilt als verfristet, der Vorschlag geht — offen vermerkt — an die Unterstützer.
+                austausch.korat_entscheid = Pruefung.KoratEntscheid.VERFRISTET
+                austausch.korat_begruendung = (
+                    "Frist verstrichen — keine Entscheidung des Koordinationsrats binnen "
+                    f"{antrag.policy().pruefung_tage} Tagen (§ 5 Abs 12: Untätigkeit hemmt nie)."
+                )
+                austausch.save(update_fields=["korat_entscheid", "korat_begruendung"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "pruefung_frist_verstrichen",
+                        "antrag": self.antrag_id,
+                        "runde": self.runde,
+                        "grund": "austausch_ohne_entscheid",
+                        "pruefung": austausch.pk,
+                        "wirksam_ab": frist.isoformat(),
+                    }
+                )
+                self.zu_den_unterstuetzern(frist)
+                return True
             offene = list(
                 self.beschluesse.filter(
                     gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN
@@ -452,8 +515,38 @@ class Entwurf(models.Model):
                 # Erst hier, nicht schon beim Einreichen: Beim Einreichen ist manchmal noch
                 # niemand in Gruppe 2 berufen, und die Frist einer Gruppe kann nicht laufen,
                 # bevor es die Gruppe gibt.
-                self.pruefbeschluss_anlegen(jetzt)
-                return False
+                if self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
+                    return False
+                # Keine Gruppe 2 — dann läuft die Prüffrist ab der Einreichung. Verstreicht sie,
+                # geht der Vorschlag weiter, und der Vermerk sagt offen, dass niemand geprüft hat.
+                frist = self.eingereicht_am + pruefung_tage
+                if jetzt < frist:
+                    return False
+                Pruefung.objects.create(
+                    entwurf=self,
+                    runde=self.runde,
+                    ergebnis=Pruefung.Ergebnis.VALIDIERT,
+                    begruendung=(
+                        "Die Prüfung blieb aus: In Gruppe 2 war binnen der Prüffrist von "
+                        f"{antrag.policy().pruefung_tage} Tagen keine Rolle besetzt. Der Vorschlag "
+                        "geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
+                        "(§ 5 Abs 12: Untätigkeit hemmt nie)."
+                    ),
+                    durch=None,
+                    beschluss=None,
+                    erstellt_am=frist,
+                )
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "pruefung_frist_verstrichen",
+                        "antrag": self.antrag_id,
+                        "runde": self.runde,
+                        "grund": "keine_gruppe_2",
+                        "wirksam_ab": frist.isoformat(),
+                    }
+                )
+                self.zu_den_unterstuetzern(frist)
+                return True
             # Die Prüfung der Gruppe 2 hat ihre eigene Frist (FB-I3). Läuft sie ab, wertet der
             # Beschluss aus — sonst hinge ein Beschaffungsantrag an der Aufmerksamkeit eines
             # einzelnen Rates, und genau das soll die Frist verhindern (§ 5 Abs 12).
@@ -582,6 +675,15 @@ class Pruefung(models.Model):
         ZURUECK = "zurueck", "mit Begründung zurückgegeben"
         AUSTAUSCH = "austausch", "Austausch bei Gruppe 1 beantragt"
 
+    class KoratEntscheid(models.TextChoices):
+        """Wie der Koordinationsrat über einen Austauschantrag befand — oder dass er es nicht tat:
+        `verfristet` heißt, die Prüffrist verstrich ohne Beschluss und der Vorschlag ging weiter
+        (§ 5 Abs 12). Ein späterer Beschluss ändert daran nichts mehr."""
+
+        STATTGEGEBEN = "stattgegeben", "stattgegeben"
+        ABGELEHNT = "abgelehnt", "abgelehnt"
+        VERFRISTET = "verfristet", "keine Entscheidung binnen der Frist"
+
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
     runde = models.PositiveIntegerField()
     ergebnis = models.CharField(max_length=12, choices=Ergebnis.choices)
@@ -605,8 +707,9 @@ class Pruefung(models.Model):
     korat_entscheid = models.CharField(
         max_length=12,
         blank=True,
-        choices=[("stattgegeben", "stattgegeben"), ("abgelehnt", "abgelehnt")],
-        help_text="Nur bei Austauschanträgen: die Entscheidung des Koordinationsrats.",
+        choices=KoratEntscheid.choices,
+        help_text="Nur bei Austauschanträgen: die Entscheidung des Koordinationsrats — oder der "
+        "Vermerk, dass sie binnen der Prüffrist ausblieb.",
     )
     korat_begruendung = models.TextField(max_length=2000, blank=True)
     korat_beschluss = models.ForeignKey(
@@ -1732,7 +1835,15 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     — nicht alle Rollen der Partei, das wäre seit der Auslosung ein Eingriff in fremde
     Verfahren — und lost eine neue Runde. Der Entwurf geht an die neue Gruppe."""
     pruefung = beschluss.pruefungen_austausch.first()
-    if pruefung is None or pruefung.korat_entscheid:
+    if pruefung is None:
+        return
+    if pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET:
+        # Der Rat hat zu spät entschieden: Die Prüffrist war um, der Vorschlag liegt schon den
+        # Unterstützern vor (§ 5 Abs 12). Der Beschluss bleibt stehen — mit dem Vermerk, warum
+        # er nichts mehr bewirkt.
+        _vermerken(beschluss, "Ohne Wirkung: Die Prüffrist war verstrichen, der Vorschlag lag schon den Unterstützern vor.")
+        return
+    if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
     entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"

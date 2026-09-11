@@ -440,6 +440,39 @@ def test_verstrichene_ueberarbeitung_geht_zur_endabstimmung(client, ordnung):  #
     assert entwurf.status == EntwurfsStatus.ANGENOMMEN
 
 
+def test_ein_nie_eingereichter_arbeitsstand_geht_nicht_zur_endabstimmung(client, ordnung):  # noqa: F811
+    """Befund #5: Nach der Rückgabe hängt Gruppe 1 einen Arbeitsstand an und schweigt dann.
+    Verstreicht die Überarbeitungsfrist, geht die zuletzt **vorgelegte** Fassung zur
+    Endabstimmung (§ 5 Abs 12) — nicht der Arbeitsstand, den kein Organ freigegeben hat."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    assert entwurf.eingereichte_fassung == 1
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()  # Rückgabe: Runde 2 läuft
+    client.force_login(er[0])
+    client.post(
+        reverse("gremien:fenster_aktion", args=[antrag.pk]),
+        {"aktion": "fassung", "wortlaut": "Arbeitsstand — Absatz 4 fehlt noch.", "begruendung": "unfertig"},
+    )
+    entwurf.refresh_from_db()
+    assert entwurf.aktuelle_fassung().nummer == 2 and entwurf.eingereichte_fassung == 1
+    Entwurf.objects.filter(pk=entwurf.pk).update(ueberarbeitung_frist=timezone.now() - timedelta(hours=1))
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    text = antrag.aktueller_text()
+    assert antrag.phase == "abstimmung"
+    assert text.wortlaut == ANTRAG["wortlaut"] and "Arbeitsstand" not in text.wortlaut
+    assert "Entwurfsfassung 1" in text.begruendung
+
+
 def test_antragsseite_zeigt_den_abstimmungschat_offen(client, ordnung):  # noqa: F811
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     einreichen(client, antrag, er)

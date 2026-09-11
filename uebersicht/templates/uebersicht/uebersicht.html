@@ -31,14 +31,34 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
 </div>
 
 <h2>{% translate "Abstimmungen: Ergebnisse und Beteiligung" %}</h2>
+{% comment %}
+Laufende Abstimmungen zeigen nur die Beteiligung — die Tendenz bleibt bis zum Fristende verdeckt
+(F-15, § 5 Abs 3 lit e), genau wie auf der Kachel und im Export. Ergebnisse gibt es erst für
+entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte Bewerbung.
+{% endcomment %}
 {% for z in abstimmungen %}
   <div class="karte">
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
+      {% if z.personenwahl %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% endif %}
       {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
       {% elif z.antrag.phase == "angenommen" %}<span class="badge badge-ok">{% translate "angenommen" %}</span>
       {% else %}<span class="badge badge-warn">{% translate "abgelehnt" %}</span>{% endif %}
     </p>
+    {% if z.laeuft %}
+    <div class="balken" style="height:6px;max-width:34em" aria-hidden="true"><b style="width:{{ z.prozent }}%"></b></div>
+    <p class="erk" style="margin-top:8px">
+      {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
+      {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
+      · {% translate "Tendenz verdeckt bis Fristende" %}
+    </p>
+    {% elif z.personenwahl %}
+    <p class="erk" style="margin-top:8px">
+      {% if z.gewaehlt %}{% blocktranslate with name=z.gewaehlt.name n=z.gewaehlt.stimmen %}Gewählt: {{ name }} mit {{ n }} Zustimmungen{% endblocktranslate %}{% else %}{% translate "Keine Bewerbung gilt als gewählt." %}{% endif %}
+      — {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
+      {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
+    </p>
+    {% else %}
     {{ z.balken|safe }}
     <p class="erk" style="margin-top:8px">
       <span class="legende-ja">■</span> {% translate "Ja" %} {{ z.ja }} ·
@@ -47,10 +67,15 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
       — {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
       {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
     </p>
+    {% endif %}
   </div>
 {% empty %}
   <p class="leer">{% translate "Noch keine Abstimmungen." %}</p>
 {% endfor %}
+{% if abstimmungen_weitere %}
+<p class="erk">{% blocktranslate count n=abstimmungen_weitere %}Eine ältere Entscheidung ist hier nicht mehr aufgeführt.{% plural %}{{ n }} ältere Entscheidungen sind hier nicht mehr aufgeführt.{% endblocktranslate %}
+  {% translate "Vollständig:" %} <a href="{% url 'verfahren:umsetzung' %}">{% translate "Umsetzungsregister" %}</a> · <a href="{% url 'verfahren:parlament' %}">{% translate "Parlament" %}</a></p>
+{% endif %}
 
 <h2>{% translate "KI-Verbrauch des Modell-Steckplatzes" %}</h2>
 <div class="karte">

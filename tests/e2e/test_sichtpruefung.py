@@ -224,7 +224,7 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         p = seite(als=kr)
         p.goto(f"{live_server.url}/gremien/expertenrat/{in_beratung.pk}/")
         halte_fest(p, "entwurfsfenster-drei-spalten")
-        p = seite(als=kr, handy=True)
+        p = seite(als=kr, viewport=HANDY)
         p.goto(f"{live_server.url}/gremien/expertenrat/{in_beratung.pk}/")
         halte_fest(p, "entwurfsfenster-handy")
 

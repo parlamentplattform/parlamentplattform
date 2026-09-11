@@ -287,14 +287,19 @@ REGELN: tuple[Regel, ...] = (
             "als unveränderliche Kopie an den Antrag geheftet, damit eine spätere Änderung ein "
             "laufendes Verfahren nicht mehr erreicht. Jede Fassung, die die satzungsfesten "
             "Untergrenzen unterschreitet — Beratung mindestens 21 Tage, Abstimmung mindestens 7 Tage, "
-            "Beteiligung mindestens 5 Prozent —, wird zurückgewiesen.")
+            "Beteiligung mindestens 5 Prozent —, wird zurückgewiesen. Seit Fassung 2 gehören auch die "
+            "Fristen, Runden und die Annahme-Schwelle der Entwurfsschleife (§ 5 Abs 12) zur Ordnung; die "
+            "Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4 und § 5 Abs 7",
-        fassung=1,
-        seit="2026-09-05",
+        fassung=2,
+        seit="2026-09-11",
         grund=(
-            _("Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
+            _("Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die "
+            "eingefrorene Ordnung: Bis dahin las die Schleife sie live aus dem Register, und eine "
+            "Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: ")
+            + _("Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
             "pflegen und daraus eine neue Fassung der Verfahrensordnung erzeugen. Erzeugen und In- "
             "Kraft-Setzen sind bewusst zwei Schritte, weil das eine eine Rechnung und das andere eine "
             "Entscheidung ist; und die Untergrenzen der Satzung bleiben im Programmtext statt im "

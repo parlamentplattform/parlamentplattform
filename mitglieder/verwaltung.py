@@ -99,11 +99,11 @@ class StammdatenFormular(forms.Form):
         # Wer sie ihm nähme, entmachtete ihn; wer sie sich gäbe, würde selbst unantastbar.
         if self.mitglied.ist_fixer_admin:
             raise forms.ValidationError(
-                _("Die Adresse des satzungsgebenden Erstzugangs wird hier nicht geändert (F-51).")
+                _("Die Adresse des satzungsgebenden Erstzugangs wird hier nicht geändert.")
             )
         if email == getattr(settings, "DDOE_FIX_ADMIN", "").lower():
             raise forms.ValidationError(
-                _("Diese Adresse ist dem satzungsgebenden Erstzugang vorbehalten (F-51).")
+                _("Diese Adresse ist dem satzungsgebenden Erstzugang vorbehalten.")
             )
         if Mitglied.objects.filter(email__iexact=email).exclude(pk=self.mitglied.pk).exists():
             raise forms.ValidationError(_("Diese Adresse gehört bereits zu einem anderen Konto."))
@@ -268,7 +268,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
     selbst = mitglied.pk == request.user.pk
     if aktion in ("pausieren", "ausschliessen", "admin_nehmen"):
         if mitglied.ist_fixer_admin:
-            messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar (F-51)."))
+            messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
             return
         if selbst:
             messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))

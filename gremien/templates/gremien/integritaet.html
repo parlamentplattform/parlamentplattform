@@ -78,7 +78,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     {% if z.aussetzung.schiedsgericht_kennung %}<br><span class="meta">{% translate "Beim Parteischiedsgericht:" %} {{ z.aussetzung.schiedsgericht_kennung }}</span>{% endif %}
     {% if z.laeuft and not z.aussetzung.schiedsgericht_am and darf_stimmen %}
     <form method="post" action="{% url 'gremien:integritaet_schiedsgericht' z.aussetzung.pk %}" style="margin-top:6px">{% csrf_token %}
-      <input type="text" name="kennung" placeholder="{% translate 'Kennung des Antrags beim Schiedsgericht' %}" required style="width:300px">
+      <input type="text" name="kennung" placeholder="{% translate 'Kennung des Antrags beim Schiedsgericht' %}" aria-label="{% translate 'Kennung des Antrags beim Schiedsgericht' %}" required style="width:300px">
       <button type="submit" class="btn-linie klein">{% translate "Antrag ans Schiedsgericht vermerken" %}</button>
     </form>
     {% endif %}

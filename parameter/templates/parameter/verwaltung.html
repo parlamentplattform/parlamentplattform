@@ -46,7 +46,7 @@ Verwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log.{
     {% for z in entwurf.zeilen %}<br><span class="meta">{{ z.name }}: {{ z.wert }}</span>{% endfor %}
     <form method="post" action="{% url 'parameter:verwaltung_ordnung_inkraft' %}" style="margin-top:6px">{% csrf_token %}
       <input type="hidden" name="ordnung" value="{{ entwurf.fassung.pk }}">
-      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" required style="width:280px">
+      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" aria-label="{% translate 'Grund (wird veröffentlicht)' %}" required style="width:280px">
       <button type="submit" class="btn-linie">{% translate "In Kraft setzen" %}</button>
     </form>
   </span></div>
@@ -65,8 +65,8 @@ Verwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log.{
     {% if p.status == im_test and p.test_hypothese %}<br><span class="meta">{% translate "Test:" %} {{ p.test_hypothese }}</span>{% endif %}
     <form method="post" action="{% url 'parameter:verwaltung_aktion' %}" style="margin-top:6px">{% csrf_token %}
       <input type="hidden" name="parameter" value="{{ p.pk }}">
-      <input type="text" name="wert" value="{{ p.wert }}" style="width:120px">
-      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" required style="width:280px">
+      <input type="text" name="wert" value="{{ p.wert }}" aria-label="{% translate 'Neuer Wert' %} {{ p.schluessel }}" style="width:120px">
+      <input type="text" name="grund" placeholder="{% translate 'Grund (wird veröffentlicht)' %}" aria-label="{% translate 'Begründung' %} {{ p.schluessel }}" required style="width:280px">
       <button type="submit" class="btn-linie">{% translate "Ändern" %}</button>
     </form>
   </span></div>

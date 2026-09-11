@@ -22,7 +22,7 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 #: Fassungsnummer wird zusammen mit dem Eintrag im Regelverzeichnis angehoben
 #: (`plattform_core.regelwerk`), nicht für sich allein: Das Verzeichnis prüft, dass beide
 #: dasselbe sagen.
-VERSION = 1
+VERSION = 2
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c

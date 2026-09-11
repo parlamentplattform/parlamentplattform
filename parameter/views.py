@@ -268,6 +268,13 @@ FELD_NAMEN = {
     "abstimmung_tage": "Dauer der Abstimmung (Tage)",
     "mindestbeteiligung": "Mindestbeteiligung (Anteil)",
     "wiedereinbringung_sperre_monate": "Sperre für Wiedereinbringung (Monate)",
+    "expertenrat_gruppe1": "Größe der Gruppe 1 des Expertenrats",
+    "expertenrat_gruppe2": "Größe der Gruppe 2 des Expertenrats",
+    "vorschlag_annahme_anteil": "Annahme-Schwelle „Passt alles“ (Anteil)",
+    "hoechstrunden": "Höchstzahl der Runden der Entwurfsschleife",
+    "review_tage": "Frist der Unterstützer je Runde (Tage)",
+    "ueberarbeitung_tage": "Überarbeitungsfrist des Expertenrats je Rückgabe (Tage)",
+    "pruefung_tage": "Prüffrist der Gruppe 2 (Tage)",
 }
 
 

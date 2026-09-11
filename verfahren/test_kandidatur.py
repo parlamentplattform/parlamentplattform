@@ -237,8 +237,14 @@ def test_export_macht_die_wahl_nachrechenbar(client, ordnung):  # noqa: F811
     daten = client.get(reverse("verfahren:export", args=[antrag.pk])).json()
     assert daten["art"] == "mandat"
     assert daten["bewerbungen"][0]["bewerbung"] == b.pk
+    # Seit 0.45 steht jede Zustimmung im Export — auch eine zurückgenommene, mit Zeitstempel
+    # (Grundregel 7); die Auszählung zählt nur die gültigen.
     assert daten["zustimmungen"] == [
-        {"pseudonym": antrag.stimmregister.get(mitglied=autor).pseudonym.hex, "bewerbung": b.pk}
+        {
+            "pseudonym": antrag.stimmregister.get(mitglied=autor).pseudonym.hex,
+            "bewerbung": b.pk,
+            "zurueckgenommen_am": None,
+        }
     ]
 
 

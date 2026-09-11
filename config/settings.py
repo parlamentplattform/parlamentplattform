@@ -135,6 +135,12 @@ DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
 # damit die Verwaltung nie herrenlos wird. Weitere Admins ernennen Admins einander.
 DDOE_FIX_ADMIN = os.environ.get("DDOE_FIX_ADMIN", "didide@ddoe.at").lower()
 
+# F-49/F-52 (Befund #19/#66): Welche Kopfzeile die Adresse der Verbindung trägt, wenn ein
+# vertrauenswürdiger Proxy davorsteht — in META-Schreibweise, einwertig (Render hinter
+# Cloudflare: HTTP_CF_CONNECTING_IP). Unbesetzt zählt ausschließlich REMOTE_ADDR;
+# X-Forwarded-For wird nie gelesen, weil sein erster Eintrag vom Client frei wählbar ist.
+DDOE_CLIENT_IP_KOPFZEILE = os.environ.get("DDOE_CLIENT_IP_KOPFZEILE", "")
+
 # F-59 Beitragsabgleich: Zugang zum Kontoinformationsdienst (GoCardless Bank
 # Account Data). Ohne diese Schlüssel bleibt die Bankanbindung einfach aus —
 # die Plattform kennt in keinem Fall Bankzugangsdaten, nur diese Dienst-Kennungen.

@@ -170,6 +170,10 @@ def test_antragstitel_mit_hochkomma_wird_auf_der_uebersicht_kein_markup(client, 
         antrag_einbringen(leute[0], **{**ANTRAG, "titel": titel}, ordnung=ordnung), leute[1:]
     )
     stimme_abgeben(antrag, leute[1], "ja")
+    # Laufende Abstimmungen zeigen seit Befund #4 keinen Ergebnisbalken — erst die Entscheidung
+    antrag.phase_beginn = timezone.now() - timedelta(days=8)
+    antrag.save(update_fields=["phase_beginn"])
+    antrag.fortschreiben()
     inhalt = client.get(reverse("uebersicht:index")).content.decode()
     import xml.etree.ElementTree as ET
 

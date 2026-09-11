@@ -469,7 +469,7 @@ EXPERTENRAT1 = Rolle(
             einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm."),
         ),
         Faehigkeit(
-            titel=_("Vollzugs- oder Beschaffungsbezug setzen — dann prüft Gruppe 2 vorab"),
+            titel=_("Vollzugs- oder Beschaffungsbezug setzen — dann wird Gruppe 2 aus der Fachliste nachgelost und prüft vorab (§ 6 Abs 7)"),
             stand=Stand.VERFUEGBAR,
             ort=_("im Entwurfsfenster eines Antrags"),
         ),

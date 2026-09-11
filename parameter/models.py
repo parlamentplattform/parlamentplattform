@@ -61,7 +61,7 @@ class Parameter(models.Model):
     )
     status = models.CharField(
         max_length=16, choices=Status.choices, default=Status.GUELTIG,
-        help_text="Ein Wert „im Test“ gilt nur für neu beginnende Verfahren (§ 5 Abs 5).",
+        help_text="Ein Wert „im Test“ gilt bei Werten der Verfahrensordnung nur für neu beginnende Verfahren (§ 5 Abs 5); alle anderen Stellgrößen wirken sofort.",
     )
     test_bis = models.DateField(
         null=True, blank=True, help_text="Ende eines laufenden Tests — danach fällt der Wert zurück."
@@ -304,6 +304,54 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
+        "schluessel": "uebersicht-abstimmungen",
+        "wert": "20",
+        "einheit": gettext_noop("Einträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop(
+            "Wie viele entschiedene Abstimmungen die öffentliche Übersicht zeigt, bevor sie auf "
+            "Umsetzungsregister und Parlament verweist. Laufende Abstimmungen erscheinen immer — nur mit "
+            "Beteiligung, die Tendenz bleibt bis zum Fristende verdeckt."
+        ),
+        "quelle": "§ 5 Abs 10 lit d · § 5 Abs 3 lit e",
+    },
+    {
+        "schluessel": "chat-faden-wurzeln",
+        "wert": "50",
+        "einheit": gettext_noop("Beiträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop(
+            "Wie viele Wurzelbeiträge (mit ihren Antworten) der Chat eines Antrags auf einmal zeigt. "
+            "Ältere Beiträge kommen auf Wunsch nach — gelöscht oder verborgen wird nichts; im "
+            "Abstimmungs-Chat sind es die vordersten der offengelegten Reihung."
+        ),
+        "quelle": "§ 5 Abs 3 lit c",
+    },
+    {
+        "schluessel": "gremien-beschluesse-seite",
+        "wert": "50",
+        "einheit": gettext_noop("Beschlüsse"),
+        "gruppe": "gremien",
+        "beschreibung": gettext_noop(
+            "Wie viele Beschlüsse die öffentliche Beschlussliste auf einmal zeigt. Jeder Beschluss "
+            "bleibt unter seiner Nummer erreichbar."
+        ),
+        "quelle": "§ 6 Abs 9 (Anzeige)",
+    },
+    {
+        "schluessel": "adresswechsel-wartefrist-stunden",
+        "wert": "72",
+        "einheit": gettext_noop("Stunden"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop(
+            "Wie lange eine verwaltungsseitige Änderung der Anmeldeadresse wartet, bevor sie wirksam "
+            "wird. In dieser Zeit kann die bisherige Adresse widersprechen; zusätzlich braucht es einen "
+            "zweiten Admin. Der Login läuft passwortlos über die Adresse — ohne Frist wäre eine Änderung "
+            "eine Kontoübernahme."
+        ),
+        "quelle": "§ 4 Abs 2 · § 5 Abs 8 (Stimmgeheimnis)",
+    },
+    {
         "schluessel": "suche-treffer-hoechstzahl",
         "wert": "24",
         "einheit": gettext_noop("Treffer"),
@@ -466,7 +514,7 @@ ERSTBESTAND = [
         "gruppe": "gremien",
         "beschreibung": gettext_noop("Regelfrist einer internen Abstimmung in einem Rat. Danach wird mit den "
         "vorliegenden Stimmen ausgewertet — beschlussfähig ab der Hälfte der aktiven Rollen, "
-        "entschieden mit einfacher Mehrheit der abgegebenen Stimmen."),
+        "entschieden mit einfacher Mehrheit der abgegebenen Stimmen. Wirkt sofort auf neu angelegte Beschlüsse; kein Teil der Verfahrensordnung."),
         "quelle": "§ 6 Abs 2 lit e",
     },
     {
@@ -504,7 +552,7 @@ ERSTBESTAND = [
         "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
         "beschreibung": gettext_noop("Regeldauer einer Gremien-Rolle (zwei Jahre): Bestellung auf öffentliche "
-        "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen."),
+        "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen. Wirkt sofort auf neu berufene Rollen; kein Teil der Verfahrensordnung."),
         "quelle": "§ 6 Abs 8",
     },
     {

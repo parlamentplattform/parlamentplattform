@@ -299,19 +299,7 @@ VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", 
 #: Stellgrößen, deren lesende Stelle in Dateien anderer Cluster der Gesamtprüfung 0.45 liegt —
 #: der konkrete Änderungsvorschlag steht in NOTIZEN_D.md. Sobald eine Stelle liest, gehört ihr
 #: Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
-NOCH_NICHT_ANGEBUNDEN = {
-    "aehnlichkeit-schwelle-prozent",  # verfahren/views_aktionen.py: Aufruf von aehnlichste()
-    "aehnlichkeit-treffer",  # ebenda
-    "kategorien-je-antrag",  # verfahren/models.py: Aufruf von zuordnen()
-    "chat-bearbeitungsfenster-minuten",  # verfahren/models.py: Kommentar.BEARBEITUNGSFENSTER
-    "weicherfilter-profile-hoechstzahl",  # verfahren/views_aktionen.py: FilterProfil.HOECHSTZAHL
-    "faecher-kinder-hoechstzahl",  # verfahren/views.py: Aufruf des Fächers
-    "kacheln-hervorgehoben",  # verfahren/views.py: [:3] und unbegrenzte „wichtige“
-    "kacheln-abgeschlossen",  # verfahren/views.py: [:20]
-    "suche-treffer-hoechstzahl",  # verfahren/views.py: treffer[:24]
-    "anstoss-mindestabstand-sekunden",  # anstoss/views.py: MIN_ABSTAND_SEKUNDEN
-    "anstoss-tagesgrenze",  # anstoss/views.py: TAGESGRENZE
-}
+NOCH_NICHT_ANGEBUNDEN: set[str] = set()  # seit 0.45 liest jede Stellgröße eine Stelle im Code
 
 
 def _gelesene_schluessel() -> set[str]:

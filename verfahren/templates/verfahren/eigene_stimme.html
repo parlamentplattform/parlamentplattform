@@ -15,6 +15,8 @@ exportierten Stimmliste nachsehen, ob Ihre Stimme korrekt erfasst ist — und mi
 Die Zuordnung Pseudonym → Person kennt nur die Plattform; sie wird nach der
 satzungsmäßigen Frist gelöscht.{% endblocktranslate %}</p>
 </div>
+{% elif gesperrt %}
+<div class="karte"><p class="leer">{% translate "Für Ihr Konto läuft eine Änderung der Anmeldeadresse. Bis sie entschieden ist, zeigt die Plattform Ihren Registereintrag nicht an." %}</p></div>
 {% else %}
 <div class="karte"><p class="leer">{% translate "Für diesen Antrag ist von Ihnen keine Stimme erfasst." %}</p></div>
 {% endif %}

@@ -176,10 +176,10 @@ def standard_ende():
 
 
 class EntwurfsStatus(models.TextChoices):
-    IN_ARBEIT = "in_arbeit", "in Arbeit (Expertenrat)"
-    PRUEFUNG = "pruefung", "in Prüfung (Gruppe 2)"
-    UNTERSTUETZER = "unterstuetzer", "liegt den Unterstützern vor"
-    ANGENOMMEN = "angenommen", "zur Endabstimmung übergeben"
+    IN_ARBEIT = "in_arbeit", _("in Arbeit (Expertenrat)")
+    PRUEFUNG = "pruefung", _("in Prüfung (Gruppe 2)")
+    UNTERSTUETZER = "unterstuetzer", _("liegt den Unterstützern vor")
+    ANGENOMMEN = "angenommen", _("zur Endabstimmung übergeben")
 
 
 class Entwurf(models.Model):
@@ -406,7 +406,12 @@ class Entwurf(models.Model):
         )
 
     def zurueck_an_gruppe_1(
-        self, grund: str, jetzt=None, neue_runde: bool = False, frist_erneuern: bool = False
+        self,
+        grund: str,
+        jetzt=None,
+        neue_runde: bool = False,
+        frist_erneuern: bool = False,
+        auswertung: dict | None = None,
     ) -> None:
         """Zurück in die Werkstatt: mit neuer Runde (Unterstützer-Rückgabe) oder
         ohne (Gruppe 2, § 6 Abs 7). frist_erneuern gibt einer laufenden
@@ -430,11 +435,16 @@ class Entwurf(models.Model):
                 "runde": self.runde,
                 "grund": grund,
                 "wirksam_ab": jetzt.isoformat(),
+                # Die Rechnung der entschiedenen Runde, festgeschrieben: Das Archiv rechnet
+                # sie nicht mit dem Registerwert von morgen nach (Befund #22).
+                **({"auswertung": auswertung} if auswertung else {}),
             }
         )
 
     @transaction.atomic
-    def _endabstimmung_oeffnen(self, antrag: Antrag, grund: str, jetzt) -> None:
+    def _endabstimmung_oeffnen(
+        self, antrag: Antrag, grund: str, jetzt, auswertung: dict | None = None
+    ) -> None:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
         Vorschlag — er wird die neue, letzte Antragsfassung.
 
@@ -497,6 +507,7 @@ class Entwurf(models.Model):
                 "grund": grund,
                 "entwurfsfassung": fassung.nummer if fassung is not None else None,
                 "chat_archiviert": archiviert,
+                **({"auswertung": auswertung} if auswertung else {}),
             }
         )
 
@@ -616,12 +627,19 @@ class Entwurf(models.Model):
                 f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
                 f"Regel {stand['reihung']}"
             )
+            festgehalten = {
+                k: stand[k]
+                for k in ("ja", "nein", "prozent", "schwelle", "oben", "angenommen", "reihung")
+                if k in stand
+            }
+            festgehalten["runde"] = self.runde
             if not stand["angenommen"] and self.runde < ordnung.hoechstrunden:
                 self.zurueck_an_gruppe_1(
                     f"Der Abstimmungs-Chat gibt zurück: {rechnung}. "
                     f"{len(stand['kritik'])} Kritik-Beiträge gehen als Wünsche an den Expertenrat.",
                     wirksam,
                     neue_runde=True,
+                    auswertung=festgehalten,
                 )
                 antrag.chat_archivieren(wirksam)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
@@ -629,6 +647,7 @@ class Entwurf(models.Model):
                 antrag,
                 f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
                 wirksam,
+                auswertung=festgehalten,
             )
             return True
         if (
@@ -716,9 +735,9 @@ class Pruefung(models.Model):
     """Das Urteil der Gruppe 2 (§ 6 Abs 7) — mit veröffentlichter Begründung."""
 
     class Ergebnis(models.TextChoices):
-        VALIDIERT = "validiert", "validiert"
-        ZURUECK = "zurueck", "mit Begründung zurückgegeben"
-        AUSTAUSCH = "austausch", "Austausch bei Gruppe 1 beantragt"
+        VALIDIERT = "validiert", _("validiert")
+        ZURUECK = "zurueck", _("mit Begründung zurückgegeben")
+        AUSTAUSCH = "austausch", _("Austausch bei Gruppe 1 beantragt")
 
     class KoratEntscheid(models.TextChoices):
         """Wie der Koordinationsrat über einen Austauschantrag befand — oder dass er es nicht tat:

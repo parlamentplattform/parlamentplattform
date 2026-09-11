@@ -31,7 +31,8 @@ services:
     dockerCommand: >-
       sh -c "python manage.py migrate --noinput
       && python manage.py kategorien_laden
-      && python manage.py demo_seed
+      && python manage.py demo_seed &&
+      python manage.py clearsessions
       && python manage.py collectstatic --noinput
       && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
     envVars:
@@ -45,6 +46,8 @@ services:
         value: https://parlamentplattform.onrender.com,https://parlament.ddoe.at
       - key: DDOE_STATIK
         value: whitenoise
+      - key: DDOE_CLIENT_IP_KOPFZEILE  # Render hinter Cloudflare reicht die Adresse hier durch
+        value: HTTP_CF_CONNECTING_IP
       - key: DDOE_UEBERGANGSREGEL
         value: "1"
       - key: DDOE_MAIL_ABSENDER

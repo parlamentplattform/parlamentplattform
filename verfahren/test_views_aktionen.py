@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from mitglieder.models import Identitaetsstufe, Mitglied
-from verfahren.models import Antrag, Verfahrensordnung, antrag_einbringen
+from verfahren.models import Antrag, AuditEintrag, Verfahrensordnung, antrag_einbringen
 
 pytestmark = pytest.mark.django_db
 
@@ -122,8 +122,13 @@ def test_unterstuetzen_ist_umschaltbar(client, ordnung):
     url = reverse("verfahren:unterstuetzen", args=[antrag.pk])
     client.post(url)
     assert antrag.unterstuetzungen.count() == 1
-    client.post(url)  # erneut: zurückziehen
-    assert antrag.unterstuetzungen.count() == 0
+    client.post(url)  # erneut: zurückziehen — gestempelt, nicht gelöscht (Grundregel 7)
+    assert antrag.unterstuetzungen.count() == 1
+    assert antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count() == 0
+    typen = [e.ereignis["typ"] for e in AuditEintrag.objects.all()]
+    assert "unterstuetzung" in typen and "unterstuetzung_zurueckgezogen" in typen
+    client.post(url)  # und wieder dazu — dieselbe Zeile lebt wieder
+    assert antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count() == 1
 
 
 def test_erreichte_schwelle_startet_die_beratung(client, ordnung):

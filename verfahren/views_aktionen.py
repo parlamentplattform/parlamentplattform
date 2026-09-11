@@ -23,11 +23,13 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
+from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
 from plattform_core.similarity import aehnlichste
 from verfahren.models import (
     Antrag,
     Antragsart,
+    AuditEintrag,
     Bewerbung,
     BewerbungsFehler,
     BewerbungsZustimmung,
@@ -39,7 +41,9 @@ from verfahren.models import (
     Kommentar,
     StimmabgabeFehler,
     StimmRegister,
+    Unterstuetzung,
     Verfahrensordnung,
+    VollzugAusgesetzt,
     antrag_einbringen,
     bewerbung_einreichen,
     bewerbung_zustimmen,
@@ -174,7 +178,12 @@ def einbringen(request):
                 for aid, titel in offene:
                     fassung = texte[aid].aktueller_text()
                     kandidaten.append((aid, f"{titel} {fassung.wortlaut if fassung else ''}"))
-                treffer = aehnlichste(f"{d['titel']} {d['wortlaut']}", kandidaten)
+                treffer = aehnlichste(
+                    f"{d['titel']} {d['wortlaut']}",
+                    kandidaten,
+                    schwelle=zahl("aehnlichkeit-schwelle-prozent", 18) / 100,
+                    limit=zahl("aehnlichkeit-treffer", 3),
+                )
                 if treffer:
                     # § 5 Abs 10 lit d: Übersicht ähnlicher Anträge SAMT Beteiligung —
                     # damit sichtbar ist, wo Unterstützung am meisten bewegt.
@@ -182,7 +191,7 @@ def einbringen(request):
                         {
                             "antrag": texte[aid],
                             "prozent": round(score * 100),
-                            "beteiligung": texte[aid].unterstuetzungen.count(),
+                            "beteiligung": texte[aid].unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
                         }
                         for aid, score in treffer
                     ]
@@ -236,12 +245,22 @@ def unterstuetzen(request, pk):
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
         messages.error(request, _("Die Unterstützungsphase dieses Antrags ist beendet."))
         return redirect("verfahren:antrag", pk=pk)
-    _egal, neu = antrag.unterstuetzungen.get_or_create(mitglied=request.user)
-    if neu:
+    # Grundregel 7: Eine zurückgezogene Unterstützung wird gestempelt, nicht gelöscht — und
+    # jede Richtung steht im Audit-Log (ohne Mitgliedsbezug), damit die Zahl der Unterstützer
+    # zu jedem Zeitpunkt nachvollziehbar bleibt (§ 5 Abs 3 lit b).
+    eintrag, neu = antrag.unterstuetzungen.get_or_create(mitglied=request.user)
+    if neu or eintrag.zurueckgezogen_am is not None:
+        if not neu:
+            eintrag.zurueckgezogen_am = None
+            eintrag.erklaert_am = timezone.now()
+            eintrag.save(update_fields=["zurueckgezogen_am", "erklaert_am"])
+        AuditEintrag.anhaengen({"typ": "unterstuetzung", "antrag": antrag.pk})
         messages.success(request, _("Danke — Ihre Unterstützung ist erfasst."))
         antrag.fortschreiben()  # Schwelle eventuell gerade erreicht
     else:
-        antrag.unterstuetzungen.filter(mitglied=request.user).delete()
+        eintrag.zurueckgezogen_am = timezone.now()
+        eintrag.save(update_fields=["zurueckgezogen_am"])
+        AuditEintrag.anhaengen({"typ": "unterstuetzung_zurueckgezogen", "antrag": antrag.pk})
         messages.info(request, _("Ihre Unterstützung wurde zurückgezogen."))
     return redirect("verfahren:antrag", pk=pk)
 
@@ -417,11 +436,26 @@ def abstimmen(request, pk):
             request, _("Bei einer Mandats-Kandidatur stimmen Sie den einzelnen Bewerbungen zu.")
         )
         return redirect("verfahren:antrag", pk=pk)
-    stichtag = antrag.phase_beginn.date()
+    stichtag = antrag.stichtag_der_stimmberechtigung()
     if not request.user.ist_stimmberechtigt(
         Gegenstand.SACHFRAGE, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+    if request.user.adresswechsel_offen:
+        # F-51: Solange die Anmeldeadresse in Änderung ist, gehört das Konto vielleicht nicht
+        # mehr dem Menschen, der hier stimmen will — die Stimmabgabe ruht bis zur Entscheidung.
+        messages.error(
+            request,
+            _("Für Ihr Konto läuft eine Änderung der Anmeldeadresse — bis sie entschieden ist, ruht die Stimmabgabe."),
+        )
+        return redirect("verfahren:antrag", pk=pk)
+    if antrag.aussetzung_laeuft():
+        # § 6 Abs 3 lit d: Die Aussetzung ist veröffentlicht; wer trotzdem stimmt, erfährt warum.
+        messages.error(
+            request,
+            _("Die Abstimmung ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — solange sie ruht, werden keine Stimmen angenommen; die Frist läuft danach weiter."),
+        )
+        return redirect("verfahren:antrag", pk=pk)
     wahl = request.POST.get("stimme", "")
     try:
         stimme_abgeben(antrag, request.user, wahl)
@@ -463,7 +497,7 @@ def filter_anwenden(request):
         if not name_neu:
             messages.error(request, _("Bitte einen Namen für die neue Konfiguration angeben."))
             return _zurueck_zum_parlament(request)
-        if profile.count() >= FilterProfil.HOECHSTZAHL and not profile.filter(name=name_neu).exists():
+        if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL) and not profile.filter(name=name_neu).exists():
             messages.error(
                 request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
             )
@@ -472,7 +506,7 @@ def filter_anwenden(request):
     else:
         profil = profile.filter(aktiv=True).first()
         if profil is None:
-            if profile.count() >= FilterProfil.HOECHSTZAHL:
+            if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL):
                 messages.error(
                     request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
                 )
@@ -544,7 +578,6 @@ def _zurueck_zum_antrag(request, antrag):
 def filter_vorschau(request):
     """FB-B2 Live-Vorschau: reiht mit den gerade gezogenen Reglern, speichert nichts —
     die Antwort ist nur die Liste (#filter-liste), htmx tauscht sie sanft aus."""
-    from verfahren.models import Unterstuetzung
     from verfahren.views import LAUFEND, _abo_ids, _meine_stimmen, _weicherfilter_feed
 
     regler = _regler_aus_post(request)
@@ -562,7 +595,7 @@ def filter_vorschau(request):
         {
             "feed": feed,
             "meine_unterstuetzungen": set(
-                Unterstuetzung.objects.filter(mitglied=request.user).values_list("antrag_id", flat=True)
+                Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
             ),
         },
     )
@@ -689,11 +722,17 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     geheim über das Stimmregister, änderbar bis zum Fristende."""
     antrag = get_object_or_404(Antrag, pk=pk)
     antrag.fortschreiben()
-    stichtag = antrag.phase_beginn.date()
+    stichtag = antrag.stichtag_der_stimmberechtigung()
     if not request.user.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+    if request.user.adresswechsel_offen:
+        messages.error(
+            request,
+            _("Für Ihr Konto läuft eine Änderung der Anmeldeadresse — bis sie entschieden ist, ruht die Stimmabgabe."),
+        )
+        return redirect("verfahren:antrag", pk=pk)
     bewerbung = get_object_or_404(Bewerbung, pk=bewerbung_pk, antrag=antrag)
     try:
         dazu = bewerbung_zustimmen(antrag, request.user, bewerbung)
@@ -741,8 +780,14 @@ def export_json(request, pk):
             }
             for b in antrag.bewerbungen.all()
         ]
+        # Vollständig UND nachrechenbar: zurückgenommene Zustimmungen stehen mit Zeitstempel
+        # dabei (Grundregel 7), die Auszählung zählt nur die gültigen.
         daten["zustimmungen"] = [
-            {"pseudonym": z.pseudonym.hex, "bewerbung": z.bewerbung_id}
+            {
+                "pseudonym": z.pseudonym.hex,
+                "bewerbung": z.bewerbung_id,
+                "zurueckgenommen_am": z.zurueckgenommen_am.isoformat() if z.zurueckgenommen_am else None,
+            }
             for z in BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).order_by(
                 "pseudonym", "bewerbung_id"
             )
@@ -758,6 +803,10 @@ def eigene_stimme(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
+    if request.user.adresswechsel_offen:
+        # F-51: Bis die Adressänderung entschieden ist, bleibt das Pseudonym verborgen — sonst
+        # erreichte eine Kontoübernahme genau das, was das Stimmgeheimnis schützt.
+        return render(request, "verfahren/eigene_stimme.html", {"antrag": antrag, "eintrag": None, "gesperrt": True})
     eintrag = StimmRegister.objects.filter(antrag=antrag, mitglied=request.user).first()
     return render(request, "verfahren/eigene_stimme.html", {"antrag": antrag, "eintrag": eintrag})
 
@@ -805,6 +854,11 @@ def vollzug_eintragen(request, pk):
             antrag, request.user, request.POST.get("status", ""), request.POST.get("vermerk", "")
         )
         messages.success(request, _("Umsetzungsstand fortgeschrieben — öffentlich im Register sichtbar."))
+    except VollzugAusgesetzt:
+        messages.error(
+            request,
+            _("Der Vollzug ist durch den Integritätsrat ausgesetzt — solange die Aussetzung läuft, wird das Register nicht fortgeschrieben (§ 6 Abs 3 lit d)."),
+        )
     except ValueError:
         messages.error(request, _("Das Umsetzungsregister führt nur angenommene Anträge."))
     return redirect("verfahren:antrag", pk=pk)

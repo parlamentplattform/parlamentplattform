@@ -201,12 +201,26 @@ def test_verwerfen_braucht_einen_grund_und_der_bleibt_stehen(client, korat, regi
     assert Hinweis.objects.get(parametertest=test).status == HinweisStatus.VERWORFEN
 
 
+def test_ordnungsschluessel_lassen_sich_nicht_testen(client, korat):
+    """D-J3g: kein zweiter Weg zur Verfahrensordnung — sie ändert nur die Mitgliederversammlung (§ 5 Abs 7)."""
+    erstbestand_sicherstellen()
+    parameter = Parameter.objects.get(schluessel="expertenrat-erstvorschlag-tage")
+    anordnen(client, korat[0], parameter, testwert="35")
+    assert not ParameterTest.objects.exists()
+    seite = client.get(reverse("gremien:koordination")).content.decode()
+    auswahl = seite.split('id="pt-parameter"')[1].split("</select>")[0]
+    assert f'value="{parameter.pk}"' not in auswahl
+
+
 def test_ein_laufendes_verfahren_bleibt_unberuehrt(client, korat, ordnung):  # noqa: F811
-    """§ 5 Abs 5, § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren."""
+    """§ 5 Abs 5, § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren.
+
+    Ein Test setzt einen Registerwert; die Ordnung eines Antrags ist beim Einbringen eingefroren
+    und liest das Register nie wieder — der Test kann sie deshalb gar nicht erreichen."""
     from verfahren.models import antrag_einbringen
 
     erstbestand_sicherstellen()
-    parameter = Parameter.objects.get(schluessel="expertenrat-erstvorschlag-tage")
+    parameter = Parameter.objects.get(schluessel="kritik-mindestzeichen")
     antrag = antrag_einbringen(
         mitglied_anlegen("stellerin"),
         titel="Ein Antrag vor dem Test",
@@ -214,13 +228,13 @@ def test_ein_laufendes_verfahren_bleibt_unberuehrt(client, korat, ordnung):  # n
         begruendung="Grund.",
         ordnung=ordnung,
     )
-    vorher = antrag.policy().beratung_tage
-    anordnen(client, korat[0], parameter, testwert="35")
+    vorher = antrag.policy().als_dict()
+    anordnen(client, korat[0], parameter, testwert="120")
     abstimmen(client, korat, ParameterTest.objects.get().beschluss)
     parameter.refresh_from_db()
-    assert parameter.wert == "35"
+    assert parameter.wert == "120"
     antrag.refresh_from_db()
-    assert antrag.policy().beratung_tage == vorher
+    assert antrag.policy().als_dict() == vorher
 
 
 def test_der_parameterbericht_zeigt_aenderungen_und_tests_des_jahres(client, korat, register):

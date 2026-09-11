@@ -1010,16 +1010,6 @@ msgstr ""
 msgid "Beratung"
 msgstr "Deliberation"
 
-msgid ""
-"Mindestens 21 Tage öffentliche Erörterung. Die <a href=\"/zukunftswerkstatt/\">Zukunftswerkstatt</a>\n"
-"      rechnet durch, welche Gesetze berührt wären und was die Umsetzung kosten würde; der Expertenrat gibt seine\n"
-"      Stellungnahme im Wortlaut ab."
-msgstr ""
-"At least 21 days of public deliberation. The <a "
-"href=\"/zukunftswerkstatt/\">Zukunftswerkstatt</a> works out which laws "
-"would be affected and what implementation would cost; the Expert Council "
-"issues its statement verbatim."
-
 msgid "Abstimmung"
 msgstr "Voting"
 
@@ -1089,48 +1079,17 @@ msgstr "Identity"
 msgid "Ein Mensch, eine Stimme — pseudonym nach außen"
 msgstr "One person, one vote — pseudonymous in public"
 
-msgid ""
-"Ein Konto je Person, mit geprüfter Identität — das schützt vor gekauften Mehrheiten.\n"
-"    Öffentlich treten Sie unter einem beständigen Pseudonym auf, wenn Sie möchten; Ihre Stimme bleibt bei\n"
-"    Abstimmungen pseudonym."
-msgstr ""
-"One account per person, with verified identity — that protects against "
-"bought majorities. In public you appear under a stable pseudonym if you "
-"wish; your ballot remains pseudonymous."
-
 msgid "Ihre Region"
 msgstr "Your region"
 
 msgid "Gemeinde, Land, Bund"
 msgstr "Municipality, province, federation"
 
-msgid ""
-"Regionale Anträge entscheidet, wen sie betreffen: Ihre Gemeinde stimmt über\n"
-"    Gemeindesachen ab, Ihr Land über Landessachen. Ihre Lebensbereiche wählen Sie als Favoriten — Neues daraus\n"
-"    erscheint direkt in Ihrem Parlament."
-msgstr ""
-"Regional motions are decided by those they affect: your municipality votes "
-"on municipal matters, your province on provincial ones. You choose your "
-"areas of life as favourites — new items from them appear right in your "
-"parliament."
-
 msgid "Ihr Werkzeug dazu"
 msgstr "Your instrument for it"
 
 msgid "Die Zukunftswerkstatt"
 msgstr "The Zukunftswerkstatt"
-
-msgid ""
-"Zu jedem Antrag liefert die Zukunftswerkstatt — mit der StaatsSimulation als Rechenkern —\n"
-"  eine mit amtlichen Quellen belegte Einschätzung: berührte Gesetze, Aufwand für den Staatsapparat,\n"
-"  Ausschreibungspflichten, realistische Dauer. Sie berät alle und entscheidet nie — Entscheidungen treffen\n"
-"  die Mitglieder."
-msgstr ""
-"For every motion the Zukunftswerkstatt — with the StaatsSimulation as its "
-"computational core — delivers an assessment backed by official sources: "
-"affected laws, effort for the machinery of state, tendering obligations, a "
-"realistic timeline. It advises everyone and never decides — decisions are "
-"made by the members."
 
 msgid "Wie die Zukunftswerkstatt arbeitet →"
 msgstr "How the Zukunftswerkstatt works →"
@@ -2123,9 +2082,6 @@ msgstr "accept or return"
 msgid "Werkstatt kann öffnen"
 msgstr "workshop may open"
 
-msgid "zurück mit Wünschen · höchstens 3 Runden"
-msgstr "back with requests · at most 3 rounds"
-
 msgid "angenommen — oder Frist um:"
 msgstr "accepted — or deadline passed:"
 
@@ -2769,13 +2725,6 @@ msgstr ""
 "register shows what becomes of the decision — and the forecast register "
 "compares the assessment with reality. The circle closes."
 
-msgid ""
-"Die Schritte 1 bis 3 und 5 bis 6 entsprechen dem Satzungsentwurf 2.5;\n"
-"  die Unterstützer-Schleife in Schritt 4 ist gebaut — für sie liegt ein eigener Satzungsbaustein zur Beschlussfassung vor."
-msgstr ""
-"Steps 1 to 3 and 5 to 6 follow draft statutes 2.5; the supporter loop in "
-"step 4 is built — a statutory building block for it is before the assembly."
-
 msgid "Woher die Fakten kommen"
 msgstr "Where the facts come from"
 
@@ -2799,25 +2748,6 @@ msgstr ""
 
 msgid "Wer wacht worüber"
 msgstr "Who watches over what"
-
-msgid ""
-"Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n"
-"  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n"
-"  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n"
-"  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n"
-"  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n"
-"  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden — die Antwort ist ein Korrekturlauf\n"
-"  mit Vermerk, nie ein stilles Ändern."
-msgstr ""
-"The <strong>Coordination Council</strong> supervises the base of facts and "
-"the parameter register and receives the simulation's reports. "
-"<strong>Highlighting</strong> a motion remains solely with the "
-"<strong>Integrity Council</strong> — by published, reasoned decision, never "
-"by an algorithm (§ 5 (10)). The <strong>Expert Council</strong> works in two"
-" independent groups: for direct tasks the second reviews the first group's "
-"proposals for conflicts of interest and can return them with reasons. And "
-"<strong>every member</strong> can publicly contest any assessment — the "
-"answer is a correction run with a note, never a silent edit."
 
 msgid "Der Modell-Steckplatz — Rechenschaft in Zahlen"
 msgstr "The model socket — accountability in numbers"
@@ -3564,9 +3494,6 @@ msgstr "What is wrong with the assessment?"
 msgid "Sachlich, mit Beleg wenn möglich."
 msgstr "Factual, with evidence where possible."
 
-msgid "Ihr Vermerk ist öffentlich und bleibt stehen; die Werkstatt rechnet den Punkt nach (§ 6 Abs 11 lit b)."
-msgstr "Your note is public and stays on the record; the workshop recalculates the point (§ 6 para 11 lit b)."
-
 msgid "Beanstandung veröffentlichen"
 msgstr "Publish objection"
 
@@ -3650,9 +3577,6 @@ msgstr "Public tender"
 msgid "Bitte beschreiben Sie, was an der Einschätzung falsch ist."
 msgstr "Please describe what is wrong with the assessment."
 
-msgid "Ihre Beanstandung ist öffentlich vermerkt — die Zukunftswerkstatt rechnet den Punkt nach."
-msgstr "Your objection is on the public record — the future workshop recalculates the point."
-
 msgid "Bei jeder Hochstufung beginnt der Chat neu — gelöscht wird nichts (§ 5 Abs 3 lit e)."
 msgstr "Every promotion starts a new chat — nothing is deleted (§ 5 para 3 lit e)."
 
@@ -3707,9 +3631,6 @@ msgstr "Edit post"
 
 msgid "Übernehmen"
 msgstr "Apply"
-
-msgid "Ändern geht in den ersten fünf Minuten."
-msgstr "Editing is possible for the first five minutes."
 
 msgid "Beitrag zurückziehen? Der Text verschwindet, die Antworten darunter bleiben."
 msgstr "Withdraw this post? The text goes, the replies below stay."
@@ -4310,9 +4231,6 @@ msgstr "Reason for the status:"
 msgid "Stammdaten korrigieren"
 msgstr "Correct the master data"
 
-msgid "Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.\n  Die Änderung wird (ohne Werte) im Audit-Log vermerkt."
-msgstr "District and province follow the municipality register automatically. The change is recorded in the audit log (without values)."
-
 msgid "Beitragseingang heute vermerken"
 msgstr "Record fee received today"
 
@@ -4407,13 +4325,6 @@ msgid "Zurück ins Parlament"
 msgstr "Back to the parliament"
 
 msgid ""
-"Der Fehler liegt bei uns, nicht bei Ihnen. Er ist protokolliert und wird angesehen.\n"
-"Nichts von dem, was bereits abgestimmt oder eingebracht wurde, geht dabei verloren."
-msgstr ""
-"The fault is ours, not yours. It is logged and will be looked at.\n"
-"Nothing that has already been voted on or submitted is lost."
-
-msgid ""
 "Die Dateien sind überwiegend auf Deutsch: Einstieg und Einrichtung tragen\n"
 "eine englische Zusammenfassung, der Satzungs-Baukasten und das Schema noch nicht. Wir übersetzen sie mit dem\n"
 "ersten Partner, der sie braucht — sagen Sie uns, welche Datei Sie zuerst brauchen."
@@ -4488,10 +4399,6 @@ msgstr "Version %(n)s is in force"
 #, python-format
 msgid "Fassung %(n)s — erzeugt, gilt noch nicht"
 msgstr "Version %(n)s — built, not in force yet"
-
-#, python-format
-msgid "Geltende Verfahrensordnung: Fassung %(n)s. Sie folgt dem Register nicht von selbst — sie wird\nbeschlossen und beim Einbringen als unveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5).\nEin geänderter Wert wirkt deshalb nie auf ein laufendes Verfahren."
-msgstr "Rules of procedure in force: version %(n)s. They do not follow the register by themselves — they\nare adopted and attached to a motion as an unchangeable copy when it is submitted (§ 5 para 5).\nA changed value therefore never affects a running procedure."
 
 msgid "Die geltende Ordnung folgt dem Register nicht von selbst. Sie wird beim Einbringen als\nunveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5) — ein geänderter Wert wirkt deshalb nie\nauf ein laufendes Verfahren. Über eine neue Fassung entscheidet nach § 5 Abs 7 die\nMitgliederversammlung; solange die Plattform diese Abstimmung nicht führen kann, handelt die\nVerwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log."
 msgstr "The rules in force do not follow the register by themselves. They are attached to a motion as an\nunchangeable copy when it is submitted (§ 5 para 5) — a changed value therefore never affects a\nrunning procedure. A new version is decided by the general meeting under § 5 para 7; as long as\nthe platform cannot hold that vote, the administration acts on its behalf, and every step is\nrecorded in the public audit log."
@@ -4885,10 +4792,6 @@ msgid_plural "%(n)s Personen stehen zur Auslosung bereit."
 msgstr[0] "%(n)s person is available for the draw."
 msgstr[1] "%(n)s people are available for the draw."
 
-#, python-format
-msgid "Eine Gruppe des Expertenrats hat mindestens %(m)s Mitglieder (§ 6 Abs 8); für einen Antrag mit Vollzugs- oder Beschaffungsbezug werden zwei unabhängige Gruppen gezogen."
-msgstr "A group of the expert council has at least %(m)s members (§ 6 para 8); for a motion with implementation or procurement relevance, two independent groups are drawn."
-
 msgid "Die Auslosung"
 msgstr "The draw"
 
@@ -5124,9 +5027,6 @@ msgstr "The draft"
 
 msgid "Der Expertenrat zu diesem Antrag wurde aus der öffentlichen Fachliste gelost (§ 6 Abs 7) — die Ziehung lässt sich nachrechnen."
 msgstr "The expert council for this motion was drawn from the public expert roster (§ 6 para 7) — the draw can be checked."
-
-msgid "Der Test beginnt erst mit dem Beschluss; er gilt nur für Verfahren, die neu beginnen (§ 5 Abs 5)."
-msgstr "The test only begins with the decision; it applies only to procedures that start afresh (§ 5 para 5)."
 
 msgid "Der Testwert ist der geltende Wert — nichts zu testen."
 msgstr "The test value is the current value — nothing to test."
@@ -5676,3 +5576,580 @@ msgstr "Characters"
 
 msgid "Äste"
 msgstr "Branches"
+
+# ── 0.45: Nachtrag nach der Zusammenführung der Cluster (Adresswechsel, Übersicht, Werkstatt, Beschriftungen) ──
+
+msgid "%(name)s hat jetzt Zugang zur Verwaltung."
+msgstr "%(name)s now has access to the administration."
+
+msgid "Ablehnung"
+msgstr "Disapproval"
+
+msgid "Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)"
+msgstr "Suspend a vote or an implementation (§ 6 para 3 lit d)"
+
+msgid "Adminrechte entzogen."
+msgstr "Administrator rights revoked."
+
+msgid "Adressänderung abbrechen"
+msgstr "Cancel address change"
+
+msgid "Adressänderung abgebrochen — die bisherige Adresse bleibt."
+msgstr "Address change cancelled — the current address remains."
+
+msgid "Adressänderung vorgemerkt"
+msgstr "Address change pending"
+
+msgid "Adressänderung vorgemerkt: Die bisherige Adresse wurde benachrichtigt; wirksam wird sie frühestens am %(frist)s, sobald ein zweiter Admin bestätigt hat."
+msgstr "Address change recorded: the current address has been notified; it takes effect no earlier than %(frist)s, once a second administrator has confirmed."
+
+msgid ""
+"Alle sechs Schritte entsprechen dem Satzungsentwurf 2.5 (Schritt 4: § 5 Abs 12 und 13).\n"
+"  Geltend ist bis zum Beschluss der Mitglieder die Satzung 1.3."
+msgstr ""
+"All six steps follow draft statute 2.5 (step 4: § 5 paras 12 and 13).\n"
+"  Until the members decide, statute 1.3 remains in force."
+
+msgid "Als zweiter Admin bestätigen"
+msgstr "Confirm as second administrator"
+
+msgid "Ausgesetzt seit %(seit)s durch Beschluss %(nummer)s des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d)."
+msgstr "Suspended since %(seit)s by decision %(nummer)s of the Integrity Council — the deadline is paused (§ 6 para 3 lit d)."
+
+msgid "Aussetzen lässt sich nur eine laufende Abstimmung oder der Vollzug eines Beschlusses (§ 6 Abs 3 lit d)."
+msgstr "Only a running vote or the implementation of a decision can be suspended (§ 6 para 3 lit d)."
+
+msgid "Aussetzung aufheben (§ 6 Abs 3 lit d)"
+msgstr "Lift suspension (§ 6 para 3 lit d)"
+
+msgid "Austausch bei Gruppe 1 beantragt"
+msgstr "replacement of group 1 requested"
+
+msgid "Austausch der Gruppe 1 (§ 6 Abs 7)"
+msgstr "Replacement of group 1 (§ 6 para 7)"
+
+msgid "Auswertung eines Parametertests"
+msgstr "Evaluation of a parameter test"
+
+msgid "Bank"
+msgstr "Bank"
+
+msgid "Beitragseingang vermerkt — die Pause ist damit aufgehoben."
+msgstr "Contribution recorded — the pause is lifted."
+
+msgid "Beitragseingang vermerkt."
+msgstr "Contribution recorded."
+
+msgid "Beleidigung oder Herabwürdigung"
+msgstr "Insult or degradation"
+
+msgid "Beschluss angelegt"
+msgstr "Decision created"
+
+msgid "Bestätigt von Admin #%(pk)s — wird nach der Frist wirksam."
+msgstr "Confirmed by administrator #%(pk)s — takes effect after the waiting period."
+
+msgid "Bestätigt. Nach Ablauf der Frist wird die neue Adresse zur Anmeldeadresse — sofern kein Einspruch kommt."
+msgstr "Confirmed. Once the waiting period has passed, the new address becomes the login address — unless an objection is raised."
+
+msgid ""
+"Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.\n"
+"  Die Änderung wird (ohne Werte) im Audit-Log vermerkt. Eine neue E-Mail-Adresse wird nicht sofort wirksam:\n"
+"  Die bisherige Adresse erhält einen Einspruchslink, danach braucht es die Frist und einen zweiten Admin."
+msgstr ""
+"District and federal state follow the register of municipalities automatically.\n"
+"  The change is recorded (without values) in the audit log. A new email address does not take effect immediately:\n"
+"  the current address receives an objection link, after which the waiting period and a second administrator are required."
+
+msgid "Bitte eine Begründung angeben — sie wird im Audit-Log veröffentlicht."
+msgstr "Please give a reason — it will be published in the audit log."
+
+msgid "Bund"
+msgstr "Federal level"
+
+msgid "Das Formular kam nicht durch"
+msgstr "The form did not get through"
+
+msgid "Den Beitrag zeigen"
+msgid_plural "Alle %(n)s Beiträge zeigen"
+msgstr[0] "Show the post"
+msgstr[1] "Show all %(n)s posts"
+
+msgid ""
+"Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n"
+"  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n"
+"  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n"
+"  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n"
+"  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n"
+"  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n"
+"  Antwort darauf wird ein Korrekturlauf mit Vermerk sein, nie ein stilles Ändern — dieser Korrekturlauf ist noch\n"
+"  nicht gebaut."
+msgstr ""
+"The <strong>Coordination Council</strong> oversees the fact base and the parameter register and receives the\n"
+"  reports of the simulation. The <strong>highlighting</strong> of a motion remains solely with the\n"
+"  <strong>Integrity Council</strong> — by a published, reasoned decision, never by an algorithm\n"
+"  (§ 5 para 10). The <strong>expert council</strong> works in two independent groups: for direct tasks the second\n"
+"  checks the proposals of the first for conflicts of interest and may return them with reasons. And\n"
+"  <strong>every member</strong> may publicly object to any assessment; the note stays. The\n"
+"  answer will be a correction run with a note, never a silent change — that correction run is not\n"
+"  built yet."
+
+msgid ""
+"Der Fehler liegt bei uns, nicht bei Ihnen. Nichts von dem, was bereits abgestimmt oder\n"
+"eingebracht wurde, geht dabei verloren."
+msgstr ""
+"The fault is ours, not yours. Nothing that has already been voted on or\n"
+"submitted is lost."
+
+msgid "Der Test beginnt erst mit dem Beschluss. Die Schlüssel der Verfahrensordnung fehlen in der Liste: Sie ändert nur die Mitgliederversammlung (§ 5 Abs 7)."
+msgstr "The test starts only with the decision. The keys of the rules of procedure are missing from the list: only the members’ assembly changes them (§ 5 para 7)."
+
+msgid "Der Vollzug ist durch den Integritätsrat ausgesetzt — solange die Aussetzung läuft, wird das Register nicht fortgeschrieben (§ 6 Abs 3 lit d)."
+msgstr "Implementation has been suspended by the Integrity Council — while the suspension lasts, the register is not updated (§ 6 para 3 lit d)."
+
+msgid "Die Abstimmung ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — solange sie ruht, werden keine Stimmen angenommen; die Frist läuft danach weiter."
+msgstr "The vote has been suspended by the Integrity Council (§ 6 para 3 lit d) — while it rests, no votes are accepted; the deadline continues afterwards."
+
+msgid "Die Adressänderung wurde nicht vorgemerkt: Die Nachricht an die bisherige Adresse ließ sich nicht versenden."
+msgstr "The address change was not recorded: the notification to the current address could not be sent."
+
+msgid "Die Bestätigung braucht einen zweiten Admin — nicht den, der die Änderung beantragt hat."
+msgstr "Confirmation requires a second administrator — not the one who requested the change."
+
+msgid ""
+"Die Verwaltung hat beantragt, die Anmeldeadresse Ihres Kontos zu ändern. Wenn Sie das\n"
+"  nicht veranlasst haben, verwerfen Sie die Änderung hier — Ihre bisherige Adresse bleibt dann\n"
+"  Ihre Anmeldeadresse."
+msgstr ""
+"The administration has requested to change the login address of your account. If you did\n"
+"  not request this, discard the change here — your current address will then remain\n"
+"  your login address."
+
+msgid "Die Änderung ist verworfen."
+msgstr "The change has been discarded."
+
+msgid "Diese Adresse gehört bereits zu einem anderen Konto."
+msgstr "This address already belongs to another account."
+
+msgid "Diese Aktion können nur andere Admins auf Ihr Konto anwenden."
+msgstr "Only other administrators can apply this action to your account."
+
+msgid ""
+"Diese Änderung ist bereits wirksam. Wenn Sie sie nicht veranlasst haben, schreiben Sie\n"
+"  bitte umgehend an didide@ddoe.at."
+msgstr ""
+"This change has already taken effect. If you did not request it, please write\n"
+"  to didide@ddoe.at immediately."
+
+msgid "Ehrlich gesagt: Genau dafür bauen wir. Die Kandidaten wählen die Mitglieder hier auf der ParlamentPlattform (nicht im österreichischen Parlament: Die DDÖ reiht ihre eigenen Wahlvorschläge) — derzeit läuft keine Kandidatur; jedes Mitglied kann eine einbringen."
+msgstr "Honestly: this is exactly what we are building for. The members elect the candidates here on the ParlamentPlattform (not in the Austrian parliament: the DDÖ ranks its own electoral lists) — no candidacy is running at the moment; any member can start one."
+
+msgid "Ein Rückzug ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."
+msgstr "Withdrawal is possible only until voting begins (§ 7 para 1)."
+
+msgid "Eine Gruppe des Expertenrats hat mindestens %(m)s Mitglieder (§ 6 Abs 8); stellt Gruppe 1 einen Vollzugs- oder Beschaffungsbezug fest, wird eine zweite, unabhängig besetzte Gruppe nachgelost."
+msgstr "A group of the expert council has at least %(m)s members (§ 6 para 8); if group 1 finds an implementation or procurement aspect, a second, independently staffed group is drawn afterwards."
+
+msgid "Eine ältere Entscheidung ist hier nicht mehr aufgeführt."
+msgid_plural "%(n)s ältere Entscheidungen sind hier nicht mehr aufgeführt."
+msgstr[0] "One older decision is no longer listed here."
+msgstr[1] "%(n)s older decisions are no longer listed here."
+
+msgid "Einen weiteren Beitrag zeigen"
+msgid_plural "%(n)s weitere Beiträge zeigen"
+msgstr[0] "Show one more post"
+msgstr[1] "Show %(n)s more posts"
+
+msgid "Einen älteren Beitrag zeigen"
+msgid_plural "%(n)s ältere Beiträge zeigen"
+msgstr[0] "Show one older post"
+msgstr[1] "Show %(n)s older posts"
+
+msgid "Einführung eines Registerwerts (§ 6 Abs 11 lit c)"
+msgstr "Adoption of a register value (§ 6 para 11 lit c)"
+
+msgid "Einreichung eines Vorschlags (§ 5 Abs 12)"
+msgstr "Submission of a proposal (§ 5 para 12)"
+
+msgid "Einschätzung für die Gremien-Werkstatt"
+msgstr "Assessment for the council workshop"
+
+msgid "Expertenrat — Gruppe 1 (Entwurf)"
+msgstr "Expert council — group 1 (drafting)"
+
+msgid "Expertenrat — Gruppe 2 (Prüfung)"
+msgstr "Expert council — group 2 (review)"
+
+msgid "Formular nicht angenommen"
+msgstr "Form not accepted"
+
+msgid "Foto"
+msgstr "Photo"
+
+msgid "Für dieses Konto läuft bereits eine Adressänderung — zuerst abbrechen oder abwarten."
+msgstr "An address change is already pending for this account — cancel it first or wait for it to complete."
+
+msgid "Für dieses Konto läuft keine Adressänderung."
+msgstr "No address change is pending for this account."
+
+msgid "Gewählt: %(name)s mit %(n)s Zustimmungen"
+msgstr "Elected: %(name)s with %(n)s approvals"
+
+msgid "Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost."
+msgstr "Group 2 has been drawn from the expert register for this motion."
+
+msgid ""
+"Guten Tag,\n"
+"\n"
+"die Verwaltung hat beantragt, die Anmeldeadresse Ihres Kontos auf eine andere E-Mail-Adresse zu ändern. Wirksam wird das frühestens am %(frist)s und nur, wenn ein zweiter Admin die Änderung bestätigt.\n"
+"\n"
+"Wenn Sie das NICHT veranlasst haben, widersprechen Sie bitte mit diesem Link — die Änderung wird dann verworfen:\n"
+"\n"
+"%(link)s\n"
+"\n"
+"Bis dahin bleibt diese Adresse Ihre Anmeldeadresse.\n"
+"\n"
+"Direkte Demokratie Österreich — Wir sind das Werkzeug."
+msgstr ""
+"Hello,\n"
+"\n"
+"the administration has requested to change the login address of your account to a different email address. This will take effect no earlier than %(frist)s and only if a second administrator confirms it.\n"
+"\n"
+"If you did NOT request this, please object using this link — the change will then be discarded:\n"
+"\n"
+"%(link)s\n"
+"\n"
+"Until then, this address remains your login address.\n"
+"\n"
+"Direkte Demokratie Österreich — We are the tool."
+
+msgid ""
+"Haben Sie die Änderung selbst gewünscht, müssen Sie nichts tun:\n"
+"  Sie wird nach Ablauf der Frist wirksam, sobald ein zweiter Admin sie bestätigt hat."
+msgstr ""
+"If you requested the change yourself, no action is needed:\n"
+"  it takes effect after the waiting period, once a second administrator has confirmed it."
+
+msgid "Hervorhebung aufheben (§ 5 Abs 10 lit b)"
+msgstr "Remove highlighting (§ 5 para 10 lit b)"
+
+msgid "Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)"
+msgstr "Request highlighting from the Integrity Council (§ 5 para 10 lit b)"
+
+msgid "Hervorhebung eines Antrags (§ 5 Abs 10 lit b)"
+msgstr "Highlighting a motion (§ 5 para 10 lit b)"
+
+msgid ""
+"Heute: ein Konto je E-Mail-Adresse, Bestätigungslink, Beitragseingang schaltet die Mitwirkung\n"
+"    frei. Der Identitätsnachweis nach § 2 Abs 4 (ID Austria oder Präsenzstelle) ist geplant — bis dahin ist die\n"
+"    Ein-Mensch-eine-Stimme-Regel eine Frage des Vertrauens. Öffentlich treten Sie unter einem beständigen Pseudonym\n"
+"    auf, wenn Sie möchten; Ihre Stimme bleibt bei Abstimmungen pseudonym."
+msgstr ""
+"Today: one account per email address, a confirmation link, and a received contribution unlocks\n"
+"    participation. Identity verification under § 2 para 4 (ID Austria or in person) is planned — until then the\n"
+"    one-person-one-vote rule is a matter of trust. Publicly you may appear under a persistent pseudonym\n"
+"    if you wish; your vote remains pseudonymous in ballots."
+
+msgid "Identitätsstufe"
+msgstr "Identity level"
+
+msgid "Ihr Anliegen"
+msgstr "Your concern"
+
+msgid "Ihr Vermerk ist öffentlich und bleibt stehen (§ 6 Abs 11 lit b). Ein Korrekturlauf der Werkstatt ist noch nicht gebaut."
+msgstr "Your note is public and stays (§ 6 para 11 lit b). A correction run by the Workshop is not built yet."
+
+msgid "Ihre Anmeldeadresse soll geändert werden — ParlamentPlattform"
+msgstr "Your login address is about to be changed — ParlamentPlattform"
+
+msgid "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Ein Korrekturlauf der Zukunftswerkstatt ist noch nicht gebaut."
+msgstr "Your objection is publicly recorded and stays. A correction run by the Futures Workshop is not built yet."
+
+msgid ""
+"Ihre bisherige Adresse bleibt Ihre\n"
+"  Anmeldeadresse. Der Vorgang steht ohne Adresswerte im öffentlichen Audit-Log."
+msgstr ""
+"Your current address remains your\n"
+"  login address. The event is recorded in the public audit log without address values."
+
+msgid "Institutions-ID"
+msgstr "Institution ID"
+
+msgid "Integrations- und Berichtswesenrat"
+msgstr "Integration and Reporting Council"
+
+msgid "Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)"
+msgstr "Annual review of the automated rules (§ 2 para 6)"
+
+msgid "Kandidat für Hervorhebung"
+msgstr "Candidate for highlighting"
+
+msgid "Kein Bezug zum Antrag"
+msgstr "Unrelated to the motion"
+
+msgid "Keine Bewerbung gilt als gewählt."
+msgstr "No candidacy counts as elected."
+
+msgid "Keine Änderungen."
+msgstr "No changes."
+
+msgid "Kontoauszug (camt.053-XML oder CSV)"
+msgstr "Account statement (camt.053 XML or CSV)"
+
+msgid "Lastwarnung"
+msgstr "Load warning"
+
+msgid "Letzter Beitragseingang"
+msgstr "Last contribution received"
+
+msgid "Mehrdeutig — bitte präzisieren: %(optionen)s."
+msgstr "Ambiguous — please be more specific: %(optionen)s."
+
+msgid ""
+"Mindestens 21 Tage öffentliche Erörterung; der Expertenrat erarbeitet einen Vorschlag,\n"
+"      den die Unterstützer annehmen oder zurückgeben. Die Durchrechnung in der <a href=\"/zukunftswerkstatt/\">Zukunftswerkstatt</a>\n"
+"      (berührte Gesetze, Aufwand) ist im Aufbau — wie weit, steht auf der Werkstatt-Seite."
+msgstr ""
+"At least 21 days of public deliberation; the expert council prepares a proposal,\n"
+"      which the supporters accept or return. The analysis in the <a href=\"/zukunftswerkstatt/\">Futures Workshop</a>\n"
+"      (affected laws, effort) is under construction — how far along, see the workshop page."
+
+msgid "Mitglied ausgeschlossen und Konto deaktiviert."
+msgstr "Member excluded and account deactivated."
+
+msgid "Mitgliedschaft ist wieder aktiv."
+msgstr "Membership is active again."
+
+msgid "Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang."
+msgstr "Membership paused — participation rights are suspended until the contribution is received."
+
+msgid "Muster-Bericht"
+msgstr "Pattern report"
+
+msgid "Nachweislich falsche Tatsachenbehauptung"
+msgstr "Demonstrably false statement of fact"
+
+msgid ""
+"Neue Anmeldeadresse <strong>%(neu)s</strong> — beantragt am %(seit)s,\n"
+"  Einspruchsfrist bis %(frist)s. Bis dahin bleibt die bisherige Adresse Anmeldeadresse; die bisherige Adresse\n"
+"  wurde mit Einspruchslink benachrichtigt."
+msgstr ""
+"New login address <strong>%(neu)s</strong> — requested on %(seit)s,\n"
+"  objection period until %(frist)s. Until then the current address remains the login address; it\n"
+"  has been notified with an objection link."
+
+msgid "Neuer Wert"
+msgstr "New value"
+
+msgid "Noch nicht von einem zweiten Admin bestätigt."
+msgstr "Not yet confirmed by a second administrator."
+
+msgid "Prüfung eines Vorschlags (§ 6 Abs 7)"
+msgstr "Review of a proposal (§ 6 para 7)"
+
+msgid "Rechtswidriger Inhalt"
+msgstr "Unlawful content"
+
+msgid ""
+"Regionale Anträge sind nach Gemeinde, Bezirk und Land sortiert und erscheinen in Ihrem\n"
+"    Bereich „Meine Region“. Abstimmen dürfen bei jedem Antrag alle stimmberechtigten Mitglieder — die Satzung\n"
+"    schließt niemanden von einer Abstimmung aus (§ 5 Abs 6). Ob Betroffene bei Sachfragen besonders berücksichtigt\n"
+"    werden, entscheidet eine Verfahrensordnung, die die Mitglieder erst beschließen müssen. Ihre Lebensbereiche\n"
+"    wählen Sie als Favoriten — Neues daraus erscheint direkt in Ihrem Parlament."
+msgstr ""
+"Regional motions are sorted by municipality, district and state and appear in your\n"
+"    “My region” area. On every motion, all eligible members may vote — the statutes\n"
+"    exclude no one from a ballot (§ 5 para 6). Whether those affected receive special consideration\n"
+"    on substantive questions is decided by rules of procedure the members have yet to adopt. You choose\n"
+"    your areas of life as favourites — new items from them appear directly in your parliament."
+
+msgid "Sachantrag"
+msgstr "Substantive motion"
+
+msgid "Sonstiges"
+msgstr "Other"
+
+msgid "Stammdaten gespeichert."
+msgstr "Master data saved."
+
+msgid "Status filtern"
+msgstr "Filter by status"
+
+msgid "Steht nicht im amtlichen Gemeindeverzeichnis."
+msgstr "Not listed in the official register of municipalities."
+
+msgid "Suchbegriff"
+msgstr "Search term"
+
+msgid "Technischer Entwicklungsrat"
+msgstr "Technical Development Council"
+
+msgid "Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)"
+msgstr "Order a test of a register value (§ 6 para 11 lit c)"
+
+msgid "Unbekannte Aktion."
+msgstr "Unknown action."
+
+msgid "Vollständig:"
+msgstr "Complete list:"
+
+msgid "Vollzug eines Beschlusses"
+msgstr "implementation of a decision"
+
+msgid "Vorschlag der Zukunftswerkstatt zu einem Parametertest"
+msgstr "Futures Workshop proposal for a parameter test"
+
+msgid "Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)"
+msgstr "Proposal on an overload report (§ 6 para 10)"
+
+msgid ""
+"Wahrscheinlich lag das Formular zu lange offen oder Sie haben sich inzwischen in einem anderen\n"
+"Fenster neu angemeldet. Gehen Sie zurück, laden Sie die Seite neu und schicken Sie das Formular noch einmal ab —\n"
+"eingegebene Texte gehen dabei leider verloren."
+msgstr ""
+"Most likely the form was open for too long, or you signed in again in another\n"
+"window in the meantime. Go back, reload the page and send the form once more —\n"
+"text you entered is unfortunately lost."
+
+msgid "Werkstatt"
+msgstr "Workshop"
+
+msgid "Wohnsitz-Gemeinde (leer = keine Angabe)"
+msgstr "Municipality of residence (empty = not stated)"
+
+msgid ""
+"Zielbild: Zu jedem Antrag soll die Zukunftswerkstatt — mit der StaatsSimulation als Rechenkern —\n"
+"  eine mit amtlichen Quellen belegte Einschätzung liefern: berührte Gesetze, Aufwand für den Staatsapparat,\n"
+"  Ausschreibungspflichten, realistische Dauer. Sie berät alle und entscheidet nie — Entscheidungen treffen\n"
+"  die Mitglieder. Wie weit der Aufbau ist, steht auf der Werkstatt-Seite."
+msgstr ""
+"Target: for every motion, the Futures Workshop — with the StaatsSimulation as its computational core —\n"
+"  is to deliver an assessment backed by official sources: affected laws, effort for the state apparatus,\n"
+"  procurement obligations, realistic duration. It advises everyone and never decides — decisions are made\n"
+"  by the members. How far along the build is, see the workshop page."
+
+msgid "Zu den neuesten Beiträgen"
+msgstr "To the newest posts"
+
+msgid "Zum Anfang der Reihung"
+msgstr "To the top of the ranking"
+
+msgid "Zum Beschluss"
+msgstr "To the decision"
+
+msgid "Zurückweisung aufheben (§ 5 Abs 2)"
+msgstr "Revoke rejection (§ 5 para 2)"
+
+msgid "Zurückweisung eines Antrags (§ 5 Abs 2)"
+msgstr "Rejection of a motion (§ 5 para 2)"
+
+msgid "Zustimmung"
+msgstr "Approval"
+
+msgid "beanstandet"
+msgstr "objected"
+
+msgid "entschieden"
+msgstr "decided"
+
+msgid "geprüft, keine Beanstandung"
+msgstr "reviewed, no objection"
+
+msgid "gültig"
+msgstr "in force"
+
+msgid "im Test"
+msgstr "under test"
+
+msgid "in Arbeit (Expertenrat)"
+msgstr "in progress (expert council)"
+
+msgid "in Prüfung (Gruppe 2)"
+msgstr "under review (group 2)"
+
+msgid "innere Angelegenheit des Rates"
+msgstr "internal matter of the council"
+
+msgid "keine Entscheidung binnen der Frist"
+msgstr "no decision within the deadline"
+
+msgid "laufende Abstimmung"
+msgstr "running vote"
+
+msgid "liegt den Unterstützern vor"
+msgstr "before the supporters"
+
+msgid "mit Begründung zurückgegeben"
+msgstr "returned with reasons"
+
+msgid "ohne Ergebnis (Frist abgelaufen)"
+msgstr "no result (deadline passed)"
+
+msgid "stattgegeben"
+msgstr "granted"
+
+msgid "validiert"
+msgstr "validated"
+
+msgid "verworfen"
+msgstr "discarded"
+
+msgid "vorgeschlagen"
+msgstr "proposed"
+
+msgid "zur Endabstimmung übergeben"
+msgstr "handed over to the final vote"
+
+msgid "zur Kenntnis genommen"
+msgstr "noted"
+
+msgid "zurück mit Wünschen · höchstens %(n)s Runden"
+msgstr "back with requests · at most %(n)s rounds"
+
+msgid "Ändern geht in der ersten Minute."
+msgid_plural "Ändern geht in den ersten %(n)s Minuten."
+msgstr[0] "Editing is possible in the first minute."
+msgstr[1] "Editing is possible in the first %(n)s minutes."
+
+msgid "Änderung Ihrer Anmeldeadresse"
+msgstr "Change of your login address"
+
+msgid "Änderung der Anmeldeadresse"
+msgstr "Change of login address"
+
+msgid "Änderung verwerfen — meine Adresse bleibt"
+msgstr "Discard change — keep my address"
+
+msgid "Öffentlicher Anzeigename (leer = Klarname)"
+msgstr "Public display name (empty = real name)"
+
+# ── 0.45: Nachtrag nach der Zusammenführung der Cluster (Adresswechsel, Übersicht, Werkstatt, Beschriftungen) ──
+
+msgid ""
+"Geltende Verfahrensordnung: Fassung %(n)s. Sie folgt dem Register nicht von selbst — sie wird\n"
+"beschlossen und beim Einbringen als unveränderliche Kopie an den Antrag geheftet (§ 5 Abs 5).\n"
+"Ein geänderter Wert der Verfahrensordnung wirkt deshalb nie auf ein laufendes Verfahren; die übrigen Stellgrößen wirken sofort."
+msgstr ""
+"Rules of procedure in force: version %(n)s. They do not follow the register by themselves — they are\n"
+"adopted and attached to the motion as an unchangeable copy when it is submitted (§ 5 para 5).\n"
+"A changed value of the rules of procedure therefore never affects a running procedure; the other settings take effect immediately."
+
+msgid "— sie stehen auch oben im Chat"
+msgstr "— they are also shown in the chat above"
+
+# ── 0.45: Nachtrag nach der Zusammenführung der Cluster (Adresswechsel, Übersicht, Werkstatt, Beschriftungen) ──
+
+msgid "Der satzungsgebende Erstzugang ist unantastbar."
+msgstr "The founding administrator account is untouchable."
+
+msgid "Die Adresse des satzungsgebenden Erstzugangs wird hier nicht geändert."
+msgstr "The address of the founding administrator account cannot be changed here."
+
+msgid "Diese Adresse ist dem satzungsgebenden Erstzugang vorbehalten."
+msgstr "This address is reserved for the founding administrator account."
+
+msgid "Für Ihr Konto läuft eine Änderung der Anmeldeadresse — bis sie entschieden ist, ruht die Stimmabgabe."
+msgstr "A change of your login address is pending — until it is decided, voting is paused."
+
+msgid "Für Ihr Konto läuft eine Änderung der Anmeldeadresse. Bis sie entschieden ist, zeigt die Plattform Ihren Registereintrag nicht an."
+msgstr "A change of your login address is pending. Until it is decided, the platform does not show your register entry."

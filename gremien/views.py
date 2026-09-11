@@ -1310,7 +1310,7 @@ def koordination(request):
             ),
             "hinweise": list(Hinweis.objects.select_related("parametertest__parameter")[:20]),
             "tests": tests,
-            "parameter": list(Parameter.objects.exclude(status=Status.IM_TEST).order_by("gruppe", "schluessel")),
+            "parameter": list(_testbare_parameter()),
             "messgroessen": messgroessen(werte()),
             "jahr": heute.year,
             "rollen": list(
@@ -1541,11 +1541,24 @@ def koordination_test(request, test_id: int):
     return redirect("gremien:koordination")
 
 
+def _testbare_parameter():
+    """Die Stellgrößen, die ein Test setzen darf — ohne die Ordnungsschlüssel (D-J3g).
+
+    § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5). Die
+    Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
+    der Ordnung — und die beschließt nach § 5 Abs 7 die Mitgliederversammlung, nicht der
+    Koordinationsrat. Ein Test auf ihnen wäre ein zweiter Weg zur Ordnung; den gibt es nicht."""
+    from plattform_core.policy import REGISTER_ZUORDNUNG
+
+    ordnung = {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
+    return Parameter.objects.exclude(schluessel__in=ordnung).exclude(status=Status.IM_TEST).order_by("gruppe", "schluessel")
+
+
 def _test_anordnen(request):
     from parameter.kennzahlen import werte
     from plattform_core.parametertest import messgroessen
 
-    parameter = get_object_or_404(Parameter, pk=request.POST.get("parameter"))
+    parameter = get_object_or_404(_testbare_parameter(), pk=request.POST.get("parameter"))
     testwert = (request.POST.get("testwert") or "").strip()[:100]
     hypothese = (request.POST.get("hypothese") or "").strip()[:300]
     messgroesse = (request.POST.get("messgroesse") or "").strip()[:80]

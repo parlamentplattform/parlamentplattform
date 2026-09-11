@@ -65,10 +65,10 @@ class Verfahrensordnung(models.Model):
 class Ebene(models.TextChoices):
     """Territoriale Ebene eines Antrags (§ 14; Bereich c des Hauptfensters, F-43)."""
 
-    BUND = "bund", "Bund"
-    LAND = "land", "Land"
-    BEZIRK = "bezirk", "Bezirk"
-    GEMEINDE = "gemeinde", "Gemeinde"
+    BUND = "bund", _("Bund")
+    LAND = "land", _("Land")
+    BEZIRK = "bezirk", _("Bezirk")
+    GEMEINDE = "gemeinde", _("Gemeinde")
 
 
 class Kategorie(models.Model):
@@ -157,8 +157,8 @@ class Antragsart(models.TextChoices):
     Bewerbungen statt Ja/Nein, Zustimmung je Bewerbung, die meiste Zustimmung
     gewinnt, die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags."""
 
-    SACHE = "sache", "Sachantrag"
-    MANDAT = "mandat", "Mandats-Kandidatur"
+    SACHE = "sache", _("Sachantrag")
+    MANDAT = "mandat", _("Mandats-Kandidatur")
 
 
 class Antrag(models.Model):
@@ -1144,7 +1144,9 @@ def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:
         [antrag.titel, fassung.wortlaut if fassung else "", fassung.begruendung if fassung else ""]
     )
     aktive = list(Kategorie.objects.filter(aktiv=True).values_list("id", "eltern_id", "schlagworte"))
-    treffer = zuordnen(text, aktive)
+    from parameter.models import zahl
+
+    treffer = zuordnen(text, aktive, limit=zahl("kategorien-je-antrag", 3))
     kategorien = list(Kategorie.objects.filter(id__in=[kid for kid, _ in treffer]))
     kategorien.sort(key=lambda k: [kid for kid, _ in treffer].index(k.pk))
     antrag.kategorien.set(kategorien)

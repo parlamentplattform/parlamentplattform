@@ -41,5 +41,5 @@ def zeit_her(wann) -> str:
 
 @register.filter
 def darf_bearbeiten(kommentar, mitglied) -> bool:
-    """Ob das Bearbeitungsfenster von fünf Minuten noch offen ist (FB-G1)."""
+    """Ob das Bearbeitungsfenster (Register `chat-bearbeitungsfenster-minuten`) noch offen ist (FB-G1)."""
     return kommentar.darf_bearbeiten(mitglied)

@@ -28,7 +28,7 @@ die Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert.{% en
   <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px">
     <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">{% csrf_token %}
       <input type="hidden" name="aktion" value="foto"><input type="hidden" name="mandat" value="{{ m.pk }}">
-      <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" style="width:auto">
+      <label>{% translate "Foto" %} <input type="file" name="foto" accept="image/jpeg,image/png,image/webp" style="width:auto"></label>
       <button type="submit" class="btn-linie">{% translate "Foto speichern" %}</button>
     </form>
     {% if not m.beendet %}

@@ -88,10 +88,13 @@ def _kuerzen(name: str, laenge: int) -> str:
     return name if len(name) <= laenge else name[: laenge - 1].rstrip() + "…"
 
 
-def faecher_layout(zeilen, fokus_slug: str | None = None, abos=()):
+def faecher_layout(
+    zeilen, fokus_slug: str | None = None, abos=(), kinder_hoechstzahl: int = KINDER_HOECHSTZAHL
+):
     """Berechnet den Fächer. `zeilen`: Iterierbares aus Mappings mit den Schlüsseln
     id, slug, name, eltern_id (nur aktive Kategorien; `reihenfolge` optional).
-    Unbekannter oder leerer Fokus fällt auf die Wurzel zurück."""
+    Unbekannter oder leerer Fokus fällt auf die Wurzel zurück. `kinder_hoechstzahl` (Register
+    `faecher-kinder-hoechstzahl`) begrenzt den entfalteten Ast je Knoten; die Konstante ist der Rückfall."""
     zeilen = list(zeilen)
     je_id = {z["id"]: z for z in zeilen}
     je_slug = {z["slug"]: z for z in zeilen}
@@ -190,7 +193,7 @@ def faecher_layout(zeilen, fokus_slug: str | None = None, abos=()):
         g_stapel = GROESSEN[voll + 1] if voll + 1 < len(GROESSEN) else GROESSEN[-1]
         stapel_abstand = pillen_hoehe(g_stapel) + STAPEL_FUGE
         stapel_y_oben = y + pillen_hoehe(g_stapel) / 2  # oberste Pille einer vollen Säule
-        y = stapel_y_oben + (KINDER_HOECHSTZAHL - 1) * stapel_abstand + pillen_hoehe(g_stapel) / 2
+        y = stapel_y_oben + (kinder_hoechstzahl - 1) * stapel_abstand + pillen_hoehe(g_stapel) / 2
         g_seit = GROESSEN[voll]
         seitlich_y = y + LUECKEN[min(voll + 1, 3)] + pillen_hoehe(g_seit) / 2
         y = seitlich_y + pillen_hoehe(g_seit) / 2
@@ -265,23 +268,23 @@ def faecher_layout(zeilen, fokus_slug: str | None = None, abos=()):
         for ast in aeste:
             ax, _ay = lage[ast["id"]]
             kids = kinder.get(ast["id"], [])
-            gezeigt = kids[:KINDER_HOECHSTZAHL]
+            gezeigt = kids[:kinder_hoechstzahl]
             gesamt = AST_ABSTAND * len(gezeigt)
             links = min(max(x0, ax - gesamt / 2), x1 - gesamt)
             for j, k in enumerate(gezeigt):
                 x = links + AST_ABSTAND * (j + 0.5)
                 letzte = j == len(gezeigt) - 1
-                mehr = len(kids) - KINDER_HOECHSTZAHL if (letzte and len(kids) > KINDER_HOECHSTZAHL) else 0
+                mehr = len(kids) - kinder_hoechstzahl if (letzte and len(kids) > kinder_hoechstzahl) else 0
                 merken(k, x, seitlich_y, g_seit, rollen[voll], breite_ast, ebene=voll + 1, ast=ast["slug"], mehr=mehr)
                 faden(ast["id"], k, ast=ast["slug"])
                 if voll + 1 >= len(GROESSEN):
                     continue
                 enkel = kinder.get(k["id"], [])
-                gezeigte_enkel = enkel[:KINDER_HOECHSTZAHL]
+                gezeigte_enkel = enkel[:kinder_hoechstzahl]
                 for s, e in enumerate(gezeigte_enkel):
-                    yy = stapel_y_oben + (KINDER_HOECHSTZAHL - 1 - s) * stapel_abstand
+                    yy = stapel_y_oben + (kinder_hoechstzahl - 1 - s) * stapel_abstand
                     letzter = s == len(gezeigte_enkel) - 1
-                    mehr_e = len(enkel) - KINDER_HOECHSTZAHL if (letzter and len(enkel) > KINDER_HOECHSTZAHL) else 0
+                    mehr_e = len(enkel) - kinder_hoechstzahl if (letzter and len(enkel) > kinder_hoechstzahl) else 0
                     merken(e, x, yy, g_stapel, rollen[voll + 1], breite_ast, ebene=voll + 2, ast=ast["slug"],
                            mehr=mehr_e, stapel=True)
                     faden(k["id"], e, ast=ast["slug"])

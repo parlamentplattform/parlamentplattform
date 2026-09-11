@@ -118,3 +118,4 @@ Alle Werte sind Zählungen oder Anteile über die ganze Instanz — nichts davon
 | Version | Datum | Änderung |
 |---|---|---|
 | 1.0 | 3.9.2026 | Erste Fassung: Kopf, 12 Stellgrößen-Kennungen, 7 Kennzahlen, Prüfregeln |
+| 1.4 | 11.9.2026 | Vier Stellgrößen-Kennungen: `overview.decided_votes`, `chat.thread_roots`, `council.decisions_per_page`, `account.email_change_waiting_hours` |

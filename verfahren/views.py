@@ -14,6 +14,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 
+from parameter.models import zahl
 from plattform_core import Phase, __version__
 from plattform_core.phases import (
     abstimmung_frist_ende,
@@ -116,7 +117,7 @@ def _beteiligung(antrag, abgegeben=None):
     if abgegeben is None:
         if antrag.art == Antragsart.MANDAT:
             abgegeben = (
-                BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()
+                BewerbungsZustimmung.gueltige().filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()
             )
         else:
             abgegeben = antrag.stimmabgaben.count()
@@ -147,14 +148,14 @@ def _zaehler(antraege) -> dict[str, dict[int, int]]:
         Stimmabgabe.objects.filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
     )
     stimmen.update(
-        BewerbungsZustimmung.objects.filter(bewerbung__antrag_id__in=pks)
+        BewerbungsZustimmung.gueltige().filter(bewerbung__antrag_id__in=pks)
         .order_by()
         .values_list("bewerbung__antrag_id")
         .annotate(n=Count("pseudonym", distinct=True))
     )
     return {
         "unterstuetzungen": dict(
-            Unterstuetzung.objects.filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
+            Unterstuetzung.gueltige().filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
         ),
         "beitraege": dict(
             Kommentar.objects.filter(antrag_id__in=pks, archiviert_am__isnull=True)
@@ -228,7 +229,7 @@ def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zu
     kats = {a.pk: {k.pk for k in a.kategorien.all()} for a in antraege}
     ja_kats, nein_kats = _eigene_stimm_kategorien(nutzer)
     unterstuetzt_kats = set(
-        Kategorie.objects.filter(antraege__unterstuetzungen__mitglied=nutzer).values_list("pk", flat=True)
+        Kategorie.objects.filter(antraege__unterstuetzungen__mitglied=nutzer, antraege__unterstuetzungen__zurueckgezogen_am__isnull=True).values_list("pk", flat=True)
     )
     nach_alter = sorted(antraege, key=lambda a: a.eingebracht_am)
     chrono = {
@@ -307,7 +308,6 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
 
     `laufend` darf ein QuerySet oder die schon geladene Liste sein; Zählwerte und wirksame
     Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
-    from parameter.models import zahl
     from plattform_core.weicherfilter import ist_neutral
 
     laufende = _als_liste(laufend)
@@ -457,8 +457,6 @@ def fristen_fuer_das_diagramm() -> dict:
 
     Standen sie als Text im Bild, zeigte die erste Seite nach einer Änderung im Register
     weiter den alten Wert. Wer zwei Zahlen für dieselbe Frist findet, glaubt keiner davon."""
-    from parameter.models import zahl
-
     return {
         "unterstuetzung": zahl("verfahren-unterstuetzung-tage", 60),
         "beratung": zahl("expertenrat-erstvorschlag-tage", 21),
@@ -484,8 +482,6 @@ def index(request):
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
-    from parameter.models import zahl
-
     wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[: zahl("kacheln-hervorgehoben", 3)]
     return render(
         request,
@@ -542,7 +538,6 @@ def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
     """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
     Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
     Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
-    from parameter.models import zahl
     from verfahren.views_aktionen import _laufend_je_ast
 
     abonniert: set[int] = set()
@@ -593,7 +588,12 @@ def parlament(request):
         else set()
     )
     # FB-C3: im Ruhezustand ist der Ast des ersten Favoriten entfaltet
-    faecher = faecher_layout(zeilen, fokus_slug=request.GET.get("fach") or None, abos=abo_slugs)
+    faecher = faecher_layout(
+        zeilen,
+        fokus_slug=request.GET.get("fach") or None,
+        abos=abo_slugs,
+        kinder_hoechstzahl=zahl("faecher-kinder-hoechstzahl", 3),
+    )
     faecher["abos"] = abo_slugs
     suchtext = (request.GET.get("suche") or "").strip()
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
@@ -608,8 +608,6 @@ def parlament(request):
     # Alle laufenden Verfahren EINMAL laden (Befund #39, #40): Feed, Region und die
     # hervorgehobenen Kacheln bedienen sich aus derselben Liste; Zählwerte und wirksame
     # Phasenbeginne (Aussetzungen, Befund #24/#30) kommen je in einer Abfrage.
-    from parameter.models import zahl
-
     laufende = _als_liste(laufend)
     zaehler = _zaehler(laufende)
     beginne = _wirksame_beginne(laufende, jetzt)
@@ -636,7 +634,7 @@ def parlament(request):
     meine_unterstuetzungen: set[int] = set()
     if request.user.is_authenticated:
         meine_unterstuetzungen = set(
-            Unterstuetzung.objects.filter(mitglied=request.user).values_list("antrag_id", flat=True)
+            Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
         )
 
     region_zeilen = []
@@ -743,7 +741,6 @@ def _einschaetzung(antrag):
 def gespraeche(request):
     """Meine Gespräche (FB-G3): dieselbe Liste, die das Panel zeigt — als eigene Seite, damit
     sie auch ohne JavaScript erreichbar ist. Mit htmx antwortet nur die Liste."""
-    from parameter.models import zahl
     from verfahren.chat import gespraeche as gespraeche_laden
 
     # Einmal laden (Befund #79): Der Zähler zählt über alle Gespräche, die Liste zeigt die ersten
@@ -805,6 +802,7 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
     fenster = chatkern.faden_fenster(antrag, nutzer, nach_engagement=entwurf is not None, ab=ab)
     lage = {
         "faden": fenster["faden"],
+        "bearbeitungsfenster": antrag.kommentare.model.bearbeitungsfenster_minuten(),
         "faden_mehr": fenster["mehr"],
         "faden_mehr_ab": fenster["mehr_ab"],
         "faden_richtung": fenster["richtung"],
@@ -843,7 +841,7 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
             "absaetze": wortdiff.absaetze(wortlaut),
             "stand": chatkern.abstimmung_stand(antrag, entwurf),
             "reihung": vorschlagschat.REIHUNG,
-            "unterstuetzer": antrag.unterstuetzungen.count(),
+            "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
         }
     }
 
@@ -899,7 +897,7 @@ def antrag_detail(request, pk):
             reg = antrag.stimmregister.filter(mitglied=request.user).first()
             if reg:
                 meine_zustimmungen = set(
-                    BewerbungsZustimmung.objects.filter(
+                    BewerbungsZustimmung.gueltige().filter(
                         bewerbung__antrag=antrag, pseudonym=reg.pseudonym
                     ).values_list("bewerbung_id", flat=True)
                 )
@@ -934,7 +932,7 @@ def antrag_detail(request, pk):
     frist = _frist_fuer(antrag, policy, antrag.wirksamer_phase_beginn(jetzt))
     aussetzung = _laufende_aussetzung(antrag, jetzt) if antrag.phase in LAUFEND else None
     unterstuetzt_von_mir = (
-        request.user.is_authenticated and antrag.unterstuetzungen.filter(mitglied=request.user).exists()
+        request.user.is_authenticated and antrag.unterstuetzungen.filter(mitglied=request.user, zurueckgezogen_am__isnull=True).exists()
     )
     meine_stimme = None
     if request.user.is_authenticated:
@@ -983,7 +981,7 @@ def antrag_detail(request, pk):
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,
-            "unterstuetzungen": antrag.unterstuetzungen.count(),
+            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
             "chat": chat,
             "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
             "frist": frist,

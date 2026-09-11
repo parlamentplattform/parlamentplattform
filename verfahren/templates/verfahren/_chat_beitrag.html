@@ -1,7 +1,7 @@
 {% load i18n chat %}{% comment %}
 Eine Sprechblase im Chat (FB-G1): Avatar mit Initiale, Name, Zeit (relativ, absolut im Titel),
 Text, darunter die Aktionszeile — Antworten · Zustimmen mit Zähler · Melden · Anker. Eigene
-Beiträge tragen eine Gold-Kante und in den ersten fünf Minuten „Ändern" und „Zurückziehen".
+Beiträge tragen eine Gold-Kante und im Bearbeitungsfenster (Register) „Ändern" und „Zurückziehen".
 Erwartet b (aus chat.faden) und antrag.
 {% endcomment %}<article class="blase{% if b.eigener %} eigen{% endif %}{% if b.neu %} neu{% endif %}{% if b.k.system %} system{% endif %}{% if b.k.ist_kritik %} kritik{% endif %}" id="k-{{ b.k.pk }}" data-beitrag="{{ b.k.pk }}">
   {% if b.k.system %}<span class="avatar-initiale system" aria-hidden="true">&#10003;</span>
@@ -43,7 +43,7 @@ Erwartet b (aus chat.faden) und antrag.
             hx-post="{% url 'verfahren:beitrag_bearbeiten' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
             {% csrf_token %}<textarea name="text" rows="3" maxlength="4000" required aria-label="{% translate 'Beitrag ändern' %}">{{ b.k.text }}</textarea>
             <button class="btn-linie klein">{% translate "Übernehmen" %}</button>
-            <span class="hilfe">{% translate "Ändern geht in den ersten fünf Minuten." %}</span>
+            <span class="hilfe">{% blocktranslate count n=chat.bearbeitungsfenster %}Ändern geht in der ersten Minute.{% plural %}Ändern geht in den ersten {{ n }} Minuten.{% endblocktranslate %}</span>
           </form>
         </details>
         {% endif %}

@@ -37,7 +37,7 @@ vorzeitige Beendigung werden hier gepflegt — alles im öffentlichen Audit-Log,
       {% endif %}
       <form method="post" action="{% url 'gremien:rollen_aktion' %}" style="display:inline;margin-left:6px">{% csrf_token %}
         <input type="hidden" name="aktion" value="beenden"><input type="hidden" name="rolle" value="{{ r.pk }}">
-        <input type="text" name="grund" placeholder="{% translate 'Grund (bleibt dokumentiert)' %}" required style="width:220px">
+        <input type="text" name="grund" placeholder="{% translate 'Grund (bleibt dokumentiert)' %}" aria-label="{% translate 'Grund (bleibt dokumentiert)' %}" required style="width:220px">
         <button type="submit" class="btn-linie">{% translate "Beenden" %}</button>
       </form>
     </span>

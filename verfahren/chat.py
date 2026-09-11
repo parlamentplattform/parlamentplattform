@@ -89,7 +89,12 @@ def ruht_wegen_werkstatt(antrag) -> bool:
     Die Sperre beginnt mit dem Öffnen des Entwurfsfensters und endet, sobald der Vorschlag
     den Unterstützern vorliegt. Gelesen wird weiter — geschrieben nicht."""
     from gremien.models import EntwurfsStatus
+    from plattform_core import Phase
 
+    if antrag.phase != Phase.BERATUNG.value:
+        # Nach der Beratung arbeitet die Werkstatt nicht mehr — ein nie eingereichtes Fenster
+        # darf den Chat der Abstimmung nicht sperren (Befund #34).
+        return False
     entwurf = entwurf_von(antrag)
     return entwurf is not None and entwurf.status in (
         EntwurfsStatus.IN_ARBEIT,
@@ -398,7 +403,7 @@ def darf_reagieren(antrag, mitglied) -> bool:
         return False
     if abstimmungschat(antrag) is None:
         return True
-    return antrag.unterstuetzungen.filter(mitglied=mitglied).exists()
+    return antrag.unterstuetzungen.filter(mitglied=mitglied, zurueckgezogen_am__isnull=True).exists()
 
 
 def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None) -> dict | None:

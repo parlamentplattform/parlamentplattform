@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.3"
+SCHEMA_VERSION = "1.4"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -76,6 +76,22 @@ PARAMETER = {
     "kacheln-abgeschlossen": (
         "tiles.completed", "entries",
         "How many completed procedures appear in the feed",
+    ),
+    "uebersicht-abstimmungen": (
+        "overview.decided_votes", "entries",
+        "How many decided votes the public overview lists before pointing to the registers",
+    ),
+    "chat-faden-wurzeln": (
+        "chat.thread_roots", "posts",
+        "How many root posts (with replies) a motion's chat shows at once",
+    ),
+    "gremien-beschluesse-seite": (
+        "council.decisions_per_page", "decisions",
+        "How many council decisions the public list shows at once",
+    ),
+    "adresswechsel-wartefrist-stunden": (
+        "account.email_change_waiting_hours", "hours",
+        "Waiting time before an administrative change of a login address takes effect",
     ),
     "suche-treffer-hoechstzahl": (
         "areas_fan.max_search_hits", "hits",

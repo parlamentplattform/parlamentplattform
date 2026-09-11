@@ -277,7 +277,7 @@ def archiv(antrag) -> dict:
             "phase": antrag.phase,
             "phase_name": phasenname(antrag.phase),
             "eingebracht_am": antrag.eingebracht_am.isoformat(),
-            "unterstuetzungen": antrag.unterstuetzungen.count(),
+            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
         },
         "fassungen": fassungen,
         "zeitleiste": zeitleiste(antrag, alles=True),
@@ -287,7 +287,11 @@ def archiv(antrag) -> dict:
 
 
 def als_json(antrag) -> str:
-    return json.dumps(archiv(antrag), ensure_ascii=False, indent=2)
+    from django.core.serializers.json import DjangoJSONEncoder
+
+    # Übersetzbare Beschriftungen (gettext_lazy) sind Proxy-Objekte — der Standard-Encoder
+    # kennt sie nicht, Djangos schreibt sie als Text.
+    return json.dumps(archiv(antrag), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
 
 
 def als_markdown(antrag) -> str:

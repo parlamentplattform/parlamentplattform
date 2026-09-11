@@ -21,8 +21,8 @@ Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.{
   </div>
   <div class="bereich"><span class="bk">{% translate "Suche" %}</span>
     <form method="get" style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-      <input type="text" name="q" value="{{ suche }}" placeholder="{% translate 'Name, E-Mail, Gemeinde …' %}" style="flex:1;min-width:140px">
-      <select name="status" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:10px">
+      <input type="text" name="q" value="{{ suche }}" aria-label="{% translate 'Suchbegriff' %}" placeholder="{% translate 'Name, E-Mail, Gemeinde …' %}" style="flex:1;min-width:140px">
+      <select name="status" aria-label="{% translate 'Status filtern' %}" style="font:inherit;padding:8px;border:1px solid var(--line);border-radius:10px">
         <option value="">{% translate "alle Status" %}</option>
         {% for wert, name in statuswahl %}<option value="{{ wert }}" {% if status == wert %}selected{% endif %}>{{ name }}</option>{% endfor %}
       </select>

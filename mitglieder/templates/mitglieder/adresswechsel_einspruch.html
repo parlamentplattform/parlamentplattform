@@ -1,0 +1,24 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Änderung der Anmeldeadresse" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Änderung Ihrer Anmeldeadresse" %}</h1>
+<div class="karte">
+{% if zustand == "offen" %}
+  <p>{% blocktranslate %}Die Verwaltung hat beantragt, die Anmeldeadresse Ihres Kontos zu ändern. Wenn Sie das
+  nicht veranlasst haben, verwerfen Sie die Änderung hier — Ihre bisherige Adresse bleibt dann
+  Ihre Anmeldeadresse.{% endblocktranslate %}</p>
+  <form method="post" style="margin-top:14px">{% csrf_token %}
+    <button type="submit" class="btn">{% translate "Änderung verwerfen — meine Adresse bleibt" %}</button>
+  </form>
+  <p class="hilfe" style="margin-top:10px">{% blocktranslate %}Haben Sie die Änderung selbst gewünscht, müssen Sie nichts tun:
+  Sie wird nach Ablauf der Frist wirksam, sobald ein zweiter Admin sie bestätigt hat.{% endblocktranslate %}</p>
+{% elif zustand == "widerrufen" %}
+  <p><strong>{% translate "Die Änderung ist verworfen." %}</strong> {% blocktranslate %}Ihre bisherige Adresse bleibt Ihre
+  Anmeldeadresse. Der Vorgang steht ohne Adresswerte im öffentlichen Audit-Log.{% endblocktranslate %}</p>
+{% else %}
+  <p>{% blocktranslate %}Diese Änderung ist bereits wirksam. Wenn Sie sie nicht veranlasst haben, schreiben Sie
+  bitte umgehend an didide@ddoe.at.{% endblocktranslate %}</p>
+{% endif %}
+</div>
+{% endblock %}

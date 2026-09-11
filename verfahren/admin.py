@@ -44,7 +44,7 @@ class UnterstuetzungAdmin(admin.ModelAdmin):
 
 @admin.register(AuditEintrag)
 class AuditAdmin(admin.ModelAdmin):
-    list_display = ("lfd", "zeit", "ereignis", "hash")
+    list_display = ("lfd", "zeit", "ereignis", "vorgaenger", "hash")
 
     def has_add_permission(self, request):
         return False

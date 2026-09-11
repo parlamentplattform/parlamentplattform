@@ -36,6 +36,34 @@ def ereignis_hash(vorgaenger_hash: str, ereignis: dict[str, Any]) -> str:
     return h.hexdigest()
 
 
+class KettenFehler(ValueError):
+    """Die vorhandene Kette lässt sich nicht als lückenlose Folge lesen."""
+
+
+def vorgaenger_zuordnen(hashes: Iterable[str], start_hash: str = GENESIS) -> list[str]:
+    """Zu einer Folge gespeicherter Hashes (in Kettenreihenfolge) der Vorgänger jedes Eintrags.
+
+    Der erste Eintrag hängt am Startwert, jeder weitere am Hash seines Vorgängers. Das Ergebnis
+    ist die Spalte `vorgaenger`, die den Vorgänger zur Datenbank-Tatsache macht: Mit einer
+    Eindeutigkeitsbedingung darauf können zwei Einträge nie mehr am selben Kopf hängen — eine
+    Gabel ist dann physisch unmöglich, nicht nur unwahrscheinlich.
+
+    Kommt ein Hash zweimal vor, hingen zwei Einträge am selben Vorgänger; eine solche Kette ist
+    schon gegabelt und lässt sich nicht eindeutig zuordnen — das wird gemeldet, nicht kaschiert."""
+    zuordnung: list[str] = []
+    vergeben: set[str] = set()
+    aktuell = start_hash
+    for index, gespeichert in enumerate(hashes):
+        if aktuell in vergeben:
+            raise KettenFehler(
+                f"Eintrag {index} hängt am selben Vorgänger wie ein früherer — die Kette ist gegabelt."
+            )
+        zuordnung.append(aktuell)
+        vergeben.add(aktuell)
+        aktuell = gespeichert
+    return zuordnung
+
+
 def kette_pruefen(
     eintraege: Iterable[tuple[dict[str, Any], str]],
     start_hash: str = GENESIS,

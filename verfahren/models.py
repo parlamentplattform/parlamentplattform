@@ -22,7 +22,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -590,11 +590,22 @@ def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = 
 class AuditEintrag(models.Model):
     """Append-only-Audit-Log mit Hash-Kette (F-22, ADR-005).
     Einträge werden nie geändert oder gelöscht — dafür gibt es keinen Code-Pfad,
-    und der Admin ist read-only registriert."""
+    und der Admin ist read-only registriert.
+
+    `vorgaenger` ist eindeutig: Zwei Einträge können nie am selben Kopf hängen. Ohne diese
+    Bedingung konnten zwei gleichzeitige Schreiber (zwei Worker, READ COMMITTED) denselben Kopf
+    lesen und beide dagegen hashen — die Kette gabelte sich still und war ab dort für jeden
+    Nachprüfer von einer Manipulation nicht zu unterscheiden (Befund #9)."""
 
     lfd = models.BigAutoField(primary_key=True)
     zeit = models.DateTimeField(default=timezone.now)
     ereignis = models.JSONField()
+    vorgaenger = models.CharField(
+        max_length=64,
+        unique=True,
+        editable=False,
+        help_text="Hash des Vorgängers — eindeutig, damit die Kette sich nicht gabeln kann.",
+    )
     hash = models.CharField(max_length=64, editable=False)
 
     class Meta:
@@ -605,11 +616,43 @@ class AuditEintrag(models.Model):
     def __str__(self) -> str:
         return f"Audit #{self.lfd} {self.ereignis.get('typ', '?')}"
 
+    #: Wie oft `anhaengen` einen überholten Kopf neu liest, bevor es aufgibt.
+    VERSUCHE = 3
+
+    @classmethod
+    def _kopf(cls) -> str:
+        letzter = cls.objects.order_by("-lfd").only("hash").first()
+        return letzter.hash if letzter else GENESIS
+
     @classmethod
     def anhaengen(cls, ereignis: dict) -> AuditEintrag:
-        letzter = cls.objects.order_by("-lfd").first()
-        vorgaenger = letzter.hash if letzter else GENESIS
-        return cls.objects.create(ereignis=ereignis, hash=ereignis_hash(vorgaenger, ereignis))
+        """Hängt ein Ereignis an die Kette — mit versiegeltem Zeitstempel und ohne Gabelung.
+
+        Der Zeitpunkt steht im Ereignis selbst (`zeit`), damit er unter dem Hash liegt: Die
+        Spalte `zeit` allein könnte jemand mit Datenbankzugriff ändern, ohne dass die Kette es
+        bemerkt (Befund #75). Ältere Einträge ohne diesen Schlüssel bleiben prüfbar.
+
+        Überholt ein zweiter Schreiber den gelesenen Kopf, weist die Eindeutigkeit von
+        `vorgaenger` den Eintrag ab; dann wird der Kopf neu gelesen und noch einmal versucht.
+        Der Fehler wird AUSSERHALB des inneren `atomic` gefangen — nur so bleibt eine äußere
+        Transaktion (etwa `Antrag.fortschreiben`) auf PostgreSQL benutzbar."""
+        jetzt = timezone.now()
+        versiegelt = {**ereignis, "zeit": jetzt.isoformat()}
+        for _versuch in range(cls.VERSUCHE):
+            vorgaenger = cls._kopf()
+            try:
+                with transaction.atomic():
+                    return cls.objects.create(
+                        zeit=jetzt,
+                        ereignis=versiegelt,
+                        vorgaenger=vorgaenger,
+                        hash=ereignis_hash(vorgaenger, versiegelt),
+                    )
+            except IntegrityError:
+                continue
+        raise IntegrityError(
+            f"Audit-Kette: Der Kopf wurde {cls.VERSUCHE}-mal hintereinander überholt — Eintrag nicht angehängt."
+        )
 
 
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------

@@ -24,6 +24,10 @@ services:
     region: frankfurt
     plan: starter
     healthCheckPath: /gesund/
+    # Kein Deploy je Push (Befund #95): Ohne diese Zeile gilt für einen neu angelegten Dienst
+    # „commit" — dann liefe jeder Commit live, auch ein roter, und zusätzlich der Hook aus der CI.
+    # Ausgerollt wird nur über den CI-Job `ausrollen` nach bestandener Prüfung (docs/BETRIEB-RENDER.md).
+    autoDeployTrigger: "off"
     dockerCommand: >-
       sh -c "python manage.py migrate --noinput
       && python manage.py kategorien_laden

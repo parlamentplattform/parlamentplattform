@@ -31,6 +31,17 @@ Zwei Render-Eigenheiten, die man kennen muss:
    variables → Actions*). Solange das Secret fehlt, überspringt die CI den
    Schritt und es gilt der manuelle Weg: Dashboard → **Manual Deploy → Deploy
    latest commit**.
+   **Neuaufbau aus `render.yaml`:** Ein per Blueprint angelegter Dienst ist mit
+   GitHub verbunden und würde ohne Angabe **jeden Push** ausrollen (Render-Standard
+   `commit`) — zusätzlich zum Hook, also doppelt und auch rote Commits. Deshalb steht
+   in `render.yaml` `autoDeployTrigger: off` (der Hook bleibt der einzige Weg); das
+   Partner-Muster `docs/partner/instanz/render.yaml` nutzt `checksPass` (Render wartet
+   selbst auf grüne GitHub-Checks, kein Secret nötig). Beides darf man nicht kombinieren.
+   Die CI hält vor dem Ausrollen außerdem `manage.py check --deploy --fail-level WARNING`
+   und `collectstatic` mit Manifest-Speicher; Abhängigkeiten tragen in `pyproject.toml`
+   Obergrenzen, damit CI und Produktion nicht auseinanderlaufen. Ist die Prüfung auf
+   `main` rot, schlägt der Job `nicht_ausgerollt` sichtbar an, und das CI-Abzeichen in
+   der README wird rot.
 
 ## Start und Build
 
@@ -45,7 +56,7 @@ Zwei Render-Eigenheiten, die man kennen muss:
 |---|---|
 | `DDOE_SECRET_KEY`, `DDOE_DEBUG=0` | Django-Grundschutz |
 | `DDOE_ALLOWED_HOSTS`, `DDOE_CSRF_ORIGINS` | erlaubte Domains (onrender.com + parlament.ddoe.at) |
-| `DDOE_STATIK=whitenoise` | statische Dateien aus der Anwendung |
+| `DDOE_STATIK=whitenoise` | statische Dateien aus der Anwendung — mit Manifest (Inhalts-Hash im Dateinamen, lange Cache-Zeit); `collectstatic` ist deshalb Pflicht vor dem Start |
 | `POSTGRES_HOST/PORT/DB/USER/PASSWORD` | aus der *Internal Database URL* von `plattform-db` |
 | `DDOE_SMTP_HOST/PORT/USER/PASSWORT` | Postfach `plattform@ddoe.at` (World4You, Port 587) |
 | `DDOE_SMTP_TIMEOUT` | optional, Standard 20 s — hängender Mailserver blockiert keinen Worker |
@@ -72,7 +83,12 @@ F-50) braucht gar keinen Zugang.
 - **Phasenübergänge:** Fristabläufe werden beim nächsten Seitenaufruf verarbeitet
   (lazy, idempotent). Optional täglicher Render-Cron:
   `python manage.py shell -c "from verfahren.models import Antrag; [a.fortschreiben() for a in Antrag.objects.all()]"`.
-- **Logs:** Dashboard → Logs; der SMTP-Versand meldet Fehler dort mit vollem Traceback.
+- **Logs:** Dashboard → Logs. Jeder Serverfehler (Status 500) steht dort mit vollem Traceback
+  (`LOGGING` in `config/settings.py`, Logger `django.request` → stderr, unabhängig von DEBUG);
+  ebenso abgewiesene Hosts und CSRF-Verstöße (`django.security`) und der SMTP-Versand.
+- **Gesundheitscheck:** `/gesund/` führt `SELECT 1` aus und antwortet ohne Datenbank mit 503 —
+  Render startet die Instanz dann neu und übernimmt keinen Deploy, dessen Instanz die
+  Datenbank nicht erreicht.
 
 ## Datenschutz-Einordnung
 

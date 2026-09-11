@@ -8,6 +8,8 @@ harter Farben, Dark Mode ohne Lücken, Sans-Typografie, keine Inline-Handler.
 import re
 from pathlib import Path
 
+import pytest
+
 WURZEL = Path(__file__).resolve().parent.parent
 BASE = WURZEL / "verfahren" / "templates" / "verfahren" / "base.html"
 
@@ -160,9 +162,12 @@ def test_uebersetzungen_vollstaendig_und_kompiliert():
     import sys
 
     sys.path.insert(0, str(WURZEL / "tools"))
-    from po_pruefen import lesen
+    from po_pruefen import KatalogFehler, lesen
 
-    eintraege = [e for e in lesen() if e.msgid]
+    try:
+        eintraege = [e for e in lesen() if e.msgid]
+    except KatalogFehler as kaputt:  # Befund #59: ungültige Syntax ist ein Befund, kein Absturz
+        pytest.fail("django.po ist syntaktisch ungültig:\n  " + "\n  ".join(kaputt.fehler))
     leer = [e.schluessel for e in eintraege if not e.uebersetzt]
     assert not leer, f"Ohne Übersetzung: {leer}"
     assert not [e.schluessel for e in eintraege if e.fuzzy], "Unsichere (fuzzy) Einträge im Katalog"

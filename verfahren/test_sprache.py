@@ -3,6 +3,12 @@
 import pytest
 from django.urls import reverse
 
+from verfahren.test_views_aktionen import (  # noqa: F401
+    ANTRAG,
+    mitglied_anlegen,
+    ordnung,
+)
+
 pytestmark = pytest.mark.django_db
 
 
@@ -151,3 +157,85 @@ def test_uebersicht_zeigt_ki_verbrauch(client):
     inhalt = client.get(reverse("uebersicht:index")).content.decode()
     assert "KI-Verbrauch des Modell-Steckplatzes" in inhalt
     assert "archivierte Läufe" in inhalt and "Monatswechsel" in inhalt
+
+
+# ── Gesamtprüfung 0.45 (Cluster D): Katalog und Seiten stimmen überein ────────────────────
+
+
+def test_mehrzeilige_absaetze_sind_auf_englisch_uebersetzt(client):
+    """Befund #58: Vierzehn von Hand geschriebene Katalogeinträge trugen rohe Zeilenumbrüche;
+    die .mo führte gekürzte Schlüssel, und die Absätze blieben auf Englisch deutsch — auf der
+    Willkommensseite, unter /rollen/, /regeln/, /gremien/fachliste/, /gremien/beschluesse/ und
+    auf der 404-Seite. Hier werden genau diese Seiten auf Englisch gerendert."""
+    en = {"HTTP_ACCEPT_LANGUAGE": "en"}
+    faelle = [
+        ("/", "The platform knows fourteen roles", "Die Plattform kennt vierzehn Rollen"),
+        (reverse("verfahren:rollen"), "The general meeting is this platform", "was die Software heute davon kann, steht hier daneben"),
+        (reverse("verfahren:rollen"), "This page is built from a versioned table", "Diese Seite entsteht aus einer versionierten Tabelle"),
+        (reverse("parameter:regeln"), "The statute permits automated systems", "Die Satzung erlaubt automatisierte Systeme"),
+        (reverse("parameter:regeln"), "This register is written by hand", "Dieses Verzeichnis ist von Hand geschrieben"),
+        (reverse("gremien:fachliste"), "drawn from this roster", "Aus dieser Liste wird der Expertenrat"),
+        (reverse("gremien:beschluesse"), "Every decision of a council appears here", "Jeder Beschluss eines Rates steht hier"),
+        ("/diese-seite-gibt-es-nicht/", "Perhaps the link is out of date", "Vielleicht ist der Verweis veraltet"),
+    ]
+    for pfad, englisch, deutsch in faelle:
+        inhalt = client.get(pfad, **en).content.decode()
+        assert englisch in inhalt, f"{pfad}: englischer Absatz fehlt ({englisch!r})"
+        assert deutsch not in inhalt, f"{pfad}: deutscher Absatz auf der englischen Seite ({deutsch!r})"
+
+
+def test_nachgetragene_texte_sind_kompiliert():
+    """Befunde #60, #61, #62, #63, #88: Texte, die mit `_()` oder `{% translate %}` markiert
+    waren und trotzdem keinen (passenden) Katalogeintrag hatten — der Schlüssel der
+    „Passt alles"-Zeile endete auf `%` statt `%%`, der Hilfetext der Gemeinde trug ein
+    Leerzeichen vor dem Punkt. Geprüft wird die kompilierte .mo, nicht die .po."""
+    from django.utils import translation
+    from django.utils.translation import gettext, ngettext
+
+    with translation.override("en"):
+        assert gettext("Das kann nur, wer eine aktive Rolle im Integritätsrat hat.").startswith("Only someone")
+        assert gettext("Stimme abgegeben — sie steht mit Ihrem Namen öffentlich.") == "Vote cast — it is public with your name."
+        assert gettext("Frist %(frist)s") == "Deadline %(frist)s"
+        assert gettext("%(a)s von %(n)s nötigen Stimmen") == "%(a)s of %(n)s votes needed"
+        assert gettext("%(wert)s %% der Frist verstrichen") == "%(wert)s %% of the deadline elapsed"
+        assert gettext("Sicherheitsaufgabe als Bild") == "Security task as an image"
+        assert gettext("Die Auslosung ansehen →") == "View the draw →"
+        assert gettext('„Passt alles": %(ja)s 👍 / %(nein)s 👎 = %(anteil)s %%').startswith('„Fine as it is"')
+        assert gettext('„Passt alles": %(ja)s 👍 / %(nein)s 👎 (%(anteil)s %%)').endswith("(%(anteil)s %%)")
+        assert gettext(
+            "Bitte aus dem amtlichen Gemeindeverzeichnis wählen — Bezirk und Bundesland "
+            "ordnen wir dann automatisch zu. Mit der ID Austria erfolgt das später amtlich."
+        ).startswith("Please pick from the official municipal register")
+        for deutsch, englisch in [("Eingebracht", "Submitted"), ("Fassung", "Version"), ("Prüfung", "Review"), ("Runde", "Round")]:
+            assert gettext(deutsch) == englisch
+        assert ngettext("Eine aktive Rolle", "%(n)s aktive Rollen", 3) == "%(n)s active roles"
+
+
+def test_fristring_und_gemeindehilfe_auf_englisch(client):
+    """Laufzeitprobe zu #61 und #63: das aria-label des Fristrings (in jeder Kachel mit Restfrist)
+    und der Hilfetext im Registrierungsformular kommen auf Englisch englisch an. Der Ring wird
+    direkt gerendert — entscheidend ist, dass Djangos Schlüssel `%(wert)s %% …` im Katalog steht."""
+    from django.template.loader import render_to_string
+    from django.utils import translation
+
+    with translation.override("en"):
+        svg = render_to_string("verfahren/_ring.html", {"wert": 42})
+    assert "der Frist verstrichen" not in svg
+    assert 'aria-label="42 % of the deadline elapsed"' in svg
+    inhalt = client.get(reverse("mitglieder:registrieren"), HTTP_ACCEPT_LANGUAGE="en").content.decode()
+    assert "Bitte aus dem amtlichen Gemeindeverzeichnis" not in inhalt
+    assert "Please pick from the official municipal register" in inhalt
+
+
+def test_markdown_export_auf_englisch_ist_nicht_gemischt(client, ordnung):  # noqa: F811
+    """Befund #88: Der Markdown-Export eines Antrags war halb englisch, halb deutsch — zwölf
+    Beschriftungen hatten keinen Katalogeintrag."""
+    from verfahren.models import antrag_einbringen
+
+    antrag = antrag_einbringen(mitglied_anlegen("exporttest"), **ANTRAG, ordnung=ordnung)
+    text = client.get(
+        reverse("verfahren:archiv_export", args=[antrag.pk, "md"]), HTTP_ACCEPT_LANGUAGE="en"
+    ).content.decode()
+    assert "Submitted:" in text and "## Version 1" in text
+    for deutsch in ("Eingebracht:", "Unterstützungen", "## Fassung", "Beiträge"):
+        assert deutsch not in text, f"deutsch im englischen Export: {deutsch}"

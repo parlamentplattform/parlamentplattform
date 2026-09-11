@@ -212,3 +212,54 @@ def test_export_macht_die_wahl_nachrechenbar(client, ordnung):  # noqa: F811
     assert daten["zustimmungen"] == [
         {"pseudonym": antrag.stimmregister.get(mitglied=autor).pseudonym.hex, "bewerbung": b.pk}
     ]
+
+
+def test_pruefskript_und_plattform_zaehlen_die_kandidatur_gleich(client, ordnung):  # noqa: F811
+    """§ 5 Abs 8: eigene_stimme.html schickt auch Kandidatur-Wähler zu verify/nachrechnen.py —
+    das Skript kannte nur Sachfragen und meldete für jede Personenwahl „angenommen: False“.
+    Mit dem echten Export von export_json (samt einer zurückgezogenen Bewerbung, der noch
+    eine Zustimmung anhängt) muss es dasselbe ergeben wie kandidatur_auszaehlen."""
+    from verfahren.test_views_aktionen import _nachrechnen_laden
+
+    autor = mitglied_anlegen("autor")
+    leute = [mitglied_anlegen(f"m{i}") for i in range(3)]
+    antrag = _kandidatur(ordnung, autor)
+    a = bewerbung_einreichen(antrag, leute[0], "A")
+    b = bewerbung_einreichen(antrag, leute[1], "B")
+    _in_abstimmung(antrag, leute)
+    bewerbung_zustimmen(antrag, autor, a)
+    bewerbung_zustimmen(antrag, leute[2], b)
+    b.zurueckgezogen = True  # Datenlage wie nach einem Rückzug: die Zustimmung zu B zählt nicht mehr
+    b.save(update_fields=["zurueckgezogen"])
+    antrag.phase_beginn = timezone.now() - timedelta(days=8)
+    antrag.save(update_fields=["phase_beginn"])
+
+    daten = client.get(reverse("verfahren:export", args=[antrag.pk])).json()
+    assert daten["art"] == "mandat" and daten["stimmen"] == []
+    skript = _nachrechnen_laden()(daten)
+    kern = antrag.kandidatur_auszaehlen()
+    assert skript["gewaehlt"] == kern.gewonnen_id == a.pk
+    assert skript["beteiligung"] == kern.beteiligung == 1
+    assert skript["angenommen"] is kern.angenommen is True
+    assert [(p["bewerbung"], p["zustimmungen"]) for p in skript["plaetze"]] == [
+        (p.bewerbung_id, p.stimmen) for p in kern.plaetze
+    ] == [(a.pk, 1)]
+
+
+def test_rueckzug_waehrend_der_abstimmung_ist_gesperrt(client, ordnung):  # noqa: F811
+    """Wie das Bewerben endet auch der Rückzug mit dem Abstimmungsbeginn (§ 7 Abs 1): Ein Rückzug
+    während der Wahl nähme den Zustimmungen ihre Bewerbung und damit den Wählern ihre Beteiligung —
+    eine Wahl ließe sich gezielt unter die Mindestbeteiligung drücken. Der Knopf ist in dieser Phase
+    nicht sichtbar; der Endpoint muss den POST trotzdem abweisen."""
+    autor, anna, bernd = mitglied_anlegen("autor"), mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _kandidatur(ordnung, autor)
+    b = bewerbung_einreichen(antrag, anna, "Ich trete an.")
+    _in_abstimmung(antrag, [anna, bernd])
+    bewerbung_zustimmen(antrag, bernd, b)
+
+    client.force_login(anna)
+    antwort = client.post(reverse("verfahren:bewerbung_zurueckziehen", args=[antrag.pk]), follow=True)
+    assert "nur bis zum Beginn der Abstimmung" in antwort.content.decode()
+    b.refresh_from_db()
+    assert not b.zurueckgezogen
+    assert antrag.kandidatur_auszaehlen().beteiligung == 1  # die Zustimmung zählt weiter

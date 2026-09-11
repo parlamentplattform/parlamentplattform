@@ -16,10 +16,12 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from mitglieder.models import Mitglied
+from parameter.kennzahlen import abgegeben_je_antrag
+from parameter.models import zahl
 from plattform_core import Phase
 from plattform_core.diagramme import BLAU, GOLD, ROT, anteils_balken, balken_diagramm, linien_diagramm
 from uebersicht.models import AntragAufruf, TagesBesucher, TagesZahl
-from verfahren.models import Antrag
+from verfahren.models import Antrag, Antragsart, Stimmabgabe
 
 OFFEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 ENTSCHIEDEN = [Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value]
@@ -68,39 +70,81 @@ def _besuche_je_tag(heute, tage: int = 30) -> list[tuple[str, float]]:
     ]
 
 
-def _abstimmungen() -> list[dict]:
-    """Je Abstimmung: Summen, Beteiligung und ein 100-%-Balken — laufende zuerst."""
+def _abstimmungen() -> tuple[list[dict], int]:
+    """Je Abstimmung eine Zeile — laufende zuerst, dann die jüngsten entschiedenen.
+
+    Laufende Abstimmungen zeigen NUR die Beteiligung: Die Tendenz bleibt bis zum Fristende
+    verdeckt (F-15, § 5 Abs 3 lit e) — wie auf der Kachel, der Antragsseite und im Export;
+    diese öffentliche Seite darf den Bandwagon-Schutz nicht als vierte Stelle aushebeln.
+    Ergebnisse erscheinen erst für entschiedene Anträge, und zwar begrenzt auf einen
+    Registerwert: Entschiedenes verschwindet nie (Grundregel 7), die Seite muss also selbst
+    eine Grenze ziehen. Die Stimmen aller gezeigten Anträge kommen aus je einer Abfrage,
+    nicht aus einer je Antrag. Rückgabe: (Zeilen, Zahl der nicht gezeigten Entscheidungen).
+    """
+    laufende = list(Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value).order_by("-phase_beginn"))
+    hoechstzahl = max(1, zahl("uebersicht-abstimmungen", 20))
+    entschiedene_alle = Antrag.objects.filter(phase__in=ENTSCHIEDEN).order_by("-phase_beginn")
+    entschiedene = list(entschiedene_alle[:hoechstzahl])
+    weitere = max(0, entschiedene_alle.count() - len(entschiedene))
+
+    abgegeben = abgegeben_je_antrag(laufende + entschiedene)
+    stimmen: dict[int, dict[str, int]] = {}
+    sach_entschieden = [a.pk for a in entschiedene if a.art != Antragsart.MANDAT]
+    if sach_entschieden:
+        for antrag_id, stimme, n in (
+            Stimmabgabe.objects.filter(antrag__in=sach_entschieden)
+            .values_list("antrag_id", "stimme")
+            .annotate(n=Count("id"))
+        ):
+            stimmen.setdefault(antrag_id, {})[stimme] = n
+
     zeilen = []
-    for a in Antrag.objects.filter(phase__in=[Phase.ABSTIMMUNG.value, *ENTSCHIEDEN]).order_by(
-        "-phase_beginn"
-    ):
-        stimmen = dict(a.stimmabgaben.values_list("stimme").annotate(n=Count("id")))
-        ja, nein, enthaltung = stimmen.get("ja", 0), stimmen.get("nein", 0), stimmen.get("enthaltung", 0)
-        abgegeben = ja + nein + enthaltung
-        beteiligung = (
-            round(100 * abgegeben / a.stimmberechtigte_anzahl) if a.stimmberechtigte_anzahl else None
-        )
-        zeilen.append(
-            {
-                "antrag": a,
-                "ja": ja,
-                "nein": nein,
-                "enthaltung": enthaltung,
-                "abgegeben": abgegeben,
-                "beteiligung": beteiligung,
-                "laeuft": a.phase == Phase.ABSTIMMUNG.value,
-                "balken": anteils_balken(
+    for a in laufende + entschiedene:
+        n = abgegeben.get(a.pk, 0)
+        beteiligung = round(100 * n / a.stimmberechtigte_anzahl) if a.stimmberechtigte_anzahl else None
+        zeile = {
+            "antrag": a,
+            "abgegeben": n,
+            "beteiligung": beteiligung,
+            "prozent": min(100, beteiligung or 0),
+            "laeuft": a.phase == Phase.ABSTIMMUNG.value,
+            "personenwahl": a.art == Antragsart.MANDAT,
+            "ja": None,
+            "nein": None,
+            "enthaltung": None,
+            "balken": "",
+            "gewaehlt": None,
+        }
+        if zeile["laeuft"]:
+            pass  # Tendenz verdeckt: keine Summen je Stimmwert, kein Ergebnisbalken
+        elif zeile["personenwahl"]:
+            wahl = a.kandidatur_auszaehlen()
+            if wahl.gewonnen_id is not None:
+                gewinner = a.bewerbungen.select_related("mitglied").filter(pk=wahl.gewonnen_id).first()
+                zeile["gewaehlt"] = {
+                    "name": gewinner.mitglied.anzeigename if gewinner else f"#{wahl.gewonnen_id}",
+                    "stimmen": wahl.plaetze[0].stimmen if wahl.plaetze else 0,
+                }
+        else:
+            s = stimmen.get(a.pk, {})
+            ja, nein, enthaltung = s.get("ja", 0), s.get("nein", 0), s.get("enthaltung", 0)
+            zeile.update(
+                ja=ja,
+                nein=nein,
+                enthaltung=enthaltung,
+                balken=anteils_balken(
                     [(_("Ja"), ja, BLAU), (_("Nein"), nein, ROT), (_("Enthaltung"), enthaltung, GOLD)],
                     _("Ergebnis zu „%(titel)s“: %(ja)s Ja, %(nein)s Nein, %(enthaltung)s Enthaltungen")
                     % {"titel": a.titel, "ja": ja, "nein": nein, "enthaltung": enthaltung},
                 ),
-            }
-        )
-    return zeilen
+            )
+        zeilen.append(zeile)
+    return zeilen, weitere
 
 
 def index(request):
     heute = timezone.localdate()
+    abstimmungen, weitere = _abstimmungen()
     je_phase = dict(Antrag.objects.values_list("phase").annotate(n=Count("id")))
     woche_start = heute - timedelta(days=6)
 
@@ -123,7 +167,8 @@ def index(request):
             (_("abgelehnt"), je_phase.get(Phase.ABGELEHNT.value, 0)),
         ],
         "neu_diese_woche": Antrag.objects.filter(eingebracht_am__date__gte=woche_start).count(),
-        "abstimmungen": _abstimmungen(),
+        "abstimmungen": abstimmungen,
+        "abstimmungen_weitere": weitere,
         "aufrufe_heute": (TagesZahl.objects.filter(datum=heute).values_list("aufrufe", flat=True).first())
         or 0,
         "besucher_heute": TagesBesucher.objects.filter(datum=heute).count(),

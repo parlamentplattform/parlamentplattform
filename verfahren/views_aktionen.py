@@ -496,12 +496,18 @@ def filter_anwenden(request):
 @require_POST
 def beanstanden(request, pk):
     """FB-F2 (§ 6 Abs 11 lit b): eine Einschätzung der Zukunftswerkstatt beanstanden.
-    Der Vermerk ist öffentlich und bleibt stehen; er ist zugleich die Anforderung eines
-    Korrekturlaufs. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest."""
+    Der Vermerk ist öffentlich und bleibt stehen. Er ist als Anforderung eines Korrekturlaufs
+    gedacht — den Korrekturlauf selbst gibt es noch nicht (S11), darum verspricht ihn kein
+    Text. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest.
+    Wie jede Mitwirkung mit Namen im Arbeitsbereich: nur bestätigte, aktive Mitglieder (§ 4,
+    F-51) — sonst könnte ein ungeprüftes Konto unbegrenzt öffentliche Texte absetzen."""
     from ki.models import KILauf
     from verfahren.models import AuditEintrag, Beanstandung
 
     antrag = get_object_or_404(Antrag, pk=pk)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
     text = (request.POST.get("text") or "").strip()[:2000]
     if not text:
         messages.error(request, _("Bitte beschreiben Sie, was an der Einschätzung falsch ist."))
@@ -518,7 +524,10 @@ def beanstanden(request, pk):
     )
     messages.success(
         request,
-        _("Ihre Beanstandung ist öffentlich vermerkt — die Zukunftswerkstatt rechnet den Punkt nach."),
+        _(
+            "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Ein Korrekturlauf der "
+            "Zukunftswerkstatt ist noch nicht gebaut."
+        ),
     )
     return _zurueck_zum_antrag(request, antrag)
 
@@ -649,8 +658,17 @@ def bewerben(request, pk):
 @login_required
 @require_POST
 def bewerbung_zurueckziehen(request, pk):
-    """Der Rückzug bleibt dokumentiert; die Bewerbung zählt nicht mehr."""
+    """Der Rückzug bleibt dokumentiert; die Bewerbung zählt nicht mehr.
+
+    Möglich nur bis zum Abstimmungsbeginn — wie das Bewerben (§ 7 Abs 1). Ein Rückzug
+    während der Wahl nähme den Zustimmungen ihre Bewerbung: `kandidatur_auszaehlen` zählt
+    Beteiligung nur aus verbliebenen Zustimmungen, eine Wahl ließe sich so gezielt unter die
+    Mindestbeteiligung drücken, ohne dass die Wähler es erfahren."""
     antrag = get_object_or_404(Antrag, pk=pk)
+    antrag.fortschreiben()
+    if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
+        messages.error(request, _("Ein Rückzug ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."))
+        return redirect("verfahren:antrag", pk=pk)
     bewerbung = antrag.bewerbungen.filter(mitglied=request.user, zurueckgezogen=False).first()
     if bewerbung:
         bewerbung.zurueckgezogen = True

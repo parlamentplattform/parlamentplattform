@@ -155,3 +155,12 @@ def test_beendetes_mandat_verschwindet_aus_der_liste_bleibt_aber_abrufbar(client
 def test_navigation_fuehrt_zu_den_mandataren(client):
     inhalt = client.get("/").content.decode()
     assert 'href="/mandatare/"' in inhalt
+
+
+def test_ohne_laufende_kandidatur_behauptet_die_seite_keine_wahl(client):
+    """Ohne Mandat und ohne laufende Kandidatur standen „die Wahl läuft bereits" und „derzeit läuft
+    keine Kandidatur" im selben Kasten — die Seite sagt jetzt nur, was stimmt."""
+    inhalt = client.get(reverse("mandatare:liste")).content.decode()
+    assert "kein öffentliches Mandat" in inhalt
+    assert "läuft bereits" not in inhalt
+    assert "derzeit läuft keine Kandidatur" in inhalt and "kann eine einbringen" in inhalt

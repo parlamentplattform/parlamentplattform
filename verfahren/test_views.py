@@ -236,3 +236,40 @@ def test_suchtreffer_und_abgeschlossene_folgen_dem_register(client, ordnung):  #
     _register("kacheln-abgeschlossen", 1)
     feld = client.get("/parlament/").content.decode().split('id="feld-filter"')[1].split('id="feld-favoriten"')[0]
     assert feld.count("Erledigt ") == 1
+
+
+# ── Audit-Spur, Sprachwechsel, Startseite (Befund #41, #83, #86) ─────────────
+
+
+def test_audit_spur_wird_in_der_datenbank_gefiltert(client, ordnung):  # noqa: F811
+    """`audit_spur` iterierte das gesamte Audit-Log ohne WHERE und siebte in Python — jeder
+    Antragsaufruf zog die Stimm-Ereignisse aller anderen Anträge mit (Befund #41)."""
+    from verfahren.models import AuditEintrag
+
+    anna = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    for i in range(30):
+        AuditEintrag.anhaengen({"typ": "fremd", "antrag": antrag.pk + 1000 + i})
+    _n, sql = _abfragen(client, reverse("verfahren:antrag", args=[antrag.pk]))
+    audit = [q for q in sql if '"verfahren_auditeintrag"' in q and "SELECT" in q]
+    assert audit, "die Spur wird geladen"
+    assert all("WHERE" in q for q in audit), audit
+    assert [q for q in sql if "archiv-audit-anzeige" in q].__len__() == 1, "der Registerwert wird einmal gelesen"
+
+
+def test_sprachwechsel_behaelt_die_abfrageparameter(client):
+    """Das `next`-Feld trug `request.path`: Fächer-Ast, Suche und Filter gingen beim Wechsel
+    verloren (Befund #83)."""
+    inhalt = client.get("/parlament/?fach=bildung&suche=kind").content.decode()
+    assert 'name="next" value="/parlament/?fach=bildung&amp;suche=kind"' in inhalt
+    antwort = client.post(reverse("set_language"), {"language": "en", "next": "/parlament/?fach=bildung&suche=kind"})
+    assert antwort.status_code == 302 and antwort["Location"] == "/parlament/?fach=bildung&suche=kind"
+
+
+def test_startseite_nennt_die_rundenzahl_aus_dem_register(client):
+    """Das Diagramm sagte fest „höchstens 3 Runden“, obwohl `fristen.runden` den Registerwert
+    lieferte — nach einer Änderung im Register log die erste Seite (Befund #86)."""
+    _register("gremien-hoechstrunden", 2)
+    inhalt = client.get("/").content.decode()
+    assert "höchstens 2 Runden" in inhalt
+    assert "höchstens 3 Runden" not in inhalt

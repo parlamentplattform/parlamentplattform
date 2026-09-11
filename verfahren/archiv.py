@@ -167,10 +167,10 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     Ohne `grenze` kommt die **vollständige** Spur — so muss es für den Export sein (FB-G7,
     Grundregel 7). Die Seite reicht `AUDIT_ANZEIGE` herein, weil eine Zeitleiste mit
     zweihundert Zeilen niemandem hilft; dass gekürzt wurde, sagt sie dann auch dazu."""
+    # Der Filter läuft in der Datenbank (Befund #41): Vorher zog jeder Antragsaufruf das gesamte
+    # Audit-Log — jede Stimme, jede Unterstützung plattformweit — und siebte es in Python.
     spur = []
-    for eintrag in AuditEintrag.objects.order_by("lfd"):
-        if eintrag.ereignis.get("antrag") != antrag.pk:
-            continue
+    for eintrag in AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).order_by("lfd"):
         spur.append(
             {
                 "lfd": eintrag.lfd,

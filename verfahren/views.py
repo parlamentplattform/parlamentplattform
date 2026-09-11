@@ -743,19 +743,24 @@ def _einschaetzung(antrag):
 def gespraeche(request):
     """Meine Gespräche (FB-G3): dieselbe Liste, die das Panel zeigt — als eigene Seite, damit
     sie auch ohne JavaScript erreichbar ist. Mit htmx antwortet nur die Liste."""
+    from parameter.models import zahl
     from verfahren.chat import gespraeche as gespraeche_laden
 
-    zeilen = gespraeche_laden(request.user)
+    # Einmal laden (Befund #79): Der Zähler zählt über alle Gespräche, die Liste zeigt die ersten
+    # n aus dem Register; der Kontextprozessor am Griff nimmt denselben Zähler statt neu zu laden.
+    alle = gespraeche_laden(request.user, grenze=None)
+    ungelesen = sum(1 for z in alle if z["ungelesen"])
+    request._gespraeche_ungelesen = ungelesen
     nur_ungelesen = request.GET.get("filter") == "ungelesen"
-    if nur_ungelesen:
-        zeilen = [z for z in zeilen if z["ungelesen"]]
+    zeilen = [z for z in alle if z["ungelesen"]] if nur_ungelesen else alle
+    zeilen = zeilen[: zahl("gespraeche-liste-hoechstzahl", 30)]
     vorlage = "verfahren/_gespraeche_liste.html" if request.headers.get("HX-Request") else "verfahren/gespraeche.html"
     return render(
         request,
         vorlage,
         {
             "gespraeche": zeilen,
-            "ungelesen": sum(1 for z in gespraeche_laden(request.user) if z["ungelesen"]),
+            "ungelesen": ungelesen,
             "nur_ungelesen": nur_ungelesen,
         },
     )
@@ -844,12 +849,13 @@ def _archiv_lage(antrag) -> dict:
     from verfahren import archiv as archivkern
 
     alle = archivkern.audit_spur(antrag)
+    anzeige = archivkern.audit_anzeige()  # einmal lesen, nicht zweimal (Befund #41)
     return {
         "zeitleiste": archivkern.zeitleiste(antrag),
         "entwurf": archivkern.entwurf_bloecke(antrag),
-        "audit": alle[-archivkern.audit_anzeige() :],
+        "audit": alle[-anzeige:],
         "audit_gesamt": len(alle),
-        "audit_gekuerzt": len(alle) > archivkern.audit_anzeige(),
+        "audit_gekuerzt": len(alle) > anzeige,
     }
 
 def archiv_export(request, pk, art):

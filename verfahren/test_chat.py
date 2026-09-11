@@ -377,3 +377,21 @@ def test_der_zaehler_am_griff_zaehlt_alle_gespraeche(ordnung):  # noqa: F811
     assert len(chatkern.gespraeche(ich)) == 30, "die Liste im Panel bleibt gekürzt"
     assert len(chatkern.gespraeche(ich, grenze=None)) == 35, "ohne Grenze kommen alle"
     assert chatkern.ungelesene_gespraeche(ich) == 35, "der Zähler übergeht keines"
+
+
+def test_gespraechsseite_laedt_die_gespraeche_nur_einmal(client, ordnung):  # noqa: F811
+    """Die Ansicht rief `gespraeche()` zweimal (Zeilen und Zähler) und der Kontextprozessor am
+    Griff ein drittes Mal — dieselbe unbegrenzte Liste dreimal je Anfrage (Befund #79)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    wurzel = chatkern.beitrag_schreiben(antrag, anna, "Mein Beitrag.")
+    chatkern.beitrag_schreiben(antrag, bernd, "Antwort.", wurzel)
+    client.force_login(anna)
+    with CaptureQueriesContext(connection) as ctx:
+        seite = client.get(reverse("verfahren:gespraeche")).content.decode()
+    antworten = [q["sql"] for q in ctx.captured_queries if '"verfahren_kommentar"."antwort_auf_id" IS NOT NULL' in q["sql"]]
+    assert len(antworten) == 1, antworten
+    assert 'class="g-zaehler">1<' in seite and "Ungelesen · 1" in seite, "Griff und Filter zeigen denselben Zähler"

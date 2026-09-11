@@ -11,6 +11,10 @@ def gespraeche(request) -> dict:
     nutzer = getattr(request, "user", None)
     if nutzer is None or not nutzer.is_authenticated:
         return {"gespraeche_ungelesen": 0}
+    # Hat die Ansicht die Gespräche schon geladen, zählt sie nicht noch einmal (Befund #79)
+    gepuffert = getattr(request, "_gespraeche_ungelesen", None)
+    if gepuffert is not None:
+        return {"gespraeche_ungelesen": gepuffert}
     from verfahren.chat import ungelesene_gespraeche
 
     return {"gespraeche_ungelesen": ungelesene_gespraeche(nutzer)}

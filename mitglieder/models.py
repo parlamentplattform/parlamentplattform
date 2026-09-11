@@ -393,6 +393,30 @@ class Adresswechsel(models.Model):
         return anzahl
 
 
+class Drosselzaehler(models.Model):
+    """Versuche je Verbindung, Zweck und Stunde (F-49, Befunde #19/#66).
+
+    In der Datenbank statt im prozesslokalen Cache: Zwei gunicorn-Worker führen sonst
+    zwei Eimer, und ein Neustart setzt den Stand auf null. Keine Verfahrensdaten —
+    Zeilen älter als zwei Stunden räumt `drossel_zuviel` im Vorbeigehen ab. Die
+    Kennung ist die Verbindungsadresse; gespeichert wird sie nur für diese Stunde."""
+
+    zweck = models.CharField(max_length=30)
+    kennung = models.CharField(max_length=64)
+    stunde = models.IntegerField(help_text="Unix-Zeit geteilt durch 3600.")
+    anzahl = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Drosselzähler"
+        verbose_name_plural = "Drosselzähler"
+        constraints = [
+            models.UniqueConstraint(fields=["zweck", "kennung", "stunde"], name="drossel_je_zweck_kennung_stunde")
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.zweck}: {self.anzahl} in Stunde {self.stunde}"
+
+
 class Gemeinde(models.Model):
     """Amtliches Gemeindeverzeichnis (Statistik Austria, Gebietsstand 2026).
 

@@ -25,7 +25,7 @@ def _stammdaten(db):
 
 
 def test_bestaetigungslink_fuehrt_in_die_einfuehrung(client):
-    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz()})
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
     link = re.search(r"http://testserver(/\S+)", mail.outbox[0].body).group(1)
     antwort = client.get(link, follow=True)
     assert antwort.request["PATH_INFO"] == reverse("mitglieder:einfuehrung", args=[1])

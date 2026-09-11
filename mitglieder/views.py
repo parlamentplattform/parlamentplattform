@@ -108,7 +108,7 @@ class LoginFormular(BotschutzMixin, forms.Form):
 
 def registrieren(request):
     if request.method == "POST":
-        form = RegistrierungsFormular(request.POST)
+        form = RegistrierungsFormular(request.POST, request=request)
         if drossel_zuviel(request, "registrierung", limit=5):
             form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
         elif form.is_valid():
@@ -158,7 +158,7 @@ def registrieren(request):
                     {"zweck": _("Bestätigung"), "email": d["email"]},
                 )
     else:
-        form = RegistrierungsFormular()
+        form = RegistrierungsFormular(request=request)
     gemeinden = [f"{name} ({bezirk})" for name, bezirk in Gemeinde.objects.values_list("name", "bezirk")]
     return render(request, "mitglieder/registrieren.html", {"form": form, "gemeinden": gemeinden})
 
@@ -231,7 +231,7 @@ def willkommen(request):
 
 def login_anfordern(request):
     if request.method == "POST":
-        form = LoginFormular(request.POST)
+        form = LoginFormular(request.POST, request=request)
         if drossel_zuviel(request, "anmeldelink", limit=10):
             form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
         elif form.is_valid():
@@ -263,7 +263,7 @@ def login_anfordern(request):
             # (keine Adress-Enumeration).
             return render(request, "mitglieder/mail_gesendet.html", {"zweck": _("Anmeldung"), "email": email})
     else:
-        form = LoginFormular()
+        form = LoginFormular(request=request)
     return render(request, "mitglieder/login.html", {"form": form})
 
 

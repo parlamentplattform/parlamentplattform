@@ -230,7 +230,7 @@ def test_waehrend_der_frist_gehen_keine_anmeldelinks_an_die_neue_adresse(client)
     from mitglieder.test_views import botschutz
 
     client.logout()
-    client.post(reverse("mitglieder:login"), {"email": "anna.neu@example.org", **botschutz()})
+    client.post(reverse("mitglieder:login"), {"email": "anna.neu@example.org", **botschutz(client)})
     assert mail.outbox == []  # die neue Adresse ist (noch) niemandes Anmeldeadresse
 
 

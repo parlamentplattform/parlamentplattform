@@ -146,6 +146,25 @@ def test_ein_unterbesetzter_rat_hebt_nichts_hervor(client, ordnung):  # noqa: F8
     assert "nicht satzungsgemäß besetzt" in beschluss.umsetzungsvermerk
 
 
+def test_zwei_menschen_mit_drei_rollen_sind_kein_rat(client, ordnung):  # noqa: F811
+    """Befund #38: Der Nenner zählte Rollenzeilen. Zwei Personen mit drei Zeilen galten als
+    satzungsgemäß besetzt (§ 6 Abs 3 lit a: drei bis sieben) — und hoben Anträge hervor."""
+    from gremien.models import _integritaetsrat_beschlussfaehig, standard_ende
+
+    leute = rat(2)
+    Rolle.objects.create(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT, endet_am=standard_ende(), bestaetigt=True)
+    assert Rolle.aktive(Gremium.INTEGRITAETSRAT).count() == 3
+    assert Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT)) == 2
+    antrag = antrag_anlegen(ordnung)
+    beschluss = beschluss_fassen(client, leute, antrag, Anlass.HERVORHEBUNG)
+    assert _integritaetsrat_beschlussfaehig(beschluss) is False
+    assert beschluss.aktive_rollen() == 2 and beschluss.auswertung().noetig == 1
+    antrag.refresh_from_db()
+    assert antrag.hervorgehoben is False and "nicht satzungsgemäß besetzt" in beschluss.umsetzungsvermerk
+    client.force_login(leute[0])
+    assert client.get(reverse("gremien:integritaet")).context["aktive"] == 2
+
+
 def test_die_hervorhebung_laesst_sich_wieder_aufheben(client, ordnung):  # noqa: F811
     leute = rat()
     antrag = antrag_anlegen(ordnung)

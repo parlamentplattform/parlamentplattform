@@ -293,6 +293,27 @@ def test_die_ziehung_steht_oeffentlich_zum_nachrechnen(client, ordnung):  # noqa
     assert "Anker|Schlüssel" in inhalt or "Anker|Schl" in inhalt
 
 
+def test_die_auslosungsseite_laedt_nur_die_gezogenen_namen(client, ordnung):  # noqa: F811
+    """Befund #80: Die Seite lud die ganze Fachliste zweimal (einmal wirkungslos) und einen
+    Rollen-Prefetch ohne Verwendung — bei 2.000 Fachleuten 4.000 Zeilen für sechs Namen."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    fachliste_fuellen(6)
+    antrag = antrag_in_beratung(ordnung)
+    a = Auslosung.objects.get(antrag=antrag)
+    with CaptureQueriesContext(connection) as klein:
+        inhalt = client.get(reverse("gremien:auslosung", args=[antrag.pk])).content.decode()
+    for platz in a.plaetze:
+        assert Fachliste.objects.get(schluessel=platz["schluessel"]).anzeigename in inhalt
+    fachliste_fuellen(30)
+    with CaptureQueriesContext(connection) as gross:
+        client.get(reverse("gremien:auslosung", args=[antrag.pk]))
+    assert len(gross) == len(klein), f"{len(klein)} → {len(gross)} Abfragen"
+    geladen = [q["sql"] for q in gross.captured_queries if "gremien_fachliste" in q["sql"]]
+    assert geladen and all("IN (" in sql for sql in geladen), "nur die gezogenen Schlüssel"
+
+
 def test_ohne_ziehung_sagt_die_seite_das_auch(client, ordnung):  # noqa: F811
     antrag = antrag_in_beratung(ordnung)
     inhalt = client.get(reverse("gremien:auslosung", args=[antrag.pk])).content.decode()

@@ -49,8 +49,11 @@ from gremien.models import (
     beschluss_frist,
     gruppe_2_nachziehen,
     parametertests_fortschreiben,
+    quoren_fuer,
     standard_ende,
     unvereinbar,
+    unvereinbar_fuer,
+    unvereinbarkeiten_laden,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import Zweck, lauf_ausfuehren
@@ -216,10 +219,11 @@ def fachliste(request):
         .prefetch_related("fachgebiete")
         .order_by("gestrichen_am", "schluessel")
     )
+    im_integritaetsrat, mit_mandat = unvereinbarkeiten_laden()  # zwei Abfragen für alle (Befund #44)
     zeilen = [
         {
             "eintrag": e,
-            "unvereinbar": unvereinbar(e.mitglied) if e.gefuehrt else "",
+            "unvereinbar": unvereinbar_fuer(e.mitglied_id, im_integritaetsrat, mit_mandat) if e.gefuehrt else "",
             "fachgebiete": list(e.fachgebiete.all()),
         }
         for e in eintraege
@@ -242,14 +246,14 @@ def auslosung(request, antrag_id: int):
     ausgesucht wurden, braucht den Anker, den Lostopf und die Loswerte — sonst ist
     „Zufallsverfahren" eine Behauptung."""
     antrag = get_object_or_404(Antrag, pk=antrag_id)
-    ziehungen = list(
-        Auslosung.objects.filter(antrag=antrag).prefetch_related("rollen__mitglied").order_by("runde")
-    )
-    namen = dict(
-        Fachliste.objects.select_related("mitglied").values_list("schluessel", "mitglied__username")
-    )
-    for eintrag in Fachliste.objects.select_related("mitglied"):
-        namen[eintrag.schluessel] = eintrag.anzeigename
+    ziehungen = list(Auslosung.objects.filter(antrag=antrag).order_by("runde"))
+    # Nur die Namen der gezogenen Plätze — der Lostopf steht ohnehin als Schlüsselliste am
+    # Datensatz; die ganze Fachliste zu laden wuchs mit jeder eingetragenen Person (Befund #80).
+    gesucht = {p["schluessel"] for a in ziehungen for p in a.plaetze}
+    namen = {
+        e.schluessel: e.anzeigename
+        for e in Fachliste.objects.filter(schluessel__in=gesucht).select_related("mitglied")
+    }
     zeilen = [
         {
             "auslosung": a,
@@ -267,11 +271,7 @@ def auslosung(request, antrag_id: int):
         }
         for a in ziehungen
     ]
-    return render(
-        request,
-        "gremien/auslosung.html",
-        {"antrag": antrag, "zeilen": zeilen, "namen": namen},
-    )
+    return render(request, "gremien/auslosung.html", {"antrag": antrag, "zeilen": zeilen})
 
 @nur_gremium(Gremium.EXPERTENRAT_1)
 def expertenrat(request):
@@ -417,6 +417,11 @@ def fenster_aktion(request, antrag_id: int):
 
     if entwurf is None:
         raise Http404("Kein Entwurfsfenster.")
+    if antrag.phase != Phase.BERATUNG.value:
+        # Jede schreibende Handlung endet mit der Beratung (Befund #34): Danach wertet niemand
+        # die Schleife mehr aus, und ein Einreichen archivierte den Chat der laufenden Abstimmung.
+        messages.error(request, _("Der Antrag ist nicht (mehr) in der Beratung."))
+        return redirect("gremien:fenster", antrag_id=antrag.pk)
     if entwurf.status != EntwurfsStatus.IN_ARBEIT:
         messages.error(request, _("Der Vorschlag ist eingereicht — die Werkstatt ruht, bis er zurückkommt."))
         return redirect("gremien:fenster", antrag_id=antrag.pk)
@@ -506,9 +511,7 @@ def fenster_aktion(request, antrag_id: int):
                 messages.info(request, _("Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost."))
 
     elif aktion == "einreichung":
-        if antrag.phase != Phase.BERATUNG.value:
-            messages.error(request, _("Der Antrag ist nicht (mehr) in der Beratung."))
-        elif entwurf.einreichungsbeschluss() is not None:
+        if entwurf.einreichungsbeschluss() is not None:
             messages.info(request, _("Über die Einreichung wird bereits abgestimmt."))
         else:
             beschluss = entwurf.einreichungsbeschluss_anlegen(request.user)
@@ -600,6 +603,16 @@ def rollen_aktion(request):
             # § 6 Abs 3 lit a — geprüft bei der Vergabe, nicht erst beim Losen: Eine Rolle,
             # die es nicht geben darf, soll gar nicht erst entstehen.
             messages.error(request, f"Nicht berufen — {grund}.")
+            return redirect("gremien:rollen")
+        if Rolle.aktive(d["gremium"]).filter(mitglied=d["mitglied"], antrag__isnull=True).exists():
+            # Nur parteiweite Rollen: Wer für einen Antrag gelost ist, darf trotzdem parteiweit
+            # berufen werden. Eine zweite parteiweite Rolle derselben Person (Doppelklick,
+            # Verlängerung vor Ablauf) zählte im Quorum doppelt (Befund #38).
+            messages.error(
+                request,
+                f"Nicht berufen — {d['mitglied'].anzeigename} hat in diesem Gremium schon eine aktive "
+                "Rolle; erst beenden, dann neu berufen.",
+            )
             return redirect("gremien:rollen")
         rolle = Rolle.objects.create(
             mitglied=d["mitglied"],
@@ -709,22 +722,25 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
     GremienBeschluss.faellige_abschliessen()
     offene = list(
         GremienBeschluss.objects.filter(gremium=gremium, status=BeschlussStatus.OFFEN)
+        .select_related("antrag")
         .prefetch_related("stimmen__mitglied")
         .order_by("frist", "angelegt_am")
     )
     erledigte = list(
         GremienBeschluss.objects.filter(gremium=gremium)
         .exclude(status=BeschlussStatus.OFFEN)
+        .select_related("antrag")
         .prefetch_related("stimmen__mitglied")
         .order_by("-entschieden_am")[:grenze]
     )
+    quoren = quoren_fuer(offene + erledigte)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
     zeilen = []
     for beschluss in offene + erledigte:
         stimmen = list(beschluss.stimmen.all())
         zeilen.append(
             {
                 "beschluss": beschluss,
-                "auswertung": beschluss.auswertung(),
+                "auswertung": beschluss.auswertung(aktive=quoren[beschluss.pk]),
                 "stimmen": stimmen,
                 "meine_stimme": next(
                     (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
@@ -742,19 +758,23 @@ def beschluesse_oeffentlich(request):
     Zeit; eine andere Reihung gibt es nicht und soll es nicht geben (Grundregel 6)."""
     GremienBeschluss.faellige_abschliessen()
     gewaehlt = request.GET.get("gremium", "")
-    beschluesse = GremienBeschluss.objects.prefetch_related("stimmen__mitglied").order_by(
-        "-angelegt_am"
+    beschluesse = (
+        GremienBeschluss.objects.select_related("antrag")
+        .prefetch_related("stimmen__mitglied")
+        .order_by("-angelegt_am")
     )
     if gewaehlt in Gremium.values:
         beschluesse = beschluesse.filter(gremium=gewaehlt)
+    seite = list(beschluesse[: _register("gremien-beschluesse-seite", 50)])
+    quoren = quoren_fuer(seite)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
     zeilen = [
         {
             "beschluss": b,
-            "auswertung": b.auswertung(),
+            "auswertung": b.auswertung(aktive=quoren[b.pk]),
             "stimmen": list(b.stimmen.all()),
             "meine_stimme": None,
         }
-        for b in beschluesse[: _register("gremien-beschluesse-seite", 50)]
+        for b in seite
     ]
     return render(
         request,
@@ -1019,7 +1039,7 @@ def integritaet(request):
     (§ 5 Abs 10 lit b) und über seine Zurückweisung (§ 5 Abs 2). Beides geschieht ausschließlich
     durch veröffentlichten, begründeten Beschluss — deshalb hat dieser Bereich keine Knöpfe, die
     unmittelbar wirken, sondern nur solche, die einen Beschluss anlegen."""
-    aktive = Rolle.aktive(Gremium.INTEGRITAETSRAT).count()
+    aktive = Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT))  # Menschen, nicht Zeilen (Befund #38)
     hervorgehoben = list(
         Antrag.objects.filter(hervorgehoben=True).order_by("-phase_beginn")[:20]
     )
@@ -1278,7 +1298,7 @@ def koordination(request):
             "darf_stimmen": Rolle.hat(request.user, Gremium.KOORDINATIONSRAT),
             "darf_schreiben": Rolle.hat(request.user, Gremium.KOORDINATIONSRAT),
             "ratsmitglieder": [r.mitglied for r in Rolle.aktive(Gremium.KOORDINATIONSRAT).select_related("mitglied")],
-            "aktive": Rolle.aktive(Gremium.KOORDINATIONSRAT).count(),
+            "aktive": Rolle.personen(Rolle.aktive(Gremium.KOORDINATIONSRAT)),
             "offene": offene,
             "entschiedene": entschiedene,
             "ueberlastungen": ueberlastungen,

@@ -109,6 +109,15 @@ class Rolle(models.Model):
             gremium=gremium, beendet_grund="", endet_am__gte=timezone.localdate()
         )
 
+    @staticmethod
+    def personen(rollen) -> int:
+        """Wie viele MENSCHEN hinter einer Rollenmenge stehen — der Nenner jedes Quorums.
+
+        Rollen sind nicht eindeutig je Person; eine Doppelberufung (Doppelklick, Verlängerung vor
+        Ablauf) zählte sonst zweimal im Nenner, obwohl die Person nur einmal stimmen kann — ein
+        Rat aus zwei Menschen mit drei Zeilen wäre beschlussfähig gewesen (Befund #38)."""
+        return rollen.values("mitglied").distinct().count()
+
     @classmethod
     def hat(cls, mitglied, *gremien: str) -> bool:
         """Ob jemand in einem dieser Gremien überhaupt eine aktive Rolle hat.
@@ -284,10 +293,26 @@ class Entwurf(models.Model):
 
     # ── Übergabe-Handlungen ──────────────────────────────────────────────────
 
-    def einreichen(self, jetzt=None) -> None:
+    def einreichen(self, jetzt=None) -> bool:
         """Gruppe 1 reicht den Vorschlag ein: mit Vollzugsbezug zuerst zur
-        Prüfung der Gruppe 2, sonst direkt an die Unterstützer (§ 5 Abs 12)."""
+        Prüfung der Gruppe 2, sonst direkt an die Unterstützer (§ 5 Abs 12).
+
+        Nur während der Beratung: Danach wertet niemand die Schleife mehr aus, und ein
+        Einreichen archivierte den Chat der laufenden Abstimmung oder sperrte ihn (Befund #34).
+        Rückgabe: ob eingereicht wurde."""
+        from plattform_core import Phase
+
         jetzt = jetzt or timezone.now()
+        if self.antrag.phase != Phase.BERATUNG.value:
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "vorschlag_einreichung_verworfen",
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "phase": self.antrag.phase,
+                }
+            )
+            return False
         self.eingereicht_am = jetzt
         fassung = self.aktuelle_fassung()
         if fassung is not None:
@@ -317,6 +342,7 @@ class Entwurf(models.Model):
                 "weg": "pruefung" if self.vollzugsbezug else "unterstuetzer",
             }
         )
+        return True
 
     def pruefbeschluss_anlegen(self, jetzt=None):
         """Legt die interne Abstimmung der Gruppe 2 zu diesem Vorschlag an (FB-I3).
@@ -938,20 +964,26 @@ class GremienBeschluss(models.Model):
         return wert
 
     def aktive_rollen(self) -> int:
-        """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die gelosten Rollen.
+        """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die dafür gelosten Personen.
 
         Ohne diese Bindung zählte ein Beschluss zu Antrag A alle Rollen der Partei, auch die,
-        die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig."""
+        die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig. Gezählt werden
+        Menschen, nicht Rollenzeilen (Befund #38)."""
         if self.antrag_id:
-            return Rolle.fuer_antrag(self.gremium, self.antrag).count()
-        return Rolle.aktive(self.gremium).count()
+            return Rolle.personen(Rolle.fuer_antrag(self.gremium, self.antrag))
+        return Rolle.personen(Rolle.aktive(self.gremium))
 
-    def auswertung(self):
-        """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist."""
+    def auswertung(self, aktive: int | None = None):
+        """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist.
+
+        `aktive` nimmt einen vorberechneten Nenner entgegen (Listen: `quoren_fuer`); ohne ihn
+        wird er hier bestimmt — so bleibt `abschliessen()` unverändert."""
         from plattform_core.gremienbeschluss import auswerten
 
         return auswerten(
-            [stimme.option for stimme in self.stimmen.all()], self.optionswerte(), self.aktive_rollen()
+            [stimme.option for stimme in self.stimmen.all()],
+            self.optionswerte(),
+            self.aktive_rollen() if aktive is None else aktive,
         )
 
     def alle_haben_gestimmt(self) -> bool:
@@ -1008,6 +1040,36 @@ class GremienBeschluss(models.Model):
         for beschluss in cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt):
             geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen
+
+
+def quoren_fuer(beschluesse) -> dict[int, int]:
+    """Der Quorum-Nenner je Beschluss einer Liste — eine Abfrage statt bis zu drei je Zeile.
+
+    Dieselbe Regel wie `GremienBeschluss.aktive_rollen`: Zu einem Antrag zählen die dafür
+    gelosten Personen, ersatzweise die parteiweiten (`Rolle.fuer_antrag`); ohne Antrag alle
+    Personen mit aktiver Rolle im Gremium — nur einmal für die ganze Seite gerechnet
+    (Befund #77). Die öffentliche Liste mischt alle Räte, deshalb der Schlüssel (Gremium, Antrag)."""
+    beschluesse = list(beschluesse)
+    if not beschluesse:
+        return {}
+    je_antrag: dict[tuple, set] = {}
+    je_gremium: dict[str, set] = {}
+    zeilen = (
+        Rolle.objects.filter(beendet_grund="", endet_am__gte=timezone.localdate())
+        .values_list("gremium", "antrag_id", "mitglied_id")
+        .distinct()
+    )
+    for gremium, antrag_id, mitglied_id in zeilen:
+        je_antrag.setdefault((gremium, antrag_id), set()).add(mitglied_id)
+        je_gremium.setdefault(gremium, set()).add(mitglied_id)
+    quoren = {}
+    for beschluss in beschluesse:
+        if beschluss.antrag_id:
+            gelost = je_antrag.get((beschluss.gremium, beschluss.antrag_id))
+            quoren[beschluss.pk] = len(gelost) if gelost else len(je_antrag.get((beschluss.gremium, None), ()))
+        else:
+            quoren[beschluss.pk] = len(je_gremium.get(beschluss.gremium, ()))
+    return quoren
 
 
 class GremienStimme(models.Model):
@@ -1121,7 +1183,7 @@ def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
     § 6 Abs 3 lit a verlangt drei bis sieben Mitglieder. Sinkt die Besetzung darunter, ist das
     kein Grund, die laufende Abstimmung zu verwerfen — wohl aber einer, ihr die Wirkung zu
     versagen: Ein Rat aus zwei Menschen soll keinen Antrag zurückweisen können."""
-    return Rolle.aktive(Gremium.INTEGRITAETSRAT).count() >= SATZUNG_MIN_INTEGRITAETSRAT
+    return Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT)) >= SATZUNG_MIN_INTEGRITAETSRAT
 
 
 def _vermerken(beschluss, text: str) -> None:
@@ -1563,33 +1625,53 @@ class Fachliste(models.Model):
 
         return Kandidat(
             schluessel=self.schluessel,
-            fachgebiete=frozenset(self.fachgebiete.values_list("slug", flat=True)),
+            # `.all()` statt `values_list`: nur so greift der Prefetch, sonst eine Abfrage je Kopf.
+            fachgebiete=frozenset(k.slug for k in self.fachgebiete.all()),
             ausgeschlossen=bool(ausschlussgrund) or not self.gefuehrt,
             ausschlussgrund=ausschlussgrund or ("gestrichen" if not self.gefuehrt else ""),
         )
 
 
-def unvereinbar(mitglied) -> str:
+def unvereinbarkeiten_laden() -> tuple[set[int], set[int]]:
+    """Die beiden Mengen, aus denen sich jede Unvereinbarkeit ergibt — zwei Abfragen für die
+    ganze Liste statt zwei je Kopf (Befund #44): Mitglieder mit aktiver Rolle im Integritätsrat
+    und Mitglieder mit offenem Mandat."""
+    from django.apps import apps
+
+    im_integritaetsrat = set(Rolle.aktive(Gremium.INTEGRITAETSRAT).values_list("mitglied_id", flat=True))
+    mit_mandat: set[int] = set()
+    if apps.is_installed("mandatare"):
+        mandat = apps.get_model("mandatare", "Mandat")
+        mit_mandat = set(mandat.objects.filter(beendet__isnull=True).values_list("mitglied_id", flat=True))
+    return im_integritaetsrat, mit_mandat
+
+
+def unvereinbar_fuer(mitglied_id: int, im_integritaetsrat: set[int], mit_mandat: set[int]) -> str:
     """Warum jemand nicht in den Expertenrat gelost werden darf — oder leer.
 
     § 6 Abs 3 lit a schließt Mitglieder des Integritätsrats von anderen Räten aus; § 7 trennt
     Mandat und Beratung. Diese Prüfung gehört an den Lostopf und nicht an die Ansicht: Wer sie
     dort vergisst, hat sie nie."""
-    if Rolle.hat(mitglied, Gremium.INTEGRITAETSRAT):
+    if mitglied_id in im_integritaetsrat:
         return "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
-    from django.apps import apps
-
-    if apps.is_installed("mandatare"):
-        mandat = apps.get_model("mandatare", "Mandat")
-        if mandat.objects.filter(mitglied=mitglied, beendet__isnull=True).exists():
-            return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+    if mitglied_id in mit_mandat:
+        return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
     return ""
 
 
+def unvereinbar(mitglied) -> str:
+    """Die Einzelprüfung — dünne Hülle um `unvereinbar_fuer` für eine Person."""
+    return unvereinbar_fuer(mitglied.pk, *unvereinbarkeiten_laden())
+
+
 def lostopf_der_fachliste(fachgebiete=()) -> list:
-    """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt."""
+    """Alle geführten Einträge als Kandidaten — mit den Unvereinbarkeiten schon gesetzt.
+
+    Läuft bei jedem Beratungsbeginn in der Anfrage eines beliebigen Besuchers — deshalb mit
+    zwei Abfragen für alle Köpfe, nicht zwei je Kopf (Befund #44)."""
+    im_integritaetsrat, mit_mandat = unvereinbarkeiten_laden()
     eintraege = Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete")
-    return [e.als_kandidat(unvereinbar(e.mitglied)) for e in eintraege]
+    return [e.als_kandidat(unvereinbar_fuer(e.mitglied_id, im_integritaetsrat, mit_mandat)) for e in eintraege]
 
 
 class Auslosung(models.Model):

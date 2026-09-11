@@ -157,6 +157,64 @@ def test_rollen_verwaltung_beruft_bestaetigt_und_beendet(client, ordnung):  # no
     assert {"rolle_berufen", "rolle_bestaetigt", "rolle_beendet"} <= set(typen)
 
 
+def test_eine_zweite_parteiweite_rolle_derselben_person_wird_abgewiesen(client, ordnung):  # noqa: F811
+    """Befund #38: Doppelklick oder Verlängerung vor Ablauf legten eine zweite Zeile an — und die
+    Person zählte doppelt im Quorum. Geloste Rollen bleiben unberührt: Wer für einen Antrag gelost
+    ist, darf trotzdem parteiweit berufen werden."""
+    admin = mitglied_anlegen("admin")
+    admin.ist_admin = True
+    admin.save()
+    wer = mitglied_anlegen("doppelt")
+    antrag, *_ = werkstatt_lage(ordnung)
+    Rolle.objects.create(mitglied=wer, gremium=Gremium.EXPERTENRAT_1, endet_am=standard_ende(), antrag=antrag)
+    client.force_login(admin)
+    daten = {
+        "aktion": "berufen",
+        "mitglied": wer.pk,
+        "gremium": Gremium.EXPERTENRAT_1,
+        "endet_am": standard_ende().isoformat(),
+    }
+    client.post(reverse("gremien:rollen_aktion"), daten)
+    assert Rolle.objects.filter(mitglied=wer, antrag__isnull=True).count() == 1  # trotz geloster Rolle
+    antwort = client.post(reverse("gremien:rollen_aktion"), {**daten, "endet_am": (standard_ende() + timedelta(days=30)).isoformat()}, follow=True)
+    assert Rolle.objects.filter(mitglied=wer, antrag__isnull=True).count() == 1
+    assert "schon eine aktive Rolle" in antwort.content.decode()
+    assert sum(1 for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "rolle_berufen") == 1
+
+
+def test_nach_dem_beratungsende_ruht_die_werkstatt(client, ordnung):  # noqa: F811
+    """Befund #34: Nur „öffnen“ war an die Beratung gebunden. Nach dem Phasenwechsel konnte
+    Gruppe 1 weiter Fassungen anhängen und einreichen — das archivierte den Chat der laufenden
+    Abstimmung und sperrte ihn, und niemand wertete die Schleife je wieder aus."""
+    from verfahren.models import Kommentar
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = fenster_oeffnen(client, antrag, er[0])
+    beratungsfrist_ablaufen_lassen(antrag)
+    antrag.fortschreiben()
+    assert antrag.phase == "abstimmung"  # ein unfertiges Fenster hält nichts auf
+    beitrag = antrag.kommentare.create(mitglied=unterstuetzer[0], text="Ein Beitrag zur laufenden Abstimmung.", phase="abstimmung")
+
+    client.force_login(er[0])
+    aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
+    client.post(aktion, {"aktion": "fassung", "wortlaut": "Nachgeschoben."})
+    client.post(aktion, {"aktion": "beitrag", "text": "Noch ein Beitrag."})
+    client.post(aktion, {"aktion": "vollzugsbezug", "vollzugsbezug": "ja"})
+    client.post(aktion, {"aktion": "einreichung"})
+    entwurf.refresh_from_db()
+    assert entwurf.fassungen.count() == 1 and entwurf.beitraege.count() == 0
+    assert entwurf.vollzugsbezug is False and entwurf.einreichungsbeschluss() is None
+    assert entwurf.einreichen() is False  # auch der direkte Weg (Wirkung eines späten Beschlusses)
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.eingereicht_am is None
+    beitrag.refresh_from_db()
+    assert beitrag.archiviert_am is None and not Kommentar.objects.filter(system=True).exists()
+    assert any(e.ereignis["typ"] == "vorschlag_einreichung_verworfen" for e in AuditEintrag.objects.all())
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    assert 'value="fassung"' not in inhalt and 'value="einreichung"' not in inhalt
+    assert "nicht (mehr) in der Beratung" in inhalt
+
+
 def test_nav_zeigt_mein_gremium_nur_mit_rolle(client, ordnung):  # noqa: F811
     m = mitglied_anlegen("magda")
     client.force_login(m)

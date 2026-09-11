@@ -10,3 +10,8 @@ Je Zeile: deutsche msgid → englischer Vorschlag. Quelle in Klammern.
 - gettext (gremien/views.py, fenster_aktion „vollzugsbezug“):
   „Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost.“
   → "Group 2 has been drawn from the expert register for this motion."
+
+## Befund #31 (gremien/views.py, integritaet_beschluss)
+
+- gettext: „Aussetzen lässt sich nur eine laufende Abstimmung oder der Vollzug eines Beschlusses (§ 6 Abs 3 lit d).“
+  → "Only a running vote or the implementation of a resolution can be suspended (§ 6 para 3 lit d)."

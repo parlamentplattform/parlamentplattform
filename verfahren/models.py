@@ -187,6 +187,12 @@ class Antrag(models.Model):
         blank=True,
         help_text="Zahl der Stimmberechtigten, festgestellt und veröffentlicht bei Abstimmungsbeginn (§ 4 Abs 4 lit a).",
     )
+    stimmberechtigung_stichtag = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Der Kalendertag (Wiener Zeit), an dem die Stimmberechtigung festgestellt wurde — "
+        "dieselbe Zahl für Zählung und Einzelprüfung (§ 4 Abs 4 lit a).",
+    )
     zurueckweisung_begruendung = models.TextField(
         blank=True,
         help_text="Nur bei formaler Zurückweisung durch den Integritätsrat — wird veröffentlicht (§ 5 Abs 2).",
@@ -232,6 +238,14 @@ class Antrag(models.Model):
 
     def policy(self) -> Policy:
         return Policy.aus_dict(self.policy_snapshot)
+
+    def stichtag_der_stimmberechtigung(self):
+        """Der Kalendertag, gegen den eine Stimmberechtigung geprüft wird (§ 4 Abs 4 lit a).
+
+        Gespeichert beim Übergang in die Abstimmung; für ältere Verfahren der Wiener Kalendertag
+        des Phasenbeginns. Nie `phase_beginn.date()`: Das wäre das UTC-Datum, und zwischen 0 und
+        2 Uhr läge es einen Tag vor dem, was die Seite als Abstimmungsbeginn zeigt (Befund #32)."""
+        return self.stimmberechtigung_stichtag or timezone.localdate(self.phase_beginn)
 
     def aktueller_text(self) -> AntragsFassung | None:
         return self.fassungen.order_by("-nummer").first()
@@ -308,15 +322,19 @@ class Antrag(models.Model):
             gegenstand = (
                 Gegenstand.PERSONENWAHL if self.art == Antragsart.MANDAT else Gegenstand.SACHFRAGE
             )
+            # § 4 Abs 4 lit a rechnet in Kalendertagen — im Wiener Kalender, nicht im UTC-Datum:
+            # Zwischen 0 und 2 Uhr läge der Stichtag sonst einen Tag zu früh (Befund #32). Der Tag
+            # wird gespeichert, damit Zählung und Einzelprüfung dieselbe Zahl lesen.
+            self.stimmberechtigung_stichtag = timezone.localdate(uebergang.wirksam_ab)
             self.stimmberechtigte_anzahl = max(
                 1,
                 stimmberechtigte_zaehlen(
                     gegenstand,
-                    uebergang.wirksam_ab.date(),
+                    self.stimmberechtigung_stichtag,
                     uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
                 ),
             )
-            felder.append("stimmberechtigte_anzahl")
+            felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         self.save(update_fields=felder)
         if uebergang.neue_phase is Phase.BERATUNG and apps.is_installed("gremien"):
             # § 6 Abs 7: Der Expertenrat wird für DIESEN Antrag aus der Fachliste gelost —
@@ -359,17 +377,20 @@ class Antrag(models.Model):
         modell = apps.get_model("gremien", "Aussetzung")
         return [a.abschnitt() for a in modell.objects.filter(antrag_id=self.pk)]
 
-    def aussetzung_laeuft(self, jetzt=None) -> bool:
-        """Ob gerade eine Aussetzung wirkt — dann ruht das Verfahren vollständig."""
+    def aussetzung_laeuft(self, jetzt=None, gegenstand: str | None = None) -> bool:
+        """Ob gerade eine Aussetzung wirkt — dann ruht das Verfahren vollständig.
+
+        `gegenstand` („abstimmung“ oder „vollzug“) schränkt auf eine Art ein."""
         from django.apps import apps
 
         if not apps.is_installed("gremien"):
             return False
         jetzt = jetzt or timezone.now()
         modell = apps.get_model("gremien", "Aussetzung")
-        return any(
-            a.laeuft(jetzt) for a in modell.objects.filter(antrag_id=self.pk, beendet_am__isnull=True)
-        )
+        laufende = modell.objects.filter(antrag_id=self.pk, beendet_am__isnull=True)
+        if gegenstand is not None:
+            laufende = laufende.filter(gegenstand=gegenstand)
+        return any(a.laeuft(jetzt) for a in laufende)
 
     def wirksamer_phase_beginn(self, jetzt=None):
         """Der Phasenbeginn, mit dem gerechnet wird — um die Stillstandszeit nach hinten gerückt.
@@ -573,11 +594,21 @@ class Vollzugseintrag(models.Model):
         return f"Antrag {self.antrag_id}: {self.status}"
 
 
+class VollzugAusgesetzt(ValueError):
+    """Der Vollzug ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d)."""
+
+
 def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = "") -> Vollzugseintrag:
     """F-55: den Umsetzungsstand fortschreiben — nur für angenommene Anträge,
-    immer als neuer Eintrag, immer auditiert."""
+    immer als neuer Eintrag, immer auditiert. Ein ausgesetzter Vollzug wird nicht
+    fortgeschrieben (§ 6 Abs 3 lit d) — sonst hinderte die Aussetzung das Register nicht (Befund #31)."""
     if antrag.phase != Phase.ANGENOMMEN.value:
         raise ValueError("Das Umsetzungsregister führt nur angenommene Anträge (§ 6 Abs 10).")
+    if antrag.aussetzung_laeuft(gegenstand="vollzug"):
+        raise VollzugAusgesetzt(
+            "Der Vollzug dieses Beschlusses ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — "
+            "solange die Aussetzung läuft, wird das Umsetzungsregister nicht fortgeschrieben."
+        )
     eintrag = Vollzugseintrag.objects.create(
         antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
     )

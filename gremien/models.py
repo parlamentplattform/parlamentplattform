@@ -397,7 +397,13 @@ class Entwurf(models.Model):
             )
         self.save()
         AuditEintrag.anhaengen(
-            {"typ": "vorschlag_zurueckgegeben", "antrag": self.antrag_id, "runde": self.runde, "grund": grund}
+            {
+                "typ": "vorschlag_zurueckgegeben",
+                "antrag": self.antrag_id,
+                "runde": self.runde,
+                "grund": grund,
+                "wirksam_ab": jetzt.isoformat(),
+            }
         )
 
     @transaction.atomic
@@ -441,15 +447,18 @@ class Entwurf(models.Model):
             from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
 
+            # Stichtag im Wiener Kalender, nicht das UTC-Datum (Befund #32) — gespeichert, damit
+            # Zählung und Einzelprüfung dieselbe Zahl lesen.
+            antrag.stimmberechtigung_stichtag = timezone.localdate(jetzt)
             antrag.stimmberechtigte_anzahl = max(
                 1,
                 stimmberechtigte_zaehlen(
                     Gegenstand.SACHFRAGE,
-                    jetzt.date(),
+                    antrag.stimmberechtigung_stichtag,
                     uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
                 ),
             )
-            felder.append("stimmberechtigte_anzahl")
+            felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         antrag.save(update_fields=felder)
         archiviert = antrag.chat_archivieren(jetzt)  # FB-G5: Hochstufung räumt den Chat
         AuditEintrag.anhaengen(
@@ -565,6 +574,11 @@ class Entwurf(models.Model):
                 return False
             from verfahren.chat import abstimmung_stand
 
+            # Wirksam ist der Fristzeitpunkt, nicht der zufällige Moment des Seitenaufrufs
+            # (Befund #33, Grundsatz aus plattform_core.phases): Sonst bekäme der Expertenrat
+            # Tage geschenkt, weil niemand hinsah, und zwei Anträge mit gleichen Fristen
+            # hätten je nach Besucherverhalten verschiedene Abstimmungsfenster und Stichtage.
+            wirksam = self.review_frist
             # Schwelle und Höchstrunden aus der eingefrorenen Ordnung des Antrags — nicht aus
             # dem Register: Eine Änderung dort träfe sonst eine laufende Schleife (§ 5 Abs 5).
             ordnung = antrag.policy()
@@ -579,15 +593,15 @@ class Entwurf(models.Model):
                 self.zurueck_an_gruppe_1(
                     f"Der Abstimmungs-Chat gibt zurück: {rechnung}. "
                     f"{len(stand['kritik'])} Kritik-Beiträge gehen als Wünsche an den Expertenrat.",
-                    jetzt,
+                    wirksam,
                     neue_runde=True,
                 )
-                antrag.chat_archivieren(jetzt)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
+                antrag.chat_archivieren(wirksam)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
             self._endabstimmung_oeffnen(
                 antrag,
                 f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
-                jetzt,
+                wirksam,
             )
             return True
         if (
@@ -600,7 +614,7 @@ class Entwurf(models.Model):
                 antrag,
                 "Überarbeitungsfrist verstrichen — die zuletzt vorgelegte Fassung geht zur "
                 "Endabstimmung (§ 5 Abs 12: Untätigkeit hemmt nie).",
-                jetzt,
+                self.ueberarbeitung_frist,  # wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33)
             )
             return True
         return False
@@ -1337,6 +1351,21 @@ class Regelpruefung(models.Model):
         return f"Regelprüfung {self.jahr} ({self.beschluss.nummer})"
 
 
+def aussetzungs_gegenstand(antrag) -> str | None:
+    """Was sich an diesem Antrag aussetzen lässt — oder None (§ 6 Abs 3 lit d).
+
+    Die Satzung erlaubt dem Integritätsrat, „den Vollzug eines Beschlusses oder eine laufende
+    Abstimmung“ auszusetzen — nicht eine Sammelfrist oder eine Beratung. Bis 0.45 bekam jede
+    andere Phase das Etikett „Vollzug“ und hemmte trotzdem die Frist (Befund #31)."""
+    from plattform_core import Phase
+
+    if antrag.phase == Phase.ABSTIMMUNG.value:
+        return Aussetzung.Gegenstand.ABSTIMMUNG
+    if antrag.phase == Phase.ANGENOMMEN.value:
+        return Aussetzung.Gegenstand.VOLLZUG
+    return None
+
+
 def aussetzung_wirkung(beschluss, jetzt=None) -> None:
     """Setzt eine Abstimmung oder einen Vollzug aus (§ 6 Abs 3 lit d)."""
     antrag = beschluss.antrag
@@ -1345,19 +1374,22 @@ def aussetzung_wirkung(beschluss, jetzt=None) -> None:
     if not _integritaetsrat_beschlussfaehig(beschluss):
         _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
         return
+    gegenstand = aussetzungs_gegenstand(antrag)
+    if gegenstand is None:
+        _vermerken(
+            beschluss,
+            f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — weder eine laufende "
+            "Abstimmung noch der Vollzug eines Beschlusses (§ 6 Abs 3 lit d).",
+        )
+        return
     if Aussetzung.objects.filter(antrag=antrag, beendet_am__isnull=True).exists():
         _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft bereits eine Aussetzung.")
         return
     jetzt = jetzt or timezone.now()
-    from plattform_core import Phase
 
     aussetzung = Aussetzung.objects.create(
         antrag=antrag,
-        gegenstand=(
-            Aussetzung.Gegenstand.ABSTIMMUNG
-            if antrag.phase == Phase.ABSTIMMUNG.value
-            else Aussetzung.Gegenstand.VOLLZUG
-        ),
+        gegenstand=gegenstand,
         beschluss=beschluss,
         begruendung=beschluss.beschreibung,
         beginn=jetzt,

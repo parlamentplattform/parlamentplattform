@@ -440,6 +440,48 @@ def test_verstrichene_ueberarbeitung_geht_zur_endabstimmung(client, ordnung):  #
     assert entwurf.status == EntwurfsStatus.ANGENOMMEN
 
 
+def test_die_schleife_wirkt_ab_fristablauf_nicht_ab_seitenaufruf(client, ordnung):  # noqa: F811
+    """Befund #33: Niemand öffnet den Antrag fünf Tage lang — die Endabstimmung beginnt trotzdem
+    mit dem Fristzeitpunkt, nicht mit dem zufälligen Moment des Aufrufs. Sonst bekämen zwei
+    Anträge mit gleichen Fristen je nach Besucherverhalten verschiedene Abstimmungsfenster."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u)
+    frist = timezone.now() - timedelta(days=5)
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung" and antrag.phase_beginn == frist
+    assert antrag.stimmberechtigung_stichtag == timezone.localdate(frist)
+    wechsel = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "phasenwechsel"][-1]
+    assert wechsel["wirksam_ab"] == frist.isoformat()
+
+
+def test_die_ueberarbeitungsfrist_zaehlt_ab_dem_fristablauf_der_rueckgabe(client, ordnung):  # noqa: F811
+    """Befund #33, Rückgabe-Fall: Der Expertenrat bekommt keine Tage geschenkt, weil niemand hinsah."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist = timezone.now() - timedelta(days=5)
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert entwurf.runde == 2
+    assert entwurf.ueberarbeitung_frist == frist + timedelta(days=antrag.policy().ueberarbeitung_tage)
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "vorschlag_zurueckgegeben"][-1]
+    assert rueckgabe["wirksam_ab"] == frist.isoformat()
+
+
 def test_ein_nie_eingereichter_arbeitsstand_geht_nicht_zur_endabstimmung(client, ordnung):  # noqa: F811
     """Befund #5: Nach der Rückgabe hängt Gruppe 1 einen Arbeitsstand an und schweigt dann.
     Verstreicht die Überarbeitungsfrist, geht die zuletzt **vorgelegte** Fassung zur

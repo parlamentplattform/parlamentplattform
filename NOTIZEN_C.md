@@ -103,3 +103,54 @@ Umgesetzt in `verfahren/management/commands/demo_seed.py`: Hervorhebungs-Beschlu
 ausschließlich Demo-Mitglieder im Integritätsrat sitzen; Wächter des Abstimmungs-Chat-Blocks am
 Titel (`TESTLAUF_TITEL`). Tests in `verfahren/test_demo_seed.py` (lassen den Befehl zweimal
 laufen). Kein Cluster-fremder Bedarf.
+
+## Befund #31 — Aussetzung nur bei Abstimmung oder Vollzug
+
+Umgesetzt: `aussetzungs_gegenstand(antrag)` (gremien/models.py), `aussetzung_wirkung` vermerkt
+„Ohne Wirkung“ in anderen Phasen, `integritaet_beschluss` weist das Anlegen ab,
+`vollzug_fortschreiben` wirft `VollzugAusgesetzt(ValueError)` bei laufender Vollzugs-Aussetzung.
+
+**Cluster A2, `verfahren/views_aktionen.py` (Umsetzungsstand, ca. Zeile 785-791):** Der
+`except ValueError` zeigt heute für jeden Fehler „Das Umsetzungsregister führt nur angenommene
+Anträge.“ — für die neue Sperre wäre das falsch. Vorschlag:
+
+```python
+    except VollzugAusgesetzt:
+        messages.error(request, _("Der Vollzug ist durch den Integritätsrat ausgesetzt — solange die Aussetzung läuft, wird das Register nicht fortgeschrieben (§ 6 Abs 3 lit d)."))
+    except ValueError:
+        messages.error(request, _("Das Umsetzungsregister führt nur angenommene Anträge."))
+```
+(`VollzugAusgesetzt` aus `verfahren.models` importieren; neue msgid → .po.)
+
+## Befund #32 — Stichtag der Stimmberechtigung
+
+Umgesetzt: `Antrag.stimmberechtigung_stichtag` (Migration `verfahren/0017`, Nachtrag für
+laufende Abstimmungen mit dem damals verwendeten UTC-Datum), gesetzt in `Antrag.fortschreiben`
+und `Entwurf._endabstimmung_oeffnen` mit `timezone.localdate(...)`; Lesehilfe
+`Antrag.stichtag_der_stimmberechtigung()` (gespeicherter Tag, sonst Wiener Tag des Phasenbeginns).
+
+**Cluster A2, `verfahren/views_aktionen.py`:** die beiden Stellen `stichtag = antrag.phase_beginn.date()`
+(`abstimmen`, ca. Zeile 420; `kandidatur_zustimmen`, ca. Zeile 674) ersetzen durch
+`stichtag = antrag.stichtag_der_stimmberechtigung()`. Bis dahin prüfen Zählung und
+Einzelprüfung zwischen 0 und 2 Uhr verschiedene Tage.
+
+## Befund #33 — Fristzeitpunkt statt Aufrufzeitpunkt
+
+Umgesetzt in `Entwurf.fortschreiben` (`wirksam = review_frist` bzw. `ueberarbeitung_frist`,
+auch im Audit). Neuer Management-Befehl `verfahren_fortschreiben` (verfahren/management/commands)
+für einen Cron; idempotent.
+
+**Cluster D, `render.yaml`:** einen Cron-Dienst ergänzen, z. B.
+
+```yaml
+  - type: cron
+    name: plattform-fortschreiben
+    runtime: python
+    schedule: "0 */6 * * *"
+    buildCommand: pip install -e .
+    startCommand: python manage.py verfahren_fortschreiben
+    envVars: (wie der Web-Dienst; POSTGRES_* fromDatabase plattform-db)
+```
+Und der Kommentar in `verfahren/views.py:695` („Produktion: zusätzlich Cron“, Cluster A1) stimmt
+erst, wenn der Cron eingerichtet ist — bis dahin ehrlicher: „Produktion: `verfahren_fortschreiben`
+per Cron, sobald eingerichtet“.

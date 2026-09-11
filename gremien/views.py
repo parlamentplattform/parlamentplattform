@@ -45,6 +45,7 @@ from gremien.models import (
     Ueberlastungsmeldung,
     WunschVermerk,
     aussetzungen_fortschreiben,
+    aussetzungs_gegenstand,
     beschluss_frist,
     gruppe_2_nachziehen,
     parametertests_fortschreiben,
@@ -1072,6 +1073,17 @@ def integritaet_beschluss(request):
             _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."),
         )
         return redirect("gremien:integritaet")
+    if anlass == Anlass.AUSSETZUNG:
+        # § 6 Abs 3 lit d nennt nur „den Vollzug eines Beschlusses oder eine laufende Abstimmung“
+        # — geprüft schon beim Anlegen, damit der Rat nicht über etwas abstimmt, das ohne
+        # Wirkung bliebe (Befund #31). Die Phase vorher fortschreiben, sonst gälte ein alter Stand.
+        antrag.fortschreiben()
+        if aussetzungs_gegenstand(antrag) is None:
+            messages.error(
+                request,
+                _("Aussetzen lässt sich nur eine laufende Abstimmung oder der Vollzug eines Beschlusses (§ 6 Abs 3 lit d)."),
+            )
+            return redirect("gremien:integritaet")
     if GremienBeschluss.objects.filter(
         gremium=Gremium.INTEGRITAETSRAT, anlass=anlass, antrag=antrag, status=BeschlussStatus.OFFEN
     ).exists():

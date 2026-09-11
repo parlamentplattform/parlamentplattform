@@ -190,12 +190,98 @@ def test_stimme_aendern_ueberschreibt_statt_zu_doppeln(client, ordnung):
 # --- Export & Nachrechnen (F-21/F-23, § 5 Abs 8) ------------------------------
 
 
+NACHRECHNEN_PFAD = Path(__file__).resolve().parents[1] / "verify" / "nachrechnen.py"
+
+
 def _nachrechnen_laden():
-    pfad = Path(__file__).resolve().parents[1] / "verify" / "nachrechnen.py"
-    spec = importlib.util.spec_from_file_location("nachrechnen", pfad)
+    spec = importlib.util.spec_from_file_location("nachrechnen", NACHRECHNEN_PFAD)
     modul = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modul)
     return modul.nachrechnen
+
+
+# Ein Kandidatur-Export, wie export_json ihn schreibt: Bewerbung 5 zurückgezogen, eine
+# Zustimmung zu ihr (zählt nicht), 3 und 7 mit je zwei Zustimmungen (3 war früher da).
+PERSONENWAHL_EXPORT = {
+    "art": "mandat",
+    "policy": {"mindestbeteiligung": 0.05},
+    "stimmberechtigte": 10,
+    "stimmen": [],
+    "bewerbungen": [
+        {"bewerbung": 3, "name": "Anna Ö.", "eingereicht_am": "2026-09-01", "zurueckgezogen": False},
+        {"bewerbung": 5, "name": "Bernd →", "eingereicht_am": "2026-09-02", "zurueckgezogen": True},
+        {"bewerbung": 7, "name": "Carla", "eingereicht_am": "2026-09-03", "zurueckgezogen": False},
+    ],
+    "zustimmungen": [
+        {"pseudonym": "p1", "bewerbung": 3},
+        {"pseudonym": "p1", "bewerbung": 7},
+        {"pseudonym": "p2", "bewerbung": 7},
+        {"pseudonym": "p3", "bewerbung": 3},
+        {"pseudonym": "p4", "bewerbung": 5},
+    ],
+}
+
+
+def test_das_pruefskript_rechnet_eine_personenwahl_wie_der_kern():
+    """§ 5 Abs 8: Das Skript rechnete Kandidatur-Exporte still als Sachfrage mit 0 Stimmen
+    („angenommen: False“ neben „Gewählt ist Bewerbung 3“ auf der Antragsseite). Jetzt spiegelt
+    es die Zustimmungswahl aus plattform_core.tally — samt Ausschluss zurückgezogener
+    Bewerbungen, Reihung nach Einreichreihenfolge bei Gleichstand und Beteiligung nur aus
+    zählenden Zustimmungen — und kommt zum selben Ergebnis wie der Kern."""
+    from types import SimpleNamespace
+
+    from plattform_core.tally import personenwahl_auszaehlen
+
+    ergebnis = _nachrechnen_laden()(PERSONENWAHL_EXPORT)
+    kern = personenwahl_auszaehlen(
+        [("p1", 3), ("p1", 7), ("p2", 7), ("p3", 3)],
+        bewerbungen=[3, 7],
+        stimmberechtigte=10,
+        policy=SimpleNamespace(mindestbeteiligung=0.05),
+    )
+    assert ergebnis["art"] == "mandat"
+    assert [(p["platz"], p["bewerbung"], p["zustimmungen"]) for p in ergebnis["plaetze"]] == [
+        (p.platz, p.bewerbung_id, p.stimmen) for p in kern.plaetze
+    ] == [(1, 3, 2), (2, 7, 2)]
+    assert ergebnis["beteiligung"] == kern.beteiligung == 3  # p4 stimmte nur der zurückgezogenen zu
+    assert ergebnis["gewaehlt"] == kern.gewonnen_id == 3 and ergebnis["angenommen"] is True
+    assert ergebnis["gewaehlt_name"] == "Anna Ö."
+
+
+def test_das_pruefskript_meldet_doppelte_zustimmungen_und_fremde_antragsarten():
+    """Ein Skript, das etwas Unbekanntes still als Sachfrage rechnet, wäre schlimmer als eines,
+    das nicht rechnet: Unbekannte Antragsart und doppelte Zustimmung enden mit Fehlermeldung."""
+    nachrechnen = _nachrechnen_laden()
+    with pytest.raises(SystemExit, match="Antragsart"):
+        nachrechnen({**PERSONENWAHL_EXPORT, "art": "rat"})
+    doppelt = {
+        **PERSONENWAHL_EXPORT,
+        "zustimmungen": [{"pseudonym": "p1", "bewerbung": 3}, {"pseudonym": "p1", "bewerbung": 3}],
+    }
+    with pytest.raises(SystemExit, match="doppelt"):
+        nachrechnen(doppelt)
+
+
+def test_das_pruefskript_laeuft_auch_auf_einer_windows_konsole(tmp_path):
+    """Der Probelauf auf cp1252 brach zuletzt mit UnicodeEncodeError am Pfeil der Schlusszeile ab —
+    für ein Werkzeug „ohne Spezialkenntnisse“ (§ 5 Abs 8) ein schlechter letzter Eindruck. Der Lauf
+    als eigenes Programm muss mit Exit 0 enden, auch wenn ein Name Zeichen außerhalb der
+    Konsolenkodierung trägt, und die Plätze lesbar ausgeben."""
+    import os
+    import subprocess
+    import sys
+
+    export = tmp_path / "export.json"
+    export.write_text(json.dumps(PERSONENWAHL_EXPORT, ensure_ascii=False), encoding="utf-8")
+    lauf = subprocess.run(
+        [sys.executable, str(NACHRECHNEN_PFAD), str(export)],
+        capture_output=True,
+        env={**os.environ, "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"},
+    )
+    ausgabe = lauf.stdout.decode("cp1252", errors="replace")
+    assert lauf.returncode == 0, lauf.stderr.decode(errors="replace")
+    assert "plaetze:" in ausgabe and "1. Bewerbung 3 (Anna Ö.): 2" in ausgabe
+    assert "angenommen: True" in ausgabe and "gewaehlt: 3" in ausgabe
 
 
 def test_export_erst_nach_ende_und_unabhaengig_nachrechenbar(client, ordnung):

@@ -78,3 +78,28 @@ Beide mit Audit `pruefung_frist_verstrichen` und `wirksam_ab` = Fristzeitpunkt.
 - „Den KoRat-Entscheid mittelfristig als GremienBeschluss mit Anlass AUSTAUSCH und Frist
   führen“ — das ist seit 0.45 schon so (`koordination_beschluss`, Anlass AUSTAUSCH); nur die
   **Anlage** des Beschlusses ist eine unbefristete Einzelhandlung. Genau diese Lücke schließt (b).
+
+## Befund #14 / #37 — Gruppe 2 wird nachgezogen
+
+Umgesetzt: `auslosen(antrag, runde, jetzt, gruppen=(1,))` mit Rückführung der Losregel-Indizes
+auf die tatsächlichen Gruppennummern; `gruppe_2_nachziehen(antrag)` (einmal je Antrag, eigene
+Runde, eigener Anker, Gruppe 1 und frühere Geloste ausgeschlossen) — aufgerufen beim Setzen des
+Vollzugsbezugs im Fenster und spätestens in `Entwurf.einreichen`. `austausch_wirkung` zieht
+damit automatisch nur noch Gruppe 1 nach (bisher hätte es bei Vollzugsbezug eine zweite
+Gruppe 1 UND eine Gruppe 2 gezogen). Die Prüffrist ohne Gruppe 2 ist Teil von Befund #8.
+Kein „◐ bis dahin“ nötig — der Weg ist jetzt erreichbar:
+
+- `plattform_core/rollen.py:459` (Cluster D): Der Eintrag „Vollzugs- oder Beschaffungsbezug
+  setzen — dann prueft Gruppe 2 vorab“ stimmt jetzt; Vorschlag für die Beschreibung: „… dann
+  wird Gruppe 2 aus der Fachliste nachgelost und prüft vorab (§ 6 Abs 7).“ Bitte „prueft“ →
+  „prüft“ (Ersatzschreibung im Nutzertext).
+- `verfahren/templates/verfahren/antrag.html:224` (Cluster A1): Der Satz „Der Expertenrat zu
+  diesem Antrag wurde aus der öffentlichen Fachliste gelost“ stimmt weiterhin (er steht nur,
+  wenn eine Auslosung existiert; Gruppe 2 kommt jetzt aus derselben Liste). Keine Änderung nötig.
+
+## Befund #18 / #65 — demo_seed
+
+Umgesetzt in `verfahren/management/commands/demo_seed.py`: Hervorhebungs-Beschluss nur, wenn
+ausschließlich Demo-Mitglieder im Integritätsrat sitzen; Wächter des Abstimmungs-Chat-Blocks am
+Titel (`TESTLAUF_TITEL`). Tests in `verfahren/test_demo_seed.py` (lassen den Befehl zweimal
+laufen). Kein Cluster-fremder Bedarf.

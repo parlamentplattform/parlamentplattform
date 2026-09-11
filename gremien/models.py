@@ -295,6 +295,10 @@ class Entwurf(models.Model):
             # auch wenn in einer Überarbeitungsrunde noch Arbeitsstände dazukommen (Befund #5).
             self.eingereichte_fassung = fassung.nummer
         if self.vollzugsbezug:
+            # Spätestens jetzt braucht es Gruppe 2 — gelost, nicht berufen (§ 6 Abs 7). Das
+            # Setzen des Bezugs im Fenster zieht sie schon; dieser Aufruf fängt den Fall ab, in
+            # dem der Bezug anders gesetzt wurde. Einmalig, siehe `gruppe_2_nachziehen`.
+            gruppe_2_nachziehen(self.antrag, jetzt)
             self.status = EntwurfsStatus.PRUEFUNG
         else:
             self.status = EntwurfsStatus.UNTERSTUETZER
@@ -1585,12 +1589,20 @@ class Auslosung(models.Model):
         return f"Auslosung zu Antrag {self.antrag_id}, Runde {self.runde}"
 
 
-def auslosen(antrag, runde: int = 1, jetzt=None):
+def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)):
     """Lost den Expertenrat für einen Antrag und legt die Rollen an (§ 6 Abs 7).
 
     Der Anker ist der Kopf der Audit-Kette in diesem Augenblick: Er steht jetzt fest und war
     vorher von niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
     Verfahrensordnung des Antrags, nicht aus dem laufenden Register (§ 5 Abs 5).
+
+    `gruppen` sagt, welche Gruppen diese Runde zieht: `(1,)` zu Beratungsbeginn, `(2,)` sobald
+    der Vollzugs- oder Beschaffungsbezug feststeht (Befund #14/#37 — beim ersten Los gibt es
+    noch keinen Entwurf, der ihn tragen könnte), `(1,)` erneut beim Austausch der Gruppe 1.
+    Die Losregel nummeriert die gezogenen Gruppen 1-basiert; hier werden sie auf die
+    tatsächlichen Gruppennummern zurückgeführt, damit Platz, Rolle und Anzeige dieselbe Gruppe
+    nennen. Wer für diesen Antrag schon im Expertenrat sitzt oder saß, lost nicht mit — so sind
+    die Gruppen wirklich „unabhängig voneinander besetzt“.
 
     Reicht der Lostopf nicht, geschieht nichts — und der Aufrufer erfährt es am Rückgabewert
     `None`. Eine halb besetzte Gruppe wäre schlimmer als keine: Sie sähe nach Beratung aus."""
@@ -1603,31 +1615,41 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
     if kopf is None:
         return None
     ordnung = antrag.policy()
-    groessen = [ordnung.expertenrat_gruppe1]
-    # Frische Abfrage statt des Related-Zugriffs: `antrag.entwurf` legt beim Fehlschlag einen
-    # negativen Eintrag im Objekt-Cache an — der Aufrufer bekäme danach auch dann „kein
-    # Entwurf", wenn längst einer angelegt wurde. Genau daran ist ein Test gestolpert.
-    entwurf = Entwurf.objects.filter(antrag=antrag).first()
-    if entwurf is not None and entwurf.vollzugsbezug:
-        groessen.append(ordnung.expertenrat_gruppe2)
+    gruppen = tuple(gruppen)
+    groessen = [getattr(ordnung, f"expertenrat_gruppe{g}") for g in gruppen]
     fachgebiete = list(antrag.kategorien.values_list("slug", flat=True))
-    # Wer für diesen Antrag in einer früheren Runde schon gelost wurde, lost nicht noch einmal
-    # mit: Sonst könnte ein Ausgetauschter in derselben Sache wieder auftauchen.
+    # Wer für diesen Antrag schon gelost oder — parteiweit — in Gruppe 1 tätig ist, lost nicht
+    # noch einmal mit: Sonst könnte ein Ausgetauschter in derselben Sache wieder auftauchen oder
+    # jemand seinen eigenen Vorschlag prüfen (§ 6 Abs 7).
     frueher = set(
         Rolle.objects.filter(antrag=antrag).values_list("mitglied__fachlisteneintrag__schluessel", flat=True)
     )
+    if 2 in gruppen:
+        frueher |= set(
+            Rolle.fuer_antrag(Gremium.EXPERTENRAT_1, antrag).values_list(
+                "mitglied__fachlisteneintrag__schluessel", flat=True
+            )
+        )
+    frueher.discard(None)
     kandidaten = [
-        k if k.schluessel not in frueher else type(k)(k.schluessel, k.fachgebiete, True, "in einer früheren Runde gelost")
+        k if k.schluessel not in frueher else type(k)(k.schluessel, k.fachgebiete, True, "sitzt schon im Expertenrat dieses Antrags")
         for k in lostopf_der_fachliste()
     ]
     try:
         ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     except LosFehler as fehler:
         AuditEintrag.anhaengen(
-            {"typ": "auslosung_nicht_moeglich", "antrag": antrag.pk, "runde": runde, "grund": str(fehler)}
+            {
+                "typ": "auslosung_nicht_moeglich",
+                "antrag": antrag.pk,
+                "runde": runde,
+                "gruppen": list(gruppen),
+                "grund": str(fehler),
+            }
         )
         return None
 
+    nummer_von = dict(enumerate(gruppen, start=1))  # Index der Losregel → tatsächliche Gruppe
     auslosung = Auslosung.objects.create(
         antrag=antrag,
         runde=runde,
@@ -1638,7 +1660,7 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
         lostopf=list(ziehung.lostopf),
         ausgeschlossen=[list(a) for a in ziehung.ausgeschlossen],
         plaetze=[
-            {"schluessel": p.schluessel, "gruppe": p.gruppe, "rang": p.rang, "loswert": p.loswert}
+            {"schluessel": p.schluessel, "gruppe": nummer_von[p.gruppe], "rang": p.rang, "loswert": p.loswert}
             for p in ziehung.plaetze
         ],
         gezogen_am=jetzt,
@@ -1650,7 +1672,7 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
             continue
         Rolle.objects.create(
             mitglied=eintrag.mitglied,
-            gremium=gremien[platz.gruppe],
+            gremium=gremien[nummer_von[platz.gruppe]],
             endet_am=standard_ende(),
             bestaetigt=True,  # die Bestätigung liegt in der Bestellung auf die Fachliste
             antrag=antrag,
@@ -1661,14 +1683,29 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
             "typ": "expertenrat_ausgelost",
             "antrag": antrag.pk,
             "runde": runde,
+            "gruppen": list(gruppen),
             "anker_lfd": kopf.lfd,
             "anker": kopf.hash,
             "regel_fassung": ziehung.version,
             "groessen": groessen,
-            "plaetze": [[p.gruppe, p.schluessel] for p in ziehung.plaetze],
+            "plaetze": [[nummer_von[p.gruppe], p.schluessel] for p in ziehung.plaetze],
         }
     )
     return auslosung
+
+
+def gruppe_2_nachziehen(antrag, jetzt=None):
+    """Lost Gruppe 2 nach, sobald der Vollzugs- oder Beschaffungsbezug feststeht (§ 6 Abs 7).
+
+    Zu Beratungsbeginn weiß niemand, ob ein Vorschlag Vollzugsbezug haben wird — das stellt
+    Gruppe 1 erst in der Werkstatt fest. Bis 0.45 wurde Gruppe 2 deshalb im Echtbetrieb nie
+    gelost, und die Prüfung fiel an parteiweit berufene Rollen oder blieb liegen (Befund #14/#37).
+    Einmal je Antrag: Gibt es für ihn schon eine aktive geloste Gruppe 2, geschieht nichts.
+    Reicht der Lostopf nicht, bleibt es beim bisherigen Rückfall auf parteiweite Rollen."""
+    if Rolle.aktive(Gremium.EXPERTENRAT_2).filter(antrag=antrag).exists():
+        return None
+    letzte = Auslosung.objects.filter(antrag=antrag).order_by("-runde").first()
+    return auslosen(antrag, runde=(letzte.runde + 1) if letzte else 1, jetzt=jetzt, gruppen=(2,))
 
 
 #: § 6 Abs 10: „der Koordinationsrat legt der Mitgliederversammlung binnen 30 Tagen einen

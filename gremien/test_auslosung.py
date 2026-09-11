@@ -168,18 +168,98 @@ def test_die_groessen_kommen_aus_der_eingefrorenen_ordnung(client, ordnung):  # 
     assert auslosung.groessen == [antrag.policy().expertenrat_gruppe1] == [3]
 
 
-def test_ein_vollzugsbezug_zieht_die_zweite_gruppe_dazu(client, ordnung):  # noqa: F811
+def vollzugsbezug_setzen(client, antrag):
+    """Der erreichbare Weg: Ein Mitglied der gelosten Gruppe 1 öffnet das Fenster und setzt den Bezug."""
+    rat = Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_1).first().mitglied
+    client.force_login(rat)
+    aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
+    client.post(aktion, {"aktion": "oeffnen"})
+    client.post(aktion, {"aktion": "vollzugsbezug", "vollzugsbezug": "ja"})
+
+
+def test_ein_vollzugsbezug_zieht_die_zweite_gruppe_nach(client, ordnung):  # noqa: F811
+    """Befund #14/#37: Zu Beratungsbeginn gibt es keinen Entwurf — der Vollzugsbezug wird erst
+    in der Werkstatt gesetzt. Bis 0.45 wurde Gruppe 2 deshalb im Echtbetrieb nie gelost.
+    Jetzt zieht das Setzen des Bezugs eine zweite Runde nur für Gruppe 2 — aus dem Rest des
+    Lostopfs, mit eigenem Anker, ohne Gruppe 1 anzutasten (§ 6 Abs 7)."""
+    fachliste_fuellen(12)
+    antrag = antrag_in_beratung(ordnung)
+    erste = Auslosung.objects.get(antrag=antrag)
+    gruppe_1 = set(Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_1).values_list("pk", flat=True))
+    assert len(gruppe_1) == 3 and not Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_2).exists()
+
+    vollzugsbezug_setzen(client, antrag)
+
+    zweite = Auslosung.objects.get(antrag=antrag, runde=2)
+    assert zweite.groessen == [antrag.policy().expertenrat_gruppe2] == [3]
+    assert [p["gruppe"] for p in zweite.plaetze] == [2, 2, 2], "der Platz nennt die tatsächliche Gruppe"
+    assert zweite.anker != erste.anker and zweite.anker_lfd > erste.anker_lfd
+    gruppe_2 = Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_2)
+    assert gruppe_2.count() == 3 and all(r.auslosung_id == zweite.pk for r in gruppe_2)
+    # Gruppe 1 bleibt, wie sie war — und niemand sitzt in beiden.
+    assert set(Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_1).values_list("pk", flat=True)) == gruppe_1
+    leute_1 = set(Rolle.objects.filter(pk__in=gruppe_1).values_list("mitglied_id", flat=True))
+    assert not (leute_1 & set(gruppe_2.values_list("mitglied_id", flat=True))), "§ 6 Abs 7: unabhängig besetzt"
+    ausgeschlossen = {schluessel for schluessel, _grund in zweite.ausgeschlossen}
+    assert {p["schluessel"] for p in erste.plaetze} <= ausgeschlossen
+    audit = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "expertenrat_ausgelost"]
+    assert audit[-1]["gruppen"] == [2] and all(g == 2 for g, _s in audit[-1]["plaetze"])
+
+
+def test_gruppe_2_wird_nur_einmal_nachgezogen(client, ordnung):  # noqa: F811
+    """Den Bezug zweimal setzen — oder ihn setzen und dann einreichen — lost keine dritte Gruppe."""
+    fachliste_fuellen(12)
+    antrag = antrag_in_beratung(ordnung)
+    vollzugsbezug_setzen(client, antrag)
+    vollzugsbezug_setzen(client, antrag)
+    assert Auslosung.objects.filter(antrag=antrag).count() == 2
+    from gremien.models import Entwurf
+
+    Entwurf.objects.get(antrag=antrag).einreichen()
+    assert Auslosung.objects.filter(antrag=antrag).count() == 2
+    assert Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_2).count() == 3
+
+
+def test_die_geloste_gruppe_2_prueft_den_vorschlag(client, ordnung):  # noqa: F811
+    """Die Prüfabstimmung entsteht bei den Gelosten — nicht bei parteiweit berufenen Rollen."""
+    from gremien.models import BeschlussStatus, Entwurf, EntwurfsStatus, GremienBeschluss
+
+    berufen = mitglied_anlegen("berufen-e2")
+    rolle_geben(berufen, Gremium.EXPERTENRAT_2)  # parteiweit — der alte Rückfall
+    fachliste_fuellen(12)
+    antrag = antrag_in_beratung(ordnung)
+    vollzugsbezug_setzen(client, antrag)
+    entwurf = Entwurf.objects.get(antrag=antrag)
+    entwurf.einreichen()
+    assert entwurf.status == EntwurfsStatus.PRUEFUNG
+    beschluss = GremienBeschluss.objects.get(entwurf=entwurf, gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN)
+    assert beschluss.aktive_rollen() == 3
+    assert beschluss.angelegt_von != berufen
+    assert Rolle.hat_fuer(berufen, Gremium.EXPERTENRAT_2, antrag) is False
+
+
+def test_spaetestens_das_einreichen_zieht_gruppe_2(client, ordnung):  # noqa: F811
+    """Wurde der Bezug ohne die Werkstatt gesetzt, holt das Einreichen die Ziehung nach."""
     from gremien.models import Entwurf
 
     fachliste_fuellen(12)
-    antrag = antrag_einbringen(mitglied_anlegen("stellerin-v"), **ANTRAG, ordnung=ordnung)
-    Entwurf.objects.create(antrag=antrag, vollzugsbezug=True)
-    in_beratung_bringen(antrag, [mitglied_anlegen("vv1"), mitglied_anlegen("vv2")])
-    auslosung = Auslosung.objects.get(antrag=antrag)
-    assert auslosung.groessen == [3, 3] and len(auslosung.plaetze) == 6
-    erste = {p["schluessel"] for p in auslosung.plaetze if p["gruppe"] == 1}
-    zweite = {p["schluessel"] for p in auslosung.plaetze if p["gruppe"] == 2}
-    assert not (erste & zweite), "§ 6 Abs 7: zwei unabhängig besetzte Gruppen"
+    antrag = antrag_in_beratung(ordnung)
+    entwurf = Entwurf.objects.create(antrag=antrag, vollzugsbezug=True)
+    entwurf.fassungen.create(nummer=1, wortlaut="x", verfasst_von=Rolle.objects.filter(antrag=antrag).first().mitglied)
+    entwurf.einreichen()
+    assert Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_2).count() == 3
+
+
+def test_ohne_ausreichenden_lostopf_bleibt_der_bisherige_rueckfall(client, ordnung):  # noqa: F811
+    """Reicht die Fachliste nur für Gruppe 1, wird Gruppe 2 nicht halb gelost — es bleibt beim
+    Rückfall auf parteiweite Rollen, und das Audit sagt, warum."""
+    fachliste_fuellen(4)
+    antrag = antrag_in_beratung(ordnung)
+    vollzugsbezug_setzen(client, antrag)
+    assert Auslosung.objects.filter(antrag=antrag).count() == 1
+    assert not Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_2).exists()
+    gruende = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "auslosung_nicht_moeglich"]
+    assert gruende and gruende[-1]["gruppen"] == [2]
 
 
 def test_nur_fachleute_des_lebensbereichs_werden_gezogen(client, ordnung):  # noqa: F811

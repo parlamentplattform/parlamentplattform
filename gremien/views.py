@@ -46,6 +46,7 @@ from gremien.models import (
     WunschVermerk,
     aussetzungen_fortschreiben,
     beschluss_frist,
+    gruppe_2_nachziehen,
     parametertests_fortschreiben,
     standard_ende,
     unvereinbar,
@@ -497,6 +498,11 @@ def fenster_aktion(request, antrag_id: int):
             _("Vollzugs-/Beschaffungsbezug: %(wert)s.")
             % {"wert": _("ja — Gruppe 2 prüft") if entwurf.vollzugsbezug else _("nein")},
         )
+        if entwurf.vollzugsbezug:
+            # § 6 Abs 7: „zwei unabhängig voneinander besetzte Gruppen“ — Gruppe 2 wird gelost,
+            # sobald feststeht, dass sie gebraucht wird (Befund #14/#37). Einmal je Antrag.
+            if gruppe_2_nachziehen(antrag) is not None:
+                messages.info(request, _("Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost."))
 
     elif aktion == "einreichung":
         if antrag.phase != Phase.BERATUNG.value:

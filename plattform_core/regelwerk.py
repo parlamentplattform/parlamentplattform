@@ -26,7 +26,7 @@ from dataclasses import dataclass
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 1
+VERSION = 2
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -493,13 +493,15 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=1,
-        seit="2026-09-05",
+        fassung=2,
+        seit="2026-09-11",
         grund=(
-            "Erste Fassung: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer "
-            "Rolle gibt und welche davon schon gebaut sind. Seither steht das öffentlich unter "
-            "/rollen/ — mit dem Stand von 164 Fähigkeiten, davon 66 verfügbar, 33 teilweise und 65 "
-            "geplant."
+            "Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen "
+            "der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, Entwicklungsrat "
+            "und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die "
+            "erste: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer Rolle "
+            "gibt und welche davon schon gebaut sind. Die Zählung unter /rollen/ ist immer die "
+            "aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet."
         ),
         nachrechenbar=(
             "Die Zahlen unter der Übersicht sind die ausgezählten Zeilen der Tabelle darüber; wer "
@@ -678,6 +680,29 @@ REGELN: tuple[Regel, ...] = (
             "steht am Beschluss. Die Hemmung ist die Summe der Zeiträume, die zwischen Phasenbeginn "
             "und jetzt liegen — überlappende zählen nur einmal, sonst hemmten zwei gleichzeitige "
             "Aussetzungen doppelt."
+        ),
+    ),
+    Regel(
+        modul="parametertest.py",
+        titel="Gegenüberstellung bei Parametertests",
+        zweck=(
+            "Stellt die Messgröße eines befristeten Parametertests vorher und während des Tests "
+            "gegenüber — Differenz und Anteil — und sagt, ab wann ein Test läuft und wann er um "
+            "ist. Sie liefert Zahlen, kein Urteil: Ob ein Wert eingeführt wird, beschließt der "
+            "Koordinationsrat mit Namen und Begründung."
+        ),
+        wirkung=Wirkung.RECHNET,
+        satzung="§ 6 Abs 11 lit c · § 6 Abs 11 lit d",
+        fassung=1,
+        seit="2026-09-09",
+        grund=(
+            "Erste Fassung mit dem Parameterverfahren. Die Messgrößen sind die Kennzahlen, die die "
+            "Plattform ohnehin unter /kennzahlen.json veröffentlicht — eine zweite, unveröffentlichte "
+            "Zählung nur für Tests wäre nicht nachrechenbar gewesen."
+        ),
+        nachrechenbar=(
+            "Vorher- und Nachher-Schnappschuss stehen am Test; Differenz = nachher − vorher, "
+            "Anteil = Differenz ÷ |vorher| × 100."
         ),
     ),
     Regel(

@@ -30,6 +30,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.utils import timezone
 
+from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 
 REVIEW_TAGE = 14
@@ -53,6 +54,8 @@ class Gremium(models.TextChoices):
     EXPERTENRAT_2 = "expertenrat2", "Expertenrat — Gruppe 2 (Prüfung)"
     KOORDINATIONSRAT = "koordinationsrat", "Koordinationsrat"
     INTEGRITAETSRAT = "integritaetsrat", "Integritätsrat"
+    BERICHTSWESENRAT = "berichtswesenrat", "Integrations- und Berichtswesenrat"
+    ENTWICKLUNGSRAT = "entwicklungsrat", "Technischer Entwicklungsrat"
 
 
 class Rolle(models.Model):
@@ -122,6 +125,17 @@ class Rolle(models.Model):
         ).exists()
 
     @classmethod
+    def letzte(cls, mitglied, *gremien: str):
+        """Die jüngste Rolle in einem dieser Gremien, ob aktiv oder nicht — oder None.
+
+        Wer eine Rolle hatte, liest den Bereich weiter (mit Band); schreiben darf nur, wer
+        eine aktive hat. Ohne diesen Lesezugang verschwände mit dem Ablaufdatum auch die
+        Möglichkeit, das eigene Wirken nachzulesen."""
+        if not getattr(mitglied, "is_authenticated", False):
+            return None
+        return cls.objects.filter(mitglied=mitglied, gremium__in=gremien).order_by("-endet_am").first()
+
+    @classmethod
     def fuer_antrag(cls, gremium: str, antrag):
         """Die aktiven Rollen, die für DIESEN Antrag gelten (§ 6 Abs 7).
 
@@ -188,22 +202,47 @@ class Entwurf(models.Model):
     def aktuelle_fassung(self):
         return self.fassungen.order_by("-nummer").first()
 
-    def einreich_stand(self) -> dict:
-        """Interne Abstimmung der Gruppe 1 (dokumentiert, § 6 Abs 8/9):
-        einreichbar bei einfacher Mehrheit und mindestens der Hälfte der
-        aktiven Rollen als Zustimmung (Beschlussfähigkeit)."""
-        stimmen = list(self.einreich_stimmen.filter(runde=self.runde))
-        ja = sum(1 for s in stimmen if s.einverstanden)
-        nein = len(stimmen) - ja
-        aktive = Rolle.aktive(Gremium.EXPERTENRAT_1).count()
-        noetig = max(1, (aktive + 1) // 2)
-        return {
-            "ja": ja,
-            "nein": nein,
-            "aktive": aktive,
-            "noetig": noetig,
-            "einreichbar": ja >= noetig and ja > nein and self.aktuelle_fassung() is not None,
-        }
+    def einreichungsbeschluss(self):
+        """Der offene Beschluss der Gruppe 1 über die Einreichung — oder None."""
+        return self.beschluesse.filter(anlass=Anlass.EINREICHUNG, status=BeschlussStatus.OFFEN).first()
+
+    def einreichungsbeschluss_anlegen(self, von, jetzt=None):
+        """Stellt der Gruppe 1 die Frage, ob die aktuelle Fassung eingereicht wird (FB-I4).
+
+        Bis 0.44 war das eine eigene Abstimmung mit eigener Zählung (`EinreichStimme`). Jetzt
+        ist es ein Beschluss wie jeder andere: Quorum nach § 6 Abs 2 lit e, Frist aus dem
+        Register, jede Stimme öffentlich mit Namen (§ 6 Abs 9). Der Nenner sind die für
+        DIESEN Antrag gelosten Rollen (§ 6 Abs 7). Solange der Beschluss läuft, ruht die
+        Fassung — sonst stimmte man über einen Text ab, der sich unter der Hand ändert."""
+        fassung = self.aktuelle_fassung()
+        if fassung is None or self.status != EntwurfsStatus.IN_ARBEIT:
+            return None
+        if self.einreichungsbeschluss() is not None:
+            return None
+        beschluss = GremienBeschluss.objects.create(
+            gremium=Gremium.EXPERTENRAT_1,
+            anlass=Anlass.EINREICHUNG,
+            gegenstand=f"Fassung {fassung.nummer} einreichen: {self.antrag.titel}"[:200],
+            beschreibung=(fassung.begruendung or "")[:4000],
+            optionen=JA_NEIN,
+            frist=beschluss_frist(),
+            antrag=self.antrag,
+            entwurf=self,
+            angelegt_von=von,
+            angelegt_am=jetzt or timezone.now(),
+        )
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_angelegt",
+                "gremium": Gremium.EXPERTENRAT_1.value,
+                "anlass": Anlass.EINREICHUNG.value,
+                "antrag": self.antrag_id,
+                "fassung": fassung.nummer,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+            }
+        )
+        return beschluss
 
     def votum_stand(self) -> dict:
         voten = list(self.unterstuetzer_voten.filter(runde=self.runde))
@@ -499,6 +538,11 @@ class EntwurfsBeitrag(models.Model):
     ki_lauf = models.ForeignKey(
         "ki.KILauf", null=True, blank=True, on_delete=models.PROTECT, related_name="beitraege"
     )
+    absatz = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn der Beitrag an einen Absatz der aktuellen Fassung gebunden ist (FB-I2).",
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -509,7 +553,11 @@ class EntwurfsBeitrag(models.Model):
 
 
 class EinreichStimme(models.Model):
-    """Die interne, dokumentierte Abstimmung der Gruppe 1: einreichen? (F-66)"""
+    """Die interne Einreich-Abstimmung der Gruppe 1 bis 0.44 (F-66) — **nur noch Archiv**.
+
+    Seit 0.45 ist die Einreichung ein Beschluss (`Anlass.EINREICHUNG`); offene Abstimmungen
+    wurden bei der Umstellung in einen solchen übertragen (Migration 0011). Die Tabelle
+    bleibt, weil sie Verfahren betrifft (Grundregel 7) — geschrieben wird sie nicht mehr."""
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="einreich_stimmen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -559,6 +607,14 @@ class Pruefung(models.Model):
         help_text="Nur bei Austauschanträgen: die Entscheidung des Koordinationsrats.",
     )
     korat_begruendung = models.TextField(max_length=2000, blank=True)
+    korat_beschluss = models.ForeignKey(
+        "gremien.GremienBeschluss",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pruefungen_austausch",
+        help_text="Der Beschluss des Koordinationsrats über den Austauschantrag (§ 6 Abs 7).",
+    )
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -605,6 +661,12 @@ class Anlass(models.TextChoices):
     AUSSETZUNG = "aussetzung", "Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)"
     AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", "Aussetzung aufheben (§ 6 Abs 3 lit d)"
     REGELPRUEFUNG = "regelpruefung", "Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)"
+    EINREICHUNG = "einreichung", "Einreichung eines Vorschlags (§ 5 Abs 12)"
+    AUSTAUSCH = "austausch", "Austausch der Gruppe 1 (§ 6 Abs 7)"
+    HERVORHEBUNG_ANREGEN = "hervorhebung_anregen", "Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)"
+    UEBERLASTUNG = "ueberlastung", "Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)"
+    PARAMETERTEST = "parametertest", "Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)"
+    PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", "Einführung eines Registerwerts (§ 6 Abs 11 lit c)"
 
 
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
@@ -626,6 +688,8 @@ GREMIUMSKUERZEL = {
     "expertenrat2": "E2",
     "koordinationsrat": "KR",
     "integritaetsrat": "IR",
+    "berichtswesenrat": "IB",
+    "entwicklungsrat": "TE",
 }
 
 
@@ -682,6 +746,15 @@ class GremienBeschluss(models.Model):
     umsetzungsvermerk = models.TextField(
         max_length=2000, blank=True, help_text="Was wie umgesetzt wird — nach der Entscheidung."
     )
+    umsetzung_durch = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="zugewiesene_umsetzungen",
+        help_text="Wer die Umsetzung übernimmt — ein Mitglied des Rates.",
+    )
+    umsetzung_frist = models.DateField(null=True, blank=True, help_text="Bis wann.")
     zustand_vorher = models.JSONField(
         null=True,
         blank=True,
@@ -1492,6 +1565,439 @@ def auslosen(antrag, runde: int = 1, jetzt=None):
     )
     return auslosung
 
+
+#: § 6 Abs 10: „der Koordinationsrat legt der Mitgliederversammlung binnen 30 Tagen einen
+#: Vorschlag ... vor." Satzungsfest — deshalb im Code und nicht im Register.
+SATZUNG_UEBERLASTUNG_TAGE = 30
+
+
+class Ueberlastungsmeldung(models.Model):
+    """Eine Überlastungsmeldung nach § 6 Abs 10 — sofort öffentlich, mit laufender Frist.
+
+    „Meldet eine berichtspflichtige Stelle begründet, dass die Gesamtheit der ihr zugewiesenen
+    Aufgaben ihre Kapazität übersteigt, so ist die Meldung unverzüglich zu veröffentlichen; der
+    Koordinationsrat legt der Mitgliederversammlung binnen 30 Tagen einen Vorschlag zur
+    Reihung, Streckung oder Rückstellung der Umsetzung zur Beschlussfassung vor."
+
+    Der Vorschlag ist ein Beschluss des Koordinationsrats (`Anlass.UEBERLASTUNG`); seine
+    Wirkung bringt ihn als Sachantrag in die Mitgliederversammlung ein — die Plattform **ist**
+    die Mitgliederversammlung (§ 5)."""
+
+    stelle = models.CharField(max_length=120, help_text="Wer meldet — Organ, Gliederung oder Mandat, nie eine Person.")
+    begruendung = models.TextField(max_length=4000)
+    gemeldet_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    gemeldet_am = models.DateTimeField(default=timezone.now)
+    vorschlag = models.TextField(max_length=4000, blank=True)
+    beschluss = models.ForeignKey(
+        "gremien.GremienBeschluss", null=True, blank=True, on_delete=models.SET_NULL, related_name="ueberlastungen"
+    )
+    antrag_an_mv = models.ForeignKey(
+        Antrag, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+        help_text="Der Vorschlag als Antrag an die Mitgliederversammlung.",
+    )
+    erledigt_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-gemeldet_am"]
+        verbose_name = "Überlastungsmeldung"
+        verbose_name_plural = "Überlastungsmeldungen"
+
+    def __str__(self) -> str:
+        return f"Überlastungsmeldung {self.stelle} ({self.gemeldet_am:%d.%m.%Y})"
+
+    @property
+    def frist(self):
+        return self.gemeldet_am + timedelta(days=SATZUNG_UEBERLASTUNG_TAGE)
+
+
+class Interessenbindung(models.Model):
+    """Die Offenlegung eines Rolleninhabers **zu diesem Antrag** (§ 6 Abs 7, FB-I2).
+
+    Die Fachliste nennt Bindungen und Honorare allgemein; ob es zu DIESER Sache eine gibt,
+    fragt die Plattform beim Abstimmen über die Einreichung — Pflichtfeld, „keine" ist eine
+    Antwort. Sie steht öffentlich beim Vorschlag: Wer den Text geschrieben hat, sagt, was ihn
+    mit dem Gegenstand verbindet."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="interessenbindungen")
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    runde = models.PositiveIntegerField(default=1)
+    text = models.CharField(max_length=1000)
+    erklaert_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("antrag", "mitglied", "runde")]
+        ordering = ["erklaert_am"]
+        verbose_name = "Interessenbindung"
+        verbose_name_plural = "Interessenbindungen"
+
+    def __str__(self) -> str:
+        return f"Interessenbindung von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+
+class WunschVermerk(models.Model):
+    """Ein Wunsch der Unterstützer aus der Vorrunde, den die Gruppe 1 als berücksichtigt abhakt (FB-I2).
+
+    Der Haken ist eine Auskunft, kein Urteil: Er sagt „wir haben das gelesen und in Fassung n
+    aufgenommen" — ob das stimmt, prüfen die Unterstützer in der nächsten Runde selbst."""
+
+    entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="wunschvermerke")
+    kommentar = models.ForeignKey("verfahren.Kommentar", on_delete=models.CASCADE, related_name="+")
+    fassung = models.PositiveIntegerField(help_text="In welcher Fassung der Wunsch berücksichtigt wurde.")
+    durch = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    vermerkt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("entwurf", "kommentar")]
+
+    def __str__(self) -> str:
+        return f"Wunsch {self.kommentar_id} berücksichtigt in Fassung {self.fassung}"
+
+
+class HinweisQuelle(models.TextChoices):
+    PARAMETERTEST = "parametertest", "Auswertung eines Parametertests"
+    HERVORHEBUNG = "hervorhebung", "Kandidat für Hervorhebung"
+    MUSTER = "muster", "Muster-Bericht"
+    LAST = "last", "Lastwarnung"
+
+
+class HinweisStatus(models.TextChoices):
+    OFFEN = "offen", "offen"
+    BESCHLUSS = "beschluss", "Beschluss angelegt"
+    VERWORFEN = "verworfen", "verworfen"
+    KENNTNIS = "kenntnis", "zur Kenntnis genommen"
+
+
+class Hinweis(models.Model):
+    """Ein Eintrag im Posteingang des Koordinationsrats (FB-I5).
+
+    Die Zukunftswerkstatt schlägt vor — hier landet der Vorschlag, und hier entscheidet ein
+    Mensch mit Grund, was daraus wird: Beschluss, Kenntnisnahme oder Verwerfen. Nichts
+    geschieht ohne diesen Schritt (Grundregel 5). Gelöscht wird nichts; auch ein verworfener
+    Hinweis bleibt mit seinem Grund stehen."""
+
+    quelle = models.CharField(max_length=20, choices=HinweisQuelle.choices)
+    titel = models.CharField(max_length=200)
+    text = models.TextField(max_length=4000)
+    parametertest = models.ForeignKey(
+        ParameterTest, null=True, blank=True, on_delete=models.SET_NULL, related_name="hinweise"
+    )
+    antrag = models.ForeignKey(Antrag, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    status = models.CharField(max_length=12, choices=HinweisStatus.choices, default=HinweisStatus.OFFEN)
+    grund = models.CharField(max_length=500, blank=True)
+    erledigt_von = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT, related_name="+"
+    )
+    erledigt_am = models.DateTimeField(null=True, blank=True)
+    angelegt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-angelegt_am"]
+        verbose_name = "Hinweis"
+        verbose_name_plural = "Posteingang"
+
+    def __str__(self) -> str:
+        return f"{self.get_quelle_display()}: {self.titel}"
+
+
+# ── Wirkungen der neuen Anlässe ────────────────────────────────────────────────────────
+
+
+def einreichung_wirkung(beschluss, jetzt=None) -> None:
+    """Beschließt die Gruppe 1 die Einreichung, wird eingereicht (§ 5 Abs 12).
+
+    Nur wenn das Fenster noch offen und der Antrag noch in der Beratung ist — sonst ist die
+    Frist inzwischen ausgewertet, und ein nachträgliches Einreichen träfe ein Verfahren, das
+    schon weiter ist."""
+    entwurf = beschluss.entwurf
+    if entwurf is None or beschluss.ergebnis != "dafuer":
+        return
+    if entwurf.status != EntwurfsStatus.IN_ARBEIT:
+        _vermerken(beschluss, "Nicht eingereicht: Das Entwurfsfenster war nicht mehr in Arbeit.")
+        return
+    from plattform_core import Phase
+
+    if entwurf.antrag.phase != Phase.BERATUNG.value:
+        _vermerken(beschluss, "Nicht eingereicht: Der Antrag war nicht mehr in der Beratung.")
+        return
+    entwurf.einreichen(jetzt)
+    _vermerken(beschluss, f"Eingereicht (Runde {entwurf.runde}).")
+
+
+def austausch_wirkung(beschluss, jetzt=None) -> None:
+    """Der Koordinationsrat entscheidet über den Austauschantrag der Gruppe 2 (§ 6 Abs 7).
+
+    Stattgeben beendet die **für diesen Antrag** gelosten oder berufenen Rollen der Gruppe 1
+    — nicht alle Rollen der Partei, das wäre seit der Auslosung ein Eingriff in fremde
+    Verfahren — und lost eine neue Runde. Der Entwurf geht an die neue Gruppe."""
+    pruefung = beschluss.pruefungen_austausch.first()
+    if pruefung is None or pruefung.korat_entscheid:
+        return
+    entwurf = pruefung.entwurf
+    entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
+    pruefung.korat_entscheid = entscheid
+    pruefung.korat_begruendung = f"Beschluss {beschluss.nummer}: {beschluss.beschreibung}"[:2000]
+    pruefung.save(update_fields=["korat_entscheid", "korat_begruendung"])
+    if entscheid == "stattgegeben":
+        betroffen = list(Rolle.fuer_antrag(Gremium.EXPERTENRAT_1, entwurf.antrag))
+        for rolle in betroffen:
+            rolle.beendet_grund = f"Austausch durch den Koordinationsrat, Beschluss {beschluss.nummer} (§ 6 Abs 7)"
+            rolle.save(update_fields=["beendet_grund"])
+        letzte = Auslosung.objects.filter(antrag=entwurf.antrag).order_by("-runde").first()
+        neue = auslosen(entwurf.antrag, runde=(letzte.runde + 1) if letzte else 2, jetzt=jetzt)
+        entwurf.zurueck_an_gruppe_1(
+            f"Austausch der Gruppe 1 durch den Koordinationsrat, Beschluss {beschluss.nummer} (§ 6 Abs 7).",
+            jetzt,
+            frist_erneuern=True,
+        )
+        _vermerken(
+            beschluss,
+            f"Stattgegeben — {len(betroffen)} Rollen der Gruppe 1 für diesen Antrag beendet; "
+            + ("neu gelost." if neue else "keine neue Ziehung möglich (Lostopf reicht nicht)."),
+        )
+    else:
+        _vermerken(beschluss, "Abgelehnt — der Vorschlag bleibt bei Gruppe 2 zur Prüfung.")
+    AuditEintrag.anhaengen(
+        {
+            "typ": "austausch_entschieden",
+            "antrag": entwurf.antrag_id,
+            "entscheid": entscheid,
+            "pruefung": pruefung.pk,
+            "beschluss": beschluss.pk,
+        }
+    )
+
+
+def hervorhebung_anregen_wirkung(beschluss, jetzt=None) -> None:
+    """Der Koordinationsrat beantragt die Hervorhebung beim Integritätsrat (FB-D4).
+
+    Zwei Räte, vier Augen: Die Zukunftswerkstatt meldet, der Koordinationsrat beantragt, der
+    Integritätsrat beschließt (§ 5 Abs 10 lit b). Die Wirkung hier ist genau ein neuer
+    Beschluss beim Integritätsrat — nie die Hervorhebung selbst."""
+    if beschluss.ergebnis != "dafuer" or beschluss.antrag_id is None:
+        return
+    if GremienBeschluss.objects.filter(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.HERVORHEBUNG,
+        antrag=beschluss.antrag,
+        status=BeschlussStatus.OFFEN,
+    ).exists():
+        _vermerken(beschluss, "Beim Integritätsrat läuft bereits ein Beschluss zur Hervorhebung.")
+        return
+    neu = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.HERVORHEBUNG,
+        gegenstand=f"Antrag hervorheben: {beschluss.antrag.titel}"[:200],
+        beschreibung=f"Auf Antrag des Koordinationsrats, Beschluss {beschluss.nummer}:\n{beschluss.beschreibung}"[:4000],
+        optionen=JA_NEIN,
+        frist=beschluss_frist(),
+        antrag=beschluss.antrag,
+        angelegt_von=beschluss.angelegt_von,
+        angelegt_am=jetzt or timezone.now(),
+    )
+    _vermerken(beschluss, f"Beim Integritätsrat als {neu.nummer} eingebracht.")
+    AuditEintrag.anhaengen(
+        {
+            "typ": "gremienbeschluss_angelegt",
+            "gremium": Gremium.INTEGRITAETSRAT.value,
+            "anlass": Anlass.HERVORHEBUNG.value,
+            "antrag": beschluss.antrag_id,
+            "beschluss": neu.pk,
+            "nummer": neu.nummer,
+            "auf_antrag": beschluss.nummer,
+        }
+    )
+
+
+def ueberlastung_wirkung(beschluss, jetzt=None) -> None:
+    """Der Vorschlag des Koordinationsrats geht als Antrag an die Mitgliederversammlung (§ 6 Abs 10)."""
+    meldung = beschluss.ueberlastungen.first()
+    if meldung is None or meldung.erledigt_am or beschluss.ergebnis != "dafuer":
+        return
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+
+    ordnung = Verfahrensordnung.objects.filter(aktiv=True).first()
+    if ordnung is None:
+        _vermerken(beschluss, "Nicht eingebracht: Es gilt keine Verfahrensordnung.")
+        return
+    antrag = antrag_einbringen(
+        beschluss.angelegt_von,
+        titel=f"Vorschlag des Koordinationsrats zur Überlastungsmeldung „{meldung.stelle}“"[:200],
+        wortlaut=beschluss.beschreibung,
+        begruendung=(
+            f"Überlastungsmeldung vom {timezone.localtime(meldung.gemeldet_am):%d.%m.%Y} (§ 6 Abs 10): "
+            f"{meldung.begruendung}\n\nBeschluss {beschluss.nummer} des Koordinationsrats."
+        ),
+        ordnung=ordnung,
+    )
+    meldung.vorschlag = beschluss.beschreibung
+    meldung.antrag_an_mv = antrag
+    meldung.erledigt_am = jetzt or timezone.now()
+    meldung.save(update_fields=["vorschlag", "antrag_an_mv", "erledigt_am"])
+    _vermerken(beschluss, f"Als Antrag {antrag.pk} in die Mitgliederversammlung eingebracht.")
+    AuditEintrag.anhaengen(
+        {"typ": "ueberlastung_vorschlag", "meldung": meldung.pk, "beschluss": beschluss.pk, "antrag": antrag.pk}
+    )
+
+
+def _kennzahlen_schnappschuss() -> dict:
+    from parameter.kennzahlen import werte
+
+    return werte()
+
+
+def parametertest_wirkung(beschluss, jetzt=None) -> None:
+    """Der Test beginnt — der Wert steht im Register, das Band sagt es (§ 6 Abs 11 lit c).
+
+    Ein Parameter trägt nur einen Test zugleich: Zwei Werte auf einer Stellgröße wären keine
+    Messung. Ist der Rat dagegen oder kommt kein Ergebnis zustande, bleibt der Test als
+    „verworfen" stehen — man soll sehen, was nicht angeordnet wurde."""
+    test = beschluss.parametertests.first()
+    if test is None or test.status != TestStatus.GEPLANT:
+        return
+    jetzt = jetzt or timezone.now()
+    if beschluss.ergebnis != "dafuer":
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = f"Nicht angeordnet — Beschluss {beschluss.nummer} ohne Zustimmung."
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        return
+    parameter = test.parameter
+    if parameter.status == Status.IM_TEST:
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = "Nicht angeordnet — auf diesem Parameter läuft schon ein Test."
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        _vermerken(beschluss, test.auswertung)
+        return
+    test.alter_wert = parameter.wert
+    test.beginn = timezone.localdate(jetzt)
+    test.werte_vorher = _kennzahlen_schnappschuss()
+    test.status = TestStatus.LAEUFT
+    test.save(update_fields=["alter_wert", "beginn", "werte_vorher", "status"])
+    parameter.wert = test.testwert
+    parameter.status = Status.IM_TEST
+    parameter.test_bis = test.ende
+    parameter.test_hypothese = test.hypothese[:300]
+    parameter.geaendert_am = jetzt
+    parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
+    Aenderung.objects.create(
+        parameter=parameter,
+        alter_wert=test.alter_wert,
+        neuer_wert=test.testwert,
+        grund=f"Test bis {test.ende:%d.%m.%Y} — {test.hypothese} (Beschluss {beschluss.nummer}, § 6 Abs 11 lit c)"[:1000],
+        geaendert_am=jetzt,
+        durch=f"Koordinationsrat, Beschluss {beschluss.nummer}",
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "parametertest_begonnen",
+            "schluessel": parameter.schluessel,
+            "alt": test.alter_wert,
+            "neu": test.testwert,
+            "bis": test.ende.isoformat(),
+            "beschluss": beschluss.pk,
+        }
+    )
+    _vermerken(beschluss, f"Test läuft bis {test.ende:%d.%m.%Y}; der Wert gilt für neu beginnende Verfahren.")
+
+
+def parameter_einfuehrung_wirkung(beschluss, jetzt=None) -> None:
+    """Die Einführung: der Testwert wird der geltende Wert — mit Begründung im Register."""
+    test = beschluss.einfuehrungen.first()
+    if test is None or test.status != TestStatus.AUSGEWERTET:
+        return
+    jetzt = jetzt or timezone.now()
+    if beschluss.ergebnis != "dafuer":
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = (test.auswertung + f"\n\nNicht eingeführt — Beschluss {beschluss.nummer} ohne Zustimmung.")[:4000]
+        test.save(update_fields=["status", "auswertung"])
+        return
+    parameter = test.parameter
+    alt = parameter.wert
+    parameter.wert = test.testwert
+    parameter.status = Status.GUELTIG
+    parameter.test_bis = None
+    parameter.test_hypothese = ""
+    parameter.geaendert_am = jetzt
+    parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
+    Aenderung.objects.create(
+        parameter=parameter,
+        alter_wert=alt,
+        neuer_wert=test.testwert,
+        grund=f"Einführung nach Test — {beschluss.beschreibung or test.hypothese} (Beschluss {beschluss.nummer}, § 6 Abs 11 lit c)"[:1000],
+        geaendert_am=jetzt,
+        durch=f"Koordinationsrat, Beschluss {beschluss.nummer}",
+    )
+    test.status = TestStatus.EINGEFUEHRT
+    test.save(update_fields=["status"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "parameter_eingefuehrt",
+            "schluessel": parameter.schluessel,
+            "alt": alt,
+            "neu": test.testwert,
+            "beschluss": beschluss.pk,
+        }
+    )
+    _vermerken(beschluss, f"Eingeführt: {parameter.schluessel} = {test.testwert}.")
+
+
+def parametertests_fortschreiben(jetzt=None) -> int:
+    """Beendet abgelaufene Tests: Der Wert fällt zurück, die Auswertung landet im Posteingang.
+
+    Lazy wie der Phasenautomat — wer den Bereich oder das Register öffnet, stößt es an. Der
+    Rückfall ist der Rückweg, den die Satzung verlangt („jederzeit rückholbar"); ob der
+    Testwert eingeführt wird, ist danach eine neue Frage an den Rat."""
+    from plattform_core.parametertest import abgelaufen
+
+    jetzt = jetzt or timezone.now()
+    heute = timezone.localdate(jetzt)
+    beendet = 0
+    for test in ParameterTest.objects.filter(status=TestStatus.LAEUFT).select_related("parameter"):
+        if not abgelaufen(test.ende, heute):
+            continue
+        parameter = test.parameter
+        test.werte_nachher = _kennzahlen_schnappschuss()
+        g = test.gegenueberstellung()
+        if g.vollstaendig:
+            anteil = f" ({g.anteil:+} %)" if g.anteil is not None else ""
+            test.auswertung = (
+                f"{test.messgroesse}: vorher {g.vorher}, während des Tests {g.nachher}, "
+                f"Differenz {g.differenz}{anteil}. Hypothese: {test.hypothese}"
+            )
+        else:
+            test.auswertung = f"{test.messgroesse}: kein vollständiger Vergleich möglich. Hypothese: {test.hypothese}"
+        test.status = TestStatus.AUSGEWERTET
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["werte_nachher", "auswertung", "status", "ausgewertet_am"])
+        if parameter.status == Status.IM_TEST and parameter.wert == test.testwert:
+            parameter.wert = test.alter_wert
+            parameter.status = Status.GUELTIG
+            parameter.test_bis = None
+            parameter.test_hypothese = ""
+            parameter.geaendert_am = jetzt
+            parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
+            Aenderung.objects.create(
+                parameter=parameter,
+                alter_wert=test.testwert,
+                neuer_wert=test.alter_wert,
+                grund=f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"[:1000],
+                geaendert_am=jetzt,
+                durch="Testende (§ 6 Abs 11 lit c)",
+            )
+        Hinweis.objects.create(
+            quelle=HinweisQuelle.PARAMETERTEST,
+            titel=f"{parameter.schluessel}: Test {test.testwert} ausgewertet"[:200],
+            text=test.auswertung,
+            parametertest=test,
+            angelegt_am=jetzt,
+        )
+        AuditEintrag.anhaengen(
+            {"typ": "parametertest_ausgewertet", "schluessel": parameter.schluessel, "test": test.pk}
+        )
+        beendet += 1
+    return beendet
+
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
 #: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.
@@ -1510,6 +2016,14 @@ WIRKUNGEN = {
         beschluss, jetzt
     ),
     Anlass.REGELPRUEFUNG: lambda beschluss, jetzt: regelpruefung_wirkung(beschluss, jetzt),
+    Anlass.EINREICHUNG: lambda beschluss, jetzt: einreichung_wirkung(beschluss, jetzt),
+    Anlass.AUSTAUSCH: lambda beschluss, jetzt: austausch_wirkung(beschluss, jetzt),
+    Anlass.HERVORHEBUNG_ANREGEN: lambda beschluss, jetzt: hervorhebung_anregen_wirkung(beschluss, jetzt),
+    Anlass.UEBERLASTUNG: lambda beschluss, jetzt: ueberlastung_wirkung(beschluss, jetzt),
+    Anlass.PARAMETERTEST: lambda beschluss, jetzt: parametertest_wirkung(beschluss, jetzt),
+    Anlass.PARAMETER_EINFUEHRUNG: lambda beschluss, jetzt: parameter_einfuehrung_wirkung(
+        beschluss, jetzt
+    ),
 }
 
 

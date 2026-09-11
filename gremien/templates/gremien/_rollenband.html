@@ -1,0 +1,11 @@
+{% load i18n %}
+{% comment %}
+Das Band für Rolleninhaber, deren Rolle abgelaufen oder beendet ist (FB-I1): Sie lesen den
+Bereich weiter, schreiben aber nicht — und sehen, warum. Erwartet: abgelaufene_rolle (oder leer).
+{% endcomment %}
+{% if abgelaufene_rolle %}
+<div class="band-gold" style="margin-top:10px">
+  {% if abgelaufene_rolle.beendet_grund %}{% blocktranslate with datum=abgelaufene_rolle.endet_am|date:"d.m.Y" grund=abgelaufene_rolle.beendet_grund %}Ihre Rolle wurde beendet — {{ grund }}. Sie lesen hier weiter, schreiben können Sie nicht mehr.{% endblocktranslate %}
+  {% else %}{% blocktranslate with datum=abgelaufene_rolle.endet_am|date:"d.m.Y" %}Ihre Rolle endete am {{ datum }} (§ 6 Abs 8). Sie lesen hier weiter, schreiben können Sie nicht mehr.{% endblocktranslate %}{% endif %}
+</div>
+{% endif %}

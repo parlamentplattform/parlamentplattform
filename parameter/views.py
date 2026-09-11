@@ -23,6 +23,9 @@ def liste(request):
     from verfahren.views import REGLER_MERKMALE, REGLER_NAMEN
 
     erstbestand_sicherstellen()
+    from gremien.models import parametertests_fortschreiben
+
+    parametertests_fortschreiben()  # abgelaufene Tests fallen zurück — lazy wie der Phasenautomat
     return render(
         request,
         "parameter/liste.html",
@@ -58,6 +61,54 @@ def regeln(request):
             "satzung": SATZUNG,
         },
     )
+
+def parameter_detail(request, schluessel: str):
+    """Ein Parameter mit Historie und Tests — öffentlich (FB-J3, § 6 Abs 11 lit c)."""
+    from django.shortcuts import get_object_or_404
+
+    from gremien.models import parametertests_fortschreiben
+
+    parametertests_fortschreiben()
+    p = get_object_or_404(Parameter, schluessel=schluessel)
+    tests = [
+        {"test": t, "gegenueberstellung": t.gegenueberstellung() if t.werte_nachher else None}
+        for t in p.tests.select_related("beschluss", "einfuehrung_beschluss", "ki_lauf")
+    ]
+    return render(
+        request,
+        "parameter/parameter.html",
+        {
+            "p": p,
+            "im_test": Status.IM_TEST,
+            "tests": tests,
+            "historie": list(p.historie.all()),
+            "jahr": timezone.localdate().year,
+        },
+    )
+
+
+def bericht(request, jahr: int):
+    """Der jährliche Parameterbericht (FB-J3): alle Änderungen und Tests eines Jahres, erzeugt.
+
+    § 6 Abs 11 lit c: Die Einführung ist „mit Begründung im Parameterregister zu
+    veröffentlichen"; der Bericht ist die Jahressicht darauf — nichts daran ist Freitext."""
+    from parameter.models import ParameterTest
+
+    aenderungen = list(
+        Aenderung.objects.filter(geaendert_am__year=jahr).select_related("parameter").order_by("geaendert_am")
+    )
+    tests = list(ParameterTest.objects.filter(angelegt_am__year=jahr).select_related("parameter").order_by("angelegt_am"))
+    jahre = sorted(
+        {d.year for d in Aenderung.objects.values_list("geaendert_am", flat=True)}
+        | {d.year for d in ParameterTest.objects.values_list("angelegt_am", flat=True)}
+        | {timezone.localdate().year}
+    )
+    return render(
+        request,
+        "parameter/bericht.html",
+        {"jahr": jahr, "jahre": jahre, "aenderungen": aenderungen, "tests": tests},
+    )
+
 
 def _offen(daten) -> JsonResponse:
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
@@ -108,38 +159,16 @@ def export_json(request):
 
 def kennzahlen_json(request):
     """FB-M5: der aggregierte Lernfortschritt dieser Instanz — Zählungen und Anteile über das
-    Ganze, nie über einen Menschen (Art 9 DSGVO). Kennungen nach docs/SCHEMA.md."""
+    Ganze, nie über einen Menschen (Art 9 DSGVO). Kennungen nach docs/SCHEMA.md. Dieselbe
+    Quelle lesen die Messgrößen der Parametertests (FB-J3, `parameter.kennzahlen`)."""
     from django.conf import settings
-    from django.db.models import Count
 
-    from mitglieder.models import Mitglied
-    from plattform_core import Phase, __version__
-    from plattform_core.schema import kennzahlen_export, turnout_mean
-    from verfahren.models import Antrag, Kategorie, Vollzugsstatus
-    from verfahren.views import _register_zeilen
+    from parameter.kennzahlen import werte
+    from plattform_core import __version__
+    from plattform_core.schema import kennzahlen_export
 
-    antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
-    je_phase = dict.fromkeys(("unterstuetzung", "beratung", "abstimmung", "angenommen", "abgelehnt", "verfallen"), 0)
-    for zeile in antraege.values("phase").annotate(n=Count("pk")):
-        if zeile["phase"] in je_phase:
-            je_phase[zeile["phase"]] = zeile["n"]
-    entschieden = antraege.filter(
-        phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value], stimmberechtigte_anzahl__gt=0
-    )
-    anteile = [a.stimmabgaben.count() / a.stimmberechtigte_anzahl for a in entschieden]
-    register = _register_zeilen()
-    je_status = {wert: sum(1 for z in register if z["status"] == wert) for wert, _name in Vollzugsstatus.choices}
-    werte = {
-        "members.active": Mitglied.objects.filter(is_active=True).count(),
-        "motions.total": antraege.count(),
-        "motions.by_phase": je_phase,
-        "votes.completed": entschieden.count(),
-        "votes.turnout_mean": turnout_mean(anteile),
-        "implementation.by_status": je_status,
-        "areas_of_life.active": Kategorie.objects.filter(aktiv=True).count(),
-    }
     return _offen(
-        kennzahlen_export(settings.DDOE_SYSTEM_ID, settings.DDOE_SYSTEM_NAME, __version__, werte, timezone.now())
+        kennzahlen_export(settings.DDOE_SYSTEM_ID, settings.DDOE_SYSTEM_NAME, __version__, werte(), timezone.now())
     )
 
 

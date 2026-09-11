@@ -37,5 +37,29 @@ und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
 <p class="leer">{% translate "Noch keine angenommenen Anträge — sobald der erste Beschluss fällt, beginnt hier seine Umsetzungsgeschichte." %}</p>
 {% endfor %}
 
+{% if ueberlastungen or darf_ueberlastung_melden %}
+<div class="karte" id="ueberlastung" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Überlastungsmeldungen (§ 6 Abs 10)" %}</p>
+  {% for m in ueberlastungen %}
+  <div class="zeile"><span style="width:100%"><strong>{{ m.stelle }}</strong> <span class="meta">· {{ m.gemeldet_am|date:"d.m.Y" }} ·
+    {% if m.erledigt_am %}{% translate "Vorschlag des Koordinationsrats liegt der Mitgliederversammlung vor" %}{% if m.antrag_an_mv %} — <a href="{% url 'verfahren:antrag' m.antrag_an_mv.pk %}">{% translate "zum Antrag" %}</a>{% endif %}{% else %}{% blocktranslate with frist=m.frist|date:"d.m.Y" %}Vorschlag des Koordinationsrats bis {{ frist }}{% endblocktranslate %}{% endif %}</span>
+    <br><span style="white-space:pre-line">{{ m.begruendung }}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Keine Überlastungsmeldung." %}</p>
+  {% endfor %}
+  {% if darf_ueberlastung_melden %}
+  <details style="margin-top:8px"><summary>{% translate "Überlastung melden" %}</summary>
+    <form method="post" action="{% url 'gremien:ueberlastung_melden' %}" style="margin-top:6px">{% csrf_token %}
+      <label for="ue-stelle">{% translate "Berichtspflichtige Stelle (Organ, Gliederung, Mandat)" %}</label>
+      <input type="text" id="ue-stelle" name="stelle" maxlength="120" required style="width:100%">
+      <label for="ue-grund" style="display:block;margin-top:6px">{% translate "Begründung (wird sofort veröffentlicht)" %}</label>
+      <textarea id="ue-grund" name="begruendung" required style="width:100%;min-height:70px"></textarea>
+      <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Melden" %}</button>
+    </form>
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
 <p class="hilfe" style="margin-top:16px"><a href="{% url 'verfahren:umsetzung_json' %}">{% translate "Register als JSON exportieren" %}</a> — {% translate "maschinenlesbar, mit voller Historie." %}</p>
 {% endblock %}

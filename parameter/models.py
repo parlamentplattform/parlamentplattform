@@ -12,6 +12,7 @@ Experimente)."""
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import DatabaseError, models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -102,6 +103,72 @@ class Aenderung(models.Model):
 
     def __str__(self) -> str:
         return f"{self.parameter_id}: {self.alter_wert} → {self.neuer_wert}"
+
+
+class TestStatus(models.TextChoices):
+    """Wo ein Parametertest steht (FB-J3, § 6 Abs 11 lit c)."""
+
+    GEPLANT = "geplant", "geplant — Beschluss steht aus"
+    LAEUFT = "laeuft", "läuft"
+    AUSGEWERTET = "ausgewertet", "ausgewertet"
+    EINGEFUEHRT = "eingefuehrt", "eingeführt"
+    VERWORFEN = "verworfen", "verworfen"
+
+
+class ParameterTest(models.Model):
+    """Ein befristeter, veröffentlichter, rückholbarer Test eines Registerwerts (§ 6 Abs 11 lit c).
+
+    Die Satzung beschreibt den Weg genau: Der Koordinationsrat ordnet an, der Test läuft
+    befristet, die Ergebnisse fließen in die Zukunftswerkstatt, und die **Einführung** braucht
+    wieder seine Freigabe — mit Begründung im Register. Jeder dieser Schritte ist hier ein
+    Feld, damit man später sieht, was wann geschah, und nicht nur, was am Ende galt.
+
+    Der Test setzt den Wert im Register; das Register wirkt nur auf Verfahren, die neu
+    beginnen (§ 5 Abs 5). Laufende Verfahren behalten ihre eingefrorene Ordnung — ein Test,
+    der sie erreichte, wäre keiner, sondern ein Eingriff."""
+
+    parameter = models.ForeignKey(Parameter, on_delete=models.CASCADE, related_name="tests")
+    testwert = models.CharField(max_length=100)
+    alter_wert = models.CharField(
+        max_length=100, blank=True, help_text="Der Wert vor dem Test — der Rückweg führt hierher."
+    )
+    hypothese = models.CharField(max_length=300, help_text="Was der Test zeigen soll — steht öffentlich am Band.")
+    messgroesse = models.CharField(
+        max_length=80, help_text="Kennung aus /kennzahlen.json, an der der Erfolg gemessen wird."
+    )
+    beginn = models.DateField(null=True, blank=True)
+    ende = models.DateField(help_text="Danach fällt der Wert von selbst zurück.")
+    rueckweg = models.TextField(max_length=1000, help_text="Wie der alte Wert zurückkommt, wenn es schiefgeht.")
+    status = models.CharField(max_length=16, choices=TestStatus.choices, default=TestStatus.GEPLANT)
+    beschluss = models.ForeignKey(
+        "gremien.GremienBeschluss", null=True, blank=True, on_delete=models.SET_NULL, related_name="parametertests"
+    )
+    einfuehrung_beschluss = models.ForeignKey(
+        "gremien.GremienBeschluss", null=True, blank=True, on_delete=models.SET_NULL, related_name="einfuehrungen"
+    )
+    werte_vorher = models.JSONField(default=dict, blank=True, help_text="Kennzahlen-Schnappschuss zu Beginn.")
+    werte_nachher = models.JSONField(default=dict, blank=True, help_text="Kennzahlen-Schnappschuss am Ende.")
+    auswertung = models.TextField(max_length=4000, blank=True)
+    ki_lauf = models.ForeignKey(
+        "ki.KILauf", null=True, blank=True, on_delete=models.PROTECT, related_name="parametertests"
+    )
+    angeordnet_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    angelegt_am = models.DateTimeField(default=timezone.now)
+    ausgewertet_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-angelegt_am"]
+        verbose_name = "Parametertest"
+        verbose_name_plural = "Parametertests"
+
+    def __str__(self) -> str:
+        return f"Test {self.parameter_id}: {self.testwert} bis {self.ende:%d.%m.%Y} ({self.get_status_display()})"
+
+    def gegenueberstellung(self):
+        """Die Messgröße vorher und nachher — Zahlen, kein Urteil (plattform_core.parametertest)."""
+        from plattform_core.parametertest import gegenueberstellen
+
+        return gegenueberstellen(self.werte_vorher or {}, self.werte_nachher or {}, self.messgroesse)
 
 
 def zahl(schluessel: str, standard: int) -> int:

@@ -3,7 +3,8 @@
 {% block titel %}{% translate "Expertenrat — Werkstatt" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Expertenrat — Werkstatt (Gruppe 1)" %}</h1>
-{% if not darf_schreiben %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+{% include "gremien/_rollenband.html" %}
+{% if not darf_schreiben and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
 
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Anträge in der Beratung" %}</p>
@@ -31,5 +32,19 @@
   {% endfor %}
 </div>
 {% endif %}
-{% include "gremien/_beschluesse.html" %}
+{% include "gremien/_beschluesse.html" with umsetzungsvermerk=True %}
+{% if darf_schreiben %}
+<div class="karte" style="margin-top:12px">
+  <details><summary>{% translate "Beschluss anlegen (innere Angelegenheit)" %}</summary>
+    <form method="post" action="{% url 'gremien:rat_beschluss' 'expertenrat1' %}" style="margin-top:6px">{% csrf_token %}
+      <label for="in-gegenstand">{% translate "Gegenstand" %}</label>
+      <input type="text" id="in-gegenstand" name="gegenstand" maxlength="200" required style="width:100%">
+      <label for="in-beschreibung" style="display:block;margin-top:6px">{% translate "Worum es geht (wird veröffentlicht)" %}</label>
+      <textarea id="in-beschreibung" name="beschreibung" required style="width:100%;min-height:60px"></textarea>
+      <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Beschluss anlegen" %}</button>
+    </form>
+  </details>
+</div>
+{% endif %}
+<p class="meta" style="margin-top:8px"><a href="{% url 'gremien:protokoll' 'expertenrat1' jahr %}">{% blocktranslate with j=jahr %}Sitzungsprotokoll {{ j }} als JSON →{% endblocktranslate %}</a></p>
 {% endblock %}

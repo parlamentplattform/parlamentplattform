@@ -1,0 +1,18 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mein Gremium" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die Auswahl für Menschen mit mehr als einer Rolle (FB-I1). Wer nur eine hat, landet ohne
+Umweg in seinem Bereich — diese Seite sieht er nie.
+{% endcomment %}
+<h1>{% translate "Mein Gremium" %}</h1>
+<div class="hf-grid" style="margin-top:14px">
+  {% for b in bereiche %}
+  <a class="bereich" href="{{ b.url }}" style="text-decoration:none">
+    <span class="bk">{{ b.name }}</span>
+    <span class="meta">{% if b.antrag %}{% translate "für" %} „{{ b.antrag.titel }}“ · {% endif %}{% translate "bis" %} {{ b.endet_am|date:"d.m.Y" }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

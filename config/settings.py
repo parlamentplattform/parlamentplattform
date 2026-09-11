@@ -59,6 +59,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "verfahren.kontext.gespraeche",  # Zähler am Gesprächs-Griff (FB-G3)
+                "gremien.kontext.rollenband",  # Lesezugang für abgelaufene Rollen (FB-I1)
             ],
         },
     },

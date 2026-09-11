@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 
 #: Fassung dieser Matrix. Sie steigt, wenn Rollen oder Fähigkeiten hinzukommen oder ihren
 #: Status ändern — die Seite nennt sie, damit ein Ausdruck von heute morgen zuzuordnen ist.
-VERSION = 1
+VERSION = 2
 
 
 class Stand(enum.StrEnum):
@@ -491,11 +491,8 @@ EXPERTENRAT1 = Rolle(
         ),
         Faehigkeit(
             titel="Interessenbindungen und Honorare zum Antrag offenlegen",
-            stand=Stand.TEILWEISE,
-            urlname="gremien:fachliste",
-            einschraenkung=(
-                "Auf der Fachliste stehen sie — beim einzelnen Antrag noch nicht: Beim Einreichen fragt die Plattform nicht danach, ob es zu DIESER Sache eine Bindung gibt."
-            ),
+            stand=Stand.VERFUEGBAR,
+            ort="im Entwurfsfenster, bei der Stimme über die Einreichung",
         ),
         Faehigkeit(
             titel="Fassungen im Arbeitsplatz vergleichen (Diff) und Absätze kommentieren",
@@ -558,16 +555,15 @@ EXPERTENRAT2 = Rolle(
             urlname="gremien:beschluesse",
         ),
         Faehigkeit(
-            titel="Prüfpunkte abhaken — sie wandern in die veröffentlichte Begruendung",
-            stand=Stand.TEILWEISE,
+            titel="Prüfpunkte abhaken — sie wandern in die veröffentlichte Begründung",
+            stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
-            einschraenkung="Der erste Prüfpunkt fragt nach den offengelegten Interessenbindungen der Gruppe 1 — offenlegen kann sie heute niemand (§ 6 Abs 7).",
         ),
         Faehigkeit(
             titel="Beim Koordinationsrat den Austausch von Mitgliedern der Gruppe 1 beantragen",
             stand=Stand.TEILWEISE,
             urlname="gremien:pruefung",
-            einschraenkung="Der Antrag benennt keine einzelnen Personen; gibt der Koordinationsrat statt, endet die Rolle aller aktiven Mitglieder der Gruppe 1.",
+            einschraenkung="Der Antrag benennt keine einzelnen Personen; gibt der Koordinationsrat durch Beschluss statt, enden die für diesen Antrag gelosten Rollen der Gruppe 1, und es wird neu gelost.",
         ),
         Faehigkeit(
             titel="Die interne Beratung der Gruppe 1 einsehen",
@@ -579,13 +575,13 @@ EXPERTENRAT2 = Rolle(
             stand=Stand.TEILWEISE,
             urlname="gremien:fachliste",
             einschraenkung=(
-                "Auf der Fachliste stehen sie — beim einzelnen Antrag noch nicht: Beim Einreichen fragt die Plattform nicht danach, ob es zu DIESER Sache eine Bindung gibt."
+                "Auf der Fachliste stehen sie allgemein; zum einzelnen Antrag legt Gruppe 1 sie bei der Einreichung offen — Gruppe 2 selbst wird beim Prüfen nicht danach gefragt."
             ),
         ),
         Faehigkeit(
-            titel="Sich untereinander ueber andere Fragen abstimmen (Beschluss anlegen)",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            titel="Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:pruefung",
         ),
         Faehigkeit(
             titel="Vergabe-Schwellenwerte und moegliche Bieter als Arbeitsunterlage nutzen",
@@ -614,21 +610,19 @@ KOORDINATIONSRAT = Rolle(
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Über den Austauschantrag der Gruppe 2 entscheiden",
-            stand=Stand.TEILWEISE,
+            titel="Über den Austauschantrag der Gruppe 2 durch Beschluss entscheiden",
+            stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
-            einschraenkung="Ein einzelnes Ratsmitglied entscheidet mit veröffentlichter Begründung; ein Beschluss mit einfacher Mehrheit nach § 6 Abs 2 lit e ist dafür nicht vorgesehen, obwohl das Beschlussverfahren vorhanden ist.",
         ),
         Faehigkeit(
             titel="In einem internen Beschluss des Rates abstimmen",
-            stand=Stand.TEILWEISE,
+            stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
-            einschraenkung="Der Beschlussblock ist eingebunden, zählt nach § 6 Abs 2 lit e aus und veröffentlicht jede Stimme mit Namen und Begründung; im Koordinationsrat lässt sich heute jedoch kein Beschluss anlegen, die Liste bleibt deshalb leer.",
         ),
         Faehigkeit(
-            titel="Einen internen Beschluss anlegen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            titel="Einen internen Beschluss anlegen und nach der Entscheidung den Umsetzungsvermerk schreiben",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:koordination",
         ),
         Faehigkeit(
             titel="Beschlüsse mit Nummer, Stimmen und Begründungen öffentlich nachweisen",
@@ -651,24 +645,25 @@ KOORDINATIONSRAT = Rolle(
             urlname="parameter:liste",
         ),
         Faehigkeit(
-            titel="Befristete Tests neuer Registerwerte anordnen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            titel="Befristete Tests neuer Registerwerte durch Beschluss anordnen",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Die Einführung eines neuen Registerwertes freigeben",
-            stand=Stand.GEPLANT,
-            bauschritt="offen",
+            titel="Die Einführung eines getesteten Registerwertes durch Beschluss freigeben",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:koordination",
         ),
         Faehigkeit(
             titel="Den Posteingang der Zukunftswerkstatt sichten",
-            stand=Stand.GEPLANT,
-            bauschritt="S9 (der Bereich), Einträge ab S13",
+            stand=Stand.TEILWEISE,
+            urlname="gremien:koordination",
+            einschraenkung="Der Posteingang steht; heute speist ihn nur die Auswertung von Parametertests. Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt.",
         ),
         Faehigkeit(
-            titel="Überlastungsmeldungen veröffentlichen und binnen 30 Tagen einen Reihungsvorschlag vorlegen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            titel="Überlastungsmeldungen veröffentlichen und binnen 30 Tagen einen Vorschlag an die Mitgliederversammlung vorlegen",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:koordination",
         ),
         Faehigkeit(
             titel="Das öffentliche Umsetzungsregister einsehen",
@@ -676,9 +671,9 @@ KOORDINATIONSRAT = Rolle(
             urlname="verfahren:umsetzung",
         ),
         Faehigkeit(
-            titel="Die Hervorhebung einer Abstimmung beim Integritätsrat beantragen",
-            stand=Stand.GEPLANT,
-            bauschritt="S9",
+            titel="Die Hervorhebung eines Antrags beim Integritätsrat durch Beschluss beantragen",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:koordination",
         ),
         Faehigkeit(
             titel="Parameter-Schema und Kennzahlen mit Partnersystemen austauschen",
@@ -863,9 +858,14 @@ ENTWICKLUNGSRAT = Rolle(
     name="Technischer Entwicklungsrat",
     satzung="§ 6 Abs 4",
     was_sie_ist="Er verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt, beauftragt und überwacht externe Dienstleister und berichtet regelmäßig.",
-    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute gar nicht: Die Plattform kennt den Rat nicht.",
-    im_code=False,
+    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein.",
+    im_code=True,
     faehigkeiten=(
+        Faehigkeit(
+            titel="Den Arbeitsbereich des Rates öffnen: Regelverzeichnis, Register, Zukunftswerkstatt",
+            stand=Stand.VERFUEGBAR,
+            ort="unter „Mein Gremium“",
+        ),
         Faehigkeit(
             titel="Betrieb und Weiterentwicklung von Plattform und Zukunftswerkstatt verantworten",
             stand=Stand.GEPLANT,
@@ -893,8 +893,8 @@ ENTWICKLUNGSRAT = Rolle(
         ),
         Faehigkeit(
             titel="Im Rat abstimmen und Beschlüsse veröffentlichen",
-            stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; interne Beschlüsse gibt es seit 0.41, aber nur für die vier bestehenden Räte",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:beschluesse",
         ),
     ),
 )
@@ -904,9 +904,14 @@ BERICHTSWESENRAT = Rolle(
     name="Integrations- und Berichtswesenrat",
     satzung="§ 6 Abs 5",
     was_sie_ist="Er führt die jährliche Evaluierung des Gesamtsystems durch und legt der Mitgliederversammlung einen öffentlichen Bericht samt Verbesserungsvorschlägen vor.",
-    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute gar nicht: Die Plattform kennt den Rat nicht.",
-    im_code=False,
+    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein.",
+    im_code=True,
     faehigkeiten=(
+        Faehigkeit(
+            titel="Den Arbeitsbereich des Rates öffnen: Umsetzungsregister und Überlastungsmeldungen",
+            stand=Stand.VERFUEGBAR,
+            ort="unter „Mein Gremium“",
+        ),
         Faehigkeit(
             titel="Die jährliche Evaluierung des Gesamtsystems durchführen",
             stand=Stand.GEPLANT,
@@ -929,18 +934,19 @@ BERICHTSWESENRAT = Rolle(
         ),
         Faehigkeit(
             titel="Das öffentliche Umsetzungsregister führen",
-            stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; das Register steht unter /umsetzung/, fortgeschrieben wird es von der Verwaltung",
+            stand=Stand.TEILWEISE,
+            urlname="verfahren:umsetzung",
+            einschraenkung="Das Register steht; fortgeschrieben wird es heute von der Verwaltung, nicht vom Rat.",
         ),
         Faehigkeit(
-            titel="Vollzugsberichte entgegennehmen und Überlastungsmeldungen veröffentlichen",
-            stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            titel="Überlastungsmeldungen veröffentlichen (§ 6 Abs 10)",
+            stand=Stand.VERFUEGBAR,
+            urlname="verfahren:umsetzung",
         ),
         Faehigkeit(
             titel="Im Rat abstimmen und Beschlüsse veröffentlichen",
-            stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:beschluesse",
         ),
     ),
 )
@@ -1181,8 +1187,8 @@ GRUPPEN: tuple[Gruppe, ...] = (
         schluessel="raete",
         name="Die Räte der Satzung",
         erklaerung=(
-            "Sieben Räte nach § 6. Vier gibt es im Code, drei noch nicht — sie stehen trotzdem "
-            "hier, weil ihr Auftrag in der Satzung steht und die Lücke sichtbar bleiben soll."
+            "Sieben Räte nach § 6. Sechs gibt es im Code, einer noch nicht — er steht trotzdem "
+            "hier, weil sein Auftrag in der Satzung steht und die Lücke sichtbar bleiben soll."
         ),
         rollen=(
             EXPERTENRAT1,

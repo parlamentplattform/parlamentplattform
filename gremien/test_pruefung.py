@@ -161,7 +161,9 @@ def test_eine_stimme_laesst_sich_bis_zum_abschluss_aendern(client, ordnung):  # 
     eine = beschluss.stimmen.get()
     assert eine.option == "zurueck" and eine.geaendert_am is not None
     assert sum(
-        1 for e in AuditEintrag.objects.all() if e.ereignis["typ"] == "gremienstimme_abgegeben"
+        1
+        for e in AuditEintrag.objects.all()
+        if e.ereignis["typ"] == "gremienstimme_abgegeben" and e.ereignis.get("beschluss") == beschluss.pk
     ) == 2
 
 
@@ -182,17 +184,27 @@ def test_austausch_geht_zum_korat(client, ordnung):  # noqa: F811
     assert antrag.titel in inhalt and "Wiederholte Gefälligkeits-Formulierungen." in inhalt
 
 
+def korat_beschliessen(client, korat, pruefung, option, grund):
+    """Der Koordinationsrat entscheidet als Rat (§ 6 Abs 2 lit e): Beschluss anlegen, abstimmen."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    client.force_login(korat)
+    client.post(
+        reverse("gremien:koordination_beschluss"),
+        {"anlass": "austausch", "pruefung": pruefung.pk, "beschreibung": grund},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=pruefung.entwurf.antrag)
+    client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": option, "begruendung": grund})
+    return beschluss
+
+
 def test_korat_stattgeben_tauscht_gruppe_1_aus(client, ordnung):  # noqa: F811
     antrag, entwurf, er, korat = korat_lage(client, ordnung)
     pruefung = entwurf.pruefungen.get()
-    client.force_login(korat)
-    client.post(
-        reverse("gremien:koordination_aktion", args=[pruefung.pk]),
-        {"entscheid": "stattgegeben", "begruendung": "Die Zweifel wiegen schwerer als die Verzögerung."},
-    )
+    korat_beschliessen(client, korat, pruefung, "dafuer", "Die Zweifel wiegen schwerer als die Verzögerung.")
     entwurf.refresh_from_db()
     pruefung.refresh_from_db()
-    assert pruefung.korat_entscheid == "stattgegeben"
+    assert pruefung.korat_entscheid == "stattgegeben" and "KR-" in pruefung.korat_begruendung
     assert entwurf.status == EntwurfsStatus.IN_ARBEIT  # die neue Gruppe übernimmt den Entwurf
     for rat in er:
         rolle = Rolle.objects.get(mitglied=rat)
@@ -203,11 +215,7 @@ def test_korat_stattgeben_tauscht_gruppe_1_aus(client, ordnung):  # noqa: F811
 def test_korat_ablehnen_laesst_die_pruefung_bestehen(client, ordnung):  # noqa: F811
     antrag, entwurf, er, korat = korat_lage(client, ordnung)
     pruefung = entwurf.pruefungen.get()
-    client.force_login(korat)
-    client.post(
-        reverse("gremien:koordination_aktion", args=[pruefung.pk]),
-        {"entscheid": "abgelehnt", "begruendung": "Kein Anhaltspunkt für Befangenheit."},
-    )
+    korat_beschliessen(client, korat, pruefung, "dagegen", "Kein Anhaltspunkt für Befangenheit.")
     entwurf.refresh_from_db()
     assert entwurf.status == EntwurfsStatus.PRUEFUNG  # Gruppe 2 muss nun neu abstimmen
     assert all(Rolle.objects.get(mitglied=rat).aktiv for rat in er)
@@ -242,7 +250,7 @@ def test_ohne_gruppe_2_wartet_der_vorschlag_sichtbar(client, ordnung):  # noqa: 
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     entwurf = einreichen(client, antrag, er, vollzugsbezug=True)
     entwurf.fortschreiben(antrag)
-    assert not entwurf.beschluesse.exists()
+    assert not entwurf.beschluesse.filter(gremium=Gremium.EXPERTENRAT_2).exists()
     admin = mitglied_anlegen("aufsicht")
     admin.ist_admin = True
     admin.save()

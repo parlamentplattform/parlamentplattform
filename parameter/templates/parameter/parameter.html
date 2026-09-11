@@ -1,0 +1,51 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{{ p.schluessel }}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Ein Parameter mit allem, was zu ihm gehört (FB-J3): Wert, Herkunft, Historie, Tests mit der
+Gegenüberstellung der Messgröße. Öffentlich — § 6 Abs 11 lit c will Tests „veröffentlicht" und
+die Einführung „mit Begründung im Parameterregister".
+{% endcomment %}
+<p class="erk"><a href="{% url 'parameter:liste' %}#g-{{ p.gruppe }}">← {% translate "Zum Register" %}</a></p>
+<h1><code>{{ p.schluessel }}</code> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}</h1>
+<p class="erk" style="max-width:56em">{{ p.beschreibung }}</p>
+<p class="meta">{% translate "Quelle:" %} {{ p.quelle }}{% if p.schema_key %} · <code>{{ p.schema_key }}</code>{% endif %} · {{ p.get_gruppe_display }} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}
+  {% if p.status != "gueltig" %} · <span class="chip klein">{{ p.get_status_display }}</span>{% endif %}</p>
+
+{% if p.status == im_test %}
+<div class="band-gold" style="margin-top:10px">{% translate "Im Test" %}{% if p.test_bis %} — {% blocktranslate with bis=p.test_bis|date:"d.m.Y" %}bis {{ bis }}{% endblocktranslate %}{% endif %}{% if p.test_hypothese %}: {{ p.test_hypothese }}{% endif %}
+  <br><span class="meta">{% translate "Der Wert gilt nur für Verfahren, die neu beginnen — laufende behalten ihre Fassung." %}</span></div>
+{% endif %}
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Tests (§ 6 Abs 11 lit c)" %}</p>
+  {% for t in tests %}
+  <div class="zeile"><span style="width:100%">
+    <strong>{{ t.test.alter_wert|default:"?" }} → {{ t.test.testwert }}</strong> <span class="chip klein">{{ t.test.get_status_display }}</span>
+    <br><span class="meta">{% translate "Hypothese:" %} {{ t.test.hypothese }}</span>
+    <br><span class="meta">{% translate "Messgröße" %} <code>{{ t.test.messgroesse }}</code>{% if t.test.beginn %} · {{ t.test.beginn|date:"d.m.Y" }}{% endif %} – {{ t.test.ende|date:"d.m.Y" }}
+      {% if t.test.beschluss %} · <a href="{% url 'gremien:beschluss' t.test.beschluss.nummer %}">{{ t.test.beschluss.nummer }}</a>{% endif %}
+      {% if t.test.einfuehrung_beschluss %} · <a href="{% url 'gremien:beschluss' t.test.einfuehrung_beschluss.nummer %}">{{ t.test.einfuehrung_beschluss.nummer }}</a>{% endif %}</span>
+    {% if t.gegenueberstellung and t.gegenueberstellung.vollstaendig %}
+    <br><span class="meta">{% translate "Vorher" %} {{ t.gegenueberstellung.vorher }} · {% translate "während" %} {{ t.gegenueberstellung.nachher }} · {% translate "Differenz" %} {{ t.gegenueberstellung.differenz }}{% if t.gegenueberstellung.anteil is not None %} ({{ t.gegenueberstellung.anteil }} %){% endif %}</span>
+    {% endif %}
+    {% if t.test.auswertung %}<p class="meta" style="white-space:pre-line;margin-top:6px">{{ t.test.auswertung }}</p>{% endif %}
+    <p class="meta" style="margin-top:6px">{% translate "Rückweg:" %} {{ t.test.rueckweg }}</p>
+    {% if t.test.ki_lauf %}<p class="meta" style="margin-top:6px"><span class="ki-kennzeichen">{% translate "KI-Vorschlag" %} · {{ t.test.ki_lauf.modell }}</span> {{ t.test.ki_lauf.antwort }}</p>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Zu diesem Parameter wurde noch kein Test angeordnet." %}</p>
+  {% endfor %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Änderungsgeschichte" %}</p>
+  {% for h in historie %}
+  <div class="zeile"><span>{{ h.geaendert_am|date:"d.m.Y" }}: {{ h.alter_wert }} → {{ h.neuer_wert }}{% if h.durch %} · {{ h.durch }}{% endif %}<br><span class="meta">{{ h.grund }}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Der Wert wurde noch nie geändert." %}</p>
+  {% endfor %}
+</div>
+<p class="meta" style="margin-top:8px"><a href="{% url 'parameter:bericht' jahr %}">{% blocktranslate with j=jahr %}Parameterbericht {{ j }} →{% endblocktranslate %}</a> · <a href="{% url 'parameter:regeln' %}#regel-parametertest">{% translate "Die Regel der Gegenüberstellung →" %}</a></p>
+{% endblock %}

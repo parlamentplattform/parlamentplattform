@@ -202,6 +202,36 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/gremien/fachliste/")
     halte_fest(p, "fachliste")
 
-    assert len(bilder) == 31
+    # S9: der Koordinationsrat mit vier Karten (FB-I5), das Entwurfsfenster als
+    # Drei-Spalten-Arbeitsplatz (FB-I2), die Seite eines Parameters mit Tests (FB-J3)
+    from verfahren.models import Antrag
+
+    kr = _mitglied()
+    Rolle.objects.get_or_create(
+        mitglied=kr, gremium=Gremium.KOORDINATIONSRAT,
+        defaults={"endet_am": standard_ende(), "bestaetigt": True},
+    )
+    p = seite(als=kr)
+    p.goto(f"{live_server.url}/gremien/koordination/")
+    halte_fest(p, "koordinationsrat")
+
+    in_beratung = Antrag.objects.filter(phase="beratung", art="sache").order_by("pk").first()
+    if in_beratung is not None:
+        Rolle.objects.get_or_create(
+            mitglied=kr, gremium=Gremium.EXPERTENRAT_1,
+            defaults={"endet_am": standard_ende(), "bestaetigt": True},
+        )
+        p = seite(als=kr)
+        p.goto(f"{live_server.url}/gremien/expertenrat/{in_beratung.pk}/")
+        halte_fest(p, "entwurfsfenster-drei-spalten")
+        p = seite(als=kr, handy=True)
+        p.goto(f"{live_server.url}/gremien/expertenrat/{in_beratung.pk}/")
+        halte_fest(p, "entwurfsfenster-handy")
+
+    p = seite()
+    p.goto(f"{live_server.url}/parameter/gremien-beschluss-tage/")
+    halte_fest(p, "parameter-seite")
+
+    assert len(bilder) == 35 if in_beratung is not None else 33
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

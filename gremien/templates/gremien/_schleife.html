@@ -22,6 +22,12 @@ entschieden wird im Abstimmungs-Chat unter dem Antrag (§ 5 Abs 12).{% endblockt
     <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) wurde als neue Antragsfassung übernommen —
 darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
   {% endif %}
+  {% if schleife.interessenbindungen %}
+  <p class="phasen-titel" style="margin-top:12px">{% translate "Interessenbindungen der Verfasser zu diesem Antrag (§ 6 Abs 7)" %}</p>
+  {% for i in schleife.interessenbindungen %}
+  <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+  {% endfor %}
+  {% endif %}
   {% if schleife.pruefungen %}
   <p class="phasen-titel" style="margin-top:12px">{% translate "Prüfungen der Gruppe 2 (§ 6 Abs 7 — Begründungen öffentlich)" %}</p>
   {% for p in schleife.pruefungen %}

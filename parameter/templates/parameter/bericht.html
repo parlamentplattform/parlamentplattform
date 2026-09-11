@@ -1,0 +1,35 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% blocktranslate with j=jahr %}Parameterbericht {{ j }}{% endblocktranslate %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Der jährliche Parameterbericht (FB-J3, § 6 Abs 11 lit c): alle Änderungen und Tests eines
+Jahres, erzeugt aus dem Register — nichts davon ist Freitext. Die Mitgliederversammlung
+beschließt darüber per Antrag; die Seite ist die Grundlage.
+{% endcomment %}
+<h1>{% blocktranslate with j=jahr %}Parameterbericht {{ j }}{% endblocktranslate %}</h1>
+<p class="erk">{% for j in jahre %}{% if j == jahr %}<strong>{{ j }}</strong>{% else %}<a href="{% url 'parameter:bericht' j %}">{{ j }}</a>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+  · <a href="{% url 'parameter:liste' %}">{% translate "Das Register →" %}</a></p>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% blocktranslate count n=aenderungen|length %}Eine Änderung{% plural %}{{ n }} Änderungen{% endblocktranslate %}</p>
+  {% for h in aenderungen %}
+  <div class="zeile"><span>{{ h.geaendert_am|date:"d.m.Y" }} · <a href="{% url 'parameter:parameter' h.parameter.schluessel %}"><code>{{ h.parameter.schluessel }}</code></a>: {{ h.alter_wert }} → {{ h.neuer_wert }}{% if h.durch %} · {{ h.durch }}{% endif %}
+    <br><span class="meta">{{ h.grund }}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "In diesem Jahr wurde kein Wert geändert." %}</p>
+  {% endfor %}
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% blocktranslate count n=tests|length %}Ein Test{% plural %}{{ n }} Tests{% endblocktranslate %}</p>
+  {% for t in tests %}
+  <div class="zeile"><span><a href="{% url 'parameter:parameter' t.parameter.schluessel %}"><code>{{ t.parameter.schluessel }}</code></a> {{ t.alter_wert|default:"?" }} → {{ t.testwert }} <span class="chip klein">{{ t.get_status_display }}</span>
+    <br><span class="meta">{{ t.hypothese }} · <code>{{ t.messgroesse }}</code>{% if t.beginn %} · {{ t.beginn|date:"d.m.Y" }}{% endif %} – {{ t.ende|date:"d.m.Y" }}</span>
+    {% if t.auswertung %}<br><span class="meta" style="white-space:pre-line">{{ t.auswertung }}</span>{% endif %}</span></div>
+  {% empty %}
+  <p class="leer">{% translate "In diesem Jahr wurde kein Test angeordnet." %}</p>
+  {% endfor %}
+</div>
+<p class="meta" style="margin-top:8px">{% translate "Erzeugt aus dem Register — Änderungen und Tests des Jahres, ohne Freitext. Die Mitgliederversammlung entscheidet darüber per Antrag (§ 6 Abs 11 lit c)." %}</p>
+{% endblock %}

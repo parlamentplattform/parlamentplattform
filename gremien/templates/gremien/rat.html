@@ -1,0 +1,53 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{{ name }}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Der gemeinsame Bereich der Räte ohne eigene Werkstatt (FB-I1): Integrations- und
+Berichtswesenrat (§ 6 Abs 5, § 6 Abs 10), Technischer Entwicklungsrat (§ 6 Abs 4).
+Beschlüsse nach § 6 Abs 2 lit e, öffentlich mit Namen (§ 6 Abs 9); dazu die Verweise auf das,
+was der Rat führt.
+{% endcomment %}
+<h1>{{ name }}</h1>
+{% include "gremien/_rollenband.html" %}
+{% if not darf_schreiben and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+<p class="erk">{{ satzung }}</p>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Was der Rat führt" %}</p>
+  {% for v in verweise %}
+  <div class="zeile"><span><a href="{{ v.url }}"><strong>{{ v.titel }}</strong></a><br><span class="meta">{{ v.text }}</span></span></div>
+  {% endfor %}
+  {% if ueberlastungen %}
+  {% for m in ueberlastungen %}
+  <div class="zeile"><span><span class="chip klein">{% translate "Überlastungsmeldung" %}</span> <strong>{{ m.stelle }}</strong>
+    <br><span class="meta">{{ m.gemeldet_am|date:"d.m.Y" }} · {% if m.erledigt_am %}{% translate "Vorschlag liegt der Mitgliederversammlung vor" %}{% else %}{% translate "beim Koordinationsrat" %}{% endif %}</span></span></div>
+  {% endfor %}
+  {% endif %}
+</div>
+
+{% include "gremien/_beschluesse.html" with umsetzungsvermerk=True %}
+{% if darf_schreiben %}
+<div class="karte" style="margin-top:12px">
+  <details><summary>{% translate "Beschluss anlegen (innere Angelegenheit)" %}</summary>
+    <form method="post" action="{% url 'gremien:rat_beschluss' gremium %}" style="margin-top:6px">{% csrf_token %}
+      <label for="in-gegenstand">{% translate "Gegenstand" %}</label>
+      <input type="text" id="in-gegenstand" name="gegenstand" maxlength="200" required style="width:100%">
+      <label for="in-beschreibung" style="display:block;margin-top:6px">{% translate "Worum es geht (wird veröffentlicht)" %}</label>
+      <textarea id="in-beschreibung" name="beschreibung" required style="width:100%;min-height:60px"></textarea>
+      <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Beschluss anlegen" %}</button>
+    </form>
+  </details>
+</div>
+{% endif %}
+<p class="meta" style="margin-top:8px"><a href="{% url 'gremien:protokoll' gremium jahr %}">{% blocktranslate with j=jahr %}Sitzungsprotokoll {{ j }} als JSON →{% endblocktranslate %}</a></p>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Aktive Rollen" %}</p>
+  {% for r in rollen %}
+  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong><br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

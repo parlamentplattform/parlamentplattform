@@ -2,27 +2,52 @@
 {% load i18n %}
 {% block titel %}{% translate "Entwurfsfenster" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Der Drei-Spalten-Arbeitsplatz der Gruppe 1 (FB-I2): links der rohe Antrag mit Absatznummern,
+in der Mitte der Entwurf mit Fassungen und Diff, rechts die Werkzeuge — Einschätzung der
+Zukunftswerkstatt als Arbeitsunterlage, Wünsche der Unterstützer, interne Beratung, die
+Einreichung als Beschluss. Auf dem Handy stehen die Spalten untereinander, die Sprungleiste
+oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug ein Auswahlfeld.
+{% endcomment %}
 <style>
-  .fenster-grid{display:grid;grid-template-columns:1fr 1.2fr;gap:18px;align-items:start}
-  @media (max-width:900px){.fenster-grid{grid-template-columns:1fr}}
+  .werkstatt{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:start;margin-top:12px}
+  @media (max-width:1100px){.werkstatt{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)} .werkstatt .spalte-werkzeuge{grid-column:1 / -1}}
+  @media (max-width:820px){.werkstatt{grid-template-columns:1fr} .werkstatt .spalte-werkzeuge{grid-column:auto}}
+  .werkstatt .karte{margin-top:0}
+  .werkstatt .karte + .karte{margin-top:14px}
+  .absaetze{margin:8px 0 0;padding:0;list-style:none;counter-reset:absatz}
+  .absaetze li{position:relative;padding-left:2.4em;margin-bottom:.6em;white-space:pre-line}
+  .absaetze li::before{counter-increment:absatz;content:counter(absatz);position:absolute;left:0;top:0;font-size:12px;color:var(--deep);opacity:.7;font-variant-numeric:tabular-nums}
+  .sprung{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
   .fassung-alt{border-top:1px solid var(--line);padding:8px 0 4px;font-size:14px}
   .stand-punkt{display:inline-block;background:var(--nacht2);color:var(--goldsoft);border-radius:999px;padding:2px 10px;font-size:13px;margin-right:6px}
   .werk-form textarea{width:100%;min-height:140px}
-  .werk-form input[type=text]{width:100%}
+  .werk-form input[type=text],.werk-form select{width:100%}
+  .diff-text ins{text-decoration:none;background:rgba(60,160,90,.18)}
+  .diff-text del{background:rgba(200,70,70,.18)}
+  .rand{border-left:3px solid var(--line);padding-left:8px;margin-top:6px}
 </style>
 <p class="erk"><a href="{% url 'gremien:expertenrat' %}">← {% translate "Zurück zur Werkstatt" %}</a></p>
 <h1>{% translate "Entwurfsfenster" %}: {{ antrag.titel }}</h1>
+{% include "gremien/_rollenband.html" %}
+<p class="sprung meta"><a href="#antrag">{% translate "Der Antrag" %}</a> · <a href="#entwurf">{% translate "Der Entwurf" %}</a> · <a href="#werkzeuge">{% translate "Werkzeuge" %}</a>
+  {% if auslosung %} · <a href="{% url 'gremien:auslosung' antrag.pk %}">{% translate "Die Auslosung" %}</a>{% endif %}</p>
 
-<div class="fenster-grid" style="margin-top:14px">
+<div class="werkstatt">
+
+{# ── links: der rohe Antrag ─────────────────────────────────────────────── #}
+<div class="spalte-antrag" id="antrag">
   <div class="karte">
-    <p class="phasen-titel">{% translate "Der Antrag daneben" %}</p>
+    <p class="phasen-titel">{% translate "Der Antrag" %}</p>
     <p class="meta">{% blocktranslate with n=text.nummer %}Antragsfassung {{ n }}{% endblocktranslate %} ·
       <a href="{% url 'verfahren:antrag' antrag.pk %}">{% translate "Zur öffentlichen Antragsseite →" %}</a></p>
-    <p style="white-space:pre-line;margin-top:8px">{{ text.wortlaut }}</p>
+    <ol class="absaetze">{% for a in absaetze_antrag %}<li>{{ a }}</li>{% endfor %}</ol>
     {% if text.begruendung %}<p class="meta" style="white-space:pre-line;margin-top:8px">{{ text.begruendung }}</p>{% endif %}
   </div>
+</div>
 
-  <div>
+{# ── Mitte: der Entwurf ─────────────────────────────────────────────────── #}
+<div class="spalte-entwurf" id="entwurf">
   {% if not entwurf %}
     <div class="karte">
       <p><strong>{% translate "Noch kein Entwurfsfenster." %}</strong>
@@ -63,24 +88,16 @@
       {% endif %}
     </div>
 
-    {% if wuensche_vorrunde %}
-    <div class="karte" style="margin-top:16px">
-      <p class="phasen-titel">{% blocktranslate with n=entwurf.runde|add:"-1" %}Wünsche der Unterstützer (Runde {{ n }}){% endblocktranslate %}</p>
-      <p class="meta">{% translate "Nach Engagement gereiht — oben steht, was die meisten bewegt hat." %}</p>
-      {% for k in wuensche_vorrunde %}
-      <div class="zeile"><span>
-        {% if k.absatz %}<span class="etikett kritik">{% blocktranslate with n=k.absatz %}Absatz {{ n }}{% endblocktranslate %}</span> {% endif %}
-        <strong>{{ k.name }}</strong> <span class="meta">· {{ k.ja }} 👍 / {{ k.nein }} 👎</span>
-        <br><span style="white-space:pre-line">{{ k.text }}</span></span></div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
-    <div class="karte" style="margin-top:16px">
+    <div class="karte">
       <p class="phasen-titel">{% translate "Fassungen (alles bleibt stehen)" %}</p>
-      {% with letzte=entwurf.aktuelle_fassung %}
-      <p class="meta">{% blocktranslate with n=letzte.nummer wer=letzte.verfasst_von.anzeigename wann=letzte.erstellt_am|date:"d.m.Y H:i" %}Fassung {{ n }} · {{ wer }} · {{ wann }}{% endblocktranslate %}</p>
-      <p style="white-space:pre-line;margin-top:8px">{{ letzte.wortlaut }}</p>
+      <p class="meta">{% blocktranslate with n=letzte.nummer wer=letzte.verfasst_von.anzeigename wann=letzte.erstellt_am|date:"d.m.Y H:i" %}Fassung {{ n }} · {{ wer }} · {{ wann }}{% endblocktranslate %}
+        {% if vorige %} · {% if diff_an %}<a href="{% url 'gremien:fenster' antrag.pk %}#entwurf">{% translate "Diff aus" %}</a>{% else %}<a href="{% url 'gremien:fenster' antrag.pk %}?diff=1#entwurf">{% blocktranslate with n=vorige.nummer %}Diff zu Fassung {{ n }}{% endblocktranslate %}</a>{% endif %}
+        {% if diff_stand %}<span class="meta">({% if diff_stand.unveraendert %}{% translate "wortgleich" %}{% else %}+{{ diff_stand.ein }} / −{{ diff_stand.aus }} {% translate "Wörter" %}{% endif %})</span>{% endif %}{% endif %}</p>
+      {% if diff_an %}
+      <p class="diff-text" style="white-space:pre-line;margin-top:8px">{% for art, stueck in diff %}{% if art == "ein" %}<ins>{{ stueck }}</ins>{% elif art == "aus" %}<del>{{ stueck }}</del>{% else %}{{ stueck }}{% endif %}{% endfor %}</p>
+      {% else %}
+      <ol class="absaetze">{% for a in absaetze_fassung %}<li>{{ a }}{% for b in beitraege %}{% if b.absatz == forloop.parentloop.counter %}<div class="rand meta"><strong>{{ b.mitglied.anzeigename }}</strong>: {{ b.text }}</div>{% endif %}{% endfor %}</li>{% endfor %}</ol>
+      {% endif %}
       {% if letzte.begruendung %}<p class="meta" style="white-space:pre-line;margin-top:8px">{{ letzte.begruendung }}</p>{% endif %}
       {% if fassungen|length > 1 %}
       <details style="margin-top:10px"><summary>{% blocktranslate count n=fassungen|length|add:"-1" %}Eine frühere Fassung{% plural %}{{ n }} frühere Fassungen{% endblocktranslate %}</summary>
@@ -91,6 +108,9 @@
       </details>
       {% endif %}
       {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+      {% if einreichung %}
+      <p class="meta" style="margin-top:12px">{% blocktranslate with nummer=einreichung.beschluss.nummer %}Über die Einreichung wird abgestimmt ({{ nummer }}) — die Fassung ruht solange.{% endblocktranslate %}</p>
+      {% else %}
       <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" class="werk-form" style="margin-top:14px">{% csrf_token %}
         <input type="hidden" name="aktion" value="fassung">
         <label for="wortlaut"><strong>{% translate "Neue Fassung anhängen" %}</strong></label>
@@ -100,59 +120,136 @@
         <button type="submit" class="btn" style="margin-top:8px">{% translate "Fassung anhängen" %}</button>
       </form>
       {% endif %}
-      {% endwith %}
-    </div>
-
-    {% if darf_schreiben and entwurf.status == "in_arbeit" %}
-    <div class="karte" style="margin-top:16px">
-      <p class="phasen-titel">{% translate "Einreichen (interne, dokumentierte Abstimmung)" %}</p>
-      <p class="meta">{% blocktranslate with ja=stand.ja nein=stand.nein noetig=stand.noetig aktive=stand.aktive %}Stand: {{ ja }} Ja, {{ nein }} Nein — nötig sind {{ noetig }} Ja bei {{ aktive }} aktiven Rollen.{% endblocktranslate %}</p>
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:8px;display:inline">{% csrf_token %}
-        <input type="hidden" name="aktion" value="stimme"><input type="hidden" name="einverstanden" value="ja">
-        <button type="submit" class="btn-linie">{% translate "Ja, einreichen" %}{% if meine_stimme and meine_stimme.einverstanden %} ✓{% endif %}</button>
-      </form>
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="display:inline;margin-left:8px">{% csrf_token %}
-        <input type="hidden" name="aktion" value="stimme"><input type="hidden" name="einverstanden" value="nein">
-        <button type="submit" class="btn-linie">{% translate "Noch nicht" %}{% if meine_stimme and not meine_stimme.einverstanden %} ✓{% endif %}</button>
-      </form>
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:12px">{% csrf_token %}
-        <input type="hidden" name="aktion" value="vollzugsbezug">
-        <label><input type="checkbox" name="vollzugsbezug" value="ja" {% if entwurf.vollzugsbezug %}checked{% endif %}>
-        {% translate "Unmittelbarer Vollzugs- oder Beschaffungsbezug — dann prüft Gruppe 2 vor den Unterstützern (§ 6 Abs 7)." %}</label>
-        <button type="submit" class="btn-linie" style="margin-left:8px">{% translate "Merken" %}</button>
-      </form>
-      {% if stand.einreichbar %}
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:12px">{% csrf_token %}
-        <input type="hidden" name="aktion" value="einreichen">
-        <button type="submit" class="btn">{% translate "Vorschlag jetzt einreichen" %}</button>
-      </form>
-      {% endif %}
-    </div>
-    {% endif %}
-
-    <div class="karte" style="margin-top:16px">
-      <p class="phasen-titel">{% translate "Interne Beratung (dokumentiert, § 6 Abs 9)" %}</p>
-      {% for b in beitraege %}
-      <div class="zeile"><span><strong>{{ b.mitglied.anzeigename }}</strong> <span class="meta">{{ b.erstellt_am|date:"d.m.Y H:i" }}</span>
-        {% if b.ki_lauf %}<span class="ki-kennzeichen" title="{% translate 'Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv.' %}">{% translate "KI-Vorschlag" %} · {{ b.ki_lauf.modell }}</span>{% endif %}
-        <br><span style="white-space:pre-line">{{ b.text }}</span></span></div>
-      {% empty %}
-      <p class="leer">{% translate "Noch keine Beiträge." %}</p>
-      {% endfor %}
-      {% if darf_schreiben and entwurf.status == "in_arbeit" %}
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" class="werk-form" style="margin-top:10px">{% csrf_token %}
-        <input type="hidden" name="aktion" value="beitrag">
-        <textarea name="text" style="min-height:70px" required placeholder="{% translate 'Beitrag zur internen Beratung …' %}"></textarea>
-        <button type="submit" class="btn-linie" style="margin-top:6px">{% translate "Beitrag festhalten" %}</button>
-      </form>
-      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:10px">{% csrf_token %}
-        <input type="hidden" name="aktion" value="ki_einschaetzung">
-        <button type="submit" class="btn-linie">{% translate "KI-Einschätzung einholen" %}</button>
-        <span class="meta" style="margin-left:8px">{% if steckplatz_bereit %}{% translate "Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert." %}{% else %}{% translate "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer." %}{% endif %}</span>
-      </form>
       {% endif %}
     </div>
   {% endif %}
+</div>
+
+{# ── rechts: die Werkzeuge ──────────────────────────────────────────────── #}
+<div class="spalte-werkzeuge" id="werkzeuge">
+  {% if entwurf %}
+  {% if darf_schreiben and entwurf.status == "in_arbeit" or einreichung %}
+  <div class="karte">
+    <p class="phasen-titel">{% translate "Einreichen — Beschluss der Gruppe" %}</p>
+    {% if einreichung %}
+      <div class="zeile"><span style="width:100%">
+        <a href="{% url 'gremien:beschluss' einreichung.beschluss.nummer %}" class="meta">{{ einreichung.beschluss.nummer }}</a> <strong>{{ einreichung.beschluss.gegenstand }}</strong>
+        <br><span class="meta">{% blocktranslate with a=einreichung.auswertung.abgegeben n=einreichung.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}{% if einreichung.beschluss.frist %} · {% blocktranslate with frist=einreichung.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}</span>
+        {% for s in einreichung.stimmen %}
+        <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in einreichung.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
+        {% endfor %}
+        {% if darf_schreiben %}
+        <form method="post" action="{% url 'gremien:beschluss_stimme' einreichung.beschluss.pk %}" class="werk-form" style="margin-top:8px">{% csrf_token %}
+          <label for="ib-{{ einreichung.beschluss.pk }}">{% translate "Interessenbindungen zu diesem Antrag — Pflicht, „keine“ ist eine Antwort (§ 6 Abs 7)" %}</label>
+          <input type="text" id="ib-{{ einreichung.beschluss.pk }}" name="interessenbindung" maxlength="1000" required>
+          <label for="bg-{{ einreichung.beschluss.pk }}" style="display:block;margin-top:6px">{% translate "Begründung (wird veröffentlicht)" %}</label>
+          <textarea id="bg-{{ einreichung.beschluss.pk }}" name="begruendung" style="min-height:50px" required>{{ einreichung.meine_stimme.begruendung|default:"" }}</textarea>
+          {% for o in einreichung.beschluss.optionen %}
+          <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}{% if einreichung.meine_stimme and einreichung.meine_stimme.option == o.wert %} ✓{% endif %}</button>
+          {% endfor %}
+        </form>
+        {% endif %}
+      </span></div>
+    {% else %}
+      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:4px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="vollzugsbezug">
+        <label><input type="checkbox" name="vollzugsbezug" value="ja" {% if entwurf.vollzugsbezug %}checked{% endif %}>
+        {% translate "Unmittelbarer Vollzugs- oder Beschaffungsbezug — dann prüft Gruppe 2 vor den Unterstützern (§ 6 Abs 7)." %}</label>
+        <button type="submit" class="btn-linie klein" style="margin-left:8px">{% translate "Merken" %}</button>
+      </form>
+      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:12px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="einreichung">
+        <button type="submit" class="btn">{% blocktranslate with n=letzte.nummer %}Fassung {{ n }} zur Einreichung stellen{% endblocktranslate %}</button>
+        <span class="meta">{% translate "Beschluss nach § 6 Abs 2 lit e; jede Stimme mit Interessenbindung und Begründung öffentlich." %}</span>
+      </form>
+    {% endif %}
   </div>
+  {% endif %}
+
+  {% if interessenbindungen %}
+  <div class="karte">
+    <p class="phasen-titel">{% translate "Interessenbindungen zu diesem Antrag (§ 6 Abs 7)" %}</p>
+    {% for i in interessenbindungen %}
+    <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="karte">
+    <p class="phasen-titel">{% translate "Einschätzung der Zukunftswerkstatt — Arbeitsunterlage" %}</p>
+    {% if einschaetzung.lauf %}
+    <p class="meta"><span class="ki-kennzeichen">{% translate "Modellrechnung" %} · {{ einschaetzung.modell }}</span> {{ einschaetzung.lauf.erstellt_am|date:"d.m.Y" }}</p>
+    <p style="white-space:pre-line;margin-top:6px">{{ einschaetzung.lauf.antwort|truncatechars:1200 }}</p>
+    {% else %}
+    <p class="leer">{% translate "Zu diesem Antrag liegt keine Einschätzung vor." %}</p>
+    {% endif %}
+    {% if einschaetzung.beanstandungen %}
+    <p class="meta" style="margin-top:6px">{% blocktranslate count n=einschaetzung.beanstandungen|length %}Eine Beanstandung{% plural %}{{ n }} Beanstandungen{% endblocktranslate %} · <a href="{% url 'verfahren:antrag' antrag.pk %}#zone-2">{% translate "in Zone 2" %}</a></p>
+    {% endif %}
+  </div>
+
+  {% if wuensche_vorrunde %}
+  <div class="karte">
+    <p class="phasen-titel">{% blocktranslate with n=entwurf.runde|add:"-1" %}Wünsche der Unterstützer (Runde {{ n }}){% endblocktranslate %}</p>
+    <p class="meta">{% translate "Nach Engagement gereiht — oben steht, was die meisten bewegt hat." %}</p>
+    {% for k in wuensche_vorrunde %}
+    <div class="zeile"><span style="width:100%">
+      {% if k.absatz %}<span class="etikett kritik">{% blocktranslate with n=k.absatz %}Absatz {{ n }}{% endblocktranslate %}</span> {% endif %}
+      <strong>{{ k.name }}</strong> <span class="meta">· {{ k.ja }} 👍 / {{ k.nein }} 👎</span>
+      {% if k.vermerk %}<span class="chip klein">{% blocktranslate with n=k.vermerk.fassung %}berücksichtigt in Fassung {{ n }}{% endblocktranslate %}</span>{% endif %}
+      <br><span style="white-space:pre-line">{{ k.text }}</span>
+      {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+      <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:4px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="wunsch"><input type="hidden" name="kommentar" value="{{ k.id }}">
+        <button type="submit" class="btn-still klein">{% if k.vermerk %}{% translate "Vermerk zurücknehmen" %}{% else %}{% translate "Als berücksichtigt vermerken" %}{% endif %}</button>
+      </form>
+      {% endif %}
+    </span></div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="karte">
+    <p class="phasen-titel">{% translate "Interne Beratung (dokumentiert, § 6 Abs 9)" %}</p>
+    {% for b in beitraege %}
+    <div class="zeile"><span><strong>{{ b.mitglied.anzeigename }}</strong> <span class="meta">{{ b.erstellt_am|date:"d.m.Y H:i" }}</span>
+      {% if b.absatz %}<span class="etikett kritik">{% blocktranslate with n=b.absatz %}Absatz {{ n }}{% endblocktranslate %}</span>{% endif %}
+      {% if b.ki_lauf %}<span class="ki-kennzeichen" title="{% translate 'Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv.' %}">{% translate "KI-Vorschlag" %} · {{ b.ki_lauf.modell }}</span>{% endif %}
+      <br><span style="white-space:pre-line">{{ b.text }}</span></span></div>
+    {% empty %}
+    <p class="leer">{% translate "Noch keine Beiträge." %}</p>
+    {% endfor %}
+    {% if darf_schreiben and entwurf.status == "in_arbeit" %}
+    <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" class="werk-form" style="margin-top:10px">{% csrf_token %}
+      <input type="hidden" name="aktion" value="beitrag">
+      <label for="beitrag-text">{% translate "Beitrag zur internen Beratung" %}</label>
+      <textarea id="beitrag-text" name="text" style="min-height:70px" required></textarea>
+      <label for="beitrag-absatz" style="display:block;margin-top:6px">{% translate "Bezug auf einen Absatz der Fassung (freiwillig)" %}</label>
+      <select id="beitrag-absatz" name="absatz">
+        <option value="">—</option>
+        {% for a in absaetze_fassung %}<option value="{{ forloop.counter }}">{% blocktranslate with n=forloop.counter %}Absatz {{ n }}{% endblocktranslate %}: {{ a|truncatechars:50 }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Beitrag festhalten" %}</button>
+    </form>
+    <form method="post" action="{% url 'gremien:fenster_aktion' antrag.pk %}" style="margin-top:10px">{% csrf_token %}
+      <input type="hidden" name="aktion" value="ki_einschaetzung">
+      <button type="submit" class="btn-linie klein">{% translate "KI-Einschätzung einholen" %}</button>
+      <span class="meta" style="margin-left:8px">{% if steckplatz_bereit %}{% translate "Sie schlägt vor, sie entscheidet nie — der Lauf wird archiviert." %}{% else %}{% translate "Derzeit ist kein Anbieter angeschlossen — der Steckplatz ist ehrlich leer." %}{% endif %}</span>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="karte">
+    <p class="phasen-titel">{% translate "Einschätzung der Zukunftswerkstatt — Arbeitsunterlage" %}</p>
+    {% if einschaetzung.lauf %}
+    <p class="meta"><span class="ki-kennzeichen">{% translate "Modellrechnung" %} · {{ einschaetzung.modell }}</span></p>
+    <p style="white-space:pre-line;margin-top:6px">{{ einschaetzung.lauf.antwort|truncatechars:1200 }}</p>
+    {% else %}
+    <p class="leer">{% translate "Zu diesem Antrag liegt keine Einschätzung vor." %}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
 </div>
 {% endblock %}

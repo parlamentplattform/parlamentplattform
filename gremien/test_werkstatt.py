@@ -82,15 +82,21 @@ def fenster_oeffnen(client, antrag, rat):
 
 
 def einreichen(client, antrag, raete, vollzugsbezug=False):
-    """Werkstatt im Zeitraffer: öffnen, Mehrheit stimmt, einreichen."""
+    """Werkstatt im Zeitraffer: öffnen, die Einreichung beschließen (alle stimmen dafür)."""
+    from gremien.models import Anlass, BeschlussStatus, GremienBeschluss
+
     entwurf = fenster_oeffnen(client, antrag, raete[0])
     aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
     if vollzugsbezug:
         client.post(aktion, {"aktion": "vollzugsbezug", "vollzugsbezug": "ja"})
+    client.post(aktion, {"aktion": "einreichung"})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag, status=BeschlussStatus.OFFEN)
     for rat in raete:
         client.force_login(rat)
-        client.post(aktion, {"aktion": "stimme", "einverstanden": "ja"})
-    client.post(aktion, {"aktion": "einreichen"})
+        client.post(
+            reverse("gremien:beschluss_stimme", args=[beschluss.pk]),
+            {"option": "dafuer", "begruendung": "Reif.", "interessenbindung": "keine"},
+        )
     entwurf.refresh_from_db()
     return entwurf
 
@@ -117,7 +123,13 @@ def test_arbeitsbereich_nur_fuer_rolleninhaber(client, ordnung):  # noqa: F811
     beendet = Rolle.objects.get(mitglied=ohne)
     beendet.beendet_grund = "Austausch (Testfall)"
     beendet.save()
-    assert client.get(reverse("gremien:expertenrat")).status_code == 403
+    # Seit 0.45 liest, wer eine Rolle hatte, weiter — mit Band; schreiben nicht (FB-I1).
+    antwort = client.get(reverse("gremien:expertenrat"))
+    assert antwort.status_code == 200 and "Ihre Rolle wurde beendet" in antwort.content.decode()
+    client.post(reverse("gremien:rat_beschluss", args=["expertenrat1"]), {"gegenstand": "X", "beschreibung": "Y"})
+    from gremien.models import GremienBeschluss
+
+    assert not GremienBeschluss.objects.exists()
 
 
 def test_rollen_verwaltung_beruft_bestaetigt_und_beendet(client, ordnung):  # noqa: F811
@@ -188,16 +200,34 @@ def test_schreiben_nur_mit_aktiver_rolle(client, ordnung):  # noqa: F811
 
 
 def test_einreichen_braucht_dokumentierte_mehrheit(client, ordnung):  # noqa: F811
+    """Seit 0.45 ein Beschluss nach § 6 Abs 2 lit e: beschlussfähig ab der Hälfte, entschieden
+    mit einfacher Mehrheit — ausgewertet, wenn alle gestimmt haben oder die Frist um ist."""
+    from datetime import timedelta
+
+    from gremien.models import Anlass, GremienBeschluss
+
     antrag, _, er = werkstatt_lage(ordnung, raete=3)  # nötig: 2 von 3
     entwurf = fenster_oeffnen(client, antrag, er[0])
-    aktion = reverse("gremien:fenster_aktion", args=[antrag.pk])
-    client.post(aktion, {"aktion": "stimme", "einverstanden": "ja"})
-    client.post(aktion, {"aktion": "einreichen"})
+    client.post(reverse("gremien:fenster_aktion", args=[antrag.pk]), {"aktion": "einreichung"})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag)
+    stimme = reverse("gremien:beschluss_stimme", args=[beschluss.pk])
+    client.post(stimme, {"option": "dafuer", "begruendung": "Reif.", "interessenbindung": "keine"})
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=timezone.now() - timedelta(minutes=1))
+    beschluss.refresh_from_db()
+    beschluss.abschliessen()
     entwurf.refresh_from_db()
-    assert entwurf.status == EntwurfsStatus.IN_ARBEIT  # 1 Ja reicht nicht
-    client.force_login(er[1])
-    client.post(aktion, {"aktion": "stimme", "einverstanden": "ja"})
-    client.post(aktion, {"aktion": "einreichen"})
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT  # 1 Ja von 3 reicht nicht — kein Ergebnis
+    client.post(reverse("gremien:fenster_aktion", args=[antrag.pk]), {"aktion": "einreichung"})
+    zweiter = GremienBeschluss.objects.filter(anlass=Anlass.EINREICHUNG, antrag=antrag).order_by("-pk").first()
+    for rat in er[:2]:
+        client.force_login(rat)
+        client.post(
+            reverse("gremien:beschluss_stimme", args=[zweiter.pk]),
+            {"option": "dafuer", "begruendung": "Reif.", "interessenbindung": "keine"},
+        )
+    GremienBeschluss.objects.filter(pk=zweiter.pk).update(frist=timezone.now() - timedelta(minutes=1))
+    zweiter.refresh_from_db()
+    zweiter.abschliessen()
     entwurf.refresh_from_db()
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER and entwurf.review_frist is not None
 

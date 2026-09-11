@@ -30,7 +30,7 @@ Ein geänderter Wert wirkt deshalb nie auf ein laufendes Verfahren.{% endblocktr
   <h2 style="margin:0 0 4px;font-size:17px">{{ karte.name }}</h2>
   {% for p in karte.eintraege %}
   <div class="zeile"><span style="width:100%">
-    <strong>{{ p.schluessel }}</strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}
+    <strong><a href="{% url 'parameter:parameter' p.schluessel %}">{{ p.schluessel }}</a></strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}
     {% if p.status != "gueltig" %}<span class="chip klein">{{ p.get_status_display }}</span>{% endif %}
     {% if p.speist_ordnung %}<span class="chip klein still" title="{% translate 'Aus diesem Wert wird die Verfahrensordnung gebaut.' %}">{% translate "Verfahrensordnung" %}</span>{% endif %}
     <br><span class="meta">{{ p.beschreibung }}</span>

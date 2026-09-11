@@ -1,0 +1,62 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% blocktranslate with j=jahr %}Bericht des Integritätsrats {{ j }}{% endblocktranslate %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Der jährliche öffentliche Bericht des Integritätsrats (§ 6 Abs 3 lit c, FB-I6) — erzeugt aus
+Beschlüssen, Aussetzungen und Regelprüfung des Jahres. Kein Freitext: Was hier steht, kann
+niemand kürzen oder zurückhalten.
+{% endcomment %}
+<h1>{% blocktranslate with j=jahr %}Bericht des Integritätsrats {{ j }}{% endblocktranslate %}</h1>
+<p class="erk">{% for j in jahre %}{% if j == jahr %}<strong>{{ j }}</strong>{% else %}<a href="{% url 'gremien:integritaet_bericht' j %}">{{ j }}</a>{% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}
+  · <a href="{% url 'gremien:beschluesse' %}?gremium=integritaetsrat">{% translate "alle Beschlüsse" %}</a> · <a href="{% url 'parameter:regeln' %}">{% translate "das Regelverzeichnis" %}</a></p>
+
+<div class="hf-grid" style="margin-top:14px">
+  <div class="bereich"><span class="bk">{% translate "Beschlüsse" %}</span><h2>{{ beschluesse|length }}</h2><span class="meta">{% blocktranslate with e=entschieden o=ohne_ergebnis %}{{ e }} entschieden · {{ o }} ohne Ergebnis{% endblocktranslate %}</span></div>
+  <div class="bereich"><span class="bk">{% translate "Aussetzungen" %}</span><h2>{{ aussetzungen|length }}</h2><span class="meta">§ 6 Abs 3 lit d</span></div>
+  <div class="bereich"><span class="bk">{% translate "Regelprüfung" %}</span><h2>{{ regelpruefungen|length }}</h2><span class="meta">§ 2 Abs 6</span></div>
+</div>
+
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Besetzung im Berichtsjahr" %}</p>
+  {% for r in rollen %}
+  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong><br><span class="meta">{{ r.berufen_am|date:"d.m.Y" }} – {{ r.endet_am|date:"d.m.Y" }}{% if r.beendet_grund %} · {{ r.beendet_grund }}{% endif %}</span></span></div>
+  {% empty %}
+  <p class="leer">{% translate "Im Berichtsjahr war niemand berufen." %}</p>
+  {% endfor %}
+  <p class="meta" style="margin-top:6px">{% blocktranslate with m=mindestbesetzung %}Mindestbesetzung nach § 6 Abs 3 lit a: {{ m }}. Unter dieser Grenze entfaltet kein Beschluss Wirkung.{% endblocktranslate %}</p>
+</div>
+
+{% for anlass, liste in nach_anlass %}
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{{ anlass }} ({{ liste|length }})</p>
+  {% for b in liste %}
+  <div class="zeile"><span><a href="{% url 'gremien:beschluss' b.nummer %}" class="meta">{{ b.nummer }}</a> <strong>{{ b.gegenstand }}</strong> <span class="chip klein">{{ b.get_status_display }}</span>{% if b.ergebnis %} · {% for o in b.optionen %}{% if o.wert == b.ergebnis %}{{ o.name }}{% endif %}{% endfor %}{% endif %}
+    <br><span class="meta">{{ b.angelegt_am|date:"d.m.Y" }}{% if b.umsetzungsvermerk %} · {{ b.umsetzungsvermerk }}{% endif %}</span></span></div>
+  {% endfor %}
+</div>
+{% empty %}
+<p class="leer" style="margin-top:16px">{% translate "In diesem Jahr hat der Rat keinen Beschluss angelegt." %}</p>
+{% endfor %}
+
+{% if aussetzungen %}
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Aussetzungen (§ 6 Abs 3 lit d)" %}</p>
+  {% for a in aussetzungen %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' a.antrag.pk %}">{{ a.antrag.titel }}</a> · <a href="{% url 'gremien:beschluss' a.beschluss.nummer %}" class="meta">{{ a.beschluss.nummer }}</a>
+    <br><span class="meta">{{ a.beginn|date:"d.m.Y" }}{% if a.beendet_am %} – {{ a.beendet_am|date:"d.m.Y" }}{% endif %} · {{ a.stand }}</span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if regelpruefungen %}
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Prüfung der automatisierten Regeln (§ 2 Abs 6)" %}</p>
+  {% for r in regelpruefungen %}
+  <div class="zeile"><span><a href="{% url 'gremien:beschluss' r.beschluss.nummer %}" class="meta">{{ r.beschluss.nummer }}</a> {{ r.beschluss.gegenstand }}
+    <br><span class="meta">{% if r.geprueft_am %}{% translate "geprüft am" %} {{ r.geprueft_am|date:"d.m.Y" }}{% else %}{% translate "offen" %}{% endif %}</span></span></div>
+  {% endfor %}
+</div>
+{% endif %}
+<p class="meta" style="margin-top:8px">{% translate "Erzeugt aus den Daten des Jahres — der Koordinationsrat darf diesen Bericht weder kürzen noch zurückhalten (§ 6 Abs 3 lit c)." %} {% blocktranslate with h=hervorgehoben z=zurueckgewiesen %}Derzeit hervorgehoben: {{ h }} · im Jahr zurückgewiesen: {{ z }}.{% endblocktranslate %}</p>
+{% endblock %}

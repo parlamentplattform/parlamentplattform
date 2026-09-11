@@ -9,8 +9,11 @@ Hervorhebung „erfolgt niemals durch einen Algorithmus", und ebenso wenig durch
 Menschen). Ohne JavaScript vollständig bedienbar.
 {% endcomment %}
 <h1>{% translate "Integritätsrat" %}</h1>
+{% include "gremien/_rollenband.html" %}
 <p class="erk">{% translate "Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6) stützt sich auf das öffentliche Regelverzeichnis." %}
-  <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a></p>
+  <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a>
+  · <a href="{% url 'gremien:integritaet_bericht' jahr %}">{% blocktranslate with j=jahr %}Öffentlicher Bericht {{ j }} →{% endblocktranslate %}</a>
+  · <a href="{% url 'gremien:protokoll' 'integritaetsrat' jahr %}">{% translate "Protokoll als JSON →" %}</a></p>
 
 {% if not besetzt %}
 <div class="band-gold">{% blocktranslate with a=aktive m=mindestbesetzung %}Der Rat ist mit {{ a }} von mindestens {{ m }} Mitgliedern besetzt (§ 6 Abs 3 lit a). Beschlüsse lassen sich anlegen und abstimmen — Wirkung entfalten sie erst, wenn der Rat satzungsgemäß besetzt ist.{% endblocktranslate %}</div>
@@ -36,7 +39,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   </form>
 </div>
 
-{% include "gremien/_beschluesse.html" %}
+{% include "gremien/_beschluesse.html" with umsetzungsvermerk=True %}
 
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Derzeit hervorgehoben" %}</p>

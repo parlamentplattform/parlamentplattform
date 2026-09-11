@@ -769,6 +769,10 @@ def antrag_detail(request, pk):
             "entwurf": entwurf,
             "vorschlag": entwurf.aktuelle_fassung(),
             "pruefungen": list(entwurf.pruefungen.all()),  # § 6 Abs 7: Begründungen öffentlich
+            # § 6 Abs 7: Interessenbindungen der Verfasser zu DIESEM Antrag — öffentlich
+            "interessenbindungen": list(
+                antrag.interessenbindungen.select_related("mitglied").order_by("-runde", "erklaert_am")
+            ),
         }
     vollzug = None
     if antrag.phase == Phase.ANGENOMMEN.value:
@@ -824,6 +828,8 @@ def umsetzung(request):
     """F-55, § 6 Abs 10: das öffentliche Umsetzungsregister. Ein Beschluss, den
     niemand umsetzt, entwertet das Verfahren (L6) — deshalb steht hier zu jedem
     angenommenen Antrag der Stand der Umsetzung, offen für alle, mit voller Historie."""
+    from gremien.models import Gremium, Rolle, Ueberlastungsmeldung
+
     zeilen = _register_zeilen()
     zaehlung = [(wert, sum(1 for z in zeilen if z["status"] == wert)) for wert, _n in Vollzugsstatus.choices]
     gewaehlt = request.GET.get("status", "")
@@ -831,6 +837,7 @@ def umsetzung(request):
         zeilen = [z for z in zeilen if z["status"] == gewaehlt]
     else:
         gewaehlt = ""
+    nutzer = request.user
     return render(
         request,
         "verfahren/umsetzung.html",
@@ -840,6 +847,10 @@ def umsetzung(request):
             "gewaehlt": gewaehlt,
             "statuswahl": Vollzugsstatus.choices,
             "meine_favoriten": _meine_favoriten(request.user),
+            # § 6 Abs 10: Überlastungsmeldungen sind unverzüglich zu veröffentlichen
+            "ueberlastungen": list(Ueberlastungsmeldung.objects.select_related("antrag_an_mv")[:10]),
+            "darf_ueberlastung_melden": nutzer.is_authenticated
+            and (nutzer.hat_adminrechte or Rolle.hat(nutzer, Gremium.BERICHTSWESENRAT)),
         },
     )
 

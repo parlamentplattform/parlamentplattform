@@ -114,7 +114,10 @@ def test_der_anlass_entscheidet_ueber_die_wirkung():
     from gremien.models import WIRKUNGEN
 
     # Jeder Anlass mit Wirkung steht hier; jeder ohne bewirkt nichts außer sich selbst.
-    assert set(WIRKUNGEN) == {
+    # Seit 0.45 hat jeder Anlass außer INTERN eine Wirkung — ein Anlass, den man wählen
+    # kann und der schweigend nichts tut, wäre ein Knopf ohne Draht.
+    assert set(WIRKUNGEN) == set(Anlass) - {Anlass.INTERN}
+    assert set(WIRKUNGEN) >= {
         Anlass.PRUEFUNG,
         Anlass.HERVORHEBUNG,
         Anlass.HERVORHEBUNG_AUFHEBEN,

@@ -23,6 +23,7 @@ MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
 
 class Zweck(models.TextChoices):
     EINSCHAETZUNG = "einschaetzung", "Einschätzung für die Gremien-Werkstatt"
+    PARAMETERVORSCHLAG = "parametervorschlag", "Vorschlag der Zukunftswerkstatt zu einem Parametertest"
 
 
 class KILauf(models.Model):

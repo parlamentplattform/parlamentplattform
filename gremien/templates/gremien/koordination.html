@@ -2,51 +2,222 @@
 {% load i18n %}
 {% block titel %}{% translate "Koordinationsrat" %}{% endblock %}
 {% block inhalt %}
+{% comment %}
+Der Arbeitsbereich des Koordinationsrats (FB-I5): vier Karten in einem 2×2-Raster wie das
+Parlament — Aufgaben, Posteingang der Zukunftswerkstatt, Beschlüsse, Parameter & Tests.
+Nichts hier wirkt unmittelbar: Jeder Knopf legt einen Beschluss an oder vermerkt etwas.
+{% endcomment %}
+<style>
+  .kr-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:14px}
+  @media (max-width:980px){.kr-grid{grid-template-columns:1fr}}
+  .kr-grid .karte{margin-top:0}
+  .kr-form label{display:block;margin-top:6px}
+  .kr-form input[type=text],.kr-form input[type=date],.kr-form select,.kr-form textarea{width:100%;max-width:100%}
+  .kr-form textarea{min-height:60px}
+  .kr-frist{font-variant-numeric:tabular-nums}
+</style>
 <h1>{% translate "Koordinationsrat" %}</h1>
-{% if not darf_schreiben %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+{% include "gremien/_rollenband.html" %}
+{% if not darf_schreiben and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
+<p class="erk">{% blocktranslate count n=aktive %}Eine aktive Rolle{% plural %}{{ n }} aktive Rollen{% endblocktranslate %} · <a href="#aufgaben">{% translate "Aufgaben" %}</a> · <a href="#posteingang">{% translate "Posteingang" %}</a> · <a href="#beschluesse">{% translate "Beschlüsse" %}</a> · <a href="#parameter">{% translate "Parameter & Tests" %}</a></p>
 
-<div class="karte" style="margin-top:16px">
-  <p class="phasen-titel">{% translate "Offene Austauschanträge" %}</p>
+<div class="kr-grid">
+
+{# ── 1. Aufgaben ──────────────────────────────────────────────────────── #}
+<div class="karte" id="aufgaben">
+  <p class="phasen-titel">{% translate "Aufgaben" %}</p>
+
   {% for p in offene %}
   <div class="zeile"><span style="width:100%">
+    <span class="chip klein">{% translate "Austauschantrag" %}</span>
     <a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}"><strong>{{ p.entwurf.antrag.titel }}</strong></a>
     <span class="meta"> · {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %} · {{ p.erstellt_am|date:"d.m.Y" }}</span>
     <p style="white-space:pre-line;margin-top:6px"><em>{% translate "Begründung der Gruppe 2:" %}</em> {{ p.begruendung }}</p>
-    {% if darf_schreiben %}
-    <form method="post" action="{% url 'gremien:koordination_aktion' p.pk %}" style="margin-top:8px">{% csrf_token %}
-      <label for="kb-{{ p.pk }}">{% translate "Begründung der Entscheidung (wird veröffentlicht)" %}</label>
-      <textarea id="kb-{{ p.pk }}" name="begruendung" style="width:100%;min-height:60px" required></textarea>
-      <button type="submit" name="entscheid" value="stattgegeben" class="btn" style="margin-top:6px">{% translate "Stattgeben — Gruppe 1 austauschen" %}</button>
-      <button type="submit" name="entscheid" value="abgelehnt" class="btn-linie" style="margin-top:6px;margin-left:6px">{% translate "Ablehnen" %}</button>
+    {% if p.beschluss_offen %}
+    <p class="meta" style="margin-top:6px">{% blocktranslate with nummer=p.beschluss_offen.nummer %}Beschluss {{ nummer }} läuft — abstimmen unter „Beschlüsse“.{% endblocktranslate %}</p>
+    {% elif darf_schreiben %}
+    <form method="post" action="{% url 'gremien:koordination_beschluss' %}" class="kr-form" style="margin-top:8px">{% csrf_token %}
+      <input type="hidden" name="anlass" value="austausch"><input type="hidden" name="pruefung" value="{{ p.pk }}">
+      <label for="kb-{{ p.pk }}">{% translate "Worum es geht (wird mit dem Beschluss veröffentlicht)" %}</label>
+      <textarea id="kb-{{ p.pk }}" name="beschreibung" required></textarea>
+      <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Beschluss über den Austausch anlegen" %}</button>
+      <span class="meta">{% translate "Stattgeben beendet die für diesen Antrag gelosten Rollen der Gruppe 1 und lost neu." %}</span>
     </form>
-    <p class="erk" style="margin-top:6px">{% translate "Stattgeben beendet alle aktiven Rollen der Gruppe 1 — mit dokumentiertem Grund; der Entwurf geht an die neu besetzte Gruppe." %}</p>
+    {% endif %}
+  </span></div>
+  {% endfor %}
+
+  {% for m in ueberlastungen %}
+  <div class="zeile"><span style="width:100%">
+    <span class="chip klein">{% translate "Überlastungsmeldung" %}</span> <strong>{{ m.meldung.stelle }}</strong>
+    <span class="meta"> · {{ m.meldung.gemeldet_am|date:"d.m.Y" }} ·
+      {% if m.meldung.erledigt_am %}{% translate "Vorschlag liegt der Mitgliederversammlung vor" %}{% if m.meldung.antrag_an_mv %} — <a href="{% url 'verfahren:antrag' m.meldung.antrag_an_mv.pk %}">{% translate "zum Antrag" %}</a>{% endif %}
+      {% elif m.ueberfaellig %}<strong class="kr-frist">{% translate "Frist von 30 Tagen überschritten (§ 6 Abs 10)" %}</strong>
+      {% else %}<span class="kr-frist">{% blocktranslate count t=m.resttage %}noch ein Tag bis zur 30-Tage-Frist{% plural %}noch {{ t }} Tage bis zur 30-Tage-Frist{% endblocktranslate %} · {{ m.meldung.frist|date:"d.m.Y" }}</span>{% endif %}</span>
+    <p style="white-space:pre-line;margin-top:6px">{{ m.meldung.begruendung }}</p>
+    {% if m.beschluss_offen %}
+    <p class="meta" style="margin-top:6px">{% blocktranslate with nummer=m.beschluss_offen.nummer %}Beschluss {{ nummer }} läuft — abstimmen unter „Beschlüsse“.{% endblocktranslate %}</p>
+    {% elif darf_schreiben and not m.meldung.erledigt_am %}
+    <form method="post" action="{% url 'gremien:koordination_beschluss' %}" class="kr-form" style="margin-top:8px">{% csrf_token %}
+      <input type="hidden" name="anlass" value="ueberlastung"><input type="hidden" name="meldung" value="{{ m.meldung.pk }}">
+      <label for="ue-{{ m.meldung.pk }}">{% translate "Vorschlag an die Mitgliederversammlung: Reihung, Streckung oder Rückstellung (wird als Antrag eingebracht)" %}</label>
+      <textarea id="ue-{{ m.meldung.pk }}" name="beschreibung" required></textarea>
+      <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Beschluss über den Vorschlag anlegen" %}</button>
+    </form>
+    {% endif %}
+  </span></div>
+  {% endfor %}
+
+  {% if vollzugsberichte %}
+  <details style="margin-top:8px"><summary class="meta">{% blocktranslate count n=vollzugsberichte|length %}Ein Vollzugsbericht zur Kenntnis{% plural %}{{ n }} Vollzugsberichte zur Kenntnis{% endblocktranslate %}</summary>
+    {% for v in vollzugsberichte %}
+    <div class="zeile"><span><a href="{% url 'verfahren:antrag' v.antrag.pk %}">{{ v.antrag.titel }}</a>
+      <br><span class="meta">{{ v.get_status_display }} · {{ v.erstellt_am|date:"d.m.Y" }}{% if v.vermerk %} · {{ v.vermerk }}{% endif %}</span></span></div>
+    {% endfor %}
+  </details>
+  {% endif %}
+
+  {% if not offene and not ueberlastungen %}
+  <p class="leer">{% translate "Keine offene Aufgabe." %}</p>
+  {% endif %}
+
+  {% if darf_schreiben %}
+  <details style="margin-top:10px"><summary>{% translate "Hervorhebung beim Integritätsrat beantragen" %}</summary>
+    <form method="post" action="{% url 'gremien:koordination_beschluss' %}" class="kr-form" style="margin-top:6px">{% csrf_token %}
+      <input type="hidden" name="anlass" value="hervorhebung_anregen">
+      <label for="hv-antrag">{% translate "Antrag" %}</label>
+      <select id="hv-antrag" name="antrag" required>
+        {% for a in laufende %}<option value="{{ a.pk }}">{{ a.titel }} ({{ a.get_phase_display }})</option>{% endfor %}
+      </select>
+      <label for="hv-grund">{% translate "Begründung (geht mit dem Antrag an den Integritätsrat, § 5 Abs 10 lit b)" %}</label>
+      <textarea id="hv-grund" name="beschreibung" required></textarea>
+      <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Beschluss anlegen" %}</button>
+    </form>
+  </details>
+  {% endif %}
+
+  {% for e in entschiedene %}
+  <div class="zeile"><span><a href="{% url 'verfahren:antrag' e.entwurf.antrag.pk %}">{{ e.entwurf.antrag.titel }}</a>
+    <br><span class="meta">{% translate "Austauschantrag" %} {{ e.get_korat_entscheid_display|default:e.korat_entscheid }} · {{ e.korat_begruendung }}</span></span></div>
+  {% endfor %}
+</div>
+
+{# ── 2. Posteingang der Zukunftswerkstatt ─────────────────────────────── #}
+<div class="karte" id="posteingang">
+  <p class="phasen-titel">{% translate "Posteingang der Zukunftswerkstatt" %}</p>
+  {% for h in hinweise %}
+  <div class="zeile"><span style="width:100%">
+    <span class="chip klein">{{ h.get_quelle_display }}</span> <strong>{{ h.titel }}</strong>
+    <span class="meta"> · {{ h.angelegt_am|date:"d.m.Y" }}{% if h.status != "offen" %} · {{ h.get_status_display }}{% if h.grund %} — {{ h.grund }}{% endif %}{% endif %}</span>
+    <p style="white-space:pre-line;margin-top:6px">{{ h.text }}</p>
+    {% if h.parametertest %}<p class="meta"><a href="{% url 'parameter:parameter' h.parametertest.parameter.schluessel %}">{% translate "Zur Auswertung →" %}</a></p>{% endif %}
+    {% if h.status == "offen" and darf_schreiben %}
+    <form method="post" action="{% url 'gremien:koordination_hinweis' h.pk %}" class="kr-form" style="margin-top:8px">{% csrf_token %}
+      {% if h.parametertest and h.parametertest.status == "ausgewertet" %}
+      <button type="submit" name="aktion" value="beschluss" class="btn klein">{% translate "Beschluss anlegen — Einführung" %}</button>
+      {% endif %}
+      <button type="submit" name="aktion" value="kenntnis" class="btn-linie klein">{% translate "Zur Kenntnis" %}</button>
+      <label for="hg-{{ h.pk }}" class="meta">{% translate "Verwerfen — mit Grund" %}</label>
+      <input type="text" id="hg-{{ h.pk }}" name="grund" maxlength="500">
+      <button type="submit" name="aktion" value="verwerfen" class="btn-linie klein" style="margin-top:6px">{% translate "Verwerfen" %}</button>
+    </form>
     {% endif %}
   </span></div>
   {% empty %}
-  <p class="leer">{% translate "Kein Austauschantrag offen." %}</p>
+  <p class="leer">{% translate "Nichts im Posteingang." %}</p>
   {% endfor %}
-  {% for p in entschiedene %}
-  <div class="zeile"><span><a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}">{{ p.entwurf.antrag.titel }}</a>
-    <br><span class="meta">{% translate "Austauschantrag" %} {{ p.get_korat_entscheid_display|default:p.korat_entscheid }} · {{ p.korat_begruendung }}</span></span></div>
+  <p class="meta" style="margin-top:8px">{% translate "Heute speist nur die Auswertung von Parametertests den Posteingang. Kandidaten für Hervorhebung und Muster-Berichte folgen mit der Zukunftswerkstatt." %}
+    <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zur Zukunftswerkstatt →" %}</a></p>
+</div>
+
+{# ── 3. Beschlüsse ────────────────────────────────────────────────────── #}
+<div id="beschluesse">
+  {% include "gremien/_beschluesse.html" with ohne_kopf=False umsetzungsvermerk=True %}
+  {% if darf_schreiben %}
+  <div class="karte" style="margin-top:12px">
+    <details><summary>{% translate "Beschluss anlegen (innere Angelegenheit)" %}</summary>
+      <form method="post" action="{% url 'gremien:koordination_beschluss' %}" class="kr-form" style="margin-top:6px">{% csrf_token %}
+        <input type="hidden" name="anlass" value="intern">
+        <label for="in-gegenstand">{% translate "Gegenstand" %}</label>
+        <input type="text" id="in-gegenstand" name="gegenstand" maxlength="200" required>
+        <label for="in-beschreibung">{% translate "Worum es geht (wird veröffentlicht)" %}</label>
+        <textarea id="in-beschreibung" name="beschreibung" required></textarea>
+        <button type="submit" class="btn-linie klein" style="margin-top:6px">{% translate "Beschluss anlegen" %}</button>
+        <span class="meta">{% translate "Optionen: dafür / dagegen. Frist aus dem Register." %}</span>
+      </form>
+    </details>
+  </div>
+  {% endif %}
+  <p class="meta" style="margin-top:8px"><a href="{% url 'gremien:protokoll' 'koordinationsrat' jahr %}">{% blocktranslate with j=jahr %}Sitzungsprotokoll {{ j }} als JSON →{% endblocktranslate %}</a></p>
+</div>
+
+{# ── 4. Parameter & Tests ─────────────────────────────────────────────── #}
+<div class="karte" id="parameter">
+  <p class="phasen-titel">{% translate "Parameter & Tests" %}</p>
+  {% for t in tests %}
+  <div class="zeile"><span style="width:100%">
+    <strong><a href="{% url 'parameter:parameter' t.test.parameter.schluessel %}">{{ t.test.parameter.schluessel }}</a></strong>
+    {{ t.test.alter_wert|default:t.test.parameter.wert }} → <strong>{{ t.test.testwert }}</strong>
+    <span class="chip klein">{{ t.test.get_status_display }}</span>
+    <br><span class="meta">{% translate "Hypothese:" %} {{ t.test.hypothese }} · {% translate "Messgröße" %} <code>{{ t.test.messgroesse }}</code> · {% translate "bis" %} {{ t.test.ende|date:"d.m.Y" }}{% if t.test.beschluss %} · <a href="{% url 'gremien:beschluss' t.test.beschluss.nummer %}">{{ t.test.beschluss.nummer }}</a>{% endif %}</span>
+    {% if t.gegenueberstellung and t.gegenueberstellung.vollstaendig %}
+    <br><span class="meta">{% translate "Vorher" %} {{ t.gegenueberstellung.vorher }} · {% translate "während" %} {{ t.gegenueberstellung.nachher }} · {% translate "Differenz" %} {{ t.gegenueberstellung.differenz }}{% if t.gegenueberstellung.anteil is not None %} ({{ t.gegenueberstellung.anteil }} %){% endif %}</span>
+    {% endif %}
+    {% if t.test.status == "ausgewertet" and darf_schreiben %}
+    <form method="post" action="{% url 'gremien:koordination_test' t.test.pk %}" class="kr-form" style="margin-top:8px">{% csrf_token %}
+      {% if not t.einfuehrung_offen %}
+      <button type="submit" name="aktion" value="einfuehrung" class="btn klein">{% translate "Einführung beschließen" %}</button>
+      {% else %}<span class="meta">{% blocktranslate with nummer=t.einfuehrung_offen.nummer %}Beschluss {{ nummer }} läuft.{% endblocktranslate %}</span>{% endif %}
+      <button type="submit" name="aktion" value="zukunftswerkstatt" class="btn-linie klein">{% translate "Einschätzung der Zukunftswerkstatt einholen" %}</button>
+      <label for="tv-{{ t.test.pk }}" class="meta">{% translate "Verwerfen — mit Grund" %}</label>
+      <input type="text" id="tv-{{ t.test.pk }}" name="grund" maxlength="500">
+      <button type="submit" name="aktion" value="verwerfen" class="btn-linie klein" style="margin-top:6px">{% translate "Verwerfen" %}</button>
+    </form>
+    {% endif %}
+    {% if t.test.ki_lauf %}<p class="meta" style="margin-top:6px"><span class="ki-kennzeichen">{% translate "KI-Vorschlag" %} · {{ t.test.ki_lauf.modell }}</span> {{ t.test.ki_lauf.antwort|truncatechars:400 }}</p>{% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Kein Test angeordnet." %}</p>
   {% endfor %}
+
+  {% if darf_schreiben %}
+  <details style="margin-top:10px"><summary>{% translate "Test anordnen" %}</summary>
+    <form method="post" action="{% url 'gremien:koordination_test' 0 %}" class="kr-form" style="margin-top:6px">{% csrf_token %}
+      <input type="hidden" name="aktion" value="anordnen">
+      <label for="pt-parameter">{% translate "Parameter" %}</label>
+      <select id="pt-parameter" name="parameter" required>
+        {% for p in parameter %}<option value="{{ p.pk }}">{{ p.schluessel }} = {{ p.wert }}{% if p.einheit %} {{ p.einheit }}{% endif %}</option>{% endfor %}
+      </select>
+      <label for="pt-wert">{% translate "Testwert" %}</label>
+      <input type="text" id="pt-wert" name="testwert" maxlength="100" required>
+      <label for="pt-hyp">{% translate "Hypothese (steht öffentlich am Band)" %}</label>
+      <input type="text" id="pt-hyp" name="hypothese" maxlength="300" required>
+      <label for="pt-mess">{% translate "Messgröße" %}</label>
+      <select id="pt-mess" name="messgroesse" required>
+        {% for m in messgroessen %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+      </select>
+      <label for="pt-ende">{% translate "Probezeitraum bis" %}</label>
+      <input type="date" id="pt-ende" name="ende" required>
+      <label for="pt-rueck">{% translate "Rückweg — wie der alte Wert zurückkommt, wenn es schiefgeht" %}</label>
+      <textarea id="pt-rueck" name="rueckweg" required></textarea>
+      <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Beschluss über den Test anlegen" %}</button>
+      <span class="meta">{% translate "Der Test beginnt erst mit dem Beschluss; er gilt nur für Verfahren, die neu beginnen (§ 5 Abs 5)." %}</span>
+    </form>
+  </details>
+  {% endif %}
+  <p class="meta" style="margin-top:8px"><a href="{% url 'parameter:liste' %}">{% translate "Das Register →" %}</a> · <a href="{% url 'parameter:bericht' jahr %}">{% blocktranslate with j=jahr %}Parameterbericht {{ j }} →{% endblocktranslate %}</a> · <a href="{% url 'parameter:export' %}">{% translate "Schema-Export für Partner →" %}</a></p>
+</div>
+
 </div>
 
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Aktive Rollen" %}</p>
   {% for r in rollen %}
-  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong> — {{ r.get_gremium_display }}
+  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong> — {{ r.get_gremium_display }}{% if r.antrag %} <span class="meta">· {% translate "für" %} „{{ r.antrag.titel }}“</span>{% endif %}
     <br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
   {% empty %}
   <p class="leer">{% translate "Keine aktiven Rollen." %}</p>
   {% endfor %}
   <p class="erk" style="margin-top:8px">{% translate "Berufen und beenden läuft im Alpha-Betrieb über die Verwaltung — der Ausschreibungsablauf wächst in die Plattform." %}</p>
 </div>
-
-<div class="karte" style="margin-top:16px">
-  <p class="phasen-titel">{% translate "Zukunftswerkstatt-Posteingang" %}</p>
-  <p class="leer">{% blocktranslate %}Hier landen künftig die Vorschläge aus der Zukunftswerkstatt zur Sichtung durch den
-Koordinationsrat — samt KI-Vorprüfung als Vorschlag, nie als Entscheidung.{% endblocktranslate %}
-  <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Zur Zukunftswerkstatt →" %}</a></p>
-</div>
-{% include "gremien/_beschluesse.html" %}
 {% endblock %}

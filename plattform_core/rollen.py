@@ -409,13 +409,15 @@ EXPERTENRAT1 = Rolle(
     schluessel="expertenrat1",
     name="Expertenrat — Gruppe 1 (Entwurf)",
     satzung="§ 6 Abs 7",
-    was_sie_ist="Fachleute, die zur Beratung eines einzelnen Antrags herangezogen werden und in der ersten Gruppe den Vorschlag erarbeiten; der Expertenrat beraet, er entscheidet nicht.",
+    was_sie_ist="Fachleute, die zur Beratung eines einzelnen Antrags herangezogen werden und in der ersten Gruppe den Vorschlag erarbeiten; der Expertenrat berät, er entscheidet nicht.",
     wie_hinein=(
         "Zweistufig (Entscheidung des Gründers vom 5.9.2026): Auf die öffentlich geführte Fachliste "
         "beruft der Koordinationsrat nach öffentlicher Ausschreibung für zwei Jahre, bestätigt durch die "
         "Mitgliederversammlung (§ 6 Abs 8); für den einzelnen Antrag werden die Fachleute daraus nach "
-        "einem offengelegten Zufallsverfahren gezogen (§ 6 Abs 7). Heute gibt es weder Fachliste noch "
-        "Auslosung — die Rolle vergibt die Verwaltung."
+        "einem offengelegten Zufallsverfahren gezogen (§ 6 Abs 7). Heute: Die Fachliste führt die "
+        "Verwaltung, ausgelost wird je Antrag zu Beginn der Beratung — Anker ist der Kopf der "
+        "Audit-Kette, jede Ziehung ist nachrechenbar. Die Berufung durch den Koordinationsrat und "
+        "die Bestätigung durch die Mitgliederversammlung fehlen noch."
     ),
     faehigkeiten=(
         Faehigkeit(
@@ -434,7 +436,7 @@ EXPERTENRAT1 = Rolle(
             ort="im Entwurfsfenster eines Antrags",
         ),
         Faehigkeit(
-            titel="Wuensche der Unterstuetzer aus der Vorrunde lesen",
+            titel="Wünsche der Unterstützer aus der Vorrunde lesen",
             stand=Stand.VERFUEGBAR,
             ort="im Entwurfsfenster eines Antrags",
         ),
@@ -456,23 +458,23 @@ EXPERTENRAT1 = Rolle(
             einschraenkung="Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm.",
         ),
         Faehigkeit(
-            titel="Vollzugs- oder Beschaffungsbezug setzen — dann prueft Gruppe 2 vorab",
+            titel="Vollzugs- oder Beschaffungsbezug setzen — dann prüft Gruppe 2 vorab",
             stand=Stand.VERFUEGBAR,
             ort="im Entwurfsfenster eines Antrags",
         ),
         Faehigkeit(
-            titel="Ueber die Einreichung intern abstimmen",
+            titel="Über die Einreichung intern abstimmen",
             stand=Stand.TEILWEISE,
             ort="im Entwurfsfenster eines Antrags",
             einschraenkung="Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9).",
         ),
         Faehigkeit(
-            titel="Vorschlag einreichen — an Gruppe 2 oder an die Unterstuetzer",
+            titel="Vorschlag einreichen — an Gruppe 2 oder an die Unterstützer",
             stand=Stand.VERFUEGBAR,
             ort="im Entwurfsfenster eines Antrags",
         ),
         Faehigkeit(
-            titel="Zurueckgegebenen Vorschlag in einer neuen Runde ueberarbeiten",
+            titel="Zurückgegebenen Vorschlag in einer neuen Runde überarbeiten",
             stand=Stand.VERFUEGBAR,
             ort="im Entwurfsfenster eines Antrags",
         ),
@@ -500,12 +502,12 @@ EXPERTENRAT1 = Rolle(
             bauschritt="S9",
         ),
         Faehigkeit(
-            titel="Sich untereinander ueber andere Fragen abstimmen (Beschluss anlegen)",
+            titel="Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)",
             stand=Stand.GEPLANT,
             bauschritt="S9",
         ),
         Faehigkeit(
-            titel="Fuer einen einzelnen Antrag aus der Fachliste ausgelost werden",
+            titel="Für einen einzelnen Antrag aus der Fachliste ausgelost werden",
             stand=Stand.VERFUEGBAR,
             urlname="gremien:fachliste",
         ),
@@ -521,12 +523,13 @@ EXPERTENRAT2 = Rolle(
     schluessel="expertenrat2",
     name="Expertenrat — Gruppe 2 (Prüfung)",
     satzung="§ 6 Abs 7",
-    was_sie_ist="Die zweite, unabhängig von der ersten besetzte Gruppe des Expertenrats; sie prueft deren Vorschlag auf Interessenkonflikte und Korruptionsgefahr.",
+    was_sie_ist="Die zweite, unabhängig von der ersten besetzte Gruppe des Expertenrats; sie prüft deren Vorschlag auf Interessenkonflikte und Korruptionsgefahr.",
     wie_hinein=(
         "Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein "
-        "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute vergibt die "
-        "Verwaltung beide Gruppen von Hand; die Unabhängigkeit ist damit eine Frage der Sorgfalt, nicht "
-        "der Technik."
+        "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 "
+        "aus derselben Fachliste mitgelost, wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt "
+        "ist — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt; sonst trägt die "
+        "Verwaltung die Rolle ein. Die Fachliste selbst führt die Verwaltung."
     ),
     faehigkeiten=(
         Faehigkeit(
@@ -535,7 +538,7 @@ EXPERTENRAT2 = Rolle(
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Ueber die Prüfung als Gremium abstimmen — mit Frist und Quorum",
+            titel="Über die Prüfung als Gremium abstimmen — mit Frist und Quorum",
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
@@ -584,7 +587,7 @@ EXPERTENRAT2 = Rolle(
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Vergabe-Schwellenwerte und moegliche Bieter als Arbeitsunterlage nutzen",
+            titel="Vergabe-Schwellenwerte und mögliche Bieter als Arbeitsunterlage nutzen",
             stand=Stand.GEPLANT,
             bauschritt="S12",
         ),
@@ -685,7 +688,7 @@ KOORDINATIONSRAT = Rolle(
             titel="Aufsicht über Faktenbasis, Parameterregister und Berichte der Zukunftswerkstatt",
             stand=Stand.TEILWEISE,
             urlname="verfahren:zukunftswerkstatt",
-            einschraenkung="Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget und die letzten Läufe; eine Faktenbasis, die Berichte und ein Weg, eine Einschätzung zu beanstanden, fehlen.",
+            einschraenkung="Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget und die letzten Läufe; eine Faktenbasis und die Berichte fehlen.",
         ),
     ),
 )

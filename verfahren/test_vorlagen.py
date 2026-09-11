@@ -139,26 +139,80 @@ VERBOTEN = {
 AUSNAHMEN = {
     # „Docker- und Render-Vorlage" ist eine Einrichtungsdatei, kein Vorschlag des Expertenrats.
     "Docker- und Render-Vorlage",
+    # ebenso die „Instanz-Vorlagen" des Übertragungspakets (docs/partner/instanz/).
+    "Instanz-Vorlagen",
 }
 
 
 def msgids() -> list[str]:
-    """Alle deutschen Ausgangstexte des Katalogs — per Definition Nutzer-Texte."""
-    po = (WURZEL / "locale/en/LC_MESSAGES/django.po").read_text(encoding="utf-8")
-    ids, sammeln, teile = [], False, []
-    for zeile in po.splitlines():
-        if zeile.startswith("msgid "):
-            if teile:
-                ids.append("".join(teile))
-            sammeln, teile = True, [zeile[6:].strip().strip('"')]
-        elif sammeln and zeile.startswith('"'):
-            teile.append(zeile.strip().strip('"'))
-        elif sammeln:
-            ids.append("".join(teile))
-            sammeln, teile = False, []
-    if teile:
-        ids.append("".join(teile))
-    return [i.replace("\n", " ").replace('\\"', '"') for i in ids if i]
+    """Alle deutschen Ausgangstexte des Katalogs — per Definition Nutzer-Texte.
+
+    Gelesen mit demselben strengen Leser wie `tools/po_pruefen.py` (Befund #59): Die frühere
+    zeilenweise Lesung brach bei einem rohen Zeilenumbruch ab, und ein verbotenes Wort ab der
+    zweiten Zeile eines solchen Blocks blieb dem Wächter verborgen."""
+    import sys
+
+    sys.path.insert(0, str(WURZEL / "tools"))
+    from po_pruefen import lesen
+
+    ids = []
+    for e in lesen():
+        ids.append(e.msgid or "")
+        ids.append(e.msgid_plural or "")
+    return [i.replace("\n", " ") for i in ids if i]
+
+
+def datentexte() -> list[tuple[str, str]]:
+    """Nutzer-Texte, die nicht im Katalog stehen, weil sie als Daten in `plattform_core` und im
+    Erstbestand des Registers liegen: Rollenmatrix, Regelverzeichnis, Parameterbeschreibungen.
+    Der Sprachregel-Wächter prüfte bisher nur den Katalog — „ueber andere Fragen" auf /rollen/
+    blieb deshalb unbemerkt (Befund #89)."""
+    from parameter.models import ERSTBESTAND
+    from plattform_core.regelwerk import verzeichnis
+    from plattform_core.rollen import GRUPPEN, alle_rollen
+
+    texte: list[tuple[str, str]] = []
+    for r in alle_rollen(GRUPPEN):
+        texte += [(f"rollen.py · {r.schluessel}", t) for t in (r.name, r.was_sie_ist, r.wie_hinein, r.hinweis)]
+        for f in r.faehigkeiten:
+            texte += [
+                (f"rollen.py · {r.schluessel}", t) for t in (f.titel, f.ort, f.einschraenkung, f.bauschritt)
+            ]
+    for g in GRUPPEN:
+        texte += [(f"rollen.py · Gruppe {g.schluessel}", t) for t in (g.name, g.erklaerung)]
+    for regel in verzeichnis():
+        texte += [
+            (f"regelwerk.py · {regel.modul}", t)
+            for t in (regel.titel, regel.zweck, regel.grund, regel.nachrechenbar, regel.luecke)
+        ]
+    for e in ERSTBESTAND:
+        texte += [(f"ERSTBESTAND · {e['schluessel']}", e.get(k, "")) for k in ("beschreibung", "quelle", "einheit")]
+    return [(wo, t) for wo, t in texte if t]
+
+
+#: Ersatzschreibungen (ue/ae/oe statt ü/ä/ö) als Wortliste — ein Silbenmuster träfe „neue",
+#: „aktuell" oder „Duell". Erweiterbar; jedes Wort steht für eine Fundstelle, die es gab.
+ERSATZSCHREIBUNGEN = re.compile(
+    r"\b(fuer|ueber\w*|koenn\w*|muess\w*|waehl\w*|oeffentlich\w*|aenderung\w*|uebersicht\w*|"
+    r"praesident\w*|zurueck\w*|gruende\w*|beraet|prueft|pruef\w*|unterstuetz\w*|moeglich\w*|"
+    r"wuensch\w*|zustaendig\w*|hoechst\w*|groesse\w*|laeuft|traegt|waehrend|spaeter|naechst\w*|"
+    r"erklaer\w*|zaehl\w*|loesch\w*|buerger\w*|fuehr\w*|betraegt|antraege|vorschlaege|"
+    r"beschluesse|entwuerfe|raete|integritaet\w*|verfuegbar\w*)\b",
+    re.I,
+)
+
+
+def test_keine_ersatzschreibungen_in_nutzer_texten():
+    """CLAUDE.md: keine Ersatzschreibungen (ue/ae/oe) in Nutzer-Texten — weder im Katalog noch in
+    den Datentabellen, aus denen /rollen/, /regeln/ und /parameter/ entstehen."""
+    fehler = []
+    for text in msgids():
+        if (m := ERSATZSCHREIBUNGEN.search(text)):
+            fehler.append(f"Katalog: „{m.group(0)}“ in {text[:70]!r}")
+    for wo, text in datentexte():
+        if (m := ERSATZSCHREIBUNGEN.search(text)):
+            fehler.append(f"{wo}: „{m.group(0)}“ in {text[:70]!r}")
+    assert not fehler, "Ersatzschreibung im Nutzer-Text:\n  " + "\n  ".join(fehler)
 
 
 def test_nutzer_texte_halten_die_sprachregeln():
@@ -168,7 +222,7 @@ def test_nutzer_texte_halten_die_sprachregeln():
     Geprüft wird der Katalog — dort stehen genau die Texte, die Nutzer zu lesen bekommen.
     Kommentare und Bezeichner im Code sind nicht gemeint."""
     fehler = []
-    for text in msgids():
+    for text in msgids() + [t for _, t in datentexte()]:
         if any(a in text for a in AUSNAHMEN):
             continue
         for wort, ersatz in VERBOTEN.items():

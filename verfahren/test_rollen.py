@@ -152,3 +152,28 @@ def test_die_willkommensseite_zeigt_vier_karten_und_den_weg_zur_vollen_liste(cli
     for schluessel in ("gast", "mitglied", "mitglied_ruht", "mandatar"):
         rolle = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == schluessel)
         assert rolle.name in inhalt
+
+
+def test_die_matrix_widerspricht_sich_nicht_zur_fachliste_und_auslosung():
+    """Befund #54: Beim Expertenrat stand „Heute gibt es weder Fachliste noch Auslosung", drei
+    Zeilen tiefer führte dieselbe Karte ● „aus der Fachliste ausgelost werden" mit Link. Seit
+    0.44 gibt es beides — der Weg-hinein-Text muss es sagen, und kein Text darf es bestreiten."""
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+    for schluessel in ("expertenrat1", "expertenrat2"):
+        text = rollen[schluessel].wie_hinein
+        assert "weder Fachliste" not in text and "von Hand" not in text, f"{schluessel}: {text}"
+        assert "Fachliste" in text and "gelost" in text, f"{schluessel} nennt den heutigen Weg nicht"
+    gelost = [f for f in rollen["expertenrat1"].faehigkeiten if "ausgelost" in f.titel]
+    assert gelost and gelost[0].stand is Stand.VERFUEGBAR and gelost[0].urlname == "gremien:fachliste"
+
+
+def test_was_ein_mitglied_kann_fehlt_beim_koordinationsrat_nicht():
+    """Befund #54, innerer Widerspruch: Das Mitglied führte „Eine Einschätzung … beanstanden" als
+    ● verfügbar, der Koordinationsrat nannte denselben Weg drei Karten weiter als fehlend."""
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+    verfuegbar = any(
+        "beanstanden" in f.titel and f.stand is Stand.VERFUEGBAR for f in rollen["mitglied"].faehigkeiten
+    )
+    assert verfuegbar, "die Beanstandung durch Mitglieder gibt es (0.43)"
+    for f in rollen["koordinationsrat"].faehigkeiten:
+        assert "beanstanden, fehlen" not in f.einschraenkung, f.einschraenkung

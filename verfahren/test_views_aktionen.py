@@ -232,3 +232,45 @@ def test_eigene_stimme_zeigt_pseudonym_nur_der_stimmenden_person(client, ordnung
     client.post(reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja"})
     pseudonym = antrag.stimmregister.get(mitglied=leute[1]).pseudonym.hex
     assert pseudonym in client.get(url).content.decode()
+
+
+# --- Beanstanden (§ 6 Abs 11 lit b) ------------------------------------------
+
+
+def _beanstandung_absetzen(client, mitglied, antrag):
+    client.force_login(mitglied)
+    return client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Die Zahl stimmt nicht."})
+
+
+def test_beanstanden_verlangt_bestaetigtes_aktives_mitglied(client, ordnung):
+    """Eine Beanstandung steht mit Namen öffentlich im Arbeitsbereich — dieselbe Sperre wie beim
+    Kommentieren: ungeprüfte Identität (§ 4) und ruhende Mitwirkung (F-51) werden abgewiesen,
+    sonst könnte ein frisch registriertes Konto unbegrenzt öffentliche Texte absetzen."""
+    from mitglieder.models import Mitgliedsstatus
+    from verfahren.models import Beanstandung
+
+    antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
+    ungeprueft = mitglied_anlegen("neu", stufe=Identitaetsstufe.UNGEPRUEFT)
+    ungeprueft.beitritt = None
+    ungeprueft.save(update_fields=["beitritt"])
+    assert _beanstandung_absetzen(client, ungeprueft, antrag).status_code == 403
+
+    pausiert = mitglied_anlegen("pause")
+    pausiert.status = Mitgliedsstatus.PAUSIERT
+    pausiert.save(update_fields=["status"])
+    assert _beanstandung_absetzen(client, pausiert, antrag).status_code == 403
+    assert Beanstandung.objects.count() == 0
+
+    antwort = _beanstandung_absetzen(client, mitglied_anlegen("bernd"), antrag)
+    assert antwort.status_code == 302 and Beanstandung.objects.count() == 1
+
+
+def test_beanstandung_verspricht_keinen_korrekturlauf(client, ordnung):
+    """Öffentliche Texte sagen, was der Code tut: Einen Korrekturlauf der Zukunftswerkstatt gibt es
+    noch nicht (kein Codepfad schreibt `erledigt_vermerk`) — also verspricht ihn weder die Rückmeldung
+    noch der Hilfetext am Formular."""
+    antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
+    antwort = _beanstandung_absetzen(client, mitglied_anlegen("bernd"), antrag)
+    seite = client.get(antwort.url).content.decode()
+    assert "rechnet den Punkt nach" not in seite
+    assert "noch nicht gebaut" in seite  # Rückmeldung und Hilfetext sagen es offen

@@ -212,3 +212,22 @@ def test_export_macht_die_wahl_nachrechenbar(client, ordnung):  # noqa: F811
     assert daten["zustimmungen"] == [
         {"pseudonym": antrag.stimmregister.get(mitglied=autor).pseudonym.hex, "bewerbung": b.pk}
     ]
+
+
+def test_rueckzug_waehrend_der_abstimmung_ist_gesperrt(client, ordnung):  # noqa: F811
+    """Wie das Bewerben endet auch der Rückzug mit dem Abstimmungsbeginn (§ 7 Abs 1): Ein Rückzug
+    während der Wahl nähme den Zustimmungen ihre Bewerbung und damit den Wählern ihre Beteiligung —
+    eine Wahl ließe sich gezielt unter die Mindestbeteiligung drücken. Der Knopf ist in dieser Phase
+    nicht sichtbar; der Endpoint muss den POST trotzdem abweisen."""
+    autor, anna, bernd = mitglied_anlegen("autor"), mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _kandidatur(ordnung, autor)
+    b = bewerbung_einreichen(antrag, anna, "Ich trete an.")
+    _in_abstimmung(antrag, [anna, bernd])
+    bewerbung_zustimmen(antrag, bernd, b)
+
+    client.force_login(anna)
+    antwort = client.post(reverse("verfahren:bewerbung_zurueckziehen", args=[antrag.pk]), follow=True)
+    assert "nur bis zum Beginn der Abstimmung" in antwort.content.decode()
+    b.refresh_from_db()
+    assert not b.zurueckgezogen
+    assert antrag.kandidatur_auszaehlen().beteiligung == 1  # die Zustimmung zählt weiter

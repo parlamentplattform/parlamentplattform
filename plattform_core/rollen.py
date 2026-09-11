@@ -22,6 +22,17 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass, field
 
+
+def _(text: str) -> str:
+    """No-op-Markierung für den Übersetzungskatalog (Befund #90).
+
+    plattform_core bleibt Django-frei, also gibt es hier kein gettext. Die Markierung macht
+    die Texte für makemessages, po_pruefen und tests/test_katalog.py sichtbar; übersetzt wird
+    erst in der Vorlage — `{% translate rolle.name %}` schlägt den deutschen Text im Katalog
+    nach und fällt auf ihn zurück, solange keine Übersetzung eingetragen ist."""
+    return text
+
+
 #: Fassung dieser Matrix. Sie steigt, wenn Rollen oder Fähigkeiten hinzukommen oder ihren
 #: Status ändern — die Seite nennt sie, damit ein Ausdruck von heute morgen zuzuordnen ist.
 VERSION = 2
@@ -40,7 +51,7 @@ class Stand(enum.StrEnum):
 
     @property
     def name_de(self) -> str:
-        return {"verfuegbar": "verfügbar", "teilweise": "teilweise", "geplant": "geplant"}[
+        return {"verfuegbar": _("verfügbar"), "teilweise": _("teilweise"), "geplant": _("geplant")}[
             self.value
         ]
 
@@ -110,115 +121,115 @@ class Gruppe:
 # ── Gast und Mitglied ─────────────────────────────────────────────────────
 GAST = Rolle(
     schluessel="gast",
-    name="Gast",
+    name=_("Gast"),
     satzung="§ 3 Abs 1 lit c, § 5 Abs 8",
-    was_sie_ist="Keine Rolle der Satzung, sondern deren Folge: Die Verfahren der ParlamentPlattform sind öffentlich, protokolliert und nachprüfbar; Ergebnisse werden vollständig veröffentlicht (§ 3 Abs 1 lit c).",
-    wie_hinein="Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Session und CSRF.",
+    was_sie_ist=_("Keine Rolle der Satzung, sondern deren Folge: Die Verfahren der ParlamentPlattform sind öffentlich, protokolliert und nachprüfbar; Ergebnisse werden vollständig veröffentlicht (§ 3 Abs 1 lit c)."),
+    wie_hinein=_("Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Session und CSRF."),
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Das Parlament ansehen",
+            titel=_("Das Parlament ansehen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Einen Antrag im Wortlaut lesen — mit den eingefrorenen Regeln, der Beratung und dem Ergebnis",
+            titel=_("Einen Antrag im Wortlaut lesen — mit den eingefrorenen Regeln, der Beratung und dem Ergebnis"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Die Fächer der Lebensbereiche durchsuchen",
+            titel=_("Die Fächer der Lebensbereiche durchsuchen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Das Archiv eines Antrags herunterladen (JSON, Markdown)",
+            titel=_("Das Archiv eines Antrags herunterladen (JSON, Markdown)"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Ein Abstimmungsergebnis nachrechnen — Stimmen-Export nach Ende der Abstimmung",
+            titel=_("Ein Abstimmungsergebnis nachrechnen — Stimmen-Export nach Ende der Abstimmung"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Das Umsetzungsregister ansehen",
+            titel=_("Das Umsetzungsregister ansehen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:umsetzung",
         ),
         Faehigkeit(
-            titel="Die Mandatare mit Aufgaben und Fristen ansehen",
+            titel=_("Die Mandatare mit Aufgaben und Fristen ansehen"),
             stand=Stand.VERFUEGBAR,
             urlname="mandatare:liste",
         ),
         Faehigkeit(
-            titel="Das Parameterregister und die geltende Verfahrensordnung lesen",
+            titel=_("Das Parameterregister und die geltende Verfahrensordnung lesen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:liste",
         ),
         Faehigkeit(
-            titel="Die Beschlüsse der Räte lesen, jeden unter seiner Nummer",
+            titel=_("Die Beschlüsse der Räte lesen, jeden unter seiner Nummer"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
         Faehigkeit(
-            titel="Die Besetzung aller Gremien einsehen",
+            titel=_("Die Besetzung aller Gremien einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:uebersicht",
         ),
         Faehigkeit(
-            titel="Parameter und Kennzahlen maschinenlesbar beziehen",
+            titel=_("Parameter und Kennzahlen maschinenlesbar beziehen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:export",
         ),
         Faehigkeit(
-            titel="Die Zukunftswerkstatt und die Rechenschaft des Modell-Steckplatzes lesen",
+            titel=_("Die Zukunftswerkstatt und die Rechenschaft des Modell-Steckplatzes lesen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:zukunftswerkstatt",
         ),
         Faehigkeit(
-            titel="Die Partner-Seiten lesen und das Übertragungspaket laden",
+            titel=_("Die Partner-Seiten lesen und das Übertragungspaket laden"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:partner",
         ),
         Faehigkeit(
-            titel="Die Zahlen der Plattform einsehen",
+            titel=_("Die Zahlen der Plattform einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="uebersicht:index",
         ),
         Faehigkeit(
-            titel="Einen Anstoß zur Plattform senden",
+            titel=_("Einen Anstoß zur Plattform senden"),
             stand=Stand.VERFUEGBAR,
             urlname="anstoss:senden",
         ),
         Faehigkeit(
-            titel="Mitglied werden",
+            titel=_("Mitglied werden"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:registrieren",
         ),
         Faehigkeit(
-            titel="Als Partnerpartei über die Plattform Kontakt aufnehmen",
+            titel=_("Als Partnerpartei über die Plattform Kontakt aufnehmen"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:partner",
-            einschraenkung="Nur ein mailto-Link, kein Formular und kein Partner-Konto; beides kommt mit S14b.",
+            einschraenkung=_("Nur ein mailto-Link, kein Formular und kein Partner-Konto; beides kommt mit S14b."),
         ),
         Faehigkeit(
-            titel="Diese Übersicht lesen: was jede Rolle darf und was davon schon gebaut ist",
+            titel=_("Diese Übersicht lesen: was jede Rolle darf und was davon schon gebaut ist"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:rollen",
         ),
         Faehigkeit(
-            titel="Die Willkommensseite lesen — wie das Verfahren vom Antrag zum Beschluss läuft",
+            titel=_("Die Willkommensseite lesen — wie das Verfahren vom Antrag zum Beschluss läuft"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:index",
         ),
         Faehigkeit(
-            titel="Alle automatisierten Regeln nachlesen — mit Fassung, Datum und Begründung",
+            titel=_("Alle automatisierten Regeln nachlesen — mit Fassung, Datum und Begründung"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:regeln",
         ),
         Faehigkeit(
-            titel="Die öffentliche Fachliste einsehen — Lostopf des Expertenrats",
+            titel=_("Die öffentliche Fachliste einsehen — Lostopf des Expertenrats"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:fachliste",
         ),
@@ -227,179 +238,179 @@ GAST = Rolle(
 
 MITGLIED = Rolle(
     schluessel="mitglied",
-    name="Mitglied (bestätigt, aktiv)",
+    name=_("Mitglied (bestätigt, aktiv)"),
     satzung="§ 4 Abs 2 bis 4, § 5",
-    was_sie_ist="Mitglieder haben das Recht auf Einbringung, Unterstützung und Erörterung von Anträgen, auf Einsicht in alle zu veröffentlichenden Unterlagen und — nach Anwartschaft — auf Stimm- und Wahlrecht (§ 4 Abs 2).",
-    wie_hinein="Laut Satzung: Anmeldung, Identitätsnachweis nach § 2 Abs 4, Bekenntnis zu § 3, Aufnahme durch den Koordinationsrat binnen vier Wochen. Heute: Registrierung, E-Mail-Bestätigung, und der verbuchte Mitgliedsbeitrag schaltet die Mitwirkung frei.",
+    was_sie_ist=_("Mitglieder haben das Recht auf Einbringung, Unterstützung und Erörterung von Anträgen, auf Einsicht in alle zu veröffentlichenden Unterlagen und — nach Anwartschaft — auf Stimm- und Wahlrecht (§ 4 Abs 2)."),
+    wie_hinein=_("Laut Satzung: Anmeldung, Identitätsnachweis nach § 2 Abs 4, Bekenntnis zu § 3, Aufnahme durch den Koordinationsrat binnen vier Wochen. Heute: Registrierung, E-Mail-Bestätigung, und der verbuchte Mitgliedsbeitrag schaltet die Mitwirkung frei."),
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Einen Antrag einbringen",
+            titel=_("Einen Antrag einbringen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:einbringen",
         ),
         Faehigkeit(
-            titel="Einen Antrag unterstützen und die Unterstützung zurückziehen",
+            titel=_("Einen Antrag unterstützen und die Unterstützung zurückziehen"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="In der Beratung mitreden",
+            titel=_("In der Beratung mitreden"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Auf Beiträge reagieren — im Abstimmungs-Chat als Unterstützer über den Vorschlag entscheiden",
+            titel=_("Auf Beiträge reagieren — im Abstimmungs-Chat als Unterstützer über den Vorschlag entscheiden"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Über einen Antrag abstimmen",
+            titel=_("Über einen Antrag abstimmen"),
             stand=Stand.TEILWEISE,
-            ort="auf jeder Antragsseite",
-            einschraenkung="Die Anwartschaft von drei Monaten (§ 4 Abs 4 lit b) wird nicht geprüft: Die Übergangsregel steht standardmäßig auf 1 und gilt für jede Abstimmung, während § 4 Abs 4 lit d sie nur für die erste Bestellung der Organe und die erste Verfahrensordnung vorsieht.",
+            ort=_("auf jeder Antragsseite"),
+            einschraenkung=_("Die Anwartschaft von drei Monaten (§ 4 Abs 4 lit b) wird nicht geprüft: Die Übergangsregel steht standardmäßig auf 1 und gilt für jede Abstimmung, während § 4 Abs 4 lit d sie nur für die erste Bestellung der Organe und die erste Verfahrensordnung vorsieht."),
         ),
         Faehigkeit(
-            titel="Die eigene Stimme im Stimmregister prüfen (Pseudonym und Prüfcode)",
+            titel=_("Die eigene Stimme im Stimmregister prüfen (Pseudonym und Prüfcode)"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Ein Thema als Favorit merken",
-            stand=Stand.VERFUEGBAR,
-            urlname="verfahren:parlament",
-        ),
-        Faehigkeit(
-            titel="Einen Lebensbereich abonnieren",
+            titel=_("Ein Thema als Favorit merken"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Die eigene Reihung mit dem WeicherFilter einstellen, speichern und benennen",
+            titel=_("Einen Lebensbereich abonnieren"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Die eigenen Gespräche verfolgen",
+            titel=_("Die eigene Reihung mit dem WeicherFilter einstellen, speichern und benennen"),
+            stand=Stand.VERFUEGBAR,
+            urlname="verfahren:parlament",
+        ),
+        Faehigkeit(
+            titel=_("Die eigenen Gespräche verfolgen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:gespraeche",
         ),
         Faehigkeit(
-            titel="Eine Einschätzung der Zukunftswerkstatt beanstanden",
+            titel=_("Eine Einschätzung der Zukunftswerkstatt beanstanden"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Einen Beitrag melden",
+            titel=_("Einen Beitrag melden"),
             stand=Stand.TEILWEISE,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
             einschraenkung=(
-                "Gemeldet werden kann, abgeholfen wird nicht: Die Meldung wird gespeichert, aber von keiner Ansicht gelesen — es gibt keinen Weg, sie zu bearbeiten."
+                _("Gemeldet werden kann, abgeholfen wird nicht: Die Meldung wird gespeichert, aber von keiner Ansicht gelesen — es gibt keinen Weg, sie zu bearbeiten.")
             ),
         ),
         Faehigkeit(
-            titel="Für ein Mandat kandidieren und Bewerbungen zustimmen",
+            titel=_("Für ein Mandat kandidieren und Bewerbungen zustimmen"),
             stand=Stand.TEILWEISE,
-            ort="auf jeder Antragsseite",
-            einschraenkung="Dieselbe Übergangsregel: Die Zwölf-Monats-Anwartschaft für Personenwahlen (§ 4 Abs 4 lit b) wird derzeit nicht geprüft.",
+            ort=_("auf jeder Antragsseite"),
+            einschraenkung=_("Dieselbe Übergangsregel: Die Zwölf-Monats-Anwartschaft für Personenwahlen (§ 4 Abs 4 lit b) wird derzeit nicht geprüft."),
         ),
         Faehigkeit(
-            titel="Den eigenen Beitragsstand sehen und den Beitrag zahlen",
+            titel=_("Den eigenen Beitragsstand sehen und den Beitrag zahlen"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:beitrag",
         ),
         Faehigkeit(
-            titel="Unter einem beständigen Pseudonym auftreten",
+            titel=_("Unter einem beständigen Pseudonym auftreten"),
             stand=Stand.TEILWEISE,
-            ort="auf jeder Antragsseite",
-            einschraenkung="Ohne gesetztes Pseudonym zeigt die Antragsseite den Klarnamen — die Satzung verlangt dafür ausdrückliche Einwilligung. Das Pseudonym setzt heute nur die Verwaltung, nicht das Mitglied.",
+            ort=_("auf jeder Antragsseite"),
+            einschraenkung=_("Ohne gesetztes Pseudonym zeigt die Antragsseite den Klarnamen — die Satzung verlangt dafür ausdrückliche Einwilligung. Das Pseudonym setzt heute nur die Verwaltung, nicht das Mitglied."),
         ),
         Faehigkeit(
-            titel="Das eigene Profil verwalten — Wohnsitz, Benachrichtigungen, Datenexport, Löschung",
+            titel=_("Das eigene Profil verwalten — Wohnsitz, Benachrichtigungen, Datenexport, Löschung"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
         Faehigkeit(
-            titel="Mandatsträger bewerten und ein Abberufungsverfahren einleiten",
+            titel=_("Mandatsträger bewerten und ein Abberufungsverfahren einleiten"),
             stand=Stand.GEPLANT,
-            bauschritt="offen — Teil C weist dafür keinen Bauschritt aus",
+            bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
         ),
         Faehigkeit(
-            titel="Schriftlich oder in Präsenz abstimmen",
+            titel=_("Schriftlich oder in Präsenz abstimmen"),
             stand=Stand.GEPLANT,
-            bauschritt="offen — Teil C weist dafür keinen Bauschritt aus",
+            bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
         ),
         Faehigkeit(
-            titel="Die Bestellung der Räte bestätigen und ihre Mitglieder abberufen",
+            titel=_("Die Bestellung der Räte bestätigen und ihre Mitglieder abberufen"),
             stand=Stand.GEPLANT,
-            bauschritt="S9",
+            bauschritt=_("S9"),
         ),
     ),
 )
 
 MITGLIED_RUHT = Rolle(
     schluessel="mitglied_ruht",
-    name="Mitglied in Aufnahme oder pausiert",
+    name=_("Mitglied in Aufnahme oder pausiert"),
     satzung="§ 4 Abs 1, § 4 Abs 3, § 4 Abs 4 lit b",
-    was_sie_ist="Über die Aufnahme entscheidet der Koordinationsrat binnen vier Wochen; Antrags-, Unterstützungs-, Rede- und Einsichtsrechte bestehen ab dem Tag der Aufnahme uneingeschränkt (§ 4 Abs 1, Abs 4 lit b).",
-    wie_hinein="Nach Registrierung und E-Mail-Bestätigung, bis der Mitgliedsbeitrag verbucht ist — oder wenn die Verwaltung ein Konto mit begründetem, auditiertem Beschluss pausiert.",
+    was_sie_ist=_("Über die Aufnahme entscheidet der Koordinationsrat binnen vier Wochen; Antrags-, Unterstützungs-, Rede- und Einsichtsrechte bestehen ab dem Tag der Aufnahme uneingeschränkt (§ 4 Abs 1, Abs 4 lit b)."),
+    wie_hinein=_("Nach Registrierung und E-Mail-Bestätigung, bis der Mitgliedsbeitrag verbucht ist — oder wenn die Verwaltung ein Konto mit begründetem, auditiertem Beschluss pausiert."),
     hinweis=(
-        "Ein dritter Zustand: Wer ausgeschlossen ist (§ 4 Abs 5), ist nicht pausiert, sondern "
+        _("Ein dritter Zustand: Wer ausgeschlossen ist (§ 4 Abs 5), ist nicht pausiert, sondern "
         "nicht mehr Mitglied — das ist keine Rolle, sondern ihr Ende. Das Konto bleibt stumm, "
         "die Beiträge zu laufenden Verfahren bleiben stehen — gelöscht wird nichts, was ein "
-        "Verfahren betrifft."
+        "Verfahren betrifft.")
     ),
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Alles lesen wie ohne Konto — Parlament, Anträge, Beschlüsse, Register",
+            titel=_("Alles lesen wie ohne Konto — Parlament, Anträge, Beschlüsse, Register"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Sich anmelden und angemeldet bleiben",
+            titel=_("Sich anmelden und angemeldet bleiben"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:login",
         ),
         Faehigkeit(
-            titel="Den eigenen Beitragsstand sehen und den Beitrag zahlen",
+            titel=_("Den eigenen Beitragsstand sehen und den Beitrag zahlen"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:beitrag",
         ),
         Faehigkeit(
-            titel="Erfahren, warum die Mitwirkung ruht und was sie wiederherstellt",
+            titel=_("Erfahren, warum die Mitwirkung ruht und was sie wiederherstellt"),
             stand=Stand.VERFUEGBAR,
-            ort="beim Versuch, einen Antrag einzubringen oder abzustimmen",
+            ort=_("beim Versuch, einen Antrag einzubringen oder abzustimmen"),
         ),
         Faehigkeit(
-            titel="Favoriten setzen und Lebensbereiche abonnieren",
+            titel=_("Favoriten setzen und Lebensbereiche abonnieren"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:parlament",
         ),
         Faehigkeit(
-            titel="Eine Einschätzung beanstanden und Beiträge melden",
+            titel=_("Eine Einschätzung beanstanden und Beiträge melden"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Antrag einbringen, unterstützen, mitreden, abstimmen",
+            titel=_("Antrag einbringen, unterstützen, mitreden, abstimmen"),
             stand=Stand.TEILWEISE,
-            einschraenkung="Gesperrt, solange die Identitätsstufe ungeprüft oder der Status nicht aktiv ist. Die Satzung 2.5 kennt kein Ruhen dieser Rechte: § 4 Abs 4 lit b gewährt sie ab dem Tag der Aufnahme uneingeschränkt, § 4 Abs 3 schließt jede Wirkung des Beitrags auf Rechte aus.",
+            einschraenkung=_("Gesperrt, solange die Identitätsstufe ungeprüft oder der Status nicht aktiv ist. Die Satzung 2.5 kennt kein Ruhen dieser Rechte: § 4 Abs 4 lit b gewährt sie ab dem Tag der Aufnahme uneingeschränkt, § 4 Abs 3 schließt jede Wirkung des Beitrags auf Rechte aus."),
         ),
         Faehigkeit(
-            titel="Aufgenommen werden — Entscheidung des Koordinationsrats binnen vier Wochen",
+            titel=_("Aufgenommen werden — Entscheidung des Koordinationsrats binnen vier Wochen"),
             stand=Stand.GEPLANT,
-            bauschritt="offen",
+            bauschritt=_("offen"),
         ),
         Faehigkeit(
-            titel="Die Identität nachweisen — elektronisch (ID Austria) oder an einer Präsenzstelle",
+            titel=_("Die Identität nachweisen — elektronisch (ID Austria) oder an einer Präsenzstelle"),
             stand=Stand.GEPLANT,
-            bauschritt="offen — Teil C weist dafür keinen Bauschritt aus",
+            bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
         ),
         Faehigkeit(
-            titel="Eine Ablehnung der Aufnahme beim Parteischiedsgericht bekämpfen",
+            titel=_("Eine Ablehnung der Aufnahme beim Parteischiedsgericht bekämpfen"),
             stand=Stand.GEPLANT,
-            bauschritt="offen — Teil C weist dafür keinen Bauschritt aus",
+            bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
         ),
     ),
 )
@@ -407,186 +418,189 @@ MITGLIED_RUHT = Rolle(
 # ── Expertenrat Gruppe 1 und Gruppe 2 ─────────────────────────────────────
 EXPERTENRAT1 = Rolle(
     schluessel="expertenrat1",
-    name="Expertenrat — Gruppe 1 (Entwurf)",
+    name=_("Expertenrat — Gruppe 1 (Entwurf)"),
     satzung="§ 6 Abs 7",
-    was_sie_ist="Fachleute, die zur Beratung eines einzelnen Antrags herangezogen werden und in der ersten Gruppe den Vorschlag erarbeiten; der Expertenrat beraet, er entscheidet nicht.",
+    was_sie_ist=_("Fachleute, die zur Beratung eines einzelnen Antrags herangezogen werden und in der ersten Gruppe den Vorschlag erarbeiten; der Expertenrat berät, er entscheidet nicht."),
     wie_hinein=(
-        "Zweistufig (Entscheidung des Gründers vom 5.9.2026): Auf die öffentlich geführte Fachliste "
+        _("Zweistufig (Entscheidung des Gründers vom 5.9.2026): Auf die öffentlich geführte Fachliste "
         "beruft der Koordinationsrat nach öffentlicher Ausschreibung für zwei Jahre, bestätigt durch die "
         "Mitgliederversammlung (§ 6 Abs 8); für den einzelnen Antrag werden die Fachleute daraus nach "
-        "einem offengelegten Zufallsverfahren gezogen (§ 6 Abs 7). Heute gibt es weder Fachliste noch "
-        "Auslosung — die Rolle vergibt die Verwaltung."
+        "einem offengelegten Zufallsverfahren gezogen (§ 6 Abs 7). Heute: Die Fachliste führt die "
+        "Verwaltung, ausgelost wird je Antrag zu Beginn der Beratung — Anker ist der Kopf der "
+        "Audit-Kette, jede Ziehung ist nachrechenbar. Die Berufung durch den Koordinationsrat und "
+        "die Bestätigung durch die Mitgliederversammlung fehlen noch.")
     ),
     faehigkeiten=(
         Faehigkeit(
-            titel="Anträge in der Beratung im eigenen Arbeitsbereich sehen",
+            titel=_("Anträge in der Beratung im eigenen Arbeitsbereich sehen"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Entwurfsfenster zu einem Antrag öffnen — der Antragswortlaut wird Fassung 1",
+            titel=_("Entwurfsfenster zu einem Antrag öffnen — der Antragswortlaut wird Fassung 1"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Fassungen anhängen; jede frueher geschriebene bleibt stehen",
+            titel=_("Fassungen anhängen; jede frueher geschriebene bleibt stehen"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Wuensche der Unterstuetzer aus der Vorrunde lesen",
+            titel=_("Wünsche der Unterstützer aus der Vorrunde lesen"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Frist für den Erstvorschlag im Fenster sehen",
+            titel=_("Frist für den Erstvorschlag im Fenster sehen"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Intern beraten — Beiträge werden festgehalten",
+            titel=_("Intern beraten — Beiträge werden festgehalten"),
             stand=Stand.TEILWEISE,
-            ort="im Entwurfsfenster eines Antrags",
-            einschraenkung="Die Beiträge stehen nur im Arbeitsbereich der Gruppe; § 6 Abs 9 verlangt veröffentlichte Sitzungsprotokolle.",
+            ort=_("im Entwurfsfenster eines Antrags"),
+            einschraenkung=_("Die Beiträge stehen nur im Arbeitsbereich der Gruppe; § 6 Abs 9 verlangt veröffentlichte Sitzungsprotokolle."),
         ),
         Faehigkeit(
-            titel="KI-Einschätzung zum eigenen Entwurf anfordern",
+            titel=_("KI-Einschätzung zum eigenen Entwurf anfordern"),
             stand=Stand.TEILWEISE,
-            ort="im Entwurfsfenster eines Antrags",
-            einschraenkung="Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm.",
+            ort=_("im Entwurfsfenster eines Antrags"),
+            einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm."),
         ),
         Faehigkeit(
-            titel="Vollzugs- oder Beschaffungsbezug setzen — dann prueft Gruppe 2 vorab",
+            titel=_("Vollzugs- oder Beschaffungsbezug setzen — dann prüft Gruppe 2 vorab"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Ueber die Einreichung intern abstimmen",
+            titel=_("Über die Einreichung intern abstimmen"),
             stand=Stand.TEILWEISE,
-            ort="im Entwurfsfenster eines Antrags",
-            einschraenkung="Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9).",
+            ort=_("im Entwurfsfenster eines Antrags"),
+            einschraenkung=_("Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9)."),
         ),
         Faehigkeit(
-            titel="Vorschlag einreichen — an Gruppe 2 oder an die Unterstuetzer",
+            titel=_("Vorschlag einreichen — an Gruppe 2 oder an die Unterstützer"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Zurueckgegebenen Vorschlag in einer neuen Runde ueberarbeiten",
+            titel=_("Zurückgegebenen Vorschlag in einer neuen Runde überarbeiten"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel="Der eingereichte Vorschlag steht mit Wortlaut und Wort-Diff öffentlich am Antrag",
+            titel=_("Der eingereichte Vorschlag steht mit Wortlaut und Wort-Diff öffentlich am Antrag"),
             stand=Stand.TEILWEISE,
-            ort="im Entwurfsfenster eines Antrags",
+            ort=_("im Entwurfsfenster eines Antrags"),
             einschraenkung=(
-                "Nur, solange der Vorschlag den Unterstützern vorliegt. Während der Prüfung durch Gruppe 2 ist er öffentlich nicht zu sehen."
+                _("Nur, solange der Vorschlag den Unterstützern vorliegt. Während der Prüfung durch Gruppe 2 ist er öffentlich nicht zu sehen.")
             ),
         ),
         Faehigkeit(
-            titel="Die eigene Berufung steht mit Namen und Enddatum öffentlich",
+            titel=_("Die eigene Berufung steht mit Namen und Enddatum öffentlich"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:uebersicht",
         ),
         Faehigkeit(
-            titel="Interessenbindungen und Honorare zum Antrag offenlegen",
+            titel=_("Interessenbindungen und Honorare zum Antrag offenlegen"),
             stand=Stand.VERFUEGBAR,
-            ort="im Entwurfsfenster, bei der Stimme über die Einreichung",
+            ort=_("im Entwurfsfenster, bei der Stimme über die Einreichung"),
         ),
         Faehigkeit(
-            titel="Fassungen im Arbeitsplatz vergleichen (Diff) und Absätze kommentieren",
+            titel=_("Fassungen im Arbeitsplatz vergleichen (Diff) und Absätze kommentieren"),
             stand=Stand.GEPLANT,
-            bauschritt="S9",
+            bauschritt=_("S9"),
         ),
         Faehigkeit(
-            titel="Sich untereinander ueber andere Fragen abstimmen (Beschluss anlegen)",
+            titel=_("Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)"),
             stand=Stand.GEPLANT,
-            bauschritt="S9",
+            bauschritt=_("S9"),
         ),
         Faehigkeit(
-            titel="Fuer einen einzelnen Antrag aus der Fachliste ausgelost werden",
+            titel=_("Für einen einzelnen Antrag aus der Fachliste ausgelost werden"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:fachliste",
         ),
         Faehigkeit(
-            titel="Die Einschätzung der Zukunftswerkstatt als Arbeitsunterlage im Fenster nutzen",
+            titel=_("Die Einschätzung der Zukunftswerkstatt als Arbeitsunterlage im Fenster nutzen"),
             stand=Stand.GEPLANT,
-            bauschritt="S11",
+            bauschritt=_("S11"),
         ),
     ),
 )
 
 EXPERTENRAT2 = Rolle(
     schluessel="expertenrat2",
-    name="Expertenrat — Gruppe 2 (Prüfung)",
+    name=_("Expertenrat — Gruppe 2 (Prüfung)"),
     satzung="§ 6 Abs 7",
-    was_sie_ist="Die zweite, unabhängig von der ersten besetzte Gruppe des Expertenrats; sie prueft deren Vorschlag auf Interessenkonflikte und Korruptionsgefahr.",
+    was_sie_ist=_("Die zweite, unabhängig von der ersten besetzte Gruppe des Expertenrats; sie prüft deren Vorschlag auf Interessenkonflikte und Korruptionsgefahr."),
     wie_hinein=(
-        "Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein "
-        "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute vergibt die "
-        "Verwaltung beide Gruppen von Hand; die Unabhängigkeit ist damit eine Frage der Sorgfalt, nicht "
-        "der Technik."
+        _("Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein "
+        "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 "
+        "aus derselben Fachliste mitgelost, wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt "
+        "ist — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt; sonst trägt die "
+        "Verwaltung die Rolle ein. Die Fachliste selbst führt die Verwaltung.")
     ),
     faehigkeiten=(
         Faehigkeit(
-            titel="Zur Prüfung vorgelegte Vorschläge mit Wortlaut sehen",
+            titel=_("Zur Prüfung vorgelegte Vorschläge mit Wortlaut sehen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Ueber die Prüfung als Gremium abstimmen — mit Frist und Quorum",
+            titel=_("Über die Prüfung als Gremium abstimmen — mit Frist und Quorum"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Vorschlag validieren",
+            titel=_("Vorschlag validieren"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Vorschlag mit veröffentlichter Begruendung zurückgeben",
+            titel=_("Vorschlag mit veröffentlichter Begruendung zurückgeben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Jede Stimme steht mit Namen und Begruendung öffentlich",
+            titel=_("Jede Stimme steht mit Namen und Begruendung öffentlich"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
         Faehigkeit(
-            titel="Prüfpunkte abhaken — sie wandern in die veröffentlichte Begründung",
+            titel=_("Prüfpunkte abhaken — sie wandern in die veröffentlichte Begründung"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Beim Koordinationsrat den Austausch von Mitgliedern der Gruppe 1 beantragen",
+            titel=_("Beim Koordinationsrat den Austausch von Mitgliedern der Gruppe 1 beantragen"),
             stand=Stand.TEILWEISE,
             urlname="gremien:pruefung",
-            einschraenkung="Der Antrag benennt keine einzelnen Personen; gibt der Koordinationsrat durch Beschluss statt, enden die für diesen Antrag gelosten Rollen der Gruppe 1, und es wird neu gelost.",
+            einschraenkung=_("Der Antrag benennt keine einzelnen Personen; gibt der Koordinationsrat durch Beschluss statt, enden die für diesen Antrag gelosten Rollen der Gruppe 1, und es wird neu gelost."),
         ),
         Faehigkeit(
-            titel="Die interne Beratung der Gruppe 1 einsehen",
+            titel=_("Die interne Beratung der Gruppe 1 einsehen"),
             stand=Stand.GEPLANT,
-            bauschritt="offen",
+            bauschritt=_("offen"),
         ),
         Faehigkeit(
-            titel="Interessenbindungen und Honorare der eigenen Mitglieder offenlegen",
+            titel=_("Interessenbindungen und Honorare der eigenen Mitglieder offenlegen"),
             stand=Stand.TEILWEISE,
             urlname="gremien:fachliste",
             einschraenkung=(
-                "Auf der Fachliste stehen sie allgemein; zum einzelnen Antrag legt Gruppe 1 sie bei der Einreichung offen — Gruppe 2 selbst wird beim Prüfen nicht danach gefragt."
+                _("Auf der Fachliste stehen sie allgemein; zum einzelnen Antrag legt Gruppe 1 sie bei der Einreichung offen — Gruppe 2 selbst wird beim Prüfen nicht danach gefragt.")
             ),
         ),
         Faehigkeit(
-            titel="Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)",
+            titel=_("Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel="Vergabe-Schwellenwerte und moegliche Bieter als Arbeitsunterlage nutzen",
+            titel=_("Vergabe-Schwellenwerte und mögliche Bieter als Arbeitsunterlage nutzen"),
             stand=Stand.GEPLANT,
-            bauschritt="S12",
+            bauschritt=_("S12"),
         ),
     ),
 )
@@ -594,173 +608,173 @@ EXPERTENRAT2 = Rolle(
 # ── Koordinationsrat und Integritaetsrat ──────────────────────────────────
 KOORDINATIONSRAT = Rolle(
     schluessel="koordinationsrat",
-    name="Koordinationsrat",
+    name=_("Koordinationsrat"),
     satzung="§ 6 Abs 2",
-    was_sie_ist="Er besteht aus fünf bis neun Mitgliedern und führt die laufenden Geschäfte, vertritt die Partei nach § 1 Abs 4, vollzieht die Beschlüsse der Mitgliederversammlung und ist ihr rechenschaftspflichtig.",
+    was_sie_ist=_("Er besteht aus fünf bis neun Mitgliedern und führt die laufenden Geschäfte, vertritt die Partei nach § 1 Abs 4, vollzieht die Beschlüsse der Mitgliederversammlung und ist ihr rechenschaftspflichtig."),
     wie_hinein=(
-        "Wahl durch die Mitgliederversammlung auf vier Jahre; in jedem Jahr ohne reguläre Wahl eine "
+        _("Wahl durch die Mitgliederversammlung auf vier Jahre; in jedem Jahr ohne reguläre Wahl eine "
         "Bestätigungsabstimmung über den Rat als Ganzes; Abberufung einzelner Mitglieder auf Antrag von "
         "fünf Prozent der stimmberechtigten Mitglieder (§ 6 Abs 2 lit a bis c). Heute trägt die "
-        "Verwaltung die Rolle ein, und die Bestätigung ist ein Häkchen statt einer Abstimmung."
+        "Verwaltung die Rolle ein, und die Bestätigung ist ein Häkchen statt einer Abstimmung.")
     ),
     faehigkeiten=(
         Faehigkeit(
-            titel="Den Arbeitsbereich des Koordinationsrats öffnen",
+            titel=_("Den Arbeitsbereich des Koordinationsrats öffnen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Über den Austauschantrag der Gruppe 2 durch Beschluss entscheiden",
+            titel=_("Über den Austauschantrag der Gruppe 2 durch Beschluss entscheiden"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="In einem internen Beschluss des Rates abstimmen",
+            titel=_("In einem internen Beschluss des Rates abstimmen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Einen internen Beschluss anlegen und nach der Entscheidung den Umsetzungsvermerk schreiben",
+            titel=_("Einen internen Beschluss anlegen und nach der Entscheidung den Umsetzungsvermerk schreiben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Beschlüsse mit Nummer, Stimmen und Begründungen öffentlich nachweisen",
+            titel=_("Beschlüsse mit Nummer, Stimmen und Begründungen öffentlich nachweisen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
         Faehigkeit(
-            titel="Die Besetzung aller Räte einsehen",
+            titel=_("Die Besetzung aller Räte einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:uebersicht",
         ),
         Faehigkeit(
-            titel="Mitglieder der Räte auf öffentliche Ausschreibung bestellen und abberufen",
+            titel=_("Mitglieder der Räte auf öffentliche Ausschreibung bestellen und abberufen"),
             stand=Stand.GEPLANT,
-            bauschritt="offen",
+            bauschritt=_("offen"),
         ),
         Faehigkeit(
-            titel="Das Parameterregister mit Wert, Begründung und Änderungsgeschichte einsehen",
+            titel=_("Das Parameterregister mit Wert, Begründung und Änderungsgeschichte einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:liste",
         ),
         Faehigkeit(
-            titel="Befristete Tests neuer Registerwerte durch Beschluss anordnen",
+            titel=_("Befristete Tests neuer Registerwerte durch Beschluss anordnen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Die Einführung eines getesteten Registerwertes durch Beschluss freigeben",
+            titel=_("Die Einführung eines getesteten Registerwertes durch Beschluss freigeben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Den Posteingang der Zukunftswerkstatt sichten",
+            titel=_("Den Posteingang der Zukunftswerkstatt sichten"),
             stand=Stand.TEILWEISE,
             urlname="gremien:koordination",
-            einschraenkung="Der Posteingang steht; heute speist ihn nur die Auswertung von Parametertests. Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt.",
+            einschraenkung=_("Der Posteingang steht; heute speist ihn nur die Auswertung von Parametertests. Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."),
         ),
         Faehigkeit(
-            titel="Überlastungsmeldungen veröffentlichen und binnen 30 Tagen einen Vorschlag an die Mitgliederversammlung vorlegen",
+            titel=_("Überlastungsmeldungen veröffentlichen und binnen 30 Tagen einen Vorschlag an die Mitgliederversammlung vorlegen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Das öffentliche Umsetzungsregister einsehen",
+            titel=_("Das öffentliche Umsetzungsregister einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:umsetzung",
         ),
         Faehigkeit(
-            titel="Die Hervorhebung eines Antrags beim Integritätsrat durch Beschluss beantragen",
+            titel=_("Die Hervorhebung eines Antrags beim Integritätsrat durch Beschluss beantragen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:koordination",
         ),
         Faehigkeit(
-            titel="Parameter-Schema und Kennzahlen mit Partnersystemen austauschen",
+            titel=_("Parameter-Schema und Kennzahlen mit Partnersystemen austauschen"),
             stand=Stand.TEILWEISE,
             urlname="parameter:export",
-            einschraenkung="Die Ausgabe steht offen für jeden — sprachneutrales Schema 1.0, aggregiert, ohne Personenbezug. Das Einlesen fremder Register, die Gegenüberstellung und ein Partner-Bereich im Koordinationsrat fehlen.",
+            einschraenkung=_("Die Ausgabe steht offen für jeden — sprachneutrales Schema 1.0, aggregiert, ohne Personenbezug. Das Einlesen fremder Register, die Gegenüberstellung und ein Partner-Bereich im Koordinationsrat fehlen."),
         ),
         Faehigkeit(
-            titel="Aufsicht über Faktenbasis, Parameterregister und Berichte der Zukunftswerkstatt",
+            titel=_("Aufsicht über Faktenbasis, Parameterregister und Berichte der Zukunftswerkstatt"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:zukunftswerkstatt",
-            einschraenkung="Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget und die letzten Läufe; eine Faktenbasis, die Berichte und ein Weg, eine Einschätzung zu beanstanden, fehlen.",
+            einschraenkung=_("Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget und die letzten Läufe; eine Faktenbasis und die Berichte fehlen."),
         ),
     ),
 )
 
 INTEGRITAETSRAT = Rolle(
     schluessel="integritaetsrat",
-    name="Integritätsrat",
+    name=_("Integritätsrat"),
     satzung="§ 6 Abs 3",
-    was_sie_ist="Das Aufsichtsorgan der Partei; er überwacht die Einhaltung der Satzung und der Verfahrensordnung, die Integrität von ParlamentPlattform und Zukunftswerkstatt und die Anwendung des § 5 Abs 6.",
+    was_sie_ist=_("Das Aufsichtsorgan der Partei; er überwacht die Einhaltung der Satzung und der Verfahrensordnung, die Integrität von ParlamentPlattform und Zukunftswerkstatt und die Anwendung des § 5 Abs 6."),
     wie_hinein=(
-        "Wahl durch die Mitgliederversammlung auf vier Jahre, drei bis sieben Mitglieder. Sie dürfen "
+        _("Wahl durch die Mitgliederversammlung auf vier Jahre, drei bis sieben Mitglieder. Sie dürfen "
         "keinem anderen Rat angehören, kein Mandat für die DDÖ ausüben und in keinem Dienst- oder "
         "Auftragsverhältnis zur Partei stehen (§ 6 Abs 3 lit a). Heute trägt die Verwaltung die Rolle "
-        "ein; die Unvereinbarkeiten prüft niemand automatisch."
+        "ein; die Unvereinbarkeiten prüft niemand automatisch.")
     ),
     faehigkeiten=(
         Faehigkeit(
-            titel="Einen eigenen Arbeitsbereich öffnen",
+            titel=_("Einen eigenen Arbeitsbereich öffnen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
-            titel="Eine Abstimmung durch veröffentlichten, begründeten Beschluss hervorheben",
+            titel=_("Eine Abstimmung durch veröffentlichten, begründeten Beschluss hervorheben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
-            titel="Einen Antrag durch begründeten Beschluss formal zurückweisen",
+            titel=_("Einen Antrag durch begründeten Beschluss formal zurückweisen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
-            titel="Den Vollzug eines Beschlusses oder eine laufende Abstimmung aussetzen",
+            titel=_("Den Vollzug eines Beschlusses oder eine laufende Abstimmung aussetzen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
-            titel="Die Betroffenheit im Einzelfall feststellen",
+            titel=_("Die Betroffenheit im Einzelfall feststellen"),
             stand=Stand.GEPLANT,
-            bauschritt="S9 — die Regeln selbst brauchen zuvor einen Beschluss der Mitgliederversammlung",
+            bauschritt=_("S9 — die Regeln selbst brauchen zuvor einen Beschluss der Mitgliederversammlung"),
         ),
         Faehigkeit(
-            titel="In einem internen Beschluss des Rates abstimmen",
+            titel=_("In einem internen Beschluss des Rates abstimmen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
-            titel="Beschlüsse aller Räte mit Stimmen und Begründungen einsehen",
+            titel=_("Beschlüsse aller Räte mit Stimmen und Begründungen einsehen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
         Faehigkeit(
-            titel="Ein Verfahren nachrechnen: Zeitleiste, Audit-Spur und Export je Antrag",
+            titel=_("Ein Verfahren nachrechnen: Zeitleiste, Audit-Spur und Export je Antrag"),
             stand=Stand.VERFUEGBAR,
-            ort="auf jeder Antragsseite",
+            ort=_("auf jeder Antragsseite"),
         ),
         Faehigkeit(
-            titel="Die offengelegten, versionierten Regelwerke prüfen",
+            titel=_("Die offengelegten, versionierten Regelwerke prüfen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:regeln",
         ),
         Faehigkeit(
-            titel="Die eigene Besetzung öffentlich ausweisen",
+            titel=_("Die eigene Besetzung öffentlich ausweisen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:uebersicht",
         ),
         Faehigkeit(
-            titel="Mindestens jährlich öffentlich berichten",
+            titel=_("Mindestens jährlich öffentlich berichten"),
             stand=Stand.GEPLANT,
-            bauschritt="S9",
+            bauschritt=_("S9"),
         ),
         Faehigkeit(
-            titel="Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen",
+            titel=_("Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="S9",
+            bauschritt=_("S9"),
         ),
     ),
 )
@@ -768,131 +782,131 @@ INTEGRITAETSRAT = Rolle(
 # ── Verwaltung und die drei noch nicht gebauten Raete ─────────────────────
 VERWALTUNG = Rolle(
     schluessel="verwaltung",
-    name="Verwaltung (Admin)",
+    name=_("Verwaltung (Admin)"),
     satzung="§ 6 Abs 2 (laufende Geschäfte)",
-    was_sie_ist="Kein Organ der Satzung, sondern der technische Notbehelf: Ein Konto mit Adminrechten führt die Geschäfte, bis die Räte nach § 6 Abs 4 bis 6 besetzt sind.",
-    wie_hinein="Adminrechte vergibt und entzieht ein anderes Admin-Konto; der satzungsgebende Erstzugang (DDOE_FIX_ADMIN) ist immer Admin und kann weder pausiert noch entmachtet werden. Eine Wahl oder Bestellung gibt es nicht.",
+    was_sie_ist=_("Kein Organ der Satzung, sondern der technische Notbehelf: Ein Konto mit Adminrechten führt die Geschäfte, bis die Räte nach § 6 Abs 4 bis 6 besetzt sind."),
+    wie_hinein=_("Adminrechte vergibt und entzieht ein anderes Admin-Konto; der satzungsgebende Erstzugang (DDOE_FIX_ADMIN) ist immer Admin und kann weder pausiert noch entmachtet werden. Eine Wahl oder Bestellung gibt es nicht."),
     faehigkeiten=(
         Faehigkeit(
-            titel="Mitglieder suchen und Stammdaten berichtigen",
+            titel=_("Mitglieder suchen und Stammdaten berichtigen"),
             stand=Stand.TEILWEISE,
             urlname="mitglieder:verwaltung",
             einschraenkung=(
-                "Dasselbe Formular setzt auch das öffentliche Pseudonym. Das Mitglied selbst kann es nicht ändern, obwohl es sein Name in jeder Debatte ist."
+                _("Dasselbe Formular setzt auch das öffentliche Pseudonym. Das Mitglied selbst kann es nicht ändern, obwohl es sein Name in jeder Debatte ist.")
             ),
         ),
         Faehigkeit(
-            titel="Identitätsstufe setzen und damit die Mitwirkung freischalten",
+            titel=_("Identitätsstufe setzen und damit die Mitwirkung freischalten"),
             stand=Stand.TEILWEISE,
             urlname="mitglieder:verwaltung",
-            einschraenkung="Über die Aufnahme entscheidet nach § 4 Abs 1 der Koordinationsrat. Heute setzt die Verwaltung die Stufe im Stammdatenformular — ohne Beschluss, ohne Frist, ohne begründbare Ablehnung.",
+            einschraenkung=_("Über die Aufnahme entscheidet nach § 4 Abs 1 der Koordinationsrat. Heute setzt die Verwaltung die Stufe im Stammdatenformular — ohne Beschluss, ohne Frist, ohne begründbare Ablehnung."),
         ),
         Faehigkeit(
-            titel="Mitgliedschaft pausieren oder ausschließen",
+            titel=_("Mitgliedschaft pausieren oder ausschließen"),
             stand=Stand.TEILWEISE,
             urlname="mitglieder:verwaltung",
-            einschraenkung="Ein Ausschluss ist nach § 4 Abs 5 nur durch Entscheidung des Parteischiedsgerichts zulässig; der Knopf vollzieht den Beschluss, er ersetzt ihn nicht. Geprüft wird das nicht — verlangt wird nur eine Begründung, die im Audit-Log erscheint.",
+            einschraenkung=_("Ein Ausschluss ist nach § 4 Abs 5 nur durch Entscheidung des Parteischiedsgerichts zulässig; der Knopf vollzieht den Beschluss, er ersetzt ihn nicht. Geprüft wird das nicht — verlangt wird nur eine Begründung, die im Audit-Log erscheint."),
         ),
         Faehigkeit(
-            titel="Adminrechte vergeben und entziehen",
+            titel=_("Adminrechte vergeben und entziehen"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:verwaltung",
         ),
         Faehigkeit(
-            titel="Beitragseingänge verbuchen, erinnern, Kontoauszug abgleichen",
+            titel=_("Beitragseingänge verbuchen, erinnern, Kontoauszug abgleichen"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:verwaltung_beitraege",
         ),
         Faehigkeit(
-            titel="Rollen in die vier bestehenden Räte berufen, bestätigen und beenden",
+            titel=_("Rollen in die vier bestehenden Räte berufen, bestätigen und beenden"),
             stand=Stand.TEILWEISE,
             urlname="gremien:rollen",
-            einschraenkung="§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind nur Expertenrat 1 und 2, Koordinationsrat und Integritätsrat.",
+            einschraenkung=_("§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind nur Expertenrat 1 und 2, Koordinationsrat und Integritätsrat."),
         ),
         Faehigkeit(
-            titel="Werte im Parameterregister ändern",
+            titel=_("Werte im Parameterregister ändern"),
             stand=Stand.TEILWEISE,
             urlname="parameter:verwaltung",
-            einschraenkung="Die Einführung eines Wertes bedarf nach § 6 Abs 11 lit c der Freigabe des Koordinationsrats, befristete Tests ordnet er an. Beides gibt es nicht; die Verwaltung ändert mit Pflicht-Grund, der im Register und im Audit-Log steht.",
+            einschraenkung=_("Die Einführung eines Wertes bedarf nach § 6 Abs 11 lit c der Freigabe des Koordinationsrats, befristete Tests ordnet er an. Beides gibt es nicht; die Verwaltung ändert mit Pflicht-Grund, der im Register und im Audit-Log steht."),
         ),
         Faehigkeit(
-            titel="Eine Fassung der Verfahrensordnung erzeugen und in Kraft setzen",
+            titel=_("Eine Fassung der Verfahrensordnung erzeugen und in Kraft setzen"),
             stand=Stand.TEILWEISE,
             urlname="parameter:verwaltung",
-            einschraenkung="Über die Verfahrensordnung beschließt nach § 5 Abs 7 die Mitgliederversammlung. Solange die Plattform diese Abstimmung nicht führen kann, handelt die Verwaltung stellvertretend — in zwei Schritten und mit Pflicht-Grund im öffentlichen Audit-Log.",
+            einschraenkung=_("Über die Verfahrensordnung beschließt nach § 5 Abs 7 die Mitgliederversammlung. Solange die Plattform diese Abstimmung nicht führen kann, handelt die Verwaltung stellvertretend — in zwei Schritten und mit Pflicht-Grund im öffentlichen Audit-Log."),
         ),
         Faehigkeit(
-            titel="Den Umsetzungsstand angenommener Anträge fortschreiben",
+            titel=_("Den Umsetzungsstand angenommener Anträge fortschreiben"),
             stand=Stand.TEILWEISE,
-            einschraenkung="Das Umsetzungsregister führt nach § 6 Abs 10 der Integrations- und Berichtswesenrat. Bis es ihn gibt, schreiben Admins fort; jeder Eintrag ist öffentlich, dauerhaft und auditiert.",
+            einschraenkung=_("Das Umsetzungsregister führt nach § 6 Abs 10 der Integrations- und Berichtswesenrat. Bis es ihn gibt, schreiben Admins fort; jeder Eintrag ist öffentlich, dauerhaft und auditiert."),
         ),
         Faehigkeit(
-            titel="Mandate anlegen, Aufgaben und Fotos pflegen",
+            titel=_("Mandate anlegen, Aufgaben und Fotos pflegen"),
             stand=Stand.TEILWEISE,
             urlname="mandatare:verwaltung",
-            einschraenkung="Nach § 7 Abs 3 lit b stellt der Mandatar die Informationen selbst ein. Heute pflegt die Verwaltung sie an seiner Stelle; der eigene Bereich des Mandatars kommt mit S10.",
+            einschraenkung=_("Nach § 7 Abs 3 lit b stellt der Mandatar die Informationen selbst ein. Heute pflegt die Verwaltung sie an seiner Stelle; der eigene Bereich des Mandatars kommt mit S10."),
         ),
         Faehigkeit(
-            titel="Rückmeldungen aus dem Anstoß-Widget sichten, einordnen und ausführen",
+            titel=_("Rückmeldungen aus dem Anstoß-Widget sichten, einordnen und ausführen"),
             stand=Stand.TEILWEISE,
             urlname="anstoss:verwaltung",
-            einschraenkung="Stand setzen und Ausfuhr als CSV oder JSON gehen. Ein Feld für den Vermerk und eine Rückfrage per E-Mail fehlen in der Ansicht; wiederkehrende Probleme weiterzuleiten ist nach § 6 Abs 6 Sache des Supportrats.",
+            einschraenkung=_("Stand setzen und Ausfuhr als CSV oder JSON gehen. Ein Feld für den Vermerk und eine Rückfrage per E-Mail fehlen in der Ansicht; wiederkehrende Probleme weiterzuleiten ist nach § 6 Abs 6 Sache des Supportrats."),
         ),
         Faehigkeit(
-            titel="In die Arbeitsbereiche der Räte sehen",
+            titel=_("In die Arbeitsbereiche der Räte sehen"),
             stand=Stand.TEILWEISE,
             urlname="gremien:expertenrat",
-            einschraenkung="Admins dürfen zuschauen, aber nicht mitstimmen — das prüfen die Handlungen selbst. Das uneingeschränkte Einsichtsrecht gibt § 6 Abs 3 lit c dem Integritätsrat, nicht der Verwaltung.",
+            einschraenkung=_("Admins dürfen zuschauen, aber nicht mitstimmen — das prüfen die Handlungen selbst. Das uneingeschränkte Einsichtsrecht gibt § 6 Abs 3 lit c dem Integritätsrat, nicht der Verwaltung."),
         ),
         Faehigkeit(
-            titel="Das Monatsbudget des Modell-Steckplatzes begrenzen",
+            titel=_("Das Monatsbudget des Modell-Steckplatzes begrenzen"),
             stand=Stand.TEILWEISE,
             urlname="parameter:verwaltung",
-            einschraenkung="Das Budget steht als Wert ki-monatstokens im Register. Welcher Anbieter und welches Modell angeschlossen sind, entscheidet allein die Server-Einstellung — dafür gibt es keine Ansicht und keinen Beschluss.",
+            einschraenkung=_("Das Budget steht als Wert ki-monatstokens im Register. Welcher Anbieter und welches Modell angeschlossen sind, entscheidet allein die Server-Einstellung — dafür gibt es keine Ansicht und keinen Beschluss."),
         ),
     ),
 )
 
 ENTWICKLUNGSRAT = Rolle(
     schluessel="entwicklungsrat",
-    name="Technischer Entwicklungsrat",
+    name=_("Technischer Entwicklungsrat"),
     satzung="§ 6 Abs 4",
-    was_sie_ist="Er verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt, beauftragt und überwacht externe Dienstleister und berichtet regelmäßig.",
-    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein.",
+    was_sie_ist=_("Er verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt, beauftragt und überwacht externe Dienstleister und berichtet regelmäßig."),
+    wie_hinein=_("Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein."),
     im_code=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Den Arbeitsbereich des Rates öffnen: Regelverzeichnis, Register, Zukunftswerkstatt",
+            titel=_("Den Arbeitsbereich des Rates öffnen: Regelverzeichnis, Register, Zukunftswerkstatt"),
             stand=Stand.VERFUEGBAR,
-            ort="unter „Mein Gremium“",
+            ort=_("unter „Mein Gremium“"),
         ),
         Faehigkeit(
-            titel="Betrieb und Weiterentwicklung von Plattform und Zukunftswerkstatt verantworten",
+            titel=_("Betrieb und Weiterentwicklung von Plattform und Zukunftswerkstatt verantworten"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Die Leitgestalt des Hauptzugangs weiterentwickeln",
+            titel=_("Die Leitgestalt des Hauptzugangs weiterentwickeln"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; die vier Felder stehen, geändert werden sie im Quelltext",
+            bauschritt=_("kein Bauschritt vorgesehen; die vier Felder stehen, geändert werden sie im Quelltext"),
         ),
         Faehigkeit(
-            titel="Externe Dienstleister beauftragen und überwachen",
+            titel=_("Externe Dienstleister beauftragen und überwachen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Regelmäßig berichten und Sitzungsprotokolle veröffentlichen",
+            titel=_("Regelmäßig berichten und Sitzungsprotokolle veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Ergebnisse der Zukunftswerkstatt als gekennzeichnete Modellrechnung einspeisen",
+            titel=_("Ergebnisse der Zukunftswerkstatt als gekennzeichnete Modellrechnung einspeisen"),
             stand=Stand.GEPLANT,
-            bauschritt="S11",
+            bauschritt=_("S11"),
         ),
         Faehigkeit(
-            titel="Im Rat abstimmen und Beschlüsse veröffentlichen",
+            titel=_("Im Rat abstimmen und Beschlüsse veröffentlichen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
@@ -901,50 +915,50 @@ ENTWICKLUNGSRAT = Rolle(
 
 BERICHTSWESENRAT = Rolle(
     schluessel="berichtswesenrat",
-    name="Integrations- und Berichtswesenrat",
+    name=_("Integrations- und Berichtswesenrat"),
     satzung="§ 6 Abs 5",
-    was_sie_ist="Er führt die jährliche Evaluierung des Gesamtsystems durch und legt der Mitgliederversammlung einen öffentlichen Bericht samt Verbesserungsvorschlägen vor.",
-    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein.",
+    was_sie_ist=_("Er führt die jährliche Evaluierung des Gesamtsystems durch und legt der Mitgliederversammlung einen öffentlichen Bericht samt Verbesserungsvorschlägen vor."),
+    wie_hinein=_("Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute trägt die Verwaltung die Rolle ein."),
     im_code=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Den Arbeitsbereich des Rates öffnen: Umsetzungsregister und Überlastungsmeldungen",
+            titel=_("Den Arbeitsbereich des Rates öffnen: Umsetzungsregister und Überlastungsmeldungen"),
             stand=Stand.VERFUEGBAR,
-            ort="unter „Mein Gremium“",
+            ort=_("unter „Mein Gremium“"),
         ),
         Faehigkeit(
-            titel="Die jährliche Evaluierung des Gesamtsystems durchführen",
+            titel=_("Die jährliche Evaluierung des Gesamtsystems durchführen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Beteiligung, Repräsentativität und Antragsdurchlauf messen",
+            titel=_("Beteiligung, Repräsentativität und Antragsdurchlauf messen"),
             stand=Stand.GEPLANT,
-            bauschritt="S13; erste aggregierte Zahlen stehen schon unter /kennzahlen.json",
+            bauschritt=_("S13; erste aggregierte Zahlen stehen schon unter /kennzahlen.json"),
         ),
         Faehigkeit(
-            titel="Die Wirkung der Regeln nach § 5 Abs 6 messen",
+            titel=_("Die Wirkung der Regeln nach § 5 Abs 6 messen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; diese Regeln sind selbst ungebaut und brauchen einen Satzungsbeschluss",
+            bauschritt=_("kein Bauschritt vorgesehen; diese Regeln sind selbst ungebaut und brauchen einen Satzungsbeschluss"),
         ),
         Faehigkeit(
-            titel="Den öffentlichen Bericht mit Verbesserungsvorschlägen vorlegen",
+            titel=_("Den öffentlichen Bericht mit Verbesserungsvorschlägen vorlegen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Das öffentliche Umsetzungsregister führen",
+            titel=_("Das öffentliche Umsetzungsregister führen"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:umsetzung",
-            einschraenkung="Das Register steht; fortgeschrieben wird es heute von der Verwaltung, nicht vom Rat.",
+            einschraenkung=_("Das Register steht; fortgeschrieben wird es heute von der Verwaltung, nicht vom Rat."),
         ),
         Faehigkeit(
-            titel="Überlastungsmeldungen veröffentlichen (§ 6 Abs 10)",
+            titel=_("Überlastungsmeldungen veröffentlichen (§ 6 Abs 10)"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:umsetzung",
         ),
         Faehigkeit(
-            titel="Im Rat abstimmen und Beschlüsse veröffentlichen",
+            titel=_("Im Rat abstimmen und Beschlüsse veröffentlichen"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
@@ -953,46 +967,46 @@ BERICHTSWESENRAT = Rolle(
 
 SUPPORTRAT = Rolle(
     schluessel="supportrat",
-    name="Supportrat",
+    name=_("Supportrat"),
     satzung="§ 6 Abs 6",
-    was_sie_ist="Er baut Unterstützungsstrukturen auf Bundes-, Landes-, Bezirks- und Gemeindeebene auf, erstellt Schulungsunterlagen und leitet wiederkehrende Probleme als Verbesserungsvorschläge weiter.",
-    wie_hinein="Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute gar nicht: Die Plattform kennt den Rat nicht.",
+    was_sie_ist=_("Er baut Unterstützungsstrukturen auf Bundes-, Landes-, Bezirks- und Gemeindeebene auf, erstellt Schulungsunterlagen und leitet wiederkehrende Probleme als Verbesserungsvorschläge weiter."),
+    wie_hinein=_("Bestellung durch den Koordinationsrat auf öffentliche Ausschreibung hin für zwei Jahre, bestätigt durch die Mitgliederversammlung (§ 6 Abs 8). Heute gar nicht: Die Plattform kennt den Rat nicht."),
     im_code=False,
     faehigkeiten=(
         Faehigkeit(
-            titel="Unterstützungsstrukturen auf Bundes-, Landes-, Bezirks- und Gemeindeebene aufbauen",
+            titel=_("Unterstützungsstrukturen auf Bundes-, Landes-, Bezirks- und Gemeindeebene aufbauen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Über Chat, E-Mail, Telefon und Präsenzstellen erreichbar sein",
+            titel=_("Über Chat, E-Mail, Telefon und Präsenzstellen erreichbar sein"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Rückmeldungen der Mitglieder beantworten",
+            titel=_("Rückmeldungen der Mitglieder beantworten"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; die Anstöße liegen heute in der Verwaltung, eine Antwort ist nicht vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen; die Anstöße liegen heute in der Verwaltung, eine Antwort ist nicht vorgesehen"),
         ),
         Faehigkeit(
-            titel="Schulungsunterlagen erstellen und bereitstellen",
+            titel=_("Schulungsunterlagen erstellen und bereitstellen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; es gibt nur die dreiteilige Einführung nach der Bestätigung",
+            bauschritt=_("kein Bauschritt vorgesehen; es gibt nur die dreiteilige Einführung nach der Bestätigung"),
         ),
         Faehigkeit(
-            titel="Wiederkehrende Probleme als Verbesserungsvorschläge weiterleiten",
+            titel=_("Wiederkehrende Probleme als Verbesserungsvorschläge weiterleiten"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
         Faehigkeit(
-            titel="Identität bei einer Präsenzstelle feststellen",
+            titel=_("Identität bei einer Präsenzstelle feststellen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen; die Stufe Präsenz setzt heute die Verwaltung von Hand",
+            bauschritt=_("kein Bauschritt vorgesehen; die Stufe Präsenz setzt heute die Verwaltung von Hand"),
         ),
         Faehigkeit(
-            titel="Im Rat abstimmen und Beschlüsse veröffentlichen",
+            titel=_("Im Rat abstimmen und Beschlüsse veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="kein Bauschritt vorgesehen",
+            bauschritt=_("kein Bauschritt vorgesehen"),
         ),
     ),
 )
@@ -1000,174 +1014,174 @@ SUPPORTRAT = Rolle(
 # ── Mandatar, Partnerpartei, Parteischiedsgericht ─────────────────────────
 MANDATAR = Rolle(
     schluessel="mandatar",
-    name="Mandatar",
+    name=_("Mandatar"),
     satzung="§ 7, besonders Abs 9",
-    was_sie_ist="Mandatsträger der DDÖ auf Bundes-, Landes-, Bezirks- oder Gemeindeebene. Die Plattform führt für jeden einen öffentlichen Bereich mit Aufgaben und Fristen; die Ergebnisse der von ihm betreuten Abstimmungen sind Beschlusslage und Richtschnur seines Handelns (§ 7 Abs 9).",
+    was_sie_ist=_("Mandatsträger der DDÖ auf Bundes-, Landes-, Bezirks- oder Gemeindeebene. Die Plattform führt für jeden einen öffentlichen Bereich mit Aufgaben und Fristen; die Ergebnisse der von ihm betreuten Abstimmungen sind Beschlusslage und Richtschnur seines Handelns (§ 7 Abs 9)."),
     wie_hinein=(
-        "Über einen Kandidatur-Antrag auf der Plattform (§ 7 Abs 1): Jedes wählbare Mitglied "
+        _("Über einen Kandidatur-Antrag auf der Plattform (§ 7 Abs 1): Jedes wählbare Mitglied "
         "stellt ihn selbst oder beteiligt sich an einem bestehenden — ein zweiter Antrag für "
         "dasselbe Mandat wird nicht eröffnet. Die Bewerbung mit der meisten Zustimmung gewinnt. "
         "Vor der Aufnahme in einen Wahlvorschlag steht eine schriftliche Mandatsvereinbarung "
-        "(§ 7 Abs 3). Das errungene Mandat trägt heute noch die Verwaltung ein."
+        "(§ 7 Abs 3). Das errungene Mandat trägt heute noch die Verwaltung ein.")
     ),
     im_code=False,
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
-            titel="Kandidatur für ein Mandat einbringen oder sich an einer bestehenden beteiligen",
+            titel=_("Kandidatur für ein Mandat einbringen oder sich an einer bestehenden beteiligen"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:einbringen",
             einschraenkung=(
-                "Einbringen geht; sich an einer bestehenden Kandidatur zu beteiligen, heißt heute, ihr zuzustimmen — eine eigene Bewerbung im fremden Antrag gibt es so nicht."
+                _("Einbringen geht; sich an einer bestehenden Kandidatur zu beteiligen, heißt heute, ihr zuzustimmen — eine eigene Bewerbung im fremden Antrag gibt es so nicht.")
             ),
         ),
         Faehigkeit(
-            titel="Öffentlicher Bereich mit Lichtbild, Aufgaben und Fristen",
+            titel=_("Öffentlicher Bereich mit Lichtbild, Aufgaben und Fristen"),
             stand=Stand.VERFUEGBAR,
             urlname="mandatare:liste",
         ),
         Faehigkeit(
-            titel="Betreute Abstimmung an einer Aufgabe zeigen",
+            titel=_("Betreute Abstimmung an einer Aufgabe zeigen"),
             stand=Stand.TEILWEISE,
-            einschraenkung="Die Verknüpfung Aufgabe → Antrag besteht und wird öffentlich angezeigt; setzen kann sie nur die Verwaltung. Der Mandatar erzeugt selbst keine Abstimmung.",
+            einschraenkung=_("Die Verknüpfung Aufgabe → Antrag besteht und wird öffentlich angezeigt; setzen kann sie nur die Verwaltung. Der Mandatar erzeugt selbst keine Abstimmung."),
         ),
         Faehigkeit(
-            titel="Eigene Aufgaben, Fristen und das Lichtbild einstellen",
+            titel=_("Eigene Aufgaben, Fristen und das Lichtbild einstellen"),
             stand=Stand.TEILWEISE,
-            einschraenkung="Eintragen kann nur die Verwaltung (/verwaltung/mandatare/). Der Mandatar hat keinen eigenen Zugang; /mandatare/mein/ kommt mit S10.",
+            einschraenkung=_("Eintragen kann nur die Verwaltung (/verwaltung/mandatare/). Der Mandatar hat keinen eigenen Zugang; /mandatare/mein/ kommt mit S10."),
         ),
         Faehigkeit(
-            titel="Vollzugsbericht zu einem angenommenen Antrag abgeben",
+            titel=_("Vollzugsbericht zu einem angenommenen Antrag abgeben"),
             stand=Stand.TEILWEISE,
-            einschraenkung="Den Umsetzungsstand schreibt heute nur die Verwaltung fort, obwohl die Satzung Mandatsträger selbst zum Vollzugsbericht verpflichtet.",
+            einschraenkung=_("Den Umsetzungsstand schreibt heute nur die Verwaltung fort, obwohl die Satzung Mandatsträger selbst zum Vollzugsbericht verpflichtet."),
         ),
         Faehigkeit(
-            titel="Die Rolle „Mandatar“ auf der Plattform",
+            titel=_("Die Rolle „Mandatar“ auf der Plattform"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
         Faehigkeit(
-            titel="Instant-Report zu einer Aufgabe samt Frist veröffentlichen",
+            titel=_("Instant-Report zu einer Aufgabe samt Frist veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
         Faehigkeit(
-            titel="Aus einem Report eine betreute Abstimmung erzeugen (Mandatsfrage)",
+            titel=_("Aus einem Report eine betreute Abstimmung erzeugen (Mandatsfrage)"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
         Faehigkeit(
-            titel="Rechenschaftsregister: Beschluss, Stimmverhalten und Begründung binnen sieben Tagen",
+            titel=_("Rechenschaftsregister: Beschluss, Stimmverhalten und Begründung binnen sieben Tagen"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
         Faehigkeit(
-            titel="Monatsbericht und Sammelbericht nach jedem Sitzungstag",
+            titel=_("Monatsbericht und Sammelbericht nach jedem Sitzungstag"),
             stand=Stand.GEPLANT,
-            bauschritt="S10",
+            bauschritt=_("S10"),
         ),
     ),
 )
 
 PARTNER = Rolle(
     schluessel="partner",
-    name="Partnerpartei (internationale Zusammenarbeit)",
+    name=_("Partnerpartei (internationale Zusammenarbeit)"),
     satzung="§ 12, besonders Abs 5",
-    was_sie_ist="Politische Organisationen und Parteien im In- und Ausland mit vergleichbaren Zielen der direkten Demokratie, mit denen die DDÖ Wissen, Software und bewährte Verfahren austauscht.",
-    wie_hinein="Heute formlos: Partner-Seite lesen, Übertragungspaket laden, Kontakt per E-Mail an plattform@ddoe.at. Das bestätigte Partner-Konto und die Rolle mit eigenem Bereich kommen mit S14b.",
+    was_sie_ist=_("Politische Organisationen und Parteien im In- und Ausland mit vergleichbaren Zielen der direkten Demokratie, mit denen die DDÖ Wissen, Software und bewährte Verfahren austauscht."),
+    wie_hinein=_("Heute formlos: Partner-Seite lesen, Übertragungspaket laden, Kontakt per E-Mail an plattform@ddoe.at. Das bestätigte Partner-Konto und die Rolle mit eigenem Bereich kommen mit S14b."),
     im_code=False,
     faehigkeiten=(
         Faehigkeit(
-            titel="Partner-Seite mit Vision, Modell, Schnittstellen und Einstieg lesen",
+            titel=_("Partner-Seite mit Vision, Modell, Schnittstellen und Einstieg lesen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:partner",
         ),
         Faehigkeit(
-            titel="Kurzfassung in der eigenen Sprache lesen (FR, ES, IT, JA neben DE und EN)",
+            titel=_("Kurzfassung in der eigenen Sprache lesen (FR, ES, IT, JA neben DE und EN)"),
             stand=Stand.VERFUEGBAR,
-            ort="auf den Partner-Seiten",
+            ort=_("auf den Partner-Seiten"),
         ),
         Faehigkeit(
-            titel="Übertragungspaket herunterladen: Satzungs-Baukasten, Einrichtung, Instanz-Vorlagen, Schema",
+            titel=_("Übertragungspaket herunterladen: Satzungs-Baukasten, Einrichtung, Instanz-Vorlagen, Schema"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:partner_paket",
         ),
         Faehigkeit(
-            titel="Parameter im gemeinsamen, sprachneutralen Schema abrufen",
+            titel=_("Parameter im gemeinsamen, sprachneutralen Schema abrufen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:export",
         ),
         Faehigkeit(
-            titel="Kennzahlen im gemeinsamen Schema abrufen",
+            titel=_("Kennzahlen im gemeinsamen Schema abrufen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:kennzahlen",
         ),
         Faehigkeit(
-            titel="Umsetzungsstand maschinenlesbar abrufen",
+            titel=_("Umsetzungsstand maschinenlesbar abrufen"),
             stand=Stand.VERFUEGBAR,
             urlname="verfahren:umsetzung_json",
         ),
         Faehigkeit(
-            titel="Kontakt aufnehmen",
+            titel=_("Kontakt aufnehmen"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:partner",
-            einschraenkung="Nur als E-Mail-Link an plattform@ddoe.at; das Kontaktformular kommt mit dem Partner-Konto (S14b).",
+            einschraenkung=_("Nur als E-Mail-Link an plattform@ddoe.at; das Kontaktformular kommt mit dem Partner-Konto (S14b)."),
         ),
         Faehigkeit(
-            titel="Partner-Konto anlegen und von der Partei bestätigen lassen",
+            titel=_("Partner-Konto anlegen und von der Partei bestätigen lassen"),
             stand=Stand.GEPLANT,
-            bauschritt="S14b",
+            bauschritt=_("S14b"),
         ),
         Faehigkeit(
-            titel="Rolle „Partner“ und eigener Bereich für Partnerorganisationen",
+            titel=_("Rolle „Partner“ und eigener Bereich für Partnerorganisationen"),
             stand=Stand.GEPLANT,
-            bauschritt="S14b",
+            bauschritt=_("S14b"),
         ),
         Faehigkeit(
-            titel="Parameter der eigenen Instanz einspielen und gegenüberstellen",
+            titel=_("Parameter der eigenen Instanz einspielen und gegenüberstellen"),
             stand=Stand.GEPLANT,
-            bauschritt="S14b",
+            bauschritt=_("S14b"),
         ),
         Faehigkeit(
-            titel="Dokumentierte Austauschformate der Koordinationsräte (Austausch-Protokolle)",
+            titel=_("Dokumentierte Austauschformate der Koordinationsräte (Austausch-Protokolle)"),
             stand=Stand.GEPLANT,
-            bauschritt="S14b",
+            bauschritt=_("S14b"),
         ),
     ),
 )
 
 SCHIEDSGERICHT = Rolle(
     schluessel="schiedsgericht",
-    name="Parteischiedsgericht",
+    name=_("Parteischiedsgericht"),
     satzung="§ 11, § 6 Abs 1 lit h",
-    was_sie_ist="Innerparteiliche Schlichtungseinrichtung aus fünf unabhängigen Personen, die in allen Streitigkeiten aus dem Parteiverhältnis entscheidet und allein die Nichtigkeit satzungswidriger Beschlüsse feststellt.",
-    wie_hinein="Von Fall zu Fall, nicht auf Dauer: Bei zwei Streitparteien macht jede zwei Mitglieder namhaft, diese wählen die vorsitzende Person; sonst entscheidet das Los aus einer öffentlich geführten Liste (§ 11 Abs 2). Mitglieder dürfen keinem anderen Organ angehören und kein Mandat der DDÖ ausüben (§ 11 Abs 3). Diese Liste führt die Plattform heute nicht.",
+    was_sie_ist=_("Innerparteiliche Schlichtungseinrichtung aus fünf unabhängigen Personen, die in allen Streitigkeiten aus dem Parteiverhältnis entscheidet und allein die Nichtigkeit satzungswidriger Beschlüsse feststellt."),
+    wie_hinein=_("Von Fall zu Fall, nicht auf Dauer: Bei zwei Streitparteien macht jede zwei Mitglieder namhaft, diese wählen die vorsitzende Person; sonst entscheidet das Los aus einer öffentlich geführten Liste (§ 11 Abs 2). Mitglieder dürfen keinem anderen Organ angehören und kein Mandat der DDÖ ausüben (§ 11 Abs 3). Diese Liste führt die Plattform heute nicht."),
     im_code=False,
     faehigkeiten=(
         Faehigkeit(
-            titel="Öffentlich geführte Liste, aus der die Mitglieder ausgelost werden",
+            titel=_("Öffentlich geführte Liste, aus der die Mitglieder ausgelost werden"),
             stand=Stand.GEPLANT,
-            bauschritt="nicht in Teil C (S1–S14) vorgesehen",
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
         ),
         Faehigkeit(
-            titel="Anrufung durch ein Mitglied: Zurückweisung eines Antrags, Ablehnung der Aufnahme, Ausschluss",
+            titel=_("Anrufung durch ein Mitglied: Zurückweisung eines Antrags, Ablehnung der Aufnahme, Ausschluss"),
             stand=Stand.GEPLANT,
-            bauschritt="nicht in Teil C (S1–S14) vorgesehen",
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
         ),
         Faehigkeit(
-            titel="Nichtigkeit eines Beschlusses feststellen und die Feststellung veröffentlichen",
+            titel=_("Nichtigkeit eines Beschlusses feststellen und die Feststellung veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="nicht in Teil C (S1–S14) vorgesehen",
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
         ),
         Faehigkeit(
-            titel="Eine Aussetzung des Integritätsrats binnen sieben Tagen bestätigen",
+            titel=_("Eine Aussetzung des Integritätsrats binnen sieben Tagen bestätigen"),
             stand=Stand.GEPLANT,
-            bauschritt="nicht in Teil C (S1–S14) vorgesehen",
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
         ),
         Faehigkeit(
-            titel="Entscheidung mit Begründung binnen sechs Monaten veröffentlichen",
+            titel=_("Entscheidung mit Begründung binnen sechs Monaten veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt="nicht in Teil C (S1–S14) vorgesehen",
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
         ),
     ),
 )
@@ -1176,19 +1190,19 @@ SCHIEDSGERICHT = Rolle(
 GRUPPEN: tuple[Gruppe, ...] = (
     Gruppe(
         schluessel="zugang",
-        name="Zugang zur Plattform",
+        name=_("Zugang zur Plattform"),
         erklaerung=(
-            "Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Wer hier steht, ist kein "
-            "Amtsträger — sondern jemand, der liest oder mitwirkt."
+            _("Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Wer hier steht, ist kein "
+            "Amtsträger — sondern jemand, der liest oder mitwirkt.")
         ),
         rollen=(GAST, MITGLIED, MITGLIED_RUHT),
     ),
     Gruppe(
         schluessel="raete",
-        name="Die Räte der Satzung",
+        name=_("Die Räte der Satzung"),
         erklaerung=(
-            "Sieben Räte nach § 6. Sechs gibt es im Code, einer noch nicht — er steht trotzdem "
-            "hier, weil sein Auftrag in der Satzung steht und die Lücke sichtbar bleiben soll."
+            _("Sieben Räte nach § 6. Sechs gibt es im Code, einer noch nicht — er steht trotzdem "
+            "hier, weil sein Auftrag in der Satzung steht und die Lücke sichtbar bleiben soll.")
         ),
         rollen=(
             EXPERTENRAT1,
@@ -1202,11 +1216,11 @@ GRUPPEN: tuple[Gruppe, ...] = (
     ),
     Gruppe(
         schluessel="aussen",
-        name="Ämter, Schiedsstelle und Außenbeziehungen",
+        name=_("Ämter, Schiedsstelle und Außenbeziehungen"),
         erklaerung=(
-            "Wer die Beschlüsse nach außen trägt, wer im Streitfall entscheidet, wer von anderen "
+            _("Wer die Beschlüsse nach außen trägt, wer im Streitfall entscheidet, wer von anderen "
             "Parteien aus mit uns arbeitet — und die Verwaltung, die einspringt, solange die "
-            "zuständigen Räte nicht besetzt sind."
+            "zuständigen Räte nicht besetzt sind.")
         ),
         rollen=(MANDATAR, SCHIEDSGERICHT, PARTNER, VERWALTUNG),
     ),

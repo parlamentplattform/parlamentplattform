@@ -158,17 +158,52 @@ if not DEBUG:
     # sonst schleift SECURE_SSL_REDIRECT endlos um.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+# HSTS-Preload (security.W021) ist eine eigene, schwer umkehrbare Entscheidung: Die Domain
+# landet in den Browsern fest verdrahtet, auch für Subdomains, die es noch gar nicht gibt.
+# Sie wird nicht nebenbei getroffen. Alles andere aus `check --deploy` muss die CI still
+# halten — deshalb wird genau diese eine Warnung begründet gestillt und keine weitere.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]
+
+# Protokollierung (Befund #17): Ohne eigene LOGGING-Einstellung gilt Djangos Standard, und
+# der schreibt Serverfehler nur mit DEBUG=1 auf die Konsole (Filter RequireDebugTrue) bzw.
+# per Mail an ADMINS — die hier leer sind. In Produktion (DDOE_DEBUG=0) erreichte der
+# Traceback eines 500ers also weder stderr noch das Render-Log. Die 500-Seite verspricht
+# „Er ist protokolliert" — das muss stimmen. `django.request` schreibt deshalb ungefiltert
+# auf stderr (Gunicorn reicht stderr unverändert an Render weiter); alles andere ab WARNING.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "knapp": {"format": "{levelname} {asctime} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "stderr": {"class": "logging.StreamHandler", "formatter": "knapp"},
+    },
+    "root": {"handlers": ["stderr"], "level": "WARNING"},
+    "loggers": {
+        # Unbehandelte Ausnahmen jeder Anfrage (Status 500) — mit Traceback, unabhängig von DEBUG.
+        "django.request": {"handlers": ["stderr"], "level": "ERROR", "propagate": False},
+        # Abgewiesene Hosts, CSRF-Verstöße u. Ä.: gehören ebenfalls ins Log, nicht in eine Mail.
+        "django.security": {"handlers": ["stderr"], "level": "WARNING", "propagate": False},
+    },
+}
+
 # HTTPS-Ursprünge, denen Formulare vertrauen (Komma-getrennt), z. B.
 # "https://plattform.ddoe.at,https://parlamentplattform.onrender.com"
 CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get("DDOE_CSRF_ORIGINS", "").split(",") if o]
 
 # Statische Dateien in Produktion direkt aus der Anwendung (WhiteNoise),
 # aktiviert per Umgebungsvariable — Entwicklung und Tests bleiben unberührt.
+# Manifest-Speicher (Befund #98): Jede Datei bekommt ihren Inhalts-Hash in den Namen, dadurch
+# darf WhiteNoise sie ein Jahr lang unveränderlich cachen statt 60 Sekunden — vier Skripte
+# je Seitenwechsel weniger auf dem Weg zum Server. Kehrseite: `{% static %}` wirft für jede
+# Datei, die im Manifest fehlt; `tests/test_betrieb.py` rendert deshalb den App-Rahmen mit
+# gefülltem Manifest, und die CI führt `collectstatic` aus, bevor etwas ausgerollt wird.
 if os.environ.get("DDOE_STATIK") == "whitenoise":
     MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
     STORAGES = {
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
 
 # Der Modell-Steckplatz (F-60, Ring 0b) — anbieterneutral, ohne Schlüssel leer.

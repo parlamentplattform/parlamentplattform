@@ -12,6 +12,10 @@ services:
     region: [REGION]
     plan: starter
     healthCheckPath: /gesund/
+    # Ausrollen erst, wenn die GitHub-Checks des Commits grün sind — nie einen roten Commit
+    # (Befund #95). Ohne die Zeile deployt ein neuer Dienst jeden Push. Wer stattdessen den
+    # CI-Deploy-Hook nutzt (.github/workflows/ci.yml, Job `ausrollen`), setzt hier `off`.
+    autoDeployTrigger: checksPass
     dockerCommand: >-
       sh -c "python manage.py migrate --noinput
       && python manage.py kategorien_laden

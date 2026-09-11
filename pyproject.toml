@@ -6,11 +6,15 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "AGPL-3.0-or-later" }
 authors = [{ name = "Direkte Demokratie Österreich", email = "didide@ddoe.at" }]
+# Obergrenzen bewusst gesetzt (Befund #96): Weder CI noch Dockerfile haben eine Lockdatei —
+# jede Fassung wird beim Bauen frisch gezogen. Ein Major-Release von gunicorn oder whitenoise
+# landete sonst ungeprüft in Produktion, eine ruff mit einer Regel mehr macht die CI still rot
+# (8./9.9.2026: vierzehn Stunden kein Deploy). Eine Grenze hebt man mit Blick und Test, nicht nebenbei.
 dependencies = [
     "Django>=5.0,<5.3",
-    "PyYAML>=6.0",
-    "segno>=1.6",
-    "requests>=2.31",  # F-59: Kontoinformationsdienst-Abrufe (mitglieder/bank.py)
+    "PyYAML>=6.0,<7",
+    "segno>=1.6,<2",
+    "requests>=2.31,<3",  # F-59: Kontoinformationsdienst-Abrufe (mitglieder/bank.py)
 ]
 
 [project.optional-dependencies]
@@ -21,15 +25,15 @@ dev = [
     # Untergrenze bewusst nah an der Fassung, die die CI zieht: Eine ältere ruff hier und
     # eine neuere dort heißt grün auf dem Arbeitsplatz und rot in der CI — und weil der
     # Deploy an der CI hängt, bleibt eine fertige Änderung dann stumm liegen.
-    "ruff>=0.16.6",
+    "ruff>=0.16.6,<0.17",
     "coverage[toml]>=7.4",
 ]
 e2e = [
     "playwright>=1.47",       # Bildschirmtests, laut CLAUDE.md ohne ADR zulässig
     "pytest-playwright>=0.5",
 ]
-postgres = ["psycopg[binary]>=3.1"]
-prod = ["gunicorn>=22.0", "whitenoise>=6.6"]
+postgres = ["psycopg[binary]>=3.1,<4"]
+prod = ["gunicorn>=22.0,<27", "whitenoise>=6.6,<7"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"

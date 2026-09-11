@@ -12,6 +12,7 @@ Anbieter-SDKs — die Schnittstelle bleibt schmal und prüfbar."""
 
 from __future__ import annotations
 
+import http.client
 import json
 import urllib.error
 import urllib.request
@@ -19,7 +20,18 @@ from dataclasses import dataclass
 
 MISTRAL_ENDPUNKT = "https://api.mistral.ai/v1/chat/completions"
 ZEITGRENZE_SEKUNDEN = 45
+#: Rückfallwert; die geltende Obergrenze steht im Register unter „ki-antwort-hoechsttokens“.
 ANTWORT_HOECHSTTOKENS = 900
+
+
+def antwort_hoechsttokens() -> int:
+    """Die Stellgröße „ki-antwort-hoechsttokens“ aus dem Parameterregister (§ 2 Abs 6) —
+    mit ehrlichem Rückfall auf den eingebauten Zielwert, wenn das Register nicht bereit ist.
+    Die Registerseite verspricht „Der Code liest von hier“; bis zur Gesamtprüfung 0.45 stand der
+    Wert nur im Register und wirkte nicht (Befund #45)."""
+    from parameter.models import zahl
+
+    return max(1, zahl("ki-antwort-hoechsttokens", ANTWORT_HOECHSTTOKENS))
 
 
 @dataclass(frozen=True)
@@ -53,7 +65,7 @@ class MistralAnbieter:
             {
                 "model": self.modell,
                 "temperature": 0.2,
-                "max_tokens": ANTWORT_HOECHSTTOKENS,
+                "max_tokens": antwort_hoechsttokens(),
                 "messages": [
                     {"role": "system", "content": auftrag},
                     {"role": "user", "content": eingabe},
@@ -75,7 +87,11 @@ class MistralAnbieter:
                 daten = json.loads(antwort.read().decode())
         except urllib.error.HTTPError as fehler:
             raise AnbieterFehler(f"HTTP {fehler.code} vom Anbieter") from fehler
-        except (urllib.error.URLError, TimeoutError, ValueError) as fehler:
+        except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as fehler:
+            # OSError deckt Verbindungsabbrüche beim Lesen (ConnectionResetError), HTTPException
+            # abgebrochene Antworten (IncompleteRead, RemoteDisconnected): Jeder Netz- und
+            # Protokollfehler wird ein AnbieterFehler und landet damit im Archiv (Befund #99) —
+            # vorher endete ein Abbruch mitten in der Antwort als 500-Seite ohne Archiveintrag.
             raise AnbieterFehler(f"Anbieter nicht erreichbar: {fehler}") from fehler
         try:
             text = daten["choices"][0]["message"]["content"].strip()

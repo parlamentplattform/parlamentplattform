@@ -1,6 +1,10 @@
 """SVG-Diagramme: wohlgeformt, beschriftet, sicher escaped — ohne Django."""
 
+import re
 import xml.etree.ElementTree as ET
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from plattform_core.diagramme import BLAU, GOLD, ROT, anteils_balken, balken_diagramm, linien_diagramm
 
@@ -49,3 +53,40 @@ def test_anteils_balken_ohne_stimmen_zeigt_neutrale_flaeche():
     svg = anteils_balken([("Ja", 0, BLAU)], "Noch keine Stimmen")
     wohlgeformt(svg)
     assert "fill-opacity" in svg and "<title>" not in svg
+
+
+def test_hochkomma_bricht_nicht_aus_dem_aria_attribut_aus():
+    """Befund #0: Die Attribute sind mit einfachen Anführungszeichen gebaut, und der Antragstitel
+    fließt in die Beschreibung. `xml.sax.saxutils.escape` ließ das Hochkomma stehen — ein Titel
+    wie x' onload='alert(1)' hängte ein ausführbares Attribut an das Wurzelelement, das die
+    Übersichtsseite mit |safe ausliefert. `html.escape` maskiert beide Anführungszeichen."""
+    titel = "x' onload='alert(1)' data-x='"
+    svg = anteils_balken([("Ja", 1, BLAU)], f"Ergebnis zu „{titel}“")
+    assert "onload='" not in svg and "onload=" not in svg.split("aria-label=")[0]
+    wurzel = wohlgeformt(svg)
+    assert wurzel.get("onload") is None
+    assert wurzel.get("aria-label") == f"Ergebnis zu „{titel}“"  # der Text bleibt vollständig lesbar
+    # auch ohne eine einzige Stimme wird der Kopf mit der Beschreibung gebaut
+    leer = anteils_balken([("Ja", 0, BLAU)], titel)
+    assert wohlgeformt(leer).get("onload") is None
+
+
+#: Steuerzeichen sind in XML nie erlaubt — sie sind kein Escaping-Thema, also nicht Teil der Eigenschaft.
+_TEXT = st.text(st.characters(blacklist_categories=("Cc", "Cs")), min_size=1, max_size=60)
+
+
+@settings(max_examples=200, deadline=None)
+@given(_TEXT, _TEXT)
+def test_beliebiger_text_hinterlaesst_kein_rohes_zeichen_im_svg(beschreibung, name):
+    """Eigenschaft: Für jeden Text stehen im erzeugten SVG außerhalb des Markups selbst weder
+    rohe Anführungszeichen noch < — Nutzertext kann also nie Markup werden. Geprüft wird über die
+    eigene Bausprache: Alle Attribute sind einfach gequotet, jeder Textknoten ist maskiert."""
+    svg = anteils_balken([(name, 2, BLAU), ("Nein", 1, ROT)], beschreibung)
+    # Aus dem Markup alle Attributwerte und Tag-Namen entfernen — was übrig bleibt, ist Nutzertext.
+    rest = re.sub(r"<[a-zA-Z/][^<>]*>", "", svg)
+    assert "'" not in rest and '"' not in rest and "<" not in rest
+    # Innerhalb der Tags darf kein Attributwert vorzeitig enden: kein ' außer als Begrenzer.
+    for tag in re.findall(r"<[a-zA-Z][^<>]*>", svg):
+        werte = re.findall(r"='([^']*)'", tag)
+        assert "'" not in "".join(werte) and "<" not in "".join(werte)
+    wohlgeformt(svg)

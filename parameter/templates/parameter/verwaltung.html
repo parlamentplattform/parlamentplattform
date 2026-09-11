@@ -58,10 +58,10 @@ Verwaltung stellvertretend, und jeder Schritt steht im öffentlichen Audit-Log.{
   <h2 style="margin:0 0 4px;font-size:17px">{{ karte.name }}</h2>
   {% for p in karte.eintraege %}
   <div class="zeile"><span style="width:100%">
-    <strong>{{ p.schluessel }}</strong> <span class="meta">{{ p.einheit }} · {{ p.quelle }}</span>
+    <strong>{{ p.schluessel }}</strong> <span class="meta">{% translate p.einheit %} · {{ p.quelle }}</span>
     {% if p.status != "gueltig" %}<span class="chip klein">{{ p.get_status_display }}</span>{% endif %}
     {% if p.speist_ordnung %}<span class="chip klein still">{% translate "Verfahrensordnung" %}</span>{% endif %}
-    <br><span class="meta">{{ p.beschreibung }}</span>
+    <br><span class="meta">{% translate p.beschreibung %}</span>
     {% if p.status == im_test and p.test_hypothese %}<br><span class="meta">{% translate "Test:" %} {{ p.test_hypothese }}</span>{% endif %}
     <form method="post" action="{% url 'parameter:verwaltung_aktion' %}" style="margin-top:6px">{% csrf_token %}
       <input type="hidden" name="parameter" value="{{ p.pk }}">

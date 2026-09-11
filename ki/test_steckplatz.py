@@ -147,3 +147,69 @@ def test_zukunftswerkstatt_ohne_anbieter_bleibt_ehrlich(client, settings):
     settings.DDOE_KI_SCHLUESSEL = ""
     inhalt = client.get(reverse("verfahren:zukunftswerkstatt")).content.decode()
     assert "kein Anbieter angeschlossen" in inhalt
+
+
+# --- Gesamtprüfung 0.45 (Cluster D): Register und Lesefehler ------------------
+
+
+class _Scheinantwort(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+
+def test_antwort_obergrenze_kommt_aus_dem_register(monkeypatch):
+    """Befund #45: „ki-antwort-hoechsttokens" stand im Register, wirkte aber nicht — der
+    Anbieter schickte immer die Konstante 900. Die Registerseite sagt „Der Code liest von hier"."""
+    from parameter.models import Parameter
+
+    Parameter.objects.create(schluessel="ki-antwort-hoechsttokens", wert="123", beschreibung="x", quelle="Test")
+    gesehen = {}
+
+    def schein_urlopen(anfrage, timeout=None):
+        gesehen["rumpf"] = json.loads(anfrage.data.decode())
+        return _Scheinantwort(json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", schein_urlopen)
+    MistralAnbieter("geheim", "m").frage("A", "E")
+    assert gesehen["rumpf"]["max_tokens"] == 123
+
+
+def test_abbruch_beim_lesen_der_antwort_wird_archiviert(settings, monkeypatch):
+    """Befund #99: Bricht der Anbieter die Verbindung nach den Kopfzeilen ab, wirft urllib
+    `http.client.IncompleteRead` (keine URLError) — das fiel durch beide except-Klauseln, wurde
+    nicht archiviert und endete als 500-Seite. Jetzt: SteckplatzStumm und ein Lauf mit
+    erfolgreich=False, wie es der Docstring von `lauf_ausfuehren` verspricht."""
+    import http.client
+
+    settings.DDOE_KI_ANBIETER = "mistral"
+    settings.DDOE_KI_SCHLUESSEL = "geheim"
+
+    class Abbruch(_Scheinantwort):
+        def read(self, *args, **kwargs):
+            raise http.client.IncompleteRead(b"")
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda anfrage, timeout=None: Abbruch(b""))
+    with pytest.raises(SteckplatzStumm, match="nicht geantwortet"):
+        lauf_ausfuehren(Zweck.EINSCHAETZUNG, "A", "Text.", mitglied_anlegen())
+    lauf = KILauf.objects.get()
+    assert not lauf.erfolgreich and "IncompleteRead" in lauf.fehler
+
+
+def test_verbindungsabbruch_vor_den_kopfzeilen_wird_archiviert(settings, monkeypatch):
+    """Ein Reset vor den Kopfzeilen kommt aus urlopen() als RemoteDisconnected (OSError und
+    HTTPException zugleich, aber keine URLError) — ebenfalls ein AnbieterFehler."""
+    import http.client
+
+    settings.DDOE_KI_ANBIETER = "mistral"
+    settings.DDOE_KI_SCHLUESSEL = "geheim"
+
+    def reset(anfrage, timeout=None):
+        raise http.client.RemoteDisconnected("Remote end closed connection without response")
+
+    monkeypatch.setattr("urllib.request.urlopen", reset)
+    with pytest.raises(SteckplatzStumm):
+        lauf_ausfuehren(Zweck.EINSCHAETZUNG, "A", "Text.", mitglied_anlegen())
+    assert KILauf.objects.filter(erfolgreich=False).count() == 1

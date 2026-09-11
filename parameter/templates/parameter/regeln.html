@@ -29,22 +29,23 @@ Offenlegung.{% endblocktranslate %}</p>
 
 <p class="erk">{% blocktranslate with n=zahlen.regeln b=zahlen.bindend l=zahlen.mit_luecke %}{{ n }} Regeln, davon {{ b }} bindend. {{ l }} tragen eine offen benannte Lücke.{% endblocktranslate %}
   <span class="meta">{{ satzung }} · {% blocktranslate with v=verzeichnis_version %}Verzeichnis Fassung {{ v }}{% endblocktranslate %} · <code>plattform_core/regelwerk.py</code></span></p>
+{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt." %}</em></p>{% endif %}
 
 {% for wirkung, regeln in gruppen %}
-<h2 class="wirkungskopf">{{ wirkung.value }} <span class="was">— {{ wirkung.erklaerung }}</span></h2>
+<h2 class="wirkungskopf">{% translate wirkung.name_de %} <span class="was">— {% translate wirkung.erklaerung %}</span></h2>
 {% for r in regeln %}
 <div class="regel" id="regel-{{ r.modul|slice:":-3" }}">
-  <h3>{{ r.titel }}</h3>
+  <h3>{% translate r.titel %}</h3>
   <p class="modul"><code>plattform_core/{{ r.modul }}</code>{% if r.fassung %} · {% blocktranslate with f=r.fassung %}Fassung {{ f }}{% endblocktranslate %}{% endif %}</p>
-  <p class="zweck">{{ r.zweck }}</p>
+  <p class="zweck">{% translate r.zweck %}</p>
   <dl>
     <dt>{% translate "Gilt seit" %}</dt><dd>{{ r.seit|default:"—" }}</dd>
-    <dt>{% translate "Warum" %}</dt><dd>{{ r.grund }}</dd>
+    <dt>{% translate "Warum" %}</dt><dd>{% translate r.grund %}</dd>
     <dt>{% translate "Satzung" %}</dt><dd>{{ r.satzung }}</dd>
-    {% if r.nachrechenbar %}<dt>{% translate "Nachrechnen" %}</dt><dd>{{ r.nachrechenbar }}</dd>{% endif %}
+    {% if r.nachrechenbar %}<dt>{% translate "Nachrechnen" %}</dt><dd>{% translate r.nachrechenbar %}</dd>{% endif %}
     {% if r.registerschluessel %}<dt>{% translate "Im Register" %}</dt><dd><a href="{% url 'parameter:liste' %}">{{ r.registerschluessel }}</a></dd>{% endif %}
   </dl>
-  {% if r.luecke %}<p class="luecke">{% translate "Offen:" %} {{ r.luecke }}</p>{% endif %}
+  {% if r.luecke %}<p class="luecke">{% translate "Offen:" %} {% translate r.luecke %}</p>{% endif %}
 </div>
 {% endfor %}
 {% endfor %}

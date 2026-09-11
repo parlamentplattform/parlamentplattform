@@ -8,8 +8,8 @@ Gegenüberstellung der Messgröße. Öffentlich — § 6 Abs 11 lit c will Tests
 die Einführung „mit Begründung im Parameterregister".
 {% endcomment %}
 <p class="erk"><a href="{% url 'parameter:liste' %}#g-{{ p.gruppe }}">← {% translate "Zum Register" %}</a></p>
-<h1><code>{{ p.schluessel }}</code> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}</h1>
-<p class="erk" style="max-width:56em">{{ p.beschreibung }}</p>
+<h1><code>{{ p.schluessel }}</code> = {{ p.wert }}{% if p.einheit %} <span class="meta">{% translate p.einheit %}</span>{% endif %}</h1>
+<p class="erk" style="max-width:56em">{% translate p.beschreibung %}</p>
 <p class="meta">{% translate "Quelle:" %} {{ p.quelle }}{% if p.schema_key %} · <code>{{ p.schema_key }}</code>{% endif %} · {{ p.get_gruppe_display }} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}
   {% if p.status != "gueltig" %} · <span class="chip klein">{{ p.get_status_display }}</span>{% endif %}</p>
 

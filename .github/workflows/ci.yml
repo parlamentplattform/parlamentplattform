@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Abhängigkeiten
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,prod]"
       - name: Statische Prüfung (ruff)
         run: ruff check .
       - name: Tests mit Kern-Abdeckung ≥ 90 %
@@ -23,6 +23,22 @@ jobs:
           coverage report
       - name: Django-Systemcheck
         run: python manage.py check
+      - name: Deploy-Systemcheck (wie in Produktion, ohne offene Warnung)
+        # CLAUDE.md § 5 Punkt 2: `check --deploy` ohne neue Warnung. Die Sicherheitseinstellungen
+        # greifen erst mit DDOE_DEBUG=0 (config/settings.py), deshalb hier die Produktionsumgebung
+        # nachgestellt; W021 (HSTS-Preload) ist in den Settings begründet gestillt.
+        env:
+          DDOE_DEBUG: "0"
+          DDOE_SECRET_KEY: ${{ github.sha }}${{ github.sha }}
+          DDOE_ALLOWED_HOSTS: parlament.ddoe.at
+          DDOE_STATIK: whitenoise
+        run: python manage.py check --deploy --fail-level WARNING
+      - name: Statische Dateien mit Manifest einsammeln
+        # Mit Manifest-Speicher wirft {% static %} für jede Datei, die im Manifest fehlt — das soll
+        # hier auffallen, nicht in der dockerCommand-Kette des Deploys.
+        env:
+          DDOE_STATIK: whitenoise
+        run: python manage.py collectstatic --noinput
 
   sichtpruefung:
     # Bildschirmtests (Design-Spezifikation 8, FB-A1 Abnahmen 1-4). Eigener Job, weil der
@@ -62,8 +78,27 @@ jobs:
           HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
         run: |
           if [ -z "$HOOK" ]; then
-            echo "Kein RENDER_DEPLOY_HOOK-Secret hinterlegt — Ausrollen übersprungen."
+            echo "::warning::Kein RENDER_DEPLOY_HOOK-Secret hinterlegt — nichts ausgerollt."
+            echo "### Nichts ausgerollt" >> "$GITHUB_STEP_SUMMARY"
+            echo "Kein RENDER_DEPLOY_HOOK-Secret hinterlegt (docs/BETRIEB-RENDER.md)." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           curl -fsS "$HOOK" > /dev/null
           echo "Deploy angestoßen."
+          echo "### Ausgerollt: ${GITHUB_SHA::7}" >> "$GITHUB_STEP_SUMMARY"
+
+  nicht_ausgerollt:
+    # Sichtbarer Alarm statt stillem Überspringen (Befund #96): Ist `pruefen` auf main rot, wird
+    # `ausrollen` übersprungen — und die Live-Fassung bleibt stehen, ohne dass es jemand liest.
+    # Dieser Job schlägt dann selbst fehl und schreibt es in die Zusammenfassung des Laufs;
+    # das CI-Abzeichen in der README zeigt denselben Zustand.
+    needs: pruefen
+    if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rote Prüfung auf main melden
+        run: |
+          echo "::error::Die Prüfung auf main ist rot — ${GITHUB_SHA::7} wurde NICHT ausgerollt; live bleibt der letzte grüne Stand."
+          echo "### Nicht ausgerollt" >> "$GITHUB_STEP_SUMMARY"
+          echo "Die Prüfung ist rot; ${GITHUB_SHA::7} bleibt liegen, bis ein grüner Commit folgt." >> "$GITHUB_STEP_SUMMARY"
+          exit 1

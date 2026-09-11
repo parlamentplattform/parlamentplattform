@@ -8,11 +8,18 @@ Farbwahl ist geprüft, nicht geschätzt: Die drei Reihenfarben (Blau, Gold,
 Dunkelrot) bestehen die Farbfehlsichtigkeits-Prüfung (Deutan/Protan/Tritan-
 Abstand, Helligkeitsband, Chroma) auf hellem Grund; Gold liegt unter 3:1
 Kontrast und wird deshalb nie ohne sichtbare Beschriftung eingesetzt.
+
+Alle Texte, die in das SVG gelangen, laufen durch ``html.escape``: Es maskiert neben ``<``, ``>``
+und ``&`` auch beide Anführungszeichen. Die Attribute hier sind mit einfachen Anführungszeichen
+gebaut — ein Hochkomma in einem Antragstitel würde sonst aus dem ``aria-label`` ausbrechen und
+ein eigenes Attribut (etwa ``onload``) an das Wurzelelement hängen; die Übersichtsseite rendert
+das Bild ungefiltert (``|safe``). Numerische Zeichenreferenzen sind gültiges XML, das Bild bleibt
+wohlgeformt.
 """
 
 from __future__ import annotations
 
-from xml.sax.saxutils import escape
+from html import escape
 
 # Reihenfarben (validiert) und Textfarben (identisch mit dem Seitenstil).
 BLAU = "#2C89B0"

@@ -66,3 +66,27 @@ def test_uebersichtsseite_funktioniert_auch_leer(client):
     antwort = client.get(reverse("uebersicht:index"))
     assert antwort.status_code == 200
     assert "Noch keine Abstimmungen" in antwort.content.decode()
+
+
+def test_antragstitel_mit_hochkomma_wird_auf_der_uebersicht_kein_markup(client, ordnung):  # noqa: F811
+    """Befund #0 (gespeichertes XSS): Der Titel ist frei wählbar und fließt in das aria-label des
+    Ergebnisbalkens, den die Seite mit |safe rendert. Ein Hochkomma darf dort nie ein Attribut
+    beenden — sonst feuert `onload` bei jedem Besucher der anmeldefreien Seite."""
+    from html import unescape
+
+    leute = [mitglied_anlegen(f"x{i}") for i in range(3)]
+    titel = "x' onload='alert(1)' data-x='"
+    antrag = in_abstimmung_bringen(
+        antrag_einbringen(leute[0], **{**ANTRAG, "titel": titel}, ordnung=ordnung), leute[1:]
+    )
+    stimme_abgeben(antrag, leute[1], "ja")
+    inhalt = client.get(reverse("uebersicht:index")).content.decode()
+    import xml.etree.ElementTree as ET
+
+    assert "onload='alert(1)'" not in inhalt and 'onload="alert(1)"' not in inhalt
+    balken = [s[: s.index("</svg>") + 6] for s in inhalt.split("<svg")[1:] if "aria-label='Ergebnis" in s]
+    assert balken, "der Ergebnisbalken fehlt auf der Seite"
+    for svg in balken:
+        wurzel = ET.fromstring("<svg" + svg)  # wohlgeformt — der Titel hat die Struktur nicht verändert
+        assert all("onload" not in e.attrib for e in wurzel.iter())
+        assert "alert(1)" in unescape(wurzel.get("aria-label"))  # der Titel steht drin — als Text

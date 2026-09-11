@@ -4,13 +4,16 @@ Auf Arbeitsplätzen ohne installiertes gettext laufen `makemessages` und `compil
 nicht. Dieses Skript ersetzt den zweiten Schritt vollständig und den ersten so weit, wie es
 für die Definition of Done nötig ist:
 
-    python tools/po_pruefen.py            # Katalog prüfen (leere, unsichere, doppelte Einträge)
+    python tools/po_pruefen.py            # Katalog prüfen (Syntax, leere, unsichere, doppelte Einträge)
     python tools/po_pruefen.py --mo       # locale/en/LC_MESSAGES/django.mo neu schreiben
 
 Der Katalog bleibt handgepflegt. Neue Texte trägt man in die .po ein und ruft `--mo` auf;
-der Test `test_uebersetzungen_vollstaendig` sichert, dass die Texte des App-Rahmens dort
-stehen. Sobald gettext verfügbar ist, gilt wieder der Weg über `makemessages -l en
---no-location` (der Katalog führt bewusst keine Quellzeilen-Kommentare).
+mehrzeilige Texte in .po-Syntax (`msgid ""` und je eine `"…\\n"`-Zeile), nie mit rohen
+Zeilenumbrüchen — die Prüfung weist solche Zeilen mit Nummer zurück und schreibt dann keine
+.mo. `tests/test_katalog.py` hält den Katalog in beide Richtungen gegen den Code (jeder
+markierte Text hat einen Eintrag, kein Eintrag ohne Fundstelle). Sobald gettext verfügbar
+ist, gilt wieder der Weg über `makemessages -l en --no-location` (der Katalog führt bewusst
+keine Quellzeilen-Kommentare).
 """
 
 from __future__ import annotations
@@ -55,17 +58,56 @@ class Eintrag:
         return f"{self.schluessel}\x00{self.msgid_plural}" if self.msgid_plural else self.schluessel
 
 
+class KatalogFehler(ValueError):
+    """Die .po ist syntaktisch ungültig — `fehler` nennt jede Zeile mit Grund.
+
+    msgfmt würde eine solche Datei zurückweisen; dieses Werkzeug muss es genauso tun, sonst
+    schreibt es eine .mo mit verstümmelten Schlüsseln, die zu keinem Vorlagentext passen
+    (Gesamtprüfung 0.45, Befund #59: 14 Absätze mit rohen Zeilenumbrüchen blieben so
+    unübersetzt, obwohl die Prüfung „0 ohne Übersetzung“ meldete)."""
+
+    def __init__(self, fehler: list[str]):
+        super().__init__("\n".join(fehler))
+        self.fehler = fehler
+
+
 def _text(roh: str) -> str:
-    """Inhalt eines .po-Strings; die üblichen Maskierungen werden aufgelöst."""
-    inhalt = roh.strip()[1:-1]
+    """Inhalt eines .po-Strings; die üblichen Maskierungen werden aufgelöst.
+
+    Erwartet einen vollständigen String `"…"`. Was nicht mit einem unmaskierten
+    Anführungszeichen endet, ist kein .po-String, sondern ein roher Zeilenumbruch im Text."""
+    inhalt = roh.strip()
+    if (
+        len(inhalt) < 2
+        or not inhalt.startswith('"')
+        or not inhalt.endswith('"')
+        or (inhalt.endswith('\\"') and not inhalt.endswith('\\\\"'))
+    ):
+        raise ValueError(f"kein gültiger .po-String: {inhalt[:60]!r}")
+    inhalt = inhalt[1:-1]
     return inhalt.replace('\\"', '"').replace("\\n", "\n").replace("\\t", "\t").replace("\\\\", "\\")
 
 
-def lesen() -> list[Eintrag]:
+def lesen(pfad: Path = PO) -> list[Eintrag]:
+    """Liest den Katalog; wirft `KatalogFehler`, sobald eine Zeile keine gültige .po-Syntax hat.
+
+    Jede nicht-leere, nicht-kommentierte Zeile ist entweder eine Schlüsselwortzeile
+    (msgctxt/msgid/msgid_plural/msgstr/msgstr[n]) mit String oder eine Fortsetzung `"…"`.
+    Alles andere — etwa die zweite Zeile eines von Hand mit echtem Zeilenumbruch geschriebenen
+    Absatzes — wird nicht stumm verworfen, sondern mit Zeilennummer gemeldet."""
     eintraege: list[Eintrag] = []
+    fehler: list[str] = []
     aktuell = Eintrag()
     modus: str | None = None
-    for zeile in PO.read_text(encoding="utf-8").splitlines():
+
+    def text(roh: str, nummer: int) -> str:
+        try:
+            return _text(roh)
+        except ValueError:
+            fehler.append(f"SYNTAX: Zeile {nummer}: String ohne schließendes Anführungszeichen — {roh.strip()[:70]!r}")
+            return ""
+
+    for nummer, zeile in enumerate(pfad.read_text(encoding="utf-8").splitlines(), 1):
         blank = zeile.strip()
         if not blank:
             if aktuell.msgid is not None:
@@ -74,18 +116,18 @@ def lesen() -> list[Eintrag]:
         elif blank.startswith("#"):
             aktuell.fuzzy = aktuell.fuzzy or blank.startswith("#,") and "fuzzy" in blank
         elif blank.startswith("msgctxt "):
-            modus, aktuell.kontext = "kontext", _text(blank[8:])
+            modus, aktuell.kontext = "kontext", text(blank[8:], nummer)
         elif blank.startswith("msgid_plural "):
-            modus, aktuell.msgid_plural = "plural", _text(blank[13:])
+            modus, aktuell.msgid_plural = "plural", text(blank[13:], nummer)
         elif blank.startswith("msgid "):
-            modus, aktuell.msgid = "id", _text(blank[6:])
+            modus, aktuell.msgid = "id", text(blank[6:], nummer)
         elif blank.startswith("msgstr["):
             modus = "form"
-            aktuell.formen.append(_text(blank.split("]", 1)[1]))
+            aktuell.formen.append(text(blank.split("]", 1)[1], nummer))
         elif blank.startswith("msgstr "):
-            modus, aktuell.msgstr = "str", _text(blank[7:])
+            modus, aktuell.msgstr = "str", text(blank[7:], nummer)
         elif blank.startswith('"'):
-            teil = _text(blank)
+            teil = text(blank, nummer)
             if modus == "id":
                 aktuell.msgid = (aktuell.msgid or "") + teil
             elif modus == "plural":
@@ -96,13 +138,25 @@ def lesen() -> list[Eintrag]:
                 aktuell.formen[-1] += teil
             elif modus == "kontext":
                 aktuell.kontext = (aktuell.kontext or "") + teil
+            else:
+                fehler.append(f"SYNTAX: Zeile {nummer}: Fortsetzung ohne msgid/msgstr davor")
+        else:
+            fehler.append(f"SYNTAX: Zeile {nummer}: weder Schlüsselwort noch String — {blank[:70]!r}")
     if aktuell.msgid is not None:
         eintraege.append(aktuell)
+    if fehler:
+        raise KatalogFehler(fehler)
     return eintraege
 
 
 def pruefen() -> int:
-    eintraege = lesen()
+    try:
+        eintraege = lesen()
+    except KatalogFehler as kaputt:
+        for zeile in kaputt.fehler:
+            print(zeile)
+        print(f"{len(kaputt.fehler)} Syntaxfehler — Katalog nicht lesbar, keine .mo geschrieben")
+        return 1
     inhalte = [e for e in eintraege if e.msgid]
     leer = [e.schluessel for e in inhalte if not e.uebersetzt]
     fuzzy = [e.schluessel for e in inhalte if e.fuzzy]

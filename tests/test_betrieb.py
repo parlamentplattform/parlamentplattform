@@ -128,6 +128,9 @@ def test_deploy_systemcheck_ohne_warnung():
         "DDOE_ALLOWED_HOSTS": "parlament.ddoe.at",
     }
     umgebung.pop("DDOE_STATIK", None)  # WhiteNoise ist auf dem Arbeitsplatz nicht Pflicht
+    # Die Bildschirmtests (tests/e2e/conftest.py) setzen DJANGO_ALLOW_ASYNC_UNSAFE für Playwright;
+    # der Deploy hat die Variable nicht — und der Check würde sie zu Recht als Fehler melden.
+    umgebung.pop("DJANGO_ALLOW_ASYNC_UNSAFE", None)
     lauf = subprocess.run(
         [sys.executable, "manage.py", "check", "--deploy", "--fail-level", "WARNING"],
         cwd=WURZEL,

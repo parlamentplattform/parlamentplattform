@@ -114,9 +114,18 @@ def texte_der_vorlage(quelle: str) -> set[str]:
     return schluessel
 
 
-def texte_der_python_datei(quelle: str) -> set[str]:
-    """Alle Konstanten, die durch eine gettext-Funktion laufen — per ast, nicht per Regex."""
-    schluessel: set[str] = set()
+#: Module, deren `_` eine No-op-Markierung ist (plattform_core bleibt Django-frei): Die Texte
+#: sind für den Katalog vorgemerkt, ihre Übersetzung ist Datenpflege und darf nachkommen —
+#: die Vorlagen übersetzen sie per `{% translate variable %}`, sobald ein Eintrag da ist (#90).
+NOOP_MODULE = {"plattform_core/rollen.py", "plattform_core/regelwerk.py"}
+
+
+def texte_der_python_datei(quelle: str, alles_vorgemerkt: bool = False) -> dict[str, bool]:
+    """Konstanten, die durch eine gettext-Funktion laufen — per ast, nicht per Regex.
+
+    Schlüssel → vorgemerkt? `gettext_noop` (und `_` in NOOP_MODULE) markiert nur: Der Text soll
+    im Katalog stehen, wird aber erst an anderer Stelle übersetzt — er ist kein Fehlbestand."""
+    schluessel: dict[str, bool] = {}
     try:
         baum = ast.parse(quelle)
     except SyntaxError:
@@ -131,19 +140,22 @@ def texte_der_python_datei(quelle: str) -> set[str]:
         args = [a.value for a in knoten.args if isinstance(a, ast.Constant) and isinstance(a.value, str)]
         if not args:
             continue
+        vorgemerkt = alles_vorgemerkt or name == "gettext_noop"
         if name.startswith("pgettext") and len(args) >= 2:
-            schluessel.add(f"{args[0]}{KONTEXT_TRENNER}{args[1]}")
+            k = f"{args[0]}{KONTEXT_TRENNER}{args[1]}"
         elif name.startswith("npgettext") and len(args) >= 3:
-            schluessel.add(f"{args[0]}{KONTEXT_TRENNER}{args[1]}{PLURAL_TRENNER}{args[2]}")
+            k = f"{args[0]}{KONTEXT_TRENNER}{args[1]}{PLURAL_TRENNER}{args[2]}"
         elif name.startswith("ngettext") and len(args) >= 2:
-            schluessel.add(PLURAL_TRENNER.join(args[:2]))
+            k = PLURAL_TRENNER.join(args[:2])
         else:
-            schluessel.add(args[0])
+            k = args[0]
+        schluessel[k] = schluessel.get(k, True) and vorgemerkt
     return schluessel
 
 
 def texte_im_code() -> dict[str, list[str]]:
-    """Schlüssel → Fundstellen, über alle Vorlagen und Python-Dateien der Anwendung."""
+    """Schlüssel → Fundstellen, über alle Vorlagen und Python-Dateien der Anwendung.
+    Nur vorgemerkte Fundstellen tragen das Präfix „vorgemerkt:“."""
     fundstellen: dict[str, list[str]] = {}
     for d in _dateien("*.html") + _dateien("*.txt"):
         if "templates" not in d.parts:
@@ -153,9 +165,14 @@ def texte_im_code() -> dict[str, list[str]]:
     for d in _dateien("*.py"):
         if d.name.startswith("test_") or "tests" in d.parts or "tools" in d.parts:
             continue
-        for s in texte_der_python_datei(d.read_text(encoding="utf-8")):
-            fundstellen.setdefault(s, []).append(str(d.relative_to(WURZEL)))
+        rel = d.relative_to(WURZEL).as_posix()
+        for s, vorgemerkt in texte_der_python_datei(d.read_text(encoding="utf-8"), rel in NOOP_MODULE).items():
+            fundstellen.setdefault(s, []).append(("vorgemerkt:" if vorgemerkt else "") + rel)
     return fundstellen
+
+
+def nur_vorgemerkt(orte: list[str]) -> bool:
+    return all(o.startswith("vorgemerkt:") for o in orte)
 
 
 def katalog() -> dict[str, str]:
@@ -216,11 +233,30 @@ def test_jeder_markierte_text_hat_einen_katalogeintrag():
     vorhanden = katalog()
     fehlend = sorted(
         (s, orte) for s, orte in texte_im_code().items()
-        if s not in vorhanden and s not in BEWUSST_OHNE_EINTRAG
+        if s not in vorhanden and s not in BEWUSST_OHNE_EINTRAG and not nur_vorgemerkt(orte)
     )
     assert not fehlend, "Markiert, aber ohne Katalogeintrag:\n  " + "\n  ".join(
         f"{s!r}  ← {', '.join(sorted(set(orte)))}" for s, orte in fehlend
     )
+
+
+def test_vorgemerkte_datentexte_sind_markiert():
+    """Befund #90: Rollenmatrix, Regelverzeichnis und Erstbestand sind deutsche Datentabellen;
+    ihre Texte müssen markiert sein (No-op-`_` bzw. gettext_noop), damit sie in den Katalog
+    finden können — und die Vorlagen übersetzen sie per `{% translate variable %}`."""
+    im_code = texte_im_code()
+    vorgemerkt = {s for s, orte in im_code.items() if any(o.startswith("vorgemerkt:") for o in orte)}
+    assert "Expertenrat — Gruppe 1 (Entwurf)" in vorgemerkt  # rollen.py
+    assert "Rollenmatrix „Wer darf was“" in vorgemerkt  # regelwerk.py
+    assert "Regelfassung" in vorgemerkt  # ERSTBESTAND (Einheit)
+    for vorlage, variablen in {
+        "verfahren/templates/verfahren/rollen.html": ("rolle.name", "f.titel", "rolle.wie_hinein", "f.stand.name_de"),
+        "parameter/templates/parameter/regeln.html": ("r.titel", "r.grund", "wirkung.name_de"),
+        "parameter/templates/parameter/liste.html": ("p.beschreibung", "p.einheit"),
+    }.items():
+        quelle = (WURZEL / vorlage).read_text(encoding="utf-8")
+        for v in variablen:
+            assert f"{{% translate {v} %}}" in quelle, f"{vorlage}: {v} wird nicht übersetzt"
 
 
 def test_kein_katalogeintrag_ohne_fundstelle():

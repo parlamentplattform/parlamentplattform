@@ -24,6 +24,17 @@ from __future__ import annotations
 import enum
 from dataclasses import dataclass
 
+
+def _(text: str) -> str:
+    """No-op-Markierung für den Übersetzungskatalog (Befund #90).
+
+    plattform_core bleibt Django-frei, also gibt es hier kein gettext. Die Markierung macht
+    die Texte für makemessages, po_pruefen und tests/test_katalog.py sichtbar; übersetzt wird
+    erst in der Vorlage — `{% translate rolle.name %}` schlägt den deutschen Text im Katalog
+    nach und fällt auf ihn zurück, solange keine Übersetzung eingetragen ist."""
+    return text
+
+
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
 VERSION = 2
@@ -43,11 +54,22 @@ class Wirkung(enum.StrEnum):
     @property
     def erklaerung(self) -> str:
         return {
-            "entscheidet": "Das Ergebnis bindet — es bestimmt, was im Verfahren geschieht.",
-            "reiht": "Bestimmt die Reihenfolge, in der etwas erscheint.",
-            "ordnet zu": "Teilt ein oder erkennt Ähnlichkeit — schlägt vor, entscheidet nicht.",
-            "rechnet": "Rechnet, ohne zu entscheiden.",
-            "stellt dar": "Bereitet auf, ohne auszuwählen.",
+            "entscheidet": _("Das Ergebnis bindet — es bestimmt, was im Verfahren geschieht."),
+            "reiht": _("Bestimmt die Reihenfolge, in der etwas erscheint."),
+            "ordnet zu": _("Teilt ein oder erkennt Ähnlichkeit — schlägt vor, entscheidet nicht."),
+            "rechnet": _("Rechnet, ohne zu entscheiden."),
+            "stellt dar": _("Bereitet auf, ohne auszuwählen."),
+        }[self.value]
+
+    @property
+    def name_de(self) -> str:
+        """Der Wert als Nutzertext — markiert, damit die Vorlage ihn übersetzen kann."""
+        return {
+            "entscheidet": _("entscheidet"),
+            "reiht": _("reiht"),
+            "ordnet zu": _("ordnet zu"),
+            "rechnet": _("rechnet"),
+            "stellt dar": _("stellt dar"),
         }[self.value]
 
     @property
@@ -148,152 +170,152 @@ def als_dict() -> list[dict]:
 REGELN: tuple[Regel, ...] = (
     Regel(
         modul="tally.py",
-        titel="Auszählung von Sachfragen",
+        titel=_("Auszählung von Sachfragen"),
         zweck=(
-            "Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der "
+            _("Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der "
             "Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann "
             "entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein "
-            "Rundungsfehler über einen Beschluss entscheiden kann."
+            "Rundungsfehler über einen Beschluss entscheiden kann.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 4 (mit § 3 Abs 1 lit b — eine Stimme je Mensch)",
         fassung=1,
         seit="2026-08-19",
         grund=(
-            "Sie steht seit dem Fundament der Plattform so da: Das Ergebnis einer Abstimmung soll "
+            _("Sie steht seit dem Fundament der Plattform so da: Das Ergebnis einer Abstimmung soll "
             "jede Person mit Papier und Bleistift nachrechnen können, und die Reihenfolge, in der die "
-            "Stimmen eingehen, darf am Ergebnis nichts ändern."
+            "Stimmen eingehen, darf am Ergebnis nichts ändern.")
         ),
         nachrechenbar=(
-            "Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: "
+            _("Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: "
             "Ja + Nein + Enthaltung durch die Zahl der Stimmberechtigten teilen — das muss mindestens "
             "die Mindestbeteiligung ergeben; dann genügt Ja > Nein (bei der Basis „abgegeben': Ja > "
             "die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 "
             "verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner "
             "Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen "
-            "Verfahrensordnung, nicht aus dem laufenden Parameterregister."
+            "Verfahrensordnung, nicht aus dem laufenden Parameterregister.")
         ),
     ),
     Regel(
         modul="tally.py",
-        titel="Auszählung der Zustimmungswahl bei Kandidaturen",
+        titel=_("Auszählung der Zustimmungswahl bei Kandidaturen"),
         zweck=(
-            "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; "
+            _("Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; "
             "die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der "
             "Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die "
-            "früher eingereichte Bewerbung vorn."
+            "früher eingereichte Bewerbung vorn.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
         fassung=1,
         seit="2026-09-01",
         grund=(
-            "Seit dem 1. September 2026 wählt das Parlament auch Personen: Mandats-Kandidaturen "
+            _("Seit dem 1. September 2026 wählt das Parlament auch Personen: Mandats-Kandidaturen "
             "laufen als Anträge, an denen man sich beteiligt, statt als getrennte Wahl. Dafür "
             "brauchte es eine Auszählung, die Zustimmungen zählt statt Ja und Nein — und eine offene "
-            "Regel für den Gleichstand, damit nicht der Zufall über die Listenreihung entscheidet."
+            "Regel für den Gleichstand, damit nicht der Zufall über die Listenreihung entscheidet.")
         ),
         nachrechenbar=(
-            "Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "
+            _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "
             "die Zustimmungen je Bewerbung zählen, absteigend ordnen, bei gleicher Zahl die früher "
             "eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen, die mindestens "
             "einer Bewerbung zugestimmt haben; sie muss die Mindestbeteiligung der eingefrorenen "
-            "Verfahrensordnung erreichen, sonst gilt niemand als gewählt."
+            "Verfahrensordnung erreichen, sonst gilt niemand als gewählt.")
         ),
     ),
     Regel(
         modul="eligibility.py",
-        titel="Stimmberechtigung und Anwartschaft",
+        titel=_("Stimmberechtigung und Anwartschaft"),
         zweck=(
-            "Entscheidet, ob ein Mitglied bei einer bestimmten Abstimmung mitstimmen darf. Maßstab "
+            _("Entscheidet, ob ein Mitglied bei einer bestimmten Abstimmung mitstimmen darf. Maßstab "
             "ist die ununterbrochene Mitgliedschaft am Tag des Abstimmungsbeginns: drei Monate bei "
             "Sachfragen, zwölf Monate bei Personenwahlen, Mandatsnominierungen, Satzungsänderungen "
             "und der Auflösung. Für die erste Organbestellung und die erste Verfahrensordnung "
-            "entfällt die Anwartschaft."
+            "entfällt die Anwartschaft.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 4 Abs 4 (Übergangsregel: § 4 Abs 4 lit d)",
         fassung=1,
         seit="2026-08-19",
         grund=(
-            "Sie steht seit dem Fundament so da. Die Monatsrechnung ist im Modul ausgeschrieben statt "
+            _("Sie steht seit dem Fundament so da. Die Monatsrechnung ist im Modul ausgeschrieben statt "
             "aus einer fremden Programmbibliothek geholt, damit die Frist eines Menschen nie davon "
-            "abhängt, welche Bibliothek gerade installiert ist."
+            "abhängt, welche Bibliothek gerade installiert ist.")
         ),
         nachrechenbar=(
-            "Beitrittsdatum nehmen, drei beziehungsweise zwölf Kalendermonate dazuzählen und mit dem "
+            _("Beitrittsdatum nehmen, drei beziehungsweise zwölf Kalendermonate dazuzählen und mit dem "
             "Tag des Abstimmungsbeginns vergleichen. Fällt der Zieltag auf einen Tag, den der "
             "Zielmonat nicht hat, gilt der letzte Tag dieses Monats — Beitritt am 30. November, "
-            "Sachfrage, Erfüllungstag 28. (im Schaltjahr 29.) Februar."
+            "Sachfrage, Erfüllungstag 28. (im Schaltjahr 29.) Februar.")
         ),
     ),
     Regel(
         modul="phases.py",
-        titel="Phasenautomat des Antragsverfahrens",
+        titel=_("Phasenautomat des Antragsverfahrens"),
         zweck=(
-            "Bestimmt, wann ein Antrag von einer Phase in die nächste wechselt: Unterstützung, "
+            _("Bestimmt, wann ein Antrag von einer Phase in die nächste wechselt: Unterstützung, "
             "Beratung, Abstimmung, dann angenommen oder abgelehnt — und Verfall, wenn die "
             "Unterstützungsschwelle in der Frist nicht erreicht wird. Ein Übergang geschieht "
             "ausschließlich durch Zeitablauf oder eine erreichte Schwelle, nie weil jemand ihn "
             "auslöst; die einzige Ausnahme ist die förmliche Zurückweisung durch den Integritätsrat, "
-            "die außerhalb dieses Automaten steht."
+            "die außerhalb dieses Automaten steht.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 3 (Ausnahme der Zurückweisung: § 5 Abs 2)",
         fassung=1,
         seit="2026-08-19",
         grund=(
-            "Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
+            _("Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
             "bekommt den Zeitpunkt übergeben, und ein Übergang gilt zum Fristzeitpunkt — nicht zu dem "
             "Moment, in dem ein Hintergrundprogramm zufällig lief. Ein verspäteter Server verschiebt "
             "dadurch keine Frist eines Menschen, und jeder frühere Zustand lässt sich exakt "
-            "wiederherstellen."
+            "wiederherstellen.")
         ),
         nachrechenbar=(
-            "Phasenbeginn plus die Frist aus der am Antrag eingefrorenen Verfahrensordnung ergibt das "
+            _("Phasenbeginn plus die Frist aus der am Antrag eingefrorenen Verfahrensordnung ergibt das "
             "Fristende; in der Unterstützungsphase kommt der Vergleich der Unterstützungszahl mit der "
             "Schwelle dazu. Beide Zahlen stehen auf der Antragsseite, die geltenden Fristen im "
-            "Eintrag „Eingefrorene Verfahrensordnung'."
+            "Eintrag „Eingefrorene Verfahrensordnung'.")
         ),
     ),
     Regel(
         modul="policy.py",
-        titel="Eingefrorene Verfahrensordnung",
+        titel=_("Eingefrorene Verfahrensordnung"),
         zweck=(
-            "Trägt die Verfahrensregeln eines Antrags: Unterstützungsschwelle, Fristen, "
+            _("Trägt die Verfahrensregeln eines Antrags: Unterstützungsschwelle, Fristen, "
             "Mindestbeteiligung und Mehrheitsbasis. Beim Einbringen wird die dann geltende Fassung "
             "als unveränderliche Kopie an den Antrag geheftet, damit eine spätere Änderung ein "
             "laufendes Verfahren nicht mehr erreicht. Jede Fassung, die die satzungsfesten "
             "Untergrenzen unterschreitet — Beratung mindestens 21 Tage, Abstimmung mindestens 7 Tage, "
-            "Beteiligung mindestens 5 Prozent —, wird zurückgewiesen."
+            "Beteiligung mindestens 5 Prozent —, wird zurückgewiesen.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4 und § 5 Abs 7",
         fassung=1,
         seit="2026-09-05",
         grund=(
-            "Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
+            _("Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
             "pflegen und daraus eine neue Fassung der Verfahrensordnung erzeugen. Erzeugen und In- "
             "Kraft-Setzen sind bewusst zwei Schritte, weil das eine eine Rechnung und das andere eine "
             "Entscheidung ist; und die Untergrenzen der Satzung bleiben im Programmtext statt im "
-            "Register, damit die Verwaltung sie über eine Stellgröße nicht aushebeln kann."
+            "Register, damit die Verwaltung sie über eine Stellgröße nicht aushebeln kann.")
         ),
         nachrechenbar=(
-            "Jeder Antrag führt seine eingefrorene Kopie im Export mit — dort steht Zahl für Zahl, "
+            _("Jeder Antrag führt seine eingefrorene Kopie im Export mit — dort steht Zahl für Zahl, "
             "wonach er entschieden wurde. In der Verwaltung stellt ein Abgleich das Register und die "
             "geltende Ordnung Feld für Feld nebeneinander; fehlt im Register ein Wert, verweigert die "
-            "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen."
+            "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen.")
         ),
         registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate",
     ),
     Regel(
         modul="gremienbeschluss.py",
-        titel="Auszählung interner Beschlüsse der Räte",
+        titel=_("Auszählung interner Beschlüsse der Räte"),
         zweck=(
-            "Zählt die internen Abstimmungen der Räte aus. Anwesend ist, wer abgestimmt hat; "
+            _("Zählt die internen Abstimmungen der Räte aus. Anwesend ist, wer abgestimmt hat; "
             "beschlussfähig ist ein Rat ab der aufgerundeten Hälfte seiner besetzten Rollen, "
             "entschieden wird mit einfacher Mehrheit der abgegebenen Stimmen. Ein Gleichstand ist "
-            "kein Beschluss, und ein Gremium ohne besetzte Rollen beschließt nichts."
+            "kein Beschluss, und ein Gremium ohne besetzte Rollen beschließt nichts.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung=(
@@ -302,434 +324,434 @@ REGELN: tuple[Regel, ...] = (
         fassung=1,
         seit="2026-09-05",
         grund=(
-            "Die Satzung sagt „bei Anwesenheit der Hälfte seiner Mitglieder'; für ein Gremium, das "
+            _("Die Satzung sagt „bei Anwesenheit der Hälfte seiner Mitglieder'; für ein Gremium, das "
             "sich nicht in einem Raum trifft, musste jemand entscheiden, was Anwesenheit heißt. Bis "
             "dahin entschied bei der Prüfung durch die zweite Gruppe des Expertenrats, wer zuerst auf "
             "einen Knopf drückte — eine einzelne Person, sofort und ohne Frist. Gedacht war diese "
-            "Gruppe als Redundanz und Korruptionsprüfung; eine Redundanz aus einer Person ist keine."
+            "Gruppe als Redundanz und Korruptionsprüfung; eine Redundanz aus einer Person ist keine.")
         ),
         nachrechenbar=(
-            "Jeder Beschluss steht öffentlich unter einer zitierfähigen Nummer (etwa „IR-2026-04') "
+            _("Jeder Beschluss steht öffentlich unter einer zitierfähigen Nummer (etwa „IR-2026-04') "
             "mit jeder einzelnen Stimme und jeder Begründung, ohne Anmeldung einsehbar. Nachzurechnen "
             "ist: die Zahl der abgegebenen Stimmen gegen die aufgerundete Hälfte der zum Zeitpunkt "
             "der Auszählung aktiven Rollen — bei fünf Rollen sind das drei —, dann die höchste "
-            "Stimmenzahl unter den Optionen; steht sie zweimal, gibt es kein Ergebnis."
+            "Stimmenzahl unter den Optionen; steht sie zweimal, gibt es kein Ergebnis.")
         ),
         registerschluessel="gremien-beschluss-tage · gremien-pruefung-tage (Fristen der Beschlüsse; die Auszählung selbst liest kein Register)",
     ),
     Regel(
         modul="hashchain.py",
-        titel="Audit-Kette des Protokolls",
+        titel=_("Audit-Kette des Protokolls"),
         zweck=(
-            "Versiegelt das Protokoll: Jeder Eintrag im Audit-Log trägt eine Prüfsumme über seinen "
+            _("Versiegelt das Protokoll: Jeder Eintrag im Audit-Log trägt eine Prüfsumme über seinen "
             "eigenen Inhalt und die Prüfsumme des Vorgängers. Wer nachträglich einen alten Eintrag "
             "ändert, verändert damit zwangsläufig alle folgenden Prüfsummen — die Änderung fällt auf. "
             "Über Menschen entscheidet dieses Modul nichts; es rechnet und meldet, wo eine Kette "
-            "nicht mehr stimmt."
+            "nicht mehr stimmt.")
         ),
         wirkung=Wirkung.RECHNET,
         satzung="§ 5 Abs 8 (mit § 3 Abs 1 lit c)",
         fassung=None,
         seit="2026-08-19",
         grund=(
-            "Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
+            _("Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
             "„Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand "
-            "nachprüfen würde (ADR-005)."
+            "nachprüfen würde (ADR-005).")
         ),
         nachrechenbar=(
-            "Die Prüfsumme ist SHA-256 über die Prüfsumme des Vorgängers und den Ereignisinhalt in "
+            _("Die Prüfsumme ist SHA-256 über die Prüfsumme des Vorgängers und den Ereignisinhalt in "
             "kanonischer Form: sortierte Schlüssel, keine Leerzeichen, UTF-8. Die erste Kette beginnt "
             "bei vierundsechzig Nullen. Die Prüffunktion nennt nicht nur, dass etwas nicht stimmt, "
-            "sondern den ersten Eintrag, dessen Prüfsumme nicht zu seinem Inhalt passt."
+            "sondern den ersten Eintrag, dessen Prüfsumme nicht zu seinem Inhalt passt.")
         ),
     ),
     Regel(
         modul="weicherfilter.py",
-        titel="WeicherFilter: die selbst eingestellte Reihung",
+        titel=_("WeicherFilter: die selbst eingestellte Reihung"),
         zweck=(
-            "Reiht die Einträge im Bereich für Anträge und Gesetzesvorschläge nach neun Reglern, die "
+            _("Reiht die Einträge im Bereich für Anträge und Gesetzesvorschläge nach neun Reglern, die "
             "das Mitglied selbst stellt: Punkte = Summe aus Reglerstellung mal Merkmal, jedes Merkmal "
             "zwischen 0 und 1. Ist kein Regler gesetzt, bleibt die neutrale Grundordnung nach Phase "
-            "und Frist erhalten; bei Punktgleichheit ebenso."
+            "und Frist erhalten; bei Punktgleichheit ebenso.")
         ),
         wirkung=Wirkung.REIHT,
         satzung="§ 2 Abs 6 letzter Satz · § 5 Abs 10 lit d",
         fassung=2,
         seit="2026-09-02",
         grund=(
-            "Aus dem einen richtungslosen Regler „gestimmt“ wurden zwei — wofür und wogegen ich "
+            _("Aus dem einen richtungslosen Regler „gestimmt“ wurden zwei — wofür und wogegen ich "
             "gestimmt habe —, „Nur noch kurz online“ misst seither die tatsächliche Phasendauer statt "
             "pauschal sechzig Tage, und jeder Antrag zeigt seinen Punktewert samt Aufschlüsselung. "
             "Weil jeden Regler das Mitglied für die eigene Ansicht selbst stellt und die Reihung ohne "
             "gesetzten Regler streng neutral bleibt, ist sie nach § 2 Abs 6 letzter Satz ausdrücklich "
             "keine Sortierung durch die Partei — offengelegt, versioniert und nachrechenbar ist sie "
-            "trotzdem."
+            "trotzdem.")
         ),
         nachrechenbar=(
-            "Jeder Antrag im Feed nennt seine Punkte und die Aufschlüsselung nach den gesetzten "
+            _("Jeder Antrag im Feed nennt seine Punkte und die Aufschlüsselung nach den gesetzten "
             "Reglern. Wer die neun Werte mit den Merkmalen multipliziert und addiert, erhält dieselbe "
-            "Zahl; unter /parameter/#weicherfilter steht die Regel Regler für Regler."
+            "Zahl; unter /parameter/#weicherfilter steht die Regel Regler für Regler.")
         ),
         registerschluessel="weicherfilter-regel",
     ),
     Regel(
         modul="vorschlagschat.py",
-        titel="Abstimmungs-Chat: Reihung nach Engagement und Auswertung",
+        titel=_("Abstimmungs-Chat: Reihung nach Engagement und Auswertung"),
         zweck=(
-            "Reiht die Beiträge zum Vorschlag des Expertenrats nach Beteiligung — Zustimmungen plus "
+            _("Reiht die Beiträge zum Vorschlag des Expertenrats nach Beteiligung — Zustimmungen plus "
             "Ablehnungen, die Richtung zählt nicht — und wertet nach Fristablauf aus: Der "
             "Systembeitrag „Passt alles“ muss an erster Stelle stehen und mehr als die Hälfte "
             "Zustimmung tragen, sonst geht der Vorschlag mit der Kritik zurück an den Expertenrat. "
-            "Bleibt jede Reaktion aus, gilt er als angenommen — Stille hemmt das Verfahren nie."
+            "Bleibt jede Reaktion aus, gilt er als angenommen — Stille hemmt das Verfahren nie.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 13 · § 5 Abs 12 · § 2 Abs 6",
         fassung=1,
         seit="2026-09-04",
         grund=(
-            "Erste Fassung: Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
+            _("Erste Fassung: Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
             "zurückgeben“ an. Seither wird diese Entscheidung offen als Gespräch geführt, und eine "
             "Kritik zählt nur als Änderungswunsch, wenn sie sich auf einen benannten Absatz des "
-            "Vorschlags bezieht."
+            "Vorschlags bezieht.")
         ),
         nachrechenbar=(
-            "Jeder Beitrag zeigt seine Zustimmungen und Ablehnungen. Beteiligung = beide Zahlen "
+            _("Jeder Beitrag zeigt seine Zustimmungen und Ablehnungen. Beteiligung = beide Zahlen "
             "addiert; bei Gleichstand entscheidet der höhere Zustimmungsanteil, dann der ältere "
             "Beitrag. Die Auswertung gibt Zahlen, Anteil und Schwelle mit aus, nicht nur ihr Ergebnis "
-            "— sie steht so im Archiv."
+            "— sie steht so im Archiv.")
         ),
         registerschluessel="vorschlag-chat-reihung",
     ),
     Regel(
         modul="faecher.py",
-        titel="Favoriten-Fächer: Anordnung der Lebensbereiche",
+        titel=_("Favoriten-Fächer: Anordnung der Lebensbereiche"),
         zweck=(
-            "Berechnet, welche Knoten des Lebensbereiche-Baums im Favoriten-Feld erscheinen und wo "
+            _("Berechnet, welche Knoten des Lebensbereiche-Baums im Favoriten-Feld erscheinen und wo "
             "sie stehen: fünf Ebenen um den angeklickten Anker, jede Ebene vollständig bis zwölf "
             "Knoten, darüber nur noch der entfaltete Ast mit höchstens drei Kindern und „+n“. Die "
             "Reihenfolge kommt aus dem Kategorienbaum selbst, nicht aus einer Bewertung von Anträgen "
-            "oder Menschen."
+            "oder Menschen.")
         ),
         wirkung=Wirkung.REIHT,
         satzung="§ 5 Abs 10 lit a · § 2 Abs 6",
         fassung=2,
         seit="2026-09-02",
         grund=(
-            "Beschriftungen überlappten und waren hart abgeschnitten („Bildungssy“, „Infrastruktu“). "
+            _("Beschriftungen überlappten und waren hart abgeschnitten („Bildungssy“, „Infrastruktu“). "
             "Die zweite Fassung zeigt immer fünf Ebenen, teilt jeder Pille eine Höchstbreite zu und "
-            "kürzt Namen nie unter sechs Zeichen; der volle Name bleibt als Titel lesbar."
+            "kürzt Namen nie unter sechs Zeichen; der volle Name bleibt als Titel lesbar.")
         ),
         nachrechenbar=(
-            "Die Regel ist reine Geometrie und hängt an keiner Datenbank: Jede Ebene verteilt ihre "
+            _("Die Regel ist reine Geometrie und hängt an keiner Datenbank: Jede Ebene verteilt ihre "
             "Knoten gleichmäßig über 92 Prozent der Feldbreite, jede Pille erhält die Breite b = "
             "r·Spanne/(n−1+r). Die Rechenprobe über alle 312 Knoten und alle Äste zeigt, dass sich "
-            "keine zwei sichtbaren Pillen überlappen."
+            "keine zwei sichtbaren Pillen überlappen.")
         ),
         registerschluessel="faecher-regel",
     ),
     Regel(
         modul="similarity.py",
-        titel="Ähnlichkeitshinweis beim Einbringen",
+        titel=_("Ähnlichkeitshinweis beim Einbringen"),
         zweck=(
-            "Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt bis zu drei ähnliche "
+            _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt bis zu drei ähnliche "
             "samt ihrer Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
             "Gerechnet wird ohne Modell: Beide Texte werden in Dreizeichenfolgen zerlegt, der Wert "
             "ist die Zahl der gemeinsamen geteilt durch die Zahl aller vorkommenden Folgen; ab 18 "
             "Prozent erscheint der Hinweis. Er schlägt vor und blockiert nie — „Trotzdem einbringen“ "
-            "bleibt immer gleichwertig möglich."
+            "bleibt immer gleichwertig möglich.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 5 Abs 10 lit d · § 2 Abs 6",
         fassung=1,
         seit="2026-08-19",
         grund=(
-            "Erste und bis heute einzige Fassung: Der Hinweis kam mit dem Einbringen im Browser, weil "
+            _("Erste und bis heute einzige Fassung: Der Hinweis kam mit dem Einbringen im Browser, weil "
             "jede Eingabe zuerst zu einer Übersicht bereits gestellter ähnlicher Anträge führen soll. "
             "Bewusst rein lexikalisch gerechnet, damit jedes Mitglied den angezeigten Wert selbst "
-            "überprüfen kann."
+            "überprüfen kann.")
         ),
         nachrechenbar=(
-            "Text kleinschreiben, Satzzeichen entfernen, in Dreizeichenfolgen zerlegen — der "
+            _("Text kleinschreiben, Satzzeichen entfernen, in Dreizeichenfolgen zerlegen — der "
             "angezeigte Wert ist die Größe der Schnittmenge geteilt durch die Größe der "
             "Vereinigungsmenge. Mit Papier und Bleistift nachvollziehbar: kein Modell, kein Zufall, "
-            "kein fremder Dienst."
+            "kein fremder Dienst.")
         ),
         registerschluessel="aehnlichkeit-schwelle-prozent",
     ),
     Regel(
         modul="klassifikation.py",
-        titel="Zuordnung der Anträge zu Lebensbereichen",
+        titel=_("Zuordnung der Anträge zu Lebensbereichen"),
         zweck=(
-            "Ordnet jeden neuen Antrag selbst in den Baum der Lebensbereiche ein, damit niemand "
+            _("Ordnet jeden neuen Antrag selbst in den Baum der Lebensbereiche ein, damit niemand "
             "Kategorien ankreuzen muss. Jeder Knoten bringt eine gepflegte Schlagwortliste mit; ein "
             "Schlagwort trifft, wenn ein Wort des Antragstexts damit beginnt. Punktestand je Knoten "
             "ist die Zahl der getroffenen Schlagworte, die tiefste passende Ebene gewinnt. Die "
-            "Zuordnung ist ein Vorschlag ohne Sperrwirkung und durch Menschen korrigierbar."
+            "Zuordnung ist ein Vorschlag ohne Sperrwirkung und durch Menschen korrigierbar.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 5 Abs 10 lit d · § 2 Abs 6",
         fassung=1,
         seit="2026-08-19",
         grund=(
-            "Erste Fassung: Mit dem Kategorienbaum fiel die Entscheidung, die Einordnung nicht dem "
+            _("Erste Fassung: Mit dem Kategorienbaum fiel die Entscheidung, die Einordnung nicht dem "
             "Einbringenden aufzubürden und sie trotzdem ohne künstliche Intelligenz zu treffen — über "
-            "gepflegte Schlagwortlisten, die jeder nachlesen kann."
+            "gepflegte Schlagwortlisten, die jeder nachlesen kann.")
         ),
         nachrechenbar=(
-            "Die Schlagwortlisten stehen offen in der Datei policies/kategorien-v2.yaml. Wer zählt, "
+            _("Die Schlagwortlisten stehen offen in der Datei policies/kategorien-v2.yaml. Wer zählt, "
             "wie viele davon im eigenen Antragstext vorkommen, erhält denselben Punktestand; jede "
-            "Zuordnung steht zusätzlich mit dem Vermerk „schlagworte-v1“ im Prüfprotokoll."
+            "Zuordnung steht zusätzlich mit dem Vermerk „schlagworte-v1“ im Prüfprotokoll.")
         ),
         registerschluessel="kategorien-regel",
     ),
     Regel(
         modul="rollen.py",
-        titel="Rollenmatrix „Wer darf was“",
+        titel=_("Rollenmatrix „Wer darf was“"),
         zweck=(
-            "Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was "
+            _("Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was "
             "die Software heute davon kann — Fähigkeit für Fähigkeit mit ● verfügbar, ◐ teilweise "
             "oder ○ geplant, bei Geplantem mit dem Bauschritt. Die Matrix wählt nichts aus, reiht "
-            "nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand."
+            "nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
         fassung=2,
         seit="2026-09-11",
         grund=(
-            "Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen "
+            _("Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen "
             "der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, Entwicklungsrat "
             "und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die "
             "erste: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer Rolle "
             "gibt und welche davon schon gebaut sind. Die Zählung unter /rollen/ ist immer die "
-            "aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet."
+            "aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet.")
         ),
         nachrechenbar=(
-            "Die Zahlen unter der Übersicht sind die ausgezählten Zeilen der Tabelle darüber; wer "
+            _("Die Zahlen unter der Übersicht sind die ausgezählten Zeilen der Tabelle darüber; wer "
             "nachzählt, kommt auf dieselbe Summe. Zwölf Tests halten die Matrix gegen die Rollen, die "
-            "es im Code wirklich gibt: kein ○ ohne Bauschritt, kein ◐ ohne Angabe, was fehlt."
+            "es im Code wirklich gibt: kein ○ ohne Bauschritt, kein ◐ ohne Angabe, was fehlt.")
         ),
     ),
     Regel(
         modul="schema.py",
-        titel="Sprachneutrales Parameter-Schema",
+        titel=_("Sprachneutrales Parameter-Schema"),
         zweck=(
-            "Übersetzt die deutschen Stellgrößen dieser Instanz in englische, überall gleich "
+            _("Übersetzt die deutschen Stellgrößen dieser Instanz in englische, überall gleich "
             "bedeutende Kennungen und baut daraus die offen abrufbaren Dateien /parameter.json und "
             "/kennzahlen.json. Umgekehrt prüft es den Export einer Partnerinstanz gegen dasselbe "
-            "Schema und beanstandet jedes personenbezogene Feld."
+            "Schema und beanstandet jedes personenbezogene Feld.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 12 Abs 5; § 2 Abs 6",
         fassung=None,
         seit="2026-09-05",
         grund=(
-            "Fünfundzwanzig weitere Stellgrößen bekamen eine englische Kennung, damit Partnerparteien "
-            "im Ausland ihre eigenen Werte mit unseren vergleichen können, ohne Deutsch zu lesen."
+            _("Fünfundzwanzig weitere Stellgrößen bekamen eine englische Kennung, damit Partnerparteien "
+            "im Ausland ihre eigenen Werte mit unseren vergleichen können, ohne Deutsch zu lesen.")
         ),
         nachrechenbar=(
-            "Die Kennungen stehen offen in /parameter.json und /kennzahlen.json, dort jeweils neben "
+            _("Die Kennungen stehen offen in /parameter.json und /kennzahlen.json, dort jeweils neben "
             "dem deutschen Schlüssel. (docs/SCHEMA.md steht noch auf Fassung 1.0 und führt erst zwölf "
-            "der Kennungen — die Datei ist die kürzere Quelle, die Schnittstelle die vollständige.)"
+            "der Kennungen — die Datei ist die kürzere Quelle, die Schnittstelle die vollständige.)")
         ),
     ),
     Regel(
         modul="wortdiff.py",
-        titel="Wortweiser Vergleich zweier Fassungen",
+        titel=_("Wortweiser Vergleich zweier Fassungen"),
         zweck=(
-            "Vergleicht den ursprünglichen Antrag mit dem Vorschlag des Expertenrats und markiert "
+            _("Vergleicht den ursprünglichen Antrag mit dem Vorschlag des Expertenrats und markiert "
             "Wort für Wort, was hinzugekommen und was weggefallen ist. Wer über den Vorschlag "
-            "abstimmt, sieht damit, was daran geändert wurde."
+            "abstimmt, sieht damit, was daran geändert wurde.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 5 Abs 12 und Abs 13; § 2 Abs 6",
         fassung=1,
         seit="2026-09-04",
         grund=(
-            "Der Vergleich arbeitet auf Wörtern statt auf Zeilen, damit ein umformulierter Satz die "
+            _("Der Vergleich arbeitet auf Wörtern statt auf Zeilen, damit ein umformulierter Satz die "
             "drei geänderten Wörter zeigt und nicht den ganzen Absatz als ausgetauscht — sonst wäre "
-            "nicht erkennbar, wie viel wirklich anders ist."
+            "nicht erkennbar, wie viel wirklich anders ist.")
         ),
         nachrechenbar=(
-            "Antrag und Vorschlag bleiben beide dauerhaft öffentlich einsehbar; wer die zwei Texte "
+            _("Antrag und Vorschlag bleiben beide dauerhaft öffentlich einsehbar; wer die zwei Texte "
             "selbst nebeneinanderlegt, muss auf dieselben geänderten Wörter kommen. Das Modul färbt "
-            "nur, es wählt nichts aus."
+            "nur, es wählt nichts aus.")
         ),
     ),
     Regel(
         modul="diagramme.py",
-        titel="Servergerenderte SVG-Diagramme",
+        titel=_("Servergerenderte SVG-Diagramme"),
         zweck=(
-            "Zeichnet die Bilder der öffentlichen Übersichtsseite — Verlaufslinie, Säulen je Zeitraum "
+            _("Zeichnet die Bilder der öffentlichen Übersichtsseite — Verlaufslinie, Säulen je Zeitraum "
             "und den 100-Prozent-Balken einer Abstimmung — direkt auf dem Server, ohne JavaScript und "
             "ohne fremde Diagramm-Bibliothek. Es rechnet nur die Achsenwerte und die Länge der Balken "
-            "aus den bereits veröffentlichten Zahlen."
+            "aus den bereits veröffentlichten Zahlen.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 5 Abs 3 lit e · § 2 Abs 6",
         fassung=None,
         seit="2026-08-26",
         grund=(
-            "Seit es die dunkle Ansicht gibt, bringt jedes Diagramm seinen eigenen hellen Grund mit: "
+            _("Seit es die dunkle Ansicht gibt, bringt jedes Diagramm seinen eigenen hellen Grund mit: "
             "Die auf Farbfehlsichtigkeit geprüfte Farbwahl gilt nur auf hellem Papier, und ein Bild, "
-            "das man nicht lesen kann, ist keine Auskunft."
+            "das man nicht lesen kann, ist keine Auskunft.")
         ),
         nachrechenbar=(
-            "Jede Zahl im Bild steht auf derselben Seite auch als Text (ADR-008), und die Tooltips "
+            _("Jede Zahl im Bild steht auf derselben Seite auch als Text (ADR-008), und die Tooltips "
             "nennen den Wert beim Überfahren. Farbe trägt nie allein die Information; wer die Zahlen "
-            "addiert, kommt auf dieselben Anteile."
+            "addiert, kommt auf dieselben Anteile.")
         ),
     ),
     Regel(
         modul="beitraege.py",
-        titel="Beitragsabgleich: Zahlung zu Mitglied",
+        titel=_("Beitragsabgleich: Zahlung zu Mitglied"),
         zweck=(
-            "Sucht in den Gutschriften des Vereinskontos die persönliche Beitragsreferenz (Form "
+            _("Sucht in den Gutschriften des Vereinskontos die persönliche Beitragsreferenz (Form "
             "DDOE-0042-A1B2C3) und ordnet den Eingang dem Mitglied zu, dem diese Referenz gehört. "
             "Eingänge ohne bekannte Referenz fallen still heraus; vom Absender bleibt nur ein "
-            "Ja/Nein, ob sein Name zum Mitglied passt — IBAN und Klarname verlassen den Abgleich nie."
+            "Ja/Nein, ob sein Name zum Mitglied passt — IBAN und Klarname verlassen den Abgleich nie.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 4 Abs 3; § 2 Abs 6; § 8",
         fassung=1,
         seit="2026-08-31",
         grund=(
-            "Damit ein Mitglied nach seiner Überweisung nicht darauf warten muss, dass jemand den "
+            _("Damit ein Mitglied nach seiner Überweisung nicht darauf warten muss, dass jemand den "
             "Eingang von Hand nachträgt: Der Beitrag wird selbst erkannt, eine Beitragspause endet, "
-            "und die Mitwirkung ist wieder frei."
+            "und die Mitwirkung ist wieder frei.")
         ),
         nachrechenbar=(
-            "Die eigene Referenz steht auf der Beitragsseite /beitrag/, dort auch die private Liste "
+            _("Die eigene Referenz steht auf der Beitragsseite /beitrag/, dort auch die private Liste "
             "der eigenen Eingänge mit Betrag und Buchungstag — zum Vergleich mit dem eigenen "
             "Kontoauszug. Gesucht wird nach einem offenen Muster: die Buchstaben DDOE, eine "
             "vierstellige Nummer, sechs Zeichen aus A–F und Ziffern; Trennstriche und Kleinschreibung "
-            "sind dabei gleichgültig."
+            "sind dabei gleichgültig.")
         ),
     ),
     Regel(
         modul="bankauszug.py",
-        titel="Kontoauszug-Leser (camt.053 und CSV)",
+        titel=_("Kontoauszug-Leser (camt.053 und CSV)"),
         zweck=(
-            "Liest eine aus dem Online-Banking heruntergeladene Umsatzdatei — camt.053-XML oder CSV — "
+            _("Liest eine aus dem Online-Banking heruntergeladene Umsatzdatei — camt.053-XML oder CSV — "
             "und übergibt die Gutschriften in derselben schlanken Form an den Beitragsabgleich wie "
             "ein Bankdienst. Ausgaben des Vereinskontos werden übergangen, die Datei selbst nie "
-            "gespeichert."
+            "gespeichert.")
         ),
         wirkung=Wirkung.RECHNET,
         satzung="§ 4 Abs 3; § 2 Abs 6",
         fassung=None,
         seit="2026-08-31",
         grund=(
-            "Weil kein Kontoinformationsdienst verfügbar war, sollte der Beitragsabgleich trotzdem "
+            _("Weil kein Kontoinformationsdienst verfügbar war, sollte der Beitragsabgleich trotzdem "
             "sofort funktionieren: Wer die Umsatzliste aus dem Online-Banking hochlädt, bekommt "
             "dieselbe Zuordnung, dieselbe Freischaltung und dieselben Prüfhinweise wie über die "
-            "Bankschnittstelle."
+            "Bankschnittstelle.")
         ),
         nachrechenbar=(
-            "Dieselbe Datei zweimal eingelesen ergibt dieselben Umsätze. Wo die Bank keine Referenz "
+            _("Dieselbe Datei zweimal eingelesen ergibt dieselben Umsätze. Wo die Bank keine Referenz "
             "liefert, bildet sich die Kennung als 'csv-' gefolgt von den ersten 32 Zeichen der "
             "SHA-256-Prüfsumme über Buchungstag, Betrag und Verwendungszweck, verbunden mit je einem "
-            "senkrechten Strich — mit jedem Prüfsummenwerkzeug nachrechenbar."
+            "senkrechten Strich — mit jedem Prüfsummenwerkzeug nachrechenbar.")
         ),
     ),
     Regel(
         modul="kurztext.py",
-        titel="Leser der Partner-Kurzfassungen",
+        titel=_("Leser der Partner-Kurzfassungen"),
         zweck=(
-            "Liest die fremdsprachigen Kurzfassungen der Einladung an Partnerparteien aus dem "
+            _("Liest die fremdsprachigen Kurzfassungen der Einladung an Partnerparteien aus dem "
             "Repository und zerlegt sie in Überschrift, Absätze und den kursiven Schlusssatz. Das "
             "Arbeitsmaterial hinter dem waagrechten Strich — Glossar und offene Punkte für "
-            "Muttersprachler — bleibt draußen."
+            "Muttersprachler — bleibt draußen.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 12 Abs 1 · § 12 Abs 2",
         fassung=1,
         seit="2026-09-04",
         grund=(
-            "Damit die Einladung in Französisch, Spanisch, Italienisch und Japanisch als eigene Seite "
+            _("Damit die Einladung in Französisch, Spanisch, Italienisch und Japanisch als eigene Seite "
             "erscheinen kann, ohne dass die internen Notizen aus derselben Datei versehentlich mit "
-            "auf die Seite geraten."
+            "auf die Seite geraten.")
         ),
         nachrechenbar=(
-            "Die Quelldateien liegen offen unter docs/partner/kurz/; wer Seite und Datei "
+            _("Die Quelldateien liegen offen unter docs/partner/kurz/; wer Seite und Datei "
             "nebeneinanderlegt, sieht denselben Text. Was der Leser nicht kennt — etwa Tabellen oder "
-            "Listen —, erscheint unverändert als Absatz: Es verschwindet nichts unbemerkt."
+            "Listen —, erscheint unverändert als Absatz: Es verschwindet nichts unbemerkt.")
         ),
     ),
     Regel(
         modul="aussetzung.py",
-        titel="Aussetzung: Sieben-Tage-Frist und Hemmung",
+        titel=_("Aussetzung: Sieben-Tage-Frist und Hemmung"),
         zweck=(
-            "Rechnet, wie lange eine Aussetzung nach § 6 Abs 3 lit d wirkt und was sie mit den "
+            _("Rechnet, wie lange eine Aussetzung nach § 6 Abs 3 lit d wirkt und was sie mit den "
             "Fristen des Antrags macht. Sie endet von selbst, wenn binnen sieben Tagen kein Antrag "
             "an das Parteischiedsgericht gestellt wird; solange sie läuft, ruht das Verfahren, und "
-            "die verlorene Zeit wird dem Antrag gutgeschrieben."
+            "die verlorene Zeit wird dem Antrag gutgeschrieben.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 6 Abs 3 lit d · § 2 Abs 6",
         fassung=1,
         seit="2026-09-08",
         grund=(
-            "Erste Fassung. Die sieben Tage stehen als Konstante im Code und nicht im Register: Wer "
+            _("Erste Fassung. Die sieben Tage stehen als Konstante im Code und nicht im Register: Wer "
             "sie dort verlängern könnte, könnte eine Abstimmung beliebig lange anhalten, ohne je "
             "ein Gericht anzurufen. Und die Hemmung wird gerechnet statt gespeichert — eine Summe "
             "am Antrag bekäme jede Folgephase erneut geschenkt, weil der Phasenbeginn bei jedem "
-            "Wechsel neu geschrieben wird."
+            "Wechsel neu geschrieben wird.")
         ),
         nachrechenbar=(
-            "Beginn der Aussetzung plus sieben Tage ergibt die Frist ans Schiedsgericht; beides "
+            _("Beginn der Aussetzung plus sieben Tage ergibt die Frist ans Schiedsgericht; beides "
             "steht am Beschluss. Die Hemmung ist die Summe der Zeiträume, die zwischen Phasenbeginn "
             "und jetzt liegen — überlappende zählen nur einmal, sonst hemmten zwei gleichzeitige "
-            "Aussetzungen doppelt."
+            "Aussetzungen doppelt.")
         ),
     ),
     Regel(
         modul="parametertest.py",
-        titel="Gegenüberstellung bei Parametertests",
+        titel=_("Gegenüberstellung bei Parametertests"),
         zweck=(
-            "Stellt die Messgröße eines befristeten Parametertests vorher und während des Tests "
+            _("Stellt die Messgröße eines befristeten Parametertests vorher und während des Tests "
             "gegenüber — Differenz und Anteil — und sagt, ab wann ein Test läuft und wann er um "
             "ist. Sie liefert Zahlen, kein Urteil: Ob ein Wert eingeführt wird, beschließt der "
-            "Koordinationsrat mit Namen und Begründung."
+            "Koordinationsrat mit Namen und Begründung.")
         ),
         wirkung=Wirkung.RECHNET,
         satzung="§ 6 Abs 11 lit c · § 6 Abs 11 lit d",
         fassung=1,
         seit="2026-09-09",
         grund=(
-            "Erste Fassung mit dem Parameterverfahren. Die Messgrößen sind die Kennzahlen, die die "
+            _("Erste Fassung mit dem Parameterverfahren. Die Messgrößen sind die Kennzahlen, die die "
             "Plattform ohnehin unter /kennzahlen.json veröffentlicht — eine zweite, unveröffentlichte "
-            "Zählung nur für Tests wäre nicht nachrechenbar gewesen."
+            "Zählung nur für Tests wäre nicht nachrechenbar gewesen.")
         ),
         nachrechenbar=(
-            "Vorher- und Nachher-Schnappschuss stehen am Test; Differenz = nachher − vorher, "
-            "Anteil = Differenz ÷ |vorher| × 100."
+            _("Vorher- und Nachher-Schnappschuss stehen am Test; Differenz = nachher − vorher, "
+            "Anteil = Differenz ÷ |vorher| × 100.")
         ),
     ),
     Regel(
         modul="losziehung.py",
-        titel="Auslosung des Expertenrats aus der Fachliste",
+        titel=_("Auslosung des Expertenrats aus der Fachliste"),
         zweck=(
-            "Zieht für jeden Antrag die Fachleute aus der öffentlich geführten Liste: Jede "
+            _("Zieht für jeden Antrag die Fachleute aus der öffentlich geführten Liste: Jede "
             "Kandidatin bekommt einen Loswert aus dem Anker und ihrem Schlüssel, die kleinsten "
             "Werte kommen zuerst in Gruppe 1, dann in Gruppe 2. Beide Gruppen sind dadurch "
             "getrennt, ohne dass jemand es prüfen müsste. Kein Gewicht, keine Reihung nach "
-            "Verdienst — die Satzung will das Los, nicht eine Auswahl."
+            "Verdienst — die Satzung will das Los, nicht eine Auswahl.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 6 Abs 7 · § 6 Abs 8 · § 2 Abs 6",
         fassung=1,
         seit="2026-09-08",
         grund=(
-            "Erste Fassung. Der Zufall kommt aus dem Kopf der Audit-Kette im Augenblick der "
+            _("Erste Fassung. Der Zufall kommt aus dem Kopf der Audit-Kette im Augenblick der "
             "Ziehung: Er steht dann fest und ist vorher von niemandem auszurechnen. Der früheste "
             "Eintrag eines Antrags wäre der bequemere Anker gewesen und der falsche — er entsteht "
-            "beim Einbringen, also zwei Monate vorher, und wäre die ganze Zeit bekannt."
+            "beim Einbringen, also zwei Monate vorher, und wäre die ganze Zeit bekannt.")
         ),
         nachrechenbar=(
-            "Anker und Lostopf stehen mit dem Ergebnis. Der Loswert einer Person ist die "
+            _("Anker und Lostopf stehen mit dem Ergebnis. Der Loswert einer Person ist die "
             "SHA-256-Prüfsumme über Anker, ein senkrechtes Strichzeichen und ihren Schlüssel; "
             "aufsteigend geordnet ergibt sich daraus die Besetzung. Mit jedem "
-            "Prüfsummenwerkzeug in wenigen Minuten nachzurechnen."
+            "Prüfsummenwerkzeug in wenigen Minuten nachzurechnen.")
         ),
     ),
 )

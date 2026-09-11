@@ -16,6 +16,7 @@ from django.conf import settings
 from django.db import DatabaseError, models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_noop
 
 
 class Gruppe(models.TextChoices):
@@ -188,331 +189,331 @@ ERSTBESTAND = [
     {
         "schluessel": "aehnlichkeit-schwelle-prozent",
         "wert": "18",
-        "einheit": "Prozent",
+        "einheit": gettext_noop("Prozent"),
         "gruppe": "verfahren",
-        "beschreibung": "Ab welcher Übereinstimmung die Plattform beim Einbringen auf einen bestehenden "
+        "beschreibung": gettext_noop("Ab welcher Übereinstimmung die Plattform beim Einbringen auf einen bestehenden "
         "Antrag hinweist. Ein hoher Wert lässt fast alles durch, ein niedriger lenkt Menschen häufig zu "
         "fremden Anträgen — beides verschiebt, wo sich Unterstützung sammelt. Der Hinweis schlägt vor; "
-        "einbringen kann man immer.",
+        "einbringen kann man immer."),
         "quelle": "§ 5 Abs 10 lit d · Anweisung des Gründers: „zu prüfen ob ein anderer antrag mit "
         "ähnlichem inhalt bereits eingegangen ist“",
     },
     {
         "schluessel": "aehnlichkeit-treffer",
         "wert": "3",
-        "einheit": "Anträge",
+        "einheit": gettext_noop("Anträge"),
         "gruppe": "verfahren",
-        "beschreibung": "Wie viele ähnliche Anträge beim Einbringen höchstens gezeigt werden.",
+        "beschreibung": gettext_noop("Wie viele ähnliche Anträge beim Einbringen höchstens gezeigt werden."),
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "kategorien-je-antrag",
         "wert": "3",
-        "einheit": "Lebensbereiche",
+        "einheit": gettext_noop("Lebensbereiche"),
         "gruppe": "verfahren",
-        "beschreibung": "Wie vielen Lebensbereichen ein Antrag automatisch zugeordnet wird. Die "
-        "Zuordnung entscheidet mit, in welchem Ast des Fächers er auftaucht und wen sein Abo erreicht.",
+        "beschreibung": gettext_noop("Wie vielen Lebensbereichen ein Antrag automatisch zugeordnet wird. Die "
+        "Zuordnung entscheidet mit, in welchem Ast des Fächers er auftaucht und wen sein Abo erreicht."),
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "kategorien-regel",
         "wert": "1",
-        "einheit": "Regelfassung",
+        "einheit": gettext_noop("Regelfassung"),
         "gruppe": "verfahren",
-        "beschreibung": "Fassung der Zuordnungsregel für Lebensbereiche (schlagworte-v1): Zuordnung "
-        "über gepflegte Schlagwortlisten, keine KI. Offengelegt und nachrechenbar (§ 2 Abs 6).",
+        "beschreibung": gettext_noop("Fassung der Zuordnungsregel für Lebensbereiche (schlagworte-v1): Zuordnung "
+        "über gepflegte Schlagwortlisten, keine KI. Offengelegt und nachrechenbar (§ 2 Abs 6)."),
         "quelle": "§ 2 Abs 6",
     },
     {
         "schluessel": "chat-zeichen-hoechstzahl",
         "wert": "4000",
-        "einheit": "Zeichen",
+        "einheit": gettext_noop("Zeichen"),
         "gruppe": "schutz",
-        "beschreibung": "Wie lang ein Beitrag in der Beratung sein darf. Wer die Zahl senkt, zwingt zur "
-        "Kürze; wer sie hebt, lässt Wände aus Text zu.",
+        "beschreibung": gettext_noop("Wie lang ein Beitrag in der Beratung sein darf. Wer die Zahl senkt, zwingt zur "
+        "Kürze; wer sie hebt, lässt Wände aus Text zu."),
         "quelle": "§ 5 Abs 3 lit c",
     },
     {
         "schluessel": "chat-bearbeitungsfenster-minuten",
         "wert": "5",
-        "einheit": "Minuten",
+        "einheit": gettext_noop("Minuten"),
         "gruppe": "schutz",
-        "beschreibung": "Wie lange ein eigener Beitrag noch geändert werden darf. Danach steht er — "
-        "eine Abwägung zwischen dem Berichtigen von Tippfehlern und der Verlässlichkeit des Gesagten.",
+        "beschreibung": gettext_noop("Wie lange ein eigener Beitrag noch geändert werden darf. Danach steht er — "
+        "eine Abwägung zwischen dem Berichtigen von Tippfehlern und der Verlässlichkeit des Gesagten."),
         "quelle": "§ 5 Abs 3 lit e",
     },
     {
         "schluessel": "kritik-mindestzeichen",
         "wert": "80",
-        "einheit": "Zeichen",
+        "einheit": gettext_noop("Zeichen"),
         "gruppe": "gremien",
-        "beschreibung": "Wie lang eine Kritik am Vorschlag des Expertenrats mindestens sein muss, damit "
+        "beschreibung": gettext_noop("Wie lang eine Kritik am Vorschlag des Expertenrats mindestens sein muss, damit "
         "sie als Änderungswunsch zählt. Zu hoch schließt Knappe aus, zu niedrig überschwemmt den "
-        "Expertenrat.",
+        "Expertenrat."),
         "quelle": "§ 5 Abs 12 · Anweisung des Gründers: „muss konkrete Kritik beinhalten“",
     },
     {
         "schluessel": "weicherfilter-regel",
         "wert": "2",
-        "einheit": "Regelfassung",
+        "einheit": gettext_noop("Regelfassung"),
         "gruppe": "weicherfilter",
-        "beschreibung": "Fassung der Reihungsregel des WeicherFilters (v2): neun Regler, Punkte aus "
-        "Regler mal Merkmal, Favoriten-zuerst als sichtbarer Schalter. Voreinstellung neutral.",
+        "beschreibung": gettext_noop("Fassung der Reihungsregel des WeicherFilters (v2): neun Regler, Punkte aus "
+        "Regler mal Merkmal, Favoriten-zuerst als sichtbarer Schalter. Voreinstellung neutral."),
         "quelle": "§ 2 Abs 6 · § 5 Abs 10 lit d",
     },
     {
         "schluessel": "weicherfilter-profile-hoechstzahl",
         "wert": "5",
-        "einheit": "Profile",
+        "einheit": gettext_noop("Profile"),
         "gruppe": "weicherfilter",
-        "beschreibung": "Wie viele eigene Filterprofile ein Mitglied speichern kann.",
+        "beschreibung": gettext_noop("Wie viele eigene Filterprofile ein Mitglied speichern kann."),
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "faecher-regel",
         "wert": "2",
-        "einheit": "Regelfassung",
+        "einheit": gettext_noop("Regelfassung"),
         "gruppe": "faecher",
-        "beschreibung": "Fassung des Layout-Algorithmus für den Lebensbereiche-Fächer (v2): "
-        "überlappungsfreie Anordnung über alle Anker, Auffächern ab Ebene 5.",
+        "beschreibung": gettext_noop("Fassung des Layout-Algorithmus für den Lebensbereiche-Fächer (v2): "
+        "überlappungsfreie Anordnung über alle Anker, Auffächern ab Ebene 5."),
         "quelle": "§ 2 Abs 6",
     },
     {
         "schluessel": "faecher-kinder-hoechstzahl",
         "wert": "3",
-        "einheit": "Äste",
+        "einheit": gettext_noop("Äste"),
         "gruppe": "faecher",
-        "beschreibung": "Wie viele Unteräste ein Ast im Fächer zeigt, bevor er aufgefächert werden muss.",
+        "beschreibung": gettext_noop("Wie viele Unteräste ein Ast im Fächer zeigt, bevor er aufgefächert werden muss."),
         "quelle": "§ 5 Abs 10 lit a",
     },
     {
         "schluessel": "kacheln-hervorgehoben",
         "wert": "3",
-        "einheit": "Kacheln",
+        "einheit": gettext_noop("Kacheln"),
         "gruppe": "kacheln",
-        "beschreibung": "Wie viele hervorgehobene Abstimmungen im Feld „Wichtige Abstimmungen“ stehen. "
-        "Wer hervorhebt, entscheidet der Integritätsrat — wie viele Platz haben, dieser Wert.",
+        "beschreibung": gettext_noop("Wie viele hervorgehobene Abstimmungen im Feld „Wichtige Abstimmungen“ stehen. "
+        "Wer hervorhebt, entscheidet der Integritätsrat — wie viele Platz haben, dieser Wert."),
         "quelle": "§ 5 Abs 6",
     },
     {
         "schluessel": "kacheln-abgeschlossen",
         "wert": "20",
-        "einheit": "Einträge",
+        "einheit": gettext_noop("Einträge"),
         "gruppe": "kacheln",
-        "beschreibung": "Wie viele abgeschlossene Verfahren im Feed erscheinen, bevor abgeschnitten wird.",
+        "beschreibung": gettext_noop("Wie viele abgeschlossene Verfahren im Feed erscheinen, bevor abgeschnitten wird."),
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "suche-treffer-hoechstzahl",
         "wert": "24",
-        "einheit": "Treffer",
+        "einheit": gettext_noop("Treffer"),
         "gruppe": "faecher",
-        "beschreibung": "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt.",
+        "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."),
         "quelle": "§ 5 Abs 10 lit a",
     },
     {
         "schluessel": "gespraeche-liste-hoechstzahl",
         "wert": "30",
-        "einheit": "Gespräche",
+        "einheit": gettext_noop("Gespräche"),
         "gruppe": "kacheln",
-        "beschreibung": "Wie viele Gespräche das Panel „Meine Gespräche“ auf einmal zeigt. Der Zähler "
-        "am Griff zählt unabhängig davon alle.",
+        "beschreibung": gettext_noop("Wie viele Gespräche das Panel „Meine Gespräche“ auf einmal zeigt. Der Zähler "
+        "am Griff zählt unabhängig davon alle."),
         "quelle": "§ 5 Abs 3 lit c",
     },
     {
         "schluessel": "archiv-audit-anzeige",
         "wert": "60",
-        "einheit": "Ereignisse",
+        "einheit": gettext_noop("Ereignisse"),
         "gruppe": "kacheln",
-        "beschreibung": "Wie viele Audit-Ereignisse die Zeitleiste im Archiv zeigt. Der Export enthält "
-        "immer alle — die Kürzung betrifft nur die Anzeige und wird dort benannt.",
+        "beschreibung": gettext_noop("Wie viele Audit-Ereignisse die Zeitleiste im Archiv zeigt. Der Export enthält "
+        "immer alle — die Kürzung betrifft nur die Anzeige und wird dort benannt."),
         "quelle": "§ 5 Abs 3 lit e · § 5 Abs 8",
     },
     {
         "schluessel": "ki-antwort-hoechsttokens",
         "wert": "900",
-        "einheit": "Tokens",
+        "einheit": gettext_noop("Tokens"),
         "gruppe": "ki",
-        "beschreibung": "Wie lang die Antwort eines Modell-Laufs höchstens sein darf. Begrenzt Kosten "
-        "und hält Einschätzungen knapp.",
+        "beschreibung": gettext_noop("Wie lang die Antwort eines Modell-Laufs höchstens sein darf. Begrenzt Kosten "
+        "und hält Einschätzungen knapp."),
         "quelle": "§ 6 Abs 11 lit b",
     },
     {
         "schluessel": "anstoss-mindestabstand-sekunden",
         "wert": "60",
-        "einheit": "Sekunden",
+        "einheit": gettext_noop("Sekunden"),
         "gruppe": "schutz",
-        "beschreibung": "Wartezeit zwischen zwei Anstößen derselben Person — hält die Rückmeldung offen "
-        "und den Kanal frei von Fluten.",
+        "beschreibung": gettext_noop("Wartezeit zwischen zwei Anstößen derselben Person — hält die Rückmeldung offen "
+        "und den Kanal frei von Fluten."),
         "quelle": "§ 5 Abs 10 lit b",
     },
     {
         "schluessel": "anstoss-tagesgrenze",
         "wert": "20",
-        "einheit": "Anstöße",
+        "einheit": gettext_noop("Anstöße"),
         "gruppe": "schutz",
-        "beschreibung": "Wie viele Anstöße eine Person am Tag senden kann.",
+        "beschreibung": gettext_noop("Wie viele Anstöße eine Person am Tag senden kann."),
         "quelle": "§ 5 Abs 10 lit b",
     },
     {
         "schluessel": "verfahren-unterstuetzung-schwelle",
         "wert": "3",
-        "einheit": "Unterstützungen",
+        "einheit": gettext_noop("Unterstützungen"),
         "gruppe": "verfahren",
-        "beschreibung": "Wie viele Unterstützungen ein Antrag braucht, um in die Beratung zu kommen. "
-        "Gilt für neue Anträge; laufende behalten ihre eingefrorene Fassung.",
+        "beschreibung": gettext_noop("Wie viele Unterstützungen ein Antrag braucht, um in die Beratung zu kommen. "
+        "Gilt für neue Anträge; laufende behalten ihre eingefrorene Fassung."),
         "quelle": "§ 5 Abs 3 lit b",
     },
     {
         "schluessel": "verfahren-unterstuetzung-tage",
         "wert": "60",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "verfahren",
-        "beschreibung": "Frist, in der ein Antrag die Unterstützungsschwelle erreichen muss. "
-        "Danach verfällt er und kann nach der Sperrfrist neu eingebracht werden.",
+        "beschreibung": gettext_noop("Frist, in der ein Antrag die Unterstützungsschwelle erreichen muss. "
+        "Danach verfällt er und kann nach der Sperrfrist neu eingebracht werden."),
         "quelle": "§ 5 Abs 3 lit b · Anweisung des Gründers: „Fristen für Unterstützungsanträge auf 2 Monate“",
     },
     {
         "schluessel": "expertenrat-erstvorschlag-tage",
         "wert": "21",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Zeit des Expertenrats für den ersten Vorschlag, gerechnet ab Beratungsbeginn. "
-        "Zugleich die Mindestdauer der Beratung — kürzer darf sie nach der Satzung nicht sein.",
+        "beschreibung": gettext_noop("Zeit des Expertenrats für den ersten Vorschlag, gerechnet ab Beratungsbeginn. "
+        "Zugleich die Mindestdauer der Beratung — kürzer darf sie nach der Satzung nicht sein."),
         "quelle": "§ 5 Abs 3 lit c · Anweisung des Gründers: „hat 3 Wochen zeit um einen ersten Vorschlag auszuarbeiten“",
     },
     {
         "schluessel": "verfahren-abstimmung-tage",
         "wert": "28",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "verfahren",
-        "beschreibung": "Dauer der Endabstimmung. Die Satzung verlangt mindestens sieben Tage; "
-        "vier Wochen geben auch jenen Zeit, die nicht täglich hereinschauen.",
+        "beschreibung": gettext_noop("Dauer der Endabstimmung. Die Satzung verlangt mindestens sieben Tage; "
+        "vier Wochen geben auch jenen Zeit, die nicht täglich hereinschauen."),
         "quelle": "§ 5 Abs 3 lit d · Anweisung des Gründers: „hat die gesamte Bevölkerung dann 4 Wochen Zeit“",
     },
     {
         "schluessel": "verfahren-mindestbeteiligung-prozent",
         "wert": "5",
-        "einheit": "Prozent",
+        "einheit": gettext_noop("Prozent"),
         "gruppe": "verfahren",
-        "beschreibung": "Anteil der Stimmberechtigten, der sich beteiligen muss, damit ein Ergebnis "
-        "zustande kommt. Die Satzung setzt fünf Prozent als Untergrenze — darunter geht es nicht.",
+        "beschreibung": gettext_noop("Anteil der Stimmberechtigten, der sich beteiligen muss, damit ein Ergebnis "
+        "zustande kommt. Die Satzung setzt fünf Prozent als Untergrenze — darunter geht es nicht."),
         "quelle": "§ 5 Abs 4",
     },
     {
         "schluessel": "verfahren-wiedereinbringung-monate",
         "wert": "6",
-        "einheit": "Monate",
+        "einheit": gettext_noop("Monate"),
         "gruppe": "verfahren",
-        "beschreibung": "Sperrfrist, bevor ein abgelehnter oder verfallener Antrag im Wortlaut "
-        "erneut eingebracht werden kann.",
+        "beschreibung": gettext_noop("Sperrfrist, bevor ein abgelehnter oder verfallener Antrag im Wortlaut "
+        "erneut eingebracht werden kann."),
         "quelle": "§ 5 Abs 3 lit b",
     },
     {
         "schluessel": "gremien-review-tage",
         "wert": "14",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Frist der Unterstützer in der Entwurfsschleife: Vorschlag annehmen oder mit "
-        "konkretem Wunsch zurückgeben. Nach Ablauf wertet die Frist aus — Untätigkeit hemmt nie.",
+        "beschreibung": gettext_noop("Frist der Unterstützer in der Entwurfsschleife: Vorschlag annehmen oder mit "
+        "konkretem Wunsch zurückgeben. Nach Ablauf wertet die Frist aus — Untätigkeit hemmt nie."),
         "quelle": "§ 5 Abs 12",
     },
     {
         "schluessel": "gremien-ueberarbeitung-tage",
         "wert": "14",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Überarbeitungsfrist des Expertenrats je Rückgabe-Runde. Verstreicht sie ohne "
-        "neue Einreichung, geht die zuletzt vorgelegte Fassung zur Endabstimmung.",
+        "beschreibung": gettext_noop("Überarbeitungsfrist des Expertenrats je Rückgabe-Runde. Verstreicht sie ohne "
+        "neue Einreichung, geht die zuletzt vorgelegte Fassung zur Endabstimmung."),
         "quelle": "§ 5 Abs 12",
     },
     {
         "schluessel": "expertenrat-gruppe1-groesse",
         "wert": "3",
-        "einheit": "Personen",
+        "einheit": gettext_noop("Personen"),
         "gruppe": "gremien",
-        "beschreibung": "Größe der ersten Gruppe des Expertenrats, die je Antrag aus der "
+        "beschreibung": gettext_noop("Größe der ersten Gruppe des Expertenrats, die je Antrag aus der "
         "Fachliste gelost wird. Die Satzung verlangt mindestens drei; nach oben ist der Wert "
         "offen — mehr Fachleute heißt mehr Blickwinkel und mehr Aufwand. Der Wert wird beim "
-        "Einbringen an den Antrag geheftet und wirkt nie auf laufende Verfahren zurück.",
+        "Einbringen an den Antrag geheftet und wirkt nie auf laufende Verfahren zurück."),
         "quelle": "§ 6 Abs 7 · § 6 Abs 8",
     },
     {
         "schluessel": "expertenrat-gruppe2-groesse",
         "wert": "3",
-        "einheit": "Personen",
+        "einheit": gettext_noop("Personen"),
         "gruppe": "gremien",
-        "beschreibung": "Größe der zweiten Gruppe, die Vorschläge mit Vollzugs- oder "
+        "beschreibung": gettext_noop("Größe der zweiten Gruppe, die Vorschläge mit Vollzugs- oder "
         "Beschaffungsbezug auf Interessenkonflikte und Korruptionsgefahr prüft. Sie wird aus "
-        "dem Rest desselben Lostopfes gezogen und ist dadurch von der ersten getrennt.",
+        "dem Rest desselben Lostopfes gezogen und ist dadurch von der ersten getrennt."),
         "quelle": "§ 6 Abs 7 · § 6 Abs 8",
     },
     {
         "schluessel": "gremien-pruefung-tage",
         "wert": "7",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Frist der Gruppe 2 für ihre Prüfung eines Vorschlags mit Vollzugs- oder "
+        "beschreibung": gettext_noop("Frist der Gruppe 2 für ihre Prüfung eines Vorschlags mit Vollzugs- oder "
         "Beschaffungsbezug. Läuft sie ohne Ergebnis ab, geht der Vorschlag weiter an die "
         "Unterstützer — mit dem offengelegten Vermerk, dass Gruppe 2 ihn nicht validiert hat. "
-        "Kurz genug, dass niemand blockieren kann; lang genug, um wirklich zu prüfen.",
+        "Kurz genug, dass niemand blockieren kann; lang genug, um wirklich zu prüfen."),
         "quelle": "§ 6 Abs 7",
     },
     {
         "schluessel": "gremien-beschluss-tage",
         "wert": "7",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Regelfrist einer internen Abstimmung in einem Rat. Danach wird mit den "
+        "beschreibung": gettext_noop("Regelfrist einer internen Abstimmung in einem Rat. Danach wird mit den "
         "vorliegenden Stimmen ausgewertet — beschlussfähig ab der Hälfte der aktiven Rollen, "
-        "entschieden mit einfacher Mehrheit der abgegebenen Stimmen.",
+        "entschieden mit einfacher Mehrheit der abgegebenen Stimmen."),
         "quelle": "§ 6 Abs 2 lit e",
     },
     {
         "schluessel": "gremien-hoechstrunden",
         "wert": "3",
-        "einheit": "Runden",
+        "einheit": gettext_noop("Runden"),
         "gruppe": "gremien",
-        "beschreibung": "Höchstzahl der Runden der Entwurfsschleife; danach geht der Vorschlag in jedem "
-        "Fall zur Endabstimmung.",
+        "beschreibung": gettext_noop("Höchstzahl der Runden der Entwurfsschleife; danach geht der Vorschlag in jedem "
+        "Fall zur Endabstimmung."),
         "quelle": "§ 5 Abs 12 („Rundenzahl per Verfahrensordnung“)",
     },
     {
         "schluessel": "vorschlag-annahme-prozent",
         "wert": "50",
-        "einheit": "Prozent",
+        "einheit": gettext_noop("Prozent"),
         "gruppe": "gremien",
-        "beschreibung": "Zustimmungsanteil, den der Beitrag „Passt alles“ im Abstimmungs-Chat "
+        "beschreibung": gettext_noop("Zustimmungsanteil, den der Beitrag „Passt alles“ im Abstimmungs-Chat "
         "überschreiten muss, damit der Vorschlag zur Endabstimmung geht — zusätzlich muss er an "
-        "erster Stelle stehen.",
+        "erster Stelle stehen."),
         "quelle": "§ 5 Abs 12 · Anweisung des Gründers: „mehr als 50%“",
     },
     {
         "schluessel": "vorschlag-chat-reihung",
         "wert": "1",
-        "einheit": "Regelfassung",
+        "einheit": gettext_noop("Regelfassung"),
         "gruppe": "gremien",
-        "beschreibung": "Fassung der Reihungsregel des Abstimmungs-Chats (engagement-v1): "
+        "beschreibung": gettext_noop("Fassung der Reihungsregel des Abstimmungs-Chats (engagement-v1): "
         "Engagement = Zustimmungen + Ablehnungen absteigend, dann Zustimmungsanteil, dann Zeit. "
-        "Offengelegt und nachrechenbar (§ 2 Abs 6).",
+        "Offengelegt und nachrechenbar (§ 2 Abs 6)."),
         "quelle": "Anweisung des Gründers: „die kommentare mit dem meisten engagement erscheinen ganz oben“",
     },
     {
         "schluessel": "gremien-rollen-dauer-tage",
         "wert": "730",
-        "einheit": "Tage",
+        "einheit": gettext_noop("Tage"),
         "gruppe": "gremien",
-        "beschreibung": "Regeldauer einer Gremien-Rolle (zwei Jahre): Bestellung auf öffentliche "
-        "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen.",
+        "beschreibung": gettext_noop("Regeldauer einer Gremien-Rolle (zwei Jahre): Bestellung auf öffentliche "
+        "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen."),
         "quelle": "§ 6 Abs 8",
     },
     {
         "schluessel": "ki-monatstokens",
         "wert": "1000000",
-        "einheit": "Tokens/Monat",
+        "einheit": gettext_noop("Tokens/Monat"),
         "gruppe": "ki",
-        "beschreibung": "Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
-        "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt.",
+        "beschreibung": gettext_noop("Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
+        "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."),
         "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
     },
 ]

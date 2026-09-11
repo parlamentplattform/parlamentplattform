@@ -5585,3 +5585,94 @@ msgid "noch ein Tag bis zur 30-Tage-Frist"
 msgid_plural "noch %(t)s Tage bis zur 30-Tage-Frist"
 msgstr[0] "one day left until the 30-day deadline"
 msgstr[1] "%(t)s days left until the 30-day deadline"
+
+# ── 0.45: Datentexte der Rollen-, Regel- und Registerseiten (Befund #90) ──
+msgid "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt."
+msgstr "The entries on this page are currently available in German only; headings and explanations are translated."
+
+msgid "teilweise"
+msgstr "partly"
+
+msgid "geplant"
+msgstr "planned"
+
+msgid "entscheidet"
+msgstr "decides"
+
+msgid "reiht"
+msgstr "orders"
+
+msgid "ordnet zu"
+msgstr "assigns"
+
+msgid "rechnet"
+msgstr "calculates"
+
+msgid "stellt dar"
+msgstr "presents"
+
+msgid "Das Ergebnis bindet — es bestimmt, was im Verfahren geschieht."
+msgstr "The result is binding — it determines what happens in the procedure."
+
+msgid "Bestimmt die Reihenfolge, in der etwas erscheint."
+msgstr "Determines the order in which something appears."
+
+msgid "Teilt ein oder erkennt Ähnlichkeit — schlägt vor, entscheidet nicht."
+msgstr "Classifies or detects similarity — proposes, does not decide."
+
+msgid "Rechnet, ohne zu entscheiden."
+msgstr "Calculates without deciding."
+
+msgid "Bereitet auf, ohne auszuwählen."
+msgstr "Presents without selecting."
+
+msgid "Einträge"
+msgstr "Entries"
+
+msgid "Ereignisse"
+msgstr "Events"
+
+msgid "Gespräche"
+msgstr "Conversations"
+
+msgid "Minuten"
+msgstr "Minutes"
+
+msgid "Monate"
+msgstr "Months"
+
+msgid "Personen"
+msgstr "Persons"
+
+msgid "Profile"
+msgstr "Profiles"
+
+msgid "Prozent"
+msgstr "Percent"
+
+msgid "Regelfassung"
+msgstr "Rule version"
+
+msgid "Runden"
+msgstr "Rounds"
+
+msgid "Sekunden"
+msgstr "Seconds"
+
+msgid "Tage"
+msgstr "Days"
+
+msgid "Tokens"
+msgstr "Tokens"
+
+msgid "Tokens/Monat"
+msgstr "Tokens/month"
+
+msgid "Treffer"
+msgstr "Hits"
+
+msgid "Zeichen"
+msgstr "Characters"
+
+msgid "Äste"
+msgstr "Branches"

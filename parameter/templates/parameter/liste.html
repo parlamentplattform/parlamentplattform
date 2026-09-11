@@ -16,6 +16,7 @@ Verwaltung mit veröffentlichtem Grund im Audit-Log, künftig durch die Mitglied
 versionierte Verfahrensordnung.{% endblocktranslate %}
 <a href="{% url 'parameter:export' %}">{% translate "Register als JSON →" %}</a>
 <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a></p>
+{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt." %}</em></p>{% endif %}
 
 {% if ordnung %}
 <p class="erk" style="max-width:56em">{% blocktranslate with n=ordnung.version %}Geltende Verfahrensordnung: Fassung {{ n }}. Sie folgt dem Register nicht von selbst — sie wird
@@ -32,10 +33,10 @@ Ein geänderter Wert wirkt deshalb nie auf ein laufendes Verfahren.{% endblocktr
   <h2 style="margin:0 0 4px;font-size:17px">{{ karte.name }}</h2>
   {% for p in karte.eintraege %}
   <div class="zeile"><span style="width:100%">
-    <strong><a href="{% url 'parameter:parameter' p.schluessel %}">{{ p.schluessel }}</a></strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{{ p.einheit }}</span>{% endif %}
+    <strong><a href="{% url 'parameter:parameter' p.schluessel %}">{{ p.schluessel }}</a></strong> = {{ p.wert }}{% if p.einheit %} <span class="meta">{% translate p.einheit %}</span>{% endif %}
     {% if p.status != "gueltig" %}<span class="chip klein">{{ p.get_status_display }}</span>{% endif %}
     {% if p.speist_ordnung %}<span class="chip klein still" title="{% translate 'Aus diesem Wert wird die Verfahrensordnung gebaut.' %}">{% translate "Verfahrensordnung" %}</span>{% endif %}
-    <br><span class="meta">{{ p.beschreibung }}</span>
+    <br><span class="meta">{% translate p.beschreibung %}</span>
     <br><span class="meta">{% translate "Quelle:" %} {{ p.quelle }}{% if p.schema_key %} · <code>{{ p.schema_key }}</code>{% endif %} · {% translate "Stand:" %} {{ p.geaendert_am|date:"d.m.Y" }}</span>
     {% if p.status == im_test %}
     <div class="band-gold" style="margin-top:8px">{% translate "Im Test" %}{% if p.test_bis %} — {% blocktranslate with bis=p.test_bis|date:"d.m.Y" %}bis {{ bis }}{% endblocktranslate %}{% endif %}{% if p.test_hypothese %}: {{ p.test_hypothese }}{% endif %}

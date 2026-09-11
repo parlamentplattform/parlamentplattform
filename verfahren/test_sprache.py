@@ -239,3 +239,27 @@ def test_markdown_export_auf_englisch_ist_nicht_gemischt(client, ordnung):  # no
     assert "Submitted:" in text and "## Version 1" in text
     for deutsch in ("Eingebracht:", "Unterstützungen", "## Fassung", "Beiträge"):
         assert deutsch not in text, f"deutsch im englischen Export: {deutsch}"
+
+
+def test_datentabellen_werden_uebersetzt_wo_der_katalog_es_kann(client):
+    """Befund #90: /rollen/, /regeln/ und /parameter/ trugen englische Überschriften über rein
+    deutschen Datentabellen ohne Übersetzungsweg. Jetzt laufen die Datentexte per
+    `{% translate variable %}` durch den Katalog — was dort steht, kommt englisch an, und ein
+    Hinweis am Seitenkopf sagt ehrlich, dass die Einträge selbst noch deutsch vorliegen."""
+    from parameter.models import erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    hinweis = "currently available in German only"
+    en = {"HTTP_ACCEPT_LANGUAGE": "en"}
+    rollen = client.get(reverse("verfahren:rollen"), **en).content.decode()
+    assert hinweis in rollen
+    assert 'title="available"' in rollen and 'title="planned"' in rollen  # Stand.name_de über den Katalog
+    regeln = client.get(reverse("parameter:regeln"), **en).content.decode()
+    assert hinweis in regeln
+    assert ">decides <span" in regeln and "The result is binding" in regeln  # Wirkung über den Katalog
+    register = client.get(reverse("parameter:liste"), **en).content.decode()
+    assert hinweis in register
+    assert '<span class="meta">Days</span>' in register  # Einheit über den Katalog
+    # Auf Deutsch gibt es nichts zu erklären — der Hinweis erscheint nicht.
+    for pfad in (reverse("verfahren:rollen"), reverse("parameter:regeln"), reverse("parameter:liste")):
+        assert "nur auf Deutsch vor" not in client.get(pfad, HTTP_ACCEPT_LANGUAGE="de").content.decode()

@@ -38,32 +38,33 @@ eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung.{% endblo
 </p>
 <p class="erk">{% blocktranslate with v=zahlen.verfuegbar t=zahlen.teilweise g=zahlen.geplant r=zahlen.rollen %}{{ r }} Rollen, {{ v }} Fähigkeiten verfügbar, {{ t }} teilweise, {{ g }} geplant.{% endblocktranslate %}
   <span class="meta">{% blocktranslate with n=matrix_version %}Übersicht Fassung {{ n }}{% endblocktranslate %} · <code>plattform_core/rollen.py</code></span></p>
+{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt." %}</em></p>{% endif %}
 
 {% for gruppe in gruppen %}
 <section class="abschnitt" id="g-{{ gruppe.schluessel }}">
-  <h2>{{ gruppe.name }}</h2>
-  <p class="erk">{{ gruppe.erklaerung }}</p>
+  <h2>{% translate gruppe.name %}</h2>
+  <p class="erk">{% translate gruppe.erklaerung %}</p>
   <div class="rollen-karten">
     {% for rolle in gruppe.rollen %}
     <div class="rk" id="rolle-{{ rolle.schluessel }}">
-      <h3>{{ rolle.name }} <span class="satzungschip">{{ rolle.satzung }}</span></h3>
-      <p class="wasistdas">{{ rolle.was_sie_ist }}</p>
+      <h3>{% translate rolle.name %} <span class="satzungschip">{{ rolle.satzung }}</span></h3>
+      <p class="wasistdas">{% translate rolle.was_sie_ist %}</p>
       <ul>
         {% for f in rolle.faehigkeiten %}
         <li>
-          <span class="zeichen {{ f.stand.value }}" title="{{ f.stand.name_de }}">{{ f.stand.zeichen }}</span>
+          <span class="zeichen {{ f.stand.value }}" title="{% translate f.stand.name_de %}">{{ f.stand.zeichen }}</span>
           <span>
-            {% if f.urlname %}<a href="{% url f.urlname %}">{{ f.titel }}</a>{% else %}{{ f.titel }}{% endif %}
-            {% if f.ort %}<span class="nachsatz"> · {{ f.ort }}</span>{% endif %}
+            {% if f.urlname %}<a href="{% url f.urlname %}">{% translate f.titel %}</a>{% else %}{% translate f.titel %}{% endif %}
+            {% if f.ort %}<span class="nachsatz"> · {% translate f.ort %}</span>{% endif %}
             {% if f.satzung %}<span class="nachsatz"> · {{ f.satzung }}</span>{% endif %}
-            {% if f.einschraenkung %}<br><span class="nachsatz">{{ f.einschraenkung }}</span>{% endif %}
-            {% if f.bauschritt %}<br><span class="nachsatz">{% blocktranslate with s=f.bauschritt %}kommt mit {{ s }}{% endblocktranslate %}</span>{% endif %}
+            {% if f.einschraenkung %}<br><span class="nachsatz">{% translate f.einschraenkung %}</span>{% endif %}
+            {% if f.bauschritt %}<br><span class="nachsatz">{% translate f.bauschritt as s %}{% blocktranslate %}kommt mit {{ s }}{% endblocktranslate %}</span>{% endif %}
           </span>
         </li>
         {% endfor %}
       </ul>
-      <p class="wiehinein"><strong>{% translate "Wie man hineinkommt:" %}</strong> {{ rolle.wie_hinein }}</p>
-      {% if rolle.hinweis %}<p class="wiehinein">{{ rolle.hinweis }}</p>{% endif %}
+      <p class="wiehinein"><strong>{% translate "Wie man hineinkommt:" %}</strong> {% translate rolle.wie_hinein %}</p>
+      {% if rolle.hinweis %}<p class="wiehinein">{% translate rolle.hinweis %}</p>{% endif %}
     </div>
     {% endfor %}
   </div>

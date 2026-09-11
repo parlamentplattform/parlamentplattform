@@ -15,14 +15,22 @@ from typing import Any
 from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 
 #: Fassung der Ordnungsregeln (§ 2 Abs 6): welche Felder eine Verfahrensordnung hat, wie
-#: sie aus dem Register entsteht und welche satzungsfesten Untergrenzen sie nicht
-#: unterschreiten darf. Die einzelne Ordnung trägt daneben ihre eigene `version`.
+#: sie aus dem Register entsteht und welche satzungsfesten Grenzen sie nicht
+#: überschreiten darf. Die einzelne Ordnung trägt daneben ihre eigene `version`.
+#: Seit 0.45 gehören auch die Fristen, Runden und die Annahme-Schwelle der Entwurfsschleife
+#: (§ 5 Abs 12) zur Ordnung — bis dahin las die Schleife sie live aus dem Register. Die
+#: Fassungsnummer wird zusammen mit dem Eintrag im Regelverzeichnis angehoben
+#: (`plattform_core.regelwerk`), nicht für sich allein: Das Verzeichnis prüft, dass beide
+#: dasselbe sagen.
 VERSION = 1
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
 SATZUNG_MIN_ABSTIMMUNG_TAGE = 7  # § 5 Abs 3 lit d
 SATZUNG_MIN_BETEILIGUNG = 0.05  # § 5 Abs 4 — satzungsfeste Untergrenze
+# Höchstwert aus der Satzung: § 5 Abs 12 gibt den Unterstützern und dem Expertenrat je Runde
+# „binnen 14 Tagen" — eine Obergrenze, kein Minimum. Eine Ordnung darf kürzer sein, nie länger.
+SATZUNG_MAX_SCHLEIFENFRIST_TAGE = 14  # § 5 Abs 12
 
 
 class PolicyFehler(ValueError):
@@ -53,6 +61,17 @@ class Policy:
     expertenrat_gruppe1: int = 3  # >= 3 (§ 6 Abs 8)
     expertenrat_gruppe2: int = 3  # >= 3, nur bei Vollzugs- oder Beschaffungsbezug gezogen
     losregel_fassung: int = 1  # plattform_core.losziehung.VERSION zum Zeitpunkt der Fassung
+    # Die Entwurfsschleife (§ 5 Abs 12). Sie entscheidet Monate nach dem Einbringen, ob ein
+    # Vorschlag zur Endabstimmung geht oder zurück in die Werkstatt — und § 5 Abs 5 schreibt
+    # Schwellen, Fristen und Auswertungsregeln beim Einbringen fest: „Ein Verstoß macht die
+    # betroffene Abstimmung ungültig." Deshalb stehen sie hier und nicht im laufenden Register.
+    # Die Vorgaben sind die Registerwerte des Erstbestands; ältere Snapshots ohne diese Felder
+    # laden damit unverändert (`aus_dict` ergänzt nur Fehlendes, nie Fremdes).
+    vorschlag_annahme_anteil: float = 0.5  # „Passt alles" muss diesen Anteil überschreiten
+    hoechstrunden: int = 3  # Runden der Schleife, danach in jedem Fall Endabstimmung
+    review_tage: int = 14  # Frist der Unterstützer je Runde (<= 14, § 5 Abs 12)
+    ueberarbeitung_tage: int = 14  # Frist des Expertenrats je Rückgabe (<= 14, § 5 Abs 12)
+    pruefung_tage: int = 7  # Frist der Gruppe 2 für ihre Prüfung (§ 6 Abs 7)
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -85,6 +104,22 @@ class Policy:
             raise PolicyFehler("Unterstützungsfrist muss mindestens 1 Tag sein.")
         if self.mehrheitsbasis not in ("ja_nein", "abgegeben"):
             raise PolicyFehler(f"Unbekannte Mehrheitsbasis: {self.mehrheitsbasis!r}")
+        for name, wert in (("review_tage", self.review_tage), ("ueberarbeitung_tage", self.ueberarbeitung_tage)):
+            if wert < 1:
+                raise PolicyFehler(f"{name} muss mindestens 1 Tag sein.")
+            if wert > SATZUNG_MAX_SCHLEIFENFRIST_TAGE:
+                raise PolicyFehler(
+                    f"{name} = {wert} überschreitet die Satzungsfrist von "
+                    f"{SATZUNG_MAX_SCHLEIFENFRIST_TAGE} Tagen (§ 5 Abs 12: „binnen 14 Tagen“)."
+                )
+        if self.pruefung_tage < 1:
+            raise PolicyFehler("pruefung_tage muss mindestens 1 Tag sein.")
+        if self.hoechstrunden < 1:
+            raise PolicyFehler("hoechstrunden muss mindestens 1 sein.")
+        if not 0 <= self.vorschlag_annahme_anteil < 1:
+            raise PolicyFehler(
+                f"vorschlag_annahme_anteil = {self.vorschlag_annahme_anteil} liegt nicht zwischen 0 und 1."
+            )
 
     def als_dict(self) -> dict[str, Any]:
         """Serialisierung für den Policy-Snapshot am Antrag (JSON-Feld)."""
@@ -113,6 +148,12 @@ REGISTER_ZUORDNUNG = {
     "wiedereinbringung_sperre_monate": ("verfahren-wiedereinbringung-monate", int),
     "expertenrat_gruppe1": ("expertenrat-gruppe1-groesse", int),
     "expertenrat_gruppe2": ("expertenrat-gruppe2-groesse", int),
+    # Die Entwurfsschleife (§ 5 Abs 12) — seit Fassung 2 Teil der eingefrorenen Ordnung.
+    "vorschlag_annahme_anteil": ("vorschlag-annahme-prozent", lambda n: n / 100),
+    "hoechstrunden": ("gremien-hoechstrunden", int),
+    "review_tage": ("gremien-review-tage", int),
+    "ueberarbeitung_tage": ("gremien-ueberarbeitung-tage", int),
+    "pruefung_tage": ("gremien-pruefung-tage", int),
 }
 
 

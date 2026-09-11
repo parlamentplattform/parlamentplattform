@@ -310,6 +310,65 @@ def test_kritik_mit_mehr_engagement_startet_eine_neue_runde(client, ordnung):  #
     assert len(wuensche) == 1 and wuensche[0]["absatz"] == 1, "die Kritik liegt als Wunsch bereit"
 
 
+def test_die_annahme_schwelle_folgt_der_eingefrorenen_ordnung(client, ordnung):  # noqa: F811
+    """Befund #3: Die Schwelle, die über Endabstimmung oder Rückgabe entscheidet, stand bis
+    0.44 im laufenden Register — und die Verwaltung konnte sie am Tag vor der Frist ändern.
+    § 5 Abs 5 schreibt sie beim Einbringen fest; ein Verstoß macht die Abstimmung ungültig.
+    Hier: 3:2 (60 %) für „Passt alles“, das Register sagt danach 70 % — der Vorschlag geht
+    trotzdem zur Endabstimmung, weil für diesen Antrag 50 % gelten."""
+    from parameter.models import Parameter
+
+    stellerin = mitglied_anlegen("stellerin")
+    unterstuetzer = [mitglied_anlegen(f"u{i}") for i in range(5)]
+    er = [mitglied_anlegen(f"rat{i}") for i in range(2)]
+    for m in er:
+        rolle_geben(m)
+    antrag = in_beratung_bringen(antrag_einbringen(stellerin, **ANTRAG, ordnung=ordnung), unterstuetzer)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer[:3]:
+        reagieren(client, antrag, passt, u)
+    for u in unterstuetzer[3:]:
+        reagieren(client, antrag, passt, u, art="ablehnung")
+    Parameter.objects.update_or_create(
+        schluessel="vorschlag-annahme-prozent",
+        defaults={"wert": "70", "beschreibung": "x", "quelle": "Test"},
+    )
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert antrag.phase == "abstimmung" and entwurf.status == EntwurfsStatus.ANGENOMMEN
+    gruende = [e.ereignis.get("grund", "") for e in AuditEintrag.objects.all()]
+    assert any("Schwelle 50 %" in g for g in gruende), "gerechnet wurde mit der eingefrorenen Schwelle"
+
+
+def test_die_hoechstrunden_folgen_der_eingefrorenen_ordnung(client, ordnung):  # noqa: F811
+    """Befund #3/#16: `gremien-hoechstrunden` von 3 auf 1 gesenkt — ein Antrag, für den beim
+    Einbringen drei Runden galten, bekommt bei Rückgabe-Mehrheit trotzdem seine zweite Runde."""
+    from parameter.models import Parameter
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Die Frist von 48 Stunden ist zu lang — binnen 24 Stunden muss das Protokoll stehen.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    Parameter.objects.update_or_create(
+        schluessel="gremien-hoechstrunden",
+        defaults={"wert": "1", "beschreibung": "x", "quelle": "Test"},
+    )
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    entwurf.refresh_from_db()
+    assert antrag.phase == "beratung"
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 2
+
+
 def test_kritik_braucht_bezug_und_konkretheit(client, ordnung):  # noqa: F811
     """A0-07: „muss konkrete Kritik beinhalten" — ohne Textstelle und Länge keine Kritik."""
     antrag, unterstuetzer, er = werkstatt_lage(ordnung)

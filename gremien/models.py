@@ -18,9 +18,13 @@ Bleiben Stimmen aus, wertet der Fristablauf aus; bleibt eine Überarbeitung
 aus, geht die zuletzt vorgelegte Fassung zur Endabstimmung. Die Beratung
 eines Antrags bleibt nur offen, solange die Schleife tatsächlich arbeitet.
 
-Offene Parameter: Seit F-68 liest die Schleife ihre Fristen und Runden aus
-dem öffentlichen Parameterregister (/parameter/); die Konstanten unten sind
-die eingebauten Zielwerte und bleiben der ehrliche Rückfall."""
+Stellgrößen: Fristen, Runden und Annahme-Schwelle der Schleife stehen in der
+Verfahrensordnung, die beim Einbringen an den Antrag geheftet wird
+(`plattform_core.policy`, § 5 Abs 5) — das Register speist nur künftige Ordnungen.
+Live aus dem Register kommen allein die Größen, die kein Antragsverfahren
+betreffen: die Dauer einer Rolle, die Regelfrist eines internen Beschlusses und
+die Frist des Koordinationsrats über einen Austauschantrag; die Konstanten unten
+sind dafür der ehrliche Rückfall."""
 
 from __future__ import annotations
 
@@ -33,17 +37,14 @@ from django.utils import timezone
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 
-REVIEW_TAGE = 14
-UEBERARBEITUNG_TAGE = 14
-HOECHSTRUNDEN = 3
 ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
 BESCHLUSS_TAGE = 7  # Rückfall für die Frist eines internen Beschlusses (§ 6 Abs 2 lit e)
-PRUEFUNG_TAGE = 7  # Rückfall für die Frist der Prüfung durch Gruppe 2 (§ 6 Abs 7)
 
 
 def _registerzahl(schluessel: str, standard: int) -> int:
-    """Seit F-68 liest die Schleife ihre Fristen aus dem offenen
-    Parameterregister — die Konstanten oben bleiben die Zielwerte/Fallbacks."""
+    """Ein Registerwert, der sofort wirkt — nur für Größen, die kein laufendes
+    Antragsverfahren betreffen (F-68). Alles, was § 5 Abs 5 festschreibt, kommt
+    aus `Antrag.policy()`."""
     from parameter.models import zahl
 
     return zahl(schluessel, standard)
@@ -276,7 +277,7 @@ class Entwurf(models.Model):
             self.status = EntwurfsStatus.PRUEFUNG
         else:
             self.status = EntwurfsStatus.UNTERSTUETZER
-            self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
+            self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.ueberarbeitung_frist = None
         self.save()
         if self.status == EntwurfsStatus.PRUEFUNG:
@@ -316,7 +317,7 @@ class Entwurf(models.Model):
                 "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
             ),
             optionen=PRUEFOPTIONEN,
-            frist=jetzt + timedelta(days=_registerzahl("gremien-pruefung-tage", PRUEFUNG_TAGE)),
+            frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
             antrag=self.antrag,
             entwurf=self,
             angelegt_von=angelegt_von.mitglied,
@@ -326,7 +327,7 @@ class Entwurf(models.Model):
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
         jetzt = jetzt or timezone.now()
         self.status = EntwurfsStatus.UNTERSTUETZER
-        self.review_frist = jetzt + timedelta(days=_registerzahl("gremien-review-tage", REVIEW_TAGE))
+        self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.save(update_fields=["status", "review_frist"])
         self.abstimmungschat_eroeffnen(jetzt)
 
@@ -363,11 +364,11 @@ class Entwurf(models.Model):
         if neue_runde:
             self.runde += 1
             self.ueberarbeitung_frist = jetzt + timedelta(
-                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+                days=self.antrag.policy().ueberarbeitung_tage
             )
         elif frist_erneuern and self.runde > 1:
             self.ueberarbeitung_frist = jetzt + timedelta(
-                days=_registerzahl("gremien-ueberarbeitung-tage", UEBERARBEITUNG_TAGE)
+                days=self.antrag.policy().ueberarbeitung_tage
             )
         self.save()
         AuditEintrag.anhaengen(
@@ -467,16 +468,17 @@ class Entwurf(models.Model):
                 return False
             from verfahren.chat import abstimmung_stand
 
-            stand = abstimmung_stand(antrag, self)
+            # Schwelle und Höchstrunden aus der eingefrorenen Ordnung des Antrags — nicht aus
+            # dem Register: Eine Änderung dort träfe sonst eine laufende Schleife (§ 5 Abs 5).
+            ordnung = antrag.policy()
+            stand = abstimmung_stand(antrag, self, schwelle=ordnung.vorschlag_annahme_anteil)
             rechnung = (
                 f"„Passt alles“ {stand['ja']}:{stand['nein']} = {stand['prozent']} % "
                 f"(Schwelle {round(stand['schwelle'] * 100)} %), "
                 f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
                 f"Regel {stand['reihung']}"
             )
-            if not stand["angenommen"] and self.runde < _registerzahl(
-                "gremien-hoechstrunden", HOECHSTRUNDEN
-            ):
+            if not stand["angenommen"] and self.runde < ordnung.hoechstrunden:
                 self.zurueck_an_gruppe_1(
                     f"Der Abstimmungs-Chat gibt zurück: {rechnung}. "
                     f"{len(stand['kritik'])} Kritik-Beiträge gehen als Wünsche an den Expertenrat.",

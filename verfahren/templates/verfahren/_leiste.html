@@ -6,14 +6,15 @@ mit Popover; Gäste: ⋯ Mehr · Anmelden · Mitglied werden · Sprache. Am Hand
 das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <details>; Alpine
 (klappmenue) ergänzt Außenklick, Escape, Fokusrückgabe und Fokusfalle.
 {% endcomment %}
-<header class="leiste">
+<header class="leiste{% if not user.is_authenticated %} gast{% endif %}">
   <a href="{% url 'verfahren:index' %}" class="marke">Parlament<em>Plattform</em></a>
   <nav class="haupt" aria-label="{% translate 'Hauptbereiche' %}">
     <a href="{% url 'verfahren:parlament' %}"{% if AKTIV == "parlament" %} class="an" aria-current="page"{% endif %}>{% translate "Parlament" %}</a>
     <a href="{% url 'mandatare:liste' %}"{% if AKTIV == "mandatare" %} class="an" aria-current="page"{% endif %}>{% translate "Mandatare" %}</a>
     <a href="{% url 'gremien:uebersicht' %}"{% if AKTIV == "gremien" %} class="an" aria-current="page"{% endif %}>{% translate "Gremien" %}</a>
-    <a href="{% url 'verfahren:umsetzung' %}"{% if AKTIV == "umsetzung" %} class="an" aria-current="page"{% endif %}>{% translate "Umsetzungsregister" %}</a>
-    <a href="{% url 'verfahren:zukunftswerkstatt' %}"{% if AKTIV == "zukunftswerkstatt" %} class="an" aria-current="page"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
+    {# Kurzformen zwischen 1024 und 1279 px (Befund #48) — die Langform bleibt der zugängliche Name #}
+    <a href="{% url 'verfahren:umsetzung' %}"{% if AKTIV == "umsetzung" %} class="an" aria-current="page"{% endif %} title="{% translate 'Umsetzungsregister' %}"><span class="lang">{% translate "Umsetzungsregister" %}</span><span class="kurz" aria-hidden="true">{% translate "Umsetzung" %}</span></a>
+    <a href="{% url 'verfahren:zukunftswerkstatt' %}"{% if AKTIV == "zukunftswerkstatt" %} class="an" aria-current="page"{% endif %} title="{% translate 'Zukunftswerkstatt' %}"><span class="lang">{% translate "Zukunftswerkstatt" %}</span><span class="kurz" aria-hidden="true">{% translate "Werkstatt" %}</span></a>
     <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an" aria-current="page"{% endif %}>{% translate "Übersicht" %}</a>
   </nav>
   <div class="rechts">

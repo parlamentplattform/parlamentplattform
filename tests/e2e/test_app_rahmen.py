@@ -236,3 +236,42 @@ def test_reduzierte_bewegung_schaltet_animationen_ab(seite, live_server, demo):
     )
     assert max(dauern) <= 0.001, f"Bewegung trotz reduzierter Einstellung: {dauern}"
     assert p.evaluate("getComputedStyle(document.documentElement).scrollBehavior") == "auto"
+
+
+# ── Hauptnavigation zwischen 760 und 1279 px (Befund #48) ─────────────────────
+
+
+@pytest.mark.parametrize("breite", [768, 1024, 1100, 1180, 1280])
+@pytest.mark.parametrize("gast", [True, False], ids=["gast", "mitglied"])
+def test_hauptnavigation_vollstaendig_oder_burger(seite, live_server, demo, breite, gast):
+    """`overflow:hidden` schnitt die sechs Hauptpunkte zwischen 760 und 1279 px stumm ab — auf dem
+    iPad hochkant sah ein Gast nur „Parlament“. Jetzt gilt: unter 1024 px der Burger mit allen
+    sechs Punkten im Panel (Gäste: unter 1180 px, ihr rechter Block ist breiter), darüber alle
+    sechs in der Leiste (lange Punkte in Kurzform)."""
+    p = seite(viewport={"width": breite, "height": 900}, als=None if gast else _mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    burger = p.locator(".menue > summary")
+    if breite < (1180 if gast else 1024):
+        assert burger.is_visible(), "unter der Grenze steht der Burger"
+        assert not p.locator("nav.haupt").is_visible()
+        burger.click()
+        p.wait_for_timeout(500)
+        assert p.locator(".panel nav.panel-nav a").count() == 6
+        if breite >= 760:
+            # Konto bzw. Anmelden bleiben zwischen 760 und 1023 px in der Leiste
+            assert p.locator(".leiste .konto, .leiste .anmelden").first.is_visible()
+        return
+    assert not burger.is_visible()
+    nav = p.locator("nav.haupt")
+    rahmen = nav.bounding_box()
+    links = nav.locator("a")
+    assert links.count() == 6
+    for i in range(6):
+        k = links.nth(i).bounding_box()
+        assert k["x"] >= rahmen["x"] - 1 and k["x"] + k["width"] <= rahmen["x"] + rahmen["width"] + 1, (
+            f"Punkt {i + 1} ist bei {breite} px abgeschnitten ({'Gast' if gast else 'Mitglied'})"
+        )
+    assert p.evaluate("(n) => n.scrollWidth <= n.clientWidth + 1", nav.element_handle()), "nichts rollt verborgen"
+    kurz = p.locator("nav.haupt .kurz").first
+    assert kurz.is_visible() == (breite < 1280), "Kurzformen nur zwischen 1024 und 1279 px"

@@ -24,6 +24,7 @@ from verfahren.models import (
     Antragsart,
     BewerbungsZustimmung,
     Kategorie,
+    Kommentar,
     Stimmabgabe,
     StimmRegister,
     Unterstuetzung,
@@ -606,6 +607,28 @@ def gespraeche(request):
     )
 
 
+def _antwort_vorgabe(antrag, roh):
+    """Der Beitrag, auf den geantwortet werden soll — aus `?antwort_auf=<pk>` (Grundregel 3).
+
+    Mit JavaScript setzt Alpine das Ziel; ohne ist „Antworten“ ein Link mit diesem Parameter,
+    und die Seite belegt das Formular damit vor. Es zählen nur laufende, sichtbare Beiträge
+    desselben Antrags — dieselbe Prüfung, die `kommentieren` beim Senden anstellt."""
+    if not (roh and str(roh).isdigit()):
+        return None
+    return (
+        Kommentar.objects.filter(
+            pk=int(roh),
+            antrag=antrag,
+            archiviert_am__isnull=True,
+            system=False,
+            geloescht=False,
+            ausgeblendet_am__isnull=True,
+        )
+        .select_related("mitglied")
+        .first()
+    )
+
+
 def _chat_lage(antrag, nutzer) -> dict:
     """Zone 3 (FB-G1, G2, G5): der laufende Faden, was neu ist, ob geschrieben werden darf und
     wie viele Beiträge im Archiv der vorigen Phasen liegen."""
@@ -777,6 +800,8 @@ def antrag_detail(request, pk):
     vollzug = None
     if antrag.phase == Phase.ANGENOMMEN.value:
         vollzug = list(antrag.vollzug.select_related("durch"))
+    chat = _chat_lage(antrag, request.user)
+    chat["antwort_vorgabe"] = _antwort_vorgabe(antrag, request.GET.get("antwort_auf"))
     return render(
         request,
         "verfahren/antrag.html",
@@ -799,7 +824,7 @@ def antrag_detail(request, pk):
             "kandidatur": kandidatur,
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
-            "chat": _chat_lage(antrag, request.user),
+            "chat": chat,
             "archiv": _archiv_lage(antrag),
             "frist": frist,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,

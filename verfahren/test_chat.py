@@ -67,6 +67,53 @@ def test_beitrag_und_antwort_bilden_einen_faden(client, ordnung):  # noqa: F811
     assert 'class="antworten"' in inhalt and f'id="k-{antwort.pk}"' in inhalt
 
 
+def test_antworten_geht_ohne_javascript_ueber_den_link(client, ordnung):  # noqa: F811
+    """Grundregel 3 (Befund #12/#28): „Antworten“ war ein type=button mit reinem Alpine-Handler,
+    das Zielfeld nur Alpine-gebunden — ohne JavaScript entstand nie ein Faden und damit nie ein
+    Gespräch (FB-G3). Jetzt ist der Knopf ein Link mit ?antwort_auf=, den die Seite serverseitig
+    in das versteckte Feld und den Chip übernimmt."""
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    wurzel = chatkern.beitrag_schreiben(antrag, anna, "Mein erster Gedanke.")
+    client.force_login(bernd)
+
+    inhalt = _seite(client, antrag)
+    assert f'href="/antrag/{antrag.pk}/?antwort_auf={wurzel.pk}#chat-eingabe"' in inhalt
+    assert 'type="button" class="blase-knopf" @click="antworten' not in inhalt
+    assert 'name="antwort_auf" value=""' in inhalt  # ohne Parameter kein Ziel
+
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk]) + f"?antwort_auf={wurzel.pk}").content.decode()
+    assert f'name="antwort_auf" value="{wurzel.pk}"' in seite
+    chip = seite.split('class="antwort-chip"', 1)[1].split("</div>", 1)[0]
+    assert "x-cloak" not in chip.split(">", 1)[0], "der Chip ist ohne JavaScript sichtbar"
+    assert "Antwort an" in chip and anna.anzeigename in chip
+    assert f"chat({antrag.pk}, {wurzel.pk}, '" in seite, "Alpine startet mit derselben Vorbelegung"
+
+    # Das gewöhnliche Formular mit dem vorbelegten Feld erzeugt die Antwort im Faden
+    client.post(reverse("verfahren:kommentieren", args=[antrag.pk]), {"text": "Ohne Skript geantwortet.", "antwort_auf": wurzel.pk})
+    antwort = Kommentar.objects.exclude(pk=wurzel.pk).get()
+    assert antwort.antwort_auf == wurzel
+    assert len(chatkern.gespraeche(anna)) == 1, "aus der Antwort entsteht das Gespräch (FB-G3)"
+
+
+def test_antwort_vorgabe_nimmt_nur_laufende_beitraege_desselben_antrags(client, ordnung):  # noqa: F811
+    """Ein fremder, archivierter oder entfernter Beitrag darf über die Adresse nicht zum Ziel werden."""
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    anderer = antrag_einbringen(anna, "Zweiter Antrag", "Wortlaut.", "", ordnung)
+    fremd = chatkern.beitrag_schreiben(anderer, anna, "Gehört zum anderen Antrag.")
+    archiviert = chatkern.beitrag_schreiben(antrag, anna, "Wird gleich archiviert.")
+    Kommentar.objects.filter(pk=archiviert.pk).update(archiviert_am=timezone.now())
+    entfernt = chatkern.beitrag_schreiben(antrag, anna, "Wird zurückgezogen.")
+    Kommentar.objects.filter(pk=entfernt.pk).update(geloescht=True)
+    client.force_login(bernd)
+    ziel = reverse("verfahren:antrag", args=[antrag.pk])
+    for roh in (fremd.pk, archiviert.pk, entfernt.pk, "abc", 999999):
+        seite = client.get(f"{ziel}?antwort_auf={roh}").content.decode()
+        assert 'name="antwort_auf" value=""' in seite, roh
+        assert 'class="antwort-chip" x-show="antwortAuf" x-cloak' in seite, roh
+
+
 def test_gaeste_lesen_mit_aber_schreiben_nicht(client, ordnung):  # noqa: F811
     anna = mitglied_anlegen("anna")
     antrag = _antrag(ordnung, anna)

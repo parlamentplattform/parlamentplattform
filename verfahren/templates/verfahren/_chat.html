@@ -3,8 +3,10 @@ Zone 3 — der Chat eines Antrags (FB-G1, G2, G5) und, sobald der Vorschlag des 
 vorliegt, der Abstimmungs-Chat (FB-G6): oben der Vorschlag als gepinnte Karte mit Wort-Diff,
 darunter der Faden nach Engagement gereiht, in der Eingabe der Umschalter für konkrete Kritik.
 htmx tauscht nach jeder Handlung genau dieses Element; ohne JavaScript ist es ein gewöhnliches
-Formular mit Ankersprung, der Diff steht in einem <details>.
-{% endcomment %}<div id="chat-faden" x-data="chat({{ antrag.pk }})">
+Formular mit Ankersprung, der Diff steht in einem <details>. „Antworten“ ist ein Link mit
+?antwort_auf=<pk> — die Seite belegt das Zielfeld damit vor (chat.antwort_vorgabe), Alpine
+übernimmt denselben Wert als Startzustand (Grundregel 3).
+{% endcomment %}<div id="chat-faden" x-data="chat({{ antrag.pk }}, {{ chat.antwort_vorgabe.pk|default:'null' }}, '{{ chat.antwort_vorgabe.mitglied.anzeigename|default:''|escapejs }}')">
   {% if chat.ruht %}
   <p class="phasenband ruht">{% translate "Der Expertenrat arbeitet am Vorschlag — der Chat öffnet, sobald der Vorschlag vorliegt." %}
     <span class="erk">{% translate "Mitlesen bleibt möglich (§ 5 Abs 12)." %}</span></p>
@@ -54,15 +56,16 @@ Formular mit Ankersprung, der Diff steht in einem <details>.
 
   {% if chat.offen %}
     {% if user.is_authenticated %}
-    <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatzeile"
+    <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatzeile" id="chat-eingabe"
       hx-post="{% url 'verfahren:kommentieren' antrag.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
       @htmx:after-request="leeren()">
       {% csrf_token %}
-      <div class="antwort-chip" x-show="antwortAuf" x-cloak>
-        <span>{% translate "Antwort an" %} <b x-text="antwortName"></b></span>
-        <button type="button" class="blase-knopf" @click="abbrechen()" aria-label="{% translate 'Antwort-Modus beenden' %}">&#10005;</button>
+      {# Der Chip steht serverseitig, sobald ?antwort_auf= gesetzt ist; ohne Vorgabe blendet Alpine ihn ein #}
+      <div class="antwort-chip" x-show="antwortAuf"{% if not chat.antwort_vorgabe %} x-cloak{% endif %}>
+        <span>{% translate "Antwort an" %} <b x-text="antwortName">{{ chat.antwort_vorgabe.mitglied.anzeigename }}</b></span>
+        <a href="{% url 'verfahren:antrag' antrag.pk %}#chat-eingabe" class="blase-knopf" @click.prevent="abbrechen()" aria-label="{% translate 'Antwort-Modus beenden' %}">&#10005;</a>
       </div>
-      <input type="hidden" name="antwort_auf" :value="antwortAuf || ''">
+      <input type="hidden" name="antwort_auf" value="{{ chat.antwort_vorgabe.pk|default:'' }}" :value="antwortAuf || ''">
       <label for="id_text" class="nur-lesbar">{% translate "Beitrag schreiben" %}</label>
       <textarea name="text" id="id_text" rows="2" maxlength="4000" required x-ref="feld" @input="wachsen()"
         placeholder="{% translate 'Sachlich und respektvoll — unter Ihrem Anzeigenamen.' %}"></textarea>

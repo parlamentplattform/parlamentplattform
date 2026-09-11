@@ -17,7 +17,8 @@ Erwartet b (aus chat.faden) und antrag.
     <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{{ b.k.sichtbarer_text|urlize|linebreaksbr }}</div>
     <div class="blase-fuss">
       {% if chat.offen and user.is_authenticated and not b.k.system and not b.k.geloescht and not b.k.ausgeblendet_am %}
-      <button type="button" class="blase-knopf" @click="antworten({{ b.k.pk }}, '{{ b.k.mitglied.anzeigename|escapejs }}')">{% translate "Antworten" %}</button>
+      {# Ohne JavaScript ein Link: die Seite belegt das Antwortfeld über ?antwort_auf= vor (Grundregel 3) #}
+      <a class="blase-knopf" href="{% url 'verfahren:antrag' antrag.pk %}?antwort_auf={{ b.k.pk }}#chat-eingabe" @click.prevent="antworten({{ b.k.pk }}, '{{ b.k.mitglied.anzeigename|escapejs }}')">{% translate "Antworten" %}</a>
       {% endif %}
       {% if chat.offen and user.is_authenticated and chat.darf_reagieren and not b.k.geloescht and not b.k.ausgeblendet_am %}
       <form method="post" action="{% url 'verfahren:reagieren' antrag.pk b.k.pk %}" class="blase-form"

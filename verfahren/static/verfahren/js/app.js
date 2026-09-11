@@ -306,9 +306,21 @@ document.addEventListener("alpine:init", function () {
         var messen = function () { self.breit = window.innerWidth >= 1100; };
         messen();
         window.addEventListener("resize", messen);
-        if (window.location.hash.indexOf("#zone-") === 0) this.zone = window.location.hash.slice(6);
+        this.zoneAusAnker();
         this.spy();
         this.wisch();
+      },
+      /* Der Anker in der Adresse wählt die Zone: „#zone-chat“ direkt, „#k-12“ oder „#chat-eingabe“
+         über die Zone, in der das Ziel liegt — sonst zeigte ein Verweis aus dem Gesprächs-Panel am
+         Handy die Zone „Text“, und der gemeinte Beitrag bliebe verborgen. */
+      zoneAusAnker: function () {
+        var h = window.location.hash;
+        if (!h) return;
+        if (h.indexOf("#zone-") === 0) { this.zone = h.slice(6); return; }
+        var ziel = null;
+        try { ziel = document.getElementById(decodeURIComponent(h.slice(1))); } catch (fehler) { ziel = null; }
+        var zone = ziel && ziel.closest ? ziel.closest(".zone[id]") : null;
+        if (zone) this.zone = zone.id.slice(5);
       },
       namen: function () {
         return Array.prototype.map.call(this.$el.querySelectorAll(".zonenleiste .zreiter"), function (r) {
@@ -371,13 +383,15 @@ document.addEventListener("alpine:init", function () {
      und das Scroll-Gedächtnis. Die Leiste steht wieder dort, wo man zuletzt aufgehört hat zu
      lesen, auch nach einem Ausflug auf andere Seiten (je Gerät in localStorage; der
      geräteübergreifende Lesestand liegt am Server). Ohne JavaScript bleibt alles bedienbar:
-     Antworten geht dann über den Anker, das Feld ist ein gewöhnliches Textfeld. */
-  Alpine.data("chat", function (antragId) {
+     „Antworten“ ist ein Link mit ?antwort_auf=<pk>, der Server belegt das Zielfeld vor —
+     vorgabeId/vorgabeName tragen genau diese Vorbelegung in den Alpine-Zustand, damit ein
+     Lesezeichen oder Mittelklick auf den Link das Ziel nicht verliert (Grundregel 3). */
+  Alpine.data("chat", function (antragId, vorgabeId, vorgabeName) {
     var schluessel = "ddoe.chat." + antragId;
     return {
-      antwortAuf: null,
+      antwortAuf: vorgabeId || null,
       kritik: false,  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6)
-      antwortName: "",
+      antwortName: vorgabeName || "",
       init: function () {
         this.stelleWiederHer();
         var self = this;
@@ -397,6 +411,10 @@ document.addEventListener("alpine:init", function () {
         if (this.$refs.feld) { this.$refs.feld.value = ""; this.wachsen(); this.$refs.feld.focus(); }
         this.kritik = false;
         this.abbrechen();
+        // Kam die Vorbelegung aus der Adresse, soll ein Neuladen nicht wieder im Antwort-Modus landen
+        if (/[?&]antwort_auf=/.test(window.location.search) && window.history.replaceState) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+        }
       },
       wachsen: function () {
         var f = this.$refs.feld;

@@ -154,3 +154,121 @@ für einen Cron; idempotent.
 Und der Kommentar in `verfahren/views.py:695` („Produktion: zusätzlich Cron“, Cluster A1) stimmt
 erst, wenn der Cron eingerichtet ist — bis dahin ehrlicher: „Produktion: `verfahren_fortschreiben`
 per Cron, sobald eingerichtet“.
+
+## Befund #34 — Werkstatt nach Beratungsende
+
+Umgesetzt (gremien/views.py `fenster_aktion`, `Entwurf.einreichen`, fenster.html). Beim Prüfen
+aufgefallen, **Cluster A1, `verfahren/chat.py` `ruht_wegen_werkstatt`:** Die Sperre gilt für
+jeden Entwurf im Status IN_ARBEIT/PRUEFUNG — auch nach dem Beratungsende. Endet die Beratung
+mit einem nie eingereichten Fenster (Runde 1), geht der Antrag in die Abstimmung, und
+`chat_offen` bleibt für die ganze Abstimmung False („Der Expertenrat arbeitet am Vorschlag“).
+Vorschlag:
+
+```python
+def ruht_wegen_werkstatt(antrag) -> bool:
+    from plattform_core import Phase
+    if antrag.phase != Phase.BERATUNG.value:
+        return False  # nach der Beratung arbeitet die Werkstatt nicht mehr (Befund #34)
+    ...
+```
+
+## Befund #38 — Rollen zählen Menschen
+
+Umgesetzt: `Rolle.personen(rollen)`, Nenner in `aktive_rollen`, `_integritaetsrat_beschlussfaehig`,
+Anzeige „besetzt“ (integritaet/koordination), Abweisung einer zweiten parteiweiten Rolle in
+`rollen_aktion`. Kein Cluster-fremder Bedarf.
+
+## Befund #44 / #77 / #80 — Abfragen je Zeile
+
+Umgesetzt (`unvereinbarkeiten_laden`/`unvereinbar_fuer`, `quoren_fuer`, `auslosung`-Ansicht).
+Nebenbefund des Nachprüfers zu #77: Der Schlüssel `gremien-beschluesse-seite` (gremien/views.py
+`_register(..., 50)`) steht nicht im ERSTBESTAND — **Cluster D** möge ihn ergänzen (Gruppe
+„gremien“, Wert 50, Einheit „Beschlüsse“, Quelle „§ 6 Abs 9 (Anzeige)“), sonst zeigt das
+Register eine Stellgröße nicht, die der Code liest.
+
+## Befund #57 — Kettenkopf
+
+Umgesetzt als Ist-Stand in der Docstring von `plattform_core/hashchain.py` (Weg 1 des
+Nachprüfers). Der kleine Bau (Kopf auf /uebersicht/ und in kennzahlen.json, Cron in eine Datei)
+liegt bei A2 (`uebersicht/**`, `parameter/kennzahlen.py`) und D (Cron) — `AuditEintrag.objects
+.order_by("-lfd").values("lfd", "hash").first()` liefert den Kopf.
+
+## Befund #69 — Bearbeitungsfenster
+
+Umgesetzt in `Kommentar.bearbeitungsfenster_minuten()` / `darf_bearbeiten`. **Cluster A1,
+`verfahren/templates/verfahren/_chat_beitrag.html:46`:** „Ändern geht in den ersten fünf
+Minuten.“ ist hart. Vorschlag: in `verfahren/views.py` `_chat_lage` die Kontextvariable
+`"bearbeitungsfenster": Kommentar.bearbeitungsfenster_minuten()` ergänzen und in der Vorlage
+`{% blocktranslate count n=chat.bearbeitungsfenster %}Ändern geht in der ersten Minute.{% plural %}Ändern geht in den ersten {{ n }} Minuten.{% endblocktranslate %}`.
+Der Filter `darf_bearbeiten` in `verfahren/templatetags/chat.py` (A1) ruft nur die Methode und
+stimmt; seine Docstring („von fünf Minuten“) bitte auf „aus dem Register“ ändern.
+
+## Befund #72 / #73 / #76 — Beschlussnummer
+
+Umgesetzt in `GremienBeschluss.save` (`_naechste_nummer`: höchste vergebene + 1, Wiederholung
+bei IntegrityError außerhalb des Savepoints; Jahr aus `timezone.localtime`). Vergebene Nummern
+bleiben. Kein Cluster-fremder Bedarf.
+
+## Befund #74 — Migration 0003 rückwärts
+
+Umgesetzt (`RunPython.noop`, Wächter `gremien/test_migrationen.py`).
+
+## Befund #81 — Indizes
+
+Umgesetzt (`Antrag.Meta.indexes`, `GremienBeschluss.Meta.indexes`, `Fachliste.Meta.indexes`,
+Migrationen `verfahren/0019`, `gremien/0016`). Der Ausdrucksindex auf `ereignis->>'antrag'`
+gehört zu Befund #2 (nicht in meiner Liste).
+
+## Befund #27 — Rücknahmen dokumentiert (teilweise)
+
+Umgesetzt in `verfahren/models.py`: `BewerbungsZustimmung.zurueckgenommen_am` + `gueltige()`,
+`bewerbung_zustimmen` stempelt statt zu löschen (Audit `personenwahl_stimme` /
+`personenwahl_stimme_zurueckgenommen`), `kandidatur_auszaehlen` zählt nur gültige;
+`Unterstuetzung.zurueckgezogen_am` + `gueltige()`, die Zählstellen in meinen Dateien
+(`Antrag.fortschreiben`, `Entwurf.votum_stand`) filtern schon. Migration `verfahren/0018`.
+
+**Zusammenführung — dieselbe Auslieferung, sonst zählen zurückgenommene Zustimmungen mit:**
+- **A1, `verfahren/views.py`:** `_beteiligung` →
+  `BewerbungsZustimmung.gueltige().filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()`;
+  `antrag_detail` (meine_zustimmungen) → `BewerbungsZustimmung.gueltige().filter(bewerbung__antrag=antrag, pseudonym=reg.pseudonym)`.
+- **A2, `verfahren/views_aktionen.py` `export_json` (Zeile ~726):**
+  `for z in BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).order_by(...)` mit
+  `{"pseudonym": ..., "bewerbung": ..., "zurueckgenommen_am": z.zurueckgenommen_am.isoformat() if z.zurueckgenommen_am else None}`
+  — so bleibt der Export vollständig UND nachrechenbar (die Auszählung zählt `gueltige()`).
+- **Unterstützungen (A2, `verfahren/views_aktionen.py` `unterstuetzen`, Zeile ~239-245):**
+  statt `.delete()`:
+  ```python
+  eintrag, neu = antrag.unterstuetzungen.get_or_create(mitglied=request.user)
+  if not neu and eintrag.zurueckgezogen_am is None:
+      eintrag.zurueckgezogen_am = timezone.now(); eintrag.save(update_fields=["zurueckgezogen_am"]); typ = "unterstuetzung_zurueckgezogen"
+  else:
+      eintrag.zurueckgezogen_am = None; eintrag.save(update_fields=["zurueckgezogen_am"]); typ = "unterstuetzung"
+  AuditEintrag.anhaengen({"typ": typ, "antrag": antrag.pk})  # ohne Mitglieds-ID
+  ```
+  **Nur zusammen mit** den Filtern `zurueckgezogen_am__isnull=True` an allen Zählstellen:
+  A1 `verfahren/views.py` (Zeilen ~142, 161, 275, 487, 658, 755, 801), A1 `verfahren/chat.py:337`
+  (`darf_reagieren`), A1 `verfahren/archiv.py:206`, A2 `views_aktionen.py:185, 555`,
+  A2 `parameter/kennzahlen.py` (falls Unterstützungen gezählt werden), B `mitglieder/**` (falls).
+  Bis A2 umstellt, bleibt das Feld ohne Wirkung (keine Zeile trägt den Stempel) — nichts bricht.
+
+## Befund #64 — Beschriftungen übersetzbar (teilweise)
+
+Umgesetzt mit `gettext_lazy`: gremien (Gremium, Anlass, BeschlussStatus, Aussetzung.Gegenstand,
+Regelpruefung.Ergebnis, HinweisQuelle, HinweisStatus, Pruefung.KoratEntscheid), verfahren
+(Meldung.Grund, Vollzugsstatus, Reaktionsart), ki.Zweck, parameter.Status,
+mandatare.Aufgabenstatus; `integritaet.html` übersetzt die IR_ANLAESSE-Namen mit
+`{% translate name %}`, die Namen selbst bleiben deutsch (der gespeicherte `gegenstand` hängt
+nicht von der Oberflächensprache ab). Keine Migration nötig (`makemigrations --check` leer).
+
+**Bewusst NICHT umhüllt** — `Ebene`, `Antragsart` (verfahren/models.py) sowie `EntwurfsStatus`
+und `Pruefung.Ergebnis` (gremien/models.py): Ihre `get_…_display()`-Werte fließen in
+`verfahren/archiv.py` (Zeilen 90, 100, 201, 202, **Cluster A1**) in ein Wörterbuch, das
+`archiv_json` (archiv.py:216) mit dem Standard-`json.dumps` ausgibt — ein lazy-Objekt wirft
+dort `TypeError: Object of type __proxy__ is not JSON serializable`, und der Archiv-Export
+fiele aus. Vorschlag für A1 (eine Zeile): `json.dumps(archiv(antrag), ensure_ascii=False,
+indent=2, cls=DjangoJSONEncoder)` (`from django.core.serializers.json import DjangoJSONEncoder`;
+er gibt lazy-Strings als Text aus). **Danach** in C-Dateien die vier Klassen umhüllen — je
+Zeile `"Bund"` → `_("Bund")` usw. (verfahren/models.py `Ebene`, `Antragsart`; gremien/models.py
+`EntwurfsStatus`, `Pruefung.Ergebnis`); `_` ist in beiden Modulen importiert. Neue msgids dafür
+stehen schon in NEUE_TEXTE_C.md („Bund“, „Sachantrag“, „Mandats-Kandidatur“, „in Arbeit
+(Expertenrat)“, …); „Land“, „Bezirk“, „Gemeinde“ sind im Katalog.

@@ -230,6 +230,13 @@ class Antrag(models.Model):
         verbose_name = "Antrag"
         verbose_name_plural = "Anträge"
         ordering = ["-eingebracht_am"]
+        # Jede Listenansicht filtert auf die Phase und reiht nach Phasenbeginn; die Hervorhebung
+        # sucht drei aus allen (Befund #81). Heute nicht messbar — der billigste Schritt, der beim
+        # Wachsen als Nächstes fehlt.
+        indexes = [
+            models.Index(fields=["phase", "phase_beginn"], name="antrag_phase_beginn_idx"),
+            models.Index(fields=["hervorgehoben"], condition=models.Q(hervorgehoben=True), name="antrag_hervorgehoben_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"#{self.pk} {self.titel} [{self.phase}]"
@@ -292,7 +299,7 @@ class Antrag(models.Model):
             self.wirksamer_phase_beginn(jetzt),
             jetzt,
             policy,
-            unterstuetzungen=self.unterstuetzungen.count(),
+            unterstuetzungen=self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
             auszaehlung=ausz,
         )
         if uebergang is None:
@@ -430,7 +437,7 @@ class Antrag(models.Model):
         )
         zustimmungen = [
             (z.pseudonym.hex, z.bewerbung_id)
-            for z in BewerbungsZustimmung.objects.filter(
+            for z in BewerbungsZustimmung.gueltige().filter(
                 bewerbung__antrag=self, bewerbung__zurueckgezogen=False
             )
         ]
@@ -464,9 +471,19 @@ class AntragsFassung(models.Model):
 
 
 class Unterstuetzung(models.Model):
+    """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
+    Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug
+    als Zeile stehen (`zurueckgezogen_am`, Grundregel 7) statt gelöscht zu werden (Befund #27).
+    Gezählt wird nur, was nicht zurückgezogen ist: `gueltige()`."""
+
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="unterstuetzungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     erklaert_am = models.DateTimeField(default=timezone.now)
+    zurueckgezogen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Unterstützung zurückgezogen wurde — die Zeile bleibt, gezählt wird sie nicht mehr.",
+    )
 
     class Meta:
         unique_together = [("antrag", "mitglied")]  # einmal je Mensch
@@ -475,6 +492,11 @@ class Unterstuetzung(models.Model):
 
     def __str__(self) -> str:
         return f"Unterstützung Antrag {self.antrag_id} durch Mitglied {self.mitglied_id}"
+
+    @classmethod
+    def gueltige(cls):
+        """Die Unterstützungen, die zählen — ohne die zurückgezogenen."""
+        return cls.objects.filter(zurueckgezogen_am__isnull=True)
 
 
 class Stimmabgabe(models.Model):
@@ -559,11 +581,11 @@ class Favorit(models.Model):
 class Vollzugsstatus(models.TextChoices):
     """Stand der Umsetzung eines angenommenen Antrags (F-55, § 6 Abs 10)."""
 
-    OFFEN = "offen", "offen"
-    IN_UMSETZUNG = "in_umsetzung", "in Umsetzung"
-    BLOCKIERT = "blockiert", "blockiert"
-    UMGESETZT = "umgesetzt", "umgesetzt"
-    ZURUECKGESTELLT = "zurueckgestellt", "zurückgestellt"
+    OFFEN = "offen", _("offen")
+    IN_UMSETZUNG = "in_umsetzung", _("in Umsetzung")
+    BLOCKIERT = "blockiert", _("blockiert")
+    UMGESETZT = "umgesetzt", _("umgesetzt")
+    ZURUECKGESTELLT = "zurueckgestellt", _("zurückgestellt")
 
 
 class Vollzugseintrag(models.Model):
@@ -795,6 +817,12 @@ class BewerbungsZustimmung(models.Model):
     bewerbung = models.ForeignKey(Bewerbung, on_delete=models.CASCADE, related_name="zustimmungen")
     pseudonym = models.UUIDField()
     abgegeben_am = models.DateTimeField(default=timezone.now)
+    zurueckgenommen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Zustimmung zurückgenommen wurde — Stimmdaten werden nie gelöscht "
+        "(Grundregel 7); gezählt wird sie dann nicht mehr.",
+    )
 
     class Meta:
         unique_together = [("bewerbung", "pseudonym")]
@@ -803,6 +831,11 @@ class BewerbungsZustimmung(models.Model):
 
     def __str__(self) -> str:
         return f"Zustimmung {self.pseudonym.hex[:8]}… zu Bewerbung {self.bewerbung_id}"
+
+    @classmethod
+    def gueltige(cls):
+        """Die Zustimmungen, die zählen — ohne die zurückgenommenen (Befund #27)."""
+        return cls.objects.filter(zurueckgenommen_am__isnull=True)
 
 
 class BewerbungsFehler(Exception):
@@ -848,18 +881,30 @@ def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=No
     zustimmung, angelegt = BewerbungsZustimmung.objects.get_or_create(
         bewerbung=bewerbung, pseudonym=register.pseudonym, defaults={"abgegeben_am": jetzt}
     )
-    if not angelegt:
-        zustimmung.delete()
+    # Zurücknehmen löscht nicht (Grundregel 7, Befund #27): Die Zeile bekommt einen Stempel, und
+    # das Audit unterscheidet die Richtung — sonst sähe, wer Audit und Export gegeneinander
+    # prüft, zwei Stimmereignisse und keine Stimme, ohne eine verlorene von einer
+    # zurückgenommenen unterscheiden zu können.
+    if angelegt or zustimmung.zurueckgenommen_am is not None:
+        if not angelegt:
+            zustimmung.zurueckgenommen_am = None
+            zustimmung.abgegeben_am = jetzt
+            zustimmung.save(update_fields=["zurueckgenommen_am", "abgegeben_am"])
+        dazu, typ = True, "personenwahl_stimme"
+    else:
+        zustimmung.zurueckgenommen_am = jetzt
+        zustimmung.save(update_fields=["zurueckgenommen_am"])
+        dazu, typ = False, "personenwahl_stimme_zurueckgenommen"
     AuditEintrag.anhaengen(
         {
-            "typ": "personenwahl_stimme",
+            "typ": typ,
             "antrag": antrag.pk,
             "pseudonym": register.pseudonym.hex,
             # bewusst OHNE Bewerbungs-ID und OHNE Mitglieds-ID: Das Audit-Log ist
             # öffentlich — wem zugestimmt wurde, zeigt erst die Auszählung nach Fristende.
         }
     )
-    return angelegt
+    return dazu
 
 
 class StimmabgabeFehler(Exception):
@@ -903,8 +948,8 @@ class Kommentar(models.Model):
     Auch das Entfernen durch den Verfasser und das Ausblenden durch die Verwaltung lassen den
     Beitrag stehen; nur sein Text weicht einem Vermerk."""
 
-    #: Rückfallwert; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
-    BEARBEITUNGSFENSTER = timedelta(minutes=5)
+    #: Rückfallwert in Minuten; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
+    BEARBEITUNGSFENSTER_MINUTEN = 5
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
     mitglied = models.ForeignKey(
@@ -960,8 +1005,18 @@ class Kommentar(models.Model):
             return str(_("[vom Verfasser entfernt]"))
         return self.text
 
+    @classmethod
+    def bearbeitungsfenster_minuten(cls) -> int:
+        """Wie lange ein Beitrag änderbar bleibt — aus dem Register (FB-G1, Befund #69).
+
+        Bis 0.44 stand hier eine harte Konstante, während das öffentliche Register denselben
+        Wert als Stellgröße führte und die Verwaltung ihn ändern konnte, ohne dass etwas geschah."""
+        from parameter.models import zahl
+
+        return zahl("chat-bearbeitungsfenster-minuten", cls.BEARBEITUNGSFENSTER_MINUTEN)
+
     def darf_bearbeiten(self, mitglied, jetzt=None) -> bool:
-        """Ändern nur durch den Verfasser und nur binnen fünf Minuten (FB-G1)."""
+        """Ändern nur durch den Verfasser und nur binnen des Bearbeitungsfensters (FB-G1)."""
         jetzt = jetzt or timezone.now()
         return (
             mitglied.is_authenticated
@@ -969,13 +1024,13 @@ class Kommentar(models.Model):
             and not self.geloescht
             and not self.ausgeblendet_am
             and not self.archiviert_am
-            and jetzt - self.erstellt_am <= self.BEARBEITUNGSFENSTER
+            and jetzt - self.erstellt_am <= timedelta(minutes=self.bearbeitungsfenster_minuten())
         )
 
 
 class Reaktionsart(models.TextChoices):
-    ZUSTIMMUNG = "zustimmung", "Zustimmung"
-    ABLEHNUNG = "ablehnung", "Ablehnung"
+    ZUSTIMMUNG = "zustimmung", _("Zustimmung")
+    ABLEHNUNG = "ablehnung", _("Ablehnung")
 
 
 class Reaktion(models.Model):
@@ -1026,11 +1081,11 @@ class Meldung(models.Model):
     Meldungen werden nie gelöscht — auch die Entscheidung bleibt nachlesbar."""
 
     class Grund(models.TextChoices):
-        BELEIDIGUNG = "beleidigung", "Beleidigung oder Herabwürdigung"
-        FALSCH = "falsch", "Nachweislich falsche Tatsachenbehauptung"
-        THEMA = "thema", "Kein Bezug zum Antrag"
-        RECHT = "recht", "Rechtswidriger Inhalt"
-        SONST = "sonst", "Sonstiges"
+        BELEIDIGUNG = "beleidigung", _("Beleidigung oder Herabwürdigung")
+        FALSCH = "falsch", _("Nachweislich falsche Tatsachenbehauptung")
+        THEMA = "thema", _("Kein Bezug zum Antrag")
+        RECHT = "recht", _("Rechtswidriger Inhalt")
+        SONST = "sonst", _("Sonstiges")
 
     kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="meldungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)

@@ -1,10 +1,17 @@
 """Audit-Log als Hash-Kette: Manipulationserkennung ohne Blockchain-Theater.
 
-Jedes verfahrensrelevante Ereignis wird als Eintrag protokolliert. Der Hash
-eines Eintrags versiegelt den Hash des Vorgängers plus den kanonisch
-serialisierten Ereignisinhalt. Wer irgendeinen alten Eintrag verändert,
-verändert damit zwangsläufig alle nachfolgenden Hashes — und der täglich
-veröffentlichte Kettenkopf (Website und Repository) passt nicht mehr.
+Verfahrensrelevante Ereignisse werden als Einträge protokolliert (Phasenwechsel,
+Stimmen, Rollen, Beschlüsse, Registeränderungen; Unterstützungen und ihr Rückzug
+bisher nicht — siehe Befund #27/#57). Der Hash eines Eintrags versiegelt den Hash
+des Vorgängers plus den kanonisch serialisierten Ereignisinhalt, seit 0.45 samt
+Zeitstempel. Wer irgendeinen alten Eintrag verändert, verändert damit
+zwangsläufig alle nachfolgenden Hashes.
+
+Was die Kette heute leistet — und was nicht: Sie erkennt jede Änderung, die nicht
+bis zum Kopf nachgerechnet wurde. Ein extern veröffentlichter Kettenkopf, gegen
+den man einen vollständig neu gerechneten Kopf vergleichen könnte, ist geplant
+(F-22, ADR-005), aber noch nicht gebaut; bis dahin schützt die Kette vor stillen
+Änderungen, nicht vor jemandem mit Schreibzugriff, der alles neu rechnet.
 
 Das Verfahren ist absichtlich in ~60 Zeilen erklärbar: "Jeder Eintrag
 versiegelt alle vorherigen." Mehr Kryptografie braucht es für diesen Zweck

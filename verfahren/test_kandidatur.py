@@ -12,7 +12,9 @@ from plattform_core.tally import AuszaehlungsFehler, personenwahl_auszaehlen
 from verfahren.models import (
     Antrag,
     Antragsart,
+    AuditEintrag,
     BewerbungsFehler,
+    BewerbungsZustimmung,
     StimmabgabeFehler,
     antrag_einbringen,
     bewerbung_einreichen,
@@ -127,10 +129,36 @@ def test_zustimmung_ist_umschaltbar_und_pseudonym(ordnung):  # noqa: F811
     assert bewerbung_zustimmen(antrag, bernd, b1) is True
     assert bewerbung_zustimmen(antrag, bernd, b2) is True  # Zustimmungswahl: mehrere möglich
     assert bewerbung_zustimmen(antrag, bernd, b2) is False  # Umschalter: zurückgenommen
-    assert b1.zustimmungen.count() == 1 and b2.zustimmungen.count() == 0
+    # Befund #27: Die Rücknahme löscht nicht (Grundregel 7) — die Zeile trägt einen Stempel und zählt nicht mehr.
+    assert b1.zustimmungen.count() == 1 and b2.zustimmungen.count() == 1
+    assert BewerbungsZustimmung.gueltige().filter(bewerbung=b1).count() == 1
+    assert BewerbungsZustimmung.gueltige().filter(bewerbung=b2).count() == 0
+    assert b2.zustimmungen.get().zurueckgenommen_am is not None
     zustimmung = b1.zustimmungen.get()
     register = antrag.stimmregister.get(mitglied=bernd)
     assert zustimmung.pseudonym == register.pseudonym  # geheim: nur das Pseudonym steht in der Liste
+    typen = [e.ereignis["typ"] for e in AuditEintrag.objects.all() if e.ereignis["typ"].startswith("personenwahl")]
+    assert typen == ["personenwahl_stimme", "personenwahl_stimme", "personenwahl_stimme_zurueckgenommen"]
+    # Erneut zustimmen hebt den Stempel wieder auf — dieselbe Zeile, kein Duplikat.
+    assert bewerbung_zustimmen(antrag, bernd, b2) is True
+    assert b2.zustimmungen.count() == 1 and b2.zustimmungen.get().zurueckgenommen_am is None
+
+
+def test_eine_zurueckgenommene_zustimmung_zaehlt_nicht(ordnung):  # noqa: F811
+    """Befund #27: Die Auszählung liest nur gültige Zustimmungen — und aus Audit plus Datenbank
+    lässt sich nachvollziehen, dass zurückgenommen wurde, nicht verloren."""
+    autor, anna, bernd = mitglied_anlegen("autor"), mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _kandidatur(ordnung, autor)
+    b1 = bewerbung_einreichen(antrag, anna, "A")
+    b2 = bewerbung_einreichen(antrag, autor, "B")
+    _in_abstimmung(antrag, [anna, bernd])
+    bewerbung_zustimmen(antrag, bernd, b1)
+    bewerbung_zustimmen(antrag, bernd, b2)
+    bewerbung_zustimmen(antrag, anna, b2)
+    bewerbung_zustimmen(antrag, anna, b2)  # zurückgenommen
+    wahl = antrag.kandidatur_auszaehlen()
+    stimmen = {p.bewerbung_id: p.stimmen for p in wahl.plaetze}
+    assert stimmen == {b1.pk: 1, b2.pk: 1} and wahl.gewonnen_id == b1.pk
 
 
 def test_zurueckgezogene_bewerbung_ist_nicht_waehlbar(ordnung):  # noqa: F811

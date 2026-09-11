@@ -130,6 +130,27 @@ def test_aendern_nur_fuenf_minuten_zurueckziehen_laesst_den_faden_stehen(client,
     assert "Antwort darauf." in inhalt  # die Antwort darunter bleibt
 
 
+def test_das_bearbeitungsfenster_kommt_aus_dem_register(client, ordnung):  # noqa: F811
+    """Befund #69: Das Register führte „chat-bearbeitungsfenster-minuten“ als Stellgröße, der
+    Code verglich mit einer harten Konstante — das Register sagte 15, die Plattform tat 5."""
+    from parameter.models import Parameter
+
+    anna = mitglied_anlegen("anna")
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, "Erst so gemeint.")
+    Kommentar.objects.filter(pk=beitrag.pk).update(erstellt_am=timezone.now() - timedelta(minutes=8))
+    beitrag.refresh_from_db()
+    assert Kommentar.bearbeitungsfenster_minuten() == 5 and not beitrag.darf_bearbeiten(anna)
+    Parameter.objects.create(
+        schluessel="chat-bearbeitungsfenster-minuten", wert="15", beschreibung="x", quelle="Test"
+    )
+    assert Kommentar.bearbeitungsfenster_minuten() == 15 and beitrag.darf_bearbeiten(anna)
+    client.force_login(anna)
+    client.post(reverse("verfahren:beitrag_bearbeiten", args=[antrag.pk, beitrag.pk]), {"text": "Nach acht Minuten korrigiert."})
+    beitrag.refresh_from_db()
+    assert beitrag.text == "Nach acht Minuten korrigiert."
+
+
 def test_melden_geht_an_die_verwaltung_und_ist_auditiert(client, ordnung):  # noqa: F811
     anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
     antrag = _antrag(ordnung, anna)

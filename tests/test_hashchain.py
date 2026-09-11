@@ -69,6 +69,17 @@ def test_eine_gegabelte_kette_wird_gemeldet_statt_kaschiert():
         vorgaenger_zuordnen(["h1", "h1", "h2"])  # zwei Einträge mit identischem Hash → zwei am selben Kopf
 
 
+def test_die_offenlegung_verspricht_keine_veroeffentlichung_die_es_nicht_gibt():
+    """Befund #57: Die Modul-Docstring — auf /regeln/ als Offenlegung nach § 2 Abs 6 verzeichnet —
+    stützte die Manipulationserkennung auf einen „täglich veröffentlichten Kettenkopf“, den
+    kein Codepfad erzeugt. Öffentliche Texte sagen, was der Code tut."""
+    from plattform_core import hashchain
+
+    text = hashchain.__doc__
+    assert "täglich" not in text and "veröffentlichte Kettenkopf" not in text
+    assert "geplant" in text and "noch nicht gebaut" in text
+
+
 def test_kanonisierung_ist_reihenfolgeunabhaengig():
     a = ereignis_hash(GENESIS, {"a": 1, "b": 2})
     b = ereignis_hash(GENESIS, {"b": 2, "a": 1})

@@ -55,6 +55,43 @@ def test_die_nummer_ist_zitierfaehig_und_zaehlt_je_gremium_und_jahr():
     assert dritte.nummer == f"IR-{jahr}-01"  # je Gremium eine eigene Zählung
 
 
+def test_bei_vergebener_nummer_wird_neu_gezaehlt(monkeypatch):
+    """Befund #72: `select_for_update().count()` sperrte nichts — zwei Worker zählten dieselbe
+    Zahl, und der zweite scheiterte mit HTTP 500. Das Wettrennen im Zeitraffer: Zwischen Zählen
+    und Schreiben schiebt ein Konkurrent dieselbe Nummer ein; `save` bekommt den IntegrityError,
+    zählt neu und vergibt die nächste."""
+    import gremien.models as gm
+
+    erste = beschluss_anlegen()
+    echte = gm.beschlussnummer
+    vergeben = []
+
+    def ueberholt(gremium, jahr, laufend):
+        nummer = echte(gremium, jahr, laufend)
+        vergeben.append(nummer)
+        if len(vergeben) == 1:
+            GremienBeschluss.objects.create(
+                gremium=gremium, gegenstand="Konkurrent", optionen=OPTIONEN, angelegt_von=erste.angelegt_von, nummer=nummer
+            )
+        return nummer
+
+    monkeypatch.setattr(gm, "beschlussnummer", ueberholt)
+    dritter = beschluss_anlegen()
+    assert vergeben == [erste.nummer[:-2] + "02", erste.nummer[:-2] + "03"]
+    assert dritter.nummer == vergeben[1]
+    assert GremienBeschluss.objects.filter(nummer=vergeben[0]).count() == 1
+    assert GremienBeschluss.objects.count() == 3
+
+
+def test_die_nummer_traegt_das_wiener_jahr():
+    """Befund #73/#76: Am 1. Jänner um 00:40 MEZ ist es in UTC noch der 31. Dezember — die Nummer
+    nannte das alte Jahr, die Begründung am Antrag das neue."""
+    from datetime import UTC, datetime
+
+    beschluss = beschluss_anlegen(angelegt_am=datetime(2026, 12, 31, 23, 40, tzinfo=UTC))
+    assert beschluss.nummer == "KR-2027-01"
+
+
 def test_die_nummer_bleibt_beim_speichern_stehen():
     """Sonst wanderte die Kennung unter einer Begründung weg, die sie zitiert."""
     b = beschluss_anlegen()

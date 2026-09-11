@@ -31,8 +31,9 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
@@ -51,12 +52,12 @@ def _registerzahl(schluessel: str, standard: int) -> int:
 
 
 class Gremium(models.TextChoices):
-    EXPERTENRAT_1 = "expertenrat1", "Expertenrat — Gruppe 1 (Entwurf)"
-    EXPERTENRAT_2 = "expertenrat2", "Expertenrat — Gruppe 2 (Prüfung)"
-    KOORDINATIONSRAT = "koordinationsrat", "Koordinationsrat"
-    INTEGRITAETSRAT = "integritaetsrat", "Integritätsrat"
-    BERICHTSWESENRAT = "berichtswesenrat", "Integrations- und Berichtswesenrat"
-    ENTWICKLUNGSRAT = "entwicklungsrat", "Technischer Entwicklungsrat"
+    EXPERTENRAT_1 = "expertenrat1", _("Expertenrat — Gruppe 1 (Entwurf)")
+    EXPERTENRAT_2 = "expertenrat2", _("Expertenrat — Gruppe 2 (Prüfung)")
+    KOORDINATIONSRAT = "koordinationsrat", _("Koordinationsrat")
+    INTEGRITAETSRAT = "integritaetsrat", _("Integritätsrat")
+    BERICHTSWESENRAT = "berichtswesenrat", _("Integrations- und Berichtswesenrat")
+    ENTWICKLUNGSRAT = "entwicklungsrat", _("Technischer Entwicklungsrat")
 
 
 class Rolle(models.Model):
@@ -274,7 +275,7 @@ class Entwurf(models.Model):
         voten = list(self.unterstuetzer_voten.filter(runde=self.runde))
         annahmen = sum(1 for v in voten if v.annehmen)
         rueckgaben = len(voten) - annahmen
-        unterstuetzer = self.antrag.unterstuetzungen.count()
+        unterstuetzer = self.antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
         return {"annahmen": annahmen, "rueckgaben": rueckgaben, "unterstuetzer": unterstuetzer}
 
     def haelt_beratung_offen(self, jetzt=None) -> bool:
@@ -724,9 +725,9 @@ class Pruefung(models.Model):
         `verfristet` heißt, die Prüffrist verstrich ohne Beschluss und der Vorschlag ging weiter
         (§ 5 Abs 12). Ein späterer Beschluss ändert daran nichts mehr."""
 
-        STATTGEGEBEN = "stattgegeben", "stattgegeben"
-        ABGELEHNT = "abgelehnt", "abgelehnt"
-        VERFRISTET = "verfristet", "keine Entscheidung binnen der Frist"
+        STATTGEGEBEN = "stattgegeben", _("stattgegeben")
+        ABGELEHNT = "abgelehnt", _("abgelehnt")
+        VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
     runde = models.PositiveIntegerField()
@@ -801,21 +802,21 @@ class Anlass(models.TextChoices):
     ausschließlich hierüber. Neue Anlässe kommen erst, wenn ihre Wirkung gebaut ist — ein Anlass
     ohne Wirkung wäre ein Knopf, der schweigend nichts tut."""
 
-    INTERN = "intern", "innere Angelegenheit des Rates"
-    PRUEFUNG = "pruefung", "Prüfung eines Vorschlags (§ 6 Abs 7)"
-    HERVORHEBUNG = "hervorhebung", "Hervorhebung eines Antrags (§ 5 Abs 10 lit b)"
-    HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", "Hervorhebung aufheben (§ 5 Abs 10 lit b)"
-    ZURUECKWEISUNG = "zurueckweisung", "Zurückweisung eines Antrags (§ 5 Abs 2)"
-    ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", "Zurückweisung aufheben (§ 5 Abs 2)"
-    AUSSETZUNG = "aussetzung", "Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)"
-    AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", "Aussetzung aufheben (§ 6 Abs 3 lit d)"
-    REGELPRUEFUNG = "regelpruefung", "Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)"
-    EINREICHUNG = "einreichung", "Einreichung eines Vorschlags (§ 5 Abs 12)"
-    AUSTAUSCH = "austausch", "Austausch der Gruppe 1 (§ 6 Abs 7)"
-    HERVORHEBUNG_ANREGEN = "hervorhebung_anregen", "Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)"
-    UEBERLASTUNG = "ueberlastung", "Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)"
-    PARAMETERTEST = "parametertest", "Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)"
-    PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", "Einführung eines Registerwerts (§ 6 Abs 11 lit c)"
+    INTERN = "intern", _("innere Angelegenheit des Rates")
+    PRUEFUNG = "pruefung", _("Prüfung eines Vorschlags (§ 6 Abs 7)")
+    HERVORHEBUNG = "hervorhebung", _("Hervorhebung eines Antrags (§ 5 Abs 10 lit b)")
+    HERVORHEBUNG_AUFHEBEN = "hervorhebung_aufheben", _("Hervorhebung aufheben (§ 5 Abs 10 lit b)")
+    ZURUECKWEISUNG = "zurueckweisung", _("Zurückweisung eines Antrags (§ 5 Abs 2)")
+    ZURUECKWEISUNG_AUFHEBEN = "zurueckweisung_aufheben", _("Zurückweisung aufheben (§ 5 Abs 2)")
+    AUSSETZUNG = "aussetzung", _("Abstimmung oder Vollzug aussetzen (§ 6 Abs 3 lit d)")
+    AUSSETZUNG_AUFHEBEN = "aussetzung_aufheben", _("Aussetzung aufheben (§ 6 Abs 3 lit d)")
+    REGELPRUEFUNG = "regelpruefung", _("Jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6)")
+    EINREICHUNG = "einreichung", _("Einreichung eines Vorschlags (§ 5 Abs 12)")
+    AUSTAUSCH = "austausch", _("Austausch der Gruppe 1 (§ 6 Abs 7)")
+    HERVORHEBUNG_ANREGEN = "hervorhebung_anregen", _("Hervorhebung beim Integritätsrat beantragen (§ 5 Abs 10 lit b)")
+    UEBERLASTUNG = "ueberlastung", _("Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)")
+    PARAMETERTEST = "parametertest", _("Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)")
+    PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", _("Einführung eines Registerwerts (§ 6 Abs 11 lit c)")
 
 
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
@@ -853,9 +854,9 @@ def beschlussnummer(gremium: str, jahr: int, laufend: int) -> str:
 class BeschlussStatus(models.TextChoices):
     """Wo ein interner Beschluss steht (FB-I4)."""
 
-    OFFEN = "offen", "offen"
-    ENTSCHIEDEN = "entschieden", "entschieden"
-    OHNE_ERGEBNIS = "ohne_ergebnis", "ohne Ergebnis (Frist abgelaufen)"
+    OFFEN = "offen", _("offen")
+    ENTSCHIEDEN = "entschieden", _("entschieden")
+    OHNE_ERGEBNIS = "ohne_ergebnis", _("ohne Ergebnis (Frist abgelaufen)")
 
 
 class GremienBeschluss(models.Model):
@@ -928,27 +929,49 @@ class GremienBeschluss(models.Model):
         ordering = ["-angelegt_am"]
         verbose_name = "Gremienbeschluss"
         verbose_name_plural = "Gremienbeschlüsse"
+        # `faellige_abschliessen` filtert bei jedem öffentlichen Gremien-Aufruf auf Status und Frist (Befund #81).
+        indexes = [models.Index(fields=["status", "frist"], name="beschluss_status_frist_idx")]
 
     def __str__(self) -> str:
         return f"{self.nummer or self.get_gremium_display()}: {self.gegenstand}"
 
+    #: Wie oft `save` bei einer vergebenen Nummer neu zählt, bevor es aufgibt.
+    NUMMERN_VERSUCHE = 3
+
     def save(self, *args, **kwargs):
         """Vergibt beim ersten Speichern die Beschlussnummer.
 
-        In einer Transaktion und mit `unique=True` abgesichert: Zwei gleichzeitig angelegte
-        Beschlüsse desselben Rates bekämen sonst dieselbe Nummer, und eine Nummer, die zweimal
-        vorkommt, ist keine."""
-        if not self.nummer:
-            with transaction.atomic():
-                jahr = (self.angelegt_am or timezone.now()).year
-                bisher = (
-                    GremienBeschluss.objects.select_for_update()
-                    .filter(gremium=self.gremium, nummer__startswith=f"{GREMIUMSKUERZEL.get(self.gremium, 'GR')}-{jahr}-")
-                    .count()
-                )
-                self.nummer = beschlussnummer(self.gremium, jahr, bisher + 1)
-                return super().save(*args, **kwargs)
-        return super().save(*args, **kwargs)
+        Abgesichert ist die Nummer allein durch `unique=True` — eine Sperre gibt es nicht:
+        Django lässt `select_for_update()` bei Aggregaten fallen, und eine Zeilensperre hielte
+        ohnehin keine zweite Einfügung auf (Befund #72). Wer bei einem Wettrennen die vergebene
+        Nummer erwischt, bekommt den IntegrityError, zählt neu und versucht es noch einmal —
+        außerhalb des inneren Savepoints, damit eine äußere Transaktion benutzbar bleibt.
+
+        Das Jahr ist das des Wiener Kalenders, nicht das UTC-Jahr: In der ersten Stunde des
+        1. Jänner trüge die Nummer sonst das alte Jahr, während die Begründung am Antrag das neue
+        nennt (Befund #73/#76). Vergebene Nummern bleiben, wie sie sind."""
+        if self.nummer:
+            return super().save(*args, **kwargs)
+        jahr = timezone.localtime(self.angelegt_am or timezone.now()).year
+        for _versuch in range(self.NUMMERN_VERSUCHE):
+            self.nummer = self._naechste_nummer(jahr)
+            try:
+                with transaction.atomic():
+                    return super().save(*args, **kwargs)
+            except IntegrityError:
+                continue
+        raise IntegrityError(
+            f"Beschlussnummer: {self.NUMMERN_VERSUCHE}-mal hintereinander vergeben — Beschluss nicht angelegt."
+        )
+
+    def _naechste_nummer(self, jahr: int) -> str:
+        """Die nächste freie Nummer je Gremium und Jahr — höchste vergebene plus eins."""
+        praefix = f"{GREMIUMSKUERZEL.get(self.gremium, 'GR')}-{jahr}-"
+        vergeben = GremienBeschluss.objects.filter(gremium=self.gremium, nummer__startswith=praefix).values_list(
+            "nummer", flat=True
+        )
+        hoechste = max((int(n.rsplit("-", 1)[1]) for n in vergeben if n.rsplit("-", 1)[1].isdigit()), default=0)
+        return beschlussnummer(self.gremium, jahr, hoechste + 1)
 
     @property
     def offen(self) -> bool:
@@ -1334,8 +1357,8 @@ class Aussetzung(models.Model):
     die Fristen des Antrags verschoben, und wer das Verfahren nachrechnet, muss sie finden."""
 
     class Gegenstand(models.TextChoices):
-        ABSTIMMUNG = "abstimmung", "laufende Abstimmung"
-        VOLLZUG = "vollzug", "Vollzug eines Beschlusses"
+        ABSTIMMUNG = "abstimmung", _("laufende Abstimmung")
+        VOLLZUG = "vollzug", _("Vollzug eines Beschlusses")
 
     antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="aussetzungen")
     gegenstand = models.CharField(max_length=12, choices=Gegenstand.choices)
@@ -1391,8 +1414,8 @@ class Regelpruefung(models.Model):
     die Prüfung das Verzeichnis ein, wie es zum Zeitpunkt des Beschlusses stand."""
 
     class Ergebnis(models.TextChoices):
-        GEPRUEFT = "geprueft", "geprüft, keine Beanstandung"
-        BEANSTANDET = "beanstandet", "beanstandet"
+        GEPRUEFT = "geprueft", _("geprüft, keine Beanstandung")
+        BEANSTANDET = "beanstandet", _("beanstandet")
 
     jahr = models.PositiveIntegerField()
     beschluss = models.OneToOneField(
@@ -1597,6 +1620,7 @@ class Fachliste(models.Model):
         ordering = ["schluessel"]
         verbose_name = "Fachlisten-Eintrag"
         verbose_name_plural = "Fachliste"
+        indexes = [models.Index(fields=["gestrichen_am"], name="fachliste_gestrichen_idx")]  # Sortierfeld der Liste
 
     def __str__(self) -> str:
         return f"{self.schluessel}: {self.anzeigename}"
@@ -1910,17 +1934,17 @@ class WunschVermerk(models.Model):
 
 
 class HinweisQuelle(models.TextChoices):
-    PARAMETERTEST = "parametertest", "Auswertung eines Parametertests"
-    HERVORHEBUNG = "hervorhebung", "Kandidat für Hervorhebung"
-    MUSTER = "muster", "Muster-Bericht"
-    LAST = "last", "Lastwarnung"
+    PARAMETERTEST = "parametertest", _("Auswertung eines Parametertests")
+    HERVORHEBUNG = "hervorhebung", _("Kandidat für Hervorhebung")
+    MUSTER = "muster", _("Muster-Bericht")
+    LAST = "last", _("Lastwarnung")
 
 
 class HinweisStatus(models.TextChoices):
-    OFFEN = "offen", "offen"
-    BESCHLUSS = "beschluss", "Beschluss angelegt"
-    VERWORFEN = "verworfen", "verworfen"
-    KENNTNIS = "kenntnis", "zur Kenntnis genommen"
+    OFFEN = "offen", _("offen")
+    BESCHLUSS = "beschluss", _("Beschluss angelegt")
+    VERWORFEN = "verworfen", _("verworfen")
+    KENNTNIS = "kenntnis", _("zur Kenntnis genommen")
 
 
 class Hinweis(models.Model):

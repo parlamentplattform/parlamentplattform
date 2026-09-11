@@ -17,6 +17,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from verfahren.models import Antrag, Ebene
 
@@ -84,9 +85,9 @@ class Mandat(models.Model):
 
 
 class Aufgabenstatus(models.TextChoices):
-    OFFEN = "offen", "offen"
-    LAUFEND = "laufend", "laufend"
-    ERLEDIGT = "erledigt", "erledigt"
+    OFFEN = "offen", _("offen")
+    LAUFEND = "laufend", _("laufend")
+    ERLEDIGT = "erledigt", _("erledigt")
 
 
 class Aufgabe(models.Model):

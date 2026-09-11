@@ -260,8 +260,11 @@ def test_hochstufung_raeumt_den_chat_ohne_zu_loeschen(client, ordnung):  # noqa:
     inhalt = _seite(client, antrag)
     faden = inhalt.split('<div class="faden">', 1)[1].split("</div>\n\n", 1)[0]
     assert "Beitrag in der Unterstützungsphase." not in faden, "aus dem laufenden Chat verschwunden"
-    assert "Beitrag in der Unterstützungsphase." in inhalt, "im Archiv weiter lesbar (FB-G7)"
     assert "2 Beiträge aus der vorigen Phase liegen im Archiv." in inhalt
+    # Das Archiv zeigt zuerst die Zahl und holt die Beiträge auf Wunsch (?archiv=<phase>, Befund #42)
+    assert f'href="/antrag/{antrag.pk}/?archiv=unterstuetzung#archiv-unterstuetzung"' in inhalt
+    archiv = client.get(reverse("verfahren:antrag", args=[antrag.pk]) + "?archiv=unterstuetzung").content.decode()
+    assert "Beitrag in der Unterstützungsphase." in archiv, "im Archiv weiter lesbar (FB-G7)"
     letzter = AuditEintrag.objects.order_by("-lfd").first()
     assert letzter.ereignis["typ"] == "phasenwechsel" and letzter.ereignis["chat_archiviert"] == 2
 
@@ -395,3 +398,108 @@ def test_gespraechsseite_laedt_die_gespraeche_nur_einmal(client, ordnung):  # no
     antworten = [q["sql"] for q in ctx.captured_queries if '"verfahren_kommentar"."antwort_auf_id" IS NOT NULL' in q["sql"]]
     assert len(antworten) == 1, antworten
     assert 'class="g-zaehler">1<' in seite and "Ungelesen · 1" in seite, "Griff und Filter zeigen denselben Zähler"
+
+
+# ── Der Faden als Fenster (Befund #42) ────────────────────────────────────────
+
+
+def _register(schluessel, wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel=schluessel, defaults={"wert": str(wert), "beschreibung": "Test", "quelle": "Test"}
+    )
+
+
+def _faden_html(seite: str) -> str:
+    return seite.split('<div class="faden">', 1)[1].split('class="chatzeile"', 1)[0]
+
+
+def test_faden_zeigt_ein_fenster_und_holt_aeltere_ueber_ab(client, ordnung):  # noqa: F811
+    """Der Faden lud alle laufenden Beiträge samt Reaktionen bei jedem Aufruf — bei 100.000
+    Beiträgen war die Seite nicht mehr erreichbar (F-20). Jetzt zeigt er die jüngsten n
+    Wurzelbeiträge samt Antworten; ältere kommen über ?ab=<pk> — ein Link, der ohne JavaScript
+    eine Seite ist und mit htmx das ältere Fenster davor einhängt (Grundregel 3)."""
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    _register("chat-faden-wurzeln", 3)
+    wurzeln = [chatkern.beitrag_schreiben(antrag, anna, f"Wurzel {i}.") for i in range(7)]
+    chatkern.beitrag_schreiben(antrag, bernd, "Antwort auf die aelteste.", wurzeln[0])
+    client.force_login(bernd)
+
+    faden = _faden_html(_seite(client, antrag))
+    assert all(f"Wurzel {i}." in faden for i in (4, 5, 6)), "die jüngsten drei Wurzelbeiträge"
+    assert not any(f"Wurzel {i}." in faden for i in (0, 1, 2, 3))
+    assert "4 ältere Beiträge zeigen" in faden
+    assert f'href="/antrag/{antrag.pk}/?ab={wurzeln[4].pk}#chat-faden"' in faden
+    assert 'hx-select="#chat-faden .faden-fenster"' in faden and "Zu den neuesten" not in faden
+
+    ziel = reverse("verfahren:antrag", args=[antrag.pk])
+    faden = _faden_html(client.get(f"{ziel}?ab={wurzeln[4].pk}").content.decode())
+    assert all(f"Wurzel {i}." in faden for i in (1, 2, 3)) and "Wurzel 4." not in faden
+    assert "Einen älteren Beitrag zeigen" in faden and f"?ab={wurzeln[1].pk}#chat-faden" in faden
+    assert "Zu den neuesten Beiträgen" in faden, "der Weg zurück ohne JavaScript"
+
+    faden = _faden_html(client.get(f"{ziel}?ab={wurzeln[1].pk}").content.decode())
+    assert "Wurzel 0." in faden and "Antwort auf die aelteste." in faden, "Antworten hängen an ihrem Fenster"
+    assert "ältere" not in faden.split("Wurzel 0.")[0], "nichts mehr davor"
+    assert len(chatkern.faden(antrag, bernd)) == 7, "der ganze Faden bleibt für Rechnungen abrufbar"
+
+
+def test_antragsseite_fragt_unabhaengig_von_der_zahl_der_beitraege(client, ordnung):  # noqa: F811
+    """Faden und Archiv luden jeden Beitrag des Antrags dreimal mit allen Reaktionen; jetzt kommen
+    Zähler aus SQL, der Faden als Fenster, das Archiv als Anzahl je Phase (Befund #42)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    leute = [mitglied_anlegen(f"m{i}") for i in range(4)]
+    antrag = _antrag(ordnung, leute[0])
+    _register("chat-faden-wurzeln", 5)
+
+    def schreiben(n, ab):
+        for i in range(n):
+            w = chatkern.beitrag_schreiben(antrag, leute[i % 4], f"Beitrag {ab + i}.")
+            chatkern.beitrag_schreiben(antrag, leute[(i + 1) % 4], "Antwort.", w)
+            chatkern.reaktion_umschalten(w, leute[(i + 2) % 4])
+
+    def abfragen():
+        with CaptureQueriesContext(connection) as ctx:
+            client.get(reverse("verfahren:antrag", args=[antrag.pk]))
+        return len(ctx.captured_queries), [q["sql"] for q in ctx.captured_queries]
+
+    client.force_login(leute[1])
+    schreiben(3, 0)
+    wenig, _sql = abfragen()
+    schreiben(40, 100)
+    viel, sql = abfragen()
+    assert viel == wenig, f"{wenig} Abfragen bei 6 Beiträgen, {viel} bei 86"
+    vorgeladen = [q for q in sql if '"verfahren_reaktion"."kommentar_id" IN (' in q and "mitglied_id" not in q]
+    assert not vorgeladen, "keine vorgeladenen Reaktionen mehr — Zustimmungen kommen als Zähler"
+
+
+def test_abstimmungschat_fenster_folgt_der_reihung(client, ordnung):  # noqa: F811
+    """Im Abstimmungs-Chat steht oben, was am meisten bewegt (FB-G6): Das Fenster zeigt die
+    vordersten der Reihung, ?ab=<pk> die nächsten dahinter — die Reihung rechnet über alle
+    Wurzelbeiträge, aber nur über ihre Zahlen."""
+    from gremien.test_werkstatt import einreichen, reagieren, systembeitrag, werkstatt_lage
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    still = chatkern.beitrag_schreiben(antrag, unterstuetzer[0], "Ohne Reaktion.")
+    bewegt = chatkern.beitrag_schreiben(antrag, unterstuetzer[1], "Das bewegt am meisten.")
+    for u in unterstuetzer:
+        reagieren(client, antrag, bewegt, u)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    _register("chat-faden-wurzeln", 2)
+    client.force_login(unterstuetzer[0])
+
+    faden = _faden_html(_seite(client, antrag))
+    assert "Das bewegt am meisten." in faden and "Passt alles" in faden and "Ohne Reaktion." not in faden
+    assert faden.index("Das bewegt am meisten.") < faden.index("Passt alles"), "Engagement zuerst"
+    assert "Einen weiteren Beitrag zeigen" in faden and f"?ab={passt.pk}#chat-faden" in faden
+    ziel = reverse("verfahren:antrag", args=[antrag.pk])
+    faden = _faden_html(client.get(f"{ziel}?ab={passt.pk}").content.decode())
+    assert "Ohne Reaktion." in faden and "Das bewegt am meisten." not in faden
+    assert "Zum Anfang der Reihung" in faden
+    assert still.pk in [e["k"].pk for e in chatkern.faden(antrag, unterstuetzer[0], nach_engagement=True)]

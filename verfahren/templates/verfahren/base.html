@@ -548,7 +548,10 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 @media print{header,footer,nav,.tabs,.band,.anstoss-fleck{display:none}body{background:var(--papier)}main{padding:0}}
 /* Reduzierte Bewegung — ein Block für alles (Spec 2.4) */
 /* ── Das Chatsystem (FB-G1): Sprechblasen im Faden, klebende Eingabezeile ── */
-.faden{display:flex;flex-direction:column;gap:10px}
+.faden,.faden-fenster{display:flex;flex-direction:column;gap:10px}
+.faden-mehr{margin:0;font-size:13px;text-align:center}
+.faden-mehr a{color:var(--deep)}
+.archiv-laden{margin:6px 0 0;font-size:13.5px}
 .blase{display:flex;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
 .blase.eigen{border-left:3px solid var(--gold)}
 .blase.neu{background:color-mix(in srgb,var(--gold) 6%,var(--surface))}

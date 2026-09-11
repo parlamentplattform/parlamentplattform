@@ -788,9 +788,10 @@ def _antwort_vorgabe(antrag, roh):
     )
 
 
-def _chat_lage(antrag, nutzer) -> dict:
-    """Zone 3 (FB-G1, G2, G5): der laufende Faden, was neu ist, ob geschrieben werden darf und
-    wie viele Beiträge im Archiv der vorigen Phasen liegen."""
+def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
+    """Zone 3 (FB-G1, G2, G5): ein Fenster des laufenden Fadens (`ab` = ältere bzw. weitere
+    Beiträge, Befund #42), was neu ist, ob geschrieben werden darf und wie viele Beiträge im
+    Archiv der vorigen Phasen liegen."""
     from verfahren import chat as chatkern
 
     archiviert = antrag.kommentare.filter(archiviert_am__isnull=False).count()
@@ -801,8 +802,13 @@ def _chat_lage(antrag, nutzer) -> dict:
     from verfahren.models import Meldung
 
     entwurf = chatkern.abstimmungschat(antrag)
+    fenster = chatkern.faden_fenster(antrag, nutzer, nach_engagement=entwurf is not None, ab=ab)
     lage = {
-        "faden": chatkern.faden(antrag, nutzer, nach_engagement=entwurf is not None),
+        "faden": fenster["faden"],
+        "faden_mehr": fenster["mehr"],
+        "faden_mehr_ab": fenster["mehr_ab"],
+        "faden_richtung": fenster["richtung"],
+        "faden_ab": fenster["ab"],
         "meldegruende": Meldung.Grund.choices,
         "anzahl": antrag.kommentare.filter(archiviert_am__isnull=True).count(),
         "neue": chatkern.neue_zaehlen(antrag, nutzer),
@@ -844,14 +850,15 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
 
 
 
-def _archiv_lage(antrag) -> dict:
-    """Zone „Archiv" (FB-G7): die Zeitleiste, die Werkstattrunden und die Audit-Spur."""
+def _archiv_lage(antrag, geoeffnet: str | None = None) -> dict:
+    """Zone „Archiv" (FB-G7): die Zeitleiste, die Werkstattrunden und die Audit-Spur.
+    `geoeffnet` (?archiv=<phase>) ist die eine Phase, deren Beiträge mitkommen (Befund #42)."""
     from verfahren import archiv as archivkern
 
     alle = archivkern.audit_spur(antrag)
     anzeige = archivkern.audit_anzeige()  # einmal lesen, nicht zweimal (Befund #41)
     return {
-        "zeitleiste": archivkern.zeitleiste(antrag),
+        "zeitleiste": archivkern.zeitleiste(antrag, geoeffnet=geoeffnet),
         "entwurf": archivkern.entwurf_bloecke(antrag),
         "audit": alle[-anzeige:],
         "audit_gesamt": len(alle),
@@ -952,7 +959,8 @@ def antrag_detail(request, pk):
     vollzug = None
     if antrag.phase == Phase.ANGENOMMEN.value:
         vollzug = list(antrag.vollzug.select_related("durch"))
-    chat = _chat_lage(antrag, request.user)
+    ab = request.GET.get("ab", "")
+    chat = _chat_lage(antrag, request.user, ab=int(ab) if ab.isdigit() else None)
     chat["antwort_vorgabe"] = _antwort_vorgabe(antrag, request.GET.get("antwort_auf"))
     return render(
         request,
@@ -977,7 +985,7 @@ def antrag_detail(request, pk):
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.count(),
             "chat": chat,
-            "archiv": _archiv_lage(antrag),
+            "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
             "frist": frist,
             "aussetzung": aussetzung,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,

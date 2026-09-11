@@ -40,7 +40,13 @@ Formular mit Ankersprung, der Diff steht in einem <details>. „Antworten“ ist
   </article>
   {% endwith %}{% endif %}
 
+  {% comment %}Der Faden ist ein Fenster (Befund #42): chronologisch die jüngsten Wurzelbeiträge, ältere
+  über den Link oben (?ab=<pk>) — ohne JavaScript eine Seite, mit htmx wird das ältere Fenster davor
+  eingehängt; im Abstimmungs-Chat die vordersten der Reihung, weitere über den Link unten.{% endcomment %}
   <div class="faden">
+    {% if chat.faden_ab %}<p class="faden-mehr zurueck"><a href="{% url 'verfahren:antrag' antrag.pk %}#chat-faden">{% if chat.faden_richtung == "weiter" %}{% translate "Zum Anfang der Reihung" %}{% else %}{% translate "Zu den neuesten Beiträgen" %}{% endif %}</a></p>{% endif %}
+    <div class="faden-fenster">
+    {% if chat.faden_mehr and chat.faden_richtung == "aelter" %}{% include "verfahren/_chat_mehr.html" %}{% endif %}
     {% for b in chat.faden %}
       {% if b.erster_neuer %}<p class="neulinie" id="neu"><span>{% blocktranslate count n=chat.neue %}{{ n }} neuer Beitrag{% plural %}{{ n }} neue Beiträge{% endblocktranslate %}</span></p>{% endif %}
       {% include "verfahren/_chat_beitrag.html" with b=b %}
@@ -52,6 +58,8 @@ Formular mit Ankersprung, der Diff steht in einem <details>. „Antworten“ ist
     {% empty %}
       <p class="leer">{% if user.is_authenticated %}{% translate "Noch kein Beitrag — der erste kann Ihrer sein." %}{% else %}{% translate "Noch kein Beitrag." %}{% endif %}</p>
     {% endfor %}
+    {% if chat.faden_mehr and chat.faden_richtung == "weiter" %}{% include "verfahren/_chat_mehr.html" %}{% endif %}
+    </div>
   </div>
 
   {% if chat.offen %}

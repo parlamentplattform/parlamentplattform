@@ -55,3 +55,34 @@ def test_unbekannte_adresse_liefert_die_eigene_seite(client):
     # In Tests läuft DEBUG=False; die eigene Vorlage muss greifen
     assert "Diese Seite gibt es nicht" in inhalt, "die eigene 404-Seite wird ausgeliefert"
     assert reverse("verfahren:parlament") in inhalt, "mit einem Weg zurück"
+
+
+def test_csrf_fehler_zeigt_die_eigene_seite_mit_leiste():
+    """Djangos CSRF-Pfad rendert nie 403.html, sondern 403_csrf.html — fehlt sie, erscheint die
+    eingebaute englische Kastenseite ohne Leiste und ohne Weg zurück. Realistischer Auslöser: Ein
+    Formular liegt in Tab A offen, in Tab B wird neu angemeldet (das Token wechselt), Tab A sendet."""
+    antwort = Client(enforce_csrf_checks=True).post("/anstoss/", {"text": "x"})
+    assert antwort.status_code == 403
+    inhalt = antwort.content.decode()
+    assert 'lang="de"' in inhalt and "CSRF verification failed" not in inhalt
+    assert "Das Formular kam nicht durch" in inhalt and 'class="leiste' in inhalt
+    assert reverse("verfahren:parlament") in inhalt, "mit einem Weg zurück"
+
+
+def test_die_fuenfhunderter_seite_erklaert_ihre_sprache_richtig():
+    """Django rendert 500.html ohne Kontext — LANGUAGE_CODE wäre leer und `lang` bliebe „de", auch
+    wenn {% translate %} längst Englisch liefert. Sprachausgabe und Übersetzer läsen dann falsch."""
+    from django.utils import translation
+
+    for sprache, ueberschrift in (("en", "Something went wrong here"), ("de", "Hier ist etwas schiefgegangen")):
+        with translation.override(sprache):
+            html = get_template("500.html").render({})
+        assert f'lang="{sprache}"' in html and ueberschrift in html
+
+
+def test_die_fuenfhunderter_seite_verspricht_nichts_unwahres():
+    """Ohne LOGGING-Einstellung protokolliert die Anwendung mit DEBUG=0 keinen einzigen 500er —
+    die Seite darf also nicht behaupten, der Fehler sei protokolliert. Sie sagt nur, was gilt."""
+    html = get_template("500.html").render({})
+    assert "protokolliert" not in html
+    assert "Der Fehler liegt bei uns, nicht bei Ihnen." in html

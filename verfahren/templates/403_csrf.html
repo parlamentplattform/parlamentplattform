@@ -1,0 +1,22 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}{% comment %}
+Gescheiterte CSRF-Prüfung beim Absenden eines Formulars. Django rendert für diesen Fall NICHT
+403.html, sondern genau diese Vorlage (CSRF_FAILURE_TEMPLATE_NAME = "403_csrf.html"); fehlte
+sie, stünde hier Djangos eingebaute englische Kastenseite ohne Leiste und ohne Weg zurück.
+Häufigster Auslöser: Das Formular lag in einem Tab offen, während in einem anderen neu
+angemeldet wurde — beim Anmelden wechselt das CSRF-Token. Neu laden und erneut senden genügt.
+{% endcomment %}
+{% block titel %}{% translate "Formular nicht angenommen" %}{% endblock %}
+{% block inhalt %}
+<div class="fehlerseite">
+  <p class="fehlernummer" aria-hidden="true">403</p>
+  <h1>{% translate "Das Formular kam nicht durch" %}</h1>
+  <p>{% blocktranslate %}Wahrscheinlich lag das Formular zu lange offen oder Sie haben sich inzwischen in einem anderen
+Fenster neu angemeldet. Gehen Sie zurück, laden Sie die Seite neu und schicken Sie das Formular noch einmal ab —
+eingegebene Texte gehen dabei leider verloren.{% endblocktranslate %}</p>
+  <p class="fehlerwege">
+    <a class="btn" href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>
+    {% if not user.is_authenticated %}<a class="btn-linie" href="{% url 'mitglieder:login' %}">{% translate "Neu anmelden" %}</a>{% endif %}
+  </p>
+</div>
+{% endblock %}

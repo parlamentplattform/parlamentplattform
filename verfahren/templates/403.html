@@ -1,8 +1,10 @@
 {% extends "verfahren/base.html" %}
 {% load i18n %}{% comment %}
-Zugriff verweigert — meist eine abgelaufene Sitzung beim Absenden eines Formulars (CSRF).
-Ohne diese Vorlage stünde hier Djangos eigene Kastenseite in fremdem Aussehen mit englischem
-Fenstertitel. Der Weg zurück führt zur Anmeldung, nicht in eine Sackgasse.
+Zugriff verweigert (PermissionDenied, etwa aus der Verwaltung). Den CSRF-Fall rendert Django
+NICHT hierüber, sondern über 403_csrf.html — die eigenen 403-Antworten der Ansichten haben ihre
+eigenen Vorlagen (nur_bestaetigte, mitwirkung_ruht, nicht_stimmberechtigt). Ohne diese Vorlage
+stünde hier Djangos eigene Kastenseite in fremdem Aussehen mit englischem Fenstertitel. Der Weg
+zurück führt zur Anmeldung, nicht in eine Sackgasse.
 {% endcomment %}
 {% block titel %}{% translate "Zugriff nicht möglich" %}{% endblock %}
 {% block inhalt %}

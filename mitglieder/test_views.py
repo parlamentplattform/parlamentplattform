@@ -4,6 +4,7 @@ Die Tests fahren die echten HTTP-Flüsse über den Test-Client und lesen die
 Tokens aus dem Mail-Postausgang — genau wie eine echte Nutzerin."""
 
 import base64
+import json
 import re
 import time
 from datetime import date, timedelta
@@ -312,9 +313,12 @@ def test_die_seite_verraet_die_loesung_der_rechenfrage_nicht(client):
     kennung = re.search(r'name="pruefung" value="([^"]+)"', seite).group(1)
     aufgabe = client.session[SITZUNGSSCHLUESSEL][kennung]
     roh = base64.urlsafe_b64decode(kennung + "=" * (-len(kennung) % 4))
-    assert b'"a"' not in roh and b"{" not in roh
-    loesung = str(aufgabe["a"] + aufgabe["b"])
-    assert f"= {loesung}" not in seite and f'value="{loesung}"' not in seite
+    try:
+        nutzlast = json.loads(roh.decode("utf-8"))  # so war das alte Token lesbar
+    except (UnicodeDecodeError, ValueError):
+        nutzlast = None
+    assert not (isinstance(nutzlast, dict) and "a" in nutzlast)
+    assert f"= {aufgabe['a'] + aufgabe['b']}" not in seite  # das Bild zeigt „= ?“, nie die Lösung
 
 
 def test_eine_geloeste_aufgabe_traegt_kein_zweites_absenden(client):

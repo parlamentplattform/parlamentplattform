@@ -23,6 +23,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models.fields.json import KeyTransform
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -665,6 +666,11 @@ class AuditEintrag(models.Model):
         verbose_name = "Audit-Eintrag"
         verbose_name_plural = "Audit-Log"
         ordering = ["lfd"]
+        indexes = [
+            # Befund #41: Die Audit-Spur eines Antrags wird in der Datenbank gefiltert
+            # (ereignis -> 'antrag'); ohne Ausdrucksindex bliebe das ein Lauf über das ganze Log.
+            models.Index(KeyTransform("antrag", "ereignis"), name="audit_antrag_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"Audit #{self.lfd} {self.ereignis.get('typ', '?')}"

@@ -28,7 +28,7 @@ class Bundesland(models.TextChoices):
 
 class Identitaetsstufe(models.TextChoices):
     UNGEPRUEFT = "ungeprueft", "ungeprüft"
-    GEPRUEFT = "geprueft", "geprüft (Einladungscode nach Identitätsfeststellung)"
+    GEPRUEFT = "geprueft", "geprüft (Beitragseingang verbucht)"
     PRAESENZ = "praesenz", "Präsenz-Identitätsfeststellung (§ 13 Abs 2)"
     EID = "eid", "elektronischer Identitätsnachweis (§ 2 Abs 4)"
 
@@ -54,6 +54,12 @@ class Mitglied(AbstractUser):
     )
     identitaetsstufe = models.CharField(
         max_length=20, choices=Identitaetsstufe.choices, default=Identitaetsstufe.UNGEPRUEFT
+    )
+    geprueft_seit = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Tag, seit dem das Konto nicht mehr „ungeprüft“ ist — Stichtagsprüfung der "
+        "Stimmberechtigung (§ 4 Abs 4 lit a): Zähler und Nenner folgen demselben Tag.",
     )
     pseudonym_oeffentlich = models.CharField(
         max_length=50,
@@ -89,6 +95,12 @@ class Mitglied(AbstractUser):
         blank=True,
         help_text="Begründung des aktuellen Status (z. B. Beschlussreferenz bei Ausschluss, § 4 Abs 6).",
     )
+    status_seit = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Tag, seit dem der aktuelle Status gilt (leer = seit jeher) — Stichtagsprüfung "
+        "der Stimmberechtigung (§ 4 Abs 4 lit a).",
+    )
     beitrag_zuletzt_am = models.DateField(
         null=True,
         blank=True,
@@ -109,13 +121,58 @@ class Mitglied(AbstractUser):
         verbose_name_plural = "Mitglieder"
 
     def ist_stimmberechtigt(self, gegenstand: Gegenstand | str, stichtag, uebergang: bool = False) -> bool:
+        """Stimmberechtigt AM STICHTAG (§ 4 Abs 4 lit a) — nicht zum Aufrufzeitpunkt.
+
+        Beitritt, Freischaltung (`geprueft_seit`) und Status (`status_seit`) werden alle
+        gegen denselben Tag geprüft. Nur so steht ein Mitglied genau dann im Zähler,
+        wenn es auch im Nenner (`stimmberechtigte_zaehlen`) gezählt wurde; wer erst nach
+        Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
+        Abstimmung nicht mit."""
         if self.beitritt is None:
             return False
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
+        # Altbestand ohne Datum: die Datenmigration trägt den Beitritt nach; hier als Rückfall.
+        geprueft_seit = self.geprueft_seit or self.beitritt
+        if geprueft_seit > stichtag:
+            return False  # am Stichtag noch ungeprüft — stand nicht im Nenner
         if self.status != Mitgliedsstatus.AKTIV:
             return False  # pausiert oder ausgeschlossen: Mitwirkungsrechte ruhen (F-51)
+        if self.status_seit is not None and self.status_seit > stichtag:
+            return False  # am Stichtag noch pausiert oder ausgeschlossen
         return stimmberechtigt(self.beitritt, gegenstand, stichtag, uebergang=uebergang)
+
+    def identitaetsstufe_setzen(self, stufe: str) -> list[str]:
+        """Setzt die Stufe und führt `geprueft_seit` nach (§ 4 Abs 4 lit a).
+        Gibt die geänderten Feldnamen zurück; speichert nicht."""
+        felder: list[str] = []
+        if stufe == self.identitaetsstufe:
+            return felder
+        self.identitaetsstufe = stufe
+        felder.append("identitaetsstufe")
+        if stufe == Identitaetsstufe.UNGEPRUEFT:
+            self.geprueft_seit = None
+            felder.append("geprueft_seit")
+        elif self.geprueft_seit is None:
+            from django.utils import timezone
+
+            self.geprueft_seit = timezone.localdate()
+            felder.append("geprueft_seit")
+        return felder
+
+    def status_setzen(self, status: str, grund: str = "") -> list[str]:
+        """Setzt den Status samt Begründung und `status_seit`; speichert nicht."""
+        from django.utils import timezone
+
+        felder: list[str] = []
+        if status != self.status:
+            self.status = status
+            self.status_seit = timezone.localdate()
+            felder += ["status", "status_seit"]
+        if grund != self.status_grund:
+            self.status_grund = grund
+            felder.append("status_grund")
+        return felder
 
     @property
     def anzeigename(self) -> str:
@@ -131,6 +188,13 @@ class Mitglied(AbstractUser):
     @property
     def hat_adminrechte(self) -> bool:
         return self.is_active and (self.ist_admin or self.ist_fixer_admin)
+
+    @property
+    def adresswechsel_offen(self) -> bool:
+        """Läuft gerade eine verwaltungsseitige Änderung der Anmeldeadresse (F-51)?
+        Solange ja, gehört das Konto möglicherweise nicht mehr dem Menschen, der
+        abgestimmt hat — Stimmabgabe und Registereinsicht sollen in dieser Zeit ruhen."""
+        return Adresswechsel.objects.filter(mitglied=self, status=Adresswechsel.Status.OFFEN).exists()
 
     @property
     def darf_mitwirken(self) -> bool:
@@ -159,6 +223,174 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
         if m.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang):
             anzahl += 1
     return anzahl
+
+
+class Adresswechsel(models.Model):
+    """Verwaltungsseitige Änderung der Anmeldeadresse — nie sofort wirksam (F-51).
+
+    Der Login ist passwortlos und läuft über die E-Mail-Adresse. Wer sie an einem
+    fremden Konto ändern kann, übernimmt das Konto — und sieht unter „Meine Stimme
+    prüfen“ das Pseudonym, das in der veröffentlichten Stimmliste neben dem Stimm-
+    wert steht (§ 5 Abs 3: das Stimmgeheimnis ist das zentrale Versprechen). Darum
+    drei Hürden, die ein einzelner Admin nicht überspringen kann:
+
+    1. Nachricht mit Einspruchslink an die BISHERIGE Adresse (nur ihr Inhaber kann
+       widersprechen — die neue Adresse kontrolliert womöglich der Angreifer);
+    2. Wartefrist (Register „adresswechsel-wartefrist-stunden“, Zielwert 72 h);
+    3. Bestätigung durch einen ZWEITEN Admin (Vier-Augen).
+
+    Bis dahin bleibt die alte Adresse Anmeldeadresse; Anmeldelinks gehen nie an
+    die neue. Das öffentliche Audit-Log führt jeden Schritt als eigene Aktion —
+    ohne Adresswerte. Der satzungsgebende Erstzugang (DDOE_FIX_ADMIN) ist von
+    diesem Weg ganz ausgenommen, und seine Adresse bekommt kein anderes Konto.
+    """
+
+    class Status(models.TextChoices):
+        OFFEN = "offen", "offen"
+        WIRKSAM = "wirksam", "wirksam"
+        WIDERRUFEN = "widerrufen", "widerrufen"
+
+    WARTEFRIST_STUNDEN = 72  # Zielwert; gelesen wird das Register
+
+    mitglied = models.ForeignKey(Mitglied, on_delete=models.CASCADE, related_name="adresswechsel")
+    neue_email = models.EmailField()
+    beantragt_von = models.ForeignKey(
+        Mitglied, null=True, on_delete=models.SET_NULL, related_name="beantragte_adresswechsel"
+    )
+    beantragt_am = models.DateTimeField(auto_now_add=True)
+    frist_bis = models.DateTimeField()
+    bestaetigt_von = models.ForeignKey(
+        Mitglied, null=True, blank=True, on_delete=models.SET_NULL, related_name="bestaetigte_adresswechsel"
+    )
+    bestaetigt_am = models.DateTimeField(null=True, blank=True)
+    einspruch_hash = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OFFEN)
+    erledigt_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-beantragt_am"]
+        verbose_name = "Adresswechsel"
+        verbose_name_plural = "Adresswechsel"
+
+    def __str__(self) -> str:
+        return f"Adresswechsel für Mitglied {self.mitglied_id} ({self.status})"
+
+    @staticmethod
+    def wartefrist_stunden() -> int:
+        from parameter.models import zahl
+
+        return zahl("adresswechsel-wartefrist-stunden", Adresswechsel.WARTEFRIST_STUNDEN)
+
+    @classmethod
+    def offener(cls, mitglied) -> Adresswechsel | None:
+        return cls.objects.filter(mitglied=mitglied, status=cls.Status.OFFEN).first()
+
+    @classmethod
+    def beantragen(cls, mitglied, neue_email: str, durch) -> tuple[Adresswechsel, str]:
+        """Legt den Antrag an; gibt (wechsel, einspruch_klartext) zurück. Der Klartext
+        existiert nur in der Nachricht an die bisherige Adresse."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from mitglieder.auth_flows import _neues_token
+
+        klar, gehasht = _neues_token()
+        wechsel = cls.objects.create(
+            mitglied=mitglied,
+            neue_email=neue_email.lower(),
+            beantragt_von=durch,
+            frist_bis=timezone.now() + timedelta(hours=cls.wartefrist_stunden()),
+            einspruch_hash=gehasht,
+        )
+        return wechsel, klar
+
+    @classmethod
+    def per_einspruch(cls, klartext: str) -> Adresswechsel | None:
+        import hashlib
+
+        gehasht = hashlib.sha256(klartext.encode()).hexdigest()
+        return cls.objects.select_related("mitglied").filter(einspruch_hash=gehasht).first()
+
+    @property
+    def frist_abgelaufen(self) -> bool:
+        from django.utils import timezone
+
+        return timezone.now() >= self.frist_bis
+
+    @property
+    def ist_faellig(self) -> bool:
+        return self.status == self.Status.OFFEN and self.bestaetigt_von_id is not None and self.frist_abgelaufen
+
+    def _protokollieren(self, aktion: str, **extra) -> None:
+        from verfahren.models import AuditEintrag
+
+        AuditEintrag.anhaengen(
+            {"typ": "verwaltung", "aktion": aktion, "mitglied": self.mitglied_id, **extra}
+        )  # bewusst ohne Adressen: Das Audit-Log ist öffentlich (F-22)
+
+    def bestaetigen(self, durch) -> bool:
+        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller."""
+        from django.utils import timezone
+
+        if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
+            return False
+        self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
+        self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
+        self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
+        return True
+
+    def widerrufen(self, anlass: str, durch=None) -> bool:
+        """Einspruch des Mitglieds („einspruch“) oder Abbruch durch einen Admin („abbruch“)."""
+        from django.utils import timezone
+
+        if self.status != self.Status.OFFEN:
+            return False
+        self.status, self.erledigt_am = self.Status.WIDERRUFEN, timezone.now()
+        self.save(update_fields=["status", "erledigt_am"])
+        extra = {"anlass": anlass}
+        if durch is not None:
+            extra["durch"] = durch.pk
+        self._protokollieren("email_geaendert_widerrufen", **extra)
+        return True
+
+    def wirksam_machen(self) -> bool:
+        """Macht die neue Adresse zur Anmeldeadresse — nur wenn Frist um, zweiter Admin
+        bestätigt hat und weder der fixe Admin betroffen ist noch seine Adresse vergeben wird."""
+        from django.utils import timezone
+
+        if not self.ist_faellig:
+            return False
+        m = self.mitglied
+        fix = getattr(settings, "DDOE_FIX_ADMIN", "").lower()
+        vergeben = Mitglied.objects.filter(email__iexact=self.neue_email).exclude(pk=m.pk).exists()
+        if m.ist_fixer_admin or self.neue_email == fix or vergeben:
+            self.widerrufen("nicht_zulaessig")
+            return False
+        felder = ["email"]
+        if m.username == m.email:
+            m.username = self.neue_email  # Registrierte führen die Adresse als Anmeldenamen
+            felder.append("username")
+        m.email = self.neue_email
+        m.save(update_fields=felder)
+        self.status, self.erledigt_am = self.Status.WIRKSAM, timezone.now()
+        self.save(update_fields=["status", "erledigt_am"])
+        self._protokollieren("email_geaendert_wirksam")
+        return True
+
+    @classmethod
+    def faellige_anwenden(cls) -> int:
+        """Lazy wie die Phasenautomatik: Wer eine Verwaltungsseite öffnet oder einen
+        Anmeldelink anfordert, stößt fällige Wechsel an. Gibt die Zahl der wirksam gemachten zurück."""
+        from django.utils import timezone
+
+        anzahl = 0
+        for w in cls.objects.filter(
+            status=cls.Status.OFFEN, bestaetigt_von__isnull=False, frist_bis__lte=timezone.now()
+        ).select_related("mitglied"):
+            if w.wirksam_machen():
+                anzahl += 1
+        return anzahl
 
 
 class Gemeinde(models.Model):
@@ -314,12 +546,13 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
         if mitglied.beitrag_zuletzt_am is None or eingang.gebucht_am > mitglied.beitrag_zuletzt_am:
             mitglied.beitrag_zuletzt_am = eingang.gebucht_am
         if mitglied.status == Mitgliedsstatus.PAUSIERT:
-            mitglied.status = Mitgliedsstatus.AKTIV
-            mitglied.status_grund = "Beitragseingang automatisch abgeglichen (F-59)."
-            felder += ["status", "status_grund"]
+            felder += mitglied.status_setzen(
+                Mitgliedsstatus.AKTIV, "Beitragseingang automatisch abgeglichen (F-59)."
+            )
         if mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
-            mitglied.identitaetsstufe = Identitaetsstufe.GEPRUEFT
-            felder += ["identitaetsstufe"]
+            # Freischaltung zählt ab HEUTE, nicht ab Buchungstag: Der Nenner einer laufenden
+            # Abstimmung wurde ohne dieses Mitglied festgestellt (§ 4 Abs 4 lit a).
+            felder += mitglied.identitaetsstufe_setzen(Identitaetsstufe.GEPRUEFT)
         mitglied.save(update_fields=felder)
         AuditEintrag.anhaengen(
             {"typ": "beitrag", "aktion": "eingang_verbucht", "mitglied": mitglied.pk}

@@ -22,4 +22,5 @@ urlpatterns = [
     path("verwaltung/bank/koppeln/", beitraege_views.bank_koppeln, name="bank_koppeln"),
     path("verwaltung/bank/rueckkehr/", beitraege_views.bank_rueckkehr, name="bank_rueckkehr"),
     path("verwaltung/<int:pk>/", verwaltung.mitglied, name="verwaltung_mitglied"),
+    path("adresse/einspruch/<str:token>/", verwaltung.adresswechsel_einspruch, name="adresswechsel_einspruch"),
 ]

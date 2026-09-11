@@ -17,6 +17,23 @@
 </p>
 {% if person.status_grund %}<div class="karte hinweis"><p><strong>{% translate "Begründung des Status:" %}</strong> {{ person.status_grund }}</p></div>{% endif %}
 
+{% if adresswechsel %}
+<div class="karte hinweis">
+  <h2 style="margin-top:0;font-size:20px">{% translate "Adressänderung vorgemerkt" %}</h2>
+  <p>{% blocktranslate with neu=adresswechsel.neue_email seit=adresswechsel.beantragt_am|date:"SHORT_DATETIME_FORMAT" frist=adresswechsel.frist_bis|date:"SHORT_DATETIME_FORMAT" %}Neue Anmeldeadresse <strong>{{ neu }}</strong> — beantragt am {{ seit }},
+  Einspruchsfrist bis {{ frist }}. Bis dahin bleibt die bisherige Adresse Anmeldeadresse; die bisherige Adresse
+  wurde mit Einspruchslink benachrichtigt.{% endblocktranslate %}
+  {% if adresswechsel.bestaetigt_von %}{% blocktranslate with pk=adresswechsel.bestaetigt_von.pk %}Bestätigt von Admin #{{ pk }} — wird nach der Frist wirksam.{% endblocktranslate %}
+  {% else %}{% translate "Noch nicht von einem zweiten Admin bestätigt." %}{% endif %}</p>
+  <form method="post" class="stimmzeile" style="margin-top:10px">{% csrf_token %}
+    {% if not adresswechsel.bestaetigt_von and adresswechsel.beantragt_von_id != request.user.pk %}
+      <button type="submit" name="aktion" value="adresswechsel_bestaetigen" class="btn">{% translate "Als zweiter Admin bestätigen" %}</button>
+    {% endif %}
+    <button type="submit" name="aktion" value="adresswechsel_abbrechen" class="btn-still">{% translate "Adressänderung abbrechen" %}</button>
+  </form>
+</div>
+{% endif %}
+
 <h2>{% translate "Stammdaten korrigieren" %}</h2>
 <div class="karte">
 <form method="post">{% csrf_token %}
@@ -29,7 +46,8 @@
   {% endfor %}
   <button type="submit" class="btn">{% translate "Speichern" %}</button>
   <p class="hilfe" style="margin-top:10px">{% blocktranslate %}Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.
-  Die Änderung wird (ohne Werte) im Audit-Log vermerkt.{% endblocktranslate %}</p>
+  Die Änderung wird (ohne Werte) im Audit-Log vermerkt. Eine neue E-Mail-Adresse wird nicht sofort wirksam:
+  Die bisherige Adresse erhält einen Einspruchslink, danach braucht es die Frist und einen zweiten Admin.{% endblocktranslate %}</p>
 </form>
 </div>
 

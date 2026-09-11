@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
-from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied
+from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -236,6 +236,7 @@ def login_anfordern(request):
             form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
         elif form.is_valid():
             email = form.cleaned_data["email"].lower()
+            Adresswechsel.faellige_anwenden()  # F-51: erst danach kann die neue Adresse Links bekommen
             mitglied = Mitglied.objects.filter(email__iexact=email, is_active=True).first()
             if mitglied:
                 token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.LOGIN)

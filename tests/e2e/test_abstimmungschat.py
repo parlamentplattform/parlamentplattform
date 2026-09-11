@@ -135,3 +135,26 @@ def test_ohne_javascript_bleibt_der_abstimmungschat_bedienbar(seite, live_server
     assert p.locator(knopf).get_attribute("aria-pressed") != vorher, "die Reaktion schaltet um"
     # Das Archiv steht als <details> offen
     assert p.locator("#zone-archiv .archiv-block").count() >= 2
+
+
+def test_ohne_javascript_ist_kritik_mit_absatzbezug_einreichbar(seite, live_server, demo):
+    """Befund #46: Die Absatzwahl stand hinter x-cloak — ohne Skript unsichtbar, während der
+    Haken „konkrete Kritik“ sichtbar blieb und der Server den Absatzbezug verlangte. Die Kritik
+    für den Expertenrat (FB-G6) ging so verloren. Jetzt ist der Absatz auch ohne Skript wählbar."""
+    antrag = _vorschlagsantrag()
+    p = seite(js=False, als=_mitglied())
+    p.goto(f"{live_server.url}/antrag/{antrag.pk}/")
+    p.wait_for_timeout(600)
+    assert p.locator("select[name=bezug_absatz]").is_visible(), "die Absatzwahl steht ohne Skript"
+    assert p.locator(".kritikwahl .erk").is_visible(), "der Hinweis zu Länge und Bezug auch"
+    vorher = p.locator(".blase").count()
+    p.locator(".kritikwahl .schalter input").check()
+    p.select_option(".absatzwahl select", "2")
+    p.locator(".chatzeile textarea").fill(
+        "Der zweite Absatz lässt offen, wer die Beleuchtung bezahlt — das gehört ausdrücklich geregelt."
+    )
+    p.locator(".chatzeile button[type=submit]").click()
+    p.wait_for_load_state()
+    p.wait_for_timeout(600)
+    assert p.locator(".blase").count() == vorher + 1, "die Kritik ist gespeichert"
+    assert "Kritik · Absatz 2" in p.locator(".blase.kritik").last.inner_text()

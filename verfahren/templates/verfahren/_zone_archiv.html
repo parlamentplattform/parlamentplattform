@@ -3,7 +3,9 @@ Zone 4 — das Archiv eines Antrags (FB-G7): eine Zeitleiste von der Antragstell
 Je Phase ein aufklappbarer Block mit den Beiträgen, die dort geschrieben wurden — auch die,
 die bei einer Hochstufung geräumt wurden (FB-G5). Dazu die Runden des Expertenrats, die
 Auswertung des Abstimmungs-Chats und die Audit-Spur. Alles öffentlich lesbar, alles
-exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript.
+exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript. Die Beiträge einer
+Phase kommen erst auf Wunsch (Befund #42): Link ?archiv=<phase> — mit htmx nur der Block, ohne
+JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
 {% endcomment %}
 <div class="archiv">
   <div class="archiv-kopf">
@@ -16,7 +18,7 @@ exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript.
   </div>
 
   {% for block in archiv.zeitleiste %}
-  <details class="archiv-block{% if block.laufend %} laufend{% endif %}"{% if block.laufend %} open{% endif %}>
+  <details class="archiv-block{% if block.laufend %} laufend{% endif %}" id="archiv-{{ block.phase }}"{% if block.laufend or block.geladen %} open{% endif %}>
     <summary>
       <strong>{{ block.name }}</strong>
       <span class="meta">{% blocktranslate count n=block.anzahl %}{{ n }} Beitrag{% plural %}{{ n }} Beiträge{% endblocktranslate %}{% if block.laufend %} · {% translate "läuft" %}{% endif %}</span>
@@ -26,6 +28,10 @@ exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript.
       · {% if block.auswertung.oben %}{% translate "an erster Stelle" %}{% else %}{% translate "nicht an erster Stelle" %}{% endif %}
       · {% if block.auswertung.angenommen %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
       <span class="meta">({{ block.auswertung.reihung }})</span></p>
+    {% endif %}
+    {% if not block.geladen and block.anzahl %}
+    <p class="archiv-laden"><a href="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ block.phase }}#archiv-{{ block.phase }}"
+      hx-get="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ block.phase }}" hx-target="#archiv-{{ block.phase }}" hx-select="#archiv-{{ block.phase }}" hx-swap="outerHTML">{% blocktranslate count n=block.anzahl %}Den Beitrag zeigen{% plural %}Alle {{ n }} Beiträge zeigen{% endblocktranslate %}</a>{% if block.laufend %} <span class="meta">{% translate "— sie stehen auch oben im Chat" %}</span>{% endif %}</p>
     {% endif %}
     {% for b in block.beitraege %}
     <div class="archiv-beitrag{% if b.antwort_auf %} eingerueckt{% endif %}" id="a-{{ b.id }}">
@@ -41,7 +47,7 @@ exportierbar. Ohne JavaScript vollständig bedienbar: <details> statt Skript.
       </div>
     </div>
     {% empty %}
-    <p class="leer">{% translate "Kein Beitrag in dieser Phase." %}</p>
+    {% if not block.anzahl %}<p class="leer">{% translate "Kein Beitrag in dieser Phase." %}</p>{% endif %}
     {% endfor %}
   </details>
   {% endfor %}

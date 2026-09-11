@@ -22,7 +22,7 @@ def _feld(html: str, feld_id: str) -> str:
 
 
 def _leiste(html: str) -> str:
-    return html.split('<header class="leiste">', 1)[1].split("</header>", 1)[0]
+    return html.split('<header class="leiste', 1)[1].split("</header>", 1)[0]  # Gäste: class="leiste gast" (Befund #48)
 
 
 def _hauptnav(html: str) -> str:
@@ -39,7 +39,7 @@ def _konto(html: str) -> str:
 
 def test_eine_leiste_mit_menuereihenfolge_d_n8(client):
     html = client.get(reverse("verfahren:parlament")).content.decode()
-    assert html.count('<header class="leiste">') == 1
+    assert html.count('<header class="leiste') == 1  # Gäste tragen zusätzlich „gast“ (Befund #48)
     assert html.count('<nav class="haupt"') == 1
     assert re.findall(r'href="(/[a-z]+/)"', _hauptnav(html)) == HAUPTPUNKTE
     assert "menue-schalter" not in html and 'class="wer"' not in html and "nav-cta" not in html
@@ -55,7 +55,8 @@ def test_aktiver_menuepunkt_auch_auf_unterseiten(client):
         ("/uebersicht/", "Übersicht"),
     ]:
         nav = _hauptnav(client.get(pfad).content.decode())
-        aktive = re.findall(r'class="an" aria-current="page">([^<]+)</a>', nav)
+        # Lange Punkte tragen Lang- und Kurzform in <span> (Befund #48); gezählt wird die Langform
+        aktive = re.findall(r'class="an" aria-current="page"[^>]*>(?:<span class="lang">)?([^<]+)<', nav)
         assert aktive == [erwartet], pfad
     assert 'class="an"' not in _hauptnav(client.get("/").content.decode())
 
@@ -293,3 +294,51 @@ def test_thema_skript_vor_dem_stil_und_html_ohne_serverseitiges_thema(client):
     kopf = html.split("</head>", 1)[0]
     assert kopf.index("verfahren/js/thema.js") < kopf.index("<style>")
     assert "data-theme" not in html.split("<head>", 1)[0]
+
+
+# ── Design-System: Text auf --deep, Absatzwahl ohne Skript (Befund #46, #49, #50, #82) ─────
+
+
+def _base_css() -> str:
+    from pathlib import Path
+
+    text = (Path(__file__).resolve().parent / "templates" / "verfahren" / "base.html").read_text(encoding="utf-8")
+    return text.split("<style>", 1)[1].split("</style>", 1)[0]
+
+
+def test_text_auf_deep_nutzt_on_deep():
+    """Befund #49: --deep wird im Dunkelthema hell (#8CC0CF), --bar-ink und --paper blieben hell —
+    Beratungs-Badge, „✓ Unterstützt“, Hover der Knöpfe und die Punkte der Schrittleiste waren
+    unlesbar. Jeder Text auf --deep liest jetzt den Token --on-deep, der im Dunkelblock kippt."""
+    css = _base_css()
+    assert re.search(r":root\{[^}]*--on-deep:#E9E4D8", css, re.S)
+    assert css.count("--on-deep:#0C151E") == 2, "beide Dunkelblöcke"
+    regeln = [r for r in css.split("}") if "background:var(--deep)" in r and "color:" in r]
+    falsch = [r.strip()[:80] for r in regeln if "color:var(--on-deep)" not in r and "color:var(--on-gold)" not in r]
+    assert not falsch, falsch
+
+
+def test_anker_und_leerer_stern_sind_kein_linienton_mehr():
+    """Befund #82: Der Beitrags-Anker ist ein Link, der leere Stern der einzige sichtbare Teil
+    eines Umschalters — beide brauchen Kontrast (WCAG 1.4.3 / 1.4.11)."""
+    css = _base_css()
+    assert ".blase-anker{margin-left:auto;color:var(--muted)" in css
+    assert "--stern-aus:#7E8C96" in css and css.count("--stern-aus:#7B8790") == 2
+
+
+def test_eingefahrene_leiste_versteckt_wirklich():
+    """Befund #50: opacity:0 allein lässt Tab-Stopps zurück; visibility:hidden nimmt sie heraus."""
+    css = _base_css()
+    assert ".filter-leiste.zu .innen{opacity:0;visibility:hidden;pointer-events:none;" in css
+    from pathlib import Path
+
+    parlament = (Path(__file__).resolve().parent / "templates" / "verfahren" / "parlament.html").read_text(encoding="utf-8")
+    assert '<div class="innen" :inert="!offen">' in parlament
+
+
+def test_absatzwahl_der_kritik_ist_ohne_skript_sichtbar():
+    """Befund #46: `[x-cloak]{display:none!important}` gilt ohne JavaScript für immer; für die
+    Kritik-Eingabe hebt eine Regel unter html:not(.js) das gezielt auf (thema.js setzt html.js)."""
+    css = _base_css()
+    assert "html:not(.js) .kritikwahl [x-cloak]{display:revert!important}" in css
+    assert css.index("[x-cloak],[hidden]{display:none!important}") < css.index("html:not(.js) .kritikwahl [x-cloak]")

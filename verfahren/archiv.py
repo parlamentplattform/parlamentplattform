@@ -15,13 +15,16 @@ in der es geschrieben wurde. Gelöscht wird nichts; entfernte Beiträge tragen i
 from __future__ import annotations
 
 import json
+import re
 
+from django.db.models import Count
 from django.utils.text import capfirst
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from plattform_core import Phase, vorschlagschat
-from verfahren.models import AuditEintrag, Kommentar, Reaktionsart
+from verfahren.chat import leicht, mit_zaehlern
+from verfahren.models import AuditEintrag, Kommentar
 from verfahren.templatetags.phasen import NAMEN as PHASEN_NAMEN
 
 #: Phasen, nach denen nichts mehr läuft — ihr Block trägt kein „läuft".
@@ -54,19 +57,32 @@ def _beitrag(k: Kommentar) -> dict:
         "archiviert_am": k.archiviert_am.isoformat() if k.archiviert_am else None,
         "ist_kritik": k.ist_kritik,
         "bezug_absatz": k.bezug_absatz,
-        "zustimmungen": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ZUSTIMMUNG),
-        "ablehnungen": sum(1 for r in k.reaktionen.all() if r.art == Reaktionsart.ABLEHNUNG),
+        "zustimmungen": k.zustimmungen,
+        "ablehnungen": k.ablehnungen,
     }
 
 
-def _chat_je_phase(antrag) -> dict[str, list[dict]]:
-    """Alle Beiträge, nach der Phase geordnet, in der sie geschrieben wurden."""
+def _chat_je_phase(antrag, phasen: list[str] | None = None) -> dict[str, list[dict]]:
+    """Beiträge nach der Phase geordnet, in der sie geschrieben wurden — nur für `phasen`
+    (None = alle, für den Export). Die Seite lädt je Aufruf höchstens eine Phase (Befund #42);
+    Zustimmungen kommen als Zähler mit, nicht als vorgeladene Reaktionen."""
+    if phasen is not None and not phasen:
+        return {}
+    qs = antrag.kommentare.select_related("mitglied").order_by("erstellt_am", "pk")
+    if phasen is not None:
+        qs = qs.filter(phase__in=phasen)
     je_phase: dict[str, list[dict]] = {}
-    for k in (
-        antrag.kommentare.select_related("mitglied").prefetch_related("reaktionen").order_by("erstellt_am")
-    ):
+    for k in mit_zaehlern(qs):
         je_phase.setdefault(k.phase or "", []).append(_beitrag(k))
     return je_phase
+
+
+def _anzahl_je_phase(antrag) -> dict[str, int]:
+    """Wie viele Beiträge je Phase liegen — eine GROUP-BY-Abfrage statt aller Zeilen."""
+    return {
+        (phase or ""): n
+        for phase, n in antrag.kommentare.order_by().values_list("phase").annotate(n=Count("id"))
+    }
 
 
 def entwurf_bloecke(antrag) -> list[dict]:
@@ -105,46 +121,104 @@ def entwurf_bloecke(antrag) -> list[dict]:
     ]
 
 
-def _auswertung(antrag, phase: str, beitraege: list[dict]) -> dict | None:
-    """Die Rechnung des Abstimmungs-Chats einer Vorschlagsrunde (FB-G6) — nachrechenbar."""
+#: Die Ereignisse, mit denen eine Vorschlagsrunde endet — sie tragen die Rechnung im Wortlaut.
+RUNDEN_EREIGNISSE = ("vorschlag_zurueckgegeben", "phasenwechsel")
+_SCHWELLE = re.compile(r"Schwelle (\d+) %")
+
+
+def _rundenereignisse(antrag) -> list[dict]:
+    return [
+        e.ereignis
+        for e in AuditEintrag.objects.filter(
+            ereignis__antrag=antrag.pk, ereignis__typ__in=list(RUNDEN_EREIGNISSE)
+        ).order_by("lfd")
+    ]
+
+
+def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None) -> float | None:
+    """Die Schwelle, mit der eine **abgeschlossene** Vorschlagsrunde entschieden wurde (Befund #22).
+
+    Das Archiv rechnete jede alte Runde mit dem heutigen Registerwert nach — nach einer Änderung
+    von `vorschlag-annahme-prozent` zeigte es ein anderes Ergebnis als die Audit-Spur derselben
+    Seite. Die Entscheidung steht im Audit-Ereignis, das die Runde beendet hat: bevorzugt als
+    strukturiertes Feld `auswertung` (sobald `Entwurf.fortschreiben` es schreibt), sonst im
+    Wortlaut der Rechnung „(Schwelle NN %)“. None, wenn die Runde noch läuft oder nichts
+    überliefert ist."""
+    for e in ereignisse if ereignisse is not None else _rundenereignisse(antrag):
+        grund = str(e.get("grund") or "")
+        if e.get("typ") == "vorschlag_zurueckgegeben":
+            # `zurueck_an_gruppe_1` zählt die Runde hoch, bevor es das Ereignis anhängt
+            if e.get("runde") != runde + 1 or "Schwelle" not in grund:
+                continue
+        elif f"Runde {runde}," not in grund or "Schwelle" not in grund:
+            continue
+        auswertung = e.get("auswertung")
+        if isinstance(auswertung, dict) and "schwelle" in auswertung:
+            return float(auswertung["schwelle"])
+        treffer = _SCHWELLE.search(grund)
+        if treffer:
+            return int(treffer.group(1)) / 100
+    return None
+
+
+def _auswertung(antrag, phase: str, ereignisse: list[dict] | None = None) -> dict | None:
+    """Die Rechnung des Abstimmungs-Chats einer Vorschlagsrunde (FB-G6) — nachrechenbar.
+
+    Rechnet über die Zahlen aller Beiträge der Runde (ohne Texte). Für die laufende Runde gilt
+    der Registerwert; für abgeschlossene die Schwelle aus dem Audit-Ereignis der Entscheidung
+    (`schwelle_quelle`: „audit“) — nur wenn nichts überliefert ist, das Register (Befund #22)."""
     if not phase.startswith("vorschlag-r"):
         return None
-    roh = [
-        {"id": b["id"], "ja": b["zustimmungen"], "nein": b["ablehnungen"],
-         "zeit": b["geschrieben_am"], "system": b["system"], "ist_kritik": b["ist_kritik"]}
-        for b in beitraege
-    ]
     from parameter.models import zahl
+    from verfahren import chat as chatkern
 
-    ergebnis = vorschlagschat.auswerten(roh, zahl("vorschlag-annahme-prozent", 50) / 100)
+    runde = int(phase.removeprefix("vorschlag-r"))
+    roh = leicht(antrag.kommentare.filter(phase=phase))
+    schwelle, quelle = None, "register"
+    if chatkern.chat_phase(antrag) != phase:
+        schwelle = schwelle_der_runde(antrag, runde, ereignisse)
+        if schwelle is not None:
+            quelle = "audit"
+    if schwelle is None:
+        schwelle = zahl("vorschlag-annahme-prozent", 50) / 100
+    ergebnis = vorschlagschat.auswerten(roh, schwelle)
     ergebnis["kritik"] = [b["id"] for b in vorschlagschat.kritik_uebergeben(roh)]
+    ergebnis["schwelle_quelle"] = quelle
     return ergebnis
 
 
-def zeitleiste(antrag) -> list[dict]:
-    """Die Blöcke des Archivs von der Antragstellung bis heute (FB-G7)."""
-    je_phase = _chat_je_phase(antrag)
+def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> list[dict]:
+    """Die Blöcke des Archivs von der Antragstellung bis heute (FB-G7).
+
+    Jeder Block trägt Anzahl und Auswertung; seine Beiträge trägt er nur, wenn er `geoeffnet`
+    ist (`?archiv=<phase>` — Link ohne JavaScript, hx-get mit) oder `alles` gilt (Export,
+    Grundregel 7: der bleibt vollständig). Vorher lud jeder Aufruf der Antragsseite sämtliche
+    Beiträge aller Phasen ein zweites Mal (Befund #42)."""
+    anzahl = _anzahl_je_phase(antrag)
+    je_phase = _chat_je_phase(antrag, None if alles else ([geoeffnet] if geoeffnet else []))
     reihenfolge = [
         Phase.UNTERSTUETZUNG.value,
         Phase.BERATUNG.value,
-        *sorted((p for p in je_phase if p.startswith("vorschlag-r")), key=lambda p: int(p.removeprefix("vorschlag-r"))),
+        *sorted((p for p in anzahl if p.startswith("vorschlag-r")), key=lambda p: int(p.removeprefix("vorschlag-r"))),
         Phase.ABSTIMMUNG.value,
         Phase.ANGENOMMEN.value,
         Phase.ABGELEHNT.value,
     ]
+    ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
     bloecke = []
     for phase in reihenfolge:
-        beitraege = je_phase.get(phase, [])
-        if not beitraege and phase not in (antrag.phase, Phase.UNTERSTUETZUNG.value):
+        n = anzahl.get(phase, 0)
+        if not n and phase not in (antrag.phase, Phase.UNTERSTUETZUNG.value):
             continue
         bloecke.append(
             {
                 "phase": phase,
                 "name": phasenname(phase),
                 "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
-                "beitraege": beitraege,
-                "anzahl": len(beitraege),
-                "auswertung": _auswertung(antrag, phase, beitraege),
+                "beitraege": je_phase.get(phase, []),
+                "geladen": alles or phase == geoeffnet,
+                "anzahl": n,
+                "auswertung": _auswertung(antrag, phase, ereignisse),
             }
         )
     return bloecke
@@ -167,10 +241,10 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     Ohne `grenze` kommt die **vollständige** Spur — so muss es für den Export sein (FB-G7,
     Grundregel 7). Die Seite reicht `AUDIT_ANZEIGE` herein, weil eine Zeitleiste mit
     zweihundert Zeilen niemandem hilft; dass gekürzt wurde, sagt sie dann auch dazu."""
+    # Der Filter läuft in der Datenbank (Befund #41): Vorher zog jeder Antragsaufruf das gesamte
+    # Audit-Log — jede Stimme, jede Unterstützung plattformweit — und siebte es in Python.
     spur = []
-    for eintrag in AuditEintrag.objects.order_by("lfd"):
-        if eintrag.ereignis.get("antrag") != antrag.pk:
-            continue
+    for eintrag in AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).order_by("lfd"):
         spur.append(
             {
                 "lfd": eintrag.lfd,
@@ -206,7 +280,7 @@ def archiv(antrag) -> dict:
             "unterstuetzungen": antrag.unterstuetzungen.count(),
         },
         "fassungen": fassungen,
-        "zeitleiste": zeitleiste(antrag),
+        "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
     }

@@ -28,7 +28,8 @@
     </div>
     {% if filter_lage %}
     <div class="filter-leiste" id="filter-leiste" :class="{zu: !offen}">
-      <div class="innen">
+      {# eingefahren: inert nimmt Chips, Regler und Pfeil aus Fokus und Tab-Reihenfolge (Befund #50) #}
+      <div class="innen" :inert="!offen">
         <form method="post" action="{% url 'verfahren:filter_neutral' %}" class="chipform"
           hx-post="{% url 'verfahren:filter_neutral' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
           {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">

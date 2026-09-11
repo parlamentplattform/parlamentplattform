@@ -1,0 +1,9 @@
+{% load i18n %}{% comment %}
+Der Link auf das nächste Fenster des Fadens (Befund #42). Ohne JavaScript eine Seite mit ?ab=<pk>;
+mit htmx ersetzt das geholte Fenster (.faden-fenster) genau diesen Absatz — die schon gezeigten
+Beiträge bleiben stehen. Erwartet chat.faden_mehr, chat.faden_mehr_ab, chat.faden_richtung.
+{% endcomment %}<p class="faden-mehr">
+  <a href="{% url 'verfahren:antrag' antrag.pk %}?ab={{ chat.faden_mehr_ab }}#chat-faden"
+     hx-get="{% url 'verfahren:antrag' antrag.pk %}?ab={{ chat.faden_mehr_ab }}" hx-target="closest .faden-mehr"
+     hx-select="#chat-faden .faden-fenster" hx-swap="outerHTML">{% if chat.faden_richtung == "weiter" %}{% blocktranslate count n=chat.faden_mehr %}Einen weiteren Beitrag zeigen{% plural %}{{ n }} weitere Beiträge zeigen{% endblocktranslate %}{% else %}{% blocktranslate count n=chat.faden_mehr %}Einen älteren Beitrag zeigen{% plural %}{{ n }} ältere Beiträge zeigen{% endblocktranslate %}{% endif %}</a>
+</p>

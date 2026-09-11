@@ -148,6 +148,20 @@ def test_ohne_javascript_bleibt_der_chat_bedienbar(seite, live_server, demo):
     p.locator(".chatzeile button[type=submit]").click()
     p.wait_for_load_state()
     assert "Auch ohne Skript geschrieben." in p.locator("#chat-faden").inner_text()
+    # Antworten (Befund #12/#28): der Link belegt das Ziel vor, der Chip steht ohne Skript da,
+    # die Antwort landet eingerückt unter dem Wurzelbeitrag — daraus entsteht das Gespräch
+    p.wait_for_timeout(600)  # der Ankersprung (scroll-behavior: smooth) muss zur Ruhe kommen
+    p.locator(f'#k-{wurzel.pk} a.blase-knopf:text("Antworten")').click()
+    p.wait_for_load_state()
+    p.wait_for_timeout(600)
+    assert f"antwort_auf={wurzel.pk}" in p.url
+    assert p.locator(".antwort-chip").is_visible(), "der Chip „Antwort an …“ steht ohne Skript"
+    assert p.locator('input[name="antwort_auf"]').get_attribute("value") == str(wurzel.pk)
+    p.locator(".chatzeile textarea").fill("Antwort ohne Skript.")
+    p.locator(".chatzeile button[type=submit]").click()
+    p.wait_for_load_state()
+    assert "Antwort ohne Skript." in p.locator(f"#k-{wurzel.pk} + .antworten").inner_text()
+    assert "antwort_auf=" not in p.url, "nach dem Senden endet der Antwort-Modus"
     # Der Griff ist ohne Skript ein Link auf die Gesprächsseite
     p.goto(f"{live_server.url}/parlament/")
     p.wait_for_timeout(400)
@@ -182,3 +196,43 @@ def test_panel_laedt_auch_auf_der_gespraechsseite(seite, live_server, demo):
     p.wait_for_function("() => document.querySelectorAll('.g-panel .gz').length > 0")
     assert "Wird geladen" not in p.locator(".g-panel").inner_text(), "das Panel füllt sich"
     assert p.locator(".g-panel .gz").count() >= 1
+
+
+
+def test_aeltere_beitraege_haengen_sich_mit_htmx_davor(seite, live_server, demo):
+    """Befund #42: Der Faden ist ein Fenster. Mit htmx ersetzt der Link „ältere Beiträge zeigen“
+    sich selbst durch das ältere Fenster — die schon gezeigten Beiträge bleiben stehen, die
+    Seite lädt nicht neu; ohne JavaScript ist derselbe Link eine Seite mit ?ab=<pk>."""
+    from parameter.models import Parameter
+    from verfahren.chat import beitrag_schreiben
+    from verfahren.models import Antrag
+
+    antrag = Antrag.objects.filter(phase="unterstuetzung").first()  # chronologischer Faden, kein Abstimmungs-Chat
+    Parameter.objects.update_or_create(
+        schluessel="chat-faden-wurzeln", defaults={"wert": "2", "beschreibung": "Test", "quelle": "Test"}
+    )
+    for i in range(5):
+        beitrag_schreiben(antrag, _mitglied("demo2"), f"Fensterbeitrag {i}.")
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/antrag/{antrag.pk}/")
+    _ruhe(p)
+    p.evaluate("document.querySelector('.antragsseite').dataset.probe = 'unveraendert'")
+    assert p.locator(".faden .blase").count() == 2
+    text = p.locator("#chat-faden").inner_text()
+    assert "Fensterbeitrag 4." in text and "Fensterbeitrag 2." not in text
+    p.locator(".faden-mehr a").first.click()
+    p.wait_for_function("() => document.querySelectorAll('.faden .blase').length >= 4")
+    assert p.evaluate("document.querySelector('.antragsseite').dataset.probe") == "unveraendert", "kein Neuladen"
+    text = p.locator("#chat-faden").inner_text()
+    assert all(f"Fensterbeitrag {i}." in text for i in (1, 2, 3, 4)), "das ältere Fenster hängt davor, das neue bleibt"
+    assert p.locator(".faden-mehr a").count() == 1, "noch ein älteres Fenster wartet"
+
+    # Ohne JavaScript ist der Link eine Seite
+    q = seite(js=False, als=_mitglied())
+    q.goto(f"{live_server.url}/antrag/{antrag.pk}/")
+    q.wait_for_timeout(600)
+    q.locator(".faden-mehr a").first.click()
+    q.wait_for_load_state()
+    assert "?ab=" in q.url
+    assert "Fensterbeitrag 2." in q.locator("#chat-faden").inner_text()
+    assert q.locator(".faden-mehr.zurueck a").is_visible()

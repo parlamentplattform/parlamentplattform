@@ -6,6 +6,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Prefetch
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -108,35 +109,122 @@ def _anteil(eigene: set, menge: set) -> float:
     return len(eigene & menge) / len(eigene) if eigene else 0.0
 
 
-def _beteiligung(antrag):
+def _beteiligung(antrag, abgegeben=None):
     """(abgegebene Stimmen, Stimmberechtigte) einer laufenden Abstimmung — bei Personenwahlen
-    zählen die Pseudonyme mit mindestens einer Zustimmung."""
-    if antrag.art == Antragsart.MANDAT:
-        abgegeben = (
-            BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()
-        )
-    else:
-        abgegeben = antrag.stimmabgaben.count()
+    zählen die Pseudonyme mit mindestens einer Zustimmung. `abgegeben` kommt aus `_zaehler`,
+    wenn viele Anträge auf einmal gezeichnet werden (Befund #40)."""
+    if abgegeben is None:
+        if antrag.art == Antragsart.MANDAT:
+            abgegeben = (
+                BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).values("pseudonym").distinct().count()
+            )
+        else:
+            abgegeben = antrag.stimmabgaben.count()
     return abgegeben, max(1, antrag.stimmberechtigte_anzahl or 1)
 
 
-def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zuerst=False):
+def _mit_pfad() -> Prefetch:
+    """Lebensbereiche samt Elternkette vorladen (Befund #39).
+
+    `Kategorie.pfad_kurz` läuft die Kette bis zur Wurzel hoch — ohne Vorladen ist das je
+    Zeile eine Abfrage pro Baumebene, bei 271 von 312 Bereichen auf Tiefe 4 oder 5 also
+    vier bis fünf Abfragen für ein Tooltip. Der Baum hat höchstens sechs Ebenen."""
+    return Prefetch(
+        "kategorien",
+        queryset=Kategorie.objects.select_related("eltern__eltern__eltern__eltern__eltern"),
+    )
+
+
+def _zaehler(antraege) -> dict[str, dict[int, int]]:
+    """Die Zählwerte der Kacheln und Feed-Zeilen für viele Anträge in je einer Abfrage (Befund #40):
+    Unterstützungen, laufende Beiträge, abgegebene Stimmen — bei Personenwahlen die Pseudonyme mit
+    mindestens einer Zustimmung. Ohne das zählte jede Zeile dreimal für sich: 10.000 laufende
+    Verfahren wären 10.000 COUNT-Abfragen je Aufruf des Parlaments."""
+    pks = [a.pk for a in antraege]
+    if not pks:
+        return {"unterstuetzungen": {}, "beitraege": {}, "stimmen": {}}
+    stimmen = dict(
+        Stimmabgabe.objects.filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
+    )
+    stimmen.update(
+        BewerbungsZustimmung.objects.filter(bewerbung__antrag_id__in=pks)
+        .order_by()
+        .values_list("bewerbung__antrag_id")
+        .annotate(n=Count("pseudonym", distinct=True))
+    )
+    return {
+        "unterstuetzungen": dict(
+            Unterstuetzung.objects.filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
+        ),
+        "beitraege": dict(
+            Kommentar.objects.filter(antrag_id__in=pks, archiviert_am__isnull=True)
+            .order_by()
+            .values_list("antrag_id")
+            .annotate(n=Count("id"))
+        ),
+        "stimmen": stimmen,
+    }
+
+
+def _wirksame_beginne(antraege, jetzt) -> dict:
+    """{Antrag-ID: wirksamer Phasenbeginn} für viele Anträge mit einer Abfrage (Befund #24, #30).
+
+    Anzeige und Kern müssen mit demselben Beginn rechnen: Eine Aussetzung nach § 6 Abs 3 lit d
+    rückt ihn um die Stillstandszeit nach hinten (`Antrag.wirksamer_phase_beginn`), sonst zeigt
+    die Seite ein Fristende, das um die Dauer der Aussetzung zu früh liegt, während die
+    Abstimmung weiterläuft. Für Listen holt diese Funktion alle Abschnitte auf einmal."""
+    from django.apps import apps
+
+    from plattform_core.aussetzung import wirksamer_beginn
+
+    beginne = {a.pk: a.phase_beginn for a in antraege}
+    if not beginne or not apps.is_installed("gremien"):
+        return beginne
+    abschnitte: dict[int, list] = {}
+    for aussetzung in apps.get_model("gremien", "Aussetzung").objects.filter(antrag_id__in=beginne):
+        abschnitte.setdefault(aussetzung.antrag_id, []).append(aussetzung.abschnitt())
+    for pk, teile in abschnitte.items():
+        beginne[pk] = wirksamer_beginn(beginne[pk], teile, jetzt)
+    return beginne
+
+
+def _laufende_aussetzung(antrag, jetzt):
+    """Die gerade wirkende Aussetzung eines Antrags — oder None (§ 6 Abs 3 lit d: sie ist zu
+    veröffentlichen, also steht sie auch am Antrag, nicht nur unter den Beschlüssen)."""
+    from django.apps import apps
+
+    if not apps.is_installed("gremien"):
+        return None
+    for aussetzung in (
+        apps.get_model("gremien", "Aussetzung")
+        .objects.filter(antrag_id=antrag.pk, beendet_am__isnull=True)
+        .select_related("beschluss")
+        .order_by("-beginn")
+    ):
+        if aussetzung.laeuft(jetzt):
+            return aussetzung
+    return None
+
+
+def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst=False,
+                          zaehler=None, beginne=None):
     """FB-B1/B2: Merkmale (0..1) je laufendem Antrag bauen und im offenen Kern reihen (Regel v2).
 
     Grundordnung der Eingabe = die neutrale Ordnung (Abstimmung, Beratung, Unterstützung;
-    innerhalb der Phase nach Fristnähe) — bei Punktgleichheit bleibt sie erhalten. Die
-    Merkmale sind einfach und offen: Überschneidung der Lebensbereiche mit dem eigenen
-    Ja-/Nein-/Unterstützungs-Verlauf, außerhalb der Favoriten, Phase, Altersrang,
+    innerhalb der Phase nach Fristende, § 5 Abs 10 lit d) — bei Punktgleichheit bleibt sie
+    erhalten. Die Merkmale sind einfach und offen: Überschneidung der Lebensbereiche mit dem
+    eigenen Ja-/Nein-/Unterstützungs-Verlauf, außerhalb der Favoriten, Phase, Altersrang,
     verstrichener Anteil der eigenen Phasendauer, Nähe zur Schwelle bzw. Mindestbeteiligung."""
     from plattform_core.weicherfilter import reihen
 
-    phasen_rang = {Phase.ABSTIMMUNG.value: 0, Phase.BERATUNG.value: 1, Phase.UNTERSTUETZUNG.value: 2}
-    antraege = sorted(
-        laufend.prefetch_related("kategorien"),
-        key=lambda a: (phasen_rang.get(a.phase, 9), a.phase_beginn),
-    )
-    if not antraege:
+    laufende = _als_liste(laufende)
+    if not laufende:
         return []
+    zaehler = zaehler if zaehler is not None else _zaehler(laufende)
+    beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
+    policies = {a.pk: a.policy() for a in laufende}
+    fristen = {a.pk: _frist_fuer(a, policies[a.pk], beginne.get(a.pk)) for a in laufende}
+    antraege = sorted(laufende, key=lambda a: _neutraler_schluessel(a, fristen[a.pk]))
     kats = {a.pk: {k.pk for k in a.kategorien.all()} for a in antraege}
     ja_kats, nein_kats = _eigene_stimm_kategorien(nutzer)
     unterstuetzt_kats = set(
@@ -149,19 +237,21 @@ def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zue
     }
     eintraege = []
     for a in antraege:
-        policy = a.policy()
-        frist = _frist_fuer(a, policy)
+        policy = policies[a.pk]
+        frist = fristen[a.pk]
+        beginn = beginne.get(a.pk) or a.phase_beginn
         eigene = kats[a.pk]
         ablaufend = 0.0
-        if frist and a.phase_beginn:
-            dauer = (frist - a.phase_beginn).total_seconds()
+        if frist and beginn:
+            dauer = (frist - beginn).total_seconds()
             if dauer > 0:
-                ablaufend = min(1.0, max(0.0, (jetzt - a.phase_beginn).total_seconds() / dauer))
+                ablaufend = min(1.0, max(0.0, (jetzt - beginn).total_seconds() / dauer))
         schwelle = 0.0
         if a.phase == Phase.UNTERSTUETZUNG.value:
-            schwelle = min(1.0, a.unterstuetzungen.count() / max(1, policy.unterstuetzung_schwelle))
+            n = zaehler["unterstuetzungen"].get(a.pk, 0)
+            schwelle = min(1.0, n / max(1, policy.unterstuetzung_schwelle))
         elif a.phase == Phase.ABSTIMMUNG.value:
-            abgegeben, basis = _beteiligung(a)
+            abgegeben, basis = _beteiligung(a, zaehler["stimmen"].get(a.pk, 0))
             schwelle = min(1.0, (abgegeben / basis) / max(policy.mindestbeteiligung, 0.0001))
         merkmale = {
             "ja": _anteil(eigene, ja_kats),
@@ -188,40 +278,73 @@ def _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zue
     ]
 
 
-def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst):
+#: Die neutrale Grundordnung (§ 5 Abs 10 lit d, F-31): Abstimmung vor Beratung vor Unterstützung.
+PHASEN_RANG = {Phase.ABSTIMMUNG.value: 0, Phase.BERATUNG.value: 1, Phase.UNTERSTUETZUNG.value: 2}
+
+
+def _neutraler_schluessel(antrag, frist):
+    """Sortierschlüssel der neutralen Grundordnung: Phase, dann das **Fristende** (Befund #70).
+
+    Das Regelverzeichnis und § 5 Abs 10 lit d sprechen von „Phase und Frist“ — der Phasenbeginn
+    wäre nur deckungsgleich, solange alle Anträge einer Phase dieselbe eingefrorene Dauer haben
+    und keine Aussetzung wirkt. Ohne Frist (Endphasen) bleibt der Beginn."""
+    return (PHASEN_RANG.get(antrag.phase, 9), frist or antrag.phase_beginn)
+
+
+def _als_liste(antraege) -> list:
+    """Laufende Anträge einmal laden, mit Lebensbereichen samt Pfad — alle Bereiche des Parlaments
+    bedienen sich aus derselben Liste, statt je Bereich neu abzufragen (Befund #39, #40)."""
+    if isinstance(antraege, list):
+        return antraege
+    return list(antraege.prefetch_related(_mit_pfad()).order_by("phase_beginn", "pk"))
+
+
+def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
+                        zaehler=None, beginne=None):
     """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
-    Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme)."""
+    Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
+
+    `laufend` darf ein QuerySet oder die schon geladene Liste sein; Zählwerte und wirksame
+    Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
+    from parameter.models import zahl
     from plattform_core.weicherfilter import ist_neutral
 
+    laufende = _als_liste(laufend)
+    zaehler = zaehler if zaehler is not None else _zaehler(laufende)
+    beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
+
     def zeile(a, extra=None):
-        z = _kachel(a, jetzt, meine_stimmen, abo_ids)
+        z = _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler)
         z.update({"favorit": False, "anteile": [], "punkte": 0})
         z.update(extra or {})
         return z
 
     if nutzer.is_authenticated and not ist_neutral(regler):
-        gereiht = _weicherfilter_reihen(nutzer, laufend, jetzt, regler, abo_ids, favoriten_zuerst)
+        gereiht = _weicherfilter_reihen(
+            nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne
+        )
         return {"gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "leer": not gereiht}
 
     fav_ids: set[int] = set()
     if abo_ids and favoriten_zuerst:
-        fav_ids = set(laufend.filter(kategorien__in=abo_ids).values_list("pk", flat=True))
-
-    def ordnen(qs):
-        return sorted(qs.prefetch_related("kategorien"), key=lambda a: (0 if a.pk in fav_ids else 1, a.phase_beginn))
+        fav_ids = {a.pk for a in laufende if any(k.pk in abo_ids for k in a.kategorien.all())}
 
     def gruppe(phase):
-        return [zeile(a, {"favorit": a.pk in fav_ids}) for a in ordnen(laufend.filter(phase=phase))]
+        zeilen = [zeile(a, {"favorit": a.pk in fav_ids}) for a in laufende if a.phase == phase]
+        zeilen.sort(key=lambda z: (0 if z["favorit"] else 1, z["frist"] or z["antrag"].phase_beginn))
+        return zeilen
 
-    abgeschlossen = antraege.filter(
-        phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value]
-    ).order_by("-phase_beginn")[:20]
+    abgeschlossen = list(
+        antraege.filter(phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value])
+        .order_by("-phase_beginn")
+        .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
+    )
     gruppen = [
         (_("Laufende Abstimmungen"), gruppe(Phase.ABSTIMMUNG.value)),
         (_("In Beratung"), gruppe(Phase.BERATUNG.value)),
         (_("Sammeln Unterstützung"), gruppe(Phase.UNTERSTUETZUNG.value)),
-        (_("Abgeschlossen"), [zeile(a) for a in abgeschlossen.prefetch_related("kategorien")]),
+        (_("Abgeschlossen"), [zeile(a) for a in abgeschlossen]),
     ]
     return {"gereiht": None, "gruppen": gruppen, "leer": not any(liste for _titel, liste in gruppen[:3])}
 
@@ -242,46 +365,56 @@ def _filter_lage(profile, aktives, regler, favoriten_zuerst):
     }
 
 
-def _frist_fuer(antrag, policy=None):
-    """Fristende der laufenden Phase — None für Endphasen."""
+def _frist_fuer(antrag, policy=None, beginn=None):
+    """Fristende der laufenden Phase — None für Endphasen.
+
+    Gerechnet wird mit dem **wirksamen** Phasenbeginn (§ 6 Abs 3 lit d): dem gespeicherten,
+    um die Stillstandszeit einer Aussetzung nach hinten gerückt — derselbe Beginn, mit dem
+    Phasenautomat und Stimmzulässigkeit rechnen. Listen reichen ihn aus `_wirksame_beginne`
+    herein, damit nicht jede Zeile die Aussetzungen abfragt."""
     policy = policy or antrag.policy()
+    if antrag.phase not in LAUFEND:
+        return None
+    beginn = beginn or antrag.wirksamer_phase_beginn()
     if antrag.phase == Phase.UNTERSTUETZUNG.value:
-        return unterstuetzung_frist_ende(antrag.phase_beginn, policy)
+        return unterstuetzung_frist_ende(beginn, policy)
     if antrag.phase == Phase.BERATUNG.value:
-        return beratung_frist_ende(antrag.phase_beginn, policy)
-    if antrag.phase == Phase.ABSTIMMUNG.value:
-        return abstimmung_frist_ende(antrag.phase_beginn, policy)
-    return None
+        return beratung_frist_ende(beginn, policy)
+    return abstimmung_frist_ende(beginn, policy)
 
 
-def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None):
+def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
     Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
     laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
     (F-15: kein Bandwagon; das Ergebnis erscheint nach Fristende auf der
-    Antragsseite)."""
+    Antragsseite). `beginn` und `zaehler` kommen aus den Bulk-Helfern, wenn viele
+    Kacheln auf einmal entstehen; einzeln holt die Kachel beides selbst."""
     policy = antrag.policy()
-    frist = _frist_fuer(antrag, policy)
+    beginn = beginn or antrag.wirksamer_phase_beginn(jetzt)
+    if zaehler is None:
+        zaehler = _zaehler([antrag])
+    frist = _frist_fuer(antrag, policy, beginn)
     resttage = max(0, (frist - jetzt).days) if frist else None
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
-    if frist and antrag.phase_beginn:
-        ganze = (frist - antrag.phase_beginn).total_seconds()
+    if frist and beginn:
+        ganze = (frist - beginn).total_seconds()
         if ganze > 0:
-            verstrichen = min(100, max(0, round(100 * (jetzt - antrag.phase_beginn).total_seconds() / ganze)))
+            verstrichen = min(100, max(0, round(100 * (jetzt - beginn).total_seconds() / ganze)))
     # Thema: der erste zugeordnete Lebensbereich, mit eigenem Abo-Stern
     thema = next(iter(antrag.kategorien.all()), None)
     stat = None
     if antrag.phase == Phase.UNTERSTUETZUNG.value:
-        n = antrag.unterstuetzungen.count()
+        n = zaehler["unterstuetzungen"].get(antrag.pk, 0)
         schwelle = max(1, policy.unterstuetzung_schwelle)
         stat = {"typ": "unterstuetzung", "n": n, "schwelle": schwelle,
                 "prozent": min(100, round(100 * n / schwelle))}
     elif antrag.phase == Phase.BERATUNG.value:
         # nur der laufende Chat zählt — Archiviertes gehört zur vorigen Phase (FB-G5)
-        stat = {"typ": "beratung", "beitraege": antrag.kommentare.filter(archiviert_am__isnull=True).count()}
+        stat = {"typ": "beratung", "beitraege": zaehler["beitraege"].get(antrag.pk, 0)}
     elif antrag.phase == Phase.ABSTIMMUNG.value:
-        abgegeben, basis = _beteiligung(antrag)
+        abgegeben, basis = _beteiligung(antrag, zaehler["stimmen"].get(antrag.pk, 0))
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
                 "prozent": min(100, round(100 * abgegeben / basis))}
     return {
@@ -297,9 +430,14 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None):
 
 
 def _meine_stimmen(nutzer, antraege):
-    """Bulk: {antrag_id: eigene Sach-Stimme} für die Kachel-Markierung."""
+    """Bulk: {antrag_id: eigene Sach-Stimme} für die Kachel-Markierung.
+
+    Gäste zuerst: Für sie gibt es nichts zu holen — die Liste der Anträge wird gar nicht erst
+    durchlaufen (Befund #40)."""
+    if not nutzer.is_authenticated:
+        return {}
     pks = [a.pk for a in antraege if a.phase == Phase.ABSTIMMUNG.value and a.art != Antragsart.MANDAT]
-    if not (pks and nutzer.is_authenticated):
+    if not pks:
         return {}
     je_pseudonym = dict(
         StimmRegister.objects.filter(mitglied=nutzer, antrag_id__in=pks).values_list(
@@ -312,7 +450,6 @@ def _meine_stimmen(nutzer, antraege):
     for ab in Stimmabgabe.objects.filter(antrag_id__in=pks, pseudonym__in=je_pseudonym):
         stimmen[ab.antrag_id] = ab.stimme
     return stimmen
-
 
 
 def fristen_fuer_das_diagramm() -> dict:
@@ -347,7 +484,9 @@ def index(request):
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
-    wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[:3]
+    from parameter.models import zahl
+
+    wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[: zahl("kacheln-hervorgehoben", 3)]
     return render(
         request,
         "verfahren/index.html",
@@ -403,6 +542,7 @@ def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
     """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
     Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
     Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
+    from parameter.models import zahl
     from verfahren.views_aktionen import _laufend_je_ast
 
     abonniert: set[int] = set()
@@ -411,7 +551,9 @@ def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
     laufend = _laufend_je_ast()
     norm = suchtext.casefold()
     treffer = []
-    for k in Kategorie.objects.filter(aktiv=True):
+    # Die Elternkette kommt mit (Befund #39): Tiefe und Pfad der Treffer brauchen sonst je
+    # Ebene eine Abfrage — bei einer Suche über alle Treffer, vor dem Abschneiden.
+    for k in Kategorie.objects.filter(aktiv=True).select_related("eltern__eltern__eltern__eltern__eltern"):
         if (
             norm in k.name.casefold()
             or norm in k.beschreibung.casefold()
@@ -421,7 +563,7 @@ def _kategorien_suchen(suchtext: str, nutzer) -> list[dict]:
                 {"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert}
             )
     treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
-    return treffer[:24]
+    return treffer[: zahl("suche-treffer-hoechstzahl", 24)]
 
 
 def parlament(request):
@@ -463,16 +605,24 @@ def parlament(request):
 
     jetzt = timezone.now()
 
+    # Alle laufenden Verfahren EINMAL laden (Befund #39, #40): Feed, Region und die
+    # hervorgehobenen Kacheln bedienen sich aus derselben Liste; Zählwerte und wirksame
+    # Phasenbeginne (Aussetzungen, Befund #24/#30) kommen je in einer Abfrage.
+    from parameter.models import zahl
+
+    laufende = _als_liste(laufend)
+    zaehler = _zaehler(laufende)
+    beginne = _wirksame_beginne(laufende, jetzt)
+
     # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
-    # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage.
-    wichtige = list(
-        laufend.filter(hervorgehoben=True).order_by("phase_beginn").prefetch_related("kategorien")
-    )
+    # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage. Wie viele
+    # Platz haben, sagt das Register (Befund #45).
+    wichtige = [a for a in laufende if a.hervorgehoben][: zahl("kacheln-hervorgehoben", 3)]
 
     # Bereich c — Meine Region (F-43, P4): drei Zeilen Gemeinde/Bezirk/Land.
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
-    regionale = laufend.exclude(ebene="bund").order_by("phase_beginn").prefetch_related("kategorien")
+    regionale = [a for a in laufende if a.ebene != "bund"]
     mein_ort = {"gemeinde": "", "bezirk": "", "land": ""}
     if request.user.is_authenticated:
         mein_ort["gemeinde"] = request.user.gemeinde or ""
@@ -482,7 +632,7 @@ def parlament(request):
         if request.user.wohnsitz_id:
             mein_ort["bezirk"] = request.user.wohnsitz.bezirk or ""
 
-    meine_stimmen = _meine_stimmen(request.user, list(laufend))  # Kacheln und Feed-Zeilen
+    meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     meine_unterstuetzungen: set[int] = set()
     if request.user.is_authenticated:
         meine_unterstuetzungen = set(
@@ -492,18 +642,21 @@ def parlament(request):
     region_zeilen = []
     for ebene, ort in (("gemeinde", mein_ort["gemeinde"]), ("bezirk", mein_ort["bezirk"]),
                        ("land", mein_ort["land"])):
-        zeile = regionale.filter(ebene=ebene)
-        if ort:
-            zeile = zeile.filter(gebiet=ort)
+        zeile = [a for a in regionale if a.ebene == ebene and (not ort or a.gebiet == ort)]
         region_zeilen.append(
             {
                 "ebene": ebene,
                 "ort": ort,
-                "kacheln": [_kachel(a, jetzt, meine_stimmen, abo_ids) for a in zeile],
+                "kacheln": [
+                    _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler)
+                    for a in zeile
+                ],
             }
         )
 
-    wichtige_kacheln = [_kachel(a, jetzt, meine_stimmen, abo_ids) for a in wichtige]
+    wichtige_kacheln = [
+        _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler) for a in wichtige
+    ]
 
     # Bereich d — der WeicherFilter (FB-B1–B6): das aktive Profil reiht die laufenden
     # Verfahren nach den offenen Reglern des Mitglieds (Regel v2); sonst gilt die neutrale
@@ -520,7 +673,8 @@ def parlament(request):
         favoriten_zuerst = aktives.favoriten_zuerst if aktives else request.user.favoriten_zuerst
         filter_lage = _filter_lage(profile, aktives, regler, favoriten_zuerst)
     feed = _weicherfilter_feed(
-        request.user, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst
+        request.user, antraege, laufende, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
+        zaehler=zaehler, beginne=beginne,
     )
     return render(
         request,
@@ -714,7 +868,7 @@ def archiv_export(request, pk, art):
     return antwort
 
 def antrag_detail(request, pk):
-    antrag = get_object_or_404(Antrag, pk=pk)
+    antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
     antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
     beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
     ergebnis = None
@@ -760,20 +914,12 @@ def antrag_detail(request, pk):
             "wahl": wahl,
             "ergebnis_zeilen": ergebnis_zeilen,
         }
-    from plattform_core.phases import (
-        abstimmung_frist_ende,
-        beratung_frist_ende,
-        unterstuetzung_frist_ende,
-    )
-
     policy = antrag.policy()
-    frist = None
-    if antrag.phase == Phase.UNTERSTUETZUNG.value:
-        frist = unterstuetzung_frist_ende(antrag.phase_beginn, policy)
-    elif antrag.phase == Phase.BERATUNG.value:
-        frist = beratung_frist_ende(antrag.phase_beginn, policy)
-    elif antrag.phase == Phase.ABSTIMMUNG.value:
-        frist = abstimmung_frist_ende(antrag.phase_beginn, policy)
+    jetzt = timezone.now()
+    # Dieselbe Rechnung wie Phasenautomat und Stimmzulässigkeit (§ 6 Abs 3 lit d): Eine
+    # Aussetzung hemmt die Frist — die Seite darf kein früheres Ende nennen (Befund #24, #30).
+    frist = _frist_fuer(antrag, policy, antrag.wirksamer_phase_beginn(jetzt))
+    aussetzung = _laufende_aussetzung(antrag, jetzt) if antrag.phase in LAUFEND else None
     unterstuetzt_von_mir = (
         request.user.is_authenticated and antrag.unterstuetzungen.filter(mitglied=request.user).exists()
     )
@@ -827,6 +973,7 @@ def antrag_detail(request, pk):
             "chat": chat,
             "archiv": _archiv_lage(antrag),
             "frist": frist,
+            "aussetzung": aussetzung,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,
             "meine_stimme": meine_stimme,
             "phase_offen": antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),

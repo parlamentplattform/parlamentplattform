@@ -25,6 +25,8 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   {% if antrag.hervorgehoben %}<div class="band-gold"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
+  {# § 6 Abs 3 lit d: Die Aussetzung ist zu veröffentlichen — also auch hier, wo die Frist steht (Befund #30) #}
+  {% if aussetzung %}<div class="band-gold aussetzung-band"><strong>{% blocktranslate with seit=aussetzung.beginn|date:"d.m.Y" nummer=aussetzung.beschluss.nummer %}Ausgesetzt seit {{ seit }} durch Beschluss {{ nummer }} des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d).{% endblocktranslate %}</strong> {{ aussetzung.begruendung }} <a href="{% url 'gremien:beschluss' aussetzung.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>{% endif %}
   {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
 </header>
 

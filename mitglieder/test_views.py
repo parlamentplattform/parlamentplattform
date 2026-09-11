@@ -142,6 +142,62 @@ def test_abmelden_verlangt_post(client):
     assert antwort.status_code == 302
 
 
+# --- Unbestätigte Konten sperren die Adresse nicht auf Dauer (Befund #21) -----------------
+
+
+def test_unbestaetigtes_konto_sperrt_die_adresse_nicht_dauerhaft(client):
+    """Link nie geklickt, 48 Stunden um: Der echte Inhaber bekommt am Login einen neuen
+    Bestätigungslink (Selbsthilfe), und eine erneute Registrierung überschreibt die Zeile,
+    statt sie abzulehnen — gelöscht wird nichts (das Audit verweist auf die pk)."""
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
+    m = Mitglied.objects.get(email="eva@example.org")
+    EinmalToken.objects.filter(mitglied=m).update(gueltig_bis=timezone.now() - timedelta(hours=1))
+    mail.outbox.clear()
+
+    login = reverse("mitglieder:login")
+    antwort = client.post(login, {"email": "eva@example.org", **botschutz(client, url=login)})
+    assert "Postfach" in antwort.content.decode()  # dieselbe Seite wie sonst
+    assert len(mail.outbox) == 1
+    bestaetigen_pfad = reverse("mitglieder:bestaetigen", args=["x"]).rsplit("x", 1)[0]
+    assert bestaetigen_pfad in mail.outbox[0].body  # ein Bestätigungs-, kein Anmeldelink
+
+    EinmalToken.objects.filter(mitglied=m).update(gueltig_bis=timezone.now() - timedelta(hours=1))
+    mail.outbox.clear()
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, "vorname": "Evamaria", **botschutz(client)})
+    assert Mitglied.objects.count() == 1  # überschrieben, nicht verdoppelt
+    m.refresh_from_db()
+    assert m.first_name == "Evamaria" and m.is_active is False
+    client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    m.refresh_from_db()
+    assert m.is_active is True and m.beitritt == timezone.localdate()
+
+
+def test_solange_der_link_gilt_bleibt_die_adresse_belegt_und_der_login_hilft(client):
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
+    mail.outbox.clear()
+    antwort = client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
+    assert "existiert bereits" in antwort.content.decode() and Mitglied.objects.count() == 1
+    login = reverse("mitglieder:login")
+    client.post(login, {"email": "eva@example.org", **botschutz(client, url=login)})
+    assert len(mail.outbox) == 1  # der Login hilft sofort mit einem frischen Bestätigungslink
+
+
+def test_ausgeschlossene_bleiben_zu(client):
+    """Ausgeschlossene sind ebenfalls inaktiv — sie bekommen weder Link noch neue Registrierung."""
+    from mitglieder.models import Mitgliedsstatus
+
+    Mitglied.objects.create(
+        username="eva@example.org", email="eva@example.org", is_active=False, status=Mitgliedsstatus.AUSGESCHLOSSEN
+    )
+    login = reverse("mitglieder:login")
+    client.post(login, {"email": "eva@example.org", **botschutz(client, url=login)})
+    assert mail.outbox == []
+    antwort = client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
+    assert "existiert bereits" in antwort.content.decode() and Mitglied.objects.count() == 1
+
+
 # --- Menschlichkeitsprüfung (F-49) ---------------------------------------------
 
 

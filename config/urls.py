@@ -6,7 +6,11 @@ eigene, auditierte Mitgliederverwaltung unter /verwaltung/ (F-51).
 
 from django.urls import include, path
 
+from config.gesund import gesund
+
 urlpatterns = [
+    # Gesundheitscheck mit Datenbankberührung (Befund #94) — vor den App-Routen, damit er gilt.
+    path("gesund/", gesund, name="gesund"),
     path("", include("verfahren.urls")),
     path("", include("mitglieder.urls")),
     path("", include("uebersicht.urls")),

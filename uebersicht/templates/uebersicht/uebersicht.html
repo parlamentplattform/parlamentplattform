@@ -40,7 +40,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
   <div class="karte">
     <p style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
       <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
-      {% if z.personenwahl %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% endif %}
+      {% if z.personenwahl %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% elif z.mandatsfrage %}<span class="badge badge--hell">{% translate "Mandatsfrage" %}</span>{% endif %}
       {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
       {% elif z.antrag.phase == "angenommen" %}<span class="badge badge-ok">{% translate "angenommen" %}</span>
       {% else %}<span class="badge badge-warn">{% translate "abgelehnt" %}</span>{% endif %}

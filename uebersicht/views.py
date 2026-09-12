@@ -109,6 +109,8 @@ def _abstimmungen() -> tuple[list[dict], int]:
             "prozent": min(100, beteiligung or 0),
             "laeuft": a.phase == Phase.ABSTIMMUNG.value,
             "personenwahl": a.art == Antragsart.MANDAT,
+            # § 7 Abs 9: ausgezählt wie ein Sachantrag (Ja/Nein/Enthaltung), aber gekennzeichnet
+            "mandatsfrage": a.art == Antragsart.MANDATSFRAGE,
             "ja": None,
             "nein": None,
             "enthaltung": None,

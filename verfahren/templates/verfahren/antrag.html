@@ -16,14 +16,23 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
     <span class="badge b-{{ antrag.phase }}">{{ antrag.phase|phase_name }}</span>
-    {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% endif %}
+    {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
     {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
     <span class="a-stern">{% include "verfahren/_stern.html" with antrag=antrag %}</span>
   </div>
+  {% if mandatsfrage %}
+  {# § 7 Abs 9: keine Unterstützungsphase — statt „n Unterstützungen“ der Weg zurück zum Mandatar und der Sitzungstag des Reports #}
+  <p class="a-meta">{% translate "Mandatsfrage von" %} {% if mandatsfrage.mandat %}<a href="{% url 'mandatare:detail' mandatsfrage.mandat.pk %}">{{ mandatsfrage.mandat.mitglied.anzeigename }}</a>{% else %}{{ antrag.eingebracht_von.anzeigename }}{% endif %}
+    · {% translate "eröffnet" %} {{ antrag.eingebracht_am|date:"d.m.Y" }}{% if mandatsfrage.frist %}
+    · {% if mandatsfrage.ist_sitzungstag %}{% translate "Sitzungstag" %}{% else %}{% translate "Frist des Reports" %}{% endif %} {{ mandatsfrage.frist|date:"d.m.Y H:i" }}{% endif %}{% if frist %}
+    · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
+  <div class="band-gold mandatsfrage-band"><strong>{% translate "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase" %}</strong></div>
+  {% else %}
   <p class="a-meta">{% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
     · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
+  {% endif %}
   {% if antrag.hervorgehoben %}<div class="band-gold"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
   {# § 6 Abs 3 lit d: Die Aussetzung ist zu veröffentlichen — also auch hier, wo die Frist steht (Befund #30) #}
   {% if aussetzung %}<div class="band-gold aussetzung-band"><strong>{% blocktranslate with seit=aussetzung.beginn|date:"d.m.Y" nummer=aussetzung.beschluss.nummer %}Ausgesetzt seit {{ seit }} durch Beschluss {{ nummer }} des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d).{% endblocktranslate %}</strong> {{ aussetzung.begruendung }} <a href="{% url 'gremien:beschluss' aussetzung.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>{% endif %}
@@ -154,7 +163,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         </tbody>
       </table></div>
       <p>{% translate "Beteiligung" %} {{ kandidatur.wahl.beteiligung }} / {{ kandidatur.wahl.stimmberechtigte }} {% translate "Stimmberechtigte" %}</p>
-      <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}</p>
+      <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}{% if wahlvorschlag_url %} · <a href="{{ wahlvorschlag_url }}">{% translate "Reihung als Wahlvorschlag (Markdown)" %}</a>{% endif %}</p>
     </div>
     {% endif %}
 

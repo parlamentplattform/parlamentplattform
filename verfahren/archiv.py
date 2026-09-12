@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy
 
 from plattform_core import Phase, vorschlagschat
 from verfahren.chat import leicht, mit_zaehlern
-from verfahren.models import AuditEintrag, Kommentar
+from verfahren.models import Antragsart, AuditEintrag, Kommentar
 from verfahren.templatetags.phasen import NAMEN as PHASEN_NAMEN
 
 #: Phasen, nach denen nichts mehr läuft — ihr Block trägt kein „läuft".
@@ -205,10 +205,13 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
         Phase.ABGELEHNT.value,
     ]
     ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
+    # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
+    # Mandatsfrage (§ 7 Abs 9) nicht: Sie hatte nie eine, also bekommt sie auch keinen Block.
+    immer = () if antrag.art == Antragsart.MANDATSFRAGE else (Phase.UNTERSTUETZUNG.value,)
     bloecke = []
     for phase in reihenfolge:
         n = anzahl.get(phase, 0)
-        if not n and phase not in (antrag.phase, Phase.UNTERSTUETZUNG.value):
+        if not n and phase != antrag.phase and phase not in immer:
             continue
         bloecke.append(
             {
@@ -302,7 +305,11 @@ def als_markdown(antrag) -> str:
         f"# {a['titel']}",
         "",
         f"Antrag {a['id']} · {a['art']} · {a['ebene']} · {_('Phase')}: {a['phase_name']}",
-        f"{_('Eingebracht')}: {a['eingebracht_am'][:10]} · {a['unterstuetzungen']} {_('Unterstützungen')}",
+        (
+            f"{_('Eröffnet')}: {a['eingebracht_am'][:10]} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
+            if antrag.art == Antragsart.MANDATSFRAGE
+            else f"{_('Eingebracht')}: {a['eingebracht_am'][:10]} · {a['unterstuetzungen']} {_('Unterstützungen')}"
+        ),
         "",
     ]
     for f in d["fassungen"]:

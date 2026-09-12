@@ -54,6 +54,21 @@ from verfahren.models import (
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
+#: Die Ebenen-Werte des Nebenwohnsitzes im Einbringen-Formular (FB-J6) — eigene Werte, damit
+#: `gebiet()` weiß, welcher der beiden Orte gemeint ist; `clean_ebene` bildet sie auf `Ebene` ab.
+NEBEN_EBENEN = {
+    "land_neben": Ebene.LAND.value,
+    "bezirk_neben": Ebene.BEZIRK.value,
+    "gemeinde_neben": Ebene.GEMEINDE.value,
+}
+
+
+def nebenwohnsitz_zaehlt() -> bool:
+    """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
+    andere wirkt wie 0. Der Nebenwohnsitz ordnet dann ZUSÄTZLICH einer Region zu — für „Meine
+    Region“ und das Einbringen. Am Stimmrecht ändert er nie etwas (§ 5 Abs 6, Grundregel 4)."""
+    return zahl("region-nebenwohnsitz-zaehlt", 0) == 1
+
 
 def _mitwirkung_gesperrt(request):
     """403-Antwort, wenn Mitwirkungsrechte fehlen — sonst None.
@@ -124,21 +139,46 @@ class AntragsFormular(forms.Form):
             wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % mitglied.wohnsitz.bezirk))
         if mitglied is not None and mitglied.gemeinde:
             wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % mitglied.gemeinde))
+        # FB-J6: Der Nebenwohnsitz bietet seine Ebenen zusätzlich an — nur bei Schalter 1 und nur,
+        # wenn er hinterlegt ist. Was hier nicht angeboten wird, weist das ChoiceField ab.
+        self.neben = None
+        if mitglied is not None and mitglied.nebenwohnsitz_id and nebenwohnsitz_zaehlt():
+            self.neben = mitglied.nebenwohnsitz
+            if self.neben.bundesland:
+                wahlen.append(
+                    ("land_neben", _("Mein Nebenwohnsitz-Bundesland (%s)") % self.neben.get_bundesland_display())
+                )
+            if self.neben.bezirk:
+                wahlen.append(("bezirk_neben", _("Mein Nebenwohnsitz-Bezirk (%s)") % self.neben.bezirk))
+            wahlen.append(("gemeinde_neben", _("Meine Nebenwohnsitz-Gemeinde (%s)") % self.neben.name))
         self.fields["ebene"].choices = wahlen
         self.fields["ebene"].initial = Ebene.BUND.value
 
     def clean_ebene(self):
-        return self.cleaned_data.get("ebene") or Ebene.BUND.value
+        wert = self.cleaned_data.get("ebene") or Ebene.BUND.value
+        # Der rohe Wert sagt `gebiet()`, ob Haupt- oder Nebenwohnsitz gemeint ist; der Antrag
+        # selbst kennt nur die Ebene (`Antrag.ebene`).
+        self.ebene_roh = wert
+        return NEBEN_EBENEN.get(wert, wert)
 
     def clean_art(self):
         # Nur die angebotenen Arten: Eine Mandatsfrage (§ 7 Abs 9) eröffnet allein der Mandatar
-        # aus seinem Instant-Report — nie ein POST auf /einbringen/.
+        # aus seinem Instant-Report — nie ein POST auf /einbringen/. Das ChoiceField weist
+        # fremde Werte schon ab; hier bleibt der Rückfall auf den Sachantrag für leere Eingaben.
         wert = self.cleaned_data.get("art") or Antragsart.SACHE.value
         return wert if wert in (Antragsart.SACHE.value, Antragsart.MANDAT.value) else Antragsart.SACHE.value
 
     def gebiet(self) -> str:
-        """Das Gebiet folgt zwingend dem Wohnsitz (F-43) — keine freie Eingabe."""
+        """Das Gebiet folgt zwingend dem Wohnsitz (F-43) — keine freie Eingabe. Beim Nebenwohnsitz
+        (FB-J6) liefert es dieselben Anzeigenamen wie „Meine Region“: Gemeindename, Bezirksname,
+        Bundesland-Beschriftung — nie Slug oder Kennziffer."""
         ebene = self.cleaned_data["ebene"]
+        if getattr(self, "ebene_roh", ebene) in NEBEN_EBENEN and self.neben is not None:
+            if ebene == Ebene.GEMEINDE.value:
+                return self.neben.name
+            if ebene == Ebene.BEZIRK.value:
+                return self.neben.bezirk
+            return self.neben.get_bundesland_display()
         if ebene == Ebene.GEMEINDE.value:
             return self.mitglied.gemeinde
         if ebene == Ebene.BEZIRK.value:

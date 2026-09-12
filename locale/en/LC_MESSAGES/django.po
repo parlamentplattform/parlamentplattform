@@ -6419,9 +6419,6 @@ msgstr "The deadline is a session day"
 msgid "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig."
 msgstr "The deadline is a session day — afterwards the session report and the accountability entry are due."
 
-msgid "Die Mandatsfrage läuft noch — der Eintrag steht ohne Beschluss der Plattform."
-msgstr "The mandate question is still open — the entry stands without a decision of the platform."
-
 msgid "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto."
 msgstr "The language is remembered by this device (cookie), not by the account."
 
@@ -6466,9 +6463,6 @@ msgstr "Photo saved."
 
 msgid "Frist am"
 msgstr "Deadline on"
-
-msgid "Für diesen Monat liegt schon ein Bericht vor."
-msgstr "A report for this month already exists."
 
 msgid "Gebiet"
 msgstr "Area"
@@ -6824,3 +6818,37 @@ msgstr "— free entry —"
 
 msgid "„%(titel)s“: %(status)s."
 msgstr "“%(titel)s”: %(status)s."
+
+# ── 0.46: Behebung FM ──
+
+msgid "Der Sitzungstag darf nicht in der Zukunft liegen."
+msgstr "The session day must not lie in the future."
+
+msgid "Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."
+msgstr "The vote is still running — the entry stands without a platform decision."
+
+msgid "Dieser Report ist bereits angelegt — kein zweites Mal."
+msgstr "This report already exists — not a second time."
+
+msgid "Nachtrag zum Monatsbericht eingereicht."
+msgstr "Addendum to the monthly report submitted."
+
+msgid "Nachtrag"
+msgstr "Addendum"
+
+msgid "Betreute Abstimmung"
+msgstr "Supported vote"
+
+msgid "Schreiben geht nach der Bestätigung."
+msgstr "Writing opens after confirmation."
+
+msgid "Mandat beendet — kein neuer Report."
+msgstr "Mandate ended — no new report."
+
+msgid "Ihr Mandat endete am %(ende)s — Rechenschaft und Berichte sind noch bis %(bis)s möglich."
+msgstr "Your mandate ended on %(ende)s — accountability entries and reports remain possible until %(bis)s."
+
+msgid "Alle Berichte (einer) →"
+msgid_plural "Alle Berichte (%(n)s) →"
+msgstr[0] "All reports (one) →"
+msgstr[1] "All reports (%(n)s) →"

@@ -5,7 +5,10 @@
 {% comment %}
 Der Bereich des Mandatars (§ 7 Abs 3 lit b, Abs 5, Abs 9): vier Karten in einem 2×2-Raster wie
 der Koordinationsrat. Jede Handlung ist ein echtes POST-Formular auf mein_aktion; ohne
-Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
+Mitwirkungsrecht (Status nicht aktiv oder Identität ungeprüft) bleibt alles lesbar, die Formulare
+fehlen. Nach dem Mandatsende bleiben in der Nachfrist nur Sammelbericht, Rechenschaft und
+Monatsbericht (darf_berichten). Nach einem Eingabefehler kommt `eingabe` (der POST) mit und belegt
+das betroffene Formular wieder vor.
 {% endcomment %}
 {% include "mandatare/_stil.html" %}
 <h1>{% translate "Mein Mandat" %}</h1>
@@ -16,10 +19,13 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
   · <a href="#aufgaben">{% translate "Aufgaben und Fristen" %}</a> · <a href="#berichte">{% translate "Berichte und Rechenschaft" %}</a>
 </p>
+{% if mandat.beendet %}
+<div class="band-gold">{% blocktranslate with ende=mandat.beendet|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Ihr Mandat endete am {{ ende }} — Rechenschaft und Berichte sind noch bis {{ bis }} möglich.{% endblocktranslate %}</div>
+{% endif %}
 {% if identitaet_ungeprueft %}
 <div class="band-gold">{% translate "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
-{% elif not darf_schreiben %}
+{% elif not darf_berichten %}
 <div class="band-gold">{% translate "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
 {% endif %}
@@ -62,21 +68,21 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
   <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
     <input type="hidden" name="aktion" value="report"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
     <label for="ir-titel">{% translate "Was steht an?" %}</label>
-    <input type="text" id="ir-titel" name="titel" maxlength="120" required>
+    <input type="text" id="ir-titel" name="titel" maxlength="120" required{% if fehler_bei == "report" %} value="{{ eingabe.titel }}"{% endif %}>
     <span class="hilfe">{% translate "Als Ja-Nein-Frage formulieren, wenn eine Abstimmung entstehen soll." %}</span>
     <label for="ir-beschreibung">{% translate "Kurzbeschreibung (öffentlich)" %}</label>
-    <textarea id="ir-beschreibung" name="beschreibung" rows="3" maxlength="1000"></textarea>
+    <textarea id="ir-beschreibung" name="beschreibung" rows="3" maxlength="1000">{% if fehler_bei == "report" %}{{ eingabe.beschreibung }}{% endif %}</textarea>
     <div class="nebeneinander">
-      <label for="ir-datum">{% translate "Frist am" %} <input type="date" id="ir-datum" name="frist_datum" required></label>
-      <label for="ir-zeit">{% translate "Uhrzeit (sonst 23:59)" %} <input type="time" id="ir-zeit" name="frist_zeit"></label>
+      <label for="ir-datum">{% translate "Frist am" %} <input type="date" id="ir-datum" name="frist_datum" required{% if fehler_bei == "report" %} value="{{ eingabe.frist_datum }}"{% endif %}></label>
+      <label for="ir-zeit">{% translate "Uhrzeit (sonst 23:59)" %} <input type="time" id="ir-zeit" name="frist_zeit"{% if fehler_bei == "report" %} value="{{ eingabe.frist_zeit }}"{% endif %}></label>
     </div>
-    <label class="ankreuz" for="ir-sitzungstag"><input type="checkbox" id="ir-sitzungstag" name="sitzungstag"> {% translate "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig." %}</label>
-    <label class="schalter" for="ir-abstimmung">{% translate "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)" %} <input type="checkbox" id="ir-abstimmung" name="abstimmung"></label>
+    <label class="ankreuz" for="ir-sitzungstag"><input type="checkbox" id="ir-sitzungstag" name="sitzungstag"{% if fehler_bei == "report" and eingabe.sitzungstag %} checked{% endif %}> {% translate "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig." %}</label>
+    <label class="schalter" for="ir-abstimmung">{% translate "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)" %} <input type="checkbox" id="ir-abstimmung" name="abstimmung"{% if fehler_bei == "report" and eingabe.abstimmung %} checked{% endif %}></label>
     {% if ordnung_fehlt %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — eine Abstimmung kann noch nicht entstehen." %}</span>{% endif %}
     <button type="submit" class="btn" style="margin-top:8px">{% translate "Report veröffentlichen" %}</button>
   </form>
   {% else %}
-  <p class="leer">{% translate "Schreiben ruht bis zum aktiven Status." %}</p>
+  <p class="leer">{% if mandat.beendet %}{% translate "Mandat beendet — kein neuer Report." %}{% elif identitaet_ungeprueft %}{% translate "Schreiben geht nach der Bestätigung." %}{% else %}{% translate "Schreiben ruht bis zum aktiven Status." %}{% endif %}</p>
   {% endif %}
 </div>
 
@@ -104,8 +110,8 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
     </div>
     {% if a.beschreibung %}<div style="white-space:pre-line">{{ a.beschreibung }}</div>{% endif %}
     {% if a.antrag %}
-    <p class="pflicht"><span class="chip klein">{% translate "Mandatsfrage" %}</span>
-      <a href="{% url 'verfahren:antrag' a.antrag.pk %}{% if z.abstimmung_laeuft %}#abstimmen{% endif %}">{{ a.antrag.titel }}</a>
+    <p class="pflicht"><span class="chip klein">{% if a.antrag.art == "mandatsfrage" %}{% translate "Mandatsfrage" %}{% else %}{% translate "Betreute Abstimmung" %}{% endif %}</span>
+      <a href="{% url 'verfahren:antrag' a.antrag.pk %}{{ z.anker }}">{{ a.antrag.titel }}</a>
       <span class="meta">· {{ a.antrag.phase|phase_name }}</span></p>
     {% endif %}
     {% if z.sitzung_vorbei %}
@@ -113,14 +119,14 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
       {% if z.sammelbericht %}
         {% if z.sammelbericht.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "Sammelbericht" %} · {% blocktranslate count t=z.sammelbericht.lage.seit_tagen %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}</strong>
         {% else %}<span class="kr-frist">{% translate "Sammelbericht" %} · {% blocktranslate count t=z.sammelbericht.lage.resttage %}noch ein Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}</span>{% endif %}
-        <a class="btn-linie klein" href="?aufgabe={{ a.pk }}#sammelbericht">{% translate "Sammelbericht schreiben" %}</a>
+        {% if darf_berichten %}<a class="btn-linie klein" href="?aufgabe={{ a.pk }}#sammelbericht">{% translate "Sammelbericht schreiben" %}</a>{% endif %}
       {% else %}<span class="meta">{% translate "Sammelbericht liegt vor" %}</span>{% endif %}
     </p>
     <p class="pflicht">
       {% if z.rechenschaft %}
         {% if z.rechenschaft.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "Rechenschaft" %} · {% blocktranslate count t=z.rechenschaft.lage.seit_tagen %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}</strong>
         {% else %}<span class="kr-frist">{% translate "Rechenschaft" %} · {% blocktranslate count t=z.rechenschaft.lage.resttage %}noch ein Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}</span>{% endif %}
-        <a class="btn-linie klein" href="?aufgabe={{ a.pk }}#rechenschaft">{% translate "Rechenschaft eintragen" %}</a>
+        {% if darf_berichten %}<a class="btn-linie klein" href="?aufgabe={{ a.pk }}#rechenschaft">{% translate "Rechenschaft eintragen" %}</a>{% endif %}
       {% else %}<span class="meta">{% translate "Rechenschaft liegt vor" %}</span>{% endif %}
     </p>
     {% endif %}
@@ -134,15 +140,16 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
 <div class="karte" id="berichte">
   <p class="phasen-titel">{% translate "Berichte und Rechenschaft" %}</p>
 
-  {% if darf_schreiben %}
+  {% if darf_berichten %}
   <details class="klappe" id="monatsbericht"{% if monate_faellig %} open{% endif %}>
     <summary>{% translate "Monatsbericht" %}{% if ausstaende.monatsbericht_ausstaendig %} · <span class="ausstand">{% blocktranslate count n=ausstaende.monatsbericht_ausstaendig %}einer ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</span>{% endif %}</summary>
-    {% if monate_faellig %}
+    {% if monate_faellig or monate_nachtrag %}
     <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
       <input type="hidden" name="aktion" value="monatsbericht"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
       <label for="mb-monat">{% translate "Monat" %}</label>
       <select id="mb-monat" name="monat" required>
         {% for m in monate_faellig %}<option value="{{ m.monat|date:'Y-m-d' }}">{{ m.monat|date:"F Y" }} · {% if m.lage.status == "ausstaendig" %}{% blocktranslate count t=m.lage.seit_tagen %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}{% else %}{% translate "fällig bis" %} {{ m.faellig|date:"d.m.Y" }}{% endif %}</option>{% endfor %}
+        {% for monat in monate_nachtrag %}<option value="{{ monat|date:'Y-m-d' }}">{{ monat|date:"F Y" }} · {% translate "Nachtrag" %}</option>{% endfor %}
       </select>
       <label for="mb-text">{% translate "Bericht" %}</label>
       <textarea id="mb-text" name="text" rows="5" maxlength="8000" required></textarea>
@@ -167,7 +174,7 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
     {% else %}<p class="leer">{% translate "Noch kein Sitzungstag vorbei." %}</p>{% endif %}
   </details>
 
-  <details class="klappe" id="rechenschaft"{% if vorgewaehlt %} open{% endif %}>
+  <details class="klappe" id="rechenschaft"{% if vorgewaehlt or fehler_bei == "rechenschaft" %} open{% endif %}>
     <summary>{% translate "Rechenschaft" %}{% if ausstaende.rechenschaft_ausstaendig %} · <span class="ausstand">{% blocktranslate count n=ausstaende.rechenschaft_ausstaendig %}eine ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</span>{% endif %}</summary>
     <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
       <input type="hidden" name="aktion" value="rechenschaft"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
@@ -177,16 +184,16 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
         {% for s in sitzungstage %}<option value="{{ s.aufgabe.pk }}"{% if s.aufgabe.pk|stringformat:"s" == vorgewaehlt %} selected{% endif %}>{{ s.aufgabe.frist|date:"d.m.Y" }} · {{ s.aufgabe.titel }}{% if s.ohne_rechenschaft %} · {% translate "ohne Eintrag" %}{% endif %}</option>{% endfor %}
       </select>
       <label for="rs-gegenstand">{% translate "Gegenstand der Abstimmung im Vertretungskörper" %}</label>
-      <input type="text" id="rs-gegenstand" name="gegenstand" maxlength="200">
+      <input type="text" id="rs-gegenstand" name="gegenstand" maxlength="200"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.gegenstand }}"{% endif %}>
       <div class="nebeneinander">
-        <label for="rs-sitzung">{% translate "Sitzung am (nur ohne Sitzungstag)" %} <input type="date" id="rs-sitzung" name="sitzung_am"></label>
+        <label for="rs-sitzung">{% translate "Sitzung am (nur ohne Sitzungstag)" %} <input type="date" id="rs-sitzung" name="sitzung_am"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.sitzung_am }}"{% endif %}></label>
         <label for="rs-beschluss">{% translate "Beschluss der Plattform (nur ohne Antrag)" %}
-          <select id="rs-beschluss" name="beschluss_plattform">{% for wert, name in beschluesse %}<option value="{{ wert }}"{% if wert == "keiner" %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+          <select id="rs-beschluss" name="beschluss_plattform">{% for wert, name in beschluesse %}<option value="{{ wert }}"{% if fehler_bei == "rechenschaft" %}{% if wert == eingabe.beschluss_plattform %} selected{% endif %}{% elif wert == "keiner" %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
         <label for="rs-stimme">{% translate "Meine Stimme" %}
-          <select id="rs-stimme" name="stimme" required>{% for wert, name in stimmen %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}</select></label>
+          <select id="rs-stimme" name="stimme" required>{% for wert, name in stimmen %}<option value="{{ wert }}"{% if fehler_bei == "rechenschaft" and wert == eingabe.stimme %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
       </div>
       <label for="rs-begruendung">{% translate "Begründung (öffentlich)" %}</label>
-      <textarea id="rs-begruendung" name="begruendung" rows="4" maxlength="4000" required></textarea>
+      <textarea id="rs-begruendung" name="begruendung" rows="4" maxlength="4000" required>{% if fehler_bei == "rechenschaft" %}{{ eingabe.begruendung }}{% endif %}</textarea>
       <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Rechenschaft eintragen" %}</button>
     </form>
   </details>
@@ -199,13 +206,13 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
     <span class="meta"> · {{ z.r.sitzung_am|date:"d.m.Y" }} · {{ z.r.get_stimme_display }} · {{ z.beschluss_name }}{% if z.weicht_ab %} · <span class="abweichung">{% translate "weicht ab" %}</span>{% endif %}</span>
   </span></div>
   {% endfor %}
-  {% for b in berichte %}
+  {% for z in berichte %}{% with b=z.b l=z.lage %}
   <div class="zeile"><span style="width:100%">
-    <span class="chip klein">{{ b.get_art_display }}</span>
+    <span class="chip klein">{{ b.get_art_display }}</span>{% if z.nachtrag %} <span class="chip klein">{% translate "Nachtrag" %}</span>{% endif %}
     <strong>{% if b.monat %}{{ b.monat|date:"F Y" }}{% elif b.aufgabe %}{{ b.aufgabe.frist|date:"d.m.Y" }} · {{ b.aufgabe.titel }}{% endif %}</strong>
-    <span class="meta"> · {% translate "eingereicht" %} {{ b.eingereicht_am|date:"d.m.Y" }}{% with l=b.lage %}{% if l and l.status == "verspaetet" %} · {% blocktranslate count t=l.seit_tagen %}einen Tag verspätet{% plural %}{{ t }} Tage verspätet{% endblocktranslate %}{% endif %}{% endwith %}</span>
+    <span class="meta"> · {% translate "eingereicht" %} {{ b.eingereicht_am|date:"d.m.Y" }}{% if l and l.status == "verspaetet" %} · {% blocktranslate count t=l.seit_tagen %}einen Tag verspätet{% plural %}{{ t }} Tage verspätet{% endblocktranslate %}{% endif %}</span>
   </span></div>
-  {% endfor %}
+  {% endwith %}{% endfor %}
   {% if not rechenschaft and not berichte %}<p class="leer">{% translate "Noch keine Einträge." %}</p>{% endif %}
 </div>
 

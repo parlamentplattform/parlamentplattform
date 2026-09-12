@@ -18,7 +18,7 @@ wird gesichert — so überlebt das Foto jeden Neustart ohne Zusatzdienst."""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.conf import settings
 from django.db import models
@@ -54,6 +54,12 @@ def foto_typ_erkennen(daten: bytes) -> str | None:
     if daten[:4] == b"RIFF" and daten[8:12] == b"WEBP":
         return "image/webp"
     return None
+
+
+#: Nach dem Mandatsende bleiben Rechenschaft, Sammelbericht und Monatsbericht noch so viele Tage
+#: möglich: Die Sieben-Tage-Frist des § 7 Abs 5 überlebt das Ende des Mandats — die Rolle endet,
+#: die Pflicht aus der letzten Sitzung nicht. Keine Stellgröße, sie folgt der Satzungsfrist.
+NACHFRIST_TAGE = RECHENSCHAFT_TAGE
 
 
 class Mandat(models.Model):
@@ -94,6 +100,20 @@ class Mandat(models.Model):
     def aktiv(self) -> bool:
         return self.beendet is None
 
+    @property
+    def nachfrist_bis(self) -> date | None:
+        """Letzter Tag, an dem nach dem Mandatsende noch Rechenschaft und Berichte eingetragen
+        werden können — None bei offenem Mandat."""
+        if self.beendet is None:
+            return None
+        return self.beendet + timedelta(days=NACHFRIST_TAGE)
+
+    def in_nachfrist(self, heute: date | None = None) -> bool:
+        """Beendet, aber die Nachfrist läuft noch (Endtag eingeschlossen)."""
+        if self.beendet is None:
+            return False
+        return (heute or timezone.localdate()) <= self.nachfrist_bis
+
     @classmethod
     def aktive_von(cls, mitglied):
         """Die offenen Mandate eines Mitglieds — dieselbe Bedingung wie die Unvereinbarkeits-
@@ -101,6 +121,17 @@ class Mandat(models.Model):
         if mitglied is None or not getattr(mitglied, "pk", None):
             return cls.objects.none()
         return cls.objects.filter(mitglied=mitglied, beendet__isnull=True)
+
+    @classmethod
+    def zugaenglich_von(cls, mitglied, heute: date | None = None):
+        """Die Mandate, deren Bereich ein Mitglied öffnen darf: die offenen und die beendeten,
+        deren Nachfrist für Rechenschaft und Berichte noch läuft."""
+        if mitglied is None or not getattr(mitglied, "pk", None):
+            return cls.objects.none()
+        grenze = (heute or timezone.localdate()) - timedelta(days=NACHFRIST_TAGE)
+        return cls.objects.filter(mitglied=mitglied).filter(
+            models.Q(beendet__isnull=True) | models.Q(beendet__gte=grenze)
+        )
 
     @property
     def initialen(self) -> str:
@@ -114,62 +145,97 @@ class Mandat(models.Model):
     def offene_pflichten(self, heute: date | None = None) -> dict:
         """Was nach § 7 Abs 3 lit b und Abs 5 gerade fällig oder ausständig ist — Zahlen, kein Urteil.
 
-        Rückgabe: `{"sammelberichte": [...], "rechenschaften": [...], "monatsberichte": [...]}`.
-        Sammelberichte und Rechenschaften: je vergangener Sitzungstag ohne Eintrag ein Dict
-        `{"aufgabe", "sitzungstag", "faellig", "lage"}`; Monatsberichte: je geschuldetem Monat ohne
-        Bericht ein Dict `{"monat", "faellig", "lage"}`. Erledigtes erscheint nicht. `lage` ist
-        `plattform_core.rechenschaft.Lage` (offen mit Resttagen oder ausständig seit n Tagen).
+        Rückgabe: `{"sammelberichte": [...], "rechenschaften": [...], "monatsberichte": [...],
+        "karenz": n}`. Sammelberichte und Rechenschaften: je vergangener Sitzungstag ohne Eintrag
+        ein Dict `{"aufgabe", "sitzungstag", "faellig", "lage"}`; Monatsberichte: je geschuldetem
+        Monat ohne Bericht ein Dict `{"monat", "faellig", "lage"}`. Erledigtes erscheint nicht
+        (ein Monat mit mindestens einem Bericht gilt als berichtet). `lage` ist
+        `plattform_core.rechenschaft.Lage` (offen mit Resttagen oder ausständig seit n Tagen);
+        `karenz` ist der einmal gelesene Registerwert der Monatsfrist.
 
         Ohne `heute` gilt der Sitzungstag als vorbei, sobald sein Zeitpunkt erreicht ist; mit
-        übergebenem `heute` (Tests, Stichtagsrechnung) zählt der Kalendertag."""
+        übergebenem `heute` (Tests, Stichtagsrechnung) zählt der Kalendertag.
+
+        Beendete Mandate: Sitzungstage nach dem Endtag erzeugen keine Pflicht (der Tag selbst
+        zählt noch), und die Zähler frieren mit dem Ablauf der Nachfrist ein — danach kann der
+        Mandatar nichts mehr nachtragen, ein weiterlaufender Zähler wäre eine Zahl ohne Handlung.
+
+        Für viele Mandate auf einmal: `offene_pflichten_fuer` (wenige Abfragen statt je Mandat)."""
+        return self.offene_pflichten_fuer([self], heute)[self.pk]
+
+    @classmethod
+    def offene_pflichten_fuer(cls, mandate, heute: date | None = None) -> dict[int, dict]:
+        """`offene_pflichten` für mehrere Mandate mit einer festen Zahl von Abfragen: einmal das
+        Register, einmal die Berichte, einmal die Rechenschaft. Die Sitzungstage kommen aus
+        `aufgaben.all()` — vorgeladen (Prefetch) kostet das nichts, sonst eine Abfrage je Mandat."""
+        from parameter.models import zahl
+
+        mandate = list(mandate)
+        ergebnis: dict[int, dict] = {}
+        if not mandate:
+            return ergebnis
         jetzt = timezone.now() if heute is None else None
         if heute is None:
             heute = timezone.localdate(jetzt)
-        from parameter.models import zahl
-
         karenz = zahl("mandatar-monatsbericht-frist-tage", 7)
+        pks = [m.pk for m in mandate]
 
-        mit_bericht = set(
-            self.berichte.filter(art=Berichtsart.SAMMELBERICHT, aufgabe__isnull=False).values_list(
-                "aufgabe_id", flat=True
-            )
-        )
-        mit_rechenschaft = set(
-            self.rechenschaft.filter(aufgabe__isnull=False).values_list("aufgabe_id", flat=True)
-        )
-        sammelberichte, rechenschaften = [], []
-        for aufgabe in self.sitzungstage().order_by("frist"):
-            tag = timezone.localdate(aufgabe.frist)
-            vorbei = aufgabe.frist <= jetzt if jetzt is not None else tag <= heute
-            if not vorbei:
-                continue
-            if aufgabe.pk not in mit_bericht:
-                faellig = faellig_am(tag, SAMMELBERICHT_TAGE)
-                sammelberichte.append(
-                    {"aufgabe": aufgabe, "sitzungstag": tag, "faellig": faellig, "lage": lage(faellig, None, heute)}
-                )
-            if aufgabe.pk not in mit_rechenschaft:
-                faellig = faellig_am(tag, RECHENSCHAFT_TAGE)
-                rechenschaften.append(
-                    {"aufgabe": aufgabe, "sitzungstag": tag, "faellig": faellig, "lage": lage(faellig, None, heute)}
-                )
+        mit_bericht: dict[int, set] = {pk: set() for pk in pks}
+        berichtete_monate: dict[int, set] = {pk: set() for pk in pks}
+        for mandat_id, art, aufgabe_id, monat in Bericht.objects.filter(mandat_id__in=pks).values_list(
+            "mandat_id", "art", "aufgabe_id", "monat"
+        ):
+            if art == Berichtsart.SAMMELBERICHT and aufgabe_id is not None:
+                mit_bericht[mandat_id].add(aufgabe_id)
+            elif art == Berichtsart.MONATSBERICHT and monat is not None:
+                berichtete_monate[mandat_id].add(monat)
+        mit_rechenschaft: dict[int, set] = {pk: set() for pk in pks}
+        for mandat_id, aufgabe_id in Rechenschaft.objects.filter(
+            mandat_id__in=pks, aufgabe__isnull=False
+        ).values_list("mandat_id", "aufgabe_id"):
+            mit_rechenschaft[mandat_id].add(aufgabe_id)
 
-        berichtete_monate = set(
-            self.berichte.filter(art=Berichtsart.MONATSBERICHT, monat__isnull=False).values_list(
-                "monat", flat=True
+        for mandat in mandate:
+            stichtag, zeitpunkt = heute, jetzt
+            if mandat.beendet is not None:
+                grenze = mandat.nachfrist_bis + timedelta(days=1)  # der erste Tag ohne Handlungsmöglichkeit
+                if stichtag > grenze:
+                    stichtag, zeitpunkt = grenze, None
+            sitzungstage = sorted(
+                (a for a in mandat.aufgaben.all() if a.sitzungstag and a.frist is not None),
+                key=lambda a: a.frist,
             )
-        )
-        monatsberichte = []
-        for monat in berichtsmonate(self.angetreten, self.beendet, heute):
-            if monat in berichtete_monate:
-                continue
-            faellig = monatsbericht_faellig_am(monat, karenz)
-            monatsberichte.append({"monat": monat, "faellig": faellig, "lage": lage(faellig, None, heute)})
-        return {
-            "sammelberichte": sammelberichte,
-            "rechenschaften": rechenschaften,
-            "monatsberichte": monatsberichte,
-        }
+            sammelberichte, rechenschaften = [], []
+            for aufgabe in sitzungstage:
+                tag = timezone.localdate(aufgabe.frist)
+                if mandat.beendet is not None and tag > mandat.beendet:
+                    continue  # nach dem Mandatsende bestand nie eine Pflicht
+                vorbei = aufgabe.frist <= zeitpunkt if zeitpunkt is not None else tag <= stichtag
+                if not vorbei:
+                    continue
+                if aufgabe.pk not in mit_bericht[mandat.pk]:
+                    faellig = faellig_am(tag, SAMMELBERICHT_TAGE)
+                    sammelberichte.append(
+                        {"aufgabe": aufgabe, "sitzungstag": tag, "faellig": faellig, "lage": lage(faellig, None, stichtag)}
+                    )
+                if aufgabe.pk not in mit_rechenschaft[mandat.pk]:
+                    faellig = faellig_am(tag, RECHENSCHAFT_TAGE)
+                    rechenschaften.append(
+                        {"aufgabe": aufgabe, "sitzungstag": tag, "faellig": faellig, "lage": lage(faellig, None, stichtag)}
+                    )
+            monatsberichte = []
+            for monat in berichtsmonate(mandat.angetreten, mandat.beendet, stichtag):
+                if monat in berichtete_monate[mandat.pk]:
+                    continue
+                faellig = monatsbericht_faellig_am(monat, karenz)
+                monatsberichte.append({"monat": monat, "faellig": faellig, "lage": lage(faellig, None, stichtag)})
+            ergebnis[mandat.pk] = {
+                "sammelberichte": sammelberichte,
+                "rechenschaften": rechenschaften,
+                "monatsberichte": monatsberichte,
+                "karenz": karenz,
+            }
+        return ergebnis
 
 
 class Aufgabenstatus(models.TextChoices):
@@ -312,11 +378,29 @@ class Rechenschaft(models.Model):
         return Beschluss.KEINER
 
     @property
+    def beschluss_anzeige(self) -> str:
+        """Der Beschluss der Plattform, wie er zu zeigen ist: bei verknüpftem Antrag live aus dessen
+        Phase (ein Eintrag aus der Zeit vor Abstimmungsende behält sonst „kein Beschluss“),
+        ohne Antrag der gespeicherte Wert."""
+        if self.antrag_id is not None:
+            return self.beschluss_aus_antrag(self.antrag)
+        return self.beschluss_plattform
+
+    def beschluss_nachziehen(self) -> None:
+        """Den gespeicherten Beschluss auf den Stand des Antrags bringen, sobald der entschieden
+        ist — idempotent, damit auch Export und Datenbank den Stand des Registers tragen."""
+        beschluss = self.beschluss_anzeige
+        if beschluss != self.beschluss_plattform and beschluss != Beschluss.KEINER:
+            self.beschluss_plattform = beschluss
+            self.save(update_fields=["beschluss_plattform"])
+
+    @property
     def weicht_ab(self) -> bool:
         """Stimme des Mandatars und Beschluss der Plattform gehen auseinander — sichtbar, nicht bewertet."""
-        return (
-            self.beschluss_plattform == Beschluss.ANGENOMMEN and self.stimme != Stimmverhalten.DAFUER
-        ) or (self.beschluss_plattform == Beschluss.ABGELEHNT and self.stimme != Stimmverhalten.DAGEGEN)
+        beschluss = self.beschluss_anzeige
+        return (beschluss == Beschluss.ANGENOMMEN and self.stimme != Stimmverhalten.DAFUER) or (
+            beschluss == Beschluss.ABGELEHNT and self.stimme != Stimmverhalten.DAGEGEN
+        )
 
     @property
     def frist(self) -> date:
@@ -337,7 +421,9 @@ class Bericht(models.Model):
     """Berichte nach § 7 Abs 3 lit b: der Monatsbericht für jeden vollen Kalendermonat des
     Mandats und der Sammelbericht binnen sieben Tagen nach jedem Sitzungstag.
 
-    Kein Löschen, kein Bearbeiten — wer nachträgt, schreibt einen neuen Bericht mit Vermerk."""
+    Kein Löschen, kein Bearbeiten — wer nachträgt, schreibt einen neuen Bericht mit Vermerk. Das
+    gilt für beide Arten: Ein weiterer Bericht zum selben Sitzungstag oder zum selben Monat ist ein
+    Nachtrag und wird so gekennzeichnet; die Pflicht gilt mit dem ersten Bericht als erfüllt."""
 
     mandat = models.ForeignKey(Mandat, on_delete=models.CASCADE, related_name="berichte")
     art = models.CharField(max_length=16, choices=Berichtsart.choices)
@@ -361,30 +447,39 @@ class Bericht(models.Model):
         ordering = ["-eingereicht_am"]
         verbose_name = "Bericht"
         verbose_name_plural = "Berichte"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["mandat", "art", "monat"],
-                condition=models.Q(monat__isnull=False),
-                name="bericht_monat_einmalig",
-            ),
-        ]
 
     def __str__(self) -> str:
         return f"{self.get_art_display()} {self.monat or self.aufgabe_id or ''}".strip()
 
     @property
-    def faellig_am(self) -> date | None:
-        """Der letzte Tag der Frist dieses Berichts — oder None, wenn kein Bezug gesetzt ist."""
-        if self.art == Berichtsart.MONATSBERICHT and self.monat is not None:
-            from parameter.models import zahl
+    def bezugstag(self) -> date | None:
+        """Der Tag, auf den sich der Bericht bezieht: Monatserster oder Sitzungstag."""
+        if self.art == Berichtsart.MONATSBERICHT:
+            return self.monat
+        if self.aufgabe is not None and self.aufgabe.frist:
+            return timezone.localdate(self.aufgabe.frist)
+        return None
 
-            return monatsbericht_faellig_am(self.monat, zahl("mandatar-monatsbericht-frist-tage", 7))
+    def _faellig(self, karenz: int | None) -> date | None:
+        if self.art == Berichtsart.MONATSBERICHT and self.monat is not None:
+            if karenz is None:
+                from parameter.models import zahl
+
+                karenz = zahl("mandatar-monatsbericht-frist-tage", 7)
+            return monatsbericht_faellig_am(self.monat, karenz)
         if self.art == Berichtsart.SAMMELBERICHT and self.aufgabe is not None and self.aufgabe.frist:
             return faellig_am(timezone.localdate(self.aufgabe.frist), SAMMELBERICHT_TAGE)
         return None
 
-    def lage(self, heute: date | None = None) -> Lage | None:
-        faellig = self.faellig_am
+    @property
+    def faellig_am(self) -> date | None:
+        """Der letzte Tag der Frist dieses Berichts — oder None, wenn kein Bezug gesetzt ist.
+        Liest die Monatskarenz selbst aus dem Register; wer viele Berichte zeigt, reicht sie
+        über `lage(karenz=…)` einmal herein."""
+        return self._faellig(None)
+
+    def lage(self, heute: date | None = None, karenz: int | None = None) -> Lage | None:
+        faellig = self._faellig(karenz)
         if faellig is None:
             return None
         return lage(faellig, timezone.localdate(self.eingereicht_am), heute or timezone.localdate())

@@ -8,10 +8,10 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from mandatare.models import Aufgabe, Bericht, Berichtsart, Rechenschaft
+from mandatare.models import Aufgabe, Bericht, Berichtsart, Mandat, Rechenschaft
 from mandatare.test_mandatare import mandat_anlegen
 from verfahren.models import Antragsart, antrag_einbringen, bewerbung_einreichen, bewerbung_zustimmen
-from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
+from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
@@ -61,6 +61,116 @@ def test_nach_dem_sitzungstag_stehen_die_ausstaende_oeffentlich(client):
     assert "Die Finanzierung war nicht gesichert." in html
     liste = client.get(reverse("mandatare:liste")).content.decode()
     assert "ein Eintrag" in liste and "ausständig" not in liste
+
+
+def test_karten_der_detailseite_sind_nie_leer(client):
+    """Ein Sitzungstag gestern, sonst nichts: Berichte- und Rechenschaft-Karte zeigen den
+    Leerzustand (die Posten sind noch offen, nicht ausständig) — nie eine Karte ohne Text.
+    Zwölf Tage später steht der Sammelbericht-Ausstand in der Berichte-Karte, der
+    Rechenschaft-Ausstand in seiner, und die Leerzustände weichen ihnen."""
+    mandat = mandat_anlegen(mitglied_anlegen("anna"))
+    sitzung = sitzungstag(mandat, tage=1)
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    berichte = html.split('<h2 id="berichte">')[1].split('<h2 id="rechenschaft">')[0]
+    rechenschaft = html.split('<h2 id="rechenschaft">')[1]
+    assert "Noch kein Bericht." in berichte and "ausständig" not in berichte
+    assert "Noch kein Eintrag." in rechenschaft and "ausständig seit" not in rechenschaft
+    sitzung.frist = timezone.now() - timedelta(days=12)
+    sitzung.save(update_fields=["frist"])
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    berichte = html.split('<h2 id="berichte">')[1].split('<h2 id="rechenschaft">')[0]
+    rechenschaft = html.split('<h2 id="rechenschaft">')[1]
+    assert "Sammelbericht ausständig seit" in berichte and "Noch kein Bericht." not in berichte
+    assert "Rechenschaft ausständig seit" in rechenschaft and "Noch kein Eintrag." not in rechenschaft
+
+
+def test_betreute_sachabstimmung_und_personenwahl_heissen_nicht_mandatsfrage(client, ordnung):  # noqa: F811
+    """Die Verwaltung hängt einen Sachantrag und eine Kandidatur an Aufgaben: öffentlich steht
+    „Betreute Abstimmung“, nicht „Mandatsfrage“; die laufende Personenwahl führt zu den
+    Bewerbungen, nicht in den Ja-Nein-Block."""
+    anna = mitglied_anlegen("anna")
+    mandat = mandat_anlegen(anna)
+    sache = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    Aufgabe.objects.create(mandat=mandat, titel="Budget-Sitzung", antrag=sache)
+    wahl = antrag_einbringen(anna, "Listenreihung", "R.", "", ordnung, art=Antragsart.MANDAT)
+    wahl.phase = "abstimmung"
+    wahl.phase_beginn = timezone.now()
+    wahl.save(update_fields=["phase", "phase_beginn"])
+    Aufgabe.objects.create(mandat=mandat, titel="Listenwahl begleiten", antrag=wahl)
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    assert html.count(">Betreute Abstimmung</span>") == 2 and ">Mandatsfrage</span>" not in html
+    assert f'href="/antrag/{wahl.pk}/#bewerbungen"' in html and "#abstimmen" not in html
+
+
+def test_abfragezahl_der_liste_und_des_registers_haengt_nicht_an_der_zahl_der_mandate(client):
+    """N+1 (Befund 20): /mandatare/, /rechenschaft/ und /rechenschaft.json bündeln Pflichten
+    und Zähler — ein Mandat oder fünf, gleich viele Abfragen."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    def aufbauen(anzahl):
+        for i in range(anzahl):
+            m = mandat_anlegen(mitglied_anlegen(f"m{anzahl}{i}"), gebiet=f"Ort {anzahl}{i}")
+            s = sitzungstag(m, tage=10)
+            Aufgabe.objects.create(mandat=m, titel="Offen", frist=timezone.now() + timedelta(days=3))
+            eintragen(m, s)
+            Bericht.objects.create(mandat=m, art=Berichtsart.SAMMELBERICHT, aufgabe=s, text="x")
+            sitzungstag(m, tage=20, titel="Ohne Eintrag")
+
+    def messen(url):
+        with CaptureQueriesContext(connection) as erfasst:
+            assert client.get(url).status_code == 200
+        return len(erfasst)
+
+    aufbauen(1)
+    eins = {u: messen(u) for u in (reverse("mandatare:liste"), reverse("mandatare:rechenschaft"), reverse("mandatare:rechenschaft_json"))}
+    Mandat.objects.all().delete()
+    aufbauen(5)
+    fuenf = {u: messen(u) for u in eins}
+    assert eins == fuenf, (eins, fuenf)
+
+
+def test_abfragezahl_der_detailseite_haengt_nicht_an_der_zahl_der_berichte(client):
+    """Befund 21: Die Monatskarenz wird je Anfrage einmal gelesen; Detailseite und Bereich
+    kosten mit 24 Monatsberichten so viele Abfragen wie mit einem. Die Detailseite zeigt einen
+    Auszug und verlinkt alle Berichte auf einer eigenen Seite."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    anna = mitglied_anlegen("anna")
+    mandat = mandat_anlegen(anna, angetreten=date(2024, 1, 1))
+    client.force_login(anna)
+
+    def messen(url):
+        with CaptureQueriesContext(connection) as erfasst:
+            antwort = client.get(url)
+        assert antwort.status_code == 200
+        return len(erfasst), antwort.content.decode()
+
+    Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2024, 1, 1), text="Bericht 1")
+    detail_1, _ = messen(reverse("mandatare:detail", args=[mandat.pk]))
+    mein_1, _ = messen(reverse("mandatare:mein"))
+    for i in range(2, 25):
+        jahr, monat = 2024 + (i - 1) // 12, (i - 1) % 12 + 1
+        Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(jahr, monat, 1), text=f"Bericht {i}")
+    detail_24, html = messen(reverse("mandatare:detail", args=[mandat.pk]))
+    mein_24, _ = messen(reverse("mandatare:mein"))
+    assert detail_1 == detail_24 and mein_1 == mein_24, (detail_1, detail_24, mein_1, mein_24)
+    assert "Bericht 24" in html and "Bericht 1</div>" not in html  # Auszug: neuester Bezug zuerst
+    assert f'href="/mandatare/{mandat.pk}/berichte/"' in html and "Alle Berichte (24)" in html
+    alle = client.get(reverse("mandatare:berichte", args=[mandat.pk])).content.decode()
+    assert alle.count("Monatsbericht</span>") == 24 and "Bericht 1</div>" in alle
+
+
+def test_nachtrag_erscheint_gekennzeichnet_nach_dem_ersten_bericht(client):
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=date(2026, 3, 1))
+    erster = Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="Erster Text")
+    Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="Nachtrag Text",
+                           eingereicht_am=erster.eingereicht_am + timedelta(days=2))
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    assert html.count(">Nachtrag</span>") == 1
+    assert html.index("Erster Text") < html.index("Nachtrag Text")  # je Monat chronologisch
+    assert html.index(">Nachtrag</span>") > html.index("Erster Text")
 
 
 def test_innerhalb_der_frist_heisst_es_faellig_bis(client):

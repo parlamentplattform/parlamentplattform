@@ -7,20 +7,23 @@ Sitzungstagen, verknüpfte Mandatsfragen, Berichte (§ 7 Abs 3 lit b) und Rechen
 Wahlvorschlag-Export einer beendeten Kandidatur (§ 7 Abs 1).
 
 Bereich des Mandatars (`/mandatare/mein/`): Die Rolle ist abgeleitet — wer ein offenes Mandat
-hat, liest; wer zudem mitwirken darf (Status aktiv), schreibt. Jede Handlung ist ein POST auf
-`mein_aktion`, prüft den Besitz des Mandats und wird auditiert (nur Kennungen, keine Werte).
+hat, liest; wer zudem mitwirken darf (Status aktiv und Identität geprüft, wie beim Einbringen),
+schreibt. Nach dem Mandatsende bleibt der Bereich für die Nachfrist (`mandatare.models.NACHFRIST_TAGE`)
+offen — nur noch für Sammelbericht, Rechenschaft und Monatsbericht, denn die Pflicht aus der
+letzten Sitzung überlebt das Ende (§ 7 Abs 5). Jede Handlung ist ein POST auf `mein_aktion`,
+prüft den Besitz des Mandats und wird auditiert (nur Kennungen, keine Werte).
 
 Verwaltung: legt Mandate an (mit Kandidatur, § 6 Abs 3 lit a geprüft), beendet sie, kann
 weiter Aufgaben und Fotos pflegen."""
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from functools import wraps
 
 from django import forms
 from django.contrib import messages
-from django.db import IntegrityError
+from django.db.models import Count, Prefetch
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -45,6 +48,7 @@ from mandatare.models import (
 from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
+from plattform_core.rechenschaft import berichtsmonate
 from verfahren.models import (
     Antrag,
     Antragsart,
@@ -66,15 +70,36 @@ BERICHT_MAX = 8000
 GEGENSTAND_MAX = 200
 BEGRUENDUNG_MAX = 4000
 RECHENSCHAFT_AUSZUG = 5
+#: Berichte auf der öffentlichen Detailseite — der Rest steht vollständig unter `berichte`.
+BERICHTE_AUSZUG = 12
+#: Ein zweiter, gleichlautender Report desselben Mandats binnen dieser Sekunden ist eine
+#: Doppelabsendung (Doppelklick, Zurück + neu senden), kein neuer Report.
+DOPPELABSENDUNG_SEKUNDEN = 120
+#: Fristen des Instant-Reports müssen in diesem Jahresfenster liegen — Werte am Rand des
+#: Datumsbereichs (Jahr 1, Jahr 9999) laufen sonst beim Speichern über.
+FRIST_JAHR_MIN, FRIST_JAHR_MAX = 2000, 2200
+#: Handlungen, die nach dem Mandatsende in der Nachfrist noch erlaubt sind (§ 7 Abs 5).
+NACHFRIST_AKTIONEN = ("sammelbericht", "rechenschaft", "monatsbericht")
+
+#: Aufgaben samt verknüpftem Antrag vorladen — `_aufgaben_sortiert` und `offene_pflichten_fuer`
+#: lesen dann `aufgaben.all()` ohne weitere Abfrage.
+AUFGABEN_VORGELADEN = Prefetch("aufgaben", queryset=Aufgabe.objects.select_related("antrag"))
 
 
 # ── Helfer ────────────────────────────────────────────────────────────────────────────────
 
 
+def _mandat_queryset():
+    return Mandat.objects.select_related("mitglied").prefetch_related(AUFGABEN_VORGELADEN)
+
+
 def _aufgaben_sortiert(mandat):
     """Offene und laufende Aufgaben zuerst, innerhalb dessen die nächste Frist
-    vorn (ohne Frist zuletzt); Erledigtes am Ende."""
-    alle = list(mandat.aufgaben.select_related("antrag"))
+    vorn (ohne Frist zuletzt); Erledigtes am Ende. Nutzt das Prefetch, wo es eines gibt."""
+    if "aufgaben" in getattr(mandat, "_prefetched_objects_cache", {}):
+        alle = list(mandat.aufgaben.all())
+    else:
+        alle = list(mandat.aufgaben.select_related("antrag"))
     jetzt = timezone.now()
     fern = jetzt.replace(year=jetzt.year + 100)  # Frist ist seit 0.46 ein Zeitpunkt
     return sorted(
@@ -85,10 +110,19 @@ def _aufgaben_sortiert(mandat):
 
 def _frist_aus_eingabe(datum: str, zeit: str) -> datetime:
     """Datum (Pflicht) und Uhrzeit (optional, sonst 23:59) → Zeitpunkt in Wiener Zeit.
-    Wirft ValueError bei unbrauchbarer Eingabe."""
+    Wirft ValueError bei unbrauchbarer Eingabe — auch bei einem Datum außerhalb des
+    Jahresfensters oder am Rand des Wertebereichs (die UTC-Umrechnung liefe sonst erst beim
+    Speichern über, als Serverfehler statt als Meldung)."""
     tag = date.fromisoformat((datum or "").strip())
     uhr = time.fromisoformat(zeit.strip()) if (zeit or "").strip() else time(23, 59)
-    return timezone.make_aware(datetime.combine(tag, uhr))
+    if not FRIST_JAHR_MIN <= tag.year <= FRIST_JAHR_MAX:
+        raise ValueError("Frist außerhalb des zulässigen Jahresfensters")
+    frist = timezone.make_aware(datetime.combine(tag, uhr))
+    try:
+        frist.astimezone(UTC)
+    except OverflowError as fehler:
+        raise ValueError("Frist außerhalb des darstellbaren Bereichs") from fehler
+    return frist
 
 
 def _tage_bis(frist, heute: date) -> int:
@@ -105,7 +139,9 @@ def _antraege_fortschreiben(aufgaben) -> None:
 
 def _aufgaben_mit_lage(mandat, aufgaben, pflichten: dict, heute: date) -> list[dict]:
     """Je Aufgabe der Fristzähler und — bei vergangenen Sitzungstagen — der Stand von
-    Sammelbericht und Rechenschaft (`Lage` aus `Mandat.offene_pflichten`, sonst erledigt)."""
+    Sammelbericht und Rechenschaft (`Lage` aus `Mandat.offene_pflichten`, sonst erledigt).
+    `anker` führt bei einer laufenden Abstimmung an die richtige Stelle der Antragsseite:
+    Personenwahlen stimmen unter den Bewerbungen ab, alles andere im Ja-Nein-Block."""
     sammel_offen = {p["aufgabe"].pk: p for p in pflichten["sammelberichte"]}
     rechenschaft_offen = {p["aufgabe"].pk: p for p in pflichten["rechenschaften"]}
     jetzt = timezone.now()
@@ -113,6 +149,7 @@ def _aufgaben_mit_lage(mandat, aufgaben, pflichten: dict, heute: date) -> list[d
     for a in aufgaben:
         tage = _tage_bis(a.frist, heute) if a.frist else None
         vorbei = a.sitzungstag and a.frist is not None and a.frist <= jetzt
+        laeuft = a.antrag_id is not None and a.antrag.phase == Phase.ABSTIMMUNG.value
         zeilen.append(
             {
                 "aufgabe": a,
@@ -122,33 +159,56 @@ def _aufgaben_mit_lage(mandat, aufgaben, pflichten: dict, heute: date) -> list[d
                 "sammelbericht": sammel_offen.get(a.pk) if vorbei else None,
                 "rechenschaft": rechenschaft_offen.get(a.pk) if vorbei else None,
                 "beendet": a.antrag_id is not None and a.antrag.phase in BEENDET,
-                "abstimmung_laeuft": a.antrag_id is not None and a.antrag.phase == Phase.ABSTIMMUNG.value,
+                "abstimmung_laeuft": laeuft,
+                "anker": ("#bewerbungen" if a.antrag.art == Antragsart.MANDAT else "#abstimmen") if laeuft else "",
             }
         )
     return zeilen
 
 
 def _rechenschaft_zeilen(eintraege) -> list[dict]:
-    """Einträge mit dem Beschluss der Plattform — bei verknüpftem Antrag live aus dessen Phase,
-    damit ein Eintrag aus der Zeit vor Abstimmungsende nicht „kein Beschluss" behält."""
+    """Einträge mit dem Beschluss der Plattform — bei verknüpftem Antrag live aus dessen Phase
+    (`Rechenschaft.beschluss_anzeige`), damit ein Eintrag aus der Zeit vor Abstimmungsende
+    nicht „kein Beschluss" behält; der gespeicherte Wert wird dabei nachgezogen."""
     zeilen = []
     for r in eintraege:
-        beschluss = Rechenschaft.beschluss_aus_antrag(r.antrag) if r.antrag_id else r.beschluss_plattform
+        r.beschluss_nachziehen()
+        beschluss = r.beschluss_anzeige
         zeilen.append(
             {
                 "r": r,
                 "beschluss": beschluss,
                 "beschluss_name": Beschluss(beschluss).label,
-                "weicht_ab": (beschluss == Beschluss.ANGENOMMEN and r.stimme != Stimmverhalten.DAFUER)
-                or (beschluss == Beschluss.ABGELEHNT and r.stimme != Stimmverhalten.DAGEGEN),
+                "weicht_ab": r.weicht_ab,
             }
         )
     return zeilen
 
 
-def _ausstaende(mandat, heute: date | None = None) -> dict:
-    """Offene Pflichten eines Mandats samt Zählern für die öffentliche Anzeige."""
-    pflichten = mandat.offene_pflichten(heute)
+def _berichte_zeilen(berichte, heute: date, karenz: int) -> list[dict]:
+    """Berichte je Bezug (Monat bzw. Sitzungstag) chronologisch, neuester Bezug zuerst; der
+    erste Bericht eines Bezugs trägt die Lage gegenüber der Frist, jeder weitere ist ein
+    Nachtrag (ohne Fristurteil — die Pflicht war mit dem ersten erfüllt)."""
+    geordnet = sorted(berichte, key=lambda b: b.eingereicht_am)
+    gesehen: set = set()
+    zeilen = []
+    for b in geordnet:
+        schluessel = (b.art, b.monat if b.art == Berichtsart.MONATSBERICHT else b.aufgabe_id)
+        nachtrag = schluessel in gesehen
+        gesehen.add(schluessel)
+        zeilen.append(
+            {
+                "b": b,
+                "nachtrag": nachtrag,
+                "lage": None if nachtrag else b.lage(heute, karenz),
+                "bezug": b.bezugstag or timezone.localdate(b.eingereicht_am),
+            }
+        )
+    zeilen.sort(key=lambda z: (-z["bezug"].toordinal(), z["b"].eingereicht_am))
+    return zeilen
+
+
+def _mit_zaehlern(pflichten: dict) -> dict:
     return {
         **pflichten,
         "rechenschaft_ausstaendig": sum(1 for p in pflichten["rechenschaften"] if p["lage"].status == "ausstaendig"),
@@ -161,24 +221,34 @@ def _ausstaende(mandat, heute: date | None = None) -> dict:
     }
 
 
+def _ausstaende(mandat, heute: date | None = None) -> dict:
+    """Offene Pflichten eines Mandats samt Zählern für die öffentliche Anzeige."""
+    return _mit_zaehlern(mandat.offene_pflichten(heute))
+
+
+def _ausstaende_fuer(mandate, heute: date | None = None) -> dict[int, dict]:
+    """Dasselbe für viele Mandate — die Abfragezahl hängt nicht von der Zahl der Mandate ab."""
+    return {pk: _mit_zaehlern(p) for pk, p in Mandat.offene_pflichten_fuer(mandate, heute).items()}
+
+
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────
 
 
 def liste(request):
     mandate = list(
-        Mandat.objects.filter(beendet__isnull=True)
-        .select_related("mitglied")
-        .prefetch_related("aufgaben")
+        _mandat_queryset()
+        .filter(beendet__isnull=True)
+        .annotate(rechenschaft_anzahl=Count("rechenschaft"))
     )
+    ausstaende = _ausstaende_fuer(mandate)
     fuer_karten = []
     for m in mandate:
-        ausstaende = _ausstaende(m)
         fuer_karten.append(
             {
                 "mandat": m,
                 "aufgaben": [a for a in _aufgaben_sortiert(m) if a.status != Aufgabenstatus.ERLEDIGT][:2],
-                "rechenschaft_anzahl": m.rechenschaft.count(),
-                "rechenschaft_ausstaendig": ausstaende["rechenschaft_ausstaendig"],
+                "rechenschaft_anzahl": m.rechenschaft_anzahl,
+                "rechenschaft_ausstaendig": ausstaende[m.pk]["rechenschaft_ausstaendig"],
             }
         )
     kandidaturen = (
@@ -196,23 +266,41 @@ def liste(request):
 
 
 def detail(request, pk: int):
-    mandat = get_object_or_404(Mandat.objects.select_related("mitglied"), pk=pk)
+    mandat = get_object_or_404(_mandat_queryset(), pk=pk)
     aufgaben = _aufgaben_sortiert(mandat)
     _antraege_fortschreiben(aufgaben)
     heute = timezone.localdate()
     ausstaende = _ausstaende(mandat)
     rechenschaft = list(mandat.rechenschaft.select_related("antrag", "aufgabe")[:RECHENSCHAFT_AUSZUG])
+    berichte = list(mandat.berichte.select_related("aufgabe"))
+    zeilen = _berichte_zeilen(berichte, heute, ausstaende["karenz"])
     return render(
         request,
         "mandatare/detail.html",
         {
             "mandat": mandat,
             "aufgaben": _aufgaben_mit_lage(mandat, aufgaben, ausstaende, heute),
-            "berichte": list(mandat.berichte.select_related("aufgabe")),
+            "berichte": zeilen[:BERICHTE_AUSZUG],
+            "berichte_anzahl": len(zeilen),
+            "berichte_weitere": max(0, len(zeilen) - BERICHTE_AUSZUG),
             "ausstaende": ausstaende,
             "rechenschaft": _rechenschaft_zeilen(rechenschaft),
             "rechenschaft_anzahl": mandat.rechenschaft.count(),
         },
+    )
+
+
+def berichte(request, pk: int):
+    """§ 7 Abs 3 lit b: alle Berichte eines Mandatars — Monats- und Sammelberichte samt
+    Nachträgen, neuester Bezug zuerst; die Detailseite zeigt nur einen Auszug."""
+    mandat = get_object_or_404(_mandat_queryset(), pk=pk)
+    heute = timezone.localdate()
+    ausstaende = _ausstaende(mandat)
+    zeilen = _berichte_zeilen(list(mandat.berichte.select_related("aufgabe")), heute, ausstaende["karenz"])
+    return render(
+        request,
+        "mandatare/berichte.html",
+        {"mandat": mandat, "berichte": zeilen, "ausstaende": ausstaende},
     )
 
 
@@ -227,7 +315,7 @@ def foto(request, pk: int):
 
 def rechenschaft_mandat(request, pk: int):
     """§ 7 Abs 5: das ganze Register eines Mandatars, mit Ausständen."""
-    mandat = get_object_or_404(Mandat.objects.select_related("mitglied"), pk=pk)
+    mandat = get_object_or_404(_mandat_queryset(), pk=pk)
     eintraege = list(mandat.rechenschaft.select_related("antrag", "aufgabe"))
     return render(
         request,
@@ -245,12 +333,14 @@ def _rechenschaft_gesamt(ebene: str):
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
-    aktive = Mandat.objects.filter(beendet__isnull=True).select_related("mitglied")
+    aktive = _mandat_queryset().filter(beendet__isnull=True)
     if ebene in Ebene.values:
         aktive = aktive.filter(ebene=ebene)
+    aktive = list(aktive)
+    pflichten = _ausstaende_fuer(aktive)
     ausstaende = []
     for m in aktive:
-        offen = _ausstaende(m)
+        offen = pflichten[m.pk]
         if offen["rechenschaften"]:
             ausstaende.append({"mandat": m, "rechenschaften": offen["rechenschaften"]})
     return eintraege, ausstaende
@@ -367,14 +457,15 @@ def wahlvorschlag(request, antrag_pk: int):
 
 
 def nur_mandatare(ansicht):
-    """Zugang für Inhaber eines offenen Mandats (E1, E8): anonym → Anmeldung; ohne Mandat →
-    403. Lesen genügt das Mandat; jede Handlung prüft zusätzlich `darf_mitwirken`."""
+    """Zugang für Inhaber eines offenen Mandats (E1, E8) — und, für die Nachfrist, eines gerade
+    beendeten: anonym → Anmeldung; ohne Mandat → 403. Lesen genügt das Mandat; jede Handlung
+    prüft zusätzlich Status aktiv und geprüfte Identität (§ 4 Abs 2), wie beim Einbringen."""
 
     @wraps(ansicht)
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect("mitglieder:login")
-        if not Mandat.aktive_von(request.user).exists():
+        if not Mandat.zugaenglich_von(request.user).exists():
             return render(request, "mandatare/kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)
 
@@ -388,37 +479,57 @@ def _mitwirkung_gesperrt(request):
     return gesperrt(request)
 
 
-def _bereich(request, mandat: Mandat, mandate: list[Mandat]):
+def _eigene_mandate(request) -> list[Mandat]:
+    return list(Mandat.zugaenglich_von(request.user).select_related("mitglied"))
+
+
+def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
+    """Der Bereich. `eingabe` (request.POST) belegt nach einem Validierungsfehler das betroffene
+    Formular wieder vor, damit nichts Eingetipptes verloren geht (Grundregel 3: ohne Skript)."""
     aufgaben = _aufgaben_sortiert(mandat)
     _antraege_fortschreiben(aufgaben)
     heute = timezone.localdate()
     jetzt = timezone.now()
     ausstaende = _ausstaende(mandat)
-    sitzungstage_vorbei = [a for a in aufgaben if a.sitzungstag and a.frist is not None and a.frist <= jetzt]
+    sitzungstage_vorbei = [
+        a
+        for a in aufgaben
+        if a.sitzungstag and a.frist is not None and a.frist <= jetzt
+        and (mandat.beendet is None or timezone.localdate(a.frist) <= mandat.beendet)
+    ]
     ohne_sammelbericht = {p["aufgabe"].pk for p in ausstaende["sammelberichte"]}
     ohne_rechenschaft = {p["aufgabe"].pk for p in ausstaende["rechenschaften"]}
+    faellig = {p["monat"] for p in ausstaende["monatsberichte"]}
+    monate_nachtrag = [
+        m for m in reversed(berichtsmonate(mandat.angetreten, mandat.beendet, heute)) if m not in faellig
+    ]
+    mitwirken = request.user.darf_mitwirken and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
+    aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
     return render(
         request,
         "mandatare/mein.html",
         {
             "mandat": mandat,
             "mandate": mandate,
-            "darf_schreiben": request.user.darf_mitwirken
-            and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT,
+            "darf_schreiben": mitwirken and mandat.aktiv,
+            "darf_berichten": mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute)),
             "identitaet_ungeprueft": request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
             "aufgaben": _aufgaben_mit_lage(mandat, aufgaben, ausstaende, heute),
             "ausstaende": ausstaende,
             "monate_faellig": ausstaende["monatsberichte"],
+            "monate_nachtrag": monate_nachtrag,
             "sitzungstage": [
                 {"aufgabe": a, "ohne_sammelbericht": a.pk in ohne_sammelbericht, "ohne_rechenschaft": a.pk in ohne_rechenschaft}
                 for a in sitzungstage_vorbei
             ],
-            "berichte": list(mandat.berichte.select_related("aufgabe")),
+            "berichte": _berichte_zeilen(list(mandat.berichte.select_related("aufgabe")), heute, ausstaende["karenz"]),
             "rechenschaft": _rechenschaft_zeilen(list(mandat.rechenschaft.select_related("antrag", "aufgabe"))),
             "stimmen": Stimmverhalten.choices,
             "beschluesse": Beschluss.choices,
-            "vorgewaehlt": (request.GET.get("aufgabe") or "").strip(),
+            "vorgewaehlt": ((eingabe.get("aufgabe") if aktion == "rechenschaft" else request.GET.get("aufgabe")) or "").strip(),
             "ordnung_fehlt": not Verfahrensordnung.objects.filter(aktiv=True).exists(),
+            "eingabe": eingabe,
+            "fehler_bei": aktion,
         },
     )
 
@@ -426,7 +537,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat]):
 @nur_mandatare
 def mein(request):
     """Ein Mandat → der Bereich; mehrere → Auswahl (wie `gremien:mein`)."""
-    mandate = list(Mandat.aktive_von(request.user).select_related("mitglied"))
+    mandate = _eigene_mandate(request)
     if len(mandate) == 1:
         return _bereich(request, mandate[0], mandate)
     return render(request, "mandatare/mein_wahl.html", {"mandate": mandate})
@@ -434,25 +545,27 @@ def mein(request):
 
 @nur_mandatare
 def mein_mandat(request, pk: int):
-    mandat = get_object_or_404(Mandat.objects.select_related("mitglied"), pk=pk, beendet__isnull=True)
-    if mandat.mitglied_id != request.user.pk:
+    mandat = get_object_or_404(_mandat_queryset(), pk=pk)
+    if mandat.mitglied_id != request.user.pk or not (mandat.aktiv or mandat.in_nachfrist()):
         return render(request, "mandatare/kein_zugang.html", status=403)
-    mandate = list(Mandat.aktive_von(request.user).select_related("mitglied"))
-    return _bereich(request, mandat, mandate)
+    return _bereich(request, mandat, _eigene_mandate(request))
 
 
 def _zurueck(request, mandat: Mandat):
-    if Mandat.aktive_von(request.user).count() == 1:
+    if Mandat.zugaenglich_von(request.user).count() == 1:
         return redirect("mandatare:mein")
     return redirect("mandatare:mein_mandat", pk=mandat.pk)
 
 
 def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
-    """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None."""
+    """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None. Bei beendetem Mandat
+    nur Sitzungstage bis zum Endtag (danach bestand keine Pflicht, § 7 Abs 5)."""
     if not (pk or "").isdigit():
         return None
     aufgabe = mandat.aufgaben.filter(pk=int(pk), sitzungstag=True, frist__isnull=False).first()
     if aufgabe is None or aufgabe.frist > timezone.now():
+        return None
+    if mandat.beendet is not None and timezone.localdate(aufgabe.frist) > mandat.beendet:
         return None
     return aufgabe
 
@@ -460,20 +573,25 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
 @require_POST
 def mein_aktion(request):
     """Alle Handlungen des Mandatars — ein POST je Handlung, Dispatch über `aktion`.
-    Jede prüft: eigenes, offenes Mandat; Mitwirkung erlaubt (Status aktiv). Jede auditiert."""
+    Jede prüft: eigenes Mandat (offen — oder beendet in der Nachfrist, dann nur Sammelbericht,
+    Rechenschaft und Monatsbericht); Mitwirkung erlaubt (Status aktiv, Identität geprüft).
+    Jede auditiert. Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
     pk = (request.POST.get("mandat") or "").strip()
     mandat = Mandat.objects.filter(pk=int(pk)).first() if pk.isdigit() else None
-    if mandat is None or mandat.mitglied_id != request.user.pk or not mandat.aktiv:
+    aktion = request.POST.get("aktion", "")
+    if mandat is None or mandat.mitglied_id != request.user.pk:
+        return render(request, "mandatare/kein_zugang.html", status=403)
+    if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN):
         return render(request, "mandatare/kein_zugang.html", status=403)
     gesperrt = _mitwirkung_gesperrt(request)
     if gesperrt is not None:
         return gesperrt
-    aktion = request.POST.get("aktion", "")
 
+    gelungen = True
     if aktion == "report":
-        _report_anlegen(request, mandat)
+        gelungen = _report_anlegen(request, mandat)
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
         if not aufgabe_pk.isdigit():
@@ -499,23 +617,54 @@ def mein_aktion(request):
     elif aktion == "sammelbericht":
         _sammelbericht_anlegen(request, mandat)
     elif aktion == "rechenschaft":
-        _rechenschaft_anlegen(request, mandat)
+        gelungen = _rechenschaft_anlegen(request, mandat)
     else:
         messages.error(request, _("Unbekannte Handlung."))
+    if not gelungen:
+        # Kein Redirect: Das Formular kommt mit den eingegebenen Werten zurück, die Meldung dazu.
+        mandat = get_object_or_404(_mandat_queryset(), pk=mandat.pk)
+        return _bereich(request, mandat, _eigene_mandate(request), eingabe=request.POST)
     return _zurueck(request, mandat)
 
 
-def _report_anlegen(request, mandat: Mandat) -> None:
+def _doppelter_report(mandat: Mandat, titel: str, frist: datetime) -> Aufgabe | None:
+    """Denselben Report gibt es schon — gleicher Titel, gleiche Frist, eben erst angelegt."""
+    seit = timezone.now() - timedelta(seconds=DOPPELABSENDUNG_SEKUNDEN)
+    return (
+        mandat.aufgaben.filter(titel=titel, frist=frist, erstellt_am__gte=seit)
+        .select_related("antrag")
+        .order_by("-erstellt_am")
+        .first()
+    )
+
+
+def _report_anlegen(request, mandat: Mandat) -> bool:
+    """Instant-Report anlegen; False bei einem Eingabefehler (der Bereich rendert dann neu)."""
     titel = (request.POST.get("titel") or "").strip()
     if not titel:
         messages.error(request, _("Der Report braucht einen Titel."))
-        return
+        return False
     try:
         frist = _frist_aus_eingabe(request.POST.get("frist_datum", ""), request.POST.get("frist_zeit", ""))
     except ValueError:
         messages.error(request, _("Bitte ein gültiges Datum (und gegebenenfalls eine Uhrzeit) angeben."))
-        return
+        return False
     beschreibung = (request.POST.get("beschreibung") or "").strip()[:REPORT_BESCHREIBUNG_MAX]
+    bestehend = _doppelter_report(mandat, titel[:REPORT_TITEL_MAX], frist)
+    if bestehend is not None:
+        if bestehend.antrag_id:
+            messages.info(
+                request,
+                format_html(
+                    '{} <a href="{}">{}</a>',
+                    _("Dieser Report ist bereits angelegt — kein zweites Mal."),
+                    reverse("verfahren:antrag", args=[bestehend.antrag_id]),
+                    _("Zur Abstimmung →"),
+                ),
+            )
+        else:
+            messages.info(request, _("Dieser Report ist bereits angelegt — kein zweites Mal."))
+        return True
     aufgabe = Aufgabe.objects.create(
         mandat=mandat,
         titel=titel[:REPORT_TITEL_MAX],
@@ -526,14 +675,14 @@ def _report_anlegen(request, mandat: Mandat) -> None:
     AuditEintrag.anhaengen({"typ": "instant_report", "mandat": mandat.pk, "aufgabe": aufgabe.pk})
     if request.POST.get("abstimmung") != "on":
         messages.success(request, _("Report veröffentlicht."))
-        return
+        return True
     ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
     if ordnung is None:
         messages.warning(
             request,
             _("Report veröffentlicht — ohne Abstimmung: Es gilt noch keine Verfahrensordnung."),
         )
-        return
+        return True
     try:
         # Die gekürzten Werte der Aufgabe, nicht die rohe Eingabe: Antrag.titel fasst 200 Zeichen,
         # der Report 120 — ein längerer POST liefe auf PostgreSQL sonst in einen DataError.
@@ -542,7 +691,7 @@ def _report_anlegen(request, mandat: Mandat) -> None:
         messages.warning(
             request, _("Report veröffentlicht — ohne Abstimmung: %(grund)s") % {"grund": fehler}
         )
-        return
+        return True
     messages.success(
         request,
         format_html(
@@ -552,6 +701,7 @@ def _report_anlegen(request, mandat: Mandat) -> None:
             _("Zur Abstimmung →"),
         ),
     )
+    return True
 
 
 def _foto_speichern(request, mandat: Mandat) -> None:
@@ -572,29 +722,32 @@ def _foto_speichern(request, mandat: Mandat) -> None:
 
 
 def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
+    """Monatsbericht für einen geschuldeten Monat — fällig oder als Nachtrag zu einem schon
+    berichteten Monat (kein Bearbeiten: der Nachtrag ist ein weiterer Bericht)."""
     text = (request.POST.get("text") or "").strip()
     try:
         monat = date.fromisoformat((request.POST.get("monat") or "").strip()).replace(day=1)
     except ValueError:
         monat = None
-    faellig = {p["monat"] for p in mandat.offene_pflichten()["monatsberichte"]}
-    if monat is None or monat not in faellig:
+    pflichten = mandat.offene_pflichten()
+    faellig = {p["monat"] for p in pflichten["monatsberichte"]}
+    geschuldet = set(berichtsmonate(mandat.angetreten, mandat.beendet, timezone.localdate()))
+    if monat is None or monat not in geschuldet:
         messages.error(request, _("Bitte einen fälligen Monat wählen."))
         return
     if not text:
         messages.error(request, _("Der Bericht braucht einen Text."))
         return
-    try:
-        bericht = Bericht.objects.create(
-            mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=monat, text=text[:BERICHT_MAX]
-        )
-    except IntegrityError:
-        messages.error(request, _("Für diesen Monat liegt schon ein Bericht vor."))
-        return
+    bericht = Bericht.objects.create(
+        mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=monat, text=text[:BERICHT_MAX]
+    )
     AuditEintrag.anhaengen(
         {"typ": "mandatsbericht", "mandat": mandat.pk, "bericht": bericht.pk, "art": Berichtsart.MONATSBERICHT.value}
     )
-    messages.success(request, _("Monatsbericht eingereicht."))
+    if monat in faellig:
+        messages.success(request, _("Monatsbericht eingereicht."))
+    else:
+        messages.success(request, _("Nachtrag zum Monatsbericht eingereicht."))
 
 
 def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
@@ -615,7 +768,8 @@ def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
     messages.success(request, _("Sammelbericht eingereicht."))
 
 
-def _rechenschaft_anlegen(request, mandat: Mandat) -> None:
+def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
+    """Rechenschaft eintragen; False bei einem Eingabefehler (der Bereich rendert dann neu)."""
     aufgabe = _eigener_sitzungstag(mandat, request.POST.get("aufgabe", ""))
     gegenstand = (request.POST.get("gegenstand") or "").strip()[:GEGENSTAND_MAX]
     begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
@@ -628,21 +782,27 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> None:
             sitzung_am = date.fromisoformat((request.POST.get("sitzung_am") or "").strip())
         except ValueError:
             messages.error(request, _("Bitte den Sitzungstag angeben."))
-            return
+            return False
+        if sitzung_am > timezone.localdate():
+            # Rechenschaft gibt es nur über eine Abstimmung, die stattgefunden hat (§ 7 Abs 5) —
+            # und ein ferner Tag ließe die Fristrechnung des Registers überlaufen.
+            messages.error(request, _("Der Sitzungstag darf nicht in der Zukunft liegen."))
+            return False
     if not gegenstand or not begruendung or stimme not in Stimmverhalten.values:
         messages.error(request, _("Bitte Gegenstand, Stimme und Begründung angeben."))
-        return
+        return False
     antrag = None
     beschluss = Beschluss.KEINER
     if aufgabe is not None and aufgabe.antrag_id:
+        # Der Antragsbezug bleibt immer erhalten — der Beschluss der Plattform wird beim Speichern
+        # abgeleitet und im Register live aus dem Antrag gelesen, auch wenn die Abstimmung erst
+        # nach dem Eintrag endet. Ein von Hand gewählter Beschluss wäre erfunden.
         aufgabe.antrag.fortschreiben()
-        if aufgabe.antrag.phase in BEENDET:
-            antrag = aufgabe.antrag  # der Beschluss der Plattform wird beim Speichern abgeleitet
-        else:
-            # Die Plattform hat noch nicht entschieden — ein von Hand gewählter Beschluss wäre erfunden.
-            messages.info(request, _("Die Mandatsfrage läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
+        antrag = aufgabe.antrag
+        if antrag.phase == Phase.ABSTIMMUNG.value:
+            messages.info(request, _("Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
     elif request.POST.get("beschluss_plattform") in Beschluss.values:
-        beschluss = request.POST.get("beschluss_plattform")  # frei oder ohne Mandatsfrage: Angabe des Mandatars
+        beschluss = request.POST.get("beschluss_plattform")  # frei oder ohne Antrag: Angabe des Mandatars
     eintrag = Rechenschaft.objects.create(
         mandat=mandat,
         aufgabe=aufgabe,
@@ -660,6 +820,7 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> None:
         ereignis["antrag"] = antrag.pk
     AuditEintrag.anhaengen(ereignis)
     messages.success(request, _("Rechenschaft eingetragen."))
+    return True
 
 
 # ── Verwaltung ────────────────────────────────────────────────────────────────────────────

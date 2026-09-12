@@ -87,6 +87,7 @@ def test_nach_dem_sitzungstag_sind_sammelbericht_und_rechenschaft_faellig():
         "sammelberichte": [],
         "rechenschaften": [],
         "monatsberichte": [],
+        "karenz": 7,
     }
     # Am Tag danach: beides offen, sieben Tage Frist
     pflichten = mandat.offene_pflichten(heute=date(2026, 10, 6))
@@ -150,6 +151,57 @@ def test_beendetes_mandat_schuldet_nur_volle_monate():
     assert [m["monat"] for m in monate] == [date(2026, 10, 1)]
 
 
+def test_beendetes_mandat_sitzungstage_nach_dem_ende_zaehlen_nicht():
+    """Mandat angetreten 1.6., beendet 5.9.: Der Sitzungstag am 3.9. (Frist 10.9.) bleibt eine
+    Pflicht, der Sitzungstag am Endtag auch — der am 10.9. erzeugt keinen Ausstand, denn da
+    bestand kein Mandat mehr. Nach Ablauf der Nachfrist frieren die Zähler ein."""
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=date(2026, 6, 1), beendet=date(2026, 9, 5))
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung vor Ende", frist=wiener(date(2026, 9, 3)), sitzungstag=True)
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung am Endtag", frist=wiener(date(2026, 9, 5)), sitzungstag=True)
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung nach Ende", frist=wiener(date(2026, 9, 10)), sitzungstag=True)
+    pflichten = mandat.offene_pflichten(heute=date(2026, 9, 30))
+    assert [p["aufgabe"].titel for p in pflichten["rechenschaften"]] == ["Sitzung vor Ende", "Sitzung am Endtag"]
+    assert [p["aufgabe"].titel for p in pflichten["sammelberichte"]] == ["Sitzung vor Ende", "Sitzung am Endtag"]
+    # In der Nachfrist (bis 12.9.) läuft der Zähler noch: am 8.9. sind es noch 2 Tage bis zum 10.9.
+    (vor_ende, _am_ende) = mandat.offene_pflichten(heute=date(2026, 9, 8))["rechenschaften"]
+    assert vor_ende["lage"].status == "offen" and vor_ende["lage"].resttage == 2
+    # Danach steht der Stand des ersten Tages ohne Handlungsmöglichkeit (13.9.) — für immer
+    spaeter = mandat.offene_pflichten(heute=date(2027, 3, 1))["rechenschaften"]
+    assert spaeter == pflichten["rechenschaften"]
+    assert spaeter[0]["lage"].status == "ausstaendig" and spaeter[0]["lage"].seit_tagen == 3
+    assert mandat.nachfrist_bis == date(2026, 9, 12)
+    assert mandat.in_nachfrist(date(2026, 9, 12)) and not mandat.in_nachfrist(date(2026, 9, 13))
+
+
+def test_offene_pflichten_fuer_buendelt_die_abfragen():
+    """Die Abfragezahl hängt nicht von der Zahl der Mandate ab (Register, Berichte, Rechenschaft
+    je einmal; die Sitzungstage kommen aus dem Prefetch)."""
+    from django.db import connection
+    from django.db.models import Prefetch
+    from django.test.utils import CaptureQueriesContext
+
+    def messen(anzahl):
+        leute = [mitglied_anlegen(f"p{anzahl}{i}") for i in range(anzahl)]
+        mandate = []
+        for m in leute:
+            mandat = mandat_anlegen(m, angetreten=date(2026, 3, 1))
+            Aufgabe.objects.create(mandat=mandat, titel="Sitzung", frist=wiener(date(2026, 10, 5)), sitzungstag=True)
+            Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="x")
+            mandate.append(mandat.pk)
+        qs = Mandat.objects.filter(pk__in=mandate).prefetch_related(
+            Prefetch("aufgaben", queryset=Aufgabe.objects.select_related("antrag"))
+        )
+        geladen = list(qs)
+        with CaptureQueriesContext(connection) as erfasst:
+            ergebnis = Mandat.offene_pflichten_fuer(geladen, heute=date(2026, 12, 2))
+        assert len(ergebnis) == anzahl
+        for pk in mandate:
+            assert len(ergebnis[pk]["rechenschaften"]) == 1 and len(ergebnis[pk]["monatsberichte"]) == 1
+        return len(erfasst)
+
+    assert messen(1) == messen(5) <= 3
+
+
 # --- Rechenschaft und Bericht -------------------------------------------------------------
 
 
@@ -203,13 +255,15 @@ def test_bericht_kennt_seine_frist_und_seine_lage():
     assert "Monatsbericht" in str(monat)
 
 
-def test_monatsbericht_je_monat_nur_einmal():
-    from django.db import IntegrityError
-
-    mandat = mandat_anlegen(mitglied_anlegen("anna"))
+def test_monatsbericht_darf_nachgetragen_werden():
+    """Kein Bearbeiten, aber Nachtrag (Grundregel 7): ein zweiter Bericht zum selben Monat ist
+    erlaubt; die Pflicht gilt mit dem ersten Bericht als erfüllt."""
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), angetreten=date(2026, 3, 1))
     Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="A")
-    with pytest.raises(IntegrityError):
-        Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="B")
+    Bericht.objects.create(mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=date(2026, 10, 1), text="Nachtrag: B")
+    assert mandat.berichte.filter(monat=date(2026, 10, 1)).count() == 2
+    assert mandat.offene_pflichten(heute=date(2026, 11, 20))["monatsberichte"] == []
+    assert not Bericht._meta.constraints  # keine Eindeutigkeit je Monat mehr
 
 
 def test_sammelberichte_duerfen_sich_wiederholen():

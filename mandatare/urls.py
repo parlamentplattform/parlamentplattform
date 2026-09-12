@@ -12,6 +12,7 @@ urlpatterns = [
     path("mandatare/<int:pk>/", views.detail, name="detail"),
     path("mandatare/<int:pk>/foto", views.foto, name="foto"),
     path("mandatare/<int:pk>/rechenschaft/", views.rechenschaft_mandat, name="rechenschaft_mandat"),
+    path("mandatare/<int:pk>/berichte/", views.berichte, name="berichte"),
     path("rechenschaft/", views.rechenschaft, name="rechenschaft"),
     path("rechenschaft.json", views.rechenschaft_json, name="rechenschaft_json"),
     path("verwaltung/mandatare/", views.verwaltung, name="verwaltung"),

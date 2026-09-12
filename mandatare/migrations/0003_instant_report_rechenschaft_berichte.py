@@ -77,7 +77,6 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Bericht',
                 'verbose_name_plural': 'Berichte',
                 'ordering': ['-eingereicht_am'],
-                'constraints': [models.UniqueConstraint(condition=models.Q(('monat__isnull', False)), fields=('mandat', 'art', 'monat'), name='bericht_monat_einmalig')],
             },
         ),
         # Zuletzt: Auf Postgres läuft die Migration in einer Transaktion — die Datenänderung

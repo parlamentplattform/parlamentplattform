@@ -3,7 +3,7 @@
 {% block titel %}{% translate "Mein Mandat" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
-Die Auswahl für Menschen mit mehr als einem offenen Mandat. Wer nur eines hat, sieht diese
+Die Auswahl für Menschen mit mehr als einem zugänglichen Mandat (offen oder in der Nachfrist). Wer nur eines hat, sieht diese
 Seite nie — /mandatare/mein/ zeigt dann direkt den Bereich.
 {% endcomment %}
 {% include "mandatare/_stil.html" %}
@@ -12,7 +12,7 @@ Seite nie — /mandatare/mein/ zeigt dann direkt den Bereich.
   {% for m in mandate %}
   <a class="bereich" href="{% url 'mandatare:mein_mandat' m.pk %}" style="text-decoration:none">
     <span class="bk">{{ m.bezeichnung }}</span>
-    <span class="meta">{{ m.gebiet|default:m.get_ebene_display }} · {% translate "seit" %} {{ m.angetreten|date:"d.m.Y" }}</span>
+    <span class="meta">{{ m.gebiet|default:m.get_ebene_display }} · {% translate "seit" %} {{ m.angetreten|date:"d.m.Y" }}{% if m.beendet %} · {% translate "beendet am" %} {{ m.beendet|date:"d.m.Y" }}{% endif %}</span>
   </a>
   {% endfor %}
 </div>

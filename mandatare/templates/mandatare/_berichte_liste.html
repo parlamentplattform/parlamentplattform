@@ -1,0 +1,12 @@
+{% load i18n %}{% comment %}
+Berichte eines Mandatars (§ 7 Abs 3 lit b). Erwartet `berichte` aus views._berichte_zeilen:
+je Zeile b (Bericht), lage (Lage oder None) und nachtrag (weiterer Bericht zum selben Bezug).
+{% endcomment %}
+{% for z in berichte %}{% with b=z.b l=z.lage %}
+  <div class="kommentar">
+    <div class="kopf"><span class="chip klein">{{ b.get_art_display }}</span>{% if z.nachtrag %} <span class="chip klein">{% translate "Nachtrag" %}</span>{% endif %}
+      <strong>{% if b.monat %}{{ b.monat|date:"F Y" }}{% elif b.aufgabe %}{% translate "Sitzungstag" %} {{ b.aufgabe.frist|date:"d.m.Y" }} · {{ b.aufgabe.titel }}{% endif %}</strong>
+      · {% translate "eingereicht" %} {{ b.eingereicht_am|date:"d.m.Y" }}{% if l and l.status == "verspaetet" %} · <span class="ausstand">{% blocktranslate count t=l.seit_tagen %}einen Tag verspätet{% plural %}{{ t }} Tage verspätet{% endblocktranslate %}</span>{% endif %}</div>
+    <div style="white-space:pre-line">{{ b.text }}</div>
+  </div>
+{% endwith %}{% endfor %}

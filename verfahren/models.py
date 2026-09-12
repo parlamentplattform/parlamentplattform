@@ -17,6 +17,7 @@ Zwei bewusste Designentscheidungen:
 
 from __future__ import annotations
 
+import dataclasses
 import secrets
 import uuid
 from datetime import timedelta
@@ -156,10 +157,15 @@ class Kategorie(models.Model):
 class Antragsart(models.TextChoices):
     """§ 7 Abs 1 (E-2.5): Mandats-Kandidaturen laufen als eigene Antragsart —
     Bewerbungen statt Ja/Nein, Zustimmung je Bewerbung, die meiste Zustimmung
-    gewinnt, die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags."""
+    gewinnt, die Zustimmungsreihenfolge ergibt die Reihung des Wahlvorschlags.
+
+    § 7 Abs 9: Die Mandatsfrage ist die Ja-Nein-Frage, die ein Mandatar aus einem
+    Instant-Report heraus stellt — ohne Unterstützungs- und Beratungsphase direkt
+    in der Abstimmung (`mandatsfrage_eroeffnen`); ausgezählt wie ein Sachantrag."""
 
     SACHE = "sache", _("Sachantrag")
     MANDAT = "mandat", _("Mandats-Kandidatur")
+    MANDATSFRAGE = "mandatsfrage", _("Mandatsfrage")
 
 
 class Antrag(models.Model):
@@ -170,7 +176,7 @@ class Antrag(models.Model):
         max_length=12,
         choices=Antragsart.choices,
         default=Antragsart.SACHE,
-        help_text="Sachantrag (§ 5) oder Mandats-Kandidatur (§ 7 Abs 1).",
+        help_text="Sachantrag (§ 5), Mandats-Kandidatur (§ 7 Abs 1) oder Mandatsfrage eines Mandatars (§ 7 Abs 9).",
     )
     eingebracht_von = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege"
@@ -746,6 +752,99 @@ def antrag_einbringen(
             "titel": titel,
             "art": str(antrag.art),
             "policy": f"{policy.id} v{policy.version}",
+        }
+    )
+    return antrag
+
+
+class MandatsfrageFehler(ValueError):
+    """Eine Mandatsfrage kann so nicht eröffnet werden — die Meldung sagt dem Mandatar, warum."""
+
+
+@transaction.atomic
+def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: Verfahrensordnung, jetzt=None) -> Antrag:
+    """§ 7 Abs 9: Aus einem Instant-Report wird eine Abstimmung — direkt in der Abstimmungsphase,
+    ohne Unterstützungs- und Beratungsphase.
+
+    Die Dauer kommt aus der Stellgröße `mandatsfrage-abstimmung-tage`, nie unter dem
+    Satzungsminimum (§ 5 Abs 3 lit d), und wird in die eingefrorene Ordnung des Antrags
+    geschrieben (§ 5 Abs 5): Eine spätere Registeränderung ändert laufende Mandatsfragen nicht.
+    Der Registerwert ist bewusst kein Ordnungsschlüssel der Verfahrensordnung — so bleibt er
+    nach D-J3g befristet testbar.
+
+    Tore: Die Frist der Aufgabe muss die ganze Abstimmung fassen (sonst bleibt es beim
+    Kurzbericht ohne Abstimmung), die Aufgabe hat noch keine Abstimmung, das Mandat ist offen,
+    die Aufgabe gehört zum Mandat. Die Zahl der Stimmberechtigten wird hier festgestellt
+    (§ 4 Abs 4 lit a) — `fortschreiben()` täte es für einen direkt in der Abstimmung
+    angelegten Antrag nie. Gegenstand ist die Sachfrage (drei Monate Anwartschaft,
+    Mindestbeteiligung wie beim Sachantrag)."""
+    from django.conf import settings as dj_settings
+
+    from mitglieder.models import stimmberechtigte_zaehlen
+    from parameter.models import zahl
+    from plattform_core import Gegenstand
+    from plattform_core.policy import SATZUNG_MIN_ABSTIMMUNG_TAGE
+
+    jetzt = jetzt or timezone.now()
+    if not mandat.aktiv:
+        raise MandatsfrageFehler(_("Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."))
+    if aufgabe.mandat_id != mandat.pk:
+        raise MandatsfrageFehler(_("Der Report gehört nicht zu diesem Mandat."))
+    if aufgabe.antrag_id is not None:
+        raise MandatsfrageFehler(_("Zu diesem Report läuft bereits eine Abstimmung."))
+    dauer = max(SATZUNG_MIN_ABSTIMMUNG_TAGE, zahl("mandatsfrage-abstimmung-tage", 7))
+    if aufgabe.frist is None or aufgabe.frist < jetzt + timedelta(days=dauer):
+        raise MandatsfrageFehler(
+            _("Die Frist liegt zu nah: Eine Abstimmung dauert mindestens %(tage)s Tage (§ 5 Abs 3 lit d).")
+            % {"tage": dauer}
+        )
+    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer)
+    stichtag = timezone.localdate(jetzt)
+    antrag = Antrag.objects.create(
+        titel=titel,
+        art=Antragsart.MANDATSFRAGE,
+        eingebracht_von=mandat.mitglied,
+        eingebracht_am=jetzt,
+        phase=Phase.ABSTIMMUNG.value,
+        phase_beginn=jetzt,
+        policy_snapshot=policy.als_dict(),
+        stimmberechtigung_stichtag=stichtag,
+        stimmberechtigte_anzahl=max(
+            1,
+            stimmberechtigte_zaehlen(
+                Gegenstand.SACHFRAGE, stichtag, uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
+            ),
+        ),
+        ebene=Ebene(mandat.ebene),
+        gebiet=mandat.gebiet,
+    )
+    frist_lokal = timezone.localtime(aufgabe.frist)
+    begruendung = (
+        f"Mandatsfrage nach § 7 Abs 9 aus dem Instant-Report „{aufgabe.titel}“ "
+        f"({'Sitzungstag' if aufgabe.sitzungstag else 'Frist'} {frist_lokal:%d.%m.%Y %H:%M}). "
+        f"Die Abstimmung dauert {dauer} Tage und endet vor dieser Frist."
+    )
+    AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
+    kategorien_zuordnen(antrag)
+    aufgabe.antrag = antrag
+    aufgabe.save(update_fields=["antrag", "aktualisiert_am"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "mandatsfrage_eroeffnet",
+            "antrag": antrag.pk,
+            "mandat": mandat.pk,
+            "aufgabe": aufgabe.pk,
+            "frist_ende": (jetzt + timedelta(days=dauer)).isoformat(),
+            "policy": f"{policy.id} v{policy.version}",
+        }
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "phasenwechsel",
+            "antrag": antrag.pk,
+            "neue_phase": Phase.ABSTIMMUNG.value,
+            "wirksam_ab": jetzt.isoformat(),
+            "grund": "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase",
         }
     )
     return antrag

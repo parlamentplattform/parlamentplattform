@@ -52,10 +52,10 @@ def test_mandatar_erscheint_mit_aufgaben_und_fristen(client):
     Aufgabe.objects.create(
         mandat=mandat,
         titel="Budgetausschuss: Stellungnahme",
-        frist=timezone.localdate() + timedelta(days=5),
+        frist=timezone.now() + timedelta(days=5),
     )
     Aufgabe.objects.create(
-        mandat=mandat, titel="Altes Protokoll", frist=timezone.localdate() - timedelta(days=2)
+        mandat=mandat, titel="Altes Protokoll", frist=timezone.now() - timedelta(days=2)
     )
     inhalt = client.get(reverse("mandatare:liste")).content.decode()
     assert "Budgetausschuss: Stellungnahme" in inhalt and mandat.mitglied.anzeigename in inhalt

@@ -19,6 +19,15 @@ Sachantrag (Ja/Nein/Enthaltung):
   "stimmen": [{"pseudonym": "…", "stimme": "ja"}, …]
 }
 
+Mandatsfrage (§ 7 Abs 9 — die Ja-Nein-Frage eines Mandatars, ohne Unterstützungs- und
+Beratungsphase; gerechnet wird sie genau wie ein Sachantrag):
+{
+  "art": "mandatsfrage",
+  "policy": {"mindestbeteiligung": 0.05, "mehrheitsbasis": "ja_nein"},
+  "stimmberechtigte": 1234,
+  "stimmen": [{"pseudonym": "…", "stimme": "nein"}, …]
+}
+
 Mandats-Kandidatur (Zustimmungswahl, § 7 Abs 1):
 {
   "art": "mandat",
@@ -129,6 +138,9 @@ def nachrechnen(daten: dict) -> dict:
     art = daten.get("art", "sache")
     if art == "sache":
         return sachfrage_nachrechnen(daten)
+    if art == "mandatsfrage":
+        # § 7 Abs 9: dieselben Regeln wie eine Sachfrage — nur der Weg dorthin war kürzer.
+        return {**sachfrage_nachrechnen(daten), "art": "mandatsfrage"}
     if art == "mandat":
         return personenwahl_nachrechnen(daten)
     raise SystemExit(f"FEHLER: Antragsart {art!r} kennt dieses Skript nicht.")

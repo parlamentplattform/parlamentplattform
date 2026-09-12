@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 2
+VERSION = 3
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -708,6 +708,36 @@ REGELN: tuple[Regel, ...] = (
             "und jetzt liegen — überlappende zählen nur einmal, sonst hemmten zwei gleichzeitige "
             "Aussetzungen doppelt.")
         ),
+    ),
+    Regel(
+        modul="rechenschaft.py",
+        titel=_("Fristen der Rechenschaft und Berichte der Mandatare"),
+        zweck=(
+            _("Rechnet, bis wann ein Mandatar nach einem angekündigten Sitzungstag Rechenschaft "
+            "ablegen und den Sammelbericht einstellen muss, für welche vollen Kalendermonate ein "
+            "Monatsbericht geschuldet ist und ob ein Eintrag fristgerecht, verspätet, noch offen oder "
+            "ausständig ist. Sie liefert Zahlen, kein Urteil: Ein Ausstand wird angezeigt, nicht "
+            "sanktioniert — die Mandatsvereinbarung bindet, die Plattform macht sichtbar.")
+        ),
+        wirkung=Wirkung.RECHNET,
+        satzung="§ 7 Abs 3 lit b · § 7 Abs 5",
+        fassung=1,
+        seit="2026-09-12",
+        grund=(
+            _("Erste Fassung mit der Rolle des Mandatars. Die sieben Tage für Rechenschaft und "
+            "Sammelbericht stehen wörtlich in der Satzung und deshalb als Konstante im Code — wer sie "
+            "im Register verlängern könnte, könnte die Rechenschaftspflicht still aushöhlen. Wann im "
+            "Folgemonat ein Monatsbericht noch als fristgerecht gilt, sagt die Satzung nicht; diese "
+            "Karenz ist eine Stellgröße. Monatsberichte werden erst für Monate ab Oktober 2026 "
+            "geschuldet — für die Zeit ohne Werkzeug schuldet niemand einen Bericht.")
+        ),
+        nachrechenbar=(
+            _("Sitzungstag plus sieben Tage ergibt die Frist für Rechenschaft und Sammelbericht. "
+            "Geschuldet ist ein Monatsbericht für jeden Kalendermonat, der vom ersten bis zum letzten "
+            "Tag in die Mandatszeit fällt und heute vorbei ist; fällig ist er am Tag des Folgemonats, "
+            "den die Stellgröße nennt.")
+        ),
+        registerschluessel="mandatar-monatsbericht-frist-tage",
     ),
     Regel(
         modul="parametertest.py",

@@ -37,11 +37,15 @@ class Mitgliedsstatus(models.TextChoices):
     """Stand der Mitgliedschaft (F-51). „pausiert“ lässt Lesen und Anmelden zu,
     Mitwirkungsrechte (einbringen, unterstützen, beraten, abstimmen) ruhen,
     bis der Mitgliedsbeitrag wieder eingegangen ist (§ 4 Abs 3).
-    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6)."""
+    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6).
+    „ausgetreten“ ist der selbst erklärte Austritt (§ 4 Abs 5): Konto inaktiv, Stammdaten
+    geleert, Beiträge zu Verfahren bleiben stehen — nichts wird gelöscht, was ein Verfahren
+    betrifft."""
 
     AKTIV = "aktiv", "aktiv"
     PAUSIERT = "pausiert", "pausiert (Beitrag ausständig)"
     AUSGESCHLOSSEN = "ausgeschlossen", "ausgeschlossen"
+    AUSGETRETEN = "ausgetreten", "ausgetreten"
 
 
 class Mitglied(AbstractUser):
@@ -84,6 +88,15 @@ class Mitglied(AbstractUser):
         on_delete=models.SET_NULL,
         related_name="mitglieder",
         help_text="Eindeutiger Verweis ins amtliche Gemeindeverzeichnis — Quelle für gemeinde und bundesland.",
+    )
+    nebenwohnsitz = models.ForeignKey(
+        "Gemeinde",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nebenwohnsitz_mitglieder",
+        help_text="Zweiter Wohnsitz im amtlichen Gemeindeverzeichnis — ordnet nur zusätzlich einer Region zu, "
+        "sobald die Stellgröße region-nebenwohnsitz-zaehlt auf 1 steht; am Stimmrecht ändert er nichts (§ 5 Abs 6).",
     )
     status = models.CharField(
         max_length=16,
@@ -208,6 +221,20 @@ class Mitglied(AbstractUser):
         from gremien.models import Gremium, Rolle
 
         return Rolle.hat(self, *Gremium.values)
+
+    @property
+    def aktive_mandate(self):
+        """Die offenen Mandate (§ 7) — Queryset, geordnet nach Ebene, Gebiet, Antritt.
+        Lazy: `mandatare` hängt von den Mitgliedern ab, nicht umgekehrt."""
+        from mandatare.models import Mandat
+
+        return Mandat.aktive_von(self)
+
+    @property
+    def ist_mandatar(self) -> bool:
+        """Die Rolle „Mandatar“ ist abgeleitet, kein Datensatz: Sie entsteht mit dem Mandat
+        und endet, sobald `Mandat.beendet` gesetzt ist. Kein Gremium, keine Rollen-Zeile."""
+        return self.is_authenticated and self.aktive_mandate.exists()
 
 
 def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:

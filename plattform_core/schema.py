@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.4"
+SCHEMA_VERSION = "1.5"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -186,6 +186,20 @@ PARAMETER = {
     "ki-monatstokens": (
         "ai.monthly_token_budget", "tokens/month",
         "Hard monthly token budget of the model slot (cost cap of the future workshop)",
+    ),
+    "mandatsfrage-abstimmung-tage": (
+        "mandate.question_vote_window_days", "days",
+        "Duration of the vote on a mandate question opened by an office holder (never below the "
+        "statutory minimum; frozen into the motion when it is opened)",
+    ),
+    "mandatar-monatsbericht-frist-tage": (
+        "mandate.monthly_report_grace_days", "days",
+        "Day of the following month until which an office holder's monthly report counts as on time",
+    ),
+    "region-nebenwohnsitz-zaehlt": (
+        "region.secondary_residence_counts", "flag",
+        "Whether a registered secondary residence also assigns a member to that region for regional "
+        "motions (0 or 1; never affects voting rights)",
     ),
 }
 

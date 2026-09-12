@@ -116,6 +116,22 @@ def test_rollen_dauer_aus_dem_register():
     assert standard_ende() == timezone.localdate() + timedelta(days=10)
 
 
+def test_mandatsfrage_dauer_ist_kein_ordnungsschluessel_und_bleibt_testbar():
+    """S10 (E2): Die Dauer der Mandatsfrage wird beim Eröffnen eingefroren (§ 5 Abs 5), speist aber
+    keine Fassung der Verfahrensordnung — nach D-J3g bleibt sie für den Koordinationsrat testbar,
+    die Monatskarenz der Mandatare und der Nebenwohnsitz-Schalter ebenso."""
+    from gremien.views import _testbare_parameter
+
+    erstbestand_sicherstellen()
+    testbar = set(_testbare_parameter().values_list("schluessel", flat=True))
+    assert {"mandatsfrage-abstimmung-tage", "mandatar-monatsbericht-frist-tage", "region-nebenwohnsitz-zaehlt"} <= testbar
+    assert "verfahren-abstimmung-tage" not in testbar  # der Ordnungsschlüssel dagegen nicht
+    einheiten = {e["schluessel"]: e["einheit"] for e in ERSTBESTAND}
+    assert einheiten["region-nebenwohnsitz-zaehlt"] == "0 oder 1"
+    gruppen = {e["schluessel"]: e["gruppe"] for e in ERSTBESTAND}
+    assert gruppen["mandatar-monatsbericht-frist-tage"] == "mandatare"
+
+
 def test_ki_budget_aus_dem_register(settings):
     settings.DDOE_KI_MONATSTOKENS = 555
     assert KILauf.monatsbudget() == 555  # Rückfall auf die Umgebung
@@ -221,9 +237,10 @@ def test_ohne_abweichung_entsteht_keine_leere_fassung(client, ordnung):  # noqa:
 def test_die_registerseite_ordnet_nach_gruppen(client):
     """FB-J2: 32 Zeilen in einer Liste sind vollständig und trotzdem unbrauchbar."""
     inhalt = client.get(reverse("parameter:liste")).content.decode()
-    for gruppe in ("Verfahren", "Gremien", "WeicherFilter", "Zukunftswerkstatt"):
+    for gruppe in ("Verfahren", "Gremien", "WeicherFilter", "Zukunftswerkstatt", "Mandatare"):
         assert f">{gruppe}</h2>" in inhalt, f"Gruppenkarte fehlt: {gruppe}"
     assert 'id="g-verfahren"' in inhalt and 'id="g-ki"' in inhalt  # Sprungmarken
+    assert 'id="g-mandatare"' in inhalt  # S10: eigene Karte für die Fristen der Mandatare
     # Die Stellgroessen, aus denen die Verfahrensordnung gebaut wird, sind als solche kenntlich
     assert inhalt.count("Verfahrensordnung</span>") >= 6
 
@@ -299,7 +316,9 @@ VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", 
 #: Stellgrößen, deren lesende Stelle in Dateien anderer Cluster der Gesamtprüfung 0.45 liegt —
 #: der konkrete Änderungsvorschlag steht in NOTIZEN_D.md. Sobald eine Stelle liest, gehört ihr
 #: Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
-NOCH_NICHT_ANGEBUNDEN: set[str] = set()  # seit 0.45 liest jede Stellgröße eine Stelle im Code
+#: 0.46, Fundament S10: `region-nebenwohnsitz-zaehlt` liest der Regionsteil (verfahren/views.py,
+#: verfahren/views_aktionen.py) — sobald er steht, gehört der Schlüssel hier gestrichen.
+NOCH_NICHT_ANGEBUNDEN: set[str] = {"region-nebenwohnsitz-zaehlt"}
 
 
 def _gelesene_schluessel() -> set[str]:

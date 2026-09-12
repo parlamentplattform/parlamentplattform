@@ -358,7 +358,8 @@ MITGLIED_RUHT = Rolle(
         _("Ein dritter Zustand: Wer ausgeschlossen ist (§ 4 Abs 5), ist nicht pausiert, sondern "
         "nicht mehr Mitglied — das ist keine Rolle, sondern ihr Ende. Das Konto bleibt stumm, "
         "die Beiträge zu laufenden Verfahren bleiben stehen — gelöscht wird nichts, was ein "
-        "Verfahren betrifft.")
+        "Verfahren betrifft. Dasselbe gilt für den selbst erklärten Austritt: Wer ausgetreten ist, "
+        "verliert das Konto, nicht seine Spuren im Verfahren.")
     ),
     auf_der_startseite=True,
     faehigkeiten=(

@@ -6153,3 +6153,42 @@ msgstr "A change of your login address is pending — until it is decided, votin
 
 msgid "Für Ihr Konto läuft eine Änderung der Anmeldeadresse. Bis sie entschieden ist, zeigt die Plattform Ihren Registereintrag nicht an."
 msgstr "A change of your login address is pending. Until it is decided, the platform does not show your register entry."
+
+# ── 0.46: Fundament S10 ──
+
+msgid "Mandatsfrage"
+msgstr "Mandate question"
+
+msgid "Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."
+msgstr "The mandate has ended — it can no longer put a mandate question."
+
+msgid "Der Report gehört nicht zu diesem Mandat."
+msgstr "The report does not belong to this mandate."
+
+msgid "Zu diesem Report läuft bereits eine Abstimmung."
+msgstr "A vote is already running for this report."
+
+#, python-format
+msgid "Die Frist liegt zu nah: Eine Abstimmung dauert mindestens %(tage)s Tage (§ 5 Abs 3 lit d)."
+msgstr "The deadline is too close: a vote takes at least %(tage)s days (§ 5 para 3 lit d)."
+
+msgid "kein Beschluss der Plattform"
+msgstr "no decision of the platform"
+
+msgid "dafür"
+msgstr "in favour"
+
+msgid "dagegen"
+msgstr "against"
+
+msgid "enthalten"
+msgstr "abstained"
+
+msgid "nicht teilgenommen"
+msgstr "did not take part"
+
+msgid "Monatsbericht"
+msgstr "Monthly report"
+
+msgid "Sammelbericht"
+msgstr "Session report"

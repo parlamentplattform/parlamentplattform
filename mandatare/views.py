@@ -6,6 +6,8 @@ zeigt die Seite ehrlich den Stand: Die Wahl der Kandidaten läuft bereits
 über das Parlament (F-70). Die Pflege übernimmt vorerst die Verwaltung
 (deutsch, wie die gesamte Verwaltung); die Mandatar-Rolle folgt mit M2."""
 
+from datetime import datetime, time
+
 from django import forms
 from django.contrib import messages
 from django.http import Http404, HttpResponse
@@ -26,7 +28,8 @@ def _aufgaben_sortiert(mandat):
     """Offene und laufende Aufgaben zuerst, innerhalb dessen die nächste Frist
     vorn (ohne Frist zuletzt); Erledigtes am Ende."""
     alle = list(mandat.aufgaben.select_related("antrag"))
-    fern = timezone.localdate().replace(year=timezone.localdate().year + 100)
+    jetzt = timezone.now()
+    fern = jetzt.replace(year=jetzt.year + 100)  # Frist ist seit 0.46 ein Zeitpunkt
     return sorted(
         alle,
         key=lambda a: (a.status == Aufgabenstatus.ERLEDIGT, a.frist or fern, -a.pk),
@@ -170,7 +173,10 @@ def verwaltung_aktion(request):
             antrag = Antrag.objects.filter(pk=int(antrag_pk)).first()
         frist = None
         if request.POST.get("frist"):
-            frist = forms.DateField().clean(request.POST["frist"])
+            # Die Verwaltung nimmt weiterhin ein reines Datum an; als Zeitpunkt gilt 23:59 Ortszeit
+            # (Aufgabe.frist ist seit 0.46 ein Zeitpunkt — der Instant-Report trägt eine Uhrzeit).
+            tag = forms.DateField().clean(request.POST["frist"])
+            frist = timezone.make_aware(datetime.combine(tag, time(23, 59)))
         aufgabe = Aufgabe.objects.create(
             mandat=mandat,
             titel=titel[:200],

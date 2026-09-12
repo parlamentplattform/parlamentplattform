@@ -29,6 +29,7 @@ class Gruppe(models.TextChoices):
     KI = "ki", _("Zukunftswerkstatt")
     SCHUTZ = "schutz", _("Schutz")
     KACHELN = "kacheln", _("Kacheln")
+    MANDATARE = "mandatare", _("Mandatare")
 
 
 class Status(models.TextChoices):
@@ -564,6 +565,40 @@ ERSTBESTAND = [
         "beschreibung": gettext_noop("Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
         "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."),
         "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
+    },
+    {
+        "schluessel": "mandatsfrage-abstimmung-tage",
+        "wert": "7",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Dauer der Abstimmung über eine Mandatsfrage — die Ja-Nein-Frage, die ein "
+        "Mandatar aus einem Instant-Report heraus ohne Unterstützungs- und Beratungsphase eröffnet. "
+        "Nie unter sieben Tagen: Das ist das Satzungsminimum, kleinere Werte klemmt der Code darauf fest. "
+        "Beim Eröffnen wird die Dauer in die Ordnung des Antrags eingefroren; laufende Mandatsfragen "
+        "behalten ihre Dauer. Kein Ordnungsschlüssel der Verfahrensordnung, daher befristet testbar."),
+        "quelle": "§ 7 Abs 9 · § 5 Abs 3 lit d",
+    },
+    {
+        "schluessel": "mandatar-monatsbericht-frist-tage",
+        "wert": "7",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Tag des Folgemonats, bis zu dem der Monatsbericht eines Mandatars als "
+        "fristgerecht gilt. Die sieben Tage für Rechenschaft und Sammelbericht nach einem Sitzungstag "
+        "stehen dagegen in der Satzung und sind hier nicht einstellbar. Wirkt sofort; kein Teil der "
+        "Verfahrensordnung."),
+        "quelle": "§ 7 Abs 3 lit b",
+    },
+    {
+        "schluessel": "region-nebenwohnsitz-zaehlt",
+        "wert": "0",
+        "einheit": gettext_noop("0 oder 1"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Ob ein hinterlegter Nebenwohnsitz ein Mitglied zusätzlich der zweiten Region "
+        "zuordnet — für die Anzeige regionaler Anträge und das Einbringen auf dieser Ebene. Am "
+        "Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht "
+        "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."),
+        "quelle": "§ 14 Abs 3 · § 5 Abs 6",
     },
 ]
 

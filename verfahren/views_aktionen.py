@@ -131,8 +131,10 @@ class AntragsFormular(forms.Form):
         return self.cleaned_data.get("ebene") or Ebene.BUND.value
 
     def clean_art(self):
+        # Nur die angebotenen Arten: Eine Mandatsfrage (§ 7 Abs 9) eröffnet allein der Mandatar
+        # aus seinem Instant-Report — nie ein POST auf /einbringen/.
         wert = self.cleaned_data.get("art") or Antragsart.SACHE.value
-        return wert if wert in Antragsart.values else Antragsart.SACHE.value
+        return wert if wert in (Antragsart.SACHE.value, Antragsart.MANDAT.value) else Antragsart.SACHE.value
 
     def gebiet(self) -> str:
         """Das Gebiet folgt zwingend dem Wohnsitz (F-43) — keine freie Eingabe."""

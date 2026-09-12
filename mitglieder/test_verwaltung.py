@@ -481,3 +481,47 @@ def test_verwaltungsmeldungen_und_formularbeschriftungen_sind_uebersetzbar():
     assert nackt == [], f"Meldungen ohne gettext: {nackt}"
     assert re.findall(r'label="', quelle) == []
     assert re.findall(r'ValidationError\(\s*f?"', quelle) == []
+
+
+# --- Fundament S10: Nebenwohnsitz und Austritt ----------------------------------------------
+
+
+def test_nebenwohnsitz_ist_ein_zweiter_verweis_ins_gemeindeverzeichnis_ohne_stimmwirkung(ordnung):  # noqa: F811
+    """FB-J6: Der Nebenwohnsitz ordnet nur zu — die Stimmberechtigung kennt keine Region (§ 5 Abs 6)."""
+    from mitglieder.models import Gemeinde
+    from plattform_core import Gegenstand
+
+    anna = mitglied_anlegen("anna")
+    assert anna.nebenwohnsitz is None
+    gemeinde = Gemeinde.objects.exclude(name=anna.gemeinde).first()
+    anna.nebenwohnsitz = gemeinde
+    anna.save(update_fields=["nebenwohnsitz"])
+    anna.refresh_from_db()
+    assert anna.nebenwohnsitz == gemeinde
+    assert anna in gemeinde.nebenwohnsitz_mitglieder.all()
+    assert anna.gemeinde != gemeinde.name  # Hauptwohnsitz bleibt unberührt
+    vorher = anna.ist_stimmberechtigt(Gegenstand.SACHFRAGE, timezone.localdate())
+    anna.nebenwohnsitz = None
+    assert anna.ist_stimmberechtigt(Gegenstand.SACHFRAGE, timezone.localdate()) == vorher
+    # SET_NULL: verschwindet die Gemeinde, bleibt das Mitglied
+    gemeinde.delete()
+    anna.refresh_from_db()
+    assert anna.nebenwohnsitz is None
+
+
+def test_status_ausgetreten_zaehlt_nicht_zu_den_stimmberechtigten_und_bleibt_von_nie_bestaetigt_getrennt():
+    from mitglieder.views import nie_bestaetigt
+    from plattform_core import Gegenstand
+
+    anna = mitglied_anlegen("anna")
+    stichtag = timezone.localdate()
+    davor = stimmberechtigte_zaehlen(Gegenstand.SACHFRAGE, stichtag)
+    felder = anna.status_setzen(Mitgliedsstatus.AUSGETRETEN, "")
+    assert set(felder) == {"status", "status_seit"}
+    anna.is_active = False
+    anna.save(update_fields=[*felder, "is_active"])
+    assert anna.status == "ausgetreten" and anna.get_status_display() == "ausgetreten"
+    assert stimmberechtigte_zaehlen(Gegenstand.SACHFRAGE, stichtag) == davor - 1
+    assert anna.ist_stimmberechtigt(Gegenstand.SACHFRAGE, stichtag) is False
+    assert anna.darf_mitwirken is False
+    assert nie_bestaetigt(anna) is False  # ausgetreten ist kein nie bestätigtes Konto

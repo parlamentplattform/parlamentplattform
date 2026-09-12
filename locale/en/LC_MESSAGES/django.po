@@ -6264,9 +6264,6 @@ msgstr "Sign out all other devices"
 msgid "Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."
 msgstr "All other devices are signed out — this one stays signed in."
 
-msgid "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
-msgstr "Everything the platform holds about you (Art 15 and 20 GDPR): master data, residences, fees, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, reports, suggestions and your own votes with pseudonym and check code."
-
 msgid "Als Ja-Nein-Frage formulieren, wenn eine Abstimmung entstehen soll."
 msgstr "Phrase it as a yes/no question if a vote is to follow."
 
@@ -6419,9 +6416,6 @@ msgstr "The deadline is a session day"
 msgid "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig."
 msgstr "The deadline is a session day — afterwards the session report and the accountability entry are due."
 
-msgid "Die Mandatsfrage läuft noch — der Eintrag steht ohne Beschluss der Plattform."
-msgstr "The mandate question is still open — the entry stands without a decision of the platform."
-
 msgid "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto."
 msgstr "The language is remembered by this device (cookie), not by the account."
 
@@ -6430,9 +6424,6 @@ msgstr "This area belongs to an open mandate — the role begins with the mandat
 
 msgid "Dieser Name ist der Plattform vorbehalten."
 msgstr "This name is reserved for the platform."
-
-msgid "Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds."
-msgstr "This name is already taken — it is the display name or real name of another member."
 
 msgid "Ebene"
 msgstr "Level"
@@ -6466,9 +6457,6 @@ msgstr "Photo saved."
 
 msgid "Frist am"
 msgstr "Deadline on"
-
-msgid "Für diesen Monat liegt schon ein Bericht vor."
-msgstr "A report for this month already exists."
 
 msgid "Gebiet"
 msgstr "Area"
@@ -6676,9 +6664,6 @@ msgstr "Session on (only without a session day)"
 msgid "Sitzungen"
 msgstr "Sessions"
 
-msgid "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen."
-msgstr "This is how you appear on motions and posts (§ 5 para 3 lit a). Documents already published keep the name shown at the time."
-
 msgid "Sprache"
 msgstr "Language"
 
@@ -6824,3 +6809,52 @@ msgstr "— free entry —"
 
 msgid "„%(titel)s“: %(status)s."
 msgstr "“%(titel)s”: %(status)s."
+
+# ── 0.46: S10 — Mandatar-Rolle, Mandatsfrage, Rechenschaft, Berichte, Profil, Nebenwohnsitz ──
+
+msgid "Alle Berichte (einer) →"
+msgid_plural "Alle Berichte (%(n)s) →"
+msgstr[0] "All reports (one) →"
+msgstr[1] "All reports (%(n)s) →"
+
+msgid "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
+msgstr "Everything the platform assigns to this account (Art 15 and 20 GDPR): master data, residences, fees, address changes, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, expert-list entry, declarations of interest, votes and contributions in the councils, implementation and register notes, reports, suggestions and your own votes with pseudonym and check code."
+
+msgid "Betreute Abstimmung"
+msgstr "Supported vote"
+
+msgid "Der Sitzungstag darf nicht in der Zukunft liegen."
+msgstr "The session day must not lie in the future."
+
+msgid "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen."
+msgstr "The new name appears everywhere, including earlier posts and exports. Only review texts already stored and files already downloaded keep the former name."
+
+msgid "Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."
+msgstr "The vote is still running — the entry stands without a platform decision."
+
+msgid "Dieser Name ist nicht verfügbar."
+msgstr "This name is not available."
+
+msgid "Dieser Report ist bereits angelegt — kein zweites Mal."
+msgstr "This report already exists — not a second time."
+
+msgid "Ihr Mandat endete am %(ende)s — Rechenschaft und Berichte sind noch bis %(bis)s möglich."
+msgstr "Your mandate ended on %(ende)s — accountability entries and reports remain possible until %(bis)s."
+
+msgid "Mandat beendet — kein neuer Report."
+msgstr "Mandate ended — no new report."
+
+msgid "Nachtrag"
+msgstr "Addendum"
+
+msgid "Nachtrag zum Monatsbericht eingereicht."
+msgstr "Addendum to the monthly report submitted."
+
+msgid "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter."
+msgstr "Not included: sign-in tokens and check hashes, bank identifiers of fee receipts, procedures you handled as administration for other members, and audit lines of third parties."
+
+msgid "Schreiben geht nach der Bestätigung."
+msgstr "Writing opens after confirmation."
+
+msgid "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a); solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen."
+msgstr "This is how you appear on motions and posts. The statutes make a persistent pseudonym the rule (§ 5 para 3 lit a); as long as you set no display name, the platform shows your real name."

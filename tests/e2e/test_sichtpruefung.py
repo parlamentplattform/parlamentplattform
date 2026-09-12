@@ -232,6 +232,78 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/parameter/gremien-beschluss-tage/")
     halte_fest(p, "parameter-seite")
 
-    assert len(bilder) == 35 if in_beratung is not None else 33
+    # S10: der Bereich des Mandatars (FB-L2) mit Instant-Report, Mandatsfrage, Rechenschaft
+    # (§ 7 Abs 5) und Berichten (§ 7 Abs 3 lit b); die Profilseite und der Austritt (FB-K5)
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from mandatare.models import Aufgabe, Mandat, Rechenschaft, Stimmverhalten
+    from verfahren.models import Verfahrensordnung, mandatsfrage_eroeffnen
+
+    mandatarin = _mitglied()
+    mandat, _ = Mandat.objects.get_or_create(
+        mitglied=mandatarin, bezeichnung="Gemeinderätin",
+        defaults={"ebene": "gemeinde", "gebiet": mandatarin.gemeinde or "Eferding"},
+    )
+    jetzt = timezone.now()
+    vergangen, _ = Aufgabe.objects.get_or_create(
+        mandat=mandat, titel="Budgetsitzung des Gemeinderats",
+        defaults={"beschreibung": "Beschluss über den Voranschlag.", "frist": jetzt - timedelta(days=10),
+                  "sitzungstag": True},
+    )
+    Rechenschaft.objects.get_or_create(
+        mandat=mandat, aufgabe=vergangen,
+        defaults={"gegenstand": "Voranschlag 2027", "sitzung_am": (jetzt - timedelta(days=10)).date(),
+                  "stimme": Stimmverhalten.DAFUER, "begruendung": "Der Voranschlag setzt den Beschluss der Mitglieder um."},
+    )
+    Aufgabe.objects.get_or_create(
+        mandat=mandat, titel="Sitzung zum Radwegenetz",
+        defaults={"beschreibung": "Antrag auf Ausbau der Radwege.", "frist": jetzt - timedelta(days=3),
+                  "sitzungstag": True},
+    )
+    kommend, _ = Aufgabe.objects.get_or_create(
+        mandat=mandat, titel="Soll die Gemeinde dem Klimabündnis beitreten?",
+        defaults={"beschreibung": "Der Gemeinderat entscheidet am Sitzungstag über den Beitritt.",
+                  "frist": jetzt + timedelta(days=21), "sitzungstag": True},
+    )
+    ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    if kommend.antrag_id is None and ordnung is not None:
+        mandatsfrage_eroeffnen(mandat, kommend, kommend.titel, kommend.beschreibung, ordnung)
+        kommend.refresh_from_db()
+
+    p = seite(als=mandatarin)
+    p.goto(f"{live_server.url}/mandatare/mein/")
+    halte_fest(p, "mandatar-bereich")
+    p = seite(als=mandatarin, viewport=HANDY)
+    p.goto(f"{live_server.url}/mandatare/mein/")
+    halte_fest(p, "mandatar-bereich-handy")
+
+    p = seite()
+    p.goto(f"{live_server.url}/mandatare/{mandat.pk}/")
+    halte_fest(p, "mandatar-seite-oeffentlich")
+
+    p = seite()
+    p.goto(f"{live_server.url}/rechenschaft/")
+    halte_fest(p, "rechenschaftsregister")
+
+    if kommend.antrag_id is not None:
+        p = seite(als=mandatarin)
+        p.goto(f"{live_server.url}/antrag/{kommend.antrag_id}/")
+        halte_fest(p, "mandatsfrage-antragsseite")
+
+    p = seite(als=mandatarin)
+    p.goto(f"{live_server.url}/profil/")
+    halte_fest(p, "profil")
+    p = seite(als=mandatarin, dunkel=True, viewport=HANDY)
+    p.goto(f"{live_server.url}/profil/")
+    halte_fest(p, "profil-handy-dunkel")
+
+    p = seite(als=mandatarin, js=False)
+    p.goto(f"{live_server.url}/profil/austritt/")
+    halte_fest(p, "profil-austritt-ohne-javascript", js=False)
+
+    erwartet = 35 + 8 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
+    assert len(bilder) == erwartet, (len(bilder), erwartet)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

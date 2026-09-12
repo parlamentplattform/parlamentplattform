@@ -43,6 +43,8 @@ from verfahren.models import AuditEintrag, BewerbungsZustimmung, Stimmabgabe, St
 
 BESTAETIGUNGSWORT = "AUSTRITT"
 REGISTERSCHLUESSEL = "region-nebenwohnsitz-zaehlt"  # die Stellgröße, die der Profiltext nennt
+PLATZHALTER = "Ehemaliges Mitglied"  # Anzeigename Ausgetretener ohne Pseudonym (DB-Literal, keine Oberfläche)
+VORBEHALTEN = frozenset({"die plattform", "the platform"})  # Verfasser der Systembeiträge im Chat
 
 
 class AustrittFehler(ValueError):
@@ -106,6 +108,10 @@ class ProfilFormular(forms.Form):
         name = " ".join(self.cleaned_data["anzeigename"].split())  # Leerraum normalisieren
         if not name:
             return ""
+        if name.casefold() in VORBEHALTEN or name.casefold().startswith(PLATZHALTER.casefold()):
+            # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
+            # der Platzhalter Ausgetretener — beides darf sich niemand als Anzeigenamen geben.
+            raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
         andere = Mitglied.objects.exclude(pk=self.mitglied.pk).annotate(
             klarname=Concat("first_name", Value(" "), "last_name")
         )
@@ -456,7 +462,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     den Registereintrag nicht mehr aufrufen, und die satzungsmäßige Löschfrist gilt unverändert.
 
     Was geht: Klarname, Anmeldeadresse, Wohnsitze, Adminrechte, Anmeldbarkeit, Filterprofile,
-    Abos, Favoriten, Lesestände, Tokens. Offene Mandate, aktive Rollen und der Fachlisteneintrag
+    Abos, Favoriten, Lesestände, Tokens, das Lichtbild an Mandaten. Offene Mandate, aktive Rollen und der Fachlisteneintrag
     werden beendet, ein offener Adresswechsel widerrufen."""
     from gremien.models import Fachliste
     from mandatare.models import Mandat
@@ -476,6 +482,12 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         mandat.beendet = heute
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+    # Das Lichtbild ist ein rein persönliches Datum, kein Verfahrensinhalt — es geht mit dem
+    # Menschen (§ 8 Abs 4), auch an längst beendeten Mandaten; Berichte und Rechenschaft bleiben.
+    for mandat in mitglied.mandate.exclude(foto_typ=""):
+        mandat.foto, mandat.foto_typ = None, ""
+        mandat.save(update_fields=["foto", "foto_typ"])
+        AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "aktion": "entfernt", "anlass": "austritt"})
 
     for rolle in mitglied.rollen.filter(beendet_grund="", endet_am__gte=heute):
         rolle.beendet_grund = "Austritt"
@@ -512,7 +524,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     mitglied.status_grund = ""
     if not mitglied.pseudonym_oeffentlich:
         # Sonst fiele `anzeigename` auf den Anmeldenamen zurück — und der war die E-Mail-Adresse.
-        mitglied.pseudonym_oeffentlich = f"Ehemaliges Mitglied {mitglied.pk}"
+        mitglied.pseudonym_oeffentlich = f"{PLATZHALTER} {mitglied.pk}"
     mitglied.set_unusable_password()  # neuer Zufallswert: alle Sitzungen enden (siehe sitzungen_beenden)
     mitglied.save()
     AuditEintrag.anhaengen({"typ": "austritt", "mitglied": mitglied.pk})

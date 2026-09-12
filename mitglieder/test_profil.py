@@ -194,6 +194,19 @@ def test_anzeigename_kollidiert_nicht_mit_fremdem_pseudonym_oder_klarnamen(clien
     assert anna.pseudonym_oeffentlich == ""
 
 
+def test_vorbehaltene_anzeigenamen_werden_abgewiesen(client):
+    """„Die Plattform“ ist der Verfasser der Systembeiträge, „Ehemaliges Mitglied n“ der Platzhalter
+    Ausgetretener — beides darf sich niemand geben (Verwechslung mit der Plattform selbst)."""
+    anna = mit_wohnsitz()
+    client.force_login(anna)
+    for verboten in ("Die Plattform", "die  plattform", "The Platform", "Ehemaliges Mitglied 7", "ehemaliges mitglied"):
+        antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
+        assert antwort.status_code == 200 and "vorbehalten" in antwort.content.decode(), verboten
+        anna.refresh_from_db()
+        assert anna.pseudonym_oeffentlich == ""
+    assert audit("profil", mitglied=anna.pk) == []
+
+
 # --- Datenexport (Art 15/20 DSGVO) --------------------------------------------
 
 
@@ -257,6 +270,45 @@ def test_export_ohne_stimmen_bei_offenem_adresswechsel(client, ordnung):  # noqa
     assert eigene.pseudonym.hex not in json.dumps(daten)
 
 
+def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung):  # noqa: F811
+    """Jeder Ordner des Exports wird mit mindestens einer Zeile durchlaufen — sonst prüft nur die
+    leere Liste, ob die Feldnamen stimmen."""
+    from datetime import date
+
+    from mandatare.models import Aufgabe, Bericht, Berichtsart, Beschluss, Rechenschaft, Stimmverhalten
+    from verfahren.models import Beanstandung, Bewerbung, Kategorie, KategorieAbo, Meldung, Reaktion
+
+    anna, admin, antrag, eigener, kommentar, mandat, rolle, fachliste = _voll_ausgestattet(ordnung)
+    Reaktion.objects.create(kommentar=kommentar, mitglied=anna, art=Reaktion._meta.get_field("art").choices[0][0])
+    Meldung.objects.create(kommentar=kommentar, mitglied=anna, grund=Meldung.Grund.values[0], erlaeuterung="E")
+    Beanstandung.objects.create(antrag=antrag, mitglied=anna, text="Stimmt nicht")
+    anna.anstoesse.create(text="Ein Anstoß", seite="/")
+    Bewerbung.objects.create(antrag=antrag, mitglied=anna, vorstellung="Ich")
+    kategorie = Kategorie.objects.create(slug="test-bereich", name="Testbereich")
+    KategorieAbo.objects.create(kategorie=kategorie, mitglied=anna)
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung", frist=timezone.now() + timedelta(days=10), sitzungstag=True)
+    Bericht.objects.create(mandat=mandat, art=Berichtsart.values[0], monat=date(2026, 10, 1), text="T")
+    Rechenschaft.objects.create(
+        mandat=mandat,
+        gegenstand="Budget",
+        sitzung_am=timezone.localdate(),
+        beschluss_plattform=Beschluss.values[0],
+        stimme=Stimmverhalten.values[0],
+        begruendung="B",
+    )
+    client.force_login(anna)
+    antwort = client.get(EXPORT)
+    assert antwort.status_code == 200
+    daten = json.loads(antwort.content)
+    for ordner in ("reaktionen", "meldungen", "beanstandungen", "anstoesse", "bewerbungen", "abos", "kommentare",
+                   "filterprofile", "favoriten", "antraege", "rollen", "mandate"):
+        assert len(daten[ordner]) >= 1, ordner
+    md = daten["mandate"][0]
+    assert md["aufgaben"][0]["sitzungstag"] is True and md["berichte"][0]["monat"] == "2026-10-01"
+    assert md["rechenschaft"][0]["gegenstand"] == "Budget"
+    assert daten["stimmen"] is not None
+
+
 # --- Sitzungen ----------------------------------------------------------------
 
 
@@ -297,7 +349,9 @@ def _voll_ausgestattet(ordnung):  # noqa: F811
     from mitglieder.auth_flows import EinmalToken
 
     EinmalToken.ausstellen(anna, EinmalToken.Zweck.LOGIN)
-    mandat = Mandat.objects.create(mitglied=anna, bezeichnung="Gemeinderätin", gebiet="Graz")
+    mandat = Mandat.objects.create(
+        mitglied=anna, bezeichnung="Gemeinderätin", gebiet="Graz", foto=b"PNG-Bytes", foto_typ="image/png"
+    )
     rolle = Rolle.objects.create(
         mitglied=anna, gremium=Gremium.KOORDINATIONSRAT, endet_am=timezone.localdate() + timedelta(days=300)
     )
@@ -346,6 +400,8 @@ def test_austritt_anonymisiert_deaktiviert_und_laesst_das_verfahren_vollstaendig
     # Beendet, nicht gelöscht
     mandat.refresh_from_db()
     assert mandat.beendet == timezone.localdate() and anna.ist_mandatar is False
+    assert mandat.foto is None and mandat.foto_typ == ""  # Lichtbild geht mit dem Menschen
+    assert audit("mandat_foto", mandat=mandat.pk, aktion="entfernt")
     rolle.refresh_from_db()
     assert rolle.beendet_grund == "Austritt" and rolle.aktiv is False
     fachliste.refresh_from_db()

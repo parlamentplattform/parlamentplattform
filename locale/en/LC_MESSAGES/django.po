@@ -6224,6 +6224,9 @@ msgstr "The secondary residence additionally assigns you to a region as soon as 
 msgid "Der Nebenwohnsitz ist bereits Ihr Wohnsitz."
 msgstr "The secondary residence is already your residence."
 
+msgid "Dieser Name ist der Plattform vorbehalten."
+msgstr "This name is reserved for the platform."
+
 msgid "Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds."
 msgstr "This name is already taken — it is the display name or real name of another member."
 
@@ -6288,8 +6291,8 @@ msgstr "Resignation is possible at any time and takes effect immediately (§ 4 p
 msgid "Was geht"
 msgstr "What goes"
 
-msgid "Name, E-Mail-Adresse, Wohnsitz und Nebenwohnsitz werden gelöscht; das Konto lässt sich nicht mehr anmelden."
-msgstr "Name, e-mail address, residence and secondary residence are deleted; the account can no longer sign in."
+msgid "Name, E-Mail-Adresse, Wohnsitz, Nebenwohnsitz und ein Lichtbild an Ihren Mandaten werden gelöscht; das Konto lässt sich nicht mehr anmelden."
+msgstr "Name, e-mail address, residence, secondary residence and any photo on your mandates are deleted; the account can no longer sign in."
 
 msgid "Filterprofile, Abos, Favoriten und Lesestände werden gelöscht."
 msgstr "Filter profiles, subscriptions, favourites and reading positions are deleted."
@@ -6318,8 +6321,8 @@ msgstr "What stays"
 msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
 msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name, “Former member” with your member number appears there from now on."
 
-msgid "Ihre abgegebenen Stimmen in den veröffentlichten Stimmlisten — sie tragen nur ein Pseudonym. Der Registereintrag, der Pseudonym und Konto verbindet, bleibt bis zur satzungsmäßigen Löschfrist; „Meine Stimme prüfen“ entfällt mit dem Konto."
-msgstr "Your votes in the published vote lists — they carry only a pseudonym. The register entry linking pseudonym and account remains until the deletion period set by the statutes; “Check my vote” ends with the account."
+msgid "Ihre abgegebenen Stimmen in den veröffentlichten Stimmlisten — sie tragen nur ein Pseudonym. Der Registereintrag, der Pseudonym und Konto verbindet, bleibt, bis die Verfahrensordnung eine Löschfrist festlegt (§ 8 Abs 6); „Meine Stimme prüfen“ entfällt mit dem Konto."
+msgstr "Your votes in the published vote lists — they carry only a pseudonym. The register entry linking pseudonym and account remains until the rules of procedure set a deletion period (§ 8 para 6); “Check my vote” ends with the account."
 
 msgid "Verbuchte Beitragseingänge (Buchhaltung) und die Einträge im öffentlichen Audit-Log, die Ihre Mitgliedsnummer nennen."
 msgstr "Recorded fee payments (bookkeeping) and the entries in the public audit log that name your member number."

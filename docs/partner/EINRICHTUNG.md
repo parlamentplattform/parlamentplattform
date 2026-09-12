@@ -33,7 +33,7 @@ abhakbar; die Reihenfolge ist die empfohlene.
 
 - [ ] **Sicherung:** tägliches Datenbank-Backup, verschlüsselt, im eigenen Land; Wiederherstellung einmal geprobt.
 - [ ] **Audit-Log** und **Umsetzungsregister** öffentlich erreichbar (`/umsetzung/`, `/umsetzung.json`).
-- [ ] **Exporte prüfen:** `https://<domain>/parameter.json` und `/kennzahlen.json` — Schema-Version 1.0, richtige `system_id`, keine personenbezogenen Felder (`SCHEMA.md`).
+- [ ] **Exporte prüfen:** `https://<domain>/parameter.json` und `/kennzahlen.json` — Schema-Version mit derselben Hauptversion wie in `SCHEMA.md` (heute 1.5), richtige `system_id`, keine personenbezogenen Felder (`SCHEMA.md`).
 - [ ] **Freigaben nachziehen:** vierteljährlich `git pull` der Kern-Freigabe, `migrate`, Änderungsprotokoll lesen; Landeserweiterungen als PR in den Kern, wenn sie parametrisierbar sind.
 - [ ] **Plattform-Rat:** Ansprechperson benennen, Termin des ersten Abgleichs eintragen.
 

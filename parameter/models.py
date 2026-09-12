@@ -34,8 +34,9 @@ class Gruppe(models.TextChoices):
 class Status(models.TextChoices):
     """Was mit einem Wert gerade geschieht (FB-J2, FB-J3).
 
-    Ein Wert „im Test" wirkt nur auf Verfahren, die neu beginnen — laufende behalten ihre
-    eingefrorene Fassung (§ 5 Abs 5). „Vorgeschlagen" heißt: Die Zukunftswerkstatt oder ein
+    Ein Wert „im Test" wirkt sofort überall, wo die Stellgröße gelesen wird; Werte der
+    Verfahrensordnung sind vom Test ausgenommen (D-J3g), laufende Verfahren bleiben so unberührt
+    (§ 5 Abs 5). „Vorgeschlagen" heißt: Die Zukunftswerkstatt oder ein
     Mensch schlägt ihn vor, entschieden ist nichts."""
 
     GUELTIG = "gueltig", _("gültig")

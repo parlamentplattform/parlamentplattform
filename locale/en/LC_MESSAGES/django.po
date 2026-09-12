@@ -4361,8 +4361,8 @@ msgstr "The rules of procedure are built from this value."
 msgid "Im Test"
 msgstr "Under test"
 
-msgid "Der Wert gilt nur für Verfahren, die neu beginnen — laufende behalten ihre Fassung."
-msgstr "The value applies only to procedures that start from now on — running ones keep their version."
+msgid "Der Testwert wirkt sofort überall, wo die Stellgröße gelesen wird; Werte der Verfahrensordnung sind vom Test ausgenommen."
+msgstr "The test value takes effect immediately wherever the setting is read; values of the rules of procedure are excluded from tests."
 
 msgid "Aus dem Register lässt sich derzeit keine Fassung bauen:"
 msgstr "No version can be built from the register at the moment:"

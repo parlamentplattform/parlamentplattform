@@ -15,7 +15,7 @@ die Einführung „mit Begründung im Parameterregister".
 
 {% if p.status == im_test %}
 <div class="band-gold" style="margin-top:10px">{% translate "Im Test" %}{% if p.test_bis %} — {% blocktranslate with bis=p.test_bis|date:"d.m.Y" %}bis {{ bis }}{% endblocktranslate %}{% endif %}{% if p.test_hypothese %}: {{ p.test_hypothese }}{% endif %}
-  <br><span class="meta">{% translate "Der Wert gilt nur für Verfahren, die neu beginnen — laufende behalten ihre Fassung." %}</span></div>
+  <br><span class="meta">{% translate "Der Testwert wirkt sofort überall, wo die Stellgröße gelesen wird; Werte der Verfahrensordnung sind vom Test ausgenommen." %}</span></div>
 {% endif %}
 
 <div class="karte" style="margin-top:16px">

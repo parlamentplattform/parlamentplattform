@@ -89,6 +89,7 @@ def test_konto_menue_mitglied_ohne_rolle(client):
     assert '<form method="post" action="/abmelden/"' in konto
     assert 'x-data="thema"' in konto and 'href="/partner/"' in konto
     assert "Mein Gremium" not in html and 'href="/verwaltung/"' not in html
+    assert "Mein Mandat" not in html and 'href="/profil/">Profil</a>' in konto
     assert 'class="cta"' in _leiste(html) and '<details class="mehr"' not in _leiste(html)
 
 
@@ -99,6 +100,24 @@ def test_konto_menue_mit_gremienrolle(client):
     rolle_geben(m)
     konto = _konto(client.get("/").content.decode())
     assert 'class="avatar ring"' in konto and 'href="/gremien/mein/">Mein Gremium</a>' in konto
+
+
+def test_konto_menue_mandatar(client):
+    """Die Rolle „Mandatar“ hängt am offenen Mandat (§ 7 Abs 9): Mit ihm erscheint „Mein Mandat“,
+    mit seinem Ende verschwindet der Eintrag wieder — ohne dass jemand eine Rolle pflegt."""
+    from django.utils import timezone
+
+    from mandatare.models import Mandat
+
+    m = mitglied_anlegen("mandatarin")
+    client.force_login(m)
+    assert "Mein Mandat" not in client.get("/").content.decode()
+    mandat = Mandat.objects.create(mitglied=m, bezeichnung="Gemeinderätin", gebiet="Eferding")
+    konto = _konto(client.get("/").content.decode())
+    assert 'href="/mandatare/mein/">Mein Mandat</a>' in konto and 'href="/profil/">Profil</a>' in konto
+    mandat.beendet = timezone.localdate()
+    mandat.save(update_fields=["beendet"])
+    assert "Mein Mandat" not in client.get("/").content.decode()
 
 
 def test_konto_menue_admin(client):

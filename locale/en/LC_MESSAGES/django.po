@@ -3999,9 +3999,6 @@ msgstr "No roles appointed yet."
 msgid "Mandatare-Verwaltung"
 msgstr "Mandate holder administration"
 
-msgid "Pflege der öffentlichen Mandatare-Seite (§ 7 Abs 9) — bis die Mandatar-Rolle (M2)\ndie Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert."
-msgstr "Maintaining the public mandate holders page (§ 7 para. 9) — until the mandate-holder role (M2)\nhands maintenance over to the mandate holders themselves. Every action is audited."
-
 msgid "öffentliche Seite ansehen →"
 msgstr "view public page →"
 
@@ -6242,3 +6239,587 @@ msgstr "Opened"
 
 msgid "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)"
 msgstr "without support and deliberation phase (§ 7 para 9)"
+
+# ── 0.46: S10 — Mandatar-Rolle, Mandatsfrage, Rechenschaft, Berichte, Profil, Nebenwohnsitz ──
+
+msgid "<strong>%(ausgetreten)s</strong> ausgetreten"
+msgstr "<strong>%(ausgetreten)s</strong> resigned"
+
+msgid "Abstimmung beendet am"
+msgstr "Vote ended on"
+
+msgid "Adminrechte enden; eine vorgemerkte Adressänderung wird verworfen."
+msgstr "Admin rights end; a pending address change is discarded."
+
+msgid "Alle Ebenen"
+msgstr "All levels"
+
+msgid "Alle Mandatare →"
+msgstr "All mandate holders →"
+
+msgid "Alle anderen Geräte abmelden"
+msgstr "Sign out all other devices"
+
+msgid "Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."
+msgstr "All other devices are signed out — this one stays signed in."
+
+msgid "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
+msgstr "Everything the platform holds about you (Art 15 and 20 GDPR): master data, residences, fees, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, reports, suggestions and your own votes with pseudonym and check code."
+
+msgid "Als Ja-Nein-Frage formulieren, wenn eine Abstimmung entstehen soll."
+msgstr "Phrase it as a yes/no question if a vote is to follow."
+
+msgid "Anderes Mandat wählen"
+msgstr "Choose another mandate"
+
+msgid "Angemeldet als <strong>%(name)s</strong> · Mitglied #%(pk)s"
+msgstr "Signed in as <strong>%(name)s</strong> · member #%(pk)s"
+
+msgid "Angetreten am"
+msgstr "Took office on"
+
+msgid "Anzeigename"
+msgstr "Display name"
+
+msgid "Aufgabe „%(titel)s“ veröffentlicht."
+msgstr "Task “%(titel)s” published."
+
+msgid "Aufgaben und Fristen"
+msgstr "Tasks and deadlines"
+
+msgid "Aus der Partei austreten"
+msgstr "Resign from the party"
+
+msgid "Aus der Partei austreten …"
+msgstr "Resign from the party …"
+
+msgid "Ausgetreten am %(seit)s (§ 4 Abs 5): Stammdaten geleert, Konto geschlossen. Dieses Konto wird nicht wieder aktiviert — ein Wiedereintritt ist ein neues Konto. Beiträge zu Verfahren, Beitragseingänge und Audit-Einträge bleiben."
+msgstr "Resigned on %(seit)s (§ 4 para 5): master data cleared, account closed. This account is not reactivated — rejoining is a new account. Contributions to procedures, fee payments and audit entries remain."
+
+msgid "Ausstände"
+msgstr "Outstanding items"
+
+msgid "Austritt"
+msgstr "Resignation"
+
+msgid "Beendet jede andere Anmeldung dieses Kontos; dieses Gerät bleibt angemeldet."
+msgstr "Ends every other login of this account; this device stays signed in."
+
+msgid "Beendete Mandate, Rollen und Fachlisteneinträge bleiben dokumentiert."
+msgstr "Ended mandates, roles and expert-list entries remain documented."
+
+msgid "Begründung (öffentlich)"
+msgstr "Reasoning (public)"
+
+msgid "Benachrichtigungen per E-Mail gibt es noch nicht; die Plattform verschickt nur Anmelde-, Bestätigungs- und Beitragsnachrichten."
+msgstr "There are no e-mail notifications yet; the platform only sends login, confirmation and membership-fee messages."
+
+msgid "Bericht"
+msgstr "Report"
+
+msgid "Berichte"
+msgstr "Reports"
+
+msgid "Berichte und Rechenschaft"
+msgstr "Reports and accountability"
+
+msgid "Beschluss der Plattform"
+msgstr "Decision of the platform"
+
+msgid "Beschluss der Plattform (nur ohne Antrag)"
+msgstr "Decision of the platform (only without a motion)"
+
+msgid "Beschluss der Plattform:"
+msgstr "Decision of the platform:"
+
+msgid "Bezirk und Bundesland folgen dem amtlichen Gemeindeverzeichnis; der Wohnsitz bestimmt „Meine Region“ (§ 14 Abs 3). Die Änderung wird ohne Ortsnamen im Audit-Log vermerkt."
+msgstr "District and federal state follow the official register of municipalities; the residence determines “My region” (§ 14 para 3). The change is recorded in the audit log without place names."
+
+msgid "Bitte Gegenstand, Stimme und Begründung angeben."
+msgstr "Please give the subject, your vote and your reasoning."
+
+msgid "Bitte alle Pflichtfelder prüfen."
+msgstr "Please check all required fields."
+
+msgid "Bitte den Sitzungstag angeben."
+msgstr "Please give the session date."
+
+msgid "Bitte ein Bild bis 800 kB wählen (JPEG, PNG oder WebP)."
+msgstr "Please choose an image of up to 800 kB (JPEG, PNG or WebP)."
+
+msgid "Bitte ein gültiges Datum (und gegebenenfalls eine Uhrzeit) angeben."
+msgstr "Please enter a valid date (and, if needed, a time)."
+
+msgid "Bitte eine Ebene wählen oder eine Kandidatur verknüpfen."
+msgstr "Please choose a level or link a candidacy."
+
+msgid "Bitte einen fälligen Monat wählen."
+msgstr "Please choose a month that is due."
+
+msgid "Bitte einen vergangenen Sitzungstag wählen."
+msgstr "Please choose a past session date."
+
+msgid "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)"
+msgstr "Create a vote in the parliament from this (mandate question)"
+
+msgid "Das ganze Register (ein Eintrag) →"
+msgid_plural "Das ganze Register (%(n)s Einträge) →"
+msgstr[0] "The full register (one entry) →"
+msgstr[1] "The full register (%(n)s entries) →"
+
+msgid "Dateityp nicht erkannt — erlaubt sind JPEG, PNG und WebP."
+msgstr "File type not recognised — JPEG, PNG and WebP are allowed."
+
+msgid "Datenexport"
+msgstr "Data export"
+
+msgid "Datum"
+msgstr "Date"
+
+msgid "Der Austritt ist jederzeit möglich (§ 4 Abs 5). Die nächste Seite erklärt, was bleibt und was geht."
+msgstr "Resignation is possible at any time (§ 4 para 5). The next page explains what stays and what goes."
+
+msgid "Der Austritt ist jederzeit möglich und wirkt sofort (§ 4 Abs 5). Nichts, was ein Verfahren betrifft, wird gelöscht — Ihr Konto wird geschlossen und Ihre persönlichen Daten werden entfernt."
+msgstr "Resignation is possible at any time and takes effect immediately (§ 4 para 5). Nothing that concerns a procedure is deleted — your account is closed and your personal data is removed."
+
+msgid "Der Austritt wurde nicht vollzogen — das Bestätigungswort fehlt."
+msgstr "The resignation was not carried out — the confirmation word is missing."
+
+msgid "Der Bericht braucht einen Text."
+msgstr "The report needs a text."
+
+msgid "Der Nebenwohnsitz ist bereits Ihr Wohnsitz."
+msgstr "The secondary residence is already your residence."
+
+msgid "Der Nebenwohnsitz ordnet Sie zusätzlich einer Region zu, sobald die Stellgröße „%(schluessel)s“ auf 1 steht (heute: %(wert)s). Am Stimmrecht ändert er nichts (§ 5 Abs 6)."
+msgstr "The secondary residence additionally assigns you to a region as soon as the setting “%(schluessel)s” is 1 (today: %(wert)s). It does not change your voting rights (§ 5 para 6)."
+
+msgid "Der Report braucht einen Titel."
+msgstr "The report needs a title."
+
+msgid "Der satzungsgebende Erstzugang kann nicht austreten — sonst wäre die Verwaltung herrenlos."
+msgstr "The founding administrator account cannot resign — otherwise the administration would be without an owner."
+
+msgid "Der satzungsgebende Erstzugang kann nicht austreten."
+msgstr "The founding administrator account cannot resign."
+
+msgid "Derzeit gilt keine Verfahrensordnung — eine Abstimmung kann noch nicht entstehen."
+msgstr "No rules of procedure are in force yet — a vote cannot be created for now."
+
+msgid "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins."
+msgstr "Only the administration changes the login address: the previous address receives an objection link, then a waiting period and confirmation by a second admin apply."
+
+msgid "Die Aufgabe braucht einen Titel."
+msgstr "The task needs a title."
+
+msgid "Die Frist ist ein Sitzungstag"
+msgstr "The deadline is a session day"
+
+msgid "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig."
+msgstr "The deadline is a session day — afterwards the session report and the accountability entry are due."
+
+msgid "Die Mandatsfrage läuft noch — der Eintrag steht ohne Beschluss der Plattform."
+msgstr "The mandate question is still open — the entry stands without a decision of the platform."
+
+msgid "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto."
+msgstr "The language is remembered by this device (cookie), not by the account."
+
+msgid "Dieser Bereich gehört zu einem offenen Mandat — die Rolle entsteht mit dem Mandat und endet mit ihm (§ 7)."
+msgstr "This area belongs to an open mandate — the role begins with the mandate and ends with it (§ 7)."
+
+msgid "Dieser Name ist der Plattform vorbehalten."
+msgstr "This name is reserved for the platform."
+
+msgid "Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds."
+msgstr "This name is already taken — it is the display name or real name of another member."
+
+msgid "Ebene"
+msgstr "Level"
+
+msgid "Ebene und Gebiet werden aus der Kandidatur übernommen, wenn sie hier leer bleiben."
+msgstr "Level and area are taken from the candidacy if left empty here."
+
+msgid "Ein Eintrag in der Fachliste wird gestrichen; dort steht dann der Schlüssel statt Ihres Namens (§ 8 Abs 4)."
+msgstr "An entry in the expert list is struck; the key then appears there instead of your name (§ 8 para 4)."
+
+msgid "Ein ausgetretenes Konto wird nicht wieder aktiviert."
+msgstr "A resigned account is not reactivated."
+
+msgid "Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis %(frist)s). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht."
+msgstr "A change of the login address is pending (objection period until %(frist)s). Until it is decided, voting and register access are paused."
+
+msgid "Ergebnis:"
+msgstr "Result:"
+
+msgid "Erstellt am"
+msgstr "Created on"
+
+msgid "Export zum Nachrechnen"
+msgstr "Export for independent recount"
+
+msgid "Filterprofile, Abos, Favoriten und Lesestände werden gelöscht."
+msgstr "Filter profiles, subscriptions, favourites and reading positions are deleted."
+
+msgid "Foto gespeichert."
+msgstr "Photo saved."
+
+msgid "Frist am"
+msgstr "Deadline on"
+
+msgid "Für diesen Monat liegt schon ein Bericht vor."
+msgstr "A report for this month already exists."
+
+msgid "Gebiet"
+msgstr "Area"
+
+msgid "Gegenstand der Abstimmung im Vertretungskörper"
+msgstr "Subject of the vote in the representative body"
+
+msgid "Ihr offenes Mandat wird mit heutigem Tag als beendet vermerkt."
+msgid_plural "Ihre %(n)s offenen Mandate werden mit heutigem Tag als beendet vermerkt."
+msgstr[0] "Your open mandate is recorded as ended as of today."
+msgstr[1] "Your %(n)s open mandates are recorded as ended as of today."
+
+msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
+msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name, “Former member” with your member number appears there from now on."
+
+msgid "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung."
+msgstr "Your identity has not been verified yet (§ 4 para 2) — you can read here; writing follows confirmation."
+
+msgid "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status."
+msgstr "Your participation is paused — you can read here; writing resumes with active status."
+
+msgid "Ihre abgegebenen Stimmen in den veröffentlichten Stimmlisten — sie tragen nur ein Pseudonym. Der Registereintrag, der Pseudonym und Konto verbindet, bleibt, bis die Verfahrensordnung eine Löschfrist festlegt (§ 8 Abs 6); „Meine Stimme prüfen“ entfällt mit dem Konto."
+msgstr "Your votes in the published vote lists — they carry only a pseudonym. The register entry linking pseudonym and account remains until the rules of procedure set a deletion period (§ 8 para 6); “Check my vote” ends with the account."
+
+msgid "Ihre aktive Gremienrolle wird mit dem Grund „Austritt“ beendet."
+msgid_plural "Ihre %(n)s aktiven Gremienrollen werden mit dem Grund „Austritt“ beendet."
+msgstr[0] "Your active council role is ended with the reason “resignation”."
+msgstr[1] "Your %(n)s active council roles are ended with the reason “resignation”."
+
+msgid "Instant-Report"
+msgstr "Instant report"
+
+msgid "Jetzt abstimmen:"
+msgstr "Vote now:"
+
+msgid "Jetzt austreten"
+msgstr "Resign now"
+
+msgid "Kandidatur"
+msgstr "Candidacy"
+
+msgid "Kein Monatsbericht fällig."
+msgstr "No monthly report due."
+
+msgid "Keine Ausstände."
+msgstr "Nothing outstanding."
+
+msgid "Kurzbeschreibung (öffentlich)"
+msgstr "Short description (public)"
+
+msgid "Lichtbild (JPEG, PNG oder WebP, bis 800 kB)"
+msgstr "Photo (JPEG, PNG or WebP, up to 800 kB)"
+
+msgid "Mandat"
+msgstr "Mandate"
+
+msgid "Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert."
+msgstr "Mandate “%(bezeichnung)s” marked as ended — remains documented."
+
+msgid "Mandat „%(bezeichnung)s“ angelegt — öffentlich sichtbar."
+msgstr "Mandate “%(bezeichnung)s” created — publicly visible."
+
+msgid "Mandatar"
+msgstr "Mandate holder"
+
+msgid ""
+"Mandate anlegen, beenden und mit der Kandidatur verknüpfen (§ 7). Aufgaben und Lichtbild\n"
+"pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingreifen. Jede Handlung wird auditiert."
+msgstr ""
+"Create and end mandates and link them to the candidacy (§ 7). Tasks and photo\n"
+"are maintained by the mandate holder in their own area; the administration can still intervene. Every action is audited."
+
+msgid "Mein Mandat"
+msgstr "My mandate"
+
+msgid "Meine Daten herunterladen (JSON)"
+msgstr "Download my data (JSON)"
+
+msgid "Meine Einträge"
+msgstr "My entries"
+
+msgid "Meine Karte"
+msgstr "My card"
+
+msgid "Mindestbeteiligung erreicht"
+msgstr "Minimum turnout reached"
+
+msgid "Monat"
+msgstr "Month"
+
+msgid "Monatsbericht eingereicht."
+msgstr "Monthly report submitted."
+
+msgid "Monatsbericht einreichen"
+msgstr "Submit monthly report"
+
+msgid "Name, E-Mail-Adresse, Wohnsitz, Nebenwohnsitz und ein Lichtbild an Ihren Mandaten werden gelöscht; das Konto lässt sich nicht mehr anmelden."
+msgstr "Name, e-mail address, residence, secondary residence and any photo on your mandates are deleted; the account can no longer sign in."
+
+msgid "Nebenwohnsitz-Gemeinde (leer = keiner)"
+msgstr "Municipality of secondary residence (empty = none)"
+
+msgid "Noch kein Bericht."
+msgstr "No report yet."
+
+msgid "Noch kein Eintrag."
+msgstr "No entry yet."
+
+msgid "Noch kein Report —"
+msgstr "No report yet —"
+
+msgid "Noch kein Sitzungstag vorbei."
+msgstr "No session day has passed yet."
+
+msgid "Noch keine Einträge."
+msgstr "No entries yet."
+
+msgid "Nur für Mandatare"
+msgstr "Mandate holders only"
+
+msgid "Profil"
+msgstr "Profile"
+
+msgid "Profil gespeichert."
+msgstr "Profile saved."
+
+msgid "Quelle"
+msgstr "Source"
+
+msgid "Rechenschaft"
+msgstr "Accountability"
+
+msgid "Rechenschaft ausständig seit"
+msgstr "Accountability outstanding since"
+
+msgid "Rechenschaft eingetragen."
+msgstr "Accountability entry recorded."
+
+msgid "Rechenschaft eintragen"
+msgstr "Record accountability"
+
+msgid "Rechenschaft fällig bis"
+msgstr "Accountability due by"
+
+msgid "Rechenschaft liegt vor"
+msgstr "Accountability recorded"
+
+msgid "Rechenschaft:"
+msgstr "Accountability:"
+
+msgid "Rechenschaftsregister"
+msgstr "Accountability register"
+
+msgid "Reihung nach § 7 Abs 1; die Form für die Wahlbehörde richtet sich nach der jeweiligen Wahlordnung."
+msgstr "Ranking under § 7 para 1; the form for the electoral authority follows the respective electoral regulations."
+
+msgid "Report veröffentlichen"
+msgstr "Publish report"
+
+msgid "Report veröffentlicht und Mandatsfrage eröffnet — sie steht jetzt in der Abstimmung."
+msgstr "Report published and mandate question opened — it is now in the vote."
+
+msgid "Report veröffentlicht — ohne Abstimmung: %(grund)s"
+msgstr "Report published — without a vote: %(grund)s"
+
+msgid "Report veröffentlicht — ohne Abstimmung: Es gilt noch keine Verfahrensordnung."
+msgstr "Report published — without a vote: no rules of procedure are in force yet."
+
+msgid "Report veröffentlicht."
+msgstr "Report published."
+
+msgid "Sammelbericht ausständig seit"
+msgstr "Session report outstanding since"
+
+msgid "Sammelbericht eingereicht."
+msgstr "Session report submitted."
+
+msgid "Sammelbericht einreichen"
+msgstr "Submit session report"
+
+msgid "Sammelbericht fällig bis"
+msgstr "Session report due by"
+
+msgid "Sammelbericht liegt vor"
+msgstr "Session report submitted"
+
+msgid "Sammelbericht schreiben"
+msgstr "Write session report"
+
+msgid "Schreiben ruht bis zum aktiven Status."
+msgstr "Writing is paused until active status."
+
+msgid "Sie sind ausgetreten. Ihr Konto ist geschlossen; Ihre Beiträge zu Verfahren bleiben."
+msgstr "You have resigned. Your account is closed; your contributions to procedures remain."
+
+msgid "Sie werden danach abgemeldet. Ein Wiedereintritt ist nur als neues Konto möglich."
+msgstr "You will be signed out afterwards. Rejoining is only possible as a new account."
+
+msgid "Sitzung am"
+msgstr "Session on"
+
+msgid "Sitzung am (nur ohne Sitzungstag)"
+msgstr "Session on (only without a session day)"
+
+msgid "Sitzungen"
+msgstr "Sessions"
+
+msgid "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen."
+msgstr "This is how you appear on motions and posts (§ 5 para 3 lit a). Documents already published keep the name shown at the time."
+
+msgid "Sprache"
+msgstr "Language"
+
+msgid "Stimme"
+msgstr "Vote"
+
+msgid "Stimme:"
+msgstr "Vote:"
+
+msgid "Uhrzeit (sonst 23:59)"
+msgstr "Time (otherwise 23:59)"
+
+msgid "Unvereinbar: Dieses Mitglied sitzt im Integritätsrat (§ 6 Abs 3 lit a) — kein Mandat möglich."
+msgstr "Incompatible: this member sits on the Integrity Council (§ 6 para 3 lit a) — no mandate possible."
+
+msgid "Verbuchte Beitragseingänge (Buchhaltung) und die Einträge im öffentlichen Audit-Log, die Ihre Mitgliedsnummer nennen."
+msgstr "Recorded fee payments (bookkeeping) and the entries in the public audit log that name your member number."
+
+msgid "Vorstellung (öffentlich)"
+msgstr "Introduction (public)"
+
+msgid "Vorstellung gespeichert."
+msgstr "Introduction saved."
+
+msgid "Vorstellung speichern"
+msgstr "Save introduction"
+
+msgid "Wahlvorschlag"
+msgstr "Electoral list"
+
+msgid "Was bleibt"
+msgstr "What stays"
+
+msgid "Was geht"
+msgstr "What goes"
+
+msgid "Was steht an?"
+msgstr "What is coming up?"
+
+msgid "Wie die Mandatare der DDÖ in ihren Vertretungskörpern gestimmt haben — neben dem Beschluss der Plattform (§ 7 Abs 5)."
+msgstr "How the DDÖ mandate holders voted in their representative bodies — next to the decision of the platform (§ 7 para 5)."
+
+msgid "Wohnsitz und Nebenwohnsitz"
+msgstr "Residence and secondary residence"
+
+msgid "Zu den Mandataren →"
+msgstr "To the mandate holders →"
+
+msgid "Zu welchem Sitzungstag?"
+msgstr "For which session day?"
+
+msgid "Zum Beitrag →"
+msgstr "To the membership fee →"
+
+msgid "Zur Abstimmung →"
+msgstr "To the vote →"
+
+msgid "Zur Bestätigung das Wort %(wort)s eintragen"
+msgstr "Enter the word %(wort)s to confirm"
+
+msgid "Zurück zum Profil"
+msgstr "Back to profile"
+
+msgid "ausgetreten"
+msgstr "resigned"
+
+msgid "ausständig seit"
+msgstr "outstanding since"
+
+msgid "ausständig seit einem Tag"
+msgid_plural "ausständig seit %(t)s Tagen"
+msgstr[0] "outstanding for one day"
+msgstr[1] "outstanding for %(t)s days"
+
+msgid "ein Eintrag"
+msgid_plural "%(n)s Einträge"
+msgstr[0] "one entry"
+msgstr[1] "%(n)s entries"
+
+msgid "eine ausständig"
+msgid_plural "%(n)s ausständig"
+msgstr[0] "one outstanding"
+msgstr[1] "%(n)s outstanding"
+
+msgid "einen Tag verspätet"
+msgid_plural "%(t)s Tage verspätet"
+msgstr[0] "one day late"
+msgstr[1] "%(t)s days late"
+
+msgid "einer ausständig"
+msgid_plural "%(n)s ausständig"
+msgstr[0] "one outstanding"
+msgstr[1] "%(n)s outstanding"
+
+msgid "eingereicht"
+msgstr "submitted"
+
+msgid "ersten Report schreiben"
+msgstr "write the first report"
+
+msgid "fällig bis"
+msgstr "due by"
+
+msgid "heute"
+msgstr "today"
+
+msgid "ja"
+msgstr "yes"
+
+msgid "keine Bewerbung"
+msgstr "no application"
+
+msgid "noch ein Tag"
+msgid_plural "noch %(t)s Tage"
+msgstr[0] "one day left"
+msgstr[1] "%(t)s days left"
+
+msgid "ohne Bericht"
+msgstr "without report"
+
+msgid "ohne Eintrag"
+msgstr "without entry"
+
+msgid "seit einem Tag"
+msgid_plural "seit %(t)s Tagen"
+msgstr[0] "one day ago"
+msgstr[1] "%(t)s days ago"
+
+msgid "veröffentlicht"
+msgstr "published"
+
+msgid "weicht ab"
+msgstr "differs"
+
+msgid "Öffentliche Seite →"
+msgstr "Public page →"
+
+msgid "— aus der Kandidatur —"
+msgstr "— from the candidacy —"
+
+msgid "— frei eintragen —"
+msgstr "— free entry —"
+
+msgid "„%(titel)s“: %(status)s."
+msgstr "“%(titel)s”: %(status)s."

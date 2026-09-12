@@ -26,6 +26,8 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
       <div class="pop">
         <p class="pop-kopf">{{ user.anzeigename }}</p>
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
+        {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
+        <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
         {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
         {% include "verfahren/_sprache.html" %}
@@ -63,6 +65,8 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
         <a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>
         <p class="pop-titel">{{ user.anzeigename }}</p>
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
+        {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
+        <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
         {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
         <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>

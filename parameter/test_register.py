@@ -313,12 +313,9 @@ ORDNUNGS_SCHLUESSEL = {schluessel for schluessel, _ in REGISTER_ZUORDNUNG.values
 #: sagt das (Befund #45).
 VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", "vorschlag-chat-reihung"}
 
-#: Stellgrößen, deren lesende Stelle in Dateien anderer Cluster der Gesamtprüfung 0.45 liegt —
-#: der konkrete Änderungsvorschlag steht in NOTIZEN_D.md. Sobald eine Stelle liest, gehört ihr
-#: Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
-#: 0.46, Fundament S10: `region-nebenwohnsitz-zaehlt` liest der Regionsteil (verfahren/views.py,
-#: verfahren/views_aktionen.py) — sobald er steht, gehört der Schlüssel hier gestrichen.
-NOCH_NICHT_ANGEBUNDEN: set[str] = {"region-nebenwohnsitz-zaehlt"}
+#: Stellgrößen, deren lesende Stelle noch in einem anderen Bauschritt liegt. Sobald eine Stelle
+#: liest, gehört ihr Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
+NOCH_NICHT_ANGEBUNDEN: set[str] = set()  # seit 0.46 liest jede Stellgröße eine Stelle im Code
 
 
 def _gelesene_schluessel() -> set[str]:

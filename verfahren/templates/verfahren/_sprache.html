@@ -2,6 +2,8 @@
 <form method="post" action="{% url 'set_language' %}" class="sprache-form" title="{% translate 'Sprache wechseln' %}">{% csrf_token %}
   {# get_full_path statt path (Befund #83): Fächer-Ast, Suche und Filter überleben den Wechsel #}
   <input type="hidden" name="next" value="{{ request.get_full_path }}">
-  {% if SPRACHE == "en" %}<input type="hidden" name="language" value="de"><button type="submit" class="{% if knapp %}sprache{% else %}z{% endif %}" lang="de">{% if knapp %}DE{% else %}DE · Deutsch{% endif %}</button>
-  {% else %}<input type="hidden" name="language" value="en"><button type="submit" class="{% if knapp %}sprache{% else %}z{% endif %}" lang="en">{% if knapp %}EN{% else %}EN · English{% endif %}</button>{% endif %}
+  {# knapp=True: Kurzform „DE“/„EN“ mit Klasse .sprache — nur für die dunkle Leiste (Farben aus --bar-ink). #}
+  {# Sonst voller Sprachname; klasse wählt den Knopf: „z“ (Popover/Panel, Standard) oder z. B. „btn-linie klein“ (Profilkarte). #}
+  {% if SPRACHE == "en" %}<input type="hidden" name="language" value="de"><button type="submit" class="{% if knapp %}sprache{% else %}{{ klasse|default:'z' }}{% endif %}" lang="de">{% if knapp %}DE{% else %}DE · Deutsch{% endif %}</button>
+  {% else %}<input type="hidden" name="language" value="en"><button type="submit" class="{% if knapp %}sprache{% else %}{{ klasse|default:'z' }}{% endif %}" lang="en">{% if knapp %}EN{% else %}EN · English{% endif %}</button>{% endif %}
 </form>

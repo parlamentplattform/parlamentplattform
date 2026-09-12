@@ -28,7 +28,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Q, Value
+from django.db.models import Exists, OuterRef, Q, Value
 from django.db.models.functions import Concat
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -39,6 +39,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder.models import Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
+from plattform_core import Phase
 from verfahren.models import AuditEintrag, BewerbungsZustimmung, Stimmabgabe, StimmRegister
 
 BESTAETIGUNGSWORT = "AUSTRITT"
@@ -79,6 +80,59 @@ def _gemeinde_pruefen(eingabe: str) -> Gemeinde | None:
     raise forms.ValidationError(_("Steht nicht im amtlichen Gemeindeverzeichnis."))
 
 
+def _oeffentliche_funktion() -> Q:
+    """Mitglieder, deren Klarname auf der Plattform stehen kann: offenes Mandat, aktive
+    Ratsrolle, geführter Fachlisteneintrag mit Namensnennung, Verwaltung.
+
+    Als `Exists`-Unterabfragen, nicht als Joins: `Q(mandate__beendet__isnull=True)` träfe über
+    den LEFT OUTER JOIN auch jedes Mitglied OHNE Mandat — genau das Orakel, das hier vermieden wird."""
+    from gremien.models import Fachliste, Rolle
+    from mandatare.models import Mandat
+
+    heute = timezone.localdate()
+    return (
+        Q(Exists(Mandat.objects.filter(mitglied=OuterRef("pk"), beendet__isnull=True)))
+        | Q(Exists(Rolle.objects.filter(mitglied=OuterRef("pk"), beendet_grund="", endet_am__gte=heute)))
+        | Q(
+            Exists(
+                Fachliste.objects.filter(
+                    mitglied=OuterRef("pk"), gestrichen_am__isnull=True, einwilligung_widerrufen_am__isnull=True
+                )
+            )
+        )
+        | Q(ist_admin=True)
+        | Q(email__iexact=getattr(settings, "DDOE_FIX_ADMIN", "") or "-")
+    )
+
+
+def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
+    """Kollidiert der gewünschte Anzeigename mit dem öffentlichen Namensraum?
+
+    Geprüft wird gegen (a) jedes vergebene Pseudonym und (b) die Klarnamen (Vor- und Nachname,
+    nur Vorname, nur Nachname) der Mitglieder mit öffentlicher Funktion — nicht gegen die
+    Klarnamen aller Mitglieder.
+
+    Warum nicht alle: Die Profilseite steht jedem angemeldeten Konto offen, auch ungeprüften.
+    Prüfte sie den Wunschnamen gegen die Klarnamen ALLER Mitglieder, ließe sich Name für Name
+    abfragen, wer Mitglied ist — die Parteimitgliedschaft ist ein Datum nach Art 9 DSGVO, und
+    gerade wer ein Pseudonym führt, hat den Klarnamen nirgends gezeigt. Vor Anmaßung zu schützen
+    ist nur, was ohnehin öffentlich steht: Pseudonyme und die Namen der Mandatare, Ratsmitglieder,
+    Fachleute und der Verwaltung. Ein stilles Mitglied bleibt unsichtbar, auch für diese Prüfung;
+    die Restunschärfe (ein Treffer über den Klarnamen eines Mandatars bestätigt nur, was dessen
+    Seite ohnehin zeigt) ist gewollt."""
+    klarname_gleich = (
+        Q(klarname__iexact=name)
+        | Q(first_name__iexact=name, last_name="")
+        | Q(first_name="", last_name__iexact=name)
+    )
+    return (
+        Mitglied.objects.exclude(pk=ausser.pk)
+        .annotate(klarname=Concat("first_name", Value(" "), "last_name"))
+        .filter(Q(pseudonym_oeffentlich__iexact=name) | (_oeffentliche_funktion() & klarname_gleich))
+        .exists()
+    )
+
+
 class ProfilFormular(forms.Form):
     """Anzeigename, Wohnsitz, Nebenwohnsitz — was ein Mitglied selbst pflegt."""
 
@@ -112,19 +166,10 @@ class ProfilFormular(forms.Form):
             # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
             # der Platzhalter Ausgetretener — beides darf sich niemand als Anzeigenamen geben.
             raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
-        andere = Mitglied.objects.exclude(pk=self.mitglied.pk).annotate(
-            klarname=Concat("first_name", Value(" "), "last_name")
-        )
-        kollision = andere.filter(
-            Q(pseudonym_oeffentlich__iexact=name)
-            | Q(klarname__iexact=name)
-            | Q(first_name__iexact=name, last_name="")
-            | Q(first_name="", last_name__iexact=name)
-        )
-        if kollision.exists():
-            raise forms.ValidationError(
-                _("Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds.")
-            )
+        if anzeigename_vergeben(name, ausser=self.mitglied):
+            # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
+            # kollidiert — sonst verriete sie, wessen Klarname hier geführt wird.
+            raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
         return name
 
     def clean_gemeinde(self) -> str:
@@ -267,12 +312,158 @@ def _stimmen_export(mitglied: Mitglied) -> list[dict]:
     return stimmen
 
 
-def daten_export(mitglied: Mitglied) -> dict:
-    """Alles, was die Plattform über diesen Menschen führt — eine Quelle, schlichte Abbildung.
+def _gremien_export(m: Mitglied) -> dict:
+    """Was Räte, Fachliste und Register diesem Konto zuordnen.
 
-    Nicht enthalten: Bank-Kennungen der Beitragseingänge (`umsatz_id`), Einspruchs- und
-    Token-Hashes, Audit-Zeilen Dritter. Der Stimmregister-Teil fehlt, solange eine Änderung
-    der Anmeldeadresse offen ist — dieselbe Sperre wie „Meine Stimme prüfen“ (F-51)."""
+    Jede Rückbeziehung des Mitglieds, die kein eigener Ordner von `daten_export` ist, steht hier;
+    `mitglieder/test_profil.py` hält die Liste gegen `Mitglied._meta.get_fields()` und lässt
+    nur benannte Ausnahmen zu. Werte ohne fremde Personenbezüge: Beschlüsse und Parametertests
+    stehen als Verweis (Gremium, Nummer, Gegenstand), KI-Läufe ohne Ein- und Ausgabe — deren
+    Inhalt ist Verfahrenstext, kein Datum über diesen Menschen."""
+    from gremien.models import (
+        EinreichStimme,
+        EntwurfsBeitrag,
+        EntwurfsFassung,
+        Fachliste,
+        GremienStimme,
+        Interessenbindung,
+        Pruefung,
+        Ueberlastungsmeldung,
+        UnterstuetzerVotum,
+    )
+    from ki.models import KILauf
+    from parameter.models import ParameterTest
+    from verfahren.models import Vollzugseintrag
+
+    def beschluss_verweis(b) -> dict:
+        return {"gremium": b.gremium, "nummer": b.nummer, "gegenstand": b.gegenstand, "status": b.status}
+
+    fachliste = Fachliste.objects.filter(mitglied=m).first()
+    return {
+        "fachliste": None
+        if fachliste is None
+        else {
+            "schluessel": fachliste.schluessel,
+            "fachgebiete": list(fachliste.fachgebiete.values_list("slug", flat=True)),
+            "interessenbindungen": fachliste.interessenbindungen,
+            "honorare": fachliste.honorare,
+            "seit": fachliste.seit,
+            "gestrichen_am": fachliste.gestrichen_am,
+            "gestrichen_grund": fachliste.gestrichen_grund,
+            "einwilligung_widerrufen_am": fachliste.einwilligung_widerrufen_am,
+        },
+        "interessenbindungen": [
+            {"antrag": i.antrag_id, "runde": i.runde, "text": i.text, "erklaert_am": i.erklaert_am}
+            for i in Interessenbindung.objects.filter(mitglied=m)
+        ],
+        "unterstuetzer_voten": [
+            {
+                "antrag": v.entwurf.antrag_id,
+                "runde": v.runde,
+                "annehmen": v.annehmen,
+                "wunsch": v.wunsch,
+                "abgegeben_am": v.abgegeben_am,
+            }
+            for v in UnterstuetzerVotum.objects.filter(mitglied=m).select_related("entwurf")
+        ],
+        "einreichstimmen": [
+            {
+                "antrag": e.entwurf.antrag_id,
+                "runde": e.runde,
+                "einverstanden": e.einverstanden,
+                "abgegeben_am": e.abgegeben_am,
+            }
+            for e in EinreichStimme.objects.filter(mitglied=m).select_related("entwurf")
+        ],
+        "pruefungen": [
+            {
+                "antrag": p.entwurf.antrag_id,
+                "runde": p.runde,
+                "ergebnis": p.ergebnis,
+                "begruendung": p.begruendung,
+                "erstellt_am": p.erstellt_am,
+            }
+            for p in Pruefung.objects.filter(durch=m).select_related("entwurf")
+        ],
+        "entwurfsbeitraege": [
+            {"antrag": b.entwurf.antrag_id, "text": b.text, "absatz": b.absatz, "erstellt_am": b.erstellt_am}
+            for b in EntwurfsBeitrag.objects.filter(mitglied=m).select_related("entwurf")
+        ],
+        "entwurfsfassungen": [
+            {
+                "antrag": f.entwurf.antrag_id,
+                "nummer": f.nummer,
+                "wortlaut": f.wortlaut,
+                "begruendung": f.begruendung,
+                "erstellt_am": f.erstellt_am,
+            }
+            for f in EntwurfsFassung.objects.filter(verfasst_von=m).select_related("entwurf")
+        ],
+        "gremienstimmen": [
+            {
+                "beschluss": beschluss_verweis(s.beschluss),
+                "option": s.option,
+                "begruendung": s.begruendung,
+                "abgegeben_am": s.abgegeben_am,
+                "geaendert_am": s.geaendert_am,
+            }
+            for s in GremienStimme.objects.filter(mitglied=m).select_related("beschluss")
+        ],
+        "angelegte_beschluesse": [
+            {**beschluss_verweis(b), "angelegt_am": b.angelegt_am} for b in m.angelegte_beschluesse.all()
+        ],
+        "zugewiesene_umsetzungen": [
+            {**beschluss_verweis(b), "umsetzung_frist": b.umsetzung_frist} for b in m.zugewiesene_umsetzungen.all()
+        ],
+        "vollzug": [
+            {"antrag": v.antrag_id, "status": v.status, "vermerk": v.vermerk, "erstellt_am": v.erstellt_am}
+            for v in Vollzugseintrag.objects.filter(durch=m)
+        ],
+        "ueberlastungsmeldungen": [
+            {
+                "stelle": u.stelle,
+                "begruendung": u.begruendung,
+                "vorschlag": u.vorschlag,
+                "gemeldet_am": u.gemeldet_am,
+                "erledigt_am": u.erledigt_am,
+                "antrag_an_mv": u.antrag_an_mv_id,
+            }
+            for u in Ueberlastungsmeldung.objects.filter(gemeldet_von=m)
+        ],
+        "parametertests": [
+            {
+                "parameter": t.parameter.schluessel,
+                "testwert": t.testwert,
+                "hypothese": t.hypothese,
+                "ende": t.ende,
+                "status": t.status,
+                "angelegt_am": t.angelegt_am,
+            }
+            for t in ParameterTest.objects.filter(angeordnet_von=m).select_related("parameter")
+        ],
+        "ki_laeufe": [
+            {
+                "zweck": k.zweck,
+                "antrag": k.antrag_id,
+                "anbieter": k.anbieter,
+                "modell": k.modell,
+                "erfolgreich": k.erfolgreich,
+                "erstellt_am": k.erstellt_am,
+            }
+            for k in KILauf.objects.filter(angefordert_von=m)
+        ],
+    }
+
+
+def daten_export(mitglied: Mitglied) -> dict:
+    """Alles, was die Plattform diesem Konto zuordnet — eine Quelle, schlichte Abbildung.
+
+    Außer: Bank-Kennungen der Beitragseingänge (`umsatz_id`), Einspruchs- und Token-Hashes
+    (Anmelde-Token bleiben ganz draußen — sie sind Schlüssel, kein Datum über den Menschen),
+    Adresswechsel, die dieses Konto als Verwaltung für ANDERE beantragt oder bestätigt hat
+    (fremde Vorgänge), und Audit-Zeilen Dritter. Beschlüsse, Ein- und Ausgaben von KI-Läufen
+    stehen nur als Verweis (`_gremien_export`). Der Stimmregister-Teil fehlt, solange eine
+    Änderung der Anmeldeadresse offen ist — dieselbe Sperre wie „Meine Stimme prüfen“ (F-51)."""
     m = mitglied
     daten: dict = {
         "exportiert_am": timezone.now(),
@@ -418,6 +609,7 @@ def daten_export(mitglied: Mitglied) -> dict:
         "anstoesse": [
             {"text": a.text, "seite": a.seite, "erstellt": a.erstellt, "status": a.status} for a in m.anstoesse.all()
         ],
+        **_gremien_export(m),
     }
     if m.adresswechsel_offen:
         daten["stimmen"] = None
@@ -462,8 +654,10 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     den Registereintrag nicht mehr aufrufen, und die satzungsmäßige Löschfrist gilt unverändert.
 
     Was geht: Klarname, Anmeldeadresse, Wohnsitze, Adminrechte, Anmeldbarkeit, Filterprofile,
-    Abos, Favoriten, Lesestände, Tokens, das Lichtbild an Mandaten. Offene Mandate, aktive Rollen und der Fachlisteneintrag
-    werden beendet, ein offener Adresswechsel widerrufen."""
+    Abos, Favoriten, Lesestände, Tokens, das Lichtbild an Mandaten. Offene Mandate, aktive Rollen
+    und der Fachlisteneintrag werden beendet, ein offener Adresswechsel widerrufen und die
+    Adresswerte der gesamten Wechselhistorie geleert; Bewerbungen in Kandidaturen vor der
+    Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
     from gremien.models import Fachliste
     from mandatare.models import Mandat
 
@@ -477,6 +671,13 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     wechsel = Adresswechsel.offener(mitglied)
     if wechsel is not None:
         wechsel.widerrufen("austritt")
+    # Die Wechselhistorie trägt in `neue_email` Klartext-Adressen dieses Menschen — bei einem
+    # wirksam gewordenen Wechsel genau die bisherige Anmeldeadresse. Der Wert geht, die Zeile
+    # bleibt als Nachweis des Vier-Augen-Vorgangs (Status, Zeitpunkte, Hash, Beteiligte).
+    # `update()` schreibt "" wie bei `Mitglied.email`; die Spalte lässt das zu. Wechsel, die
+    # dieses Konto als Verwaltung für ANDERE beantragt oder bestätigt hat, tragen fremde
+    # Adressen und bleiben unberührt.
+    Adresswechsel.objects.filter(mitglied=mitglied).update(neue_email="")
 
     for mandat in Mandat.aktive_von(mitglied):
         mandat.beendet = heute
@@ -505,6 +706,25 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
             felder.append("einwilligung_widerrufen_am")
         if felder:
             eintrag.save(update_fields=felder)
+
+    # Bewerbungen in Kandidaturen, die noch nicht in der Abstimmung sind, werden zurückgezogen —
+    # derselbe Stempel wie beim freiwilligen Rückzug (§ 7 Abs 1: nur Mitglieder kandidieren).
+    # In der laufenden Abstimmung bleibt die Bewerbung stehen, wie beim freiwilligen Rückzug
+    # (`bewerbung_zurueckziehen`): Ein Rückzug während der Wahl nähme den abgegebenen
+    # Zustimmungen ihre Bewerbung und könnte die Wahl unter die Mindestbeteiligung drücken;
+    # das Nachrücken regelt die Verfahrensordnung (§ 7 Abs 1 letzter Satz).
+    offene_kandidatur = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value]
+    for bewerbung in mitglied.bewerbungen.filter(zurueckgezogen=False, antrag__phase__in=offene_kandidatur):
+        bewerbung.zurueckgezogen = True
+        bewerbung.save(update_fields=["zurueckgezogen"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "bewerbung_zurueckgezogen",
+                "antrag": bewerbung.antrag_id,
+                "bewerbung": bewerbung.pk,
+                "anlass": "austritt",
+            }
+        )
 
     # Rein Persönliches — nichts davon betrifft ein Verfahren.
     mitglied.filterprofile.all().delete()

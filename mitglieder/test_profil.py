@@ -169,15 +169,21 @@ def test_anzeigename_wird_normalisiert_und_auditiert_ohne_wert(client):
 
 
 def test_anzeigename_kollidiert_nicht_mit_fremdem_pseudonym_oder_klarnamen(client):
+    from mandatare.models import Mandat
+
     anna, bert, carla = mit_wohnsitz("anna"), mitglied_anlegen("bert"), mitglied_anlegen("carla")
     bert.pseudonym_oeffentlich = "Nachtfalter"
     bert.save(update_fields=["pseudonym_oeffentlich"])
     carla.first_name, carla.last_name = "Carla", "Kern"
     carla.save(update_fields=["first_name", "last_name"])
+    Mandat.objects.create(mitglied=carla, bezeichnung="Gemeinderätin", gebiet="Graz")  # öffentliche Funktion
     client.force_login(anna)
     for verboten in ("nachtfalter", "Carla Kern", "carla  kern"):
         antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
-        assert antwort.status_code == 200 and "schon vergeben" in antwort.content.decode()
+        inhalt = antwort.content.decode()
+        assert antwort.status_code == 200 and "nicht verfügbar" in inhalt, verboten
+        fehler = inhalt.split('<ul class="fehlerliste">')[1].split("</ul>")[0]
+        assert "Klarname" not in fehler and "Anzeigenamen" not in fehler  # Meldung neutral
         anna.refresh_from_db()
         assert anna.pseudonym_oeffentlich == ""
     profil_speichern(client, anzeigename="Tagpfauenauge", gemeinde=anna.gemeinde)
@@ -296,17 +302,104 @@ def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung
         stimme=Stimmverhalten.values[0],
         begruendung="B",
     )
+    bert = _raete_und_register(anna, admin, antrag, kategorie)
     client.force_login(anna)
     antwort = client.get(EXPORT)
     assert antwort.status_code == 200
     daten = json.loads(antwort.content)
     for ordner in ("reaktionen", "meldungen", "beanstandungen", "anstoesse", "bewerbungen", "abos", "kommentare",
-                   "filterprofile", "favoriten", "antraege", "rollen", "mandate"):
+                   "filterprofile", "favoriten", "antraege", "rollen", "mandate", "adresswechsel",
+                   "interessenbindungen", "unterstuetzer_voten", "einreichstimmen", "pruefungen",
+                   "entwurfsbeitraege", "entwurfsfassungen", "gremienstimmen", "angelegte_beschluesse",
+                   "zugewiesene_umsetzungen", "vollzug", "ueberlastungsmeldungen", "parametertests", "ki_laeufe"):
         assert len(daten[ordner]) >= 1, ordner
     md = daten["mandate"][0]
     assert md["aufgaben"][0]["sitzungstag"] is True and md["berichte"][0]["monat"] == "2026-10-01"
     assert md["rechenschaft"][0]["gegenstand"] == "Budget"
     assert daten["stimmen"] is not None
+    # Fachliste, Interessenbindungen und Ratsstimmen — der Kern von Befund FP-14
+    assert daten["fachliste"]["fachgebiete"] == ["test-bereich"]
+    assert daten["fachliste"]["interessenbindungen"] == "Beraterin der Stadtwerke"
+    assert daten["fachliste"]["honorare"] == "Vortragshonorar 2025"
+    assert daten["interessenbindungen"][0]["text"] == "Ich kenne den Antragsteller"
+    assert daten["gremienstimmen"][0] == {
+        "beschluss": {"gremium": "koordinationsrat", "nummer": daten["gremienstimmen"][0]["beschluss"]["nummer"],
+                      "gegenstand": "Probe", "status": "offen"},
+        "option": "dafuer", "begruendung": "Weil.", "abgegeben_am": daten["gremienstimmen"][0]["abgegeben_am"],
+        "geaendert_am": None,
+    }
+    assert daten["unterstuetzer_voten"][0]["wunsch"] == "Kürzer bitte"
+    assert daten["pruefungen"][0]["ergebnis"] == "validiert" and daten["vollzug"][0]["status"] == "in_umsetzung"
+    assert daten["parametertests"][0]["parameter"] == "gremien-review-tage"
+    ki = daten["ki_laeufe"][0]
+    assert ki["zweck"] == "einschaetzung" and "eingabe" not in ki and "antwort" not in ki
+    # Nichts Fremdes: weder Berts Adresse noch sein Name, weder Hashes noch Token
+    roh = antwort.content.decode()
+    assert bert.email not in roh and "Bert" not in roh and "Brandstätter" not in roh
+    assert "einspruch_hash" not in roh and "token" not in roh.lower() and "wechsel@example.org" not in roh
+    assert "Geheime Eingabe" not in roh and "Geheime Antwort" not in roh
+
+
+def _raete_und_register(anna, bert, antrag, kategorie):
+    """Spuren in Räten, Fachliste und Registern — jede Rückbeziehung, die `_gremien_export` abdeckt."""
+    from datetime import date
+
+    from gremien.models import (
+        EinreichStimme,
+        Entwurf,
+        EntwurfsBeitrag,
+        EntwurfsFassung,
+        Fachliste,
+        GremienBeschluss,
+        GremienStimme,
+        Gremium,
+        Interessenbindung,
+        Pruefung,
+        Ueberlastungsmeldung,
+        UnterstuetzerVotum,
+    )
+    from ki.models import KILauf
+    from parameter.models import Parameter, ParameterTest
+    from verfahren.models import Vollzugseintrag, Vollzugsstatus
+
+    bert.first_name, bert.last_name = "Bert", "Brandstätter"
+    bert.save(update_fields=["first_name", "last_name"])
+    wechsel, _klar = Adresswechsel.beantragen(anna, "wechsel@example.org", bert)
+    wechsel.widerrufen("einspruch")  # widerrufen: sperrt den Stimmregister-Teil nicht
+    fachliste = Fachliste.objects.get(mitglied=anna)
+    fachliste.interessenbindungen, fachliste.honorare = "Beraterin der Stadtwerke", "Vortragshonorar 2025"
+    fachliste.save(update_fields=["interessenbindungen", "honorare"])
+    fachliste.fachgebiete.add(kategorie)
+    Interessenbindung.objects.create(antrag=antrag, mitglied=anna, text="Ich kenne den Antragsteller")
+    entwurf = Entwurf.objects.create(antrag=antrag)
+    EntwurfsFassung.objects.create(entwurf=entwurf, nummer=1, wortlaut="Fassung eins", verfasst_von=anna)
+    EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=anna, text="Ein Beitrag")
+    EinreichStimme.objects.create(entwurf=entwurf, mitglied=anna, runde=1, einverstanden=True)
+    UnterstuetzerVotum.objects.create(entwurf=entwurf, mitglied=anna, runde=1, annehmen=False, wunsch="Kürzer bitte")
+    Pruefung.objects.create(entwurf=entwurf, runde=1, ergebnis=Pruefung.Ergebnis.VALIDIERT, begruendung="Passt.", durch=anna)
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.KOORDINATIONSRAT,
+        gegenstand="Probe",
+        optionen=[{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}],
+        angelegt_von=anna,
+        umsetzung_durch=anna,
+    )
+    GremienStimme.objects.create(beschluss=beschluss, mitglied=anna, option="dafuer", begruendung="Weil.")
+    GremienStimme.objects.create(beschluss=beschluss, mitglied=bert, option="dagegen", begruendung="Berts Grund")
+    Vollzugseintrag.objects.create(antrag=antrag, status=Vollzugsstatus.IN_UMSETZUNG, vermerk="Läuft", durch=anna)
+    Ueberlastungsmeldung.objects.create(stelle="Koordinationsrat", begruendung="Zu viel", gemeldet_von=anna)
+    parameter, _neu = Parameter.objects.get_or_create(
+        schluessel="gremien-review-tage", defaults={"wert": "7", "beschreibung": "Test", "quelle": "Test"}
+    )
+    ParameterTest.objects.create(
+        parameter=parameter, testwert="3", hypothese="Schneller", messgroesse="x", ende=date(2027, 1, 1),
+        rueckweg="zurück", angeordnet_von=anna,
+    )
+    KILauf.objects.create(
+        zweck="einschaetzung", angefordert_von=anna, eingabe="Geheime Eingabe", antwort="Geheime Antwort",
+        anbieter="test", modell="t",
+    )
+    return bert
 
 
 # --- Sitzungen ----------------------------------------------------------------
@@ -410,6 +503,7 @@ def test_austritt_anonymisiert_deaktiviert_und_laesst_das_verfahren_vollstaendig
     assert fachliste.anzeigename == fachliste.schluessel
     wechsel.refresh_from_db()
     assert wechsel.status == Adresswechsel.Status.WIDERRUFEN and anna.adresswechsel_offen is False
+    assert wechsel.neue_email == "" and wechsel.einspruch_hash and wechsel.beantragt_von_id == admin.pk
     # Audit: eigener Eintrag und die Beendigungen, ohne Werte
     assert audit("austritt", mitglied=pk) == [{"typ": "austritt", "mitglied": pk, "zeit": audit("austritt", mitglied=pk)[0]["zeit"]}]
     assert audit("mandat_beendet", mandat=mandat.pk) and audit("rolle_beendet", rolle=rolle.pk)
@@ -499,3 +593,255 @@ def test_profilseiten_ohne_doppelte_ids_und_mit_echten_formularen(client):
     html = client.get(PROFIL).content.decode()
     assert html.count('method="post"') >= 3  # Profil, Sprache, Sitzungen
     assert f'action="{SITZUNGEN}"' in html and f'href="{EXPORT}"' in html and f'href="{AUSTRITT}"' in html
+
+
+# --- Behebung FP (gegnerische Prüfung S10) ------------------------------------
+
+
+def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client):
+    """Befund FP-23: Die Kollisionsprüfung darf kein Mitglieder-Orakel sein. Der Klarname eines
+    stillen Mitglieds — erst recht eines, das ein Pseudonym führt — ist als Anzeigename erlaubt;
+    nur Pseudonyme und die Klarnamen von Mitgliedern mit öffentlicher Funktion sind vergeben."""
+    from gremien.models import Fachliste, Gremium, Rolle
+    from mandatare.models import Mandat
+
+    anna = mit_wohnsitz("anna")
+    still = mitglied_anlegen("still")
+    still.first_name, still.last_name = "Erika", "Musterfrau"
+    still.save(update_fields=["first_name", "last_name"])
+    verborgen = mitglied_anlegen("verborgen")  # tritt öffentlich nur als „Sonnenblume“ auf
+    verborgen.first_name, verborgen.last_name, verborgen.pseudonym_oeffentlich = "Max", "Mustermann", "Sonnenblume"
+    verborgen.save(update_fields=["first_name", "last_name", "pseudonym_oeffentlich"])
+    mandatar = mitglied_anlegen("mandatar")
+    mandatar.first_name, mandatar.last_name = "Moritz", "Mandl"
+    mandatar.save(update_fields=["first_name", "last_name"])
+    Mandat.objects.create(mitglied=mandatar, bezeichnung="Gemeinderat", gebiet="Linz")
+    raetin = mitglied_anlegen("raetin")
+    raetin.first_name, raetin.last_name = "Rita", "Rat"
+    raetin.save(update_fields=["first_name", "last_name"])
+    Rolle.objects.create(mitglied=raetin, gremium=Gremium.KOORDINATIONSRAT, endet_am=timezone.localdate() + timedelta(days=30))
+    fachfrau = mitglied_anlegen("fachfrau")
+    fachfrau.first_name, fachfrau.last_name = "Frida", "Fach"
+    fachfrau.save(update_fields=["first_name", "last_name"])
+    Fachliste.objects.create(mitglied=fachfrau)
+    admin = mitglied_anlegen("admin")
+    admin.first_name, admin.last_name, admin.ist_admin = "Adam", "Admin", True
+    admin.save(update_fields=["first_name", "last_name", "ist_admin"])
+    ex_mandatar = mitglied_anlegen("ex")
+    ex_mandatar.first_name, ex_mandatar.last_name = "Egon", "Ehemalig"
+    ex_mandatar.save(update_fields=["first_name", "last_name"])
+    Mandat.objects.create(mitglied=ex_mandatar, bezeichnung="Gemeinderat", gebiet="Wels", beendet=timezone.localdate())
+
+    client.force_login(anna)
+    for vergeben in ("Sonnenblume", "Moritz Mandl", "moritz mandl", "Rita Rat", "Frida Fach", "Adam Admin"):
+        antwort = profil_speichern(client, anzeigename=vergeben, gemeinde=anna.gemeinde)
+        assert antwort.status_code == 200 and "nicht verfügbar" in antwort.content.decode(), vergeben
+    for frei in ("Erika Musterfrau", "Max Mustermann", "Mustermann", "Egon Ehemalig"):
+        antwort = profil_speichern(client, anzeigename=frei, gemeinde=anna.gemeinde)
+        assert antwort.status_code == 302, frei  # kein Unterschied zu einem Nicht-Mitglied
+        anna.refresh_from_db()
+        assert anna.pseudonym_oeffentlich == frei
+
+
+def test_anzeigename_wirkt_sofort_auf_fruehere_antraege(client, ordnung):  # noqa: F811
+    """Befund FP-17: Der Hilfetext sagt jetzt, was der Code tut — der Name wird überall live gelesen."""
+    anna = mit_wohnsitz("anna")
+    anna.first_name, anna.last_name = "Anna", "Adler"
+    anna.save(update_fields=["first_name", "last_name"])
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    seite = reverse("verfahren:antrag", args=[antrag.pk])
+    assert "Anna Adler" in client.get(seite).content.decode()
+    client.force_login(anna)
+    profil_speichern(client, anzeigename="Tagpfauenauge", gemeinde=anna.gemeinde)
+    inhalt = client.get(seite).content.decode()
+    assert "Tagpfauenauge" in inhalt and "Anna Adler" not in inhalt
+    daten = json.loads(client.get(EXPORT).content)
+    assert daten["stammdaten"]["anzeigename"] == "Tagpfauenauge"
+    profil = client.get(PROFIL).content.decode()
+    assert "auch bei früheren Beiträgen und in Exporten" in profil
+    assert "Bereits veröffentlichte Dokumente behalten" not in profil
+
+
+def test_profil_hilfetexte_sind_ehrlich_und_der_sprachknopf_gestylt(client):
+    """FP-18: Der Satz zum Anzeigenamen verdreht § 5 Abs 3 lit a nicht mehr. FP-11: Der
+    Sprachumschalter trägt auf der Karte die Knopfklasse der Nachbarn, nicht das nackte `z`.
+    FP-14: Die Exportkarte nennt Fachliste, Interessenbindungen und Räte — und die Ausnahmen."""
+    client.force_login(mit_wohnsitz())
+    inhalt = client.get(PROFIL).content.decode()
+    assert "Ohne Anzeigenamen erscheint heute Ihr Klarname" in inhalt
+    assert "nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein" in inhalt
+    karte = inhalt.split('id="sprache"')[1].split("</div>")[0]
+    assert 'class="btn-linie klein" lang="en">EN · English</button>' in karte
+    assert 'class="z"' not in karte and 'class="sprache"' not in karte
+    export = inhalt.split('id="datenexport"')[1].split("</div>")[0]
+    assert "Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten" in export
+    assert "Nicht enthalten: Anmelde-Token" in export and "Alles, was die Plattform über Sie führt" not in inhalt
+    # Die Leiste bleibt bei ihren Klassen (Popover/Panel „z“, Kopfleiste „sprache“).
+    leiste = inhalt.split('id="datenexport"')[0]
+    assert 'class="z"' in leiste or 'class="sprache"' in leiste
+
+
+def test_nebenwohnsitz_satz_liest_den_registerwert_bei_0_und_1(client):
+    from parameter.models import Parameter
+
+    client.force_login(mitglied_anlegen())
+    assert "(heute: 0)" in client.get(PROFIL).content.decode()
+    Parameter.objects.update_or_create(
+        schluessel="region-nebenwohnsitz-zaehlt", defaults={"wert": "1", "beschreibung": "Test", "quelle": "Test"}
+    )
+    inhalt = client.get(PROFIL).content.decode()
+    assert "(heute: 1)" in inhalt and "(heute: 0)" not in inhalt
+
+
+def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # noqa: F811
+    """Wächter zu Befund FP-14: Für jede Rückbeziehung von `Mitglied` (auch die mit
+    `related_name="+"`) liefert der Export einen Schlüssel — oder sie steht hier mit Grund als
+    Ausnahme. Wer ein Modell mit Mitgliedsbezug ergänzt, muss den Export mitziehen."""
+    from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
+
+    ORDNER = {
+        "Adresswechsel.mitglied": "adresswechsel",
+        "Beitragseingang.mitglied": "beitraege",
+        "Antrag.eingebracht_von": "antraege",
+        "Unterstuetzung.mitglied": "unterstuetzungen",
+        "StimmRegister.mitglied": "stimmen",
+        "KategorieAbo.mitglied": "abos",
+        "Favorit.mitglied": "favoriten",
+        "FilterProfil.mitglied": "filterprofile",
+        "Bewerbung.mitglied": "bewerbungen",
+        "Kommentar.mitglied": "kommentare",
+        "Reaktion.mitglied": "reaktionen",
+        "Meldung.mitglied": "meldungen",
+        "Beanstandung.mitglied": "beanstandungen",
+        "Anstoss.nutzer": "anstoesse",
+        "Mandat.mitglied": "mandate",
+        "Rolle.mitglied": "rollen",
+        "EntwurfsFassung.verfasst_von": "entwurfsfassungen",
+        "EntwurfsBeitrag.mitglied": "entwurfsbeitraege",
+        "EinreichStimme.mitglied": "einreichstimmen",
+        "Pruefung.durch": "pruefungen",
+        "UnterstuetzerVotum.mitglied": "unterstuetzer_voten",
+        "GremienBeschluss.umsetzung_durch": "zugewiesene_umsetzungen",
+        "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
+        "GremienStimme.mitglied": "gremienstimmen",
+        "Fachliste.mitglied": "fachliste",
+        "KILauf.angefordert_von": "ki_laeufe",
+        "Interessenbindung.mitglied": "interessenbindungen",
+        "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
+        "Vollzugseintrag.durch": "vollzug",
+        "ParameterTest.angeordnet_von": "parametertests",
+    }
+    AUSNAHMEN = {
+        "EinmalToken.mitglied": "Anmelde-Token: nur Hashes mit Ablauf, Schlüssel und kein Datum über den Menschen",
+        "Adresswechsel.beantragt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung beantragt hat",
+        "Adresswechsel.bestaetigt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung bestätigt hat",
+        "WunschVermerk.durch": "Vermerk der Gruppe 2 an einem fremden Kommentar — Verfahrensprotokoll, kein Datum über den Menschen",
+        "Hinweis.erledigt_von": "Erledigungsvermerk an einem Hinweis der Zukunftswerkstatt — Verfahrensprotokoll",
+        "Lesestand.mitglied": "Lesestände: technischer Zeiger, beim Austritt gelöscht, kein Inhalt",
+        "LogEntry.user": "Django-Admin-Protokoll: die Admin-Oberfläche ist nicht eingebunden, die Tabelle bleibt leer",
+        "Mitglied_groups.mitglied": "Django-Gruppen: nicht verwendet — Rechte laufen über ist_admin und Rollen",
+        "Mitglied_user_permissions.mitglied": "Django-Einzelrechte: nicht verwendet — Rechte laufen über ist_admin und Rollen",
+    }
+    beziehungen = {
+        f"{f.related_model.__name__}.{f.field.name}"
+        for f in Mitglied._meta.get_fields(include_hidden=True)
+        if f.auto_created and not f.concrete and (f.one_to_many or f.one_to_one or f.many_to_many)
+    }
+    unbekannt = beziehungen - set(ORDNER) - set(AUSNAHMEN)
+    assert not unbekannt, f"Rückbeziehung ohne Export und ohne begründete Ausnahme: {sorted(unbekannt)}"
+    veraltet = (set(ORDNER) | set(AUSNAHMEN)) - beziehungen
+    assert not veraltet, f"Eintrag ohne Rückbeziehung im Modell: {sorted(veraltet)}"
+    anna = mitglied_anlegen()
+    client.force_login(anna)
+    daten = json.loads(client.get(EXPORT).content)
+    fehlend = [schluessel for schluessel in set(ORDNER.values()) if schluessel not in daten]
+    assert not fehlend, fehlend
+
+
+def test_austritt_leert_die_adressen_der_gesamten_wechselhistorie(client, ordnung):  # noqa: F811
+    """Befunde FP-1/FP-4: Nach dem Austritt steht keine E-Mail-Adresse mehr in einer Zeile mit
+    Bezug zum Mitglied — auch nicht in einem längst wirksam gewordenen Adresswechsel. Wechsel,
+    die das Mitglied als Verwaltung für andere geführt hat, bleiben unberührt."""
+    from mitglieder.auth_flows import EinmalToken
+
+    anna, admin, zweiter, dritte = (mitglied_anlegen(n) for n in ("anna", "admin", "zweiter", "dritte"))
+    for a in (anna, admin, zweiter):
+        a.ist_admin = True
+        a.save(update_fields=["ist_admin"])
+    erste_email = anna.email
+    # Ein wirksam gewordener Wechsel: Antrag, Bestätigung durch einen zweiten Admin, Frist um.
+    wirksam, _klar = Adresswechsel.beantragen(anna, "neu@example.org", admin)
+    assert wirksam.bestaetigen(zweiter)
+    wirksam.frist_bis = timezone.now() - timedelta(minutes=1)
+    wirksam.save(update_fields=["frist_bis"])
+    assert wirksam.wirksam_machen()
+    anna.refresh_from_db()
+    assert anna.email == "neu@example.org"
+    # Ein widerrufener und ein offener Wechsel dazu; ein fremder, den Anna für Dritte beantragt hat.
+    widerrufen, _klar = Adresswechsel.beantragen(anna, "widerrufen@example.org", admin)
+    widerrufen.widerrufen("einspruch")
+    offen, _klar = Adresswechsel.beantragen(anna, "offen@example.org", admin)
+    fremd, _klar = Adresswechsel.beantragen(dritte, "dritte-neu@example.org", anna)
+    EinmalToken.ausstellen(anna, EinmalToken.Zweck.LOGIN)
+
+    austreten(anna)
+
+    eigene = Adresswechsel.objects.filter(mitglied=anna)
+    assert eigene.count() == 3 and list(eigene.values_list("neue_email", flat=True)) == ["", "", ""]
+    assert set(eigene.values_list("status", flat=True)) == {"wirksam", "widerrufen"}  # Verfahren bleibt
+    wirksam.refresh_from_db()
+    assert wirksam.bestaetigt_von_id == zweiter.pk and wirksam.einspruch_hash and wirksam.erledigt_am
+    fremd.refresh_from_db()
+    assert fremd.neue_email == "dritte-neu@example.org" and fremd.beantragt_von_id == anna.pk
+    anna.refresh_from_db()
+    assert anna.email == "" and anna.tokens.count() == 0
+    # Keine der Adressen steht mehr in irgendeiner Zeile mit Bezug zu Anna — auch nicht im Audit.
+    for adresse in (erste_email, "neu@example.org", "widerrufen@example.org", "offen@example.org"):
+        assert not Adresswechsel.objects.filter(neue_email=adresse).exists(), adresse
+        assert not Mitglied.objects.filter(email=adresse).exists(), adresse
+        assert adresse not in json.dumps([e.ereignis for e in AuditEintrag.objects.all()]), adresse
+
+
+def test_austritt_zieht_bewerbungen_vor_der_abstimmung_zurueck(client, ordnung):  # noqa: F811
+    """Befund FP-24: Nach dem Austritt ist eine Bewerbung in einer Kandidatur, die noch nicht
+    abgestimmt wird, zurückgezogen (Stempel, kein Löschen, Audit ohne Werte) — sie ist nicht
+    mehr wählbar, und die Auszählung ignoriert sie. In der laufenden Abstimmung bleibt sie
+    stehen, wie beim freiwilligen Rückzug (Beteiligungsschutz; Nachrücken regelt die
+    Verfahrensordnung, § 7 Abs 1 letzter Satz)."""
+    from verfahren.models import (
+        Antragsart,
+        Bewerbung,
+        StimmabgabeFehler,
+        bewerbung_einreichen,
+        bewerbung_zustimmen,
+    )
+
+    autor, anna, bert = mitglied_anlegen("autor"), mitglied_anlegen("anna"), mitglied_anlegen("bert")
+    waehler = [mitglied_anlegen(f"w{i}") for i in range(2)]
+    kandidatur = antrag_einbringen(autor, "Listenreihung Gemeinderat", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    meine = bewerbung_einreichen(kandidatur, anna, "Ich")
+    berts = bewerbung_einreichen(kandidatur, bert, "Er")
+    laufend = antrag_einbringen(autor, "Listenreihung Landtag", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    in_wahl = bewerbung_einreichen(laufend, anna, "Ich auch")
+    in_abstimmung_bringen(laufend, waehler)
+
+    austreten(anna)
+
+    meine.refresh_from_db()
+    assert meine.zurueckgezogen is True and Bewerbung.objects.filter(pk=meine.pk).exists()
+    assert audit("bewerbung_zurueckgezogen", antrag=kandidatur.pk, bewerbung=meine.pk)[0]["anlass"] == "austritt"
+    assert "anna" not in json.dumps(audit("bewerbung_zurueckgezogen"))
+    in_wahl.refresh_from_db()
+    assert in_wahl.zurueckgezogen is False  # laufende Abstimmung: bleibt stehen
+    assert audit("bewerbung_zurueckgezogen", antrag=laufend.pk) == []
+    # Die Kandidatur kommt in die Abstimmung: Annas Bewerbung ist nicht wählbar und zählt nicht.
+    in_abstimmung_bringen(kandidatur, waehler)
+    with pytest.raises(StimmabgabeFehler):
+        bewerbung_zustimmen(kandidatur, waehler[0], meine)
+    assert bewerbung_zustimmen(kandidatur, waehler[0], berts) is True
+    client.force_login(waehler[1])
+    seite = client.get(reverse("verfahren:antrag", args=[kandidatur.pk])).content.decode()
+    assert reverse("verfahren:kandidatur_zustimmen", args=[kandidatur.pk, meine.pk]) not in seite
+    assert reverse("verfahren:kandidatur_zustimmen", args=[kandidatur.pk, berts.pk]) in seite
+    ergebnis = kandidatur.kandidatur_auszaehlen()
+    assert [platz.bewerbung_id for platz in ergebnis.plaetze] == [berts.pk]

@@ -28,7 +28,8 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   <p><label for="{{ form.anzeigename.id_for_label }}">{{ form.anzeigename.label }}</label>{{ form.anzeigename }}
   {% if form.anzeigename.errors %}<ul class="fehlerliste">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
-  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen." %}</p>
+  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Ohne Anzeigenamen erscheint heute Ihr Klarname; nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein — die Umstellung der Voreinstellung ist geplant." %}</p>
+  <p class="hilfe">{% translate "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen." %}</p>
 </div>
 
 {# ── Wohnsitz und Nebenwohnsitz ──────────────────────────────────────── #}
@@ -51,7 +52,8 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 <div class="karte" id="sprache">
   <p class="phasen-titel">{% translate "Sprache" %}</p>
   <p class="hilfe">{% translate "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto." %}</p>
-  {% include "verfahren/_sprache.html" %}
+  {# Nicht knapp=True: .sprache ist für die dunkle Leiste gefärbt und wäre auf der Karte unsichtbar. #}
+  {% include "verfahren/_sprache.html" with klasse="btn-linie klein" %}
 </div>
 
 {# ── E-Mail ──────────────────────────────────────────────────────────── #}
@@ -76,7 +78,8 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 <div class="karte" id="datenexport">
   <p class="phasen-titel">{% translate "Datenexport" %}</p>
   <p><a class="btn-linie" href="{% url 'mitglieder:profil_export' %}">{% translate "Meine Daten herunterladen (JSON)" %}</a></p>
-  <p class="hilfe">{% translate "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
+  <p class="hilfe">{% translate "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
+  <p class="hilfe">{% translate "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter." %}</p>
 </div>
 
 {# ── Austritt ────────────────────────────────────────────────────────── #}

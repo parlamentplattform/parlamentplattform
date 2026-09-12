@@ -6264,9 +6264,6 @@ msgstr "Sign out all other devices"
 msgid "Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."
 msgstr "All other devices are signed out — this one stays signed in."
 
-msgid "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
-msgstr "Everything the platform holds about you (Art 15 and 20 GDPR): master data, residences, fees, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, reports, suggestions and your own votes with pseudonym and check code."
-
 msgid "Als Ja-Nein-Frage formulieren, wenn eine Abstimmung entstehen soll."
 msgstr "Phrase it as a yes/no question if a vote is to follow."
 
@@ -6430,9 +6427,6 @@ msgstr "This area belongs to an open mandate — the role begins with the mandat
 
 msgid "Dieser Name ist der Plattform vorbehalten."
 msgstr "This name is reserved for the platform."
-
-msgid "Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds."
-msgstr "This name is already taken — it is the display name or real name of another member."
 
 msgid "Ebene"
 msgstr "Level"
@@ -6676,9 +6670,6 @@ msgstr "Session on (only without a session day)"
 msgid "Sitzungen"
 msgstr "Sessions"
 
-msgid "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen."
-msgstr "This is how you appear on motions and posts (§ 5 para 3 lit a). Documents already published keep the name shown at the time."
-
 msgid "Sprache"
 msgstr "Language"
 
@@ -6824,3 +6815,23 @@ msgstr "— free entry —"
 
 msgid "„%(titel)s“: %(status)s."
 msgstr "“%(titel)s”: %(status)s."
+
+# ── 0.46: Behebung FP ──
+
+msgid "Dieser Name ist nicht verfügbar."
+msgstr "This name is not available."
+
+msgid "So erscheinen Sie bei Anträgen und Beiträgen. Ohne Anzeigenamen erscheint heute Ihr Klarname; nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein — die Umstellung der Voreinstellung ist geplant."
+msgstr "This is how you appear on motions and posts. Without a display name, your real name is shown today; under § 5 para 3 lit a, publication under a pseudonym is meant to be the rule — changing the default is planned."
+
+msgid "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen."
+msgstr "The new name appears everywhere, including earlier posts and exports. Only review texts already stored and files already downloaded keep the former name."
+
+msgid "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
+msgstr "Everything the platform assigns to this account (Art 15 and 20 GDPR): master data, residences, fees, address changes, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, expert-list entry, declarations of interest, votes and contributions in the councils, implementation and register notes, reports, suggestions and your own votes with pseudonym and check code."
+
+msgid "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter."
+msgstr "Not included: sign-in tokens and check hashes, bank identifiers of fee receipts, procedures you handled as administration for other members, and audit lines of third parties."
+
+msgid "Bewerben auf der Antragsseite der laufenden Kandidatur"
+msgstr "Apply on the motion page of the open candidacy"

@@ -2,13 +2,7 @@
 {% load i18n phasen %}
 {% block titel %}{{ mandat.mitglied.anzeigename }}{% endblock %}
 {% block inhalt %}
-<style>
-  .mdetail-kopf{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-  .mdetail-kopf .mfoto,.mdetail-kopf .mplatzhalter{width:120px;height:120px;border-radius:50%;object-fit:cover;flex:none}
-  .mdetail-kopf .mplatzhalter{background:linear-gradient(135deg,var(--nacht2),var(--nacht3));color:var(--goldsoft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:42px}
-  .aufgabe-frist{font-size:13px;color:var(--matt)}
-  .aufgabe-frist.spaet{color:var(--warn-text);font-weight:600}
-</style>
+{% include "mandatare/_stil.html" %}
 <p><a href="{% url 'mandatare:liste' %}">&larr; {% translate "Alle Mandatare" %}</a></p>
 <div class="mdetail-kopf">
   {% if mandat.foto_typ %}<img class="mfoto" src="{% url 'mandatare:foto' mandat.pk %}" alt="{{ mandat.mitglied.anzeigename }}">
@@ -18,7 +12,8 @@
     <p><span class="badge">{{ mandat.bezeichnung }}</span>
     <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span>
     · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}
-    {% if mandat.beendet %} · <strong>{% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}</strong>{% endif %}</p>
+    {% if mandat.beendet %} · <strong>{% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}</strong>{% endif %}
+    {% if mandat.kandidatur %} · <a href="{% url 'verfahren:antrag' mandat.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}</p>
   </div>
 </div>
 {% if mandat.vorstellung %}<div class="karte"><p>{{ mandat.vorstellung|linebreaksbr }}</p></div>{% endif %}
@@ -27,19 +22,70 @@
 <p class="erk" style="max-width:56em">{% blocktranslate %}Was gerade ansteht, mit Fristen — und wo eine Aufgabe zur Abstimmung geworden ist,
 führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktranslate %}</p>
 <div class="karte">
-  {% for a in aufgaben %}
+  {% for z in aufgaben %}{% with a=z.aufgabe %}
   <div class="kommentar">
     <div class="kopf" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <span class="badge{% if a.status != 'offen' %} badge--hell{% endif %}">{{ a.get_status_display }}</span>
       <strong>{{ a.titel }}</strong>
-      {% if a.frist %}<span class="aufgabe-frist{% if a.ueberfaellig %} spaet{% endif %}">{% translate "Frist:" %} {{ a.frist|date:"d.m.Y" }}</span>{% endif %}
+      {% if a.sitzungstag %}<span class="chip klein">{% translate "Sitzungstag" %}</span>{% endif %}
+      {% if a.frist %}<span class="aufgabe-frist{% if a.ueberfaellig %} spaet{% endif %}">{% translate "Frist:" %} {{ a.frist|date:"d.m.Y H:i" }}</span>{% endif %}
+      <span class="meta">· {% translate "veröffentlicht" %} {{ a.erstellt_am|date:"d.m.Y H:i" }}</span>
     </div>
     {% if a.beschreibung %}<div>{{ a.beschreibung|linebreaksbr }}</div>{% endif %}
-    {% if a.antrag %}<p style="margin-top:6px"><a href="{% url 'verfahren:antrag' a.antrag.pk %}">{% translate "Zur betreuten Abstimmung:" %} {{ a.antrag.titel }} →</a></p>{% endif %}
+    {% if a.antrag %}<p style="margin-top:6px"><span class="chip klein">{% translate "Mandatsfrage" %}</span>
+      {% if z.abstimmung_laeuft %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}#abstimmen">{% translate "Jetzt abstimmen:" %} {{ a.antrag.titel }} →</a>
+      {% elif z.beendet %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}">{% translate "Ergebnis:" %} {{ a.antrag.titel }} →</a> <span class="meta">· {{ a.antrag.phase|phase_name }}</span>
+      {% else %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}">{% translate "Zur betreuten Abstimmung:" %} {{ a.antrag.titel }} →</a>{% endif %}</p>{% endif %}
+    {% if z.sitzung_vorbei %}
+    <p class="pflicht">
+      {% if z.sammelbericht and z.sammelbericht.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "Sammelbericht ausständig seit" %} {{ z.sammelbericht.faellig|date:"d.m.Y" }}</strong>
+      {% elif z.sammelbericht %}<span class="meta">{% translate "Sammelbericht fällig bis" %} {{ z.sammelbericht.faellig|date:"d.m.Y" }}</span>
+      {% else %}<span class="meta">{% translate "Sammelbericht liegt vor" %}</span>{% endif %}
+      {% if z.rechenschaft and z.rechenschaft.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "Rechenschaft ausständig seit" %} {{ z.rechenschaft.faellig|date:"d.m.Y" }}</strong>
+      {% elif z.rechenschaft %}<span class="meta">{% translate "Rechenschaft fällig bis" %} {{ z.rechenschaft.faellig|date:"d.m.Y" }}</span>
+      {% else %}<span class="meta">{% translate "Rechenschaft liegt vor" %}</span>{% endif %}
+    </p>
+    {% endif %}
   </div>
-  {% empty %}
+  {% endwith %}{% empty %}
   <p class="leer">{% translate "Noch keine Aufgaben eingetragen." %}</p>
   {% endfor %}
+</div>
+
+<h2 id="berichte">{% translate "Berichte" %}</h2>
+<div class="karte">
+  {% for m in ausstaende.monatsberichte %}{% if m.lage.status == "ausstaendig" %}
+  <p class="pflicht"><strong class="ausstand">{% translate "Monatsbericht" %} {{ m.monat|date:"F Y" }} {% translate "ausständig seit" %} {{ m.faellig|date:"d.m.Y" }}</strong></p>
+  {% endif %}{% endfor %}
+  {% for b in berichte %}
+  <div class="kommentar">
+    <div class="kopf"><span class="chip klein">{{ b.get_art_display }}</span>
+      <strong>{% if b.monat %}{{ b.monat|date:"F Y" }}{% elif b.aufgabe %}{% translate "Sitzungstag" %} {{ b.aufgabe.frist|date:"d.m.Y" }} · {{ b.aufgabe.titel }}{% endif %}</strong>
+      · {% translate "eingereicht" %} {{ b.eingereicht_am|date:"d.m.Y" }}{% with l=b.lage %}{% if l and l.status == "verspaetet" %} · <span class="ausstand">{% blocktranslate count t=l.seit_tagen %}einen Tag verspätet{% plural %}{{ t }} Tage verspätet{% endblocktranslate %}</span>{% endif %}{% endwith %}</div>
+    <div style="white-space:pre-line">{{ b.text }}</div>
+  </div>
+  {% empty %}
+  {% if not ausstaende.monatsberichte and not ausstaende.sammelberichte %}<p class="leer">{% translate "Noch kein Bericht." %}</p>{% endif %}
+  {% endfor %}
+</div>
+
+<h2 id="rechenschaft">{% translate "Rechenschaft" %}</h2>
+<div class="karte">
+  {% for p in ausstaende.rechenschaften %}{% if p.lage.status == "ausstaendig" %}
+  <p class="pflicht"><strong class="ausstand">{% translate "Rechenschaft ausständig seit" %} {{ p.faellig|date:"d.m.Y" }}</strong> <span class="meta">· {% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}</span></p>
+  {% endif %}{% endfor %}
+  {% for z in rechenschaft %}
+  <div class="kommentar">
+    <div class="kopf"><strong>{{ z.r.gegenstand }}</strong> · {% translate "Sitzung am" %} {{ z.r.sitzung_am|date:"d.m.Y" }}</div>
+    <p>{% translate "Beschluss der Plattform:" %} {% if z.r.antrag %}<a href="{% url 'verfahren:antrag' z.r.antrag.pk %}">{{ z.beschluss_name }}</a>{% else %}{{ z.beschluss_name }}{% endif %}
+      · {% translate "Stimme:" %} <strong>{{ z.r.get_stimme_display }}</strong>{% if z.weicht_ab %} · <span class="abweichung">{% translate "weicht ab" %}</span>{% endif %}</p>
+    <div style="white-space:pre-line">{{ z.r.begruendung }}</div>
+  </div>
+  {% empty %}
+  {% if not ausstaende.rechenschaften %}<p class="leer">{% translate "Noch kein Eintrag." %}</p>{% endif %}
+  {% endfor %}
+  <p style="margin-top:10px"><a href="{% url 'mandatare:rechenschaft_mandat' mandat.pk %}">{% blocktranslate count n=rechenschaft_anzahl %}Das ganze Register (ein Eintrag) →{% plural %}Das ganze Register ({{ n }} Einträge) →{% endblocktranslate %}</a>
+  · <a href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Mandatare →" %}</a></p>
 </div>
 
 <div class="karte" style="margin-top:14px">

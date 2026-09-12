@@ -1,0 +1,19 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Mein Mandat" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die Auswahl für Menschen mit mehr als einem offenen Mandat. Wer nur eines hat, sieht diese
+Seite nie — /mandatare/mein/ zeigt dann direkt den Bereich.
+{% endcomment %}
+{% include "mandatare/_stil.html" %}
+<h1>{% translate "Mein Mandat" %}</h1>
+<div class="hf-grid" style="margin-top:14px">
+  {% for m in mandate %}
+  <a class="bereich" href="{% url 'mandatare:mein_mandat' m.pk %}" style="text-decoration:none">
+    <span class="bk">{{ m.bezeichnung }}</span>
+    <span class="meta">{{ m.gebiet|default:m.get_ebene_display }} · {% translate "seit" %} {{ m.angetreten|date:"d.m.Y" }}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

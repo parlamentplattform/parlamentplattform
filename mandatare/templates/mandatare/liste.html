@@ -2,17 +2,7 @@
 {% load i18n phasen %}
 {% block titel %}{% translate "Mandatare" %}{% endblock %}
 {% block inhalt %}
-<style>
-  .mandatar-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:18px}
-  .mkarte{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--schatten)}
-  .mkopf{display:flex;gap:14px;align-items:center;margin-bottom:10px}
-  .mfoto,.mplatzhalter{width:72px;height:72px;border-radius:50%;object-fit:cover;flex:none}
-  .mplatzhalter{background:linear-gradient(135deg,var(--nacht2),var(--nacht3));color:var(--goldsoft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px}
-  .mkarte .meta{font-size:13.5px;color:var(--matt)}
-  .maufgabe{border-top:1px solid var(--line);padding:8px 0 2px;font-size:14px}
-  .maufgabe .frist{color:var(--matt);font-size:12.5px}
-  .maufgabe .frist.spaet{color:var(--warn-text);font-weight:600}
-</style>
+{% include "mandatare/_stil.html" %}
 <h1>{% translate "Mandatare" %}</h1>
 <p class="erk" style="max-width:56em">{% blocktranslate %}Die Mandatar-Steuerung (§ 7 Abs 9 des Satzungsentwurfs): Jeder Mandatsträger der DDÖ
 zeigt hier öffentlich seine aktuellen Aufgaben und Entscheidungsprozesse samt Fristen — und die daraus
@@ -32,12 +22,13 @@ das freie Mandat bleibt unberührt (§ 7 Abs 2).{% endblocktranslate %}</p>
     </div>
     {% for a in k.aufgaben %}
     <div class="maufgabe">{{ a.titel }}
-      {% if a.frist %}<br><span class="frist{% if a.ueberfaellig %} spaet{% endif %}">{% translate "Frist:" %} {{ a.frist|date:"d.m.Y" }}</span>{% endif %}
+      {% if a.frist %}<br><span class="frist{% if a.ueberfaellig %} spaet{% endif %}">{% translate "Frist:" %} {{ a.frist|date:"d.m.Y H:i" }}{% if a.sitzungstag %} · {% translate "Sitzungstag" %}{% endif %}</span>{% endif %}
     </div>
     {% empty %}
     <div class="maufgabe leer">{% translate "Derzeit keine offenen Aufgaben eingetragen." %}</div>
     {% endfor %}
-    <p style="margin-top:10px"><a href="{% url 'mandatare:detail' k.mandat.pk %}">{% translate "Aufgaben und Abstimmungen ansehen →" %}</a></p>
+    <p class="meta" style="margin-top:8px"><a href="{% url 'mandatare:rechenschaft_mandat' k.mandat.pk %}">{% translate "Rechenschaft:" %} {% blocktranslate count n=k.rechenschaft_anzahl %}ein Eintrag{% plural %}{{ n }} Einträge{% endblocktranslate %}</a>{% if k.rechenschaft_ausstaendig %} · <strong class="ausstand">{% blocktranslate count n=k.rechenschaft_ausstaendig %}eine ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</strong>{% endif %}</p>
+    <p style="margin-top:6px"><a href="{% url 'mandatare:detail' k.mandat.pk %}">{% translate "Aufgaben und Abstimmungen ansehen →" %}</a></p>
   </div>
   {% endfor %}
 </div>

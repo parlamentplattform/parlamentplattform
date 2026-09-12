@@ -1,0 +1,10 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Nur für Mandatare" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Nur für Mandatare" %}</h1>
+<div class="karte">
+<p>{% translate "Dieser Bereich gehört zu einem offenen Mandat — die Rolle entsteht mit dem Mandat und endet mit ihm (§ 7)." %}</p>
+<p style="margin-top:10px"><a href="{% url 'mandatare:liste' %}">{% translate "Zu den Mandataren →" %}</a></p>
+</div>
+{% endblock %}

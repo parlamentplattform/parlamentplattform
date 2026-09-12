@@ -15,9 +15,16 @@ from django.urls import NoReverseMatch, reverse
 from plattform_core.rollen import GRUPPEN, VERSION, Stand, alle_rollen, zaehlung
 
 #: Rollen, die kein Gegenstück im Code haben, weil sie keines haben können: „Gast" ist die
-#: Abwesenheit einer Anmeldung, die beiden Mitgliedszustände sind Felder am Mitglied, und die
-#: Verwaltung hängt an `ist_admin`. Alles andere muss ein `Gremium` sein.
-OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung"}
+#: Abwesenheit einer Anmeldung, die beiden Mitgliedszustände sind Felder am Mitglied, die
+#: Verwaltung hängt an `ist_admin`, und der Mandatar hängt an einem offenen Mandat
+#: (`Mitglied.ist_mandatar`) — kein Gremium, weil ein Mandat nicht befristet berufen wird
+#: (§ 6 Abs 8) und keine Beschlussnummer trägt. Alles andere muss ein `Gremium` sein.
+OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar"}
+
+#: URL-Namen, die die Matrix schon nennt, obwohl sie erst mit der Zusammenführung eines
+#: Bauschritts entstehen. Im Regelfall leer — ein Eintrag hier ist eine Zusage, die der
+#: nächste Commit einlösen muss; nach der Zusammenführung muss die Menge wieder leer sein.
+ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = set()
 
 
 def test_die_matrix_traegt_ihre_fassung():
@@ -45,8 +52,9 @@ def test_jede_matrix_zeile_hat_eine_entsprechung():
     bekannt = set(Gremium.values) | OHNE_GREMIUM
     behauptet = {r.schluessel for r in alle_rollen(GRUPPEN) if r.im_code}
     assert behauptet <= bekannt, f"Ohne Entsprechung im Code: {sorted(behauptet - bekannt)}"
-    # Die Grundlagen, auf die sich die vier Nicht-Gremien-Rollen berufen, gibt es wirklich:
+    # Die Grundlagen, auf die sich die fünf Nicht-Gremien-Rollen berufen, gibt es wirklich:
     assert hasattr(Mitglied, "ist_admin")
+    assert hasattr(Mitglied, "ist_mandatar")
     assert Mitgliedsstatus.PAUSIERT in Mitgliedsstatus.values
 
 
@@ -84,7 +92,7 @@ def test_jede_genannte_adresse_ist_erreichbar():
     kaputt = []
     for r in alle_rollen(GRUPPEN):
         for f in r.faehigkeiten:
-            if not f.urlname:
+            if not f.urlname or f.urlname in ERWARTET_NACH_ZUSAMMENFUEHRUNG:
                 continue
             try:
                 reverse(f.urlname)
@@ -177,3 +185,48 @@ def test_was_ein_mitglied_kann_fehlt_beim_koordinationsrat_nicht():
     assert verfuegbar, "die Beanstandung durch Mitglieder gibt es (0.43)"
     for f in rollen["koordinationsrat"].faehigkeiten:
         assert "beanstanden, fehlen" not in f.einschraenkung, f.einschraenkung
+
+
+def test_fassung_3_der_mandatar_ist_eine_rolle_im_code():
+    """Bauschritt S10: Der Mandatar hängt am offenen Mandat (`Mitglied.ist_mandatar`), die
+    Willkommensseite zeigt seine ersten fünf Zeilen — sie müssen die sein, die ein Mandatar
+    täglich braucht, und keine davon darf noch „kommt mit S10" tragen."""
+    from mitglieder.models import Mitglied
+
+    assert VERSION >= 3
+    assert isinstance(Mitglied.ist_mandatar, property)
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+    mandatar = rollen["mandatar"]
+    assert mandatar.im_code, "seit 0.46 gibt es die Rolle im Code (Mitglied.ist_mandatar)"
+    erste_fuenf = [f.titel for f in mandatar.faehigkeiten[:5]]
+    assert any("Kandidatur" in t for t in erste_fuenf)
+    assert any("Instant-Report" in t for t in erste_fuenf)
+    assert any("Mandatsfrage" in t for t in erste_fuenf)
+    assert any("Rechenschaftsregister" in t for t in erste_fuenf)
+    for f in mandatar.faehigkeiten:
+        assert f.stand is not Stand.GEPLANT, f.titel
+        if f.stand is Stand.VERFUEGBAR:
+            assert not f.bauschritt and not f.einschraenkung, f.titel
+        assert "S10" not in f.einschraenkung and "S10" not in f.bauschritt, f.titel
+    assert "S10" not in mandatar.wie_hinein
+    # Der Weg hinein nennt nicht mehr die Verwaltung als Eintragende „heute noch".
+    assert "heute noch" not in mandatar.wie_hinein
+
+
+def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
+    """Die übrigen Zeilen der Fassung 3: Profil und Pseudonym gehören dem Mitglied, der Gast
+    liest das Rechenschaftsregister, die Verwaltung verknüpft Mandate mit der Kandidatur, und
+    der Integritätsrat-Text behauptet nicht mehr, niemand prüfe Unvereinbarkeiten."""
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+    profil = [f for f in rollen["mitglied"].faehigkeiten if f.urlname == "mitglieder:profil"]
+    assert len(profil) == 2 and all(f.stand is Stand.VERFUEGBAR for f in profil)
+    assert any("Austritt" in f.titel and "Nebenwohnsitz" in f.titel for f in profil)
+    assert any("Pseudonym" in f.titel for f in profil)
+    gast = [f for f in rollen["gast"].faehigkeiten if f.urlname == "mandatare:rechenschaft"]
+    assert gast and gast[0].stand is Stand.VERFUEGBAR
+    verwaltung = [f for f in rollen["verwaltung"].faehigkeiten if "Kandidatur verknüpfen" in f.titel]
+    assert verwaltung and verwaltung[0].stand is Stand.VERFUEGBAR
+    assert all("kommt mit S10" not in f.einschraenkung for f in rollen["verwaltung"].faehigkeiten)
+    assert "prüft niemand" not in rollen["integritaetsrat"].wie_hinein
+    assert "bei der Berufung" in rollen["integritaetsrat"].wie_hinein
+    assert "ausgetreten" in rollen["mitglied_ruht"].hinweis

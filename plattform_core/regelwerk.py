@@ -520,20 +520,26 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=2,
-        seit="2026-09-11",
+        fassung=3,
+        seit="2026-09-12",
         grund=(
-            _("Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen "
-            "der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, Entwicklungsrat "
-            "und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die "
+            _("Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
+            "Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, "
+            "Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet "
+            "Pseudonym, Wohnsitz, Nebenwohnsitz, Datenexport und Austritt selbst; Gast liest das "
+            "Rechenschaftsregister; der Text zur Unvereinbarkeitsprüfung des Integritätsrats war seit "
+            "0.44 überholt. Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den "
+            "Bereichen der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, "
+            "Entwicklungsrat und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die "
             "erste: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer Rolle "
             "gibt und welche davon schon gebaut sind. Die Zählung unter /rollen/ ist immer die "
             "aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet.")
         ),
         nachrechenbar=(
             _("Die Zahlen unter der Übersicht sind die ausgezählten Zeilen der Tabelle darüber; wer "
-            "nachzählt, kommt auf dieselbe Summe. Zwölf Tests halten die Matrix gegen die Rollen, die "
-            "es im Code wirklich gibt: kein ○ ohne Bauschritt, kein ◐ ohne Angabe, was fehlt.")
+            "nachzählt, kommt auf dieselbe Summe. Die Tests in verfahren/test_rollen.py halten die "
+            "Matrix gegen die Rollen, die es im Code wirklich gibt: kein ○ ohne Bauschritt, kein ◐ "
+            "ohne Angabe, was fehlt, keine Adresse, die ins Leere führt.")
         ),
     ),
     Regel(

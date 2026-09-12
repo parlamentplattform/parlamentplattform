@@ -6192,3 +6192,173 @@ msgstr "Monthly report"
 
 msgid "Sammelbericht"
 msgstr "Session report"
+
+# ── 0.46: Cluster P ──
+
+msgid "Profil"
+msgstr "Profile"
+
+#, python-format
+msgid "Angemeldet als <strong>%(name)s</strong> · Mitglied #%(pk)s"
+msgstr "Signed in as <strong>%(name)s</strong> · member #%(pk)s"
+
+msgid "Anzeigename"
+msgstr "Display name"
+
+msgid "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen."
+msgstr "This is how you appear on motions and posts (§ 5 para 3 lit a). Documents already published keep the name shown at the time."
+
+msgid "Wohnsitz und Nebenwohnsitz"
+msgstr "Residence and secondary residence"
+
+msgid "Nebenwohnsitz-Gemeinde (leer = keiner)"
+msgstr "Municipality of secondary residence (empty = none)"
+
+msgid "Bezirk und Bundesland folgen dem amtlichen Gemeindeverzeichnis; der Wohnsitz bestimmt „Meine Region“ (§ 14 Abs 3). Die Änderung wird ohne Ortsnamen im Audit-Log vermerkt."
+msgstr "District and federal state follow the official register of municipalities; the residence determines “My region” (§ 14 para 3). The change is recorded in the audit log without place names."
+
+#, python-format
+msgid "Der Nebenwohnsitz ordnet Sie zusätzlich einer Region zu, sobald die Stellgröße „%(schluessel)s“ auf 1 steht (heute: %(wert)s). Am Stimmrecht ändert er nichts (§ 5 Abs 6)."
+msgstr "The secondary residence additionally assigns you to a region as soon as the setting “%(schluessel)s” is 1 (today: %(wert)s). It does not change your voting rights (§ 5 para 6)."
+
+msgid "Der Nebenwohnsitz ist bereits Ihr Wohnsitz."
+msgstr "The secondary residence is already your residence."
+
+msgid "Dieser Name ist schon vergeben — er gehört zum Anzeigenamen oder Klarnamen eines anderen Mitglieds."
+msgstr "This name is already taken — it is the display name or real name of another member."
+
+msgid "Profil gespeichert."
+msgstr "Profile saved."
+
+msgid "Sprache"
+msgstr "Language"
+
+msgid "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto."
+msgstr "The language is remembered by this device (cookie), not by the account."
+
+#, python-format
+msgid "Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis %(frist)s). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht."
+msgstr "A change of the login address is pending (objection period until %(frist)s). Until it is decided, voting and register access are paused."
+
+msgid "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins."
+msgstr "Only the administration changes the login address: the previous address receives an objection link, then a waiting period and confirmation by a second admin apply."
+
+msgid "Benachrichtigungen per E-Mail gibt es noch nicht; die Plattform verschickt nur Anmelde-, Bestätigungs- und Beitragsnachrichten."
+msgstr "There are no e-mail notifications yet; the platform only sends login, confirmation and membership-fee messages."
+
+msgid "Sitzungen"
+msgstr "Sessions"
+
+msgid "Alle anderen Geräte abmelden"
+msgstr "Sign out all other devices"
+
+msgid "Beendet jede andere Anmeldung dieses Kontos; dieses Gerät bleibt angemeldet."
+msgstr "Ends every other login of this account; this device stays signed in."
+
+msgid "Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."
+msgstr "All other devices are signed out — this one stays signed in."
+
+msgid "Datenexport"
+msgstr "Data export"
+
+msgid "Meine Daten herunterladen (JSON)"
+msgstr "Download my data (JSON)"
+
+msgid "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
+msgstr "Everything the platform holds about you (Art 15 and 20 GDPR): master data, residences, fees, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, reports, suggestions and your own votes with pseudonym and check code."
+
+msgid "Austritt"
+msgstr "Resignation"
+
+msgid "Aus der Partei austreten …"
+msgstr "Resign from the party …"
+
+msgid "Der Austritt ist jederzeit möglich (§ 4 Abs 5). Die nächste Seite erklärt, was bleibt und was geht."
+msgstr "Resignation is possible at any time (§ 4 para 5). The next page explains what stays and what goes."
+
+msgid "Zurück zum Profil"
+msgstr "Back to profile"
+
+msgid "Aus der Partei austreten"
+msgstr "Resign from the party"
+
+msgid "Der Austritt ist jederzeit möglich und wirkt sofort (§ 4 Abs 5). Nichts, was ein Verfahren betrifft, wird gelöscht — Ihr Konto wird geschlossen und Ihre persönlichen Daten werden entfernt."
+msgstr "Resignation is possible at any time and takes effect immediately (§ 4 para 5). Nothing that concerns a procedure is deleted — your account is closed and your personal data is removed."
+
+msgid "Was geht"
+msgstr "What goes"
+
+msgid "Name, E-Mail-Adresse, Wohnsitz und Nebenwohnsitz werden gelöscht; das Konto lässt sich nicht mehr anmelden."
+msgstr "Name, e-mail address, residence and secondary residence are deleted; the account can no longer sign in."
+
+msgid "Filterprofile, Abos, Favoriten und Lesestände werden gelöscht."
+msgstr "Filter profiles, subscriptions, favourites and reading positions are deleted."
+
+msgid "Adminrechte enden; eine vorgemerkte Adressänderung wird verworfen."
+msgstr "Admin rights end; a pending address change is discarded."
+
+#, python-format
+msgid "Ihr offenes Mandat wird mit heutigem Tag als beendet vermerkt."
+msgid_plural "Ihre %(n)s offenen Mandate werden mit heutigem Tag als beendet vermerkt."
+msgstr[0] "Your open mandate is recorded as ended as of today."
+msgstr[1] "Your %(n)s open mandates are recorded as ended as of today."
+
+#, python-format
+msgid "Ihre aktive Gremienrolle wird mit dem Grund „Austritt“ beendet."
+msgid_plural "Ihre %(n)s aktiven Gremienrollen werden mit dem Grund „Austritt“ beendet."
+msgstr[0] "Your active council role is ended with the reason “resignation”."
+msgstr[1] "Your %(n)s active council roles are ended with the reason “resignation”."
+
+msgid "Ein Eintrag in der Fachliste wird gestrichen; dort steht dann der Schlüssel statt Ihres Namens (§ 8 Abs 4)."
+msgstr "An entry in the expert list is struck; the key then appears there instead of your name (§ 8 para 4)."
+
+msgid "Was bleibt"
+msgstr "What stays"
+
+msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
+msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name, “Former member” with your member number appears there from now on."
+
+msgid "Ihre abgegebenen Stimmen in den veröffentlichten Stimmlisten — sie tragen nur ein Pseudonym. Der Registereintrag, der Pseudonym und Konto verbindet, bleibt bis zur satzungsmäßigen Löschfrist; „Meine Stimme prüfen“ entfällt mit dem Konto."
+msgstr "Your votes in the published vote lists — they carry only a pseudonym. The register entry linking pseudonym and account remains until the deletion period set by the statutes; “Check my vote” ends with the account."
+
+msgid "Verbuchte Beitragseingänge (Buchhaltung) und die Einträge im öffentlichen Audit-Log, die Ihre Mitgliedsnummer nennen."
+msgstr "Recorded fee payments (bookkeeping) and the entries in the public audit log that name your member number."
+
+msgid "Beendete Mandate, Rollen und Fachlisteneinträge bleiben dokumentiert."
+msgstr "Ended mandates, roles and expert-list entries remain documented."
+
+msgid "Der satzungsgebende Erstzugang kann nicht austreten — sonst wäre die Verwaltung herrenlos."
+msgstr "The founding administrator account cannot resign — otherwise the administration would be without an owner."
+
+msgid "Der satzungsgebende Erstzugang kann nicht austreten."
+msgstr "The founding administrator account cannot resign."
+
+#, python-format
+msgid "Zur Bestätigung das Wort %(wort)s eintragen"
+msgstr "Enter the word %(wort)s to confirm"
+
+msgid "Jetzt austreten"
+msgstr "Resign now"
+
+msgid "Sie werden danach abgemeldet. Ein Wiedereintritt ist nur als neues Konto möglich."
+msgstr "You will be signed out afterwards. Rejoining is only possible as a new account."
+
+msgid "Der Austritt wurde nicht vollzogen — das Bestätigungswort fehlt."
+msgstr "The resignation was not carried out — the confirmation word is missing."
+
+msgid "Sie sind ausgetreten. Ihr Konto ist geschlossen; Ihre Beiträge zu Verfahren bleiben."
+msgstr "You have resigned. Your account is closed; your contributions to procedures remain."
+
+msgid "ausgetreten"
+msgstr "resigned"
+
+#, python-format
+msgid "<strong>%(ausgetreten)s</strong> ausgetreten"
+msgstr "<strong>%(ausgetreten)s</strong> resigned"
+
+#, python-format
+msgid "Ausgetreten am %(seit)s (§ 4 Abs 5): Stammdaten geleert, Konto geschlossen. Dieses Konto wird nicht wieder aktiviert — ein Wiedereintritt ist ein neues Konto. Beiträge zu Verfahren, Beitragseingänge und Audit-Einträge bleiben."
+msgstr "Resigned on %(seit)s (§ 4 para 5): master data cleared, account closed. This account is not reactivated — rejoining is a new account. Contributions to procedures, fee payments and audit entries remain."
+
+msgid "Ein ausgetretenes Konto wird nicht wieder aktiviert."
+msgstr "A resigned account is not reactivated."

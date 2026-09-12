@@ -1,0 +1,43 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Austritt" %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'mitglieder:profil' %}">&larr; {% translate "Zurück zum Profil" %}</a></p>
+<h1>{% translate "Aus der Partei austreten" %}</h1>
+<p class="erk">{% translate "Der Austritt ist jederzeit möglich und wirkt sofort (§ 4 Abs 5). Nichts, was ein Verfahren betrifft, wird gelöscht — Ihr Konto wird geschlossen und Ihre persönlichen Daten werden entfernt." %}</p>
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Was geht" %}</p>
+  <ul>
+    <li>{% translate "Name, E-Mail-Adresse, Wohnsitz und Nebenwohnsitz werden gelöscht; das Konto lässt sich nicht mehr anmelden." %}</li>
+    <li>{% translate "Filterprofile, Abos, Favoriten und Lesestände werden gelöscht." %}</li>
+    <li>{% translate "Adminrechte enden; eine vorgemerkte Adressänderung wird verworfen." %}</li>
+    {% if offene_mandate %}<li>{% blocktranslate count n=offene_mandate %}Ihr offenes Mandat wird mit heutigem Tag als beendet vermerkt.{% plural %}Ihre {{ n }} offenen Mandate werden mit heutigem Tag als beendet vermerkt.{% endblocktranslate %}</li>{% endif %}
+    {% if aktive_rollen %}<li>{% blocktranslate count n=aktive_rollen %}Ihre aktive Gremienrolle wird mit dem Grund „Austritt“ beendet.{% plural %}Ihre {{ n }} aktiven Gremienrollen werden mit dem Grund „Austritt“ beendet.{% endblocktranslate %}</li>{% endif %}
+    <li>{% translate "Ein Eintrag in der Fachliste wird gestrichen; dort steht dann der Schlüssel statt Ihres Namens (§ 8 Abs 4)." %}</li>
+  </ul>
+</div>
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Was bleibt" %}</p>
+  <ul>
+    <li>{% translate "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer." %}</li>
+    <li>{% translate "Ihre abgegebenen Stimmen in den veröffentlichten Stimmlisten — sie tragen nur ein Pseudonym. Der Registereintrag, der Pseudonym und Konto verbindet, bleibt bis zur satzungsmäßigen Löschfrist; „Meine Stimme prüfen“ entfällt mit dem Konto." %}</li>
+    <li>{% translate "Verbuchte Beitragseingänge (Buchhaltung) und die Einträge im öffentlichen Audit-Log, die Ihre Mitgliedsnummer nennen." %}</li>
+    <li>{% translate "Beendete Mandate, Rollen und Fachlisteneinträge bleiben dokumentiert." %}</li>
+  </ul>
+</div>
+
+{% if user.ist_fixer_admin %}
+<div class="karte hinweis"><p>{% translate "Der satzungsgebende Erstzugang kann nicht austreten — sonst wäre die Verwaltung herrenlos." %}</p></div>
+{% else %}
+<div class="karte">
+  <form method="post" action="{% url 'mitglieder:profil_austritt' %}">{% csrf_token %}
+    <p><label for="id_bestaetigung">{% blocktranslate with wort=bestaetigungswort %}Zur Bestätigung das Wort {{ wort }} eintragen{% endblocktranslate %}</label>
+    <input type="text" id="id_bestaetigung" name="bestaetigung" autocomplete="off" required></p>
+    <button type="submit" class="btn-still">{% translate "Jetzt austreten" %}</button>
+  </form>
+  <p class="hilfe">{% translate "Sie werden danach abgemeldet. Ein Wiedereintritt ist nur als neues Konto möglich." %}</p>
+</div>
+{% endif %}
+{% endblock %}

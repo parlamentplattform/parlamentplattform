@@ -114,11 +114,11 @@ class LoginFormular(BotschutzMixin, forms.Form):
 
 def nie_bestaetigt(mitglied: Mitglied) -> bool:
     """Konto, dessen Bestätigungslink nie geklickt wurde (Befund #21): inaktiv, ohne
-    Beitritt, nicht ausgeschlossen — Ausgeschlossene sind ebenfalls inaktiv, bleiben aber zu."""
+    Beitritt, weder ausgeschlossen noch ausgetreten — beide sind ebenfalls inaktiv, bleiben aber zu."""
     return (
         not mitglied.is_active
         and mitglied.beitritt is None
-        and mitglied.status != Mitgliedsstatus.AUSGESCHLOSSEN
+        and mitglied.status not in (Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN)
     )
 
 

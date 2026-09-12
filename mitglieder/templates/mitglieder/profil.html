@@ -1,0 +1,90 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Profil" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Das eigene Profil (FB-K5): Anzeigename, Wohnsitz und Nebenwohnsitz in einem Formular,
+daneben Sprache, E-Mail (nur Anzeige), Sitzungen, Datenexport und der Weg zum Austritt.
+Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
+{% endcomment %}
+<style>
+  .pf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:14px}
+  @media (max-width:980px){.pf-grid{grid-template-columns:1fr}}
+  .pf-grid .karte{margin-top:0}
+  .pf-form label{display:block;margin-top:6px}
+  .pf-form input[type=text]{width:100%;max-width:100%}
+  .pf-wert{font-variant-numeric:tabular-nums;word-break:break-all}
+</style>
+<h1>{% translate "Profil" %}</h1>
+<p class="erk">{% blocktranslate with name=user.anzeigename pk=user.pk %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
+
+<form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}
+<datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
+<div class="pf-grid">
+
+{# ── Anzeigename ─────────────────────────────────────────────────────── #}
+<div class="karte" id="anzeigename">
+  <p class="phasen-titel">{% translate "Anzeigename" %}</p>
+  {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  <p><label for="{{ form.anzeigename.id_for_label }}">{{ form.anzeigename.label }}</label>{{ form.anzeigename }}
+  {% if form.anzeigename.errors %}<ul class="fehlerliste">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen (§ 5 Abs 3 lit a). Bereits veröffentlichte Dokumente behalten den damals gezeigten Namen." %}</p>
+</div>
+
+{# ── Wohnsitz und Nebenwohnsitz ──────────────────────────────────────── #}
+<div class="karte" id="wohnsitz">
+  <p class="phasen-titel">{% translate "Wohnsitz und Nebenwohnsitz" %}</p>
+  <p><label for="{{ form.gemeinde.id_for_label }}">{{ form.gemeinde.label }}</label>{{ form.gemeinde }}
+  {% if form.gemeinde.errors %}<ul class="fehlerliste">{% for e in form.gemeinde.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  <p><label for="{{ form.nebenwohnsitz.id_for_label }}">{{ form.nebenwohnsitz.label }}</label>{{ form.nebenwohnsitz }}
+  {% if form.nebenwohnsitz.errors %}<ul class="fehlerliste">{% for e in form.nebenwohnsitz.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  <button type="submit" class="btn">{% translate "Speichern" %}</button>
+  <p class="hilfe">{% translate "Bezirk und Bundesland folgen dem amtlichen Gemeindeverzeichnis; der Wohnsitz bestimmt „Meine Region“ (§ 14 Abs 3). Die Änderung wird ohne Ortsnamen im Audit-Log vermerkt." %}</p>
+  <p class="hilfe">{% blocktranslate with wert=nebenwohnsitz_zaehlt schluessel=registerschluessel %}Der Nebenwohnsitz ordnet Sie zusätzlich einer Region zu, sobald die Stellgröße „{{ schluessel }}“ auf 1 steht (heute: {{ wert }}). Am Stimmrecht ändert er nichts (§ 5 Abs 6).{% endblocktranslate %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %} ›</a></p>
+</div>
+</div>
+</form>
+
+<div class="pf-grid">
+
+{# ── Sprache ─────────────────────────────────────────────────────────── #}
+<div class="karte" id="sprache">
+  <p class="phasen-titel">{% translate "Sprache" %}</p>
+  <p class="hilfe">{% translate "Die Sprache merkt sich dieses Gerät (Cookie), nicht das Konto." %}</p>
+  {% include "verfahren/_sprache.html" %}
+</div>
+
+{# ── E-Mail ──────────────────────────────────────────────────────────── #}
+<div class="karte" id="email">
+  <p class="phasen-titel">{% translate "E-Mail" %}</p>
+  <p class="pf-wert"><strong>{{ user.email }}</strong></p>
+  {% if adresswechsel %}<p class="hilfe">{% blocktranslate with frist=adresswechsel.frist_bis|date:"SHORT_DATETIME_FORMAT" %}Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis {{ frist }}). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht.{% endblocktranslate %}</p>{% endif %}
+  <p class="hilfe">{% translate "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins." %}</p>
+  <p class="hilfe">{% translate "Benachrichtigungen per E-Mail gibt es noch nicht; die Plattform verschickt nur Anmelde-, Bestätigungs- und Beitragsnachrichten." %}</p>
+</div>
+
+{# ── Sitzungen ───────────────────────────────────────────────────────── #}
+<div class="karte" id="sitzungen">
+  <p class="phasen-titel">{% translate "Sitzungen" %}</p>
+  <form method="post" action="{% url 'mitglieder:profil_sitzungen_beenden' %}" class="stimmzeile">{% csrf_token %}
+    <button type="submit" class="btn-linie">{% translate "Alle anderen Geräte abmelden" %}</button>
+  </form>
+  <p class="hilfe">{% translate "Beendet jede andere Anmeldung dieses Kontos; dieses Gerät bleibt angemeldet." %}</p>
+</div>
+
+{# ── Datenexport ─────────────────────────────────────────────────────── #}
+<div class="karte" id="datenexport">
+  <p class="phasen-titel">{% translate "Datenexport" %}</p>
+  <p><a class="btn-linie" href="{% url 'mitglieder:profil_export' %}">{% translate "Meine Daten herunterladen (JSON)" %}</a></p>
+  <p class="hilfe">{% translate "Alles, was die Plattform über Sie führt (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
+</div>
+
+{# ── Austritt ────────────────────────────────────────────────────────── #}
+<div class="karte" id="austritt">
+  <p class="phasen-titel">{% translate "Austritt" %}</p>
+  <p><a class="btn-still" href="{% url 'mitglieder:profil_austritt' %}">{% translate "Aus der Partei austreten …" %}</a></p>
+  <p class="hilfe">{% translate "Der Austritt ist jederzeit möglich (§ 4 Abs 5). Die nächste Seite erklärt, was bleibt und was geht." %}</p>
+</div>
+
+</div>
+{% endblock %}

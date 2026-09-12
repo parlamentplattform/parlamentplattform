@@ -1,0 +1,27 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Rechenschaftsregister" %}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<h1>{% translate "Rechenschaftsregister" %}</h1>
+<p class="erk">{% translate "Wie die Mandatare der DDÖ in ihren Vertretungskörpern gestimmt haben — neben dem Beschluss der Plattform (§ 7 Abs 5)." %}
+  · <a href="{% url 'mandatare:rechenschaft_json' %}{% if ebene %}?ebene={{ ebene }}{% endif %}">JSON</a></p>
+<div class="ebenen">
+  <a class="chip{% if not ebene %} an{% endif %}" href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Ebenen" %}</a>
+  {% for wert, name in ebenen %}<a class="chip{% if ebene == wert %} an{% endif %}" href="?ebene={{ wert }}">{{ name }}</a>{% endfor %}
+</div>
+
+<div class="karte">
+  {% include "mandatare/_rechenschaft_tabelle.html" with zeilen=zeilen mit_mandatar=True %}
+</div>
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Ausstände" %}</p>
+  {% for block in ausstaende %}{% for p in block.rechenschaften %}
+  <div class="zeile"><span><a href="{% url 'mandatare:rechenschaft_mandat' block.mandat.pk %}">{{ block.mandat.mitglied.anzeigename }}</a> <span class="meta">· {{ block.mandat.bezeichnung }} · {% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}</span></span>
+    <span>{% if p.lage.status == "ausstaendig" %}<strong class="ausstand">{% translate "ausständig seit" %} {{ p.faellig|date:"d.m.Y" }}</strong>{% else %}<span class="meta">{% translate "fällig bis" %} {{ p.faellig|date:"d.m.Y" }}</span>{% endif %}</span></div>
+  {% endfor %}{% empty %}
+  <p class="leer">{% translate "Keine Ausstände." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

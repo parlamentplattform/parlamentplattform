@@ -1,0 +1,36 @@
+{% comment %}
+Gemeinsames CSS der Mandatare-Seiten (Liste, Detail, Register, eigener Bereich) — nur Tokens
+aus base.html, kein Hex. Vorher lag es doppelt in liste.html und detail.html.
+{% endcomment %}
+<style>
+  .mandatar-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:18px}
+  .mkarte{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--schatten)}
+  .mkopf{display:flex;gap:14px;align-items:center;margin-bottom:10px}
+  .mfoto,.mplatzhalter{width:72px;height:72px;border-radius:50%;object-fit:cover;flex:none}
+  .mplatzhalter{background:linear-gradient(135deg,var(--nacht2),var(--nacht3));color:var(--goldsoft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px}
+  .mkarte .meta{font-size:13.5px;color:var(--matt)}
+  .maufgabe{border-top:1px solid var(--line);padding:8px 0 2px;font-size:14px}
+  .maufgabe .frist{color:var(--matt);font-size:12.5px}
+  .maufgabe .frist.spaet{color:var(--warn-text);font-weight:600}
+  .mdetail-kopf{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .mdetail-kopf .mfoto,.mdetail-kopf .mplatzhalter{width:120px;height:120px;font-size:42px}
+  .aufgabe-frist{font-size:13px;color:var(--matt);font-variant-numeric:tabular-nums}
+  .aufgabe-frist.spaet{color:var(--warn-text);font-weight:600}
+  .ausstand{color:var(--warn);font-weight:600}
+  .abweichung{color:var(--warn);font-weight:600}
+  .kr-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:14px}
+  @media (max-width:980px){.kr-grid{grid-template-columns:1fr}}
+  .kr-grid .karte{margin-top:0}
+  .kr-form label{display:block;margin-top:8px}
+  .kr-form input[type=text],.kr-form input[type=date],.kr-form select,.kr-form textarea{width:100%;max-width:100%}
+  .kr-form input[type=time],.kr-form input[type=file]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink)}
+  .kr-form textarea{min-height:60px}
+  .kr-form .nebeneinander{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .kr-form .nebeneinander label{margin-top:0}
+  .kr-frist{font-variant-numeric:tabular-nums}
+  .pflicht{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13.5px;margin-top:4px}
+  .statusform{display:inline-flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .tabelle .weicht{color:var(--warn);font-weight:600}
+  .ebenen{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+  .ebenen a.chip{text-decoration:none}
+</style>

@@ -3999,9 +3999,6 @@ msgstr "No roles appointed yet."
 msgid "Mandatare-Verwaltung"
 msgstr "Mandate holder administration"
 
-msgid "Pflege der öffentlichen Mandatare-Seite (§ 7 Abs 9) — bis die Mandatar-Rolle (M2)\ndie Pflege an die Mandatare selbst übergibt. Jede Handlung wird auditiert."
-msgstr "Maintaining the public mandate holders page (§ 7 para. 9) — until the mandate-holder role (M2)\nhands maintenance over to the mandate holders themselves. Every action is audited."
-
 msgid "öffentliche Seite ansehen →"
 msgstr "view public page →"
 
@@ -6192,3 +6189,436 @@ msgstr "Monthly report"
 
 msgid "Sammelbericht"
 msgstr "Session report"
+
+# ── 0.46: Cluster M ──
+
+msgid "Abstimmung beendet am"
+msgstr "Vote ended on"
+
+msgid "Alle Ebenen"
+msgstr "All levels"
+
+msgid "Alle Mandatare →"
+msgstr "All mandate holders →"
+
+msgid "Als Ja-Nein-Frage formulieren, wenn eine Abstimmung entstehen soll."
+msgstr "Phrase it as a yes/no question if a vote is to follow."
+
+msgid "Anderes Mandat wählen"
+msgstr "Choose another mandate"
+
+msgid "Angetreten am"
+msgstr "Took office on"
+
+msgid "Anzeigename"
+msgstr "Display name"
+
+#, python-format
+msgid "Aufgabe „%(titel)s“ veröffentlicht."
+msgstr "Task “%(titel)s” published."
+
+msgid "Aufgaben und Fristen"
+msgstr "Tasks and deadlines"
+
+msgid "Ausstände"
+msgstr "Outstanding items"
+
+msgid "Begründung (öffentlich)"
+msgstr "Reasoning (public)"
+
+msgid "Bericht"
+msgstr "Report"
+
+msgid "Berichte"
+msgstr "Reports"
+
+msgid "Berichte und Rechenschaft"
+msgstr "Reports and accountability"
+
+msgid "Beschluss der Plattform"
+msgstr "Decision of the platform"
+
+msgid "Beschluss der Plattform (nur ohne Antrag)"
+msgstr "Decision of the platform (only without a motion)"
+
+msgid "Beschluss der Plattform:"
+msgstr "Decision of the platform:"
+
+msgid "Bitte Gegenstand, Stimme und Begründung angeben."
+msgstr "Please give the subject, your vote and your reasoning."
+
+msgid "Bitte alle Pflichtfelder prüfen."
+msgstr "Please check all required fields."
+
+msgid "Bitte den Sitzungstag angeben."
+msgstr "Please give the session date."
+
+msgid "Bitte ein Bild bis 800 kB wählen (JPEG, PNG oder WebP)."
+msgstr "Please choose an image of up to 800 kB (JPEG, PNG or WebP)."
+
+msgid "Bitte ein gültiges Datum (und gegebenenfalls eine Uhrzeit) angeben."
+msgstr "Please enter a valid date (and, if needed, a time)."
+
+msgid "Bitte eine Ebene wählen oder eine Kandidatur verknüpfen."
+msgstr "Please choose a level or link a candidacy."
+
+msgid "Bitte einen fälligen Monat wählen."
+msgstr "Please choose a month that is due."
+
+msgid "Bitte einen vergangenen Sitzungstag wählen."
+msgstr "Please choose a past session date."
+
+msgid "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)"
+msgstr "Create a vote in the parliament from this (mandate question)"
+
+#, python-format
+msgid "Das ganze Register (ein Eintrag) →"
+msgid_plural "Das ganze Register (%(n)s Einträge) →"
+msgstr[0] "The full register (one entry) →"
+msgstr[1] "The full register (%(n)s entries) →"
+
+msgid "Dateityp nicht erkannt — erlaubt sind JPEG, PNG und WebP."
+msgstr "File type not recognised — JPEG, PNG and WebP are allowed."
+
+msgid "Datum"
+msgstr "Date"
+
+msgid "Der Bericht braucht einen Text."
+msgstr "The report needs a text."
+
+msgid "Der Report braucht einen Titel."
+msgstr "The report needs a title."
+
+msgid "Derzeit gilt keine Verfahrensordnung — eine Abstimmung kann noch nicht entstehen."
+msgstr "No rules of procedure are in force yet — a vote cannot be created for now."
+
+msgid "Die Aufgabe braucht einen Titel."
+msgstr "The task needs a title."
+
+msgid "Die Frist ist ein Sitzungstag"
+msgstr "The deadline is a session day"
+
+msgid "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig."
+msgstr "The deadline is a session day — afterwards the session report and the accountability entry are due."
+
+msgid "Die Mandatsfrage läuft noch — der Eintrag steht ohne Beschluss der Plattform."
+msgstr "The mandate question is still open — the entry stands without a decision of the platform."
+
+msgid "Dieser Bereich gehört zu einem offenen Mandat — die Rolle entsteht mit dem Mandat und endet mit ihm (§ 7)."
+msgstr "This area belongs to an open mandate — the role begins with the mandate and ends with it (§ 7)."
+
+msgid "Ebene"
+msgstr "Level"
+
+msgid "Ebene und Gebiet werden aus der Kandidatur übernommen, wenn sie hier leer bleiben."
+msgstr "Level and area are taken from the candidacy if left empty here."
+
+msgid "Ergebnis:"
+msgstr "Result:"
+
+msgid "Erstellt am"
+msgstr "Created on"
+
+msgid "Export zum Nachrechnen"
+msgstr "Export for independent recount"
+
+msgid "Foto gespeichert."
+msgstr "Photo saved."
+
+msgid "Frist am"
+msgstr "Deadline on"
+
+msgid "Für diesen Monat liegt schon ein Bericht vor."
+msgstr "A report for this month already exists."
+
+msgid "Gebiet"
+msgstr "Area"
+
+msgid "Gegenstand der Abstimmung im Vertretungskörper"
+msgstr "Subject of the vote in the representative body"
+
+msgid "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status."
+msgstr "Your participation is paused — you can read here; writing resumes with active status."
+
+msgid "Instant-Report"
+msgstr "Instant report"
+
+msgid "Jetzt abstimmen:"
+msgstr "Vote now:"
+
+msgid "Kandidatur"
+msgstr "Candidacy"
+
+msgid "Kein Monatsbericht fällig."
+msgstr "No monthly report due."
+
+msgid "Keine Ausstände."
+msgstr "Nothing outstanding."
+
+msgid "Kurzbeschreibung (öffentlich)"
+msgstr "Short description (public)"
+
+msgid "Lichtbild (JPEG, PNG oder WebP, bis 800 kB)"
+msgstr "Photo (JPEG, PNG or WebP, up to 800 kB)"
+
+msgid "Mandat"
+msgstr "Mandate"
+
+#, python-format
+msgid "Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert."
+msgstr "Mandate “%(bezeichnung)s” marked as ended — remains documented."
+
+#, python-format
+msgid "Mandat „%(bezeichnung)s“ angelegt — öffentlich sichtbar."
+msgstr "Mandate “%(bezeichnung)s” created — publicly visible."
+
+msgid "Mandatar"
+msgstr "Mandate holder"
+
+msgid "Mandate anlegen, beenden und mit der Kandidatur verknüpfen (§ 7). Aufgaben und Lichtbild\npflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingreifen. Jede Handlung wird auditiert."
+msgstr "Create and end mandates and link them to the candidacy (§ 7). Tasks and photo\nare maintained by the mandate holder in their own area; the administration can still intervene. Every action is audited."
+
+msgid "Mein Mandat"
+msgstr "My mandate"
+
+msgid "Meine Einträge"
+msgstr "My entries"
+
+msgid "Meine Karte"
+msgstr "My card"
+
+msgid "Mindestbeteiligung erreicht"
+msgstr "Minimum turnout reached"
+
+msgid "Monat"
+msgstr "Month"
+
+msgid "Monatsbericht eingereicht."
+msgstr "Monthly report submitted."
+
+msgid "Monatsbericht einreichen"
+msgstr "Submit monthly report"
+
+msgid "Noch kein Bericht."
+msgstr "No report yet."
+
+msgid "Noch kein Eintrag."
+msgstr "No entry yet."
+
+msgid "Noch kein Report —"
+msgstr "No report yet —"
+
+msgid "Noch kein Sitzungstag vorbei."
+msgstr "No session day has passed yet."
+
+msgid "Noch keine Einträge."
+msgstr "No entries yet."
+
+msgid "Nur für Mandatare"
+msgstr "Mandate holders only"
+
+msgid "Quelle"
+msgstr "Source"
+
+msgid "Rechenschaft"
+msgstr "Accountability"
+
+msgid "Rechenschaft ausständig seit"
+msgstr "Accountability outstanding since"
+
+msgid "Rechenschaft eingetragen."
+msgstr "Accountability entry recorded."
+
+msgid "Rechenschaft eintragen"
+msgstr "Record accountability"
+
+msgid "Rechenschaft fällig bis"
+msgstr "Accountability due by"
+
+msgid "Rechenschaft liegt vor"
+msgstr "Accountability recorded"
+
+msgid "Rechenschaft:"
+msgstr "Accountability:"
+
+msgid "Rechenschaftsregister"
+msgstr "Accountability register"
+
+msgid "Reihung nach § 7 Abs 1; die Form für die Wahlbehörde richtet sich nach der jeweiligen Wahlordnung."
+msgstr "Ranking under § 7 para 1; the form for the electoral authority follows the respective electoral regulations."
+
+msgid "Report veröffentlichen"
+msgstr "Publish report"
+
+msgid "Report veröffentlicht und Mandatsfrage eröffnet — sie steht jetzt in der Abstimmung."
+msgstr "Report published and mandate question opened — it is now in the vote."
+
+#, python-format
+msgid "Report veröffentlicht — ohne Abstimmung: %(grund)s"
+msgstr "Report published — without a vote: %(grund)s"
+
+msgid "Report veröffentlicht — ohne Abstimmung: Es gilt noch keine Verfahrensordnung."
+msgstr "Report published — without a vote: no rules of procedure are in force yet."
+
+msgid "Report veröffentlicht."
+msgstr "Report published."
+
+msgid "Sammelbericht ausständig seit"
+msgstr "Session report outstanding since"
+
+msgid "Sammelbericht eingereicht."
+msgstr "Session report submitted."
+
+msgid "Sammelbericht einreichen"
+msgstr "Submit session report"
+
+msgid "Sammelbericht fällig bis"
+msgstr "Session report due by"
+
+msgid "Sammelbericht liegt vor"
+msgstr "Session report submitted"
+
+msgid "Sammelbericht schreiben"
+msgstr "Write session report"
+
+msgid "Schreiben ruht bis zum aktiven Status."
+msgstr "Writing is paused until active status."
+
+msgid "Sitzung am"
+msgstr "Session on"
+
+msgid "Sitzung am (nur ohne Sitzungstag)"
+msgstr "Session on (only without a session day)"
+
+msgid "Sitzungstag"
+msgstr "Session day"
+
+msgid "Stimme"
+msgstr "Vote"
+
+msgid "Stimme:"
+msgstr "Vote:"
+
+msgid "Uhrzeit (sonst 23:59)"
+msgstr "Time (otherwise 23:59)"
+
+msgid "Unvereinbar: Dieses Mitglied sitzt im Integritätsrat (§ 6 Abs 3 lit a) — kein Mandat möglich."
+msgstr "Incompatible: this member sits on the Integrity Council (§ 6 para 3 lit a) — no mandate possible."
+
+msgid "Vorstellung (öffentlich)"
+msgstr "Introduction (public)"
+
+msgid "Vorstellung gespeichert."
+msgstr "Introduction saved."
+
+msgid "Vorstellung speichern"
+msgstr "Save introduction"
+
+msgid "Wahlvorschlag"
+msgstr "Electoral list"
+
+msgid "Was steht an?"
+msgstr "What is coming up?"
+
+msgid "Wie die Mandatare der DDÖ in ihren Vertretungskörpern gestimmt haben — neben dem Beschluss der Plattform (§ 7 Abs 5)."
+msgstr "How the DDÖ mandate holders voted in their representative bodies — next to the decision of the platform (§ 7 para 5)."
+
+msgid "Zu den Mandataren →"
+msgstr "To the mandate holders →"
+
+msgid "Zu welchem Sitzungstag?"
+msgstr "For which session day?"
+
+msgid "Zum Beitrag →"
+msgstr "To the membership fee →"
+
+msgid "Zur Abstimmung →"
+msgstr "To the vote →"
+
+msgid "ausständig seit"
+msgstr "outstanding since"
+
+#, python-format
+msgid "ausständig seit einem Tag"
+msgid_plural "ausständig seit %(t)s Tagen"
+msgstr[0] "outstanding for one day"
+msgstr[1] "outstanding for %(t)s days"
+
+#, python-format
+msgid "ein Eintrag"
+msgid_plural "%(n)s Einträge"
+msgstr[0] "one entry"
+msgstr[1] "%(n)s entries"
+
+#, python-format
+msgid "eine ausständig"
+msgid_plural "%(n)s ausständig"
+msgstr[0] "one outstanding"
+msgstr[1] "%(n)s outstanding"
+
+#, python-format
+msgid "einen Tag verspätet"
+msgid_plural "%(t)s Tage verspätet"
+msgstr[0] "one day late"
+msgstr[1] "%(t)s days late"
+
+#, python-format
+msgid "einer ausständig"
+msgid_plural "%(n)s ausständig"
+msgstr[0] "one outstanding"
+msgstr[1] "%(n)s outstanding"
+
+msgid "eingereicht"
+msgstr "submitted"
+
+msgid "ersten Report schreiben"
+msgstr "write the first report"
+
+msgid "fällig bis"
+msgstr "due by"
+
+msgid "heute"
+msgstr "today"
+
+msgid "ja"
+msgstr "yes"
+
+msgid "keine Bewerbung"
+msgstr "no application"
+
+#, python-format
+msgid "noch ein Tag"
+msgid_plural "noch %(t)s Tage"
+msgstr[0] "one day left"
+msgstr[1] "%(t)s days left"
+
+msgid "ohne Bericht"
+msgstr "without report"
+
+msgid "ohne Eintrag"
+msgstr "without entry"
+
+#, python-format
+msgid "seit einem Tag"
+msgid_plural "seit %(t)s Tagen"
+msgstr[0] "one day ago"
+msgstr[1] "%(t)s days ago"
+
+msgid "veröffentlicht"
+msgstr "published"
+
+msgid "weicht ab"
+msgstr "differs"
+
+msgid "Öffentliche Seite →"
+msgstr "Public page →"
+
+msgid "— aus der Kandidatur —"
+msgstr "— from the candidacy —"
+
+msgid "— frei eintragen —"
+msgstr "— free entry —"
+
+#, python-format
+msgid "„%(titel)s“: %(status)s."
+msgstr "“%(titel)s”: %(status)s."

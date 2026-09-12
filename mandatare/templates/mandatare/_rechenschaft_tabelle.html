@@ -1,0 +1,32 @@
+{% load i18n %}{% comment %}
+Die Registertabelle (§ 7 Abs 5). Erwartet `zeilen` aus views._rechenschaft_zeilen und
+`mit_mandatar` (Spalte Mandatar zeigen). Unter 700 px wird jede Zeile zur Karte (td data-label).
+{% endcomment %}
+{% if zeilen %}
+<div style="overflow-x:auto">
+<table class="tabelle">
+  <thead><tr>
+    <th>{% translate "Datum" %}</th>
+    {% if mit_mandatar %}<th>{% translate "Mandatar" %}</th>{% endif %}
+    <th>{% translate "Gegenstand" %}</th>
+    <th>{% translate "Beschluss der Plattform" %}</th>
+    <th>{% translate "Stimme" %}</th>
+    <th>{% translate "Begründung" %}</th>
+  </tr></thead>
+  <tbody>
+  {% for z in zeilen %}
+  <tr>
+    <td data-label="{% translate 'Datum' %}">{{ z.r.sitzung_am|date:"d.m.Y" }}</td>
+    {% if mit_mandatar %}<td data-label="{% translate 'Mandatar' %}"><a href="{% url 'mandatare:detail' z.r.mandat.pk %}">{{ z.r.mandat.mitglied.anzeigename }}</a><br><span class="meta">{{ z.r.mandat.bezeichnung }} · {{ z.r.mandat.gebiet|default:z.r.mandat.get_ebene_display }}</span></td>{% endif %}
+    <td data-label="{% translate 'Gegenstand' %}">{{ z.r.gegenstand }}</td>
+    <td data-label="{% translate 'Beschluss der Plattform' %}">{% if z.r.antrag %}<a href="{% url 'verfahren:antrag' z.r.antrag.pk %}">{{ z.beschluss_name }}</a>{% else %}{{ z.beschluss_name }}{% endif %}</td>
+    <td data-label="{% translate 'Stimme' %}"{% if z.weicht_ab %} class="weicht"{% endif %}>{{ z.r.get_stimme_display }}{% if z.weicht_ab %} · {% translate "weicht ab" %}{% endif %}</td>
+    <td data-label="{% translate 'Begründung' %}" style="white-space:pre-line">{{ z.r.begruendung }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="leer">{% translate "Noch kein Eintrag." %}</p>
+{% endif %}

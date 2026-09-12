@@ -164,3 +164,108 @@ def test_ohne_laufende_kandidatur_behauptet_die_seite_keine_wahl(client):
     assert "kein öffentliches Mandat" in inhalt
     assert "läuft bereits" not in inhalt
     assert "derzeit läuft keine Kandidatur" in inhalt and "kann eine einbringen" in inhalt
+
+
+# --- S10: Verwaltung verknüpft die Kandidatur, prüft die Unvereinbarkeit, nimmt Uhrzeiten ---
+
+
+def test_verwaltung_verknuepft_die_kandidatur_und_uebernimmt_ebene_und_gebiet(client, ordnung):  # noqa: F811
+    from verfahren.models import AuditEintrag
+
+    anna = mitglied_anlegen("anna")
+    kandidatur = antrag_einbringen(
+        anna, "Listenreihung Landtag", "Reihung.", "", ordnung, art=Antragsart.MANDAT, ebene="land", gebiet="Oberösterreich"
+    )
+    client.force_login(admin_anlegen())
+    client.post(
+        reverse("mandatare:verwaltung_aktion"),
+        {
+            "aktion": "anlegen",
+            "mitglied": anna.pk,
+            "bezeichnung": "Landtagsabgeordnete",
+            "kandidatur": kandidatur.pk,
+            "ebene": "",
+            "gebiet": "",
+            "angetreten": timezone.localdate().isoformat(),
+            "vorstellung": "",
+        },
+    )
+    mandat = Mandat.objects.get()
+    assert mandat.kandidatur == kandidatur
+    assert mandat.ebene == "land" and mandat.gebiet == "Oberösterreich"  # exakt wie der Antrag (Regionsband)
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_angelegt")]
+    assert e["kandidatur"] == kandidatur.pk and "mitglied" not in e
+    verwaltung = client.get(reverse("mandatare:verwaltung")).content.decode()
+    assert f'href="/antrag/{kandidatur.pk}/"' in verwaltung
+    detail = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    assert f'href="/antrag/{kandidatur.pk}/"' in detail
+
+
+def test_ohne_ebene_und_ohne_kandidatur_entsteht_kein_mandat(client):
+    anna = mitglied_anlegen("anna")
+    client.force_login(admin_anlegen())
+    html = client.post(
+        reverse("mandatare:verwaltung_aktion"),
+        {"aktion": "anlegen", "mitglied": anna.pk, "bezeichnung": "Gemeinderat", "ebene": "", "gebiet": "",
+         "angetreten": timezone.localdate().isoformat(), "vorstellung": ""},
+        follow=True,
+    ).content.decode()
+    assert Mandat.objects.count() == 0 and "Pflichtfelder" in html
+
+
+def test_mitglied_des_integritaetsrats_bekommt_kein_mandat(client):
+    """§ 6 Abs 3 lit a: Die Verwaltung weist die Unvereinbarkeit beim Anlegen ab."""
+    from gremien.models import Gremium, Rolle, standard_ende
+
+    anna = mitglied_anlegen("anna")
+    Rolle.objects.create(mitglied=anna, gremium=Gremium.INTEGRITAETSRAT, endet_am=standard_ende(), bestaetigt=True)
+    client.force_login(admin_anlegen())
+    html = client.post(
+        reverse("mandatare:verwaltung_aktion"),
+        {"aktion": "anlegen", "mitglied": anna.pk, "bezeichnung": "Gemeinderat", "ebene": "gemeinde",
+         "gebiet": "Wels", "angetreten": timezone.localdate().isoformat(), "vorstellung": ""},
+        follow=True,
+    ).content.decode()
+    assert Mandat.objects.count() == 0
+    assert "Integritätsrat" in html and "§ 6 Abs 3 lit a" in html
+
+
+def test_verwaltung_nimmt_frist_mit_uhrzeit_und_sitzungstag(client):
+    from verfahren.models import AuditEintrag
+
+    anna = mitglied_anlegen("anna")
+    mandat = mandat_anlegen(anna)
+    client.force_login(admin_anlegen())
+    tag = timezone.localdate() + timedelta(days=10)
+    client.post(
+        reverse("mandatare:verwaltung_aktion"),
+        {"aktion": "aufgabe", "mandat": mandat.pk, "titel": "Sitzung", "beschreibung": "", "frist": tag.isoformat(),
+         "frist_zeit": "14:30", "sitzungstag": "on", "antrag": ""},
+    )
+    aufgabe = mandat.aufgaben.get()
+    lokal = timezone.localtime(aufgabe.frist)
+    assert lokal.date() == tag and (lokal.hour, lokal.minute) == (14, 30) and aufgabe.sitzungstag is True
+    # unbrauchbares Datum: Meldung statt Absturz
+    html = client.post(
+        reverse("mandatare:verwaltung_aktion"),
+        {"aktion": "aufgabe", "mandat": mandat.pk, "titel": "Kaputt", "frist": "gestern", "antrag": ""},
+        follow=True,
+    ).content.decode()
+    assert mandat.aufgaben.count() == 1 and "gültiges Datum" in html
+    # Foto und Statuswechsel der Verwaltung hinterlassen jetzt eine Spur
+    client.post(reverse("mandatare:verwaltung_aktion"), {"aktion": "aufgabe_status", "aufgabe": aufgabe.pk, "status": "laufend"})
+    assert AuditEintrag.objects.filter(ereignis__typ="mandats_aufgabe_status").exists()
+
+
+def test_meldungen_und_beschriftungen_der_mandatare_views_sind_uebersetzbar():
+    """Befund #91, Wächter wie in mitglieder/test_verwaltung.py: nackte Strings in messages.*()
+    oder label= fallen im Quelltext auf."""
+    import re
+    from pathlib import Path
+
+    quelle = Path(__file__).with_name("views.py").read_text(encoding="utf-8")
+    nackt = re.findall(r'messages\.\w+\(\s*request,\s*f?"', quelle)
+    assert nackt == [], f"Meldungen ohne gettext: {nackt}"
+    assert re.findall(r'label="', quelle) == []
+    assert re.findall(r'help_text="', quelle) == []
+    assert re.findall(r'ValidationError\(\s*f?"', quelle) == []

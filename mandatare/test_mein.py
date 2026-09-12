@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from mandatare.models import Aufgabe, Bericht, Berichtsart, Mandat, Rechenschaft
 from mandatare.test_mandatare import PNG_MINI, mandat_anlegen
-from mitglieder.models import Mitgliedsstatus
+from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
 from verfahren.models import Antrag, Antragsart, AuditEintrag
 from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
 
@@ -90,6 +90,18 @@ def test_pausierter_mandatar_liest_aber_schreibt_nicht(client):
     assert mandat.vorstellung == ""
 
 
+def test_ungeprueftes_konto_liest_mit_eigenem_hinweis(client):
+    """Identität ungeprüft: lesen ja, schreiben nein — und das Band nennt den wahren Grund,
+    nicht den Beitragsstatus (Ehrlichkeit der Texte)."""
+    m, mandat = mandatar(client)
+    m.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    m.save(update_fields=["identitaetsstufe"])
+    html = client.get(MEIN).content.decode()
+    assert "Identität ist noch nicht geprüft" in html and "Mitwirkung ruht" not in html
+    assert 'name="aktion" value="report"' not in html
+    assert client.post(AKTION, {"aktion": "vorstellung", "mandat": mandat.pk, "vorstellung": "x"}).status_code == 403
+
+
 def test_fremdes_mandat_ist_tabu(client):
     _, fremd = mandatar(client, name="carla")
     anna, _ = mandatar(client, name="anna")
@@ -167,6 +179,16 @@ def test_zu_knappe_frist_laesst_den_report_ohne_abstimmung(client, ordnung):  # 
     assert typen("instant_report") and not typen("mandatsfrage_eroeffnet")
 
 
+def test_ueberlanger_titel_wird_gekuerzt_auch_in_der_mandatsfrage(client, ordnung):  # noqa: F811
+    """Ein POST am maxlength vorbei: Report und Mandatsfrage tragen den gekürzten Titel
+    (Antrag.titel fasst 200 Zeichen — PostgreSQL würde sonst abbrechen)."""
+    _, mandat = mandatar(client)
+    report(client, mandat, tage=14, abstimmung="on", titel="Frage? " * 60)
+    aufgabe = mandat.aufgaben.get()
+    assert len(aufgabe.titel) == 120 and aufgabe.antrag is not None
+    assert aufgabe.antrag.titel == aufgabe.titel
+
+
 def test_ohne_verfahrensordnung_bleibt_es_beim_report(client):
     _, mandat = mandatar(client)
     html = report(client, mandat, tage=14, abstimmung="on").content.decode()
@@ -224,6 +246,9 @@ def test_fremde_aufgabe_kann_nicht_umgestellt_werden(client):
     assert antwort.status_code == 404
     aufgabe.refresh_from_db()
     assert aufgabe.status == "offen"
+    # verformte Kennung: sauberer 404 statt ValueError
+    antwort = client.post(AKTION, {"aktion": "aufgabe_status", "mandat": meins.pk, "aufgabe": "abc", "status": "erledigt"})
+    assert antwort.status_code == 404
 
 
 # ── Sitzungstag: Pflichten, Sammelbericht, Rechenschaft ───────────────────────────────────

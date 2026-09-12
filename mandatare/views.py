@@ -405,6 +405,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat]):
             "mandate": mandate,
             "darf_schreiben": request.user.darf_mitwirken
             and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT,
+            "identitaet_ungeprueft": request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
             "aufgaben": _aufgaben_mit_lage(mandat, aufgaben, ausstaende, heute),
             "ausstaende": ausstaende,
             "monate_faellig": ausstaende["monatsberichte"],
@@ -474,7 +475,10 @@ def mein_aktion(request):
     if aktion == "report":
         _report_anlegen(request, mandat)
     elif aktion == "aufgabe_status":
-        aufgabe = get_object_or_404(Aufgabe, pk=request.POST.get("aufgabe"), mandat=mandat)
+        aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
+        if not aufgabe_pk.isdigit():
+            raise Http404("Aufgabe unbekannt.")  # sonst ValueError → 500 bei verformter Eingabe
+        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk), mandat=mandat)
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status
@@ -531,7 +535,9 @@ def _report_anlegen(request, mandat: Mandat) -> None:
         )
         return
     try:
-        antrag = mandatsfrage_eroeffnen(mandat, aufgabe, titel, beschreibung or titel, ordnung)
+        # Die gekürzten Werte der Aufgabe, nicht die rohe Eingabe: Antrag.titel fasst 200 Zeichen,
+        # der Report 120 — ein längerer POST liefe auf PostgreSQL sonst in einen DataError.
+        antrag = mandatsfrage_eroeffnen(mandat, aufgabe, aufgabe.titel, aufgabe.beschreibung or aufgabe.titel, ordnung)
     except MandatsfrageFehler as fehler:
         messages.warning(
             request, _("Report veröffentlicht — ohne Abstimmung: %(grund)s") % {"grund": fehler}

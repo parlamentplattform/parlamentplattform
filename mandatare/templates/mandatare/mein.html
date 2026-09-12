@@ -16,7 +16,10 @@ Mitwirkungsrecht (Status nicht aktiv) bleibt alles lesbar, die Formulare fehlen.
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
   · <a href="#aufgaben">{% translate "Aufgaben und Fristen" %}</a> · <a href="#berichte">{% translate "Berichte und Rechenschaft" %}</a>
 </p>
-{% if not darf_schreiben %}
+{% if identitaet_ungeprueft %}
+<div class="band-gold">{% translate "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung." %}
+  <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
+{% elif not darf_schreiben %}
 <div class="band-gold">{% translate "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
 {% endif %}

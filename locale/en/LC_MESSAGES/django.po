@@ -6340,6 +6340,9 @@ msgstr "Subject of the vote in the representative body"
 msgid "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status."
 msgstr "Your participation is paused — you can read here; writing resumes with active status."
 
+msgid "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung."
+msgstr "Your identity has not been verified yet (§ 4 para 2) — you can read here; writing follows confirmation."
+
 msgid "Instant-Report"
 msgstr "Instant report"
 

@@ -35,7 +35,8 @@ def _(text: str) -> str:
 
 #: Fassung dieser Matrix. Sie steigt, wenn Rollen oder Fähigkeiten hinzukommen oder ihren
 #: Status ändern — die Seite nennt sie, damit ein Ausdruck von heute morgen zuzuordnen ist.
-VERSION = 2
+#: Fassung 3 (12.9.2026): der Mandatar ist eine Rolle im Code, das Profil gehört dem Mitglied.
+VERSION = 3
 
 
 class Stand(enum.StrEnum):
@@ -161,6 +162,12 @@ GAST = Rolle(
             titel=_("Die Mandatare mit Aufgaben und Fristen ansehen"),
             stand=Stand.VERFUEGBAR,
             urlname="mandatare:liste",
+        ),
+        Faehigkeit(
+            titel=_("Das Rechenschaftsregister der Mandatare lesen — Beschluss der Plattform, Stimme im Vertretungskörper, Begründung"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 5",
+            urlname="mandatare:rechenschaft",
         ),
         Faehigkeit(
             titel=_("Das Parameterregister und die geltende Verfahrensordnung lesen"),
@@ -321,14 +328,15 @@ MITGLIED = Rolle(
         ),
         Faehigkeit(
             titel=_("Unter einem beständigen Pseudonym auftreten"),
-            stand=Stand.TEILWEISE,
-            ort=_("auf jeder Antragsseite"),
-            einschraenkung=_("Ohne gesetztes Pseudonym zeigt die Antragsseite den Klarnamen — die Satzung verlangt dafür ausdrückliche Einwilligung. Das Pseudonym setzt heute nur die Verwaltung, nicht das Mitglied."),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 8 Abs 4",
+            urlname="mitglieder:profil",
         ),
         Faehigkeit(
-            titel=_("Das eigene Profil verwalten — Wohnsitz, Benachrichtigungen, Datenexport, Löschung"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
+            titel=_("Das eigene Profil verwalten — Wohnsitz, Nebenwohnsitz, Datenexport, Austritt"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 4 Abs 5, § 8 Abs 4",
+            urlname="mitglieder:profil",
         ),
         Faehigkeit(
             titel=_("Mandatsträger bewerten und ein Abberufungsverfahren einleiten"),
@@ -714,7 +722,10 @@ INTEGRITAETSRAT = Rolle(
         _("Wahl durch die Mitgliederversammlung auf vier Jahre, drei bis sieben Mitglieder. Sie dürfen "
         "keinem anderen Rat angehören, kein Mandat für die DDÖ ausüben und in keinem Dienst- oder "
         "Auftragsverhältnis zur Partei stehen (§ 6 Abs 3 lit a). Heute trägt die Verwaltung die Rolle "
-        "ein; die Unvereinbarkeiten prüft niemand automatisch.")
+        "ein; die Unvereinbarkeiten prüft die Plattform bei der Berufung: Wer in einem anderen Rat "
+        "sitzt oder ein Mandat für die DDÖ ausübt, wird abgewiesen, und wer im Integritätsrat sitzt, "
+        "kommt in keinen anderen Rat und wird nicht in den Expertenrat gelost. Das Dienst- oder "
+        "Auftragsverhältnis kennt die Plattform nicht — das bleibt Sache der Menschen.")
     ),
     faehigkeiten=(
         Faehigkeit(
@@ -793,7 +804,7 @@ VERWALTUNG = Rolle(
             stand=Stand.TEILWEISE,
             urlname="mitglieder:verwaltung",
             einschraenkung=(
-                _("Dasselbe Formular setzt auch das öffentliche Pseudonym. Das Mitglied selbst kann es nicht ändern, obwohl es sein Name in jeder Debatte ist.")
+                _("Dasselbe Formular setzt auch das öffentliche Pseudonym — seit 0.46 setzt das Mitglied es selbst im Profil; die Verwaltung kann es weiterhin überschreiben, ohne dass die Satzung ihr das aufträgt.")
             ),
         ),
         Faehigkeit(
@@ -842,10 +853,16 @@ VERWALTUNG = Rolle(
             einschraenkung=_("Das Umsetzungsregister führt nach § 6 Abs 10 der Integrations- und Berichtswesenrat. Bis es ihn gibt, schreiben Admins fort; jeder Eintrag ist öffentlich, dauerhaft und auditiert."),
         ),
         Faehigkeit(
-            titel=_("Mandate anlegen, Aufgaben und Fotos pflegen"),
+            titel=_("Mandate anlegen, beenden und mit der Kandidatur verknüpfen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 1",
+            urlname="mandatare:verwaltung",
+        ),
+        Faehigkeit(
+            titel=_("Aufgaben und Lichtbild eines Mandatars an seiner Stelle pflegen"),
             stand=Stand.TEILWEISE,
             urlname="mandatare:verwaltung",
-            einschraenkung=_("Nach § 7 Abs 3 lit b stellt der Mandatar die Informationen selbst ein. Heute pflegt die Verwaltung sie an seiner Stelle; der eigene Bereich des Mandatars kommt mit S10."),
+            einschraenkung=_("Nach § 7 Abs 3 lit b stellt der Mandatar die Informationen selbst ein — das tut er seit 0.46 in seinem eigenen Bereich. Die Verwaltung kann weiterhin eingreifen; jeder Eingriff steht im Audit-Log, eine Satzungsgrundlage dafür gibt es nicht."),
         ),
         Faehigkeit(
             titel=_("Rückmeldungen aus dem Anstoß-Widget sichten, einordnen und ausführen"),
@@ -1023,10 +1040,14 @@ MANDATAR = Rolle(
         "stellt ihn selbst oder beteiligt sich an einem bestehenden — ein zweiter Antrag für "
         "dasselbe Mandat wird nicht eröffnet. Die Bewerbung mit der meisten Zustimmung gewinnt. "
         "Vor der Aufnahme in einen Wahlvorschlag steht eine schriftliche Mandatsvereinbarung "
-        "(§ 7 Abs 3). Das errungene Mandat trägt heute noch die Verwaltung ein.")
+        "(§ 7 Abs 3). Das errungene Mandat legt die Verwaltung an und verknüpft es mit der "
+        "Kandidatur; die Rolle entsteht damit von selbst und endet mit dem Mandat — ohne "
+        "Eintrag in eine Rollenliste.")
     ),
-    im_code=False,
+    im_code=True,
     auf_der_startseite=True,
+    # Die ersten fünf Zeilen stehen auf der Willkommensseite — deshalb zuerst der Weg ins Mandat,
+    # dann das, was ein Mandatar täglich tut: Report, Mandatsfrage, Rechenschaft.
     faehigkeiten=(
         Faehigkeit(
             titel=_("Kandidatur für ein Mandat einbringen oder sich an einer bestehenden beteiligen"),
@@ -1037,49 +1058,53 @@ MANDATAR = Rolle(
             ),
         ),
         Faehigkeit(
-            titel=_("Öffentlicher Bereich mit Lichtbild, Aufgaben und Fristen"),
+            titel=_("Öffentlicher Bereich mit Lichtbild, Aufgaben, Fristen, Berichten und Rechenschaft"),
             stand=Stand.VERFUEGBAR,
             urlname="mandatare:liste",
         ),
         Faehigkeit(
-            titel=_("Betreute Abstimmung an einer Aufgabe zeigen"),
-            stand=Stand.TEILWEISE,
-            einschraenkung=_("Die Verknüpfung Aufgabe → Antrag besteht und wird öffentlich angezeigt; setzen kann sie nur die Verwaltung. Der Mandatar erzeugt selbst keine Abstimmung."),
+            titel=_("Instant-Report zu einer Aufgabe samt Frist und Sitzungstag veröffentlichen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 3 lit b",
+            urlname="mandatare:mein",
+        ),
+        Faehigkeit(
+            titel=_("Aus einem Report eine betreute Abstimmung erzeugen (Mandatsfrage) — sie steht sofort in der Abstimmung"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 9, § 5 Abs 3 lit d",
+            ort=_("im Instant-Report"),
+        ),
+        Faehigkeit(
+            titel=_("Rechenschaftsregister: Beschluss, Stimmverhalten und Begründung binnen sieben Tagen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 5",
+            urlname="mandatare:rechenschaft",
+        ),
+        Faehigkeit(
+            titel=_("Monatsbericht und Sammelbericht nach jedem Sitzungstag"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 3 lit b",
+            urlname="mandatare:mein",
         ),
         Faehigkeit(
             titel=_("Eigene Aufgaben, Fristen und das Lichtbild einstellen"),
-            stand=Stand.TEILWEISE,
-            einschraenkung=_("Eintragen kann nur die Verwaltung (/verwaltung/mandatare/). Der Mandatar hat keinen eigenen Zugang; /mandatare/mein/ kommt mit S10."),
+            stand=Stand.VERFUEGBAR,
+            urlname="mandatare:mein",
+        ),
+        Faehigkeit(
+            titel=_("Betreute Abstimmung an einer Aufgabe zeigen"),
+            stand=Stand.VERFUEGBAR,
+            ort=_("im eigenen Bereich, je Aufgabe"),
+        ),
+        Faehigkeit(
+            titel=_("Die Rolle „Mandatar“ auf der Plattform"),
+            stand=Stand.VERFUEGBAR,
+            urlname="mandatare:mein",
         ),
         Faehigkeit(
             titel=_("Vollzugsbericht zu einem angenommenen Antrag abgeben"),
             stand=Stand.TEILWEISE,
             einschraenkung=_("Den Umsetzungsstand schreibt heute nur die Verwaltung fort, obwohl die Satzung Mandatsträger selbst zum Vollzugsbericht verpflichtet."),
-        ),
-        Faehigkeit(
-            titel=_("Die Rolle „Mandatar“ auf der Plattform"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
-        ),
-        Faehigkeit(
-            titel=_("Instant-Report zu einer Aufgabe samt Frist veröffentlichen"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
-        ),
-        Faehigkeit(
-            titel=_("Aus einem Report eine betreute Abstimmung erzeugen (Mandatsfrage)"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
-        ),
-        Faehigkeit(
-            titel=_("Rechenschaftsregister: Beschluss, Stimmverhalten und Begründung binnen sieben Tagen"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
-        ),
-        Faehigkeit(
-            titel=_("Monatsbericht und Sammelbericht nach jedem Sitzungstag"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S10"),
         ),
     ),
 )

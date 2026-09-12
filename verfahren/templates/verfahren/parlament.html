@@ -129,7 +129,7 @@
           <p class="rkopf" id="rk-{{ zeile.ebene }}">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
           {% if zeile.kacheln %}
           <div class="spur" x-ref="spur" aria-labelledby="rk-{{ zeile.ebene }}">
-            {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort %}{% endfor %}
+            {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort_versteckt %}{% endfor %}
           </div>
           <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>
           {% else %}
@@ -139,6 +139,8 @@
         </div>
       {% endfor %}
       </div>
+      {# Ohne Wohnsitz zeigen die Bänder alle regionalen Anträge; der Weg zum eigenen Ort führt über das Profil — der Link erscheint erst, wenn es die Seite gibt #}
+      {% if user.is_authenticated and not region_gefiltert and profil_url %}<p class="leer leer-zeile region-wohnsitz"><a href="{{ profil_url }}">{% translate "Wohnsitz hinterlegen ›" %}</a></p>{% endif %}
     </div>
     {% include "verfahren/_feld_mehr.html" %}
   </section>

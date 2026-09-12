@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Prefetch
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
@@ -621,14 +622,7 @@ def parlament(request):
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
-    mein_ort = {"gemeinde": "", "bezirk": "", "land": ""}
-    if request.user.is_authenticated:
-        mein_ort["gemeinde"] = request.user.gemeinde or ""
-        mein_ort["land"] = (
-            request.user.get_bundesland_display() if request.user.bundesland else ""
-        )
-        if request.user.wohnsitz_id:
-            mein_ort["bezirk"] = request.user.wohnsitz.bezirk or ""
+    mein_ort = _meine_orte(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     meine_unterstuetzungen: set[int] = set()
@@ -638,13 +632,17 @@ def parlament(request):
         )
 
     region_zeilen = []
-    for ebene, ort in (("gemeinde", mein_ort["gemeinde"]), ("bezirk", mein_ort["bezirk"]),
-                       ("land", mein_ort["land"])):
-        zeile = [a for a in regionale if a.ebene == ebene and (not ort or a.gebiet == ort)]
+    for ebene in ("gemeinde", "bezirk", "land"):
+        orte = mein_ort[ebene]
+        zeile = [a for a in regionale if a.ebene == ebene and (not orte or a.gebiet in orte)]
         region_zeilen.append(
             {
                 "ebene": ebene,
-                "ort": ort,
+                "ort": " · ".join(orte),  # Zeilenkopf „Gemeinde · Ort1 · Ort2“
+                "orte": orte,
+                # Bei genau einem Ort trägt ihn der Zeilenkopf, die Kachel schweigt; bei zweien
+                # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
+                "ort_versteckt": len(orte) == 1,
                 "kacheln": [
                     _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler)
                     for a in zeile
@@ -688,18 +686,78 @@ def parlament(request):
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
             "region_gefiltert": any(mein_ort.values()),
+            # Ziel der Leerzeile „Wohnsitz hinterlegen ›“ — erst wenn es die Profilseite gibt;
+            # bis dahin None, und die Vorlage zeigt nichts, was es nicht gibt.
+            "profil_url": _url_oder_none("mitglieder:profil"),
         },
     )
 
 
-def _regeln_lesbar(policy) -> list[tuple[str, str]]:
+def _url_oder_none(name: str, *args) -> str | None:
+    """`reverse`, das bei einem noch nicht gebauten Ziel None liefert statt zu brechen — für
+    Links auf Bereiche, die parallel entstehen (Profilseite, Wahlvorschlag). Ehrlichkeit: Die
+    Vorlage zeigt den Link erst, wenn es das Ziel gibt."""
+    try:
+        return reverse(name, args=args)
+    except NoReverseMatch:
+        return None
+
+
+def _meine_orte(user) -> dict[str, list[str]]:
+    """Die Orte je Ebene, an denen „Meine Region“ das Mitglied misst — als geordnete Liste:
+    zuerst der Wohnsitz, dann (FB-J6, nur bei Schalter 1) der Nebenwohnsitz. Gäste und leere
+    Profile bekommen leere Listen und sehen alle regionalen Anträge der Ebene. Die Namen sind
+    dieselben, die `AntragsFormular.gebiet()` schreibt — reine Textgleichheit mit `Antrag.gebiet`.
+    Keine Abfrage je Antrag: höchstens Register und Nebenwohnsitz, und die nur, wenn einer
+    hinterlegt ist."""
+    from verfahren.views_aktionen import nebenwohnsitz_zaehlt
+
+    orte: dict[str, list[str]] = {"gemeinde": [], "bezirk": [], "land": []}
+    if not user.is_authenticated:
+        return orte
+    if user.gemeinde:
+        orte["gemeinde"].append(user.gemeinde)
+    if user.wohnsitz_id and user.wohnsitz.bezirk:
+        orte["bezirk"].append(user.wohnsitz.bezirk)
+    if user.bundesland:
+        orte["land"].append(user.get_bundesland_display())
+    if user.nebenwohnsitz_id and nebenwohnsitz_zaehlt():
+        neben = user.nebenwohnsitz
+        for ebene, ort in (
+            ("gemeinde", neben.name),
+            ("bezirk", neben.bezirk),
+            ("land", neben.get_bundesland_display() if neben.bundesland else ""),
+        ):
+            if ort and ort not in orte[ebene]:
+                orte[ebene].append(ort)
+    return orte
+
+
+def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value) -> list[tuple[str, str]]:
     """Die eingefrorenen Verfahrensregeln als lesbare Liste statt als JSON-Block (FB-F1).
-    § 5 Abs 5: Was beim Einbringen galt, gilt bis zum Ende — man muss es lesen können."""
+    § 5 Abs 5: Was beim Einbringen galt, gilt bis zum Ende — man muss es lesen können.
+
+    Eine Mandatsfrage (§ 7 Abs 9) hat keine Unterstützungs- und Beratungsphase; ihre Liste
+    nennt nur Abstimmung, Mindestbeteiligung, Mehrheit und Ordnung — und sagt dazu, dass die
+    Dauer aus dem Register stammt und beim Eröffnen eingefroren wurde: Sonst läse man
+    „Ordnung X v N“ neben einer Dauer, die diese Ordnung so nicht kennt."""
     mehrheit = (
         _("Ja mehr als Nein")
         if policy.mehrheitsbasis == "ja_nein"
         else _("Ja mehr als die Hälfte aller abgegebenen Stimmen")
     )
+    if art == Antragsart.MANDATSFRAGE.value:
+        dauer = ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage
+        return [
+            (_("Unterstützung und Beratung"), _("keine Unterstützungs- und Beratungsphase (§ 7 Abs 9)")),
+            (
+                _("Abstimmung"),
+                f"{dauer} · " + _("Dauer der Mandatsfrage aus dem Register, beim Eröffnen eingefroren (§ 7 Abs 9)"),
+            ),
+            (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
+            (_("Mehrheit"), mehrheit),
+            (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
+        ]
     return [
         (_("Unterstützungsschwelle"), ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle),
         (_("Frist zum Unterstützen"), ngettext("%d Tag", "%d Tage", policy.unterstuetzung_frist_tage) % policy.unterstuetzung_frist_tage),
@@ -925,6 +983,17 @@ def antrag_detail(request, pk):
             "wahl": wahl,
             "ergebnis_zeilen": ergebnis_zeilen,
         }
+    # Mandatsfrage (§ 7 Abs 9): Der Report, aus dem sie kam, führt zum Mandatar zurück —
+    # Kopfzeile und Band statt „n Unterstützungen“ (es gab keine Unterstützungsphase).
+    mandatsfrage = None
+    if antrag.art == Antragsart.MANDATSFRAGE:
+        aufgabe = antrag.mandats_aufgaben.select_related("mandat__mitglied").first()
+        mandatsfrage = {
+            "aufgabe": aufgabe,
+            "mandat": aufgabe.mandat if aufgabe else None,
+            "frist": aufgabe.frist if aufgabe else None,
+            "ist_sitzungstag": bool(aufgabe and aufgabe.sitzungstag),
+        }
     policy = antrag.policy()
     jetzt = timezone.now()
     # Dieselbe Rechnung wie Phasenautomat und Stimmzulässigkeit (§ 6 Abs 3 lit d): Eine
@@ -973,7 +1042,13 @@ def antrag_detail(request, pk):
             "ist_favorit": ist_favorit,
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
             "auslosung": _auslosung_zu(antrag),
-            "regeln": _regeln_lesbar(policy),
+            "regeln": _regeln_lesbar(policy, antrag.art),
+            "mandatsfrage": mandatsfrage,
+            # Reihung einer beendeten Kandidatur als Wahlvorschlag (§ 7 Abs 1) — der Export
+            # entsteht bei den Mandataren; solange es ihn nicht gibt, gibt es keinen Link.
+            "wahlvorschlag_url": _url_oder_none("mandatare:wahlvorschlag", antrag.pk)
+            if kandidatur and kandidatur["wahl"] is not None
+            else None,
             "fassung": antrag.aktueller_text(),
             "fassungen": list(antrag.fassungen.order_by("-nummer")),
             # Zone 2 entfällt bei Personenwahlen — über Menschen rechnet keine Maschine (FB-F4)

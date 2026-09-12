@@ -6192,3 +6192,53 @@ msgstr "Monthly report"
 
 msgid "Sammelbericht"
 msgstr "Session report"
+
+# ── 0.46: Cluster R ──
+
+msgid "Mandatsfrage von"
+msgstr "Mandate question by"
+
+msgid "eröffnet"
+msgstr "opened"
+
+msgid "Sitzungstag"
+msgstr "Session day"
+
+msgid "Frist des Reports"
+msgstr "Deadline of the report"
+
+msgid "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase"
+msgstr "Mandate question under § 7 para 9 — without support and deliberation phase"
+
+msgid "Reihung als Wahlvorschlag (Markdown)"
+msgstr "Ranking as electoral list (Markdown)"
+
+msgid "Unterstützung und Beratung"
+msgstr "Support and deliberation"
+
+msgid "keine Unterstützungs- und Beratungsphase (§ 7 Abs 9)"
+msgstr "no support and deliberation phase (§ 7 para 9)"
+
+msgid "Dauer der Mandatsfrage aus dem Register, beim Eröffnen eingefroren (§ 7 Abs 9)"
+msgstr "duration of the mandate question from the register, frozen when opened (§ 7 para 9)"
+
+#, python-format
+msgid "Mein Nebenwohnsitz-Bundesland (%s)"
+msgstr "My secondary-residence province (%s)"
+
+#, python-format
+msgid "Mein Nebenwohnsitz-Bezirk (%s)"
+msgstr "My secondary-residence district (%s)"
+
+#, python-format
+msgid "Meine Nebenwohnsitz-Gemeinde (%s)"
+msgstr "My secondary-residence municipality (%s)"
+
+msgid "Wohnsitz hinterlegen ›"
+msgstr "Add your residence ›"
+
+msgid "Eröffnet"
+msgstr "Opened"
+
+msgid "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)"
+msgstr "without support and deliberation phase (§ 7 para 9)"

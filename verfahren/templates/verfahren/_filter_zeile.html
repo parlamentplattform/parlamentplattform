@@ -7,7 +7,7 @@ favorit, anteile, punkte).
   <a class="zt" href="{% url 'verfahren:antrag' z.antrag.pk %}{% if z.stat.typ == 'abstimmung' %}#abstimmen{% endif %}">{{ z.antrag.titel }}</a>
   <div class="zm">
     <span class="badge b-{{ z.antrag.phase }}">{{ z.antrag.phase|phase_name }}</span>
-    {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% endif %}
+    {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% elif z.antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% endif %}
     {% if z.antrag.ebene != "bund" %}<span class="chip klein">{{ z.antrag.get_ebene_display }}{% if z.antrag.gebiet %} · {{ z.antrag.gebiet }}{% endif %}</span>{% endif %}
     {% if z.thema %}<span class="chip klein{% if z.favorit %} still{% endif %}" title="{{ z.thema.pfad_kurz }}">{% if z.favorit %}★ {% endif %}{{ z.thema.name }}</span>{% endif %}
   </div>
@@ -36,6 +36,7 @@ favorit, anteile, punkte).
     {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}
       <a class="knopf gold" href="{% url 'verfahren:antrag' z.antrag.pk %}#bewerbungen">{% translate "Zur Wahl ›" %}</a>
     {% elif z.stat.typ == "abstimmung" %}
+      {# Sachantrag und Mandatsfrage (§ 7 Abs 9): Ja/Nein/Enthaltung — nie eine Personenwahl #}
       <details class="abstimmen"><summary class="knopf gold">{% if z.meine_stimme %}{{ z.meine_stimme|phase_name }} ✓{% else %}{% translate "Abstimmen" %}{% endif %} ▸</summary>
         <form method="post" action="{% url 'verfahren:abstimmen' z.antrag.pk %}" class="stimmreihe"
           hx-post="{% url 'verfahren:abstimmen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">

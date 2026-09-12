@@ -213,6 +213,29 @@ def test_fassung_3_der_mandatar_ist_eine_rolle_im_code():
     assert "heute noch" not in mandatar.wie_hinein
 
 
+def test_fassung_3_die_bewerbung_im_fremden_kandidatur_antrag_gilt_als_gebaut():
+    """Befund FP-13: Die Zeile „Kandidatur einbringen oder sich an einer bestehenden beteiligen“
+    behauptete seit Fassung 1, eine eigene Bewerbung im fremden Antrag gebe es nicht — der Code
+    hat sie seit dem 1.9.2026 (`bewerben` → `bewerbung_einreichen`). Die Zeile ist ●, nennt den
+    zweiten Weg als Ort, und der Mandatar steht damit bei neun von zehn ● (◐ bleibt der
+    Vollzugsbericht)."""
+    from verfahren.models import bewerbung_einreichen  # noqa: F401 — die Fähigkeit, um die es geht
+
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+    mandatar = rollen["mandatar"]
+    zeile = next(f for f in mandatar.faehigkeiten if f.titel.startswith("Kandidatur für ein Mandat"))
+    assert zeile.stand is Stand.VERFUEGBAR and zeile.urlname == "verfahren:einbringen"
+    assert "Antragsseite" in zeile.ort and not zeile.einschraenkung
+    assert "eigene Bewerbung im fremden Antrag gibt es so nicht" not in " ".join(
+        f.einschraenkung for f in mandatar.faehigkeiten
+    )
+    assert len(mandatar.faehigkeiten) == 10
+    assert sum(f.stand is Stand.VERFUEGBAR for f in mandatar.faehigkeiten) == 9
+    (teilweise,) = [f for f in mandatar.faehigkeiten if f.stand is Stand.TEILWEISE]
+    assert "Vollzug" in teilweise.titel
+    assert VERSION == 3  # Berichtigung einer falschen Auskunft, kein Statuswechsel — keine neue Fassung
+
+
 def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
     """Die übrigen Zeilen der Fassung 3: Profil und Pseudonym gehören dem Mitglied, der Gast
     liest das Rechenschaftsregister, die Verwaltung verknüpft Mandate mit der Kandidatur, und

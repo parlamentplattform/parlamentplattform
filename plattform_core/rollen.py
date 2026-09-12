@@ -1049,13 +1049,19 @@ MANDATAR = Rolle(
     # Die ersten fünf Zeilen stehen auf der Willkommensseite — deshalb zuerst der Weg ins Mandat,
     # dann das, was ein Mandatar täglich tut: Report, Mandatsfrage, Rechenschaft.
     faehigkeiten=(
+        # Innerhalb der Fassung 3 von ◐ auf ● korrigiert (12.9.2026): Die Einschränkung „eine
+        # eigene Bewerbung im fremden Antrag gibt es so nicht“ stand seit Fassung 1 und war seit
+        # dem 1.9.2026 falsch — `verfahren.views_aktionen.bewerben` und
+        # `verfahren.models.bewerbung_einreichen` legen für jedes stimmberechtigte Mitglied eine
+        # Bewerbung im bestehenden Kandidatur-Antrag an, und die Antragsseite zeigt das Formular.
+        # Kein Statuswechsel einer Fähigkeit, sondern die Berichtigung einer falschen Auskunft;
+        # darum keine neue Fassung. Offen bleiben (nicht Teil dieser Zeile): Fenster, Fristen und
+        # Nachrücken nach § 7 Abs 1 letzter Satz — das regelt die Verfahrensordnung, nicht der Code.
         Faehigkeit(
             titel=_("Kandidatur für ein Mandat einbringen oder sich an einer bestehenden beteiligen"),
-            stand=Stand.TEILWEISE,
+            stand=Stand.VERFUEGBAR,
             urlname="verfahren:einbringen",
-            einschraenkung=(
-                _("Einbringen geht; sich an einer bestehenden Kandidatur zu beteiligen, heißt heute, ihr zuzustimmen — eine eigene Bewerbung im fremden Antrag gibt es so nicht.")
-            ),
+            ort=_("Bewerben auf der Antragsseite der laufenden Kandidatur"),
         ),
         Faehigkeit(
             titel=_("Öffentlicher Bereich mit Lichtbild, Aufgaben, Fristen, Berichten und Rechenschaft"),

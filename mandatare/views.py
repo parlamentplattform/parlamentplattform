@@ -8,7 +8,7 @@ Wahlvorschlag-Export einer beendeten Kandidatur (§ 7 Abs 1).
 
 Bereich des Mandatars (`/mandatare/mein/`): Die Rolle ist abgeleitet — wer ein offenes Mandat
 hat, liest; wer zudem mitwirken darf (Status aktiv und Identität geprüft, wie beim Einbringen),
-schreibt. Nach dem Mandatsende bleibt der Bereich für die Nachfrist (`Mandat.NACHFRIST_TAGE`)
+schreibt. Nach dem Mandatsende bleibt der Bereich für die Nachfrist (`mandatare.models.NACHFRIST_TAGE`)
 offen — nur noch für Sammelbericht, Rechenschaft und Monatsbericht, denn die Pflicht aus der
 letzten Sitzung überlebt das Ende (§ 7 Abs 5). Jede Handlung ist ein POST auf `mein_aktion`,
 prüft den Besitz des Mandats und wird auditiert (nur Kennungen, keine Werte).

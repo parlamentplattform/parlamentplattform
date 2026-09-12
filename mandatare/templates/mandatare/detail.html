@@ -32,8 +32,8 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
       <span class="meta">· {% translate "veröffentlicht" %} {{ a.erstellt_am|date:"d.m.Y H:i" }}</span>
     </div>
     {% if a.beschreibung %}<div>{{ a.beschreibung|linebreaksbr }}</div>{% endif %}
-    {% if a.antrag %}<p style="margin-top:6px"><span class="chip klein">{% translate "Mandatsfrage" %}</span>
-      {% if z.abstimmung_laeuft %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}#abstimmen">{% translate "Jetzt abstimmen:" %} {{ a.antrag.titel }} →</a>
+    {% if a.antrag %}<p style="margin-top:6px"><span class="chip klein">{% if a.antrag.art == "mandatsfrage" %}{% translate "Mandatsfrage" %}{% else %}{% translate "Betreute Abstimmung" %}{% endif %}</span>
+      {% if z.abstimmung_laeuft %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}{{ z.anker }}">{% translate "Jetzt abstimmen:" %} {{ a.antrag.titel }} →</a>
       {% elif z.beendet %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}">{% translate "Ergebnis:" %} {{ a.antrag.titel }} →</a> <span class="meta">· {{ a.antrag.phase|phase_name }}</span>
       {% else %}<a href="{% url 'verfahren:antrag' a.antrag.pk %}">{% translate "Zur betreuten Abstimmung:" %} {{ a.antrag.titel }} →</a>{% endif %}</p>{% endif %}
     {% if z.sitzung_vorbei %}
@@ -57,16 +57,12 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
   {% for m in ausstaende.monatsberichte %}{% if m.lage.status == "ausstaendig" %}
   <p class="pflicht"><strong class="ausstand">{% translate "Monatsbericht" %} {{ m.monat|date:"F Y" }} {% translate "ausständig seit" %} {{ m.faellig|date:"d.m.Y" }}</strong></p>
   {% endif %}{% endfor %}
-  {% for b in berichte %}
-  <div class="kommentar">
-    <div class="kopf"><span class="chip klein">{{ b.get_art_display }}</span>
-      <strong>{% if b.monat %}{{ b.monat|date:"F Y" }}{% elif b.aufgabe %}{% translate "Sitzungstag" %} {{ b.aufgabe.frist|date:"d.m.Y" }} · {{ b.aufgabe.titel }}{% endif %}</strong>
-      · {% translate "eingereicht" %} {{ b.eingereicht_am|date:"d.m.Y" }}{% with l=b.lage %}{% if l and l.status == "verspaetet" %} · <span class="ausstand">{% blocktranslate count t=l.seit_tagen %}einen Tag verspätet{% plural %}{{ t }} Tage verspätet{% endblocktranslate %}</span>{% endif %}{% endwith %}</div>
-    <div style="white-space:pre-line">{{ b.text }}</div>
-  </div>
-  {% empty %}
-  {% if not ausstaende.monatsberichte and not ausstaende.sammelberichte %}<p class="leer">{% translate "Noch kein Bericht." %}</p>{% endif %}
-  {% endfor %}
+  {% for p in ausstaende.sammelberichte %}{% if p.lage.status == "ausstaendig" %}
+  <p class="pflicht"><strong class="ausstand">{% translate "Sammelbericht ausständig seit" %} {{ p.faellig|date:"d.m.Y" }}</strong> <span class="meta">· {% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}</span></p>
+  {% endif %}{% endfor %}
+  {% include "mandatare/_berichte_liste.html" with berichte=berichte %}
+  {% if not berichte and not ausstaende.monatsbericht_ausstaendig and not ausstaende.sammelbericht_ausstaendig %}<p class="leer">{% translate "Noch kein Bericht." %}</p>{% endif %}
+  {% if berichte_weitere %}<p style="margin-top:10px"><a href="{% url 'mandatare:berichte' mandat.pk %}">{% blocktranslate count n=berichte_anzahl %}Alle Berichte (einer) →{% plural %}Alle Berichte ({{ n }}) →{% endblocktranslate %}</a></p>{% endif %}
 </div>
 
 <h2 id="rechenschaft">{% translate "Rechenschaft" %}</h2>
@@ -82,7 +78,7 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
     <div style="white-space:pre-line">{{ z.r.begruendung }}</div>
   </div>
   {% empty %}
-  {% if not ausstaende.rechenschaften %}<p class="leer">{% translate "Noch kein Eintrag." %}</p>{% endif %}
+  {% if not ausstaende.rechenschaft_ausstaendig %}<p class="leer">{% translate "Noch kein Eintrag." %}</p>{% endif %}
   {% endfor %}
   <p style="margin-top:10px"><a href="{% url 'mandatare:rechenschaft_mandat' mandat.pk %}">{% blocktranslate count n=rechenschaft_anzahl %}Das ganze Register (ein Eintrag) →{% plural %}Das ganze Register ({{ n }} Einträge) →{% endblocktranslate %}</a>
   · <a href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Mandatare →" %}</a></p>

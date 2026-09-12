@@ -1,0 +1,21 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Berichte" %} · {{ mandat.mitglied.anzeigename }}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<p><a href="{% url 'mandatare:detail' mandat.pk %}">&larr; {{ mandat.mitglied.anzeigename }}</a> · <a href="{% url 'mandatare:rechenschaft_mandat' mandat.pk %}">{% translate "Rechenschaft" %} →</a></p>
+<h1>{% translate "Berichte" %}: {{ mandat.mitglied.anzeigename }}</h1>
+<p class="erk"><span class="badge">{{ mandat.bezeichnung }}</span> <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span>
+  · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}{% if mandat.beendet %} · {% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}{% endif %}</p>
+
+<div class="karte">
+  {% for m in ausstaende.monatsberichte %}{% if m.lage.status == "ausstaendig" %}
+  <p class="pflicht"><strong class="ausstand">{% translate "Monatsbericht" %} {{ m.monat|date:"F Y" }} {% translate "ausständig seit" %} {{ m.faellig|date:"d.m.Y" }}</strong></p>
+  {% endif %}{% endfor %}
+  {% for p in ausstaende.sammelberichte %}{% if p.lage.status == "ausstaendig" %}
+  <p class="pflicht"><strong class="ausstand">{% translate "Sammelbericht ausständig seit" %} {{ p.faellig|date:"d.m.Y" }}</strong> <span class="meta">· {% translate "Sitzungstag" %} {{ p.sitzungstag|date:"d.m.Y" }} · {{ p.aufgabe.titel }}</span></p>
+  {% endif %}{% endfor %}
+  {% include "mandatare/_berichte_liste.html" with berichte=berichte %}
+  {% if not berichte and not ausstaende.monatsbericht_ausstaendig and not ausstaende.sammelbericht_ausstaendig %}<p class="leer">{% translate "Noch kein Bericht." %}</p>{% endif %}
+</div>
+{% endblock %}

@@ -5,7 +5,8 @@
 <p><a href="{% url 'mitglieder:verwaltung' %}">← {% translate "zurück zur Liste" %}</a></p>
 <h1>{{ person.get_full_name|default:person.anzeigename }}</h1>
 <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-  {% if not person.is_active and person.status != "ausgeschlossen" %}
+  {% if person.status == "ausgetreten" %}<span class="badge badge-still">{% translate "ausgetreten" %}</span>
+  {% elif not person.is_active and person.status != "ausgeschlossen" %}
     <span class="badge badge-info">{% translate "unbestätigt (E-Mail offen)" %}</span>
   {% elif person.status == "aktiv" %}<span class="badge badge-ok">{% translate "aktiv" %}</span>
   {% elif person.status == "pausiert" %}<span class="badge badge-hinweis">{% translate "pausiert" %}</span>
@@ -34,6 +35,11 @@
 </div>
 {% endif %}
 
+{% if person.status == "ausgetreten" %}
+<div class="karte hinweis">
+  <p>{% blocktranslate with seit=person.status_seit|date:"d.m.Y" %}Ausgetreten am {{ seit }} (§ 4 Abs 5): Stammdaten geleert, Konto geschlossen. Dieses Konto wird nicht wieder aktiviert — ein Wiedereintritt ist ein neues Konto. Beiträge zu Verfahren, Beitragseingänge und Audit-Einträge bleiben.{% endblocktranslate %}</p>
+</div>
+{% else %}
 <h2>{% translate "Stammdaten korrigieren" %}</h2>
 <div class="karte">
 <form method="post">{% csrf_token %}
@@ -91,4 +97,5 @@
   {% endif %}
 </form>
 </div>
+{% endif %}
 {% endblock %}

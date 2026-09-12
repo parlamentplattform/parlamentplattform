@@ -17,7 +17,8 @@ Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.{
   </div>
   <div class="bereich"><span class="bk">{% translate "Ruhend" %}</span>
     <p class="erk" style="margin-top:6px">{% blocktranslate with pausiert=zahlen.pausiert ausgeschlossen=zahlen.ausgeschlossen %}<strong>{{ pausiert }}</strong> pausiert (Beitrag ausständig) ·
-    <strong>{{ ausgeschlossen }}</strong> ausgeschlossen{% endblocktranslate %}</p>
+    <strong>{{ ausgeschlossen }}</strong> ausgeschlossen{% endblocktranslate %} ·
+    {% blocktranslate with ausgetreten=zahlen.ausgetreten %}<strong>{{ ausgetreten }}</strong> ausgetreten{% endblocktranslate %}</p>
   </div>
   <div class="bereich"><span class="bk">{% translate "Suche" %}</span>
     <form method="get" style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
@@ -42,7 +43,7 @@ Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.{
     <td data-label="{% translate 'E-Mail' %}">{{ m.email }}</td>
     <td data-label="{% translate 'Gemeinde' %}">{{ m.gemeinde|default:"—" }}</td>
     <td data-label="{% translate 'Identität' %}">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
-    <td data-label="{% translate 'Status' %}">{% if not m.is_active and m.status != "ausgeschlossen" %}{% translate "unbestätigt" %}{% else %}{{ m.get_status_display }}{% endif %}</td>
+    <td data-label="{% translate 'Status' %}">{% if m.status == "ausgetreten" %}<span class="badge badge-still">{% translate "ausgetreten" %}</span>{% elif not m.is_active and m.status != "ausgeschlossen" %}{% translate "unbestätigt" %}{% else %}{{ m.get_status_display }}{% endif %}</td>
     <td data-label="{% translate 'Beitritt' %}">{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>
     <td><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{% translate "öffnen →" %}</a></td>
   </tr>

@@ -148,8 +148,9 @@ def liste(request):
         "aktiv": Mitglied.objects.filter(status=Mitgliedsstatus.AKTIV, is_active=True).count(),
         "pausiert": Mitglied.objects.filter(status=Mitgliedsstatus.PAUSIERT).count(),
         "ausgeschlossen": Mitglied.objects.filter(status=Mitgliedsstatus.AUSGESCHLOSSEN).count(),
+        "ausgetreten": Mitglied.objects.filter(status=Mitgliedsstatus.AUSGETRETEN).count(),
         "unbestaetigt": Mitglied.objects.filter(is_active=False)
-        .exclude(status=Mitgliedsstatus.AUSGESCHLOSSEN)
+        .exclude(status__in=(Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN))
         .count(),
     }
     return render(
@@ -266,6 +267,11 @@ def _adresswechsel_aktion(request, mitglied: Mitglied, aktion: str) -> None:
 def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
     grund = request.POST.get("grund", "").strip()
     selbst = mitglied.pk == request.user.pk
+    if mitglied.status == Mitgliedsstatus.AUSGETRETEN:
+        # § 4 Abs 5: Der Austritt ist endgültig — Stammdaten sind geleert, es gibt nichts zu
+        # reaktivieren; ein Wiedereintritt ist ein neues Konto.
+        messages.error(request, _("Ein ausgetretenes Konto wird nicht wieder aktiviert."))
+        return
     if aktion in ("pausieren", "ausschliessen", "admin_nehmen"):
         if mitglied.ist_fixer_admin:
             messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
@@ -327,6 +333,9 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
 def mitglied(request, pk: int):
     Adresswechsel.faellige_anwenden()
     person = get_object_or_404(Mitglied, pk=pk)
+    if request.method == "POST" and person.status == Mitgliedsstatus.AUSGETRETEN:
+        messages.error(request, _("Ein ausgetretenes Konto wird nicht wieder aktiviert."))
+        return redirect("mitglieder:verwaltung_mitglied", pk=pk)
     if request.method == "POST" and request.POST.get("aktion") == "stammdaten":
         form = StammdatenFormular(request.POST, mitglied=person)
         if form.is_valid():

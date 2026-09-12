@@ -6821,8 +6821,8 @@ msgstr "“%(titel)s”: %(status)s."
 msgid "Dieser Name ist nicht verfügbar."
 msgstr "This name is not available."
 
-msgid "So erscheinen Sie bei Anträgen und Beiträgen. Ohne Anzeigenamen erscheint heute Ihr Klarname; nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein — die Umstellung der Voreinstellung ist geplant."
-msgstr "This is how you appear on motions and posts. Without a display name, your real name is shown today; under § 5 para 3 lit a, publication under a pseudonym is meant to be the rule — changing the default is planned."
+msgid "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a); solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen."
+msgstr "This is how you appear on motions and posts. The statutes make a persistent pseudonym the rule (§ 5 para 3 lit a); as long as you set no display name, the platform shows your real name."
 
 msgid "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen."
 msgstr "The new name appears everywhere, including earlier posts and exports. Only review texts already stored and files already downloaded keep the former name."

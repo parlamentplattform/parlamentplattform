@@ -28,7 +28,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   <p><label for="{{ form.anzeigename.id_for_label }}">{{ form.anzeigename.label }}</label>{{ form.anzeigename }}
   {% if form.anzeigename.errors %}<ul class="fehlerliste">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
-  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Ohne Anzeigenamen erscheint heute Ihr Klarname; nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein — die Umstellung der Voreinstellung ist geplant." %}</p>
+  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a); solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen." %}</p>
   <p class="hilfe">{% translate "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen." %}</p>
 </div>
 

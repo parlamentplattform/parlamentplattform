@@ -598,10 +598,12 @@ def test_profilseiten_ohne_doppelte_ids_und_mit_echten_formularen(client):
 # --- Behebung FP (gegnerische Prüfung S10) ------------------------------------
 
 
-def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client):
+def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client, ordnung):  # noqa: F811
     """Befund FP-23: Die Kollisionsprüfung darf kein Mitglieder-Orakel sein. Der Klarname eines
     stillen Mitglieds — erst recht eines, das ein Pseudonym führt — ist als Anzeigename erlaubt;
-    nur Pseudonyme und die Klarnamen von Mitgliedern mit öffentlicher Funktion sind vergeben."""
+    vergeben sind nur Pseudonyme und die Klarnamen, die auf der Plattform stehen: Mitglieder mit
+    öffentlicher Funktion und solche, die ohne Pseudonym Anträge, Bewerbungen oder Chatbeiträge
+    veröffentlicht haben (sonst ließe sich der Name eines Antragstellers anmaßen)."""
     from gremien.models import Fachliste, Gremium, Rolle
     from mandatare.models import Mandat
 
@@ -612,6 +614,11 @@ def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client):
     verborgen = mitglied_anlegen("verborgen")  # tritt öffentlich nur als „Sonnenblume“ auf
     verborgen.first_name, verborgen.last_name, verborgen.pseudonym_oeffentlich = "Max", "Mustermann", "Sonnenblume"
     verborgen.save(update_fields=["first_name", "last_name", "pseudonym_oeffentlich"])
+    antrag_einbringen(verborgen, **ANTRAG, ordnung=ordnung)  # Antragsseite zeigt „Sonnenblume“, nie den Klarnamen
+    autorin = mitglied_anlegen("autorin")  # steht mit Klarnamen auf ihrer Antragsseite
+    autorin.first_name, autorin.last_name = "Klara", "Klar"
+    autorin.save(update_fields=["first_name", "last_name"])
+    antrag_einbringen(autorin, **ANTRAG, ordnung=ordnung)
     mandatar = mitglied_anlegen("mandatar")
     mandatar.first_name, mandatar.last_name = "Moritz", "Mandl"
     mandatar.save(update_fields=["first_name", "last_name"])
@@ -633,7 +640,8 @@ def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client):
     Mandat.objects.create(mitglied=ex_mandatar, bezeichnung="Gemeinderat", gebiet="Wels", beendet=timezone.localdate())
 
     client.force_login(anna)
-    for vergeben in ("Sonnenblume", "Moritz Mandl", "moritz mandl", "Rita Rat", "Frida Fach", "Adam Admin"):
+    for vergeben in ("Sonnenblume", "Moritz Mandl", "moritz mandl", "Rita Rat", "Frida Fach", "Adam Admin",
+                     "Klara Klar"):
         antwort = profil_speichern(client, anzeigename=vergeben, gemeinde=anna.gemeinde)
         assert antwort.status_code == 200 and "nicht verfügbar" in antwort.content.decode(), vergeben
     for frei in ("Erika Musterfrau", "Max Mustermann", "Mustermann", "Egon Ehemalig"):
@@ -641,6 +649,10 @@ def test_anzeigename_pruefung_verraet_keine_stille_mitgliedschaft(client):
         assert antwort.status_code == 302, frei  # kein Unterschied zu einem Nicht-Mitglied
         anna.refresh_from_db()
         assert anna.pseudonym_oeffentlich == frei
+    # Setzt die Antragstellerin ein Pseudonym, verschwindet ihr Klarname von der Seite — und wird frei.
+    autorin.pseudonym_oeffentlich = "Kornblume"
+    autorin.save(update_fields=["pseudonym_oeffentlich"])
+    assert profil_speichern(client, anzeigename="Klara Klar", gemeinde=anna.gemeinde).status_code == 302
 
 
 def test_anzeigename_wirkt_sofort_auf_fruehere_antraege(client, ordnung):  # noqa: F811
@@ -663,13 +675,15 @@ def test_anzeigename_wirkt_sofort_auf_fruehere_antraege(client, ordnung):  # noq
 
 
 def test_profil_hilfetexte_sind_ehrlich_und_der_sprachknopf_gestylt(client):
-    """FP-18: Der Satz zum Anzeigenamen verdreht § 5 Abs 3 lit a nicht mehr. FP-11: Der
+    """FP-18: Der Satz zum Anzeigenamen verdreht § 5 Abs 3 lit a nicht mehr und verspricht keine
+    Umstellung, die noch niemand beschlossen hat (Teil D, Gründerentscheidung). FP-11: Der
     Sprachumschalter trägt auf der Karte die Knopfklasse der Nachbarn, nicht das nackte `z`.
     FP-14: Die Exportkarte nennt Fachliste, Interessenbindungen und Räte — und die Ausnahmen."""
     client.force_login(mit_wohnsitz())
     inhalt = client.get(PROFIL).content.decode()
-    assert "Ohne Anzeigenamen erscheint heute Ihr Klarname" in inhalt
-    assert "nach § 5 Abs 3 lit a soll die Veröffentlichung unter Pseudonym die Regel sein" in inhalt
+    assert "Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a)" in inhalt
+    assert "solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen" in inhalt
+    assert "geplant" not in inhalt  # keine Zusage, die der Gründer nicht getroffen hat
     karte = inhalt.split('id="sprache"')[1].split("</div>")[0]
     assert 'class="btn-linie klein" lang="en">EN · English</button>' in karte
     assert 'class="z"' not in karte and 'class="sprache"' not in karte

@@ -40,7 +40,15 @@ from django.views.decorators.http import require_POST
 from mitglieder.models import Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
-from verfahren.models import AuditEintrag, BewerbungsZustimmung, Stimmabgabe, StimmRegister
+from verfahren.models import (
+    Antrag,
+    AuditEintrag,
+    Bewerbung,
+    BewerbungsZustimmung,
+    Kommentar,
+    Stimmabgabe,
+    StimmRegister,
+)
 
 BESTAETIGUNGSWORT = "AUSTRITT"
 REGISTERSCHLUESSEL = "region-nebenwohnsitz-zaehlt"  # die Stellgröße, die der Profiltext nennt
@@ -81,8 +89,11 @@ def _gemeinde_pruefen(eingabe: str) -> Gemeinde | None:
 
 
 def _oeffentliche_funktion() -> Q:
-    """Mitglieder, deren Klarname auf der Plattform stehen kann: offenes Mandat, aktive
-    Ratsrolle, geführter Fachlisteneintrag mit Namensnennung, Verwaltung.
+    """Mitglieder, deren Klarname auf der Plattform steht: offenes Mandat, aktive Ratsrolle,
+    geführter Fachlisteneintrag mit Namensnennung, Verwaltung — und wer ohne Pseudonym einen
+    Antrag eingebracht, sich beworben oder im Chat geschrieben hat (dort steht der Klarname
+    als `anzeigename` auf der Seite; setzt das Mitglied später ein Pseudonym, verschwindet er
+    dort live und fällt auch hier aus der Prüfung).
 
     Als `Exists`-Unterabfragen, nicht als Joins: `Q(mandate__beendet__isnull=True)` träfe über
     den LEFT OUTER JOIN auch jedes Mitglied OHNE Mandat — genau das Orakel, das hier vermieden wird."""
@@ -90,13 +101,20 @@ def _oeffentliche_funktion() -> Q:
     from mandatare.models import Mandat
 
     heute = timezone.localdate()
+    ich = OuterRef("pk")
+    unter_klarnamen_aufgetreten = Q(pseudonym_oeffentlich="") & (
+        Q(Exists(Antrag.objects.filter(eingebracht_von=ich)))
+        | Q(Exists(Bewerbung.objects.filter(mitglied=ich)))
+        | Q(Exists(Kommentar.objects.filter(mitglied=ich)))
+    )
     return (
-        Q(Exists(Mandat.objects.filter(mitglied=OuterRef("pk"), beendet__isnull=True)))
-        | Q(Exists(Rolle.objects.filter(mitglied=OuterRef("pk"), beendet_grund="", endet_am__gte=heute)))
+        unter_klarnamen_aufgetreten
+        | Q(Exists(Mandat.objects.filter(mitglied=ich, beendet__isnull=True)))
+        | Q(Exists(Rolle.objects.filter(mitglied=ich, beendet_grund="", endet_am__gte=heute)))
         | Q(
             Exists(
                 Fachliste.objects.filter(
-                    mitglied=OuterRef("pk"), gestrichen_am__isnull=True, einwilligung_widerrufen_am__isnull=True
+                    mitglied=ich, gestrichen_am__isnull=True, einwilligung_widerrufen_am__isnull=True
                 )
             )
         )
@@ -109,15 +127,16 @@ def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
     """Kollidiert der gewünschte Anzeigename mit dem öffentlichen Namensraum?
 
     Geprüft wird gegen (a) jedes vergebene Pseudonym und (b) die Klarnamen (Vor- und Nachname,
-    nur Vorname, nur Nachname) der Mitglieder mit öffentlicher Funktion — nicht gegen die
-    Klarnamen aller Mitglieder.
+    nur Vorname, nur Nachname) der Mitglieder, die auf der Plattform unter Klarnamen stehen
+    (`_oeffentliche_funktion`) — nicht gegen die Klarnamen aller Mitglieder.
 
     Warum nicht alle: Die Profilseite steht jedem angemeldeten Konto offen, auch ungeprüften.
     Prüfte sie den Wunschnamen gegen die Klarnamen ALLER Mitglieder, ließe sich Name für Name
     abfragen, wer Mitglied ist — die Parteimitgliedschaft ist ein Datum nach Art 9 DSGVO, und
     gerade wer ein Pseudonym führt, hat den Klarnamen nirgends gezeigt. Vor Anmaßung zu schützen
-    ist nur, was ohnehin öffentlich steht: Pseudonyme und die Namen der Mandatare, Ratsmitglieder,
-    Fachleute und der Verwaltung. Ein stilles Mitglied bleibt unsichtbar, auch für diese Prüfung;
+    ist nur, was ohnehin öffentlich steht: Pseudonyme, die Namen der Mandatare, Ratsmitglieder,
+    Fachleute und der Verwaltung und die Klarnamen derer, die ohne Pseudonym Anträge, Bewerbungen
+    oder Chatbeiträge veröffentlicht haben. Ein stilles Mitglied bleibt unsichtbar, auch für diese Prüfung;
     die Restunschärfe (ein Treffer über den Klarnamen eines Mandatars bestätigt nur, was dessen
     Seite ohnehin zeigt) ist gewollt."""
     klarname_gleich = (

@@ -13,6 +13,11 @@ from django.db import models
 
 from plattform_core import Gegenstand, stimmberechtigt
 
+#: Anzeigename ohne Pseudonym und ohne Einwilligung zum Klarnamen: „Mitglied n“ (§ 5 Abs 3 lit a).
+#: DB-nahes Literal wie „Ehemaliges Mitglied“ — steht identisch in Exporten und Prüfungstexten,
+#: darum nicht übersetzt.
+PLATZHALTER_MITGLIED = "Mitglied"
+
 
 class Bundesland(models.TextChoices):
     BURGENLAND = "burgenland", "Burgenland"
@@ -68,7 +73,24 @@ class Mitglied(AbstractUser):
     pseudonym_oeffentlich = models.CharField(
         max_length=50,
         blank=True,
-        help_text="Beständiges öffentliches Pseudonym für Anträge (§ 5 Abs 3 lit a). Leer = Klarname.",
+        help_text="Beständiges öffentliches Pseudonym für Anträge (§ 5 Abs 3 lit a). "
+        "Leer = Klarname, sofern er öffentlich erscheinen darf, sonst „Mitglied n“.",
+    )
+    klarname_oeffentlich = models.BooleanField(
+        default=True,
+        help_text="Darf der Klarname öffentlich erscheinen, solange kein Anzeigename gesetzt ist (§ 5 Abs 3 lit a)? "
+        "Die Registrierung fragt das ausdrücklich (Voreinstellung: nein); der Bestand ist unter dem alten "
+        "Datenschutztext beigetreten, der den Anzeigenamen öffentlich nannte, und bleibt darum bei ja.",
+    )
+    willkommen_post_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Erster Versandversuch des Willkommensbriefs — es gibt genau einen je Konto.",
+    )
+    freischaltung_post_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Erster Versandversuch des Freischaltungsbriefs — es gibt genau einen je Konto.",
     )
     gemeinde = models.CharField(
         max_length=120,
@@ -189,7 +211,14 @@ class Mitglied(AbstractUser):
 
     @property
     def anzeigename(self) -> str:
-        return self.pseudonym_oeffentlich or self.get_full_name() or self.username
+        """Der öffentliche Name (§ 5 Abs 3 lit a): das Pseudonym; ohne Pseudonym der Klarname,
+        aber nur mit Einwilligung (`klarname_oeffentlich`); sonst „Mitglied n“. Nie der
+        Anmeldename — der ist bei Registrierten die E-Mail-Adresse."""
+        if self.pseudonym_oeffentlich:
+            return self.pseudonym_oeffentlich
+        if self.klarname_oeffentlich and self.get_full_name():
+            return self.get_full_name()
+        return f"{PLATZHALTER_MITGLIED} {self.pk}"
 
     @property
     def ist_fixer_admin(self) -> bool:
@@ -600,10 +629,12 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
             felder += mitglied.status_setzen(
                 Mitgliedsstatus.AKTIV, "Beitragseingang automatisch abgeglichen (F-59)."
             )
+        freigeschaltet = False
         if mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             # Freischaltung zählt ab HEUTE, nicht ab Buchungstag: Der Nenner einer laufenden
             # Abstimmung wurde ohne dieses Mitglied festgestellt (§ 4 Abs 4 lit a).
             felder += mitglied.identitaetsstufe_setzen(Identitaetsstufe.GEPRUEFT)
+            freigeschaltet = True
         mitglied.save(update_fields=felder)
         AuditEintrag.anhaengen(
             {"typ": "beitrag", "aktion": "eingang_verbucht", "mitglied": mitglied.pk}
@@ -623,4 +654,9 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
         )
     except OSError:
         pass
+    if freigeschaltet:
+        # Eigener Brief (FB-K7): Prüfung abgeschlossen, Stimmrecht ab wann — einmal je Konto.
+        from mitglieder.post import freischaltung_senden
+
+        freischaltung_senden(mitglied)
     return True

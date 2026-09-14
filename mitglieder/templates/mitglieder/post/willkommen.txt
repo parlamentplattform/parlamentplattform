@@ -1,0 +1,18 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
+
+{% blocktranslate %}Ihre E-Mail-Adresse ist bestätigt — willkommen bei Direkte Demokratie Österreich. Sie sind jetzt Anwärterin bzw. Anwärter.{% endblocktranslate %}
+
+{% blocktranslate %}Ab sofort können Sie alles lesen: Anträge, Beratungen und Ergebnisse sind öffentlich (§ 2 Abs 5).{% endblocktranslate %}
+
+{% blocktranslate %}Einbringen, Unterstützen und Mitreden sowie Stimm- und Wahlrecht setzen eine geprüfte Identität voraus. Der erste Eingang Ihres Mitgliedsbeitrags schaltet Ihr Konto frei — die Höhe ist Ihre Selbsteinschätzung (§ 4 Abs 3). Ihre persönliche Referenz für die Überweisung: {{ referenz }}{% endblocktranslate %}
+{{ basis }}/beitrag/
+
+{% blocktranslate %}Nach der Freischaltung gilt für Abstimmungen und Wahlen:{% endblocktranslate %} {{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
+
+{% blocktranslate %}Öffentlich erscheinen Sie als „{{ anzeigename }}“; den Anzeigenamen wählen Sie im Profil (§ 5 Abs 3 lit a).{% endblocktranslate %}
+
+{% translate "Einführung:" %} {{ basis }}/einfuehrung/1/
+{% translate "Parlament:" %} {{ basis }}/parlament/
+{% translate "Profil:" %} {{ basis }}/profil/
+
+{{ schluss }}{% endautoescape %}

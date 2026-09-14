@@ -105,12 +105,14 @@ def einreichen(client, antrag, raete, vollzugsbezug=False):
 
 
 def test_oeffentliche_gremien_seite_zeigt_besetzung(client, ordnung):  # noqa: F811
-    rolle_geben(mitglied_anlegen("erika"))
-    abgelaufen = rolle_geben(mitglied_anlegen("wanda_vormals"))
+    erika, wanda = mitglied_anlegen("erika"), mitglied_anlegen("wanda_vormals")
+    rolle_geben(erika)
+    abgelaufen = rolle_geben(wanda)
     abgelaufen.endet_am = timezone.localdate() - timedelta(days=1)
     abgelaufen.save()
     inhalt = client.get("/gremien/").content.decode()
-    assert "erika" in inhalt and "wanda_vormals" not in inhalt  # Rollen erlöschen automatisch
+    assert erika.anzeigename in inhalt and wanda.anzeigename not in inhalt  # Rollen erlöschen automatisch
+    assert "erika" not in inhalt and "wanda_vormals" not in inhalt  # der Anmeldename steht nirgends
     assert "Koordinationsrat" in inhalt  # unbesetzte Gremien stehen trotzdem da
 
 

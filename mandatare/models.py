@@ -135,7 +135,10 @@ class Mandat(models.Model):
 
     @property
     def initialen(self) -> str:
-        teile = (self.mitglied.get_full_name() or self.mitglied.anzeigename).split()
+        """Kürzel für die Kachel — aus dem Klarnamen nur, wenn er öffentlich erscheinen darf
+        (§ 5 Abs 3 lit a), sonst aus dem Anzeigenamen."""
+        m = self.mitglied
+        teile = ((m.get_full_name() if m.klarname_oeffentlich else "") or m.anzeigename).split()
         return "".join(t[0].upper() for t in teile[:2]) or "?"
 
     def sitzungstage(self):

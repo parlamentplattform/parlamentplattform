@@ -15,7 +15,7 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   {% for feld in form.visible_fields %}
     <p>
-      {% if feld.name == "grundsaetze" %}
+      {% if feld.field.widget.input_type == "checkbox" %}
         <span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}" style="font-weight:400">{{ feld.label }}</label></span>
       {% else %}
         <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
@@ -36,7 +36,7 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
 <div class="karte">
 <p><strong>{% translate "Was mit Ihren Daten geschieht:" %}</strong> {% blocktranslate %}Name und Gemeinde dienen der
 Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.
-Öffentlich erscheint nur Ihr Anzeigename bei Anträgen und Beiträgen; Abstimmungen laufen unter
-Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung.{% endblocktranslate %}</p>
+Öffentlich erscheint Ihr Anzeigename bei Anträgen und Beiträgen; Ihr Klarname nur mit Ihrer Einwilligung
+(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

@@ -81,7 +81,10 @@ def test_leiste_gast(client):
 
 
 def test_konto_menue_mitglied_ohne_rolle(client):
-    client.force_login(mitglied_anlegen())
+    anna = mitglied_anlegen()
+    anna.first_name = "Anna"  # ohne Namen hieße der Kreis „M“ — für „Mitglied n“ (0.47, § 5 Abs 3 lit a)
+    anna.save(update_fields=["first_name"])
+    client.force_login(anna)
     html = client.get(reverse("verfahren:parlament")).content.decode()
     konto = _konto(html)
     assert 'class="avatar" x-ref="ausloeser"' in konto and ">A</summary>" in konto

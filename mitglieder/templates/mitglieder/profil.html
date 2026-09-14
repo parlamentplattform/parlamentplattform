@@ -3,7 +3,7 @@
 {% block titel %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
-Das eigene Profil (FB-K5): Anzeigename, Wohnsitz und Nebenwohnsitz in einem Formular,
+Das eigene Profil (FB-K5): Anzeigename, Einwilligung zum Klarnamen, Wohnsitz und Nebenwohnsitz in einem Formular,
 daneben Sprache, E-Mail (nur Anzeige), Sitzungen, Datenexport und der Weg zum Austritt.
 Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 {% endcomment %}
@@ -12,6 +12,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   @media (max-width:980px){.pf-grid{grid-template-columns:1fr}}
   .pf-grid .karte{margin-top:0}
   .pf-form label{display:block;margin-top:6px}
+  .pf-form .checkzeile label{display:inline;margin:0;font-weight:400}
   .pf-form input[type=text]{width:100%;max-width:100%}
   .pf-wert{font-variant-numeric:tabular-nums;word-break:break-all}
 </style>
@@ -28,7 +29,9 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   <p><label for="{{ form.anzeigename.id_for_label }}">{{ form.anzeigename.label }}</label>{{ form.anzeigename }}
   {% if form.anzeigename.errors %}<ul class="fehlerliste">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
-  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a); solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen." %}</p>
+  <p><span class="checkzeile">{{ form.klarname_oeffentlich }} <label for="{{ form.klarname_oeffentlich.id_for_label }}">{{ form.klarname_oeffentlich.label }}</label></span></p>
+  <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a). Ohne Anzeigenamen zeigt die Plattform Ihren Klarnamen nur, wenn Sie es hier erlauben; sonst „Mitglied n“ mit Ihrer Mitgliedsnummer." %}</p>
+  <p class="hilfe">{% blocktranslate with name=user.anzeigename %}Derzeit erscheinen Sie als „{{ name }}“.{% endblocktranslate %}</p>
   <p class="hilfe">{% translate "Der neue Name erscheint überall, auch bei früheren Beiträgen und in Exporten. Nur bereits gespeicherte Prüfungstexte und schon heruntergeladene Dateien behalten den damaligen Namen." %}</p>
 </div>
 

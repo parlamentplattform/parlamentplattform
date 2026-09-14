@@ -1,0 +1,11 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
+
+{% blocktranslate %}Ihre Prüfung ist abgeschlossen (Stufe: {{ stufe }}). Damit sind Stimm- und Wahlrecht für Sie möglich.{% endblocktranslate %}
+
+{% if ruht %}{% blocktranslate %}Ihre Mitwirkungsrechte ruhen allerdings, solange der Mitgliedsbeitrag aussteht (§ 4 Abs 3); mit dem nächsten Beitragseingang leben sie wieder auf.{% endblocktranslate %}{% else %}{% blocktranslate %}Ab sofort können Sie Anträge einbringen, unterstützen und mitreden (§ 4 Abs 4 lit b).{% endblocktranslate %}{% endif %}
+
+{{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
+
+{% translate "Parlament:" %} {{ basis }}/parlament/
+
+{{ schluss }}{% endautoescape %}

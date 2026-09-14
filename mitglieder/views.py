@@ -26,6 +26,7 @@ from django.views.decorators.http import require_POST
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.post import freischaltung_senden, willkommen_senden
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -78,6 +79,13 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
             + hinweis
         )
 
+    klarname_oeffentlich = forms.BooleanField(
+        label=gettext_lazy("Mein Name darf öffentlich erscheinen."),
+        required=False,
+        help_text=gettext_lazy(
+            "Ohne Haken zeigt die Plattform bis zur Wahl eines Anzeigenamens „Mitglied n“ (§ 5 Abs 3 lit a)."
+        ),
+    )
     grundsaetze = forms.BooleanField(
         label=gettext_lazy(
             "Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
@@ -170,6 +178,9 @@ def registrieren(request):
                     mitglied.username = d["email"]
                     mitglied.first_name = d["vorname"]
                     mitglied.last_name = d["nachname"]
+                    # § 5 Abs 3 lit a: Pseudonym ist die Regel — der Klarname erscheint nur mit
+                    # ausdrücklicher Einwilligung (Kontrollkästchen, Standard: nicht angehakt).
+                    mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
                     mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
                     gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
@@ -203,10 +214,15 @@ def bestaetigen(request, token: str):
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     mitglied.is_active = True
     if mitglied.beitritt is None:
-        mitglied.beitritt = timezone.now().date()  # Beginn der Anwartschaft (§ 4 Abs 4)
+        mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
     mitglied.save(update_fields=["is_active", "beitritt"])
     dj_login(request, mitglied)
     AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
+    willkommen_senden(mitglied)  # FB-K7: einmal je Konto, Versand ist Höflichkeit
+    if mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
+        # Die Verwaltung hat die Identität schon vor der Bestätigung festgestellt (etwa in Präsenz):
+        # Damals war das Konto inaktiv und bekam keinen Brief — der Freischaltungsbrief folgt jetzt.
+        freischaltung_senden(mitglied)
     messages.success(request, _("E-Mail bestätigt — willkommen! Sie sind jetzt Anwärterin bzw. Anwärter."))
     # F-53: Neue Mitglieder landen in der Einführung (jederzeit überspringbar);
     # der Beitrags-QR (Willkommensseite) ist ihr Abschluss.

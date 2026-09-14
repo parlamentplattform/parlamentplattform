@@ -47,7 +47,7 @@
   <datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   {% for feld in form.visible_fields %}
-    <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
+    <p>{% if feld.field.widget.input_type == "checkbox" %}<span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}">{{ feld.label }}</label></span>{% else %}<label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}{% endif %}
     {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   {% endfor %}
   <button type="submit" class="btn">{% translate "Speichern" %}</button>

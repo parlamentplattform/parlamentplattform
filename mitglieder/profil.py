@@ -4,7 +4,8 @@ Grundsätze:
 - Zugang hat jedes angemeldete Konto — auch pausierte und ungeprüfte: Datenexport
   und Austritt sind Rechte des Menschen, keine Mitwirkungsrechte (darum `login_required`
   und nicht die Mitwirkungssperre der Verfahrensansichten).
-- Änderbar sind Anzeigename, Wohnsitz und Nebenwohnsitz. Die Anmeldeadresse ändert nur
+- Änderbar sind Anzeigename, die Einwilligung zum Klarnamen (§ 5 Abs 3 lit a), Wohnsitz und
+  Nebenwohnsitz. Die Anmeldeadresse ändert nur
   die Verwaltung (Einspruchslink, Wartefrist, zweiter Admin — `Adresswechsel`), der
   Anmeldename nie (an ihm hängt die Beitragsreferenz).
 - Der Nebenwohnsitz ordnet nur zusätzlich einer Region zu, sobald die Stellgröße
@@ -19,6 +20,7 @@ Grundsätze:
 from __future__ import annotations
 
 import json
+import re
 
 from django import forms
 from django.conf import settings
@@ -37,7 +39,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
-from mitglieder.models import Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
+from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
 from verfahren.models import (
@@ -54,6 +56,7 @@ BESTAETIGUNGSWORT = "AUSTRITT"
 REGISTERSCHLUESSEL = "region-nebenwohnsitz-zaehlt"  # die Stellgröße, die der Profiltext nennt
 PLATZHALTER = "Ehemaliges Mitglied"  # Anzeigename Ausgetretener ohne Pseudonym (DB-Literal, keine Oberfläche)
 VORBEHALTEN = frozenset({"die plattform", "the platform"})  # Verfasser der Systembeiträge im Chat
+MITGLIED_N = re.compile(rf"{PLATZHALTER_MITGLIED}\s*#?\s*\d*", re.IGNORECASE)  # „Mitglied n“ (§ 5 Abs 3 lit a)
 
 
 class AustrittFehler(ValueError):
@@ -107,7 +110,10 @@ def _oeffentliche_funktion() -> Q:
         | Q(Exists(Bewerbung.objects.filter(mitglied=ich)))
         | Q(Exists(Kommentar.objects.filter(mitglied=ich)))
     )
-    return (
+    # Seit 0.47 gilt zusätzlich: Ohne Einwilligung (`klarname_oeffentlich`) zeigt `anzeigename`
+    # nie den Klarnamen — auch nicht bei Mandataren oder Ratsmitgliedern; dann ist er nirgends
+    # öffentlich und fällt aus der Prüfung (sonst wäre sie wieder ein Orakel).
+    return Q(klarname_oeffentlich=True) & (
         unter_klarnamen_aufgetreten
         | Q(Exists(Mandat.objects.filter(mitglied=ich, beendet__isnull=True)))
         | Q(Exists(Rolle.objects.filter(mitglied=ich, beendet_grund="", endet_am__gte=heute)))
@@ -155,8 +161,9 @@ def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
 class ProfilFormular(forms.Form):
     """Anzeigename, Wohnsitz, Nebenwohnsitz — was ein Mitglied selbst pflegt."""
 
-    anzeigename = forms.CharField(
-        label=gettext_lazy("Öffentlicher Anzeigename (leer = Klarname)"), max_length=50, required=False
+    anzeigename = forms.CharField(label=gettext_lazy("Öffentlicher Anzeigename"), max_length=50, required=False)
+    klarname_oeffentlich = forms.BooleanField(
+        label=gettext_lazy("Mein Name darf öffentlich erscheinen."), required=False
     )
     gemeinde = forms.CharField(
         label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
@@ -181,9 +188,14 @@ class ProfilFormular(forms.Form):
         name = " ".join(self.cleaned_data["anzeigename"].split())  # Leerraum normalisieren
         if not name:
             return ""
-        if name.casefold() in VORBEHALTEN or name.casefold().startswith(PLATZHALTER.casefold()):
+        if (
+            name.casefold() in VORBEHALTEN
+            or name.casefold().startswith(PLATZHALTER.casefold())
+            or MITGLIED_N.fullmatch(name)
+        ):
             # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
-            # der Platzhalter Ausgetretener — beides darf sich niemand als Anzeigenamen geben.
+            # der Platzhalter Ausgetretener, „Mitglied n“ der Anzeigename ohne Pseudonym und ohne
+            # Einwilligung zum Klarnamen — nichts davon darf sich jemand als Anzeigenamen geben.
             raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
         if anzeigename_vergeben(name, ausser=self.mitglied):
             # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
@@ -217,6 +229,9 @@ def _profil_anwenden(mitglied: Mitglied, form: ProfilFormular) -> list[str]:
     if mitglied.pseudonym_oeffentlich != d["anzeigename"]:
         mitglied.pseudonym_oeffentlich = d["anzeigename"]
         geaendert.append("anzeigename")
+    if mitglied.klarname_oeffentlich != d["klarname_oeffentlich"]:
+        mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
+        geaendert.append("klarname_oeffentlich")
     g = form.gemeinde_objekt
     if g is not None:
         if mitglied.wohnsitz_id != g.pk:
@@ -253,6 +268,7 @@ def profil(request):
             mitglied=mitglied,
             initial={
                 "anzeigename": mitglied.pseudonym_oeffentlich,
+                "klarname_oeffentlich": mitglied.klarname_oeffentlich,
                 "gemeinde": mitglied.wohnsitz.anzeige if mitglied.wohnsitz_id else mitglied.gemeinde,
                 "nebenwohnsitz": mitglied.nebenwohnsitz.anzeige if mitglied.nebenwohnsitz_id else "",
             },
@@ -494,6 +510,7 @@ def daten_export(mitglied: Mitglied) -> dict:
             "vorname": m.first_name,
             "nachname": m.last_name,
             "anzeigename": m.pseudonym_oeffentlich,
+            "klarname_oeffentlich": m.klarname_oeffentlich,
             "beitritt": m.beitritt,
             "identitaetsstufe": m.identitaetsstufe,
             "geprueft_seit": m.geprueft_seit,
@@ -506,6 +523,7 @@ def daten_export(mitglied: Mitglied) -> dict:
             "registriert_am": m.date_joined,
             "zuletzt_angemeldet": m.last_login,
         },
+        "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),
         "beitraege": [
@@ -762,7 +780,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     mitglied.wohnsitz = mitglied.nebenwohnsitz = None
     mitglied.status_grund = ""
     if not mitglied.pseudonym_oeffentlich:
-        # Sonst fiele `anzeigename` auf den Anmeldenamen zurück — und der war die E-Mail-Adresse.
+        # Sonst stünde bei früheren Beiträgen „Mitglied n“ — als wäre der Mensch noch Mitglied.
         mitglied.pseudonym_oeffentlich = f"{PLATZHALTER} {mitglied.pk}"
     mitglied.set_unusable_password()  # neuer Zufallswert: alle Sitzungen enden (siehe sitzungen_beenden)
     mitglied.save()

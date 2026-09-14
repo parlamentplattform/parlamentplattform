@@ -52,7 +52,11 @@ def test_verbuchen_schaltet_frei_und_ist_idempotent():
 
     assert beitrag_verbuchen(m, eingang(), namens_ok=True) is False  # gleicher Umsatz zählt einmal
     assert Beitragseingang.objects.count() == 1
-    assert len(mail.outbox) == 1  # eine Bestätigung, keine zweite
+    # Eine Beitragsbestätigung und ein Freischaltungsbrief (FB-K7) — beim zweiten Umsatz nichts mehr.
+    assert [n.subject for n in mail.outbox] == [
+        "Ihr Mitgliedsbeitrag ist eingegangen",
+        "Ihre Prüfung ist abgeschlossen — ParlamentPlattform",
+    ]
 
 
 def test_aelterer_eingang_setzt_beitragsdatum_nicht_zurueck():

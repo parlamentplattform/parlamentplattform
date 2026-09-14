@@ -75,7 +75,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     antwort = client.get(link_aus_mail(mail.outbox[0]), follow=True)
     m.refresh_from_db()
     assert m.is_active is True
-    assert m.beitritt == timezone.now().date()  # Anwartschaft beginnt (§ 4 Abs 4)
+    assert m.beitritt == timezone.localdate()  # Anwartschaft beginnt (§ 4 Abs 4) — Ortszeit, nicht UTC
     assert antwort.status_code == 200
     assert antwort.request["PATH_INFO"] == "/einfuehrung/1/"  # F-53: erst die Einführung …
     inhalt = client.get(reverse("mitglieder:willkommen")).content.decode()  # … ihr Abschluss: der Beitrag
@@ -424,3 +424,38 @@ def test_versandstoerung_beim_anmelden_wird_offen_gemeldet(client, monkeypatch):
     assert antwort.status_code == 200
     assert "gestört" in antwort.content.decode()
     assert "Postfach" not in antwort.content.decode()  # keine falsche „unterwegs“-Seite
+
+
+# --- Pseudonym als Voreinstellung (§ 5 Abs 3 lit a, 0.47) -------------------------------
+
+
+def test_registrierung_ohne_haken_zeigt_mitglied_n_mit_haken_den_klarnamen(client):
+    seite = client.get(reverse("mitglieder:registrieren")).content.decode()
+    assert 'type="checkbox" name="klarname_oeffentlich"' in seite and "checked" not in seite.split("klarname_oeffentlich")[1][:80]
+    assert "Mein Name darf öffentlich erscheinen." in seite and "„Mitglied n“" in seite
+    assert "Ihr Klarname nur mit Ihrer Einwilligung" in seite and "erscheint nur Ihr Anzeigename" not in seite
+
+    client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
+    eva = Mitglied.objects.get(email="eva@example.org")
+    assert eva.klarname_oeffentlich is False and eva.anzeigename == f"Mitglied {eva.pk}"
+    assert "eva" not in eva.anzeigename.lower() and "@" not in eva.anzeigename
+
+    client.post(
+        reverse("mitglieder:registrieren"),
+        {**ANMELDUNG, "email": "max@example.org", "vorname": "Max", "klarname_oeffentlich": "on", **botschutz(client)},
+    )
+    max_ = Mitglied.objects.get(email="max@example.org")
+    assert max_.klarname_oeffentlich is True and max_.anzeigename == "Max Muster"
+
+
+def test_anzeigename_faellt_nie_auf_den_anmeldenamen_zurueck():
+    """Bestand (Objekt direkt angelegt, Standard True) zeigt den Klarnamen wie bisher; ohne Namen
+    aber „Mitglied n“ — nie den Anmeldenamen, der bei Registrierten die E-Mail-Adresse ist."""
+    ohne = Mitglied.objects.create(username="ohne@example.org", email="ohne@example.org")
+    assert ohne.klarname_oeffentlich is True and ohne.anzeigename == f"Mitglied {ohne.pk}"
+    mit = Mitglied.objects.create(username="mit@example.org", email="mit@example.org", first_name="Mia", last_name="Mit")
+    assert mit.anzeigename == "Mia Mit"
+    mit.klarname_oeffentlich = False
+    assert mit.anzeigename == f"Mitglied {mit.pk}"
+    mit.pseudonym_oeffentlich = "Kornblume"
+    assert mit.anzeigename == "Kornblume"

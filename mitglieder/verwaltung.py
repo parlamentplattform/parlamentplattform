@@ -40,6 +40,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.post import freischaltung_senden
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -70,8 +71,12 @@ class StammdatenFormular(forms.Form):
     vorname = forms.CharField(label=gettext_lazy("Vorname"), max_length=80, required=False)
     nachname = forms.CharField(label=gettext_lazy("Nachname"), max_length=80, required=False)
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
-    anzeigename = forms.CharField(
-        label=gettext_lazy("Öffentlicher Anzeigename (leer = Klarname)"), max_length=50, required=False
+    anzeigename = forms.CharField(label=gettext_lazy("Öffentlicher Anzeigename"), max_length=50, required=False)
+    #: Die Einwilligung nach § 5 Abs 3 lit a kann nur der Mensch selbst erteilen (Profil). Die
+    #: Verwaltung darf sie hier nur zurücknehmen — das Kästchen lässt sich abhaken, nicht setzen.
+    klarname_oeffentlich = forms.BooleanField(
+        label=gettext_lazy("Klarname darf öffentlich erscheinen (Einwilligung, § 5 Abs 3 lit a — nur das Mitglied selbst kann sie erteilen; die Verwaltung kann sie hier zurücknehmen)"),
+        required=False,
     )
     gemeinde = forms.CharField(
         label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
@@ -217,12 +222,15 @@ def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) 
         "first_name": d["vorname"],
         "last_name": d["nachname"],
         "pseudonym_oeffentlich": d["anzeigename"],
+        # Einwilligung nur zurücknehmen, nie erteilen (§ 5 Abs 3 lit a, § 8 Abs 4)
+        "klarname_oeffentlich": mitglied.klarname_oeffentlich and d["klarname_oeffentlich"],
         "beitrag_zuletzt_am": d["beitrag_zuletzt_am"],
     }
     for feld, neu in zuordnung.items():
         if getattr(mitglied, feld) != neu:
             setattr(mitglied, feld, neu)
             geaendert.append(feld)
+    war_ungeprueft = mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
     geaendert += mitglied.identitaetsstufe_setzen(d["identitaetsstufe"])
     if d["gemeinde"]:
         g = form.gemeinde_objekt
@@ -236,6 +244,8 @@ def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) 
         mitglied.save()
         _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
         messages.success(request, _("Stammdaten gespeichert."))
+        if war_ungeprueft and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
+            freischaltung_senden(mitglied)  # FB-K7: gleich durch wen — einmal je Konto
     adresse_neu = d["email"] != (mitglied.email or "").lower()
     if adresse_neu:
         # Nie sofort (F-51, § 5 Abs 3): Einspruchsfrist für die bisherige Adresse, zweiter Admin.
@@ -355,6 +365,7 @@ def mitglied(request, pk: int):
                 "nachname": person.last_name,
                 "email": person.email,
                 "anzeigename": person.pseudonym_oeffentlich,
+                "klarname_oeffentlich": person.klarname_oeffentlich,
                 "gemeinde": person.gemeinde,
                 "identitaetsstufe": person.identitaetsstufe,
                 "beitrag_zuletzt_am": person.beitrag_zuletzt_am,

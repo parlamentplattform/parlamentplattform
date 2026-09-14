@@ -74,7 +74,7 @@ def test_frist_auf_der_antragsseite_rechnet_die_aussetzung_ein(client, ordnung):
     Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=jetzt - timedelta(days=4))
     antrag.refresh_from_db()
     ohne = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
-    frist_roh = antrag.phase_beginn + timedelta(days=REGELN["abstimmung_tage"])  # in drei Tagen
+    frist_roh = timezone.localtime(antrag.phase_beginn + timedelta(days=REGELN["abstimmung_tage"]))  # in drei Tagen, Ortszeit wie die Seite
     assert f"Frist {frist_roh:%d.%m.%Y}" in ohne
 
     # Drei Tage Stillstand innerhalb der Phase, von selbst geendet (kein Antrag ans Schiedsgericht)

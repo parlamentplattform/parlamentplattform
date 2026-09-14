@@ -303,7 +303,12 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/profil/austritt/")
     halte_fest(p, "profil-austritt-ohne-javascript", js=False)
 
-    erwartet = 35 + 7 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
+    # 0.47: Registrierung mit der Einwilligung zum Klarnamen (§ 5 Abs 3 lit a)
+    p = seite()
+    p.goto(f"{live_server.url}/mitglied-werden/")
+    halte_fest(p, "registrierung-einwilligung")
+
+    erwartet = 35 + 8 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
     assert len(bilder) == erwartet, (len(bilder), erwartet)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

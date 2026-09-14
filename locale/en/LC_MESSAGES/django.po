@@ -1135,17 +1135,6 @@ msgstr ""
 msgid "Was mit Ihren Daten geschieht:"
 msgstr "What happens to your data:"
 
-msgid ""
-"Name und Gemeinde dienen der\n"
-"Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.\n"
-"Öffentlich erscheint nur Ihr Anzeigename bei Anträgen und Beiträgen; Abstimmungen laufen unter\n"
-"Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung."
-msgstr ""
-"Name and municipality serve membership administration under the statutes; "
-"the year of birth is only checked (§ 4 (1)) and not stored. Publicly, only your "
-"display name appears on motions and contributions; votes are cast under a "
-"pseudonym (§ 5 (3)). No sharing, no advertising."
-
 msgid "Link nicht mehr gültig"
 msgstr "Link no longer valid"
 
@@ -6118,9 +6107,6 @@ msgstr "Change of login address"
 msgid "Änderung verwerfen — meine Adresse bleibt"
 msgstr "Discard change — keep my address"
 
-msgid "Öffentlicher Anzeigename (leer = Klarname)"
-msgstr "Public display name (empty = real name)"
-
 # ── 0.45: Nachtrag nach der Zusammenführung der Cluster (Adresswechsel, Übersicht, Werkstatt, Beschriftungen) ──
 
 msgid ""
@@ -6469,8 +6455,8 @@ msgid_plural "Ihre %(n)s offenen Mandate werden mit heutigem Tag als beendet ver
 msgstr[0] "Your open mandate is recorded as ended as of today."
 msgstr[1] "Your %(n)s open mandates are recorded as ended as of today."
 
-msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
-msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name, “Former member” with your member number appears there from now on."
+msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen oder als „Mitglied n“ auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
+msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name or as “Mitglied n”, “Former member” with your member number appears there from now on."
 
 msgid "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung."
 msgstr "Your identity has not been verified yet (§ 4 para 2) — you can read here; writing follows confirmation."
@@ -6856,5 +6842,83 @@ msgstr "Not included: sign-in tokens and check hashes, bank identifiers of fee r
 msgid "Schreiben geht nach der Bestätigung."
 msgstr "Writing opens after confirmation."
 
-msgid "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a); solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen."
-msgstr "This is how you appear on motions and posts. The statutes make a persistent pseudonym the rule (§ 5 para 3 lit a); as long as you set no display name, the platform shows your real name."
+# ── 0.47: Post und Pseudonym ──
+
+msgid ""
+"Name und Gemeinde dienen der\n"
+"Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.\n"
+"Öffentlich erscheint Ihr Anzeigename bei Anträgen und Beiträgen; Ihr Klarname nur mit Ihrer Einwilligung\n"
+"(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung."
+msgstr "Name and municipality serve membership administration under the statutes; the year of birth is only checked (§ 4 (1)) and not stored. Publicly, your display name appears on motions and contributions; your real name only with your consent (§ 5 (3) lit a). Votes are cast under a pseudonym (§ 5 (3)). No sharing, no advertising."
+
+msgid "Öffentlicher Anzeigename"
+msgstr "Public display name"
+
+msgid "Mein Name darf öffentlich erscheinen."
+msgstr "My name may appear publicly."
+
+msgid "Ohne Haken zeigt die Plattform bis zur Wahl eines Anzeigenamens „Mitglied n“ (§ 5 Abs 3 lit a)."
+msgstr "Unticked, the platform shows “Mitglied n” until you choose a display name (§ 5 (3) lit a)."
+
+msgid "Klarname darf öffentlich erscheinen (Einwilligung, § 5 Abs 3 lit a — nur das Mitglied selbst kann sie erteilen; die Verwaltung kann sie hier zurücknehmen)"
+msgstr "Real name may appear publicly (consent, § 5 (3) lit a — only the member can grant it; the administration can only withdraw it here)"
+
+msgid "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a). Ohne Anzeigenamen zeigt die Plattform Ihren Klarnamen nur, wenn Sie es hier erlauben; sonst „Mitglied n“ mit Ihrer Mitgliedsnummer."
+msgstr "This is how you appear on motions and posts. The statutes make a persistent pseudonym the rule (§ 5 (3) lit a). Without a display name, the platform shows your real name only if you allow it here; otherwise “Mitglied n” with your member number."
+
+msgid "Derzeit erscheinen Sie als „%(name)s“."
+msgstr "You currently appear as “%(name)s”."
+
+msgid "Willkommen — ParlamentPlattform"
+msgstr "Welcome — ParlamentPlattform"
+
+msgid "Ihre Prüfung ist abgeschlossen — ParlamentPlattform"
+msgstr "Your verification is complete — ParlamentPlattform"
+
+msgid "Guten Tag %(name)s,"
+msgstr "Dear %(name)s,"
+
+msgid "Ihre E-Mail-Adresse ist bestätigt — willkommen bei Direkte Demokratie Österreich. Sie sind jetzt Anwärterin bzw. Anwärter."
+msgstr "Your e-mail address is confirmed — welcome to Direkte Demokratie Österreich. You are now a candidate member."
+
+msgid "Ab sofort können Sie alles lesen: Anträge, Beratungen und Ergebnisse sind öffentlich (§ 2 Abs 5)."
+msgstr "As of now you can read everything: motions, deliberations and results are public (§ 2 (5))."
+
+msgid "Nach der Freischaltung gilt für Abstimmungen und Wahlen:"
+msgstr "Once your account is unlocked, the following applies to votes and elections:"
+
+msgid "Ab sofort können Sie Anträge einbringen, unterstützen und mitreden (§ 4 Abs 4 lit b)."
+msgstr "As of now you can submit and support motions and join the discussion (§ 4 (4) lit b)."
+
+msgid "Ihre Mitwirkungsrechte ruhen allerdings, solange der Mitgliedsbeitrag aussteht (§ 4 Abs 3); mit dem nächsten Beitragseingang leben sie wieder auf."
+msgstr "Your participation rights are, however, suspended while your membership fee is outstanding (§ 4 (3)); they revive with the next fee receipt."
+
+msgid "Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a)."
+msgstr "The reference date is always the start of a vote (§ 4 (4) lit a)."
+
+msgid "Einbringen, Unterstützen und Mitreden sowie Stimm- und Wahlrecht setzen eine geprüfte Identität voraus. Der erste Eingang Ihres Mitgliedsbeitrags schaltet Ihr Konto frei — die Höhe ist Ihre Selbsteinschätzung (§ 4 Abs 3). Ihre persönliche Referenz für die Überweisung: %(referenz)s"
+msgstr "Submitting, supporting and discussing motions as well as voting and electoral rights require a verified identity. The first receipt of your membership fee unlocks your account — the amount is your own assessment (§ 4 (3)). Your personal reference for the transfer: %(referenz)s"
+
+msgid "Öffentlich erscheinen Sie als „%(anzeigename)s“; den Anzeigenamen wählen Sie im Profil (§ 5 Abs 3 lit a)."
+msgstr "Publicly you appear as “%(anzeigename)s”; you choose your display name in your profile (§ 5 (3) lit a)."
+
+msgid "Einführung:"
+msgstr "Introduction:"
+
+msgid "Parlament:"
+msgstr "Parliament:"
+
+msgid "Ihre Prüfung ist abgeschlossen (Stufe: %(stufe)s). Damit sind Stimm- und Wahlrecht für Sie möglich."
+msgstr "Your verification is complete (level: %(stufe)s). Voting and electoral rights are now possible for you."
+
+msgid "Stimmberechtigt sind Sie ohne Wartefrist — für den Aufbau gilt die Übergangsregel des § 4 Abs 4 lit d; die Anwartschaftsfristen entfallen, bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat."
+msgstr "You are entitled to vote without a waiting period — during the build-up phase the transitional rule of § 4 (4) lit d applies; the qualifying periods are waived until the members’ assembly has adopted the first rules of procedure."
+
+msgid "Stimmberechtigt sind Sie nach der Anwartschaft des § 4 Abs 4: bei Sachfragen %(sachfragen)s, bei Personenwahlen, Satzungsänderungen und der Auflösung %(personenwahlen)s."
+msgstr "You are entitled to vote after the qualifying period of § 4 (4): on substantive questions %(sachfragen)s, on elections of persons, amendments to the statutes and dissolution %(personenwahlen)s."
+
+msgid "ab sofort"
+msgstr "as of now"
+
+msgid "ab %(datum)s"
+msgstr "from %(datum)s"

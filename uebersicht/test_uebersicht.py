@@ -108,7 +108,7 @@ def test_entschiedene_personenwahl_zaehlt_ihre_waehler(client, ordnung):  # noqa
     antwort = client.get(reverse("uebersicht:index"))
     inhalt = antwort.content.decode()
     assert "angenommen" in inhalt and "2 von 3 Stimmberechtigten" in inhalt and "67 % Beteiligung" in inhalt
-    assert "Gewählt: anna mit 2 Zustimmungen" in inhalt
+    assert f"Gewählt: {anna.anzeigename} mit 2 Zustimmungen" in inhalt  # „Mitglied n“ — nie der Anmeldename
     assert "Ja " not in inhalt.split("Abstimmungen: Ergebnisse")[1].split("KI-Verbrauch")[0]
     assert "0 von 3" not in inhalt
     kennzahlen = werte()

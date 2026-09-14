@@ -171,6 +171,8 @@ def stammdaten(person, **aenderungen):
         "identitaetsstufe": person.identitaetsstufe,
         "beitrag_zuletzt_am": "",
     }
+    if person.klarname_oeffentlich:
+        daten["klarname_oeffentlich"] = "on"  # so sendet der Browser das angehakte Kästchen
     daten.update(aenderungen)
     return daten
 
@@ -525,3 +527,25 @@ def test_status_ausgetreten_zaehlt_nicht_zu_den_stimmberechtigten_und_bleibt_von
     assert anna.ist_stimmberechtigt(Gegenstand.SACHFRAGE, stichtag) is False
     assert anna.darf_mitwirken is False
     assert nie_bestaetigt(anna) is False  # ausgetreten ist kein nie bestätigtes Konto
+
+
+def test_verwaltung_kann_die_einwilligung_zum_klarnamen_nur_zuruecknehmen(client):
+    """§ 5 Abs 3 lit a, § 8 Abs 4: Einwilligen kann nur der Mensch selbst. Die Verwaltung darf
+    das Häkchen entfernen, aber nicht setzen — sonst wäre eine Einwilligung von Amts wegen möglich."""
+    admin = admin_anlegen()
+    client.force_login(admin)
+    person = mitglied_anlegen("ohne_einwilligung")
+    person.klarname_oeffentlich = False
+    person.save(update_fields=["klarname_oeffentlich"])
+    daten = stammdaten(person)
+    daten["klarname_oeffentlich"] = "on"
+    client.post(reverse("mitglieder:verwaltung_mitglied", args=[person.pk]), daten)
+    person.refresh_from_db()
+    assert person.klarname_oeffentlich is False
+    person.klarname_oeffentlich = True
+    person.save(update_fields=["klarname_oeffentlich"])
+    daten = stammdaten(person)
+    daten.pop("klarname_oeffentlich", None)
+    client.post(reverse("mitglieder:verwaltung_mitglied", args=[person.pk]), daten)
+    person.refresh_from_db()
+    assert person.klarname_oeffentlich is False

@@ -327,9 +327,9 @@ MITGLIED = Rolle(
             urlname="mitglieder:beitrag",
         ),
         Faehigkeit(
-            titel=_("Unter einem beständigen Pseudonym auftreten"),
+            titel=_("Unter einem beständigen Pseudonym auftreten — der Klarname erscheint nur mit Einwilligung, sonst „Mitglied n“"),
             stand=Stand.VERFUEGBAR,
-            satzung="§ 8 Abs 4",
+            satzung="§ 5 Abs 3 lit a, § 8 Abs 4",
             urlname="mitglieder:profil",
         ),
         Faehigkeit(

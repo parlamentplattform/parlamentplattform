@@ -43,8 +43,12 @@ def audit(typ, **filter_):
     )]
 
 
-def profil_speichern(client, **felder):
+def profil_speichern(client, klarname_oeffentlich=True, **felder):
+    """Ein Formular-POST wie aus dem Browser: Das Kästchen zur Einwilligung ist beim Bestand
+    (Objekt direkt angelegt, `klarname_oeffentlich=True`) angehakt und wird als „on“ gesendet."""
     daten = {"anzeigename": "", "gemeinde": "", "nebenwohnsitz": ""}
+    if klarname_oeffentlich:
+        daten["klarname_oeffentlich"] = "on"
     daten.update(felder)
     return client.post(PROFIL, daten)
 
@@ -682,7 +686,7 @@ def test_profil_hilfetexte_sind_ehrlich_und_der_sprachknopf_gestylt(client):
     client.force_login(mit_wohnsitz())
     inhalt = client.get(PROFIL).content.decode()
     assert "Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a)" in inhalt
-    assert "solange Sie keinen Anzeigenamen setzen, zeigt die Plattform Ihren Klarnamen" in inhalt
+    assert "zeigt die Plattform Ihren Klarnamen nur, wenn Sie es hier erlauben" in inhalt
     assert "geplant" not in inhalt  # keine Zusage, die der Gründer nicht getroffen hat
     karte = inhalt.split('id="sprache"')[1].split("</div>")[0]
     assert 'class="btn-linie klein" lang="en">EN · English</button>' in karte
@@ -859,3 +863,107 @@ def test_austritt_zieht_bewerbungen_vor_der_abstimmung_zurueck(client, ordnung):
     assert reverse("verfahren:kandidatur_zustimmen", args=[kandidatur.pk, berts.pk]) in seite
     ergebnis = kandidatur.kandidatur_auszaehlen()
     assert [platz.bewerbung_id for platz in ergebnis.plaetze] == [berts.pk]
+
+
+# --- Pseudonym als Voreinstellung (§ 5 Abs 3 lit a, 0.47) -------------------------------
+
+
+def test_profil_schaltet_die_einwilligung_zum_klarnamen_um_und_auditiert_ohne_wert(client, ordnung):  # noqa: F811
+    anna = mit_wohnsitz("anna")
+    anna.first_name, anna.last_name = "Anna", "Adler"
+    anna.save(update_fields=["first_name", "last_name"])
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    seite = reverse("verfahren:antrag", args=[antrag.pk])
+    assert "Anna Adler" in client.get(seite).content.decode()  # Bestand: Klarname wie bisher
+    client.force_login(anna)
+    profil = client.get(PROFIL).content.decode()
+    assert 'type="checkbox" name="klarname_oeffentlich"' in profil and "Derzeit erscheinen Sie als „Anna Adler“" in profil
+    assert "zeigt die Plattform Ihren Klarnamen nur, wenn Sie es hier erlauben" in profil
+
+    profil_speichern(client, klarname_oeffentlich=False, gemeinde=anna.gemeinde)
+    anna.refresh_from_db()
+    assert anna.klarname_oeffentlich is False and anna.anzeigename == f"Mitglied {anna.pk}"
+    eintrag = audit("profil", aktion="geaendert", mitglied=anna.pk)[-1]
+    assert eintrag["felder"] == ["klarname_oeffentlich"] and "Adler" not in json.dumps(eintrag)
+    inhalt = client.get(seite).content.decode()
+    assert f"Mitglied {anna.pk}" in inhalt and "Anna Adler" not in inhalt and "anna@example.org" not in inhalt
+    assert f"Derzeit erscheinen Sie als „Mitglied {anna.pk}“" in client.get(PROFIL).content.decode()
+
+    profil_speichern(client, klarname_oeffentlich=True, gemeinde=anna.gemeinde)
+    anna.refresh_from_db()
+    assert anna.klarname_oeffentlich is True and "Anna Adler" in client.get(seite).content.decode()
+    profil_speichern(client, klarname_oeffentlich=True, gemeinde=anna.gemeinde)  # unverändert: kein Audit
+    assert len(audit("profil", aktion="geaendert", mitglied=anna.pk)) == 2
+
+
+def test_ohne_einwilligung_steht_der_anmeldename_nirgends(client, ordnung):  # noqa: F811
+    """Antragsseite samt Chat, Wahlvorschlag, Rechenschaft, Mandatar-Seite und der eigene Datenexport:
+    ohne Pseudonym und ohne Einwilligung überall „Mitglied n“ — nie E-Mail-Adresse oder Klarname."""
+    from mandatare.test_mandatare import mandat_anlegen
+    from mandatare.test_rechenschaft import eintragen
+    from verfahren.models import bewerbung_einreichen
+    from verfahren.test_kandidatur import _kandidatur
+
+    still = mit_wohnsitz("still")
+    still.username = still.email = "still.mensch@example.org"
+    still.first_name, still.last_name, still.klarname_oeffentlich = "Stefanie", "Still", False
+    still.save()
+    autor = mitglied_anlegen("autor")
+    platzhalter = f"Mitglied {still.pk}"
+    verboten = ("still.mensch", "Stefanie", "Still<", "Still ")
+
+    antrag = antrag_einbringen(still, **ANTRAG, ordnung=ordnung)
+    client.force_login(still)
+    client.post(reverse("verfahren:kommentieren", args=[antrag.pk]), {"text": "Mein Beitrag im Chat."})
+    kandidatur = _kandidatur(ordnung, autor)
+    bewerbung_einreichen(kandidatur, still, "Ich trete an.")
+    mandat = mandat_anlegen(still)
+    eintragen(mandat)
+
+    seiten = {
+        "antrag": client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode(),
+        "wahlvorschlag": client.get(reverse("verfahren:antrag", args=[kandidatur.pk])).content.decode(),
+        "rechenschaft": client.get(reverse("mandatare:rechenschaft")).content.decode(),
+        "mandatar": client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode(),
+    }
+    for name, inhalt in seiten.items():
+        assert platzhalter in inhalt, name
+        for wort in verboten:
+            assert wort not in inhalt, (name, wort)
+    daten = json.loads(client.get(EXPORT).content)
+    assert daten["stammdaten"]["klarname_oeffentlich"] is False and daten["stammdaten"]["anmeldename"] == still.username
+    assert daten["post"] == {"willkommen_am": None, "freischaltung_am": None}
+    assert mandat.initialen == "M" + str(still.pk)[0]  # Kürzel aus dem Anzeigenamen, nicht „SS“ aus dem Klarnamen
+
+
+def test_kollisionspruefung_respektiert_die_einwilligung(client, ordnung):  # noqa: F811
+    """Ein Mandatar ohne Einwilligung steht nirgends mit Klarnamen — sein Name ist als Anzeigename
+    frei (sonst verriete die Prüfung, was die Plattform nicht zeigt); mit Einwilligung ist er vergeben."""
+    from mandatare.models import Mandat
+
+    anna = mit_wohnsitz("anna")
+    mandatar = mitglied_anlegen("mandatar")
+    mandatar.first_name, mandatar.last_name, mandatar.klarname_oeffentlich = "Moritz", "Mandl", False
+    mandatar.save(update_fields=["first_name", "last_name", "klarname_oeffentlich"])
+    Mandat.objects.create(mitglied=mandatar, bezeichnung="Gemeinderat", gebiet="Linz")
+    autorin = mitglied_anlegen("autorin")
+    autorin.first_name, autorin.last_name, autorin.klarname_oeffentlich = "Klara", "Klar", False
+    autorin.save(update_fields=["first_name", "last_name", "klarname_oeffentlich"])
+    antrag_einbringen(autorin, **ANTRAG, ordnung=ordnung)  # Antragsseite zeigt „Mitglied n“
+
+    client.force_login(anna)
+    for frei in ("Moritz Mandl", "Klara Klar"):
+        assert profil_speichern(client, anzeigename=frei, gemeinde=anna.gemeinde).status_code == 302, frei
+    mandatar.klarname_oeffentlich = True
+    mandatar.save(update_fields=["klarname_oeffentlich"])
+    antwort = profil_speichern(client, anzeigename="Moritz Mandl", gemeinde=anna.gemeinde)
+    assert antwort.status_code == 200 and "nicht verfügbar" in antwort.content.decode()
+
+
+def test_mitglied_n_ist_als_anzeigename_vorbehalten(client):
+    anna = mit_wohnsitz("anna")
+    client.force_login(anna)
+    for verboten in ("Mitglied 7", "mitglied 7", "Mitglied", "Mitglied #12"):
+        antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
+        assert antwort.status_code == 200 and "vorbehalten" in antwort.content.decode(), verboten
+    assert profil_speichern(client, anzeigename="Mitgliederin Sieben", gemeinde=anna.gemeinde).status_code == 302

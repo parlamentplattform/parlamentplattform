@@ -7103,8 +7103,9 @@ msgstr "Vote on the seventh day after submission"
 msgid "Nicht eröffnet: Der Integritätsrat hat mit Beschluss %(nummer)s eine Sperre nach § 7 Abs 10 lit g festgestellt."
 msgstr "Not opened: by resolution %(nummer)s the Integrity Council has determined a bar under § 7 (10) lit g."
 
-msgid "Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit b und h)."
-msgstr "The applicant may challenge the determination before the party arbitration tribunal within seven days (§ 7 (10) lit b and h)."
+#, python-format
+msgid "Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar — bis %(bis)s (§ 7 Abs 10 lit b und h)."
+msgstr "The applicant may challenge the determination before the party arbitration tribunal within seven days — until %(bis)s (§ 7 (10) lit b and h)."
 
 #, python-format
 msgid "Der Integritätsrat prüft eine Sperre nach § 7 Abs 10 lit g bis %(bis)s — bis dahin läuft der Antrag."

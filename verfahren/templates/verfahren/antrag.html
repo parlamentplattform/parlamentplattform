@@ -15,7 +15,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="zurueck"><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Parlament" %}</a></p>
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
-    <span class="badge b-{{ antrag.phase }}">{{ antrag.phase|phase_name }}</span>
+    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% else %}{{ antrag.phase|phase_name }}{% endif %}</span>
     {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
     {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
@@ -51,7 +51,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <div class="band-gold vf-band vf-band-erreicht"><strong>{% blocktranslate with ab=vertrauensfrage.abstimmung_ab|date:"d.m.Y, H:i" %}Abstimmung ab {{ ab }} (§ 7 Abs 10 lit e){% endblocktranslate %}</strong></div>
   {% endif %}
   {% if vertrauensfrage.sperre.stand == "festgestellt" %}
-  <div class="band-gold vf-band vf-band-sperre"><strong>{% blocktranslate with nummer=vertrauensfrage.sperre.beschluss.nummer %}Nicht eröffnet: Der Integritätsrat hat mit Beschluss {{ nummer }} eine Sperre nach § 7 Abs 10 lit g festgestellt.{% endblocktranslate %}</strong> {% translate "Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit b und h)." %} <a href="{% url 'gremien:beschluss' vertrauensfrage.sperre.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>
+  <div class="band-gold vf-band vf-band-sperre"><strong>{% blocktranslate with nummer=vertrauensfrage.sperre.beschluss.nummer %}Nicht eröffnet: Der Integritätsrat hat mit Beschluss {{ nummer }} eine Sperre nach § 7 Abs 10 lit g festgestellt.{% endblocktranslate %}</strong> {% if vertrauensfrage.rechtsschutz_stand %}{% translate "Rechtsschutz:" %} {{ vertrauensfrage.rechtsschutz_stand }}{% elif vertrauensfrage.sperre.anfechtbar_bis %}{% blocktranslate with bis=vertrauensfrage.sperre.anfechtbar_bis|date:"d.m.Y, H:i" %}Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar — bis {{ bis }} (§ 7 Abs 10 lit b und h).{% endblocktranslate %}{% endif %} <a href="{% url 'gremien:beschluss' vertrauensfrage.sperre.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>
   {% elif vertrauensfrage.sperre.stand == "pruefung" %}
   <div class="band-gold vf-band vf-band-sperre"><strong>{% blocktranslate with bis=vertrauensfrage.sperre.bis|date:"d.m.Y, H:i" %}Der Integritätsrat prüft eine Sperre nach § 7 Abs 10 lit g bis {{ bis }} — bis dahin läuft der Antrag.{% endblocktranslate %}</strong> {{ vertrauensfrage.sperre.text }} {% translate "Eine Feststellung wäre binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit h)." %}</div>
   {% elif vertrauensfrage.sperre.stand == "abgelaufen" %}

@@ -2,6 +2,7 @@
 Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)."""
 
 import json
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -209,7 +210,7 @@ def _laufende_aussetzung(antrag, jetzt):
 
 
 def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst=False,
-                          zaehler=None, beginne=None):
+                          zaehler=None, beginne=None, vfs=None):
     """FB-B1/B2: Merkmale (0..1) je laufendem Antrag bauen und im offenen Kern reihen (Regel v2).
 
     Grundordnung der Eingabe = die neutrale Ordnung (Abstimmung, Beratung, Unterstützung;
@@ -225,7 +226,8 @@ def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zu
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
     policies = {a.pk: a.policy() for a in laufende}
-    fristen = {a.pk: _frist_fuer(a, policies[a.pk], beginne.get(a.pk)) for a in laufende}
+    vfs = vfs if vfs is not None else _vertrauensfragen(laufende)
+    fristen = {a.pk: _frist_fuer(a, policies[a.pk], beginne.get(a.pk), vfs.get(a.pk)) for a in laufende}
     antraege = sorted(laufende, key=lambda a: _neutraler_schluessel(a, fristen[a.pk]))
     kats = {a.pk: {k.pk for k in a.kategorien.all()} for a in antraege}
     ja_kats, nein_kats = _eigene_stimm_kategorien(nutzer)
@@ -326,7 +328,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
 
     if nutzer.is_authenticated and not ist_neutral(regler):
         gereiht = _weicherfilter_reihen(
-            nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne
+            nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne, vfs=vfs
         )
         return {"gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "leer": not gereiht}
 
@@ -419,19 +421,26 @@ def _vf_abstimmung_ab(vf, antrag, policy, beginn):
     return abstimmungsbeginn_ohne_beratung(beginn, vf.schwelle_erreicht_am, policy)
 
 
-def _frist_fuer(antrag, policy=None, beginn=None):
+def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     """Fristende der laufenden Phase — None für Endphasen.
 
     Gerechnet wird mit dem **wirksamen** Phasenbeginn (§ 6 Abs 3 lit d): dem gespeicherten,
     um die Stillstandszeit einer Aussetzung nach hinten gerückt — derselbe Beginn, mit dem
     Phasenautomat und Stimmzulässigkeit rechnen. Listen reichen ihn aus `_wirksame_beginne`
-    herein, damit nicht jede Zeile die Aussetzungen abfragt."""
+    herein, damit nicht jede Zeile die Aussetzungen abfragt.
+
+    Eine Vertrauensfrage (`vf`, § 7 Abs 10) endet ihre Unterstützungsphase nicht mit der
+    Sammelfrist, sobald die Schwelle erreicht ist, sondern mit dem veröffentlichten
+    Abstimmungsbeginn (lit e) — dieselbe Rechnung wie der Phasenautomat. Sonst stünde neben
+    „Abstimmung ab 20.09.“ eine „Frist 13.10.“ und auf der Kachel „noch 27 Tage“."""
     policy = policy or antrag.policy()
     if antrag.phase not in LAUFEND:
         return None
     beginn = beginn or antrag.wirksamer_phase_beginn()
     if antrag.phase == Phase.UNTERSTUETZUNG.value:
-        return unterstuetzung_frist_ende(beginn, policy)
+        ende = unterstuetzung_frist_ende(beginn, policy)
+        abstimmung_ab = _vf_abstimmung_ab(vf, antrag, policy, beginn)
+        return min(ende, abstimmung_ab) if abstimmung_ab is not None else ende
     if antrag.phase == Phase.BERATUNG.value:
         return beratung_frist_ende(beginn, policy)
     return abstimmung_frist_ende(beginn, policy)
@@ -455,7 +464,9 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     if vfs is None:
         vfs = _vertrauensfragen([antrag])
     vf = vfs.get(antrag.pk)
-    frist = _frist_fuer(antrag, policy, beginn)
+    if vf is not None:
+        vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
+    frist = _frist_fuer(antrag, policy, beginn, vf)
     resttage = max(0, (frist - jetzt).days) if frist else None
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
@@ -1070,7 +1081,13 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     Ergebnis in Satzungsworten und der Rechtsschutz (lit h). None für jede andere Antragsart."""
     if antrag.art != Antragsart.VERTRAUENSFRAGE:
         return None
-    from mandatare.models import Beschluss, Vertrauensfrage, vertrauensfragen_fortschreiben
+    from mandatare.models import (
+        ANFECHTUNGSFRIST_TAGE,
+        RUECKGABEFRIST_TAGE,
+        Beschluss,
+        Vertrauensfrage,
+        vertrauensfragen_fortschreiben,
+    )
 
     vertrauensfragen_fortschreiben(jetzt)  # Stufe 2 der Wirkungen ist lazy (lit f) — wie `fortschreiben`
     vf = (
@@ -1101,7 +1118,15 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
         )
     sperre = None
     if vf.nicht_eroeffnet:
-        sperre = {"stand": "festgestellt", "beschluss": vf.sperre_beschluss, "text": vf.sperrhinweis}
+        # lit h: Die Feststellung ist binnen sieben Tagen ab Veröffentlichung bekämpfbar — die Veröffentlichung
+        # ist der Phasenbeginn der Zurückweisung; danach sagt das Band nicht mehr „ist bekämpfbar“.
+        bis = antrag.phase_beginn + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+        sperre = {
+            "stand": "festgestellt",
+            "beschluss": vf.sperre_beschluss,
+            "text": vf.sperrhinweis,
+            "anfechtbar_bis": bis if jetzt <= bis else None,
+        }
     elif vf.sperrhinweis:
         sperre = {
             "stand": "pruefung" if jetzt <= vf.sperrfrist_ende else "abgelaufen",
@@ -1133,7 +1158,13 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
         "verloren": vf.verloren,
         "anfechtbar_bis": anfechtungsfrist if anfechtungsfrist and jetzt <= anfechtungsfrist else None,
         "rechtsschutz_stand": vf.rechtsschutz_stand,
-        "rueckgabefrist_ende": vf.rueckgabefrist_ende if vf.verloren and vf.entscheidung != "aufgehoben" else None,
+        # lit f Z 4: dieselbe Rechnung wie `Mandat.rueckgabe_ersucht_bis` (Wiener Kalendertag + 30) — nicht
+        # `wirkungen_ab + 30 Tage` in UTC, das läge am Abend vor einer Zeitumstellung einen Tag daneben.
+        "rueckgabefrist_ende": (
+            timezone.localdate(vf.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE)
+            if vf.verloren and vf.wirkungen_ab is not None and vf.entscheidung != "aufgehoben"
+            else None
+        ),
         "stellungnahmen": list(vf.stellungnahmen.all()),
         "stellungnahmen_vorlagen": STELLUNGNAHMEN_VORLAGEN,
     }
@@ -1203,7 +1234,9 @@ def antrag_detail(request, pk):
     vertrauensfrage = _vertrauensfrage_lage(antrag, request.user, jetzt)
     # Dieselbe Rechnung wie Phasenautomat und Stimmzulässigkeit (§ 6 Abs 3 lit d): Eine
     # Aussetzung hemmt die Frist — die Seite darf kein früheres Ende nennen (Befund #24, #30).
-    frist = _frist_fuer(antrag, policy, antrag.wirksamer_phase_beginn(jetzt))
+    frist = _frist_fuer(
+        antrag, policy, antrag.wirksamer_phase_beginn(jetzt), vertrauensfrage["vf"] if vertrauensfrage else None
+    )
     aussetzung = _laufende_aussetzung(antrag, jetzt) if antrag.phase in LAUFEND else None
     unterstuetzt_von_mir = (
         request.user.is_authenticated and antrag.unterstuetzungen.filter(mitglied=request.user, zurueckgezogen_am__isnull=True).exists()

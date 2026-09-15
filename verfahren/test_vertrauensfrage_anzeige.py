@@ -289,6 +289,15 @@ def test_antragsseite_zeigt_kopfzeile_anlaesse_baender_und_stellungnahmen(client
     assert "Schwelle erreicht am" in kopf and "Abstimmung ab" in kopf and "(§ 7 Abs 10 lit e)" in kopf
     assert timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y") in kopf
     assert "ein Rückzug ändert den Fortgang nicht mehr" in seite
+    # Die Frist der Kopfzeile ist jetzt der Abstimmungsbeginn — nicht mehr das Ende der Sammelfrist
+    # (Prüfung 0.48: „Frist 13.10.“ neben „Abstimmung ab 20.09.“); Kachel und Zeile rechnen gleich.
+    assert "Frist " + timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y") in kopf
+    assert timezone.localtime(t0 + tage(30)).strftime("%d.%m.%Y") not in kopf
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    zeile = html.split('id="feld-filter"')[1].split('class="fz')[1].split('class="k-erfasst"')[0]
+    assert "Abstimmung ab " + timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y") in zeile
+    assert "noch 4 Tage" in zeile or "noch 5 Tage" in zeile
+    assert "noch 27 Tage" not in zeile and "noch 28 Tage" not in zeile
 
 
 def test_regeln_der_vertrauensfrage_nennen_schwelle_prozent_und_fenster(ordnung, altmandat):  # noqa: F811
@@ -330,8 +339,13 @@ def test_sperrhinweis_band_in_pruefung_abgelaufen_und_festgestellt(client, ordnu
     seite = _seite(client, antrag)
     kopf = _kopf(seite)
     assert f"Nicht eröffnet: Der Integritätsrat hat mit Beschluss {beschluss.nummer}" in kopf
-    assert "binnen sieben Tagen beim Parteischiedsgericht bekämpfbar" in kopf
+    assert "binnen sieben Tagen beim Parteischiedsgericht bekämpfbar — bis" in kopf
+    assert timezone.localtime(antrag.phase_beginn + tage(7)).strftime("%d.%m.%Y") in kopf
     assert "Nicht eröffnet (§ 7 Abs 10 lit b):" in kopf and "Formal zurückgewiesen" not in kopf
+    # Nach Ablauf der sieben Tage sagt das Band nicht mehr „ist bekämpfbar“ (lit h)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=timezone.now() - tage(8))
+    kopf = _kopf(_seite(client, antrag))
+    assert f"Beschluss {beschluss.nummer}" in kopf and "bekämpfbar" not in kopf
 
 
 def test_ergebnis_heisst_verloren_oder_gewonnen(client, ordnung, altmandat):  # noqa: F811
@@ -344,6 +358,14 @@ def test_ergebnis_heisst_verloren_oder_gewonnen(client, ordnung, altmandat):  # 
     kopf = _kopf(seite)
     assert "Vertrauensfrage verloren" in kopf and "bekämpfbar beim Parteischiedsgericht" in kopf
     assert "öffentlich ersucht, das Mandat bis" in kopf
+    # lit f Z 4: dieselbe Frist wie das Register (Wiener Kalendertag + 30)
+    assert (timezone.localdate(antrag.vertrauensfrage.wirkungen_ab) + tage(30)).strftime("%d.%m.%Y") in kopf
+    # Der Phasen-Badge sagt „Vertrauensfrage verloren“, nicht „angenommen“ (V5) — auf Seite, Kachel und Zeile
+    assert '<span class="badge b-angenommen">Vertrauensfrage verloren</span>' in kopf
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    abgeschlossen = html.split('id="feld-filter"')[1]
+    assert '<span class="badge b-angenommen">Vertrauensfrage verloren</span>' in abgeschlossen
+    assert '<span class="badge b-angenommen">angenommen</span>' not in abgeschlossen
     vertrauensfrage_anfechtung_vermerken(antrag.vertrauensfrage, "PSG 1/26")
     kopf = _kopf(_seite(client, antrag))
     assert "Rechtsschutz: beim Parteischiedsgericht anhängig" in kopf

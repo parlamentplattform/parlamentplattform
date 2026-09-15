@@ -21,7 +21,7 @@ LAUFENDE_PHASEN = (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTI
 def alles_fortschreiben(jetzt=None) -> dict[str, int]:
     """Fristen, Entwurfsschleife, Gremienbeschlüsse, Aussetzungen und Parametertests auswerten."""
     jetzt = jetzt or timezone.now()
-    stand = {"phasenwechsel": 0, "beschluesse": 0, "aussetzungen": 0, "parametertests": 0}
+    stand = {"phasenwechsel": 0, "beschluesse": 0, "aussetzungen": 0, "parametertests": 0, "vertrauensfragen": 0}
     for antrag in Antrag.objects.filter(phase__in=LAUFENDE_PHASEN).order_by("pk"):
         # Einmal je Antrag genügt nicht immer: Wertet die Entwurfsschleife aus, ist danach
         # vielleicht schon der Phasenübergang fällig — so lange fortschreiben, bis nichts mehr passiert.
@@ -35,6 +35,12 @@ def alles_fortschreiben(jetzt=None) -> dict[str, int]:
         stand["beschluesse"] = GremienBeschluss.faellige_abschliessen(jetzt)
         stand["aussetzungen"] = aussetzungen_fortschreiben(jetzt)
         stand["parametertests"] = parametertests_fortschreiben(jetzt)
+    if apps.is_installed("mandatare"):
+        from mandatare.models import vertrauensfragen_fortschreiben
+
+        # Zweite Stufe der Wirkungen einer verlorenen Vertrauensfrage (§ 7 Abs 10 lit f):
+        # nach der Anfechtungsfrist enden ruhende Rollen, nach 30 Tagen endet die Vertretung.
+        stand["vertrauensfragen"] = vertrauensfragen_fortschreiben(jetzt)
     return stand
 
 
@@ -46,6 +52,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 "Fortgeschrieben: {phasenwechsel} Übergänge, {beschluesse} Beschlüsse ausgewertet, "
-                "{aussetzungen} Aussetzungen beendet, {parametertests} Parametertests fortgeschrieben.".format(**stand)
+                "{aussetzungen} Aussetzungen beendet, {parametertests} Parametertests fortgeschrieben, "
+                "{vertrauensfragen} Vertrauensfragen fortgeschrieben.".format(**stand)
             )
         )

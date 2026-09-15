@@ -116,7 +116,7 @@ def _oeffentliche_funktion() -> Q:
     return Q(klarname_oeffentlich=True) & (
         unter_klarnamen_aufgetreten
         | Q(Exists(Mandat.objects.filter(mitglied=ich, beendet__isnull=True)))
-        | Q(Exists(Rolle.objects.filter(mitglied=ich, beendet_grund="", endet_am__gte=heute)))
+        | Q(Exists(Rolle.objects.filter(mitglied=ich, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=heute)))
         | Q(
             Exists(
                 Fachliste.objects.filter(
@@ -727,7 +727,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         mandat.save(update_fields=["foto", "foto_typ"])
         AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "aktion": "entfernt", "anlass": "austritt"})
 
-    for rolle in mitglied.rollen.filter(beendet_grund="", endet_am__gte=heute):
+    for rolle in mitglied.rollen.filter(beendet_grund="", endet_am__gte=heute):  # auch ruhende: enden mit dem Austritt
         rolle.beendet_grund = "Austritt"
         rolle.save(update_fields=["beendet_grund"])
         AuditEintrag.anhaengen({"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund})
@@ -808,6 +808,6 @@ def austritt(request):
         {
             "bestaetigungswort": BESTAETIGUNGSWORT,
             "offene_mandate": mitglied.aktive_mandate.count(),
-            "aktive_rollen": mitglied.rollen.filter(beendet_grund="", endet_am__gte=timezone.localdate()).count(),
+            "aktive_rollen": mitglied.rollen.filter(beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()).count(),
         },
     )

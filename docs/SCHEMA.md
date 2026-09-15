@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.5** (12.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.6** (15.9.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -9,7 +9,7 @@ Stellgrößen mit **sprachneutralen Kennungen** und **aggregierte Kennzahlen**. 
 verlassen eine Instanz nie.
 
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
-Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.46.0) — weicht die Datei
+Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.48.0) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ## 1. Grundsätze
@@ -27,12 +27,12 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.5",
+  "schema_version": "1.6",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
-  "software": {"name": "ParlamentPlattform", "version": "0.46.0",
+  "software": {"name": "ParlamentPlattform", "version": "0.48.0",
                "quelle": "https://github.com/parlamentplattform/parlamentplattform", "lizenz": "AGPL-3.0-or-later"},
-  "exportiert_am": "2026-09-12T08:00:00+00:00"
+  "exportiert_am": "2026-09-15T08:00:00+00:00"
 }
 ```
 
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.5, 43 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.6, 45 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -102,6 +102,8 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | Minimum length of a criticism so it counts as a change request to the expert council |
 | `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
+| `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
+| `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
 | `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | Day of the following month until which an office holder's monthly report counts as on time |
 | `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
 | `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | Months before a rejected or lapsed motion may be resubmitted verbatim |
@@ -147,6 +149,12 @@ Kennung — mit zwei begründeten Ausnahmen (`plattform_core/test_schema.py`, `A
 Die weiteren Felder der eingefrorenen Ordnung (Annahmeanteil, Höchstrunden, Unterstützer-,
 Überarbeitungs- und Prüffrist der Entwurfsschleife, Losregel-Fassung) stehen **nicht** im Export
 je Fassung; ihre Registerwerte sind über die Kennungen `draft_loop.*` und `council.*` in 3.1 lesbar.
+Dasselbe gilt für die drei Vorgabefelder der Ordnung Fassung 3 (seit 0.48.0: `beratung_entfaellt`,
+`abstimmung_fruehestens_tage`, `abstimmung_spaetestens_tage_nach_schwelle`): Sie tragen satzungsfeste
+Werte der Vertrauensfrage (§ 7 Abs 10 lit c und e) und sind in jeder Standardordnung 0 beziehungsweise
+aus; die veränderlichen Fristen der Vertrauensfrage — Sammelfrist und Abstimmungsdauer — stehen als
+`mandate.confidence_support_days` und `mandate.confidence_vote_window_days` in 3.1 und werden beim
+Einbringen in die Ordnung des Antrags eingefroren.
 
 ## 4. `/kennzahlen.json` — aggregierter Lernfortschritt
 
@@ -167,7 +175,7 @@ je Fassung; ihre Registerwerte sind über die Kennungen `draft_loop.*` und `coun
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.5, 7 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.6, 7 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -182,17 +190,18 @@ je Fassung; ihre Registerwerte sind über die Kennungen `draft_loop.*` und `coun
 Alle Werte sind Zählungen oder Anteile über die ganze Instanz — nichts davon lässt sich auf einen
 Menschen zurückführen. Dieselben Kennungen sind die Messgrößen der Parametertests des
 Koordinationsrats (§ 6 Abs 11 lit c): Eine zweite Zählung nur für Tests wäre nicht nachrechenbar.
-Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) zählen in `motions.*` und `votes.*` wie
-Sachanträge; eine eigene Kennung haben sie nicht.
+Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Antragsart
+`vertrauensfrage`, seit 0.48.0 — einschließlich Bestätigungsanträgen) zählen in `motions.*` und
+`votes.*` wie Sachanträge; eine eigene Kennung haben sie nicht.
 
 ## 5. Weitere offene Formate
 
 | Adresse | Inhalt | Personenbezug |
 |---|---|---|
-| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen und Mandatsfragen) | Pseudonyme (nur der Mensch selbst kennt seines) |
+| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen) | Pseudonyme (nur der Mensch selbst kennt seines) |
 | `/umsetzung.json` | Umsetzungsregister mit voller Historie | Anzeigenamen der Vollzugsmeldenden (Gremien-Rollen, öffentlich) |
 | `/gremien/protokoll/<gremium>/<jahr>.json` | Sitzungsprotokoll eines Rates: die Beschlüsse des Jahres mit Stimmen, Begründungen und Umsetzungsvermerken (§ 6 Abs 9) | Anzeigenamen der Ratsmitglieder (öffentliche Besetzung) |
-| `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0 | Anzeigenamen der Mandatare (öffentliches Amt) |
+| `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0; seit 0.48.0 zusätzlich `vertrauensfragen` — die Ergebnisse je Mandat (§ 7 Abs 10 lit e) | Anzeigenamen der Mandatare (öffentliches Amt) |
 | `/mandatare/wahlvorschlag/<antrag>.md` | Reihung einer beendeten Kandidatur nach Zustimmungen (§ 7 Abs 1) als Markdown — seit 0.46.0 | Anzeigenamen der Bewerberinnen und Bewerber (öffentliche Kandidatur) |
 | `policies/kategorien-v2.yaml` | Kategorienbaum der Lebensbereiche (312 Knoten, sprachneutrale Slugs) | — |
 | `policies/grundordnung-v1.yaml` | Verfahrensordnung als Daten (ADR-004) | — |
@@ -214,3 +223,4 @@ Sachanträge; eine eigene Kennung haben sie nicht.
 | 1.3 | 8.9.2026 | 0.44.0 | `council.group1_size`, `council.group2_size` — im Register und in der Verfahrensordnung (die Gruppengrößen des Expertenrats stehen in der eingefrorenen Ordnung, § 5 Abs 5) |
 | 1.4 | 11.9.2026 | 0.45.0 | `overview.decided_votes`, `chat.thread_roots`, `council.decisions_per_page`, `account.email_change_waiting_hours` |
 | 1.5 | 12.9.2026 | 0.46.0 | `mandate.question_vote_window_days` (Dauer der Abstimmung über eine Mandatsfrage, § 7 Abs 9), `mandate.monthly_report_grace_days` (Karenz des Monatsberichts, § 7 Abs 3 lit b), `region.secondary_residence_counts` (Schalter 0/1, § 5 Abs 6 — nie Stimmrecht). Diese Datei vollständig auf den Code gebracht: Die Tabelle stand seit 1.0 unverändert bei 12 Kennungen und trug die drei in 1.1 umbenannten noch unter ihren alten Namen; der Verlauf nannte 1.1 bis 1.3 nicht |
+| 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |

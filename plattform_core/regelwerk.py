@@ -541,10 +541,20 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=3,
-        seit="2026-09-12",
+        fassung=4,
+        seit="2026-09-15",
         grund=(
-            _("Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
+            _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "
+            "Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung "
+            "für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der "
+            "Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen "
+            "Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss "
+            "fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen "
+            "und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des "
+            "Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger "
+            "bewerten und ein Abberufungsverfahren einleiten“ entfiel: Die Satzung sieht weder Bewertung "
+            "noch Abberufung eines Mandats vor, sondern die Vertrauensfrage. ")
+            + _("Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
             "Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, "
             "Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet "
             "Pseudonym, Wohnsitz, Nebenwohnsitz, Datenexport und Austritt selbst; Gast liest das "

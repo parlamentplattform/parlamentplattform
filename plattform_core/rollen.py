@@ -36,7 +36,9 @@ def _(text: str) -> str:
 #: Fassung dieser Matrix. Sie steigt, wenn Rollen oder Fähigkeiten hinzukommen oder ihren
 #: Status ändern — die Seite nennt sie, damit ein Ausdruck von heute morgen zuzuordnen ist.
 #: Fassung 3 (12.9.2026): der Mandatar ist eine Rolle im Code, das Profil gehört dem Mitglied.
-VERSION = 3
+#: Fassung 4 (15.9.2026): die Vertrauensfrage nach § 7 Abs 10 — stellen, unterstützen, Stellung
+#: nehmen, Sperre feststellen, Bestätigung beantragen, Rückgabezusage, Rechtsschutz-Vermerke.
+VERSION = 4
 
 
 class Stand(enum.StrEnum):
@@ -168,6 +170,12 @@ GAST = Rolle(
             stand=Stand.VERFUEGBAR,
             satzung="§ 7 Abs 5",
             urlname="mandatare:rechenschaft",
+        ),
+        Faehigkeit(
+            titel=_("Vertrauensfragen, Stellungnahmen und Ergebnisse lesen — laufende und entschiedene, mit Beteiligung und Rechtsschutzstand"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit d und e",
+            urlname="mandatare:vertrauensfragen",
         ),
         Faehigkeit(
             titel=_("Das Parameterregister und die geltende Verfahrensordnung lesen"),
@@ -338,10 +346,23 @@ MITGLIED = Rolle(
             satzung="§ 4 Abs 5, § 8 Abs 4",
             urlname="mitglieder:profil",
         ),
+        # Bis Fassung 3 stand hier ○ „Mandatsträger bewerten und ein Abberufungsverfahren
+        # einleiten“. Die Satzung 2.5 kennt weder das eine noch das andere: Die Partei kann ein
+        # Mandat nicht entziehen (§ 7 Abs 2, Abs 10 lit i), und bewertet wird nichts (§ 2 Abs 6).
+        # An ihre Stelle tritt die Vertrauensfrage nach § 7 Abs 10 — die Entscheidung der
+        # Mitgliederversammlung, ob sie sich weiterhin vertreten lassen will.
         Faehigkeit(
-            titel=_("Mandatsträger bewerten und ein Abberufungsverfahren einleiten"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
+            titel=_("Vertrauensfrage zu einem Mandatsträger stellen — mit mindestens einem Anlass aus dem Rechenschaftsregister oder den ausgewiesenen Ausständen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit b",
+            ort=_("auf der Seite des Mandatars"),
+        ),
+        Faehigkeit(
+            titel=_("Vertrauensfrage unterstützen (Stimmrecht für Personenwahlen am Tag der Einbringung)"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit c",
+            urlname="mandatare:vertrauensfragen",
+            ort=_("auf der Antragsseite der Vertrauensfrage"),
         ),
         Faehigkeit(
             titel=_("Schriftlich oder in Präsenz abstimmen"),
@@ -681,7 +702,7 @@ KOORDINATIONSRAT = Rolle(
             titel=_("Den Posteingang der Zukunftswerkstatt sichten"),
             stand=Stand.TEILWEISE,
             urlname="gremien:koordination",
-            einschraenkung=_("Der Posteingang steht; heute speist ihn nur die Auswertung von Parametertests. Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."),
+            einschraenkung=_("Der Posteingang steht; heute speisen ihn die Auswertung von Parametertests und verlorene Vertrauensfragen (§ 7 Abs 10 lit f Z 7: Mitteilung an Klub oder Fraktion). Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."),
         ),
         Faehigkeit(
             titel=_("Überlastungsmeldungen veröffentlichen und binnen 30 Tagen einen Vorschlag an die Mitgliederversammlung vorlegen"),
@@ -741,6 +762,12 @@ INTEGRITAETSRAT = Rolle(
         Faehigkeit(
             titel=_("Einen Antrag durch begründeten Beschluss formal zurückweisen"),
             stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
+        ),
+        Faehigkeit(
+            titel=_("Sperre einer Vertrauensfrage feststellen — binnen drei Tagen nach Einbringung durch begründeten, veröffentlichten Beschluss; die Plattform weist nichts von selbst ab"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit b und g",
             urlname="gremien:integritaet",
         ),
         Faehigkeit(
@@ -856,6 +883,12 @@ VERWALTUNG = Rolle(
             titel=_("Mandate anlegen, beenden und mit der Kandidatur verknüpfen"),
             stand=Stand.VERFUEGBAR,
             satzung="§ 7 Abs 1",
+            urlname="mandatare:verwaltung",
+        ),
+        Faehigkeit(
+            titel=_("Anfechtung und Entscheidung des Parteischiedsgerichts zu einer Vertrauensfrage vermerken, Rückgabezusage und Ergänzung der Mandatsvereinbarung nachtragen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit h und j, Abs 3",
             urlname="mandatare:verwaltung",
         ),
         Faehigkeit(
@@ -1108,6 +1141,24 @@ MANDATAR = Rolle(
             urlname="mandatare:mein",
         ),
         Faehigkeit(
+            titel=_("Zur Vertrauensfrage Stellung nehmen — bis zum Ende der Abstimmung, im Wortlaut neben dem Antrag, ergänzbar, nie nachträglich änderbar"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit d",
+            ort=_("auf der Antragsseite der Vertrauensfrage"),
+        ),
+        Faehigkeit(
+            titel=_("Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — frühestens sechs Monate nach dem Ergebnis; hebt die Kandidatursperre auf"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit f Z 3",
+            ort=_("auf der eigenen Mandatar-Seite, Abschnitt „Vertrauen“"),
+        ),
+        Faehigkeit(
+            titel=_("Rückgabezusage abgeben oder nicht abgeben — freiwillig, nicht einklagbar, öffentlich ausgewiesen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 3",
+            ort=_("bei der Bewerbung im Kandidatur-Antrag"),
+        ),
+        Faehigkeit(
             titel=_("Vollzugsbericht zu einem angenommenen Antrag abgeben"),
             stand=Stand.TEILWEISE,
             einschraenkung=_("Den Umsetzungsstand schreibt heute nur die Verwaltung fort, obwohl die Satzung Mandatsträger selbst zum Vollzugsbericht verpflichtet."),
@@ -1209,6 +1260,11 @@ SCHIEDSGERICHT = Rolle(
             titel=_("Eine Aussetzung des Integritätsrats binnen sieben Tagen bestätigen"),
             stand=Stand.GEPLANT,
             bauschritt=_("nicht in Teil C (S1–S14) vorgesehen"),
+        ),
+        Faehigkeit(
+            titel=_("Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"),
+            stand=Stand.GEPLANT,
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie an (§ 7 Abs 10 lit h)"),
         ),
         Faehigkeit(
             titel=_("Entscheidung mit Begründung binnen sechs Monaten veröffentlichen"),

@@ -24,7 +24,9 @@ OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar"}
 #: URL-Namen, die die Matrix schon nennt, obwohl sie erst mit der Zusammenführung eines
 #: Bauschritts entstehen. Im Regelfall leer — ein Eintrag hier ist eine Zusage, die der
 #: nächste Commit einlösen muss; nach der Zusammenführung muss die Menge wieder leer sein.
-ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = set()
+#: 0.48 (Cluster D vor M): `/vertrauensfragen/` baut Cluster M (Bauplan V13, Name
+#: `mandatare:vertrauensfragen`); nach der Zusammenführung diese Zeile leeren.
+ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = {"mandatare:vertrauensfragen"}
 
 
 def test_die_matrix_traegt_ihre_fassung():
@@ -143,8 +145,37 @@ def test_vier_rollen_stehen_auf_der_willkommensseite():
     assert auswahl == ["gast", "mitglied", "mitglied_ruht", "mandatar"]
 
 
+@pytest.fixture
+def vorweggenommene_adressen():
+    """Solange `ERWARTET_NACH_ZUSAMMENFUEHRUNG` nicht leer ist, bekommen die Seitentests die
+    vorweggenommenen Namen als Platzhalter angehängt — sonst bräche `{% url %}` auf /rollen/,
+    und die Seite ließe sich bis zur Zusammenführung gar nicht mehr prüfen. Nach der
+    Zusammenführung ist die Menge leer, und diese Fixture tut nichts; ein Platzhalter für
+    einen Namen, den es schon gibt, wird nie angelegt."""
+    from django.http import HttpResponse
+    from django.urls import clear_url_caches, path
+
+    import mandatare.urls as mandatare_urls
+
+    angehaengt = []
+    for name in sorted(ERWARTET_NACH_ZUSAMMENFUEHRUNG):
+        app, _, kurz = name.partition(":")
+        assert app == "mandatare", f"Platzhalter nur für mandatare-Namen vorgesehen: {name}"
+        try:
+            reverse(name)
+        except NoReverseMatch:
+            muster = path(f"platzhalter/{kurz}/", lambda request: HttpResponse(""), name=kurz)
+            mandatare_urls.urlpatterns.append(muster)
+            angehaengt.append(muster)
+    clear_url_caches()
+    yield
+    for muster in angehaengt:
+        mandatare_urls.urlpatterns.remove(muster)
+    clear_url_caches()
+
+
 @pytest.mark.django_db
-def test_die_seite_zeigt_alle_rollen_und_den_soll_ist_abgleich(client):
+def test_die_seite_zeigt_alle_rollen_und_den_soll_ist_abgleich(client, vorweggenommene_adressen):
     inhalt = client.get(reverse("verfahren:rollen")).content.decode()
     for r in alle_rollen(GRUPPEN):
         assert r.name in inhalt, f"Rolle fehlt auf der Seite: {r.name}"
@@ -154,7 +185,7 @@ def test_die_seite_zeigt_alle_rollen_und_den_soll_ist_abgleich(client):
 
 
 @pytest.mark.django_db
-def test_die_willkommensseite_zeigt_vier_karten_und_den_weg_zur_vollen_liste(client):
+def test_die_willkommensseite_zeigt_vier_karten_und_den_weg_zur_vollen_liste(client, vorweggenommene_adressen):
     inhalt = client.get(reverse("verfahren:index")).content.decode()
     assert reverse("verfahren:rollen") in inhalt
     for schluessel in ("gast", "mitglied", "mitglied_ruht", "mandatar"):
@@ -229,11 +260,13 @@ def test_fassung_3_die_bewerbung_im_fremden_kandidatur_antrag_gilt_als_gebaut():
     assert "eigene Bewerbung im fremden Antrag gibt es so nicht" not in " ".join(
         f.einschraenkung for f in mandatar.faehigkeiten
     )
-    assert len(mandatar.faehigkeiten) == 10
-    assert sum(f.stand is Stand.VERFUEGBAR for f in mandatar.faehigkeiten) == 9
+    # Fassung 3: zehn Zeilen, neun ●. Fassung 4 legt drei ● dazu (Stellungnahme, Bestätigung,
+    # Rückgabezusage); der einzige ◐ bleibt der Vollzugsbericht.
+    assert len(mandatar.faehigkeiten) == 13
+    assert sum(f.stand is Stand.VERFUEGBAR for f in mandatar.faehigkeiten) == 12
     (teilweise,) = [f for f in mandatar.faehigkeiten if f.stand is Stand.TEILWEISE]
     assert "Vollzug" in teilweise.titel
-    assert VERSION == 3  # Berichtigung einer falschen Auskunft, kein Statuswechsel — keine neue Fassung
+    assert VERSION >= 3  # die Berichtigung selbst war kein Statuswechsel — keine eigene Fassung
 
 
 def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
@@ -253,3 +286,75 @@ def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
     assert "prüft niemand" not in rollen["integritaetsrat"].wie_hinein
     assert "bei der Berufung" in rollen["integritaetsrat"].wie_hinein
     assert "ausgetreten" in rollen["mitglied_ruht"].hinweis
+
+
+def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
+    """Bauschritt S10c (§ 7 Abs 10): Jede Rolle, der der Absatz etwas aufträgt, hat ihre Zeile —
+    und keine trägt mehr das Versprechen einer „Abberufung“, das die Satzung nicht kennt."""
+    from gremien.models import Anlass
+    from verfahren.models import Antragsart, vertrauensfrage_einbringen  # noqa: F401 — die Fähigkeit
+
+    assert VERSION == 4
+    assert Antragsart.VERTRAUENSFRAGE == "vertrauensfrage"
+    assert Anlass.VERTRAUENSFRAGE_SPERRE == "vertrauensfrage_sperre"
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+
+    def zeilen(schluessel: str, wort: str) -> list:
+        return [f for f in rollen[schluessel].faehigkeiten if wort in f.titel]
+
+    stellen = zeilen("mitglied", "Vertrauensfrage zu einem Mandatsträger stellen")
+    assert len(stellen) == 1 and stellen[0].stand is Stand.VERFUEGBAR
+    assert stellen[0].ort and not stellen[0].urlname  # die Adresse braucht das Mandat als Argument
+    (unterstuetzen,) = zeilen("mitglied", "Vertrauensfrage unterstützen")
+    assert unterstuetzen.stand is Stand.VERFUEGBAR
+    assert unterstuetzen.urlname == "mandatare:vertrauensfragen"
+    assert "Personenwahlen" in unterstuetzen.titel
+    assert not zeilen("mitglied", "Abberufungsverfahren"), "die Satzung 2.5 kennt keine Abberufung eines Mandats"
+
+    (stellungnahme,) = zeilen("mandatar", "Stellung nehmen")
+    (bestaetigung,) = zeilen("mandatar", "Bestätigung nach § 7 Abs 10 lit f Z 3")
+    (rueckgabe,) = zeilen("mandatar", "Rückgabezusage")
+    for f in (stellungnahme, bestaetigung, rueckgabe):
+        assert f.stand is Stand.VERFUEGBAR and f.ort and f.satzung, f.titel
+    assert "Bewerbung" in rueckgabe.ort
+
+    (sperre,) = zeilen("integritaetsrat", "Sperre einer Vertrauensfrage feststellen")
+    assert sperre.stand is Stand.VERFUEGBAR and sperre.urlname == "gremien:integritaet"
+    assert "weist nichts von selbst ab" in sperre.titel
+
+    (lesen,) = zeilen("gast", "Vertrauensfragen, Stellungnahmen und Ergebnisse lesen")
+    assert lesen.stand is Stand.VERFUEGBAR and lesen.urlname == "mandatare:vertrauensfragen"
+
+    (vermerke,) = zeilen("verwaltung", "Anfechtung und Entscheidung des Parteischiedsgerichts")
+    assert vermerke.stand is Stand.VERFUEGBAR and vermerke.urlname == "mandatare:verwaltung"
+    assert "Rückgabezusage" in vermerke.titel
+
+    # Das Parteischiedsgericht bleibt ○ — mit dem Hinweis, dass die Verwaltung heute vermerkt.
+    (anfechtung,) = zeilen("schiedsgericht", "Anfechtung einer Vertrauensfrage")
+    assert anfechtung.stand is Stand.GEPLANT and "Verwaltung" in anfechtung.bauschritt
+
+    # Der Posteingang des Koordinationsrats wird auch von Vertrauensfragen gespeist (lit f Z 7).
+    (posteingang,) = zeilen("koordinationsrat", "Posteingang")
+    assert "Vertrauensfragen" in posteingang.einschraenkung
+    assert "nur die Auswertung" not in posteingang.einschraenkung
+
+
+def test_fassung_4_verfuegbare_zeilen_tragen_weder_einschraenkung_noch_bauschritt():
+    """Grundregel des Datensatzes (`Faehigkeit.__post_init__` prüft nur die Einschränkung):
+    Ein ● mit Bauschritt wäre ein Versprechen, das schon eingelöst ist — Rauschen."""
+    falsch = [
+        f"{r.name}: {f.titel}"
+        for r in alle_rollen(GRUPPEN)
+        for f in r.faehigkeiten
+        if f.stand is Stand.VERFUEGBAR and (f.einschraenkung or f.bauschritt)
+    ]
+    assert not falsch, "Verfügbar mit Einschränkung oder Bauschritt:" + "".join(f" · {z}" for z in falsch)
+
+
+def test_erwartete_adressen_nach_der_zusammenfuehrung_sind_bekannt():
+    """Die Menge der vorweggenommenen Adressen darf nur enthalten, was ein Cluster desselben
+    Bauschritts wirklich baut — nach der Zusammenführung muss sie leer sein und jede Adresse
+    auflösbar (`test_jede_genannte_adresse_ist_erreichbar` übernimmt dann)."""
+    genannt = {f.urlname for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten if f.urlname}
+    assert ERWARTET_NACH_ZUSAMMENFUEHRUNG <= genannt, "vorweggenommen, aber von keiner Zeile genannt"
+    assert ERWARTET_NACH_ZUSAMMENFUEHRUNG <= {"mandatare:vertrauensfragen"}

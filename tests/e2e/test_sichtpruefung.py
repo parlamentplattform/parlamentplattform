@@ -308,7 +308,72 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     p.goto(f"{live_server.url}/mitglied-werden/")
     halte_fest(p, "registrierung-einwilligung")
 
-    erwartet = 35 + 8 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
+    # 0.48 (S10c): die Vertrauensfrage (§ 7 Abs 10) — Formular mit Anlässen, Antragsseite mit
+    # Anlässen, Bändern, Legende und Stellungnahme, öffentliche Übersicht, Abschnitt „Vertrauen“,
+    # Karte des Integritätsrats mit Sperrhinweis (Mandat in der Schonfrist)
+    from mandatare.models import Beschluss
+    from mitglieder.models import Mitglied
+    from verfahren.models import vertrauensfrage_einbringen
+
+    if ordnung is not None:
+        Mandat.objects.filter(pk=mandat.pk).update(angetreten=timezone.localdate() - timedelta(days=200))
+        mandat.refresh_from_db()
+        anlass, _ = Rechenschaft.objects.get_or_create(
+            mandat=mandat, gegenstand="Tempo 30 im Ortsgebiet",
+            defaults={"sitzung_am": timezone.localdate() - timedelta(days=20), "beschluss_plattform": Beschluss.ANGENOMMEN,
+                      "stimme": Stimmverhalten.DAGEGEN, "begruendung": "Die Gemeinde hat andere Prioritäten gesetzt."},
+        )
+        stellerin = Mitglied.objects.get(username="demo2")
+        p = seite(als=stellerin)
+        p.goto(f"{live_server.url}/mandatare/{mandat.pk}/vertrauensfrage/")
+        halte_fest(p, "vertrauensfrage-stellen")
+
+        vertrauensfrage = vertrauensfrage_einbringen(
+            stellerin, mandat, "Die Abweichung vom Beschluss der Mitglieder wurde im Register nicht erklärt.",
+            [anlass], [], ordnung,
+        )
+        p = seite(als=stellerin)
+        p.goto(f"{live_server.url}/antrag/{vertrauensfrage.pk}/")
+        halte_fest(p, "vertrauensfrage-antragsseite")
+        p = seite(als=mandatarin, dunkel=True)
+        p.goto(f"{live_server.url}/antrag/{vertrauensfrage.pk}/#stellungnahme")
+        halte_fest(p, "vertrauensfrage-antragsseite-dunkel-mandatar")
+        p = seite(als=mandatarin, js=False, viewport=HANDY)
+        p.goto(f"{live_server.url}/antrag/{vertrauensfrage.pk}/")
+        halte_fest(p, "vertrauensfrage-antragsseite-handy-ohne-javascript", js=False)
+
+        p = seite()
+        p.goto(f"{live_server.url}/vertrauensfragen/")
+        halte_fest(p, "vertrauensfragen-uebersicht")
+        p = seite()
+        p.goto(f"{live_server.url}/mandatare/{mandat.pk}/#vertrauen")
+        halte_fest(p, "mandatar-seite-vertrauen")
+
+        # Sperrhinweis: ein frisches Mandat (Schonfrist 90 Tage, lit g erster Fall) — die Software weist
+        # nicht ab, der Integritätsrat sieht die Karte mit Frist und vorbefülltem Beschluss
+        frisch, _ = Mandat.objects.get_or_create(
+            mitglied=stellerin, bezeichnung="Gemeinderat", defaults={"ebene": "gemeinde", "gebiet": "Eferding"},
+        )
+        vertrauensfrage_einbringen(
+            mandatarin, frisch, "Der Bericht zur ersten Sitzung fehlt.",
+            [Rechenschaft.objects.create(
+                mandat=frisch, gegenstand="Voranschlag 2027", sitzung_am=timezone.localdate() - timedelta(days=5),
+                beschluss_plattform=Beschluss.ANGENOMMEN, stimme=Stimmverhalten.DAGEGEN, begruendung="Dagegen.",
+            )], [], ordnung,
+        )
+        p = seite(als=Mitglied.objects.get(username="demo3"))
+        p.goto(f"{live_server.url}/gremien/integritaet/")
+        karte = p.locator(".karte", has_text="Vertrauensfragen mit Sperrhinweis")
+        karte.scroll_into_view_if_needed()
+        _ruhe(p)
+        ziel = sichtpruefung / "integritaetsrat-sperrhinweis.png"
+        karte.screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    erwartet = (
+        35 + 8 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
+        + (7 if ordnung is not None else 0)
+    )
     assert len(bilder) == erwartet, (len(bilder), erwartet)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild

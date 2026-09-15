@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n phasen %}
 {% block titel %}{% translate "Mandatare-Verwaltung" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Mandatare" %}</h1>
@@ -17,7 +17,7 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
   </form>
 </div>
 
-{% for m in mandate %}
+{% for k in karten %}{% with m=k.m %}
 <div class="karte">
   <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
     <strong>{{ m.mitglied.anzeigename }}</strong>
@@ -69,8 +69,66 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
     <p><label class="ankreuz"><input type="checkbox" name="sitzungstag"> {% translate "Die Frist ist ein Sitzungstag" %}</label></p>
     <button type="submit" class="btn-linie">{% translate "Aufgabe veröffentlichen" %}</button>
   </form>
+
+  <details class="klappe" id="vertrauen-{{ m.pk }}"{% if k.vertrauensfragen or m.vertrauen_entzogen_am %} open{% endif %}>
+    <summary>{% translate "Vertrauensfrage und Rückgabezusage (§ 7 Abs 3, Abs 10)" %}</summary>
+    <p class="erk">{% translate "Rückgabezusage:" %} <strong>{{ m.get_rueckgabezusage_display }}</strong>{% if m.rueckgabezusage_am %} · {% translate "vermerkt am" %} {{ m.rueckgabezusage_am|date:"d.m.Y" }}{% endif %}
+      · {% if m.mandatsvereinbarung_lit_h_am %}{% translate "Mandatsvereinbarung enthält § 7 Abs 3 lit h seit" %} {{ m.mandatsvereinbarung_lit_h_am|date:"d.m.Y" }}{% else %}{% translate "Mandatsvereinbarung ohne Ergänzung um § 7 Abs 3 lit h" %}{% endif %}
+      {% if m.vertrauen_entzogen_am %} · <strong class="ausstand">{% translate "Vertrauen entzogen am" %} {{ m.vertrauen_entzogen_am|date:"d.m.Y" }}</strong> · {% translate "Rückgabefrist bis" %} {{ m.rueckgabe_ersucht_bis|date:"d.m.Y" }}{% if m.rueckgabe_vermerk %} · {{ m.rueckgabe_vermerk }}{% endif %}{% endif %}
+      {% if m.vertretung_beendet_am %} · {% translate "Vertretung beendet am" %} {{ m.vertretung_beendet_am|date:"d.m.Y" }}{% endif %}
+      {% if m.bestaetigt_am %} · {% translate "bestätigt am" %} {{ m.bestaetigt_am|date:"d.m.Y" }}{% endif %}</p>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end">
+      <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">{% csrf_token %}
+        <input type="hidden" name="aktion" value="rueckgabezusage"><input type="hidden" name="mandat" value="{{ m.pk }}">
+        <label>{% translate "Rückgabezusage" %}
+          <select name="wert">
+            <option value="abgegeben">{% translate "abgegeben" %}</option>
+            <option value="nicht_abgegeben">{% translate "nicht abgegeben" %}</option>
+            <option value="widerrufen">{% translate "widerrufen (keine Angabe)" %}</option>
+          </select></label>
+        <button type="submit" class="btn-linie">{% translate "Rückgabezusage vermerken" %}</button>
+      </form>
+      <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">{% csrf_token %}
+        <input type="hidden" name="aktion" value="lit_h"><input type="hidden" name="mandat" value="{{ m.pk }}">
+        <label>{% translate "Mandatsvereinbarung um lit h ergänzt am" %} <input type="date" name="datum" required value="{{ m.mandatsvereinbarung_lit_h_am|date:'Y-m-d' }}"></label>
+        <button type="submit" class="btn-linie">{% translate "lit h vermerken" %}</button>
+      </form>
+      {% if m.kandidatursperre %}
+      <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}">{% csrf_token %}
+        <input type="hidden" name="aktion" value="bestaetigung_durch_wahl"><input type="hidden" name="mandat" value="{{ m.pk }}">
+        <button type="submit" class="btn-linie">{% translate "Bestätigung durch Wahl in ein Organ vermerken" %}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% for vf in k.vertrauensfragen %}
+    <div class="kommentar">
+      <div class="kopf" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span class="chip klein">{{ vf.get_art_display }}</span>
+        <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{% blocktranslate with nr=vf.antrag.pk %}Antrag #{{ nr }}{% endblocktranslate %}</a>
+        · {% translate "eingebracht" %} {{ vf.antrag.eingebracht_am|date:"d.m.Y" }}
+        {% if vf.ergebnis_wort %} · <strong>{{ vf.ergebnis_wort }}</strong> · {{ vf.ergebnis_am|date:"d.m.Y" }}{% else %} · {{ vf.antrag.phase|phase_name }}{% endif %}
+        {% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% if vf.aktenkennung %} ({{ vf.aktenkennung }}){% endif %}{% if vf.entschieden_am %} · {{ vf.entschieden_am|date:"d.m.Y" }}{% endif %}{% endif %}
+      </div>
+      {% if vf.ergebnis_am and not vf.angefochten_am %}
+      <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:6px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="anfechtung"><input type="hidden" name="vertrauensfrage" value="{{ vf.pk }}">
+        <label>{% translate "Angefochten am" %} <input type="date" name="datum" value="{{ heute|date:'Y-m-d' }}"></label>
+        <label>{% translate "Aktenkennung" %} <input type="text" name="aktenkennung" maxlength="80"></label>
+        <button type="submit" class="btn-linie">{% translate "Anfechtung vermerken" %}</button>
+      </form>
+      {% elif vf.angefochten_am and not vf.entscheidung %}
+      <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">{% csrf_token %}
+        <input type="hidden" name="aktion" value="entscheidung"><input type="hidden" name="vertrauensfrage" value="{{ vf.pk }}">
+        <span>{% translate "Entscheidung des Parteischiedsgerichts:" %}</span>
+        <button type="submit" class="btn-linie" name="entscheidung" value="aufgehoben">{% translate "aufgehoben" %}</button>
+        <button type="submit" class="btn-linie" name="entscheidung" value="bestaetigt">{% translate "bestätigt" %}</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </details>
 </div>
-{% empty %}
+{% endwith %}{% empty %}
 <p class="leer" style="margin-top:14px">{% translate "Noch kein Mandat angelegt." %}</p>
 {% endfor %}
 {% endblock %}

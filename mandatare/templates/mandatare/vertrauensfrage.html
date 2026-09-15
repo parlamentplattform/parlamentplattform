@@ -1,0 +1,61 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Vertrauensfrage stellen" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Die Vertrauensfrage einbringen (§ 7 Abs 10 lit b): ein echtes Formular — Anlässe als Kontroll-
+kästchen (Registereinträge mit Abweichung, seit über 30 Tagen ausgewiesene Ausstände), Begründung.
+Ein erkannter Sperrhinweis (lit g) wird gezeigt, weist aber nicht ab: Das stellt der Integritätsrat
+fest. Nach einem Fehler kommt `eingabe` mit und belegt das Formular wieder vor. Die Zahlen des
+Einbringungstags (Stimmberechtigte, Schwelle) stellt die Fachoperation fest — sie stehen danach im
+Band auf der Antragsseite.
+{% endcomment %}
+{% include "mandatare/_stil.html" %}
+<p><a href="{% url 'mandatare:detail' mandat.pk %}">&larr; {{ mandat.mitglied.anzeigename }}</a></p>
+<h1>{% translate "Vertrauensfrage stellen" %}</h1>
+<p class="erk"><strong>{{ mandat.bezeichnung }}</strong> · {{ mandat.gebiet|default:mandat.get_ebene_display }} · {{ mandat.mitglied.anzeigename }}
+  · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}</p>
+
+<div class="band-gold">{% blocktranslate trimmed %}Der Antrag lautet auf Versagung des Vertrauens (§ 7 Abs 10 lit b). Er gelangt zur Abstimmung,
+wenn ihn binnen der Sammelfrist fünf Prozent der für Personenwahlen stimmberechtigten Mitglieder unterstützen — maßgeblich sind
+die Zahlen am Tag der Einbringung; sie werden mit dem Antrag veröffentlicht. Der regionale Weg nach § 7 Abs 10 lit c steht offen,
+sobald die Plattform Gliederungen führt (§ 14 Abs 4). Das staatliche Mandat berührt die Vertrauensfrage nicht (§ 7 Abs 2).{% endblocktranslate %}</div>
+
+{% if sperrhinweis %}
+<div class="karte hinweis" id="sperrhinweis">
+  <p class="phasen-titel">{% translate "Sperrhinweis nach § 7 Abs 10 lit g" %}</p>
+  <p style="white-space:pre-line">{{ sperrhinweis }}</p>
+  <p class="meta">{% translate "Ob eine Sperre vorliegt, stellt der Integritätsrat binnen drei Tagen nach Einbringung durch veröffentlichten Beschluss fest; der Antrag gilt dann als nicht eröffnet. Bis dahin läuft er. Der Hinweis hindert nicht am Einbringen." %}</p>
+</div>
+{% endif %}
+
+<div class="karte handlung" id="einbringen">
+  {% if ordnung_fehlt %}
+  <p class="leer">{% translate "Derzeit gilt keine Verfahrensordnung — ein Antrag kann noch nicht entstehen." %}</p>
+  {% elif not anlaesse and not ausstaende %}
+  <p><strong>{% translate "Kein Anlass vorhanden." %}</strong></p>
+  <p class="erk">{% translate "Anlass ist ein Eintrag des Rechenschaftsregisters, in dem das Stimmverhalten vom Beschluss der Plattform abweicht, oder eine seit mehr als 30 Tagen ausständige Rechenschaft oder Berichterstattung (§ 7 Abs 10 lit b). Ohne Anlass gibt es keinen Antrag." %}</p>
+  <p><a href="{% url 'mandatare:rechenschaft_mandat' mandat.pk %}">{% translate "Zum Rechenschaftsregister →" %}</a></p>
+  {% else %}
+  <form method="post" action="{% url 'mandatare:vertrauensfrage_stellen' mandat.pk %}" class="kr-form">{% csrf_token %}
+    <p class="phasen-titel">{% translate "Anlass (mindestens einer)" %}</p>
+    {% for z in anlaesse %}
+    <label class="ankreuz" for="anlass-{{ z.r.pk }}"><input type="checkbox" id="anlass-{{ z.r.pk }}" name="anlass" value="{{ z.r.pk }}"{% if z.r.pk|stringformat:"s" in gewaehlte_anlaesse %} checked{% endif %}>
+      <span><strong>{{ z.r.gegenstand }}</strong> · {% translate "Sitzung am" %} {{ z.r.sitzung_am|date:"d.m.Y" }}
+      <br><span class="meta">{% translate "Beschluss der Plattform:" %} {{ z.beschluss_name }} · {% translate "Stimme:" %} {{ z.r.get_stimme_display }} · <span class="abweichung">{% translate "weicht ab" %}</span></span>
+      <br><span class="meta" style="white-space:pre-line">{{ z.r.begruendung }}</span></span></label>
+    {% endfor %}
+    {% for a in ausstaende %}
+    <label class="ankreuz" for="ausstand-{{ forloop.counter }}"><input type="checkbox" id="ausstand-{{ forloop.counter }}" name="ausstand" value="{{ a.kennung }}"{% if a.kennung in gewaehlte_ausstaende %} checked{% endif %}>
+      <span><strong>{% if a.art == "rechenschaft" %}{% translate "Rechenschaft" %}{% elif a.art == "sammelbericht" %}{% translate "Sammelbericht" %}{% else %}{% translate "Monatsbericht" %}{% endif %} {{ a.bezug }}</strong>
+      · <strong class="ausstand">{% blocktranslate count t=a.tage %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}</strong>
+      <span class="meta">· {% translate "fällig gewesen am" %} {{ a.seit|date:"d.m.Y" }}</span></span></label>
+    {% endfor %}
+    <label for="vf-begruendung">{% translate "Begründung (öffentlich, Wortlaut des Antrags)" %}</label>
+    <textarea id="vf-begruendung" name="begruendung" rows="6" maxlength="{{ begruendung_max }}" required>{% if eingabe %}{{ eingabe.begruendung }}{% endif %}</textarea>
+    <span class="hilfe">{% translate "Zu jedem Anlass werden Beschluss der Plattform, Stimmverhalten und Begründung des Mandatsträgers neben dem Antrag dargestellt; der Mandatsträger wird verständigt und kann bis zum Ende der Abstimmung Stellung nehmen (§ 7 Abs 10 lit d)." %}</span>
+    <button type="submit" class="btn" style="margin-top:10px">{% translate "Vertrauensfrage einbringen" %}</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

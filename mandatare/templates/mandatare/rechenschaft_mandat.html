@@ -12,6 +12,12 @@
   {% include "mandatare/_rechenschaft_tabelle.html" with zeilen=zeilen mit_mandatar=False %}
 </div>
 
+<div class="karte" id="vertrauen">
+  <p class="phasen-titel">{% translate "Vertrauen" %}</p>
+  {% include "mandatare/_vertrauen_stand.html" with mandat=mandat vertrauen=vertrauen %}
+  {% if not vertrauen.alle and not mandat.vertrauen_entzogen_am %}<p class="leer">{% translate "Keine Vertrauensfrage bisher." %}</p>{% endif %}
+</div>
+
 {% if ausstaende.rechenschaften %}
 <div class="karte">
   <p class="phasen-titel">{% translate "Ausstände" %}</p>

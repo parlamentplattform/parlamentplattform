@@ -5,7 +5,8 @@
 {% include "mandatare/_stil.html" %}
 <h1>{% translate "Rechenschaftsregister" %}</h1>
 <p class="erk">{% translate "Wie die Mandatare der DDÖ in ihren Vertretungskörpern gestimmt haben — neben dem Beschluss der Plattform (§ 7 Abs 5)." %}
-  · <a href="{% url 'mandatare:rechenschaft_json' %}{% if ebene %}?ebene={{ ebene }}{% endif %}">JSON</a></p>
+  · <a href="{% url 'mandatare:rechenschaft_json' %}{% if ebene %}?ebene={{ ebene }}{% endif %}">JSON</a>
+  · <a href="{% url 'mandatare:vertrauensfragen' %}{% if ebene %}?ebene={{ ebene }}{% endif %}">{% translate "Vertrauensfragen →" %}</a></p>
 <div class="ebenen">
   <a class="chip{% if not ebene %} an{% endif %}" href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Ebenen" %}</a>
   {% for wert, name in ebenen %}<a class="chip{% if ebene == wert %} an{% endif %}" href="?ebene={{ wert }}">{{ name }}</a>{% endfor %}

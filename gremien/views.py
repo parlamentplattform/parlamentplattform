@@ -889,6 +889,11 @@ def beschluss_stimme(request, beschluss_id: int):
             _("Abstimmen kann nur, wer für diese Sache eine aktive Rolle in diesem Gremium hat."),
         )
         return redirect(zurueck)
+    if beschluss.offen and beschluss.frist is not None and timezone.now() >= beschluss.frist:
+        # Die Frist ist um, der Beschluss nur noch nicht lazy geschlossen: erst schließen, dann
+        # abweisen. Eine Stimme nach der Frist darf nicht in eine Auswertung einfließen, die zum
+        # Fristzeitpunkt wirkt (Sperrfeststellung § 7 Abs 10 lit b, Befund #33).
+        beschluss.abschliessen()
     if not beschluss.offen:
         messages.error(request, _("Dieser Beschluss ist bereits ausgewertet."))
         return redirect(zurueck)

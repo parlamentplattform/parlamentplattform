@@ -1067,12 +1067,6 @@ def archiv_export(request, pk, art):
     antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-archiv.{art}"'
     return antwort
 
-#: Die Vorlagen der Stellungnahme-Karte (§ 7 Abs 10 lit d), in dieser Reihenfolge: zuerst die der
-#: Mandatare-App (Liste samt Formular des Mandatsträgers — entsteht parallel), sonst die lesende
-#: Fassung dieser App. `{% include %}` nimmt die erste, die es gibt.
-STELLUNGNAHMEN_VORLAGEN = ("mandatare/_stellungnahmen.html", "verfahren/_stellungnahmen.html")
-
-
 def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     """Zone 1 einer Vertrauensfrage (§ 7 Abs 10): Mandat und Mandatar, die Anlässe (Einträge des
     Rechenschaftsregisters und Ausstände — dargestellt, nicht bewertet, lit b), die am Einbringungstag
@@ -1166,7 +1160,6 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
             else None
         ),
         "stellungnahmen": list(vf.stellungnahmen.all()),
-        "stellungnahmen_vorlagen": STELLUNGNAHMEN_VORLAGEN,
     }
 
 

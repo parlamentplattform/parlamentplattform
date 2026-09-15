@@ -46,7 +46,7 @@ from plattform_core.rechenschaft import (
     lage,
     monatsbericht_faellig_am,
 )
-from verfahren.models import Antrag, AuditEintrag, Ebene, Rueckgabezusage
+from verfahren.models import Antrag, AuditEintrag, Bewerbung, Ebene, Rueckgabezusage
 
 FOTO_HOECHSTGROESSE = 800_000  # Bytes — genug für ein Porträt, zu wenig für Missbrauch
 
@@ -173,6 +173,23 @@ class Mandat(models.Model):
         bis die Mitgliederversammlung bestätigt hat. Eine Aufhebung (lit h) leert den Stempel."""
         return self.vertrauen_entzogen_am is not None and self.bestaetigt_am is None
 
+    def rueckgabezusage_wirksam(self) -> tuple[str, str]:
+        """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der Vermerk am Mandat (Verwaltung, „mandat“),
+        sonst die öffentliche Erklärung aus der Bewerbung zur verknüpften Kandidatur („bewerbung“);
+        `("", "")` heißt „keine Angabe“. Register, Seite und JSON lesen dieselbe Quelle — der Vermerk
+        nach Fristablauf darf nicht „keine Rückgabezusage“ sagen, wo die Bewerbung eine trägt."""
+        if self.rueckgabezusage:
+            return self.rueckgabezusage, "mandat"
+        if self.kandidatur_id:
+            zusage = (
+                Bewerbung.objects.filter(antrag_id=self.kandidatur_id, mitglied_id=self.mitglied_id)
+                .values_list("rueckgabezusage", flat=True)
+                .first()
+            )
+            if zusage:
+                return zusage, "bewerbung"
+        return Rueckgabezusage.UNBEKANNT.value, ""
+
     @property
     def rueckgabe_vermerk(self) -> str:
         """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
@@ -183,7 +200,7 @@ class Mandat(models.Model):
             return str(_("Mandat zurückgelegt am %(datum)s") % {"datum": self.beendet.strftime("%d.%m.%Y")})
         if timezone.localdate() <= self.rueckgabe_ersucht_bis:
             return ""
-        if self.rueckgabezusage == Rueckgabezusage.ABGEGEBEN:
+        if self.rueckgabezusage_wirksam()[0] == Rueckgabezusage.ABGEGEBEN:
             return str(_("Rückgabezusage nicht eingehalten"))
         return str(_("keine Rückgabezusage abgegeben"))
 

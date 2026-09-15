@@ -119,14 +119,10 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% if vertrauensfrage %}
     {% comment %}
     § 7 Abs 10 lit d: Das Gehör des Mandatsträgers — im Wortlaut, in gleicher Breite, mit Zeitstempeln,
-    ergänzbar bis zum Ende der Abstimmung, nie nachträglich geändert. Den Inhalt der Karte liefert die
-    Mandatare-App (`mandatare/_stellungnahmen.html`, mit dem Formular des Mandatsträgers); solange es sie
-    nicht gibt, zeigt `verfahren/_stellungnahmen.html` die Einträge lesend.
+    ergänzbar bis zum Ende der Abstimmung, nie nachträglich geändert. Die Karte samt Formular des
+    Mandatsträgers liefert die Mandatare-App (`mandatare/_stellungnahmen.html`, Anker #stellungnahme).
     {% endcomment %}
-    <div class="karte handlung" id="stellungnahme">
-      <h3>{% translate "Stellungnahme des Mandatsträgers" %}</h3>
-      {% include vertrauensfrage.stellungnahmen_vorlagen with vf=vertrauensfrage.vf stellungnahmen=vertrauensfrage.stellungnahmen %}
-    </div>
+    {% include "mandatare/_stellungnahmen.html" with vf=vertrauensfrage.vf stellungnahmen=vertrauensfrage.stellungnahmen %}
     {% endif %}
 
     {# Handlungskarte je Phase (FB-F1): was jetzt zu tun ist, direkt unter dem Text #}

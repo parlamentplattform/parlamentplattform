@@ -133,6 +133,28 @@ def test_rueckgabe_vermerk_ist_ein_sachverhalt_ohne_wertung(altmandat):  # noqa:
     assert altmandat.rueckgabe_vermerk == "Mandat zurückgelegt am 03.10.2026"
 
 
+def test_rueckgabe_vermerk_liest_die_zusage_aus_der_bewerbung(ordnung, altmandat):  # noqa: F811
+    """Register, Seite und JSON lesen dieselbe Quelle: Trägt die Verwaltung keine Zusage am Mandat ein,
+    gilt die öffentliche Erklärung aus der Bewerbung (§ 7 Abs 3) — der Vermerk nach Fristablauf darf
+    nicht „keine Rückgabezusage abgegeben“ sagen, wo die Bewerbung eine trägt."""
+    from verfahren.models import Antragsart, Bewerbung, antrag_einbringen
+    from verfahren.test_vertrauensfrage import ANTRAG
+
+    kandidatur = antrag_einbringen(mitglied_anlegen("k"), **ANTRAG, ordnung=ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(
+        antrag=kandidatur, mitglied=altmandat.mitglied, vorstellung="Ich trete an.", rueckgabezusage="abgegeben"
+    )
+    altmandat.kandidatur = kandidatur
+    altmandat.save(update_fields=["kandidatur"])
+    assert altmandat.rueckgabezusage_wirksam() == ("abgegeben", "bewerbung")
+    altmandat.vertrauen_entzogen_am = timezone.now() - tage(40)
+    altmandat.rueckgabe_ersucht_bis = timezone.localdate() - tage(1)
+    assert altmandat.rueckgabe_vermerk == "Rückgabezusage nicht eingehalten"
+    altmandat.rueckgabezusage = Rueckgabezusage.NICHT_ABGEGEBEN  # der Vermerk am Mandat geht vor
+    assert altmandat.rueckgabezusage_wirksam() == ("nicht_abgegeben", "mandat")
+    assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
+
+
 def test_rueckgabezusage_nachtragen_und_widerrufen(altmandat):  # noqa: F811
     rueckgabezusage_vermerken(altmandat, "abgegeben")
     altmandat.refresh_from_db()

@@ -24,9 +24,7 @@ OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar"}
 #: URL-Namen, die die Matrix schon nennt, obwohl sie erst mit der Zusammenführung eines
 #: Bauschritts entstehen. Im Regelfall leer — ein Eintrag hier ist eine Zusage, die der
 #: nächste Commit einlösen muss; nach der Zusammenführung muss die Menge wieder leer sein.
-#: 0.48 (Cluster D vor M): `/vertrauensfragen/` baut Cluster M (Bauplan V13, Name
-#: `mandatare:vertrauensfragen`); nach der Zusammenführung diese Zeile leeren.
-ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = {"mandatare:vertrauensfragen"}
+ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = set()
 
 
 def test_die_matrix_traegt_ihre_fassung():

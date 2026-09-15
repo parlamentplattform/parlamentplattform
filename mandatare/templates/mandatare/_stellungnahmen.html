@@ -4,14 +4,15 @@ Vertrag: `{% include "mandatare/_stellungnahmen.html" with vf=vf %}` — `vf` is
 mandatare.Vertrauensfrage des Antrags (antrag.vertrauensfrage); die Karte liest `request.user`,
 `vf.stellungnahmen.all`, `vf.laeuft` und `vf.mandat.mitglied_id`. Der Antrag soll vorher
 fortgeschrieben sein (die Antragsseite tut das). Anker: #stellungnahme. Optional `stellungnahmen`
-(vorgeladene Liste) statt `vf.stellungnahmen.all`.
+(vorgeladene Liste) statt `vf.stellungnahmen.all`. Die Karte ist vollständig — die Antragsseite
+bindet sie ohne eigenen Rahmen ein (eine Handlungskarte wie die anderen, § 7 Abs 10 lit d).
 {% endcomment %}
-<div class="karte" id="stellungnahme">
-  <p class="phasen-titel">{% translate "Stellungnahme des Mandatsträgers" %}</p>
+<div class="karte handlung" id="stellungnahme">
+  <h3>{% translate "Stellungnahme des Mandatsträgers" %}</h3>
   {% for s in stellungnahmen|default:vf.stellungnahmen.all %}
-  <div class="kommentar">
-    <div class="kopf"><strong>{{ vf.mandat.mitglied.anzeigename }}</strong> <span class="meta">· {{ s.erstellt_am|date:"d.m.Y H:i" }}{% if not forloop.first %} · {% translate "Ergänzung" %}{% endif %}</span></div>
-    <div style="white-space:pre-line">{{ s.text }}</div>
+  <div class="kommentar stellungnahme">
+    <div class="kopf"><strong>{{ vf.mandat.mitglied.anzeigename }}</strong> <span class="meta">· {{ s.erstellt_am|date:"d.m.Y, H:i" }}{% if not forloop.first %} · {% translate "Ergänzung" %}{% endif %}</span></div>
+    <div class="text-lang">{{ s.text|linebreaksbr }}</div>
   </div>
   {% empty %}
   <p class="leer">{% translate "Noch keine Stellungnahme." %}</p>
@@ -27,5 +28,7 @@ fortgeschrieben sein (die Antragsseite tut das). Anker: #stellungnahme. Optional
     {% else %}
     <p class="meta" style="margin-top:8px">{% translate "Die Abstimmung ist beendet — eine Stellungnahme ist nicht mehr möglich; die vorhandenen bleiben einsehbar." %}</p>
     {% endif %}
+  {% elif vf.laeuft %}
+    <p class="hilfe">{% translate "Der Mandatsträger kann bis zum Ende der Abstimmung Stellung nehmen; Untätigkeit hemmt das Verfahren nicht (§ 7 Abs 10 lit d)." %}</p>
   {% endif %}
 </div>

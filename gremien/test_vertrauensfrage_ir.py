@@ -11,7 +11,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from gremien.models import Anlass, BeschlussStatus, GremienBeschluss, Gremium, Rolle
+from gremien.models import JA_NEIN, Anlass, BeschlussStatus, GremienBeschluss, Gremium, Rolle
 from gremien.test_integritaet import rat
 from mandatare.models import RUHENSGRUND, Mandat, Vertrauensfrage
 from verfahren.models import AuditEintrag
@@ -327,6 +327,29 @@ def test_ein_durch_fristablauf_geschlossener_beschluss_wirkt_zum_fristzeitpunkt(
     assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == "dafuer"
     assert antrag.phase == "zurueckgewiesen" and vf.sperre_beschluss == beschluss
     assert antrag.phase_beginn == vf.sperrfrist_ende  # Fristzeitpunkt, nicht Aufrufzeitpunkt
+
+
+def test_eine_stimme_nach_der_frist_schliesst_den_beschluss_statt_einzufliessen(client, ordnung):  # noqa: F811
+    """Wirkt die Feststellung zum Fristzeitpunkt, darf keine Stimme aus der Zeit danach in sie
+    einfließen: Ein Beschluss, dessen Frist um ist, schließt beim Versuch, noch abzustimmen."""
+    leute = rat(3)
+    antrag, vf = mit_hinweis(ordnung, jetzt=timezone.now() - tage(4))  # Sperrfrist (3 Tage) ist um
+    client.force_login(leute[0])
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
+        antrag=antrag,
+        gegenstand="Sperre nach § 7 Abs 10 lit g",
+        optionen=JA_NEIN,
+        frist=vf.sperrfrist_ende,
+        angelegt_von=leute[0],
+    )
+    antwort = client.post(
+        reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Ja."}, follow=True
+    )
+    beschluss.refresh_from_db()
+    assert beschluss.status != BeschlussStatus.OFFEN and beschluss.stimmen.count() == 0
+    assert "bereits ausgewertet" in antwort.content.decode()
 
 
 def test_eine_abgelaufene_ruhende_rolle_liest_als_abgelaufene(client, ordnung):  # noqa: F811

@@ -26,6 +26,7 @@ vorzeitige Beendigung werden hier gepflegt — alles im öffentlichen Audit-Log,
     <br><span class="meta">{% blocktranslate with wann=r.berufen_am|date:"d.m.Y" bis=r.endet_am|date:"d.m.Y" %}berufen {{ wann }} · bis {{ bis }}{% endblocktranslate %}
     {% if r.beendet_grund %} · {% blocktranslate with grund=r.beendet_grund %}beendet: {{ grund }}{% endblocktranslate %}
     {% elif r.endet_am < heute %} · {% translate "abgelaufen" %}
+    {% elif r.ruht %} · <strong>{% blocktranslate with seit=r.ruht_seit|date:"d.m.Y" grund=r.ruht_grund %}ruht seit {{ seit }} — {{ grund }}{% endblocktranslate %}</strong>
     {% elif r.bestaetigt %} · {% translate "MV-bestätigt" %}{% else %} · {% translate "Bestätigung ausständig" %}{% endif %}</span>
     {% if not r.beendet_grund and r.endet_am >= heute %}
     <span style="display:block;margin-top:6px">

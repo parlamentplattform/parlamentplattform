@@ -2356,6 +2356,11 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
         _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
         return
     jetzt = jetzt or timezone.now()
+    if beschluss.frist is not None and beschluss.frist < jetzt:
+        # Geschlossen durch Fristablauf, ausgewertet lazy (Seitenaufruf, `verfahren_fortschreiben`):
+        # Maßgeblich ist der Fristzeitpunkt, nicht der zufällige Aufrufzeitpunkt (Befund #33) —
+        # sonst bliebe jede Feststellung, bei der nicht alle vor Ablauf gestimmt haben, wirkungslos.
+        jetzt = beschluss.frist
     if jetzt > vf.sperrfrist_ende:
         _vermerken(
             beschluss,

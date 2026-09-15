@@ -57,6 +57,7 @@ from gremien.models import (
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import Zweck, lauf_ausfuehren
+from mandatare.models import Mandat, Vertrauensfrage
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from parameter.models import Parameter, ParameterTest, Status, TestStatus
@@ -95,7 +96,11 @@ def nur_gremium(*gremien: str):
 
     Wer eine Rolle **hatte**, liest weiter — mit Band (FB-I1): Das eigene Wirken soll man
     nachlesen können, auch wenn die zwei Jahre um sind. Schreiben prüft jede Handlung
-    selbst über `Rolle.hat` / `Rolle.hat_fuer`; der Lesezugang öffnet nichts davon."""
+    selbst über `Rolle.hat` / `Rolle.hat_fuer`; der Lesezugang öffnet nichts davon.
+
+    Eine **ruhende** Rolle (§ 7 Abs 10 lit f letzter Unterabsatz: nach einer verlorenen
+    Vertrauensfrage, solange die Anfechtungsfrist läuft) wird wie eine abgelaufene behandelt:
+    lesen mit Band, schreiben nicht — `Rolle.hat` zählt sie nicht, `Rolle.letzte` findet sie."""
 
     def deko(ansicht):
         @wraps(ansicht)
@@ -104,7 +109,7 @@ def nur_gremium(*gremien: str):
                 return redirect("mitglieder:login")
             request.abgelaufene_rolle = None
             if not (Rolle.hat(request.user, *gremien) or request.user.hat_adminrechte):
-                fruehere = Rolle.letzte(request.user, *gremien)
+                fruehere = _ruhende_rolle(request.user, *gremien) or Rolle.letzte(request.user, *gremien)
                 if fruehere is None:
                     return render(request, "gremien/kein_zugang.html", status=403)
                 request.abgelaufene_rolle = fruehere
@@ -113,6 +118,24 @@ def nur_gremium(*gremien: str):
         return innen
 
     return deko
+
+
+def _ruhende_rolle(mitglied, *gremien: str):
+    """Die ruhende Rolle eines Mitglieds in einem dieser Gremien — oder None.
+
+    Vor `Rolle.letzte` gefragt, weil die nach `endet_am` reiht: Eine ältere, längst beendete
+    Rolle mit späterem Enddatum würde sonst das Band beschriften, obwohl die ruhende gemeint ist."""
+    return (
+        Rolle.objects.filter(
+            mitglied=mitglied,
+            gremium__in=gremien,
+            beendet_grund="",
+            ruht_seit__isnull=False,
+            endet_am__gte=timezone.localdate(),
+        )
+        .order_by("-ruht_seit")
+        .first()
+    )
 
 
 #: Die Räte, die einen gemeinsamen Bereich ohne eigene Werkstatt haben (FB-I1).
@@ -576,6 +599,18 @@ def _unvereinbarkeit(mitglied, gremium: str) -> str:
     return ""
 
 
+def _bestaetigung_durch_wahl(mitglied) -> bool:
+    """Setzt `Mandat.bestaetigt_am` für jedes Mandat der Person, das nach einer verlorenen
+    Vertrauensfrage noch ohne Bestätigung ist (§ 7 Abs 10 lit f Z 3 Satz 2: „als Bestätigung
+    gilt auch ihre Wahl in ein Organ der Partei“). Dieselbe Menge wie `kandidatursperre`
+    — personenbezogen, unabhängig davon, ob die Vertretung inzwischen endete. Gibt zurück,
+    ob etwas bestätigt wurde; das Audit schreibt `Mandat.bestaetigen`."""
+    gesperrt = Mandat.objects.filter(
+        mitglied=mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+    )
+    return any([mandat.bestaetigen("wahl") for mandat in gesperrt])
+
+
 @nur_admins
 def rollen(request):
     heute = timezone.localdate()
@@ -633,6 +668,17 @@ def rollen_aktion(request):
             request,
             f"Rolle berufen: {rolle.get_gremium_display()} bis {rolle.endet_am:%d.%m.%Y} — öffentlich sichtbar.",
         )
+        if _bestaetigung_durch_wahl(d["mitglied"]):
+            # § 7 Abs 10 lit f Z 3 Satz 2: Die Wahl in ein Organ der Partei gilt als Bestätigung
+            # durch die Mitgliederversammlung — die Kandidatursperre nach einer verlorenen
+            # Vertrauensfrage fällt damit weg; die übrigen Wirkungen bleiben.
+            messages.info(
+                request,
+                _(
+                    "Die Berufung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — "
+                    "die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
+                ),
+            )
 
     elif aktion == "bestaetigen":
         rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
@@ -1028,7 +1074,50 @@ IR_ANLAESSE = [
     (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
     (Anlass.AUSSETZUNG, "Aussetzen", "§ 6 Abs 3 lit d"),
     (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", "§ 6 Abs 3 lit d"),
+    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", "§ 7 Abs 10 lit g"),
 ]
+
+#: Anlässe, die nicht im allgemeinen Formular stehen, sondern nur dort, wo ihr Gegenstand liegt:
+#: Die Sperrfeststellung gehört zu genau einer Vertrauensfrage mit Hinweis (Karte unten) —
+#: ein Knopf neben jedem Sachantrag wäre eine Einladung zu wirkungslosen Beschlüssen.
+IR_ANLAESSE_MIT_EIGENEM_ORT = {Anlass.VERTRAUENSFRAGE_SPERRE}
+
+
+def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
+    """Die Karte des Integritätsrats (§ 7 Abs 10 lit b): jede laufende Vertrauensfrage, bei der
+    die Software beim Einbringen eine Sperre nach lit g erkannt hat und noch kein
+    Feststellungsbeschluss vorliegt — mit Restfrist (drei Tage ab Einbringung).
+
+    Nach der Frist bleibt die Zeile stehen, sagt aber „Frist abgelaufen — Antrag läuft“ und
+    bietet keinen Knopf mehr an: Ein späterer Beschluss bliebe ohne Wirkung (lit b letzter
+    Satz; die Wirkung prüft die Frist selbst). Die Software weist nie ab, sie zeigt nur an —
+    feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
+    jetzt = jetzt or timezone.now()
+    zeilen = []
+    for vf in Vertrauensfrage.offene_mit_sperrhinweis():
+        vf.antrag.fortschreiben(jetzt)  # lazy Phasen: ein verfallener Antrag gehört nicht mehr hierher
+        if not vf.laeuft:
+            continue
+        laufender = (
+            GremienBeschluss.objects.filter(
+                gremium=Gremium.INTEGRITAETSRAT,
+                anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
+                antrag=vf.antrag,
+                status=BeschlussStatus.OFFEN,
+            )
+            .order_by("-angelegt_am")
+            .first()
+        )
+        zeilen.append(
+            {
+                "vf": vf,
+                "antrag": vf.antrag,
+                "frist_ende": vf.sperrfrist_ende,
+                "frist_laeuft": jetzt <= vf.sperrfrist_ende,
+                "beschluss": laufender,
+            }
+        )
+    return zeilen
 
 
 @nur_gremium(Gremium.INTEGRITAETSRAT)
@@ -1036,8 +1125,9 @@ def integritaet(request):
     """Der Arbeitsbereich des Aufsichtsorgans (§ 6 Abs 3).
 
     Er überwacht die Einhaltung der Satzung, entscheidet über die Hervorhebung eines Antrags
-    (§ 5 Abs 10 lit b) und über seine Zurückweisung (§ 5 Abs 2). Beides geschieht ausschließlich
-    durch veröffentlichten, begründeten Beschluss — deshalb hat dieser Bereich keine Knöpfe, die
+    (§ 5 Abs 10 lit b), über seine Zurückweisung (§ 5 Abs 2) und stellt Sperren einer
+    Vertrauensfrage fest (§ 7 Abs 10 lit b und g). Alles geschieht ausschließlich durch
+    veröffentlichten, begründeten Beschluss — deshalb hat dieser Bereich keine Knöpfe, die
     unmittelbar wirken, sondern nur solche, die einen Beschluss anlegen."""
     aktive = Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT))  # Menschen, nicht Zeilen (Befund #38)
     hervorgehoben = list(
@@ -1053,12 +1143,19 @@ def integritaet(request):
             "beschluesse": beschluesse_fuer(Gremium.INTEGRITAETSRAT, request.user),
             "darf_stimmen": Rolle.hat(request.user, Gremium.INTEGRITAETSRAT),
             "ratsmitglieder": [r.mitglied for r in Rolle.aktive(Gremium.INTEGRITAETSRAT).select_related("mitglied")],
-            "anlaesse": IR_ANLAESSE,
+            "anlaesse": [a for a in IR_ANLAESSE if a[0] not in IR_ANLAESSE_MIT_EIGENEM_ORT],
+            "sperrhinweise": _vertrauensfragen_mit_sperrhinweis(),
             "aktive": aktive,
             "mindestbesetzung": SATZUNG_MIN_INTEGRITAETSRAT,
             "besetzt": aktive >= SATZUNG_MIN_INTEGRITAETSRAT,
             "hervorgehoben": hervorgehoben,
             "zurueckgewiesen": zurueckgewiesen,
+            # Nicht eröffnete Vertrauensfragen stehen unter den Zurückgewiesenen — der Weg zurück
+            # (Aufhebung der Feststellung durch das Parteischiedsgericht, lit h) ist noch nicht gebaut;
+            # die Karte sagt das, statt die Aufhebung „hier“ zu versprechen.
+            "nicht_eroeffnet": set(
+                Vertrauensfrage.objects.filter(sperre_beschluss__isnull=False).values_list("antrag_id", flat=True)
+            ),
             "aussetzungen": _aussetzungen_lage(),
             "regelpruefungen": Regelpruefung.objects.select_related("beschluss")[:5],
             "regelpruefung_offen": Regelpruefung.objects.filter(geprueft_am__isnull=True).exists(),
@@ -1093,6 +1190,7 @@ def integritaet_beschluss(request):
             _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."),
         )
         return redirect("gremien:integritaet")
+    frist = beschluss_frist()
     if anlass == Anlass.AUSSETZUNG:
         # § 6 Abs 3 lit d nennt nur „den Vollzug eines Beschlusses oder eine laufende Abstimmung“
         # — geprüft schon beim Anlegen, damit der Rat nicht über etwas abstimmt, das ohne
@@ -1104,6 +1202,32 @@ def integritaet_beschluss(request):
                 _("Aussetzen lässt sich nur eine laufende Abstimmung oder der Vollzug eines Beschlusses (§ 6 Abs 3 lit d)."),
             )
             return redirect("gremien:integritaet")
+    elif anlass == Anlass.VERTRAUENSFRAGE_SPERRE:
+        # § 7 Abs 10 lit b: Feststellung nur zu einer laufenden Vertrauensfrage und nur binnen drei
+        # Tagen nach Einbringung — danach gilt der Antrag als eröffnet, und ein Beschluss bliebe
+        # ohne Wirkung. Geprüft beim Anlegen (wie die Aussetzung), damit der Rat nicht über etwas
+        # abstimmt, das nichts mehr bewirken kann; die Wirkung selbst prüft die Frist noch einmal.
+        jetzt = timezone.now()
+        antrag.fortschreiben(jetzt)
+        vf = Vertrauensfrage.objects.filter(antrag=antrag).first()
+        if vf is None or not vf.laeuft:
+            messages.error(request, _("Eine Sperre lässt sich nur zu einer laufenden Vertrauensfrage feststellen."))
+            return redirect("gremien:integritaet")
+        if vf.nicht_eroeffnet:
+            messages.info(request, _("Diese Vertrauensfrage ist bereits als nicht eröffnet festgestellt."))
+            return redirect("gremien:integritaet")
+        if jetzt > vf.sperrfrist_ende:
+            messages.error(
+                request,
+                _(
+                    "Die Frist von drei Tagen nach Einbringung ist verstrichen — der Antrag gilt als "
+                    "eröffnet (§ 7 Abs 10 lit b). Ein Beschluss bliebe ohne Wirkung."
+                ),
+            )
+            return redirect("gremien:integritaet")
+        # Der Beschluss schließt spätestens mit der Sperrfrist: Ein Beschluss, der erst nach den drei
+        # Tagen ausgewertet würde, wäre entschieden und trotzdem wirkungslos.
+        frist = min(frist, vf.sperrfrist_ende)
     if GremienBeschluss.objects.filter(
         gremium=Gremium.INTEGRITAETSRAT, anlass=anlass, antrag=antrag, status=BeschlussStatus.OFFEN
     ).exists():
@@ -1116,7 +1240,7 @@ def integritaet_beschluss(request):
         gegenstand=f"{name}: {antrag.titel}"[:200],
         beschreibung=begruendung[:4000],
         optionen=JA_NEIN,
-        frist=beschluss_frist(),
+        frist=frist,
         antrag=antrag,
         angelegt_von=request.user,
     )

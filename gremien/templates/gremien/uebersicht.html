@@ -13,8 +13,9 @@ automatisch. Alle Besetzungen stehen hier — jede Berufung, Bestätigung und Be
   <div class="bereich">
     <span class="bk">{{ b.name }}</span>
     {% for r in b.rollen %}
-    <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong>
+    <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong>{% if r.ruht %} <span class="chip klein still">{% translate "ruht" %}</span>{% endif %}
       <br><span class="meta">{% translate "berufen" %} {{ r.berufen_am|date:"d.m.Y" }} · {% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}
+      {% if r.ruht %} · {% blocktranslate with seit=r.ruht_seit|date:"d.m.Y" grund=r.ruht_grund %}ruht seit {{ seit }} — {{ grund }}{% endblocktranslate %}{% endif %}
       {% if r.bestaetigt %} · {% translate "von der Mitgliederversammlung bestätigt" %}{% else %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
     {% empty %}
     <p class="leer">{% translate "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat." %}</p>

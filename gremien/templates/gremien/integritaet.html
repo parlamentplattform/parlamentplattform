@@ -39,6 +39,34 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   </form>
 </div>
 
+<div class="karte" style="margin-top:16px">
+  <p class="phasen-titel">{% translate "Vertrauensfragen mit Sperrhinweis" %}</p>
+  <p class="erk">{% translate "Beim Einbringen einer Vertrauensfrage prüft die Plattform die Sperren nach § 7 Abs 10 lit g und schreibt einen Hinweis — abgewiesen wird nichts. Feststellen kann die Sperre nur der Rat, durch veröffentlichten, begründeten Beschluss binnen drei Tagen nach Einbringung; dann gilt der Antrag als nicht eröffnet. Unterbleibt der Beschluss, gilt er als eröffnet (§ 7 Abs 10 lit b)." %}</p>
+  {% for z in sperrhinweise %}
+  <div class="zeile"><span style="width:100%">
+    <a href="{% url 'verfahren:antrag' z.antrag.pk %}">{{ z.antrag.titel }}</a>
+    <span class="chip klein">{% translate "Vertrauensfrage" %}</span>
+    <br><span class="meta">{% blocktranslate with d=z.antrag.eingebracht_am|date:"d.m.Y H:i" %}eingebracht {{ d }}{% endblocktranslate %}
+      · {% if z.frist_laeuft %}{% blocktranslate with f=z.frist_ende|date:"d.m.Y H:i" rest=z.frist_ende|timeuntil %}Feststellung bis {{ f }} (noch {{ rest }}){% endblocktranslate %}{% else %}<strong>{% translate "Frist abgelaufen — Antrag läuft" %}</strong>{% endif %}</span>
+    <br><span class="meta" style="white-space:pre-line">{{ z.vf.sperrhinweis }}</span>
+    {% if z.beschluss %}
+    <br><span class="meta">{% translate "Feststellungsbeschluss läuft:" %} <a href="{% url 'gremien:beschluss' z.beschluss.nummer %}">{{ z.beschluss.nummer }}</a></span>
+    {% elif z.frist_laeuft and darf_stimmen %}
+    <form method="post" action="{% url 'gremien:integritaet_beschluss' %}" style="margin-top:6px">{% csrf_token %}
+      <input type="hidden" name="antrag" value="{{ z.antrag.pk }}">
+      <input type="hidden" name="anlass" value="vertrauensfrage_sperre">
+      <label for="sperre-{{ z.vf.pk }}" class="meta">{% translate "Begründung des Beschlusses (vorbefüllt mit dem Hinweis; wird veröffentlicht)" %}</label>
+      <textarea id="sperre-{{ z.vf.pk }}" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px">{{ z.vf.sperrhinweis }}</textarea>
+      <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Feststellungsbeschluss anlegen" %}</button>
+      <span class="meta">{% translate "entschieden wird danach, mit Mehrheit des Rates" %}</span>
+    </form>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Keine Vertrauensfrage mit Sperrhinweis." %}</p>
+  {% endfor %}
+</div>
+
 {% include "gremien/_beschluesse.html" with umsetzungsvermerk=True %}
 
 <div class="karte" style="margin-top:16px">
@@ -59,7 +87,9 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   {% for a in zurueckgewiesen %}
   <div class="zeile"><span style="width:100%">
     <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
+    {% if a.pk in nicht_eroeffnet %}<span class="chip klein">{% translate "nicht eröffnet (§ 7 Abs 10 lit b)" %}</span>{% endif %}
     {% if a.zurueckweisung_begruendung %}<br><span class="meta">{{ a.zurueckweisung_begruendung }}</span>{% endif %}
+    {% if a.pk in nicht_eroeffnet %}<br><span class="meta">{% translate "Eine Aufhebung dieser Feststellung durch das Parteischiedsgericht (§ 7 Abs 10 lit h) lässt sich hier noch nicht eintragen." %}</span>{% endif %}
   </span></div>
   {% empty %}
   <p class="leer">{% translate "Kein Antrag ist zurückgewiesen." %}</p>

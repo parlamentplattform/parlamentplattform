@@ -214,7 +214,7 @@ Nichts hier wirkt unmittelbar: Jeder Knopf legt einen Beschluss an oder vermerkt
   <p class="phasen-titel">{% translate "Aktive Rollen" %}</p>
   {% for r in rollen %}
   <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong> — {{ r.get_gremium_display }}{% if r.antrag %} <span class="meta">· {% translate "für" %} „{{ r.antrag.titel }}“</span>{% endif %}
-    <br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
+    <br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if r.ruht %} · {% blocktranslate with seit=r.ruht_seit|date:"d.m.Y" grund=r.ruht_grund %}ruht seit {{ seit }} — {{ grund }}{% endblocktranslate %}{% endif %}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
   {% empty %}
   <p class="leer">{% translate "Keine aktiven Rollen." %}</p>
   {% endfor %}

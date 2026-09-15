@@ -14,7 +14,15 @@ letzten Sitzung überlebt das Ende (§ 7 Abs 5). Jede Handlung ist ein POST auf 
 prüft den Besitz des Mandats und wird auditiert (nur Kennungen, keine Werte).
 
 Verwaltung: legt Mandate an (mit Kandidatur, § 6 Abs 3 lit a geprüft), beendet sie, kann
-weiter Aufgaben und Fotos pflegen."""
+weiter Aufgaben und Fotos pflegen; seit 0.48 vermerkt sie Rückgabezusage, Ergänzung der
+Mandatsvereinbarung um § 7 Abs 3 lit h, Anfechtung und Entscheidung des Parteischiedsgerichts.
+
+Vertrauensfrage (§ 7 Abs 10, S10c): Jedes Mitglied stellt sie von der öffentlichen Mandatar-Seite
+aus (`vertrauensfrage_stellen`, Anlass als Pflichtfeld, Sperre nur als Hinweis); der Mandatsträger
+nimmt Stellung (`stellungnahme`, append-only); `/vertrauensfragen/` zeigt alle mit Stand und
+Ergebnis; die Mandatar-Seite trägt den Abschnitt „Vertrauen“; die betroffene Person beantragt
+im Bereich die Bestätigung nach lit f Z 3. Der regionale Weg nach lit c ist nicht gebaut — die
+Plattform führt keine Gliederungen (§ 14 Abs 4); die Seite sagt das."""
 
 from __future__ import annotations
 
@@ -23,7 +31,7 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -40,10 +48,21 @@ from mandatare.models import (
     Bericht,
     Berichtsart,
     Beschluss,
+    Entscheidung,
     Mandat,
     Rechenschaft,
     Stimmverhalten,
+    Vertrauensfrage,
+    VertrauensfrageArt,
+    VertrauensfrageFehler,
+    bestaetigung_zulaessig_ab,
     foto_typ_erkennen,
+    rueckgabezusage_vermerken,
+    sperren_pruefen,
+    stellungnahme_abgeben,
+    vertrauensfrage_anfechtung_vermerken,
+    vertrauensfrage_entscheidung_vermerken,
+    vertrauensfragen_fortschreiben,
 )
 from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
@@ -53,14 +72,19 @@ from verfahren.models import (
     Antrag,
     Antragsart,
     AuditEintrag,
+    Bewerbung,
     Ebene,
     MandatsfrageFehler,
+    Rueckgabezusage,
     Verfahrensordnung,
     mandatsfrage_eroeffnen,
+    vertrauensfrage_einbringen,
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 BEENDET = (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
+#: Phasen, in denen eine Vertrauensfrage anhängig ist — sie kennt keine Beratung (§ 7 Abs 10 lit c).
+VERTRAUENSFRAGE_LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value]
 
 #: Grenzen des Instant-Reports (E3) und der Einträge — das Modell erlaubt mehr, das Formular nicht.
 REPORT_TITEL_MAX = 120
@@ -84,13 +108,96 @@ NACHFRIST_AKTIONEN = ("sammelbericht", "rechenschaft", "monatsbericht")
 #: Aufgaben samt verknüpftem Antrag vorladen — `_aufgaben_sortiert` und `offene_pflichten_fuer`
 #: lesen dann `aufgaben.all()` ohne weitere Abfrage.
 AUFGABEN_VORGELADEN = Prefetch("aufgaben", queryset=Aufgabe.objects.select_related("antrag"))
+#: Vertrauensfragen samt Antrag vorladen — der Abschnitt „Vertrauen“ liest dann `vertrauensfragen.all()`.
+VERTRAUENSFRAGEN_VORGELADEN = Prefetch(
+    "vertrauensfragen", queryset=Vertrauensfrage.objects.select_related("antrag").order_by("-antrag__eingebracht_am")
+)
+#: Handlungen der Verwaltung an einer Vertrauensfrage, die eine Anfechtung voraussetzen (lit h).
+ENTSCHEIDUNGEN = (Entscheidung.AUFGEHOBEN.value, Entscheidung.BESTAETIGT.value)
+#: Werte des Rückgabezusage-Vermerks der Verwaltung — „widerrufen“ setzt auf „keine Angabe“ zurück.
+RUECKGABEZUSAGE_VERMERKE = {
+    "abgegeben": Rueckgabezusage.ABGEGEBEN.value,
+    "nicht_abgegeben": Rueckgabezusage.NICHT_ABGEGEBEN.value,
+    "widerrufen": Rueckgabezusage.UNBEKANNT.value,
+}
 
 
 # ── Helfer ────────────────────────────────────────────────────────────────────────────────
 
 
 def _mandat_queryset():
-    return Mandat.objects.select_related("mitglied").prefetch_related(AUFGABEN_VORGELADEN)
+    return (
+        Mandat.objects.select_related("mitglied")
+        .prefetch_related(AUFGABEN_VORGELADEN, VERTRAUENSFRAGEN_VORGELADEN)
+    )
+
+
+def _vertrauensfragen_von(mandat) -> list[Vertrauensfrage]:
+    """Die Vertrauensfragen und Bestätigungsanträge eines Mandats, neueste zuerst — aus dem
+    Prefetch, wo es eines gibt; laufende Anträge werden dabei auf den Stand gebracht (lazy Phasen)."""
+    if "vertrauensfragen" in getattr(mandat, "_prefetched_objects_cache", {}):
+        alle = list(mandat.vertrauensfragen.all())
+    else:
+        alle = list(mandat.vertrauensfragen.select_related("antrag").order_by("-antrag__eingebracht_am"))
+    for vf in alle:
+        if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND:
+            vf.antrag.fortschreiben()
+    return alle
+
+
+def _tage_zaehler(tag: date | None, heute: date) -> dict | None:
+    """Der Fristzähler zu einem Kalendertag: `{"tage": n, "vorbei": bool}` — „noch n Tage“ bzw.
+    „seit n Tagen“; None ohne Tag."""
+    if tag is None:
+        return None
+    rest = (tag - heute).days
+    return {"tage": abs(rest), "vorbei": rest < 0, "heute": rest == 0}
+
+
+def _rueckgabezusage_von(mandat) -> tuple[str, str]:
+    """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der Vermerk am Mandat (Verwaltung), sonst die
+    Erklärung aus der Bewerbung zur verknüpften Kandidatur; leer heißt „keine Angabe“."""
+    if mandat.rueckgabezusage:
+        return mandat.rueckgabezusage, "mandat"
+    if mandat.kandidatur_id:
+        bewerbung = Bewerbung.objects.filter(antrag_id=mandat.kandidatur_id, mitglied_id=mandat.mitglied_id).first()
+        if bewerbung is not None and bewerbung.rueckgabezusage:
+            return bewerbung.rueckgabezusage, "bewerbung"
+    return Rueckgabezusage.UNBEKANNT.value, ""
+
+
+def _vertrauen(mandat, heute: date | None = None) -> dict:
+    """Alles, was der Abschnitt „Vertrauen“ zeigt (§ 7 Abs 10 lit e, f Z 4, lit h und j): die laufende
+    Vertrauensfrage, die Ergebnisse, der Fristzähler des Rückgabeersuchens, der Vermerk des Registers
+    als reiner Sachverhalt, Rückgabezusage und Ergänzung der Mandatsvereinbarung, der Stand einer
+    Bestätigung. Ruft vorher Stufe 2 der Wirkungen ab (lazy)."""
+    heute = heute or timezone.localdate()
+    if vertrauensfragen_fortschreiben():
+        mandat.refresh_from_db()  # Stufe 2 hat eben gestempelt — die Seite zeigt den neuen Stand, nicht den geladenen
+    alle = _vertrauensfragen_von(mandat)
+    laufende = next((vf for vf in alle if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND), None)
+    entschiedene = [vf for vf in alle if vf.antrag.phase in BEENDET]
+    letzte_verlorene = next((vf for vf in entschiedene if vf.verloren), None)
+    zusage, zusage_quelle = _rueckgabezusage_von(mandat)
+    bestaetigung_ab = bestaetigung_zulaessig_ab(mandat) if mandat.kandidatursperre else None
+    bestaetigung_laeuft = laufende is not None and laufende.art == VertrauensfrageArt.BESTAETIGUNG
+    return {
+        "alle": alle,
+        "laufende": laufende,
+        "entschiedene": entschiedene,
+        "sonstige": [vf for vf in alle if vf.antrag.phase not in BEENDET and vf.antrag.phase not in VERTRAUENSFRAGE_LAUFEND],
+        "verlorene": letzte_verlorene,
+        "rueckgabe": _tage_zaehler(mandat.rueckgabe_ersucht_bis, heute) if mandat.vertrauen_entzogen_am else None,
+        "vermerk": mandat.rueckgabe_vermerk,
+        "rueckgabezusage": zusage,
+        "rueckgabezusage_name": Rueckgabezusage(zusage).label,
+        "rueckgabezusage_quelle": zusage_quelle,
+        "bestaetigung_ab": bestaetigung_ab,
+        "bestaetigung_moeglich": (
+            bestaetigung_ab is not None and heute >= bestaetigung_ab and not bestaetigung_laeuft
+        ),
+        "bestaetigung_laeuft": bestaetigung_laeuft,
+    }
 
 
 def _aufgaben_sortiert(mandat):
@@ -185,6 +292,35 @@ def _rechenschaft_zeilen(eintraege) -> list[dict]:
     return zeilen
 
 
+def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None) -> list[Vertrauensfrage]:
+    """Vertrauensfragen und Bestätigungsanträge mit Ergebnis — für die Registerzeilen (§ 7 Abs 10 lit e:
+    „im Rechenschaftsregister dauerhaft ausgewiesen — ein gewonnenes Vertrauen ebenso wie ein verlorenes“)."""
+    qs = Vertrauensfrage.objects.filter(antrag__phase__in=BEENDET).select_related("antrag", "mandat__mitglied")
+    if mandat is not None:
+        qs = qs.filter(mandat=mandat)
+    if ebene in Ebene.values:
+        qs = qs.filter(mandat__ebene=ebene)
+    return list(qs.order_by("-antrag__phase_beginn"))
+
+
+def _register_zeilen(eintraege, vertrauensfragen) -> list[dict]:
+    """Die Zeilen des Rechenschaftsregisters: Einträge (`r`) und Ergebnisse von Vertrauensfragen (`vf`)
+    in einer Reihe, neuester Tag zuerst. Eine Vertrauensfrage-Zeile trägt den Tag der Veröffentlichung
+    des Ergebnisses und den Vermerk des Registers (Rückgabeersuchen, Rechtsschutz) als Sachverhalt."""
+    zeilen = [{**z, "vf": None, "datum": z["r"].sitzung_am} for z in _rechenschaft_zeilen(eintraege)]
+    for vf in vertrauensfragen:
+        zeilen.append(
+            {
+                "r": None,
+                "vf": vf,
+                "datum": timezone.localdate(vf.antrag.phase_beginn),
+                "vermerk": vf.mandat.rueckgabe_vermerk if vf.verloren else "",
+            }
+        )
+    zeilen.sort(key=lambda z: (z["datum"].toordinal(), z["r"].pk if z["r"] else z["vf"].antrag_id), reverse=True)
+    return zeilen
+
+
 def _berichte_zeilen(berichte, heute: date, karenz: int) -> list[dict]:
     """Berichte je Bezug (Monat bzw. Sitzungstag) chronologisch, neuester Bezug zuerst; der
     erste Bericht eines Bezugs trägt die Lage gegenüber der Frist, jeder weitere ist ein
@@ -274,6 +410,7 @@ def detail(request, pk: int):
     rechenschaft = list(mandat.rechenschaft.select_related("antrag", "aufgabe")[:RECHENSCHAFT_AUSZUG])
     berichte = list(mandat.berichte.select_related("aufgabe"))
     zeilen = _berichte_zeilen(berichte, heute, ausstaende["karenz"])
+    vertrauen = _vertrauen(mandat, heute)
     return render(
         request,
         "mandatare/detail.html",
@@ -286,6 +423,10 @@ def detail(request, pk: int):
             "ausstaende": ausstaende,
             "rechenschaft": _rechenschaft_zeilen(rechenschaft),
             "rechenschaft_anzahl": mandat.rechenschaft.count(),
+            "vertrauen": vertrauen,
+            # Der Knopf steht für jede Vertretungsbeziehung, die besteht — auch bei einem Sperrhinweis:
+            # ob eine Sperre vorliegt, stellt der Integritätsrat fest, nicht die Seite (§ 2 Abs 6).
+            "vertrauensfrage_moeglich": mandat.aktiv and vertrauen["laufende"] is None,
         },
     )
 
@@ -317,13 +458,15 @@ def rechenschaft_mandat(request, pk: int):
     """§ 7 Abs 5: das ganze Register eines Mandatars, mit Ausständen."""
     mandat = get_object_or_404(_mandat_queryset(), pk=pk)
     eintraege = list(mandat.rechenschaft.select_related("antrag", "aufgabe"))
+    vertrauensfragen_fortschreiben()
     return render(
         request,
         "mandatare/rechenschaft_mandat.html",
         {
             "mandat": mandat,
-            "zeilen": _rechenschaft_zeilen(eintraege),
+            "zeilen": _register_zeilen(eintraege, _entschiedene_vertrauensfragen(mandat=mandat)),
             "ausstaende": _ausstaende(mandat),
+            "vertrauen": _vertrauen(mandat),
         },
     )
 
@@ -352,11 +495,12 @@ def rechenschaft(request):
     if ebene not in Ebene.values:
         ebene = ""
     eintraege, ausstaende = _rechenschaft_gesamt(ebene)
+    vertrauensfragen_fortschreiben()
     return render(
         request,
         "mandatare/rechenschaft.html",
         {
-            "zeilen": _rechenschaft_zeilen(list(eintraege)),
+            "zeilen": _register_zeilen(list(eintraege), _entschiedene_vertrauensfragen(ebene)),
             "ausstaende": ausstaende,
             "ebene": ebene,
             "ebenen": Ebene.choices,
@@ -407,10 +551,125 @@ def rechenschaft_json(request):
             for block in ausstaende
             for p in block["rechenschaften"]
         ],
+        "vertrauensfragen": _vertrauensfragen_json(ebene),
         "ebene": ebene or None,
         "exportiert_am": timezone.now().isoformat(),
     }
     return JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
+
+
+def _iso(wert):
+    return wert.isoformat() if wert is not None else None
+
+
+def _vertrauensfragen_json(ebene: str) -> list[dict]:
+    """Alle Vertrauensfragen und Bestätigungsanträge maschinenlesbar (§ 7 Abs 10 lit e, f Z 4, lit h):
+    Zahlen des Einbringungstags, Stand, Ergebnis als „gewonnen“/„verloren“, Rechtsschutz, Rückgabefrist
+    und -zusage, Vermerk — ohne Personenbezug über den Anzeigenamen hinaus."""
+    vertrauensfragen_fortschreiben()
+    daten = []
+    for z in _vertrauensfragen_zeilen(ebene):
+        vf, mandat = z["vf"], z["vf"].mandat
+        daten.append(
+            {
+                "antrag": vf.antrag_id,
+                "art": vf.art,
+                "mandat": mandat.pk,
+                "mandatar": mandat.mitglied.anzeigename,
+                "bezeichnung": mandat.bezeichnung,
+                "ebene": mandat.ebene,
+                "gebiet": mandat.gebiet,
+                "eingebracht_am": _iso(vf.antrag.eingebracht_am),
+                "phase": vf.antrag.phase,
+                "stimmberechtigte_am_einbringungstag": vf.stimmberechtigte_partei_am_einbringungstag,
+                "schwelle": vf.schwelle_partei,
+                "schwelle_erreicht_am": _iso(vf.schwelle_erreicht_am),
+                "unterstuetzungen": z["unterstuetzungen"],
+                "stimmen": z["stimmen"],
+                "stimmberechtigte": vf.antrag.stimmberechtigte_anzahl,
+                "ergebnis": z["ergebnis"],
+                "ergebnis_am": _iso(vf.ergebnis_am),
+                "nicht_eroeffnet": vf.nicht_eroeffnet,
+                "sperrhinweis": bool(vf.sperrhinweis),
+                "angefochten_am": _iso(vf.angefochten_am),
+                "entscheidung": vf.entscheidung,
+                "rechtsschutz": vf.rechtsschutz_stand,
+                "rueckgabe_ersucht_bis": _iso(mandat.rueckgabe_ersucht_bis) if vf.verloren else None,
+                "rueckgabezusage": mandat.rueckgabezusage,
+                "vermerk": mandat.rueckgabe_vermerk if vf.verloren else "",
+                "vertretung_beendet_am": _iso(mandat.vertretung_beendet_am) if vf.verloren else None,
+                "bestaetigt_am": _iso(mandat.bestaetigt_am),
+            }
+        )
+    return daten
+
+
+def _ergebnis_kurz(vf: Vertrauensfrage) -> str:
+    """Maschinenlesbares Ergebnis: „verloren“/„gewonnen“ (lit e), bei Bestätigungen „bestaetigt“/
+    „nicht_bestaetigt“, sonst die Endphase (verfallen, zurückgewiesen, zurückgezogen); leer, solange offen."""
+    phase = vf.antrag.phase
+    if phase in BEENDET:
+        if vf.art == VertrauensfrageArt.VERTRAUENSFRAGE:
+            return "verloren" if vf.verloren else "gewonnen"
+        return "bestaetigt" if phase == Phase.ANGENOMMEN.value else "nicht_bestaetigt"
+    if phase in VERTRAUENSFRAGE_LAUFEND:
+        return ""
+    return phase
+
+
+def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
+    """Alle Vertrauensfragen mit Zählern in einer Abfrage: gültige Unterstützungen und abgegebene Stimmen
+    (Beteiligung), Ergebnis in Worten („gewonnen“/„verloren“, lit e), Rechtsschutzstand. Laufende Anträge
+    werden vorher fortgeschrieben (lazy Phasen); ihre Zahl bestimmt dafür die Abfragen, nicht die der
+    entschiedenen."""
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
+    if ebene in Ebene.values:
+        qs = qs.filter(mandat__ebene=ebene)
+    laufende = [vf for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)]
+    for vf in laufende:
+        vf.antrag.fortschreiben()
+    qs = qs.annotate(
+        n_unterstuetzungen=Count(
+            "antrag__unterstuetzungen", filter=Q(antrag__unterstuetzungen__zurueckgezogen_am__isnull=True), distinct=True
+        ),
+        n_stimmen=Count("antrag__stimmabgaben", distinct=True),
+    ).order_by("-antrag__eingebracht_am")
+    zeilen = []
+    for vf in qs:
+        zeilen.append(
+            {
+                "vf": vf,
+                "laeuft": vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND,
+                "unterstuetzungen": vf.n_unterstuetzungen,
+                "stimmen": vf.n_stimmen,
+                "ergebnis": _ergebnis_kurz(vf),
+                "ergebnis_wort": vf.ergebnis_wort,
+                "rechtsschutz": vf.rechtsschutz_stand,
+                "vermerk": vf.mandat.rueckgabe_vermerk if vf.verloren else "",
+            }
+        )
+    return zeilen
+
+
+def vertrauensfragen(request):
+    """§ 7 Abs 10: alle Vertrauensfragen und Bestätigungsanträge — laufende und entschiedene, mit Stand,
+    Beteiligung, Ergebnis („gewonnen“/„verloren“) und Rechtsschutzstand; Filter nach Ebene. Der regionale
+    Weg nach lit c steht offen, sobald die Plattform Gliederungen führt (§ 14 Abs 4) — die Seite sagt das."""
+    ebene = (request.GET.get("ebene") or "").strip()
+    if ebene not in Ebene.values:
+        ebene = ""
+    vertrauensfragen_fortschreiben()
+    zeilen = _vertrauensfragen_zeilen(ebene)
+    return render(
+        request,
+        "mandatare/vertrauensfragen.html",
+        {
+            "laufende": [z for z in zeilen if z["laeuft"]],
+            "entschiedene": [z for z in zeilen if not z["laeuft"]],
+            "ebene": ebene,
+            "ebenen": Ebene.choices,
+        },
+    )
 
 
 def wahlvorschlag(request, antrag_pk: int):
@@ -421,7 +680,10 @@ def wahlvorschlag(request, antrag_pk: int):
     if antrag.phase not in BEENDET:
         raise Http404("Kandidatur noch nicht beendet.")
     wahl = antrag.kandidatur_auszaehlen()
-    namen = {b.pk: b.mitglied.anzeigename for b in antrag.bewerbungen.select_related("mitglied")}
+    bewerbungen = {b.pk: b for b in antrag.bewerbungen.select_related("mitglied")}
+    namen = {pk: b.mitglied.anzeigename for pk, b in bewerbungen.items()}
+    # § 7 Abs 3: Die Erklärung zur Rückgabezusage wird beim Kandidatur-Antrag ausgewiesen — je Platz.
+    zusagen = {pk: Rueckgabezusage(b.rueckgabezusage).label for pk, b in bewerbungen.items()}
     ort = antrag.gebiet or antrag.get_ebene_display()
     zeilen = [
         f"# {_('Wahlvorschlag')}: {antrag.titel}",
@@ -432,16 +694,21 @@ def wahlvorschlag(request, antrag_pk: int):
         f"{_('Beteiligung')}: {wahl.beteiligung} · "
         f"{_('Mindestbeteiligung erreicht')}: {_('ja') if wahl.beteiligung_erreicht else _('nein')}",
         "",
-        f"| {_('Platz')} | {_('Anzeigename')} | {_('Zustimmungen')} |",
-        "|---:|---|---:|",
+        f"| {_('Platz')} | {_('Anzeigename')} | {_('Zustimmungen')} | {_('Rückgabezusage')} |",
+        "|---:|---|---:|---|",
     ]
     for p in wahl.plaetze:
-        zeilen.append(f"| {p.platz} | {namen.get(p.bewerbung_id, f'#{p.bewerbung_id}')} | {p.stimmen} |")
+        zeilen.append(
+            f"| {p.platz} | {namen.get(p.bewerbung_id, f'#{p.bewerbung_id}')} | {p.stimmen} | "
+            f"{zusagen.get(p.bewerbung_id, Rueckgabezusage.UNBEKANNT.label)} |"
+        )
     if not wahl.plaetze:
-        zeilen.append(f"| – | {_('keine Bewerbung')} | – |")
+        zeilen.append(f"| – | {_('keine Bewerbung')} | – | – |")
     zeilen += [
         "",
         _("Reihung nach § 7 Abs 1; die Form für die Wahlbehörde richtet sich nach der jeweiligen Wahlordnung."),
+        _("Rückgabezusage: die freiwillige, nicht einklagbare Erklärung nach § 7 Abs 3, das Mandat nach einer "
+          "verlorenen Vertrauensfrage binnen der Frist zurückzulegen — abgegeben, nicht abgegeben oder keine Angabe."),
         "",
         f"{_('Quelle')}: {request.build_absolute_uri(reverse('verfahren:antrag', args=[antrag.pk]))} · "
         f"{_('Export zum Nachrechnen')}: {request.build_absolute_uri(reverse('verfahren:export', args=[antrag.pk]))}",
@@ -451,6 +718,125 @@ def wahlvorschlag(request, antrag_pk: int):
     antwort = HttpResponse("\n".join(zeilen), content_type="text/markdown; charset=utf-8")
     antwort["Content-Disposition"] = f'inline; filename="wahlvorschlag-{antrag.pk}.md"'
     return antwort
+
+
+# ── Vertrauensfrage (§ 7 Abs 10) ──────────────────────────────────────────────────────────
+
+
+def _anlaesse_von(mandat) -> list[dict]:
+    """Die Einträge des Rechenschaftsregisters, in denen das Stimmverhalten vom Beschluss abweicht
+    (lit b) — die Plattform stellt sie zur Auswahl, bewertet aber nicht (§ 2 Abs 6)."""
+    return [z for z in _rechenschaft_zeilen(mandat.rechenschaft.select_related("antrag", "aufgabe")) if z["weicht_ab"]]
+
+
+def _doppelte_vertrauensfrage(request, mandat: Mandat) -> Antrag | None:
+    """Dieselbe Person hat eben erst eine Vertrauensfrage zu diesem Mandat eingebracht (Doppelklick,
+    Zurück + neu senden) — dann ist das kein zweiter Antrag, sondern derselbe."""
+    seit = timezone.now() - timedelta(seconds=DOPPELABSENDUNG_SEKUNDEN)
+    vf = (
+        Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.VERTRAUENSFRAGE, antrag__eingebracht_von=request.user,
+            antrag__eingebracht_am__gte=seit,
+        )
+        .select_related("antrag")
+        .order_by("-antrag__eingebracht_am")
+        .first()
+    )
+    return vf.antrag if vf is not None else None
+
+
+def vertrauensfrage_stellen(request, pk: int):
+    """§ 7 Abs 10 lit b: Jedes angemeldete Mitglied stellt die Vertrauensfrage zu einem Mandatsträger
+    (§ 5 Abs 2 gilt im Übrigen). Das Formular bietet die Anlässe an — Registereinträge mit Abweichung,
+    seit mehr als 30 Tagen ausgewiesene Ausstände —, verlangt mindestens einen und eine Begründung, zeigt
+    einen erkannten Sperrhinweis (lit g) und sagt, dass ihn der Integritätsrat feststellt. Ein Fehler
+    rendert das Formular mit den Eingaben neu; bei Erfolg geht es auf die Antragsseite mit den Zahlen des
+    Einbringungstags (Stimmberechtigte, Schwelle — lit c). Der regionale Weg steht offen, sobald die
+    Plattform Gliederungen führt."""
+    if not request.user.is_authenticated:
+        return redirect("mitglieder:login")
+    gesperrt = _mitwirkung_gesperrt(request)
+    if gesperrt is not None:
+        return gesperrt
+    mandat = get_object_or_404(_mandat_queryset(), pk=pk)
+    ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    anlaesse = _anlaesse_von(mandat)
+    ausstaende = mandat.anlass_ausstaende()
+    fehler = ""
+    if request.method == "POST":
+        gewaehlte_pks = {a for a in request.POST.getlist("anlass") if a.isdigit()}
+        gewaehlte = [z["r"] for z in anlaesse if str(z["r"].pk) in gewaehlte_pks]
+        kennungen = [k for k in request.POST.getlist("ausstand") if k in {a["kennung"] for a in ausstaende}]
+        begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
+        bestehend = _doppelte_vertrauensfrage(request, mandat)
+        if bestehend is not None:
+            messages.info(request, _("Diese Vertrauensfrage ist bereits eingebracht — kein zweites Mal."))
+            return redirect("verfahren:antrag", pk=bestehend.pk)
+        if ordnung is None:
+            fehler = _("Es gilt noch keine Verfahrensordnung — ein Antrag kann noch nicht entstehen.")
+        elif not gewaehlte and not kennungen:
+            fehler = _("Bitte mindestens einen Anlass wählen (§ 7 Abs 10 lit b).")
+        elif not begruendung:
+            fehler = _("Bitte eine Begründung angeben.")
+        else:
+            try:
+                antrag = vertrauensfrage_einbringen(request.user, mandat, begruendung, gewaehlte, kennungen, ordnung)
+            except VertrauensfrageFehler as e:
+                fehler = str(e)
+            else:
+                vf = antrag.vertrauensfrage
+                messages.success(
+                    request,
+                    _("Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einbringungstag: %(n)s — "
+                      "Schwelle: %(schwelle)s Unterstützungen (§ 7 Abs 10 lit c). Der Mandatsträger ist verständigt.")
+                    % {"n": vf.stimmberechtigte_partei_am_einbringungstag, "schwelle": vf.schwelle_partei},
+                )
+                if vf.sperrhinweis:
+                    messages.warning(
+                        request,
+                        _("Sperrhinweis nach § 7 Abs 10 lit g: %(hinweis)s Der Integritätsrat entscheidet binnen "
+                          "drei Tagen, ob der Antrag als nicht eröffnet gilt; bis dahin läuft er.")
+                        % {"hinweis": vf.sperrhinweis},
+                    )
+                return redirect("verfahren:antrag", pk=antrag.pk)
+        if fehler:
+            messages.error(request, fehler)
+    eingabe = request.POST if request.method == "POST" else None
+    return render(
+        request,
+        "mandatare/vertrauensfrage.html",
+        {
+            "mandat": mandat,
+            "anlaesse": anlaesse,
+            "ausstaende": ausstaende,
+            "sperrhinweis": sperren_pruefen(mandat),
+            "ordnung_fehlt": ordnung is None,
+            "eingabe": eingabe,
+            "gewaehlte_anlaesse": set(eingabe.getlist("anlass")) if eingabe is not None else set(),
+            "gewaehlte_ausstaende": set(eingabe.getlist("ausstand")) if eingabe is not None else set(),
+            "begruendung_max": BEGRUENDUNG_MAX,
+        },
+    )
+
+
+@require_POST
+def stellungnahme(request, antrag_pk: int):
+    """§ 7 Abs 10 lit d: das Gehör des Mandatsträgers — nur er, nur bis zum Ende der Abstimmung, jeder
+    Eintrag bleibt, wie er war (append-only). Die Fachoperation prüft Person und Phase; zurück geht es
+    auf die Antragsseite zur Karte der Stellungnahmen (Teiltemplate `mandatare/_stellungnahmen.html`)."""
+    if not request.user.is_authenticated:
+        return redirect("mitglieder:login")
+    vf = get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), antrag_id=antrag_pk)
+    if vf.mandat.mitglied_id != request.user.pk:
+        return render(request, "mandatare/kein_zugang.html", status=403)
+    ziel = reverse("verfahren:antrag", args=[vf.antrag_id]) + "#stellungnahme"
+    try:
+        stellungnahme_abgeben(vf, request.user, request.POST.get("text", ""))
+    except VertrauensfrageFehler as fehler:
+        messages.error(request, str(fehler))
+        return redirect(ziel)
+    messages.success(request, _("Stellungnahme veröffentlicht — im Wortlaut neben dem Antrag."))
+    return redirect(ziel)
 
 
 # ── Bereich des Mandatars ─────────────────────────────────────────────────────────────────
@@ -465,11 +851,20 @@ def nur_mandatare(ansicht):
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect("mitglieder:login")
-        if not Mandat.zugaenglich_von(request.user).exists():
+        if not _zugaengliche_mandate(request.user).exists():
             return render(request, "mandatare/kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)
 
     return innen
+
+
+def _zugaengliche_mandate(mitglied):
+    """Die Mandate, deren Bereich ein Mitglied öffnen darf: die offenen, die beendeten in der Nachfrist
+    (`Mandat.zugaenglich_von`) — und die mit Kandidatursperre nach § 7 Abs 10 lit f Z 3, denn den
+    Bestätigungsantrag stellt die Person von hier aus, auch Monate nach dem Ende der Vertretung."""
+    return Mandat.zugaenglich_von(mitglied) | Mandat.objects.filter(
+        mitglied=mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+    )
 
 
 def _mitwirkung_gesperrt(request):
@@ -480,7 +875,7 @@ def _mitwirkung_gesperrt(request):
 
 
 def _eigene_mandate(request) -> list[Mandat]:
-    return list(Mandat.zugaenglich_von(request.user).select_related("mitglied"))
+    return list(_zugaengliche_mandate(request.user).select_related("mitglied"))
 
 
 def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
@@ -505,6 +900,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     ]
     mitwirken = request.user.darf_mitwirken and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
+    vertrauen = _vertrauen(mandat, heute)
     return render(
         request,
         "mandatare/mein.html",
@@ -513,6 +909,11 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "mandate": mandate,
             "darf_schreiben": mitwirken and mandat.aktiv,
             "darf_berichten": mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute)),
+            # Die Bestätigung nach § 7 Abs 10 lit f Z 3 hängt nicht an der Vertretung — sie ist der Weg zurück.
+            "darf_bestaetigen": mitwirken and vertrauen["bestaetigung_moeglich"],
+            "vertrauen": vertrauen,
+            "ruhende_rollen": _ruhende_rollen(request.user),
+            "ordnung_fehlt_bestaetigung": not Verfahrensordnung.objects.filter(aktiv=True).exists(),
             "identitaet_ungeprueft": request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
             "aufgaben": _aufgaben_mit_lage(mandat, aufgaben, ausstaende, heute),
             "ausstaende": ausstaende,
@@ -534,6 +935,13 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     )
 
 
+def _ruhende_rollen(mitglied) -> list:
+    """Gremienrollen, die nach § 7 Abs 10 lit f ruhen — das Band im Bereich nennt Gremium, Beginn und Grund."""
+    from gremien.models import Rolle
+
+    return list(Rolle.objects.filter(mitglied=mitglied, ruht_seit__isnull=False, beendet_grund="").order_by("ruht_seit"))
+
+
 @nur_mandatare
 def mein(request):
     """Ein Mandat → der Bereich; mehrere → Auswahl (wie `gremien:mein`)."""
@@ -546,13 +954,13 @@ def mein(request):
 @nur_mandatare
 def mein_mandat(request, pk: int):
     mandat = get_object_or_404(_mandat_queryset(), pk=pk)
-    if mandat.mitglied_id != request.user.pk or not (mandat.aktiv or mandat.in_nachfrist()):
+    if mandat.mitglied_id != request.user.pk or not _zugaengliche_mandate(request.user).filter(pk=pk).exists():
         return render(request, "mandatare/kein_zugang.html", status=403)
     return _bereich(request, mandat, _eigene_mandate(request))
 
 
 def _zurueck(request, mandat: Mandat):
-    if Mandat.zugaenglich_von(request.user).count() == 1:
+    if _zugaengliche_mandate(request.user).count() == 1:
         return redirect("mandatare:mein")
     return redirect("mandatare:mein_mandat", pk=mandat.pk)
 
@@ -583,7 +991,8 @@ def mein_aktion(request):
     aktion = request.POST.get("aktion", "")
     if mandat is None or mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
-    if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN):
+    bestaetigung = aktion == "bestaetigung" and mandat.kandidatursperre
+    if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN) and not bestaetigung:
         return render(request, "mandatare/kein_zugang.html", status=403)
     gesperrt = _mitwirkung_gesperrt(request)
     if gesperrt is not None:
@@ -592,6 +1001,10 @@ def mein_aktion(request):
     gelungen = True
     if aktion == "report":
         gelungen = _report_anlegen(request, mandat)
+    elif aktion == "bestaetigung":
+        antwort = _bestaetigung_beantragen(request, mandat)
+        if antwort is not None:
+            return antwort
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
         if not aufgabe_pk.isdigit():
@@ -625,6 +1038,27 @@ def mein_aktion(request):
         mandat = get_object_or_404(_mandat_queryset(), pk=mandat.pk)
         return _bereich(request, mandat, _eigene_mandate(request), eingabe=request.POST)
     return _zurueck(request, mandat)
+
+
+def _bestaetigung_beantragen(request, mandat: Mandat):
+    """§ 7 Abs 10 lit f Z 3: Die betroffene Person beantragt die Bestätigung durch die Mitgliederversammlung —
+    frühestens sechs Monate nach dem Ergebnis, ohne Anlass und Sperren, Abstimmung am siebten Tag. Die
+    Fachoperation prüft alles; bei Erfolg geht es auf die Antragsseite, sonst zurück in den Bereich."""
+    ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    if ordnung is None:
+        messages.error(request, _("Es gilt noch keine Verfahrensordnung — ein Antrag kann noch nicht entstehen."))
+        return None
+    begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
+    try:
+        antrag = vertrauensfrage_einbringen(request.user, mandat, begruendung, [], [], ordnung, art="bestaetigung")
+    except VertrauensfrageFehler as fehler:
+        messages.error(request, str(fehler))
+        return None
+    messages.success(
+        request,
+        _("Bestätigungsantrag eingebracht — die Abstimmung beginnt am siebten Tag nach der Einbringung (§ 7 Abs 10 lit f Z 3)."),
+    )
+    return redirect("verfahren:antrag", pk=antrag.pk)
 
 
 def _doppelter_report(mandat: Mandat, titel: str, frist: datetime) -> Aufgabe | None:
@@ -865,8 +1299,131 @@ class MandatFormular(forms.Form):
 @nur_admins
 def verwaltung(request):
     form = MandatFormular()
-    mandate = Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben")
-    return render(request, "mandatare/verwaltung.html", {"form": form, "mandate": mandate})
+    vertrauensfragen_fortschreiben()
+    mandate = list(
+        Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
+    )
+    heute = timezone.localdate()
+    karten = []
+    for m in mandate:
+        alle = list(m.vertrauensfragen.all())
+        karten.append(
+            {
+                "m": m,
+                "vertrauensfragen": [vf for vf in alle if vf.antrag.phase in BEENDET or vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND],
+                "bestaetigung_ab": bestaetigung_zulaessig_ab(m) if m.kandidatursperre else None,
+                "rueckgabe": _tage_zaehler(m.rueckgabe_ersucht_bis, heute) if m.vertrauen_entzogen_am else None,
+            }
+        )
+    return render(
+        request,
+        "mandatare/verwaltung.html",
+        {
+            "form": form,
+            "mandate": mandate,
+            "karten": karten,
+            "rueckgabezusagen": Rueckgabezusage.choices,
+            "heute": heute,
+        },
+    )
+
+
+def _datum_aus_eingabe(wert: str) -> date | None:
+    """Ein Datum aus dem Formular — None bei leerer oder unbrauchbarer Eingabe."""
+    try:
+        return date.fromisoformat((wert or "").strip())
+    except ValueError:
+        return None
+
+
+def _vertrauensfrage_der_verwaltung(request) -> Vertrauensfrage:
+    pk = (request.POST.get("vertrauensfrage") or "").strip()
+    if not pk.isdigit():
+        raise Http404("Vertrauensfrage unbekannt.")
+    return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=int(pk))
+
+
+def _verwaltung_vertrauen(request, aktion: str) -> bool:
+    """Die Vermerke der Verwaltung zur Vertrauensfrage (§ 7 Abs 3, Abs 10 lit f Z 3, lit h und j) — jeder
+    auditiert, keiner automatisch. Rückgabe: ob `aktion` hier behandelt wurde."""
+    if aktion == "rueckgabezusage":
+        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        wert = request.POST.get("wert", "")
+        if wert not in RUECKGABEZUSAGE_VERMERKE:
+            messages.error(request, _("Bitte „abgegeben“, „nicht abgegeben“ oder „widerrufen“ wählen."))
+            return True
+        rueckgabezusage_vermerken(mandat, RUECKGABEZUSAGE_VERMERKE[wert])
+        messages.success(
+            request,
+            _("Rückgabezusage vermerkt: %(stand)s — öffentlich im Register und auf der Mandatar-Seite.")
+            % {"stand": mandat.get_rueckgabezusage_display()},
+        )
+        return True
+
+    if aktion == "lit_h":
+        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        if tag is None:
+            messages.error(request, _("Bitte das Datum der Ergänzung angeben."))
+            return True
+        mandat.mandatsvereinbarung_lit_h_am = tag
+        mandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+        AuditEintrag.anhaengen({"typ": "mandatsvereinbarung_lit_h", "mandat": mandat.pk, "feld": "mandatsvereinbarung_lit_h_am"})
+        messages.success(
+            request,
+            _("Vermerkt: Die Mandatsvereinbarung enthält § 7 Abs 3 lit h seit %(datum)s.") % {"datum": tag.strftime("%d.%m.%Y")},
+        )
+        return True
+
+    if aktion == "anfechtung":
+        vf = _vertrauensfrage_der_verwaltung(request)
+        if vf.ergebnis_am is None:
+            messages.error(request, _("Angefochten werden kann nur ein veröffentlichtes Ergebnis (§ 7 Abs 10 lit h)."))
+            return True
+        if vf.angefochten_am is not None:
+            messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
+            return True
+        tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        jetzt = timezone.make_aware(datetime.combine(tag, time(12, 0))) if tag is not None else timezone.now()
+        vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt)
+        messages.success(
+            request, _("Anfechtung vermerkt — das Ruhen wird bis zur Entscheidung des Parteischiedsgerichts nicht zum Ende.")
+        )
+        return True
+
+    if aktion == "entscheidung":
+        vf = _vertrauensfrage_der_verwaltung(request)
+        wert = request.POST.get("entscheidung", "")
+        if vf.angefochten_am is None:
+            messages.error(request, _("Eine Entscheidung setzt eine vermerkte Anfechtung voraus."))
+            return True
+        if vf.entscheidung:
+            messages.info(request, _("Die Entscheidung ist bereits vermerkt."))
+            return True
+        if wert not in ENTSCHEIDUNGEN:
+            messages.error(request, _("Bitte „aufgehoben“ oder „bestätigt“ wählen."))
+            return True
+        vertrauensfrage_entscheidung_vermerken(vf, wert)
+        vertrauensfragen_fortschreiben()  # „bestätigt“: Stufe 2 läuft ab der Entscheidung — sofort nachgezogen
+        if wert == Entscheidung.AUFGEHOBEN.value:
+            messages.success(
+                request, _("Entscheidung vermerkt: aufgehoben — Wirkungen zurückgenommen, Rollen wiederhergestellt.")
+            )
+        else:
+            messages.success(request, _("Entscheidung vermerkt: bestätigt — die Wirkungen werden endgültig."))
+        return True
+
+    if aktion == "bestaetigung_durch_wahl":
+        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        if not mandat.kandidatursperre:
+            messages.info(request, _("Keine Kandidatursperre — nichts zu bestätigen."))
+            return True
+        mandat.bestaetigen("wahl")
+        messages.success(
+            request, _("Bestätigung durch Wahl in ein Organ vermerkt — die Kandidatursperre ist aufgehoben (§ 7 Abs 10 lit f Z 3).")
+        )
+        return True
+    return False
 
 
 def _im_integritaetsrat(mitglied) -> bool:
@@ -880,6 +1437,9 @@ def _im_integritaetsrat(mitglied) -> bool:
 def verwaltung_aktion(request):
     """Eine Verwaltungsseite, mehrere kleine Handlungen — jede auditiert."""
     aktion = request.POST.get("aktion", "")
+
+    if _verwaltung_vertrauen(request, aktion):
+        return redirect("mandatare:verwaltung")
 
     if aktion == "anlegen":
         form = MandatFormular(request.POST)

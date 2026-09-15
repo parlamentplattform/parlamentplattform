@@ -1,6 +1,7 @@
 {% load i18n %}{% comment %}
-Die Registertabelle (§ 7 Abs 5). Erwartet `zeilen` aus views._rechenschaft_zeilen und
-`mit_mandatar` (Spalte Mandatar zeigen). Unter 700 px wird jede Zeile zur Karte (td data-label).
+Die Registertabelle (§ 7 Abs 5). Erwartet `zeilen` aus views._register_zeilen — Einträge (`r`) und
+Ergebnisse von Vertrauensfragen (`vf`, § 7 Abs 10 lit e) in einer Reihe — und `mit_mandatar`
+(Spalte Mandatar zeigen). Unter 700 px wird jede Zeile zur Karte (td data-label).
 {% endcomment %}
 {% if zeilen %}
 <div style="overflow-x:auto">
@@ -15,6 +16,16 @@ Die Registertabelle (§ 7 Abs 5). Erwartet `zeilen` aus views._rechenschaft_zeil
   </tr></thead>
   <tbody>
   {% for z in zeilen %}
+  {% if z.vf %}{% with vf=z.vf %}
+  <tr class="vertrauensfrage">
+    <td data-label="{% translate 'Datum' %}">{{ z.datum|date:"d.m.Y" }}</td>
+    {% if mit_mandatar %}<td data-label="{% translate 'Mandatar' %}"><a href="{% url 'mandatare:detail' vf.mandat.pk %}">{{ vf.mandat.mitglied.anzeigename }}</a><br><span class="meta">{{ vf.mandat.bezeichnung }} · {{ vf.mandat.gebiet|default:vf.mandat.get_ebene_display }}</span></td>{% endif %}
+    <td data-label="{% translate 'Gegenstand' %}"><span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{{ vf.antrag.titel }}</a></td>
+    <td data-label="{% translate 'Beschluss der Plattform' %}"{% if vf.verloren %} class="weicht"{% endif %}>{{ vf.ergebnis_wort }}</td>
+    <td data-label="{% translate 'Stimme' %}">–</td>
+    <td data-label="{% translate 'Begründung' %}"><span class="meta">{% translate "Ergebnis der Mitgliederversammlung (§ 7 Abs 10 lit e)" %}{% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% endif %}{% if z.vermerk %} · {{ z.vermerk }}{% endif %}</span></td>
+  </tr>
+  {% endwith %}{% else %}
   <tr>
     <td data-label="{% translate 'Datum' %}">{{ z.r.sitzung_am|date:"d.m.Y" }}</td>
     {% if mit_mandatar %}<td data-label="{% translate 'Mandatar' %}"><a href="{% url 'mandatare:detail' z.r.mandat.pk %}">{{ z.r.mandat.mitglied.anzeigename }}</a><br><span class="meta">{{ z.r.mandat.bezeichnung }} · {{ z.r.mandat.gebiet|default:z.r.mandat.get_ebene_display }}</span></td>{% endif %}
@@ -23,6 +34,7 @@ Die Registertabelle (§ 7 Abs 5). Erwartet `zeilen` aus views._rechenschaft_zeil
     <td data-label="{% translate 'Stimme' %}"{% if z.weicht_ab %} class="weicht"{% endif %}>{{ z.r.get_stimme_display }}{% if z.weicht_ab %} · {% translate "weicht ab" %}{% endif %}</td>
     <td data-label="{% translate 'Begründung' %}" style="white-space:pre-line">{{ z.r.begruendung }}</td>
   </tr>
+  {% endif %}
   {% endfor %}
   </tbody>
 </table>

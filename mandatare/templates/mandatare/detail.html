@@ -84,6 +84,17 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
   · <a href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Mandatare →" %}</a></p>
 </div>
 
+<h2 id="vertrauen">{% translate "Vertrauen" %}</h2>
+<div class="karte">
+  {% include "mandatare/_vertrauen_stand.html" with mandat=mandat vertrauen=vertrauen %}
+  {% if not vertrauen.alle and not mandat.vertrauen_entzogen_am %}<p class="leer">{% translate "Keine Vertrauensfrage bisher." %}</p>{% endif %}
+  {% if vertrauensfrage_moeglich %}
+  <p style="margin-top:10px"><a class="btn-linie klein" href="{% url 'mandatare:vertrauensfrage_stellen' mandat.pk %}">{% translate "Vertrauensfrage stellen" %}</a>
+    <span class="meta">· {% translate "jedes Mitglied, mit Anlass (§ 7 Abs 10 lit b)" %}</span></p>
+  {% endif %}
+  <p style="margin-top:8px"><a href="{% url 'mandatare:vertrauensfragen' %}">{% translate "Alle Vertrauensfragen →" %}</a></p>
+</div>
+
 <div class="karte" style="margin-top:14px">
   <p class="erk">{% blocktranslate %}Richtschnur und Rechenschaft: Die Ergebnisse der betreuten Abstimmungen sind Beschlusslage
 (§ 7 Abs 4 und 5); Abweichungen werden samt Begründung veröffentlicht. Das freie Mandat (§ 7 Abs 2)

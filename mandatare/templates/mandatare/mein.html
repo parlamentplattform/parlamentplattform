@@ -18,10 +18,22 @@ das betroffene Formular wieder vor.
   {% if mandate|length > 1 %} · <a href="{% url 'mandatare:mein' %}">{% translate "Anderes Mandat wählen" %}</a>{% endif %}
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
   · <a href="#aufgaben">{% translate "Aufgaben und Fristen" %}</a> · <a href="#berichte">{% translate "Berichte und Rechenschaft" %}</a>
+  · <a href="#vertrauen">{% translate "Vertrauen" %}</a>
 </p>
 {% if mandat.beendet %}
 <div class="band-gold">{% blocktranslate with ende=mandat.beendet|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Ihr Mandat endete am {{ ende }} — Rechenschaft und Berichte sind noch bis {{ bis }} möglich.{% endblocktranslate %}</div>
+{% elif mandat.vertretung_beendet_am %}
+<div class="band-gold">{% blocktranslate with ende=mandat.vertretung_beendet_am|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Die Vertretung endete am {{ ende }} (§ 7 Abs 10 lit f Z 8) — Rechenschaft und Berichte sind noch bis {{ bis }} möglich; danach bleibt der Bereich lesbar.{% endblocktranslate %}</div>
 {% endif %}
+{% if vertrauen.laufende %}
+<div class="band-gold">{% if vertrauen.laufende.art == "vertrauensfrage" %}{% blocktranslate with datum=vertrauen.laufende.antrag.eingebracht_am|date:"d.m.Y" %}Vertrauensfrage eingebracht am {{ datum }} — Sie können bis zum Ende der Abstimmung Stellung nehmen (§ 7 Abs 10 lit d).{% endblocktranslate %}
+  <a href="{% url 'verfahren:antrag' vertrauen.laufende.antrag.pk %}#stellungnahme">{% translate "Stellung nehmen ›" %}</a>
+  {% else %}{% blocktranslate with datum=vertrauen.laufende.antrag.eingebracht_am|date:"d.m.Y" %}Ihr Bestätigungsantrag läuft seit {{ datum }}.{% endblocktranslate %}
+  <a href="{% url 'verfahren:antrag' vertrauen.laufende.antrag.pk %}">{% translate "Zum Antrag ›" %}</a>{% endif %}</div>
+{% endif %}
+{% for rolle in ruhende_rollen %}
+<div class="band-gold">{% blocktranslate with gremium=rolle.get_gremium_display seit=rolle.ruht_seit|date:"d.m.Y" grund=rolle.ruht_grund %}Ihre Rolle im Gremium „{{ gremium }}“ ruht seit {{ seit }} — {{ grund }}.{% endblocktranslate %}</div>
+{% endfor %}
 {% if identitaet_ungeprueft %}
 <div class="band-gold">{% translate "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
@@ -82,7 +94,7 @@ das betroffene Formular wieder vor.
     <button type="submit" class="btn" style="margin-top:8px">{% translate "Report veröffentlichen" %}</button>
   </form>
   {% else %}
-  <p class="leer">{% if mandat.beendet %}{% translate "Mandat beendet — kein neuer Report." %}{% elif identitaet_ungeprueft %}{% translate "Schreiben geht nach der Bestätigung." %}{% else %}{% translate "Schreiben ruht bis zum aktiven Status." %}{% endif %}</p>
+  <p class="leer">{% if mandat.beendet %}{% translate "Mandat beendet — kein neuer Report." %}{% elif mandat.vertretung_beendet_am %}{% translate "Vertretung beendet — kein neuer Report." %}{% elif identitaet_ungeprueft %}{% translate "Schreiben geht nach der Bestätigung." %}{% else %}{% translate "Schreiben ruht bis zum aktiven Status." %}{% endif %}</p>
   {% endif %}
 </div>
 
@@ -214,6 +226,23 @@ das betroffene Formular wieder vor.
   </span></div>
   {% endwith %}{% endfor %}
   {% if not rechenschaft and not berichte %}<p class="leer">{% translate "Noch keine Einträge." %}</p>{% endif %}
+</div>
+
+{# ── 5. Vertrauen (§ 7 Abs 10) ──────────────────────────────────────────── #}
+<div class="karte" id="vertrauen">
+  <p class="phasen-titel">{% translate "Vertrauen" %}</p>
+  {% include "mandatare/_vertrauen_stand.html" with mandat=mandat vertrauen=vertrauen %}
+  {% if not vertrauen.alle and not mandat.vertrauen_entzogen_am %}<p class="leer">{% translate "Keine Vertrauensfrage bisher." %}</p>{% endif %}
+  {% if darf_bestaetigen %}
+  <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form" style="margin-top:10px">{% csrf_token %}
+    <input type="hidden" name="aktion" value="bestaetigung"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+    <label for="bs-begruendung">{% translate "Bestätigung durch die Mitgliederversammlung beantragen (§ 7 Abs 10 lit f Z 3) — Begründung (öffentlich, optional)" %}</label>
+    <textarea id="bs-begruendung" name="begruendung" rows="4" maxlength="4000"></textarea>
+    <span class="hilfe">{% translate "Ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung. Zugrunde liegt das Rechenschaftsregister seit dem Ergebnis. Die Annahme hebt die Kandidatursperre auf; nach einer Ablehnung ist ein neuer Antrag frühestens sechs Monate später zulässig." %}</span>
+    {% if ordnung_fehlt_bestaetigung %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — ein Antrag kann noch nicht entstehen." %}</span>{% endif %}
+    <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Bestätigung beantragen" %}</button>
+  </form>
+  {% endif %}
 </div>
 
 </div>

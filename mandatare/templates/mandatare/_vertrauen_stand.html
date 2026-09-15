@@ -1,0 +1,46 @@
+{% load i18n phasen %}{% comment %}
+Der Stand des Vertrauens (§ 7 Abs 10 lit e, f Z 3 und 4, lit h und j) — reiner Sachverhalt, keine
+Wertung. Erwartet `mandat` und `vertrauen` (views._vertrauen). Wird von der öffentlichen Seite, dem
+Register je Mandatar und dem Bereich des Mandatars eingebunden.
+{% endcomment %}
+{% with laufende=vertrauen.laufende v=vertrauen.verlorene %}
+{% if laufende %}
+<p class="pflicht"><span class="chip klein">{{ laufende.get_art_display }}</span>
+  <a href="{% url 'verfahren:antrag' laufende.antrag.pk %}"><strong>{{ laufende.antrag.titel }}</strong> →</a>
+  <span class="meta">· {% translate "eingebracht" %} {{ laufende.antrag.eingebracht_am|date:"d.m.Y" }} · {{ laufende.antrag.phase|phase_name }}
+  {% if laufende.art == "vertrauensfrage" %} · {% blocktranslate with n=laufende.stimmberechtigte_partei_am_einbringungstag s=laufende.schwelle_partei %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ s }}{% endblocktranslate %}{% endif %}
+  {% if laufende.schwelle_erreicht_am and laufende.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ laufende.schwelle_erreicht_am|date:"d.m.Y" }}{% endif %}</span></p>
+{% endif %}
+{% for vf in vertrauen.entschiedene %}
+<p class="pflicht"><span class="chip klein">{{ vf.get_art_display }}</span>
+  <strong{% if vf.verloren %} class="ausstand"{% endif %}>{{ vf.ergebnis_wort }}</strong>
+  <span class="meta">· <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{% translate "Ergebnis veröffentlicht am" %} {{ vf.ergebnis_am|date:"d.m.Y" }}</a>
+  {% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% if vf.aktenkennung %} ({{ vf.aktenkennung }}){% endif %}{% endif %}</span></p>
+{% endfor %}
+{% for vf in vertrauen.sonstige %}
+<p class="pflicht"><span class="chip klein">{{ vf.get_art_display }}</span>
+  <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{{ vf.antrag.eingebracht_am|date:"d.m.Y" }}</a>
+  <span class="meta">· {% if vf.nicht_eroeffnet %}{% translate "nicht eröffnet (Feststellung des Integritätsrats)" %}{% else %}{{ vf.antrag.phase|phase_name }}{% endif %}</span></p>
+{% endfor %}
+{% if mandat.vertrauen_entzogen_am %}
+<p class="pflicht"><strong>{% translate "Ersuchen um Rückgabe des Mandats" %}</strong>
+  <span class="meta">· {% translate "seit" %} {{ mandat.vertrauen_entzogen_am|date:"d.m.Y" }} · {% translate "Frist bis" %} {{ mandat.rueckgabe_ersucht_bis|date:"d.m.Y" }}
+  {% with r=vertrauen.rueckgabe %}{% if r %} · <span class="kr-frist">{% if r.vorbei %}{% blocktranslate count t=r.tage %}abgelaufen seit einem Tag{% plural %}abgelaufen seit {{ t }} Tagen{% endblocktranslate %}{% elif r.heute %}{% translate "läuft heute ab" %}{% else %}{% blocktranslate count t=r.tage %}noch ein Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}</span>{% endif %}{% endwith %}
+  · {% translate "Ob und wann die Person dem Ersuchen folgt, entscheidet sie allein (§ 7 Abs 10 lit f Z 4)." %}</span></p>
+{% if vertrauen.vermerk %}<p class="pflicht"><strong>{% translate "Vermerk des Registers:" %}</strong> {{ vertrauen.vermerk }}</p>{% endif %}
+{% if mandat.vertretung_beendet_am %}
+<p class="pflicht"><strong>{% translate "Vertretung beendet am" %} {{ mandat.vertretung_beendet_am|date:"d.m.Y" }}</strong>
+  <span class="meta">· {% translate "Die Person ist nicht mehr Mandatsträger der DDÖ (§ 7 Abs 10 lit f Z 8); Bereich und Register werden fortgeführt, eine Begründung ist nicht mehr geschuldet." %}
+  {% if mandat.mandatsvereinbarung_endet_am %} · {% translate "Mandatsvereinbarung beendet am" %} {{ mandat.mandatsvereinbarung_endet_am|date:"d.m.Y" }}{% endif %}</span></p>
+{% endif %}
+{% if mandat.kandidatursperre %}
+<p class="pflicht"><span class="meta">{% translate "Keine Kandidatur nach § 7 Abs 1 bis zu einer Bestätigung durch die Mitgliederversammlung (§ 7 Abs 10 lit f Z 3)." %}
+  {% if vertrauen.bestaetigung_laeuft %}{% translate "Ein Bestätigungsantrag läuft." %}{% elif vertrauen.bestaetigung_ab %}{% translate "Bestätigung beantragbar ab" %} {{ vertrauen.bestaetigung_ab|date:"d.m.Y" }}.{% endif %}</span></p>
+{% elif mandat.bestaetigt_am %}
+<p class="pflicht"><strong>{% translate "Bestätigt durch die Mitgliederversammlung am" %} {{ mandat.bestaetigt_am|date:"d.m.Y" }}</strong></p>
+{% endif %}
+{% endif %}
+<p class="pflicht"><span class="meta">{% translate "Rückgabezusage (§ 7 Abs 3):" %} <strong>{{ vertrauen.rueckgabezusage_name }}</strong>
+  {% if vertrauen.rueckgabezusage_quelle == "bewerbung" %}· {% translate "erklärt bei der Bewerbung" %}{% elif vertrauen.rueckgabezusage_quelle == "mandat" and mandat.rueckgabezusage_am %}· {% translate "vermerkt am" %} {{ mandat.rueckgabezusage_am|date:"d.m.Y" }}{% endif %}
+  · {% if mandat.mandatsvereinbarung_lit_h_am %}{% translate "Mandatsvereinbarung enthält § 7 Abs 3 lit h seit" %} {{ mandat.mandatsvereinbarung_lit_h_am|date:"d.m.Y" }}{% else %}{% translate "Mandatsvereinbarung ohne Ergänzung um § 7 Abs 3 lit h" %}{% endif %}</span></p>
+{% endwith %}

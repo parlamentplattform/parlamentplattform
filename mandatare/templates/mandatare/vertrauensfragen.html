@@ -1,0 +1,54 @@
+{% extends "verfahren/base.html" %}
+{% load i18n phasen %}
+{% block titel %}{% translate "Vertrauensfragen" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Alle Vertrauensfragen und Bestätigungsanträge (§ 7 Abs 10): laufende mit Stand und Beteiligung,
+entschiedene mit Ergebnis in Worten („gewonnen“/„verloren“, lit e), Rechtsschutzstand (lit h) und
+Vermerk des Registers (lit f Z 4). Filter nach Ebene; JSON über das Rechenschaftsregister.
+{% endcomment %}
+{% include "mandatare/_stil.html" %}
+<h1>{% translate "Vertrauensfragen" %}</h1>
+<p class="erk">{% translate "Ob die Mitgliederversammlung sich durch einen Mandatsträger weiterhin vertreten lassen will (§ 7 Abs 10) — gewonnen wie verloren dauerhaft ausgewiesen. Das staatliche Mandat bleibt unberührt." %}
+  · <a href="{% url 'mandatare:rechenschaft_json' %}{% if ebene %}?ebene={{ ebene }}{% endif %}">JSON</a>
+  · <a href="{% url 'mandatare:rechenschaft' %}">{% translate "Rechenschaftsregister →" %}</a></p>
+<div class="ebenen">
+  <a class="chip{% if not ebene %} an{% endif %}" href="{% url 'mandatare:vertrauensfragen' %}">{% translate "Alle Ebenen" %}</a>
+  {% for wert, name in ebenen %}<a class="chip{% if ebene == wert %} an{% endif %}" href="?ebene={{ wert }}">{{ name }}</a>{% endfor %}
+</div>
+
+<div class="karte" id="laufende">
+  <p class="phasen-titel">{% translate "Laufende" %}</p>
+  {% for z in laufende %}{% with vf=z.vf a=z.vf.antrag %}
+  <div class="zeile"><span>
+    <span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+    <br><span class="meta"><a href="{% url 'mandatare:detail' vf.mandat.pk %}">{{ vf.mandat.mitglied.anzeigename }}</a> · {{ vf.mandat.gebiet|default:vf.mandat.get_ebene_display }}
+      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }} · {{ a.phase|phase_name }}
+      {% if a.phase == "unterstuetzung" %} · {% blocktranslate with n=z.unterstuetzungen s=vf.schwelle_partei %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}
+      {% elif a.phase == "abstimmung" %} · {% blocktranslate with n=z.stimmen s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}
+      {% if vf.schwelle_erreicht_am and vf.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ vf.schwelle_erreicht_am|date:"d.m.Y" }}{% endif %}
+      {% if vf.sperrhinweis and not vf.nicht_eroeffnet %} · <span class="ausstand">{% translate "Sperrhinweis — der Integritätsrat prüft bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}</span>
+  </span></div>
+  {% endwith %}{% empty %}
+  <p class="leer">{% translate "Derzeit läuft keine Vertrauensfrage." %}</p>
+  {% endfor %}
+</div>
+
+<div class="karte" id="entschiedene">
+  <p class="phasen-titel">{% translate "Entschiedene" %}</p>
+  {% for z in entschiedene %}{% with vf=z.vf a=z.vf.antrag %}
+  <div class="zeile"><span>
+    <span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
+    {% if z.ergebnis_wort %} · <strong{% if vf.verloren %} class="ausstand"{% endif %}>{{ z.ergebnis_wort }}</strong>{% elif vf.nicht_eroeffnet %} · <strong>{% translate "nicht eröffnet (Feststellung des Integritätsrats)" %}</strong>{% else %} · <strong>{{ a.phase|phase_name }}</strong>{% endif %}
+    <br><span class="meta"><a href="{% url 'mandatare:detail' vf.mandat.pk %}">{{ vf.mandat.mitglied.anzeigename }}</a> · {{ vf.mandat.gebiet|default:vf.mandat.get_ebene_display }}
+      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }}{% if vf.ergebnis_am %} · {% translate "Ergebnis veröffentlicht am" %} {{ vf.ergebnis_am|date:"d.m.Y" }}
+      · {% blocktranslate with n=z.stimmen s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}
+      {% if z.rechtsschutz %} · {{ z.rechtsschutz }}{% endif %}
+      {% if z.vermerk %} · {{ z.vermerk }}{% endif %}</span>
+  </span></div>
+  {% endwith %}{% empty %}
+  <p class="leer">{% translate "Noch keine entschiedene Vertrauensfrage." %}</p>
+  {% endfor %}
+</div>
+<p class="erk" style="margin-top:12px">{% translate "Der regionale Weg nach § 7 Abs 10 lit c steht offen, sobald die Plattform Gliederungen führt (§ 14 Abs 4)." %}</p>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% load i18n %}{% comment %}
+Das Gehör des Mandatsträgers (§ 7 Abs 10 lit d) — Karte für die Antragsseite einer Vertrauensfrage.
+Vertrag: `{% include "mandatare/_stellungnahmen.html" with vf=vf %}` — `vf` ist die
+mandatare.Vertrauensfrage des Antrags (antrag.vertrauensfrage); die Karte liest `request.user`,
+`vf.stellungnahmen.all`, `vf.laeuft` und `vf.mandat.mitglied_id`. Der Antrag soll vorher
+fortgeschrieben sein (die Antragsseite tut das). Anker: #stellungnahme. Optional `stellungnahmen`
+(vorgeladene Liste) statt `vf.stellungnahmen.all`.
+{% endcomment %}
+<div class="karte" id="stellungnahme">
+  <p class="phasen-titel">{% translate "Stellungnahme des Mandatsträgers" %}</p>
+  {% for s in stellungnahmen|default:vf.stellungnahmen.all %}
+  <div class="kommentar">
+    <div class="kopf"><strong>{{ vf.mandat.mitglied.anzeigename }}</strong> <span class="meta">· {{ s.erstellt_am|date:"d.m.Y H:i" }}{% if not forloop.first %} · {% translate "Ergänzung" %}{% endif %}</span></div>
+    <div style="white-space:pre-line">{{ s.text }}</div>
+  </div>
+  {% empty %}
+  <p class="leer">{% translate "Noch keine Stellungnahme." %}</p>
+  {% endfor %}
+  {% if request.user.is_authenticated and request.user.pk == vf.mandat.mitglied_id %}
+    {% if vf.laeuft %}
+    <form method="post" action="{% url 'mandatare:stellungnahme' vf.antrag_id %}" class="kr-form" style="margin-top:10px">{% csrf_token %}
+      <label for="sn-text">{% if vf.stellungnahmen.all %}{% translate "Stellungnahme ergänzen (öffentlich, im Wortlaut)" %}{% else %}{% translate "Stellung nehmen (öffentlich, im Wortlaut)" %}{% endif %}</label>
+      <textarea id="sn-text" name="text" rows="5" maxlength="4000" required></textarea>
+      <span class="hilfe">{% translate "Bis zum Ende der Abstimmung ergänzbar, nicht nachträglich änderbar; bleibt dauerhaft einsehbar (§ 7 Abs 10 lit d)." %}</span>
+      <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Stellungnahme veröffentlichen" %}</button>
+    </form>
+    {% else %}
+    <p class="meta" style="margin-top:8px">{% translate "Die Abstimmung ist beendet — eine Stellungnahme ist nicht mehr möglich; die vorhandenen bleiben einsehbar." %}</p>
+    {% endif %}
+  {% endif %}
+</div>

@@ -1,0 +1,451 @@
+"""Die Ansichten der Vertrauensfrage (§ 7 Abs 10, S10c, Cluster M): Einbringen von der Mandatar-Seite,
+Stellungnahme des Mandatsträgers, Bestätigungsantrag im Bereich, Verwaltungsvermerke mit Audit,
+`/vertrauensfragen/` samt JSON, der Abschnitt „Vertrauen“ mit Fristzähler, die Registerzeile —
+und dass die Abfragezahl nicht an der Zahl der Vertrauensfragen hängt."""
+
+from datetime import date
+
+import pytest
+from django.contrib.messages import get_messages
+from django.core import mail
+from django.db import connection
+from django.template.loader import render_to_string
+from django.test import RequestFactory
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
+
+from gremien.models import Gremium
+from gremien.test_werkstatt import rolle_geben
+from mandatare import models as mm
+from mandatare.models import Aufgabe, Mandat, Rechenschaft, Stellungnahme, Vertrauensfrage
+from mandatare.test_mandatare import admin_anlegen, mandat_anlegen
+from mitglieder.models import Mitgliedsstatus
+from plattform_core import Phase
+from verfahren.models import Antrag, Antragsart, Bewerbung, Rueckgabezusage
+from verfahren.test_vertrauensfrage import (  # noqa: F401
+    _verloren,
+    abweichung,
+    altmandat,
+    audit,
+    einbringen,
+    tage,
+)
+from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
+
+pytestmark = pytest.mark.django_db
+
+MEIN = reverse("mandatare:mein")
+MEIN_AKTION = reverse("mandatare:mein_aktion")
+VERWALTUNG_AKTION = reverse("mandatare:verwaltung_aktion")
+LISTE = reverse("mandatare:vertrauensfragen")
+
+
+def stellen_url(mandat):
+    return reverse("mandatare:vertrauensfrage_stellen", args=[mandat.pk])
+
+
+def stellungnahme_url(antrag):
+    return reverse("mandatare:stellungnahme", args=[antrag.pk])
+
+
+def meldungen(antwort) -> str:
+    return " ".join(str(m) for m in get_messages(antwort.wsgi_request))
+
+
+def stellen(client, mandat, anlass, begruendung="Die Abweichung wurde nicht erklärt.", **extra):
+    daten = {"anlass": [anlass.pk] if anlass is not None else [], "begruendung": begruendung, **extra}
+    return client.post(stellen_url(mandat), daten)
+
+
+# ── Einbringen (lit b) ─────────────────────────────────────────────────────────────────────
+
+
+def test_gast_wird_zur_anmeldung_geschickt(client, altmandat):  # noqa: F811
+    for antwort in (client.get(stellen_url(altmandat)), client.post(stellen_url(altmandat), {})):
+        assert antwort.status_code == 302 and antwort["Location"].startswith("/anmelden/")
+    assert client.post(stellungnahme_url(Antrag(pk=1)), {"text": "x"}).status_code == 302
+
+
+def test_mandatar_seite_traegt_den_knopf_und_den_abschnitt_vertrauen(client, altmandat):  # noqa: F811
+    html = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()
+    assert 'id="vertrauen"' in html and f'href="{stellen_url(altmandat)}"' in html
+    assert "Keine Vertrauensfrage bisher." in html and "Rückgabezusage (§ 7 Abs 3):" in html
+    assert "keine Angabe" in html  # ehrlich: die Erklärung fehlt
+
+
+def test_mitglied_stellt_die_vertrauensfrage_und_sieht_die_zahlen_im_band(client, ordnung, altmandat):  # noqa: F811
+    anlass = abweichung(altmandat)
+    anna = mitglied_anlegen("anna")
+    client.force_login(anna)
+    html = client.get(stellen_url(altmandat)).content.decode()
+    assert f'name="anlass" value="{anlass.pk}"' in html and "weicht ab" in html
+    assert "sobald die Plattform Gliederungen führt" in html  # der regionale Weg — ehrlich benannt
+    assert 'id="sperrhinweis"' not in html
+    antwort = stellen(client, altmandat, anlass)
+    antrag = Antrag.objects.get(art=Antragsart.VERTRAUENSFRAGE)
+    assert antwort.status_code == 302 and antwort["Location"] == f"/antrag/{antrag.pk}/"
+    text = meldungen(antwort)
+    vf = antrag.vertrauensfrage
+    assert f"Stimmberechtigte am Einbringungstag: {vf.stimmberechtigte_partei_am_einbringungstag}" in text
+    assert f"Schwelle: {vf.schwelle_partei} Unterstützungen" in text and "Sperrhinweis" not in text
+    assert list(vf.anlaesse.all()) == [anlass] and antrag.eingebracht_von == anna
+    assert audit("vertrauensfrage_eingebracht")[0]["anlaesse"] == [anlass.pk]
+    assert len(mail.outbox) == 1  # der Mandatar ist verständigt (Fundament)
+    # Doppelabsendung: derselbe Antrag, kein zweiter
+    antwort = stellen(client, altmandat, anlass)
+    assert antwort["Location"] == f"/antrag/{antrag.pk}/" and Antrag.objects.filter(art=Antragsart.VERTRAUENSFRAGE).count() == 1
+
+
+def test_ohne_anlass_kein_antrag_und_die_eingabe_bleibt(client, ordnung, altmandat):  # noqa: F811
+    abweichung(altmandat)
+    client.force_login(mitglied_anlegen("anna"))
+    antwort = stellen(client, altmandat, None, begruendung="Meine Begründung bleibt stehen.")
+    assert antwort.status_code == 200 and not Antrag.objects.filter(art=Antragsart.VERTRAUENSFRAGE).exists()
+    html = antwort.content.decode()
+    assert "mindestens einen Anlass" in html and "Meine Begründung bleibt stehen." in html
+    assert 'name="anlass"' in html  # das Formular steht wieder da
+    # Begründung fehlt → ebenfalls kein Antrag
+    anlass = Rechenschaft.objects.get()
+    antwort = stellen(client, altmandat, anlass, begruendung="   ")
+    assert antwort.status_code == 200 and "Begründung" in meldungen(antwort)
+    assert not Antrag.objects.filter(art=Antragsart.VERTRAUENSFRAGE).exists()
+
+
+def test_ohne_jeden_moeglichen_anlass_gibt_es_kein_formular(client, ordnung, altmandat):  # noqa: F811
+    client.force_login(mitglied_anlegen("anna"))
+    html = client.get(stellen_url(altmandat)).content.decode()
+    assert "Kein Anlass vorhanden." in html and 'name="begruendung"' not in html
+
+
+def test_ausstand_als_anlass_wird_als_kontrollkaestchen_angeboten(client, ordnung, altmandat):  # noqa: F811
+    sitzung = Aufgabe.objects.create(
+        mandat=altmandat, titel="Budget", frist=timezone.now() - tage(60), sitzungstag=True
+    )
+    client.force_login(mitglied_anlegen("anna"))
+    html = client.get(stellen_url(altmandat)).content.decode()
+    assert f'name="ausstand" value="rechenschaft:{sitzung.pk}"' in html
+    antwort = client.post(
+        stellen_url(altmandat), {"ausstand": [f"rechenschaft:{sitzung.pk}"], "begruendung": "Seit Wochen nichts."}
+    )
+    assert antwort.status_code == 302
+    vf = Vertrauensfrage.objects.get()
+    assert vf.anlass_ausstaende[0]["kennung"] == f"rechenschaft:{sitzung.pk}"
+
+
+def test_sperrhinweis_erscheint_und_hindert_nicht(client, ordnung):  # noqa: F811
+    """lit g erster Fall: ein Mandat in der Schonfrist — die Seite zeigt den Hinweis, der Antrag entsteht
+    trotzdem; feststellen tut es der Integritätsrat (§ 2 Abs 6)."""
+    mandat = mandat_anlegen(mitglied_anlegen("neu"), angetreten=timezone.localdate() - tage(10))
+    anlass = abweichung(mandat)
+    client.force_login(mitglied_anlegen("anna"))
+    html = client.get(stellen_url(mandat)).content.decode()
+    assert 'id="sperrhinweis"' in html and "Schonfrist" in html and "Integritätsrat" in html
+    antwort = stellen(client, mandat, anlass)
+    assert antwort.status_code == 302
+    vf = Vertrauensfrage.objects.get()
+    assert vf.sperrhinweis and "Sperrhinweis nach § 7 Abs 10 lit g" in meldungen(antwort)
+
+
+def test_pausiertes_mitglied_darf_nicht_stellen(client, ordnung, altmandat):  # noqa: F811
+    abweichung(altmandat)
+    paul = mitglied_anlegen("paul")
+    paul.status = Mitgliedsstatus.PAUSIERT
+    paul.save(update_fields=["status"])
+    client.force_login(paul)
+    assert client.get(stellen_url(altmandat)).status_code == 403
+    assert client.post(stellen_url(altmandat), {"begruendung": "x"}).status_code == 403
+
+
+def test_ohne_verfahrensordnung_kein_antrag(client, altmandat):  # noqa: F811
+    anlass = abweichung(altmandat)
+    client.force_login(mitglied_anlegen("anna"))
+    html = client.get(stellen_url(altmandat)).content.decode()
+    assert "keine Verfahrensordnung" in html and 'name="begruendung"' not in html
+    assert stellen(client, altmandat, anlass).status_code == 200
+    assert not Antrag.objects.exists()
+
+
+# ── Stellungnahme (lit d) ──────────────────────────────────────────────────────────────────
+
+
+def test_nur_der_betroffene_nimmt_stellung_und_nur_solange_es_laeuft(client, ordnung, altmandat):  # noqa: F811
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung)
+    client.force_login(mitglied_anlegen("fremd"))
+    assert client.post(stellungnahme_url(antrag), {"text": "Ich rede mit."}).status_code == 403
+    assert not Stellungnahme.objects.exists()
+    client.force_login(altmandat.mitglied)
+    assert client.get(stellungnahme_url(antrag)).status_code == 405  # nur POST
+    antwort = client.post(stellungnahme_url(antrag), {"text": "Ich habe so gestimmt, weil …"})
+    assert antwort.status_code == 302 and antwort["Location"] == f"/antrag/{antrag.pk}/#stellungnahme"
+    assert Stellungnahme.objects.count() == 1 and audit("vertrauensfrage_stellungnahme")
+    # leer → Meldung, kein Eintrag
+    antwort = client.post(stellungnahme_url(antrag), {"text": "   "})
+    assert antwort.status_code == 302 and Stellungnahme.objects.count() == 1
+    # nach dem Ende: keine Ergänzung mehr
+    antrag.phase = Phase.ABGELEHNT.value
+    antrag.save(update_fields=["phase"])
+    antwort = client.post(stellungnahme_url(antrag), {"text": "Nachtrag"})
+    assert antwort.status_code == 302 and Stellungnahme.objects.count() == 1
+    assert "beendet" in meldungen(antwort)
+    assert client.post(stellungnahme_url(Antrag(pk=999999)), {"text": "x"}).status_code == 404
+
+
+def test_teiltemplate_der_stellungnahmen_zeigt_formular_nur_dem_betroffenen(ordnung, altmandat):  # noqa: F811
+    """Vertrag für Cluster R: `{% include "mandatare/_stellungnahmen.html" with vf=vf %}` liest `request.user`."""
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung)
+    vf = antrag.vertrauensfrage
+    Stellungnahme.objects.create(vertrauensfrage=vf, text="Erste Stellungnahme.")
+
+    def rendern(user):
+        request = RequestFactory().get("/")
+        request.user = user
+        return render_to_string("mandatare/_stellungnahmen.html", {"vf": vf}, request=request)
+
+    html = rendern(altmandat.mitglied)
+    assert 'id="stellungnahme"' in html and "Erste Stellungnahme." in html
+    assert f'action="{stellungnahme_url(antrag)}"' in html and 'name="text"' in html
+    fremd = rendern(mitglied_anlegen("fremd"))
+    assert "Erste Stellungnahme." in fremd and 'name="text"' not in fremd
+    antrag.phase = Phase.ABGELEHNT.value
+    antrag.save(update_fields=["phase"])
+    vf.refresh_from_db()
+    html = rendern(altmandat.mitglied)
+    assert 'name="text"' not in html and "nicht mehr möglich" in html
+
+
+# ── Bereich des Mandatars: Band, Bestätigung, Ende der Vertretung ──────────────────────────
+
+
+def test_band_im_bereich_waehrend_die_vertrauensfrage_laeuft(client, ordnung, altmandat):  # noqa: F811
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung)
+    client.force_login(altmandat.mitglied)
+    html = client.get(MEIN).content.decode()
+    assert "Vertrauensfrage eingebracht am" in html and f'href="/antrag/{antrag.pk}/#stellungnahme"' in html
+    assert "Stellung nehmen ›" in html
+    ids = [k.split('"')[0] for k in html.split(' id="')[1:]]
+    assert len(ids) == len(set(ids)), "doppelte id im Dokument"
+
+
+def test_bestaetigung_erst_nach_sechs_monaten_und_nur_fuer_die_person(client, ordnung, altmandat):  # noqa: F811
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    client.force_login(altmandat.mitglied)
+    html = client.get(MEIN).content.decode()
+    assert 'name="aktion" value="bestaetigung"' not in html and "Bestätigung beantragbar ab" in html
+    assert "Ersuchen um Rückgabe des Mandats" in html and "noch " in html  # Fristzähler
+    rolle.refresh_from_db()
+    assert rolle.ruht and "ruht seit" in html  # Band für die ruhende Rolle
+    # zu früh → Fachoperation weist ab, der Bereich bleibt
+    antwort = client.post(MEIN_AKTION, {"aktion": "bestaetigung", "mandat": altmandat.pk}, follow=True)
+    assert "frühestens" in antwort.content.decode()
+    assert not Vertrauensfrage.objects.filter(art="bestaetigung").exists()
+    # sechs Monate später (Stempel zurückdatiert): Knopf da, Antrag entsteht
+    frueher = timezone.now() - tage(200)
+    Mandat.objects.filter(pk=altmandat.pk).update(vertrauen_entzogen_am=frueher, rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(30))
+    Vertrauensfrage.objects.filter(antrag=antrag).update(wirkungen_ab=frueher)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=frueher)
+    html = client.get(MEIN).content.decode()
+    assert 'name="aktion" value="bestaetigung"' in html
+    antwort = client.post(MEIN_AKTION, {"aktion": "bestaetigung", "mandat": altmandat.pk, "begruendung": "Seither jeder Beschluss."})
+    b = Vertrauensfrage.objects.get(art="bestaetigung")
+    assert antwort.status_code == 302 and antwort["Location"] == f"/antrag/{b.antrag_id}/"
+    assert "Bestätigungsantrag eingebracht" in meldungen(antwort)
+    html = client.get(MEIN).content.decode()
+    assert "Ihr Bestätigungsantrag läuft seit" in html and 'name="aktion" value="bestaetigung"' not in html
+    # eine fremde Person kann den Knopf nicht drücken
+    client.force_login(mitglied_anlegen("fremd"))
+    assert client.post(MEIN_AKTION, {"aktion": "bestaetigung", "mandat": altmandat.pk}).status_code == 403
+
+
+def test_bereich_bleibt_nach_dem_ende_der_vertretung_lesbar_und_die_bestaetigung_erreichbar(client, ordnung, altmandat):  # noqa: F811
+    antrag, ende = _verloren(ordnung, altmandat)
+    frueher = timezone.now() - tage(200)
+    Mandat.objects.filter(pk=altmandat.pk).update(
+        vertrauen_entzogen_am=frueher,
+        rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(30),
+        vertretung_beendet_am=timezone.localdate(frueher) + tage(30),
+    )
+    Vertrauensfrage.objects.filter(antrag=antrag).update(wirkungen_ab=frueher)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=frueher)
+    altmandat.refresh_from_db()
+    assert not altmandat.mitglied.ist_mandatar and not altmandat.in_nachfrist()
+    client.force_login(altmandat.mitglied)
+    antwort = client.get(MEIN)
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert "Die Vertretung endete am" in html and 'name="aktion" value="report"' not in html
+    assert 'name="aktion" value="bestaetigung"' in html
+    assert client.get(reverse("mandatare:mein_mandat", args=[altmandat.pk])).status_code == 200
+    # Schreibrechte wie beendetes Mandat: kein Report
+    assert client.post(MEIN_AKTION, {"aktion": "report", "mandat": altmandat.pk, "titel": "x"}).status_code == 403
+
+
+# ── Verwaltung (V10) ───────────────────────────────────────────────────────────────────────
+
+
+def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F811
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    client.force_login(mitglied_anlegen("kein_admin"))
+    assert client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": altmandat.pk, "wert": "abgegeben"}).status_code == 403
+    client.force_login(admin_anlegen())
+    html = client.get(reverse("mandatare:verwaltung")).content.decode()
+    assert f'id="vertrauen-{altmandat.pk}"' in html and "Vertrauensfrage verloren" in html
+    assert 'name="aktion" value="anfechtung"' in html
+
+    client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": altmandat.pk, "wert": "abgegeben"})
+    altmandat.refresh_from_db()
+    assert altmandat.rueckgabezusage == Rueckgabezusage.ABGEGEBEN and altmandat.rueckgabezusage_am == timezone.localdate()
+    assert audit("rueckgabezusage")
+    client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": altmandat.pk, "wert": "widerrufen"})
+    altmandat.refresh_from_db()
+    assert altmandat.rueckgabezusage == Rueckgabezusage.UNBEKANNT and len(audit("rueckgabezusage")) == 2
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": altmandat.pk, "wert": "quatsch"})
+    assert "wählen" in meldungen(antwort) and len(audit("rueckgabezusage")) == 2
+
+    client.post(VERWALTUNG_AKTION, {"aktion": "lit_h", "mandat": altmandat.pk, "datum": "2026-10-01"})
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_lit_h_am == date(2026, 10, 1)
+    spur = audit("mandatsvereinbarung_lit_h")[0]
+    assert spur["mandat"] == altmandat.pk and spur["feld"] == "mandatsvereinbarung_lit_h_am" and "2026" not in str(spur.get("datum", ""))
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "lit_h", "mandat": altmandat.pk, "datum": "kein"})
+    assert "Datum" in meldungen(antwort)
+
+    # Entscheidung ohne Anfechtung: nichts
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "aufgehoben"})
+    assert "Anfechtung voraus" in meldungen(antwort)
+    client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "datum": timezone.localdate().isoformat(), "aktenkennung": "PSG 2026/7"})
+    vf.refresh_from_db()
+    assert vf.angefochten_am is not None and vf.aktenkennung == "PSG 2026/7" and audit("vertrauensfrage_angefochten")
+    html = client.get(reverse("mandatare:verwaltung")).content.decode()
+    assert 'name="entscheidung" value="aufgehoben"' in html and "PSG 2026/7" in html
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "egal"})
+    assert "wählen" in meldungen(antwort)
+    client.post(VERWALTUNG_AKTION, {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "aufgehoben"})
+    vf.refresh_from_db()
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.entscheidung == "aufgehoben" and altmandat.vertrauen_entzogen_am is None and rolle.aktiv
+    assert audit("vertrauensfrage_aufgehoben")[0]["rollen_wiederhergestellt"] == [rolle.pk]
+    assert client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": "abc"}).status_code == 404
+
+
+def test_entscheidung_bestaetigt_vollzieht_stufe_zwei_sofort(client, ordnung, altmandat):  # noqa: F811
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    frueher = timezone.now() - tage(40)  # das Ergebnis liegt länger zurück als die Rückgabefrist
+    Vertrauensfrage.objects.filter(pk=vf.pk).update(wirkungen_ab=frueher, angefochten_am=frueher + tage(2))
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=frueher)
+    Mandat.objects.filter(pk=altmandat.pk).update(vertrauen_entzogen_am=frueher, rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(30))
+    client.force_login(admin_anlegen())
+    client.post(VERWALTUNG_AKTION, {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "bestaetigt"})
+    vf.refresh_from_db()
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.entscheidung == "bestaetigt" and vf.wirkungen_endgueltig_am is not None
+    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND and altmandat.vertretung_beendet_am is not None
+    assert altmandat.beendet is None  # nichts setzt Mandat.beendet
+    assert audit("vertrauensfrage_bestaetigt") and audit("vertretung_beendet")
+
+
+def test_bestaetigung_durch_wahl_hebt_die_kandidatursperre_auf(client, ordnung, altmandat):  # noqa: F811
+    _verloren(ordnung, altmandat)
+    client.force_login(admin_anlegen())
+    html = client.get(reverse("mandatare:verwaltung")).content.decode()
+    assert 'value="bestaetigung_durch_wahl"' in html
+    client.post(VERWALTUNG_AKTION, {"aktion": "bestaetigung_durch_wahl", "mandat": altmandat.pk})
+    altmandat.refresh_from_db()
+    assert not altmandat.kandidatursperre and audit("vertrauen_bestaetigt")[0]["grund"] == "wahl"
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "bestaetigung_durch_wahl", "mandat": altmandat.pk})
+    assert "nichts zu bestätigen" in meldungen(antwort)
+
+
+# ── Öffentlich: /vertrauensfragen/, JSON, Register, Fristzähler ────────────────────────────
+
+
+def test_vertrauensfragen_seite_zeigt_laufende_und_entschiedene(client, ordnung, altmandat):  # noqa: F811
+    verloren, ende = _verloren(ordnung, altmandat)
+    land = Mandat.objects.create(mitglied=mitglied_anlegen("landrat", tage=600), bezeichnung="Landtag", ebene="land", angetreten=date(2025, 1, 1))
+    laufend = einbringen(mitglied_anlegen("anna"), land, ordnung)
+    html = client.get(LISTE).content.decode()
+    assert 'id="laufende"' in html and f'href="/antrag/{laufend.pk}/"' in html
+    assert f"0 von {laufend.vertrauensfrage.schwelle_partei} Unterstützungen" in html
+    assert f'href="/antrag/{verloren.pk}/"' in html and "Vertrauensfrage verloren" in html
+    assert "Ergebnis veröffentlicht am" in html and "Stimmen von" in html
+    assert "sobald die Plattform Gliederungen führt" in html
+    nur_land = client.get(LISTE + "?ebene=land").content.decode()
+    assert f'href="/antrag/{laufend.pk}/"' in nur_land and f'href="/antrag/{verloren.pk}/"' not in nur_land
+    assert "Derzeit läuft keine Vertrauensfrage." in client.get(LISTE + "?ebene=bund").content.decode()
+
+
+def test_rechenschaft_json_und_register_fuehren_die_vertrauensfragen(client, ordnung, altmandat):  # noqa: F811
+    verloren, ende = _verloren(ordnung, altmandat)
+    abweichung(altmandat, tag=timezone.localdate() - tage(3))
+    daten = client.get(reverse("mandatare:rechenschaft_json")).json()
+    eintrag = daten["vertrauensfragen"][0]
+    assert eintrag["antrag"] == verloren.pk and eintrag["ergebnis"] == "verloren" and eintrag["art"] == "vertrauensfrage"
+    assert eintrag["schwelle"] == verloren.vertrauensfrage.schwelle_partei and eintrag["rechtsschutz"] == ""
+    assert eintrag["rueckgabe_ersucht_bis"] and eintrag["mandatar"] == altmandat.mitglied.anzeigename
+    assert "vertrauensfragen" in client.get(reverse("mandatare:rechenschaft_json") + "?ebene=land").json()
+    html = client.get(reverse("mandatare:rechenschaft")).content.decode()
+    assert '<tr class="vertrauensfrage">' in html and "Vertrauensfrage verloren" in html
+    assert "Ergebnis der Mitgliederversammlung (§ 7 Abs 10 lit e)" in html
+    # neuester Tag zuerst: das Ergebnis liegt (Zeitraffer) nach dem Registereintrag
+    assert html.index('<tr class="vertrauensfrage">') < html.index("Radweg")
+    einzeln = client.get(reverse("mandatare:rechenschaft_mandat", args=[altmandat.pk])).content.decode()
+    assert '<tr class="vertrauensfrage">' in einzeln and 'id="vertrauen"' in einzeln
+
+
+def test_fristzaehler_und_vermerk_auf_der_mandatar_seite(client, ordnung, altmandat):  # noqa: F811
+    verloren, ende = _verloren(ordnung, altmandat)
+    url = reverse("mandatare:detail", args=[altmandat.pk])
+    html = client.get(url).content.decode()
+    assert "Vertrauensfrage verloren" in html and "Ersuchen um Rückgabe des Mandats" in html
+    altmandat.refresh_from_db()
+    rest = (altmandat.rueckgabe_ersucht_bis - timezone.localdate()).days
+    assert f"noch {rest} Tage" in html
+    assert "Vermerk des Registers" not in html  # die Frist läuft noch — kein Vermerk
+    assert "Keine Kandidatur nach § 7 Abs 1" in html
+    assert f'href="{stellen_url(altmandat)}"' in html  # eine neue ist möglich — mit Sperrhinweis, den der IR feststellt
+    Mandat.objects.filter(pk=altmandat.pk).update(rueckgabe_ersucht_bis=timezone.localdate() - tage(2))
+    html = client.get(url).content.decode()
+    assert "abgelaufen seit 2 Tagen" in html and "keine Rückgabezusage abgegeben" in html
+
+
+def test_rueckgabezusage_aus_der_bewerbung_und_im_wahlvorschlag(client, ordnung):  # noqa: F811
+    from verfahren.models import antrag_einbringen
+
+    anna = mitglied_anlegen("anna")
+    kandidatur = antrag_einbringen(anna, "Listenreihung", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna, vorstellung="Ich.", rueckgabezusage=Rueckgabezusage.ABGEGEBEN)
+    mandat = mandat_anlegen(anna, kandidatur=kandidatur)
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    assert "erklärt bei der Bewerbung" in html and ">abgegeben</strong>" in html
+    kandidatur.phase = Phase.ABGELEHNT.value
+    kandidatur.stimmberechtigte_anzahl = 10
+    kandidatur.save(update_fields=["phase", "stimmberechtigte_anzahl"])
+    export = client.get(reverse("mandatare:wahlvorschlag", args=[kandidatur.pk])).content.decode()
+    assert "| Rückgabezusage |" in export and "| abgegeben |" in export
+
+
+def test_abfragezahl_haengt_nicht_an_der_zahl_der_vertrauensfragen(client, ordnung, altmandat):  # noqa: F811
+    """Prefetch und Zähler in einer Abfrage: eine entschiedene Vertrauensfrage oder drei — die Liste,
+    das JSON und die Mandatar-Seite kosten gleich viele Abfragen."""
+
+    def messen(url):
+        with CaptureQueriesContext(connection) as erfasst:
+            assert client.get(url).status_code == 200
+        return len(erfasst)
+
+    urls = (LISTE, reverse("mandatare:rechenschaft_json"), reverse("mandatare:detail", args=[altmandat.pk]))
+    _verloren(ordnung, altmandat)
+    eins = {u: messen(u) for u in urls}
+    for _ in range(2):
+        Mandat.objects.filter(pk=altmandat.pk).update(vertrauen_entzogen_am=None, bestaetigt_am=None)
+        _verloren(ordnung, altmandat)
+    assert Vertrauensfrage.objects.count() == 3
+    drei = {u: messen(u) for u in urls}
+    assert eins == drei, (eins, drei)

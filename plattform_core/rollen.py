@@ -1147,7 +1147,7 @@ MANDATAR = Rolle(
             ort=_("auf der Antragsseite der Vertrauensfrage"),
         ),
         Faehigkeit(
-            titel=_("Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — frühestens sechs Monate nach dem Ergebnis; hebt die Kandidatursperre auf"),
+            titel=_("Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — als betroffene Person frühestens sechs Monate nach dem Ergebnis, auch wenn die Rolle „Mandatar“ nach lit f Z 8 schon geendet hat; erst die Annahme hebt die Kandidatursperre auf"),
             stand=Stand.VERFUEGBAR,
             satzung="§ 7 Abs 10 lit f Z 3",
             ort=_("auf der eigenen Mandatar-Seite, Abschnitt „Vertrauen“"),
@@ -1264,7 +1264,7 @@ SCHIEDSGERICHT = Rolle(
         Faehigkeit(
             titel=_("Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"),
             stand=Stand.GEPLANT,
-            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie an (§ 7 Abs 10 lit h)"),
+            bauschritt=_("nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie auf die Wirkungen eines Ergebnisses an — die Aufhebung einer Sperrfeststellung trägt sie noch nicht nach (§ 7 Abs 10 lit h)"),
         ),
         Faehigkeit(
             titel=_("Entscheidung mit Begründung binnen sechs Monaten veröffentlichen"),

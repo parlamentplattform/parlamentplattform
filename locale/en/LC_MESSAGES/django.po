@@ -7068,8 +7068,8 @@ msgstr "Record a challenge and the party arbitration tribunal’s decision on a 
 msgid "Zur Vertrauensfrage Stellung nehmen — bis zum Ende der Abstimmung, im Wortlaut neben dem Antrag, ergänzbar, nie nachträglich änderbar"
 msgstr "Respond to the confidence question — until the end of the vote, verbatim next to the motion, extendable, never editable afterwards"
 
-msgid "Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — frühestens sechs Monate nach dem Ergebnis; hebt die Kandidatursperre auf"
-msgstr "Apply for confirmation under § 7 (10) lit f no. 3 — at the earliest six months after the result; lifts the candidacy bar"
+msgid "Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — als betroffene Person frühestens sechs Monate nach dem Ergebnis, auch wenn die Rolle „Mandatar“ nach lit f Z 8 schon geendet hat; erst die Annahme hebt die Kandidatursperre auf"
+msgstr "Apply for confirmation under § 7 (10) lit f no. 3 — as the person concerned, at the earliest six months after the result, even after the “office holder” role has ended under lit f no. 8; only adoption lifts the candidacy bar"
 
 msgid "auf der eigenen Mandatar-Seite, Abschnitt „Vertrauen“"
 msgstr "on your own office-holder page, section “Confidence”"
@@ -7083,8 +7083,8 @@ msgstr "when applying in the candidacy motion"
 msgid "Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"
 msgstr "Decide on a challenge to a confidence question within 30 days — bar determination, prerequisites, how the result came about"
 
-msgid "nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie an (§ 7 Abs 10 lit h)"
-msgstr "not provided for in part C (S1–S14); today the administration records the appeal and the decision, and the platform applies them (§ 7 (10) lit h)"
+msgid "nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie auf die Wirkungen eines Ergebnisses an — die Aufhebung einer Sperrfeststellung trägt sie noch nicht nach (§ 7 Abs 10 lit h)"
+msgstr "not provided for in part C (S1–S14); today the administration records the appeal and the decision, and the platform applies them to the effects of a result — it does not yet carry over the reversal of a bar determination (§ 7 (10) lit h)"
 
 msgid "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel: Die Satzung sieht weder Bewertung noch Abberufung eines Mandats vor, sondern die Vertrauensfrage. "
 msgstr "Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped: the statutes provide neither rating nor recall of a mandate, but the confidence question. "

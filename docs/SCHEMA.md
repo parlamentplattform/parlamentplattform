@@ -198,10 +198,10 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Adresse | Inhalt | Personenbezug |
 |---|---|---|
-| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0, mit dem Zusatzfeld `vertrauensfrage`: `verloren`/`gewonnen` — Vertrauensfragen) | Pseudonyme (nur der Mensch selbst kennt seines) |
+| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen) | Pseudonyme (nur der Mensch selbst kennt seines) |
 | `/umsetzung.json` | Umsetzungsregister mit voller Historie | Anzeigenamen der Vollzugsmeldenden (Gremien-Rollen, öffentlich) |
 | `/gremien/protokoll/<gremium>/<jahr>.json` | Sitzungsprotokoll eines Rates: die Beschlüsse des Jahres mit Stimmen, Begründungen und Umsetzungsvermerken (§ 6 Abs 9) | Anzeigenamen der Ratsmitglieder (öffentliche Besetzung) |
-| `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0; seit 0.48.0 zusätzlich `vertrauensfragen` mit Ergebnis, Beteiligung und Rechtsschutzstand je Vertrauensfrage (§ 7 Abs 10 lit e) | Anzeigenamen der Mandatare (öffentliches Amt) |
+| `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0; seit 0.48.0 zusätzlich `vertrauensfragen` — die Ergebnisse je Mandat (§ 7 Abs 10 lit e) | Anzeigenamen der Mandatare (öffentliches Amt) |
 | `/mandatare/wahlvorschlag/<antrag>.md` | Reihung einer beendeten Kandidatur nach Zustimmungen (§ 7 Abs 1) als Markdown — seit 0.46.0 | Anzeigenamen der Bewerberinnen und Bewerber (öffentliche Kandidatur) |
 | `policies/kategorien-v2.yaml` | Kategorienbaum der Lebensbereiche (312 Knoten, sprachneutrale Slugs) | — |
 | `policies/grundordnung-v1.yaml` | Verfahrensordnung als Daten (ADR-004) | — |

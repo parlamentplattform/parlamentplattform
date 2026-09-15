@@ -639,14 +639,23 @@ def rollen_aktion(request):
             # die es nicht geben darf, soll gar nicht erst entstehen.
             messages.error(request, f"Nicht berufen — {grund}.")
             return redirect("gremien:rollen")
-        if Rolle.aktive(d["gremium"]).filter(mitglied=d["mitglied"], antrag__isnull=True).exists():
+        if Rolle.objects.filter(
+            gremium=d["gremium"],
+            mitglied=d["mitglied"],
+            antrag__isnull=True,
+            beendet_grund="",
+            endet_am__gte=timezone.localdate(),
+        ).exists():
             # Nur parteiweite Rollen: Wer für einen Antrag gelost ist, darf trotzdem parteiweit
             # berufen werden. Eine zweite parteiweite Rolle derselben Person (Doppelklick,
-            # Verlängerung vor Ablauf) zählte im Quorum doppelt (Befund #38).
+            # Verlängerung vor Ablauf) zählte im Quorum doppelt (Befund #38). Bewusst nicht
+            # `Rolle.aktive`: Eine ruhende Rolle (§ 7 Abs 10 lit f) besteht weiter — eine neue
+            # Berufung daneben wäre der Umweg um das Ruhen, und nach einer Aufhebung durch das
+            # Parteischiedsgericht stünden zwei Rollen derselben Person im selben Rat.
             messages.error(
                 request,
-                f"Nicht berufen — {d['mitglied'].anzeigename} hat in diesem Gremium schon eine aktive "
-                "Rolle; erst beenden, dann neu berufen.",
+                f"Nicht berufen — {d['mitglied'].anzeigename} hat in diesem Gremium schon eine aktive Rolle "
+                "(oder eine ruhende); erst beenden, dann neu berufen.",
             )
             return redirect("gremien:rollen")
         rolle = Rolle.objects.create(

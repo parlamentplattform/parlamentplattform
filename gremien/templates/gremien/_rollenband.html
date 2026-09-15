@@ -4,10 +4,10 @@ Das Band für Rolleninhaber, deren Rolle abgelaufen, beendet oder ruhend ist (FB
 lit f): Sie lesen den Bereich weiter, schreiben aber nicht — und sehen, warum.
 Erwartet: abgelaufene_rolle (oder leer).
 {% endcomment %}
-{% if abgelaufene_rolle %}
+{% if abgelaufene_rolle %}{% now "Y-m-d" as heute %}
 <div class="band-gold" style="margin-top:10px">
   {% if abgelaufene_rolle.beendet_grund %}{% blocktranslate with datum=abgelaufene_rolle.endet_am|date:"d.m.Y" grund=abgelaufene_rolle.beendet_grund %}Ihre Rolle wurde beendet — {{ grund }}. Sie lesen hier weiter, schreiben können Sie nicht mehr.{% endblocktranslate %}
-  {% elif abgelaufene_rolle.ruht %}{% blocktranslate with datum=abgelaufene_rolle.ruht_seit|date:"d.m.Y" grund=abgelaufene_rolle.ruht_grund %}Ihre Rolle ruht seit {{ datum }} — {{ grund }}. Sie lesen hier weiter, schreiben und abstimmen können Sie nicht, solange sie ruht.{% endblocktranslate %}
+  {% elif abgelaufene_rolle.ruht and abgelaufene_rolle.endet_am|date:"Y-m-d" >= heute %}{% blocktranslate with datum=abgelaufene_rolle.ruht_seit|date:"d.m.Y" grund=abgelaufene_rolle.ruht_grund %}Ihre Rolle ruht seit {{ datum }} — {{ grund }}. Sie lesen hier weiter, schreiben und abstimmen können Sie nicht, solange sie ruht.{% endblocktranslate %}
   {% else %}{% blocktranslate with datum=abgelaufene_rolle.endet_am|date:"d.m.Y" %}Ihre Rolle endete am {{ datum }} (§ 6 Abs 8). Sie lesen hier weiter, schreiben können Sie nicht mehr.{% endblocktranslate %}{% endif %}
 </div>
 {% endif %}

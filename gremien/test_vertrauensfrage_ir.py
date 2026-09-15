@@ -299,3 +299,65 @@ def test_eine_berufung_ohne_vertrauensfrage_bestaetigt_nichts(client, ordnung): 
     )
     mandat.refresh_from_db()
     assert mandat.bestaetigt_am is None and audit("vertrauen_bestaetigt") == []
+
+
+def test_ein_durch_fristablauf_geschlossener_beschluss_wirkt_zum_fristzeitpunkt(client, ordnung):  # noqa: F811
+    """Der Beschluss schließt mit der Sperrfrist (frist = sperrfrist_ende). Ausgewertet wird lazy —
+    beim nächsten Aufruf oder Lauf von `verfahren_fortschreiben`, also nach der Frist. Maßgeblich ist
+    der Fristzeitpunkt, nicht der zufällige Aufrufzeitpunkt (Befund #33) — sonst bliebe jede
+    Feststellung, bei der nicht alle Ratsmitglieder vor Ablauf gestimmt haben, ohne Wirkung."""
+    leute = rat(3)
+    antrag, vf = mit_hinweis(ordnung, jetzt=timezone.now() - tage(2))
+    client.force_login(leute[0])
+    client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": antrag.pk, "beschreibung": vf.sperrhinweis},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.VERTRAUENSFRAGE_SPERRE, antrag=antrag)
+    assert beschluss.frist == vf.sperrfrist_ende
+    for m in leute[:2]:  # zwei von drei stimmen — der dritte schweigt, die Frist schließt
+        client.force_login(m)
+        client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Ja."})
+
+    GremienBeschluss.faellige_abschliessen(vf.sperrfrist_ende + timedelta(hours=5))
+
+    beschluss.refresh_from_db()
+    antrag.refresh_from_db()
+    vf.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == "dafuer"
+    assert antrag.phase == "zurueckgewiesen" and vf.sperre_beschluss == beschluss
+    assert antrag.phase_beginn == vf.sperrfrist_ende  # Fristzeitpunkt, nicht Aufrufzeitpunkt
+
+
+def test_eine_abgelaufene_ruhende_rolle_liest_als_abgelaufene(client, ordnung):  # noqa: F811
+    """Läuft die Zeit einer ruhenden Rolle ab, sagt das Band „endete am“ — nicht „ruht, solange sie ruht“."""
+    leute = rat(1)
+    rolle = ruhen_lassen(leute[0])
+    rolle.endet_am = timezone.localdate() - tage(1)
+    rolle.save(update_fields=["endet_am"])
+    client.force_login(leute[0])
+    inhalt = client.get(reverse("gremien:integritaet")).content.decode()
+    assert "Ihre Rolle endete am" in inhalt and "Ihre Rolle ruht seit" not in inhalt
+
+
+def test_neben_einer_ruhenden_rolle_gibt_es_keine_zweite_berufung_im_selben_rat(client, ordnung):  # noqa: F811
+    """Das Ruhen lässt sich nicht durch eine neue Berufung in denselben Rat umgehen (lit f Z 1)."""
+    leute = rat(1)
+    ruhen_lassen(leute[0])
+    admin = mitglied_anlegen("admin")
+    admin.ist_admin = True
+    admin.save(update_fields=["ist_admin"])
+    client.force_login(admin)
+    antwort = client.post(
+        reverse("gremien:rollen_aktion"),
+        {
+            "aktion": "berufen",
+            "mitglied": leute[0].pk,
+            "gremium": Gremium.INTEGRITAETSRAT,
+            "endet_am": (timezone.localdate() + tage(365)).isoformat(),
+        },
+        follow=True,
+    )
+    assert Rolle.objects.filter(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT).count() == 1
+    assert "schon eine aktive Rolle (oder eine ruhende)" in antwort.content.decode()
+    assert Rolle.hat(leute[0], Gremium.INTEGRITAETSRAT) is False

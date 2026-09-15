@@ -88,6 +88,14 @@ def _abstimmungen() -> tuple[list[dict], int]:
     weitere = max(0, entschiedene_alle.count() - len(entschiedene))
 
     abgegeben = abgegeben_je_antrag(laufende + entschiedene)
+    # § 7 Abs 10: Vertrauensfragen tragen Chip, Legende und das Ergebnis in Satzungsworten
+    # („verloren“ / „gewonnen“) — die Fachdaten aller gezeigten in einer Abfrage.
+    vf_pks = [a.pk for a in laufende + entschiedene if a.art == Antragsart.VERTRAUENSFRAGE]
+    vertrauensfragen = {}
+    if vf_pks:
+        from mandatare.models import Vertrauensfrage
+
+        vertrauensfragen = {vf.antrag_id: vf for vf in Vertrauensfrage.objects.filter(antrag_id__in=vf_pks)}
     stimmen: dict[int, dict[str, int]] = {}
     sach_entschieden = [a.pk for a in entschiedene if a.art != Antragsart.MANDAT]
     if sach_entschieden:
@@ -102,6 +110,9 @@ def _abstimmungen() -> tuple[list[dict], int]:
     for a in laufende + entschiedene:
         n = abgegeben.get(a.pk, 0)
         beteiligung = round(100 * n / a.stimmberechtigte_anzahl) if a.stimmberechtigte_anzahl else None
+        vf = vertrauensfragen.get(a.pk)
+        if vf is not None:
+            vf.antrag = a  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
         zeile = {
             "antrag": a,
             "abgegeben": n,
@@ -111,6 +122,15 @@ def _abstimmungen() -> tuple[list[dict], int]:
             "personenwahl": a.art == Antragsart.MANDAT,
             # § 7 Abs 9: ausgezählt wie ein Sachantrag (Ja/Nein/Enthaltung), aber gekennzeichnet
             "mandatsfrage": a.art == Antragsart.MANDATSFRAGE,
+            "vertrauensfrage": vf,
+            "ergebnis_wort": vf.ergebnis_wort if vf is not None else "",
+            "legende": (
+                None
+                if vf is None
+                else (_("Ja = bestätigen"), _("Nein = nicht bestätigen"))
+                if vf.art == "bestaetigung"
+                else (_("Ja = Vertrauen versagen"), _("Nein = Vertrauen aussprechen"))
+            ),
             "ja": None,
             "nein": None,
             "enthaltung": None,

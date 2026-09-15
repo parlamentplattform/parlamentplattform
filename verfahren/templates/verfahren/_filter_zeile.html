@@ -6,15 +6,15 @@ favorit, anteile, punkte).
 {% endcomment %}<div class="fz{% if z.favorit %} favorit{% endif %}" data-antrag="{{ z.antrag.pk }}">
   <a class="zt" href="{% url 'verfahren:antrag' z.antrag.pk %}{% if z.stat.typ == 'abstimmung' %}#abstimmen{% endif %}">{{ z.antrag.titel }}</a>
   <div class="zm">
-    <span class="badge b-{{ z.antrag.phase }}">{{ z.antrag.phase|phase_name }}</span>
-    {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% elif z.antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% endif %}
+    <span class="badge b-{{ z.antrag.phase }}">{% if z.vertrauensfrage.ergebnis_wort %}{{ z.vertrauensfrage.ergebnis_wort }}{% else %}{{ z.antrag.phase|phase_name }}{% endif %}</span>
+    {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% elif z.antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif z.antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if z.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if z.antrag.ebene != "bund" %}<span class="chip klein">{{ z.antrag.get_ebene_display }}{% if z.antrag.gebiet %} · {{ z.antrag.gebiet }}{% endif %}</span>{% endif %}
     {% if z.thema %}<span class="chip klein{% if z.favorit %} still{% endif %}" title="{{ z.thema.pfad_kurz }}">{% if z.favorit %}★ {% endif %}{{ z.thema.name }}</span>{% endif %}
   </div>
   {% if z.stat %}
-  <div class="zs{% if z.stat.typ == 'beratung' %} ohne{% endif %}">
-    {% if z.stat.typ != "beratung" %}<span class="balken" aria-hidden="true"><b style="width:{{ z.stat.prozent }}%"></b></span>{% endif %}
-    <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
+  <div class="zs{% if z.stat.typ == 'beratung' or z.stat.typ == 'wartezeit' %} ohne{% endif %}">
+    {% if z.stat.typ != "beratung" and z.stat.typ != "wartezeit" %}<span class="balken" aria-hidden="true"><b style="width:{{ z.stat.prozent }}%"></b></span>{% endif %}
+    <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% if z.abstimmung_ab %} · {% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% endif %}{% elif z.stat.typ == "wartezeit" %}{% if z.abstimmung_ab %}{% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% else %}{% translate "Abstimmung am siebten Tag nach Einbringung" %}{% endif %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
   </div>
   {% else %}
   <div class="zs ohne"><span>{% blocktranslate with wann=z.antrag.phase_beginn|date:"d.m.Y" %}seit {{ wann }}{% endblocktranslate %}</span></div>
@@ -45,7 +45,11 @@ favorit, anteile, punkte).
           <button name="stimme" value="nein" class="btn-linie klein{% if z.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
           <button name="stimme" value="enthaltung" class="btn-still klein{% if z.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
         </form>
+        {% if z.legende %}<span class="erk vf-legende">{{ z.legende.0 }} · {{ z.legende.1 }}</span>{% endif %}
       </details>
+    {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated and not z.unterstuetzen_erlaubt %}
+      {# § 7 Abs 10 lit c: Unterstützen nur, wer am Einbringungstag für Personenwahlen stimmberechtigt war #}
+      <span class="erk">{% translate "Unterstützen nur mit Stimmrecht für Personenwahlen" %}</span>
     {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" class="stimmreihe"
         hx-post="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">

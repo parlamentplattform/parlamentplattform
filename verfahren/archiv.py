@@ -208,10 +208,13 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
     # Mandatsfrage (§ 7 Abs 9) nicht: Sie hatte nie eine, also bekommt sie auch keinen Block.
     immer = () if antrag.art == Antragsart.MANDATSFRAGE else (Phase.UNTERSTUETZUNG.value,)
+    # Die Vertrauensfrage (§ 7 Abs 10 lit c) kennt keine Beratungsphase — an ihre Stelle treten die
+    # Darstellung der Anlässe und das Gehör des Mandatsträgers auf der Antragsseite; kein Block.
+    nie = (Phase.BERATUNG.value,) if antrag.art == Antragsart.VERTRAUENSFRAGE else ()
     bloecke = []
     for phase in reihenfolge:
         n = anzahl.get(phase, 0)
-        if not n and phase != antrag.phase and phase not in immer:
+        if phase in nie or (not n and phase != antrag.phase and phase not in immer):
             continue
         bloecke.append(
             {
@@ -271,7 +274,7 @@ def archiv(antrag) -> dict:
         }
         for f in antrag.fassungen.order_by("nummer")
     ]
-    return {
+    daten = {
         "antrag": {
             "id": antrag.pk,
             "titel": antrag.titel,
@@ -286,6 +289,48 @@ def archiv(antrag) -> dict:
         "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
+    }
+    vf = _vertrauensfrage(antrag)
+    if vf is not None:
+        daten["vertrauensfrage"] = vf
+    return daten
+
+
+def _vertrauensfrage(antrag) -> dict | None:
+    """Die Fachdaten einer Vertrauensfrage fürs Archiv (§ 7 Abs 10): Art, Mandat und Mandatar (Anzeigename
+    wie auf der Antragsseite), die mit dem Antrag veröffentlichten Zahlen (lit c), das Erreichen der
+    Schwelle, Sperrhinweis und Feststellung (lit b, g), das Ergebnis in Satzungsworten (lit e), der
+    Rechtsschutz (lit h) und alle Stellungnahmen im Wortlaut (lit d — sie bleiben dauerhaft einsehbar).
+    None für jede andere Antragsart."""
+    vf = antrag._vertrauensfrage()
+    if vf is None:
+        return None
+    vf.antrag = antrag
+    return {
+        "art": vf.get_art_display(),
+        "mandat": vf.mandat.bezeichnung,
+        "mandatar": vf.mandat.mitglied.anzeigename,
+        "anlaesse": [
+            {
+                "gegenstand": r.gegenstand,
+                "sitzung_am": r.sitzung_am.isoformat(),
+                "beschluss_plattform": r.beschluss_anzeige,
+                "stimme": r.get_stimme_display(),
+                "begruendung": r.begruendung,
+            }
+            for r in vf.anlaesse.select_related("antrag").order_by("-sitzung_am", "-eingetragen_am")
+        ],
+        "ausstaende": list(vf.anlass_ausstaende),
+        "stimmberechtigte_am_einbringungstag": vf.stimmberechtigte_partei_am_einbringungstag,
+        "schwelle": vf.schwelle_partei,
+        "schwelle_erreicht_am": vf.schwelle_erreicht_am.isoformat() if vf.schwelle_erreicht_am else None,
+        "sperrhinweis": vf.sperrhinweis,
+        "nicht_eroeffnet": vf.nicht_eroeffnet,
+        "ergebnis": vf.ergebnis_wort,
+        "rechtsschutz": vf.rechtsschutz_stand,
+        "stellungnahmen": [
+            {"text": st.text, "erstellt_am": st.erstellt_am.isoformat()} for st in vf.stellungnahmen.all()
+        ],
     }
 
 
@@ -312,6 +357,22 @@ def als_markdown(antrag) -> str:
         ),
         "",
     ]
+    vf = d.get("vertrauensfrage")
+    if vf:
+        # § 7 Abs 10: Wer betroffen ist, die Zahlen des Einbringungstags, keine Beratungsphase, das Ergebnis
+        zeilen += [
+            f"{vf['art']} · {_('Mandatar')}: {vf['mandatar']} ({vf['mandat']}) · "
+            f"{_('Anlässe')}: {len(vf['anlaesse']) + len(vf['ausstaende'])} · "
+            f"{_('Stimmberechtigte am Einbringungstag')}: {vf['stimmberechtigte_am_einbringungstag']} · "
+            f"{_('Schwelle')}: {vf['schwelle']} · {_('ohne Beratungsphase (§ 7 Abs 10 lit c)')}"
+            + (f" · **{vf['ergebnis']}**" if vf["ergebnis"] else "")
+            + (f" · {vf['rechtsschutz']}" if vf["rechtsschutz"] else ""),
+            "",
+        ]
+        if vf["stellungnahmen"]:
+            zeilen += [f"## {_('Stellungnahme des Mandatsträgers')}", ""]
+            for st in vf["stellungnahmen"]:
+                zeilen += [f"- ({st['erstellt_am'][:16].replace('T', ' ')})", f"  {st['text']}".replace("\n", "\n  "), ""]
     for f in d["fassungen"]:
         zeilen += [f"## {_('Fassung')} {f['nummer']} ({f['erstellt_am'][:10]})", "", f["wortlaut"], ""]
         if f["begruendung"]:

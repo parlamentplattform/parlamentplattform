@@ -2,6 +2,7 @@
 Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)."""
 
 import json
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -209,7 +210,7 @@ def _laufende_aussetzung(antrag, jetzt):
 
 
 def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst=False,
-                          zaehler=None, beginne=None):
+                          zaehler=None, beginne=None, vfs=None):
     """FB-B1/B2: Merkmale (0..1) je laufendem Antrag bauen und im offenen Kern reihen (Regel v2).
 
     Grundordnung der Eingabe = die neutrale Ordnung (Abstimmung, Beratung, Unterstützung;
@@ -225,7 +226,8 @@ def _weicherfilter_reihen(nutzer, laufende, jetzt, regler, abo_ids, favoriten_zu
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
     policies = {a.pk: a.policy() for a in laufende}
-    fristen = {a.pk: _frist_fuer(a, policies[a.pk], beginne.get(a.pk)) for a in laufende}
+    vfs = vfs if vfs is not None else _vertrauensfragen(laufende)
+    fristen = {a.pk: _frist_fuer(a, policies[a.pk], beginne.get(a.pk), vfs.get(a.pk)) for a in laufende}
     antraege = sorted(laufende, key=lambda a: _neutraler_schluessel(a, fristen[a.pk]))
     kats = {a.pk: {k.pk for k in a.kategorien.all()} for a in antraege}
     ja_kats, nein_kats = _eigene_stimm_kategorien(nutzer)
@@ -302,7 +304,7 @@ def _als_liste(antraege) -> list:
 
 
 def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-                        zaehler=None, beginne=None):
+                        zaehler=None, beginne=None, vfs=None):
     """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
@@ -314,16 +316,19 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     laufende = _als_liste(laufend)
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
+    vfs = dict(vfs) if vfs is not None else _vertrauensfragen(laufende)
 
     def zeile(a, extra=None):
-        z = _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler)
+        z = _kachel(
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=nutzer
+        )
         z.update({"favorit": False, "anteile": [], "punkte": 0})
         z.update(extra or {})
         return z
 
     if nutzer.is_authenticated and not ist_neutral(regler):
         gereiht = _weicherfilter_reihen(
-            nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne
+            nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne, vfs=vfs
         )
         return {"gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "leer": not gereiht}
 
@@ -341,6 +346,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         .order_by("-phase_beginn")
         .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
     )
+    vfs.update(_vertrauensfragen(abgeschlossen))
     gruppen = [
         (_("Laufende Abstimmungen"), gruppe(Phase.ABSTIMMUNG.value)),
         (_("In Beratung"), gruppe(Phase.BERATUNG.value)),
@@ -366,36 +372,101 @@ def _filter_lage(profile, aktives, regler, favoriten_zuerst):
     }
 
 
-def _frist_fuer(antrag, policy=None, beginn=None):
+def vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag) -> bool:
+    """§ 7 Abs 10 lit c: Eine Vertrauensfrage unterstützt nur, wer am Tag der Einbringung für
+    Personenwahlen stimmberechtigt war — im Wiener Kalender, mit derselben Übergangsregel wie die
+    Zählung der Schwelle. Für jede andere Antragsart gilt § 4 Abs 4 lit b (jedes bestätigte
+    Mitglied) — dann True. Reine Rechnung am Mitglied, keine Abfrage."""
+    if antrag.art != Antragsart.VERTRAUENSFRAGE:
+        return True
+    if not nutzer.is_authenticated:
+        return False
+    from plattform_core import Gegenstand
+
+    return nutzer.ist_stimmberechtigt(
+        Gegenstand.PERSONENWAHL,
+        timezone.localdate(antrag.eingebracht_am),
+        uebergang=settings.DDOE_UEBERGANGSREGEL,
+    )
+
+
+def _vertrauensfragen(antraege) -> dict:
+    """Bulk: {antrag_id: Vertrauensfrage} für die Vertrauensfragen unter `antraege` — eine
+    Abfrage für alle Kacheln und Zeilen statt einer je Kachel (Befund #40)."""
+    pks = [a.pk for a in antraege if a.art == Antragsart.VERTRAUENSFRAGE]
+    if not pks:
+        return {}
+    from mandatare.models import Vertrauensfrage
+
+    return {vf.antrag_id: vf for vf in Vertrauensfrage.objects.filter(antrag_id__in=pks)}
+
+
+def _vf_legende(vf) -> tuple[str, str] | None:
+    """Was Ja und Nein bei einer Vertrauensfrage heißen (§ 7 Abs 10 lit e) — als kurze Legende
+    neben den Knöpfen; None für jede andere Antragsart."""
+    if vf is None:
+        return None
+    if vf.art == "bestaetigung":
+        return (_("Ja = bestätigen"), _("Nein = nicht bestätigen"))
+    return (_("Ja = Vertrauen versagen"), _("Nein = Vertrauen aussprechen"))
+
+
+def _vf_abstimmung_ab(vf, antrag, policy, beginn):
+    """Der veröffentlichte Abstimmungsbeginn einer Vertrauensfrage, sobald die Schwelle erreicht
+    ist (§ 7 Abs 10 lit e) — None davor und nach dem Beginn."""
+    if vf is None or vf.schwelle_erreicht_am is None or antrag.phase != Phase.UNTERSTUETZUNG.value:
+        return None
+    from plattform_core.phases import abstimmungsbeginn_ohne_beratung
+
+    return abstimmungsbeginn_ohne_beratung(beginn, vf.schwelle_erreicht_am, policy)
+
+
+def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     """Fristende der laufenden Phase — None für Endphasen.
 
     Gerechnet wird mit dem **wirksamen** Phasenbeginn (§ 6 Abs 3 lit d): dem gespeicherten,
     um die Stillstandszeit einer Aussetzung nach hinten gerückt — derselbe Beginn, mit dem
     Phasenautomat und Stimmzulässigkeit rechnen. Listen reichen ihn aus `_wirksame_beginne`
-    herein, damit nicht jede Zeile die Aussetzungen abfragt."""
+    herein, damit nicht jede Zeile die Aussetzungen abfragt.
+
+    Eine Vertrauensfrage (`vf`, § 7 Abs 10) endet ihre Unterstützungsphase nicht mit der
+    Sammelfrist, sobald die Schwelle erreicht ist, sondern mit dem veröffentlichten
+    Abstimmungsbeginn (lit e) — dieselbe Rechnung wie der Phasenautomat. Sonst stünde neben
+    „Abstimmung ab 20.09.“ eine „Frist 13.10.“ und auf der Kachel „noch 27 Tage“."""
     policy = policy or antrag.policy()
     if antrag.phase not in LAUFEND:
         return None
     beginn = beginn or antrag.wirksamer_phase_beginn()
     if antrag.phase == Phase.UNTERSTUETZUNG.value:
-        return unterstuetzung_frist_ende(beginn, policy)
+        ende = unterstuetzung_frist_ende(beginn, policy)
+        abstimmung_ab = _vf_abstimmung_ab(vf, antrag, policy, beginn)
+        return min(ende, abstimmung_ab) if abstimmung_ab is not None else ende
     if antrag.phase == Phase.BERATUNG.value:
         return beratung_frist_ende(beginn, policy)
     return abstimmung_frist_ende(beginn, policy)
 
 
-def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None):
+def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
     Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
     laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
     (F-15: kein Bandwagon; das Ergebnis erscheint nach Fristende auf der
-    Antragsseite). `beginn` und `zaehler` kommen aus den Bulk-Helfern, wenn viele
-    Kacheln auf einmal entstehen; einzeln holt die Kachel beides selbst."""
+    Antragsseite). `beginn`, `zaehler` und `vfs` kommen aus den Bulk-Helfern, wenn viele
+    Kacheln auf einmal entstehen; einzeln holt die Kachel alles selbst.
+
+    Vertrauensfragen (§ 7 Abs 10) tragen zusätzlich die Legende zu Ja/Nein (lit e), ob `nutzer`
+    sie unterstützen darf (lit c: nur am Einbringungstag Stimmberechtigte) und — nach erreichter
+    Schwelle — den veröffentlichten Abstimmungsbeginn."""
     policy = antrag.policy()
     beginn = beginn or antrag.wirksamer_phase_beginn(jetzt)
     if zaehler is None:
         zaehler = _zaehler([antrag])
-    frist = _frist_fuer(antrag, policy, beginn)
+    if vfs is None:
+        vfs = _vertrauensfragen([antrag])
+    vf = vfs.get(antrag.pk)
+    if vf is not None:
+        vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
+    frist = _frist_fuer(antrag, policy, beginn, vf)
     resttage = max(0, (frist - jetzt).days) if frist else None
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
@@ -406,7 +477,11 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     # Thema: der erste zugeordnete Lebensbereich, mit eigenem Abo-Stern
     thema = next(iter(antrag.kategorien.all()), None)
     stat = None
-    if antrag.phase == Phase.UNTERSTUETZUNG.value:
+    if antrag.phase == Phase.UNTERSTUETZUNG.value and vf is not None and vf.art == "bestaetigung":
+        # § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag gilt mit dem Einbringen als unterstützt —
+        # die Kachel zeigt die Wartezeit bis zur Abstimmung statt „0 von 0 Unterstützungen“.
+        stat = {"typ": "wartezeit"}
+    elif antrag.phase == Phase.UNTERSTUETZUNG.value:
         n = zaehler["unterstuetzungen"].get(antrag.pk, 0)
         schwelle = max(1, policy.unterstuetzung_schwelle)
         stat = {"typ": "unterstuetzung", "n": n, "schwelle": schwelle,
@@ -427,6 +502,12 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "thema": thema,
         "thema_abonniert": bool(thema and abo_ids and thema.pk in abo_ids),
         "meine_stimme": (meine_stimmen or {}).get(antrag.pk),
+        "vertrauensfrage": vf,
+        "legende": _vf_legende(vf),
+        "abstimmung_ab": _vf_abstimmung_ab(vf, antrag, policy, beginn),
+        "unterstuetzen_erlaubt": (
+            vf is None or (nutzer is not None and vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag))
+        ),
     }
 
 
@@ -612,6 +693,7 @@ def parlament(request):
     laufende = _als_liste(laufend)
     zaehler = _zaehler(laufende)
     beginne = _wirksame_beginne(laufende, jetzt)
+    vfs = _vertrauensfragen(laufende)  # Vertrauensfragen (§ 7 Abs 10): Legende, Unterstützungsrecht
 
     # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
     # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage. Wie viele
@@ -644,14 +726,20 @@ def parlament(request):
                 # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
                 "ort_versteckt": len(orte) == 1,
                 "kacheln": [
-                    _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler)
+                    _kachel(
+                        a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
+                        vfs=vfs, nutzer=request.user,
+                    )
                     for a in zeile
                 ],
             }
         )
 
     wichtige_kacheln = [
-        _kachel(a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler) for a in wichtige
+        _kachel(
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=request.user
+        )
+        for a in wichtige
     ]
 
     # Bereich d — der WeicherFilter (FB-B1–B6): das aktive Profil reiht die laufenden
@@ -670,7 +758,7 @@ def parlament(request):
         filter_lage = _filter_lage(profile, aktives, regler, favoriten_zuerst)
     feed = _weicherfilter_feed(
         request.user, antraege, laufende, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-        zaehler=zaehler, beginne=beginne,
+        zaehler=zaehler, beginne=beginne, vfs=vfs,
     )
     return render(
         request,
@@ -733,19 +821,62 @@ def _meine_orte(user) -> dict[str, list[str]]:
     return orte
 
 
-def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value) -> list[tuple[str, str]]:
+def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[tuple[str, str]]:
     """Die eingefrorenen Verfahrensregeln als lesbare Liste statt als JSON-Block (FB-F1).
     § 5 Abs 5: Was beim Einbringen galt, gilt bis zum Ende — man muss es lesen können.
 
     Eine Mandatsfrage (§ 7 Abs 9) hat keine Unterstützungs- und Beratungsphase; ihre Liste
     nennt nur Abstimmung, Mindestbeteiligung, Mehrheit und Ordnung — und sagt dazu, dass die
     Dauer aus dem Register stammt und beim Eröffnen eingefroren wurde: Sonst läse man
-    „Ordnung X v N“ neben einer Dauer, die diese Ordnung so nicht kennt."""
+    „Ordnung X v N“ neben einer Dauer, die diese Ordnung so nicht kennt.
+
+    Eine Vertrauensfrage (§ 7 Abs 10, `vf` = ihre Fachdaten) nennt die Schwelle als Zahl und
+    Prozent der am Einbringungstag Stimmberechtigten, die Sammelfrist, dass keine Beratung
+    stattfindet, den frühesten und spätesten Abstimmungsbeginn, Dauer, Mindestbeteiligung,
+    Mehrheit und Ordnung; der Bestätigungsantrag (lit f Z 3) hat keine Schwelle."""
     mehrheit = (
         _("Ja mehr als Nein")
         if policy.mehrheitsbasis == "ja_nein"
         else _("Ja mehr als die Hälfte aller abgegebenen Stimmen")
     )
+    if art == Antragsart.VERTRAUENSFRAGE.value:
+        dauer = ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage
+        fruehestens = policy.abstimmung_fruehestens_tage
+        spaetestens = policy.abstimmung_spaetestens_tage_nach_schwelle
+        if vf is not None and vf.art == "bestaetigung":
+            regeln = [
+                (_("Unterstützungsschwelle"), _("keine — der Bestätigungsantrag gilt mit dem Einbringen als unterstützt (§ 7 Abs 10 lit f Z 3)")),
+                (_("Beratung"), _("keine Beratungsphase (§ 7 Abs 10 lit c)")),
+                (_("Abstimmungsbeginn"), _("am %(tag)s. Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)") % {"tag": fruehestens}),
+            ]
+        else:
+            n = vf.stimmberechtigte_partei_am_einbringungstag if vf is not None else 0
+            schwelle = ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle
+            regeln = [
+                (
+                    _("Unterstützungsschwelle"),
+                    f"{schwelle} · "
+                    + _("fünf Prozent der %(n)s am Einbringungstag für Personenwahlen Stimmberechtigten (§ 7 Abs 10 lit c)")
+                    % {"n": n},
+                ),
+                (
+                    _("Frist zum Unterstützen"),
+                    (ngettext("%d Tag", "%d Tage", policy.unterstuetzung_frist_tage) % policy.unterstuetzung_frist_tage)
+                    + " · " + _("höchstens 30 Tage (§ 7 Abs 10 lit c)"),
+                ),
+                (_("Beratung"), _("keine Beratungsphase (§ 7 Abs 10 lit c)")),
+                (
+                    _("Abstimmungsbeginn"),
+                    _("frühestens am %(frueh)s. Tag nach Einbringung, spätestens am %(spaet)s. Tag nach Erreichen der Schwelle (§ 7 Abs 10 lit e)")
+                    % {"frueh": fruehestens, "spaet": spaetestens},
+                ),
+            ]
+        return regeln + [
+            (_("Abstimmung"), f"{dauer} · " + _("mindestens sieben Tage (§ 7 Abs 10 lit e)")),
+            (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
+            (_("Mehrheit"), mehrheit),
+            (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
+        ]
     if art == Antragsart.MANDATSFRAGE.value:
         dauer = ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage
         return [
@@ -936,6 +1067,109 @@ def archiv_export(request, pk, art):
     antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-archiv.{art}"'
     return antwort
 
+#: Die Vorlagen der Stellungnahme-Karte (§ 7 Abs 10 lit d), in dieser Reihenfolge: zuerst die der
+#: Mandatare-App (Liste samt Formular des Mandatsträgers — entsteht parallel), sonst die lesende
+#: Fassung dieser App. `{% include %}` nimmt die erste, die es gibt.
+STELLUNGNAHMEN_VORLAGEN = ("mandatare/_stellungnahmen.html", "verfahren/_stellungnahmen.html")
+
+
+def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
+    """Zone 1 einer Vertrauensfrage (§ 7 Abs 10): Mandat und Mandatar, die Anlässe (Einträge des
+    Rechenschaftsregisters und Ausstände — dargestellt, nicht bewertet, lit b), die am Einbringungstag
+    festgestellten Zahlen (lit c), das Erreichen der Schwelle und der Abstimmungsbeginn (lit e), der
+    Sperrhinweis samt Frist des Integritätsrats (lit b und g), die Stellungnahmen (lit d), das
+    Ergebnis in Satzungsworten und der Rechtsschutz (lit h). None für jede andere Antragsart."""
+    if antrag.art != Antragsart.VERTRAUENSFRAGE:
+        return None
+    from mandatare.models import (
+        ANFECHTUNGSFRIST_TAGE,
+        RUECKGABEFRIST_TAGE,
+        Beschluss,
+        Vertrauensfrage,
+        vertrauensfragen_fortschreiben,
+    )
+
+    vertrauensfragen_fortschreiben(jetzt)  # Stufe 2 der Wirkungen ist lazy (lit f) — wie `fortschreiben`
+    vf = (
+        Vertrauensfrage.objects.select_related("mandat__mitglied", "sperre_beschluss")
+        .filter(antrag_id=antrag.pk)
+        .first()
+    )
+    if vf is None:
+        return None  # pragma: no cover — die Fachoperation legt beide Datensätze zusammen an
+    vf.antrag = antrag  # dieselbe, schon fortgeschriebene Instanz — keine zweite Abfrage
+    anlaesse = list(vf.anlaesse.select_related("antrag").order_by("-sitzung_am", "-eingetragen_am"))
+    for r in anlaesse:  # der Beschluss der Plattform live aus dem Antrag, benannt wie im Register
+        r.beschluss_text = Beschluss(r.beschluss_anzeige).label
+    ausstaende = []
+    for a in vf.anlass_ausstaende:
+        art = a.get("art", "")
+        ausstaende.append(
+            {
+                "art": {
+                    "rechenschaft": _("Rechenschaft"),
+                    "sammelbericht": _("Sammelbericht"),
+                    "monatsbericht": _("Monatsbericht"),
+                }.get(art, art),
+                "bezug": a.get("bezug", ""),
+                "seit": a.get("seit", ""),
+                "tage": a.get("tage", 0),
+            }
+        )
+    sperre = None
+    if vf.nicht_eroeffnet:
+        # lit h: Die Feststellung ist binnen sieben Tagen ab Veröffentlichung bekämpfbar — die Veröffentlichung
+        # ist der Phasenbeginn der Zurückweisung; danach sagt das Band nicht mehr „ist bekämpfbar“.
+        bis = antrag.phase_beginn + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+        sperre = {
+            "stand": "festgestellt",
+            "beschluss": vf.sperre_beschluss,
+            "text": vf.sperrhinweis,
+            "anfechtbar_bis": bis if jetzt <= bis else None,
+        }
+    elif vf.sperrhinweis:
+        sperre = {
+            "stand": "pruefung" if jetzt <= vf.sperrfrist_ende else "abgelaufen",
+            "bis": vf.sperrfrist_ende,
+            "text": vf.sperrhinweis,
+        }
+    policy = antrag.policy()
+    anfechtungsfrist = vf.anfechtungsfrist_ende
+    return {
+        "vf": vf,
+        "ist_bestaetigung": vf.art == "bestaetigung",
+        "mandat": vf.mandat,
+        "mandatar": vf.mandat.mitglied,
+        "anlaesse": anlaesse,
+        "ausstaende": ausstaende,
+        "anzahl_anlaesse": len(anlaesse) + len(ausstaende),
+        "stimmberechtigte": vf.stimmberechtigte_partei_am_einbringungstag,
+        "schwelle": vf.schwelle_partei,
+        "schwelle_erreicht_am": vf.schwelle_erreicht_am,
+        "abstimmung_ab": _vf_abstimmung_ab(vf, antrag, policy, antrag.wirksamer_phase_beginn(jetzt)),
+        # V2: Der regionale Weg (fünf Prozent der Gliederung) setzt errichtete Gliederungen voraus
+        # (§ 14 Abs 4) — die kennt die Plattform noch nicht. Die Seite sagt das bei regionalen Mandaten.
+        "regionaler_weg_offen": vf.mandat.ebene != "bund" and vf.art != "bestaetigung",
+        "sperre": sperre,
+        "unterstuetzen_erlaubt": vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag),
+        "stichtag": timezone.localdate(antrag.eingebracht_am),
+        "legende": _vf_legende(vf),
+        "ergebnis_wort": vf.ergebnis_wort,
+        "verloren": vf.verloren,
+        "anfechtbar_bis": anfechtungsfrist if anfechtungsfrist and jetzt <= anfechtungsfrist else None,
+        "rechtsschutz_stand": vf.rechtsschutz_stand,
+        # lit f Z 4: dieselbe Rechnung wie `Mandat.rueckgabe_ersucht_bis` (Wiener Kalendertag + 30) — nicht
+        # `wirkungen_ab + 30 Tage` in UTC, das läge am Abend vor einer Zeitumstellung einen Tag daneben.
+        "rueckgabefrist_ende": (
+            timezone.localdate(vf.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE)
+            if vf.verloren and vf.wirkungen_ab is not None and vf.entscheidung != "aufgehoben"
+            else None
+        ),
+        "stellungnahmen": list(vf.stellungnahmen.all()),
+        "stellungnahmen_vorlagen": STELLUNGNAHMEN_VORLAGEN,
+    }
+
+
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
     antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
@@ -996,9 +1230,13 @@ def antrag_detail(request, pk):
         }
     policy = antrag.policy()
     jetzt = timezone.now()
+    # Vertrauensfrage (§ 7 Abs 10): Mandatar, Anlässe, Zahlen, Schwelle, Sperre, Stellungnahmen, Ergebnis
+    vertrauensfrage = _vertrauensfrage_lage(antrag, request.user, jetzt)
     # Dieselbe Rechnung wie Phasenautomat und Stimmzulässigkeit (§ 6 Abs 3 lit d): Eine
     # Aussetzung hemmt die Frist — die Seite darf kein früheres Ende nennen (Befund #24, #30).
-    frist = _frist_fuer(antrag, policy, antrag.wirksamer_phase_beginn(jetzt))
+    frist = _frist_fuer(
+        antrag, policy, antrag.wirksamer_phase_beginn(jetzt), vertrauensfrage["vf"] if vertrauensfrage else None
+    )
     aussetzung = _laufende_aussetzung(antrag, jetzt) if antrag.phase in LAUFEND else None
     unterstuetzt_von_mir = (
         request.user.is_authenticated and antrag.unterstuetzungen.filter(mitglied=request.user, zurueckgezogen_am__isnull=True).exists()
@@ -1042,8 +1280,9 @@ def antrag_detail(request, pk):
             "ist_favorit": ist_favorit,
             "policy_json": json.dumps(antrag.policy_snapshot, indent=1, ensure_ascii=False),
             "auslosung": _auslosung_zu(antrag),
-            "regeln": _regeln_lesbar(policy, antrag.art),
+            "regeln": _regeln_lesbar(policy, antrag.art, vertrauensfrage["vf"] if vertrauensfrage else None),
             "mandatsfrage": mandatsfrage,
+            "vertrauensfrage": vertrauensfrage,
             # Reihung einer beendeten Kandidatur als Wahlvorschlag (§ 7 Abs 1) — der Export
             # entsteht bei den Mandataren; solange es ihn nicht gibt, gibt es keinen Link.
             "wahlvorschlag_url": _url_oder_none("mandatare:wahlvorschlag", antrag.pk)
@@ -1051,8 +1290,13 @@ def antrag_detail(request, pk):
             else None,
             "fassung": antrag.aktueller_text(),
             "fassungen": list(antrag.fassungen.order_by("-nummer")),
-            # Zone 2 entfällt bei Personenwahlen — über Menschen rechnet keine Maschine (FB-F4)
-            "einschaetzung": None if antrag.art == Antragsart.MANDAT else _einschaetzung(antrag),
+            # Zone 2 entfällt bei Personenwahlen — über Menschen rechnet keine Maschine (FB-F4);
+            # die Vertrauensfrage ist eine (§ 7 Abs 10 lit a)
+            "einschaetzung": (
+                None
+                if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
+                else _einschaetzung(antrag)
+            ),
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,

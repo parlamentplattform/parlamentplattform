@@ -28,6 +28,17 @@ Beratungsphase; gerechnet wird sie genau wie ein Sachantrag):
   "stimmen": [{"pseudonym": "…", "stimme": "nein"}, …]
 }
 
+Vertrauensfrage (§ 7 Abs 10 — Ja heißt „Vertrauen versagen“, Nein heißt „Vertrauen aussprechen“;
+gerechnet wie ein Sachantrag: „angenommen“ heißt „Vertrauensfrage verloren“, alles andere
+— auch eine verfehlte Mindestbeteiligung — heißt „gewonnen“; dieselbe Form auch für den
+Bestätigungsantrag nach lit f Z 3):
+{
+  "art": "vertrauensfrage",
+  "policy": {"mindestbeteiligung": 0.05, "mehrheitsbasis": "ja_nein"},
+  "stimmberechtigte": 1234,
+  "stimmen": [{"pseudonym": "…", "stimme": "ja"}, …]
+}
+
 Mandats-Kandidatur (Zustimmungswahl, § 7 Abs 1):
 {
   "art": "mandat",
@@ -141,6 +152,10 @@ def nachrechnen(daten: dict) -> dict:
     if art == "mandatsfrage":
         # § 7 Abs 9: dieselben Regeln wie eine Sachfrage — nur der Weg dorthin war kürzer.
         return {**sachfrage_nachrechnen(daten), "art": "mandatsfrage"}
+    if art == "vertrauensfrage":
+        # § 7 Abs 10 lit e: ausgezählt wie eine Sachfrage; „angenommen“ heißt verloren, sonst gewonnen.
+        ergebnis = sachfrage_nachrechnen(daten)
+        return {**ergebnis, "art": "vertrauensfrage", "vertrauensfrage": "verloren" if ergebnis["angenommen"] else "gewonnen"}
     if art == "mandat":
         return personenwahl_nachrechnen(daten)
     raise SystemExit(f"FEHLER: Antragsart {art!r} kennt dieses Skript nicht.")

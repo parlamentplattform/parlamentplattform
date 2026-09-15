@@ -6922,3 +6922,119 @@ msgstr "as of now"
 
 msgid "ab %(datum)s"
 msgstr "from %(datum)s"
+
+# ── 0.48: Fundament Vertrauensfrage ──
+
+msgid "Vertrauensfrage"
+msgstr "Confidence question"
+
+msgid "Vertrauensfrage (§ 7 Abs 10)"
+msgstr "Confidence question (§ 7 (10))"
+
+msgid "Sperre einer Vertrauensfrage feststellen (§ 7 Abs 10 lit g)"
+msgstr "Determine that a confidence question is barred (§ 7 (10) lit g)"
+
+msgid "Bestätigung nach § 7 Abs 10 lit f Z 3"
+msgstr "Confirmation under § 7 (10) lit f no. 3"
+
+msgid "keine Angabe"
+msgstr "no declaration"
+
+msgid "abgegeben"
+msgstr "given"
+
+msgid "nicht abgegeben"
+msgstr "not given"
+
+msgid "keine"
+msgstr "none"
+
+msgid "aufgehoben"
+msgstr "set aside"
+
+msgid "bestätigt"
+msgstr "confirmed"
+
+msgid "nicht bestätigt"
+msgstr "not confirmed"
+
+msgid "Vertrauensfrage verloren"
+msgstr "Confidence question lost"
+
+msgid "Vertrauensfrage gewonnen"
+msgstr "Confidence question won"
+
+msgid "vom Parteischiedsgericht aufgehoben"
+msgstr "set aside by the party arbitration tribunal"
+
+msgid "vom Parteischiedsgericht bestätigt"
+msgstr "confirmed by the party arbitration tribunal"
+
+msgid "beim Parteischiedsgericht anhängig"
+msgstr "pending before the party arbitration tribunal"
+
+#, python-format
+msgid "Mandat zurückgelegt am %(datum)s"
+msgstr "Mandate resigned on %(datum)s"
+
+msgid "Rückgabezusage nicht eingehalten"
+msgstr "Resignation pledge not kept"
+
+msgid "keine Rückgabezusage abgegeben"
+msgstr "no resignation pledge given"
+
+msgid "Stellung nehmen kann nur der betroffene Mandatsträger (§ 7 Abs 10 lit d)."
+msgstr "Only the office holder concerned can respond (§ 7 (10) lit d)."
+
+msgid "Die Vertrauensfrage ist beendet — eine Stellungnahme ist nicht mehr möglich."
+msgstr "The confidence question has ended — a response is no longer possible."
+
+msgid "Die Stellungnahme braucht einen Text."
+msgstr "The response needs a text."
+
+msgid "Eine Entscheidung lautet auf „aufgehoben“ oder „bestätigt“."
+msgstr "A decision is either “set aside” or “confirmed”."
+
+msgid "Nach einer verlorenen Vertrauensfrage ist eine Kandidatur erst nach einer Bestätigung durch die Mitgliederversammlung möglich (§ 7 Abs 10 lit f Z 3)."
+msgstr "After a lost confidence question, a candidacy is possible only after confirmation by the members’ assembly (§ 7 (10) lit f no. 3)."
+
+msgid "Die Bestätigung kann nur die betroffene Person selbst beantragen (§ 7 Abs 10 lit f Z 3)."
+msgstr "Only the person concerned can apply for confirmation (§ 7 (10) lit f no. 3)."
+
+msgid "Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."
+msgstr "There is no lost confidence question to be confirmed."
+
+msgid "Ein Bestätigungsantrag läuft bereits."
+msgstr "A confirmation motion is already running."
+
+#, python-format
+msgid "Die Bestätigung kann frühestens ab %(datum)s beantragt werden (§ 7 Abs 10 lit f Z 3)."
+msgstr "Confirmation can be applied for from %(datum)s at the earliest (§ 7 (10) lit f no. 3)."
+
+msgid "Der gewählte Anlass gehört nicht zu diesem Mandat."
+msgstr "The selected ground does not belong to this mandate."
+
+msgid "Anlass ist nur ein Eintrag, in dem das Stimmverhalten vom Beschluss der Plattform abweicht (§ 7 Abs 10 lit b)."
+msgstr "Only an entry in which the voting behaviour deviates from the platform’s decision counts as a ground (§ 7 (10) lit b)."
+
+msgid "Ein gewählter Ausstand ist nicht (mehr) seit über 30 Tagen ausgewiesen (§ 7 Abs 10 lit b)."
+msgstr "A selected arrear is not (or no longer) shown as outstanding for more than 30 days (§ 7 (10) lit b)."
+
+msgid "Eine Vertrauensfrage braucht mindestens einen Anlass: einen Eintrag des Rechenschaftsregisters mit Abweichung oder einen seit mehr als 30 Tagen ausständigen Bericht (§ 7 Abs 10 lit b)."
+msgstr "A confidence question needs at least one ground: an accountability register entry with a deviation or a report outstanding for more than 30 days (§ 7 (10) lit b)."
+
+msgid "Die Begründung fehlt."
+msgstr "The reasoning is missing."
+
+msgid "Vertrauensfrage zu Ihrem Mandat — ParlamentPlattform"
+msgstr "Confidence question about your mandate — ParlamentPlattform"
+
+#, python-format
+msgid "zu Ihrem Mandat (%(mandat)s) wurde auf der ParlamentPlattform eine Vertrauensfrage eingebracht (§ 7 Abs 10 lit b). Der Antrag, die Anlässe und die maßgeblichen Zahlen stehen öffentlich auf der Antragsseite."
+msgstr "a confidence question about your mandate (%(mandat)s) has been submitted on the ParlamentPlattform (§ 7 (10) lit b). The motion, the grounds and the relevant figures are public on the motion page."
+
+msgid "Sie können ab sofort bis zum Ende der Abstimmung Stellung nehmen; die Stellungnahme wird im Wortlaut neben dem Antrag veröffentlicht (§ 7 Abs 10 lit d). Die Voraussetzungen des Antrags können Sie binnen sieben Tagen beim Parteischiedsgericht anfechten (§ 7 Abs 10 lit h)."
+msgstr "From now until the end of the vote you can respond; the response is published verbatim next to the motion (§ 7 (10) lit d). You can challenge the motion’s prerequisites before the party arbitration tribunal within seven days (§ 7 (10) lit h)."
+
+msgid "Antrag:"
+msgstr "Motion:"

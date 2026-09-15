@@ -600,6 +600,30 @@ ERSTBESTAND = [
         "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."),
         "quelle": "§ 14 Abs 3 · § 5 Abs 6",
     },
+    {
+        "schluessel": "vertrauensfrage-unterstuetzung-tage",
+        "wert": "30",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Sammelfrist einer Vertrauensfrage: binnen so vieler Tagen nach dem Einbringen "
+        "müssen fünf Prozent der für Personenwahlen stimmberechtigten Mitglieder den Antrag unterstützen. "
+        "Die Satzung deckelt die Frist auf 30 Tage; größere Werte klemmt der Code darauf fest. Die "
+        "Prozentschwelle selbst steht in der Satzung und ist nicht einstellbar. Beim Einbringen wird "
+        "die Frist in die Ordnung des Antrags eingefroren; laufende Vertrauensfragen behalten sie. Kein "
+        "Ordnungsschlüssel der Verfahrensordnung, daher befristet testbar."),
+        "quelle": "§ 7 Abs 10 lit c",
+    },
+    {
+        "schluessel": "vertrauensfrage-abstimmung-tage",
+        "wert": "7",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Dauer der Abstimmung über eine Vertrauensfrage. Nie unter sieben Tagen: Das ist "
+        "das Satzungsminimum, kleinere Werte klemmt der Code darauf fest. Beim Einbringen wird die Dauer "
+        "in die Ordnung des Antrags eingefroren; laufende Vertrauensfragen behalten ihre Dauer. Kein "
+        "Ordnungsschlüssel der Verfahrensordnung, daher befristet testbar."),
+        "quelle": "§ 7 Abs 10 lit e · § 5 Abs 3 lit d",
+    },
 ]
 
 

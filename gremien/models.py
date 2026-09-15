@@ -75,6 +75,14 @@ class Rolle(models.Model):
         default=False, help_text="Bestätigung der Bestellung durch die Mitgliederversammlung (§ 6 Abs 8)."
     )
     beendet_grund = models.CharField(max_length=200, blank=True)
+    ruht_seit = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Die Rolle ruht (§ 7 Abs 10 lit f letzter Unterabsatz): nach einer verlorenen "
+        "Vertrauensfrage bis zum Ablauf der Anfechtungsfrist oder zur Entscheidung des "
+        "Parteischiedsgerichts. Eine ruhende Rolle zählt nicht als aktiv; gelesen wird sie weiter.",
+    )
+    ruht_grund = models.CharField(max_length=200, blank=True)
     antrag = models.ForeignKey(
         Antrag,
         on_delete=models.CASCADE,
@@ -102,12 +110,26 @@ class Rolle(models.Model):
 
     @property
     def aktiv(self) -> bool:
-        return not self.beendet_grund and self.endet_am >= timezone.localdate()
+        return not self.beendet_grund and self.ruht_seit is None and self.endet_am >= timezone.localdate()
+
+    @property
+    def ruht(self) -> bool:
+        """Ruhend nach § 7 Abs 10 lit f — nicht beendet, aber ohne Stimme und Schreibrecht."""
+        return self.ruht_seit is not None and not self.beendet_grund
 
     @classmethod
     def aktive(cls, gremium: str):
+        """Die aktiven Rollen eines Gremiums — nicht beendet, nicht ruhend, nicht abgelaufen."""
         return cls.objects.filter(
-            gremium=gremium, beendet_grund="", endet_am__gte=timezone.localdate()
+            gremium=gremium, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
+        )
+
+    @classmethod
+    def aktive_von(cls, mitglied):
+        """Alle aktiven Rollen eines Mitglieds über alle Gremien — die Menge, die eine verlorene
+        Vertrauensfrage ruhen lässt (§ 7 Abs 10 lit f Z 1)."""
+        return cls.objects.filter(
+            mitglied=mitglied, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
         )
 
     @staticmethod
@@ -132,6 +154,7 @@ class Rolle(models.Model):
             mitglied=mitglied,
             gremium__in=gremien,
             beendet_grund="",
+            ruht_seit__isnull=True,
             endet_am__gte=timezone.localdate(),
         ).exists()
 
@@ -836,6 +859,7 @@ class Anlass(models.TextChoices):
     UEBERLASTUNG = "ueberlastung", _("Vorschlag zu einer Überlastungsmeldung (§ 6 Abs 10)")
     PARAMETERTEST = "parametertest", _("Test eines Registerwerts anordnen (§ 6 Abs 11 lit c)")
     PARAMETER_EINFUEHRUNG = "parameter_einfuehrung", _("Einführung eines Registerwerts (§ 6 Abs 11 lit c)")
+    VERTRAUENSFRAGE_SPERRE = "vertrauensfrage_sperre", _("Sperre einer Vertrauensfrage feststellen (§ 7 Abs 10 lit g)")
 
 
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
@@ -1097,7 +1121,7 @@ def quoren_fuer(beschluesse) -> dict[int, int]:
     je_antrag: dict[tuple, set] = {}
     je_gremium: dict[str, set] = {}
     zeilen = (
-        Rolle.objects.filter(beendet_grund="", endet_am__gte=timezone.localdate())
+        Rolle.objects.filter(beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate())
         .values_list("gremium", "antrag_id", "mitglied_id")
         .distinct()
     )
@@ -1957,6 +1981,7 @@ class HinweisQuelle(models.TextChoices):
     HERVORHEBUNG = "hervorhebung", _("Kandidat für Hervorhebung")
     MUSTER = "muster", _("Muster-Bericht")
     LAST = "last", _("Lastwarnung")
+    VERTRAUENSFRAGE = "vertrauensfrage", _("Vertrauensfrage (§ 7 Abs 10)")
 
 
 class HinweisStatus(models.TextChoices):
@@ -2305,6 +2330,70 @@ def parametertests_fortschreiben(jetzt=None) -> int:
         beendet += 1
     return beendet
 
+def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
+    """Der Integritätsrat stellt fest, dass eine Vertrauensfrage gesperrt ist (§ 7 Abs 10 lit b und g).
+
+    Erst der veröffentlichte Beschluss setzt den Antrag auf „nicht eröffnet“ — die Software hat
+    beim Einbringen nur den Hinweis geschrieben (§ 2 Abs 6: keine Abweisung durch ein Programm).
+    Die Feststellung muss binnen drei Tagen nach Einbringung fallen; danach gilt der Antrag als
+    eröffnet, und ein späterer Beschluss bleibt ohne Wirkung (lit b letzter Satz). Abgegebene
+    Unterstützungen bleiben gespeichert, zählen aber nicht mehr — die Phase entscheidet.
+    Der Beschluss ist binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (lit h)."""
+    from django.apps import apps
+
+    from plattform_core import Phase
+
+    antrag = beschluss.antrag
+    if antrag is None or beschluss.ergebnis != "dafuer":
+        return
+    vf = apps.get_model("mandatare", "Vertrauensfrage").objects.filter(antrag_id=antrag.pk).first()
+    if vf is None:
+        _vermerken(beschluss, "Ohne Wirkung: Der Antrag ist keine Vertrauensfrage.")
+        return
+    if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ZURUECKGEZOGEN.value):
+        return
+    if not _integritaetsrat_beschlussfaehig(beschluss):
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        return
+    jetzt = jetzt or timezone.now()
+    if jetzt > vf.sperrfrist_ende:
+        _vermerken(
+            beschluss,
+            "Ohne Wirkung: Die Frist von drei Tagen nach Einbringung ist verstrichen — der Antrag gilt "
+            "als eröffnet (§ 7 Abs 10 lit b).",
+        )
+        return
+    beschluss.zustand_vorher = {
+        "phase": antrag.phase,
+        "phase_beginn": antrag.phase_beginn.isoformat(),
+        "zurueckgewiesen_am": jetzt.isoformat(),
+    }
+    beschluss.save(update_fields=["zustand_vorher"])
+    antrag.phase = Phase.ZURUECKGEWIESEN.value
+    antrag.phase_beginn = jetzt
+    antrag.zurueckweisung_begruendung = (
+        f"Beschluss {beschluss.nummer} vom {timezone.localtime(jetzt).strftime('%d.%m.%Y')} — "
+        f"Sperre nach § 7 Abs 10 lit g festgestellt, der Antrag gilt als nicht eröffnet: "
+        f"{beschluss.beschreibung}"
+    ).strip()
+    antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
+    vf.sperre_beschluss = beschluss
+    vf.save(update_fields=["sperre_beschluss"])
+    GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk).update(
+        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
+    )
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_nicht_eroeffnet",
+            "antrag": antrag.pk,
+            "mandat": vf.mandat_id,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "vorherige_phase": beschluss.zustand_vorher["phase"],
+        }
+    )
+
+
 #: Was ein ausgewerteter Beschluss im Verfahren auslöst — die ganze Tabelle auf einen Blick.
 #: Sie wächst mit den Gremien: heute die Prüfung der Gruppe 2, später Hervorhebung und
 #: Zurückweisung des Integritätsrats und die Parametertests des Koordinationsrats.
@@ -2331,6 +2420,7 @@ WIRKUNGEN = {
     Anlass.PARAMETER_EINFUEHRUNG: lambda beschluss, jetzt: parameter_einfuehrung_wirkung(
         beschluss, jetzt
     ),
+    Anlass.VERTRAUENSFRAGE_SPERRE: lambda beschluss, jetzt: vertrauensfrage_sperre_wirkung(beschluss, jetzt),
 }
 
 

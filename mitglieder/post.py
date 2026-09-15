@@ -138,3 +138,39 @@ def freischaltung_senden(mitglied: Mitglied) -> bool:
         )
         betreff = _("Ihre Prüfung ist abgeschlossen — ParlamentPlattform")
     return _senden(mitglied, "freischaltung", betreff, text)
+
+
+def vertrauensfrage_senden(mandat, antrag) -> bool:
+    """§ 7 Abs 10 lit b: Der Mandatsträger wird bei Einbringung einer Vertrauensfrage unverzüglich
+    verständigt — ohne den Inhalt des Antrags, nur mit dem Link zur Antragsseite (dort steht alles,
+    öffentlich, samt dem Feld für die Stellungnahme nach lit d). Genau einmal je Antrag: Der Stempel
+    `Vertrauensfrage.verstaendigt_am` hält den ersten Versandversuch fest. Kein Versand an inaktive
+    Konten; scheitert der Versand, läuft das Verfahren weiter (Untätigkeit hemmt nie)."""
+    from mandatare.models import Vertrauensfrage
+
+    try:
+        vf = antrag.vertrauensfrage  # dieselbe Instanz wie beim Einbringen, wenn sie schon geladen ist
+    except Vertrauensfrage.DoesNotExist:
+        return False
+    if vf.mandat_id != mandat.pk or vf.verstaendigt_am is not None:
+        return False
+    mitglied = mandat.mitglied
+    vf.verstaendigt_am = timezone.now()
+    vf.save(update_fields=["verstaendigt_am"])
+    if not (
+        mitglied.is_active
+        and bool(mitglied.email)
+        and mitglied.status not in (Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN)
+    ):
+        return False
+    with translation.override("de"):
+        text = _brief(
+            "mitglieder/post/vertrauensfrage.txt",
+            {
+                "name": _anrede(mitglied),
+                "mandat": f"{mandat.bezeichnung}, {mandat.gebiet or mandat.get_ebene_display()}",
+                "antrag": antrag.pk,
+            },
+        )
+        betreff = _("Vertrauensfrage zu Ihrem Mandat — ParlamentPlattform")
+    return _senden(mitglied, "vertrauensfrage", betreff, text)

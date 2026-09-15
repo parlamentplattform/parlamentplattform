@@ -89,3 +89,40 @@ def test_policy_ist_unveraenderlich():
     p = Policy(**GUELTIG)
     with pytest.raises((AttributeError, TypeError)):  # FrozenInstanceError
         p.beratung_tage = 5  # type: ignore[misc]
+
+
+# ── 0.48: Verfahren ohne Beratungsphase (§ 7 Abs 10) ─────────────────────────────────────
+
+
+def test_die_vorgaben_der_fassung_3_lassen_alte_snapshots_unveraendert():
+    """Ein Snapshot aus 0.47 kennt weder `beratung_entfaellt` noch die Abstimmungsfenster —
+    er lädt trotzdem und verhält sich wie bisher (§ 5 Abs 5)."""
+    alt = Policy.aus_dict(dict(GUELTIG))
+    assert alt.beratung_entfaellt is False
+    assert alt.abstimmung_fruehestens_tage == 0
+    assert alt.abstimmung_spaetestens_tage_nach_schwelle == 0
+    assert set(alt.als_dict()) >= {"beratung_entfaellt", "abstimmung_fruehestens_tage"}
+    assert Policy.aus_dict(alt.als_dict()) == alt
+
+
+def test_ohne_beratungsphase_darf_die_schwelle_null_sein():
+    """Bestätigungsantrag (§ 7 Abs 10 lit f Z 3): keine Unterstützungsphase, Schwelle 0."""
+    p = Policy(
+        **{**GUELTIG, "unterstuetzung_schwelle": 0, "beratung_entfaellt": True, "abstimmung_fruehestens_tage": 7}
+    )
+    assert p.unterstuetzung_schwelle == 0 and p.beratung_entfaellt
+
+
+@pytest.mark.parametrize(
+    "felder",
+    [
+        {"unterstuetzung_schwelle": -1, "beratung_entfaellt": True},
+        {"abstimmung_fruehestens_tage": -1, "beratung_entfaellt": True},
+        {"abstimmung_spaetestens_tage_nach_schwelle": -1, "beratung_entfaellt": True},
+        {"abstimmung_fruehestens_tage": 7},  # Fenster nur ohne Beratungsphase
+        {"abstimmung_spaetestens_tage_nach_schwelle": 3},
+    ],
+)
+def test_die_fenster_ohne_beratung_halten_ihre_grenzen(felder):
+    with pytest.raises(PolicyFehler):
+        Policy(**{**GUELTIG, **felder})

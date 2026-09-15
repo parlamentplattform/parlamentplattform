@@ -258,14 +258,24 @@ REGELN: tuple[Regel, ...] = (
             "Unterstützungsschwelle in der Frist nicht erreicht wird. Ein Übergang geschieht "
             "ausschließlich durch Zeitablauf oder eine erreichte Schwelle, nie weil jemand ihn "
             "auslöst; die einzige Ausnahme ist die förmliche Zurückweisung durch den Integritätsrat, "
-            "die außerhalb dieses Automaten steht.")
+            "die außerhalb dieses Automaten steht. Seit Fassung 2 kennt er den Weg ohne "
+            "Beratungsphase der Vertrauensfrage: Aus der Unterstützung geht es unmittelbar in die "
+            "Abstimmung, frühestens am siebten Tag nach Einbringung und spätestens am dritten Tag "
+            "nach Erreichen der Schwelle; wann die Schwelle erreicht war, hält die Plattform beim "
+            "Zählen fest und veröffentlicht es.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
-        satzung="§ 5 Abs 3 (Ausnahme der Zurückweisung: § 5 Abs 2)",
-        fassung=1,
-        seit="2026-08-19",
+        satzung="§ 5 Abs 3 (Ausnahme der Zurückweisung: § 5 Abs 2); § 7 Abs 10 lit c und e",
+        fassung=2,
+        seit="2026-09-15",
         grund=(
-            _("Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
+            _("Fassung 2 (15.9.2026) bringt den Weg ohne Beratungsphase für die Vertrauensfrage "
+            "(§ 7 Abs 10): Der Satzungsabsatz ersetzt die Beratung durch die Darstellung der Anlässe "
+            "und das Gehör des Mandatsträgers und legt den Abstimmungsbeginn fest — der Automat "
+            "rechnet ihn aus dem Zeitpunkt, zu dem die Schwelle erreicht war, nicht aus dem Moment, "
+            "in dem ein Programm zufällig lief. Für alle anderen Ordnungen bleibt Fassung 1 Wort für "
+            "Wort erhalten. Zur ersten Fassung: ")
+            + _("Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
             "bekommt den Zeitpunkt übergeben, und ein Übergang gilt zum Fristzeitpunkt — nicht zu dem "
             "Moment, in dem ein Hintergrundprogramm zufällig lief. Ein verspäteter Server verschiebt "
             "dadurch keine Frist eines Menschen, und jeder frühere Zustand lässt sich exakt "
@@ -276,6 +286,8 @@ REGELN: tuple[Regel, ...] = (
             "Fristende; in der Unterstützungsphase kommt der Vergleich der Unterstützungszahl mit der "
             "Schwelle dazu. Beide Zahlen stehen auf der Antragsseite, die geltenden Fristen im "
             "Eintrag „Eingefrorene Verfahrensordnung'.")
+            + _(" Bei einer Vertrauensfrage: Abstimmungsbeginn = der spätere von „Einbringung plus "
+            "sieben Tage“ und „Schwelle erreicht“; die Antragsseite nennt beide Zeitpunkte.")
         ),
     ),
     Regel(
@@ -289,14 +301,23 @@ REGELN: tuple[Regel, ...] = (
             "Untergrenzen unterschreitet — Beratung mindestens 21 Tage, Abstimmung mindestens 7 Tage, "
             "Beteiligung mindestens 5 Prozent —, wird zurückgewiesen. Seit Fassung 2 gehören auch die "
             "Fristen, Runden und die Annahme-Schwelle der Entwurfsschleife (§ 5 Abs 12) zur Ordnung; die "
-            "Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten.")
+            "Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten. Seit "
+            "Fassung 3 kann eine Ordnung ohne Beratungsphase auskommen und den frühesten und spätesten "
+            "Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die "
+            "Unterstützungsschwelle 0 sein (Bestätigungsantrag).")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
-        satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4 und § 5 Abs 7",
-        fassung=2,
-        seit="2026-09-11",
+        satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
+        fassung=3,
+        seit="2026-09-15",
         grund=(
-            _("Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die "
+            _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
+            "Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der "
+            "Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die "
+            "Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über "
+            "30 und nie unter 7 Tagen (§ 7 Abs 10 lit k). Ältere Fassungen lesen die Vorgaben und "
+            "verhalten sich unverändert. ")
+            + _("Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die "
             "eingefrorene Ordnung: Bis dahin las die Schleife sie live aus dem Register, und eine "
             "Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: ")
             + _("Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
@@ -311,7 +332,7 @@ REGELN: tuple[Regel, ...] = (
             "geltende Ordnung Feld für Feld nebeneinander; fehlt im Register ein Wert, verweigert die "
             "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen.")
         ),
-        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate",
+        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
     ),
     Regel(
         modul="gremienbeschluss.py",

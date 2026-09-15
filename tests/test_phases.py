@@ -98,3 +98,116 @@ def test_eigenschaft_determinismus(stunden, unterstuetzungen):
     a = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, jetzt, POLICY, unterstuetzungen)
     b = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, jetzt, POLICY, unterstuetzungen)
     assert a == b
+
+
+# ── 0.48: Verfahren ohne Beratungsphase (§ 7 Abs 10 lit c und e) ──────────────────────────
+
+import dataclasses  # noqa: E402
+
+from plattform_core.phases import abstimmungsbeginn_ohne_beratung  # noqa: E402
+
+VERTRAUENSFRAGE = dataclasses.replace(
+    POLICY,
+    unterstuetzung_schwelle=5,
+    unterstuetzung_frist_tage=30,
+    beratung_entfaellt=True,
+    abstimmung_fruehestens_tage=7,
+    abstimmung_spaetestens_tage_nach_schwelle=3,
+)
+BESTAETIGUNG = dataclasses.replace(VERTRAUENSFRAGE, unterstuetzung_schwelle=0)
+
+
+class TestOhneBeratung:
+    def test_vor_der_schwelle_passiert_nichts(self):
+        assert naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(10), VERTRAUENSFRAGE, 4) is None
+
+    def test_schwelle_frueh_erreicht_abstimmung_beginnt_am_siebten_tag(self):
+        """Schwelle an Tag 2: frühestens Tag 7 (§ 7 Abs 10 lit e) — vorher kein Übergang."""
+        erreicht = T0 + tage(2)
+        assert (
+            naechster_uebergang(
+                Phase.UNTERSTUETZUNG, T0, T0 + tage(6), VERTRAUENSFRAGE, 5, schwelle_erreicht_am=erreicht
+            )
+            is None
+        )
+        t = naechster_uebergang(
+            Phase.UNTERSTUETZUNG, T0, T0 + tage(7), VERTRAUENSFRAGE, 5, schwelle_erreicht_am=erreicht
+        )
+        assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == T0 + tage(7)
+        assert "Wartezeit" in t.grund  # Tag 7 liegt nach Schwelle + 3 — die Satzung will es so
+
+    def test_schwelle_spaet_erreicht_abstimmung_beginnt_mit_der_schwelle(self):
+        erreicht = T0 + tage(20)
+        t = naechster_uebergang(
+            Phase.UNTERSTUETZUNG, T0, T0 + tage(25), VERTRAUENSFRAGE, 7, schwelle_erreicht_am=erreicht
+        )
+        assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == erreicht
+        assert "Wartezeit" not in t.grund
+        assert t.wirksam_ab <= erreicht + tage(3)  # spätestens am dritten Tag danach
+
+    def test_ohne_zeitpunkt_gilt_jetzt_begrenzt_auf_das_fristende(self):
+        t = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(12), VERTRAUENSFRAGE, 5)
+        assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == T0 + tage(12)
+        spaet = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(40), VERTRAUENSFRAGE, 5)
+        assert spaet.neue_phase is Phase.ABSTIMMUNG and spaet.wirksam_ab == T0 + tage(30)
+
+    def test_schwelle_nach_fristende_zaehlt_nicht(self):
+        zu_spaet = T0 + tage(30) + timedelta(hours=1)
+        t = naechster_uebergang(
+            Phase.UNTERSTUETZUNG, T0, T0 + tage(31), VERTRAUENSFRAGE, 5, schwelle_erreicht_am=zu_spaet
+        )
+        assert t.neue_phase is Phase.VERFALLEN and t.wirksam_ab == T0 + tage(30)
+
+    def test_frist_abgelaufen_ohne_schwelle_verfaellt_zum_fristende(self):
+        assert naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(30), VERTRAUENSFRAGE, 3) is None
+        t = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(45), VERTRAUENSFRAGE, 3)
+        assert t.neue_phase is Phase.VERFALLEN and t.wirksam_ab == T0 + tage(30)
+        assert "§ 7 Abs 10 lit c" in t.grund
+
+    def test_schwelle_null_gilt_mit_dem_einbringen_als_erreicht(self):
+        """Bestätigungsantrag (§ 7 Abs 10 lit f Z 3): Abstimmung am siebten Tag nach Einbringung."""
+        assert naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(6), BESTAETIGUNG, 0) is None
+        t = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, T0 + tage(9), BESTAETIGUNG, 0)
+        assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == T0 + tage(7)
+
+    def test_ein_veroeffentlichtes_erreichen_bleibt_trotz_rueckzug_bestehen(self):
+        """Schwelle an Tag 2 veröffentlicht (lit c, Anfechtungsfrist lit h) — zieht danach jemand
+        zurück, fällt der Antrag nicht zurück: Die Abstimmung beginnt an Tag 7, kein Verfall."""
+        erreicht = T0 + tage(2)
+        t = naechster_uebergang(
+            Phase.UNTERSTUETZUNG, T0, T0 + tage(7), VERTRAUENSFRAGE, 4, schwelle_erreicht_am=erreicht
+        )
+        assert t.neue_phase is Phase.ABSTIMMUNG and t.wirksam_ab == T0 + tage(7)
+        spaet = naechster_uebergang(
+            Phase.UNTERSTUETZUNG, T0, T0 + tage(40), VERTRAUENSFRAGE, 4, schwelle_erreicht_am=erreicht
+        )
+        assert spaet.neue_phase is Phase.ABSTIMMUNG and spaet.wirksam_ab == T0 + tage(7)
+
+    def test_sofortiger_beginn_ohne_wartezeit(self):
+        sofort = dataclasses.replace(VERTRAUENSFRAGE, abstimmung_fruehestens_tage=0)
+        erreicht = T0 + tage(1)
+        assert abstimmungsbeginn_ohne_beratung(T0, erreicht, sofort) == erreicht
+        t = naechster_uebergang(Phase.UNTERSTUETZUNG, T0, erreicht, sofort, 5, schwelle_erreicht_am=erreicht)
+        assert t.wirksam_ab == erreicht
+
+    def test_die_uebrigen_phasen_bleiben_wie_bisher(self):
+        """Ohne Beratungsphase gibt es keine Beratung — die Abstimmung endet wie bei jedem Antrag."""
+        angenommen = auszaehlen([(f"p{i}", Stimme.JA) for i in range(6)], 100, VERTRAUENSFRAGE)
+        t = naechster_uebergang(Phase.ABSTIMMUNG, T0, T0 + tage(7), VERTRAUENSFRAGE, 0, angenommen)
+        assert t.neue_phase is Phase.ANGENOMMEN
+        for endphase in END_PHASEN:
+            assert naechster_uebergang(endphase, T0, T0 + tage(3), VERTRAUENSFRAGE, 9) is None
+
+
+@given(stunden=st.integers(0, 24 * 60), unterstuetzungen=st.integers(0, 12), erreicht_h=st.integers(0, 24 * 40))
+def test_eigenschaft_ohne_beratung_beginnt_nie_vor_tag_sieben(stunden, unterstuetzungen, erreicht_h):
+    """§ 7 Abs 10 lit e: frühestens am siebten Tag nach Einbringung — für jede Eingabe."""
+    jetzt = T0 + timedelta(hours=stunden)
+    t = naechster_uebergang(
+        Phase.UNTERSTUETZUNG, T0, jetzt, VERTRAUENSFRAGE, unterstuetzungen,
+        schwelle_erreicht_am=T0 + timedelta(hours=erreicht_h),
+    )
+    if t is not None and t.neue_phase is Phase.ABSTIMMUNG:
+        assert t.wirksam_ab >= T0 + tage(7) and t.wirksam_ab <= jetzt
+    if t is not None and t.neue_phase is Phase.VERFALLEN:
+        assert t.wirksam_ab == T0 + tage(30)

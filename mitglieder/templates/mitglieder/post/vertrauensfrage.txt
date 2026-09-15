@@ -1,0 +1,9 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
+
+{% blocktranslate %}zu Ihrem Mandat ({{ mandat }}) wurde auf der ParlamentPlattform eine Vertrauensfrage eingebracht (§ 7 Abs 10 lit b). Der Antrag, die Anlässe und die maßgeblichen Zahlen stehen öffentlich auf der Antragsseite.{% endblocktranslate %}
+
+{% blocktranslate %}Sie können ab sofort bis zum Ende der Abstimmung Stellung nehmen; die Stellungnahme wird im Wortlaut neben dem Antrag veröffentlicht (§ 7 Abs 10 lit d). Die Voraussetzungen des Antrags können Sie binnen sieben Tagen beim Parteischiedsgericht anfechten (§ 7 Abs 10 lit h).{% endblocktranslate %}
+
+{% translate "Antrag:" %} {{ basis }}/antrag/{{ antrag }}/
+
+{{ schluss }}{% endautoescape %}

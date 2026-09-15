@@ -18,6 +18,7 @@ Zwei bewusste Designentscheidungen:
 from __future__ import annotations
 
 import dataclasses
+import math
 import secrets
 import uuid
 from datetime import timedelta
@@ -161,11 +162,40 @@ class Antragsart(models.TextChoices):
 
     § 7 Abs 9: Die Mandatsfrage ist die Ja-Nein-Frage, die ein Mandatar aus einem
     Instant-Report heraus stellt — ohne Unterstützungs- und Beratungsphase direkt
-    in der Abstimmung (`mandatsfrage_eroeffnen`); ausgezählt wie ein Sachantrag."""
+    in der Abstimmung (`mandatsfrage_eroeffnen`); ausgezählt wie ein Sachantrag.
+
+    § 7 Abs 10: Die Vertrauensfrage ist der Antrag eines Mitglieds, einem Mandatsträger
+    das Vertrauen zu versagen — Unterstützung durch fünf Prozent der für Personenwahlen
+    Stimmberechtigten, keine Beratungsphase, Abstimmung als Personenwahl
+    (`vertrauensfrage_einbringen`); ausgezählt wie ein Sachantrag, „angenommen“ heißt
+    „verloren“. Dieselbe Art trägt den Bestätigungsantrag nach lit f Z 3."""
 
     SACHE = "sache", _("Sachantrag")
     MANDAT = "mandat", _("Mandats-Kandidatur")
     MANDATSFRAGE = "mandatsfrage", _("Mandatsfrage")
+    VERTRAUENSFRAGE = "vertrauensfrage", _("Vertrauensfrage")
+
+
+class Rueckgabezusage(models.TextChoices):
+    """§ 7 Abs 3: die freiwillige, nicht einklagbare Erklärung, das Mandat nach einer verlorenen
+    Vertrauensfrage binnen der Frist zurückzulegen — abgegeben oder nicht abgegeben, öffentlich.
+    Leer heißt „unbekannt“: Bewerbungen aus der Zeit vor 0.48 tragen keine Erklärung."""
+
+    UNBEKANNT = "", _("keine Angabe")
+    ABGEGEBEN = "abgegeben", _("abgegeben")
+    NICHT_ABGEGEBEN = "nicht_abgegeben", _("nicht abgegeben")
+
+
+def gegenstand_fuer(antrag):
+    """Der Gegenstand nach § 4 Abs 4 für die Stimmberechtigung eines Antrags: Kandidatur und
+    Vertrauensfrage sind Personenwahlen (zwölf Monate Anwartschaft), alles andere Sachfrage.
+    Die eine Stelle, die Zählung (`fortschreiben`), Einzelprüfung (`abstimmen`) und Unterstützung
+    (`unterstuetzen`) gemeinsam lesen — sonst zählte der Nenner anders als der Zähler."""
+    from plattform_core import Gegenstand
+
+    if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
+        return Gegenstand.PERSONENWAHL
+    return Gegenstand.SACHFRAGE
 
 
 class Antrag(models.Model):
@@ -173,10 +203,11 @@ class Antrag(models.Model):
 
     titel = models.CharField(max_length=200)
     art = models.CharField(
-        max_length=12,
+        max_length=20,
         choices=Antragsart.choices,
         default=Antragsart.SACHE,
-        help_text="Sachantrag (§ 5), Mandats-Kandidatur (§ 7 Abs 1) oder Mandatsfrage eines Mandatars (§ 7 Abs 9).",
+        help_text="Sachantrag (§ 5), Mandats-Kandidatur (§ 7 Abs 1), Mandatsfrage eines Mandatars (§ 7 Abs 9) "
+        "oder Vertrauensfrage zu einem Mandatsträger (§ 7 Abs 10).",
     )
     eingebracht_von = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="antraege"
@@ -301,13 +332,36 @@ class Antrag(models.Model):
             from gremien.models import aussetzungen_fortschreiben
 
             aussetzungen_fortschreiben(jetzt)
+        unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
+        vf = self._vertrauensfrage()
+        if vf is not None and phase is Phase.UNTERSTUETZUNG and vf.schwelle_erreicht_am is None:
+            # § 7 Abs 10 lit c: Das Erreichen der Schwelle wird veröffentlicht — der Zeitpunkt ist der
+            # der Zählung, die es zuerst sieht (die Unterstützung ruft sie sofort auf), nicht der einer
+            # späteren Verarbeitung. Der Kern rechnet damit den Abstimmungsbeginn (lit e).
+            from plattform_core.phases import unterstuetzung_frist_ende
+
+            if unterstuetzungen >= policy.unterstuetzung_schwelle and jetzt <= unterstuetzung_frist_ende(
+                self.wirksamer_phase_beginn(jetzt), policy
+            ):
+                vf.schwelle_erreicht_am = jetzt
+                vf.save(update_fields=["schwelle_erreicht_am"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "schwelle_erreicht",
+                        "antrag": self.pk,
+                        "unterstuetzungen": unterstuetzungen,
+                        "schwelle": policy.unterstuetzung_schwelle,
+                        "am": jetzt.isoformat(),
+                    }
+                )
         uebergang = naechster_uebergang(
             phase,
             self.wirksamer_phase_beginn(jetzt),
             jetzt,
             policy,
-            unterstuetzungen=self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            unterstuetzungen=unterstuetzungen,
             auszaehlung=ausz,
+            schwelle_erreicht_am=vf.schwelle_erreicht_am if vf is not None else None,
         )
         if uebergang is None:
             return False
@@ -330,12 +384,9 @@ class Antrag(models.Model):
             from django.conf import settings as dj_settings
 
             from mitglieder.models import stimmberechtigte_zaehlen
-            from plattform_core import Gegenstand
 
             # § 4 Abs 4: Personenwahlen haben eine längere Anwartschaft als Sachfragen.
-            gegenstand = (
-                Gegenstand.PERSONENWAHL if self.art == Antragsart.MANDAT else Gegenstand.SACHFRAGE
-            )
+            gegenstand = gegenstand_fuer(self)
             # § 4 Abs 4 lit a rechnet in Kalendertagen — im Wiener Kalender, nicht im UTC-Datum:
             # Zwischen 0 und 2 Uhr läge der Stichtag sonst einen Tag zu früh (Befund #32). Der Tag
             # wird gespeichert, damit Zählung und Einzelprüfung dieselbe Zahl lesen.
@@ -368,7 +419,25 @@ class Antrag(models.Model):
                 "chat_archiviert": archiviert,
             }
         )
+        if vf is not None and uebergang.neue_phase in (Phase.ANGENOMMEN, Phase.ABGELEHNT):
+            # § 7 Abs 10 lit e und f: „angenommen“ heißt verloren — die Wirkungen treten mit der
+            # Veröffentlichung des Ergebnisses ein, also zum Fristzeitpunkt, nicht zum Jobzeitpunkt.
+            from mandatare.models import vertrauensfrage_ergebnis
+
+            vertrauensfrage_ergebnis(vf, uebergang.wirksam_ab)
         return True
+
+    def _vertrauensfrage(self):
+        """Die Fachdaten der Vertrauensfrage zu diesem Antrag — None bei jeder anderen Antragsart.
+        Frische Abfrage statt Related-Cache, lazy geladen: `verfahren` bleibt unabhängig von
+        `mandatare`, solange die App fehlt."""
+        if self.art != Antragsart.VERTRAUENSFRAGE:
+            return None
+        from django.apps import apps
+
+        if not apps.is_installed("mandatare"):
+            return None  # pragma: no cover
+        return apps.get_model("mandatare", "Vertrauensfrage").objects.filter(antrag_id=self.pk).first()
 
     def chat_archivieren(self, jetzt=None) -> int:
         """FB-G5: Bei jeder Hochstufung wandern die Beiträge der bisherigen Phase ins Archiv.
@@ -850,6 +919,211 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
     return antrag
 
 
+@transaction.atomic
+def vertrauensfrage_einbringen(
+    mitglied,
+    mandat,
+    begruendung: str,
+    anlaesse,
+    ausstaende,
+    ordnung: Verfahrensordnung,
+    jetzt=None,
+    art: str = "vertrauensfrage",
+) -> Antrag:
+    """§ 7 Abs 10: Die Vertrauensfrage zu einem Mandatsträger einbringen — oder, mit `art="bestaetigung"`,
+    den Bestätigungsantrag der betroffenen Person selbst (lit f Z 3).
+
+    Die Ordnung des Antrags entsteht aus der geltenden Verfahrensordnung, überschrieben mit den
+    Satzungswerten des Absatzes 10 und eingefroren (§ 5 Abs 5): Schwelle fünf Prozent der für
+    Personenwahlen Stimmberechtigten am Einbringungstag (aufgerundet, mindestens 1), Sammelfrist aus
+    `vertrauensfrage-unterstuetzung-tage` (nie über 30), keine Beratungsphase, Abstimmung frühestens
+    am siebten Tag nach Einbringung und spätestens am dritten Tag nach Erreichen der Schwelle, Dauer
+    aus `vertrauensfrage-abstimmung-tage` (nie unter 7). Die Zahlen werden mit dem Antrag veröffentlicht.
+
+    Formerfordernis (lit b): mindestens ein Anlass — ein Eintrag des Rechenschaftsregisters mit
+    Abweichung (`anlaesse`: Rechenschaft-Objekte dieses Mandats mit `weicht_ab`) oder ein seit mehr
+    als 30 Tagen ausgewiesener Ausstand (`ausstaende`: Kennungen aus `Mandat.anlass_ausstaende`).
+    Ohne Anlass gibt es keinen Antrag (`VertrauensfrageFehler`) — das ist kein Zurückweisen im
+    Sinne des § 5 Abs 2, sondern ein Formular ohne Pflichtfeld.
+
+    Sperren nach lit g prüft `mandatare.models.sperren_pruefen` — das Ergebnis steht als Klartext
+    am Antrag (`sperrhinweis`) und wird dem Integritätsrat vorgelegt; **abgewiesen wird nicht**
+    (§ 2 Abs 6). Der Mandatar wird verständigt (Brief ohne Inhalt, nur Link).
+
+    Bestätigungsantrag: nur die betroffene Person, nur nach entzogenem Vertrauen ohne Bestätigung,
+    frühestens sechs Monate nach dem Ergebnis oder der letzten Ablehnung; ohne Anlass, ohne Sperren,
+    Schwelle 0 (gilt mit dem Einbringen als erreicht), Abstimmung am siebten Tag."""
+    from django.conf import settings as dj_settings
+
+    from mandatare.models import (
+        Vertrauensfrage,
+        VertrauensfrageArt,
+        VertrauensfrageFehler,
+        bestaetigung_zulaessig_ab,
+        sperren_pruefen,
+    )
+    from mitglieder.models import stimmberechtigte_zaehlen
+    from parameter.models import zahl
+    from plattform_core import Gegenstand
+    from plattform_core.policy import (
+        SATZUNG_MAX_VERTRAUENSFRAGE_SAMMELFRIST_TAGE,
+        SATZUNG_MIN_ABSTIMMUNG_TAGE,
+        SATZUNG_VERTRAUENSFRAGE_ANTEIL,
+        VERTRAUENSFRAGE_FRUEHESTENS_TAGE,
+        VERTRAUENSFRAGE_SPAETESTENS_TAGE,
+    )
+
+    jetzt = jetzt or timezone.now()
+    art = VertrauensfrageArt(art)
+    bestaetigung = art == VertrauensfrageArt.BESTAETIGUNG
+    anlaesse = list(anlaesse or ())
+    ausstaende_kennungen = [str(k) for k in (ausstaende or ())]
+    begruendung = (begruendung or "").strip()
+    if bestaetigung:
+        if mitglied.pk != mandat.mitglied_id:
+            raise VertrauensfrageFehler(_("Die Bestätigung kann nur die betroffene Person selbst beantragen (§ 7 Abs 10 lit f Z 3)."))
+        if not mandat.kandidatursperre:
+            raise VertrauensfrageFehler(_("Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."))
+        if Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG,
+            antrag__phase__in=[Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value],
+        ).exists():
+            raise VertrauensfrageFehler(_("Ein Bestätigungsantrag läuft bereits."))
+        frei_ab = bestaetigung_zulaessig_ab(mandat)
+        if frei_ab is not None and timezone.localdate(jetzt) < frei_ab:
+            raise VertrauensfrageFehler(
+                _("Die Bestätigung kann frühestens ab %(datum)s beantragt werden (§ 7 Abs 10 lit f Z 3).")
+                % {"datum": frei_ab.strftime("%d.%m.%Y")}
+            )
+        anlaesse, ausstaende_kennungen, gewaehlte = [], [], []
+    else:
+        for r in anlaesse:
+            if r.mandat_id != mandat.pk:
+                raise VertrauensfrageFehler(_("Der gewählte Anlass gehört nicht zu diesem Mandat."))
+            if not r.weicht_ab:
+                raise VertrauensfrageFehler(
+                    _("Anlass ist nur ein Eintrag, in dem das Stimmverhalten vom Beschluss der Plattform abweicht (§ 7 Abs 10 lit b).")
+                )
+        moeglich = {a["kennung"]: a for a in mandat.anlass_ausstaende(timezone.localdate(jetzt))}
+        unbekannt = [k for k in ausstaende_kennungen if k not in moeglich]
+        if unbekannt:
+            raise VertrauensfrageFehler(
+                _("Ein gewählter Ausstand ist nicht (mehr) seit über 30 Tagen ausgewiesen (§ 7 Abs 10 lit b).")
+            )
+        gewaehlte = [
+            {**moeglich[k], "seit": moeglich[k]["seit"].isoformat()} for k in dict.fromkeys(ausstaende_kennungen)
+        ]
+        if not anlaesse and not gewaehlte:
+            raise VertrauensfrageFehler(
+                _("Eine Vertrauensfrage braucht mindestens einen Anlass: einen Eintrag des Rechenschaftsregisters mit "
+                  "Abweichung oder einen seit mehr als 30 Tagen ausständigen Bericht (§ 7 Abs 10 lit b).")
+            )
+        if not begruendung:
+            raise VertrauensfrageFehler(_("Die Begründung fehlt."))
+
+    stichtag = timezone.localdate(jetzt)
+    uebergang = getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
+    n_partei = stimmberechtigte_zaehlen(Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergang)
+    schwelle = 0 if bestaetigung else max(1, math.ceil(SATZUNG_VERTRAUENSFRAGE_ANTEIL * n_partei))
+    sammelfrist = max(
+        1, min(SATZUNG_MAX_VERTRAUENSFRAGE_SAMMELFRIST_TAGE, zahl("vertrauensfrage-unterstuetzung-tage", 30))
+    )
+    dauer = max(SATZUNG_MIN_ABSTIMMUNG_TAGE, zahl("vertrauensfrage-abstimmung-tage", 7))
+    policy = dataclasses.replace(
+        ordnung.als_policy(),
+        unterstuetzung_schwelle=schwelle,
+        unterstuetzung_frist_tage=sammelfrist,
+        beratung_entfaellt=True,
+        abstimmung_fruehestens_tage=VERTRAUENSFRAGE_FRUEHESTENS_TAGE,
+        abstimmung_spaetestens_tage_nach_schwelle=(
+            VERTRAUENSFRAGE_FRUEHESTENS_TAGE if bestaetigung else VERTRAUENSFRAGE_SPAETESTENS_TAGE
+        ),
+        abstimmung_tage=dauer,
+    )
+    ort = mandat.gebiet or mandat.get_ebene_display()
+    if bestaetigung:
+        titel = f"Bestätigung nach § 7 Abs 10: {mandat.bezeichnung}, {ort}"
+        wortlaut = (
+            f"Die Mitgliederversammlung bestätigt {mandat.mitglied.anzeigename} als Mandatsträger "
+            f"({mandat.bezeichnung}, {ort}) nach § 7 Abs 10 lit f Z 3."
+            + (f"\n\n{begruendung}" if begruendung else "")
+        )
+        fassung_begruendung = (
+            "Bestätigungsantrag der betroffenen Person nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und "
+            f"Beratungsphase; die Abstimmung beginnt am {VERTRAUENSFRAGE_FRUEHESTENS_TAGE}. Tag nach Einbringung "
+            f"und dauert {dauer} Tage. Zugrunde liegt das Rechenschaftsregister seit dem Ergebnis."
+        )
+    else:
+        titel = f"Vertrauensfrage: {mandat.bezeichnung}, {ort}"
+        zeilen = [
+            f"Der Antrag lautet auf Versagung des Vertrauens gegenüber {mandat.mitglied.anzeigename} "
+            f"({mandat.bezeichnung}, {ort}) nach § 7 Abs 10 lit b.",
+            "",
+            begruendung,
+            "",
+            "Anlässe:",
+        ]
+        for r in anlaesse:
+            zeilen.append(
+                f"- Rechenschaft vom {r.sitzung_am:%d.%m.%Y}: {r.gegenstand} — Beschluss der Plattform "
+                f"{r.get_beschluss_plattform_display()}, Stimme {r.get_stimme_display()}"
+            )
+        for a in gewaehlte:
+            zeilen.append(f"- {a['art'].capitalize()} {a['bezug']} ausständig seit {a['tage']} Tagen (Frist {a['seit']})")
+        wortlaut = "\n".join(zeilen)
+        fassung_begruendung = (
+            f"Vertrauensfrage nach § 7 Abs 10. Für Personenwahlen stimmberechtigte Mitglieder am Einbringungstag: "
+            f"{n_partei}; Unterstützungsschwelle: {schwelle} (fünf Prozent, lit c); Sammelfrist {sammelfrist} Tage; "
+            f"keine Beratungsphase; Abstimmung frühestens am {VERTRAUENSFRAGE_FRUEHESTENS_TAGE}. Tag nach Einbringung, "
+            f"spätestens am {VERTRAUENSFRAGE_SPAETESTENS_TAGE}. Tag nach Erreichen der Schwelle, Dauer {dauer} Tage."
+        )
+    antrag = Antrag.objects.create(
+        titel=titel[:200],
+        art=Antragsart.VERTRAUENSFRAGE,
+        eingebracht_von=mitglied,
+        eingebracht_am=jetzt,
+        phase=Phase.UNTERSTUETZUNG.value,
+        phase_beginn=jetzt,
+        policy_snapshot=policy.als_dict(),
+        ebene=Ebene(mandat.ebene),
+        gebiet=mandat.gebiet,
+    )
+    AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=fassung_begruendung)
+    sperrhinweis = "" if bestaetigung else sperren_pruefen(mandat, jetzt, anlaesse=anlaesse, ausstaende=gewaehlte)
+    vf = Vertrauensfrage.objects.create(
+        antrag=antrag,
+        mandat=mandat,
+        art=art,
+        anlass_ausstaende=gewaehlte,
+        stimmberechtigte_partei_am_einbringungstag=n_partei,
+        schwelle_partei=schwelle,
+        schwelle_erreicht_am=jetzt if bestaetigung else None,
+        sperrhinweis=sperrhinweis,
+    )
+    if anlaesse:
+        vf.anlaesse.set(anlaesse)
+    kategorien_zuordnen(antrag)
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_eingebracht",
+            "antrag": antrag.pk,
+            "mandat": mandat.pk,
+            "art": str(art),
+            "anlaesse": [r.pk for r in anlaesse],
+            "ausstaende": len(gewaehlte),
+            "stimmberechtigte": n_partei,
+            "schwelle": schwelle,
+            "sperrhinweis": bool(sperrhinweis),
+            "policy": f"{policy.id} v{policy.version}",
+        }
+    )
+    if not bestaetigung:
+        from mitglieder.post import vertrauensfrage_senden
+
+        vertrauensfrage_senden(mandat, antrag)
+    return antrag
+
+
 class FilterProfil(models.Model):
     """Ein gespeichertes Regler-Profil des WeicherFilters (P5, § 5 Abs 10 lit d).
 
@@ -896,6 +1170,14 @@ class Bewerbung(models.Model):
     )
     vorstellung = models.TextField(
         max_length=2000, blank=True, help_text="Wer bin ich, wofür stehe ich — öffentlich sichtbar."
+    )
+    rueckgabezusage = models.CharField(
+        max_length=20,
+        choices=Rueckgabezusage.choices,
+        blank=True,
+        default=Rueckgabezusage.UNBEKANNT,
+        help_text="Erklärung nach § 7 Abs 3, ob die Rückgabezusage abgegeben wird — mit der Bewerbung "
+        "abgegeben, beim Kandidatur-Antrag ausgewiesen; leer bei Bewerbungen aus der Zeit vor 0.48.",
     )
     erstellt_am = models.DateTimeField(default=timezone.now)
     zurueckgezogen = models.BooleanField(default=False)
@@ -947,24 +1229,59 @@ class BewerbungsFehler(Exception):
     """Bewerbung derzeit nicht möglich (falsche Antragsart oder Phase)."""
 
 
-def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str) -> Bewerbung:
+def kandidatursperre(mitglied) -> bool:
+    """§ 7 Abs 10 lit f Z 3: Wer eine Vertrauensfrage verloren hat, kandidiert erst wieder nach einer
+    Bestätigung durch die Mitgliederversammlung (`Mandat.kandidatursperre`). Lazy geladen —
+    `verfahren` bleibt unabhängig von `mandatare`, solange die App fehlt."""
+    from django.apps import apps
+
+    if not apps.is_installed("mandatare") or not getattr(mitglied, "pk", None):
+        return False  # pragma: no cover
+    return (
+        apps.get_model("mandatare", "Mandat")
+        .objects.filter(mitglied=mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True)
+        .exists()
+    )
+
+
+def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezusage: str = "") -> Bewerbung:
     """Sich um das Mandat bewerben bzw. die eigene Bewerbung erneuern (§ 7 Abs 1).
-    Möglich bis zum Beginn der Abstimmung; ein früherer Rückzug wird aufgehoben."""
+    Möglich bis zum Beginn der Abstimmung; ein früherer Rückzug wird aufgehoben.
+
+    `rueckgabezusage` ist die Erklärung nach § 7 Abs 3 („abgegeben“ / „nicht_abgegeben“), die mit der
+    Bewerbung abgegeben wird; das Formular verlangt sie als Pflichtangabe, hier bleibt „“ (unbekannt)
+    zulässig, weil Altbewerbungen und der Demo-Bestand ohne sie entstanden sind. Wer nach einer
+    verlorenen Vertrauensfrage noch nicht bestätigt ist, wird abgewiesen (§ 7 Abs 10 lit f Z 3)."""
     if antrag.art != Antragsart.MANDAT:
         raise BewerbungsFehler("Dieser Antrag ist keine Mandats-Kandidatur.")
+    if kandidatursperre(mitglied):
+        raise BewerbungsFehler(
+            str(
+                _("Nach einer verlorenen Vertrauensfrage ist eine Kandidatur erst nach einer Bestätigung durch die "
+                  "Mitgliederversammlung möglich (§ 7 Abs 10 lit f Z 3).")
+            )
+        )
     antrag.fortschreiben()
     if antrag.phase not in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value):
         raise BewerbungsFehler("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1).")
     text = (vorstellung or "").strip()[:2000]
+    zusage = Rueckgabezusage(rueckgabezusage or "")
     bewerbung, neu = Bewerbung.objects.get_or_create(
-        antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text}
+        antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text, "rueckgabezusage": zusage}
     )
     if not neu:
         bewerbung.vorstellung = text or bewerbung.vorstellung
         bewerbung.zurueckgezogen = False
-        bewerbung.save(update_fields=["vorstellung", "zurueckgezogen"])
+        if zusage != Rueckgabezusage.UNBEKANNT:
+            bewerbung.rueckgabezusage = zusage
+        bewerbung.save(update_fields=["vorstellung", "zurueckgezogen", "rueckgabezusage"])
     AuditEintrag.anhaengen(
-        {"typ": "bewerbung" if neu else "bewerbung_erneuert", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
+        {
+            "typ": "bewerbung" if neu else "bewerbung_erneuert",
+            "antrag": antrag.pk,
+            "bewerbung": bewerbung.pk,
+            "rueckgabezusage": str(bewerbung.rueckgabezusage),
+        }
     )
     return bewerbung
 

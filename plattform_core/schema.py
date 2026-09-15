@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.5"
+SCHEMA_VERSION = "1.6"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -200,6 +200,16 @@ PARAMETER = {
         "region.secondary_residence_counts", "flag",
         "Whether a registered secondary residence also assigns a member to that region for regional "
         "motions (0 or 1; never affects voting rights)",
+    ),
+    "vertrauensfrage-unterstuetzung-tage": (
+        "mandate.confidence_support_days", "days",
+        "Support window of a confidence question about an office holder (never above the statutory "
+        "maximum of 30 days; frozen into the motion when it is submitted)",
+    ),
+    "vertrauensfrage-abstimmung-tage": (
+        "mandate.confidence_vote_window_days", "days",
+        "Duration of the vote on a confidence question (never below the statutory minimum of 7 days; "
+        "frozen into the motion when it is submitted)",
     ),
 }
 

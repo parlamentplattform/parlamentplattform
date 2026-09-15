@@ -22,7 +22,10 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 #: Fassungsnummer wird zusammen mit dem Eintrag im Regelverzeichnis angehoben
 #: (`plattform_core.regelwerk`), nicht für sich allein: Das Verzeichnis prüft, dass beide
 #: dasselbe sagen.
-VERSION = 2
+#: Seit 0.48 (Fassung 3) kennt die Ordnung Verfahren ohne Beratungsphase mit frühestem und
+#: spätestem Abstimmungsbeginn — die Vertrauensfrage nach § 7 Abs 10. Die drei Felder tragen
+#: Vorgaben, die jeden älteren Snapshot unverändert lassen.
+VERSION = 3
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
@@ -31,6 +34,13 @@ SATZUNG_MIN_BETEILIGUNG = 0.05  # § 5 Abs 4 — satzungsfeste Untergrenze
 # Höchstwert aus der Satzung: § 5 Abs 12 gibt den Unterstützern und dem Expertenrat je Runde
 # „binnen 14 Tagen" — eine Obergrenze, kein Minimum. Eine Ordnung darf kürzer sein, nie länger.
 SATZUNG_MAX_SCHLEIFENFRIST_TAGE = 14  # § 5 Abs 12
+# Die Vertrauensfrage (§ 7 Abs 10) — Spiegel der Satzung, keine Stellgrößen des Registers (lit k):
+# Die Prozentschwelle, Höchst- und Mindestfristen darf die Verfahrensordnung weder unter- noch
+# überschreiten; sie sind dem Parameterverfahren entzogen.
+SATZUNG_VERTRAUENSFRAGE_ANTEIL = 0.05  # lit c: fünf Prozent der für Personenwahlen Stimmberechtigten
+SATZUNG_MAX_VERTRAUENSFRAGE_SAMMELFRIST_TAGE = 30  # lit c: Sammelfrist von höchstens 30 Tagen
+VERTRAUENSFRAGE_FRUEHESTENS_TAGE = 7  # lit e: Abstimmung frühestens am siebten Tag nach Einbringung
+VERTRAUENSFRAGE_SPAETESTENS_TAGE = 3  # lit e: spätestens am dritten Tag nach Erreichen der Schwelle
 
 
 class PolicyFehler(ValueError):
@@ -72,6 +82,16 @@ class Policy:
     review_tage: int = 14  # Frist der Unterstützer je Runde (<= 14, § 5 Abs 12)
     ueberarbeitung_tage: int = 14  # Frist des Expertenrats je Rückgabe (<= 14, § 5 Abs 12)
     pruefung_tage: int = 7  # Frist der Gruppe 2 für ihre Prüfung (§ 6 Abs 7)
+    # Verfahren ohne Beratungsphase (§ 7 Abs 10 lit c und e: die Vertrauensfrage). Ist
+    # `beratung_entfaellt` gesetzt, geht es aus der Unterstützung unmittelbar in die Abstimmung;
+    # sie beginnt frühestens `abstimmung_fruehestens_tage` nach Phasenbeginn und spätestens
+    # `abstimmung_spaetestens_tage_nach_schwelle` nach dem Erreichen der Schwelle (0 = sofort).
+    # Mit `beratung_entfaellt` darf die Unterstützungsschwelle 0 sein — sie gilt dann mit dem
+    # Einbringen als erreicht (Bestätigungsantrag nach § 7 Abs 10 lit f Z 3). Die Vorgaben sind
+    # das bisherige Verhalten: ältere Snapshots laden unverändert.
+    beratung_entfaellt: bool = False
+    abstimmung_fruehestens_tage: int = 0
+    abstimmung_spaetestens_tage_nach_schwelle: int = 0
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -98,10 +118,28 @@ class Policy:
                 f"Mindestbeteiligung {self.mindestbeteiligung} unterschreitet "
                 f"Satzungsminimum {SATZUNG_MIN_BETEILIGUNG} (§ 5 Abs 4)."
             )
-        if self.unterstuetzung_schwelle < 1:
-            raise PolicyFehler("Unterstützungsschwelle muss mindestens 1 sein.")
+        if self.unterstuetzung_schwelle < 0 or (
+            self.unterstuetzung_schwelle == 0 and not self.beratung_entfaellt
+        ):
+            raise PolicyFehler(
+                "Unterstützungsschwelle muss mindestens 1 sein — 0 nur ohne Beratungsphase "
+                "(Bestätigungsantrag, § 7 Abs 10 lit f Z 3)."
+            )
         if self.unterstuetzung_frist_tage < 1:
             raise PolicyFehler("Unterstützungsfrist muss mindestens 1 Tag sein.")
+        for name, wert in (
+            ("abstimmung_fruehestens_tage", self.abstimmung_fruehestens_tage),
+            ("abstimmung_spaetestens_tage_nach_schwelle", self.abstimmung_spaetestens_tage_nach_schwelle),
+        ):
+            if wert < 0:
+                raise PolicyFehler(f"{name} darf nicht negativ sein.")
+        if not self.beratung_entfaellt and (
+            self.abstimmung_fruehestens_tage or self.abstimmung_spaetestens_tage_nach_schwelle
+        ):
+            raise PolicyFehler(
+                "Frühester und spätester Abstimmungsbeginn gelten nur für Verfahren ohne Beratungsphase "
+                "(beratung_entfaellt)."
+            )
         if self.mehrheitsbasis not in ("ja_nein", "abgegeben"):
             raise PolicyFehler(f"Unbekannte Mehrheitsbasis: {self.mehrheitsbasis!r}")
         for name, wert in (("review_tage", self.review_tage), ("ueberarbeitung_tage", self.ueberarbeitung_tage)):

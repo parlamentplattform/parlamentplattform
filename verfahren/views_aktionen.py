@@ -39,6 +39,7 @@ from verfahren.models import (
     Kategorie,
     KategorieAbo,
     Kommentar,
+    Rueckgabezusage,
     StimmabgabeFehler,
     StimmRegister,
     Unterstuetzung,
@@ -47,6 +48,8 @@ from verfahren.models import (
     antrag_einbringen,
     bewerbung_einreichen,
     bewerbung_zustimmen,
+    gegenstand_fuer,
+    kandidatursperre,
     kategorien_zuordnen,
     stimme_abgeben,
     vollzug_fortschreiben,
@@ -287,6 +290,27 @@ def unterstuetzen(request, pk):
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
         messages.error(request, _("Die Unterstützungsphase dieses Antrags ist beendet."))
         return redirect("verfahren:antrag", pk=pk)
+    if antrag.art == Antragsart.VERTRAUENSFRAGE:
+        # § 7 Abs 10 lit c: Abweichend von § 4 Abs 4 lit b kann die Vertrauensfrage nur
+        # unterstützen, wer am Tag der Einbringung für Personenwahlen stimmberechtigt war —
+        # derselbe Kreis, aus dem die Schwelle gerechnet wurde. Der Bestätigungsantrag (lit f Z 3)
+        # kennt keine Unterstützung: Er gilt mit dem Einbringen als unterstützt.
+        from verfahren.views import vertrauensfrage_unterstuetzen_erlaubt
+
+        vf = antrag._vertrauensfrage()
+        if vf is not None and vf.art == "bestaetigung":
+            messages.error(
+                request,
+                _("Ein Bestätigungsantrag wird nicht unterstützt — die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)."),
+            )
+            return redirect("verfahren:antrag", pk=pk)
+        if not vertrauensfrage_unterstuetzen_erlaubt(request.user, antrag):
+            return render(
+                request,
+                "verfahren/vertrauensfrage_nur_stimmberechtigte.html",
+                {"antrag": antrag, "stichtag": timezone.localdate(antrag.eingebracht_am)},
+                status=403,
+            )
     # Grundregel 7: Eine zurückgezogene Unterstützung wird gestempelt, nicht gelöscht — und
     # jede Richtung steht im Audit-Log (ohne Mitgliedsbezug), damit die Zahl der Unterstützer
     # zu jedem Zeitpunkt nachvollziehbar bleibt (§ 5 Abs 3 lit b).
@@ -479,8 +503,10 @@ def abstimmen(request, pk):
         )
         return redirect("verfahren:antrag", pk=pk)
     stichtag = antrag.stichtag_der_stimmberechtigung()
+    # § 4 Abs 4: derselbe Gegenstand wie beim Zählen der Stimmberechtigten (`fortschreiben`) —
+    # die Vertrauensfrage ist eine Personenwahl (§ 7 Abs 10 lit a und e), alles andere Sachfrage.
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.SACHFRAGE, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+        gegenstand_fuer(antrag), stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if request.user.adresswechsel_offen:
@@ -720,13 +746,27 @@ def bewerben(request, pk):
             _("Bitte bestätigen Sie, dass Sie die gesetzlichen Voraussetzungen der Wählbarkeit erfüllen."),
         )
         return redirect("verfahren:antrag", pk=pk)
+    # § 7 Abs 3: Die Erklärung, ob die Rückgabezusage abgegeben wird, gehört zur Beteiligung am
+    # Kandidatur-Antrag — Pflichtangabe, aber frei in beide Richtungen; „nicht abgegeben“ ist
+    # weder Hindernis noch Makel, nur ein öffentlich ausgewiesener Sachverhalt.
+    zusage = request.POST.get("rueckgabezusage", "")
+    if zusage not in (Rueckgabezusage.ABGEGEBEN.value, Rueckgabezusage.NICHT_ABGEGEBEN.value):
+        messages.error(
+            request,
+            _("Bitte erklären Sie, ob Sie die Rückgabezusage abgeben oder nicht abgeben (§ 7 Abs 3) — beides ist zulässig."),
+        )
+        return redirect("verfahren:antrag", pk=pk)
     try:
-        bewerbung_einreichen(antrag, request.user, request.POST.get("vorstellung", ""))
+        bewerbung_einreichen(antrag, request.user, request.POST.get("vorstellung", ""), rueckgabezusage=zusage)
         messages.success(
             request, _("Ihre Bewerbung ist erfasst — Sie werden im Antragsfenster als wählbar geführt.")
         )
-    except BewerbungsFehler:
-        messages.error(request, _("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."))
+    except BewerbungsFehler as fehler:
+        if kandidatursperre(request.user):
+            # § 7 Abs 10 lit f Z 3: Die Fachoperation sagt, warum — übersetzt.
+            messages.error(request, str(fehler))
+        else:
+            messages.error(request, _("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1)."))
     return redirect("verfahren:antrag", pk=pk)
 
 
@@ -809,6 +849,17 @@ def export_json(request, pk):
         ],
         "exportiert_am": timezone.now().isoformat(),
     }
+    vf = antrag._vertrauensfrage()
+    if vf is not None:
+        # § 7 Abs 10 lit e: ausgezählt wie eine Sachfrage — `art` bleibt „vertrauensfrage“, damit
+        # verify/nachrechnen.py „verloren/gewonnen“ liefert; dazu, worüber entschieden wurde.
+        daten["vertrauensfrage"] = {
+            "art": vf.art,
+            "mandat": vf.mandat_id,
+            "stimmberechtigte_am_einbringungstag": vf.stimmberechtigte_partei_am_einbringungstag,
+            "schwelle": vf.schwelle_partei,
+            "ergebnis": vf.ergebnis_wort,
+        }
     if antrag.art == Antragsart.MANDAT:
         # Personenwahl (§ 7 Abs 1): Bewerbungen in Einreichungsreihenfolge und alle
         # Zustimmungen (Pseudonym → Bewerbung) — jede Person kann das Ergebnis

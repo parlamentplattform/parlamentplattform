@@ -1,0 +1,14 @@
+{% load i18n %}{% comment %}
+Die Stellungnahmen des Mandatsträgers zu einer Vertrauensfrage (§ 7 Abs 10 lit d), lesend: jeder
+Eintrag im Wortlaut mit Zeitstempel, in der Reihenfolge des Entstehens — append-only, nie geändert.
+Erwartet `vf` (Vertrauensfrage) und `stellungnahmen` (Liste). Das Formular zum Stellungnehmen liegt
+bei der Mandatare-App (`mandatare/_stellungnahmen.html`); gibt es diese Vorlage, ersetzt sie diese.
+{% endcomment %}{% for s in stellungnahmen %}
+<div class="kommentar stellungnahme">
+  <div class="kopf">{{ s.erstellt_am|date:"d.m.Y, H:i" }}</div>
+  <div class="text-lang">{{ s.text|linebreaksbr }}</div>
+</div>
+{% empty %}
+<p class="leer">{% translate "Noch keine Stellungnahme." %}</p>
+{% endfor %}
+{% if vf.laeuft %}<p class="hilfe">{% translate "Der Mandatsträger kann bis zum Ende der Abstimmung Stellung nehmen; Untätigkeit hemmt das Verfahren nicht (§ 7 Abs 10 lit d)." %}</p>{% endif %}

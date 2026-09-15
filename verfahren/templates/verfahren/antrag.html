@@ -16,7 +16,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
     <span class="badge b-{{ antrag.phase }}">{{ antrag.phase|phase_name }}</span>
-    {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% endif %}
+    {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
     {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
     <span class="a-stern">{% include "verfahren/_stern.html" with antrag=antrag %}</span>
@@ -28,6 +28,38 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     · {% if mandatsfrage.ist_sitzungstag %}{% translate "Sitzungstag" %}{% else %}{% translate "Frist des Reports" %}{% endif %} {{ mandatsfrage.frist|date:"d.m.Y H:i" }}{% endif %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   <div class="band-gold mandatsfrage-band"><strong>{% translate "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase" %}</strong></div>
+  {% elif vertrauensfrage %}
+  {% comment %}
+  § 7 Abs 10: Kopfzeile mit dem Weg zum Mandatar, die mit dem Antrag veröffentlichten Zahlen (lit c), das
+  Erreichen der Schwelle und der Abstimmungsbeginn (lit e), der Sperrhinweis samt Frist des Integritätsrats
+  (lit b und g) und nach dem Ergebnis der Rechtsschutz (lit h) — alles als Bänder, nichts davon bewertet.
+  {% endcomment %}
+  <p class="a-meta">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigungsantrag von" %}{% else %}{% translate "Vertrauensfrage zu" %}{% endif %} <a href="{% url 'mandatare:detail' vertrauensfrage.mandat.pk %}">{{ vertrauensfrage.mandatar.anzeigename }}</a> ({{ vertrauensfrage.mandat.bezeichnung }})
+    · {% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }}{% if not vertrauensfrage.ist_bestaetigung %} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
+    · {% translate "Anlässe:" %} {{ vertrauensfrage.anzahl_anlaesse }}
+    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% endif %}{% if frist %}
+    · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
+  {% if vertrauensfrage.ist_bestaetigung %}
+  <div class="band-gold vf-band"><strong>{% translate "Bestätigungsantrag nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung." %}</strong></div>
+  {% else %}
+  <div class="band-gold vf-band vf-band-schwelle"><strong>{% blocktranslate with n=vertrauensfrage.stimmberechtigte m=vertrauensfrage.schwelle %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ m }} Unterstützungen (§ 7 Abs 10 lit c){% endblocktranslate %}</strong>
+    {% if vertrauensfrage.regionaler_weg_offen %}<span class="erk">{% translate "Der regionale Weg nach § 7 Abs 10 lit c steht offen, sobald die Plattform Gliederungen führt (§ 14 Abs 4)." %}</span>{% endif %}</div>
+  {% endif %}
+  {% if vertrauensfrage.schwelle_erreicht_am and not vertrauensfrage.ist_bestaetigung %}
+  <div class="band-gold vf-band vf-band-erreicht"><strong>{% blocktranslate with wann=vertrauensfrage.schwelle_erreicht_am|date:"d.m.Y, H:i" %}Schwelle erreicht am {{ wann }}{% endblocktranslate %}</strong>{% if vertrauensfrage.abstimmung_ab %} · {% blocktranslate with ab=vertrauensfrage.abstimmung_ab|date:"d.m.Y, H:i" %}Abstimmung ab {{ ab }} (§ 7 Abs 10 lit e){% endblocktranslate %}{% endif %}</div>
+  {% elif vertrauensfrage.abstimmung_ab %}
+  <div class="band-gold vf-band vf-band-erreicht"><strong>{% blocktranslate with ab=vertrauensfrage.abstimmung_ab|date:"d.m.Y, H:i" %}Abstimmung ab {{ ab }} (§ 7 Abs 10 lit e){% endblocktranslate %}</strong></div>
+  {% endif %}
+  {% if vertrauensfrage.sperre.stand == "festgestellt" %}
+  <div class="band-gold vf-band vf-band-sperre"><strong>{% blocktranslate with nummer=vertrauensfrage.sperre.beschluss.nummer %}Nicht eröffnet: Der Integritätsrat hat mit Beschluss {{ nummer }} eine Sperre nach § 7 Abs 10 lit g festgestellt.{% endblocktranslate %}</strong> {% translate "Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit b und h)." %} <a href="{% url 'gremien:beschluss' vertrauensfrage.sperre.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>
+  {% elif vertrauensfrage.sperre.stand == "pruefung" %}
+  <div class="band-gold vf-band vf-band-sperre"><strong>{% blocktranslate with bis=vertrauensfrage.sperre.bis|date:"d.m.Y, H:i" %}Der Integritätsrat prüft eine Sperre nach § 7 Abs 10 lit g bis {{ bis }} — bis dahin läuft der Antrag.{% endblocktranslate %}</strong> {{ vertrauensfrage.sperre.text }} {% translate "Eine Feststellung wäre binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit h)." %}</div>
+  {% elif vertrauensfrage.sperre.stand == "abgelaufen" %}
+  <div class="band-gold vf-band vf-band-sperre"><strong>{% translate "Sperrhinweis ohne Feststellung: Die Frist des Integritätsrats ist abgelaufen — der Antrag gilt als eröffnet (§ 7 Abs 10 lit b)." %}</strong> {{ vertrauensfrage.sperre.text }}</div>
+  {% endif %}
+  {% if vertrauensfrage.ergebnis_wort %}
+  <div class="band-gold vf-band vf-band-ergebnis"><strong>{{ vertrauensfrage.ergebnis_wort }}</strong>{% if vertrauensfrage.rechtsschutz_stand %} · {% translate "Rechtsschutz:" %} {{ vertrauensfrage.rechtsschutz_stand }}{% elif vertrauensfrage.anfechtbar_bis %} · {% blocktranslate with bis=vertrauensfrage.anfechtbar_bis|date:"d.m.Y, H:i" %}bekämpfbar beim Parteischiedsgericht binnen sieben Tagen ab Veröffentlichung — bis {{ bis }} (§ 7 Abs 10 lit h){% endblocktranslate %}{% endif %}{% if vertrauensfrage.rueckgabefrist_ende %} · {% blocktranslate with bis=vertrauensfrage.rueckgabefrist_ende|date:"d.m.Y" %}öffentlich ersucht, das Mandat bis {{ bis }} zurückzulegen — die Entscheidung liegt allein beim Mandatsträger (§ 7 Abs 10 lit f Z 4){% endblocktranslate %}{% endif %}</div>
+  {% endif %}
   {% else %}
   <p class="a-meta">{% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
     · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if frist %}
@@ -36,7 +68,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% if antrag.hervorgehoben %}<div class="band-gold"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
   {# § 6 Abs 3 lit d: Die Aussetzung ist zu veröffentlichen — also auch hier, wo die Frist steht (Befund #30) #}
   {% if aussetzung %}<div class="band-gold aussetzung-band"><strong>{% blocktranslate with seit=aussetzung.beginn|date:"d.m.Y" nummer=aussetzung.beschluss.nummer %}Ausgesetzt seit {{ seit }} durch Beschluss {{ nummer }} des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d).{% endblocktranslate %}</strong> {{ aussetzung.begruendung }} <a href="{% url 'gremien:beschluss' aussetzung.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>{% endif %}
-  {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
+  {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% if vertrauensfrage.sperre.stand == "festgestellt" %}{% translate "Nicht eröffnet (§ 7 Abs 10 lit b):" %}{% else %}{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}{% endif %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
 </header>
 
 <nav class="zonenleiste" aria-label="{% translate 'Zonen dieser Seite' %}">
@@ -60,15 +92,60 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       {% endif %}
     </div>
 
+    {% if vertrauensfrage and not vertrauensfrage.ist_bestaetigung %}
+    {% comment %}
+    § 7 Abs 10 lit b: Zu jedem Anlass werden der Beschluss der Plattform, das Stimmverhalten und die
+    Begründung des Mandatsträgers neben dem Antrag dargestellt — aus dem Rechenschaftsregister, ohne Bewertung.
+    {% endcomment %}
+    <div class="karte" id="anlaesse">
+      <h3>{% translate "Anlässe" %} ({{ vertrauensfrage.anzahl_anlaesse }})</h3>
+      {% if vertrauensfrage.anlaesse %}
+      <div class="tabelle-rollt"><table class="tabelle vf-anlaesse">
+        <thead><tr><th>{% translate "Gegenstand" %}</th><th>{% translate "Beschluss der Plattform" %}</th><th>{% translate "Stimme" %}</th><th>{% translate "Begründung des Mandatars" %}</th></tr></thead>
+        <tbody>
+        {% for r in vertrauensfrage.anlaesse %}
+        <tr><td>{% if r.antrag %}<a href="{% url 'verfahren:antrag' r.antrag.pk %}">{{ r.gegenstand }}</a>{% else %}{{ r.gegenstand }}{% endif %}<br><span class="erk">{% translate "Sitzung" %} {{ r.sitzung_am|date:"d.m.Y" }}</span></td><td>{{ r.beschluss_text }}</td><td>{{ r.get_stimme_display }}</td><td>{{ r.begruendung|linebreaksbr }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% endif %}
+      {% for a in vertrauensfrage.ausstaende %}
+      <p class="vf-ausstand"><strong>{{ a.art }} {{ a.bezug }}</strong> — {% blocktranslate count t=a.tage %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %} ({% translate "Frist" %} {{ a.seit|slice:":10" }})</p>
+      {% endfor %}
+      <p class="hilfe"><a href="{% url 'mandatare:rechenschaft_mandat' vertrauensfrage.mandat.pk %}">{% translate "Zum Rechenschaftsregister des Mandatars" %}</a></p>
+    </div>
+    {% endif %}
+
+    {% if vertrauensfrage %}
+    {% comment %}
+    § 7 Abs 10 lit d: Das Gehör des Mandatsträgers — im Wortlaut, in gleicher Breite, mit Zeitstempeln,
+    ergänzbar bis zum Ende der Abstimmung, nie nachträglich geändert. Den Inhalt der Karte liefert die
+    Mandatare-App (`mandatare/_stellungnahmen.html`, mit dem Formular des Mandatsträgers); solange es sie
+    nicht gibt, zeigt `verfahren/_stellungnahmen.html` die Einträge lesend.
+    {% endcomment %}
+    <div class="karte handlung" id="stellungnahme">
+      <h3>{% translate "Stellungnahme des Mandatsträgers" %}</h3>
+      {% include vertrauensfrage.stellungnahmen_vorlagen with vf=vertrauensfrage.vf stellungnahmen=vertrauensfrage.stellungnahmen %}
+    </div>
+    {% endif %}
+
     {# Handlungskarte je Phase (FB-F1): was jetzt zu tun ist, direkt unter dem Text #}
-    {% if antrag.phase == "unterstuetzung" %}
+    {% if antrag.phase == "unterstuetzung" and vertrauensfrage.ist_bestaetigung %}
+    <div class="karte handlung">
+      <h3>{% translate "Abstimmung" %}</h3>
+      <p>{% if vertrauensfrage.abstimmung_ab %}{% blocktranslate with ab=vertrauensfrage.abstimmung_ab|date:"d.m.Y, H:i" %}Der Antrag gilt als unterstützt; die Abstimmung beginnt am {{ ab }} (§ 7 Abs 10 lit f Z 3).{% endblocktranslate %}{% else %}{% translate "Der Antrag gilt als unterstützt; die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)." %}{% endif %}</p>
+    </div>
+    {% elif antrag.phase == "unterstuetzung" %}
     <div class="karte handlung">
       <h3>{% translate "Unterstützen" %}</h3>
-      {% if user.is_authenticated %}
+      {% if user.is_authenticated and vertrauensfrage and not vertrauensfrage.unterstuetzen_erlaubt %}
+        <p>{% blocktranslate with tag=vertrauensfrage.stichtag|date:"d.m.Y" %}Unterstützen kann nur, wer am Tag der Einbringung ({{ tag }}) für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c).{% endblocktranslate %}</p>
+      {% elif user.is_authenticated %}
         <form method="post" action="{% url 'verfahren:unterstuetzen' antrag.pk %}" class="stimmzeile">{% csrf_token %}
           {% if unterstuetzt_von_mir %}
             <span>{% translate "Sie unterstützen diesen Antrag." %}</span>
             <button type="submit" class="btn-still">{% translate "Unterstützung zurückziehen" %}</button>
+            {% if vertrauensfrage.schwelle_erreicht_am %}<span class="hilfe">{% translate "Die Schwelle ist erreicht und veröffentlicht — ein Rückzug ändert den Fortgang nicht mehr (§ 7 Abs 10 lit c)." %}</span>{% endif %}
           {% else %}
             <button type="submit" class="btn">{% translate "Diesen Antrag unterstützen" %}</button>
           {% endif %}
@@ -87,7 +164,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <div class="bewerbung">
         <span class="avatar-initiale" aria-hidden="true">{{ b.mitglied.anzeigename|slice:":1"|upper }}</span>
         <div class="b-inhalt">
-          <div class="b-kopf"><strong>{{ b.mitglied.anzeigename }}</strong> · {% translate "beworben am" %} {{ b.erstellt_am|date:"d.m.Y" }}</div>
+          <div class="b-kopf"><strong>{{ b.mitglied.anzeigename }}</strong> · {% translate "beworben am" %} {{ b.erstellt_am|date:"d.m.Y" }}{% if b.rueckgabezusage %} · {% translate "Rückgabezusage:" %} {{ b.get_rueckgabezusage_display }}{% endif %}</div>
           {% if b.vorstellung %}<div>{{ b.vorstellung|linebreaksbr }}</div>{% endif %}
         </div>
         {% if kandidatur.zustimmen_offen and user.is_authenticated %}
@@ -125,6 +202,16 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
           <textarea name="vorstellung" id="id_vorstellung" rows="4" maxlength="2000" placeholder="{% translate 'Wer bin ich, wofür stehe ich, was bringe ich mit.' %}"></textarea></p>
           <p><label class="ankreuz"><input type="checkbox" name="waehlbar" value="1" required>
           <span class="hilfe">{% translate "Ich bestätige, die gesetzlichen Voraussetzungen der Wählbarkeit zu erfüllen — insbesondere das passive Wahlalter (Art 26 Abs 4 B-VG, § 7 Abs 1 des Satzungsentwurfs)." %}</span></label></p>
+          {% comment %}
+          § 7 Abs 3: Die Erklärung zur Rückgabezusage gehört zur Beteiligung am Kandidatur-Antrag — Pflichtangabe,
+          in beide Richtungen frei; sie ist eine freiwillige, nicht einklagbare Ehrenerklärung und wird öffentlich ausgewiesen.
+          {% endcomment %}
+          <fieldset class="rueckgabezusage">
+            <legend>{% translate "Rückgabezusage (§ 7 Abs 3)" %}</legend>
+            <p class="hilfe">{% translate "Die Rückgabezusage ist die Erklärung, das Mandat im Fall einer verlorenen Vertrauensfrage binnen der Frist zurückzulegen. Sie ist freiwillig und nicht einklagbar; ob sie abgegeben wird, wird beim Antrag und im Rechenschaftsregister öffentlich ausgewiesen — ihre Abgabe ist keine Voraussetzung der Aufnahme in den Wahlvorschlag." %}</p>
+            <p><label class="ankreuz"><input type="radio" name="rueckgabezusage" value="abgegeben" required> <span>{% translate "Ich gebe die Rückgabezusage ab." %}</span></label></p>
+            <p><label class="ankreuz"><input type="radio" name="rueckgabezusage" value="nicht_abgegeben" required> <span>{% translate "Ich gebe die Rückgabezusage nicht ab." %}</span></label></p>
+          </fieldset>
           <button type="submit" class="btn-linie">{% translate "Bewerbung einreichen" %}</button>
         </form>
       {% endif %}
@@ -136,6 +223,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% if abstimmung_laeuft and antrag.art != "mandat" %}
     <div class="karte handlung" id="abstimmen">
       <h3>{% translate "Abstimmen" %}</h3>
+      {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
       {% if user.is_authenticated %}
         {% if meine_stimme %}<p>{% translate "Ihre aktuelle Stimme:" %} <strong>{{ meine_stimme|phase_name }}</strong> — {% translate "Sie können sie bis zum Fristende ändern." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>{% endif %}
         <form method="post" action="{% url 'verfahren:abstimmen' antrag.pk %}" class="stimmzeile">{% csrf_token %}
@@ -170,7 +258,14 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% if ergebnis %}
     <div class="karte handlung">
       <h3>{% translate "Ergebnis" %}</h3>
+      {% if vertrauensfrage.ergebnis_wort %}
+      {# § 7 Abs 10 lit e: verloren, wenn angenommen — sonst gewonnen, auch bei verfehlter Mindestbeteiligung; die Auszählung bleibt dieselbe #}
+      <p><strong>{{ vertrauensfrage.ergebnis_wort }}</strong></p>
+      <p class="erk">{% translate "Auszählung:" %} {{ ergebnis.begruendung }}</p>
+      <p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>
+      {% else %}
       <p><strong>{{ ergebnis.begruendung }}</strong></p>
+      {% endif %}
       <p>{% translate "Ja" %} {{ ergebnis.ja }} · {% translate "Nein" %} {{ ergebnis.nein }} · {% translate "Enthaltung" %} {{ ergebnis.enthaltung }} · {% translate "Stimmberechtigte" %} {{ ergebnis.stimmberechtigte }}</p>
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a> {% blocktranslate %}und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8).{% endblocktranslate %}{% if user.is_authenticated %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>.{% endif %}</p>
     </div>

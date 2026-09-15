@@ -7038,3 +7038,193 @@ msgstr "From now until the end of the vote you can respond; the response is publ
 
 msgid "Antrag:"
 msgstr "Motion:"
+
+# ── 0.48: Cluster R ──
+
+msgid "Vertrauensfrage zu"
+msgstr "Confidence question about"
+
+msgid "Bestätigungsantrag von"
+msgstr "Confirmation motion by"
+
+msgid "Bestätigung (§ 7 Abs 10)"
+msgstr "Confirmation (§ 7 (10))"
+
+msgid "Anlässe:"
+msgstr "Grounds:"
+
+msgid "Anlässe"
+msgstr "Grounds"
+
+msgid "Begründung des Mandatars"
+msgstr "Reasoning of the office holder"
+
+msgid "Sitzung"
+msgstr "Session"
+
+msgid "Zum Rechenschaftsregister des Mandatars"
+msgstr "To the office holder’s accountability register"
+
+msgid "Stellungnahme des Mandatsträgers"
+msgstr "Statement of the office holder"
+
+msgid "Noch keine Stellungnahme."
+msgstr "No statement yet."
+
+msgid "Der Mandatsträger kann bis zum Ende der Abstimmung Stellung nehmen; Untätigkeit hemmt das Verfahren nicht (§ 7 Abs 10 lit d)."
+msgstr "The office holder may respond until the end of the vote; inaction does not stay the procedure (§ 7 (10) lit d)."
+
+#, python-format
+msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützungen (§ 7 Abs 10 lit c)"
+msgstr "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s endorsements (§ 7 (10) lit c)"
+
+msgid "Der regionale Weg nach § 7 Abs 10 lit c steht offen, sobald die Plattform Gliederungen führt (§ 14 Abs 4)."
+msgstr "The regional route under § 7 (10) lit c opens as soon as the platform keeps regional branches (§ 14 (4))."
+
+msgid "Bestätigungsantrag nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung."
+msgstr "Confirmation motion under § 7 (10) lit f no. 3 — without endorsement and deliberation phases; the vote begins on the seventh day after submission."
+
+#, python-format
+msgid "Schwelle erreicht am %(wann)s"
+msgstr "Threshold reached on %(wann)s"
+
+#, python-format
+msgid "Abstimmung ab %(ab)s (§ 7 Abs 10 lit e)"
+msgstr "Vote from %(ab)s (§ 7 (10) lit e)"
+
+#, python-format
+msgid "Abstimmung ab %(ab)s"
+msgstr "Vote from %(ab)s"
+
+msgid "Abstimmung am siebten Tag nach Einbringung"
+msgstr "Vote on the seventh day after submission"
+
+#, python-format
+msgid "Nicht eröffnet: Der Integritätsrat hat mit Beschluss %(nummer)s eine Sperre nach § 7 Abs 10 lit g festgestellt."
+msgstr "Not opened: by resolution %(nummer)s the Integrity Council has determined a bar under § 7 (10) lit g."
+
+msgid "Die Feststellung ist vom Antragsteller binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit b und h)."
+msgstr "The applicant may challenge the determination before the party arbitration tribunal within seven days (§ 7 (10) lit b and h)."
+
+#, python-format
+msgid "Der Integritätsrat prüft eine Sperre nach § 7 Abs 10 lit g bis %(bis)s — bis dahin läuft der Antrag."
+msgstr "The Integrity Council is examining a bar under § 7 (10) lit g until %(bis)s — the motion runs until then."
+
+msgid "Eine Feststellung wäre binnen sieben Tagen beim Parteischiedsgericht bekämpfbar (§ 7 Abs 10 lit h)."
+msgstr "A determination could be challenged before the party arbitration tribunal within seven days (§ 7 (10) lit h)."
+
+msgid "Sperrhinweis ohne Feststellung: Die Frist des Integritätsrats ist abgelaufen — der Antrag gilt als eröffnet (§ 7 Abs 10 lit b)."
+msgstr "Bar notice without determination: the Integrity Council’s deadline has passed — the motion counts as opened (§ 7 (10) lit b)."
+
+msgid "Nicht eröffnet (§ 7 Abs 10 lit b):"
+msgstr "Not opened (§ 7 (10) lit b):"
+
+msgid "Rechtsschutz:"
+msgstr "Legal protection:"
+
+#, python-format
+msgid "bekämpfbar beim Parteischiedsgericht binnen sieben Tagen ab Veröffentlichung — bis %(bis)s (§ 7 Abs 10 lit h)"
+msgstr "may be challenged before the party arbitration tribunal within seven days of publication — until %(bis)s (§ 7 (10) lit h)"
+
+#, python-format
+msgid "öffentlich ersucht, das Mandat bis %(bis)s zurückzulegen — die Entscheidung liegt allein beim Mandatsträger (§ 7 Abs 10 lit f Z 4)"
+msgstr "publicly requested to resign the mandate by %(bis)s — the decision rests solely with the office holder (§ 7 (10) lit f no. 4)"
+
+#, python-format
+msgid "Der Antrag gilt als unterstützt; die Abstimmung beginnt am %(ab)s (§ 7 Abs 10 lit f Z 3)."
+msgstr "The motion counts as endorsed; the vote begins on %(ab)s (§ 7 (10) lit f no. 3)."
+
+msgid "Der Antrag gilt als unterstützt; die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)."
+msgstr "The motion counts as endorsed; the vote begins on the seventh day after submission (§ 7 (10) lit f no. 3)."
+
+#, python-format
+msgid "Unterstützen kann nur, wer am Tag der Einbringung (%(tag)s) für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c)."
+msgstr "Only members who were eligible to vote in personal elections on the day of submission (%(tag)s) may endorse (§ 7 (10) lit c)."
+
+msgid "Die Schwelle ist erreicht und veröffentlicht — ein Rückzug ändert den Fortgang nicht mehr (§ 7 Abs 10 lit c)."
+msgstr "The threshold has been reached and published — a withdrawal no longer changes the course of the procedure (§ 7 (10) lit c)."
+
+msgid "Unterstützen nur mit Stimmrecht für Personenwahlen"
+msgstr "Endorsing requires voting rights in personal elections"
+
+msgid "Auszählung:"
+msgstr "Count:"
+
+msgid "Rückgabezusage:"
+msgstr "Resignation pledge:"
+
+msgid "Rückgabezusage (§ 7 Abs 3)"
+msgstr "Resignation pledge (§ 7 (3))"
+
+msgid "Die Rückgabezusage ist die Erklärung, das Mandat im Fall einer verlorenen Vertrauensfrage binnen der Frist zurückzulegen. Sie ist freiwillig und nicht einklagbar; ob sie abgegeben wird, wird beim Antrag und im Rechenschaftsregister öffentlich ausgewiesen — ihre Abgabe ist keine Voraussetzung der Aufnahme in den Wahlvorschlag."
+msgstr "The resignation pledge is the declaration to resign the mandate within the deadline if a confidence question is lost. It is voluntary and not enforceable; whether it is given is shown publicly at the motion and in the accountability register — giving it is not a condition for inclusion in the list of candidates."
+
+msgid "Ich gebe die Rückgabezusage ab."
+msgstr "I give the resignation pledge."
+
+msgid "Ich gebe die Rückgabezusage nicht ab."
+msgstr "I do not give the resignation pledge."
+
+msgid "Bitte erklären Sie, ob Sie die Rückgabezusage abgeben oder nicht abgeben (§ 7 Abs 3) — beides ist zulässig."
+msgstr "Please declare whether you give or do not give the resignation pledge (§ 7 (3)) — both are permitted."
+
+msgid "Ein Bestätigungsantrag wird nicht unterstützt — die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)."
+msgstr "A confirmation motion is not endorsed — the vote begins on the seventh day after submission (§ 7 (10) lit f no. 3)."
+
+msgid "Kein Unterstützungsrecht für diese Vertrauensfrage"
+msgstr "No right to endorse this confidence question"
+
+#, python-format
+msgid "Eine Vertrauensfrage kann nur unterstützen, wer am Tag der Einbringung — dem %(tag)s — für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c; die Anwartschaft regelt § 4 Abs 4 lit b). Wer an diesem Tag noch nicht Mitglied, noch nicht bestätigt oder pausiert war, zählt nicht dazu — die Schwelle wurde aus demselben Kreis gerechnet."
+msgstr "Only members who were eligible to vote in personal elections on the day of submission — %(tag)s — may endorse a confidence question (§ 7 (10) lit c; the waiting period is set by § 4 (4) lit b). Anyone who was not yet a member, not yet confirmed or paused on that day does not count — the threshold was calculated from the same group."
+
+msgid "Das Antragsrecht bleibt jedem Mitglied; abstimmen können Sie, sobald Sie am Stichtag der Abstimmung stimmberechtigt sind."
+msgstr "The right to submit remains with every member; you can vote as soon as you are eligible on the vote’s reference date."
+
+msgid "Ja = Vertrauen versagen"
+msgstr "Yes = withhold confidence"
+
+msgid "Nein = Vertrauen aussprechen"
+msgstr "No = express confidence"
+
+msgid "Ja = bestätigen"
+msgstr "Yes = confirm"
+
+msgid "Nein = nicht bestätigen"
+msgstr "No = do not confirm"
+
+msgid "Abstimmungsbeginn"
+msgstr "Start of the vote"
+
+msgid "keine — der Bestätigungsantrag gilt mit dem Einbringen als unterstützt (§ 7 Abs 10 lit f Z 3)"
+msgstr "none — the confirmation motion counts as endorsed upon submission (§ 7 (10) lit f no. 3)"
+
+msgid "keine Beratungsphase (§ 7 Abs 10 lit c)"
+msgstr "no deliberation phase (§ 7 (10) lit c)"
+
+#, python-format
+msgid "am %(tag)s. Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)"
+msgstr "on day %(tag)s after submission (§ 7 (10) lit f no. 3)"
+
+#, python-format
+msgid "fünf Prozent der %(n)s am Einbringungstag für Personenwahlen Stimmberechtigten (§ 7 Abs 10 lit c)"
+msgstr "five percent of the %(n)s members eligible to vote in personal elections on the day of submission (§ 7 (10) lit c)"
+
+msgid "höchstens 30 Tage (§ 7 Abs 10 lit c)"
+msgstr "at most 30 days (§ 7 (10) lit c)"
+
+#, python-format
+msgid "frühestens am %(frueh)s. Tag nach Einbringung, spätestens am %(spaet)s. Tag nach Erreichen der Schwelle (§ 7 Abs 10 lit e)"
+msgstr "at the earliest on day %(frueh)s after submission, at the latest on day %(spaet)s after the threshold is reached (§ 7 (10) lit e)"
+
+msgid "mindestens sieben Tage (§ 7 Abs 10 lit e)"
+msgstr "at least seven days (§ 7 (10) lit e)"
+
+msgid "Schwelle"
+msgstr "Threshold"
+
+msgid "Stimmberechtigte am Einbringungstag"
+msgstr "Members eligible to vote on the day of submission"
+
+msgid "ohne Beratungsphase (§ 7 Abs 10 lit c)"
+msgstr "without deliberation phase (§ 7 (10) lit c)"

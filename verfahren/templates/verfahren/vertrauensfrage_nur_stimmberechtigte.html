@@ -1,0 +1,11 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Kein Unterstützungsrecht für diese Vertrauensfrage" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Kein Unterstützungsrecht für diese Vertrauensfrage" %}</h1>
+<div class="karte">
+<p>{% blocktranslate with tag=stichtag|date:"d.m.Y" %}Eine Vertrauensfrage kann nur unterstützen, wer am Tag der Einbringung — dem {{ tag }} — für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c; die Anwartschaft regelt § 4 Abs 4 lit b). Wer an diesem Tag noch nicht Mitglied, noch nicht bestätigt oder pausiert war, zählt nicht dazu — die Schwelle wurde aus demselben Kreis gerechnet.{% endblocktranslate %}</p>
+<p style="margin-top:10px">{% translate "Das Antragsrecht bleibt jedem Mitglied; abstimmen können Sie, sobald Sie am Stichtag der Abstimmung stimmberechtigt sind." %}</p>
+<p style="margin-top:10px"><a href="{% url 'verfahren:antrag' antrag.pk %}">&larr; {% translate "Zurück zum Antrag" %}</a></p>
+</div>
+{% endblock %}

@@ -18,12 +18,15 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
   <a class="k-titel" href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>
 
   <div class="k-meta"><span class="badge">{{ k.antrag.phase|phase_name }}</span>
-    {% if k.antrag.art == "mandat" %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% elif k.antrag.art == "mandatsfrage" %}<span class="badge badge--hell">{% translate "Mandatsfrage" %}</span>{% endif %}
+    {% if k.antrag.art == "mandat" %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% elif k.antrag.art == "mandatsfrage" %}<span class="badge badge--hell">{% translate "Mandatsfrage" %}</span>{% elif k.antrag.art == "vertrauensfrage" %}<span class="badge badge--hell">{% if k.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if k.antrag.gebiet and not ort_versteckt %}<span class="rest ort">{{ k.antrag.gebiet }}</span>{% endif %}</div>
 
   {% if k.stat.typ == "unterstuetzung" %}
     <div class="balken" aria-hidden="true"><b style="width:{{ k.stat.prozent }}%"></b></div>
-    <span class="rest">{% blocktranslate with n=k.stat.n s=k.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}</span>
+    <span class="rest">{% blocktranslate with n=k.stat.n s=k.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% if k.abstimmung_ab %} · {% blocktranslate with ab=k.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% endif %}</span>
+  {% elif k.stat.typ == "wartezeit" %}
+    {# § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag gilt als unterstützt — die Abstimmung beginnt am siebten Tag #}
+    <span class="rest">{% if k.abstimmung_ab %}{% blocktranslate with ab=k.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% else %}{% translate "Abstimmung am siebten Tag nach Einbringung" %}{% endif %}</span>
   {% elif k.stat.typ == "beratung" %}
     <span class="rest">{% blocktranslate count b=k.stat.beitraege %}{{ b }} Beitrag in der Beratung{% plural %}{{ b }} Beiträge in der Beratung{% endblocktranslate %}</span>
   {% elif k.stat.typ == "abstimmung" %}
@@ -53,7 +56,11 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
           <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
           <button name="stimme" value="enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
         </form>
+        {% if k.legende %}<span class="rest vf-legende">{{ k.legende.0 }} · {{ k.legende.1 }}</span>{% endif %}
       {% endif %}
+    {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated and not k.unterstuetzen_erlaubt %}
+      {# § 7 Abs 10 lit c: Unterstützen nur, wer am Einbringungstag für Personenwahlen stimmberechtigt war #}
+      <span class="rest">{% translate "Unterstützen nur mit Stimmrecht für Personenwahlen" %}</span>
     {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" class="stimmreihe"
         hx-post="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">

@@ -154,16 +154,39 @@ def _tage_zaehler(tag: date | None, heute: date) -> dict | None:
     return {"tage": abs(rest), "vorbei": rest < 0, "heute": rest == 0}
 
 
+def _rueckgabezusagen_fuer(mandate) -> dict[int, tuple[str, str]]:
+    """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle je Mandat — mit einer Abfrage für alle: der Vermerk
+    am Mandat (Verwaltung, „mandat“), sonst die Erklärung aus der Bewerbung zur verknüpften Kandidatur
+    („bewerbung“); leer heißt „keine Angabe“. Seite und JSON lesen dieselbe Quelle."""
+    mandate = list(mandate)
+    offen = [m for m in mandate if not m.rueckgabezusage and m.kandidatur_id]
+    aus_bewerbung: dict[tuple[int, int], str] = {}
+    if offen:
+        treffer = Bewerbung.objects.filter(
+            antrag_id__in={m.kandidatur_id for m in offen}, mitglied_id__in={m.mitglied_id for m in offen}
+        ).values_list("antrag_id", "mitglied_id", "rueckgabezusage")
+        aus_bewerbung = {(a, mi): z for a, mi, z in treffer}
+    ergebnis: dict[int, tuple[str, str]] = {}
+    for m in mandate:
+        if m.rueckgabezusage:
+            ergebnis[m.pk] = (m.rueckgabezusage, "mandat")
+            continue
+        zusage = aus_bewerbung.get((m.kandidatur_id, m.mitglied_id), "")
+        ergebnis[m.pk] = (zusage, "bewerbung") if zusage else (Rueckgabezusage.UNBEKANNT.value, "")
+    return ergebnis
+
+
 def _rueckgabezusage_von(mandat) -> tuple[str, str]:
-    """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der Vermerk am Mandat (Verwaltung), sonst die
-    Erklärung aus der Bewerbung zur verknüpften Kandidatur; leer heißt „keine Angabe“."""
-    if mandat.rueckgabezusage:
-        return mandat.rueckgabezusage, "mandat"
-    if mandat.kandidatur_id:
-        bewerbung = Bewerbung.objects.filter(antrag_id=mandat.kandidatur_id, mitglied_id=mandat.mitglied_id).first()
-        if bewerbung is not None and bewerbung.rueckgabezusage:
-            return bewerbung.rueckgabezusage, "bewerbung"
-    return Rueckgabezusage.UNBEKANNT.value, ""
+    return _rueckgabezusagen_fuer([mandat])[mandat.pk]
+
+
+def _abstimmung_ab(vf: Vertrauensfrage):
+    """Ein Bestätigungsantrag kennt keine Unterstützung (§ 7 Abs 10 lit f Z 3: „lit b, c und g gelten dafür
+    nicht“) — vor der Abstimmung zeigt die Seite deshalb den Tag ihres Beginns statt „0 von 0 Unterstützungen“.
+    None für Vertrauensfragen und außerhalb dieser Wartezeit."""
+    if vf.art != VertrauensfrageArt.BESTAETIGUNG or vf.antrag.phase != Phase.UNTERSTUETZUNG.value:
+        return None
+    return vf.antrag.eingebracht_am + timedelta(days=vf.antrag.policy().abstimmung_fruehestens_tage)
 
 
 def _vertrauen(mandat, heute: date | None = None) -> dict:
@@ -197,6 +220,7 @@ def _vertrauen(mandat, heute: date | None = None) -> dict:
             bestaetigung_ab is not None and heute >= bestaetigung_ab and not bestaetigung_laeuft
         ),
         "bestaetigung_laeuft": bestaetigung_laeuft,
+        "abstimmung_ab": _abstimmung_ab(laufende) if laufende is not None else None,
     }
 
 
@@ -567,9 +591,12 @@ def _vertrauensfragen_json(ebene: str) -> list[dict]:
     Zahlen des Einbringungstags, Stand, Ergebnis als „gewonnen“/„verloren“, Rechtsschutz, Rückgabefrist
     und -zusage, Vermerk — ohne Personenbezug über den Anzeigenamen hinaus."""
     vertrauensfragen_fortschreiben()
+    zeilen = _vertrauensfragen_zeilen(ebene)
+    zusagen = _rueckgabezusagen_fuer({z["vf"].mandat_id: z["vf"].mandat for z in zeilen}.values())
     daten = []
-    for z in _vertrauensfragen_zeilen(ebene):
+    for z in zeilen:
         vf, mandat = z["vf"], z["vf"].mandat
+        zusage, zusage_quelle = zusagen[mandat.pk]
         daten.append(
             {
                 "antrag": vf.antrag_id,
@@ -595,7 +622,8 @@ def _vertrauensfragen_json(ebene: str) -> list[dict]:
                 "entscheidung": vf.entscheidung,
                 "rechtsschutz": vf.rechtsschutz_stand,
                 "rueckgabe_ersucht_bis": _iso(mandat.rueckgabe_ersucht_bis) if vf.verloren else None,
-                "rueckgabezusage": mandat.rueckgabezusage,
+                "rueckgabezusage": zusage,
+                "rueckgabezusage_quelle": zusage_quelle or None,
                 "vermerk": mandat.rueckgabe_vermerk if vf.verloren else "",
                 "vertretung_beendet_am": _iso(mandat.vertretung_beendet_am) if vf.verloren else None,
                 "bestaetigt_am": _iso(mandat.bestaetigt_am),
@@ -634,12 +662,16 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
         ),
         n_stimmen=Count("antrag__stimmabgaben", distinct=True),
     ).order_by("-antrag__eingebracht_am")
+    jetzt = timezone.now()
     zeilen = []
     for vf in qs:
         zeilen.append(
             {
                 "vf": vf,
                 "laeuft": vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND,
+                # lit b: nach drei Tagen ohne Beschluss gilt der Antrag als eröffnet — dann ist der Hinweis Geschichte.
+                "sperrfrist_offen": bool(vf.sperrhinweis) and not vf.nicht_eroeffnet and jetzt < vf.sperrfrist_ende,
+                "abstimmung_ab": _abstimmung_ab(vf),
                 "unterstuetzungen": vf.n_unterstuetzungen,
                 "stimmen": vf.n_stimmen,
                 "ergebnis": _ergebnis_kurz(vf),
@@ -890,17 +922,18 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
         a
         for a in aufgaben
         if a.sitzungstag and a.frist is not None and a.frist <= jetzt
-        and (mandat.beendet is None or timezone.localdate(a.frist) <= mandat.beendet)
+        and (mandat.pflichtende is None or timezone.localdate(a.frist) <= mandat.pflichtende)
     ]
     ohne_sammelbericht = {p["aufgabe"].pk for p in ausstaende["sammelberichte"]}
     ohne_rechenschaft = {p["aufgabe"].pk for p in ausstaende["rechenschaften"]}
     faellig = {p["monat"] for p in ausstaende["monatsberichte"]}
     monate_nachtrag = [
-        m for m in reversed(berichtsmonate(mandat.angetreten, mandat.beendet, heute)) if m not in faellig
+        m for m in reversed(berichtsmonate(mandat.angetreten, mandat.pflichtende, heute)) if m not in faellig
     ]
     mitwirken = request.user.darf_mitwirken and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
     vertrauen = _vertrauen(mandat, heute)
+    ordnung_fehlt = not Verfahrensordnung.objects.filter(aktiv=True).exists()
     return render(
         request,
         "mandatare/mein.html",
@@ -913,7 +946,6 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "darf_bestaetigen": mitwirken and vertrauen["bestaetigung_moeglich"],
             "vertrauen": vertrauen,
             "ruhende_rollen": _ruhende_rollen(request.user),
-            "ordnung_fehlt_bestaetigung": not Verfahrensordnung.objects.filter(aktiv=True).exists(),
             "identitaet_ungeprueft": request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
             "aufgaben": _aufgaben_mit_lage(mandat, aufgaben, ausstaende, heute),
             "ausstaende": ausstaende,
@@ -928,7 +960,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "stimmen": Stimmverhalten.choices,
             "beschluesse": Beschluss.choices,
             "vorgewaehlt": ((eingabe.get("aufgabe") if aktion == "rechenschaft" else request.GET.get("aufgabe")) or "").strip(),
-            "ordnung_fehlt": not Verfahrensordnung.objects.filter(aktiv=True).exists(),
+            "ordnung_fehlt": ordnung_fehlt,
             "eingabe": eingabe,
             "fehler_bei": aktion,
         },
@@ -966,14 +998,15 @@ def _zurueck(request, mandat: Mandat):
 
 
 def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
-    """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None. Bei beendetem Mandat
-    nur Sitzungstage bis zum Endtag (danach bestand keine Pflicht, § 7 Abs 5)."""
+    """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None. Nach dem Ende der Pflichten
+    (Mandatsende oder Ende der Vertretung, § 7 Abs 10 lit f Z 8) nur Sitzungstage bis zu diesem Tag
+    (danach bestand keine Pflicht, § 7 Abs 5)."""
     if not (pk or "").isdigit():
         return None
     aufgabe = mandat.aufgaben.filter(pk=int(pk), sitzungstag=True, frist__isnull=False).first()
     if aufgabe is None or aufgabe.frist > timezone.now():
         return None
-    if mandat.beendet is not None and timezone.localdate(aufgabe.frist) > mandat.beendet:
+    if mandat.pflichtende is not None and timezone.localdate(aufgabe.frist) > mandat.pflichtende:
         return None
     return aufgabe
 
@@ -1165,7 +1198,7 @@ def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
         monat = None
     pflichten = mandat.offene_pflichten()
     faellig = {p["monat"] for p in pflichten["monatsberichte"]}
-    geschuldet = set(berichtsmonate(mandat.angetreten, mandat.beendet, timezone.localdate()))
+    geschuldet = set(berichtsmonate(mandat.angetreten, mandat.pflichtende, timezone.localdate()))
     if monat is None or monat not in geschuldet:
         messages.error(request, _("Bitte einen fälligen Monat wählen."))
         return

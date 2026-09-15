@@ -21,9 +21,9 @@ das betroffene Formular wieder vor.
   · <a href="#vertrauen">{% translate "Vertrauen" %}</a>
 </p>
 {% if mandat.beendet %}
-<div class="band-gold">{% blocktranslate with ende=mandat.beendet|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Ihr Mandat endete am {{ ende }} — Rechenschaft und Berichte sind noch bis {{ bis }} möglich.{% endblocktranslate %}</div>
+<div class="band-gold">{% if mandat.in_nachfrist %}{% blocktranslate with ende=mandat.beendet|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Ihr Mandat endete am {{ ende }} — Rechenschaft und Berichte sind noch bis {{ bis }} möglich.{% endblocktranslate %}{% else %}{% blocktranslate with ende=mandat.beendet|date:"d.m.Y" %}Ihr Mandat endete am {{ ende }} — der Bereich bleibt lesbar.{% endblocktranslate %}{% endif %}</div>
 {% elif mandat.vertretung_beendet_am %}
-<div class="band-gold">{% blocktranslate with ende=mandat.vertretung_beendet_am|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Die Vertretung endete am {{ ende }} (§ 7 Abs 10 lit f Z 8) — Rechenschaft und Berichte sind noch bis {{ bis }} möglich; danach bleibt der Bereich lesbar.{% endblocktranslate %}</div>
+<div class="band-gold">{% if mandat.in_nachfrist %}{% blocktranslate with ende=mandat.vertretung_beendet_am|date:"d.m.Y" bis=mandat.nachfrist_bis|date:"d.m.Y" %}Die Vertretung endete am {{ ende }} (§ 7 Abs 10 lit f Z 8) — Rechenschaft und Berichte sind noch bis {{ bis }} möglich; danach bleibt der Bereich lesbar.{% endblocktranslate %}{% else %}{% blocktranslate with ende=mandat.vertretung_beendet_am|date:"d.m.Y" %}Die Vertretung endete am {{ ende }} (§ 7 Abs 10 lit f Z 8) — der Bereich bleibt lesbar.{% endblocktranslate %}{% endif %}</div>
 {% endif %}
 {% if vertrauen.laufende %}
 <div class="band-gold">{% if vertrauen.laufende.art == "vertrauensfrage" %}{% blocktranslate with datum=vertrauen.laufende.antrag.eingebracht_am|date:"d.m.Y" %}Vertrauensfrage eingebracht am {{ datum }} — Sie können bis zum Ende der Abstimmung Stellung nehmen (§ 7 Abs 10 lit d).{% endblocktranslate %}
@@ -239,7 +239,7 @@ das betroffene Formular wieder vor.
     <label for="bs-begruendung">{% translate "Bestätigung durch die Mitgliederversammlung beantragen (§ 7 Abs 10 lit f Z 3) — Begründung (öffentlich, optional)" %}</label>
     <textarea id="bs-begruendung" name="begruendung" rows="4" maxlength="4000"></textarea>
     <span class="hilfe">{% translate "Ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung. Zugrunde liegt das Rechenschaftsregister seit dem Ergebnis. Die Annahme hebt die Kandidatursperre auf; nach einer Ablehnung ist ein neuer Antrag frühestens sechs Monate später zulässig." %}</span>
-    {% if ordnung_fehlt_bestaetigung %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — ein Antrag kann noch nicht entstehen." %}</span>{% endif %}
+    {% if ordnung_fehlt %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — ein Antrag kann noch nicht entstehen." %}</span>{% endif %}
     <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Bestätigung beantragen" %}</button>
   </form>
   {% endif %}

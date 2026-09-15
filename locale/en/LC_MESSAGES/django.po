@@ -7374,3 +7374,12 @@ msgstr "recorded on"
 
 msgid "widerrufen (keine Angabe)"
 msgstr "revoked (no declaration)"
+
+msgid "Abstimmung ab"
+msgstr "Voting from"
+
+msgid "Ihr Mandat endete am %(ende)s — der Bereich bleibt lesbar."
+msgstr "Your mandate ended on %(ende)s — the area remains readable."
+
+msgid "Die Vertretung endete am %(ende)s (§ 7 Abs 10 lit f Z 8) — der Bereich bleibt lesbar."
+msgstr "Representation ended on %(ende)s (§ 7 (10) lit f no. 8) — the area remains readable."

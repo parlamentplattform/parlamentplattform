@@ -23,11 +23,13 @@ Vermerk des Registers (lit f Z 4). Filter nach Ebene; JSON über das Rechenschaf
   <div class="zeile"><span>
     <span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
     <br><span class="meta"><a href="{% url 'mandatare:detail' vf.mandat.pk %}">{{ vf.mandat.mitglied.anzeigename }}</a> · {{ vf.mandat.gebiet|default:vf.mandat.get_ebene_display }}
-      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }} · {{ a.phase|phase_name }}
+      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }}
+      {% if z.abstimmung_ab %} · {% translate "Abstimmung ab" %} {{ z.abstimmung_ab|date:"d.m.Y" }}
+      {% else %} · {{ a.phase|phase_name }}
       {% if a.phase == "unterstuetzung" %} · {% blocktranslate with n=z.unterstuetzungen s=vf.schwelle_partei %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}
-      {% elif a.phase == "abstimmung" %} · {% blocktranslate with n=z.stimmen s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}
+      {% elif a.phase == "abstimmung" %} · {% blocktranslate with n=z.stimmen s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}{% endif %}
       {% if vf.schwelle_erreicht_am and vf.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ vf.schwelle_erreicht_am|date:"d.m.Y" }}{% endif %}
-      {% if vf.sperrhinweis and not vf.nicht_eroeffnet %} · <span class="ausstand">{% translate "Sperrhinweis — der Integritätsrat prüft bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}</span>
+      {% if z.sperrfrist_offen %} · <span class="ausstand">{% translate "Sperrhinweis — der Integritätsrat prüft bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}</span>
   </span></div>
   {% endwith %}{% empty %}
   <p class="leer">{% translate "Derzeit läuft keine Vertrauensfrage." %}</p>

@@ -20,9 +20,10 @@ from gremien.test_werkstatt import rolle_geben
 from mandatare import models as mm
 from mandatare.models import Aufgabe, Mandat, Rechenschaft, Stellungnahme, Vertrauensfrage
 from mandatare.test_mandatare import admin_anlegen, mandat_anlegen
+from mandatare.views import _rueckgabezusagen_fuer
 from mitglieder.models import Mitgliedsstatus
 from plattform_core import Phase
-from verfahren.models import Antrag, Antragsart, Bewerbung, Rueckgabezusage
+from verfahren.models import Antrag, Antragsart, Bewerbung, Rueckgabezusage, vertrauensfrage_einbringen
 from verfahren.test_vertrauensfrage import (  # noqa: F401
     _verloren,
     abweichung,
@@ -449,3 +450,96 @@ def test_abfragezahl_haengt_nicht_an_der_zahl_der_vertrauensfragen(client, ordnu
     assert Vertrauensfrage.objects.count() == 3
     drei = {u: messen(u) for u in urls}
     assert eins == drei, (eins, drei)
+
+
+# ── Prüfung (gegnerisch): Ehrlichkeit der Anzeigen ─────────────────────────────────────────
+
+
+def _sechs_monate_zurueck(antrag, mandat):
+    frueher = timezone.now() - tage(200)
+    Mandat.objects.filter(pk=mandat.pk).update(
+        vertrauen_entzogen_am=frueher,
+        rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(30),
+        vertretung_beendet_am=timezone.localdate(frueher) + tage(30),
+    )
+    Vertrauensfrage.objects.filter(antrag=antrag).update(wirkungen_ab=frueher)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=frueher)
+    mandat.refresh_from_db()
+
+
+def test_bestaetigung_vor_der_abstimmung_zeigt_den_beginn_statt_null_von_null(client, ordnung, altmandat):  # noqa: F811
+    """lit f Z 3: Der Bestätigungsantrag kennt keine Unterstützung — „0 von 0 Unterstützungen“ wäre eine Zahl
+    ohne Sinn; die Seiten nennen stattdessen den Tag, an dem die Abstimmung beginnt."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    _sechs_monate_zurueck(antrag, altmandat)
+    b = vertrauensfrage_einbringen(altmandat.mitglied, altmandat, "", [], [], ordnung, art="bestaetigung")
+    assert b.phase == Phase.UNTERSTUETZUNG.value
+    beginn = (b.eingebracht_am + tage(7)).strftime("%d.%m.%Y")
+    html = client.get(LISTE).content.decode()
+    assert f"Abstimmung ab {beginn}" in html and "0 von 0 Unterstützungen" not in html
+    detail = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()
+    assert f"Abstimmung ab {beginn}" in detail and ">Unterstützung<" not in detail
+
+
+def test_sperrhinweis_in_der_liste_nur_binnen_der_dreitagesfrist(client, ordnung):  # noqa: F811
+    """lit b: unterbleibt der Beschluss drei Tage lang, gilt der Antrag als eröffnet — „der Integritätsrat
+    prüft bis <vergangener Tag>“ wäre danach falsch."""
+    mandat = mandat_anlegen(mitglied_anlegen("neu"), angetreten=timezone.localdate() - tage(10))
+    antrag = einbringen(mitglied_anlegen("anna"), mandat, ordnung)
+    assert antrag.vertrauensfrage.sperrhinweis
+    assert "der Integritätsrat prüft bis" in client.get(LISTE).content.decode()
+    Antrag.objects.filter(pk=antrag.pk).update(eingebracht_am=timezone.now() - tage(4), phase_beginn=timezone.now() - tage(4))
+    html = client.get(LISTE).content.decode()
+    assert "der Integritätsrat prüft bis" not in html and f'href="/antrag/{antrag.pk}/"' in html
+
+
+def test_json_nennt_die_rueckgabezusage_aus_derselben_quelle_wie_die_seite(client, ordnung):  # noqa: F811
+    from verfahren.models import antrag_einbringen
+
+    anna = mitglied_anlegen("anna", tage=600)
+    kandidatur = antrag_einbringen(anna, "Listenreihung", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna, vorstellung="Ich.", rueckgabezusage=Rueckgabezusage.ABGEGEBEN)
+    mandat = mandat_anlegen(anna, kandidatur=kandidatur, angetreten=timezone.localdate() - tage(400))
+    _verloren(ordnung, mandat)
+    eintrag = client.get(reverse("mandatare:rechenschaft_json")).json()["vertrauensfragen"][0]
+    assert eintrag["rueckgabezusage"] == "abgegeben" and eintrag["rueckgabezusage_quelle"] == "bewerbung"
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    assert "erklärt bei der Bewerbung" in html
+    # der Vermerk der Verwaltung geht vor; ohne beides: keine Angabe
+    mm.rueckgabezusage_vermerken(mandat, Rueckgabezusage.NICHT_ABGEGEBEN)
+    mandat.refresh_from_db()
+    assert _rueckgabezusagen_fuer([mandat])[mandat.pk] == ("nicht_abgegeben", "mandat")
+    fremd = mandat_anlegen(mitglied_anlegen("ohne"))
+    assert _rueckgabezusagen_fuer([fremd])[fremd.pk] == (Rueckgabezusage.UNBEKANNT.value, "")
+
+
+def test_band_nach_der_nachfrist_verspricht_keine_eintraege_mehr(client, ordnung, altmandat):  # noqa: F811
+    antrag, ende = _verloren(ordnung, altmandat)
+    _sechs_monate_zurueck(antrag, altmandat)
+    assert not altmandat.in_nachfrist()
+    client.force_login(altmandat.mitglied)
+    html = client.get(MEIN).content.decode()
+    assert "der Bereich bleibt lesbar" in html and "sind noch bis" not in html
+
+
+def test_nach_dem_ende_der_vertretung_zaehlen_sitzungstage_danach_nicht_mehr(client, ordnung, altmandat):  # noqa: F811
+    """Der Bereich rechnet mit derselben Grenze wie `offene_pflichten` (Mandat.pflichtende): ein Sitzungstag
+    nach dem Ende der Vertretung erzeugt keine Pflicht und wird nicht zum Sammelbericht angeboten."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    frueher = timezone.now() - tage(13)  # Vertretung seit drei Tagen beendet, Nachfrist (sieben Tage) läuft
+    Mandat.objects.filter(pk=altmandat.pk).update(
+        vertrauen_entzogen_am=frueher, rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(10),
+        vertretung_beendet_am=timezone.localdate(frueher) + tage(10),
+    )
+    Vertrauensfrage.objects.filter(antrag=antrag).update(wirkungen_ab=frueher)
+    altmandat.refresh_from_db()
+    assert altmandat.in_nachfrist()
+    davor = Aufgabe.objects.create(mandat=altmandat, titel="Davor", frist=timezone.now() - tage(5), sitzungstag=True)
+    danach = Aufgabe.objects.create(mandat=altmandat, titel="Danach", frist=timezone.now() - tage(1), sitzungstag=True)
+    client.force_login(altmandat.mitglied)
+    html = client.get(MEIN).content.decode()
+    assert f'<option value="{davor.pk}"' in html and f'<option value="{danach.pk}"' not in html
+    antwort = client.post(
+        MEIN_AKTION, {"aktion": "sammelbericht", "mandat": altmandat.pk, "aufgabe": danach.pk, "text": "Nachher."}, follow=True
+    )
+    assert antwort.status_code == 200 and not altmandat.berichte.filter(aufgabe=danach).exists()

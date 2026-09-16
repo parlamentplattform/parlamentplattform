@@ -288,7 +288,8 @@ def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
 
 def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
     """Bauschritt S10c (§ 7 Abs 10): Jede Rolle, der der Absatz etwas aufträgt, hat ihre Zeile —
-    und keine trägt mehr das Versprechen einer „Abberufung“, das die Satzung nicht kennt."""
+    und keine verspricht mehr eine Abberufung des Mandats, die die Partei nicht erzwingen kann
+    (§ 7 Abs 2, Abs 10 lit i); das Recht nach § 4 Abs 2 bleibt unberührt und ohne Bauschritt."""
     from gremien.models import Anlass
     from verfahren.models import Antragsart, vertrauensfrage_einbringen  # noqa: F401 — die Fähigkeit
 
@@ -307,7 +308,7 @@ def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
     assert unterstuetzen.stand is Stand.VERFUEGBAR
     assert unterstuetzen.urlname == "mandatare:vertrauensfragen"
     assert "Personenwahlen" in unterstuetzen.titel
-    assert not zeilen("mitglied", "Abberufungsverfahren"), "die Satzung 2.5 kennt keine Abberufung eines Mandats"
+    assert not zeilen("mitglied", "Abberufungsverfahren"), "die Partei kann ein Mandat nicht entziehen (§ 7 Abs 2)"
 
     (stellungnahme,) = zeilen("mandatar", "Stellung nehmen")
     (bestaetigung,) = zeilen("mandatar", "Bestätigung nach § 7 Abs 10 lit f Z 3")
@@ -335,6 +336,26 @@ def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
     (posteingang,) = zeilen("koordinationsrat", "Posteingang")
     assert "Vertrauensfragen" in posteingang.einschraenkung
     assert "nur die Auswertung" not in posteingang.einschraenkung
+
+
+@pytest.mark.django_db
+def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client):
+    """Befund B20: Das Regelverzeichnis begründete den Wegfall der Zeile „Mandatsträger bewerten …“ mit
+    dem Satz, die Satzung sehe weder Bewertung noch Abberufung eines Mandats vor — § 4 Abs 2 gewährt
+    das Recht auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren ausdrücklich, § 7 Abs 10
+    lit i lässt es unberührt. Richtig ist nur: Die Partei kann ein Mandat nicht entziehen."""
+    from django.urls import reverse
+
+    from plattform_core.regelwerk import verzeichnis
+
+    (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
+    assert rollen_regel.fassung == 4
+    assert "weder Bewertung" not in rollen_regel.grund
+    assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
+    assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund
+    inhalt = client.get(reverse("parameter:regeln")).content.decode()
+    assert "weder Bewertung noch Abberufung" not in inhalt
+    assert "auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren" in inhalt
 
 
 def test_fassung_4_verfuegbare_zeilen_tragen_weder_einschraenkung_noch_bauschritt():

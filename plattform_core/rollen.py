@@ -347,10 +347,12 @@ MITGLIED = Rolle(
             urlname="mitglieder:profil",
         ),
         # Bis Fassung 3 stand hier ○ „Mandatsträger bewerten und ein Abberufungsverfahren
-        # einleiten“. Die Satzung 2.5 kennt weder das eine noch das andere: Die Partei kann ein
-        # Mandat nicht entziehen (§ 7 Abs 2, Abs 10 lit i), und bewertet wird nichts (§ 2 Abs 6).
-        # An ihre Stelle tritt die Vertrauensfrage nach § 7 Abs 10 — die Entscheidung der
-        # Mitgliederversammlung, ob sie sich weiterhin vertreten lassen will.
+        # einleiten“. Die Zeile entfiel vorerst: Die Partei kann ein Mandat weder entziehen noch
+        # seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i) — an die Stelle einer Abberufung des
+        # Mandats tritt die Vertrauensfrage nach § 7 Abs 10, die Entscheidung der Mitgliederversammlung,
+        # ob sie sich weiterhin vertreten lassen will. Das Recht nach § 4 Abs 2 auf Bewertung der
+        # Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der Verfahrensordnung bleibt
+        # davon unberührt (§ 7 Abs 10 lit i) und hat noch keinen Bauschritt.
         Faehigkeit(
             titel=_("Vertrauensfrage zu einem Mandatsträger stellen — mit mindestens einem Anlass aus dem Rechenschaftsregister oder den ausgewiesenen Ausständen"),
             stand=Stand.VERFUEGBAR,

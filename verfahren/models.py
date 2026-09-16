@@ -964,10 +964,12 @@ def vertrauensfrage_einbringen(
     from django.conf import settings as dj_settings
 
     from mandatare.models import (
+        VERTRAUENSFRAGE_LAUFEND,
         Vertrauensfrage,
         VertrauensfrageArt,
         VertrauensfrageFehler,
         bestaetigung_zulaessig_ab,
+        bis_zum_stand_fortschreiben,
         sperren_pruefen,
     )
     from mitglieder.models import stimmberechtigte_zaehlen
@@ -992,9 +994,14 @@ def vertrauensfrage_einbringen(
             raise VertrauensfrageFehler(_("Die Bestätigung kann nur die betroffene Person selbst beantragen (§ 7 Abs 10 lit f Z 3)."))
         if not mandat.kandidatursperre:
             raise VertrauensfrageFehler(_("Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."))
+        # Phasen sind lazy: Ein an der Frist abgelaufener, nie aufgerufener Bestätigungsantrag darf den
+        # nächsten nicht sperren — erst fortschreiben, dann prüfen (Befund B25).
+        for alt in Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
+        ).select_related("antrag"):
+            bis_zum_stand_fortschreiben(alt.antrag, jetzt)
         if Vertrauensfrage.objects.filter(
-            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG,
-            antrag__phase__in=[Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value],
+            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
         ).exists():
             raise VertrauensfrageFehler(_("Ein Bestätigungsantrag läuft bereits."))
         frei_ab = bestaetigung_zulaessig_ab(mandat)

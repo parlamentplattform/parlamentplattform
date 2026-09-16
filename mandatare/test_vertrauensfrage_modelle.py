@@ -77,6 +77,52 @@ def test_zweiter_und_dritter_fall(ordnung, altmandat):  # noqa: F811
     assert sperren_pruefen(altmandat, t0 + tage(20 + 190)) == ""
 
 
+def test_die_sperrpruefung_rechnet_mit_dem_fortgeschriebenen_stand(ordnung, altmandat):  # noqa: F811
+    """Befunde B17/B25: Ein Antrag verfällt mit der Sammelfrist (lit c) — ob jemand ihn danach aufruft oder
+    nicht. Ohne Fortschreibung stand am Tag 40 „anhängig (zweiter Fall)“ im gespeicherten Sperrhinweis,
+    obwohl der fünfte Fall zutrifft; auch über ein zweites Mandat derselben Person."""
+    t0 = timezone.now()
+    alter_anlass = abweichung(altmandat, eingetragen_am=t0 - tage(5))
+    alt = einbringen(mitglied_anlegen("anna"), altmandat, ordnung, anlaesse=[alter_anlass], jetzt=t0)
+    assert alt.phase == Phase.UNTERSTUETZUNG.value  # nie fortgeschrieben
+    hinweis = sperren_pruefen(altmandat, t0 + tage(40), anlaesse=[alter_anlass])
+    assert "fünfter Fall" in hinweis and "zweiter Fall" not in hinweis
+    alt.refresh_from_db()
+    assert alt.phase == Phase.VERFALLEN.value and alt.phase_beginn == t0 + tage(30)
+    # mit einem Anlass nach der Einbringung des verfallenen Antrags: keine Sperre
+    neu = abweichung(altmandat, gegenstand="Kanal", eingetragen_am=t0 + tage(35))
+    assert sperren_pruefen(altmandat, t0 + tage(40), anlaesse=[neu]) == ""
+    # zweites Mandat derselben Person: die laufende Vertrauensfrage zum ersten wird auch hier fortgeschrieben
+    zweites = Mandat.objects.create(
+        mitglied=altmandat.mitglied, bezeichnung="Landtag", ebene="land", gebiet="OÖ", angetreten=date(2025, 1, 1)
+    )
+    laufend = einbringen(mitglied_anlegen("bert"), altmandat, ordnung, anlaesse=[neu], jetzt=t0 + tage(41))
+    assert "zweiter Fall" in sperren_pruefen(zweites, t0 + tage(50))
+    assert "zweiter Fall" not in sperren_pruefen(zweites, t0 + tage(80), anlaesse=[neu])
+    laufend.refresh_from_db()
+    assert laufend.phase == Phase.VERFALLEN.value
+
+
+def test_ein_liegengebliebener_bestaetigungsantrag_sperrt_den_naechsten_nicht(ordnung, altmandat):  # noqa: F811
+    """Befund B25: Die Prüfung „Ein Bestätigungsantrag läuft bereits“ las die lazy Phase — ein an der
+    Frist abgelaufener, nie aufgerufener Antrag hätte den nächsten für immer gesperrt."""
+    from verfahren.models import vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    ich = altmandat.mitglied
+    t1 = ende + tage(200)
+    erster = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1, art="bestaetigung")
+    # niemand ruft ihn auf: Abstimmung ab Tag 7, Ende Tag 14 — gespeichert bleibt „unterstuetzung“
+    assert erster.phase == Phase.UNTERSTUETZUNG.value
+    t2 = t1 + tage(200)
+    with pytest.raises(VertrauensfrageFehler, match="frühestens"):
+        vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1 + tage(20), art="bestaetigung")
+    zweiter = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t2, art="bestaetigung")
+    erster.refresh_from_db()
+    assert erster.phase == Phase.ABGELEHNT.value  # ohne Stimmen: nicht bestätigt — fortgeschrieben, nicht „läuft“
+    assert zweiter.phase == Phase.UNTERSTUETZUNG.value and zweiter.pk != erster.pk
+
+
 def test_anlass_ausstaende_nur_ueber_30_tage(altmandat):  # noqa: F811
     Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=timezone.now() - tage(20), sitzungstag=True)
     assert altmandat.anlass_ausstaende() == []  # Frist um 13 Tage — noch kein Anlass

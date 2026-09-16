@@ -85,6 +85,9 @@ ANLASS_AUSSTAND_TAGE = 30  # lit b: ein Ausstand zählt als Anlass, wenn er län
 #: über den eine Aufhebung (lit h) genau diese Rollen wiederfindet.
 RUHENSGRUND = "Vertrauensfrage (§ 7 Abs 10 lit f), Anfechtungsfrist läuft"
 BEENDIGUNGSGRUND = "Vertrauensfrage (§ 7 Abs 10 lit f)"
+#: Die Phasen, in denen eine Vertrauensfrage läuft — ohne Beratung (lit c). Dieselbe Liste lesen die
+#: Sperrprüfung (lit g zweiter Fall) und die Ansichten.
+VERTRAUENSFRAGE_LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value]
 
 
 class Mandat(models.Model):
@@ -842,7 +845,7 @@ class Vertrauensfrage(models.Model):
         noch ohne Feststellungsbeschluss — er entscheidet binnen drei Tagen (lit b)."""
         return (
             cls.objects.exclude(sperrhinweis="")
-            .filter(sperre_beschluss__isnull=True, antrag__phase__in=[Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value])
+            .filter(sperre_beschluss__isnull=True, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)
             .select_related("antrag", "mandat")
         )
 
@@ -882,6 +885,15 @@ def stellungnahme_abgeben(vf: Vertrauensfrage, mitglied, text: str, jetzt=None) 
     return eintrag
 
 
+def bis_zum_stand_fortschreiben(antrag, jetzt) -> None:
+    """Einen liegengebliebenen Antrag bis zum Stand von `jetzt` fortschreiben — `fortschreiben` wendet
+    je Aufruf einen Übergang an, eine Vertrauensfrage braucht bis zum Ende zwei (Unterstützung →
+    Abstimmung → Ergebnis). Begrenzt wie im Cron (`verfahren_fortschreiben`)."""
+    for _schritt in range(5):
+        if not antrag.fortschreiben(jetzt):
+            break
+
+
 def _letzte_gegen(mitglied_id: int, phasen: list[str], ausser: int | None = None):
     """Die jüngste Vertrauensfrage (nicht Bestätigung) gegen dieselbe Person in einer der Phasen."""
     qs = Vertrauensfrage.objects.filter(
@@ -907,8 +919,17 @@ def sperren_pruefen(mandat: Mandat, jetzt=None, anlaesse=(), ausstaende=()) -> s
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
     gruende: list[str] = []
-    # Vierter Fall zuerst: Ohne Vertretungsbeziehung gibt es nichts, worüber die Versammlung entschiede.
     mitglied = mandat.mitglied
+    # Die Phasen sind lazy — die Sperren rechnen nach dem Tag der Einbringung (lit g letzter Satz), also mit
+    # dem fortgeschriebenen Stand (wie `stellungnahme_abgeben`): Ein an der Sammelfrist verfallener, nie
+    # aufgerufener Antrag ist am Tag 31 nicht „anhängig“ (zweiter Fall), sondern verfallen (fünfter Fall).
+    # Alle Mandate der Person, mit dem übergebenen Zeitpunkt; Bestätigungsanträge lesen die Fälle nicht
+    # (Befunde B17/B25).
+    for alt in Vertrauensfrage.objects.filter(
+        mandat__mitglied_id=mitglied.pk, art=VertrauensfrageArt.VERTRAUENSFRAGE, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
+    ).select_related("antrag"):
+        bis_zum_stand_fortschreiben(alt.antrag, jetzt)
+    # Vierter Fall zuerst: Ohne Vertretungsbeziehung gibt es nichts, worüber die Versammlung entschiede.
     if mandat.beendet is not None:
         gruende.append(f"Das Mandat hat am {mandat.beendet:%d.%m.%Y} geendet (lit g vierter Fall).")
     elif mandat.vertretung_beendet_am is not None:
@@ -928,7 +949,7 @@ def sperren_pruefen(mandat: Mandat, jetzt=None, anlaesse=(), ausstaende=()) -> s
             f"{schonfrist_ende:%d.%m.%Y}) kann keine Vertrauensfrage eingebracht werden (lit g erster Fall{uebergang})."
         )
     # Zweiter Fall: anhängige Vertrauensfrage gegen dieselbe Person.
-    laufend = _letzte_gegen(mitglied.pk, [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value])
+    laufend = _letzte_gegen(mitglied.pk, VERTRAUENSFRAGE_LAUFEND)
     if laufend is not None:
         gruende.append(
             f"Gegen dieselbe Person ist bereits eine Vertrauensfrage anhängig (Antrag #{laufend.antrag_id}; "

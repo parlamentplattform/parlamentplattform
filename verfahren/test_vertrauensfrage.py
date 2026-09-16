@@ -300,7 +300,14 @@ def test_verloren_loest_die_wirkungen_in_zwei_stufen_aus(ordnung, altmandat):  #
     assert not Rolle.hat(altmandat.mitglied, Gremium.KOORDINATIONSRAT)
     assert Rolle.letzte(altmandat.mitglied, Gremium.KOORDINATIONSRAT) == rolle  # lesen bleibt
     hinweis = Hinweis.objects.get(quelle="vertrauensfrage")
-    assert hinweis.antrag == antrag and "Parlamentsklub" in hinweis.text and "Abführungspflicht" in hinweis.text
+    assert hinweis.antrag == antrag and "Parlamentsklub" in hinweis.text and "(Z 7)" in hinweis.text
+    # Altmandat ohne lit h: Z 5 tritt nicht ein (lit j) — der Hinweis verspricht kein Ende der Gegenleistungen
+    # (B14); Organfunktionen enden von selbst, kein Abberufungsbeschluss (B19)
+    assert "nicht um § 7 Abs 3 lit h ergänzt" in hinweis.text and "Z 5 gilt nicht" in hinweis.text
+    assert "enden zugleich" not in hinweis.text and "zurückzugeben" not in hinweis.text
+    assert "über eine Abberufung" not in hinweis.text and "entscheidet der Rat" not in hinweis.text
+    assert "enden mit Ablauf der Anfechtungsfrist von selbst" in hinweis.text and "lit f Z 1" in hinweis.text
+    assert "ein Abberufungsbeschluss ist nicht erforderlich" in hinweis.text
     verloren = audit("vertrauensfrage_verloren")[0]
     assert verloren["mandat"] == altmandat.pk and verloren["rollen_ruhen"] == [rolle.pk]
     with pytest.raises(BewerbungsFehler, match="§ 7 Abs 10 lit f Z 3"):
@@ -350,6 +357,14 @@ def test_die_mandatsvereinbarung_endet_nur_mit_lit_h(ordnung, altmandat):  # noq
     antrag.fortschreiben(t0 + tage(7))
     abstimmen(antrag, leute, "ja", t0 + tage(8))
     antrag.fortschreiben(t0 + tage(14))
+    # mit lit h sagt der Hinweis an den Koordinationsrat das Ende der Mandatsvereinbarung — mit Anfechtungsvorbehalt
+    # und mit dem Fristtag des Registers (B14)
+    altmandat.refresh_from_db()
+    hinweis = Hinweis.objects.get(quelle="vertrauensfrage")
+    assert "enden zugleich mit Ablauf der Rückgabefrist" in hinweis.text and "(Z 5)" in hinweis.text
+    assert f"frühestens am {altmandat.rueckgabe_ersucht_bis:%d.%m.%Y}" in hinweis.text
+    assert "nicht vor der Entscheidung des Parteischiedsgerichts" in hinweis.text and "zurückzugeben" in hinweis.text
+    assert "nicht um § 7 Abs 3 lit h ergänzt" not in hinweis.text and "über eine Abberufung" not in hinweis.text
     assert vertrauensfragen_fortschreiben(t0 + tage(50)) == 1
     altmandat.refresh_from_db()
     assert altmandat.rueckgabe_ersucht_bis == timezone.localdate(t0 + tage(14)) + tage(30)

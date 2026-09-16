@@ -977,24 +977,42 @@ def _als_datum(wert) -> date | None:
 
 
 def _koordinationsrat_hinweis(vf: Vertrauensfrage, jetzt) -> None:
-    """Der Posteingang des Koordinationsrats: Mitteilung an den Klub (lit f Z 7), Ende der
-    Gegenleistungen und der Abführung mit Ablauf der Rückgabefrist (Z 5), gegebenenfalls Abberufung
-    nach § 6 Abs 2 lit c oder Abs 8 — Handlungen von Menschen, die die Plattform nur anstößt."""
+    """Der Posteingang des Koordinationsrats: Mitteilung an den Klub (lit f Z 7) — die eine Handlung
+    von Menschen, die die Plattform nur anstößt — und der Stand der übrigen Wirkungen, jeder Satz
+    nur so weit, wie er zutrifft (Befunde B14/B19): Die Mandatsvereinbarung endet nur mit lit h
+    (Z 5, lit j), bei Anfechtung nicht vor der Entscheidung; Funktionen in Organen ruhen und enden
+    von selbst (Z 1 und letzter Unterabsatz) — die Plattform vermerkt das Ende, ein Abberufungs-
+    beschluss ist nicht vorgesehen (Z 1 Halbsatz 2 gilt nur für einen engeren Stimmkreis, den die
+    Plattform nicht kennt). Gespeicherter Sachverhalt in der Arbeitssprache wie der Sperrhinweis."""
     from gremien.models import Hinweis, HinweisQuelle
 
     mandat = vf.mandat
-    frist = timezone.localdate(jetzt) + timedelta(days=RUECKGABEFRIST_TAGE)
+    frist = mandat.rueckgabe_ersucht_bis or (timezone.localdate(jetzt) + timedelta(days=RUECKGABEFRIST_TAGE))
+    ort = mandat.gebiet or mandat.get_ebene_display()
+    if mandat.mandatsvereinbarung_lit_h_am is not None:
+        mandatsvereinbarung = (
+            f"Die Mandatsvereinbarung, die Gegenleistungen der Partei und die Abführungspflicht enden zugleich mit "
+            f"Ablauf der Rückgabefrist, frühestens am {frist:%d.%m.%Y}; ist das Ergebnis angefochten, nicht vor der "
+            f"Entscheidung des Parteischiedsgerichts (Z 5). Kennzeichen, Konten und Kanäle sind dann zurückzugeben."
+        )
+    else:
+        mandatsvereinbarung = (
+            "Die Mandatsvereinbarung ist nicht um § 7 Abs 3 lit h ergänzt und bleibt unverändert (lit j) — "
+            "Gegenleistungen der Partei und Abführungspflicht enden nicht (Z 5 gilt nicht); ob Ergänzung und "
+            "Rückgabezusage vorliegen, weist das Rechenschaftsregister aus."
+        )
     Hinweis.objects.create(
         quelle=HinweisQuelle.VERTRAUENSFRAGE,
-        titel=f"Vertrauensfrage verloren: {mandat.bezeichnung}, {mandat.gebiet or mandat.get_ebene_display()}"[:200],
+        titel=f"Vertrauensfrage verloren: {mandat.bezeichnung}, {ort}"[:200],
         text=(
-            f"Die Mitgliederversammlung hat dem Mandat „{mandat.bezeichnung}“ ({mandat.gebiet or mandat.get_ebene_display()}) "
+            f"Die Mitgliederversammlung hat dem Mandat „{mandat.bezeichnung}“ ({ort}) "
             f"am {timezone.localtime(jetzt):%d.%m.%Y} das Vertrauen versagt (Antrag #{vf.antrag_id}).\n"
-            f"Zu veranlassen (§ 7 Abs 10 lit f): Mitteilung an den Parlamentsklub oder die Fraktion (Z 7); "
-            f"Gegenleistungen der Partei und Abführungspflicht enden mit Ablauf der Rückgabefrist am {frist:%d.%m.%Y} "
-            f"zugleich (Z 5), Kennzeichen, Konten und Kanäle sind zurückzugeben; hat die Person Funktionen in Organen "
-            f"der Partei, ruhen sie bis zum Ablauf der Anfechtungsfrist — über eine Abberufung nach § 6 Abs 2 lit c "
-            f"oder Abs 8 entscheidet der Rat. Anfechtung binnen sieben Tagen beim Parteischiedsgericht (lit h)."
+            f"Zu veranlassen (§ 7 Abs 10 lit f): Mitteilung an den Parlamentsklub oder die Fraktion (Z 7). "
+            f"{mandatsvereinbarung} Hat die Person Funktionen in Organen der Partei, ruhen sie ab jetzt und enden "
+            f"mit Ablauf der Anfechtungsfrist von selbst (lit f Z 1 und letzter Unterabsatz; bei rechtzeitiger "
+            f"Anfechtung mit der Entscheidung des Parteischiedsgerichts) — die Plattform vermerkt das Ende; ein "
+            f"Abberufungsbeschluss ist nicht erforderlich. Anfechtung binnen sieben Tagen beim Parteischiedsgericht "
+            f"(lit h)."
         )[:4000],
         antrag=vf.antrag,
         angelegt_am=jetzt,

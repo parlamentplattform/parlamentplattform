@@ -33,6 +33,15 @@ ENDZUSTAENDE = (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
 #: Anzeigenamen der Phasen im Archiv. Sie kommen aus dem gemeinsamen Bestand
 #: (`templatetags/phasen.py`), damit dieselbe Phase überall gleich heißt — und übersetzt wird.
 PHASENNAMEN = {Phase.UNTERSTUETZUNG.value: gettext_lazy("Unterstützungsphase")}
+#: Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) sammelt keine Unterstützung — sein erster Block heißt so.
+WARTEZEIT_NAME = gettext_lazy("Wartezeit bis zur Abstimmung")
+
+
+def _ist_bestaetigung(antrag) -> bool:
+    if antrag.art != Antragsart.VERTRAUENSFRAGE:
+        return False
+    vf = antrag._vertrauensfrage()
+    return vf is not None and vf.art == "bestaetigung"
 
 
 def phasenname(schluessel: str) -> str:
@@ -206,8 +215,11 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     ]
     ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
     # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
-    # Mandatsfrage (§ 7 Abs 9) nicht: Sie hatte nie eine, also bekommt sie auch keinen Block.
-    immer = () if antrag.art == Antragsart.MANDATSFRAGE else (Phase.UNTERSTUETZUNG.value,)
+    # Mandatsfrage (§ 7 Abs 9) und der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) nicht: Sie hatten
+    # nie eine, also bekommen sie auch keinen leeren Block. Läuft der Bestätigungsantrag noch oder
+    # wurde in seiner Wartezeit geschrieben, heißt der Block ehrlich „Wartezeit bis zur Abstimmung“.
+    bestaetigung = _ist_bestaetigung(antrag)
+    immer = () if antrag.art == Antragsart.MANDATSFRAGE or bestaetigung else (Phase.UNTERSTUETZUNG.value,)
     # Die Vertrauensfrage (§ 7 Abs 10 lit c) kennt keine Beratungsphase — an ihre Stelle treten die
     # Darstellung der Anlässe und das Gehör des Mandatsträgers auf der Antragsseite; kein Block.
     nie = (Phase.BERATUNG.value,) if antrag.art == Antragsart.VERTRAUENSFRAGE else ()
@@ -219,7 +231,11 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
         bloecke.append(
             {
                 "phase": phase,
-                "name": phasenname(phase),
+                "name": (
+                    str(WARTEZEIT_NAME)
+                    if bestaetigung and phase == Phase.UNTERSTUETZUNG.value
+                    else phasenname(phase)
+                ),
                 "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
                 "beitraege": je_phase.get(phase, []),
                 "geladen": alles or phase == geoeffnet,

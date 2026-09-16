@@ -15,7 +15,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="zurueck"><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Parlament" %}</a></p>
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
-    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% else %}{{ antrag.phase|phase_name }}{% endif %}</span>
+    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% elif vertrauensfrage.ist_bestaetigung and antrag.phase == "unterstuetzung" %}{# § 7 Abs 10 lit f Z 3: keine Unterstützungsphase — die Wartezeit bis zum siebten Tag #}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ antrag.phase|phase_name }}{% endif %}</span>
     {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
     {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}

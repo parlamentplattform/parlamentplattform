@@ -6,7 +6,7 @@ favorit, anteile, punkte).
 {% endcomment %}<div class="fz{% if z.favorit %} favorit{% endif %}" data-antrag="{{ z.antrag.pk }}">
   <a class="zt" href="{% url 'verfahren:antrag' z.antrag.pk %}{% if z.stat.typ == 'abstimmung' %}#abstimmen{% endif %}">{{ z.antrag.titel }}</a>
   <div class="zm">
-    <span class="badge b-{{ z.antrag.phase }}">{% if z.vertrauensfrage.ergebnis_wort %}{{ z.vertrauensfrage.ergebnis_wort }}{% else %}{{ z.antrag.phase|phase_name }}{% endif %}</span>
+    <span class="badge b-{{ z.antrag.phase }}">{% if z.vertrauensfrage.ergebnis_wort %}{{ z.vertrauensfrage.ergebnis_wort }}{% elif z.stat.typ == "wartezeit" %}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ z.antrag.phase|phase_name }}{% endif %}</span>
     {# § 7 Abs 10 lit h: Die Aufhebung wird an denselben Stellen veröffentlicht wie das Ergebnis — der Rechtsschutzstand als eigenes Badge #}
     {% if z.vertrauensfrage.rechtsschutz_stand %}<span class="badge badge--hell">{{ z.vertrauensfrage.rechtsschutz_stand }}</span>{% endif %}
     {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% elif z.antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif z.antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if z.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}

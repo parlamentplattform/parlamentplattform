@@ -485,6 +485,54 @@ def test_aufhebung_steht_an_denselben_stellen_wie_das_ergebnis(client, ordnung, 
     assert zeile.count("Vertrauensfrage verloren") == 1 and karte.count("Vertrauensfrage verloren") == 1
 
 
+def test_bestaetigungsantrag_zeigt_die_wartezeit_statt_einer_unterstuetzungsphase(client, ordnung, mandat_daheim):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 3: lit c gilt nicht — der Bestätigungsantrag sammelt keine Unterstützung. Badge auf
+    Antragsseite, Kachel und Zeile sagen „Wartezeit bis zur Abstimmung“, im Parlament steht er in einer eigenen
+    Gruppe statt unter „Sammeln Unterstützung“, die Archiv-Zeitleiste kennt keinen Unterstützungsblock
+    (Prüfung 0.48, B34 / E9)."""
+    from verfahren.models import vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, mandat_daheim)
+    ich = mandat_daheim.mitglied
+    b = vertrauensfrage_einbringen(ich, mandat_daheim, "", [], [], ordnung, jetzt=ende + tage(200), art="bestaetigung")
+    assert b.phase == "unterstuetzung"
+
+    client.force_login(ich)
+    kopf = _kopf(_seite(client, b))
+    chips = kopf.split('class="a-chips"')[1].split("</div>")[0]
+    assert '<span class="badge b-unterstuetzung">Wartezeit bis zur Abstimmung</span>' in chips
+    assert ">Unterstützung</span>" not in chips
+    assert "ohne Unterstützungs- und Beratungsphase" in kopf  # das Band und das Badge widersprechen sich nicht mehr
+
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    feld = html.split('id="feld-filter"')[1].split("</section>")[0]
+    gruppen = [g.split("<")[0] for g in feld.split('<p class="gruppe">')[1:]]
+    assert "Wartezeit bis zur Abstimmung" in gruppen and "Sammeln Unterstützung" not in gruppen
+    assert gruppen.index("Wartezeit bis zur Abstimmung") < gruppen.index("Abgeschlossen")
+    zeile = feld.split(b.titel)[1].split('class="za"')[0]
+    assert '<span class="badge b-unterstuetzung">Wartezeit bis zur Abstimmung</span>' in zeile
+    assert ">Unterstützung</span>" not in zeile and "Unterstützen" not in zeile
+    region = html.split('id="feld-region"')[1].split("</section>")[0]
+    kachel = region.split(b.titel)[0].rsplit('<article class="kachel"', 1)[1] + region.split(b.titel)[1].split("</article>")[0]
+    assert '<span class="badge">Wartezeit bis zur Abstimmung</span>' in kachel
+    assert '<span class="badge">Unterstützung</span>' not in kachel
+
+    # Archiv: kein Block „Unterstützungsphase“ — solange er wartet, heißt der Block ehrlich
+    bloecke = archivkern.zeitleiste(b)
+    assert [(x["phase"], x["name"]) for x in bloecke] == [("unterstuetzung", "Wartezeit bis zur Abstimmung")]
+    vor_acht_tagen = timezone.now() - tage(8)
+    Antrag.objects.filter(pk=b.pk).update(eingebracht_am=vor_acht_tagen, phase_beginn=vor_acht_tagen)
+    Vertrauensfrage.objects.filter(antrag=b).update(schwelle_erreicht_am=vor_acht_tagen)
+    b.refresh_from_db()
+    b.fortschreiben()
+    b.refresh_from_db()
+    assert b.phase == "abstimmung"
+    assert [x["phase"] for x in archivkern.zeitleiste(b)] == ["abstimmung"]
+    assert "Unterstützungsphase" not in archivkern.als_markdown(b)
+    # Die gewöhnliche Vertrauensfrage behält ihren Unterstützungsblock
+    assert [x["name"] for x in archivkern.zeitleiste(antrag)][0] == "Unterstützungsphase"
+
+
 # ── Archiv und Export ──────────────────────────────────────────────────────────────────────
 
 

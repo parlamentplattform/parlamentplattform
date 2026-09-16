@@ -157,9 +157,12 @@ def _tage_zaehler(tag: date | None, heute: date) -> dict | None:
 def _rueckgabezusagen_fuer(mandate) -> dict[int, tuple[str, str]]:
     """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle je Mandat — mit einer Abfrage für alle: der Vermerk
     am Mandat (Verwaltung, „mandat“), sonst die Erklärung aus der Bewerbung zur verknüpften Kandidatur
-    („bewerbung“); leer heißt „keine Angabe“. Seite und JSON lesen dieselbe Quelle."""
+    („bewerbung“); leer heißt „keine Angabe“. Ein datierter Verwaltungsvermerk — auch der Widerruf auf
+    „keine Angabe“ (§ 7 Abs 3: „ihr Widerruf“) — geht der Bewerbung vor; Kennzeichen ist
+    `rueckgabezusage_am`. Dieselbe Regel wie `Mandat.rueckgabezusage_wirksam`; Seite und JSON lesen
+    dieselbe Quelle."""
     mandate = list(mandate)
-    offen = [m for m in mandate if not m.rueckgabezusage and m.kandidatur_id]
+    offen = [m for m in mandate if not m.rueckgabezusage and m.rueckgabezusage_am is None and m.kandidatur_id]
     aus_bewerbung: dict[tuple[int, int], str] = {}
     if offen:
         treffer = Bewerbung.objects.filter(
@@ -168,7 +171,7 @@ def _rueckgabezusagen_fuer(mandate) -> dict[int, tuple[str, str]]:
         aus_bewerbung = {(a, mi): z for a, mi, z in treffer}
     ergebnis: dict[int, tuple[str, str]] = {}
     for m in mandate:
-        if m.rueckgabezusage:
+        if m.rueckgabezusage or m.rueckgabezusage_am is not None:
             ergebnis[m.pk] = (m.rueckgabezusage, "mandat")
             continue
         zusage = aus_bewerbung.get((m.kandidatur_id, m.mitglied_id), "")

@@ -532,6 +532,33 @@ def test_json_nennt_die_rueckgabezusage_aus_derselben_quelle_wie_die_seite(clien
     assert _rueckgabezusagen_fuer([fremd])[fremd.pk] == (Rueckgabezusage.UNBEKANNT.value, "")
 
 
+def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbung(client, ordnung):  # noqa: F811
+    """§ 7 Abs 3 nennt „ihr Widerruf“ als eigenen Sachverhalt: Vermerkt die Verwaltung „widerrufen (keine
+    Angabe)“, darf die Bewerbung nicht wieder durchscheinen — Seite, Helfer und JSON sagen „keine Angabe ·
+    vermerkt am …“, nicht „abgegeben · erklärt bei der Bewerbung“."""
+    from verfahren.models import antrag_einbringen
+
+    anna = mitglied_anlegen("anna", tage=600)
+    kandidatur = antrag_einbringen(anna, "Listenreihung", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna, vorstellung="Ich.", rueckgabezusage=Rueckgabezusage.ABGEGEBEN)
+    mandat = mandat_anlegen(anna, kandidatur=kandidatur, angetreten=timezone.localdate() - tage(400))
+    url = reverse("mandatare:detail", args=[mandat.pk])
+    assert "erklärt bei der Bewerbung" in client.get(url).content.decode()
+    client.force_login(admin_anlegen())
+    client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "abgegeben"})
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "widerrufen"})
+    assert "keine Angabe" in meldungen(antwort)
+    mandat.refresh_from_db()
+    assert mandat.rueckgabezusage == "" and mandat.rueckgabezusage_am == timezone.localdate()
+    assert _rueckgabezusagen_fuer([mandat])[mandat.pk] == ("", "mandat")
+    html = client.get(url).content.decode()
+    assert "erklärt bei der Bewerbung" not in html and ">abgegeben</strong>" not in html
+    assert ">keine Angabe</strong>" in html and f"vermerkt am {timezone.localdate():%d.%m.%Y}" in html
+    _verloren(ordnung, mandat)
+    eintrag = client.get(reverse("mandatare:rechenschaft_json")).json()["vertrauensfragen"][0]
+    assert eintrag["rueckgabezusage"] == "" and eintrag["rueckgabezusage_quelle"] == "mandat"
+
+
 def test_band_nach_der_nachfrist_verspricht_keine_eintraege_mehr(client, ordnung, altmandat):  # noqa: F811
     antrag, ende = _verloren(ordnung, altmandat)
     _sechs_monate_zurueck(antrag, altmandat)

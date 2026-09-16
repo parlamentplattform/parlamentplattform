@@ -42,7 +42,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% if vertrauensfrage.ist_bestaetigung %}
   <div class="band-gold vf-band"><strong>{% translate "Bestätigungsantrag nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung." %}</strong></div>
   {% else %}
-  <div class="band-gold vf-band vf-band-schwelle"><strong>{% blocktranslate with n=vertrauensfrage.stimmberechtigte m=vertrauensfrage.schwelle %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ m }} Unterstützungen (§ 7 Abs 10 lit c){% endblocktranslate %}</strong>
+  <div class="band-gold vf-band vf-band-schwelle"><strong>{% blocktranslate with n=vertrauensfrage.stimmberechtigte count m=vertrauensfrage.schwelle %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ m }} Unterstützung (§ 7 Abs 10 lit c){% plural %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ m }} Unterstützungen (§ 7 Abs 10 lit c){% endblocktranslate %}</strong>
     {% if vertrauensfrage.regionaler_weg_offen %}<span class="erk">{% translate "Der regionale Weg nach § 7 Abs 10 lit c steht offen, sobald die Plattform Gliederungen führt (§ 14 Abs 4)." %}</span>{% endif %}</div>
   {% endif %}
   {% if vertrauensfrage.schwelle_erreicht_am and not vertrauensfrage.ist_bestaetigung %}

@@ -7446,8 +7446,10 @@ msgstr "Response published — verbatim next to the motion."
 msgid "Stimmberechtigte am Einbringungstag"
 msgstr "Members eligible to vote on the day of submission"
 
-msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützungen (§ 7 Abs 10 lit c)"
-msgstr "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s endorsements (§ 7 (10) lit c)"
+msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützung (§ 7 Abs 10 lit c)"
+msgid_plural "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützungen (§ 7 Abs 10 lit c)"
+msgstr[0] "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s supporter (§ 7 (10) lit c)"
+msgstr[1] "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s supporters (§ 7 (10) lit c)"
 
 msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(s)s"
 msgstr "Eligible voters on the day of submission: %(n)s — threshold: %(s)s"

@@ -262,7 +262,7 @@ def test_antragsseite_zeigt_kopfzeile_anlaesse_baender_und_stellungnahmen(client
     assert altmandat.mitglied.anzeigename in kopf and "(Gemeinderätin)" in kopf
     assert f"Anlässe: {1 + len(kennungen)}" in kopf and "0 Unterstützungen" in kopf
     assert ">Vertrauensfrage</span>" in kopf.split('class="a-chips"')[1].split("</div>")[0]
-    assert "Stimmberechtigte am Einbringungstag: 5 — Schwelle: 1 Unterstützungen (§ 7 Abs 10 lit c)" in kopf
+    assert "Stimmberechtigte am Einbringungstag: 5 — Schwelle: 1 Unterstützung (§ 7 Abs 10 lit c)" in kopf
     assert "Der regionale Weg nach § 7 Abs 10 lit c steht offen" in kopf  # Gemeindemandat, keine Gliederungen
     assert "Schwelle erreicht am" not in kopf and "vf-band-sperre" not in kopf
 
@@ -298,6 +298,23 @@ def test_antragsseite_zeigt_kopfzeile_anlaesse_baender_und_stellungnahmen(client
     assert "Abstimmung ab " + timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y") in zeile
     assert "noch 4 Tage" in zeile or "noch 5 Tage" in zeile
     assert "noch 27 Tage" not in zeile and "noch 28 Tage" not in zeile
+
+
+def test_schwelle_eins_steht_in_der_einzahl(client, ordnung, altmandat):  # noqa: F811
+    """Bis 20 Stimmberechtigte ist die Schwelle 1 (§ 7 Abs 10 lit c, aufgerundet) — das Band sagt dann
+    „1 Unterstützung“, nicht „1 Unterstützungen“; auf Englisch „1 supporter“ (Prüfung 0.48, B32)."""
+    leute = [mitglied_anlegen(f"e{i}", tage=400) for i in range(3)]  # 4 Stimmberechtigte → Schwelle 1
+    antrag = einbringen(leute[0], altmandat, ordnung)
+    assert antrag.vertrauensfrage.schwelle_partei == 1
+    kopf = _kopf(_seite(client, antrag))
+    assert "Schwelle: 1 Unterstützung (§ 7 Abs 10 lit c)" in kopf and "1 Unterstützungen" not in kopf
+    kopf = _kopf(client.get(reverse("verfahren:antrag", args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE="en").content.decode())
+    assert "threshold: 1 supporter (§ 7 (10) lit c)" in kopf and "1 supporters" not in kopf and "endorsements" not in kopf
+
+    leute += [mitglied_anlegen(f"e{i}", tage=400) for i in range(3, 30)]  # 31 → Schwelle 2
+    zweiter = einbringen(leute[1], altmandat, ordnung)
+    assert zweiter.vertrauensfrage.schwelle_partei == 2
+    assert "Schwelle: 2 Unterstützungen (§ 7 Abs 10 lit c)" in _kopf(_seite(client, zweiter))
 
 
 def test_regeln_der_vertrauensfrage_nennen_schwelle_prozent_und_fenster(ordnung, altmandat):  # noqa: F811

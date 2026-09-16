@@ -45,6 +45,8 @@ jobs:
     # Chromium-Download den Pflicht-Check `pruefen` sonst um Minuten verlängert; ohne
     # Playwright überspringen sich die Tests, `pruefen` bleibt davon unberührt.
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # nur für den Commit-Kommentar bei roten Bildschirmtests
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -70,6 +72,20 @@ jobs:
             tail -n 120 bildschirmtests.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Rote Bildschirmtests als Kommentar zum Commit
+        # Protokolle und Zusammenfassung sind ohne Anmeldung nicht lesbar; ein Commit-Kommentar
+        # ist es — und er entsteht nur, wenn die Bildschirmtests rot sind.
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '**Bildschirmtests rot** (Job sichtpruefung, %s)
+
+```
+%s
+```
+' "$GITHUB_SHA" "$(tail -n 100 bildschirmtests.log)" > kommentar.md
+          gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@kommentar.md || true
       - name: Bilder der Sichtprüfung sichern
         if: always()
         uses: actions/upload-artifact@v4

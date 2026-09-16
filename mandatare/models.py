@@ -174,11 +174,14 @@ class Mandat(models.Model):
         return self.vertrauen_entzogen_am is not None and self.bestaetigt_am is None
 
     def rueckgabezusage_wirksam(self) -> tuple[str, str]:
-        """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der Vermerk am Mandat (Verwaltung, „mandat“),
-        sonst die öffentliche Erklärung aus der Bewerbung zur verknüpften Kandidatur („bewerbung“);
-        `("", "")` heißt „keine Angabe“. Register, Seite und JSON lesen dieselbe Quelle — der Vermerk
-        nach Fristablauf darf nicht „keine Rückgabezusage“ sagen, wo die Bewerbung eine trägt."""
-        if self.rueckgabezusage:
+        """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der datierte Vermerk am Mandat (Verwaltung,
+        „mandat“) — auch der Widerruf auf „keine Angabe“, der `rueckgabezusage` leert und nur am Datum
+        erkennbar ist —, sonst die öffentliche Erklärung aus der Bewerbung zur verknüpften Kandidatur
+        („bewerbung“); `("", "")` heißt „keine Angabe“. Register, Seite und JSON lesen dieselbe Quelle
+        (`views._rueckgabezusagen_fuer` rechnet gleich): Der Vermerk nach Fristablauf darf weder „keine
+        Rückgabezusage“ sagen, wo die Bewerbung eine trägt, noch „nicht eingehalten“, wo sie widerrufen
+        ist — Nichtabgabe, Widerruf und Nichteinhaltung sind drei Sachverhalte (§ 7 Abs 3)."""
+        if self.rueckgabezusage or self.rueckgabezusage_am is not None:
             return self.rueckgabezusage, "mandat"
         if self.kandidatur_id:
             zusage = (
@@ -193,11 +196,13 @@ class Mandat(models.Model):
     @property
     def rueckgabe_vermerk(self) -> str:
         """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
-        — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht."""
+        — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht. Ein
+        beendetes Mandat heißt „beendet“, nicht „zurückgelegt“: Ein Mandat kann auch anders enden, und
+        ob es auf das Ersuchen hin zurückgelegt wurde, weiß die Plattform nicht (Abs 2)."""
         if self.rueckgabe_ersucht_bis is None or self.vertrauen_entzogen_am is None:
             return ""
         if self.beendet is not None:
-            return str(_("Mandat zurückgelegt am %(datum)s") % {"datum": self.beendet.strftime("%d.%m.%Y")})
+            return str(_("Mandat beendet am %(datum)s") % {"datum": self.beendet.strftime("%d.%m.%Y")})
         if timezone.localdate() <= self.rueckgabe_ersucht_bis:
             return ""
         if self.rueckgabezusage_wirksam()[0] == Rueckgabezusage.ABGEGEBEN:

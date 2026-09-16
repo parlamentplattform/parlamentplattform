@@ -6977,8 +6977,8 @@ msgid "beim Parteischiedsgericht anhängig"
 msgstr "pending before the party arbitration tribunal"
 
 #, python-format
-msgid "Mandat zurückgelegt am %(datum)s"
-msgstr "Mandate resigned on %(datum)s"
+msgid "Mandat beendet am %(datum)s"
+msgstr "Mandate ended on %(datum)s"
 
 msgid "Rückgabezusage nicht eingehalten"
 msgstr "Resignation pledge not kept"

@@ -301,8 +301,28 @@ class Antrag(models.Model):
         Rückgabe: True, wenn sich die Phase geändert hat.
 
         Atomar, weil ein Phasenwechsel drei Dinge zugleich sind: neue Phase, archivierter Chat
-        (FB-G5) und Audit-Eintrag. Bricht eines ab, darf keines stehenbleiben."""
+        (FB-G5) und Audit-Eintrag. Bricht eines ab, darf keines stehenbleiben.
+
+        Die eigene Zeile wird zuerst gesperrt und die Phasenfelder werden daraus gelesen: Zwei
+        gleichzeitige Fortschreibungen desselben Antrags (zwei Unterstützungen an der Schwelle,
+        zwei erste Aufrufe am Ergebnis) serialisieren sich so auf Postgres, und die zweite sieht
+        den gesetzten Stempel bzw. die neue Phase — statt zweier Audit-Einträge „schwelle_erreicht“
+        mit zwei Zeitpunkten und zweier Hinweise im Posteingang (Befund B26; § 7 Abs 10 lit c: das
+        Erreichen der Schwelle hat EINEN Zeitpunkt). SQLite kennt keine Zeilensperre und
+        serialisiert ohnehin; ein veraltetes Objekt im Speicher liest so aber auch dort die
+        Datenbank, bevor es einen zweiten Übergang anwendet."""
         jetzt = jetzt or timezone.now()
+        frisch = (
+            type(self)
+            .objects.select_for_update()
+            .only("phase", "phase_beginn", "stimmberechtigte_anzahl", "stimmberechtigung_stichtag")
+            .get(pk=self.pk)
+        )
+        self.phase, self.phase_beginn = frisch.phase, frisch.phase_beginn
+        self.stimmberechtigte_anzahl, self.stimmberechtigung_stichtag = (
+            frisch.stimmberechtigte_anzahl,
+            frisch.stimmberechtigung_stichtag,
+        )
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
         # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung

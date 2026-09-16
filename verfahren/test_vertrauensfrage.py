@@ -790,6 +790,36 @@ def test_nachrechnen_kennt_die_vertrauensfrage():
     assert nachrechnen(export)["vertrauensfrage"] == "gewonnen"
 
 
+def test_fortschreiben_liest_die_phase_gesperrt_aus_der_datenbank(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Befund B26: Zwei gleichzeitige Fortschreibungen desselben Antrags lasen beide den alten Stand und
+    schrieben zwei Übergänge bzw. zwei Stempel. Die Zeile wird jetzt zuerst gesperrt und die Phase daraus
+    gelesen — ein veraltetes Objekt wendet keinen zweiten Übergang mehr an (auf SQLite prüfbar ist nur
+    das Lesen; die Sperre selbst wirkt auf Postgres)."""
+    from django.db.models.query import QuerySet
+
+    gesperrt = []
+    echt = QuerySet.select_for_update
+
+    def merkt(self, *args, **kwargs):
+        gesperrt.append(self.model)
+        return echt(self, *args, **kwargs)
+
+    monkeypatch.setattr(QuerySet, "select_for_update", merkt)
+    t0 = timezone.now()
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung, jetzt=t0)
+    veraltet = Antrag.objects.get(pk=antrag.pk)  # ein zweites Objekt, wie im zweiten Prozess
+    assert veraltet.phase == "unterstuetzung"
+    Antrag.objects.filter(pk=antrag.pk).update(phase=Phase.ABGELEHNT.value, phase_beginn=t0 + tage(14))
+    vorher = len(audit("phasenwechsel"))
+    gesperrt.clear()
+    assert veraltet.fortschreiben(t0 + tage(31)) is False  # sonst: „verfallen“ über ein entschiedenes Ergebnis
+    assert gesperrt == [Antrag]  # die eigene Zeile, einmal je Lauf
+    assert veraltet.phase == "abgelehnt" and veraltet.phase_beginn == t0 + tage(14)
+    assert len(audit("phasenwechsel")) == vorher
+    antrag.refresh_from_db()
+    assert antrag.phase == "abgelehnt"
+
+
 def test_gegenstand_fuer_jede_antragsart(ordnung):  # noqa: F811
     anna = mitglied_anlegen("anna")
     sache = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)

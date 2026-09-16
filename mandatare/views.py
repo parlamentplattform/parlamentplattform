@@ -132,17 +132,27 @@ def _mandat_queryset():
     )
 
 
-def _vertrauensfragen_von(mandat) -> list[Vertrauensfrage]:
+#: Die Felder des Mandats, die Stufe 1 und 2 der Wirkungen stempeln (§ 7 Abs 10 lit f) — nur sie lädt
+#: die Seite nach, damit der Prefetch von Aufgaben und Vertrauensfragen erhalten bleibt.
+VERTRAUENSFELDER = [
+    "vertrauen_entzogen_am", "rueckgabe_ersucht_bis", "bestaetigt_am", "vertretung_beendet_am", "mandatsvereinbarung_endet_am",
+]
+
+
+def _vertrauensfragen_von(mandat) -> tuple[list[Vertrauensfrage], bool]:
     """Die Vertrauensfragen und Bestätigungsanträge eines Mandats, neueste zuerst — aus dem
-    Prefetch, wo es eines gibt; laufende Anträge werden dabei auf den Stand gebracht (lazy Phasen)."""
+    Prefetch, wo es eines gibt; laufende Anträge werden dabei auf den Stand gebracht (lazy Phasen).
+    Zweiter Wert: ob dabei ein Antrag die Phase gewechselt hat — dann hat Stufe 1 der Wirkungen auf
+    einer anderen Mandat-Instanz gestempelt (`Antrag._vertrauensfrage` lädt frisch)."""
     if "vertrauensfragen" in getattr(mandat, "_prefetched_objects_cache", {}):
         alle = list(mandat.vertrauensfragen.all())
     else:
         alle = list(mandat.vertrauensfragen.select_related("antrag").order_by("-antrag__eingebracht_am"))
+    geaendert = False
     for vf in alle:
-        if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND:
-            vf.antrag.fortschreiben()
-    return alle
+        if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND and vf.antrag.fortschreiben():
+            geaendert = True
+    return alle, geaendert
 
 
 def _tage_zaehler(tag: date | None, heute: date) -> dict | None:
@@ -196,11 +206,13 @@ def _vertrauen(mandat, heute: date | None = None) -> dict:
     """Alles, was der Abschnitt „Vertrauen“ zeigt (§ 7 Abs 10 lit e, f Z 4, lit h und j): die laufende
     Vertrauensfrage, die Ergebnisse, der Fristzähler des Rückgabeersuchens, der Vermerk des Registers
     als reiner Sachverhalt, Rückgabezusage und Ergänzung der Mandatsvereinbarung, der Stand einer
-    Bestätigung. Ruft vorher Stufe 2 der Wirkungen ab (lazy)."""
+    Bestätigung. Bringt zuerst die laufenden Anträge auf den Stand (ein Ende der Abstimmung löst Stufe 1
+    aus) und ruft dann Stufe 2 der Wirkungen ab (lazy) — beides im selben Aufruf, damit der erste Aufruf
+    nach dem Fristende schon den Stand zeigt, den er selbst erzeugt hat."""
     heute = heute or timezone.localdate()
-    if vertrauensfragen_fortschreiben():
-        mandat.refresh_from_db()  # Stufe 2 hat eben gestempelt — die Seite zeigt den neuen Stand, nicht den geladenen
-    alle = _vertrauensfragen_von(mandat)
+    alle, geaendert = _vertrauensfragen_von(mandat)  # Antrag fortschreiben → Stufe 1 (auf einer anderen Instanz)
+    if vertrauensfragen_fortschreiben() or geaendert:  # Stufe 2 im selben Aufruf
+        mandat.refresh_from_db(fields=VERTRAUENSFELDER)  # die Seite zeigt den neuen Stand, nicht den geladenen
     laufende = next((vf for vf in alle if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND), None)
     entschiedene = [vf for vf in alle if vf.antrag.phase in BEENDET]
     letzte_verlorene = next((vf for vf in entschiedene if vf.verloren), None)
@@ -321,13 +333,17 @@ def _rechenschaft_zeilen(eintraege) -> list[dict]:
 
 def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None) -> list[Vertrauensfrage]:
     """Vertrauensfragen und Bestätigungsanträge mit Ergebnis — für die Registerzeilen (§ 7 Abs 10 lit e:
-    „im Rechenschaftsregister dauerhaft ausgewiesen — ein gewonnenes Vertrauen ebenso wie ein verlorenes“)."""
-    qs = Vertrauensfrage.objects.filter(antrag__phase__in=BEENDET).select_related("antrag", "mandat__mitglied")
+    „im Rechenschaftsregister dauerhaft ausgewiesen — ein gewonnenes Vertrauen ebenso wie ein verlorenes“).
+    Laufende Anträge desselben Ausschnitts werden vorher fortgeschrieben (lazy Phasen): Ein Ergebnis,
+    dessen Frist ohne Seitenaufruf ablief, steht so schon im ersten Register, das danach gelesen wird."""
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
     if mandat is not None:
         qs = qs.filter(mandat=mandat)
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
-    return list(qs.order_by("-antrag__phase_beginn"))
+    for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND):
+        vf.antrag.fortschreiben()
+    return list(qs.filter(antrag__phase__in=BEENDET).order_by("-antrag__phase_beginn"))
 
 
 def _register_zeilen(eintraege, vertrauensfragen) -> list[dict]:
@@ -485,7 +501,7 @@ def rechenschaft_mandat(request, pk: int):
     """§ 7 Abs 5: das ganze Register eines Mandatars, mit Ausständen."""
     mandat = get_object_or_404(_mandat_queryset(), pk=pk)
     eintraege = list(mandat.rechenschaft.select_related("antrag", "aufgabe"))
-    vertrauensfragen_fortschreiben()
+    vertrauen = _vertrauen(mandat)  # zuerst: bringt Anträge und Wirkungen auf den Stand, den die Zeilen zeigen
     return render(
         request,
         "mandatare/rechenschaft_mandat.html",
@@ -493,7 +509,7 @@ def rechenschaft_mandat(request, pk: int):
             "mandat": mandat,
             "zeilen": _register_zeilen(eintraege, _entschiedene_vertrauensfragen(mandat=mandat)),
             "ausstaende": _ausstaende(mandat),
-            "vertrauen": _vertrauen(mandat),
+            "vertrauen": vertrauen,
         },
     )
 

@@ -3,6 +3,7 @@ Stellungnahme des Mandatsträgers, Bestätigungsantrag im Bereich, Verwaltungsve
 `/vertrauensfragen/` samt JSON, der Abschnitt „Vertrauen“ mit Fristzähler, die Registerzeile —
 und dass die Abfragezahl nicht an der Zahl der Vertrauensfragen hängt."""
 
+import itertools
 from datetime import date
 
 import pytest
@@ -40,6 +41,7 @@ MEIN = reverse("mandatare:mein")
 MEIN_AKTION = reverse("mandatare:mein_aktion")
 VERWALTUNG_AKTION = reverse("mandatare:verwaltung_aktion")
 LISTE = reverse("mandatare:vertrauensfragen")
+_ZAEHLER = itertools.count(1)
 
 
 def stellen_url(mandat):
@@ -433,6 +435,64 @@ def test_fristzaehler_und_vermerk_auf_der_mandatar_seite(client, ordnung, altman
     Mandat.objects.filter(pk=altmandat.pk).update(rueckgabe_ersucht_bis=timezone.localdate() - tage(2))
     html = client.get(url).content.decode()
     assert "abgelaufen seit 2 Tagen" in html and "keine Rückgabezusage abgegeben" in html
+
+
+def _abstimmung_abgelaufen_ohne_aufruf(ordnung, mandat, vor_tagen: int):  # noqa: F811
+    """Eine Vertrauensfrage, deren Abstimmung vor `vor_tagen` Tagen endete, ohne dass jemand eine Seite
+    aufrief: der Antrag steht noch in der Abstimmung, alle Stimmen lauten auf Ja."""
+    from verfahren.models import stimme_abgeben
+
+    leute = [mitglied_anlegen(f"s{next(_ZAEHLER)}") for _ in range(5)]
+    t0 = timezone.now() - tage(vor_tagen + 14)
+    antrag = einbringen(leute[0], mandat, ordnung, jetzt=t0)
+    antrag.unterstuetzungen.create(mitglied=leute[1], erklaert_am=t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    for m in leute:
+        stimme_abgeben(antrag, m, "ja", jetzt=t0 + tage(8))
+    antrag.refresh_from_db()
+    assert antrag.phase == Phase.ABSTIMMUNG.value
+    return antrag
+
+
+def _weiteres_altmandat(name: str):
+    return mandat_anlegen(mitglied_anlegen(name, tage=600), angetreten=timezone.localdate() - tage(400))
+
+
+def test_erster_aufruf_nach_dem_fristende_zeigt_die_eben_eingetretenen_wirkungen(client, ordnung, altmandat):  # noqa: F811
+    """Die Abstimmung endet, niemand ruft eine Seite auf; der erste Aufruf ist die Mandatar-Seite. Sie
+    schreibt den Antrag fort (Stufe 1 stempelt auf einer anderen Mandat-Instanz), zieht Stufe 2 nach und
+    rendert den Stand, den sie selbst erzeugt hat — Ersuchen um Rückgabe, Kandidatursperre, Fristzähler;
+    die ruhende Rolle ist im selben Aufruf beendet (acht Tage nach dem Ergebnis). Der Knopf „Vertrauensfrage
+    stellen“ bleibt bewusst (Sperre nur als Hinweis, der Integritätsrat stellt sie fest)."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag = _abstimmung_abgelaufen_ohne_aufruf(ordnung, altmandat, vor_tagen=8)
+    antwort = client.get(reverse("mandatare:detail", args=[altmandat.pk]))
+    assert antwort.status_code == 200
+    antrag.refresh_from_db()
+    assert antrag.phase == Phase.ANGENOMMEN.value
+    ctx = antwort.context
+    assert ctx["mandat"].vertrauen_entzogen_am is not None and ctx["mandat"].kandidatursperre
+    assert ctx["vertrauen"]["rueckgabe"] is not None and not ctx["vertrauen"]["rueckgabe"]["vorbei"]
+    html = antwort.content.decode()
+    assert "Ersuchen um Rückgabe des Mandats" in html and "Keine Kandidatur nach § 7 Abs 1" in html
+    rolle.refresh_from_db()
+    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND  # Stufe 2 lief im selben Aufruf
+    assert antrag.vertrauensfrage.wirkungen_endgueltig_am is not None
+
+
+def test_erster_aufruf_von_register_und_bereich_nach_dem_fristende_traegt_das_ergebnis(client, ordnung, altmandat):  # noqa: F811
+    antrag = _abstimmung_abgelaufen_ohne_aufruf(ordnung, altmandat, vor_tagen=1)
+    einzeln = client.get(reverse("mandatare:rechenschaft_mandat", args=[altmandat.pk])).content.decode()
+    assert '<tr class="vertrauensfrage">' in einzeln and "Vertrauensfrage verloren" in einzeln
+    assert "Ersuchen um Rückgabe des Mandats" in einzeln
+    zweiter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("zwei"), vor_tagen=1)
+    alle = client.get(reverse("mandatare:rechenschaft")).content.decode()
+    assert f'href="/antrag/{antrag.pk}/"' in alle and f'href="/antrag/{zweiter.pk}/"' in alle
+    dritter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("drei"), vor_tagen=1)
+    client.force_login(dritter.vertrauensfrage.mandat.mitglied)
+    bereich = client.get(MEIN).content.decode()
+    assert "Ersuchen um Rückgabe des Mandats" in bereich and 'name="abstimmung"' not in bereich
 
 
 def test_rueckgabezusage_aus_der_bewerbung_und_im_wahlvorschlag(client, ordnung):  # noqa: F811

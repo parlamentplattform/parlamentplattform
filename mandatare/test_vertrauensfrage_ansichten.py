@@ -668,6 +668,41 @@ def test_json_nennt_die_rueckgabezusage_aus_derselben_quelle_wie_die_seite(clien
     assert _rueckgabezusagen_fuer([fremd])[fremd.pk] == (Rueckgabezusage.UNBEKANNT.value, "")
 
 
+def test_registervermerk_kostet_keine_abfrage_je_verlorener_vertrauensfrage(client, ordnung):  # noqa: F811
+    """Zusage nur in der Bewerbung, Rückgabefrist abgelaufen: Liste, JSON und Register rechnen Zusage und
+    Vermerk einmal je Mandat — eine oder drei verlorene Vertrauensfragen desselben Mandats kosten gleich
+    viele Abfragen, und das JSON rechnet den Vermerk nicht ein zweites Mal."""
+    from verfahren.models import antrag_einbringen
+
+    anna = mitglied_anlegen("anna", tage=600)
+    kandidatur = antrag_einbringen(anna, "Listenreihung", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna, vorstellung="Ich.", rueckgabezusage=Rueckgabezusage.ABGEGEBEN)
+    mandat = mandat_anlegen(anna, kandidatur=kandidatur, angetreten=timezone.localdate() - tage(400))
+    urls = (LISTE, reverse("mandatare:rechenschaft_json"), reverse("mandatare:rechenschaft"))
+
+    def verlieren(n):
+        for _ in range(n):
+            Mandat.objects.filter(pk=mandat.pk).update(vertrauen_entzogen_am=None, bestaetigt_am=None)
+            _verloren(ordnung, mandat)
+        Mandat.objects.filter(pk=mandat.pk).update(rueckgabe_ersucht_bis=timezone.localdate() - tage(2))
+
+    def messen(url):
+        with CaptureQueriesContext(connection) as erfasst:
+            antwort = client.get(url)
+        assert antwort.status_code == 200
+        return len(erfasst), antwort
+
+    verlieren(1)
+    eine = {u: messen(u)[0] for u in urls}
+    verlieren(2)
+    drei = {u: messen(u) for u in urls}
+    assert {u: n for u, (n, _) in drei.items()} == eine, (eine, {u: n for u, (n, _) in drei.items()})
+    daten = drei[reverse("mandatare:rechenschaft_json")][1].json()["vertrauensfragen"]
+    assert len(daten) == 3 and all(d["vermerk"] == "Rückgabezusage nicht eingehalten" for d in daten)
+    assert all(d["rueckgabezusage"] == "abgegeben" and d["rueckgabezusage_quelle"] == "bewerbung" for d in daten)
+    assert "Rückgabezusage nicht eingehalten" in drei[LISTE][1].content.decode()
+
+
 def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbung(client, ordnung):  # noqa: F811
     """§ 7 Abs 3 nennt „ihr Widerruf“ als eigenen Sachverhalt: Vermerkt die Verwaltung „widerrufen (keine
     Angabe)“, darf die Bewerbung nicht wieder durchscheinen — Seite, Helfer und JSON sagen „keine Angabe ·

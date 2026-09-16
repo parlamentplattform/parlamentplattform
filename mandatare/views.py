@@ -364,18 +364,30 @@ def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None
     return list(_mit_beteiligung(qs.filter(antrag__phase__in=BEENDET)).order_by("-antrag__phase_beginn"))
 
 
+def _rueckgabe_vermerke_fuer(vertrauensfragen) -> dict[int, str]:
+    """Der Registervermerk nach Fristablauf (§ 7 Abs 10 lit f Z 4) je Mandat mit verlorener Vertrauensfrage —
+    einmal je Mandat gerechnet, nicht je Zeile (`Mandat.rueckgabe_vermerk` liest die Rückgabezusage, notfalls
+    aus der Bewerbung)."""
+    vermerke: dict[int, str] = {}
+    for vf in vertrauensfragen:
+        if vf.verloren and vf.mandat_id not in vermerke:
+            vermerke[vf.mandat_id] = vf.mandat.rueckgabe_vermerk
+    return vermerke
+
+
 def _register_zeilen(eintraege, vertrauensfragen) -> list[dict]:
     """Die Zeilen des Rechenschaftsregisters: Einträge (`r`) und Ergebnisse von Vertrauensfragen (`vf`)
     in einer Reihe, neuester Tag zuerst. Eine Vertrauensfrage-Zeile trägt den Tag der Veröffentlichung
     des Ergebnisses und den Vermerk des Registers (Rückgabeersuchen, Rechtsschutz) als Sachverhalt."""
     zeilen = [{**z, "vf": None, "datum": z["r"].sitzung_am} for z in _rechenschaft_zeilen(eintraege)]
+    vermerke = _rueckgabe_vermerke_fuer(vertrauensfragen)
     for vf in vertrauensfragen:
         zeilen.append(
             {
                 "r": None,
                 "vf": vf,
                 "datum": timezone.localdate(vf.antrag.phase_beginn),
-                "vermerk": vf.mandat.rueckgabe_vermerk if vf.verloren else "",
+                "vermerk": vermerke.get(vf.mandat_id, "") if vf.verloren else "",
             }
         )
     zeilen.sort(key=lambda z: (z["datum"].toordinal(), z["r"].pk if z["r"] else z["vf"].antrag_id), reverse=True)
@@ -628,12 +640,9 @@ def _vertrauensfragen_json(ebene: str) -> list[dict]:
     Zahlen des Einbringungstags, Stand, Ergebnis als „gewonnen“/„verloren“, Rechtsschutz, Rückgabefrist
     und -zusage, Vermerk — ohne Personenbezug über den Anzeigenamen hinaus."""
     vertrauensfragen_fortschreiben()
-    zeilen = _vertrauensfragen_zeilen(ebene)
-    zusagen = _rueckgabezusagen_fuer({z["vf"].mandat_id: z["vf"].mandat for z in zeilen}.values())
     daten = []
-    for z in zeilen:
+    for z in _vertrauensfragen_zeilen(ebene):
         vf, mandat = z["vf"], z["vf"].mandat
-        zusage, zusage_quelle = zusagen[mandat.pk]
         daten.append(
             {
                 "antrag": vf.antrag_id,
@@ -659,9 +668,9 @@ def _vertrauensfragen_json(ebene: str) -> list[dict]:
                 "entscheidung": vf.entscheidung,
                 "rechtsschutz": vf.rechtsschutz_stand,
                 "rueckgabe_ersucht_bis": _iso(mandat.rueckgabe_ersucht_bis) if vf.verloren else None,
-                "rueckgabezusage": zusage,
-                "rueckgabezusage_quelle": zusage_quelle or None,
-                "vermerk": mandat.rueckgabe_vermerk if vf.verloren else "",
+                "rueckgabezusage": z["zusage"],
+                "rueckgabezusage_quelle": z["zusage_quelle"] or None,
+                "vermerk": z["vermerk"],
                 "vertretung_beendet_am": _iso(mandat.vertretung_beendet_am) if vf.verloren else None,
                 "bestaetigt_am": _iso(mandat.bestaetigt_am),
             }
@@ -684,9 +693,10 @@ def _ergebnis_kurz(vf: Vertrauensfrage) -> str:
 
 def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     """Alle Vertrauensfragen mit Zählern in einer Abfrage: gültige Unterstützungen und abgegebene Stimmen
-    (Beteiligung), Ergebnis in Worten („gewonnen“/„verloren“, lit e), Rechtsschutzstand. Laufende Anträge
-    werden vorher fortgeschrieben (lazy Phasen); ihre Zahl bestimmt dafür die Abfragen, nicht die der
-    entschiedenen."""
+    (Beteiligung), Ergebnis in Worten („gewonnen“/„verloren“, lit e), Rechtsschutzstand, dazu Rückgabezusage
+    samt Quelle (eine Abfrage für alle) und der Registervermerk (einmal je Mandat) — Seite und JSON lesen
+    dieselben Zeilen. Laufende Anträge werden vorher fortgeschrieben (lazy Phasen); ihre Zahl bestimmt dafür
+    die Abfragen, nicht die der entschiedenen."""
     qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
@@ -701,8 +711,11 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
         )
     ).order_by("-antrag__eingebracht_am")
     jetzt = timezone.now()
+    alle = list(qs)
+    zusagen = _rueckgabezusagen_fuer({vf.mandat_id: vf.mandat for vf in alle}.values())
+    vermerke = _rueckgabe_vermerke_fuer(alle)
     zeilen = []
-    for vf in qs:
+    for vf in alle:
         zeilen.append(
             {
                 "vf": vf,
@@ -715,7 +728,9 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
                 "ergebnis": _ergebnis_kurz(vf),
                 "ergebnis_wort": vf.ergebnis_wort,
                 "rechtsschutz": vf.rechtsschutz_stand,
-                "vermerk": vf.mandat.rueckgabe_vermerk if vf.verloren else "",
+                "zusage": zusagen[vf.mandat_id][0],
+                "zusage_quelle": zusagen[vf.mandat_id][1],
+                "vermerk": vermerke.get(vf.mandat_id, "") if vf.verloren else "",
             }
         )
     return zeilen

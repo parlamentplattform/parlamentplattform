@@ -446,8 +446,9 @@ def test_umsetzungskarte_der_vertrauensfrage_sagt_dass_die_wirkungen_ohne_beschl
     b.refresh_from_db()
     assert b.phase == "angenommen"
     karte = _seite(client, b).split('id="umsetzung"')[1].split("</p>")[0]
-    assert "Die Bestätigung wirkt ohne weiteren Beschluss — die Kandidatursperre ist aufgehoben (§ 7 Abs 10 lit f Z 3)" in karte
-    assert "neue Mandatsvereinbarung nach § 7 Abs 3" in karte and "Öffentlicher Stand der Umsetzung" not in karte
+    assert "Die Bestätigung wirkt ohne weiteren Beschluss — die Kandidatursperre ist aufgehoben und" in karte
+    assert "eine neue Mandatsvereinbarung nach § 7 Abs 3 möglich" in karte  # lit f Z 3: „ermöglicht“, nicht „zu vollziehen“
+    assert "zu vollziehen" not in karte and "Öffentlicher Stand der Umsetzung" not in karte
 
     # Aufhebung durch das Parteischiedsgericht: die Karte behauptet keine Wirkungen mehr
     vertrauensfrage_anfechtung_vermerken(antrag.vertrauensfrage, "PSG 1/26", jetzt=ende + tage(2))

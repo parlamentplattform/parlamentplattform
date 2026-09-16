@@ -42,7 +42,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
       <a href="{% url 'verfahren:antrag' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
       {% if z.personenwahl %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% elif z.mandatsfrage %}<span class="badge badge--hell">{% translate "Mandatsfrage" %}</span>{% elif z.vertrauensfrage %}<span class="badge badge--hell">{% if z.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
       {% if z.laeuft %}<span class="badge badge--hell">{% translate "Abstimmung läuft" %}</span>
-      {% elif z.ergebnis_wort %}{# § 7 Abs 10 lit e: verloren/gewonnen statt angenommen/abgelehnt #}<span class="badge badge--hell">{{ z.ergebnis_wort }}</span>
+      {% elif z.ergebnis_wort %}{# § 7 Abs 10 lit e: verloren/gewonnen statt angenommen/abgelehnt #}<span class="badge badge--hell">{{ z.ergebnis_wort }}</span>{% if z.vertrauensfrage.rechtsschutz_stand %} {# lit h: die Aufhebung an denselben Stellen wie das Ergebnis #}<span class="badge badge--hell">{{ z.vertrauensfrage.rechtsschutz_stand }}</span>{% endif %}
       {% elif z.antrag.phase == "angenommen" %}<span class="badge badge-ok">{% translate "angenommen" %}</span>
       {% else %}<span class="badge badge-warn">{% translate "abgelehnt" %}</span>{% endif %}
       {% if z.legende %}<span class="erk vf-legende">{{ z.legende.0 }} · {{ z.legende.1 }}</span>{% endif %}

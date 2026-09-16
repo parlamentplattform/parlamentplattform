@@ -262,7 +262,7 @@ def test_antragsseite_zeigt_kopfzeile_anlaesse_baender_und_stellungnahmen(client
     assert altmandat.mitglied.anzeigename in kopf and "(Gemeinderätin)" in kopf
     assert f"Anlässe: {1 + len(kennungen)}" in kopf and "0 Unterstützungen" in kopf
     assert ">Vertrauensfrage</span>" in kopf.split('class="a-chips"')[1].split("</div>")[0]
-    assert "Stimmberechtigte am Einbringungstag: 5 — Schwelle: 1 Unterstützungen (§ 7 Abs 10 lit c)" in kopf
+    assert "Stimmberechtigte am Einbringungstag: 5 — Schwelle: 1 Unterstützung (§ 7 Abs 10 lit c)" in kopf
     assert "Der regionale Weg nach § 7 Abs 10 lit c steht offen" in kopf  # Gemeindemandat, keine Gliederungen
     assert "Schwelle erreicht am" not in kopf and "vf-band-sperre" not in kopf
 
@@ -298,6 +298,38 @@ def test_antragsseite_zeigt_kopfzeile_anlaesse_baender_und_stellungnahmen(client
     assert "Abstimmung ab " + timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y") in zeile
     assert "noch 4 Tage" in zeile or "noch 5 Tage" in zeile
     assert "noch 27 Tage" not in zeile and "noch 28 Tage" not in zeile
+
+
+def test_schwelle_eins_steht_in_der_einzahl(client, ordnung, altmandat):  # noqa: F811
+    """Bis 20 Stimmberechtigte ist die Schwelle 1 (§ 7 Abs 10 lit c, aufgerundet) — das Band sagt dann
+    „1 Unterstützung“, nicht „1 Unterstützungen“; auf Englisch „1 supporter“ (Prüfung 0.48, B32)."""
+    leute = [mitglied_anlegen(f"e{i}", tage=400) for i in range(3)]  # 4 Stimmberechtigte → Schwelle 1
+    antrag = einbringen(leute[0], altmandat, ordnung)
+    assert antrag.vertrauensfrage.schwelle_partei == 1
+    kopf = _kopf(_seite(client, antrag))
+    assert "Schwelle: 1 Unterstützung (§ 7 Abs 10 lit c)" in kopf and "1 Unterstützungen" not in kopf
+    kopf = _kopf(client.get(reverse("verfahren:antrag", args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE="en").content.decode())
+    assert "threshold: 1 supporter (§ 7 (10) lit c)" in kopf and "1 supporters" not in kopf and "endorsements" not in kopf
+
+    leute += [mitglied_anlegen(f"e{i}", tage=400) for i in range(3, 30)]  # 31 → Schwelle 2
+    zweiter = einbringen(leute[1], altmandat, ordnung)
+    assert zweiter.vertrauensfrage.schwelle_partei == 2
+    assert "Schwelle: 2 Unterstützungen (§ 7 Abs 10 lit c)" in _kopf(_seite(client, zweiter))
+
+
+def test_frist_eines_ausstands_steht_wie_jedes_datum_der_seite(client, ordnung, altmandat):  # noqa: F811
+    """Das JSONField trägt die Frist des Ausstands als ISO-Text; die Antragsseite zeigte ihn roh
+    („Frist 2026-07-25“) neben lauter d.m.Y-Daten (Prüfung 0.48, B35)."""
+    Aufgabe.objects.create(mandat=altmandat, titel="Sitzung", frist=timezone.now() - tage(45), sitzungstag=True)
+    ausstaende = altmandat.anlass_ausstaende()
+    assert len(ausstaende) >= 1
+    antrag = einbringen(mitglied_anlegen("a", tage=400), altmandat, ordnung, ausstaende=[a["kennung"] for a in ausstaende])
+    assert isinstance(antrag.vertrauensfrage.anlass_ausstaende[0]["seit"], str)  # so liegt es in der Datenbank
+
+    anlaesse = _seite(client, antrag).split('id="anlaesse"')[1].split('id="stellungnahme"')[0]
+    for a in ausstaende:
+        assert f"(Frist {a['seit']:%d.%m.%Y})" in anlaesse
+        assert a["seit"].isoformat() not in anlaesse
 
 
 def test_regeln_der_vertrauensfrage_nennen_schwelle_prozent_und_fenster(ordnung, altmandat):  # noqa: F811
@@ -385,6 +417,60 @@ def test_ergebnis_heisst_verloren_oder_gewonnen(client, ordnung, altmandat):  # 
     assert "<strong>Vertrauensfrage gewonnen</strong>" in seite and "Mindestbeteiligung verfehlt" in seite
 
 
+def test_umsetzungskarte_der_vertrauensfrage_sagt_dass_die_wirkungen_ohne_beschluss_eintreten(client, ordnung, altmandat):  # noqa: F811
+    """S3 (Prüfung 0.48), nur Ehrlichkeit: Die Umsetzungskarte einer verlorenen Vertrauensfrage behauptet keinen
+    Beschluss, den jemand umsetzen müsste — die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f),
+    zu vollziehen bleibt die Mitteilung nach Z 7. Register-Zeile und Vollzugsformular bleiben (§ 6 Abs 10)."""
+    from mandatare.models import vertrauensfrage_entscheidung_vermerken
+    from verfahren.models import vertrauensfrage_einbringen
+    from verfahren.test_vollzug import admin_anlegen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    seite = _seite(client, antrag)
+    karte = seite.split('id="umsetzung"')[1].split("</form>")[0]
+    assert "Die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f)" in karte
+    assert "Mitteilung des Koordinationsrats an Parlamentsklub oder Fraktion (Z 7)" in karte
+    assert "Öffentlicher Stand der Umsetzung" not in karte and 'href="/umsetzung/"' in karte
+    assert antrag.titel in client.get(reverse("verfahren:umsetzung")).content.decode()  # die Zeile bleibt
+    client.force_login(admin_anlegen())
+    assert 'class="vollzugsform"' in _seite(client, antrag)  # der Vollzug der Mitteilung bleibt eintragbar
+    client.logout()
+
+    # Bestätigungsantrag angenommen: die Kandidatursperre ist aufgehoben, zu vollziehen bleibt die Mandatsvereinbarung
+    ich = altmandat.mitglied
+    spaeter = ende + tage(200)
+    b = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=spaeter, art="bestaetigung")
+    b.fortschreiben(spaeter + tage(7))
+    abstimmen(b, [mitglied_anlegen(f"b{i}") for i in range(3)] + [ich], "ja", spaeter + tage(8))
+    b.fortschreiben(spaeter + tage(14))
+    b.refresh_from_db()
+    assert b.phase == "angenommen"
+    karte = _seite(client, b).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Die Bestätigung wirkt ohne weiteren Beschluss — die Kandidatursperre ist aufgehoben und" in karte
+    assert "eine neue Mandatsvereinbarung nach § 7 Abs 3 möglich" in karte  # lit f Z 3: „ermöglicht“, nicht „zu vollziehen“
+    assert "zu vollziehen" not in karte and "Öffentlicher Stand der Umsetzung" not in karte
+
+    # Aufhebung durch das Parteischiedsgericht: die Karte behauptet keine Wirkungen mehr
+    vertrauensfrage_anfechtung_vermerken(antrag.vertrauensfrage, "PSG 1/26", jetzt=ende + tage(2))
+    vertrauensfrage_entscheidung_vermerken(antrag.vertrauensfrage, "aufgehoben", jetzt=ende + tage(10))
+    karte = _seite(client, antrag).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Das Ergebnis ist vom Parteischiedsgericht aufgehoben — die Wirkungen nach § 7 Abs 10 lit f sind entfallen" in karte
+    assert "Die Wirkungen treten ohne weiteren Beschluss ein" not in karte
+
+    # Aufgehobener Bestätigungsantrag: die Wirkungen der verlorenen Vertrauensfrage (lit f) bleiben — die Karte
+    # behauptet weder deren Entfall noch eine aufgehobene Kandidatursperre, sie nennt nur den Sachverhalt
+    vertrauensfrage_anfechtung_vermerken(b.vertrauensfrage, "PSG 2/26", jetzt=spaeter + tage(15))
+    vertrauensfrage_entscheidung_vermerken(b.vertrauensfrage, "aufgehoben", jetzt=spaeter + tage(20))
+    karte = _seite(client, b).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Das Ergebnis ist vom Parteischiedsgericht aufgehoben (§ 7 Abs 10 lit h)" in karte
+    assert "lit f sind entfallen" not in karte and "Kandidatursperre ist aufgehoben" not in karte
+
+    # Ein Sachantrag behält den bisherigen Satz
+    sache = antrag_einbringen(mitglied_anlegen("s", tage=400), **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=sache.pk).update(phase="angenommen")
+    assert "Öffentlicher Stand der Umsetzung (§ 6 Abs 10)" in _seite(client, sache)
+
+
 # ── Kachel, Feed-Zeile, Übersicht ──────────────────────────────────────────────────────────
 
 
@@ -449,6 +535,93 @@ def test_uebersicht_kennzeichnet_die_vertrauensfrage_und_nennt_das_ergebnis(clie
     assert zeile["nein"] == 2 and zeile["ja"] == 0
     karte = inhalt.split(antrag.titel)[1].split("</p>")[0]
     assert ">Vertrauensfrage gewonnen</span>" in karte and ">abgelehnt</span>" not in karte
+
+
+def test_aufhebung_steht_an_denselben_stellen_wie_das_ergebnis(client, ordnung, altmandat):  # noqa: F811
+    """§ 7 Abs 10 lit h letzter Satz: Die Aufhebung wird an denselben Stellen veröffentlicht wie das
+    Ergebnis — Feed-Zeile (Gruppe „Abgeschlossen“) und Übersicht tragen den Rechtsschutzstand als eigenes
+    Badge neben „Vertrauensfrage verloren“ (Prüfung 0.48, B13); `ergebnis_wort` bleibt unverändert."""
+    from mandatare.models import vertrauensfrage_entscheidung_vermerken
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+
+    def badges():
+        feed = client.get(reverse("verfahren:parlament")).content.decode().split('id="feld-filter"')[1]
+        zeile = feed.split(antrag.titel)[1].split('class="zs')[0]
+        uebersicht = client.get(reverse("uebersicht:index")).content.decode()
+        karte = uebersicht.split(antrag.titel)[1].split("</p>")[0]
+        return zeile, karte
+
+    zeile, karte = badges()
+    assert "Vertrauensfrage verloren" in zeile and "Vertrauensfrage verloren" in karte
+    assert "Parteischiedsgericht" not in zeile and "Parteischiedsgericht" not in karte
+
+    vertrauensfrage_anfechtung_vermerken(vf, "PSG 1/26", jetzt=ende + tage(2))
+    zeile, karte = badges()
+    assert '<span class="badge badge--hell">beim Parteischiedsgericht anhängig</span>' in zeile
+    assert '<span class="badge badge--hell">beim Parteischiedsgericht anhängig</span>' in karte
+
+    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(10))
+    vf.refresh_from_db()
+    assert vf.ergebnis_wort == "Vertrauensfrage verloren"  # das Ergebnis bleibt, die Aufhebung tritt daneben
+    zeile, karte = badges()
+    assert '<span class="badge badge--hell">vom Parteischiedsgericht aufgehoben</span>' in zeile
+    assert '<span class="badge badge--hell">vom Parteischiedsgericht aufgehoben</span>' in karte
+    assert zeile.count("Vertrauensfrage verloren") == 1 and karte.count("Vertrauensfrage verloren") == 1
+
+
+def test_bestaetigungsantrag_zeigt_die_wartezeit_statt_einer_unterstuetzungsphase(client, ordnung, mandat_daheim):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 3: lit c gilt nicht — der Bestätigungsantrag sammelt keine Unterstützung. Badge auf
+    Antragsseite, Kachel und Zeile sagen „Wartezeit bis zur Abstimmung“, im Parlament steht er in einer eigenen
+    Gruppe statt unter „Sammeln Unterstützung“, die Archiv-Zeitleiste kennt keinen Unterstützungsblock
+    (Prüfung 0.48, B34 / E9)."""
+    from verfahren.models import vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, mandat_daheim)
+    ich = mandat_daheim.mitglied
+    b = vertrauensfrage_einbringen(ich, mandat_daheim, "", [], [], ordnung, jetzt=ende + tage(200), art="bestaetigung")
+    assert b.phase == "unterstuetzung"
+
+    client.force_login(ich)
+    kopf = _kopf(_seite(client, b))
+    chips = kopf.split('class="a-chips"')[1].split("</div>")[0]
+    assert '<span class="badge b-unterstuetzung">Wartezeit bis zur Abstimmung</span>' in chips
+    assert ">Unterstützung</span>" not in chips
+    assert "ohne Unterstützungs- und Beratungsphase" in kopf  # das Band und das Badge widersprechen sich nicht mehr
+
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    feld = html.split('id="feld-filter"')[1].split("</section>")[0]
+    gruppen = [g.split("<")[0] for g in feld.split('<p class="gruppe">')[1:]]
+    assert "Wartezeit bis zur Abstimmung" in gruppen and "Sammeln Unterstützung" not in gruppen
+    assert gruppen.index("Wartezeit bis zur Abstimmung") < gruppen.index("Abgeschlossen")
+    zeile = feld.split(b.titel)[1].split('class="za"')[0]
+    assert '<span class="badge b-unterstuetzung">Wartezeit bis zur Abstimmung</span>' in zeile
+    assert ">Unterstützung</span>" not in zeile and "Unterstützen" not in zeile
+    region = html.split('id="feld-region"')[1].split("</section>")[0]
+    kachel = region.split(b.titel)[0].rsplit('<article class="kachel"', 1)[1] + region.split(b.titel)[1].split("</article>")[0]
+    assert '<span class="badge">Wartezeit bis zur Abstimmung</span>' in kachel
+    assert '<span class="badge">Unterstützung</span>' not in kachel
+
+    # Archiv: kein Block „Unterstützungsphase“ — solange er wartet, heißt der Block ehrlich
+    bloecke = archivkern.zeitleiste(b)
+    assert [(x["phase"], x["name"]) for x in bloecke] == [("unterstuetzung", "Wartezeit bis zur Abstimmung")]
+    vor_acht_tagen = timezone.now() - tage(8)
+    Antrag.objects.filter(pk=b.pk).update(eingebracht_am=vor_acht_tagen, phase_beginn=vor_acht_tagen)
+    Vertrauensfrage.objects.filter(antrag=b).update(schwelle_erreicht_am=vor_acht_tagen)
+    b.refresh_from_db()
+    b.fortschreiben()
+    b.refresh_from_db()
+    assert b.phase == "abstimmung"
+    assert [x["phase"] for x in archivkern.zeitleiste(b)] == ["abstimmung"]
+    markdown = archivkern.als_markdown(b)
+    assert "Unterstützungsphase" not in markdown
+    # Der Kopf des Exports sagt lit f Z 3 statt „0 Unterstützungen · Anlässe: 0 · Schwelle: 0 · lit c“
+    assert "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)" in markdown
+    assert "Unterstützungen" not in markdown and "Schwelle: 0" not in markdown and "Anlässe: 0" not in markdown
+    assert "ohne Beratungsphase (§ 7 Abs 10 lit c)" not in markdown
+    # Die gewöhnliche Vertrauensfrage behält ihren Unterstützungsblock
+    assert [x["name"] for x in archivkern.zeitleiste(antrag)][0] == "Unterstützungsphase"
 
 
 # ── Archiv und Export ──────────────────────────────────────────────────────────────────────

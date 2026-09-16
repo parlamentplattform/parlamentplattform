@@ -33,6 +33,15 @@ ENDZUSTAENDE = (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
 #: Anzeigenamen der Phasen im Archiv. Sie kommen aus dem gemeinsamen Bestand
 #: (`templatetags/phasen.py`), damit dieselbe Phase überall gleich heißt — und übersetzt wird.
 PHASENNAMEN = {Phase.UNTERSTUETZUNG.value: gettext_lazy("Unterstützungsphase")}
+#: Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) sammelt keine Unterstützung — sein erster Block heißt so.
+WARTEZEIT_NAME = gettext_lazy("Wartezeit bis zur Abstimmung")
+
+
+def _ist_bestaetigung(antrag) -> bool:
+    if antrag.art != Antragsart.VERTRAUENSFRAGE:
+        return False
+    vf = antrag._vertrauensfrage()
+    return vf is not None and vf.art == "bestaetigung"
 
 
 def phasenname(schluessel: str) -> str:
@@ -206,8 +215,11 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     ]
     ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
     # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
-    # Mandatsfrage (§ 7 Abs 9) nicht: Sie hatte nie eine, also bekommt sie auch keinen Block.
-    immer = () if antrag.art == Antragsart.MANDATSFRAGE else (Phase.UNTERSTUETZUNG.value,)
+    # Mandatsfrage (§ 7 Abs 9) und der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) nicht: Sie hatten
+    # nie eine, also bekommen sie auch keinen leeren Block. Läuft der Bestätigungsantrag noch oder
+    # wurde in seiner Wartezeit geschrieben, heißt der Block ehrlich „Wartezeit bis zur Abstimmung“.
+    bestaetigung = _ist_bestaetigung(antrag)
+    immer = () if antrag.art == Antragsart.MANDATSFRAGE or bestaetigung else (Phase.UNTERSTUETZUNG.value,)
     # Die Vertrauensfrage (§ 7 Abs 10 lit c) kennt keine Beratungsphase — an ihre Stelle treten die
     # Darstellung der Anlässe und das Gehör des Mandatsträgers auf der Antragsseite; kein Block.
     nie = (Phase.BERATUNG.value,) if antrag.art == Antragsart.VERTRAUENSFRAGE else ()
@@ -219,7 +231,11 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
         bloecke.append(
             {
                 "phase": phase,
-                "name": phasenname(phase),
+                "name": (
+                    str(WARTEZEIT_NAME)
+                    if bestaetigung and phase == Phase.UNTERSTUETZUNG.value
+                    else phasenname(phase)
+                ),
                 "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
                 "beitraege": je_phase.get(phase, []),
                 "geladen": alles or phase == geoeffnet,
@@ -346,25 +362,36 @@ def als_markdown(antrag) -> str:
     """Dieselbe Gliederung, lesbar — zum Ablegen, Ausdrucken, Zitieren."""
     d = archiv(antrag)
     a = d["antrag"]
+    # Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) kennt weder Unterstützung noch Anlässe noch die Zahlen
+    # nach lit c — lit b, c und g gelten für ihn nicht; der Export sagt das statt „0 Unterstützungen · Schwelle: 0“.
+    bestaetigung = _ist_bestaetigung(antrag)
+    eingebracht = a["eingebracht_am"][:10]
+    if antrag.art == Antragsart.MANDATSFRAGE:
+        kopf = f"{_('Eröffnet')}: {eingebracht} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
+    elif bestaetigung:
+        kopf = f"{_('Eingebracht')}: {eingebracht}"
+    else:
+        kopf = f"{_('Eingebracht')}: {eingebracht} · {a['unterstuetzungen']} {_('Unterstützungen')}"
     zeilen = [
         f"# {a['titel']}",
         "",
         f"Antrag {a['id']} · {a['art']} · {a['ebene']} · {_('Phase')}: {a['phase_name']}",
-        (
-            f"{_('Eröffnet')}: {a['eingebracht_am'][:10]} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
-            if antrag.art == Antragsart.MANDATSFRAGE
-            else f"{_('Eingebracht')}: {a['eingebracht_am'][:10]} · {a['unterstuetzungen']} {_('Unterstützungen')}"
-        ),
+        kopf,
         "",
     ]
     vf = d.get("vertrauensfrage")
     if vf:
         # § 7 Abs 10: Wer betroffen ist, die Zahlen des Einbringungstags, keine Beratungsphase, das Ergebnis
+        if bestaetigung:
+            zahlen = str(_("ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)"))
+        else:
+            zahlen = (
+                f"{_('Anlässe')}: {len(vf['anlaesse']) + len(vf['ausstaende'])} · "
+                f"{_('Stimmberechtigte am Einbringungstag')}: {vf['stimmberechtigte_am_einbringungstag']} · "
+                f"{_('Schwelle')}: {vf['schwelle']} · {_('ohne Beratungsphase (§ 7 Abs 10 lit c)')}"
+            )
         zeilen += [
-            f"{vf['art']} · {_('Mandatar')}: {vf['mandatar']} ({vf['mandat']}) · "
-            f"{_('Anlässe')}: {len(vf['anlaesse']) + len(vf['ausstaende'])} · "
-            f"{_('Stimmberechtigte am Einbringungstag')}: {vf['stimmberechtigte_am_einbringungstag']} · "
-            f"{_('Schwelle')}: {vf['schwelle']} · {_('ohne Beratungsphase (§ 7 Abs 10 lit c)')}"
+            f"{vf['art']} · {_('Mandatar')}: {vf['mandatar']} ({vf['mandat']}) · {zahlen}"
             + (f" · **{vf['ergebnis']}**" if vf["ergebnis"] else "")
             + (f" · {vf['rechtsschutz']}" if vf["rechtsschutz"] else ""),
             "",

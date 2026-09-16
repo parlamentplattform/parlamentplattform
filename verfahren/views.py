@@ -347,13 +347,20 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
     )
     vfs.update(_vertrauensfragen(abgeschlossen))
+    # § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag sammelt keine Unterstützung — er wartet auf den siebten
+    # Tag. Er steht deshalb nicht unter „Sammeln Unterstützung“, sondern in einer eigenen Gruppe an der
+    # Stelle, die seiner Nähe zur Abstimmung entspricht; die Reihung innerhalb der Gruppe bleibt dieselbe.
+    sammelnde = gruppe(Phase.UNTERSTUETZUNG.value)
+    wartende = [z for z in sammelnde if z["stat"]["typ"] == "wartezeit"]
+    sammelnde = [z for z in sammelnde if z["stat"]["typ"] != "wartezeit"]
     gruppen = [
         (_("Laufende Abstimmungen"), gruppe(Phase.ABSTIMMUNG.value)),
+        (_("Wartezeit bis zur Abstimmung"), wartende),
         (_("In Beratung"), gruppe(Phase.BERATUNG.value)),
-        (_("Sammeln Unterstützung"), gruppe(Phase.UNTERSTUETZUNG.value)),
+        (_("Sammeln Unterstützung"), sammelnde),
         (_("Abgeschlossen"), [zeile(a) for a in abgeschlossen]),
     ]
-    return {"gereiht": None, "gruppen": gruppen, "leer": not any(liste for _titel, liste in gruppen[:3])}
+    return {"gereiht": None, "gruppen": gruppen, "leer": not any(liste for _titel, liste in gruppen[:-1])}
 
 
 def _filter_lage(profile, aktives, regler, favoriten_zuerst):
@@ -1080,6 +1087,7 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
         RUECKGABEFRIST_TAGE,
         Beschluss,
         Vertrauensfrage,
+        _als_datum,
         vertrauensfragen_fortschreiben,
     )
 
@@ -1106,7 +1114,8 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
                     "monatsbericht": _("Monatsbericht"),
                 }.get(art, art),
                 "bezug": a.get("bezug", ""),
-                "seit": a.get("seit", ""),
+                # Das JSONField trägt die Frist als ISO-Text — die Seite zeigt sie wie jedes Datum (d.m.Y)
+                "seit": _als_datum(a.get("seit")),
                 "tage": a.get("tage", 0),
             }
         )

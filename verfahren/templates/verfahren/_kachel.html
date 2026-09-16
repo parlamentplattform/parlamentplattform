@@ -17,7 +17,9 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
 
   <a class="k-titel" href="{% url 'verfahren:antrag' k.antrag.pk %}">{{ k.antrag.titel }}</a>
 
-  <div class="k-meta"><span class="badge">{% if k.vertrauensfrage.ergebnis_wort %}{{ k.vertrauensfrage.ergebnis_wort }}{% else %}{{ k.antrag.phase|phase_name }}{% endif %}</span>
+  <div class="k-meta"><span class="badge">{% if k.vertrauensfrage.ergebnis_wort %}{{ k.vertrauensfrage.ergebnis_wort }}{% elif k.stat.typ == "wartezeit" %}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ k.antrag.phase|phase_name }}{% endif %}</span>
+    {# § 7 Abs 10 lit h: Die Aufhebung wird an denselben Stellen veröffentlicht wie das Ergebnis — der Rechtsschutzstand als eigenes Badge #}
+    {% if k.vertrauensfrage.rechtsschutz_stand %}<span class="badge badge--hell">{{ k.vertrauensfrage.rechtsschutz_stand }}</span>{% endif %}
     {% if k.antrag.art == "mandat" %}<span class="badge badge--hell">{% translate "Personenwahl" %}</span>{% elif k.antrag.art == "mandatsfrage" %}<span class="badge badge--hell">{% translate "Mandatsfrage" %}</span>{% elif k.antrag.art == "vertrauensfrage" %}<span class="badge badge--hell">{% if k.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if k.antrag.gebiet and not ort_versteckt %}<span class="rest ort">{{ k.antrag.gebiet }}</span>{% endif %}</div>
 

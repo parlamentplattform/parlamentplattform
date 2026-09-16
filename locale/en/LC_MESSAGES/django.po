@@ -7446,8 +7446,10 @@ msgstr "Response published — verbatim next to the motion."
 msgid "Stimmberechtigte am Einbringungstag"
 msgstr "Members eligible to vote on the day of submission"
 
-msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützungen (§ 7 Abs 10 lit c)"
-msgstr "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s endorsements (§ 7 (10) lit c)"
+msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützung (§ 7 Abs 10 lit c)"
+msgid_plural "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(m)s Unterstützungen (§ 7 Abs 10 lit c)"
+msgstr[0] "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s supporter (§ 7 (10) lit c)"
+msgstr[1] "Members eligible to vote on the day of submission: %(n)s — threshold: %(m)s supporters (§ 7 (10) lit c)"
 
 msgid "Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(s)s"
 msgstr "Eligible voters on the day of submission: %(n)s — threshold: %(s)s"
@@ -7644,3 +7646,21 @@ msgstr "not provided for in part C (S1–S14); today the administration records 
 
 msgid "Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"
 msgstr "Decide on a challenge to a confidence question within 30 days — bar determination, prerequisites, how the result came about"
+
+msgid "Wartezeit bis zur Abstimmung"
+msgstr "Waiting period until the vote"
+
+msgid "Das Ergebnis ist vom Parteischiedsgericht aufgehoben — die Wirkungen nach § 7 Abs 10 lit f sind entfallen (lit h); der Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
+msgstr "The result has been reversed by the party arbitration court — the effects under § 7 (10) lit f have lapsed (lit h); the status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "Die Bestätigung wirkt ohne weiteren Beschluss — die Kandidatursperre ist aufgehoben und eine neue Mandatsvereinbarung nach § 7 Abs 3 möglich (§ 7 Abs 10 lit f Z 3); der Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
+msgstr "The confirmation takes effect without a further resolution — the candidacy bar is lifted and a new mandate agreement under § 7 (3) is possible (§ 7 (10) lit f no. 3); the status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "Die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f); zu vollziehen bleibt die Mitteilung des Koordinationsrats an Parlamentsklub oder Fraktion (Z 7), ihr Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
+msgstr "The effects take place without a further resolution (§ 7 (10) lit f); what remains to be carried out is the coordination council’s notification to the parliamentary club or group (no. 7), its status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "Das Ergebnis ist vom Parteischiedsgericht aufgehoben (§ 7 Abs 10 lit h); der Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
+msgstr "The result has been reversed by the party arbitration court (§ 7 (10) lit h); the status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)"
+msgstr "without support and deliberation phase (§ 7 (10) lit f no. 3)"

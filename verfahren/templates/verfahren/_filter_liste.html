@@ -1,6 +1,7 @@
 {% load i18n %}{% comment %}
 Der Feed des WeicherFilters (FB-B1): bei gesetzten Reglern EINE punktgereihte Liste, sonst die
-neutralen Gruppen (Laufende Abstimmungen · In Beratung · Sammeln Unterstützung · Abgeschlossen).
+neutralen Gruppen (Laufende Abstimmungen · Wartezeit bis zur Abstimmung · In Beratung · Sammeln
+Unterstützung · Abgeschlossen; eine leere Gruppe erscheint nicht).
 Die Live-Vorschau (FB-B2) tauscht genau dieses Element (#filter-liste).
 {% endcomment %}<div id="filter-liste">
 {% if feed.gereiht is not None %}

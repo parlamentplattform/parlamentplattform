@@ -143,11 +143,11 @@ def _mandat_queryset():
     )
 
 
-#: Die Felder des Mandats, die Stufe 1 und 2 der Wirkungen stempeln (§ 7 Abs 10 lit f) — nur sie lädt
-#: die Seite nach, damit der Prefetch von Aufgaben und Vertrauensfragen erhalten bleibt.
-VERTRAUENSFELDER = [
-    "vertrauen_entzogen_am", "rueckgabe_ersucht_bis", "bestaetigt_am", "vertretung_beendet_am", "mandatsvereinbarung_endet_am",
-]
+#: Die einfachen Felder des Mandats — sie lädt die Seite nach, wenn Stufe 1 oder 2 der Wirkungen (§ 7 Abs 10
+#: lit f) eben auf einer anderen Instanz gestempelt hat. Alle, nicht eine Auswahl: stempelt das Fundament ein
+#: weiteres Feld, zeigt die Seite es trotzdem. Beziehungen (mitglied, kandidatur) und der Prefetch von Aufgaben
+#: und Vertrauensfragen bleiben erhalten — `refresh_from_db()` ohne `fields` würfe beides weg.
+MANDATSFELDER = [f.attname for f in Mandat._meta.concrete_fields if not (f.primary_key or f.is_relation)]
 
 
 def _vertrauensfragen_von(mandat) -> tuple[list[Vertrauensfrage], bool]:
@@ -230,7 +230,7 @@ def _vertrauen(mandat, heute: date | None = None) -> dict:
     heute = heute or timezone.localdate()
     alle, geaendert = _vertrauensfragen_von(mandat)  # Antrag fortschreiben → Stufe 1 (auf einer anderen Instanz)
     if vertrauensfragen_fortschreiben() or geaendert:  # Stufe 2 im selben Aufruf
-        mandat.refresh_from_db(fields=VERTRAUENSFELDER)  # die Seite zeigt den neuen Stand, nicht den geladenen
+        mandat.refresh_from_db(fields=MANDATSFELDER)  # die Seite zeigt den neuen Stand, nicht den geladenen
     laufende = next((vf for vf in alle if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND), None)
     entschiedene = [vf for vf in alle if vf.antrag.phase in BEENDET]
     letzte_verlorene = next((vf for vf in entschiedene if vf.verloren), None)
@@ -359,9 +359,21 @@ def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None
         qs = qs.filter(mandat=mandat)
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
-    for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND):
-        vf.antrag.fortschreiben()
+    _laufende_fortschreiben(qs)
     return list(_mit_beteiligung(qs.filter(antrag__phase__in=BEENDET)).order_by("-antrag__phase_beginn"))
+
+
+def _laufende_fortschreiben(qs) -> None:
+    """Die laufenden Anträge eines Ausschnitts auf den Stand bringen (lazy Phasen) — und, hat dabei einer
+    die Phase gewechselt, im selben Aufruf Stufe 2 der Wirkungen nachziehen: Ein Ende der Abstimmung löst
+    Stufe 1 aus, und liegt es länger zurück, sind auch Rollenende und Ende der Vertretung schon fällig
+    (§ 7 Abs 10 lit f). Sonst zeigte der erste Aufruf danach das Ergebnis, aber nicht seine Wirkungen."""
+    geaendert = False
+    for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND):
+        if vf.antrag.fortschreiben():
+            geaendert = True
+    if geaendert:
+        vertrauensfragen_fortschreiben()
 
 
 def _rueckgabe_vermerke_fuer(vertrauensfragen) -> dict[int, str]:
@@ -476,14 +488,17 @@ def liste(request):
 
 def detail(request, pk: int):
     mandat = get_object_or_404(_mandat_queryset(), pk=pk)
+    heute = timezone.localdate()
+    # Zuerst: bringt Anträge und Wirkungen auf den Stand und lädt das Mandat nach — Ausstände und Sitzungstage
+    # rechnen sonst mit dem geladenen `pflichtende` und wiesen im ersten Aufruf nach dem Ende der Vertretung eine
+    # Rechenschaft als ausständig aus, die nicht mehr geschuldet ist (§ 7 Abs 10 lit f Z 8).
+    vertrauen = _vertrauen(mandat, heute)
     aufgaben = _aufgaben_sortiert(mandat)
     _antraege_fortschreiben(aufgaben)
-    heute = timezone.localdate()
     ausstaende = _ausstaende(mandat)
     rechenschaft = list(mandat.rechenschaft.select_related("antrag", "aufgabe")[:RECHENSCHAFT_AUSZUG])
     berichte = list(mandat.berichte.select_related("aufgabe"))
     zeilen = _berichte_zeilen(berichte, heute, ausstaende["karenz"])
-    vertrauen = _vertrauen(mandat, heute)
     return render(
         request,
         "mandatare/detail.html",
@@ -700,9 +715,7 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
-    laufende = [vf for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)]
-    for vf in laufende:
-        vf.antrag.fortschreiben()
+    _laufende_fortschreiben(qs)
     qs = _mit_beteiligung(
         qs.annotate(
             n_unterstuetzungen=Count(
@@ -966,10 +979,11 @@ def _eigene_mandate(request) -> list[Mandat]:
 def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     """Der Bereich. `eingabe` (request.POST) belegt nach einem Validierungsfehler das betroffene
     Formular wieder vor, damit nichts Eingetipptes verloren geht (Grundregel 3: ohne Skript)."""
-    aufgaben = _aufgaben_sortiert(mandat)
-    _antraege_fortschreiben(aufgaben)
     heute = timezone.localdate()
     jetzt = timezone.now()
+    vertrauen = _vertrauen(mandat, heute)  # zuerst — wie in `detail`: Ausstände rechnen mit dem nachgeladenen Stand
+    aufgaben = _aufgaben_sortiert(mandat)
+    _antraege_fortschreiben(aufgaben)
     ausstaende = _ausstaende(mandat)
     sitzungstage_vorbei = [
         a
@@ -985,7 +999,6 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     ]
     mitwirken = request.user.darf_mitwirken and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
-    vertrauen = _vertrauen(mandat, heute)
     ordnung_fehlt = not Verfahrensordnung.objects.filter(aktiv=True).exists()
     return render(
         request,

@@ -497,7 +497,8 @@ def _abstimmung_abgelaufen_ohne_aufruf(ordnung, mandat, vor_tagen: int):  # noqa
     leute = [mitglied_anlegen(f"s{next(_ZAEHLER)}") for _ in range(5)]
     t0 = timezone.now() - tage(vor_tagen + 14)
     antrag = einbringen(leute[0], mandat, ordnung, jetzt=t0)
-    antrag.unterstuetzungen.create(mitglied=leute[1], erklaert_am=t0 + tage(1))
+    for m in leute[1:]:  # vier Unterstützungen — die Schwelle (fünf Prozent) wächst mit jedem angelegten Mitglied
+        antrag.unterstuetzungen.create(mitglied=m, erklaert_am=t0 + tage(1))
     antrag.fortschreiben(t0 + tage(1))
     antrag.fortschreiben(t0 + tage(7))
     for m in leute:
@@ -545,6 +546,35 @@ def test_erster_aufruf_von_register_und_bereich_nach_dem_fristende_traegt_das_er
     client.force_login(dritter.vertrauensfrage.mandat.mitglied)
     bereich = client.get(MEIN).content.decode()
     assert "Ersuchen um Rückgabe des Mandats" in bereich and 'name="abstimmung"' not in bereich
+
+
+def test_erster_aufruf_nach_dem_ende_der_vertretung_rechnet_mit_dem_neuen_stand(client, ordnung, altmandat):  # noqa: F811
+    """Die Abstimmung endete vor 48 Tagen, niemand rief eine Seite auf: Der erste Aufruf löst Stufe 1 und Stufe
+    2b aus (Vertretung beendet vor 18 Tagen, lit f Z 8) und rechnet Ausstände und Sitzungstage mit diesem Stand —
+    ein Sitzungstag nach dem Ende ist keine ausständige Rechenschaft (Begründung nicht mehr geschuldet), auf der
+    Seite wie im Bereich. Liste, JSON und Register nennen das Ende im selben Aufruf, nicht erst im nächsten."""
+    Aufgabe.objects.create(mandat=altmandat, titel="Sitzung nach dem Ende", frist=timezone.now() - tage(1), sitzungstag=True)
+    antrag = _abstimmung_abgelaufen_ohne_aufruf(ordnung, altmandat, vor_tagen=48)
+    antwort = client.get(reverse("mandatare:detail", args=[altmandat.pk]))
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == timezone.localdate() - tage(18)
+    assert antwort.context["ausstaende"]["rechenschaften"] == [] and antwort.context["ausstaende"]["sammelberichte"] == []
+    assert "Rechenschaft ausständig" not in antwort.content.decode()
+    client.force_login(altmandat.mitglied)
+    bereich = client.get(MEIN)
+    assert bereich.context["sitzungstage"] == [] and bereich.context["ausstaende"]["rechenschaften"] == []
+    assert "Die Vertretung endete am" in bereich.content.decode()
+    # Liste, JSON und Gesamtregister als erster Aufruf: Stufe 2 läuft nach Stufe 1, nicht erst beim nächsten Mal
+    zweiter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("zwei"), vor_tagen=48)
+    eintrag = next(e for e in client.get(reverse("mandatare:rechenschaft_json")).json()["vertrauensfragen"] if e["antrag"] == zweiter.pk)
+    assert eintrag["ergebnis"] == "verloren" and eintrag["vertretung_beendet_am"] == (timezone.localdate() - tage(18)).isoformat()
+    dritter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("drei"), vor_tagen=48)
+    assert client.get(LISTE).status_code == 200
+    assert Mandat.objects.get(pk=dritter.vertrauensfrage.mandat_id).vertretung_beendet_am is not None
+    vierter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("vier"), vor_tagen=48)
+    assert f'href="/antrag/{vierter.pk}/"' in client.get(reverse("mandatare:rechenschaft")).content.decode()
+    assert Mandat.objects.get(pk=vierter.vertrauensfrage.mandat_id).vertretung_beendet_am is not None
+    assert antrag.pk
 
 
 def test_rueckgabezusage_aus_der_bewerbung_und_im_wahlvorschlag(client, ordnung):  # noqa: F811

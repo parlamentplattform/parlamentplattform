@@ -1403,7 +1403,7 @@ class MandatFormular(forms.Form):
 def verwaltung(request):
     form = MandatFormular()
     vertrauensfragen_fortschreiben()
-    _laufende_fortschreiben(Vertrauensfrage.objects.all())  # ein Ende ohne Seitenaufruf: die Karte zeigt es sofort
+    _laufende_fortschreiben(Vertrauensfrage.objects.select_related("antrag"))  # ein Ende ohne Seitenaufruf: die Karte zeigt es
     mandate = list(
         Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
     )

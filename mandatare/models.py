@@ -199,18 +199,9 @@ class Mandat(models.Model):
     @property
     def rueckgabe_vermerk(self) -> str:
         """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
-        — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht. Ein
-        beendetes Mandat heißt „beendet“, nicht „zurückgelegt“: Ein Mandat kann auch anders enden, und
-        ob es auf das Ersuchen hin zurückgelegt wurde, weiß die Plattform nicht (Abs 2)."""
-        if self.rueckgabe_ersucht_bis is None or self.vertrauen_entzogen_am is None:
-            return ""
-        if self.beendet is not None:
-            return str(_("Mandat beendet am %(datum)s") % {"datum": self.beendet.strftime("%d.%m.%Y")})
-        if timezone.localdate() <= self.rueckgabe_ersucht_bis:
-            return ""
-        if self.rueckgabezusage_wirksam()[0] == Rueckgabezusage.ABGEGEBEN:
-            return str(_("Rückgabezusage nicht eingehalten"))
-        return str(_("keine Rückgabezusage abgegeben"))
+        für Einzelseiten — Listen rufen `rueckgabe_vermerk_fuer` mit den gebündelt geladenen Zusagen
+        (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
+        return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
     def bestaetigen(self, grund: str, jetzt=None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
@@ -401,6 +392,24 @@ class Mandat(models.Model):
                     }
                 )
         return treffer
+
+
+def rueckgabe_vermerk_fuer(mandat: Mandat, zusage: str, heute: date | None = None) -> str:
+    """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
+    — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht. `zusage`
+    ist die wirksame Rückgabezusage (`Mandat.rueckgabezusage_wirksam()[0]` oder aus der gebündelten
+    Abfrage der Ansichten). Ein beendetes Mandat heißt „beendet“, nicht „zurückgelegt“: Ein Mandat kann
+    auch anders enden, und ob es auf das Ersuchen hin zurückgelegt wurde, weiß die Plattform nicht
+    (Abs 2)."""
+    if mandat.rueckgabe_ersucht_bis is None or mandat.vertrauen_entzogen_am is None:
+        return ""
+    if mandat.beendet is not None:
+        return str(_("Mandat beendet am %(datum)s") % {"datum": mandat.beendet.strftime("%d.%m.%Y")})
+    if (heute or timezone.localdate()) <= mandat.rueckgabe_ersucht_bis:
+        return ""
+    if zusage == Rueckgabezusage.ABGEGEBEN:
+        return str(_("Rückgabezusage nicht eingehalten"))
+    return str(_("keine Rückgabezusage abgegeben"))
 
 
 class Aufgabenstatus(models.TextChoices):

@@ -202,6 +202,17 @@ def test_rueckgabe_vermerk_liest_die_zusage_aus_der_bewerbung(ordnung, altmandat
     assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
 
 
+def test_rueckgabe_vermerk_fuer_rechnet_wie_die_property_ohne_eigene_abfrage(altmandat, django_assert_num_queries):  # noqa: F811
+    """Befund B28: Listen reichen die gebündelt geladene Zusage durch — der Vermerk selbst fragt nichts ab."""
+    altmandat.vertrauen_entzogen_am = timezone.now() - tage(40)
+    altmandat.rueckgabe_ersucht_bis = timezone.localdate() - tage(1)
+    with django_assert_num_queries(0):
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "abgegeben") == "Rückgabezusage nicht eingehalten"
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "") == "keine Rückgabezusage abgegeben"
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "", heute=altmandat.rueckgabe_ersucht_bis) == ""  # Frist läuft
+    assert altmandat.rueckgabe_vermerk == mm.rueckgabe_vermerk_fuer(altmandat, altmandat.rueckgabezusage_wirksam()[0])
+
+
 def test_ein_widerruf_der_rueckgabezusage_geht_der_bewerbung_vor(ordnung, altmandat):  # noqa: F811
     """§ 7 Abs 3: Nichtabgabe, Widerruf und Nichteinhaltung sind drei Sachverhalte. Der Widerruf setzt
     den Vermerk am Mandat auf „keine Angabe“ zurück — nur das Datum zeigt ihn. Fiele die Rechnung dann

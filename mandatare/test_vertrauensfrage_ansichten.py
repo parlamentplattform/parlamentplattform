@@ -619,6 +619,28 @@ def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbun
     assert eintrag["rueckgabezusage"] == "" and eintrag["rueckgabezusage_quelle"] == "mandat"
 
 
+def test_oeffentliche_seite_fuehrt_die_betroffene_person_in_ihren_bereich(client, ordnung, altmandat):  # noqa: F811
+    """lit f Z 3: Das Antragsrecht auf Bestätigung entsteht, wenn die Rolle „Mandatar“ nach Z 8 längst geendet
+    hat — die Leiste führt „Mein Mandat“ dann nicht mehr. Die öffentliche Seite zeigt der Person selbst den
+    Weg in ihren Bereich; vor Ablauf der sechs Monate ohne, danach mit „Bestätigung beantragen“."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    url = reverse("mandatare:detail", args=[altmandat.pk])
+    ziel = reverse("mandatare:mein_mandat", args=[altmandat.pk]) + "#vertrauen"
+    assert f'href="{ziel}"' not in client.get(url).content.decode()  # Gast
+    client.force_login(mitglied_anlegen("fremd"))
+    assert f'href="{ziel}"' not in client.get(url).content.decode()  # fremde Person
+    client.force_login(altmandat.mitglied)
+    html = client.get(url).content.decode()
+    assert f'href="{ziel}"' in html and "Zu meinem Bereich →" in html and "Bestätigung beantragen →" not in html
+    _sechs_monate_zurueck(antrag, altmandat)
+    assert not altmandat.mitglied.ist_mandatar
+    html = client.get(url).content.decode()
+    assert f'href="{ziel}"' in html and "Zu meinem Bereich — Bestätigung beantragen →" in html
+    assert 'name="aktion" value="bestaetigung"' in client.get(ziel).content.decode()
+    altmandat.bestaetigen("wahl")
+    assert f'href="{ziel}"' not in client.get(url).content.decode()  # ohne Sperre kein Bereich mehr
+
+
 def test_band_mitwirkung_ruht_nur_bei_wirklich_ruhendem_status(client, ordnung, altmandat):  # noqa: F811
     """Nach dem Ende der Vertretung (lit f Z 8) und der Nachfrist darf die Person nicht mehr schreiben —
     aber nicht, weil ihr Status ruht: Das Band „Ihre Mitwirkung ruht … mit aktivem Status“ wäre bei aktivem

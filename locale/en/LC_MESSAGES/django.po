@@ -7647,3 +7647,9 @@ msgstr "Decide on a challenge to a confidence question within 30 days — bar de
 
 msgid "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht."
 msgstr "After a lost confidence question, the authority to manage votes is suspended (§ 7 (10) lit f no. 6) — the report remains possible, but no mandate question arises from it."
+
+msgid "Zu meinem Bereich — Bestätigung beantragen →"
+msgstr "To my area — request confirmation →"
+
+msgid "Zu meinem Bereich →"
+msgstr "To my area →"

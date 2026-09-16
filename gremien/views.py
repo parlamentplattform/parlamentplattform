@@ -49,7 +49,7 @@ from gremien.models import (
     beschluss_frist,
     gruppe_2_nachziehen,
     parametertests_fortschreiben,
-    quoren_fuer,
+    personen_fuer,
     standard_ende,
     unvereinbar,
     unvereinbar_fuer,
@@ -788,14 +788,15 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
         .prefetch_related("stimmen__mitglied")
         .order_by("-entschieden_am")[:grenze]
     )
-    quoren = quoren_fuer(offene + erledigte)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
+    # eine Abfrage je Seite (Befund #77): Nenner und — bei offenen — Filter des Zählers (Befund B4)
+    personen = personen_fuer(offene + erledigte)
     zeilen = []
     for beschluss in offene + erledigte:
         stimmen = list(beschluss.stimmen.all())
         zeilen.append(
             {
                 "beschluss": beschluss,
-                "auswertung": beschluss.auswertung(aktive=quoren[beschluss.pk]),
+                "auswertung": beschluss.auswertung(aktive=len(personen[beschluss.pk]), personen=personen[beschluss.pk]),
                 "stimmen": stimmen,
                 "meine_stimme": next(
                     (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
@@ -821,11 +822,11 @@ def beschluesse_oeffentlich(request):
     if gewaehlt in Gremium.values:
         beschluesse = beschluesse.filter(gremium=gewaehlt)
     seite = list(beschluesse[: _register("gremien-beschluesse-seite", 50)])
-    quoren = quoren_fuer(seite)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
+    personen = personen_fuer(seite)  # eine Abfrage je Seite (Befund #77), Zähler wie Nenner (Befund B4)
     zeilen = [
         {
             "beschluss": b,
-            "auswertung": b.auswertung(aktive=quoren[b.pk]),
+            "auswertung": b.auswertung(aktive=len(personen[b.pk]), personen=personen[b.pk]),
             "stimmen": list(b.stimmen.all()),
             "meine_stimme": None,
         }

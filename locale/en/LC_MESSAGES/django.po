@@ -7591,3 +7591,56 @@ msgstr "revoked (no declaration)"
 
 msgid "öffentlich ersucht, das Mandat bis %(bis)s zurückzulegen — die Entscheidung liegt allein beim Mandatsträger (§ 7 Abs 10 lit f Z 4)"
 msgstr "publicly requested to resign the mandate by %(bis)s — the decision rests solely with the office holder (§ 7 (10) lit f no. 4)"
+
+# ── 0.48: S10c — Vertrauensfrage nach § 7 Abs 10 (Mandatare, Anzeige, Integritätsrat, Rollenmatrix) ──
+
+msgid "Anfechtung und Entscheidung des Parteischiedsgerichts zu einer Vertrauensfrage vermerken, Rückgabezusage und Ergänzung der Mandatsvereinbarung nachtragen"
+msgstr "Record a challenge and the party arbitration tribunal’s decision on a confidence question; record the return pledge and the amendment of the mandate agreement"
+
+msgid "Bestätigung nach § 7 Abs 10 lit f Z 3 beantragen — als betroffene Person frühestens sechs Monate nach dem Ergebnis, auch wenn die Rolle „Mandatar“ nach lit f Z 8 schon geendet hat; erst die Annahme hebt die Kandidatursperre auf"
+msgstr "Apply for confirmation under § 7 (10) lit f no. 3 — as the person concerned, at the earliest six months after the result, even after the “office holder” role has ended under lit f no. 8; only adoption lifts the candidacy bar"
+
+msgid "Bewerben auf der Antragsseite der laufenden Kandidatur"
+msgstr "Apply on the motion page of the open candidacy"
+
+msgid "Der Posteingang steht; heute speisen ihn die Auswertung von Parametertests und verlorene Vertrauensfragen (§ 7 Abs 10 lit f Z 7: Mitteilung an Klub oder Fraktion). Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."
+msgstr "The inbox exists; today it is fed by parameter-test evaluations and lost confidence questions (§ 7 (10) lit f no. 7: notice to the parliamentary group). Candidates for highlighting and pattern reports only arrive with the future workshop."
+
+msgid "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel: Die Satzung sieht weder Bewertung noch Abberufung eines Mandats vor, sondern die Vertrauensfrage. "
+msgstr "Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped: the statutes provide neither rating nor recall of a mandate, but the confidence question. "
+
+msgid "Rückgabezusage abgeben oder nicht abgeben — freiwillig, nicht einklagbar, öffentlich ausgewiesen"
+msgstr "Give or decline the return pledge — voluntary, not enforceable, publicly shown"
+
+msgid "Sperre einer Vertrauensfrage feststellen — binnen drei Tagen nach Einbringung durch begründeten, veröffentlichten Beschluss; die Plattform weist nichts von selbst ab"
+msgstr "Determine that a confidence question is barred — within three days of submission by a reasoned, published decision; the platform rejects nothing on its own"
+
+msgid "Vertrauensfrage unterstützen (Stimmrecht für Personenwahlen am Tag der Einbringung)"
+msgstr "Support a confidence question (voting right for personal elections on the day of submission)"
+
+msgid "Vertrauensfrage zu einem Mandatsträger stellen — mit mindestens einem Anlass aus dem Rechenschaftsregister oder den ausgewiesenen Ausständen"
+msgstr "Raise a confidence question about an office holder — with at least one ground from the accountability register or the published arrears"
+
+msgid "Vertrauensfragen, Stellungnahmen und Ergebnisse lesen — laufende und entschiedene, mit Beteiligung und Rechtsschutzstand"
+msgstr "Read confidence questions, responses and results — pending and decided, with turnout and legal-remedy status"
+
+msgid "Zur Vertrauensfrage Stellung nehmen — bis zum Ende der Abstimmung, im Wortlaut neben dem Antrag, ergänzbar, nie nachträglich änderbar"
+msgstr "Respond to the confidence question — until the end of the vote, verbatim next to the motion, extendable, never editable afterwards"
+
+msgid "auf der Antragsseite der Vertrauensfrage"
+msgstr "on the motion page of the confidence question"
+
+msgid "auf der Seite des Mandatars"
+msgstr "on the office holder’s page"
+
+msgid "auf der eigenen Mandatar-Seite, Abschnitt „Vertrauen“"
+msgstr "on your own office-holder page, section “Confidence”"
+
+msgid "bei der Bewerbung im Kandidatur-Antrag"
+msgstr "when applying in the candidacy motion"
+
+msgid "nicht in Teil C (S1–S14) vorgesehen; heute vermerkt die Verwaltung Anrufung und Entscheidung, die Plattform wendet sie auf die Wirkungen eines Ergebnisses an — die Aufhebung einer Sperrfeststellung trägt sie noch nicht nach (§ 7 Abs 10 lit h)"
+msgstr "not provided for in part C (S1–S14); today the administration records the appeal and the decision, and the platform applies them to the effects of a result — it does not yet carry over the reversal of a bar determination (§ 7 (10) lit h)"
+
+msgid "Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"
+msgstr "Decide on a challenge to a confidence question within 30 days — bar determination, prerequisites, how the result came about"

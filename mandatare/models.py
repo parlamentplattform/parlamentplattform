@@ -20,8 +20,10 @@ Seit 0.48 (S10c) trägt dieses Modul die Vertrauensfrage (§ 7 Abs 10): die
 Fachdaten zum Antrag (`Vertrauensfrage`), das Gehör des Mandatars
 (`Stellungnahme`), die Sperrprüfung nach lit g (`sperren_pruefen` — ein Hinweis,
 nie eine Abweisung; die Feststellung trifft der Integritätsrat), die Wirkungen
-einer verlorenen Vertrauensfrage in zwei Stufen (`vertrauensfrage_wirkungen`,
-`vertrauensfragen_fortschreiben`) und die Vermerke des Rechtsschutzes.
+einer verlorenen Vertrauensfrage in zwei Stufen — Stufe 1 sofort
+(`vertrauensfrage_wirkungen`), Stufe 2 lazy in drei Schritten: Ende der Rollen,
+Ende der Vertretung, Ende der Mandatsvereinbarung (`vertrauensfragen_fortschreiben`)
+— und die Vermerke des Rechtsschutzes.
 Nichts davon setzt `Mandat.beendet`: Ob ein Mandat zurückgelegt wird,
 entscheidet allein der Mandatsträger (§ 7 Abs 2)."""
 
@@ -1028,8 +1030,8 @@ def _koordinationsrat_hinweis(vf: Vertrauensfrage, jetzt) -> None:
     else:
         mandatsvereinbarung = (
             "Die Mandatsvereinbarung ist nicht um § 7 Abs 3 lit h ergänzt und bleibt unverändert (lit j) — "
-            "Gegenleistungen der Partei und Abführungspflicht enden nicht (Z 5 gilt nicht); ob Ergänzung und "
-            "Rückgabezusage vorliegen, weist das Rechenschaftsregister aus."
+            "Gegenleistungen der Partei und Abführungspflicht enden dadurch nicht (Z 5 gilt nicht); ob Ergänzung "
+            "und Rückgabezusage vorliegen, weist das Rechenschaftsregister aus."
         )
     Hinweis.objects.create(
         quelle=HinweisQuelle.VERTRAUENSFRAGE,

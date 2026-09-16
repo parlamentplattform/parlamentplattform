@@ -1012,14 +1012,17 @@ def vertrauensfrage_einbringen(
     if bestaetigung:
         if mitglied.pk != mandat.mitglied_id:
             raise VertrauensfrageFehler(_("Die Bestätigung kann nur die betroffene Person selbst beantragen (§ 7 Abs 10 lit f Z 3)."))
-        if not mandat.kandidatursperre:
-            raise VertrauensfrageFehler(_("Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."))
         # Phasen sind lazy: Ein an der Frist abgelaufener, nie aufgerufener Bestätigungsantrag darf den
-        # nächsten nicht sperren — erst fortschreiben, dann prüfen (Befund B25).
+        # nächsten nicht sperren — erst fortschreiben, dann prüfen (Befund B25). Ein dabei angenommener
+        # hebt die Sperre auf (`Mandat.bestaetigen` schreibt auf eine andere Instanz), deshalb liest das
+        # Tor `kandidatursperre` erst danach aus der Datenbank.
         for alt in Vertrauensfrage.objects.filter(
             mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
         ).select_related("antrag"):
             bis_zum_stand_fortschreiben(alt.antrag, jetzt)
+        mandat.refresh_from_db(fields=["vertrauen_entzogen_am", "bestaetigt_am"])
+        if not mandat.kandidatursperre:
+            raise VertrauensfrageFehler(_("Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."))
         if Vertrauensfrage.objects.filter(
             mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
         ).exists():

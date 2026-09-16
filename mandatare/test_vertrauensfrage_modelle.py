@@ -123,6 +123,35 @@ def test_ein_liegengebliebener_bestaetigungsantrag_sperrt_den_naechsten_nicht(or
     assert zweiter.phase == Phase.UNTERSTUETZUNG.value and zweiter.pk != erster.pk
 
 
+def test_ein_liegengebliebener_angenommener_bestaetigungsantrag_hebt_die_sperre_vor_dem_tor_auf(ordnung, altmandat):  # noqa: F811
+    """Kehrseite von B25: Wurde der liegengebliebene Bestätigungsantrag angenommen, hebt das Fortschreiben
+    die Kandidatursperre auf (`Mandat.bestaetigen` auf einer anderen Instanz). Läse das Tor die Sperre
+    vorher vom veralteten Objekt, entstünde ein zweiter Bestätigungsantrag zu einer schon bestätigten
+    Person — jetzt liest es sie nach dem Fortschreiben aus der Datenbank."""
+    from verfahren.models import stimme_abgeben, vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    ich = altmandat.mitglied
+    t1 = ende + tage(200)
+    erster = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1, art="bestaetigung")
+    erster.fortschreiben(t1 + tage(7))
+    for m in [mitglied_anlegen(f"ja{i}") for i in range(3)] + [ich]:
+        stimme_abgeben(erster, m, "ja", jetzt=t1 + tage(8))
+    assert erster.phase == Phase.ABSTIMMUNG.value  # Abstimmung zu Ende (Tag 14), niemand hat fortgeschrieben
+    assert altmandat.kandidatursperre
+    with pytest.raises(VertrauensfrageFehler, match="keine verlorene Vertrauensfrage"):
+        vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1 + tage(400), art="bestaetigung")
+    assert mm.Vertrauensfrage.objects.filter(mandat=altmandat, art=mm.VertrauensfrageArt.BESTAETIGUNG).count() == 1
+    # Die Fachoperation ist atomar: Mit dem Fehler rollt auch das Fortschreiben zurück — lazy, der nächste
+    # Aufruf holt es nach; gespeichert ist nichts Halbes.
+    erster.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert erster.phase == Phase.ABSTIMMUNG.value and altmandat.bestaetigt_am is None
+    assert erster.fortschreiben(t1 + tage(400)) is True
+    altmandat.refresh_from_db()
+    assert erster.phase == Phase.ANGENOMMEN.value and not altmandat.kandidatursperre
+
+
 def test_anlass_ausstaende_nur_ueber_30_tage(altmandat):  # noqa: F811
     Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=timezone.now() - tage(20), sitzungstag=True)
     assert altmandat.anlass_ausstaende() == []  # Frist um 13 Tage — noch kein Anlass

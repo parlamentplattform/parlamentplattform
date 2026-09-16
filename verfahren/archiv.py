@@ -362,25 +362,36 @@ def als_markdown(antrag) -> str:
     """Dieselbe Gliederung, lesbar — zum Ablegen, Ausdrucken, Zitieren."""
     d = archiv(antrag)
     a = d["antrag"]
+    # Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) kennt weder Unterstützung noch Anlässe noch die Zahlen
+    # nach lit c — lit b, c und g gelten für ihn nicht; der Export sagt das statt „0 Unterstützungen · Schwelle: 0“.
+    bestaetigung = _ist_bestaetigung(antrag)
+    eingebracht = a["eingebracht_am"][:10]
+    if antrag.art == Antragsart.MANDATSFRAGE:
+        kopf = f"{_('Eröffnet')}: {eingebracht} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
+    elif bestaetigung:
+        kopf = f"{_('Eingebracht')}: {eingebracht}"
+    else:
+        kopf = f"{_('Eingebracht')}: {eingebracht} · {a['unterstuetzungen']} {_('Unterstützungen')}"
     zeilen = [
         f"# {a['titel']}",
         "",
         f"Antrag {a['id']} · {a['art']} · {a['ebene']} · {_('Phase')}: {a['phase_name']}",
-        (
-            f"{_('Eröffnet')}: {a['eingebracht_am'][:10]} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
-            if antrag.art == Antragsart.MANDATSFRAGE
-            else f"{_('Eingebracht')}: {a['eingebracht_am'][:10]} · {a['unterstuetzungen']} {_('Unterstützungen')}"
-        ),
+        kopf,
         "",
     ]
     vf = d.get("vertrauensfrage")
     if vf:
         # § 7 Abs 10: Wer betroffen ist, die Zahlen des Einbringungstags, keine Beratungsphase, das Ergebnis
+        if bestaetigung:
+            zahlen = str(_("ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)"))
+        else:
+            zahlen = (
+                f"{_('Anlässe')}: {len(vf['anlaesse']) + len(vf['ausstaende'])} · "
+                f"{_('Stimmberechtigte am Einbringungstag')}: {vf['stimmberechtigte_am_einbringungstag']} · "
+                f"{_('Schwelle')}: {vf['schwelle']} · {_('ohne Beratungsphase (§ 7 Abs 10 lit c)')}"
+            )
         zeilen += [
-            f"{vf['art']} · {_('Mandatar')}: {vf['mandatar']} ({vf['mandat']}) · "
-            f"{_('Anlässe')}: {len(vf['anlaesse']) + len(vf['ausstaende'])} · "
-            f"{_('Stimmberechtigte am Einbringungstag')}: {vf['stimmberechtigte_am_einbringungstag']} · "
-            f"{_('Schwelle')}: {vf['schwelle']} · {_('ohne Beratungsphase (§ 7 Abs 10 lit c)')}"
+            f"{vf['art']} · {_('Mandatar')}: {vf['mandatar']} ({vf['mandat']}) · {zahlen}"
             + (f" · **{vf['ergebnis']}**" if vf["ergebnis"] else "")
             + (f" · {vf['rechtsschutz']}" if vf["rechtsschutz"] else ""),
             "",

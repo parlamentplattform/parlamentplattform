@@ -7658,3 +7658,9 @@ msgstr "The confirmation takes effect without a further resolution — the candi
 
 msgid "Die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f); zu vollziehen bleibt die Mitteilung des Koordinationsrats an Parlamentsklub oder Fraktion (Z 7), ihr Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
 msgstr "The effects take place without a further resolution (§ 7 (10) lit f); what remains to be carried out is the coordination council’s notification to the parliamentary club or group (no. 7), its status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "Das Ergebnis ist vom Parteischiedsgericht aufgehoben (§ 7 Abs 10 lit h); der Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
+msgstr "The result has been reversed by the party arbitration court (§ 7 (10) lit h); the status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
+
+msgid "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)"
+msgstr "without support and deliberation phase (§ 7 (10) lit f no. 3)"

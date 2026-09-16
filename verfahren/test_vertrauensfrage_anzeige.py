@@ -456,6 +456,14 @@ def test_umsetzungskarte_der_vertrauensfrage_sagt_dass_die_wirkungen_ohne_beschl
     assert "Das Ergebnis ist vom Parteischiedsgericht aufgehoben — die Wirkungen nach § 7 Abs 10 lit f sind entfallen" in karte
     assert "Die Wirkungen treten ohne weiteren Beschluss ein" not in karte
 
+    # Aufgehobener Bestätigungsantrag: die Wirkungen der verlorenen Vertrauensfrage (lit f) bleiben — die Karte
+    # behauptet weder deren Entfall noch eine aufgehobene Kandidatursperre, sie nennt nur den Sachverhalt
+    vertrauensfrage_anfechtung_vermerken(b.vertrauensfrage, "PSG 2/26", jetzt=spaeter + tage(15))
+    vertrauensfrage_entscheidung_vermerken(b.vertrauensfrage, "aufgehoben", jetzt=spaeter + tage(20))
+    karte = _seite(client, b).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Das Ergebnis ist vom Parteischiedsgericht aufgehoben (§ 7 Abs 10 lit h)" in karte
+    assert "lit f sind entfallen" not in karte and "Kandidatursperre ist aufgehoben" not in karte
+
     # Ein Sachantrag behält den bisherigen Satz
     sache = antrag_einbringen(mitglied_anlegen("s", tage=400), **ANTRAG, ordnung=ordnung)
     Antrag.objects.filter(pk=sache.pk).update(phase="angenommen")
@@ -605,7 +613,12 @@ def test_bestaetigungsantrag_zeigt_die_wartezeit_statt_einer_unterstuetzungsphas
     b.refresh_from_db()
     assert b.phase == "abstimmung"
     assert [x["phase"] for x in archivkern.zeitleiste(b)] == ["abstimmung"]
-    assert "Unterstützungsphase" not in archivkern.als_markdown(b)
+    markdown = archivkern.als_markdown(b)
+    assert "Unterstützungsphase" not in markdown
+    # Der Kopf des Exports sagt lit f Z 3 statt „0 Unterstützungen · Anlässe: 0 · Schwelle: 0 · lit c“
+    assert "ohne Unterstützungs- und Beratungsphase (§ 7 Abs 10 lit f Z 3)" in markdown
+    assert "Unterstützungen" not in markdown and "Schwelle: 0" not in markdown and "Anlässe: 0" not in markdown
+    assert "ohne Beratungsphase (§ 7 Abs 10 lit c)" not in markdown
     # Die gewöhnliche Vertrauensfrage behält ihren Unterstützungsblock
     assert [x["name"] for x in archivkern.zeitleiste(antrag)][0] == "Unterstützungsphase"
 

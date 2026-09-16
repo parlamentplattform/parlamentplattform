@@ -889,9 +889,10 @@ VERWALTUNG = Rolle(
         ),
         Faehigkeit(
             titel=_("Anfechtung und Entscheidung des Parteischiedsgerichts zu einer Vertrauensfrage vermerken, Rückgabezusage und Ergänzung der Mandatsvereinbarung nachtragen"),
-            stand=Stand.VERFUEGBAR,
+            stand=Stand.TEILWEISE,
             satzung="§ 7 Abs 10 lit h und j, Abs 3",
             urlname="mandatare:verwaltung",
+            einschraenkung=_("Vermerkt wird die Anfechtung eines veröffentlichten Ergebnisses; Anfechtungen der Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen derzeit außerhalb der Plattform."),
         ),
         Faehigkeit(
             titel=_("Aufgaben und Lichtbild eines Mandatars an seiner Stelle pflegen"),

@@ -325,8 +325,10 @@ def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
     assert lesen.stand is Stand.VERFUEGBAR and lesen.urlname == "mandatare:vertrauensfragen"
 
     (vermerke,) = zeilen("verwaltung", "Anfechtung und Entscheidung des Parteischiedsgerichts")
-    assert vermerke.stand is Stand.VERFUEGBAR and vermerke.urlname == "mandatare:verwaltung"
-    assert "Rückgabezusage" in vermerke.titel
+    # ◐: Nur die Anfechtung eines veröffentlichten Ergebnisses lässt sich vermerken — lit h kennt vier
+    # Anfechtungsfälle, drei laufen außerhalb der Plattform (Befund B30)
+    assert vermerke.stand is Stand.TEILWEISE and vermerke.urlname == "mandatare:verwaltung"
+    assert "Rückgabezusage" in vermerke.titel and "außerhalb der Plattform" in vermerke.einschraenkung
 
     # Das Parteischiedsgericht bleibt ○ — mit dem Hinweis, dass die Verwaltung heute vermerkt.
     (anfechtung,) = zeilen("schiedsgericht", "Anfechtung einer Vertrauensfrage")

@@ -7653,3 +7653,6 @@ msgstr "To my area — request confirmation →"
 
 msgid "Zu meinem Bereich →"
 msgstr "To my area →"
+
+msgid "Nach einer verlorenen Vertrauensfrage ist bis zur Bestätigung durch die Mitgliederversammlung keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)."
+msgstr "After a lost confidence question, no new mandate agreement is possible until the members’ assembly has confirmed the person (§ 7 (10) lit f no. 3)."

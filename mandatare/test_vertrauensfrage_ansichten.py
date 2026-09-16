@@ -354,6 +354,22 @@ def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F
     assert client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": "abc"}).status_code == 404
 
 
+def test_verwaltung_legt_kein_mandat_fuer_eine_person_mit_kandidatursperre_an(client, ordnung, altmandat):  # noqa: F811
+    """lit f Z 3: Erst die Annahme der Bestätigung „ermöglicht eine neue Mandatsvereinbarung nach Abs 3“ —
+    der Kandidatur-Weg ist gesperrt (bewerbung_einreichen), der Verwaltungsweg darf keine Hintertür sein."""
+    _verloren(ordnung, altmandat)
+    person = altmandat.mitglied
+    client.force_login(admin_anlegen())
+    daten = {"aktion": "anlegen", "mitglied": person.pk, "bezeichnung": "Landtag", "ebene": "land", "angetreten": timezone.localdate().isoformat()}
+    antwort = client.post(VERWALTUNG_AKTION, daten)
+    assert antwort.status_code == 302 and Mandat.objects.filter(mitglied=person).count() == 1
+    assert "keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)" in meldungen(antwort)
+    assert not audit("mandat_angelegt")
+    altmandat.bestaetigen("wahl")
+    antwort = client.post(VERWALTUNG_AKTION, daten)
+    assert Mandat.objects.filter(mitglied=person).count() == 2 and "angelegt" in meldungen(antwort)
+
+
 def test_verformte_mandatskennung_antwortet_404_statt_500(client, ordnung, altmandat):  # noqa: F811
     """Dieselbe Regel wie für die Vertrauensfrage-Kennung (`_vertrauensfrage_der_verwaltung`): eine
     unbrauchbare Kennung ist eine unbekannte, kein Serverfehler — für die drei Vermerke aus 0.48 wie für

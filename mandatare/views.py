@@ -77,6 +77,7 @@ from verfahren.models import (
     MandatsfrageFehler,
     Rueckgabezusage,
     Verfahrensordnung,
+    kandidatursperre,
     mandatsfrage_eroeffnen,
     vertrauensfrage_einbringen,
 )
@@ -1527,6 +1528,15 @@ def verwaltung_aktion(request):
             messages.error(
                 request,
                 _("Unvereinbar: Dieses Mitglied sitzt im Integritätsrat (§ 6 Abs 3 lit a) — kein Mandat möglich."),
+            )
+            return redirect("mandatare:verwaltung")
+        if kandidatursperre(d["mitglied"]):
+            # § 7 Abs 10 lit f Z 3: Erst die Bestätigung durch die Mitgliederversammlung ermöglicht eine neue
+            # Mandatsvereinbarung — der Verwaltungsweg ist keine Hintertür am gesperrten Kandidatur-Weg vorbei.
+            messages.error(
+                request,
+                _("Nach einer verlorenen Vertrauensfrage ist bis zur Bestätigung durch die Mitgliederversammlung "
+                  "keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)."),
             )
             return redirect("mandatare:verwaltung")
         mandat = Mandat.objects.create(

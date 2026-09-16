@@ -27,7 +27,7 @@ entscheidet allein der Mandatsträger (§ 7 Abs 2)."""
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.conf import settings
 from django.db import models, transaction
@@ -783,9 +783,26 @@ class Vertrauensfrage(models.Model):
         ab = self.ergebnis_am
         return None if ab is None else ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
+    def rueckgabefrist_tag(self):
+        """Der letzte Tag der Rückgabefrist (lit f Z 4) als Wiener Kalendertag, einschließlich — die
+        eine Frist, die Register, Vermerk, Zähler und Stufe 2 lesen: `Mandat.rueckgabe_ersucht_bis`,
+        ersatzweise dieselbe Rechnung (`localdate(wirkungen_ab) + 30`). Nicht `wirkungen_ab + 30 Tage`
+        in UTC: Das läge am Abend vor einer Zeitumstellung einen Tag daneben, und am letzten Fristtag
+        endete die Vertretung zur Uhrzeit des Ergebnisses, während die Seite „läuft heute ab“ sagte
+        (Befunde B10/B18/B24). None ohne Wirkungen."""
+        if self.wirkungen_ab is None:
+            return None
+        return self.mandat.rueckgabe_ersucht_bis or (timezone.localdate(self.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE))
+
     @property
     def rueckgabefrist_ende(self):
-        return None if self.wirkungen_ab is None else self.wirkungen_ab + timedelta(days=RUECKGABEFRIST_TAGE)
+        """Der Zeitpunkt, mit dem die Rückgabefrist abgelaufen ist: Beginn des Folgetags nach
+        `rueckgabefrist_tag` in Wiener Zeit (Mitternacht ist nie mehrdeutig). Ab hier endet die
+        Vertretung (Z 8) und — mit lit h und Endgültigkeit — die Mandatsvereinbarung (Z 5)."""
+        tag = self.rueckgabefrist_tag()
+        if tag is None:
+            return None
+        return timezone.make_aware(datetime.combine(tag + timedelta(days=1), time.min))
 
     @property
     def rechtsschutz_stand(self) -> str:
@@ -1031,69 +1048,93 @@ def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None) -> None:
 
 def vertrauensfragen_fortschreiben(jetzt=None) -> int:
     """Stufe 2 der Wirkungen — lazy, aus Mandatar- und Antragsseiten und `verfahren_fortschreiben`
-    (§ 7 Abs 10 lit f letzter Unterabsatz, Z 5 und Z 8):
+    (§ 7 Abs 10 lit f letzter Unterabsatz, Z 5 und Z 8). Drei Schritte, jeder für sich:
 
-    - Sieben Tage nach der Veröffentlichung ohne Anfechtung, sonst mit der bestätigenden Entscheidung
-      des Parteischiedsgerichts, wird das Ruhen der Gremienrollen zum Ende (`wirkungen_endgueltig_am`).
-    - Mit Ablauf der Rückgabefrist (30 Tage), frühestens aber dann, endet die Vertretung
-      (`vertretung_beendet_am`: Rolle „Mandatar“ endet, Bereich und Register bleiben) und — nur bei
-      Mandatsvereinbarungen mit lit h — die Mandatsvereinbarung (`mandatsvereinbarung_endet_am`).
-    Solange eine Anfechtung offen ist, wartet alles; nach einer Aufhebung geschieht nichts mehr.
-    Nichts davon setzt `Mandat.beendet`. Rückgabe: Zahl der geänderten Vertrauensfragen."""
+    (a) Sieben Tage nach der Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden
+        Entscheidung des Parteischiedsgerichts (`endgueltig_ab`), wird das Ruhen der Gremienrollen zum
+        Ende (`wirkungen_endgueltig_am`).
+    (b) Mit Ablauf des im Register ausgewiesenen Fristtags (`rueckgabefrist_tag`, einschließlich) endet
+        die Vertretung (`vertretung_beendet_am` = der Fristtag: Rolle „Mandatar“ endet, Bereich und
+        Register bleiben) — Z 8 kennt keinen Anfechtungsvorbehalt, also auch bei offener Anfechtung;
+        eine Aufhebung nimmt es zurück (lit h: „die Wirkungen nach lit f entfallen“).
+    (c) Nur bei Mandatsvereinbarungen mit lit h: Sie endet mit Ablauf der Rückgabefrist, bei Anfechtung
+        nicht vor der Entscheidung (Z 5 letzter Satz) — am späteren der beiden Tage.
+    Nach einer Aufhebung geschieht nichts mehr. Jede Vertrauensfrage läuft in ihrer eigenen
+    Transaktion: Bricht ein Schritt ab, bleibt kein halber Stempel stehen, der den nächsten Lauf
+    überspringen ließe (Befund B29). Geladen wird nur, was noch etwas zu tun hat. Nichts davon setzt
+    `Mandat.beendet`. Rückgabe: Zahl der geänderten Vertrauensfragen."""
     from gremien.models import Rolle
 
     jetzt = jetzt or timezone.now()
+    heute = timezone.localdate(jetzt)
     geaendert = 0
-    offene = Vertrauensfrage.objects.filter(
-        art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False
-    ).exclude(entscheidung=Entscheidung.AUFGEHOBEN).select_related("mandat", "mandat__mitglied")
+    offene = (
+        Vertrauensfrage.objects.filter(art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False)
+        .exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+        .filter(
+            models.Q(wirkungen_endgueltig_am__isnull=True)
+            | models.Q(mandat__vertretung_beendet_am__isnull=True)
+            | models.Q(mandat__mandatsvereinbarung_lit_h_am__isnull=False, mandat__mandatsvereinbarung_endet_am__isnull=True)
+        )
+        .select_related("mandat", "mandat__mitglied")
+    )
     for vf in offene:
         mandat = vf.mandat
-        if mandat.vertretung_beendet_am is not None:
-            continue  # alles vollzogen
         endgueltig_ab = vf.endgueltig_ab()
-        if endgueltig_ab is None or jetzt < endgueltig_ab:
-            continue
-        beruehrt = False
-        if vf.wirkungen_endgueltig_am is None:
-            vf.wirkungen_endgueltig_am = endgueltig_ab
-            vf.save(update_fields=["wirkungen_endgueltig_am"])
-            beendet = []
-            for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=""):
-                rolle.beendet_grund = BEENDIGUNGSGRUND
-                rolle.save(update_fields=["beendet_grund"])
-                beendet.append(rolle.pk)
-            AuditEintrag.anhaengen(
-                {
-                    "typ": "vertrauensfrage_endgueltig",
-                    "antrag": vf.antrag_id,
-                    "mandat": mandat.pk,
-                    "endgueltig_ab": endgueltig_ab.isoformat(),
-                    "rollen_beendet": beendet,
-                }
-            )
-            beruehrt = True
-        rueckgabe_ende = max(vf.rueckgabefrist_ende, endgueltig_ab)
-        if jetzt >= rueckgabe_ende:
-            tag = timezone.localdate(rueckgabe_ende)
-            mandat.vertretung_beendet_am = tag
-            felder = ["vertretung_beendet_am"]
-            if mandat.mandatsvereinbarung_lit_h_am is not None and mandat.mandatsvereinbarung_endet_am is None:
+        endgueltig = endgueltig_ab is not None and jetzt >= endgueltig_ab
+        frist_tag = vf.rueckgabefrist_tag()
+        frist_um = heute > frist_tag
+        tue_a = vf.wirkungen_endgueltig_am is None and endgueltig
+        tue_b = mandat.vertretung_beendet_am is None and frist_um
+        tue_c = (
+            mandat.mandatsvereinbarung_lit_h_am is not None
+            and mandat.mandatsvereinbarung_endet_am is None
+            and frist_um
+            and endgueltig
+        )
+        if not (tue_a or tue_b or tue_c):
+            continue  # nichts fällig — und kein Savepoint für nichts
+        with transaction.atomic():
+            # (a) Ruhen wird zum Ende
+            if tue_a:
+                vf.wirkungen_endgueltig_am = endgueltig_ab
+                vf.save(update_fields=["wirkungen_endgueltig_am"])
+                beendet = []
+                for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=""):
+                    rolle.beendet_grund = BEENDIGUNGSGRUND
+                    rolle.save(update_fields=["beendet_grund"])
+                    beendet.append(rolle.pk)
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "vertrauensfrage_endgueltig",
+                        "antrag": vf.antrag_id,
+                        "mandat": mandat.pk,
+                        "endgueltig_ab": endgueltig_ab.isoformat(),
+                        "rollen_beendet": beendet,
+                    }
+                )
+            # (b) Vertretung endet mit Ablauf des Fristtags (Z 8) — ohne Anfechtungsvorbehalt
+            if tue_b:
+                mandat.vertretung_beendet_am = frist_tag
+                mandat.save(update_fields=["vertretung_beendet_am"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "vertretung_beendet",
+                        "antrag": vf.antrag_id,
+                        "mandat": mandat.pk,
+                        "ab": frist_tag.isoformat(),
+                        "rueckgabezusage": mandat.rueckgabezusage,
+                    }
+                )
+            # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
+            if tue_c:
+                tag = max(frist_tag, timezone.localdate(endgueltig_ab))
                 mandat.mandatsvereinbarung_endet_am = tag
-                felder.append("mandatsvereinbarung_endet_am")
-            mandat.save(update_fields=felder)
-            AuditEintrag.anhaengen(
-                {
-                    "typ": "vertretung_beendet",
-                    "antrag": vf.antrag_id,
-                    "mandat": mandat.pk,
-                    "ab": tag.isoformat(),
-                    "mandatsvereinbarung_endet": "mandatsvereinbarung_endet_am" in felder,
-                    "rueckgabezusage": mandat.rueckgabezusage,
-                }
-            )
-            beruehrt = True
-        geaendert += int(beruehrt)
+                mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
+                AuditEintrag.anhaengen(
+                    {"typ": "mandatsvereinbarung_beendet", "antrag": vf.antrag_id, "mandat": mandat.pk, "ab": tag.isoformat()}
+                )
+        geaendert += 1
     return geaendert
 
 

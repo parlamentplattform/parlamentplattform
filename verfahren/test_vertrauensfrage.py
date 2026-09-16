@@ -7,7 +7,7 @@ Stufen; gewonnen lässt alles, wie es ist; Bestätigungsantrag nach lit f Z 3; F
 Integritätsrats nach lit b; Nachrechnen wie eine Sachfrage."""
 
 import itertools
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pytest
 from django.core import mail
@@ -318,15 +318,25 @@ def test_verloren_loest_die_wirkungen_in_zwei_stufen_aus(ordnung, altmandat):  #
     assert altmandat.vertretung_beendet_am is None and altmandat.mitglied.ist_mandatar
     assert vertrauensfragen_fortschreiben(ende + tage(8)) == 0  # idempotent
 
-    # Stufe 2b — 30 Tage nach der Veröffentlichung: Vertretung endet, Mandat bleibt
-    assert vertrauensfragen_fortschreiben(ende + tage(30)) == 1
+    # Stufe 2b — mit Ablauf des im Register ausgewiesenen Fristtags (Wiener Kalendertag, einschließlich):
+    # Vertretung endet, Mandat bleibt. Am Fristtag selbst läuft die Frist noch („läuft heute ab“), erst
+    # der Folgetag 00:00 Wiener Zeit stempelt — dieselbe Zahl wie `rueckgabe_ersucht_bis` (B10/B18/B24).
+    assert vf.rueckgabefrist_tag() == altmandat.rueckgabe_ersucht_bis
+    assert vf.rueckgabefrist_ende == timezone.make_aware(
+        datetime.combine(altmandat.rueckgabe_ersucht_bis + tage(1), time.min)
+    )
+    assert vertrauensfragen_fortschreiben(vf.rueckgabefrist_ende - timedelta(minutes=1)) == 0
     altmandat.refresh_from_db()
-    assert altmandat.vertretung_beendet_am == timezone.localdate(ende + tage(30))
+    assert altmandat.vertretung_beendet_am is None and altmandat.rueckgabe_vermerk == ""
+    assert vertrauensfragen_fortschreiben(vf.rueckgabefrist_ende) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis
     assert altmandat.mandatsvereinbarung_endet_am is None  # kein lit h vermerkt (lit j)
     assert altmandat.beendet is None and not altmandat.aktiv
     assert not altmandat.mitglied.ist_mandatar
     assert Mandat.aktive_von(altmandat.mitglied).count() == 0
-    assert audit("vertretung_beendet")[0]["mandatsvereinbarung_endet"] is False
+    assert audit("vertretung_beendet")[0]["ab"] == altmandat.rueckgabe_ersucht_bis.isoformat()
+    assert not audit("mandatsvereinbarung_beendet")
     assert vertrauensfragen_fortschreiben(ende + tage(40)) == 0
 
 
@@ -340,11 +350,14 @@ def test_die_mandatsvereinbarung_endet_nur_mit_lit_h(ordnung, altmandat):  # noq
     antrag.fortschreiben(t0 + tage(7))
     abstimmen(antrag, leute, "ja", t0 + tage(8))
     antrag.fortschreiben(t0 + tage(14))
-    vertrauensfragen_fortschreiben(t0 + tage(50))
+    assert vertrauensfragen_fortschreiben(t0 + tage(50)) == 1
     altmandat.refresh_from_db()
-    assert altmandat.mandatsvereinbarung_endet_am == timezone.localdate(t0 + tage(44))
-    assert altmandat.vertretung_beendet_am == timezone.localdate(t0 + tage(44))
+    assert altmandat.rueckgabe_ersucht_bis == timezone.localdate(t0 + tage(14)) + tage(30)
+    assert altmandat.mandatsvereinbarung_endet_am == altmandat.rueckgabe_ersucht_bis
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis
     assert altmandat.beendet is None
+    assert audit("mandatsvereinbarung_beendet")[0]["ab"] == altmandat.rueckgabe_ersucht_bis.isoformat()
+    assert vertrauensfragen_fortschreiben(t0 + tage(60)) == 0  # alles vollzogen, nichts wird mehr geladen
 
 
 def test_gewonnen_laesst_alle_rechtspositionen_unveraendert(ordnung, altmandat):  # noqa: F811
@@ -460,21 +473,32 @@ def test_eine_anfechtung_haelt_stufe_zwei_an_und_eine_aufhebung_stellt_alles_wie
     vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/3", jetzt=ende + tage(2))
     vf.refresh_from_db()
     assert vf.rechtsschutz_stand == "beim Parteischiedsgericht anhängig" and vf.aktenkennung == "PSG 2026/3"
-    assert vertrauensfragen_fortschreiben(ende + tage(40)) == 0  # wartet auf die Entscheidung
+    # Z 1/2/6 (Rollen) und Z 5 (Mandatsvereinbarung) warten auf die Entscheidung — Z 8 nicht: Die
+    # Vertretung endet mit Ablauf der Rückgabefrist auch bei offener Anfechtung (B27, lit h Satz 4).
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+    assert vertrauensfragen_fortschreiben(ende + tage(40)) == 1
     altmandat.refresh_from_db()
-    assert altmandat.vertretung_beendet_am is None
-    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(20))
+    rolle.refresh_from_db()
+    vf.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis and not altmandat.aktiv
+    assert altmandat.mandatsvereinbarung_endet_am is None and vf.wirkungen_endgueltig_am is None
+    assert rolle.ruht and rolle.beendet_grund == ""
+    assert vertrauensfragen_fortschreiben(ende + tage(41)) == 0  # danach wartet der Rest auf die Entscheidung
+    # Aufhebung: alles zurück — Rollen, Vertrauen, Vertretung
+    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(45))
     vf.refresh_from_db()
     rolle.refresh_from_db()
     altmandat.refresh_from_db()
     assert vf.rechtsschutz_stand == "vom Parteischiedsgericht aufgehoben"
     assert rolle.aktiv and rolle.ruht_seit is None and rolle.ruht_grund == ""
     assert altmandat.vertrauen_entzogen_am is None and not altmandat.kandidatursperre
+    assert altmandat.vertretung_beendet_am is None and altmandat.aktiv and altmandat.mitglied.ist_mandatar
     assert audit("vertrauensfrage_aufgehoben")[0]["rollen_wiederhergestellt"] == [rolle.pk]
     assert vertrauensfragen_fortschreiben(ende + tage(90)) == 0
     # lit h: Nach einer Aufhebung läuft die Sperre nach lit g dritter Fall nicht
-    hinweis = mm.sperren_pruefen(altmandat, ende + tage(21))
-    assert "dritter Fall" not in hinweis
+    hinweis = mm.sperren_pruefen(altmandat, ende + tage(46))
+    assert "dritter Fall" not in hinweis and "vierter Fall" not in hinweis
 
 
 def test_eine_bestaetigende_entscheidung_laesst_stufe_zwei_ab_der_entscheidung_laufen(ordnung, altmandat):  # noqa: F811
@@ -482,17 +506,24 @@ def test_eine_bestaetigende_entscheidung_laesst_stufe_zwei_ab_der_entscheidung_l
     antrag, ende = _verloren(ordnung, altmandat)
     vf = antrag.vertrauensfrage
     vertrauensfrage_anfechtung_vermerken(vf, jetzt=ende + tage(3))
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
     vertrauensfrage_entscheidung_vermerken(vf, "bestaetigt", jetzt=ende + tage(35))
     vf.refresh_from_db()
     assert vf.endgueltig_ab() == ende + tage(35)
-    assert vertrauensfragen_fortschreiben(ende + tage(34)) == 0
+    assert vertrauensfragen_fortschreiben(ende + tage(34)) == 1  # nur die Vertretung (Z 8, Frist um)
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis
+    assert altmandat.mandatsvereinbarung_endet_am is None
     assert vertrauensfragen_fortschreiben(ende + tage(35)) == 1
     vf.refresh_from_db()
     rolle.refresh_from_db()
     altmandat.refresh_from_db()
     assert vf.wirkungen_endgueltig_am == ende + tage(35) and rolle.beendet_grund
-    # Rückgabefrist (30 Tage) war schon um — die Vertretung endet mit der Entscheidung, nicht davor (Z 5)
-    assert altmandat.vertretung_beendet_am == timezone.localdate(ende + tage(35))
+    # Rückgabefrist war schon um — die Mandatsvereinbarung endet mit der Entscheidung, nicht davor
+    # (Z 5 letzter Satz); die Vertretung war schon mit der Frist zu Ende (Z 8).
+    assert altmandat.mandatsvereinbarung_endet_am == timezone.localdate(ende + tage(35))
+    assert vertrauensfragen_fortschreiben(ende + tage(36)) == 0
     with pytest.raises(VertrauensfrageFehler):
         vertrauensfrage_entscheidung_vermerken(vf, "")
 

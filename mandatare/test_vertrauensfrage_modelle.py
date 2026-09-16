@@ -2,7 +2,7 @@
 Stellungnahme (lit d), Vermerke des Rechenschaftsregisters, das Ende der Vertretung (lit f Z 8),
 ruhende Gremienrollen — und dass nichts davon `Mandat.beendet` setzt."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pytest
 from django.utils import timezone
@@ -223,8 +223,128 @@ def test_vertrauensfrage_eigenschaften(ordnung, altmandat):  # noqa: F811
     antrag, ende = _verloren(ordnung, altmandat)
     vf = antrag.vertrauensfrage
     assert vf.ergebnis_am == ende and vf.anfechtungsfrist_ende == ende + tage(7)
-    assert vf.rueckgabefrist_ende == ende + tage(30) and vf.endgueltig_ab() == ende + tage(7)
+    assert vf.rueckgabefrist_tag() == altmandat.rueckgabe_ersucht_bis == timezone.localdate(ende) + tage(30)
+    assert vf.rueckgabefrist_ende == timezone.make_aware(datetime.combine(vf.rueckgabefrist_tag() + tage(1), time.min))
+    assert vf.endgueltig_ab() == ende + tage(7)
     assert not vf.laeuft
+
+
+# ── Stufe 2: eine Frist, ein Kalendertag, je Vertrauensfrage atomar ────────────────────────
+
+
+def _verlorene_vertrauensfrage(mandat, wirkungen_ab):
+    """Eine verlorene Vertrauensfrage mit gestempelter Stufe 1 — direkt gesetzt, damit der Zeitpunkt
+    des Ergebnisses frei wählbar ist (Zeitumstellung, Nachtstunden)."""
+    from verfahren.models import Antrag, Antragsart
+
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage: Gemeinderätin, Polsenz",
+        art=Antragsart.VERTRAUENSFRAGE,
+        eingebracht_von=mitglied_anlegen(f"steller{antrag_nr()}"),
+        eingebracht_am=wirkungen_ab - tage(20),
+        phase=Phase.ANGENOMMEN.value,
+        phase_beginn=wirkungen_ab,
+        policy_snapshot={},
+    )
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat, wirkungen_ab=wirkungen_ab)
+    mandat.vertrauen_entzogen_am = wirkungen_ab
+    mandat.rueckgabe_ersucht_bis = timezone.localdate(wirkungen_ab) + tage(mm.RUECKGABEFRIST_TAGE)
+    mandat.save(update_fields=["vertrauen_entzogen_am", "rueckgabe_ersucht_bis"])
+    return vf
+
+
+_ANTRAG_NR = iter(range(1, 10_000))
+
+
+def antrag_nr():
+    return next(_ANTRAG_NR)
+
+
+def wien(jahr, monat, tag, stunde=0, minute=0):
+    return timezone.make_aware(datetime(jahr, monat, tag, stunde, minute))
+
+
+@pytest.mark.parametrize(
+    ("ergebnis", "fristtag"),
+    [
+        (wien(2026, 10, 24, 0, 30), date(2026, 11, 23)),  # vor der Zeitumstellung: UTC + 30 Tage läge am 22.11.
+        (wien(2027, 3, 1, 23, 30), date(2027, 3, 31)),  # vor der Zeitumstellung im Frühjahr: UTC + 30 Tage läge am 1.4.
+        (wien(2026, 10, 4, 14, 0), date(2026, 11, 3)),  # ohne Zeitumstellung: bisher endete die Vertretung um 13:00
+    ],
+)
+def test_die_vertretung_endet_mit_ablauf_des_ausgewiesenen_fristtags(altmandat, ergebnis, fristtag):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 4, 5 und 8 knüpfen drei Wirkungen an eine Frist — die, die das Register als
+    Kalendertag ausweist (`rueckgabe_ersucht_bis`, einschließlich). Stufe 2 rechnete bisher mit
+    `wirkungen_ab + 30 Tage` in UTC und stempelte über die Zeitumstellung einen anderen Tag, im Normalfall
+    schon zur Uhrzeit des Ergebnisses am letzten Fristtag (Befunde B10/B18/B24)."""
+    vf = _verlorene_vertrauensfrage(altmandat, ergebnis)
+    assert altmandat.rueckgabe_ersucht_bis == fristtag == vf.rueckgabefrist_tag()
+    assert vf.rueckgabefrist_ende == wien(fristtag.year, fristtag.month, fristtag.day) + tage(1)
+    # am Fristtag um 23:45 Wiener Zeit läuft die Frist noch — Vermerk leer, Vertretung besteht
+    assert mm.vertrauensfragen_fortschreiben(wien(fristtag.year, fristtag.month, fristtag.day, 23, 45)) == 1  # nur (a)
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am is None
+    # der Folgetag um 00:01: Vertretung beendet, gestempelt mit dem Fristtag des Registers
+    folgetag = fristtag + tage(1)
+    assert mm.vertrauensfragen_fortschreiben(wien(folgetag.year, folgetag.month, folgetag.day, 0, 1)) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == fristtag == altmandat.rueckgabe_ersucht_bis
+    assert audit("vertretung_beendet")[0]["ab"] == fristtag.isoformat()
+
+
+def test_stufe_zwei_laeuft_je_vertrauensfrage_atomar(monkeypatch, ordnung, altmandat):  # noqa: F811
+    """Befund B29: Bricht die Verarbeitung nach dem Stempel `wirkungen_endgueltig_am` und vor dem Ende
+    der Rollen ab, blieb der Stempel stehen, der nächste Lauf übersprang den Block — die Rollen ruhten
+    dauerhaft, das Audit fehlte. Jetzt wird je Vertrauensfrage alles oder nichts geschrieben."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    echte_save = Rolle.save
+    aufrufe = []
+
+    def bricht_ab(self, *args, **kwargs):
+        aufrufe.append(self.pk)
+        if len(aufrufe) == 1:
+            raise RuntimeError("Verbindung abgerissen")
+        return echte_save(self, *args, **kwargs)
+
+    monkeypatch.setattr(Rolle, "save", bricht_ab)
+    with pytest.raises(RuntimeError):
+        mm.vertrauensfragen_fortschreiben(ende + tage(8))
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am is None and rolle.beendet_grund == "" and not audit("vertrauensfrage_endgueltig")
+    assert mm.vertrauensfragen_fortschreiben(ende + tage(8)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == ende + tage(7) and rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+    assert len(audit("vertrauensfrage_endgueltig")) == 1
+
+
+def test_stufe_zwei_laedt_nur_was_noch_etwas_zu_tun_hat(altmandat):  # noqa: F811
+    """Befund B29: Bisher lud jeder Seitenaufruf alle jemals verlorenen Vertrauensfragen samt Mandat
+    und Mitglied — auch die längst vollzogenen."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    t0 = timezone.now() - tage(100)
+    for i in range(5):
+        mandat = Mandat.objects.create(mitglied=mitglied_anlegen(f"v{i}"), bezeichnung="Gemeinderat", ebene="gemeinde")
+        vf = _verlorene_vertrauensfrage(mandat, t0)
+        vf.wirkungen_endgueltig_am = t0 + tage(7)
+        vf.save(update_fields=["wirkungen_endgueltig_am"])
+        mandat.vertretung_beendet_am = mandat.rueckgabe_ersucht_bis
+        mandat.save(update_fields=["vertretung_beendet_am"])
+    with CaptureQueriesContext(connection) as abfragen:
+        assert mm.vertrauensfragen_fortschreiben() == 0
+    assert len(abfragen) == 1, [a["sql"] for a in abfragen]
+    # mit lit h und noch offener Mandatsvereinbarung wird die Vertrauensfrage weiter geladen — Schritt (c)
+    mandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    mandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+    assert mm.vertrauensfragen_fortschreiben() == 1
+    mandat.refresh_from_db()
+    assert mandat.mandatsvereinbarung_endet_am == mandat.rueckgabe_ersucht_bis
+    assert mm.vertrauensfragen_fortschreiben() == 0
 
 
 # ── Ruhende Gremienrollen ──────────────────────────────────────────────────────────────────

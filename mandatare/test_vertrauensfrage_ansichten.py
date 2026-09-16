@@ -354,6 +354,29 @@ def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F
     assert client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": "abc"}).status_code == 404
 
 
+def test_verformte_mandatskennung_antwortet_404_statt_500(client, ordnung, altmandat):  # noqa: F811
+    """Dieselbe Regel wie für die Vertrauensfrage-Kennung (`_vertrauensfrage_der_verwaltung`): eine
+    unbrauchbare Kennung ist eine unbekannte, kein Serverfehler — für die drei Vermerke aus 0.48 wie für
+    Beenden, Foto und Aufgabe im Bestand; ebenso der Aufgabenstatus."""
+    client.force_login(admin_anlegen())
+    handlungen = (
+        {"aktion": "rueckgabezusage", "wert": "abgegeben"},
+        {"aktion": "lit_h", "datum": "2026-10-01"},
+        {"aktion": "bestaetigung_durch_wahl"},
+        {"aktion": "beenden"},
+        {"aktion": "foto"},
+        {"aktion": "aufgabe", "titel": "x"},
+    )
+    for daten in handlungen:
+        for kennung in ("abc", "", "1 OR 1"):
+            antwort = client.post(VERWALTUNG_AKTION, {**daten, "mandat": kennung})
+            assert antwort.status_code == 404, (daten, kennung, antwort.status_code)
+    assert client.post(VERWALTUNG_AKTION, {"aktion": "aufgabe_status", "aufgabe": "abc", "status": "erledigt"}).status_code == 404
+    assert client.post(VERWALTUNG_AKTION, {"aktion": "beenden", "mandat": 999999}).status_code == 404
+    altmandat.refresh_from_db()
+    assert altmandat.beendet is None and altmandat.rueckgabezusage_am is None
+
+
 def test_entscheidung_bestaetigt_vollzieht_stufe_zwei_sofort(client, ordnung, altmandat):  # noqa: F811
     rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
     antrag, ende = _verloren(ordnung, altmandat)

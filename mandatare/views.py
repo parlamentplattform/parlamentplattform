@@ -1410,11 +1410,19 @@ def _vertrauensfrage_der_verwaltung(request) -> Vertrauensfrage:
     return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=int(pk))
 
 
+def _mandat_der_verwaltung(request) -> Mandat:
+    """Das Mandat aus `POST["mandat"]` — eine verformte Kennung antwortet 404, nicht 500 (ValueError im Feld)."""
+    pk = (request.POST.get("mandat") or "").strip()
+    if not pk.isdigit():
+        raise Http404("Mandat unbekannt.")
+    return get_object_or_404(Mandat, pk=int(pk))
+
+
 def _verwaltung_vertrauen(request, aktion: str) -> bool:
     """Die Vermerke der Verwaltung zur Vertrauensfrage (§ 7 Abs 3, Abs 10 lit f Z 3, lit h und j) — jeder
     auditiert, keiner automatisch. Rückgabe: ob `aktion` hier behandelt wurde."""
     if aktion == "rueckgabezusage":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         wert = request.POST.get("wert", "")
         if wert not in RUECKGABEZUSAGE_VERMERKE:
             messages.error(request, _("Bitte „abgegeben“, „nicht abgegeben“ oder „widerrufen“ wählen."))
@@ -1428,7 +1436,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         return True
 
     if aktion == "lit_h":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
         if tag is None:
             messages.error(request, _("Bitte das Datum der Ergänzung angeben."))
@@ -1481,7 +1489,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         return True
 
     if aktion == "bestaetigung_durch_wahl":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         if not mandat.kandidatursperre:
             messages.info(request, _("Keine Kandidatursperre — nichts zu bestätigen."))
             return True
@@ -1539,7 +1547,7 @@ def verwaltung_aktion(request):
         )
 
     elif aktion == "beenden":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         mandat.beendet = timezone.localdate()
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
@@ -1550,7 +1558,7 @@ def verwaltung_aktion(request):
         )
 
     elif aktion == "foto":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         datei = request.FILES.get("foto")
         if datei is None or datei.size > FOTO_HOECHSTGROESSE:
             messages.error(request, _("Bitte ein Bild bis 800 kB wählen (JPEG, PNG oder WebP)."))
@@ -1567,7 +1575,7 @@ def verwaltung_aktion(request):
         messages.success(request, _("Foto gespeichert."))
 
     elif aktion == "aufgabe":
-        mandat = get_object_or_404(Mandat, pk=request.POST.get("mandat"))
+        mandat = _mandat_der_verwaltung(request)
         titel = (request.POST.get("titel") or "").strip()
         if not titel:
             messages.error(request, _("Die Aufgabe braucht einen Titel."))
@@ -1597,7 +1605,10 @@ def verwaltung_aktion(request):
         messages.success(request, _("Aufgabe „%(titel)s“ veröffentlicht.") % {"titel": aufgabe.titel})
 
     elif aktion == "aufgabe_status":
-        aufgabe = get_object_or_404(Aufgabe, pk=request.POST.get("aufgabe"))
+        aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
+        if not aufgabe_pk.isdigit():
+            raise Http404("Aufgabe unbekannt.")
+        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk))
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status

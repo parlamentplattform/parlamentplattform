@@ -1087,6 +1087,7 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
         RUECKGABEFRIST_TAGE,
         Beschluss,
         Vertrauensfrage,
+        _als_datum,
         vertrauensfragen_fortschreiben,
     )
 
@@ -1113,7 +1114,8 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
                     "monatsbericht": _("Monatsbericht"),
                 }.get(art, art),
                 "bezug": a.get("bezug", ""),
-                "seit": a.get("seit", ""),
+                # Das JSONField trägt die Frist als ISO-Text — die Seite zeigt sie wie jedes Datum (d.m.Y)
+                "seit": _als_datum(a.get("seit")),
                 "tage": a.get("tage", 0),
             }
         )

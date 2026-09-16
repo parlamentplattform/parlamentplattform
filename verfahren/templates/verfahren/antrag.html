@@ -110,7 +110,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       </table></div>
       {% endif %}
       {% for a in vertrauensfrage.ausstaende %}
-      <p class="vf-ausstand"><strong>{{ a.art }} {{ a.bezug }}</strong> — {% blocktranslate count t=a.tage %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %} ({% translate "Frist" %} {{ a.seit|slice:":10" }})</p>
+      <p class="vf-ausstand"><strong>{{ a.art }} {{ a.bezug }}</strong> — {% blocktranslate count t=a.tage %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}{% if a.seit %} ({% translate "Frist" %} {{ a.seit|date:"d.m.Y" }}){% endif %}</p>
       {% endfor %}
       <p class="hilfe"><a href="{% url 'mandatare:rechenschaft_mandat' vertrauensfrage.mandat.pk %}">{% translate "Zum Rechenschaftsregister des Mandatars" %}</a></p>
     </div>

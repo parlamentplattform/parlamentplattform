@@ -317,6 +317,21 @@ def test_schwelle_eins_steht_in_der_einzahl(client, ordnung, altmandat):  # noqa
     assert "Schwelle: 2 Unterstützungen (§ 7 Abs 10 lit c)" in _kopf(_seite(client, zweiter))
 
 
+def test_frist_eines_ausstands_steht_wie_jedes_datum_der_seite(client, ordnung, altmandat):  # noqa: F811
+    """Das JSONField trägt die Frist des Ausstands als ISO-Text; die Antragsseite zeigte ihn roh
+    („Frist 2026-07-25“) neben lauter d.m.Y-Daten (Prüfung 0.48, B35)."""
+    Aufgabe.objects.create(mandat=altmandat, titel="Sitzung", frist=timezone.now() - tage(45), sitzungstag=True)
+    ausstaende = altmandat.anlass_ausstaende()
+    assert len(ausstaende) >= 1
+    antrag = einbringen(mitglied_anlegen("a", tage=400), altmandat, ordnung, ausstaende=[a["kennung"] for a in ausstaende])
+    assert isinstance(antrag.vertrauensfrage.anlass_ausstaende[0]["seit"], str)  # so liegt es in der Datenbank
+
+    anlaesse = _seite(client, antrag).split('id="anlaesse"')[1].split('id="stellungnahme"')[0]
+    for a in ausstaende:
+        assert f"(Frist {a['seit']:%d.%m.%Y})" in anlaesse
+        assert a["seit"].isoformat() not in anlaesse
+
+
 def test_regeln_der_vertrauensfrage_nennen_schwelle_prozent_und_fenster(ordnung, altmandat):  # noqa: F811
     leute = [mitglied_anlegen(f"m{i}") for i in range(30)]
     antrag = einbringen(leute[0], altmandat, ordnung)

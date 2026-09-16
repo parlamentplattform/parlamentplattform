@@ -619,6 +619,25 @@ def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbun
     assert eintrag["rueckgabezusage"] == "" and eintrag["rueckgabezusage_quelle"] == "mandat"
 
 
+def test_liste_und_kopf_der_seite_vermerken_das_ende_der_vertretung(client, ordnung, altmandat):  # noqa: F811
+    """lit f Z 8: Die Person ist nicht mehr Mandatsträger der DDÖ; Bereich und Register werden fortgeführt
+    und weisen das Ergebnis aus. Liste, Kopf der öffentlichen Seite und Register je Mandatar tragen den
+    Vermerk oben — nicht erst im Abschnitt „Vertrauen“ weit unten."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    _sechs_monate_zurueck(antrag, altmandat)
+    tag = altmandat.vertretung_beendet_am.strftime("%d.%m.%Y")
+    liste = client.get(reverse("mandatare:liste")).content.decode()
+    assert altmandat.mitglied.anzeigename in liste and f"Vertretung beendet am {tag}" in liste
+    detail = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()
+    kopf = detail.split('id="vertrauen"')[0]
+    assert f"Vertretung beendet am {tag}" in kopf and 'href="#vertrauen"' in kopf
+    register = client.get(reverse("mandatare:rechenschaft_mandat", args=[altmandat.pk])).content.decode()
+    assert f"Vertretung beendet am {tag}" in register.split('id="vertrauen"')[0]
+    # ohne Ende der Vertretung kein Vermerk
+    Mandat.objects.filter(pk=altmandat.pk).update(vertretung_beendet_am=None)
+    assert "Vertretung beendet am" not in client.get(reverse("mandatare:liste")).content.decode()
+
+
 def test_oeffentliche_seite_fuehrt_die_betroffene_person_in_ihren_bereich(client, ordnung, altmandat):  # noqa: F811
     """lit f Z 3: Das Antragsrecht auf Bestätigung entsteht, wenn die Rolle „Mandatar“ nach Z 8 längst geendet
     hat — die Leiste führt „Mein Mandat“ dann nicht mehr. Die öffentliche Seite zeigt der Person selbst den

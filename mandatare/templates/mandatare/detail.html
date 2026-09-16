@@ -13,6 +13,7 @@
     <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span>
     · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}
     {% if mandat.beendet %} · <strong>{% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}</strong>{% endif %}
+    {% if mandat.vertretung_beendet_am %} · <strong><a href="#vertrauen">{% translate "Vertretung beendet am" %} {{ mandat.vertretung_beendet_am|date:"d.m.Y" }}</a></strong>{% endif %}
     {% if mandat.kandidatur %} · <a href="{% url 'verfahren:antrag' mandat.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}</p>
   </div>
 </div>

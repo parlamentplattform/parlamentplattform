@@ -6,7 +6,7 @@
 <p><a href="{% url 'mandatare:detail' mandat.pk %}">&larr; {{ mandat.mitglied.anzeigename }}</a> · <a href="{% url 'mandatare:rechenschaft' %}">{% translate "Alle Mandatare →" %}</a></p>
 <h1>{% translate "Rechenschaft" %}: {{ mandat.mitglied.anzeigename }}</h1>
 <p class="erk"><span class="badge">{{ mandat.bezeichnung }}</span> <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span>
-  · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}{% if mandat.beendet %} · {% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}{% endif %}</p>
+  · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}{% if mandat.beendet %} · {% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}{% endif %}{% if mandat.vertretung_beendet_am %} · <a href="#vertrauen">{% translate "Vertretung beendet am" %} {{ mandat.vertretung_beendet_am|date:"d.m.Y" }}</a>{% endif %}</p>
 
 <div class="karte">
   {% include "mandatare/_rechenschaft_tabelle.html" with zeilen=zeilen mit_mandatar=False %}

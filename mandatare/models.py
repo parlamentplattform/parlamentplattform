@@ -1137,9 +1137,12 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             | models.Q(mandat__mandatsvereinbarung_lit_h_am__isnull=False, mandat__mandatsvereinbarung_endet_am__isnull=True)
         )
         .select_related("mandat", "mandat__mitglied")
+        .order_by("wirkungen_ab", "pk")
     )
+    mandate: dict[int, Mandat] = {}  # eine Instanz je Mandat — mehrere Vertrauensfragen sehen denselben Stand
     for vf in offene:
-        mandat = vf.mandat
+        mandat = mandate.setdefault(vf.mandat_id, vf.mandat)
+        vf.mandat = mandat
         endgueltig_ab = vf.endgueltig_ab()
         endgueltig = endgueltig_ab is not None and jetzt >= endgueltig_ab
         frist_tag = vf.rueckgabefrist_tag()
@@ -1286,12 +1289,20 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
         mandat.save(
             update_fields=["vertrauen_entzogen_am", "rueckgabe_ersucht_bis", "vertretung_beendet_am", "mandatsvereinbarung_endet_am"]
         )
+    bestaetigung_entfallen = False
+    if entscheidung == Entscheidung.AUFGEHOBEN and vf.art == VertrauensfrageArt.BESTAETIGUNG and mandat.bestaetigt_am is not None:
+        # lit h: „die Wirkungen entfallen“ — die Annahme des Bestätigungsantrags hatte die Kandidatursperre
+        # aufgehoben (lit f Z 3); mit der Aufhebung des Ergebnisses gilt sie wieder.
+        mandat.bestaetigt_am = None
+        mandat.save(update_fields=["bestaetigt_am"])
+        bestaetigung_entfallen = True
     AuditEintrag.anhaengen(
         {
             "typ": "vertrauensfrage_aufgehoben" if entscheidung == Entscheidung.AUFGEHOBEN else "vertrauensfrage_bestaetigt",
             "antrag": vf.antrag_id,
             "mandat": mandat.pk,
             "rollen_wiederhergestellt": wiederhergestellt,
+            "bestaetigung_entfallen": bestaetigung_entfallen,
         }
     )
 

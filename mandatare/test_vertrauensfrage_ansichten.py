@@ -4,7 +4,7 @@ Stellungnahme des Mandatsträgers, Bestätigungsantrag im Bereich, Verwaltungsve
 und dass die Abfragezahl nicht an der Zahl der Vertrauensfragen hängt."""
 
 import itertools
-from datetime import date
+from datetime import date, datetime, time
 
 import pytest
 from django.contrib.messages import get_messages
@@ -91,7 +91,8 @@ def test_mitglied_stellt_die_vertrauensfrage_und_sieht_die_zahlen_im_band(client
     text = meldungen(antwort)
     vf = antrag.vertrauensfrage
     assert f"Stimmberechtigte am Einbringungstag: {vf.stimmberechtigte_partei_am_einbringungstag}" in text
-    assert f"Schwelle: {vf.schwelle_partei} Unterstützungen" in text and "Sperrhinweis" not in text
+    einzahl = "Unterstützung" if vf.schwelle_partei == 1 else "Unterstützungen"
+    assert f"Schwelle: {vf.schwelle_partei} {einzahl} (§ 7 Abs 10 lit c)" in text and "Sperrhinweis" not in text
     assert list(vf.anlaesse.all()) == [anlass] and antrag.eingebracht_von == anna
     assert audit("vertrauensfrage_eingebracht")[0]["anlaesse"] == [anlass.pk]
     assert len(mail.outbox) == 1  # der Mandatar ist verständigt (Fundament)
@@ -304,6 +305,33 @@ def test_bereich_bleibt_nach_dem_ende_der_vertretung_lesbar_und_die_bestaetigung
 
 
 # ── Verwaltung (V10) ───────────────────────────────────────────────────────────────────────
+
+
+def test_anfechtungsvermerk_zaehlt_den_eingegebenen_tag_ab_seinem_beginn(client, ordnung, altmandat):  # noqa: F811
+    """Die Sieben-Tage-Frist nach lit h: Ein am siebten Tag datierter Vermerk ist rechtzeitig, gleich zu welcher
+    Uhrzeit das Ergebnis veröffentlicht wurde (Tagesbeginn statt 12:00); ein späterer Tag ist ehrlich verspätet
+    — die Wirkungen laufen dann weiter, die Verwaltung erfährt es."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    client.force_login(admin_anlegen())
+    siebter = timezone.localdate(ende + tage(7))
+    antwort = client.post(
+        VERWALTUNG_AKTION,
+        {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "datum": siebter.isoformat(), "aktenkennung": "PSG 1"},
+    )
+    vf.refresh_from_db()
+    assert vf.anfechtung_rechtzeitig and "warten auf die Entscheidung" in meldungen(antwort)
+    assert vf.angefochten_am == timezone.make_aware(datetime.combine(siebter, time.min))
+
+    zweiter, ende2 = _verloren(ordnung, mandat_anlegen(mitglied_anlegen("zweite", tage=900), angetreten=timezone.localdate() - tage(400)))
+    vf2 = zweiter.vertrauensfrage
+    antwort = client.post(
+        VERWALTUNG_AKTION,
+        {"aktion": "anfechtung", "vertrauensfrage": vf2.pk, "datum": (siebter + tage(1)).isoformat(), "aktenkennung": "PSG 2"},
+    )
+    vf2.refresh_from_db()
+    assert not vf2.anfechtung_rechtzeitig and "nach der Frist von sieben Tagen" in meldungen(antwort)
+    assert vf2.angefochten_am is not None and vf2.endgueltig_ab() is not None  # verspätet: Stufe 2 läuft weiter
 
 
 def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F811
@@ -736,6 +764,7 @@ def test_registervermerk_kostet_keine_abfrage_je_verlorener_vertrauensfrage(clie
         Mandat.objects.filter(pk=mandat.pk).update(rueckgabe_ersucht_bis=timezone.localdate() - tage(2))
 
     def messen(url):
+        client.get(url)  # einmalige Fortschreibung (Stufe 2 je Vertrauensfrage) vorweg — gemessen wird der Dauerzustand
         with CaptureQueriesContext(connection) as erfasst:
             antwort = client.get(url)
         assert antwort.status_code == 200

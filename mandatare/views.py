@@ -38,7 +38,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
 from mandatare.models import (
@@ -57,6 +57,7 @@ from mandatare.models import (
     VertrauensfrageFehler,
     bestaetigung_zulaessig_ab,
     foto_typ_erkennen,
+    rueckgabe_vermerk_fuer,
     rueckgabezusage_vermerken,
     sperren_pruefen,
     stellungnahme_abgeben,
@@ -244,7 +245,7 @@ def _vertrauen(mandat, heute: date | None = None) -> dict:
         "sonstige": [vf for vf in alle if vf.antrag.phase not in BEENDET and vf.antrag.phase not in VERTRAUENSFRAGE_LAUFEND],
         "verlorene": letzte_verlorene,
         "rueckgabe": _tage_zaehler(mandat.rueckgabe_ersucht_bis, heute) if mandat.vertrauen_entzogen_am else None,
-        "vermerk": mandat.rueckgabe_vermerk,
+        "vermerk": rueckgabe_vermerk_fuer(mandat, zusage),
         "rueckgabezusage": zusage,
         "rueckgabezusage_name": Rueckgabezusage(zusage).label,
         "rueckgabezusage_quelle": zusage_quelle,
@@ -376,15 +377,14 @@ def _laufende_fortschreiben(qs) -> None:
         vertrauensfragen_fortschreiben()
 
 
-def _rueckgabe_vermerke_fuer(vertrauensfragen) -> dict[int, str]:
+def _rueckgabe_vermerke_fuer(vertrauensfragen, zusagen: dict[int, tuple[str, str]] | None = None) -> dict[int, str]:
     """Der Registervermerk nach Fristablauf (§ 7 Abs 10 lit f Z 4) je Mandat mit verlorener Vertrauensfrage —
-    einmal je Mandat gerechnet, nicht je Zeile (`Mandat.rueckgabe_vermerk` liest die Rückgabezusage, notfalls
-    aus der Bewerbung)."""
-    vermerke: dict[int, str] = {}
-    for vf in vertrauensfragen:
-        if vf.verloren and vf.mandat_id not in vermerke:
-            vermerke[vf.mandat_id] = vf.mandat.rueckgabe_vermerk
-    return vermerke
+    einmal je Mandat gerechnet, nicht je Zeile, aus den gebündelt geladenen Zusagen (`_rueckgabezusagen_fuer`):
+    keine Abfrage je Mandat."""
+    verlorene = {vf.mandat_id: vf.mandat for vf in vertrauensfragen if vf.verloren}
+    if zusagen is None:
+        zusagen = _rueckgabezusagen_fuer(verlorene.values())
+    return {pk: rueckgabe_vermerk_fuer(mandat, zusagen[pk][0]) for pk, mandat in verlorene.items()}
 
 
 def _register_zeilen(eintraege, vertrauensfragen) -> list[dict]:
@@ -726,7 +726,7 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     jetzt = timezone.now()
     alle = list(qs)
     zusagen = _rueckgabezusagen_fuer({vf.mandat_id: vf.mandat for vf in alle}.values())
-    vermerke = _rueckgabe_vermerke_fuer(alle)
+    vermerke = _rueckgabe_vermerke_fuer(alle, zusagen)
     zeilen = []
     for vf in alle:
         zeilen.append(
@@ -885,8 +885,13 @@ def vertrauensfrage_stellen(request, pk: int):
                 vf = antrag.vertrauensfrage
                 messages.success(
                     request,
-                    _("Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einbringungstag: %(n)s — "
-                      "Schwelle: %(schwelle)s Unterstützungen (§ 7 Abs 10 lit c). Der Mandatsträger ist verständigt.")
+                    ngettext(
+                        "Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einbringungstag: %(n)s — "
+                        "Schwelle: %(schwelle)s Unterstützung (§ 7 Abs 10 lit c). Der Mandatsträger ist verständigt.",
+                        "Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einbringungstag: %(n)s — "
+                        "Schwelle: %(schwelle)s Unterstützungen (§ 7 Abs 10 lit c). Der Mandatsträger ist verständigt.",
+                        vf.schwelle_partei,
+                    )
                     % {"n": vf.stimmberechtigte_partei_am_einbringungstag, "schwelle": vf.schwelle_partei},
                 )
                 if vf.sperrhinweis:
@@ -1512,11 +1517,23 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
             return True
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
-        jetzt = timezone.make_aware(datetime.combine(tag, time(12, 0))) if tag is not None else timezone.now()
+        # Ein eingegebener Tag gilt ab seinem Beginn: Die Sieben-Tage-Frist (lit h) wird zeitpunktgenau gegen die
+        # Veröffentlichung gerechnet — am siebten Tag eingebracht heißt rechtzeitig, gleich zu welcher Uhrzeit.
+        jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
         vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt)
-        messages.success(
-            request, _("Anfechtung vermerkt — das Ruhen wird bis zur Entscheidung des Parteischiedsgerichts nicht zum Ende.")
-        )
+        vf.refresh_from_db()
+        if vf.anfechtung_rechtzeitig:
+            messages.success(
+                request,
+                _("Anfechtung vermerkt — das Ruhen der Rollen und das Ende der Mandatsvereinbarung warten auf die "
+                  "Entscheidung des Parteischiedsgerichts; das Ende der Vertretung nach lit f Z 8 nicht (§ 7 Abs 10 lit h)."),
+            )
+        else:
+            messages.warning(
+                request,
+                _("Anfechtung vermerkt — sie liegt nach der Frist von sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h); "
+                  "die Wirkungen laufen unverändert weiter."),
+            )
         return True
 
     if aktion == "entscheidung":
@@ -1533,7 +1550,13 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             return True
         vertrauensfrage_entscheidung_vermerken(vf, wert)
         vertrauensfragen_fortschreiben()  # „bestätigt“: Stufe 2 läuft ab der Entscheidung — sofort nachgezogen
-        if wert == Entscheidung.AUFGEHOBEN.value:
+        if wert == Entscheidung.AUFGEHOBEN.value and vf.art == VertrauensfrageArt.BESTAETIGUNG:
+            messages.success(
+                request,
+                _("Entscheidung vermerkt: aufgehoben — eine angenommene Bestätigung gilt damit nicht; die Kandidatursperre "
+                  "besteht wieder (§ 7 Abs 10 lit h)."),
+            )
+        elif wert == Entscheidung.AUFGEHOBEN.value:
             messages.success(
                 request, _("Entscheidung vermerkt: aufgehoben — Wirkungen zurückgenommen, Rollen wiederhergestellt.")
             )

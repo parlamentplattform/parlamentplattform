@@ -21,7 +21,7 @@ from mandatare.models import (
 )
 from mitglieder.models import Mitgliedsstatus
 from plattform_core import Phase
-from verfahren.models import Rueckgabezusage
+from verfahren.models import Antrag, Rueckgabezusage
 from verfahren.test_vertrauensfrage import (  # noqa: F401
     _verloren,
     abweichung,
@@ -229,6 +229,33 @@ def test_rueckgabe_vermerk_liest_die_zusage_aus_der_bewerbung(ordnung, altmandat
     altmandat.rueckgabezusage = Rueckgabezusage.NICHT_ABGEGEBEN  # der Vermerk am Mandat geht vor
     assert altmandat.rueckgabezusage_wirksam() == ("nicht_abgegeben", "mandat")
     assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
+    # Widerruf auf „keine Angabe“ — datierter Vermerk der Verwaltung verdrängt die Bewerbung (E5)
+    mm.rueckgabezusage_vermerken(altmandat, "")
+    altmandat.refresh_from_db()
+    altmandat.vertrauen_entzogen_am = timezone.now() - tage(40)
+    altmandat.rueckgabe_ersucht_bis = timezone.localdate() - tage(1)
+    assert altmandat.rueckgabezusage_wirksam() == ("", "mandat")
+    assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
+
+
+def test_eine_aufgehobene_bestaetigung_stellt_die_kandidatursperre_wieder_her(ordnung, altmandat):  # noqa: F811
+    """lit h: „die Wirkungen entfallen“ — auch die Aufhebung der Kandidatursperre durch einen angenommenen
+    Bestätigungsantrag (lit f Z 3)."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    altmandat.refresh_from_db()
+    assert altmandat.kandidatursperre
+    bestaetigung = einbringen(altmandat.mitglied, altmandat, ordnung, art="bestaetigung", jetzt=ende + tage(190))
+    vf = bestaetigung.vertrauensfrage
+    Antrag.objects.filter(pk=bestaetigung.pk).update(phase=Phase.ANGENOMMEN.value)  # angenommen …
+    altmandat.bestaetigen("antrag", jetzt=ende + tage(200))  # … und die Sperre aufgehoben (lit f Z 3)
+    assert not altmandat.kandidatursperre
+    mm.vertrauensfrage_anfechtung_vermerken(vf, "PSG-2027-1", jetzt=ende + tage(201))
+    mm.vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(220))
+    altmandat.refresh_from_db()
+    assert altmandat.bestaetigt_am is None and altmandat.kandidatursperre
+    assert altmandat.vertrauen_entzogen_am is not None  # die verlorene Vertrauensfrage bleibt, wie sie war
+    eintrag = [e for e in audit("vertrauensfrage_aufgehoben") if e["antrag"] == bestaetigung.pk][0]
+    assert eintrag["bestaetigung_entfallen"] is True and eintrag["rollen_wiederhergestellt"] == []
 
 
 def test_rueckgabe_vermerk_fuer_rechnet_wie_die_property_ohne_eigene_abfrage(altmandat, django_assert_num_queries):  # noqa: F811

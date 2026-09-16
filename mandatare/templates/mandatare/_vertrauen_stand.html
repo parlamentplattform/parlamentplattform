@@ -15,7 +15,7 @@ Register je Mandatar und dem Bereich des Mandatars eingebunden.
 <p class="pflicht"><span class="chip klein">{{ vf.get_art_display }}</span>
   <strong{% if vf.verloren %} class="ausstand"{% endif %}>{{ vf.ergebnis_wort }}</strong>
   <span class="meta">· <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{% translate "Ergebnis veröffentlicht am" %} {{ vf.ergebnis_am|date:"d.m.Y" }}</a>
-  · {% blocktranslate with n=vf.n_stimmen s=vf.antrag.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}
+  · {% blocktranslate count n=vf.n_stimmen with s=vf.antrag.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimme von {{ s }} Stimmberechtigten{% plural %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}
   {% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% if vf.aktenkennung %} ({{ vf.aktenkennung }}){% endif %}{% endif %}</span></p>
 {% endfor %}
 {% for vf in vertrauen.sonstige %}

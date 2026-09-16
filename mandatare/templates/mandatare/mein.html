@@ -94,7 +94,7 @@ das betroffene Formular wieder vor.
     <label class="schalter" for="ir-abstimmung">{% translate "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)" %} <input type="checkbox" id="ir-abstimmung" name="abstimmung"{% if fehler_bei == "report" and eingabe.abstimmung %} checked{% endif %}></label>
     {% if ordnung_fehlt %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — eine Abstimmung kann noch nicht entstehen." %}</span>{% endif %}
     {% else %}
-    <span class="hilfe">{% translate "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht." %}</span>
+    <span class="hilfe">{% translate "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen, und endet mit Ablauf der Anfechtungsfrist (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht." %}</span>
     {% endif %}
     <button type="submit" class="btn" style="margin-top:8px">{% translate "Report veröffentlichen" %}</button>
   </form>

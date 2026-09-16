@@ -7643,8 +7643,8 @@ msgstr "not provided for in part C (S1–S14); today the administration records 
 msgid "Über die Anfechtung einer Vertrauensfrage binnen 30 Tagen entscheiden — Sperrfeststellung, Voraussetzungen, Zustandekommen des Ergebnisses"
 msgstr "Decide on a challenge to a confidence question within 30 days — bar determination, prerequisites, how the result came about"
 
-msgid "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht."
-msgstr "After a lost confidence question, the authority to manage votes is suspended (§ 7 (10) lit f no. 6) — the report remains possible, but no mandate question arises from it."
+msgid "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen, und endet mit Ablauf der Anfechtungsfrist (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht."
+msgstr "After a lost confidence question, the authority to manage votes is suspended and ends when the period for challenge expires (§ 7 (10) lit f no. 6) — the report remains possible, but no mandate question arises from it."
 
 msgid "Zu meinem Bereich — Bestätigung beantragen →"
 msgstr "To my area — request confirmation →"

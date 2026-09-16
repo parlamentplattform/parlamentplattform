@@ -788,6 +788,42 @@ def test_nachrechnen_kennt_die_vertrauensfrage():
     assert ergebnis["art"] == "vertrauensfrage" and ergebnis["angenommen"] is True and ergebnis["vertrauensfrage"] == "verloren"
     export["stimmberechtigte"] = 1000
     assert nachrechnen(export)["vertrauensfrage"] == "gewonnen"
+    # mit dem Block der Fachdaten: eine Vertrauensfrage bleibt verloren/gewonnen …
+    export["stimmberechtigte"] = 20
+    export["vertrauensfrage"] = {"art": "vertrauensfrage", "mandat": 1}
+    assert nachrechnen(export)["vertrauensfrage"] == "verloren"
+    # … der Bestätigungsantrag (lit f Z 3) heißt bestätigt / nicht bestätigt (Befunde B8/B9)
+    export["vertrauensfrage"] = {"art": "bestaetigung", "mandat": 1}
+    bestaetigt = nachrechnen(export)
+    assert bestaetigt["angenommen"] is True and bestaetigt["vertrauensfrage"] == "bestaetigt"
+    export["stimmberechtigte"] = 1000
+    assert nachrechnen(export)["vertrauensfrage"] == "nicht_bestaetigt"
+
+
+def test_nachrechnen_sagt_zum_export_eines_bestaetigungsantrags_dasselbe_wie_die_plattform(client, ordnung, altmandat):  # noqa: F811
+    """Befunde B8/B9: Der Export einer angenommenen Bestätigung trug „ergebnis: bestätigt“, das Skript
+    sagte zur selben Datei „vertrauensfrage: verloren“ — für den Prüfenden ein Widerspruch zwischen
+    Plattform und Skript (§ 5 Abs 8), obwohl die Auszählung stimmte."""
+    from django.urls import reverse
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    ich = altmandat.mitglied
+    spaeter = ende + tage(200)
+    b = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=spaeter, art="bestaetigung")
+    b.fortschreiben(spaeter + tage(7))
+    abstimmen(b, [mitglied_anlegen(f"b{i}") for i in range(3)] + [ich], "ja", spaeter + tage(8))
+    b.fortschreiben(spaeter + tage(14))
+    export = client.get(reverse("verfahren:export", args=[b.pk])).json()
+    assert export["art"] == "vertrauensfrage" and export["vertrauensfrage"] == {
+        "art": "bestaetigung", "mandat": altmandat.pk, "stimmberechtigte_am_einbringungstag": export["vertrauensfrage"]["stimmberechtigte_am_einbringungstag"],
+        "schwelle": 0, "ergebnis": "bestätigt",
+    }
+    ergebnis = _nachrechnen_laden()(export)
+    assert ergebnis["angenommen"] is True and ergebnis["vertrauensfrage"] == "bestaetigt"
+    # und die Vertrauensfrage selbst: verloren — wie ihr Export sagt
+    export_vf = client.get(reverse("verfahren:export", args=[antrag.pk])).json()
+    assert export_vf["vertrauensfrage"]["ergebnis"] == "Vertrauensfrage verloren"
+    assert _nachrechnen_laden()(export_vf)["vertrauensfrage"] == "verloren"
 
 
 def test_fortschreiben_liest_die_phase_gesperrt_aus_der_datenbank(ordnung, altmandat, monkeypatch):  # noqa: F811

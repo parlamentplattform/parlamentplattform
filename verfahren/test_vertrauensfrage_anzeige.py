@@ -417,6 +417,51 @@ def test_ergebnis_heisst_verloren_oder_gewonnen(client, ordnung, altmandat):  # 
     assert "<strong>Vertrauensfrage gewonnen</strong>" in seite and "Mindestbeteiligung verfehlt" in seite
 
 
+def test_umsetzungskarte_der_vertrauensfrage_sagt_dass_die_wirkungen_ohne_beschluss_eintreten(client, ordnung, altmandat):  # noqa: F811
+    """S3 (Prüfung 0.48), nur Ehrlichkeit: Die Umsetzungskarte einer verlorenen Vertrauensfrage behauptet keinen
+    Beschluss, den jemand umsetzen müsste — die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f),
+    zu vollziehen bleibt die Mitteilung nach Z 7. Register-Zeile und Vollzugsformular bleiben (§ 6 Abs 10)."""
+    from mandatare.models import vertrauensfrage_entscheidung_vermerken
+    from verfahren.models import vertrauensfrage_einbringen
+    from verfahren.test_vollzug import admin_anlegen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    seite = _seite(client, antrag)
+    karte = seite.split('id="umsetzung"')[1].split("</form>")[0]
+    assert "Die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f)" in karte
+    assert "Mitteilung des Koordinationsrats an Parlamentsklub oder Fraktion (Z 7)" in karte
+    assert "Öffentlicher Stand der Umsetzung" not in karte and 'href="/umsetzung/"' in karte
+    assert antrag.titel in client.get(reverse("verfahren:umsetzung")).content.decode()  # die Zeile bleibt
+    client.force_login(admin_anlegen())
+    assert 'class="vollzugsform"' in _seite(client, antrag)  # der Vollzug der Mitteilung bleibt eintragbar
+    client.logout()
+
+    # Bestätigungsantrag angenommen: die Kandidatursperre ist aufgehoben, zu vollziehen bleibt die Mandatsvereinbarung
+    ich = altmandat.mitglied
+    spaeter = ende + tage(200)
+    b = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=spaeter, art="bestaetigung")
+    b.fortschreiben(spaeter + tage(7))
+    abstimmen(b, [mitglied_anlegen(f"b{i}") for i in range(3)] + [ich], "ja", spaeter + tage(8))
+    b.fortschreiben(spaeter + tage(14))
+    b.refresh_from_db()
+    assert b.phase == "angenommen"
+    karte = _seite(client, b).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Die Bestätigung wirkt ohne weiteren Beschluss — die Kandidatursperre ist aufgehoben (§ 7 Abs 10 lit f Z 3)" in karte
+    assert "neue Mandatsvereinbarung nach § 7 Abs 3" in karte and "Öffentlicher Stand der Umsetzung" not in karte
+
+    # Aufhebung durch das Parteischiedsgericht: die Karte behauptet keine Wirkungen mehr
+    vertrauensfrage_anfechtung_vermerken(antrag.vertrauensfrage, "PSG 1/26", jetzt=ende + tage(2))
+    vertrauensfrage_entscheidung_vermerken(antrag.vertrauensfrage, "aufgehoben", jetzt=ende + tage(10))
+    karte = _seite(client, antrag).split('id="umsetzung"')[1].split("</p>")[0]
+    assert "Das Ergebnis ist vom Parteischiedsgericht aufgehoben — die Wirkungen nach § 7 Abs 10 lit f sind entfallen" in karte
+    assert "Die Wirkungen treten ohne weiteren Beschluss ein" not in karte
+
+    # Ein Sachantrag behält den bisherigen Satz
+    sache = antrag_einbringen(mitglied_anlegen("s", tage=400), **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=sache.pk).update(phase="angenommen")
+    assert "Öffentlicher Stand der Umsetzung (§ 6 Abs 10)" in _seite(client, sache)
+
+
 # ── Kachel, Feed-Zeile, Übersicht ──────────────────────────────────────────────────────────
 
 

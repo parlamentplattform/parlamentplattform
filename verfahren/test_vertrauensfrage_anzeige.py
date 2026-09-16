@@ -451,6 +451,40 @@ def test_uebersicht_kennzeichnet_die_vertrauensfrage_und_nennt_das_ergebnis(clie
     assert ">Vertrauensfrage gewonnen</span>" in karte and ">abgelehnt</span>" not in karte
 
 
+def test_aufhebung_steht_an_denselben_stellen_wie_das_ergebnis(client, ordnung, altmandat):  # noqa: F811
+    """§ 7 Abs 10 lit h letzter Satz: Die Aufhebung wird an denselben Stellen veröffentlicht wie das
+    Ergebnis — Feed-Zeile (Gruppe „Abgeschlossen“) und Übersicht tragen den Rechtsschutzstand als eigenes
+    Badge neben „Vertrauensfrage verloren“ (Prüfung 0.48, B13); `ergebnis_wort` bleibt unverändert."""
+    from mandatare.models import vertrauensfrage_entscheidung_vermerken
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+
+    def badges():
+        feed = client.get(reverse("verfahren:parlament")).content.decode().split('id="feld-filter"')[1]
+        zeile = feed.split(antrag.titel)[1].split('class="zs')[0]
+        uebersicht = client.get(reverse("uebersicht:index")).content.decode()
+        karte = uebersicht.split(antrag.titel)[1].split("</p>")[0]
+        return zeile, karte
+
+    zeile, karte = badges()
+    assert "Vertrauensfrage verloren" in zeile and "Vertrauensfrage verloren" in karte
+    assert "Parteischiedsgericht" not in zeile and "Parteischiedsgericht" not in karte
+
+    vertrauensfrage_anfechtung_vermerken(vf, "PSG 1/26", jetzt=ende + tage(2))
+    zeile, karte = badges()
+    assert '<span class="badge badge--hell">beim Parteischiedsgericht anhängig</span>' in zeile
+    assert '<span class="badge badge--hell">beim Parteischiedsgericht anhängig</span>' in karte
+
+    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(10))
+    vf.refresh_from_db()
+    assert vf.ergebnis_wort == "Vertrauensfrage verloren"  # das Ergebnis bleibt, die Aufhebung tritt daneben
+    zeile, karte = badges()
+    assert '<span class="badge badge--hell">vom Parteischiedsgericht aufgehoben</span>' in zeile
+    assert '<span class="badge badge--hell">vom Parteischiedsgericht aufgehoben</span>' in karte
+    assert zeile.count("Vertrauensfrage verloren") == 1 and karte.count("Vertrauensfrage verloren") == 1
+
+
 # ── Archiv und Export ──────────────────────────────────────────────────────────────────────
 
 

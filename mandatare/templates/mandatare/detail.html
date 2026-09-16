@@ -13,6 +13,7 @@
     <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span>
     · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}
     {% if mandat.beendet %} · <strong>{% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}</strong>{% endif %}
+    {% if mandat.vertretung_beendet_am %} · <strong><a href="#vertrauen">{% translate "Vertretung beendet am" %} {{ mandat.vertretung_beendet_am|date:"d.m.Y" }}</a></strong>{% endif %}
     {% if mandat.kandidatur %} · <a href="{% url 'verfahren:antrag' mandat.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}</p>
   </div>
 </div>
@@ -91,6 +92,10 @@ führt sie direkt zum betreuten Antrag im Parlament (§ 7 Abs 9).{% endblocktran
   {% if vertrauensfrage_moeglich %}
   <p style="margin-top:10px"><a class="btn-linie klein" href="{% url 'mandatare:vertrauensfrage_stellen' mandat.pk %}">{% translate "Vertrauensfrage stellen" %}</a>
     <span class="meta">· {% translate "jedes Mitglied, mit Anlass (§ 7 Abs 10 lit b)" %}</span></p>
+  {% endif %}
+  {% if user.is_authenticated and user.pk == mandat.mitglied_id and mandat.kandidatursperre %}
+  {# § 7 Abs 10 lit f Z 3: Die Bestätigung beantragt die Person im eigenen Bereich — auch nachdem die Rolle „Mandatar“ nach Z 8 geendet hat und die Leiste „Mein Mandat“ nicht mehr führt #}
+  <p style="margin-top:8px"><a href="{% url 'mandatare:mein_mandat' mandat.pk %}#vertrauen">{% if vertrauen.bestaetigung_moeglich %}{% translate "Zu meinem Bereich — Bestätigung beantragen →" %}{% else %}{% translate "Zu meinem Bereich →" %}{% endif %}</a></p>
   {% endif %}
   <p style="margin-top:8px"><a href="{% url 'mandatare:vertrauensfragen' %}">{% translate "Alle Vertrauensfragen →" %}</a></p>
 </div>

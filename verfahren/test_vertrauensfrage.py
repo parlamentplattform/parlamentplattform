@@ -528,6 +528,96 @@ def test_eine_bestaetigende_entscheidung_laesst_stufe_zwei_ab_der_entscheidung_l
         vertrauensfrage_entscheidung_vermerken(vf, "")
 
 
+def test_eine_rechtzeitige_anfechtung_nach_gelaufener_stufe_zwei_stellt_das_ruhen_wieder_her(ordnung, altmandat):  # noqa: F811
+    """Befund B5: Anrufung am Tag 6, ein Seitenaufruf am Tag 8 lässt Stufe 2a lazy laufen, die Verwaltung
+    vermerkt am Tag 9 rückdatiert. Maßgeblich ist der Tag der Anrufung (lit f letzter Unterabsatz:
+    „bei rechtzeitiger Anfechtung mit der Entscheidung“): Die Rollen ruhen wieder, das Ende kommt erst
+    mit der bestätigenden Entscheidung; die Vertretung (Z 8) bleibt beendet, wenn sie es schon war."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    assert vertrauensfragen_fortschreiben(ende + tage(8)) == 1
+    rolle.refresh_from_db()
+    vf.refresh_from_db()
+    assert rolle.beendet_grund == mm.BEENDIGUNGSGRUND and vf.wirkungen_endgueltig_am == ende + tage(7)
+    # Tag 9: der rückdatierte Vermerk (Tag 6, 12:00 Wiener Zeit — wie die Verwaltungsseite ihn baut)
+    tag6 = timezone.make_aware(datetime.combine(timezone.localdate(ende + tage(6)), time(12, 0)))
+    assert vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/9", jetzt=tag6) is True
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.anfechtung_rechtzeitig and vf.endgueltig_ab() is None and vf.wirkungen_endgueltig_am is None
+    assert rolle.ruht and rolle.beendet_grund == "" and not rolle.aktiv  # ruhend, nicht aktiv
+    assert audit("vertrauensfrage_anfechtung_nachgeholt")[0]["rollen_ruhen_wieder"] == [rolle.pk]
+    assert audit("vertrauensfrage_angefochten")[0]["rechtzeitig"] is True
+    assert vertrauensfragen_fortschreiben(ende + tage(10)) == 0  # wartet jetzt auf die Entscheidung
+    # Tag 25: bestätigt — das Ende kommt mit der Entscheidung, nicht mit dem Tag 7
+    vertrauensfrage_entscheidung_vermerken(vf, "bestaetigt", jetzt=ende + tage(25))
+    assert vertrauensfragen_fortschreiben(ende + tage(26)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == vf.entschieden_am == ende + tage(25) and rolle.beendet_grund
+    # Vertretung und Mandatsvereinbarung enden mit der Frist (Z 8, Z 5) — wie ohne Anfechtung
+    assert vertrauensfragen_fortschreiben(ende + tage(40)) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis
+    assert altmandat.mandatsvereinbarung_endet_am == altmandat.rueckgabe_ersucht_bis
+
+
+def test_ein_spaeter_vermerk_nach_vollstaendiger_stufe_zwei_laesst_die_vertretung_beendet(ordnung, altmandat):  # noqa: F811
+    """Vermerk erst nach Tag 30 mit rechtzeitigem Datum: Rollen wieder ruhend, Mandatsvereinbarung
+    wieder offen (Z 5 letzter Satz) — die Vertretung bleibt beendet, Z 8 hängt nicht an der Anfechtung
+    (E2); erst eine Aufhebung nimmt auch sie zurück."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    vertrauensfragen_fortschreiben(ende + tage(40))
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am is not None and altmandat.mandatsvereinbarung_endet_am is not None
+    assert vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/10", jetzt=ende + tage(5)) is True
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert rolle.ruht and rolle.beendet_grund == "" and vf.wirkungen_endgueltig_am is None
+    assert altmandat.mandatsvereinbarung_endet_am is None
+    assert altmandat.vertretung_beendet_am == altmandat.rueckgabe_ersucht_bis  # bleibt
+    assert vertrauensfragen_fortschreiben(ende + tage(41)) == 0
+    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(50))
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    assert altmandat.vertretung_beendet_am is None and altmandat.aktiv and rolle.aktiv
+
+
+def test_eine_verspaetete_anfechtung_aendert_die_wirkungen_nicht(ordnung, altmandat):  # noqa: F811
+    """lit h: „binnen sieben Tagen ab Veröffentlichung“. Eine später datierte Anfechtung wird vermerkt,
+    hält aber weder das Ende der Rollen noch die Mandatsvereinbarung an; eine Aufhebung durch das
+    Parteischiedsgericht nimmt trotzdem alles zurück — ob es sie annimmt, entscheidet es selbst."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    assert vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/11", jetzt=ende + tage(9)) is False
+    vf.refresh_from_db()
+    assert not vf.anfechtung_rechtzeitig and vf.endgueltig_ab() == ende + tage(7)
+    assert vf.rechtsschutz_stand == "beim Parteischiedsgericht anhängig"
+    assert audit("vertrauensfrage_angefochten")[0]["rechtzeitig"] is False
+    assert vertrauensfragen_fortschreiben(ende + tage(9)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == ende + tage(7) and rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+    vertrauensfrage_entscheidung_vermerken(vf, "bestaetigt", jetzt=ende + tage(20))
+    vf.refresh_from_db()
+    assert vf.endgueltig_ab() == ende + tage(7) and vf.wirkungen_endgueltig_am == ende + tage(7)
+    # und in Gegenrichtung: ein rechtzeitiger Vermerk vor jeder Stufe 2 nimmt nichts zurück (nichts lief)
+    antrag2, ende2 = _verloren(ordnung, Mandat.objects.create(
+        mitglied=mitglied_anlegen("zweite", tage=600), bezeichnung="Landtag", ebene="land", angetreten=date(2025, 1, 1)
+    ))
+    assert vertrauensfrage_anfechtung_vermerken(antrag2.vertrauensfrage, jetzt=ende2 + tage(1)) is False
+    assert not [e for e in audit("vertrauensfrage_anfechtung_nachgeholt") if e["antrag"] == antrag2.pk]
+
+
 # ── Bestätigung (lit f Z 3) ────────────────────────────────────────────────────────────────
 
 

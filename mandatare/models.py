@@ -814,13 +814,23 @@ class Vertrauensfrage(models.Model):
             return str(_("beim Parteischiedsgericht anhängig"))
         return ""
 
+    @property
+    def anfechtung_rechtzeitig(self) -> bool:
+        """Ob die vermerkte Anfechtung binnen sieben Tagen ab Veröffentlichung erhoben wurde (lit h).
+        Nur eine rechtzeitige hält Z 1/2/6 und Z 5 an (lit f letzter Unterabsatz: „bei rechtzeitiger
+        Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
+        trotzdem, ehrlich datiert."""
+        if self.angefochten_am is None or self.wirkungen_ab is None:
+            return False
+        return self.angefochten_am <= self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+
     def endgueltig_ab(self):
         """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
-        Veröffentlichung ohne Anfechtung, sonst mit der bestätigenden Entscheidung; None, solange
-        eine Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
+        Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden Entscheidung; None,
+        solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
         if self.wirkungen_ab is None or self.entscheidung == Entscheidung.AUFGEHOBEN:
             return None
-        if self.angefochten_am is None:
+        if not self.anfechtung_rechtzeitig:
             return self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
         if self.entscheidung == Entscheidung.BESTAETIGT and self.entschieden_am is not None:
             return self.entschieden_am
@@ -1138,14 +1148,57 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
     return geaendert
 
 
-def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> None:
-    """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). Solange der
-    Vermerk steht, wird das Ruhen nicht zum Ende und die Mandatsvereinbarung endet nicht."""
+@transaction.atomic
+def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> bool:
+    """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). `jetzt` ist
+    der Tag der Anrufung — die Verwaltung vermerkt ihn meist später und rückdatiert.
+
+    Solange eine rechtzeitige Anfechtung offen ist, wird das Ruhen nicht zum Ende und die
+    Mandatsvereinbarung endet nicht (lit f letzter Unterabsatz, Z 5 letzter Satz). Lief Stufe 2 schon
+    lazy, bevor der Vermerk kam (Anrufung Tag 6, Seitenaufruf Tag 8, Vermerk Tag 9), wird sie
+    zurückgenommen: `wirkungen_endgueltig_am` geleert, die mit dem Beendigungsgrund dieser
+    Vertrauensfrage beendeten Rollen wieder ruhend (nicht aktiv), `mandatsvereinbarung_endet_am`
+    geleert; das Ende der Vertretung (Z 8) bleibt — es hängt nicht an der Anfechtung (Befund B5).
+    Eine verspätete Anfechtung (nach sieben Tagen) ändert an den Wirkungen nichts; sie wird ehrlich
+    datiert vermerkt, `endgueltig_ab` rechnet weiter mit dem Fristablauf. Rückgabe: ob Stufe 2
+    zurückgenommen wurde."""
+    from gremien.models import Rolle
+
     jetzt = jetzt or timezone.now()
     vf.angefochten_am = jetzt
     vf.aktenkennung = (aktenkennung or "").strip()[:80]
     vf.save(update_fields=["angefochten_am", "aktenkennung"])
-    AuditEintrag.anhaengen({"typ": "vertrauensfrage_angefochten", "antrag": vf.antrag_id, "mandat": vf.mandat_id})
+    vf.refresh_from_db()  # Stufe 2 kann inzwischen lazy gelaufen sein — der Stempel steht dann nur in der Datenbank
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_angefochten",
+            "antrag": vf.antrag_id,
+            "mandat": vf.mandat_id,
+            "rechtzeitig": vf.anfechtung_rechtzeitig,
+        }
+    )
+    if not (vf.anfechtung_rechtzeitig and vf.wirkungen_endgueltig_am is not None):
+        return False
+    mandat = vf.mandat
+    vf.wirkungen_endgueltig_am = None
+    vf.save(update_fields=["wirkungen_endgueltig_am"])
+    wieder_ruhend = []
+    for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=BEENDIGUNGSGRUND):
+        rolle.beendet_grund = ""
+        rolle.save(update_fields=["beendet_grund"])
+        wieder_ruhend.append(rolle.pk)
+    if mandat.mandatsvereinbarung_endet_am is not None:
+        mandat.mandatsvereinbarung_endet_am = None
+        mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_anfechtung_nachgeholt",
+            "antrag": vf.antrag_id,
+            "mandat": mandat.pk,
+            "rollen_ruhen_wieder": wieder_ruhend,
+        }
+    )
+    return True
 
 
 @transaction.atomic

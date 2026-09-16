@@ -6146,6 +6146,9 @@ msgstr "Mandate question"
 msgid "Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."
 msgstr "The mandate has ended — it can no longer put a mandate question."
 
+msgid "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6)."
+msgstr "After a lost confidence question, the authority to conduct votes is suspended (§ 7 (10) lit f no. 6)."
+
 msgid "Der Report gehört nicht zu diesem Mandat."
 msgstr "The report does not belong to this mandate."
 

@@ -843,7 +843,11 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
 
     Tore: Die Frist der Aufgabe muss die ganze Abstimmung fassen (sonst bleibt es beim
     Kurzbericht ohne Abstimmung), die Aufgabe hat noch keine Abstimmung, das Mandat ist offen,
-    die Aufgabe gehört zum Mandat. Die Zahl der Stimmberechtigten wird hier festgestellt
+    die Aufgabe gehört zum Mandat — und nach einer verlorenen Vertrauensfrage ruht die Befugnis,
+    Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6: ab der Veröffentlichung des Ergebnisses; eine
+    Aufhebung durch das Parteischiedsgericht leert `vertrauen_entzogen_am` und belebt sie wieder,
+    eine Bestätigung nach Z 3 nicht). Laufende Mandatsfragen werden zu Ende geführt und bleiben
+    Beschlusslage — sie sind nicht berührt. Die Zahl der Stimmberechtigten wird hier festgestellt
     (§ 4 Abs 4 lit a) — `fortschreiben()` täte es für einen direkt in der Abstimmung
     angelegten Antrag nie. Gegenstand ist die Sachfrage (drei Monate Anwartschaft,
     Mindestbeteiligung wie beim Sachantrag)."""
@@ -857,6 +861,10 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
     jetzt = jetzt or timezone.now()
     if not mandat.aktiv:
         raise MandatsfrageFehler(_("Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."))
+    if mandat.vertrauen_entzogen_am is not None:
+        raise MandatsfrageFehler(
+            _("Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6).")
+        )
     if aufgabe.mandat_id != mandat.pk:
         raise MandatsfrageFehler(_("Der Report gehört nicht zu diesem Mandat."))
     if aufgabe.antrag_id is not None:

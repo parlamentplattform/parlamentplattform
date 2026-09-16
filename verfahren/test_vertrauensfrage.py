@@ -45,10 +45,12 @@ from verfahren.models import (
     AuditEintrag,
     Bewerbung,
     BewerbungsFehler,
+    MandatsfrageFehler,
     Rueckgabezusage,
     antrag_einbringen,
     bewerbung_einreichen,
     gegenstand_fuer,
+    mandatsfrage_eroeffnen,
     stimme_abgeben,
     vertrauensfrage_einbringen,
 )
@@ -395,6 +397,44 @@ def test_ohne_schwelle_verfaellt_der_antrag_und_sperrt_sechs_monate_ohne_neuen_a
     neu.save(update_fields=["phase"])
     dritter = einbringen(leute[2], altmandat, ordnung, anlaesse=[frisch], jetzt=t0 + tage(41))
     assert "fünfter Fall" not in dritter.vertrauensfrage.sperrhinweis
+
+
+def test_nach_verlorener_vertrauensfrage_ruht_die_befugnis_mandatsfragen_zu_eroeffnen(ordnung, altmandat):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 6: Die Befugnis, Abstimmungen nach Abs 9 zu betreuen, ruht ab der Veröffentlichung
+    des Ergebnisses — solange `vertrauen_entzogen_am` steht, also die vollen 30 Tage, in denen das Mandat
+    noch `aktiv` ist (Befund B1/B2). Eine vorher eröffnete Mandatsfrage läuft zu Ende; die Aufhebung durch
+    das Parteischiedsgericht belebt die Befugnis wieder, die Bestätigung nach Z 3 nicht."""
+    t0 = timezone.now()
+    vorher = Aufgabe.objects.create(mandat=altmandat, titel="Radweg", frist=t0 + tage(40), sitzungstag=True)
+    laufende = mandatsfrage_eroeffnen(altmandat, vorher, "Radweg?", "Ja heißt zustimmen.", ordnung, jetzt=t0)
+    antrag, ende = _verloren(ordnung, altmandat)
+    altmandat.refresh_from_db()
+    assert altmandat.aktiv and altmandat.vertrauen_entzogen_am == ende  # das Mandat läuft, die Befugnis ruht
+    aufgabe = Aufgabe.objects.create(mandat=altmandat, titel="Kanal", frist=ende + tage(30), sitzungstag=True)
+    with pytest.raises(MandatsfrageFehler, match="lit f Z 6"):
+        mandatsfrage_eroeffnen(altmandat, aufgabe, "Kanal?", "Ja heißt zustimmen.", ordnung, jetzt=ende + tage(1))
+    assert not Antrag.objects.filter(art=Antragsart.MANDATSFRAGE, titel="Kanal?").exists()
+    # auch nach Ablauf der Anfechtungsfrist (Stufe 2a) — bis zum Ende der Vertretung greift dann `aktiv`
+    vertrauensfragen_fortschreiben(ende + tage(8))
+    with pytest.raises(MandatsfrageFehler, match="lit f Z 6"):
+        mandatsfrage_eroeffnen(altmandat, aufgabe, "Kanal?", "Ja heißt zustimmen.", ordnung, jetzt=ende + tage(9))
+    # die vorher eröffnete Mandatsfrage läuft unverändert zu Ende (Z 6 zweiter Halbsatz)
+    assert laufende.fortschreiben(t0 + tage(3)) is False and laufende.phase == "abstimmung"
+    assert laufende.fortschreiben(ende + tage(1)) is True
+    laufende.refresh_from_db()
+    assert laufende.phase in ("angenommen", "abgelehnt") and laufende.phase_beginn == t0 + tage(laufende.policy().abstimmung_tage)
+    # Bestätigung nach Z 3 hebt nur die Kandidatursperre auf — die Befugnis bleibt beendet
+    altmandat.bestaetigen("wahl", ende + tage(9))
+    altmandat.refresh_from_db()
+    with pytest.raises(MandatsfrageFehler, match="lit f Z 6"):
+        mandatsfrage_eroeffnen(altmandat, aufgabe, "Kanal?", "Ja heißt zustimmen.", ordnung, jetzt=ende + tage(10))
+    # Aufhebung durch das Parteischiedsgericht (lit h): die Wirkungen entfallen, die Befugnis lebt wieder auf
+    vf = antrag.vertrauensfrage
+    vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/7", jetzt=ende + tage(2))
+    vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(12))
+    altmandat.refresh_from_db()
+    neu = mandatsfrage_eroeffnen(altmandat, aufgabe, "Kanal?", "Ja heißt zustimmen.", ordnung, jetzt=ende + tage(13))
+    assert neu.art == Antragsart.MANDATSFRAGE and neu.phase == "abstimmung"
 
 
 # ── Rechtsschutz (lit h) ───────────────────────────────────────────────────────────────────

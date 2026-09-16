@@ -412,6 +412,19 @@ def test_entscheidung_bestaetigt_vollzieht_stufe_zwei_sofort(client, ordnung, al
     assert audit("vertrauensfrage_bestaetigt") and audit("vertretung_beendet")
 
 
+def test_anfechtung_vor_dem_ergebnis_nennt_die_grenze_der_plattform_ehrlich(client, ordnung, altmandat):  # noqa: F811
+    """lit h kennt vier Anfechtungsfälle; die Plattform vermerkt nur den vierten. Die Meldung sagt das —
+    und behauptet nicht, die Satzung ließe nur ein veröffentlichtes Ergebnis anfechten."""
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung)
+    client.force_login(admin_anlegen())
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": antrag.vertrauensfrage.pk})
+    text = meldungen(antwort)
+    assert "außerhalb der Plattform" in text and "lit b, c und g" in text
+    assert "Angefochten werden kann nur" not in text
+    antrag.vertrauensfrage.refresh_from_db()
+    assert antrag.vertrauensfrage.angefochten_am is None
+
+
 def test_bestaetigung_durch_wahl_hebt_die_kandidatursperre_auf(client, ordnung, altmandat):  # noqa: F811
     _verloren(ordnung, altmandat)
     client.force_login(admin_anlegen())

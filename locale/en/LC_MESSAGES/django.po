@@ -7074,8 +7074,6 @@ msgstr "Challenge recorded — the suspension does not become a termination unti
 msgid "Angefochten am"
 msgstr "Challenged on"
 
-msgid "Angefochten werden kann nur ein veröffentlichtes Ergebnis (§ 7 Abs 10 lit h)."
-msgstr "Only a published result can be challenged (§ 7 (10) lit h)."
 
 msgid "Anlass (mindestens einer)"
 msgstr "Ground (at least one)"
@@ -7656,3 +7654,6 @@ msgstr "To my area →"
 
 msgid "Nach einer verlorenen Vertrauensfrage ist bis zur Bestätigung durch die Mitgliederversammlung keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)."
 msgstr "After a lost confidence question, no new mandate agreement is possible until the members’ assembly has confirmed the person (§ 7 (10) lit f no. 3)."
+
+msgid "Hier lässt sich nur die Anfechtung eines veröffentlichten Ergebnisses vermerken; Anfechtungen der Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen derzeit außerhalb der Plattform."
+msgstr "Only the challenge of a published result can be recorded here; challenges of the finding under lit b or of the requirements under lit b, c and g (§ 7 (10) lit h) currently run outside the platform."

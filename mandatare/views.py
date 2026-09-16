@@ -1454,7 +1454,14 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
     if aktion == "anfechtung":
         vf = _vertrauensfrage_der_verwaltung(request)
         if vf.ergebnis_am is None:
-            messages.error(request, _("Angefochten werden kann nur ein veröffentlichtes Ergebnis (§ 7 Abs 10 lit h)."))
+            # lit h kennt vier Anfechtungsfälle; die Plattform vermerkt nur den vierten (Zustandekommen des
+            # Ergebnisses) — die Meldung darf der Satzung keine Grenze zuschreiben, die sie nicht enthält.
+            messages.error(
+                request,
+                _("Hier lässt sich nur die Anfechtung eines veröffentlichten Ergebnisses vermerken; Anfechtungen der "
+                  "Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen "
+                  "derzeit außerhalb der Plattform."),
+            )
             return True
         if vf.angefochten_am is not None:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))

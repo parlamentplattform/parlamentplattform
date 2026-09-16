@@ -55,7 +55,21 @@ jobs:
           pip install -e ".[dev,e2e]"
           python -m playwright install --with-deps chromium
       - name: Bildschirmtests
-        run: python -m pytest tests/e2e -q
+        # Das Ergebnis steht auch in der Zusammenfassung des Laufs — die Protokolle selbst sind
+        # ohne Anmeldung nicht lesbar, die Zusammenfassung schon.
+        run: |
+          set -o pipefail
+          python -m pytest tests/e2e -q --tb=short -rfE 2>&1 | tee bildschirmtests.log
+        continue-on-error: false
+      - name: Ergebnis der Bildschirmtests in die Zusammenfassung
+        if: always()
+        run: |
+          {
+            echo "## Bildschirmtests"
+            echo '```'
+            tail -n 120 bildschirmtests.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Bilder der Sichtprüfung sichern
         if: always()
         uses: actions/upload-artifact@v4

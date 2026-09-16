@@ -612,6 +612,30 @@ def test_bestaetigung_vor_der_abstimmung_zeigt_den_beginn_statt_null_von_null(cl
     assert f"Abstimmung ab {beginn}" in detail and ">Unterstützung<" not in detail
 
 
+def test_nach_erreichter_schwelle_nennen_liste_und_seite_den_abstimmungsbeginn(client, ordnung, altmandat):  # noqa: F811
+    """lit e: Die Abstimmung beginnt frühestens am siebten Tag nach Einbringung — Antragsseite und Kachel
+    veröffentlichen den Tag; /vertrauensfragen/ und der Abschnitt „Vertrauen“ nennen dieselbe Zahl, hinter
+    „Schwelle erreicht am“, und behalten Phase und Zähler der Unterstützung."""
+    t0 = timezone.now() - tage(2)
+    antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung, jetzt=t0)
+    vf = antrag.vertrauensfrage
+    assert vf.schwelle_partei == 1
+    liste = client.get(LISTE).content.decode()
+    assert "Abstimmung ab" not in liste and "Schwelle erreicht am" not in liste
+    antrag.unterstuetzungen.create(mitglied=mitglied_anlegen("bernd"), erklaert_am=t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(1))
+    vf.refresh_from_db()
+    assert vf.schwelle_erreicht_am is not None and antrag.phase == Phase.UNTERSTUETZUNG.value
+    beginn = timezone.localtime(t0 + tage(7)).strftime("%d.%m.%Y")
+    liste = client.get(LISTE).content.decode()
+    assert f"Schwelle erreicht am {timezone.localtime(t0 + tage(1)):%d.%m.%Y} · Abstimmung ab {beginn}" in liste
+    assert "1 von 1 Unterstützungen" in liste  # der Zähler bleibt — die Unterstützung läuft weiter
+    detail = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()
+    assert f"Abstimmung ab {beginn}" in detail and "Schwelle erreicht am" in detail
+    antragsseite = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert f"Abstimmung ab {beginn}" in antragsseite  # eine Zahl an allen Stellen
+
+
 def test_sperrhinweis_in_der_liste_nur_binnen_der_dreitagesfrist(client, ordnung):  # noqa: F811
     """lit b: unterbleibt der Beschluss drei Tage lang, gilt der Antrag als eröffnet — „der Integritätsrat
     prüft bis <vergangener Tag>“ wäre danach falsch."""

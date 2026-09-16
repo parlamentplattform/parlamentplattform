@@ -7,9 +7,9 @@ Register je Mandatar und dem Bereich des Mandatars eingebunden.
 {% if laufende %}
 <p class="pflicht"><span class="chip klein">{{ laufende.get_art_display }}</span>
   <a href="{% url 'verfahren:antrag' laufende.antrag.pk %}"><strong>{{ laufende.antrag.titel }}</strong> →</a>
-  <span class="meta">· {% translate "eingebracht" %} {{ laufende.antrag.eingebracht_am|date:"d.m.Y" }} · {% if vertrauen.abstimmung_ab %}{% translate "Abstimmung ab" %} {{ vertrauen.abstimmung_ab|date:"d.m.Y" }}{% else %}{{ laufende.antrag.phase|phase_name }}{% endif %}
+  <span class="meta">· {% translate "eingebracht" %} {{ laufende.antrag.eingebracht_am|date:"d.m.Y" }} · {% if vertrauen.abstimmung_ab and laufende.art == "bestaetigung" %}{% translate "Abstimmung ab" %} {{ vertrauen.abstimmung_ab|date:"d.m.Y" }}{% else %}{{ laufende.antrag.phase|phase_name }}{% endif %}
   {% if laufende.art == "vertrauensfrage" %} · {% blocktranslate with n=laufende.stimmberechtigte_partei_am_einbringungstag s=laufende.schwelle_partei %}Stimmberechtigte am Einbringungstag: {{ n }} — Schwelle: {{ s }}{% endblocktranslate %}{% endif %}
-  {% if laufende.schwelle_erreicht_am and laufende.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ laufende.schwelle_erreicht_am|date:"d.m.Y" }}{% endif %}</span></p>
+  {% if laufende.schwelle_erreicht_am and laufende.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ laufende.schwelle_erreicht_am|date:"d.m.Y" }}{% if vertrauen.abstimmung_ab %} · {% translate "Abstimmung ab" %} {{ vertrauen.abstimmung_ab|date:"d.m.Y" }}{% endif %}{% endif %}</span></p>
 {% endif %}
 {% for vf in vertrauen.entschiedene %}
 <p class="pflicht"><span class="chip klein">{{ vf.get_art_display }}</span>

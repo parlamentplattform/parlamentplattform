@@ -205,12 +205,19 @@ def _rueckgabezusage_von(mandat) -> tuple[str, str]:
 
 
 def _abstimmung_ab(vf: Vertrauensfrage):
-    """Ein Bestätigungsantrag kennt keine Unterstützung (§ 7 Abs 10 lit f Z 3: „lit b, c und g gelten dafür
-    nicht“) — vor der Abstimmung zeigt die Seite deshalb den Tag ihres Beginns statt „0 von 0 Unterstützungen“.
-    None für Vertrauensfragen und außerhalb dieser Wartezeit."""
-    if vf.art != VertrauensfrageArt.BESTAETIGUNG or vf.antrag.phase != Phase.UNTERSTUETZUNG.value:
+    """Der veröffentlichte Beginn der Abstimmung, solange der Antrag davor steht (§ 7 Abs 10 lit e) — dieselbe
+    Zahl wie Antragsseite und Kachel (`verfahren.views._vf_abstimmung_ab`). Ein Bestätigungsantrag kennt keine
+    Unterstützung (lit f Z 3: „lit b, c und g gelten dafür nicht“) und nennt den Tag statt „0 von 0
+    Unterstützungen“; eine Vertrauensfrage nennt ihn, sobald die Schwelle erreicht ist. Sonst None."""
+    if vf.antrag.phase != Phase.UNTERSTUETZUNG.value:
         return None
-    return vf.antrag.eingebracht_am + timedelta(days=vf.antrag.policy().abstimmung_fruehestens_tage)
+    if vf.art == VertrauensfrageArt.BESTAETIGUNG:
+        return vf.antrag.eingebracht_am + timedelta(days=vf.antrag.policy().abstimmung_fruehestens_tage)
+    if vf.schwelle_erreicht_am is None:
+        return None
+    from plattform_core.phases import abstimmungsbeginn_ohne_beratung
+
+    return abstimmungsbeginn_ohne_beratung(vf.antrag.wirksamer_phase_beginn(), vf.schwelle_erreicht_am, vf.antrag.policy())
 
 
 def _vertrauen(mandat, heute: date | None = None) -> dict:

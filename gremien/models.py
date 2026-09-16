@@ -1029,32 +1029,55 @@ class GremienBeschluss(models.Model):
                 return eintrag.get("name", wert)
         return wert
 
+    def _aktive_rollen_qs(self):
+        """Die Rollen, die für diesen Beschluss zählen: zu einem Antrag die dafür gelosten Personen,
+        ersatzweise die parteiweiten (`Rolle.fuer_antrag`); ohne Antrag alle aktiven im Gremium."""
+        if self.antrag_id:
+            return Rolle.fuer_antrag(self.gremium, self.antrag)
+        return Rolle.aktive(self.gremium)
+
+    def _aktive_personen(self) -> set[int]:
+        """Die Menschen hinter den zählenden Rollen — Zähler und Nenner lesen dieselbe Menge.
+
+        Eine ruhende Rolle (§ 7 Abs 10 lit f letzter Unterabsatz: „ohne Stimme“) fällt aus dem
+        Nenner; ihre vorher gespeicherte Stimme darf dann nicht im Zähler stehen bleiben, sonst
+        schließt ein Rat aus A, B und C nach A's Ruhen schon mit B's Stimme, obwohl C nie gestimmt
+        hat (Befund B4). Die Stimme bleibt gespeichert (Grundregel 7) — sie zählt nur nicht mit,
+        solange die Rolle ruht oder beendet ist."""
+        return set(self._aktive_rollen_qs().values_list("mitglied_id", flat=True))
+
     def aktive_rollen(self) -> int:
         """Der Nenner des Quorums — für einen Beschluss zu einem Antrag die dafür gelosten Personen.
 
         Ohne diese Bindung zählte ein Beschluss zu Antrag A alle Rollen der Partei, auch die,
         die für ganz andere Anträge gelost wurden — und wäre nie beschlussfähig. Gezählt werden
         Menschen, nicht Rollenzeilen (Befund #38)."""
-        if self.antrag_id:
-            return Rolle.personen(Rolle.fuer_antrag(self.gremium, self.antrag))
-        return Rolle.personen(Rolle.aktive(self.gremium))
+        return Rolle.personen(self._aktive_rollen_qs())
 
-    def auswertung(self, aktive: int | None = None):
+    def auswertung(self, aktive: int | None = None, personen: set[int] | None = None):
         """Der Stand nach der offenen Regel — jederzeit abrufbar, auch während der Frist.
 
-        `aktive` nimmt einen vorberechneten Nenner entgegen (Listen: `quoren_fuer`); ohne ihn
-        wird er hier bestimmt — so bleibt `abschliessen()` unverändert."""
+        Solange der Beschluss offen ist, zählen nur die Stimmen der Personen, deren Rolle zählt
+        (`_aktive_personen`; Listen reichen die Menge als `personen` durch, `personen_fuer`).
+        Ein entschiedener Beschluss bleibt, wie er ausgewertet wurde: alle gespeicherten Stimmen,
+        Nenner `aktive` oder der heutige. Der Kern (`plattform_core.gremienbeschluss`) bleibt
+        unverändert — gefiltert wird davor."""
         from plattform_core.gremienbeschluss import auswerten
 
-        return auswerten(
-            [stimme.option for stimme in self.stimmen.all()],
-            self.optionswerte(),
-            self.aktive_rollen() if aktive is None else aktive,
-        )
+        stimmen = list(self.stimmen.all())
+        if self.offen:
+            if personen is None:
+                personen = self._aktive_personen()
+            stimmen = [s for s in stimmen if s.mitglied_id in personen]
+            if aktive is None:
+                aktive = len(personen)
+        elif aktive is None:
+            aktive = self.aktive_rollen()
+        return auswerten([s.option for s in stimmen], self.optionswerte(), aktive)
 
     def alle_haben_gestimmt(self) -> bool:
-        aktive = self.aktive_rollen()
-        return aktive > 0 and self.stimmen.count() >= aktive
+        personen = self._aktive_personen()
+        return bool(personen) and self.stimmen.filter(mitglied_id__in=personen).count() >= len(personen)
 
     @transaction.atomic
     def abschliessen(self, jetzt=None) -> bool:
@@ -1108,13 +1131,14 @@ class GremienBeschluss(models.Model):
         return geschlossen
 
 
-def quoren_fuer(beschluesse) -> dict[int, int]:
-    """Der Quorum-Nenner je Beschluss einer Liste — eine Abfrage statt bis zu drei je Zeile.
+def personen_fuer(beschluesse) -> dict[int, set[int]]:
+    """Die zählenden Personen je Beschluss einer Liste — eine Abfrage statt bis zu drei je Zeile.
 
-    Dieselbe Regel wie `GremienBeschluss.aktive_rollen`: Zu einem Antrag zählen die dafür
+    Dieselbe Regel wie `GremienBeschluss._aktive_personen`: Zu einem Antrag zählen die dafür
     gelosten Personen, ersatzweise die parteiweiten (`Rolle.fuer_antrag`); ohne Antrag alle
     Personen mit aktiver Rolle im Gremium — nur einmal für die ganze Seite gerechnet
-    (Befund #77). Die öffentliche Liste mischt alle Räte, deshalb der Schlüssel (Gremium, Antrag)."""
+    (Befund #77). Die öffentliche Liste mischt alle Räte, deshalb der Schlüssel (Gremium, Antrag).
+    Die Menge ist zugleich der Filter des Zählers bei offenen Beschlüssen (`auswertung`)."""
     beschluesse = list(beschluesse)
     if not beschluesse:
         return {}
@@ -1128,14 +1152,19 @@ def quoren_fuer(beschluesse) -> dict[int, int]:
     for gremium, antrag_id, mitglied_id in zeilen:
         je_antrag.setdefault((gremium, antrag_id), set()).add(mitglied_id)
         je_gremium.setdefault(gremium, set()).add(mitglied_id)
-    quoren = {}
+    personen = {}
     for beschluss in beschluesse:
         if beschluss.antrag_id:
             gelost = je_antrag.get((beschluss.gremium, beschluss.antrag_id))
-            quoren[beschluss.pk] = len(gelost) if gelost else len(je_antrag.get((beschluss.gremium, None), ()))
+            personen[beschluss.pk] = set(gelost) if gelost else set(je_antrag.get((beschluss.gremium, None), ()))
         else:
-            quoren[beschluss.pk] = len(je_gremium.get(beschluss.gremium, ()))
-    return quoren
+            personen[beschluss.pk] = set(je_gremium.get(beschluss.gremium, ()))
+    return personen
+
+
+def quoren_fuer(beschluesse) -> dict[int, int]:
+    """Der Quorum-Nenner je Beschluss einer Liste — die Größe der Mengen aus `personen_fuer`."""
+    return {pk: len(menge) for pk, menge in personen_fuer(beschluesse).items()}
 
 
 class GremienStimme(models.Model):

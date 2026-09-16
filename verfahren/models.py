@@ -301,8 +301,28 @@ class Antrag(models.Model):
         Rückgabe: True, wenn sich die Phase geändert hat.
 
         Atomar, weil ein Phasenwechsel drei Dinge zugleich sind: neue Phase, archivierter Chat
-        (FB-G5) und Audit-Eintrag. Bricht eines ab, darf keines stehenbleiben."""
+        (FB-G5) und Audit-Eintrag. Bricht eines ab, darf keines stehenbleiben.
+
+        Die eigene Zeile wird zuerst gesperrt und die Phasenfelder werden daraus gelesen: Zwei
+        gleichzeitige Fortschreibungen desselben Antrags (zwei Unterstützungen an der Schwelle,
+        zwei erste Aufrufe am Ergebnis) serialisieren sich so auf Postgres, und die zweite sieht
+        den gesetzten Stempel bzw. die neue Phase — statt zweier Audit-Einträge „schwelle_erreicht“
+        mit zwei Zeitpunkten und zweier Hinweise im Posteingang (Befund B26; § 7 Abs 10 lit c: das
+        Erreichen der Schwelle hat EINEN Zeitpunkt). SQLite kennt keine Zeilensperre und
+        serialisiert ohnehin; ein veraltetes Objekt im Speicher liest so aber auch dort die
+        Datenbank, bevor es einen zweiten Übergang anwendet."""
         jetzt = jetzt or timezone.now()
+        frisch = (
+            type(self)
+            .objects.select_for_update()
+            .only("phase", "phase_beginn", "stimmberechtigte_anzahl", "stimmberechtigung_stichtag")
+            .get(pk=self.pk)
+        )
+        self.phase, self.phase_beginn = frisch.phase, frisch.phase_beginn
+        self.stimmberechtigte_anzahl, self.stimmberechtigung_stichtag = (
+            frisch.stimmberechtigte_anzahl,
+            frisch.stimmberechtigung_stichtag,
+        )
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
         # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung
@@ -843,7 +863,11 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
 
     Tore: Die Frist der Aufgabe muss die ganze Abstimmung fassen (sonst bleibt es beim
     Kurzbericht ohne Abstimmung), die Aufgabe hat noch keine Abstimmung, das Mandat ist offen,
-    die Aufgabe gehört zum Mandat. Die Zahl der Stimmberechtigten wird hier festgestellt
+    die Aufgabe gehört zum Mandat — und nach einer verlorenen Vertrauensfrage ruht die Befugnis,
+    Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6: ab der Veröffentlichung des Ergebnisses; eine
+    Aufhebung durch das Parteischiedsgericht leert `vertrauen_entzogen_am` und belebt sie wieder,
+    eine Bestätigung nach Z 3 nicht). Laufende Mandatsfragen werden zu Ende geführt und bleiben
+    Beschlusslage — sie sind nicht berührt. Die Zahl der Stimmberechtigten wird hier festgestellt
     (§ 4 Abs 4 lit a) — `fortschreiben()` täte es für einen direkt in der Abstimmung
     angelegten Antrag nie. Gegenstand ist die Sachfrage (drei Monate Anwartschaft,
     Mindestbeteiligung wie beim Sachantrag)."""
@@ -857,6 +881,10 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
     jetzt = jetzt or timezone.now()
     if not mandat.aktiv:
         raise MandatsfrageFehler(_("Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."))
+    if mandat.vertrauen_entzogen_am is not None:
+        raise MandatsfrageFehler(
+            _("Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6).")
+        )
     if aufgabe.mandat_id != mandat.pk:
         raise MandatsfrageFehler(_("Der Report gehört nicht zu diesem Mandat."))
     if aufgabe.antrag_id is not None:
@@ -956,10 +984,12 @@ def vertrauensfrage_einbringen(
     from django.conf import settings as dj_settings
 
     from mandatare.models import (
+        VERTRAUENSFRAGE_LAUFEND,
         Vertrauensfrage,
         VertrauensfrageArt,
         VertrauensfrageFehler,
         bestaetigung_zulaessig_ab,
+        bis_zum_stand_fortschreiben,
         sperren_pruefen,
     )
     from mitglieder.models import stimmberechtigte_zaehlen
@@ -982,11 +1012,19 @@ def vertrauensfrage_einbringen(
     if bestaetigung:
         if mitglied.pk != mandat.mitglied_id:
             raise VertrauensfrageFehler(_("Die Bestätigung kann nur die betroffene Person selbst beantragen (§ 7 Abs 10 lit f Z 3)."))
+        # Phasen sind lazy: Ein an der Frist abgelaufener, nie aufgerufener Bestätigungsantrag darf den
+        # nächsten nicht sperren — erst fortschreiben, dann prüfen (Befund B25). Ein dabei angenommener
+        # hebt die Sperre auf (`Mandat.bestaetigen` schreibt auf eine andere Instanz), deshalb liest das
+        # Tor `kandidatursperre` erst danach aus der Datenbank.
+        for alt in Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
+        ).select_related("antrag"):
+            bis_zum_stand_fortschreiben(alt.antrag, jetzt)
+        mandat.refresh_from_db(fields=["vertrauen_entzogen_am", "bestaetigt_am"])
         if not mandat.kandidatursperre:
             raise VertrauensfrageFehler(_("Es gibt keine verlorene Vertrauensfrage, die zu bestätigen wäre."))
         if Vertrauensfrage.objects.filter(
-            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG,
-            antrag__phase__in=[Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value],
+            mandat=mandat, art=VertrauensfrageArt.BESTAETIGUNG, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
         ).exists():
             raise VertrauensfrageFehler(_("Ein Bestätigungsantrag läuft bereits."))
         frei_ab = bestaetigung_zulaessig_ab(mandat)

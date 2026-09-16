@@ -552,8 +552,11 @@ REGELN: tuple[Regel, ...] = (
             "fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen "
             "und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des "
             "Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger "
-            "bewerten und ein Abberufungsverfahren einleiten“ entfiel: Die Satzung sieht weder Bewertung "
-            "noch Abberufung eines Mandats vor, sondern die Vertrauensfrage. ")
+            "bewerten und ein Abberufungsverfahren einleiten“ entfiel vorerst: Die Partei kann ein Mandat "
+            "weder entziehen noch seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i); das Recht nach "
+            "§ 4 Abs 2 auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der "
+            "Verfahrensordnung bleibt unberührt und hat noch keinen Bauschritt — an die Stelle einer "
+            "Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. ")
             + _("Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
             "Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, "
             "Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet "

@@ -2,7 +2,7 @@
 Stellungnahme (lit d), Vermerke des Rechenschaftsregisters, das Ende der Vertretung (lit f Z 8),
 ruhende Gremienrollen — und dass nichts davon `Mandat.beendet` setzt."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pytest
 from django.utils import timezone
@@ -77,6 +77,81 @@ def test_zweiter_und_dritter_fall(ordnung, altmandat):  # noqa: F811
     assert sperren_pruefen(altmandat, t0 + tage(20 + 190)) == ""
 
 
+def test_die_sperrpruefung_rechnet_mit_dem_fortgeschriebenen_stand(ordnung, altmandat):  # noqa: F811
+    """Befunde B17/B25: Ein Antrag verfällt mit der Sammelfrist (lit c) — ob jemand ihn danach aufruft oder
+    nicht. Ohne Fortschreibung stand am Tag 40 „anhängig (zweiter Fall)“ im gespeicherten Sperrhinweis,
+    obwohl der fünfte Fall zutrifft; auch über ein zweites Mandat derselben Person."""
+    t0 = timezone.now()
+    alter_anlass = abweichung(altmandat, eingetragen_am=t0 - tage(5))
+    alt = einbringen(mitglied_anlegen("anna"), altmandat, ordnung, anlaesse=[alter_anlass], jetzt=t0)
+    assert alt.phase == Phase.UNTERSTUETZUNG.value  # nie fortgeschrieben
+    hinweis = sperren_pruefen(altmandat, t0 + tage(40), anlaesse=[alter_anlass])
+    assert "fünfter Fall" in hinweis and "zweiter Fall" not in hinweis
+    alt.refresh_from_db()
+    assert alt.phase == Phase.VERFALLEN.value and alt.phase_beginn == t0 + tage(30)
+    # mit einem Anlass nach der Einbringung des verfallenen Antrags: keine Sperre
+    neu = abweichung(altmandat, gegenstand="Kanal", eingetragen_am=t0 + tage(35))
+    assert sperren_pruefen(altmandat, t0 + tage(40), anlaesse=[neu]) == ""
+    # zweites Mandat derselben Person: die laufende Vertrauensfrage zum ersten wird auch hier fortgeschrieben
+    zweites = Mandat.objects.create(
+        mitglied=altmandat.mitglied, bezeichnung="Landtag", ebene="land", gebiet="OÖ", angetreten=date(2025, 1, 1)
+    )
+    laufend = einbringen(mitglied_anlegen("bert"), altmandat, ordnung, anlaesse=[neu], jetzt=t0 + tage(41))
+    assert "zweiter Fall" in sperren_pruefen(zweites, t0 + tage(50))
+    assert "zweiter Fall" not in sperren_pruefen(zweites, t0 + tage(80), anlaesse=[neu])
+    laufend.refresh_from_db()
+    assert laufend.phase == Phase.VERFALLEN.value
+
+
+def test_ein_liegengebliebener_bestaetigungsantrag_sperrt_den_naechsten_nicht(ordnung, altmandat):  # noqa: F811
+    """Befund B25: Die Prüfung „Ein Bestätigungsantrag läuft bereits“ las die lazy Phase — ein an der
+    Frist abgelaufener, nie aufgerufener Antrag hätte den nächsten für immer gesperrt."""
+    from verfahren.models import vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    ich = altmandat.mitglied
+    t1 = ende + tage(200)
+    erster = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1, art="bestaetigung")
+    # niemand ruft ihn auf: Abstimmung ab Tag 7, Ende Tag 14 — gespeichert bleibt „unterstuetzung“
+    assert erster.phase == Phase.UNTERSTUETZUNG.value
+    t2 = t1 + tage(200)
+    with pytest.raises(VertrauensfrageFehler, match="frühestens"):
+        vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1 + tage(20), art="bestaetigung")
+    zweiter = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t2, art="bestaetigung")
+    erster.refresh_from_db()
+    assert erster.phase == Phase.ABGELEHNT.value  # ohne Stimmen: nicht bestätigt — fortgeschrieben, nicht „läuft“
+    assert zweiter.phase == Phase.UNTERSTUETZUNG.value and zweiter.pk != erster.pk
+
+
+def test_ein_liegengebliebener_angenommener_bestaetigungsantrag_hebt_die_sperre_vor_dem_tor_auf(ordnung, altmandat):  # noqa: F811
+    """Kehrseite von B25: Wurde der liegengebliebene Bestätigungsantrag angenommen, hebt das Fortschreiben
+    die Kandidatursperre auf (`Mandat.bestaetigen` auf einer anderen Instanz). Läse das Tor die Sperre
+    vorher vom veralteten Objekt, entstünde ein zweiter Bestätigungsantrag zu einer schon bestätigten
+    Person — jetzt liest es sie nach dem Fortschreiben aus der Datenbank."""
+    from verfahren.models import stimme_abgeben, vertrauensfrage_einbringen
+
+    antrag, ende = _verloren(ordnung, altmandat)
+    ich = altmandat.mitglied
+    t1 = ende + tage(200)
+    erster = vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1, art="bestaetigung")
+    erster.fortschreiben(t1 + tage(7))
+    for m in [mitglied_anlegen(f"ja{i}") for i in range(3)] + [ich]:
+        stimme_abgeben(erster, m, "ja", jetzt=t1 + tage(8))
+    assert erster.phase == Phase.ABSTIMMUNG.value  # Abstimmung zu Ende (Tag 14), niemand hat fortgeschrieben
+    assert altmandat.kandidatursperre
+    with pytest.raises(VertrauensfrageFehler, match="keine verlorene Vertrauensfrage"):
+        vertrauensfrage_einbringen(ich, altmandat, "", [], [], ordnung, jetzt=t1 + tage(400), art="bestaetigung")
+    assert mm.Vertrauensfrage.objects.filter(mandat=altmandat, art=mm.VertrauensfrageArt.BESTAETIGUNG).count() == 1
+    # Die Fachoperation ist atomar: Mit dem Fehler rollt auch das Fortschreiben zurück — lazy, der nächste
+    # Aufruf holt es nach; gespeichert ist nichts Halbes.
+    erster.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert erster.phase == Phase.ABSTIMMUNG.value and altmandat.bestaetigt_am is None
+    assert erster.fortschreiben(t1 + tage(400)) is True
+    altmandat.refresh_from_db()
+    assert erster.phase == Phase.ANGENOMMEN.value and not altmandat.kandidatursperre
+
+
 def test_anlass_ausstaende_nur_ueber_30_tage(altmandat):  # noqa: F811
     Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=timezone.now() - tage(20), sitzungstag=True)
     assert altmandat.anlass_ausstaende() == []  # Frist um 13 Tage — noch kein Anlass
@@ -130,7 +205,8 @@ def test_rueckgabe_vermerk_ist_ein_sachverhalt_ohne_wertung(altmandat):  # noqa:
     altmandat.rueckgabezusage = Rueckgabezusage.ABGEGEBEN
     assert altmandat.rueckgabe_vermerk == "Rückgabezusage nicht eingehalten"
     altmandat.beendet = date(2026, 10, 3)
-    assert altmandat.rueckgabe_vermerk == "Mandat zurückgelegt am 03.10.2026"
+    # neutral „beendet“, nicht „zurückgelegt“: ob das Ende dem Ersuchen folgte, weiß die Plattform nicht (B3)
+    assert altmandat.rueckgabe_vermerk == "Mandat beendet am 03.10.2026"
 
 
 def test_rueckgabe_vermerk_liest_die_zusage_aus_der_bewerbung(ordnung, altmandat):  # noqa: F811
@@ -153,6 +229,45 @@ def test_rueckgabe_vermerk_liest_die_zusage_aus_der_bewerbung(ordnung, altmandat
     altmandat.rueckgabezusage = Rueckgabezusage.NICHT_ABGEGEBEN  # der Vermerk am Mandat geht vor
     assert altmandat.rueckgabezusage_wirksam() == ("nicht_abgegeben", "mandat")
     assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
+
+
+def test_rueckgabe_vermerk_fuer_rechnet_wie_die_property_ohne_eigene_abfrage(altmandat, django_assert_num_queries):  # noqa: F811
+    """Befund B28: Listen reichen die gebündelt geladene Zusage durch — der Vermerk selbst fragt nichts ab."""
+    altmandat.vertrauen_entzogen_am = timezone.now() - tage(40)
+    altmandat.rueckgabe_ersucht_bis = timezone.localdate() - tage(1)
+    with django_assert_num_queries(0):
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "abgegeben") == "Rückgabezusage nicht eingehalten"
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "") == "keine Rückgabezusage abgegeben"
+        assert mm.rueckgabe_vermerk_fuer(altmandat, "", heute=altmandat.rueckgabe_ersucht_bis) == ""  # Frist läuft
+    assert altmandat.rueckgabe_vermerk == mm.rueckgabe_vermerk_fuer(altmandat, altmandat.rueckgabezusage_wirksam()[0])
+
+
+def test_ein_widerruf_der_rueckgabezusage_geht_der_bewerbung_vor(ordnung, altmandat):  # noqa: F811
+    """§ 7 Abs 3: Nichtabgabe, Widerruf und Nichteinhaltung sind drei Sachverhalte. Der Widerruf setzt
+    den Vermerk am Mandat auf „keine Angabe“ zurück — nur das Datum zeigt ihn. Fiele die Rechnung dann
+    auf die Bewerbung zurück, sagte das Register nach der Frist „nicht eingehalten“ über eine Person,
+    die widerrufen hat (Befund B3)."""
+    from verfahren.models import Antragsart, Bewerbung, antrag_einbringen
+    from verfahren.test_vertrauensfrage import ANTRAG
+
+    kandidatur = antrag_einbringen(mitglied_anlegen("k"), **ANTRAG, ordnung=ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(
+        antrag=kandidatur, mitglied=altmandat.mitglied, vorstellung="Ich trete an.", rueckgabezusage="abgegeben"
+    )
+    altmandat.kandidatur = kandidatur
+    altmandat.save(update_fields=["kandidatur"])
+    assert altmandat.rueckgabezusage_wirksam() == ("abgegeben", "bewerbung")
+    rueckgabezusage_vermerken(altmandat, "")  # Widerruf: der Verwaltungsvermerk „keine Angabe“, datiert
+    altmandat.refresh_from_db()
+    assert altmandat.rueckgabezusage == "" and altmandat.rueckgabezusage_am == timezone.localdate()
+    assert altmandat.rueckgabezusage_wirksam() == ("", "mandat")
+    altmandat.vertrauen_entzogen_am = timezone.now() - tage(40)
+    altmandat.rueckgabe_ersucht_bis = timezone.localdate() - tage(1)
+    assert "nicht eingehalten" not in altmandat.rueckgabe_vermerk
+    assert altmandat.rueckgabe_vermerk == "keine Rückgabezusage abgegeben"
+    # ohne jeden Vermerk am Mandat (kein Datum) gilt die Bewerbung weiter
+    altmandat.rueckgabezusage_am = None
+    assert altmandat.rueckgabezusage_wirksam() == ("abgegeben", "bewerbung")
 
 
 def test_rueckgabezusage_nachtragen_und_widerrufen(altmandat):  # noqa: F811
@@ -194,8 +309,128 @@ def test_vertrauensfrage_eigenschaften(ordnung, altmandat):  # noqa: F811
     antrag, ende = _verloren(ordnung, altmandat)
     vf = antrag.vertrauensfrage
     assert vf.ergebnis_am == ende and vf.anfechtungsfrist_ende == ende + tage(7)
-    assert vf.rueckgabefrist_ende == ende + tage(30) and vf.endgueltig_ab() == ende + tage(7)
+    assert vf.rueckgabefrist_tag() == altmandat.rueckgabe_ersucht_bis == timezone.localdate(ende) + tage(30)
+    assert vf.rueckgabefrist_ende == timezone.make_aware(datetime.combine(vf.rueckgabefrist_tag() + tage(1), time.min))
+    assert vf.endgueltig_ab() == ende + tage(7)
     assert not vf.laeuft
+
+
+# ── Stufe 2: eine Frist, ein Kalendertag, je Vertrauensfrage atomar ────────────────────────
+
+
+def _verlorene_vertrauensfrage(mandat, wirkungen_ab):
+    """Eine verlorene Vertrauensfrage mit gestempelter Stufe 1 — direkt gesetzt, damit der Zeitpunkt
+    des Ergebnisses frei wählbar ist (Zeitumstellung, Nachtstunden)."""
+    from verfahren.models import Antrag, Antragsart
+
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage: Gemeinderätin, Polsenz",
+        art=Antragsart.VERTRAUENSFRAGE,
+        eingebracht_von=mitglied_anlegen(f"steller{antrag_nr()}"),
+        eingebracht_am=wirkungen_ab - tage(20),
+        phase=Phase.ANGENOMMEN.value,
+        phase_beginn=wirkungen_ab,
+        policy_snapshot={},
+    )
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat, wirkungen_ab=wirkungen_ab)
+    mandat.vertrauen_entzogen_am = wirkungen_ab
+    mandat.rueckgabe_ersucht_bis = timezone.localdate(wirkungen_ab) + tage(mm.RUECKGABEFRIST_TAGE)
+    mandat.save(update_fields=["vertrauen_entzogen_am", "rueckgabe_ersucht_bis"])
+    return vf
+
+
+_ANTRAG_NR = iter(range(1, 10_000))
+
+
+def antrag_nr():
+    return next(_ANTRAG_NR)
+
+
+def wien(jahr, monat, tag, stunde=0, minute=0):
+    return timezone.make_aware(datetime(jahr, monat, tag, stunde, minute))
+
+
+@pytest.mark.parametrize(
+    ("ergebnis", "fristtag"),
+    [
+        (wien(2026, 10, 24, 0, 30), date(2026, 11, 23)),  # vor der Zeitumstellung: UTC + 30 Tage läge am 22.11.
+        (wien(2027, 3, 1, 23, 30), date(2027, 3, 31)),  # vor der Zeitumstellung im Frühjahr: UTC + 30 Tage läge am 1.4.
+        (wien(2026, 10, 4, 14, 0), date(2026, 11, 3)),  # ohne Zeitumstellung: bisher endete die Vertretung um 13:00
+    ],
+)
+def test_die_vertretung_endet_mit_ablauf_des_ausgewiesenen_fristtags(altmandat, ergebnis, fristtag):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 4, 5 und 8 knüpfen drei Wirkungen an eine Frist — die, die das Register als
+    Kalendertag ausweist (`rueckgabe_ersucht_bis`, einschließlich). Stufe 2 rechnete bisher mit
+    `wirkungen_ab + 30 Tage` in UTC und stempelte über die Zeitumstellung einen anderen Tag, im Normalfall
+    schon zur Uhrzeit des Ergebnisses am letzten Fristtag (Befunde B10/B18/B24)."""
+    vf = _verlorene_vertrauensfrage(altmandat, ergebnis)
+    assert altmandat.rueckgabe_ersucht_bis == fristtag == vf.rueckgabefrist_tag()
+    assert vf.rueckgabefrist_ende == wien(fristtag.year, fristtag.month, fristtag.day) + tage(1)
+    # am Fristtag um 23:45 Wiener Zeit läuft die Frist noch — Vermerk leer, Vertretung besteht
+    assert mm.vertrauensfragen_fortschreiben(wien(fristtag.year, fristtag.month, fristtag.day, 23, 45)) == 1  # nur (a)
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am is None
+    # der Folgetag um 00:01: Vertretung beendet, gestempelt mit dem Fristtag des Registers
+    folgetag = fristtag + tage(1)
+    assert mm.vertrauensfragen_fortschreiben(wien(folgetag.year, folgetag.month, folgetag.day, 0, 1)) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.vertretung_beendet_am == fristtag == altmandat.rueckgabe_ersucht_bis
+    assert audit("vertretung_beendet")[0]["ab"] == fristtag.isoformat()
+
+
+def test_stufe_zwei_laeuft_je_vertrauensfrage_atomar(monkeypatch, ordnung, altmandat):  # noqa: F811
+    """Befund B29: Bricht die Verarbeitung nach dem Stempel `wirkungen_endgueltig_am` und vor dem Ende
+    der Rollen ab, blieb der Stempel stehen, der nächste Lauf übersprang den Block — die Rollen ruhten
+    dauerhaft, das Audit fehlte. Jetzt wird je Vertrauensfrage alles oder nichts geschrieben."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    antrag, ende = _verloren(ordnung, altmandat)
+    vf = antrag.vertrauensfrage
+    echte_save = Rolle.save
+    aufrufe = []
+
+    def bricht_ab(self, *args, **kwargs):
+        aufrufe.append(self.pk)
+        if len(aufrufe) == 1:
+            raise RuntimeError("Verbindung abgerissen")
+        return echte_save(self, *args, **kwargs)
+
+    monkeypatch.setattr(Rolle, "save", bricht_ab)
+    with pytest.raises(RuntimeError):
+        mm.vertrauensfragen_fortschreiben(ende + tage(8))
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am is None and rolle.beendet_grund == "" and not audit("vertrauensfrage_endgueltig")
+    assert mm.vertrauensfragen_fortschreiben(ende + tage(8)) == 1
+    vf.refresh_from_db()
+    rolle.refresh_from_db()
+    assert vf.wirkungen_endgueltig_am == ende + tage(7) and rolle.beendet_grund == mm.BEENDIGUNGSGRUND
+    assert len(audit("vertrauensfrage_endgueltig")) == 1
+
+
+def test_stufe_zwei_laedt_nur_was_noch_etwas_zu_tun_hat(altmandat):  # noqa: F811
+    """Befund B29: Bisher lud jeder Seitenaufruf alle jemals verlorenen Vertrauensfragen samt Mandat
+    und Mitglied — auch die längst vollzogenen."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    t0 = timezone.now() - tage(100)
+    for i in range(5):
+        mandat = Mandat.objects.create(mitglied=mitglied_anlegen(f"v{i}"), bezeichnung="Gemeinderat", ebene="gemeinde")
+        vf = _verlorene_vertrauensfrage(mandat, t0)
+        vf.wirkungen_endgueltig_am = t0 + tage(7)
+        vf.save(update_fields=["wirkungen_endgueltig_am"])
+        mandat.vertretung_beendet_am = mandat.rueckgabe_ersucht_bis
+        mandat.save(update_fields=["vertretung_beendet_am"])
+    with CaptureQueriesContext(connection) as abfragen:
+        assert mm.vertrauensfragen_fortschreiben() == 0
+    assert len(abfragen) == 1, [a["sql"] for a in abfragen]
+    # mit lit h und noch offener Mandatsvereinbarung wird die Vertrauensfrage weiter geladen — Schritt (c)
+    mandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    mandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
+    assert mm.vertrauensfragen_fortschreiben() == 1
+    mandat.refresh_from_db()
+    assert mandat.mandatsvereinbarung_endet_am == mandat.rueckgabe_ersucht_bis
+    assert mm.vertrauensfragen_fortschreiben() == 0
 
 
 # ── Ruhende Gremienrollen ──────────────────────────────────────────────────────────────────

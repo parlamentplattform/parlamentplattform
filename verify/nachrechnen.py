@@ -30,10 +30,13 @@ Beratungsphase; gerechnet wird sie genau wie ein Sachantrag):
 
 Vertrauensfrage (§ 7 Abs 10 — Ja heißt „Vertrauen versagen“, Nein heißt „Vertrauen aussprechen“;
 gerechnet wie ein Sachantrag: „angenommen“ heißt „Vertrauensfrage verloren“, alles andere
-— auch eine verfehlte Mindestbeteiligung — heißt „gewonnen“; dieselbe Form auch für den
-Bestätigungsantrag nach lit f Z 3):
+— auch eine verfehlte Mindestbeteiligung — heißt „gewonnen“). Der Block "vertrauensfrage" ist
+Einordnung, nicht Eingabe der Auszählung: Steht dort "art": "bestaetigung", ist es der
+Bestätigungsantrag nach lit f Z 3 — gleiche Auszählung, das Ergebniswort lautet dann
+„bestaetigt“ (Annahme) oder „nicht_bestaetigt“ (Ablehnung), wie in rechenschaft.json:
 {
   "art": "vertrauensfrage",
+  "vertrauensfrage": {"art": "vertrauensfrage" | "bestaetigung", …},
   "policy": {"mindestbeteiligung": 0.05, "mehrheitsbasis": "ja_nein"},
   "stimmberechtigte": 1234,
   "stimmen": [{"pseudonym": "…", "stimme": "ja"}, …]
@@ -154,8 +157,15 @@ def nachrechnen(daten: dict) -> dict:
         return {**sachfrage_nachrechnen(daten), "art": "mandatsfrage"}
     if art == "vertrauensfrage":
         # § 7 Abs 10 lit e: ausgezählt wie eine Sachfrage; „angenommen“ heißt verloren, sonst gewonnen.
+        # Beim Bestätigungsantrag (lit f Z 3, Block vertrauensfrage.art) heißt Annahme „bestätigt“ —
+        # dieselben Wörter wie die Plattform, sonst sähe der Prüfende einen Widerspruch, wo keiner ist.
         ergebnis = sachfrage_nachrechnen(daten)
-        return {**ergebnis, "art": "vertrauensfrage", "vertrauensfrage": "verloren" if ergebnis["angenommen"] else "gewonnen"}
+        art_fach = (daten.get("vertrauensfrage") or {}).get("art", "vertrauensfrage")
+        if art_fach == "bestaetigung":
+            wort = "bestaetigt" if ergebnis["angenommen"] else "nicht_bestaetigt"
+        else:
+            wort = "verloren" if ergebnis["angenommen"] else "gewonnen"
+        return {**ergebnis, "art": "vertrauensfrage", "vertrauensfrage": wort}
     if art == "mandat":
         return personenwahl_nachrechnen(daten)
     raise SystemExit(f"FEHLER: Antragsart {art!r} kennt dieses Skript nicht.")

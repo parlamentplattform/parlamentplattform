@@ -6146,6 +6146,9 @@ msgstr "Mandate question"
 msgid "Das Mandat ist beendet — es kann keine Mandatsfrage mehr stellen."
 msgstr "The mandate has ended — it can no longer put a mandate question."
 
+msgid "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6)."
+msgstr "After a lost confidence question, the authority to conduct votes is suspended (§ 7 (10) lit f no. 6)."
+
 msgid "Der Report gehört nicht zu diesem Mandat."
 msgstr "The report does not belong to this mandate."
 
@@ -6974,8 +6977,8 @@ msgid "beim Parteischiedsgericht anhängig"
 msgstr "pending before the party arbitration tribunal"
 
 #, python-format
-msgid "Mandat zurückgelegt am %(datum)s"
-msgstr "Mandate resigned on %(datum)s"
+msgid "Mandat beendet am %(datum)s"
+msgstr "Mandate ended on %(datum)s"
 
 msgid "Rückgabezusage nicht eingehalten"
 msgstr "Resignation pledge not kept"
@@ -7606,8 +7609,11 @@ msgstr "Apply on the motion page of the open candidacy"
 msgid "Der Posteingang steht; heute speisen ihn die Auswertung von Parametertests und verlorene Vertrauensfragen (§ 7 Abs 10 lit f Z 7: Mitteilung an Klub oder Fraktion). Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."
 msgstr "The inbox exists; today it is fed by parameter-test evaluations and lost confidence questions (§ 7 (10) lit f no. 7: notice to the parliamentary group). Candidates for highlighting and pattern reports only arrive with the future workshop."
 
-msgid "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel: Die Satzung sieht weder Bewertung noch Abberufung eines Mandats vor, sondern die Vertrauensfrage. "
-msgstr "Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped: the statutes provide neither rating nor recall of a mandate, but the confidence question. "
+msgid "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel vorerst: Die Partei kann ein Mandat weder entziehen noch seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i); das Recht nach § 4 Abs 2 auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der Verfahrensordnung bleibt unberührt und hat noch keinen Bauschritt — an die Stelle einer Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. "
+msgstr "Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped for now: the party can neither withdraw a mandate nor force its return (§ 7 (2), (10) lit i); the right under § 4 (2) to rate office holders and to initiate a recall procedure under the rules of procedure remains unaffected and has no build step yet — in place of recalling a mandate stands the confidence question under § 7 (10). "
+
+msgid "Vermerkt wird die Anfechtung eines veröffentlichten Ergebnisses; Anfechtungen der Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen derzeit außerhalb der Plattform."
+msgstr "What is recorded is the challenge of a published result; challenges of the finding under lit b or of the requirements under lit b, c and g (§ 7 (10) lit h) currently run outside the platform."
 
 msgid "Rückgabezusage abgeben oder nicht abgeben — freiwillig, nicht einklagbar, öffentlich ausgewiesen"
 msgstr "Give or decline the return pledge — voluntary, not enforceable, publicly shown"

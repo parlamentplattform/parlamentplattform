@@ -183,6 +183,55 @@ def test_die_beschlussliste_rechnet_das_quorum_einmal_je_seite(client):
     assert zeilen[erster.pk].noetig == erster.auswertung().noetig
 
 
+def test_die_stimme_einer_ruhenden_rolle_zaehlt_nicht_und_schliesst_nicht_vorzeitig(client):
+    """§ 7 Abs 10 lit f letzter Unterabsatz: Eine ruhende Rolle ist „ohne Stimme“. Rat aus A, B, C;
+    A stimmt, dann ruht A's Rolle (verlorene Vertrauensfrage). B's Stimme darf den Beschluss nicht
+    schließen — der Nenner (B, C) und der Zähler lesen dieselbe Menge; erst C schließt ihn
+    (Befund B4). A's Stimme bleibt gespeichert, zählt aber nicht; ein entschiedener Beschluss
+    bleibt, wie er ausgewertet wurde."""
+    from mandatare.models import RUHENSGRUND
+
+    a, b, c = (mitglied_anlegen(f"rat{next(_ZAEHLER)}") for _ in range(3))
+    rollen = {m: rolle_geben(m, Gremium.KOORDINATIONSRAT) for m in (a, b, c)}
+    beschluss = beschluss_anlegen(frist=timezone.now() + timedelta(days=3), angelegt_von=a)
+    beschluss.stimmen.create(mitglied=a, option="dafuer", begruendung="Ja.")
+    rollen[a].ruht_seit = timezone.now()
+    rollen[a].ruht_grund = RUHENSGRUND
+    rollen[a].save(update_fields=["ruht_seit", "ruht_grund"])
+    assert beschluss.aktive_rollen() == 2 and beschluss._aktive_personen() == {b.pk, c.pk}
+
+    client.force_login(b)
+    client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Ja."})
+    beschluss.refresh_from_db()
+    assert beschluss.offen, "mit A's ruhender Stimme geschlossen, obwohl C nie gestimmt hat"
+    stand = beschluss.auswertung()
+    assert stand.abgegeben == 1 and stand.zaehlung == {"dafuer": 1, "dagegen": 0} and beschluss.stimmen.count() == 2
+    assert not beschluss.alle_haben_gestimmt()
+    # Listen rechnen mit derselben Menge (`personen_fuer`)
+    from gremien.models import personen_fuer
+
+    menge = personen_fuer([beschluss])[beschluss.pk]
+    assert menge == {b.pk, c.pk} and beschluss.auswertung(aktive=len(menge), personen=menge).abgegeben == 1
+
+    client.force_login(c)
+    client.post(reverse("gremien:beschluss_stimme", args=[beschluss.pk]), {"option": "dafuer", "begruendung": "Auch ja."})
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == "dafuer"
+    from verfahren.models import AuditEintrag
+
+    ausgewertet = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") == "gremienbeschluss_ausgewertet"][-1]
+    assert ausgewertet["abgegeben"] == 2 and ausgewertet["zaehlung"] == {"dafuer": 2, "dagegen": 0}  # A's Stimme nicht dabei
+    assert beschluss.stimmen.count() == 3  # gespeichert bleibt sie (Grundregel 7)
+    # Ein entschiedener Beschluss wird nicht mehr gefiltert: Die Anzeige rechnet wie bisher aus allen
+    # gespeicherten Stimmen mit dem heutigen Nenner; das Ergebnis selbst und der Audit-Eintrag der
+    # Auswertung stehen fest, auch wenn B's Rolle später ruht.
+    rollen[b].ruht_seit = timezone.now()
+    rollen[b].ruht_grund = RUHENSGRUND
+    rollen[b].save(update_fields=["ruht_seit", "ruht_grund"])
+    beschluss.refresh_from_db()
+    assert beschluss.ergebnis == "dafuer" and beschluss.auswertung().abgegeben == beschluss.stimmen.count()
+
+
 def test_der_anlass_entscheidet_ueber_die_wirkung():
     """Ein Anlass ohne Eintrag in der Wirkungstabelle bewirkt nichts — und das ist der Normalfall.
 

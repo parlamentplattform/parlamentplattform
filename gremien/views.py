@@ -49,7 +49,7 @@ from gremien.models import (
     beschluss_frist,
     gruppe_2_nachziehen,
     parametertests_fortschreiben,
-    quoren_fuer,
+    personen_fuer,
     standard_ende,
     unvereinbar,
     unvereinbar_fuer,
@@ -788,14 +788,15 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
         .prefetch_related("stimmen__mitglied")
         .order_by("-entschieden_am")[:grenze]
     )
-    quoren = quoren_fuer(offene + erledigte)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
+    # eine Abfrage je Seite (Befund #77): Nenner und — bei offenen — Filter des Zählers (Befund B4)
+    personen = personen_fuer(offene + erledigte)
     zeilen = []
     for beschluss in offene + erledigte:
         stimmen = list(beschluss.stimmen.all())
         zeilen.append(
             {
                 "beschluss": beschluss,
-                "auswertung": beschluss.auswertung(aktive=quoren[beschluss.pk]),
+                "auswertung": beschluss.auswertung(aktive=len(personen[beschluss.pk]), personen=personen[beschluss.pk]),
                 "stimmen": stimmen,
                 "meine_stimme": next(
                     (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
@@ -821,11 +822,11 @@ def beschluesse_oeffentlich(request):
     if gewaehlt in Gremium.values:
         beschluesse = beschluesse.filter(gremium=gewaehlt)
     seite = list(beschluesse[: _register("gremien-beschluesse-seite", 50)])
-    quoren = quoren_fuer(seite)  # ein Nenner je Zeile, eine Abfrage je Seite (Befund #77)
+    personen = personen_fuer(seite)  # eine Abfrage je Seite (Befund #77), Zähler wie Nenner (Befund B4)
     zeilen = [
         {
             "beschluss": b,
-            "auswertung": b.auswertung(aktive=quoren[b.pk]),
+            "auswertung": b.auswertung(aktive=len(personen[b.pk]), personen=personen[b.pk]),
             "stimmen": list(b.stimmen.all()),
             "meine_stimme": None,
         }
@@ -1107,31 +1108,32 @@ def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
     Satz; die Wirkung prüft die Frist selbst). Die Software weist nie ab, sie zeigt nur an —
     feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
     jetzt = jetzt or timezone.now()
-    zeilen = []
+    laufende = []
     for vf in Vertrauensfrage.offene_mit_sperrhinweis():
         vf.antrag.fortschreiben(jetzt)  # lazy Phasen: ein verfallener Antrag gehört nicht mehr hierher
-        if not vf.laeuft:
-            continue
-        laufender = (
-            GremienBeschluss.objects.filter(
-                gremium=Gremium.INTEGRITAETSRAT,
-                anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
-                antrag=vf.antrag,
-                status=BeschlussStatus.OFFEN,
-            )
-            .order_by("-angelegt_am")
-            .first()
-        )
-        zeilen.append(
-            {
-                "vf": vf,
-                "antrag": vf.antrag,
-                "frist_ende": vf.sperrfrist_ende,
-                "frist_laeuft": jetzt <= vf.sperrfrist_ende,
-                "beschluss": laufender,
-            }
-        )
-    return zeilen
+        if vf.laeuft:
+            laufende.append(vf)
+    # Die offenen Feststellungsbeschlüsse aller Zeilen in einer Abfrage statt einer je Zeile (Befund B28);
+    # der jüngste je Antrag zählt — die Reihung nach `angelegt_am` absteigend lässt ihn zuerst kommen.
+    offene_beschluesse: dict[int, GremienBeschluss] = {}
+    if laufende:
+        for beschluss in GremienBeschluss.objects.filter(
+            gremium=Gremium.INTEGRITAETSRAT,
+            anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
+            antrag_id__in=[vf.antrag_id for vf in laufende],
+            status=BeschlussStatus.OFFEN,
+        ).order_by("-angelegt_am"):
+            offene_beschluesse.setdefault(beschluss.antrag_id, beschluss)
+    return [
+        {
+            "vf": vf,
+            "antrag": vf.antrag,
+            "frist_ende": vf.sperrfrist_ende,
+            "frist_laeuft": jetzt <= vf.sperrfrist_ende,
+            "beschluss": offene_beschluesse.get(vf.antrag_id),
+        }
+        for vf in laufende
+    ]
 
 
 @nur_gremium(Gremium.INTEGRITAETSRAT)

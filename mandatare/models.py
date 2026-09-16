@@ -20,14 +20,16 @@ Seit 0.48 (S10c) trägt dieses Modul die Vertrauensfrage (§ 7 Abs 10): die
 Fachdaten zum Antrag (`Vertrauensfrage`), das Gehör des Mandatars
 (`Stellungnahme`), die Sperrprüfung nach lit g (`sperren_pruefen` — ein Hinweis,
 nie eine Abweisung; die Feststellung trifft der Integritätsrat), die Wirkungen
-einer verlorenen Vertrauensfrage in zwei Stufen (`vertrauensfrage_wirkungen`,
-`vertrauensfragen_fortschreiben`) und die Vermerke des Rechtsschutzes.
+einer verlorenen Vertrauensfrage in zwei Stufen — Stufe 1 sofort
+(`vertrauensfrage_wirkungen`), Stufe 2 lazy in drei Schritten: Ende der Rollen,
+Ende der Vertretung, Ende der Mandatsvereinbarung (`vertrauensfragen_fortschreiben`)
+— und die Vermerke des Rechtsschutzes.
 Nichts davon setzt `Mandat.beendet`: Ob ein Mandat zurückgelegt wird,
 entscheidet allein der Mandatsträger (§ 7 Abs 2)."""
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 from django.conf import settings
 from django.db import models, transaction
@@ -85,6 +87,9 @@ ANLASS_AUSSTAND_TAGE = 30  # lit b: ein Ausstand zählt als Anlass, wenn er län
 #: über den eine Aufhebung (lit h) genau diese Rollen wiederfindet.
 RUHENSGRUND = "Vertrauensfrage (§ 7 Abs 10 lit f), Anfechtungsfrist läuft"
 BEENDIGUNGSGRUND = "Vertrauensfrage (§ 7 Abs 10 lit f)"
+#: Die Phasen, in denen eine Vertrauensfrage läuft — ohne Beratung (lit c). Dieselbe Liste lesen die
+#: Sperrprüfung (lit g zweiter Fall) und die Ansichten.
+VERTRAUENSFRAGE_LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value]
 
 
 class Mandat(models.Model):
@@ -174,11 +179,14 @@ class Mandat(models.Model):
         return self.vertrauen_entzogen_am is not None and self.bestaetigt_am is None
 
     def rueckgabezusage_wirksam(self) -> tuple[str, str]:
-        """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der Vermerk am Mandat (Verwaltung, „mandat“),
-        sonst die öffentliche Erklärung aus der Bewerbung zur verknüpften Kandidatur („bewerbung“);
-        `("", "")` heißt „keine Angabe“. Register, Seite und JSON lesen dieselbe Quelle — der Vermerk
-        nach Fristablauf darf nicht „keine Rückgabezusage“ sagen, wo die Bewerbung eine trägt."""
-        if self.rueckgabezusage:
+        """Die Rückgabezusage (§ 7 Abs 3) und ihre Quelle: der datierte Vermerk am Mandat (Verwaltung,
+        „mandat“) — auch der Widerruf auf „keine Angabe“, der `rueckgabezusage` leert und nur am Datum
+        erkennbar ist —, sonst die öffentliche Erklärung aus der Bewerbung zur verknüpften Kandidatur
+        („bewerbung“); `("", "")` heißt „keine Angabe“. Register, Seite und JSON lesen dieselbe Quelle
+        (`views._rueckgabezusagen_fuer` rechnet gleich): Der Vermerk nach Fristablauf darf weder „keine
+        Rückgabezusage“ sagen, wo die Bewerbung eine trägt, noch „nicht eingehalten“, wo sie widerrufen
+        ist — Nichtabgabe, Widerruf und Nichteinhaltung sind drei Sachverhalte (§ 7 Abs 3)."""
+        if self.rueckgabezusage or self.rueckgabezusage_am is not None:
             return self.rueckgabezusage, "mandat"
         if self.kandidatur_id:
             zusage = (
@@ -193,16 +201,9 @@ class Mandat(models.Model):
     @property
     def rueckgabe_vermerk(self) -> str:
         """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
-        — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht."""
-        if self.rueckgabe_ersucht_bis is None or self.vertrauen_entzogen_am is None:
-            return ""
-        if self.beendet is not None:
-            return str(_("Mandat zurückgelegt am %(datum)s") % {"datum": self.beendet.strftime("%d.%m.%Y")})
-        if timezone.localdate() <= self.rueckgabe_ersucht_bis:
-            return ""
-        if self.rueckgabezusage_wirksam()[0] == Rueckgabezusage.ABGEGEBEN:
-            return str(_("Rückgabezusage nicht eingehalten"))
-        return str(_("keine Rückgabezusage abgegeben"))
+        für Einzelseiten — Listen rufen `rueckgabe_vermerk_fuer` mit den gebündelt geladenen Zusagen
+        (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
+        return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
     def bestaetigen(self, grund: str, jetzt=None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
@@ -393,6 +394,24 @@ class Mandat(models.Model):
                     }
                 )
         return treffer
+
+
+def rueckgabe_vermerk_fuer(mandat: Mandat, zusage: str, heute: date | None = None) -> str:
+    """Der Vermerk des Rechenschaftsregisters nach Ablauf der Rückgabefrist (§ 7 Abs 10 lit f Z 4)
+    — ein Sachverhalt ohne Wertung, leer solange die Frist läuft oder kein Ersuchen besteht. `zusage`
+    ist die wirksame Rückgabezusage (`Mandat.rueckgabezusage_wirksam()[0]` oder aus der gebündelten
+    Abfrage der Ansichten). Ein beendetes Mandat heißt „beendet“, nicht „zurückgelegt“: Ein Mandat kann
+    auch anders enden, und ob es auf das Ersuchen hin zurückgelegt wurde, weiß die Plattform nicht
+    (Abs 2)."""
+    if mandat.rueckgabe_ersucht_bis is None or mandat.vertrauen_entzogen_am is None:
+        return ""
+    if mandat.beendet is not None:
+        return str(_("Mandat beendet am %(datum)s") % {"datum": mandat.beendet.strftime("%d.%m.%Y")})
+    if (heute or timezone.localdate()) <= mandat.rueckgabe_ersucht_bis:
+        return ""
+    if zusage == Rueckgabezusage.ABGEGEBEN:
+        return str(_("Rückgabezusage nicht eingehalten"))
+    return str(_("keine Rückgabezusage abgegeben"))
 
 
 class Aufgabenstatus(models.TextChoices):
@@ -778,9 +797,26 @@ class Vertrauensfrage(models.Model):
         ab = self.ergebnis_am
         return None if ab is None else ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
+    def rueckgabefrist_tag(self):
+        """Der letzte Tag der Rückgabefrist (lit f Z 4) als Wiener Kalendertag, einschließlich — die
+        eine Frist, die Register, Vermerk, Zähler und Stufe 2 lesen: `Mandat.rueckgabe_ersucht_bis`,
+        ersatzweise dieselbe Rechnung (`localdate(wirkungen_ab) + 30`). Nicht `wirkungen_ab + 30 Tage`
+        in UTC: Das läge am Abend vor einer Zeitumstellung einen Tag daneben, und am letzten Fristtag
+        endete die Vertretung zur Uhrzeit des Ergebnisses, während die Seite „läuft heute ab“ sagte
+        (Befunde B10/B18/B24). None ohne Wirkungen."""
+        if self.wirkungen_ab is None:
+            return None
+        return self.mandat.rueckgabe_ersucht_bis or (timezone.localdate(self.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE))
+
     @property
     def rueckgabefrist_ende(self):
-        return None if self.wirkungen_ab is None else self.wirkungen_ab + timedelta(days=RUECKGABEFRIST_TAGE)
+        """Der Zeitpunkt, mit dem die Rückgabefrist abgelaufen ist: Beginn des Folgetags nach
+        `rueckgabefrist_tag` in Wiener Zeit (Mitternacht ist nie mehrdeutig). Ab hier endet die
+        Vertretung (Z 8) und — mit lit h und Endgültigkeit — die Mandatsvereinbarung (Z 5)."""
+        tag = self.rueckgabefrist_tag()
+        if tag is None:
+            return None
+        return timezone.make_aware(datetime.combine(tag + timedelta(days=1), time.min))
 
     @property
     def rechtsschutz_stand(self) -> str:
@@ -792,13 +828,23 @@ class Vertrauensfrage(models.Model):
             return str(_("beim Parteischiedsgericht anhängig"))
         return ""
 
+    @property
+    def anfechtung_rechtzeitig(self) -> bool:
+        """Ob die vermerkte Anfechtung binnen sieben Tagen ab Veröffentlichung erhoben wurde (lit h).
+        Nur eine rechtzeitige hält Z 1/2/6 und Z 5 an (lit f letzter Unterabsatz: „bei rechtzeitiger
+        Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
+        trotzdem, ehrlich datiert."""
+        if self.angefochten_am is None or self.wirkungen_ab is None:
+            return False
+        return self.angefochten_am <= self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+
     def endgueltig_ab(self):
         """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
-        Veröffentlichung ohne Anfechtung, sonst mit der bestätigenden Entscheidung; None, solange
-        eine Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
+        Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden Entscheidung; None,
+        solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
         if self.wirkungen_ab is None or self.entscheidung == Entscheidung.AUFGEHOBEN:
             return None
-        if self.angefochten_am is None:
+        if not self.anfechtung_rechtzeitig:
             return self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
         if self.entscheidung == Entscheidung.BESTAETIGT and self.entschieden_am is not None:
             return self.entschieden_am
@@ -810,7 +856,7 @@ class Vertrauensfrage(models.Model):
         noch ohne Feststellungsbeschluss — er entscheidet binnen drei Tagen (lit b)."""
         return (
             cls.objects.exclude(sperrhinweis="")
-            .filter(sperre_beschluss__isnull=True, antrag__phase__in=[Phase.UNTERSTUETZUNG.value, Phase.ABSTIMMUNG.value])
+            .filter(sperre_beschluss__isnull=True, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)
             .select_related("antrag", "mandat")
         )
 
@@ -850,6 +896,15 @@ def stellungnahme_abgeben(vf: Vertrauensfrage, mitglied, text: str, jetzt=None) 
     return eintrag
 
 
+def bis_zum_stand_fortschreiben(antrag, jetzt) -> None:
+    """Einen liegengebliebenen Antrag bis zum Stand von `jetzt` fortschreiben — `fortschreiben` wendet
+    je Aufruf einen Übergang an, eine Vertrauensfrage braucht bis zum Ende zwei (Unterstützung →
+    Abstimmung → Ergebnis). Begrenzt wie im Cron (`verfahren_fortschreiben`)."""
+    for _schritt in range(5):
+        if not antrag.fortschreiben(jetzt):
+            break
+
+
 def _letzte_gegen(mitglied_id: int, phasen: list[str], ausser: int | None = None):
     """Die jüngste Vertrauensfrage (nicht Bestätigung) gegen dieselbe Person in einer der Phasen."""
     qs = Vertrauensfrage.objects.filter(
@@ -875,8 +930,17 @@ def sperren_pruefen(mandat: Mandat, jetzt=None, anlaesse=(), ausstaende=()) -> s
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
     gruende: list[str] = []
-    # Vierter Fall zuerst: Ohne Vertretungsbeziehung gibt es nichts, worüber die Versammlung entschiede.
     mitglied = mandat.mitglied
+    # Die Phasen sind lazy — die Sperren rechnen nach dem Tag der Einbringung (lit g letzter Satz), also mit
+    # dem fortgeschriebenen Stand (wie `stellungnahme_abgeben`): Ein an der Sammelfrist verfallener, nie
+    # aufgerufener Antrag ist am Tag 31 nicht „anhängig“ (zweiter Fall), sondern verfallen (fünfter Fall).
+    # Alle Mandate der Person, mit dem übergebenen Zeitpunkt; Bestätigungsanträge lesen die Fälle nicht
+    # (Befunde B17/B25).
+    for alt in Vertrauensfrage.objects.filter(
+        mandat__mitglied_id=mitglied.pk, art=VertrauensfrageArt.VERTRAUENSFRAGE, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND
+    ).select_related("antrag"):
+        bis_zum_stand_fortschreiben(alt.antrag, jetzt)
+    # Vierter Fall zuerst: Ohne Vertretungsbeziehung gibt es nichts, worüber die Versammlung entschiede.
     if mandat.beendet is not None:
         gruende.append(f"Das Mandat hat am {mandat.beendet:%d.%m.%Y} geendet (lit g vierter Fall).")
     elif mandat.vertretung_beendet_am is not None:
@@ -896,7 +960,7 @@ def sperren_pruefen(mandat: Mandat, jetzt=None, anlaesse=(), ausstaende=()) -> s
             f"{schonfrist_ende:%d.%m.%Y}) kann keine Vertrauensfrage eingebracht werden (lit g erster Fall{uebergang})."
         )
     # Zweiter Fall: anhängige Vertrauensfrage gegen dieselbe Person.
-    laufend = _letzte_gegen(mitglied.pk, [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value])
+    laufend = _letzte_gegen(mitglied.pk, VERTRAUENSFRAGE_LAUFEND)
     if laufend is not None:
         gruende.append(
             f"Gegen dieselbe Person ist bereits eine Vertrauensfrage anhängig (Antrag #{laufend.antrag_id}; "
@@ -945,24 +1009,42 @@ def _als_datum(wert) -> date | None:
 
 
 def _koordinationsrat_hinweis(vf: Vertrauensfrage, jetzt) -> None:
-    """Der Posteingang des Koordinationsrats: Mitteilung an den Klub (lit f Z 7), Ende der
-    Gegenleistungen und der Abführung mit Ablauf der Rückgabefrist (Z 5), gegebenenfalls Abberufung
-    nach § 6 Abs 2 lit c oder Abs 8 — Handlungen von Menschen, die die Plattform nur anstößt."""
+    """Der Posteingang des Koordinationsrats: Mitteilung an den Klub (lit f Z 7) — die eine Handlung
+    von Menschen, die die Plattform nur anstößt — und der Stand der übrigen Wirkungen, jeder Satz
+    nur so weit, wie er zutrifft (Befunde B14/B19): Die Mandatsvereinbarung endet nur mit lit h
+    (Z 5, lit j), bei Anfechtung nicht vor der Entscheidung; Funktionen in Organen ruhen und enden
+    von selbst (Z 1 und letzter Unterabsatz) — die Plattform vermerkt das Ende, ein Abberufungs-
+    beschluss ist nicht vorgesehen (Z 1 Halbsatz 2 gilt nur für einen engeren Stimmkreis, den die
+    Plattform nicht kennt). Gespeicherter Sachverhalt in der Arbeitssprache wie der Sperrhinweis."""
     from gremien.models import Hinweis, HinweisQuelle
 
     mandat = vf.mandat
-    frist = timezone.localdate(jetzt) + timedelta(days=RUECKGABEFRIST_TAGE)
+    frist = mandat.rueckgabe_ersucht_bis or (timezone.localdate(jetzt) + timedelta(days=RUECKGABEFRIST_TAGE))
+    ort = mandat.gebiet or mandat.get_ebene_display()
+    if mandat.mandatsvereinbarung_lit_h_am is not None:
+        mandatsvereinbarung = (
+            f"Die Mandatsvereinbarung, die Gegenleistungen der Partei und die Abführungspflicht enden zugleich mit "
+            f"Ablauf der Rückgabefrist, frühestens am {frist:%d.%m.%Y}; ist das Ergebnis angefochten, nicht vor der "
+            f"Entscheidung des Parteischiedsgerichts (Z 5). Kennzeichen, Konten und Kanäle sind dann zurückzugeben."
+        )
+    else:
+        mandatsvereinbarung = (
+            "Die Mandatsvereinbarung ist nicht um § 7 Abs 3 lit h ergänzt und bleibt unverändert (lit j) — "
+            "Gegenleistungen der Partei und Abführungspflicht enden dadurch nicht (Z 5 gilt nicht); ob Ergänzung "
+            "und Rückgabezusage vorliegen, weist das Rechenschaftsregister aus."
+        )
     Hinweis.objects.create(
         quelle=HinweisQuelle.VERTRAUENSFRAGE,
-        titel=f"Vertrauensfrage verloren: {mandat.bezeichnung}, {mandat.gebiet or mandat.get_ebene_display()}"[:200],
+        titel=f"Vertrauensfrage verloren: {mandat.bezeichnung}, {ort}"[:200],
         text=(
-            f"Die Mitgliederversammlung hat dem Mandat „{mandat.bezeichnung}“ ({mandat.gebiet or mandat.get_ebene_display()}) "
+            f"Die Mitgliederversammlung hat dem Mandat „{mandat.bezeichnung}“ ({ort}) "
             f"am {timezone.localtime(jetzt):%d.%m.%Y} das Vertrauen versagt (Antrag #{vf.antrag_id}).\n"
-            f"Zu veranlassen (§ 7 Abs 10 lit f): Mitteilung an den Parlamentsklub oder die Fraktion (Z 7); "
-            f"Gegenleistungen der Partei und Abführungspflicht enden mit Ablauf der Rückgabefrist am {frist:%d.%m.%Y} "
-            f"zugleich (Z 5), Kennzeichen, Konten und Kanäle sind zurückzugeben; hat die Person Funktionen in Organen "
-            f"der Partei, ruhen sie bis zum Ablauf der Anfechtungsfrist — über eine Abberufung nach § 6 Abs 2 lit c "
-            f"oder Abs 8 entscheidet der Rat. Anfechtung binnen sieben Tagen beim Parteischiedsgericht (lit h)."
+            f"Zu veranlassen (§ 7 Abs 10 lit f): Mitteilung an den Parlamentsklub oder die Fraktion (Z 7). "
+            f"{mandatsvereinbarung} Hat die Person Funktionen in Organen der Partei, ruhen sie ab jetzt und enden "
+            f"mit Ablauf der Anfechtungsfrist von selbst (lit f Z 1 und letzter Unterabsatz; bei rechtzeitiger "
+            f"Anfechtung mit der Entscheidung des Parteischiedsgerichts) — die Plattform vermerkt das Ende; ein "
+            f"Abberufungsbeschluss ist nicht erforderlich. Anfechtung binnen sieben Tagen beim Parteischiedsgericht "
+            f"(lit h)."
         )[:4000],
         antrag=vf.antrag,
         angelegt_am=jetzt,
@@ -1026,80 +1108,147 @@ def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None) -> None:
 
 def vertrauensfragen_fortschreiben(jetzt=None) -> int:
     """Stufe 2 der Wirkungen — lazy, aus Mandatar- und Antragsseiten und `verfahren_fortschreiben`
-    (§ 7 Abs 10 lit f letzter Unterabsatz, Z 5 und Z 8):
+    (§ 7 Abs 10 lit f letzter Unterabsatz, Z 5 und Z 8). Drei Schritte, jeder für sich:
 
-    - Sieben Tage nach der Veröffentlichung ohne Anfechtung, sonst mit der bestätigenden Entscheidung
-      des Parteischiedsgerichts, wird das Ruhen der Gremienrollen zum Ende (`wirkungen_endgueltig_am`).
-    - Mit Ablauf der Rückgabefrist (30 Tage), frühestens aber dann, endet die Vertretung
-      (`vertretung_beendet_am`: Rolle „Mandatar“ endet, Bereich und Register bleiben) und — nur bei
-      Mandatsvereinbarungen mit lit h — die Mandatsvereinbarung (`mandatsvereinbarung_endet_am`).
-    Solange eine Anfechtung offen ist, wartet alles; nach einer Aufhebung geschieht nichts mehr.
-    Nichts davon setzt `Mandat.beendet`. Rückgabe: Zahl der geänderten Vertrauensfragen."""
+    (a) Sieben Tage nach der Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden
+        Entscheidung des Parteischiedsgerichts (`endgueltig_ab`), wird das Ruhen der Gremienrollen zum
+        Ende (`wirkungen_endgueltig_am`).
+    (b) Mit Ablauf des im Register ausgewiesenen Fristtags (`rueckgabefrist_tag`, einschließlich) endet
+        die Vertretung (`vertretung_beendet_am` = der Fristtag: Rolle „Mandatar“ endet, Bereich und
+        Register bleiben) — Z 8 kennt keinen Anfechtungsvorbehalt, also auch bei offener Anfechtung;
+        eine Aufhebung nimmt es zurück (lit h: „die Wirkungen nach lit f entfallen“).
+    (c) Nur bei Mandatsvereinbarungen mit lit h: Sie endet mit Ablauf der Rückgabefrist, bei Anfechtung
+        nicht vor der Entscheidung (Z 5 letzter Satz) — am späteren der beiden Tage.
+    Nach einer Aufhebung geschieht nichts mehr. Jede Vertrauensfrage läuft in ihrer eigenen
+    Transaktion: Bricht ein Schritt ab, bleibt kein halber Stempel stehen, der den nächsten Lauf
+    überspringen ließe (Befund B29). Geladen wird nur, was noch etwas zu tun hat. Nichts davon setzt
+    `Mandat.beendet`. Rückgabe: Zahl der geänderten Vertrauensfragen."""
     from gremien.models import Rolle
 
     jetzt = jetzt or timezone.now()
+    heute = timezone.localdate(jetzt)
     geaendert = 0
-    offene = Vertrauensfrage.objects.filter(
-        art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False
-    ).exclude(entscheidung=Entscheidung.AUFGEHOBEN).select_related("mandat", "mandat__mitglied")
+    offene = (
+        Vertrauensfrage.objects.filter(art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False)
+        .exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+        .filter(
+            models.Q(wirkungen_endgueltig_am__isnull=True)
+            | models.Q(mandat__vertretung_beendet_am__isnull=True)
+            | models.Q(mandat__mandatsvereinbarung_lit_h_am__isnull=False, mandat__mandatsvereinbarung_endet_am__isnull=True)
+        )
+        .select_related("mandat", "mandat__mitglied")
+    )
     for vf in offene:
         mandat = vf.mandat
-        if mandat.vertretung_beendet_am is not None:
-            continue  # alles vollzogen
         endgueltig_ab = vf.endgueltig_ab()
-        if endgueltig_ab is None or jetzt < endgueltig_ab:
-            continue
-        beruehrt = False
-        if vf.wirkungen_endgueltig_am is None:
-            vf.wirkungen_endgueltig_am = endgueltig_ab
-            vf.save(update_fields=["wirkungen_endgueltig_am"])
-            beendet = []
-            for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=""):
-                rolle.beendet_grund = BEENDIGUNGSGRUND
-                rolle.save(update_fields=["beendet_grund"])
-                beendet.append(rolle.pk)
-            AuditEintrag.anhaengen(
-                {
-                    "typ": "vertrauensfrage_endgueltig",
-                    "antrag": vf.antrag_id,
-                    "mandat": mandat.pk,
-                    "endgueltig_ab": endgueltig_ab.isoformat(),
-                    "rollen_beendet": beendet,
-                }
-            )
-            beruehrt = True
-        rueckgabe_ende = max(vf.rueckgabefrist_ende, endgueltig_ab)
-        if jetzt >= rueckgabe_ende:
-            tag = timezone.localdate(rueckgabe_ende)
-            mandat.vertretung_beendet_am = tag
-            felder = ["vertretung_beendet_am"]
-            if mandat.mandatsvereinbarung_lit_h_am is not None and mandat.mandatsvereinbarung_endet_am is None:
+        endgueltig = endgueltig_ab is not None and jetzt >= endgueltig_ab
+        frist_tag = vf.rueckgabefrist_tag()
+        frist_um = heute > frist_tag
+        tue_a = vf.wirkungen_endgueltig_am is None and endgueltig
+        tue_b = mandat.vertretung_beendet_am is None and frist_um
+        tue_c = (
+            mandat.mandatsvereinbarung_lit_h_am is not None
+            and mandat.mandatsvereinbarung_endet_am is None
+            and frist_um
+            and endgueltig
+        )
+        if not (tue_a or tue_b or tue_c):
+            continue  # nichts fällig — und kein Savepoint für nichts
+        with transaction.atomic():
+            # (a) Ruhen wird zum Ende
+            if tue_a:
+                vf.wirkungen_endgueltig_am = endgueltig_ab
+                vf.save(update_fields=["wirkungen_endgueltig_am"])
+                beendet = []
+                for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=""):
+                    rolle.beendet_grund = BEENDIGUNGSGRUND
+                    rolle.save(update_fields=["beendet_grund"])
+                    beendet.append(rolle.pk)
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "vertrauensfrage_endgueltig",
+                        "antrag": vf.antrag_id,
+                        "mandat": mandat.pk,
+                        "endgueltig_ab": endgueltig_ab.isoformat(),
+                        "rollen_beendet": beendet,
+                    }
+                )
+            # (b) Vertretung endet mit Ablauf des Fristtags (Z 8) — ohne Anfechtungsvorbehalt
+            if tue_b:
+                mandat.vertretung_beendet_am = frist_tag
+                mandat.save(update_fields=["vertretung_beendet_am"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "vertretung_beendet",
+                        "antrag": vf.antrag_id,
+                        "mandat": mandat.pk,
+                        "ab": frist_tag.isoformat(),
+                        "rueckgabezusage": mandat.rueckgabezusage,
+                    }
+                )
+            # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
+            if tue_c:
+                tag = max(frist_tag, timezone.localdate(endgueltig_ab))
                 mandat.mandatsvereinbarung_endet_am = tag
-                felder.append("mandatsvereinbarung_endet_am")
-            mandat.save(update_fields=felder)
-            AuditEintrag.anhaengen(
-                {
-                    "typ": "vertretung_beendet",
-                    "antrag": vf.antrag_id,
-                    "mandat": mandat.pk,
-                    "ab": tag.isoformat(),
-                    "mandatsvereinbarung_endet": "mandatsvereinbarung_endet_am" in felder,
-                    "rueckgabezusage": mandat.rueckgabezusage,
-                }
-            )
-            beruehrt = True
-        geaendert += int(beruehrt)
+                mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
+                AuditEintrag.anhaengen(
+                    {"typ": "mandatsvereinbarung_beendet", "antrag": vf.antrag_id, "mandat": mandat.pk, "ab": tag.isoformat()}
+                )
+        geaendert += 1
     return geaendert
 
 
-def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> None:
-    """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). Solange der
-    Vermerk steht, wird das Ruhen nicht zum Ende und die Mandatsvereinbarung endet nicht."""
+@transaction.atomic
+def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> bool:
+    """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). `jetzt` ist
+    der Tag der Anrufung — die Verwaltung vermerkt ihn meist später und rückdatiert.
+
+    Solange eine rechtzeitige Anfechtung offen ist, wird das Ruhen nicht zum Ende und die
+    Mandatsvereinbarung endet nicht (lit f letzter Unterabsatz, Z 5 letzter Satz). Lief Stufe 2 schon
+    lazy, bevor der Vermerk kam (Anrufung Tag 6, Seitenaufruf Tag 8, Vermerk Tag 9), wird sie
+    zurückgenommen: `wirkungen_endgueltig_am` geleert, die mit dem Beendigungsgrund dieser
+    Vertrauensfrage beendeten Rollen wieder ruhend (nicht aktiv), `mandatsvereinbarung_endet_am`
+    geleert; das Ende der Vertretung (Z 8) bleibt — es hängt nicht an der Anfechtung (Befund B5).
+    Eine verspätete Anfechtung (nach sieben Tagen) ändert an den Wirkungen nichts; sie wird ehrlich
+    datiert vermerkt, `endgueltig_ab` rechnet weiter mit dem Fristablauf. Rückgabe: ob Stufe 2
+    zurückgenommen wurde."""
+    from gremien.models import Rolle
+
     jetzt = jetzt or timezone.now()
     vf.angefochten_am = jetzt
     vf.aktenkennung = (aktenkennung or "").strip()[:80]
     vf.save(update_fields=["angefochten_am", "aktenkennung"])
-    AuditEintrag.anhaengen({"typ": "vertrauensfrage_angefochten", "antrag": vf.antrag_id, "mandat": vf.mandat_id})
+    vf.refresh_from_db()  # Stufe 2 kann inzwischen lazy gelaufen sein — der Stempel steht dann nur in der Datenbank
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_angefochten",
+            "antrag": vf.antrag_id,
+            "mandat": vf.mandat_id,
+            "rechtzeitig": vf.anfechtung_rechtzeitig,
+        }
+    )
+    if not (vf.anfechtung_rechtzeitig and vf.wirkungen_endgueltig_am is not None):
+        return False
+    mandat = vf.mandat
+    vf.wirkungen_endgueltig_am = None
+    vf.save(update_fields=["wirkungen_endgueltig_am"])
+    wieder_ruhend = []
+    for rolle in Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, beendet_grund=BEENDIGUNGSGRUND):
+        rolle.beendet_grund = ""
+        rolle.save(update_fields=["beendet_grund"])
+        wieder_ruhend.append(rolle.pk)
+    if mandat.mandatsvereinbarung_endet_am is not None:
+        mandat.mandatsvereinbarung_endet_am = None
+        mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "vertrauensfrage_anfechtung_nachgeholt",
+            "antrag": vf.antrag_id,
+            "mandat": mandat.pk,
+            "rollen_ruhen_wieder": wieder_ruhend,
+        }
+    )
+    return True
 
 
 @transaction.atomic

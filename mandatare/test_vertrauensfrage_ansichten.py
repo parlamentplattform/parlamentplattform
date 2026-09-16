@@ -758,6 +758,28 @@ def test_band_mitwirkung_ruht_nur_bei_wirklich_ruhendem_status(client, ordnung, 
     assert 'name="aktion" value="sammelbericht"' not in html and 'name="aktion" value="monatsbericht"' not in html
 
 
+def test_verwaltung_liest_die_rueckgabezusage_aus_derselben_quelle_wie_die_seite(client, ordnung):  # noqa: F811
+    """Ein Sachverhalt, eine Anzeige: Trägt die Bewerbung die Erklärung, sagt auch die Verwaltung „abgegeben ·
+    erklärt bei der Bewerbung“ — sonst könnte sie grundlos „nicht abgegeben“ nachtragen. Nach einem Vermerk
+    gilt der Vermerk, mit Datum."""
+    from verfahren.models import antrag_einbringen
+
+    anna = mitglied_anlegen("anna", tage=600)
+    kandidatur = antrag_einbringen(anna, "Listenreihung", "Reihung.", "", ordnung, art=Antragsart.MANDAT)
+    Bewerbung.objects.create(antrag=kandidatur, mitglied=anna, vorstellung="Ich.", rueckgabezusage=Rueckgabezusage.ABGEGEBEN)
+    mandat = mandat_anlegen(anna, kandidatur=kandidatur)
+    client.force_login(admin_anlegen())
+
+    def zeile():  # die Zeile „Rückgabezusage: …“ der Karte, vor dem Formular (dessen Auswahl „keine Angabe“ nennt)
+        html = client.get(reverse("mandatare:verwaltung")).content.decode()
+        return html.split(f'id="vertrauen-{mandat.pk}"')[1].split("</p>")[0]
+
+    assert ">abgegeben</strong>" in zeile() and "erklärt bei der Bewerbung" in zeile() and "keine Angabe" not in zeile()
+    client.post(VERWALTUNG_AKTION, {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "nicht_abgegeben"})
+    assert ">nicht abgegeben</strong>" in zeile() and f"vermerkt am {timezone.localdate():%d.%m.%Y}" in zeile()
+    assert "erklärt bei der Bewerbung" not in zeile()
+
+
 def test_band_nach_der_nachfrist_verspricht_keine_eintraege_mehr(client, ordnung, altmandat):  # noqa: F811
     antrag, ende = _verloren(ordnung, altmandat)
     _sechs_monate_zurueck(antrag, altmandat)

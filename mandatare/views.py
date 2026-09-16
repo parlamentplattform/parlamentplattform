@@ -1372,15 +1372,19 @@ def verwaltung(request):
         Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
     )
     heute = timezone.localdate()
+    zusagen = _rueckgabezusagen_fuer(mandate)  # dieselbe Quelle wie Seite, Register und JSON — eine Abfrage für alle
     karten = []
     for m in mandate:
         alle = list(m.vertrauensfragen.all())
+        zusage, zusage_quelle = zusagen[m.pk]
         karten.append(
             {
                 "m": m,
                 "vertrauensfragen": [vf for vf in alle if vf.antrag.phase in BEENDET or vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND],
                 "bestaetigung_ab": bestaetigung_zulaessig_ab(m) if m.kandidatursperre else None,
                 "rueckgabe": _tage_zaehler(m.rueckgabe_ersucht_bis, heute) if m.vertrauen_entzogen_am else None,
+                "rueckgabezusage": Rueckgabezusage(zusage).label,
+                "rueckgabezusage_quelle": zusage_quelle,
             }
         )
     return render(

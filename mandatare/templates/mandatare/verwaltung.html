@@ -72,7 +72,7 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
 
   <details class="klappe" id="vertrauen-{{ m.pk }}"{% if k.vertrauensfragen or m.vertrauen_entzogen_am %} open{% endif %}>
     <summary>{% translate "Vertrauensfrage und Rückgabezusage (§ 7 Abs 3, Abs 10)" %}</summary>
-    <p class="erk">{% translate "Rückgabezusage:" %} <strong>{{ m.get_rueckgabezusage_display }}</strong>{% if m.rueckgabezusage_am %} · {% translate "vermerkt am" %} {{ m.rueckgabezusage_am|date:"d.m.Y" }}{% endif %}
+    <p class="erk">{% translate "Rückgabezusage:" %} <strong>{{ k.rueckgabezusage }}</strong>{% if k.rueckgabezusage_quelle == "bewerbung" %} · {% translate "erklärt bei der Bewerbung" %}{% elif k.rueckgabezusage_quelle == "mandat" and m.rueckgabezusage_am %} · {% translate "vermerkt am" %} {{ m.rueckgabezusage_am|date:"d.m.Y" }}{% endif %}
       · {% if m.mandatsvereinbarung_lit_h_am %}{% translate "Mandatsvereinbarung enthält § 7 Abs 3 lit h seit" %} {{ m.mandatsvereinbarung_lit_h_am|date:"d.m.Y" }}{% else %}{% translate "Mandatsvereinbarung ohne Ergänzung um § 7 Abs 3 lit h" %}{% endif %}
       {% if m.vertrauen_entzogen_am %} · <strong class="ausstand">{% translate "Vertrauen entzogen am" %} {{ m.vertrauen_entzogen_am|date:"d.m.Y" }}</strong> · {% translate "Rückgabefrist bis" %} {{ m.rueckgabe_ersucht_bis|date:"d.m.Y" }}{% if m.rueckgabe_vermerk %} · {{ m.rueckgabe_vermerk }}{% endif %}{% endif %}
       {% if m.vertretung_beendet_am %} · {% translate "Vertretung beendet am" %} {{ m.vertretung_beendet_am|date:"d.m.Y" }}{% endif %}

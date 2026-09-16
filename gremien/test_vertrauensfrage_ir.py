@@ -94,6 +94,38 @@ def test_die_karte_zeigt_nur_laufende_vertrauensfragen_mit_hinweis_und_ohne_besc
     assert inhalt.count('value="vertrauensfrage_sperre"') == 1
 
 
+def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, ordnung):  # noqa: F811
+    """Befund B28: je Vertrauensfrage mit Sperrhinweis eine eigene Beschluss-Abfrage — linear zur Zahl der
+    Zeilen. Jetzt eine Abfrage für alle Zeilen; die Fortschreibung je Antrag bleibt (lazy Phasen)."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from gremien.views import _vertrauensfragen_mit_sperrhinweis
+
+    leute = rat(3)
+    erste, _vf = mit_hinweis(ordnung, name="q1")
+    client.force_login(leute[0])
+    client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": erste.pk, "beschreibung": "Schonfrist."},
+    )  # ein offener Feststellungsbeschluss zur ersten Zeile
+
+    def beschluss_abfragen():
+        with CaptureQueriesContext(connection) as erfasst:
+            zeilen = _vertrauensfragen_mit_sperrhinweis()
+        return zeilen, [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
+
+    zeilen, klein = beschluss_abfragen()
+    assert len(zeilen) == 1 and zeilen[0]["beschluss"] is not None
+    for i in range(4):
+        mit_hinweis(ordnung, name=f"q{i + 2}")
+    zeilen, gross = beschluss_abfragen()
+    assert len(zeilen) == 5
+    assert len(gross) == len(klein) == 1, (klein, gross)
+    je_antrag = {z["antrag"].pk: z["beschluss"] for z in zeilen}
+    assert je_antrag[erste.pk] is not None and all(b is None for pk, b in je_antrag.items() if pk != erste.pk)
+
+
 def test_ohne_hinweis_bleibt_die_karte_leer(client, ordnung):  # noqa: F811
     client.force_login(rat(1)[0])
     inhalt = client.get(reverse("gremien:integritaet")).content.decode()

@@ -1108,31 +1108,32 @@ def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
     Satz; die Wirkung prüft die Frist selbst). Die Software weist nie ab, sie zeigt nur an —
     feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
     jetzt = jetzt or timezone.now()
-    zeilen = []
+    laufende = []
     for vf in Vertrauensfrage.offene_mit_sperrhinweis():
         vf.antrag.fortschreiben(jetzt)  # lazy Phasen: ein verfallener Antrag gehört nicht mehr hierher
-        if not vf.laeuft:
-            continue
-        laufender = (
-            GremienBeschluss.objects.filter(
-                gremium=Gremium.INTEGRITAETSRAT,
-                anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
-                antrag=vf.antrag,
-                status=BeschlussStatus.OFFEN,
-            )
-            .order_by("-angelegt_am")
-            .first()
-        )
-        zeilen.append(
-            {
-                "vf": vf,
-                "antrag": vf.antrag,
-                "frist_ende": vf.sperrfrist_ende,
-                "frist_laeuft": jetzt <= vf.sperrfrist_ende,
-                "beschluss": laufender,
-            }
-        )
-    return zeilen
+        if vf.laeuft:
+            laufende.append(vf)
+    # Die offenen Feststellungsbeschlüsse aller Zeilen in einer Abfrage statt einer je Zeile (Befund B28);
+    # der jüngste je Antrag zählt — die Reihung nach `angelegt_am` absteigend lässt ihn zuerst kommen.
+    offene_beschluesse: dict[int, GremienBeschluss] = {}
+    if laufende:
+        for beschluss in GremienBeschluss.objects.filter(
+            gremium=Gremium.INTEGRITAETSRAT,
+            anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
+            antrag_id__in=[vf.antrag_id for vf in laufende],
+            status=BeschlussStatus.OFFEN,
+        ).order_by("-angelegt_am"):
+            offene_beschluesse.setdefault(beschluss.antrag_id, beschluss)
+    return [
+        {
+            "vf": vf,
+            "antrag": vf.antrag,
+            "frist_ende": vf.sperrfrist_ende,
+            "frist_laeuft": jetzt <= vf.sperrfrist_ende,
+            "beschluss": offene_beschluesse.get(vf.antrag_id),
+        }
+        for vf in laufende
+    ]
 
 
 @nur_gremium(Gremium.INTEGRITAETSRAT)

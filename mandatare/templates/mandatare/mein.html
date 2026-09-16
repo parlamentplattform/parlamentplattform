@@ -37,7 +37,8 @@ das betroffene Formular wieder vor.
 {% if identitaet_ungeprueft %}
 <div class="band-gold">{% translate "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
-{% elif not darf_berichten %}
+{% elif not user.darf_mitwirken %}
+{# nur der wahre Grund: der Status — nach dem Ende der Vertretung (lit f Z 8) ruht nichts, das Band oben sagt das #}
 <div class="band-gold">{% translate "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status." %}
   <a href="{% url 'mitglieder:willkommen' %}">{% translate "Zum Beitrag →" %}</a></div>
 {% endif %}

@@ -619,6 +619,37 @@ def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbun
     assert eintrag["rueckgabezusage"] == "" and eintrag["rueckgabezusage_quelle"] == "mandat"
 
 
+def test_band_mitwirkung_ruht_nur_bei_wirklich_ruhendem_status(client, ordnung, altmandat):  # noqa: F811
+    """Nach dem Ende der Vertretung (lit f Z 8) und der Nachfrist darf die Person nicht mehr schreiben —
+    aber nicht, weil ihr Status ruht: Das Band „Ihre Mitwirkung ruht … mit aktivem Status“ wäre bei aktivem
+    Status und geprüfter Identität eine falsche Aussage (lit i: Mitgliedschaft und Rechte bleiben unberührt).
+    Bei pausiertem Status bleibt das Band — auch in der Nachfrist, dann ohne Berichtsformulare."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    _sechs_monate_zurueck(antrag, altmandat)
+    person = altmandat.mitglied
+    assert person.darf_mitwirken and not altmandat.in_nachfrist()
+    client.force_login(person)
+    html = client.get(MEIN).content.decode()
+    assert "Die Vertretung endete am" in html and 'name="aktion" value="bestaetigung"' in html
+    assert "Ihre Mitwirkung ruht" not in html and "aktivem Status" not in html
+    # Gegenprobe: pausiert nach der Nachfrist → das Band stimmt
+    person.status = Mitgliedsstatus.PAUSIERT
+    person.save(update_fields=["status"])
+    html = client.get(MEIN).content.decode()
+    assert "Ihre Mitwirkung ruht" in html and 'name="aktion" value="bestaetigung"' not in html
+    # Gegenprobe: pausiert in der Nachfrist (Vertretung seit drei Tagen beendet) → Band da, keine Berichtsformulare
+    frueher = timezone.now() - tage(13)
+    Mandat.objects.filter(pk=altmandat.pk).update(
+        vertrauen_entzogen_am=frueher, rueckgabe_ersucht_bis=timezone.localdate(frueher) + tage(10),
+        vertretung_beendet_am=timezone.localdate(frueher) + tage(10),
+    )
+    altmandat.refresh_from_db()
+    assert altmandat.in_nachfrist()
+    html = client.get(MEIN).content.decode()
+    assert "Ihre Mitwirkung ruht" in html and "sind noch bis" in html
+    assert 'name="aktion" value="sammelbericht"' not in html and 'name="aktion" value="monatsbericht"' not in html
+
+
 def test_band_nach_der_nachfrist_verspricht_keine_eintraege_mehr(client, ordnung, altmandat):  # noqa: F811
     antrag, ende = _verloren(ordnung, altmandat)
     _sechs_monate_zurueck(antrag, altmandat)

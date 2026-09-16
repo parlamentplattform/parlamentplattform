@@ -151,7 +151,14 @@ def test_ohne_javascript_bleibt_der_chat_bedienbar(seite, live_server, demo):
     # Antworten (Befund #12/#28): der Link belegt das Ziel vor, der Chip steht ohne Skript da,
     # die Antwort landet eingerückt unter dem Wurzelbeitrag — daraus entsteht das Gespräch
     p.wait_for_timeout(600)  # der Ankersprung (scroll-behavior: smooth) muss zur Ruhe kommen
-    p.locator(f'#k-{wurzel.pk} a.blase-knopf:text("Antworten")').click()
+    # Seit Playwright 1.63 (Chromium 153) rollt Playwright den Knopf vor dem Klick mit der weichen
+    # Bewegung der Seite heran (scroll-behavior: smooth) und wechselt bei jedem Versuch die Ausrichtung —
+    # der Knopf bewegt sich dadurch dauernd, gilt als „nicht stabil“, und der Klick läuft in die Zeitgrenze.
+    # Deshalb einmal sofort heranholen; danach ist nichts mehr in Bewegung, und der Klick trifft.
+    antworten = p.locator(f'#k-{wurzel.pk} a.blase-knopf:text("Antworten")')
+    antworten.evaluate("el => el.scrollIntoView({behavior: 'instant', block: 'center'})")
+    p.wait_for_timeout(300)
+    antworten.click()
     p.wait_for_load_state()
     p.wait_for_timeout(600)
     assert f"antwort_auf={wurzel.pk}" in p.url

@@ -1403,6 +1403,7 @@ class MandatFormular(forms.Form):
 def verwaltung(request):
     form = MandatFormular()
     vertrauensfragen_fortschreiben()
+    _laufende_fortschreiben(Vertrauensfrage.objects.all())  # ein Ende ohne Seitenaufruf: die Karte zeigt es sofort
     mandate = list(
         Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
     )
@@ -1492,6 +1493,11 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
 
     if aktion == "anfechtung":
         vf = _vertrauensfrage_der_verwaltung(request)
+        if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND and vf.antrag.fortschreiben():
+            # Die Abstimmung ist ohne Seitenaufruf zu Ende gegangen (lazy Phasen): Stufe 1 hat eben auf einer
+            # frischen Instanz gestempelt — der Vermerk rechnet mit dem Stand danach, nicht mit dem geladenen.
+            vertrauensfragen_fortschreiben()
+            vf = _vertrauensfrage_der_verwaltung(request)
         if vf.ergebnis_am is None:
             # lit h kennt vier Anfechtungsfälle; die Plattform vermerkt nur den vierten (Zustandekommen des
             # Ergebnisses) — die Meldung darf der Satzung keine Grenze zuschreiben, die sie nicht enthält.

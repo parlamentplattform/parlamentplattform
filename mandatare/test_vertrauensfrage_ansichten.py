@@ -577,6 +577,25 @@ def test_erster_aufruf_nach_dem_ende_der_vertretung_rechnet_mit_dem_neuen_stand(
     assert antrag.pk
 
 
+def test_verwaltung_sieht_das_ergebnis_auch_als_erster_aufruf_nach_dem_fristende(client, ordnung, altmandat):  # noqa: F811
+    """Die Abstimmung endete vor zwei Tagen, niemand rief eine Seite auf, die Verwaltung will die Anfechtung
+    vermerken (lit h): Die Karte nennt das Ergebnis und bietet das Formular; der Vermerk gelingt — nicht die
+    Meldung, es gebe noch kein veröffentlichtes Ergebnis. Der Vermerk selbst holt den Stand nach, falls die
+    Seite ihn nicht schon geholt hat."""
+    antrag = _abstimmung_abgelaufen_ohne_aufruf(ordnung, altmandat, vor_tagen=2)
+    vf = antrag.vertrauensfrage
+    client.force_login(admin_anlegen())
+    html = client.get(reverse("mandatare:verwaltung")).content.decode()
+    karte = html.split(f'id="vertrauen-{altmandat.pk}"')[1]
+    assert "Vertrauensfrage verloren" in karte and f'name="vertrauensfrage" value="{vf.pk}"' in karte
+    assert 'value="anfechtung"' in karte
+    zweiter = _abstimmung_abgelaufen_ohne_aufruf(ordnung, _weiteres_altmandat("zwei"), vor_tagen=2)
+    antwort = client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": zweiter.vertrauensfrage.pk, "aktenkennung": "PSG 2"})
+    assert "Anfechtung vermerkt" in meldungen(antwort), meldungen(antwort)
+    zweiter.refresh_from_db()
+    assert zweiter.phase == Phase.ANGENOMMEN.value and zweiter.vertrauensfrage.angefochten_am is not None
+
+
 def test_rueckgabezusage_aus_der_bewerbung_und_im_wahlvorschlag(client, ordnung):  # noqa: F811
     from verfahren.models import antrag_einbringen
 

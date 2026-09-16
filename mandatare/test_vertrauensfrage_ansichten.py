@@ -228,6 +228,25 @@ def test_band_im_bereich_waehrend_die_vertrauensfrage_laeuft(client, ordnung, al
     assert len(ids) == len(set(ids)), "doppelte id im Dokument"
 
 
+def test_nach_verlorener_vertrauensfrage_bietet_der_report_keine_mandatsfrage_an(client, ordnung, altmandat):  # noqa: F811
+    """§ 7 Abs 10 lit f Z 6: Die Befugnis, Abstimmungen zu betreuen, ruht ab der Veröffentlichung des
+    Ergebnisses — der Report bleibt möglich, das Häkchen „Daraus eine Abstimmung erzeugen“ fehlt, und der
+    Bereich sagt, warum. Eine Aufhebung durch das Parteischiedsgericht (lit h) bringt das Häkchen zurück."""
+    client.force_login(altmandat.mitglied)
+    html = client.get(MEIN).content.decode()
+    assert 'name="abstimmung"' in html and "ruht die Befugnis" not in html
+    antrag, ende = _verloren(ordnung, altmandat)
+    html = client.get(MEIN).content.decode()
+    assert 'name="aktion" value="report"' in html  # der Report selbst bleibt (Mandat noch aktiv)
+    assert 'name="abstimmung"' not in html
+    assert "ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6)" in html
+    vf = antrag.vertrauensfrage
+    mm.vertrauensfrage_anfechtung_vermerken(vf, "PSG 2026/9", jetzt=ende + tage(1))
+    mm.vertrauensfrage_entscheidung_vermerken(vf, "aufgehoben", jetzt=ende + tage(10))
+    html = client.get(MEIN).content.decode()
+    assert 'name="abstimmung"' in html and "ruht die Befugnis" not in html
+
+
 def test_bestaetigung_erst_nach_sechs_monaten_und_nur_fuer_die_person(client, ordnung, altmandat):  # noqa: F811
     rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
     antrag, ende = _verloren(ordnung, altmandat)

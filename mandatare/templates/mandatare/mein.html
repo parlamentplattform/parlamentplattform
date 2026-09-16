@@ -89,8 +89,12 @@ das betroffene Formular wieder vor.
       <label for="ir-zeit">{% translate "Uhrzeit (sonst 23:59)" %} <input type="time" id="ir-zeit" name="frist_zeit"{% if fehler_bei == "report" %} value="{{ eingabe.frist_zeit }}"{% endif %}></label>
     </div>
     <label class="ankreuz" for="ir-sitzungstag"><input type="checkbox" id="ir-sitzungstag" name="sitzungstag"{% if fehler_bei == "report" and eingabe.sitzungstag %} checked{% endif %}> {% translate "Die Frist ist ein Sitzungstag — danach sind Sammelbericht und Rechenschaft fällig." %}</label>
+    {% if darf_mandatsfrage %}
     <label class="schalter" for="ir-abstimmung">{% translate "Daraus eine Abstimmung im Parlament erzeugen (Mandatsfrage)" %} <input type="checkbox" id="ir-abstimmung" name="abstimmung"{% if fehler_bei == "report" and eingabe.abstimmung %} checked{% endif %}></label>
     {% if ordnung_fehlt %}<span class="hilfe">{% translate "Derzeit gilt keine Verfahrensordnung — eine Abstimmung kann noch nicht entstehen." %}</span>{% endif %}
+    {% else %}
+    <span class="hilfe">{% translate "Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu betreuen (§ 7 Abs 10 lit f Z 6) — der Report bleibt möglich, eine Mandatsfrage entsteht daraus nicht." %}</span>
+    {% endif %}
     <button type="submit" class="btn" style="margin-top:8px">{% translate "Report veröffentlichen" %}</button>
   </form>
   {% else %}

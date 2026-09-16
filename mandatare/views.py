@@ -941,6 +941,10 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "mandat": mandat,
             "mandate": mandate,
             "darf_schreiben": mitwirken and mandat.aktiv,
+            # § 7 Abs 10 lit f Z 6: Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu
+            # betreuen — der Report bleibt, das Häkchen „Daraus eine Abstimmung erzeugen“ nicht. Eine Aufhebung
+            # (lit h) leert `vertrauen_entzogen_am` und belebt die Befugnis wieder; die Fachoperation prüft dasselbe.
+            "darf_mandatsfrage": mitwirken and mandat.aktiv and mandat.vertrauen_entzogen_am is None,
             "darf_berichten": mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute)),
             # Die Bestätigung nach § 7 Abs 10 lit f Z 3 hängt nicht an der Vertretung — sie ist der Weg zurück.
             "darf_bestaetigen": mitwirken and vertrauen["bestaetigung_moeglich"],

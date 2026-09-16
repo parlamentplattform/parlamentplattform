@@ -108,9 +108,19 @@ NACHFRIST_AKTIONEN = ("sammelbericht", "rechenschaft", "monatsbericht")
 #: Aufgaben samt verknüpftem Antrag vorladen — `_aufgaben_sortiert` und `offene_pflichten_fuer`
 #: lesen dann `aufgaben.all()` ohne weitere Abfrage.
 AUFGABEN_VORGELADEN = Prefetch("aufgaben", queryset=Aufgabe.objects.select_related("antrag"))
-#: Vertrauensfragen samt Antrag vorladen — der Abschnitt „Vertrauen“ liest dann `vertrauensfragen.all()`.
+
+
+def _mit_beteiligung(qs):
+    """Die abgegebenen Stimmen je Vertrauensfrage als Zähler in derselben Abfrage — keine je Zeile
+    (§ 7 Abs 10 lit e: „Ergebnis und Beteiligung … dauerhaft ausgewiesen“)."""
+    return qs.annotate(n_stimmen=Count("antrag__stimmabgaben", distinct=True))
+
+
+#: Vertrauensfragen samt Antrag und Beteiligung vorladen — der Abschnitt „Vertrauen“ liest dann
+#: `vertrauensfragen.all()` und `vf.n_stimmen`.
 VERTRAUENSFRAGEN_VORGELADEN = Prefetch(
-    "vertrauensfragen", queryset=Vertrauensfrage.objects.select_related("antrag").order_by("-antrag__eingebracht_am")
+    "vertrauensfragen",
+    queryset=_mit_beteiligung(Vertrauensfrage.objects.select_related("antrag")).order_by("-antrag__eingebracht_am"),
 )
 #: Handlungen der Verwaltung an einer Vertrauensfrage, die eine Anfechtung voraussetzen (lit h).
 ENTSCHEIDUNGEN = (Entscheidung.AUFGEHOBEN.value, Entscheidung.BESTAETIGT.value)
@@ -147,7 +157,7 @@ def _vertrauensfragen_von(mandat) -> tuple[list[Vertrauensfrage], bool]:
     if "vertrauensfragen" in getattr(mandat, "_prefetched_objects_cache", {}):
         alle = list(mandat.vertrauensfragen.all())
     else:
-        alle = list(mandat.vertrauensfragen.select_related("antrag").order_by("-antrag__eingebracht_am"))
+        alle = list(_mit_beteiligung(mandat.vertrauensfragen.select_related("antrag")).order_by("-antrag__eingebracht_am"))
     geaendert = False
     for vf in alle:
         if vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND and vf.antrag.fortschreiben():
@@ -343,7 +353,7 @@ def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None
         qs = qs.filter(mandat__ebene=ebene)
     for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND):
         vf.antrag.fortschreiben()
-    return list(qs.filter(antrag__phase__in=BEENDET).order_by("-antrag__phase_beginn"))
+    return list(_mit_beteiligung(qs.filter(antrag__phase__in=BEENDET)).order_by("-antrag__phase_beginn"))
 
 
 def _register_zeilen(eintraege, vertrauensfragen) -> list[dict]:
@@ -675,11 +685,12 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     laufende = [vf for vf in qs.filter(antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)]
     for vf in laufende:
         vf.antrag.fortschreiben()
-    qs = qs.annotate(
-        n_unterstuetzungen=Count(
-            "antrag__unterstuetzungen", filter=Q(antrag__unterstuetzungen__zurueckgezogen_am__isnull=True), distinct=True
-        ),
-        n_stimmen=Count("antrag__stimmabgaben", distinct=True),
+    qs = _mit_beteiligung(
+        qs.annotate(
+            n_unterstuetzungen=Count(
+                "antrag__unterstuetzungen", filter=Q(antrag__unterstuetzungen__zurueckgezogen_am__isnull=True), distinct=True
+            )
+        )
     ).order_by("-antrag__eingebracht_am")
     jetzt = timezone.now()
     zeilen = []

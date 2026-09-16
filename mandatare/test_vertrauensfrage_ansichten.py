@@ -619,6 +619,21 @@ def test_widerruf_der_rueckgabezusage_verdraengt_die_erklaerung_aus_der_bewerbun
     assert eintrag["rueckgabezusage"] == "" and eintrag["rueckgabezusage_quelle"] == "mandat"
 
 
+def test_register_und_abschnitt_vertrauen_weisen_die_beteiligung_aus(client, ordnung, altmandat):  # noqa: F811
+    """lit e letzter Satz: „Ergebnis und Beteiligung werden … im Rechenschaftsregister nach Abs 5 sowie im
+    öffentlichen Bereich nach Abs 9 dauerhaft ausgewiesen“ — nicht nur unter /vertrauensfragen/."""
+    verloren, ende = _verloren(ordnung, altmandat)  # fünf Stimmberechtigte stimmen mit Ja
+    beteiligung = f"5 Stimmen von {verloren.stimmberechtigte_anzahl} Stimmberechtigten"
+    detail = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()
+    assert beteiligung in detail.split('id="vertrauen"')[1]
+    for url in (reverse("mandatare:rechenschaft"), reverse("mandatare:rechenschaft_mandat", args=[altmandat.pk])):
+        html = client.get(url).content.decode()
+        zeile = html.split('<tr class="vertrauensfrage">')[1].split("</tr>")[0]
+        assert "Ergebnis der Mitgliederversammlung (§ 7 Abs 10 lit e)" in zeile and beteiligung in zeile
+    client.force_login(altmandat.mitglied)
+    assert beteiligung in client.get(MEIN).content.decode()
+
+
 def test_liste_und_kopf_der_seite_vermerken_das_ende_der_vertretung(client, ordnung, altmandat):  # noqa: F811
     """lit f Z 8: Die Person ist nicht mehr Mandatsträger der DDÖ; Bereich und Register werden fortgeführt
     und weisen das Ergebnis aus. Liste, Kopf der öffentlichen Seite und Register je Mandatar tragen den

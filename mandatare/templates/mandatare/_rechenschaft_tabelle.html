@@ -23,7 +23,7 @@ Ergebnisse von Vertrauensfragen (`vf`, § 7 Abs 10 lit e) in einer Reihe — und
     <td data-label="{% translate 'Gegenstand' %}"><span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{{ vf.antrag.titel }}</a></td>
     <td data-label="{% translate 'Beschluss der Plattform' %}"{% if vf.verloren %} class="weicht"{% endif %}>{{ vf.ergebnis_wort }}</td>
     <td data-label="{% translate 'Stimme' %}">–</td>
-    <td data-label="{% translate 'Begründung' %}"><span class="meta">{% translate "Ergebnis der Mitgliederversammlung (§ 7 Abs 10 lit e)" %}{% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% endif %}{% if z.vermerk %} · {{ z.vermerk }}{% endif %}</span></td>
+    <td data-label="{% translate 'Begründung' %}"><span class="meta">{% translate "Ergebnis der Mitgliederversammlung (§ 7 Abs 10 lit e)" %} · {% blocktranslate with n=vf.n_stimmen s=vf.antrag.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% endif %}{% if z.vermerk %} · {{ z.vermerk }}{% endif %}</span></td>
   </tr>
   {% endwith %}{% else %}
   <tr>

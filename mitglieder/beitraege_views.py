@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -24,6 +23,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder import bank
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.mail import send_mail
 from mitglieder.models import Bankkopplung, Beitragseingang, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from mitglieder.views import BEITRAG_RICHTWERT, IBAN, _beitrags_qr

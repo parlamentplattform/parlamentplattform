@@ -68,7 +68,7 @@ def _ausweis_vorschau(mitglied: Mitglied) -> dict:
     try:
         return {"ausweis": ausweis_svg(mitglied), "ausweis_stoerung": False, "name_fehlt": False,
                 "ausweis_probe_versandt": mitglied.postauftrag_set.filter(
-                    art="ausweis_vorschau", erledigt=True, anhang_versandt_am__isnull=False).exists()}
+                    art="ausweis_vorschau_2", erledigt=True, anhang_versandt_am__isnull=False).exists()}
     except (OSError, ValueError):
         log.exception("Vorschau des Mitgliedsausweises für Mitglied %s nicht erzeugbar.", mitglied.pk)
         return {"ausweis": None, "ausweis_stoerung": True, "name_fehlt": False}
@@ -550,6 +550,8 @@ def daten_export(mitglied: Mitglied) -> dict:
         "postauftraege": list(m.postauftrag_set.order_by("pk").values(
             "art", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche", "naechster_versuch")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
+        "mitgliedsnummer": m.mitgliedsnummer,
+        "testkonto": m.testkonto,
         "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),

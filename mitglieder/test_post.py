@@ -60,17 +60,17 @@ def test_bestaetigung_schickt_den_willkommensbrief_genau_einmal(client, settings
     assert text.startswith("Guten Tag Eva Muster,")
     # Ehrlich gegen `_mitwirkung_gesperrt`: Ungeprüfte lesen alles, einbringen/unterstützen/mitreden erst
     # nach der Freischaltung — der Brief verspricht nichts, was die Plattform am selben Tag verweigert.
-    assert "Ab sofort können Sie alles lesen: Anträge, Beratungen und Ergebnisse sind öffentlich (§ 2 Abs 5)." in text
-    assert "Einbringen, Unterstützen und Mitreden sowie Stimm- und Wahlrecht setzen eine geprüfte Identität voraus." in text
+    assert "Sie können bereits alle Vorschläge, Diskussionen und Ergebnisse lesen." in text
+    assert "prüfen wir Ihre Anmeldung" in text
     assert "Ab sofort können Sie Anträge einbringen" not in text
-    assert "Nach der Freischaltung gilt für Abstimmungen und Wahlen: Stimmberechtigt sind Sie ohne Wartefrist" in text
-    assert "Übergangsregel des § 4 Abs 4 lit d" in text and "ab sofort" not in text  # Satzungsbezug statt Daten
-    assert "geprüfte Identität" in text and "Selbsteinschätzung (§ 4 Abs 3)" in text
+    assert "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen." in text
+    assert "Aufbauphase" in text and "§" not in text  # Satzungsbezug statt Daten
+    assert "prüfen wir Ihre Anmeldung" in text and "Die Beitragshöhe bestimmen Sie selbst." in text
     assert beitragsreferenz(m) in text and f"{BASIS}/beitrag/" in text
     assert f"Öffentlich erscheinen Sie als „Mitglied {m.pk}“" in text  # ohne Haken: kein Klarname (§ 5 Abs 3 lit a)
     for pfad in ("/einfuehrung/1/", "/parlament/", "/profil/"):
         assert f"{BASIS}{pfad}" in text
-    assert text.rstrip().endswith("Direkte Demokratie Österreich — Wir sind das Werkzeug.")
+    assert "Direkte Demokratie Österreich — Wir sind das Werkzeug." in text and "502117" in text
     assert "<" not in text  # reiner Text, keine Bilder, kein HTML
     m.refresh_from_db()
     assert m.willkommen_post_am is not None
@@ -91,9 +91,10 @@ def test_willkommensbrief_rechnet_die_anwartschaft_ehrlich_ohne_uebergangsregel(
     text = mail.outbox[1].body
     sach = monate_addieren(m.beitritt, 3)
     pers = monate_addieren(m.beitritt, 12)
-    assert f"bei Sachfragen ab {sach:%d.%m.%Y}, bei Personenwahlen, Satzungsänderungen und der Auflösung ab {pers:%d.%m.%Y}." in text
+    assert f"Über inhaltliche Vorschläge können Sie ab {sach:%d.%m.%Y} abstimmen." in text
+    assert f"können Sie ab {pers:%d.%m.%Y} teilnehmen." in text
     assert "Übergangsregel" not in text
-    assert "Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a)" in text
+    assert "Ihrem Status beim Start dieser Abstimmung" in text
     assert "Öffentlich erscheinen Sie als „Eva Muster“" in text  # mit Haken: der Klarname
 
 
@@ -119,11 +120,11 @@ def test_bankabgleich_schickt_beitragsbestaetigung_und_freischaltung(settings):
     assert [n.subject for n in mail.outbox] == [BEITRAG, FREISCHALTUNG]
     text = mail.outbox[1].body
     assert text.startswith("Guten Tag Nina Neu,")
-    assert "Ihre Prüfung ist abgeschlossen (Stufe: geprüft (Beitragseingang verbucht))." in text
+    assert "Ihre Anmeldung ist geprüft und Ihr Konto ist freigeschaltet." in text
     pers = monate_addieren(m.beitritt, 12)
     # 200 Tage dabei: Sachfragen schon erreicht, Personenwahlen noch nicht.
-    assert f"bei Sachfragen ab sofort, bei Personenwahlen, Satzungsänderungen und der Auflösung ab {pers:%d.%m.%Y}." in text
-    assert f"{BASIS}/parlament/" in text and text.rstrip().endswith("Wir sind das Werkzeug.")
+    assert f"können Sie ab {pers:%d.%m.%Y} teilnehmen." in text
+    assert f"{BASIS}/parlament/" in text and "Wir sind das Werkzeug." in text
     m.refresh_from_db()
     assert m.freischaltung_post_am is not None
     assert [e["mitglied"] for e in post_audit("freischaltung")] == [m.pk]
@@ -142,10 +143,10 @@ def test_verwaltung_setzt_praesenz_und_loest_die_freischaltung_aus(client, setti
     assert anna.identitaetsstufe == Identitaetsstufe.PRAESENZ
     assert [n.subject for n in mail.outbox] == [FREISCHALTUNG]
     text = mail.outbox[0].body
-    assert "(Stufe: Präsenz-Identitätsfeststellung (§ 13 Abs 2))" in text
-    assert "Ab sofort können Sie Anträge einbringen, unterstützen und mitreden (§ 4 Abs 4 lit b)." in text
+    assert "Ihre Anmeldung ist geprüft und Ihr Konto ist freigeschaltet." in text
+    assert "Sie können jetzt eigene Vorschläge einbringen" in text
     assert "ruhen" not in text  # aktives Konto
-    assert "ohne Wartefrist" in text and "§ 4 Abs 4 lit d" in text
+    assert "ohne zusätzliche Wartefrist" in text and "§" not in text
     assert len(post_audit("freischaltung")) == 1
 
     # Danach verbucht die Bank: Beitragsbestätigung, aber keine zweite Freischaltung.
@@ -167,7 +168,7 @@ def test_freischaltung_eines_pausierten_kontos_verspricht_keine_mitwirkung(clien
     client.post(detail(paul.pk), stammdaten(paul, identitaetsstufe=Identitaetsstufe.PRAESENZ))
     assert [n.subject for n in mail.outbox] == [FREISCHALTUNG]
     text = mail.outbox[0].body
-    assert "Ihre Mitwirkungsrechte ruhen allerdings, solange der Mitgliedsbeitrag aussteht (§ 4 Abs 3)" in text
+    assert "Ihre Mitgliedschaft ist derzeit pausiert." in text
     assert "Ab sofort können Sie Anträge einbringen" not in text
     paul.refresh_from_db()
     assert paul.status == Mitgliedsstatus.PAUSIERT and paul.freischaltung_post_am is not None

@@ -1,7 +1,7 @@
 """Einseitiger Mitgliedsausweis mit 1,5 mm Beschnitt (ADR-010, A0-13).
 
 Nach bestätigter Anmeldung mit Status „Prüfung ausständig“, nach Freischaltung
-mit dem belegten Nachweis. Das PDF bettet die Schrift ein und verändert Namen
+ohne Angabe der Nachweismethode. Das PDF bettet die Schrift ein und verändert Namen
 nicht. Der QR-Code zeigt den aktuellen Status ohne Namen und gewährt keine Rechte.
 """
 
@@ -96,6 +96,7 @@ def ausweis_moeglich(mitglied: Mitglied) -> bool:
     „ungeprüft“ (§ 4 Abs 1 und 3), nicht ausgetreten oder ausgeschlossen."""
     return (
         mitglied.is_active
+        and not mitglied.testkonto
         and mitglied.status not in (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)
     )
 
@@ -150,11 +151,15 @@ def pruef_url(mitglied: Mitglied) -> str:
 
 def ausweis_daten(mitglied: Mitglied) -> Ausweis:
     """Die Angaben der Karte — immer Deutsch (wie die Briefe; ein Sprachfeld am Konto gibt es nicht)."""
+    from mitglieder.nummern import sicherstellen
+    nummer = sicherstellen(mitglied)
+    if nummer is None:
+        raise ValueError("Testkonten erhalten keinen Mitgliedsausweis.")
     ausweis_code_sicherstellen(mitglied)
     with translation.override("de"):
         beitritt = mitglied.beitritt or timezone.localdate(mitglied.ausweis_ausgestellt_am)
         return Ausweis(
-            nummer=mitglied.pk,
+            nummer=nummer,
             name=name_fuer_karte(mitglied),
             seit=formats.date_format(beitritt, "F Y"),
             stufe=STUFE_KURZ.get(mitglied.identitaetsstufe, "geprüft"),
@@ -166,7 +171,8 @@ def ausweis_daten(mitglied: Mitglied) -> Ausweis:
 
 
 def dateiname(mitglied: Mitglied) -> str:
-    return f"Mitgliedsausweis-DDOE-{mitglied.pk:06d}.pdf"
+    from mitglieder.nummern import sicherstellen
+    return f"Mitgliedsausweis-DDOE-{sicherstellen(mitglied):06d}.pdf"
 
 
 # ── Schrift: WinAnsi und die Helvetica-Breiten (Adobe-Standardmetrik, 1/1000 em) ─────────────
@@ -399,8 +405,8 @@ def zeichne_vorderseite(z: Zeichner, a: Ausweis) -> None:
     for x, beschriftung, wert in spalten:
         z.text(x, innen + 24.6, beschriftung, 4.6, GOLD_SANFT, laufweite=0.7)
         z.text(x, innen + 28.8, wert, _einpassen(wert, 8, 21, False, 6), PAPIER)
-    z.text(innen, innen + 33.6, "NACHWEIS", 4.6, GOLD_SANFT, laufweite=0.7)
-    z.text(innen, innen + 37.8, a.stufe, _einpassen(a.stufe, 8, fx - innen - 3, False, 6), PAPIER)
+    if a.stufe == "Prüfung ausständig":
+        z.text(innen, innen + 37.8, a.stufe, 8, PAPIER)
     fuss = SEITE_HOEHE_MM - innen + 1.0  # Grundlinie in der Mitte des Schattenbands, 3,5 mm über der Kante
     z.text(innen, fuss, "Wir sind das Werkzeug.", 6, GOLD, kursiv=True)
     z.text(innen + 31, fuss, a.plattform, _einpassen(a.plattform, 6, breite - 31, False, 4.5), LEISTENTINTE)
@@ -658,12 +664,11 @@ def ausweis_pdf(mitglied: Mitglied, jetzt=None) -> bytes:
 
 
 def ausweis_svg(mitglied: Mitglied) -> tuple[str, str]:
-    """Vorder- und Rückseite als zwei SVG-Bilder für die Vorschau im Profil — zusammen einzubinden
-    (die Rückseite verweist auf das Logo der Vorderseite)."""
+    """Einseitige Vorschau; der zweite Rückgabewert bleibt aus Kompatibilität leer."""
     a = ausweis_daten(mitglied)
     vorne = SvgZeichner(
-        _("Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, Mitglied seit %(seit)s, Nachweis %(stufe)s")
-        % {"name": a.name, "nummer": a.nummer_text, "seit": a.seit, "stufe": _(a.stufe)},
+        _("Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, seit %(seit)s")
+        % {"name": a.name, "nummer": a.nummer_text, "seit": a.seit},
         "ausweis-v",
     )
     zeichne_vorderseite(vorne, a)

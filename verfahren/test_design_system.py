@@ -83,6 +83,10 @@ def test_keine_harten_farben_in_inline_styles_der_templates():
     """Inline-Styles außerhalb von SVG-Grafiken dürfen kein Hex tragen (Spec 1.5)."""
     treffer = []
     for pfad in _templates():
+        if pfad.relative_to(WURZEL).as_posix() == "mitglieder/templates/mitglieder/post/brief.html":
+            # ADR-010: E-Mail-Clients unterstützen die CSS-Variablen des App-Rahmens nicht.
+            # Diese Vorlage wird ausschließlich als Mailalternative versendet.
+            continue
         text = pfad.read_text(encoding="utf-8")
         text = re.sub(r"<svg.*?</svg>", "", text, flags=re.S)
         for m in re.finditer(r'style="([^"]*)"', text):

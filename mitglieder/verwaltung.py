@@ -30,7 +30,6 @@ from smtplib import SMTPException
 from django import forms
 from django.conf import settings
 from django.contrib import messages
-from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -39,6 +38,7 @@ from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden
 from verfahren.models import AuditEintrag

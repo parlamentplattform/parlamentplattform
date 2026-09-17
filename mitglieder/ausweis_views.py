@@ -81,7 +81,7 @@ def ausweis_pruefen(request, nummer: int, code: str):
         request,
         "mitglieder/ausweis_pruefen.html",
         {
-            "nummer": f"{nummer:06d}",
+            "nummer": mitglied.mitgliedsnummer_text if (gueltig or ausstaendig) else "—",
             "gueltig": gueltig,
             "ausstaendig": ausstaendig,
             "angaben": angaben,
@@ -95,11 +95,11 @@ def ausweis_pruefen(request, nummer: int, code: str):
 @require_POST
 def ausweis_probe(request):
     """Eigene Mailvorschau; keine Empfängerparameter und keine fremden Konten."""
-    from mitglieder.postausgang import beauftragen
+    from mitglieder.postausgang import AUSWEIS_VORSCHAU, beauftragen
 
     if not ausweis_erstellbar(request.user):
         messages.error(request, _("Für den Probeversand muss Ihr eigener Ausweis im Profil verfügbar sein."))
-    elif beauftragen(request.user, "ausweis_vorschau"):
+    elif beauftragen(request.user, AUSWEIS_VORSCHAU):
         messages.success(request, _("Die Ausweis-Vorschau ist zum Versand an Ihre hinterlegte E-Mail-Adresse vorgemerkt."))
     else:
         messages.info(request, _("Die Ausweis-Vorschau wurde bereits angefordert."))

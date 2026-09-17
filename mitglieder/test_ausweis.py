@@ -53,6 +53,8 @@ def geprueftes_mitglied(name="anna", **extra):
     for feld, wert in extra.items():
         setattr(m, feld, wert)
     m.save()
+    from mitglieder.nummern import sicherstellen
+    sicherstellen(m)
     return m
 
 
@@ -194,7 +196,7 @@ def test_ein_code_ausserhalb_von_ascii_oder_ohne_vergabe_ist_nie_gueltig(client)
 def test_die_angaben_der_karte_sind_deutsch_kurz_und_ohne_adresse(settings):
     m = geprueftes_mitglied(gemeinde="Eferding")
     a = aw.ausweis_daten(m)
-    assert a.name == "Anna Müller-Öhlinger" and a.nummer == m.pk and a.nummer_text == f"{m.pk:06d}"
+    assert a.name == "Anna Müller-Öhlinger" and a.nummer == m.mitgliedsnummer and a.nummer_text == f"{m.mitgliedsnummer:06d}"
     assert re.fullmatch(r"[A-Za-zäöüÄÖÜ]+ \d{4}", a.seit) and a.stufe == "Beitrag verbucht"
     assert a.plattform == "parlament.ddoe.at" and a.pruef_adresse == f"parlament.ddoe.at/ausweis/{m.pk}/{a.code}"
     assert "Eferding" not in (a.name, a.seit, a.stufe, a.ausgestellt)
@@ -296,8 +298,8 @@ def test_pdf_enthaelt_name_nummer_nachweis_logo_und_qr():
     pdf = aw.ausweis_pdf(m)
     seite = PdfReader(BytesIO(pdf)).pages[0]
     text = seite.extract_text()
-    assert m.get_full_name() in text and f"{m.pk:06d}" in text
-    assert "Beitrag verbucht" in text and "MITGLIEDSAUSWEIS" in text
+    assert m.get_full_name() in text and f"{m.mitgliedsnummer:06d}" in text
+    assert "Beitrag verbucht" not in text and "NACHWEIS" not in text and "MITGLIEDSAUSWEIS" in text
     assert len(seite.images) == 1
     assert seite.get_contents().get_data().count(b"\nf*") > 200
 
@@ -332,10 +334,10 @@ def test_die_vorschau_zeigt_die_geschnittene_karte_und_laedt_das_logo_nur_einmal
         assert '<use href="#ausweis-logo-bild"/>' in svg
     assert vorne.count("data:image/png;base64,") == 1 and 'id="ausweis-logo-bild"' in vorne
     assert "data:image/png;base64," not in hinten
-    assert "Anna Müller-Öhlinger" in vorne and f"{m.pk:06d}" in vorne and "MITGLIEDSAUSWEIS" in vorne
+    assert "Anna Müller-Öhlinger" in vorne and f"{m.mitgliedsnummer:06d}" in vorne and "MITGLIEDSAUSWEIS" in vorne
     assert 'id="ausweis-v-karte"' in vorne
     assert 'aria-label="Mitgliedsausweis, Vorderseite: Anna Müller-Öhlinger, Nr. ' in vorne
-    assert "Nachweis Beitrag verbucht" in vorne
+    assert "Nachweis" not in vorne and "Beitrag verbucht" not in vorne
     assert aw._svg_text('a"b<c>&') == "a&quot;b&lt;c&gt;&amp;"
 
 
@@ -348,10 +350,10 @@ def test_der_freischaltungsbrief_traegt_den_ausweis_als_pdf_anhang():
     brief = mail.outbox[-1]
     assert len(brief.attachments) == 1
     name, inhalt, typ = brief.attachments[0]
-    assert name == f"Mitgliedsausweis-DDOE-{m.pk:06d}.pdf" and typ == "application/pdf"
+    assert name == f"Mitgliedsausweis-DDOE-{m.mitgliedsnummer:06d}.pdf" and typ == "application/pdf"
     assert inhalt.startswith(b"%PDF-1.4")
-    assert f"Mitgliedsausweis Nr. {m.pk:06d} als PDF im Kartenformat" in brief.body
-    assert "mit geprüftem Nachweis besteht" in brief.body and "/profil/#ausweis" in brief.body
+    assert f"Mitgliedsausweis Nr. {m.mitgliedsnummer:06d} als PDF im Kartenformat" in brief.body
+    assert "ob der Ausweis aktuell gültig ist" in brief.body and "/profil/#ausweis" in brief.body
     assert audit("post")[-1] == {"typ": "post", "art": "freischaltung", "mitglied": m.pk, "anhang": True}
     assert not freischaltung_senden(m)  # einmal je Konto
 
@@ -414,7 +416,7 @@ def test_den_ausweis_laedt_nur_das_eigene_gepruefte_konto(client):
     client.force_login(m)
     antwort = client.get(url)
     assert antwort.status_code == 200 and antwort["Content-Type"] == "application/pdf"
-    assert antwort["Content-Disposition"] == f'attachment; filename="Mitgliedsausweis-DDOE-{m.pk:06d}.pdf"'
+    assert antwort["Content-Disposition"] == f'attachment; filename="Mitgliedsausweis-DDOE-{m.mitgliedsnummer:06d}.pdf"'
     assert antwort.content.startswith(b"%PDF-1.4") and "no-store" in antwort["Cache-Control"]
 
 
@@ -441,7 +443,7 @@ def test_die_pruefseite_sagt_gueltig_oder_nicht_gueltig_und_nennt_keinen_namen(c
     antwort = client.get(f"/ausweis/{m.pk}/{code}/")
     html = antwort.content.decode()
     assert "no-store" in antwort["Cache-Control"]
-    assert 'data-stand="gueltig"' in html and f"Nr. {m.pk:06d} ist gültig" in html and "&#10003;" in html
+    assert 'data-stand="gueltig"' in html and f"Nr. {m.mitgliedsnummer:06d} ist gültig" in html and "&#10003;" in html
     assert "Anna" not in html and "Müller" not in html and "Nachweis Beitrag verbucht" in html
     falsch = client.get(f"/ausweis/{m.pk}/{'0' * 10}/").content.decode()
     assert 'data-stand="ungueltig"' in falsch and "keinen gültigen Mitgliedsausweis" in falsch

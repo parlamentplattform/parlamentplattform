@@ -2,16 +2,16 @@
 
 {% blocktranslate %}Ihre E-Mail-Adresse ist bestätigt — willkommen bei Direkte Demokratie Österreich. Sie sind jetzt Anwärterin bzw. Anwärter.{% endblocktranslate %}
 
-{% blocktranslate %}Ab sofort können Sie alles lesen: Anträge, Beratungen und Ergebnisse sind öffentlich (§ 2 Abs 5).{% endblocktranslate %}
+{% blocktranslate %}Sie können bereits alle Vorschläge, Diskussionen und Ergebnisse lesen. Diese sind öffentlich zugänglich.{% endblocktranslate %}
 
-{% blocktranslate %}Einbringen, Unterstützen und Mitreden sowie Stimm- und Wahlrecht setzen eine geprüfte Identität voraus. Der erste Eingang Ihres Mitgliedsbeitrags schaltet Ihr Konto frei — die Höhe ist Ihre Selbsteinschätzung (§ 4 Abs 3). Ihre persönliche Referenz für die Überweisung: {{ referenz }}{% endblocktranslate %}
+{% blocktranslate %}Bevor Sie selbst Vorschläge einbringen, unterstützen, mitdiskutieren und abstimmen können, prüfen wir Ihre Anmeldung. Mit dem ersten Eingang Ihres Mitgliedsbeitrags wird Ihr Konto freigeschaltet. Die Beitragshöhe bestimmen Sie selbst. Bitte verwenden Sie für Ihre Überweisung diese persönliche Referenz: {{ referenz }}{% endblocktranslate %}
 {{ basis }}/beitrag/
 
-{% blocktranslate %}Nach der Freischaltung gilt für Abstimmungen und Wahlen:{% endblocktranslate %} {{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
+{% blocktranslate %}Nach der Freischaltung gilt für Abstimmungen und Wahlen:{% endblocktranslate %} {{ stimmrecht }} {% blocktranslate %}Ob Sie an einer bestimmten Abstimmung teilnehmen können, richtet sich nach Ihrem Status beim Start dieser Abstimmung. Werden Sie erst danach freigeschaltet, können Sie bei den folgenden Abstimmungen mitmachen.{% endblocktranslate %}
 
 {% if ausweis %}{% blocktranslate %}Im Anhang finden Sie Ihren Mitgliedsausweis als einseitiges PDF im Kartenformat. Solange die Prüfung aussteht, ist dies auf der Karte vermerkt. Nach der Freischaltung erhalten Sie automatisch eine aktualisierte Ausgabe.{% endblocktranslate %}{% else %}{% blocktranslate %}Ihren Mitgliedsausweis liefern wir automatisch nach, sobald er erzeugt werden kann. Bitte prüfen Sie, ob in Ihrem Profil ein Name hinterlegt ist.{% endblocktranslate %}{% endif %}
 
-{% blocktranslate %}Öffentlich erscheinen Sie als „{{ anzeigename }}“; den Anzeigenamen wählen Sie im Profil (§ 5 Abs 3 lit a).{% endblocktranslate %}
+{% blocktranslate %}Öffentlich erscheinen Sie als „{{ anzeigename }}“. Diesen Anzeigenamen können Sie in Ihrem Profil ändern.{% endblocktranslate %}
 
 {% translate "Einführung:" %} {{ basis }}/einfuehrung/1/
 {% translate "Parlament:" %} {{ basis }}/parlament/

@@ -6878,26 +6878,14 @@ msgstr "Dear %(name)s,"
 msgid "Ihre E-Mail-Adresse ist bestätigt — willkommen bei Direkte Demokratie Österreich. Sie sind jetzt Anwärterin bzw. Anwärter."
 msgstr "Your e-mail address is confirmed — welcome to Direkte Demokratie Österreich. You are now a candidate member."
 
-msgid "Ab sofort können Sie alles lesen: Anträge, Beratungen und Ergebnisse sind öffentlich (§ 2 Abs 5)."
-msgstr "As of now you can read everything: motions, deliberations and results are public (§ 2 (5))."
 
 msgid "Nach der Freischaltung gilt für Abstimmungen und Wahlen:"
 msgstr "Once your account is unlocked, the following applies to votes and elections:"
 
-msgid "Ab sofort können Sie Anträge einbringen, unterstützen und mitreden (§ 4 Abs 4 lit b)."
-msgstr "As of now you can submit and support motions and join the discussion (§ 4 (4) lit b)."
 
-msgid "Ihre Mitwirkungsrechte ruhen allerdings, solange der Mitgliedsbeitrag aussteht (§ 4 Abs 3); mit dem nächsten Beitragseingang leben sie wieder auf."
-msgstr "Your participation rights are, however, suspended while your membership fee is outstanding (§ 4 (3)); they revive with the next fee receipt."
 
-msgid "Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a)."
-msgstr "The reference date is always the start of a vote (§ 4 (4) lit a)."
 
-msgid "Einbringen, Unterstützen und Mitreden sowie Stimm- und Wahlrecht setzen eine geprüfte Identität voraus. Der erste Eingang Ihres Mitgliedsbeitrags schaltet Ihr Konto frei — die Höhe ist Ihre Selbsteinschätzung (§ 4 Abs 3). Ihre persönliche Referenz für die Überweisung: %(referenz)s"
-msgstr "Submitting, supporting and discussing motions as well as voting and electoral rights require a verified identity. The first receipt of your membership fee unlocks your account — the amount is your own assessment (§ 4 (3)). Your personal reference for the transfer: %(referenz)s"
 
-msgid "Öffentlich erscheinen Sie als „%(anzeigename)s“; den Anzeigenamen wählen Sie im Profil (§ 5 Abs 3 lit a)."
-msgstr "Publicly you appear as “%(anzeigename)s”; you choose your display name in your profile (§ 5 (3) lit a)."
 
 msgid "Einführung:"
 msgstr "Introduction:"
@@ -6905,14 +6893,8 @@ msgstr "Introduction:"
 msgid "Parlament:"
 msgstr "Parliament:"
 
-msgid "Ihre Prüfung ist abgeschlossen (Stufe: %(stufe)s). Damit sind Stimm- und Wahlrecht für Sie möglich."
-msgstr "Your verification is complete (level: %(stufe)s). Voting and electoral rights are now possible for you."
 
-msgid "Stimmberechtigt sind Sie ohne Wartefrist — für den Aufbau gilt die Übergangsregel des § 4 Abs 4 lit d; die Anwartschaftsfristen entfallen, bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat."
-msgstr "You are entitled to vote without a waiting period — during the build-up phase the transitional rule of § 4 (4) lit d applies; the qualifying periods are waived until the members’ assembly has adopted the first rules of procedure."
 
-msgid "Stimmberechtigt sind Sie nach der Anwartschaft des § 4 Abs 4: bei Sachfragen %(sachfragen)s, bei Personenwahlen, Satzungsänderungen und der Auflösung %(personenwahlen)s."
-msgstr "You are entitled to vote after the qualifying period of § 4 (4): on substantive questions %(sachfragen)s, on elections of persons, amendments to the statutes and dissolution %(personenwahlen)s."
 
 msgid "ab sofort"
 msgstr "as of now"
@@ -7756,8 +7738,6 @@ msgstr "You will receive your membership card with the activation (verified leve
 msgid "Mitglied seit %(seit)s · Nachweis %(stufe)s · Mitgliedschaft besteht."
 msgstr "Member since %(seit)s · proof %(stufe)s · membership exists."
 
-msgid "Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, Mitglied seit %(seit)s, Nachweis %(stufe)s"
-msgstr "Membership card, front: %(name)s, no. %(nummer)s, member since %(seit)s, proof %(stufe)s"
 
 msgid "Zu dieser Nummer besteht keine Mitgliedschaft mit geprüftem Nachweis, oder der Code stimmt nicht."
 msgstr "There is no membership with verified proof for this number, or the code is wrong."
@@ -7775,14 +7755,10 @@ msgstr "Registration is confirmed. Activation is still pending; this card does n
 msgid "Prüfung ausständig"
 msgstr "Verification pending"
 
-msgid "88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis zeigt Ihren Prüfstatus und bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen."
-msgstr "88.60 × 56.98 mm including bleed, front only. The card shows your verification status and does not certify eligibility to vote. The QR code opens the current status check without displaying your name. The card number is your membership number. After a name change, you can download the card again here."
 
 msgid "Für den Mitgliedsausweis braucht es einen Namen auf der Karte — ergänzen Sie Ihren Anzeigenamen im Profil; danach erscheint er hier."
 msgstr "The membership card needs a name. Please add your display name in your profile; the card will then appear here."
 
-msgid "Im Anhang finden Sie Ihren Mitgliedsausweis Nr. %(nummer)s als PDF im Kartenformat (eine Vorderseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft mit geprüftem Nachweis besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:"
-msgstr "Attached is your membership card no. %(nummer)s as a card-sized PDF (front only, for printing or your phone). It is valid while your membership with verified evidence continues; the QR code opens the verification page. You can download it again from your profile:"
 
 msgid "Ihren Mitgliedsausweis liefern wir automatisch nach, sobald er erzeugt werden kann. Bitte prüfen Sie, ob in Ihrem Profil ein Name hinterlegt ist."
 msgstr "We will automatically send your membership card as soon as it can be generated. Please check that your profile includes a name."
@@ -7817,3 +7793,39 @@ msgstr "Preview: %(betreff)s"
 
 msgid "Ihre Ausweis-Vorschau wurde per E-Mail versendet."
 msgstr "Your membership card preview has been sent by email."
+
+msgid "88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen."
+msgstr "88.60 × 56.98 mm including bleed, one front side. The card does not confirm voting eligibility. The QR code opens the current status check without displaying a name. Your card number is your membership number. After a name change, you can download the card again here."
+
+msgid "Ihre Mitgliedschaft ist derzeit pausiert. Sobald Ihr offener Mitgliedsbeitrag eingegangen ist, können Sie wieder mitmachen und abstimmen."
+msgstr "Your membership is currently paused. Once your outstanding membership contribution has arrived, you can participate and vote again."
+
+msgid "Sie können jetzt eigene Vorschläge einbringen, Vorschläge anderer Mitglieder unterstützen und sich an Diskussionen beteiligen."
+msgstr "You can now submit your own proposals, support proposals by other members and join discussions."
+
+msgid "Ihre Anmeldung ist geprüft und Ihr Konto ist freigeschaltet. Willkommen zum Mitgestalten!"
+msgstr "Your registration has been checked and your account is now activated. Welcome aboard!"
+
+msgid "Ob Sie an einer bestimmten Abstimmung teilnehmen können, richtet sich nach Ihrem Status beim Start dieser Abstimmung. Werden Sie erst danach freigeschaltet, können Sie bei den folgenden Abstimmungen mitmachen."
+msgstr "Whether you can take part in a particular vote depends on your status when that vote starts. If your account is activated later, you can take part in subsequent votes."
+
+msgid "Im Anhang finden Sie Ihren Mitgliedsausweis Nr. %(nummer)s als PDF im Kartenformat, zum Drucken oder fürs Handy. Der QR-Code zeigt, ob der Ausweis aktuell gültig ist. Sie können ihn jederzeit erneut in Ihrem Profil herunterladen:"
+msgstr "Attached is your membership card no. %(nummer)s as a card-sized PDF, for printing or keeping on your phone. The QR code shows whether the card is currently valid. You can download it again at any time from your profile:"
+
+msgid "Bevor Sie selbst Vorschläge einbringen, unterstützen, mitdiskutieren und abstimmen können, prüfen wir Ihre Anmeldung. Mit dem ersten Eingang Ihres Mitgliedsbeitrags wird Ihr Konto freigeschaltet. Die Beitragshöhe bestimmen Sie selbst. Bitte verwenden Sie für Ihre Überweisung diese persönliche Referenz: %(referenz)s"
+msgstr "Before you can submit or support proposals, join discussions and vote, we check your registration. Your account will be activated when your first membership contribution arrives. You decide the contribution amount yourself. Please use this personal reference for your bank transfer: %(referenz)s"
+
+msgid "Öffentlich erscheinen Sie als „%(anzeigename)s“. Diesen Anzeigenamen können Sie in Ihrem Profil ändern."
+msgstr "Your public display name is ‘%(anzeigename)s’. You can change this name in your profile."
+
+msgid "Sie können bereits alle Vorschläge, Diskussionen und Ergebnisse lesen. Diese sind öffentlich zugänglich."
+msgstr "You can already read all proposals, discussions and results. These are publicly accessible."
+
+msgid "Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, seit %(seit)s"
+msgstr "Membership card, front: %(name)s, no. %(nummer)s, since %(seit)s"
+
+msgid "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen. Das gilt während unserer Aufbauphase. Später entscheiden die Mitglieder gemeinsam über die dauerhaften Verfahrensregeln."
+msgstr "Once your account is activated, you can vote without an additional waiting period. This applies during our initial setup phase. Later, members will jointly decide on the permanent procedural rules."
+
+msgid "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich aus den Wartefristen ab Ihrem Beitritt."
+msgstr "You can vote on substantive proposals %(sachfragen)s. You can participate in elections and votes on changes to the statutes or dissolution of the party %(personenwahlen)s. The different start dates reflect the waiting periods from the date you joined."

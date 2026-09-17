@@ -10,13 +10,13 @@ import logging
 from datetime import date
 
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.mail import EmailMessage
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
 from verfahren.models import AuditEintrag
@@ -39,14 +39,16 @@ def stimmrechts_satz(mitglied: Mitglied, heute: date | None = None) -> str:
     heute = heute or timezone.localdate()
     if settings.DDOE_UEBERGANGSREGEL:
         return _(
-            "Stimmberechtigt sind Sie ohne Wartefrist — für den Aufbau gilt die Übergangsregel des "
-            "§ 4 Abs 4 lit d; die Anwartschaftsfristen entfallen, bis die Mitgliederversammlung die "
-            "erste Verfahrensordnung beschlossen hat."
+            "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen. "
+            "Das gilt während unserer Aufbauphase. Später entscheiden die Mitglieder gemeinsam "
+            "über die dauerhaften Verfahrensregeln."
         )
     beitritt = mitglied.beitritt or heute
     return _(
-        "Stimmberechtigt sind Sie nach der Anwartschaft des § 4 Abs 4: bei Sachfragen %(sachfragen)s, "
-        "bei Personenwahlen, Satzungsänderungen und der Auflösung %(personenwahlen)s."
+        "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. "
+        "An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei "
+        "können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich "
+        "aus den Wartefristen ab Ihrem Beitritt."
     ) % {
         "sachfragen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.SACHFRAGE]), heute),
         "personenwahlen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL]), heute),
@@ -83,8 +85,8 @@ def _senden(mitglied: Mitglied, art: str, betreff: str, text: str, anhang: tuple
 
 
 def _ausweis_anhang(mitglied: Mitglied) -> tuple[str, bytes] | None:
-    """Der Mitgliedsausweis (FB-K8) für den Freischaltungsbrief — nur mit geprüftem Nachweis und einem
-    Namen auf der Karte. Scheitert die Erzeugung, gleich woran (Logo-Datei, Zeichnung, Datenbank), geht
+    """Der Mitgliedsausweis mit einem Namen auf der Karte. Scheitert die Erzeugung
+    (Logo-Datei, Zeichnung, Datenbank), geht
     der Brief ohne Anhang, nicht gar nicht: Der Freischaltungsbrief ist wichtiger als die Beilage, und
     die Störung steht im Protokoll."""
     if not ausweis_erstellbar(mitglied):
@@ -144,7 +146,7 @@ def _freischaltung_brief(mitglied: Mitglied, anhang=None, vorschau=False) -> boo
                 # ruhen die Mitwirkungsrechte weiter (F-51), und der Brief sagt das statt „ab sofort“.
                 "ruht": mitglied.status != Mitgliedsstatus.AKTIV,
                 "ausweis": anhang is not None,
-                "nummer": f"{mitglied.pk:06d}",
+                "nummer": mitglied.mitgliedsnummer_text,
             },
         )
         betreff = _("Ihre Prüfung ist abgeschlossen — ParlamentPlattform")

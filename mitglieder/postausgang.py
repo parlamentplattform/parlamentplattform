@@ -17,13 +17,15 @@ from django.utils.translation import gettext as _
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus, Postauftrag
 
 log = logging.getLogger(__name__)
+AUSWEIS_VORSCHAU = "ausweis_vorschau_2"
+VORSCHAU_ARTEN = ("ausweis_vorschau", AUSWEIS_VORSCHAU)
 
 
 def beauftragen(mitglied, art):
-    if art not in ("willkommen", "freischaltung", "ausweis_vorschau"):
+    if art not in ("willkommen", "freischaltung", *VORSCHAU_ARTEN):
         raise ValueError("Unbekannte Postart")
-    stempel = None if art == "ausweis_vorschau" else art + "_post_am"
-    if (not mitglied.is_active or not mitglied.email
+    stempel = None if art in VORSCHAU_ARTEN else art + "_post_am"
+    if (mitglied.testkonto or not mitglied.is_active or not mitglied.email
         or mitglied.status in (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)
         or (stempel and getattr(mitglied, stempel) is not None)):
         return False
@@ -50,14 +52,14 @@ def zustellen(pk, jetzt=None):
     m = a.mitglied
     update = {}
     try:
-        if (not m.is_active or not m.email or m.status in
+        if (m.testkonto or not m.is_active or not m.email or m.status in
             (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)):
             update["erledigt"] = True
             return False
         if a.art == "freischaltung" and m.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
         anhang = _ausweis_anhang(m)
-        if a.art == "ausweis_vorschau":
+        if a.art in VORSCHAU_ARTEN:
             if anhang is None:
                 return False
             brief = _willkommen_brief if m.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else _freischaltung_brief

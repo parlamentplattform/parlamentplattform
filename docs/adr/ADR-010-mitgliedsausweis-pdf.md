@@ -18,3 +18,9 @@ Besitzvermerk schützt gegen gleichzeitige Bearbeitung. Der bestehende Gunicorn-
 Dienst bearbeitet offene Aufträge alle 30 Sekunden; keine zusätzliche Instanz.
 SMTP kann nach einem Absturz zwischen Annahme und Erfolgsverbuchung eine doppelte
 Zustellung verursachen. Eine bereits verbuchte Nachricht wird nicht erneut gesendet.
+
+### Ergänzung 0.49.1: Maildarstellung und Mitgliedsnummer
+
+Mitgliedsnummern sind eigene, eindeutige und dauerhaft vergebene Daten, keine Primärschlüssel. Die Bestandsmigration berücksichtigt den ausdrücklichen Gründerauftrag: Michael Hackl zuerst, davor angelegte Konten als Testkonten ohne reguläre Nummer. Beziehungen, Audit-Ereignisse, Zahlungsreferenzen und QR-URLs behalten die technischen IDs. Neue bestätigte Anmeldungen erhalten die nächste Nummer durch einen transaktional gesperrten Zähler; Nummern werden nicht aus der aktuellen Anzahl berechnet und nach Austritt nicht wiederverwendet.
+
+Mailtexte enthalten eine reine Textalternative und HTML. Ein gemeinsamer Mailbaustein bettet das Logo als CID-Bild innerhalb multipart/related ein; PDF-Anhänge bleiben eigenständige Anhänge. Inline-Stile und eine Präsentationstabelle sind hier für Mailprogramme erforderlich und verändern das Design-System der Weboberfläche nicht. Benutzereingaben werden vor HTML-Darstellung maskiert. Die revidierte persönliche Vorschau erhält einen eigenen Versandauftrag; frühere erfolgreiche Aufträge bleiben erhalten. Kein automatischer Bestandsversand.

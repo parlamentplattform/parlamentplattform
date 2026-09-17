@@ -14,7 +14,6 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth import login as dj_login
 from django.contrib.auth import logout as dj_logout
-from django.core.mail import send_mail
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -25,6 +24,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
+from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, willkommen_senden
 from verfahren.models import AuditEintrag
@@ -216,6 +216,8 @@ def bestaetigen(request, token: str):
     if mitglied.beitritt is None:
         mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
     mitglied.save(update_fields=["is_active", "beitritt"])
+    from mitglieder.nummern import sicherstellen
+    sicherstellen(mitglied)
     dj_login(request, mitglied)
     AuditEintrag.anhaengen({"typ": "email_bestaetigt", "mitglied": mitglied.pk})
     willkommen_senden(mitglied)  # FB-K7: einmal je Konto, Versand ist Höflichkeit

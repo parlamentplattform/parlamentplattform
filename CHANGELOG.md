@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.49.1] — 2026-09-17 · Mitgliederpost und eigene Mitgliedsnummern
+
+- Willkommens- und Freischaltungsmail erklären die Beteiligung ohne notwendiges Nachlesen der Satzung. Der Abstimmungsbeginn als Stichtag und abweichende Wartefristen bleiben verständlich erklärt.
+- Einheitliche Mailfußzeile mit Logo, Plattformkontakt, Website, Postadresse und Parteienregisterzahl. HTML und reine Textalternative; Logo direkt eingebettet, keine externen Bildabrufe.
+- Ausweis weiterhin einseitig, jetzt ohne Nachweismethode. Nicht freigeschaltete Anmeldungen bleiben als „Prüfung ausständig“ gekennzeichnet.
+- Eigene fortlaufende Mitgliedsnummern ab 000001 für den echten Mitgliederbestand. Frühere Testkonten bleiben erhalten, werden aber nicht nummeriert und erhalten keine Mitgliederpost. Technische IDs, Beitragsreferenzen und vorhandene QR-Adressen ändern sich nicht.
+- Persönlicher Probeversand der überarbeiteten Fassung möglich; keine automatische Aussendung an den Bestand.
+
 ## [0.49.0] - 2026-09-17 · Mitgliedsausweis und zuverlässiger Postausgang
 
 ### Hinzugefügt

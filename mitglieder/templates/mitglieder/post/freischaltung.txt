@@ -1,12 +1,12 @@
 {% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
 
-{% blocktranslate %}Ihre Prüfung ist abgeschlossen (Stufe: {{ stufe }}). Damit sind Stimm- und Wahlrecht für Sie möglich.{% endblocktranslate %}
+{% blocktranslate %}Ihre Anmeldung ist geprüft und Ihr Konto ist freigeschaltet. Willkommen zum Mitgestalten!{% endblocktranslate %}
 
-{% if ruht %}{% blocktranslate %}Ihre Mitwirkungsrechte ruhen allerdings, solange der Mitgliedsbeitrag aussteht (§ 4 Abs 3); mit dem nächsten Beitragseingang leben sie wieder auf.{% endblocktranslate %}{% else %}{% blocktranslate %}Ab sofort können Sie Anträge einbringen, unterstützen und mitreden (§ 4 Abs 4 lit b).{% endblocktranslate %}{% endif %}
+{% if ruht %}{% blocktranslate %}Ihre Mitgliedschaft ist derzeit pausiert. Sobald Ihr offener Mitgliedsbeitrag eingegangen ist, können Sie wieder mitmachen und abstimmen.{% endblocktranslate %}{% else %}{% blocktranslate %}Sie können jetzt eigene Vorschläge einbringen, Vorschläge anderer Mitglieder unterstützen und sich an Diskussionen beteiligen.{% endblocktranslate %}{% endif %}
 
-{{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
+{% if not ruht %}{{ stimmrecht }} {% blocktranslate %}Ob Sie an einer bestimmten Abstimmung teilnehmen können, richtet sich nach Ihrem Status beim Start dieser Abstimmung. Werden Sie erst danach freigeschaltet, können Sie bei den folgenden Abstimmungen mitmachen.{% endblocktranslate %}{% endif %}
 
-{% if ausweis %}{% blocktranslate %}Im Anhang finden Sie Ihren Mitgliedsausweis Nr. {{ nummer }} als PDF im Kartenformat (eine Vorderseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft mit geprüftem Nachweis besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% else %}{% blocktranslate %}Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil, sobald er erzeugt ist:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% endif %}
+{% if ausweis %}{% blocktranslate %}Im Anhang finden Sie Ihren Mitgliedsausweis Nr. {{ nummer }} als PDF im Kartenformat, zum Drucken oder fürs Handy. Der QR-Code zeigt, ob der Ausweis aktuell gültig ist. Sie können ihn jederzeit erneut in Ihrem Profil herunterladen:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% else %}{% blocktranslate %}Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil, sobald er erzeugt ist:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% endif %}
 
 {% translate "Parlament:" %} {{ basis }}/parlament/
 

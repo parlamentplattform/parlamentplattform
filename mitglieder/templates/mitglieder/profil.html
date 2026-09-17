@@ -22,7 +22,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
-<p class="erk">{% blocktranslate with name=user.anzeigename pk=user.pk %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
+<p class="erk">{% blocktranslate with name=user.anzeigename pk=user.mitgliedsnummer_text %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
 
 <form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}
 <datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
@@ -98,7 +98,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p><a class="btn-linie" href="{% url 'mitglieder:profil_ausweis' %}">{% translate "Mitgliedsausweis herunterladen (PDF, Kartenformat)" %}</a></p>
   <form method="post" action="{% url 'mitglieder:profil_ausweis_probe' %}">{% csrf_token %}<button class="btn-linie" type="submit">{% translate "Ausweis-Vorschau an mich senden" %}</button></form>
   {% if ausweis_probe_versandt %}<p class="hilfe" data-ausweis-probe="versandt">{% translate "Ihre Ausweis-Vorschau wurde per E-Mail versendet." %}</p>{% endif %}
-  <p class="hilfe">{% blocktranslate %}88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis zeigt Ihren Prüfstatus und bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen.{% endblocktranslate %}</p>
+  <p class="hilfe">{% blocktranslate %}88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen.{% endblocktranslate %}</p>
   {% elif ausweis_stoerung %}
   <p class="hilfe">{% translate "Die Vorschau lässt sich gerade nicht erzeugen; die Störung ist protokolliert. Sobald sie behoben ist, erscheinen Vorschau und Download hier." %}</p>
   {% elif name_fehlt %}

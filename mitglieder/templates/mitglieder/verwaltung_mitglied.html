@@ -13,7 +13,7 @@
   {% else %}<span class="badge badge-warn">{% translate "ausgeschlossen" %}</span>{% endif %}
   {% if person.ist_fixer_admin %}<span class="badge badge--hell">{% translate "fixer Admin" %}</span>
   {% elif person.ist_admin %}<span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}
-  <span class="erk">{% blocktranslate with pk=person.pk beitritt=person.beitritt|date:"d.m.Y"|default:"—" letzter_beitrag=person.beitrag_zuletzt_am|date:"d.m.Y"|default:"—" %}Mitglied #{{ pk }} · beigetreten {{ beitritt }} ·
+  <span class="erk">{% blocktranslate with pk=person.mitgliedsnummer_text beitritt=person.beitritt|date:"d.m.Y"|default:"—" letzter_beitrag=person.beitrag_zuletzt_am|date:"d.m.Y"|default:"—" %}Mitglied #{{ pk }} · beigetreten {{ beitritt }} ·
   letzter Beitrag {{ letzter_beitrag }}{% endblocktranslate %}</span>
 </p>
 {% if person.status_grund %}<div class="karte hinweis"><p><strong>{% translate "Begründung des Status:" %}</strong> {{ person.status_grund }}</p></div>{% endif %}

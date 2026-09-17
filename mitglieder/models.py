@@ -53,8 +53,22 @@ class Mitgliedsstatus(models.TextChoices):
     AUSGETRETEN = "ausgetreten", "ausgetreten"
 
 
+class Mitgliedsnummernkreis(models.Model):
+    naechste = models.PositiveBigIntegerField(default=1)
+
+    def __str__(self):
+        return f"Mitgliedsnummern ab {self.naechste}"
+
+
 class Mitglied(AbstractUser):
     """Ein Mensch, ein Konto (§ 4 Abs 4 lit e)."""
+
+    mitgliedsnummer = models.PositiveBigIntegerField(null=True, blank=True, unique=True, editable=False)
+    testkonto = models.BooleanField(default=False, editable=False)
+
+    @property
+    def mitgliedsnummer_text(self):
+        return f"{self.mitgliedsnummer:06d}" if self.mitgliedsnummer else "—"
 
     beitritt = models.DateField(
         null=True,
@@ -652,7 +666,8 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
         )
 
     from django.conf import settings
-    from django.core.mail import send_mail
+
+    from mitglieder.mail import send_mail
 
     try:  # Bestätigung ist Höflichkeit, keine Bedingung — Verbuchung steht bereits.
         send_mail(

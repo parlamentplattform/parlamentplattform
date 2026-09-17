@@ -88,7 +88,9 @@ def test_profilseite_nennt_den_registerwert_des_nebenwohnsitzes(client):
     assert "region-nebenwohnsitz-zaehlt" in inhalt and "(heute: 0)" in inhalt
     assert "§ 5 Abs 6" in inhalt
     assert 'id="gemeinden"' in inhalt and inhalt.count('list="gemeinden"') == 2
-    assert "Benachrichtigungen per E-Mail gibt es noch nicht" in inhalt
+    assert "Willkommens- und Freischaltungsnachrichten" in inhalt
+    assert "Ihren Ausweis können Sie sich unten als Vorschau zusenden." in inhalt
+    assert "Benachrichtigungen per E-Mail gibt es noch nicht" not in inhalt
 
 
 # --- Wohnsitz und Nebenwohnsitz -----------------------------------------------

@@ -22,11 +22,12 @@ import logging
 from datetime import date
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 
+from mitglieder.ausweis import ausweis_moeglich, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
@@ -78,14 +79,30 @@ def _zustellbar(mitglied: Mitglied, stempel: str) -> bool:
     )
 
 
-def _senden(mitglied: Mitglied, art: str, betreff: str, text: str) -> bool:
+def _senden(mitglied: Mitglied, art: str, betreff: str, text: str, anhang: tuple[str, bytes] | None = None) -> bool:
+    """Ein Brief, wahlweise mit einem PDF-Anhang (Dateiname, Inhalt) — der Mitgliedsausweis."""
     try:
-        send_mail(betreff, text, settings.DEFAULT_FROM_EMAIL, [mitglied.email])
+        nachricht = EmailMessage(betreff, text, settings.DEFAULT_FROM_EMAIL, [mitglied.email])
+        if anhang is not None:
+            nachricht.attach(anhang[0], anhang[1], "application/pdf")
+        nachricht.send()
     except OSError:
         log.exception("Brief „%s“ an Mitglied %s nicht versendbar.", art, mitglied.pk)
         return False
-    AuditEintrag.anhaengen({"typ": "post", "art": art, "mitglied": mitglied.pk})
+    AuditEintrag.anhaengen({"typ": "post", "art": art, "mitglied": mitglied.pk, "anhang": anhang is not None})
     return True
+
+
+def _ausweis_anhang(mitglied: Mitglied) -> tuple[str, bytes] | None:
+    """Der Mitgliedsausweis (FB-K8) für den Freischaltungsbrief — nur für Mitglieder mit geprüfter
+    Identität; scheitert die Erzeugung (Logo-Datei), geht der Brief ohne Anhang, nicht gar nicht."""
+    if not ausweis_moeglich(mitglied):
+        return None
+    try:
+        return dateiname(mitglied), ausweis_pdf(mitglied)
+    except (OSError, ValueError):
+        log.exception("Mitgliedsausweis für Mitglied %s nicht erzeugbar.", mitglied.pk)
+        return None
 
 
 def _stempeln(mitglied: Mitglied, stempel: str) -> None:
@@ -124,6 +141,7 @@ def freischaltung_senden(mitglied: Mitglied) -> bool:
     if not _zustellbar(mitglied, "freischaltung_post_am"):
         return False
     _stempeln(mitglied, "freischaltung_post_am")
+    anhang = _ausweis_anhang(mitglied)  # FB-K8: der Mitgliedsausweis kommt mit der Freischaltung
     with translation.override("de"):
         text = _brief(
             "mitglieder/post/freischaltung.txt",
@@ -134,10 +152,12 @@ def freischaltung_senden(mitglied: Mitglied) -> bool:
                 # Die Verwaltung kann ein pausiertes Konto freischalten (Beitrag ausständig): Dann
                 # ruhen die Mitwirkungsrechte weiter (F-51), und der Brief sagt das statt „ab sofort“.
                 "ruht": mitglied.status != Mitgliedsstatus.AKTIV,
+                "ausweis": anhang is not None,
+                "nummer": f"{mitglied.pk:06d}",
             },
         )
         betreff = _("Ihre Prüfung ist abgeschlossen — ParlamentPlattform")
-    return _senden(mitglied, "freischaltung", betreff, text)
+    return _senden(mitglied, "freischaltung", betreff, text, anhang)
 
 
 def vertrauensfrage_senden(mandat, antrag) -> bool:

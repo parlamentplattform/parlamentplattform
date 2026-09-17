@@ -92,6 +92,17 @@ class Mitglied(AbstractUser):
         blank=True,
         help_text="Erster Versandversuch des Freischaltungsbriefs — es gibt genau einen je Konto.",
     )
+    ausweis_code = models.CharField(
+        max_length=16,
+        blank=True,
+        default="",
+        help_text="Prüfcode des Mitgliedsausweises (FB-K8) — einmal vergeben, damit gedruckte QR-Codes gültig bleiben.",
+    )
+    ausweis_ausgestellt_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Erste Ausstellung des Mitgliedsausweises; steht auf der Rückseite der Karte.",
+    )
     gemeinde = models.CharField(
         max_length=120,
         blank=True,

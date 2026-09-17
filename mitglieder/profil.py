@@ -39,6 +39,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from mitglieder.ausweis import ausweis_moeglich, ausweis_svg
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
@@ -282,6 +283,8 @@ def profil(request):
             "nebenwohnsitz_zaehlt": nebenwohnsitz_zaehlt(),
             "registerschluessel": REGISTERSCHLUESSEL,
             "adresswechsel": Adresswechsel.offener(mitglied),
+            # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüfter Identität
+            "ausweis": ausweis_svg(mitglied) if ausweis_moeglich(mitglied) else None,
         },
     )
 

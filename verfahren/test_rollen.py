@@ -273,7 +273,7 @@ def test_fassung_3_profil_rechenschaft_und_unvereinbarkeit():
     der Integritätsrat-Text behauptet nicht mehr, niemand prüfe Unvereinbarkeiten."""
     rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
     profil = [f for f in rollen["mitglied"].faehigkeiten if f.urlname == "mitglieder:profil"]
-    assert len(profil) == 2 and all(f.stand is Stand.VERFUEGBAR for f in profil)
+    assert len(profil) == 3 and all(f.stand is Stand.VERFUEGBAR for f in profil)  # seit Fassung 5 auch der Ausweis
     assert any("Austritt" in f.titel and "Nebenwohnsitz" in f.titel for f in profil)
     assert any("Pseudonym" in f.titel for f in profil)
     gast = [f for f in rollen["gast"].faehigkeiten if f.urlname == "mandatare:rechenschaft"]
@@ -293,7 +293,7 @@ def test_fassung_4_die_vertrauensfrage_steht_in_jeder_betroffenen_rolle():
     from gremien.models import Anlass
     from verfahren.models import Antragsart, vertrauensfrage_einbringen  # noqa: F401 — die Fähigkeit
 
-    assert VERSION == 4
+    assert VERSION >= 4
     assert Antragsart.VERTRAUENSFRAGE == "vertrauensfrage"
     assert Anlass.VERTRAUENSFRAGE_SPERRE == "vertrauensfrage_sperre"
     rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
@@ -351,7 +351,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 4
+    assert rollen_regel.fassung == 5
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund
@@ -379,3 +379,12 @@ def test_erwartete_adressen_nach_der_zusammenfuehrung_sind_bekannt():
     genannt = {f.urlname for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten if f.urlname}
     assert ERWARTET_NACH_ZUSAMMENFUEHRUNG <= genannt, "vorweggenommen, aber von keiner Zeile genannt"
     assert ERWARTET_NACH_ZUSAMMENFUEHRUNG <= {"mandatare:vertrauensfragen"}
+
+
+def test_fassung_5_der_mitgliedsausweis_steht_beim_mitglied():
+    """FB-K8: Der Ausweis kommt mit der Freischaltung und liegt im Profil — die Matrix sagt es, mit Adresse."""
+    assert VERSION == 5
+    mitglied = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == "mitglied")
+    zeile = next(f for f in mitglied.faehigkeiten if "Mitgliedsausweis" in f.titel)
+    assert zeile.stand is Stand.VERFUEGBAR and zeile.urlname == "mitglieder:profil"
+    assert "Kartenformat" in zeile.titel and "Prüfseite" in zeile.titel

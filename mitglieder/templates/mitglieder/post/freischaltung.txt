@@ -6,6 +6,8 @@
 
 {{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
 
+{% if ausweis %}{% blocktranslate %}Im Anhang finden Sie Ihren Mitgliedsausweis Nr. {{ nummer }} als PDF im Kartenformat (Vorder- und Rückseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% else %}{% blocktranslate %}Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil:{% endblocktranslate %} {{ basis }}/profil/#ausweis{% endif %}
+
 {% translate "Parlament:" %} {{ basis }}/parlament/
 
 {{ schluss }}{% endautoescape %}

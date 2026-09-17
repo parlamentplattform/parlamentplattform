@@ -541,10 +541,13 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=4,
-        seit="2026-09-15",
+        fassung=5,
+        seit="2026-09-17",
         grund=(
-            _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "
+            _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
+            "einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der "
+            "QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. ")
+            + _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "
             "Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung "
             "für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der "
             "Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen "

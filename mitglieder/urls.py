@@ -1,6 +1,6 @@
 from django.urls import path
 
-from mitglieder import beitraege_views, einfuehrung, profil, verwaltung, views
+from mitglieder import ausweis_views, beitraege_views, einfuehrung, profil, verwaltung, views
 
 app_name = "mitglieder"
 urlpatterns = [
@@ -18,6 +18,8 @@ urlpatterns = [
     path("profil/sitzungen-beenden/", profil.sitzungen_beenden, name="profil_sitzungen_beenden"),
     path("profil/export.json", profil.export_json, name="profil_export"),
     path("profil/austritt/", profil.austritt, name="profil_austritt"),
+    path("profil/ausweis.pdf", ausweis_views.ausweis_pdf_view, name="profil_ausweis"),
+    path("ausweis/<int:nummer>/<str:code>/", ausweis_views.ausweis_pruefen, name="ausweis_pruefen"),
     path("verwaltung/", verwaltung.liste, name="verwaltung"),
     path("verwaltung/beitraege/", beitraege_views.verwaltung_beitraege, name="verwaltung_beitraege"),
     path("verwaltung/beitraege/erinnern/", beitraege_views.beitrag_erinnern, name="beitrag_erinnern"),

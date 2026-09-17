@@ -205,7 +205,7 @@ def test_versandstoerung_blockiert_die_verbuchung_nicht(monkeypatch):
     def kaputt(*args, **kwargs):
         raise OSError("SMTP nicht erreichbar")
 
-    monkeypatch.setattr("mitglieder.post.send_mail", kaputt)
+    monkeypatch.setattr("mitglieder.post.EmailMessage.send", kaputt)
     m = mitglied_anlegen("still", stufe=Identitaetsstufe.UNGEPRUEFT)
     assert beitrag_verbuchen(m, eingang("u1"), namens_ok=True) is True
     m.refresh_from_db()

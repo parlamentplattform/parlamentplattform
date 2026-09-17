@@ -7695,3 +7695,70 @@ msgid "Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einb
 msgid_plural "Vertrauensfrage eingebracht. Für Personenwahlen Stimmberechtigte am Einbringungstag: %(n)s — Schwelle: %(schwelle)s Unterstützungen (§ 7 Abs 10 lit c). Der Mandatsträger ist verständigt."
 msgstr[0] "Confidence question submitted. Members eligible to vote in personal elections on the day of submission: %(n)s — threshold: %(schwelle)s supporter (§ 7 (10) lit c). The office holder has been notified."
 msgstr[1] "Confidence question submitted. Members eligible to vote in personal elections on the day of submission: %(n)s — threshold: %(schwelle)s supporters (§ 7 (10) lit c). The office holder has been notified."
+
+# ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
+
+msgid "88,6 × 57 mm mit Beschnitt (EC-Kartenformat), Vorder- und Rückseite — zum Drucken oder fürs Handy. Er gilt, solange die Mitgliedschaft besteht; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt und keinen Namen nennt. Ändert sich Ihr Name, laden Sie ihn hier einfach neu."
+msgstr "88.6 × 57 mm including bleed (bank card format), front and back — for printing or for your phone. It is valid as long as the membership exists; the QR code leads to the verification page, which only says “valid” or “not valid” and names nobody. If your name changes, simply download it here again."
+
+msgid "Den Mitgliedsausweis erhalten und herunterladen — als PDF im Kartenformat, automatisch mit der Freischaltung und jederzeit im Profil; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt"
+msgstr "Receive and download the membership card — as a PDF in card format, automatically with the activation and at any time in the profile; the QR code leads to the verification page, which only says “valid” or “not valid”"
+
+msgid "Entweder ist die Mitgliedschaft beendet, die Nummer unbekannt oder der Code stimmt nicht."
+msgstr "Either the membership has ended, the number is unknown or the code is wrong."
+
+msgid "Gültig"
+msgstr "Valid"
+
+msgid "Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil:"
+msgstr "You will find your membership card (PDF in card format) in your profile:"
+
+msgid "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Identität, § 4 Abs 1) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier."
+msgstr "You will receive your membership card with the activation (verified identity, § 4 (1)) — automatically by e-mail as a PDF in card format, afterwards at any time here."
+
+msgid "Ihren Mitgliedsausweis gibt es mit der Freischaltung — sobald Ihre Identität geprüft ist."
+msgstr "Your membership card comes with the activation — as soon as your identity has been verified."
+
+msgid "Im Anhang finden Sie Ihren Mitgliedsausweis Nr. %(nummer)s als PDF im Kartenformat (Vorder- und Rückseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:"
+msgstr "Attached you will find your membership card no. %(nummer)s as a PDF in card format (front and back, for printing or for your phone). It is valid as long as your membership exists; the QR code leads to the verification page. You can always get it again in your profile:"
+
+msgid "Mit der Freischaltung erhalten Sie außerdem Ihren Mitgliedsausweis — als PDF im Kartenformat, automatisch per E-Mail und danach jederzeit im Profil."
+msgstr "With the activation you will also receive your membership card — as a PDF in card format, automatically by e-mail and afterwards at any time in your profile."
+
+msgid "Mitglied seit %(seit)s · Identität %(stufe)s · Mitgliedschaft besteht."
+msgstr "Member since %(seit)s · identity %(stufe)s · membership exists."
+
+msgid "Mitgliedsausweis"
+msgstr "Membership card"
+
+msgid "Mitgliedsausweis Nr. %(nummer)s ist gültig."
+msgstr "Membership card no. %(nummer)s is valid."
+
+msgid "Mitgliedsausweis herunterladen (PDF, Kartenformat)"
+msgstr "Download membership card (PDF, card format)"
+
+msgid "Mitgliedsausweis prüfen"
+msgstr "Verify membership card"
+
+msgid "Mitgliedsausweis, Rückseite mit Prüfadresse"
+msgstr "Membership card, back with verification address"
+
+msgid "Mitgliedsausweis, Vorderseite: Direkte Demokratie Österreich, Nr. %(nummer)s"
+msgstr "Membership card, front: Direkte Demokratie Österreich, no. %(nummer)s"
+
+msgid "Nicht gültig"
+msgstr "Not valid"
+
+msgid "Stand %(datum)s. Diese Seite nennt keinen Namen — er steht auf der Karte; vergleichen Sie Nummer und Person."
+msgstr "As of %(datum)s. This page names nobody — the name is on the card; compare number and person."
+
+msgid "Zu Nummer %(nummer)s und diesem Code gibt es keinen gültigen Mitgliedsausweis."
+msgstr "There is no valid membership card for number %(nummer)s and this code."
+
+msgid "geprüft"
+msgstr "verified"
+
+# ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
+
+msgid "Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. "
+msgstr "Version 5 with the membership card (0.49): with the activation the member receives a card as a PDF in card format — automatically by letter, at any time in the profile — and its QR code leads to the verification page, which only says “valid” or “not valid”. "

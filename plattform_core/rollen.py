@@ -38,7 +38,7 @@ def _(text: str) -> str:
 #: Fassung 3 (12.9.2026): der Mandatar ist eine Rolle im Code, das Profil gehört dem Mitglied.
 #: Fassung 4 (15.9.2026): die Vertrauensfrage nach § 7 Abs 10 — stellen, unterstützen, Stellung
 #: nehmen, Sperre feststellen, Bestätigung beantragen, Rückgabezusage, Rechtsschutz-Vermerke.
-VERSION = 4
+VERSION = 5
 
 
 class Stand(enum.StrEnum):
@@ -333,6 +333,12 @@ MITGLIED = Rolle(
             titel=_("Den eigenen Beitragsstand sehen und den Beitrag zahlen"),
             stand=Stand.VERFUEGBAR,
             urlname="mitglieder:beitrag",
+        ),
+        Faehigkeit(
+            titel=_("Den Mitgliedsausweis erhalten und herunterladen — als PDF im Kartenformat, automatisch mit der Freischaltung und jederzeit im Profil; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 4 Abs 1",
+            urlname="mitglieder:profil",
         ),
         Faehigkeit(
             titel=_("Unter einem beständigen Pseudonym auftreten — der Klarname erscheint nur mit Einwilligung, sonst „Mitglied n“"),

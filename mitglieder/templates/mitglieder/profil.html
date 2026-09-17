@@ -15,6 +15,8 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .pf-form .checkzeile label{display:inline;margin:0;font-weight:400}
   .pf-form input[type=text]{width:100%;max-width:100%}
   .pf-wert{font-variant-numeric:tabular-nums;word-break:break-all}
+  .ausweis-vorschau{display:grid;gap:10px;max-width:420px;margin-bottom:12px}
+  .ausweis-vorschau svg{border-radius:14px;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.pk %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
@@ -83,6 +85,18 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p><a class="btn-linie" href="{% url 'mitglieder:profil_export' %}">{% translate "Meine Daten herunterladen (JSON)" %}</a></p>
   <p class="hilfe">{% translate "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
   <p class="hilfe">{% translate "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter." %}</p>
+</div>
+
+{# ── Mitgliedsausweis (FB-K8) ────────────────────────────────────────── #}
+<div class="karte" id="ausweis">
+  <p class="phasen-titel">{% translate "Mitgliedsausweis" %}</p>
+  {% if ausweis %}
+  <div class="ausweis-vorschau">{{ ausweis.0|safe }}{{ ausweis.1|safe }}</div>
+  <p><a class="btn-linie" href="{% url 'mitglieder:profil_ausweis' %}">{% translate "Mitgliedsausweis herunterladen (PDF, Kartenformat)" %}</a></p>
+  <p class="hilfe">{% blocktranslate %}88,6 × 57 mm mit Beschnitt (EC-Kartenformat), Vorder- und Rückseite — zum Drucken oder fürs Handy. Er gilt, solange die Mitgliedschaft besteht; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt und keinen Namen nennt. Ändert sich Ihr Name, laden Sie ihn hier einfach neu.{% endblocktranslate %}</p>
+  {% else %}
+  <p class="hilfe">{% translate "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Identität, § 4 Abs 1) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier." %}</p>
+  {% endif %}
 </div>
 
 {# ── Austritt ────────────────────────────────────────────────────────── #}

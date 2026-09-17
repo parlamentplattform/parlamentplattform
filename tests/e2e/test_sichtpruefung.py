@@ -292,9 +292,17 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         p.goto(f"{live_server.url}/antrag/{kommend.antrag_id}/")
         halte_fest(p, "mandatsfrage-antragsseite")
 
+    # 0.49 (FB-K8): geprüfte Identität — dann zeigt das Profil den Mitgliedsausweis (Vorschau + PDF)
+    type(mandatarin).objects.filter(pk=mandatarin.pk).update(identitaetsstufe="geprueft")
     p = seite(als=mandatarin)
     p.goto(f"{live_server.url}/profil/")
     halte_fest(p, "profil")
+    karte = p.locator("#ausweis")
+    karte.scroll_into_view_if_needed()
+    _ruhe(p)
+    ziel = sichtpruefung / "profil-mitgliedsausweis.png"
+    karte.screenshot(path=str(ziel))
+    bilder.append(ziel)
     p = seite(als=mandatarin, dunkel=True, viewport=HANDY)
     p.goto(f"{live_server.url}/profil/")
     halte_fest(p, "profil-handy-dunkel")
@@ -371,7 +379,7 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         bilder.append(ziel)
 
     erwartet = (
-        35 + 8 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
+        35 + 8 + 1 + (1 if kommend.antrag_id is not None else 0) - (0 if in_beratung is not None else 2)
         + (7 if ordnung is not None else 0)
     )
     assert len(bilder) == erwartet, (len(bilder), erwartet)

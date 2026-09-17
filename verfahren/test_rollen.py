@@ -387,4 +387,5 @@ def test_fassung_5_der_mitgliedsausweis_steht_beim_mitglied():
     mitglied = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == "mitglied")
     zeile = next(f for f in mitglied.faehigkeiten if "Mitgliedsausweis" in f.titel)
     assert zeile.stand is Stand.VERFUEGBAR and zeile.urlname == "mitglieder:profil"
-    assert "Kartenformat" in zeile.titel and "Prüfseite" in zeile.titel
+    assert "einseitiges PDF" in zeile.titel and "bestätigter Anmeldung" in zeile.titel
+    assert "Prüfstatus ohne Namen" in zeile.titel

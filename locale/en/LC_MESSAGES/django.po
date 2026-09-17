@@ -6295,9 +6295,6 @@ msgstr "Ended mandates, roles and expert-list entries remain documented."
 msgid "Begründung (öffentlich)"
 msgstr "Reasoning (public)"
 
-msgid "Benachrichtigungen per E-Mail gibt es noch nicht; die Plattform verschickt nur Anmelde-, Bestätigungs- und Beitragsnachrichten."
-msgstr "There are no e-mail notifications yet; the platform only sends login, confirmation and membership-fee messages."
-
 msgid "Bericht"
 msgstr "Report"
 
@@ -7698,35 +7695,14 @@ msgstr[1] "Confidence question submitted. Members eligible to vote in personal e
 
 # ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
 
-msgid "88,6 × 57 mm mit Beschnitt (EC-Kartenformat), Vorder- und Rückseite — zum Drucken oder fürs Handy. Er gilt, solange die Mitgliedschaft besteht; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt und keinen Namen nennt. Ändert sich Ihr Name, laden Sie ihn hier einfach neu."
-msgstr "88.6 × 57 mm including bleed (bank card format), front and back — for printing or for your phone. It is valid as long as the membership exists; the QR code leads to the verification page, which only says “valid” or “not valid” and names nobody. If your name changes, simply download it here again."
-
-msgid "Den Mitgliedsausweis erhalten und herunterladen — als PDF im Kartenformat, automatisch mit der Freischaltung und jederzeit im Profil; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt"
-msgstr "Receive and download the membership card — as a PDF in card format, automatically with the activation and at any time in the profile; the QR code leads to the verification page, which only says “valid” or “not valid”"
-
-msgid "Entweder ist die Mitgliedschaft beendet, die Nummer unbekannt oder der Code stimmt nicht."
-msgstr "Either the membership has ended, the number is unknown or the code is wrong."
+msgid "Den Mitgliedsausweis erhalten und herunterladen — als einseitiges PDF nach bestätigter Anmeldung, aktualisiert nach Freischaltung und jederzeit im Profil; der QR-Code zeigt den aktuellen Prüfstatus ohne Namen"
+msgstr "Receive and download your membership card as a single-page PDF after confirmed registration, updated after activation and always available in your profile; the QR code shows the current verification status without names"
 
 msgid "Gültig"
 msgstr "Valid"
 
-msgid "Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil:"
-msgstr "You will find your membership card (PDF in card format) in your profile:"
-
-msgid "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Identität, § 4 Abs 1) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier."
-msgstr "You will receive your membership card with the activation (verified identity, § 4 (1)) — automatically by e-mail as a PDF in card format, afterwards at any time here."
-
 msgid "Ihren Mitgliedsausweis gibt es mit der Freischaltung — sobald Ihre Identität geprüft ist."
 msgstr "Your membership card comes with the activation — as soon as your identity has been verified."
-
-msgid "Im Anhang finden Sie Ihren Mitgliedsausweis Nr. %(nummer)s als PDF im Kartenformat (Vorder- und Rückseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:"
-msgstr "Attached you will find your membership card no. %(nummer)s as a PDF in card format (front and back, for printing or for your phone). It is valid as long as your membership exists; the QR code leads to the verification page. You can always get it again in your profile:"
-
-msgid "Mit der Freischaltung erhalten Sie außerdem Ihren Mitgliedsausweis — als PDF im Kartenformat, automatisch per E-Mail und danach jederzeit im Profil."
-msgstr "With the activation you will also receive your membership card — as a PDF in card format, automatically by e-mail and afterwards at any time in your profile."
-
-msgid "Mitglied seit %(seit)s · Identität %(stufe)s · Mitgliedschaft besteht."
-msgstr "Member since %(seit)s · identity %(stufe)s · membership exists."
 
 msgid "Mitgliedsausweis"
 msgstr "Membership card"
@@ -7739,12 +7715,6 @@ msgstr "Download membership card (PDF, card format)"
 
 msgid "Mitgliedsausweis prüfen"
 msgstr "Verify membership card"
-
-msgid "Mitgliedsausweis, Rückseite mit Prüfadresse"
-msgstr "Membership card, back with verification address"
-
-msgid "Mitgliedsausweis, Vorderseite: Direkte Demokratie Österreich, Nr. %(nummer)s"
-msgstr "Membership card, front: Direkte Demokratie Österreich, no. %(nummer)s"
 
 msgid "Nicht gültig"
 msgstr "Not valid"
@@ -7762,3 +7732,88 @@ msgstr "verified"
 
 msgid "Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. "
 msgstr "Version 5 with the membership card (0.49): with the activation the member receives a card as a PDF in card format — automatically by letter, at any time in the profile — and its QR code leads to the verification page, which only says “valid” or “not valid”. "
+
+# ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
+
+msgid "Beitrag verbucht"
+msgstr "contribution recorded"
+
+msgid "Der Mitgliedsausweis lässt sich gerade nicht erzeugen; die Störung ist protokolliert. Versuchen Sie es später noch einmal."
+msgstr "The membership card cannot be generated right now; the fault has been logged. Please try again later."
+
+msgid "Die Vorschau lässt sich gerade nicht erzeugen; die Störung ist protokolliert. Sobald sie behoben ist, erscheinen Vorschau und Download hier."
+msgstr "The preview cannot be generated right now; the fault has been logged. As soon as it is fixed, preview and download will appear here."
+
+msgid "Für den Mitgliedsausweis braucht es einen Namen auf der Karte — ergänzen Sie Vor- und Nachname in den Stammdaten."
+msgstr "The membership card needs a name on it — add your first and last name in the master data."
+
+msgid "Ihren Mitgliedsausweis (PDF im Kartenformat) finden Sie in Ihrem Profil, sobald er erzeugt ist:"
+msgstr "You will find your membership card (PDF in card format) in your profile as soon as it has been generated:"
+
+msgid "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Stufe — Beitragseingang, Präsenz oder eID; § 4 Abs 1 und 3) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier."
+msgstr "You will receive your membership card with the activation (verified level — contribution received, in person or eID; § 4 (1) and (3)) — automatically by e-mail as a PDF in card format, afterwards at any time here."
+
+msgid "Mitglied seit %(seit)s · Nachweis %(stufe)s · Mitgliedschaft besteht."
+msgstr "Member since %(seit)s · proof %(stufe)s · membership exists."
+
+msgid "Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, Mitglied seit %(seit)s, Nachweis %(stufe)s"
+msgstr "Membership card, front: %(name)s, no. %(nummer)s, member since %(seit)s, proof %(stufe)s"
+
+msgid "Zu dieser Nummer besteht keine Mitgliedschaft mit geprüftem Nachweis, oder der Code stimmt nicht."
+msgstr "There is no membership with verified proof for this number, or the code is wrong."
+
+msgid "elektronisch geprüft"
+msgstr "verified electronically"
+
+msgid "persönlich geprüft"
+msgstr "verified in person"
+
+
+msgid "Die Anmeldung ist bestätigt. Die Freischaltung ist noch ausständig; dieser Ausweis bestätigt keine Stimmberechtigung."
+msgstr "Registration is confirmed. Activation is still pending; this card does not certify eligibility to vote."
+
+msgid "Prüfung ausständig"
+msgstr "Verification pending"
+
+msgid "88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis zeigt Ihren Prüfstatus und bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen."
+msgstr "88.60 × 56.98 mm including bleed, front only. The card shows your verification status and does not certify eligibility to vote. The QR code opens the current status check without displaying your name. The card number is your membership number. After a name change, you can download the card again here."
+
+msgid "Für den Mitgliedsausweis braucht es einen Namen auf der Karte — ergänzen Sie Ihren Anzeigenamen im Profil; danach erscheint er hier."
+msgstr "The membership card needs a name. Please add your display name in your profile; the card will then appear here."
+
+msgid "Im Anhang finden Sie Ihren Mitgliedsausweis Nr. %(nummer)s als PDF im Kartenformat (eine Vorderseite, zum Drucken oder fürs Handy). Er gilt, solange Ihre Mitgliedschaft mit geprüftem Nachweis besteht; der QR-Code führt zur Prüfseite. Sie finden ihn jederzeit neu in Ihrem Profil:"
+msgstr "Attached is your membership card no. %(nummer)s as a card-sized PDF (front only, for printing or your phone). It is valid while your membership with verified evidence continues; the QR code opens the verification page. You can download it again from your profile:"
+
+msgid "Ihren Mitgliedsausweis liefern wir automatisch nach, sobald er erzeugt werden kann. Bitte prüfen Sie, ob in Ihrem Profil ein Name hinterlegt ist."
+msgstr "We will automatically send your membership card as soon as it can be generated. Please check that your profile includes a name."
+
+msgid "Im Anhang finden Sie Ihren Mitgliedsausweis als einseitiges PDF im Kartenformat. Solange die Prüfung aussteht, ist dies auf der Karte vermerkt. Nach der Freischaltung erhalten Sie automatisch eine aktualisierte Ausgabe."
+msgstr "Attached is your membership card as a single-page, card-sized PDF. Pending verification is indicated on the card. After activation, you will automatically receive an updated copy."
+
+msgid "Ihr Mitgliedsausweis – ParlamentPlattform"
+msgstr "Your membership card – Parliament Platform"
+
+msgid "Im Anhang erhalten Sie Ihren Mitgliedsausweis. Den aktuellen Stand finden Sie in Ihrem Profil."
+msgstr "Your membership card is attached. You can find your current status in your profile."
+
+
+msgid "Ausweis-Vorschau an mich senden"
+msgstr "Email me a membership card preview"
+
+msgid "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden."
+msgstr "The platform sends sign-in, confirmation, contribution, welcome and activation messages. You can request an email preview of your membership card below."
+
+msgid "Für den Probeversand muss Ihr eigener Ausweis im Profil verfügbar sein."
+msgstr "Your own membership card must be available in your profile before requesting a preview email."
+
+msgid "Die Ausweis-Vorschau ist zum Versand an Ihre hinterlegte E-Mail-Adresse vorgemerkt."
+msgstr "Your membership card preview is queued for delivery to your registered email address."
+
+msgid "Die Ausweis-Vorschau wurde bereits angefordert."
+msgstr "Your membership card preview has already been requested."
+
+msgid "Vorschau: %(betreff)s"
+msgstr "Preview: %(betreff)s"
+
+msgid "Ihre Ausweis-Vorschau wurde per E-Mail versendet."
+msgstr "Your membership card preview has been sent by email."

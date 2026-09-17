@@ -85,12 +85,12 @@ class Mitglied(AbstractUser):
     willkommen_post_am = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Erster Versandversuch des Willkommensbriefs — es gibt genau einen je Konto.",
+        help_text="Willkommensbrief: bis 0.48 erster Versandversuch, ab 0.49 erfolgreiche Übergabe an das Mailbackend.",
     )
     freischaltung_post_am = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Erster Versandversuch des Freischaltungsbriefs — es gibt genau einen je Konto.",
+        help_text="Freischaltungsbrief: bis 0.48 erster Versandversuch, ab 0.49 erfolgreiche Übergabe an das Mailbackend.",
     )
     ausweis_code = models.CharField(
         max_length=16,
@@ -101,7 +101,7 @@ class Mitglied(AbstractUser):
     ausweis_ausgestellt_am = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Erste Ausstellung des Mitgliedsausweises; steht auf der Rückseite der Karte.",
+        help_text="Zeitpunkt der ersten Ausstellung des einseitigen Mitgliedsausweises.",
     )
     gemeinde = models.CharField(
         max_length=120,
@@ -671,3 +671,24 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
         freischaltung_senden(mitglied)
     return True
+
+
+class Postauftrag(models.Model):
+    """Dauerhafter Versandauftrag; keine Nachrichteninhalte im öffentlichen Audit."""
+
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    art = models.CharField(max_length=20)
+    erstellt_am = models.DateTimeField(auto_now_add=True)
+    versandt_am = models.DateTimeField(null=True, blank=True)
+    anhang_versandt_am = models.DateTimeField(null=True, blank=True)
+    erledigt = models.BooleanField(default=False)
+    versuche = models.PositiveIntegerField(default=0)
+    naechster_versuch = models.DateTimeField(null=True, blank=True)
+    gesperrt_bis = models.DateTimeField(null=True, blank=True)
+    sperrcode = models.CharField(max_length=32, default="", blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["mitglied", "art"], name="postauftrag_einmal")]
+
+    def __str__(self):
+        return f"{self.art}: {self.mitglied_id}"

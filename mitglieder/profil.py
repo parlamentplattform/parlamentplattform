@@ -20,6 +20,7 @@ Grundsätze:
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 from django import forms
@@ -39,7 +40,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
-from mitglieder.ausweis import ausweis_moeglich, ausweis_svg
+from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
@@ -52,6 +53,26 @@ from verfahren.models import (
     Stimmabgabe,
     StimmRegister,
 )
+
+log = logging.getLogger(__name__)
+
+
+def _ausweis_vorschau(mitglied: Mitglied) -> dict:
+    """FB-K8: die Vorschau des Mitgliedsausweises für die Profilkarte — beide Seiten als SVG — oder
+    warum es (noch) keine gibt: Stufe ungeprüft, kein Name auf der Karte, oder eine Störung beim
+    Zeichnen (Logo-Datei), die nur protokolliert wird: Das Profil bleibt bedienbar."""
+    if not ausweis_moeglich(mitglied):
+        return {"ausweis": None, "ausweis_stoerung": False, "name_fehlt": False}
+    if not ausweis_erstellbar(mitglied):
+        return {"ausweis": None, "ausweis_stoerung": False, "name_fehlt": True}
+    try:
+        return {"ausweis": ausweis_svg(mitglied), "ausweis_stoerung": False, "name_fehlt": False,
+                "ausweis_probe_versandt": mitglied.postauftrag_set.filter(
+                    art="ausweis_vorschau", erledigt=True, anhang_versandt_am__isnull=False).exists()}
+    except (OSError, ValueError):
+        log.exception("Vorschau des Mitgliedsausweises für Mitglied %s nicht erzeugbar.", mitglied.pk)
+        return {"ausweis": None, "ausweis_stoerung": True, "name_fehlt": False}
+
 
 BESTAETIGUNGSWORT = "AUSTRITT"
 REGISTERSCHLUESSEL = "region-nebenwohnsitz-zaehlt"  # die Stellgröße, die der Profiltext nennt
@@ -283,8 +304,8 @@ def profil(request):
             "nebenwohnsitz_zaehlt": nebenwohnsitz_zaehlt(),
             "registerschluessel": REGISTERSCHLUESSEL,
             "adresswechsel": Adresswechsel.offener(mitglied),
-            # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüfter Identität
-            "ausweis": ausweis_svg(mitglied) if ausweis_moeglich(mitglied) else None,
+            # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüftem Nachweis
+            **_ausweis_vorschau(mitglied),
         },
     )
 
@@ -526,7 +547,10 @@ def daten_export(mitglied: Mitglied) -> dict:
             "registriert_am": m.date_joined,
             "zuletzt_angemeldet": m.last_login,
         },
+        "postauftraege": list(m.postauftrag_set.order_by("pk").values(
+            "art", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche", "naechster_versuch")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
+        "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),
         "beitraege": [

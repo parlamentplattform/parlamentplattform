@@ -9,7 +9,7 @@
 
 {% blocktranslate %}Nach der Freischaltung gilt für Abstimmungen und Wahlen:{% endblocktranslate %} {{ stimmrecht }} {% blocktranslate %}Stichtag ist jeweils der Beginn einer Abstimmung (§ 4 Abs 4 lit a).{% endblocktranslate %}
 
-{% blocktranslate %}Mit der Freischaltung erhalten Sie außerdem Ihren Mitgliedsausweis — als PDF im Kartenformat, automatisch per E-Mail und danach jederzeit im Profil.{% endblocktranslate %}
+{% if ausweis %}{% blocktranslate %}Im Anhang finden Sie Ihren Mitgliedsausweis als einseitiges PDF im Kartenformat. Solange die Prüfung aussteht, ist dies auf der Karte vermerkt. Nach der Freischaltung erhalten Sie automatisch eine aktualisierte Ausgabe.{% endblocktranslate %}{% else %}{% blocktranslate %}Ihren Mitgliedsausweis liefern wir automatisch nach, sobald er erzeugt werden kann. Bitte prüfen Sie, ob in Ihrem Profil ein Name hinterlegt ist.{% endblocktranslate %}{% endif %}
 
 {% blocktranslate %}Öffentlich erscheinen Sie als „{{ anzeigename }}“; den Anzeigenamen wählen Sie im Profil (§ 5 Abs 3 lit a).{% endblocktranslate %}
 

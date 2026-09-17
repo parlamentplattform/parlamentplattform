@@ -1,22 +1,8 @@
-"""Der Mitgliedsausweis (FB-K8, A0-12): eine Zeichnung, zwei Ausgaben.
+"""Einseitiger Mitgliedsausweis mit 1,5 mm Beschnitt (ADR-010, A0-13).
 
-- **PDF im EC-Kartenformat** (ID-1: 85,60 × 53,98 mm) samt 1,5 mm Beschnitt je Seite — Seite
-  88,60 × 56,98 mm, `TrimBox` auf das Kartenmaß, alles Farbige läuft in den Beschnitt. Vektor,
-  also auflösungsunabhängig (deckt 1046 × 673 wie 2093 × 1346 px ab). Zwei Seiten: Vorder- und
-  Rückseite. Der Ausweis hängt am Freischaltungsbrief (`mitglieder/post.py`) und steht im Profil
-  zum Herunterladen.
-- **SVG** derselben Zeichnung für die Vorschau im Profil — Bild und PDF kommen aus einer Quelle.
-
-Ohne neue Abhängigkeit: Der PDF-Schreiber unten kennt genau das, was die Karte braucht — Flächen
-mit runden Ecken, Text in den Standardschriften (Helvetica, ohne Einbettung; WinAnsi deckt die
-Umlaute), das Logo als Schablonenmaske aus dem Alphakanal des PNG (gefüllt in der jeweiligen
-Farbe) und die QR-Module als Rechtecke (`segno` liefert die Matrix). Das ist keine PDF-Bibliothek,
-und es will keine sein; ReportLab oder fpdf2 bräuchten ein ADR.
-
-Was auf der Karte steht: Klarname (ersatzweise Anzeigename), Mitgliedsnummer (die Kontonummer),
-„Mitglied seit“ (Beitrittsmonat), Identitätsstufe, ein QR-Code mit dem Prüflink. Keine Adresse,
-kein Lichtbild, keine Werbung. Der Prüflink führt auf eine öffentliche Seite, die nur „gültig“
-oder „nicht gültig“ sagt (Nummer, Beitrittsmonat, Stufe — kein Name).
+Nach bestätigter Anmeldung mit Status „Prüfung ausständig“, nach Freischaltung
+mit dem belegten Nachweis. Das PDF bettet die Schrift ein und verändert Namen
+nicht. Der QR-Code zeigt den aktuellen Status ohne Namen und gewährt keine Rechte.
 """
 
 from __future__ import annotations
@@ -24,6 +10,7 @@ from __future__ import annotations
 import base64
 import secrets
 import struct
+import unicodedata
 import zlib
 from dataclasses import dataclass
 from functools import lru_cache
@@ -32,6 +19,7 @@ from pathlib import Path
 from django.conf import settings
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 
 from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
 from verfahren.models import AuditEintrag
@@ -39,16 +27,21 @@ from verfahren.models import AuditEintrag
 # ── Maße (mm) ────────────────────────────────────────────────────────────────────────────────
 
 BESCHNITT_MM = 1.5
+SICHERHEIT_MM = 3.0  # innerhalb der Schnittkante bleibt alles Wichtige mindestens so weit weg
 KARTE_BREITE_MM = 85.60  # ISO/IEC 7810 ID-1 — die EC-Karte
 KARTE_HOEHE_MM = 53.98
 SEITE_BREITE_MM = KARTE_BREITE_MM + 2 * BESCHNITT_MM  # 88,60
 SEITE_HOEHE_MM = KARTE_HOEHE_MM + 2 * BESCHNITT_MM  # 56,98
 ECKE_MM = 3.18  # Eckradius der ID-1-Karte — nur die Vorschau zeigt ihn, der Druck schneidet
+INNEN_MM = BESCHNITT_MM + 5.0  # Innenrand der Karte: 5 mm ab Schnittkante
 PT = 72 / 25.4  # Punkt je Millimeter
+QR_FELD_MM = 18.0  # weißes Feld des QR-Codes
+QR_RAND_MM = 1.8  # Ruhezone: 4 Module bei Version 4 (ISO/IEC 18004)
 
 # ── Farben (Tokens der Design-Spezifikation, base.html) ──────────────────────────────────────
 
 TIEFE = "#0E4C5C"
+TIEFE_SCHATTEN = "#0B3F4D"
 GOLD = "#D9A441"
 GOLD_SANFT = "#E8C27A"
 PAPIER = "#FFFFFF"
@@ -60,11 +53,14 @@ MATT = "#5E6F7A"
 LOGO = Path(__file__).resolve().parent / "static" / "mitglieder" / "ddoe-logo.png"
 CODE_LAENGE = 10  # Hex-Zeichen des Prüfcodes
 
-#: Die Identitätsstufe in Kartenlänge — die Auswahltexte des Modells sind Sätze.
+#: Der Nachweis in Kartenlänge — die Auswahltexte des Modells sind Sätze. „geprüft (Beitragseingang
+#: verbucht)“ ist kein Ausweis-Nachweis, sondern die Selbsteinschätzung nach § 4 Abs 3; die Karte
+#: sagt darum, was geschah. Deutsch auf der Karte; die Prüfseite übersetzt dieselben Wörter.
 STUFE_KURZ = {
-    Identitaetsstufe.GEPRUEFT: "geprüft",
-    Identitaetsstufe.PRAESENZ: "persönlich geprüft",
-    Identitaetsstufe.EID: "elektronisch geprüft",
+    Identitaetsstufe.UNGEPRUEFT: gettext_noop("Prüfung ausständig"),
+    Identitaetsstufe.GEPRUEFT: gettext_noop("Beitrag verbucht"),
+    Identitaetsstufe.PRAESENZ: gettext_noop("persönlich geprüft"),
+    Identitaetsstufe.EID: gettext_noop("elektronisch geprüft"),
 }
 
 
@@ -80,42 +76,70 @@ class Ausweis:
     ausgestellt: str
     code: str
     pruef_url: str
+    plattform: str  # die Adresse der Instanz ohne Schema — steht vorne auf der Karte
 
     @property
     def nummer_text(self) -> str:
         return f"{self.nummer:06d}"
 
+    @property
+    def pruef_adresse(self) -> str:
+        return _ohne_schema(self.pruef_url)
+
+
+def _ohne_schema(url: str) -> str:
+    return url.removeprefix("https://").removeprefix("http://").rstrip("/")
+
 
 def ausweis_moeglich(mitglied: Mitglied) -> bool:
-    """Einen Ausweis bekommt, wer Mitglied ist: aktives Konto, geprüfte Identität (§ 4 Abs 1),
-    nicht ausgetreten oder ausgeschlossen."""
+    """Einen gültigen Ausweis hat, wer Mitglied mit geprüfter Stufe ist: aktives Konto, Stufe nicht
+    „ungeprüft“ (§ 4 Abs 1 und 3), nicht ausgetreten oder ausgeschlossen."""
     return (
         mitglied.is_active
-        and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
         and mitglied.status not in (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)
     )
 
 
+def name_fuer_karte(mitglied: Mitglied) -> str:
+    """Der Name auf der Karte: der Klarname, ersatzweise der gewählte Anzeigename. Der Platzhalter
+    „Mitglied n“ ist kein Name — dann gibt es keine Karte, bis die Stammdaten ergänzt sind."""
+    return " ".join((mitglied.get_full_name() or mitglied.pseudonym_oeffentlich or "").split())
+
+
+def ausweis_erstellbar(mitglied: Mitglied) -> bool:
+    """Ausstellen lässt sich der Ausweis nur mit einem Namen darauf."""
+    return ausweis_moeglich(mitglied) and bool(name_fuer_karte(mitglied))
+
+
 def ausweis_gueltig(mitglied: Mitglied | None, code: str) -> bool:
-    """Die Prüfseite: gültig ist ein Ausweis nur mit dem vergebenen Code und solange die
-    Mitgliedschaft besteht — nach Austritt oder Ausschluss sagt sie „nicht gültig“."""
+    """Die Prüfseite: gültig ist ein Ausweis nur mit dem vergebenen Code und solange eine aktive
+    Mitgliedschaft mit geprüfter Stufe besteht — nach Austritt, Ausschluss oder Rücknahme der Stufe
+    sagt sie „nicht gültig“. Verglichen wird byteweise in konstanter Zeit; ein Code außerhalb von
+    ASCII kann nie stimmen und fällt ohne Fehler durch."""
     return (
         mitglied is not None
         and bool(mitglied.ausweis_code)
-        and secrets.compare_digest(mitglied.ausweis_code, code)
+        and isinstance(code, str)
+        and code.isascii()
+        and secrets.compare_digest(mitglied.ausweis_code.encode(), code.encode())
         and ausweis_moeglich(mitglied)
+        and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     )
 
 
 def ausweis_code_sicherstellen(mitglied: Mitglied, jetzt=None) -> str:
     """Vergibt den Prüfcode einmal je Konto — mit dem ersten Ausweis; danach bleibt er, damit
-    QR-Codes gedruckter Karten weiter stimmen. Audit nur mit der Mitgliedsnummer."""
+    QR-Codes gedruckter Karten weiter stimmen. Die bedingte UPDATE-Anweisung ist atomar: Zwei
+    gleichzeitige erste Aufrufe vergeben genau einen Code. Audit nur mit der Mitgliedsnummer."""
     if mitglied.ausweis_code:
         return mitglied.ausweis_code
-    mitglied.ausweis_code = secrets.token_hex(CODE_LAENGE // 2)
-    mitglied.ausweis_ausgestellt_am = jetzt or timezone.now()
-    mitglied.save(update_fields=["ausweis_code", "ausweis_ausgestellt_am"])
-    AuditEintrag.anhaengen({"typ": "ausweis_ausgestellt", "mitglied": mitglied.pk})
+    neu = secrets.token_hex(CODE_LAENGE // 2)
+    getroffen = Mitglied.objects.filter(pk=mitglied.pk, ausweis_code="").update(
+        ausweis_code=neu, ausweis_ausgestellt_am=jetzt or timezone.now()
+    )
+    mitglied.refresh_from_db(fields=["ausweis_code", "ausweis_ausgestellt_am"])
+    if getroffen:
+        AuditEintrag.anhaengen({"typ": "ausweis_ausgestellt", "mitglied": mitglied.pk})
     return mitglied.ausweis_code
 
 
@@ -131,12 +155,13 @@ def ausweis_daten(mitglied: Mitglied) -> Ausweis:
         beitritt = mitglied.beitritt or timezone.localdate(mitglied.ausweis_ausgestellt_am)
         return Ausweis(
             nummer=mitglied.pk,
-            name=mitglied.get_full_name() or mitglied.anzeigename,
+            name=name_fuer_karte(mitglied),
             seit=formats.date_format(beitritt, "F Y"),
             stufe=STUFE_KURZ.get(mitglied.identitaetsstufe, "geprüft"),
             ausgestellt=formats.date_format(timezone.localdate(mitglied.ausweis_ausgestellt_am), "d.m.Y"),
             code=mitglied.ausweis_code,
             pruef_url=pruef_url(mitglied),
+            plattform=_ohne_schema(settings.DDOE_BASIS_URL),
         )
 
 
@@ -144,7 +169,31 @@ def dateiname(mitglied: Mitglied) -> str:
     return f"Mitgliedsausweis-DDOE-{mitglied.pk:06d}.pdf"
 
 
-# ── Schriftmaße: Helvetica-Breiten (Adobe-Standardmetrik, 1/1000 em) für das Einpassen ───────
+# ── Schrift: WinAnsi und die Helvetica-Breiten (Adobe-Standardmetrik, 1/1000 em) ─────────────
+
+#: Buchstaben ohne Unicode-Zerlegung, die WinAnsi nicht kennt — NFKD hilft dort nicht.
+_ERSATZ = {"Đ": "D", "đ": "d", "Ł": "L", "ł": "l", "ı": "i", "İ": "I", "Ħ": "H", "ħ": "h", "Ŧ": "T", "ŧ": "t", "ŋ": "n", "Ŋ": "N"}
+
+
+def _winansi(text: str) -> str:
+    """Was die Standardschrift nicht kennt, verliert sein Diakritikum (č → c, ş → s, ğ → g) statt zu
+    „?“ zu werden; was auch dann nicht darstellbar ist (andere Schriftsysteme, Symbole), entfällt."""
+    aus = []
+    for z in text:
+        try:
+            z.encode("cp1252")
+            aus.append(z)
+            continue
+        except UnicodeEncodeError:
+            pass
+        ersatz = _ERSATZ.get(z) or "".join(c for c in unicodedata.normalize("NFKD", z) if not unicodedata.combining(c))
+        try:
+            ersatz.encode("cp1252")
+            aus.append(ersatz)
+        except UnicodeEncodeError:
+            pass
+    return " ".join("".join(aus).split()) if text.strip() else text
+
 
 _BREITEN = {
     " ": 278, "!": 278, '"': 355, "#": 556, "$": 556, "%": 889, "&": 667, "'": 191, "(": 333, ")": 333,
@@ -159,16 +208,17 @@ _BREITEN = {
     "§": 556, "·": 278, "–": 556, "—": 1000, "„": 333, "“": 333, "é": 556, "è": 556, "á": 556, "à": 556,
 }
 _BREITEN_FETT = {
-    **_BREITEN, "a": 556, "c": 556, "e": 556, "f": 333, "i": 278, "j": 278, "k": 556, "l": 278, "m": 889,
-    "r": 389, "s": 556, "t": 333, "v": 556, "w": 778, "x": 556, "y": 556, "A": 722, "B": 722, "J": 556,
-    "K": 722, "L": 611, "?": 611, "&": 722, "'": 238, '"': 474, "„": 500, "“": 500,
+    **_BREITEN, "a": 556, "b": 611, "c": 556, "d": 611, "e": 556, "f": 333, "g": 611, "h": 611, "i": 278,
+    "j": 278, "k": 556, "l": 278, "m": 889, "n": 611, "o": 611, "p": 611, "q": 611, "r": 389, "s": 556,
+    "t": 333, "u": 611, "v": 556, "w": 778, "x": 556, "y": 556, "ö": 611, "ü": 611, "A": 722, "B": 722,
+    "J": 556, "K": 722, "L": 611, "Ä": 722, ":": 333, ";": 333, "!": 333, "?": 611, "&": 722, "@": 975,
+    "'": 238, '"': 474, "„": 500, "“": 500,
 }
 
 
-def textbreite_mm(text: str, groesse_pt: float, fett: bool = False, laufweite_pt: float = 0.0) -> float:
-    tabelle = _BREITEN_FETT if fett else _BREITEN
-    em = sum(tabelle.get(z, 600) for z in text) / 1000
-    return (em * groesse_pt + laufweite_pt * max(len(text) - 1, 0)) / PT
+def textbreite_mm(text, groesse, fett=False, laufweite_pt=0):
+    from mitglieder.ausweis_pdf import textbreite
+    return textbreite(text, groesse, fett, laufweite_pt)
 
 
 def _einpassen(text: str, groesse_pt: float, breite_mm: float, fett: bool, mindest_pt: float) -> float:
@@ -192,17 +242,26 @@ def _umbrechen(text: str, groesse_pt: float, breite_mm: float, fett: bool = Fals
     return zeilen
 
 
-# ── Das Logo: Schablone aus dem Alphakanal des PNG ───────────────────────────────────────────
+# ── Das Logo: Schablone aus dem PNG ──────────────────────────────────────────────────────────
 
 
 @lru_cache(maxsize=1)
 def _png(pfad: str = str(LOGO)) -> tuple[int, int, bytes, bytes]:
     """Breite, Höhe, die Zeichenfläche (ein Byte je Pixel: 1 = dunkel und deckend, 0 = frei) und
     die Rohdatei — nur 8-Bit-PNG ohne Verschachtelung, Farbtyp 6 (RGBA), 4 (Grau+Alpha), 2 (RGB)
-    oder 0 (Grau). Das Logo ist schwarz mit deckend weißen Innenflächen; gemalt wird nur das Schwarze."""
+    oder 0 (Grau). Das Logo ist schwarz mit deckend weißen Innenflächen; gemalt wird nur das Schwarze.
+    Jede Unlesbarkeit wird ein ValueError — die Aufrufer schicken dann den Brief ohne Anhang und
+    zeigen im Profil eine Störung statt eines Fehlers."""
     daten = Path(pfad).read_bytes()
     if daten[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError("Logo ist kein PNG.")
+    try:
+        return _png_lesen(daten)
+    except (KeyError, IndexError, struct.error, zlib.error) as e:
+        raise ValueError("Logo-PNG nicht lesbar (nur 8-Bit ohne Palette und Verschachtelung).") from e
+
+
+def _png_lesen(daten: bytes) -> tuple[int, int, bytes, bytes]:
     pos, idat, breite, hoehe, farbtyp = 8, [], 0, 0, 0
     while pos + 8 <= len(daten):
         laenge = int.from_bytes(daten[pos : pos + 4], "big")
@@ -218,6 +277,8 @@ def _png(pfad: str = str(LOGO)) -> tuple[int, int, bytes, bytes]:
     kanaele = {0: 1, 2: 3, 4: 2, 6: 4}[farbtyp]
     roh = zlib.decompress(b"".join(idat))
     schritt = breite * kanaele
+    if len(roh) < hoehe * (schritt + 1):
+        raise ValueError("Logo-PNG unvollständig.")
     vorige = bytearray(schritt)
     flaeche = bytearray()
     for zeile in range(hoehe):
@@ -304,58 +365,75 @@ def _qr_matrix(inhalt: str):
     return segno.make(inhalt, error="m").matrix
 
 
+def _name_zeilen(name: str, breite: float) -> list[tuple[str, float]]:
+    """Der Name in einer Zeile bis herunter zu 9 pt; ist er dann noch zu breit, in zwei Zeilen zu
+    höchstens 8,5 pt — jede Zeile für sich eingepasst, damit nichts über den Innenrand läuft."""
+    groesse = _einpassen(name, 13, breite, True, 9)
+    if textbreite_mm(name, groesse, True) <= breite:
+        return [(name, groesse)]
+    zeilen = _umbrechen(name, 8.5, breite, fett=True)
+    erste, zweite = zeilen[0], " ".join(zeilen[1:])
+    return [(z, _einpassen(z, 8.5, breite, True, 6)) for z in (erste, zweite) if z]
+
+
 def zeichne_vorderseite(z: Zeichner, a: Ausweis) -> None:
     """Tiefe Fläche, Goldlinie, weißes Logo, Name groß, drei Angaben, QR-Code im weißen Feld."""
-    r = BESCHNITT_MM  # Kartenrand; Innenrand 5 mm ab Kartenrand
-    innen = r + 5
+    innen = INNEN_MM
+    breite = SEITE_BREITE_MM - 2 * innen
     z.seite_beginnen(TIEFE)
     # Ein sanfter Schatten der Tiefe am unteren Rand — Fläche, keine Deko-Grafik
-    z.flaeche(0, SEITE_HOEHE_MM - 9.5, SEITE_BREITE_MM, 9.5, "#0B3F4D")
+    z.flaeche(0, SEITE_HOEHE_MM - 8.5, SEITE_BREITE_MM, 8.5, TIEFE_SCHATTEN)
     z.logo(innen, innen - 0.5, 11, PAPIER)
     z.text(innen + 13.5, innen + 3.6, "Direkte Demokratie Österreich", 8.5, PAPIER, fett=True)
-    z.text(innen + 13.5, innen + 8.1, "MITGLIEDSAUSWEIS", 6, GOLD, laufweite=1.4)
-    z.flaeche(innen, innen + 13.2, SEITE_BREITE_MM - 2 * innen, 0.3, GOLD)
-    # Name über die volle Breite; darunter links drei Angaben, rechts der QR-Code
-    name_groesse = _einpassen(a.name, 13, SEITE_BREITE_MM - 2 * innen, True, 8)
-    z.text(innen, innen + 18.4, a.name, name_groesse, PAPIER, fett=True)
-    feld = 16.5
-    fx, fy = SEITE_BREITE_MM - innen - feld, innen + 21.2
-    spalten = ((innen, "MITGLIEDSNUMMER", a.nummer_text), (innen + 23.5, "MITGLIED SEIT", a.seit))
+    z.text(innen + 13.5, innen + 8.1, "MITGLIEDSAUSWEIS", 6, GOLD_SANFT, laufweite=1.4)
+    z.flaeche(innen, innen + 13.2, breite, 0.3, GOLD)
+    # Name über die volle Breite (eine Zeile, notfalls zwei); darunter links die Angaben, rechts der QR-Code
+    zeilen = _name_zeilen(a.name, breite)
+    if len(zeilen) == 1:
+        z.text(innen, innen + 18.4, zeilen[0][0], zeilen[0][1], PAPIER, fett=True)
+    else:
+        for (zeile, groesse), grundlinie in zip(zeilen, (innen + 16.3, innen + 19.9), strict=False):
+            z.text(innen, grundlinie, zeile, groesse, PAPIER, fett=True)
+    fx, fy = SEITE_BREITE_MM - innen - QR_FELD_MM, innen + 21.2
+    spalten = ((innen, "MITGLIEDSNUMMER", a.nummer_text), (innen + 23.5, ("ANGEMELDET SEIT" if a.stufe == "Prüfung ausständig" else "MITGLIED SEIT"), a.seit))
     for x, beschriftung, wert in spalten:
         z.text(x, innen + 24.6, beschriftung, 4.6, GOLD_SANFT, laufweite=0.7)
         z.text(x, innen + 28.8, wert, _einpassen(wert, 8, 21, False, 6), PAPIER)
-    z.text(innen, innen + 33.6, "IDENTITÄT", 4.6, GOLD_SANFT, laufweite=0.7)
+    z.text(innen, innen + 33.6, "NACHWEIS", 4.6, GOLD_SANFT, laufweite=0.7)
     z.text(innen, innen + 37.8, a.stufe, _einpassen(a.stufe, 8, fx - innen - 3, False, 6), PAPIER)
-    z.text(innen, SEITE_HOEHE_MM - innen - 0.6, "Wir sind das Werkzeug.", 6, GOLD, kursiv=True)
-    z.text(innen + 31, SEITE_HOEHE_MM - innen - 0.6, "parlament.ddoe.at", 6, LEISTENTINTE)
-    # QR: weißes Feld rechts, Module mit 1,3 mm Ruhezone — Prüflink der Karte
-    z.flaeche(fx, fy, feld, feld, PAPIER, radius=1.6)
-    z.qr(fx + 1.3, fy + 1.3, feld - 2.6, _qr_matrix(a.pruef_url), TINTE)
+    fuss = SEITE_HOEHE_MM - innen + 1.0  # Grundlinie in der Mitte des Schattenbands, 3,5 mm über der Kante
+    z.text(innen, fuss, "Wir sind das Werkzeug.", 6, GOLD, kursiv=True)
+    z.text(innen + 31, fuss, a.plattform, _einpassen(a.plattform, 6, breite - 31, False, 4.5), LEISTENTINTE)
+    # QR: weißes Feld rechts, Ruhezone QR_RAND_MM (4 Module bei Version 4) — Prüflink der Karte
+    z.flaeche(fx, fy, QR_FELD_MM, QR_FELD_MM, PAPIER, radius=1.6)
+    z.qr(fx + QR_RAND_MM, fy + QR_RAND_MM, QR_FELD_MM - 2 * QR_RAND_MM, _qr_matrix(a.pruef_url), TINTE)
 
 
 def zeichne_rueckseite(z: Zeichner, a: Ausweis) -> None:
     """Helle Rückseite: worum es geht, Prüfadresse, Ausstellung, Kontakt."""
-    innen = BESCHNITT_MM + 5
+    innen = INNEN_MM
+    breite = SEITE_BREITE_MM - 2 * innen
     z.seite_beginnen(GRUND)
-    z.flaeche(0, 0, SEITE_BREITE_MM, 8.5, TIEFE)
-    z.logo(innen, 1.6, 5.3, PAPIER)
-    z.text(innen + 7, 5.7, "Direkte Demokratie Österreich", 6.5, PAPIER, fett=True)
-    z.text(SEITE_BREITE_MM - innen - 14.5, 5.7, "Rückseite", 5, LEISTENTINTE)
-    y = 15.5
+    z.flaeche(0, 0, SEITE_BREITE_MM, 11.0, TIEFE)
+    z.logo(innen, 4.5, 5.3, PAPIER)  # Oberkante 3 mm unter der Schnittkante — wie der Innenrand
+    z.text(innen + 7, 8.6, "Direkte Demokratie Österreich", 6.5, PAPIER, fett=True)
+    z.text(SEITE_BREITE_MM - innen - 14.5, 8.6, "Rückseite", 5, LEISTENTINTE)
+    y = 16.0
     for zeile in _umbrechen(
         "Dieser Ausweis gehört zu einer Mitgliedschaft bei Direkte Demokratie Österreich (DDÖ). "
-        "Er gilt, solange die Mitgliedschaft besteht, und ist jederzeit prüfbar unter:",
-        6.2, SEITE_BREITE_MM - 2 * innen,
+        "Er gilt, solange die Mitgliedschaft mit geprüftem Nachweis besteht, und ist jederzeit prüfbar unter:",
+        6.2, breite,
     ):
         z.text(innen, y, zeile, 6.2, TINTE)
         y += 3.4
-    z.text(innen, y + 0.8, a.pruef_url.replace("https://", ""), _einpassen(a.pruef_url, 6.4, SEITE_BREITE_MM - 2 * innen, True, 5), TIEFE, fett=True)
+    z.text(innen, y + 0.8, a.pruef_adresse, _einpassen(a.pruef_adresse, 6.4, breite, True, 5), TIEFE, fett=True)
     y += 8.2
-    zeile = f"Mitgliedsnummer {a.nummer_text} · ausgestellt am {a.ausgestellt} · Identität {a.stufe}"
-    z.text(innen, y, zeile, _einpassen(zeile, 5.6, SEITE_BREITE_MM - 2 * innen, False, 4.5), MATT)
-    z.flaeche(innen, y + 3.2, SEITE_BREITE_MM - 2 * innen, 0.3, GOLD)
+    zeile = f"Mitgliedsnummer {a.nummer_text} · ausgestellt am {a.ausgestellt} · Nachweis: {a.stufe}"
+    z.text(innen, y, zeile, _einpassen(zeile, 5.6, breite, False, 4.5), MATT)
+    z.flaeche(innen, y + 3.2, breite, 0.3, GOLD)
     z.text(innen, y + 8.4, "Kontakt: didide@ddoe.at · www.ddoe.at · plattform@ddoe.at", 5.6, TINTE)
-    z.text(innen, y + 12.4, "Die Mitgliederversammlung entscheidet — eine Person, eine Stimme (§ 4 Abs 4).", 5.6, TINTE)
+    leitsatz = "Die Mitgliederversammlung entscheidet — ein Mensch, eine Stimme (§ 3 Abs 1 lit b)."
+    z.text(innen, y + 12.4, leitsatz, _einpassen(leitsatz, 5.6, breite, False, 4.5), TINTE)
     z.text(innen, SEITE_HOEHE_MM - innen - 0.5, "Wir sind das Werkzeug.", 6, TIEFE, kursiv=True)
 
 
@@ -363,7 +441,7 @@ def zeichne_rueckseite(z: Zeichner, a: Ausweis) -> None:
 
 
 def _pdf_string(text: str) -> bytes:
-    roh = text.encode("cp1252", "replace")
+    roh = _winansi(text).encode("cp1252", "replace")
     return b"(" + roh.replace(b"\\", b"\\\\").replace(b"(", b"\\(").replace(b")", b"\\)") + b")"
 
 
@@ -435,7 +513,7 @@ class PdfZeichner(Zeichner):
         self._s.append(" ".join(teile))
 
     def pdf(self, titel: str, jetzt) -> bytes:
-        """Objekte: Katalog, Seitenbaum, je Seite Seite+Inhalt, vier Schriften, das Logo, Info."""
+        """Objekte: vier Schriften, das Logo, je Seite Inhalt+Seite, Seitenbaum, Katalog, Info."""
         objekte: list[bytes] = []
 
         def obj(inhalt: bytes) -> int:
@@ -452,7 +530,8 @@ class PdfZeichner(Zeichner):
         breite, hoehe, bits = _logo_schablone()
         logo_nr = obj(strom(f"/Type /XObject /Subtype /Image /Width {breite} /Height {hoehe} /ImageMask true /Decode [0 1]", bits))
         ressourcen = (
-            "<< /Font << " + " ".join(f"{k} {n} 0 R" for k, n in fonts.items()) + f" >> /XObject << /Logo {logo_nr} 0 R >> >>"
+            "<< /ProcSet [/PDF /Text /ImageB] /Font << " + " ".join(f"{k} {n} 0 R" for k, n in fonts.items())
+            + f" >> /XObject << /Logo {logo_nr} 0 R >> >>"
         )
         seiten_nr = len(objekte) + 1 + 2 * len(self.seiten)  # der Seitenbaum kommt nach den Seiten
         seiten_objekte = []
@@ -493,24 +572,39 @@ class PdfZeichner(Zeichner):
 
 
 def _svg_text(inhalt: str) -> str:
-    return inhalt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return inhalt.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+LOGO_BILD_ID = "ausweis-logo-bild"
 
 
 class SvgZeichner(Zeichner):
-    """Eine Seite je Aufruf — die Vorschau zeigt Vorder- und Rückseite als zwei Bilder."""
+    """Eine Seite je Bild — die Vorschau zeigt Vorder- und Rückseite als zwei Bilder auf einer
+    Seite. Das Logo (PNG als Base64) trägt nur das erste Bild; das zweite verweist mit `<use>`
+    darauf, damit die Profilseite es nicht zweimal lädt. `viewBox` zeigt die geschnittene Karte."""
 
-    def __init__(self, beschreibung: str, kennung: str) -> None:
+    def __init__(self, beschreibung: str, kennung: str, logo_einbetten: bool = True) -> None:
         self.teile: list[str] = []
         self.beschreibung = beschreibung
         self.kennung = kennung  # Präfix aller ids — zwei Bilder auf einer Seite dürfen sich nicht überschneiden
+        self.logo_einbetten = logo_einbetten
 
     def seite_beginnen(self, hintergrund: str) -> None:
         self.teile = []
-        # Die Vorschau zeigt die geschnittene Karte mit runden Ecken; der Beschnitt bleibt außen weg.
+        # Die Vorschau zeigt die geschnittene Karte mit runden Ecken; der Beschnitt bleibt außen weg —
+        # auch die viewBox zeigt nur das Kartenmaß, damit Schatten und Rundung an der Karte liegen.
         self.teile.append(
             f'<clipPath id="{self.kennung}-karte"><rect x="{BESCHNITT_MM}" y="{BESCHNITT_MM}" width="{KARTE_BREITE_MM}" '
             f'height="{KARTE_HOEHE_MM}" rx="{ECKE_MM}"/></clipPath>'
         )
+        if self.logo_einbetten:
+            _, _, _, roh = _png()
+            daten = base64.b64encode(roh).decode("ascii")
+            # Umgekehrt (weiß, wo das schwarze Logo war): als Leuchtdichte-Maske füllt ein Rechteck die Form.
+            self.teile.append(
+                f'<defs><image id="{LOGO_BILD_ID}" href="data:image/png;base64,{daten}" x="0" y="0" width="1" height="1" '
+                f'preserveAspectRatio="none" style="filter:invert(1)"/></defs>'
+            )
         self.teile.append(f'<g clip-path="url(#{self.kennung}-karte)">')
         self.flaeche(0, 0, SEITE_BREITE_MM, SEITE_HOEHE_MM, hintergrund)
 
@@ -525,14 +619,10 @@ class SvgZeichner(Zeichner):
         self.teile.append(f'<text x="{_f(x)}" y="{_f(y)}" fill="{farbe}" {stil}>{_svg_text(inhalt)}</text>')
 
     def logo(self, x, y, groesse, farbe):
-        _, _, _, roh = _png()
-        daten = base64.b64encode(roh).decode("ascii")
         kennung = f"{self.kennung}-logo{len(self.teile)}"
-        # Die Maske nimmt das PNG umgekehrt (weiß, wo das schwarze Logo war) — das Rechteck füllt sie in der Farbe.
         self.teile.append(
-            f'<mask id="{kennung}" maskUnits="userSpaceOnUse" x="{_f(x)}" y="{_f(y)}" width="{_f(groesse)}" height="{_f(groesse)}">'
-            f'<image href="data:image/png;base64,{daten}" x="{_f(x)}" y="{_f(y)}" width="{_f(groesse)}" height="{_f(groesse)}" '
-            f'style="filter:invert(1)"/></mask>'
+            f'<mask id="{kennung}" maskUnits="objectBoundingBox" maskContentUnits="objectBoundingBox" x="0" y="0" width="1" height="1">'
+            f'<use href="#{LOGO_BILD_ID}"/></mask>'
             f'<rect x="{_f(x)}" y="{_f(y)}" width="{_f(groesse)}" height="{_f(groesse)}" fill="{farbe}" mask="url(#{kennung})"/>'
         )
 
@@ -548,9 +638,9 @@ class SvgZeichner(Zeichner):
 
     def svg(self) -> str:
         return (
-            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SEITE_BREITE_MM} {SEITE_HOEHE_MM}" '
+            f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{BESCHNITT_MM} {BESCHNITT_MM} {KARTE_BREITE_MM} {KARTE_HOEHE_MM}" '
             f'width="100%" role="img" aria-label="{_svg_text(self.beschreibung)}" '
-            f'style="font-family:Helvetica,Arial,sans-serif;max-width:420px;display:block">'
+            f'style="font-family:DDOEKarte,Arial,sans-serif;max-width:420px;display:block">'
             f"<title>{_svg_text(self.beschreibung)}</title>" + "".join(self.teile) + "</g></svg>"
         )
 
@@ -559,19 +649,22 @@ class SvgZeichner(Zeichner):
 
 
 def ausweis_pdf(mitglied: Mitglied, jetzt=None) -> bytes:
-    """Der Ausweis als PDF — Vorder- und Rückseite, Kartenmaß mit Beschnitt."""
+    """Der Ausweis als einseitiges PDF im Kartenmaß mit Beschnitt."""
     a = ausweis_daten(mitglied)
-    z = PdfZeichner()
+    from mitglieder.ausweis_pdf import UnicodePdfZeichner
+    z = UnicodePdfZeichner()
     zeichne_vorderseite(z, a)
-    zeichne_rueckseite(z, a)
     return z.pdf(f"Mitgliedsausweis DDÖ Nr. {a.nummer_text}", jetzt or timezone.now())
 
 
 def ausweis_svg(mitglied: Mitglied) -> tuple[str, str]:
-    """Vorder- und Rückseite als zwei SVG-Bilder für die Vorschau im Profil."""
+    """Vorder- und Rückseite als zwei SVG-Bilder für die Vorschau im Profil — zusammen einzubinden
+    (die Rückseite verweist auf das Logo der Vorderseite)."""
     a = ausweis_daten(mitglied)
-    vorne = SvgZeichner(_("Mitgliedsausweis, Vorderseite: Direkte Demokratie Österreich, Nr. %(nummer)s") % {"nummer": a.nummer_text}, "ausweis-v")
+    vorne = SvgZeichner(
+        _("Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, Mitglied seit %(seit)s, Nachweis %(stufe)s")
+        % {"name": a.name, "nummer": a.nummer_text, "seit": a.seit, "stufe": _(a.stufe)},
+        "ausweis-v",
+    )
     zeichne_vorderseite(vorne, a)
-    hinten = SvgZeichner(_("Mitgliedsausweis, Rückseite mit Prüfadresse"), "ausweis-h")
-    zeichne_rueckseite(hinten, a)
-    return vorne.svg(), hinten.svg()
+    return vorne.svg(), ""

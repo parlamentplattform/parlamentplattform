@@ -2,6 +2,23 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.49.0] - 2026-09-17 · Mitgliedsausweis und zuverlässiger Postausgang
+
+### Hinzugefügt
+- Einseitiger Mitgliedsausweis mit DDÖ-Logo und QR-Statusprüfung: 88,60 × 56,98 mm inklusive 1,5 mm Beschnitt, TrimBox 85,60 × 53,98 mm. Keine Rückseite.
+- Bereits die Willkommensmail nach bestätigter Anmeldung enthält den Ausweis mit „Prüfung ausständig“. Nach Freischaltung folgt die aktualisierte Ausgabe. Der Ausweis verleiht keine Stimmrechte; diese bleiben durch die Verfahrensregeln bestimmt.
+- Dauerhafte Versandaufträge: Versand nach Datenbank-Commit, Wiederholungsversuche bei Fehlern, separate Nachlieferung fehlender PDF-Anhänge, atomare Reservierung gegen konkurrierende Verarbeitung. Austritt und Ausschluss verhindern weitere Zustellungen.
+- Automatische Bearbeitung im bestehenden Gunicorn-Webdienst und Wartungsbefehl `post_versenden`. Der persönliche Datenexport enthält den Versandstatus.
+- Persönlicher Probeversand im Profil ausschließlich an die eigene hinterlegte Adresse, ohne die regulären Versandstempel zu verändern. Kein automatischer Nachversand an Bestandsmitglieder.
+
+### Verbessert
+- Eingebettete Unicode-Schriften statt stiller Veränderung von Namen (ReportLab, ADR-010). Fehlende Schriftzeichen erzeugen einen protokollierten Fehler statt eines falschen Namens.
+- PDF-Download und Vorschau im Profil; öffentliche QR-Prüfung ohne Namensanzeige, mit getrenntem Status für ausständige Prüfung und ungültige Ausweise.
+- Dokumentierte Grenze: SMTP kann bei Prozessverlust unmittelbar nach Annahme einer Nachricht eine doppelte Zustellung verursachen. Bereits verbuchte Nachrichten werden nicht erneut gesendet. Die Ausgabe ist kein zugesichertes PDF/X-Druckprofil.
+
+### Prüfung
+- Vollständiger Python-3.12-Lauf: 1.520 Tests bestanden, Regelkern-Abdeckung 97 %. Ergänzende Tests für persönlichen Probeversand, Empfängerbindung und Versandstatus bestanden. Ruff, Migrationen und Django-Produktionscheck grün. 52 Bildschirmaufnahmen sowie direkte visuelle Prüfung gerenderter Muster-PDFs.
+
 ## [0.48.0] — 2026-09-16 · Die Mitgliederversammlung entscheidet, wer sie weiter vertritt
 
 ### Hinzugefügt

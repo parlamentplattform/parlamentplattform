@@ -16,3 +16,7 @@ dist/
 # Inventar, Website-Prüfung, Satzungsentwurf). Sie liegen lokal in docs/fahrtenbuch/ und werden
 # NICHT veröffentlicht; der daraus erzeugte Satzungs-Baukasten in docs/partner/ ist der öffentliche Teil.
 docs/fahrtenbuch/
+
+# Lokale PDF-Muster und Prüfprotokolle, keine Plattform-Quelldateien.
+/output/
+/pruefung-*.txt

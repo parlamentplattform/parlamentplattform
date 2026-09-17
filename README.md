@@ -61,6 +61,8 @@ Beiträge sind ausdrücklich willkommen — von Code über Textkritik bis Barrie
 
 Lizenz: [AGPL-3.0-or-later](LICENSE) — wer diese Software betreibt, auch verändert als Netzwerkdienst, muss den Quellcode offenlegen. Für ein demokratisches Werkzeug ist das keine Einschränkung, sondern der Punkt.
 
+Name und Logo der Partei Direkte Demokratie Österreich (`mitglieder/static/mitglieder/ddoe-logo.png`; Wortmarke und Kontaktangaben auf dem Mitgliedsausweis) sind nicht Teil der Lizenz: Wer die Software für eine andere Organisation betreibt, ersetzt Logo, Wortmarke und Kontakte (`mitglieder/ausweis.py`).
+
 ---
 
 ## English summary

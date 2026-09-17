@@ -335,9 +335,9 @@ MITGLIED = Rolle(
             urlname="mitglieder:beitrag",
         ),
         Faehigkeit(
-            titel=_("Den Mitgliedsausweis erhalten und herunterladen — als PDF im Kartenformat, automatisch mit der Freischaltung und jederzeit im Profil; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt"),
+            titel=_("Den Mitgliedsausweis erhalten und herunterladen — als einseitiges PDF nach bestätigter Anmeldung, aktualisiert nach Freischaltung und jederzeit im Profil; der QR-Code zeigt den aktuellen Prüfstatus ohne Namen"),
             stand=Stand.VERFUEGBAR,
-            satzung="§ 4 Abs 1",
+            satzung="§ 4 Abs 1 und 3",
             urlname="mitglieder:profil",
         ),
         Faehigkeit(

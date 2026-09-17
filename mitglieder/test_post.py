@@ -17,7 +17,7 @@ from plattform_core.eligibility import monate_addieren
 from verfahren.models import AuditEintrag
 from verfahren.test_views_aktionen import mitglied_anlegen  # noqa: F401
 
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 
 WILLKOMMEN = "Willkommen — ParlamentPlattform"
 FREISCHALTUNG = "Ihre Prüfung ist abgeschlossen — ParlamentPlattform"
@@ -210,7 +210,7 @@ def test_versandstoerung_blockiert_die_verbuchung_nicht(monkeypatch):
     assert beitrag_verbuchen(m, eingang("u1"), namens_ok=True) is True
     m.refresh_from_db()
     assert m.identitaetsstufe == Identitaetsstufe.GEPRUEFT
-    assert m.freischaltung_post_am is not None  # der Versuch zählt — kein zweiter Brief
+    assert m.freischaltung_post_am is None  # Fehler bleibt zur Wiederholung offen
     assert post_audit() == []  # nichts vorgetäuscht: kein Audit für einen Brief, der nicht ging
     assert freischaltung_senden(m) is False
 

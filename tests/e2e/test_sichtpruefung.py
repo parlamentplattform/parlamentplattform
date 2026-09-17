@@ -292,8 +292,13 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         p.goto(f"{live_server.url}/antrag/{kommend.antrag_id}/")
         halte_fest(p, "mandatsfrage-antragsseite")
 
-    # 0.49 (FB-K8): geprüfte Identität — dann zeigt das Profil den Mitgliedsausweis (Vorschau + PDF)
-    type(mandatarin).objects.filter(pk=mandatarin.pk).update(identitaetsstufe="geprueft")
+    # 0.49 (FB-K8): geprüfte Identität — dann zeigt das Profil den Mitgliedsausweis (Vorschau + PDF).
+    # Mit Klarname, damit das Bild die Karte zeigt, wie sie ein Mitglied bekommt (die Demo-Pseudonyme
+    # heißen „Mitglied n“ — das sähe aus wie der Platzhalter, den die Karte gerade nicht trägt).
+    type(mandatarin).objects.filter(pk=mandatarin.pk).update(
+        identitaetsstufe="geprueft", first_name="Maria", last_name="Musterfrau-Öhlinger"
+    )
+    mandatarin.refresh_from_db()
     p = seite(als=mandatarin)
     p.goto(f"{live_server.url}/profil/")
     halte_fest(p, "profil")

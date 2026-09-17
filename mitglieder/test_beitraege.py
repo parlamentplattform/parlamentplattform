@@ -37,13 +37,14 @@ def eingang(umsatz_id="u1", betrag="30.00", tag=None):
     )
 
 
-def test_verbuchen_schaltet_frei_und_ist_idempotent():
+def test_verbuchen_schaltet_frei_und_ist_idempotent(django_capture_on_commit_callbacks):
     m = mitglied_anlegen("zahlerin")
     m.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
     m.status = Mitgliedsstatus.PAUSIERT
     m.save(update_fields=["identitaetsstufe", "status"])
 
-    assert beitrag_verbuchen(m, eingang(), namens_ok=True) is True
+    with django_capture_on_commit_callbacks(execute=True):
+        assert beitrag_verbuchen(m, eingang(), namens_ok=True) is True
     m.refresh_from_db()
     assert m.status == Mitgliedsstatus.AKTIV  # § 4 Abs 3: Beitrag beendet die Pause
     assert m.identitaetsstufe == Identitaetsstufe.GEPRUEFT  # Freischaltung wie versprochen

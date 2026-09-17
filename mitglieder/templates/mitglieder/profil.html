@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n static %}
 {% block titel %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -15,8 +15,11 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .pf-form .checkzeile label{display:inline;margin:0;font-weight:400}
   .pf-form input[type=text]{width:100%;max-width:100%}
   .pf-wert{font-variant-numeric:tabular-nums;word-break:break-all}
-  .ausweis-vorschau{display:grid;gap:10px;max-width:420px;margin-bottom:12px}
-  .ausweis-vorschau svg{border-radius:14px;box-shadow:var(--shadow)}
+  @font-face{font-family:DDOEKarte;src:url("{% static 'mitglieder/fonts/DejaVuSans.ttf' %}");font-weight:400}
+@font-face{font-family:DDOEKarte;src:url("{% static 'mitglieder/fonts/DejaVuSans-Bold.ttf' %}");font-weight:700}
+@font-face{font-family:DDOEKarte;src:url("{% static 'mitglieder/fonts/DejaVuSans-Oblique.ttf' %}");font-style:italic}
+.ausweis-vorschau{display:grid;gap:10px;max-width:420px;margin-bottom:12px}
+  .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.pk %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
@@ -67,7 +70,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="pf-wert"><strong>{{ user.email }}</strong></p>
   {% if adresswechsel %}<p class="hilfe">{% blocktranslate with frist=adresswechsel.frist_bis|date:"SHORT_DATETIME_FORMAT" %}Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis {{ frist }}). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht.{% endblocktranslate %}</p>{% endif %}
   <p class="hilfe">{% translate "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins." %}</p>
-  <p class="hilfe">{% translate "Benachrichtigungen per E-Mail gibt es noch nicht; die Plattform verschickt nur Anmelde-, Bestätigungs- und Beitragsnachrichten." %}</p>
+  <p class="hilfe">{% translate "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden." %}</p>
 </div>
 
 {# ── Sitzungen ───────────────────────────────────────────────────────── #}
@@ -91,11 +94,17 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 <div class="karte" id="ausweis">
   <p class="phasen-titel">{% translate "Mitgliedsausweis" %}</p>
   {% if ausweis %}
-  <div class="ausweis-vorschau">{{ ausweis.0|safe }}{{ ausweis.1|safe }}</div>
+  <div class="ausweis-vorschau">{{ ausweis.0|safe }}</div>
   <p><a class="btn-linie" href="{% url 'mitglieder:profil_ausweis' %}">{% translate "Mitgliedsausweis herunterladen (PDF, Kartenformat)" %}</a></p>
-  <p class="hilfe">{% blocktranslate %}88,6 × 57 mm mit Beschnitt (EC-Kartenformat), Vorder- und Rückseite — zum Drucken oder fürs Handy. Er gilt, solange die Mitgliedschaft besteht; der QR-Code führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt und keinen Namen nennt. Ändert sich Ihr Name, laden Sie ihn hier einfach neu.{% endblocktranslate %}</p>
+  <form method="post" action="{% url 'mitglieder:profil_ausweis_probe' %}">{% csrf_token %}<button class="btn-linie" type="submit">{% translate "Ausweis-Vorschau an mich senden" %}</button></form>
+  {% if ausweis_probe_versandt %}<p class="hilfe" data-ausweis-probe="versandt">{% translate "Ihre Ausweis-Vorschau wurde per E-Mail versendet." %}</p>{% endif %}
+  <p class="hilfe">{% blocktranslate %}88,60 × 56,98 mm inklusive Beschnitt, eine Vorderseite. Der Ausweis zeigt Ihren Prüfstatus und bestätigt keine Stimmberechtigung. Der QR-Code öffnet die aktuelle Statusprüfung ohne Namensanzeige. Die Ausweisnummer ist Ihre Mitgliedsnummer. Nach einer Namensänderung können Sie den Ausweis hier erneut herunterladen.{% endblocktranslate %}</p>
+  {% elif ausweis_stoerung %}
+  <p class="hilfe">{% translate "Die Vorschau lässt sich gerade nicht erzeugen; die Störung ist protokolliert. Sobald sie behoben ist, erscheinen Vorschau und Download hier." %}</p>
+  {% elif name_fehlt %}
+  <p class="hilfe">{% translate "Für den Mitgliedsausweis braucht es einen Namen auf der Karte — ergänzen Sie Ihren Anzeigenamen im Profil; danach erscheint er hier." %}</p>
   {% else %}
-  <p class="hilfe">{% translate "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Identität, § 4 Abs 1) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier." %}</p>
+  <p class="hilfe">{% translate "Ihren Mitgliedsausweis erhalten Sie mit der Freischaltung (geprüfte Stufe — Beitragseingang, Präsenz oder eID; § 4 Abs 1 und 3) — automatisch per E-Mail als PDF im Kartenformat, danach jederzeit hier." %}</p>
   {% endif %}
 </div>
 

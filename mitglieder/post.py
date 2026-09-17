@@ -1,19 +1,7 @@
-"""Post an Mitglieder (FB-K7): der Willkommensbrief und der Freischaltungsbrief.
+"""Mitgliederpost: dauerhafte Aufträge nach Datenbank-Commit (ADR-010).
 
-Grundsätze:
-- Versand ist Höflichkeit, kein Vollzug: Scheitert er (SMTP, Netz — alles `OSError`), läuft
-  der Vorgang weiter, und der Brief wird nicht nachgeholt. Der Stempel am Konto
-  (`willkommen_post_am`, `freischaltung_post_am`) hält den ERSTEN Versandversuch fest — es
-  gibt genau einen Brief je Konto, auch bei doppeltem Klick auf den Link, bei erneuter
-  Verbuchung oder beim Stufenwechsel geprüft → Präsenz.
-- Immer Deutsch: Ein Sprachfeld am Konto gibt es nicht (die Sprache merkt sich das Gerät,
-  nicht das Konto — Profilkarte „Sprache“); darum `translation.override("de")`. Die Texte
-  laufen trotzdem durch den Katalog, damit ein späteres Sprachfeld nur den Override ersetzt.
-- Ehrlich: Ab wann das Stimmrecht besteht, rechnet `plattform_core.eligibility` aus dem
-  Beitritt (Sachfragen 3, Personenwahlen 12 Monate); solange `DDOE_UEBERGANGSREGEL` gilt,
-  nennt der Brief den Satzungsbezug (§ 4 Abs 4 lit d) statt Daten, die nicht gelten.
-- Audit `{"typ": "post", "art": …, "mitglied": pk}` — ohne Adresse, ohne Inhalt; kein Versand
-  an inaktive Konten (Austritt, Ausschluss, nie bestätigt).
+Erfolgsstempel bezeichnen die tatsächlich vom Mailbackend angenommene Nachricht.
+Fehler und fehlende PDF-Beilagen werden über den Postausgang erneut versucht.
 """
 
 from __future__ import annotations
@@ -27,7 +15,7 @@ from django.template.loader import render_to_string
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 
-from mitglieder.ausweis import ausweis_moeglich, ausweis_pdf, dateiname
+from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
@@ -85,7 +73,8 @@ def _senden(mitglied: Mitglied, art: str, betreff: str, text: str, anhang: tuple
         nachricht = EmailMessage(betreff, text, settings.DEFAULT_FROM_EMAIL, [mitglied.email])
         if anhang is not None:
             nachricht.attach(anhang[0], anhang[1], "application/pdf")
-        nachricht.send()
+        if nachricht.send() != 1:
+            return False
     except OSError:
         log.exception("Brief „%s“ an Mitglied %s nicht versendbar.", art, mitglied.pk)
         return False
@@ -94,13 +83,15 @@ def _senden(mitglied: Mitglied, art: str, betreff: str, text: str, anhang: tuple
 
 
 def _ausweis_anhang(mitglied: Mitglied) -> tuple[str, bytes] | None:
-    """Der Mitgliedsausweis (FB-K8) für den Freischaltungsbrief — nur für Mitglieder mit geprüfter
-    Identität; scheitert die Erzeugung (Logo-Datei), geht der Brief ohne Anhang, nicht gar nicht."""
-    if not ausweis_moeglich(mitglied):
+    """Der Mitgliedsausweis (FB-K8) für den Freischaltungsbrief — nur mit geprüftem Nachweis und einem
+    Namen auf der Karte. Scheitert die Erzeugung, gleich woran (Logo-Datei, Zeichnung, Datenbank), geht
+    der Brief ohne Anhang, nicht gar nicht: Der Freischaltungsbrief ist wichtiger als die Beilage, und
+    die Störung steht im Protokoll."""
+    if not ausweis_erstellbar(mitglied):
         return None
     try:
         return dateiname(mitglied), ausweis_pdf(mitglied)
-    except (OSError, ValueError):
+    except Exception:  # jede Störung der Beilage — der Brief geht trotzdem
         log.exception("Mitgliedsausweis für Mitglied %s nicht erzeugbar.", mitglied.pk)
         return None
 
@@ -115,12 +106,11 @@ def _brief(vorlage: str, kontext: dict) -> str:
     return render_to_string(vorlage, {**kontext, "basis": basis, "schluss": SCHLUSS}).strip() + "\n"
 
 
-def willkommen_senden(mitglied: Mitglied) -> bool:
+def _willkommen_brief(mitglied: Mitglied, anhang=None, vorschau=False) -> bool:
     """Nach der E-Mail-Bestätigung: was ab sofort gilt, ab wann das Stimmrecht besteht, dass es
     eine geprüfte Identität braucht (Beitrag, persönliche Referenz), drei Einstiege. Einmal je Konto."""
-    if not _zustellbar(mitglied, "willkommen_post_am"):
+    if not vorschau and not _zustellbar(mitglied, "willkommen_post_am"):
         return False
-    _stempeln(mitglied, "willkommen_post_am")
     with translation.override("de"):
         text = _brief(
             "mitglieder/post/willkommen.txt",
@@ -129,19 +119,20 @@ def willkommen_senden(mitglied: Mitglied) -> bool:
                 "anzeigename": mitglied.anzeigename,
                 "stimmrecht": stimmrechts_satz(mitglied),
                 "referenz": beitragsreferenz(mitglied),
+                "ausweis": anhang is not None,
             },
         )
         betreff = _("Willkommen — ParlamentPlattform")
-    return _senden(mitglied, "willkommen", betreff, text)
+    if vorschau:
+        betreff = _("Vorschau: %(betreff)s") % {"betreff": betreff}
+    return _senden(mitglied, "ausweis_vorschau" if vorschau else "willkommen", betreff, text, anhang)
 
 
-def freischaltung_senden(mitglied: Mitglied) -> bool:
+def _freischaltung_brief(mitglied: Mitglied, anhang=None, vorschau=False) -> bool:
     """Beim ersten Wechsel von „ungeprüft“ auf eine geprüfte Stufe — gleich ob durch den
     Bankabgleich oder die Verwaltung: Prüfung abgeschlossen, Stufe, Stimmrecht ab wann. Einmal je Konto."""
-    if not _zustellbar(mitglied, "freischaltung_post_am"):
+    if not vorschau and not _zustellbar(mitglied, "freischaltung_post_am"):
         return False
-    _stempeln(mitglied, "freischaltung_post_am")
-    anhang = _ausweis_anhang(mitglied)  # FB-K8: der Mitgliedsausweis kommt mit der Freischaltung
     with translation.override("de"):
         text = _brief(
             "mitglieder/post/freischaltung.txt",
@@ -157,7 +148,9 @@ def freischaltung_senden(mitglied: Mitglied) -> bool:
             },
         )
         betreff = _("Ihre Prüfung ist abgeschlossen — ParlamentPlattform")
-    return _senden(mitglied, "freischaltung", betreff, text, anhang)
+    if vorschau:
+        betreff = _("Vorschau: %(betreff)s") % {"betreff": betreff}
+    return _senden(mitglied, "ausweis_vorschau" if vorschau else "freischaltung", betreff, text, anhang)
 
 
 def vertrauensfrage_senden(mandat, antrag) -> bool:
@@ -194,3 +187,13 @@ def vertrauensfrage_senden(mandat, antrag) -> bool:
         )
         betreff = _("Vertrauensfrage zu Ihrem Mandat — ParlamentPlattform")
     return _senden(mitglied, "vertrauensfrage", betreff, text)
+
+
+def willkommen_senden(mitglied: Mitglied) -> bool:
+    from mitglieder.postausgang import beauftragen
+    return beauftragen(mitglied, "willkommen")
+
+
+def freischaltung_senden(mitglied: Mitglied) -> bool:
+    from mitglieder.postausgang import beauftragen
+    return beauftragen(mitglied, "freischaltung")

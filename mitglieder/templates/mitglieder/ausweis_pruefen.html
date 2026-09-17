@@ -4,22 +4,27 @@
 {% block inhalt %}
 {% comment %}
 Die Seite hinter dem QR-Code eines Mitgliedsausweises (FB-K8). Sie sagt nur, ob zu Nummer und Code eine
-bestehende Mitgliedschaft mit geprüfter Identität gehört — ohne Namen, ohne Adresse: Wer die Karte in der
-Hand hat, vergleicht Nummer und Person selbst.
+bestehende Mitgliedschaft mit geprüftem Nachweis gehört — ohne Namen, ohne Adresse: Wer die Karte in der
+Hand hat, vergleicht Nummer und Person selbst. Farbe und Zeichen (✓/✗) tragen den Stand doppelt.
 {% endcomment %}
 <h1>{% translate "Mitgliedsausweis prüfen" %}</h1>
 {% if gueltig %}
 <div class="karte" id="ergebnis" data-stand="gueltig">
-  <p class="phasen-titel">{% translate "Gültig" %}</p>
+  <p class="phasen-titel"><span aria-hidden="true">&#10003;</span> {% translate "Gültig" %}</p>
   <p><strong>{% blocktranslate %}Mitgliedsausweis Nr. {{ nummer }} ist gültig.{% endblocktranslate %}</strong></p>
-  <p>{% blocktranslate with seit=angaben.seit stufe=angaben.stufe %}Mitglied seit {{ seit }} · Identität {{ stufe }} · Mitgliedschaft besteht.{% endblocktranslate %}</p>
-  <p class="hilfe">{% blocktranslate with datum=heute|date:"d.m.Y" %}Stand {{ datum }}. Diese Seite nennt keinen Namen — er steht auf der Karte; vergleichen Sie Nummer und Person.{% endblocktranslate %}</p>
+  <p>{% blocktranslate with seit=angaben.seit stufe=angaben.stufe %}Mitglied seit {{ seit }} · Nachweis {{ stufe }} · Mitgliedschaft besteht.{% endblocktranslate %}</p>
+  <p class="hilfe">{% blocktranslate with datum=heute %}Stand {{ datum }}. Diese Seite nennt keinen Namen — er steht auf der Karte; vergleichen Sie Nummer und Person.{% endblocktranslate %}</p>
+</div>
+{% elif ausstaendig %}
+<div class="karte" id="ergebnis" data-stand="ausstaendig">
+  <p class="phasen-titel">{% translate "Prüfung ausständig" %}</p>
+  <p>{% translate "Die Anmeldung ist bestätigt. Die Freischaltung ist noch ausständig; dieser Ausweis bestätigt keine Stimmberechtigung." %}</p>
 </div>
 {% else %}
 <div class="karte" id="ergebnis" data-stand="ungueltig">
-  <p class="phasen-titel">{% translate "Nicht gültig" %}</p>
+  <p class="phasen-titel"><span aria-hidden="true">&#10007;</span> {% translate "Nicht gültig" %}</p>
   <p><strong>{% blocktranslate %}Zu Nummer {{ nummer }} und diesem Code gibt es keinen gültigen Mitgliedsausweis.{% endblocktranslate %}</strong></p>
-  <p class="hilfe">{% translate "Entweder ist die Mitgliedschaft beendet, die Nummer unbekannt oder der Code stimmt nicht." %}</p>
+  <p class="hilfe">{% translate "Zu dieser Nummer besteht keine Mitgliedschaft mit geprüftem Nachweis, oder der Code stimmt nicht." %}</p>
 </div>
 {% endif %}
 {% endblock %}

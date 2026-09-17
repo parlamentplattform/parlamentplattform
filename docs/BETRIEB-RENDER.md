@@ -102,3 +102,22 @@ darauf vorbereitet (`docker-compose.yml`, 12-Factor-Konfiguration), der Umzug
 ist ein Datenbank-Export/-Import plus DNS-Wechsel. Die Plattform selbst setzt
 keine Tracker und keine Dienste Dritter ein; Besuche werden datensparsam als
 Tages-Summen gezählt (F-52, ADR-008).
+
+
+## Automatischer Postausgang (ab 0.49)
+
+`gunicorn.conf.py` startet nach Initialisierung jedes Webworkers einen Hintergrundlauf.
+Alle 30 Sekunden prüft dieser höchstens 50 fällige Postaufträge. Die Datenbank reserviert
+einen Auftrag atomar für fünf Minuten. Nach Fehlern erfolgt der nächste Versuch nach
+2, 4, 8, 16, 32 und danach jeweils 60 Minuten. Ein Neustart verliert die Aufträge nicht.
+Der Dienst muss mit Gunicorn aus dem Projektverzeichnis starten, damit die Konfiguration
+geladen wird. Beim Hosting ohne Gunicorn ist `python manage.py post_versenden` regelmäßig
+auszuführen. `runserver` betreibt keinen dauerhaften Hintergrundlauf.
+
+Der erste Versand erfolgt nach Commit der Registrierung/Freischaltung. Ein fehlerhafter
+Anhang verhindert nicht die Nachricht und wird gesondert nachgeliefert. SMTP-Erfolg bedeutet
+Annahme durch das konfigurierte Backend, keine Lesebestätigung oder garantierte Inbox-Zustellung.
+Ohne SMTP-Konfiguration gilt weiterhin das Konsolenbackend für die Entwicklung.
+
+Bestandskonten werden nicht ungefragt erneut angeschrieben: Poststempel bis 0.48 bezeichnen
+den ersten Versuch. Sie werden nicht rückwirkend als neue Versandaufträge interpretiert.

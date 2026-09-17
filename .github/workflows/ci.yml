@@ -19,8 +19,20 @@ jobs:
         run: ruff check .
       - name: Tests mit Kern-Abdeckung ≥ 90 %
         run: |
-          coverage run -m pytest -q
+          set -o pipefail
+          coverage run -m pytest -q --tb=short 2>&1 | tee pruefung.log
           coverage report
+      - name: Testfehler im Prüfstatus sichtbar machen
+        if: failure()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("pruefung.log")
+          if p.exists():
+              tail = "\n".join(p.read_text().splitlines()[-100:])
+              escaped = tail.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::error title=Testprotokoll::{escaped}")
+          PY
       - name: Django-Systemcheck
         run: python manage.py check
       - name: Deploy-Systemcheck (wie in Produktion, ohne offene Warnung)

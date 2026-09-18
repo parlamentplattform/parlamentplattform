@@ -17,8 +17,8 @@ from django.utils.translation import gettext as _
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus, Postauftrag
 
 log = logging.getLogger(__name__)
-AUSWEIS_VORSCHAU = "ausweis_vorschau_2"
-VORSCHAU_ARTEN = ("ausweis_vorschau", AUSWEIS_VORSCHAU)
+AUSWEIS_VORSCHAU = "ausweis_vorschau_3"
+VORSCHAU_ARTEN = ("ausweis_vorschau", "ausweis_vorschau_2", AUSWEIS_VORSCHAU)
 
 
 def beauftragen(mitglied, art):

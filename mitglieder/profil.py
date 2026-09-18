@@ -68,7 +68,7 @@ def _ausweis_vorschau(mitglied: Mitglied) -> dict:
     try:
         return {"ausweis": ausweis_svg(mitglied), "ausweis_stoerung": False, "name_fehlt": False,
                 "ausweis_probe_versandt": mitglied.postauftrag_set.filter(
-                    art="ausweis_vorschau_2", erledigt=True, anhang_versandt_am__isnull=False).exists()}
+                    art="ausweis_vorschau_3", erledigt=True, anhang_versandt_am__isnull=False).exists()}
     except (OSError, ValueError):
         log.exception("Vorschau des Mitgliedsausweises für Mitglied %s nicht erzeugbar.", mitglied.pk)
         return {"ausweis": None, "ausweis_stoerung": True, "name_fehlt": False}

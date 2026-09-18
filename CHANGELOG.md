@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.49.2] — 2026-09-18 · Ruhiger gesetzter Mitgliedsausweis
+
+- Ursprünglicher Petrol-Gold-Stil mit gleichmäßiger gesetzten Mitgliedsdaten. Name, Nummer und Beitrittsdatum erhalten klare Abstände; Nummer und Datum stehen auf gemeinsamen Grundlinien neben dem QR-Code.
+- Einseitiges Kartenformat, Beschnitt, Mitgliedsnummern und QR-Ziele bleiben erhalten. Kein Nachweis auf freigeschalteten Karten; ausständige Prüfung bleibt gekennzeichnet.
+- Neue persönliche Designvorschau möglich, ohne Bestandsversand.
+
 ## [0.49.1] — 2026-09-17 · Mitgliederpost und eigene Mitgliedsnummern
 
 - Willkommens- und Freischaltungsmail erklären die Beteiligung ohne notwendiges Nachlesen der Satzung. Der Abstimmungsbeginn als Stichtag und abweichende Wartefristen bleiben verständlich erklärt.

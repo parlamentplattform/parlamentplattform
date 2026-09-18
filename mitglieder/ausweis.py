@@ -383,33 +383,32 @@ def _name_zeilen(name: str, breite: float) -> list[tuple[str, float]]:
 
 
 def zeichne_vorderseite(z: Zeichner, a: Ausweis) -> None:
-    """Tiefe Fläche, Goldlinie, weißes Logo, Name groß, drei Angaben, QR-Code im weißen Feld."""
+    """Ursprünglicher Petrol-Gold-Stil mit gleichmäßig ausgerichteter Datenzeile."""
     innen = INNEN_MM
     breite = SEITE_BREITE_MM - 2 * innen
     z.seite_beginnen(TIEFE)
-    # Ein sanfter Schatten der Tiefe am unteren Rand — Fläche, keine Deko-Grafik
-    z.flaeche(0, SEITE_HOEHE_MM - 8.5, SEITE_BREITE_MM, 8.5, TIEFE_SCHATTEN)
+    z.flaeche(0, 49, SEITE_BREITE_MM, SEITE_HOEHE_MM - 49, TIEFE_SCHATTEN)
     z.logo(innen, innen - 0.5, 11, PAPIER)
     z.text(innen + 13.5, innen + 3.6, "Direkte Demokratie Österreich", 8.5, PAPIER, fett=True)
     z.text(innen + 13.5, innen + 8.1, "MITGLIEDSAUSWEIS", 6, GOLD_SANFT, laufweite=1.4)
-    z.flaeche(innen, innen + 13.2, breite, 0.3, GOLD)
+    z.flaeche(innen, 19.0, breite, 0.3, GOLD)
     # Name über die volle Breite (eine Zeile, notfalls zwei); darunter links die Angaben, rechts der QR-Code
     zeilen = _name_zeilen(a.name, breite)
     if len(zeilen) == 1:
-        z.text(innen, innen + 18.4, zeilen[0][0], zeilen[0][1], PAPIER, fett=True)
+        z.text(innen, 25.0, zeilen[0][0], zeilen[0][1], PAPIER, fett=True)
     else:
-        for (zeile, groesse), grundlinie in zip(zeilen, (innen + 16.3, innen + 19.9), strict=False):
+        for (zeile, groesse), grundlinie in zip(zeilen, (22.2, 26.1), strict=False):
             z.text(innen, grundlinie, zeile, groesse, PAPIER, fett=True)
-    fx, fy = SEITE_BREITE_MM - innen - QR_FELD_MM, innen + 21.2
-    spalten = ((innen, "MITGLIEDSNUMMER", a.nummer_text), (innen + 23.5, ("ANGEMELDET SEIT" if a.stufe == "Prüfung ausständig" else "MITGLIED SEIT"), a.seit))
+    fx, fy = SEITE_BREITE_MM - innen - QR_FELD_MM, 29.5
+    spalten = ((innen, "MITGLIEDSNUMMER", a.nummer_text), (innen + 26, ("ANGEMELDET SEIT" if a.stufe == "Prüfung ausständig" else "MITGLIED SEIT"), a.seit))
     for x, beschriftung, wert in spalten:
-        z.text(x, innen + 24.6, beschriftung, 4.6, GOLD_SANFT, laufweite=0.7)
-        z.text(x, innen + 28.8, wert, _einpassen(wert, 8, 21, False, 6), PAPIER)
+        z.text(x, 34.0, beschriftung, 4.6, GOLD_SANFT, laufweite=0.55)
+        z.text(x, 40.2, wert, _einpassen(wert, 9, 24, False, 6), PAPIER)
     if a.stufe == "Prüfung ausständig":
-        z.text(innen, innen + 37.8, a.stufe, 8, PAPIER)
+        z.text(innen, 45.4, a.stufe, 5.5, GOLD_SANFT)
     fuss = SEITE_HOEHE_MM - innen + 1.0  # Grundlinie in der Mitte des Schattenbands, 3,5 mm über der Kante
     z.text(innen, fuss, "Wir sind das Werkzeug.", 6, GOLD, kursiv=True)
-    z.text(innen + 31, fuss, a.plattform, _einpassen(a.plattform, 6, breite - 31, False, 4.5), LEISTENTINTE)
+    z.text(innen + 43, fuss, a.plattform, _einpassen(a.plattform, 6, breite - 43, False, 4.5), LEISTENTINTE)
     # QR: weißes Feld rechts, Ruhezone QR_RAND_MM (4 Module bei Version 4) — Prüflink der Karte
     z.flaeche(fx, fy, QR_FELD_MM, QR_FELD_MM, PAPIER, radius=1.6)
     z.qr(fx + QR_RAND_MM, fy + QR_RAND_MM, QR_FELD_MM - 2 * QR_RAND_MM, _qr_matrix(a.pruef_url), TINTE)

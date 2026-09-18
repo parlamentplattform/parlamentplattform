@@ -65,7 +65,8 @@ def test_scroll_spy_markiert_die_zone(seite, live_server, demo):
     }""")
     p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').indexOf('Chat') === 0")
     assert p.locator(".zreiter.an").inner_text().startswith("Chat")
-    p.keyboard.press("End")
+    # Keine noch laufende Tastatur-Scrollanimation vor dem direkten Rücksprung.
+    p.evaluate("window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})")
     p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').trim() === 'Archiv'")
     p.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
     p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').trim() === 'Text'")

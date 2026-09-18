@@ -18,6 +18,19 @@
 </p>
 {% if person.status_grund %}<div class="karte hinweis"><p><strong>{% translate "Begründung des Status:" %}</strong> {{ person.status_grund }}</p></div>{% endif %}
 
+<section class="karte" id="mitgliederpost">
+  <h2>{% translate "Mitgliederpost" %}</h2>
+  <p>{% translate "Je nach Prüfstatus wird die Willkommens- oder Freischaltungsmail mit dem aktuellen Ausweis nachgeholt. Erfolgreich versandte Briefe werden nicht erneut verschickt. Testkonten und geschlossene Konten sind ausgeschlossen." %}</p>
+  {% if not person.testkonto and person.is_active and person.email and person.status != "ausgetreten" and person.status != "ausgeschlossen" %}
+  <form method="post">{% csrf_token %}
+    <button type="submit" name="aktion" value="mitgliederpost" class="btn-linie">{% translate "Ausstehende Mitgliederpost senden" %}</button>
+  </form>
+  {% endif %}
+  {% for auftrag in postauftraege %}
+  <p>{% if auftrag.art == "willkommen" %}{% translate "Willkommensmail" %}{% elif auftrag.art == "freischaltung" %}{% translate "Freischaltungsmail" %}{% else %}{% translate "Ausweis-Vorschau" %}{% endif %} · {% if auftrag.versandt_am %}{% translate "Versendet" %}: {{ auftrag.versandt_am|date:"SHORT_DATETIME_FORMAT" }}{% else %}{% translate "Noch nicht versendet" %}{% endif %} · {% if auftrag.anhang_versandt_am %}{% translate "PDF versendet" %}{% else %}{% translate "PDF noch nicht versendet" %}{% endif %}</p>
+  {% endfor %}
+</section>
+
 {% if adresswechsel %}
 <div class="karte hinweis">
   <h2 style="margin-top:0;font-size:20px">{% translate "Adressänderung vorgemerkt" %}</h2>

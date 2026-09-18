@@ -347,6 +347,9 @@ document.addEventListener("alpine:init", function () {
             return getComputedStyle(z).position !== "sticky";
           });
           if (!zonen.length) return;
+          // Am Seitenanfang liegt der Text noch unter der Leiste. Trotzdem muss
+          // nach einem direkten Rücksprung der erste Reiter wieder aktiv sein.
+          if (window.scrollY <= 0) { self.zone = zonen[0].id.slice(5); return; }
           // Am Seitenende gewinnt die letzte Zone — sonst erreicht sie die Oberkante nie
           var ende = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
           if (ende) { self.zone = zonen[zonen.length - 1].id.slice(5); return; }

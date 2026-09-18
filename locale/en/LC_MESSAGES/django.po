@@ -7824,6 +7824,42 @@ msgstr "You can already read all proposals, discussions and results. These are p
 msgid "Mitgliedsausweis, Vorderseite: %(name)s, Nr. %(nummer)s, seit %(seit)s"
 msgstr "Membership card, front: %(name)s, no. %(nummer)s, since %(seit)s"
 
+msgid "Ausstehende Mitgliederpost senden"
+msgstr "Send pending membership email"
+
+msgid "Ausweis-Vorschau"
+msgstr "Membership card preview"
+
+msgid "Freischaltungsmail"
+msgstr "Activation email"
+
+msgid "Willkommensmail"
+msgstr "Welcome email"
+
+msgid "Je nach Prüfstatus wird die Willkommens- oder Freischaltungsmail mit dem aktuellen Ausweis nachgeholt. Erfolgreich versandte Briefe werden nicht erneut verschickt. Testkonten und geschlossene Konten sind ausgeschlossen."
+msgstr "Depending on verification status, the welcome or activation email is sent with the current membership card. Successfully sent messages are not sent again. Test accounts and closed accounts are excluded."
+
+msgid "Kein neuer Versandauftrag: bereits beauftragt, versendet oder für dieses Konto nicht zulässig."
+msgstr "No new delivery job: already requested, sent or not permitted for this account."
+
+msgid "Mitgliederpost"
+msgstr "Membership email"
+
+msgid "Mitgliederpost wurde beauftragt. Den Versandstand finden Sie unten."
+msgstr "Membership email requested. The delivery status is shown below."
+
+msgid "Noch nicht versendet"
+msgstr "Not yet sent"
+
+msgid "PDF noch nicht versendet"
+msgstr "PDF not yet sent"
+
+msgid "PDF versendet"
+msgstr "PDF sent"
+
+msgid "Versendet"
+msgstr "Sent"
+
 msgid "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen. Das gilt während unserer Aufbauphase. Später entscheiden die Mitglieder gemeinsam über die dauerhaften Verfahrensregeln."
 msgstr "Once your account is activated, you can vote without an additional waiting period. This applies during our initial setup phase. Later, members will jointly decide on the permanent procedural rules."
 

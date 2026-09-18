@@ -39,7 +39,14 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from mitglieder.mail import send_mail
-from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.models import (
+    Adresswechsel,
+    Gemeinde,
+    Identitaetsstufe,
+    Mitglied,
+    Mitgliedsstatus,
+    Postauftrag,
+)
 from mitglieder.post import freischaltung_senden
 from verfahren.models import AuditEintrag
 
@@ -351,6 +358,16 @@ def mitglied(request, pk: int):
         if form.is_valid():
             _stammdaten_anwenden(request, person, form)
             return redirect("mitglieder:verwaltung_mitglied", pk=pk)
+    elif request.method == "POST" and request.POST.get("aktion") == "mitgliederpost":
+        from mitglieder.postausgang import beauftragen
+
+        art = "willkommen" if person.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else "freischaltung"
+        if beauftragen(person, art):
+            _auditieren(request, "mitgliederpost", person, art=art)
+            messages.success(request, _("Mitgliederpost wurde beauftragt. Den Versandstand finden Sie unten."))
+        else:
+            messages.info(request, _("Kein neuer Versandauftrag: bereits beauftragt, versendet oder für dieses Konto nicht zulässig."))
+        return redirect("mitglieder:verwaltung_mitglied", pk=pk)
     elif request.method == "POST" and request.POST.get("aktion", "").startswith("adresswechsel_"):
         _adresswechsel_aktion(request, person, request.POST.get("aktion", ""))
         return redirect("mitglieder:verwaltung_mitglied", pk=pk)
@@ -380,6 +397,7 @@ def mitglied(request, pk: int):
             "form": form,
             "gemeinden": gemeinden,
             "adresswechsel": Adresswechsel.offener(person),
+            "postauftraege": Postauftrag.objects.filter(mitglied=person).order_by("pk"),
         },
     )
 

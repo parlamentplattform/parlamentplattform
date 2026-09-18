@@ -54,10 +54,20 @@ def test_scroll_spy_markiert_die_zone(seite, live_server, demo):
     p.goto(f"{live_server.url}/antrag/{_antrag().pk}/")
     _ruhe(p)
     assert p.locator(".zreiter.an").inner_text().strip() == "Text"
-    p.keyboard.press("End")  # ans Seitenende — dort liest man den Chat
+    # Der Chat liegt vor dem Archiv. Ein End-Tastendruck kann ihn bei weichem
+    # Scrollen nur kurz passieren; geprüft wird die tatsächlich erreichte Zone.
+    p.evaluate("""() => {
+        const chat = document.querySelector('#zone-chat');
+        const leiste = document.querySelector('.zonenleiste');
+        chat.scrollIntoView({block: 'start', behavior: 'instant'});
+        window.scrollTo({top: window.scrollY + chat.getBoundingClientRect().top
+            - leiste.getBoundingClientRect().bottom + 1, behavior: 'instant'});
+    }""")
     p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').indexOf('Chat') === 0")
     assert p.locator(".zreiter.an").inner_text().startswith("Chat")
-    p.keyboard.press("Home")
+    p.keyboard.press("End")
+    p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').trim() === 'Archiv'")
+    p.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
     p.wait_for_function("() => (document.querySelector('.zreiter.an')?.textContent || '').trim() === 'Text'")
 
 

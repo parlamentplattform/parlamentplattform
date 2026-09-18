@@ -379,6 +379,14 @@ def _name_zeilen(name: str, breite: float) -> list[tuple[str, float]]:
         return [(name, groesse)]
     zeilen = _umbrechen(name, 8.5, breite, fett=True)
     erste, zweite = zeilen[0], " ".join(zeilen[1:])
+    if any(textbreite_mm(z, 6, True) > breite for z in (erste, zweite)):
+        # Auch sehr lange Einzelwörter teilen, statt sie in das QR-Feld laufen zu lassen.
+        teilung = min(
+            range(1, len(name)),
+            key=lambda i: max(textbreite_mm(name[:i].strip(), 6, True),
+                              textbreite_mm(name[i:].strip(), 6, True)),
+        )
+        erste, zweite = name[:teilung].strip(), name[teilung:].strip()
     return [(z, _einpassen(z, 8.5, breite, True, 6)) for z in (erste, zweite) if z]
 
 
@@ -392,14 +400,16 @@ def zeichne_vorderseite(z: Zeichner, a: Ausweis) -> None:
     z.text(innen + 13.5, innen + 3.6, "Direkte Demokratie Österreich", 8.5, PAPIER, fett=True)
     z.text(innen + 13.5, innen + 8.1, "MITGLIEDSAUSWEIS", 6, GOLD_SANFT, laufweite=1.4)
     z.flaeche(innen, 19.0, breite, 0.3, GOLD)
-    # Name über die volle Breite (eine Zeile, notfalls zwei); darunter links die Angaben, rechts der QR-Code
-    zeilen = _name_zeilen(a.name, breite)
+    # Das QR-Feld sitzt mittig zwischen Linie (Unterkante 19,3) und Fußband (49).
+    fx = SEITE_BREITE_MM - innen - QR_FELD_MM
+    fy = 19.3 + (49 - 19.3 - QR_FELD_MM) / 2
+    # Lange Namen bleiben mit Abstand links vom höher gesetzten QR-Feld.
+    zeilen = _name_zeilen(a.name, fx - innen - 3)
     if len(zeilen) == 1:
         z.text(innen, 25.0, zeilen[0][0], zeilen[0][1], PAPIER, fett=True)
     else:
         for (zeile, groesse), grundlinie in zip(zeilen, (22.2, 26.1), strict=False):
             z.text(innen, grundlinie, zeile, groesse, PAPIER, fett=True)
-    fx, fy = SEITE_BREITE_MM - innen - QR_FELD_MM, 29.5
     spalten = ((innen, "MITGLIEDSNUMMER", a.nummer_text), (innen + 26, ("ANGEMELDET SEIT" if a.stufe == "Prüfung ausständig" else "MITGLIED SEIT"), a.seit))
     for x, beschriftung, wert in spalten:
         z.text(x, 34.0, beschriftung, 4.6, GOLD_SANFT, laufweite=0.55)

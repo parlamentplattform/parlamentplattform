@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.49.3] — 2026-09-18 · Zentrierter QR-Code
+
+- QR-Code im Mitgliedsausweis mittig zwischen goldener Trennlinie und dunklem Fußband. Lange Namen halten Abstand zum QR-Feld; Petrol-Gold-Gestaltung bleibt erhalten.
+- Verwaltung kann ausstehende Mitgliederpost je Konto nachholen; Versand und PDF-Anhang sind getrennt nachvollziehbar. Bestehende Erfolgsstempel und der Ausschluss von Testkonten bleiben wirksam.
+- Beim direkten Rücksprung an den Anfang einer Antragsseite wird der Text-Reiter wieder korrekt markiert; der Bildschirmtest prüft Chat und Archiv an ihren tatsächlichen Positionen.
+
 ## [0.49.2] — 2026-09-18 · Ruhiger gesetzter Mitgliedsausweis
 
 - Ursprünglicher Petrol-Gold-Stil mit gleichmäßiger gesetzten Mitgliedsdaten. Name, Nummer und Beitrittsdatum erhalten klare Abstände; Nummer und Datum stehen auf gemeinsamen Grundlinien neben dem QR-Code.

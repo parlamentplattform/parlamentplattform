@@ -260,7 +260,7 @@ def test_beide_seiten_halten_sicherheitszone_und_zeilenabstaende(vorname, nachna
     in_der_sicherheitszone(vorne)
     ohne_ueberlappung(vorne)
     nichts_im_qr_feld(vorne)
-    name_zeilen = aw._name_zeilen(aw.ausweis_daten(m).name, BREITE)
+    name_zeilen = aw._name_zeilen(aw.ausweis_daten(m).name, BREITE - aw.QR_FELD_MM - 3)
     gezeichnet = [(t[2], t[3]) for t in vorne.texte]
     assert all((z, g) in gezeichnet for z, g in name_zeilen)
     hinten = protokoll(m, aw.zeichne_rueckseite)

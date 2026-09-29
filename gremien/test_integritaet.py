@@ -497,3 +497,35 @@ def test_zweimal_pruefen_im_selben_jahr_geht_nicht(client, ordnung):  # noqa: F8
     for _ in range(2):
         client.post(reverse("gremien:integritaet_regelpruefung"))
     assert Regelpruefung.objects.count() == 1
+
+
+def test_jede_abgelaufene_aussetzung_endet_in_ihrer_eigenen_transaktion(client, ordnung, monkeypatch):  # noqa: F811
+    """Eine Transaktion für alle Aussetzungen rollte bei einer einzigen werfenden alle anderen mit
+    zurück. Je Aussetzung eine kurze Transaktion: Wirft die zweite, bleibt die erste beendet."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    import gremien.models as gm
+    from gremien.models import Aussetzung, aussetzungen_fortschreiben
+
+    leute = rat()
+    for grund in ("Erster Verdacht.", "Zweiter Verdacht."):
+        beschluss_fassen(client, leute, antrag_in_abstimmung(ordnung), Anlass.AUSSETZUNG, grund)
+    zweite, erste = Aussetzung.objects.order_by("pk")
+    Aussetzung.objects.filter(pk=zweite.pk).update(beginn=timezone.now() - timedelta(days=20))
+    Aussetzung.objects.filter(pk=erste.pk).update(beginn=timezone.now() - timedelta(days=10))  # neuer — zuerst
+    echte = gm._aussetzung_beenden
+
+    def wirft_bei_der_zweiten(aussetzung, jetzt):
+        if aussetzung.pk == zweite.pk:
+            raise RuntimeError("Ende gescheitert")
+        return echte(aussetzung, jetzt)
+
+    monkeypatch.setattr(gm, "_aussetzung_beenden", wirft_bei_der_zweiten)
+    with pytest.raises(RuntimeError):
+        aussetzungen_fortschreiben()
+    erste.refresh_from_db()
+    zweite.refresh_from_db()
+    assert erste.beendet_am is not None and "von selbst geendet" in erste.beendet_grund
+    assert zweite.beendet_am is None

@@ -1137,12 +1137,21 @@ class GremienBeschluss(models.Model):
         # Zeilensperre (auf PostgreSQL; SQLite serialisiert ohnehin): Der Lauf kommt aus jedem
         # Seitenaufruf beider Worker und aus dem Wächter — ohne Sperre schlossen zwei Aufrufe
         # denselben Beschluss und wandten seine Wirkung zweimal an (Bestandsaufnahme 28.9.2026, A4).
-        with transaction.atomic():
-            faellige = cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).select_for_update(
-                skip_locked=True
-            )
-            for beschluss in faellige:
-                geschlossen += int(beschluss.abschliessen(jetzt))
+        # Je Beschluss eine eigene kurze Transaktion: Eine für den ganzen Stapel hielt die
+        # Audit-Einträge des ersten bis zum Ende offen (Verklemmung mit einer Antragsseite) und
+        # rollte bei einem einzigen werfenden Beschluss alle anderen mit zurück.
+        faellige = list(
+            cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).values_list("pk", flat=True)
+        )
+        for pk in faellige:
+            with transaction.atomic():
+                beschluss = (
+                    cls.objects.select_for_update(skip_locked=True)
+                    .filter(pk=pk, status=BeschlussStatus.OFFEN)
+                    .first()
+                )
+                if beschluss is not None:
+                    geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen
 
 
@@ -1632,10 +1641,16 @@ def aussetzungen_fortschreiben(jetzt=None) -> int:
     weiter — obwohl die Satzung sagt, sie ende von selbst."""
     jetzt = jetzt or timezone.now()
     geschlossen = 0
-    with transaction.atomic():
-        offene = Aussetzung.objects.filter(beendet_am__isnull=True).select_for_update(skip_locked=True)
-        for aussetzung in offene:
-            if aussetzung.laeuft(jetzt):
+    # Je Aussetzung eine eigene kurze Transaktion unter Zeilensperre (wie `faellige_abschliessen`).
+    offene = list(Aussetzung.objects.filter(beendet_am__isnull=True).values_list("pk", flat=True))
+    for pk in offene:
+        with transaction.atomic():
+            aussetzung = (
+                Aussetzung.objects.select_for_update(skip_locked=True)
+                .filter(pk=pk, beendet_am__isnull=True)
+                .first()
+            )
+            if aussetzung is None or aussetzung.laeuft(jetzt):
                 continue
             _aussetzung_beenden(aussetzung, jetzt)
             geschlossen += 1
@@ -2339,14 +2354,17 @@ def parametertests_fortschreiben(jetzt=None) -> int:
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
     beendet = 0
-    with transaction.atomic():
-        laufende = (
-            ParameterTest.objects.filter(status=TestStatus.LAEUFT)
-            .select_related("parameter")
-            .select_for_update(of=("self",), skip_locked=True)
-        )
-        for test in laufende:
-            if not abgelaufen(test.ende, heute):
+    # Je Test eine eigene kurze Transaktion unter Zeilensperre (wie `faellige_abschliessen`).
+    laufende = list(ParameterTest.objects.filter(status=TestStatus.LAEUFT).values_list("pk", flat=True))
+    for pk in laufende:
+        with transaction.atomic():
+            test = (
+                ParameterTest.objects.select_related("parameter")
+                .select_for_update(of=("self",), skip_locked=True)
+                .filter(pk=pk, status=TestStatus.LAEUFT)
+                .first()
+            )
+            if test is None or not abgelaufen(test.ende, heute):
                 continue
             _parametertest_beenden(test, jetzt, heute)
             beendet += 1

@@ -315,3 +315,30 @@ def test_ein_veraltetes_objekt_schliesst_den_beschluss_kein_zweites_mal(monkeypa
     ]
     assert len(ausgewertet) == 1
     assert zweiter.status == BeschlussStatus.OHNE_ERGEBNIS and not zweiter.offen
+
+
+def test_jeder_faellige_beschluss_schliesst_in_seiner_eigenen_transaktion(monkeypatch):
+    """Eine Transaktion für den ganzen Stapel hielt die Audit-Einträge des ersten Beschlusses bis
+    zum Ende offen (Verklemmung mit einer Antragsseite auf PostgreSQL) und rollte bei einem
+    einzigen werfenden Beschluss alle anderen mit zurück. Je Beschluss eine kurze Transaktion:
+    Wirft die Wirkung des zweiten, bleibt der erste geschlossen."""
+    import gremien.models as gm
+
+    frist = timezone.now() - timedelta(minutes=1)
+    zweiter = beschluss_anlegen(frist=frist)
+    GremienBeschluss.objects.filter(pk=zweiter.pk).update(angelegt_am=timezone.now() - timedelta(hours=1))
+    erster = beschluss_anlegen(frist=frist)  # neuer — wird zuerst geschlossen
+    echte = gm.wirkung_anwenden
+
+    def wirft_beim_zweiten(beschluss, jetzt=None):
+        if beschluss.pk == zweiter.pk:
+            raise RuntimeError("Wirkung gescheitert")
+        return echte(beschluss, jetzt)
+
+    monkeypatch.setattr(gm, "wirkung_anwenden", wirft_beim_zweiten)
+    with pytest.raises(RuntimeError):
+        GremienBeschluss.faellige_abschliessen()
+    erster.refresh_from_db()
+    zweiter.refresh_from_db()
+    assert not erster.offen and erster.entschieden_am is not None
+    assert zweiter.offen

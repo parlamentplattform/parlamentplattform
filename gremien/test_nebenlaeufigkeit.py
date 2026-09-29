@@ -163,3 +163,84 @@ def test_eine_aussetzung_wird_nicht_als_ohne_wirkung_vermerkt(monkeypatch):
     assert Aussetzung.objects.filter(antrag=antrag).count() == 1
     assert "Ohne Wirkung" not in b.umsetzungsvermerk
     assert _audit(b.pk) == 1
+
+
+def test_waechter_und_antragsseite_verklemmen_sich_nicht(monkeypatch):
+    """Eine Transaktion für alle fälligen Beschlüsse hielt den Audit-Eintrag des ersten bis zum
+    Ende offen. Eine Antragsseite, die gleichzeitig den Antrag des zweiten fortschreibt, wartete
+    am Audit-Kopf auf den Wächter, der Wächter an der Antragszeile auf die Seite — PostgreSQL
+    brach eine der beiden mit „deadlock detected“ ab. Die Haken verzögern nur."""
+    import gremien.models as gm
+    from gremien.models import Anlass, GremienStimme
+    from gremien.test_integritaet import antrag_anlegen, rat
+    from plattform_core import Phase
+    from verfahren.models import Antrag, Verfahrensordnung
+    from verfahren.test_views_aktionen import REGELN
+
+    ordnung = Verfahrensordnung.objects.create(policy_id="nl-test", version=1, regeln=REGELN, aktiv=True)
+    leute = rat()
+    x = antrag_anlegen(ordnung)
+    Antrag.objects.filter(pk=x.pk).update(
+        phase=Phase.BERATUNG.value, phase_beginn=timezone.now() - timedelta(days=30)
+    )
+    _beschluss("anlegerin_nl_d")  # innere Angelegenheit, neuer — wird zuerst geschlossen
+    b2 = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.HERVORHEBUNG,
+        antrag=x,
+        gegenstand="Hervorhebung",
+        beschreibung="Wichtig.",
+        optionen=OPTIONEN,
+        angelegt_von=leute[0],
+        frist=timezone.now() - timedelta(minutes=1),
+    )
+    GremienBeschluss.objects.filter(pk=b2.pk).update(angelegt_am=timezone.now() - timedelta(hours=1))
+    for m in leute:
+        GremienStimme.objects.create(beschluss=b2, mitglied=m, option="dafuer", begruendung="ja")
+
+    seite_hat_x = threading.Event()
+    echte_bf = gm._integritaetsrat_beschlussfaehig
+
+    def beschlussfaehig(beschluss):
+        if threading.current_thread().name == "waechter":
+            seite_hat_x.wait(5)  # gleich danach speichert die Hervorhebung den Antrag
+        return echte_bf(beschluss)
+
+    monkeypatch.setattr(gm, "_integritaetsrat_beschlussfaehig", beschlussfaehig)
+    echtes_archiv = Antrag.chat_archivieren
+
+    def archivieren(self, jetzt=None):
+        n = echtes_archiv(self, jetzt)
+        if threading.current_thread().name == "seite":
+            seite_hat_x.set()
+            time.sleep(0.5)  # der Wächter wartet jetzt auf die Zeile des Antrags
+        return n
+
+    monkeypatch.setattr(Antrag, "chat_archivieren", archivieren)
+    fehler = {}
+
+    def waechter():
+        try:
+            GremienBeschluss.faellige_abschliessen()
+        except Exception as e:  # noqa: BLE001 — der Test berichtet jeden Fehler des Fadens
+            fehler["waechter"] = f"{type(e).__name__}: {str(e).splitlines()[0]}"
+        finally:
+            connections.close_all()
+
+    def seite():
+        try:
+            time.sleep(0.4)  # der erste Beschluss samt Audit-Eintrag ist geschrieben
+            Antrag.objects.get(pk=x.pk).fortschreiben_bis_zum_stand()
+        except Exception as e:  # noqa: BLE001
+            fehler["seite"] = f"{type(e).__name__}: {str(e).splitlines()[0]}"
+        finally:
+            connections.close_all()
+
+    faeden = [threading.Thread(target=waechter, name="waechter"), threading.Thread(target=seite, name="seite")]
+    for faden in faeden:
+        faden.start()
+    for faden in faeden:
+        faden.join(30)
+    x.refresh_from_db()
+    assert fehler == {}
+    assert x.hervorgehoben

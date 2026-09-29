@@ -2437,6 +2437,10 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
     if vf is None:
         _vermerken(beschluss, "Ohne Wirkung: Der Antrag ist keine Vertrauensfrage.")
         return
+    if vf.art != "vertrauensfrage":
+        # lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht (D-L6e, Prüfung 0.51.0).
+        _vermerken(beschluss, "Ohne Wirkung: Ein Bestätigungsantrag kennt keine Sperre (§ 7 Abs 10 lit f Z 3).")
+        return
     if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ZURUECKGEZOGEN.value):
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):

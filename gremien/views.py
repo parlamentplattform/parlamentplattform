@@ -57,7 +57,7 @@ from gremien.models import (
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import Zweck, lauf_ausfuehren
-from mandatare.models import Mandat, Vertrauensfrage
+from mandatare.models import Mandat, Vertrauensfrage, VertrauensfrageArt
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from parameter.models import Parameter, ParameterTest, Status, TestStatus
@@ -1103,27 +1103,29 @@ IR_ANLAESSE = [
     (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
     (Anlass.AUSSETZUNG, "Aussetzen", "§ 6 Abs 3 lit d"),
     (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", "§ 6 Abs 3 lit d"),
-    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", "§ 7 Abs 10 lit g"),
+    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", "§ 7 Abs 10 lit b und g"),
 ]
 
 #: Anlässe, die nicht im allgemeinen Formular stehen, sondern nur dort, wo ihr Gegenstand liegt:
-#: Die Sperrfeststellung gehört zu genau einer Vertrauensfrage mit Hinweis (Karte unten) —
-#: ein Knopf neben jedem Sachantrag wäre eine Einladung zu wirkungslosen Beschlüssen.
+#: Die Sperrfeststellung gehört zu genau einer laufenden Vertrauensfrage (Karte unten) — mit oder
+#: ohne Sperrhinweis der Plattform (D-L6e); ein Knopf neben jedem Sachantrag wäre eine Einladung
+#: zu wirkungslosen Beschlüssen.
 IR_ANLAESSE_MIT_EIGENEM_ORT = {Anlass.VERTRAUENSFRAGE_SPERRE}
 
 
-def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
-    """Die Karte des Integritätsrats (§ 7 Abs 10 lit b): jede laufende Vertrauensfrage, bei der
-    die Software beim Einbringen eine Sperre nach lit g erkannt hat und noch kein
-    Feststellungsbeschluss vorliegt — mit Restfrist (drei Tage ab Einbringung).
+def _vertrauensfragen_zur_feststellung(jetzt=None) -> list[dict]:
+    """Die Karte des Integritätsrats (§ 7 Abs 10 lit b und g, D-L6e): jede laufende Vertrauensfrage
+    ohne Feststellungsbeschluss, mit Restfrist (drei Tage ab Einbringung) — mit oder ohne Sperrhinweis
+    der Plattform. Der Gründer hat am 29.9.2026 entschieden: Knopf immer zeigen, Begründung Pflicht;
+    die Satzung bindet die Feststellung an lit g, nicht an das, was die Software erkannt hat.
 
-    Nach der Frist bleibt die Zeile stehen, sagt aber „Frist abgelaufen — Antrag läuft“ und
-    bietet keinen Knopf mehr an: Ein späterer Beschluss bliebe ohne Wirkung (lit b letzter
-    Satz; die Wirkung prüft die Frist selbst). Die Software weist nie ab, sie zeigt nur an —
-    feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
+    Nach der Frist bleibt eine Zeile mit Hinweis stehen, sagt aber „Frist abgelaufen — Antrag läuft“
+    und bietet keinen Knopf mehr an: Ein späterer Beschluss bliebe ohne Wirkung (lit b letzter Satz;
+    die Wirkung prüft die Frist selbst). Eine Zeile ohne Hinweis entfällt dann. Die Software weist nie
+    ab, sie zeigt nur an — feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
     jetzt = jetzt or timezone.now()
     laufende = []
-    for vf in Vertrauensfrage.offene_mit_sperrhinweis():
+    for vf in Vertrauensfrage.zur_feststellung(jetzt):
         vf.antrag.fortschreiben(jetzt)  # lazy Phasen: ein verfallener Antrag gehört nicht mehr hierher
         if vf.laeuft:
             laufende.append(vf)
@@ -1144,6 +1146,7 @@ def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
             "antrag": vf.antrag,
             "frist_ende": vf.sperrfrist_ende,
             "frist_laeuft": jetzt <= vf.sperrfrist_ende,
+            "hinweis": bool(vf.sperrhinweis),
             "beschluss": offene_beschluesse.get(vf.antrag_id),
         }
         for vf in laufende
@@ -1174,7 +1177,7 @@ def integritaet(request):
             "darf_stimmen": Rolle.hat(request.user, Gremium.INTEGRITAETSRAT),
             "ratsmitglieder": [r.mitglied for r in Rolle.aktive(Gremium.INTEGRITAETSRAT).select_related("mitglied")],
             "anlaesse": [a for a in IR_ANLAESSE if a[0] not in IR_ANLAESSE_MIT_EIGENEM_ORT],
-            "sperrhinweise": _vertrauensfragen_mit_sperrhinweis(),
+            "feststellungen": _vertrauensfragen_zur_feststellung(),
             "aktive": aktive,
             "mindestbesetzung": SATZUNG_MIN_INTEGRITAETSRAT,
             "besetzt": aktive >= SATZUNG_MIN_INTEGRITAETSRAT,
@@ -1215,9 +1218,12 @@ def integritaet_beschluss(request):
     antrag = get_object_or_404(Antrag, pk=request.POST.get("antrag"))
     begruendung = (request.POST.get("beschreibung") or "").strip()
     if not begruendung:
+        # Die Begründungspflicht folgt aus der Vorschrift des jeweiligen Anlasses — die Meldung nennt sie.
+        satzung = next(s for wert, _n, s in IR_ANLAESSE if wert == anlass)
         messages.error(
             request,
-            _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."),
+            _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (%(satzung)s).")
+            % {"satzung": satzung},
         )
         return redirect("gremien:integritaet")
     frist = beschluss_frist()
@@ -1242,6 +1248,13 @@ def integritaet_beschluss(request):
         vf = Vertrauensfrage.objects.filter(antrag=antrag).first()
         if vf is None or not vf.laeuft:
             messages.error(request, _("Eine Sperre lässt sich nur zu einer laufenden Vertrauensfrage feststellen."))
+            return redirect("gremien:integritaet")
+        if vf.art != VertrauensfrageArt.VERTRAUENSFRAGE:
+            # lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht — es gibt nichts festzustellen.
+            messages.error(
+                request,
+                _("Für einen Bestätigungsantrag gibt es keine Sperre (§ 7 Abs 10 lit f Z 3)."),
+            )
             return redirect("gremien:integritaet")
         if vf.nicht_eroeffnet:
             messages.info(request, _("Diese Vertrauensfrage ist bereits als nicht eröffnet festgestellt."))
@@ -1274,16 +1287,18 @@ def integritaet_beschluss(request):
         antrag=antrag,
         angelegt_von=request.user,
     )
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienbeschluss_angelegt",
-            "gremium": Gremium.INTEGRITAETSRAT.value,
-            "anlass": anlass,
-            "antrag": antrag.pk,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-        }
-    )
+    ereignis = {
+        "typ": "gremienbeschluss_angelegt",
+        "gremium": Gremium.INTEGRITAETSRAT.value,
+        "anlass": anlass,
+        "antrag": antrag.pk,
+        "beschluss": beschluss.pk,
+        "nummer": beschluss.nummer,
+    }
+    if anlass == Anlass.VERTRAUENSFRAGE_SPERRE:
+        # Nachrechenbar bleibt, ob der Rat mit oder ohne Sperrhinweis der Plattform festgestellt hat (D-L6e).
+        ereignis["sperrhinweis"] = bool(antrag.vertrauensfrage.sperrhinweis)
+    AuditEintrag.anhaengen(ereignis)
     messages.success(
         request,
         _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer},

@@ -860,6 +860,43 @@ class Vertrauensfrage(models.Model):
             .select_related("antrag", "mandat")
         )
 
+    @staticmethod
+    def mit_offener_feststellung(antrag_ids) -> set[int]:
+        """Die Anträge unter `antrag_ids`, zu denen ein Feststellungsbeschluss des Integritätsrats läuft
+        (§ 7 Abs 10 lit b) — mit oder ohne Sperrhinweis. Eine Abfrage für alle; ohne die App `gremien`
+        leer. Die Seiten sagen damit auch dann, dass der Rat berät, wenn die Plattform nichts erkannt hat."""
+        from django.apps import apps
+
+        antrag_ids = [pk for pk in antrag_ids if pk is not None]
+        if not antrag_ids or not apps.is_installed("gremien"):
+            return set()
+        return set(
+            apps.get_model("gremien", "GremienBeschluss")
+            .objects.filter(anlass="vertrauensfrage_sperre", status="offen", antrag_id__in=antrag_ids)
+            .values_list("antrag_id", flat=True)
+        )
+
+    @classmethod
+    def zur_feststellung(cls, jetzt=None):
+        """Die Karte des Integritätsrats (§ 7 Abs 10 lit b, D-L6e): jede laufende Vertrauensfrage ohne
+        Feststellungsbeschluss — in der Dreitagesfrist auch ohne Sperrhinweis, denn der Rat stellt fest,
+        was die Satzung sperrt, nicht was die Software erkannt hat (§ 2 Abs 6). Mit Hinweis bleibt die
+        Zeile nach der Frist stehen („Frist abgelaufen — Antrag läuft“), ohne Hinweis entfällt sie dann:
+        Ein Beschluss bliebe ohne Wirkung. Der Bestätigungsantrag steht nie hier — für ihn gelten lit b,
+        c und g nicht (lit f Z 3)."""
+        jetzt = jetzt or timezone.now()
+        in_der_frist = models.Q(antrag__eingebracht_am__gte=jetzt - timedelta(days=SPERRFESTSTELLUNG_TAGE))
+        return (
+            cls.objects.filter(
+                art=VertrauensfrageArt.VERTRAUENSFRAGE,
+                sperre_beschluss__isnull=True,
+                antrag__phase__in=VERTRAUENSFRAGE_LAUFEND,
+            )
+            .filter(in_der_frist | ~models.Q(sperrhinweis=""))
+            .select_related("antrag", "mandat")
+            .order_by("antrag__eingebracht_am", "pk")
+        )
+
 
 class Stellungnahme(models.Model):
     """Das Gehör des Mandatsträgers (§ 7 Abs 10 lit d): im Wortlaut neben dem Antrag, ergänzbar bis zum

@@ -737,6 +737,8 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .karte.handlung .stimmzeile{margin-top:4px}
 .karte[data-stand="gueltig"]{border-left:3px solid var(--ok)}.karte[data-stand="gueltig"] .phasen-titel{color:var(--ok)}
 .karte[data-stand="ungueltig"]{border-left:3px solid var(--warn)}.karte[data-stand="ungueltig"] .phasen-titel{color:var(--warn)}
+/* Sperrfeststellung (§ 7 Abs 10 lit b) — Zeilen mit und ohne Hinweis */
+.karte.feststellung{margin-top:16px}.karte.feststellung .zeile>span{width:100%}.karte.feststellung .hinweistext{white-space:pre-line}.karte.feststellung form{margin-top:6px}.karte.feststellung textarea{max-width:44em;min-height:70px}.karte.feststellung .knopfzeile{margin:6px 0 0}
 .btn.gewaehlt,.btn-linie.gewaehlt,.btn-still.gewaehlt{outline:2px solid var(--gold);outline-offset:2px}
 /* Kachel und Feed: die Auswahl ist die Füllung, kein Dauer-Ring — der Ring bleibt dem Fokus (WCAG 1.4.1, 2.4.7) */
 .stimmreihe .gewaehlt{outline:none}

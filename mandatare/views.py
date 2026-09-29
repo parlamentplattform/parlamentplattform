@@ -733,6 +733,7 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     alle = list(qs)
     zusagen = _rueckgabezusagen_fuer({vf.mandat_id: vf.mandat for vf in alle}.values())
     vermerke = _rueckgabe_vermerke_fuer(alle, zusagen)
+    in_feststellung = Vertrauensfrage.mit_offener_feststellung([vf.antrag_id for vf in alle])
     zeilen = []
     for vf in alle:
         zeilen.append(
@@ -741,6 +742,11 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
                 "laeuft": vf.antrag.phase in VERTRAUENSFRAGE_LAUFEND,
                 # lit b: nach drei Tagen ohne Beschluss gilt der Antrag als eröffnet — dann ist der Hinweis Geschichte.
                 "sperrfrist_offen": bool(vf.sperrhinweis) and not vf.nicht_eroeffnet and jetzt < vf.sperrfrist_ende,
+                # D-L6e: Der Rat berät auch ohne Hinweis der Plattform — dann ohne das Wort „Sperrhinweis“.
+                "feststellung_offen": not vf.sperrhinweis
+                and not vf.nicht_eroeffnet
+                and jetzt < vf.sperrfrist_ende
+                and vf.antrag_id in in_feststellung,
                 "abstimmung_ab": _abstimmung_ab(vf),
                 "unterstuetzungen": vf.n_unterstuetzungen,
                 "stimmen": vf.n_stimmen,

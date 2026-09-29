@@ -1191,6 +1191,9 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
             "bis": vf.sperrfrist_ende,
             "text": vf.sperrhinweis,
         }
+    elif jetzt <= vf.sperrfrist_ende and antrag.pk in Vertrauensfrage.mit_offener_feststellung([antrag.pk]):
+        # D-L6e: Der Rat kann auch ohne Hinweis der Plattform feststellen — wer unterstützt, soll es sehen.
+        sperre = {"stand": "pruefung", "bis": vf.sperrfrist_ende, "text": ""}
     policy = antrag.policy()
     anfechtungsfrist = vf.anfechtungsfrist_ende
     return {

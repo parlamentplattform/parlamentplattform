@@ -26,7 +26,7 @@ from verfahren.test_vertrauensfrage import (  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
-KARTE = "Vertrauensfragen mit Sperrhinweis"
+KARTE = "Vertrauensfragen · Sperre feststellen"
 KNOPF = "Feststellungsbeschluss anlegen"
 ABGELAUFEN = "Frist abgelaufen — Antrag läuft"
 
@@ -72,7 +72,10 @@ def feststellen(client, leute, antrag, grund=None):
 # ── Die Karte ──────────────────────────────────────────────────────────────────────────────
 
 
-def test_die_karte_zeigt_nur_laufende_vertrauensfragen_mit_hinweis_und_ohne_beschluss(client, ordnung, altmandat):  # noqa: F811
+def test_die_karte_zeigt_laufende_vertrauensfragen_mit_und_ohne_hinweis_aber_ohne_beschluss(client, ordnung, altmandat):  # noqa: F811
+    """D-L6e (Gründer 29.9.2026: Knopf immer zeigen, Begründung Pflicht): Auch eine Vertrauensfrage ohne
+    Sperrhinweis steht in der Dreitagesfrist mit Knopf auf der Karte — die Satzung bindet die Feststellung
+    an lit g, nicht an die Software."""
     leute = rat(3)
     mit_hinweis_antrag, _vf = mit_hinweis(ordnung, name="a")
     ohne_hinweis = einbringen(mitglied_anlegen("ohne"), altmandat, ordnung)  # außerhalb der Schonfrist
@@ -87,11 +90,13 @@ def test_die_karte_zeigt_nur_laufende_vertrauensfragen_mit_hinweis_und_ohne_besc
     assert mit_hinweis_antrag.titel in inhalt and KNOPF in inhalt
     assert "Schonfrist" in inhalt  # der Hinweistext steht auf der Karte und im vorbefüllten Formular
     assert f'name="antrag" value="{mit_hinweis_antrag.pk}"' in inhalt
-    assert f'name="antrag" value="{ohne_hinweis.pk}"' not in inhalt
+    assert f'name="antrag" value="{ohne_hinweis.pk}"' in inhalt
+    assert "Kein Sperrhinweis der Plattform." in inhalt
+    assert "Begründung des Beschlusses (wird veröffentlicht)" in inhalt  # ohne Hinweis: leer und Pflicht
     assert f'name="antrag" value="{festgestellt.pk}"' not in inhalt
     assert festgestellt.titel in inhalt  # steht unter „Zurückgewiesen“ mit der Beschlussnummer
-    # Das allgemeine Formular bietet die Feststellung nicht als Knopf an — sie gehört zur Karte.
-    assert inhalt.count('value="vertrauensfrage_sperre"') == 1
+    # Das allgemeine Formular bietet die Feststellung nicht als Knopf an — sie gehört zur Karte (zwei Zeilen).
+    assert inhalt.count('value="vertrauensfrage_sperre"') == 2
 
 
 def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, ordnung):  # noqa: F811
@@ -100,7 +105,7 @@ def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, o
     from django.db import connection
     from django.test.utils import CaptureQueriesContext
 
-    from gremien.views import _vertrauensfragen_mit_sperrhinweis
+    from gremien.views import _vertrauensfragen_zur_feststellung
 
     leute = rat(3)
     erste, _vf = mit_hinweis(ordnung, name="q1")
@@ -112,7 +117,7 @@ def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, o
 
     def beschluss_abfragen():
         with CaptureQueriesContext(connection) as erfasst:
-            zeilen = _vertrauensfragen_mit_sperrhinweis()
+            zeilen = _vertrauensfragen_zur_feststellung()
         return zeilen, [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
 
     zeilen, klein = beschluss_abfragen()
@@ -126,10 +131,10 @@ def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, o
     assert je_antrag[erste.pk] is not None and all(b is None for pk, b in je_antrag.items() if pk != erste.pk)
 
 
-def test_ohne_hinweis_bleibt_die_karte_leer(client, ordnung):  # noqa: F811
+def test_ohne_laufende_vertrauensfrage_bleibt_die_karte_leer(client, ordnung):  # noqa: F811
     client.force_login(rat(1)[0])
     inhalt = client.get(reverse("gremien:integritaet")).content.decode()
-    assert "Keine Vertrauensfrage mit Sperrhinweis." in inhalt and KNOPF not in inhalt
+    assert "Keine Vertrauensfrage zur Feststellung." in inhalt and KNOPF not in inhalt
 
 
 # ── Der Feststellungsbeschluss ─────────────────────────────────────────────────────────────
@@ -219,6 +224,168 @@ def test_ein_zweiter_feststellungsbeschluss_laeuft_nicht_parallel(client, ordnun
     assert GremienBeschluss.objects.filter(anlass=Anlass.VERTRAUENSFRAGE_SPERRE, antrag=antrag).count() == 1
     inhalt = client.get(reverse("gremien:integritaet")).content.decode()
     assert "Feststellungsbeschluss läuft:" in inhalt and KNOPF not in inhalt  # der laufende wird verlinkt
+
+
+# ── Feststellung ohne Sperrhinweis (D-L6e, 0.51.0) ─────────────────────────────────────────
+
+
+def test_ohne_hinweis_ist_die_sperre_feststellbar_und_wirkt(client, ordnung, altmandat):  # noqa: F811
+    """Gründer 29.9.2026: „Knopf immer zeigen, Begründung Pflicht“ — der Rat stellt fest, was die Satzung
+    sperrt (lit g), auch wenn die Plattform beim Einbringen nichts erkannt hat."""
+    leute = rat(3)
+    antrag = einbringen(mitglied_anlegen("ohne-h"), altmandat, ordnung)
+    vf = antrag.vertrauensfrage
+    assert vf.sperrhinweis == ""
+    antrag.unterstuetzungen.create(mitglied=leute[1])
+
+    beschluss = feststellen(client, leute, antrag, grund="Gegen dieselbe Person läuft bereits eine Vertrauensfrage.")
+
+    assert beschluss is not None and beschluss.ergebnis == "dafuer"
+    assert beschluss.frist <= vf.sperrfrist_ende
+    vf.refresh_from_db()
+    assert antrag.phase == "zurueckgewiesen" and vf.sperre_beschluss == beschluss
+    assert "läuft bereits eine Vertrauensfrage" in antrag.zurueckweisung_begruendung
+    assert antrag.unterstuetzungen.count() == 1  # nichts gelöscht (Grundregel 7)
+    angelegt = audit("gremienbeschluss_angelegt")[-1]
+    assert angelegt["sperrhinweis"] is False and "mitglied" not in angelegt
+    assert audit("vertrauensfrage_nicht_eroeffnet")[-1]["beschluss"] == beschluss.pk
+
+
+def test_mit_hinweis_haelt_das_audit_den_hinweis_fest(client, ordnung):  # noqa: F811
+    leute = rat(3)
+    antrag, _vf = mit_hinweis(ordnung, name="audit")
+    feststellen(client, leute, antrag)
+    assert audit("gremienbeschluss_angelegt")[-1]["sperrhinweis"] is True
+
+
+@pytest.mark.parametrize("grund", ["", "   \n  "])
+@pytest.mark.parametrize("mit", [True, False])
+def test_ohne_begruendung_entsteht_keine_feststellung(client, ordnung, altmandat, grund, mit):  # noqa: F811
+    leute = rat(3)
+    if mit:
+        antrag, _vf = mit_hinweis(ordnung, name=f"leer{int(mit)}")
+    else:
+        antrag = einbringen(mitglied_anlegen("leer-ohne"), altmandat, ordnung)
+    client.force_login(leute[0])
+    antwort = client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": antrag.pk, "beschreibung": grund},
+        follow=True,
+    ).content.decode()
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.VERTRAUENSFRAGE_SPERRE).exists()
+    assert "Bitte begründen" in antwort and "§ 7 Abs 10 lit b und g" in antwort
+
+
+def test_ohne_hinweis_nach_der_frist_steht_keine_zeile_und_der_post_wird_abgewiesen(client, ordnung, altmandat):  # noqa: F811
+    leute = rat(3)
+    antrag = einbringen(mitglied_anlegen("spaet"), altmandat, ordnung, jetzt=timezone.now() - tage(4))
+    assert antrag.vertrauensfrage.sperrhinweis == ""
+    client.force_login(leute[0])
+    inhalt = client.get(reverse("gremien:integritaet")).content.decode()
+    assert antrag.titel not in inhalt.split(KARTE, 1)[1].split("</div>\n\n", 1)[0]
+    assert feststellen(client, leute, antrag, grund="Zu spät.") is None
+    assert "Frist von drei Tagen nach Einbringung ist verstrichen" in client.get(reverse("gremien:integritaet")).content.decode()
+
+
+def test_ein_bestaetigungsantrag_steht_nicht_auf_der_karte_und_laesst_sich_nicht_sperren(client, ordnung, altmandat):  # noqa: F811
+    """lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht — weder Karte noch POST noch
+    ein direkt angelegter Beschluss können ihn „nicht eröffnet“ setzen."""
+    from mandatare import models as mm
+    from verfahren.models import vertrauensfrage_einbringen
+
+    _verloren(ordnung, altmandat)
+    altmandat.refresh_from_db()
+    ich = altmandat.mitglied
+    spaeter = timezone.now() + tage(200)
+    b = vertrauensfrage_einbringen(ich, altmandat, "Seither jeder Beschluss.", [], [], ordnung, jetzt=spaeter, art="bestaetigung")
+    assert b.vertrauensfrage.art == "bestaetigung"
+    assert not mm.Vertrauensfrage.zur_feststellung(spaeter).filter(antrag=b).exists()
+
+    leute = rat(3)
+    client.force_login(leute[0])
+    antwort = client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": b.pk, "beschreibung": "Versuch."},
+        follow=True,
+    ).content.decode()
+    assert "keine Sperre (§ 7 Abs 10 lit f Z 3)" in antwort
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.VERTRAUENSFRAGE_SPERRE, antrag=b).exists()
+
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.VERTRAUENSFRAGE_SPERRE,
+        gegenstand="Sperre feststellen",
+        beschreibung="Versuch.",
+        optionen=JA_NEIN,
+        frist=timezone.now() + tage(1),
+        antrag=b,
+        angelegt_von=leute[0],
+    )
+    from gremien.models import vertrauensfrage_sperre_wirkung
+
+    beschluss.ergebnis = "dafuer"
+    vertrauensfrage_sperre_wirkung(beschluss)
+    b.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert b.phase != "zurueckgewiesen" and b.vertrauensfrage.sperre_beschluss is None
+    assert "Bestätigungsantrag kennt keine Sperre" in beschluss.umsetzungsvermerk
+
+
+def test_zur_feststellung_waehlt_genau_die_richtigen_zeilen(ordnung, altmandat):  # noqa: F811
+    from mandatare.models import Vertrauensfrage as VF
+
+    jetzt = timezone.now()
+    ohne_frisch = einbringen(mitglied_anlegen("zf1"), altmandat, ordnung, jetzt=jetzt - timedelta(hours=1))
+    ohne_alt = einbringen(mitglied_anlegen("zf2"), Mandat.objects.create(
+        mitglied=mitglied_anlegen("zfm", tage=600), bezeichnung="Landtag", ebene="land", angetreten=altmandat.angetreten
+    ), ordnung, jetzt=jetzt - tage(4))
+    mit_alt, _vf = mit_hinweis(ordnung, jetzt=jetzt - tage(4), name="zf3")
+    ids = set(VF.zur_feststellung(jetzt).values_list("antrag_id", flat=True))
+    assert ohne_frisch.pk in ids and mit_alt.pk in ids and ohne_alt.pk not in ids
+
+
+def test_gast_mitglied_andere_raete_und_admin_legen_keine_feststellung_an(client, ordnung, altmandat):  # noqa: F811
+    antrag = einbringen(mitglied_anlegen("recht"), altmandat, ordnung)
+    daten = {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": antrag.pk, "beschreibung": "Versuch."}
+    url = reverse("gremien:integritaet_beschluss")
+
+    antwort = client.post(url, daten)  # Gast
+    assert antwort.status_code == 302 and antwort["Location"].startswith(reverse("mitglieder:login"))
+
+    client.force_login(mitglied_anlegen("einfach"))
+    assert client.post(url, daten).status_code == 403
+
+    from gremien.test_werkstatt import rolle_geben
+
+    for gremium in (Gremium.KOORDINATIONSRAT, Gremium.EXPERTENRAT_1):
+        m = mitglied_anlegen(f"rat-{gremium}")
+        rolle_geben(m, gremium)
+        client.force_login(m)
+        assert client.post(url, daten).status_code == 403
+
+    admin = mitglied_anlegen("verwaltung")
+    admin.ist_admin = True
+    admin.save(update_fields=["ist_admin"])
+    client.force_login(admin)
+    client.post(url, daten)
+    inhalt = client.get(reverse("gremien:integritaet")).content.decode()
+    assert antrag.titel in inhalt and KNOPF not in inhalt  # lesen ja, anlegen nein
+    assert not GremienBeschluss.objects.exists()
+
+
+def test_ein_offener_beschluss_ohne_hinweis_steht_auf_antragsseite_und_uebersicht(client, ordnung, altmandat):  # noqa: F811
+    leute = rat(3)
+    antrag = einbringen(mitglied_anlegen("band"), altmandat, ordnung)
+    client.force_login(leute[0])
+    client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": antrag.pk, "beschreibung": "Zweite Vertrauensfrage."},
+    )
+    client.logout()
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "Der Integritätsrat prüft eine Sperre nach § 7 Abs 10 lit g bis" in seite
+    liste = client.get(reverse("mandatare:vertrauensfragen")).content.decode()
+    assert "Der Integritätsrat prüft eine Sperre bis" in liste and "Sperrhinweis —" not in liste
 
 
 # ── Ruhende Rollen ─────────────────────────────────────────────────────────────────────────

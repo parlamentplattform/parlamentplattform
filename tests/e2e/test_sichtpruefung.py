@@ -376,7 +376,7 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         )
         p = seite(als=Mitglied.objects.get(username="demo3"))
         p.goto(f"{live_server.url}/gremien/integritaet/")
-        karte = p.locator(".karte", has_text="Vertrauensfragen mit Sperrhinweis")
+        karte = p.locator(".karte", has_text="Vertrauensfragen · Sperre feststellen")
         karte.scroll_into_view_if_needed()
         _ruhe(p)
         ziel = sichtpruefung / "integritaetsrat-sperrhinweis.png"

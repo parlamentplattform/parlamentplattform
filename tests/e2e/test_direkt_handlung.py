@@ -74,6 +74,25 @@ def test_unterstuetzen_ohne_javascript_landet_im_feld_mit_hinweis(seite, live_se
     assert p.locator(".meldung").count() == 0
 
 
+def test_kein_gold_haken_wenn_die_handlung_scheitert(seite, live_server, demo):
+    """Scheitert die Handlung (hier: die Mitwirkung ruht seit dem Laden der Seite), steht der
+    Fehlerhinweis im Feld — und kein „✓ Erfasst“ an der Zeile."""
+    from mitglieder.models import Mitgliedsstatus
+
+    antrag = _sammelnder_antrag()
+    person = _mitglied()
+    p = seite(als=person)
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    person.status = Mitgliedsstatus.PAUSIERT
+    person.save(update_fields=["status"])
+    p.locator(f"#u-filter-{antrag.pk}").click()
+    p.wait_for_selector("#feld-filter .feld-hinweis")
+    assert "fehler" in p.locator("#feld-filter .feld-hinweis").get_attribute("class")
+    p.wait_for_timeout(150)  # markiere() liefe unmittelbar nach dem Settle
+    assert p.locator(f'.fz[data-antrag="{antrag.pk}"].erfasst').count() == 0, "Gold-Haken „Erfasst“ trotz Fehler"
+
+
 def test_gesperrtes_mitglied_sieht_zustand_statt_knoepfen(seite, live_server, demo):
     from mitglieder.models import Mitgliedsstatus
 

@@ -192,7 +192,16 @@ document.addEventListener("alpine:init", function () {
         if (!this.fokusId) return;
         var ziel = document.getElementById(this.fokusId);
         this.fokusId = null;
-        if (ziel && ziel.focus) ziel.focus({ preventScroll: true });
+        if (!ziel) return;
+        // Liegt das Ziel nach dem Tausch verborgen (Stimmknöpfe im geschlossenen <details> der
+        // Feed-Zeile), nimmt es keinen Fokus: dann der Kopf desselben <details>, sonst der Feldkörper
+        var klappe = ziel.closest("details"), feld = ziel.closest(".feld");
+        var wahl = [ziel, klappe && klappe.querySelector("summary"), feld && feld.querySelector(".feld-korpus")];
+        for (var i = 0; i < wahl.length; i++) {
+          if (!wahl[i] || !wahl[i].focus) continue;
+          wahl[i].focus({ preventScroll: true });
+          if (document.activeElement === wahl[i]) return;
+        }
       },
       /* Suchtreffer (FB-C4): der Fächer öffnet am Treffer und hebt den Anker 1,5 s gold hervor. */
       treffer: function () {

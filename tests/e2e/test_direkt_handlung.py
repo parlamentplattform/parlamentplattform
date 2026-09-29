@@ -197,6 +197,25 @@ def test_stimmknopf_in_der_kachel_auswahl_ohne_ring_fokus_mit_ring(seite, live_s
     assert nein["fv"] and nein["stil"] == "solid" and nein["farbe"] == fokus, (nein, fokus)
 
 
+def test_fokus_nach_einer_stimme_aus_dem_feed_bleibt_im_feld(seite, live_server, demo):
+    """Die Stimmknöpfe der Feed-Zeile stehen in <details class="abstimmen">, das nach dem Tausch
+    geschlossen zurückkommt — der Fokus geht dann auf dessen Kopf, nicht verloren (Befund B2)."""
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    kopf = p.locator("#feld-filter details.abstimmen > summary").first
+    kopf_id = kopf.get_attribute("id")
+    pk = kopf_id.rsplit("-", 1)[1]
+    kopf.focus()
+    p.keyboard.press("Enter")
+    p.locator(f"#st-filter-{pk}-ja").focus()
+    p.keyboard.press("Enter")
+    p.wait_for_selector("#feld-filter .feld-hinweis")
+    _ruhe(p)
+    aktiv = p.evaluate("document.activeElement.tagName + '#' + document.activeElement.id")
+    assert aktiv == f"SUMMARY#{kopf_id}", aktiv
+
+
 def test_haken_bleibt_bei_reduzierter_bewegung_sichtbar(seite, live_server, demo):
     antrag = _sammelnder_antrag()
     p = seite(als=_mitglied(), reduziert=True)

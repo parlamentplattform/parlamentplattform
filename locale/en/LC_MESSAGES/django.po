@@ -8362,3 +8362,21 @@ msgstr "“%(neu)s” is a different set of procedural rules from the current �
 #, python-format
 msgid "„%(schluessel)s“: %(alt)s → %(neu)s. Grund steht im öffentlichen Audit-Log."
 msgstr "“%(schluessel)s”: %(alt)s → %(neu)s. The reason is in the public audit log."
+
+msgid "Alle Felder"
+msgstr "All panels"
+
+msgid "Alle Felder zeigen"
+msgstr "Show all panels"
+
+msgid "Feld 1–4"
+msgstr "Panel 1–4"
+
+msgid "Feld vergrößern"
+msgstr "Enlarge panel"
+
+msgid "Tasten"
+msgstr "Keys"
+
+msgid "Vergrößern"
+msgstr "Enlarge"

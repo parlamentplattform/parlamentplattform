@@ -178,9 +178,14 @@ def test_in_der_anfrage_gilt_eine_kurze_zeitgrenze_die_warteschlange_behaelt_die
     assert zeitgrenzen[1:] == [ZEITGRENZE_SEKUNDEN]  # die Warteschlange: die lange
 
 
-def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, bestehend):
+def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, bestehend, monkeypatch):
     """Jeder POST ohne „Trotzdem“ ruft sonst den Anbieter — ein Konto könnte per Skript das Monatsbudget
     leeren. Über der Grenze je Konto rechnet nur der Wortvergleich, und die Karte sagt es ehrlich."""
+    from types import SimpleNamespace
+
+    # Die Drossel zählt je voller Stunde; fielen die zehn POSTs über einen Stundenwechsel, zählte
+    # ein neuer Eimer und der Test schlüge fehl. Die Uhr der Drossel steht deshalb still.
+    monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: 3600 * 480_000 + 1800))
     settings.DDOE_KI_ANBIETER = "attrappe"
     laeufe = KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT)
     client.force_login(mitglied_anlegen("bernd"))

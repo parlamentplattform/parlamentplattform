@@ -73,5 +73,5 @@ def test_startseite_und_meine_stimme_versprechen_keine_geheimheit(client):
     inhalt = client.get(reverse("verfahren:index")).content.decode()
     assert "keinem Menschen zuzuordnen" not in inhalt
     assert "Tage · geheim" not in inhalt and "geheim · mehreren" not in inhalt
-    assert "pseudonym-offen" in inhalt and "ADR-003" in inhalt
+    assert "pseudonym-offen" in inhalt and "nicht kryptografisch geheim" in inhalt
     assert "Tage · pseudonym" in inhalt and "pseudonym · mehreren zustimmbar" in inhalt

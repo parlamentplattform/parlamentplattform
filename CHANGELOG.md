@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.50.1] — 2026-09-29 · Antworten zur Prüfung: Registerwerte, Tageskontingent, Vertrauensfrage
+
+### Geändert
+- **Drei Grenzen stehen jetzt im Parameterregister** statt fest im Code: wie lange das Einbringen höchstens auf den KI-Anbieter wartet (8 Sekunden), wie oft ein Konto je Stunde den Bedeutungsvergleich auslösen kann (5; 0 schaltet ihn ab) und nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird (24). Die Werte sind öffentlich, versioniert und im Austauschformat für Schwesterparteien benannt (Schema 1.8).
+- **Das Tageskontingent der Zukunftswerkstatt zählt Aufrufe beim Anbieter**, nicht mehr Aufträge: Jeder Versuch zählt, auch ein gescheiterter. Der Bedeutungsvergleich beim Einbringen hat seine eigene Grenze je Konto und zählt nicht mit.
+- **Vertrauensfrage:** Sie bleibt eine pseudonym-offene Abstimmung wie jede andere — „wir sind transparent so weit es geht“. Die Satzung wird an dieser Stelle angepasst; Beschreibung und Architekturentscheidung sagen das jetzt statt eines offenen Widerspruchs.
+
+### Prüfung
+- Tests auf SQLite und PostgreSQL 16, Bildschirmtests und Übersetzungskatalog grün (Zahlen im Pull Request); die Antworten des Gründers zur Prüfung 0.50.0 stehen im Fahrtenbuch und im Prüfbericht.
+
 ## [0.50.0] — 2026-09-29 · Betrieb, Direkt-Handlung, Einwilligung, Zukunftswerkstatt, Fächer
 
 ### Hinzugefügt

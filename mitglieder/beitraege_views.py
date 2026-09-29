@@ -72,7 +72,7 @@ def beitrag_gemeldet(request):
     if not bank.eingerichtet() or kopplung is None:
         messages.info(
             request,
-            _("Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet — Eingänge werden derzeit von der Verwaltung geprüft."),
+            _("Der automatische Kontoabruf ist noch nicht eingerichtet, und die Meldung wird nicht gespeichert. Die Verwaltung ordnet Eingänge anhand Ihrer Referenz aus dem Kontoauszug zu; danach kommt eine Bestätigung per E-Mail."),
         )
         return redirect("mitglieder:beitrag")
     if not _abstand_gewahrt(kopplung, ABGLEICH_MINDESTABSTAND):
@@ -94,12 +94,12 @@ def beitrag_gemeldet(request):
     elif meldung.startswith("abruf_gescheitert"):
         messages.info(
             request,
-            _("Die Bank war gerade nicht erreichbar — wir gleichen automatisch wieder ab, Ihr Eingang geht nicht verloren."),
+            _("Die Bank war gerade nicht erreichbar. Ihr Eingang geht nicht verloren: Er wird beim nächsten Abgleich erkannt — wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."),
         )
     else:
         messages.info(
             request,
-            _("Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Wir prüfen automatisch weiter."),
+            _("Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Erkannt wird er beim nächsten Abgleich: wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."),
         )
     return redirect("mitglieder:beitrag")
 

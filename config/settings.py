@@ -230,4 +230,6 @@ WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
 DDOE_KI_ANBIETER = os.environ.get("DDOE_KI_ANBIETER", "mistral")
 DDOE_KI_SCHLUESSEL = os.environ.get("DDOE_KI_SCHLUESSEL", "")
 DDOE_KI_MODELL = os.environ.get("DDOE_KI_MODELL", "mistral-small-latest")
+# Textvektoren für den Bedeutungsvergleich beim Einbringen (Stufe 2 der Ähnlichkeit, ADR-011).
+DDOE_KI_EINBETTUNGSMODELL = os.environ.get("DDOE_KI_EINBETTUNGSMODELL", "mistral-embed")
 DDOE_KI_MONATSTOKENS = int(os.environ.get("DDOE_KI_MONATSTOKENS", "1000000"))

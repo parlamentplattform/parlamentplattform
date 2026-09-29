@@ -124,3 +124,70 @@ def test_lostopf_der_fachliste_kennt_keine_testkonten():
     Fachliste.objects.create(mitglied=echt, schluessel="a" * 8)
     Fachliste.objects.create(mitglied=probe, schluessel="b" * 8)
     assert [k.schluessel for k in lostopf_der_fachliste()] == ["a" * 8]
+
+
+# ── Migration 0021: Stamm festschreiben, Demo-Konten stilllegen ───────────────────────────
+
+
+def _kette_aus_der_datenbank():
+    """Die Audit-Kette so, wie sie in der Datenbank steht (auf PostgreSQL nach der JSONB-Rundreise)."""
+    import json
+
+    from django.db import connection
+
+    with connection.cursor() as c:
+        c.execute("select ereignis, hash, vorgaenger from verfahren_auditeintrag order by lfd")
+        return [(json.loads(e) if isinstance(e, str) else e, h, v) for e, h, v in c.fetchall()]
+
+
+def _migration_0021_ausfuehren():
+    import importlib
+
+    from django.apps import apps
+    from django.db import connection
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.connection = connection
+    importlib.import_module("mitglieder.migrations.0021_referenzstamm_und_testkonten").vorwaerts(apps, editor)
+
+
+def test_migration_0021_schreibt_den_stamm_fest_legt_demo_konten_still_und_ist_idempotent():
+    from gremien.models import Fachliste, Rolle
+    from mitglieder.auth_flows import referenzstamm_ableiten
+    from plattform_core.hashchain import GENESIS, kette_pruefen
+    from verfahren.models import AuditEintrag
+
+    call_command("demo_seed", erzwingen=True, verbosity=0)
+    AuditEintrag.anhaengen({"typ": "probe", "text": "Ärger „Zitat“ ß", "liste": [1, {"x": 1.5}]})
+    Mitglied.objects.update(beitragsreferenz_stamm="", testkonto=False, is_active=True)  # Stand vor 0021
+    echt = _mitglied("echt")
+    demos = list(Mitglied.objects.filter(username__in=[f"demo{i}" for i in range(1, 6)]).order_by("pk"))
+    assert len(demos) == 5
+    fachliste = Fachliste.objects.create(mitglied=demos[0], schluessel="demo1-fach")
+    assert Rolle.objects.filter(mitglied__in=demos, beendet_grund="").exists()
+
+    _migration_0021_ausfuehren()
+
+    for m in Mitglied.objects.all():
+        assert m.beitragsreferenz_stamm == referenzstamm_ableiten(m.pk, m.username)
+    assert [(m.is_active, m.testkonto) for m in Mitglied.objects.filter(pk__in=[d.pk for d in demos])] == [
+        (False, True)
+    ] * 5
+    echt.refresh_from_db()
+    assert echt.is_active and not echt.testkonto
+    assert not Rolle.objects.filter(mitglied__in=demos, beendet_grund="").exists()
+    fachliste.refresh_from_db()
+    assert fachliste.gestrichen_am is not None and fachliste.gestrichen_grund
+
+    kette = _kette_aus_der_datenbank()
+    assert kette_pruefen([(e, h) for e, h, _v in kette]) == (True, None)
+    assert [v for _e, _h, v in kette] == [GENESIS] + [h for _e, h, _v in kette[:-1]]
+    letzter = kette[-1][0]
+    assert letzter["typ"] == "testkonten_stillgelegt" and letzter["konten"] == [d.pk for d in demos]
+
+    anzahl = len(kette)
+    _migration_0021_ausfuehren()  # zweiter Lauf: nichts mehr zu tun
+    assert AuditEintrag.objects.count() == anzahl

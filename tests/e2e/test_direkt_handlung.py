@@ -87,7 +87,7 @@ def test_gesperrtes_mitglied_sieht_zustand_statt_knoepfen(seite, live_server, de
     assert p.locator(f"#u-filter-{antrag.pk}").count() == 0
     zeile = p.locator(f'#feld-filter .fz[data-antrag="{antrag.pk}"] .sperre')
     assert zeile.is_visible() and "Mitwirkung ruht" in zeile.inner_text()
-    assert zeile.locator("a").get_attribute("href").endswith("/willkommen/")
+    assert zeile.locator("a").get_attribute("href").endswith("/beitrag/")
 
 
 @pytest.mark.parametrize("dunkel", [False, True], ids=["hell", "dunkel"])

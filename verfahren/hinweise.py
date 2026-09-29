@@ -46,14 +46,14 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_ungeprueft": {
         "kurz": _("Identität noch ungeprüft"),
         "text": _("Identität noch ungeprüft (§ 4 Abs 2)."),
-        "link": "mitglieder:willkommen",
+        "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
     },
     "gesperrt_pausiert": {
         "kurz": _("Mitwirkung ruht"),
         "text": _("Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)."),
-        "link": "mitglieder:willkommen",
+        "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
     },

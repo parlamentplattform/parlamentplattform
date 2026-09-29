@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.mail import EmailMessage
-from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus
+from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
 from verfahren.models import Antrag, AuditEintrag, Ebene
@@ -29,17 +29,29 @@ log = logging.getLogger(__name__)
 SCHLUSS = "Direkte Demokratie Österreich — Wir sind das Werkzeug."
 
 
-def _ab(datum: date, heute: date) -> str:
-    """„ab sofort“, wenn der Tag erreicht ist, sonst „ab dd.mm.yyyy“."""
+def _ab(datum: date, heute: date, ungeprueft: bool = False) -> str:
+    """„ab sofort“, wenn der Tag erreicht ist, sonst „ab dd.mm.yyyy“ — ein ungeprüftes Konto
+    stimmt erst nach der Freischaltung ab, also dann „nach Ihrer Freischaltung“."""
     if datum <= heute:
-        return _("ab sofort")
+        return _("nach Ihrer Freischaltung") if ungeprueft else _("ab sofort")
     return _("ab %(datum)s") % {"datum": formats.date_format(datum, "d.m.Y")}
 
 
 def stimmrechts_satz(mitglied: Mitglied, heute: date | None = None) -> str:
     """Ab wann das Stimmrecht besteht — je Gegenstand aus Beitritt und Anwartschaft (§ 4 Abs 4),
-    oder mit dem Satzungsbezug, solange die Übergangsregel des § 4 Abs 4 lit d gilt."""
+    oder mit dem Satzungsbezug, solange die Übergangsregel des § 4 Abs 4 lit d gilt.
+
+    Dieselben Bedingungen wie `Mitglied.ist_stimmberechtigt` (Status, Identitätsstufe): Ruht die
+    Mitgliedschaft, sagt der Satz das statt „ab sofort“ (F-51)."""
     heute = heute or timezone.localdate()
+    if mitglied.status == Mitgliedsstatus.PAUSIERT:
+        # Derselbe Satz wie im Freischaltungsbrief eines pausierten Kontos
+        return _(
+            "Ihre Mitgliedschaft ist derzeit pausiert. Sobald Ihr offener Mitgliedsbeitrag eingegangen "
+            "ist, können Sie wieder mitmachen und abstimmen."
+        )
+    if mitglied.status != Mitgliedsstatus.AKTIV:
+        return _("Ihre Mitwirkungsrechte und Ihr Stimmrecht ruhen derzeit.")
     if settings.DDOE_UEBERGANGSREGEL:
         return _(
             "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen. "
@@ -47,14 +59,17 @@ def stimmrechts_satz(mitglied: Mitglied, heute: date | None = None) -> str:
             "über die dauerhaften Verfahrensregeln."
         )
     beitritt = mitglied.beitritt or heute
+    ungeprueft = mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
     return _(
         "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. "
         "An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei "
         "können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich "
         "aus den Wartefristen ab Ihrem Beitritt."
     ) % {
-        "sachfragen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.SACHFRAGE]), heute),
-        "personenwahlen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL]), heute),
+        "sachfragen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.SACHFRAGE]), heute, ungeprueft),
+        "personenwahlen": _ab(
+            monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL]), heute, ungeprueft
+        ),
     }
 
 

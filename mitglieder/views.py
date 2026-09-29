@@ -294,6 +294,10 @@ def willkommen(request):
             # Derselbe Satz wie im Willkommensbrief: Mit Übergangsregel (§ 4 Abs 4 lit d) gibt es keine
             # Wartefrist — die Seite nannte bis 0.49 feste 3/12 Monate, die live nicht galten (C2).
             "stimmrechts_satz": stimmrechts_satz(request.user),
+            # Anwärter ist das frisch bestätigte, noch ungeprüfte Konto — nicht das pausierte oder
+            # seit Jahren geprüfte Bestandsmitglied, das über den Beitrag hierher kommt.
+            "anwaerter": request.user.status == Mitgliedsstatus.AKTIV
+            and request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
         },
     )
 

@@ -4,17 +4,17 @@ Diese Datei steuert Claude Code in diesem Repository. Sie ist knapp; die Tiefe s
 
 ## 1. Was das hier ist
 
-Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (0.40.0 am 4.9.2026). Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
+Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Software (Satzungsentwurf 2.5 § 5): Anträge einbringen → unterstützen → beraten (Expertenrat, Zukunftswerkstatt) → geheim abstimmen → nachrechenbar auszählen → Umsetzungsregister. Django 5 / PostgreSQL 16 (SQLite in Entwicklung), server-gerendert, htmx 2 + Alpine.js 3 als eingecheckte Dateien, kein SPA, kein CDN, kein Tracking. Lizenz AGPL-3.0-or-later. Version laut CHANGELOG (oberster Abschnitt) und `pyproject.toml`. Produktion: https://parlament.ddoe.at (Render, Auto-Deploy nach grüner CI auf `main`).
 
 ## 2. Die maßgeblichen Dokumente (in dieser Reihenfolge lesen)
 
-> **Der Ordner `docs/fahrtenbuch/` ist intern und liegt nicht im Repository** (`.gitignore`, seit 3.9.2026): Er trägt die wörtlichen Anweisungen des Gründers, Bauplan, Soll/Ist, Inventar, Website-Prüfung und den Satzungsentwurf. Auf dem Arbeitsplatz des Gründers liegt er unter `parlamentplattform-phase0/docs/fahrtenbuch/`, Kopien im Arbeitsordner (`DDOE-code/claude-code-uebergabe/`). Wer ohne diesen Ordner arbeitet (CI, fremder Klon), findet die öffentliche Fassung der Zusammenarbeit in `docs/partner/` und `docs/SCHEMA.md`.
+> **Der Ordner `docs/fahrtenbuch/` ist bis auf zwei Dateien intern** (`.gitignore`): Seit 29.9.2026 liegen das Fahrtenbuch (`DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md`) und die Bestandsaufnahme (`Bestandsaufnahme_0.49.3_2026-09-28.md`) im Repository (Anweisung des Gründers vom 28.9.2026). Design-Spezifikation, Soll/Ist, Inventar, Website-Prüfung, Korrespondenz und der Satzungsentwurf bleiben am Arbeitsplatz des Gründers (`parlamentplattform-phase0/docs/fahrtenbuch/`, Kopien in `DDOE-code/claude-code-uebergabe/`); der Satzungsentwurf ist öffentlich unter https://www.ddoe.at/satzung/ nachlesbar. Wer ohne die internen Dateien arbeitet (CI, fremder Klon), findet die öffentliche Fassung der Zusammenarbeit in `docs/partner/` und `docs/SCHEMA.md`.
 
 1. `docs/fahrtenbuch/DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md` — **der Bauplan.** Jede Forderung des Gründers als FB-Kennung mit Zitat, Spezifikation, Abnahme, Ist, Delta. Teil C = Reihenfolge der Bauschritte S1–S14. Teil D = offene Entscheidungen (ohne Antwort gilt die Empfehlung).
 2. `docs/fahrtenbuch/DDOE_Design_Spezifikation_App-Look.md` — Tokens, Layouts, Komponenten, Bewegung, Zustände, Barrierefreiheit, Bildschirmtests.
 3. `docs/fahrtenbuch/DDOE_SollIst_Abgleich_2026-09-02.md` — was fehlt, was anders ist, Widersprüche im Code.
 4. `docs/fahrtenbuch/Funktionsinventar_Ist_2026-09-02.md` — der Code, Seite für Seite, mit Datei:Zeile (Stand 0.32.0).
-5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 010).
+5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 012).
    Öffentlich für Schwesterparteien: `docs/SCHEMA.md` (Austauschformate, § 12 Abs 5) und `docs/partner/` (Vision, Einstieg, Einrichtung, Satzungs-Baukasten — Erzeugnis von `tools/satzung_baukasten.py`).
 6. `docs/fahrtenbuch/Satzung_DDOE_2.5_Entwurf.md` — die Regeln, auf die sich alles bezieht (§ 2 Abs 6, § 5, § 6, § 7, § 12).
 
@@ -61,13 +61,13 @@ python -m pytest tests/e2e -q     # Bildschirmtests (Playwright); DDOE_SICHTPRUE
 3. Übersetzungen vollständig (`makemessages` zeigt 0 fuzzy/leer).
 4. CHANGELOG.md: neuer Abschnitt `## [0.xx.0] — Datum · Titel` (Keep a Changelog, Deutsch); `pyproject.toml` + `plattform_core.__version__` auf dieselbe Nummer.
 5. Screenshots/GIF unter `docs/sichtpruefung/<version>/` (der Gründer prüft von Hand).
-6. Ein Commit je logischem Teilschritt, deutsche Commit-Nachricht im Imperativ („Fächer auf fünf Ebenen ausbauen (FB-C2)"), FB-Kennungen in der Nachricht; Branch `schritt/s3-weicherfilter` → PR gegen `main` (Status-Check `pruefen` muss grün sein); der Gründer merged.
+6. Ein Commit je logischem Teilschritt, deutsche Commit-Nachricht im Imperativ („Fächer auf fünf Ebenen ausbauen (FB-C2)"), FB-Kennungen in der Nachricht; Branch `schritt/s3-weicherfilter` → PR gegen `main` (Status-Checks `pruefen (3.11)`, `pruefen (3.12)` und `pruefen_postgres` müssen grün sein); der Gründer merged.
 7. Nichts deployen, was den Demo-Betrieb bricht: `demo_seed` muss auf leerer und auf bestehender Datenbank durchlaufen.
 
 ## 6. Nicht tun
 
 - Keine Stimmgewichte, keine algorithmische Priorisierung, kein Engagement-Ranking außerhalb des ausdrücklich beschriebenen Abstimmungs-Chats (FB-G6, dort offen und als Parameter).
-- Keine Webfonts, kein CDN, keine Analytics, keine Cookies außer Session/CSRF.
+- Keine Webfonts, kein CDN, keine Analytics, keine Cookies außer Session, CSRF und — nur nach dem Umschalten — Sprachwahl.
 - Keine Löschung/Änderung von Audit-, Stimm-, Fassungs- oder Archivdaten; keine `--fake`-Migrationen in Produktion.
 - Keine Änderung der Satzungstexte im Repo (nur der Gründer); Satzungsbezüge (§) korrekt zitieren.
 - Keine Erklärtexte in Arbeitsbereiche; keine englischen UI-Texte ohne deutsche Quelle.
@@ -77,7 +77,7 @@ python -m pytest tests/e2e -q     # Bildschirmtests (Playwright); DDOE_SICHTPRUE
 ## 7. Fallstricke
 
 - Windows: `git status` zeigt 40 „geänderte" Dateien durch CRLF → `.gitattributes` mit `* text=auto eol=lf` anlegen und `git add --renormalize .` (einmalig, eigener Commit).
-- `demo_seed` läuft in Produktion bei jedem Deploy (`render.yaml`) — beim Umbau auf `DDOE_DEMO=1` achten, dass die Demo-Daten des Alpha-Betriebs erhalten bleiben (Wächter idempotent).
+- `demo_seed` läuft nur mit `DDOE_DEMO=1` (Entwicklung an, Produktion aus; `render.yaml` ruft es seit 0.50 nicht mehr auf). Die fünf Demo-Konten der Live-Datenbank sind seit Migration mitglieder/0021 Testkonten: nicht anmeldbar, in keinem Nenner der Stimmberechtigten, ihre Verfahrensbeiträge bleiben.
 - `antrag_detail` schreibt bei jedem GET (`fortschreiben`) — Phasenautomatik ist lazy; Tests, die Zeit brauchen, nutzen Zeitraffer über `phase_beginn`.
 - Die Website ddoe.at (WordPress) ist **nicht** in diesem Repo; Änderungen dort laufen über die REST-API (siehe `docs/fahrtenbuch/Website_Ist_Live_2026-09-02.md`, Bereich O des Fahrtenbuchs) und nicht über Claude Code, sofern der Gründer nichts anderes sagt.
 - E-Mails: ohne `DDOE_SMTP_HOST` Konsolen-Backend (Login-Links stehen im Serverlog).

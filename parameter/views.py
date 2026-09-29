@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.verwaltung import nur_admins
@@ -262,7 +264,9 @@ def _gleich(links, rechts) -> bool:
 #: Menschen wenig, und der Registerschlüssel daneben sagt etwas anderes als der Wert: Bei der
 #: Mindestbeteiligung führt das Register 5 (Prozent), die Ordnung 0,05 (Anteil).
 FELD_NAMEN = {
-    "unterstuetzung_schwelle": "Unterstützungen bis zur Schwelle",
+    # Die zwei Einträge aus 0.50 sind übersetzbar; die übrigen sind Altbestand ohne gettext.
+    "unterstuetzung_schwelle": gettext_lazy("Unterstützungen bis zur Schwelle (Mindestzahl)"),
+    "unterstuetzung_anteil": gettext_lazy("Unterstützungsschwelle als Anteil der Stimmberechtigten (0 = aus)"),
     "unterstuetzung_frist_tage": "Frist der Unterstützungsphase (Tage)",
     "beratung_tage": "Dauer der Beratung (Tage)",
     "abstimmung_tage": "Dauer der Abstimmung (Tage)",
@@ -372,10 +376,10 @@ def verwaltung_aktion(request):
     neuer_wert = (request.POST.get("wert") or "").strip()[:100]
     grund = (request.POST.get("grund") or "").strip()
     if not neuer_wert or not grund:
-        messages.error(request, "Neuer Wert und Grund sind Pflicht — der Grund wird veröffentlicht.")
+        messages.error(request, _("Neuer Wert und Grund sind Pflicht — der Grund wird veröffentlicht."))
         return redirect("parameter:verwaltung")
     if neuer_wert == eintrag.wert:
-        messages.info(request, "Der Wert ist unverändert — nichts zu tun.")
+        messages.info(request, _("Der Wert ist unverändert — nichts zu tun."))
         return redirect("parameter:verwaltung")
     alt = eintrag.wert
     eintrag.wert = neuer_wert
@@ -402,7 +406,8 @@ def verwaltung_aktion(request):
     )
     messages.success(
         request,
-        f"„{eintrag.schluessel}“: {alt} → {neuer_wert}. Grund steht im öffentlichen Audit-Log.",
+        _("„%(schluessel)s“: %(alt)s → %(neu)s. Grund steht im öffentlichen Audit-Log.")
+        % {"schluessel": eintrag.schluessel, "alt": alt, "neu": neuer_wert},
     )
     return redirect("parameter:verwaltung")
 
@@ -427,7 +432,7 @@ def verwaltung_ordnung_entwurf(request):
             _register_werte(), kennung, version, mehrheitsbasis=_mehrheitsbasis(aktiv)
         )
     except PolicyFehler as ausnahme:
-        messages.error(request, f"Keine Fassung erzeugt: {ausnahme}")
+        messages.error(request, _("Keine Fassung erzeugt: %(grund)s") % {"grund": ausnahme})
         return redirect("parameter:verwaltung")
     # Verglichen wird mit der juengsten vorhandenen Fassung, nicht nur mit der geltenden:
     # Sonst haette ein zweiter Klick eine zweite, wortgleiche Fassung erzeugt, und die
@@ -437,11 +442,12 @@ def verwaltung_ordnung_entwurf(request):
     )
     if juengste is not None and _wesentlich(juengste.regeln) == _wesentlich(erzeugt.als_dict()):
         if juengste.aktiv:
-            messages.info(request, "Register und geltende Fassung sagen dasselbe — nichts zu erzeugen.")
+            messages.info(request, _("Register und geltende Fassung sagen dasselbe — nichts zu erzeugen."))
         else:
             messages.info(
                 request,
-                f"Fassung {juengste.version} sagt bereits genau das und wartet auf den zweiten Schritt.",
+                _("Fassung %(version)s sagt bereits genau das und wartet auf den zweiten Schritt.")
+                % {"version": juengste.version},
             )
         return redirect("parameter:verwaltung")
     Verfahrensordnung.objects.create(
@@ -457,7 +463,8 @@ def verwaltung_ordnung_entwurf(request):
     )
     messages.success(
         request,
-        f"Fassung {version} erzeugt. Sie gilt noch nicht — dafür braucht es den zweiten Schritt.",
+        _("Fassung %(version)s erzeugt. Sie gilt noch nicht — dafür braucht es den zweiten Schritt.")
+        % {"version": version},
     )
     return redirect("parameter:verwaltung")
 
@@ -479,16 +486,19 @@ def verwaltung_ordnung_inkraft(request):
     if vorher is not None and fassung.policy_id != vorher.policy_id:
         messages.error(
             request,
-            f"„{fassung.policy_id}“ ist eine andere Verfahrensordnung als die geltende "
-            f"„{vorher.policy_id}“ — ein Wechsel gehört nicht in die Parameterverwaltung.",
+            _(
+                "„%(neu)s“ ist eine andere Verfahrensordnung als die geltende "
+                "„%(alt)s“ — ein Wechsel gehört nicht in die Parameterverwaltung."
+            )
+            % {"neu": fassung.policy_id, "alt": vorher.policy_id},
         )
         return redirect("parameter:verwaltung")
     grund = (request.POST.get("grund") or "").strip()
     if not grund:
-        messages.error(request, "Ohne Grund tritt keine Fassung in Kraft — er wird veröffentlicht.")
+        messages.error(request, _("Ohne Grund tritt keine Fassung in Kraft — er wird veröffentlicht."))
         return redirect("parameter:verwaltung")
     if fassung.aktiv:
-        messages.info(request, f"Fassung {fassung.version} gilt bereits.")
+        messages.info(request, _("Fassung %(version)s gilt bereits.") % {"version": fassung.version})
         return redirect("parameter:verwaltung")
     # Alle geltenden Fassungen abloesen, nicht nur die mit derselben Kennung: Das Einbringen
     # nimmt die aktive Ordnung ohne Rücksicht auf den Namen — zwei aktive wären ein Zufall.
@@ -507,7 +517,10 @@ def verwaltung_ordnung_inkraft(request):
     )
     messages.success(
         request,
-        f"Fassung {fassung.version} gilt ab jetzt für neu eingebrachte Anträge. "
-        "Laufende Verfahren behalten ihre Fassung.",
+        _(
+            "Fassung %(version)s gilt ab jetzt für neu eingebrachte Anträge. "
+            "Laufende Verfahren behalten ihre Fassung."
+        )
+        % {"version": fassung.version},
     )
     return redirect("parameter:verwaltung")

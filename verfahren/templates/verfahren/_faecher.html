@@ -1,8 +1,11 @@
 {% load i18n l10n %}{% localize off %}{% comment %}
 Der Favoriten-Fächer (FB-C1–C4, F-46): Pillen in Prozentlage über einer SVG-Fadenebene, berechnet in
 plattform_core.faecher (Regel v2). Jeder Knoten ist ein Link (?fach=…); ohne JavaScript bleibt der
-Ruhe-Ast sichtbar (x-cloak versteckt die übrigen Äste), mit Alpine wechselt der Zeiger den Ast,
-der Faden zur Wurzel leuchtet, und ein Klick zoomt vom Klickpunkt hinein, bevor htmx das Feld tauscht.
+Ruhe-Ast sichtbar (x-cloak versteckt die übrigen Äste), mit Alpine wechselt der Zeiger den Ast und
+der Faden zur Wurzel leuchtet. Ein Klick tauscht das Feld per htmx — ohne View Transition und ohne
+Skelett: die Komponente „parlament“ (app.js) lässt die Knoten, die es vorher und nachher gibt, von
+der alten an die neue Stelle gleiten (FLIP), neue Knoten fächern vom Elternknoten auf, verschwindende
+blenden kurz aus. Bis die Antwort da ist, dämpft die geklickte Pille (hx-indicator auf sich selbst).
 {% endcomment %}
 <div class="faecher{% if faecher.modus == 'mitte' %} mitte{% endif %}" style="min-height:{{ faecher.hoehe }}px" x-data="faecher('{{ faecher.ast_standard }}')" @mouseleave="senke()">
   <svg class="faeden" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -16,9 +19,9 @@ der Faden zur Wurzel leuchtet, und ein Klick zoomt vom Klickpunkt hinein, bevor 
     {% include "verfahren/_kategorie_stern.html" with slug=k.slug name=k.name abonniert=k.abonniert %}
     {% if k.rolle == "anker" %}<span class="fname" title="{{ k.name }}">{{ k.name }}</span>
     {% else %}<a href="?fach={{ k.slug }}#feld-favoriten" title="{{ k.name }}"
-      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten" @click="zoome($event)">{{ k.name }}</a>{% endif %}
+      hx-get="{{ request.path }}?fach={{ k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML" hx-indicator="closest .fknoten">{{ k.name }}</a>{% endif %}
     {% if k.mehr %}<a class="mehr" href="?fach={{ k.eltern }}#feld-favoriten" title="{% blocktranslate with n=k.mehr %}{{ n }} Unterbereiche{% endblocktranslate %}"
-      hx-get="{{ request.path }}?fach={{ k.eltern }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten" @click="zoome($event)">+{{ k.mehr }}</a>{% endif %}
+      hx-get="{{ request.path }}?fach={{ k.eltern }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML" hx-indicator="closest .fknoten">+{{ k.mehr }}</a>{% endif %}
   </span>
   {% endfor %}
 </div>

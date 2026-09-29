@@ -41,6 +41,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
+from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
@@ -187,6 +188,9 @@ class ProfilFormular(forms.Form):
     klarname_oeffentlich = forms.BooleanField(
         label=gettext_lazy("Mein Name darf öffentlich erscheinen."), required=False
     )
+    post_einwilligung = forms.BooleanField(
+        label=gettext_lazy("Die Plattform darf mir E-Mails schicken."), required=False
+    )
     gemeinde = forms.CharField(
         label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
         max_length=140,
@@ -254,6 +258,9 @@ def _profil_anwenden(mitglied: Mitglied, form: ProfilFormular) -> list[str]:
     if mitglied.klarname_oeffentlich != d["klarname_oeffentlich"]:
         mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
         geaendert.append("klarname_oeffentlich")
+    if mitglied.post_einwilligung != d["post_einwilligung"]:
+        mitglied.post_einwilligung = d["post_einwilligung"]
+        geaendert.append("post_einwilligung")  # nur der Feldname im Audit, nie der Wert
     g = form.gemeinde_objekt
     if g is not None:
         if mitglied.wohnsitz_id != g.pk:
@@ -291,6 +298,7 @@ def profil(request):
             initial={
                 "anzeigename": mitglied.pseudonym_oeffentlich,
                 "klarname_oeffentlich": mitglied.klarname_oeffentlich,
+                "post_einwilligung": mitglied.post_einwilligung,
                 "gemeinde": mitglied.wohnsitz.anzeige if mitglied.wohnsitz_id else mitglied.gemeinde,
                 "nebenwohnsitz": mitglied.nebenwohnsitz.anzeige if mitglied.nebenwohnsitz_id else "",
             },
@@ -303,6 +311,8 @@ def profil(request):
             "gemeinden": gemeinden_datalist(),
             "nebenwohnsitz_zaehlt": nebenwohnsitz_zaehlt(),
             "registerschluessel": REGISTERSCHLUESSEL,
+            # Die Karte „Nachrichten“ nennt ganz Österreich nur, solange Bundesanträge an alle gehen.
+            "post_bund": zahl("post-neuer-antrag-bund", 1) == 1,  # Literal: der Registerwächter liest den Aufruf
             "adresswechsel": Adresswechsel.offener(mitglied),
             # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüftem Nachweis
             **_ausweis_vorschau(mitglied),
@@ -390,7 +400,7 @@ def _gremien_export(m: Mitglied) -> dict:
         Ueberlastungsmeldung,
         UnterstuetzerVotum,
     )
-    from ki.models import KILauf
+    from ki.models import KIAuftrag, KILauf
     from parameter.models import ParameterTest
     from verfahren.models import Vollzugseintrag
 
@@ -511,6 +521,18 @@ def _gremien_export(m: Mitglied) -> dict:
             }
             for k in KILauf.objects.filter(angefordert_von=m)
         ],
+        "ki_auftraege": [
+            {
+                "zweck": a.zweck,
+                "antrag": a.antrag_id,
+                "fassung": a.fassung_nummer,
+                "status": a.status,
+                "versuche": a.versuche,
+                "erstellt_am": a.erstellt_am,
+                "erledigt_am": a.erledigt_am,
+            }
+            for a in KIAuftrag.objects.filter(angefordert_von=m)
+        ],
     }
 
 
@@ -535,6 +557,7 @@ def daten_export(mitglied: Mitglied) -> dict:
             "nachname": m.last_name,
             "anzeigename": m.pseudonym_oeffentlich,
             "klarname_oeffentlich": m.klarname_oeffentlich,
+            "post_einwilligung": m.post_einwilligung,
             "beitritt": m.beitritt,
             "identitaetsstufe": m.identitaetsstufe,
             "geprueft_seit": m.geprueft_seit,
@@ -542,13 +565,17 @@ def daten_export(mitglied: Mitglied) -> dict:
             "status_grund": m.status_grund,
             "status_seit": m.status_seit,
             "beitrag_zuletzt_am": m.beitrag_zuletzt_am,
+            # Nur ein schon festgeschriebener Stamm — der Export schreibt keinen fest.
+            "beitragsreferenz_stamm": m.beitragsreferenz_stamm or None,
+            "beitragsreferenz": beitragsreferenz(m) if m.beitragsreferenz_stamm else None,
             "ist_admin": m.ist_admin,
             "favoriten_zuerst": m.favoriten_zuerst,
             "registriert_am": m.date_joined,
             "zuletzt_angemeldet": m.last_login,
         },
         "postauftraege": list(m.postauftrag_set.order_by("pk").values(
-            "art", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche", "naechster_versuch")),
+            "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
+            "naechster_versuch")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,

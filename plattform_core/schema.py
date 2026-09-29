@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.6"
+SCHEMA_VERSION = "1.7"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -32,6 +32,21 @@ PARAMETER = {
     "aehnlichkeit-treffer": (
         "similarity.max_hits", "motions",
         "How many similar motions are shown when submitting",
+    ),
+    "aehnlichkeit-bedeutung-schwelle-prozent": (
+        "similarity.meaning_threshold_percent", "percent",
+        "Cosine similarity of the provider's text embeddings above which an existing motion is shown "
+        "when submitting (second opinion next to the word comparison; inactive without a provider)",
+    ),
+    "aehnlichkeit-einbettungen-je-aufruf": (
+        "similarity.embeddings_per_call", "motions",
+        "How many open motions without a stored text embedding are embedded in the same provider call "
+        "when a new motion is submitted",
+    ),
+    "ki-tageslaeufe": (
+        "ai.daily_queue_runs", "runs/day",
+        "How many queued model runs (affected laws, text embeddings) the future workshop starts per "
+        "calendar day; the rest waits for the next day",
     ),
     "kategorien-je-antrag": (
         "areas_of_life.per_motion", "areas",
@@ -137,6 +152,11 @@ PARAMETER = {
         "support.threshold", "supporters",
         "Number of supporters a motion needs to enter deliberation",
     ),
+    "verfahren-unterstuetzung-anteil-prozent": (
+        "support.threshold_share_percent", "percent",
+        "Support threshold as a share of the members eligible to vote on the day of submission (0 = off; "
+        "support.threshold stays the minimum); the resulting number is frozen into the motion",
+    ),
     "verfahren-unterstuetzung-tage": (
         "support.window_days", "days",
         "Days a motion has to reach the support threshold",
@@ -211,11 +231,22 @@ PARAMETER = {
         "Duration of the vote on a confidence question (never below the statutory minimum of 7 days; "
         "frozen into the motion when it is submitted)",
     ),
+    "post-neuer-antrag-bund": (
+        "mail.new_motion_federal", "flag",
+        "Whether a new nationwide motion is mailed to every member who consented to platform mail "
+        "(0 or 1; regional motions always go only to the members whose residence is affected)",
+    ),
+    "beitrag-erinnerung-fruehestens-tage": (
+        "mail.fee_reminder_earliest_days", "days",
+        "Minimum membership age before the administration may queue a fee reminder (consent required, "
+        "at most once per calendar year)",
+    ),
 }
 
 # Felder der Verfahrensordnung (Policy) → (Schema-Kennung, Einheit)
 VERFAHRENSORDNUNG = {
     "unterstuetzung_schwelle": ("support.threshold", "supporters"),
+    "unterstuetzung_anteil": ("support.threshold_share_percent", "percent"),
     "unterstuetzung_frist_tage": ("support.window_days", "days"),
     "beratung_tage": ("deliberation.window_days", "days"),
     "abstimmung_tage": ("vote.window_days", "days"),
@@ -225,6 +256,20 @@ VERFAHRENSORDNUNG = {
     "expertenrat_gruppe2": ("council.group2_size", "people"),
     "wiedereinbringung_sperre_monate": ("motion.resubmission_block_months", "months"),
 }
+
+#: Felder, die die Ordnung als Anteil führt (0.5), der Export aber in Prozent (50) nennt — so tragen
+#: sie dieselbe Kennung und Einheit wie der Registerwert, der sie speist.
+PROZENT_AUS_ANTEIL = {"unterstuetzung_anteil"}
+
+
+def _prozent(anteil):
+    """Anteil → Prozent, ohne Gleitkomma-Rest (0.05 → 5); ein unlesbarer Wert bleibt, wie er ist."""
+    try:
+        wert = round(float(anteil) * 100, 6)
+    except (TypeError, ValueError):
+        return anteil
+    return int(wert) if wert.is_integer() else wert
+
 
 # Aggregierte Kennzahlen (Kennung, Einheit, Bedeutung) — nie personenbezogen
 KENNZAHLEN = (
@@ -282,7 +327,7 @@ def parameter_export(system_id, system_name, software_version, parameter, ordnun
             "id": o.get("id", ""),
             "version": o.get("version", 0),
             "werte": [
-                {"schema_key": kennung, "einheit": einheit, "wert": o[feld]}
+                {"schema_key": kennung, "einheit": einheit, "wert": _prozent(o[feld]) if feld in PROZENT_AUS_ANTEIL else o[feld]}
                 for feld, (kennung, einheit) in VERFAHRENSORDNUNG.items()
                 if feld in o
             ],

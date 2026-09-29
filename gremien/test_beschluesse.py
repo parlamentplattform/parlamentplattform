@@ -285,3 +285,71 @@ def test_das_admin_setzt_keine_hervorhebung():
 
     assert "hervorgehoben" in AntragAdmin.readonly_fields
     assert "hervorhebung_begruendung" in AntragAdmin.readonly_fields
+
+
+def test_ein_veraltetes_objekt_schliesst_den_beschluss_kein_zweites_mal(monkeypatch):
+    """Zwei Abläufe laden denselben offenen Beschluss (Wächter, Seitenaufruf, Stimmabgabe); der
+    erste schließt ihn. Der zweite hält noch den alten Stand „offen“ im Speicher — er darf die
+    Wirkung nicht ein zweites Mal anwenden und keinen zweiten Audit-Eintrag schreiben."""
+    import gremien.models as gm
+    from verfahren.models import AuditEintrag
+
+    b = beschluss_anlegen(frist=timezone.now() - timedelta(minutes=1))
+    erster = GremienBeschluss.objects.get(pk=b.pk)
+    zweiter = GremienBeschluss.objects.get(pk=b.pk)
+    wirkungen = []
+    echte = gm.wirkung_anwenden
+
+    def gezaehlt(beschluss, jetzt=None):
+        wirkungen.append(beschluss.pk)
+        return echte(beschluss, jetzt)
+
+    monkeypatch.setattr(gm, "wirkung_anwenden", gezaehlt)
+    assert erster.abschliessen() is True
+    assert zweiter.abschliessen() is False
+    assert wirkungen == [b.pk]
+    ausgewertet = [
+        e
+        for e in AuditEintrag.objects.all()
+        if e.ereignis.get("typ") == "gremienbeschluss_ausgewertet" and e.ereignis.get("beschluss") == b.pk
+    ]
+    assert len(ausgewertet) == 1
+    assert zweiter.status == BeschlussStatus.OHNE_ERGEBNIS and not zweiter.offen
+
+
+def test_jeder_faellige_beschluss_schliesst_in_seiner_eigenen_transaktion(monkeypatch):
+    """Eine Transaktion für den ganzen Stapel hielt die Audit-Einträge des ersten Beschlusses bis
+    zum Ende offen (Verklemmung mit einer Antragsseite auf PostgreSQL) und rollte bei einem
+    einzigen werfenden Beschluss alle anderen mit zurück. Je Beschluss eine kurze Transaktion:
+    Wirft die Wirkung des zweiten, bleibt der erste geschlossen."""
+    import gremien.models as gm
+
+    frist = timezone.now() - timedelta(minutes=1)
+    zweiter = beschluss_anlegen(frist=frist)
+    GremienBeschluss.objects.filter(pk=zweiter.pk).update(angelegt_am=timezone.now() - timedelta(hours=1))
+    erster = beschluss_anlegen(frist=frist)  # neuer — wird zuerst geschlossen
+    echte = gm.wirkung_anwenden
+
+    def wirft_beim_zweiten(beschluss, jetzt=None):
+        if beschluss.pk == zweiter.pk:
+            raise RuntimeError("Wirkung gescheitert")
+        return echte(beschluss, jetzt)
+
+    monkeypatch.setattr(gm, "wirkung_anwenden", wirft_beim_zweiten)
+    with pytest.raises(RuntimeError):
+        GremienBeschluss.faellige_abschliessen()
+    erster.refresh_from_db()
+    zweiter.refresh_from_db()
+    assert not erster.offen and erster.entschieden_am is not None
+    assert zweiter.offen
+
+
+def test_ein_durch_fristablauf_geschlossener_beschluss_ist_zur_frist_entschieden():
+    """Untätigkeit hemmt nie: Schließt die Frist den Beschluss, ist er zur Frist entschieden — nicht
+    erst, wenn ein Seitenaufruf oder der Wächter ihn später auswertet."""
+    jetzt = timezone.now()
+    frist = jetzt - timedelta(days=3)
+    b = beschluss_anlegen(frist=frist)
+    GremienBeschluss.faellige_abschliessen(jetzt)
+    b.refresh_from_db()
+    assert b.entschieden_am == frist

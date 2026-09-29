@@ -16,7 +16,7 @@ Eine Partei ohne inhaltliches Programm braucht ein Verfahren, dem man nicht glau
 2. **Die Regeln frieren ein** (§ 5 Abs 5). Beim Einbringen wird die gültige Verfahrensordnung als unveränderliche Kopie am Antrag gespeichert. Keine Mehrheit, kein Admin, kein Deployment kann ein laufendes Verfahren umkonfigurieren — der Code hat dafür schlicht keinen Pfad.
 3. **Niemand kuratiert im Verborgenen.** Anträge sortieren sich nach Phase und Frist, nie nach Beliebtheit. Es gibt keinen Feed und keinen Algorithmus mit Meinung.
 4. **Offen, ohne kaperbar zu sein** (§ 4 Abs 4). Ein Konto je Mensch, geprüfte Identität, Anwartschaftsfristen — im Code, nicht im Kleingedruckten.
-5. **Ehrlich über Grenzen.** Sachabstimmungen sind pseudonym-offen und verifizierbar — nicht kryptografisch geheim, weil geheime Online-Abstimmung und Laien-Überprüfbarkeit einander nach heutigem Stand ausschließen. Warum wir so entschieden haben: [ADR-003](docs/adr/ADR-003-offene-verifizierbare-abstimmung.md). Geheime Personenwahlen laufen per Präsenz und Brief.
+5. **Ehrlich über Grenzen.** Sachabstimmungen sind pseudonym-offen und verifizierbar — nicht kryptografisch geheim, weil geheime Online-Abstimmung und Laien-Überprüfbarkeit einander nach heutigem Stand ausschließen. Warum wir so entschieden haben: [ADR-003](docs/adr/ADR-003-offene-verifizierbare-abstimmung.md). Geheime Personenwahlen laufen per Präsenz und Brief. *Nachtrag 29.9.2026:* Die Listenreihung des Wahlvorschlags (§ 7 Abs 1, F-70, seit 0.22) und die Vertrauensfrage (§ 7 Abs 10, seit 0.48) laufen als Personenwahlen ebenfalls pseudonym-offen online — über dasselbe Stimmregister, mit derselben Grenze: Der Betreiber der Datenbank kann Stimmen zuordnen. Präsenz und Brief (§ 13 Abs 3) bleiben der Weg für Wahlen, die geheim sein müssen; welche das sind, sagt die Satzung, nicht die Software. Für die Vertrauensfrage sagt sie es ausdrücklich — § 7 Abs 10 lit e: „Sie ist geheim“. Die Online-Abstimmung der Vertrauensfrage erfüllt das seit 0.48 nicht; dieser offene Widerspruch zur Satzung liegt beim Gründer zur Entscheidung (Fahrtenbuch Teil D, D-L6h).
 
 ## Schnellstart
 
@@ -32,7 +32,7 @@ Ohne Docker (SQLite, Python ≥ 3.11):
 ```bash
 make dev        # virtuelle Umgebung + Abhängigkeiten
 make run        # Migrationen + Entwicklungsserver
-make seed       # Demo-Daten: drei Anträge in drei Phasen
+make seed       # Demo-Daten: Demo-Anträge in allen Phasen, fünf Demo-Konten, Gremien-Rollen
 make test       # Tests inkl. Property-based Tests, Kernabdeckung ≥ 90 %
 ```
 
@@ -47,7 +47,12 @@ python3 verify/nachrechnen.py export.json
 | Pfad | Inhalt |
 |---|---|
 | `plattform_core/` | Der Verfahrenskern: Phasenautomat, Fristen, Stimmberechtigung, Auszählung, Audit-Hash-Kette, SVG-Diagramme. Frameworkfrei, vollständig getestet. |
-| `verfahren/`, `mitglieder/` | Django-Anwendung: Datenmodelle, Ansichten, Mitgliederverwaltung (F-51). Speichert Zustand, ruft den Kern. |
+| `verfahren/`, `mitglieder/` | Django-Anwendung: Datenmodelle, Ansichten, Mitgliederverwaltung (F-51), Postausgang und Hintergrundläufe (Fristen-Wächter). Speichert Zustand, ruft den Kern. |
+| `gremien/` | Die Räte der Satzung (§ 6): Expertenrat mit Entwurfsfenster und Fachliste, Koordinationsrat, Integritätsrat, interne Beschlüsse, Rollen auf Zeit. |
+| `mandatare/` | Mandatar-Steuerung (§ 7): Mandate, Instant-Reports, Mandatsfrage, Rechenschaftsregister, Vertrauensfrage (F-70, F-71). |
+| `parameter/` | Das offene Parameterregister: jede Stellgröße mit Quelle, Historie und Schema-Kennung; Parameterverfahren und Regelverzeichnis (FB-J2, FB-J3). |
+| `ki/` | Der KI-Steckplatz der Zukunftswerkstatt: anbieterneutral, budgetiert, jeder Lauf archiviert und gekennzeichnet — sie schlägt vor, sie entscheidet nie. |
+| `anstoss/` | Das Anstoß-Widget (Feedback und Wünsche) auf jeder Seite, mit Verwaltung und Export (FB-K3). |
 | `uebersicht/` | Öffentliche Übersichtsseite und datensparsame Besuchszählung — Tages-Summen, keine IP-Adressen, keine Cookies ([ADR-008](docs/adr/ADR-008-uebersicht-und-zaehlung.md)). |
 | `policies/` | Die Verfahrensordnung als versionierte, maschinenlesbare Daten ([ADR-004](docs/adr/ADR-004-policies-als-daten.md)). |
 | `verify/` | Unabhängiges Nachrechen-Skript, nur Standardbibliothek. |

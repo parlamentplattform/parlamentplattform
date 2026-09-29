@@ -57,6 +57,15 @@ def test_keine_mehrzeiligen_kurzkommentare():
     )
 
 
+def test_warteschlange_und_auftragstexte_ohne_inline_style():
+    """Die zwei Zwischentitel der Zukunftswerkstatt aus 0.50 tragen ihren Abstand als Klasse
+    (base.html), nicht als Inline-Style — der ist nur für berechnete Positionen erlaubt."""
+    vorlage = (WURZEL / "verfahren/templates/verfahren/zukunftswerkstatt.html").read_text(encoding="utf-8")
+    for titel in ("Warteschlange", "Auftragstexte (versioniert im Quellcode)"):
+        zeile = next(z for z in vorlage.splitlines() if f'{{% translate "{titel}" %}}' in z)
+        assert "style=" not in zeile and 'class="phasen-titel abstand"' in zeile, zeile
+
+
 def test_jede_vorlage_schliesst_ihre_kommentarbloecke():
     fehler = [
         str(d.relative_to(WURZEL))

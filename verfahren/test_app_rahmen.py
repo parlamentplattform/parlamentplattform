@@ -5,11 +5,13 @@ Layout und Bewegung prüfen die Bildschirmtests unter tests/e2e/.
 """
 
 import re
+from html.parser import HTMLParser
 
 import pytest
 from django.urls import reverse
 
 from gremien.test_werkstatt import rolle_geben
+from verfahren.models import Kategorie
 from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
@@ -18,7 +20,8 @@ HAUPTPUNKTE = ["/parlament/", "/mandatare/", "/gremien/", "/umsetzung/", "/zukun
 
 
 def _feld(html: str, feld_id: str) -> str:
-    return html.split(f'id="{feld_id}"', 1)[1].split("</section>", 1)[0]
+    # ab dem Ende des öffnenden <section>-Tags — dessen Attribute (Alpine-Bindungen) sind kein Text
+    return html.split(f'id="{feld_id}"', 1)[1].split(">", 1)[1].split("</section>", 1)[0]
 
 
 def _leiste(html: str) -> str:
@@ -215,11 +218,78 @@ def test_felder_sind_landmarken_mit_tastatur_scroll(client):
         assert html.count(f'id="feld-{feld}"') == 1
         assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}"' in html
         assert f'<h2 id="h-{feld}">' in html
-    korpusse = html.count('<div class="feld-korpus" tabindex="0">') + html.count(
-        '<div class="feld-korpus faecher-korpus" tabindex="0">'
-    )
-    assert korpusse == 4
+    # Die Feldkörper sind fokussierbare, benannte Landmarken (Teil 7)
+    korpusse = re.findall(r'<div class="feld-korpus(?: faecher-korpus)?" tabindex="0" role="region" aria-labelledby="h-(\w+)">', html)
+    assert korpusse == ["filter", "favoriten", "wichtig", "region"]
     assert '<body class="voll mit-band"' in html
+
+
+def test_fokus_modus_serverseitig_und_knopf_je_feld(client):
+    """Teil 7: ?fokus=<feld> rendert ein Feld auf dem ganzen Raster (die anderen hidden) — ohne JavaScript
+    derselbe Zustand wie der ⤢-Knopf mit Alpine; der Knopf ⤡ führt zurück; Unbekanntes gilt nicht."""
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert '<div class="parlament" id="parlament" x-data="parlament(\'\')"' in html
+    assert html.count('class="ikon fokus-knopf"') == 4
+    for feld in ("filter", "favoriten", "wichtig", "region"):
+        assert f'href="/parlament/?fokus={feld}"' in html
+        assert f' id="feld-{feld}" aria-labelledby="h-{feld}"' in html
+        assert f'hidden :hidden="fokus !== \'\' && fokus !== \'{feld}\'"' not in html
+    assert html.count('aria-label="Feld vergrößern"') == 4 and 'aria-label="Alle Felder zeigen"' not in html
+    html = client.get(reverse("verfahren:parlament") + "?fokus=wichtig").content.decode()
+    assert '<div class="parlament fokus fokus-wichtig" id="parlament" x-data="parlament(\'wichtig\')"' in html
+    for feld in ("filter", "favoriten", "region"):
+        assert re.search(rf'<section class="feld" id="feld-{feld}"[^>]* hidden :hidden=', html), feld
+    assert not re.search(r'<section class="feld" id="feld-wichtig"[^>]* hidden :hidden=', html)
+    knopf = _feld(html, "feld-wichtig").split('class="ikon fokus-knopf"', 1)[1].split("</a>", 1)[0]
+    assert 'href="/parlament/#feld-wichtig"' in knopf and 'aria-label="Alle Felder zeigen"' in knopf and "&#x2921;" in knopf
+    # ?fach bleibt am Favoriten-Feld erhalten, damit der Fächer nach dem Umschalten am selben Knoten steht
+    html = client.get(reverse("verfahren:parlament") + "?fokus=favoriten&fach=gesundheit").content.decode()
+    knopf = _feld(html, "feld-favoriten").split('class="ikon fokus-knopf"', 1)[1].split("</a>", 1)[0]
+    assert 'href="/parlament/?fach=gesundheit#feld-favoriten"' in knopf
+    # Unbekannter Wert: kein Fokus
+    html = client.get(reverse("verfahren:parlament") + "?fokus=chat").content.decode()
+    assert '<div class="parlament" id="parlament"' in html and " hidden :hidden=" not in html
+
+
+def test_keine_tastenhilfe_und_keine_tastenkuerzel(client):
+    """Entscheidung des Gründers 29.9.2026: Die Tastenkürzel im Fokus-Modus (Alt+1…4, „?“) samt
+    Tastenhilfe sind entfernt — für Gäste und Mitglieder, nirgends; Esc und die Fokus-Knöpfe bleiben."""
+    for wer in (None, mitglied_anlegen("tasten-mitglied")):
+        if wer:
+            client.force_login(wer)
+        html = client.get(reverse("verfahren:parlament")).content.decode()
+        assert 'id="tastenhilfe"' not in html and "<kbd>" not in html
+        assert "@keydown.window=" not in html and '@keydown.escape.window="alleFelder()"' in html
+        assert html.count('class="ikon fokus-knopf"') == 4
+        assert 'id="tastenhilfe"' not in client.get("/uebersicht/").content.decode()
+
+
+def test_app_manifest_verlinkt_und_erreichbar(client, settings):
+    """Teil 7: Manifest und Symbole liegen als statische Dateien vor, base.html verweist darauf; die
+    Farben sind die Tokens (--deep hell, --night-1 dunkel); kein Service Worker."""
+    import json
+    from pathlib import Path
+
+    from django.contrib.staticfiles import finders
+
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    kopf = html.split("</head>", 1)[0]
+    assert '<link rel="manifest" href="/static/verfahren/app.webmanifest">' in kopf
+    assert '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0E4C5C">' in kopf
+    assert '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A1722">' in kopf
+    assert '<link rel="apple-touch-icon" href="/static/verfahren/icon-192.png">' in kopf
+    assert "serviceWorker" not in html and "sw.js" not in html
+    pfad = finders.find("verfahren/app.webmanifest")
+    assert pfad
+    manifest = json.loads(Path(pfad).read_text(encoding="utf-8"))
+    assert manifest["name"] == "ParlamentPlattform" and manifest["short_name"] == "Parlament"
+    assert manifest["start_url"] == "/parlament/" and manifest["display"] == "standalone" and manifest["lang"] == "de"
+    assert manifest["theme_color"] == "#0E4C5C" and manifest["background_color"] == "#FFFFFF"
+    groessen = {(i["sizes"], i["purpose"]) for i in manifest["icons"]}
+    assert groessen == {("192x192", "any"), ("512x512", "any"), ("512x512", "maskable")}
+    for symbol in manifest["icons"]:
+        assert finders.find(symbol["src"].replace("/static/", "", 1)), symbol["src"]
+    assert settings.WHITENOISE_MIMETYPES[".webmanifest"] == "application/manifest+json"
 
 
 def test_tableiste_nur_im_parlament(client):
@@ -242,6 +312,58 @@ def test_tableiste_nur_im_parlament(client):
     assert '<nav class="tabs"' not in client.get("/").content.decode()
 
 
+class _Tausch(HTMLParser):
+    """Jedes Element mit hx-swap samt den Klassen seiner Vorfahren — so erkennt der Test Fächer und Brotkrume."""
+
+    LEER = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+
+    def __init__(self):
+        super().__init__()
+        self.offen: list[tuple[str, set[str]]] = []
+        self.treffer: list[tuple[str, dict, set[str]]] = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        klassen = set((a.get("class") or "").split())
+        if "hx-swap" in a:
+            self.treffer.append((tag, a, klassen.union(*(k for _, k in self.offen))))
+        if tag not in self.LEER:
+            self.offen.append((tag, klassen))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.offen) - 1, -1, -1):
+            if self.offen[i][0] == tag:
+                del self.offen[i:]
+                return
+
+
+def _feldtausch_pruefen(html: str) -> dict[str, int]:
+    """Jeder Tausch im Parlament folgt einer ausdrücklichen Regel; liefert die Zahl der Elemente je Regel.
+    Feldtausch: View Transition, in WeicherFilter und Favoriten das Skelett über hx-indicator am Feld.
+    Ausgenommen und eigens geprüft (Teil 7): Fächer- und Brotkrumen-Links tauschen das Feld ohne View
+    Transition (FLIP), gedämpft wird die Pille bzw. der Link; der Stern an einem Lebensbereich tauscht
+    nur sich selbst."""
+    sammler = _Tausch()
+    sammler.feed(html.split('class="parlament"', 1)[1])
+    zahl = {"feld": 0, "faecher": 0, "brot": 0, "stern": 0}
+    for tag, a, klassen in sammler.treffer:
+        if "stern-form" in klassen and "/kategorien/" in a.get("hx-post", ""):
+            assert a["hx-swap"] == "outerHTML" and "hx-select" not in a and "hx-target" not in a, a
+            zahl["stern"] += 1
+        elif "faecher" in klassen or "brot" in klassen:
+            art = "faecher" if "faecher" in klassen else "brot"
+            anzeige = "closest .fknoten" if art == "faecher" else "this"
+            assert tag == "a" and a["hx-swap"] == "outerHTML", a
+            assert a["hx-target"] == a["hx-select"] == "#feld-favoriten" and a["hx-indicator"] == anzeige, a
+            zahl[art] += 1
+        else:
+            assert a["hx-swap"] != "outerHTML", a
+            if a.get("hx-select") in ("#feld-filter", "#feld-favoriten"):
+                assert a["hx-swap"] == "outerHTML transition:true" and a["hx-indicator"] == a["hx-select"], a
+                zahl["feld"] += 1
+    return zahl
+
+
 def test_skelette_und_feldtausch_mit_uebergang(client):
     client.force_login(mitglied_anlegen())
     html = client.get(reverse("verfahren:parlament")).content.decode()
@@ -249,12 +371,28 @@ def test_skelette_und_feldtausch_mit_uebergang(client):
     assert _feld(html, "feld-favoriten").count('class="skelett b70"') == 4
     assert _feld(html, "feld-wichtig").count("kachel-form") == 4
     assert _feld(html, "feld-region").count("kachel-form") == 3
-    for feld in ("filter", "favoriten"):
-        treffer = re.findall(rf'hx-select="#feld-{feld}"[^>]*', html)
-        assert treffer, feld
-        for tag in treffer:
-            assert 'hx-swap="outerHTML transition:true"' in tag and f'hx-indicator="#feld-{feld}"' in tag
-    assert 'hx-swap="outerHTML"' not in html.split('class="parlament"', 1)[1]
+    zahl = _feldtausch_pruefen(html)
+    assert zahl["feld"] and 'hx-select="#feld-filter"' in html and 'hx-select="#feld-favoriten"' in html
+
+
+def test_feldtausch_mit_kategorienbaum_faecher_brotkrume_und_stern(client):
+    """Ohne Kategorien hat der Fächer keinen Knoten — dann prüft die Regel keinen Fächerlink. Mit einem
+    Baum: Fächer, Brotkrume und Stern nach ihrer eigenen Regel, Suche, Treffer und „Zurück zum Fächer“
+    weiter mit Übergang."""
+    wurzel = Kategorie.objects.create(slug="leben", name="Lebensbereiche")
+    umwelt = Kategorie.objects.create(slug="umwelt", name="Umwelt", eltern=wurzel)
+    energie = Kategorie.objects.create(slug="energie", name="Energie", eltern=umwelt)
+    Kategorie.objects.create(slug="solar", name="Solarstrom", eltern=energie)
+    Kategorie.objects.create(slug="bildung", name="Bildung", eltern=wurzel)
+    client.force_login(mitglied_anlegen())
+    zahl = _feldtausch_pruefen(client.get(reverse("verfahren:parlament")).content.decode())
+    assert zahl["faecher"] >= 2 and zahl["stern"] >= 2 and zahl["feld"], zahl
+    zahl = _feldtausch_pruefen(client.get(reverse("verfahren:parlament") + "?fach=energie").content.decode())
+    assert zahl["faecher"] and zahl["brot"] == 2 and zahl["stern"], zahl
+    html = client.get(reverse("verfahren:parlament") + "?suche=Energie").content.decode()
+    assert 'class="treffer-link"' in html and "Zurück zum Fächer" in html
+    zahl = _feldtausch_pruefen(html)
+    assert zahl["faecher"] == zahl["brot"] == 0 and zahl["stern"] and zahl["feld"] >= 3, zahl
 
 
 # ── Werkzeug statt Werbefläche (FB-A2, Grundregel 1) ───────────────────────────

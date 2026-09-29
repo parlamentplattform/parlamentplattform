@@ -299,7 +299,7 @@ msgstr ""
 "administration — the public-call workflow is growing into the platform."
 
 msgid "Zur Zukunftswerkstatt →"
-msgstr "To the future workshop →"
+msgstr "To the Zukunftswerkstatt →"
 
 msgid "Prüfung — Gruppe 2"
 msgstr "Review — group 2"
@@ -499,13 +499,6 @@ msgid "Kandidatur-Antrag einbringen"
 msgstr "Submit a candidacy motion"
 
 msgid ""
-"Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet"
-" — Eingänge werden derzeit von der Verwaltung geprüft."
-msgstr ""
-"Thanks for letting us know! Automatic matching is not set up yet — payments "
-"are currently checked by the administration."
-
-msgid ""
 "Der letzte Abgleich ist keine drei Minuten her — bitte gleich noch einmal "
 "versuchen."
 msgstr ""
@@ -526,29 +519,9 @@ msgstr ""
 "The bank allows only a few checks per day and today's quota is used up — "
 "your payment will be recognised automatically at the next check."
 
-msgid ""
-"Die Bank war gerade nicht erreichbar — wir gleichen automatisch wieder ab, "
-"Ihr Eingang geht nicht verloren."
-msgstr ""
-"The bank could not be reached just now — we will check again automatically; "
-"your payment will not be lost."
-
-msgid ""
-"Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine "
-"Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Wir prüfen "
-"automatisch weiter."
-msgstr ""
-"No payment with your reference is visible yet — depending on the bank, a "
-"transfer takes seconds (instant) up to one business day. We keep checking "
-"automatically."
+#, python-format
 
 #, python-format
-msgid "%d Erinnerung(en) versendet."
-msgstr "%d reminder(s) sent."
-
-#, python-format
-msgid "%d Erinnerung(en) konnten nicht versendet werden (Mailserver)."
-msgstr "%d reminder(s) could not be sent (mail server)."
 
 msgid "Niemand ausgewählt."
 msgstr "Nobody selected."
@@ -1158,15 +1131,6 @@ msgstr "Welcome"
 msgid "Willkommen, %(vorname)s!"
 msgstr "Welcome, %(vorname)s!"
 
-msgid ""
-"Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter.\n"
-"Ab heute läuft Ihre Anwartschaft (§ 4 Abs 4): nach drei Monaten sind Sie bei Sachfragen\n"
-"stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen."
-msgstr ""
-"Your email address is confirmed — you are now a candidate member. Your "
-"qualifying period starts today (§ 4 (4)): after three months you may vote on"
-" substantive questions, after twelve on personnel and statute questions."
-
 msgid "Mitgliedsbeitrag — am schnellsten per QR-Code"
 msgstr "Membership fee — fastest by QR code"
 
@@ -1179,17 +1143,6 @@ msgstr ""
 
 msgid "Was Sie jetzt schon können"
 msgstr "What you can do already"
-
-msgid ""
-"Lesen können Sie alles — <a href=\"/\">alle Anträge, Beratungen und\n"
-"Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der Freischaltung können\n"
-"Sie Anträge einbringen, unterstützen und mitberaten; mit abgeschlossener Anwartschaft stimmen\n"
-"Sie ab."
-msgstr ""
-"You can read everything — <a href=\"/\">all motions, deliberations and "
-"results</a> are public without restriction (§ 2 (5)). After verification you"
-" can submit, support and deliberate; once your qualifying period is "
-"complete, you vote."
 
 msgid ""
 "Unser E-Mail-Versand ist im Moment gestört — bitte versuchen Sie es in "
@@ -1479,17 +1432,6 @@ msgstr "No counted views yet — counting starts with this release."
 
 msgid "Wie hier gezählt wird:"
 msgstr "How we count:"
-
-msgid ""
-"ohne Cookies, ohne Werbe-Skripte und ohne Speicherung\n"
-"von IP-Adressen. Für die Besucherzahl wird flüchtig eine anonyme Tageskennung gebildet, die sich\n"
-"nicht zur Person zurückrechnen lässt und um Mitternacht wertlos wird. Suchmaschinen und technische\n"
-"Zugriffe werden nach Möglichkeit nicht mitgezählt. Auch die Kennzahlen der Zukunftswerkstatt\n"
-"entstehen so — als Summen, nie als Einzelwerte; deshalb gibt es dafür nichts ein- oder auszuschalten\n"
-"(§ 6 Abs 11 lit d). Die Plattform ist in der Alpha-Phase und enthält zur Veranschaulichung einige\n"
-"Demo-Daten."
-msgstr ""
-"without cookies, without ad scripts and without storing IP addresses. For the visitor count, an anonymous one-way daily token is derived on the fly; it cannot be traced back to a person and becomes worthless at midnight. Search engines and technical requests are excluded where possible. The metrics of the Zukunftswerkstatt come about the same way — as sums, never as individual values; that is why there is nothing to switch on or off for them (§ 6 para 11 lit d). The platform is in its alpha phase and contains some demo data for illustration."
 
 #, python-format
 msgid "ab %s"
@@ -1849,19 +1791,6 @@ msgstr ""
 "Your vote on <strong>%(titel)s</strong> appears in the public ballot list "
 "under this pseudonym:"
 
-msgid ""
-"Notieren Sie sich den Code. Nach Abstimmungsende können Sie in der\n"
-"exportierten Stimmliste nachsehen, ob Ihre Stimme korrekt erfasst ist — und mit\n"
-"<code>verify/nachrechnen.py</code> das Gesamtergebnis unabhängig nachrechnen (§ 5 Abs 8).\n"
-"Die Zuordnung Pseudonym → Person kennt nur die Plattform; sie wird nach der\n"
-"satzungsmäßigen Frist gelöscht."
-msgstr ""
-"Write down the code. After the vote ends you can check in the exported "
-"ballot list that your vote was recorded correctly — and recount the overall "
-"result independently with <code>verify/nachrechnen.py</code> (§ 5 (8)). Only"
-" the platform knows the pseudonym-to-person mapping; it is deleted after the"
-" period set by the statutes."
-
 msgid "Für diesen Antrag ist von Ihnen keine Stimme erfasst."
 msgstr "No vote of yours is recorded for this motion."
 
@@ -1887,9 +1816,6 @@ msgstr ""
 " a parallel motion. <strong>The hint is an offer, not a hurdle:</strong> you"
 " can submit unchanged (§ 2 (6) — no algorithm decides on admission)."
 
-msgid "Übereinstimmung"
-msgstr "Match"
-
 msgid "Phase:"
 msgstr "Phase:"
 
@@ -1910,15 +1836,6 @@ msgstr ""
 "Before submission, the platform automatically compares your text with active"
 " motions . The hint suggests — it never blocks. Title and text are "
 "public."
-
-msgid ""
-"In Entwicklung (§ 5 Abs 10 lit d): die Folgenabschätzung — welche bestehenden\n"
-"  Gesetze Ihr Antrag berühren würde und welche Branchen betroffen wären, berechnet mit der\n"
-"  StaatsSimulation und stets als Modellrechnung gekennzeichnet."
-msgstr ""
-"In development (§ 5 (10) lit d): the impact assessment — which existing laws"
-" your motion would touch and which sectors would be affected, computed by "
-"the StaatsSimulation and always labelled as a model calculation."
 
 msgid ""
 "Hier entscheiden die Mitglieder selbst: Anträge einbringen, beraten, abstimmen —\n"
@@ -1982,15 +1899,6 @@ msgstr ""
 "supporters accept it or return it with specific requests (the drafting "
 "loop). Nobody can block the process: if deadlines pass, things move on "
 "automatically."
-
-msgid ""
-"Abgestimmt wird geheim über ein Stimmregister mit Pseudonymen: Jede Stimme ist\n"
-"veröffentlicht und zählbar, aber keinem Menschen zuzuordnen. Zwischenstände bleiben bis zum Fristende\n"
-"verdeckt — niemand soll der Mehrheit hinterherlaufen."
-msgstr ""
-"Voting is secret via a voting register with pseudonyms: every vote is "
-"published and countable, but cannot be traced to a person. Interim results "
-"stay hidden until the deadline — nobody should chase the majority."
 
 msgid "Nachrechnen und umsetzen"
 msgstr "Verify and implement"
@@ -2098,9 +2006,6 @@ msgstr "every eligible member"
 
 msgid "Zustimmungswahl"
 msgstr "Approval vote"
-
-msgid "geheim · mehreren zustimmbar"
-msgstr "secret · approve several"
 
 msgid "Listenreihung des Wahlvorschlags"
 msgstr "List order of the electoral proposal"
@@ -3552,9 +3457,6 @@ msgstr "Procedural rules"
 msgid "Ähnliche Anträge"
 msgstr "Similar motions"
 
-msgid "Berührte Gesetze"
-msgstr "Laws affected"
-
 msgid "Folgen für Judikatur und Exekutive"
 msgstr "Consequences for the judiciary and the executive"
 
@@ -4335,10 +4237,6 @@ msgstr "%(n)s days · threshold"
 msgid "%(n)s Tage"
 msgstr "%(n)s days"
 
-#, python-format
-msgid "%(n)s Tage · geheim"
-msgstr "%(n)s days · secret"
-
 msgid "Springe zu:"
 msgstr "Jump to:"
 
@@ -5069,10 +4967,10 @@ msgid "Einreichen — Beschluss der Gruppe"
 msgstr "Submit — decision of the group"
 
 msgid "Einschätzung der Zukunftswerkstatt einholen"
-msgstr "Request an assessment from the future workshop"
+msgstr "Request an assessment from the Zukunftswerkstatt"
 
 msgid "Einschätzung der Zukunftswerkstatt — Arbeitsunterlage"
-msgstr "Assessment of the future workshop — working document"
+msgstr "Assessment of the Zukunftswerkstatt — working document"
 
 msgid "Einschätzung festgehalten — sie schlägt vor, entschieden wird hier."
 msgstr "Assessment recorded — it proposes; the decision is made here."
@@ -5123,7 +5021,7 @@ msgid "Hervorhebung beim Integritätsrat beantragen"
 msgstr "Request highlighting from the integrity council"
 
 msgid "Heute speist nur die Auswertung von Parametertests den Posteingang. Kandidaten für Hervorhebung und Muster-Berichte folgen mit der Zukunftswerkstatt."
-msgstr "Today only the evaluation of parameter tests feeds the inbox. Candidates for highlighting and pattern reports will follow with the future workshop."
+msgstr "Today only the evaluation of parameter tests feeds the inbox. Candidates for highlighting and pattern reports will follow with the Zukunftswerkstatt."
 
 msgid "Hypothese (steht öffentlich am Band)"
 msgstr "Hypothesis (shown publicly on the banner)"
@@ -5209,7 +5107,7 @@ msgid "Posteingang"
 msgstr "Inbox"
 
 msgid "Posteingang der Zukunftswerkstatt"
-msgstr "Inbox of the future workshop"
+msgstr "Inbox of the Zukunftswerkstatt"
 
 msgid "Probezeitraum bis"
 msgstr "Trial period until"
@@ -6841,13 +6739,6 @@ msgstr "Writing opens after confirmation."
 
 # ── 0.47: Post und Pseudonym ──
 
-msgid ""
-"Name und Gemeinde dienen der\n"
-"Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.\n"
-"Öffentlich erscheint Ihr Anzeigename bei Anträgen und Beiträgen; Ihr Klarname nur mit Ihrer Einwilligung\n"
-"(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung."
-msgstr "Name and municipality serve membership administration under the statutes; the year of birth is only checked (§ 4 (1)) and not stored. Publicly, your display name appears on motions and contributions; your real name only with your consent (§ 5 (3) lit a). Votes are cast under a pseudonym (§ 5 (3)). No sharing, no advertising."
-
 msgid "Öffentlicher Anzeigename"
 msgstr "Public display name"
 
@@ -7564,7 +7455,7 @@ msgid "Bewerben auf der Antragsseite der laufenden Kandidatur"
 msgstr "Apply on the motion page of the open candidacy"
 
 msgid "Der Posteingang steht; heute speisen ihn die Auswertung von Parametertests und verlorene Vertrauensfragen (§ 7 Abs 10 lit f Z 7: Mitteilung an Klub oder Fraktion). Kandidaten für Hervorhebung und Muster-Berichte kommen erst mit der Zukunftswerkstatt."
-msgstr "The inbox exists; today it is fed by parameter-test evaluations and lost confidence questions (§ 7 (10) lit f no. 7: notice to the parliamentary group). Candidates for highlighting and pattern reports only arrive with the future workshop."
+msgstr "The inbox exists; today it is fed by parameter-test evaluations and lost confidence questions (§ 7 (10) lit f no. 7: notice to the parliamentary group). Candidates for highlighting and pattern reports only arrive with the Zukunftswerkstatt."
 
 msgid "Rückgabezusage abgeben oder nicht abgeben — freiwillig, nicht einklagbar, öffentlich ausgewiesen"
 msgstr "Give or decline the return pledge — voluntary, not enforceable, publicly shown"
@@ -7776,9 +7667,6 @@ msgstr "Your membership card is attached. You can find your current status in yo
 msgid "Ausweis-Vorschau an mich senden"
 msgstr "Email me a membership card preview"
 
-msgid "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden."
-msgstr "The platform sends sign-in, confirmation, contribution, welcome and activation messages. You can request an email preview of your membership card below."
-
 msgid "Für den Probeversand muss Ihr eigener Ausweis im Profil verfügbar sein."
 msgstr "Your own membership card must be available in your profile before requesting a preview email."
 
@@ -7865,3 +7753,672 @@ msgstr "Once your account is activated, you can vote without an additional waiti
 
 msgid "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich aus den Wartefristen ab Ihrem Beitritt."
 msgstr "You can vote on substantive proposals %(sachfragen)s. You can participate in elections and votes on changes to the statutes or dissolution of the party %(personenwahlen)s. The different start dates reflect the waiting periods from the date you joined."
+
+msgid "%(prozent)s %% der %(n)s am Einbringungstag Stimmberechtigten, mindestens %(min)s"
+msgstr "%(prozent)s %% of the %(n)s members eligible to vote on the day of submission, at least %(min)s"
+
+msgid "%(n)d Erinnerung(en) beauftragt — der Versand läuft im Postausgang."
+msgstr "%(n)d reminder(s) queued — they are sent by the mail queue."
+
+msgid "%(n)d Konto/Konten ohne E-Mail-Einwilligung übergangen."
+msgstr "%(n)d account(s) skipped without e-mail consent."
+
+msgid "%(n)d Konto/Konten übersprungen: Testkonto, Beitritt jünger als %(tage)d Tage oder heuer schon erinnert."
+msgstr "%(n)d account(s) skipped: test account, joined less than %(tage)d days ago or already reminded this year."
+
+msgid "Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:"
+msgstr "You can unsubscribe from these messages at any time in your profile under “Messages”:"
+
+msgid "Abgeschlossen ohne Versand (Einwilligung fehlt oder Konto nicht zustellbar)"
+msgstr "Closed without sending (no consent or account not deliverable)"
+
+msgid "Abstimmung durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d)."
+msgstr "Vote suspended by the Integrity Council (§ 6 (3) lit d)."
+
+msgid "Adresswechsel offen"
+msgstr "E-mail change pending"
+
+msgid "Am schnellsten geht es mit dem QR-Code auf Ihrer Beitragsseite:"
+msgstr "The quickest way is the QR code on your contribution page:"
+
+msgid "Beitragserinnerung"
+msgstr "Contribution reminder"
+
+msgid "Danke, dass Sie das Werkzeug mittragen!"
+msgstr "Thank you for helping to carry this tool!"
+
+msgid "Die Plattform darf mir E-Mails schicken."
+msgstr "The platform may send me e-mails."
+
+msgid "Die Unterstützungsphase ist beendet."
+msgstr "The support phase has ended."
+
+msgid "Diese Erinnerung kommt, weil Sie E-Mails der Plattform zugestimmt haben. Abbestellen können Sie sie jederzeit in Ihrem Profil unter „Nachrichten“:"
+msgstr "You receive this reminder because you consented to e-mails from the platform. You can unsubscribe at any time in your profile under “Messages”:"
+
+msgid "Ein Bestätigungsantrag wird nicht unterstützt (§ 7 Abs 10 lit f Z 3)."
+msgstr "A confirmation motion cannot be endorsed (§ 7 (10) lit f no. 3)."
+
+msgid "Eingebracht von:"
+msgstr "Submitted by:"
+
+msgid "Erinnerung: Ihr Mitgliedsbeitrag bei der DDÖ"
+msgstr "Reminder: your DDÖ membership contribution"
+
+msgid "Filter gespeichert und aktiv."
+msgstr "Filter saved and active."
+
+msgid "Gilt für:"
+msgstr "Applies to:"
+
+msgid "Guten Tag %(name)s!"
+msgstr "Hello %(name)s!"
+
+msgid "Höchstens fünf Konfigurationen — zuerst eine löschen oder überschreiben."
+msgstr "At most five configurations — delete or overwrite one first."
+
+msgid "Identität noch ungeprüft"
+msgstr "Identity not yet verified"
+
+msgid "Ihr letzter Mitgliedsbeitrag liegt länger als zwölf Monate zurück (oder es ist noch keiner eingegangen). Die Höhe bleibt Ihre Selbsteinschätzung — niemand wird aus finanziellen Gründen ausgeschlossen (§ 4 Abs 3)."
+msgstr "Your last membership contribution was more than twelve months ago (or none has been received yet). The amount remains your own assessment — nobody is excluded for financial reasons (§ 4 (3))."
+
+msgid "Ihre persönliche Referenz: %(referenz)s"
+msgstr "Your personal reference: %(referenz)s"
+
+msgid "Konfiguration gelöscht."
+msgstr "Configuration deleted."
+
+msgid "Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)."
+msgstr "Participation is paused — contribution outstanding (§ 4 (3))."
+
+msgid "Nachrichten"
+msgstr "Messages"
+
+msgid "Nachrichten zum Verfahren"
+msgstr "Messages about proceedings"
+
+msgid "Neuer Antrag für ganz Österreich — ParlamentPlattform"
+msgstr "New motion for all of Austria — ParlamentPlattform"
+
+msgid "Neuer Antrag in Ihrer Region — ParlamentPlattform"
+msgstr "New motion in your region — ParlamentPlattform"
+
+msgid "Neuer Antrag in der Region"
+msgstr "New motion in the region"
+
+msgid "Nicht stimmberechtigt am Stichtag"
+msgstr "Not eligible to vote on the reference date"
+
+msgid "Nicht stimmberechtigt am Stichtag (§ 4 Abs 4)."
+msgstr "Not eligible to vote on the reference date (§ 4 (4))."
+
+msgid "Personenwahl: Zustimmung je Bewerbung auf der Antragsseite."
+msgstr "Election: approval per candidacy on the motion page."
+
+msgid "Sie erhalten diese Nachricht, weil Ihr Wohnsitz in diesem Gebiet liegt und Sie E-Mails zu neuen Anträgen aus Ihrer Region zugestimmt haben."
+msgstr "You receive this message because your residence is in this area and you consented to e-mails about new motions from your region."
+
+msgid "Sie erhalten diese Nachricht, weil der Antrag ganz Österreich betrifft und Sie E-Mails zu neuen Anträgen zugestimmt haben."
+msgstr "You receive this message because the motion concerns all of Austria and you consented to e-mails about new motions."
+
+msgid "Stimme erfasst — änderbar bis zum Fristende."
+msgstr "Vote recorded — changeable until the deadline."
+
+msgid "Stimme nicht erfasst — läuft die Abstimmung noch?"
+msgstr "Vote not recorded — is the vote still open?"
+
+msgid "Titel:"
+msgstr "Title:"
+
+msgid "Unterstützen nur mit Stimmrecht für Personenwahlen am Einbringungstag (§ 7 Abs 10 lit c)."
+msgstr "Supporting requires the right to vote in elections on the day of submission (§ 7 (10) lit c)."
+
+msgid "Unterstützung erfasst."
+msgstr "Support recorded."
+
+msgid "Unterstützung zurückgezogen."
+msgstr "Support withdrawn."
+
+msgid "auf der ParlamentPlattform wurde ein neuer Antrag eingebracht:"
+msgstr "a new motion has been submitted on the ParlamentPlattform:"
+
+msgid "ganz Österreich"
+msgstr "all of Austria"
+
+msgid "Änderung der Anmeldeadresse offen — die Stimmabgabe ruht."
+msgstr "Change of login address pending — voting is paused."
+
+#, python-format
+msgid "%(n)s Tage · pseudonym"
+msgstr "%(n)s days · pseudonymous"
+
+msgid ""
+"<strong>Anstoß:</strong> der Freitext Ihrer Meldung, die Seite, von der sie kam, und — nur wenn Sie\n"
+"    angemeldet sind — Ihr Konto, damit wir nachfragen können."
+msgstr "<strong>Feedback:</strong> the free text of your message, the page it came from and — only if you are signed in — your account, so that we can follow up."
+
+msgid ""
+"<strong>Audit-Kette:</strong> jede Verwaltungs- und Gremienhandlung als Eintrag mit Zeitstempel und\n"
+"    Kennungen (Nummern), ohne Namen und ohne E-Mail-Adressen; dauerhaft und unveränderbar."
+msgstr "<strong>Audit chain:</strong> every administrative and body action as an entry with timestamp and identifiers (numbers), without names and without e-mail addresses; permanent and unalterable."
+
+msgid ""
+"<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein\n"
+"    Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe\n"
+"    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert."
+msgstr "<strong>Account:</strong> first and last name, e-mail address (also the login name; there is no password), municipality of residence and, if you wish, a secondary residence, date of joining, membership number, identity level and membership status. The year of birth is only checked at registration (§ 4 (1)) and not stored."
+
+msgid ""
+"<strong>Postausgang:</strong> welche Nachricht wann an Ihr Konto ging und ob der Versand gelang — ohne\n"
+"    den Inhalt der Nachricht."
+msgstr "<strong>Mail queue:</strong> which message went to your account when and whether sending succeeded — without the content of the message."
+
+msgid ""
+"<strong>Render Services, Inc.</strong> (Hosting von Anwendung und Datenbank; Rechenzentrum\n"
+"    Frankfurt am Main). Render ist ein US-Unternehmen. Die Plattform läuft in der Alpha-Phase als Testbetrieb;\n"
+"    für den Echtbetrieb mit dem vollen Mitgliederbestand ist der Umzug auf einen Anbieter in der EU vorgesehen\n"
+"    (docs/BETRIEB-RENDER.md im Quellcode)."
+msgstr "<strong>Render Services, Inc.</strong> (hosting of application and database; data centre Frankfurt am Main). Render is a US company. The platform runs in the alpha phase as a test operation; for live operation with the full membership a move to a provider in the EU is planned (docs/BETRIEB-RENDER.md in the source code)."
+
+msgid ""
+"<strong>World4You Internet Services GmbH</strong> (Postfach und Versand aller E-Mails der\n"
+"    Plattform über plattform@ddoe.at)."
+msgstr "<strong>World4You Internet Services GmbH</strong> (mailbox and dispatch of all e-mails of the platform via plattform@ddoe.at)."
+
+msgid "Antwort ohne festes Format — der Wortlaut:"
+msgstr "Reply without a fixed format — the wording:"
+
+msgid "Auftragstexte (versioniert im Quellcode)"
+msgstr "Task texts (versioned in the source code)"
+
+msgid "Bedeutung"
+msgstr "Meaning"
+
+#, python-format
+msgid "Bedeutung: Textvektoren des Anbieters (%(modell)s) — Vorschlag, keine Hürde."
+msgstr "Meaning: text vectors of the provider (%(modell)s) — a suggestion, not a hurdle."
+
+msgid "Bedeutungsvergleich nicht gerechnet — der Modell-Steckplatz war stumm (kein Anbieter, Budget oder Anbieterfehler)."
+msgstr "Meaning comparison not computed — the model socket was silent (no provider, budget or provider error)."
+
+msgid "Bestätigung der Mitgliederversammlung vermerkt."
+msgstr "Confirmation by the general assembly recorded."
+
+msgid "Betroffene Gesetze"
+msgstr "Affected laws"
+
+msgid "Betroffene Gesetze — Vorschlag der Zukunftswerkstatt"
+msgstr "Affected laws — suggestion of the Zukunftswerkstatt"
+
+msgid "Cookies"
+msgstr "Cookies"
+
+msgid "Das Modell hat keine Norm genannt, deren es sich sicher war."
+msgstr "The model named no provision it was sure of."
+
+#, python-format
+msgid "Das ist ein Vorschlag eines KI-Modells (%(modell)s, Auftrag %(auftrag_version)s), ohne Prüfung gegen das Rechtsinformationssystem und keine Rechtsberatung. Er hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden."
+msgstr "This is a suggestion by an AI model (%(modell)s, task %(auftrag_version)s), without a check against the legal information system and not legal advice. It has no effect on the procedure; you can object to it on the motion page."
+
+msgid "Datenschutz"
+msgstr "Privacy"
+
+msgid "Datenschutzerklärung"
+msgstr "Privacy policy"
+
+msgid "Der Wert ist unverändert — nichts zu tun."
+msgstr "The value is unchanged — nothing to do."
+
+msgid "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten, die Verständigung zum Mandat, den Einspruchslink bei einem Adresswechsel und — nur mit Ihrer Einwilligung — die Beitragserinnerung, neue Anträge in Ihrer Region und Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen. Ihren Ausweis können Sie sich unten als Vorschau zusenden."
+msgstr "The platform sends sign-in, confirmation, fee, welcome and activation messages, the notification about a mandate, the objection link when your address changes and — only with your consent — the fee reminder, new motions in your region and results of the Zukunftswerkstatt on your motions. You can have your membership card sent to you as a preview below."
+
+msgid "Die Zukunftswerkstatt prüft, welche Gesetze betroffen sind."
+msgstr "The Zukunftswerkstatt is checking which laws are affected."
+
+msgid ""
+"Direkte Demokratie Österreich (DDÖ), Unterfreundorf 17, 4076 Unterfreundorf, Österreich.\n"
+"  Parteienregisterzahl 502117. Kontakt für alle Fragen zum Datenschutz:\n"
+"  <a href=\"mailto:plattform@ddoe.at\">plattform@ddoe.at</a>."
+msgstr "Direkte Demokratie Österreich (DDÖ), Unterfreundorf 17, 4076 Unterfreundorf, Austria. Party register number 502117. Contact for all questions about data protection: <a href=\"mailto:plattform@ddoe.at\">plattform@ddoe.at</a>."
+
+#, python-format
+msgid "Ein betroffenes Gesetz laut Zukunftswerkstatt"
+msgid_plural "%(n)s betroffene Gesetze laut Zukunftswerkstatt"
+msgstr[0] "One affected law according to the Zukunftswerkstatt"
+msgstr[1] "%(n)s affected laws according to the Zukunftswerkstatt"
+
+msgid "Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert."
+msgstr "Ending a role early needs a reason — it stays on record."
+
+msgid "Einschätzung der Zukunftswerkstatt:"
+msgstr "Assessment of the Zukunftswerkstatt:"
+
+#, python-format
+msgid "Fassung %(version)s erzeugt. Sie gilt noch nicht — dafür braucht es den zweiten Schritt."
+msgstr "Version %(version)s created. It does not apply yet — that takes the second step."
+
+#, python-format
+msgid "Fassung %(version)s gilt ab jetzt für neu eingebrachte Anträge. Laufende Verfahren behalten ihre Fassung."
+msgstr "Version %(version)s applies from now on to newly submitted motions. Running procedures keep their version."
+
+#, python-format
+msgid "Fassung %(version)s gilt bereits."
+msgstr "Version %(version)s already applies."
+
+#, python-format
+msgid "Fassung %(version)s sagt bereits genau das und wartet auf den zweiten Schritt."
+msgstr "Version %(version)s already says exactly that and is waiting for the second step."
+
+msgid ""
+"Für die Mitgliederverwaltung nach der Satzung (§ 4: Aufnahme, Identitätsnachweis, Beitrag,\n"
+"  Anwartschaft, Pause, Austritt), für die Verfahren der Mitgliederversammlung (§ 5: Anträge einbringen,\n"
+"  unterstützen, beraten, abstimmen, auszählen, veröffentlichen) und für die Rechenschaft der Mandatare\n"
+"  und Räte (§ 6, § 7). Nichts davon dient Werbung, Profilbildung oder der Weitergabe an Dritte zu deren\n"
+"  Zwecken."
+msgstr "For membership administration under the statutes (§ 4: admission, proof of identity, fee, qualifying period, pause, resignation), for the procedures of the general assembly (§ 5: submitting, supporting, deliberating, voting on, counting and publishing motions) and for the accountability of mandate holders and councils (§ 6, § 7). None of this serves advertising, profiling or disclosure to third parties for their purposes."
+
+msgid "Für diesen Antrag wurde keine Prüfung eingereiht."
+msgstr "No check has been queued for this motion."
+
+#, python-format
+msgid "Heute gestartet: %(heute)s von %(kontingent)s Läufen (Tageskontingent)."
+msgstr "Started today: %(heute)s of %(kontingent)s runs (daily quota)."
+
+msgid "Hinweis:"
+msgstr "Note:"
+
+msgid "Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter (§ 4 Abs 4)."
+msgstr "Your e-mail address is confirmed — you are now in the qualifying period (§ 4 (4))."
+
+msgid "Ihre Rechte"
+msgstr "Your rights"
+
+msgid "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren."
+msgstr "AI suggestion — no check against the legal information system, not legal advice, no effect on the procedure."
+
+#, python-format
+msgid "Keine Fassung erzeugt: %(grund)s"
+msgstr "No version created: %(grund)s"
+
+msgid "Lauf gescheitert — alle Versuche aufgebraucht."
+msgstr "Run failed — all attempts used up."
+
+msgid ""
+"Lesen können Sie alles — <a href=\"/\">alle Anträge, Beratungen und\n"
+"Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der Freischaltung können\n"
+"Sie Anträge einbringen, unterstützen und mitberaten — und abstimmen, sobald Ihr Stimmrecht\n"
+"besteht (siehe oben)."
+msgstr "You can read everything — <a href=\"/\">all motions, deliberations and results</a> are public without restriction (§ 2 (5)). After activation you can submit, support and deliberate on motions — and vote as soon as your voting right exists (see above)."
+
+#, python-format
+msgid ""
+"Name und Gemeinde dienen der\n"
+"Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.\n"
+"Öffentlich erscheint Ihr Anzeigename bei Anträgen und Beiträgen; Ihr Klarname nur mit Ihrer Einwilligung\n"
+"(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Weitergabe nur an unsere Dienstleister\n"
+"für Betrieb und Versand (siehe <a href=\"%(datenschutz_url)s\">Datenschutzerklärung</a>), keine Werbung."
+msgstr "Name and municipality serve membership administration under the statutes; the year of birth is only checked (§ 4 (1)) and not stored. Your display name appears publicly on motions and contributions; your real name only with your consent (§ 5 (3) lit a). Votes are cast under a pseudonym (§ 5 (3)). Data is passed on only to our service providers for operation and dispatch (see <a href=\"%(datenschutz_url)s\">privacy policy</a>), no advertising."
+
+msgid "Neuer Wert und Grund sind Pflicht — der Grund wird veröffentlicht."
+msgstr "New value and reason are required — the reason is published."
+
+#, python-format
+msgid "Nicht berufen — %(grund)s."
+msgstr "Not appointed — %(grund)s."
+
+#, python-format
+msgid "Nicht berufen — %(name)s hat in diesem Gremium schon eine aktive Rolle (oder eine ruhende); erst beenden, dann neu berufen."
+msgstr "Not appointed — %(name)s already has an active (or suspended) role in this body; end it first, then appoint anew."
+
+msgid "Ohne Grund tritt keine Fassung in Kraft — er wird veröffentlicht."
+msgstr "Without a reason no version takes effect — it is published."
+
+msgid "Ohne Prüfung gegen das Rechtsinformationssystem — darum kein Link."
+msgstr "No check against the legal information system — hence no link."
+
+msgid "Rechtsgrundlage"
+msgstr "Legal basis"
+
+msgid "Register und geltende Fassung sagen dasselbe — nichts zu erzeugen."
+msgstr "Register and current version say the same — nothing to create."
+
+msgid "Rolle beendet — Grund im Audit-Log festgehalten."
+msgstr "Role ended — reason recorded in the audit log."
+
+#, python-format
+msgid "Rolle berufen: %(gremium)s bis %(bis)s — öffentlich sichtbar."
+msgstr "Role appointed: %(gremium)s until %(bis)s — publicly visible."
+
+msgid "Sie bekommen eine E-Mail, sobald das Ergebnis da ist."
+msgstr "You will get an e-mail as soon as the result is in."
+
+msgid "Sie erhalten diese Nachricht, weil Sie den Antrag eingebracht und E-Mails zum Verfahren zugestimmt haben. Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:"
+msgstr "You are receiving this message because you submitted the motion and consented to e-mails about the procedure. You can unsubscribe from these messages at any time in your profile under “Messages”:"
+
+msgid ""
+"Sonst gibt es keine Empfänger: keine Werbenetzwerke, keine Analysedienste, keine\n"
+"  eingebundenen Schriften oder Skripte von fremden Servern."
+msgstr "There are no other recipients: no advertising networks, no analytics services, no fonts or scripts embedded from third-party servers."
+
+msgid "Textvektoren für den Bedeutungsvergleich beim Einbringen"
+msgstr "Text vectors for the meaning comparison at submission"
+
+#, python-format
+msgid "Textvektoren für den Bedeutungsvergleich beim Einbringen: %(modell)s"
+msgstr "Text vectors for the meaning comparison at submission: %(modell)s"
+
+msgid "Unsicherheit"
+msgstr "Uncertainty"
+
+msgid "Unsicherheit:"
+msgstr "Uncertainty:"
+
+msgid "Verantwortlicher"
+msgstr "Controller"
+
+msgid "Vorschlag der Zukunftswerkstatt"
+msgstr "Suggestion of the Zukunftswerkstatt"
+
+msgid "Warteschlange"
+msgstr "Queue"
+
+#, python-format
+msgid "Warteschlange, Platz %(n)s"
+msgstr "Queue, position %(n)s"
+
+msgid "Was die Plattform über Sie weiß — und was nicht."
+msgstr "What the platform knows about you — and what it does not."
+
+msgid "Welche Daten das sind"
+msgstr "Which data this is"
+
+msgid "Wer Daten in unserem Auftrag verarbeitet"
+msgstr "Who processes data on our behalf"
+
+msgid "Wie lange"
+msgstr "How long"
+
+msgid "Wofür wir Daten verarbeiten"
+msgstr "What we process data for"
+
+msgid "Wortvergleich"
+msgstr "Word comparison"
+
+msgid "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)."
+msgstr "Word comparison: without a model, verifiable (register of rules)."
+
+msgid "Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag"
+msgstr "Zukunftswerkstatt: affected laws for your motion"
+
+msgid "Zur Antragsseite:"
+msgstr "To the motion page:"
+
+msgid "aufzuheben"
+msgstr "to be repealed"
+
+msgid "berührt"
+msgstr "affected"
+
+msgid "die Zukunftswerkstatt hat geprüft, welche Gesetze Ihr Antrag berühren würde:"
+msgstr "the Zukunftswerkstatt has checked which laws your motion would affect:"
+
+msgid "erledigt:"
+msgstr "done:"
+
+msgid "gescheitert:"
+msgstr "failed:"
+
+msgid "hoch"
+msgstr "high"
+
+msgid "in der Warteschlange"
+msgstr "in the queue"
+
+msgid "mittel"
+msgstr "medium"
+
+msgid "neu zu schaffen"
+msgstr "to be created"
+
+msgid "nicht verifiziert"
+msgstr "not verified"
+
+msgid "niedrig"
+msgstr "low"
+
+msgid "offen:"
+msgstr "open:"
+
+msgid "pseudonym · mehreren zustimmbar"
+msgstr "pseudonymous · approve several"
+
+msgid "zu ändern"
+msgstr "to be amended"
+
+#, python-format
+msgid "„%(neu)s“ ist eine andere Verfahrensordnung als die geltende „%(alt)s“ — ein Wechsel gehört nicht in die Parameterverwaltung."
+msgstr "“%(neu)s” is a different set of procedural rules from the current “%(alt)s” — a switch does not belong in parameter administration."
+
+#, python-format
+msgid "„%(schluessel)s“: %(alt)s → %(neu)s. Grund steht im öffentlichen Audit-Log."
+msgstr "“%(schluessel)s”: %(alt)s → %(neu)s. The reason is in the public audit log."
+
+msgid "Alle Felder"
+msgstr "All panels"
+
+msgid "Alle Felder zeigen"
+msgstr "Show all panels"
+
+msgid "Feld vergrößern"
+msgstr "Enlarge panel"
+
+msgid "Vergrößern"
+msgstr "Enlarge"
+
+msgid "Mit Haken: eine E-Mail zu neuen Anträgen, die Ihre Gemeinde, Ihren Bezirk oder Ihr Bundesland betreffen, Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung."
+msgstr "Ticked: an e-mail about new motions that concern your municipality, your district or your state, results of the Zukunftswerkstatt for your motions and the administration’s contribution reminder."
+
+msgid "Ohne Haken: nur Anmelde- und Bestätigungslinks, Willkommens-, Freischaltungs- und Ausweisnachrichten, die Bestätigung eines Beitragseingangs, der Einspruchslink bei einem Adresswechsel und die Verständigung zu einer Vertrauensfrage über Ihr Mandat — sie gehören zum Konto. Die Änderung wird ohne Wert im Audit-Log vermerkt."
+msgstr "Unticked: only login and confirmation links, welcome, activation and membership card messages, the confirmation of a received contribution, the objection link after a change of address and the notice of a confidence question about your mandate — they belong to the account. The change is recorded in the audit log without its value."
+
+msgid "Mit Haken: eine E-Mail zu neuen Anträgen, die Ihre Region betreffen (Gemeinde, Bezirk, Bundesland, ganz Österreich), Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung."
+msgstr "Ticked: an e-mail about new motions that concern your region (municipality, district, state, all of Austria), results of the Zukunftswerkstatt for your motions and the administration’s contribution reminder."
+
+msgid ""
+"ohne Cookies, ohne Werbe-Skripte und ohne Speicherung\n"
+"von IP-Adressen. Für die Besucherzahl wird eine anonyme Tageskennung gebildet und gespeichert, die sich\n"
+"nicht zur Person zurückrechnen lässt und um Mitternacht wertlos wird. Suchmaschinen und technische\n"
+"Zugriffe werden nach Möglichkeit nicht mitgezählt. Auch die Kennzahlen der Zukunftswerkstatt\n"
+"entstehen so — als Summen, nie als Einzelwerte; deshalb gibt es dafür nichts ein- oder auszuschalten\n"
+"(§ 6 Abs 11 lit d). Die Plattform ist in der Alpha-Phase und enthält zur Veranschaulichung einige\n"
+"Demo-Daten."
+msgstr "without cookies, without ad scripts and without storing IP addresses. For the visitor count, an anonymous one-way daily token is derived and stored; it cannot be traced back to a person and becomes worthless at midnight. Search engines and technical requests are excluded where possible. The metrics of the Zukunftswerkstatt come about the same way — as sums, never as individual values; that is why there is nothing to switch on or off for them (§ 6 para 11 lit d). The platform is in its alpha phase and contains some demo data for illustration."
+
+msgid "zu einer früheren Fassung"
+msgstr "for an earlier version"
+
+#, python-format
+msgid "zu Fassung %(n)s"
+msgstr "for version %(n)s"
+
+msgid "betroffene Gesetze zu diesem Antrag →"
+msgstr "affected laws for this motion →"
+
+msgid ""
+"<strong>Beitrag:</strong> eine Zahlungsreferenz, gebildet aus der Konto-Kennung und einem festen Stamm,\n"
+"    und die Buchung des Beitragseingangs (Datum, Betrag, Umsatzkennung und ob der Name der Überweisung zu Ihrem\n"
+"    passte); keine Kontonummer des Mitglieds. Für den Abgleich liest die Plattform die Umsätze des Parteikontos — aus\n"
+"    einem Kontoauszug, den die Verwaltung hochlädt, oder über den Kontoinformationsdienst — samt Name, IBAN und\n"
+"    Verwendungszweck der Überweisenden; behalten wird davon nur, was hier steht."
+msgstr "<strong>Contribution:</strong> a payment reference formed from the account identifier and a fixed stem, and the booking of the received contribution (date, amount, transaction identifier and whether the name on the transfer matched yours); no bank account number of the member. For matching, the platform reads the transactions of the party account — from a bank statement the administration uploads, or via the account information service — including name, IBAN and payment reference of the senders; only what is listed here is kept."
+
+msgid ""
+"<strong>Besuche:</strong> die Zahl der Aufrufe je Tag, plattformweit und je Antrag, und je Tag eine\n"
+"    Besucherkennung für die Zahl der Besucher — ein Einweg-Hash aus Verbindungsadresse und Browserkennung mit einem\n"
+"    Geheimnis der Plattform. Die Verbindungsadresse selbst hält die Plattform nur in der Drossel gegen Missbrauch bei\n"
+"    Registrierung, Anmeldung und Anstoß, rund zwei Stunden. Keine Profile."
+msgstr "<strong>Visits:</strong> the number of page views per day, across the platform and per motion, and per day a visitor identifier for counting visitors — a one-way hash of connection address and browser identifier with a secret of the platform. The platform keeps the connection address itself only in the throttle against abuse of registration, sign-in and feedback, for about two hours. No profiles."
+
+msgid ""
+"Sie haben das Recht auf Auskunft, Berichtigung, Einschränkung und — soweit nicht ein\n"
+"  laufendes oder abgeschlossenes Verfahren die Daten braucht (§ 8) — Löschung sowie auf Datenübertragbarkeit.\n"
+"  Den vollständigen Export Ihrer Daten laden Sie jederzeit selbst im Profil; Anzeigename, Wohnsitz, die Anzeige\n"
+"  Ihres Klarnamens und die E-Mail-Benachrichtigungen ändern Sie dort, den Austritt erklären Sie dort. Beschwerden\n"
+"  nimmt die österreichische Datenschutzbehörde entgegen (Barichgasse 40–42, 1030 Wien, dsb@dsb.gv.at)."
+msgstr "You have the right to access, rectification, restriction and — unless a running or completed procedure needs the data (§ 8) — erasure, as well as data portability. You can download the complete export of your data yourself in your profile at any time; you change display name, residence, the display of your real name and the e-mail notifications there, and you declare your resignation there. Complaints are handled by the Austrian data protection authority (Barichgasse 40–42, 1030 Vienna, dsb@dsb.gv.at)."
+
+msgid ""
+"<strong>Stimmregister:</strong> Ihre Stimmen stehen unter einem Pseudonym in der veröffentlichten\n"
+"    Stimmliste. Die Zuordnung Pseudonym → Konto liegt getrennt bei der Plattform und ist zugriffsbeschränkt — sie ist\n"
+"    nicht kryptografisch geheim."
+msgstr "<strong>Vote register:</strong> your votes are listed under a pseudonym in the published list of votes. The mapping pseudonym → account is held separately by the platform and access is restricted — it is not cryptographically secret."
+
+msgid ""
+"<strong>Fachliste:</strong> wenn Sie darauf stehen, Name, Fachgebiete, Interessenbindungen und\n"
+"    Honorare — öffentlich mit Ihrer Einwilligung (§ 6 Abs 7, § 8 Abs 4). Nach einem Widerruf steht statt des Namens\n"
+"    eine Kennung; der sachliche Inhalt bleibt."
+msgstr "<strong>Expert roster:</strong> if you are on it, name, fields of expertise, conflicts of interest and fees — public with your consent (§ 6 (7), § 8 (4)). After a withdrawal an identifier replaces the name; the factual content remains."
+
+msgid ""
+"<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst\n"
+"    hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch; die Eingabe zeigt die Plattform nicht an."
+msgstr "<strong>AI jobs:</strong> every call to the AI provider stays permanently in the run archive together with the account that triggered it — with input, answer and usage; the platform does not display the input."
+
+msgid "Diese Erklärung sagt nur, was der Code tut."
+msgstr "This policy says only what the code does."
+
+msgid ""
+"Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz\n"
+"  geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und\n"
+"  Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder\n"
+"  als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen\n"
+"  Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die\n"
+"  Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Die\n"
+"  Audit-Kette wird nie gelöscht; sie enthält keine Namen."
+msgstr "Your account exists until you resign. On resignation, name, e-mail address and residence are emptied and the account can no longer sign in. An exclusion blocks the account; name, e-mail address and residence remain. What remains after resignation: your procedural contributions under your pseudonym or as “Former member n” — pseudonymised, not anonymised, because they are part of a public procedure that must remain verifiable (§ 5 (8)) — and the mapping in the vote register, until the procedural rules set a deletion period (§ 8 (6)); no such period exists today. The audit chain is never deleted; it contains no names."
+
+#, python-format
+msgid "Stand: %(stand)s."
+msgstr "As of %(stand)s."
+
+msgid ""
+"<strong>Mandat:</strong> Lichtbild und Selbstvorstellung, wenn Sie ein Mandat halten — eingestellt\n"
+"    vom Mandatar selbst oder von der Verwaltung, öffentlich. Das Lichtbild entfernt die Plattform mit dem Austritt,\n"
+"    vorher auf Anfrage bei der Verwaltung (plattform@ddoe.at)."
+msgstr "<strong>Mandate:</strong> photo and introduction if you hold a mandate — uploaded by the mandate holder or by the administration, public. The platform removes the photo when you resign, earlier on request to the administration (plattform@ddoe.at)."
+
+msgid ""
+"Nur technische: die Sitzung (sessionid, Anmeldung), der CSRF-Schutz gegen untergeschobene\n"
+"  Formulare (csrftoken), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten\n"
+"  Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine\n"
+"  Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild,\n"
+"  Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht."
+msgstr "Only technical ones: the session (sessionid, sign-in), the CSRF protection against forged forms (csrftoken), briefly the feedback after an action (messages; it disappears with the next page) and — only if you switch the language — the language choice (django_language). No analytics cookies, no third-party cookies, no tracking. In your device’s browser storage the platform also remembers appearance, filter bar, reading position in the chat and focus mode; these settings do not leave the device."
+
+msgid ""
+"<strong>GoCardless Ltd. (Bank Account Data)</strong> als\n"
+"    Kontoinformationsdienst: Er liest die Umsätze des Parteikontos, damit die Plattform Beitragseingänge anhand\n"
+"    der Zahlungsreferenz verbucht — dabei Name, IBAN und Verwendungszweck der Überweisenden, bei einer\n"
+"    Beitragsüberweisung also auch Ihre. Die Plattform sieht die Umsätze des Parteikontos, nicht Ihr Konto."
+msgstr "<strong>GoCardless Ltd. (Bank Account Data)</strong> as account information service: it reads the transactions of the party account so that the platform can book received contributions by payment reference — including name, IBAN and payment reference of the senders, and so, for a contribution transfer, yours. The platform sees the transactions of the party account, not your account."
+
+msgid ""
+"Die Mitgliedschaft in einer Partei ist ein Datum über die politische Meinung. Wir verarbeiten sie\n"
+"  als politische Partei für unsere Mitglieder auf Grundlage von Art 9 Abs 2 lit d DSGVO in Verbindung mit\n"
+"  Art 6 Abs 1 lit b und lit f DSGVO. Auf Ihrer Einwilligung (Art 6 Abs 1 lit a, Art 9 Abs 2 lit a DSGVO) beruhen\n"
+"  die öffentliche Anzeige Ihres Klarnamens und E-Mail-Benachrichtigungen zum Verfahren (neue Anträge in Ihrer Region,\n"
+"  Ergebnisse der Zukunftswerkstatt, Beitragserinnerung) — beides nehmen Sie jederzeit im Profil zurück — sowie das\n"
+"  Lichtbild am Mandat und die Nennung auf der Fachliste: Diese beiden widerrufen Sie bei der Verwaltung\n"
+"  (plattform@ddoe.at); mit dem Austritt enden sie von selbst."
+msgstr "Membership of a party is data about political opinion. As a political party we process it for our members on the basis of Art 9 (2) lit d GDPR in conjunction with Art 6 (1) lit b and lit f GDPR. The public display of your real name and e-mail notifications about the procedure (new motions in your region, results of the Zukunftswerkstatt, contribution reminder) rest on your consent (Art 6 (1) lit a, Art 9 (2) lit a GDPR) — you can withdraw both at any time in your profile — as do the photo on the mandate and the listing on the expert roster: you withdraw these two with the administration (plattform@ddoe.at); they end by themselves when you resign."
+
+msgid ""
+"<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die\n"
+"    Besetzung ist öffentlich."
+msgstr "<strong>Body roles:</strong> your appointments to councils and bodies with start and end; the membership of bodies is public."
+
+#, python-format
+msgid ""
+"<strong>%(anbieter)s</strong> (KI-Anbieter der\n"
+"    Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Anträgen sowie Beratungsbeiträge — Texte,\n"
+"    die öffentlich sind. Beim Absenden auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres\n"
+"    Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann,\n"
+"    wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird\n"
+"    archiviert und gekennzeichnet; der Entwurf bleibt dabei im Lauf-Archiv, das seine Texte nicht anzeigt. Die KI\n"
+"    schlägt vor, sie entscheidet nie."
+msgstr "<strong>%(anbieter)s</strong> (AI provider of the Zukunftswerkstatt): it receives the title, wording and reasoning of motions and deliberation contributions — texts that are public. When you submit the form on the page “Submit a motion”, the title and wording of your draft also go to it, for comparison with running motions — before the motion is published, and even if you then do not submit it. Names, e-mail addresses or votes never go to it. Every call is archived and labelled; the draft stays in the run archive, which does not display its texts. The AI proposes, it never decides."
+
+msgid ""
+"<strong>Verfahrensbeiträge:</strong> Anträge, Beratungsbeiträge, Bewerbungen und Vorstellungen — sie\n"
+"    sind öffentlich, unter Ihrem Anzeigenamen (§ 5 Abs 3 lit a); Ihr Klarname erscheint nur mit Ihrer Einwilligung.\n"
+"    Unterstützungen und Reaktionen speichert die Plattform mit Ihrem Konto; öffentlich ist davon nur die Zahl."
+msgstr "<strong>Procedural contributions:</strong> motions, deliberation contributions, applications and introductions — they are public, under your display name (§ 5 (3) lit a); your real name appears only with your consent. The platform stores endorsements and reactions with your account; only their number is public."
+
+msgid ""
+"Notieren Sie sich den Code. Nach Abstimmungsende können Sie in der\n"
+"exportierten Stimmliste nachsehen, ob Ihre Stimme korrekt erfasst ist — und mit\n"
+"<code>verify/nachrechnen.py</code> das Gesamtergebnis unabhängig nachrechnen (§ 5 Abs 8).\n"
+"Die Zuordnung Pseudonym → Person kennt nur die Plattform (zugriffsbeschränkt).\n"
+"Eine Löschfrist ist in der Verfahrensordnung noch nicht beschlossen (§ 8 Abs 6);\n"
+"bis dahin bleibt die Zuordnung bestehen."
+msgstr "Note down the code. After the vote ends you can check in the exported list of votes whether your vote was recorded correctly — and recount the overall result independently with <code>verify/nachrechnen.py</code> (§ 5 (8)). Only the platform knows the mapping pseudonym → person (access-restricted). The procedural rules have not yet set a deletion period (§ 8 (6)); until then the mapping remains."
+
+#, python-format
+msgid "Beim Absenden gehen Titel und Wortlaut zum Bedeutungsvergleich an den KI-Anbieter (%(anbieter)s)."
+msgstr "When you submit, the title and wording go to the AI provider (%(anbieter)s) for the meaning comparison."
+
+msgid "Bedeutungsvergleich diesmal nicht gerechnet — Ihr Konto hat die Obergrenze der Anbieteraufrufe je Stunde erreicht."
+msgstr "Meaning comparison not computed this time — your account has reached the limit of provider calls per hour."
+
+msgid ""
+"Nach dem Einbringen prüft die Zukunftswerkstatt, welche Gesetze Ihr Antrag\n"
+"  berühren würde (§ 5 Abs 10 lit d) — das Ergebnis erscheint auf der Antragsseite unter „Einschätzung“,\n"
+"  stets als KI-Vorschlag gekennzeichnet und ohne Wirkung auf das Verfahren."
+msgstr "After submission the Zukunftswerkstatt checks which laws your motion would affect (§ 5 (10) lit d) — the result appears on the motion page under “Assessment”, always labelled as an AI suggestion and without effect on the procedure."
+
+msgid ""
+"Abgestimmt wird pseudonym-offen: Jede Stimme steht unter einem Pseudonym in der\n"
+"veröffentlichten Liste und ist zählbar; die Zuordnung zum Konto liegt getrennt und\n"
+"zugriffsbeschränkt bei der Plattform — nicht kryptografisch geheim. Zwischenstände bleiben bis zum\n"
+"Fristende verdeckt — niemand soll der Mehrheit hinterherlaufen."
+msgstr "Voting is pseudonymous and open: every vote is listed under a pseudonym in the published list and can be counted; the mapping to the account is held separately and access-restricted by the platform — not cryptographically secret. Interim results stay hidden until the deadline — nobody should chase the majority."
+
+msgid "Testkonto — ohne Mitwirkung."
+msgstr "Test account — no participation."
+
+msgid "Der automatische Kontoabruf ist noch nicht eingerichtet, und die Meldung wird nicht gespeichert. Die Verwaltung ordnet Eingänge anhand Ihrer Referenz aus dem Kontoauszug zu; danach kommt eine Bestätigung per E-Mail."
+msgstr "Automatic account retrieval is not set up yet, and your notice is not stored. The administration matches payments to your reference from the bank statement; after that you receive a confirmation by e-mail."
+
+msgid "Die Bank war gerade nicht erreichbar. Ihr Eingang geht nicht verloren: Er wird beim nächsten Abgleich erkannt — wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."
+msgstr "The bank could not be reached just now. Your payment will not be lost: it will be recognised at the next matching — when you report it again later or the administration runs the matching."
+
+msgid "Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Erkannt wird er beim nächsten Abgleich: wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."
+msgstr "No payment with your reference is visible yet — depending on the bank, a transfer takes seconds (instant) up to one business day. It will be recognised at the next matching: when you report it again later or the administration runs the matching."
+
+msgid "Ihre Mitwirkungsrechte und Ihr Stimmrecht ruhen derzeit."
+msgstr "Your participation rights and your right to vote are currently suspended."
+
+msgid "nach Ihrer Freischaltung"
+msgstr "after your activation"
+
+msgid "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und für ganz Österreich, zu Ergebnissen der Zukunftswerkstatt zu meinen Anträgen und die Beitragserinnerung der Verwaltung."
+msgstr "The platform may send me e-mails: about new motions from my region and for all of Austria, about results of the Zukunftswerkstatt for my motions, and the administration’s contribution reminder."
+
+msgid "Anmelde- und Bestätigungslinks, Willkommens-, Freischaltungs- und Ausweisnachrichten, die Bestätigung eines Beitragseingangs, der Einspruchslink bei einem Adresswechsel und die Verständigung zu einer Vertrauensfrage über ein Mandat kommen unabhängig davon. Der Haken lässt sich jederzeit im Profil setzen oder entfernen."
+msgstr "Login and confirmation links, welcome, activation and membership card messages, the confirmation of a received contribution, the objection link after a change of address and the notice of a confidence question about a mandate are sent regardless. You can tick or untick this box in your profile at any time."
+
+msgid "Unterstützungen bis zur Schwelle (Mindestzahl)"
+msgstr "Endorsements up to the threshold (minimum number)"
+
+msgid "Unterstützungsschwelle als Anteil der Stimmberechtigten (0 = aus)"
+msgstr "Endorsement threshold as a share of those entitled to vote (0 = off)"
+
+msgid "Identität noch ungeprüft (§ 4 Abs 1)."
+msgstr "Identity not yet verified (§ 4 (1))."
+
+msgid "Von der Mitwirkung ausgeschlossen (§ 4 Abs 5)."
+msgstr "Excluded from participation (§ 4 (5))."
+
+msgid "Testkonto"
+msgstr "Test account"

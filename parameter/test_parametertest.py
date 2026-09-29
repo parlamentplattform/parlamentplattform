@@ -257,3 +257,44 @@ def test_die_zukunftswerkstatt_schweigt_ehrlich_ohne_anbieter(client, korat, reg
     test.refresh_from_db()
     assert test.ki_lauf is None
     assert "Steckplatz" in antwort.content.decode()
+
+
+def test_jeder_abgelaufene_test_endet_in_seiner_eigenen_transaktion(korat, register, monkeypatch):
+    """Eine Transaktion für alle Tests rollte bei einem einzigen werfenden alle anderen mit zurück.
+    Je Test eine kurze Transaktion: Wirft der zweite, bleibt der erste ausgewertet."""
+    import gremien.models as gm
+
+    gestern = timezone.localdate() - timedelta(days=1)
+    anderer = Parameter.objects.exclude(pk=register.pk).first()
+
+    def laufender(parameter, **felder):
+        return ParameterTest.objects.create(
+            parameter=parameter,
+            testwert="9",
+            alter_wert=parameter.wert,
+            hypothese="Probe",
+            messgroesse="motions.total",
+            beginn=gestern - timedelta(days=30),
+            ende=gestern,
+            rueckweg="Von selbst.",
+            status=pm.TestStatus.LAEUFT,
+            angeordnet_von=korat[0],
+            **felder,
+        )
+
+    zweiter = laufender(anderer, angelegt_am=timezone.now() - timedelta(hours=1))
+    erster = laufender(register)  # neuer — wird zuerst beendet
+    echte = gm._parametertest_beenden
+
+    def wirft_beim_zweiten(test, jetzt, heute):
+        if test.pk == zweiter.pk:
+            raise RuntimeError("Auswertung gescheitert")
+        return echte(test, jetzt, heute)
+
+    monkeypatch.setattr(gm, "_parametertest_beenden", wirft_beim_zweiten)
+    with pytest.raises(RuntimeError):
+        parametertests_fortschreiben()
+    erster.refresh_from_db()
+    zweiter.refresh_from_db()
+    assert erster.status == pm.TestStatus.AUSGEWERTET
+    assert zweiter.status == pm.TestStatus.LAEUFT

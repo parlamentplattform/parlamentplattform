@@ -6,8 +6,9 @@ Durchlauf zu sehen. Läuft nur auf leerer Datenbank sinnvoll; idempotent genug
 für den Alltag (get_or_create).
 """
 
-from datetime import date, timedelta
+from datetime import timedelta
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -101,7 +102,19 @@ def hervorhebungen_ohne_beschluss_zuruecknehmen() -> int:
 class Command(BaseCommand):
     help = "Erzeugt Demo-Daten für die lokale Entwicklung."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--erzwingen",
+            action="store_true",
+            help="Demo-Daten auch anlegen, wenn DDOE_DEMO nicht gesetzt ist (nur für Entwicklung und Tests).",
+        )
+
     def handle(self, *args, **opts):
+        if not settings.DDOE_DEMO and not opts["erzwingen"]:
+            # Produktion: Kein Demo-Bestand mehr. Die fünf Demo-Konten des Aufbaus zählten bis 0.49
+            # in jedem Nenner der Stimmberechtigten mit (Bestandsaufnahme 28.9.2026, A1).
+            self.stdout.write("Demo-Daten übersprungen: DDOE_DEMO ist nicht gesetzt.")
+            return
         call_command("gemeinden_laden")
         ordnung, _ = Verfahrensordnung.objects.get_or_create(
             policy_id="sachantrag-standard",
@@ -127,7 +140,7 @@ class Command(BaseCommand):
                 username=f"demo{i}",
                 defaults={
                     "email": f"demo{i}@example.org",
-                    "beitritt": date.today() - timedelta(days=200),
+                    "beitritt": timezone.localdate() - timedelta(days=200),
                     "identitaetsstufe": Identitaetsstufe.GEPRUEFT,
                     "pseudonym_oeffentlich": f"Mitglied {i}",
                     "gemeinde": "St. Marienkirchen an der Polsenz",

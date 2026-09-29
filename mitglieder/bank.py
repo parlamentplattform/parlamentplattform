@@ -128,7 +128,7 @@ def kopplung_abschliessen() -> Bankkopplung | None:
 def _offene_referenzen() -> dict[str, int]:
     """Beitragsreferenz → Mitglieds-ID für alle Konten, denen ein Eingang guttäte."""
     referenzen = {}
-    for m in Mitglied.objects.filter(is_active=True).only("pk", "username"):
+    for m in Mitglied.objects.filter(is_active=True).only("pk", "username", "beitragsreferenz_stamm"):
         referenzen[beitragsreferenz(m)] = m.pk
     return referenzen
 

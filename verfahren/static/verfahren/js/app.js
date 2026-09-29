@@ -116,23 +116,111 @@ document.addEventListener("alpine:init", function () {
     };
   });
 
+  /* Dauer und Verlauf aus den Tokens der Design-Spezifikation (2.4) — für Bewegungen, die
+     JavaScript selbst treibt (Web Animations API); CSS-Bewegungen nutzen dieselben Tokens. */
+  var token = function (name, sonst) {
+    var wert = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return wert || sonst;
+  };
+  var dauer = function (name) { return parseFloat(token(name, "300")) || 300; };
+  var verlauf = function () { return token("--e-out", "ease-out"); };
+
+  /* Die vier Felder in Rasterreihenfolge — Fokus-Modus (Teil 7). */
+  var FELDER = ["filter", "favoriten", "wichtig", "region"];
+
+  /* Rechtecke der sichtbaren Fächer-Knoten, Schlüssel data-slug (Geister zählen nicht mit). */
+  var knotenLagen = function (fach) {
+    var lagen = {};
+    Array.prototype.forEach.call(fach.querySelectorAll(".fknoten:not(.geist)"), function (k) {
+      if (k.offsetParent === null || !k.dataset.slug) return;
+      var r = k.getBoundingClientRect();
+      lagen[k.dataset.slug] = {
+        el: k, x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height,
+        eltern: k.dataset.eltern || "", klasse: k.className,
+        text: (k.querySelector(".fname, a:not(.mehr)") || k).textContent.trim()
+      };
+    });
+    return lagen;
+  };
+
   /* Rückmeldung in der Kachel (FB-A2): Nach einer Handlung tauscht htmx das Feld; die neue
      Kachel desselben Antrags zeigt 1,5 s den Gold-Haken „Erfasst“ statt einer Flash-Meldung.
-     Der Auslöser kennt seinen Antrag (data-antrag), darum braucht es keinen Server-Umweg. */
-  Alpine.data("parlament", function () {
+     Der Auslöser kennt seinen Antrag (data-antrag), darum braucht es keinen Server-Umweg.
+     Beim Tausch ginge der Fokus verloren — darum merkt sich die Komponente vor jeder Anfrage die
+     id des fokussierten Elements (Knöpfe und Chips tragen stabile ids) und setzt ihn danach
+     auf das gleichnamige neue Element.
+     Dazu (Teil 7): der Favoriten-Fächer wechselt flüssig (FLIP) und passt ins Feld, der
+     Fokus-Modus dehnt ein Feld auf das Raster, Esc stellt das 2×2 wieder her. `fokusServer` ist
+     der Zustand aus ?fokus=, den der Server gerendert hat. */
+  Alpine.data("parlament", function (fokusServer) {
     return {
+      fokusId: null,
+      faecherFokus: false,  // lag der Fokus auf dem Fächer- oder Brotkrumen-Link, der getauscht hat?
+      fokus: "",
+      vorher: null,  // Knotenlagen des Fächers vor einem Tausch (nur bei Fächer-zu-Fächer)
       init: function () {
         var self = this;
+        this.$el.addEventListener("htmx:beforeRequest", function () {
+          var aktiv = document.activeElement;
+          self.fokusId = aktiv && aktiv.id && self.$el.contains(aktiv) ? aktiv.id : null;
+        });
+        this.$el.addEventListener("htmx:beforeSwap", function (e) { self.faecherMerken(e); });
+        this.$el.addEventListener("htmx:afterSwap", function (e) { self.faecherWechsel(e); });
+        var wartet = null;  // Einpassen erst, wenn die Größenänderung zur Ruhe kommt
+        window.addEventListener("resize", function () {
+          clearTimeout(wartet);
+          wartet = setTimeout(function () {
+            if (self.fokus && self.schmal()) self.alleFelder();  // am Handy kein Fokus-Modus (Drehen, Verkleinern)
+            self.faecherEinpassen();
+          }, 80);
+        });
+        this.fokusStart(fokusServer || "");
+        this.faecherEinpassen();
         this.$el.addEventListener("htmx:afterSettle", function (e) {
           var konfig = e.detail && e.detail.requestConfig;
-          var ausloeser = (e.detail && e.detail.elt) || (konfig && konfig.elt);
+          // e.detail.elt ist das GETAUSCHTE Feld — der Auslöser (Formular, Link) steht in requestConfig
+          var ausloeser = (konfig && konfig.elt) || (e.detail && e.detail.elt);
+          self.fokusZurueck();
           if (!konfig || !ausloeser || !ausloeser.closest) return;
           if (konfig.verb === "get" && ausloeser.classList.contains("treffer-link")) { self.treffer(); return; }
-          if (konfig.verb !== "post") return;
+          if (konfig.verb !== "post" || !e.detail.successful) return;
+          // Auch eine gescheiterte Handlung endet mit 200 (Redirect samt Fehlerhinweis) — dann kein Haken
+          var feld = e.detail.elt;
+          if (feld && feld.querySelector && feld.querySelector(".feld-hinweis.fehler")) return;
           var quelle = ausloeser.closest(".kachel, .fz");
           if (!quelle || !quelle.dataset.antrag) return;
-          self.markiere(quelle.dataset.antrag);
+          self.markiere(quelle.dataset.antrag, e.detail.elt);
         });
+      },
+      fokusZurueck: function () {
+        if (this.faecherFokus) { this.faecherFokus = false; this.fokusImFaecher(); return; }
+        if (!this.fokusId) return;
+        var ziel = document.getElementById(this.fokusId);
+        this.fokusId = null;
+        if (!ziel) return;
+        // Liegt das Ziel nach dem Tausch verborgen (Stimmknöpfe im geschlossenen <details> der
+        // Feed-Zeile), nimmt es keinen Fokus: dann der Kopf desselben <details>, sonst der Feldkörper
+        var klappe = ziel.closest("details"), feld = ziel.closest(".feld");
+        var wahl = [ziel, klappe && klappe.querySelector("summary"), feld && feld.querySelector(".feld-korpus")];
+        for (var i = 0; i < wahl.length; i++) {
+          if (!wahl[i] || !wahl[i].focus) continue;
+          wahl[i].focus({ preventScroll: true });
+          if (document.activeElement === wahl[i]) return;
+        }
+      },
+      /* Fächer- und Brotkrumen-Links tragen keine id, und der geklickte Knoten wird zum Anker (kein
+         Link): der Fokus geht auf den ersten Knotenlink des neuen Fächers (die Kinder des Ankers
+         stehen vorn), sonst auf den Feldkörper. */
+      fokusImFaecher: function () {
+        var feld = document.getElementById("feld-favoriten");
+        if (!feld) return;
+        var wahl = Array.prototype.slice.call(feld.querySelectorAll(".faecher .fknoten > a:not(.mehr)"));
+        wahl.push(feld.querySelector(".feld-korpus"));
+        for (var i = 0; i < wahl.length; i++) {
+          if (!wahl[i]) continue;
+          wahl[i].focus({ preventScroll: true });
+          if (document.activeElement === wahl[i]) return;
+        }
       },
       /* Suchtreffer (FB-C4): der Fächer öffnet am Treffer und hebt den Anker 1,5 s gold hervor. */
       treffer: function () {
@@ -141,18 +229,182 @@ document.addEventListener("alpine:init", function () {
         anker.classList.add("treffer");
         setTimeout(function () { anker.classList.remove("treffer"); }, 1500);
       },
-      markiere: function (antrag) {
-        var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"], .fz[data-antrag="' + antrag + '"]');
+      /* Der Haken erscheint in der neuen Kachel desselben Antrags — zuerst im getauschten Feld
+         gesucht (derselbe Antrag kann in zwei Feldern stehen), sonst im ganzen Parlament. Das
+         role=status-Element bekommt seinen Text neu gesetzt, damit Screenreader ihn ansagen. */
+      markiere: function (antrag, feld) {
+        var wahl = '.kachel[data-antrag="' + antrag + '"], .fz[data-antrag="' + antrag + '"]';
+        var kachel = (feld && feld.querySelector && feld.querySelector(wahl)) || this.$el.querySelector(wahl);
         if (!kachel) return;
+        var status = kachel.querySelector(".k-erfasst");
+        if (status) {
+          var text = status.textContent;
+          status.textContent = "";
+          setTimeout(function () { status.textContent = text; }, 30);
+        }
         kachel.classList.add("erfasst");
         setTimeout(function () { kachel.classList.remove("erfasst"); }, 1500);
+      },
+
+      /* ── Der Fächer passt ins Feld (Teil 7, Einpassen) ──
+         Ist der Fächer höher als der Feldkörper, wird er mit der CSS-Eigenschaft `zoom` verkleinert
+         (layoutwirksam: Prozentlagen und Fäden bleiben stimmig, kein Leerraum), nie unter 0,72,
+         damit die Schrift lesbar bleibt — nur im 2×2-Raster (ab 1024 px, wie das CSS-Raster); darunter,
+         auch bei Browser-Vergrößerung, rollt der Körper, damit die Vergrößerung voll wirkt (WCAG 1.4.4).
+         Ohne JavaScript oder ohne `zoom` rollt der Körper wie bisher von unten (column-reverse, Anker
+         zuerst sichtbar). Liefert den gesetzten Faktor. */
+      faecherEinpassen: function () {
+        var fach = this.$el.querySelector("#feld-favoriten .faecher");
+        if (!fach || !(window.CSS && CSS.supports && CSS.supports("zoom", "0.9"))) return 1;
+        var korpus = fach.closest(".faecher-korpus");
+        if (!korpus) return 1;
+        fach.style.zoom = "";
+        if (!window.matchMedia("(min-width: 1024px)").matches) return 1;
+        var hoehe = fach.offsetHeight, platz = korpus.clientHeight;
+        if (!hoehe || !platz || hoehe <= platz) return 1;
+        var faktor = Math.max(0.72, Math.round(1000 * platz / hoehe) / 1000);
+        fach.style.zoom = String(faktor);
+        return faktor;
+      },
+      /* ── Flüssiger Wechsel (Teil 7, FLIP) ──
+         Vor dem Tausch von #feld-favoriten: die Lage jedes sichtbaren Knotens merken — nur, wenn
+         ein Fächer-Link oder die Brotkrume ausgelöst hat (Suche und „Zurück“ laufen mit View
+         Transition, dort greift FLIP nicht). */
+      faecherMerken: function (e) {
+        var d = e.detail || {};
+        this.vorher = null;
+        this.faecherFokus = false;
+        if (!d.target || d.target.id !== "feld-favoriten" || !d.shouldSwap) return;
+        var ausloeser = d.requestConfig && d.requestConfig.elt;
+        var fach = d.target.querySelector(".faecher");
+        if (!fach || !ausloeser || !ausloeser.closest || !ausloeser.closest(".faecher, .brot")) return;
+        this.faecherFokus = document.activeElement === ausloeser;
+        this.vorher = knotenLagen(fach);
+      },
+      /* Nach dem Tausch: einpassen, dann gleiten gemeinsame Knoten von der alten an die neue
+         Stelle (Lage und Größe — die Ebenen wechseln 24/22/20/18/16 px), neue Knoten fächern
+         vom Elternknoten her auf, verschwundene blenden als Geister kurz aus, die Fäden blenden
+         ein. Gerichtet: der geklickte Knoten wird der Anker, seine Kinder öffnen sich darüber.
+         Reduzierte Bewegung: sofortiger Tausch, keine Animation. */
+      faecherWechsel: function (e) {
+        var d = e.detail || {};
+        if (!d.target || d.target.id !== "feld-favoriten") return;
+        var feld = document.getElementById("feld-favoriten");
+        var fach = feld && feld.querySelector(".faecher");
+        var alt = this.vorher;
+        this.vorher = null;
+        if (!fach) return;
+        var lang = dauer("--d-slide"), kurz = dauer("--d-base"), weich = verlauf();
+        if (alt) {
+          // Keine zweite Eingangsbewegung von Feld und Fächer (CSS auftauchen/hineingleiten). Das Feld trägt
+          // eine id, und htmx stellt dessen Attribute nach dem Settle (20 ms) wieder her — darum steht die
+          // Marke am Raster, nicht am Feld, und fällt nach der Bewegung wieder ab.
+          fach.classList.add("getauscht");
+          var raster = this.$el;
+          raster.classList.add("faecher-tausch");
+          setTimeout(function () {
+            // Erst die Marke am Feld selbst (nach dem Settle bleibt sie), dann die am Raster abnehmen —
+            // sonst liefe die Eingangsbewegung des Felds (ab Deckkraft 0) nach dem Wechsel neu an.
+            var jetzt = document.getElementById("feld-favoriten");
+            if (jetzt) jetzt.classList.add("ohne-auftauchen");
+            raster.classList.remove("faecher-tausch");
+          }, lang + 50);
+        }
+        var faktor = this.faecherEinpassen();
+        if (!alt || reduziert() || !fach.animate) return;
+        var neu = knotenLagen(fach);
+        var fr = fach.getBoundingClientRect();
+        var ruhe = "translate(-50%,-50%)";
+        Object.keys(neu).forEach(function (slug) {
+          var n = neu[slug], a = alt[slug];
+          if (a) {
+            var dx = (a.x - n.x) / faktor, dy = (a.y - n.y) / faktor;
+            var sx = n.w ? a.w / n.w : 1, sy = n.h ? a.h / n.h : 1;
+            if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.01 && Math.abs(sy - 1) < 0.01) return;
+            var lauf = n.el.animate(
+              [{ transform: ruhe + " translate(" + dx + "px," + dy + "px) scale(" + sx + "," + sy + ")" }, { transform: ruhe }],
+              { duration: lang, easing: weich, fill: "none" }
+            );
+            lauf.id = "faecher-flip";
+            return;
+          }
+          // neu: vom Elternknoten her (alte Lage, sonst neue) — oder, ohne Eltern, an Ort und Stelle
+          var eltern = alt[n.eltern] || neu[n.eltern];
+          var ex = eltern ? (eltern.x - n.x) / faktor : 0, ey = eltern ? (eltern.y - n.y) / faktor : 0;
+          var auf = n.el.animate(
+            [{ opacity: 0, transform: ruhe + " translate(" + ex + "px," + ey + "px) scale(.85)" }, { opacity: 1, transform: ruhe }],
+            { duration: lang, easing: weich, fill: "none" }
+          );
+          auf.id = "faecher-flip";
+        });
+        Object.keys(alt).forEach(function (slug) {
+          if (neu[slug]) return;
+          var a = alt[slug];
+          var geist = document.createElement("span");
+          geist.className = a.klasse.replace(/\b(anker|treffer|htmx-request)\b/g, "") + " geist";
+          geist.setAttribute("aria-hidden", "true");
+          geist.style.left = (a.x - fr.left) / faktor + "px";  // berechnete Lage — wie die Pillen selbst
+          geist.style.top = (a.y - fr.top) / faktor + "px";
+          geist.style.maxWidth = a.w / faktor + "px";
+          var name = document.createElement("span");
+          name.className = "fname";
+          name.textContent = a.text;
+          geist.appendChild(name);
+          fach.appendChild(geist);
+          var weg = geist.animate(
+            [{ opacity: 1, transform: ruhe }, { opacity: 0, transform: ruhe + " scale(.9)" }],
+            { duration: kurz, easing: weich, fill: "forwards" }
+          );
+          weg.id = "faecher-flip";
+          var entfernen = function () { if (geist.parentNode) geist.parentNode.removeChild(geist); };
+          weg.onfinish = entfernen;
+          weg.oncancel = entfernen;
+          setTimeout(entfernen, kurz + 100);
+        });
+        var faeden = fach.querySelector("svg.faeden");
+        if (faeden) {
+          var ein = faeden.animate([{ opacity: 0 }, { opacity: 1 }], { duration: lang, easing: weich, fill: "none" });
+          ein.id = "faecher-flip";
+        }
+      },
+
+      /* ── Fokus-Modus (Teil 7): ein Feld auf dem ganzen Raster ──
+         Zustand: ?fokus= vom Server hat Vorrang, sonst sessionStorage; am Handy nie (jedes Feld
+         ist dort ohnehin ein Bildschirm). */
+      schmal: function () { return window.innerWidth < 760; },
+      fokusStart: function (server) {
+        var wahl = server;
+        if (!wahl) { try { wahl = sessionStorage.getItem("ddoe.fokus") || ""; } catch (fehler) { wahl = ""; } }
+        if (FELDER.indexOf(wahl) < 0 || this.schmal()) wahl = "";
+        this.fokus = wahl;
+        this.fokusMerken();
+      },
+      fokusMerken: function () {
+        try {
+          if (this.fokus) sessionStorage.setItem("ddoe.fokus", this.fokus); else sessionStorage.removeItem("ddoe.fokus");
+        } catch (fehler) { /* Speicher gesperrt — der Zustand gilt für diese Seite */ }
+      },
+      fokussiere: function (feld) {
+        if (this.schmal() || FELDER.indexOf(feld) < 0) return;
+        this.fokus = this.fokus === feld ? "" : feld;
+        this.fokusMerken();
+        var self = this;
+        this.$nextTick(function () { self.faecherEinpassen(); });
+      },
+      alleFelder: function () {
+        if (!this.fokus) return;
+        this.fokus = "";
+        this.fokusMerken();
+        var self = this;
+        this.$nextTick(function () { self.faecherEinpassen(); });
       }
     };
   });
 
   /* Der Favoriten-Fächer (FB-C1–C4, Spec 4): Der Server liefert alle entfaltbaren Äste vorab
-     (data-ast, nur der Ruhe-Ast sichtbar); hier wechselt der Zeiger den Ast, der Faden zur
-     Wurzel leuchtet gold, und ein Klick zoomt vom Klickpunkt hinein, bevor htmx das Feld tauscht.
+     (data-ast, nur der Ruhe-Ast sichtbar); hier wechselt der Zeiger den Ast und der Faden zur
+     Wurzel leuchtet gold. Den Wechsel beim Klick (Gleiten der Knoten, Einpassen ins Feld) macht
+     die Komponente „parlament“, weil das Feld samt Fächer von htmx getauscht wird.
      Ohne JavaScript bleibt der Ruhe-Ast stehen und jeder Knoten ist ein gewöhnlicher Link. */
   Alpine.data("faecher", function (standard) {
     return {
@@ -170,14 +422,6 @@ document.addEventListener("alpine:init", function () {
       },
       senke: function () {
         Array.prototype.forEach.call(this.$root.querySelectorAll(".faden.an"), function (f) { f.classList.remove("an"); });
-      },
-      zoome: function (e) {
-        if (reduziert()) return;
-        var wurzel = this.$root, ziel = e.currentTarget.closest(".fknoten");
-        if (!ziel) return;
-        var r = ziel.getBoundingClientRect(), w = wurzel.getBoundingClientRect();
-        wurzel.style.transformOrigin = (r.left + r.width / 2 - w.left) + "px " + (r.top + r.height / 2 - w.top) + "px";
-        wurzel.classList.add("zoom");
       }
     };
   });
@@ -389,11 +633,11 @@ document.addEventListener("alpine:init", function () {
      „Antworten“ ist ein Link mit ?antwort_auf=<pk>, der Server belegt das Zielfeld vor —
      vorgabeId/vorgabeName tragen genau diese Vorbelegung in den Alpine-Zustand, damit ein
      Lesezeichen oder Mittelklick auf den Link das Ziel nicht verliert (Grundregel 3). */
-  Alpine.data("chat", function (antragId, vorgabeId, vorgabeName) {
+  Alpine.data("chat", function (antragId, vorgabeId, vorgabeName, kritikVorgabe) {
     var schluessel = "ddoe.chat." + antragId;
     return {
       antwortAuf: vorgabeId || null,
-      kritik: false,  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6)
+      kritik: Boolean(kritikVorgabe),  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6); nach einem Fehler aus dem Entwurf
       antwortName: vorgabeName || "",
       init: function () {
         this.stelleWiederHer();
@@ -410,14 +654,18 @@ document.addEventListener("alpine:init", function () {
         if (this.$refs.feld) this.$refs.feld.focus();
       },
       abbrechen: function () { this.antwortAuf = null; this.antwortName = ""; },
-      leeren: function () {
-        if (this.$refs.feld) { this.$refs.feld.value = ""; this.wachsen(); this.$refs.feld.focus(); }
-        this.kritik = false;
-        this.abbrechen();
-        // Kam die Vorbelegung aus der Adresse, soll ein Neuladen nicht wieder im Antwort-Modus landen
+      /* Nach dem Senden: Die ganze Zone samt Formular ist getauscht — ein Fehler bringt den
+         Entwurf mit (.chat-fehler), ein Erfolg ein leeres Formular. Nur dann wird die
+         Vorbelegung aus der Adresse entfernt (ein Neuladen soll nicht wieder im Antwort-Modus
+         landen) und der Fokus ins neue Textfeld gesetzt. Nichts wird hier geleert. */
+      gesendet: function (e) {
+        if (!e || !e.detail || !e.detail.successful) return;
+        if (document.querySelector("#chat-faden .chat-fehler")) return;
         if (/[?&]antwort_auf=/.test(window.location.search) && window.history.replaceState) {
           window.history.replaceState(null, "", window.location.pathname + window.location.hash);
         }
+        var feld = document.querySelector("#chat-faden textarea[name=text]");
+        if (feld) feld.focus({ preventScroll: true });
       },
       wachsen: function () {
         var f = this.$refs.feld;

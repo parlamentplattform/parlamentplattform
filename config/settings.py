@@ -40,6 +40,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "verfahren.middleware.AnmeldungFuerHtmx",  # htmx ohne Sitzung: ganze Seite zur Anmeldung (Befund B1)
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "uebersicht.middleware.Besuchszaehlung",  # zählt Tages-Summen, nie Personen (F-52)
@@ -126,6 +127,16 @@ DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "ParlamentPlattform <p
 
 LOGIN_URL = "/anmelden/"
 
+# Demo-Daten (`manage.py demo_seed`): nur, wo ausdrücklich gewollt. In der Entwicklung (DEBUG) an,
+# in Produktion aus — die Demo-Konten des Aufbaus zählten sonst in jedem Nenner der Stimmberechtigten
+# mit (Bestandsaufnahme 28.9.2026, Befund A1; Gründer: „Die Testkonten dürfen gelöscht werden“).
+DDOE_DEMO = os.environ.get("DDOE_DEMO", "1" if DEBUG else "0") == "1"
+
+# Der Fristen-Wächter im Hintergrundfaden des Webdiensts (gunicorn.conf.py, verfahren/hintergrund.py):
+# alle n Minuten werden fällige Fristen aller Verfahren ausgewertet — ohne bezahlten Cron-Dienst
+# (D-J1a, Freigabe des Gründers 28.9.2026). Takt der Maschine, keine Stellgröße der Demokratie.
+DDOE_WAECHTER_MINUTEN = int(os.environ.get("DDOE_WAECHTER_MINUTEN", "10"))
+
 # § 4 Abs 4 lit d: Übergangsregel für den Aufbau — Anwartschaftsfristen entfallen,
 # bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat.
 DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
@@ -211,10 +222,15 @@ if os.environ.get("DDOE_STATIK") == "whitenoise":
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
+# WhiteNoise kennt .webmanifest nicht (es fiele auf application/octet-stream zurück) — Browser
+# verlangen für das App-Manifest (Teil 7) einen JSON-Typ; Djangos Entwicklungsserver rät ihn selbst.
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
 
 # Der Modell-Steckplatz (F-60, Ring 0b) — anbieterneutral, ohne Schlüssel leer.
 # Grundsatz L7: Die KI schlägt vor, sie entscheidet nie.
 DDOE_KI_ANBIETER = os.environ.get("DDOE_KI_ANBIETER", "mistral")
 DDOE_KI_SCHLUESSEL = os.environ.get("DDOE_KI_SCHLUESSEL", "")
 DDOE_KI_MODELL = os.environ.get("DDOE_KI_MODELL", "mistral-small-latest")
+# Textvektoren für den Bedeutungsvergleich beim Einbringen (Stufe 2 der Ähnlichkeit, ADR-011).
+DDOE_KI_EINBETTUNGSMODELL = os.environ.get("DDOE_KI_EINBETTUNGSMODELL", "mistral-embed")
 DDOE_KI_MONATSTOKENS = int(os.environ.get("DDOE_KI_MONATSTOKENS", "1000000"))

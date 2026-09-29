@@ -304,14 +304,20 @@ REGELN: tuple[Regel, ...] = (
             "Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten. Seit "
             "Fassung 3 kann eine Ordnung ohne Beratungsphase auskommen und den frühesten und spätesten "
             "Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die "
-            "Unterstützungsschwelle 0 sein (Bestätigungsantrag).")
+            "Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die "
+            "Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die "
+            "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
-        fassung=3,
-        seit="2026-09-15",
+        fassung=4,
+        seit="2026-09-29",
         grund=(
-            _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
+            _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
+            "Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl "
+            "bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der "
+            "Nenner einer Abstimmung; die Zahl steht danach fest. ")
+            + _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
             "Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der "
             "Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die "
             "Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über "
@@ -332,7 +338,7 @@ REGELN: tuple[Regel, ...] = (
             "geltende Ordnung Feld für Feld nebeneinander; fehlt im Register ein Wert, verweigert die "
             "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen.")
         ),
-        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
+        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-anteil-prozent · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
     ),
     Regel(
         modul="gremienbeschluss.py",
@@ -479,30 +485,43 @@ REGELN: tuple[Regel, ...] = (
         modul="similarity.py",
         titel=_("Ähnlichkeitshinweis beim Einbringen"),
         zweck=(
-            _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt bis zu drei ähnliche "
-            "samt ihrer Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
-            "Gerechnet wird ohne Modell: Beide Texte werden in Dreizeichenfolgen zerlegt, der Wert "
-            "ist die Zahl der gemeinsamen geteilt durch die Zahl aller vorkommenden Folgen; ab 18 "
-            "Prozent erscheint der Hinweis. Er schlägt vor und blockiert nie — „Trotzdem einbringen“ "
-            "bleibt immer gleichwertig möglich.")
+            _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt ähnliche samt ihrer "
+            "Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
+            "Der Wortvergleich rechnet ohne Modell auf Wort-Ebene: Funktionswörter und Antragsfloskeln "
+            "fallen weg, Wörter werden auf ihre Stammform gekürzt, Titelwörter zählen doppelt; der "
+            "Wert ist zu zwei Dritteln der gewichtete Jaccard der Wortmengen und zu einem Drittel der "
+            "Jaccard der Wortpaare. Ab der Schwelle im Register (Zielwert 30 Prozent) erscheint der "
+            "Hinweis. Ist ein Anbieter am Modell-Steckplatz angeschlossen, kommt als Zweitmeinung der "
+            "Bedeutungsvergleich dazu (Kosinus zweier Textvektoren des Anbieters, Schwelle im Register, "
+            "Zielwert 78 Prozent); beide Werte stehen nebeneinander. Ein Antrag erscheint, sobald einer "
+            "der beiden Werte seine Schwelle erreicht. Erreichen mehr Anträge eine Schwelle, als die "
+            "Höchstzahl im Register erlaubt (Zielwert drei), zeigt die Plattform die mit dem höheren der "
+            "beiden Werte, bei Gleichstand den älteren Antrag. Der Hinweis schlägt vor und blockiert "
+            "nie — „Trotzdem einbringen“ bleibt immer gleichwertig möglich.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 5 Abs 10 lit d · § 2 Abs 6",
-        fassung=1,
-        seit="2026-08-19",
+        fassung=2,
+        seit="2026-09-29",
         grund=(
-            _("Erste und bis heute einzige Fassung: Der Hinweis kam mit dem Einbringen im Browser, weil "
-            "jede Eingabe zuerst zu einer Übersicht bereits gestellter ähnlicher Anträge führen soll. "
-            "Bewusst rein lexikalisch gerechnet, damit jedes Mitglied den angezeigten Wert selbst "
-            "überprüfen kann.")
+            _("Zweite Fassung nach der Anweisung des Gründers vom 28.9.2026: Die erste Fassung verglich "
+            "Dreizeichenfolgen und zählte damit die Floskeln mit, die fast jeder Antrag trägt — zwei "
+            "Anträge ohne jede inhaltliche Nähe erreichten 29 Prozent. Der Wortvergleich streicht diese "
+            "Floskeln und bleibt lexikalisch nachrechenbar; der Bedeutungsvergleich über den Steckplatz "
+            "ist eine gekennzeichnete Zweitmeinung, kein Ersatz.")
         ),
         nachrechenbar=(
-            _("Text kleinschreiben, Satzzeichen entfernen, in Dreizeichenfolgen zerlegen — der "
-            "angezeigte Wert ist die Größe der Schnittmenge geteilt durch die Größe der "
-            "Vereinigungsmenge. Mit Papier und Bleistift nachvollziehbar: kein Modell, kein Zufall, "
-            "kein fremder Dienst.")
+            _("Text kleinschreiben, Satzzeichen entfernen, Stoppwörter der Liste im Modul und Wörter "
+            "unter drei Zeichen streichen, ab fünf Zeichen eine Endung -en/-er/-es/-e/-n/-s kappen, "
+            "Titelwörter doppelt gewichten. Wortanteil: Summe der kleineren Gewichte je gemeinsamem Wort "
+            "geteilt durch die Summe der größeren Gewichte über alle Wörter. Wortpaare sind benachbarte "
+            "Wörter, gebildet getrennt in Titel und Wortlaut. Paaranteil: gemeinsame Wortpaare geteilt "
+            "durch alle Wortpaare. Angezeigter Wert = ⅔ Wortanteil + ⅓ Paaranteil; hat keiner der beiden "
+            "Texte ein Wortpaar, zählt der Wortanteil allein. "
+            "Der Bedeutungswert stammt vom Anbieter und ist nur mit dessen Modell nachrechenbar — "
+            "darum steht er getrennt und gekennzeichnet daneben.")
         ),
-        registerschluessel="aehnlichkeit-schwelle-prozent",
+        registerschluessel="aehnlichkeit-schwelle-prozent · aehnlichkeit-bedeutung-schwelle-prozent · aehnlichkeit-treffer",
     ),
     Regel(
         modul="klassifikation.py",
@@ -541,10 +560,16 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=5,
-        seit="2026-09-17",
+        fassung=6,
+        seit="2026-09-29",
         grund=(
-            _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
+            _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
+            "des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, "
+            "Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit "
+            "0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene "
+            "Zeile nennt mehr einen Bauschritt, der schon abgeschlossen ist; wo Teil C keinen Schritt "
+            "vorsieht, steht das so da. ")
+            + _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
             "einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der "
             "QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. ")
             + _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "

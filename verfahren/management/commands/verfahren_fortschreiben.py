@@ -8,39 +8,73 @@ verstrichen sein, bevor sie überhaupt begonnen haben. Ein Cron, der diesen Befe
 auch täte — er ist idempotent und schreibt nur, was fällig ist.
 """
 
+import logging
+
 from django.apps import apps
 from django.core.management.base import BaseCommand
+from django.db import transaction
 from django.utils import timezone
 
 from plattform_core import Phase
 from verfahren.models import Antrag
 
+log = logging.getLogger(__name__)
+
 LAUFENDE_PHASEN = (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value)
 
 
 def alles_fortschreiben(jetzt=None) -> dict[str, int]:
-    """Fristen, Entwurfsschleife, Gremienbeschlüsse, Aussetzungen und Parametertests auswerten."""
+    """Fristen, Entwurfsschleife, Gremienbeschlüsse, Aussetzungen und Parametertests auswerten.
+
+    Ein Fehler trifft nur das Verfahren, in dem er entsteht: Jeder Schritt eines Antrags läuft in
+    seiner eigenen Transaktion, jeder Nachlauf für sich; der Fehler steht im Protokoll und in
+    `stand["fehler"]`, der Lauf geht weiter. Ohne diese Grenze hielt ein einziger werfender Antrag
+    bei jedem Takt alle Anträge mit größerer Kennung und sämtliche Nachläufe an."""
     jetzt = jetzt or timezone.now()
-    stand = {"phasenwechsel": 0, "beschluesse": 0, "aussetzungen": 0, "parametertests": 0, "vertrauensfragen": 0}
+    stand = {
+        "phasenwechsel": 0,
+        "beschluesse": 0,
+        "aussetzungen": 0,
+        "parametertests": 0,
+        "vertrauensfragen": 0,
+        "fehler": 0,
+    }
     for antrag in Antrag.objects.filter(phase__in=LAUFENDE_PHASEN).order_by("pk"):
         # Einmal je Antrag genügt nicht immer: Wertet die Entwurfsschleife aus, ist danach
         # vielleicht schon der Phasenübergang fällig — so lange fortschreiben, bis nichts mehr passiert.
-        for _schritt in range(5):
-            if not antrag.fortschreiben(jetzt):
-                break
-            stand["phasenwechsel"] += 1
+        # Jeder Schritt in seiner eigenen Transaktion, wie auf der Antragsseite: Scheitert ein
+        # späterer Schritt, bleibt ein früherer, fälliger Übergang geschrieben.
+        try:
+            for _schritt in range(5):
+                with transaction.atomic():
+                    weiter = antrag.fortschreiben(jetzt)
+                if not weiter:
+                    break
+                stand["phasenwechsel"] += 1
+        except Exception:
+            log.exception("Fortschreiben von Antrag %s gescheitert", antrag.pk)
+            stand["fehler"] += 1
+    nachlaeufe = []
     if apps.is_installed("gremien"):
-        from gremien.models import GremienBeschluss, aussetzungen_fortschreiben, parametertests_fortschreiben
+        from gremien import models as gremien
 
-        stand["beschluesse"] = GremienBeschluss.faellige_abschliessen(jetzt)
-        stand["aussetzungen"] = aussetzungen_fortschreiben(jetzt)
-        stand["parametertests"] = parametertests_fortschreiben(jetzt)
+        nachlaeufe += [
+            ("beschluesse", gremien.GremienBeschluss.faellige_abschliessen),
+            ("aussetzungen", gremien.aussetzungen_fortschreiben),
+            ("parametertests", gremien.parametertests_fortschreiben),
+        ]
     if apps.is_installed("mandatare"):
-        from mandatare.models import vertrauensfragen_fortschreiben
+        from mandatare import models as mandatare
 
         # Zweite Stufe der Wirkungen einer verlorenen Vertrauensfrage (§ 7 Abs 10 lit f):
         # nach der Anfechtungsfrist enden ruhende Rollen, nach 30 Tagen endet die Vertretung.
-        stand["vertrauensfragen"] = vertrauensfragen_fortschreiben(jetzt)
+        nachlaeufe.append(("vertrauensfragen", mandatare.vertrauensfragen_fortschreiben))
+    for schluessel, nachlauf in nachlaeufe:
+        try:
+            stand[schluessel] = nachlauf(jetzt)
+        except Exception:
+            log.exception("Nachlauf %s gescheitert", schluessel)
+            stand["fehler"] += 1
     return stand
 
 

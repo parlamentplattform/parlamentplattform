@@ -59,6 +59,7 @@ urlpatterns = [
         RedirectView.as_view(pattern_name="verfahren:zukunftswerkstatt", permanent=True),
         name="staatssimulation",
     ),
+    path("datenschutz/", views.datenschutz, name="datenschutz"),
     path("umsetzung/", views.umsetzung, name="umsetzung"),
     path("umsetzung.json", views.umsetzung_json, name="umsetzung_json"),
     path("gesund/", views.gesund, name="gesund"),

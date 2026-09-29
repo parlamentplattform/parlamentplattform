@@ -11,8 +11,8 @@ Zwei bewusste Designentscheidungen:
 2. Stimmen sind zweigeteilt (F-25): `Stimmabgabe` enthält Pseudonym und Stimme
    (und wird veröffentlicht), `StimmRegister` enthält die Zuordnung
    Mitglied ↔ Pseudonym je Antrag (zugriffsbeschränkt, nie veröffentlicht).
-   Die Verbindung beider Tabellen ist der einzige Weg vom Menschen zur Stimme —
-   und genau dieser Zugriff ist protokollierungspflichtig.
+   Die Verbindung beider Tabellen ist der einzige Weg vom Menschen zur Stimme.
+   Ein Protokoll der Zugriffe darauf (ADR-003 „Zugriffs-Audit“) ist nicht gebaut.
 """
 
 from __future__ import annotations
@@ -352,7 +352,7 @@ class Antrag(models.Model):
             from gremien.models import aussetzungen_fortschreiben
 
             aussetzungen_fortschreiben(jetzt)
-        unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
+        unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
         vf = self._vertrauensfrage()
         if vf is not None and phase is Phase.UNTERSTUETZUNG and vf.schwelle_erreicht_am is None:
             # § 7 Abs 10 lit c: Das Erreichen der Schwelle wird veröffentlicht — der Zeitpunkt ist der
@@ -495,6 +495,19 @@ class Antrag(models.Model):
             laufende = laufende.filter(gegenstand=gegenstand)
         return any(a.laeuft(jetzt) for a in laufende)
 
+    def fortschreiben_bis_zum_stand(self, jetzt=None, hoechstens: int = 5) -> int:
+        """Alle fälligen Übergänge nacheinander anwenden — `fortschreiben` wendet je Aufruf genau
+        einen an. Ein liegengebliebener Antrag (Beratung um, Abstimmung um) zeigte sonst beim ersten
+        Aufruf „Abstimmung“ mit längst verstrichener Frist und erst beim zweiten das Ergebnis
+        (Bestandsaufnahme 28.9.2026, A2). Begrenzt wie im Wächter. Rückgabe: Zahl der Übergänge."""
+        jetzt = jetzt or timezone.now()
+        schritte = 0
+        for _schritt in range(hoechstens):
+            if not self.fortschreiben(jetzt):
+                break
+            schritte += 1
+        return schritte
+
     def wirksamer_phase_beginn(self, jetzt=None):
         """Der Phasenbeginn, mit dem gerechnet wird — um die Stillstandszeit nach hinten gerückt.
 
@@ -566,11 +579,39 @@ class AntragsFassung(models.Model):
         return f"Antrag {self.antrag_id}, Fassung {self.nummer}"
 
 
+class AntragsEinbettung(models.Model):
+    """Der Textvektor einer Antragsfassung aus dem Modell-Steckplatz (Stufe 2 der Ähnlichkeit, ADR-011).
+
+    Je Antrag, Fassung und Modell ein Vektor; gerechnet wird der Kosinus in `plattform_core.similarity`.
+    Der Vektor ist kein Verfahrensdatum — er wird beim Einbringen gespeichert oder von der
+    Warteschlange nachgezogen und lässt sich jederzeit mit einem anderen Modell neu rechnen; ein
+    Wechsel des Modells lässt die alten Zeilen stehen (anderer Schlüssel) und macht sie unbenutzt."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="einbettungen")
+    fassung_nummer = models.PositiveIntegerField()
+    modell = models.CharField(max_length=60)
+    vektor = models.JSONField()
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["antrag", "fassung_nummer", "modell"], name="antragseinbettung_einmal_je_fassung_und_modell"
+            )
+        ]
+        verbose_name = "Antragseinbettung"
+        verbose_name_plural = "Antragseinbettungen"
+
+    def __str__(self) -> str:
+        return f"Vektor zu Antrag {self.antrag_id}, Fassung {self.fassung_nummer} ({self.modell})"
+
+
 class Unterstuetzung(models.Model):
     """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
     Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug
     als Zeile stehen (`zurueckgezogen_am`, Grundregel 7) statt gelöscht zu werden (Befund #27).
-    Gezählt wird nur, was nicht zurückgezogen ist: `gueltige()`."""
+    Gezählt wird nur, was nicht zurückgezogen ist und nicht von einem Testkonto stammt: `gueltige()`
+    (Testkonten stehen in keinem Nenner, also auch in keinem Zähler)."""
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="unterstuetzungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -591,8 +632,8 @@ class Unterstuetzung(models.Model):
 
     @classmethod
     def gueltige(cls):
-        """Die Unterstützungen, die zählen — ohne die zurückgezogenen."""
-        return cls.objects.filter(zurueckgezogen_am__isnull=True)
+        """Die Unterstützungen, die zählen — ohne die zurückgezogenen und ohne die von Testkonten."""
+        return cls.objects.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False)
 
 
 class Stimmabgabe(models.Model):
@@ -614,7 +655,8 @@ class Stimmabgabe(models.Model):
 
 class StimmRegister(models.Model):
     """Die geschützte Seite: Mitglied ↔ Pseudonym je Antrag (F-25, § 8 Abs 5).
-    Zugriff nur für den Systembetrieb im Störfall; jeder Zugriff wird auditiert.
+    Zugriffsbeschränkt: gelesen wird es für das eigene Mitglied („Meine Stimme“,
+    Parlament, Datenexport); ein Protokoll der Zugriffe ist nicht gebaut.
     Der Prüfcode erlaubt dem Mitglied, die eigene Stimme in der veröffentlichten
     Liste wiederzufinden, ohne dass Dritte das können."""
 
@@ -809,6 +851,29 @@ class AuditEintrag(models.Model):
         )
 
 
+class Hintergrundlauf(models.Model):
+    """Ein wiederkehrender Lauf des Webdiensts (verfahren/hintergrund.py): Fristen-Wächter u. a.
+
+    Die Zeile ist die Sperre zwischen den Workern (atomare Reservierung wie beim Postauftrag)
+    und zugleich die Rechenschaft: wann der Lauf zuletzt begann, endete, was er tat und ob er
+    scheiterte. Nichts hier ist Verfahrensdatum; die Fristen selbst rechnet der Kern."""
+
+    name = models.CharField(max_length=40, unique=True)
+    gesperrt_bis = models.DateTimeField(null=True, blank=True)
+    sperrcode = models.CharField(max_length=32, default="", blank=True)
+    zuletzt_begonnen = models.DateTimeField(null=True, blank=True)
+    zuletzt_beendet = models.DateTimeField(null=True, blank=True)
+    zuletzt_stand = models.JSONField(default=dict, blank=True)
+    fehler = models.CharField(max_length=300, default="", blank=True)
+
+    class Meta:
+        verbose_name = "Hintergrundlauf"
+        verbose_name_plural = "Hintergrundläufe"
+
+    def __str__(self) -> str:
+        return f"{self.name} (zuletzt {self.zuletzt_beendet:%d.%m.%Y %H:%M})" if self.zuletzt_beendet else self.name
+
+
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------
 
 
@@ -825,6 +890,32 @@ def antrag_einbringen(
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren.
     `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70)."""
     policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
+    stimmberechtigte = None
+    if policy.unterstuetzung_anteil > 0 and not policy.beratung_entfaellt:
+        # Fassung 4 der Ordnung: Die Schwelle ist ein Anteil der Stimmberechtigten. Gerechnet wird
+        # am Einbringungstag mit derselben Zählung wie der Nenner einer Abstimmung, und die Zahl
+        # wird samt Grundgesamtheit eingefroren — eine spätere Änderung des Mitgliederstands oder
+        # des Registers ändert diesen Antrag nicht mehr (§ 5 Abs 5).
+        from dataclasses import replace
+
+        from django.conf import settings as dj_settings
+
+        from mitglieder.models import stimmberechtigte_zaehlen
+        from plattform_core import Gegenstand
+        from plattform_core.policy import unterstuetzungsschwelle
+
+        gegenstand = Gegenstand.PERSONENWAHL if Antragsart(art) == Antragsart.MANDAT else Gegenstand.SACHFRAGE
+        stimmberechtigte = stimmberechtigte_zaehlen(
+            gegenstand, timezone.localdate(), uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
+        )
+        policy = replace(
+            policy,
+            unterstuetzung_schwelle=unterstuetzungsschwelle(
+                policy.unterstuetzung_schwelle, policy.unterstuetzung_anteil, stimmberechtigte
+            ),
+            unterstuetzung_grundgesamtheit=stimmberechtigte,
+            unterstuetzung_mindestzahl=policy.unterstuetzung_schwelle,
+        )
     antrag = Antrag.objects.create(
         titel=titel,
         eingebracht_von=mitglied,
@@ -834,15 +925,17 @@ def antrag_einbringen(
         art=Antragsart(art),
     )
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "antrag_eingebracht",
-            "antrag": antrag.pk,
-            "titel": titel,
-            "art": str(antrag.art),
-            "policy": f"{policy.id} v{policy.version}",
-        }
-    )
+    ereignis = {
+        "typ": "antrag_eingebracht",
+        "antrag": antrag.pk,
+        "titel": titel,
+        "art": str(antrag.art),
+        "policy": f"{policy.id} v{policy.version}",
+    }
+    if stimmberechtigte is not None:
+        ereignis["unterstuetzung_schwelle"] = policy.unterstuetzung_schwelle
+        ereignis["stimmberechtigte"] = stimmberechtigte
+    AuditEintrag.anhaengen(ereignis)
     return antrag
 
 
@@ -895,7 +988,9 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             _("Die Frist liegt zu nah: Eine Abstimmung dauert mindestens %(tage)s Tage (§ 5 Abs 3 lit d).")
             % {"tage": dauer}
         )
-    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer)
+    # Kein Anteil der Ordnung: Die Mandatsfrage hat keine Unterstützungsphase (§ 5 Abs 5 — die
+    # eingefrorene Regel nennt nur, was angewandt wird).
+    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer, unterstuetzung_anteil=0.0)
     stichtag = timezone.localdate(jetzt)
     antrag = Antrag.objects.create(
         titel=titel,
@@ -1070,6 +1165,7 @@ def vertrauensfrage_einbringen(
     policy = dataclasses.replace(
         ordnung.als_policy(),
         unterstuetzung_schwelle=schwelle,
+        unterstuetzung_anteil=0.0,  # es gilt die Satzungsschwelle (lit c), nicht der Anteil der Ordnung
         unterstuetzung_frist_tage=sammelfrist,
         beratung_entfaellt=True,
         abstimmung_fruehestens_tage=VERTRAUENSFRAGE_FRUEHESTENS_TAGE,

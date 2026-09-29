@@ -7,38 +7,43 @@
 {% block bodyklasse %}voll{% if not user.is_authenticated %} mit-band{% endif %}{% endblock %}
 {% block band %}{{ block.super }}{% if not user.is_authenticated %}<div class="band gast"><span class="band-text">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}</span><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% endif %}{% endblock %}
 {% block inhalt %}
-<div class="parlament" id="parlament" x-data="parlament">
+{% comment %}Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld serverseitig auf das ganze Raster (ohne JavaScript);
+mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her, der Zustand liegt in sessionStorage.{% endcomment %}
+<div class="parlament{% if fokus %} fokus fokus-{{ fokus }}{% endif %}" id="parlament" x-data="parlament('{{ fokus|default:"" }}')"
+  :class="{'fokus': fokus !== '', 'fokus-filter': fokus === 'filter', 'fokus-favoriten': fokus === 'favoriten', 'fokus-wichtig': fokus === 'wichtig', 'fokus-region': fokus === 'region'}" @keydown.escape.window="alleFelder()">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5; FB-B1–B6) — Profil-Leiste mit Pfeil, Feed, Regler-Overlay ── #}
-  <section class="feld" id="feld-filter" aria-labelledby="h-filter" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
+  <section class="feld" id="feld-filter" aria-labelledby="h-filter" x-data="feldmehr" :class="{'mehr-da': sichtbar}"{% if fokus and fokus != "filter" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'filter'">
     <div class="filter-rahmen" x-data='weicherfilter({{ filter_lage.gespeichert_json|default:"{}" }})'>
     <div class="feld-kopf">
       <h2 id="h-filter">{% translate "WeicherFilter" %}</h2>
       {% if filter_lage %}
       <form method="post" action="{% url 'verfahren:filter_favoriten' %}" class="chipform"
         hx-post="{% url 'verfahren:filter_favoriten' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="chip{% if filter_lage.favoriten_zuerst %} an{% endif %}" aria-pressed="{% if filter_lage.favoriten_zuerst %}true{% else %}false{% endif %}" title="{% translate 'Favoriten zuerst umschalten' %}">★ {% translate "Favoriten zuerst" %}</button>
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}"><input type="hidden" name="feld" value="filter">
+        <button class="chip{% if filter_lage.favoriten_zuerst %} an{% endif %}" id="chip-favoriten" aria-pressed="{% if filter_lage.favoriten_zuerst %}true{% else %}false{% endif %}" title="{% translate 'Favoriten zuerst umschalten' %}">★ {% translate "Favoriten zuerst" %}</button>
       </form>
       <span class="bk">{% if filter_lage.aktiv %}{% translate "Profil:" %} {{ filter_lage.aktiv.name }}{% else %}{% translate "Voreinstellung: neutral" %}{% endif %}</span>
       <button type="button" class="ikon" x-cloak @click="oeffne()" aria-label="{% translate 'Regler öffnen' %}" title="{% translate 'Regler' %}">&#9881;</button>
       {% else %}
       <span class="bk">{% translate "Voreinstellung: neutral" %}</span>
       {% endif %}
+      {% include "verfahren/_fokus_knopf.html" with feld="filter" %}
     </div>
+    {% include "verfahren/_feld_hinweis.html" with feld="filter" %}
     {% if filter_lage %}
     <div class="filter-leiste" id="filter-leiste" :class="{zu: !offen}">
       {# eingefahren: inert nimmt Chips, Regler und Pfeil aus Fokus und Tab-Reihenfolge (Befund #50) #}
       <div class="innen" :inert="!offen">
         <form method="post" action="{% url 'verfahren:filter_neutral' %}" class="chipform"
           hx-post="{% url 'verfahren:filter_neutral' %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-          <button class="chip{% if not filter_lage.aktiv %} an{% endif %}">{% translate "Neutral" %}</button></form>
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}"><input type="hidden" name="feld" value="filter">
+          <button class="chip{% if not filter_lage.aktiv %} an{% endif %}" id="chip-neutral">{% translate "Neutral" %}</button></form>
         {% for p in filter_lage.profile %}
         <form method="post" action="{% url 'verfahren:filter_waehlen' p.pk %}" class="chipform"
           hx-post="{% url 'verfahren:filter_waehlen' p.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-          <button class="chip{% if p.aktiv %} an{% endif %}" title="{% translate 'Konfiguration anwenden' %}">{{ p.name }}</button></form>
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}"><input type="hidden" name="feld" value="filter">
+          <button class="chip{% if p.aktiv %} an{% endif %}" id="chip-profil-{{ p.pk }}" title="{% translate 'Konfiguration anwenden' %}">{{ p.name }}</button></form>
         {% endfor %}
         <span class="chip still" x-show="geaendert" x-cloak>● {% translate "Ungespeichert" %}</span>
         <details class="regler-klappe" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
@@ -50,7 +55,7 @@
       <button type="button" class="griff" x-cloak @click="leiste(true)" aria-label="{% translate 'Profil-Leiste ausfahren' %}">˅</button>
     </div>
     {% endif %}
-    <div class="feld-korpus" tabindex="0">
+    <div class="feld-korpus" tabindex="0" role="region" aria-labelledby="h-filter">
       {% include "verfahren/_skelett.html" with art="zeilen" n=5 %}
       {% include "verfahren/_filter_liste.html" %}
     </div>
@@ -59,26 +64,27 @@
   </section>
 
   {# ── Feld 2: Der Favoriten-Fächer (Bereich a, P2) — direkt sichtbar, oben die Suche ── #}
-  <section class="feld" id="feld-favoriten" aria-labelledby="h-favoriten">
+  <section class="feld" id="feld-favoriten" aria-labelledby="h-favoriten"{% if fokus and fokus != "favoriten" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'favoriten'">
     <div class="feld-kopf">
       <h2 id="h-favoriten">{% translate "Meine Favoriten" %}</h2>
       {% if suchtreffer is None and faecher.brotkrume|length > 1 %}
       <nav class="brot" aria-label="{% translate 'Pfad im Fächer' %}">{% for b in faecher.brotkrume %}{% if forloop.last %}<b>{{ b.name }}</b>{% else %}<a href="?fach={{ b.slug }}#feld-favoriten"
-        hx-get="{{ request.path }}?fach={{ b.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten">{{ b.name }}</a> › {% endif %}{% endfor %}</nav>
+        hx-get="{{ request.path }}?fach={{ b.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML" hx-indicator="this">{{ b.name }}</a> › {% endif %}{% endfor %}</nav>
       {% endif %}
       <form method="get" action="{{ request.path }}" class="feld-suche" role="search"
         hx-get="{{ request.path }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten">
         <input type="search" name="suche" value="{{ suchtext }}" placeholder="{% translate 'Lebensbereich suchen …' %}"
           aria-label="{% translate 'Lebensbereich suchen' %}">
       </form>
+      {% include "verfahren/_fokus_knopf.html" with feld="favoriten" %}
     </div>
-    <div class="feld-korpus{% if suchtreffer is None %} faecher-korpus{% endif %}" tabindex="0">
+    <div class="feld-korpus{% if suchtreffer is None %} faecher-korpus{% endif %}" tabindex="0" role="region" aria-labelledby="h-favoriten">
       {% include "verfahren/_skelett.html" with art="zeilen" n=4 %}
       {% if suchtreffer is not None %}
         {% for t in suchtreffer %}
         <div class="zeile">
           <span><a class="treffer-link" href="?fach={{ t.k.slug }}#feld-favoriten"
-              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true swap:220ms" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
+              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
             <br><span class="meta">{{ t.k.pfad_kurz }}{% if t.laufend %} · {% blocktranslate count n=t.laufend %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% endif %}</span></span>
           {% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k.name abonniert=t.abonniert %}
         </div>
@@ -96,16 +102,18 @@
   </section>
 
   {# ── Feld 3: Wichtige Abstimmungen als Kacheln (Bereich b, P3) ── #}
-  <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
+  <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig" x-data="feldmehr" :class="{'mehr-da': sichtbar}"{% if fokus and fokus != "wichtig" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'wichtig'">
     <div class="feld-kopf">
       <h2 id="h-wichtig">{% translate "Wichtige Abstimmungen" %}</h2>
       <span class="bk">{% if wichtige_kacheln %}{{ wichtige_kacheln|length }} · {% endif %}{% translate "Beschluss des Integritätsrats" %}</span>
+      {% include "verfahren/_fokus_knopf.html" with feld="wichtig" %}
     </div>
-    <div class="feld-korpus" tabindex="0">
+    {% include "verfahren/_feld_hinweis.html" with feld="wichtig" %}
+    <div class="feld-korpus" tabindex="0" role="region" aria-labelledby="h-wichtig">
       {% include "verfahren/_skelett.html" with art="kacheln" n=4 %}
       {% if wichtige_kacheln %}
       <div class="kacheln">
-      {% for k in wichtige_kacheln %}{% include "verfahren/_kachel.html" with k=k zeige_begruendung=True ziel="#feld-wichtig" %}{% endfor %}
+      {% for k in wichtige_kacheln %}{% include "verfahren/_kachel.html" with k=k zeige_begruendung=True ziel="#feld-wichtig" feld="wichtig" %}{% endfor %}
       </div>
       {% else %}
       <p class="leer">{% translate "Derzeit ist nichts hervorgehoben." %}</p>
@@ -115,12 +123,14 @@
   </section>
 
   {# ── Feld 4: Meine Region als Kachel-Raster (Bereich c, P4) ── #}
-  <section class="feld" id="feld-region" aria-labelledby="h-region" x-data="feldmehr" :class="{'mehr-da': sichtbar}">
+  <section class="feld" id="feld-region" aria-labelledby="h-region" x-data="feldmehr" :class="{'mehr-da': sichtbar}"{% if fokus and fokus != "region" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'region'">
     <div class="feld-kopf">
       <h2 id="h-region">{% translate "Meine Region" %}</h2>
       <span class="bk">{% translate "Gemeinde · Bezirk · Land" %}</span>
+      {% include "verfahren/_fokus_knopf.html" with feld="region" %}
     </div>
-    <div class="feld-korpus" tabindex="0">
+    {% include "verfahren/_feld_hinweis.html" with feld="region" %}
+    <div class="feld-korpus" tabindex="0" role="region" aria-labelledby="h-region">
       {% include "verfahren/_skelett.html" with art="kacheln" n=3 %}
       {# FB-E1: drei Bänder Gemeinde · Bezirk · Land, je Band eine waagrecht wischbare Spur mit drei sichtbaren Kacheln #}
       <div class="baender">
@@ -129,7 +139,7 @@
           <p class="rkopf" id="rk-{{ zeile.ebene }}">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
           {% if zeile.kacheln %}
           <div class="spur" x-ref="spur" aria-labelledby="rk-{{ zeile.ebene }}">
-            {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" ort_versteckt=zeile.ort_versteckt %}{% endfor %}
+            {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" feld="region" ort_versteckt=zeile.ort_versteckt %}{% endfor %}
           </div>
           <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>
           {% else %}

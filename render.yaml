@@ -28,11 +28,14 @@ services:
     # „commit" — dann liefe jeder Commit live, auch ein roter, und zusätzlich der Hook aus der CI.
     # Ausgerollt wird nur über den CI-Job `ausrollen` nach bestandener Prüfung (docs/BETRIEB-RENDER.md).
     autoDeployTrigger: "off"
+    # Reihenfolge: Migrationen, amtliches Gemeindeverzeichnis (ohne es kann sich niemand registrieren —
+    # bis 0.49 lud es nur `demo_seed` mit), Kategorienbaum, alte Sitzungen räumen, Statik einsammeln.
+    # `demo_seed` läuft in Produktion nicht mehr (DDOE_DEMO ist dort aus; Bestandsaufnahme 28.9.2026, A1).
     dockerCommand: >-
       sh -c "python manage.py migrate --noinput
+      && python manage.py gemeinden_laden
       && python manage.py kategorien_laden
-      && python manage.py demo_seed &&
-      python manage.py clearsessions
+      && python manage.py clearsessions
       && python manage.py collectstatic --noinput
       && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 60"
     envVars:

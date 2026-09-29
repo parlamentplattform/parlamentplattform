@@ -24,6 +24,13 @@ services:
       POSTGRES_USER: plattform
       POSTGRES_PASSWORD: nur-entwicklung
       DDOE_DEBUG: "1"
+      DDOE_DEMO: "1"
+    command: >-
+      sh -c "python manage.py migrate
+      && python manage.py gemeinden_laden
+      && python manage.py kategorien_laden
+      && python manage.py demo_seed
+      && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "8000:8000"
     depends_on:

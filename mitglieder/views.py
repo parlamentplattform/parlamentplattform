@@ -26,7 +26,7 @@ from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
-from mitglieder.post import freischaltung_senden, willkommen_senden
+from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -84,6 +84,20 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
         required=False,
         help_text=gettext_lazy(
             "Ohne Haken zeigt die Plattform bis zur Wahl eines Anzeigenamens „Mitglied n“ (§ 5 Abs 3 lit a)."
+        ),
+    )
+    post_einwilligung = forms.BooleanField(
+        label=gettext_lazy(
+            "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und für ganz "
+            "Österreich, zu Ergebnissen der Zukunftswerkstatt zu meinen Anträgen und die Beitragserinnerung "
+            "der Verwaltung."
+        ),
+        required=False,
+        help_text=gettext_lazy(
+            "Anmelde- und Bestätigungslinks, Willkommens-, Freischaltungs- und Ausweisnachrichten, die "
+            "Bestätigung eines Beitragseingangs, der Einspruchslink bei einem Adresswechsel und die "
+            "Verständigung zu einer Vertrauensfrage über ein Mandat kommen unabhängig davon. "
+            "Der Haken lässt sich jederzeit im Profil setzen oder entfernen."
         ),
     )
     grundsaetze = forms.BooleanField(
@@ -181,6 +195,9 @@ def registrieren(request):
                     # § 5 Abs 3 lit a: Pseudonym ist die Regel — der Klarname erscheint nur mit
                     # ausdrücklicher Einwilligung (Kontrollkästchen, Standard: nicht angehakt).
                     mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
+                    # E-Mails über das Verfahren nur mit ausdrücklichem Haken (Voreinstellung: nein);
+                    # Konto- und Anmeldenachrichten gehen unabhängig davon.
+                    mitglied.post_einwilligung = d["post_einwilligung"]
                     mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
                     gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
@@ -277,6 +294,13 @@ def willkommen(request):
             "iban": IBAN,
             "richtwert": BEITRAG_RICHTWERT,
             "qr_svg": _beitrags_qr(referenz),
+            # Derselbe Satz wie im Willkommensbrief: Mit Übergangsregel (§ 4 Abs 4 lit d) gibt es keine
+            # Wartefrist — die Seite nannte bis 0.49 feste 3/12 Monate, die live nicht galten (C2).
+            "stimmrechts_satz": stimmrechts_satz(request.user),
+            # Anwärter ist das frisch bestätigte, noch ungeprüfte Konto — nicht das pausierte oder
+            # seit Jahren geprüfte Bestandsmitglied, das über den Beitrag hierher kommt.
+            "anwaerter": request.user.status == Mitgliedsstatus.AKTIV
+            and request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT,
         },
     )
 

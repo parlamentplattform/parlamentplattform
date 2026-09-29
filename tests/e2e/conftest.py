@@ -35,7 +35,8 @@ TABLET = {"width": 900, "height": 1200}
 @pytest.fixture(scope="session")
 def browser():
     with playwright_api.sync_playwright() as p:
-        browser = p.chromium.launch()
+        # Ein anderer Chromium-Bau als der von Playwright erwartete: DDOE_CHROMIUM zeigt auf die Datei
+        browser = p.chromium.launch(executable_path=os.environ.get("DDOE_CHROMIUM") or None)
         yield browser
         browser.close()
 

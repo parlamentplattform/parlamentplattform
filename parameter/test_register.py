@@ -386,3 +386,14 @@ def test_registerseite_fragt_nicht_je_eintrag(client, django_assert_max_num_quer
         assert client.get(reverse("parameter:export")).status_code == 200
     einzeln = [q["sql"] for q in ctx.captured_queries if 'WHERE "parameter_parameter"."schluessel" =' in q["sql"]]
     assert not einzeln, f"{len(einzeln)} Einzelabfragen je Schlüssel"
+
+
+def test_die_feldnamen_der_ordnung_aus_0_50_sind_uebersetzbar():
+    """Mindestzahl und Anteil kamen mit 0.50 in die Liste der Feldnamen — Verwaltungstexte sind
+    übersetzbar. Die übrigen Einträge sind Altbestand ohne gettext."""
+    from django.utils.functional import Promise
+
+    from parameter.views import FELD_NAMEN
+
+    for feld in ("unterstuetzung_schwelle", "unterstuetzung_anteil"):
+        assert isinstance(FELD_NAMEN[feld], Promise), feld

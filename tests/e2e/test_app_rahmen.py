@@ -238,6 +238,66 @@ def test_reduzierte_bewegung_schaltet_animationen_ab(seite, live_server, demo):
     assert p.evaluate("getComputedStyle(document.documentElement).scrollBehavior") == "auto"
 
 
+def _kontrast(a: list[float], b: list[float]) -> float:
+    """Kontrastverhältnis nach WCAG 2.x aus zwei sRGB-Farben (0–255)."""
+    def hell(rgb):
+        lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in (x / 255 for x in rgb[:3])]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+    x, y = hell(a), hell(b)
+    return (max(x, y) + 0.05) / (min(x, y) + 0.05)
+
+
+def _farbe(wert: str) -> list[float]:
+    """„rgb(14, 76, 92)“ oder „#0E4C5C“ als Zahlen."""
+    import re
+
+    wert = wert.strip()
+    if wert.startswith("#"):
+        return [int(wert[i:i + 2], 16) for i in (1, 3, 5)]
+    return [float(x) for x in re.findall(r"[\d.]+", wert)][:3]
+
+
+_FOKUS_JS = """() => { const a = document.activeElement, s = getComputedStyle(a);
+  return {fv: a.matches(':focus-visible'), ring: s.outlineColor, stil: s.outlineStyle}; }"""
+_NACHT_JS = "['--night-1', '--night-2', '--night-3'].map(n => getComputedStyle(document.documentElement).getPropertyValue(n))"
+
+
+@pytest.mark.parametrize("dunkel", [False, True], ids=["hell", "dunkel"])
+def test_fokusring_auf_leiste_buehne_und_menue_mindestens_3_zu_1(seite, live_server, demo, dunkel):
+    """WCAG 1.4.11: Die App-Leiste und die Bühne sind auch im hellen Modus nachtdunkel — dort trägt der
+    Fokusring Gold; in den hellen Aufklappflächen der Leiste (Konto-Menü) bleibt er Petrol. Gemessen
+    wird gegen den tatsächlichen Hintergrund (Verlauf der Nachttöne bzw. Fläche des Menüs)."""
+    p = seite(als=_mitglied(), dunkel=dunkel)
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    nacht = [_farbe(n) for n in p.evaluate(_NACHT_JS)]
+    p.locator(".leiste nav.haupt a").first.focus()
+    p.keyboard.press("Tab")
+    leiste = p.evaluate(_FOKUS_JS)
+    assert leiste["fv"] and leiste["stil"] == "solid", leiste
+    werte = [round(_kontrast(_farbe(leiste["ring"]), n), 2) for n in nacht]
+    assert min(werte) >= 3, f"Fokusring in der Leiste: {leiste['ring']} gegen die Nachttöne {werte}"
+    # Konto-Menü per Tastatur öffnen: der erste Link im hellen Popover
+    p.locator(".konto > summary").focus()
+    p.keyboard.press("Enter")
+    p.keyboard.press("Tab")
+    menue = p.evaluate(_FOKUS_JS)
+    assert menue["fv"] and p.evaluate("!!document.activeElement.closest('.konto .pop')"), menue
+    flaeche = p.evaluate("getComputedStyle(document.querySelector('.konto .pop')).backgroundColor")
+    wert = round(_kontrast(_farbe(menue["ring"]), _farbe(flaeche)), 2)
+    assert wert >= 3, f"Fokusring im Konto-Menü: {menue['ring']} gegen {flaeche} = {wert}"
+    # Bühne der Startseite (Gäste)
+    g = seite(dunkel=dunkel)
+    g.goto(f"{live_server.url}/")
+    _ruhe(g)
+    g.locator(".held .wege a").first.focus()
+    g.keyboard.press("Tab")
+    held = g.evaluate(_FOKUS_JS)
+    assert held["fv"] and g.evaluate("!!document.activeElement.closest('.held')"), held
+    werte = [round(_kontrast(_farbe(held["ring"]), n), 2) for n in nacht]
+    assert min(werte) >= 3, f"Fokusring auf der Bühne: {held['ring']} gegen die Nachttöne {werte}"
+
+
 # ── Hauptnavigation zwischen 760 und 1279 px (Befund #48) ─────────────────────
 
 

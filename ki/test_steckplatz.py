@@ -53,6 +53,22 @@ def test_erschoepftes_budget_macht_den_steckplatz_stumm(settings):
     assert KILauf.objects.count() == 1  # der abgewiesene Versuch ruft keinen Anbieter
 
 
+def test_monatsverbrauch_zaehlt_den_monat_nach_wiener_kalender():
+    """Am 1. zwischen Mitternacht und 2 Uhr Wiener Zeit ist in UTC noch Vormonat — der Verbrauch des
+    Vormonats darf den Steckplatz dann nicht stumm halten."""
+    import zoneinfo
+    from datetime import UTC, datetime
+
+    wien = zoneinfo.ZoneInfo("Europe/Vienna")
+    KILauf.objects.create(
+        zweck=Zweck.RECHTSBEZUG, eingabe="x", anbieter="a", tokens_ein=1000, angefordert_von=mitglied_anlegen(),
+        erstellt_am=datetime(2026, 9, 20, 12, 0, tzinfo=wien),
+    )
+    kurz_nach_mitternacht = datetime(2026, 10, 1, 0, 30, tzinfo=wien)
+    assert KILauf.monatsverbrauch(kurz_nach_mitternacht.astimezone(UTC)) == 0  # wie timezone.now()
+    assert KILauf.monatsverbrauch(datetime(2026, 9, 30, 23, 30, tzinfo=wien).astimezone(UTC)) == 1000
+
+
 def test_anbieterfehler_wird_archiviert(settings, monkeypatch):
     settings.DDOE_KI_ANBIETER = "attrappe"
     from ki import anbieter as modul

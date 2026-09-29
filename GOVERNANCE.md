@@ -8,4 +8,4 @@ Dieses Repository gehört der Direkte Demokratie Österreich (DDÖ). Die Steueru
 - Meinungsverschiedenheiten werden im Issue ausgetragen und dokumentiert entschieden; wer überstimmt wird, bekommt die Begründung schriftlich. Klingt bekannt? Genau.
 
 ## Maintainer
-- Michael Hackl (@didide) — Gründung
+- Michael Hackl — Gründung · didide@ddoe.at · GitHub [@oisxeng](https://github.com/oisxeng)

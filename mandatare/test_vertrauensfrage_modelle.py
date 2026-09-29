@@ -434,6 +434,29 @@ def test_stufe_zwei_laeuft_je_vertrauensfrage_atomar(monkeypatch, ordnung, altma
     assert len(audit("vertrauensfrage_endgueltig")) == 1
 
 
+def test_stufe_zwei_entscheidet_auf_dem_stand_unter_sperre(monkeypatch, ordnung, altmandat):  # noqa: F811
+    """Zwei Aufrufe (Antragsseite, Mandatarseite, Wächter) lasen dieselbe Vertrauensfrage als offen;
+    der zweite vollzog Stufe 2 mit seinem veralteten Stand ein zweites Mal — zwei Einträge
+    „vertrauensfrage_endgueltig“ und „vertretung_beendet“ im Audit. Hier läuft der andere Aufruf genau
+    zwischen dem Lesen und dem Schreiben."""
+    antrag, ende = _verloren(ordnung, altmandat)
+    jetzt = ende + tage(40)
+    echte = mm.Vertrauensfrage.endgueltig_ab
+    dazwischen = []
+
+    def anderer_aufruf_dazwischen(self):
+        if not dazwischen:
+            dazwischen.append(None)  # nur einmal — der andere Aufruf ruft diese Methode selbst
+            dazwischen[0] = mm.vertrauensfragen_fortschreiben(jetzt)
+        return echte(self)
+
+    monkeypatch.setattr(mm.Vertrauensfrage, "endgueltig_ab", anderer_aufruf_dazwischen)
+    zweiter = mm.vertrauensfragen_fortschreiben(jetzt)
+    assert len(audit("vertrauensfrage_endgueltig")) == 1
+    assert len(audit("vertretung_beendet")) == 1
+    assert dazwischen == [1] and zweiter == 0
+
+
 def test_stufe_zwei_laedt_nur_was_noch_etwas_zu_tun_hat(altmandat):  # noqa: F811
     """Befund B29: Bisher lud jeder Seitenaufruf alle jemals verlorenen Vertrauensfragen samt Mandat
     und Mitglied — auch die längst vollzogenen."""

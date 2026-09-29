@@ -190,15 +190,36 @@ INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0
 ERSTBESTAND = [
     {
         "schluessel": "aehnlichkeit-schwelle-prozent",
-        "wert": "18",
+        "wert": "30",
         "einheit": gettext_noop("Prozent"),
         "gruppe": "verfahren",
-        "beschreibung": gettext_noop("Ab welcher Übereinstimmung die Plattform beim Einbringen auf einen bestehenden "
-        "Antrag hinweist. Ein hoher Wert lässt fast alles durch, ein niedriger lenkt Menschen häufig zu "
-        "fremden Anträgen — beides verschiebt, wo sich Unterstützung sammelt. Der Hinweis schlägt vor; "
+        "beschreibung": gettext_noop("Ab welcher Übereinstimmung im Wortvergleich die Plattform beim Einbringen auf "
+        "einen bestehenden Antrag hinweist. Ein hoher Wert lässt fast alles durch, ein niedriger lenkt Menschen "
+        "häufig zu fremden Anträgen — beides verschiebt, wo sich Unterstützung sammelt. Seit der zweiten "
+        "Fassung der Regel (Wort-Ebene ohne Floskeln) liegt der Zielwert bei 30. Der Hinweis schlägt vor; "
         "einbringen kann man immer."),
         "quelle": "§ 5 Abs 10 lit d · Anweisung des Gründers: „zu prüfen ob ein anderer antrag mit "
         "ähnlichem inhalt bereits eingegangen ist“",
+    },
+    {
+        "schluessel": "aehnlichkeit-bedeutung-schwelle-prozent",
+        "wert": "78",
+        "einheit": gettext_noop("Prozent"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Ab welcher Bedeutungsnähe (Kosinus der Textvektoren des angeschlossenen "
+        "Anbieters) ein bestehender Antrag beim Einbringen gezeigt wird — die Zweitmeinung neben dem "
+        "Wortvergleich. Ohne Anbieter wirkt der Wert nicht. Vorschlag, keine Hürde."),
+        "quelle": "§ 5 Abs 10 lit d · Anweisung des Gründers vom 28.9.2026: „Diese Funktion muss besser werden“",
+    },
+    {
+        "schluessel": "aehnlichkeit-einbettungen-je-aufruf",
+        "wert": "20",
+        "einheit": gettext_noop("Anträge"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele offene Anträge ohne gespeicherten Textvektor beim Einbringen "
+        "höchstens im selben Anbieter-Aufruf nachgezogen werden. Begrenzt Dauer und Kosten eines einzelnen "
+        "Einbringens; der Rest folgt beim nächsten."),
+        "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "aehnlichkeit-treffer",
@@ -415,6 +436,17 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 3 lit b",
     },
     {
+        "schluessel": "verfahren-unterstuetzung-anteil-prozent",
+        "wert": "5",
+        "einheit": gettext_noop("Prozent"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten; "
+        "0 schaltet den Anteil ab. Die Zahl aus „Unterstützungen bis zur Schwelle“ bleibt die Mindestzahl. "
+        "Beim Einbringen wird die konkrete Zahl gerechnet und am Antrag eingefroren; wirksam wird der Wert "
+        "mit der nächsten in Kraft gesetzten Fassung der Verfahrensordnung."),
+        "quelle": "§ 5 Abs 3 lit b · Entscheidung des Gründers 29.9.2026: fünf Prozent, Mindestzahl drei (die Empfehlung; zuvor „wir fangen mit 50 % an“)",
+    },
+    {
         "schluessel": "verfahren-unterstuetzung-tage",
         "wert": "60",
         "einheit": gettext_noop("Tage"),
@@ -558,6 +590,16 @@ ERSTBESTAND = [
         "quelle": "§ 6 Abs 8",
     },
     {
+        "schluessel": "ki-tageslaeufe",
+        "wert": "20",
+        "einheit": gettext_noop("Läufe/Tag"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Läufe die Warteschlange der Zukunftswerkstatt je Kalendertag "
+        "startet (betroffene Gesetze, Textvektoren). Ist das Kontingent aufgebraucht, warten die übrigen "
+        "Aufträge bis zum nächsten Tag; die Antragsseite sagt das. Kostendeckel neben dem Monatsbudget."),
+        "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
+    },
+    {
         "schluessel": "ki-monatstokens",
         "wert": "1000000",
         "einheit": gettext_noop("Tokens/Monat"),
@@ -623,6 +665,26 @@ ERSTBESTAND = [
         "in die Ordnung des Antrags eingefroren; laufende Vertrauensfragen behalten ihre Dauer. Kein "
         "Ordnungsschlüssel der Verfahrensordnung, daher befristet testbar."),
         "quelle": "§ 7 Abs 10 lit e · § 5 Abs 3 lit d",
+    },
+    {
+        "schluessel": "post-neuer-antrag-bund",
+        "wert": "1",
+        "einheit": gettext_noop("0 oder 1"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Ob ein neuer Antrag für ganz Österreich jedem Mitglied mit E-Mail-Einwilligung "
+        "gemeldet wird. Regionale Anträge (Land, Bezirk, Gemeinde) gehen immer nur an die Mitglieder, deren "
+        "Wohnsitz betroffen ist. Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."),
+        "quelle": "Anweisung des Gründers 28.9.2026 · § 14 Abs 3",
+    },
+    {
+        "schluessel": "beitrag-erinnerung-fruehestens-tage",
+        "wert": "30",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie viele Tage ein Konto mindestens Mitglied sein muss, bevor die Verwaltung "
+        "eine Beitragserinnerung beauftragen kann. Die Erinnerung geht nur mit E-Mail-Einwilligung, nie an "
+        "Testkonten und höchstens einmal je Kalenderjahr; die Höhe des Beitrags bleibt Selbsteinschätzung."),
+        "quelle": "§ 4 Abs 3 · Anweisung des Gründers 28.9.2026",
     },
 ]
 

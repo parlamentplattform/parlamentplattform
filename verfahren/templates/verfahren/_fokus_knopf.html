@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}
+Fokus-Knopf im Feldkopf (Teil 7, Desktop): ⤢ dehnt das Feld auf das ganze Raster, ⤡ stellt die vier Felder
+wieder her. Ohne JavaScript ein Link auf ?fokus=<feld> bzw. zurück (der Server rendert denselben Zustand);
+mit Alpine schaltet „parlament.fokussiere“ um, ohne die Seite zu laden. Am Handy ausgeblendet (CSS) —
+dort ist jedes Feld ohnehin ein Bildschirm. Erwartet: feld (filter · favoriten · wichtig · region), fokus.
+{% endcomment %}{% with fach=request.GET.fach|urlencode %}
+<a class="ikon fokus-knopf"
+  href="{% if fokus == feld %}{{ request.path }}{% if fach %}?fach={{ fach }}{% endif %}#feld-{{ feld }}{% else %}{{ request.path }}?fokus={{ feld }}{% if fach %}&amp;fach={{ fach }}{% endif %}{% endif %}"
+  :href="fokus === '{{ feld }}' ? '{{ request.path }}{% if fach %}?fach={{ fach }}{% endif %}#feld-{{ feld }}' : '{{ request.path }}?fokus={{ feld }}{% if fach %}&fach={{ fach }}{% endif %}'"
+  aria-label="{% if fokus == feld %}{% translate 'Alle Felder zeigen' %}{% else %}{% translate 'Feld vergrößern' %}{% endif %}"
+  :aria-label="fokus === '{{ feld }}' ? '{% translate 'Alle Felder zeigen' %}' : '{% translate 'Feld vergrößern' %}'"
+  title="{% if fokus == feld %}{% translate 'Alle Felder' %}{% else %}{% translate 'Vergrößern' %}{% endif %}"
+  :title="fokus === '{{ feld }}' ? '{% translate 'Alle Felder' %}' : '{% translate 'Vergrößern' %}'"
+  @click.prevent="fokussiere('{{ feld }}')"><span aria-hidden="true" x-text="fokus === '{{ feld }}' ? '⤡' : '⤢'">{% if fokus == feld %}&#x2921;{% else %}&#x2922;{% endif %}</span></a>
+{% endwith %}

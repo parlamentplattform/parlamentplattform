@@ -25,7 +25,10 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 #: Seit 0.48 (Fassung 3) kennt die Ordnung Verfahren ohne Beratungsphase mit frühestem und
 #: spätestem Abstimmungsbeginn — die Vertrauensfrage nach § 7 Abs 10. Die drei Felder tragen
 #: Vorgaben, die jeden älteren Snapshot unverändert lassen.
-VERSION = 3
+#: Fassung 4 (29.9.2026): Die Unterstützungsschwelle kann als Anteil der Stimmberechtigten
+#: gelten (`unterstuetzung_anteil`, Mindestzahl `unterstuetzung_schwelle`); beim Einbringen wird
+#: daraus die konkrete Zahl gerechnet und samt Grundgesamtheit eingefroren (§ 5 Abs 5).
+VERSION = 4
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
@@ -92,6 +95,13 @@ class Policy:
     beratung_entfaellt: bool = False
     abstimmung_fruehestens_tage: int = 0
     abstimmung_spaetestens_tage_nach_schwelle: int = 0
+    # Fassung 4: Die Schwelle als Anteil der am Einbringungstag Stimmberechtigten (0 = aus; Anweisung
+    # des Gründers 29.9.2026: „wir fangen mit 50 % an“). `unterstuetzung_schwelle` ist dann die
+    # Mindestzahl; die beim Einbringen gerechnete Zahl ersetzt sie im Schnappschuss des Antrags,
+    # und `unterstuetzung_grundgesamtheit` hält fest, aus wie vielen Stimmberechtigten sie entstand.
+    unterstuetzung_anteil: float = 0.0
+    unterstuetzung_grundgesamtheit: int = 0
+    unterstuetzung_mindestzahl: int = 0  # die Mindestzahl der Ordnung, wenn die Schwelle gerechnet wurde
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -127,6 +137,12 @@ class Policy:
             )
         if self.unterstuetzung_frist_tage < 1:
             raise PolicyFehler("Unterstützungsfrist muss mindestens 1 Tag sein.")
+        if not 0 <= self.unterstuetzung_anteil <= 1:
+            raise PolicyFehler(
+                f"unterstuetzung_anteil = {self.unterstuetzung_anteil} liegt nicht zwischen 0 und 1."
+            )
+        if self.unterstuetzung_grundgesamtheit < 0 or self.unterstuetzung_mindestzahl < 0:
+            raise PolicyFehler("Grundgesamtheit und Mindestzahl der Unterstützung dürfen nicht negativ sein.")
         for name, wert in (
             ("abstimmung_fruehestens_tage", self.abstimmung_fruehestens_tage),
             ("abstimmung_spaetestens_tage_nach_schwelle", self.abstimmung_spaetestens_tage_nach_schwelle),
@@ -179,6 +195,7 @@ class Policy:
 #: Zahlen, weil sich Dezimalwerte in einem Formular schlecht bearbeiten und schlecht vergleichen lassen.
 REGISTER_ZUORDNUNG = {
     "unterstuetzung_schwelle": ("verfahren-unterstuetzung-schwelle", int),
+    "unterstuetzung_anteil": ("verfahren-unterstuetzung-anteil-prozent", lambda n: n / 100),
     "unterstuetzung_frist_tage": ("verfahren-unterstuetzung-tage", int),
     "beratung_tage": ("expertenrat-erstvorschlag-tage", int),
     "abstimmung_tage": ("verfahren-abstimmung-tage", int),
@@ -193,6 +210,17 @@ REGISTER_ZUORDNUNG = {
     "ueberarbeitung_tage": ("gremien-ueberarbeitung-tage", int),
     "pruefung_tage": ("gremien-pruefung-tage", int),
 }
+
+
+def unterstuetzungsschwelle(mindestzahl: int, anteil: float, stimmberechtigte: int) -> int:
+    """Die konkrete Unterstützungsschwelle eines Antrags am Einbringungstag (Fassung 4).
+
+    Gilt ein Anteil, ist die Schwelle der aufgerundete Anteil der Stimmberechtigten — nie unter
+    der Mindestzahl. Ohne Anteil (0) bleibt es bei der Mindestzahl. Nachrechnen: 50 % von 5
+    Stimmberechtigten sind 2,5 → 3; mit Mindestzahl 3 bleibt es 3; 50 % von 50 sind 25."""
+    if anteil <= 0:
+        return mindestzahl
+    return max(mindestzahl, -(-int(round(anteil * stimmberechtigte * 1_000_000)) // 1_000_000))
 
 
 def aus_register(

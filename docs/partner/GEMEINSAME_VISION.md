@@ -1,7 +1,7 @@
 # Gemeinsame Vision
 
-*Fassung 0.1 — Entwurf zur Freigabe durch den Gründer der DDÖ (D-M8), 3.9.2026. Änderungen an diesem
-Text beschließt später der Plattform-Rat der beteiligten Parteien; jede Fassung bleibt nachlesbar.*
+*Fassung 1.0 — freigegeben durch den Gründer der DDÖ am 29.9.2026 (Entwurf 0.1 vom 3.9.2026). Änderungen
+an diesem Text beschließt später der Plattform-Rat der beteiligten Parteien; jede Fassung bleibt nachlesbar.*
 
 Wir haben kein Parteiprogramm, das wir abgleichen müssten. Wir haben eine Vision, die wir gemeinsam
 konkretisieren.
@@ -51,7 +51,7 @@ Im Gegenzug erwarten wir dasselbe: offene Weiterentwicklung, geteilte Kennzahlen
 
 ## Shared vision (English)
 
-*Version 0.1 — draft for approval by the founder of the DDÖ, 3 September 2026.*
+*Version 1.0 — approved by the founder of the DDÖ on 29 September 2026 (draft 0.1 of 3 September 2026).*
 
 We have no party programme to reconcile. We have a vision that we make concrete together.
 

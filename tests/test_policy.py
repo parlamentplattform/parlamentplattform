@@ -126,3 +126,42 @@ def test_ohne_beratungsphase_darf_die_schwelle_null_sein():
 def test_die_fenster_ohne_beratung_halten_ihre_grenzen(felder):
     with pytest.raises(PolicyFehler):
         Policy(**{**GUELTIG, **felder})
+
+
+# ── Fassung 4: Unterstützungsschwelle als Anteil der Stimmberechtigten (29.9.2026) ───────────
+
+
+def test_unterstuetzungsschwelle_rechnet_anteil_mit_mindestzahl():
+    from plattform_core.policy import unterstuetzungsschwelle
+
+    assert unterstuetzungsschwelle(3, 0.0, 500) == 3  # Anteil aus: die Mindestzahl gilt
+    assert unterstuetzungsschwelle(3, 0.5, 5) == 3  # 2,5 → 3
+    assert unterstuetzungsschwelle(3, 0.5, 4) == 3  # 2 < Mindestzahl 3
+    assert unterstuetzungsschwelle(3, 0.5, 50) == 25
+    assert unterstuetzungsschwelle(3, 0.05, 500) == 25
+    assert unterstuetzungsschwelle(3, 0.05, 41) == 3  # 2,05 → 3, zugleich die Mindestzahl
+    assert unterstuetzungsschwelle(1, 0.05, 41) == 3  # 2,05 → 3 (aufgerundet)
+    assert unterstuetzungsschwelle(3, 1.0, 0) == 3  # ohne Stimmberechtigte bleibt die Mindestzahl
+
+
+@pytest.mark.parametrize("anteil", [-0.1, 1.5])
+def test_anteil_ausserhalb_null_bis_eins_ist_ungueltig(anteil):
+    with pytest.raises(PolicyFehler):
+        Policy(**GUELTIG, unterstuetzung_anteil=anteil)
+
+
+def test_aeltere_schnappschuesse_laden_ohne_anteil():
+    p = Policy.aus_dict(dict(GUELTIG))
+    assert p.unterstuetzung_anteil == 0 and p.unterstuetzung_grundgesamtheit == 0 and p.unterstuetzung_mindestzahl == 0
+
+
+def test_register_speist_den_anteil_in_die_ordnung():
+    from plattform_core.policy import REGISTER_ZUORDNUNG, aus_register
+
+    werte = {schluessel: 21 for _feld, (schluessel, _w) in REGISTER_ZUORDNUNG.items()}
+    werte["verfahren-unterstuetzung-anteil-prozent"] = 50
+    werte["verfahren-mindestbeteiligung-prozent"] = 5
+    werte["vorschlag-annahme-prozent"] = 50
+    werte["gremien-review-tage"] = werte["gremien-ueberarbeitung-tage"] = 14
+    ordnung = aus_register(werte, "sachantrag-standard", 9)
+    assert ordnung.unterstuetzung_anteil == 0.5

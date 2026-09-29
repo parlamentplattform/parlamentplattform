@@ -13,7 +13,6 @@ versendet wird erst auf Knopfdruck, entschieden von Menschen.
 
 from __future__ import annotations
 
-from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import redirect, render
@@ -23,10 +22,10 @@ from django.views.decorators.http import require_POST
 
 from mitglieder import bank
 from mitglieder.auth_flows import beitragsreferenz
-from mitglieder.mail import send_mail
 from mitglieder.models import Bankkopplung, Beitragseingang, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from mitglieder.views import BEITRAG_RICHTWERT, IBAN, _beitrags_qr
+from parameter.models import zahl
 
 ABGLEICH_MINDESTABSTAND = 180  # Sekunden zwischen zwei mitglieder-ausgelösten Abrufen
 VERWALTUNG_NACHHOLFRIST = 6 * 3600  # Verwaltungsbesuch holt einen Abgleich nach, wenn älter
@@ -73,7 +72,7 @@ def beitrag_gemeldet(request):
     if not bank.eingerichtet() or kopplung is None:
         messages.info(
             request,
-            _("Danke für die Meldung! Der automatische Abgleich ist noch nicht eingerichtet — Eingänge werden derzeit von der Verwaltung geprüft."),
+            _("Der automatische Kontoabruf ist noch nicht eingerichtet, und die Meldung wird nicht gespeichert. Die Verwaltung ordnet Eingänge anhand Ihrer Referenz aus dem Kontoauszug zu; danach kommt eine Bestätigung per E-Mail."),
         )
         return redirect("mitglieder:beitrag")
     if not _abstand_gewahrt(kopplung, ABGLEICH_MINDESTABSTAND):
@@ -95,12 +94,12 @@ def beitrag_gemeldet(request):
     elif meldung.startswith("abruf_gescheitert"):
         messages.info(
             request,
-            _("Die Bank war gerade nicht erreichbar — wir gleichen automatisch wieder ab, Ihr Eingang geht nicht verloren."),
+            _("Die Bank war gerade nicht erreichbar. Ihr Eingang geht nicht verloren: Er wird beim nächsten Abgleich erkannt — wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."),
         )
     else:
         messages.info(
             request,
-            _("Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Wir prüfen automatisch weiter."),
+            _("Noch kein Eingang mit Ihrer Referenz sichtbar — je nach Bank dauert eine Überweisung Sekunden (Echtzeit) bis einen Bankarbeitstag. Erkannt wird er beim nächsten Abgleich: wenn Sie ihn später erneut melden oder die Verwaltung abgleicht."),
         )
     return redirect("mitglieder:beitrag")
 
@@ -143,10 +142,34 @@ def verwaltung_beitraege(request):
     )
 
 
+def erinnerung_beauftragen(faellige, heute=None) -> tuple[int, int, int]:
+    """Legt je fälligem Konto einen Postauftrag „beitragserinnerung“ an (Bezug `jahr:<Jahr>` — höchstens
+    einmal je Kalenderjahr); zugestellt wird im Hintergrundlauf. Nur mit E-Mail-Einwilligung, nie an
+    Testkonten, nie an Konten, die jünger sind als `beitrag-erinnerung-fruehestens-tage`.
+    Gibt (angelegt, ohne Einwilligung übergangen, sonst übersprungen) zurück."""
+    from mitglieder.postausgang import beauftragen
+
+    heute = heute or timezone.localdate()
+    fruehestens = zahl("beitrag-erinnerung-fruehestens-tage", 30)
+    angelegt, ohne_einwilligung, uebersprungen = 0, 0, 0
+    for m in faellige:
+        seit = m.beitritt or timezone.localdate(m.date_joined)
+        if m.testkonto or (heute - seit).days < fruehestens:
+            uebersprungen += 1
+        elif not m.post_einwilligung:
+            ohne_einwilligung += 1
+        elif beauftragen(m, "beitragserinnerung", bezug=f"jahr:{heute.year}"):
+            angelegt += 1
+        else:
+            uebersprungen += 1  # heuer schon erinnert oder Konto nicht zustellbar
+    return angelegt, ohne_einwilligung, uebersprungen
+
+
 @nur_admins
 @require_POST
 def beitrag_erinnern(request):
-    """Erinnerungsmail an ausgewählte oder alle fälligen Mitglieder — auf Knopfdruck."""
+    """Erinnerung an ausgewählte oder alle fälligen Mitglieder — auf Knopfdruck beauftragt, im
+    Postausgang zugestellt (Anweisung des Gründers 28.9.2026: nur mit Einwilligung)."""
     grenze = timezone.localdate() - timezone.timedelta(days=365)
     faellige = (
         Mitglied.objects.filter(is_active=True)
@@ -157,35 +180,27 @@ def beitrag_erinnern(request):
         ids = request.POST.getlist("mitglied")
         faellige = faellige.filter(pk__in=ids)
 
-    versendet, gescheitert = 0, 0
-    for m in faellige:
-        try:
-            send_mail(
-                "Erinnerung: Ihr Mitgliedsbeitrag bei der DDÖ",
-                f"Guten Tag {m.first_name or m.anzeigename}!\n\n"
-                "Ihr letzter Mitgliedsbeitrag liegt länger als zwölf Monate zurück "
-                "(oder es ist noch keiner eingegangen). Die Höhe bleibt Ihre "
-                "Selbsteinschätzung — niemand wird aus finanziellen Gründen "
-                "ausgeschlossen (§ 4 Abs 3).\n\n"
-                "Am schnellsten geht es mit dem QR-Code auf Ihrer Beitragsseite:\n"
-                f"{settings.DDOE_BASIS_URL}/beitrag/\n\n"
-                f"Ihre persönliche Referenz: {beitragsreferenz(m)}\n\n"
-                "Danke, dass Sie das Werkzeug mittragen!\n"
-                "Direkte Demokratie Österreich",
-                settings.DEFAULT_FROM_EMAIL,
-                [m.email],
-            )
-            versendet += 1
-        except OSError:
-            gescheitert += 1
-    if versendet:
+    angelegt, ohne_einwilligung, uebersprungen = erinnerung_beauftragen(faellige)
+    if angelegt:
         from mitglieder.verwaltung import _auditieren
 
-        _auditieren(request, "beitrag_erinnerung", request.user, anzahl=versendet)
-        messages.success(request, _("%d Erinnerung(en) versendet.") % versendet)
-    if gescheitert:
-        messages.error(request, _("%d Erinnerung(en) konnten nicht versendet werden (Mailserver).") % gescheitert)
-    if not versendet and not gescheitert:
+        _auditieren(request, "beitrag_erinnerung", request.user, anzahl=angelegt)
+        messages.success(
+            request,
+            _("%(n)d Erinnerung(en) beauftragt — der Versand läuft im Postausgang.") % {"n": angelegt},
+        )
+    if ohne_einwilligung:
+        messages.info(
+            request,
+            _("%(n)d Konto/Konten ohne E-Mail-Einwilligung übergangen.") % {"n": ohne_einwilligung},
+        )
+    if uebersprungen:
+        messages.info(
+            request,
+            _("%(n)d Konto/Konten übersprungen: Testkonto, Beitritt jünger als %(tage)d Tage oder heuer schon erinnert.")
+            % {"n": uebersprungen, "tage": zahl("beitrag-erinnerung-fruehestens-tage", 30)},
+        )
+    if not (angelegt or ohne_einwilligung or uebersprungen):
         messages.info(request, _("Niemand ausgewählt."))
     return redirect("mitglieder:verwaltung_beitraege")
 

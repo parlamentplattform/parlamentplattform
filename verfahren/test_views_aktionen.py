@@ -322,7 +322,12 @@ def test_eigene_stimme_zeigt_pseudonym_nur_der_stimmenden_person(client, ordnung
     client.force_login(leute[1])
     client.post(reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja"})
     pseudonym = antrag.stimmregister.get(mitglied=leute[1]).pseudonym.hex
-    assert pseudonym in client.get(url).content.decode()
+    inhalt = client.get(url).content.decode()
+    assert pseudonym in inhalt
+    # C1 (Bestandsaufnahme 28.9.2026): Es gibt keine Löschfrist (D-K5b offen, § 8 Abs 6) — die Seite
+    # verspricht keine mehr und sagt, dass die Zuordnung bis zu einem Beschluss bestehen bleibt.
+    assert "satzungsmäßigen Frist gelöscht" not in inhalt
+    assert "noch nicht beschlossen (§ 8 Abs 6)" in inhalt
 
 
 # --- Beanstanden (§ 6 Abs 11 lit b) ------------------------------------------

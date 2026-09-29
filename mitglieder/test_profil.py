@@ -270,6 +270,27 @@ def test_export_enthaelt_eigene_daten_und_eigene_stimme_aber_nichts_fremdes(clie
     assert "Adler" not in json.dumps(audit("profil", aktion="datenexport", mitglied=anna.pk))
 
 
+def test_export_traegt_den_festgeschriebenen_beitragsreferenz_stamm(client):
+    # Der Stamm steht seit 0.50 als eigenes Feld am Konto — er gehört in „Alles, was die Plattform
+    # diesem Konto zuordnet“, samt der daraus gebildeten Referenz. Ohne Stamm schreibt der Export keinen fest.
+    from mitglieder.auth_flows import beitragsreferenz
+
+    ohne = mitglied_anlegen("ohne-stamm")
+    client.force_login(ohne)
+    stammdaten = json.loads(client.get(reverse("mitglieder:profil_export")).content)["stammdaten"]
+    assert stammdaten["beitragsreferenz_stamm"] is None and stammdaten["beitragsreferenz"] is None
+    ohne.refresh_from_db()
+    assert ohne.beitragsreferenz_stamm == ""
+
+    m = mitglied_anlegen("mit-stamm")
+    referenz = beitragsreferenz(m)
+    m.refresh_from_db()
+    client.force_login(m)
+    stammdaten = json.loads(client.get(reverse("mitglieder:profil_export")).content)["stammdaten"]
+    assert stammdaten["beitragsreferenz_stamm"] == m.beitragsreferenz_stamm != ""
+    assert stammdaten["beitragsreferenz"] == referenz
+
+
 def test_export_ohne_stimmen_bei_offenem_adresswechsel(client, ordnung):  # noqa: F811
     leute, antrag = _abstimmung_mit_stimmen(ordnung)
     anna, admin = leute[1], leute[2]
@@ -747,6 +768,7 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
         "GremienStimme.mitglied": "gremienstimmen",
         "Fachliste.mitglied": "fachliste",
         "KILauf.angefordert_von": "ki_laeufe",
+        "KIAuftrag.angefordert_von": "ki_auftraege",
         "Interessenbindung.mitglied": "interessenbindungen",
         "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
         "Vollzugseintrag.durch": "vollzug",

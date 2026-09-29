@@ -105,7 +105,10 @@ def test_einschaetzung_zeigt_kennzeichnung_und_skelette(seite, live_server, demo
     _ruhe(p)
     kopf = p.locator(".kopfkarte")
     assert "Modellrechnung" in kopf.inner_text()
-    assert p.locator(".skelett-karte").count() == 5
+    # Seit 0.50 ist „Berührte Gesetze“ kein Skelett mehr, sondern die Karte „Betroffene Gesetze“ mit Zuständen
+    # (FB-H3, Teil 4); die übrigen vier Karten bleiben als Skelett angekündigt.
+    assert p.locator(".skelett-karte").count() == 4
+    assert p.locator("#rechtsbezug").count() == 1
     p.locator(".beanstanden > summary").click()
     p.wait_for_timeout(200)
     assert p.locator('.beanstanden textarea[name="text"]').is_visible()

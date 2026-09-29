@@ -3,9 +3,8 @@
 {% block titel %}{% translate "Willkommen" %}{% endblock %}
 {% block inhalt %}
 <h1>{% blocktranslate with vorname=user.first_name %}Willkommen, {{ vorname }}!{% endblocktranslate %}</h1>
-<p>{% blocktranslate %}Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter.
-Ab heute läuft Ihre Anwartschaft (§ 4 Abs 4): nach drei Monaten sind Sie bei Sachfragen
-stimmberechtigt, nach zwölf bei Personal- und Satzungsfragen.{% endblocktranslate %}</p>
+<p>{% if anwaerter %}{% translate "Ihre E-Mail-Adresse ist bestätigt — Sie sind jetzt Anwärterin beziehungsweise Anwärter (§ 4 Abs 4)." %}
+{% endif %}{{ stimmrechts_satz }}</p>
 
 <h2>{% translate "Mitgliedsbeitrag — am schnellsten per QR-Code" %}</h2>
 {% include "mitglieder/_beitrag_kasten.html" %}
@@ -16,7 +15,7 @@ nach der Überweisung auch den sofortigen Abgleich anstoßen.{% endblocktranslat
 <div class="karte">
 <p>{% blocktranslate %}Lesen können Sie alles — <a href="/">alle Anträge, Beratungen und
 Ergebnisse</a> sind ohne Einschränkung öffentlich (§ 2 Abs 5). Nach der Freischaltung können
-Sie Anträge einbringen, unterstützen und mitberaten; mit abgeschlossener Anwartschaft stimmen
-Sie ab.{% endblocktranslate %}</p>
+Sie Anträge einbringen, unterstützen und mitberaten — und abstimmen, sobald Ihr Stimmrecht
+besteht (siehe oben).{% endblocktranslate %}</p>
 </div>
 {% endblock %}

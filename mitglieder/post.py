@@ -10,33 +10,48 @@ import logging
 from datetime import date
 
 from django.conf import settings
+from django.db.models import Q
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.mail import EmailMessage
-from mitglieder.models import Mitglied, Mitgliedsstatus
+from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied, Mitgliedsstatus, Postauftrag
+from parameter.models import zahl
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
-from verfahren.models import AuditEintrag
+from verfahren.models import Antrag, AuditEintrag, Ebene
 
 log = logging.getLogger(__name__)
 
 SCHLUSS = "Direkte Demokratie Österreich — Wir sind das Werkzeug."
 
 
-def _ab(datum: date, heute: date) -> str:
-    """„ab sofort“, wenn der Tag erreicht ist, sonst „ab dd.mm.yyyy“."""
+def _ab(datum: date, heute: date, ungeprueft: bool = False) -> str:
+    """„ab sofort“, wenn der Tag erreicht ist, sonst „ab dd.mm.yyyy“ — ein ungeprüftes Konto
+    stimmt erst nach der Freischaltung ab, also dann „nach Ihrer Freischaltung“."""
     if datum <= heute:
-        return _("ab sofort")
+        return _("nach Ihrer Freischaltung") if ungeprueft else _("ab sofort")
     return _("ab %(datum)s") % {"datum": formats.date_format(datum, "d.m.Y")}
 
 
 def stimmrechts_satz(mitglied: Mitglied, heute: date | None = None) -> str:
     """Ab wann das Stimmrecht besteht — je Gegenstand aus Beitritt und Anwartschaft (§ 4 Abs 4),
-    oder mit dem Satzungsbezug, solange die Übergangsregel des § 4 Abs 4 lit d gilt."""
+    oder mit dem Satzungsbezug, solange die Übergangsregel des § 4 Abs 4 lit d gilt.
+
+    Dieselben Bedingungen wie `Mitglied.ist_stimmberechtigt` (Status, Identitätsstufe): Ruht die
+    Mitgliedschaft, sagt der Satz das statt „ab sofort“ (F-51)."""
     heute = heute or timezone.localdate()
+    if mitglied.status == Mitgliedsstatus.PAUSIERT:
+        # Derselbe Satz wie im Freischaltungsbrief eines pausierten Kontos
+        return _(
+            "Ihre Mitgliedschaft ist derzeit pausiert. Sobald Ihr offener Mitgliedsbeitrag eingegangen "
+            "ist, können Sie wieder mitmachen und abstimmen."
+        )
+    if mitglied.status != Mitgliedsstatus.AKTIV:
+        return _("Ihre Mitwirkungsrechte und Ihr Stimmrecht ruhen derzeit.")
     if settings.DDOE_UEBERGANGSREGEL:
         return _(
             "Nach Ihrer Freischaltung können Sie ohne zusätzliche Wartefrist abstimmen und wählen. "
@@ -44,14 +59,17 @@ def stimmrechts_satz(mitglied: Mitglied, heute: date | None = None) -> str:
             "über die dauerhaften Verfahrensregeln."
         )
     beitritt = mitglied.beitritt or heute
+    ungeprueft = mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
     return _(
         "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. "
         "An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei "
         "können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich "
         "aus den Wartefristen ab Ihrem Beitritt."
     ) % {
-        "sachfragen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.SACHFRAGE]), heute),
-        "personenwahlen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL]), heute),
+        "sachfragen": _ab(monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.SACHFRAGE]), heute, ungeprueft),
+        "personenwahlen": _ab(
+            monate_addieren(beitritt, ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL]), heute, ungeprueft
+        ),
     }
 
 
@@ -189,6 +207,166 @@ def vertrauensfrage_senden(mandat, antrag) -> bool:
         )
         betreff = _("Vertrauensfrage zu Ihrem Mandat — ParlamentPlattform")
     return _senden(mitglied, "vertrauensfrage", betreff, text)
+
+
+# ── Verfahrenspost mit Einwilligung (Anweisung des Gründers 28.9.2026) ───────────────────────────
+
+
+def neuer_antrag_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
+    """„Neuer Antrag in Ihrer Region“: Titel, Ebene und Gebiet, wer ihn eingebracht hat (Anzeigename),
+    der Link — und warum der Brief kommt (Wohnsitz betroffen) samt dem Weg, ihn im Profil abzubestellen.
+    Kein Werbesatz, kein Antragstext: Der steht öffentlich auf der Antragsseite."""
+    with translation.override("de"):
+        bund = antrag.ebene == Ebene.BUND.value
+        text = _brief(
+            "mitglieder/post/neuer_antrag.txt",
+            {
+                "name": _anrede(mitglied),
+                "titel": antrag.titel,
+                "ebene": antrag.get_ebene_display(),
+                "gebiet": antrag.gebiet,
+                "bund": bund,
+                "eingebracht_von": antrag.eingebracht_von.anzeigename,
+                "link": settings.DDOE_BASIS_URL.rstrip("/") + reverse("verfahren:antrag", kwargs={"pk": antrag.pk}),
+            },
+        )
+        betreff = (
+            _("Neuer Antrag für ganz Österreich — ParlamentPlattform")
+            if bund
+            else _("Neuer Antrag in Ihrer Region — ParlamentPlattform")
+        )
+    return _senden(mitglied, "neuer_antrag", betreff, text)
+
+
+def rechtsbezug_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
+    """„Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag“ — die Normen des jüngsten erfolgreichen
+    Laufs, jede als nicht verifiziert, der Link zur Antragsseite, die Kennzeichnung als KI-Vorschlag und
+    der Weg zum Abbestellen. Liegt (noch) kein Ergebnis vor, geht kein Brief; der Postausgang versucht
+    es später erneut."""
+    from ki.rechtsbezug import rechtsbezug_fuer
+
+    ergebnis = rechtsbezug_fuer(antrag)
+    if ergebnis is None:
+        return False
+    with translation.override("de"):
+        text = _brief(
+            "mitglieder/post/rechtsbezug.txt",
+            {
+                "name": _anrede(mitglied),
+                "titel": antrag.titel,
+                "normen": ergebnis["normen"],
+                "hinweis": ergebnis["hinweis"],
+                "unsicherheit": ergebnis["unsicherheit_wort"],
+                "modell": ergebnis["modell"],
+                "auftrag_version": ergebnis["auftrag_version"],
+                # Kontextstand (§ 6 Abs 11 lit b): Datum des Laufs in Wiener Zeit und die geprüfte Fassung
+                "stand": formats.date_format(timezone.localtime(ergebnis["stand"]), "d.m.Y, H:i"),
+                "fassung": ergebnis["fassung"],
+                "link": settings.DDOE_BASIS_URL.rstrip("/")
+                + reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
+                + "#rechtsbezug",
+            },
+        )
+        betreff = _("Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag")
+    return _senden(mitglied, "rechtsbezug", betreff, text)
+
+
+def beitragserinnerung_brief(mitglied: Mitglied) -> bool:
+    """Die Beitragserinnerung der Verwaltung (§ 4 Abs 3): Beitragsseite, persönliche Referenz, der
+    Hinweis, dass die Höhe Selbsteinschätzung bleibt — und der Weg zum Abbestellen im Profil."""
+    with translation.override("de"):
+        text = _brief(
+            "mitglieder/post/beitragserinnerung.txt",
+            {"name": mitglied.first_name or mitglied.anzeigename, "referenz": beitragsreferenz(mitglied)},
+        )
+        betreff = _("Erinnerung: Ihr Mitgliedsbeitrag bei der DDÖ")
+    return _senden(mitglied, "beitragserinnerung", betreff, text)
+
+
+def _gemeinde_des_antrags(antrag: Antrag):
+    """Die Gemeinde eines Gemeinde-Antrags als Verweis ins Verzeichnis — über den Wohnsitz oder
+    Nebenwohnsitz des Antragstellers, denn `Antrag.gebiet` trägt nur den Namen, und Gemeindenamen sind
+    nicht eindeutig. Ohne Treffer (Altbestand, geänderter Wohnsitz) bleibt der Namensvergleich."""
+    m = antrag.eingebracht_von
+    for g in (m.wohnsitz if m.wohnsitz_id else None, m.nebenwohnsitz if m.nebenwohnsitz_id else None):
+        if g is not None and g.name == antrag.gebiet:
+            return g
+    return None
+
+
+def region_empfaenger(antrag: Antrag):
+    """Wer von einem neuen Antrag betroffen ist (§ 14 Abs 3): aktive oder pausierte, echte Konten mit
+    E-Mail-Einwilligung, deren Wohnsitz im Gebiet des Antrags liegt — nie der Antragsteller. Der
+    Nebenwohnsitz zählt zusätzlich, sobald `region-nebenwohnsitz-zaehlt` auf 1 steht; ein Antrag für
+    ganz Österreich geht an alle, solange `post-neuer-antrag-bund` auf 1 steht. Ungeprüfte Konten
+    sind dabei: Betroffen ist, wer dort wohnt, nicht, wer schon stimmen darf."""
+    basis = (
+        Mitglied.objects.filter(
+            is_active=True,
+            testkonto=False,
+            post_einwilligung=True,
+            status__in=(Mitgliedsstatus.AKTIV, Mitgliedsstatus.PAUSIERT),
+        )
+        .exclude(pk=antrag.eingebracht_von_id)
+        .exclude(email="")
+        .order_by("pk")
+    )
+    ebene, gebiet = antrag.ebene, antrag.gebiet
+    if ebene == Ebene.BUND.value:
+        return basis if zahl("post-neuer-antrag-bund", 1) == 1 else basis.none()
+    if not gebiet:
+        return basis.none()
+    neben = zahl("region-nebenwohnsitz-zaehlt", 0) == 1
+    if ebene == Ebene.LAND.value:
+        schluessel = {str(label): wert for wert, label in Bundesland.choices}.get(gebiet)
+        if schluessel is None:
+            return basis.none()
+        treffer = Q(bundesland=schluessel) | Q(wohnsitz__bundesland=schluessel)
+        if neben:
+            treffer |= Q(nebenwohnsitz__bundesland=schluessel)
+    elif ebene == Ebene.BEZIRK.value:
+        treffer = Q(wohnsitz__bezirk=gebiet)
+        if neben:
+            treffer |= Q(nebenwohnsitz__bezirk=gebiet)
+    else:
+        g = _gemeinde_des_antrags(antrag)
+        if g is not None:
+            treffer = Q(wohnsitz=g)
+            if neben:
+                treffer |= Q(nebenwohnsitz=g)
+        else:
+            treffer = Q(wohnsitz__name=gebiet) | Q(wohnsitz__isnull=True, gemeinde=gebiet)
+            if neben:
+                treffer |= Q(nebenwohnsitz__name=gebiet)
+    return basis.filter(treffer).distinct()
+
+
+def region_benachrichtigen(antrag: Antrag) -> int:
+    """Je betroffenem Mitglied ein Postauftrag „neuer_antrag“ (Bezug `antrag:<pk>`, genau einmal je
+    Antrag und Konto); zugestellt wird im Hintergrundlauf. Gibt die Zahl der neu angelegten Aufträge
+    zurück und hält sie im Audit fest — ohne Personenbezug.
+
+    Die Aufträge entstehen in einem Zug (`bulk_create`), nicht je Empfänger über `beauftragen`: Ein
+    Bundesantrag trifft jedes Konto mit Einwilligung, und das Anlegen läuft in der Anfrage „Einbringen“.
+    Die Prüfungen von `beauftragen` (Testkonto, aktiv, Adresse, Status, Einwilligung) deckt
+    `region_empfaenger` ab; die Eindeutigkeit (Mitglied, Art, Bezug) lässt schon bestehende Aufträge
+    — auch erledigte — unberührt."""
+    bezug = f"antrag:{antrag.pk}"
+    vorhanden = Postauftrag.objects.filter(art="neuer_antrag", bezug=bezug)
+    vorher = vorhanden.count()
+    schon = set(vorhanden.values_list("mitglied_id", flat=True))
+    Postauftrag.objects.bulk_create(
+        [
+            Postauftrag(mitglied_id=pk, art="neuer_antrag", bezug=bezug, antrag=antrag)
+            for pk in region_empfaenger(antrag).values_list("pk", flat=True)
+            if pk not in schon
+        ],
+        ignore_conflicts=True,
+        batch_size=500,
+    )
+    anzahl = vorhanden.count() - vorher
+    AuditEintrag.anhaengen({"typ": "post_neuer_antrag", "antrag": antrag.pk, "empfaenger": anzahl})
+    return anzahl
 
 
 def willkommen_senden(mitglied: Mitglied) -> bool:

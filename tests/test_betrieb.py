@@ -141,3 +141,18 @@ def test_deploy_systemcheck_ohne_warnung():
     )
     assert lauf.returncode == 0, lauf.stdout + lauf.stderr
     assert "1 silenced" in lauf.stdout + lauf.stderr  # W021 — und nur W021
+
+
+# ── Startketten: ohne Gemeindeverzeichnis kann sich niemand registrieren ─────────────────
+
+
+@pytest.mark.parametrize(
+    "datei",
+    ["Dockerfile", "Makefile", "render.yaml", "docker-compose.yml",
+     "docs/partner/instanz/render.yaml", "docs/partner/instanz/docker-compose.yml"],
+)
+def test_jede_startkette_laedt_nach_migrate_gemeinden_und_kategorien(datei):
+    text = (WURZEL / datei).read_text(encoding="utf-8")
+    rest = text[text.index("manage.py migrate"):]
+    kette = rest[: min(i for i in (rest.find("runserver"), rest.find("gunicorn")) if i >= 0)]
+    assert "manage.py gemeinden_laden" in kette and "manage.py kategorien_laden" in kette, datei

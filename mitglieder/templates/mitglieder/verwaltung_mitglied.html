@@ -27,7 +27,11 @@
   </form>
   {% endif %}
   {% for auftrag in postauftraege %}
+  {% if auftrag.art == "neuer_antrag" or auftrag.art == "rechtsbezug" or auftrag.art == "beitragserinnerung" %}
+  <p>{% if auftrag.art == "neuer_antrag" or auftrag.art == "rechtsbezug" %}{% if auftrag.art == "neuer_antrag" %}{% translate "Neuer Antrag in der Region" %}{% else %}{% translate "Betroffene Gesetze" %}{% endif %}{% if auftrag.antrag_id %} · <a href="{% url 'verfahren:antrag' auftrag.antrag_id %}">{% translate "Antrag" %} #{{ auftrag.antrag_id }}</a>{% endif %}{% else %}{% translate "Beitragserinnerung" %}{% endif %} · {{ auftrag.bezug }} · {% if auftrag.versandt_am %}{% translate "Versendet" %}: {{ auftrag.versandt_am|date:"SHORT_DATETIME_FORMAT" }}{% elif auftrag.erledigt %}{% translate "Abgeschlossen ohne Versand (Einwilligung fehlt oder Konto nicht zustellbar)" %}{% else %}{% translate "Noch nicht versendet" %}{% endif %}</p>
+  {% else %}
   <p>{% if auftrag.art == "willkommen" %}{% translate "Willkommensmail" %}{% elif auftrag.art == "freischaltung" %}{% translate "Freischaltungsmail" %}{% else %}{% translate "Ausweis-Vorschau" %}{% endif %} · {% if auftrag.versandt_am %}{% translate "Versendet" %}: {{ auftrag.versandt_am|date:"SHORT_DATETIME_FORMAT" }}{% else %}{% translate "Noch nicht versendet" %}{% endif %} · {% if auftrag.anhang_versandt_am %}{% translate "PDF versendet" %}{% else %}{% translate "PDF noch nicht versendet" %}{% endif %}</p>
+  {% endif %}
   {% endfor %}
 </section>
 

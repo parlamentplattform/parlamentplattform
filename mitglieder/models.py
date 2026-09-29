@@ -64,7 +64,20 @@ class Mitglied(AbstractUser):
     """Ein Mensch, ein Konto (§ 4 Abs 4 lit e)."""
 
     mitgliedsnummer = models.PositiveBigIntegerField(null=True, blank=True, unique=True, editable=False)
-    testkonto = models.BooleanField(default=False, editable=False)
+    testkonto = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="Testkonto des Aufbaus (Demo-Daten, Konten vor dem Gründerkonto): keine Nummer, kein Ausweis, "
+        "keine Post — und nie im Nenner der Stimmberechtigten oder in einer Mitgliederzahl (§ 4 Abs 4 lit a).",
+    )
+    beitragsreferenz_stamm = models.CharField(
+        max_length=6,
+        blank=True,
+        default="",
+        editable=False,
+        help_text="Einmal vergebener Stamm der persönlichen Beitragsreferenz (F-38). Er bleibt bei jedem "
+        "Adresswechsel gleich, damit Daueraufträge und gedruckte QR-Codes weiter zugeordnet werden.",
+    )
 
     @property
     def mitgliedsnummer_text(self):
@@ -175,6 +188,13 @@ class Mitglied(AbstractUser):
         default=True,
         help_text="WeicherFilter in der Voreinstellung: ★ Favoriten zuerst. Gilt, solange kein Profil aktiv ist.",
     )
+    post_einwilligung = models.BooleanField(
+        default=False,
+        help_text="Darf die Plattform diesem Mitglied E-Mails über das Verfahren schicken — neue Anträge aus "
+        "der eigenen Region, Beitragserinnerungen? Anmelde-, Bestätigungs-, Willkommens-, Freischaltungs- "
+        "und Ausweisnachrichten gehen unabhängig davon (sie gehören zum Konto). Die Registrierung fragt "
+        "den Haken ab (Voreinstellung: nein); der Bestand vor 0.50 hat laut Gründer bereits zugestimmt.",
+    )
 
     class Meta:
         verbose_name = "Mitglied"
@@ -188,8 +208,8 @@ class Mitglied(AbstractUser):
         wenn es auch im Nenner (`stimmberechtigte_zaehlen`) gezählt wurde; wer erst nach
         Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
         Abstimmung nicht mit."""
-        if self.beitritt is None:
-            return False
+        if self.beitritt is None or self.testkonto:
+            return False  # Testkonten stehen in keinem Nenner und in keinem Zähler
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
         # Altbestand ohne Datum: die Datenmigration trägt den Beitritt nach; hier als Rückfall.
@@ -221,13 +241,28 @@ class Mitglied(AbstractUser):
         return felder
 
     def status_setzen(self, status: str, grund: str = "") -> list[str]:
-        """Setzt den Status samt Begründung und `status_seit`; speichert nicht."""
+        """Setzt den Status samt Begründung und `status_seit`; speichert nicht.
+
+        Eine Pause ruht auch die Anwartschaft (§ 4 Abs 4; Entscheidung des Gründers 28.9.2026:
+        „gilt als Pause auf der Plattform, also auch von der Anwartschaft“): Endet die Pause, rückt
+        der Beitritt um ihre Dauer vor, damit die pausierten Tage in keiner Frist zählen. Die
+        Regel selbst bleibt rein (`plattform_core.eligibility.stimmberechtigt` kennt nur ein Datum)."""
         from django.utils import timezone
 
         felder: list[str] = []
         if status != self.status:
+            heute = timezone.localdate()
+            if (
+                self.status == Mitgliedsstatus.PAUSIERT
+                and status == Mitgliedsstatus.AKTIV
+                and self.beitritt is not None
+                and self.status_seit is not None
+                and heute > self.status_seit
+            ):
+                self.beitritt = self.beitritt + (heute - self.status_seit)
+                felder.append("beitritt")
             self.status = status
-            self.status_seit = timezone.localdate()
+            self.status_seit = heute
             felder += ["status", "status_seit"]
         if grund != self.status_grund:
             self.status_grund = grund
@@ -297,7 +332,7 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
     veröffentlicht — danach nie mehr verändert."""
     anzahl = 0
     for m in (
-        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV)
+        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
         .exclude(beitritt=None)
         .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
     ):
@@ -480,7 +515,8 @@ class Drosselzaehler(models.Model):
     In der Datenbank statt im prozesslokalen Cache: Zwei gunicorn-Worker führen sonst
     zwei Eimer, und ein Neustart setzt den Stand auf null. Keine Verfahrensdaten —
     Zeilen älter als zwei Stunden räumt `drossel_zuviel` im Vorbeigehen ab. Die
-    Kennung ist die Verbindungsadresse; gespeichert wird sie nur für diese Stunde."""
+    Kennung ist die Verbindungsadresse (bei Drosseln je Konto „konto:<pk>“); gespeichert
+    wird sie nur für diese Stunde."""
 
     zweck = models.CharField(max_length=30)
     kennung = models.CharField(max_length=64)
@@ -689,10 +725,18 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
 
 class Postauftrag(models.Model):
-    """Dauerhafter Versandauftrag; keine Nachrichteninhalte im öffentlichen Audit."""
+    """Dauerhafter Versandauftrag; keine Nachrichteninhalte im öffentlichen Audit.
+
+    `bezug` macht den Schlüssel je Anlass eindeutig: leer bei den Kontobriefen (Willkommen,
+    Freischaltung, Vorschau), `antrag:<pk>` bei „Neuer Antrag in Ihrer Region“, `jahr:<Jahr>` bei
+    der Beitragserinnerung — so gibt es je Mitglied, Art und Anlass genau einen Auftrag."""
 
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     art = models.CharField(max_length=20)
+    bezug = models.CharField(max_length=40, default="", blank=True)
+    antrag = models.ForeignKey(
+        "verfahren.Antrag", null=True, blank=True, on_delete=models.PROTECT, related_name="postauftraege"
+    )
     erstellt_am = models.DateTimeField(auto_now_add=True)
     versandt_am = models.DateTimeField(null=True, blank=True)
     anhang_versandt_am = models.DateTimeField(null=True, blank=True)
@@ -703,7 +747,9 @@ class Postauftrag(models.Model):
     sperrcode = models.CharField(max_length=32, default="", blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["mitglied", "art"], name="postauftrag_einmal")]
+        constraints = [
+            models.UniqueConstraint(fields=["mitglied", "art", "bezug"], name="postauftrag_einmal_je_bezug")
+        ]
 
     def __str__(self):
-        return f"{self.art}: {self.mitglied_id}"
+        return f"{self.art}{' ' + self.bezug if self.bezug else ''}: {self.mitglied_id}"

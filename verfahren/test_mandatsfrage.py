@@ -240,3 +240,16 @@ def test_antragsseite_und_kachel_rendern_die_mandatsfrage(client, ordnung):  # n
     assert client.get(reverse("verfahren:antrag", args=[antrag.pk])).status_code == 200
     inhalt = client.get(reverse("verfahren:parlament")).content.decode()
     assert FRAGE["titel"] in inhalt
+
+
+def test_der_schnappschuss_traegt_keinen_anteil_der_ordnung():
+    """Die Mandatsfrage hat keine Unterstützungsphase; ein Anteil der Ordnung (hier 50 %) gehört
+    nicht in ihre eingefrorene Regel (§ 5 Abs 5)."""
+    from verfahren.models import Verfahrensordnung
+
+    mit_anteil = Verfahrensordnung.objects.create(
+        policy_id="test-ordnung", version=4, aktiv=True, regeln={**REGELN, "version": 4, "unterstuetzung_anteil": 0.5}
+    )
+    mandat, aufgabe = mandat_mit_report(mitglied_anlegen("mandatarin", tage=600))
+    antrag = eroeffnen(mandat, aufgabe, mit_anteil)
+    assert antrag.policy_snapshot["unterstuetzung_anteil"] == 0

@@ -351,7 +351,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 5
+    assert rollen_regel.fassung == 6
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund
@@ -383,9 +383,83 @@ def test_erwartete_adressen_nach_der_zusammenfuehrung_sind_bekannt():
 
 def test_fassung_5_der_mitgliedsausweis_steht_beim_mitglied():
     """FB-K8: Der Ausweis kommt mit der Freischaltung und liegt im Profil — die Matrix sagt es, mit Adresse."""
-    assert VERSION == 5
+    assert VERSION >= 5
     mitglied = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == "mitglied")
     zeile = next(f for f in mitglied.faehigkeiten if "Mitgliedsausweis" in f.titel)
     assert zeile.stand is Stand.VERFUEGBAR and zeile.urlname == "mitglieder:profil"
     assert "einseitiges PDF" in zeile.titel and "bestätigter Anmeldung" in zeile.titel
     assert "Prüfstatus ohne Namen" in zeile.titel
+
+
+#: Bauschritte aus Teil C des Fahrtenbuchs, die abgeschlossen sind (Stand 29.9.2026). Eine ○-Zeile,
+#: die einen davon als „kommt mit …“ nennt, verspricht etwas, das entweder längst da ist (dann muss
+#: die Zeile ● werden) oder das der Schritt nie gebracht hat (dann braucht sie einen echten Folgeschritt).
+ERLEDIGTE_BAUSCHRITTE = {f"S{n}" for n in range(1, 11)} | {"S10c", "S14a"}
+
+
+def _genannte_bauschritte(text: str) -> set[str]:
+    import re
+
+    # „nicht in Teil C (S1–S14) vorgesehen“ nennt keinen Schritt, sondern den Bereich.
+    text = re.sub(r"S1–S14", "", text)
+    return set(re.findall(r"\bS\d+[a-c]?\b", text))
+
+
+def test_fassung_6_kein_geplantes_nennt_einen_erledigten_bauschritt():
+    """Bestandsaufnahme 28.9.2026, C4: Vier Zeilen standen als ○ „S9“/„S11“, obwohl S9 seit 0.45
+    abgeschlossen war und der Code sie längst hatte. Der Wächter hält das künftig fern."""
+    assert VERSION >= 6
+    falsch = [
+        f"{r.name}: {f.titel} → {f.bauschritt}"
+        for r in alle_rollen(GRUPPEN)
+        for f in r.faehigkeiten
+        if f.stand is Stand.GEPLANT and _genannte_bauschritte(f.bauschritt) & ERLEDIGTE_BAUSCHRITTE
+    ]
+    assert not falsch, "Geplant mit erledigtem Bauschritt:\n  " + "\n  ".join(falsch)
+
+
+def test_fassung_6_die_vier_gebauten_zeilen_sind_verfuegbar_mit_adresse():
+    rollen = {r.schluessel: r for r in alle_rollen(GRUPPEN)}
+
+    def zeile(schluessel: str, wort: str):
+        (f,) = [f for f in rollen[schluessel].faehigkeiten if wort in f.titel]
+        return f
+
+    for schluessel, wort in (
+        ("expertenrat1", "Fassungen im Arbeitsplatz vergleichen"),
+        ("expertenrat1", "Beschluss anlegen"),
+        ("expertenrat1", "Einschätzung der Zukunftswerkstatt als Arbeitsunterlage"),
+        ("integritaetsrat", "jährlich öffentlich berichten"),
+    ):
+        f = zeile(schluessel, wort)
+        assert f.stand is Stand.VERFUEGBAR and f.urlname and f.ort, f.titel
+        reverse(f.urlname)
+
+
+
+def test_die_rollenmatrix_nennt_keine_internen_kennungen():
+    """Entscheidung vom 4.9.2026: keine Fahrtenbuch-, Lastenheft- oder ADR-Kennungen in dem, was
+    Nutzer lesen. Der Katalog-Wächter (test_vorlagen) sieht die Texte der Rollenmatrix nicht, weil
+    sie als Daten in plattform_core/rollen.py liegen — dieser hier schon."""
+    from verfahren.test_vorlagen import KENNUNGSMUSTER, datentexte
+
+    fehler = [
+        f"{wo}: {m.group(1)} in {text[:80]!r}"
+        for wo, text in datentexte()
+        if wo.startswith("rollen.py") and (m := KENNUNGSMUSTER.search(text))
+    ]
+    assert not fehler, "interne Kennung in der Rollenmatrix:\n  " + "\n  ".join(fehler)
+
+
+def test_fassung_6_die_neuen_bauschritt_zeilen_lesen_sich_nach_kommt_mit(client):
+    """Die Vorlage setzt „kommt mit“ vor den Bauschritt — die drei Zeilen aus Fassung 6 ergeben
+    damit einen Satz und verweisen auf keine internen Dokumente (Teil C, CONCEPT)."""
+    inhalt = " ".join(client.get(reverse("verfahren:rollen")).content.decode().split())
+    for satz in (
+        "kommt mit dem Bestellweg nach § 6 Abs 8",
+        "kommt mit einem eigenen Bauschritt, der zuvor einen Beschluss der Mitgliederversammlung",
+        "kommt mit einem externen Penetrationstest",
+    ):
+        assert satz in inhalt, satz
+    assert "CONCEPT § 5" not in inhalt and "Teil C „danach“" not in inhalt
+    assert "kommt mit offen — die Betroffenheitsregeln" not in inhalt

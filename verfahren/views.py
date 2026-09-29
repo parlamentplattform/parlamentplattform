@@ -36,6 +36,8 @@ from verfahren.models import (
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+# Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>)
+FELDER = ("filter", "favoriten", "wichtig", "region")
 
 # Die neun offenen Regler des WeicherFilters (FB-B2, Regel v2): Wortlaut im UI und das Merkmal,
 # das sie gewichten (nachrechenbar, in [0, 1]; nachzulesen unter /parameter/#weicherfilter).
@@ -304,7 +306,7 @@ def _als_liste(antraege) -> list:
 
 
 def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-                        zaehler=None, beginne=None, vfs=None):
+                        zaehler=None, beginne=None, vfs=None, lage=None):
     """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
@@ -312,15 +314,18 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     `laufend` darf ein QuerySet oder die schon geladene Liste sein; Zählwerte und wirksame
     Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
     from plattform_core.weicherfilter import ist_neutral
+    from verfahren.hinweise import handlungslage
 
     laufende = _als_liste(laufend)
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
     vfs = dict(vfs) if vfs is not None else _vertrauensfragen(laufende)
+    lage = lage if lage is not None else handlungslage(nutzer)  # einmal je Feed, nicht je Zeile
 
     def zeile(a, extra=None):
         z = _kachel(
-            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=nutzer
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=nutzer,
+            lage=lage,
         )
         z.update({"favorit": False, "anteile": [], "punkte": 0})
         z.update(extra or {})
@@ -453,7 +458,8 @@ def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     return abstimmung_frist_ende(beginn, policy)
 
 
-def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None):
+def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
+            lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
     Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
     laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
@@ -463,7 +469,14 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
 
     Vertrauensfragen (§ 7 Abs 10) tragen zusätzlich die Legende zu Ja/Nein (lit e), ob `nutzer`
     sie unterstützen darf (lit c: nur am Einbringungstag Stimmberechtigte) und — nach erreichter
-    Schwelle — den veröffentlichten Abstimmungsbeginn."""
+    Schwelle — den veröffentlichten Abstimmungsbeginn.
+
+    Handlungsknöpfe zeigt die Kachel nur, wenn `nutzer` handeln darf (Befund B2): `lage`
+    (einmal je Seite gerechnet, `hinweise.handlungslage`) sagt, ob Identität und Status es
+    zulassen; das Stimmrecht am Stichtag wird je Antrag geprüft. Sonst trägt `sperre` den
+    Zustand mit Link statt der Knöpfe."""
+    from verfahren.hinweise import handlungslage, kachel_sperre
+
     policy = antrag.policy()
     beginn = beginn or antrag.wirksamer_phase_beginn(jetzt)
     if zaehler is None:
@@ -500,7 +513,15 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         abgegeben, basis = _beteiligung(antrag, zaehler["stimmen"].get(antrag.pk, 0))
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
                 "prozent": min(100, round(100 * abgegeben / basis))}
+    sperre = None
+    if nutzer is not None and nutzer.is_authenticated and stat is not None:
+        lage = lage if lage is not None else handlungslage(nutzer)
+        if stat["typ"] == "unterstuetzung":
+            sperre = lage.mitwirkung
+        elif stat["typ"] == "abstimmung" and antrag.art != Antragsart.MANDAT:
+            sperre = lage.stimmsperre(nutzer, antrag)
     return {
+        "sperre": kachel_sperre(sperre),
         "antrag": antrag,
         "frist": frist,
         "resttage": resttage,
@@ -567,7 +588,7 @@ def index(request):
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
     buehne = {
-        "mitglieder": Mitglied.objects.filter(is_active=True).count(),
+        "mitglieder": Mitglied.objects.filter(is_active=True, testkonto=False).count(),
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
@@ -664,6 +685,7 @@ def parlament(request):
     # ?fach= steuert den Knoten, ?suche= die Suche; ohne JavaScript ist jeder
     # Klick eine Seite, mit htmx wechselt nur das Feld.
     from plattform_core.faecher import faecher_layout
+    from verfahren.hinweise import handlungslage, hinweis_lage
 
     zeilen = list(
         Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id", "reihenfolge")
@@ -686,6 +708,11 @@ def parlament(request):
     faecher["abos"] = abo_slugs
     suchtext = (request.GET.get("suche") or "").strip()
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
+    # Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld auf das ganze Raster — serverseitig, damit es
+    # ohne JavaScript denselben Zustand gibt wie der ⤢-Knopf mit Alpine. Unbekannte Werte: kein Fokus.
+    fokus = request.GET.get("fokus") or ""
+    if fokus not in FELDER:
+        fokus = ""
 
     meine_favoriten: set[int] = set()
     if request.user.is_authenticated:
@@ -714,6 +741,7 @@ def parlament(request):
     mein_ort = _meine_orte(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
+    lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
     meine_unterstuetzungen: set[int] = set()
     if request.user.is_authenticated:
         meine_unterstuetzungen = set(
@@ -735,7 +763,7 @@ def parlament(request):
                 "kacheln": [
                     _kachel(
                         a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
-                        vfs=vfs, nutzer=request.user,
+                        vfs=vfs, nutzer=request.user, lage=lage,
                     )
                     for a in zeile
                 ],
@@ -744,7 +772,8 @@ def parlament(request):
 
     wichtige_kacheln = [
         _kachel(
-            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=request.user
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=request.user,
+            lage=lage,
         )
         for a in wichtige
     ]
@@ -765,15 +794,18 @@ def parlament(request):
         filter_lage = _filter_lage(profile, aktives, regler, favoriten_zuerst)
     feed = _weicherfilter_feed(
         request.user, antraege, laufende, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-        zaehler=zaehler, beginne=beginne, vfs=vfs,
+        zaehler=zaehler, beginne=beginne, vfs=vfs, lage=lage,
     )
     return render(
         request,
         "verfahren/parlament.html",
         {
+            # Rückmeldung einer Kachel-/Feed-Handlung im Kopf des Ursprungsfelds (Befund B1)
+            "hinweis": hinweis_lage(request),
             "faecher": faecher,
             "suchtext": suchtext,
             "suchtreffer": suchtreffer,
+            "fokus": fokus,
             "feed": feed,
             "meine_favoriten": meine_favoriten,
             "filter_lage": filter_lage,
@@ -896,8 +928,16 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             (_("Mehrheit"), mehrheit),
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
+    schwelle = ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle
+    if policy.unterstuetzung_anteil > 0:
+        # Fassung 4 der Ordnung: die Zahl kam aus einem Anteil der Stimmberechtigten am Einbringungstag.
+        schwelle += " · " + _("%(prozent)s %% der %(n)s am Einbringungstag Stimmberechtigten, mindestens %(min)s") % {
+            "prozent": f"{policy.unterstuetzung_anteil * 100:g}",
+            "n": policy.unterstuetzung_grundgesamtheit,
+            "min": policy.unterstuetzung_mindestzahl,
+        }
     return [
-        (_("Unterstützungsschwelle"), ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle),
+        (_("Unterstützungsschwelle"), schwelle),
         (_("Frist zum Unterstützen"), ngettext("%d Tag", "%d Tage", policy.unterstuetzung_frist_tage) % policy.unterstuetzung_frist_tage),
         (_("Beratung"), ngettext("%d Tag", "%d Tage", policy.beratung_tage) % policy.beratung_tage),
         (_("Abstimmung"), ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage),
@@ -908,24 +948,39 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
     ]
 
 
-def _einschaetzung(antrag):
-    """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte und
-    Beanstandungen. Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11);
-    bis dahin zeigt die Zone ehrlich, dass noch nichts vorliegt."""
-    from ki.anbieter import anbieter_waehlen
-    from ki.models import KILauf
+def _lesbarer_lauf(antrag, zweck=None):
+    """Der jüngste erfolgreiche Lauf zu diesem Antrag, den ein Mensch liest — mit `zweck` nur
+    Läufe dieses Zwecks. Textvektoren (Zweck „aehnlichkeit“) sind kein solcher Lauf — sie zählen
+    weder als „Stand“ der Kopfkarte noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
+    from ki.models import KILauf, Zweck
 
-    lauf = KILauf.objects.filter(antrag=antrag, erfolgreich=True).order_by("-erstellt_am").first()
+    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).exclude(zweck=Zweck.AEHNLICHKEIT)
+    if zweck is not None:
+        laeufe = laeufe.filter(zweck=zweck)
+    return laeufe.order_by("-erstellt_am").first()
+
+
+def _einschaetzung(antrag, betrachter=None):
+    """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte,
+    Beanstandungen und die Karte „Betroffene Gesetze“ (erste Stufe von FB-H3, Warteschlange).
+    Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
+    ehrlich, dass noch nichts vorliegt."""
+    from ki.anbieter import anbieter_waehlen
+    from ki.models import Zweck
+    from ki.rechtsbezug import rechtsbezug_lage
+
+    # Kopfkarte und Gremien-Fenster zeigen nur die Einschätzung; der Rechtsbezug hat seine eigene Karte.
+    lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
     anbieter = anbieter_waehlen()
     return {
         "lauf": lauf,
         "anbieter_da": anbieter is not None,
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
         "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
+        "rechtsbezug": rechtsbezug_lage(antrag, betrachter),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [
             _("Ähnliche Anträge"),
-            _("Berührte Gesetze"),
             _("Folgen für Judikatur und Exekutive"),
             _("Aufwand, Last und Dauer"),
             _("Ausschreibung"),
@@ -1037,7 +1092,7 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
             "absaetze": wortdiff.absaetze(wortlaut),
             "stand": chatkern.abstimmung_stand(antrag, entwurf),
             "reihung": vorschlagschat.REIHUNG,
-            "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         }
     }
 
@@ -1172,9 +1227,11 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     }
 
 
-def antrag_detail(request, pk):
+def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
+    """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
+    Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
-    antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
+    antrag.fortschreiben_bis_zum_stand()  # fällige Übergänge lazy anwenden (idempotent; dazu der Wächter)
     beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
     ergebnis = None
     if beendet and antrag.art != Antragsart.MANDAT:
@@ -1268,7 +1325,11 @@ def antrag_detail(request, pk):
         vollzug = list(antrag.vollzug.select_related("durch"))
     ab = request.GET.get("ab", "")
     chat = _chat_lage(antrag, request.user, ab=int(ab) if ab.isdigit() else None)
-    chat["antwort_vorgabe"] = _antwort_vorgabe(antrag, request.GET.get("antwort_auf"))
+    chat["fehler"] = chat_fehler
+    chat["entwurf"] = chat_entwurf
+    chat["antwort_vorgabe"] = _antwort_vorgabe(
+        antrag, (chat_entwurf or {}).get("antwort_auf") or request.GET.get("antwort_auf")
+    )
     return render(
         request,
         "verfahren/antrag.html",
@@ -1297,12 +1358,13 @@ def antrag_detail(request, pk):
             "einschaetzung": (
                 None
                 if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
-                else _einschaetzung(antrag)
+                else _einschaetzung(antrag, request.user)
             ),
+            "neu": request.GET.get("neu") == "1",
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,
-            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
             "chat": chat,
             "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
             "frist": frist,
@@ -1327,6 +1389,29 @@ def _register_zeilen():
         stand = a.vollzugsstand()
         zeilen.append({"antrag": a, "stand": stand, "status": stand.status if stand else "offen"})
     return zeilen
+
+
+def datenschutz(request):
+    """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
+
+    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026)
+    und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
+    erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
+    from ki.models import steckplatz_stand
+    from mitglieder.bank import eingerichtet as bank_eingerichtet
+
+    ki = steckplatz_stand()
+    return render(
+        request,
+        "verfahren/datenschutz.html",
+        {
+            "ki_angeschlossen": ki["angeschlossen"],
+            "ki_anbieter": ki["anbieter"],
+            "bank_angeschlossen": bank_eingerichtet(),
+            "stand": "29.9.2026",
+            "AKTIV": "datenschutz",
+        },
+    )
 
 
 def umsetzung(request):
@@ -1606,6 +1691,7 @@ def zukunftswerkstatt(request):
     für alle und Einladung an die verwandten Bewegungen weltweit (§ 12).
     Seit Ring 0b (F-60) zeigt sie zusätzlich die Rechenschaft des
     Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
+    from ki.auftraege import auftragsversionen
     from ki.models import KILauf, steckplatz_stand
 
     return render(
@@ -1614,5 +1700,6 @@ def zukunftswerkstatt(request):
         {
             "steckplatz": steckplatz_stand(),
             "letzte_laeufe": list(KILauf.objects.select_related("antrag")[:8]),
+            "auftragsversionen": auftragsversionen(),
         },
     )

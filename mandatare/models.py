@@ -1137,10 +1137,8 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
         .select_related("mandat", "mandat__mitglied")
         .order_by("wirkungen_ab", "pk")
     )
-    mandate: dict[int, Mandat] = {}  # eine Instanz je Mandat — mehrere Vertrauensfragen sehen denselben Stand
-    for vf in offene:
-        mandat = mandate.setdefault(vf.mandat_id, vf.mandat)
-        vf.mandat = mandat
+
+    def faellig(vf, mandat):
         endgueltig_ab = vf.endgueltig_ab()
         endgueltig = endgueltig_ab is not None and jetzt >= endgueltig_ab
         frist_tag = vf.rueckgabefrist_tag()
@@ -1153,9 +1151,25 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             and frist_um
             and endgueltig
         )
-        if not (tue_a or tue_b or tue_c):
+        return endgueltig_ab, frist_tag, tue_a, tue_b, tue_c
+
+    mandate: dict[int, Mandat] = {}  # eine Instanz je Mandat — mehrere Vertrauensfragen sehen denselben Stand
+    for vf in offene:
+        mandat = mandate.setdefault(vf.mandat_id, vf.mandat)
+        vf.mandat = mandat
+        if not any(faellig(vf, mandat)[2:]):
             continue  # nichts fällig — und kein Savepoint für nichts
         with transaction.atomic():
+            # Unter Zeilensperre frisch lesen und neu entscheiden: Antrags-, Mandatarseiten und Wächter
+            # laufen in mehreren Workern — mit dem vorher gelesenen Stand vollzog ein zweiter Aufruf
+            # dieselbe Stufe ein zweites Mal und schrieb sie zweimal in die Audit-Kette.
+            vf = Vertrauensfrage.objects.select_for_update().get(pk=vf.pk)
+            mandat = Mandat.objects.select_for_update(of=("self",)).select_related("mitglied").get(pk=vf.mandat_id)
+            mandate[mandat.pk] = mandat
+            vf.mandat = mandat
+            endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)
+            if not (tue_a or tue_b or tue_c):
+                continue
             # (a) Ruhen wird zum Ende
             if tue_a:
                 vf.wirkungen_endgueltig_am = endgueltig_ab

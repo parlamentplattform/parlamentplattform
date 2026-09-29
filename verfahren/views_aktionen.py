@@ -698,6 +698,7 @@ def beanstanden(request, pk):
     Text. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest.
     Wie jede Mitwirkung mit Namen im Arbeitsbereich: nur bestätigte, aktive Mitglieder (§ 4,
     F-51) — sonst könnte ein ungeprüftes Konto unbegrenzt öffentliche Texte absetzen."""
+    from ki.models import Zweck
     from verfahren.models import AuditEintrag, Beanstandung
     from verfahren.views import _lesbarer_lauf
 
@@ -709,7 +710,9 @@ def beanstanden(request, pk):
     if not text:
         messages.error(request, _("Bitte beschreiben Sie, was an der Einschätzung falsch ist."))
         return _zurueck_zum_antrag(request, antrag)
-    lauf = _lesbarer_lauf(antrag)  # nie der Textvektor-Lauf — den liest kein Mensch
+    # Das Formular steht in der Kopfkarte: Ziel ist die Einschätzung, die sie zeigt; ohne eine
+    # solche der jüngste lesbare Lauf (Rechtsbezug) — nie der Textvektor-Lauf, den liest kein Mensch.
+    lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG) or _lesbarer_lauf(antrag)
     beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
     AuditEintrag.anhaengen(
         {

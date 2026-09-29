@@ -169,6 +169,22 @@ def test_rechtsbezug_ist_keine_einschaetzung_der_kopfkarte(client, json_attrappe
     assert _einschaetzung(antrag)["lauf"] == lauf
 
 
+def test_beanstandung_trifft_die_einschaetzung_der_kopfkarte(client, json_attrappe, ordnung):  # noqa: F811
+    """Das Formular „Beanstanden“ steht in der Kopfkarte: Liegt eine Einschätzung vor, trifft die
+    Beanstandung genau sie — auch wenn danach noch ein Rechtsbezug gerechnet wurde."""
+    from ki.models import lauf_ausfuehren
+    from verfahren.models import Beanstandung
+
+    antrag = _antrag(ordnung)
+    einschaetzung = lauf_ausfuehren(Zweck.EINSCHAETZUNG, "Auftrag", "Text.", antrag.eingebracht_von, antrag=antrag)
+    einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
+    abarbeiten()
+    assert KILauf.objects.filter(antrag=antrag).order_by("-erstellt_am", "-pk").first().zweck == Zweck.RECHTSBEZUG
+    client.force_login(antrag.eingebracht_von)
+    client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Die Einschätzung irrt."})
+    assert Beanstandung.objects.get(antrag=antrag).lauf == einschaetzung
+
+
 def test_gremien_fenster_zeigt_den_rechtsbezug_nicht_als_einschaetzung(client, json_attrappe, ordnung):  # noqa: F811
     from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
 

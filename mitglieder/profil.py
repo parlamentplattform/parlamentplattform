@@ -41,6 +41,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
+from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from parameter.models import zahl
 from plattform_core import Phase
@@ -562,6 +563,9 @@ def daten_export(mitglied: Mitglied) -> dict:
             "status_grund": m.status_grund,
             "status_seit": m.status_seit,
             "beitrag_zuletzt_am": m.beitrag_zuletzt_am,
+            # Nur ein schon festgeschriebener Stamm — der Export schreibt keinen fest.
+            "beitragsreferenz_stamm": m.beitragsreferenz_stamm or None,
+            "beitragsreferenz": beitragsreferenz(m) if m.beitragsreferenz_stamm else None,
             "ist_admin": m.ist_admin,
             "favoriten_zuerst": m.favoriten_zuerst,
             "registriert_am": m.date_joined,

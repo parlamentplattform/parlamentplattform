@@ -495,6 +495,19 @@ class Antrag(models.Model):
             laufende = laufende.filter(gegenstand=gegenstand)
         return any(a.laeuft(jetzt) for a in laufende)
 
+    def fortschreiben_bis_zum_stand(self, jetzt=None, hoechstens: int = 5) -> int:
+        """Alle fälligen Übergänge nacheinander anwenden — `fortschreiben` wendet je Aufruf genau
+        einen an. Ein liegengebliebener Antrag (Beratung um, Abstimmung um) zeigte sonst beim ersten
+        Aufruf „Abstimmung“ mit längst verstrichener Frist und erst beim zweiten das Ergebnis
+        (Bestandsaufnahme 28.9.2026, A2). Begrenzt wie im Wächter. Rückgabe: Zahl der Übergänge."""
+        jetzt = jetzt or timezone.now()
+        schritte = 0
+        for _schritt in range(hoechstens):
+            if not self.fortschreiben(jetzt):
+                break
+            schritte += 1
+        return schritte
+
     def wirksamer_phase_beginn(self, jetzt=None):
         """Der Phasenbeginn, mit dem gerechnet wird — um die Stillstandszeit nach hinten gerückt.
 
@@ -807,6 +820,29 @@ class AuditEintrag(models.Model):
         raise IntegrityError(
             f"Audit-Kette: Der Kopf wurde {cls.VERSUCHE}-mal hintereinander überholt — Eintrag nicht angehängt."
         )
+
+
+class Hintergrundlauf(models.Model):
+    """Ein wiederkehrender Lauf des Webdiensts (verfahren/hintergrund.py): Fristen-Wächter u. a.
+
+    Die Zeile ist die Sperre zwischen den Workern (atomare Reservierung wie beim Postauftrag)
+    und zugleich die Rechenschaft: wann der Lauf zuletzt begann, endete, was er tat und ob er
+    scheiterte. Nichts hier ist Verfahrensdatum; die Fristen selbst rechnet der Kern."""
+
+    name = models.CharField(max_length=40, unique=True)
+    gesperrt_bis = models.DateTimeField(null=True, blank=True)
+    sperrcode = models.CharField(max_length=32, default="", blank=True)
+    zuletzt_begonnen = models.DateTimeField(null=True, blank=True)
+    zuletzt_beendet = models.DateTimeField(null=True, blank=True)
+    zuletzt_stand = models.JSONField(default=dict, blank=True)
+    fehler = models.CharField(max_length=300, default="", blank=True)
+
+    class Meta:
+        verbose_name = "Hintergrundlauf"
+        verbose_name_plural = "Hintergrundläufe"
+
+    def __str__(self) -> str:
+        return f"{self.name} (zuletzt {self.zuletzt_beendet:%d.%m.%Y %H:%M})" if self.zuletzt_beendet else self.name
 
 
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------

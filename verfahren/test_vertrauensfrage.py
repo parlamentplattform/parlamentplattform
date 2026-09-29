@@ -849,7 +849,8 @@ def test_fortschreiben_liest_die_phase_gesperrt_aus_der_datenbank(ordnung, altma
     vorher = len(audit("phasenwechsel"))
     gesperrt.clear()
     assert veraltet.fortschreiben(t0 + tage(31)) is False  # sonst: „verfallen“ über ein entschiedenes Ergebnis
-    assert gesperrt == [Antrag]  # die eigene Zeile, einmal je Lauf
+    # Die eigene Zeile zuerst, einmal je Lauf; seit 0.50 sperrt auch der Aussetzungs-Nachlauf seine Zeilen.
+    assert gesperrt[0] is Antrag and gesperrt.count(Antrag) == 1
     assert veraltet.phase == "abgelehnt" and veraltet.phase_beginn == t0 + tage(14)
     assert len(audit("phasenwechsel")) == vorher
     antrag.refresh_from_db()

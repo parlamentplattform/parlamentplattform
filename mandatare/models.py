@@ -900,9 +900,7 @@ def bis_zum_stand_fortschreiben(antrag, jetzt) -> None:
     """Einen liegengebliebenen Antrag bis zum Stand von `jetzt` fortschreiben — `fortschreiben` wendet
     je Aufruf einen Übergang an, eine Vertrauensfrage braucht bis zum Ende zwei (Unterstützung →
     Abstimmung → Ergebnis). Begrenzt wie im Cron (`verfahren_fortschreiben`)."""
-    for _schritt in range(5):
-        if not antrag.fortschreiben(jetzt):
-            break
+    antrag.fortschreiben_bis_zum_stand(jetzt)
 
 
 def _letzte_gegen(mitglied_id: int, phasen: list[str], ausser: int | None = None):

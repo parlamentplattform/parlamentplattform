@@ -126,6 +126,16 @@ DEFAULT_FROM_EMAIL = os.environ.get("DDOE_MAIL_ABSENDER", "ParlamentPlattform <p
 
 LOGIN_URL = "/anmelden/"
 
+# Demo-Daten (`manage.py demo_seed`): nur, wo ausdrücklich gewollt. In der Entwicklung (DEBUG) an,
+# in Produktion aus — die Demo-Konten des Aufbaus zählten sonst in jedem Nenner der Stimmberechtigten
+# mit (Bestandsaufnahme 28.9.2026, Befund A1; Gründer: „Die Testkonten dürfen gelöscht werden“).
+DDOE_DEMO = os.environ.get("DDOE_DEMO", "1" if DEBUG else "0") == "1"
+
+# Der Fristen-Wächter im Hintergrundfaden des Webdiensts (gunicorn.conf.py, verfahren/hintergrund.py):
+# alle n Minuten werden fällige Fristen aller Verfahren ausgewertet — ohne bezahlten Cron-Dienst
+# (D-J1a, Freigabe des Gründers 28.9.2026). Takt der Maschine, keine Stellgröße der Demokratie.
+DDOE_WAECHTER_MINUTEN = int(os.environ.get("DDOE_WAECHTER_MINUTEN", "10"))
+
 # § 4 Abs 4 lit d: Übergangsregel für den Aufbau — Anwartschaftsfristen entfallen,
 # bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat.
 DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"

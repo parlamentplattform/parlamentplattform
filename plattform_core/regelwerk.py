@@ -485,16 +485,19 @@ REGELN: tuple[Regel, ...] = (
         modul="similarity.py",
         titel=_("Ähnlichkeitshinweis beim Einbringen"),
         zweck=(
-            _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt bis zu drei ähnliche "
-            "samt ihrer Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
+            _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt ähnliche samt ihrer "
+            "Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
             "Der Wortvergleich rechnet ohne Modell auf Wort-Ebene: Funktionswörter und Antragsfloskeln "
             "fallen weg, Wörter werden auf ihre Stammform gekürzt, Titelwörter zählen doppelt; der "
             "Wert ist zu zwei Dritteln der gewichtete Jaccard der Wortmengen und zu einem Drittel der "
-            "Jaccard der Wortpaare. Ab 30 Prozent erscheint der Hinweis. Ist ein Anbieter am "
-            "Modell-Steckplatz angeschlossen, kommt als Zweitmeinung der Bedeutungsvergleich dazu "
-            "(Kosinus zweier Textvektoren des Anbieters, Schwelle 78 Prozent); beide Werte stehen "
-            "nebeneinander. Er schlägt vor und blockiert nie — „Trotzdem einbringen“ bleibt immer "
-            "gleichwertig möglich.")
+            "Jaccard der Wortpaare. Ab der Schwelle im Register (Zielwert 30 Prozent) erscheint der "
+            "Hinweis. Ist ein Anbieter am Modell-Steckplatz angeschlossen, kommt als Zweitmeinung der "
+            "Bedeutungsvergleich dazu (Kosinus zweier Textvektoren des Anbieters, Schwelle im Register, "
+            "Zielwert 78 Prozent); beide Werte stehen nebeneinander. Ein Antrag erscheint, sobald einer "
+            "der beiden Werte seine Schwelle erreicht. Erreichen mehr Anträge eine Schwelle, als die "
+            "Höchstzahl im Register erlaubt (Zielwert drei), zeigt die Plattform die mit dem höheren der "
+            "beiden Werte, bei Gleichstand den älteren Antrag. Der Hinweis schlägt vor und blockiert "
+            "nie — „Trotzdem einbringen“ bleibt immer gleichwertig möglich.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 5 Abs 10 lit d · § 2 Abs 6",
@@ -511,12 +514,14 @@ REGELN: tuple[Regel, ...] = (
             _("Text kleinschreiben, Satzzeichen entfernen, Stoppwörter der Liste im Modul und Wörter "
             "unter drei Zeichen streichen, ab fünf Zeichen eine Endung -en/-er/-es/-e/-n/-s kappen, "
             "Titelwörter doppelt gewichten. Wortanteil: Summe der kleineren Gewichte je gemeinsamem Wort "
-            "geteilt durch die Summe der größeren Gewichte über alle Wörter. Paaranteil: gemeinsame "
-            "Wortpaare geteilt durch alle Wortpaare. Angezeigter Wert = ⅔ Wortanteil + ⅓ Paaranteil. "
+            "geteilt durch die Summe der größeren Gewichte über alle Wörter. Wortpaare sind benachbarte "
+            "Wörter, gebildet getrennt in Titel und Wortlaut. Paaranteil: gemeinsame Wortpaare geteilt "
+            "durch alle Wortpaare. Angezeigter Wert = ⅔ Wortanteil + ⅓ Paaranteil; hat keiner der beiden "
+            "Texte ein Wortpaar, zählt der Wortanteil allein. "
             "Der Bedeutungswert stammt vom Anbieter und ist nur mit dessen Modell nachrechenbar — "
             "darum steht er getrennt und gekennzeichnet daneben.")
         ),
-        registerschluessel="aehnlichkeit-schwelle-prozent",
+        registerschluessel="aehnlichkeit-schwelle-prozent · aehnlichkeit-bedeutung-schwelle-prozent · aehnlichkeit-treffer",
     ),
     Regel(
         modul="klassifikation.py",

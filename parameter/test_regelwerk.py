@@ -113,6 +113,21 @@ def test_die_ordnungsregel_nennt_den_registerschluessel_des_anteils():
     assert "verfahren-unterstuetzung-anteil-prozent" in ordnung.registerschluessel.split(" · ")
 
 
+def test_die_aehnlichkeitsregel_legt_auswahl_sonderfall_und_registerwerte_offen():
+    """§ 2 Abs 6: Auswahl bei mehr Treffern als der Höchstzahl, der Sonderfall ohne Wortpaare und die
+    Schwellen als Registerwerte stehen im Verzeichnis — wer nach dem Text rechnet, kommt auf den Code."""
+    regel = next(r for r in verzeichnis() if r.modul == "similarity.py")
+    assert regel.fassung == 2  # der Code ändert sich nicht, nur die Beschreibung
+    assert regel.registerschluessel.split(" · ") == [
+        "aehnlichkeit-schwelle-prozent", "aehnlichkeit-bedeutung-schwelle-prozent", "aehnlichkeit-treffer"
+    ]
+    text = f"{regel.zweck} {regel.nachrechenbar}"
+    assert "höheren der beiden Werte" in text and "den älteren Antrag" in text
+    assert "zählt der Wortanteil allein" in text and "getrennt in Titel und Wortlaut" in text
+    assert "Zielwert 30 Prozent" in text and "Zielwert 78 Prozent" in text
+    assert "Ab 30 Prozent" not in text and "Schwelle 78 Prozent" not in text and "bis zu drei" not in text
+
+
 @pytest.mark.django_db
 def test_die_seite_zeigt_alle_regeln_nach_wirkung(client):
     inhalt = client.get(reverse("parameter:regeln")).content.decode()

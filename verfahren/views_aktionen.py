@@ -698,8 +698,8 @@ def beanstanden(request, pk):
     Text. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest.
     Wie jede Mitwirkung mit Namen im Arbeitsbereich: nur bestätigte, aktive Mitglieder (§ 4,
     F-51) — sonst könnte ein ungeprüftes Konto unbegrenzt öffentliche Texte absetzen."""
-    from ki.models import KILauf
     from verfahren.models import AuditEintrag, Beanstandung
+    from verfahren.views import _lesbarer_lauf
 
     antrag = get_object_or_404(Antrag, pk=pk)
     sperre = _mitwirkung_gesperrt(request)
@@ -709,7 +709,7 @@ def beanstanden(request, pk):
     if not text:
         messages.error(request, _("Bitte beschreiben Sie, was an der Einschätzung falsch ist."))
         return _zurueck_zum_antrag(request, antrag)
-    lauf = KILauf.objects.filter(antrag=antrag, erfolgreich=True).order_by("-erstellt_am").first()
+    lauf = _lesbarer_lauf(antrag)  # nie der Textvektor-Lauf — den liest kein Mensch
     beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
     AuditEintrag.anhaengen(
         {

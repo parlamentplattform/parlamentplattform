@@ -948,22 +948,29 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
     ]
 
 
+def _lesbarer_lauf(antrag):
+    """Der jüngste erfolgreiche Lauf zu diesem Antrag, den ein Mensch liest. Textvektoren
+    (Zweck „aehnlichkeit“) sind kein solcher Lauf — sie zählen weder als „Stand“ der Kopfkarte
+    noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
+    from ki.models import KILauf, Zweck
+
+    return (
+        KILauf.objects.filter(antrag=antrag, erfolgreich=True)
+        .exclude(zweck=Zweck.AEHNLICHKEIT)
+        .order_by("-erstellt_am")
+        .first()
+    )
+
+
 def _einschaetzung(antrag, betrachter=None):
     """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte,
     Beanstandungen und die Karte „Betroffene Gesetze“ (erste Stufe von FB-H3, Warteschlange).
     Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
     ehrlich, dass noch nichts vorliegt."""
     from ki.anbieter import anbieter_waehlen
-    from ki.models import KILauf, Zweck
     from ki.rechtsbezug import rechtsbezug_lage
 
-    # Textvektoren sind kein Lauf, den ein Mensch liest — sie zählen hier nicht als „Stand“.
-    lauf = (
-        KILauf.objects.filter(antrag=antrag, erfolgreich=True)
-        .exclude(zweck=Zweck.AEHNLICHKEIT)
-        .order_by("-erstellt_am")
-        .first()
-    )
+    lauf = _lesbarer_lauf(antrag)
     anbieter = anbieter_waehlen()
     return {
         "lauf": lauf,

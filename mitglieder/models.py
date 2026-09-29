@@ -64,7 +64,20 @@ class Mitglied(AbstractUser):
     """Ein Mensch, ein Konto (§ 4 Abs 4 lit e)."""
 
     mitgliedsnummer = models.PositiveBigIntegerField(null=True, blank=True, unique=True, editable=False)
-    testkonto = models.BooleanField(default=False, editable=False)
+    testkonto = models.BooleanField(
+        default=False,
+        editable=False,
+        help_text="Testkonto des Aufbaus (Demo-Daten, Konten vor dem Gründerkonto): keine Nummer, kein Ausweis, "
+        "keine Post — und nie im Nenner der Stimmberechtigten oder in einer Mitgliederzahl (§ 4 Abs 4 lit a).",
+    )
+    beitragsreferenz_stamm = models.CharField(
+        max_length=6,
+        blank=True,
+        default="",
+        editable=False,
+        help_text="Einmal vergebener Stamm der persönlichen Beitragsreferenz (F-38). Er bleibt bei jedem "
+        "Adresswechsel gleich, damit Daueraufträge und gedruckte QR-Codes weiter zugeordnet werden.",
+    )
 
     @property
     def mitgliedsnummer_text(self):
@@ -188,8 +201,8 @@ class Mitglied(AbstractUser):
         wenn es auch im Nenner (`stimmberechtigte_zaehlen`) gezählt wurde; wer erst nach
         Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
         Abstimmung nicht mit."""
-        if self.beitritt is None:
-            return False
+        if self.beitritt is None or self.testkonto:
+            return False  # Testkonten stehen in keinem Nenner und in keinem Zähler
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
         # Altbestand ohne Datum: die Datenmigration trägt den Beitritt nach; hier als Rückfall.
@@ -221,13 +234,28 @@ class Mitglied(AbstractUser):
         return felder
 
     def status_setzen(self, status: str, grund: str = "") -> list[str]:
-        """Setzt den Status samt Begründung und `status_seit`; speichert nicht."""
+        """Setzt den Status samt Begründung und `status_seit`; speichert nicht.
+
+        Eine Pause ruht auch die Anwartschaft (§ 4 Abs 4; Entscheidung des Gründers 28.9.2026:
+        „gilt als Pause auf der Plattform, also auch von der Anwartschaft“): Endet die Pause, rückt
+        der Beitritt um ihre Dauer vor, damit die pausierten Tage in keiner Frist zählen. Die
+        Regel selbst bleibt rein (`plattform_core.eligibility.stimmberechtigt` kennt nur ein Datum)."""
         from django.utils import timezone
 
         felder: list[str] = []
         if status != self.status:
+            heute = timezone.localdate()
+            if (
+                self.status == Mitgliedsstatus.PAUSIERT
+                and status == Mitgliedsstatus.AKTIV
+                and self.beitritt is not None
+                and self.status_seit is not None
+                and heute > self.status_seit
+            ):
+                self.beitritt = self.beitritt + (heute - self.status_seit)
+                felder.append("beitritt")
             self.status = status
-            self.status_seit = timezone.localdate()
+            self.status_seit = heute
             felder += ["status", "status_seit"]
         if grund != self.status_grund:
             self.status_grund = grund
@@ -297,7 +325,7 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
     veröffentlicht — danach nie mehr verändert."""
     anzahl = 0
     for m in (
-        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV)
+        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
         .exclude(beitritt=None)
         .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
     ):

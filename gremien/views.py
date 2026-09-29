@@ -565,9 +565,19 @@ def _absatz(roh, entwurf) -> int | None:
 # ── Verwaltung: Rollen auf Zeit ──────────────────────────────────────────────
 
 
+class MitgliedAuswahl(forms.ModelChoiceField):
+    """Die Verwaltung wählt Menschen nach Namen, nicht nach Anmeldeadresse (Anweisung des Gründers
+    28.9.2026); ohne Klarnamen der Anzeigename, dazu die Mitgliedsnummer als eindeutige Kennung."""
+
+    def label_from_instance(self, mitglied):
+        name = mitglied.get_full_name() or mitglied.anzeigename
+        nummer = mitglied.mitgliedsnummer_text
+        return f"{name} · #{nummer}" if nummer != "—" else name
+
+
 class RollenFormular(forms.Form):
-    mitglied = forms.ModelChoiceField(
-        queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV).order_by(
+    mitglied = MitgliedAuswahl(
+        queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
             "last_name", "first_name", "username"
         ),
         label="Mitglied",

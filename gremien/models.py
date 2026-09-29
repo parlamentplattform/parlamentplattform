@@ -1126,8 +1126,15 @@ class GremienBeschluss(models.Model):
         """Schließt alle Beschlüsse, deren Frist um ist (lazy, wie die Phasenautomatik)."""
         jetzt = jetzt or timezone.now()
         geschlossen = 0
-        for beschluss in cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt):
-            geschlossen += int(beschluss.abschliessen(jetzt))
+        # Zeilensperre (auf PostgreSQL; SQLite serialisiert ohnehin): Der Lauf kommt aus jedem
+        # Seitenaufruf beider Worker und aus dem Wächter — ohne Sperre schlossen zwei Aufrufe
+        # denselben Beschluss und wandten seine Wirkung zweimal an (Bestandsaufnahme 28.9.2026, A4).
+        with transaction.atomic():
+            faellige = cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).select_for_update(
+                skip_locked=True
+            )
+            for beschluss in faellige:
+                geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen
 
 
@@ -1617,26 +1624,32 @@ def aussetzungen_fortschreiben(jetzt=None) -> int:
     weiter — obwohl die Satzung sagt, sie ende von selbst."""
     jetzt = jetzt or timezone.now()
     geschlossen = 0
-    for aussetzung in Aussetzung.objects.filter(beendet_am__isnull=True):
-        if aussetzung.laeuft(jetzt):
-            continue
-        # Den Grund VOR dem Setzen von beendet_am holen: Danach meldete `stand` „durch
-        # Beschluss aufgehoben" — und das wäre bei einer Aussetzung, die von selbst endete,
-        # genau die falsche Auskunft.
-        grund = aussetzung.stand(jetzt)
-        aussetzung.beendet_am = min(aussetzung.frist, jetzt)
-        aussetzung.beendet_grund = grund
-        aussetzung.save(update_fields=["beendet_am", "beendet_grund"])
-        AuditEintrag.anhaengen(
-            {
-                "typ": "aussetzung_beendet",
-                "antrag": aussetzung.antrag_id,
-                "aussetzung": aussetzung.pk,
-                "grund": aussetzung.beendet_grund,
-            }
-        )
-        geschlossen += 1
+    with transaction.atomic():
+        offene = Aussetzung.objects.filter(beendet_am__isnull=True).select_for_update(skip_locked=True)
+        for aussetzung in offene:
+            if aussetzung.laeuft(jetzt):
+                continue
+            _aussetzung_beenden(aussetzung, jetzt)
+            geschlossen += 1
     return geschlossen
+
+
+def _aussetzung_beenden(aussetzung, jetzt) -> None:
+    # Den Grund VOR dem Setzen von beendet_am holen: Danach meldete `stand` „durch
+    # Beschluss aufgehoben" — und das wäre bei einer Aussetzung, die von selbst endete,
+    # genau die falsche Auskunft.
+    grund = aussetzung.stand(jetzt)
+    aussetzung.beendet_am = min(aussetzung.frist, jetzt)
+    aussetzung.beendet_grund = grund
+    aussetzung.save(update_fields=["beendet_am", "beendet_grund"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "aussetzung_beendet",
+            "antrag": aussetzung.antrag_id,
+            "aussetzung": aussetzung.pk,
+            "grund": aussetzung.beendet_grund,
+        }
+    )
 
 
 class Fachliste(models.Model):
@@ -1766,7 +1779,11 @@ def lostopf_der_fachliste(fachgebiete=()) -> list:
     Läuft bei jedem Beratungsbeginn in der Anfrage eines beliebigen Besuchers — deshalb mit
     zwei Abfragen für alle Köpfe, nicht zwei je Kopf (Befund #44)."""
     im_integritaetsrat, mit_mandat = unvereinbarkeiten_laden()
-    eintraege = Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete")
+    eintraege = (
+        Fachliste.objects.exclude(mitglied__testkonto=True)
+        .select_related("mitglied")
+        .prefetch_related("fachgebiete")
+    )
     return [e.als_kandidat(unvereinbar_fuer(e.mitglied_id, im_integritaetsrat, mit_mandat)) for e in eintraege]
 
 
@@ -2314,50 +2331,61 @@ def parametertests_fortschreiben(jetzt=None) -> int:
     jetzt = jetzt or timezone.now()
     heute = timezone.localdate(jetzt)
     beendet = 0
-    for test in ParameterTest.objects.filter(status=TestStatus.LAEUFT).select_related("parameter"):
-        if not abgelaufen(test.ende, heute):
-            continue
-        parameter = test.parameter
-        test.werte_nachher = _kennzahlen_schnappschuss()
-        g = test.gegenueberstellung()
-        if g.vollstaendig:
-            anteil = f" ({g.anteil:+} %)" if g.anteil is not None else ""
-            test.auswertung = (
-                f"{test.messgroesse}: vorher {g.vorher}, während des Tests {g.nachher}, "
-                f"Differenz {g.differenz}{anteil}. Hypothese: {test.hypothese}"
-            )
-        else:
-            test.auswertung = f"{test.messgroesse}: kein vollständiger Vergleich möglich. Hypothese: {test.hypothese}"
-        test.status = TestStatus.AUSGEWERTET
-        test.ausgewertet_am = jetzt
-        test.save(update_fields=["werte_nachher", "auswertung", "status", "ausgewertet_am"])
-        if parameter.status == Status.IM_TEST and parameter.wert == test.testwert:
-            parameter.wert = test.alter_wert
-            parameter.status = Status.GUELTIG
-            parameter.test_bis = None
-            parameter.test_hypothese = ""
-            parameter.geaendert_am = jetzt
-            parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
-            Aenderung.objects.create(
-                parameter=parameter,
-                alter_wert=test.testwert,
-                neuer_wert=test.alter_wert,
-                grund=f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"[:1000],
-                geaendert_am=jetzt,
-                durch="Testende (§ 6 Abs 11 lit c)",
-            )
-        Hinweis.objects.create(
-            quelle=HinweisQuelle.PARAMETERTEST,
-            titel=f"{parameter.schluessel}: Test {test.testwert} ausgewertet"[:200],
-            text=test.auswertung,
-            parametertest=test,
-            angelegt_am=jetzt,
+    with transaction.atomic():
+        laufende = (
+            ParameterTest.objects.filter(status=TestStatus.LAEUFT)
+            .select_related("parameter")
+            .select_for_update(of=("self",), skip_locked=True)
         )
-        AuditEintrag.anhaengen(
-            {"typ": "parametertest_ausgewertet", "schluessel": parameter.schluessel, "test": test.pk}
-        )
-        beendet += 1
+        for test in laufende:
+            if not abgelaufen(test.ende, heute):
+                continue
+            _parametertest_beenden(test, jetzt, heute)
+            beendet += 1
     return beendet
+
+
+def _parametertest_beenden(test, jetzt, heute) -> None:
+    parameter = test.parameter
+    test.werte_nachher = _kennzahlen_schnappschuss()
+    g = test.gegenueberstellung()
+    if g.vollstaendig:
+        anteil = f" ({g.anteil:+} %)" if g.anteil is not None else ""
+        test.auswertung = (
+            f"{test.messgroesse}: vorher {g.vorher}, während des Tests {g.nachher}, "
+            f"Differenz {g.differenz}{anteil}. Hypothese: {test.hypothese}"
+        )
+    else:
+        test.auswertung = f"{test.messgroesse}: kein vollständiger Vergleich möglich. Hypothese: {test.hypothese}"
+    test.status = TestStatus.AUSGEWERTET
+    test.ausgewertet_am = jetzt
+    test.save(update_fields=["werte_nachher", "auswertung", "status", "ausgewertet_am"])
+    if parameter.status == Status.IM_TEST and parameter.wert == test.testwert:
+        parameter.wert = test.alter_wert
+        parameter.status = Status.GUELTIG
+        parameter.test_bis = None
+        parameter.test_hypothese = ""
+        parameter.geaendert_am = jetzt
+        parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
+        Aenderung.objects.create(
+            parameter=parameter,
+            alter_wert=test.testwert,
+            neuer_wert=test.alter_wert,
+            grund=f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"[:1000],
+            geaendert_am=jetzt,
+            durch="Testende (§ 6 Abs 11 lit c)",
+        )
+    Hinweis.objects.create(
+        quelle=HinweisQuelle.PARAMETERTEST,
+        titel=f"{parameter.schluessel}: Test {test.testwert} ausgewertet"[:200],
+        text=test.auswertung,
+        parametertest=test,
+        angelegt_am=jetzt,
+    )
+    AuditEintrag.anhaengen(
+        {"typ": "parametertest_ausgewertet", "schluessel": parameter.schluessel, "test": test.pk}
+    )
+
 
 def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
     """Der Integritätsrat stellt fest, dass eine Vertrauensfrage gesperrt ist (§ 7 Abs 10 lit b und g).

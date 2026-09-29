@@ -737,7 +737,7 @@ def bewerben(request, pk):
     if sperre:
         return sperre
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.PERSONENWAHL, timezone.now().date(), uebergang=settings.DDOE_UEBERGANGSREGEL
+        Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=settings.DDOE_UEBERGANGSREGEL
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if not request.POST.get("waehlbar"):

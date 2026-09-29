@@ -682,7 +682,7 @@ def test_bestaetigung_vor_der_abstimmung_zeigt_den_beginn_statt_null_von_null(cl
     _sechs_monate_zurueck(antrag, altmandat)
     b = vertrauensfrage_einbringen(altmandat.mitglied, altmandat, "", [], [], ordnung, art="bestaetigung")
     assert b.phase == Phase.UNTERSTUETZUNG.value
-    beginn = (b.eingebracht_am + tage(7)).strftime("%d.%m.%Y")
+    beginn = timezone.localtime(b.eingebracht_am + tage(7)).strftime("%d.%m.%Y")  # Wiener Kalendertag wie die Seite
     html = client.get(LISTE).content.decode()
     assert f"Abstimmung ab {beginn}" in html and "0 von 0 Unterstützungen" not in html
     detail = client.get(reverse("mandatare:detail", args=[altmandat.pk])).content.decode()

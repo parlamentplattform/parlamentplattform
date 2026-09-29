@@ -567,7 +567,7 @@ def index(request):
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
     buehne = {
-        "mitglieder": Mitglied.objects.filter(is_active=True).count(),
+        "mitglieder": Mitglied.objects.filter(is_active=True, testkonto=False).count(),
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
@@ -1174,7 +1174,7 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
 
 def antrag_detail(request, pk):
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
-    antrag.fortschreiben()  # fällige Übergänge lazy anwenden (idempotent; Produktion: zusätzlich Cron)
+    antrag.fortschreiben_bis_zum_stand()  # fällige Übergänge lazy anwenden (idempotent; dazu der Wächter)
     beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
     ergebnis = None
     if beendet and antrag.art != Antragsart.MANDAT:

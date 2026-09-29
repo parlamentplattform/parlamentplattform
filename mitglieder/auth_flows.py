@@ -79,8 +79,22 @@ class EinmalToken(models.Model):
         return t.mitglied
 
 
+def referenzstamm_ableiten(pk: int, username: str) -> str:
+    """Der Stamm, wie er bis 0.49 aus Konto-ID und Anmeldenamen abgeleitet wurde."""
+    return hashlib.sha256(f"ddoe-beitrag-{pk}-{username}".encode()).hexdigest()[:6].upper()
+
+
 def beitragsreferenz(mitglied) -> str:
     """Persönlicher Verwendungszweck für die Beitragsüberweisung (F-38) —
-    ableitbar, aber nicht erratbar (kein reines Inkrement)."""
-    stamm = hashlib.sha256(f"ddoe-beitrag-{mitglied.pk}-{mitglied.username}".encode()).hexdigest()[:6].upper()
-    return f"DDOE-{mitglied.pk:04d}-{stamm}"
+    ableitbar, aber nicht erratbar (kein reines Inkrement).
+
+    Der Stamm wird beim ersten Gebrauch am Konto festgeschrieben (`beitragsreferenz_stamm`) und
+    ändert sich danach nie mehr — bis 0.49 hing er am Anmeldenamen, und ein Adresswechsel
+    (F-51) machte gedruckte QR-Codes und Daueraufträge still unzuordenbar (Befund A12)."""
+    if not mitglied.beitragsreferenz_stamm and mitglied.pk:
+        from django.contrib.auth import get_user_model  # `request.user` ist ein Lazy-Objekt, kein Modelltyp
+
+        stamm = referenzstamm_ableiten(mitglied.pk, mitglied.username)
+        get_user_model().objects.filter(pk=mitglied.pk, beitragsreferenz_stamm="").update(beitragsreferenz_stamm=stamm)
+        mitglied.beitragsreferenz_stamm = stamm
+    return f"DDOE-{mitglied.pk:04d}-{mitglied.beitragsreferenz_stamm}"

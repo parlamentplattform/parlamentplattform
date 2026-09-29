@@ -192,3 +192,32 @@ def test_einbringen_ohne_betroffene_bleibt_stumm(client, orte, ordnung):  # noqa
     client.force_login(steller)
     assert client.post(reverse("verfahren:einbringen"), {**ANTRAG, "ebene": "gemeinde"}).status_code == 302
     assert not Postauftrag.objects.exists() and mail.outbox == []
+
+
+def test_benachrichtigen_legt_die_auftraege_mit_fester_abfragezahl_an(konten, ordnung, orte):  # noqa: F811
+    # Ein Bundesantrag trifft jedes Konto mit Einwilligung: Die Aufträge entstehen in einem Zug, nicht
+    # je Empfänger mit eigener Abfrage — sonst wächst die Anfrage „Einbringen“ mit dem Mitgliederstand.
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    Mitglied.objects.bulk_create(
+        [
+            Mitglied(username=f"viele{i}", email=f"viele{i}@example.org", is_active=True,
+                     identitaetsstufe=Identitaetsstufe.GEPRUEFT, wohnsitz=orte["wels"], post_einwilligung=True)
+            for i in range(50)
+        ]
+    )
+    antrag = antrag_auf(konten, ordnung, "bund", "")
+    erwartet = set(region_empfaenger(antrag).values_list("pk", flat=True))
+    assert len(erwartet) == 59
+    with CaptureQueriesContext(connection) as abfragen:
+        assert region_benachrichtigen(antrag) == 59
+    assert len(abfragen) <= 15, len(abfragen)
+    auftraege = Postauftrag.objects.filter(art="neuer_antrag", bezug=f"antrag:{antrag.pk}")
+    assert set(auftraege.values_list("mitglied_id", flat=True)) == erwartet
+    assert set(auftraege.values_list("antrag_id", flat=True)) == {antrag.pk}
+    assert not auftraege.filter(erledigt=True).exists()
+    # Zweiter Aufruf: nichts doppelt, auch nicht für schon erledigte Aufträge.
+    auftraege.filter(mitglied=konten["a"]).update(erledigt=True)
+    assert region_benachrichtigen(antrag) == 0
+    assert auftraege.count() == 59

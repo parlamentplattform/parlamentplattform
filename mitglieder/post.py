@@ -19,7 +19,7 @@ from django.utils.translation import gettext as _
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.mail import EmailMessage
-from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.models import Bundesland, Identitaetsstufe, Mitglied, Mitgliedsstatus, Postauftrag
 from parameter.models import zahl
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
 from verfahren.models import Antrag, AuditEintrag, Ebene
@@ -344,10 +344,27 @@ def region_empfaenger(antrag: Antrag):
 def region_benachrichtigen(antrag: Antrag) -> int:
     """Je betroffenem Mitglied ein Postauftrag „neuer_antrag“ (Bezug `antrag:<pk>`, genau einmal je
     Antrag und Konto); zugestellt wird im Hintergrundlauf. Gibt die Zahl der neu angelegten Aufträge
-    zurück und hält sie im Audit fest — ohne Personenbezug."""
-    from mitglieder.postausgang import beauftragen
+    zurück und hält sie im Audit fest — ohne Personenbezug.
 
-    anzahl = sum(bool(beauftragen(m, "neuer_antrag", antrag=antrag)) for m in region_empfaenger(antrag))
+    Die Aufträge entstehen in einem Zug (`bulk_create`), nicht je Empfänger über `beauftragen`: Ein
+    Bundesantrag trifft jedes Konto mit Einwilligung, und das Anlegen läuft in der Anfrage „Einbringen“.
+    Die Prüfungen von `beauftragen` (Testkonto, aktiv, Adresse, Status, Einwilligung) deckt
+    `region_empfaenger` ab; die Eindeutigkeit (Mitglied, Art, Bezug) lässt schon bestehende Aufträge
+    — auch erledigte — unberührt."""
+    bezug = f"antrag:{antrag.pk}"
+    vorhanden = Postauftrag.objects.filter(art="neuer_antrag", bezug=bezug)
+    vorher = vorhanden.count()
+    schon = set(vorhanden.values_list("mitglied_id", flat=True))
+    Postauftrag.objects.bulk_create(
+        [
+            Postauftrag(mitglied_id=pk, art="neuer_antrag", bezug=bezug, antrag=antrag)
+            for pk in region_empfaenger(antrag).values_list("pk", flat=True)
+            if pk not in schon
+        ],
+        ignore_conflicts=True,
+        batch_size=500,
+    )
+    anzahl = vorhanden.count() - vorher
     AuditEintrag.anhaengen({"typ": "post_neuer_antrag", "antrag": antrag.pk, "empfaenger": anzahl})
     return anzahl
 

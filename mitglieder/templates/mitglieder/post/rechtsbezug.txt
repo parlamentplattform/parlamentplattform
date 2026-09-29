@@ -11,6 +11,7 @@
 {% translate "Hinweis:" %} {{ hinweis }}
 {% endif %}
 {% translate "Unsicherheit:" %} {{ unsicherheit }}
+{% translate "Stand:" %} {{ stand }}{% if fassung %} · {% blocktranslate with n=fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% endif %}
 
 {% translate "Zur Antragsseite:" %} {{ link }}
 

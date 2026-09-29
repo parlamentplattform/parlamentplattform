@@ -62,6 +62,28 @@ def test_fokus_knopf_dehnt_ein_feld_esc_stellt_das_raster_wieder_her(seite, live
     assert "/parlament/" in p.url and "fokus=" not in p.url
 
 
+@pytest.mark.parametrize("weg", ["esc", "knopf"])
+def test_fokus_aus_der_adresse_mit_javascript_verlassen_stellt_das_raster_her(seite, live_server, demo, weg):
+    """?fokus= rendert die Klassen serverseitig; Esc oder ⤡ muss sie wieder abnehmen (Lesezeichen,
+    geteilter Link, ⤢ in neuem Tab — jeweils mit JavaScript)."""
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/?fokus=wichtig")
+    _ruhe(p)
+    assert _sichtbare(p) == ["wichtig"]
+    if weg == "esc":
+        p.locator("#feld-wichtig .feld-korpus").focus()
+        p.keyboard.press("Escape")
+    else:
+        p.locator("#feld-wichtig .fokus-knopf").click()
+    _ruhe(p)
+    assert _sichtbare(p) == list(FELDER)
+    klasse = p.locator(".parlament").get_attribute("class").split()
+    assert "fokus" not in klasse and "fokus-wichtig" not in klasse, klasse
+    spalten = p.evaluate("getComputedStyle(document.querySelector('.parlament')).gridTemplateColumns")
+    assert len(spalten.split()) == 2, spalten
+    assert p.locator("#feld-filter").bounding_box()["height"] > 100
+
+
 def test_ohne_javascript_rendert_fokus_ein_feld_und_der_link_fuehrt_zurueck(seite, live_server, demo):
     p = seite(js=False)
     p.goto(f"{live_server.url}/parlament/?fokus=wichtig")

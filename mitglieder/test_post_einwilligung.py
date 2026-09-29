@@ -181,6 +181,37 @@ def test_zurueckgenommene_einwilligung_stoppt_den_versand_und_stempelt_den_auftr
     assert Postauftrag.objects.filter(pk=a.pk).exists()  # gestempelt, nicht gelöscht
 
 
+def test_dauerhaft_abgewiesene_adresse_endet_nach_der_hoechstzahl_an_versuchen(ordnung, monkeypatch):  # noqa: F811
+    # Eine vom Server dauerhaft abgewiesene Adresse darf die Verfahrenspost nicht stündlich und ohne Ende
+    # wiederholen: nach der Höchstzahl gescheiterter Versuche ist der Auftrag erledigt (gestempelt, nicht
+    # gelöscht) — ohne Versand. Kontobriefe bleiben offen.
+    import smtplib
+
+    from mitglieder.postausgang import HOECHSTVERSUCHE_VERFAHRENSPOST
+
+    antrag = antrag_einbringen(mitglied_anlegen("bert"), **ANTRAG, ordnung=ordnung)
+    m = eingewilligt("abgewiesen")
+    assert beauftragen(m, "neuer_antrag", antrag=antrag)
+    konto = Postauftrag.objects.create(mitglied=m, art="willkommen")
+
+    def abweisen(self, fail_silently=False):
+        raise smtplib.SMTPRecipientsRefused({m.email: (550, b"5.1.1 User unknown")})
+
+    monkeypatch.setattr("mitglieder.post.EmailMessage.send", abweisen)
+    a = Postauftrag.objects.get(mitglied=m, art="neuer_antrag")
+    jetzt = timezone.now()
+    for _ in range(HOECHSTVERSUCHE_VERFAHRENSPOST + 5):
+        assert not zustellen(a.pk, jetzt)
+        zustellen(konto.pk, jetzt)
+        jetzt += timedelta(minutes=61)
+    a.refresh_from_db()
+    konto.refresh_from_db()
+    assert a.erledigt and a.versandt_am is None and a.versuche == HOECHSTVERSUCHE_VERFAHRENSPOST
+    assert Postauftrag.objects.filter(pk=a.pk).exists() and mail.outbox == []
+    assert not konto.erledigt and konto.versuche == HOECHSTVERSUCHE_VERFAHRENSPOST + 5
+    assert a.pk not in {p.pk for p in Postauftrag.objects.filter(erledigt=False)}
+
+
 # ── Beitragserinnerung ───────────────────────────────────────────────────────────────────
 
 

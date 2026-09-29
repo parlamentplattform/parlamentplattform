@@ -134,7 +134,9 @@ von der Verwaltung beauftragt, höchstens einmal je Kalenderjahr, nur mit Einwil
 Kontobriefe gehen sofort nach dem Commit; `neuer_antrag` und `beitragserinnerung` werden nur angelegt und
 vom Hintergrundlauf zugestellt — ein Antrag löst so nie hunderte SMTP-Sendungen in einer Anfrage aus.
 Wer die Einwilligung vor der Zustellung zurücknimmt, bekommt den Brief nicht; der Auftrag wird als
-erledigt gestempelt, nicht gelöscht.
+erledigt gestempelt, nicht gelöscht. Nach 24 gescheiterten Versuchen (rund 20 Stunden, etwa bei einer
+dauerhaft abgewiesenen Adresse) gibt der Postausgang die Verfahrenspost auf und stempelt den Auftrag
+ebenso als erledigt ohne Versand; die Kontobriefe werden weiter stündlich versucht.
 
 Der erste Versand erfolgt nach Commit der Registrierung/Freischaltung. Ein fehlerhafter
 Anhang verhindert nicht die Nachricht und wird gesondert nachgeliefert. SMTP-Erfolg bedeutet

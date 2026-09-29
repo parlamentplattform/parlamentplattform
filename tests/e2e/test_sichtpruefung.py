@@ -797,3 +797,52 @@ def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtp
     assert len(bilder) == 15, len(bilder)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 2000, bild
+
+
+def test_screenshots_fuer_die_sichtpruefung_052(seite, live_server, demo, sichtpruefung):
+    """Bilder für die Sichtprüfung der Fassung 0.52.0: das öffentliche Audit-Log `/audit/` — ungefiltert mit
+    dem Ergebnis der Prüfung, gefiltert nach einem Antrag, mit einem gekürzten Verwaltungseintrag (F2 a) —
+    Desktop 1440×900 und Handy 390×844, hell und dunkel, ohne JavaScript; dazu die Archiv-Spur der
+    Antragsseite mit kurzem Hash."""
+    from verfahren.hintergrund import LAEUFE, ausfuehren
+    from verfahren.models import Antrag, AuditEintrag
+
+    AuditEintrag.anhaengen(
+        {"typ": "verwaltung", "aktion": "pausieren", "mitglied": 3, "durch": 1, "grund": "Beitrag seit einem Jahr offen."}
+    )
+    ausfuehren(next(la for la in LAEUFE if la.name == "audit"))
+    antrag = Antrag.objects.filter(phase="abstimmung").first() or Antrag.objects.first()
+    bilder = []
+
+    def halte_fest(p, name, js=True):
+        _ruhe(p, js)
+        ziel = sichtpruefung / f"{name}.png"
+        p.screenshot(path=str(ziel), full_page=False)
+        bilder.append(ziel)
+
+    for dunkel, viewport, js, suffix in (
+        (False, None, True, "desktop-hell"),
+        (True, None, True, "desktop-dunkel"),
+        (False, HANDY, True, "handy"),
+        (True, HANDY, True, "handy-dunkel"),
+        (False, None, False, "desktop-hell-ohne-javascript"),
+    ):
+        p = seite(dunkel=dunkel, viewport=viewport, js=js)
+        p.goto(f"{live_server.url}/audit/")
+        halte_fest(p, f"audit-log-{suffix}", js=js)
+
+    p = seite()
+    p.goto(f"{live_server.url}/audit/?antrag={antrag.pk}")
+    halte_fest(p, "audit-log-gefiltert-nach-antrag-desktop")
+    p = seite(viewport=HANDY)
+    p.goto(f"{live_server.url}/audit/?art=verwaltung")
+    halte_fest(p, "audit-log-verwaltung-gekuerzt-handy")
+    # Kein Seiten-Scroll zur Seite: lange Werte (Ordnungen) brechen um
+    assert p.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+
+    p = seite()
+    p.goto(f"{live_server.url}/antrag/{antrag.pk}/#zone-archiv")
+    p.evaluate("() => document.querySelector('#zone-archiv').scrollIntoView({block: 'start', behavior: 'instant'})")
+    halte_fest(p, "antragsseite-archiv-audit-spur-kurzer-hash")
+
+    assert len(bilder) == 8 and all(b.stat().st_size > 2000 for b in bilder)

@@ -342,3 +342,14 @@ def test_jeder_faellige_beschluss_schliesst_in_seiner_eigenen_transaktion(monkey
     zweiter.refresh_from_db()
     assert not erster.offen and erster.entschieden_am is not None
     assert zweiter.offen
+
+
+def test_ein_durch_fristablauf_geschlossener_beschluss_ist_zur_frist_entschieden():
+    """Untätigkeit hemmt nie: Schließt die Frist den Beschluss, ist er zur Frist entschieden — nicht
+    erst, wenn ein Seitenaufruf oder der Wächter ihn später auswertet."""
+    jetzt = timezone.now()
+    frist = jetzt - timedelta(days=3)
+    b = beschluss_anlegen(frist=frist)
+    GremienBeschluss.faellige_abschliessen(jetzt)
+    b.refresh_from_db()
+    assert b.entschieden_am == frist

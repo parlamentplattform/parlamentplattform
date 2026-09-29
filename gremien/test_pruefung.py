@@ -332,3 +332,18 @@ def test_ohne_gruppe_2_wartet_der_vorschlag_sichtbar(client, ordnung):  # noqa: 
     inhalt = client.get(reverse("gremien:pruefung")).content.decode()
     assert "keine Rolle in Gruppe 2 aktiv" in inhalt
     assert Pruefung.objects.count() == 0
+
+
+def test_die_unterstuetzerfrist_nach_verfristeter_pruefung_laeuft_ab_der_frist(client, ordnung):  # noqa: F811
+    """Ohne Gruppe 2 läuft die Unterstützerfrist ab der Prüffrist; mit schweigender Gruppe 2 lief sie
+    ab dem zufälligen Zeitpunkt der Auswertung. Jetzt in beiden Fällen ab der Frist."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung)
+    frist = timezone.now() - timedelta(days=3)
+    beschluss.frist = frist
+    beschluss.save(update_fields=["frist"])
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert beschluss.entschieden_am == frist
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert entwurf.review_frist == frist + timedelta(days=antrag.policy().review_tage)

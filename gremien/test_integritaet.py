@@ -529,3 +529,33 @@ def test_jede_abgelaufene_aussetzung_endet_in_ihrer_eigenen_transaktion(client, 
     zweite.refresh_from_db()
     assert erste.beendet_am is not None and "von selbst geendet" in erste.beendet_grund
     assert zweite.beendet_am is None
+
+
+def test_eine_aussetzung_nach_fristablauf_beginnt_zur_frist(ordnung):  # noqa: F811
+    """Der Beschluss schließt durch Fristablauf, ausgewertet erst später: Die Aussetzung beginnt zur
+    Frist — an ihrem Beginn hängen die sieben Tage des § 6 Abs 3 lit d."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Aussetzung, GremienBeschluss, GremienStimme
+
+    leute = rat()
+    antrag = antrag_in_abstimmung(ordnung)
+    frist = timezone.now() - timedelta(hours=5)
+    b = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT,
+        anlass=Anlass.AUSSETZUNG,
+        antrag=antrag,
+        gegenstand="Aussetzung",
+        beschreibung="Verdacht.",
+        optionen=[{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}],
+        angelegt_von=leute[0],
+        frist=frist,
+    )
+    for m in leute[:2]:  # die dritte schweigt — erst die Frist schließt
+        GremienStimme.objects.create(beschluss=b, mitglied=m, option="dafuer", begruendung="ja")
+    GremienBeschluss.faellige_abschliessen()
+    b.refresh_from_db()
+    assert b.ergebnis == "dafuer" and b.entschieden_am == frist
+    assert Aussetzung.objects.get(antrag=antrag).beginn == frist

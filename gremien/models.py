@@ -1100,6 +1100,10 @@ class GremienBeschluss(models.Model):
         frist_um = self.frist is not None and jetzt >= self.frist
         if not (frist_um or self.alle_haben_gestimmt()):
             return False
+        # Schließt die Frist den Beschluss, ist er zur Frist entschieden und wirkt ab dort — nicht
+        # erst zum zufälligen Zeitpunkt der Auswertung (Seitenaufruf, Wächter). Daran hängen etwa
+        # der Beginn einer Aussetzung und die Unterstützerfrist nach einer Prüfung.
+        jetzt = min(self.frist, jetzt) if frist_um else jetzt
         ergebnis = self.auswertung()
         self.regel_version = ergebnis.version
         self.entschieden_am = jetzt

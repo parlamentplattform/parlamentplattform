@@ -14,7 +14,7 @@ Die **ParlamentPlattform** ist die Mitgliederversammlung der Partei DDÖ als Sof
 2. `docs/fahrtenbuch/DDOE_Design_Spezifikation_App-Look.md` — Tokens, Layouts, Komponenten, Bewegung, Zustände, Barrierefreiheit, Bildschirmtests.
 3. `docs/fahrtenbuch/DDOE_SollIst_Abgleich_2026-09-02.md` — was fehlt, was anders ist, Widersprüche im Code.
 4. `docs/fahrtenbuch/Funktionsinventar_Ist_2026-09-02.md` — der Code, Seite für Seite, mit Datei:Zeile (Stand 0.32.0).
-5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 012).
+5. `docs/CONCEPT.md` — Lastenheft (F-01…F-71, Leitplanken L1–L7), `docs/adr/` — Architekturentscheidungen (nächste Nummer: 013).
    Öffentlich für Schwesterparteien: `docs/SCHEMA.md` (Austauschformate, § 12 Abs 5) und `docs/partner/` (Vision, Einstieg, Einrichtung, Satzungs-Baukasten — Erzeugnis von `tools/satzung_baukasten.py`).
 6. `docs/fahrtenbuch/Satzung_DDOE_2.5_Entwurf.md` — die Regeln, auf die sich alles bezieht (§ 2 Abs 6, § 5, § 6, § 7, § 12).
 

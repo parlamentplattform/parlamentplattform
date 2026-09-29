@@ -85,12 +85,8 @@ F-50) braucht gar keinen Zugang.
 
 ## Betriebliches
 
-- **Backups — offene Aufgabe (Bestandsaufnahme 28.9.2026, A10):** Heute gibt es nur die täglichen
-  Snapshots von Render-Postgres (beim Anbieter, nicht außerhalb) und keine geprobte Wiederherstellung.
-  Empfehlung: täglicher externer `pg_dump` (z. B. GitHub-Action mit Zeitplan, verschlüsselt mit einem
-  Schlüssel außerhalb von Render), Ablage im eigenen Land, Wiederherstellung einmal im Quartal geprobt —
-  mit Prüfung der Audit-Kette nach dem Einspielen. **Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4);
-  bis er besetzt ist, der Gründer. Speicherort und Schlüsselverwahrung sind noch nicht entschieden.
+- **Sicherung und Wache (seit 0.52):** täglich außerhalb von Render, monatlich geprobt, `/gesund/` alle
+  15 Minuten — Abschnitt „Sicherung“ unten, ADR-012. Zusätzlich bleiben die Snapshots von Render-Postgres.
 - **Fristen-Wächter (seit 0.50, D-J1a):** Phasenübergänge, Beschlussfristen, Aussetzungen, Parametertests und
   Stufe 2 der Vertrauensfrage wertet der Hintergrundfaden aus `gunicorn.conf.py` alle `DDOE_WAECHTER_MINUTEN`
   aus (`verfahren/hintergrund.py`, `manage.py verfahren_fortschreiben`), unter einer Datenbanksperre, sodass
@@ -102,6 +98,48 @@ F-50) braucht gar keinen Zugang.
 - **Gesundheitscheck:** `/gesund/` führt `SELECT 1` aus und antwortet ohne Datenbank mit 503 —
   Render startet die Instanz dann neu und übernimmt keinen Deploy, dessen Instanz die
   Datenbank nicht erreicht.
+
+## Sicherung (seit 0.52, ADR-012)
+
+Täglich 02:17 UTC sichert `.github/workflows/sicherung.yml` die Datenbank als Release in das private
+Repository `parlamentplattform/sicherung` (unverschlüsselt, Entscheidung des Gründers 29.9.2026) und
+hält sie 90 Tage. Am Monatsersten spielt derselbe Workflow die jüngste Sicherung in eine leere Datenbank
+zurück und prüft Migrationen und Audit-Kette. `.github/workflows/wache.yml` fragt alle 15 Minuten
+`/gesund/`. **Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4), bis dahin der Gründer.
+
+**Einmal einrichten (nach dem Merge von 0.52):**
+
+1. Render-Dashboard → Datenbank → *Connect* → „External Database URL“ kopieren. GitHub → Hauptrepository
+   → *Settings → Secrets and variables → Actions → New repository secret*: Name
+   `DDOE_SICHERUNG_DATENBANK_URL`, Wert die kopierte Adresse. Steht bei der Datenbank eine
+   IP-Zugriffsliste, muss sie Verbindungen von außen zulassen (GitHub-Runner haben wechselnde Adressen).
+2. GitHub → *Settings* (des eigenen Kontos) → *Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token*: Ressourcenbesitzer `parlamentplattform`, *Only select
+   repositories* → `sicherung`, Rechte *Contents: Read and write*. Ablaufdatum so lang wie erlaubt und
+   im Kalender vormerken. Als Secret `DDOE_SICHERUNG_TOKEN` im Hauptrepository hinterlegen.
+3. GitHub → Hauptrepository → *Actions → Sicherung → Run workflow* (mit Probe). Grün heißt: gesichert,
+   zurückgespielt, Migrationen und Audit-Kette stimmen. Die Zusammenfassung des Laufs nennt Datei,
+   Größe und Prüfsumme.
+4. Prüfen, dass Fehlermails ankommen: Sie gehen an das Konto, das die Zeitpläne zuletzt geändert hat
+   (*Settings → Notifications → Actions* dieses Kontos).
+
+**Wiederherstellen im Ernstfall:**
+
+1. Neue, leere PostgreSQL-Datenbank anlegen (Render oder anderswo) — nie in die laufende einspielen.
+2. Sicherung holen: `gh release download <name> --repo parlamentplattform/sicherung` (oder über die
+   Weboberfläche des Repositorys) und die Prüfsumme vergleichen: `sha256sum --check <name>.dump.sha256`.
+3. Mit den `POSTGRES_*`-Werten der neuen Datenbank: `tools/sicherung.sh probe <name>.dump` — spielt
+   zurück, prüft Migrationen und rechnet die Audit-Kette vollständig nach.
+4. Den Dienst auf die neue Datenbank umstellen (Umgebungsvariablen), deployen, `/gesund/` prüfen.
+5. Den Kettenkopf (`audit.head` in `/kennzahlen.json`) mit dem letzten bekannten vergleichen und im
+   Protokoll unten eintragen.
+
+**Protokoll der Proben:**
+
+| Datum | Quelle | Sicherung | Ergebnis |
+|---|---|---|---|
+| 29.9.2026 | Demo-Datenbank (lokales PostgreSQL 16, `tools/sicherung.sh`) | 351 KB, 7 Anträge, 5 Konten, 50 Audit-Einträge | zurückgespielt in eine leere Datenbank; keine offene Migration; Audit-Kette vollständig intakt, Kopf `6d979b7d…53652f` wie im Original; Zeilenzahlen gleich |
+| — | Live-Datenbank über den Workflow | — | offen: braucht die beiden Secrets (Schritt 1–3 oben) |
 
 ## Datenschutz-Einordnung
 

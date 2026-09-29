@@ -25,3 +25,15 @@ sondern per Präsenz/Brief (§ 13 Abs 3), bis Geheimheit und Laien-
 − Der Betreiber der Datenbank KANN theoretisch Stimmen zuordnen. Gegenmaßnahmen:
   getrennte Tabelle, Zugriffs-Audit, Vier-Augen-Prinzip im Betrieb, öffentliche
   Benennung dieser Grenze. Wer mehr verspricht, verspricht zu viel.
+
+## Nachtrag 29.9.2026 — Personenwahlen, die heute online laufen
+Die Entscheidung sagt „Geheime Personenwahlen finden nicht online statt“. Seit
+0.22 (1.9.2026) läuft die Listenreihung des Wahlvorschlags — die Zustimmungswahl
+zu Mandats-Kandidaturen nach § 7 Abs 1 (F-70) — und seit 0.48 (16.9.2026) die
+Vertrauensfrage nach § 7 Abs 10 auf der Plattform: beide sind Personenwahlen,
+beide laufen **pseudonym-offen** über dasselbe Stimmregister wie Sachabstimmungen,
+mit derselben Grenze wie oben (der Betreiber der Datenbank kann zuordnen). Sie
+sind damit nicht geheim im Sinne dieses ADR; die Oberfläche sagt seit 0.50
+„pseudonym“ statt „geheim“. Präsenz und Brief (§ 13 Abs 3) bleiben der Weg für
+Wahlen, die geheim sein müssen — welche das sind, entscheidet die Satzung, nicht
+diese Entscheidung.

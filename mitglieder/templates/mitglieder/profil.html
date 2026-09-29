@@ -79,7 +79,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="pf-wert"><strong>{{ user.email }}</strong></p>
   {% if adresswechsel %}<p class="hilfe">{% blocktranslate with frist=adresswechsel.frist_bis|date:"SHORT_DATETIME_FORMAT" %}Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis {{ frist }}). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht.{% endblocktranslate %}</p>{% endif %}
   <p class="hilfe">{% translate "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins." %}</p>
-  <p class="hilfe">{% translate "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden." %} <a href="#nachrichten">{% translate "Nachrichten zum Verfahren" %} ›</a></p>
+  <p class="hilfe">{% translate "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten, die Verständigung zum Mandat, den Einspruchslink bei einem Adresswechsel und — nur mit Ihrer Einwilligung — die Beitragserinnerung, neue Anträge in Ihrer Region und Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen. Ihren Ausweis können Sie sich unten als Vorschau zusenden." %} <a href="#nachrichten">{% translate "Nachrichten zum Verfahren" %} ›</a></p>
 </div>
 
 {# ── Sitzungen ───────────────────────────────────────────────────────── #}

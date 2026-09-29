@@ -73,9 +73,10 @@ geht es automatisch weiter.{% endblocktranslate %}</p>
     </div>
     <div class="schritt">
       <h3>{% translate "Abstimmen" %}</h3>
-      <p>{% blocktranslate %}Abgestimmt wird geheim über ein Stimmregister mit Pseudonymen: Jede Stimme ist
-veröffentlicht und zählbar, aber keinem Menschen zuzuordnen. Zwischenstände bleiben bis zum Fristende
-verdeckt — niemand soll der Mehrheit hinterherlaufen.{% endblocktranslate %}</p>
+      <p>{% blocktranslate %}Abgestimmt wird pseudonym-offen: Jede Stimme steht unter einem Pseudonym in der
+veröffentlichten Liste und ist zählbar; die Zuordnung zum Konto liegt getrennt, zugriffsbeschränkt und
+protokolliert bei der Plattform — nicht kryptografisch geheim (ADR-003). Zwischenstände bleiben bis zum
+Fristende verdeckt — niemand soll der Mehrheit hinterherlaufen.{% endblocktranslate %}</p>
     </div>
     <div class="schritt">
       <h3>{% translate "Nachrechnen und umsetzen" %}</h3>
@@ -129,7 +130,7 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
       <path class="pfeil" d="M494 68 H526"/>
       <rect class="kasten gold" x="530" y="40" width="146" height="56" rx="12"/>
       <text x="603" y="64" text-anchor="middle">{% translate "Endabstimmung" %}</text>
-      <text class="klein" x="603" y="82" text-anchor="middle">{% blocktranslate with n=fristen.abstimmung %}{{ n }} Tage · geheim{% endblocktranslate %}</text>
+      <text class="klein" x="603" y="82" text-anchor="middle">{% blocktranslate with n=fristen.abstimmung %}{{ n }} Tage · pseudonym{% endblocktranslate %}</text>
       <path class="pfeil gold" d="M676 68 H708"/>
       <rect class="kasten dunkel" x="712" y="40" width="128" height="56" rx="12"/>
       <text class="hell" x="776" y="64" text-anchor="middle">{% translate "Beschluss" %}</text>
@@ -184,7 +185,7 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
       <path class="pfeil" d="M418 374 H462"/>
       <rect class="kasten gold" x="466" y="346" width="180" height="56" rx="12"/>
       <text x="556" y="370" text-anchor="middle">{% translate "Zustimmungswahl" %}</text>
-      <text class="klein" x="556" y="388" text-anchor="middle">{% translate "geheim · mehreren zustimmbar" %}</text>
+      <text class="klein" x="556" y="388" text-anchor="middle">{% translate "pseudonym · mehreren zustimmbar" %}</text>
       <path class="pfeil gold" d="M646 374 H690"/>
       <rect class="kasten dunkel" x="694" y="346" width="280" height="56" rx="12"/>
       <text class="hell" x="834" y="370" text-anchor="middle">{% translate "Listenreihung des Wahlvorschlags" %}</text>

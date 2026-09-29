@@ -246,6 +246,7 @@ PARAMETER = {
 # Felder der Verfahrensordnung (Policy) → (Schema-Kennung, Einheit)
 VERFAHRENSORDNUNG = {
     "unterstuetzung_schwelle": ("support.threshold", "supporters"),
+    "unterstuetzung_anteil": ("support.threshold_share_percent", "percent"),
     "unterstuetzung_frist_tage": ("support.window_days", "days"),
     "beratung_tage": ("deliberation.window_days", "days"),
     "abstimmung_tage": ("vote.window_days", "days"),
@@ -255,6 +256,20 @@ VERFAHRENSORDNUNG = {
     "expertenrat_gruppe2": ("council.group2_size", "people"),
     "wiedereinbringung_sperre_monate": ("motion.resubmission_block_months", "months"),
 }
+
+#: Felder, die die Ordnung als Anteil führt (0.5), der Export aber in Prozent (50) nennt — so tragen
+#: sie dieselbe Kennung und Einheit wie der Registerwert, der sie speist.
+PROZENT_AUS_ANTEIL = {"unterstuetzung_anteil"}
+
+
+def _prozent(anteil):
+    """Anteil → Prozent, ohne Gleitkomma-Rest (0.05 → 5); ein unlesbarer Wert bleibt, wie er ist."""
+    try:
+        wert = round(float(anteil) * 100, 6)
+    except (TypeError, ValueError):
+        return anteil
+    return int(wert) if wert.is_integer() else wert
+
 
 # Aggregierte Kennzahlen (Kennung, Einheit, Bedeutung) — nie personenbezogen
 KENNZAHLEN = (
@@ -312,7 +327,7 @@ def parameter_export(system_id, system_name, software_version, parameter, ordnun
             "id": o.get("id", ""),
             "version": o.get("version", 0),
             "werte": [
-                {"schema_key": kennung, "einheit": einheit, "wert": o[feld]}
+                {"schema_key": kennung, "einheit": einheit, "wert": _prozent(o[feld]) if feld in PROZENT_AUS_ANTEIL else o[feld]}
                 for feld, (kennung, einheit) in VERFAHRENSORDNUNG.items()
                 if feld in o
             ],

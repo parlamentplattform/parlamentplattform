@@ -134,7 +134,8 @@ Einheiten sind freier Text; `flag` steht seit 1.5 für einen Schalter mit den We
 
 | Kennung | Policy-Feld | Einheit |
 |---|---|---|
-| `support.threshold` | `unterstuetzung_schwelle` | supporters |
+| `support.threshold` | `unterstuetzung_schwelle` | supporters (die Mindestzahl, wenn ein Anteil gilt) |
+| `support.threshold_share_percent` | `unterstuetzung_anteil` | percent (die Ordnung führt den Anteil 0.5, der Export nennt 50; 0 = aus) |
 | `support.window_days` | `unterstuetzung_frist_tage` | days |
 | `deliberation.window_days` | `beratung_tage` | days |
 | `vote.window_days` | `abstimmung_tage` | days |
@@ -145,7 +146,8 @@ Einheiten sind freier Text; `flag` steht seit 1.5 für einen Schalter mit den We
 | `motion.resubmission_block_months` | `wiedereinbringung_sperre_monate` | months |
 
 Wo ein Feld der Ordnung aus einer Stellgröße des Registers gespeist wird, tragen beide dieselbe
-Kennung — mit zwei begründeten Ausnahmen (`plattform_core/test_schema.py`, `ABWEICHENDE_KENNUNG`):
+Kennung — beim Anteil der Unterstützungsschwelle auch dieselbe Einheit, weil der Export ihn in Prozent
+umrechnet —, mit zwei begründeten Ausnahmen (`plattform_core/test_schema.py`, `ABWEICHENDE_KENNUNG`):
 
 | Register | Ordnung | Warum verschieden |
 |---|---|---|
@@ -230,4 +232,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.4 | 11.9.2026 | 0.45.0 | `overview.decided_votes`, `chat.thread_roots`, `council.decisions_per_page`, `account.email_change_waiting_hours` |
 | 1.5 | 12.9.2026 | 0.46.0 | `mandate.question_vote_window_days` (Dauer der Abstimmung über eine Mandatsfrage, § 7 Abs 9), `mandate.monthly_report_grace_days` (Karenz des Monatsberichts, § 7 Abs 3 lit b), `region.secondary_residence_counts` (Schalter 0/1, § 5 Abs 6 — nie Stimmrecht). Diese Datei vollständig auf den Code gebracht: Die Tabelle stand seit 1.0 unverändert bei 12 Kennungen und trug die drei in 1.1 umbenannten noch unter ihren alten Namen; der Verlauf nannte 1.1 bis 1.3 nicht |
 | 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |
-| 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |
+| 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4; dieselbe Kennung steht in Prozent je Fassung im Export der Verfahrensordnung, 3.2), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |

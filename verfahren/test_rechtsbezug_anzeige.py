@@ -152,6 +152,18 @@ def test_band_nach_dem_einbringen_verweist_auf_zone_2(client, settings, ordnung)
     assert "Einschätzung der Zukunftswerkstatt:" not in _seite(client, Antrag.objects.get())
 
 
+def test_band_verspricht_nur_betroffene_gesetze_und_einbringen_kuendigt_nichts_an(client, settings, ordnung):  # noqa: F811
+    """Zone 2 hat keine Karte „ähnliche Anträge“ — das Band verspricht nur, was dort steht. Die
+    Einbringen-Seite kündigt keine künftigen Karten an (Grundregel 1)."""
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    client.force_login(mitglied_anlegen("bernd"))
+    einbringen = " ".join(client.get(reverse("verfahren:einbringen")).content.decode().split())
+    assert "StaatsSimulation" not in einbringen
+    inhalt = client.post(reverse("verfahren:einbringen"), ANTRAG, follow=True).content.decode()
+    assert "betroffene Gesetze zu diesem Antrag →" in inhalt
+    assert "ähnliche Anträge zu diesem Antrag" not in inhalt
+
+
 # --- Die Mail bei Fertigstellung ---------------------------------------------------------------------
 
 

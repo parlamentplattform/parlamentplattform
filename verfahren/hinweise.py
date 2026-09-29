@@ -46,7 +46,7 @@ HINWEISE: dict[str, dict] = {
     "aussetzung": {"text": _("Abstimmung durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d)."), "art": "fehler"},
     "gesperrt_ungeprueft": {
         "kurz": _("Identität noch ungeprüft"),
-        "text": _("Identität noch ungeprüft (§ 4 Abs 2)."),
+        "text": _("Identität noch ungeprüft (§ 4 Abs 1)."),
         "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
@@ -60,7 +60,7 @@ HINWEISE: dict[str, dict] = {
     },
     "gesperrt_ausgeschlossen": {
         "kurz": _("Mitwirkung ruht"),
-        "text": _("Von der Mitwirkung ausgeschlossen (§ 4 Abs 6)."),
+        "text": _("Von der Mitwirkung ausgeschlossen (§ 4 Abs 5)."),
         "art": "fehler",
     },
     "testkonto": {"kurz": _("Testkonto"), "text": _("Testkonto — ohne Mitwirkung."), "art": "fehler"},

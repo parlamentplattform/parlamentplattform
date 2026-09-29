@@ -264,6 +264,47 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     return bloecke
 
 
+def zustandekommen(antrag, bloecke: list[dict]) -> dict | None:
+    """Der Block „So kam der Vorschlag zustande“ in der Endabstimmung (D-G5, FB-G5).
+
+    Die Abstimmenden sollen die Kritik sehen: Die letzte Vorschlagsrunde erscheint eingefroren in
+    Zone 3 — mit der Rechnung, die entschieden hat (`_auswertung`, bei abgeschlossenen Runden aus
+    dem Audit), und den Beiträgen in der Reihung, die bei Fristende galt (Regel `engagement-v1`,
+    § 5 Abs 13 letzter Satz), Antworten chronologisch unter ihrem Beitrag. Die Zahl der Beiträge
+    ist gedeckelt wie der Faden (Registerwert „chat-faden-wurzeln“); der Rest liegt im Archiv.
+    None außerhalb der Endabstimmung und ohne Entwurfsschleife — nach dem Ergebnis bleibt das
+    Archiv (Entscheidung E2 zum Bauplan 0.51.0)."""
+    if antrag.phase != Phase.ABSTIMMUNG.value:
+        return None
+    runden = [b for b in bloecke if b["phase"].startswith("vorschlag-r")]
+    if not runden:
+        return None
+    from verfahren import chat as chatkern
+
+    runde = runden[-1]
+    beitraege = runde["beitraege"] if runde["geladen"] else _chat_je_phase(antrag, [runde["phase"]]).get(runde["phase"], [])
+    wurzeln = vorschlagschat.reihen(
+        [{**b, "ja": b["zustimmungen"], "nein": b["ablehnungen"], "zeit": b["geschrieben_am"]}
+         for b in beitraege if not b["antwort_auf"]]
+    )
+    grenze = chatkern.faden_wurzeln()
+    gezeigt = wurzeln[:grenze] if grenze else wurzeln
+    antworten: dict[int, list[dict]] = {}
+    for b in beitraege:
+        if b["antwort_auf"]:
+            antworten.setdefault(b["antwort_auf"], []).append(b)
+    geordnet = []
+    for w in gezeigt:
+        geordnet.append(w)
+        geordnet.extend(antworten.get(w["id"], []))
+    return {
+        "runde": runde,
+        "beitraege": geordnet,
+        "mehr": len(wurzeln) - len(gezeigt),
+        "fruehere": runden[:-1],
+    }
+
+
 #: Rückfallwert; der gültige steht im Register unter „archiv-audit-anzeige" (FB-J2).
 AUDIT_ANZEIGE = 60
 

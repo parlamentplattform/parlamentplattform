@@ -786,3 +786,175 @@ def test_die_anzeige_des_abstimmungschats_liest_die_schwelle_aus_der_ordnung(cli
     assert "Schwelle 50 %" in fenster
     entwurf.refresh_from_db()
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+
+
+# ── „So kam der Vorschlag zustande“ in der Endabstimmung (D-G5, 0.51.0) ─────────────────────
+
+
+def _zone_chat(inhalt: str) -> str:
+    return inhalt.split('id="zone-chat"', 1)[1].split('id="zone-archiv"', 1)[0]
+
+
+def _block(inhalt: str) -> str:
+    teil = inhalt.split('id="zustandekommen"', 1)[1]
+    return teil.split("</details>", 1)[0]
+
+
+def _zur_endabstimmung_mit_kritik(client, ordnung):  # noqa: F811
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Die Frist von 48 Stunden ist zu lang — binnen 24 Stunden muss das Protokoll stehen.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u)
+    reagieren(client, antrag, kritik, unterstuetzer[1])
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung"
+    return antrag, unterstuetzer
+
+
+def test_in_der_endabstimmung_steht_der_eingefrorene_chat_in_zone_3(client, ordnung):  # noqa: F811
+    """FB-G5: „in Zone 3 der Endabstimmung als aufklappbarer Block ‚So kam der Vorschlag zustande‘ —
+    die Abstimmenden sollen die Kritik sehen.“ Für Gast und Mitglied gleich, ohne Formulare."""
+    antrag, unterstuetzer = _zur_endabstimmung_mit_kritik(client, ordnung)
+    for wer in (None, unterstuetzer[0]):
+        client.logout()
+        if wer is not None:
+            client.force_login(wer)
+        inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+        zone = _zone_chat(inhalt)
+        assert 'id="zustandekommen"' in zone and "So kam der Vorschlag zustande" in zone
+        assert zone.index('id="zustandekommen"') < zone.index('id="chat-faden"')  # außerhalb des Fadens
+        block = _block(inhalt)
+        assert "binnen 24 Stunden muss das Protokoll stehen" in block and "Kritik · Absatz 1" in block
+        assert "an erster Stelle" in block and "zur Endabstimmung" in block and "Schwelle 50 %" in block
+        assert "<form" not in block and "csrfmiddlewaretoken" not in block
+        assert '<details class="klappe zustandekommen" id="zustandekommen">' in inhalt  # zugeklappt, nativ
+
+
+def test_der_block_reiht_nach_beteiligung_zum_fristende(client, ordnung):  # noqa: F811
+    antrag, _u = _zur_endabstimmung_mit_kritik(client, ordnung)
+    block = _block(client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode())
+    # „Passt alles“ (2 Reaktionen) vor der Kritik (1 Reaktion) — Regel engagement-v1, verlinkt
+    assert block.index("Die Plattform") < block.index("binnen 24 Stunden")
+    assert "engagement-v1" in block
+
+
+def test_ohne_entwurfsschleife_und_nach_dem_ergebnis_gibt_es_keinen_block(client, ordnung):  # noqa: F811
+    from plattform_core import Phase
+
+    antrag = antrag_einbringen(mitglied_anlegen("ohne"), **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(phase=Phase.ABSTIMMUNG.value)
+    assert 'id="zustandekommen"' not in client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+
+    mit, _u = _zur_endabstimmung_mit_kritik(client, ordnung)
+    Antrag.objects.filter(pk=mit.pk).update(
+        phase_beginn=timezone.now() - timedelta(days=60)
+    )  # Zeitraffer: die Abstimmung ist vorbei
+    inhalt = client.get(reverse("verfahren:antrag", args=[mit.pk])).content.decode()
+    mit.refresh_from_db()
+    assert mit.phase in ("angenommen", "abgelehnt")
+    assert 'id="zustandekommen"' not in inhalt  # das Archiv behält alles (E2)
+
+
+def test_zwei_runden_zeigen_die_letzte_und_verlinken_die_fruehere(client, ordnung):  # noqa: F811
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()  # zurück: Runde 2
+    entwurf.refresh_from_db()
+    assert entwurf.runde == 2
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung"
+    inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    block = _block(inhalt)
+    assert "Runde 2" in block.split("</summary>", 1)[0]
+    assert "Ausschüsse" not in block.split("?archiv=vorschlag-r1", 1)[0].split("</summary>", 1)[1]
+    assert "?archiv=vorschlag-r1#archiv-vorschlag-r1" in block and "zurück an den Expertenrat" in block
+
+
+def test_verstrichene_ueberarbeitung_zeigt_die_zurueckgegebene_runde(client, ordnung):  # noqa: F811
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    Entwurf.objects.filter(pk=entwurf.pk).update(ueberarbeitung_frist=timezone.now() - timedelta(hours=1))
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung"
+    block = _block(client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode())
+    assert "Ausschüsse" in block and "zurück an den Expertenrat" in block
+
+
+def test_bei_erreichter_hoechstzahl_der_runden_steht_zur_endabstimmung(client, ordnung):  # noqa: F811
+    """§ 5 Abs 12: Die Zahl der Runden begrenzt die Ordnung — danach geht der Vorschlag zur Abstimmung,
+    auch wenn „Passt alles“ nicht getragen hat. Der Block sagt, wohin er ging."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    regeln = dict(antrag.policy_snapshot, hoechstrunden=1)
+    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=regeln)
+    entwurf = einreichen(client, antrag, er)
+    kritik = schreiben(
+        client, antrag, unterstuetzer[0],
+        "Der Vorschlag lässt die Ausschüsse aus — sie gehören ausdrücklich in den ersten Absatz.",
+        kritik=True, absatz=1,
+    )
+    for u in unterstuetzer:
+        reagieren(client, antrag, kritik, u)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung"
+    block = _block(client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode())
+    assert "zur Endabstimmung" in block and "zurück an den Expertenrat" not in block
+
+
+def test_mit_geoeffnetem_archiv_gibt_es_keine_doppelte_kennung(client, ordnung):  # noqa: F811
+    antrag, _u = _zur_endabstimmung_mit_kritik(client, ordnung)
+    inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk]) + "?archiv=vorschlag-r1").content.decode()
+    passt = antrag.kommentare.get(system=True, phase="vorschlag-r1")
+    assert inhalt.count(f'id="a-{passt.pk}"') == 1 and inhalt.count(f'id="z-{passt.pk}"') == 1
+
+
+def test_der_block_braucht_hoechstens_eine_abfrage_mehr(client, ordnung):  # noqa: F811
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from verfahren import archiv as archivkern
+
+    antrag, _u = _zur_endabstimmung_mit_kritik(client, ordnung)
+    bloecke = archivkern.zeitleiste(antrag)
+    with CaptureQueriesContext(connection) as erfasst:
+        block = archivkern.zustandekommen(antrag, bloecke)
+    assert block is not None and len(erfasst) <= 2  # die Beiträge der Runde (+ Registerwert der Grenze)

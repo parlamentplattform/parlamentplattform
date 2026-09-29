@@ -358,6 +358,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {# ── Zone 3: Chat (der Faden folgt mit dem Chatsystem, S6) ── #}
   <section class="zone z-chat" id="zone-chat" x-show="breit || zone === 'chat'">
     <h2>{% translate "Chat" %}{% if chat.anzahl %} ({{ chat.anzahl }}){% endif %}</h2>
+    {% if zustandekommen %}{% include "verfahren/_zustandekommen.html" %}{% endif %}
     {% include "verfahren/_chat.html" %}
   </section>
 

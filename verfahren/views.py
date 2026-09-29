@@ -1333,6 +1333,9 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     chat["antwort_vorgabe"] = _antwort_vorgabe(
         antrag, (chat_entwurf or {}).get("antwort_auf") or request.GET.get("antwort_auf")
     )
+    from verfahren import archiv as archivkern
+
+    archiv = _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None)
     return render(
         request,
         "verfahren/antrag.html",
@@ -1369,7 +1372,8 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
             "chat": chat,
-            "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
+            "archiv": archiv,
+            "zustandekommen": archivkern.zustandekommen(antrag, archiv["zeitleiste"]),
             "frist": frist,
             "aussetzung": aussetzung,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,

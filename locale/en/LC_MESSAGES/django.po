@@ -8439,3 +8439,6 @@ msgstr "Threshold %(p)s %%"
 
 msgid "Vorgabe"
 msgstr "default"
+
+msgid "So kam der Vorschlag zustande"
+msgstr "How the proposal came about"

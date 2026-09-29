@@ -1,0 +1,5 @@
+{% load i18n %}<p class="archiv-auswertung">{% blocktranslate with ja=auswertung.ja nein=auswertung.nein anteil=auswertung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 = {{ anteil }} %{% endblocktranslate %}
+      · {% if auswertung.oben %}{% translate "an erster Stelle" %}{% else %}{% translate "nicht an erster Stelle" %}{% endif %}
+      · {% blocktranslate with p=auswertung.schwelle_prozent %}Schwelle {{ p }} %{% endblocktranslate %}{% if auswertung.schwelle_quelle == "vorgabe" %} ({% translate "Vorgabe" %}){% endif %}
+      · {% if auswertung.weiter %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
+      <span class="meta">({{ auswertung.reihung }})</span></p>

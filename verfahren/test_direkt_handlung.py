@@ -168,8 +168,8 @@ def test_gesperrte_sehen_keine_knoepfe_und_bekommen_den_hinweis(client, ordnung,
         assert "unterstuetzen/" not in feld and 'name="stimme"' not in feld
         assert feld.count(kurz) == 2, name  # je Antrag ein Zustand statt Knöpfen
     if code != "gesperrt_ausgeschlossen":
-        assert 'sperre">Identität noch ungeprüft — <a href="/willkommen/">Beitrag</a>' in _feld(client, "filter") or (
-            'sperre">Mitwirkung ruht — <a href="/willkommen/">Beitrag</a>' in _feld(client, "filter")
+        assert 'sperre">Identität noch ungeprüft — <a href="/beitrag/">Beitrag</a>' in _feld(client, "filter") or (
+            'sperre">Mitwirkung ruht — <a href="/beitrag/">Beitrag</a>' in _feld(client, "filter")
         )
 
     antwort = client.post(
@@ -310,7 +310,7 @@ def test_chat_sperre_mit_htmx_als_fehler_mit_link(client, ordnung):  # noqa: F81
     antwort = client.post(url, {"text": "Darf ich?"}, **HX)
     assert antwort.status_code == 200
     html = antwort.content.decode()
-    assert "Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)." in html and 'href="/willkommen/">Beitrag ›</a>' in html
+    assert "Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)." in html and 'href="/beitrag/">Beitrag ›</a>' in html
     assert ">Darf ich?</textarea>" in html and sammelnd.kommentare.count() == 0
     assert client.post(url, {"text": "Darf ich?"}).status_code == 403  # ohne htmx die 403-Seite
 

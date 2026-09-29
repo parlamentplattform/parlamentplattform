@@ -7,16 +7,24 @@ on:
 
 jobs:
   pruefen:
+    # Beide Python-Fassungen, die pyproject.toml zulässt (≥ 3.11); Produktion läuft mit 3.12.
+    # Der Status-Check heißt damit „pruefen (3.11)“ und „pruefen (3.12)“.
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - name: Abhängigkeiten
         run: pip install -e ".[dev,prod]"
       - name: Statische Prüfung (ruff)
         run: ruff check .
+      - name: Migrationen vollständig (kein vergessenes makemigrations)
+        run: python manage.py makemigrations --check --dry-run
       - name: Tests mit Kern-Abdeckung ≥ 90 %
         run: |
           set -o pipefail
@@ -100,12 +108,61 @@ jobs:
           } > kommentar.md
           gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" -F body=@kommentar.md || true
 
+  pruefen_postgres:
+    # Produktion ist PostgreSQL 16, die Suite lief bis 0.49 nur auf SQLite (Bestandsaufnahme
+    # 28.9.2026, D2): Migrationen liefen erstmals live, `select_for_update` ist auf SQLite wirkungslos,
+    # das Extra `postgres` wurde nirgends aufgelöst. Hier läuft dieselbe Suite gegen Postgres, davor
+    # die Startkette aus render.yaml und `demo_seed` zweimal (leere und bestehende Datenbank,
+    # CLAUDE.md § 5 Punkt 7).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: plattform
+          POSTGRES_USER: plattform
+          POSTGRES_PASSWORD: plattform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U plattform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: plattform
+      POSTGRES_USER: plattform
+      POSTGRES_PASSWORD: plattform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Abhängigkeiten samt PostgreSQL-Treiber
+        run: pip install -e ".[dev,prod,postgres]"
+      - name: Migrationen auf PostgreSQL
+        run: python manage.py migrate --noinput
+      - name: Startkette wie in Produktion (Gemeindeverzeichnis, Kategorienbaum)
+        run: |
+          python manage.py gemeinden_laden
+          python manage.py kategorien_laden
+      - name: Demo-Daten auf leerer und auf bestehender Datenbank
+        env:
+          DDOE_DEMO: "1"
+        run: |
+          python manage.py demo_seed
+          python manage.py demo_seed
+      - name: Tests gegen PostgreSQL
+        run: python -m pytest -q --tb=short --ignore=tests/e2e
+
   ausrollen:
     # Deploy erst nach bestandener Prüfung — besser als naives Auto-Deploy,
     # das auch rote Commits ausrollen würde. Braucht das Repository-Secret
     # RENDER_DEPLOY_HOOK (Render: Settings → Deploy Hook); ohne Secret wird
     # der Schritt sauber übersprungen.
-    needs: pruefen
+    needs: [pruefen, pruefen_postgres]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -128,7 +185,7 @@ jobs:
     # `ausrollen` übersprungen — und die Live-Fassung bleibt stehen, ohne dass es jemand liest.
     # Dieser Job schlägt dann selbst fehl und schreibt es in die Zusammenfassung des Laufs;
     # das CI-Abzeichen in der README zeigt denselben Zustand.
-    needs: pruefen
+    needs: [pruefen, pruefen_postgres]
     if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

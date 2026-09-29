@@ -12,10 +12,14 @@ htmlcov/
 dist/
 .sichtpruefung-fluechtig/
 
-# Das Fahrtenbuch und die Übergabe-Dokumente sind intern (Anweisungen des Gründers, Soll/Ist,
-# Inventar, Website-Prüfung, Satzungsentwurf). Sie liegen lokal in docs/fahrtenbuch/ und werden
+# docs/fahrtenbuch/ ist bis auf zwei Dateien intern (Satzungsentwurf, Korrespondenz, Soll/Ist,
+# Inventar, Website-Prüfung, Design-Spezifikation): Sie liegen am Arbeitsplatz des Gründers und werden
 # NICHT veröffentlicht; der daraus erzeugte Satzungs-Baukasten in docs/partner/ ist der öffentliche Teil.
-docs/fahrtenbuch/
+# Das Fahrtenbuch selbst und die Bestandsaufnahme vom 28.9.2026 liegen seit 29.9.2026 im Repository
+# (Anweisung des Gründers 28.9.2026: „Das Fahrtenbuch kannst du im Repo ablegen und aktualisieren“).
+docs/fahrtenbuch/*
+!docs/fahrtenbuch/DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md
+!docs/fahrtenbuch/Bestandsaufnahme_0.49.3_2026-09-28.md
 
 # Lokale PDF-Muster und Prüfprotokolle, keine Plattform-Quelldateien.
 /output/

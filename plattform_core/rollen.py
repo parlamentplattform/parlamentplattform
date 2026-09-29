@@ -38,7 +38,11 @@ def _(text: str) -> str:
 #: Fassung 3 (12.9.2026): der Mandatar ist eine Rolle im Code, das Profil gehört dem Mitglied.
 #: Fassung 4 (15.9.2026): die Vertrauensfrage nach § 7 Abs 10 — stellen, unterstützen, Stellung
 #: nehmen, Sperre feststellen, Bestätigung beantragen, Rückgabezusage, Rechtsschutz-Vermerke.
-VERSION = 5
+#: Fassung 5 (17.9.2026): der Mitgliedsausweis im Profil.
+#: Fassung 6 (29.9.2026): vier Zeilen, die seit S9/0.45 gebaut waren, standen noch als ○ „mit S9/S11“
+#: (Diff und Absatzkommentare, Beschluss anlegen, Einschätzung im Fenster, Jahresbericht) — jetzt ●
+#: mit Adresse; offene Zeilen nennen keinen erledigten Bauschritt mehr (Bestandsaufnahme 28.9.2026, C4).
+VERSION = 6
 
 
 class Stand(enum.StrEnum):
@@ -127,7 +131,7 @@ GAST = Rolle(
     name=_("Gast"),
     satzung="§ 3 Abs 1 lit c, § 5 Abs 8",
     was_sie_ist=_("Keine Rolle der Satzung, sondern deren Folge: Die Verfahren der ParlamentPlattform sind öffentlich, protokolliert und nachprüfbar; Ergebnisse werden vollständig veröffentlicht (§ 3 Abs 1 lit c)."),
-    wie_hinein=_("Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Session und CSRF."),
+    wie_hinein=_("Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Session, CSRF und — nur nach dem Umschalten — der Sprachwahl."),
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(
@@ -380,7 +384,7 @@ MITGLIED = Rolle(
         Faehigkeit(
             titel=_("Die Bestellung der Räte bestätigen und ihre Mitglieder abberufen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("S9"),
+            bauschritt=_("Bestellweg nach § 6 Abs 8 (FB-I1, Teil C „danach“) — heute trägt die Verwaltung die Bestätigung als Vermerk ein"),
         ),
     ),
 )
@@ -547,13 +551,15 @@ EXPERTENRAT1 = Rolle(
         ),
         Faehigkeit(
             titel=_("Fassungen im Arbeitsplatz vergleichen (Diff) und Absätze kommentieren"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S9"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:expertenrat",
+            ort=_("im Entwurfsfenster des Antrags: mittlere Spalte mit Fassungen und Diff, Kommentar je Absatz"),
         ),
         Faehigkeit(
             titel=_("Sich untereinander über andere Fragen abstimmen (Beschluss anlegen)"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S9"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:expertenrat",
+            ort=_("im eigenen Bereich unter „Beschluss anlegen (innere Angelegenheit)“"),
         ),
         Faehigkeit(
             titel=_("Für einen einzelnen Antrag aus der Fachliste ausgelost werden"),
@@ -562,8 +568,9 @@ EXPERTENRAT1 = Rolle(
         ),
         Faehigkeit(
             titel=_("Die Einschätzung der Zukunftswerkstatt als Arbeitsunterlage im Fenster nutzen"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S11"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:expertenrat",
+            ort=_("im Entwurfsfenster, rechte Spalte — Einschätzung einholen und nachlesen, gekennzeichnet als Modellrechnung"),
         ),
     ),
 )
@@ -786,7 +793,7 @@ INTEGRITAETSRAT = Rolle(
         Faehigkeit(
             titel=_("Die Betroffenheit im Einzelfall feststellen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("S9 — die Regeln selbst brauchen zuvor einen Beschluss der Mitgliederversammlung"),
+            bauschritt=_("offen — die Betroffenheitsregeln (§ 5 Abs 6) brauchen zuvor einen Beschluss der Mitgliederversammlung; Teil C weist dafür keinen Bauschritt aus"),
         ),
         Faehigkeit(
             titel=_("In einem internen Beschluss des Rates abstimmen"),
@@ -815,13 +822,14 @@ INTEGRITAETSRAT = Rolle(
         ),
         Faehigkeit(
             titel=_("Mindestens jährlich öffentlich berichten"),
-            stand=Stand.GEPLANT,
-            bauschritt=_("S9"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:integritaet",
+            ort=_("Jahresbericht je Kalenderjahr, erzeugt aus Beschlüssen, Aussetzungen und Regelprüfung — Link im eigenen Bereich"),
         ),
         Faehigkeit(
             titel=_("Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("S9"),
+            bauschritt=_("offen — externer Penetrationstest vor dem 200-Personen-Betrieb nach Budgetfreigabe (CONCEPT § 5, Anhang A Nr. 4); kein Bauschritt in Teil C"),
         ),
     ),
 )

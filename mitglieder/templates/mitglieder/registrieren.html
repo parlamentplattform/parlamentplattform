@@ -34,9 +34,10 @@ gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgab
 </div>
 
 <div class="karte">
-<p><strong>{% translate "Was mit Ihren Daten geschieht:" %}</strong> {% blocktranslate %}Name und Gemeinde dienen der
+<p><strong>{% translate "Was mit Ihren Daten geschieht:" %}</strong> {% url 'verfahren:datenschutz' as datenschutz_url %}{% blocktranslate %}Name und Gemeinde dienen der
 Mitgliederverwaltung nach der Satzung; das Geburtsjahr wird nur geprüft (§ 4 Abs 1) und nicht gespeichert.
 Öffentlich erscheint Ihr Anzeigename bei Anträgen und Beiträgen; Ihr Klarname nur mit Ihrer Einwilligung
-(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Keine Weitergabe, keine Werbung.{% endblocktranslate %}</p>
+(§ 5 Abs 3 lit a). Abstimmungen laufen unter Pseudonym (§ 5 Abs 3). Weitergabe nur an unsere Dienstleister
+für Betrieb und Versand (siehe <a href="{{ datenschutz_url }}">Datenschutzerklärung</a>), keine Werbung.{% endblocktranslate %}</p>
 </div>
 {% endblock %}

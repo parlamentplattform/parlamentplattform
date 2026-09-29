@@ -26,7 +26,7 @@ from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
-from mitglieder.post import freischaltung_senden, willkommen_senden
+from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -291,6 +291,9 @@ def willkommen(request):
             "iban": IBAN,
             "richtwert": BEITRAG_RICHTWERT,
             "qr_svg": _beitrags_qr(referenz),
+            # Derselbe Satz wie im Willkommensbrief: Mit Übergangsregel (§ 4 Abs 4 lit d) gibt es keine
+            # Wartefrist — die Seite nannte bis 0.49 feste 3/12 Monate, die live nicht galten (C2).
+            "stimmrechts_satz": stimmrechts_satz(request.user),
         },
     )
 

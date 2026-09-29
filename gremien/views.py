@@ -640,14 +640,14 @@ def rollen_aktion(request):
     if aktion == "berufen":
         form = RollenFormular(request.POST)
         if not form.is_valid():
-            messages.error(request, "Bitte alle Pflichtfelder prüfen.")
+            messages.error(request, _("Bitte alle Pflichtfelder prüfen."))
             return redirect("gremien:rollen")
         d = form.cleaned_data
         grund = _unvereinbarkeit(d["mitglied"], d["gremium"])
         if grund:
             # § 6 Abs 3 lit a — geprüft bei der Vergabe, nicht erst beim Losen: Eine Rolle,
             # die es nicht geben darf, soll gar nicht erst entstehen.
-            messages.error(request, f"Nicht berufen — {grund}.")
+            messages.error(request, _("Nicht berufen — %(grund)s.") % {"grund": grund})
             return redirect("gremien:rollen")
         if Rolle.objects.filter(
             gremium=d["gremium"],
@@ -664,8 +664,11 @@ def rollen_aktion(request):
             # Parteischiedsgericht stünden zwei Rollen derselben Person im selben Rat.
             messages.error(
                 request,
-                f"Nicht berufen — {d['mitglied'].anzeigename} hat in diesem Gremium schon eine aktive Rolle "
-                "(oder eine ruhende); erst beenden, dann neu berufen.",
+                _(
+                    "Nicht berufen — %(name)s hat in diesem Gremium schon eine aktive Rolle "
+                    "(oder eine ruhende); erst beenden, dann neu berufen."
+                )
+                % {"name": d["mitglied"].anzeigename},
             )
             return redirect("gremien:rollen")
         rolle = Rolle.objects.create(
@@ -685,7 +688,8 @@ def rollen_aktion(request):
         )
         messages.success(
             request,
-            f"Rolle berufen: {rolle.get_gremium_display()} bis {rolle.endet_am:%d.%m.%Y} — öffentlich sichtbar.",
+            _("Rolle berufen: %(gremium)s bis %(bis)s — öffentlich sichtbar.")
+            % {"gremium": rolle.get_gremium_display(), "bis": f"{rolle.endet_am:%d.%m.%Y}"},
         )
         if _bestaetigung_durch_wahl(d["mitglied"]):
             # § 7 Abs 10 lit f Z 3 Satz 2: Die Wahl in ein Organ der Partei gilt als Bestätigung
@@ -704,18 +708,18 @@ def rollen_aktion(request):
         rolle.bestaetigt = True
         rolle.save(update_fields=["bestaetigt"])
         AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
-        messages.success(request, "Bestätigung der Mitgliederversammlung vermerkt.")
+        messages.success(request, _("Bestätigung der Mitgliederversammlung vermerkt."))
 
     elif aktion == "beenden":
         rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
         grund = (request.POST.get("grund") or "").strip()
         if not grund:
-            messages.error(request, "Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert.")
+            messages.error(request, _("Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert."))
             return redirect("gremien:rollen")
         rolle.beendet_grund = grund[:200]
         rolle.save(update_fields=["beendet_grund"])
         AuditEintrag.anhaengen({"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund})
-        messages.info(request, "Rolle beendet — Grund im Audit-Log festgehalten.")
+        messages.info(request, _("Rolle beendet — Grund im Audit-Log festgehalten."))
 
     return redirect("gremien:rollen")
 

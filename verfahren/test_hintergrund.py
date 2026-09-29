@@ -74,3 +74,60 @@ def test_fehler_im_lauf_stehen_in_der_zeile_und_toeten_den_faden_nicht():
     assert hintergrund.ausfuehren(lauf) is True
     zeile = Hintergrundlauf.objects.get(name="probe")
     assert zeile.fehler.startswith("RuntimeError") and zeile.sperrcode == "" and zeile.zuletzt_beendet
+
+
+
+OPTIONEN = [{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}]
+
+
+def test_ein_kaputter_antrag_haelt_die_uebrigen_und_die_nachlaeufe_nicht_an(liegengeblieben):
+    """Warf das Fortschreiben eines Antrags (hier ein eingefrorener Schnappschuss, den die Ordnung
+    nicht mehr annimmt), brach der ganze Lauf ab — bei jedem Takt wieder: Anträge mit größerer
+    Kennung und alle Nachläufe blieben liegen. Jetzt trifft der Fehler nur diesen Antrag."""
+    from gremien.models import GremienBeschluss, Gremium
+
+    kaputt = liegengeblieben  # die kleinere Kennung — kommt im Lauf zuerst
+    Antrag.objects.filter(pk=kaputt.pk).update(policy_snapshot={**kaputt.policy_snapshot, "feld_aus_der_zukunft": 1})
+    demo1 = Mitglied.objects.get(username="demo1")
+    spaeter = antrag_einbringen(demo1, "Später", "Wortlaut", "Grund", Verfahrensordnung.objects.get(aktiv=True))
+    Antrag.objects.filter(pk=spaeter.pk).update(
+        phase=Phase.BERATUNG.value, phase_beginn=timezone.now() - timedelta(days=120)
+    )
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.KOORDINATIONSRAT,
+        gegenstand="fällig",
+        optionen=OPTIONEN,
+        angelegt_von=demo1,
+        frist=timezone.now() - timedelta(days=1),
+    )
+    for _takt in range(2):
+        Hintergrundlauf.objects.update(zuletzt_begonnen=None)
+        assert "fristen" in hintergrund.faellige_ausfuehren()
+    spaeter.refresh_from_db()
+    beschluss.refresh_from_db()
+    kaputt.refresh_from_db()
+    lauf = Hintergrundlauf.objects.get(name="fristen")
+    assert spaeter.phase in (Phase.ABGELEHNT.value, Phase.ANGENOMMEN.value)
+    assert not beschluss.offen
+    assert kaputt.phase == Phase.BERATUNG.value
+    assert lauf.zuletzt_stand["fehler"] == 1 and lauf.fehler == ""
+
+
+def test_ein_werfender_nachlauf_haelt_die_folgenden_nicht_an(monkeypatch):
+    """Warf ein Nachlauf (Beschlüsse), liefen Aussetzungen, Parametertests und Stufe 2 der
+    Vertrauensfrage nicht mehr. Jetzt steht der Fehler in der Zählung, die übrigen laufen."""
+    import gremien.models as gm
+    import mandatare.models as mm
+    from verfahren.management.commands.verfahren_fortschreiben import alles_fortschreiben
+
+    def wirft(*args, **kwargs):
+        raise RuntimeError("Nachlauf gescheitert")
+
+    gelaufen = []
+    monkeypatch.setattr(gm.GremienBeschluss, "faellige_abschliessen", classmethod(wirft))
+    monkeypatch.setattr(gm, "aussetzungen_fortschreiben", lambda jetzt=None: gelaufen.append("aussetzungen") or 0)
+    monkeypatch.setattr(gm, "parametertests_fortschreiben", lambda jetzt=None: gelaufen.append("tests") or 0)
+    monkeypatch.setattr(mm, "vertrauensfragen_fortschreiben", lambda jetzt=None: gelaufen.append("vf") or 0)
+    stand = alles_fortschreiben()
+    assert gelaufen == ["aussetzungen", "tests", "vf"]
+    assert stand["fehler"] == 1 and stand["beschluesse"] == 0

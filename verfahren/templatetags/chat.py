@@ -3,6 +3,7 @@
 Die Regeln selbst stehen im Modell; hier steht nur, wie sie im Template lesbar werden.
 """
 
+import json
 from datetime import datetime
 
 from django import template
@@ -53,6 +54,14 @@ def ortszeit(iso) -> str:
     if timezone.is_naive(wann):
         return wann.strftime("%d.%m.%Y %H:%M")
     return timezone.localtime(wann).strftime("%d.%m.%Y %H:%M")
+
+
+@register.filter
+def kompakt(wert) -> str:
+    """Ein Wert eines Audit-Ereignisses lesbar: Text wie er ist, alles andere als kompaktes JSON."""
+    if isinstance(wert, str):
+        return wert
+    return json.dumps(wert, ensure_ascii=False, separators=(", ", ": "))
 
 
 @register.filter

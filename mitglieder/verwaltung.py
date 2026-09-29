@@ -297,7 +297,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
             messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
             return
     if aktion in ("pausieren", "ausschliessen") and not grund:
-        messages.error(request, _("Bitte eine Begründung angeben — sie wird im Audit-Log veröffentlicht."))
+        messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
 
     if aktion == "pausieren":

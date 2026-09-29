@@ -423,6 +423,15 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 3 lit e · § 5 Abs 8",
     },
     {
+        "schluessel": "audit-seite-eintraege",
+        "wert": "50",
+        "einheit": gettext_noop("Einträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop("Wie viele Einträge das öffentliche Audit-Log je Seite zeigt, neueste zuerst; "
+        "ebenso je Abruf von /audit.json. Zwischen 10 und 500."),
+        "quelle": "§ 5 Abs 8 · Bestandsaufnahme 28.9.2026 (A7)",
+    },
+    {
         "schluessel": "ki-antwort-hoechsttokens",
         "wert": "900",
         "einheit": gettext_noop("Tokens"),

@@ -262,6 +262,10 @@ PARAMETER = {
         "After how many failed delivery attempts the mail queue gives up an e-mail about the procedure "
         "(kept as done without delivery); account messages have no limit",
     ),
+    "audit-seite-eintraege": (
+        "audit.entries_per_page", "entries",
+        "How many entries the public audit log shows per page (newest first) and per request of /audit.json",
+    ),
     "audit-vollpruefung-tage": (
         "audit.full_check_days", "days",
         "After how many days the daily audit chain check recomputes the whole chain from the start "

@@ -8,8 +8,8 @@ Takt eine Minute) ruft `abarbeiten`:
 - **Tageskontingent** „ki-tageslaeufe“: mehr Läufe startet ein Kalendertag nicht; der Rest wartet.
 - **Atomare Reservierung** wie beim Postauftrag: ein UPDATE mit Sperrcode, damit zwei Worker nie
   denselben Auftrag zugleich rechnen; eine verlorene Reservierung läuft nach SPERRE_MINUTEN ab.
-- **Rückzug bei Fehlern**: 2, 4, 8, 16, 32, 64 Minuten; nach HOECHSTVERSUCHE gilt der Auftrag als
-  gescheitert (Stempel, nicht gelöscht).
+- **Rückzug bei Fehlern**: 2, 4, 8, 16, 32 Minuten; nach dem sechsten Fehlschlag (HOECHSTVERSUCHE)
+  gilt der Auftrag als gescheitert (Stempel, nicht gelöscht).
 
 Das Ergebnis bleibt im `KILauf` (Archiv); der Auftrag verweist darauf. Nichts hier entscheidet,
 reiht oder blockiert ein Verfahren — die Werkstatt schlägt vor (Grundregel 5, § 2 Abs 6)."""

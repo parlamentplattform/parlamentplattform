@@ -5,11 +5,13 @@ Layout und Bewegung prüfen die Bildschirmtests unter tests/e2e/.
 """
 
 import re
+from html.parser import HTMLParser
 
 import pytest
 from django.urls import reverse
 
 from gremien.test_werkstatt import rolle_geben
+from verfahren.models import Kategorie
 from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
@@ -310,6 +312,58 @@ def test_tableiste_nur_im_parlament(client):
     assert '<nav class="tabs"' not in client.get("/").content.decode()
 
 
+class _Tausch(HTMLParser):
+    """Jedes Element mit hx-swap samt den Klassen seiner Vorfahren — so erkennt der Test Fächer und Brotkrume."""
+
+    LEER = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}
+
+    def __init__(self):
+        super().__init__()
+        self.offen: list[tuple[str, set[str]]] = []
+        self.treffer: list[tuple[str, dict, set[str]]] = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        klassen = set((a.get("class") or "").split())
+        if "hx-swap" in a:
+            self.treffer.append((tag, a, klassen.union(*(k for _, k in self.offen))))
+        if tag not in self.LEER:
+            self.offen.append((tag, klassen))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.offen) - 1, -1, -1):
+            if self.offen[i][0] == tag:
+                del self.offen[i:]
+                return
+
+
+def _feldtausch_pruefen(html: str) -> dict[str, int]:
+    """Jeder Tausch im Parlament folgt einer ausdrücklichen Regel; liefert die Zahl der Elemente je Regel.
+    Feldtausch: View Transition, in WeicherFilter und Favoriten das Skelett über hx-indicator am Feld.
+    Ausgenommen und eigens geprüft (Teil 7): Fächer- und Brotkrumen-Links tauschen das Feld ohne View
+    Transition (FLIP), gedämpft wird die Pille bzw. der Link; der Stern an einem Lebensbereich tauscht
+    nur sich selbst."""
+    sammler = _Tausch()
+    sammler.feed(html.split('class="parlament"', 1)[1])
+    zahl = {"feld": 0, "faecher": 0, "brot": 0, "stern": 0}
+    for tag, a, klassen in sammler.treffer:
+        if "stern-form" in klassen and "/kategorien/" in a.get("hx-post", ""):
+            assert a["hx-swap"] == "outerHTML" and "hx-select" not in a and "hx-target" not in a, a
+            zahl["stern"] += 1
+        elif "faecher" in klassen or "brot" in klassen:
+            art = "faecher" if "faecher" in klassen else "brot"
+            anzeige = "closest .fknoten" if art == "faecher" else "this"
+            assert tag == "a" and a["hx-swap"] == "outerHTML", a
+            assert a["hx-target"] == a["hx-select"] == "#feld-favoriten" and a["hx-indicator"] == anzeige, a
+            zahl[art] += 1
+        else:
+            assert a["hx-swap"] != "outerHTML", a
+            if a.get("hx-select") in ("#feld-filter", "#feld-favoriten"):
+                assert a["hx-swap"] == "outerHTML transition:true" and a["hx-indicator"] == a["hx-select"], a
+                zahl["feld"] += 1
+    return zahl
+
+
 def test_skelette_und_feldtausch_mit_uebergang(client):
     client.force_login(mitglied_anlegen())
     html = client.get(reverse("verfahren:parlament")).content.decode()
@@ -317,12 +371,28 @@ def test_skelette_und_feldtausch_mit_uebergang(client):
     assert _feld(html, "feld-favoriten").count('class="skelett b70"') == 4
     assert _feld(html, "feld-wichtig").count("kachel-form") == 4
     assert _feld(html, "feld-region").count("kachel-form") == 3
-    for feld in ("filter", "favoriten"):
-        treffer = re.findall(rf'hx-select="#feld-{feld}"[^>]*', html)
-        assert treffer, feld
-        for tag in treffer:
-            assert 'hx-swap="outerHTML transition:true"' in tag and f'hx-indicator="#feld-{feld}"' in tag
-    assert 'hx-swap="outerHTML"' not in html.split('class="parlament"', 1)[1]
+    zahl = _feldtausch_pruefen(html)
+    assert zahl["feld"] and 'hx-select="#feld-filter"' in html and 'hx-select="#feld-favoriten"' in html
+
+
+def test_feldtausch_mit_kategorienbaum_faecher_brotkrume_und_stern(client):
+    """Ohne Kategorien hat der Fächer keinen Knoten — dann prüft die Regel keinen Fächerlink. Mit einem
+    Baum: Fächer, Brotkrume und Stern nach ihrer eigenen Regel, Suche, Treffer und „Zurück zum Fächer“
+    weiter mit Übergang."""
+    wurzel = Kategorie.objects.create(slug="leben", name="Lebensbereiche")
+    umwelt = Kategorie.objects.create(slug="umwelt", name="Umwelt", eltern=wurzel)
+    energie = Kategorie.objects.create(slug="energie", name="Energie", eltern=umwelt)
+    Kategorie.objects.create(slug="solar", name="Solarstrom", eltern=energie)
+    Kategorie.objects.create(slug="bildung", name="Bildung", eltern=wurzel)
+    client.force_login(mitglied_anlegen())
+    zahl = _feldtausch_pruefen(client.get(reverse("verfahren:parlament")).content.decode())
+    assert zahl["faecher"] >= 2 and zahl["stern"] >= 2 and zahl["feld"], zahl
+    zahl = _feldtausch_pruefen(client.get(reverse("verfahren:parlament") + "?fach=energie").content.decode())
+    assert zahl["faecher"] and zahl["brot"] == 2 and zahl["stern"], zahl
+    html = client.get(reverse("verfahren:parlament") + "?suche=Energie").content.decode()
+    assert 'class="treffer-link"' in html and "Zurück zum Fächer" in html
+    zahl = _feldtausch_pruefen(html)
+    assert zahl["faecher"] == zahl["brot"] == 0 and zahl["stern"] and zahl["feld"] >= 3, zahl
 
 
 # ── Werkzeug statt Werbefläche (FB-A2, Grundregel 1) ───────────────────────────

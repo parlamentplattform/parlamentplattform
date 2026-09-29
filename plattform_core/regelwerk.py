@@ -457,7 +457,16 @@ REGELN: tuple[Regel, ...] = (
         fassung=1,
         seit="2026-09-04",
         grund=(
-            _("Erste Fassung: Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
+            # Die Rechenregel selbst (Modul VERSION 1, `engagement-v1`) ist unverändert; geändert haben
+            # sich mit 0.51.0 ihre Eingaben — datiert und begründet (§ 2 Abs 6, Prüfung 0.51.0).
+            _("Änderung vom 29.9.2026 (0.51.0), an den Eingaben, nicht an der Rechnung: Gezählt wird der "
+            "Stand zum Fristende (§ 5 Abs 13: „bis zum Fristende“). Eine Reaktion ab dem Fristende wird "
+            "abgewiesen, auch wenn noch nicht ausgewertet ist; zurückgenommene oder gewechselte Reaktionen "
+            "bleiben gespeichert, zählen aber nicht mehr. Die Schwelle kommt aus der eingefrorenen Ordnung "
+            "des Antrags, nicht aus dem heutigen Parameterregister (§ 5 Abs 5); Chat, Entwurfsfenster und "
+            "Archiv zeigen sie an. Eine abgeschlossene Runde zeigt das Archiv mit den Zahlen zu ihrem "
+            "Fristende. ")
+            + _("Erste Fassung (4.9.2026): Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
             "zurückgeben“ an. Seither wird diese Entscheidung offen als Gespräch geführt, und eine "
             "Kritik zählt nur als Änderungswunsch, wenn sie sich auf einen benannten Absatz des "
             "Vorschlags bezieht.")

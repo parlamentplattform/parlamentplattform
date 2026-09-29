@@ -127,6 +127,27 @@ def test_mistral_einbetten_baut_die_anfrage_und_liest_die_vektoren(settings, mon
     assert e.tokens == 7 and e.modell == "mistral-embed-test"
 
 
+def test_das_einbettungsmodell_kommt_aus_der_umgebung(monkeypatch, settings):
+    """Die Einstellung DDOE_KI_EINBETTUNGSMODELL wirkt wie DDOE_KI_MODELL: aus der Umgebung gelesen,
+    mit „mistral-embed“ als Vorgabe — und anbieter_waehlen reicht sie an den Anbieter."""
+    import importlib.util
+    from pathlib import Path
+
+    def einstellungen():
+        spec = importlib.util.spec_from_file_location("einstellungen_probe", Path(settings.BASE_DIR) / "config" / "settings.py")
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        return modul
+
+    monkeypatch.setenv("DDOE_KI_EINBETTUNGSMODELL", "anderes-modell")
+    wert = getattr(einstellungen(), "DDOE_KI_EINBETTUNGSMODELL", None)
+    assert wert == "anderes-modell"
+    monkeypatch.delenv("DDOE_KI_EINBETTUNGSMODELL")
+    assert einstellungen().DDOE_KI_EINBETTUNGSMODELL == "mistral-embed"
+    settings.DDOE_KI_ANBIETER, settings.DDOE_KI_SCHLUESSEL, settings.DDOE_KI_EINBETTUNGSMODELL = "mistral", "geheim", wert
+    assert anbieter_waehlen().einbettungsmodell == "anderes-modell"
+
+
 def test_mistral_einbetten_meldet_kaputte_antworten(monkeypatch):
     from ki.anbieter import AnbieterFehler
 

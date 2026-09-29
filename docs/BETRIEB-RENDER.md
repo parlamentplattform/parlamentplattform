@@ -68,7 +68,7 @@ Zwei Render-Eigenheiten, die man kennen muss:
 | `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
 | `DDOE_DEMO` | Standard `0` in Produktion (`1` nur mit `DDOE_DEBUG=1`): steuert, ob `demo_seed` Demo-Daten anlegt |
 | `DDOE_WAECHTER_MINUTEN` | optional, Standard 10 — Takt des Fristen-Wächters im Hintergrundfaden |
-| `DDOE_KI_SCHLUESSEL`, `DDOE_KI_MODELL` | optional — KI-Steckplatz der Zukunftswerkstatt (Mistral); ohne Schlüssel bleibt der Steckplatz leer, und `/datenschutz/` nennt keinen KI-Anbieter |
+| `DDOE_KI_SCHLUESSEL`, `DDOE_KI_MODELL`, `DDOE_KI_EINBETTUNGSMODELL` | optional — KI-Steckplatz der Zukunftswerkstatt (Mistral; Einbettungsmodell für den Bedeutungsvergleich, Vorgabe `mistral-embed`); ohne Schlüssel bleibt der Steckplatz leer, und `/datenschutz/` nennt keinen KI-Anbieter |
 | `DDOE_FIX_ADMIN` | optional — fixer Verwaltungs-Erstzugang (Standard `didide@ddoe.at`, F-51) |
 | `DDOE_BANK_SECRET_ID` / `DDOE_BANK_SECRET_KEY` | Beitragsabgleich F-59: Schlüsselpaar des Kontoinformationsdiensts (GoCardless Bank Account Data → User Secrets). Ohne sie bleibt die Bankanbindung schlicht aus |
 | `DDOE_BASIS_URL` | optional, Standard `https://parlament.ddoe.at` — Basis für Rückkehr-Link der Bankkopplung und Links in Beitragsmails |

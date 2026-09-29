@@ -76,7 +76,7 @@ def test_leerzustand_liegt_ausserhalb_des_rasters(client):
 def test_rueckmeldung_in_der_kachel_ist_vorbereitet(client, ordnung):  # noqa: F811
     anna, antrag = _hervorgehoben(ordnung)
     html = client.get(reverse("verfahren:parlament")).content.decode()
-    assert '<div class="parlament" id="parlament" x-data="parlament">' in html
+    assert '<div class="parlament" id="parlament" x-data="parlament(\'\')"' in html
     assert '<span class="k-erfasst" role="status">✓ Erfasst</span>' in _feld(html, "feld-wichtig")
 
 

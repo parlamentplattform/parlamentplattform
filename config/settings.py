@@ -221,6 +221,9 @@ if os.environ.get("DDOE_STATIK") == "whitenoise":
         "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
         "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
     }
+# WhiteNoise kennt .webmanifest nicht (es fiele auf application/octet-stream zurück) — Browser
+# verlangen für das App-Manifest (Teil 7) einen JSON-Typ; Djangos Entwicklungsserver rät ihn selbst.
+WHITENOISE_MIMETYPES = {".webmanifest": "application/manifest+json"}
 
 # Der Modell-Steckplatz (F-60, Ring 0b) — anbieterneutral, ohne Schlüssel leer.
 # Grundsatz L7: Die KI schlägt vor, sie entscheidet nie.

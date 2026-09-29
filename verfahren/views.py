@@ -36,6 +36,8 @@ from verfahren.models import (
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+# Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>, Tasten Alt+1…4)
+FELDER = ("filter", "favoriten", "wichtig", "region")
 
 # Die neun offenen Regler des WeicherFilters (FB-B2, Regel v2): Wortlaut im UI und das Merkmal,
 # das sie gewichten (nachrechenbar, in [0, 1]; nachzulesen unter /parameter/#weicherfilter).
@@ -706,6 +708,11 @@ def parlament(request):
     faecher["abos"] = abo_slugs
     suchtext = (request.GET.get("suche") or "").strip()
     suchtreffer = _kategorien_suchen(suchtext, request.user) if suchtext else None
+    # Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld auf das ganze Raster — serverseitig, damit es
+    # ohne JavaScript denselben Zustand gibt wie der ⤢-Knopf mit Alpine. Unbekannte Werte: kein Fokus.
+    fokus = request.GET.get("fokus") or ""
+    if fokus not in FELDER:
+        fokus = ""
 
     meine_favoriten: set[int] = set()
     if request.user.is_authenticated:
@@ -798,6 +805,7 @@ def parlament(request):
             "faecher": faecher,
             "suchtext": suchtext,
             "suchtreffer": suchtreffer,
+            "fokus": fokus,
             "feed": feed,
             "meine_favoriten": meine_favoriten,
             "filter_lage": filter_lage,

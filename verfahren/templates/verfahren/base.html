@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+{% comment %}App-Manifest (Teil 7): „Zum Startbildschirm“ am Handy und „App installieren“ im Desktop-Browser
+öffnen das Parlament bildschirmfüllend ohne Browserrahmen. Bewusst OHNE Service Worker: kein Offline-Versprechen
+und keine Cache-Falle bei Fristen — jede Ansicht kommt frisch vom Server. Farben = Tokens --papier und --deep
+(hell) bzw. --night-1 (dunkel, die Farbe der App-Leiste).{% endcomment %}
+<link rel="manifest" href="{% static 'verfahren/app.webmanifest' %}">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0E4C5C">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A1722">
+<link rel="apple-touch-icon" href="{% static 'verfahren/icon-192.png' %}">
 <script src="{% static 'verfahren/js/thema.js' %}"></script>
 <style>
 /* ── Tokens (Design-Spezifikation App-Look, Abschnitt 2) ──
@@ -229,6 +237,18 @@ body.voll{overflow:hidden}
 body.voll main{max-width:none;padding:0}
 .parlament{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:12px;max-width:1500px;margin:0 auto;height:calc(100vh - var(--bar) - var(--band));height:calc(100dvh - var(--bar) - var(--band))}
 .feld{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:0;overflow:hidden;position:relative}
+/* Fokus-Modus (Teil 7): ein Feld auf dem ganzen Raster (die anderen sind hidden); der Knopf ⤢/⤡ sitzt rechts im Feldkopf */
+.parlament.fokus{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.parlament.fokus>.feld{animation:hineingleiten var(--d-slide) var(--e-out) both}
+.parlament.faecher-tausch>#feld-favoriten{animation:none}  /* nach einem Fächer-Tausch gleiten die Knoten (FLIP) — das Feld taucht nicht erneut auf */
+.feld-kopf .fokus-knopf{flex:none;width:30px;height:30px;color:var(--matt);font-size:17px;text-decoration:none;margin-right:-6px}
+.feld-kopf .fokus-knopf:hover{color:var(--ink);background:var(--surface-2)}
+.feld-kopf .bk+.fokus-knopf,.feld-kopf .feld-suche+.fokus-knopf{margin-left:8px}
+/* Tastenliste im Menü (Teil 7): Tasten links, Ziel rechts — nur die Liste, kein Satz */
+.tastenliste{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:2px 0 4px;padding:0 12px 0 20px;font-size:13px;color:var(--ink)}
+.tastenliste dt{white-space:nowrap}
+.tastenliste dd{margin:0;color:var(--matt)}
+.tastenliste kbd{font:inherit;font-size:12px;padding:0 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--surface-2)}
 /* ── WeicherFilter (FB-B1–B6): Profil-Leiste mit Pfeil, Feed-Zeilen, Regler-Overlay von rechts ── */
 .filter-rahmen{display:contents}
 .filter-leiste{flex:none;overflow:hidden;height:40px;transition:height var(--d-base) var(--e-in)}  /* nicht positioniert: Overlay und Griff hängen am Feld */
@@ -294,8 +314,8 @@ body.voll main{max-width:none;padding:0}
 .gruppe{padding:14px 0 4px;margin:0;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;border-bottom:1px solid var(--line)}
 .gruppe:first-child{padding-top:4px}
 .feld-kopf{height:44px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--line)}
-.feld-kopf h2{margin:0;font-size:19px;font-weight:600}
-.feld-kopf .bk{margin-left:auto;opacity:.7}
+.feld-kopf h2{margin:0;font-size:19px;font-weight:600;flex:none;white-space:nowrap}  /* bricht nie um — die Brotkrume kürzt sich stattdessen */
+.feld-kopf .bk{margin-left:auto;opacity:.7;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}  /* kürzt sich, das h2 bricht nie um */
 .feld-korpus{flex:1;min-height:0;overflow:auto;padding:8px 16px 32px;position:relative;scrollbar-width:thin;overscroll-behavior:contain}
 .feld-fuss{border-top:1px solid var(--line);padding:8px 18px;font-size:13px;color:var(--matt);background:linear-gradient(transparent,var(--karton))}
 .zeile{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}
@@ -386,6 +406,7 @@ body.voll main{max-width:none;padding:0}
   .rband .spur{grid-auto-columns:78%}
   .regler-feld{width:100%}
   .tabs{display:grid}
+  .fokus-knopf{display:none}  /* am Handy ist jedes Feld ein Bildschirm — kein Fokus-Modus */
 }
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}
@@ -503,13 +524,16 @@ main .feld:nth-child(4),main .wk:nth-child(4),main .schritt:nth-child(4){animati
 main .wk:nth-child(5),main .schritt:nth-child(5){animation-delay:200ms}
 main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-delay:250ms}
 .faecher{animation:hineingleiten var(--d-slide) var(--e-out) both}
-.faecher.zoom{animation:zoomrein var(--d-slide) var(--e-out) both}
-.fknoten{transition:box-shadow var(--d-fast),border-color var(--d-fast)}
+/* Nach einem Fächer-zu-Fächer-Tausch gleiten die Knoten (FLIP in app.js, Dauer --d-slide) — keine zweite Eingangsbewegung.
+   Die geklickte Pille dämpft, bis die Antwort da ist; Geister sind die alten Knoten beim Ausblenden. */
+.faecher.getauscht{animation:none}
+.fknoten.htmx-request{opacity:.55}
+.fknoten.geist{pointer-events:none;z-index:0}
+.fknoten{transition:box-shadow var(--d-fast),border-color var(--d-fast),opacity var(--d-fast)}
 .fknoten a,.fknoten .fname{transition:color var(--d-fast)}
 .faecher .faden{transition:stroke var(--d-fast),stroke-width var(--d-fast)}
 .fknoten .stern-form.htmx-added .stern{animation:stern-pop 220ms var(--e-spring)}
 .fknoten.treffer{animation:treffer-gold 1.5s var(--e-out) both}
-@keyframes zoomrein{to{transform:scale(1.12);opacity:.35}}
 @keyframes stern-pop{from{transform:scale(1.4)}to{transform:scale(1)}}
 @keyframes treffer-gold{0%,60%{box-shadow:0 0 0 6px color-mix(in srgb,var(--gold) 45%,transparent)}100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 15%,transparent)}}
 /* Die Profil-Leiste bekommt keine eigene Eingangsanimation: Transform oder Deckkraft auf .innen würden

@@ -167,7 +167,8 @@ def test_migration_0021_schreibt_den_stamm_fest_legt_demo_konten_still_und_ist_i
     demos = list(Mitglied.objects.filter(username__in=[f"demo{i}" for i in range(1, 6)]).order_by("pk"))
     assert len(demos) == 5
     fachliste = Fachliste.objects.create(mitglied=demos[0], schluessel="demo1-fach")
-    assert Rolle.objects.filter(mitglied__in=demos, beendet_grund="").exists()
+    rollen = list(Rolle.objects.filter(mitglied__in=demos, beendet_grund="").order_by("pk").values_list("pk", flat=True))
+    assert rollen
 
     _migration_0021_ausfuehren()
 
@@ -187,6 +188,9 @@ def test_migration_0021_schreibt_den_stamm_fest_legt_demo_konten_still_und_ist_i
     assert [v for _e, _h, v in kette] == [GENESIS] + [h for _e, h, _v in kette[:-1]]
     letzter = kette[-1][0]
     assert letzter["typ"] == "testkonten_stillgelegt" and letzter["konten"] == [d.pk for d in demos]
+    # Welche Rollen endeten und welche Fachlisteneinträge gestrichen wurden, belegt die Kette — nur IDs.
+    assert letzter["rollen"] == rollen and letzter["fachliste"] == [fachliste.pk]
+    assert "demo" not in str(letzter) and "example.org" not in str(letzter)
 
     anzahl = len(kette)
     _migration_0021_ausfuehren()  # zweiter Lauf: nichts mehr zu tun

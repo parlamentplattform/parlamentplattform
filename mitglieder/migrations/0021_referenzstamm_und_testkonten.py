@@ -59,13 +59,18 @@ def vorwaerts(apps, schema_editor):
         return
     pks = [m.pk for m in demos]
     mitglieder.filter(pk__in=pks).update(testkonto=True, is_active=False)
-    Rolle.objects.using(db).filter(mitglied_id__in=pks, beendet_grund="").update(
-        beendet_grund="Testkonto stillgelegt (28.9.2026)"
-    )
-    Fachliste.objects.using(db).filter(mitglied_id__in=pks, gestrichen_am__isnull=True).update(
-        gestrichen_am=heute, gestrichen_grund="Testkonto stillgelegt (28.9.2026)"
-    )
-    audit_anhaengen(apps, db, {"typ": "testkonten_stillgelegt", "konten": pks, "anlass": "Bestandsaufnahme 28.9.2026"})
+    # Welche Rollen enden und welche Fachlisteneinträge gestrichen werden, steht im Sammeleintrag —
+    # nur IDs, keine Namen.
+    rollen = Rolle.objects.using(db).filter(mitglied_id__in=pks, beendet_grund="")
+    rollen_ids = list(rollen.order_by("pk").values_list("pk", flat=True))
+    rollen.update(beendet_grund="Testkonto stillgelegt (28.9.2026)")
+    fachliste = Fachliste.objects.using(db).filter(mitglied_id__in=pks, gestrichen_am__isnull=True)
+    fachliste_ids = list(fachliste.order_by("pk").values_list("pk", flat=True))
+    fachliste.update(gestrichen_am=heute, gestrichen_grund="Testkonto stillgelegt (28.9.2026)")
+    audit_anhaengen(apps, db, {
+        "typ": "testkonten_stillgelegt", "konten": pks, "rollen": rollen_ids, "fachliste": fachliste_ids,
+        "anlass": "Bestandsaufnahme 28.9.2026",
+    })
 
 
 class Migration(migrations.Migration):

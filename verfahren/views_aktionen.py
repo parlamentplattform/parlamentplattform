@@ -254,6 +254,7 @@ def einbringen(request):
                             "aehnliche": pruefung.treffer,
                             "pruefung": pruefung,
                             "ordnung": ordnung,
+                            "ki_anbieter": _ki_anbieter_name(),
                         },
                     )
             antrag = antrag_einbringen(
@@ -289,8 +290,20 @@ def einbringen(request):
     return render(
         request,
         "verfahren/einbringen.html",
-        {"form": form, "aehnliche": aehnliche, "pruefung": pruefung, "ordnung": ordnung},
+        {
+            "form": form,
+            "aehnliche": aehnliche,
+            "pruefung": pruefung,
+            "ordnung": ordnung,
+            "ki_anbieter": _ki_anbieter_name(),
+        },
     )
+
+
+def _ki_anbieter_name() -> str:
+    """Der Name des angeschlossenen KI-Anbieters, sonst leer: Nur wenn einer angeschlossen ist, geht
+    der Entwurf beim Absenden zum Bedeutungsvergleich hinaus — nur dann sagt die Seite es."""
+    return getattr(anbieter_waehlen(), "name", "")
 
 
 def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:

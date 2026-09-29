@@ -8,12 +8,14 @@ verspricht keine Geheimheit mehr, die ADR-003 ausdrücklich nicht zusagt (C1).
 
 from __future__ import annotations
 
+import re
 import uuid
 
 import pytest
 from django.urls import reverse
 
-from verfahren.models import StimmRegister, antrag_einbringen
+from ki.models import KILauf, Zweck
+from verfahren.models import Antrag, StimmRegister, antrag_einbringen
 from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
@@ -99,3 +101,46 @@ def test_kein_text_verspricht_ein_zugriffsprotokoll_auf_das_stimmregister(client
         assert "zugriffsbeschränkt" in inhalt, seite
         assert "Zugriff wird protokolliert" not in inhalt, seite
         assert "zugriffsbeschränkt und protokolliert" not in inhalt, seite
+
+
+def _ki_absatz(client) -> str:
+    inhalt = " ".join(client.get(reverse("verfahren:datenschutz")).content.decode().split())
+    treffer = re.search(r'id="empfaenger-ki">(.*?)</li>', inhalt)
+    assert treffer, "Absatz zum KI-Anbieter fehlt"
+    return treffer.group(1)
+
+
+def test_der_entwurf_geht_vor_dem_einbringen_an_den_anbieter_und_die_texte_sagen_es(client, settings, ordnung):  # noqa: F811
+    """Stufe 2 der Ähnlichkeit schickt Titel und Wortlaut des noch nicht eingebrachten Entwurfs an
+    den Anbieter; der Lauf bleibt im Archiv, auch wenn das Mitglied danach nicht einbringt. Das
+    Verhalten bleibt (Entscheidung vom 29.9.2026) — Datenschutzerklärung und Einbringen-Seite sagen
+    es, statt nur von „ohnehin öffentlichen“ Texten zu sprechen."""
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    antrag_einbringen(mitglied_anlegen("bernd"), ANTRAG["titel"], ANTRAG["wortlaut"], "", ordnung)
+    m = mitglied_anlegen("anna")
+    client.force_login(m)
+    entwurf = "Ein Entwurfssatz, der nie eingebracht wird."
+    antwort = client.post(
+        reverse("verfahren:einbringen"),
+        {
+            "titel": ANTRAG["titel"],
+            "wortlaut": f"{ANTRAG['wortlaut']} {entwurf}",
+            "begruendung": "",
+            "ebene": "bund",
+            "art": "sache",
+        },
+    )
+    assert antwort.status_code == 200 and Antrag.objects.count() == 1  # Hinweis, nichts eingebracht
+    lauf = KILauf.objects.get(zweck=Zweck.AEHNLICHKEIT, antrag=None, angefordert_von=m)
+    assert entwurf in lauf.eingabe
+
+    absatz = _ki_absatz(client)
+    assert "ohnehin öffentlich" not in absatz
+    assert "Entwurf" in absatz and "Lauf-Archiv" in absatz
+
+    satz = "zum Bedeutungsvergleich an den KI-Anbieter"
+    einbringen = " ".join(client.get(reverse("verfahren:einbringen")).content.decode().split())
+    assert satz in einbringen and "attrappe" in einbringen
+    settings.DDOE_KI_ANBIETER = "mistral"
+    settings.DDOE_KI_SCHLUESSEL = ""
+    assert satz not in client.get(reverse("verfahren:einbringen")).content.decode()

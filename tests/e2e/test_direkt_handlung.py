@@ -166,6 +166,37 @@ def test_fokusring_und_auswahl_sind_unterscheidbar(seite, live_server, demo, dun
     assert stil[0] == "none" and stil[1] not in ("rgba(0, 0, 0, 0)", "transparent"), stil
 
 
+_UMRISS_JS = """(id) => { const e = document.getElementById(id), s = getComputedStyle(e);
+  return {stil: s.outlineStyle, farbe: s.outlineColor, fv: e.matches(':focus-visible')}; }"""
+
+
+@pytest.mark.parametrize("dunkel", [False, True], ids=["hell", "dunkel"])
+def test_stimmknopf_in_der_kachel_auswahl_ohne_ring_fokus_mit_ring(seite, live_server, demo, dunkel):
+    """Die gewählte Stimme ist gefüllt und trägt keinen Dauer-Ring; der Tastaturfokus zeigt den Ring in
+    --fokus — auf dem gewählten wie auf dem nicht gewählten Knopf (WCAG 1.4.1, 2.4.7)."""
+    p = seite(als=_mitglied(), dunkel=dunkel)
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    ja = p.locator("#feld-wichtig .kachel .stimmreihe button[name=stimme][value=ja]").first
+    ja_id = ja.get_attribute("id")
+    nein_id = ja_id.replace("-ja", "-nein")
+    ja.click()
+    p.wait_for_selector(f"#{ja_id}.gewaehlt")
+    _ruhe(p)
+    fokus = p.evaluate("""() => { const t = document.createElement('i'); t.style.color = 'var(--fokus)';
+      document.body.appendChild(t); const f = getComputedStyle(t).color; t.remove(); return f; }""")
+    p.locator("#h-wichtig").click()  # Fokus weg
+    ohne = p.evaluate(_UMRISS_JS, ja_id)
+    assert ohne["stil"] == "none", f"gewählter Knopf trägt ohne Fokus einen Ring: {ohne}"
+    p.locator(f"#{nein_id}").focus()
+    p.keyboard.press("Shift+Tab")  # Tastaturfokus auf den gewählten Knopf
+    gewaehlt = p.evaluate(_UMRISS_JS, ja_id)
+    assert gewaehlt["fv"] and gewaehlt["stil"] == "solid" and gewaehlt["farbe"] == fokus, (gewaehlt, fokus)
+    p.keyboard.press("Tab")
+    nein = p.evaluate(_UMRISS_JS, nein_id)
+    assert nein["fv"] and nein["stil"] == "solid" and nein["farbe"] == fokus, (nein, fokus)
+
+
 def test_haken_bleibt_bei_reduzierter_bewegung_sichtbar(seite, live_server, demo):
     antrag = _sammelnder_antrag()
     p = seite(als=_mitglied(), reduziert=True)

@@ -59,7 +59,7 @@ JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
     <summary><strong>{% translate "Audit-Spur" %}</strong> <span class="meta">{% translate "Hash-Kette, fortlaufend" %}{% if archiv.audit_gekuerzt %} · {% blocktranslate with gezeigt=archiv.audit|length gesamt=archiv.audit_gesamt %}die letzten {{ gezeigt }} von {{ gesamt }} — vollständig im Export{% endblocktranslate %}{% endif %}</span></summary>
     <ol class="auditspur">
       {% for e in archiv.audit %}
-      <li><span class="meta">{{ e.zeit|slice:":16" }}</span> <strong>{{ e.typ }}</strong> <code>{{ e.hash }}</code>
+      <li><span class="meta">{{ e.zeit|ortszeit }}</span> <strong>{{ e.typ }}</strong> <code>{{ e.hash }}</code>
         {% if e.grund %}<br><span class="meta">{{ e.grund }}</span>{% endif %}</li>
       {% endfor %}
     </ol>

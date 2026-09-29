@@ -310,3 +310,14 @@ def test_kein_live_leser_der_annahme_schwelle():
         and 'zahl("vorschlag-annahme-prozent"' in p.read_text(encoding="utf-8")
     ]
     assert treffer == []
+
+
+def test_archivzeiten_stehen_in_ortszeit_nicht_in_utc():
+    """Das Archiv hält ISO-Zeit in UTC fest; die Seite zeigt Wiener Ortszeit (0.51.0)."""
+    from verfahren.templatetags.chat import ortszeit
+
+    assert ortszeit("2026-09-29T09:26:41.123456+00:00") == "29.09.2026 11:26"
+    assert ortszeit("2026-01-15T23:30:00+00:00") == "16.01.2026 00:30"
+    assert ortszeit("") == ""
+    assert ortszeit(None) == ""
+    assert ortszeit("kaputt") == "kaputt"

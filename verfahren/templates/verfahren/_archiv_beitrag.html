@@ -5,7 +5,7 @@
     <div class="blase-kopf">
       <strong>{{ b.verfasser }}</strong>
       {% if b.ist_kritik %}<span class="etikett kritik">{% if b.bezug_absatz %}{% blocktranslate with n=b.bezug_absatz %}Kritik · Absatz {{ n }}{% endblocktranslate %}{% else %}{% translate "Kritik" %}{% endif %}</span>{% endif %}
-      <span class="meta">{{ b.geschrieben_am|slice:":16" }}</span>
+      <span class="meta">{{ b.geschrieben_am|ortszeit }}</span>
       {% if b.zustimmungen or b.ablehnungen %}<span class="meta">· &#128077; {{ b.zustimmungen }} / &#128078; {{ b.ablehnungen }}</span>{% endif %}
     </div>
     <div class="archiv-text">{{ b.text|linebreaksbr }}</div>

@@ -20,6 +20,10 @@ dist/
 docs/fahrtenbuch/*
 !docs/fahrtenbuch/DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md
 !docs/fahrtenbuch/Bestandsaufnahme_0.49.3_2026-09-28.md
+# Dritte Ausnahme (29.9.2026): Der Prüfbericht zur Fassung 0.50.0 belegt jeden Befund der Gesamtprüfung
+# (Teil 6) mit Beleg, Urteil und Commit; er gehört zum Pull Request dieser Fassung und muss neben dem
+# Fahrtenbuch lesbar sein, auf das seine Nachträge verweisen.
+!docs/fahrtenbuch/Pruefung_0.50.0_*.md
 
 # Lokale PDF-Muster und Prüfprotokolle, keine Plattform-Quelldateien.
 /output/

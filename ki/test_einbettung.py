@@ -86,7 +86,7 @@ def test_erschoepftes_budget_stoppt_auch_einbettungen(settings):
 def test_anbieterfehler_wird_als_fehllauf_archiviert(settings, monkeypatch):
     settings.DDOE_KI_ANBIETER = "attrappe"
 
-    def kaputt(self, texte):
+    def kaputt(self, texte, zeitgrenze=None):
         from ki.anbieter import AnbieterFehler
 
         raise AnbieterFehler("HTTP 500 vom Anbieter")

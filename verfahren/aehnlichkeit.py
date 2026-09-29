@@ -27,6 +27,12 @@ log = logging.getLogger(__name__)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 EINBETTUNGEN_JE_AUFRUF_STANDARD = 20
+#: Zeitgrenze (Sekunden je Socket-Operation) für den Anbieter-Aufruf in der Anfrage „Einbringen“.
+#: Eine Grenze der Maschine, kein Verfahrenswert: Die Person wartet vor dem Formular, und ein
+#: Sync-Worker ist so lange belegt — die 45 s des Steckplatzes (Warteschlange, ohne wartende Person)
+#: hielten die Seite fest. Wer länger braucht, fällt still auf den Wortvergleich zurück; den Vektor
+#: des neuen Antrags zieht die Warteschlange nach.
+ZEITGRENZE_ANFRAGE_SEKUNDEN = 8
 
 
 @dataclass
@@ -79,7 +85,9 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     fehlende = [a for a in offene if (a.pk, fassungen[a.pk]) not in vorhanden]
     fehlende = fehlende[: max(0, zahl("aehnlichkeit-einbettungen-je-aufruf", EINBETTUNGEN_JE_AUFRUF_STANDARD))]
     try:
-        _lauf, einbettung = einbettung_ausfuehren([neuer_text, *(antragstext(a) for a in fehlende)], mitglied)
+        _lauf, einbettung = einbettung_ausfuehren(
+            [neuer_text, *(antragstext(a) for a in fehlende)], mitglied, zeitgrenze=ZEITGRENZE_ANFRAGE_SEKUNDEN
+        )
     except SteckplatzStumm as grund:
         ergebnis.bedeutung_grund = str(grund)
         log.info("Bedeutungsstufe übersprungen: %s", grund)

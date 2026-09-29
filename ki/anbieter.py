@@ -100,9 +100,12 @@ class MistralAnbieter:
             tokens_aus=int(verbrauch.get("completion_tokens", 0)),
         )
 
-    def einbetten(self, texte: list[str]) -> Einbettung:
-        """Ein Aufruf für alle Texte — die Antwort trägt je Text einen Vektor mit seinem Index."""
-        daten = self._senden(MISTRAL_EINBETTUNG_ENDPUNKT, {"model": self.einbettungsmodell, "input": texte})
+    def einbetten(self, texte: list[str], zeitgrenze: float | None = None) -> Einbettung:
+        """Ein Aufruf für alle Texte — die Antwort trägt je Text einen Vektor mit seinem Index.
+        `zeitgrenze` (Sekunden je Socket-Operation) ersetzt ZEITGRENZE_SEKUNDEN, wenn gesetzt."""
+        daten = self._senden(
+            MISTRAL_EINBETTUNG_ENDPUNKT, {"model": self.einbettungsmodell, "input": texte}, zeitgrenze
+        )
         try:
             zeilen = sorted(daten["data"], key=lambda z: int(z.get("index", 0)))
             vektoren = [[float(x) for x in z["embedding"]] for z in zeilen]
@@ -113,7 +116,7 @@ class MistralAnbieter:
             raise AnbieterFehler("Anbieter lieferte nicht je Text einen Vektor")
         return Einbettung(vektoren=vektoren, modell=daten.get("model", self.einbettungsmodell), tokens=tokens)
 
-    def _senden(self, endpunkt: str, rumpf: dict) -> dict:
+    def _senden(self, endpunkt: str, rumpf: dict, zeitgrenze: float | None = None) -> dict:
         anfrage = urllib.request.Request(
             endpunkt,
             data=json.dumps(rumpf).encode(),
@@ -125,7 +128,7 @@ class MistralAnbieter:
             method="POST",
         )
         try:
-            with urllib.request.urlopen(anfrage, timeout=ZEITGRENZE_SEKUNDEN) as antwort:
+            with urllib.request.urlopen(anfrage, timeout=zeitgrenze or ZEITGRENZE_SEKUNDEN) as antwort:
                 daten = json.loads(antwort.read().decode())
         except urllib.error.HTTPError as fehler:
             raise AnbieterFehler(f"HTTP {fehler.code} vom Anbieter") from fehler
@@ -156,7 +159,7 @@ class AttrappenAnbieter:
             tokens_aus=40,
         )
 
-    def einbetten(self, texte: list[str]) -> Einbettung:
+    def einbetten(self, texte: list[str], zeitgrenze: float | None = None) -> Einbettung:
         """Deterministische Vektoren aus Wort-Hashes: Texte mit gemeinsamen Wörtern liegen nah beieinander,
         fremde weit auseinander — genug, damit Tests die Bedeutungsstufe ohne Netz nachstellen können."""
         return Einbettung(

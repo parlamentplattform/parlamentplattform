@@ -138,7 +138,7 @@ def test_ohne_anbieter_wird_kein_vektor_auftrag_eingereiht(client, bestehend):
 def test_stummer_anbieter_faellt_still_auf_den_wortvergleich_zurueck(client, settings, bestehend, monkeypatch):
     settings.DDOE_KI_ANBIETER = "attrappe"
 
-    def kaputt(self, texte):
+    def kaputt(self, texte, zeitgrenze=None):
         from ki.anbieter import AnbieterFehler
 
         raise AnbieterFehler("HTTP 500 vom Anbieter")
@@ -150,6 +150,32 @@ def test_stummer_anbieter_faellt_still_auf_den_wortvergleich_zurueck(client, set
     t = antwort.context["aehnliche"][0]
     assert t["bedeutung_prozent"] is None and t["prozent"] >= 40
     assert KILauf.objects.get(zweck=Zweck.AEHNLICHKEIT).erfolgreich is False  # der Fehlversuch steht im Archiv
+
+
+def test_in_der_anfrage_gilt_eine_kurze_zeitgrenze_die_warteschlange_behaelt_die_lange(client, settings, bestehend, monkeypatch):
+    """Ein schweigender Anbieter hält „Einbringen“ nicht 45 s je Socket-Operation fest: In der Anfrage
+    gilt die kurze Zeitgrenze der Bedeutungsstufe; die Warteschlange rechnet ohne wartende Person."""
+    from ki.anbieter import ZEITGRENZE_SEKUNDEN
+    from ki.test_einbettung import _Scheinantwort
+    from ki.warteschlange import abarbeiten, einreihen
+
+    settings.DDOE_KI_ANBIETER = "mistral"
+    settings.DDOE_KI_SCHLUESSEL = "nur-fuer-den-test"
+    zeitgrenzen = []
+
+    def schein_urlopen(anfrage, timeout=None):
+        zeitgrenzen.append(timeout)
+        texte = json.loads(anfrage.data.decode())["input"]
+        daten = {"model": "mistral-embed", "data": [{"index": i, "embedding": [1.0, 0.0]} for i in range(len(texte))]}
+        return _Scheinantwort(json.dumps(daten).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", schein_urlopen)
+    client.force_login(mitglied_anlegen("bernd"))
+    client.post(reverse("verfahren:einbringen"), UMFORMULIERT)
+    assert len(zeitgrenzen) == 1 and zeitgrenzen[0] < 10  # die Anfrage: kurz
+    einreihen(Zweck.AEHNLICHKEIT, bestehend, bestehend.eingebracht_von)
+    abarbeiten()
+    assert zeitgrenzen[1:] == [ZEITGRENZE_SEKUNDEN]  # die Warteschlange: die lange
 
 
 def test_nachziehen_ist_je_aufruf_begrenzt(settings, ordnung):  # noqa: F811

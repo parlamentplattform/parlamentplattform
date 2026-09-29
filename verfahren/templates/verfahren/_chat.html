@@ -22,7 +22,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
     <h3>{% blocktranslate with n=a.entwurf.runde %}Vorschlag des Expertenrats — Runde {{ n }}{% endblocktranslate %}</h3>
     <p class="meta">
       {% if a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
-      <a href="{% url 'parameter:liste' %}#vorschlag-chat-reihung">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
+      <a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
     </p>
   </div>
   <article class="karte vorschlag gepinnt">

@@ -958,3 +958,135 @@ def test_der_block_braucht_hoechstens_eine_abfrage_mehr(client, ordnung):  # noq
     with CaptureQueriesContext(connection) as erfasst:
         block = archivkern.zustandekommen(antrag, bloecke)
     assert block is not None and len(erfasst) <= 2  # die Beiträge der Runde (+ Registerwert der Grenze)
+
+
+# --- Gegnerische Prüfung 0.51.0 ----------------------------------------------
+
+
+def test_eine_reaktion_ab_dem_fristende_wird_abgewiesen_auch_vor_der_auswertung(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (zeit): Wer reagiert, prüft das Fristende unter derselben Sperre wie die Auswertung.
+    Ein Klick ab dem Fristende zählt nie — auch wenn noch niemand ausgewertet hat."""
+    from verfahren.chat import ReaktionGeschlossen, reaktion_umschalten
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    with pytest.raises(ReaktionGeschlossen):
+        reaktion_umschalten(passt, unterstuetzer[0], jetzt=entwurf.review_frist)
+    assert not passt.reaktionen.exists()
+    assert not _audit_reaktionen()
+    reaktion_umschalten(passt, unterstuetzer[0], jetzt=entwurf.review_frist - timedelta(seconds=1))
+    assert passt.reaktionen.count() == 1
+
+
+def test_nach_der_auswertung_nimmt_der_beitrag_keine_reaktion_mehr(client, ordnung):  # noqa: F811
+    """Auch ein direkter Aufruf nach der Auswertung (die Anfrage prüfte vorher, die Runde ging inzwischen
+    weiter) schreibt nichts: Die Runde ist nicht mehr bei den Unterstützern."""
+    from verfahren.chat import ReaktionGeschlossen, reaktion_umschalten
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    with pytest.raises(ReaktionGeschlossen):
+        reaktion_umschalten(passt, unterstuetzer[0], jetzt=timezone.now() - timedelta(days=1))
+    assert not passt.reaktionen.exists()
+
+
+def test_ein_fehler_der_audit_kette_geht_nicht_still_verloren(client, ordnung, monkeypatch):  # noqa: F811
+    """Prüfung 0.51.0 (zeit): Scheitert der Audit-Eintrag, bleibt nichts gespeichert — und das Mitglied
+    erfährt es, statt dass der Klick unbemerkt verschwindet."""
+    from django.db import IntegrityError
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+
+    def kette_ueberholt(ereignis):
+        raise IntegrityError("Kettenkopf überholt")
+
+    monkeypatch.setattr(AuditEintrag, "anhaengen", staticmethod(kette_ueberholt))
+    client.force_login(unterstuetzer[0])
+    antwort = client.post(
+        reverse("verfahren:reagieren", args=[antrag.pk, passt.pk]), {"art": "zustimmung"}, HTTP_HX_REQUEST="true"
+    )
+    assert antwort.status_code == 200
+    assert 'role="alert"' in antwort.content.decode()
+    assert "noch einmal" in antwort.content.decode()
+    assert not passt.reaktionen.exists()
+
+
+def test_reagieren_nach_fristende_mit_htmx_meldet_und_zeichnet_neu(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (bedienung): Mit htmx steht die Meldung im Chat-Fragment, nicht als Flash; hat der
+    Klick die Runde ausgewertet, zeichnet die Seite ganz neu (Abstimmen-Karte, Block D-G5)."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    frist_verstreichen(entwurf)
+    client.force_login(unterstuetzer[0])
+    antwort = client.post(
+        reverse("verfahren:reagieren", args=[antrag.pk, passt.pk]), {"art": "zustimmung"}, HTTP_HX_REQUEST="true"
+    )
+    inhalt = antwort.content.decode()
+    assert 'role="alert"' in inhalt and "nicht mehr reagieren" in inhalt
+    assert antwort.headers.get("HX-Refresh") == "true"
+    # Die Meldung wartet nicht als Flash auf den nächsten Seitenaufruf
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "nicht mehr reagieren" not in seite
+
+
+def test_der_block_zaehlt_die_abgeschlossene_runde_zum_fristende(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (zeit): Eine Zeile, die erst nach dem Fristende gespeichert wurde, ändert weder die
+    Zahlen noch die Reihung im Block „So kam der Vorschlag zustande“ noch im Archiv."""
+    from verfahren.archiv import zeitleiste, zustandekommen
+    from verfahren.models import Reaktion
+
+    antrag, unterstuetzer = _zur_endabstimmung_mit_kritik(client, ordnung)
+    runde = [b for b in zeitleiste(antrag, alles=True) if b["phase"] == "vorschlag-r1"][0]
+    vorher = [(b["id"], b["zustimmungen"], b["ablehnungen"]) for b in runde["beitraege"]]
+    passt = antrag.kommentare.get(system=True, phase="vorschlag-r1")
+    Reaktion.objects.create(
+        kommentar=passt, mitglied=mitglied_anlegen("spaet"), art="ablehnung", erstellt_am=timezone.now()
+    )
+    bloecke = zeitleiste(antrag, alles=True)
+    runde = [b for b in bloecke if b["phase"] == "vorschlag-r1"][0]
+    assert [(b["id"], b["zustimmungen"], b["ablehnungen"]) for b in runde["beitraege"]] == vorher
+    block = zustandekommen(antrag, bloecke)
+    assert [(b["id"], b["zustimmungen"], b["ablehnungen"]) for b in block["beitraege"] if not b["antwort_auf"]] == [
+        v for v in vorher if v[0] in {b["id"] for b in block["beitraege"] if not b["antwort_auf"]}
+    ]
+
+
+def test_eine_zurueckgewiesene_runde_ging_nicht_zur_endabstimmung(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (daten): Endet das Verfahren, während der Vorschlag bei den Unterstützern liegt
+    (Zurückweisung, Rückzug), wurde die Runde nie ausgewertet — Archiv und Export sagen das, statt
+    „zur Endabstimmung“ zu behaupten."""
+    from verfahren.archiv import als_markdown, zeitleiste
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    # wie zurueckweisung_wirkung: Phase zurückgewiesen, die Schleife ruht (Entwurf ANGENOMMEN, keine Frist)
+    Antrag.objects.filter(pk=antrag.pk).update(phase="zurueckgewiesen")
+    Entwurf.objects.filter(antrag=antrag).update(status=EntwurfsStatus.ANGENOMMEN, review_frist=None)
+    antrag.refresh_from_db()
+    runde = [b for b in zeitleiste(antrag) if b["phase"] == "vorschlag-r1"][0]
+    assert runde["auswertung"]["weiter"] is None
+    zeile = [z for z in als_markdown(antrag).splitlines() if z.startswith("*Auswertung")][0]
+    assert "nicht ausgewertet" in zeile and "zur Endabstimmung" not in zeile
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk]) + "?archiv=vorschlag-r1").content.decode()
+    zeile = seite[seite.index('class="archiv-auswertung"'):][:600]
+    assert "nicht ausgewertet" in zeile and "zur Endabstimmung" not in zeile
+
+
+def test_der_link_zur_reihung_fuehrt_auf_die_regel(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (bedienung): „Reihung: Engagement …“ zeigt auf die Regel im Regelverzeichnis —
+    die Registerliste trägt keinen Anker dieses Namens."""
+    antrag, _unterstuetzer = _zur_endabstimmung_mit_kritik(client, ordnung)
+    ziel = reverse("parameter:regeln")
+    inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert f'href="{ziel}#regel-vorschlagschat"' in inhalt and "#vorschlag-chat-reihung" not in inhalt
+    assert 'id="regel-vorschlagschat"' in client.get(ziel).content.decode()

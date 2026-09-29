@@ -8470,3 +8470,9 @@ msgstr "hidden until the deadline"
 
 msgid "Tendenz ab erreichter Mindestbeteiligung (0 = verdeckt bis Fristende)"
 msgstr "Leaning once the minimum turnout is reached (0 = hidden until the deadline)"
+
+msgid "nicht ausgewertet — das Verfahren endete vorher"
+msgstr "not evaluated — the procedure ended before"
+
+msgid "Die Reaktion ließ sich gerade nicht speichern. Bitte noch einmal."
+msgstr "Your reaction could not be saved just now. Please try again."

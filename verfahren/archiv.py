@@ -71,18 +71,26 @@ def _beitrag(k: Kommentar) -> dict:
     }
 
 
-def _chat_je_phase(antrag, phasen: list[str] | None = None) -> dict[str, list[dict]]:
+def _chat_je_phase(antrag, phasen: list[str] | None = None, stichzeiten: dict | None = None) -> dict[str, list[dict]]:
     """Beiträge nach der Phase geordnet, in der sie geschrieben wurden — nur für `phasen`
     (None = alle, für den Export). Die Seite lädt je Aufruf höchstens eine Phase (Befund #42);
-    Zustimmungen kommen als Zähler mit, nicht als vorgeladene Reaktionen."""
+    Zustimmungen kommen als Zähler mit, nicht als vorgeladene Reaktionen.
+
+    `stichzeiten` (Phase → Zeitpunkt) zählt eine abgeschlossene Vorschlagsrunde zum Stand ihres
+    Fristendes (§ 5 Abs 13, Prüfung 0.51.0): Eine später gespeicherte Zeile ändert nicht, was die
+    Runde entschieden hat — weder die Zahlen noch die Reihung."""
     if phasen is not None and not phasen:
         return {}
+    stichzeiten = {p: z for p, z in (stichzeiten or {}).items() if phasen is None or p in phasen}
     qs = antrag.kommentare.select_related("mitglied").order_by("erstellt_am", "pk")
     if phasen is not None:
         qs = qs.filter(phase__in=phasen)
     je_phase: dict[str, list[dict]] = {}
-    for k in mit_zaehlern(qs):
-        je_phase.setdefault(k.phase or "", []).append(_beitrag(k))
+    if phasen is None or set(phasen) - set(stichzeiten):
+        for k in mit_zaehlern(qs.exclude(phase__in=list(stichzeiten))):
+            je_phase.setdefault(k.phase or "", []).append(_beitrag(k))
+    for phase, stichzeit in stichzeiten.items():
+        je_phase[phase] = [_beitrag(k) for k in mit_zaehlern(qs.filter(phase=phase), stichzeit=stichzeit)]
     return je_phase
 
 
@@ -159,6 +167,38 @@ def _beendendes_ereignis(antrag, runde: int, ereignisse: list[dict] | None = Non
     return None
 
 
+def _stichzeit(beendet: dict | None):
+    """Das Fristende, zu dem eine abgeschlossene Runde gezählt wurde — `wirksam_ab` des Ereignisses,
+    das sie beendet hat (seit 0.45 in beiden Ereignistypen). None ohne Ereignis oder ohne Feld."""
+    from datetime import datetime
+
+    wann = (beendet or {}).get("wirksam_ab")
+    try:
+        return datetime.fromisoformat(wann) if wann else None
+    except (TypeError, ValueError):
+        return None
+
+
+def stichzeiten(antrag, phasen, ereignisse: list[dict] | None = None) -> dict:
+    """Phase → Fristende je abgeschlossener Vorschlagsrunde unter `phasen` (für `_chat_je_phase`).
+    Die laufende Runde und Runden ohne überliefertes Ende fehlen — sie zählen den heutigen Stand."""
+    from verfahren import chat as chatkern
+
+    runden = [p for p in phasen if p.startswith("vorschlag-r")]
+    if not runden:
+        return {}
+    laufend = chatkern.chat_phase(antrag)
+    ereignisse = _rundenereignisse(antrag) if ereignisse is None else ereignisse
+    ergebnis = {}
+    for phase in runden:
+        if phase == laufend:
+            continue
+        zeit = _stichzeit(_beendendes_ereignis(antrag, int(phase.removeprefix("vorschlag-r")), ereignisse))
+        if zeit is not None:
+            ergebnis[phase] = zeit
+    return ergebnis
+
+
 def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None) -> float | None:
     """Die Schwelle, mit der eine **abgeschlossene** Vorschlagsrunde entschieden wurde (Befund #22).
 
@@ -191,14 +231,18 @@ def _auswertung(antrag, phase: str, ereignisse: list[dict] | None = None) -> dic
     Abs 5, Bestandsaufnahme A6). Eine abgeschlossene Runde zeigt, was entschieden hat: Schwelle und,
     wo festgehalten, die Zahlen aus dem Audit-Ereignis, das sie beendet hat („audit“, Befund #22).
     `weiter` sagt, wohin der Vorschlag ging — zur Endabstimmung auch dann, wenn die Höchstzahl der
-    Runden erreicht war und „Passt alles“ nicht getragen hat (§ 5 Abs 12)."""
+    Runden erreicht war und „Passt alles“ nicht getragen hat (§ 5 Abs 12). Es kommt bei einer
+    abgeschlossenen Runde nur aus dem Audit: Endete das Verfahren, bevor die Runde ausgewertet war
+    (Zurückweisung, Rückzug), ist es None — „nicht ausgewertet“ (Prüfung 0.51.0). Gezählt wird eine
+    abgeschlossene Runde zu ihrem Fristende (§ 5 Abs 13)."""
     if not phase.startswith("vorschlag-r"):
         return None
     from verfahren import chat as chatkern
 
     runde = int(phase.removeprefix("vorschlag-r"))
-    roh = leicht(antrag.kommentare.filter(phase=phase))
-    beendet = None if chatkern.chat_phase(antrag) == phase else _beendendes_ereignis(antrag, runde, ereignisse)
+    laufend = chatkern.chat_phase(antrag) == phase
+    beendet = None if laufend else _beendendes_ereignis(antrag, runde, ereignisse)
+    roh = leicht(antrag.kommentare.filter(phase=phase), stichzeit=_stichzeit(beendet))
     schwelle, quelle = (schwelle_der_runde(antrag, runde, [beendet]) if beendet else None), "audit"
     if schwelle is None:
         schwelle, vorgabe = antrag.annahme_schwelle()
@@ -207,7 +251,10 @@ def _auswertung(antrag, phase: str, ereignisse: list[dict] | None = None) -> dic
     festgehalten = beendet.get("auswertung") if beendet else None
     if isinstance(festgehalten, dict):
         ergebnis.update({k: festgehalten[k] for k in _FESTGEHALTEN if k in festgehalten})
-    ergebnis["weiter"] = beendet.get("typ") == "phasenwechsel" if beendet else ergebnis["angenommen"]
+    if beendet:
+        ergebnis["weiter"] = beendet.get("typ") == "phasenwechsel"
+    else:
+        ergebnis["weiter"] = ergebnis["angenommen"] if laufend else None
     ergebnis["kritik"] = [b["id"] for b in vorschlagschat.kritik_uebergeben(roh)]
     ergebnis["schwelle_quelle"] = quelle
     ergebnis["schwelle_prozent"] = round(schwelle * 100)
@@ -222,7 +269,10 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     Grundregel 7: der bleibt vollständig). Vorher lud jeder Aufruf der Antragsseite sämtliche
     Beiträge aller Phasen ein zweites Mal (Befund #42)."""
     anzahl = _anzahl_je_phase(antrag)
-    je_phase = _chat_je_phase(antrag, None if alles else ([geoeffnet] if geoeffnet else []))
+    ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
+    geladen = None if alles else ([geoeffnet] if geoeffnet else [])
+    zeiten = stichzeiten(antrag, list(anzahl), ereignisse)
+    je_phase = _chat_je_phase(antrag, geladen, zeiten)
     reihenfolge = [
         Phase.UNTERSTUETZUNG.value,
         Phase.BERATUNG.value,
@@ -231,7 +281,6 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
         Phase.ANGENOMMEN.value,
         Phase.ABGELEHNT.value,
     ]
-    ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
     # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
     # Mandatsfrage (§ 7 Abs 9) und der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) nicht: Sie hatten
     # nie eine, also bekommen sie auch keinen leeren Block. Läuft der Bestätigungsantrag noch oder
@@ -259,6 +308,7 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
                 "geladen": alles or phase == geoeffnet,
                 "anzahl": n,
                 "auswertung": _auswertung(antrag, phase, ereignisse),
+                "stichzeit": zeiten.get(phase),  # gezählt zum Fristende der Runde (§ 5 Abs 13)
             }
         )
     return bloecke
@@ -282,7 +332,13 @@ def zustandekommen(antrag, bloecke: list[dict]) -> dict | None:
     from verfahren import chat as chatkern
 
     runde = runden[-1]
-    beitraege = runde["beitraege"] if runde["geladen"] else _chat_je_phase(antrag, [runde["phase"]]).get(runde["phase"], [])
+    beitraege = (
+        runde["beitraege"]
+        if runde["geladen"]
+        else _chat_je_phase(antrag, [runde["phase"]], {runde["phase"]: runde["stichzeit"]} if runde.get("stichzeit") else None).get(
+            runde["phase"], []
+        )
+    )
     wurzeln = vorschlagschat.reihen(
         [{**b, "ja": b["zustimmungen"], "nein": b["ablehnungen"], "zeit": b["geschrieben_am"]}
          for b in beitraege if not b["antwort_auf"]]
@@ -478,11 +534,16 @@ def als_markdown(antrag) -> str:
         auswertung = block["auswertung"]
         if auswertung:
             vorgabe = f" ({_('Vorgabe')})" if auswertung["schwelle_quelle"] == "vorgabe" else ""
+            weiter = (
+                _("nicht ausgewertet — das Verfahren endete vorher")
+                if auswertung["weiter"] is None
+                else _("zur Endabstimmung") if auswertung["weiter"] else _("zurück an den Expertenrat")
+            )
             zeilen += [
                 f"*{_('Auswertung')}: „Passt alles“ {auswertung['ja']}:{auswertung['nein']} "
                 f"= {auswertung['prozent']} % · {_('Schwelle')} {auswertung['schwelle_prozent']} %{vorgabe} · "
                 f"{_('an erster Stelle') if auswertung['oben'] else _('nicht an erster Stelle')} · "
-                f"{_('zur Endabstimmung') if auswertung['weiter'] else _('zurück an den Expertenrat')} "
+                f"{weiter} "
                 f"({auswertung['grund']}, {auswertung['reihung']})*",
                 "",
             ]

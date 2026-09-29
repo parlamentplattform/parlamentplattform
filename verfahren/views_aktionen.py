@@ -529,7 +529,9 @@ def reagieren(request, pk, beitrag_pk):
     Außerhalb des Abstimmungs-Chats ist nur Zustimmung möglich und rein informativ: Die Reihung
     bleibt chronologisch (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags
     ist die Reaktion das Votum der Unterstützer — dort reagieren nur sie (§ 5 Abs 12)."""
-    from verfahren.chat import abstimmungschat, chat_offen, darf_reagieren, reaktion_umschalten
+    from django.db import IntegrityError
+
+    from verfahren.chat import ReaktionGeschlossen, abstimmungschat, chat_offen, darf_reagieren, reaktion_umschalten
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
@@ -538,20 +540,32 @@ def reagieren(request, pk, beitrag_pk):
         return sperre
     # § 5 Abs 13: Reagieren geht „bis zum Fristende“. Erst fortschreiben — ist die Frist um, wertet das
     # die Runde aus und räumt ihre Beiträge ins Archiv; die Reaktion trifft dann ins Leere statt in
-    # eine schon entschiedene Rechnung (Bestandsaufnahme A8).
-    antrag.fortschreiben()
+    # eine schon entschiedene Rechnung (Bestandsaufnahme A8). Hat das die Phase gewechselt, zeichnet
+    # htmx die ganze Seite neu — Abstimmen-Karte und Block „So kam der Vorschlag zustande“ (Prüfung 0.51.0).
+    gewechselt = antrag.fortschreiben()
     beitrag.refresh_from_db()
+    geschlossen = _chat_fehler(_("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
+    fehler = None
     if beitrag.archiviert_am or beitrag.geloescht or not chat_offen(antrag):
-        messages.error(request, _("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    if not darf_reagieren(antrag, request.user):
-        messages.error(request, _("Reagieren können die Unterstützer dieses Antrags."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    art = Reaktionsart.ZUSTIMMUNG
-    if request.POST.get("art") == Reaktionsart.ABLEHNUNG and abstimmungschat(antrag) is not None:
-        art = Reaktionsart.ABLEHNUNG
-    reaktion_umschalten(beitrag, request.user, art)
-    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        fehler = geschlossen
+    elif not darf_reagieren(antrag, request.user):
+        fehler = _chat_fehler(_("Reagieren können die Unterstützer dieses Antrags."))
+    else:
+        art = Reaktionsart.ZUSTIMMUNG
+        if request.POST.get("art") == Reaktionsart.ABLEHNUNG and abstimmungschat(antrag) is not None:
+            art = Reaktionsart.ABLEHNUNG
+        try:
+            reaktion_umschalten(beitrag, request.user, art)
+        except ReaktionGeschlossen:
+            fehler = geschlossen
+        except IntegrityError:
+            # Die Audit-Kette war gerade überholt (AuditEintrag.anhaengen gibt nach drei Versuchen auf):
+            # nichts ist gespeichert — das Mitglied soll es wissen, statt dass der Klick verschwindet.
+            fehler = _chat_fehler(_("Die Reaktion ließ sich gerade nicht speichern. Bitte noch einmal."))
+    antwort = _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=fehler)
+    if gewechselt and request.headers.get("HX-Request"):
+        antwort["HX-Refresh"] = "true"
+    return antwort
 
 
 @login_required

@@ -20,3 +20,6 @@ docs/fahrtenbuch/
 # Lokale PDF-Muster und Prüfprotokolle, keine Plattform-Quelldateien.
 /output/
 /pruefung-*.txt
+
+# Worktrees der Umsetzungs-Agenten (Claude Code), nie Teil des Repositories.
+.claude/worktrees/

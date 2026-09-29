@@ -988,7 +988,9 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             _("Die Frist liegt zu nah: Eine Abstimmung dauert mindestens %(tage)s Tage (§ 5 Abs 3 lit d).")
             % {"tage": dauer}
         )
-    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer)
+    # Kein Anteil der Ordnung: Die Mandatsfrage hat keine Unterstützungsphase (§ 5 Abs 5 — die
+    # eingefrorene Regel nennt nur, was angewandt wird).
+    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer, unterstuetzung_anteil=0.0)
     stichtag = timezone.localdate(jetzt)
     antrag = Antrag.objects.create(
         titel=titel,
@@ -1163,6 +1165,7 @@ def vertrauensfrage_einbringen(
     policy = dataclasses.replace(
         ordnung.als_policy(),
         unterstuetzung_schwelle=schwelle,
+        unterstuetzung_anteil=0.0,  # es gilt die Satzungsschwelle (lit c), nicht der Anteil der Ordnung
         unterstuetzung_frist_tage=sammelfrist,
         beratung_entfaellt=True,
         abstimmung_fruehestens_tage=VERTRAUENSFRAGE_FRUEHESTENS_TAGE,

@@ -148,6 +148,21 @@ def test_einbringen_friert_die_satzungswerte_und_die_zahlen_des_tages_ein(ordnun
     assert gegenstand_fuer(antrag) is Gegenstand.PERSONENWAHL
 
 
+def test_der_schnappschuss_traegt_keinen_anteil_der_ordnung(altmandat):  # noqa: F811
+    """Die Schwelle der Vertrauensfrage ist die Satzungsschwelle (lit c), nicht der Anteil der Ordnung.
+    Eine Ordnung mit Anteil 50 % fror ihn trotzdem neben der Schwelle ein — die veröffentlichte Regel
+    nannte einen Anteil, den dieses Verfahren nie angewandt hat (§ 5 Abs 5)."""
+    from verfahren.models import Verfahrensordnung
+    from verfahren.test_views_aktionen import REGELN
+
+    mit_anteil = Verfahrensordnung.objects.create(
+        policy_id="test-ordnung", version=4, aktiv=True, regeln={**REGELN, "version": 4, "unterstuetzung_anteil": 0.5}
+    )
+    antrag = einbringen(mitglied_anlegen(f"m{next(_N)}"), altmandat, mit_anteil)
+    assert antrag.policy_snapshot["unterstuetzung_anteil"] == 0
+    assert antrag.policy().unterstuetzung_schwelle == antrag.vertrauensfrage.schwelle_partei
+
+
 def test_der_mandatar_wird_genau_einmal_verstaendigt_ohne_inhalt(ordnung, altmandat, settings):  # noqa: F811
     settings.DDOE_BASIS_URL = "https://parlament.ddoe.at"
     antrag = einbringen(mitglied_anlegen("anna"), altmandat, ordnung)

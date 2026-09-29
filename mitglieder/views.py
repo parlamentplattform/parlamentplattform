@@ -88,12 +88,15 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
     )
     post_einwilligung = forms.BooleanField(
         label=gettext_lazy(
-            "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und zu "
-            "Ergebnissen der Zukunftswerkstatt zu meinen Anträgen."
+            "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und für ganz "
+            "Österreich, zu Ergebnissen der Zukunftswerkstatt zu meinen Anträgen und die Beitragserinnerung "
+            "der Verwaltung."
         ),
         required=False,
         help_text=gettext_lazy(
-            "Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten kommen unabhängig davon. "
+            "Anmelde- und Bestätigungslinks, Willkommens-, Freischaltungs- und Ausweisnachrichten, die "
+            "Bestätigung eines Beitragseingangs, der Einspruchslink bei einem Adresswechsel und die "
+            "Verständigung zu einer Vertrauensfrage über ein Mandat kommen unabhängig davon. "
             "Der Haken lässt sich jederzeit im Profil setzen oder entfernen."
         ),
     )

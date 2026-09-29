@@ -53,6 +53,21 @@ def test_registrierung_mit_haken_speichert_die_einwilligung(client):
     assert Mitglied.objects.get(email=ANMELDUNG["email"]).post_einwilligung is True
 
 
+def test_registrierung_nennt_alles_was_der_haken_erlaubt_und_was_ohne_ihn_kommt(client):
+    # Derselbe Haken erlaubt auch Bundesanträge und die Beitragserinnerung — das muss dort stehen, wo
+    # eingewilligt wird. Der Hilfetext nennt jede Konto-Nachricht, die ohne Haken kommt.
+    from mitglieder.views import RegistrierungsFormular
+
+    feld = RegistrierungsFormular.base_fields["post_einwilligung"]
+    label, hilfe = str(feld.label), str(feld.help_text)
+    assert "ganz Österreich" in label and "Beitrag" in label and "Zukunftswerkstatt" in label
+    for nachricht in ("Anmelde", "Bestätigungs", "Willkommens", "Freischaltungs", "Ausweis",
+                      "Beitragseingang", "Einspruchslink", "Vertrauensfrage"):
+        assert nachricht in hilfe, nachricht
+    seite = client.get(reverse("mitglieder:registrieren")).content.decode()
+    assert "ganz Österreich" in seite and "Beitragseingang" in seite
+
+
 # ── Profil ───────────────────────────────────────────────────────────────────────────────
 
 

@@ -241,6 +241,7 @@ body.voll main{max-width:none;padding:0}
 .parlament.fokus{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
 .parlament.fokus>.feld{animation:hineingleiten var(--d-slide) var(--e-out) both}
 .parlament.faecher-tausch>#feld-favoriten{animation:none}  /* nach einem Fächer-Tausch gleiten die Knoten (FLIP) — das Feld taucht nicht erneut auf */
+.parlament:not(.fokus)>#feld-favoriten.ohne-auftauchen{animation:none}  /* bleibt nach dem Tausch am Feld; der Fokus-Modus gleitet weiter hinein */
 .feld-kopf .fokus-knopf{flex:none;width:30px;height:30px;color:var(--matt);font-size:17px;text-decoration:none;margin-right:-6px}
 .feld-kopf .fokus-knopf:hover{color:var(--ink);background:var(--surface-2)}
 .feld-kopf .bk+.fokus-knopf,.feld-kopf .feld-suche+.fokus-knopf{margin-left:8px}

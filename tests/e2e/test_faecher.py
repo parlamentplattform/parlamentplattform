@@ -134,6 +134,24 @@ def test_klick_laesst_den_knoten_zum_anker_gleiten_und_ab_tiefe_drei_sitzt_der_a
     _anker_heisst(p, "Lebensbereiche")
 
 
+def test_das_feld_blitzt_nach_dem_wechsel_nicht_neu_auf(seite, live_server, demo):
+    """Nach der FLIP-Bewegung darf die Eingangsbewegung des Felds (CSS „auftauchen“, ab Deckkraft 0) nicht
+    neu anlaufen — sonst verschwindet „Meine Favoriten“ eine halbe Sekunde nach jedem Wechsel und blendet neu ein."""
+    p = seite()
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    p.evaluate(
+        "() => { window.__deckkraft = []; const t0 = performance.now(); const mess = () => {"
+        " const f = document.getElementById('feld-favoriten'); if (f) window.__deckkraft.push(+getComputedStyle(f).opacity);"
+        " if (performance.now() - t0 < 1600) requestAnimationFrame(mess); }; requestAnimationFrame(mess); }"
+    )
+    p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first.click()
+    p.wait_for_function(FLIP_LAEUFT)
+    p.wait_for_timeout(1700)
+    tiefst = p.evaluate("Math.min(...window.__deckkraft)")
+    assert tiefst > 0.95, f"das Feld verschwand kurz (Deckkraft {tiefst})"
+
+
 def test_ohne_javascript_bleibt_der_ruhe_ast_und_jeder_knoten_ein_link(seite, live_server, demo):
     p = seite(js=False)
     p.goto(f"{live_server.url}/parlament/")

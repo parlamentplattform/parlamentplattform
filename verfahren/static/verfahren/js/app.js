@@ -302,7 +302,13 @@ document.addEventListener("alpine:init", function () {
           fach.classList.add("getauscht");
           var raster = this.$el;
           raster.classList.add("faecher-tausch");
-          setTimeout(function () { raster.classList.remove("faecher-tausch"); }, lang + 50);
+          setTimeout(function () {
+            // Erst die Marke am Feld selbst (nach dem Settle bleibt sie), dann die am Raster abnehmen —
+            // sonst liefe die Eingangsbewegung des Felds (ab Deckkraft 0) nach dem Wechsel neu an.
+            var jetzt = document.getElementById("feld-favoriten");
+            if (jetzt) jetzt.classList.add("ohne-auftauchen");
+            raster.classList.remove("faecher-tausch");
+          }, lang + 50);
         }
         var faktor = this.faecherEinpassen();
         if (!alt || reduziert() || !fach.animate) return;

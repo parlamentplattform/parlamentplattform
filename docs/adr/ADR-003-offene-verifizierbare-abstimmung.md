@@ -50,3 +50,10 @@ Das unter „Konsequenzen“ genannte Zugriffs-Audit auf die Zuordnung Pseudonym
 gebaut. Startseite, „Meine Stimme“ und Datenschutzerklärung versprechen es seit 0.50.0 nicht mehr;
 die übrigen Gegenmaßnahmen (getrennte Tabelle, öffentliche Benennung der Grenze) gelten. Das Audit
 ist ein Folgeschritt (Prüfbericht 0.50.0, Abschnitt 5).
+
+## Nachtrag 29.9.2026 — Vertrauensfrage entschieden (D-L6h)
+Der Gründer hat den Widerspruch zu § 7 Abs 10 lit e entschieden: „nein, wir sind transparent so
+weit es geht.“ Die Vertrauensfrage bleibt eine pseudonym-offene Online-Abstimmung wie jede andere
+nach diesem ADR; die Satzung wird an dieser Stelle angepasst (Satzungstexte ändert nur der Gründer,
+nicht dieses Repository). Präsenz und Brief bleiben der Weg für Wahlen, die die Satzung weiter
+geheim verlangt.

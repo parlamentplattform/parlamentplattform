@@ -223,6 +223,20 @@ def test_faecher_passt_ins_feld_auf_dem_desktop(seite, live_server, demo, dunkel
     assert korpus["y"] < anker["y"] < korpus["y"] + korpus["height"]
 
 
+def test_einpassen_nur_im_zwei_mal_zwei_raster(seite, live_server, demo):
+    """Unter 1024 px (auch 1440×900 bei 200 % Browser-Zoom = 720×450) rollt der Feldkörper; der Fächer
+    wird nicht verkleinert — sonst nähme das Einpassen die Vergrößerung teilweise zurück (WCAG 1.4.4)."""
+    p = seite(viewport={"width": 720, "height": 450})
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    p.wait_for_timeout(200)
+    assert p.evaluate("document.querySelector('#feld-favoriten .faecher').style.zoom") == ""
+    p.set_viewport_size(KLEINER_DESKTOP)  # im 2×2-Raster wird eingepasst …
+    p.wait_for_function("() => document.querySelector('#feld-favoriten .faecher').style.zoom !== ''")
+    p.set_viewport_size({"width": 720, "height": 450})  # … und darunter wieder nicht
+    p.wait_for_function("() => document.querySelector('#feld-favoriten .faecher').style.zoom === ''")
+
+
 def test_handy_rollt_den_faecher_waagrecht(seite, live_server, demo):
     p = seite(viewport=HANDY)
     p.goto(f"{live_server.url}/parlament/#feld-favoriten")

@@ -249,14 +249,17 @@ document.addEventListener("alpine:init", function () {
       /* ── Der Fächer passt ins Feld (Teil 7, Einpassen) ──
          Ist der Fächer höher als der Feldkörper, wird er mit der CSS-Eigenschaft `zoom` verkleinert
          (layoutwirksam: Prozentlagen und Fäden bleiben stimmig, kein Leerraum), nie unter 0,72,
-         damit die Schrift lesbar bleibt. Ohne JavaScript oder ohne `zoom` rollt der Körper wie
-         bisher von unten (column-reverse, Anker zuerst sichtbar). Liefert den gesetzten Faktor. */
+         damit die Schrift lesbar bleibt — nur im 2×2-Raster (ab 1024 px, wie das CSS-Raster); darunter,
+         auch bei Browser-Vergrößerung, rollt der Körper, damit die Vergrößerung voll wirkt (WCAG 1.4.4).
+         Ohne JavaScript oder ohne `zoom` rollt der Körper wie bisher von unten (column-reverse, Anker
+         zuerst sichtbar). Liefert den gesetzten Faktor. */
       faecherEinpassen: function () {
         var fach = this.$el.querySelector("#feld-favoriten .faecher");
         if (!fach || !(window.CSS && CSS.supports && CSS.supports("zoom", "0.9"))) return 1;
         var korpus = fach.closest(".faecher-korpus");
         if (!korpus) return 1;
         fach.style.zoom = "";
+        if (!window.matchMedia("(min-width: 1024px)").matches) return 1;
         var hoehe = fach.offsetHeight, platz = korpus.clientHeight;
         if (!hoehe || !platz || hoehe <= platz) return 1;
         var faktor = Math.max(0.72, Math.round(1000 * platz / hoehe) / 1000);

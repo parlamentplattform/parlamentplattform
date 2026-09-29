@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.6"
+SCHEMA_VERSION = "1.7"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -210,6 +210,16 @@ PARAMETER = {
         "mandate.confidence_vote_window_days", "days",
         "Duration of the vote on a confidence question (never below the statutory minimum of 7 days; "
         "frozen into the motion when it is submitted)",
+    ),
+    "post-neuer-antrag-bund": (
+        "mail.new_motion_federal", "flag",
+        "Whether a new nationwide motion is mailed to every member who consented to platform mail "
+        "(0 or 1; regional motions always go only to the members whose residence is affected)",
+    ),
+    "beitrag-erinnerung-fruehestens-tage": (
+        "mail.fee_reminder_earliest_days", "days",
+        "Minimum membership age before the administration may queue a fee reminder (consent required, "
+        "at most once per calendar year)",
     ),
 }
 

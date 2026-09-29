@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.6** (15.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.7** (29.9.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -27,7 +27,7 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.6",
+  "schema_version": "1.7",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
   "software": {"name": "ParlamentPlattform", "version": "0.48.0",
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.6, 45 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.7, 47 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -102,6 +102,8 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | Minimum length of a criticism so it counts as a change request to the expert council |
 | `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
+| `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
+| `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
 | `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
 | `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
 | `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | Day of the following month until which an office holder's monthly report counts as on time |
@@ -175,7 +177,7 @@ Einbringen in die Ordnung des Antrags eingefroren.
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.6, 7 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.7, 7 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -224,3 +226,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.4 | 11.9.2026 | 0.45.0 | `overview.decided_votes`, `chat.thread_roots`, `council.decisions_per_page`, `account.email_change_waiting_hours` |
 | 1.5 | 12.9.2026 | 0.46.0 | `mandate.question_vote_window_days` (Dauer der Abstimmung über eine Mandatsfrage, § 7 Abs 9), `mandate.monthly_report_grace_days` (Karenz des Monatsberichts, § 7 Abs 3 lit b), `region.secondary_residence_counts` (Schalter 0/1, § 5 Abs 6 — nie Stimmrecht). Diese Datei vollständig auf den Code gebracht: Die Tabelle stand seit 1.0 unverändert bei 12 Kennungen und trug die drei in 1.1 umbenannten noch unter ihren alten Namen; der Verlauf nannte 1.1 bis 1.3 nicht |
 | 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |
+| 1.7 | 29.9.2026 | 0.50.0 | `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße |

@@ -187,6 +187,9 @@ class ProfilFormular(forms.Form):
     klarname_oeffentlich = forms.BooleanField(
         label=gettext_lazy("Mein Name darf öffentlich erscheinen."), required=False
     )
+    post_einwilligung = forms.BooleanField(
+        label=gettext_lazy("Die Plattform darf mir E-Mails schicken."), required=False
+    )
     gemeinde = forms.CharField(
         label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
         max_length=140,
@@ -254,6 +257,9 @@ def _profil_anwenden(mitglied: Mitglied, form: ProfilFormular) -> list[str]:
     if mitglied.klarname_oeffentlich != d["klarname_oeffentlich"]:
         mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
         geaendert.append("klarname_oeffentlich")
+    if mitglied.post_einwilligung != d["post_einwilligung"]:
+        mitglied.post_einwilligung = d["post_einwilligung"]
+        geaendert.append("post_einwilligung")  # nur der Feldname im Audit, nie der Wert
     g = form.gemeinde_objekt
     if g is not None:
         if mitglied.wohnsitz_id != g.pk:
@@ -291,6 +297,7 @@ def profil(request):
             initial={
                 "anzeigename": mitglied.pseudonym_oeffentlich,
                 "klarname_oeffentlich": mitglied.klarname_oeffentlich,
+                "post_einwilligung": mitglied.post_einwilligung,
                 "gemeinde": mitglied.wohnsitz.anzeige if mitglied.wohnsitz_id else mitglied.gemeinde,
                 "nebenwohnsitz": mitglied.nebenwohnsitz.anzeige if mitglied.nebenwohnsitz_id else "",
             },
@@ -535,6 +542,7 @@ def daten_export(mitglied: Mitglied) -> dict:
             "nachname": m.last_name,
             "anzeigename": m.pseudonym_oeffentlich,
             "klarname_oeffentlich": m.klarname_oeffentlich,
+            "post_einwilligung": m.post_einwilligung,
             "beitritt": m.beitritt,
             "identitaetsstufe": m.identitaetsstufe,
             "geprueft_seit": m.geprueft_seit,
@@ -548,7 +556,8 @@ def daten_export(mitglied: Mitglied) -> dict:
             "zuletzt_angemeldet": m.last_login,
         },
         "postauftraege": list(m.postauftrag_set.order_by("pk").values(
-            "art", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche", "naechster_versuch")),
+            "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
+            "naechster_versuch")),
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,

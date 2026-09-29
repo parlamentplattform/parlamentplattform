@@ -435,3 +435,31 @@ def test_fassung_6_die_vier_gebauten_zeilen_sind_verfuegbar_mit_adresse():
         assert f.stand is Stand.VERFUEGBAR and f.urlname and f.ort, f.titel
         reverse(f.urlname)
 
+
+
+def test_die_rollenmatrix_nennt_keine_internen_kennungen():
+    """Entscheidung vom 4.9.2026: keine Fahrtenbuch-, Lastenheft- oder ADR-Kennungen in dem, was
+    Nutzer lesen. Der Katalog-Wächter (test_vorlagen) sieht die Texte der Rollenmatrix nicht, weil
+    sie als Daten in plattform_core/rollen.py liegen — dieser hier schon."""
+    from verfahren.test_vorlagen import KENNUNGSMUSTER, datentexte
+
+    fehler = [
+        f"{wo}: {m.group(1)} in {text[:80]!r}"
+        for wo, text in datentexte()
+        if wo.startswith("rollen.py") and (m := KENNUNGSMUSTER.search(text))
+    ]
+    assert not fehler, "interne Kennung in der Rollenmatrix:\n  " + "\n  ".join(fehler)
+
+
+def test_fassung_6_die_neuen_bauschritt_zeilen_lesen_sich_nach_kommt_mit(client):
+    """Die Vorlage setzt „kommt mit“ vor den Bauschritt — die drei Zeilen aus Fassung 6 ergeben
+    damit einen Satz und verweisen auf keine internen Dokumente (Teil C, CONCEPT)."""
+    inhalt = " ".join(client.get(reverse("verfahren:rollen")).content.decode().split())
+    for satz in (
+        "kommt mit dem Bestellweg nach § 6 Abs 8",
+        "kommt mit einem eigenen Bauschritt, der zuvor einen Beschluss der Mitgliederversammlung",
+        "kommt mit einem externen Penetrationstest",
+    ):
+        assert satz in inhalt, satz
+    assert "CONCEPT § 5" not in inhalt and "Teil C „danach“" not in inhalt
+    assert "kommt mit offen — die Betroffenheitsregeln" not in inhalt

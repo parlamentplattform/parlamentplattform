@@ -384,7 +384,7 @@ MITGLIED = Rolle(
         Faehigkeit(
             titel=_("Die Bestellung der Räte bestätigen und ihre Mitglieder abberufen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("Bestellweg nach § 6 Abs 8 (FB-I1, Teil C „danach“) — heute trägt die Verwaltung die Bestätigung als Vermerk ein"),
+            bauschritt=_("dem Bestellweg nach § 6 Abs 8 — heute trägt die Verwaltung die Bestätigung als Vermerk ein"),
         ),
     ),
 )
@@ -793,7 +793,7 @@ INTEGRITAETSRAT = Rolle(
         Faehigkeit(
             titel=_("Die Betroffenheit im Einzelfall feststellen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("offen — die Betroffenheitsregeln (§ 5 Abs 6) brauchen zuvor einen Beschluss der Mitgliederversammlung; Teil C weist dafür keinen Bauschritt aus"),
+            bauschritt=_("einem eigenen Bauschritt, der zuvor einen Beschluss der Mitgliederversammlung über die Betroffenheitsregeln braucht (§ 5 Abs 6); geplant ist er noch nicht"),
         ),
         Faehigkeit(
             titel=_("In einem internen Beschluss des Rates abstimmen"),
@@ -829,7 +829,7 @@ INTEGRITAETSRAT = Rolle(
         Faehigkeit(
             titel=_("Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen"),
             stand=Stand.GEPLANT,
-            bauschritt=_("offen — externer Penetrationstest vor dem 200-Personen-Betrieb nach Budgetfreigabe (CONCEPT § 5, Anhang A Nr. 4); kein Bauschritt in Teil C"),
+            bauschritt=_("einem externen Penetrationstest vor dem Betrieb mit 200 Personen, sobald das Budget freigegeben ist; geplant ist dafür noch kein Bauschritt"),
         ),
     ),
 )

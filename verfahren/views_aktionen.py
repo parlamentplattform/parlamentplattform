@@ -593,7 +593,7 @@ def melden(request, pk, beitrag_pk):
     )
     if neu:
         AuditEintrag.anhaengen(
-            {"art": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+            {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
         )
     messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
@@ -755,7 +755,7 @@ def beanstanden(request, pk):
     beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
     AuditEintrag.anhaengen(
         {
-            "art": "einschaetzung_beanstandet",
+            "typ": "einschaetzung_beanstandet",
             "antrag": antrag.pk,
             "beanstandung": beanstandung.pk,
             "lauf": lauf.pk if lauf else None,

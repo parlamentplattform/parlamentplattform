@@ -210,6 +210,8 @@ def test_melden_geht_an_die_verwaltung_und_ist_auditiert(client, ordnung):  # no
     meldung = Meldung.objects.get()
     assert meldung.grund == "thema" and meldung.mitglied == bernd and meldung.erledigt_am is None
     assert AuditEintrag.objects.count() == vorher + 1
+    # seit 0.52.0 unter `typ` wie jedes andere Ereignis (bis dahin `art`)
+    assert AuditEintrag.objects.order_by("-lfd").first().ereignis["typ"] == "beitrag_gemeldet"
     client.post(reverse("verfahren:melden", args=[antrag.pk, beitrag.pk]), {"grund": "recht"})
     assert Meldung.objects.count() == 1  # eine Meldung je Mensch und Beitrag
     client.post(reverse("verfahren:melden", args=[antrag.pk, beitrag.pk]), {"grund": "unsinn"})

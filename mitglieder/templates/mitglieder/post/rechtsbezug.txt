@@ -1,0 +1,21 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
+
+{% blocktranslate %}die Zukunftswerkstatt hat geprüft, welche Gesetze Ihr Antrag berühren würde:{% endblocktranslate %}
+
+{% translate "Antrag:" %} {{ titel }}
+{% if normen %}{% for n in normen %}
+- {{ n.titel }}{% if n.kennung %} ({{ n.kennung }}){% endif %}{% if n.ebene %} · {{ n.ebene }}{% endif %} · {{ n.aenderung_wort }} · {% translate "nicht verifiziert" %}{% if n.begruendung %}
+  {{ n.begruendung }}{% endif %}{% endfor %}{% else %}
+{% translate "Das Modell hat keine Norm genannt, deren es sich sicher war." %}{% endif %}
+{% if hinweis %}
+{% translate "Hinweis:" %} {{ hinweis }}
+{% endif %}
+{% translate "Unsicherheit:" %} {{ unsicherheit }}
+
+{% translate "Zur Antragsseite:" %} {{ link }}
+
+{% blocktranslate %}Das ist ein Vorschlag eines KI-Modells ({{ modell }}, Auftrag {{ auftrag_version }}), ohne Prüfung gegen das Rechtsinformationssystem und keine Rechtsberatung. Er hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden.{% endblocktranslate %}
+
+{% blocktranslate %}Sie erhalten diese Nachricht, weil Sie den Antrag eingebracht und E-Mails zum Verfahren zugestimmt haben. Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:{% endblocktranslate %} {{ basis }}/profil/#nachrichten
+
+{{ schluss }}{% endautoescape %}

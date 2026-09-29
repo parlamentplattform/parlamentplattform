@@ -52,17 +52,18 @@ def test_waechter_schreibt_fristen_fort_und_haelt_rechenschaft(liegengeblieben):
 def test_waechter_laeuft_erst_nach_dem_takt_wieder(settings):
     settings.DDOE_WAECHTER_MINUTEN = 10
     jetzt = timezone.now()
-    assert hintergrund.faellige_ausfuehren(jetzt) == ["fristen"]
-    assert hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=5)) == []
-    assert hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=10)) == ["fristen"]
+    # Neben dem Wächter läuft die Warteschlange der Zukunftswerkstatt (Takt 1 min) — hier zählt nur der Wächter.
+    assert "fristen" in hintergrund.faellige_ausfuehren(jetzt)
+    assert "fristen" not in hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=5))
+    assert "fristen" in hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=10))
 
 
 def test_reservierter_lauf_wird_nicht_zugleich_ausgefuehrt():
     jetzt = timezone.now()
     Hintergrundlauf.objects.create(name="fristen", gesperrt_bis=jetzt + timedelta(minutes=5), sperrcode="x" * 32)
-    assert hintergrund.faellige_ausfuehren(jetzt) == []
+    assert "fristen" not in hintergrund.faellige_ausfuehren(jetzt)
     # Nach Ablauf der Reservierung (Prozessverlust) übernimmt der nächste Worker.
-    assert hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=6)) == ["fristen"]
+    assert "fristen" in hintergrund.faellige_ausfuehren(jetzt + timedelta(minutes=6))
 
 
 def test_fehler_im_lauf_stehen_in_der_zeile_und_toeten_den_faden_nicht():

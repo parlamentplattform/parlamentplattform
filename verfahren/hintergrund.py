@@ -48,8 +48,17 @@ def _fristen() -> dict:
     return alles_fortschreiben()
 
 
+def _zukunftswerkstatt() -> dict:
+    from ki.warteschlange import abarbeiten
+
+    return abarbeiten()
+
+
 LAEUFE: list[Lauf] = [
     Lauf("fristen", lambda: max(1, int(getattr(settings, "DDOE_WAECHTER_MINUTEN", 10))), _fristen),
+    # Die Warteschlange der Zukunftswerkstatt (ki/warteschlange.py): jede Minute die fälligen
+    # Aufträge im Tageskontingent — betroffene Gesetze, nachgezogene Textvektoren.
+    Lauf("zukunftswerkstatt", lambda: 1, _zukunftswerkstatt),
 ]
 
 

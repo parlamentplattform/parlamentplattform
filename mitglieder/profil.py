@@ -397,7 +397,7 @@ def _gremien_export(m: Mitglied) -> dict:
         Ueberlastungsmeldung,
         UnterstuetzerVotum,
     )
-    from ki.models import KILauf
+    from ki.models import KIAuftrag, KILauf
     from parameter.models import ParameterTest
     from verfahren.models import Vollzugseintrag
 
@@ -517,6 +517,18 @@ def _gremien_export(m: Mitglied) -> dict:
                 "erstellt_am": k.erstellt_am,
             }
             for k in KILauf.objects.filter(angefordert_von=m)
+        ],
+        "ki_auftraege": [
+            {
+                "zweck": a.zweck,
+                "antrag": a.antrag_id,
+                "fassung": a.fassung_nummer,
+                "status": a.status,
+                "versuche": a.versuche,
+                "erstellt_am": a.erstellt_am,
+                "erledigt_am": a.erledigt_am,
+            }
+            for a in KIAuftrag.objects.filter(angefordert_von=m)
         ],
     }
 

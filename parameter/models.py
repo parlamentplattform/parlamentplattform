@@ -190,15 +190,36 @@ INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0
 ERSTBESTAND = [
     {
         "schluessel": "aehnlichkeit-schwelle-prozent",
-        "wert": "18",
+        "wert": "30",
         "einheit": gettext_noop("Prozent"),
         "gruppe": "verfahren",
-        "beschreibung": gettext_noop("Ab welcher Übereinstimmung die Plattform beim Einbringen auf einen bestehenden "
-        "Antrag hinweist. Ein hoher Wert lässt fast alles durch, ein niedriger lenkt Menschen häufig zu "
-        "fremden Anträgen — beides verschiebt, wo sich Unterstützung sammelt. Der Hinweis schlägt vor; "
+        "beschreibung": gettext_noop("Ab welcher Übereinstimmung im Wortvergleich die Plattform beim Einbringen auf "
+        "einen bestehenden Antrag hinweist. Ein hoher Wert lässt fast alles durch, ein niedriger lenkt Menschen "
+        "häufig zu fremden Anträgen — beides verschiebt, wo sich Unterstützung sammelt. Seit der zweiten "
+        "Fassung der Regel (Wort-Ebene ohne Floskeln) liegt der Zielwert bei 30. Der Hinweis schlägt vor; "
         "einbringen kann man immer."),
         "quelle": "§ 5 Abs 10 lit d · Anweisung des Gründers: „zu prüfen ob ein anderer antrag mit "
         "ähnlichem inhalt bereits eingegangen ist“",
+    },
+    {
+        "schluessel": "aehnlichkeit-bedeutung-schwelle-prozent",
+        "wert": "78",
+        "einheit": gettext_noop("Prozent"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Ab welcher Bedeutungsnähe (Kosinus der Textvektoren des angeschlossenen "
+        "Anbieters) ein bestehender Antrag beim Einbringen gezeigt wird — die Zweitmeinung neben dem "
+        "Wortvergleich. Ohne Anbieter wirkt der Wert nicht. Vorschlag, keine Hürde."),
+        "quelle": "§ 5 Abs 10 lit d · Anweisung des Gründers vom 28.9.2026: „Diese Funktion muss besser werden“",
+    },
+    {
+        "schluessel": "aehnlichkeit-einbettungen-je-aufruf",
+        "wert": "20",
+        "einheit": gettext_noop("Anträge"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele offene Anträge ohne gespeicherten Textvektor beim Einbringen "
+        "höchstens im selben Anbieter-Aufruf nachgezogen werden. Begrenzt Dauer und Kosten eines einzelnen "
+        "Einbringens; der Rest folgt beim nächsten."),
+        "quelle": "§ 5 Abs 10 lit d",
     },
     {
         "schluessel": "aehnlichkeit-treffer",
@@ -567,6 +588,16 @@ ERSTBESTAND = [
         "beschreibung": gettext_noop("Regeldauer einer Gremien-Rolle (zwei Jahre): Bestellung auf öffentliche "
         "Ausschreibung, Bestätigung durch die Mitgliederversammlung, automatisches Erlöschen. Wirkt sofort auf neu berufene Rollen; kein Teil der Verfahrensordnung."),
         "quelle": "§ 6 Abs 8",
+    },
+    {
+        "schluessel": "ki-tageslaeufe",
+        "wert": "20",
+        "einheit": gettext_noop("Läufe/Tag"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie viele Läufe die Warteschlange der Zukunftswerkstatt je Kalendertag "
+        "startet (betroffene Gesetze, Textvektoren). Ist das Kontingent aufgebraucht, warten die übrigen "
+        "Aufträge bis zum nächsten Tag; die Antragsseite sagt das. Kostendeckel neben dem Monatsbudget."),
+        "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
     },
     {
         "schluessel": "ki-monatstokens",

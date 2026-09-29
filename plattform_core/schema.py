@@ -33,6 +33,21 @@ PARAMETER = {
         "similarity.max_hits", "motions",
         "How many similar motions are shown when submitting",
     ),
+    "aehnlichkeit-bedeutung-schwelle-prozent": (
+        "similarity.meaning_threshold_percent", "percent",
+        "Cosine similarity of the provider's text embeddings above which an existing motion is shown "
+        "when submitting (second opinion next to the word comparison; inactive without a provider)",
+    ),
+    "aehnlichkeit-einbettungen-je-aufruf": (
+        "similarity.embeddings_per_call", "motions",
+        "How many open motions without a stored text embedding are embedded in the same provider call "
+        "when a new motion is submitted",
+    ),
+    "ki-tageslaeufe": (
+        "ai.daily_queue_runs", "runs/day",
+        "How many queued model runs (affected laws, text embeddings) the future workshop starts per "
+        "calendar day; the rest waits for the next day",
+    ),
     "kategorien-je-antrag": (
         "areas_of_life.per_motion", "areas",
         "How many areas of life a motion is assigned to automatically",

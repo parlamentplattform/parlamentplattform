@@ -24,7 +24,9 @@ KONTO_ARTEN = ("willkommen", "freischaltung", *VORSCHAU_ARTEN)
 #: Verfahrenspost: nur mit `Mitglied.post_einwilligung`, je Anlass (`bezug`) genau einmal; sie wird nur
 #: angelegt und vom Hintergrundlauf zugestellt — ein Antrag löst nie hunderte SMTP-Sendungen in einer
 #: Anfrage aus.
-EINWILLIGUNG_ARTEN = ("neuer_antrag", "beitragserinnerung")
+EINWILLIGUNG_ARTEN = ("neuer_antrag", "beitragserinnerung", "rechtsbezug")
+#: Verfahrenspost, die zu einem Antrag gehört: Bezug `antrag:<pk>`, Auftrag mit Antrag.
+ANTRAGS_ARTEN = ("neuer_antrag", "rechtsbezug")
 
 
 def _empfangsbereit(mitglied) -> bool:
@@ -40,12 +42,13 @@ def _empfangsbereit(mitglied) -> bool:
 def beauftragen(mitglied, art, antrag=None, bezug=""):
     """Legt den Auftrag an (True) — oder nicht (False): schon beauftragt, schon versendet, für dieses
     Konto nicht zulässig oder ohne die nötige Einwilligung. `antrag` und `bezug` gehören zur Verfahrenspost:
-    `neuer_antrag` braucht den Antrag (Bezug `antrag:<pk>`), `beitragserinnerung` den Bezug `jahr:<Jahr>`."""
+    `neuer_antrag` und `rechtsbezug` brauchen den Antrag (Bezug `antrag:<pk>`), `beitragserinnerung` den
+    Bezug `jahr:<Jahr>`."""
     if art not in (*KONTO_ARTEN, *EINWILLIGUNG_ARTEN):
         raise ValueError("Unbekannte Postart")
-    if art == "neuer_antrag":
+    if art in ANTRAGS_ARTEN:
         if antrag is None:
-            raise ValueError("„neuer_antrag“ braucht den Antrag")
+            raise ValueError(f"„{art}“ braucht den Antrag")
         bezug = bezug or f"antrag:{antrag.pk}"
     elif art == "beitragserinnerung" and not bezug:
         raise ValueError("„beitragserinnerung“ braucht den Bezug jahr:<Jahr>")
@@ -57,7 +60,7 @@ def beauftragen(mitglied, art, antrag=None, bezug=""):
     if art == "freischaltung" and mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
         return False
     auftrag, neu = Postauftrag.objects.get_or_create(
-        mitglied=mitglied, art=art, bezug=bezug, defaults={"antrag": antrag if art == "neuer_antrag" else None}
+        mitglied=mitglied, art=art, bezug=bezug, defaults={"antrag": antrag if art in ANTRAGS_ARTEN else None}
     )
     if auftrag.erledigt:
         return False
@@ -74,6 +77,7 @@ def zustellen(pk, jetzt=None):
         _willkommen_brief,
         beitragserinnerung_brief,
         neuer_antrag_brief,
+        rechtsbezug_brief,
     )
 
     jetzt = jetzt or timezone.now()
@@ -95,7 +99,12 @@ def zustellen(pk, jetzt=None):
                 # Einwilligung seit der Beauftragung zurückgenommen: kein Brief, Auftrag gestempelt (nicht gelöscht).
                 update["erledigt"] = True
                 return False
-            ok = neuer_antrag_brief(m, a.antrag) if a.art == "neuer_antrag" else beitragserinnerung_brief(m)
+            if a.art == "neuer_antrag":
+                ok = neuer_antrag_brief(m, a.antrag)
+            elif a.art == "rechtsbezug":
+                ok = rechtsbezug_brief(m, a.antrag)
+            else:
+                ok = beitragserinnerung_brief(m)
             if ok:
                 update.update(versandt_am=jetzt, erledigt=True)
             return ok

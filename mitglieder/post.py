@@ -223,6 +223,36 @@ def neuer_antrag_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
     return _senden(mitglied, "neuer_antrag", betreff, text)
 
 
+def rechtsbezug_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
+    """„Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag“ — die Normen des jüngsten erfolgreichen
+    Laufs, jede als nicht verifiziert, der Link zur Antragsseite, die Kennzeichnung als KI-Vorschlag und
+    der Weg zum Abbestellen. Liegt (noch) kein Ergebnis vor, geht kein Brief; der Postausgang versucht
+    es später erneut."""
+    from ki.rechtsbezug import rechtsbezug_fuer
+
+    ergebnis = rechtsbezug_fuer(antrag)
+    if ergebnis is None:
+        return False
+    with translation.override("de"):
+        text = _brief(
+            "mitglieder/post/rechtsbezug.txt",
+            {
+                "name": _anrede(mitglied),
+                "titel": antrag.titel,
+                "normen": ergebnis["normen"],
+                "hinweis": ergebnis["hinweis"],
+                "unsicherheit": ergebnis["unsicherheit_wort"],
+                "modell": ergebnis["modell"],
+                "auftrag_version": ergebnis["auftrag_version"],
+                "link": settings.DDOE_BASIS_URL.rstrip("/")
+                + reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
+                + "#rechtsbezug",
+            },
+        )
+        betreff = _("Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag")
+    return _senden(mitglied, "rechtsbezug", betreff, text)
+
+
 def beitragserinnerung_brief(mitglied: Mitglied) -> bool:
     """Die Beitragserinnerung der Verwaltung (§ 4 Abs 3): Beitragsseite, persönliche Referenz, der
     Hinweis, dass die Höhe Selbsteinschätzung bleibt — und der Weg zum Abbestellen im Profil."""

@@ -22,11 +22,13 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from ki.anbieter import anbieter_waehlen
+from ki.models import Zweck
 from mitglieder.models import Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
-from plattform_core.similarity import aehnlichste
+from verfahren.aehnlichkeit import aehnliche_antraege
 from verfahren.hinweise import (
     kachel_feld,
     mitwirkungssperre,
@@ -230,6 +232,7 @@ def einbringen(request):
         return render(request, "verfahren/keine_ordnung.html", status=503)
 
     aehnliche = []
+    pruefung = None  # das Ergebnis beider Ähnlichkeitsstufen (verfahren/aehnlichkeit.py)
     if request.method == "POST":
         form = AntragsFormular(request.POST, mitglied=request.user)
         if form.is_valid():
@@ -238,35 +241,17 @@ def einbringen(request):
             # Mandat sollen sich am BESTEHENDEN Antrag beteiligen (§ 7 Abs 1);
             # darauf weist die Antragsseite selbst hin.
             if not request.POST.get("trotzdem") and d["art"] == Antragsart.SACHE.value:
-                offene = list(Antrag.objects.filter(phase__in=OFFENE_PHASEN).values_list("id", "titel"))
-                texte = {a.pk: a for a in Antrag.objects.filter(id__in=[i for i, _ in offene])}
-                kandidaten = []
-                for aid, titel in offene:
-                    fassung = texte[aid].aktueller_text()
-                    kandidaten.append((aid, f"{titel} {fassung.wortlaut if fassung else ''}"))
-                treffer = aehnlichste(
-                    f"{d['titel']} {d['wortlaut']}",
-                    kandidaten,
-                    schwelle=zahl("aehnlichkeit-schwelle-prozent", 18) / 100,
-                    limit=zahl("aehnlichkeit-treffer", 3),
-                )
-                if treffer:
+                pruefung = aehnliche_antraege(d["titel"], d["wortlaut"], request.user)
+                if pruefung.treffer:
                     # § 5 Abs 10 lit d: Übersicht ähnlicher Anträge SAMT Beteiligung —
                     # damit sichtbar ist, wo Unterstützung am meisten bewegt.
-                    aehnliche = [
-                        {
-                            "antrag": texte[aid],
-                            "prozent": round(score * 100),
-                            "beteiligung": texte[aid].unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
-                        }
-                        for aid, score in treffer
-                    ]
                     return render(
                         request,
                         "verfahren/einbringen.html",
                         {
                             "form": form,
-                            "aehnliche": aehnliche,
+                            "aehnliche": pruefung.treffer,
+                            "pruefung": pruefung,
                             "ordnung": ordnung,
                         },
                     )
@@ -282,6 +267,8 @@ def einbringen(request):
             )
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
+            if antrag.art == Antragsart.SACHE:
+                _zukunftswerkstatt_beauftragen(antrag, request.user, pruefung)
             if zugeordnet:
                 namen = ", ".join(k.pfad_kurz for k in zugeordnet)
                 messages.success(
@@ -293,12 +280,31 @@ def einbringen(request):
                 )
             else:
                 messages.success(request, _("Ihr Antrag ist eingebracht und sammelt jetzt Unterstützung."))
-            return redirect("verfahren:antrag", pk=antrag.pk)
+            # ?neu=1: Die Antragsseite zeigt das Band zur Einschätzung — dort stehen die ersten
+            # Informationen der Zukunftswerkstatt (betroffene Gesetze), sobald sie da sind.
+            return redirect(reverse("verfahren:antrag", kwargs={"pk": antrag.pk}) + "?neu=1")
     else:
         form = AntragsFormular(mitglied=request.user)
     return render(
-        request, "verfahren/einbringen.html", {"form": form, "aehnliche": aehnliche, "ordnung": ordnung}
+        request,
+        "verfahren/einbringen.html",
+        {"form": form, "aehnliche": aehnliche, "pruefung": pruefung, "ordnung": ordnung},
     )
+
+
+def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:
+    """Nach dem Einbringen eines Sachantrags: die betroffenen Gesetze einreihen (FB-H3, Warteschlange)
+    und den Textvektor sichern — direkt, wenn die Prüfung ihn eben gerechnet hat (kein zweiter
+    Aufruf), sonst als Auftrag „aehnlichkeit“ für den Hintergrundlauf. Beides ist Vorschlag,
+    nichts davon hält den Antrag auf."""
+    from ki.warteschlange import einreihen
+    from verfahren.aehnlichkeit import einbettung_speichern
+
+    einreihen(Zweck.RECHTSBEZUG, antrag, mitglied)
+    if pruefung is not None and pruefung.neuer_vektor is not None:
+        einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
+    elif anbieter_waehlen() is not None:
+        einreihen(Zweck.AEHNLICHKEIT, antrag, mitglied)
 
 
 def _mit_flash(request, stufe, text, pk):

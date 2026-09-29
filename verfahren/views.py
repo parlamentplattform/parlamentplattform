@@ -940,24 +940,32 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
     ]
 
 
-def _einschaetzung(antrag):
-    """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte und
-    Beanstandungen. Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11);
-    bis dahin zeigt die Zone ehrlich, dass noch nichts vorliegt."""
+def _einschaetzung(antrag, betrachter=None):
+    """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte,
+    Beanstandungen und die Karte „Betroffene Gesetze“ (erste Stufe von FB-H3, Warteschlange).
+    Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
+    ehrlich, dass noch nichts vorliegt."""
     from ki.anbieter import anbieter_waehlen
-    from ki.models import KILauf
+    from ki.models import KILauf, Zweck
+    from ki.rechtsbezug import rechtsbezug_lage
 
-    lauf = KILauf.objects.filter(antrag=antrag, erfolgreich=True).order_by("-erstellt_am").first()
+    # Textvektoren sind kein Lauf, den ein Mensch liest — sie zählen hier nicht als „Stand“.
+    lauf = (
+        KILauf.objects.filter(antrag=antrag, erfolgreich=True)
+        .exclude(zweck=Zweck.AEHNLICHKEIT)
+        .order_by("-erstellt_am")
+        .first()
+    )
     anbieter = anbieter_waehlen()
     return {
         "lauf": lauf,
         "anbieter_da": anbieter is not None,
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
         "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
+        "rechtsbezug": rechtsbezug_lage(antrag, betrachter),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [
             _("Ähnliche Anträge"),
-            _("Berührte Gesetze"),
             _("Folgen für Judikatur und Exekutive"),
             _("Aufwand, Last und Dauer"),
             _("Ausschreibung"),
@@ -1335,8 +1343,9 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "einschaetzung": (
                 None
                 if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
-                else _einschaetzung(antrag)
+                else _einschaetzung(antrag, request.user)
             ),
+            "neu": request.GET.get("neu") == "1",
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,
@@ -1644,6 +1653,7 @@ def zukunftswerkstatt(request):
     für alle und Einladung an die verwandten Bewegungen weltweit (§ 12).
     Seit Ring 0b (F-60) zeigt sie zusätzlich die Rechenschaft des
     Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
+    from ki.auftraege import auftragsversionen
     from ki.models import KILauf, steckplatz_stand
 
     return render(
@@ -1652,5 +1662,6 @@ def zukunftswerkstatt(request):
         {
             "steckplatz": steckplatz_stand(),
             "letzte_laeufe": list(KILauf.objects.select_related("antrag")[:8]),
+            "auftragsversionen": auftragsversionen(),
         },
     )

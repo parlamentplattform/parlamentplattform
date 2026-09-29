@@ -747,6 +747,7 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
         "GremienStimme.mitglied": "gremienstimmen",
         "Fachliste.mitglied": "fachliste",
         "KILauf.angefordert_von": "ki_laeufe",
+        "KIAuftrag.angefordert_von": "ki_auftraege",
         "Interessenbindung.mitglied": "interessenbindungen",
         "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
         "Vollzugseintrag.durch": "vollzug",

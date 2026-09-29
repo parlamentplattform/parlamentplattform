@@ -352,3 +352,40 @@ def test_favorisieren_mit_htmx_setzt_keine_meldung(client, ordnung):  # noqa: F8
         reverse("verfahren:favorisieren", args=[sammelnd.pk]), {"weiter": "/parlament/?hinweis=erfasst&feld=filter"}
     )
     assert antwort.url == "/parlament/" and len(_meldungen(antwort)) == 1  # ohne htmx: Flash, alter Hinweis fällt weg
+
+
+# ── `weiter` mit Steuerzeichen: nie ein 500 nach geschriebener Handlung (Prüfung 0.50.0, P-41) ──
+
+
+@pytest.mark.parametrize("weiter", ["/\t/evil.example", "/\n/evil.example", "/\r\n/evil.example", "/\x00/evil.example"])
+def test_weiter_mit_steuerzeichen_fuehrt_auf_die_eigene_seite(ordnung, weiter):  # noqa: F811
+    """`urlsplit` entfernt Tab, CR und LF: Aus „/\\t/evil.example“ wurde ein fremder Host mit leerem
+    Pfad, `redirect` hielt den Rest für einen URL-Namen — 500, obwohl Stimme oder Unterstützung
+    schon geschrieben waren."""
+    from urllib.parse import urlsplit
+
+    from django.test import Client
+
+    from verfahren.hinweise import sicherer_pfad
+    from verfahren.models import Kategorie
+
+    leute, sammelnd, abstimmung = _lage(ordnung)
+    Kategorie.objects.create(slug="energie", name="Energie")
+    c = Client(raise_request_exception=False)
+    c.force_login(leute[2])
+    faelle = [
+        ("unterstuetzen", reverse("verfahren:unterstuetzen", args=[sammelnd.pk]), {"feld": "filter"}),
+        ("abstimmen+feld", reverse("verfahren:abstimmen", args=[abstimmung.pk]), {"feld": "filter", "stimme": "ja"}),
+        ("abstimmen", reverse("verfahren:abstimmen", args=[abstimmung.pk]), {"stimme": "ja"}),
+        ("filter_neutral", reverse("verfahren:filter_neutral"), {}),
+        ("favorisieren", reverse("verfahren:favorisieren", args=[sammelnd.pk]), {}),
+        ("kategorie_abonnieren", reverse("verfahren:kategorie_abonnieren", args=["energie"]), {}),
+    ]
+    for name, url, daten in faelle:
+        antwort = c.post(url, {"weiter": weiter, **daten})
+        assert antwort.status_code == 302, (name, antwort.status_code)
+        ziel = antwort["Location"]
+        teile = urlsplit(ziel)
+        assert ziel.startswith("/") and not ziel.startswith("//") and not teile.scheme and not teile.netloc, (name, ziel)
+    assert sammelnd.unterstuetzungen.count() == 1 and abstimmung.stimmabgaben.count() == 1
+    assert not sicherer_pfad(weiter)

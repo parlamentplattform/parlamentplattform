@@ -18,6 +18,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import NoReverseMatch, reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
@@ -134,7 +135,15 @@ def kachel_feld(request) -> str | None:
 
 
 def sicherer_pfad(weiter: str) -> bool:
-    return weiter.startswith("/") and not weiter.startswith("//")
+    """Nur ein Pfad dieser Seite: beginnt mit genau einem „/“, enthält kein Steuer- oder
+    Leerzeichen und gilt Django als lokal. `urlsplit` entfernt Tab, CR und LF — aus „/\t/x“
+    würde sonst ein fremder Host mit leerem Pfad und nach der Handlung ein 500."""
+    return (
+        weiter.startswith("/")
+        and not weiter.startswith("//")
+        and not any(zeichen.isspace() or ord(zeichen) < 0x20 or ord(zeichen) == 0x7F for zeichen in weiter)
+        and url_has_allowed_host_and_scheme(weiter, allowed_hosts=None)
+    )
 
 
 def weiter_ohne_hinweis(pfad: str) -> str:

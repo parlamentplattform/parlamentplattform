@@ -61,7 +61,7 @@ python -m pytest tests/e2e -q     # Bildschirmtests (Playwright); DDOE_SICHTPRUE
 3. Übersetzungen vollständig (`makemessages` zeigt 0 fuzzy/leer).
 4. CHANGELOG.md: neuer Abschnitt `## [0.xx.0] — Datum · Titel` (Keep a Changelog, Deutsch); `pyproject.toml` + `plattform_core.__version__` auf dieselbe Nummer.
 5. Screenshots/GIF unter `docs/sichtpruefung/<version>/` (der Gründer prüft von Hand).
-6. Ein Commit je logischem Teilschritt, deutsche Commit-Nachricht im Imperativ („Fächer auf fünf Ebenen ausbauen (FB-C2)"), FB-Kennungen in der Nachricht; Branch `schritt/s3-weicherfilter` → PR gegen `main` (Status-Check `pruefen` muss grün sein); der Gründer merged.
+6. Ein Commit je logischem Teilschritt, deutsche Commit-Nachricht im Imperativ („Fächer auf fünf Ebenen ausbauen (FB-C2)"), FB-Kennungen in der Nachricht; Branch `schritt/s3-weicherfilter` → PR gegen `main` (Status-Checks `pruefen (3.11)`, `pruefen (3.12)` und `pruefen_postgres` müssen grün sein); der Gründer merged.
 7. Nichts deployen, was den Demo-Betrieb bricht: `demo_seed` muss auf leerer und auf bestehender Datenbank durchlaufen.
 
 ## 6. Nicht tun

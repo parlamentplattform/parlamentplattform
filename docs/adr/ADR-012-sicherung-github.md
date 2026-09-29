@@ -3,7 +3,7 @@
 Status: angenommen zur Umsetzung der Gründeranweisung vom 28.9.2026 („ein privates github unter dem
 parlamentplattform zugang anlegen zum sichern.“) und seiner Antworten vom 29.9.2026 (Repository
 `parlamentplattform/sicherung`, von ihm angelegt; „ich denke eine verschlüsselung ist hier nicht
-wichtig. es reicht dass das repo privat ist.“). Bestandsaufnahme 28.9.2026, A9/A10; Fahrtenbuch Schritt 2.
+wichtig. es reicht dass das repo privat ist.“). Bestandsaufnahme 28.9.2026, A10; Fahrtenbuch Schritt 2.
 
 ## Ausgangslage
 
@@ -15,15 +15,21 @@ sagt es aber niemandem.
 ## Entscheidung
 
 1. **Sichern:** `.github/workflows/sicherung.yml`, täglich 02:17 UTC. `pg_dump` (Fassung 17, sichert
-   Server 16 und 17) im Custom-Format, komprimiert, ohne Eigentümer und Rechte; geprüft mit
-   `pg_restore --list`, dazu eine SHA-256-Datei (`tools/sicherung.sh sichern`). Ablage als Release im
-   privaten Repository `parlamentplattform/sicherung` — ein Release je Lauf.
-2. **Aufbewahren:** 90 Tage (`AUFBEWAHRUNG_TAGE` im Workflow). Ältere Releases löscht der Lauf nach
-   einer gelungenen neuen Sicherung. Releases statt Commits, weil gelöschte Commits in der Geschichte
+   Server 16 und 17) im Custom-Format, komprimiert, ohne Eigentümer und Rechte und **ohne die Zeilen der
+   Sitzungen (`django_session`) und Einmal-Anmeldelinks (`mitglieder_einmaltoken`)** — wer eine Sicherung
+   liest, soll sich damit nicht als jemand anmelden können; geprüft mit `pg_restore --list`, dazu eine
+   SHA-256-Datei und die Zahl der Audit-Einträge, Anträge und Konten (`tools/sicherung.sh sichern`).
+   Ablage als Release im privaten Repository `parlamentplattform/sicherung` — ein Release je Lauf.
+   Fehlermeldungen von `pg_dump`/`pg_restore` gehen nicht ins öffentliche Protokoll der Actions,
+   Rechner, Benutzer und Datenbankname werden maskiert.
+2. **Aufbewahren:** 90 Tage (`AUFBEWAHRUNG_TAGE` im Workflow), die Sicherung vom Monatsersten 365 Tage.
+   Ältere Releases löscht der Lauf nach einer gelungenen neuen Sicherung — aber nie, wenn die neue
+   weniger Audit-Einträge hat als die vorige: Eine leere oder falsche Datenbank (neu angelegt, falsches
+   Secret) bestünde jede Probe und rollte sonst in 90 Tagen alle guten Sicherungen weg. Releases statt Commits, weil gelöschte Commits in der Geschichte
    blieben und das Repository ohne Grenze wüchse. Das sind Sicherungskopien, keine Verfahrensdaten —
    Grundregel 7 betrifft die Datenbank selbst, nicht ihre Kopien.
 3. **Proben:** am Monatsersten und bei jedem Start von Hand: die jüngste Sicherung in einen leeren
-   PostgreSQL-16-Dienst zurückspielen, `migrate --check` (Schema passt zum Code auf `main`) und
+   PostgreSQL-17-Dienst zurückspielen (17 nimmt eine Sicherung aus `pg_dump` 17 sicher an), `migrate --check` (Schema passt zum Code auf `main`) und
    `audit_pruefen --voll` (die Kette ist nach dem Zurückspielen intakt; `tools/sicherung.sh probe`).
 4. **Wache:** `.github/workflows/wache.yml`, alle 15 Minuten `https://parlament.ddoe.at/gesund/`; drei
    Fehlversuche im Abstand von 30 Sekunden machen den Lauf rot.
@@ -31,7 +37,8 @@ sagt es aber niemandem.
    Runner von GitHub Actions; das Hauptrepository ist öffentlich, die Minuten kosten nichts.
 
 **Secrets** (nur im Hauptrepository, nie im Repo): `DDOE_SICHERUNG_DATENBANK_URL` (externe Adresse der
-Render-Datenbank) und `DDOE_SICHERUNG_TOKEN` (fein granulierter Token, nur für
+Render-Datenbank, **empfohlen mit einer eigenen Nur-Lese-Rolle** statt des Eigentümers — die Adresse des
+Eigentümers dürfte schreiben, und sie liegt in den Secrets eines öffentlichen Repositorys) und `DDOE_SICHERUNG_TOKEN` (fein granulierter Token, nur für
 `parlamentplattform/sicherung`, Rechte „Contents: Read and write“). Ein Deploy-Key reicht nicht: Er darf
 Git schreiben, aber keine Releases anlegen oder löschen. Zuständig für die Verwahrung: der Technische
 Entwicklungsrat (§ 6 Abs 4), bis dahin der Gründer.
@@ -47,6 +54,11 @@ was das heißt:
   Mitgliedschaftsdaten einer Partei sind besondere Kategorien nach Art 9 DSGVO (politische Meinung).
 - Lesen kann sie jede Person mit Zugang zum Repository, GitHub selbst, und wer ein Konto mit diesem
   Zugang übernimmt. GitHub ist ein US-Anbieter — wie Render (siehe BETRIEB-RENDER, Datenschutz-Einordnung).
+- Nach einem Austritt bleiben die in der Datenbank schon geleerten Angaben bis zu 90 Tage (Monatserste:
+  365 Tage) in den Sicherungen. Die Datenschutzerklärung nennt GitHub als Empfänger und diese Fristen.
+- Offen (Fahrtenbuch ❓ D-S2): der Vertrag zur Auftragsverarbeitung mit GitHub (GitHub bietet ein Data
+  Protection Addendum) und die Rechtsgrundlage der Übermittlung in die USA; ob die Aufbewahrungsfrist
+  der Sicherungen als Löschfrist in die Verfahrensordnung gehört (§ 8 Abs 6).
 - Die Verschlüsselung ließe sich jederzeit nachrüsten: ein Schritt im Workflow (`age -r <öffentlicher
   Schlüssel>`), einer in der Probe (`age -d` mit einem weiteren Secret), kein Geld.
 
@@ -62,5 +74,9 @@ was das heißt:
 - Geplante Läufe laufen nur auf `main`. GitHub schickt Fehlschläge per E-Mail an das Konto, das den
   Zeitplan zuletzt geändert hat, und schaltet geplante Läufe in einem öffentlichen Repository nach
   60 Tagen ohne Aktivität ab — dann gibt es eine E-Mail, und ein Klick schaltet sie wieder ein.
+- Das Repository `sicherung` braucht einen ersten Commit (etwa eine README): Ohne ihn kann GitHub kein
+  Release anlegen.
+- Eine Probe von Hand kurz nach einem Merge mit neuer Migration, bevor ausgerollt ist, schlägt bei
+  `migrate --check` fehl, ohne dass etwas kaputt ist — dann nach dem Ausrollen wiederholen.
 - Die erste echte Probe ist erst möglich, wenn beide Secrets gesetzt sind; bis dahin ist die Probe auf
   der Demo-Datenbank geprobt und protokolliert (BETRIEB-RENDER › Sicherung).

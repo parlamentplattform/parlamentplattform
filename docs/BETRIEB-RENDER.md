@@ -101,18 +101,25 @@ F-50) braucht gar keinen Zugang.
 
 ## Sicherung (seit 0.52, ADR-012)
 
-Täglich 02:17 UTC sichert `.github/workflows/sicherung.yml` die Datenbank als Release in das private
-Repository `parlamentplattform/sicherung` (unverschlüsselt, Entscheidung des Gründers 29.9.2026) und
-hält sie 90 Tage. Am Monatsersten spielt derselbe Workflow die jüngste Sicherung in eine leere Datenbank
+Täglich 02:17 UTC sichert `.github/workflows/sicherung.yml` die Datenbank — ohne Sitzungen und
+Anmeldelinks — als Release in das private Repository `parlamentplattform/sicherung` (unverschlüsselt,
+Entscheidung des Gründers 29.9.2026) und hält sie 90 Tage, die vom Monatsersten 365 Tage. Hat eine neue
+Sicherung weniger Audit-Einträge als die vorige, bleibt der Lauf rot und löscht nichts. Am Monatsersten spielt derselbe Workflow die jüngste Sicherung in eine leere Datenbank
 zurück und prüft Migrationen und Audit-Kette. `.github/workflows/wache.yml` fragt alle 15 Minuten
 `/gesund/`. **Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4), bis dahin der Gründer.
 
 **Einmal einrichten (nach dem Merge von 0.52):**
 
-1. Render-Dashboard → Datenbank → *Connect* → „External Database URL“ kopieren. GitHub → Hauptrepository
-   → *Settings → Secrets and variables → Actions → New repository secret*: Name
-   `DDOE_SICHERUNG_DATENBANK_URL`, Wert die kopierte Adresse. Steht bei der Datenbank eine
-   IP-Zugriffsliste, muss sie Verbindungen von außen zulassen (GitHub-Runner haben wechselnde Adressen).
+0. Das Repository `parlamentplattform/sicherung` braucht einen ersten Commit (auf GitHub „Add a README“),
+   sonst kann der Workflow kein Release anlegen.
+1. Eine Nur-Lese-Rolle für die Sicherung anlegen (empfohlen — die Adresse des Eigentümers dürfte
+   schreiben): Render-Dashboard → Datenbank → *Connect* → „PSQL Command“ im eigenen Terminal ausführen, dann
+   `CREATE ROLE sicherung LOGIN PASSWORD '<langes Zufallspasswort>'; GRANT pg_read_all_data TO sicherung;`.
+   Die „External Database URL“ kopieren und Benutzer und Passwort darin durch `sicherung` und das neue
+   Passwort ersetzen. GitHub → Hauptrepository → *Settings → Secrets and variables → Actions → New
+   repository secret*: Name `DDOE_SICHERUNG_DATENBANK_URL`, Wert diese Adresse. Steht bei der Datenbank
+   eine IP-Zugriffsliste, muss sie Verbindungen von außen zulassen (GitHub-Runner haben wechselnde
+   Adressen) — ein Grund mehr für die Nur-Lese-Rolle.
 2. GitHub → *Settings* (des eigenen Kontos) → *Developer settings → Personal access tokens →
    Fine-grained tokens → Generate new token*: Ressourcenbesitzer `parlamentplattform`, *Only select
    repositories* → `sicherung`, Rechte *Contents: Read and write*. Ablaufdatum so lang wie erlaubt und
@@ -138,7 +145,7 @@ zurück und prüft Migrationen und Audit-Kette. `.github/workflows/wache.yml` fr
 
 | Datum | Quelle | Sicherung | Ergebnis |
 |---|---|---|---|
-| 29.9.2026 | Demo-Datenbank (lokales PostgreSQL 16, `tools/sicherung.sh`) | 351 KB, 7 Anträge, 5 Konten, 50 Audit-Einträge | zurückgespielt in eine leere Datenbank; keine offene Migration; Audit-Kette vollständig intakt, Kopf `6d979b7d…53652f` wie im Original; Zeilenzahlen gleich |
+| 29.9.2026 | Demo-Datenbank (lokales PostgreSQL 16, `tools/sicherung.sh`) | 351 KB, 7 Anträge, 5 Konten, 50 Audit-Einträge | zurückgespielt in eine leere Datenbank; keine offene Migration; Audit-Kette vollständig intakt, Kopf `6d979b7d…53652f` wie im Original; Zeilenzahlen gleich. Nach der Prüfung erneut: ohne Sitzungen und Anmeldelinks, gleiches Ergebnis |
 | — | Live-Datenbank über den Workflow | — | offen: braucht die beiden Secrets (Schritt 1–3 oben) |
 
 ## Datenschutz-Einordnung

@@ -5,13 +5,13 @@ Berechtigungsstufen (aus Satzung § 4):
 - Einbringen, unterstützen, kommentieren: bestätigte Mitglieder
   (Identitätsstufe mindestens „geprüft").
 - Abstimmen: stimmberechtigte Mitglieder (Anwartschaft; im Aufbau gilt die
-  Übergangsregel nach § 4 Abs 4 lit d, konfiguriert über DDOE_UEBERGANGSREGEL).
+  Übergangsregel nach § 4 Abs 4 lit d — eingestellt über DDOE_UEBERGANGSREGEL, beim Einbringen
+  in die Ordnung des Antrags eingefroren).
 """
 
 from __future__ import annotations
 
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -62,6 +62,7 @@ from verfahren.models import (
     kandidatursperre,
     kategorien_zuordnen,
     stimme_abgeben,
+    uebergangsregel_fuer,
     vollzug_fortschreiben,
 )
 
@@ -604,7 +605,7 @@ def abstimmen(request, pk):
     # § 4 Abs 4: derselbe Gegenstand wie beim Zählen der Stimmberechtigten (`fortschreiben`) —
     # die Vertrauensfrage ist eine Personenwahl (§ 7 Abs 10 lit a und e), alles andere Sachfrage.
     if not request.user.ist_stimmberechtigt(
-        gegenstand_fuer(antrag), stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+        gegenstand_fuer(antrag), stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         # Ungeprüfte und ruhende Konten sind nie stimmberechtigt — der Kachel-Hinweis nennt den Grund
         code = mitwirkungssperre(request.user) or "nicht_stimmberechtigt"
@@ -856,7 +857,7 @@ def bewerben(request, pk):
     if sperre:
         return sperre
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=settings.DDOE_UEBERGANGSREGEL
+        Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=uebergangsregel_fuer(antrag)
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if not request.POST.get("waehlbar"):
@@ -925,7 +926,7 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     antrag.fortschreiben()
     stichtag = antrag.stichtag_der_stimmberechtigung()
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.PERSONENWAHL, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+        Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if request.user.adresswechsel_offen:

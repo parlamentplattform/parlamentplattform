@@ -109,7 +109,7 @@ def test_die_momentaufnahme_traegt_alles_was_die_pruefung_braucht():
 def test_die_ordnungsregel_nennt_den_registerschluessel_des_anteils():
     """Seit Fassung 4 speist auch der Anteil der Unterstützungsschwelle die Ordnung."""
     ordnung = next(r for r in verzeichnis() if r.modul == "policy.py")
-    assert ordnung.fassung == 4
+    assert ordnung.fassung == 5
     assert "verfahren-unterstuetzung-anteil-prozent" in ordnung.registerschluessel.split(" · ")
 
 

@@ -502,8 +502,6 @@ class Entwurf(models.Model):
         antrag.phase_beginn = jetzt
         felder = ["phase", "phase_beginn"]
         if antrag.stimmberechtigte_anzahl is None:
-            from django.conf import settings as dj_settings
-
             from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
 
@@ -515,7 +513,7 @@ class Entwurf(models.Model):
                 stimmberechtigte_zaehlen(
                     Gegenstand.SACHFRAGE,
                     antrag.stimmberechtigung_stichtag,
-                    uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
+                    uebergang=antrag.policy().uebergangsregel,  # eingefroren beim Einbringen (A5)
                 ),
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]

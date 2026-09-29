@@ -28,7 +28,11 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 #: Fassung 4 (29.9.2026): Die Unterstützungsschwelle kann als Anteil der Stimmberechtigten
 #: gelten (`unterstuetzung_anteil`, Mindestzahl `unterstuetzung_schwelle`); beim Einbringen wird
 #: daraus die konkrete Zahl gerechnet und samt Grundgesamtheit eingefroren (§ 5 Abs 5).
-VERSION = 4
+#: Fassung 5 (0.51.0): Die Übergangsregel des § 4 Abs 4 lit d wird beim Einbringen aus der
+#: Einstellung der Instanz übernommen und gilt bis zum Ende des Verfahrens (`uebergangsregel`,
+#: Bestandsaufnahme A5); dazu der schlafende Schalter für die Tendenz während der Abstimmung
+#: (`tendenz_ab_mindestbeteiligung`, D-D2 b).
+VERSION = 5
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
@@ -102,6 +106,12 @@ class Policy:
     unterstuetzung_anteil: float = 0.0
     unterstuetzung_grundgesamtheit: int = 0
     unterstuetzung_mindestzahl: int = 0  # die Mindestzahl der Ordnung, wenn die Schwelle gerechnet wurde
+    # Fassung 5: Die Übergangsregel des § 4 Abs 4 lit d („entfällt die Anwartschaft“) — eine Einstellung
+    # der Instanz (`DDOE_UEBERGANGSREGEL`), kein Registerwert. Beim Einbringen gesetzt; Zählung der
+    # Stimmberechtigten, Prüfung jeder Stimme, Bewerbung und Unterstützung lesen sie von da an nur hier.
+    # Die Vorgabe ist der Wert jeder bekannten Instanz und der Standard der Einstellung: Ältere
+    # Schnappschüsse ohne das Feld laden damit so, wie sie gerechnet wurden.
+    uebergangsregel: bool = True
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -170,6 +180,8 @@ class Policy:
             raise PolicyFehler("pruefung_tage muss mindestens 1 Tag sein.")
         if self.hoechstrunden < 1:
             raise PolicyFehler("hoechstrunden muss mindestens 1 sein.")
+        if not isinstance(self.uebergangsregel, bool):
+            raise PolicyFehler(f"uebergangsregel = {self.uebergangsregel!r} ist kein Wahrheitswert.")
         if not 0 <= self.vorschlag_annahme_anteil < 1:
             raise PolicyFehler(
                 f"vorschlag_annahme_anteil = {self.vorschlag_annahme_anteil} liegt nicht zwischen 0 und 1."

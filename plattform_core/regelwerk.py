@@ -307,13 +307,22 @@ REGELN: tuple[Regel, ...] = (
             "Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die "
             "Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die "
             "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren.")
+            + _(" Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d "
+            "für den Antrag gilt.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
-        satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
-        fassung=4,
+        satzung="§ 5 Abs 5 (Einfrieren), mit § 4 Abs 4 lit d, § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
+        fassung=5,
         seit="2026-09-29",
         grund=(
-            _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
+            _("Fassung 5 (0.51.0) nimmt die Übergangsregel des § 4 Abs 4 lit d in die eingefrorene "
+            "Ordnung: Ob die Anwartschaft entfällt, wird beim Einbringen aus der Einstellung der Instanz "
+            "übernommen und gilt bis zum Ende des Verfahrens — für die Zahl der Stimmberechtigten, die "
+            "Prüfung jeder Stimme, die Bewerbung und das Unterstützungsrecht bei der Vertrauensfrage. Bis "
+            "dahin las die Plattform die Einstellung bei jedem Schritt neu; ein Umschalten während einer "
+            "Abstimmung hätte Zählung und Einzelprüfung auseinanderlaufen lassen. Ältere Anträge ohne "
+            "dieses Feld lesen den Wert „gilt“. ")
+            + _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
             "Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl "
             "bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der "
             "Nenner einer Abstimmung; die Zahl steht danach fest. ")

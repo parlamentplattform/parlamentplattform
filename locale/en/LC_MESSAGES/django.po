@@ -8442,3 +8442,12 @@ msgstr "default"
 
 msgid "So kam der Vorschlag zustande"
 msgstr "How the proposal came about"
+
+msgid "entfällt — Übergangsregel (§ 4 Abs 4 lit d)"
+msgstr "waived — transitional rule (§ 4 (4) lit d)"
+
+#, python-format
+msgid "%(n)s Monat (§ 4 Abs 4 lit b)"
+msgid_plural "%(n)s Monate (§ 4 Abs 4 lit b)"
+msgstr[0] "%(n)s month (§ 4 (4) lit b)"
+msgstr[1] "%(n)s months (§ 4 (4) lit b)"

@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 
 from parameter.models import zahl
-from plattform_core import Phase, __version__
+from plattform_core import Gegenstand, Phase, __version__
 from plattform_core.phases import (
     abstimmung_frist_ende,
     beratung_frist_ende,
@@ -33,6 +33,7 @@ from verfahren.models import (
     StimmRegister,
     Unterstuetzung,
     Vollzugsstatus,
+    uebergangsregel_fuer,
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
@@ -398,7 +399,7 @@ def vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag) -> bool:
     return nutzer.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL,
         timezone.localdate(antrag.eingebracht_am),
-        uebergang=settings.DDOE_UEBERGANGSREGEL,
+        uebergang=uebergangsregel_fuer(antrag),  # eingefroren beim Einbringen (A5)
     )
 
 
@@ -878,6 +879,17 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
         if policy.mehrheitsbasis == "ja_nein"
         else _("Ja mehr als die Hälfte aller abgegebenen Stimmen")
     )
+    # Fassung 5 der Ordnung: Die Übergangsregel ist beim Einbringen eingefroren (§ 4 Abs 4, § 5 Abs 5).
+    from plattform_core.eligibility import ANWARTSCHAFT_MONATE
+
+    personenwahl = art in (Antragsart.VERTRAUENSFRAGE.value, Antragsart.MANDAT.value)
+    monate = ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL if personenwahl else Gegenstand.SACHFRAGE]
+    anwartschaft = (
+        _("Anwartschaft"),
+        _("entfällt — Übergangsregel (§ 4 Abs 4 lit d)")
+        if policy.uebergangsregel
+        else ngettext("%(n)s Monat (§ 4 Abs 4 lit b)", "%(n)s Monate (§ 4 Abs 4 lit b)", monate) % {"n": monate},
+    )
     if art == Antragsart.VERTRAUENSFRAGE.value:
         dauer = ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage
         fruehestens = policy.abstimmung_fruehestens_tage
@@ -914,6 +926,7 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             (_("Abstimmung"), f"{dauer} · " + _("mindestens sieben Tage (§ 7 Abs 10 lit e)")),
             (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
             (_("Mehrheit"), mehrheit),
+            anwartschaft,
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
     if art == Antragsart.MANDATSFRAGE.value:
@@ -926,6 +939,7 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             ),
             (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
             (_("Mehrheit"), mehrheit),
+            anwartschaft,
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
     schwelle = ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle
@@ -944,6 +958,7 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
         (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
         (_("Mehrheit"), mehrheit),
         (_("Sperre für Wiedereinbringung"), ngettext("%d Monat", "%d Monate", policy.wiedereinbringung_sperre_monate) % policy.wiedereinbringung_sperre_monate),
+        anwartschaft,
         (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
     ]
 

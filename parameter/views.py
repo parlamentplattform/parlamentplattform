@@ -247,9 +247,23 @@ def _naechste_version(policy_id: str) -> int:
     return (hoechste["version__max"] or 0) + 1
 
 
+#: Werte, die erst beim Einbringen in den Schnappschuss eines Antrags kommen — keine Regel der Ordnung.
+EINBRINGUNGSWERTE = ("uebergangsregel",)
+
+
 def _wesentlich(regeln: dict) -> dict:
-    """Eine Ordnung ohne Kennung und Versionsnummer — zum Vergleichen des Inhalts."""
-    return {k: v for k, v in (regeln or {}).items() if k not in ("id", "version")}
+    """Eine Ordnung ohne Kennung und Versionsnummer — zum Vergleichen des Inhalts.
+
+    Fehlende Felder werden mit ihren Vorgaben ergänzt (`Policy.aus_dict`): Kommt mit einer neuen
+    Fassung der Ordnungsregeln ein Feld dazu (Fassung 5, 0.51.0), sagt eine ältere Ordnung ohne das
+    Feld dasselbe wie eine neue mit der Vorgabe — „Fassung erzeugen“ legt dann keine wortgleiche an."""
+    from plattform_core.policy import Policy, PolicyFehler
+
+    try:
+        voll = Policy.aus_dict(dict(regeln or {})).als_dict()
+    except (PolicyFehler, TypeError):
+        voll = dict(regeln or {})
+    return {k: v for k, v in voll.items() if k not in ("id", "version", *EINBRINGUNGSWERTE)}
 
 
 def _gleich(links, rechts) -> bool:

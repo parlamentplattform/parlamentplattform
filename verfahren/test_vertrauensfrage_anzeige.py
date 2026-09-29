@@ -339,7 +339,7 @@ def test_regeln_der_vertrauensfrage_nennen_schwelle_prozent_und_fenster(ordnung,
     namen = [n for n, _w in regeln]
     assert namen == [
         "Unterstützungsschwelle", "Frist zum Unterstützen", "Beratung", "Abstimmungsbeginn",
-        "Abstimmung", "Mindestbeteiligung", "Mehrheit", "Verfahrensordnung",
+        "Abstimmung", "Mindestbeteiligung", "Mehrheit", "Anwartschaft", "Verfahrensordnung",
     ]
     werte = dict(regeln)
     assert werte["Unterstützungsschwelle"].startswith("2 Unterstützungen · fünf Prozent der 31 ")

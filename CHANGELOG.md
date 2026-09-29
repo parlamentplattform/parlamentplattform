@@ -22,7 +22,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 - Eigene fortlaufende Mitgliedsnummern ab 000001 für den echten Mitgliederbestand. Frühere Testkonten bleiben erhalten, werden aber nicht nummeriert und erhalten keine Mitgliederpost. Technische IDs, Beitragsreferenzen und vorhandene QR-Adressen ändern sich nicht.
 - Persönlicher Probeversand der überarbeiteten Fassung möglich; keine automatische Aussendung an den Bestand.
 
-## [0.49.0] - 2026-09-17 · Mitgliedsausweis und zuverlässiger Postausgang
+## [0.49.0] — 2026-09-17 · Mitgliedsausweis und zuverlässiger Postausgang
 
 ### Hinzugefügt
 - Einseitiger Mitgliedsausweis mit DDÖ-Logo und QR-Statusprüfung: 88,60 × 56,98 mm inklusive 1,5 mm Beschnitt, TrimBox 85,60 × 53,98 mm. Keine Rückseite.

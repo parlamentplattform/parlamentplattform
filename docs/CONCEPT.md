@@ -167,7 +167,7 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 | N-01 | **Lizenz AGPL-3.0**, Entwicklung von Tag 1 öffentlich; DCO statt CLA; alle Beiträge über Pull Requests, auch die des Kernteams | Repo-Check |
 | N-02 | Dokumentation im Repo: README (5-Minuten-Start), ARCHITECTURE mit C4-Diagrammen, ADR-Verzeichnis, Betriebshandbuch, CHANGELOG nach Keep-a-Changelog, deutsch mit englischer Übersicht | Doku-Review je Release |
 | N-03 | DSGVO: Datenminimierung, Verarbeitungsverzeichnis, Löschkonzept (Konto löschen ⇒ Pseudonymisierung, Verfahrensdaten bleiben aggregiert erhalten), DSFA vor Echtbetrieb; besondere Kategorien (Art 9: politische Meinung!) — Hosting ausschließlich EU, keine US-Dienste im Datenpfad, keine Tracker, keine Analytics Dritter | DSFA-Dokument |
-| N-04 | Sicherheit: OWASP ASVS Level 2 als Checkliste; Security-Header, Rate-Limits, CSRF/XSS-Schutz aus dem Framework; `SECURITY.md` mit Responsible-Disclosure-Zusage und Antwortfrist 48 h; Dependency-Scanning automatisiert | Pentest Phase 2 |
+| N-04 | Sicherheit: OWASP ASVS Level 2 als Checkliste; Security-Header, Rate-Limits, CSRF/XSS-Schutz aus dem Framework; `SECURITY.md` mit Responsible-Disclosure-Zusage und Antwortfrist 48 h; Dependency-Scanning automatisiert *(offen, Stand 29.9.2026)* | Pentest Phase 2 |
 | N-05 | Tests: Kernlogik (Phasen, Fristen, Berechtigung, Auszählung) ≥ 90 % Zweigabdeckung, davon Auszählung zusätzlich property-based getestet; CI blockiert Merge bei Rot | CI-Report |
 | N-06 | Performance bescheiden und ehrlich: ausgelegt auf 10.000 Konten, 100 gleichzeitige Nutzer, 1.000 Stimmen/Minute Spitze — das deckt Jahre; ein Server genügt | Lasttest-Skript im Repo |
 | N-07 | Betrieb: alles als Code (Compose + Ansible), tägliche verschlüsselte Backups an zweiten Standort, dokumentierte Wiederherstellung < 4 h, Ausfall-Protokollpflicht ab 24 h | Restore-Übung |
@@ -258,11 +258,11 @@ graph TB
 
 ## 5. Qualität, Transparenz, Prozess
 
-**Arbeitsweise im Repo.** Trunk-based mit kurzen Feature-Branches; jede Änderung als Pull Request mit Review, auch vom Kernteam; Conventional Commits; jede nicht-triviale Entscheidung als ADR (die ersten fünf: Eigenbau-Entscheidung, Stack, Offene-Abstimmung-statt-Krypto, Policy-Format, Audit-Log-Design). Issues und Roadmap öffentlich; ein `GOVERNANCE.md` regelt, wer wie Maintainer wird — die Plattform-Governance spiegelt die Parteigrundsätze.
+**Arbeitsweise im Repo.** Trunk-based mit kurzen Feature-Branches (`schritt/…`); jede Änderung als Pull Request mit Review, auch vom Kernteam; deutsche Commit-Nachrichten im Imperativ mit FB-Kennung (siehe `CONTRIBUTING.md`; Conventional Commits wurden nicht eingeführt); jede nicht-triviale Entscheidung als ADR (die ersten fünf: Eigenbau-Entscheidung, Stack, Offene-Abstimmung-statt-Krypto, Policy-Format, Audit-Log-Design). Issues und Roadmap öffentlich; ein `GOVERNANCE.md` regelt, wer wie Maintainer wird — die Plattform-Governance spiegelt die Parteigrundsätze.
 
 **Teststrategie.** Der Phasenautomat und die Auszählung werden mit Property-based Testing (Hypothesis) geprüft — z. B. die Invariante „keine Folge von Ereignissen kann eine Stimme nach Fristende zählen" oder „Auszählung ist unabhängig von der Reihenfolge der Stimmen". Fristenlogik läuft gegen eine kontrollierte Uhr (keine Echtzeit in Tests). Ein `verify/`-Ordner enthält das eigenständige Nachrechen-Skript, das nur Standardbibliothek nutzt — bewusst so geschrieben, dass es eine interessierte Maturantin versteht.
 
-**Sicherheitsprozess.** `SECURITY.md` mit Kontaktadresse und 48-h-Zusage; Dependency-Scans in CI; vor dem 200-Personen-Betrieb ein bezahlter externer Penetrationstest (Budget einplanen: 3.000–6.000 €); Ergebnisse werden — nach Behebung — veröffentlicht, wie es § 5 Abs 8 für Audits verlangt.
+**Sicherheitsprozess.** `SECURITY.md` mit Kontaktadresse und 48-h-Zusage; Dependency-Scans in CI *(offen — Stand 29.9.2026 gibt es keinen automatischen Scan; die Obergrenzen in `pyproject.toml` und die CI auf zwei Python-Fassungen und PostgreSQL sind der heutige Ersatz, Dependabot ist als Folgeschritt vorgemerkt)*; vor dem 200-Personen-Betrieb ein bezahlter externer Penetrationstest (Budget einplanen: 3.000–6.000 €); Ergebnisse werden — nach Behebung — veröffentlicht, wie es § 5 Abs 8 für Audits verlangt.
 
 **Dokumentationsstandard.** Vier Dokumentarten nach Diátaxis: Tutorial („In 10 Minuten zum ersten Antrag"), How-to (Betrieb, Backup, Restore), Referenz (API, Policy-Format), Erklärung (warum offene Abstimmung, warum kein E-Voting — die Texte haben wir zum Teil schon auf der Website).
 
@@ -343,10 +343,11 @@ Für die Stufen 3/4 sind Rückmeldeprotokolle der **staatlichen** Exekutive kein
 
 ## Anhang A — Offene Entscheidungen (bewusst noch nicht getroffen)
 
-1. **Repo-Heimat und Name:** Vorschlag `ddoe/parlamentplattform` auf GitHub + Codeberg-Mirror. Braucht: GitHub-Organisation der DDÖ (legst du an, ich richte alles ein).
-2. **Namenskonvention:** „ParlamentPlattform" ist der Satzungsbegriff; als Projektname international tauglich? Alternative Arbeitstitel möglich, Satzungsbegriff bleibt.
+1. **Repo-Heimat und Name:** Vorschlag `ddoe/parlamentplattform` auf GitHub + Codeberg-Mirror. Braucht: GitHub-Organisation der DDÖ (legst du an, ich richte alles ein). *Stand 29.9.2026: entschieden — `github.com/parlamentplattform/parlamentplattform`, kein Mirror.*
+2. **Namenskonvention:** „ParlamentPlattform" ist der Satzungsbegriff; als Projektname international tauglich? Alternative Arbeitstitel möglich, Satzungsbegriff bleibt. *Stand 29.9.2026: der Satzungsbegriff ist der Projektname geblieben; die Partner-Seite führt ihn unübersetzt.*
 3. **Erste Testgruppe:** Wer sind die 20–50 Personen des Phase-1-Tors? (Empfehlung: Mitglieder + eingeladene kritische Externe, ausdrücklich auch Skeptiker.)
-4. **Pentest-Budget** in Phase 2 freigeben.
+4. **Pentest-Budget** in Phase 2 freigeben. *Stand 29.9.2026: offen; Dependency-Scans (§ 5, N-04) ebenfalls noch nicht automatisiert.*
+5. **Datenschutzerklärung:** Der Entwurf unter `/datenschutz/` (0.50) braucht die Freigabe des Gründers beziehungsweise eine Rechtsberatung; Auftragsverarbeiter, Speicherdauer und die Löschfrist des Stimmregisters (§ 8 Abs 6) sind darin ehrlich als offen benannt.
 
 ## Anhang B — Traceability Satzung → Lastenheft
 

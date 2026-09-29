@@ -1,4 +1,4 @@
-# Betrieb auf Render — Stand 20.08.2026
+# Betrieb auf Render — Stand 29.09.2026 (0.50)
 
 Die Plattform läuft öffentlich unter **https://parlament.ddoe.at**
 (Ausweich-Adresse: https://parlamentplattform.onrender.com, Gesundheitscheck: `/gesund/`).
@@ -7,7 +7,7 @@ Die Plattform läuft öffentlich unter **https://parlament.ddoe.at**
 
 | Baustein | Ausprägung |
 |---|---|
-| Web-Service `parlamentplattform` | Render Frankfurt, Python 3.12, Instance Type **Starter** (0,5 CPU / 512 MB, 7 $/Monat) |
+| Web-Service `parlamentplattform` | Render Frankfurt, Instance Type **Starter** (0,5 CPU / 512 MB, 7 $/Monat). **Ehrlich zur Laufzeit:** Der seit 08/2026 laufende Dienst wurde per API mit der **Python-Runtime** (`PYTHON_VERSION=3.12.6`) angelegt; `render.yaml` beschreibt den reproduzierbaren Neuaufbau mit der **Docker-Runtime** (`Dockerfile`, dieselben Befehle und Variablen). Beide führen dieselbe Startkette aus; wer neu aufbaut, bekommt Docker. |
 | PostgreSQL `plattform-db` | Render Frankfurt, **basic-256mb** (6 $/Monat), PostgreSQL 16 — Konten und Verfahren überleben jeden Deploy |
 | Domain | `parlament.ddoe.at` per **CNAME** in der World4You-DNS-Zone auf `parlamentplattform.onrender.com` (nicht die W4Y-„Subdomain“-Funktion — die mappt nur Webspace-Ordner). Zertifikat stellt Render automatisch aus |
 | E-Mail | World4You-Postfach `plattform@ddoe.at`, SMTP `smtp.world4you.com:587` (STARTTLS) |
@@ -45,10 +45,14 @@ Zwei Render-Eigenheiten, die man kennen muss:
 
 ## Start und Build
 
-- Build: `pip install ".[postgres]" gunicorn whitenoise`
-- Start: `migrate` → `kategorien_laden` → `demo_seed` → `collectstatic` → Gunicorn
-  (2 Worker, 60 s Timeout). Alle Schritte sind idempotent — `demo_seed` legt nur
-  auf leerer Datenbank an, `kategorien_laden` und `gemeinden_laden` aktualisieren.
+- Build: `pip install ".[postgres]" gunicorn whitenoise` (Python-Runtime) beziehungsweise das `Dockerfile` (Docker-Runtime).
+- Start: `migrate` → `gemeinden_laden` → `kategorien_laden` → `clearsessions` → `collectstatic` → Gunicorn
+  (2 Worker, 60 s Timeout; `gunicorn.conf.py` startet den Hintergrundfaden). Alle Schritte sind idempotent;
+  `gemeinden_laden` und `kategorien_laden` aktualisieren. **`demo_seed` läuft in Produktion nicht mehr**
+  (seit 0.50): Ohne `DDOE_DEMO=1` legt es nichts an — die fünf Demo-Konten des Aufbaus zählten bis 0.49 in
+  jedem Nenner der Stimmberechtigten mit (Bestandsaufnahme 28.9.2026, A1); sie sind als Testkonten
+  stillgelegt. `gemeinden_laden` gehört in jede Startkette: Ohne das amtliche Gemeindeverzeichnis kann
+  sich niemand registrieren (A13).
 
 ## Umgebungsvariablen (Werte nur im Render-Dashboard, nie im Repo)
 
@@ -62,6 +66,9 @@ Zwei Render-Eigenheiten, die man kennen muss:
 | `DDOE_SMTP_TIMEOUT` | optional, Standard 20 s — hängender Mailserver blockiert keinen Worker |
 | `DDOE_MAIL_ABSENDER` | Absender (Standard `ParlamentPlattform <plattform@ddoe.at>`) |
 | `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
+| `DDOE_DEMO` | Standard `0` in Produktion (`1` nur mit `DDOE_DEBUG=1`): steuert, ob `demo_seed` Demo-Daten anlegt |
+| `DDOE_WAECHTER_MINUTEN` | optional, Standard 10 — Takt des Fristen-Wächters im Hintergrundfaden |
+| `DDOE_KI_SCHLUESSEL`, `DDOE_KI_MODELL` | optional — KI-Steckplatz der Zukunftswerkstatt (Mistral); ohne Schlüssel bleibt der Steckplatz leer, und `/datenschutz/` nennt keinen KI-Anbieter |
 | `DDOE_FIX_ADMIN` | optional — fixer Verwaltungs-Erstzugang (Standard `didide@ddoe.at`, F-51) |
 | `DDOE_BANK_SECRET_ID` / `DDOE_BANK_SECRET_KEY` | Beitragsabgleich F-59: Schlüsselpaar des Kontoinformationsdiensts (GoCardless Bank Account Data → User Secrets). Ohne sie bleibt die Bankanbindung schlicht aus |
 | `DDOE_BASIS_URL` | optional, Standard `https://parlament.ddoe.at` — Basis für Rückkehr-Link der Bankkopplung und Links in Beitragsmails |
@@ -78,11 +85,17 @@ F-50) braucht gar keinen Zugang.
 
 ## Betriebliches
 
-- **Backups:** Render-Postgres hat tägliche Snapshots; zusätzlich monatlich
-  `pg_dump` ziehen und verschlüsselt ablegen (Technischer Entwicklungsrat, § 6 Abs 4).
-- **Phasenübergänge:** Fristabläufe werden beim nächsten Seitenaufruf verarbeitet
-  (lazy, idempotent). Optional täglicher Render-Cron:
-  `python manage.py shell -c "from verfahren.models import Antrag; [a.fortschreiben() for a in Antrag.objects.all()]"`.
+- **Backups — offene Aufgabe (Bestandsaufnahme 28.9.2026, A10):** Heute gibt es nur die täglichen
+  Snapshots von Render-Postgres (beim Anbieter, nicht außerhalb) und keine geprobte Wiederherstellung.
+  Empfehlung: täglicher externer `pg_dump` (z. B. GitHub-Action mit Zeitplan, verschlüsselt mit einem
+  Schlüssel außerhalb von Render), Ablage im eigenen Land, Wiederherstellung einmal im Quartal geprobt —
+  mit Prüfung der Audit-Kette nach dem Einspielen. **Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4);
+  bis er besetzt ist, der Gründer. Speicherort und Schlüsselverwahrung sind noch nicht entschieden.
+- **Fristen-Wächter (seit 0.50, D-J1a):** Phasenübergänge, Beschlussfristen, Aussetzungen, Parametertests und
+  Stufe 2 der Vertrauensfrage wertet der Hintergrundfaden aus `gunicorn.conf.py` alle `DDOE_WAECHTER_MINUTEN`
+  aus (`verfahren/hintergrund.py`, `manage.py verfahren_fortschreiben`), unter einer Datenbanksperre, sodass
+  zwei Worker nie dasselbe tun; Seitenaufrufe schreiben zusätzlich bis zum Stand fort. **Kein Render-Cron
+  nötig.** Beim Hosting ohne Gunicorn ist `python manage.py verfahren_fortschreiben` regelmäßig auszuführen.
 - **Logs:** Dashboard → Logs. Jeder Serverfehler (Status 500) steht dort mit vollem Traceback
   (`LOGGING` in `config/settings.py`, Logger `django.request` → stderr, unabhängig von DEBUG);
   ebenso abgewiesene Hosts und CSRF-Verstöße (`django.security`) und der SMTP-Versand.
@@ -106,8 +119,8 @@ Tages-Summen gezählt (F-52, ADR-008).
 
 ## Automatischer Postausgang (ab 0.49)
 
-`gunicorn.conf.py` startet nach Initialisierung jedes Webworkers einen Hintergrundlauf.
-Alle 30 Sekunden prüft dieser höchstens 50 fällige Postaufträge. Die Datenbank reserviert
+`gunicorn.conf.py` startet nach Initialisierung jedes Webworkers einen Hintergrundlauf (derselbe Faden
+trägt seit 0.50 den Fristen-Wächter, siehe oben). Alle 30 Sekunden prüft dieser höchstens 50 fällige Postaufträge. Die Datenbank reserviert
 einen Auftrag atomar für fünf Minuten. Nach Fehlern erfolgt der nächste Versuch nach
 2, 4, 8, 16, 32 und danach jeweils 60 Minuten. Ein Neustart verliert die Aufträge nicht.
 Der Dienst muss mit Gunicorn aus dem Projektverzeichnis starten, damit die Konfiguration

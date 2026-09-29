@@ -384,3 +384,29 @@ def test_verwaltungsansicht_nennt_den_brief_betroffene_gesetze_als_verfahrenspos
     karte = inhalt.split('id="mitgliederpost"')[1].split("</section>")[0]
     assert "Betroffene Gesetze" in karte and f'href="/antrag/{antrag.pk}/"' in karte
     assert "Ausweis-Vorschau" not in karte and "PDF noch nicht versendet" not in karte
+
+
+def test_die_hoechstzahl_der_versuche_kommt_aus_dem_register(ordnung, monkeypatch):  # noqa: F811
+    """Entscheidung des Gründers 29.9.2026: Die Höchstzahl der Versuche für E-Mails zum Verfahren ist
+    ein Registerwert („post-hoechstversuche“)."""
+    import smtplib
+
+    from parameter.models import Parameter
+
+    Parameter.objects.create(schluessel="post-hoechstversuche", wert="3", beschreibung="x", quelle="Test")
+    antrag = antrag_einbringen(mitglied_anlegen("bert"), **ANTRAG, ordnung=ordnung)
+    m = eingewilligt("abgewiesen")
+    assert beauftragen(m, "neuer_antrag", antrag=antrag)
+
+    def abweisen(self, fail_silently=False):
+        raise smtplib.SMTPRecipientsRefused({m.email: (550, b"5.1.1 User unknown")})
+
+    monkeypatch.setattr("mitglieder.post.EmailMessage.send", abweisen)
+    a = Postauftrag.objects.get(mitglied=m, art="neuer_antrag")
+    jetzt = timezone.now()
+    for _ in range(5):
+        zustellen(a.pk, jetzt)
+        jetzt += timedelta(minutes=61)
+    a.refresh_from_db()
+    assert a.erledigt and a.versandt_am is None and a.versuche == 3
+

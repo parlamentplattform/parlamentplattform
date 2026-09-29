@@ -15,6 +15,7 @@ from django.utils import timezone, translation
 from django.utils.translation import gettext as _
 
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus, Postauftrag
+from parameter.models import zahl
 
 log = logging.getLogger(__name__)
 AUSWEIS_VORSCHAU = "ausweis_vorschau_4"
@@ -27,11 +28,12 @@ KONTO_ARTEN = ("willkommen", "freischaltung", *VORSCHAU_ARTEN)
 EINWILLIGUNG_ARTEN = ("neuer_antrag", "beitragserinnerung", "rechtsbezug")
 #: Verfahrenspost, die zu einem Antrag gehört: Bezug `antrag:<pk>`, Auftrag mit Antrag.
 ANTRAGS_ARTEN = ("neuer_antrag", "rechtsbezug")
-#: Grenze der Maschine, keine Verfahrensgröße: Nach so vielen gescheiterten Versuchen (2, 4, 8, 16, 32
-#: Minuten, danach stündlich — zusammen rund 20 Stunden) gibt der Postausgang die Verfahrenspost auf und
-#: stempelt den Auftrag als erledigt ohne Versand (nicht gelöscht). Eine dauerhaft abgewiesene Adresse
-#: liefe sonst je Antrag und je Jahr stündlich und ohne Ende und belegte vorne den Durchsatz. Die
-#: Kontobriefe bleiben ohne Grenze: Sie gehören zum Konto und sind wenige.
+#: Erstbestand und Rückfall des Registerwerts „post-hoechstversuche“ (Entscheidung des Gründers
+#: 29.9.2026): Nach so vielen gescheiterten Versuchen (2, 4, 8, 16, 32 Minuten, danach stündlich —
+#: zusammen rund 20 Stunden) gibt der Postausgang die Verfahrenspost auf und stempelt den Auftrag als
+#: erledigt ohne Versand (nicht gelöscht). Eine dauerhaft abgewiesene Adresse liefe sonst je Antrag und
+#: je Jahr stündlich und ohne Ende und belegte vorne den Durchsatz. Die Kontobriefe bleiben ohne
+#: Grenze: Sie gehören zum Konto und sind wenige.
 HOECHSTVERSUCHE_VERFAHRENSPOST = 24
 
 
@@ -146,7 +148,11 @@ def zustellen(pk, jetzt=None):
         log.exception("Postauftrag %s fehlgeschlagen", pk)
         return False
     finally:
-        if a.art in EINWILLIGUNG_ARTEN and not update.get("erledigt") and a.versuche >= HOECHSTVERSUCHE_VERFAHRENSPOST:
+        if (
+            a.art in EINWILLIGUNG_ARTEN
+            and not update.get("erledigt")
+            and a.versuche >= max(1, zahl("post-hoechstversuche", HOECHSTVERSUCHE_VERFAHRENSPOST))
+        ):
             log.warning("Postauftrag %s nach %s Versuchen ohne Versand abgeschlossen", pk, a.versuche)
             update["erledigt"] = True
         update.update(sperrcode="", gesperrt_bis=None,

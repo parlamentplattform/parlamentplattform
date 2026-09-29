@@ -205,6 +205,32 @@ def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, be
     assert laeufe.count() == BEDEUTUNG_JE_KONTO_UND_STUNDE + 1
 
 
+def test_zeitgrenze_und_drossel_kommen_aus_dem_register(client, settings, bestehend, monkeypatch):
+    """Entscheidung des Gründers 29.9.2026: Zeitgrenze und Drossel der Bedeutungsstufe sind Registerwerte."""
+    from types import SimpleNamespace
+
+    from ki.test_einbettung import _Scheinantwort
+
+    Parameter.objects.create(schluessel="aehnlichkeit-zeitgrenze-sekunden", wert="3", beschreibung="x", quelle="Test")
+    Parameter.objects.create(schluessel="aehnlichkeit-bedeutung-je-stunde", wert="2", beschreibung="x", quelle="Test")
+    monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: 3600 * 480_000 + 1800))
+    settings.DDOE_KI_ANBIETER = "mistral"
+    settings.DDOE_KI_SCHLUESSEL = "nur-fuer-den-test"
+    zeitgrenzen = []
+
+    def schein_urlopen(anfrage, timeout=None):
+        zeitgrenzen.append(timeout)
+        texte = json.loads(anfrage.data.decode())["input"]
+        daten = {"model": "mistral-embed", "data": [{"index": i, "embedding": [1.0, 0.0]} for i in range(len(texte))]}
+        return _Scheinantwort(json.dumps(daten).encode())
+
+    monkeypatch.setattr("urllib.request.urlopen", schein_urlopen)
+    client.force_login(mitglied_anlegen("bernd"))
+    for _ in range(4):
+        client.post(reverse("verfahren:einbringen"), UMFORMULIERT)
+    assert zeitgrenzen == [3, 3]  # zwei Aufrufe mit der Zeitgrenze aus dem Register, dann gedrosselt
+
+
 def test_nachziehen_ist_je_aufruf_begrenzt(settings, ordnung):  # noqa: F811
     settings.DDOE_KI_ANBIETER = "attrappe"
     _register("aehnlichkeit-einbettungen-je-aufruf", 2)

@@ -222,6 +222,28 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 10 lit d",
     },
     {
+        "schluessel": "aehnlichkeit-zeitgrenze-sekunden",
+        "wert": "8",
+        "einheit": gettext_noop("Sekunden"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie lange das Einbringen höchstens auf den KI-Anbieter wartet (je "
+        "Verbindungsschritt), bevor es ohne Bedeutungsvergleich weitergeht. Die Person wartet vor dem "
+        "Formular; wer länger braucht, bekommt den Wortvergleich allein, den Textvektor des neuen Antrags "
+        "rechnet die Warteschlange nach. Wirkt sofort."),
+        "quelle": "Grenze der Maschine · Entscheidung des Gründers 29.9.2026: als Registerwert",
+    },
+    {
+        "schluessel": "aehnlichkeit-bedeutung-je-stunde",
+        "wert": "5",
+        "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Wie oft ein Konto je Stunde beim Einbringen den Bedeutungsvergleich des "
+        "KI-Anbieters auslösen kann. Darüber rechnet nur der Wortvergleich — der Hinweis bleibt, nichts "
+        "blockiert. Schützt das Monatsbudget vor einem einzelnen Konto; 0 schaltet den Bedeutungsvergleich "
+        "beim Einbringen ab. Wirkt sofort."),
+        "quelle": "Grenze der Maschine · Entscheidung des Gründers 29.9.2026: als Registerwert",
+    },
+    {
         "schluessel": "aehnlichkeit-treffer",
         "wert": "3",
         "einheit": gettext_noop("Anträge"),
@@ -685,6 +707,17 @@ ERSTBESTAND = [
         "eine Beitragserinnerung beauftragen kann. Die Erinnerung geht nur mit E-Mail-Einwilligung, nie an "
         "Testkonten und höchstens einmal je Kalenderjahr; die Höhe des Beitrags bleibt Selbsteinschätzung."),
         "quelle": "§ 4 Abs 3 · Anweisung des Gründers 28.9.2026",
+    },
+    {
+        "schluessel": "post-hoechstversuche",
+        "wert": "24",
+        "einheit": gettext_noop("Versuche"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Nach wie vielen gescheiterten Zustellversuchen der Postausgang eine E-Mail "
+        "zum Verfahren aufgibt (neuer Antrag, Beitragserinnerung, betroffene Gesetze). Der Auftrag bleibt als "
+        "erledigt ohne Versand stehen. Die Abstände wachsen von zwei Minuten auf eine Stunde — 24 Versuche "
+        "sind rund 20 Stunden. Nachrichten zum Konto versucht der Postausgang ohne Grenze. Wirkt sofort."),
+        "quelle": "Grenze der Maschine · Entscheidung des Gründers 29.9.2026: als Registerwert",
     },
 ]
 

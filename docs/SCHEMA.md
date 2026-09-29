@@ -9,7 +9,7 @@ Stellgrößen mit **sprachneutralen Kennungen** und **aggregierte Kennzahlen**. 
 verlassen eine Instanz nie.
 
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
-Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.0) — weicht die Datei
+Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ## 1. Grundsätze
@@ -27,10 +27,10 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.7",
+  "schema_version": "1.8",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
-  "software": {"name": "ParlamentPlattform", "version": "0.50.0",
+  "software": {"name": "ParlamentPlattform", "version": "0.50.1",
                "quelle": "https://github.com/parlamentplattform/parlamentplattform", "lizenz": "AGPL-3.0-or-later"},
   "exportiert_am": "2026-09-15T08:00:00+00:00"
 }
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.7, 51 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.8, 54 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -76,7 +76,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | Kennung | Registerschlüssel (at-ddoe) | Einheit | Bedeutung |
 |---|---|---|---|
 | `account.email_change_waiting_hours` | `adresswechsel-wartefrist-stunden` | hours | Waiting time before an administrative change of a login address takes effect |
-| `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | How many queued model runs (affected laws, text embeddings) the future workshop starts per calendar day; the rest waits for the next day |
+| `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | How many provider calls the future workshop's queue makes per calendar day (affected laws, text embeddings) — every attempt counts, including failed ones; the rest waits for the next day |
 | `ai.max_response_tokens` | `ki-antwort-hoechsttokens` | tokens | Maximum length of a model response |
 | `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | Hard monthly token budget of the model slot (cost cap of the future workshop) |
 | `archive.audit_display_limit` | `archiv-audit-anzeige` | events | How many audit events the archive timeline shows; the export always contains all |
@@ -104,6 +104,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
 | `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
+| `mail.max_attempts` | `post-hoechstversuche` | attempts | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |
 | `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
 | `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
 | `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
@@ -114,7 +115,9 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | Whether a registered secondary residence also assigns a member to that region for regional motions (0 or 1; never affects voting rights) |
 | `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
 | `similarity.max_hits` | `aehnlichkeit-treffer` | motions | How many similar motions are shown when submitting |
+| `similarity.meaning_calls_per_account_hour` | `aehnlichkeit-bedeutung-je-stunde` | calls/hour | How many times per hour one account may trigger the provider's meaning comparison when submitting; above that only the word comparison runs (0 switches it off) |
 | `similarity.meaning_threshold_percent` | `aehnlichkeit-bedeutung-schwelle-prozent` | percent | Cosine similarity of the provider's text embeddings above which an existing motion is shown when submitting (second opinion next to the word comparison; inactive without a provider) |
+| `similarity.request_timeout_seconds` | `aehnlichkeit-zeitgrenze-sekunden` | seconds | How long submitting a motion waits for the AI provider (per connection step) before continuing with the word comparison alone |
 | `similarity.threshold_percent` | `aehnlichkeit-schwelle-prozent` | percent | Similarity above which the platform points to an existing motion when submitting a new one |
 | `soft_filter.max_profiles` | `weicherfilter-profile-hoechstzahl` | profiles | How many personal filter profiles a member may store |
 | `soft_filter.rule_version` | `weicherfilter-regel` | rule version | Version of the member-controlled ordering rule (nine sliders, neutral by default) |
@@ -183,7 +186,7 @@ Einbringen in die Ordnung des Antrags eingefroren.
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.7, 7 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.8, 7 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -233,3 +236,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.5 | 12.9.2026 | 0.46.0 | `mandate.question_vote_window_days` (Dauer der Abstimmung über eine Mandatsfrage, § 7 Abs 9), `mandate.monthly_report_grace_days` (Karenz des Monatsberichts, § 7 Abs 3 lit b), `region.secondary_residence_counts` (Schalter 0/1, § 5 Abs 6 — nie Stimmrecht). Diese Datei vollständig auf den Code gebracht: Die Tabelle stand seit 1.0 unverändert bei 12 Kennungen und trug die drei in 1.1 umbenannten noch unter ihren alten Namen; der Verlauf nannte 1.1 bis 1.3 nicht |
 | 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |
 | 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4; dieselbe Kennung steht in Prozent je Fassung im Export der Verfahrensordnung, 3.2), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |
+| 1.8 | 29.9.2026 | 0.50.1 | Drei Grenzen, die bisher im Code standen, sind Stellgrößen (Entscheidung des Gründers 29.9.2026): `similarity.request_timeout_seconds` (wie lange das Einbringen höchstens auf den KI-Anbieter wartet, bevor der Wortvergleich allein gilt), `similarity.meaning_calls_per_account_hour` (wie oft ein Konto je Stunde den Bedeutungsvergleich beim Einbringen auslösen kann; 0 schaltet ihn ab), `mail.max_attempts` (nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird; Nachrichten zum Konto ohne Grenze). `ai.daily_queue_runs` zählt jetzt jeden Aufruf beim Anbieter, auch gescheiterte (bisher je Auftrag einmal) — dieselbe Einheit, genauere Zählung. |

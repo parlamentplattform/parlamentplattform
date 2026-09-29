@@ -221,3 +221,20 @@ Das Bild der Tastenhilfe (`parlament-tastenhilfe`) entfällt, weil der Gründer 
 - Die Nebenzweige `pruefung/k3a`, `pruefung/k3b`, `pruefung/k4` und `pruefung/k5` auf GitHub löschen.
 
 **Danach** ist der zweite Prompt an der Reihe: „Restaufgaben aus dem Fahrtenbuch“.
+
+## 11. Nachtrag 29.9.2026 — Antworten des Gründers und Merge
+
+Antworten auf Abschnitt 7, wörtlich: „1. nein, wir sind transparent so weit es geht. 2. ja 3. Anbieteraufrufe 4. ja 5. nein 6. aha 7. nein vorerst 8. ok“
+
+| Nr. | Punkt | Antwort | Folge |
+|---|---|---|---|
+| 1 | D-L6h Vertrauensfrage geheim | nein — transparent | bleibt pseudonym-offen; der Gründer passt § 7 Abs 10 lit e an; README, ADR-003, Fahrtenbuch (D-L6h ✅) |
+| 2 | Grenzen der Maschine als Registerwerte | ja | gebaut in 0.50.1: `aehnlichkeit-zeitgrenze-sekunden`, `aehnlichkeit-bedeutung-je-stunde`, `post-hoechstversuche` (Schema 1.8) |
+| 3 | Tageskontingent | Anbieteraufrufe | gebaut in 0.50.1: jeder Aufruf der Warteschlange zählt, auch gescheiterte (R3-11 erledigt) |
+| 4 | Ungeprüfte Konten als „Mitglieder“ | ja | bleibt so (R2-13 erledigt ohne Änderung) |
+| 5 | Datenschutz-Nachträge | nein | keine Änderung an der Datenschutzerklärung |
+| 6 | „Mitglied n“ trägt die Konto-Kennung | aha | zur Kenntnis; bleibt Folgeschritt |
+| 7 | H-1-Rest | nein vorerst | nicht gebaut |
+| 8 | Screenreader-Probe | ok | macht der Gründer |
+
+PR #3 wurde am 29.9.2026 als Merge-Commit übernommen (`b30862f`). Der Branch-Schutz auf `main` verlangte dabei noch den Check „pruefen“, den es seit der CI-Matrix nicht mehr gibt (P-40); umzustellen auf `pruefen (3.11)`, `pruefen (3.12)`, `pruefen_postgres` und `sichtpruefung`.

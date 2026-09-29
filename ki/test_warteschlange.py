@@ -138,6 +138,39 @@ def test_tageskontingent_deckelt_die_laeufe(json_attrappe, ordnung):  # noqa: F8
     assert warteschlange_stand()["kontingent"] == 2
 
 
+def test_das_tageskontingent_zaehlt_anbieteraufrufe_nicht_auftraege(attrappe, ordnung, monkeypatch):  # noqa: F811
+    """Entscheidung des Gründers 29.9.2026: Das Tageskontingent zählt Aufrufe beim Anbieter, nicht
+    Aufträge. Ein Auftrag, der heute zweimal scheiterte, hat zwei Aufrufe gekostet — bei einem
+    Kontingent von zwei startet heute nichts mehr (R3-11). Aufrufe beim Einbringen (ohne Antrag,
+    eigene Drossel je Konto) gehören nicht zur Warteschlange und zählen nicht mit."""
+    from ki.anbieter import AnbieterFehler
+    from ki.warteschlange import heute_gestartet
+    from parameter.models import Parameter
+
+    def kaputt(self, auftrag, eingabe):
+        raise AnbieterFehler("HTTP 503 vom Anbieter")
+
+    Parameter.objects.create(schluessel="ki-tageslaeufe", wert="2", beschreibung="x", quelle="Test")
+    monkeypatch.setattr(AttrappenAnbieter, "frage", kaputt)
+    jetzt = timezone.now()
+    a = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung, "m0", "Antrag 0"), mitglied_anlegen("x0"))
+    for _versuch in range(2):
+        KIAuftrag.objects.filter(pk=a.pk).update(naechster_versuch=None)  # der Rückzug ist hier nicht das Thema
+        assert abarbeiten(jetzt)["verschoben"] == 1
+    for _ in range(3):  # Bedeutungsvergleich beim Einbringen: Aufruf ohne Antrag
+        KILauf.objects.create(zweck=Zweck.AEHNLICHKEIT, angefordert_von=a.angefordert_von, eingabe="x",
+                              anbieter="attrappe", modell="attrappe-einbettung-1")
+    assert heute_gestartet(jetzt) == 2
+    b = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung, "m1", "Antrag 1"), mitglied_anlegen("x1"))
+    KIAuftrag.objects.filter(pk=a.pk).update(naechster_versuch=None)
+    stand = abarbeiten(jetzt)
+    assert stand.get("kontingent_erschoepft") is True
+    a.refresh_from_db()
+    b.refresh_from_db()
+    assert a.versuche == 2 and b.versuche == 0
+    assert warteschlange_stand(jetzt)["heute"] == 2
+
+
 def test_reservierter_auftrag_wird_nicht_zugleich_gerechnet(json_attrappe, ordnung):  # noqa: F811
     jetzt = timezone.now()
     a = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung), mitglied_anlegen("x"))

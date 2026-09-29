@@ -154,6 +154,8 @@ jobs:
         run: |
           python manage.py demo_seed
           python manage.py demo_seed
+      - name: Audit-Kette der Demo-Datenbank nachrechnen (Bestandsaufnahme A7)
+        run: python manage.py audit_pruefen --voll
       - name: Tests gegen PostgreSQL
         run: python -m pytest -q --tb=short --ignore=tests/e2e
 

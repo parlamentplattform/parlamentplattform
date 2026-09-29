@@ -12,8 +12,9 @@ Grundsätze:
   samt Blick auf das Stimmregister-Pseudonym (§ 5 Abs 3). Darum Nachricht mit
   Einspruchslink an die bisherige Adresse, Wartefrist und ein zweiter Admin
   (`Adresswechsel`).
-- Jede Handlung landet im öffentlichen Audit-Log (F-22) — mit Aktion, Mitglieds-
-  nummer und Begründung, aber ohne personenbezogene Werte.
+- Jede Handlung landet im Audit-Log (F-22) — mit Aktion, Mitgliedsnummer und Begründung.
+  Öffentlich (`/audit/`) sind Mitgliedsnummer und Begründung geschwärzt und gesalzen
+  (verfahren/audit_oeffentlich.py, 0.52.0).
 - Statusfolgen: „pausiert“ lässt Anmelden und Lesen zu, Mitwirkungsrechte ruhen
   (§ 4 Abs 3); „ausgeschlossen“ deaktiviert das Konto (§ 4 Abs 6 — der Knopf
   vollzieht den satzungsmäßigen Beschluss, er ersetzt ihn nicht). Jeder Wechsel
@@ -297,7 +298,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
             messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
             return
     if aktion in ("pausieren", "ausschliessen") and not grund:
-        messages.error(request, _("Bitte eine Begründung angeben — sie wird im Audit-Log veröffentlicht."))
+        messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
 
     if aktion == "pausieren":

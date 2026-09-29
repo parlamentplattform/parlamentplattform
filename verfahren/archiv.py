@@ -382,21 +382,18 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     # Audit-Log — jede Stimme, jede Unterstützung plattformweit — und siebte es in Python.
     # Mit `grenze` schneidet die Datenbank (0.51.0): Seit jede Reaktion im Abstimmungs-Chat einen
     # Eintrag schreibt (Bestandsaufnahme A8), wüchse die Spur eines umkämpften Antrags mit jedem Klick.
-    eintraege = AuditEintrag.objects.filter(ereignis__antrag=antrag.pk)
+    from verfahren.audit_oeffentlich import mit_vorgaenger
+
+    eintraege = mit_vorgaenger(AuditEintrag.objects.filter(ereignis__antrag=antrag.pk))
     if grenze:
         eintraege = reversed(list(eintraege.order_by("-lfd")[:grenze]))
     else:
         eintraege = eintraege.order_by("lfd")
-    return [
-        {
-            "lfd": eintrag.lfd,
-            "typ": eintrag.ereignis.get("typ", ""),
-            "zeit": eintrag.zeit.isoformat(),
-            "hash": eintrag.hash[:12],
-            "grund": eintrag.ereignis.get("grund", ""),
-        }
-        for eintrag in eintraege
-    ]
+    # Voller Hash, Vorgänger und Inhalt (Bestandsaufnahme A7, 0.52.0): Jeder ungeschwärzte Eintrag lässt sich
+    # mit verify/nachrechnen.py einzeln nachrechnen; bis 0.51 trug der Export nur `hash[:12]`.
+    from verfahren.audit_oeffentlich import eintrag_oeffentlich
+
+    return [eintrag_oeffentlich(eintrag) for eintrag in eintraege]
 
 
 def audit_anzahl(antrag) -> int:
@@ -564,6 +561,6 @@ def als_markdown(antrag) -> str:
             zeilen += [f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}", ""]
     if d["audit"]:
         zeilen += [f"## {_('Audit-Spur')}", ""]
-        zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash']}`" for e in d["audit"]]
+        zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]
         zeilen.append("")
     return "\n".join(zeilen)

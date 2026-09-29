@@ -1,0 +1,169 @@
+name: Sicherung
+
+# Tägliche Sicherung der Render-Datenbank in das private Repository parlamentplattform/sicherung und
+# monatliche Wiederherstellungsprobe (Bestandsaufnahme A10, Schritt 2 · 0.52.0; ADR-012).
+#
+# Secrets im Hauptrepository (nie im Repo, docs/BETRIEB-RENDER.md › Sicherung):
+#   DDOE_SICHERUNG_DATENBANK_URL  — „External Database URL“ der Render-Datenbank
+#   DDOE_SICHERUNG_TOKEN          — fein granulierter Token, nur für parlamentplattform/sicherung,
+#                                   Rechte „Contents: Read and write“
+# Unverschlüsselt (Entscheidung des Gründers 29.9.2026, ADR-012): Das Repository ist privat.
+# Geplante Läufe laufen nur auf main; ein Fehlschlag meldet GitHub per E-Mail an das Konto, das den
+# Zeitplan zuletzt geändert hat.
+
+on:
+  schedule:
+    - cron: "17 2 * * *"  # täglich 02:17 UTC: sichern
+    - cron: "43 3 1 * *"  # am Monatsersten 03:43 UTC: Wiederherstellungsprobe
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "nach dem Sichern die Wiederherstellungsprobe laufen lassen"
+        type: boolean
+        default: true
+
+concurrency:
+  group: sicherung
+  cancel-in-progress: false
+
+env:
+  ZIEL: parlamentplattform/sicherung
+  # Wie lange eine Sicherung aufbewahrt wird (Tage); die vom Monatsersten länger. Ältere Releases löscht
+  # der Lauf nach einer gelungenen neuen Sicherung — das sind Sicherungskopien, keine Verfahrensdaten.
+  AUFBEWAHRUNG_TAGE: "90"
+  AUFBEWAHRUNG_MONATSERSTE_TAGE: "365"
+
+jobs:
+  sichern:
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 2 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets vorhanden?
+        env:
+          URL: ${{ secrets.DDOE_SICHERUNG_DATENBANK_URL }}
+          TOKEN: ${{ secrets.DDOE_SICHERUNG_TOKEN }}
+        run: |
+          fehlt=""
+          [ -n "$URL" ] || fehlt="$fehlt DDOE_SICHERUNG_DATENBANK_URL"
+          [ -n "$TOKEN" ] || fehlt="$fehlt DDOE_SICHERUNG_TOKEN"
+          if [ -n "$fehlt" ]; then
+            echo "::error::Keine Sicherung: Secret fehlt:$fehlt (docs/BETRIEB-RENDER.md › Sicherung)."
+            exit 1
+          fi
+          # Rechner, Benutzer und Datenbankname einzeln maskieren — GitHub maskiert nur das ganze Secret
+          python3 - <<'PY'
+          import os
+          from urllib.parse import urlsplit
+          teile = urlsplit(os.environ["URL"])
+          for wert in (teile.hostname, teile.username, teile.password, teile.path.lstrip("/")):
+              if wert:
+                  print(f"::add-mask::{wert}")
+          PY
+      - name: PostgreSQL-Werkzeuge (Fassung 17 sichert Server 16 und 17)
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Sichern
+        id: sichern
+        env:
+          URL: ${{ secrets.DDOE_SICHERUNG_DATENBANK_URL }}
+        run: |
+          datei=$(tools/sicherung.sh sichern "$URL" sicherung)
+          echo "datei=$datei" >> "$GITHUB_OUTPUT"
+          echo "### Sicherung $(basename "$datei")" >> "$GITHUB_STEP_SUMMARY"
+          echo "$(du -h "$datei" | cut -f1), $(cat "$datei.zahlen"), $(cut -d' ' -f1 "$datei.sha256")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Nicht kleiner als die letzte Sicherung?
+        # Eine leere oder falsche Datenbank (neu angelegt, falsches Secret) bestünde jede Probe — die Zahl
+        # der Audit-Einträge wächst aber nur. Sinkt sie, bleibt der Lauf rot und löscht nichts.
+        env:
+          GH_TOKEN: ${{ secrets.DDOE_SICHERUNG_TOKEN }}
+          DATEI: ${{ steps.sichern.outputs.datei }}
+        run: |
+          neu=$(sed -n 's/.*audit=\([0-9]*\).*/\1/p' "$DATEI.zahlen")
+          letzte=$(gh release list --repo "$ZIEL" --limit 1 --json tagName --jq '.[0].tagName' || true)
+          if [ -n "$letzte" ]; then
+            alt=$(gh release view "$letzte" --repo "$ZIEL" --json body --jq '.body' | sed -n 's/.*audit=\([0-9]*\).*/\1/p' | head -1)
+            if [ -n "$alt" ] && [ "$neu" -lt "$alt" ]; then
+              echo "::error::Die neue Sicherung hat $neu Audit-Einträge, die letzte ($letzte) $alt — falsche oder leere Datenbank?"
+              exit 1
+            fi
+          fi
+      - name: In das Sicherungs-Repository
+        env:
+          GH_TOKEN: ${{ secrets.DDOE_SICHERUNG_TOKEN }}
+          DATEI: ${{ steps.sichern.outputs.datei }}
+        run: |
+          name=$(basename "$DATEI" .dump)
+          gh release create "$name" "$DATEI" "$DATEI.sha256" --repo "$ZIEL" \
+            --title "$name" --notes "$(cat "$DATEI.zahlen") · Sicherung aus ${GITHUB_REPOSITORY}@${GITHUB_SHA::7}, Lauf ${GITHUB_RUN_ID}."
+      - name: Ältere Sicherungen entfernen
+        env:
+          GH_TOKEN: ${{ secrets.DDOE_SICHERUNG_TOKEN }}
+        run: |
+          grenze=$(date -u -d "-${AUFBEWAHRUNG_TAGE} days" +%Y-%m-%dT%H:%M:%SZ)
+          grenze_erste=$(date -u -d "-${AUFBEWAHRUNG_MONATSERSTE_TAGE} days" +%Y-%m-%dT%H:%M:%SZ)
+          # Die Sicherung vom Monatsersten (Name …-01T…) bleibt länger
+          gh release list --repo "$ZIEL" --limit 1000 --json tagName,createdAt \
+            --jq ".[] | select((.tagName | test(\"-01T\")) as \$erste | (\$erste and .createdAt < \"$grenze_erste\") or ((\$erste | not) and .createdAt < \"$grenze\")) | .tagName" |
+          while read -r tag; do
+            gh release delete "$tag" --repo "$ZIEL" --yes --cleanup-tag
+            echo "entfernt: $tag"
+          done
+
+  probe:
+    needs: sichern
+    if: >-
+      always() && (
+        github.event.schedule == '43 3 1 * *' ||
+        (github.event_name == 'workflow_dispatch' && inputs.probe && needs.sichern.result == 'success')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        # 17: nimmt eine Sicherung aus pg_dump 17 sicher an, gleich ob der Server live 16 oder 17 ist
+        image: postgres:17
+        env:
+          POSTGRES_DB: probe
+          POSTGRES_USER: probe
+          POSTGRES_PASSWORD: probe
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U probe"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: probe
+      POSTGRES_USER: probe
+      POSTGRES_PASSWORD: probe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Abhängigkeiten
+        run: pip install -e ".[prod,postgres]"
+      - name: PostgreSQL-Werkzeuge
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: Jüngste Sicherung holen
+        env:
+          GH_TOKEN: ${{ secrets.DDOE_SICHERUNG_TOKEN }}
+        run: |
+          tag=$(gh release list --repo "$ZIEL" --limit 1 --json tagName --jq '.[0].tagName')
+          [ -n "$tag" ] || { echo "::error::Keine Sicherung im Repository $ZIEL."; exit 1; }
+          gh release download "$tag" --repo "$ZIEL" --dir probe
+          echo "SICHERUNG=probe/$tag.dump" >> "$GITHUB_ENV"
+      - name: Zurückspielen und prüfen (Migrationen, Audit-Kette)
+        run: |
+          tools/sicherung.sh probe "$SICHERUNG"
+          echo "### Wiederherstellungsprobe bestanden: $(basename "$SICHERUNG")" >> "$GITHUB_STEP_SUMMARY"

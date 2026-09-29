@@ -1,7 +1,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from verfahren import views, views_aktionen
+from verfahren import views, views_aktionen, views_audit
 
 app_name = "verfahren"
 urlpatterns = [
@@ -62,5 +62,7 @@ urlpatterns = [
     path("datenschutz/", views.datenschutz, name="datenschutz"),
     path("umsetzung/", views.umsetzung, name="umsetzung"),
     path("umsetzung.json", views.umsetzung_json, name="umsetzung_json"),
+    path("audit/", views_audit.audit, name="audit"),
+    path("audit.json", views_audit.audit_json, name="audit_json"),
     path("gesund/", views.gesund, name="gesund"),
 ]

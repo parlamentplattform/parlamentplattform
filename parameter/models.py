@@ -423,6 +423,15 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 3 lit e · § 5 Abs 8",
     },
     {
+        "schluessel": "audit-seite-eintraege",
+        "wert": "50",
+        "einheit": gettext_noop("Einträge"),
+        "gruppe": "kacheln",
+        "beschreibung": gettext_noop("Wie viele Einträge das öffentliche Audit-Log je Seite zeigt, neueste zuerst; "
+        "ebenso je Abruf von /audit.json. Zwischen 10 und 500."),
+        "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
+    },
+    {
         "schluessel": "ki-antwort-hoechsttokens",
         "wert": "900",
         "einheit": gettext_noop("Tokens"),
@@ -730,6 +739,16 @@ ERSTBESTAND = [
         "erledigt ohne Versand stehen. Die Abstände wachsen von zwei Minuten auf eine Stunde — 24 Versuche "
         "sind rund 20 Stunden. Nachrichten zum Konto versucht der Postausgang ohne Grenze. Wirkt sofort."),
         "quelle": "Grenze der Maschine · Entscheidung des Gründers 29.9.2026: als Registerwert",
+    },
+    {
+        "schluessel": "audit-vollpruefung-tage",
+        "wert": "7",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Nach wie vielen Tagen die tägliche Prüfung der Audit-Kette wieder die ganze "
+        "Kette von vorn nachrechnet. Dazwischen rechnet sie nur die neuen Einträge nach und prüft, dass der "
+        "zuletzt geprüfte unverändert ist. Wirkt beim nächsten Lauf."),
+        "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
     },
 ]
 

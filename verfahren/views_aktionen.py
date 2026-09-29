@@ -593,7 +593,7 @@ def melden(request, pk, beitrag_pk):
     )
     if neu:
         AuditEintrag.anhaengen(
-            {"art": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+            {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
         )
     messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
@@ -755,7 +755,7 @@ def beanstanden(request, pk):
     beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
     AuditEintrag.anhaengen(
         {
-            "art": "einschaetzung_beanstandet",
+            "typ": "einschaetzung_beanstandet",
             "antrag": antrag.pk,
             "beanstandung": beanstandung.pk,
             "lauf": lauf.pk if lauf else None,
@@ -1025,6 +1025,11 @@ def export_json(request, pk):
                 "pseudonym", "bewerbung_id"
             )
         ]
+    # Die Audit-Spur des Antrags mit vollem Hash und Vorgänger — verify/nachrechnen.py rechnet jeden
+    # ungekürzten Eintrag nach (Bestandsaufnahme A7).
+    from verfahren.archiv import audit_spur
+
+    daten["audit"] = audit_spur(antrag)
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 1})
     antwort["Content-Disposition"] = f'attachment; filename="antrag-{antrag.pk}-export.json"'
     return antwort

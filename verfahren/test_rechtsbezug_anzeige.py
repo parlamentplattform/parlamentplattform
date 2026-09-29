@@ -211,7 +211,7 @@ def test_beanstandung_trifft_nie_den_textvektor_lauf(client, json_attrappe, ordn
     client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Die Norm stimmt nicht."})
     b = Beanstandung.objects.get(antrag=antrag)
     assert b.lauf.zweck == Zweck.RECHTSBEZUG
-    audit = AuditEintrag.objects.filter(ereignis__art="einschaetzung_beanstandet").get()
+    audit = AuditEintrag.objects.filter(ereignis__typ="einschaetzung_beanstandet").get()
     assert audit.ereignis["lauf"] == b.lauf_id
 
 

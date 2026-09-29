@@ -1,0 +1,33 @@
+name: Wache
+
+# Alle 15 Minuten fragt GitHub /gesund/ der Live-Instanz (Bestandsaufnahme A10). Antwortet sie dreimal
+# hintereinander nicht mit 200 — 500, 503 (Datenbank weg) oder gar nicht —, wird der Lauf rot, und
+# GitHub schickt eine E-Mail an das Konto, das den Zeitplan zuletzt geändert hat
+# (docs/BETRIEB-RENDER.md › Sicherung). Geplante Läufe laufen nur auf main.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  gesund:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: /gesund/ abfragen
+        env:
+          ADRESSE: https://parlament.ddoe.at/gesund/
+        run: |
+          for versuch in 1 2 3; do
+            # curl schreibt bei einem Verbindungsfehler selbst „000“ — kein zweites Anhängen
+            status=$(curl -s -o antwort.json -w '%{http_code}' --max-time 20 "$ADRESSE") || true
+            if [ "$status" = "200" ]; then
+              echo "gesund ($(cat antwort.json))"
+              exit 0
+            fi
+            echo "Versuch $versuch: HTTP ${status:-000} $(cat antwort.json 2>/dev/null)"
+            [ "$versuch" -lt 3 ] && sleep 30
+          done
+          echo "::error::parlament.ddoe.at/gesund/ antwortet nicht mit 200 (zuletzt HTTP $status)."
+          exit 1

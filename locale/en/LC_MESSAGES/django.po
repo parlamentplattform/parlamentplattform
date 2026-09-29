@@ -4036,9 +4036,6 @@ msgstr "Administration only"
 msgid "Dieser Bereich steht Admins der Mitgliederverwaltung offen. Admins werden von\nbestehenden Admins ernannt; jede Ernennung steht im öffentlichen Audit-Log."
 msgstr "This area is open to admins of the membership administration. Admins are appointed by\nexisting admins; every appointment appears in the public audit log."
 
-msgid "Zugang nur für Admins. Jede Handlung hier wird im öffentlichen\nAudit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten."
-msgstr "Access for administrators only. Every action taken here is recorded in the public\naudit log — with action and reason, without personal data."
-
 msgid "Beiträge &amp; Bank →"
 msgstr "Fees &amp; bank →"
 
@@ -4128,9 +4125,6 @@ msgstr "Automatically lifts a fee-related pause. Done by hand until the bank sta
 
 msgid "Der satzungsgebende Erstzugang kann weder pausiert noch ausgeschlossen werden."
 msgstr "The constituent initial access can neither be paused nor excluded."
-
-msgid "Begründung (wird im Audit-Log veröffentlicht)"
-msgstr "Reason (published in the audit log)"
 
 msgid "z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …"
 msgstr "e.g. fee outstanding for more than a year; reminder sent on …"
@@ -5538,9 +5532,6 @@ msgstr ""
 "District and federal state follow the register of municipalities automatically.\n"
 "  The change is recorded (without values) in the audit log. A new email address does not take effect immediately:\n"
 "  the current address receives an objection link, after which the waiting period and a second administrator are required."
-
-msgid "Bitte eine Begründung angeben — sie wird im Audit-Log veröffentlicht."
-msgstr "Please give a reason — it will be published in the audit log."
 
 msgid "Bund"
 msgstr "Federal level"
@@ -8491,3 +8482,93 @@ msgstr "§ 7 (10) lit b and g"
 
 msgid "Die Rolle ruht nach der verlorenen Vertrauensfrage (§ 7 Abs 10 lit f Z 1); ihre Bestätigung ist keine Wahl nach lit f Z 3 — die Kandidatursperre bleibt."
 msgstr "The role is suspended after the lost vote of confidence (§ 7 (10) lit f no. 1); its confirmation is not an election under lit f no. 3 — the bar on standing as a candidate remains."
+
+msgid "Begründung (steht im Audit-Log)"
+msgstr "Reason (recorded in the audit log)"
+
+msgid "Bitte eine Begründung angeben — sie steht im Audit-Log."
+msgstr "Please give a reason — it is recorded in the audit log."
+
+msgid "Audit-Log"
+msgstr "Audit log"
+
+msgid "Die Kette wurde noch nicht geprüft."
+msgstr "The chain has not been checked yet."
+
+msgid "Kopf"
+msgstr "Head"
+
+#, python-format
+msgid "Kette geprüft am %(am)s: gebrochen bei Eintrag %(nr)s"
+msgstr "Chain checked on %(am)s: broken at entry %(nr)s"
+
+msgid "alle Einträge"
+msgstr "all entries"
+
+#, python-format
+msgid "Antrag %(nr)s"
+msgstr "Motion %(nr)s"
+
+msgid "Personenbezogene Werte sind durch • ersetzt."
+msgstr "Personal values are replaced by •."
+
+msgid "Hash"
+msgstr "Hash"
+
+msgid "Vorgänger"
+msgstr "Predecessor"
+
+msgid "Keine Einträge."
+msgstr "No entries."
+
+msgid "Seiten"
+msgstr "Pages"
+
+msgid "neuere"
+msgstr "newer"
+
+msgid "ältere"
+msgstr "older"
+
+#, python-format
+msgid "Seite %(n)s von %(von)s"
+msgstr "Page %(n)s of %(von)s"
+
+msgid "geschwärzt"
+msgstr "redacted"
+
+#, python-format
+msgid "Kette geprüft am %(am)s: intakt, %(n)s Eintrag"
+msgid_plural "Kette geprüft am %(am)s: intakt, %(n)s Einträge"
+msgstr[0] "Chain checked on %(am)s: intact, %(n)s entry"
+msgstr[1] "Chain checked on %(am)s: intact, %(n)s entries"
+
+msgid "Art"
+msgstr "Type"
+
+#, python-format
+msgid "bis Eintrag %(nr)s"
+msgstr "up to entry %(nr)s"
+
+msgid "Inhalt passt nicht zum Hash"
+msgstr "content does not match its hash"
+
+msgid "hängt nicht am Vorgänger"
+msgstr "does not link to its predecessor"
+
+msgid "der zuletzt geprüfte Eintrag wurde verändert oder entfernt"
+msgstr "the last checked entry was changed or removed"
+
+msgid "zur Stelle"
+msgstr "go to the entry"
+
+msgid "<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal täglich geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen."
+msgstr "<strong>GitHub, Inc.</strong> (backup copies): once a day a copy of the whole database — without login sessions and login links — goes to a private repository of the party at GitHub. The copy is not encrypted. GitHub is a US company."
+
+msgid "Sicherungskopien der Datenbank bleiben 90 Tage, die vom Monatsersten 365 Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind."
+msgstr "Backup copies of the database are kept for 90 days, those from the first of each month for 365 days; for that long they also contain details that were already cleared in the database after a member left."
+
+msgid ""
+"Zugang nur für Admins. Jede Handlung hier steht im Audit-Log; öffentlich\n"
+"erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu einer Person."
+msgstr "Admins only. Every action here is recorded in the audit log; publicly shown is the action, not the membership number and not a reason concerning a person."

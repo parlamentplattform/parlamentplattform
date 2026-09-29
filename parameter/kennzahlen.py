@@ -67,4 +67,23 @@ def werte() -> dict:
         "votes.turnout_mean": turnout_mean(anteile),
         "implementation.by_status": je_status,
         "areas_of_life.active": Kategorie.objects.filter(aktiv=True).count(),
+        **_audit_werte(),
+    }
+
+
+def _audit_werte() -> dict:
+    """Der Stand der letzten Prüfung der Audit-Kette (verfahren/audit_pruefung.py) — nichts, solange
+    nie geprüft wurde. Der Kopf ist der veröffentlichte Hash des letzten geprüften Eintrags: Wer ihn sich
+    notiert, erkennt später, ob jemand die Kette von dort an neu gerechnet hat (ADR-005)."""
+    from verfahren.audit_pruefung import oeffentlicher_stand
+
+    stand = oeffentlicher_stand()
+    if not stand:
+        return {}
+    return {
+        "audit.chain_intact": 1 if stand.get("intakt") else 0,
+        "audit.entries": stand.get("eintraege"),
+        "audit.verified_at": stand.get("geprueft_am"),
+        "audit.head": stand.get("kopf"),
+        "audit.head_entry": stand.get("geprueft_bis"),
     }

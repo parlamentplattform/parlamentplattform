@@ -60,6 +60,7 @@ die Mindestbeteiligung gilt wie bei Sachfragen; gewählt ist der erste Platz, we
 er mindestens eine Zustimmung hat.
 """
 
+import hashlib
 import json
 import sys
 from fractions import Fraction
@@ -145,6 +146,31 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
     }
 
 
+def audit_nachrechnen(eintraege: list) -> dict:
+    """Rechnet die Audit-Einträge des Exports nach (Block "audit", seit 0.52.0).
+
+    Jeder Eintrag trägt seinen Inhalt ("ereignis"), den Hash seines Vorgängers und seinen eigenen Hash.
+    Sein Hash muss SHA-256 über den Vorgänger-Hash und den Inhalt sein — der Inhalt als JSON mit
+    sortierten Schlüsseln, ohne Leerzeichen, UTF-8. Stimmt das, wurde der Eintrag seit dem Schreiben
+    nicht verändert. Die Einträge eines Antrags liegen nicht nebeneinander in der Kette (dazwischen
+    stehen andere Anträge), deshalb wird jeder für sich geprüft; die ganze Kette prüft die Plattform
+    täglich, ihr Kopf steht in /kennzahlen.json. Einträge mit "geschwaerzt": true enthalten ausgeblendete
+    personenbezogene Werte („•“) und lassen sich von außen nicht nachrechnen — sie werden gezählt."""
+    geprueft, geschwaerzt = 0, 0
+    for eintrag in eintraege:
+        if eintrag.get("geschwaerzt") or not eintrag.get("hash") or not eintrag.get("vorgaenger"):
+            geschwaerzt += 1
+            continue
+        inhalt = json.dumps(eintrag["ereignis"], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        h = hashlib.sha256()
+        h.update(eintrag["vorgaenger"].encode("ascii"))
+        h.update(inhalt.encode("utf-8"))
+        if h.hexdigest() != eintrag["hash"]:
+            raise SystemExit(f"FEHLER: Audit-Eintrag {eintrag.get('lfd')} passt nicht zu seinem Hash.")
+        geprueft += 1
+    return {"audit_nachgerechnet": geprueft, "audit_geschwaerzt": geschwaerzt}
+
+
 def nachrechnen(daten: dict) -> dict:
     """Verzweigt nach der Antragsart des Exports. Eine unbekannte Art wird abgewiesen —
     ein Skript, das etwas anderes still als Sachfrage mit 0 Stimmen rechnet, wäre
@@ -178,7 +204,10 @@ if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="backslashreplace")
     with open(sys.argv[1], encoding="utf-8") as f:
-        ergebnis = nachrechnen(json.load(f))
+        daten = json.load(f)
+    ergebnis = nachrechnen(daten)
+    if "audit" in daten:
+        ergebnis.update(audit_nachrechnen(daten["audit"]))
     for schluessel, wert in ergebnis.items():
         if schluessel == "plaetze":
             print("plaetze:")

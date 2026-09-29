@@ -1,0 +1,60 @@
+{% extends "verfahren/base.html" %}
+{% load i18n chat %}
+{% comment %}
+Das öffentliche Audit-Log (Bestandsaufnahme A7, 0.52.0): die ganze Kette, neueste zuerst. Filter und
+Blättern sind Links und ein GET-Formular — ohne JavaScript vollständig bedienbar. Kein Erklärtext
+(CLAUDE.md Grundregel 1); was ausgeblendet ist, sagt die Marke „geschwärzt“ mit Titel.
+{% endcomment %}
+{% block titel %}{% translate "Audit-Log" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Audit-Log" %}</h1>
+
+<p class="audit-pruefung{% if pruefung and not pruefung.intakt %} gebrochen{% endif %}" id="pruefung">
+  {% if not pruefung %}{% translate "Die Kette wurde noch nicht geprüft." %}
+  {% elif pruefung.intakt %}{% blocktranslate with am=pruefung.geprueft_am|ortszeit count n=pruefung.eintraege %}Kette geprüft am {{ am }}: intakt, {{ n }} Eintrag{% plural %}Kette geprüft am {{ am }}: intakt, {{ n }} Einträge{% endblocktranslate %}
+    · {% blocktranslate with nr=pruefung.geprueft_bis %}bis Eintrag {{ nr }}{% endblocktranslate %}
+    {% if pruefung.kopf %}<br><span class="meta">{% translate "Kopf" %}</span> <code class="audit-kopf-hash">{{ pruefung.kopf }}</code>{% endif %}
+  {% else %}{% blocktranslate with am=pruefung.geprueft_am|ortszeit nr=pruefung.bruch %}Kette geprüft am {{ am }}: gebrochen bei Eintrag {{ nr }}{% endblocktranslate %}
+    — {% if pruefung.grund == "hash" %}{% translate "Inhalt passt nicht zum Hash" %}{% elif pruefung.grund == "vorgaenger" %}{% translate "hängt nicht am Vorgänger" %}{% else %}{% translate "der zuletzt geprüfte Eintrag wurde verändert oder entfernt" %}{% endif %}
+    · <a href="{% url 'verfahren:audit' %}?seite={{ bruch_seite }}#e-{{ pruefung.bruch }}">{% translate "zur Stelle" %}</a>
+  {% endif %}
+</p>
+
+<form method="get" action="{% url 'verfahren:audit' %}" class="audit-filter">
+  <span class="audit-feld"><label for="audit-antrag">{% translate "Antrag" %}</label>
+  <input type="number" min="1" id="audit-antrag" name="antrag" value="{{ gewaehlt.antrag }}" inputmode="numeric"></span>
+  <span class="audit-feld"><label for="audit-art">{% translate "Art" %}</label>
+  <select id="audit-art" name="art">
+    <option value="">{% translate "alle" %}</option>
+    {% for art in arten %}<option value="{{ art }}"{% if art == gewaehlt.art %} selected{% endif %}>{{ art }}</option>{% endfor %}
+  </select></span>
+  <button type="submit" class="btn-linie klein">{% translate "Filtern" %}</button>
+  {% if abfrage %}<a href="{% url 'verfahren:audit' %}">{% translate "alle Einträge" %}</a>{% endif %}
+  <a class="rechts" href="{% url 'verfahren:audit_json' %}{% if abfrage %}?{{ abfrage }}{% endif %}">JSON</a>
+</form>
+
+<ol class="audit-liste" reversed>
+{% for z in zeilen %}
+  <li class="audit-zeile" id="e-{{ z.lfd }}">
+    <div class="audit-kopf">
+      <span class="meta">#{{ z.lfd }} · {{ z.zeit|ortszeit }}</span>
+      <strong>{{ z.typ|default:"—" }}</strong>
+      {% if z.antrag %}<a href="{% url 'verfahren:antrag' z.antrag %}">{% blocktranslate with nr=z.antrag %}Antrag {{ nr }}{% endblocktranslate %}</a>{% endif %}
+      {% if z.geschwaerzt %}<span class="chip klein" title="{% translate 'Personenbezogene Werte sind durch • ersetzt.' %}">{% translate "geschwärzt" %}</span>{% endif %}
+      {% if z.hash %}<code class="rechts" title="{% translate 'Hash' %} {{ z.hash }}{% if z.vorgaenger %} · {% translate 'Vorgänger' %} {{ z.vorgaenger }}{% endif %}">{{ z.hash|slice:":12" }}</code>{% else %}<code class="rechts">•</code>{% endif %}
+    </div>
+    {% if z.felder %}<dl class="audit-felder">{% for k, v in z.felder %}<div><dt>{{ k }}</dt><dd>{{ v|kompakt|truncatechars:160 }}</dd></div>{% endfor %}</dl>{% endif %}
+  </li>
+{% empty %}
+  <li class="leer">{% translate "Keine Einträge." %}</li>
+{% endfor %}
+</ol>
+
+{% if seite.has_other_pages %}
+<nav class="audit-blaettern" aria-label="{% translate 'Seiten' %}">
+  {% if seite.has_previous %}<a href="?{% if abfrage %}{{ abfrage }}&amp;{% endif %}seite={{ seite.previous_page_number }}">← {% translate "neuere" %}</a>{% endif %}
+  <span class="meta">{% blocktranslate with n=seite.number von=seite.paginator.num_pages %}Seite {{ n }} von {{ von }}{% endblocktranslate %}</span>
+  {% if seite.has_next %}<a href="?{% if abfrage %}{{ abfrage }}&amp;{% endif %}seite={{ seite.next_page_number }}">{% translate "ältere" %} →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

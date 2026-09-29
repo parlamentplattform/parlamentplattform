@@ -79,7 +79,7 @@ def test_beanstandung_ist_oeffentlich_und_auditiert(client, ordnung):  # noqa: F
     beanstandung = Beanstandung.objects.get()
     assert beanstandung.mitglied == bernd and beanstandung.lauf is None
     assert AuditEintrag.objects.count() == vorher + 1
-    assert AuditEintrag.objects.order_by("-lfd").first().ereignis["art"] == "einschaetzung_beanstandet"
+    assert AuditEintrag.objects.order_by("-lfd").first().ereignis["typ"] == "einschaetzung_beanstandet"
     client.logout()
     inhalt = _seite(client, antrag)  # öffentlich sichtbar, mit Namen
     assert "Die Zahl der betroffenen Normen stimmt nicht." in inhalt and bernd.anzeigename in inhalt

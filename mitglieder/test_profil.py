@@ -533,7 +533,9 @@ def test_austritt_anonymisiert_deaktiviert_und_laesst_das_verfahren_vollstaendig
     assert wechsel.status == Adresswechsel.Status.WIDERRUFEN and anna.adresswechsel_offen is False
     assert wechsel.neue_email == "" and wechsel.einspruch_hash and wechsel.beantragt_von_id == admin.pk
     # Audit: eigener Eintrag und die Beendigungen, ohne Werte
-    assert audit("austritt", mitglied=pk) == [{"typ": "austritt", "mitglied": pk, "zeit": audit("austritt", mitglied=pk)[0]["zeit"]}]
+    austritt = audit("austritt", mitglied=pk)
+    assert len(austritt) == 1 and "salz" in austritt[0]  # Salz seit 0.52.0: die Schwärzung bleibt unumkehrbar
+    assert {k: v for k, v in austritt[0].items() if k not in ("zeit", "salz")} == {"typ": "austritt", "mitglied": pk}
     assert audit("mandat_beendet", mandat=mandat.pk) and audit("rolle_beendet", rolle=rolle.pk)
     assert audit("verwaltung", aktion="email_geaendert_widerrufen", mitglied=pk)[0]["anlass"] == "austritt"
     alles = json.dumps([e.ereignis for e in AuditEintrag.objects.all()])

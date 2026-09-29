@@ -89,7 +89,7 @@
     <p class="erk">{% translate "Der satzungsgebende Erstzugang kann weder pausiert noch ausgeschlossen werden." %}</p>
   {% else %}
   <form method="post" style="margin-bottom:14px">{% csrf_token %}
-    <p><label for="id_grund">{% translate "Begründung (wird im Audit-Log veröffentlicht)" %}</label>
+    <p><label for="id_grund">{% translate "Begründung (steht im Audit-Log)" %}</label>
     <textarea id="id_grund" name="grund" rows="2" placeholder="{% translate 'z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …' %}"></textarea></p>
     <div class="stimmzeile">
       {% if person.status != "pausiert" %}<button type="submit" name="aktion" value="pausieren" class="btn-linie">{% translate "Pausieren (Beitrag ausständig)" %}</button>{% endif %}

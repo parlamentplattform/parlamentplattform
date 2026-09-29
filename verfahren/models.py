@@ -636,7 +636,8 @@ class Unterstuetzung(models.Model):
     (Testkonten stehen in keinem Nenner, also auch in keinem Zähler)."""
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="unterstuetzungen")
-    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # PROTECT (Bestandsaufnahme A9): Ein gelöschtes Konto nähme sonst Verfahrensdaten still mit
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     erklaert_am = models.DateTimeField(default=timezone.now)
     zurueckgezogen_am = models.DateTimeField(
         null=True,
@@ -683,7 +684,8 @@ class StimmRegister(models.Model):
     Liste wiederzufinden, ohne dass Dritte das können."""
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="stimmregister")
-    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # PROTECT (Bestandsaufnahme A9): Ein gelöschtes Konto nähme sonst Verfahrensdaten still mit
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     pseudonym = models.UUIDField()
     pruefcode = models.CharField(max_length=32, default="", editable=False)
 
@@ -854,8 +856,12 @@ class AuditEintrag(models.Model):
         `vorgaenger` den Eintrag ab; dann wird der Kopf neu gelesen und noch einmal versucht.
         Der Fehler wird AUSSERHALB des inneren `atomic` gefangen — nur so bleibt eine äußere
         Transaktion (etwa `Antrag.fortschreiben`) auf PostgreSQL benutzbar."""
+        from verfahren.audit_oeffentlich import gesalzen
+
         jetzt = timezone.now()
-        versiegelt = {**ereignis, "zeit": jetzt.isoformat()}
+        # Schutzwürdige Ereignisse bekommen ein geheimes Salz unter den Hash — sonst ließe sich ihr
+        # geschwärzter Wert durch Durchprobieren zurückrechnen (verfahren/audit_oeffentlich.py, 0.52.0).
+        versiegelt = {**gesalzen(ereignis), "zeit": jetzt.isoformat()}
         for _versuch in range(cls.VERSUCHE):
             vorgaenger = cls._kopf()
             try:
@@ -1630,7 +1636,8 @@ class Reaktion(models.Model):
     (Grundregel 7, Bestandsaufnahme A8)."""
 
     kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="reaktionen")
-    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # PROTECT (Bestandsaufnahme A9): Ein gelöschtes Konto nähme sonst Verfahrensdaten still mit
+    mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     art = models.CharField(max_length=12, choices=Reaktionsart.choices, default=Reaktionsart.ZUSTIMMUNG)
     erstellt_am = models.DateTimeField(default=timezone.now)
     zurueckgenommen_am = models.DateTimeField(

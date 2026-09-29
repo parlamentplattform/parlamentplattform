@@ -48,6 +48,17 @@ def _fristen() -> dict:
     return alles_fortschreiben()
 
 
+def _audit() -> dict:
+    from verfahren.audit_pruefung import lauf
+
+    return lauf()
+
+
+#: Einmal am Tag: Die Prüfung der Audit-Kette ist Rechenschaft, keine Frist — ein Tag Verzug schadet
+#: niemandem, und die Vollprüfung von vorn hat ihren eigenen Registerwert (audit-vollpruefung-tage).
+AUDIT_TAKT_MINUTEN = 24 * 60
+
+
 def _zukunftswerkstatt() -> dict:
     from ki.warteschlange import abarbeiten
 
@@ -59,6 +70,8 @@ LAEUFE: list[Lauf] = [
     # Die Warteschlange der Zukunftswerkstatt (ki/warteschlange.py): jede Minute die fälligen
     # Aufträge im Tageskontingent — betroffene Gesetze, nachgezogene Textvektoren.
     Lauf("zukunftswerkstatt", lambda: 1, _zukunftswerkstatt),
+    # Die Audit-Kette nachrechnen (Bestandsaufnahme A7): stückweise ab dem gemerkten Stand.
+    Lauf("audit", lambda: AUDIT_TAKT_MINUTEN, _audit),
 ]
 
 
@@ -88,13 +101,12 @@ def ausfuehren(lauf: Lauf, jetzt=None) -> bool:
         fehler = f"{type(ausnahme).__name__}: {ausnahme}"[:300]
         log.exception("Hintergrundlauf %s gescheitert", lauf.name)
     finally:
-        Hintergrundlauf.objects.filter(name=lauf.name, sperrcode=token).update(
-            sperrcode="",
-            gesperrt_bis=None,
-            zuletzt_beendet=timezone.now(),
-            zuletzt_stand=stand,
-            fehler=fehler,
-        )
+        felder = {"sperrcode": "", "gesperrt_bis": None, "zuletzt_beendet": timezone.now(), "fehler": fehler}
+        if not fehler:
+            # Ein gescheiterter Lauf lässt den letzten Stand stehen — sonst vergäße etwa die Prüfung der
+            # Audit-Kette einen gemeldeten Bruch, weil die Datenbank kurz weg war (Prüfung 0.52.0).
+            felder["zuletzt_stand"] = stand
+        Hintergrundlauf.objects.filter(name=lauf.name, sperrcode=token).update(**felder)
     return True
 
 

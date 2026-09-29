@@ -84,3 +84,78 @@ def test_kanonisierung_ist_reihenfolgeunabhaengig():
     a = ereignis_hash(GENESIS, {"a": 1, "b": 2})
     b = ereignis_hash(GENESIS, {"b": 2, "a": 1})
     assert a == b
+
+
+# --- kette_nachrechnen (Schritt 2 · 0.52.0): mit Vorgänger-Spalte, Nummern und Fortsetzung ------------
+
+
+def kette_mit_nummern(ereignisse, start=GENESIS, ab=1):
+    zeilen, kopf = [], start
+    for i, e in enumerate(ereignisse, start=ab):
+        h = ereignis_hash(kopf, e)
+        zeilen.append((i, e, kopf, h))
+        kopf = h
+    return zeilen
+
+
+def test_leere_kette_ist_intakt():
+    from plattform_core.hashchain import kette_nachrechnen
+
+    befund = kette_nachrechnen([])
+    assert befund.intakt and befund.geprueft == 0 and befund.kopf == GENESIS and befund.bruch is None
+
+
+@given(st.lists(EREIGNIS, min_size=1, max_size=12))
+def test_jede_unveraenderte_kette_ist_intakt_und_endet_am_kopf(ereignisse):
+    from plattform_core.hashchain import kette_nachrechnen
+
+    zeilen = kette_mit_nummern(ereignisse)
+    befund = kette_nachrechnen(zeilen)
+    assert befund.intakt and befund.geprueft == len(zeilen)
+    assert befund.kopf == zeilen[-1][3] and befund.letzte_nummer == zeilen[-1][0]
+
+
+@given(st.lists(EREIGNIS, min_size=2, max_size=12), st.data())
+def test_ein_veraenderter_inhalt_wird_mit_seiner_nummer_gemeldet(ereignisse, daten):
+    from plattform_core.hashchain import kette_nachrechnen
+
+    zeilen = kette_mit_nummern(ereignisse)
+    i = daten.draw(st.integers(0, len(zeilen) - 1))
+    nummer, e, vorg, h = zeilen[i]
+    zeilen[i] = (nummer, {**e, "manipuliert": True}, vorg, h)
+    befund = kette_nachrechnen(zeilen)
+    assert not befund.intakt and befund.bruch == nummer and befund.grund == "hash"
+    assert befund.geprueft == i
+
+
+def test_ein_entfernter_eintrag_bricht_am_vorgaenger():
+    from plattform_core.hashchain import kette_nachrechnen
+
+    zeilen = kette_mit_nummern([{"typ": "a"}, {"typ": "b"}, {"typ": "c"}])
+    befund = kette_nachrechnen([zeilen[0], zeilen[2]])
+    assert not befund.intakt and befund.bruch == 3 and befund.grund == "vorgaenger"
+    assert befund.kopf == zeilen[0][3] and befund.letzte_nummer == 1
+
+
+def test_die_pruefung_setzt_an_einem_stand_fort():
+    from plattform_core.hashchain import kette_nachrechnen
+
+    zeilen = kette_mit_nummern([{"typ": "a"}, {"typ": "b"}, {"typ": "c"}])
+    erster = kette_nachrechnen(zeilen[:2])
+    weiter = kette_nachrechnen(zeilen[2:], start_hash=erster.kopf, start_nummer=erster.letzte_nummer)
+    assert weiter.intakt and weiter.geprueft == 1 and weiter.kopf == zeilen[2][3]
+    leer = kette_nachrechnen([], start_hash=erster.kopf, start_nummer=2)
+    assert leer.intakt and leer.letzte_nummer == 2 and leer.kopf == erster.kopf
+
+
+def test_bruchstellen_findet_auch_die_hinter_dem_ersten_bruch():
+    from plattform_core.hashchain import bruchstellen
+
+    zeilen = kette_mit_nummern([{"typ": x} for x in "abcdef"])
+    assert bruchstellen(zeilen) == []
+    zeilen[1] = (2, {"typ": "X"}, zeilen[1][2], zeilen[1][3])
+    zeilen[4] = (5, {"typ": "Y"}, zeilen[4][2], zeilen[4][3])
+    assert bruchstellen(zeilen) == [(2, "hash"), (5, "hash")]
+    assert bruchstellen(zeilen, hoechstens=1) == [(2, "hash")]
+    ohne_dritten = zeilen[:2] + zeilen[3:]
+    assert bruchstellen(ohne_dritten) == [(2, "hash"), (4, "vorgaenger"), (5, "hash")]

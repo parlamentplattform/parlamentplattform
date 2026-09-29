@@ -5,17 +5,17 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 ## [0.52.0] — 2026-09-29 · Nachrechenbarkeit und Sicherung
 
 ### Hinzugefügt
-- **Das Audit-Log ist öffentlich** unter `/audit/` (verlinkt in der Fußzeile): die ganze Kette, neueste zuerst, filterbar nach Antrag und Art, mit dem Ergebnis der letzten Prüfung; maschinenlesbar unter `/audit.json`. Kennungen von Mitgliedern und Begründungen zu einzelnen Mitgliedern (Pausieren, Ausschluss) erscheinen als „•“.
+- **Das Audit-Log ist öffentlich** unter `/audit/` (verlinkt in der Fußzeile): die ganze Kette, neueste zuerst, filterbar nach Antrag und Art, mit dem Ergebnis der letzten Prüfung; maschinenlesbar unter `/audit.json`. Mitgliedsnummern, die Pseudonyme einzelner Stimmen, Begründungen zu einzelnen Mitgliedern (Pausieren, Ausschluss, beendete Rolle) und gemeldete Beiträge vor der Entscheidung erscheinen als „•“ — so, dass sie sich auch durch Durchprobieren nicht zurückrechnen lassen.
 - **Die Plattform rechnet ihre Audit-Kette täglich nach** — die neuen Einträge und den zuletzt geprüften, in regelmäßigen Abständen die ganze Kette von vorn. Ergebnis und Hash des letzten geprüften Eintrags stehen in `/kennzahlen.json`; wer ihn sich notiert, erkennt später, ob die Kette neu gerechnet wurde. `manage.py audit_pruefen` prüft von Hand.
-- **Tägliche Sicherung** der Datenbank in das private Repository `parlamentplattform/sicherung`, 90 Tage aufbewahrt, mit monatlicher Wiederherstellungsprobe; eine Wache fragt alle 15 Minuten, ob die Plattform antwortet. Einrichtung in `docs/BETRIEB-RENDER.md`.
+- **Tägliche Sicherung** der Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in das private Repository `parlamentplattform/sicherung`, 90 Tage aufbewahrt (die vom Monatsersten 365 Tage), mit monatlicher Wiederherstellungsprobe; eine Wache fragt alle 15 Minuten, ob die Plattform antwortet. Die Datenschutzerklärung nennt GitHub als Empfänger. Einrichtung in `docs/BETRIEB-RENDER.md`.
 
 ### Geändert
-- **Der Export eines Antrags trägt die Audit-Spur mit vollem Hash und Vorgänger**; `verify/nachrechnen.py` rechnet jeden Eintrag nach (Anleitung in `verify/README.md`).
+- **Der Export eines Antrags trägt die Audit-Spur mit vollem Hash und Vorgänger**; `verify/nachrechnen.py` rechnet jeden ungeschwärzten Eintrag nach (Anleitung in `verify/README.md`).
 - **Unterstützungen, Stimmen-Zuordnung und Reaktionen verhindern das Löschen eines Kontos**, statt still mitgelöscht zu werden. Der Austritt anonymisiert wie bisher.
 - In der Mitgliederverwaltung heißt es „Begründung (steht im Audit-Log)“ statt „wird veröffentlicht“.
 
 ### Betrieb
-- **Nach dem Merge:** zwei Secrets im Hauptrepository anlegen (`DDOE_SICHERUNG_DATENBANK_URL`, `DDOE_SICHERUNG_TOKEN`) und den Workflow „Sicherung“ einmal von Hand starten; bis dahin wird der tägliche Lauf rot. Die Sicherung ist unverschlüsselt (Entscheidung vom 29.9.2026, ADR-012).
+- **Nach dem Merge:** im Repository `sicherung` einen ersten Commit anlegen (README), eine Nur-Lese-Rolle für die Datenbank einrichten (empfohlen), zwei Secrets im Hauptrepository anlegen (`DDOE_SICHERUNG_DATENBANK_URL`, `DDOE_SICHERUNG_TOKEN`) und den Workflow „Sicherung“ einmal von Hand starten; bis dahin wird der tägliche Lauf rot. Die Sicherung ist unverschlüsselt (Entscheidung vom 29.9.2026, ADR-012).
 - Schema der Austauschformate 1.10 (zwei Stellgrößen, vier Kennzahlen).
 
 ### Prüfung

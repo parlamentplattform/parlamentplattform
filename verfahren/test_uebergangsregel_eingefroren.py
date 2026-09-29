@@ -161,5 +161,65 @@ def test_die_migration_schreibt_nur_auf_einer_instanz_ohne_uebergangsregel(ordnu
     antrag.refresh_from_db()
     assert antrag.policy_snapshot["uebergangsregel"] is False
     eintrag = AuditEintrag.objects.order_by("-lfd").first().ereignis
-    assert eintrag["typ"] == "uebergangsregel_nachgetragen" and eintrag["antraege"] == 1
+    # je Antrag ein Eintrag in seiner eigenen Spur (Prüfung 0.51.0, Grundregel 7)
+    assert eintrag["typ"] == "uebergangsregel_nachgetragen" and eintrag["antrag"] == antrag.pk
+    assert eintrag["wert"] is False
     assert migration.uebergangsregel_nachtragen(echte_apps, editor) == 0  # idempotent
+
+
+def _editor():
+    from django.db import connection
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.connection = connection
+    return editor
+
+
+def test_die_migration_laesst_abgeschlossene_verfahren_unberuehrt(ordnung, settings):  # noqa: F811
+    """Prüfung 0.51.0 (satzung): Die eingefrorene Ordnung eines entschiedenen, verfallenen oder
+    zurückgewiesenen Antrags wird nicht nachträglich verändert — eine Behauptung über ein
+    abgeschlossenes Verfahren, die niemand prüfen kann."""
+    import importlib
+
+    from django.apps import apps as echte_apps
+
+    migration = importlib.import_module("verfahren.migrations.0025_reaktion_zurueckgenommen_und_uebergangsregel")
+    stellerin = mitglied_anlegen("abgeschlossen")
+    ids = {}
+    for phase in ("abgelehnt", "angenommen", "verfallen", "zurueckgewiesen", "zurueckgezogen", "abstimmung"):
+        antrag = antrag_einbringen(stellerin, **{**ANTRAG, "titel": f"{ANTRAG['titel']} {phase}"}, ordnung=ordnung)
+        alt = dict(antrag.policy_snapshot)
+        alt.pop("uebergangsregel")
+        Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=alt, phase=phase)
+        ids[phase] = antrag.pk
+    settings.DDOE_UEBERGANGSREGEL = False
+    assert migration.uebergangsregel_nachtragen(echte_apps, _editor()) == 1
+    for phase, pk in ids.items():
+        assert ("uebergangsregel" in Antrag.objects.get(pk=pk).policy_snapshot) is (phase == "abstimmung"), phase
+
+
+def test_der_rueckweg_der_migration_bricht_ab_sobald_reaktionen_verlauf_haben(ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (daten): Nach 0.50 zurück hieße, eine zurückgenommene Reaktion wieder gelten zu
+    lassen. Der Rückweg bricht deshalb ab, sobald eine Reaktion gestempelt ist — ohne Verlauf geht er."""
+    import importlib
+
+    from django.apps import apps as echte_apps
+    from django.db.migrations.exceptions import IrreversibleError
+    from django.utils import timezone
+
+    from verfahren.models import Kommentar, Reaktion
+
+    migration = importlib.import_module("verfahren.migrations.0025_reaktion_zurueckgenommen_und_uebergangsregel")
+    mitglied = mitglied_anlegen("rueckweg")
+    antrag = antrag_einbringen(mitglied, **ANTRAG, ordnung=ordnung)
+    beitrag = Kommentar.objects.create(antrag=antrag, mitglied=mitglied, text="Ein Beitrag.")
+    reaktion = Reaktion.objects.create(kommentar=beitrag, mitglied=mitglied, art="zustimmung")
+    migration.rueckweg_pruefen(echte_apps, _editor())  # ohne Verlauf: kein Einwand
+    Reaktion.objects.filter(pk=reaktion.pk).update(zurueckgenommen_am=timezone.now())
+    with pytest.raises(IrreversibleError):
+        migration.rueckweg_pruefen(echte_apps, _editor())
+    operation = migration.Migration.operations[-1]
+    assert operation.reverse_code is migration.rueckweg_pruefen

@@ -2,15 +2,17 @@
 
 1. `Reaktion.zurueckgenommen_am` (Bestandsaufnahme A8): Zurücknehmen und Wechseln stempeln die Zeile,
    nichts wird gelöscht; ein Teilindex lässt höchstens eine geltende Reaktion je Mitglied und Beitrag
-   zu. Der Bestand ist vollständig geltend und schon eindeutig — kein Datenverlust.
+   zu. Der Bestand ist vollständig geltend und schon eindeutig — kein Datenverlust. Rückweg: nur, solange
+   keine Reaktion gestempelt ist — sonst bricht er ab (`rueckweg_pruefen`), weil 0.50 eine
+   zurückgenommene Reaktion wieder zählen würde (Prüfung 0.51.0).
 2. Übergangsregel (§ 4 Abs 4 lit d, Bestandsaufnahme A5): Seit Fassung 5 der Ordnungsregeln trägt jeder
    Schnappschuss `uebergangsregel`. Ältere Schnappschüsse ohne das Feld lesen die Vorgabe „gilt“ — den
    Standard der Einstellung und den Wert jeder bekannten Instanz. Nur eine Instanz, die heute mit
    `DDOE_UEBERGANGSREGEL=0` läuft, bekommt den Wert „gilt nicht“ in die älteren Schnappschüsse
-   geschrieben, mit einem Audit-Eintrag ohne Personenbezug (Entscheidung E4 zum Bauplan 0.51.0: die
-   unveränderliche Kopie nur anfassen, wo die Vorgabe falsch wäre). Idempotent: Schnappschüsse mit dem
-   Feld bleiben unberührt. Rückweg: nichts zurückzunehmen (noop) — ein zurückgenommener Wert wäre eine
-   Behauptung über die Vergangenheit, die niemand prüfen kann.
+   **laufender** Verfahren geschrieben, je Antrag mit einem Audit-Eintrag ohne Personenbezug in seiner
+   eigenen Spur (Entscheidung E4 zum Bauplan 0.51.0: die unveränderliche Kopie nur anfassen, wo die
+   Vorgabe falsch wäre). Abgeschlossene Verfahren bleiben unberührt — was dort galt, lässt sich heute
+   nicht mehr prüfen (Prüfung 0.51.0). Idempotent: Schnappschüsse mit dem Feld bleiben unberührt.
 """
 
 from django.conf import settings
@@ -32,26 +34,47 @@ def audit_anhaengen(apps, db, ereignis: dict) -> None:
     )
 
 
+#: Phasen abgeschlossener Verfahren (plattform_core.phases.END_PHASEN, hier festgeschrieben wie jede Migration)
+ENDPHASEN = ("angenommen", "abgelehnt", "verfallen", "zurueckgewiesen", "zurueckgezogen")
+
+
 def uebergangsregel_nachtragen(apps, schema_editor) -> int:
-    """Schreibt „gilt nicht“ in Schnappschüsse ohne das Feld — nur auf einer Instanz mit
-    `DDOE_UEBERGANGSREGEL=0`. Gibt die Zahl der geänderten Anträge zurück (beim zweiten Lauf null)."""
+    """Schreibt „gilt nicht“ in Schnappschüsse laufender Verfahren ohne das Feld — nur auf einer Instanz
+    mit `DDOE_UEBERGANGSREGEL=0`. Gibt die Zahl der geänderten Anträge zurück (beim zweiten Lauf null)."""
     if getattr(settings, "DDOE_UEBERGANGSREGEL", True):
         return 0  # die Vorgabe „gilt“ stimmt schon — keine Kopie wird angefasst
     Antrag = apps.get_model("verfahren", "Antrag")
     db = schema_editor.connection.alias
     anzahl = 0
-    for antrag in Antrag.objects.using(db).only("pk", "policy_snapshot").iterator():
+    laufend = Antrag.objects.using(db).exclude(phase__in=ENDPHASEN).only("pk", "policy_snapshot").order_by("pk")
+    for antrag in laufend.iterator():
         schnappschuss = antrag.policy_snapshot or {}
         if "uebergangsregel" in schnappschuss:
             continue
         antrag.policy_snapshot = {**schnappschuss, "uebergangsregel": False}
         antrag.save(update_fields=["policy_snapshot"])
-        anzahl += 1
-    if anzahl:
         audit_anhaengen(
-            apps, db, {"typ": "uebergangsregel_nachgetragen", "wert": False, "antraege": anzahl, "stand": "Einstellung am Tag der Migration"}
+            apps,
+            db,
+            {"typ": "uebergangsregel_nachgetragen", "antrag": antrag.pk, "wert": False, "stand": "Einstellung am Tag der Migration"},
         )
+        anzahl += 1
     return anzahl
+
+
+def rueckweg_pruefen(apps, schema_editor) -> None:
+    """Der Rückweg auf 0.50 entfernte `zurueckgenommen_am` — eine zurückgenommene Reaktion zählte dann
+    wieder, still (Prüfung 0.51.0). Solange keine Reaktion gestempelt ist, geht er; sonst bricht er ab.
+    Die nachgetragene Übergangsregel bleibt stehen: Sie zurückzunehmen wäre eine Behauptung über die
+    Vergangenheit, die niemand prüfen kann."""
+    from django.db.migrations.exceptions import IrreversibleError
+
+    Reaktion = apps.get_model("verfahren", "Reaktion")
+    if Reaktion.objects.using(schema_editor.connection.alias).filter(zurueckgenommen_am__isnull=False).exists():
+        raise IrreversibleError(
+            "verfahren 0025 lässt sich nicht zurücknehmen: Reaktionen wurden zurückgenommen oder gewechselt, "
+            "0.50 würde sie wieder zählen. Vorwärts beheben (docs/BETRIEB-RENDER.md)."
+        )
 
 
 class Migration(migrations.Migration):
@@ -83,5 +106,5 @@ class Migration(migrations.Migration):
                 name="reaktion_eine_aktive_je_mitglied",
             ),
         ),
-        migrations.RunPython(uebergangsregel_nachtragen, migrations.RunPython.noop),
+        migrations.RunPython(uebergangsregel_nachtragen, rueckweg_pruefen),
     ]

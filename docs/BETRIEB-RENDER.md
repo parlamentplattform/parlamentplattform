@@ -154,9 +154,9 @@ Ab 0.51 bringt jeder neu eingebrachte Antrag seine Ordnung in Fassung 5 mit (Fel
 und `tendenz_ab_mindestbeteiligung`). Der Code von 0.50 weist unbekannte Felder einer Ordnung ab
 (`Policy.aus_dict`, eine Schutzregel): Nach einem Rollback schlügen die Antragsseite, das Parlament und
 der Fristen-Wächter bei jedem solchen Antrag fehl. Deshalb gilt: **vorwärts beheben, nicht
-zurückrollen.** Die Migration `verfahren` 0025 ist ohne Datenverlust; ihr Rückweg stellt die alte
-Eindeutigkeit der Reaktionen nur her, solange keine Reaktion zurückgenommen oder gewechselt wurde —
-danach scheitert er (absichtlich, es geht nichts verloren). Keine `--fake`-Migrationen.
+zurückrollen.** Die Migration `verfahren` 0025 ist ohne Datenverlust; ihr Rückweg geht nur, solange
+keine Reaktion zurückgenommen oder gewechselt wurde — danach bricht er mit einer Meldung ab
+(absichtlich: 0.50 würde eine zurückgenommene Reaktion wieder zählen). Keine `--fake`-Migrationen.
 
 ## Kein Rückweg auf 0.49
 

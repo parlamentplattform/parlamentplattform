@@ -177,6 +177,9 @@ def abarbeiten(jetzt=None) -> dict:
         .values_list("pk", flat=True)[:rest]
     )
     for pk in ids:
+        if KILauf.monatsverbrauch(jetzt) >= KILauf.monatsbudget():
+            # Mitten im Stapel erschöpft: abbrechen, bevor die Reservierung einen Versuch zählt.
+            return {**ergebnis, "anbieter": True, "budget_erschoepft": True, "offen": offene_anzahl()}
         ergebnis[auftrag_ausfuehren(pk, jetzt)] += 1
     return {**ergebnis, "anbieter": True, "offen": offene_anzahl()}
 

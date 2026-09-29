@@ -1,5 +1,5 @@
 """Bildschirmtests des App-Gefühls im Desktop-Browser (Teil 7): Fokus-Modus je Feld (⤢/⤡, Esc,
-sessionStorage, ohne JavaScript ?fokus=), Tasten Alt+1…4 und „?“, keine Seiten-Scrollbalken mit
+sessionStorage, ohne JavaScript ?fokus=), keine Tastenkürzel außer Esc, keine Seiten-Scrollbalken mit
 klebenden Feldköpfen, App-Manifest samt Symbolen erreichbar."""
 
 from __future__ import annotations
@@ -104,33 +104,28 @@ def test_ohne_javascript_rendert_fokus_ein_feld_und_der_link_fuehrt_zurueck(seit
     assert _sichtbare(p) == ["region"]
 
 
-def test_tasten_alt_ziffer_springt_ins_feld_und_fragezeichen_zeigt_die_tasten(seite, live_server, demo):
+def test_keine_tastenkuerzel_alt_ziffer_und_fragezeichen_bleiben_beim_tippen(seite, live_server, demo):
+    """Entscheidung des Gründers 29.9.2026: keine Tastenkürzel im Fokus-Modus. Alt+Ziffer (am Mac ⌥2 = “,
+    unter Windows Alt-Codes) und „?“ gehören dem Browser und dem Textfeld; Esc bleibt."""
     p = seite(als=_mitglied())
     p.goto(f"{live_server.url}/parlament/")
     _ruhe(p)
+    assert p.locator("#tastenhilfe").count() == 0
+    feld = p.locator("#feld-favoriten .feld-suche input")
+    feld.focus()
+    p.keyboard.type("abc")
     p.keyboard.press("Alt+2")
-    p.wait_for_function("() => document.activeElement.closest('#feld-favoriten') !== null && document.activeElement.classList.contains('feld-korpus')")
-    p.keyboard.press("Alt+4")
-    p.wait_for_function("() => document.activeElement.closest('#feld-region') !== null")
-    # Aus dem Fokus-Modus eines anderen Felds heraus verlässt Alt+n den Fokus
-    p.locator("#feld-filter .fokus-knopf").click()
-    _ruhe(p)
-    p.keyboard.press("Alt+3")
-    p.wait_for_function("() => document.activeElement.closest('#feld-wichtig') !== null")
-    _ruhe(p)
+    p.wait_for_timeout(100)
+    assert p.evaluate("document.activeElement.tagName") == "INPUT"
+    abgefangen = p.evaluate("""() => {
+      const i = document.querySelector('#feld-favoriten .feld-suche input'), k = document.querySelector('#feld-wichtig .feld-korpus');
+      const mac = new KeyboardEvent('keydown', {key: '\u201c', code: 'Digit2', altKey: true, cancelable: true, bubbles: true});
+      i.focus(); i.dispatchEvent(mac);
+      const frage = new KeyboardEvent('keydown', {key: '?', cancelable: true, bubbles: true});
+      k.focus(); k.dispatchEvent(frage);
+      return [mac.defaultPrevented, frage.defaultPrevented, document.activeElement === k]; }""")
+    assert abgefangen == [False, False, True], abgefangen
     assert _sichtbare(p) == list(FELDER)
-    # „?“ öffnet die Tastenliste im Konto-Menü — nicht im Suchfeld
-    p.locator("#feld-favoriten .feld-suche input").focus()
-    p.keyboard.press("?")
-    assert p.locator("#tastenhilfe").evaluate("d => d.open") is False
-    p.keyboard.press("Escape")
-    p.locator("#feld-wichtig .feld-korpus").focus()
-    p.keyboard.press("?")
-    assert p.locator("#tastenhilfe").evaluate("d => d.open") is True
-    assert p.locator("details.konto").evaluate("d => d.open") is True
-    hilfe = p.locator("#tastenhilfe")
-    assert hilfe.is_visible() and "Alt" in hilfe.inner_text() and "Esc" in hilfe.inner_text()
-    assert p.locator("#feld-favoriten .feld-korpus").get_attribute("role") == "region"
 
 
 def test_feldkoepfe_bleiben_beim_rollen_stehen_ohne_seiten_scroll(seite, live_server, demo):

@@ -10,7 +10,7 @@
 {% comment %}Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld serverseitig auf das ganze Raster (ohne JavaScript);
 mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her, der Zustand liegt in sessionStorage.{% endcomment %}
 <div class="parlament{% if fokus %} fokus fokus-{{ fokus }}{% endif %}" id="parlament" x-data="parlament('{{ fokus|default:"" }}')"
-  :class="{'fokus': fokus !== '', 'fokus-filter': fokus === 'filter', 'fokus-favoriten': fokus === 'favoriten', 'fokus-wichtig': fokus === 'wichtig', 'fokus-region': fokus === 'region'}" @keydown.escape.window="alleFelder()" @keydown.window="taste($event)">
+  :class="{'fokus': fokus !== '', 'fokus-filter': fokus === 'filter', 'fokus-favoriten': fokus === 'favoriten', 'fokus-wichtig': fokus === 'wichtig', 'fokus-region': fokus === 'region'}" @keydown.escape.window="alleFelder()">
 
   {# ── Feld 1: WeicherFilter (Bereich d, P5; FB-B1–B6) — Profil-Leiste mit Pfeil, Feed, Regler-Overlay ── #}
   <section class="feld" id="feld-filter" aria-labelledby="h-filter" x-data="feldmehr" :class="{'mehr-da': sichtbar}"{% if fokus and fokus != "filter" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'filter'">

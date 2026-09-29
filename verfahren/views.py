@@ -36,7 +36,7 @@ from verfahren.models import (
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
-# Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>, Tasten Alt+1…4)
+# Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>)
 FELDER = ("filter", "favoriten", "wichtig", "region")
 
 # Die neun offenen Regler des WeicherFilters (FB-B2, Regel v2): Wortlaut im UI und das Merkmal,

@@ -125,7 +125,7 @@ document.addEventListener("alpine:init", function () {
   var dauer = function (name) { return parseFloat(token(name, "300")) || 300; };
   var verlauf = function () { return token("--e-out", "ease-out"); };
 
-  /* Die vier Felder in Rasterreihenfolge — Fokus-Modus und Alt+1…4 (Teil 7). */
+  /* Die vier Felder in Rasterreihenfolge — Fokus-Modus (Teil 7). */
   var FELDER = ["filter", "favoriten", "wichtig", "region"];
 
   /* Rechtecke der sichtbaren Fächer-Knoten, Schlüssel data-slug (Geister zählen nicht mit). */
@@ -150,8 +150,8 @@ document.addEventListener("alpine:init", function () {
      id des fokussierten Elements (Knöpfe und Chips tragen stabile ids) und setzt ihn danach
      auf das gleichnamige neue Element.
      Dazu (Teil 7): der Favoriten-Fächer wechselt flüssig (FLIP) und passt ins Feld, der
-     Fokus-Modus dehnt ein Feld auf das Raster, Alt+1…4 springen in die Feldkörper, „?“ zeigt
-     die Tasten. `fokusServer` ist der Zustand aus ?fokus=, den der Server gerendert hat. */
+     Fokus-Modus dehnt ein Feld auf das Raster, Esc stellt das 2×2 wieder her. `fokusServer` ist
+     der Zustand aus ?fokus=, den der Server gerendert hat. */
   Alpine.data("parlament", function (fokusServer) {
     return {
       fokusId: null,
@@ -358,37 +358,6 @@ document.addEventListener("alpine:init", function () {
         this.fokusMerken();
         var self = this;
         this.$nextTick(function () { self.faecherEinpassen(); });
-      },
-      /* Tasten: Alt+1…4 springt in den Feldkörper (verlässt dafür den Fokus-Modus eines anderen
-         Felds), „?“ öffnet die Tastenliste im Menü — nicht, während jemand tippt. */
-      taste: function (e) {
-        if (e.ctrlKey || e.metaKey) return;
-        var ziffer = /^(?:Digit|Numpad)([1-4])$/.exec(e.code || "");
-        if (e.altKey && (ziffer || /^[1-4]$/.test(e.key))) {
-          e.preventDefault();
-          this.springeInFeld(FELDER[Number(ziffer ? ziffer[1] : e.key) - 1]);
-          return;
-        }
-        var ziel = e.target;
-        var tippt = ziel && (ziel.tagName === "INPUT" || ziel.tagName === "TEXTAREA" || ziel.tagName === "SELECT" || ziel.isContentEditable);
-        if (e.key === "?" && !e.altKey && !tippt) { e.preventDefault(); this.tastenhilfe(); }
-      },
-      springeInFeld: function (feld) {
-        if (this.fokus && this.fokus !== feld) this.alleFelder();
-        var self = this;
-        this.$nextTick(function () {
-          var korpus = self.$el.querySelector("#feld-" + feld + " .feld-korpus");
-          if (korpus) korpus.focus();
-        });
-      },
-      tastenhilfe: function () {
-        var hilfe = document.getElementById("tastenhilfe");
-        if (!hilfe) return;
-        var menue = hilfe.closest("details.konto, details.mehr");
-        if (menue) menue.open = true;
-        hilfe.open = true;
-        var kopf = hilfe.querySelector("summary");
-        if (kopf) kopf.focus();
       }
     };
   });

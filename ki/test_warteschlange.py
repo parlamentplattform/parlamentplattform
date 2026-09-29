@@ -186,6 +186,20 @@ def test_stummer_steckplatz_wegen_budget_zaehlt_keinen_versuch(attrappe, ordnung
     assert a.versuche == 0
 
 
+def test_budget_das_mitten_im_stapel_ausgeht_kostet_keinen_versuch(json_attrappe, ordnung):  # noqa: F811
+    """Verbraucht der erste Auftrag des Stapels den Rest des Monatsbudgets, bricht der Stapel ab — der
+    zweite wartet ohne gezählten Versuch, statt nach sechs Monatsenden „gescheitert“ zu heißen."""
+    from parameter.models import Parameter
+
+    Parameter.objects.create(schluessel="ki-monatstokens", wert="25", beschreibung="x", quelle="Test")  # ein Lauf: 30
+    for i in range(2):
+        einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung, f"b{i}", f"Budget {i}"), mitglied_anlegen(f"y{i}"))
+    stand = abarbeiten()
+    assert stand["erledigt"] == 1 and stand["verschoben"] == 0 and stand.get("budget_erschoepft") is True
+    zweiter = KIAuftrag.objects.order_by("pk").last()
+    assert zweiter.versuche == 0 and zweiter.status == Auftragsstatus.GEPLANT and zweiter.naechster_versuch is None
+
+
 def test_programmfehler_im_auftrag_toetet_den_lauf_nicht(attrappe, ordnung, monkeypatch):  # noqa: F811
     monkeypatch.setitem(warteschlange.ARBEIT, Zweck.RECHTSBEZUG, lambda auftrag: 1 / 0)
     a = einreihen(Zweck.RECHTSBEZUG, _antrag(ordnung), mitglied_anlegen("x"))

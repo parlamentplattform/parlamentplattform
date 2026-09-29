@@ -31,6 +31,26 @@ def test_verfahrensordnung_im_export(client, ordnung):  # noqa: F811
     assert "support.threshold" in werte and "vote.min_turnout" in werte and "deliberation.window_days" in werte
 
 
+def test_parameter_json_nennt_den_anteil_der_unterstuetzungsschwelle(client):
+    """Eine Fassung mit 50 Prozent darf im Export nicht wie eine Schwelle von drei Unterstützern aussehen."""
+    from verfahren.models import Verfahrensordnung
+
+    Verfahrensordnung.objects.create(
+        policy_id="sachantrag-anteil",
+        version=4,
+        aktiv=True,
+        regeln={
+            "id": "sachantrag-anteil", "version": 4, "unterstuetzung_schwelle": 3, "unterstuetzung_anteil": 0.5,
+            "unterstuetzung_frist_tage": 60, "beratung_tage": 21, "abstimmung_tage": 28,
+            "mindestbeteiligung": 0.05, "mehrheitsbasis": "ja_nein",
+        },
+    )
+    daten = client.get(reverse("parameter:export")).json()
+    ausgegeben = next(o for o in daten["verfahrensordnung"] if o["id"] == "sachantrag-anteil")
+    werte = {w["schema_key"]: w["wert"] for w in ausgegeben["werte"]}
+    assert werte["support.threshold"] == 3 and werte.get("support.threshold_share_percent") == 50
+
+
 def test_kennzahlen_export_ohne_personenbezug(client, ordnung):  # noqa: F811
     antwort = client.get(reverse("parameter:kennzahlen"))
     assert antwort["Access-Control-Allow-Origin"] == "*"

@@ -338,7 +338,7 @@ REGELN: tuple[Regel, ...] = (
             "geltende Ordnung Feld für Feld nebeneinander; fehlt im Register ein Wert, verweigert die "
             "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen.")
         ),
-        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
+        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-anteil-prozent · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
     ),
     Regel(
         modul="gremienbeschluss.py",

@@ -108,6 +108,28 @@ def test_parameter_export_traegt_kopf_kennungen_und_verfahrensordnung():
     assert pruefe_export(daten) == []
 
 
+def test_der_anteil_der_unterstuetzungsschwelle_steht_je_fassung_in_prozent_im_export():
+    """Ordnung Fassung 4: Gilt ein Anteil, bestimmt er die Schwelle — der Export nennt ihn in Prozent,
+    unter derselben Kennung und Einheit wie sein Registerwert; `support.threshold` bleibt die Mindestzahl."""
+    ordnungen = [
+        {"id": "sachantrag-standard", "version": 4, "unterstuetzung_schwelle": 3, "unterstuetzung_anteil": 0.5},
+        {"id": "sachantrag-fuenf", "version": 4, "unterstuetzung_schwelle": 3, "unterstuetzung_anteil": 0.05},
+    ]
+    daten = parameter_export("at-ddoe", "DDÖ", "0.50.0", [], ordnungen, JETZT)
+    halbe, fuenf = ({w["schema_key"]: w for w in o["werte"]} for o in daten["verfahrensordnung"])
+    assert halbe["support.threshold"]["wert"] == 3
+    assert halbe["support.threshold_share_percent"] == {
+        "schema_key": "support.threshold_share_percent", "einheit": "percent", "wert": 50
+    }
+    assert fuenf["support.threshold_share_percent"]["wert"] == 5
+    for anteil, prozent in ((0.125, 12.5), ("unlesbar", "unlesbar")):  # Bruchteil bleibt, Unlesbares wie gespeichert
+        ordnung = {"id": "x", "version": 4, "unterstuetzung_anteil": anteil}
+        (wert,) = parameter_export("at-ddoe", "DDÖ", "0.50.0", [], [ordnung], JETZT)["verfahrensordnung"][0]["werte"]
+        assert wert["wert"] == prozent
+    assert PARAMETER["verfahren-unterstuetzung-anteil-prozent"][:2] == ("support.threshold_share_percent", "percent")
+    assert pruefe_export(daten) == []
+
+
 def test_kennzahlen_export_nur_bekannte_kennungen():
     daten = kennzahlen_export("at-ddoe", "DDÖ", "0.36.0", {"members.active": 12, "unbekannt.x": 1}, JETZT)
     assert [k["schema_key"] for k in daten["kennzahlen"]] == ["members.active"]

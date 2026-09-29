@@ -106,6 +106,13 @@ def test_die_momentaufnahme_traegt_alles_was_die_pruefung_braucht():
         assert {"modul", "titel", "wirkung", "fassung", "seit", "grund"} <= set(zeile)
 
 
+def test_die_ordnungsregel_nennt_den_registerschluessel_des_anteils():
+    """Seit Fassung 4 speist auch der Anteil der Unterstützungsschwelle die Ordnung."""
+    ordnung = next(r for r in verzeichnis() if r.modul == "policy.py")
+    assert ordnung.fassung == 4
+    assert "verfahren-unterstuetzung-anteil-prozent" in ordnung.registerschluessel.split(" · ")
+
+
 @pytest.mark.django_db
 def test_die_seite_zeigt_alle_regeln_nach_wirkung(client):
     inhalt = client.get(reverse("parameter:regeln")).content.decode()

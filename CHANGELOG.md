@@ -2,6 +2,32 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.51.0] — 2026-09-29 · Teil-D-Empfehlungen und kleine Verfahrenskorrekturen
+
+### Hinzugefügt
+- **„So kam der Vorschlag zustande“.** In der Endabstimmung zeigt die Antragsseite über dem Chat einen aufklappbaren Block mit der letzten Vorschlagsrunde der Unterstützer: Schwelle, Stand zum Fristende, wohin der Vorschlag ging, und die Beiträge in der offengelegten Reihung. Frühere Runden stehen im Archiv.
+- **Tendenz ab Mindestbeteiligung als Schalter im Parameterregister** (`verfahren-tendenz-ab-mindestbeteiligung`, Register 1.9). Erstbestand 0: Wie bisher ist bis zum Fristende nur die Beteiligung sichtbar. Auf 1 gesetzt, zeigen Kachel, Übersicht und Antragsseite die Anteile Ja/Nein/Enthaltung, sobald die Mindestbeteiligung erreicht ist — nur für Anträge, die den Schalter beim Einbringen eingefroren haben, nie für Mandats- und Vertrauensfragen.
+
+### Geändert
+- **Sperre feststellen auch ohne Hinweis der Plattform.** Der Integritätsrat sieht jede laufende Vertrauensfrage der Feststellungsfrist und kann die Sperre mit Begründung feststellen (§ 7 Abs 10 lit b und g) — nicht nur, wenn die Plattform selbst einen Hinweis gesetzt hat. Für einen Bestätigungsantrag gibt es keine Sperre.
+- **Bestätigung nach einer Vertrauensfrage erst mit der Bestätigung durch die Mitgliederversammlung.** Die Berufung in einen Rat durch die Verwaltung gilt nicht mehr als Wahl nach § 7 Abs 10 lit f Z 3; erst die Bestätigung der Rolle.
+- **Die Übergangsregel wird mit dem Antrag eingefroren** (Ordnung Fassung 5): Umschalten während einer Abstimmung ändert an laufenden Verfahren nichts mehr; laufende Anträge bekommen den heutigen Wert beim Update.
+- **Chat, Entwurfsfenster und Archiv zeigen die Annahme-Schwelle** der Vorschlagsrunde — dieselbe, nach der entschieden wird, aus der eingefrorenen Ordnung.
+- **Reaktionen im Abstimmungs-Chat werden nicht mehr gelöscht.** Zurücknehmen und Wechseln werden vermerkt und stehen im Audit; gezählt wird der Stand zum Fristende, eine spätere Reaktion ändert nichts mehr.
+- **Zeiten im Archiv in Ortszeit** statt in UTC.
+
+### Behoben
+- **Die klebende Einschätzung lag beim Weiterlesen über Chat und Archiv.** Sie klebt jetzt nur neben dem Text.
+- Aus der Prüfung dieser Fassung: Eine Reaktion im Abstimmungs-Chat und die Auswertung der Runde sperren sich gegenseitig — ab dem Fristende wird abgewiesen; scheitert das Speichern, sagt die Seite „Bitte noch einmal“. Mit htmx steht die Meldung im Chat, und nach der Auswertung zeichnet sich die Seite neu. Das Archiv zählt abgeschlossene Runden zu ihrem Fristende und nennt eine Runde, die ohne Auswertung endete, „nicht ausgewertet“. Der Link zur Reihung führt auf die Regel.
+- Die Verwaltung erfährt, dass die Bestätigung einer ruhenden Rolle die Kandidatursperre nicht aufhebt. Der Ordnungsabgleich zeigt einen abweichenden Tendenz-Schalter als Abweichung. Die Karte „Abstimmen“ nennt ohne gespeicherte Zahl der Stimmberechtigten keine erfundene. Die Vorschrift in den Meldungen des Integritätsrats ist übersetzt.
+- Die Migration trägt die Übergangsregel nur in laufende Verfahren nach, je Antrag mit Audit-Eintrag; ihr Rückweg bricht ab, sobald eine Reaktion zurückgenommen wurde.
+
+### Betrieb
+- **Kein Rückweg auf 0.50.x:** Ordnung Fassung 5 und die neue Reaktions-Spalte kennt 0.50 nicht (`docs/BETRIEB-RENDER.md`).
+
+### Prüfung
+- Tests auf SQLite und PostgreSQL 16, Bildschirmtests und Übersetzungskatalog grün (Zahlen im Pull Request); Sichtprüfung unter `docs/sichtpruefung/0.51.0/`.
+
 ## [0.50.1] — 2026-09-29 · Antworten zur Prüfung: Registerwerte, Tageskontingent, Vertrauensfrage
 
 ### Geändert

@@ -7,7 +7,7 @@ Die Plattform läuft öffentlich unter **https://parlament.ddoe.at**
 
 | Baustein | Ausprägung |
 |---|---|
-| Web-Service `parlamentplattform` | Render Frankfurt, Instance Type **Starter** (0,5 CPU / 512 MB, 7 $/Monat). **Ehrlich zur Laufzeit:** Der seit 08/2026 laufende Dienst wurde per API mit der **Python-Runtime** (`PYTHON_VERSION=3.12.6`) angelegt; `render.yaml` beschreibt den reproduzierbaren Neuaufbau mit der **Docker-Runtime** (`Dockerfile`, dieselben Befehle und Variablen). Beide führen dieselbe Startkette aus; wer neu aufbaut, bekommt Docker. |
+| Web-Service `parlamentplattform` | Render Frankfurt, Instance Type **Starter** (0,5 CPU / 512 MB, 7 $/Monat). **Ehrlich zur Laufzeit:** Der seit 08/2026 laufende Dienst wurde per API mit der **Python-Runtime** (`PYTHON_VERSION=3.12.6`) angelegt; `render.yaml` beschreibt den reproduzierbaren Neuaufbau mit der **Docker-Runtime** (`Dockerfile`, dieselben Befehle und Variablen). Beide führen dieselbe Startkette aus; wer neu aufbaut, bekommt Docker. Beim per API angelegten Python-Dienst wirkt `render.yaml` nicht: Sein **Start Command** steht im Dashboard (*Settings → Build & Deploy*) und muss dort von Hand auf die Kette `migrate` → `gemeinden_laden` → `kategorien_laden` → `clearsessions` → `collectstatic` → Gunicorn gesetzt sein (siehe „Start und Build“). |
 | PostgreSQL `plattform-db` | Render Frankfurt, **basic-256mb** (6 $/Monat), PostgreSQL 16 — Konten und Verfahren überleben jeden Deploy |
 | Domain | `parlament.ddoe.at` per **CNAME** in der World4You-DNS-Zone auf `parlamentplattform.onrender.com` (nicht die W4Y-„Subdomain“-Funktion — die mappt nur Webspace-Ordner). Zertifikat stellt Render automatisch aus |
 | E-Mail | World4You-Postfach `plattform@ddoe.at`, SMTP `smtp.world4you.com:587` (STARTTLS) |
@@ -129,10 +129,12 @@ auszuführen. `runserver` betreibt keinen dauerhaften Hintergrundlauf.
 
 Arten der Aufträge: `willkommen` und `freischaltung` (Kontobriefe mit Ausweis-PDF), `ausweis_vorschau*`
 (Vorschau an das eigene Konto), `neuer_antrag` (Bezug `antrag:<pk>`: „Neuer Antrag in Ihrer Region“ an
-die betroffenen Mitglieder mit E-Mail-Einwilligung, ab 0.50) und `beitragserinnerung` (Bezug `jahr:<Jahr>`:
-von der Verwaltung beauftragt, höchstens einmal je Kalenderjahr, nur mit Einwilligung, ab 0.50). Die
-Kontobriefe gehen sofort nach dem Commit; `neuer_antrag` und `beitragserinnerung` werden nur angelegt und
-vom Hintergrundlauf zugestellt — ein Antrag löst so nie hunderte SMTP-Sendungen in einer Anfrage aus.
+die betroffenen Mitglieder mit E-Mail-Einwilligung, ab 0.50), `beitragserinnerung` (Bezug `jahr:<Jahr>`:
+von der Verwaltung beauftragt, höchstens einmal je Kalenderjahr, nur mit Einwilligung, ab 0.50) und
+`rechtsbezug` (Bezug `antrag:<pk>`: betroffene Gesetze aus der Zukunftswerkstatt an den Antragsteller,
+sobald das Ergebnis vorliegt, nur mit Einwilligung, ab 0.50). Die Kontobriefe gehen sofort nach dem
+Commit; `neuer_antrag`, `beitragserinnerung` und `rechtsbezug` werden nur angelegt und vom Hintergrundlauf
+zugestellt — ein Antrag löst so nie hunderte SMTP-Sendungen in einer Anfrage aus.
 Wer die Einwilligung vor der Zustellung zurücknimmt, bekommt den Brief nicht; der Auftrag wird als
 erledigt gestempelt, nicht gelöscht. Nach 24 gescheiterten Versuchen (rund 20 Stunden, etwa bei einer
 dauerhaft abgewiesenen Adresse) gibt der Postausgang die Verfahrenspost auf und stempelt den Auftrag

@@ -13,7 +13,7 @@ Danke, dass du hier bist. Dieses Projekt wird öffentlich entwickelt — jede Ä
 - **Deutsch im Fachcode, Englisch willkommen.** Fachbegriffe folgen der Satzung (Antrag, Unterstützung, Beratung …), damit Satzung und Code dieselbe Sprache sprechen. Issues und PRs gern auch auf Englisch.
 - **Sicherheitsrelevantes** bitte nie als öffentliches Issue — siehe `SECURITY.md`.
 - **Commits auf Deutsch, im Imperativ, mit der FB-Kennung aus dem Fahrtenbuch** — „Fächer auf fünf Ebenen ausbauen (FB-C2)“; ein Commit je logischem Teilschritt. Kein Conventional-Commits-Präfix, kein Sign-off, kein CLA (AGPL genügt).
-- **Zweig und Pull Request:** Arbeit auf einem Zweig `schritt/<kennung>` (z. B. `schritt/s3-weicherfilter`), PR gegen `main`. Gemerged wird nur mit grünen Status-Checks `pruefen` (Python 3.11 und 3.12, SQLite) und `pruefen_postgres` (PostgreSQL 16 mit Startkette und `demo_seed`); `sichtpruefung` (Bildschirmtests) soll ebenfalls grün sein. Der Gründer merged.
+- **Zweig und Pull Request:** Arbeit auf einem Zweig `schritt/<kennung>` (z. B. `schritt/s3-weicherfilter`), PR gegen `main`. Gemerged wird nur mit grünen Status-Checks `pruefen (3.11)` und `pruefen (3.12)` (SQLite) sowie `pruefen_postgres` (PostgreSQL 16 mit Startkette und `demo_seed`); `sichtpruefung` (Bildschirmtests) soll ebenfalls grün sein. Einen Check, der nur `pruefen` heißt, gibt es nicht — ein Branch-Schutz nennt die Namen mit Python-Fassung. Der Gründer merged.
 - **Fahrtenbuch pflegen:** Jeder Bauschritt aktualisiert den Status seiner FB-Einträge in `docs/fahrtenbuch/DDOE_Fahrtenbuch_Detail_v1_2026-09-02.md` (✅/🟡 mit Datei:Zeile) und schreibt einen CHANGELOG-Abschnitt.
 
 ## Was wir gerade brauchen

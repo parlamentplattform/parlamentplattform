@@ -14,7 +14,7 @@ abhakbar; die Reihenfolge ist die empfohlene.
 
 ## 2. Instanz starten
 
-- [ ] Repository klonen: `git clone https://github.com/parlamentplattform/parlamentplattform`. Es gibt keine Versions-Tags: **`main` ist die Freigabe** — jeder Stand dort hat die CI bestanden (`pruefen`, `pruefen_postgres`) und ist so ausgerollt; die Nummer steht im `CHANGELOG.md`.
+- [ ] Repository klonen: `git clone https://github.com/parlamentplattform/parlamentplattform`. Es gibt keine Versions-Tags: **`main` ist die Freigabe** — die CI prüft jeden Stand dort (`pruefen (3.11)`, `pruefen (3.12)`, `pruefen_postgres`), und ausgerollt wird nur ein grüner. Ob ein Stand die Prüfung schon vor dem Zusammenführen bestanden hat, hängt am Branch-Schutz des Repositorys; maßgeblich ist deshalb der Prüfstatus des Commits auf GitHub. Die Nummer steht im `CHANGELOG.md`.
 - [ ] `instanz/env.example` nach `.env` kopieren und ausfüllen (Secret Key erzeugen, Hosts, CSRF-Origins, SMTP, System-Kennung).
 - [ ] `docker compose -f instanz/docker-compose.yml up -d` — beim ersten Start laufen `migrate`, `gemeinden_laden`, `kategorien_laden`, `collectstatic`. **Gemeindeverzeichnis:** `gemeinden_laden` liest `daten/gemeinden.csv` (österreichische Gemeinden); ohne Verzeichnis kann sich niemand registrieren. Eine Landesinstanz ersetzt die Datei durch ihr eigenes Verzeichnis (gleiche Spalten) und lädt sie mit demselben Befehl.
 - [ ] Gesundheitsprüfung: `https://<domain>/gesund/` antwortet `{"status": "ok"}`.

@@ -298,7 +298,7 @@ class Entwurf(models.Model):
         voten = list(self.unterstuetzer_voten.filter(runde=self.runde))
         annahmen = sum(1 for v in voten if v.annehmen)
         rueckgaben = len(voten) - annahmen
-        unterstuetzer = self.antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
+        unterstuetzer = self.antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
         return {"annahmen": annahmen, "rueckgaben": rueckgaben, "unterstuetzer": unterstuetzer}
 
     def haelt_beratung_offen(self, jetzt=None) -> bool:

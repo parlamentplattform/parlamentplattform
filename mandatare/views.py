@@ -720,7 +720,12 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     qs = _mit_beteiligung(
         qs.annotate(
             n_unterstuetzungen=Count(
-                "antrag__unterstuetzungen", filter=Q(antrag__unterstuetzungen__zurueckgezogen_am__isnull=True), distinct=True
+                "antrag__unterstuetzungen",
+                filter=Q(
+                    antrag__unterstuetzungen__zurueckgezogen_am__isnull=True,
+                    antrag__unterstuetzungen__mitglied__testkonto=False,
+                ),
+                distinct=True,
             )
         )
     ).order_by("-antrag__eingebracht_am")

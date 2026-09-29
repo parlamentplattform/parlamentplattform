@@ -86,10 +86,11 @@ def nebenwohnsitz_zaehlt() -> bool:
 def _mitwirkung_gesperrt(request):
     """403-Antwort, wenn Mitwirkungsrechte fehlen — sonst None.
 
-    Zwei Gründe: unbestätigte Identität (§ 4) oder ruhender Status (F-51:
-    pausiert bis zum Beitragseingang bzw. ausgeschlossen nach § 4 Abs 6). Richtig für
-    Formulare der Antragsseite; Kachel- und Feed-Formulare (mit `feld`) gehen den
-    Redirect-Weg mit Hinweis im Feld (`_abbruch`), damit das Feld nie verschwindet."""
+    Gründe: Testkonto (steht in keinem Nenner, wirkt nie mit), unbestätigte Identität (§ 4)
+    oder ruhender Status (F-51: pausiert bis zum Beitragseingang bzw. ausgeschlossen nach
+    § 4 Abs 6). Richtig für Formulare der Antragsseite; Kachel- und Feed-Formulare (mit
+    `feld`) gehen den Redirect-Weg mit Hinweis im Feld (`_abbruch`), damit das Feld nie
+    verschwindet."""
     code = mitwirkungssperre(request.user)
     if code == "gesperrt_ungeprueft":
         return render(request, "verfahren/nur_bestaetigte.html", status=403)
@@ -97,7 +98,7 @@ def _mitwirkung_gesperrt(request):
         return render(
             request,
             "verfahren/mitwirkung_ruht.html",
-            {"pausiert": request.user.status == Mitgliedsstatus.PAUSIERT},
+            {"pausiert": request.user.status == Mitgliedsstatus.PAUSIERT, "testkonto": code == "testkonto"},
             status=403,
         )
     return None

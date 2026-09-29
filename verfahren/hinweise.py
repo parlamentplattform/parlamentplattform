@@ -62,6 +62,7 @@ HINWEISE: dict[str, dict] = {
         "text": _("Von der Mitwirkung ausgeschlossen (§ 4 Abs 6)."),
         "art": "fehler",
     },
+    "testkonto": {"kurz": _("Testkonto"), "text": _("Testkonto — ohne Mitwirkung."), "art": "fehler"},
     "adresswechsel": {
         "kurz": _("Adresswechsel offen"),
         "text": _("Änderung der Anmeldeadresse offen — die Stimmabgabe ruht."),
@@ -158,7 +159,10 @@ def weiter_mit_hinweis(request, code: str, feld: str):
 
 def mitwirkungssperre(nutzer) -> str | None:
     """Warum ein angemeldetes Mitglied nicht einbringen, unterstützen oder beraten darf —
-    dieselben zwei Gründe wie `_mitwirkung_gesperrt` (§ 4, F-51), als Code; None, wenn es darf."""
+    dieselben Gründe wie `_mitwirkung_gesperrt` (§ 4, F-51), als Code; None, wenn es darf.
+    Ein Testkonto wirkt nie mit: Es steht in keinem Nenner, also auch in keinem Zähler."""
+    if nutzer.testkonto:
+        return "testkonto"
     if nutzer.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
         return "gesperrt_ungeprueft"
     if nutzer.status == Mitgliedsstatus.PAUSIERT:

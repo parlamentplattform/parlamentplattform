@@ -1085,7 +1085,7 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
             "absaetze": wortdiff.absaetze(wortlaut),
             "stand": chatkern.abstimmung_stand(antrag, entwurf),
             "reihung": vorschlagschat.REIHUNG,
-            "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         }
     }
 
@@ -1357,7 +1357,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,
-            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
             "chat": chat,
             "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
             "frist": frist,

@@ -112,6 +112,12 @@ class Policy:
     # Die Vorgabe ist der Wert jeder bekannten Instanz und der Standard der Einstellung: Ältere
     # Schnappschüsse ohne das Feld laden damit so, wie sie gerechnet wurden.
     uebergangsregel: bool = True
+    # Fassung 5: D-D2 (b) als schlafender Schalter — ob Kachel, Antragsseite und Übersicht während einer
+    # laufenden Abstimmung die Tendenz (Ja, Nein, Enthaltung) zeigen, sobald die Mindestbeteiligung
+    # erreicht ist. 0 = verdeckt bis zum Fristende (Voreinstellung, D-D2 a); 1 = sichtbar ab erreichter
+    # Mindestbeteiligung. Ein „immer“ gibt es nicht. Eingefroren wie jede Regel, die während einer
+    # Abstimmung gilt (§ 5 Abs 5); gilt nur für Sachanträge (`tally.tendenz_sichtbar`).
+    tendenz_ab_mindestbeteiligung: int = 0
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -180,6 +186,10 @@ class Policy:
             raise PolicyFehler("pruefung_tage muss mindestens 1 Tag sein.")
         if self.hoechstrunden < 1:
             raise PolicyFehler("hoechstrunden muss mindestens 1 sein.")
+        if self.tendenz_ab_mindestbeteiligung not in (0, 1):
+            raise PolicyFehler(
+                f"tendenz_ab_mindestbeteiligung = {self.tendenz_ab_mindestbeteiligung!r} ist weder 0 noch 1."
+            )
         if not isinstance(self.uebergangsregel, bool):
             raise PolicyFehler(f"uebergangsregel = {self.uebergangsregel!r} ist kein Wahrheitswert.")
         if not 0 <= self.vorschlag_annahme_anteil < 1:
@@ -221,6 +231,8 @@ REGISTER_ZUORDNUNG = {
     "review_tage": ("gremien-review-tage", int),
     "ueberarbeitung_tage": ("gremien-ueberarbeitung-tage", int),
     "pruefung_tage": ("gremien-pruefung-tage", int),
+    # Fassung 5: nur der Wert 1 schaltet ein, alles andere wirkt wie 0 (wie jeder Schalter im Register).
+    "tendenz_ab_mindestbeteiligung": ("verfahren-tendenz-ab-mindestbeteiligung", lambda n: 1 if n == 1 else 0),
 }
 
 

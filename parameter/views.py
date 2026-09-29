@@ -278,7 +278,7 @@ def _gleich(links, rechts) -> bool:
 #: Menschen wenig, und der Registerschlüssel daneben sagt etwas anderes als der Wert: Bei der
 #: Mindestbeteiligung führt das Register 5 (Prozent), die Ordnung 0,05 (Anteil).
 FELD_NAMEN = {
-    # Die zwei Einträge aus 0.50 sind übersetzbar; die übrigen sind Altbestand ohne gettext.
+    # Die Einträge aus 0.50 und 0.51 sind übersetzbar; die übrigen sind Altbestand ohne gettext.
     "unterstuetzung_schwelle": gettext_lazy("Unterstützungen bis zur Schwelle (Mindestzahl)"),
     "unterstuetzung_anteil": gettext_lazy("Unterstützungsschwelle als Anteil der Stimmberechtigten (0 = aus)"),
     "unterstuetzung_frist_tage": "Frist der Unterstützungsphase (Tage)",
@@ -293,6 +293,7 @@ FELD_NAMEN = {
     "review_tage": "Frist der Unterstützer je Runde (Tage)",
     "ueberarbeitung_tage": "Überarbeitungsfrist des Expertenrats je Rückgabe (Tage)",
     "pruefung_tage": "Prüffrist der Gruppe 2 (Tage)",
+    "tendenz_ab_mindestbeteiligung": gettext_lazy("Tendenz ab erreichter Mindestbeteiligung (0 = verdeckt bis Fristende)"),
 }
 
 

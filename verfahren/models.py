@@ -1009,7 +1009,12 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
     # Kein Anteil der Ordnung: Die Mandatsfrage hat keine Unterstützungsphase (§ 5 Abs 5 — die
     # eingefrorene Regel nennt nur, was angewandt wird).
     policy = dataclasses.replace(
-        ordnung.als_policy(), abstimmung_tage=dauer, unterstuetzung_anteil=0.0, uebergangsregel=uebergangsregel_der_instanz()
+        ordnung.als_policy(),
+        abstimmung_tage=dauer,
+        unterstuetzung_anteil=0.0,
+        uebergangsregel=uebergangsregel_der_instanz(),
+        # FB-L5: „D-D2 gilt auch hier: keine Tendenz vor Fristende“ — die Mandatsfrage friert 0 ein.
+        tendenz_ab_mindestbeteiligung=0,
     )
     stichtag = timezone.localdate(jetzt)
     antrag = Antrag.objects.create(
@@ -1191,6 +1196,7 @@ def vertrauensfrage_einbringen(
         ),
         abstimmung_tage=dauer,
         uebergangsregel=uebergang,
+        tendenz_ab_mindestbeteiligung=0,  # eine Personenfrage zeigt nie eine Tendenz vor dem Ergebnis
     )
     ort = mandat.gebiet or mandat.get_ebene_display()
     if bestaetigung:

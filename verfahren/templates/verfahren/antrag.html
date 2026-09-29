@@ -220,6 +220,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% if abstimmung_laeuft and antrag.art != "mandat" %}
     <div class="karte handlung" id="abstimmen">
       <h3>{% translate "Abstimmen" %}</h3>
+      {% if beteiligung %}<p class="meta">{% blocktranslate with abgegeben=beteiligung.abgegeben berechtigte=beteiligung.berechtigte %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %} ({{ beteiligung.prozent }} % {% translate "Beteiligung" %}) · {% include "verfahren/_tendenz.html" with tendenz=beteiligung.tendenz %}</p>{% endif %}
       {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
       {% if user.is_authenticated %}
         {% if meine_stimme %}<p>{% translate "Ihre aktuelle Stimme:" %} <strong>{{ meine_stimme|phase_name }}</strong> — {% translate "Sie können sie bis zum Fristende ändern." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>{% endif %}

@@ -308,7 +308,8 @@ REGELN: tuple[Regel, ...] = (
             "Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die "
             "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren.")
             + _(" Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d "
-            "für den Antrag gilt.")
+            "für den Antrag gilt, und ob ein Sachantrag während der Abstimmung die Tendenz zeigt, sobald "
+            "die Mindestbeteiligung erreicht ist (Voreinstellung: verdeckt bis Fristende).")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 5 (Einfrieren), mit § 4 Abs 4 lit d, § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
@@ -321,7 +322,11 @@ REGELN: tuple[Regel, ...] = (
             "Prüfung jeder Stimme, die Bewerbung und das Unterstützungsrecht bei der Vertrauensfrage. Bis "
             "dahin las die Plattform die Einstellung bei jedem Schritt neu; ein Umschalten während einer "
             "Abstimmung hätte Zählung und Einzelprüfung auseinanderlaufen lassen. Ältere Anträge ohne "
-            "dieses Feld lesen den Wert „gilt“. ")
+            "dieses Feld lesen den Wert „gilt“. Dazu kommt ein Schalter für die Tendenz während der "
+            "Abstimmung: 0 hält Ja, Nein und Enthaltung bis zum Fristende verdeckt, 1 zeigt sie ab "
+            "erreichter Mindestbeteiligung — für Sachanträge, nie für Mandatsfrage, Vertrauensfrage und "
+            "Kandidatur. Er steht auf 0 und wird beim Einbringen eingefroren, damit eine Abstimmung vom "
+            "ersten bis zum letzten Tag unter denselben Bedingungen läuft. ")
             + _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
             "Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl "
             "bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der "
@@ -347,7 +352,7 @@ REGELN: tuple[Regel, ...] = (
             "geltende Ordnung Feld für Feld nebeneinander; fehlt im Register ein Wert, verweigert die "
             "Erzeugung die Arbeit, statt ihn stillschweigend zu ergänzen.")
         ),
-        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-anteil-prozent · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage",
+        registerschluessel="verfahren-unterstuetzung-schwelle · verfahren-unterstuetzung-anteil-prozent · verfahren-unterstuetzung-tage · expertenrat-erstvorschlag-tage · verfahren-abstimmung-tage · verfahren-mindestbeteiligung-prozent · verfahren-wiedereinbringung-monate · vertrauensfrage-unterstuetzung-tage · vertrauensfrage-abstimmung-tage · verfahren-tendenz-ab-mindestbeteiligung",
     ),
     Regel(
         modul="gremienbeschluss.py",

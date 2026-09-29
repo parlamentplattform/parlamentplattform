@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.8"
+SCHEMA_VERSION = "1.9"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -231,6 +231,12 @@ PARAMETER = {
         "Whether a registered secondary residence also assigns a member to that region for regional "
         "motions (0 or 1; never affects voting rights)",
     ),
+    "verfahren-tendenz-ab-mindestbeteiligung": (
+        "vote.leaning_after_min_turnout", "flag",
+        "Whether tiles, the motion page and the overview show the leaning (shares of yes, no and abstain) "
+        "of a running vote on a motion once the minimum turnout is reached (0 or 1; part of the rules of "
+        "procedure, frozen into the motion when it is submitted)",
+    ),
     "vertrauensfrage-unterstuetzung-tage": (
         "mandate.confidence_support_days", "days",
         "Support window of a confidence question about an office holder (never above the statutory "
@@ -270,6 +276,7 @@ VERFAHRENSORDNUNG = {
     "expertenrat_gruppe1": ("council.group1_size", "people"),
     "expertenrat_gruppe2": ("council.group2_size", "people"),
     "wiedereinbringung_sperre_monate": ("motion.resubmission_block_months", "months"),
+    "tendenz_ab_mindestbeteiligung": ("vote.leaning_after_min_turnout", "flag"),
 }
 
 #: Felder, die die Ordnung als Anteil führt (0.5), der Export aber in Prozent (50) nennt — so tragen

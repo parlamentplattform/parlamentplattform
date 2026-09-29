@@ -32,8 +32,9 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
 
 <h2>{% translate "Abstimmungen: Ergebnisse und Beteiligung" %}</h2>
 {% comment %}
-Laufende Abstimmungen zeigen nur die Beteiligung — die Tendenz bleibt bis zum Fristende verdeckt
-(F-15, § 5 Abs 3 lit e), genau wie auf der Kachel und im Export. Ergebnisse gibt es erst für
+Laufende Abstimmungen zeigen die Beteiligung — die Tendenz bleibt bis zum Fristende verdeckt
+(F-15, § 5 Abs 3 lit e), genau wie auf der Kachel und im Export; nur wo die eingefrorene Ordnung eines
+Sachantrags sie ab erreichter Mindestbeteiligung freigibt (D-D2 b), steht sie da. Ergebnisse gibt es erst für
 entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte Bewerbung.
 {% endcomment %}
 {% for z in abstimmungen %}
@@ -52,7 +53,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
     <p class="erk" style="margin-top:8px">
       {% blocktranslate with abgegeben=z.abgegeben berechtigte=z.antrag.stimmberechtigte_anzahl %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}
       {% if z.beteiligung != None %}({{ z.beteiligung }} % {% translate "Beteiligung" %}){% endif %}
-      · {% translate "Tendenz verdeckt bis Fristende" %}
+      · {% include "verfahren/_tendenz.html" with tendenz=z.tendenz %}
     </p>
     {% elif z.personenwahl %}
     <p class="erk" style="margin-top:8px">

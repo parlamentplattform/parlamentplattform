@@ -75,9 +75,11 @@ def _besuche_je_tag(heute, tage: int = 30) -> list[tuple[str, float]]:
 def _abstimmungen() -> tuple[list[dict], int]:
     """Je Abstimmung eine Zeile — laufende zuerst, dann die jüngsten entschiedenen.
 
-    Laufende Abstimmungen zeigen NUR die Beteiligung: Die Tendenz bleibt bis zum Fristende
+    Laufende Abstimmungen zeigen die Beteiligung: Die Tendenz bleibt bis zum Fristende
     verdeckt (F-15, § 5 Abs 3 lit e) — wie auf der Kachel, der Antragsseite und im Export;
-    diese öffentliche Seite darf den Bandwagon-Schutz nicht als vierte Stelle aushebeln.
+    diese öffentliche Seite darf den Bandwagon-Schutz nicht als vierte Stelle aushebeln. Gibt die
+    eingefrorene Ordnung eines Sachantrags die Tendenz ab erreichter Mindestbeteiligung frei (D-D2 b),
+    zeigt sie sie wie Kachel und Antragsseite — dieselbe Schranke (`verfahren.tendenz`).
     Ergebnisse erscheinen erst für entschiedene Anträge, und zwar begrenzt auf einen
     Registerwert: Entschiedenes verschwindet nie (Grundregel 7), die Seite muss also selbst
     eine Grenze ziehen. Die Stimmen aller gezeigten Anträge kommen aus je einer Abfrage,
@@ -108,6 +110,9 @@ def _abstimmungen() -> tuple[list[dict], int]:
         ):
             stimmen.setdefault(antrag_id, {})[stimme] = n
 
+    from verfahren.tendenz import tendenzen
+
+    offene_tendenz = tendenzen(laufende, abgegeben)  # D-D2 b: dieselbe Schranke wie Kachel und Antragsseite
     zeilen = []
     for a in laufende + entschiedene:
         n = abgegeben.get(a.pk, 0)
@@ -138,9 +143,10 @@ def _abstimmungen() -> tuple[list[dict], int]:
             "enthaltung": None,
             "balken": "",
             "gewaehlt": None,
+            "tendenz": offene_tendenz.get(a.pk),
         }
         if zeile["laeuft"]:
-            pass  # Tendenz verdeckt: keine Summen je Stimmwert, kein Ergebnisbalken
+            pass  # Tendenz verdeckt (außer die Ordnung gibt sie frei, `tendenz`): kein Ergebnisbalken
         elif zeile["personenwahl"]:
             wahl = a.kandidatur_auszaehlen()
             if wahl.gewonnen_id is not None:

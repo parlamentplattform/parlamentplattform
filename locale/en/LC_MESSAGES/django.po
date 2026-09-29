@@ -8451,3 +8451,22 @@ msgid "%(n)s Monat (§ 4 Abs 4 lit b)"
 msgid_plural "%(n)s Monate (§ 4 Abs 4 lit b)"
 msgstr[0] "%(n)s month (§ 4 (4) lit b)"
 msgstr[1] "%(n)s months (§ 4 (4) lit b)"
+
+#, python-format
+msgid "Tendenz: %(ja)s %% Ja · %(nein)s %% Nein · %(enthaltung)s %% Enthaltung"
+msgstr "Leaning: %(ja)s %% yes · %(nein)s %% no · %(enthaltung)s %% abstain"
+
+msgid "Tendenz verdeckt bis zur Mindestbeteiligung"
+msgstr "Leaning hidden until the minimum turnout is reached"
+
+msgid "Tendenz während der Abstimmung"
+msgstr "Leaning during the vote"
+
+msgid "sichtbar ab erreichter Mindestbeteiligung"
+msgstr "visible once the minimum turnout is reached"
+
+msgid "verdeckt bis Fristende"
+msgstr "hidden until the deadline"
+
+msgid "Tendenz ab erreichter Mindestbeteiligung (0 = verdeckt bis Fristende)"
+msgstr "Leaning once the minimum turnout is reached (0 = hidden until the deadline)"

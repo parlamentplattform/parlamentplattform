@@ -30,6 +30,27 @@ class Stimme(enum.StrEnum):
     ENTHALTUNG = "enthaltung"
 
 
+def mindestbeteiligung_erreicht(abgegeben: int, stimmberechtigte: int, mindestbeteiligung: float) -> bool:
+    """Ob die Mindestbeteiligung erreicht ist (§ 5 Abs 4) — als Bruchvergleich ohne Gleitkomma.
+
+    Die eine Stelle, die Auszählung und Anzeige gemeinsam lesen: Sonst könnte eine Seite „erreicht“
+    zeigen, wo die Auszählung es verneint."""
+    if stimmberechtigte < 1:
+        return False
+    schwelle = Fraction(mindestbeteiligung).limit_denominator(10_000)
+    return Fraction(abgegeben, stimmberechtigte) >= schwelle
+
+
+def tendenz_sichtbar(policy: Policy, abgegeben: int, stimmberechtigte: int) -> bool:
+    """Ob eine laufende Abstimmung ihre Tendenz zeigen darf (D-D2): nur wenn die eingefrorene Ordnung
+    es ab erreichter Mindestbeteiligung freigibt (Schalter 1) und diese erreicht ist. Bei 0 nie —
+    die Voreinstellung (§ 5 Abs 3 lit e: veröffentlicht wird nach der Abstimmung). Welche Antragsarten
+    es überhaupt betrifft, entscheidet der Aufrufer (nur Sachanträge). Ändert die Auszählung nicht."""
+    if policy.tendenz_ab_mindestbeteiligung != 1:
+        return False
+    return mindestbeteiligung_erreicht(abgegeben, stimmberechtigte, policy.mindestbeteiligung)
+
+
 class AuszaehlungsFehler(ValueError):
     """Ungültige Eingaben, z. B. doppelte Pseudonyme oder unbekannte Stimmwerte."""
 
@@ -94,7 +115,7 @@ def auszaehlen(
 
     # Beteiligungsprüfung ohne Gleitkomma: abgegeben/berechtigte >= schwelle
     schwelle = Fraction(policy.mindestbeteiligung).limit_denominator(10_000)
-    beteiligung_erreicht = Fraction(abgegeben, stimmberechtigte) >= schwelle
+    beteiligung_erreicht = mindestbeteiligung_erreicht(abgegeben, stimmberechtigte, policy.mindestbeteiligung)
 
     if policy.mehrheitsbasis == "ja_nein":
         mehrheit = ja > nein
@@ -209,8 +230,7 @@ def personenwahl_auszaehlen(
         PersonenwahlPlatz(bewerbung_id=b, stimmen=zaehler[b], platz=i + 1) for i, b in enumerate(reihung)
     )
     beteiligung = len(waehler)
-    schwelle = Fraction(policy.mindestbeteiligung).limit_denominator(10_000)
-    erreicht = Fraction(beteiligung, stimmberechtigte) >= schwelle
+    erreicht = mindestbeteiligung_erreicht(beteiligung, stimmberechtigte, policy.mindestbeteiligung)
     gewonnen = reihung[0] if erreicht and zaehler[reihung[0]] > 0 else None
     if gewonnen is not None:
         begruendung = (

@@ -372,3 +372,15 @@ def test_verwaltungsansicht_zeigt_neue_arten_mit_bezug(client, ordnung):  # noqa
     assert f'href="/antrag/{antrag.pk}/"' in inhalt
     assert "Beitragserinnerung" in inhalt and "jahr:2026" in inhalt
     assert inhalt.count("Noch nicht versendet") == 2 and "PDF noch nicht versendet" not in inhalt
+
+
+def test_verwaltungsansicht_nennt_den_brief_betroffene_gesetze_als_verfahrenspost(client, ordnung):  # noqa: F811
+    """Der Brief „betroffene Gesetze“ ist Verfahrenspost mit Antrag — kein Ausweis und kein PDF."""
+    person = eingewilligt("person")
+    antrag = antrag_einbringen(person, **ANTRAG, ordnung=ordnung)
+    beauftragen(person, "rechtsbezug", antrag=antrag)
+    client.force_login(eingewilligt("chefin", ist_admin=True))
+    inhalt = client.get(reverse("mitglieder:verwaltung_mitglied", args=[person.pk])).content.decode()
+    karte = inhalt.split('id="mitgliederpost"')[1].split("</section>")[0]
+    assert "Betroffene Gesetze" in karte and f'href="/antrag/{antrag.pk}/"' in karte
+    assert "Ausweis-Vorschau" not in karte and "PDF noch nicht versendet" not in karte

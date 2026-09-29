@@ -205,16 +205,20 @@ class Mandat(models.Model):
         (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
         return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
-    def bestaetigen(self, grund: str, jetzt=None) -> bool:
+    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
-        (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`).
+        (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
+        `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
         Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent."""
         if self.bestaetigt_am is not None:
             return False
         jetzt = jetzt or timezone.now()
         self.bestaetigt_am = timezone.localdate(jetzt)
         self.save(update_fields=["bestaetigt_am"])
-        AuditEintrag.anhaengen({"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund})
+        ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
+        if rolle is not None:
+            ereignis["rolle"] = rolle
+        AuditEintrag.anhaengen(ereignis)
         return True
 
     @property

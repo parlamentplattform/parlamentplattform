@@ -7029,9 +7029,6 @@ msgstr "The vote has ended — a response is no longer possible; existing respon
 msgid "Die Anfechtung ist bereits vermerkt."
 msgstr "The challenge is already recorded."
 
-msgid "Die Berufung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
-msgstr "The appointment also counts as confirmation under § 7 (10) lit f no. 3 — the candidacy bar after the lost confidence question is lifted."
-
 msgid "Die Entscheidung ist bereits vermerkt."
 msgstr "The decision is already recorded."
 
@@ -8417,3 +8414,24 @@ msgstr "A confirmation motion cannot be barred (§ 7 (10) lit f no. 3)."
 
 msgid "Der Integritätsrat prüft eine Sperre bis"
 msgstr "The integrity council is examining a bar until"
+
+msgid "Gremium"
+msgstr "Body"
+
+msgid "Endet am"
+msgstr "Ends on"
+
+msgid "Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)"
+msgstr "Confirmed by the members’ assembly (§ 6 (8))"
+
+msgid "Die Bestätigung der Mitgliederversammlung ist bereits vermerkt."
+msgstr "The members’ assembly’s confirmation is already recorded."
+
+msgid "Eine beendete oder abgelaufene Rolle lässt sich nicht mehr bestätigen."
+msgstr "A role that has ended or expired can no longer be confirmed."
+
+msgid "Die Bestätigung durch die Mitgliederversammlung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
+msgstr "The confirmation by the members’ assembly also counts as confirmation under § 7 (10) lit f no. 3 — the candidacy bar after the lost confidence question is lifted."
+
+msgid "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
+msgstr "The candidacy bar after the lost confidence question remains until the members’ assembly confirms the appointment (§ 7 (10) lit f no. 3)."

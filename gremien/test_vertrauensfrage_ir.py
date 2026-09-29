@@ -450,34 +450,133 @@ def test_die_rollenverwaltung_und_die_besetzung_zeigen_das_ruhen_mit_grund(clien
 # ── Bestätigung durch Wahl (lit f Z 3 Satz 2) ──────────────────────────────────────────────
 
 
-def test_die_berufung_in_ein_organ_gilt_als_bestaetigung(client, ordnung, altmandat):  # noqa: F811
-    _verloren(ordnung, altmandat)
-    altmandat.refresh_from_db()
-    assert altmandat.kandidatursperre and altmandat.bestaetigt_am is None
+def _verwaltung(client):
     admin = mitglied_anlegen("admin")
     admin.ist_admin = True
     admin.save(update_fields=["ist_admin"])
     client.force_login(admin)
+    return admin
 
-    antwort = client.post(
-        reverse("gremien:rollen_aktion"),
-        {
-            "aktion": "berufen",
-            "mitglied": altmandat.mitglied_id,
-            "gremium": Gremium.BERICHTSWESENRAT,
-            "endet_am": (timezone.localdate() + tage(365)).isoformat(),
-        },
-        follow=True,
-    )
+
+def _berufen(client, person, bestaetigt=False, gremium=Gremium.BERICHTSWESENRAT):
+    daten = {
+        "aktion": "berufen",
+        "mitglied": person.pk,
+        "gremium": gremium,
+        "endet_am": (timezone.localdate() + tage(365)).isoformat(),
+    }
+    if bestaetigt:
+        daten["bestaetigt"] = "on"
+    return client.post(reverse("gremien:rollen_aktion"), daten, follow=True).content.decode()
+
+
+def _bestaetigen(client, rolle):
+    return client.post(
+        reverse("gremien:rollen_aktion"), {"aktion": "bestaetigen", "rolle": rolle.pk}, follow=True
+    ).content.decode()
+
+
+def test_berufung_ohne_mv_bestaetigung_aendert_das_mandat_nicht(client, ordnung, altmandat):  # noqa: F811
+    """D-L6d (Gründer 29.9.2026): Die Berufung durch die Verwaltung ist keine Wahl — als Bestätigung nach
+    § 7 Abs 10 lit f Z 3 Satz 2 gilt erst die Bestätigung durch die Mitgliederversammlung."""
+    _verloren(ordnung, altmandat)
+    altmandat.refresh_from_db()
+    assert altmandat.kandidatursperre
+    _verwaltung(client)
+
+    inhalt = _berufen(client, altmandat.mitglied)
 
     assert Rolle.aktive(Gremium.BERICHTSWESENRAT).filter(mitglied=altmandat.mitglied).exists()
     altmandat.refresh_from_db()
+    assert altmandat.bestaetigt_am is None and altmandat.kandidatursperre
+    assert audit("vertrauen_bestaetigt") == []
+    assert "gilt zugleich als Bestätigung" not in inhalt
+    assert "bleibt, bis die Mitgliederversammlung die Berufung bestätigt" in inhalt
+
+
+def test_berufung_mit_mv_bestaetigung_gilt_als_bestaetigung(client, ordnung, altmandat):  # noqa: F811
+    _verloren(ordnung, altmandat)
+    _verwaltung(client)
+
+    inhalt = _berufen(client, altmandat.mitglied, bestaetigt=True)
+
+    rolle = Rolle.objects.get(mitglied=altmandat.mitglied, gremium=Gremium.BERICHTSWESENRAT)
+    altmandat.refresh_from_db()
     assert altmandat.bestaetigt_am == timezone.localdate() and not altmandat.kandidatursperre
     eintrag = audit("vertrauen_bestaetigt")[-1]
-    assert eintrag["mandat"] == altmandat.pk and eintrag["grund"] == "wahl"
-    assert "gilt zugleich als Bestätigung" in antwort.content.decode()
-    # Die übrigen Wirkungen bleiben (lit f Z 3 letzter Satz).
-    assert altmandat.vertrauen_entzogen_am is not None
+    assert eintrag == {**eintrag, "mandat": altmandat.pk, "grund": "wahl", "rolle": rolle.pk}
+    assert "mitglied" not in eintrag
+    assert "gilt zugleich als Bestätigung" in inhalt
+    assert altmandat.vertrauen_entzogen_am is not None  # die übrigen Wirkungen bleiben (lit f Z 3 letzter Satz)
+
+
+def test_nachtraegliche_mv_bestaetigung_setzt_bestaetigt_am(client, ordnung, altmandat):  # noqa: F811
+    _verloren(ordnung, altmandat)
+    _verwaltung(client)
+    _berufen(client, altmandat.mitglied)
+    rolle = Rolle.objects.get(mitglied=altmandat.mitglied, gremium=Gremium.BERICHTSWESENRAT)
+
+    inhalt = _bestaetigen(client, rolle)
+
+    rolle.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert rolle.bestaetigt and altmandat.bestaetigt_am == timezone.localdate()
+    assert [e["rolle"] for e in audit("rolle_bestaetigt")] == [rolle.pk]
+    assert audit("vertrauen_bestaetigt")[-1]["rolle"] == rolle.pk
+    assert "gilt zugleich als Bestätigung" in inhalt
+
+    # Ein zweiter Klick schreibt nichts mehr.
+    inhalt = _bestaetigen(client, rolle)
+    assert "bereits vermerkt" in inhalt
+    assert len(audit("rolle_bestaetigt")) == 1 and len(audit("vertrauen_bestaetigt")) == 1
+
+
+@pytest.mark.parametrize("zustand", ["beendet", "abgelaufen"])
+def test_beendete_oder_abgelaufene_rolle_laesst_sich_nicht_bestaetigen(client, ordnung, altmandat, zustand):  # noqa: F811
+    _verloren(ordnung, altmandat)
+    _verwaltung(client)
+    _berufen(client, altmandat.mitglied)
+    rolle = Rolle.objects.get(mitglied=altmandat.mitglied, gremium=Gremium.BERICHTSWESENRAT)
+    if zustand == "beendet":
+        rolle.beendet_grund = "Rücktritt"
+    else:
+        rolle.endet_am = timezone.localdate() - tage(1)
+    rolle.save()
+
+    inhalt = _bestaetigen(client, rolle)
+
+    rolle.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert not rolle.bestaetigt and altmandat.bestaetigt_am is None
+    assert audit("rolle_bestaetigt") == [] and "nicht mehr bestätigen" in inhalt
+
+
+def test_mv_bestaetigung_einer_ruhenden_rolle_hebt_die_sperre_nicht_auf(client, ordnung, altmandat):  # noqa: F811
+    """E8 zum Bauplan 0.51.0: Eine Rolle, die schon vor der verlorenen Vertrauensfrage bestand, ruht
+    (lit f Z 1). Ihre spätere Bestätigung ist keine neue Wahl — die Sperre bleibt."""
+    alte = Rolle.objects.create(
+        mitglied=altmandat.mitglied, gremium=Gremium.BERICHTSWESENRAT, endet_am=timezone.localdate() + tage(365)
+    )
+    _verloren(ordnung, altmandat)
+    alte.refresh_from_db()
+    assert alte.ruht
+    _verwaltung(client)
+
+    _bestaetigen(client, alte)
+
+    alte.refresh_from_db()
+    altmandat.refresh_from_db()
+    assert alte.bestaetigt and altmandat.bestaetigt_am is None and altmandat.kandidatursperre
+    assert audit("vertrauen_bestaetigt") == []
+
+
+def test_der_manuelle_vermerk_einer_wahl_bleibt_unberuehrt(ordnung, altmandat):  # noqa: F811
+    """Der Vermerk „Bestätigung durch Wahl in ein Organ“ im Mandatsbereich der Verwaltung ist der Weg für
+    Wahlen außerhalb der Plattform und schreibt keine Rolle mit."""
+    _verloren(ordnung, altmandat)
+    altmandat.refresh_from_db()
+    assert altmandat.bestaetigen("wahl") is True
+    assert "rolle" not in audit("vertrauen_bestaetigt")[-1]
 
 
 def test_eine_berufung_ohne_vertrauensfrage_bestaetigt_nichts(client, ordnung):  # noqa: F811

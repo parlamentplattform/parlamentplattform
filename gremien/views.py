@@ -13,11 +13,13 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from gremien.models import (
@@ -580,12 +582,12 @@ class RollenFormular(forms.Form):
         queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
             "last_name", "first_name", "username"
         ),
-        label="Mitglied",
+        label=gettext_lazy("Mitglied"),
     )
-    gremium = forms.ChoiceField(label="Gremium", choices=Gremium.choices)
-    endet_am = forms.DateField(label="Endet am", initial=standard_ende)
+    gremium = forms.ChoiceField(label=gettext_lazy("Gremium"), choices=Gremium.choices)
+    endet_am = forms.DateField(label=gettext_lazy("Endet am"), initial=standard_ende)
     bestaetigt = forms.BooleanField(
-        label="Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)", required=False
+        label=gettext_lazy("Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)"), required=False
     )
 
 
@@ -609,16 +611,55 @@ def _unvereinbarkeit(mitglied, gremium: str) -> str:
     return ""
 
 
-def _bestaetigung_durch_wahl(mitglied) -> bool:
+def _bestaetigung_durch_wahl(rolle) -> bool:
     """Setzt `Mandat.bestaetigt_am` für jedes Mandat der Person, das nach einer verlorenen
     Vertrauensfrage noch ohne Bestätigung ist (§ 7 Abs 10 lit f Z 3 Satz 2: „als Bestätigung
     gilt auch ihre Wahl in ein Organ der Partei“). Dieselbe Menge wie `kandidatursperre`
     — personenbezogen, unabhängig davon, ob die Vertretung inzwischen endete. Gibt zurück,
-    ob etwas bestätigt wurde; das Audit schreibt `Mandat.bestaetigen`."""
+    ob etwas bestätigt wurde; das Audit schreibt `Mandat.bestaetigen` mit der Rolle.
+
+    Als Wahl gilt erst die von der Mitgliederversammlung bestätigte Berufung, nicht die Berufung
+    durch die Verwaltung allein (D-L6d, Gründer 29.9.2026) — und nur eine aktive Rolle: Eine Rolle,
+    die schon vor dem Ergebnis bestand, ruht oder ist beendet (§ 7 Abs 10 lit f Z 1); ihre spätere
+    Bestätigung ist keine neue Wahl (Entscheidung E8 zum Bauplan 0.51.0)."""
+    if not rolle.bestaetigt or not rolle.aktiv:
+        return False
     gesperrt = Mandat.objects.filter(
-        mitglied=mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+        mitglied=rolle.mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
     )
-    return any([mandat.bestaetigen("wahl") for mandat in gesperrt])
+    return any([mandat.bestaetigen("wahl", rolle=rolle.pk) for mandat in gesperrt])
+
+
+def _rolle_aus_post(request):
+    """Die Rolle aus dem Formular — eine verformte Kennung ist 404, nicht 500."""
+    pk = request.POST.get("rolle", "")
+    if not pk.isdigit():
+        raise Http404
+    return get_object_or_404(Rolle, pk=int(pk))
+
+
+def _meldung_zur_kandidatursperre(request, rolle, bestaetigt: bool) -> None:
+    """Sagt der Verwaltung, was die Berufung oder Bestätigung für eine Kandidatursperre bedeutet
+    (§ 7 Abs 10 lit f Z 3 Satz 2, D-L6d)."""
+    if bestaetigt:
+        # Die übrigen Wirkungen der verlorenen Vertrauensfrage bleiben (lit f Z 3 letzter Satz).
+        messages.info(
+            request,
+            _(
+                "Die Bestätigung durch die Mitgliederversammlung gilt zugleich als Bestätigung nach "
+                "§ 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
+            ),
+        )
+    elif not rolle.bestaetigt and Mandat.objects.filter(
+        mitglied=rolle.mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+    ).exists():
+        messages.info(
+            request,
+            _(
+                "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die "
+                "Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
+            ),
+        )
 
 
 @nur_admins
@@ -671,47 +712,48 @@ def rollen_aktion(request):
                 % {"name": d["mitglied"].anzeigename},
             )
             return redirect("gremien:rollen")
-        rolle = Rolle.objects.create(
-            mitglied=d["mitglied"],
-            gremium=d["gremium"],
-            endet_am=d["endet_am"],
-            bestaetigt=d["bestaetigt"],
-        )
-        AuditEintrag.anhaengen(
-            {
-                "typ": "rolle_berufen",
-                "rolle": rolle.pk,
-                "gremium": rolle.gremium,
-                "endet_am": rolle.endet_am.isoformat(),
-                "bestaetigt": rolle.bestaetigt,
-            }
-        )
+        with transaction.atomic():
+            rolle = Rolle.objects.create(
+                mitglied=d["mitglied"],
+                gremium=d["gremium"],
+                endet_am=d["endet_am"],
+                bestaetigt=d["bestaetigt"],
+            )
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "rolle_berufen",
+                    "rolle": rolle.pk,
+                    "gremium": rolle.gremium,
+                    "endet_am": rolle.endet_am.isoformat(),
+                    "bestaetigt": rolle.bestaetigt,
+                }
+            )
+            bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
         messages.success(
             request,
             _("Rolle berufen: %(gremium)s bis %(bis)s — öffentlich sichtbar.")
             % {"gremium": rolle.get_gremium_display(), "bis": f"{rolle.endet_am:%d.%m.%Y}"},
         )
-        if _bestaetigung_durch_wahl(d["mitglied"]):
-            # § 7 Abs 10 lit f Z 3 Satz 2: Die Wahl in ein Organ der Partei gilt als Bestätigung
-            # durch die Mitgliederversammlung — die Kandidatursperre nach einer verlorenen
-            # Vertrauensfrage fällt damit weg; die übrigen Wirkungen bleiben.
-            messages.info(
-                request,
-                _(
-                    "Die Berufung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — "
-                    "die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
-                ),
-            )
+        _meldung_zur_kandidatursperre(request, rolle, bestaetigt_mandat)
 
     elif aktion == "bestaetigen":
-        rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
-        rolle.bestaetigt = True
-        rolle.save(update_fields=["bestaetigt"])
-        AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
+        rolle = _rolle_aus_post(request)
+        if rolle.bestaetigt:
+            messages.info(request, _("Die Bestätigung der Mitgliederversammlung ist bereits vermerkt."))
+            return redirect("gremien:rollen")
+        if rolle.beendet_grund or rolle.endet_am < timezone.localdate():
+            messages.error(request, _("Eine beendete oder abgelaufene Rolle lässt sich nicht mehr bestätigen."))
+            return redirect("gremien:rollen")
+        with transaction.atomic():
+            rolle.bestaetigt = True
+            rolle.save(update_fields=["bestaetigt"])
+            AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
+            bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
         messages.success(request, _("Bestätigung der Mitgliederversammlung vermerkt."))
+        _meldung_zur_kandidatursperre(request, rolle, bestaetigt_mandat)
 
     elif aktion == "beenden":
-        rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
+        rolle = _rolle_aus_post(request)
         grund = (request.POST.get("grund") or "").strip()
         if not grund:
             messages.error(request, _("Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert."))

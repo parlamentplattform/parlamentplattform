@@ -123,13 +123,13 @@
     · <a href="{% url 'parameter:liste' %}">{% translate "Alle offenen Parameter →" %}</a>
   </p>
   {% if steckplatz.einbettungsmodell %}<p class="erk">{% blocktranslate with modell=steckplatz.einbettungsmodell %}Textvektoren für den Bedeutungsvergleich beim Einbringen: {{ modell }}{% endblocktranslate %}</p>{% endif %}
-  <p class="phasen-titel" style="margin-top:12px">{% translate "Warteschlange" %}</p>
+  <p class="phasen-titel abstand">{% translate "Warteschlange" %}</p>
   <p class="erk">{% blocktranslate with heute=steckplatz.warteschlange.heute kontingent=steckplatz.warteschlange.kontingent %}Heute gestartet: {{ heute }} von {{ kontingent }} Läufen (Tageskontingent).{% endblocktranslate %}</p>
   {% for z in steckplatz.warteschlange.zwecke %}
   <div class="zeile"><span>{{ z.name }}<br><span class="meta">{% translate "offen:" %} {{ z.offen }} · {% translate "erledigt:" %} {{ z.erledigt }} · {% translate "gescheitert:" %} {{ z.gescheitert }}</span></span></div>
   {% endfor %}
   {% if auftragsversionen %}
-  <p class="phasen-titel" style="margin-top:12px">{% translate "Auftragstexte (versioniert im Quellcode)" %}</p>
+  <p class="phasen-titel abstand">{% translate "Auftragstexte (versioniert im Quellcode)" %}</p>
   {% for a in auftragsversionen %}
   <details class="klappe"><summary>{{ a.version }}</summary><pre class="auftragstext">{{ a.text }}</pre></details>
   {% endfor %}

@@ -531,7 +531,13 @@ def reagieren(request, pk, beitrag_pk):
     ist die Reaktion das Votum der Unterstützer — dort reagieren nur sie (§ 5 Abs 12)."""
     from django.db import IntegrityError
 
-    from verfahren.chat import ReaktionGeschlossen, abstimmungschat, chat_offen, darf_reagieren, reaktion_umschalten
+    from verfahren.chat import (
+        ReaktionGeschlossen,
+        abstimmungschat,
+        chat_offen,
+        darf_reagieren,
+        reaktion_umschalten,
+    )
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)

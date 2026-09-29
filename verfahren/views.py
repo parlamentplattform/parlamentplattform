@@ -1394,7 +1394,7 @@ def _register_zeilen():
 def datenschutz(request):
     """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
 
-    Der Text ist ein Entwurf (Bestandsaufnahme 28.9.2026, C3; Freigabe durch den Gründer steht aus)
+    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026)
     und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
     erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
     from ki.models import steckplatz_stand

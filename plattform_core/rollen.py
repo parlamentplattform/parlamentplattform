@@ -131,7 +131,7 @@ GAST = Rolle(
     name=_("Gast"),
     satzung="§ 3 Abs 1 lit c, § 5 Abs 8",
     was_sie_ist=_("Keine Rolle der Satzung, sondern deren Folge: Die Verfahren der ParlamentPlattform sind öffentlich, protokolliert und nachprüfbar; Ergebnisse werden vollständig veröffentlicht (§ 3 Abs 1 lit c)."),
-    wie_hinein=_("Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Session, CSRF und — nur nach dem Umschalten — der Sprachwahl."),
+    wie_hinein=_("Die Seite aufrufen. Kein Konto, keine Anmeldung, keine Cookies außer Sitzung, CSRF, der kurzen Rückmeldung nach einer Handlung und — nur nach dem Umschalten — der Sprachwahl."),
     auf_der_startseite=True,
     faehigkeiten=(
         Faehigkeit(

@@ -6,9 +6,8 @@
 <section class="held">
   <p class="vorzeile">{% translate "Datenschutzerklärung" %}</p>
   <h1>{% translate "Was die Plattform über Sie weiß — und was nicht." %}</h1>
-  <p class="untertitel">{% blocktranslate %}Diese Erklärung sagt nur, was der Code tut. Sie ist ein Entwurf: Die Partei
-  gibt sie frei; bis dahin ist sie eine Information, keine Zusage.{% endblocktranslate %}</p>
-  <p class="untertitel">{% blocktranslate with stand=stand %}Stand: {{ stand }} — Entwurf.{% endblocktranslate %}</p>
+  <p class="untertitel">{% translate "Diese Erklärung sagt nur, was der Code tut." %}</p>
+  <p class="untertitel">{% blocktranslate with stand=stand %}Stand: {{ stand }}.{% endblocktranslate %}</p>
 </section>
 
 <div class="karte" id="verantwortlicher">
@@ -33,11 +32,14 @@
     <li>{% blocktranslate %}<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein
     Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe
     und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Beitrag:</strong> eine aus der Mitgliedsnummer abgeleitete Zahlungsreferenz und die Buchung
-    des Beitragseingangs (Datum, Betrag); keine Kontonummer des Mitglieds.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Verfahrensbeiträge:</strong> Anträge, Unterstützungen, Beratungsbeiträge, Reaktionen,
-    Bewerbungen und Vorstellungen — sie sind öffentlich, unter Ihrem Anzeigenamen (§ 5 Abs 3 lit a); Ihr Klarname
-    erscheint nur mit Ihrer Einwilligung.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Beitrag:</strong> eine Zahlungsreferenz, gebildet aus der Konto-Kennung und einem festen Stamm,
+    und die Buchung des Beitragseingangs (Datum, Betrag, Umsatzkennung und ob der Name der Überweisung zu Ihrem
+    passte); keine Kontonummer des Mitglieds. Für den Abgleich liest die Plattform die Umsätze des Parteikontos — aus
+    einem Kontoauszug, den die Verwaltung hochlädt, oder über den Kontoinformationsdienst — samt Name, IBAN und
+    Verwendungszweck der Überweisenden; behalten wird davon nur, was hier steht.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Verfahrensbeiträge:</strong> Anträge, Beratungsbeiträge, Bewerbungen und Vorstellungen — sie
+    sind öffentlich, unter Ihrem Anzeigenamen (§ 5 Abs 3 lit a); Ihr Klarname erscheint nur mit Ihrer Einwilligung.
+    Unterstützungen und Reaktionen speichert die Plattform mit Ihrem Konto; öffentlich ist davon nur die Zahl.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Stimmregister:</strong> Ihre Stimmen stehen unter einem Pseudonym in der veröffentlichten
     Stimmliste. Die Zuordnung Pseudonym → Konto liegt getrennt bei der Plattform und ist zugriffsbeschränkt — sie ist
     nicht kryptografisch geheim.{% endblocktranslate %}</li>
@@ -45,11 +47,22 @@
     Kennungen (Nummern), ohne Namen und ohne E-Mail-Adressen; dauerhaft und unveränderbar.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Postausgang:</strong> welche Nachricht wann an Ihr Konto ging und ob der Versand gelang — ohne
     den Inhalt der Nachricht.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Mandat:</strong> Lichtbild und Selbstvorstellung, wenn Sie ein Mandat halten — vom Mandatar
-    selbst eingestellt und öffentlich.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Mandat:</strong> Lichtbild und Selbstvorstellung, wenn Sie ein Mandat halten — eingestellt
+    vom Mandatar selbst oder von der Verwaltung, öffentlich. Das Lichtbild entfernt die Plattform mit dem Austritt,
+    vorher auf Anfrage bei der Verwaltung (plattform@ddoe.at).{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Fachliste:</strong> wenn Sie darauf stehen, Name, Fachgebiete, Interessenbindungen und
+    Honorare — öffentlich mit Ihrer Einwilligung (§ 6 Abs 7, § 8 Abs 4). Nach einem Widerruf steht statt des Namens
+    eine Kennung; der sachliche Inhalt bleibt.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die
+    Besetzung ist öffentlich.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst
+    hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch; die Eingabe zeigt die Plattform nicht an.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Anstoß:</strong> der Freitext Ihrer Meldung, die Seite, von der sie kam, und — nur wenn Sie
     angemeldet sind — Ihr Konto, damit wir nachfragen können.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Besuche:</strong> Tages-Summen je Seite. Keine IP-Adressen, keine Kennungen, keine Profile.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Besuche:</strong> die Zahl der Aufrufe je Tag, plattformweit und je Antrag, und je Tag eine
+    Besucherkennung für die Zahl der Besucher — ein Einweg-Hash aus Verbindungsadresse und Browserkennung mit einem
+    Geheimnis der Plattform. Die Verbindungsadresse selbst hält die Plattform nur in der Drossel gegen Missbrauch bei
+    Registrierung, Anmeldung und Anstoß, rund zwei Stunden. Keine Profile.{% endblocktranslate %}</li>
   </ul>
 </div>
 
@@ -58,9 +71,10 @@
   <p>{% blocktranslate %}Die Mitgliedschaft in einer Partei ist ein Datum über die politische Meinung. Wir verarbeiten sie
   als politische Partei für unsere Mitglieder auf Grundlage von Art 9 Abs 2 lit d DSGVO in Verbindung mit
   Art 6 Abs 1 lit b und lit f DSGVO. Auf Ihrer Einwilligung (Art 6 Abs 1 lit a, Art 9 Abs 2 lit a DSGVO) beruhen
-  drei Dinge, die Sie jederzeit im Profil zurücknehmen können: die öffentliche Anzeige Ihres Klarnamens,
-  E-Mail-Benachrichtigungen zum Verfahren (neue Anträge in Ihrer Region, Ergebnisse der Zukunftswerkstatt,
-  Beitragserinnerung) und das Lichtbild am Mandat.{% endblocktranslate %}</p>
+  die öffentliche Anzeige Ihres Klarnamens und E-Mail-Benachrichtigungen zum Verfahren (neue Anträge in Ihrer Region,
+  Ergebnisse der Zukunftswerkstatt, Beitragserinnerung) — beides nehmen Sie jederzeit im Profil zurück — sowie das
+  Lichtbild am Mandat und die Nennung auf der Fachliste: Diese beiden widerrufen Sie bei der Verwaltung
+  (plattform@ddoe.at); mit dem Austritt enden sie von selbst.{% endblocktranslate %}</p>
 </div>
 
 <div class="karte" id="empfaenger">
@@ -84,8 +98,8 @@
     {% if bank_angeschlossen %}
     <li id="empfaenger-bank">{% blocktranslate %}<strong>GoCardless Ltd. (Bank Account Data)</strong> als
     Kontoinformationsdienst: Er liest die Umsätze des Parteikontos, damit die Plattform Beitragseingänge anhand
-    der Zahlungsreferenz verbucht. Er erhält keine Daten von Mitgliedern; die Plattform sieht die Umsätze des
-    Parteikontos, nicht Ihr Konto.{% endblocktranslate %}</li>
+    der Zahlungsreferenz verbucht — dabei Name, IBAN und Verwendungszweck der Überweisenden, bei einer
+    Beitragsüberweisung also auch Ihre. Die Plattform sieht die Umsätze des Parteikontos, nicht Ihr Konto.{% endblocktranslate %}</li>
     {% endif %}
   </ul>
   <p class="erk">{% blocktranslate %}Sonst gibt es keine Empfänger: keine Werbenetzwerke, keine Analysedienste, keine
@@ -94,27 +108,31 @@
 
 <div class="karte" id="speicherdauer">
   <h2>{% translate "Wie lange" %}</h2>
-  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt oder Ausschluss. Danach werden Name, E-Mail-Adresse und
-  Wohnsitz anonymisiert (§ 8 Abs 4). Was bleibt: Ihre Verfahrensbeiträge als „Ehemaliges Mitglied“ — sie sind
-  Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im
-  Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es
-  heute noch nicht. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz
+  geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und
+  Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder
+  als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen
+  Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die
+  Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Die
+  Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
 </div>
 
 <div class="karte" id="rechte">
   <h2>{% translate "Ihre Rechte" %}</h2>
   <p>{% blocktranslate %}Sie haben das Recht auf Auskunft, Berichtigung, Einschränkung und — soweit nicht ein
   laufendes oder abgeschlossenes Verfahren die Daten braucht (§ 8) — Löschung sowie auf Datenübertragbarkeit.
-  Den vollständigen Export Ihrer Daten laden Sie jederzeit selbst im Profil; Anzeigename, Wohnsitz und
-  Einwilligungen ändern Sie dort, den Austritt erklären Sie dort. Beschwerden nimmt die österreichische
-  Datenschutzbehörde entgegen (Barichgasse 40–42, 1030 Wien, dsb@dsb.gv.at).{% endblocktranslate %}</p>
+  Den vollständigen Export Ihrer Daten laden Sie jederzeit selbst im Profil; Anzeigename, Wohnsitz, die Anzeige
+  Ihres Klarnamens und die E-Mail-Benachrichtigungen ändern Sie dort, den Austritt erklären Sie dort. Beschwerden
+  nimmt die österreichische Datenschutzbehörde entgegen (Barichgasse 40–42, 1030 Wien, dsb@dsb.gv.at).{% endblocktranslate %}</p>
 </div>
 
 <div class="karte" id="cookies">
   <h2>{% translate "Cookies" %}</h2>
-  <p>{% blocktranslate %}Drei, alle technisch: die Sitzung (Anmeldung), der CSRF-Schutz gegen untergeschobene
-  Formulare und — nur wenn Sie die Sprache umschalten — die Sprachwahl. Keine Analyse-Cookies, keine Cookies
-  Dritter, kein Tracking.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Nur technische: die Sitzung (sessionid, Anmeldung), der CSRF-Schutz gegen untergeschobene
+  Formulare (csrftoken), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten
+  Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine
+  Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild,
+  Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht.{% endblocktranslate %}</p>
 </div>
 
 {% endblock %}

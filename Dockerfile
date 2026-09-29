@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir ".[postgres,prod]"
 COPY . .
 
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py gemeinden_laden && python manage.py kategorien_laden && python manage.py runserver 0.0.0.0:8000"]

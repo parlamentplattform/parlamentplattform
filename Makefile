@@ -10,7 +10,8 @@ lint:           ## Statische Prüfung
 	.venv/bin/ruff check .
 
 run:            ## Entwicklungsserver (SQLite)
-	.venv/bin/python manage.py migrate && .venv/bin/python manage.py runserver
+	.venv/bin/python manage.py migrate && .venv/bin/python manage.py gemeinden_laden \
+		&& .venv/bin/python manage.py kategorien_laden && .venv/bin/python manage.py runserver
 
 seed:           ## Demo-Daten einspielen
 	.venv/bin/python manage.py demo_seed

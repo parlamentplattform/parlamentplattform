@@ -343,7 +343,9 @@ def _ordnung_abgleich() -> dict:
         erzeugt = None
         fehler = str(ausnahme)
     if erzeugt is not None:
-        gilt = aktiv.regeln if aktiv else {}
+        # Wie `_wesentlich`: fehlende Felder mit ihrer Vorgabe — eine ältere Ordnung ohne ein neues Feld
+        # gilt mit dessen Vorgabe; weicht das Register davon ab, ist das eine Abweichung (Prüfung 0.51.0).
+        gilt = _wesentlich(aktiv.regeln) if aktiv else {}
         for feld, (schluessel, _wandler) in REGISTER_ZUORDNUNG.items():
             aus_dem_register = getattr(erzeugt, feld)
             in_kraft = gilt.get(feld)

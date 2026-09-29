@@ -27,10 +27,10 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.8",
+  "schema_version": "1.9",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
-  "software": {"name": "ParlamentPlattform", "version": "0.50.1",
+  "software": {"name": "ParlamentPlattform", "version": "0.51.0",
                "quelle": "https://github.com/parlamentplattform/parlamentplattform", "lizenz": "AGPL-3.0-or-later"},
   "exportiert_am": "2026-09-15T08:00:00+00:00"
 }

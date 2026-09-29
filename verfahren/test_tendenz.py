@@ -133,3 +133,20 @@ def test_die_regelliste_nennt_den_schalter(ordnung, offen_ordnung):  # noqa: F81
     assert dict(_regeln_lesbar(zu.policy()))["Tendenz während der Abstimmung"] == "verdeckt bis Fristende"
     assert dict(_regeln_lesbar(auf.policy()))["Tendenz während der Abstimmung"] == "sichtbar ab erreichter Mindestbeteiligung"
     assert "Tendenz während der Abstimmung" not in dict(_regeln_lesbar(auf.policy(), "mandat"))
+
+
+@pytest.mark.parametrize("nenner", [0, None])
+def test_ohne_gespeicherten_nenner_nennt_die_karte_keinen_erfundenen(client, ordnung, nenner):  # noqa: F811
+    """Prüfung 0.51.0 (bedienung): Der Schutz gegen die Division durch null ist keine Zahl der
+    Stimmberechtigten — die Karte zeigt „–“ statt „von 1“, und keinen Prozentwert."""
+    from verfahren.models import Antrag
+    from verfahren.views import _beteiligung_lesbar
+
+    antrag = _abstimmung(ordnung, stimmen=["ja"], waehler=5)
+    Antrag.objects.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=nenner)
+    antrag.refresh_from_db()
+    lage = _beteiligung_lesbar(antrag)
+    assert lage["berechtigte"] is None and lage["prozent"] is None and lage["abgegeben"] == 1
+    client.force_login(antrag.eingebracht_von)
+    inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "1 von – Stimmberechtigten" in inhalt and "von 1 Stimmberechtigten" not in inhalt

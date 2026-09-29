@@ -137,10 +137,13 @@ def _beteiligung_lesbar(antrag) -> dict | None:
     from verfahren.tendenz import tendenzen
 
     abgegeben, basis = _beteiligung(antrag)
+    # `basis` schützt nur vor der Division durch null — ohne gespeicherten Nenner nennt die Karte keinen
+    # (Prüfung 0.51.0): „–“ statt „von 1“, und keinen Prozentwert.
+    berechtigte = antrag.stimmberechtigte_anzahl or None
     return {
         "abgegeben": abgegeben,
-        "berechtigte": basis,
-        "prozent": min(100, round(100 * abgegeben / basis)),
+        "berechtigte": berechtigte,
+        "prozent": min(100, round(100 * abgegeben / basis)) if berechtigte else None,
         "tendenz": tendenzen([antrag], {antrag.pk: abgegeben}).get(antrag.pk),
     }
 

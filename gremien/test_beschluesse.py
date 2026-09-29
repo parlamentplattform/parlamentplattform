@@ -285,3 +285,33 @@ def test_das_admin_setzt_keine_hervorhebung():
 
     assert "hervorgehoben" in AntragAdmin.readonly_fields
     assert "hervorhebung_begruendung" in AntragAdmin.readonly_fields
+
+
+def test_ein_veraltetes_objekt_schliesst_den_beschluss_kein_zweites_mal(monkeypatch):
+    """Zwei Abläufe laden denselben offenen Beschluss (Wächter, Seitenaufruf, Stimmabgabe); der
+    erste schließt ihn. Der zweite hält noch den alten Stand „offen“ im Speicher — er darf die
+    Wirkung nicht ein zweites Mal anwenden und keinen zweiten Audit-Eintrag schreiben."""
+    import gremien.models as gm
+    from verfahren.models import AuditEintrag
+
+    b = beschluss_anlegen(frist=timezone.now() - timedelta(minutes=1))
+    erster = GremienBeschluss.objects.get(pk=b.pk)
+    zweiter = GremienBeschluss.objects.get(pk=b.pk)
+    wirkungen = []
+    echte = gm.wirkung_anwenden
+
+    def gezaehlt(beschluss, jetzt=None):
+        wirkungen.append(beschluss.pk)
+        return echte(beschluss, jetzt)
+
+    monkeypatch.setattr(gm, "wirkung_anwenden", gezaehlt)
+    assert erster.abschliessen() is True
+    assert zweiter.abschliessen() is False
+    assert wirkungen == [b.pk]
+    ausgewertet = [
+        e
+        for e in AuditEintrag.objects.all()
+        if e.ereignis.get("typ") == "gremienbeschluss_ausgewertet" and e.ereignis.get("beschluss") == b.pk
+    ]
+    assert len(ausgewertet) == 1
+    assert zweiter.status == BeschlussStatus.OHNE_ERGEBNIS and not zweiter.offen

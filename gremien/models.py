@@ -1085,8 +1085,16 @@ class GremienBeschluss(models.Model):
 
         Ein Beschluss schließt aus zwei Gründen: Alle haben gestimmt, oder die Frist ist um.
         Der zweite Fall ist der wichtigere — sonst könnte ein einzelner Rat durch Schweigen
-        alles aufhalten, und „Untätigkeit hemmt nie" gälte im Verfahren, aber nicht im Gremium."""
+        alles aufhalten, und „Untätigkeit hemmt nie" gälte im Verfahren, aber nicht im Gremium.
+
+        Der Status zählt, wie er unter Zeilensperre in der Datenbank steht, nicht wie ihn das
+        Objekt im Speicher kennt: Wächter, Gremienseiten, Stimmabgabe und Antragsseite schließen
+        aus verschiedenen Workern — ohne die Sperre wandte ein veraltetes Objekt die Wirkung ein
+        zweites Mal an und schrieb die Auswertung zweimal in die Audit-Kette."""
         if self.status != BeschlussStatus.OFFEN:
+            return False
+        if type(self).objects.select_for_update().get(pk=self.pk).status != BeschlussStatus.OFFEN:
+            self.refresh_from_db()
             return False
         jetzt = jetzt or timezone.now()
         frist_um = self.frist is not None and jetzt >= self.frist

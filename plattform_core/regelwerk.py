@@ -547,10 +547,16 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=5,
-        seit="2026-09-17",
+        fassung=6,
+        seit="2026-09-29",
         grund=(
-            _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
+            _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
+            "des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, "
+            "Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit "
+            "0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene "
+            "Zeile nennt mehr einen Bauschritt, der schon abgeschlossen ist; wo Teil C keinen Schritt "
+            "vorsieht, steht das so da. ")
+            + _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
             "einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der "
             "QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. ")
             + _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "

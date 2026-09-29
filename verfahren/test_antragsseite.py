@@ -56,8 +56,9 @@ def test_zone_einschaetzung_zeigt_kennzeichnung_und_leerzustand(client, ordnung)
     inhalt = _seite(client, antrag)
     assert "Modellrechnung — sie schlägt vor, sie entscheidet nie" in inhalt
     assert "kein Anbieter angeschlossen" in inhalt  # ohne Schlüssel wird nichts gerechnet
-    assert "Was hier stehen wird:" in inhalt and inhalt.count('class="skelett-karte"') == 5
-    for karte in ("Berührte Gesetze", "Aufwand, Last und Dauer", "Ausschreibung"):
+    # Vier Skelette: „Betroffene Gesetze“ ist seit 0.50 eine eigene Karte mit Zuständen (FB-H3, Stufe 1)
+    assert "Was hier stehen wird:" in inhalt and inhalt.count('class="skelett-karte"') == 4
+    for karte in ("Betroffene Gesetze", "Aufwand, Last und Dauer", "Ausschreibung"):
         assert karte in inhalt, karte
     assert "/beanstanden/" not in inhalt  # Gäste beanstanden nicht
     client.force_login(anna)

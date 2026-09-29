@@ -579,6 +579,33 @@ class AntragsFassung(models.Model):
         return f"Antrag {self.antrag_id}, Fassung {self.nummer}"
 
 
+class AntragsEinbettung(models.Model):
+    """Der Textvektor einer Antragsfassung aus dem Modell-Steckplatz (Stufe 2 der Ähnlichkeit, ADR-011).
+
+    Je Antrag, Fassung und Modell ein Vektor; gerechnet wird der Kosinus in `plattform_core.similarity`.
+    Der Vektor ist kein Verfahrensdatum — er wird beim Einbringen gespeichert oder von der
+    Warteschlange nachgezogen und lässt sich jederzeit mit einem anderen Modell neu rechnen; ein
+    Wechsel des Modells lässt die alten Zeilen stehen (anderer Schlüssel) und macht sie unbenutzt."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="einbettungen")
+    fassung_nummer = models.PositiveIntegerField()
+    modell = models.CharField(max_length=60)
+    vektor = models.JSONField()
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["antrag", "fassung_nummer", "modell"], name="antragseinbettung_einmal_je_fassung_und_modell"
+            )
+        ]
+        verbose_name = "Antragseinbettung"
+        verbose_name_plural = "Antragseinbettungen"
+
+    def __str__(self) -> str:
+        return f"Vektor zu Antrag {self.antrag_id}, Fassung {self.fassung_nummer} ({self.modell})"
+
+
 class Unterstuetzung(models.Model):
     """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
     Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug

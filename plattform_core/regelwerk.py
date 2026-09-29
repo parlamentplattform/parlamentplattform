@@ -487,26 +487,34 @@ REGELN: tuple[Regel, ...] = (
         zweck=(
             _("Vergleicht einen neuen Antrag mit den offenen Anträgen und zeigt bis zu drei ähnliche "
             "samt ihrer Beteiligung an, damit sichtbar wird, wo sich Unterstützung bereits sammelt. "
-            "Gerechnet wird ohne Modell: Beide Texte werden in Dreizeichenfolgen zerlegt, der Wert "
-            "ist die Zahl der gemeinsamen geteilt durch die Zahl aller vorkommenden Folgen; ab 18 "
-            "Prozent erscheint der Hinweis. Er schlägt vor und blockiert nie — „Trotzdem einbringen“ "
-            "bleibt immer gleichwertig möglich.")
+            "Der Wortvergleich rechnet ohne Modell auf Wort-Ebene: Funktionswörter und Antragsfloskeln "
+            "fallen weg, Wörter werden auf ihre Stammform gekürzt, Titelwörter zählen doppelt; der "
+            "Wert ist zu zwei Dritteln der gewichtete Jaccard der Wortmengen und zu einem Drittel der "
+            "Jaccard der Wortpaare. Ab 30 Prozent erscheint der Hinweis. Ist ein Anbieter am "
+            "Modell-Steckplatz angeschlossen, kommt als Zweitmeinung der Bedeutungsvergleich dazu "
+            "(Kosinus zweier Textvektoren des Anbieters, Schwelle 78 Prozent); beide Werte stehen "
+            "nebeneinander. Er schlägt vor und blockiert nie — „Trotzdem einbringen“ bleibt immer "
+            "gleichwertig möglich.")
         ),
         wirkung=Wirkung.ORDNET_ZU,
         satzung="§ 5 Abs 10 lit d · § 2 Abs 6",
-        fassung=1,
-        seit="2026-08-19",
+        fassung=2,
+        seit="2026-09-29",
         grund=(
-            _("Erste und bis heute einzige Fassung: Der Hinweis kam mit dem Einbringen im Browser, weil "
-            "jede Eingabe zuerst zu einer Übersicht bereits gestellter ähnlicher Anträge führen soll. "
-            "Bewusst rein lexikalisch gerechnet, damit jedes Mitglied den angezeigten Wert selbst "
-            "überprüfen kann.")
+            _("Zweite Fassung nach der Anweisung des Gründers vom 28.9.2026: Die erste Fassung verglich "
+            "Dreizeichenfolgen und zählte damit die Floskeln mit, die fast jeder Antrag trägt — zwei "
+            "Anträge ohne jede inhaltliche Nähe erreichten 29 Prozent. Der Wortvergleich streicht diese "
+            "Floskeln und bleibt lexikalisch nachrechenbar; der Bedeutungsvergleich über den Steckplatz "
+            "ist eine gekennzeichnete Zweitmeinung, kein Ersatz.")
         ),
         nachrechenbar=(
-            _("Text kleinschreiben, Satzzeichen entfernen, in Dreizeichenfolgen zerlegen — der "
-            "angezeigte Wert ist die Größe der Schnittmenge geteilt durch die Größe der "
-            "Vereinigungsmenge. Mit Papier und Bleistift nachvollziehbar: kein Modell, kein Zufall, "
-            "kein fremder Dienst.")
+            _("Text kleinschreiben, Satzzeichen entfernen, Stoppwörter der Liste im Modul und Wörter "
+            "unter drei Zeichen streichen, ab fünf Zeichen eine Endung -en/-er/-es/-e/-n/-s kappen, "
+            "Titelwörter doppelt gewichten. Wortanteil: Summe der kleineren Gewichte je gemeinsamem Wort "
+            "geteilt durch die Summe der größeren Gewichte über alle Wörter. Paaranteil: gemeinsame "
+            "Wortpaare geteilt durch alle Wortpaare. Angezeigter Wert = ⅔ Wortanteil + ⅓ Paaranteil. "
+            "Der Bedeutungswert stammt vom Anbieter und ist nur mit dessen Modell nachrechenbar — "
+            "darum steht er getrennt und gekennzeichnet daneben.")
         ),
         registerschluessel="aehnlichkeit-schwelle-prozent",
     ),

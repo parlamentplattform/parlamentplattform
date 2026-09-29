@@ -515,7 +515,8 @@ class Drosselzaehler(models.Model):
     In der Datenbank statt im prozesslokalen Cache: Zwei gunicorn-Worker führen sonst
     zwei Eimer, und ein Neustart setzt den Stand auf null. Keine Verfahrensdaten —
     Zeilen älter als zwei Stunden räumt `drossel_zuviel` im Vorbeigehen ab. Die
-    Kennung ist die Verbindungsadresse; gespeichert wird sie nur für diese Stunde."""
+    Kennung ist die Verbindungsadresse (bei Drosseln je Konto „konto:<pk>“); gespeichert
+    wird sie nur für diese Stunde."""
 
     zweck = models.CharField(max_length=30)
     kennung = models.CharField(max_length=64)

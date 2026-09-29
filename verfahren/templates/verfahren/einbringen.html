@@ -32,7 +32,7 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
     </div>
   {% endfor %}
   <p class="erk">{% translate "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)." %}
-    {% if pruefung.bedeutung_aktiv %}{% blocktranslate with modell=pruefung.bedeutungsmodell %}Bedeutung: Textvektoren des Anbieters ({{ modell }}) — Vorschlag, keine Hürde.{% endblocktranslate %}{% else %}{% translate "Bedeutungsvergleich nicht gerechnet — der Modell-Steckplatz war stumm (kein Anbieter, Budget oder Anbieterfehler)." %}{% endif %}</p>
+    {% if pruefung.bedeutung_aktiv %}{% blocktranslate with modell=pruefung.bedeutungsmodell %}Bedeutung: Textvektoren des Anbieters ({{ modell }}) — Vorschlag, keine Hürde.{% endblocktranslate %}{% elif pruefung.gedrosselt %}{% translate "Bedeutungsvergleich diesmal nicht gerechnet — Ihr Konto hat die Obergrenze der Anbieteraufrufe je Stunde erreicht." %}{% else %}{% translate "Bedeutungsvergleich nicht gerechnet — der Modell-Steckplatz war stumm (kein Anbieter, Budget oder Anbieterfehler)." %}{% endif %}</p>
 </div>
 {% endif %}
 

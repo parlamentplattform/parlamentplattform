@@ -133,15 +133,16 @@ def klienten_ip(request) -> str:
     return request.META.get("REMOTE_ADDR", "unbekannt")
 
 
-def drossel_zuviel(request, zweck: str, limit: int) -> bool:
-    """True, wenn diese Verbindung das Stundenlimit für `zweck` erreicht hat.
+def drossel_zuviel(request, zweck: str, limit: int, kennung: str | None = None) -> bool:
+    """True, wenn diese Verbindung das Stundenlimit für `zweck` erreicht hat — mit `kennung`
+    (etwa „konto:<pk>“) zählt statt der Verbindung dieser Schlüssel; `request` darf dann None sein.
 
     Zählt in der Datenbank (`Drosselzaehler`), damit zwei gunicorn-Worker nicht
     zwei Eimer führen und ein Neustart den Stand nicht löscht."""
     from mitglieder.models import Drosselzaehler
 
     stunde = int(time.time() // 3600)
-    kennung = klienten_ip(request)[:64]
+    kennung = (kennung or klienten_ip(request))[:64]
     with transaction.atomic():
         zaehler, neu = Drosselzaehler.objects.select_for_update().get_or_create(
             zweck=zweck, kennung=kennung, stunde=stunde

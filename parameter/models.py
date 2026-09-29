@@ -731,6 +731,16 @@ ERSTBESTAND = [
         "sind rund 20 Stunden. Nachrichten zum Konto versucht der Postausgang ohne Grenze. Wirkt sofort."),
         "quelle": "Grenze der Maschine · Entscheidung des Gründers 29.9.2026: als Registerwert",
     },
+    {
+        "schluessel": "audit-vollpruefung-tage",
+        "wert": "7",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Nach wie vielen Tagen die tägliche Prüfung der Audit-Kette wieder die ganze "
+        "Kette von vorn nachrechnet. Dazwischen rechnet sie nur die neuen Einträge nach und prüft, dass der "
+        "zuletzt geprüfte unverändert ist. Wirkt beim nächsten Lauf."),
+        "quelle": "§ 5 Abs 8 · Bestandsaufnahme 28.9.2026 (A7)",
+    },
 ]
 
 

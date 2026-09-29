@@ -23,6 +23,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Any
 
 GENESIS = "0" * 64
@@ -87,3 +88,38 @@ def kette_pruefen(
             return False, index
         aktuell = gespeichert
     return True, None
+
+
+@dataclass(frozen=True)
+class Befund:
+    """Ergebnis von `kette_nachrechnen` — was geprüft wurde und, falls etwas nicht stimmt, wo."""
+
+    intakt: bool
+    geprueft: int  # Zahl der nachgerechneten Einträge
+    kopf: str  # Hash des letzten geprüften Eintrags (bei einem Bruch: des letzten stimmigen)
+    letzte_nummer: int | None  # laufende Nummer des letzten stimmigen Eintrags
+    bruch: int | None = None  # laufende Nummer des ersten Eintrags, der nicht stimmt
+    grund: str | None = None  # „vorgaenger“: hängt nicht am Vorgänger · „hash“: Inhalt passt nicht zum Hash
+
+
+def kette_nachrechnen(
+    eintraege: Iterable[tuple[int, dict[str, Any], str, str]],
+    start_hash: str = GENESIS,
+    start_nummer: int | None = None,
+) -> Befund:
+    """Rechnet eine Kette aus (laufende Nummer, ereignis, gespeicherter Vorgänger, gespeicherter Hash) nach.
+
+    Anders als `kette_pruefen` prüft sie auch die gespeicherte Spalte `vorgaenger` und nennt die laufende
+    Nummer der Bruchstelle, nicht nur ihre Position — so lässt sich die Prüfung stückweise fortsetzen: Wer
+    den Kopf und die Nummer eines geprüften Stands kennt, rechnet mit `start_hash` ab dort weiter. Zwei
+    Gründe gibt es: Ein Eintrag hängt nicht am Hash seines Vorgängers („vorgaenger“ — ein Eintrag wurde
+    entfernt, eingeschoben oder umgehängt), oder sein Inhalt ergibt nicht seinen Hash („hash“ — er wurde
+    verändert)."""
+    kopf, letzte, geprueft = start_hash, start_nummer, 0
+    for nummer, ereignis, vorgaenger, gespeichert in eintraege:
+        if vorgaenger != kopf:
+            return Befund(False, geprueft, kopf, letzte, nummer, "vorgaenger")
+        if ereignis_hash(vorgaenger, ereignis) != gespeichert:
+            return Befund(False, geprueft, kopf, letzte, nummer, "hash")
+        kopf, letzte, geprueft = gespeichert, nummer, geprueft + 1
+    return Befund(True, geprueft, kopf, letzte)

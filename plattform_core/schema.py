@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.9"
+SCHEMA_VERSION = "1.10"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -262,6 +262,11 @@ PARAMETER = {
         "After how many failed delivery attempts the mail queue gives up an e-mail about the procedure "
         "(kept as done without delivery); account messages have no limit",
     ),
+    "audit-vollpruefung-tage": (
+        "audit.full_check_days", "days",
+        "After how many days the daily audit chain check recomputes the whole chain from the start "
+        "(in between it checks new entries and that the last checked one is unchanged)",
+    ),
 }
 
 # Felder der Verfahrensordnung (Policy) → (Schema-Kennung, Einheit)
@@ -302,6 +307,10 @@ KENNZAHLEN = (
     ("votes.turnout_mean", "share", "Mean turnout of completed votes: ballots cast / eligible members"),
     ("implementation.by_status", "map", "Adopted motions per implementation status"),
     ("areas_of_life.active", "count", "Active areas of life (nodes of the category tree)"),
+    ("audit.chain_intact", "flag", "Whether the last check found the audit chain intact (1) or broken (0)"),
+    ("audit.entries", "count", "Entries in the audit chain at the last check"),
+    ("audit.verified_at", "datetime", "When the audit chain was last checked (ISO 8601)"),
+    ("audit.head", "hash", "SHA-256 hash of the last checked entry — the published head of the chain"),
 )
 KENNZAHL_KENNUNGEN = {k for k, _e, _b in KENNZAHLEN}
 

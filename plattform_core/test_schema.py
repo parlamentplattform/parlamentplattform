@@ -37,7 +37,8 @@ def test_alle_kennungen_haben_das_format_und_sind_eindeutig():
     assert "support.window_days" in gemeinsam and "vote.window_days" in gemeinsam
     assert not (set(kennzahlen) & (set(register) | set(ordnung))), "Kennzahlen messen, sie stellen nicht"
 
-    assert SCHEMA_VERSION == "1.9"
+    assert SCHEMA_VERSION == "1.10"
+    assert schema_key("audit-vollpruefung-tage") == "audit.full_check_days"
     assert schema_key("post-neuer-antrag-bund") == "mail.new_motion_federal"
     assert schema_key("beitrag-erinnerung-fruehestens-tage") == "mail.fee_reminder_earliest_days"
     assert schema_key("vertrauensfrage-unterstuetzung-tage") == "mandate.confidence_support_days"

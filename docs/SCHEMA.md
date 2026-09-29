@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.9** (29.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.10** (29.9.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -27,7 +27,7 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.9",
+  "schema_version": "1.10",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
   "software": {"name": "ParlamentPlattform", "version": "0.51.0",
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.9, 55 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.10, 56 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -105,6 +105,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
 | `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
 | `mail.max_attempts` | `post-hoechstversuche` | attempts | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |
+| `audit.full_check_days` | `audit-vollpruefung-tage` | days | After how many days the daily audit chain check recomputes the whole chain from the start (in between it checks new entries and that the last checked one is unchanged) |
 | `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
 | `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
 | `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
@@ -191,7 +192,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.8, 7 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.10, 11 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -202,9 +203,14 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 | `votes.turnout_mean` | share | Mean turnout of completed votes: ballots cast / eligible members |
 | `implementation.by_status` | map | Adopted motions per implementation status |
 | `areas_of_life.active` | count | Active areas of life (nodes of the category tree) |
+| `audit.chain_intact` | flag | Whether the last check found the audit chain intact (1) or broken (0) |
+| `audit.entries` | count | Entries in the audit chain at the last check |
+| `audit.verified_at` | datetime | When the audit chain was last checked (ISO 8601) |
+| `audit.head` | hash | SHA-256 hash of the last checked entry — the published head of the chain |
 
 Alle Werte sind Zählungen oder Anteile über die ganze Instanz — nichts davon lässt sich auf einen
-Menschen zurückführen. Dieselben Kennungen sind die Messgrößen der Parametertests des
+Menschen zurückführen. Die `audit.*`-Kennungen (seit 1.10) fehlen, solange die Instanz ihre Kette nie
+geprüft hat; `audit.head` ist ein Hash, keine Zahl, und taugt deshalb nicht als Messgröße eines Tests. Dieselben Kennungen sind die Messgrößen der Parametertests des
 Koordinationsrats (§ 6 Abs 11 lit c): Eine zweite Zählung nur für Tests wäre nicht nachrechenbar.
 Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Antragsart
 `vertrauensfrage`, seit 0.48.0 — einschließlich Bestätigungsanträgen) zählen in `motions.*` und
@@ -243,3 +249,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4; dieselbe Kennung steht in Prozent je Fassung im Export der Verfahrensordnung, 3.2), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |
 | 1.8 | 29.9.2026 | 0.50.1 | Drei Grenzen, die bisher im Code standen, sind Stellgrößen (Entscheidung des Gründers 29.9.2026): `similarity.request_timeout_seconds` (wie lange das Einbringen höchstens auf den KI-Anbieter wartet, bevor der Wortvergleich allein gilt), `similarity.meaning_calls_per_account_hour` (wie oft ein Konto je Stunde den Bedeutungsvergleich beim Einbringen auslösen kann; 0 schaltet ihn ab), `mail.max_attempts` (nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird; Nachrichten zum Konto ohne Grenze). `ai.daily_queue_runs` zählt jetzt jeden Aufruf beim Anbieter, auch gescheiterte (bisher je Auftrag einmal) — dieselbe Einheit, genauere Zählung. |
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
+| 1.10 | 29.9.2026 | 0.52.0 | `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und vier Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) |

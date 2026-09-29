@@ -48,6 +48,17 @@ def _fristen() -> dict:
     return alles_fortschreiben()
 
 
+def _audit() -> dict:
+    from verfahren.audit_pruefung import lauf
+
+    return lauf()
+
+
+#: Einmal am Tag: Die Prüfung der Audit-Kette ist Rechenschaft, keine Frist — ein Tag Verzug schadet
+#: niemandem, und die Vollprüfung von vorn hat ihren eigenen Registerwert (audit-vollpruefung-tage).
+AUDIT_TAKT_MINUTEN = 24 * 60
+
+
 def _zukunftswerkstatt() -> dict:
     from ki.warteschlange import abarbeiten
 
@@ -59,6 +70,8 @@ LAEUFE: list[Lauf] = [
     # Die Warteschlange der Zukunftswerkstatt (ki/warteschlange.py): jede Minute die fälligen
     # Aufträge im Tageskontingent — betroffene Gesetze, nachgezogene Textvektoren.
     Lauf("zukunftswerkstatt", lambda: 1, _zukunftswerkstatt),
+    # Die Audit-Kette nachrechnen (Bestandsaufnahme A7): stückweise ab dem gemerkten Stand.
+    Lauf("audit", lambda: AUDIT_TAKT_MINUTEN, _audit),
 ]
 
 

@@ -80,6 +80,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
 </nav>
 
 <div class="zonen">
+<div class="zonen-oben">{# Zone 1 und 2 in eigener Hülle: Die klebende Einschätzung bleibt neben dem Text und wandert nicht über Chat und Archiv #}
   {# ── Zone 1: Text ── #}
   <section class="zone z-text" id="zone-text" x-show="breit || zone === 'text'" x-ref="ztext">
     <h2 class="nur-lesbar">{% translate "Text" %}</h2>
@@ -355,6 +356,8 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% include "verfahren/_zone_einschaetzung.html" %}
   </aside>
   {% endif %}
+
+</div>
 
   {# ── Zone 3: Chat (der Faden folgt mit dem Chatsystem, S6) ── #}
   <section class="zone z-chat" id="zone-chat" x-show="breit || zone === 'chat'">

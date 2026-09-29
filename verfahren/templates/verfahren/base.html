@@ -726,7 +726,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .zreiter{flex:none;padding:10px 16px;font-size:14px;font-weight:600;color:var(--matt);text-decoration:none;border-bottom:2.5px solid transparent;white-space:nowrap}
 .zreiter:hover{color:var(--ink)}
 .zreiter.an{color:var(--ink);border-bottom-color:var(--gold)}
-.zonen{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+.zonen,.zonen-oben{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
 .zone h2{margin:0 0 10px;font-size:19px}
 .zone h3{margin:0 0 8px;font-size:16px}
 .wortlaut h3{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
@@ -796,7 +796,7 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 .neu-band a{color:inherit;text-decoration:none}.neu-band a:hover{text-decoration:underline}
 .skelett-karte{flex:none;width:52px;height:34px;border-radius:8px;background:var(--surface-2);border:1px dashed var(--line)}
 @media(min-width:1100px){
-  .zonen{grid-template-columns:58fr 42fr}
+  .zonen-oben{grid-template-columns:58fr 42fr}
   .z-text{grid-column:1}
   .z-einschaetzung{grid-column:2;position:sticky;top:calc(var(--bar) + 52px)}
   .z-chat,.z-archiv{grid-column:1 / -1}

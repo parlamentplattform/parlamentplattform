@@ -18,7 +18,8 @@ HAUPTPUNKTE = ["/parlament/", "/mandatare/", "/gremien/", "/umsetzung/", "/zukun
 
 
 def _feld(html: str, feld_id: str) -> str:
-    return html.split(f'id="{feld_id}"', 1)[1].split("</section>", 1)[0]
+    # ab dem Ende des öffnenden <section>-Tags — dessen Attribute (Alpine-Bindungen) sind kein Text
+    return html.split(f'id="{feld_id}"', 1)[1].split(">", 1)[1].split("</section>", 1)[0]
 
 
 def _leiste(html: str) -> str:
@@ -215,11 +216,79 @@ def test_felder_sind_landmarken_mit_tastatur_scroll(client):
         assert html.count(f'id="feld-{feld}"') == 1
         assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}"' in html
         assert f'<h2 id="h-{feld}">' in html
-    korpusse = html.count('<div class="feld-korpus" tabindex="0">') + html.count(
-        '<div class="feld-korpus faecher-korpus" tabindex="0">'
-    )
-    assert korpusse == 4
+    # Die Feldkörper sind fokussierbare, benannte Landmarken — Alt+1…4 springt hinein (Teil 7)
+    korpusse = re.findall(r'<div class="feld-korpus(?: faecher-korpus)?" tabindex="0" role="region" aria-labelledby="h-(\w+)">', html)
+    assert korpusse == ["filter", "favoriten", "wichtig", "region"]
     assert '<body class="voll mit-band"' in html
+
+
+def test_fokus_modus_serverseitig_und_knopf_je_feld(client):
+    """Teil 7: ?fokus=<feld> rendert ein Feld auf dem ganzen Raster (die anderen hidden) — ohne JavaScript
+    derselbe Zustand wie der ⤢-Knopf mit Alpine; der Knopf ⤡ führt zurück; Unbekanntes gilt nicht."""
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert '<div class="parlament" id="parlament" x-data="parlament(\'\')"' in html
+    assert html.count('class="ikon fokus-knopf"') == 4
+    for feld in ("filter", "favoriten", "wichtig", "region"):
+        assert f'href="/parlament/?fokus={feld}"' in html
+        assert f' id="feld-{feld}" aria-labelledby="h-{feld}"' in html
+        assert f'hidden :hidden="fokus !== \'\' && fokus !== \'{feld}\'"' not in html
+    assert html.count('aria-label="Feld vergrößern"') == 4 and 'aria-label="Alle Felder zeigen"' not in html
+    html = client.get(reverse("verfahren:parlament") + "?fokus=wichtig").content.decode()
+    assert '<div class="parlament fokus fokus-wichtig" id="parlament" x-data="parlament(\'wichtig\')"' in html
+    for feld in ("filter", "favoriten", "region"):
+        assert re.search(rf'<section class="feld" id="feld-{feld}"[^>]* hidden :hidden=', html), feld
+    assert not re.search(r'<section class="feld" id="feld-wichtig"[^>]* hidden :hidden=', html)
+    knopf = _feld(html, "feld-wichtig").split('class="ikon fokus-knopf"', 1)[1].split("</a>", 1)[0]
+    assert 'href="/parlament/#feld-wichtig"' in knopf and 'aria-label="Alle Felder zeigen"' in knopf and "&#x2921;" in knopf
+    # ?fach bleibt am Favoriten-Feld erhalten, damit der Fächer nach dem Umschalten am selben Knoten steht
+    html = client.get(reverse("verfahren:parlament") + "?fokus=favoriten&fach=gesundheit").content.decode()
+    knopf = _feld(html, "feld-favoriten").split('class="ikon fokus-knopf"', 1)[1].split("</a>", 1)[0]
+    assert 'href="/parlament/?fach=gesundheit#feld-favoriten"' in knopf
+    # Unbekannter Wert: kein Fokus
+    html = client.get(reverse("verfahren:parlament") + "?fokus=chat").content.decode()
+    assert '<div class="parlament" id="parlament"' in html and " hidden :hidden=" not in html
+
+
+def test_tastenhilfe_im_menue_nur_im_parlament(client):
+    """Teil 7: die Tastenliste steht als <details> im ⋯-Menü (Gast) bzw. Konto-Menü (Mitglied) — nur im Parlament."""
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert html.count('id="tastenhilfe"') == 1
+    hilfe = html.split('id="tastenhilfe"', 1)[1].split("</details>", 1)[0]
+    assert "<kbd>Alt</kbd>" in hilfe and "<kbd>Esc</kbd>" in hilfe and "<kbd>?</kbd>" in hilfe
+    assert len(re.findall(r"<dt>", hilfe)) == 3 and "." not in re.sub(r"<[^>]+>", "", hilfe)  # Tastenliste, kein Satz
+    assert html.index('<details class="mehr"') < html.index('id="tastenhilfe"') < html.index('<details class="menue"')
+    client.force_login(mitglied_anlegen("tasten-mitglied"))
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    assert html.count('id="tastenhilfe"') == 1 and 'id="tastenhilfe"' in _konto(html)
+    assert 'id="tastenhilfe"' not in client.get("/uebersicht/").content.decode()
+
+
+def test_app_manifest_verlinkt_und_erreichbar(client, settings):
+    """Teil 7: Manifest und Symbole liegen als statische Dateien vor, base.html verweist darauf; die
+    Farben sind die Tokens (--deep hell, --night-1 dunkel); kein Service Worker."""
+    import json
+    from pathlib import Path
+
+    from django.contrib.staticfiles import finders
+
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    kopf = html.split("</head>", 1)[0]
+    assert '<link rel="manifest" href="/static/verfahren/app.webmanifest">' in kopf
+    assert '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#0E4C5C">' in kopf
+    assert '<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0A1722">' in kopf
+    assert '<link rel="apple-touch-icon" href="/static/verfahren/icon-192.png">' in kopf
+    assert "serviceWorker" not in html and "sw.js" not in html
+    pfad = finders.find("verfahren/app.webmanifest")
+    assert pfad
+    manifest = json.loads(Path(pfad).read_text(encoding="utf-8"))
+    assert manifest["name"] == "ParlamentPlattform" and manifest["short_name"] == "Parlament"
+    assert manifest["start_url"] == "/parlament/" and manifest["display"] == "standalone" and manifest["lang"] == "de"
+    assert manifest["theme_color"] == "#0E4C5C" and manifest["background_color"] == "#FFFFFF"
+    groessen = {(i["sizes"], i["purpose"]) for i in manifest["icons"]}
+    assert groessen == {("192x192", "any"), ("512x512", "any"), ("512x512", "maskable")}
+    for symbol in manifest["icons"]:
+        assert finders.find(symbol["src"].replace("/static/", "", 1)), symbol["src"]
+    assert settings.WHITENOISE_MIMETYPES[".webmanifest"] == "application/manifest+json"
 
 
 def test_tableiste_nur_im_parlament(client):

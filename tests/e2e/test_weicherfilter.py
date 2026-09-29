@@ -64,7 +64,7 @@ def test_overlay_gleitet_von_rechts_und_escape_schliesst(seite, live_server, dem
         "document.activeElement === document.querySelector('#feld-filter .regler-klappe > summary')"
     )
     # Regler-Symbol im Feldkopf öffnet ebenfalls
-    p.locator("#feld-filter .feld-kopf .ikon").click()
+    p.locator("#feld-filter .feld-kopf button.ikon").click()  # nicht der Fokus-Knopf (Teil 7)
     p.wait_for_timeout(450)
     assert overlay.is_visible()
 
@@ -144,7 +144,7 @@ def test_eingefahrene_leiste_hat_keine_unsichtbaren_tab_stopps(seite, live_serve
     innen = "#filter-leiste .innen"
     assert p.locator(innen).get_attribute("inert") is not None
     assert p.evaluate(f"getComputedStyle(document.querySelector('{innen}')).visibility") == "hidden"
-    p.locator("#feld-filter .feld-kopf .ikon").focus()
+    p.locator("#feld-filter .feld-kopf button.ikon").focus()
     for _ in range(12):
         p.keyboard.press("Tab")
         assert not p.evaluate(f"!!document.activeElement.closest('{innen}')"), "kein Tab-Stopp in der eingefahrenen Leiste"

@@ -70,9 +70,24 @@ def schreiben(client, antrag, mitglied, text, kritik=False, absatz=None):
     return antrag.kommentare.filter(mitglied=mitglied).order_by("-erstellt_am").first()
 
 
+def frist_setzen(entwurf, frist):
+    """Zeitraffer der Unterstützer-Frist: Die Frist rückt in die Vergangenheit, und mit ihr die Reaktionen
+    dieses Antrags — sie wurden ja vor dem Fristende abgegeben. Gezählt wird der Stand zum Fristende
+    (§ 5 Abs 13, Bestandsaufnahme A8); ohne die Verschiebung lägen die Klicks des Tests „nach“ der Frist."""
+    from django.db.models import F
+
+    from verfahren.models import Reaktion
+
+    versatz = timezone.now() - frist + timedelta(minutes=5)
+    Reaktion.objects.filter(kommentar__antrag_id=entwurf.antrag_id).update(
+        erstellt_am=F("erstellt_am") - versatz, zurueckgenommen_am=F("zurueckgenommen_am") - versatz
+    )
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+
+
 def frist_verstreichen(entwurf):
     """Ausgewertet wird nach Fristablauf — bis dahin sind Reaktionen umschaltbar (FB-G6)."""
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    frist_setzen(entwurf, timezone.now() - timedelta(hours=1))
 
 
 def fenster_oeffnen(client, antrag, rat):
@@ -459,11 +474,109 @@ def test_ablehnung_zaehlt_und_laesst_sich_umschalten(client, ordnung):  # noqa: 
     einreichen(client, antrag, er)
     passt = systembeitrag(antrag)
     reagieren(client, antrag, passt, unterstuetzer[0], art="ablehnung")
-    assert passt.reaktionen.get().art == "ablehnung"
+    assert passt.reaktionen.aktive().get().art == "ablehnung"
     reagieren(client, antrag, passt, unterstuetzer[0], art="zustimmung")
-    assert passt.reaktionen.get().art == "zustimmung", "eine Reaktion je Mitglied, umschaltbar"
+    assert passt.reaktionen.aktive().get().art == "zustimmung", "eine geltende Reaktion je Mitglied, umschaltbar"
     reagieren(client, antrag, passt, unterstuetzer[0], art="zustimmung")
-    assert passt.reaktionen.count() == 0, "derselbe Knopf nimmt zurück"
+    assert passt.reaktionen.aktive().count() == 0, "derselbe Knopf nimmt zurück"
+    # Append-only (Bestandsaufnahme A8): Die Geschichte bleibt — zwei gestempelte Zeilen, keine gelöscht.
+    assert passt.reaktionen.count() == 2 and not passt.reaktionen.filter(zurueckgenommen_am__isnull=True).exists()
+
+
+def _audit_reaktionen():
+    return [e.ereignis for e in AuditEintrag.objects.order_by("lfd") if e.ereignis["typ"].startswith("reaktion")]
+
+
+def test_jeder_klick_im_abstimmungschat_steht_im_audit_ohne_person(client, ordnung):  # noqa: F811
+    """Entscheidung E7 (Bauplan 0.51.0): Im Abstimmungs-Chat ist die Reaktion das Votum — Abgabe, Wechsel
+    und Rücknahme je ein Eintrag, ohne Mitglied und ohne Pseudonym."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    u = unterstuetzer[0]
+    reagieren(client, antrag, passt, u, art="zustimmung")
+    reagieren(client, antrag, passt, u, art="ablehnung")
+    reagieren(client, antrag, passt, u, art="ablehnung")
+    ereignisse = _audit_reaktionen()
+    assert [e["typ"] for e in ereignisse] == ["reaktion", "reaktion_gewechselt", "reaktion_zurueckgenommen"]
+    assert ereignisse[0] == {**ereignisse[0], "antrag": antrag.pk, "beitrag": passt.pk, "runde": 1, "reaktion": "zustimmung"}
+    assert ereignisse[1]["von"] == "zustimmung" and ereignisse[1]["zu"] == "ablehnung"
+    assert ereignisse[2]["reaktion"] == "ablehnung"
+    import json
+
+    roh = json.dumps(ereignisse)
+    assert "mitglied" not in roh and "pseudonym" not in roh and u.username not in roh
+
+
+def test_die_auswertung_zaehlt_nur_geltende_reaktionen_zum_fristende(client, ordnung):  # noqa: F811
+    """Drei Unterstützer stimmen „Passt alles“ zu; einer nimmt zurück, einer wechselt auf Ablehnung.
+    Gezählt werden 1 Ja und 1 Nein — nichts wurde gelöscht (Bestandsaufnahme A8)."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    dritte = mitglied_anlegen("u-dritte")
+    antrag.unterstuetzungen.create(mitglied=dritte)
+    unterstuetzer = [*unterstuetzer, dritte]
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer[:3]:
+        reagieren(client, antrag, passt, u)
+    reagieren(client, antrag, passt, unterstuetzer[1])  # zurück
+    reagieren(client, antrag, passt, unterstuetzer[2], art="ablehnung")  # gewechselt
+    assert passt.reaktionen.count() == 4
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    auswertung = [e.ereignis for e in AuditEintrag.objects.all() if "auswertung" in e.ereignis][-1]["auswertung"]
+    assert (auswertung["ja"], auswertung["nein"]) == (1, 1)  # 50 % — nicht über der Schwelle: zurück
+
+
+def test_nach_dem_fristende_zaehlt_keine_reaktion_mehr(client, ordnung):  # noqa: F811
+    """§ 5 Abs 13: „bis zum Fristende“. Eine Reaktion nach der Frist wird abgewiesen — der Klick schreibt
+    zuerst fort, die Runde ist ausgewertet, der Beitrag im Archiv."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    frist_verstreichen(entwurf)  # niemand hat die Seite seither geöffnet
+    reagieren(client, antrag, passt, unterstuetzer[1], art="ablehnung")
+    assert not passt.reaktionen.filter(mitglied=unterstuetzer[1]).exists()
+    antrag.refresh_from_db()
+    assert antrag.phase == "abstimmung"
+    auswertung = [
+        e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") == "phasenwechsel" and "auswertung" in e.ereignis
+    ][-1]["auswertung"]
+    assert (auswertung["ja"], auswertung["nein"]) == (1, 0)
+
+
+def test_eine_reaktion_nach_der_stichzeit_zaehlt_in_der_rechnung_nicht(client, ordnung):  # noqa: F811
+    """Auch wenn eine Zeile nach dem Fristende gespeichert wurde (Nebenläufigkeit, Altbestand), rechnet
+    die Auswertung mit dem Stand zum Fristende."""
+    from verfahren.chat import abstimmung_stand
+    from verfahren.models import Reaktion
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    stichzeit = timezone.now()
+    Reaktion.objects.create(
+        kommentar=passt, mitglied=unterstuetzer[1], art="ablehnung", erstellt_am=stichzeit + timedelta(minutes=1)
+    )
+    entwurf.refresh_from_db()
+    assert abstimmung_stand(antrag, entwurf, 0.5)["nein"] == 1
+    assert abstimmung_stand(antrag, entwurf, 0.5, stichzeit=stichzeit)["nein"] == 0
+
+
+def test_alle_zurueckgenommen_ist_stille_und_hemmt_nie(client, ordnung):  # noqa: F811
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u, art="ablehnung")
+        reagieren(client, antrag, passt, u, art="ablehnung")
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben()
+    assert antrag.phase == "abstimmung"  # Untätigkeit hemmt nie (§ 5 Abs 12, 13)
 
 
 def test_stille_hemmt_nie(client, ordnung):  # noqa: F811
@@ -471,7 +584,7 @@ def test_stille_hemmt_nie(client, ordnung):  # noqa: F811
     Vorschlag trotzdem zur Endabstimmung (§ 5 Abs 12)."""
     antrag, _, er = werkstatt_lage(ordnung)
     entwurf = einreichen(client, antrag, er)
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    frist_verstreichen(entwurf)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     assert antrag.phase == "abstimmung"
@@ -510,7 +623,7 @@ def test_die_schleife_wirkt_ab_fristablauf_nicht_ab_seitenaufruf(client, ordnung
     for u in unterstuetzer:
         reagieren(client, antrag, passt, u)
     frist = timezone.now() - timedelta(days=5)
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    frist_setzen(entwurf, frist)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     antrag.refresh_from_db()
@@ -532,7 +645,7 @@ def test_die_ueberarbeitungsfrist_zaehlt_ab_dem_fristablauf_der_rueckgabe(client
     for u in unterstuetzer:
         reagieren(client, antrag, kritik, u)
     frist = timezone.now() - timedelta(days=5)
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    frist_setzen(entwurf, frist)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     entwurf.refresh_from_db()

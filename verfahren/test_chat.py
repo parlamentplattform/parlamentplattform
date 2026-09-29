@@ -132,8 +132,10 @@ def test_reaktion_ist_umschaltbar_und_rein_informativ(client, ordnung):  # noqa:
     ziel = reverse("verfahren:reagieren", args=[antrag.pk, beitrag.pk])
     client.post(ziel)
     assert Reaktion.objects.filter(kommentar=beitrag, mitglied=bernd).count() == 1
-    client.post(ziel)  # noch einmal: die Zustimmung wird zurückgenommen
-    assert not Reaktion.objects.filter(kommentar=beitrag).exists()
+    client.post(ziel)  # noch einmal: die Zustimmung wird zurückgenommen — gestempelt, nicht gelöscht
+    assert not Reaktion.objects.aktive().filter(kommentar=beitrag).exists()
+    assert Reaktion.objects.get(kommentar=beitrag).zurueckgenommen_am is not None
+    assert not AuditEintrag.objects.filter(ereignis__typ__startswith="reaktion").exists()  # informativ: kein Audit
     client.post(ziel)
     inhalt = _seite(client, antrag)
     assert "&#128077; 1" in inhalt or "👍 1" in inhalt
@@ -524,3 +526,65 @@ def test_abstimmungschat_fenster_folgt_der_reihung(client, ordnung):  # noqa: F8
     assert "Ohne Reaktion." in faden and "Das bewegt am meisten." not in faden
     assert "Zum Anfang der Reihung" in faden
     assert still.pk in [e["k"].pk for e in chatkern.faden(antrag, unterstuetzer[0], nach_engagement=True)]
+
+
+def test_der_teilindex_laesst_nur_eine_geltende_reaktion_zu(ordnung):  # noqa: F811
+    from django.db import IntegrityError, transaction
+
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, "Punkt.")
+    erste = Reaktion.objects.create(kommentar=beitrag, mitglied=bernd)
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Reaktion.objects.create(kommentar=beitrag, mitglied=bernd)
+    erste.zurueckgenommen_am = erste.erstellt_am
+    erste.save()
+    Reaktion.objects.create(kommentar=beitrag, mitglied=bernd)  # neben einer gestempelten geht es
+    assert Reaktion.objects.filter(kommentar=beitrag).count() == 2
+
+
+def test_ein_doppelklick_ohne_geltende_zeile_legt_keine_zweite_an(ordnung, monkeypatch):  # noqa: F811
+    """Das Rennen zweier Klicks: Der zweite trifft auf den Teilindex und bekommt den geltenden Stand."""
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, "Punkt.")
+    schon = Reaktion.objects.create(kommentar=beitrag, mitglied=bernd)
+
+    class Leer:
+        def filter(self, **_k):
+            return self
+
+        def first(self):
+            return None
+
+    echt = Reaktion.objects.aktive
+    aufrufe = {"n": 0}
+
+    def aktive_mit_rennen():
+        aufrufe["n"] += 1
+        if aufrufe["n"] == 1:  # der erste Blick sieht die Zeile des anderen Klicks noch nicht
+            return type("QS", (), {"select_for_update": lambda self: Leer()})()
+        return echt()
+
+    monkeypatch.setattr(Reaktion.objects, "aktive", aktive_mit_rennen)
+    ergebnis = chatkern.reaktion_umschalten(beitrag, bernd)
+    assert ergebnis.pk == schon.pk and Reaktion.objects.filter(kommentar=beitrag).count() == 1
+
+
+@pytest.mark.parametrize("zustand", ["testkonto", "ungeprueft", "pausiert"])
+def test_gesperrte_konten_reagieren_nicht(client, ordnung, zustand):  # noqa: F811
+    from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
+
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, "Punkt.")
+    if zustand == "testkonto":
+        bernd.testkonto = True
+    elif zustand == "ungeprueft":
+        bernd.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    else:
+        bernd.status = Mitgliedsstatus.PAUSIERT
+    bernd.save()
+    client.force_login(bernd)
+    assert client.post(reverse("verfahren:reagieren", args=[antrag.pk, beitrag.pk])).status_code == 403
+    assert not Reaktion.objects.exists()

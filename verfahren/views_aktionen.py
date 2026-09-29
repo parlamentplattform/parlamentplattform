@@ -528,14 +528,19 @@ def reagieren(request, pk, beitrag_pk):
     Außerhalb des Abstimmungs-Chats ist nur Zustimmung möglich und rein informativ: Die Reihung
     bleibt chronologisch (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags
     ist die Reaktion das Votum der Unterstützer — dort reagieren nur sie (§ 5 Abs 12)."""
-    from verfahren.chat import abstimmungschat, darf_reagieren, reaktion_umschalten
+    from verfahren.chat import abstimmungschat, chat_offen, darf_reagieren, reaktion_umschalten
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
-    if beitrag.archiviert_am or beitrag.geloescht:
+    # § 5 Abs 13: Reagieren geht „bis zum Fristende“. Erst fortschreiben — ist die Frist um, wertet das
+    # die Runde aus und räumt ihre Beiträge ins Archiv; die Reaktion trifft dann ins Leere statt in
+    # eine schon entschiedene Rechnung (Bestandsaufnahme A8).
+    antrag.fortschreiben()
+    beitrag.refresh_from_db()
+    if beitrag.archiviert_am or beitrag.geloescht or not chat_offen(antrag):
         messages.error(request, _("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     if not darf_reagieren(antrag, request.user):

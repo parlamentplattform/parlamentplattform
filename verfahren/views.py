@@ -1104,14 +1104,14 @@ def _archiv_lage(antrag, geoeffnet: str | None = None) -> dict:
     `geoeffnet` (?archiv=<phase>) ist die eine Phase, deren Beiträge mitkommen (Befund #42)."""
     from verfahren import archiv as archivkern
 
-    alle = archivkern.audit_spur(antrag)
     anzeige = archivkern.audit_anzeige()  # einmal lesen, nicht zweimal (Befund #41)
+    gesamt = archivkern.audit_anzahl(antrag)
     return {
         "zeitleiste": archivkern.zeitleiste(antrag, geoeffnet=geoeffnet),
         "entwurf": archivkern.entwurf_bloecke(antrag),
-        "audit": alle[-anzeige:],
-        "audit_gesamt": len(alle),
-        "audit_gekuerzt": len(alle) > anzeige,
+        "audit": archivkern.audit_spur(antrag, grenze=anzeige),
+        "audit_gesamt": gesamt,
+        "audit_gekuerzt": gesamt > anzeige,
     }
 
 def archiv_export(request, pk, art):

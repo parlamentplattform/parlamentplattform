@@ -1589,20 +1589,42 @@ class Reaktionsart(models.TextChoices):
     ABLEHNUNG = "ablehnung", _("Ablehnung")
 
 
+class ReaktionQuerySet(models.QuerySet):
+    def aktive(self):
+        """Die geltenden Reaktionen — zurückgenommene und gewechselte bleiben gespeichert, zählen aber nicht."""
+        return self.filter(zurueckgenommen_am__isnull=True)
+
+
 class Reaktion(models.Model):
     """Zustimmung oder Ablehnung zu einem Beitrag (FB-G1, FB-G6).
 
     Außerhalb des Abstimmungs-Chats nur Zustimmung, rein informativ — sie wirkt nie auf die
     Reihung (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags (S7) ist sie
-    das Votum der Unterstützer. Eine Reaktion je Mitglied und Beitrag, umschaltbar."""
+    das Votum der Unterstützer (§ 5 Abs 13). Höchstens eine aktive Reaktion je Mitglied und
+    Beitrag; Zurücknehmen und Wechseln stempeln die bisherige Zeile, nichts wird gelöscht
+    (Grundregel 7, Bestandsaufnahme A8)."""
 
     kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="reaktionen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     art = models.CharField(max_length=12, choices=Reaktionsart.choices, default=Reaktionsart.ZUSTIMMUNG)
     erstellt_am = models.DateTimeField(default=timezone.now)
+    zurueckgenommen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Reaktion zurückgenommen oder gewechselt wurde — die Zeile bleibt "
+        "(Grundregel 7), gezählt wird sie nicht mehr.",
+    )
+
+    objects = ReaktionQuerySet.as_manager()
 
     class Meta:
-        unique_together = [("kommentar", "mitglied")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kommentar", "mitglied"],
+                condition=models.Q(zurueckgenommen_am__isnull=True),
+                name="reaktion_eine_aktive_je_mitglied",
+            )
+        ]
         verbose_name = "Reaktion"
         verbose_name_plural = "Reaktionen"
 

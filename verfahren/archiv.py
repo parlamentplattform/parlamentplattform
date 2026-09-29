@@ -265,18 +265,28 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     zweihundert Zeilen niemandem hilft; dass gekürzt wurde, sagt sie dann auch dazu."""
     # Der Filter läuft in der Datenbank (Befund #41): Vorher zog jeder Antragsaufruf das gesamte
     # Audit-Log — jede Stimme, jede Unterstützung plattformweit — und siebte es in Python.
-    spur = []
-    for eintrag in AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).order_by("lfd"):
-        spur.append(
-            {
-                "lfd": eintrag.lfd,
-                "typ": eintrag.ereignis.get("typ", ""),
-                "zeit": eintrag.zeit.isoformat(),
-                "hash": eintrag.hash[:12],
-                "grund": eintrag.ereignis.get("grund", ""),
-            }
-        )
-    return spur[-grenze:] if grenze else spur
+    # Mit `grenze` schneidet die Datenbank (0.51.0): Seit jede Reaktion im Abstimmungs-Chat einen
+    # Eintrag schreibt (Bestandsaufnahme A8), wüchse die Spur eines umkämpften Antrags mit jedem Klick.
+    eintraege = AuditEintrag.objects.filter(ereignis__antrag=antrag.pk)
+    if grenze:
+        eintraege = reversed(list(eintraege.order_by("-lfd")[:grenze]))
+    else:
+        eintraege = eintraege.order_by("lfd")
+    return [
+        {
+            "lfd": eintrag.lfd,
+            "typ": eintrag.ereignis.get("typ", ""),
+            "zeit": eintrag.zeit.isoformat(),
+            "hash": eintrag.hash[:12],
+            "grund": eintrag.ereignis.get("grund", ""),
+        }
+        for eintrag in eintraege
+    ]
+
+
+def audit_anzahl(antrag) -> int:
+    """Wie viele Audit-Ereignisse dieser Antrag hat — gezählt in der Datenbank."""
+    return AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).count()
 
 
 def archiv(antrag) -> dict:

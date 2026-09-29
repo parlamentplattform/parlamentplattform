@@ -12,12 +12,13 @@ Aus diesen Paaren baut das Panel „Meine Gespräche" seine Liste.
 
 from __future__ import annotations
 
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from plattform_core import vorschlagschat
-from verfahren.models import Kommentar, Lesestand, Reaktion, Reaktionsart
+from verfahren.models import AuditEintrag, Kommentar, Lesestand, Reaktion, Reaktionsart
 
 #: Rückfallwert; der gültige steht im Register unter „kritik-mindestzeichen" (FB-J2).
 KRITIK_MINDESTLAENGE = 80
@@ -48,14 +49,27 @@ def faden_wurzeln() -> int:
     return zahl("chat-faden-wurzeln", FADEN_WURZELN)
 
 
-def mit_zaehlern(qs):
-    """Zustimmungen und Ablehnungen als Annotation je Beitrag (Befund #42).
+def _geltend(stichzeit=None) -> Q:
+    """Welche Reaktionen zählen (Bestandsaufnahme A8): nur die geltenden — ohne Stichzeit die
+    heute aktiven, mit Stichzeit genau der Stand zu diesem Zeitpunkt (abgegeben bis dahin und
+    nicht vorher zurückgenommen). Die Stichzeit ist das Fristende der Unterstützer: § 5 Abs 13
+    lässt die Reaktion „bis zum Fristende“ ändern — was danach geschieht, zählt nicht."""
+    if stichzeit is None:
+        return Q(reaktionen__zurueckgenommen_am__isnull=True)
+    return Q(reaktionen__erstellt_am__lte=stichzeit) & (
+        Q(reaktionen__zurueckgenommen_am__isnull=True) | Q(reaktionen__zurueckgenommen_am__gt=stichzeit)
+    )
+
+
+def mit_zaehlern(qs, stichzeit=None):
+    """Zustimmungen und Ablehnungen als Annotation je Beitrag (Befund #42) — nur geltende Reaktionen.
 
     Vorher lud `prefetch_related("reaktionen")` jede einzelne Reaktion und zählte in Python —
     bei einem umkämpften Antrag Hunderttausende Zeilen für zwei Zahlen je Beitrag."""
+    geltend = _geltend(stichzeit)
     return qs.annotate(
-        zustimmungen=Count("reaktionen", filter=Q(reaktionen__art=Reaktionsart.ZUSTIMMUNG)),
-        ablehnungen=Count("reaktionen", filter=Q(reaktionen__art=Reaktionsart.ABLEHNUNG)),
+        zustimmungen=Count("reaktionen", filter=geltend & Q(reaktionen__art=Reaktionsart.ZUSTIMMUNG)),
+        ablehnungen=Count("reaktionen", filter=geltend & Q(reaktionen__art=Reaktionsart.ABLEHNUNG)),
     )
 
 
@@ -225,7 +239,7 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
         gelesen_bis = stand.gelesen_bis if stand else None
         meine = {
             r.kommentar_id: r.art
-            for r in Reaktion.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+            for r in Reaktion.objects.aktive().filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
         }
 
     def schmuecken(k: Kommentar) -> dict:
@@ -301,20 +315,43 @@ def gelesen_merken(antrag, nutzer, jetzt=None) -> None:
 
 
 def reaktion_umschalten(kommentar, mitglied, art=Reaktionsart.ZUSTIMMUNG, jetzt=None):
-    """Zustimmen oder die Zustimmung zurücknehmen (FB-G1, D-G1: außerhalb des Abstimmungs-Chats
-    nur Zustimmung, rein informativ — die Reihung bleibt chronologisch). Rückgabe: die Reaktion
-    oder None, wenn sie zurückgenommen wurde."""
-    vorhanden = Reaktion.objects.filter(kommentar=kommentar, mitglied=mitglied).first()
-    if vorhanden is not None:
-        if vorhanden.art == art:
-            vorhanden.delete()
-            return None
-        vorhanden.art = art
-        vorhanden.save(update_fields=["art"])
-        return vorhanden
-    return Reaktion.objects.create(
-        kommentar=kommentar, mitglied=mitglied, art=art, erstellt_am=jetzt or timezone.now()
-    )
+    """Reagieren, die Reaktion wechseln oder zurücknehmen (FB-G1, FB-G6; D-G1: außerhalb des
+    Abstimmungs-Chats nur Zustimmung, rein informativ — die Reihung bleibt chronologisch).
+    Rückgabe: die geltende Reaktion oder None, wenn sie zurückgenommen wurde.
+
+    Append-only (Bestandsaufnahme A8, Grundregel 7): Zurücknehmen stempelt die Zeile mit
+    `zurueckgenommen_am`, Wechseln stempelt sie und legt eine neue an — gelöscht und überschrieben
+    wird nichts. Im Abstimmungs-Chat, wo die Reaktion das Votum der Unterstützer ist (§ 5 Abs 13),
+    schreibt jeder Klick einen Audit-Eintrag ohne Personenbezug (Entscheidung E7 zum Bauplan
+    0.51.0); außerhalb bleibt die Kette frei vom rein informativen Daumen."""
+    jetzt = jetzt or timezone.now()
+    abstimmung = (kommentar.phase or "").startswith("vorschlag-r")
+    try:
+        with transaction.atomic():
+            vorhanden = (
+                Reaktion.objects.aktive().select_for_update().filter(kommentar=kommentar, mitglied=mitglied).first()
+            )
+            if vorhanden is not None:
+                vorhanden.zurueckgenommen_am = jetzt
+                vorhanden.save(update_fields=["zurueckgenommen_am"])
+            neu = None
+            if vorhanden is None or vorhanden.art != art:
+                neu = Reaktion.objects.create(kommentar=kommentar, mitglied=mitglied, art=art, erstellt_am=jetzt)
+            if abstimmung:
+                runde = int(kommentar.phase.removeprefix("vorschlag-r"))
+                ereignis = {"antrag": kommentar.antrag_id, "beitrag": kommentar.pk, "runde": runde}
+                if vorhanden is None:
+                    ereignis.update(typ="reaktion", reaktion=art)
+                elif neu is None:
+                    ereignis.update(typ="reaktion_zurueckgenommen", reaktion=vorhanden.art)
+                else:
+                    ereignis.update(typ="reaktion_gewechselt", von=vorhanden.art, zu=art)
+                AuditEintrag.anhaengen(ereignis)
+            return neu
+    except IntegrityError:
+        # Zwei Klicks zugleich ohne aktive Zeile: Der Teilindex lässt nur eine gelten — der zweite
+        # Klick ändert nichts und bekommt den Stand, der gilt.
+        return Reaktion.objects.aktive().filter(kommentar=kommentar, mitglied=mitglied).first()
 
 
 def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
@@ -406,10 +443,12 @@ def darf_reagieren(antrag, mitglied) -> bool:
     return antrag.unterstuetzungen.filter(mitglied=mitglied, zurueckgezogen_am__isnull=True).exists()
 
 
-def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None) -> dict | None:
+def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None, stichzeit=None) -> dict | None:
     """Die Rechnung des Abstimmungs-Chats (FB-G6) — offen, damit sie jeder nachvollziehen kann.
 
-    Gibt None zurück, wenn gerade kein Vorschlag zur Abstimmung steht."""
+    Mit `stichzeit` (das Fristende der Unterstützer, bei der Auswertung) zählt genau der Stand zu
+    diesem Zeitpunkt (§ 5 Abs 13: „bis zum Fristende“). Gibt None zurück, wenn gerade kein
+    Vorschlag zur Abstimmung steht."""
     entwurf = entwurf or abstimmungschat(antrag)
     if entwurf is None:
         return None
@@ -422,7 +461,8 @@ def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None) -> dic
          "zeit": k.erstellt_am, "system": k.system, "ist_kritik": k.ist_kritik, "text": k.sichtbarer_text(),
          "absatz": k.bezug_absatz}
         for k in mit_zaehlern(
-            antrag.kommentare.filter(archiviert_am__isnull=True, phase=f"vorschlag-r{entwurf.runde}")
+            antrag.kommentare.filter(archiviert_am__isnull=True, phase=f"vorschlag-r{entwurf.runde}"),
+            stichzeit=stichzeit,
         ).order_by("erstellt_am", "pk")
     ]
     ergebnis = vorschlagschat.auswerten(beitraege, schwelle)

@@ -643,7 +643,10 @@ class Entwurf(models.Model):
             # Schwelle und Höchstrunden aus der eingefrorenen Ordnung des Antrags — nicht aus
             # dem Register: Eine Änderung dort träfe sonst eine laufende Schleife (§ 5 Abs 5).
             ordnung = antrag.policy()
-            stand = abstimmung_stand(antrag, self, schwelle=ordnung.vorschlag_annahme_anteil)
+            # Gezählt wird der Stand zum Fristende (§ 5 Abs 13), nicht der beim Aufruf (Bestandsaufnahme A8).
+            stand = abstimmung_stand(
+                antrag, self, schwelle=ordnung.vorschlag_annahme_anteil, stichzeit=self.review_frist
+            )
             rechnung = (
                 f"„Passt alles“ {stand['ja']}:{stand['nein']} = {stand['prozent']} % "
                 f"(Schwelle {round(stand['schwelle'] * 100)} %), "

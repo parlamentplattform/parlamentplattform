@@ -340,6 +340,7 @@ def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung
                    "entwurfsbeitraege", "entwurfsfassungen", "gremienstimmen", "angelegte_beschluesse",
                    "zugewiesene_umsetzungen", "vollzug", "ueberlastungsmeldungen", "parametertests", "ki_laeufe"):
         assert len(daten[ordner]) >= 1, ordner
+    assert "zurueckgenommen_am" in daten["reaktionen"][0]  # append-only (0.51.0): auch Zurückgenommenes
     md = daten["mandate"][0]
     assert md["aufgaben"][0]["sitzungstag"] is True and md["berichte"][0]["monat"] == "2026-10-01"
     assert md["rechenschaft"][0]["gegenstand"] == "Budget"

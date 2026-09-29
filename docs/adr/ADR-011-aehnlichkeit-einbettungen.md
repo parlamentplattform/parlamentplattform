@@ -49,15 +49,21 @@ Wortvergleich zurück und sagt das in der Karte.
   die Option, sobald die Plattform auf eigener Infrastruktur läuft (dann nur der Anbieter im
   Steckplatz wechselt — die Schnittstelle `einbetten(texte)` bleibt).
 - **Anbieter-Einbettung über den Steckplatz** (gewählt): Titel und Wortlaut verlassen die
-  Plattform an den eingestellten Anbieter. Beide sind ohnehin öffentlich (§ 5 Abs 3); Begründung,
-  Chat und Personenbezug werden nicht übertragen. Kein neues Paket, keine neue Instanz.
+  Plattform an den eingestellten Anbieter. Bei den laufenden Anträgen sind sie öffentlich (§ 5 Abs 3);
+  beim neuen Text ist es der Entwurf, noch vor der Einbringung — also vor der Veröffentlichung,
+  auch wenn das Mitglied nach dem Hinweis nicht einbringt. Begründung, Chat und Personenbezug werden
+  nicht übertragen. Kein neues Paket, keine neue Instanz.
 - **Nur Stufe 1b**: reicht gegen Floskel-Treffer, erkennt aber keine Umformulierung mit anderen
   Wörtern. Bleibt als Rückfall und Zweitmeinung.
 
 ## Folgen
 
-- Text verlässt die Plattform nur an den Anbieter, der im Steckplatz eingestellt ist, und nur
-  der öffentliche Teil; die Datenschutzerklärung nennt den Anbieter (Teil 5).
+- Text verlässt die Plattform nur an den Anbieter, der im Steckplatz eingestellt ist: Titel und
+  Wortlaut der laufenden Anträge und — beim Absenden auf „Antrag einbringen“ — Titel und Wortlaut
+  des Entwurfs, bevor er veröffentlicht ist. Der Lauf steht mit dem Entwurf und dem anfordernden
+  Konto im Lauf-Archiv (`KILauf.eingabe`, append-only), auch wenn der Antrag nie eingebracht wird.
+  Datenschutzerklärung und Einbringen-Seite sagen das, sobald ein Anbieter angeschlossen ist
+  (Entscheidung des Gründers vom 29.9.2026: das Verhalten bleibt, die Texte werden ehrlich).
 - Budget: `mistral-embed` rechnet rund 1 Token je 4 Zeichen; ein Einbringen mit 20 nachgezogenen
   Anträgen à 2 000 Zeichen kostet ~10 000 Tokens am Monatsbudget (`ki-monatstokens`). Der Vektor
   je Fassung wird einmal gerechnet; ein Modellwechsel rechnet neu (anderer Schlüssel), alte Zeilen

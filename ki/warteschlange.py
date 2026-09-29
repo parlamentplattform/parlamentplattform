@@ -78,7 +78,7 @@ def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
     lauf = lauf_ausfuehren(
         Zweck.RECHTSBEZUG,
         text.text,
-        antrag_eingabe(auftrag.antrag),
+        antrag_eingabe(auftrag.antrag, auftrag.fassung_nummer),
         auftrag.angefordert_von,
         antrag=auftrag.antrag,
         auftrag_version=text.version,
@@ -95,7 +95,9 @@ def _arbeit_aehnlichkeit(auftrag: KIAuftrag) -> KILauf:
     from verfahren.aehnlichkeit import antragstext, einbettung_speichern
 
     antrag = auftrag.antrag
-    lauf, einbettung = einbettung_ausfuehren([antragstext(antrag)], auftrag.angefordert_von, antrag=antrag)
+    lauf, einbettung = einbettung_ausfuehren(
+        [antragstext(antrag, auftrag.fassung_nummer)], auftrag.angefordert_von, antrag=antrag
+    )
     einbettung_speichern(antrag, auftrag.fassung_nummer, einbettung.modell, einbettung.vektoren[0])
     return lauf
 

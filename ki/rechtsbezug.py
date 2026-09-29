@@ -84,9 +84,10 @@ def antwort_parsen(text: str) -> dict:
     }
 
 
-def antrag_eingabe(antrag) -> str:
-    """Was der Anbieter zu sehen bekommt: nur, was ohnehin öffentlich auf der Antragsseite steht."""
-    fassung = antrag.aktueller_text()
+def antrag_eingabe(antrag, fassung_nummer: int | None = None) -> str:
+    """Was der Anbieter zu sehen bekommt: nur, was ohnehin öffentlich auf der Antragsseite steht —
+    mit `fassung_nummer` der Text dieser Fassung (der Auftrag rechnet mit seiner), sonst der jüngste."""
+    fassung = (antrag.fassungen.filter(nummer=fassung_nummer).first() if fassung_nummer else None) or antrag.aktueller_text()
     teile = [
         f"Titel: {antrag.titel}",
         f"Ebene: {antrag.get_ebene_display()}" + (f" ({antrag.gebiet})" if antrag.gebiet else ""),
@@ -100,7 +101,9 @@ def antrag_eingabe(antrag) -> str:
 
 
 def rechtsbezug_fuer(antrag) -> dict | None:
-    """Der jüngste erfolgreiche Lauf „rechtsbezug“ zu diesem Antrag, geparst — oder None."""
+    """Der jüngste erfolgreiche Lauf „rechtsbezug“ zu diesem Antrag, geparst — oder None.
+    `fassung` ist die Fassung, zu der der Lauf gerechnet hat (aus seinem Auftrag; None ohne Auftrag),
+    `frueher` sagt, dass der Antrag inzwischen eine jüngere Fassung hat (§ 6 Abs 11 lit b, Kontextstand)."""
     from ki.models import KILauf, Zweck
 
     lauf = (
@@ -111,12 +114,16 @@ def rechtsbezug_fuer(antrag) -> dict | None:
     if lauf is None:
         return None
     ergebnis = antwort_parsen(lauf.antwort)
+    fassung = lauf.auftraege.values_list("fassung_nummer", flat=True).first()
+    aktuell = antrag.aktueller_text()
     ergebnis.update(
         lauf=lauf,
         modell=lauf.modell,
         auftrag_version=lauf.auftrag_version,
         stand=lauf.erstellt_am,
         unsicherheit_wort=UNSICHERHEITEN[ergebnis["unsicherheit"]],
+        fassung=fassung,
+        frueher=bool(fassung and aktuell and aktuell.nummer > fassung),
     )
     return ergebnis
 

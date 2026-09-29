@@ -118,21 +118,37 @@ document.addEventListener("alpine:init", function () {
 
   /* Rückmeldung in der Kachel (FB-A2): Nach einer Handlung tauscht htmx das Feld; die neue
      Kachel desselben Antrags zeigt 1,5 s den Gold-Haken „Erfasst“ statt einer Flash-Meldung.
-     Der Auslöser kennt seinen Antrag (data-antrag), darum braucht es keinen Server-Umweg. */
+     Der Auslöser kennt seinen Antrag (data-antrag), darum braucht es keinen Server-Umweg.
+     Beim Tausch ginge der Fokus verloren — darum merkt sich die Komponente vor jeder Anfrage die
+     id des fokussierten Elements (Knöpfe und Chips tragen stabile ids) und setzt ihn danach
+     auf das gleichnamige neue Element. */
   Alpine.data("parlament", function () {
     return {
+      fokusId: null,
       init: function () {
         var self = this;
+        this.$el.addEventListener("htmx:beforeRequest", function () {
+          var aktiv = document.activeElement;
+          self.fokusId = aktiv && aktiv.id && self.$el.contains(aktiv) ? aktiv.id : null;
+        });
         this.$el.addEventListener("htmx:afterSettle", function (e) {
           var konfig = e.detail && e.detail.requestConfig;
-          var ausloeser = (e.detail && e.detail.elt) || (konfig && konfig.elt);
+          // e.detail.elt ist das GETAUSCHTE Feld — der Auslöser (Formular, Link) steht in requestConfig
+          var ausloeser = (konfig && konfig.elt) || (e.detail && e.detail.elt);
+          self.fokusZurueck();
           if (!konfig || !ausloeser || !ausloeser.closest) return;
           if (konfig.verb === "get" && ausloeser.classList.contains("treffer-link")) { self.treffer(); return; }
-          if (konfig.verb !== "post") return;
+          if (konfig.verb !== "post" || !e.detail.successful) return;
           var quelle = ausloeser.closest(".kachel, .fz");
           if (!quelle || !quelle.dataset.antrag) return;
-          self.markiere(quelle.dataset.antrag);
+          self.markiere(quelle.dataset.antrag, e.detail.elt);
         });
+      },
+      fokusZurueck: function () {
+        if (!this.fokusId) return;
+        var ziel = document.getElementById(this.fokusId);
+        this.fokusId = null;
+        if (ziel && ziel.focus) ziel.focus({ preventScroll: true });
       },
       /* Suchtreffer (FB-C4): der Fächer öffnet am Treffer und hebt den Anker 1,5 s gold hervor. */
       treffer: function () {
@@ -141,9 +157,19 @@ document.addEventListener("alpine:init", function () {
         anker.classList.add("treffer");
         setTimeout(function () { anker.classList.remove("treffer"); }, 1500);
       },
-      markiere: function (antrag) {
-        var kachel = this.$el.querySelector('.kachel[data-antrag="' + antrag + '"], .fz[data-antrag="' + antrag + '"]');
+      /* Der Haken erscheint in der neuen Kachel desselben Antrags — zuerst im getauschten Feld
+         gesucht (derselbe Antrag kann in zwei Feldern stehen), sonst im ganzen Parlament. Das
+         role=status-Element bekommt seinen Text neu gesetzt, damit Screenreader ihn ansagen. */
+      markiere: function (antrag, feld) {
+        var wahl = '.kachel[data-antrag="' + antrag + '"], .fz[data-antrag="' + antrag + '"]';
+        var kachel = (feld && feld.querySelector && feld.querySelector(wahl)) || this.$el.querySelector(wahl);
         if (!kachel) return;
+        var status = kachel.querySelector(".k-erfasst");
+        if (status) {
+          var text = status.textContent;
+          status.textContent = "";
+          setTimeout(function () { status.textContent = text; }, 30);
+        }
         kachel.classList.add("erfasst");
         setTimeout(function () { kachel.classList.remove("erfasst"); }, 1500);
       }
@@ -389,11 +415,11 @@ document.addEventListener("alpine:init", function () {
      „Antworten“ ist ein Link mit ?antwort_auf=<pk>, der Server belegt das Zielfeld vor —
      vorgabeId/vorgabeName tragen genau diese Vorbelegung in den Alpine-Zustand, damit ein
      Lesezeichen oder Mittelklick auf den Link das Ziel nicht verliert (Grundregel 3). */
-  Alpine.data("chat", function (antragId, vorgabeId, vorgabeName) {
+  Alpine.data("chat", function (antragId, vorgabeId, vorgabeName, kritikVorgabe) {
     var schluessel = "ddoe.chat." + antragId;
     return {
       antwortAuf: vorgabeId || null,
-      kritik: false,  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6)
+      kritik: Boolean(kritikVorgabe),  // Umschalter „Das ist konkrete Kritik am Vorschlag" (FB-G6); nach einem Fehler aus dem Entwurf
       antwortName: vorgabeName || "",
       init: function () {
         this.stelleWiederHer();
@@ -410,14 +436,18 @@ document.addEventListener("alpine:init", function () {
         if (this.$refs.feld) this.$refs.feld.focus();
       },
       abbrechen: function () { this.antwortAuf = null; this.antwortName = ""; },
-      leeren: function () {
-        if (this.$refs.feld) { this.$refs.feld.value = ""; this.wachsen(); this.$refs.feld.focus(); }
-        this.kritik = false;
-        this.abbrechen();
-        // Kam die Vorbelegung aus der Adresse, soll ein Neuladen nicht wieder im Antwort-Modus landen
+      /* Nach dem Senden: Die ganze Zone samt Formular ist getauscht — ein Fehler bringt den
+         Entwurf mit (.chat-fehler), ein Erfolg ein leeres Formular. Nur dann wird die
+         Vorbelegung aus der Adresse entfernt (ein Neuladen soll nicht wieder im Antwort-Modus
+         landen) und der Fokus ins neue Textfeld gesetzt. Nichts wird hier geleert. */
+      gesendet: function (e) {
+        if (!e || !e.detail || !e.detail.successful) return;
+        if (document.querySelector("#chat-faden .chat-fehler")) return;
         if (/[?&]antwort_auf=/.test(window.location.search) && window.history.replaceState) {
           window.history.replaceState(null, "", window.location.pathname + window.location.hash);
         }
+        var feld = document.querySelector("#chat-faden textarea[name=text]");
+        if (feld) feld.focus({ preventScroll: true });
       },
       wachsen: function () {
         var f = this.$refs.feld;

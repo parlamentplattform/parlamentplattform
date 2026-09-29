@@ -390,3 +390,260 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
     assert len(bilder) == erwartet, (len(bilder), erwartet)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild
+
+
+# ── 0.50.0 (Bauwelle 28./29.9.2026) ─────────────────────────────────────────────────────────────
+
+JSON_RECHTSBEZUG = (
+    '{"normen": ['
+    '{"titel": "Straßenverkehrsordnung 1960", "ebene": "Bund", "kennung": "BGBl. Nr. 159/1960", '
+    '"aenderung": "aendern", "begruendung": "Regelt die zulässige Höchstgeschwindigkeit im Ortsgebiet."}, '
+    '{"titel": "Oberösterreichisches Straßengesetz 1991", "ebene": "Land", "aenderung": "beruehrt", '
+    '"begruendung": "Gemeindestraßen und ihre Widmung."}], '
+    '"hinweis": "Die Verordnung einer Geschwindigkeitsbeschränkung ist Sache der Behörde nach § 43 StVO.", '
+    '"unsicherheit": "mittel"}'
+)
+
+
+def _sammelnd(ausser=()):
+    from verfahren.models import Antrag
+
+    return Antrag.objects.filter(phase="unterstuetzung", art="sache").exclude(pk__in=ausser).order_by("pk").first()
+
+
+def test_screenshots_fuer_die_sichtpruefung_050(seite, live_server, demo, sichtpruefung, settings, monkeypatch):
+    """Bilder für die Sichtprüfung der Fassung 0.50.0: Direkt-Handlung mit Hinweis im Feld, Fokus-Modus,
+    Fächer nach dem Wechsel (mit Bildfolge der Bewegung), Einbringen mit Wortvergleich und
+    Bedeutung, Zone-2-Karte „Betroffene Gesetze“ (eingereiht und erledigt), Band nach dem Einbringen,
+    Warteschlange der Zukunftswerkstatt, Datenschutzerklärung, Profil-Karte „Nachrichten“,
+    Registrierung mit Einwilligung, Willkommensseite mit Stimmrechtssatz, Rollenformular mit Namen und
+    die Regelzeile der Prozent-Schwelle auf der Antragsseite — je Desktop 1440×900 und Handy 390×844,
+    hell und dunkel, wo es die Seite betrifft; Direkt-Handlung und Fokus-Modus auch ohne JavaScript."""
+    from ki.anbieter import Antwort, AttrappenAnbieter
+    from mitglieder.models import Mitglied
+
+    bilder = []
+
+    def halte_fest(p, name, js=True):
+        _ruhe(p, js)
+        ziel = sichtpruefung / f"{name}.png"
+        p.screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    def halte_element(p, name, selektor, js=True):
+        _ruhe(p, js)
+        ziel = sichtpruefung / f"{name}.png"
+        p.locator(selektor).first.screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    def konto(name):
+        return Mitglied.objects.get(username=name)
+
+    # Direkt-Handlung (Teil 2): Unterstützen in der Feed-Zeile — das Feld bleibt, der Hinweis steht im Feldkopf
+    genutzt = []
+    for name, dunkel, viewport, suffix in (
+        ("demo2", False, None, "desktop-hell"),
+        ("demo3", True, None, "desktop-dunkel"),
+        ("demo4", False, HANDY, "handy"),
+    ):
+        antrag = _sammelnd()
+        p = seite(als=konto(name), dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/parlament/#feld-filter")
+        _ruhe(p)
+        p.locator(f"#u-filter-{antrag.pk}").click()
+        p.wait_for_selector(f"#u-filter-{antrag.pk}.gewaehlt")
+        p.wait_for_selector("#feld-filter .feld-hinweis")
+        p.locator(f"#u-filter-{antrag.pk}").scroll_into_view_if_needed()
+        halte_fest(p, f"parlament-hinweis-im-feld-{suffix}")
+        # Zurückziehen: Die dritte Unterstützung erreichte die Schwelle, der Antrag ginge in die Beratung
+        p.locator(f"#u-filter-{antrag.pk}").click()
+        p.wait_for_selector(f"#u-filter-{antrag.pk}:not(.gewaehlt)")
+        genutzt.append(antrag.pk)
+    antrag = _sammelnd()
+    p = seite(js=False, als=konto("demo5"))
+    p.goto(f"{live_server.url}/parlament/")
+    p.wait_for_timeout(800)
+    p.locator(f"#u-filter-{antrag.pk}").click()
+    p.wait_for_load_state()
+    halte_fest(p, "parlament-hinweis-im-feld-ohne-javascript", js=False)
+
+    # Fokus-Modus (Teil 7): ein Feld füllt das Raster — Knopf ⤢, ohne JavaScript über ?fokus=
+    for dunkel, suffix in ((False, "desktop-hell"), (True, "desktop-dunkel")):
+        p = seite(als=_mitglied(), dunkel=dunkel)
+        p.goto(f"{live_server.url}/parlament/")
+        _ruhe(p)
+        p.locator("#feld-favoriten .fokus-knopf").click()
+        halte_fest(p, f"parlament-fokus-favoriten-{suffix}")
+    p = seite(js=False)
+    p.goto(f"{live_server.url}/parlament/?fokus=favoriten")
+    halte_fest(p, "parlament-fokus-favoriten-ohne-javascript", js=False)
+
+    # Fächer nach dem Wechsel (Teil 7, FLIP) — und die Bewegung als Bildfolge und GIF
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(als=_mitglied(), dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/parlament/#feld-favoriten")
+        _ruhe(p)
+        link = p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first
+        titel = link.get_attribute("title")
+        link.click()
+        p.wait_for_function(
+            "(t) => (document.querySelector('#feld-favoriten .fknoten.anker .fname') || {}).textContent?.trim() === t",
+            arg=titel,
+        )
+        if viewport is None:
+            _ruhe(p)
+            ziel = sichtpruefung / f"faecher-nach-flip-{suffix}.png"
+            p.locator("#feld-favoriten").screenshot(path=str(ziel))
+            bilder.append(ziel)
+        else:
+            halte_fest(p, f"faecher-nach-flip-{suffix}")
+
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    p.locator("#feld-favoriten .fknoten.kind a[href^='?fach=']").first.click()
+    p.wait_for_function("() => document.getAnimations().some(a => a.id === 'faecher-flip')")
+    # Die Bewegung anhalten und an vier Stellen festhalten — deterministisch, unabhängig vom Rechner
+    dauer = p.evaluate(
+        "() => { const a = document.getAnimations().filter(x => x.id === 'faecher-flip');"
+        " a.forEach(x => x.pause()); return Math.max(...a.map(x => x.effect.getComputedTiming().endTime)); }"
+    )
+    rahmen = []
+    for i, anteil in enumerate((0.0, 0.33, 0.66, 1.0), start=1):
+        p.evaluate(
+            "(t) => document.getAnimations().filter(x => x.id === 'faecher-flip').forEach(x => { x.currentTime = t; })",
+            dauer * anteil,
+        )
+        p.wait_for_timeout(50)
+        ziel = sichtpruefung / f"faecher-flip-{i}.png"
+        p.locator("#feld-favoriten").screenshot(path=str(ziel))
+        bilder.append(ziel)
+        rahmen.append(ziel)
+    p.evaluate("() => document.getAnimations().filter(x => x.id === 'faecher-flip').forEach(x => x.finish())")
+    from PIL import Image  # Pillow kommt mit reportlab (ADR-010), keine eigene Abhängigkeit
+
+    folge = [Image.open(r).convert("P", palette=Image.Palette.ADAPTIVE) for r in rahmen]
+    gif = sichtpruefung / "faecher-flip.gif"
+    folge[0].save(gif, save_all=True, append_images=folge[1:], duration=[400, 140, 140, 900], loop=0)
+    bilder.append(gif)
+
+    # Einbringen mit Wortvergleich · Bedeutung (Teil 4) — Attrappe statt Anbieter, Textvektoren ohne Netz
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    monkeypatch.setattr(
+        AttrappenAnbieter, "frage", lambda self, auftrag, eingabe: Antwort(JSON_RECHTSBEZUG, "attrappe-1", 120, 80)
+    )
+    vorbild = _sammelnd(ausser=genutzt + [antrag.pk])
+    vorbild_text = vorbild.aktueller_text()
+    stellerin = _mitglied()
+    type(stellerin).objects.filter(pk=stellerin.pk).update(post_einwilligung=True)
+    stellerin.refresh_from_db()
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(als=stellerin, dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/einbringen/")
+        p.locator('input[name="titel"]').fill(vorbild.titel + " — auch in Nachbargemeinden")
+        p.locator('textarea[name="wortlaut"]').fill(vorbild_text.wortlaut)
+        with p.expect_navigation():
+            p.get_by_role("button", name="Antrag einbringen").click()
+        p.locator(".kommentar .kopf").first.wait_for()
+        p.locator(".kommentar .kopf").first.scroll_into_view_if_needed()
+        halte_fest(p, f"einbringen-aehnlichkeit-{suffix}")
+
+    # „Trotzdem einbringen“ → Antragsseite mit Band und der Karte „Betroffene Gesetze“ in der Warteschlange
+    with p.expect_navigation():
+        p.locator('button[name="trotzdem"]').click()
+    neu_pk = int(p.url.split("/antrag/")[1].split("/")[0])
+    p = seite(als=stellerin)
+    p.goto(f"{live_server.url}/antrag/{neu_pk}/?neu=1")
+    halte_fest(p, "antrag-neu-band-desktop")
+    p = seite(als=stellerin, viewport=HANDY)
+    p.goto(f"{live_server.url}/antrag/{neu_pk}/?neu=1")
+    halte_fest(p, "antrag-neu-band-handy")
+    for dunkel, suffix in ((False, "desktop-hell"), (True, "desktop-dunkel")):
+        p = seite(als=stellerin, dunkel=dunkel)
+        p.goto(f"{live_server.url}/antrag/{neu_pk}/#rechtsbezug")
+        halte_element(p, f"antrag-rechtsbezug-eingereiht-{suffix}", "#rechtsbezug")
+
+    # Die öffentliche Warteschlange, solange der Auftrag wartet
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/zukunftswerkstatt/#steckplatz")
+        p.locator("#steckplatz").scroll_into_view_if_needed()
+        halte_fest(p, f"zukunftswerkstatt-warteschlange-{suffix}")
+
+    # Der Hintergrundlauf rechnet den Auftrag — die Karte zeigt das Ergebnis mit Kennzeichnung
+    from ki.warteschlange import abarbeiten
+
+    abarbeiten()
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(als=stellerin, dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/antrag/{neu_pk}/#rechtsbezug")
+        if viewport is not None:
+            p.locator('.zreiter[href="#zone-einschaetzung"]').click()
+            p.wait_for_timeout(400)
+            p.locator("#rechtsbezug").scroll_into_view_if_needed()
+            halte_fest(p, f"antrag-rechtsbezug-erledigt-{suffix}")
+        else:
+            halte_element(p, f"antrag-rechtsbezug-erledigt-{suffix}", "#rechtsbezug")
+    settings.DDOE_KI_ANBIETER = "mistral"
+
+    # Datenschutzerklärung (Teil 5, freigegeben 29.9.2026) — öffentlich, ohne Anmeldung
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/datenschutz/")
+        halte_fest(p, f"datenschutz-{suffix}")
+
+    # Profil: Karte „Nachrichten“ mit dem Haken der E-Mail-Einwilligung (Teil 3)
+    p = seite(als=stellerin)
+    p.goto(f"{live_server.url}/profil/#nachrichten")
+    p.locator("#nachrichten").scroll_into_view_if_needed()
+    halte_element(p, "profil-nachrichten-desktop", "#nachrichten")
+    p = seite(als=stellerin, dunkel=True, viewport=HANDY)
+    p.goto(f"{live_server.url}/profil/#nachrichten")
+    p.locator("#nachrichten").scroll_into_view_if_needed()
+    halte_fest(p, "profil-nachrichten-handy-dunkel")
+
+    # Registrierung mit dem Haken der E-Mail-Einwilligung (Voreinstellung: nein)
+    for viewport, suffix in ((None, "desktop"), (HANDY, "handy")):
+        p = seite(viewport=viewport)
+        p.goto(f"{live_server.url}/mitglied-werden/")
+        p.locator('input[name="post_einwilligung"]').scroll_into_view_if_needed()
+        halte_fest(p, f"registrieren-einwilligung-{suffix}")
+
+    # Willkommensseite mit dem Stimmrechtssatz statt fester Monatsfristen (Teil 5)
+    for viewport, suffix in ((None, "desktop"), (HANDY, "handy")):
+        p = seite(als=stellerin, viewport=viewport)
+        p.goto(f"{live_server.url}/willkommen/")
+        halte_fest(p, f"willkommen-stimmrechtssatz-{suffix}")
+
+    # Verwaltung: Rollen auf Zeit — die Auswahl nennt Name und Mitgliedsnummer, keine Anmeldeadresse
+    verwaltung = Mitglied.objects.get(username="demo5")
+    Mitglied.objects.filter(pk=verwaltung.pk).update(ist_admin=True)  # die Seite ist nur für die Verwaltung
+    verwaltung.refresh_from_db()
+    p = seite(als=verwaltung)
+    p.goto(f"{live_server.url}/verwaltung/rollen/")
+    auswahl = p.locator('select[name="mitglied"]')
+    auswahl.scroll_into_view_if_needed()
+    halte_fest(p, "rollen-formular-namen")
+
+    # Die Prozent-Schwelle (Teil 8) — eine Ordnung der Fassung 4, ein neuer Antrag, die Regelzeile
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+
+    alt = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    regeln = {**alt.regeln, "version": alt.version + 1, "unterstuetzung_anteil": 0.05}  # Erstbestand fünf Prozent
+    vierte = Verfahrensordnung.objects.create(
+        policy_id=alt.policy_id, version=alt.version + 1, regeln=regeln, aktiv=True
+    )
+    prozent = antrag_einbringen(
+        stellerin, "Radwege entlang aller Landesstraßen", "Entlang jeder Landesstraße entsteht ein Radweg.",
+        "Sicherer Schulweg.", vierte,
+    )
+    for viewport, suffix in ((None, "desktop"), (HANDY, "handy")):
+        p = seite(viewport=viewport)
+        p.goto(f"{live_server.url}/antrag/{prozent.pk}/")
+        p.locator("details.klappe summary", has_text="Eingefrorene Regeln").click()
+        p.locator("dl.regelliste").scroll_into_view_if_needed()
+        halte_fest(p, f"parameter-prozentschwelle-{suffix}")
+
+    assert len(bilder) == 40, len(bilder)
+    for bild in bilder:
+        assert bild.exists() and bild.stat().st_size > 5000, bild

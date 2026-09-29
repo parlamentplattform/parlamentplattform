@@ -23,6 +23,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
+from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
 from plattform_core.similarity import aehnlichste
@@ -260,6 +261,7 @@ def einbringen(request):
                 art=d["art"],
             )
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
+            region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if zugeordnet:
                 namen = ", ".join(k.pfad_kurz for k in zugeordnet)
                 messages.success(

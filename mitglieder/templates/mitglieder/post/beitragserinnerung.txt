@@ -1,0 +1,14 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }}!{% endblocktranslate %}
+
+{% blocktranslate %}Ihr letzter Mitgliedsbeitrag liegt länger als zwölf Monate zurück (oder es ist noch keiner eingegangen). Die Höhe bleibt Ihre Selbsteinschätzung — niemand wird aus finanziellen Gründen ausgeschlossen (§ 4 Abs 3).{% endblocktranslate %}
+
+{% blocktranslate %}Am schnellsten geht es mit dem QR-Code auf Ihrer Beitragsseite:{% endblocktranslate %}
+{{ basis }}/beitrag/
+
+{% blocktranslate %}Ihre persönliche Referenz: {{ referenz }}{% endblocktranslate %}
+
+{% blocktranslate %}Danke, dass Sie das Werkzeug mittragen!{% endblocktranslate %}
+
+{% blocktranslate %}Diese Erinnerung kommt, weil Sie E-Mails der Plattform zugestimmt haben. Abbestellen können Sie sie jederzeit in Ihrem Profil unter „Nachrichten“:{% endblocktranslate %} {{ basis }}/profil/#nachrichten
+
+{{ schluss }}{% endautoescape %}

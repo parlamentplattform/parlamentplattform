@@ -66,6 +66,7 @@ from mandatare.models import (
     vertrauensfragen_fortschreiben,
 )
 from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
 from plattform_core.rechenschaft import berichtsmonate
@@ -882,6 +883,7 @@ def vertrauensfrage_stellen(request, pk: int):
             except VertrauensfrageFehler as e:
                 fehler = str(e)
             else:
+                region_benachrichtigen(antrag)  # die Region des Mandats erfährt vom Antrag (Einwilligung nötig)
                 vf = antrag.vertrauensfrage
                 messages.success(
                     request,
@@ -1162,6 +1164,7 @@ def _bestaetigung_beantragen(request, mandat: Mandat):
     except VertrauensfrageFehler as fehler:
         messages.error(request, str(fehler))
         return None
+    region_benachrichtigen(antrag)
     messages.success(
         request,
         _("Bestätigungsantrag eingebracht — die Abstimmung beginnt am siebten Tag nach der Einbringung (§ 7 Abs 10 lit f Z 3)."),
@@ -1234,6 +1237,7 @@ def _report_anlegen(request, mandat: Mandat) -> bool:
             request, _("Report veröffentlicht — ohne Abstimmung: %(grund)s") % {"grund": fehler}
         )
         return True
+    region_benachrichtigen(antrag)
     messages.success(
         request,
         format_html(

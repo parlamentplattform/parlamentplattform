@@ -10,16 +10,19 @@ import logging
 from datetime import date
 
 from django.conf import settings
+from django.db.models import Q
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_pdf, dateiname
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.mail import EmailMessage
-from mitglieder.models import Mitglied, Mitgliedsstatus
+from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus
+from parameter.models import zahl
 from plattform_core.eligibility import ANWARTSCHAFT_MONATE, Gegenstand, monate_addieren
-from verfahren.models import AuditEintrag
+from verfahren.models import Antrag, AuditEintrag, Ebene
 
 log = logging.getLogger(__name__)
 
@@ -189,6 +192,116 @@ def vertrauensfrage_senden(mandat, antrag) -> bool:
         )
         betreff = _("Vertrauensfrage zu Ihrem Mandat — ParlamentPlattform")
     return _senden(mitglied, "vertrauensfrage", betreff, text)
+
+
+# ── Verfahrenspost mit Einwilligung (Anweisung des Gründers 28.9.2026) ───────────────────────────
+
+
+def neuer_antrag_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
+    """„Neuer Antrag in Ihrer Region“: Titel, Ebene und Gebiet, wer ihn eingebracht hat (Anzeigename),
+    der Link — und warum der Brief kommt (Wohnsitz betroffen) samt dem Weg, ihn im Profil abzubestellen.
+    Kein Werbesatz, kein Antragstext: Der steht öffentlich auf der Antragsseite."""
+    with translation.override("de"):
+        bund = antrag.ebene == Ebene.BUND.value
+        text = _brief(
+            "mitglieder/post/neuer_antrag.txt",
+            {
+                "name": _anrede(mitglied),
+                "titel": antrag.titel,
+                "ebene": antrag.get_ebene_display(),
+                "gebiet": antrag.gebiet,
+                "bund": bund,
+                "eingebracht_von": antrag.eingebracht_von.anzeigename,
+                "link": settings.DDOE_BASIS_URL.rstrip("/") + reverse("verfahren:antrag", kwargs={"pk": antrag.pk}),
+            },
+        )
+        betreff = (
+            _("Neuer Antrag für ganz Österreich — ParlamentPlattform")
+            if bund
+            else _("Neuer Antrag in Ihrer Region — ParlamentPlattform")
+        )
+    return _senden(mitglied, "neuer_antrag", betreff, text)
+
+
+def beitragserinnerung_brief(mitglied: Mitglied) -> bool:
+    """Die Beitragserinnerung der Verwaltung (§ 4 Abs 3): Beitragsseite, persönliche Referenz, der
+    Hinweis, dass die Höhe Selbsteinschätzung bleibt — und der Weg zum Abbestellen im Profil."""
+    with translation.override("de"):
+        text = _brief(
+            "mitglieder/post/beitragserinnerung.txt",
+            {"name": mitglied.first_name or mitglied.anzeigename, "referenz": beitragsreferenz(mitglied)},
+        )
+        betreff = _("Erinnerung: Ihr Mitgliedsbeitrag bei der DDÖ")
+    return _senden(mitglied, "beitragserinnerung", betreff, text)
+
+
+def _gemeinde_des_antrags(antrag: Antrag):
+    """Die Gemeinde eines Gemeinde-Antrags als Verweis ins Verzeichnis — über den Wohnsitz oder
+    Nebenwohnsitz des Antragstellers, denn `Antrag.gebiet` trägt nur den Namen, und Gemeindenamen sind
+    nicht eindeutig. Ohne Treffer (Altbestand, geänderter Wohnsitz) bleibt der Namensvergleich."""
+    m = antrag.eingebracht_von
+    for g in (m.wohnsitz if m.wohnsitz_id else None, m.nebenwohnsitz if m.nebenwohnsitz_id else None):
+        if g is not None and g.name == antrag.gebiet:
+            return g
+    return None
+
+
+def region_empfaenger(antrag: Antrag):
+    """Wer von einem neuen Antrag betroffen ist (§ 14 Abs 3): aktive oder pausierte, echte Konten mit
+    E-Mail-Einwilligung, deren Wohnsitz im Gebiet des Antrags liegt — nie der Antragsteller. Der
+    Nebenwohnsitz zählt zusätzlich, sobald `region-nebenwohnsitz-zaehlt` auf 1 steht; ein Antrag für
+    ganz Österreich geht an alle, solange `post-neuer-antrag-bund` auf 1 steht. Ungeprüfte Konten
+    sind dabei: Betroffen ist, wer dort wohnt, nicht, wer schon stimmen darf."""
+    basis = (
+        Mitglied.objects.filter(
+            is_active=True,
+            testkonto=False,
+            post_einwilligung=True,
+            status__in=(Mitgliedsstatus.AKTIV, Mitgliedsstatus.PAUSIERT),
+        )
+        .exclude(pk=antrag.eingebracht_von_id)
+        .exclude(email="")
+        .order_by("pk")
+    )
+    ebene, gebiet = antrag.ebene, antrag.gebiet
+    if ebene == Ebene.BUND.value:
+        return basis if zahl("post-neuer-antrag-bund", 1) == 1 else basis.none()
+    if not gebiet:
+        return basis.none()
+    neben = zahl("region-nebenwohnsitz-zaehlt", 0) == 1
+    if ebene == Ebene.LAND.value:
+        schluessel = {str(label): wert for wert, label in Bundesland.choices}.get(gebiet)
+        if schluessel is None:
+            return basis.none()
+        treffer = Q(bundesland=schluessel) | Q(wohnsitz__bundesland=schluessel)
+        if neben:
+            treffer |= Q(nebenwohnsitz__bundesland=schluessel)
+    elif ebene == Ebene.BEZIRK.value:
+        treffer = Q(wohnsitz__bezirk=gebiet)
+        if neben:
+            treffer |= Q(nebenwohnsitz__bezirk=gebiet)
+    else:
+        g = _gemeinde_des_antrags(antrag)
+        if g is not None:
+            treffer = Q(wohnsitz=g)
+            if neben:
+                treffer |= Q(nebenwohnsitz=g)
+        else:
+            treffer = Q(wohnsitz__name=gebiet) | Q(wohnsitz__isnull=True, gemeinde=gebiet)
+            if neben:
+                treffer |= Q(nebenwohnsitz__name=gebiet)
+    return basis.filter(treffer).distinct()
+
+
+def region_benachrichtigen(antrag: Antrag) -> int:
+    """Je betroffenem Mitglied ein Postauftrag „neuer_antrag“ (Bezug `antrag:<pk>`, genau einmal je
+    Antrag und Konto); zugestellt wird im Hintergrundlauf. Gibt die Zahl der neu angelegten Aufträge
+    zurück und hält sie im Audit fest — ohne Personenbezug."""
+    from mitglieder.postausgang import beauftragen
+
+    anzahl = sum(bool(beauftragen(m, "neuer_antrag", antrag=antrag)) for m in region_empfaenger(antrag))
+    AuditEintrag.anhaengen({"typ": "post_neuer_antrag", "antrag": antrag.pk, "empfaenger": anzahl})
+    return anzahl
 
 
 def willkommen_senden(mitglied: Mitglied) -> bool:

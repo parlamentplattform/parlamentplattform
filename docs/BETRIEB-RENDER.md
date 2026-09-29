@@ -114,6 +114,15 @@ Der Dienst muss mit Gunicorn aus dem Projektverzeichnis starten, damit die Konfi
 geladen wird. Beim Hosting ohne Gunicorn ist `python manage.py post_versenden` regelmäßig
 auszuführen. `runserver` betreibt keinen dauerhaften Hintergrundlauf.
 
+Arten der Aufträge: `willkommen` und `freischaltung` (Kontobriefe mit Ausweis-PDF), `ausweis_vorschau*`
+(Vorschau an das eigene Konto), `neuer_antrag` (Bezug `antrag:<pk>`: „Neuer Antrag in Ihrer Region“ an
+die betroffenen Mitglieder mit E-Mail-Einwilligung, ab 0.50) und `beitragserinnerung` (Bezug `jahr:<Jahr>`:
+von der Verwaltung beauftragt, höchstens einmal je Kalenderjahr, nur mit Einwilligung, ab 0.50). Die
+Kontobriefe gehen sofort nach dem Commit; `neuer_antrag` und `beitragserinnerung` werden nur angelegt und
+vom Hintergrundlauf zugestellt — ein Antrag löst so nie hunderte SMTP-Sendungen in einer Anfrage aus.
+Wer die Einwilligung vor der Zustellung zurücknimmt, bekommt den Brief nicht; der Auftrag wird als
+erledigt gestempelt, nicht gelöscht.
+
 Der erste Versand erfolgt nach Commit der Registrierung/Freischaltung. Ein fehlerhafter
 Anhang verhindert nicht die Nachricht und wird gesondert nachgeliefert. SMTP-Erfolg bedeutet
 Annahme durch das konfigurierte Backend, keine Lesebestätigung oder garantierte Inbox-Zustellung.

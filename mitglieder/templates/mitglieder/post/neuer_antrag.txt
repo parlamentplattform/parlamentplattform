@@ -1,0 +1,13 @@
+{% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
+
+{% blocktranslate %}auf der ParlamentPlattform wurde ein neuer Antrag eingebracht:{% endblocktranslate %}
+
+{% translate "Titel:" %} {{ titel }}
+{% translate "Gilt für:" %} {% if bund %}{% translate "ganz Österreich" %}{% else %}{{ ebene }} {{ gebiet }}{% endif %}
+{% translate "Eingebracht von:" %} {{ eingebracht_von }}
+
+{% translate "Antrag:" %} {{ link }}
+
+{% if bund %}{% blocktranslate %}Sie erhalten diese Nachricht, weil der Antrag ganz Österreich betrifft und Sie E-Mails zu neuen Anträgen zugestimmt haben.{% endblocktranslate %}{% else %}{% blocktranslate %}Sie erhalten diese Nachricht, weil Ihr Wohnsitz in diesem Gebiet liegt und Sie E-Mails zu neuen Anträgen aus Ihrer Region zugestimmt haben.{% endblocktranslate %}{% endif %} {% blocktranslate %}Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:{% endblocktranslate %} {{ basis }}/profil/#nachrichten
+
+{{ schluss }}{% endautoescape %}

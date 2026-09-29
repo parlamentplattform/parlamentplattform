@@ -37,3 +37,10 @@ sind damit nicht geheim im Sinne dieses ADR; die Oberfläche sagt seit 0.50
 „pseudonym“ statt „geheim“. Präsenz und Brief (§ 13 Abs 3) bleiben der Weg für
 Wahlen, die geheim sein müssen — welche das sind, entscheidet die Satzung, nicht
 diese Entscheidung.
+
+Für die Vertrauensfrage hat die Satzung es bereits entschieden: **§ 7 Abs 10 lit e
+— „Sie ist geheim“.** Die Online-Abstimmung der Vertrauensfrage läuft seit 0.48
+pseudonym-offen und erfüllt das nicht. Das ist ein offener Widerspruch zwischen
+Code und Satzung; ihn entscheidet der Gründer (Fahrtenbuch Teil D, D-L6h: Satzung
+anpassen oder die Vertrauensfrage über Präsenz und Brief führen). Bis dahin läuft
+sie unverändert wie beschrieben.

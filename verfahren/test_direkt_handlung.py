@@ -225,11 +225,21 @@ def test_offener_adresswechsel_sperrt_nur_die_stimmabgabe(client, ordnung):  # n
 
 
 def test_gaeste_werden_zur_anmeldung_geschickt(client, ordnung):  # noqa: F811
+    """Ohne Sitzung (abgelaufen, abgemeldet, Konto stillgelegt): Mit htmx wechselt die ganze Seite zur
+    Anmeldung (HX-Redirect) — einem 302 folgte htmx unsichtbar und tauschte das Feld gegen nichts.
+    `next` zeigt auf den sicheren weiter-Pfad, nie auf die POST-Adresse. Ohne htmx bleibt der 302."""
     _, sammelnd, abstimmung = _lage(ordnung)
-    antwort = client.post(reverse("verfahren:unterstuetzen", args=[sammelnd.pk]), {"feld": "filter"}, **HX)
-    assert antwort.status_code == 302 and antwort.url.startswith("/anmelden/")
+    antwort = client.post(
+        reverse("verfahren:unterstuetzen", args=[sammelnd.pk]), {"weiter": "/parlament/?fach=umwelt", "feld": "filter"}, **HX
+    )
+    assert antwort.status_code == 200 and antwort.content == b""
+    assert antwort["HX-Redirect"] == "/anmelden/?next=%2Fparlament%2F%3Ffach%3Dumwelt"
+    antwort = client.post(
+        reverse("verfahren:abstimmen", args=[abstimmung.pk]), {"stimme": "ja", "weiter": "//fremd.example", "feld": "region"}, **HX
+    )
+    assert antwort["HX-Redirect"] == "/anmelden/?next=%2Fparlament%2F"
     antwort = client.post(reverse("verfahren:abstimmen", args=[abstimmung.pk]), {"stimme": "ja", "feld": "region"})
-    assert antwort.status_code == 302 and antwort.url.startswith("/anmelden/")
+    assert antwort.status_code == 302 and antwort.url.startswith("/anmelden/") and "HX-Redirect" not in antwort
     feld = _feld(client, "filter")
     assert "unterstuetzen/" not in feld and 'name="stimme"' not in feld
 

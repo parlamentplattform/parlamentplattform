@@ -40,6 +40,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "verfahren.middleware.AnmeldungFuerHtmx",  # htmx ohne Sitzung: ganze Seite zur Anmeldung (Befund B1)
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "uebersicht.middleware.Besuchszaehlung",  # zählt Tages-Summen, nie Personen (F-52)

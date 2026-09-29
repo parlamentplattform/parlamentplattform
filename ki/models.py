@@ -66,9 +66,10 @@ class KILauf(models.Model):
 
     @classmethod
     def monatsverbrauch(cls, jetzt=None) -> int:
-        jetzt = jetzt or timezone.now()
+        """Tokens des laufenden Kalendermonats nach Wiener Kalender — `jetzt` darf UTC sein."""
+        heute = timezone.localdate(jetzt or timezone.now())
         summe = cls.objects.filter(
-            erstellt_am__year=jetzt.year, erstellt_am__month=jetzt.month
+            erstellt_am__year=heute.year, erstellt_am__month=heute.month
         ).aggregate(ein=Sum("tokens_ein"), aus=Sum("tokens_aus"))
         return (summe["ein"] or 0) + (summe["aus"] or 0)
 

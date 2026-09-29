@@ -276,6 +276,23 @@ def test_ohne_begruendung_entsteht_keine_feststellung(client, ordnung, altmandat
     assert "Bitte begründen" in antwort and "§ 7 Abs 10 lit b und g" in antwort
 
 
+def test_die_vorschrift_in_der_meldung_ist_uebersetzt(client, ordnung, altmandat):  # noqa: F811
+    """Prüfung 0.51.0 (texte): Auf Englisch nennt die Meldung die Vorschrift in englischer Schreibweise,
+    nicht „Abs … und“ — auch die Knöpfe des allgemeinen Formulars."""
+    leute = rat(3)
+    antrag = einbringen(mitglied_anlegen("englisch"), altmandat, ordnung)
+    client.force_login(leute[0])
+    antwort = client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.VERTRAUENSFRAGE_SPERRE, "antrag": antrag.pk, "beschreibung": ""},
+        follow=True,
+        HTTP_ACCEPT_LANGUAGE="en",
+    ).content.decode()
+    assert "§ 7 (10) lit b and g" in antwort and "Abs 10 lit b und g" not in antwort
+    seite = client.get(reverse("gremien:integritaet"), HTTP_ACCEPT_LANGUAGE="en").content.decode()
+    assert "§ 6 (3) lit d" in seite and "§ 6 Abs 3 lit d" not in seite
+
+
 def test_ohne_hinweis_nach_der_frist_steht_keine_zeile_und_der_post_wird_abgewiesen(client, ordnung, altmandat):  # noqa: F811
     leute = rat(3)
     antrag = einbringen(mitglied_anlegen("spaet"), altmandat, ordnung, jetzt=timezone.now() - tage(4))
@@ -562,12 +579,14 @@ def test_mv_bestaetigung_einer_ruhenden_rolle_hebt_die_sperre_nicht_auf(client, 
     assert alte.ruht
     _verwaltung(client)
 
-    _bestaetigen(client, alte)
+    antwort = _bestaetigen(client, alte)
 
     alte.refresh_from_db()
     altmandat.refresh_from_db()
     assert alte.bestaetigt and altmandat.bestaetigt_am is None and altmandat.kandidatursperre
     assert audit("vertrauen_bestaetigt") == []
+    # Prüfung 0.51.0 (satzung): Die Verwaltung erfährt, dass die Sperre bleibt und warum
+    assert "Die Rolle ruht nach der verlorenen Vertrauensfrage" in antwort and "Kandidatursperre bleibt" in antwort
 
 
 def test_der_manuelle_vermerk_einer_wahl_bleibt_unberuehrt(ordnung, altmandat):  # noqa: F811

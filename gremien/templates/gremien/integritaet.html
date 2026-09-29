@@ -33,14 +33,14 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     <textarea id="ir-grund" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px"></textarea>
     <p style="margin-top:8px">
       {% for wert, name, satzung in anlaesse %}
-      <button type="submit" name="anlass" value="{{ wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-right:6px">{% translate name %}<span class="meta"> · {{ satzung }}</span></button>
+      <button type="submit" name="anlass" value="{{ wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-right:6px">{% translate name %}<span class="meta"> · {% translate satzung %}</span></button>
       {% endfor %}
     </p>
   </form>
 </div>
 
 <div class="karte feststellung">
-  <p class="phasen-titel">{% translate "Vertrauensfragen · Sperre feststellen" %} <span class="chip klein">§ 7 Abs 10 lit b und g</span></p>
+  <p class="phasen-titel">{% translate "Vertrauensfragen · Sperre feststellen" %} <span class="chip klein">{% translate "§ 7 Abs 10 lit b und g" %}</span></p>
   {% for z in feststellungen %}
   <div class="zeile"><span>
     <a href="{% url 'verfahren:antrag' z.antrag.pk %}">{{ z.antrag.titel }}</a>

@@ -19,7 +19,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, gettext_noop
 from django.views.decorators.http import require_POST
 
 from gremien.models import (
@@ -653,16 +653,26 @@ def _meldung_zur_kandidatursperre(request, rolle, bestaetigt: bool) -> None:
                 "§ 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
             ),
         )
-    elif not rolle.bestaetigt and Mandat.objects.filter(
+    elif Mandat.objects.filter(
         mitglied=rolle.mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
     ).exists():
-        messages.info(
-            request,
-            _(
-                "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die "
-                "Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
-            ),
-        )
+        if not rolle.bestaetigt:
+            messages.info(
+                request,
+                _(
+                    "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die "
+                    "Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
+                ),
+            )
+        elif rolle.ruht:
+            # E8 zum Bauplan 0.51.0: Die Rolle bestand schon vor dem Ergebnis — ihre Bestätigung ist keine Wahl
+            messages.info(
+                request,
+                _(
+                    "Die Rolle ruht nach der verlorenen Vertrauensfrage (§ 7 Abs 10 lit f Z 1); ihre Bestätigung "
+                    "ist keine Wahl nach lit f Z 3 — die Kandidatursperre bleibt."
+                ),
+            )
 
 
 @nur_admins
@@ -1141,14 +1151,16 @@ def protokoll(request, gremium: str, jahr: int):
 #: Was der Integritätsrat beschließen kann, und worauf es sich bezieht. Ein Anlass steht hier
 #: erst, wenn seine Wirkung gebaut ist — ein Knopf, der schweigend nichts tut, wäre schlimmer
 #: als ein fehlender.
+#: Die Vorschrift je Anlass ist übersetzbar markiert (Prüfung 0.51.0): Meldung und Knopf zeigen sie in
+#: der Sprache der Seite („§ 7 (10) lit b and g“), gespeichert und auditiert wird nichts davon.
 IR_ANLAESSE = [
-    (Anlass.HERVORHEBUNG, "Antrag hervorheben", "§ 5 Abs 10 lit b"),
-    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", "§ 5 Abs 10 lit b"),
-    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", "§ 5 Abs 2"),
-    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
-    (Anlass.AUSSETZUNG, "Aussetzen", "§ 6 Abs 3 lit d"),
-    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", "§ 6 Abs 3 lit d"),
-    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", "§ 7 Abs 10 lit b und g"),
+    (Anlass.HERVORHEBUNG, "Antrag hervorheben", gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", gettext_noop("§ 5 Abs 2")),
+    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", gettext_noop("§ 5 Abs 2")),
+    (Anlass.AUSSETZUNG, "Aussetzen", gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", gettext_noop("§ 7 Abs 10 lit b und g")),
 ]
 
 #: Anlässe, die nicht im allgemeinen Formular stehen, sondern nur dort, wo ihr Gegenstand liegt:
@@ -1268,7 +1280,7 @@ def integritaet_beschluss(request):
         messages.error(
             request,
             _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (%(satzung)s).")
-            % {"satzung": satzung},
+            % {"satzung": _(satzung)},
         )
         return redirect("gremien:integritaet")
     frist = beschluss_frist()

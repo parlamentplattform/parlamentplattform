@@ -8476,3 +8476,18 @@ msgstr "not evaluated — the procedure ended before"
 
 msgid "Die Reaktion ließ sich gerade nicht speichern. Bitte noch einmal."
 msgstr "Your reaction could not be saved just now. Please try again."
+
+msgid "§ 5 Abs 10 lit b"
+msgstr "§ 5 (10) lit b"
+
+msgid "§ 5 Abs 2"
+msgstr "§ 5 (2)"
+
+msgid "§ 6 Abs 3 lit d"
+msgstr "§ 6 (3) lit d"
+
+msgid "§ 7 Abs 10 lit b und g"
+msgstr "§ 7 (10) lit b and g"
+
+msgid "Die Rolle ruht nach der verlorenen Vertrauensfrage (§ 7 Abs 10 lit f Z 1); ihre Bestätigung ist keine Wahl nach lit f Z 3 — die Kandidatursperre bleibt."
+msgstr "The role is suspended after the lost vote of confidence (§ 7 (10) lit f no. 1); its confirmation is not an election under lit f no. 3 — the bar on standing as a candidate remains."

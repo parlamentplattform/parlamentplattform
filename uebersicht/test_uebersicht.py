@@ -29,6 +29,15 @@ def test_besuche_werden_als_tagessummen_gezaehlt(client):
     assert TagesBesucher.objects.count() == 2  # anderes Gerät, neue Kennung — nie eine IP gespeichert
 
 
+def test_die_seite_nennt_die_gespeicherte_tageskennung_nicht_fluechtig(client):
+    """Die Tageskennung steht je Tag in der Datenbank (TagesBesucher) und wird nicht gelöscht; die
+    Datenschutzerklärung sagt das. Die Übersicht darf sie nicht „flüchtig“ nennen."""
+    client.get("/", **BROWSER)
+    assert TagesBesucher.objects.count() == 1
+    inhalt = client.get(reverse("uebersicht:index")).content.decode()
+    assert "Tageskennung" in inhalt and "flüchtig" not in inhalt
+
+
 def test_maschinen_und_technikpfade_zaehlen_nicht(client):
     client.get("/", HTTP_USER_AGENT="Mozilla/5.0 (compatible; Googlebot/2.1)")
     client.get("/", HTTP_USER_AGENT="python-requests/2.32")

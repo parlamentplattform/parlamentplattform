@@ -284,6 +284,13 @@ class Antrag(models.Model):
     def policy(self) -> Policy:
         return Policy.aus_dict(self.policy_snapshot)
 
+    def annahme_schwelle(self) -> tuple[float, bool]:
+        """Die Annahme-Schwelle des Abstimmungs-Chats aus der eingefrorenen Ordnung (§ 5 Abs 5,
+        Bestandsaufnahme A6) — und ob sie aus der Vorgabe kommt, weil die Ordnung des Antrags älter ist
+        als das Feld (vor Fassung 2 der Ordnungsregeln, 11.9.2026). Anzeige und Entscheidung lesen
+        damit dieselbe Zahl; das Register speist nur neue Fassungen der Verfahrensordnung."""
+        return self.policy().vorschlag_annahme_anteil, "vorschlag_annahme_anteil" not in (self.policy_snapshot or {})
+
     def stichtag_der_stimmberechtigung(self):
         """Der Kalendertag, gegen den eine Stimmberechtigung geprüft wird (§ 4 Abs 4 lit a).
 

@@ -394,7 +394,10 @@ def fenster(request, antrag_id: int):
                 antrag.interessenbindungen.select_related("mitglied").order_by("-runde", "erklaert_am")
             ),
             "einschaetzung": _einschaetzung(antrag),
-            "abstimmung": _abstimmung_stand(antrag, entwurf) if entwurf else None,
+            # Nur während die Unterstützer entscheiden — vorher stünde dort „0 👍 / 0 👎 (0 %)“.
+            "abstimmung": _abstimmung_stand(antrag, entwurf)
+            if entwurf and entwurf.status == EntwurfsStatus.UNTERSTUETZER
+            else None,
             "wuensche_vorrunde": wuensche,
             "darf_schreiben": Rolle.hat_fuer(request.user, Gremium.EXPERTENRAT_1, antrag),
             "auslosung": Auslosung.objects.filter(antrag=antrag).order_by("-runde").first(),

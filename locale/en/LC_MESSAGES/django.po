@@ -5292,9 +5292,6 @@ msgstr "during"
 msgid "zum Antrag"
 msgstr "to the motion"
 
-msgid "zurückgegeben"
-msgstr "returned"
-
 msgid "Änderungsgeschichte"
 msgstr "Change history"
 
@@ -8435,3 +8432,10 @@ msgstr "The confirmation by the members’ assembly also counts as confirmation 
 
 msgid "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
 msgstr "The candidacy bar after the lost confidence question remains until the members’ assembly confirms the appointment (§ 7 (10) lit f no. 3)."
+
+#, python-format
+msgid "Schwelle %(p)s %%"
+msgstr "Threshold %(p)s %%"
+
+msgid "Vorgabe"
+msgstr "default"

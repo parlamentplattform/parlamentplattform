@@ -26,7 +26,8 @@ JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
     {% if block.auswertung %}
     <p class="archiv-auswertung">{% blocktranslate with ja=block.auswertung.ja nein=block.auswertung.nein anteil=block.auswertung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 = {{ anteil }} %{% endblocktranslate %}
       · {% if block.auswertung.oben %}{% translate "an erster Stelle" %}{% else %}{% translate "nicht an erster Stelle" %}{% endif %}
-      · {% if block.auswertung.angenommen %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
+      · {% blocktranslate with p=block.auswertung.schwelle_prozent %}Schwelle {{ p }} %{% endblocktranslate %}{% if block.auswertung.schwelle_quelle == "vorgabe" %} ({% translate "Vorgabe" %}){% endif %}
+      · {% if block.auswertung.weiter %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
       <span class="meta">({{ block.auswertung.reihung }})</span></p>
     {% endif %}
     {% if not block.geladen and block.anzahl %}

@@ -37,7 +37,8 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
     {% if a.stand %}
     <p class="meta stand">{% blocktranslate with ja=a.stand.ja nein=a.stand.nein %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎{% endblocktranslate %}
       {% if a.stand.stimmen %}· {{ a.stand.prozent }} %{% endif %}
-      {% if a.stand.oben %}· {% translate "an erster Stelle" %}{% endif %}</p>
+      {% if a.stand.oben %}· {% translate "an erster Stelle" %}{% endif %}
+      · {% blocktranslate with p=a.stand.schwelle_prozent %}Schwelle {{ p }} %{% endblocktranslate %}{% if a.stand.schwelle_vorgabe %} ({% translate "Vorgabe" %}){% endif %}</p>
     {% endif %}
   </article>
   {% endwith %}{% endif %}

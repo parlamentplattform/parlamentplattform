@@ -763,3 +763,26 @@ def test_die_frist_folgt_der_eingefrorenen_ordnung_nicht_dem_register(client, or
     inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
     ende = localtime(antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage))
     assert ende.strftime("%d.%m.%Y") in inhalt
+
+
+def test_die_anzeige_des_abstimmungschats_liest_die_schwelle_aus_der_ordnung(client, ordnung):  # noqa: F811
+    """Bestandsaufnahme A6: Chat, Entwurfsfenster und Archiv zeigen die Schwelle, mit der entschieden
+    wird — die eingefrorene, nicht die des Registers."""
+    from parameter.models import Parameter
+    from verfahren import chat as chatkern
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    Parameter.objects.update_or_create(
+        schluessel="vorschlag-annahme-prozent", defaults={"wert": "70", "einheit": "%", "beschreibung": "x"}
+    )
+    stand = chatkern.abstimmung_stand(antrag)
+    assert stand["schwelle"] == 0.5 and stand["schwelle_prozent"] == 50 and stand["schwelle_vorgabe"] is False
+    client.logout()
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "Schwelle 50 %" in seite and "Schwelle 70 %" not in seite
+    client.force_login(er[0])
+    fenster = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    assert "Schwelle 50 %" in fenster
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER

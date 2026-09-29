@@ -432,8 +432,10 @@ REGELN: tuple[Regel, ...] = (
         zweck=(
             _("Reiht die Beiträge zum Vorschlag des Expertenrats nach Beteiligung — Zustimmungen plus "
             "Ablehnungen, die Richtung zählt nicht — und wertet nach Fristablauf aus: Der "
-            "Systembeitrag „Passt alles“ muss an erster Stelle stehen und mehr als die Hälfte "
-            "Zustimmung tragen, sonst geht der Vorschlag mit der Kritik zurück an den Expertenrat. "
+            "Systembeitrag „Passt alles“ muss an erster Stelle stehen und einen höheren Anteil "
+            "Zustimmung tragen als die Schwelle, die mit der Ordnung des Antrags beim Einbringen "
+            "festgeschrieben wurde (Voreinstellung die Hälfte), sonst geht der Vorschlag mit der "
+            "Kritik zurück an den Expertenrat. "
             "Bleibt jede Reaktion aus, gilt er als angenommen — Stille hemmt das Verfahren nie.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
@@ -449,8 +451,9 @@ REGELN: tuple[Regel, ...] = (
         nachrechenbar=(
             _("Jeder Beitrag zeigt seine Zustimmungen und Ablehnungen. Beteiligung = beide Zahlen "
             "addiert; bei Gleichstand entscheidet der höhere Zustimmungsanteil, dann der ältere "
-            "Beitrag. Die Auswertung gibt Zahlen, Anteil und Schwelle mit aus, nicht nur ihr Ergebnis "
-            "— sie steht so im Archiv.")
+            "Beitrag. Gezählt wird der Stand zum Fristende; zurückgenommene und gewechselte "
+            "Reaktionen bleiben gespeichert, zählen aber nicht. Die Auswertung gibt Zahlen, Anteil "
+            "und Schwelle mit aus, nicht nur ihr Ergebnis — sie steht so im Archiv.")
         ),
         registerschluessel="vorschlag-chat-reihung",
     ),

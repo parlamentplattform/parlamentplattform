@@ -144,6 +144,21 @@ def _rundenereignisse(antrag) -> list[dict]:
     ]
 
 
+def _beendendes_ereignis(antrag, runde: int, ereignisse: list[dict] | None = None) -> dict | None:
+    """Das Audit-Ereignis, das eine Vorschlagsrunde beendet hat — mit der Rechnung im Wortlaut und,
+    seit 0.45, als Feld `auswertung`. None, wenn die Runde noch läuft oder nichts überliefert ist."""
+    for e in ereignisse if ereignisse is not None else _rundenereignisse(antrag):
+        grund = str(e.get("grund") or "")
+        if e.get("typ") == "vorschlag_zurueckgegeben":
+            # `zurueck_an_gruppe_1` zählt die Runde hoch, bevor es das Ereignis anhängt
+            if e.get("runde") != runde + 1 or "Schwelle" not in grund:
+                continue
+        elif f"Runde {runde}," not in grund or "Schwelle" not in grund:
+            continue
+        return e
+    return None
+
+
 def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None) -> float | None:
     """Die Schwelle, mit der eine **abgeschlossene** Vorschlagsrunde entschieden wurde (Befund #22).
 
@@ -153,46 +168,49 @@ def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None)
     strukturiertes Feld `auswertung` (sobald `Entwurf.fortschreiben` es schreibt), sonst im
     Wortlaut der Rechnung „(Schwelle NN %)“. None, wenn die Runde noch läuft oder nichts
     überliefert ist."""
-    for e in ereignisse if ereignisse is not None else _rundenereignisse(antrag):
-        grund = str(e.get("grund") or "")
-        if e.get("typ") == "vorschlag_zurueckgegeben":
-            # `zurueck_an_gruppe_1` zählt die Runde hoch, bevor es das Ereignis anhängt
-            if e.get("runde") != runde + 1 or "Schwelle" not in grund:
-                continue
-        elif f"Runde {runde}," not in grund or "Schwelle" not in grund:
-            continue
-        auswertung = e.get("auswertung")
-        if isinstance(auswertung, dict) and "schwelle" in auswertung:
-            return float(auswertung["schwelle"])
-        treffer = _SCHWELLE.search(grund)
-        if treffer:
-            return int(treffer.group(1)) / 100
-    return None
+    e = _beendendes_ereignis(antrag, runde, ereignisse)
+    if e is None:
+        return None
+    auswertung = e.get("auswertung")
+    if isinstance(auswertung, dict) and "schwelle" in auswertung:
+        return float(auswertung["schwelle"])
+    treffer = _SCHWELLE.search(str(e.get("grund") or ""))
+    return int(treffer.group(1)) / 100 if treffer else None
+
+
+#: Was aus der festgehaltenen Rechnung einer abgeschlossenen Runde übernommen wird — die Zahlen, die
+#: entschieden haben, nicht eine Nachrechnung mit dem heutigen Datenstand.
+_FESTGEHALTEN = ("ja", "nein", "prozent", "oben", "angenommen", "reihung")
 
 
 def _auswertung(antrag, phase: str, ereignisse: list[dict] | None = None) -> dict | None:
     """Die Rechnung des Abstimmungs-Chats einer Vorschlagsrunde (FB-G6) — nachrechenbar.
 
-    Rechnet über die Zahlen aller Beiträge der Runde (ohne Texte). Für die laufende Runde gilt
-    der Registerwert; für abgeschlossene die Schwelle aus dem Audit-Ereignis der Entscheidung
-    (`schwelle_quelle`: „audit“) — nur wenn nichts überliefert ist, das Register (Befund #22)."""
+    Die laufende Runde rechnet über die geltenden Reaktionen mit der Schwelle der eingefrorenen
+    Ordnung (`schwelle_quelle`: „ordnung“, bei einer Ordnung älter als das Feld „vorgabe“ — § 5
+    Abs 5, Bestandsaufnahme A6). Eine abgeschlossene Runde zeigt, was entschieden hat: Schwelle und,
+    wo festgehalten, die Zahlen aus dem Audit-Ereignis, das sie beendet hat („audit“, Befund #22).
+    `weiter` sagt, wohin der Vorschlag ging — zur Endabstimmung auch dann, wenn die Höchstzahl der
+    Runden erreicht war und „Passt alles“ nicht getragen hat (§ 5 Abs 12)."""
     if not phase.startswith("vorschlag-r"):
         return None
-    from parameter.models import zahl
     from verfahren import chat as chatkern
 
     runde = int(phase.removeprefix("vorschlag-r"))
     roh = leicht(antrag.kommentare.filter(phase=phase))
-    schwelle, quelle = None, "register"
-    if chatkern.chat_phase(antrag) != phase:
-        schwelle = schwelle_der_runde(antrag, runde, ereignisse)
-        if schwelle is not None:
-            quelle = "audit"
+    beendet = None if chatkern.chat_phase(antrag) == phase else _beendendes_ereignis(antrag, runde, ereignisse)
+    schwelle, quelle = (schwelle_der_runde(antrag, runde, [beendet]) if beendet else None), "audit"
     if schwelle is None:
-        schwelle = zahl("vorschlag-annahme-prozent", 50) / 100
+        schwelle, vorgabe = antrag.annahme_schwelle()
+        quelle = "vorgabe" if vorgabe else "ordnung"
     ergebnis = vorschlagschat.auswerten(roh, schwelle)
+    festgehalten = beendet.get("auswertung") if beendet else None
+    if isinstance(festgehalten, dict):
+        ergebnis.update({k: festgehalten[k] for k in _FESTGEHALTEN if k in festgehalten})
+    ergebnis["weiter"] = beendet.get("typ") == "phasenwechsel" if beendet else ergebnis["angenommen"]
     ergebnis["kritik"] = [b["id"] for b in vorschlagschat.kritik_uebergeben(roh)]
     ergebnis["schwelle_quelle"] = quelle
+    ergebnis["schwelle_prozent"] = round(schwelle * 100)
     return ergebnis
 
 
@@ -418,11 +436,12 @@ def als_markdown(antrag) -> str:
         zeilen += [f"## {block['name']} — {block['anzahl']} {_('Beiträge')}", ""]
         auswertung = block["auswertung"]
         if auswertung:
+            vorgabe = f" ({_('Vorgabe')})" if auswertung["schwelle_quelle"] == "vorgabe" else ""
             zeilen += [
                 f"*{_('Auswertung')}: „Passt alles“ {auswertung['ja']}:{auswertung['nein']} "
-                f"= {auswertung['prozent']} % · "
+                f"= {auswertung['prozent']} % · {_('Schwelle')} {auswertung['schwelle_prozent']} %{vorgabe} · "
                 f"{_('an erster Stelle') if auswertung['oben'] else _('nicht an erster Stelle')} · "
-                f"{_('angenommen') if auswertung['angenommen'] else _('zurückgegeben')} "
+                f"{_('zur Endabstimmung') if auswertung['weiter'] else _('zurück an den Expertenrat')} "
                 f"({auswertung['grund']}, {auswertung['reihung']})*",
                 "",
             ]

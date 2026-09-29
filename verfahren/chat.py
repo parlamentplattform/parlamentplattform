@@ -452,10 +452,10 @@ def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None, stichz
     entwurf = entwurf or abstimmungschat(antrag)
     if entwurf is None:
         return None
+    vorgabe = False
     if schwelle is None:
-        from parameter.models import zahl
-
-        schwelle = zahl("vorschlag-annahme-prozent", 50) / 100
+        # Die Schwelle der eingefrorenen Ordnung — dieselbe, mit der die Auswertung entscheidet (A6).
+        schwelle, vorgabe = antrag.annahme_schwelle()
     beitraege = [
         {"id": k.pk, "ja": k.zustimmungen, "nein": k.ablehnungen,
          "zeit": k.erstellt_am, "system": k.system, "ist_kritik": k.ist_kritik, "text": k.sichtbarer_text(),
@@ -468,6 +468,8 @@ def abstimmung_stand(antrag, entwurf=None, schwelle: float | None = None, stichz
     ergebnis = vorschlagschat.auswerten(beitraege, schwelle)
     ergebnis["kritik"] = vorschlagschat.kritik_uebergeben(beitraege)
     ergebnis["runde"] = entwurf.runde
+    ergebnis["schwelle_prozent"] = round(schwelle * 100)
+    ergebnis["schwelle_vorgabe"] = vorgabe
     return ergebnis
 
 

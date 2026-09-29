@@ -163,6 +163,26 @@ def test_migrationen_0021_und_0022_haben_keinen_rueckweg_und_0022_willigt_nur_ei
     assert sum(e.ereignis.get("typ") == "post_einwilligung_bestand" for e in AuditEintrag.objects.all()) == 1
 
 
+def test_bestandseinwilligung_gilt_nur_fuer_die_instanz_der_ddoe(settings):
+    # Die Aussage des Gründers betrifft die Mitglieder der DDÖ — nicht den Bestand einer Partner-Instanz.
+    from django.apps import apps
+    from django.db import connection
+
+    migration = importlib.import_module("mitglieder.migrations.0022_post_einwilligung_und_postbezug")
+    partner = mitglied_anlegen("partner")
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.connection = connection
+    settings.DDOE_SYSTEM_ID = "xx-test"
+    assert migration.bestand_einwilligen(apps, editor) == 0
+    partner.refresh_from_db()
+    assert partner.post_einwilligung is False
+    assert not any(e.ereignis.get("typ") == "post_einwilligung_bestand" for e in AuditEintrag.objects.all())
+
+
 # ── Postaufträge je Anlass ───────────────────────────────────────────────────────────────
 
 

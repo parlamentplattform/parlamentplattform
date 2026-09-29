@@ -4,7 +4,9 @@
    (neue Anträge aus der eigenen Region, Beitragserinnerungen)? Neue Konten entscheiden das bei der
    Registrierung (Voreinstellung: nein). Der Bestand wird auf „ja“ gesetzt — Gründer: „Die bisherigen
    Mitglieder haben bereits zugestimmt.“ Idempotent: Wer schon „ja“ trägt, bleibt unberührt; ein
-   Audit-Eintrag ohne Personenbezug hält die Zahl der umgestellten Konten fest.
+   Audit-Eintrag ohne Personenbezug hält die Zahl der umgestellten Konten fest. Das gilt nur für die
+   Instanz der DDÖ (`DDOE_SYSTEM_ID` = `at-ddoe`): Die Aussage des Gründers betrifft ihre Mitglieder,
+   nicht den Bestand einer Partner-Instanz — dort bleibt „nein“, bis das Mitglied selbst zustimmt.
 2. `Postauftrag.bezug` und `Postauftrag.antrag`: Der Schlüssel eines Auftrags ist nun (Mitglied, Art,
    Bezug) — leer bei den Kontobriefen, `antrag:<pk>` bei „Neuer Antrag in Ihrer Region“, `jahr:<Jahr>`
    bei der Beitragserinnerung. Bestehende Zeilen behalten den leeren Bezug.
@@ -40,6 +42,10 @@ def bestand_einwilligen(apps, schema_editor) -> int:
     """Alle Konten, die vor dieser Migration bestanden, gelten als eingewilligt. Gibt die Zahl der
     umgestellten Konten zurück; beim zweiten Lauf null (idempotent) — auch dann, wenn seither jemand
     ohne Haken registriert oder im Profil abbestellt hat: Der Audit-Eintrag des ersten Laufs sperrt."""
+    from django.conf import settings
+
+    if settings.DDOE_SYSTEM_ID != "at-ddoe":
+        return 0  # Partner-Instanz: Die Aussage des DDÖ-Gründers gilt dort nicht.
     Mitglied = apps.get_model("mitglieder", "Mitglied")
     AuditEintrag = apps.get_model("verfahren", "AuditEintrag")
     db = schema_editor.connection.alias

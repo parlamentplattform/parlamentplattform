@@ -131,3 +131,53 @@ def test_ein_werfender_nachlauf_haelt_die_folgenden_nicht_an(monkeypatch):
     stand = alles_fortschreiben()
     assert gelaufen == ["aussetzungen", "tests", "vf"]
     assert stand["fehler"] == 1 and stand["beschluesse"] == 0
+
+
+@pytest.mark.parametrize("wirft", ["offene_zustellen", "faellige_ausfuehren"])
+def test_der_hintergrundfaden_fuehrt_waechter_und_postausgang_je_fuer_sich_aus(settings, monkeypatch, wirft):
+    """Wächter und Postausgang standen im selben try, der Postausgang zuerst: Eine Ausnahme des
+    Postausgangs ließ den Wächter in dieser Runde ausfallen, ein hängender SMTP-Server verzögerte
+    ihn um bis zu 50 Zeitüberschreitungen. Jetzt zuerst der Wächter, jede Aufgabe für sich.
+    Gefahren wird eine Runde des echten Fadens aus gunicorn.conf.py — synchron."""
+    import importlib.util
+    import types
+    from pathlib import Path
+
+    import django.db
+
+    import mitglieder.postausgang as postausgang
+
+    gelaufen = []
+
+    def aufgabe(name):
+        def lauf(*args, **kwargs):
+            gelaufen.append(name)
+            if name == wirft:
+                raise RuntimeError(f"{name} gescheitert")
+            return []
+
+        return lauf
+
+    monkeypatch.setattr(django.db, "close_old_connections", lambda: None)  # die Testtransaktion bleibt offen
+    monkeypatch.setattr(postausgang, "offene_zustellen", aufgabe("offene_zustellen"))
+    monkeypatch.setattr(hintergrund, "faellige_ausfuehren", aufgabe("faellige_ausfuehren"))
+    worker = types.SimpleNamespace(alive=True)
+
+    class SofortFaden:
+        def __init__(self, target, **_kwargs):
+            self.target = target
+
+        def start(self):
+            self.target()
+
+    class EineRunde:
+        def wait(self, _sekunden):
+            worker.alive = False
+
+    pfad = Path(settings.BASE_DIR) / "gunicorn.conf.py"
+    spec = importlib.util.spec_from_file_location("gunicorn_konfiguration", pfad)
+    konfiguration = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(konfiguration)
+    monkeypatch.setattr(konfiguration, "threading", types.SimpleNamespace(Thread=SofortFaden, Event=EineRunde))
+    konfiguration.post_worker_init(worker)
+    assert gelaufen == ["faellige_ausfuehren", "offene_zustellen"]

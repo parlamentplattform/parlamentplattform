@@ -60,7 +60,7 @@ def werte() -> dict:
     register = _register_zeilen()
     je_status = {wert: sum(1 for z in register if z["status"] == wert) for wert, _name in Vollzugsstatus.choices}
     return {
-        "members.active": Mitglied.objects.filter(is_active=True).count(),
+        "members.active": Mitglied.objects.filter(is_active=True, testkonto=False).count(),
         "motions.total": antraege.count(),
         "motions.by_phase": je_phase,
         "votes.completed": len(entschieden),

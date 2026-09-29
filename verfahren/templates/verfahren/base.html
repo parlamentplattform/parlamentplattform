@@ -402,6 +402,7 @@ body.voll main{max-width:none;padding:0}
   .regler-feld{width:100%}
   .tabs{display:grid}
   .fokus-knopf{display:none}  /* am Handy ist jedes Feld ein Bildschirm — kein Fokus-Modus */
+  .parlament.fokus>.feld[hidden]{display:flex!important}  /* auch nicht über ?fokus= ohne JavaScript */
 }
 /* ── Hauptfenster & Listen ── */
 .hf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:24px 0 8px}

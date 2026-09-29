@@ -2,7 +2,8 @@
 Eine Zeile des WeicherFilter-Feeds (FB-B1): Titel mit Stern rechts, Chips (Phase farbig, Ebene,
 Lebensbereich), Stand mit Mini-Balken und Frist, Direkt-Handlung der Phase rechts; bei aktivem
 Profil das Aufklapp-Feld „Warum hier?“ mit der offenen Rechnung. Erwartet z (wie _kachel plus
-favorit, anteile, punkte).
+favorit, anteile, punkte); die Handlung kehrt mit Hinweis ins Feld „filter“ zurück (Befund B1),
+Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adresse ist ein POST).
 {% endcomment %}<div class="fz{% if z.favorit %} favorit{% endif %}" data-antrag="{{ z.antrag.pk }}">
   <a class="zt" href="{% url 'verfahren:antrag' z.antrag.pk %}{% if z.stat.typ == 'abstimmung' %}#abstimmen{% endif %}">{{ z.antrag.titel }}</a>
   <div class="zm">
@@ -37,26 +38,31 @@ favorit, anteile, punkte).
       <a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
     {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}
       <a class="knopf gold" href="{% url 'verfahren:antrag' z.antrag.pk %}#bewerbungen">{% translate "Zur Wahl ›" %}</a>
+    {% elif z.stat.typ == "abstimmung" and z.sperre %}
+      {# Befund B2: Wer nicht stimmen darf, sieht den Zustand mit Link — keine Knöpfe, die ins Leere laufen #}
+      <span class="erk sperre">{{ z.sperre.kurz }}{% if z.sperre.link %} — <a href="{{ z.sperre.link }}">{{ z.sperre.link_text }}</a>{% endif %}</span>
     {% elif z.stat.typ == "abstimmung" %}
       {# Sachantrag und Mandatsfrage (§ 7 Abs 9): Ja/Nein/Enthaltung — nie eine Personenwahl #}
-      <details class="abstimmen"><summary class="knopf gold">{% if z.meine_stimme %}{{ z.meine_stimme|phase_name }} ✓{% else %}{% translate "Abstimmen" %}{% endif %} ▸</summary>
+      <details class="abstimmen"><summary class="knopf gold" id="ab-filter-{{ z.antrag.pk }}">{% if z.meine_stimme %}{{ z.meine_stimme|phase_name }} ✓{% else %}{% translate "Abstimmen" %}{% endif %} ▸</summary>
         <form method="post" action="{% url 'verfahren:abstimmen' z.antrag.pk %}" class="stimmreihe"
           hx-post="{% url 'verfahren:abstimmen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-          <button name="stimme" value="ja" class="btn-linie klein{% if z.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
-          <button name="stimme" value="nein" class="btn-linie klein{% if z.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
-          <button name="stimme" value="enthaltung" class="btn-still klein{% if z.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ weiter_ziel|default:request.get_full_path }}"><input type="hidden" name="feld" value="filter">
+          <button name="stimme" value="ja" id="st-filter-{{ z.antrag.pk }}-ja" class="btn-linie klein{% if z.meine_stimme == 'ja' %} gewaehlt{% endif %}" aria-pressed="{% if z.meine_stimme == 'ja' %}true{% else %}false{% endif %}">{% translate "Ja" %}</button>
+          <button name="stimme" value="nein" id="st-filter-{{ z.antrag.pk }}-nein" class="btn-linie klein{% if z.meine_stimme == 'nein' %} gewaehlt{% endif %}" aria-pressed="{% if z.meine_stimme == 'nein' %}true{% else %}false{% endif %}">{% translate "Nein" %}</button>
+          <button name="stimme" value="enthaltung" id="st-filter-{{ z.antrag.pk }}-enthaltung" class="btn-still klein{% if z.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}" aria-pressed="{% if z.meine_stimme == 'enthaltung' %}true{% else %}false{% endif %}">{% translate "Enthaltung" %}</button>
         </form>
         {% if z.legende %}<span class="erk vf-legende">{{ z.legende.0 }} · {{ z.legende.1 }}</span>{% endif %}
       </details>
     {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated and not z.unterstuetzen_erlaubt %}
       {# § 7 Abs 10 lit c: Unterstützen nur, wer am Einbringungstag für Personenwahlen stimmberechtigt war #}
       <span class="erk">{% translate "Unterstützen nur mit Stimmrecht für Personenwahlen" %}</span>
+    {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated and z.sperre %}
+      <span class="erk sperre">{{ z.sperre.kurz }}{% if z.sperre.link %} — <a href="{{ z.sperre.link }}">{{ z.sperre.link_text }}</a>{% endif %}</span>
     {% elif z.stat.typ == "unterstuetzung" and user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" class="stimmreihe"
         hx-post="{% url 'verfahren:unterstuetzen' z.antrag.pk %}" hx-target="#feld-filter" hx-select="#feld-filter" hx-swap="outerHTML transition:true" hx-indicator="#feld-filter">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="knopf{% if z.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}">{% if z.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ weiter_ziel|default:request.get_full_path }}"><input type="hidden" name="feld" value="filter">
+        <button id="u-filter-{{ z.antrag.pk }}" class="knopf{% if z.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}" aria-pressed="{% if z.antrag.pk in meine_unterstuetzungen %}true{% else %}false{% endif %}">{% if z.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
       </form>
     {% elif z.stat.typ == "beratung" %}
       <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#beratung">{% translate "Mitreden" %}</a>

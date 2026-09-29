@@ -244,6 +244,9 @@ def rechtsbezug_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
                 "unsicherheit": ergebnis["unsicherheit_wort"],
                 "modell": ergebnis["modell"],
                 "auftrag_version": ergebnis["auftrag_version"],
+                # Kontextstand (§ 6 Abs 11 lit b): Datum des Laufs in Wiener Zeit und die geprüfte Fassung
+                "stand": formats.date_format(timezone.localtime(ergebnis["stand"]), "d.m.Y, H:i"),
+                "fassung": ergebnis["fassung"],
                 "link": settings.DDOE_BASIS_URL.rstrip("/")
                 + reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
                 + "#rechtsbezug",

@@ -133,6 +133,36 @@ def test_migration_setzt_den_bestand_auf_ja_und_ist_idempotent():
     assert "example.org" not in json.dumps(eintraege)
 
 
+def test_migrationen_0021_und_0022_haben_keinen_rueckweg_und_0022_willigt_nur_einmal_ein():
+    # Der Rückweg löschte Spalten mit Daten, die kein erneutes Vorwärts wiederherstellt (eingefrorener
+    # Beitragsreferenz-Stamm, Einwilligungsentscheidungen); das erneute Vorwärts machte aus jedem Nein
+    # ein Ja. Deshalb: kein Rückweg, und die Bestandseinwilligung läuft genau einmal.
+    from django.apps import apps
+    from django.db import connection, migrations
+
+    for name in ("0021_referenzstamm_und_testkonten", "0022_post_einwilligung_und_postbezug"):
+        modul = importlib.import_module(f"mitglieder.migrations.{name}")
+        laeufe = [op for op in modul.Migration.operations if isinstance(op, migrations.RunPython)]
+        assert laeufe and all(not op.reversible for op in laeufe), name
+
+    migration = importlib.import_module("mitglieder.migrations.0022_post_einwilligung_und_postbezug")
+    alt = mitglied_anlegen("alt")
+
+    class Editor:
+        pass
+
+    editor = Editor()
+    editor.connection = connection
+    assert migration.bestand_einwilligen(apps, editor) == 1
+    nein = mitglied_anlegen("nein")  # nach 0.50 registriert, ohne Haken
+    Mitglied.objects.filter(pk=alt.pk).update(post_einwilligung=False)  # später im Profil abbestellt
+    assert migration.bestand_einwilligen(apps, editor) == 0
+    for m in (alt, nein):
+        m.refresh_from_db()
+        assert m.post_einwilligung is False
+    assert sum(e.ereignis.get("typ") == "post_einwilligung_bestand" for e in AuditEintrag.objects.all()) == 1
+
+
 # ── Postaufträge je Anlass ───────────────────────────────────────────────────────────────
 
 

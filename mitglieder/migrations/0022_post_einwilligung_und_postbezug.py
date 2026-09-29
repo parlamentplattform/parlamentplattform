@@ -8,6 +8,11 @@
 2. `Postauftrag.bezug` und `Postauftrag.antrag`: Der Schlüssel eines Auftrags ist nun (Mitglied, Art,
    Bezug) — leer bei den Kontobriefen, `antrag:<pk>` bei „Neuer Antrag in Ihrer Region“, `jahr:<Jahr>`
    bei der Beitragserinnerung. Bestehende Zeilen behalten den leeren Bezug.
+
+Ohne Rückweg: Er löschte die Spalte `post_einwilligung` mit jeder seither getroffenen Entscheidung,
+und das erneute Vorwärts machte aus jedem Nein ein Ja. Dazu scheiterte die alte Eindeutigkeit
+(Mitglied, Art) am zweiten Auftrag je Anlass. Die Bestandseinwilligung läuft deshalb auch nur einmal:
+Steht ihr Audit-Eintrag schon in der Kette, setzt sie nichts mehr.
 """
 
 import django.db.models.deletion
@@ -33,9 +38,13 @@ def audit_anhaengen(apps, db, ereignis: dict) -> None:
 
 def bestand_einwilligen(apps, schema_editor) -> int:
     """Alle Konten, die vor dieser Migration bestanden, gelten als eingewilligt. Gibt die Zahl der
-    umgestellten Konten zurück; beim zweiten Lauf null (idempotent)."""
+    umgestellten Konten zurück; beim zweiten Lauf null (idempotent) — auch dann, wenn seither jemand
+    ohne Haken registriert oder im Profil abbestellt hat: Der Audit-Eintrag des ersten Laufs sperrt."""
     Mitglied = apps.get_model("mitglieder", "Mitglied")
+    AuditEintrag = apps.get_model("verfahren", "AuditEintrag")
     db = schema_editor.connection.alias
+    if AuditEintrag.objects.using(db).filter(ereignis__typ="post_einwilligung_bestand").exists():
+        return 0
     anzahl = Mitglied.objects.using(db).filter(post_einwilligung=False).update(post_einwilligung=True)
     if anzahl:
         audit_anhaengen(apps, db, {"typ": "post_einwilligung_bestand", "konten": anzahl, "anlass": ANLASS})
@@ -56,7 +65,7 @@ class Migration(migrations.Migration):
                 help_text="Darf die Plattform diesem Mitglied E-Mails über das Verfahren schicken — neue Anträge aus der eigenen Region, Beitragserinnerungen? Anmelde-, Bestätigungs-, Willkommens-, Freischaltungs- und Ausweisnachrichten gehen unabhängig davon (sie gehören zum Konto). Die Registrierung fragt den Haken ab (Voreinstellung: nein); der Bestand vor 0.50 hat laut Gründer bereits zugestimmt.",
             ),
         ),
-        migrations.RunPython(bestand_einwilligen, migrations.RunPython.noop),
+        migrations.RunPython(bestand_einwilligen),  # ohne Rückweg — siehe Docstring
         migrations.AddField(
             model_name="postauftrag",
             name="bezug",

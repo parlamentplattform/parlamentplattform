@@ -8,6 +8,9 @@
    anmeldbar, Rollen beendet, Fachlisteneintrag gestrichen. Ihre Beiträge zu Verfahren bleiben
    stehen (Grundregel 7: nichts wird gelöscht, was Verfahren betrifft); der Gründer hat die
    Stilllegung am 28.9.2026 freigegeben („Die Testkonten dürfen gelöscht werden“). Idempotent.
+
+Ohne Rückweg: Er löschte den eingefrorenen Stamm, und ein erneutes Vorwärts leitete ihn aus dem
+dann gültigen Anmeldenamen neu ab — nach einem Adresswechsel ein anderer als der gedruckte.
 """
 
 import hashlib
@@ -92,5 +95,5 @@ class Migration(migrations.Migration):
                 help_text="Testkonto des Aufbaus (Demo-Daten, Konten vor dem Gründerkonto): keine Nummer, kein Ausweis, keine Post — und nie im Nenner der Stimmberechtigten oder in einer Mitgliederzahl (§ 4 Abs 4 lit a).",
             ),
         ),
-        migrations.RunPython(vorwaerts, migrations.RunPython.noop),
+        migrations.RunPython(vorwaerts),  # ohne Rückweg — siehe Docstring
     ]

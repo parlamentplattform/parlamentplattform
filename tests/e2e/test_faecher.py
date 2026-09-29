@@ -249,3 +249,24 @@ def test_stern_tauscht_nur_sich_selbst(seite, live_server, demo):
     )
     assert p.evaluate("document.querySelector('#feld-favoriten').dataset.probe") == "unveraendert"  # kein Feldtausch
     assert "ist jetzt Favorit" not in p.content()  # keine Flash-Meldung
+
+
+def test_fokus_bleibt_nach_faecher_und_brotkrumen_link_im_faecher(seite, live_server, demo):
+    """Fächer- und Brotkrumen-Links tragen keine id, und der geklickte Knoten wird zum Anker (kein Link):
+    Per Tastatur ausgelöst, landet der Fokus danach im neuen Fächer statt auf <body> (Befund B2)."""
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    im_faecher = "() => { const a = document.activeElement; return a !== document.body && !!a.closest('#feld-favoriten'); }"
+    link = p.locator("#feld-favoriten .fknoten.kind > a[href^='?fach=']").first
+    name = link.get_attribute("title")
+    link.focus()
+    p.keyboard.press("Enter")
+    _anker_heisst(p, name)
+    _ruhe(p)
+    assert p.evaluate(im_faecher), p.evaluate("document.activeElement.tagName + '.' + document.activeElement.className")
+    p.locator("#feld-favoriten .brot a").first.focus()
+    p.keyboard.press("Enter")
+    _anker_heisst(p, "Lebensbereiche")
+    _ruhe(p)
+    assert p.evaluate(im_faecher), p.evaluate("document.activeElement.tagName + '.' + document.activeElement.className")

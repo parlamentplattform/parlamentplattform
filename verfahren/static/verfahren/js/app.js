@@ -155,6 +155,7 @@ document.addEventListener("alpine:init", function () {
   Alpine.data("parlament", function (fokusServer) {
     return {
       fokusId: null,
+      faecherFokus: false,  // lag der Fokus auf dem Fächer- oder Brotkrumen-Link, der getauscht hat?
       fokus: "",
       vorher: null,  // Knotenlagen des Fächers vor einem Tausch (nur bei Fächer-zu-Fächer)
       init: function () {
@@ -189,6 +190,7 @@ document.addEventListener("alpine:init", function () {
         });
       },
       fokusZurueck: function () {
+        if (this.faecherFokus) { this.faecherFokus = false; this.fokusImFaecher(); return; }
         if (!this.fokusId) return;
         var ziel = document.getElementById(this.fokusId);
         this.fokusId = null;
@@ -199,6 +201,20 @@ document.addEventListener("alpine:init", function () {
         var wahl = [ziel, klappe && klappe.querySelector("summary"), feld && feld.querySelector(".feld-korpus")];
         for (var i = 0; i < wahl.length; i++) {
           if (!wahl[i] || !wahl[i].focus) continue;
+          wahl[i].focus({ preventScroll: true });
+          if (document.activeElement === wahl[i]) return;
+        }
+      },
+      /* Fächer- und Brotkrumen-Links tragen keine id, und der geklickte Knoten wird zum Anker (kein
+         Link): der Fokus geht auf den ersten Knotenlink des neuen Fächers (die Kinder des Ankers
+         stehen vorn), sonst auf den Feldkörper. */
+      fokusImFaecher: function () {
+        var feld = document.getElementById("feld-favoriten");
+        if (!feld) return;
+        var wahl = Array.prototype.slice.call(feld.querySelectorAll(".faecher .fknoten > a:not(.mehr)"));
+        wahl.push(feld.querySelector(".feld-korpus"));
+        for (var i = 0; i < wahl.length; i++) {
+          if (!wahl[i]) continue;
           wahl[i].focus({ preventScroll: true });
           if (document.activeElement === wahl[i]) return;
         }
@@ -251,10 +267,12 @@ document.addEventListener("alpine:init", function () {
       faecherMerken: function (e) {
         var d = e.detail || {};
         this.vorher = null;
+        this.faecherFokus = false;
         if (!d.target || d.target.id !== "feld-favoriten" || !d.shouldSwap) return;
         var ausloeser = d.requestConfig && d.requestConfig.elt;
         var fach = d.target.querySelector(".faecher");
         if (!fach || !ausloeser || !ausloeser.closest || !ausloeser.closest(".faecher, .brot")) return;
+        this.faecherFokus = document.activeElement === ausloeser;
         this.vorher = knotenLagen(fach);
       },
       /* Nach dem Tausch: einpassen, dann gleiten gemeinsame Knoten von der alten an die neue

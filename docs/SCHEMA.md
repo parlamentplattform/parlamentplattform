@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.7** (29.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.9** (29.9.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.8, 54 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.9, 55 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -127,6 +127,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `support.window_days` | `verfahren-unterstuetzung-tage` | days | Days a motion has to reach the support threshold |
 | `tiles.completed` | `kacheln-abgeschlossen` | entries | How many completed procedures appear in the feed |
 | `tiles.highlighted` | `kacheln-hervorgehoben` | tiles | How many highlighted votes the important-votes field shows |
+| `vote.leaning_after_min_turnout` | `verfahren-tendenz-ab-mindestbeteiligung` | flag | Whether tiles, the motion page and the overview show the leaning (shares of yes, no and abstain) of a running vote on a motion once the minimum turnout is reached (0 or 1; part of the rules of procedure, frozen into the motion when it is submitted) |
 | `vote.min_turnout_percent` | `verfahren-mindestbeteiligung-prozent` | percent | Share of eligible members that must take part for a result to stand |
 | `vote.window_days` | `verfahren-abstimmung-tage` | days | Duration of the final vote |
 
@@ -147,6 +148,7 @@ Einheiten sind freier Text; `flag` steht seit 1.5 für einen Schalter mit den We
 | `council.group1_size` | `expertenrat_gruppe1` | people |
 | `council.group2_size` | `expertenrat_gruppe2` | people |
 | `motion.resubmission_block_months` | `wiedereinbringung_sperre_monate` | months |
+| `vote.leaning_after_min_turnout` | `tendenz_ab_mindestbeteiligung` | flag (0 = Tendenz verdeckt bis Fristende, 1 = sichtbar ab erreichter Mindestbeteiligung; seit 1.9) |
 
 Wo ein Feld der Ordnung aus einer Stellgröße des Registers gespeist wird, tragen beide dieselbe
 Kennung — beim Anteil der Unterstützungsschwelle auch dieselbe Einheit, weil der Export ihn in Prozent
@@ -165,7 +167,10 @@ Dasselbe gilt für die drei Vorgabefelder der Ordnung Fassung 3 (seit 0.48.0: `b
 Werte der Vertrauensfrage (§ 7 Abs 10 lit c und e) und sind in jeder Standardordnung 0 beziehungsweise
 aus; die veränderlichen Fristen der Vertrauensfrage — Sammelfrist und Abstimmungsdauer — stehen als
 `mandate.confidence_support_days` und `mandate.confidence_vote_window_days` in 3.1 und werden beim
-Einbringen in die Ordnung des Antrags eingefroren.
+Einbringen in die Ordnung des Antrags eingefroren. Ebenso nicht im Export je Fassung steht die
+Übergangsregel der Ordnung Fassung 5 (`uebergangsregel`, § 4 Abs 4 lit d): Sie ist eine Einstellung der
+Instanz, keine Stellgröße, und wird erst beim Einbringen in den Schnappschuss des Antrags geschrieben —
+lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 
 ## 4. `/kennzahlen.json` — aggregierter Lernfortschritt
 
@@ -237,3 +242,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |
 | 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4; dieselbe Kennung steht in Prozent je Fassung im Export der Verfahrensordnung, 3.2), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |
 | 1.8 | 29.9.2026 | 0.50.1 | Drei Grenzen, die bisher im Code standen, sind Stellgrößen (Entscheidung des Gründers 29.9.2026): `similarity.request_timeout_seconds` (wie lange das Einbringen höchstens auf den KI-Anbieter wartet, bevor der Wortvergleich allein gilt), `similarity.meaning_calls_per_account_hour` (wie oft ein Konto je Stunde den Bedeutungsvergleich beim Einbringen auslösen kann; 0 schaltet ihn ab), `mail.max_attempts` (nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird; Nachrichten zum Konto ohne Grenze). `ai.daily_queue_runs` zählt jetzt jeden Aufruf beim Anbieter, auch gescheiterte (bisher je Auftrag einmal) — dieselbe Einheit, genauere Zählung. |
+| 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |

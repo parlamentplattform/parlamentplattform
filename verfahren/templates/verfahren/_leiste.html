@@ -33,7 +33,6 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
         {% include "verfahren/_sprache.html" %}
         {% include "verfahren/_thema.html" %}
         <details class="pop-mehr"><summary>{% translate "Mehr" %}</summary>{% include "verfahren/_mehr_links.html" %}</details>
-        {% if AKTIV == "parlament" %}{% include "verfahren/_tastenhilfe.html" %}{% endif %}
         <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>
       </div>
     </details>
@@ -43,7 +42,6 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
       <div class="pop">
         {% include "verfahren/_thema.html" %}
         {% include "verfahren/_mehr_links.html" %}
-        {% if AKTIV == "parlament" %}{% include "verfahren/_tastenhilfe.html" %}{% endif %}
       </div>
     </details>
     <a class="anmelden" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>

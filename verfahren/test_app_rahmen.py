@@ -216,7 +216,7 @@ def test_felder_sind_landmarken_mit_tastatur_scroll(client):
         assert html.count(f'id="feld-{feld}"') == 1
         assert f'<section class="feld" id="feld-{feld}" aria-labelledby="h-{feld}"' in html
         assert f'<h2 id="h-{feld}">' in html
-    # Die Feldkörper sind fokussierbare, benannte Landmarken — Alt+1…4 springt hinein (Teil 7)
+    # Die Feldkörper sind fokussierbare, benannte Landmarken (Teil 7)
     korpusse = re.findall(r'<div class="feld-korpus(?: faecher-korpus)?" tabindex="0" role="region" aria-labelledby="h-(\w+)">', html)
     assert korpusse == ["filter", "favoriten", "wichtig", "region"]
     assert '<body class="voll mit-band"' in html
@@ -249,18 +249,17 @@ def test_fokus_modus_serverseitig_und_knopf_je_feld(client):
     assert '<div class="parlament" id="parlament"' in html and " hidden :hidden=" not in html
 
 
-def test_tastenhilfe_im_menue_nur_im_parlament(client):
-    """Teil 7: die Tastenliste steht als <details> im ⋯-Menü (Gast) bzw. Konto-Menü (Mitglied) — nur im Parlament."""
-    html = client.get(reverse("verfahren:parlament")).content.decode()
-    assert html.count('id="tastenhilfe"') == 1
-    hilfe = html.split('id="tastenhilfe"', 1)[1].split("</details>", 1)[0]
-    assert "<kbd>Alt</kbd>" in hilfe and "<kbd>Esc</kbd>" in hilfe and "<kbd>?</kbd>" in hilfe
-    assert len(re.findall(r"<dt>", hilfe)) == 3 and "." not in re.sub(r"<[^>]+>", "", hilfe)  # Tastenliste, kein Satz
-    assert html.index('<details class="mehr"') < html.index('id="tastenhilfe"') < html.index('<details class="menue"')
-    client.force_login(mitglied_anlegen("tasten-mitglied"))
-    html = client.get(reverse("verfahren:parlament")).content.decode()
-    assert html.count('id="tastenhilfe"') == 1 and 'id="tastenhilfe"' in _konto(html)
-    assert 'id="tastenhilfe"' not in client.get("/uebersicht/").content.decode()
+def test_keine_tastenhilfe_und_keine_tastenkuerzel(client):
+    """Entscheidung des Gründers 29.9.2026: Die Tastenkürzel im Fokus-Modus (Alt+1…4, „?“) samt
+    Tastenhilfe sind entfernt — für Gäste und Mitglieder, nirgends; Esc und die Fokus-Knöpfe bleiben."""
+    for wer in (None, mitglied_anlegen("tasten-mitglied")):
+        if wer:
+            client.force_login(wer)
+        html = client.get(reverse("verfahren:parlament")).content.decode()
+        assert 'id="tastenhilfe"' not in html and "<kbd>" not in html
+        assert "@keydown.window=" not in html and '@keydown.escape.window="alleFelder()"' in html
+        assert html.count('class="ikon fokus-knopf"') == 4
+        assert 'id="tastenhilfe"' not in client.get("/uebersicht/").content.decode()
 
 
 def test_app_manifest_verlinkt_und_erreichbar(client, settings):

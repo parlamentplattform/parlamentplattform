@@ -136,6 +136,22 @@ def test_textvektoren_zaehlen_nicht_als_stand_der_einschaetzung(client, settings
     assert "noch kein Lauf" in inhalt and "attrappe-einbettung-1" not in inhalt
 
 
+def test_die_karte_nennt_die_gepruefte_fassung_und_sagt_wenn_sie_aelter_ist(client, json_attrappe, ordnung):  # noqa: F811
+    """§ 6 Abs 11 lit b „Kontextstand“: Nach einer neuen Fassung steht nicht still das Ergebnis zur alten da."""
+    from ki.rechtsbezug import rechtsbezug_fuer
+    from verfahren.models import AntragsFassung
+
+    antrag = _antrag(ordnung)
+    einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
+    abarbeiten()
+    assert rechtsbezug_fuer(antrag)["fassung"] == 1 and not rechtsbezug_fuer(antrag)["frueher"]
+    karte = _seite(client, antrag).split('id="rechtsbezug"')[1].split('class="kennzeichnung"')[0]
+    assert "zu Fassung 1" in karte and "zu einer früheren Fassung" not in karte
+    AntragsFassung.objects.create(antrag=antrag, nummer=2, wortlaut="Völlig anderer Text über Tierschutz.")
+    karte = _seite(client, antrag).split('id="rechtsbezug"')[1].split('class="kennzeichnung"')[0]
+    assert "Parteiengesetz 2012" in karte and "zu Fassung 1" in karte and "zu einer früheren Fassung" in karte
+
+
 def test_rechtsbezug_ist_keine_einschaetzung_der_kopfkarte(client, json_attrappe, ordnung):  # noqa: F811
     """Der Rechtsbezug hat seine eigene Karte; Kopfkarte „Stand“/„Lauf“ und das Skelett „Was hier
     stehen wird“ gehören der Einschätzung — solange keine vorliegt, bleibt das Skelett stehen."""

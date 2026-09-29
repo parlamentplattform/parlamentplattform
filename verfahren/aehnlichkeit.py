@@ -63,9 +63,12 @@ def _fassung(antrag: Antrag):
     return max(antrag.fassungen.all(), key=lambda f: f.nummer, default=None)
 
 
-def antragstext(antrag: Antrag) -> str:
-    """Titel und aktueller Wortlaut — genau der Text, der eingebettet wird."""
-    fassung = _fassung(antrag)
+def antragstext(antrag: Antrag, fassung_nummer: int | None = None) -> str:
+    """Titel und aktueller Wortlaut — genau der Text, der eingebettet wird. Mit `fassung_nummer` der
+    Wortlaut dieser Fassung (ein Auftrag der Warteschlange rechnet mit seiner Fassung)."""
+    fassung = (
+        next((f for f in antrag.fassungen.all() if f.nummer == fassung_nummer), None) if fassung_nummer else None
+    ) or _fassung(antrag)
     return f"{antrag.titel}\n{fassung.wortlaut if fassung else ''}"
 
 

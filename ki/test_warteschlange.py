@@ -203,6 +203,25 @@ def test_auftrag_aehnlichkeit_zieht_den_textvektor_nach(attrappe, ordnung):  # n
     assert KILauf.objects.get().zweck == Zweck.AEHNLICHKEIT
 
 
+def test_auftraege_rechnen_mit_dem_text_ihrer_fassung(attrappe, ordnung):  # noqa: F811
+    """Bekommt der Antrag vor dem Abarbeiten eine neue Fassung, rechnet der Auftrag zu Fassung 1 trotzdem
+    mit dem Text von Fassung 1 — sonst stünden Ergebnis und Vektor unter der falschen Fassungsnummer."""
+    from ki.anbieter import attrappen_vektor
+    from verfahren.aehnlichkeit import antragstext
+    from verfahren.models import AntragsFassung
+
+    antrag = _antrag(ordnung)
+    einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
+    einreihen(Zweck.AEHNLICHKEIT, antrag, antrag.eingebracht_von)
+    AntragsFassung.objects.create(antrag=antrag, nummer=2, wortlaut="Ganz anderer Text über Nachtzüge nach Linz.")
+    assert abarbeiten()["erledigt"] == 2
+    lauf = KILauf.objects.get(zweck=Zweck.RECHTSBEZUG)
+    assert ANTRAG["wortlaut"] in lauf.eingabe and "Nachtzüge" not in lauf.eingabe
+    zeile = antrag.einbettungen.get()
+    assert zeile.fassung_nummer == 1
+    assert zeile.vektor == attrappen_vektor(antragstext(antrag, 1)) != attrappen_vektor(antragstext(antrag))
+
+
 def test_der_hintergrundlauf_zukunftswerkstatt_arbeitet_die_schlange_ab(json_attrappe, ordnung):  # noqa: F811
     antrag = _antrag(ordnung)
     einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)

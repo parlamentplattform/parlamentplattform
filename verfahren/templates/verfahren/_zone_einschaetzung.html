@@ -70,7 +70,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <dl class="lauf-daten">
       <dt>{% translate "Unsicherheit" %}</dt><dd>{{ e.unsicherheit_wort }}</dd>
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
-      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
+      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
     </dl>
     <p class="kennzeichnung">{% translate "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     {% endwith %}

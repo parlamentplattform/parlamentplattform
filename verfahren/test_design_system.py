@@ -140,8 +140,13 @@ def test_ein_reduced_motion_block_und_bewegung_ueber_tokens():
     assert "cubic-bezier(" not in _bloecke(css)[3], "Easings nur als --e-* Tokens"
     for leiche in ("blase-auf", ".mini-kachel", ".brotkrume", ".feld::after"):
         assert leiche not in css
-    for einmal in (":focus-visible{", ".btn:hover{", ".chip:hover{"):
+    for einmal in (".btn:hover{", ".chip:hover{"):
         assert css.count(einmal) == 1, f"{einmal} mehrfach definiert"
+    # Der Fokusring selbst steht genau einmal; Flächen mit eigener Ringfarbe (die nachtdunkle
+    # App-Leiste und Bühne) setzen daneben nur die Farbe über einen Kontext-Selektor
+    ohne_kommentare = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    selektoren = [s.strip() for kopf in re.findall(r"([^{}]+)\{", ohne_kommentare) for s in kopf.split(",")]
+    assert selektoren.count(":focus-visible") == 1, ":focus-visible mehrfach definiert"
 
 
 def test_keine_inline_handler_und_inline_skripte():

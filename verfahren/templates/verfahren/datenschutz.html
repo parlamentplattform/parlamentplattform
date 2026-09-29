@@ -1,0 +1,118 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Datenschutz" %}{% endblock %}
+{% block inhalt %}
+
+<section class="held">
+  <p class="vorzeile">{% translate "Datenschutzerklärung" %}</p>
+  <h1>{% translate "Was die Plattform über Sie weiß — und was nicht." %}</h1>
+  <p class="untertitel">{% blocktranslate %}Diese Erklärung sagt nur, was der Code tut. Sie ist ein Entwurf: Die Partei
+  gibt sie frei; bis dahin ist sie eine Information, keine Zusage.{% endblocktranslate %}</p>
+  <p class="untertitel">{% blocktranslate with stand=stand %}Stand: {{ stand }} — Entwurf.{% endblocktranslate %}</p>
+</section>
+
+<div class="karte" id="verantwortlicher">
+  <h2>{% translate "Verantwortlicher" %}</h2>
+  <p>{% blocktranslate %}Direkte Demokratie Österreich (DDÖ), Unterfreundorf 17, 4076 Unterfreundorf, Österreich.
+  Parteienregisterzahl 502117. Kontakt für alle Fragen zum Datenschutz:
+  <a href="mailto:plattform@ddoe.at">plattform@ddoe.at</a>.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="zwecke">
+  <h2>{% translate "Wofür wir Daten verarbeiten" %}</h2>
+  <p>{% blocktranslate %}Für die Mitgliederverwaltung nach der Satzung (§ 4: Aufnahme, Identitätsnachweis, Beitrag,
+  Anwartschaft, Pause, Austritt), für die Verfahren der Mitgliederversammlung (§ 5: Anträge einbringen,
+  unterstützen, beraten, abstimmen, auszählen, veröffentlichen) und für die Rechenschaft der Mandatare
+  und Räte (§ 6, § 7). Nichts davon dient Werbung, Profilbildung oder der Weitergabe an Dritte zu deren
+  Zwecken.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="datenarten">
+  <h2>{% translate "Welche Daten das sind" %}</h2>
+  <ul>
+    <li>{% blocktranslate %}<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein
+    Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe
+    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Beitrag:</strong> eine aus der Mitgliedsnummer abgeleitete Zahlungsreferenz und die Buchung
+    des Beitragseingangs (Datum, Betrag); keine Kontonummer des Mitglieds.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Verfahrensbeiträge:</strong> Anträge, Unterstützungen, Beratungsbeiträge, Reaktionen,
+    Bewerbungen und Vorstellungen — sie sind öffentlich, unter Ihrem Anzeigenamen (§ 5 Abs 3 lit a); Ihr Klarname
+    erscheint nur mit Ihrer Einwilligung.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Stimmregister:</strong> Ihre Stimmen stehen unter einem Pseudonym in der veröffentlichten
+    Stimmliste. Die Zuordnung Pseudonym → Konto liegt getrennt bei der Plattform, ist zugriffsbeschränkt, und jeder
+    Zugriff wird protokolliert — sie ist nicht kryptografisch geheim (ADR-003).{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Audit-Kette:</strong> jede Verwaltungs- und Gremienhandlung als Eintrag mit Zeitstempel und
+    Kennungen (Nummern), ohne Namen und ohne E-Mail-Adressen; dauerhaft und unveränderbar.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Postausgang:</strong> welche Nachricht wann an Ihr Konto ging und ob der Versand gelang — ohne
+    den Inhalt der Nachricht.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Mandat:</strong> Lichtbild und Selbstvorstellung, wenn Sie ein Mandat halten — vom Mandatar
+    selbst eingestellt und öffentlich.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Anstoß:</strong> der Freitext Ihrer Meldung, die Seite, von der sie kam, und — nur wenn Sie
+    angemeldet sind — Ihr Konto, damit wir nachfragen können.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Besuche:</strong> Tages-Summen je Seite. Keine IP-Adressen, keine Kennungen, keine Profile
+    (ADR-008).{% endblocktranslate %}</li>
+  </ul>
+</div>
+
+<div class="karte" id="rechtsgrundlage">
+  <h2>{% translate "Rechtsgrundlage" %}</h2>
+  <p>{% blocktranslate %}Die Mitgliedschaft in einer Partei ist ein Datum über die politische Meinung. Wir verarbeiten sie
+  als politische Partei für unsere Mitglieder auf Grundlage von Art 9 Abs 2 lit d DSGVO in Verbindung mit
+  Art 6 Abs 1 lit b und lit f DSGVO. Auf Ihrer Einwilligung (Art 6 Abs 1 lit a, Art 9 Abs 2 lit a DSGVO) beruhen
+  drei Dinge, die Sie jederzeit im Profil zurücknehmen können: die öffentliche Anzeige Ihres Klarnamens,
+  E-Mail-Benachrichtigungen zum Verfahren (neue Anträge in Ihrer Region, Ergebnisse der Zukunftswerkstatt,
+  Beitragserinnerung) und das Lichtbild am Mandat.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="empfaenger">
+  <h2>{% translate "Wer Daten in unserem Auftrag verarbeitet" %}</h2>
+  <ul>
+    <li>{% blocktranslate %}<strong>Render Services, Inc.</strong> (Hosting von Anwendung und Datenbank; Rechenzentrum
+    Frankfurt am Main). Render ist ein US-Unternehmen. Die Plattform läuft in der Alpha-Phase als Testbetrieb;
+    für den Echtbetrieb mit dem vollen Mitgliederbestand ist der Umzug auf einen Anbieter in der EU vorgesehen
+    (docs/BETRIEB-RENDER.md im Quellcode).{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>World4You Internet Services GmbH</strong> (Postfach und Versand aller E-Mails der
+    Plattform über plattform@ddoe.at).{% endblocktranslate %}</li>
+    {% if ki_angeschlossen %}
+    <li id="empfaenger-ki">{% blocktranslate with anbieter=ki_anbieter %}<strong>{{ anbieter }}</strong> (KI-Anbieter der
+    Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Anträgen sowie Beratungsbeiträge — Texte,
+    die ohnehin öffentlich sind —, nie Namen, E-Mail-Adressen oder Stimmen. Jeder Aufruf wird archiviert und
+    gekennzeichnet; die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</li>
+    {% endif %}
+    {% if bank_angeschlossen %}
+    <li id="empfaenger-bank">{% blocktranslate %}<strong>GoCardless Ltd. (Bank Account Data)</strong> als
+    Kontoinformationsdienst: Er liest die Umsätze des Parteikontos, damit die Plattform Beitragseingänge anhand
+    der Zahlungsreferenz verbucht. Er erhält keine Daten von Mitgliedern; die Plattform sieht die Umsätze des
+    Parteikontos, nicht Ihr Konto.{% endblocktranslate %}</li>
+    {% endif %}
+  </ul>
+  <p class="erk">{% blocktranslate %}Sonst gibt es keine Empfänger: keine Werbenetzwerke, keine Analysedienste, keine
+  eingebundenen Schriften oder Skripte von fremden Servern.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="speicherdauer">
+  <h2>{% translate "Wie lange" %}</h2>
+  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt oder Ausschluss. Danach werden Name, E-Mail-Adresse und
+  Wohnsitz anonymisiert (§ 8 Abs 4). Was bleibt: Ihre Verfahrensbeiträge als „Ehemaliges Mitglied“ — sie sind
+  Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im
+  Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es
+  heute noch nicht. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="rechte">
+  <h2>{% translate "Ihre Rechte" %}</h2>
+  <p>{% blocktranslate %}Sie haben das Recht auf Auskunft, Berichtigung, Einschränkung und — soweit nicht ein
+  laufendes oder abgeschlossenes Verfahren die Daten braucht (§ 8) — Löschung sowie auf Datenübertragbarkeit.
+  Den vollständigen Export Ihrer Daten laden Sie jederzeit selbst im Profil; Anzeigename, Wohnsitz und
+  Einwilligungen ändern Sie dort, den Austritt erklären Sie dort. Beschwerden nimmt die österreichische
+  Datenschutzbehörde entgegen (Barichgasse 40–42, 1030 Wien, dsb@dsb.gv.at).{% endblocktranslate %}</p>
+</div>
+
+<div class="karte" id="cookies">
+  <h2>{% translate "Cookies" %}</h2>
+  <p>{% blocktranslate %}Drei, alle technisch: die Sitzung (Anmeldung), der CSRF-Schutz gegen untergeschobene
+  Formulare und — nur wenn Sie die Sprache umschalten — die Sprachwahl. Keine Analyse-Cookies, keine Cookies
+  Dritter, kein Tracking.{% endblocktranslate %}</p>
+</div>
+
+{% endblock %}

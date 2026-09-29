@@ -1367,6 +1367,29 @@ def _register_zeilen():
     return zeilen
 
 
+def datenschutz(request):
+    """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
+
+    Der Text ist ein Entwurf (Bestandsaufnahme 28.9.2026, C3; Freigabe durch den Gründer steht aus)
+    und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
+    erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
+    from ki.models import steckplatz_stand
+    from mitglieder.bank import eingerichtet as bank_eingerichtet
+
+    ki = steckplatz_stand()
+    return render(
+        request,
+        "verfahren/datenschutz.html",
+        {
+            "ki_angeschlossen": ki["angeschlossen"],
+            "ki_anbieter": ki["anbieter"],
+            "bank_angeschlossen": bank_eingerichtet(),
+            "stand": "29.9.2026",
+            "AKTIV": "datenschutz",
+        },
+    )
+
+
 def umsetzung(request):
     """F-55, § 6 Abs 10: das öffentliche Umsetzungsregister. Ein Beschluss, den
     niemand umsetzt, entwertet das Verfahren (L6) — deshalb steht hier zu jedem

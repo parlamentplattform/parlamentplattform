@@ -145,3 +145,30 @@ Ohne SMTP-Konfiguration gilt weiterhin das Konsolenbackend für die Entwicklung.
 
 Bestandskonten werden nicht ungefragt erneut angeschrieben: Poststempel bis 0.48 bezeichnen
 den ersten Versuch. Sie werden nicht rückwirkend als neue Versandaufträge interpretiert.
+
+## Kein Rückweg auf 0.49
+
+Ab 0.50 führt kein Weg auf 0.49 zurück — weder ein Rollback im Render-Dashboard noch das Ausrollen
+eines älteren Commits. Die Migrationen `mitglieder` 0021 und 0022 haben keinen Rückweg (er löschte
+Daten, die kein erneutes Vorwärts wiederherstellt), und der Code von 0.49 passt nicht zur Datenbank
+von 0.50:
+
+- Er kennt die Spalten `Mitglied.post_einwilligung`, `Mitglied.beitragsreferenz_stamm` und
+  `Postauftrag.bezug` nicht. Sie sind in der Datenbank NOT NULL ohne Vorgabewert — Registrierung und
+  neue Kontobriefe scheitern.
+- Sein Postausgang kennt die Arten `neuer_antrag`, `beitragserinnerung` und `rechtsbezug` nicht und
+  verschickt jeden offenen Auftrag dieser Arten als Freischaltungsbrief mit Mitgliedsausweis — auch an
+  ungeprüfte Konten.
+
+Der zweite Punkt gilt auch für das kurze Fenster beim Ausrollen von 0.50, in dem die alte Instanz noch
+läuft (ihr Postausgang greift alle 30 Sekunden zu), während die neue schon Aufträge anlegt.
+
+Ist ein Rückweg im Notfall unvermeidlich, zuerst in der Shell des Dienstes die offenen Aufträge der
+neuen Arten als erledigt stempeln (sie werden danach nicht mehr zugestellt); sonst nicht zurückrollen:
+
+```bash
+python manage.py shell -c "from mitglieder.models import Postauftrag; print(Postauftrag.objects.filter(art__in=['neuer_antrag', 'beitragserinnerung', 'rechtsbezug'], erledigt=False).update(erledigt=True))"
+```
+
+Registrierung und Kontobriefe bleiben auf 0.49 auch dann gestört, solange die Datenbank auf dem Stand
+von 0.50 steht. Fehler werden deshalb vorwärts behoben, nicht durch Zurückrollen.

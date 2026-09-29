@@ -33,6 +33,11 @@ EINBETTUNGEN_JE_AUFRUF_STANDARD = 20
 #: hielten die Seite fest. Wer länger braucht, fällt still auf den Wortvergleich zurück; den Vektor
 #: des neuen Antrags zieht die Warteschlange nach.
 ZEITGRENZE_ANFRAGE_SEKUNDEN = 8
+#: Höchstens so viele Anbieteraufrufe der Bedeutungsstufe je Konto und Stunde. Eine Grenze der
+#: Maschine, kein Verfahrenswert: Jeder Einbringen-Versuch ohne „Trotzdem“ ruft sonst den Anbieter,
+#: und ein Konto könnte per Skript das Monatsbudget aller leeren. Darüber rechnet nur der
+#: Wortvergleich — der Hinweis bleibt, nichts blockiert.
+BEDEUTUNG_JE_KONTO_UND_STUNDE = 5
 
 
 @dataclass
@@ -44,6 +49,8 @@ class Ergebnis:
     bedeutungsmodell: str = ""
     #: Warum die Bedeutungsstufe nicht lief (leer, wenn sie lief) — für die ehrliche Karte.
     bedeutung_grund: str = ""
+    #: Die Bedeutungsstufe lief nicht, weil das Konto seine Aufrufe dieser Stunde verbraucht hat.
+    gedrosselt: bool = False
     neuer_vektor: list[float] | None = None
 
     @property
@@ -84,6 +91,12 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     }
     fehlende = [a for a in offene if (a.pk, fassungen[a.pk]) not in vorhanden]
     fehlende = fehlende[: max(0, zahl("aehnlichkeit-einbettungen-je-aufruf", EINBETTUNGEN_JE_AUFRUF_STANDARD))]
+    from mitglieder.botschutz import drossel_zuviel
+
+    if drossel_zuviel(None, "bedeutung", BEDEUTUNG_JE_KONTO_UND_STUNDE, kennung=f"konto:{mitglied.pk}"):
+        ergebnis.gedrosselt = True
+        ergebnis.bedeutung_grund = "Anbieteraufrufe dieses Kontos für diese Stunde verbraucht"
+        return {}
     try:
         _lauf, einbettung = einbettung_ausfuehren(
             [neuer_text, *(antragstext(a) for a in fehlende)], mitglied, zeitgrenze=ZEITGRENZE_ANFRAGE_SEKUNDEN

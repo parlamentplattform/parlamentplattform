@@ -178,6 +178,28 @@ def test_in_der_anfrage_gilt_eine_kurze_zeitgrenze_die_warteschlange_behaelt_die
     assert zeitgrenzen[1:] == [ZEITGRENZE_SEKUNDEN]  # die Warteschlange: die lange
 
 
+def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, bestehend):
+    """Jeder POST ohne „Trotzdem“ ruft sonst den Anbieter — ein Konto könnte per Skript das Monatsbudget
+    leeren. Über der Grenze je Konto rechnet nur der Wortvergleich, und die Karte sagt es ehrlich."""
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    laeufe = KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT)
+    client.force_login(mitglied_anlegen("bernd"))
+    for _ in range(10):
+        antwort = client.post(reverse("verfahren:einbringen"), UMFORMULIERT)
+        assert antwort.status_code == 200
+    assert laeufe.count() < 10  # nicht jeder POST geht an den Anbieter
+    from verfahren.aehnlichkeit import BEDEUTUNG_JE_KONTO_UND_STUNDE
+
+    assert laeufe.count() == BEDEUTUNG_JE_KONTO_UND_STUNDE
+    t = antwort.context["aehnliche"][0]
+    assert t["bedeutung_prozent"] is None and t["prozent"] >= 40  # der Wortvergleich bleibt
+    inhalt = antwort.content.decode()
+    assert "Bedeutungsvergleich diesmal nicht gerechnet" in inhalt and "Steckplatz war stumm" not in inhalt
+    client.force_login(mitglied_anlegen("clara"))  # je Konto, nicht je Verbindung
+    assert client.post(reverse("verfahren:einbringen"), UMFORMULIERT).context["aehnliche"][0]["bedeutung_prozent"] is not None
+    assert laeufe.count() == BEDEUTUNG_JE_KONTO_UND_STUNDE + 1
+
+
 def test_nachziehen_ist_je_aufruf_begrenzt(settings, ordnung):  # noqa: F811
     settings.DDOE_KI_ANBIETER = "attrappe"
     _register("aehnlichkeit-einbettungen-je-aufruf", 2)

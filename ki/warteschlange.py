@@ -5,7 +5,8 @@ die betroffenen Gesetze (`rechtsbezug`) und — nach „Trotzdem einbringen“ �
 neuen Antrags (`aehnlichkeit`). Der Hintergrundlauf „zukunftswerkstatt“ (`verfahren/hintergrund.py`,
 Takt eine Minute) ruft `abarbeiten`:
 
-- **Tageskontingent** „ki-tageslaeufe“: mehr Läufe startet ein Kalendertag nicht; der Rest wartet.
+- **Tageskontingent** „ki-tageslaeufe“: mehr Aufrufe beim Anbieter macht ein Kalendertag nicht
+  (jeder Versuch zählt); der Rest wartet.
 - **Atomare Reservierung** wie beim Postauftrag: ein UPDATE mit Sperrcode, damit zwei Worker nie
   denselben Auftrag zugleich rechnen; eine verlorene Reservierung läuft nach SPERRE_MINUTEN ab.
 - **Rückzug bei Fehlern**: 2, 4, 8, 16, 32 Minuten; nach dem sechsten Fehlschlag (HOECHSTVERSUCHE)
@@ -42,9 +43,18 @@ def tageskontingent() -> int:
 
 
 def heute_gestartet(jetzt=None) -> int:
-    """Wie viele Aufträge an diesem Kalendertag (Wiener Zeit) schon einen Versuch bekommen haben."""
+    """Wie viele Aufrufe beim Anbieter die Warteschlange an diesem Kalendertag (Wiener Zeit) schon
+    gemacht hat — jeder Versuch zählt, auch ein gescheiterter (Entscheidung des Gründers 29.9.2026;
+    bis dahin zählte ein Auftrag einmal, gleich wie oft er es versuchte). Jeder Aufruf steht als
+    `KILauf` im Archiv: die betroffenen Gesetze und die Textvektoren eines Antrags. Der
+    Bedeutungsvergleich beim Einbringen (Lauf ohne Antrag, eigene Drossel je Konto) gehört nicht
+    zur Warteschlange und zählt nicht mit."""
     heute = timezone.localdate(jetzt or timezone.now())
-    return KIAuftrag.objects.filter(zuletzt_versucht_am__date=heute).count()
+    return (
+        KILauf.objects.filter(erstellt_am__date=heute)
+        .filter(Q(zweck=Zweck.RECHTSBEZUG) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
+        .count()
+    )
 
 
 def einreihen(zweck: str, antrag, mitglied) -> KIAuftrag:

@@ -1,5 +1,5 @@
 """Der Export trägt die Audit-Spur mit vollem Hash und Vorgänger (Bestandsaufnahme A7, 0.52.0):
-verify/nachrechnen.py rechnet jeden ungekürzten Eintrag nach; personenbezogene Werte sind ausgeblendet."""
+verify/nachrechnen.py rechnet jeden ungeschwärzten Eintrag nach; personenbezogene Werte sind ausgeblendet."""
 
 import importlib.util
 import json
@@ -52,11 +52,26 @@ def test_das_skript_rechnet_die_spur_nach_und_findet_eine_aenderung(client, ordn
     _antrag, daten = _beendeter_export(client, ordnung)
     skript = _skript()
     ergebnis = skript.audit_nachrechnen(daten["audit"])
-    assert ergebnis["audit_nachgerechnet"] == len(daten["audit"]) and ergebnis["audit_gekuerzt"] == 0
-    stimme = next(e for e in daten["audit"] if e["typ"] == "stimme")
-    stimme["ereignis"]["pseudonym"] = "0" * 32  # jemand „korrigiert“ eine Stimme im Export
-    with pytest.raises(SystemExit, match=f"Audit-Eintrag {stimme['lfd']}"):
+    geschwaerzt = sum(1 for e in daten["audit"] if e["geschwaerzt"])
+    assert geschwaerzt >= 3  # die drei Stimmen
+    assert ergebnis["audit_nachgerechnet"] == len(daten["audit"]) - geschwaerzt and ergebnis["audit_geschwaerzt"] == geschwaerzt
+    eingebracht = next(e for e in daten["audit"] if e["typ"] == "antrag_eingebracht")
+    eingebracht["ereignis"]["titel"] = "Ein anderer Titel"  # jemand „korrigiert“ den Export
+    with pytest.raises(SystemExit, match=f"Audit-Eintrag {eingebracht['lfd']}"):
         skript.audit_nachrechnen(daten["audit"])
+
+
+def test_kein_pseudonym_in_der_audit_spur_von_export_und_archiv(client, ordnung):  # noqa: F811
+    """Prüfung 0.52.0: Die Stimmliste nennt Pseudonym und Stimme, die Spur nannte Pseudonym und Zeit —
+    zusammen verriete das, wer wann wie gestimmt hat. Die Stimmliste bleibt, die Spur schwärzt."""
+    antrag, daten = _beendeter_export(client, ordnung)
+    pseudonyme = {s["pseudonym"] for s in daten["stimmen"]}
+    assert pseudonyme
+    spur = json.dumps(daten["audit"])
+    assert not any(p in spur for p in pseudonyme)
+    archiv = client.get(reverse("verfahren:archiv_export", args=[antrag.pk, "json"])).content.decode()
+    oeffentlich = client.get(reverse("verfahren:audit_json")).content.decode()
+    assert not any(p in archiv or p in oeffentlich for p in pseudonyme)
 
 
 def test_die_archivseite_zeigt_den_kurzen_hash_und_den_vollen_im_titel(client, ordnung):  # noqa: F811
@@ -67,7 +82,7 @@ def test_die_archivseite_zeigt_den_kurzen_hash_und_den_vollen_im_titel(client, o
 
 
 @pytest.mark.parametrize(
-    ("ereignis", "sichtbar", "gekuerzt"),
+    ("ereignis", "sichtbar", "geschwaerzt"),
     [
         ({"typ": "verwaltung", "aktion": "ausschliessen", "mitglied": 17, "durch": 2, "grund": "Name X"},
          {"typ": "verwaltung", "aktion": "ausschliessen", "mitglied": MASKE, "durch": MASKE, "grund": MASKE}, True),
@@ -77,20 +92,28 @@ def test_die_archivseite_zeigt_den_kurzen_hash_und_den_vollen_im_titel(client, o
          {"typ": "mandat_foto", "mandat": 5, "durch": "verwaltung"}, False),
         ({"typ": "parameter_geaendert", "schluessel": "k", "alt": "1", "neu": "2", "grund": "Test."},
          {"typ": "parameter_geaendert", "schluessel": "k", "alt": "1", "neu": "2", "grund": "Test."}, False),
-        ({"typ": "stimme", "antrag": 1, "pseudonym": "ab"}, {"typ": "stimme", "antrag": 1, "pseudonym": "ab"}, False),
+        # Pseudonym und Zeit zusammen verrieten mit der Stimmliste die Stimme (Prüfung 0.52.0, § 5 Abs 3 lit e)
+        ({"typ": "stimme", "antrag": 1, "pseudonym": "ab"}, {"typ": "stimme", "antrag": 1, "pseudonym": MASKE}, True),
+        ({"typ": "personenwahl_stimme", "antrag": 2, "pseudonym": "cd"},
+         {"typ": "personenwahl_stimme", "antrag": 2, "pseudonym": MASKE}, True),
+        # Freitext der Verwaltung zu einer beendeten Rolle betrifft eine Person (Prüfung 0.52.0)
+        ({"typ": "rolle_beendet", "rolle": 3, "grund": "Rücktritt aus gesundheitlichen Gründen"},
+         {"typ": "rolle_beendet", "rolle": 3, "grund": MASKE}, True),
+        ({"typ": "phasenwechsel", "antrag": 1, "grund": "Frist abgelaufen"},
+         {"typ": "phasenwechsel", "antrag": 1, "grund": "Frist abgelaufen"}, False),
     ],
 )
-def test_nur_mitgliedskennungen_und_personengruende_werden_ausgeblendet(ereignis, sichtbar, gekuerzt):
-    assert ereignis_oeffentlich(ereignis) == (sichtbar, gekuerzt)
+def test_nur_mitgliedskennungen_und_personengruende_werden_ausgeblendet(ereignis, sichtbar, geschwaerzt):
+    assert ereignis_oeffentlich(ereignis) == (sichtbar, geschwaerzt)
 
 
-def test_ein_gekuerzter_eintrag_wird_gezaehlt_nicht_nachgerechnet():
+def test_ein_geschwaerzter_eintrag_wird_gezaehlt_nicht_nachgerechnet():
     AuditEintrag.anhaengen({"typ": "vollzug", "antrag": 1, "status": "umgesetzt", "durch": 9})
     from verfahren.audit_oeffentlich import eintrag_oeffentlich
 
     eintrag = eintrag_oeffentlich(AuditEintrag.objects.get())
-    assert eintrag["gekuerzt"] and eintrag["ereignis"]["durch"] == MASKE
-    assert _skript().audit_nachrechnen([eintrag]) == {"audit_nachgerechnet": 0, "audit_gekuerzt": 1}
+    assert eintrag["geschwaerzt"] and eintrag["ereignis"]["durch"] == MASKE
+    assert _skript().audit_nachrechnen([eintrag]) == {"audit_nachgerechnet": 0, "audit_geschwaerzt": 1}
 
 
 def test_die_aeltere_art_statt_typ_wird_gelesen():

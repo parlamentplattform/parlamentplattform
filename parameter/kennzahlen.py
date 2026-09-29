@@ -75,9 +75,9 @@ def _audit_werte() -> dict:
     """Der Stand der letzten Prüfung der Audit-Kette (verfahren/audit_pruefung.py) — nichts, solange
     nie geprüft wurde. Der Kopf ist der veröffentlichte Hash des letzten geprüften Eintrags: Wer ihn sich
     notiert, erkennt später, ob jemand die Kette von dort an neu gerechnet hat (ADR-005)."""
-    from verfahren.audit_pruefung import gemerkter_stand
+    from verfahren.audit_pruefung import oeffentlicher_stand
 
-    stand = gemerkter_stand()
+    stand = oeffentlicher_stand()
     if not stand:
         return {}
     return {
@@ -85,4 +85,5 @@ def _audit_werte() -> dict:
         "audit.entries": stand.get("eintraege"),
         "audit.verified_at": stand.get("geprueft_am"),
         "audit.head": stand.get("kopf"),
+        "audit.head_entry": stand.get("geprueft_bis"),
     }

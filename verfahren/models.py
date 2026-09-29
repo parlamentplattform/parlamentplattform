@@ -856,8 +856,12 @@ class AuditEintrag(models.Model):
         `vorgaenger` den Eintrag ab; dann wird der Kopf neu gelesen und noch einmal versucht.
         Der Fehler wird AUSSERHALB des inneren `atomic` gefangen — nur so bleibt eine äußere
         Transaktion (etwa `Antrag.fortschreiben`) auf PostgreSQL benutzbar."""
+        from verfahren.audit_oeffentlich import gesalzen
+
         jetzt = timezone.now()
-        versiegelt = {**ereignis, "zeit": jetzt.isoformat()}
+        # Schutzwürdige Ereignisse bekommen ein geheimes Salz unter den Hash — sonst ließe sich ihr
+        # geschwärzter Wert durch Durchprobieren zurückrechnen (verfahren/audit_oeffentlich.py, 0.52.0).
+        versiegelt = {**gesalzen(ereignis), "zeit": jetzt.isoformat()}
         for _versuch in range(cls.VERSUCHE):
             vorgaenger = cls._kopf()
             try:

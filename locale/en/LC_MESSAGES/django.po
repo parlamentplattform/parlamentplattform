@@ -8498,19 +8498,12 @@ msgstr "Audit log"
 msgid "Die Kette wurde noch nicht geprüft."
 msgstr "The chain has not been checked yet."
 
-#, python-format
-msgid "Kette geprüft am %(am)s: intakt, %(n)s Einträge"
-msgstr "Chain checked on %(am)s: intact, %(n)s entries"
-
 msgid "Kopf"
 msgstr "Head"
 
 #, python-format
 msgid "Kette geprüft am %(am)s: gebrochen bei Eintrag %(nr)s"
 msgstr "Chain checked on %(am)s: broken at entry %(nr)s"
-
-msgid "Art"
-msgstr "Kind"
 
 msgid "alle Einträge"
 msgstr "all entries"
@@ -8521,9 +8514,6 @@ msgstr "Motion %(nr)s"
 
 msgid "Personenbezogene Werte sind durch • ersetzt."
 msgstr "Personal values are replaced by •."
-
-msgid "gekürzt"
-msgstr "redacted"
 
 msgid "Hash"
 msgstr "Hash"
@@ -8546,3 +8536,31 @@ msgstr "older"
 #, python-format
 msgid "Seite %(n)s von %(von)s"
 msgstr "Page %(n)s of %(von)s"
+
+msgid "geschwärzt"
+msgstr "redacted"
+
+#, python-format
+msgid "Kette geprüft am %(am)s: intakt, %(n)s Eintrag"
+msgid_plural "Kette geprüft am %(am)s: intakt, %(n)s Einträge"
+msgstr[0] "Chain checked on %(am)s: intact, %(n)s entry"
+msgstr[1] "Chain checked on %(am)s: intact, %(n)s entries"
+
+msgid "Art"
+msgstr "Type"
+
+#, python-format
+msgid "bis Eintrag %(nr)s"
+msgstr "up to entry %(nr)s"
+
+msgid "Inhalt passt nicht zum Hash"
+msgstr "content does not match its hash"
+
+msgid "hängt nicht am Vorgänger"
+msgstr "does not link to its predecessor"
+
+msgid "der zuletzt geprüfte Eintrag wurde verändert oder entfernt"
+msgstr "the last checked entry was changed or removed"
+
+msgid "zur Stelle"
+msgstr "go to the entry"

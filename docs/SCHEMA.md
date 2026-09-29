@@ -193,7 +193,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.10, 11 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.10, 12 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -208,10 +208,14 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 | `audit.entries` | count | Entries in the audit chain at the last check |
 | `audit.verified_at` | datetime | When the audit chain was last checked (ISO 8601) |
 | `audit.head` | hash | SHA-256 hash of the last checked entry — the published head of the chain |
+| `audit.head_entry` | count | Sequence number of the last checked entry (the entry audit.head belongs to) |
 
-Alle Werte sind Zählungen oder Anteile über die ganze Instanz — nichts davon lässt sich auf einen
-Menschen zurückführen. Die `audit.*`-Kennungen (seit 1.10) fehlen, solange die Instanz ihre Kette nie
-geprüft hat; `audit.head` ist ein Hash, keine Zahl, und taugt deshalb nicht als Messgröße eines Tests. Dieselben Kennungen sind die Messgrößen der Parametertests des
+Die Werte sind Zählungen, Anteile oder — bei `audit.*` — Ergebnis, Zeitpunkt und Kopf der letzten
+Prüfung der Audit-Kette, alle über die ganze Instanz; nichts davon lässt sich auf einen Menschen
+zurückführen. Die `audit.*`-Kennungen (seit 1.10) fehlen, solange die Instanz ihre Kette nie geprüft hat;
+`audit.head` ist null, solange der zuletzt geprüfte Eintrag geschwärzt ist und kein Salz trägt (sein Hash
+erlaubte sonst das Durchprobieren). `audit.head` und `audit.verified_at` sind keine Zahlen und taugen nicht
+als Messgröße eines Tests. Dieselben Kennungen sind die Messgrößen der Parametertests des
 Koordinationsrats (§ 6 Abs 11 lit c): Eine zweite Zählung nur für Tests wäre nicht nachrechenbar.
 Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Antragsart
 `vertrauensfrage`, seit 0.48.0 — einschließlich Bestätigungsanträgen) zählen in `motions.*` und
@@ -250,4 +254,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4; dieselbe Kennung steht in Prozent je Fassung im Export der Verfahrensordnung, 3.2), `mail.new_motion_federal` (Schalter 0/1: ob ein Antrag für ganz Österreich allen Mitgliedern mit E-Mail-Einwilligung gemeldet wird; regionale Anträge gehen immer nur an die betroffenen Wohnsitze), `mail.fee_reminder_earliest_days` (Mindestalter der Mitgliedschaft vor einer Beitragserinnerung; Einwilligung nötig, höchstens einmal je Kalenderjahr). Die Einwilligung selbst ist ein Kontofeld, keine Stellgröße. Am selben Tag, in derselben Fassung: `similarity.meaning_threshold_percent` (Schwelle des Bedeutungsvergleichs über Textvektoren des angeschlossenen Anbieters, Zweitmeinung neben dem Wortvergleich, dessen Zielwert mit Fassung 2 der Regel von 18 auf 30 Prozent steigt), `similarity.embeddings_per_call` (wie viele offene Anträge ohne Vektor je Einbringen nachgezogen werden), `ai.daily_queue_runs` (Tageskontingent der Warteschlange der Zukunftswerkstatt: betroffene Gesetze, Textvektoren) |
 | 1.8 | 29.9.2026 | 0.50.1 | Drei Grenzen, die bisher im Code standen, sind Stellgrößen (Entscheidung des Gründers 29.9.2026): `similarity.request_timeout_seconds` (wie lange das Einbringen höchstens auf den KI-Anbieter wartet, bevor der Wortvergleich allein gilt), `similarity.meaning_calls_per_account_hour` (wie oft ein Konto je Stunde den Bedeutungsvergleich beim Einbringen auslösen kann; 0 schaltet ihn ab), `mail.max_attempts` (nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird; Nachrichten zum Konto ohne Grenze). `ai.daily_queue_runs` zählt jetzt jeden Aufruf beim Anbieter, auch gescheiterte (bisher je Auftrag einmal) — dieselbe Einheit, genauere Zählung. |
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
-| 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und vier Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) |
+| 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und fünf Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) und `audit.head_entry` (seine laufende Nummer) |

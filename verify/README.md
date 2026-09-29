@@ -1,7 +1,7 @@
 # Nachrechnen ohne die Plattform
 
-Satzung § 5 Abs 8: Jedes Ergebnis muss sich ohne Spezialkenntnisse und ohne Vertrauen in die Plattform
-nachprüfen lassen. Dafür gibt es hier ein Skript, das **nur die Python-Standardbibliothek** braucht.
+Satzung § 5 Abs 8 verlangt, „dass ihr Ergebnis von jedem Mitglied ohne Spezialkenntnisse überprüfbar
+bleibt“. Dafür gibt es hier ein Skript, das **nur die Python-Standardbibliothek** braucht.
 
 ## Ein Ergebnis nachrechnen
 
@@ -15,7 +15,8 @@ Pseudonym, das die Plattform einem nach der Anmeldung zeigt.
 
 ## Die Audit-Spur nachrechnen (seit 0.52.0)
 
-Der Export trägt im Block `audit` jeden Eintrag des Audit-Logs, der diesen Antrag betrifft:
+Der Export trägt im Block `audit` jeden Eintrag des Audit-Logs, dessen Ereignis die Nummer dieses Antrags
+unter `antrag` nennt:
 
 | Feld | Bedeutung |
 |---|---|
@@ -23,10 +24,14 @@ Der Export trägt im Block `audit` jeden Eintrag des Audit-Logs, der diesen Antr
 | `ereignis` | der Inhalt, so wie er versiegelt wurde (samt Zeitstempel `zeit`) |
 | `vorgaenger` | der Hash des Eintrags davor in der Kette |
 | `hash` | SHA-256 über `vorgaenger` und den Inhalt (JSON mit sortierten Schlüsseln, ohne Leerzeichen, UTF-8) |
-| `gekuerzt` | `true`, wenn ein personenbezogener Wert durch „•“ ersetzt wurde |
+| `geschwaerzt` | `true`, wenn ein schutzwürdiger Wert durch „•“ ersetzt wurde (Mitgliedsnummer, Pseudonym einer Stimme, Begründung zu einer Person) |
 
-Das Skript prüft jeden ungekürzten Eintrag: Passt sein Hash zu seinem Inhalt und seinem Vorgänger, wurde
-er seit dem Schreiben nicht verändert. Es meldet `audit_nachgerechnet` und `audit_gekuerzt`; stimmt ein
+`hash` oder `vorgaenger` fehlen (`null`), wo sie das Durchprobieren eines geschwärzten Werts erlaubten:
+bei geschwärzten Einträgen aus der Zeit vor 0.52.0 und beim Eintrag danach. Neuere geschwärzte Einträge
+tragen ein geheimes Zufallssalz, ihr Hash darf offen stehen.
+
+Das Skript prüft jeden ungeschwärzten Eintrag mit Hash und Vorgänger: Passt sein Hash zu seinem Inhalt und seinem Vorgänger, wurde
+er seit dem Schreiben nicht verändert. Es meldet `audit_nachgerechnet` und `audit_geschwaerzt`; stimmt ein
 Eintrag nicht, bricht es mit seiner Nummer ab.
 
 Was das Skript **nicht** kann: die Kette als Ganzes prüfen. Die Einträge eines Antrags liegen verstreut

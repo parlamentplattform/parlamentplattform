@@ -315,6 +315,7 @@ KENNZAHLEN = (
     ("audit.entries", "count", "Entries in the audit chain at the last check"),
     ("audit.verified_at", "datetime", "When the audit chain was last checked (ISO 8601)"),
     ("audit.head", "hash", "SHA-256 hash of the last checked entry — the published head of the chain"),
+    ("audit.head_entry", "count", "Sequence number of the last checked entry (the entry audit.head belongs to)"),
 )
 KENNZAHL_KENNUNGEN = {k for k, _e, _b in KENNZAHLEN}
 

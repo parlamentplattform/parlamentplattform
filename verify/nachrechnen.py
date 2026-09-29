@@ -154,12 +154,12 @@ def audit_nachrechnen(eintraege: list) -> dict:
     sortierten Schlüsseln, ohne Leerzeichen, UTF-8. Stimmt das, wurde der Eintrag seit dem Schreiben
     nicht verändert. Die Einträge eines Antrags liegen nicht nebeneinander in der Kette (dazwischen
     stehen andere Anträge), deshalb wird jeder für sich geprüft; die ganze Kette prüft die Plattform
-    täglich, ihr Kopf steht in /kennzahlen.json. Einträge mit "gekuerzt": true enthalten ausgeblendete
+    täglich, ihr Kopf steht in /kennzahlen.json. Einträge mit "geschwaerzt": true enthalten ausgeblendete
     personenbezogene Werte („•“) und lassen sich von außen nicht nachrechnen — sie werden gezählt."""
-    geprueft, gekuerzt = 0, 0
+    geprueft, geschwaerzt = 0, 0
     for eintrag in eintraege:
-        if eintrag.get("gekuerzt"):
-            gekuerzt += 1
+        if eintrag.get("geschwaerzt") or not eintrag.get("hash") or not eintrag.get("vorgaenger"):
+            geschwaerzt += 1
             continue
         inhalt = json.dumps(eintrag["ereignis"], sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         h = hashlib.sha256()
@@ -168,7 +168,7 @@ def audit_nachrechnen(eintraege: list) -> dict:
         if h.hexdigest() != eintrag["hash"]:
             raise SystemExit(f"FEHLER: Audit-Eintrag {eintrag.get('lfd')} passt nicht zu seinem Hash.")
         geprueft += 1
-    return {"audit_nachgerechnet": geprueft, "audit_gekuerzt": gekuerzt}
+    return {"audit_nachgerechnet": geprueft, "audit_geschwaerzt": geschwaerzt}
 
 
 def nachrechnen(daten: dict) -> dict:

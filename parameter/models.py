@@ -635,6 +635,26 @@ ERSTBESTAND = [
         "Ordnungsschlüssel der Verfahrensordnung, daher befristet testbar."),
         "quelle": "§ 7 Abs 10 lit e · § 5 Abs 3 lit d",
     },
+    {
+        "schluessel": "post-neuer-antrag-bund",
+        "wert": "1",
+        "einheit": gettext_noop("0 oder 1"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Ob ein neuer Antrag für ganz Österreich jedem Mitglied mit E-Mail-Einwilligung "
+        "gemeldet wird. Regionale Anträge (Land, Bezirk, Gemeinde) gehen immer nur an die Mitglieder, deren "
+        "Wohnsitz betroffen ist. Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."),
+        "quelle": "Anweisung des Gründers 28.9.2026 · § 14 Abs 3",
+    },
+    {
+        "schluessel": "beitrag-erinnerung-fruehestens-tage",
+        "wert": "30",
+        "einheit": gettext_noop("Tage"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie viele Tage ein Konto mindestens Mitglied sein muss, bevor die Verwaltung "
+        "eine Beitragserinnerung beauftragen kann. Die Erinnerung geht nur mit E-Mail-Einwilligung, nie an "
+        "Testkonten und höchstens einmal je Kalenderjahr; die Höhe des Beitrags bleibt Selbsteinschätzung."),
+        "quelle": "§ 4 Abs 3 · Anweisung des Gründers 28.9.2026",
+    },
 ]
 
 

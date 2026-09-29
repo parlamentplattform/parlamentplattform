@@ -51,6 +51,15 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="hilfe">{% translate "Bezirk und Bundesland folgen dem amtlichen Gemeindeverzeichnis; der Wohnsitz bestimmt „Meine Region“ (§ 14 Abs 3). Die Änderung wird ohne Ortsnamen im Audit-Log vermerkt." %}</p>
   <p class="hilfe">{% blocktranslate with wert=nebenwohnsitz_zaehlt schluessel=registerschluessel %}Der Nebenwohnsitz ordnet Sie zusätzlich einer Region zu, sobald die Stellgröße „{{ schluessel }}“ auf 1 steht (heute: {{ wert }}). Am Stimmrecht ändert er nichts (§ 5 Abs 6).{% endblocktranslate %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %} ›</a></p>
 </div>
+
+{# ── Nachrichten (E-Mail-Einwilligung) ───────────────────────────────── #}
+<div class="karte" id="nachrichten">
+  <p class="phasen-titel">{% translate "Nachrichten" %}</p>
+  <p><span class="checkzeile">{{ form.post_einwilligung }} <label for="{{ form.post_einwilligung.id_for_label }}">{{ form.post_einwilligung.label }}</label></span></p>
+  <button type="submit" class="btn">{% translate "Speichern" %}</button>
+  <p class="hilfe">{% translate "Mit Haken: eine E-Mail zu jedem neuen Antrag, der Ihre Region betrifft (Gemeinde, Bezirk, Bundesland, ganz Österreich), Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung." %}</p>
+  <p class="hilfe">{% translate "Ohne Haken: nur Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten — sie gehören zum Konto. Die Änderung wird ohne Wert im Audit-Log vermerkt." %}</p>
+</div>
 </div>
 </form>
 
@@ -70,7 +79,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="pf-wert"><strong>{{ user.email }}</strong></p>
   {% if adresswechsel %}<p class="hilfe">{% blocktranslate with frist=adresswechsel.frist_bis|date:"SHORT_DATETIME_FORMAT" %}Eine Änderung der Anmeldeadresse ist vorgemerkt (Einspruchsfrist bis {{ frist }}). Bis sie entschieden ist, ruhen Stimmabgabe und Registereinsicht.{% endblocktranslate %}</p>{% endif %}
   <p class="hilfe">{% translate "Die Anmeldeadresse ändert nur die Verwaltung: Die bisherige Adresse erhält einen Einspruchslink, danach gelten eine Wartefrist und die Bestätigung eines zweiten Admins." %}</p>
-  <p class="hilfe">{% translate "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden." %}</p>
+  <p class="hilfe">{% translate "Die Plattform verschickt Anmelde-, Bestätigungs-, Beitrags-, Willkommens- und Freischaltungsnachrichten. Ihren Ausweis können Sie sich unten als Vorschau zusenden." %} <a href="#nachrichten">{% translate "Nachrichten zum Verfahren" %} ›</a></p>
 </div>
 
 {# ── Sitzungen ───────────────────────────────────────────────────────── #}

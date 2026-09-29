@@ -188,6 +188,13 @@ class Mitglied(AbstractUser):
         default=True,
         help_text="WeicherFilter in der Voreinstellung: ★ Favoriten zuerst. Gilt, solange kein Profil aktiv ist.",
     )
+    post_einwilligung = models.BooleanField(
+        default=False,
+        help_text="Darf die Plattform diesem Mitglied E-Mails über das Verfahren schicken — neue Anträge aus "
+        "der eigenen Region, Beitragserinnerungen? Anmelde-, Bestätigungs-, Willkommens-, Freischaltungs- "
+        "und Ausweisnachrichten gehen unabhängig davon (sie gehören zum Konto). Die Registrierung fragt "
+        "den Haken ab (Voreinstellung: nein); der Bestand vor 0.50 hat laut Gründer bereits zugestimmt.",
+    )
 
     class Meta:
         verbose_name = "Mitglied"
@@ -717,10 +724,18 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
 
 class Postauftrag(models.Model):
-    """Dauerhafter Versandauftrag; keine Nachrichteninhalte im öffentlichen Audit."""
+    """Dauerhafter Versandauftrag; keine Nachrichteninhalte im öffentlichen Audit.
+
+    `bezug` macht den Schlüssel je Anlass eindeutig: leer bei den Kontobriefen (Willkommen,
+    Freischaltung, Vorschau), `antrag:<pk>` bei „Neuer Antrag in Ihrer Region“, `jahr:<Jahr>` bei
+    der Beitragserinnerung — so gibt es je Mitglied, Art und Anlass genau einen Auftrag."""
 
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     art = models.CharField(max_length=20)
+    bezug = models.CharField(max_length=40, default="", blank=True)
+    antrag = models.ForeignKey(
+        "verfahren.Antrag", null=True, blank=True, on_delete=models.PROTECT, related_name="postauftraege"
+    )
     erstellt_am = models.DateTimeField(auto_now_add=True)
     versandt_am = models.DateTimeField(null=True, blank=True)
     anhang_versandt_am = models.DateTimeField(null=True, blank=True)
@@ -731,7 +746,9 @@ class Postauftrag(models.Model):
     sperrcode = models.CharField(max_length=32, default="", blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["mitglied", "art"], name="postauftrag_einmal")]
+        constraints = [
+            models.UniqueConstraint(fields=["mitglied", "art", "bezug"], name="postauftrag_einmal_je_bezug")
+        ]
 
     def __str__(self):
-        return f"{self.art}: {self.mitglied_id}"
+        return f"{self.art}{' ' + self.bezug if self.bezug else ''}: {self.mitglied_id}"

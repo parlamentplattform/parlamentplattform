@@ -216,6 +216,16 @@ PARAMETER = {
         "Duration of the vote on a confidence question (never below the statutory minimum of 7 days; "
         "frozen into the motion when it is submitted)",
     ),
+    "post-neuer-antrag-bund": (
+        "mail.new_motion_federal", "flag",
+        "Whether a new nationwide motion is mailed to every member who consented to platform mail "
+        "(0 or 1; regional motions always go only to the members whose residence is affected)",
+    ),
+    "beitrag-erinnerung-fruehestens-tage": (
+        "mail.fee_reminder_earliest_days", "days",
+        "Minimum membership age before the administration may queue a fee reminder (consent required, "
+        "at most once per calendar year)",
+    ),
 }
 
 # Felder der Verfahrensordnung (Policy) → (Schema-Kennung, Einheit)

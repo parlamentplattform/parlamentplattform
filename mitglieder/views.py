@@ -86,6 +86,17 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
             "Ohne Haken zeigt die Plattform bis zur Wahl eines Anzeigenamens „Mitglied n“ (§ 5 Abs 3 lit a)."
         ),
     )
+    post_einwilligung = forms.BooleanField(
+        label=gettext_lazy(
+            "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und zu "
+            "Ergebnissen der Zukunftswerkstatt zu meinen Anträgen."
+        ),
+        required=False,
+        help_text=gettext_lazy(
+            "Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten kommen unabhängig davon. "
+            "Der Haken lässt sich jederzeit im Profil setzen oder entfernen."
+        ),
+    )
     grundsaetze = forms.BooleanField(
         label=gettext_lazy(
             "Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs "
@@ -181,6 +192,9 @@ def registrieren(request):
                     # § 5 Abs 3 lit a: Pseudonym ist die Regel — der Klarname erscheint nur mit
                     # ausdrücklicher Einwilligung (Kontrollkästchen, Standard: nicht angehakt).
                     mitglied.klarname_oeffentlich = d["klarname_oeffentlich"]
+                    # E-Mails über das Verfahren nur mit ausdrücklichem Haken (Voreinstellung: nein);
+                    # Konto- und Anmeldenachrichten gehen unabhängig davon.
+                    mitglied.post_einwilligung = d["post_einwilligung"]
                     mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
                     gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde

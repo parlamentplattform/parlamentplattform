@@ -153,7 +153,13 @@ def test_verwaltung_beitraege_nur_fuer_admins_und_listet_faellige(client):
 
 
 def test_erinnerung_geht_an_alle_faelligen_mit_referenz_und_wird_auditiert(client):
+    """Seit 0.50 legt der Knopf Postaufträge an (nur mit E-Mail-Einwilligung); zugestellt wird im
+    Postausgang — der Test stößt ihn wie der Hintergrundlauf an."""
+    from mitglieder.postausgang import offene_zustellen
+
     saeumig = mitglied_anlegen("saeumig")
+    saeumig.post_einwilligung = True
+    saeumig.save(update_fields=["post_einwilligung"])
     admin = mitglied_anlegen("chefin2")
     admin.ist_admin = True
     admin.beitrag_zuletzt_am = timezone.localdate()
@@ -161,15 +167,18 @@ def test_erinnerung_geht_an_alle_faelligen_mit_referenz_und_wird_auditiert(clien
 
     client.force_login(admin)
     antwort = client.post(reverse("mitglieder:beitrag_erinnern"), {"alle": "1"}, follow=True)
-    assert "versendet" in antwort.content.decode()
-    assert len(mail.outbox) == 1
+    assert "1 Erinnerung(en) beauftragt" in antwort.content.decode()
+    assert mail.outbox == []  # noch nichts versendet: der Postausgang stellt zu
+    assert offene_zustellen() == 1
+    assert len(mail.outbox) == 1 and mail.outbox[0].to == [saeumig.email]
     assert beitragsreferenz(saeumig) in mail.outbox[0].body
-    assert "/beitrag/" in mail.outbox[0].body
+    assert "/beitrag/" in mail.outbox[0].body and "/profil/#nachrichten" in mail.outbox[0].body
     assert AuditEintrag.objects.filter(ereignis__aktion="beitrag_erinnerung").exists()
 
     mail.outbox.clear()
     antwort = client.post(reverse("mitglieder:beitrag_erinnern"), {"mitglied": []}, follow=True)
-    assert len(mail.outbox) == 0  # ohne Auswahl wird niemand angeschrieben
+    assert "Niemand ausgewählt" in antwort.content.decode()
+    assert offene_zustellen() == 0 and mail.outbox == []  # ohne Auswahl wird niemand angeschrieben
 
 
 def test_auszug_upload_verbucht_und_dedupliziert(client):

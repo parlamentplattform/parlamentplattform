@@ -347,7 +347,7 @@ Für die Stufen 3/4 sind Rückmeldeprotokolle der **staatlichen** Exekutive kein
 2. **Namenskonvention:** „ParlamentPlattform" ist der Satzungsbegriff; als Projektname international tauglich? Alternative Arbeitstitel möglich, Satzungsbegriff bleibt. *Stand 29.9.2026: der Satzungsbegriff ist der Projektname geblieben; die Partner-Seite führt ihn unübersetzt.*
 3. **Erste Testgruppe:** Wer sind die 20–50 Personen des Phase-1-Tors? (Empfehlung: Mitglieder + eingeladene kritische Externe, ausdrücklich auch Skeptiker.)
 4. **Pentest-Budget** in Phase 2 freigeben. *Stand 29.9.2026: offen; Dependency-Scans (§ 5, N-04) ebenfalls noch nicht automatisiert.*
-5. **Datenschutzerklärung:** Der Entwurf unter `/datenschutz/` (0.50) braucht die Freigabe des Gründers beziehungsweise eine Rechtsberatung; Auftragsverarbeiter, Speicherdauer und die Löschfrist des Stimmregisters (§ 8 Abs 6) sind darin ehrlich als offen benannt.
+5. **Datenschutzerklärung:** Der Entwurf unter `/datenschutz/` (0.50) braucht die Freigabe des Gründers beziehungsweise eine Rechtsberatung; Auftragsverarbeiter, Speicherdauer und die Löschfrist des Stimmregisters (§ 8 Abs 6) sind darin ehrlich als offen benannt. *Stand 29.9.2026: vom Gründer freigegeben (Verantwortlicher, Anschrift, Registerzahl und Dienstleister bestätigt); der Text ist am Code gegengelesen.*
 
 ## Anhang B — Traceability Satzung → Lastenheft
 

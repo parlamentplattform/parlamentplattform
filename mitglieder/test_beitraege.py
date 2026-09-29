@@ -209,3 +209,13 @@ def test_auszug_upload_verbucht_und_dedupliziert(client):
 
     kaputt = client.post(url, {"auszug": SimpleUploadedFile("leer.csv", b"nur text")}, follow=True)
     assert "kein Umsatz" in kaputt.content.decode()
+
+
+def test_offene_referenzen_brauchen_keine_abfrage_je_konto(django_assert_max_num_queries):
+    # Der Abgleich läuft auch in der Verwaltungsanfrage: Der festgeschriebene Stamm muss mit der
+    # Kontenliste kommen, nicht je Konto nachgeladen werden.
+    konten = [mitglied_anlegen(f"bank{i}") for i in range(20)]
+    erwartet = {beitragsreferenz(m): m.pk for m in konten}  # Stamm festschreiben
+    with django_assert_max_num_queries(2):
+        referenzen = bank._offene_referenzen()
+    assert erwartet.items() <= referenzen.items()

@@ -3,6 +3,8 @@
 Die Kachel (FB-D2): Thema mit eigenem Stern · Titel · Stand mit Balken · Frist mit Ring ·
 Direkt-Handlung der Phase · (nur in „Wichtige Abstimmungen") der Hervorhebungsgrund.
 Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
+Erwartet k, ziel (#feld-x für den htmx-Tausch) und feld (Kennung: wichtig/region — die Handlung
+kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre leer ist (B2).
 {% endcomment %}
 <article class="kachel" data-antrag="{{ k.antrag.pk }}">
   <div class="k-kopf">
@@ -49,25 +51,30 @@ Die ganze Kachel ist klickbar (FB-D3); Knöpfe und Sterne bleiben eigene Ziele.
     {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}
       {% if k.antrag.art == "mandat" %}
         <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#bewerbungen">{% translate "Zur Wahl der Bewerbungen →" %}</a></span>
+      {% elif k.sperre %}
+        {# Befund B2: Wer nicht stimmen darf, sieht den Zustand mit Link — keine Knöpfe, die ins Leere laufen #}
+        <span class="rest sperre">{{ k.sperre.kurz }}{% if k.sperre.link %} — <a href="{{ k.sperre.link }}">{{ k.sperre.link_text }}</a>{% endif %}</span>
       {% else %}
         {# Sachantrag und Mandatsfrage (§ 7 Abs 9): Ja/Nein/Enthaltung — nie eine Personenwahl #}
         <form method="post" action="{% url 'verfahren:abstimmen' k.antrag.pk %}" class="stimmreihe"
           hx-post="{% url 'verfahren:abstimmen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
-          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-          <button name="stimme" value="ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}">{% translate "Ja" %}</button>
-          <button name="stimme" value="nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}">{% translate "Nein" %}</button>
-          <button name="stimme" value="enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}">{% translate "Enthaltung" %}</button>
+          {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}"><input type="hidden" name="feld" value="{{ feld }}">
+          <button name="stimme" value="ja" id="st-{{ feld }}-{{ k.antrag.pk }}-ja" class="btn-linie{% if k.meine_stimme == 'ja' %} gewaehlt{% endif %}" aria-pressed="{% if k.meine_stimme == 'ja' %}true{% else %}false{% endif %}">{% translate "Ja" %}</button>
+          <button name="stimme" value="nein" id="st-{{ feld }}-{{ k.antrag.pk }}-nein" class="btn-linie{% if k.meine_stimme == 'nein' %} gewaehlt{% endif %}" aria-pressed="{% if k.meine_stimme == 'nein' %}true{% else %}false{% endif %}">{% translate "Nein" %}</button>
+          <button name="stimme" value="enthaltung" id="st-{{ feld }}-{{ k.antrag.pk }}-enthaltung" class="btn-still{% if k.meine_stimme == 'enthaltung' %} gewaehlt{% endif %}" aria-pressed="{% if k.meine_stimme == 'enthaltung' %}true{% else %}false{% endif %}">{% translate "Enthaltung" %}</button>
         </form>
         {% if k.legende %}<span class="rest vf-legende">{{ k.legende.0 }} · {{ k.legende.1 }}</span>{% endif %}
       {% endif %}
     {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated and not k.unterstuetzen_erlaubt %}
       {# § 7 Abs 10 lit c: Unterstützen nur, wer am Einbringungstag für Personenwahlen stimmberechtigt war #}
       <span class="rest">{% translate "Unterstützen nur mit Stimmrecht für Personenwahlen" %}</span>
+    {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated and k.sperre %}
+      <span class="rest sperre">{{ k.sperre.kurz }}{% if k.sperre.link %} — <a href="{{ k.sperre.link }}">{{ k.sperre.link_text }}</a>{% endif %}</span>
     {% elif k.stat.typ == "unterstuetzung" and user.is_authenticated %}
       <form method="post" action="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" class="stimmreihe"
         hx-post="{% url 'verfahren:unterstuetzen' k.antrag.pk %}" hx-target="{{ ziel }}" hx-select="{{ ziel }}" hx-swap="outerHTML transition:true" hx-indicator="{{ ziel }}">
-        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
-        <button class="btn-linie{% if k.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}">{% if k.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
+        {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}"><input type="hidden" name="feld" value="{{ feld }}">
+        <button id="u-{{ feld }}-{{ k.antrag.pk }}" class="btn-linie{% if k.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}" aria-pressed="{% if k.antrag.pk in meine_unterstuetzungen %}true{% else %}false{% endif %}">{% if k.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
       </form>
     {% elif k.stat.typ == "beratung" %}
       <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#beratung">{% translate "Mitreden" %}</a></span>

@@ -22,11 +22,18 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
-from mitglieder.models import Identitaetsstufe, Mitgliedsstatus
+from mitglieder.models import Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
 from plattform_core.similarity import aehnlichste
+from verfahren.hinweise import (
+    kachel_feld,
+    mitwirkungssperre,
+    sicherer_pfad,
+    weiter_mit_hinweis,
+    weiter_ohne_hinweis,
+)
 from verfahren.models import (
     Antrag,
     Antragsart,
@@ -78,10 +85,13 @@ def _mitwirkung_gesperrt(request):
     """403-Antwort, wenn Mitwirkungsrechte fehlen — sonst None.
 
     Zwei Gründe: unbestätigte Identität (§ 4) oder ruhender Status (F-51:
-    pausiert bis zum Beitragseingang bzw. ausgeschlossen nach § 4 Abs 6)."""
-    if request.user.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
+    pausiert bis zum Beitragseingang bzw. ausgeschlossen nach § 4 Abs 6). Richtig für
+    Formulare der Antragsseite; Kachel- und Feed-Formulare (mit `feld`) gehen den
+    Redirect-Weg mit Hinweis im Feld (`_abbruch`), damit das Feld nie verschwindet."""
+    code = mitwirkungssperre(request.user)
+    if code == "gesperrt_ungeprueft":
         return render(request, "verfahren/nur_bestaetigte.html", status=403)
-    if request.user.status != Mitgliedsstatus.AKTIV:
+    if code:
         return render(
             request,
             "verfahren/mitwirkung_ruht.html",
@@ -89,6 +99,16 @@ def _mitwirkung_gesperrt(request):
             status=403,
         )
     return None
+
+
+def _abbruch(request, feld, code, sonst):
+    """Die Weiche für jeden Fehl- und Erfolgsfall einer Handlung (Befund B1): Aus Kachel oder
+    Feed-Zeile (`feld`) antwortet ein Redirect auf `weiter` mit Hinweis im Ursprungsfeld —
+    mit und ohne JavaScript derselbe Weg, nie die Antragsseite, keine Flash-Meldung. Von der
+    Antragsseite liefert `sonst()` die bisherige Antwort (Flash und Redirect oder 403-Seite)."""
+    if feld:
+        return weiter_mit_hinweis(request, code, feld)
+    return sonst()
 
 
 class AntragsFormular(forms.Form):
@@ -281,17 +301,30 @@ def einbringen(request):
     )
 
 
+def _mit_flash(request, stufe, text, pk):
+    """Der bisherige Weg von der Antragsseite: Flash-Meldung und zurück zum Antrag."""
+
+    def antwort():
+        getattr(messages, stufe)(request, text)
+        return redirect("verfahren:antrag", pk=pk)
+
+    return antwort
+
+
 @login_required
 @require_POST
 def unterstuetzen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
-    sperre = _mitwirkung_gesperrt(request)
-    if sperre:
-        return sperre
+    feld = kachel_feld(request)  # Kachel/Feed → Rückmeldung im Feld statt Antragsseite oder 403
+    code = mitwirkungssperre(request.user)
+    if code:
+        return _abbruch(request, feld, code, lambda: _mitwirkung_gesperrt(request))
     antrag.fortschreiben()
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
-        messages.error(request, _("Die Unterstützungsphase dieses Antrags ist beendet."))
-        return redirect("verfahren:antrag", pk=pk)
+        return _abbruch(
+            request, feld, "phase_vorbei",
+            _mit_flash(request, "error", _("Die Unterstützungsphase dieses Antrags ist beendet."), pk),
+        )
     if antrag.art == Antragsart.VERTRAUENSFRAGE:
         # § 7 Abs 10 lit c: Abweichend von § 4 Abs 4 lit b kann die Vertrauensfrage nur
         # unterstützen, wer am Tag der Einbringung für Personenwahlen stimmberechtigt war —
@@ -301,17 +334,23 @@ def unterstuetzen(request, pk):
 
         vf = antrag._vertrauensfrage()
         if vf is not None and vf.art == "bestaetigung":
-            messages.error(
-                request,
-                _("Ein Bestätigungsantrag wird nicht unterstützt — die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)."),
+            return _abbruch(
+                request, feld, "bestaetigung",
+                _mit_flash(
+                    request, "error",
+                    _("Ein Bestätigungsantrag wird nicht unterstützt — die Abstimmung beginnt am siebten Tag nach Einbringung (§ 7 Abs 10 lit f Z 3)."),
+                    pk,
+                ),
             )
-            return redirect("verfahren:antrag", pk=pk)
         if not vertrauensfrage_unterstuetzen_erlaubt(request.user, antrag):
-            return render(
-                request,
-                "verfahren/vertrauensfrage_nur_stimmberechtigte.html",
-                {"antrag": antrag, "stichtag": timezone.localdate(antrag.eingebracht_am)},
-                status=403,
+            return _abbruch(
+                request, feld, "vf_nur_stimmberechtigte",
+                lambda: render(
+                    request,
+                    "verfahren/vertrauensfrage_nur_stimmberechtigte.html",
+                    {"antrag": antrag, "stichtag": timezone.localdate(antrag.eingebracht_am)},
+                    status=403,
+                ),
             )
     # Grundregel 7: Eine zurückgezogene Unterstützung wird gestempelt, nicht gelöscht — und
     # jede Richtung steht im Audit-Log (ohne Mitgliedsbezug), damit die Zahl der Unterstützer
@@ -323,28 +362,41 @@ def unterstuetzen(request, pk):
             eintrag.erklaert_am = timezone.now()
             eintrag.save(update_fields=["zurueckgezogen_am", "erklaert_am"])
         AuditEintrag.anhaengen({"typ": "unterstuetzung", "antrag": antrag.pk})
-        messages.success(request, _("Danke — Ihre Unterstützung ist erfasst."))
         antrag.fortschreiben()  # Schwelle eventuell gerade erreicht
-    else:
-        eintrag.zurueckgezogen_am = timezone.now()
-        eintrag.save(update_fields=["zurueckgezogen_am"])
-        AuditEintrag.anhaengen({"typ": "unterstuetzung_zurueckgezogen", "antrag": antrag.pk})
-        messages.info(request, _("Ihre Unterstützung wurde zurückgezogen."))
-    return redirect("verfahren:antrag", pk=pk)
+        return _abbruch(
+            request, feld, "erfasst", _mit_flash(request, "success", _("Danke — Ihre Unterstützung ist erfasst."), pk)
+        )
+    eintrag.zurueckgezogen_am = timezone.now()
+    eintrag.save(update_fields=["zurueckgezogen_am"])
+    AuditEintrag.anhaengen({"typ": "unterstuetzung_zurueckgezogen", "antrag": antrag.pk})
+    return _abbruch(
+        request, feld, "zurueckgezogen", _mit_flash(request, "info", _("Ihre Unterstützung wurde zurückgezogen."), pk)
+    )
 
 
-def _chat_antwort(request, antrag, anker: str = ""):
-    """Nach jeder Chat-Handlung: mit htmx nur die Zone tauschen, sonst zurück auf den Anker."""
-    from verfahren.views import _chat_lage
+def _chat_antwort(request, antrag, anker: str = "", fehler=None, entwurf=None):
+    """Nach jeder Chat-Handlung: mit htmx nur die Zone tauschen, sonst zurück auf den Anker.
+
+    Ein Fehler (Befund B2) geht nie über Django-messages: Die Zone trägt `chat.fehler` (Text,
+    optional Link) und `chat.entwurf` (text, ist_kritik, bezug_absatz, antwort_auf), das Formular
+    zeigt den eingegebenen Text mit der Meldung darüber. Ohne JavaScript steht dafür die ganze
+    Antragsseite mit Fehler und Entwurf — kein Redirect, der den Text verlöre."""
+    from verfahren.views import _antwort_vorgabe, _chat_lage, antrag_detail
 
     if request.headers.get("HX-Request"):
-        return render(
-            request,
-            "verfahren/_chat.html",
-            {"antrag": antrag, "chat": _chat_lage(antrag, request.user)},
-        )
+        lage = _chat_lage(antrag, request.user)
+        lage["fehler"] = fehler
+        lage["entwurf"] = entwurf
+        lage["antwort_vorgabe"] = _antwort_vorgabe(antrag, (entwurf or {}).get("antwort_auf"))
+        return render(request, "verfahren/_chat.html", {"antrag": antrag, "chat": lage})
+    if fehler:
+        return antrag_detail(request, antrag.pk, chat_fehler=fehler, chat_entwurf=entwurf)
     ziel = reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
     return redirect(f"{ziel}#{anker}" if anker else ziel)
+
+
+def _chat_fehler(text, link: str | None = None, link_text: str = "") -> dict:
+    return {"text": text, "link": link, "link_text": link_text}
 
 
 @login_required
@@ -352,41 +404,59 @@ def _chat_antwort(request, antrag, anker: str = ""):
 def kommentieren(request, pk):
     """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
     from verfahren.chat import ChatGesperrt, beitrag_schreiben
+    from verfahren.hinweise import HINWEISE, kachel_sperre
 
     antrag = get_object_or_404(Antrag, pk=pk)
-    sperre = _mitwirkung_gesperrt(request)
-    if sperre:
-        return sperre
+    # Der Entwurf begleitet jeden Fehler zurück ins Formular — nichts Eingegebenes geht verloren
+    entwurf = {
+        "text": (request.POST.get("text") or "")[:4000],
+        "ist_kritik": request.POST.get("ist_kritik") == "1",
+        "bezug_absatz": request.POST.get("bezug_absatz") or "",
+        "antwort_auf": request.POST.get("antwort_auf") or "",
+    }
+    code = mitwirkungssperre(request.user)
+    if code:
+        if not request.headers.get("HX-Request"):
+            return _mitwirkung_gesperrt(request)
+        sperre = kachel_sperre(code)
+        return _chat_antwort(
+            request, antrag,
+            fehler=_chat_fehler(HINWEISE[code]["text"], sperre["link"], sperre["link_text"]), entwurf=entwurf,
+        )
     antrag.fortschreiben()
     antwort_auf = None
-    roh = request.POST.get("antwort_auf")
+    roh = entwurf["antwort_auf"]
     if roh:
         antwort_auf = Kommentar.objects.filter(
             pk=roh, antrag=antrag, archiviert_am__isnull=True
-        ).first()
+        ).first() if roh.isdigit() else None
         if antwort_auf is None:
-            messages.error(request, _("Der Beitrag, auf den Sie antworten wollten, ist nicht mehr im laufenden Chat."))
-            return _chat_antwort(request, antrag)
+            entwurf["antwort_auf"] = ""
+            return _chat_antwort(
+                request, antrag,
+                fehler=_chat_fehler(_("Der Beitrag, auf den Sie antworten wollten, ist nicht mehr im laufenden Chat.")),
+                entwurf=entwurf,
+            )
     form = KommentarFormular(request.POST)
     if not form.is_valid():
-        messages.error(request, _("Bitte einen Text eingeben."))
-        return _chat_antwort(request, antrag)
-    ist_kritik = request.POST.get("ist_kritik") == "1"
-    absatz = request.POST.get("bezug_absatz") or ""
+        return _chat_antwort(request, antrag, fehler=_chat_fehler(_("Bitte einen Text eingeben.")), entwurf=entwurf)
+    absatz = entwurf["bezug_absatz"]
     try:
         beitrag = beitrag_schreiben(
             antrag, request.user, form.cleaned_data["text"], antwort_auf,
-            ist_kritik=ist_kritik, bezug_absatz=int(absatz) if absatz.isdigit() else None,
+            ist_kritik=entwurf["ist_kritik"], bezug_absatz=int(absatz) if absatz.isdigit() else None,
         )
     except ChatGesperrt as fehler:
-        messages.error(request, str(fehler))
-        return _chat_antwort(request, antrag)
+        return _chat_antwort(request, antrag, fehler=_chat_fehler(str(fehler)), entwurf=entwurf)
     except ValueError:
-        messages.error(request, _(
-            "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
-            "so kann der Expertenrat damit arbeiten."
-        ))
-        return _chat_antwort(request, antrag)
+        return _chat_antwort(
+            request, antrag,
+            fehler=_chat_fehler(_(
+                "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
+                "so kann der Expertenrat damit arbeiten."
+            )),
+            entwurf=entwurf,
+        )
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
 
 
@@ -498,51 +568,72 @@ def chat_gelesen(request, pk):
 @require_POST
 def abstimmen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
+    feld = kachel_feld(request)  # Kachel/Feed → Rückmeldung im Feld statt Antragsseite oder 403
     antrag.fortschreiben()
     if antrag.art == Antragsart.MANDAT:
-        messages.error(
-            request, _("Bei einer Mandats-Kandidatur stimmen Sie den einzelnen Bewerbungen zu.")
+        return _abbruch(
+            request, feld, "mandat",
+            _mit_flash(request, "error", _("Bei einer Mandats-Kandidatur stimmen Sie den einzelnen Bewerbungen zu."), pk),
         )
-        return redirect("verfahren:antrag", pk=pk)
     stichtag = antrag.stichtag_der_stimmberechtigung()
     # § 4 Abs 4: derselbe Gegenstand wie beim Zählen der Stimmberechtigten (`fortschreiben`) —
     # die Vertrauensfrage ist eine Personenwahl (§ 7 Abs 10 lit a und e), alles andere Sachfrage.
     if not request.user.ist_stimmberechtigt(
         gegenstand_fuer(antrag), stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
     ):
-        return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+        # Ungeprüfte und ruhende Konten sind nie stimmberechtigt — der Kachel-Hinweis nennt den Grund
+        code = mitwirkungssperre(request.user) or "nicht_stimmberechtigt"
+        return _abbruch(
+            request, feld, code, lambda: render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+        )
     if request.user.adresswechsel_offen:
         # F-51: Solange die Anmeldeadresse in Änderung ist, gehört das Konto vielleicht nicht
         # mehr dem Menschen, der hier stimmen will — die Stimmabgabe ruht bis zur Entscheidung.
-        messages.error(
-            request,
-            _("Für Ihr Konto läuft eine Änderung der Anmeldeadresse — bis sie entschieden ist, ruht die Stimmabgabe."),
+        return _abbruch(
+            request, feld, "adresswechsel",
+            _mit_flash(
+                request, "error",
+                _("Für Ihr Konto läuft eine Änderung der Anmeldeadresse — bis sie entschieden ist, ruht die Stimmabgabe."),
+                pk,
+            ),
         )
-        return redirect("verfahren:antrag", pk=pk)
     if antrag.aussetzung_laeuft():
         # § 6 Abs 3 lit d: Die Aussetzung ist veröffentlicht; wer trotzdem stimmt, erfährt warum.
-        messages.error(
-            request,
-            _("Die Abstimmung ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — solange sie ruht, werden keine Stimmen angenommen; die Frist läuft danach weiter."),
+        return _abbruch(
+            request, feld, "aussetzung",
+            _mit_flash(
+                request, "error",
+                _("Die Abstimmung ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — solange sie ruht, werden keine Stimmen angenommen; die Frist läuft danach weiter."),
+                pk,
+            ),
         )
-        return redirect("verfahren:antrag", pk=pk)
     wahl = request.POST.get("stimme", "")
     try:
         stimme_abgeben(antrag, request.user, wahl)
-        messages.success(request, _("Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern."))
+        code, stufe, text = "stimme", "success", _("Ihre Stimme ist erfasst — bis zum Fristende können Sie sie ändern.")
     except (StimmabgabeFehler, ValueError):
-        messages.error(request, _("Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?)."))
+        code, stufe, text = "stimme_fehler", "error", _("Diese Stimme konnte nicht erfasst werden (läuft die Abstimmung noch?).")
+    if feld:
+        return weiter_mit_hinweis(request, code, feld)
+    getattr(messages, stufe)(request, text)
     # P4: Direktabstimmung aus der Regions-Kachel kehrt aufs Parlament zurück.
     weiter = request.POST.get("weiter", "")
-    if weiter.startswith("/") and not weiter.startswith("//"):
+    if sicherer_pfad(weiter):
         return redirect(weiter)
     return redirect("verfahren:antrag", pk=pk)
 
 
-def _zurueck_zum_parlament(request):
+def _zurueck_zum_parlament(request, code: str | None = None, stufe: str = "info", text: str = ""):
+    """Zurück ins Parlament. Aus dem Feld (`feld`, alle WeicherFilter-Formulare) steht die
+    Rückmeldung als Hinweis im Feldkopf; ohne `feld` bleibt die Flash-Meldung."""
+    feld = kachel_feld(request)
+    if feld and code:
+        return weiter_mit_hinweis(request, code, feld)
+    if code and text:
+        getattr(messages, stufe)(request, text)
     weiter = request.POST.get("weiter", "")
-    if weiter.startswith("/") and not weiter.startswith("//"):
-        return redirect(weiter)
+    if sicherer_pfad(weiter):
+        return redirect(weiter_ohne_hinweis(weiter))
     return redirect("verfahren:parlament")
 
 
@@ -563,24 +654,20 @@ def filter_anwenden(request):
     name_neu = (request.POST.get("profilname") or "").strip()[:24]
     werte = {"regler": regler, "favoriten_zuerst": favoriten_zuerst}
 
+    zu_viele = _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
     if request.POST.get("als_neues"):
         if not name_neu:
-            messages.error(request, _("Bitte einen Namen für die neue Konfiguration angeben."))
-            return _zurueck_zum_parlament(request)
-        if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL) and not profile.filter(name=name_neu).exists():
-            messages.error(
-                request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+            return _zurueck_zum_parlament(
+                request, "name_fehlt", "error", _("Bitte einen Namen für die neue Konfiguration angeben.")
             )
-            return _zurueck_zum_parlament(request)
+        if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL) and not profile.filter(name=name_neu).exists():
+            return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
         profil, _egal = FilterProfil.objects.update_or_create(mitglied=request.user, name=name_neu, defaults=werte)
     else:
         profil = profile.filter(aktiv=True).first()
         if profil is None:
             if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL):
-                messages.error(
-                    request, _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
-                )
-                return _zurueck_zum_parlament(request)
+                return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
             profil, _egal = FilterProfil.objects.get_or_create(
                 mitglied=request.user, name=str(_("Eigenes")), defaults=werte
             )
@@ -589,11 +676,10 @@ def filter_anwenden(request):
     profil.aktiv = True
     profil.save()
     profile.exclude(pk=profil.pk).update(aktiv=False)
-    messages.success(
-        request,
+    return _zurueck_zum_parlament(
+        request, "filter_aktiv", "success",
         _("Ihr Filter „%s“ ist aktiv — die Reihung folgt jetzt Ihren offenen Reglern.") % profil.name,
     )
-    return _zurueck_zum_parlament(request)
 
 
 @login_required
@@ -667,6 +753,9 @@ def filter_vorschau(request):
             "meine_unterstuetzungen": set(
                 Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
             ),
+            # Die Zeilen der Vorschau kehren nach einer Handlung ins Parlament zurück — nicht auf
+            # diese POST-Adresse (`request.get_full_path` wäre /filter/vorschau/).
+            "weiter_ziel": reverse("verfahren:parlament"),
         },
     )
 
@@ -693,12 +782,13 @@ def filter_umbenennen(request, pk):
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     name = (request.POST.get("name") or "").strip()[:24]
     if not name:
-        messages.error(request, _("Bitte einen Namen angeben."))
-    elif request.user.filterprofile.exclude(pk=profil.pk).filter(name=name).exists():
-        messages.error(request, _("Eine Konfiguration mit diesem Namen gibt es schon."))
-    else:
-        profil.name = name
-        profil.save(update_fields=["name"])
+        return _zurueck_zum_parlament(request, "name_fehlt", "error", _("Bitte einen Namen angeben."))
+    if request.user.filterprofile.exclude(pk=profil.pk).filter(name=name).exists():
+        return _zurueck_zum_parlament(
+            request, "name_vergeben", "error", _("Eine Konfiguration mit diesem Namen gibt es schon.")
+        )
+    profil.name = name
+    profil.save(update_fields=["name"])
     return _zurueck_zum_parlament(request)
 
 
@@ -725,8 +815,7 @@ def filter_neutral(request):
 def filter_loeschen(request, pk):
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     profil.delete()
-    messages.info(request, _("Profil „%s“ gelöscht.") % profil.name)
-    return _zurueck_zum_parlament(request)
+    return _zurueck_zum_parlament(request, "profil_geloescht", "info", _("Profil „%s“ gelöscht.") % profil.name)
 
 
 @login_required
@@ -913,25 +1002,26 @@ def favorisieren(request, pk):
     Favoriten sind rein persönlich und wirken nie auf Reihung oder Ergebnis."""
     antrag = get_object_or_404(Antrag, pk=pk)
     _egal, neu = Favorit.objects.get_or_create(antrag=antrag, mitglied=request.user)
+    if not neu:
+        Favorit.objects.filter(antrag=antrag, mitglied=request.user).delete()
+    weiter = request.POST.get("weiter", "")
+    if request.headers.get("HX-Request"):
+        # App-Verhalten (P1): Der Stern tauscht sich selbst aus, ohne Neuladen und ohne
+        # Flash-Meldung — ohne JavaScript läuft derselbe POST als gewöhnlicher Redirect weiter.
+        return render(
+            request,
+            "verfahren/_stern.html",
+            {"antrag": antrag, "ist_favorit": neu, "weiter": weiter or "/"},
+        )
     if neu:
         messages.success(
             request,
             _("Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der Startseite."),
         )
     else:
-        Favorit.objects.filter(antrag=antrag, mitglied=request.user).delete()
         messages.info(request, _("Favorit entfernt."))
-    weiter = request.POST.get("weiter", "")
-    if request.headers.get("HX-Request"):
-        # App-Verhalten (P1): Der Stern tauscht sich selbst aus, ohne Neuladen —
-        # ohne JavaScript läuft derselbe POST als gewöhnlicher Redirect weiter.
-        return render(
-            request,
-            "verfahren/_stern.html",
-            {"antrag": antrag, "ist_favorit": neu, "weiter": weiter or "/"},
-        )
-    if weiter.startswith("/") and not weiter.startswith("//"):
-        return redirect(weiter)
+    if sicherer_pfad(weiter):
+        return redirect(weiter_ohne_hinweis(weiter))
     return redirect("verfahren:antrag", pk=pk)
 
 
@@ -1005,8 +1095,7 @@ def kategorie_abonnieren(request, slug):
     if not neu:
         KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
     weiter = request.POST.get("weiter", "")
-    if not (weiter.startswith("/") and not weiter.startswith("//")):
-        weiter = reverse("verfahren:parlament")
+    weiter = weiter_ohne_hinweis(weiter) if sicherer_pfad(weiter) else reverse("verfahren:parlament")
     if request.headers.get("HX-Request"):
         # FB-C4: mit htmx wechselt nur der Stern selbst — kein Feldtausch, keine Flash-Meldung
         return render(

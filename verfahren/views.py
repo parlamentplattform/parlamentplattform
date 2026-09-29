@@ -304,7 +304,7 @@ def _als_liste(antraege) -> list:
 
 
 def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-                        zaehler=None, beginne=None, vfs=None):
+                        zaehler=None, beginne=None, vfs=None, lage=None):
     """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
@@ -312,15 +312,18 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     `laufend` darf ein QuerySet oder die schon geladene Liste sein; Zählwerte und wirksame
     Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
     from plattform_core.weicherfilter import ist_neutral
+    from verfahren.hinweise import handlungslage
 
     laufende = _als_liste(laufend)
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
     vfs = dict(vfs) if vfs is not None else _vertrauensfragen(laufende)
+    lage = lage if lage is not None else handlungslage(nutzer)  # einmal je Feed, nicht je Zeile
 
     def zeile(a, extra=None):
         z = _kachel(
-            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=nutzer
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=nutzer,
+            lage=lage,
         )
         z.update({"favorit": False, "anteile": [], "punkte": 0})
         z.update(extra or {})
@@ -453,7 +456,8 @@ def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     return abstimmung_frist_ende(beginn, policy)
 
 
-def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None):
+def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
+            lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
     Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
     laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
@@ -463,7 +467,14 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
 
     Vertrauensfragen (§ 7 Abs 10) tragen zusätzlich die Legende zu Ja/Nein (lit e), ob `nutzer`
     sie unterstützen darf (lit c: nur am Einbringungstag Stimmberechtigte) und — nach erreichter
-    Schwelle — den veröffentlichten Abstimmungsbeginn."""
+    Schwelle — den veröffentlichten Abstimmungsbeginn.
+
+    Handlungsknöpfe zeigt die Kachel nur, wenn `nutzer` handeln darf (Befund B2): `lage`
+    (einmal je Seite gerechnet, `hinweise.handlungslage`) sagt, ob Identität und Status es
+    zulassen; das Stimmrecht am Stichtag wird je Antrag geprüft. Sonst trägt `sperre` den
+    Zustand mit Link statt der Knöpfe."""
+    from verfahren.hinweise import handlungslage, kachel_sperre
+
     policy = antrag.policy()
     beginn = beginn or antrag.wirksamer_phase_beginn(jetzt)
     if zaehler is None:
@@ -500,7 +511,15 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         abgegeben, basis = _beteiligung(antrag, zaehler["stimmen"].get(antrag.pk, 0))
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
                 "prozent": min(100, round(100 * abgegeben / basis))}
+    sperre = None
+    if nutzer is not None and nutzer.is_authenticated and stat is not None:
+        lage = lage if lage is not None else handlungslage(nutzer)
+        if stat["typ"] == "unterstuetzung":
+            sperre = lage.mitwirkung
+        elif stat["typ"] == "abstimmung" and antrag.art != Antragsart.MANDAT:
+            sperre = lage.stimmsperre(nutzer, antrag)
     return {
+        "sperre": kachel_sperre(sperre),
         "antrag": antrag,
         "frist": frist,
         "resttage": resttage,
@@ -664,6 +683,7 @@ def parlament(request):
     # ?fach= steuert den Knoten, ?suche= die Suche; ohne JavaScript ist jeder
     # Klick eine Seite, mit htmx wechselt nur das Feld.
     from plattform_core.faecher import faecher_layout
+    from verfahren.hinweise import handlungslage, hinweis_lage
 
     zeilen = list(
         Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id", "reihenfolge")
@@ -714,6 +734,7 @@ def parlament(request):
     mein_ort = _meine_orte(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
+    lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
     meine_unterstuetzungen: set[int] = set()
     if request.user.is_authenticated:
         meine_unterstuetzungen = set(
@@ -735,7 +756,7 @@ def parlament(request):
                 "kacheln": [
                     _kachel(
                         a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
-                        vfs=vfs, nutzer=request.user,
+                        vfs=vfs, nutzer=request.user, lage=lage,
                     )
                     for a in zeile
                 ],
@@ -744,7 +765,8 @@ def parlament(request):
 
     wichtige_kacheln = [
         _kachel(
-            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=request.user
+            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler, vfs=vfs, nutzer=request.user,
+            lage=lage,
         )
         for a in wichtige
     ]
@@ -765,12 +787,14 @@ def parlament(request):
         filter_lage = _filter_lage(profile, aktives, regler, favoriten_zuerst)
     feed = _weicherfilter_feed(
         request.user, antraege, laufende, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-        zaehler=zaehler, beginne=beginne, vfs=vfs,
+        zaehler=zaehler, beginne=beginne, vfs=vfs, lage=lage,
     )
     return render(
         request,
         "verfahren/parlament.html",
         {
+            # Rückmeldung einer Kachel-/Feed-Handlung im Kopf des Ursprungsfelds (Befund B1)
+            "hinweis": hinweis_lage(request),
             "faecher": faecher,
             "suchtext": suchtext,
             "suchtreffer": suchtreffer,
@@ -1180,7 +1204,9 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     }
 
 
-def antrag_detail(request, pk):
+def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
+    """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
+    Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
     antrag.fortschreiben_bis_zum_stand()  # fällige Übergänge lazy anwenden (idempotent; dazu der Wächter)
     beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
@@ -1276,7 +1302,11 @@ def antrag_detail(request, pk):
         vollzug = list(antrag.vollzug.select_related("durch"))
     ab = request.GET.get("ab", "")
     chat = _chat_lage(antrag, request.user, ab=int(ab) if ab.isdigit() else None)
-    chat["antwort_vorgabe"] = _antwort_vorgabe(antrag, request.GET.get("antwort_auf"))
+    chat["fehler"] = chat_fehler
+    chat["entwurf"] = chat_entwurf
+    chat["antwort_vorgabe"] = _antwort_vorgabe(
+        antrag, (chat_entwurf or {}).get("antwort_auf") or request.GET.get("antwort_auf")
+    )
     return render(
         request,
         "verfahren/antrag.html",

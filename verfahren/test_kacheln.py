@@ -77,18 +77,23 @@ def test_direktabstimmung_aus_der_kachel_kehrt_ins_parlament_zurueck(client, ord
     inhalt = client.get("/parlament/").content.decode()
     assert 'name="stimme" value="ja"' in inhalt  # Knöpfe direkt in der Kachel
 
+    # Aus der Kachel (`feld`): zurück ins Feld mit Hinweis — nie die Antragsseite (Befund B1)
     antwort = client.post(
-        reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja", "weiter": "/parlament/"}
+        reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja", "weiter": "/parlament/", "feld": "region"}
     )
-    assert antwort.url == "/parlament/"
+    assert antwort.url == "/parlament/?hinweis=stimme&feld=region#feld-region"
     assert antrag.stimmabgaben.count() == 1
     inhalt = client.get("/parlament/").content.decode()
     assert "gewaehlt" in inhalt  # die eigene Stimme ist markiert
 
     antwort = client.post(
+        reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja", "weiter": "https://boese", "feld": "region"}
+    )
+    assert antwort.url.startswith("/parlament/?")  # unsichere Ziele fallen aufs Parlament zurück
+    antwort = client.post(
         reverse("verfahren:abstimmen", args=[antrag.pk]), {"stimme": "ja", "weiter": "https://boese"}
     )
-    assert antwort.url.startswith("/antrag/")  # unsichere Ziele fallen auf die Antragsseite zurück
+    assert antwort.url.startswith("/antrag/")  # von der Antragsseite: unsichere Ziele fallen dorthin zurück
 
 
 def test_mandat_kachel_fuehrt_zur_wahl_statt_ja_nein(client, ordnung):  # noqa: F811

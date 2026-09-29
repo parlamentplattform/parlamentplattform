@@ -22,13 +22,15 @@
   --shadow-lift:0 2px 4px rgba(14,34,48,.08),0 14px 34px rgba(14,34,48,.12);
   --overlay:rgba(255,255,255,.86);--scrim:rgba(14,34,48,.35);
   --bar-ink:#E9E4D8;--on-gold:#14232E;--on-deep:#E9E4D8;--papier:#FFFFFF;--stern-aus:#7E8C96;--glanz:rgba(255,255,255,.55);
+  /* Fokusring (WCAG 1.4.11): Petrol auf Hell (Gold hätte nur 2,25:1), Gold auf Dunkel */
+  --fokus:var(--deep);
   /* Typografie (2.2) */
   --sans:-apple-system,'SF Pro Display',BlinkMacSystemFont,'Segoe UI Variable Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
   --serif:Georgia,'Times New Roman',serif;
   /* Maße (2.3): App-Leiste, Band unter der Leiste, Tableiste am Handy */
   --bar:56px;--band:0px;--tabs:60px;
   /* Bewegung (2.4) */
-  --d-fast:160ms;--d-base:260ms;--d-slide:320ms;--d-grow:420ms;--d-pop:200ms;--d-glanz:2000ms;
+  --d-fast:160ms;--d-base:260ms;--d-slide:320ms;--d-grow:420ms;--d-pop:200ms;--d-glanz:2000ms;--d-toast:1500ms;
   --e-out:cubic-bezier(.22,.8,.3,1);--e-in:cubic-bezier(.4,0,1,1);--e-spring:cubic-bezier(.3,1.6,.5,1);
   /* Altnamen als Aliase — bis die Erklärseiten-Templates auf die Spezifikationsnamen umgestellt sind */
   --paper:var(--bg);--karton:var(--surface);--matt:var(--muted);--linkfarbe:var(--deep);
@@ -46,7 +48,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
   --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
-  --on-deep:#0C151E;--stern-aus:#7B8790;--glanz:rgba(255,255,255,.04);
+  --on-deep:#0C151E;--stern-aus:#7B8790;--glanz:rgba(255,255,255,.04);--fokus:var(--gold);
 }}
 :root[data-theme="dark"]{
   --bg:#0C151E;--surface:#132029;--surface-2:#182833;--ink:#E9E4D8;--muted:#98A6AE;--line:rgba(233,228,216,.16);
@@ -57,7 +59,7 @@
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5),0 14px 34px rgba(0,0,0,.5);
   --overlay:rgba(19,32,41,.9);--scrim:rgba(0,0,0,.55);
-  --on-deep:#0C151E;--stern-aus:#7B8790;--glanz:rgba(255,255,255,.04);
+  --on-deep:#0C151E;--stern-aus:#7B8790;--glanz:rgba(255,255,255,.04);--fokus:var(--gold);
 }
 [x-cloak],[hidden]{display:none!important}
 /* Ohne JavaScript (thema.js setzt html.js synchron im <head>) zeigt die Kritik-Eingabe Absatzwahl und
@@ -194,7 +196,7 @@ form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
 input[type=text],input[type=email],input[type=number],input[type=search],input[type=date],input[type=time],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color var(--d-fast),box-shadow var(--d-fast)}
 input[type=search],input[type=date],input[type=time],select{width:auto}
 textarea{resize:vertical}
-input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);outline-offset:1px;border-color:var(--gold)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--fokus);outline-offset:1px;border-color:var(--fokus)}
 .fehlerliste{list-style:none;padding:0;margin:0 0 8px;color:var(--warn-rand);font-size:14px}
 .hinweis{border-left:4px solid var(--gold);background:var(--hinweis-grund)}
 .meldung{border-radius:12px;padding:12px 18px;margin:0 0 18px;font-size:15px;border:1px solid var(--line);border-left-width:4px;background:var(--karton)}
@@ -348,13 +350,22 @@ body.voll main{max-width:none;padding:0}
 .ring .bahn{stroke:var(--line)}
 .ring .wert{stroke:var(--gold);stroke-dasharray:50.3;transition:stroke-dashoffset var(--d-grow) var(--e-out)}
 .k-erfasst{position:absolute;right:8px;bottom:8px;z-index:2;background:var(--ok-bg);color:var(--ok);font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;display:none}
-.kachel.erfasst .k-erfasst{display:inline-block;animation:toast 1.5s var(--e-out) both}
+.kachel.erfasst .k-erfasst,.fz.erfasst .k-erfasst{display:inline-block;animation:toast var(--d-toast) var(--e-out) both}
 @keyframes toast{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
 .balken{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .balken b{display:block;height:100%;background:var(--gold)}
 .stimmreihe{display:flex;gap:6px;flex-wrap:wrap}
 .stimmreihe button{font-size:12px;padding:3px 10px;height:28px}
-.stimmreihe .gewaehlt{outline:2px solid var(--gold);outline-offset:1px}
+/* Auswahl ≠ Fokus (WCAG 1.4.1): die eigene Stimme ist gefüllt und trägt einen Haken; der Fokusring bleibt --fokus */
+.stimmreihe .gewaehlt{background:var(--deep);color:var(--on-deep);border-color:var(--deep)}
+.stimmreihe button[name=stimme].gewaehlt::before{content:"✓ "}
+.sperre{font-style:italic}
+/* Rückmeldung im Feldkopf (Befund B1): eine schmale Zeile unter dem Kopf, innerhalb von #feld-x */
+.feld-hinweis{flex:none;margin:0;padding:6px 16px;font-size:13px;line-height:1.35;border-bottom:1px solid var(--line);background:var(--ok-bg);color:var(--ok)}
+.feld-hinweis.fehler{background:var(--warn-bg);color:var(--warn)}
+.feld-hinweis a{color:inherit;font-weight:600}
+.chat-fehler{margin:12px 0 0;padding:8px 12px;border-radius:10px;font-size:14px;background:var(--warn-bg);color:var(--warn);border-left:4px solid var(--warn)}
+.chat-fehler a{color:inherit;font-weight:600}
 /* Tableiste am Handy (Spec 3.2 und 4, FB-A1): fest unten, vier Ziele, Gold-＋ in der Mitte */
 .tabs{display:none;grid-auto-flow:column;grid-auto-columns:1fr;  /* trägt vier oder fünf Ziele — Gäste haben keine Chats */position:fixed;left:0;right:0;bottom:0;height:var(--tabs);background:var(--surface);border-top:1px solid var(--line);z-index:40}
 .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600;color:var(--muted);text-decoration:none;transition:color var(--d-fast)}
@@ -520,7 +531,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .stern{transition:transform var(--d-fast) var(--e-spring)}
 .stern:hover{transform:scale(1.22)}
 .stern:active{transform:scale(.9)}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+:focus-visible{outline:2px solid var(--fokus);outline-offset:2px;border-radius:6px}
 .feld-suche{margin-left:auto;flex:0 1 15em;min-width:0}
 .feld-suche input{padding:6px 12px;font-size:13.5px;border-radius:999px;background:var(--surface-2)}
 .feld-suche input:focus{background:var(--surface)}
@@ -780,6 +791,8 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
   *,*::before,*::after{animation-duration:1ms!important;animation-delay:0s!important;transition-duration:1ms!important;scroll-behavior:auto!important}
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
   .blase:target{animation:none!important;border-color:var(--gold)}
+  /* Der Gold-Haken „Erfasst" bleibt bei reduzierter Bewegung 1,5 s stehen — kein animation:none ohne Ersatz (FB-A2) */
+  .kachel.erfasst .k-erfasst,.fz.erfasst .k-erfasst{animation:none!important;opacity:1}
 }
 </style>
 <script defer src="{% static 'verfahren/js/htmx.min.js' %}"></script>

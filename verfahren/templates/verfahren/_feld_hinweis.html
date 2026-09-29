@@ -1,0 +1,5 @@
+{% comment %}
+Rückmeldung einer Kachel-/Feed-Handlung im Kopf des Ursprungsfelds (Befund B1): steht innerhalb
+von #feld-x, darum bringt der htmx-Feldtausch sie mit; ohne JavaScript zeigt sie derselbe
+Seitenwechsel (?hinweis=&feld=). Erwartet hinweis (aus hinweise.hinweis_lage) und feld.
+{% endcomment %}{% if hinweis and hinweis.feld == feld %}<p class="feld-hinweis {{ hinweis.art }}" role="status" id="hinweis-{{ feld }}">{{ hinweis.text }}{% if hinweis.link %} <a href="{{ hinweis.link }}">{{ hinweis.link_text }} ›</a>{% endif %}</p>{% endif %}

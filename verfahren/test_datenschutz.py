@@ -8,8 +8,13 @@ verspricht keine Geheimheit mehr, die ADR-003 ausdrücklich nicht zusagt (C1).
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from django.urls import reverse
+
+from verfahren.models import StimmRegister, antrag_einbringen
+from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
@@ -75,3 +80,22 @@ def test_startseite_und_meine_stimme_versprechen_keine_geheimheit(client):
     assert "Tage · geheim" not in inhalt and "geheim · mehreren" not in inhalt
     assert "pseudonym-offen" in inhalt and "nicht kryptografisch geheim" in inhalt
     assert "Tage · pseudonym" in inhalt and "pseudonym · mehreren zustimmbar" in inhalt
+
+
+def test_kein_text_verspricht_ein_zugriffsprotokoll_auf_das_stimmregister(client, ordnung):  # noqa: F811
+    """Kein Code-Pfad protokolliert einen Lesezugriff auf das Stimmregister (Seite „Meine Stimme“,
+    Parlament, Betreiberzugriff auf die Datenbank). Startseite, Datenschutzerklärung und „Meine
+    Stimme“ dürfen deshalb nur „zugriffsbeschränkt“ sagen, nicht „protokolliert“."""
+    m = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(m, ANTRAG["titel"], ANTRAG["wortlaut"], "", ordnung)
+    StimmRegister.objects.create(antrag=antrag, mitglied=m, pseudonym=uuid.uuid4())
+    client.force_login(m)
+    for seite in (
+        reverse("verfahren:eigene_stimme", args=[antrag.pk]),
+        reverse("verfahren:index"),
+        reverse("verfahren:datenschutz"),
+    ):
+        inhalt = " ".join(client.get(seite).content.decode().split())
+        assert "zugriffsbeschränkt" in inhalt, seite
+        assert "Zugriff wird protokolliert" not in inhalt, seite
+        assert "zugriffsbeschränkt und protokolliert" not in inhalt, seite

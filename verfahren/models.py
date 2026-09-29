@@ -11,8 +11,8 @@ Zwei bewusste Designentscheidungen:
 2. Stimmen sind zweigeteilt (F-25): `Stimmabgabe` enthält Pseudonym und Stimme
    (und wird veröffentlicht), `StimmRegister` enthält die Zuordnung
    Mitglied ↔ Pseudonym je Antrag (zugriffsbeschränkt, nie veröffentlicht).
-   Die Verbindung beider Tabellen ist der einzige Weg vom Menschen zur Stimme —
-   und genau dieser Zugriff ist protokollierungspflichtig.
+   Die Verbindung beider Tabellen ist der einzige Weg vom Menschen zur Stimme.
+   Ein Protokoll der Zugriffe darauf (ADR-003 „Zugriffs-Audit“) ist nicht gebaut.
 """
 
 from __future__ import annotations
@@ -655,7 +655,8 @@ class Stimmabgabe(models.Model):
 
 class StimmRegister(models.Model):
     """Die geschützte Seite: Mitglied ↔ Pseudonym je Antrag (F-25, § 8 Abs 5).
-    Zugriff nur für den Systembetrieb im Störfall; jeder Zugriff wird auditiert.
+    Zugriffsbeschränkt: gelesen wird es für das eigene Mitglied („Meine Stimme“,
+    Parlament, Datenexport); ein Protokoll der Zugriffe ist nicht gebaut.
     Der Prüfcode erlaubt dem Mitglied, die eigene Stimme in der veröffentlichten
     Liste wiederzufinden, ohne dass Dritte das können."""
 

@@ -93,6 +93,33 @@ def test_kein_gold_haken_wenn_die_handlung_scheitert(seite, live_server, demo):
     assert p.locator(f'.fz[data-antrag="{antrag.pk}"].erfasst').count() == 0, "Gold-Haken „Erfasst“ trotz Fehler"
 
 
+def _sitzung_weg(p):
+    """Die Sitzung läuft ab (oder das Konto wird abgemeldet) — das CSRF-Cookie bleibt."""
+    kekse = [k for k in p.context.cookies() if k["name"] != "sessionid"]
+    p.context.clear_cookies()
+    p.context.add_cookies(kekse)
+
+
+def test_abgelaufene_sitzung_fuehrt_zur_anmeldung_statt_das_feld_zu_leeren(seite, live_server, demo):
+    antrag = _sammelnder_antrag()
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    _sitzung_weg(p)
+    with p.expect_navigation():
+        p.locator(f"#u-filter-{antrag.pk}").click()
+    assert "/anmelden/" in p.url, f"die ganze Seite wechselt zur Anmeldung, nicht nur das Feld: {p.url}"
+    assert "next=%2Fparlament%2F" in p.url
+    # Der Stern (ohne hx-select) zieht die Anmeldeseite nicht in die Feed-Zeile
+    s = seite(als=_mitglied())
+    s.goto(f"{live_server.url}/parlament/")
+    _ruhe(s)
+    _sitzung_weg(s)
+    with s.expect_navigation():
+        s.locator(f'#feld-filter form.stern-form[action="/antrag/{antrag.pk}/favorisieren/"] button').click()
+    assert "/anmelden/" in s.url
+
+
 def test_gesperrtes_mitglied_sieht_zustand_statt_knoepfen(seite, live_server, demo):
     from mitglieder.models import Mitgliedsstatus
 

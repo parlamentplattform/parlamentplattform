@@ -543,12 +543,8 @@ msgstr ""
 "automatically."
 
 #, python-format
-msgid "%d Erinnerung(en) versendet."
-msgstr "%d reminder(s) sent."
 
 #, python-format
-msgid "%d Erinnerung(en) konnten nicht versendet werden (Mailserver)."
-msgstr "%d reminder(s) could not be sent (mail server)."
 
 msgid "Niemand ausgewählt."
 msgstr "Nobody selected."
@@ -7868,3 +7864,153 @@ msgstr "You can vote on substantive proposals %(sachfragen)s. You can participat
 
 msgid "%(prozent)s %% der %(n)s am Einbringungstag Stimmberechtigten, mindestens %(min)s"
 msgstr "%(prozent)s %% of the %(n)s members eligible to vote on the day of submission, at least %(min)s"
+
+msgid "%(n)d Erinnerung(en) beauftragt — der Versand läuft im Postausgang."
+msgstr "%(n)d reminder(s) queued — they are sent by the mail queue."
+
+msgid "%(n)d Konto/Konten ohne E-Mail-Einwilligung übergangen."
+msgstr "%(n)d account(s) skipped without e-mail consent."
+
+msgid "%(n)d Konto/Konten übersprungen: Testkonto, Beitritt jünger als %(tage)d Tage oder heuer schon erinnert."
+msgstr "%(n)d account(s) skipped: test account, joined less than %(tage)d days ago or already reminded this year."
+
+msgid "Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:"
+msgstr "You can unsubscribe from these messages at any time in your profile under “Messages”:"
+
+msgid "Abgeschlossen ohne Versand (Einwilligung fehlt oder Konto nicht zustellbar)"
+msgstr "Closed without sending (no consent or account not deliverable)"
+
+msgid "Abstimmung durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d)."
+msgstr "Vote suspended by the Integrity Council (§ 6 (3) lit d)."
+
+msgid "Adresswechsel offen"
+msgstr "E-mail change pending"
+
+msgid "Am schnellsten geht es mit dem QR-Code auf Ihrer Beitragsseite:"
+msgstr "The quickest way is the QR code on your contribution page:"
+
+msgid "Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten kommen unabhängig davon. Der Haken lässt sich jederzeit im Profil setzen oder entfernen."
+msgstr "Login, confirmation, activation and membership card messages are sent regardless. You can tick or untick this box in your profile at any time."
+
+msgid "Beitragserinnerung"
+msgstr "Contribution reminder"
+
+msgid "Danke, dass Sie das Werkzeug mittragen!"
+msgstr "Thank you for helping to carry this tool!"
+
+msgid "Die Plattform darf mir E-Mails schicken."
+msgstr "The platform may send me e-mails."
+
+msgid "Die Plattform darf mir E-Mails schicken: zu neuen Anträgen aus meiner Region und zu Ergebnissen der Zukunftswerkstatt zu meinen Anträgen."
+msgstr "The platform may send me e-mails: about new motions from my region and about results of the Future Workshop for my motions."
+
+msgid "Die Unterstützungsphase ist beendet."
+msgstr "The support phase has ended."
+
+msgid "Diese Erinnerung kommt, weil Sie E-Mails der Plattform zugestimmt haben. Abbestellen können Sie sie jederzeit in Ihrem Profil unter „Nachrichten“:"
+msgstr "You receive this reminder because you consented to e-mails from the platform. You can unsubscribe at any time in your profile under “Messages”:"
+
+msgid "Ein Bestätigungsantrag wird nicht unterstützt (§ 7 Abs 10 lit f Z 3)."
+msgstr "A confirmation motion is not supported (§ 7 (10) lit f no. 3)."
+
+msgid "Eingebracht von:"
+msgstr "Submitted by:"
+
+msgid "Erinnerung: Ihr Mitgliedsbeitrag bei der DDÖ"
+msgstr "Reminder: your DDÖ membership contribution"
+
+msgid "Filter gespeichert und aktiv."
+msgstr "Filter saved and active."
+
+msgid "Gilt für:"
+msgstr "Applies to:"
+
+msgid "Guten Tag %(name)s!"
+msgstr "Hello %(name)s!"
+
+msgid "Höchstens fünf Konfigurationen — zuerst eine löschen oder überschreiben."
+msgstr "At most five configurations — delete or overwrite one first."
+
+msgid "Identität noch ungeprüft"
+msgstr "Identity not yet verified"
+
+msgid "Identität noch ungeprüft (§ 4 Abs 2)."
+msgstr "Identity not yet verified (§ 4 (2))."
+
+msgid "Ihr letzter Mitgliedsbeitrag liegt länger als zwölf Monate zurück (oder es ist noch keiner eingegangen). Die Höhe bleibt Ihre Selbsteinschätzung — niemand wird aus finanziellen Gründen ausgeschlossen (§ 4 Abs 3)."
+msgstr "Your last membership contribution was more than twelve months ago (or none has been received yet). The amount remains your own assessment — nobody is excluded for financial reasons (§ 4 (3))."
+
+msgid "Ihre persönliche Referenz: %(referenz)s"
+msgstr "Your personal reference: %(referenz)s"
+
+msgid "Konfiguration gelöscht."
+msgstr "Configuration deleted."
+
+msgid "Mit Haken: eine E-Mail zu jedem neuen Antrag, der Ihre Region betrifft (Gemeinde, Bezirk, Bundesland, ganz Österreich), Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung."
+msgstr "Ticked: an e-mail for every new motion that concerns your region (municipality, district, state, all of Austria), results of the Future Workshop for your motions and the administration’s contribution reminder."
+
+msgid "Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)."
+msgstr "Participation is paused — contribution outstanding (§ 4 (3))."
+
+msgid "Nachrichten"
+msgstr "Messages"
+
+msgid "Nachrichten zum Verfahren"
+msgstr "Messages about proceedings"
+
+msgid "Neuer Antrag für ganz Österreich — ParlamentPlattform"
+msgstr "New motion for all of Austria — ParlamentPlattform"
+
+msgid "Neuer Antrag in Ihrer Region — ParlamentPlattform"
+msgstr "New motion in your region — ParlamentPlattform"
+
+msgid "Neuer Antrag in der Region"
+msgstr "New motion in the region"
+
+msgid "Nicht stimmberechtigt am Stichtag"
+msgstr "Not eligible to vote on the reference date"
+
+msgid "Nicht stimmberechtigt am Stichtag (§ 4 Abs 4)."
+msgstr "Not eligible to vote on the reference date (§ 4 (4))."
+
+msgid "Ohne Haken: nur Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten — sie gehören zum Konto. Die Änderung wird ohne Wert im Audit-Log vermerkt."
+msgstr "Unticked: only login, confirmation, activation and membership card messages — they belong to the account. The change is recorded in the audit log without its value."
+
+msgid "Personenwahl: Zustimmung je Bewerbung auf der Antragsseite."
+msgstr "Election: approval per candidacy on the motion page."
+
+msgid "Sie erhalten diese Nachricht, weil Ihr Wohnsitz in diesem Gebiet liegt und Sie E-Mails zu neuen Anträgen aus Ihrer Region zugestimmt haben."
+msgstr "You receive this message because your residence is in this area and you consented to e-mails about new motions from your region."
+
+msgid "Sie erhalten diese Nachricht, weil der Antrag ganz Österreich betrifft und Sie E-Mails zu neuen Anträgen zugestimmt haben."
+msgstr "You receive this message because the motion concerns all of Austria and you consented to e-mails about new motions."
+
+msgid "Stimme erfasst — änderbar bis zum Fristende."
+msgstr "Vote recorded — changeable until the deadline."
+
+msgid "Stimme nicht erfasst — läuft die Abstimmung noch?"
+msgstr "Vote not recorded — is the vote still open?"
+
+msgid "Titel:"
+msgstr "Title:"
+
+msgid "Unterstützen nur mit Stimmrecht für Personenwahlen am Einbringungstag (§ 7 Abs 10 lit c)."
+msgstr "Supporting requires the right to vote in elections on the day of submission (§ 7 (10) lit c)."
+
+msgid "Unterstützung erfasst."
+msgstr "Support recorded."
+
+msgid "Unterstützung zurückgezogen."
+msgstr "Support withdrawn."
+
+msgid "Von der Mitwirkung ausgeschlossen (§ 4 Abs 6)."
+msgstr "Excluded from participation (§ 4 (6))."
+
+msgid "auf der ParlamentPlattform wurde ein neuer Antrag eingebracht:"
+msgstr "a new motion has been submitted on the ParlamentPlattform:"
+
+msgid "ganz Österreich"
+msgstr "all of Austria"
+
+msgid "Änderung der Anmeldeadresse offen — die Stimmabgabe ruht."
+msgstr "Change of login address pending — voting is paused."

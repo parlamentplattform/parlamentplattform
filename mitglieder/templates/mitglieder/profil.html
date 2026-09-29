@@ -57,8 +57,8 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="phasen-titel">{% translate "Nachrichten" %}</p>
   <p><span class="checkzeile">{{ form.post_einwilligung }} <label for="{{ form.post_einwilligung.id_for_label }}">{{ form.post_einwilligung.label }}</label></span></p>
   <button type="submit" class="btn">{% translate "Speichern" %}</button>
-  <p class="hilfe">{% translate "Mit Haken: eine E-Mail zu jedem neuen Antrag, der Ihre Region betrifft (Gemeinde, Bezirk, Bundesland, ganz Österreich), Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung." %}</p>
-  <p class="hilfe">{% translate "Ohne Haken: nur Anmelde-, Bestätigungs-, Freischaltungs- und Ausweisnachrichten — sie gehören zum Konto. Die Änderung wird ohne Wert im Audit-Log vermerkt." %}</p>
+  <p class="hilfe">{% if post_bund %}{% translate "Mit Haken: eine E-Mail zu neuen Anträgen, die Ihre Region betreffen (Gemeinde, Bezirk, Bundesland, ganz Österreich), Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung." %}{% else %}{% translate "Mit Haken: eine E-Mail zu neuen Anträgen, die Ihre Gemeinde, Ihren Bezirk oder Ihr Bundesland betreffen, Ergebnisse der Zukunftswerkstatt zu Ihren Anträgen und die Beitragserinnerung der Verwaltung." %}{% endif %}</p>
+  <p class="hilfe">{% translate "Ohne Haken: nur Anmelde- und Bestätigungslinks, Willkommens-, Freischaltungs- und Ausweisnachrichten, die Bestätigung eines Beitragseingangs, der Einspruchslink bei einem Adresswechsel und die Verständigung zu einer Vertrauensfrage über Ihr Mandat — sie gehören zum Konto. Die Änderung wird ohne Wert im Audit-Log vermerkt." %}</p>
 </div>
 </div>
 </form>

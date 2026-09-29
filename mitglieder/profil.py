@@ -311,6 +311,8 @@ def profil(request):
             "gemeinden": gemeinden_datalist(),
             "nebenwohnsitz_zaehlt": nebenwohnsitz_zaehlt(),
             "registerschluessel": REGISTERSCHLUESSEL,
+            # Die Karte „Nachrichten“ nennt ganz Österreich nur, solange Bundesanträge an alle gehen.
+            "post_bund": zahl("post-neuer-antrag-bund", 1) == 1,  # Literal: der Registerwächter liest den Aufruf
             "adresswechsel": Adresswechsel.offener(mitglied),
             # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüftem Nachweis
             **_ausweis_vorschau(mitglied),

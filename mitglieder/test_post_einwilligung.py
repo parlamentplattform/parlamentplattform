@@ -94,6 +94,30 @@ def test_profil_setzt_und_entfernt_den_haken_und_auditiert_nur_den_feldnamen(cli
     assert len(audit("profil", aktion="geaendert", mitglied=anna.pk)) == 2
 
 
+def test_profilkarte_nennt_jede_konto_nachricht_und_bundesantraege_nur_wenn_sie_kommen(client):
+    # „Ohne Haken: nur …“ muss vollständig sein; „Mit Haken“ nennt ganz Österreich nur, solange das
+    # Register Bundesanträge an alle schickt — und verspricht nicht „jeden“ Antrag.
+    import re
+
+    from parameter.models import Parameter
+
+    anna = mit_wohnsitz("anna")
+    client.force_login(anna)
+    seite = client.get(PROFIL).content.decode()
+    ohne = re.search(r"Ohne Haken: nur ([^<]*)</p>", seite).group(1)
+    for nachricht in ("Anmelde", "Bestätigungs", "Willkommens", "Freischaltungs", "Ausweis",
+                      "Beitragseingang", "Einspruchslink", "Vertrauensfrage"):
+        assert nachricht in ohne, nachricht
+    mit = re.search(r"Mit Haken: ([^<]*)</p>", seite).group(1)
+    assert "ganz Österreich" in mit and "Beitragserinnerung" in mit and "jedem" not in mit
+
+    Parameter.objects.update_or_create(
+        schluessel="post-neuer-antrag-bund", defaults={"wert": "0", "beschreibung": "Test", "quelle": "Test"}
+    )
+    mit = re.search(r"Mit Haken: ([^<]*)</p>", client.get(PROFIL).content.decode()).group(1)
+    assert "ganz Österreich" not in mit and "Bundesland" in mit and "Beitragserinnerung" in mit
+
+
 def test_datenexport_traegt_die_einwilligung_und_den_bezug_der_postauftraege(client, ordnung):  # noqa: F811
     anna = eingewilligt("anna")
     antrag = antrag_einbringen(mitglied_anlegen("bert"), **ANTRAG, ordnung=ordnung)

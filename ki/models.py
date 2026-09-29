@@ -198,16 +198,20 @@ def lauf_ausfuehren(
     )
 
 
-def einbettung_ausfuehren(texte: list[str], mitglied, antrag=None) -> tuple[KILauf, Einbettung]:
+def einbettung_ausfuehren(
+    texte: list[str], mitglied, antrag=None, zeitgrenze: float | None = None
+) -> tuple[KILauf, Einbettung]:
     """Textvektoren über den Steckplatz — derselbe Weg wie `lauf_ausfuehren`: Budget prüfen, einbetten,
     archivieren (Zweck „aehnlichkeit“). Das Archiv hält die Texte und die Zahl der Vektoren fest,
     nicht die Vektoren selbst — die gehören zu ihrem Antrag (`verfahren.AntragsEinbettung`).
+    `zeitgrenze` gibt der Anbieter-Verbindung eine eigene, kürzere Frist (Aufruf in einer Anfrage);
+    ohne sie gilt die des Steckplatzes.
     Wirft SteckplatzStumm, wenn der Steckplatz leer, das Budget erschöpft oder der Anbieter stumm ist."""
     anbieter = _anbieter_bereit()
     eingabe = "\n\n---\n\n".join(texte)
     beginn = time.monotonic()
     try:
-        einbettung = anbieter.einbetten(texte)
+        einbettung = anbieter.einbetten(texte, zeitgrenze=zeitgrenze)
     except AnbieterFehler as fehler:
         KILauf.objects.create(
             zweck=Zweck.AEHNLICHKEIT,

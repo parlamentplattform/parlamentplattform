@@ -9,7 +9,7 @@ Stellgrößen mit **sprachneutralen Kennungen** und **aggregierte Kennzahlen**. 
 verlassen eine Instanz nie.
 
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
-Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.48.0) — weicht die Datei
+Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.0) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ## 1. Grundsätze
@@ -30,7 +30,7 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
   "schema_version": "1.7",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
-  "software": {"name": "ParlamentPlattform", "version": "0.48.0",
+  "software": {"name": "ParlamentPlattform", "version": "0.50.0",
                "quelle": "https://github.com/parlamentplattform/parlamentplattform", "lizenz": "AGPL-3.0-or-later"},
   "exportiert_am": "2026-09-15T08:00:00+00:00"
 }

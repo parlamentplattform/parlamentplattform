@@ -691,6 +691,10 @@ def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtp
     def konto(name):
         return Mitglied.objects.get(username=name)
 
+    def mittig(p, selektor):
+        """Die Karte in die Bildschirmmitte — am Anker läge ihr Kopf unter App- und Reiterleiste."""
+        p.evaluate(f"() => document.querySelector({selektor!r}).scrollIntoView({{block: 'center', behavior: 'instant'}})")
+
     def zeige(p, name, selektor, js=True):
         """Mit JavaScript das Element allein; ohne JavaScript den Bildschirm um das Element herum — die
         Stabilitätsprüfung eines Element-Bildes hängt ohne Skript der Seite."""
@@ -758,6 +762,7 @@ def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtp
     # ── 1e: Karte „Abstimmen“ — verdeckt wie heute; zur Ansicht eine Ordnung mit Schalter 1 ──
     p = seite(als=konto("demo1"))
     p.goto(f"{live_server.url}/antrag/{testlauf.pk}/#abstimmen")
+    mittig(p, "#abstimmen")
     halte_element(p, "abstimmen-beteiligung-verdeckt-desktop", "#abstimmen")
 
     offen = Verfahrensordnung.objects.create(
@@ -779,6 +784,7 @@ def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtp
     for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
         p = seite(als=konto("demo5"), dunkel=dunkel, viewport=viewport)
         p.goto(f"{live_server.url}/antrag/{ansicht.pk}/#abstimmen")
+        mittig(p, "#abstimmen")
         halte_element(p, f"abstimmen-tendenz-schalter-eins-{suffix}", "#abstimmen")
 
     # ── 1e/1f: Eingefrorene Regeln mit Tendenz und Anwartschaft ─────────────────────────────

@@ -948,18 +948,16 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
     ]
 
 
-def _lesbarer_lauf(antrag):
-    """Der jüngste erfolgreiche Lauf zu diesem Antrag, den ein Mensch liest. Textvektoren
-    (Zweck „aehnlichkeit“) sind kein solcher Lauf — sie zählen weder als „Stand“ der Kopfkarte
-    noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
+def _lesbarer_lauf(antrag, zweck=None):
+    """Der jüngste erfolgreiche Lauf zu diesem Antrag, den ein Mensch liest — mit `zweck` nur
+    Läufe dieses Zwecks. Textvektoren (Zweck „aehnlichkeit“) sind kein solcher Lauf — sie zählen
+    weder als „Stand“ der Kopfkarte noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
     from ki.models import KILauf, Zweck
 
-    return (
-        KILauf.objects.filter(antrag=antrag, erfolgreich=True)
-        .exclude(zweck=Zweck.AEHNLICHKEIT)
-        .order_by("-erstellt_am")
-        .first()
-    )
+    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).exclude(zweck=Zweck.AEHNLICHKEIT)
+    if zweck is not None:
+        laeufe = laeufe.filter(zweck=zweck)
+    return laeufe.order_by("-erstellt_am").first()
 
 
 def _einschaetzung(antrag, betrachter=None):
@@ -968,9 +966,11 @@ def _einschaetzung(antrag, betrachter=None):
     Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
     ehrlich, dass noch nichts vorliegt."""
     from ki.anbieter import anbieter_waehlen
+    from ki.models import Zweck
     from ki.rechtsbezug import rechtsbezug_lage
 
-    lauf = _lesbarer_lauf(antrag)
+    # Kopfkarte und Gremien-Fenster zeigen nur die Einschätzung; der Rechtsbezug hat seine eigene Karte.
+    lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
     anbieter = anbieter_waehlen()
     return {
         "lauf": lauf,

@@ -136,6 +136,35 @@ def test_textvektoren_zaehlen_nicht_als_stand_der_einschaetzung(client, settings
     assert "noch kein Lauf" in inhalt and "attrappe-einbettung-1" not in inhalt
 
 
+def test_rechtsbezug_ist_keine_einschaetzung_der_kopfkarte(client, json_attrappe, ordnung):  # noqa: F811
+    """Der Rechtsbezug hat seine eigene Karte; Kopfkarte „Stand“/„Lauf“ und das Skelett „Was hier
+    stehen wird“ gehören der Einschätzung — solange keine vorliegt, bleibt das Skelett stehen."""
+    from ki.models import lauf_ausfuehren
+    from verfahren.views import _einschaetzung
+
+    antrag = _antrag(ordnung)
+    einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
+    abarbeiten()
+    assert _einschaetzung(antrag)["lauf"] is None
+    inhalt = _seite(client, antrag)
+    assert "Parteiengesetz 2012" in inhalt  # die eigene Karte „Betroffene Gesetze“
+    assert "noch kein Lauf" in inhalt and "Was hier stehen wird" in inhalt
+    lauf = lauf_ausfuehren(Zweck.EINSCHAETZUNG, "Auftrag", "Text.", antrag.eingebracht_von, antrag=antrag)
+    assert _einschaetzung(antrag)["lauf"] == lauf
+
+
+def test_gremien_fenster_zeigt_den_rechtsbezug_nicht_als_einschaetzung(client, json_attrappe, ordnung):  # noqa: F811
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _, er = werkstatt_lage(ordnung)
+    einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
+    abarbeiten()
+    fenster_oeffnen(client, antrag, er[0])
+    inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
+    assert "Zu diesem Antrag liegt keine Einschätzung vor." in inhalt
+    assert "&quot;normen&quot;" not in inhalt and '"normen"' not in inhalt
+
+
 def test_beanstandung_trifft_nie_den_textvektor_lauf(client, json_attrappe, ordnung):  # noqa: F811
     """§ 6 Abs 11 lit b: Beanstandet wird ein Lauf, den ein Mensch liest — nach „Trotzdem einbringen“
     rechnet die Warteschlange Rechtsbezug und Textvektor; der jüngere Vektor-Lauf ist nie das Ziel."""

@@ -4036,9 +4036,6 @@ msgstr "Administration only"
 msgid "Dieser Bereich steht Admins der Mitgliederverwaltung offen. Admins werden von\nbestehenden Admins ernannt; jede Ernennung steht im öffentlichen Audit-Log."
 msgstr "This area is open to admins of the membership administration. Admins are appointed by\nexisting admins; every appointment appears in the public audit log."
 
-msgid "Zugang nur für Admins. Jede Handlung hier wird im öffentlichen\nAudit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten."
-msgstr "Access for administrators only. Every action taken here is recorded in the public\naudit log — with action and reason, without personal data."
-
 msgid "Beiträge &amp; Bank →"
 msgstr "Fees &amp; bank →"
 
@@ -8564,3 +8561,14 @@ msgstr "the last checked entry was changed or removed"
 
 msgid "zur Stelle"
 msgstr "go to the entry"
+
+msgid "<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal täglich geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen."
+msgstr "<strong>GitHub, Inc.</strong> (backup copies): once a day a copy of the whole database — without login sessions and login links — goes to a private repository of the party at GitHub. The copy is not encrypted. GitHub is a US company."
+
+msgid "Sicherungskopien der Datenbank bleiben 90 Tage, die vom Monatsersten 365 Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind."
+msgstr "Backup copies of the database are kept for 90 days, those from the first of each month for 365 days; for that long they also contain details that were already cleared in the database after a member left."
+
+msgid ""
+"Zugang nur für Admins. Jede Handlung hier steht im Audit-Log; öffentlich\n"
+"erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu einer Person."
+msgstr "Admins only. Every action here is recorded in the audit log; publicly shown is the action, not the membership number and not a reason concerning a person."

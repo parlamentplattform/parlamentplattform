@@ -3,8 +3,8 @@
 {% block titel %}{% translate "Mitgliederverwaltung" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Mitgliederverwaltung" %}</h1>
-<p>{% blocktranslate %}Zugang nur für Admins. Jede Handlung hier wird im öffentlichen
-Audit-Log festgehalten — mit Aktion und Begründung, ohne persönliche Daten.{% endblocktranslate %}
+<p>{% blocktranslate %}Zugang nur für Admins. Jede Handlung hier steht im Audit-Log; öffentlich
+erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu einer Person.{% endblocktranslate %}
 <a href="{% url 'mitglieder:verwaltung_beitraege' %}">{% translate "Beiträge &amp; Bank →" %}</a> ·
 <a href="{% url 'anstoss:verwaltung' %}">{% translate "Anstöße →" %}</a> ·
 <a href="{% url 'mandatare:verwaltung' %}">{% translate "Mandatare →" %}</a> ·

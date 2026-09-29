@@ -1,4 +1,4 @@
-"""Verfahrensbezüge überleben jede Kontoänderung (Bestandsaufnahme A10, Schritt 2 · 0.52.0).
+"""Verfahrensbezüge überleben jede Kontoänderung (Bestandsaufnahme A9, Schritt 2 · 0.52.0).
 
 Unterstützung, StimmRegister (Brücke Mitglied ↔ Pseudonym) und Reaktion hängen jetzt mit PROTECT am
 Konto wie alle übrigen Verfahrensbezüge. Nur die Löschregel ändert sich, keine Zeile.

@@ -1,4 +1,4 @@
-"""Verfahrensbezüge überleben jede Kontoänderung (Bestandsaufnahme A10, Schritt 2 · 0.52.0).
+"""Verfahrensbezüge überleben jede Kontoänderung (Bestandsaufnahme A9, Schritt 2 · 0.52.0).
 
 Kein Code löscht ein Mitglied — der Austritt anonymisiert (§ 8 Abs 4). Wer es doch versucht (Shell,
 ein künftiger Admin-Pfad), darf Unterstützungen, die Brücke Mitglied ↔ Pseudonym und die Reaktionen im

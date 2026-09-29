@@ -31,8 +31,8 @@ abhakbar; die Reihenfolge ist die empfohlene.
 
 ## 4. Betrieb
 
-- [ ] **Sicherung:** tägliches Datenbank-Backup, verschlüsselt, im eigenen Land; Wiederherstellung einmal geprobt.
-- [ ] **Audit-Log** und **Umsetzungsregister** öffentlich erreichbar (`/umsetzung/`, `/umsetzung.json`).
+- [ ] **Sicherung:** tägliches Datenbank-Backup, verschlüsselt, im eigenen Land; Wiederherstellung einmal geprobt (Vorlage: `.github/workflows/sicherung.yml`, `tools/sicherung.sh`, ADR-012 — die DDÖ sichert unverschlüsselt in ein privates Repository, siehe dort den Preis).
+- [ ] **Audit-Log** und **Umsetzungsregister** öffentlich erreichbar (`/audit/`, `/audit.json`, `/umsetzung/`, `/umsetzung.json`); `manage.py audit_pruefen --voll` meldet die Kette intakt.
 - [ ] **Exporte prüfen:** `https://<domain>/parameter.json` und `/kennzahlen.json` — Schema-Version mit derselben Hauptversion wie in `SCHEMA.md` (heute 1.10, maßgeblich ist `plattform_core/schema.py: SCHEMA_VERSION`), richtige `system_id`, keine personenbezogenen Felder (`SCHEMA.md`).
 - [ ] **Freigaben nachziehen:** vierteljährlich `git pull` von `main` (grüne CI = Freigabe), `migrate`, `gemeinden_laden`, `kategorien_laden`, Änderungsprotokoll lesen; Landeserweiterungen als PR in den Kern, wenn sie parametrisierbar sind.
 - [ ] **Plattform-Rat:** Ansprechperson benennen, Termin des ersten Abgleichs eintragen.

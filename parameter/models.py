@@ -429,7 +429,7 @@ ERSTBESTAND = [
         "gruppe": "kacheln",
         "beschreibung": gettext_noop("Wie viele Einträge das öffentliche Audit-Log je Seite zeigt, neueste zuerst; "
         "ebenso je Abruf von /audit.json. Zwischen 10 und 500."),
-        "quelle": "§ 5 Abs 8 · Bestandsaufnahme 28.9.2026 (A7)",
+        "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
     },
     {
         "schluessel": "ki-antwort-hoechsttokens",
@@ -748,7 +748,7 @@ ERSTBESTAND = [
         "beschreibung": gettext_noop("Nach wie vielen Tagen die tägliche Prüfung der Audit-Kette wieder die ganze "
         "Kette von vorn nachrechnet. Dazwischen rechnet sie nur die neuen Einträge nach und prüft, dass der "
         "zuletzt geprüfte unverändert ist. Wirkt beim nächsten Lauf."),
-        "quelle": "§ 5 Abs 8 · Bestandsaufnahme 28.9.2026 (A7)",
+        "quelle": "§ 3 Abs 1 lit c · § 5 Abs 8",
     },
 ]
 

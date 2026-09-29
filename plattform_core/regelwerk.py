@@ -403,7 +403,7 @@ REGELN: tuple[Regel, ...] = (
             _("Seit 0.52.0 (29.9.2026) rechnet die Plattform die Kette auch nach: täglich die neuen Einträge "
             "samt dem zuletzt geprüften, in einem Abstand aus dem Parameterregister die ganze Kette von vorn; "
             "Ergebnis und Hash des letzten geprüften Eintrags stehen öffentlich in den Kennzahlen "
-            "(Bestandsaufnahme A7). Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. ")
+            ". Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. ")
             + _("Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
             "„Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand "
             "nachprüfen würde (ADR-005).")

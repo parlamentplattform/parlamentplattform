@@ -4,7 +4,9 @@
 {% block inhalt %}
 <h1>{% translate "Ihre Mitwirkungsrechte ruhen derzeit" %}</h1>
 <div class="karte">
-{% if pausiert %}
+{% if testkonto %}
+<p>{% translate "Testkonto — ohne Mitwirkung." %}</p>
+{% elif pausiert %}
 <p>{% blocktranslate %}Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 Abs 3).
 Lesen und Anmelden bleiben selbstverständlich möglich — einbringen, unterstützen,
 beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist.{% endblocktranslate %}</p>

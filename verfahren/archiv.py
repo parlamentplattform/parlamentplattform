@@ -299,7 +299,7 @@ def archiv(antrag) -> dict:
             "phase": antrag.phase,
             "phase_name": phasenname(antrag.phase),
             "eingebracht_am": antrag.eingebracht_am.isoformat(),
-            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         },
         "fassungen": fassungen,
         "zeitleiste": zeitleiste(antrag, alles=True),

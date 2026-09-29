@@ -352,7 +352,7 @@ class Antrag(models.Model):
             from gremien.models import aussetzungen_fortschreiben
 
             aussetzungen_fortschreiben(jetzt)
-        unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count()
+        unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
         vf = self._vertrauensfrage()
         if vf is not None and phase is Phase.UNTERSTUETZUNG and vf.schwelle_erreicht_am is None:
             # § 7 Abs 10 lit c: Das Erreichen der Schwelle wird veröffentlicht — der Zeitpunkt ist der
@@ -610,7 +610,8 @@ class Unterstuetzung(models.Model):
     """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
     Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug
     als Zeile stehen (`zurueckgezogen_am`, Grundregel 7) statt gelöscht zu werden (Befund #27).
-    Gezählt wird nur, was nicht zurückgezogen ist: `gueltige()`."""
+    Gezählt wird nur, was nicht zurückgezogen ist und nicht von einem Testkonto stammt: `gueltige()`
+    (Testkonten stehen in keinem Nenner, also auch in keinem Zähler)."""
 
     antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="unterstuetzungen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -631,8 +632,8 @@ class Unterstuetzung(models.Model):
 
     @classmethod
     def gueltige(cls):
-        """Die Unterstützungen, die zählen — ohne die zurückgezogenen."""
-        return cls.objects.filter(zurueckgezogen_am__isnull=True)
+        """Die Unterstützungen, die zählen — ohne die zurückgezogenen und ohne die von Testkonten."""
+        return cls.objects.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False)
 
 
 class Stimmabgabe(models.Model):

@@ -125,7 +125,7 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied) -> Ergebnis:
                 "antrag": antrag,
                 "prozent": round(wort * 100),
                 "bedeutung_prozent": round(bedeutung * 100) if bedeutung is not None else None,
-                "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True).count(),
+                "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
                 "normen": rechtsbezug["normen"] if rechtsbezug else [],
                 "rechtsbezug": rechtsbezug,
             }

@@ -76,7 +76,6 @@ def test_fehler_im_lauf_stehen_in_der_zeile_und_toeten_den_faden_nicht():
     assert zeile.fehler.startswith("RuntimeError") and zeile.sperrcode == "" and zeile.zuletzt_beendet
 
 
-
 OPTIONEN = [{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}]
 
 
@@ -111,6 +110,28 @@ def test_ein_kaputter_antrag_haelt_die_uebrigen_und_die_nachlaeufe_nicht_an(lieg
     assert not beschluss.offen
     assert kaputt.phase == Phase.BERATUNG.value
     assert lauf.zuletzt_stand["fehler"] == 1 and lauf.fehler == ""
+
+
+def test_ein_spaeterer_fehler_nimmt_den_frueheren_uebergang_nicht_zurueck(liegengeblieben, monkeypatch):
+    """Wie auf der Antragsseite steht jeder Übergang für sich: Scheitert erst der zweite Schritt,
+    bleibt der erste (Beratung → Abstimmung) geschrieben — sonst rollte jeder Takt ihn wieder zurück."""
+    from verfahren.management.commands.verfahren_fortschreiben import alles_fortschreiben
+
+    echt = Antrag.fortschreiben
+    aufrufe = []
+
+    def zweiter_wirft(self, jetzt=None):
+        if self.pk == liegengeblieben.pk:
+            aufrufe.append(self.pk)
+            if len(aufrufe) > 1:
+                raise RuntimeError("zweiter Schritt gescheitert")
+        return echt(self, jetzt)
+
+    monkeypatch.setattr(Antrag, "fortschreiben", zweiter_wirft)
+    stand = alles_fortschreiben()
+    liegengeblieben.refresh_from_db()
+    assert liegengeblieben.phase == Phase.ABSTIMMUNG.value
+    assert stand["fehler"] == 1 and len(aufrufe) == 2
 
 
 def test_ein_werfender_nachlauf_haelt_die_folgenden_nicht_an(monkeypatch):

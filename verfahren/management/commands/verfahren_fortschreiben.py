@@ -26,10 +26,10 @@ LAUFENDE_PHASEN = (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTI
 def alles_fortschreiben(jetzt=None) -> dict[str, int]:
     """Fristen, Entwurfsschleife, Gremienbeschlüsse, Aussetzungen und Parametertests auswerten.
 
-    Ein Fehler trifft nur das Verfahren, in dem er entsteht: Jeder Antrag läuft in seiner eigenen
-    Transaktion, jeder Nachlauf für sich; der Fehler steht im Protokoll und in `stand["fehler"]`,
-    der Lauf geht weiter. Ohne diese Grenze hielt ein einziger werfender Antrag bei jedem Takt
-    alle Anträge mit größerer Kennung und sämtliche Nachläufe an."""
+    Ein Fehler trifft nur das Verfahren, in dem er entsteht: Jeder Schritt eines Antrags läuft in
+    seiner eigenen Transaktion, jeder Nachlauf für sich; der Fehler steht im Protokoll und in
+    `stand["fehler"]`, der Lauf geht weiter. Ohne diese Grenze hielt ein einziger werfender Antrag
+    bei jedem Takt alle Anträge mit größerer Kennung und sämtliche Nachläufe an."""
     jetzt = jetzt or timezone.now()
     stand = {
         "phasenwechsel": 0,
@@ -42,18 +42,18 @@ def alles_fortschreiben(jetzt=None) -> dict[str, int]:
     for antrag in Antrag.objects.filter(phase__in=LAUFENDE_PHASEN).order_by("pk"):
         # Einmal je Antrag genügt nicht immer: Wertet die Entwurfsschleife aus, ist danach
         # vielleicht schon der Phasenübergang fällig — so lange fortschreiben, bis nichts mehr passiert.
-        wechsel = 0
+        # Jeder Schritt in seiner eigenen Transaktion, wie auf der Antragsseite: Scheitert ein
+        # späterer Schritt, bleibt ein früherer, fälliger Übergang geschrieben.
         try:
-            with transaction.atomic():
-                for _schritt in range(5):
-                    if not antrag.fortschreiben(jetzt):
-                        break
-                    wechsel += 1
+            for _schritt in range(5):
+                with transaction.atomic():
+                    weiter = antrag.fortschreiben(jetzt)
+                if not weiter:
+                    break
+                stand["phasenwechsel"] += 1
         except Exception:
             log.exception("Fortschreiben von Antrag %s gescheitert", antrag.pk)
             stand["fehler"] += 1
-            continue
-        stand["phasenwechsel"] += wechsel
     nachlaeufe = []
     if apps.is_installed("gremien"):
         from gremien import models as gremien

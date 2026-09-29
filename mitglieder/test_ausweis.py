@@ -59,12 +59,11 @@ def geprueftes_mitglied(name="anna", **extra):
 
 
 def audit(typ):
-    """Die Ereignisse eines Typs ohne den Zeitstempel, den `anhaengen` selbst dazuschreibt."""
-    return [
-        {k: v for k, v in e.ereignis.items() if k != "zeit"}
-        for e in AuditEintrag.objects.all()
-        if e.ereignis.get("typ") == typ
-    ]
+    """Die Ereignisse eines Typs ohne Zeitstempel und Salz, die `anhaengen` selbst dazuschreibt (das Salz seit
+    0.52.0 bei Ereignissen mit Mitgliedsnummer — es macht ihre Schwärzung auf /audit/ unumkehrbar)."""
+    ereignisse = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") == typ]
+    assert all("salz" in e for e in ereignisse if "mitglied" in e)
+    return [{k: v for k, v in e.items() if k not in ("zeit", "salz")} for e in ereignisse]
 
 
 def stroeme(pdf: bytes) -> list[bytes]:

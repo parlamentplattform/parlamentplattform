@@ -84,6 +84,25 @@ def test_fokus_aus_der_adresse_mit_javascript_verlassen_stellt_das_raster_her(se
     assert p.locator("#feld-filter").bounding_box()["height"] > 100
 
 
+def test_am_handy_gibt_es_keinen_fokus_modus(seite, live_server, demo):
+    """Unter 760 px ist jedes Feld ein Bildschirm und der Knopf ⤢/⤡ fehlt: Wer auf dem Desktop fokussiert
+    und dann dreht oder verkleinert, sieht wieder alle Felder; ohne JavaScript wirkt ?fokus= dort nicht."""
+    p = seite(als=_mitglied())
+    p.goto(f"{live_server.url}/parlament/")
+    _ruhe(p)
+    p.locator("#feld-filter .fokus-knopf").click()
+    _ruhe(p)
+    assert _sichtbare(p) == ["filter"]
+    p.set_viewport_size({"width": 390, "height": 844})
+    p.wait_for_function("() => !document.querySelector('.parlament').classList.contains('fokus')")
+    assert _sichtbare(p) == list(FELDER)
+    assert p.evaluate("sessionStorage.getItem('ddoe.fokus')") is None
+    g = seite(js=False, viewport={"width": 390, "height": 844})
+    g.goto(f"{live_server.url}/parlament/?fokus=wichtig")
+    g.wait_for_timeout(600)
+    assert _sichtbare(g) == list(FELDER)
+
+
 def test_ohne_javascript_rendert_fokus_ein_feld_und_der_link_fuehrt_zurueck(seite, live_server, demo):
     p = seite(js=False)
     p.goto(f"{live_server.url}/parlament/?fokus=wichtig")

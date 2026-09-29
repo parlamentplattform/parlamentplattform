@@ -169,7 +169,10 @@ document.addEventListener("alpine:init", function () {
         var wartet = null;  // Einpassen erst, wenn die Größenänderung zur Ruhe kommt
         window.addEventListener("resize", function () {
           clearTimeout(wartet);
-          wartet = setTimeout(function () { self.faecherEinpassen(); }, 80);
+          wartet = setTimeout(function () {
+            if (self.fokus && self.schmal()) self.alleFelder();  // am Handy kein Fokus-Modus (Drehen, Verkleinern)
+            self.faecherEinpassen();
+          }, 80);
         });
         this.fokusStart(fokusServer || "");
         this.faecherEinpassen();

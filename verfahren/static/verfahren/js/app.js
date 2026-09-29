@@ -180,6 +180,9 @@ document.addEventListener("alpine:init", function () {
           if (!konfig || !ausloeser || !ausloeser.closest) return;
           if (konfig.verb === "get" && ausloeser.classList.contains("treffer-link")) { self.treffer(); return; }
           if (konfig.verb !== "post" || !e.detail.successful) return;
+          // Auch eine gescheiterte Handlung endet mit 200 (Redirect samt Fehlerhinweis) — dann kein Haken
+          var feld = e.detail.elt;
+          if (feld && feld.querySelector && feld.querySelector(".feld-hinweis.fehler")) return;
           var quelle = ausloeser.closest(".kachel, .fz");
           if (!quelle || !quelle.dataset.antrag) return;
           self.markiere(quelle.dataset.antrag, e.detail.elt);

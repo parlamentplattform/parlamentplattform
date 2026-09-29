@@ -387,16 +387,11 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
         eintraege = reversed(list(eintraege.order_by("-lfd")[:grenze]))
     else:
         eintraege = eintraege.order_by("lfd")
-    return [
-        {
-            "lfd": eintrag.lfd,
-            "typ": eintrag.ereignis.get("typ", ""),
-            "zeit": eintrag.zeit.isoformat(),
-            "hash": eintrag.hash[:12],
-            "grund": eintrag.ereignis.get("grund", ""),
-        }
-        for eintrag in eintraege
-    ]
+    # Voller Hash, Vorgänger und Inhalt (Bestandsaufnahme A7, 0.52.0): Jeder ungekürzte Eintrag lässt sich
+    # mit verify/nachrechnen.py einzeln nachrechnen; bis 0.51 trug der Export nur `hash[:12]`.
+    from verfahren.audit_oeffentlich import eintrag_oeffentlich
+
+    return [eintrag_oeffentlich(eintrag) for eintrag in eintraege]
 
 
 def audit_anzahl(antrag) -> int:

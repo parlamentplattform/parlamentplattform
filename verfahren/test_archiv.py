@@ -82,7 +82,8 @@ def test_audit_spur_nennt_nur_diesen_antrag(ordnung):  # noqa: F811
     antrag, _leute, _wurzel = _lage(ordnung)
     zweiter = _antrag(ordnung, mitglied_anlegen("andere"))
     spur = archivkern.audit_spur(antrag)
-    assert spur and all(len(e["hash"]) == 12 for e in spur)
+    # Voller Hash samt Vorgänger seit 0.52.0 (Bestandsaufnahme A7) — bis dahin nur die ersten zwölf Zeichen
+    assert spur and all(len(e["hash"]) == 64 and len(e["vorgaenger"]) == 64 for e in spur)
     assert any(e["typ"] == "phasenwechsel" for e in spur)
     assert archivkern.audit_spur(zweiter) != spur
 

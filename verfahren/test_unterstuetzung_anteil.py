@@ -89,10 +89,12 @@ def test_antragsseite_legt_die_herkunft_der_schwelle_offen(client, ordnung):
     assert "25 Unterstützungen" in html and "50 % der 50 am Einbringungstag Stimmberechtigten, mindestens 3" in html
 
 
-def test_register_fuehrt_den_anteil_mit_erstbestand_50():
+def test_register_fuehrt_den_anteil_mit_erstbestand_5():
+    """Entscheidung des Gründers 29.9.2026: fünf Prozent mit Mindestzahl drei (zuvor 50 %)."""
     erstbestand_sicherstellen()
     eintrag = Parameter.objects.get(schluessel="verfahren-unterstuetzung-anteil-prozent")
-    assert eintrag.wert == "50" and eintrag.schema_key == "support.threshold_share_percent"
+    assert eintrag.wert == "5" and eintrag.schema_key == "support.threshold_share_percent"
+    assert Parameter.objects.get(schluessel="verfahren-unterstuetzung-schwelle").wert == "3"
 
 
 def test_ordnung_aus_dem_register_traegt_den_anteil(client, ordnung):
@@ -102,4 +104,4 @@ def test_ordnung_aus_dem_register_traegt_den_anteil(client, ordnung):
 
     erstbestand_sicherstellen()
     neu = aus_register(_register_werte(), "sachantrag-standard", 5)
-    assert neu.unterstuetzung_anteil == 0.5 and neu.unterstuetzung_schwelle == 3
+    assert neu.unterstuetzung_anteil == 0.05 and neu.unterstuetzung_schwelle == 3

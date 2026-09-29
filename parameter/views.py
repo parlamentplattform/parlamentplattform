@@ -262,7 +262,8 @@ def _gleich(links, rechts) -> bool:
 #: Menschen wenig, und der Registerschlüssel daneben sagt etwas anderes als der Wert: Bei der
 #: Mindestbeteiligung führt das Register 5 (Prozent), die Ordnung 0,05 (Anteil).
 FELD_NAMEN = {
-    "unterstuetzung_schwelle": "Unterstützungen bis zur Schwelle",
+    "unterstuetzung_schwelle": "Unterstützungen bis zur Schwelle (Mindestzahl)",
+    "unterstuetzung_anteil": "Unterstützungsschwelle als Anteil der Stimmberechtigten (0 = aus)",
     "unterstuetzung_frist_tage": "Frist der Unterstützungsphase (Tage)",
     "beratung_tage": "Dauer der Beratung (Tage)",
     "abstimmung_tage": "Dauer der Abstimmung (Tage)",

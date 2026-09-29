@@ -896,8 +896,16 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             (_("Mehrheit"), mehrheit),
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
+    schwelle = ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle
+    if policy.unterstuetzung_anteil > 0:
+        # Fassung 4 der Ordnung: die Zahl kam aus einem Anteil der Stimmberechtigten am Einbringungstag.
+        schwelle += " · " + _("%(prozent)s %% der %(n)s am Einbringungstag Stimmberechtigten, mindestens %(min)s") % {
+            "prozent": f"{policy.unterstuetzung_anteil * 100:g}",
+            "n": policy.unterstuetzung_grundgesamtheit,
+            "min": policy.unterstuetzung_mindestzahl,
+        }
     return [
-        (_("Unterstützungsschwelle"), ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle),
+        (_("Unterstützungsschwelle"), schwelle),
         (_("Frist zum Unterstützen"), ngettext("%d Tag", "%d Tage", policy.unterstuetzung_frist_tage) % policy.unterstuetzung_frist_tage),
         (_("Beratung"), ngettext("%d Tag", "%d Tage", policy.beratung_tage) % policy.beratung_tage),
         (_("Abstimmung"), ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage),

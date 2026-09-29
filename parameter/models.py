@@ -415,6 +415,17 @@ ERSTBESTAND = [
         "quelle": "§ 5 Abs 3 lit b",
     },
     {
+        "schluessel": "verfahren-unterstuetzung-anteil-prozent",
+        "wert": "50",
+        "einheit": gettext_noop("Prozent"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten; "
+        "0 schaltet den Anteil ab. Die Zahl aus „Unterstützungen bis zur Schwelle“ bleibt die Mindestzahl. "
+        "Beim Einbringen wird die konkrete Zahl gerechnet und am Antrag eingefroren; wirksam wird der Wert "
+        "mit der nächsten in Kraft gesetzten Fassung der Verfahrensordnung."),
+        "quelle": "§ 5 Abs 3 lit b · Anweisung des Gründers 29.9.2026: „wir fangen mit 50 % an“",
+    },
+    {
         "schluessel": "verfahren-unterstuetzung-tage",
         "wert": "60",
         "einheit": gettext_noop("Tage"),

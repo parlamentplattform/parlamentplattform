@@ -7865,3 +7865,6 @@ msgstr "Once your account is activated, you can vote without an additional waiti
 
 msgid "Über inhaltliche Vorschläge können Sie %(sachfragen)s abstimmen. An Personenwahlen und Abstimmungen über Änderungen der Satzung oder die Auflösung der Partei können Sie %(personenwahlen)s teilnehmen. Die unterschiedlichen Starttermine ergeben sich aus den Wartefristen ab Ihrem Beitritt."
 msgstr "You can vote on substantive proposals %(sachfragen)s. You can participate in elections and votes on changes to the statutes or dissolution of the party %(personenwahlen)s. The different start dates reflect the waiting periods from the date you joined."
+
+msgid "%(prozent)s %% der %(n)s am Einbringungstag Stimmberechtigten, mindestens %(min)s"
+msgstr "%(prozent)s %% of the %(n)s members eligible to vote on the day of submission, at least %(min)s"

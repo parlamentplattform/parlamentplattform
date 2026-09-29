@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.6** (15.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.7** (29.9.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -27,7 +27,7 @@ vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
 
 ```json
 {
-  "schema_version": "1.6",
+  "schema_version": "1.7",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
   "software": {"name": "ParlamentPlattform", "version": "0.48.0",
@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.6, 45 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.7, 46 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -115,6 +115,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `soft_filter.rule_version` | `weicherfilter-regel` | rule version | Version of the member-controlled ordering rule (nine sliders, neutral by default) |
 | `support.review_days` | `gremien-review-tage` | days | Days the supporters have to accept a draft or return it with a concrete wish (draft loop) |
 | `support.threshold` | `verfahren-unterstuetzung-schwelle` | supporters | Number of supporters a motion needs to enter deliberation |
+| `support.threshold_share_percent` | `verfahren-unterstuetzung-anteil-prozent` | percent | Support threshold as a share of the members eligible to vote on the day of submission (0 = off; `support.threshold` stays the minimum); the resulting number is frozen into the motion |
 | `support.window_days` | `verfahren-unterstuetzung-tage` | days | Days a motion has to reach the support threshold |
 | `tiles.completed` | `kacheln-abgeschlossen` | entries | How many completed procedures appear in the feed |
 | `tiles.highlighted` | `kacheln-hervorgehoben` | tiles | How many highlighted votes the important-votes field shows |
@@ -175,7 +176,7 @@ Einbringen in die Ordnung des Antrags eingefroren.
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.6, 7 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.7, 7 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -224,3 +225,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.4 | 11.9.2026 | 0.45.0 | `overview.decided_votes`, `chat.thread_roots`, `council.decisions_per_page`, `account.email_change_waiting_hours` |
 | 1.5 | 12.9.2026 | 0.46.0 | `mandate.question_vote_window_days` (Dauer der Abstimmung über eine Mandatsfrage, § 7 Abs 9), `mandate.monthly_report_grace_days` (Karenz des Monatsberichts, § 7 Abs 3 lit b), `region.secondary_residence_counts` (Schalter 0/1, § 5 Abs 6 — nie Stimmrecht). Diese Datei vollständig auf den Code gebracht: Die Tabelle stand seit 1.0 unverändert bei 12 Kennungen und trug die drei in 1.1 umbenannten noch unter ihren alten Namen; der Verlauf nannte 1.1 bis 1.3 nicht |
 | 1.6 | 15.9.2026 | 0.48.0 | `mandate.confidence_support_days` (Sammelfrist der Vertrauensfrage, höchstens 30 Tage, § 7 Abs 10 lit c), `mandate.confidence_vote_window_days` (Dauer der Abstimmung über eine Vertrauensfrage, mindestens 7 Tage, § 7 Abs 10 lit e). Beide werden beim Einbringen in die Ordnung des Antrags eingefroren; die Ordnung selbst (Fassung 3) bekam dafür drei Vorgabefelder, die nicht im Export je Fassung stehen (3.2). Keine Kennung für den regionalen Weg nach § 7 Abs 10 lit c: Die Plattform führt keine Gliederungen |
+| 1.7 | 29.9.2026 | 0.50.0 | `support.threshold_share_percent` (Unterstützungsschwelle als Anteil der am Einbringungstag Stimmberechtigten, Mindestzahl bleibt `support.threshold`; die gerechnete Zahl und die Grundgesamtheit stehen im eingefrorenen Schnappschuss des Antrags, Ordnung Fassung 4) |

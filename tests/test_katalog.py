@@ -32,7 +32,7 @@ GETTEXT_NAMEN = {
     "_", "gettext", "gettext_lazy", "gettext_noop", "ngettext", "ngettext_lazy",
     "pgettext", "pgettext_lazy", "npgettext", "npgettext_lazy",
 }
-AUSGESCHLOSSENE_TEILE = {".venv", "venv", "node_modules", "__pycache__", "docs", "_to_delete"}
+AUSGESCHLOSSENE_TEILE = {".venv", "venv", "node_modules", "__pycache__", "docs", "_to_delete", ".claude"}
 
 #: Katalogeinträge ohne Fundstelle im Code, die trotzdem bleiben — mit Grund.
 BEWUSST_OHNE_FUNDSTELLE = {

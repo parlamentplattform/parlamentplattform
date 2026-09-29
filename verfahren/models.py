@@ -861,6 +861,32 @@ def antrag_einbringen(
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren.
     `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70)."""
     policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
+    stimmberechtigte = None
+    if policy.unterstuetzung_anteil > 0 and not policy.beratung_entfaellt:
+        # Fassung 4 der Ordnung: Die Schwelle ist ein Anteil der Stimmberechtigten. Gerechnet wird
+        # am Einbringungstag mit derselben Zählung wie der Nenner einer Abstimmung, und die Zahl
+        # wird samt Grundgesamtheit eingefroren — eine spätere Änderung des Mitgliederstands oder
+        # des Registers ändert diesen Antrag nicht mehr (§ 5 Abs 5).
+        from dataclasses import replace
+
+        from django.conf import settings as dj_settings
+
+        from mitglieder.models import stimmberechtigte_zaehlen
+        from plattform_core import Gegenstand
+        from plattform_core.policy import unterstuetzungsschwelle
+
+        gegenstand = Gegenstand.PERSONENWAHL if Antragsart(art) == Antragsart.MANDAT else Gegenstand.SACHFRAGE
+        stimmberechtigte = stimmberechtigte_zaehlen(
+            gegenstand, timezone.localdate(), uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
+        )
+        policy = replace(
+            policy,
+            unterstuetzung_schwelle=unterstuetzungsschwelle(
+                policy.unterstuetzung_schwelle, policy.unterstuetzung_anteil, stimmberechtigte
+            ),
+            unterstuetzung_grundgesamtheit=stimmberechtigte,
+            unterstuetzung_mindestzahl=policy.unterstuetzung_schwelle,
+        )
     antrag = Antrag.objects.create(
         titel=titel,
         eingebracht_von=mitglied,
@@ -870,15 +896,17 @@ def antrag_einbringen(
         art=Antragsart(art),
     )
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "antrag_eingebracht",
-            "antrag": antrag.pk,
-            "titel": titel,
-            "art": str(antrag.art),
-            "policy": f"{policy.id} v{policy.version}",
-        }
-    )
+    ereignis = {
+        "typ": "antrag_eingebracht",
+        "antrag": antrag.pk,
+        "titel": titel,
+        "art": str(antrag.art),
+        "policy": f"{policy.id} v{policy.version}",
+    }
+    if stimmberechtigte is not None:
+        ereignis["unterstuetzung_schwelle"] = policy.unterstuetzung_schwelle
+        ereignis["stimmberechtigte"] = stimmberechtigte
+    AuditEintrag.anhaengen(ereignis)
     return antrag
 
 

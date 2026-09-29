@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.6"
+SCHEMA_VERSION = "1.7"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -136,6 +136,11 @@ PARAMETER = {
     "verfahren-unterstuetzung-schwelle": (
         "support.threshold", "supporters",
         "Number of supporters a motion needs to enter deliberation",
+    ),
+    "verfahren-unterstuetzung-anteil-prozent": (
+        "support.threshold_share_percent", "percent",
+        "Support threshold as a share of the members eligible to vote on the day of submission (0 = off; "
+        "support.threshold stays the minimum); the resulting number is frozen into the motion",
     ),
     "verfahren-unterstuetzung-tage": (
         "support.window_days", "days",

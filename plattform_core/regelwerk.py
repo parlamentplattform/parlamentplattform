@@ -304,14 +304,20 @@ REGELN: tuple[Regel, ...] = (
             "Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten. Seit "
             "Fassung 3 kann eine Ordnung ohne Beratungsphase auskommen und den frühesten und spätesten "
             "Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die "
-            "Unterstützungsschwelle 0 sein (Bestätigungsantrag).")
+            "Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die "
+            "Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die "
+            "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 5 (Einfrieren), mit § 5 Abs 3 lit b bis d, § 5 Abs 4, § 5 Abs 7 und § 7 Abs 10 lit c, e, k",
-        fassung=3,
-        seit="2026-09-15",
+        fassung=4,
+        seit="2026-09-29",
         grund=(
-            _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
+            _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
+            "Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl "
+            "bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der "
+            "Nenner einer Abstimmung; die Zahl steht danach fest. ")
+            + _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
             "Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der "
             "Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die "
             "Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über "

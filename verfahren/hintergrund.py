@@ -101,13 +101,12 @@ def ausfuehren(lauf: Lauf, jetzt=None) -> bool:
         fehler = f"{type(ausnahme).__name__}: {ausnahme}"[:300]
         log.exception("Hintergrundlauf %s gescheitert", lauf.name)
     finally:
-        Hintergrundlauf.objects.filter(name=lauf.name, sperrcode=token).update(
-            sperrcode="",
-            gesperrt_bis=None,
-            zuletzt_beendet=timezone.now(),
-            zuletzt_stand=stand,
-            fehler=fehler,
-        )
+        felder = {"sperrcode": "", "gesperrt_bis": None, "zuletzt_beendet": timezone.now(), "fehler": fehler}
+        if not fehler:
+            # Ein gescheiterter Lauf lässt den letzten Stand stehen — sonst vergäße etwa die Prüfung der
+            # Audit-Kette einen gemeldeten Bruch, weil die Datenbank kurz weg war (Prüfung 0.52.0).
+            felder["zuletzt_stand"] = stand
+        Hintergrundlauf.objects.filter(name=lauf.name, sperrcode=token).update(**felder)
     return True
 
 

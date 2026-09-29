@@ -23,7 +23,7 @@ class Command(BaseCommand):
         parser.add_argument("--voll", action="store_true", help="die ganze Kette von vorn nachrechnen")
 
     def handle(self, *args, voll=False, **optionen):
-        stand = pruefen(voll=voll, stand=None if voll else gemerkter_stand())
+        stand = pruefen(voll=voll, stand=gemerkter_stand())
         art = "vollständig" if stand["voll"] else "ab dem gemerkten Stand"
         if not stand["intakt"]:
             raise CommandError(

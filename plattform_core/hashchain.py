@@ -123,3 +123,24 @@ def kette_nachrechnen(
             return Befund(False, geprueft, kopf, letzte, nummer, "hash")
         kopf, letzte, geprueft = gespeichert, nummer, geprueft + 1
     return Befund(True, geprueft, kopf, letzte)
+
+
+def bruchstellen(
+    eintraege: Iterable[tuple[int, dict[str, Any], str, str]],
+    start_hash: str = GENESIS,
+    hoechstens: int = 20,
+) -> list[tuple[int, str]]:
+    """Alle Bruchstellen einer Kette, nicht nur die erste: (laufende Nummer, Grund) je Eintrag, der nicht
+    stimmt — höchstens `hoechstens`. Nach einem Bruch rechnet sie mit dem gespeicherten Hash weiter, so
+    bleiben die Einträge dahinter geprüft, statt nach dem ersten Fehler für immer ungeprüft zu sein."""
+    gefunden: list[tuple[int, str]] = []
+    kopf = start_hash
+    for nummer, ereignis, vorgaenger, gespeichert in eintraege:
+        if vorgaenger != kopf:
+            gefunden.append((nummer, "vorgaenger"))
+        elif ereignis_hash(vorgaenger, ereignis) != gespeichert:
+            gefunden.append((nummer, "hash"))
+        if len(gefunden) >= hoechstens:
+            break
+        kopf = gespeichert
+    return gefunden

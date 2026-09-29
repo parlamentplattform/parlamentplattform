@@ -115,3 +115,52 @@ def test_die_kennzahlen_nennen_ergebnis_und_kopf_ohne_personenbezug(client):
     assert werte["audit.chain_intact"] == 1 and werte["audit.entries"] == 2
     assert werte["audit.head"] == eintraege[-1].hash and werte["audit.verified_at"]
     assert pruefe_export(daten) == []
+
+
+def test_auch_die_vollpruefung_haelt_den_gemerkten_anker_fest():
+    """Prüfung 0.52.0 (daten): Wurde das Ende der Kette samt Anker entfernt oder ab dort neu gerechnet,
+    wirkte die Kette von vorn gerechnet stimmig — der Vergleich mit dem Anker deckt es auf."""
+    eintraege = kette(4)
+    erster = pruefen()
+    AuditEintrag.objects.filter(pk__in=[eintraege[-1].pk]).delete()  # nur im Test: das Ende abgeschnitten
+    stand = pruefen(voll=True, stand=erster)
+    assert not stand["intakt"] and stand["grund"] == "anker" and stand["bruch"] == eintraege[-1].lfd
+
+
+def test_die_vollpruefung_hat_eine_obergrenze():
+    from parameter.models import Parameter, erstbestand_sicherstellen
+    from verfahren.audit_pruefung import vollpruefung_tage
+
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="audit-vollpruefung-tage").update(wert="36500")
+    assert vollpruefung_tage() == 31
+
+
+def test_alle_bruchstellen_werden_genannt():
+    eintraege = kette(5)
+    verfaelschen(eintraege[1], nr=50)
+    verfaelschen(eintraege[3], nr=70)
+    stand = pruefen(voll=True)
+    assert stand["bruch"] == eintraege[1].lfd
+    assert [tuple(b) for b in stand["brueche"]] == [(eintraege[1].lfd, "hash"), (eintraege[3].lfd, "hash")]
+
+
+def test_ein_gescheiterter_lauf_vergisst_den_gemeldeten_bruch_nicht(monkeypatch):
+    """Prüfung 0.52.0 (zeit/daten): Wirft ein Lauf (etwa weil die Datenbank kurz weg war), bleibt der
+    letzte Stand stehen — die Seite zeigte sonst „noch nicht geprüft“ statt des Bruchs."""
+    import verfahren.audit_pruefung as modul
+
+    eintraege = kette(3)
+    verfaelschen(eintraege[1], nr=5)
+    audit = next(la for la in LAEUFE if la.name == LAUF)
+    ausfuehren(audit)
+    assert gemerkter_stand()["bruch"] == eintraege[1].lfd
+
+    def kaputt():
+        raise RuntimeError("Datenbank kurz weg")
+
+    monkeypatch.setattr(modul, "lauf", kaputt)
+    Hintergrundlauf.objects.filter(name=LAUF).update(zuletzt_begonnen=timezone.now() - timedelta(days=2))
+    assert ausfuehren(audit)
+    zeile = Hintergrundlauf.objects.get(name=LAUF)
+    assert "Datenbank kurz weg" in zeile.fehler and zeile.zuletzt_stand["bruch"] == eintraege[1].lfd

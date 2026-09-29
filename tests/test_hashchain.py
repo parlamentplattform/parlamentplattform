@@ -146,3 +146,16 @@ def test_die_pruefung_setzt_an_einem_stand_fort():
     assert weiter.intakt and weiter.geprueft == 1 and weiter.kopf == zeilen[2][3]
     leer = kette_nachrechnen([], start_hash=erster.kopf, start_nummer=2)
     assert leer.intakt and leer.letzte_nummer == 2 and leer.kopf == erster.kopf
+
+
+def test_bruchstellen_findet_auch_die_hinter_dem_ersten_bruch():
+    from plattform_core.hashchain import bruchstellen
+
+    zeilen = kette_mit_nummern([{"typ": x} for x in "abcdef"])
+    assert bruchstellen(zeilen) == []
+    zeilen[1] = (2, {"typ": "X"}, zeilen[1][2], zeilen[1][3])
+    zeilen[4] = (5, {"typ": "Y"}, zeilen[4][2], zeilen[4][3])
+    assert bruchstellen(zeilen) == [(2, "hash"), (5, "hash")]
+    assert bruchstellen(zeilen, hoechstens=1) == [(2, "hash")]
+    ohne_dritten = zeilen[:2] + zeilen[3:]
+    assert bruchstellen(ohne_dritten) == [(2, "hash"), (4, "vorgaenger"), (5, "hash")]

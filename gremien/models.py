@@ -502,8 +502,6 @@ class Entwurf(models.Model):
         antrag.phase_beginn = jetzt
         felder = ["phase", "phase_beginn"]
         if antrag.stimmberechtigte_anzahl is None:
-            from django.conf import settings as dj_settings
-
             from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
 
@@ -515,7 +513,7 @@ class Entwurf(models.Model):
                 stimmberechtigte_zaehlen(
                     Gegenstand.SACHFRAGE,
                     antrag.stimmberechtigung_stichtag,
-                    uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
+                    uebergang=antrag.policy().uebergangsregel,  # eingefroren beim Einbringen (A5)
                 ),
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
@@ -643,7 +641,10 @@ class Entwurf(models.Model):
             # Schwelle und Höchstrunden aus der eingefrorenen Ordnung des Antrags — nicht aus
             # dem Register: Eine Änderung dort träfe sonst eine laufende Schleife (§ 5 Abs 5).
             ordnung = antrag.policy()
-            stand = abstimmung_stand(antrag, self, schwelle=ordnung.vorschlag_annahme_anteil)
+            # Gezählt wird der Stand zum Fristende (§ 5 Abs 13), nicht der beim Aufruf (Bestandsaufnahme A8).
+            stand = abstimmung_stand(
+                antrag, self, schwelle=ordnung.vorschlag_annahme_anteil, stichzeit=self.review_frist
+            )
             rechnung = (
                 f"„Passt alles“ {stand['ja']}:{stand['nein']} = {stand['prozent']} % "
                 f"(Schwelle {round(stand['schwelle'] * 100)} %), "
@@ -2436,6 +2437,10 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
     vf = apps.get_model("mandatare", "Vertrauensfrage").objects.filter(antrag_id=antrag.pk).first()
     if vf is None:
         _vermerken(beschluss, "Ohne Wirkung: Der Antrag ist keine Vertrauensfrage.")
+        return
+    if vf.art != "vertrauensfrage":
+        # lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht (D-L6e, Prüfung 0.51.0).
+        _vermerken(beschluss, "Ohne Wirkung: Ein Bestätigungsantrag kennt keine Sperre (§ 7 Abs 10 lit f Z 3).")
         return
     if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ZURUECKGEZOGEN.value):
         return

@@ -5,13 +5,13 @@ Berechtigungsstufen (aus Satzung § 4):
 - Einbringen, unterstützen, kommentieren: bestätigte Mitglieder
   (Identitätsstufe mindestens „geprüft").
 - Abstimmen: stimmberechtigte Mitglieder (Anwartschaft; im Aufbau gilt die
-  Übergangsregel nach § 4 Abs 4 lit d, konfiguriert über DDOE_UEBERGANGSREGEL).
+  Übergangsregel nach § 4 Abs 4 lit d — eingestellt über DDOE_UEBERGANGSREGEL, beim Einbringen
+  in die Ordnung des Antrags eingefroren).
 """
 
 from __future__ import annotations
 
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -62,6 +62,7 @@ from verfahren.models import (
     kandidatursperre,
     kategorien_zuordnen,
     stimme_abgeben,
+    uebergangsregel_fuer,
     vollzug_fortschreiben,
 )
 
@@ -528,24 +529,49 @@ def reagieren(request, pk, beitrag_pk):
     Außerhalb des Abstimmungs-Chats ist nur Zustimmung möglich und rein informativ: Die Reihung
     bleibt chronologisch (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags
     ist die Reaktion das Votum der Unterstützer — dort reagieren nur sie (§ 5 Abs 12)."""
-    from verfahren.chat import abstimmungschat, darf_reagieren, reaktion_umschalten
+    from django.db import IntegrityError
+
+    from verfahren.chat import (
+        ReaktionGeschlossen,
+        abstimmungschat,
+        chat_offen,
+        darf_reagieren,
+        reaktion_umschalten,
+    )
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
-    if beitrag.archiviert_am or beitrag.geloescht:
-        messages.error(request, _("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    if not darf_reagieren(antrag, request.user):
-        messages.error(request, _("Reagieren können die Unterstützer dieses Antrags."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    art = Reaktionsart.ZUSTIMMUNG
-    if request.POST.get("art") == Reaktionsart.ABLEHNUNG and abstimmungschat(antrag) is not None:
-        art = Reaktionsart.ABLEHNUNG
-    reaktion_umschalten(beitrag, request.user, art)
-    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    # § 5 Abs 13: Reagieren geht „bis zum Fristende“. Erst fortschreiben — ist die Frist um, wertet das
+    # die Runde aus und räumt ihre Beiträge ins Archiv; die Reaktion trifft dann ins Leere statt in
+    # eine schon entschiedene Rechnung (Bestandsaufnahme A8). Hat das die Phase gewechselt, zeichnet
+    # htmx die ganze Seite neu — Abstimmen-Karte und Block „So kam der Vorschlag zustande“ (Prüfung 0.51.0).
+    gewechselt = antrag.fortschreiben()
+    beitrag.refresh_from_db()
+    geschlossen = _chat_fehler(_("Auf diesen Beitrag lässt sich nicht mehr reagieren."))
+    fehler = None
+    if beitrag.archiviert_am or beitrag.geloescht or not chat_offen(antrag):
+        fehler = geschlossen
+    elif not darf_reagieren(antrag, request.user):
+        fehler = _chat_fehler(_("Reagieren können die Unterstützer dieses Antrags."))
+    else:
+        art = Reaktionsart.ZUSTIMMUNG
+        if request.POST.get("art") == Reaktionsart.ABLEHNUNG and abstimmungschat(antrag) is not None:
+            art = Reaktionsart.ABLEHNUNG
+        try:
+            reaktion_umschalten(beitrag, request.user, art)
+        except ReaktionGeschlossen:
+            fehler = geschlossen
+        except IntegrityError:
+            # Die Audit-Kette war gerade überholt (AuditEintrag.anhaengen gibt nach drei Versuchen auf):
+            # nichts ist gespeichert — das Mitglied soll es wissen, statt dass der Klick verschwindet.
+            fehler = _chat_fehler(_("Die Reaktion ließ sich gerade nicht speichern. Bitte noch einmal."))
+    antwort = _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=fehler)
+    if gewechselt and request.headers.get("HX-Request"):
+        antwort["HX-Refresh"] = "true"
+    return antwort
 
 
 @login_required
@@ -599,7 +625,7 @@ def abstimmen(request, pk):
     # § 4 Abs 4: derselbe Gegenstand wie beim Zählen der Stimmberechtigten (`fortschreiben`) —
     # die Vertrauensfrage ist eine Personenwahl (§ 7 Abs 10 lit a und e), alles andere Sachfrage.
     if not request.user.ist_stimmberechtigt(
-        gegenstand_fuer(antrag), stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+        gegenstand_fuer(antrag), stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         # Ungeprüfte und ruhende Konten sind nie stimmberechtigt — der Kachel-Hinweis nennt den Grund
         code = mitwirkungssperre(request.user) or "nicht_stimmberechtigt"
@@ -851,7 +877,7 @@ def bewerben(request, pk):
     if sperre:
         return sperre
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=settings.DDOE_UEBERGANGSREGEL
+        Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=uebergangsregel_fuer(antrag)
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if not request.POST.get("waehlbar"):
@@ -920,7 +946,7 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     antrag.fortschreiben()
     stichtag = antrag.stichtag_der_stimmberechtigung()
     if not request.user.ist_stimmberechtigt(
-        Gegenstand.PERSONENWAHL, stichtag, uebergang=settings.DDOE_UEBERGANGSREGEL
+        Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if request.user.adresswechsel_offen:

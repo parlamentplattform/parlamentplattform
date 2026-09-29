@@ -35,7 +35,7 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
     <span class="rest">{% blocktranslate count b=k.stat.beitraege %}{{ b }} Beitrag in der Beratung{% plural %}{{ b }} Beiträge in der Beratung{% endblocktranslate %}</span>
   {% elif k.stat.typ == "abstimmung" %}
     <div class="balken" aria-hidden="true"><b style="width:{{ k.stat.prozent }}%"></b></div>
-    <span class="rest">{% blocktranslate with p=k.stat.prozent %}{{ p }} % der Stimmberechtigten haben abgestimmt{% endblocktranslate %} · {% translate "Tendenz verdeckt bis Fristende" %}</span>
+    <span class="rest">{% blocktranslate with p=k.stat.prozent %}{{ p }} % der Stimmberechtigten haben abgestimmt{% endblocktranslate %} · {% include "verfahren/_tendenz.html" with tendenz=k.stat.tendenz %}</span>
   {% endif %}
 
   <div class="k-fuss">

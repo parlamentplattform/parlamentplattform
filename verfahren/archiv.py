@@ -71,18 +71,26 @@ def _beitrag(k: Kommentar) -> dict:
     }
 
 
-def _chat_je_phase(antrag, phasen: list[str] | None = None) -> dict[str, list[dict]]:
+def _chat_je_phase(antrag, phasen: list[str] | None = None, stichzeiten: dict | None = None) -> dict[str, list[dict]]:
     """Beiträge nach der Phase geordnet, in der sie geschrieben wurden — nur für `phasen`
     (None = alle, für den Export). Die Seite lädt je Aufruf höchstens eine Phase (Befund #42);
-    Zustimmungen kommen als Zähler mit, nicht als vorgeladene Reaktionen."""
+    Zustimmungen kommen als Zähler mit, nicht als vorgeladene Reaktionen.
+
+    `stichzeiten` (Phase → Zeitpunkt) zählt eine abgeschlossene Vorschlagsrunde zum Stand ihres
+    Fristendes (§ 5 Abs 13, Prüfung 0.51.0): Eine später gespeicherte Zeile ändert nicht, was die
+    Runde entschieden hat — weder die Zahlen noch die Reihung."""
     if phasen is not None and not phasen:
         return {}
+    stichzeiten = {p: z for p, z in (stichzeiten or {}).items() if phasen is None or p in phasen}
     qs = antrag.kommentare.select_related("mitglied").order_by("erstellt_am", "pk")
     if phasen is not None:
         qs = qs.filter(phase__in=phasen)
     je_phase: dict[str, list[dict]] = {}
-    for k in mit_zaehlern(qs):
-        je_phase.setdefault(k.phase or "", []).append(_beitrag(k))
+    if phasen is None or set(phasen) - set(stichzeiten):
+        for k in mit_zaehlern(qs.exclude(phase__in=list(stichzeiten))):
+            je_phase.setdefault(k.phase or "", []).append(_beitrag(k))
+    for phase, stichzeit in stichzeiten.items():
+        je_phase[phase] = [_beitrag(k) for k in mit_zaehlern(qs.filter(phase=phase), stichzeit=stichzeit)]
     return je_phase
 
 
@@ -144,6 +152,53 @@ def _rundenereignisse(antrag) -> list[dict]:
     ]
 
 
+def _beendendes_ereignis(antrag, runde: int, ereignisse: list[dict] | None = None) -> dict | None:
+    """Das Audit-Ereignis, das eine Vorschlagsrunde beendet hat — mit der Rechnung im Wortlaut und,
+    seit 0.45, als Feld `auswertung`. None, wenn die Runde noch läuft oder nichts überliefert ist."""
+    for e in ereignisse if ereignisse is not None else _rundenereignisse(antrag):
+        grund = str(e.get("grund") or "")
+        if e.get("typ") == "vorschlag_zurueckgegeben":
+            # `zurueck_an_gruppe_1` zählt die Runde hoch, bevor es das Ereignis anhängt
+            if e.get("runde") != runde + 1 or "Schwelle" not in grund:
+                continue
+        elif f"Runde {runde}," not in grund or "Schwelle" not in grund:
+            continue
+        return e
+    return None
+
+
+def _stichzeit(beendet: dict | None):
+    """Das Fristende, zu dem eine abgeschlossene Runde gezählt wurde — `wirksam_ab` des Ereignisses,
+    das sie beendet hat (seit 0.45 in beiden Ereignistypen). None ohne Ereignis oder ohne Feld."""
+    from datetime import datetime
+
+    wann = (beendet or {}).get("wirksam_ab")
+    try:
+        return datetime.fromisoformat(wann) if wann else None
+    except (TypeError, ValueError):
+        return None
+
+
+def stichzeiten(antrag, phasen, ereignisse: list[dict] | None = None) -> dict:
+    """Phase → Fristende je abgeschlossener Vorschlagsrunde unter `phasen` (für `_chat_je_phase`).
+    Die laufende Runde und Runden ohne überliefertes Ende fehlen — sie zählen den heutigen Stand."""
+    from verfahren import chat as chatkern
+
+    runden = [p for p in phasen if p.startswith("vorschlag-r")]
+    if not runden:
+        return {}
+    laufend = chatkern.chat_phase(antrag)
+    ereignisse = _rundenereignisse(antrag) if ereignisse is None else ereignisse
+    ergebnis = {}
+    for phase in runden:
+        if phase == laufend:
+            continue
+        zeit = _stichzeit(_beendendes_ereignis(antrag, int(phase.removeprefix("vorschlag-r")), ereignisse))
+        if zeit is not None:
+            ergebnis[phase] = zeit
+    return ergebnis
+
+
 def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None) -> float | None:
     """Die Schwelle, mit der eine **abgeschlossene** Vorschlagsrunde entschieden wurde (Befund #22).
 
@@ -153,46 +208,56 @@ def schwelle_der_runde(antrag, runde: int, ereignisse: list[dict] | None = None)
     strukturiertes Feld `auswertung` (sobald `Entwurf.fortschreiben` es schreibt), sonst im
     Wortlaut der Rechnung „(Schwelle NN %)“. None, wenn die Runde noch läuft oder nichts
     überliefert ist."""
-    for e in ereignisse if ereignisse is not None else _rundenereignisse(antrag):
-        grund = str(e.get("grund") or "")
-        if e.get("typ") == "vorschlag_zurueckgegeben":
-            # `zurueck_an_gruppe_1` zählt die Runde hoch, bevor es das Ereignis anhängt
-            if e.get("runde") != runde + 1 or "Schwelle" not in grund:
-                continue
-        elif f"Runde {runde}," not in grund or "Schwelle" not in grund:
-            continue
-        auswertung = e.get("auswertung")
-        if isinstance(auswertung, dict) and "schwelle" in auswertung:
-            return float(auswertung["schwelle"])
-        treffer = _SCHWELLE.search(grund)
-        if treffer:
-            return int(treffer.group(1)) / 100
-    return None
+    e = _beendendes_ereignis(antrag, runde, ereignisse)
+    if e is None:
+        return None
+    auswertung = e.get("auswertung")
+    if isinstance(auswertung, dict) and "schwelle" in auswertung:
+        return float(auswertung["schwelle"])
+    treffer = _SCHWELLE.search(str(e.get("grund") or ""))
+    return int(treffer.group(1)) / 100 if treffer else None
+
+
+#: Was aus der festgehaltenen Rechnung einer abgeschlossenen Runde übernommen wird — die Zahlen, die
+#: entschieden haben, nicht eine Nachrechnung mit dem heutigen Datenstand.
+_FESTGEHALTEN = ("ja", "nein", "prozent", "oben", "angenommen", "reihung")
 
 
 def _auswertung(antrag, phase: str, ereignisse: list[dict] | None = None) -> dict | None:
     """Die Rechnung des Abstimmungs-Chats einer Vorschlagsrunde (FB-G6) — nachrechenbar.
 
-    Rechnet über die Zahlen aller Beiträge der Runde (ohne Texte). Für die laufende Runde gilt
-    der Registerwert; für abgeschlossene die Schwelle aus dem Audit-Ereignis der Entscheidung
-    (`schwelle_quelle`: „audit“) — nur wenn nichts überliefert ist, das Register (Befund #22)."""
+    Die laufende Runde rechnet über die geltenden Reaktionen mit der Schwelle der eingefrorenen
+    Ordnung (`schwelle_quelle`: „ordnung“, bei einer Ordnung älter als das Feld „vorgabe“ — § 5
+    Abs 5, Bestandsaufnahme A6). Eine abgeschlossene Runde zeigt, was entschieden hat: Schwelle und,
+    wo festgehalten, die Zahlen aus dem Audit-Ereignis, das sie beendet hat („audit“, Befund #22).
+    `weiter` sagt, wohin der Vorschlag ging — zur Endabstimmung auch dann, wenn die Höchstzahl der
+    Runden erreicht war und „Passt alles“ nicht getragen hat (§ 5 Abs 12). Es kommt bei einer
+    abgeschlossenen Runde nur aus dem Audit: Endete das Verfahren, bevor die Runde ausgewertet war
+    (Zurückweisung, Rückzug), ist es None — „nicht ausgewertet“ (Prüfung 0.51.0). Gezählt wird eine
+    abgeschlossene Runde zu ihrem Fristende (§ 5 Abs 13)."""
     if not phase.startswith("vorschlag-r"):
         return None
-    from parameter.models import zahl
     from verfahren import chat as chatkern
 
     runde = int(phase.removeprefix("vorschlag-r"))
-    roh = leicht(antrag.kommentare.filter(phase=phase))
-    schwelle, quelle = None, "register"
-    if chatkern.chat_phase(antrag) != phase:
-        schwelle = schwelle_der_runde(antrag, runde, ereignisse)
-        if schwelle is not None:
-            quelle = "audit"
+    laufend = chatkern.chat_phase(antrag) == phase
+    beendet = None if laufend else _beendendes_ereignis(antrag, runde, ereignisse)
+    roh = leicht(antrag.kommentare.filter(phase=phase), stichzeit=_stichzeit(beendet))
+    schwelle, quelle = (schwelle_der_runde(antrag, runde, [beendet]) if beendet else None), "audit"
     if schwelle is None:
-        schwelle = zahl("vorschlag-annahme-prozent", 50) / 100
+        schwelle, vorgabe = antrag.annahme_schwelle()
+        quelle = "vorgabe" if vorgabe else "ordnung"
     ergebnis = vorschlagschat.auswerten(roh, schwelle)
+    festgehalten = beendet.get("auswertung") if beendet else None
+    if isinstance(festgehalten, dict):
+        ergebnis.update({k: festgehalten[k] for k in _FESTGEHALTEN if k in festgehalten})
+    if beendet:
+        ergebnis["weiter"] = beendet.get("typ") == "phasenwechsel"
+    else:
+        ergebnis["weiter"] = ergebnis["angenommen"] if laufend else None
     ergebnis["kritik"] = [b["id"] for b in vorschlagschat.kritik_uebergeben(roh)]
     ergebnis["schwelle_quelle"] = quelle
+    ergebnis["schwelle_prozent"] = round(schwelle * 100)
     return ergebnis
 
 
@@ -204,7 +269,10 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
     Grundregel 7: der bleibt vollständig). Vorher lud jeder Aufruf der Antragsseite sämtliche
     Beiträge aller Phasen ein zweites Mal (Befund #42)."""
     anzahl = _anzahl_je_phase(antrag)
-    je_phase = _chat_je_phase(antrag, None if alles else ([geoeffnet] if geoeffnet else []))
+    ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
+    geladen = None if alles else ([geoeffnet] if geoeffnet else [])
+    zeiten = stichzeiten(antrag, list(anzahl), ereignisse)
+    je_phase = _chat_je_phase(antrag, geladen, zeiten)
     reihenfolge = [
         Phase.UNTERSTUETZUNG.value,
         Phase.BERATUNG.value,
@@ -213,7 +281,6 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
         Phase.ANGENOMMEN.value,
         Phase.ABGELEHNT.value,
     ]
-    ereignisse = _rundenereignisse(antrag) if any(p.startswith("vorschlag-r") for p in anzahl) else []
     # Der Block „Unterstützungsphase“ steht auch leer — jeder Antrag beginnt dort. Nur die
     # Mandatsfrage (§ 7 Abs 9) und der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) nicht: Sie hatten
     # nie eine, also bekommen sie auch keinen leeren Block. Läuft der Bestätigungsantrag noch oder
@@ -241,9 +308,57 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
                 "geladen": alles or phase == geoeffnet,
                 "anzahl": n,
                 "auswertung": _auswertung(antrag, phase, ereignisse),
+                "stichzeit": zeiten.get(phase),  # gezählt zum Fristende der Runde (§ 5 Abs 13)
             }
         )
     return bloecke
+
+
+def zustandekommen(antrag, bloecke: list[dict]) -> dict | None:
+    """Der Block „So kam der Vorschlag zustande“ in der Endabstimmung (D-G5, FB-G5).
+
+    Die Abstimmenden sollen die Kritik sehen: Die letzte Vorschlagsrunde erscheint eingefroren in
+    Zone 3 — mit der Rechnung, die entschieden hat (`_auswertung`, bei abgeschlossenen Runden aus
+    dem Audit), und den Beiträgen in der Reihung, die bei Fristende galt (Regel `engagement-v1`,
+    § 5 Abs 13 letzter Satz), Antworten chronologisch unter ihrem Beitrag. Die Zahl der Beiträge
+    ist gedeckelt wie der Faden (Registerwert „chat-faden-wurzeln“); der Rest liegt im Archiv.
+    None außerhalb der Endabstimmung und ohne Entwurfsschleife — nach dem Ergebnis bleibt das
+    Archiv (Entscheidung E2 zum Bauplan 0.51.0)."""
+    if antrag.phase != Phase.ABSTIMMUNG.value:
+        return None
+    runden = [b for b in bloecke if b["phase"].startswith("vorschlag-r")]
+    if not runden:
+        return None
+    from verfahren import chat as chatkern
+
+    runde = runden[-1]
+    beitraege = (
+        runde["beitraege"]
+        if runde["geladen"]
+        else _chat_je_phase(antrag, [runde["phase"]], {runde["phase"]: runde["stichzeit"]} if runde.get("stichzeit") else None).get(
+            runde["phase"], []
+        )
+    )
+    wurzeln = vorschlagschat.reihen(
+        [{**b, "ja": b["zustimmungen"], "nein": b["ablehnungen"], "zeit": b["geschrieben_am"]}
+         for b in beitraege if not b["antwort_auf"]]
+    )
+    grenze = chatkern.faden_wurzeln()
+    gezeigt = wurzeln[:grenze] if grenze else wurzeln
+    antworten: dict[int, list[dict]] = {}
+    for b in beitraege:
+        if b["antwort_auf"]:
+            antworten.setdefault(b["antwort_auf"], []).append(b)
+    geordnet = []
+    for w in gezeigt:
+        geordnet.append(w)
+        geordnet.extend(antworten.get(w["id"], []))
+    return {
+        "runde": runde,
+        "beitraege": geordnet,
+        "mehr": len(wurzeln) - len(gezeigt),
+        "fruehere": runden[:-1],
+    }
 
 
 #: Rückfallwert; der gültige steht im Register unter „archiv-audit-anzeige" (FB-J2).
@@ -265,18 +380,28 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     zweihundert Zeilen niemandem hilft; dass gekürzt wurde, sagt sie dann auch dazu."""
     # Der Filter läuft in der Datenbank (Befund #41): Vorher zog jeder Antragsaufruf das gesamte
     # Audit-Log — jede Stimme, jede Unterstützung plattformweit — und siebte es in Python.
-    spur = []
-    for eintrag in AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).order_by("lfd"):
-        spur.append(
-            {
-                "lfd": eintrag.lfd,
-                "typ": eintrag.ereignis.get("typ", ""),
-                "zeit": eintrag.zeit.isoformat(),
-                "hash": eintrag.hash[:12],
-                "grund": eintrag.ereignis.get("grund", ""),
-            }
-        )
-    return spur[-grenze:] if grenze else spur
+    # Mit `grenze` schneidet die Datenbank (0.51.0): Seit jede Reaktion im Abstimmungs-Chat einen
+    # Eintrag schreibt (Bestandsaufnahme A8), wüchse die Spur eines umkämpften Antrags mit jedem Klick.
+    eintraege = AuditEintrag.objects.filter(ereignis__antrag=antrag.pk)
+    if grenze:
+        eintraege = reversed(list(eintraege.order_by("-lfd")[:grenze]))
+    else:
+        eintraege = eintraege.order_by("lfd")
+    return [
+        {
+            "lfd": eintrag.lfd,
+            "typ": eintrag.ereignis.get("typ", ""),
+            "zeit": eintrag.zeit.isoformat(),
+            "hash": eintrag.hash[:12],
+            "grund": eintrag.ereignis.get("grund", ""),
+        }
+        for eintrag in eintraege
+    ]
+
+
+def audit_anzahl(antrag) -> int:
+    """Wie viele Audit-Ereignisse dieser Antrag hat — gezählt in der Datenbank."""
+    return AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).count()
 
 
 def archiv(antrag) -> dict:
@@ -408,11 +533,17 @@ def als_markdown(antrag) -> str:
         zeilen += [f"## {block['name']} — {block['anzahl']} {_('Beiträge')}", ""]
         auswertung = block["auswertung"]
         if auswertung:
+            vorgabe = f" ({_('Vorgabe')})" if auswertung["schwelle_quelle"] == "vorgabe" else ""
+            weiter = (
+                _("nicht ausgewertet — das Verfahren endete vorher")
+                if auswertung["weiter"] is None
+                else _("zur Endabstimmung") if auswertung["weiter"] else _("zurück an den Expertenrat")
+            )
             zeilen += [
                 f"*{_('Auswertung')}: „Passt alles“ {auswertung['ja']}:{auswertung['nein']} "
-                f"= {auswertung['prozent']} % · "
+                f"= {auswertung['prozent']} % · {_('Schwelle')} {auswertung['schwelle_prozent']} %{vorgabe} · "
                 f"{_('an erster Stelle') if auswertung['oben'] else _('nicht an erster Stelle')} · "
-                f"{_('angenommen') if auswertung['angenommen'] else _('zurückgegeben')} "
+                f"{weiter} "
                 f"({auswertung['grund']}, {auswertung['reihung']})*",
                 "",
             ]

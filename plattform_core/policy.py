@@ -28,7 +28,11 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 #: Fassung 4 (29.9.2026): Die Unterstützungsschwelle kann als Anteil der Stimmberechtigten
 #: gelten (`unterstuetzung_anteil`, Mindestzahl `unterstuetzung_schwelle`); beim Einbringen wird
 #: daraus die konkrete Zahl gerechnet und samt Grundgesamtheit eingefroren (§ 5 Abs 5).
-VERSION = 4
+#: Fassung 5 (0.51.0): Die Übergangsregel des § 4 Abs 4 lit d wird beim Einbringen aus der
+#: Einstellung der Instanz übernommen und gilt bis zum Ende des Verfahrens (`uebergangsregel`,
+#: Bestandsaufnahme A5); dazu der schlafende Schalter für die Tendenz während der Abstimmung
+#: (`tendenz_ab_mindestbeteiligung`, D-D2 b).
+VERSION = 5
 
 # Mindestwerte aus der Satzung — eine Policy darf diese niemals unterschreiten.
 SATZUNG_MIN_BERATUNG_TAGE = 21  # § 5 Abs 3 lit c
@@ -102,6 +106,18 @@ class Policy:
     unterstuetzung_anteil: float = 0.0
     unterstuetzung_grundgesamtheit: int = 0
     unterstuetzung_mindestzahl: int = 0  # die Mindestzahl der Ordnung, wenn die Schwelle gerechnet wurde
+    # Fassung 5: Die Übergangsregel des § 4 Abs 4 lit d („entfällt die Anwartschaft“) — eine Einstellung
+    # der Instanz (`DDOE_UEBERGANGSREGEL`), kein Registerwert. Beim Einbringen gesetzt; Zählung der
+    # Stimmberechtigten, Prüfung jeder Stimme, Bewerbung und Unterstützung lesen sie von da an nur hier.
+    # Die Vorgabe ist der Wert jeder bekannten Instanz und der Standard der Einstellung: Ältere
+    # Schnappschüsse ohne das Feld laden damit so, wie sie gerechnet wurden.
+    uebergangsregel: bool = True
+    # Fassung 5: D-D2 (b) als schlafender Schalter — ob Kachel, Antragsseite und Übersicht während einer
+    # laufenden Abstimmung die Tendenz (Ja, Nein, Enthaltung) zeigen, sobald die Mindestbeteiligung
+    # erreicht ist. 0 = verdeckt bis zum Fristende (Voreinstellung, D-D2 a); 1 = sichtbar ab erreichter
+    # Mindestbeteiligung. Ein „immer“ gibt es nicht. Eingefroren wie jede Regel, die während einer
+    # Abstimmung gilt (§ 5 Abs 5); gilt nur für Sachanträge (`tally.tendenz_sichtbar`).
+    tendenz_ab_mindestbeteiligung: int = 0
 
     def __post_init__(self) -> None:
         if self.beratung_tage < SATZUNG_MIN_BERATUNG_TAGE:
@@ -170,6 +186,12 @@ class Policy:
             raise PolicyFehler("pruefung_tage muss mindestens 1 Tag sein.")
         if self.hoechstrunden < 1:
             raise PolicyFehler("hoechstrunden muss mindestens 1 sein.")
+        if self.tendenz_ab_mindestbeteiligung not in (0, 1):
+            raise PolicyFehler(
+                f"tendenz_ab_mindestbeteiligung = {self.tendenz_ab_mindestbeteiligung!r} ist weder 0 noch 1."
+            )
+        if not isinstance(self.uebergangsregel, bool):
+            raise PolicyFehler(f"uebergangsregel = {self.uebergangsregel!r} ist kein Wahrheitswert.")
         if not 0 <= self.vorschlag_annahme_anteil < 1:
             raise PolicyFehler(
                 f"vorschlag_annahme_anteil = {self.vorschlag_annahme_anteil} liegt nicht zwischen 0 und 1."
@@ -209,6 +231,8 @@ REGISTER_ZUORDNUNG = {
     "review_tage": ("gremien-review-tage", int),
     "ueberarbeitung_tage": ("gremien-ueberarbeitung-tage", int),
     "pruefung_tage": ("gremien-pruefung-tage", int),
+    # Fassung 5: nur der Wert 1 schaltet ein, alles andere wirkt wie 0 (wie jeder Schalter im Register).
+    "tendenz_ab_mindestbeteiligung": ("verfahren-tendenz-ab-mindestbeteiligung", lambda n: 1 if n == 1 else 0),
 }
 
 

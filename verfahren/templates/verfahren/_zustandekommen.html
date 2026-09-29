@@ -1,0 +1,20 @@
+{% load i18n %}{% comment %}
+D-G5 (FB-G5): In der Endabstimmung liegt der eingefrorene Abstimmungs-Chat als aufklappbarer Block über
+dem Chat — die Abstimmenden sehen die Kritik, die zum Vorschlag geführt hat. Nur lesen: keine Formulare,
+keine Reaktionen. Ohne JavaScript ist es ein natives <details>.
+{% endcomment %}
+<details class="klappe zustandekommen" id="zustandekommen">
+  <summary><strong>{% translate "So kam der Vorschlag zustande" %}</strong>
+    <span class="meta">· {{ zustandekommen.runde.name }} · {% blocktranslate count n=zustandekommen.runde.anzahl %}{{ n }} Beitrag{% plural %}{{ n }} Beiträge{% endblocktranslate %}</span></summary>
+  {% if zustandekommen.runde.auswertung %}{% include "verfahren/_archiv_auswertung.html" with auswertung=zustandekommen.runde.auswertung %}{% endif %}
+  <p class="meta"><a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% blocktranslate with r=zustandekommen.runde.auswertung.reihung|default:"engagement-v1" %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a></p>
+  {% for b in zustandekommen.beitraege %}
+  {% include "verfahren/_archiv_beitrag.html" with praefix="z" %}
+  {% endfor %}
+  {% if zustandekommen.mehr %}
+  <p class="archiv-laden"><a href="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ zustandekommen.runde.phase }}#archiv-{{ zustandekommen.runde.phase }}">{% blocktranslate count n=zustandekommen.runde.anzahl %}Den Beitrag zeigen{% plural %}Alle {{ n }} Beiträge zeigen{% endblocktranslate %}</a></p>
+  {% endif %}
+  {% for r in zustandekommen.fruehere %}
+  <p class="meta"><a href="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ r.phase }}#archiv-{{ r.phase }}">{{ r.name }}</a>{% if r.auswertung %} · {% blocktranslate with ja=r.auswertung.ja nein=r.auswertung.nein anteil=r.auswertung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 = {{ anteil }} %{% endblocktranslate %} · {% if r.auswertung.weiter is None %}{% translate "nicht ausgewertet — das Verfahren endete vorher" %}{% elif r.auswertung.weiter %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}{% endif %}</p>
+  {% endfor %}
+</details>

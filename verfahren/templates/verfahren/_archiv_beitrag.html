@@ -1,0 +1,13 @@
+{% load i18n chat %}
+<div class="archiv-beitrag{% if b.antwort_auf %} eingerueckt{% endif %}" id="{{ praefix }}-{{ b.id }}">
+  <span class="avatar-initiale klein{% if b.system %} system{% endif %}" aria-hidden="true">{% if b.system %}&#10003;{% else %}{{ b.verfasser|initiale }}{% endif %}</span>
+  <div>
+    <div class="blase-kopf">
+      <strong>{{ b.verfasser }}</strong>
+      {% if b.ist_kritik %}<span class="etikett kritik">{% if b.bezug_absatz %}{% blocktranslate with n=b.bezug_absatz %}Kritik · Absatz {{ n }}{% endblocktranslate %}{% else %}{% translate "Kritik" %}{% endif %}</span>{% endif %}
+      <span class="meta">{{ b.geschrieben_am|ortszeit }}</span>
+      {% if b.zustimmungen or b.ablehnungen %}<span class="meta">· &#128077; {{ b.zustimmungen }} / &#128078; {{ b.ablehnungen }}</span>{% endif %}
+    </div>
+    <div class="archiv-text">{{ b.text|linebreaksbr }}</div>
+  </div>
+</div>

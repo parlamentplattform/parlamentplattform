@@ -23,29 +23,13 @@ JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
       <strong>{{ block.name }}</strong>
       <span class="meta">{% blocktranslate count n=block.anzahl %}{{ n }} Beitrag{% plural %}{{ n }} Beiträge{% endblocktranslate %}{% if block.laufend %} · {% translate "läuft" %}{% endif %}</span>
     </summary>
-    {% if block.auswertung %}
-    <p class="archiv-auswertung">{% blocktranslate with ja=block.auswertung.ja nein=block.auswertung.nein anteil=block.auswertung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 = {{ anteil }} %{% endblocktranslate %}
-      · {% if block.auswertung.oben %}{% translate "an erster Stelle" %}{% else %}{% translate "nicht an erster Stelle" %}{% endif %}
-      · {% if block.auswertung.angenommen %}{% translate "zur Endabstimmung" %}{% else %}{% translate "zurück an den Expertenrat" %}{% endif %}
-      <span class="meta">({{ block.auswertung.reihung }})</span></p>
-    {% endif %}
+    {% if block.auswertung %}{% include "verfahren/_archiv_auswertung.html" with auswertung=block.auswertung %}{% endif %}
     {% if not block.geladen and block.anzahl %}
     <p class="archiv-laden"><a href="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ block.phase }}#archiv-{{ block.phase }}"
       hx-get="{% url 'verfahren:antrag' antrag.pk %}?archiv={{ block.phase }}" hx-target="#archiv-{{ block.phase }}" hx-select="#archiv-{{ block.phase }}" hx-swap="outerHTML">{% blocktranslate count n=block.anzahl %}Den Beitrag zeigen{% plural %}Alle {{ n }} Beiträge zeigen{% endblocktranslate %}</a>{% if block.laufend %} <span class="meta">{% translate "— sie stehen auch oben im Chat" %}</span>{% endif %}</p>
     {% endif %}
     {% for b in block.beitraege %}
-    <div class="archiv-beitrag{% if b.antwort_auf %} eingerueckt{% endif %}" id="a-{{ b.id }}">
-      <span class="avatar-initiale klein{% if b.system %} system{% endif %}" aria-hidden="true">{% if b.system %}&#10003;{% else %}{{ b.verfasser|initiale }}{% endif %}</span>
-      <div>
-        <div class="blase-kopf">
-          <strong>{{ b.verfasser }}</strong>
-          {% if b.ist_kritik %}<span class="etikett kritik">{% if b.bezug_absatz %}{% blocktranslate with n=b.bezug_absatz %}Kritik · Absatz {{ n }}{% endblocktranslate %}{% else %}{% translate "Kritik" %}{% endif %}</span>{% endif %}
-          <span class="meta">{{ b.geschrieben_am|slice:":16" }}</span>
-          {% if b.zustimmungen or b.ablehnungen %}<span class="meta">· &#128077; {{ b.zustimmungen }} / &#128078; {{ b.ablehnungen }}</span>{% endif %}
-        </div>
-        <div class="archiv-text">{{ b.text|linebreaksbr }}</div>
-      </div>
-    </div>
+    {% include "verfahren/_archiv_beitrag.html" with praefix="a" %}
     {% empty %}
     {% if not block.anzahl %}<p class="leer">{% translate "Kein Beitrag in dieser Phase." %}</p>{% endif %}
     {% endfor %}
@@ -75,7 +59,7 @@ JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
     <summary><strong>{% translate "Audit-Spur" %}</strong> <span class="meta">{% translate "Hash-Kette, fortlaufend" %}{% if archiv.audit_gekuerzt %} · {% blocktranslate with gezeigt=archiv.audit|length gesamt=archiv.audit_gesamt %}die letzten {{ gezeigt }} von {{ gesamt }} — vollständig im Export{% endblocktranslate %}{% endif %}</span></summary>
     <ol class="auditspur">
       {% for e in archiv.audit %}
-      <li><span class="meta">{{ e.zeit|slice:":16" }}</span> <strong>{{ e.typ }}</strong> <code>{{ e.hash }}</code>
+      <li><span class="meta">{{ e.zeit|ortszeit }}</span> <strong>{{ e.typ }}</strong> <code>{{ e.hash }}</code>
         {% if e.grund %}<br><span class="meta">{{ e.grund }}</span>{% endif %}</li>
       {% endfor %}
     </ol>

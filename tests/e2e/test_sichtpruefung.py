@@ -376,7 +376,7 @@ def test_screenshots_fuer_die_sichtpruefung(seite, live_server, demo, sichtpruef
         )
         p = seite(als=Mitglied.objects.get(username="demo3"))
         p.goto(f"{live_server.url}/gremien/integritaet/")
-        karte = p.locator(".karte", has_text="Vertrauensfragen mit Sperrhinweis")
+        karte = p.locator(".karte", has_text="Vertrauensfragen · Sperre feststellen")
         karte.scroll_into_view_if_needed()
         _ruhe(p)
         ziel = sichtpruefung / "integritaetsrat-sperrhinweis.png"
@@ -647,3 +647,153 @@ def test_screenshots_fuer_die_sichtpruefung_050(seite, live_server, demo, sichtp
     assert len(bilder) == 40, len(bilder)
     for bild in bilder:
         assert bild.exists() and bild.stat().st_size > 5000, bild
+
+
+def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtpruefung, monkeypatch):
+    """Bilder für die Sichtprüfung der Fassung 0.51.0: die Karte des Integritätsrats mit einer Vertrauensfrage
+    mit und einer ohne Sperrhinweis (D-L6e), die Schwelle im Abstimmungs-Chat (A6), der Block „So kam der
+    Vorschlag zustande“ in Zone 3 der Endabstimmung (D-G5), die Karte „Abstimmen“ mit Beteiligung — verdeckt
+    wie heute und, zur Ansicht, unter einer Ordnung mit Tendenz-Schalter 1 (D-D2 b) — und die eingefrorenen
+    Regeln mit Anwartschaft und Tendenz (A5). Desktop 1440×900 und Handy 390×844, hell und dunkel, ohne
+    JavaScript, wo es die Seite betrifft."""
+    from datetime import date, timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Entwurf
+    from gremien.test_werkstatt import frist_setzen
+    from mandatare import models as mm
+    from mandatare.models import Beschluss, Mandat, Rechenschaft, Stimmverhalten
+    from mitglieder.models import Mitglied
+    from verfahren.management.commands.demo_seed import TESTLAUF_TITEL
+    from verfahren.models import (
+        Antrag,
+        Verfahrensordnung,
+        antrag_einbringen,
+        stimme_abgeben,
+        vertrauensfrage_einbringen,
+    )
+
+    bilder = []
+
+    def halte_fest(p, name, js=True):
+        _ruhe(p, js)
+        ziel = sichtpruefung / f"{name}.png"
+        p.screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    def halte_element(p, name, selektor, js=True):
+        _ruhe(p, js)
+        ziel = sichtpruefung / f"{name}.png"
+        p.locator(selektor).first.screenshot(path=str(ziel))
+        bilder.append(ziel)
+
+    def konto(name):
+        return Mitglied.objects.get(username=name)
+
+    def mittig(p, selektor):
+        """Die Karte in die Bildschirmmitte — am Anker läge ihr Kopf unter App- und Reiterleiste."""
+        p.evaluate(f"() => document.querySelector({selektor!r}).scrollIntoView({{block: 'center', behavior: 'instant'}})")
+
+    def zeige(p, name, selektor, js=True):
+        """Mit JavaScript das Element allein; ohne JavaScript den Bildschirm um das Element herum — die
+        Stabilitätsprüfung eines Element-Bildes hängt ohne Skript der Seite."""
+        if js:
+            p.locator(selektor).first.scroll_into_view_if_needed()
+            halte_element(p, name, selektor)
+        else:
+            p.evaluate(f"() => document.querySelector({selektor!r}).scrollIntoView()")
+            halte_fest(p, name, js=False)
+
+    # ── 1a: Sperrfeststellung mit und ohne Hinweis ────────────────────────────────────────────
+    monkeypatch.setattr(mm, "INKRAFTTRETEN_ABS_10", date(2025, 1, 1))
+    frisch = Mandat.objects.create(
+        mitglied=konto("demo1"), bezeichnung="Gemeinderat", ebene="gemeinde", gebiet="Eferding",
+        angetreten=timezone.localdate() - timedelta(days=10),
+    )
+    alt = Mandat.objects.create(
+        mitglied=konto("demo2"), bezeichnung="Landtag", ebene="land", gebiet="Oberösterreich",
+        angetreten=date(2025, 1, 1),
+    )
+    ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+    for mandat, grund in ((frisch, "Der Bericht zur ersten Sitzung fehlt."), (alt, "Die Abweichung wurde nicht erklärt.")):
+        anlass = Rechenschaft.objects.create(
+            mandat=mandat, gegenstand="Voranschlag 2027", sitzung_am=timezone.localdate() - timedelta(days=5),
+            beschluss_plattform=Beschluss.ANGENOMMEN, stimme=Stimmverhalten.DAGEGEN, begruendung="Dagegen.",
+        )
+        vertrauensfrage_einbringen(konto("demo2") if mandat == frisch else konto("demo1"), mandat, grund, [anlass], [], ordnung)
+    karte = ".karte.feststellung"
+    for dunkel, viewport, js, suffix in (
+        (False, None, True, "desktop-hell"),
+        (True, None, True, "desktop-dunkel"),
+        (True, HANDY, True, "handy-dunkel"),
+        (False, None, False, "desktop-hell-ohne-javascript"),
+    ):
+        p = seite(als=konto("demo3"), dunkel=dunkel, viewport=viewport, js=js)
+        p.goto(f"{live_server.url}/gremien/integritaet/")
+        zeige(p, f"integritaetsrat-sperrfeststellung-{suffix}", karte, js=js)
+
+    # ── 1g: Die Schwelle im Abstimmungs-Chat (aus der eingefrorenen Ordnung) ─────────────────
+    testlauf = Antrag.objects.get(titel__startswith=TESTLAUF_TITEL)
+    for viewport, suffix in ((None, "desktop-hell"), (HANDY, "handy")):
+        p = seite(viewport=viewport)
+        p.goto(f"{live_server.url}/antrag/{testlauf.pk}/#zone-chat")
+        halte_element(p, f"abstimmungschat-schwelle-{suffix}", ".karte.vorschlag")
+
+    # ── 1d: „So kam der Vorschlag zustande“ in Zone 3 der Endabstimmung ─────────────────────
+    frist_setzen(Entwurf.objects.get(antrag=testlauf), timezone.now() - timedelta(hours=1))
+    testlauf.refresh_from_db()
+    testlauf.fortschreiben()
+    testlauf.refresh_from_db()
+    assert testlauf.phase == "abstimmung"
+    for dunkel, viewport, js, suffix in (
+        (False, None, True, "desktop-hell"),
+        (True, None, True, "desktop-dunkel"),
+        (False, HANDY, True, "handy"),
+        (False, None, False, "desktop-hell-ohne-javascript"),
+    ):
+        p = seite(dunkel=dunkel, viewport=viewport, js=js)
+        p.goto(f"{live_server.url}/antrag/{testlauf.pk}/#zone-chat")
+        # Ohne JavaScript öffnet der Klick das native <details>; die Stabilitätsprüfung hängt dort (force)
+        p.locator("#zustandekommen > summary").click(force=not js)
+        assert p.locator("#zustandekommen").get_attribute("open") is not None
+        zeige(p, f"endabstimmung-zustandekommen-{suffix}", "#zustandekommen", js=js)
+
+    # ── 1e: Karte „Abstimmen“ — verdeckt wie heute; zur Ansicht eine Ordnung mit Schalter 1 ──
+    p = seite(als=konto("demo1"))
+    p.goto(f"{live_server.url}/antrag/{testlauf.pk}/#abstimmen")
+    mittig(p, "#abstimmen")
+    halte_element(p, "abstimmen-beteiligung-verdeckt-desktop", "#abstimmen")
+
+    offen = Verfahrensordnung.objects.create(
+        policy_id="zur-ansicht-tendenz", version=1,
+        regeln={**ordnung.regeln, "id": "zur-ansicht-tendenz", "version": 1, "tendenz_ab_mindestbeteiligung": 1},
+        aktiv=False,
+    )
+    ansicht = antrag_einbringen(
+        konto("demo1"), "Öffentliche Toiletten in allen Parks", "In jedem Park steht eine öffentliche Toilette.",
+        "Grundversorgung.", offen,
+    )
+    Antrag.objects.filter(pk=ansicht.pk).update(
+        phase="abstimmung", phase_beginn=timezone.now() - timedelta(days=1),
+        stimmberechtigung_stichtag=timezone.localdate(), stimmberechtigte_anzahl=5,
+    )
+    ansicht.refresh_from_db()
+    for name, stimme in (("demo1", "ja"), ("demo2", "ja"), ("demo3", "nein"), ("demo4", "enthaltung")):
+        stimme_abgeben(ansicht, konto(name), stimme)
+    for dunkel, viewport, suffix in ((False, None, "desktop-hell"), (True, None, "desktop-dunkel"), (False, HANDY, "handy")):
+        p = seite(als=konto("demo5"), dunkel=dunkel, viewport=viewport)
+        p.goto(f"{live_server.url}/antrag/{ansicht.pk}/#abstimmen")
+        mittig(p, "#abstimmen")
+        halte_element(p, f"abstimmen-tendenz-schalter-eins-{suffix}", "#abstimmen")
+
+    # ── 1e/1f: Eingefrorene Regeln mit Tendenz und Anwartschaft ─────────────────────────────
+    p = seite()
+    p.goto(f"{live_server.url}/antrag/{ansicht.pk}/")
+    p.locator("details.klappe summary", has_text="Eingefrorene Regeln").click()
+    p.locator("dl.regelliste").scroll_into_view_if_needed()
+    halte_element(p, "eingefrorene-regeln-tendenz-anwartschaft-desktop", "dl.regelliste")
+
+    assert len(bilder) == 15, len(bilder)
+    for bild in bilder:
+        assert bild.exists() and bild.stat().st_size > 2000, bild

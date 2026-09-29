@@ -3,6 +3,8 @@
 Die Regeln selbst stehen im Modell; hier steht nur, wie sie im Template lesbar werden.
 """
 
+from datetime import datetime
+
 from django import template
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -37,6 +39,20 @@ def zeit_her(wann) -> str:
     if tage < 7:
         return ngettext("vor %d Tag", "vor %d Tagen", tage) % tage
     return timezone.localtime(wann).strftime("%d.%m.%Y")
+
+
+@register.filter
+def ortszeit(iso) -> str:
+    """Ein Zeitstempel aus dem Archiv (ISO, UTC) in Ortszeit: „29.09.2026 11:26"."""
+    if not iso:
+        return ""
+    try:
+        wann = datetime.fromisoformat(str(iso))
+    except ValueError:
+        return str(iso)[:16]
+    if timezone.is_naive(wann):
+        return wann.strftime("%d.%m.%Y %H:%M")
+    return timezone.localtime(wann).strftime("%d.%m.%Y %H:%M")
 
 
 @register.filter

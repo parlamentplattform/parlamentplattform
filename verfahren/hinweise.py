@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import NoReverseMatch, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -192,12 +191,12 @@ class Handlungslage:
     stimmabgabe: str | None = None
 
     def stimmsperre(self, nutzer, antrag) -> str | None:
-        from verfahren.models import gegenstand_fuer
+        from verfahren.models import gegenstand_fuer, uebergangsregel_fuer
 
         if self.stimmabgabe:
             return self.stimmabgabe
         if not nutzer.ist_stimmberechtigt(
-            gegenstand_fuer(antrag), antrag.stichtag_der_stimmberechtigung(), uebergang=settings.DDOE_UEBERGANGSREGEL
+            gegenstand_fuer(antrag), antrag.stichtag_der_stimmberechtigung(), uebergang=uebergangsregel_fuer(antrag)
         ):
             return "nicht_stimmberechtigt"
         return None

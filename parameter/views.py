@@ -247,9 +247,23 @@ def _naechste_version(policy_id: str) -> int:
     return (hoechste["version__max"] or 0) + 1
 
 
+#: Werte, die erst beim Einbringen in den Schnappschuss eines Antrags kommen — keine Regel der Ordnung.
+EINBRINGUNGSWERTE = ("uebergangsregel",)
+
+
 def _wesentlich(regeln: dict) -> dict:
-    """Eine Ordnung ohne Kennung und Versionsnummer — zum Vergleichen des Inhalts."""
-    return {k: v for k, v in (regeln or {}).items() if k not in ("id", "version")}
+    """Eine Ordnung ohne Kennung und Versionsnummer — zum Vergleichen des Inhalts.
+
+    Fehlende Felder werden mit ihren Vorgaben ergänzt (`Policy.aus_dict`): Kommt mit einer neuen
+    Fassung der Ordnungsregeln ein Feld dazu (Fassung 5, 0.51.0), sagt eine ältere Ordnung ohne das
+    Feld dasselbe wie eine neue mit der Vorgabe — „Fassung erzeugen“ legt dann keine wortgleiche an."""
+    from plattform_core.policy import Policy, PolicyFehler
+
+    try:
+        voll = Policy.aus_dict(dict(regeln or {})).als_dict()
+    except (PolicyFehler, TypeError):
+        voll = dict(regeln or {})
+    return {k: v for k, v in voll.items() if k not in ("id", "version", *EINBRINGUNGSWERTE)}
 
 
 def _gleich(links, rechts) -> bool:
@@ -264,7 +278,7 @@ def _gleich(links, rechts) -> bool:
 #: Menschen wenig, und der Registerschlüssel daneben sagt etwas anderes als der Wert: Bei der
 #: Mindestbeteiligung führt das Register 5 (Prozent), die Ordnung 0,05 (Anteil).
 FELD_NAMEN = {
-    # Die zwei Einträge aus 0.50 sind übersetzbar; die übrigen sind Altbestand ohne gettext.
+    # Die Einträge aus 0.50 und 0.51 sind übersetzbar; die übrigen sind Altbestand ohne gettext.
     "unterstuetzung_schwelle": gettext_lazy("Unterstützungen bis zur Schwelle (Mindestzahl)"),
     "unterstuetzung_anteil": gettext_lazy("Unterstützungsschwelle als Anteil der Stimmberechtigten (0 = aus)"),
     "unterstuetzung_frist_tage": "Frist der Unterstützungsphase (Tage)",
@@ -279,6 +293,7 @@ FELD_NAMEN = {
     "review_tage": "Frist der Unterstützer je Runde (Tage)",
     "ueberarbeitung_tage": "Überarbeitungsfrist des Expertenrats je Rückgabe (Tage)",
     "pruefung_tage": "Prüffrist der Gruppe 2 (Tage)",
+    "tendenz_ab_mindestbeteiligung": gettext_lazy("Tendenz ab erreichter Mindestbeteiligung (0 = verdeckt bis Fristende)"),
 }
 
 
@@ -328,7 +343,9 @@ def _ordnung_abgleich() -> dict:
         erzeugt = None
         fehler = str(ausnahme)
     if erzeugt is not None:
-        gilt = aktiv.regeln if aktiv else {}
+        # Wie `_wesentlich`: fehlende Felder mit ihrer Vorgabe — eine ältere Ordnung ohne ein neues Feld
+        # gilt mit dessen Vorgabe; weicht das Register davon ab, ist das eine Abweichung (Prüfung 0.51.0).
+        gilt = _wesentlich(aktiv.regeln) if aktiv else {}
         for feld, (schluessel, _wandler) in REGISTER_ZUORDNUNG.items():
             aus_dem_register = getattr(erzeugt, feld)
             in_kraft = gilt.get(feld)

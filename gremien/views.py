@@ -13,11 +13,13 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy, gettext_noop
 from django.views.decorators.http import require_POST
 
 from gremien.models import (
@@ -57,7 +59,7 @@ from gremien.models import (
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import Zweck, lauf_ausfuehren
-from mandatare.models import Mandat, Vertrauensfrage
+from mandatare.models import Mandat, Vertrauensfrage, VertrauensfrageArt
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from parameter.models import Parameter, ParameterTest, Status, TestStatus
@@ -392,7 +394,10 @@ def fenster(request, antrag_id: int):
                 antrag.interessenbindungen.select_related("mitglied").order_by("-runde", "erklaert_am")
             ),
             "einschaetzung": _einschaetzung(antrag),
-            "abstimmung": _abstimmung_stand(antrag, entwurf) if entwurf else None,
+            # Nur während die Unterstützer entscheiden — vorher stünde dort „0 👍 / 0 👎 (0 %)“.
+            "abstimmung": _abstimmung_stand(antrag, entwurf)
+            if entwurf and entwurf.status == EntwurfsStatus.UNTERSTUETZER
+            else None,
             "wuensche_vorrunde": wuensche,
             "darf_schreiben": Rolle.hat_fuer(request.user, Gremium.EXPERTENRAT_1, antrag),
             "auslosung": Auslosung.objects.filter(antrag=antrag).order_by("-runde").first(),
@@ -580,12 +585,12 @@ class RollenFormular(forms.Form):
         queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
             "last_name", "first_name", "username"
         ),
-        label="Mitglied",
+        label=gettext_lazy("Mitglied"),
     )
-    gremium = forms.ChoiceField(label="Gremium", choices=Gremium.choices)
-    endet_am = forms.DateField(label="Endet am", initial=standard_ende)
+    gremium = forms.ChoiceField(label=gettext_lazy("Gremium"), choices=Gremium.choices)
+    endet_am = forms.DateField(label=gettext_lazy("Endet am"), initial=standard_ende)
     bestaetigt = forms.BooleanField(
-        label="Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)", required=False
+        label=gettext_lazy("Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)"), required=False
     )
 
 
@@ -609,16 +614,65 @@ def _unvereinbarkeit(mitglied, gremium: str) -> str:
     return ""
 
 
-def _bestaetigung_durch_wahl(mitglied) -> bool:
+def _bestaetigung_durch_wahl(rolle) -> bool:
     """Setzt `Mandat.bestaetigt_am` für jedes Mandat der Person, das nach einer verlorenen
     Vertrauensfrage noch ohne Bestätigung ist (§ 7 Abs 10 lit f Z 3 Satz 2: „als Bestätigung
     gilt auch ihre Wahl in ein Organ der Partei“). Dieselbe Menge wie `kandidatursperre`
     — personenbezogen, unabhängig davon, ob die Vertretung inzwischen endete. Gibt zurück,
-    ob etwas bestätigt wurde; das Audit schreibt `Mandat.bestaetigen`."""
+    ob etwas bestätigt wurde; das Audit schreibt `Mandat.bestaetigen` mit der Rolle.
+
+    Als Wahl gilt erst die von der Mitgliederversammlung bestätigte Berufung, nicht die Berufung
+    durch die Verwaltung allein (D-L6d, Gründer 29.9.2026) — und nur eine aktive Rolle: Eine Rolle,
+    die schon vor dem Ergebnis bestand, ruht oder ist beendet (§ 7 Abs 10 lit f Z 1); ihre spätere
+    Bestätigung ist keine neue Wahl (Entscheidung E8 zum Bauplan 0.51.0)."""
+    if not rolle.bestaetigt or not rolle.aktiv:
+        return False
     gesperrt = Mandat.objects.filter(
-        mitglied=mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+        mitglied=rolle.mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
     )
-    return any([mandat.bestaetigen("wahl") for mandat in gesperrt])
+    return any([mandat.bestaetigen("wahl", rolle=rolle.pk) for mandat in gesperrt])
+
+
+def _rolle_aus_post(request):
+    """Die Rolle aus dem Formular — eine verformte Kennung ist 404, nicht 500."""
+    pk = request.POST.get("rolle", "")
+    if not pk.isdigit():
+        raise Http404
+    return get_object_or_404(Rolle, pk=int(pk))
+
+
+def _meldung_zur_kandidatursperre(request, rolle, bestaetigt: bool) -> None:
+    """Sagt der Verwaltung, was die Berufung oder Bestätigung für eine Kandidatursperre bedeutet
+    (§ 7 Abs 10 lit f Z 3 Satz 2, D-L6d)."""
+    if bestaetigt:
+        # Die übrigen Wirkungen der verlorenen Vertrauensfrage bleiben (lit f Z 3 letzter Satz).
+        messages.info(
+            request,
+            _(
+                "Die Bestätigung durch die Mitgliederversammlung gilt zugleich als Bestätigung nach "
+                "§ 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
+            ),
+        )
+    elif Mandat.objects.filter(
+        mitglied=rolle.mitglied, vertrauen_entzogen_am__isnull=False, bestaetigt_am__isnull=True
+    ).exists():
+        if not rolle.bestaetigt:
+            messages.info(
+                request,
+                _(
+                    "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die "
+                    "Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
+                ),
+            )
+        elif rolle.ruht:
+            # E8 zum Bauplan 0.51.0: Die Rolle bestand schon vor dem Ergebnis — ihre Bestätigung ist keine Wahl
+            messages.info(
+                request,
+                _(
+                    "Die Rolle ruht nach der verlorenen Vertrauensfrage (§ 7 Abs 10 lit f Z 1); ihre Bestätigung "
+                    "ist keine Wahl nach lit f Z 3 — die Kandidatursperre bleibt."
+                ),
+            )
 
 
 @nur_admins
@@ -671,47 +725,48 @@ def rollen_aktion(request):
                 % {"name": d["mitglied"].anzeigename},
             )
             return redirect("gremien:rollen")
-        rolle = Rolle.objects.create(
-            mitglied=d["mitglied"],
-            gremium=d["gremium"],
-            endet_am=d["endet_am"],
-            bestaetigt=d["bestaetigt"],
-        )
-        AuditEintrag.anhaengen(
-            {
-                "typ": "rolle_berufen",
-                "rolle": rolle.pk,
-                "gremium": rolle.gremium,
-                "endet_am": rolle.endet_am.isoformat(),
-                "bestaetigt": rolle.bestaetigt,
-            }
-        )
+        with transaction.atomic():
+            rolle = Rolle.objects.create(
+                mitglied=d["mitglied"],
+                gremium=d["gremium"],
+                endet_am=d["endet_am"],
+                bestaetigt=d["bestaetigt"],
+            )
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "rolle_berufen",
+                    "rolle": rolle.pk,
+                    "gremium": rolle.gremium,
+                    "endet_am": rolle.endet_am.isoformat(),
+                    "bestaetigt": rolle.bestaetigt,
+                }
+            )
+            bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
         messages.success(
             request,
             _("Rolle berufen: %(gremium)s bis %(bis)s — öffentlich sichtbar.")
             % {"gremium": rolle.get_gremium_display(), "bis": f"{rolle.endet_am:%d.%m.%Y}"},
         )
-        if _bestaetigung_durch_wahl(d["mitglied"]):
-            # § 7 Abs 10 lit f Z 3 Satz 2: Die Wahl in ein Organ der Partei gilt als Bestätigung
-            # durch die Mitgliederversammlung — die Kandidatursperre nach einer verlorenen
-            # Vertrauensfrage fällt damit weg; die übrigen Wirkungen bleiben.
-            messages.info(
-                request,
-                _(
-                    "Die Berufung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — "
-                    "die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
-                ),
-            )
+        _meldung_zur_kandidatursperre(request, rolle, bestaetigt_mandat)
 
     elif aktion == "bestaetigen":
-        rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
-        rolle.bestaetigt = True
-        rolle.save(update_fields=["bestaetigt"])
-        AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
+        rolle = _rolle_aus_post(request)
+        if rolle.bestaetigt:
+            messages.info(request, _("Die Bestätigung der Mitgliederversammlung ist bereits vermerkt."))
+            return redirect("gremien:rollen")
+        if rolle.beendet_grund or rolle.endet_am < timezone.localdate():
+            messages.error(request, _("Eine beendete oder abgelaufene Rolle lässt sich nicht mehr bestätigen."))
+            return redirect("gremien:rollen")
+        with transaction.atomic():
+            rolle.bestaetigt = True
+            rolle.save(update_fields=["bestaetigt"])
+            AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
+            bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
         messages.success(request, _("Bestätigung der Mitgliederversammlung vermerkt."))
+        _meldung_zur_kandidatursperre(request, rolle, bestaetigt_mandat)
 
     elif aktion == "beenden":
-        rolle = get_object_or_404(Rolle, pk=request.POST.get("rolle"))
+        rolle = _rolle_aus_post(request)
         grund = (request.POST.get("grund") or "").strip()
         if not grund:
             messages.error(request, _("Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert."))
@@ -1096,34 +1151,38 @@ def protokoll(request, gremium: str, jahr: int):
 #: Was der Integritätsrat beschließen kann, und worauf es sich bezieht. Ein Anlass steht hier
 #: erst, wenn seine Wirkung gebaut ist — ein Knopf, der schweigend nichts tut, wäre schlimmer
 #: als ein fehlender.
+#: Die Vorschrift je Anlass ist übersetzbar markiert (Prüfung 0.51.0): Meldung und Knopf zeigen sie in
+#: der Sprache der Seite („§ 7 (10) lit b and g“), gespeichert und auditiert wird nichts davon.
 IR_ANLAESSE = [
-    (Anlass.HERVORHEBUNG, "Antrag hervorheben", "§ 5 Abs 10 lit b"),
-    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", "§ 5 Abs 10 lit b"),
-    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", "§ 5 Abs 2"),
-    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", "§ 5 Abs 2"),
-    (Anlass.AUSSETZUNG, "Aussetzen", "§ 6 Abs 3 lit d"),
-    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", "§ 6 Abs 3 lit d"),
-    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", "§ 7 Abs 10 lit g"),
+    (Anlass.HERVORHEBUNG, "Antrag hervorheben", gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", gettext_noop("§ 5 Abs 2")),
+    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", gettext_noop("§ 5 Abs 2")),
+    (Anlass.AUSSETZUNG, "Aussetzen", gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", gettext_noop("§ 7 Abs 10 lit b und g")),
 ]
 
 #: Anlässe, die nicht im allgemeinen Formular stehen, sondern nur dort, wo ihr Gegenstand liegt:
-#: Die Sperrfeststellung gehört zu genau einer Vertrauensfrage mit Hinweis (Karte unten) —
-#: ein Knopf neben jedem Sachantrag wäre eine Einladung zu wirkungslosen Beschlüssen.
+#: Die Sperrfeststellung gehört zu genau einer laufenden Vertrauensfrage (Karte unten) — mit oder
+#: ohne Sperrhinweis der Plattform (D-L6e); ein Knopf neben jedem Sachantrag wäre eine Einladung
+#: zu wirkungslosen Beschlüssen.
 IR_ANLAESSE_MIT_EIGENEM_ORT = {Anlass.VERTRAUENSFRAGE_SPERRE}
 
 
-def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
-    """Die Karte des Integritätsrats (§ 7 Abs 10 lit b): jede laufende Vertrauensfrage, bei der
-    die Software beim Einbringen eine Sperre nach lit g erkannt hat und noch kein
-    Feststellungsbeschluss vorliegt — mit Restfrist (drei Tage ab Einbringung).
+def _vertrauensfragen_zur_feststellung(jetzt=None) -> list[dict]:
+    """Die Karte des Integritätsrats (§ 7 Abs 10 lit b und g, D-L6e): jede laufende Vertrauensfrage
+    ohne Feststellungsbeschluss, mit Restfrist (drei Tage ab Einbringung) — mit oder ohne Sperrhinweis
+    der Plattform. Der Gründer hat am 29.9.2026 entschieden: Knopf immer zeigen, Begründung Pflicht;
+    die Satzung bindet die Feststellung an lit g, nicht an das, was die Software erkannt hat.
 
-    Nach der Frist bleibt die Zeile stehen, sagt aber „Frist abgelaufen — Antrag läuft“ und
-    bietet keinen Knopf mehr an: Ein späterer Beschluss bliebe ohne Wirkung (lit b letzter
-    Satz; die Wirkung prüft die Frist selbst). Die Software weist nie ab, sie zeigt nur an —
-    feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
+    Nach der Frist bleibt eine Zeile mit Hinweis stehen, sagt aber „Frist abgelaufen — Antrag läuft“
+    und bietet keinen Knopf mehr an: Ein späterer Beschluss bliebe ohne Wirkung (lit b letzter Satz;
+    die Wirkung prüft die Frist selbst). Eine Zeile ohne Hinweis entfällt dann. Die Software weist nie
+    ab, sie zeigt nur an — feststellen kann allein der Rat durch veröffentlichten Beschluss (§ 2 Abs 6)."""
     jetzt = jetzt or timezone.now()
     laufende = []
-    for vf in Vertrauensfrage.offene_mit_sperrhinweis():
+    for vf in Vertrauensfrage.zur_feststellung(jetzt):
         vf.antrag.fortschreiben(jetzt)  # lazy Phasen: ein verfallener Antrag gehört nicht mehr hierher
         if vf.laeuft:
             laufende.append(vf)
@@ -1144,6 +1203,7 @@ def _vertrauensfragen_mit_sperrhinweis(jetzt=None) -> list[dict]:
             "antrag": vf.antrag,
             "frist_ende": vf.sperrfrist_ende,
             "frist_laeuft": jetzt <= vf.sperrfrist_ende,
+            "hinweis": bool(vf.sperrhinweis),
             "beschluss": offene_beschluesse.get(vf.antrag_id),
         }
         for vf in laufende
@@ -1174,7 +1234,7 @@ def integritaet(request):
             "darf_stimmen": Rolle.hat(request.user, Gremium.INTEGRITAETSRAT),
             "ratsmitglieder": [r.mitglied for r in Rolle.aktive(Gremium.INTEGRITAETSRAT).select_related("mitglied")],
             "anlaesse": [a for a in IR_ANLAESSE if a[0] not in IR_ANLAESSE_MIT_EIGENEM_ORT],
-            "sperrhinweise": _vertrauensfragen_mit_sperrhinweis(),
+            "feststellungen": _vertrauensfragen_zur_feststellung(),
             "aktive": aktive,
             "mindestbesetzung": SATZUNG_MIN_INTEGRITAETSRAT,
             "besetzt": aktive >= SATZUNG_MIN_INTEGRITAETSRAT,
@@ -1215,9 +1275,12 @@ def integritaet_beschluss(request):
     antrag = get_object_or_404(Antrag, pk=request.POST.get("antrag"))
     begruendung = (request.POST.get("beschreibung") or "").strip()
     if not begruendung:
+        # Die Begründungspflicht folgt aus der Vorschrift des jeweiligen Anlasses — die Meldung nennt sie.
+        satzung = next(s for wert, _n, s in IR_ANLAESSE if wert == anlass)
         messages.error(
             request,
-            _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."),
+            _("Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (%(satzung)s).")
+            % {"satzung": _(satzung)},
         )
         return redirect("gremien:integritaet")
     frist = beschluss_frist()
@@ -1242,6 +1305,13 @@ def integritaet_beschluss(request):
         vf = Vertrauensfrage.objects.filter(antrag=antrag).first()
         if vf is None or not vf.laeuft:
             messages.error(request, _("Eine Sperre lässt sich nur zu einer laufenden Vertrauensfrage feststellen."))
+            return redirect("gremien:integritaet")
+        if vf.art != VertrauensfrageArt.VERTRAUENSFRAGE:
+            # lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht — es gibt nichts festzustellen.
+            messages.error(
+                request,
+                _("Für einen Bestätigungsantrag gibt es keine Sperre (§ 7 Abs 10 lit f Z 3)."),
+            )
             return redirect("gremien:integritaet")
         if vf.nicht_eroeffnet:
             messages.info(request, _("Diese Vertrauensfrage ist bereits als nicht eröffnet festgestellt."))
@@ -1274,16 +1344,18 @@ def integritaet_beschluss(request):
         antrag=antrag,
         angelegt_von=request.user,
     )
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienbeschluss_angelegt",
-            "gremium": Gremium.INTEGRITAETSRAT.value,
-            "anlass": anlass,
-            "antrag": antrag.pk,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-        }
-    )
+    ereignis = {
+        "typ": "gremienbeschluss_angelegt",
+        "gremium": Gremium.INTEGRITAETSRAT.value,
+        "anlass": anlass,
+        "antrag": antrag.pk,
+        "beschluss": beschluss.pk,
+        "nummer": beschluss.nummer,
+    }
+    if anlass == Anlass.VERTRAUENSFRAGE_SPERRE:
+        # Nachrechenbar bleibt, ob der Rat mit oder ohne Sperrhinweis der Plattform festgestellt hat (D-L6e).
+        ereignis["sperrhinweis"] = bool(antrag.vertrauensfrage.sperrhinweis)
+    AuditEintrag.anhaengen(ereignis)
     messages.success(
         request,
         _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer},

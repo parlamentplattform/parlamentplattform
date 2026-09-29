@@ -138,7 +138,9 @@ DDOE_DEMO = os.environ.get("DDOE_DEMO", "1" if DEBUG else "0") == "1"
 DDOE_WAECHTER_MINUTEN = int(os.environ.get("DDOE_WAECHTER_MINUTEN", "10"))
 
 # § 4 Abs 4 lit d: Übergangsregel für den Aufbau — Anwartschaftsfristen entfallen,
-# bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat.
+# bis die Mitgliederversammlung die erste Verfahrensordnung beschlossen hat. Seit 0.51 wird der
+# Wert beim Einbringen in die Ordnung des Antrags eingefroren (§ 5 Abs 5): Ein Umschalten wirkt
+# nur auf Anträge, die danach eingebracht werden (`verfahren.models.uebergangsregel_der_instanz`).
 DDOE_UEBERGANGSREGEL = os.environ.get("DDOE_UEBERGANGSREGEL", "1") == "1"
 
 # F-51: Der satzungsgebende Erstzugang der Mitgliederverwaltung. Dieses Konto ist

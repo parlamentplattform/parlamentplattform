@@ -83,6 +83,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
       {% endif %}
       {% if abstimmung %}
       <p class="meta" style="margin-top:6px">{% blocktranslate with ja=abstimmung.ja nein=abstimmung.nein anteil=abstimmung.prozent %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎 ({{ anteil }} %){% endblocktranslate %}
+        · {% blocktranslate with p=abstimmung.schwelle_prozent %}Schwelle {{ p }} %{% endblocktranslate %}{% if abstimmung.schwelle_vorgabe %} ({% translate "Vorgabe" %}){% endif %}
         · {% blocktranslate count n=abstimmung.kritik|length %}{{ n }} Kritik-Beitrag{% plural %}{{ n }} Kritik-Beiträge{% endblocktranslate %}
         · <a href="{% url 'verfahren:antrag' antrag.pk %}#zone-chat">{% translate "in den Abstimmungs-Chat" %}</a></p>
       {% endif %}

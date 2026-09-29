@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 
 from parameter.models import zahl
-from plattform_core import Phase, __version__
+from plattform_core import Gegenstand, Phase, __version__
 from plattform_core.phases import (
     abstimmung_frist_ende,
     beratung_frist_ende,
@@ -33,6 +33,7 @@ from verfahren.models import (
     StimmRegister,
     Unterstuetzung,
     Vollzugsstatus,
+    uebergangsregel_fuer,
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
@@ -128,6 +129,25 @@ def _beteiligung(antrag, abgegeben=None):
     return abgegeben, max(1, antrag.stimmberechtigte_anzahl or 1)
 
 
+def _beteiligung_lesbar(antrag) -> dict | None:
+    """Beteiligung und — nur wo die Ordnung sie freigibt — Tendenz einer laufenden Abstimmung für die
+    Karte „Abstimmen“ der Antragsseite (D-D2). Dieselbe Schranke wie Kachel und Übersicht."""
+    if antrag.phase != Phase.ABSTIMMUNG.value or antrag.art == Antragsart.MANDAT:
+        return None
+    from verfahren.tendenz import tendenzen
+
+    abgegeben, basis = _beteiligung(antrag)
+    # `basis` schützt nur vor der Division durch null — ohne gespeicherten Nenner nennt die Karte keinen
+    # (Prüfung 0.51.0): „–“ statt „von 1“, und keinen Prozentwert.
+    berechtigte = antrag.stimmberechtigte_anzahl or None
+    return {
+        "abgegeben": abgegeben,
+        "berechtigte": berechtigte,
+        "prozent": min(100, round(100 * abgegeben / basis)) if berechtigte else None,
+        "tendenz": tendenzen([antrag], {antrag.pk: abgegeben}).get(antrag.pk),
+    }
+
+
 def _mit_pfad() -> Prefetch:
     """Lebensbereiche samt Elternkette vorladen (Befund #39).
 
@@ -147,7 +167,7 @@ def _zaehler(antraege) -> dict[str, dict[int, int]]:
     Verfahren wären 10.000 COUNT-Abfragen je Aufruf des Parlaments."""
     pks = [a.pk for a in antraege]
     if not pks:
-        return {"unterstuetzungen": {}, "beitraege": {}, "stimmen": {}}
+        return {"unterstuetzungen": {}, "beitraege": {}, "stimmen": {}, "tendenzen": {}}
     stimmen = dict(
         Stimmabgabe.objects.filter(antrag_id__in=pks).order_by().values_list("antrag_id").annotate(n=Count("id"))
     )
@@ -168,7 +188,15 @@ def _zaehler(antraege) -> dict[str, dict[int, int]]:
             .annotate(n=Count("id"))
         ),
         "stimmen": stimmen,
+        # D-D2 (b): Anteile nur für laufende Sachanträge, deren Ordnung sie freigibt — sonst keine Abfrage
+        "tendenzen": _tendenzen(antraege, stimmen),
     }
+
+
+def _tendenzen(antraege, stimmen):
+    from verfahren.tendenz import tendenzen
+
+    return tendenzen(antraege, stimmen)
 
 
 def _wirksame_beginne(antraege, jetzt) -> dict:
@@ -398,7 +426,7 @@ def vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag) -> bool:
     return nutzer.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL,
         timezone.localdate(antrag.eingebracht_am),
-        uebergang=settings.DDOE_UEBERGANGSREGEL,
+        uebergang=uebergangsregel_fuer(antrag),  # eingefroren beim Einbringen (A5)
     )
 
 
@@ -462,9 +490,9 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
             lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
     Stand, Frist mit Ring und die Direkt-Handlung der Phase. Während einer
-    laufenden Abstimmung zeigt die Kachel NUR die Beteiligung — nie die Tendenz
-    (F-15: kein Bandwagon; das Ergebnis erscheint nach Fristende auf der
-    Antragsseite). `beginn`, `zaehler` und `vfs` kommen aus den Bulk-Helfern, wenn viele
+    laufenden Abstimmung zeigt die Kachel die Beteiligung — die Tendenz nur, wenn die
+    eingefrorene Ordnung eines Sachantrags sie ab erreichter Mindestbeteiligung freigibt
+    (D-D2 b; Voreinstellung: verdeckt, F-15 kein Bandwagon). `beginn`, `zaehler` und `vfs` kommen aus den Bulk-Helfern, wenn viele
     Kacheln auf einmal entstehen; einzeln holt die Kachel alles selbst.
 
     Vertrauensfragen (§ 7 Abs 10) tragen zusätzlich die Legende zu Ja/Nein (lit e), ob `nutzer`
@@ -511,8 +539,15 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         stat = {"typ": "beratung", "beitraege": zaehler["beitraege"].get(antrag.pk, 0)}
     elif antrag.phase == Phase.ABSTIMMUNG.value:
         abgegeben, basis = _beteiligung(antrag, zaehler["stimmen"].get(antrag.pk, 0))
+        tendenz = zaehler.get("tendenzen")
+        if tendenz is None:
+            from verfahren.tendenz import tendenzen
+
+            tendenz = tendenzen([antrag], {antrag.pk: abgegeben})
         stat = {"typ": "abstimmung", "abgegeben": abgegeben,
-                "prozent": min(100, round(100 * abgegeben / basis))}
+                "prozent": min(100, round(100 * abgegeben / basis)),
+                # D-D2: nur, wo die eingefrorene Ordnung es ab erreichter Mindestbeteiligung freigibt
+                "tendenz": tendenz.get(antrag.pk)}
     sperre = None
     if nutzer is not None and nutzer.is_authenticated and stat is not None:
         lage = lage if lage is not None else handlungslage(nutzer)
@@ -878,6 +913,17 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
         if policy.mehrheitsbasis == "ja_nein"
         else _("Ja mehr als die Hälfte aller abgegebenen Stimmen")
     )
+    # Fassung 5 der Ordnung: Die Übergangsregel ist beim Einbringen eingefroren (§ 4 Abs 4, § 5 Abs 5).
+    from plattform_core.eligibility import ANWARTSCHAFT_MONATE
+
+    personenwahl = art in (Antragsart.VERTRAUENSFRAGE.value, Antragsart.MANDAT.value)
+    monate = ANWARTSCHAFT_MONATE[Gegenstand.PERSONENWAHL if personenwahl else Gegenstand.SACHFRAGE]
+    anwartschaft = (
+        _("Anwartschaft"),
+        _("entfällt — Übergangsregel (§ 4 Abs 4 lit d)")
+        if policy.uebergangsregel
+        else ngettext("%(n)s Monat (§ 4 Abs 4 lit b)", "%(n)s Monate (§ 4 Abs 4 lit b)", monate) % {"n": monate},
+    )
     if art == Antragsart.VERTRAUENSFRAGE.value:
         dauer = ngettext("%d Tag", "%d Tage", policy.abstimmung_tage) % policy.abstimmung_tage
         fruehestens = policy.abstimmung_fruehestens_tage
@@ -914,6 +960,7 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             (_("Abstimmung"), f"{dauer} · " + _("mindestens sieben Tage (§ 7 Abs 10 lit e)")),
             (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
             (_("Mehrheit"), mehrheit),
+            anwartschaft,
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
     if art == Antragsart.MANDATSFRAGE.value:
@@ -926,6 +973,7 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
             ),
             (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
             (_("Mehrheit"), mehrheit),
+            anwartschaft,
             (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
         ]
     schwelle = ngettext("%d Unterstützung", "%d Unterstützungen", policy.unterstuetzung_schwelle) % policy.unterstuetzung_schwelle
@@ -944,6 +992,19 @@ def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[t
         (_("Mindestbeteiligung"), f"{policy.mindestbeteiligung * 100:g} %"),
         (_("Mehrheit"), mehrheit),
         (_("Sperre für Wiedereinbringung"), ngettext("%d Monat", "%d Monate", policy.wiedereinbringung_sperre_monate) % policy.wiedereinbringung_sperre_monate),
+        *(
+            []
+            if art == Antragsart.MANDAT.value
+            else [
+                (
+                    _("Tendenz während der Abstimmung"),
+                    _("sichtbar ab erreichter Mindestbeteiligung")
+                    if policy.tendenz_ab_mindestbeteiligung == 1
+                    else _("verdeckt bis Fristende"),
+                )
+            ]
+        ),
+        anwartschaft,
         (_("Verfahrensordnung"), f"{policy.id} v{policy.version}"),
     ]
 
@@ -1104,14 +1165,14 @@ def _archiv_lage(antrag, geoeffnet: str | None = None) -> dict:
     `geoeffnet` (?archiv=<phase>) ist die eine Phase, deren Beiträge mitkommen (Befund #42)."""
     from verfahren import archiv as archivkern
 
-    alle = archivkern.audit_spur(antrag)
     anzeige = archivkern.audit_anzeige()  # einmal lesen, nicht zweimal (Befund #41)
+    gesamt = archivkern.audit_anzahl(antrag)
     return {
         "zeitleiste": archivkern.zeitleiste(antrag, geoeffnet=geoeffnet),
         "entwurf": archivkern.entwurf_bloecke(antrag),
-        "audit": alle[-anzeige:],
-        "audit_gesamt": len(alle),
-        "audit_gekuerzt": len(alle) > anzeige,
+        "audit": archivkern.audit_spur(antrag, grenze=anzeige),
+        "audit_gesamt": gesamt,
+        "audit_gekuerzt": gesamt > anzeige,
     }
 
 def archiv_export(request, pk, art):
@@ -1191,6 +1252,9 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
             "bis": vf.sperrfrist_ende,
             "text": vf.sperrhinweis,
         }
+    elif jetzt <= vf.sperrfrist_ende and antrag.pk in Vertrauensfrage.mit_offener_feststellung([antrag.pk]):
+        # D-L6e: Der Rat kann auch ohne Hinweis der Plattform feststellen — wer unterstützt, soll es sehen.
+        sperre = {"stand": "pruefung", "bis": vf.sperrfrist_ende, "text": ""}
     policy = antrag.policy()
     anfechtungsfrist = vf.anfechtungsfrist_ende
     return {
@@ -1330,6 +1394,9 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     chat["antwort_vorgabe"] = _antwort_vorgabe(
         antrag, (chat_entwurf or {}).get("antwort_auf") or request.GET.get("antwort_auf")
     )
+    from verfahren import archiv as archivkern
+
+    archiv = _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None)
     return render(
         request,
         "verfahren/antrag.html",
@@ -1366,13 +1433,15 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "schleife": schleife,
             "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
             "chat": chat,
-            "archiv": _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None),
+            "archiv": archiv,
+            "zustandekommen": archivkern.zustandekommen(antrag, archiv["zeitleiste"]),
             "frist": frist,
             "aussetzung": aussetzung,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,
             "meine_stimme": meine_stimme,
             "phase_offen": antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
             "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value,
+            "beteiligung": _beteiligung_lesbar(antrag),
         },
     )
 

@@ -205,16 +205,20 @@ class Mandat(models.Model):
         (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
         return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
-    def bestaetigen(self, grund: str, jetzt=None) -> bool:
+    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
-        (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`).
+        (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
+        `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
         Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent."""
         if self.bestaetigt_am is not None:
             return False
         jetzt = jetzt or timezone.now()
         self.bestaetigt_am = timezone.localdate(jetzt)
         self.save(update_fields=["bestaetigt_am"])
-        AuditEintrag.anhaengen({"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund})
+        ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
+        if rolle is not None:
+            ereignis["rolle"] = rolle
+        AuditEintrag.anhaengen(ereignis)
         return True
 
     @property
@@ -858,6 +862,43 @@ class Vertrauensfrage(models.Model):
             cls.objects.exclude(sperrhinweis="")
             .filter(sperre_beschluss__isnull=True, antrag__phase__in=VERTRAUENSFRAGE_LAUFEND)
             .select_related("antrag", "mandat")
+        )
+
+    @staticmethod
+    def mit_offener_feststellung(antrag_ids) -> set[int]:
+        """Die Anträge unter `antrag_ids`, zu denen ein Feststellungsbeschluss des Integritätsrats läuft
+        (§ 7 Abs 10 lit b) — mit oder ohne Sperrhinweis. Eine Abfrage für alle; ohne die App `gremien`
+        leer. Die Seiten sagen damit auch dann, dass der Rat berät, wenn die Plattform nichts erkannt hat."""
+        from django.apps import apps
+
+        antrag_ids = [pk for pk in antrag_ids if pk is not None]
+        if not antrag_ids or not apps.is_installed("gremien"):
+            return set()
+        return set(
+            apps.get_model("gremien", "GremienBeschluss")
+            .objects.filter(anlass="vertrauensfrage_sperre", status="offen", antrag_id__in=antrag_ids)
+            .values_list("antrag_id", flat=True)
+        )
+
+    @classmethod
+    def zur_feststellung(cls, jetzt=None):
+        """Die Karte des Integritätsrats (§ 7 Abs 10 lit b, D-L6e): jede laufende Vertrauensfrage ohne
+        Feststellungsbeschluss — in der Dreitagesfrist auch ohne Sperrhinweis, denn der Rat stellt fest,
+        was die Satzung sperrt, nicht was die Software erkannt hat (§ 2 Abs 6). Mit Hinweis bleibt die
+        Zeile nach der Frist stehen („Frist abgelaufen — Antrag läuft“), ohne Hinweis entfällt sie dann:
+        Ein Beschluss bliebe ohne Wirkung. Der Bestätigungsantrag steht nie hier — für ihn gelten lit b,
+        c und g nicht (lit f Z 3)."""
+        jetzt = jetzt or timezone.now()
+        in_der_frist = models.Q(antrag__eingebracht_am__gte=jetzt - timedelta(days=SPERRFESTSTELLUNG_TAGE))
+        return (
+            cls.objects.filter(
+                art=VertrauensfrageArt.VERTRAUENSFRAGE,
+                sperre_beschluss__isnull=True,
+                antrag__phase__in=VERTRAUENSFRAGE_LAUFEND,
+            )
+            .filter(in_der_frist | ~models.Q(sperrhinweis=""))
+            .select_related("antrag", "mandat")
+            .order_by("antrag__eingebracht_am", "pk")
         )
 
 

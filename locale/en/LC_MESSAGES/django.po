@@ -4865,9 +4865,6 @@ msgstr "Composition in the reporting year"
 msgid "Bezug auf einen Absatz der Fassung (freiwillig)"
 msgstr "Reference to a paragraph of the version (optional)"
 
-msgid "Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (§ 5 Abs 10 lit b)."
-msgstr "Please give reasons — they appear with the decision on the motion (§ 5 para 10 lit b)."
-
 msgid "Bitte begründen — die Begründung wird veröffentlicht (§ 6 Abs 9)."
 msgstr "Please give reasons — they will be published (§ 6 para 9)."
 
@@ -5295,9 +5292,6 @@ msgstr "during"
 msgid "zum Antrag"
 msgstr "to the motion"
 
-msgid "zurückgegeben"
-msgstr "returned"
-
 msgid "Änderungsgeschichte"
 msgstr "Change history"
 
@@ -5339,7 +5333,6 @@ msgstr "Overload reports (§ 6 para 10)"
 
 msgid "Übernimmt (Mitglied des Rates, freiwillig)"
 msgstr "Taken on by (member of the council, optional)"
-
 
 #, python-format
 msgid "Ein Test"
@@ -6769,23 +6762,14 @@ msgstr "Dear %(name)s,"
 msgid "Ihre E-Mail-Adresse ist bestätigt — willkommen bei Direkte Demokratie Österreich. Sie sind jetzt Anwärterin bzw. Anwärter."
 msgstr "Your e-mail address is confirmed — welcome to Direkte Demokratie Österreich. You are now a candidate member."
 
-
 msgid "Nach der Freischaltung gilt für Abstimmungen und Wahlen:"
 msgstr "Once your account is unlocked, the following applies to votes and elections:"
-
-
-
-
-
 
 msgid "Einführung:"
 msgstr "Introduction:"
 
 msgid "Parlament:"
 msgstr "Parliament:"
-
-
-
 
 msgid "ab sofort"
 msgstr "as of now"
@@ -6958,9 +6942,6 @@ msgstr "Reasoning of the decision (prefilled with the notice; will be published)
 msgid "Begründung des Mandatars"
 msgstr "Reasoning of the office holder"
 
-msgid "Beim Einbringen einer Vertrauensfrage prüft die Plattform die Sperren nach § 7 Abs 10 lit g und schreibt einen Hinweis — abgewiesen wird nichts. Feststellen kann die Sperre nur der Rat, durch veröffentlichten, begründeten Beschluss binnen drei Tagen nach Einbringung; dann gilt der Antrag als nicht eröffnet. Unterbleibt der Beschluss, gilt er als eröffnet (§ 7 Abs 10 lit b)."
-msgstr "When a confidence question is submitted, the platform checks the bars under § 7 (10) lit g and writes a notice — nothing is rejected. Only the council can establish the bar, by a published, reasoned decision within three days of submission; the motion then counts as not opened. If no decision is taken, it counts as opened (§ 7 (10) lit b)."
-
 msgid "Bestätigt durch die Mitgliederversammlung am"
 msgstr "Confirmed by the members’ assembly on"
 
@@ -7044,9 +7025,6 @@ msgstr "The vote has ended — a response is no longer possible; existing respon
 
 msgid "Die Anfechtung ist bereits vermerkt."
 msgstr "The challenge is already recorded."
-
-msgid "Die Berufung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
-msgstr "The appointment also counts as confirmation under § 7 (10) lit f no. 3 — the candidacy bar after the lost confidence question is lifted."
 
 msgid "Die Entscheidung ist bereits vermerkt."
 msgstr "The decision is already recorded."
@@ -7179,9 +7157,6 @@ msgstr "No candidacy bar — nothing to confirm."
 
 msgid "Keine Vertrauensfrage bisher."
 msgstr "No confidence question so far."
-
-msgid "Keine Vertrauensfrage mit Sperrhinweis."
-msgstr "No confidence question with a bar notice."
 
 msgid "Laufende"
 msgstr "Running"
@@ -7341,9 +7316,6 @@ msgstr "Confidence question about"
 
 msgid "Vertrauensfragen"
 msgstr "Confidence questions"
-
-msgid "Vertrauensfragen mit Sperrhinweis"
-msgstr "Confidence questions with a bar notice"
 
 msgid "Vertrauensfragen →"
 msgstr "Confidence questions →"
@@ -7629,7 +7601,6 @@ msgstr "You will receive your membership card with the activation (verified leve
 msgid "Mitglied seit %(seit)s · Nachweis %(stufe)s · Mitgliedschaft besteht."
 msgstr "Member since %(seit)s · proof %(stufe)s · membership exists."
 
-
 msgid "Zu dieser Nummer besteht keine Mitgliedschaft mit geprüftem Nachweis, oder der Code stimmt nicht."
 msgstr "There is no membership with verified proof for this number, or the code is wrong."
 
@@ -7639,17 +7610,14 @@ msgstr "verified electronically"
 msgid "persönlich geprüft"
 msgstr "verified in person"
 
-
 msgid "Die Anmeldung ist bestätigt. Die Freischaltung ist noch ausständig; dieser Ausweis bestätigt keine Stimmberechtigung."
 msgstr "Registration is confirmed. Activation is still pending; this card does not certify eligibility to vote."
 
 msgid "Prüfung ausständig"
 msgstr "Verification pending"
 
-
 msgid "Für den Mitgliedsausweis braucht es einen Namen auf der Karte — ergänzen Sie Ihren Anzeigenamen im Profil; danach erscheint er hier."
 msgstr "The membership card needs a name. Please add your display name in your profile; the card will then appear here."
-
 
 msgid "Ihren Mitgliedsausweis liefern wir automatisch nach, sobald er erzeugt werden kann. Bitte prüfen Sie, ob in Ihrem Profil ein Name hinterlegt ist."
 msgstr "We will automatically send your membership card as soon as it can be generated. Please check that your profile includes a name."
@@ -7662,7 +7630,6 @@ msgstr "Your membership card – Parliament Platform"
 
 msgid "Im Anhang erhalten Sie Ihren Mitgliedsausweis. Den aktuellen Stand finden Sie in Ihrem Profil."
 msgstr "Your membership card is attached. You can find your current status in your profile."
-
 
 msgid "Ausweis-Vorschau an mich senden"
 msgstr "Email me a membership card preview"
@@ -8422,3 +8389,105 @@ msgstr "Excluded from participation (§ 4 (5))."
 
 msgid "Testkonto"
 msgstr "Test account"
+
+msgid "Vertrauensfragen · Sperre feststellen"
+msgstr "Confidence questions · establish a bar"
+
+msgid "Kein Sperrhinweis der Plattform."
+msgstr "No bar notice from the platform."
+
+msgid "Begründung des Beschlusses (wird veröffentlicht)"
+msgstr "Reasons for the decision (will be published)"
+
+msgid "Keine Vertrauensfrage zur Feststellung."
+msgstr "No confidence question to decide on."
+
+#, python-format
+msgid "Bitte begründen — die Begründung erscheint mit dem Beschluss am Antrag (%(satzung)s)."
+msgstr "Please give reasons — they appear with the decision on the motion (%(satzung)s)."
+
+msgid "Für einen Bestätigungsantrag gibt es keine Sperre (§ 7 Abs 10 lit f Z 3)."
+msgstr "A confirmation motion cannot be barred (§ 7 (10) lit f no. 3)."
+
+msgid "Der Integritätsrat prüft eine Sperre bis"
+msgstr "The integrity council is examining a bar until"
+
+msgid "Gremium"
+msgstr "Body"
+
+msgid "Endet am"
+msgstr "Ends on"
+
+msgid "Von der Mitgliederversammlung bestätigt (§ 6 Abs 8)"
+msgstr "Confirmed by the members’ assembly (§ 6 (8))"
+
+msgid "Die Bestätigung der Mitgliederversammlung ist bereits vermerkt."
+msgstr "The members’ assembly’s confirmation is already recorded."
+
+msgid "Eine beendete oder abgelaufene Rolle lässt sich nicht mehr bestätigen."
+msgstr "A role that has ended or expired can no longer be confirmed."
+
+msgid "Die Bestätigung durch die Mitgliederversammlung gilt zugleich als Bestätigung nach § 7 Abs 10 lit f Z 3 — die Kandidatursperre nach der verlorenen Vertrauensfrage ist aufgehoben."
+msgstr "The confirmation by the members’ assembly also counts as confirmation under § 7 (10) lit f no. 3 — the candidacy bar after the lost confidence question is lifted."
+
+msgid "Die Kandidatursperre nach der verlorenen Vertrauensfrage bleibt, bis die Mitgliederversammlung die Berufung bestätigt (§ 7 Abs 10 lit f Z 3)."
+msgstr "The candidacy bar after the lost confidence question remains until the members’ assembly confirms the appointment (§ 7 (10) lit f no. 3)."
+
+#, python-format
+msgid "Schwelle %(p)s %%"
+msgstr "Threshold %(p)s %%"
+
+msgid "Vorgabe"
+msgstr "default"
+
+msgid "So kam der Vorschlag zustande"
+msgstr "How the proposal came about"
+
+msgid "entfällt — Übergangsregel (§ 4 Abs 4 lit d)"
+msgstr "waived — transitional rule (§ 4 (4) lit d)"
+
+#, python-format
+msgid "%(n)s Monat (§ 4 Abs 4 lit b)"
+msgid_plural "%(n)s Monate (§ 4 Abs 4 lit b)"
+msgstr[0] "%(n)s month (§ 4 (4) lit b)"
+msgstr[1] "%(n)s months (§ 4 (4) lit b)"
+
+#, python-format
+msgid "Tendenz: %(ja)s %% Ja · %(nein)s %% Nein · %(enthaltung)s %% Enthaltung"
+msgstr "Leaning: %(ja)s %% yes · %(nein)s %% no · %(enthaltung)s %% abstain"
+
+msgid "Tendenz verdeckt bis zur Mindestbeteiligung"
+msgstr "Leaning hidden until the minimum turnout is reached"
+
+msgid "Tendenz während der Abstimmung"
+msgstr "Leaning during the vote"
+
+msgid "sichtbar ab erreichter Mindestbeteiligung"
+msgstr "visible once the minimum turnout is reached"
+
+msgid "verdeckt bis Fristende"
+msgstr "hidden until the deadline"
+
+msgid "Tendenz ab erreichter Mindestbeteiligung (0 = verdeckt bis Fristende)"
+msgstr "Leaning once the minimum turnout is reached (0 = hidden until the deadline)"
+
+msgid "nicht ausgewertet — das Verfahren endete vorher"
+msgstr "not evaluated — the procedure ended before"
+
+msgid "Die Reaktion ließ sich gerade nicht speichern. Bitte noch einmal."
+msgstr "Your reaction could not be saved just now. Please try again."
+
+msgid "§ 5 Abs 10 lit b"
+msgstr "§ 5 (10) lit b"
+
+msgid "§ 5 Abs 2"
+msgstr "§ 5 (2)"
+
+msgid "§ 6 Abs 3 lit d"
+msgstr "§ 6 (3) lit d"
+
+msgid "§ 7 Abs 10 lit b und g"
+msgstr "§ 7 (10) lit b and g"
+
+msgid "Die Rolle ruht nach der verlorenen Vertrauensfrage (§ 7 Abs 10 lit f Z 1); ihre Bestätigung ist keine Wahl nach lit f Z 3 — die Kandidatursperre bleibt."
+msgstr "The role is suspended after the lost vote of confidence (§ 7 (10) lit f no. 1); its confirmation is not an election under lit f no. 3 — the bar on standing as a candidate remains."

@@ -229,11 +229,48 @@ def test_zurueckgegebene_runde_nimmt_die_schwelle_aus_dem_rueckgabe_ereignis(ord
     assert block["auswertung"]["angenommen"] is True and block["auswertung"]["schwelle"] == 0.3
 
 
-def test_ohne_ueberlieferung_gilt_das_register_und_sagt_es(ordnung):  # noqa: F811
+def test_ohne_ueberlieferung_gilt_die_eingefrorene_ordnung_und_sagt_es(ordnung):  # noqa: F811
+    """Bestandsaufnahme A6, § 5 Abs 5: Ist nichts überliefert, rechnet das Archiv mit der Schwelle der
+    eingefrorenen Ordnung des Antrags — nie mit dem heutigen Registerwert."""
     antrag, _audit = _abgeschlossene_runde(ordnung)
     _register("vorschlag-annahme-prozent", 70)
     block = next(b for b in archivkern.zeitleiste(antrag) if b["phase"] == "vorschlag-r1")
-    assert block["auswertung"]["schwelle"] == 0.7 and block["auswertung"]["schwelle_quelle"] == "register"
+    assert block["auswertung"]["schwelle"] == 0.5 and block["auswertung"]["schwelle_quelle"] == "ordnung"
+    assert block["auswertung"]["schwelle_prozent"] == 50
+
+
+def test_eine_alte_ordnung_ohne_annahmeanteil_zeigt_die_vorgabe(ordnung):  # noqa: F811
+    from verfahren.models import Antrag
+
+    antrag, _audit = _abgeschlossene_runde(ordnung)
+    alt = dict(antrag.policy_snapshot)
+    alt.pop("vorschlag_annahme_anteil", None)
+    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=alt)
+    antrag.refresh_from_db()
+    _register("vorschlag-annahme-prozent", 70)
+    assert antrag.annahme_schwelle() == (0.5, True)
+    block = next(b for b in archivkern.zeitleiste(antrag) if b["phase"] == "vorschlag-r1")
+    assert block["auswertung"]["schwelle_quelle"] == "vorgabe"
+
+
+def test_die_festgehaltene_rechnung_zeigt_was_entschieden_hat(ordnung):  # noqa: F811
+    """Abgeschlossene Runden zeigen die Zahlen aus dem Audit-Ereignis, das sie beendet hat — auch wenn die
+    heutige Nachrechnung anders ausfiele (0.51.0). Und „weiter“ folgt dem Ereignis: Bei erreichter
+    Höchstzahl der Runden geht der Vorschlag zur Endabstimmung, obwohl „Passt alles“ nicht trug."""
+    antrag, audit = _abgeschlossene_runde(ordnung, ja=1, nein=3)
+    audit.anhaengen(
+        {
+            "typ": "phasenwechsel", "antrag": antrag.pk, "neue_phase": "abstimmung",
+            "grund": "Vorschlag des Expertenrats angenommen („Passt alles“ 2:3 = 40 % (Schwelle 50 %), "
+            "an erster Stelle, Regel engagement-v1, Runde 1, § 5 Abs 12).",
+            "auswertung": {"ja": 2, "nein": 3, "prozent": 40, "schwelle": 0.5, "oben": True,
+                           "angenommen": False, "reihung": "engagement-v1", "runde": 1},
+        }
+    )
+    block = next(b for b in archivkern.zeitleiste(antrag) if b["phase"] == "vorschlag-r1")
+    a = block["auswertung"]
+    assert (a["ja"], a["nein"], a["prozent"], a["angenommen"], a["weiter"]) == (2, 3, 40, False, True)
+    assert a["schwelle_quelle"] == "audit"
 
 
 def test_archiv_zeigt_anzahl_und_laedt_beitraege_je_phase(client, ordnung):  # noqa: F811
@@ -258,3 +295,29 @@ def test_archiv_zeigt_anzahl_und_laedt_beitraege_je_phase(client, ordnung):  # n
     assert "Sehe ich auch so." not in zone
     daten = json.loads(archivkern.als_json(antrag))
     assert sum(len(b["beitraege"]) for b in daten["zeitleiste"]) == 3, "der Export trägt alles"
+
+
+def test_kein_live_leser_der_annahme_schwelle():
+    """Bestandsaufnahme A6: Die Annahme-Schwelle liest nur noch die eingefrorene Ordnung; der Registerwert
+    speist über `REGISTER_ZUORDNUNG` allein neue Fassungen der Verfahrensordnung."""
+    from pathlib import Path
+
+    wurzel = Path(__file__).resolve().parent.parent
+    treffer = [
+        str(p.relative_to(wurzel))
+        for p in wurzel.rglob("*.py")
+        if "migrations" not in p.parts and not p.name.startswith("test_") and ".claude" not in p.parts
+        and 'zahl("vorschlag-annahme-prozent"' in p.read_text(encoding="utf-8")
+    ]
+    assert treffer == []
+
+
+def test_archivzeiten_stehen_in_ortszeit_nicht_in_utc():
+    """Das Archiv hält ISO-Zeit in UTC fest; die Seite zeigt Wiener Ortszeit (0.51.0)."""
+    from verfahren.templatetags.chat import ortszeit
+
+    assert ortszeit("2026-09-29T09:26:41.123456+00:00") == "29.09.2026 11:26"
+    assert ortszeit("2026-01-15T23:30:00+00:00") == "16.01.2026 00:30"
+    assert ortszeit("") == ""
+    assert ortszeit(None) == ""
+    assert ortszeit("kaputt") == "kaputt"

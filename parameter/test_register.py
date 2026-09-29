@@ -234,6 +234,23 @@ def test_ohne_abweichung_entsteht_keine_leere_fassung(client, ordnung):  # noqa:
     assert Verfahrensordnung.objects.count() == stand
 
 
+def test_ein_neues_feld_der_ordnung_zeigt_seine_abweichung(client, ordnung):  # noqa: F811
+    """Prüfung 0.51.0 (zeit): Eine Ordnung aus der Zeit vor einem Feld liest dessen Vorgabe. Steht es im
+    Register anders, ist das eine Abweichung — nicht „deckungsgleich“."""
+    from parameter.views import _ordnung_abgleich
+    from verfahren.models import Verfahrensordnung
+
+    aktiv = Verfahrensordnung.objects.filter(aktiv=True).first()
+    alt = {k: v for k, v in aktiv.regeln.items() if k != "tendenz_ab_mindestbeteiligung"}
+    Verfahrensordnung.objects.filter(pk=aktiv.pk).update(regeln=alt)
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="verfahren-tendenz-ab-mindestbeteiligung").update(wert="1")
+    lage = _ordnung_abgleich()
+    zeile = next(z for z in lage["zeilen"] if z["feld"] == "tendenz_ab_mindestbeteiligung")
+    assert (zeile["in_kraft"], zeile["register"], zeile["abweichung"]) == (0, 1, True)
+    assert lage["abweichungen"] >= 1
+
+
 def test_die_registerseite_ordnet_nach_gruppen(client):
     """FB-J2: 32 Zeilen in einer Liste sind vollständig und trotzdem unbrauchbar."""
     inhalt = client.get(reverse("parameter:liste")).content.decode()

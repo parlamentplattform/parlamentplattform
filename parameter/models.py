@@ -665,6 +665,18 @@ ERSTBESTAND = [
         "quelle": "§ 14 Abs 3 · § 5 Abs 6",
     },
     {
+        "schluessel": "verfahren-tendenz-ab-mindestbeteiligung",
+        "wert": "0",
+        "einheit": gettext_noop("0 oder 1"),
+        "gruppe": "verfahren",
+        "beschreibung": gettext_noop("Ob Kachel, Antragsseite und Übersicht während einer laufenden Abstimmung "
+        "über einen Sachantrag die Tendenz — die Anteile von Ja, Nein und Enthaltung — zeigen, sobald die "
+        "Mindestbeteiligung erreicht ist. 0 heißt: verdeckt bis zum Fristende. Nur der Wert 1 schaltet ein; "
+        "alles andere wirkt wie 0. Der Wert gehört zur Verfahrensordnung: Er wirkt erst mit einer neuen "
+        "Fassung und wird beim Einbringen in die Ordnung des Antrags eingefroren."),
+        "quelle": "§ 5 Abs 3 lit e · § 5 Abs 4 · § 5 Abs 5",
+    },
+    {
         "schluessel": "vertrauensfrage-unterstuetzung-tage",
         "wert": "30",
         "einheit": gettext_noop("Tage"),

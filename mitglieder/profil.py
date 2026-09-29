@@ -617,7 +617,9 @@ def daten_export(mitglied: Mitglied) -> dict:
             for k in m.kommentar_set.all()
         ],
         "reaktionen": [
-            {"kommentar": r.kommentar_id, "art": r.art, "erstellt_am": r.erstellt_am} for r in m.reaktion_set.all()
+            {"kommentar": r.kommentar_id, "art": r.art, "erstellt_am": r.erstellt_am,
+             "zurueckgenommen_am": r.zurueckgenommen_am}
+            for r in m.reaktion_set.all()
         ],
         "favoriten": [{"antrag": f.antrag_id, "erstellt_am": f.erstellt_am} for f in m.favoriten.all()],
         "abos": [

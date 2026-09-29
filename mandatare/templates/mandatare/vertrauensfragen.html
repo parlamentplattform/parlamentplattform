@@ -29,7 +29,8 @@ Vermerk des Registers (lit f Z 4). Filter nach Ebene; JSON über das Rechenschaf
       {% if a.phase == "unterstuetzung" %} · {% blocktranslate with n=z.unterstuetzungen s=vf.schwelle_partei %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}
       {% elif a.phase == "abstimmung" %} · {% blocktranslate count n=z.stimmen with s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimme von {{ s }} Stimmberechtigten{% plural %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}{% endif %}
       {% if vf.schwelle_erreicht_am and vf.art == "vertrauensfrage" %} · {% translate "Schwelle erreicht am" %} {{ vf.schwelle_erreicht_am|date:"d.m.Y" }}{% if z.abstimmung_ab %} · {% translate "Abstimmung ab" %} {{ z.abstimmung_ab|date:"d.m.Y" }}{% endif %}{% endif %}
-      {% if z.sperrfrist_offen %} · <span class="ausstand">{% translate "Sperrhinweis — der Integritätsrat prüft bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}</span>
+      {% if z.sperrfrist_offen %} · <span class="ausstand">{% translate "Sperrhinweis — der Integritätsrat prüft bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}
+      {% if z.feststellung_offen %} · <span class="ausstand">{% translate "Der Integritätsrat prüft eine Sperre bis" %} {{ vf.sperrfrist_ende|date:"d.m.Y H:i" }}</span>{% endif %}</span>
   </span></div>
   {% endwith %}{% empty %}
   <p class="leer">{% translate "Derzeit läuft keine Vertrauensfrage." %}</p>

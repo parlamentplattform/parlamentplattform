@@ -61,7 +61,9 @@ def test_antragsseite_zeigt_kopfzeile_band_chip_und_ja_nein_handlung(client, ord
 def test_regeln_der_mandatsfrage_nennen_keine_uebersprungenen_phasen(client, ordnung):  # noqa: F811
     antrag, *_ = _mandatsfrage(ordnung, n=1)
     namen = [n for n, _w in _regeln_lesbar(antrag.policy(), antrag.art)]
-    assert namen == ["Unterstützung und Beratung", "Abstimmung", "Mindestbeteiligung", "Mehrheit", "Verfahrensordnung"]
+    assert namen == [
+        "Unterstützung und Beratung", "Abstimmung", "Mindestbeteiligung", "Mehrheit", "Anwartschaft", "Verfahrensordnung",
+    ]
     werte = dict(_regeln_lesbar(antrag.policy(), antrag.art))
     assert werte["Unterstützung und Beratung"] == "keine Unterstützungs- und Beratungsphase (§ 7 Abs 9)"
     assert werte["Abstimmung"].startswith("7 Tage · ") and "§ 7 Abs 9" in werte["Abstimmung"]

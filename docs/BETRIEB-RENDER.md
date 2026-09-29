@@ -65,7 +65,7 @@ Zwei Render-Eigenheiten, die man kennen muss:
 | `DDOE_SMTP_HOST/PORT/USER/PASSWORT` | Postfach `plattform@ddoe.at` (World4You, Port 587) |
 | `DDOE_SMTP_TIMEOUT` | optional, Standard 20 s — hängender Mailserver blockiert keinen Worker |
 | `DDOE_MAIL_ABSENDER` | Absender (Standard `ParlamentPlattform <plattform@ddoe.at>`) |
-| `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus |
+| `DDOE_UEBERGANGSREGEL=1` | § 4 Abs 4 lit d während des Aufbaus — seit 0.51 beim Einbringen in die Ordnung des Antrags eingefroren: Ein Umschalten wirkt nur auf Anträge, die danach eingebracht werden (§ 5 Abs 5) |
 | `DDOE_DEMO` | Standard `0` in Produktion (`1` nur mit `DDOE_DEBUG=1`): steuert, ob `demo_seed` Demo-Daten anlegt |
 | `DDOE_WAECHTER_MINUTEN` | optional, Standard 10 — Takt des Fristen-Wächters im Hintergrundfaden |
 | `DDOE_KI_SCHLUESSEL`, `DDOE_KI_MODELL`, `DDOE_KI_EINBETTUNGSMODELL` | optional — KI-Steckplatz der Zukunftswerkstatt (Mistral; Einbettungsmodell für den Bedeutungsvergleich, Vorgabe `mistral-embed`); ohne Schlüssel bleibt der Steckplatz leer, und `/datenschutz/` nennt keinen KI-Anbieter |
@@ -147,6 +147,16 @@ Ohne SMTP-Konfiguration gilt weiterhin das Konsolenbackend für die Entwicklung.
 
 Bestandskonten werden nicht ungefragt erneut angeschrieben: Poststempel bis 0.48 bezeichnen
 den ersten Versuch. Sie werden nicht rückwirkend als neue Versandaufträge interpretiert.
+
+## Kein Rückweg auf 0.50.x (seit 0.51)
+
+Ab 0.51 bringt jeder neu eingebrachte Antrag seine Ordnung in Fassung 5 mit (Felder `uebergangsregel`
+und `tendenz_ab_mindestbeteiligung`). Der Code von 0.50 weist unbekannte Felder einer Ordnung ab
+(`Policy.aus_dict`, eine Schutzregel): Nach einem Rollback schlügen die Antragsseite, das Parlament und
+der Fristen-Wächter bei jedem solchen Antrag fehl. Deshalb gilt: **vorwärts beheben, nicht
+zurückrollen.** Die Migration `verfahren` 0025 ist ohne Datenverlust; ihr Rückweg geht nur, solange
+keine Reaktion zurückgenommen oder gewechselt wurde — danach bricht er mit einer Meldung ab
+(absichtlich: 0.50 würde eine zurückgenommene Reaktion wieder zählen). Keine `--fake`-Migrationen.
 
 ## Kein Rückweg auf 0.49
 

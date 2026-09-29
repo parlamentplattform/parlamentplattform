@@ -186,6 +186,23 @@ class Rueckgabezusage(models.TextChoices):
     NICHT_ABGEGEBEN = "nicht_abgegeben", _("nicht abgegeben")
 
 
+def uebergangsregel_der_instanz() -> bool:
+    """Die Übergangsregel nach § 4 Abs 4 lit d, wie die Instanz sie heute einstellt (`DDOE_UEBERGANGSREGEL`).
+
+    Der einzige Leser der Einstellung für Verfahren: Beim Einbringen wird der Wert in die Ordnung des
+    Antrags eingefroren (Fassung 5, Bestandsaufnahme A5) — danach liest jede Zählung und Prüfung den
+    Schnappschuss (`uebergangsregel_fuer`), damit ein Umschalten laufende Verfahren nicht erreicht
+    (§ 5 Abs 5). Ohne Antrag (Willkommensbrief, Mitgliedschaftsseite) gilt weiter die Einstellung."""
+    from django.conf import settings as dj_settings
+
+    return bool(getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True))
+
+
+def uebergangsregel_fuer(antrag) -> bool:
+    """Die Übergangsregel, die für diesen Antrag gilt — eingefroren beim Einbringen (§ 5 Abs 5)."""
+    return antrag.policy().uebergangsregel
+
+
 def gegenstand_fuer(antrag):
     """Der Gegenstand nach § 4 Abs 4 für die Stimmberechtigung eines Antrags: Kandidatur und
     Vertrauensfrage sind Personenwahlen (zwölf Monate Anwartschaft), alles andere Sachfrage.
@@ -283,6 +300,13 @@ class Antrag(models.Model):
 
     def policy(self) -> Policy:
         return Policy.aus_dict(self.policy_snapshot)
+
+    def annahme_schwelle(self) -> tuple[float, bool]:
+        """Die Annahme-Schwelle des Abstimmungs-Chats aus der eingefrorenen Ordnung (§ 5 Abs 5,
+        Bestandsaufnahme A6) — und ob sie aus der Vorgabe kommt, weil die Ordnung des Antrags älter ist
+        als das Feld (vor Fassung 2 der Ordnungsregeln, 11.9.2026). Anzeige und Entscheidung lesen
+        damit dieselbe Zahl; das Register speist nur neue Fassungen der Verfahrensordnung."""
+        return self.policy().vorschlag_annahme_anteil, "vorschlag_annahme_anteil" not in (self.policy_snapshot or {})
 
     def stichtag_der_stimmberechtigung(self):
         """Der Kalendertag, gegen den eine Stimmberechtigung geprüft wird (§ 4 Abs 4 lit a).
@@ -401,8 +425,6 @@ class Antrag(models.Model):
         if uebergang.neue_phase is Phase.ABSTIMMUNG and self.stimmberechtigte_anzahl is None:
             # § 4 Abs 4 lit a: Zahl der Stimmberechtigten wird bei Abstimmungsbeginn
             # festgestellt, veröffentlicht und danach nie mehr verändert.
-            from django.conf import settings as dj_settings
-
             from mitglieder.models import stimmberechtigte_zaehlen
 
             # § 4 Abs 4: Personenwahlen haben eine längere Anwartschaft als Sachfragen.
@@ -416,7 +438,7 @@ class Antrag(models.Model):
                 stimmberechtigte_zaehlen(
                     gegenstand,
                     self.stimmberechtigung_stichtag,
-                    uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True),
+                    uebergang=policy.uebergangsregel,  # eingefroren beim Einbringen (A5)
                 ),
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
@@ -889,25 +911,22 @@ def antrag_einbringen(
 ) -> Antrag:
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren.
     `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70)."""
-    policy = ordnung.als_policy()  # validiert die Regeln gegen die Satzungsminima
+    from dataclasses import replace
+
+    # validiert die Regeln gegen die Satzungsminima; die Übergangsregel wird mit eingefroren (A5)
+    policy = replace(ordnung.als_policy(), uebergangsregel=uebergangsregel_der_instanz())
     stimmberechtigte = None
     if policy.unterstuetzung_anteil > 0 and not policy.beratung_entfaellt:
         # Fassung 4 der Ordnung: Die Schwelle ist ein Anteil der Stimmberechtigten. Gerechnet wird
         # am Einbringungstag mit derselben Zählung wie der Nenner einer Abstimmung, und die Zahl
         # wird samt Grundgesamtheit eingefroren — eine spätere Änderung des Mitgliederstands oder
         # des Registers ändert diesen Antrag nicht mehr (§ 5 Abs 5).
-        from dataclasses import replace
-
-        from django.conf import settings as dj_settings
-
         from mitglieder.models import stimmberechtigte_zaehlen
         from plattform_core import Gegenstand
         from plattform_core.policy import unterstuetzungsschwelle
 
         gegenstand = Gegenstand.PERSONENWAHL if Antragsart(art) == Antragsart.MANDAT else Gegenstand.SACHFRAGE
-        stimmberechtigte = stimmberechtigte_zaehlen(
-            gegenstand, timezone.localdate(), uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
-        )
+        stimmberechtigte = stimmberechtigte_zaehlen(gegenstand, timezone.localdate(), uebergang=policy.uebergangsregel)
         policy = replace(
             policy,
             unterstuetzung_schwelle=unterstuetzungsschwelle(
@@ -931,6 +950,7 @@ def antrag_einbringen(
         "titel": titel,
         "art": str(antrag.art),
         "policy": f"{policy.id} v{policy.version}",
+        "uebergangsregel": policy.uebergangsregel,
     }
     if stimmberechtigte is not None:
         ereignis["unterstuetzung_schwelle"] = policy.unterstuetzung_schwelle
@@ -964,8 +984,6 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
     (§ 4 Abs 4 lit a) — `fortschreiben()` täte es für einen direkt in der Abstimmung
     angelegten Antrag nie. Gegenstand ist die Sachfrage (drei Monate Anwartschaft,
     Mindestbeteiligung wie beim Sachantrag)."""
-    from django.conf import settings as dj_settings
-
     from mitglieder.models import stimmberechtigte_zaehlen
     from parameter.models import zahl
     from plattform_core import Gegenstand
@@ -990,7 +1008,14 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
         )
     # Kein Anteil der Ordnung: Die Mandatsfrage hat keine Unterstützungsphase (§ 5 Abs 5 — die
     # eingefrorene Regel nennt nur, was angewandt wird).
-    policy = dataclasses.replace(ordnung.als_policy(), abstimmung_tage=dauer, unterstuetzung_anteil=0.0)
+    policy = dataclasses.replace(
+        ordnung.als_policy(),
+        abstimmung_tage=dauer,
+        unterstuetzung_anteil=0.0,
+        uebergangsregel=uebergangsregel_der_instanz(),
+        # FB-L5: „D-D2 gilt auch hier: keine Tendenz vor Fristende“ — die Mandatsfrage friert 0 ein.
+        tendenz_ab_mindestbeteiligung=0,
+    )
     stichtag = timezone.localdate(jetzt)
     antrag = Antrag.objects.create(
         titel=titel,
@@ -1003,9 +1028,7 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
         stimmberechtigung_stichtag=stichtag,
         stimmberechtigte_anzahl=max(
             1,
-            stimmberechtigte_zaehlen(
-                Gegenstand.SACHFRAGE, stichtag, uebergang=getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
-            ),
+            stimmberechtigte_zaehlen(Gegenstand.SACHFRAGE, stichtag, uebergang=policy.uebergangsregel),
         ),
         ebene=Ebene(mandat.ebene),
         gebiet=mandat.gebiet,
@@ -1028,6 +1051,7 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             "aufgabe": aufgabe.pk,
             "frist_ende": (jetzt + timedelta(days=dauer)).isoformat(),
             "policy": f"{policy.id} v{policy.version}",
+            "uebergangsregel": policy.uebergangsregel,
         }
     )
     AuditEintrag.anhaengen(
@@ -1076,8 +1100,6 @@ def vertrauensfrage_einbringen(
     Bestätigungsantrag: nur die betroffene Person, nur nach entzogenem Vertrauen ohne Bestätigung,
     frühestens sechs Monate nach dem Ergebnis oder der letzten Ablehnung; ohne Anlass, ohne Sperren,
     Schwelle 0 (gilt mit dem Einbringen als erreicht), Abstimmung am siebten Tag."""
-    from django.conf import settings as dj_settings
-
     from mandatare.models import (
         VERTRAUENSFRAGE_LAUFEND,
         Vertrauensfrage,
@@ -1155,7 +1177,7 @@ def vertrauensfrage_einbringen(
             raise VertrauensfrageFehler(_("Die Begründung fehlt."))
 
     stichtag = timezone.localdate(jetzt)
-    uebergang = getattr(dj_settings, "DDOE_UEBERGANGSREGEL", True)
+    uebergang = uebergangsregel_der_instanz()  # wird mit der Ordnung eingefroren (A5)
     n_partei = stimmberechtigte_zaehlen(Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergang)
     schwelle = 0 if bestaetigung else max(1, math.ceil(SATZUNG_VERTRAUENSFRAGE_ANTEIL * n_partei))
     sammelfrist = max(
@@ -1173,6 +1195,8 @@ def vertrauensfrage_einbringen(
             VERTRAUENSFRAGE_FRUEHESTENS_TAGE if bestaetigung else VERTRAUENSFRAGE_SPAETESTENS_TAGE
         ),
         abstimmung_tage=dauer,
+        uebergangsregel=uebergang,
+        tendenz_ab_mindestbeteiligung=0,  # eine Personenfrage zeigt nie eine Tendenz vor dem Ergebnis
     )
     ort = mandat.gebiet or mandat.get_ebene_display()
     if bestaetigung:
@@ -1249,6 +1273,7 @@ def vertrauensfrage_einbringen(
             "schwelle": schwelle,
             "sperrhinweis": bool(sperrhinweis),
             "policy": f"{policy.id} v{policy.version}",
+            "uebergangsregel": uebergang,
         }
     )
     if not bestaetigung:
@@ -1589,20 +1614,42 @@ class Reaktionsart(models.TextChoices):
     ABLEHNUNG = "ablehnung", _("Ablehnung")
 
 
+class ReaktionQuerySet(models.QuerySet):
+    def aktive(self):
+        """Die geltenden Reaktionen — zurückgenommene und gewechselte bleiben gespeichert, zählen aber nicht."""
+        return self.filter(zurueckgenommen_am__isnull=True)
+
+
 class Reaktion(models.Model):
     """Zustimmung oder Ablehnung zu einem Beitrag (FB-G1, FB-G6).
 
     Außerhalb des Abstimmungs-Chats nur Zustimmung, rein informativ — sie wirkt nie auf die
     Reihung (D-G1, Grundregel 6). Im Abstimmungs-Chat des Expertenrats-Vorschlags (S7) ist sie
-    das Votum der Unterstützer. Eine Reaktion je Mitglied und Beitrag, umschaltbar."""
+    das Votum der Unterstützer (§ 5 Abs 13). Höchstens eine aktive Reaktion je Mitglied und
+    Beitrag; Zurücknehmen und Wechseln stempeln die bisherige Zeile, nichts wird gelöscht
+    (Grundregel 7, Bestandsaufnahme A8)."""
 
     kommentar = models.ForeignKey(Kommentar, on_delete=models.CASCADE, related_name="reaktionen")
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     art = models.CharField(max_length=12, choices=Reaktionsart.choices, default=Reaktionsart.ZUSTIMMUNG)
     erstellt_am = models.DateTimeField(default=timezone.now)
+    zurueckgenommen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Gesetzt, wenn die Reaktion zurückgenommen oder gewechselt wurde — die Zeile bleibt "
+        "(Grundregel 7), gezählt wird sie nicht mehr.",
+    )
+
+    objects = ReaktionQuerySet.as_manager()
 
     class Meta:
-        unique_together = [("kommentar", "mitglied")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["kommentar", "mitglied"],
+                condition=models.Q(zurueckgenommen_am__isnull=True),
+                name="reaktion_eine_aktive_je_mitglied",
+            )
+        ]
         verbose_name = "Reaktion"
         verbose_name_plural = "Reaktionen"
 

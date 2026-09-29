@@ -27,9 +27,17 @@ def _ruhe(p):
     p.wait_for_function("() => document.getAnimations().every(a => a.playState !== 'running')")
 
 
+def _langer_wortlaut(antrag):
+    """Nur im Test: ein Wortlaut, lang genug, dass neben ihm etwas kleben kann."""
+    fassung = antrag.fassungen.order_by("-nummer").first()
+    type(fassung).objects.filter(pk=fassung.pk).update(wortlaut="\n\n".join(["Absatz des Antragstexts. " * 12] * 14))
+
+
 def test_desktop_zwei_spalten_mit_klebender_einschaetzung(seite, live_server, demo):
+    antrag = _antrag()
+    _langer_wortlaut(antrag)
     p = seite()
-    p.goto(f"{live_server.url}/antrag/{_antrag().pk}/")
+    p.goto(f"{live_server.url}/antrag/{antrag.pk}/")
     _ruhe(p)
     text = p.locator(".z-text").bounding_box()
     schaetzung = p.locator(".z-einschaetzung").bounding_box()
@@ -47,6 +55,12 @@ def test_desktop_zwei_spalten_mit_klebender_einschaetzung(seite, live_server, de
     assert leiste["y"] < 100, "die Reiterleiste klebt unter der App-Leiste"
     nachher = p.locator(".z-einschaetzung").bounding_box()["y"]
     assert nachher > vorher - 600, "die Einschätzung klebt statt wegzuscrollen"
+    # Sie klebt nur neben Text und Einschätzung, nie über Chat und Archiv (Fehler bis 0.50.1)
+    p.evaluate("window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})")
+    p.wait_for_timeout(200)
+    unten = p.locator(".z-einschaetzung").bounding_box()
+    chat = p.locator(".z-chat").bounding_box()
+    assert unten["y"] + unten["height"] <= chat["y"] + 1, "die Einschätzung liegt über dem Chat"
 
 
 def test_scroll_spy_markiert_die_zone(seite, live_server, demo):

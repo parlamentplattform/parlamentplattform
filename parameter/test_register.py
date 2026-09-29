@@ -397,3 +397,19 @@ def test_die_feldnamen_der_ordnung_aus_0_50_sind_uebersetzbar():
 
     for feld in ("unterstuetzung_schwelle", "unterstuetzung_anteil"):
         assert isinstance(FELD_NAMEN[feld], Promise), feld
+
+
+def test_die_grenzen_der_maschine_stehen_im_register():
+    """Entscheidung des Gründers 29.9.2026: Die drei Grenzen aus der Prüfung 0.50.0 sind Registerwerte
+    mit Schema-Kennung — Zeitgrenze und Drossel des Bedeutungsvergleichs beim Einbringen, Höchstzahl
+    der Versuche für E-Mails zum Verfahren. Der Code liest sie (test_jede_stellgroesse_wird_vom_code_gelesen)."""
+    from plattform_core.schema import schema_key
+
+    werte = {e["schluessel"]: e for e in ERSTBESTAND}
+    assert werte["aehnlichkeit-zeitgrenze-sekunden"]["wert"] == "8"
+    assert werte["aehnlichkeit-bedeutung-je-stunde"]["wert"] == "5"
+    assert werte["post-hoechstversuche"]["wert"] == "24"
+    assert schema_key("aehnlichkeit-zeitgrenze-sekunden") == "similarity.request_timeout_seconds"
+    assert schema_key("aehnlichkeit-bedeutung-je-stunde") == "similarity.meaning_calls_per_account_hour"
+    assert schema_key("post-hoechstversuche") == "mail.max_attempts"
+

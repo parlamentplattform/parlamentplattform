@@ -27,16 +27,17 @@ log = logging.getLogger(__name__)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 EINBETTUNGEN_JE_AUFRUF_STANDARD = 20
-#: Zeitgrenze (Sekunden je Socket-Operation) für den Anbieter-Aufruf in der Anfrage „Einbringen“.
-#: Eine Grenze der Maschine, kein Verfahrenswert: Die Person wartet vor dem Formular, und ein
-#: Sync-Worker ist so lange belegt — die 45 s des Steckplatzes (Warteschlange, ohne wartende Person)
-#: hielten die Seite fest. Wer länger braucht, fällt still auf den Wortvergleich zurück; den Vektor
-#: des neuen Antrags zieht die Warteschlange nach.
+#: Zeitgrenze (Sekunden je Socket-Operation) für den Anbieter-Aufruf in der Anfrage „Einbringen“ —
+#: Erstbestand und Rückfall des Registerwerts „aehnlichkeit-zeitgrenze-sekunden“ (Entscheidung des
+#: Gründers 29.9.2026). Die Person wartet vor dem Formular, und ein Sync-Worker ist so lange belegt —
+#: die 45 s des Steckplatzes (Warteschlange, ohne wartende Person) hielten die Seite fest. Wer länger
+#: braucht, fällt still auf den Wortvergleich zurück; den Vektor des neuen Antrags zieht die
+#: Warteschlange nach.
 ZEITGRENZE_ANFRAGE_SEKUNDEN = 8
-#: Höchstens so viele Anbieteraufrufe der Bedeutungsstufe je Konto und Stunde. Eine Grenze der
-#: Maschine, kein Verfahrenswert: Jeder Einbringen-Versuch ohne „Trotzdem“ ruft sonst den Anbieter,
-#: und ein Konto könnte per Skript das Monatsbudget aller leeren. Darüber rechnet nur der
-#: Wortvergleich — der Hinweis bleibt, nichts blockiert.
+#: Höchstens so viele Anbieteraufrufe der Bedeutungsstufe je Konto und Stunde — Erstbestand und
+#: Rückfall des Registerwerts „aehnlichkeit-bedeutung-je-stunde“. Jeder Einbringen-Versuch ohne
+#: „Trotzdem“ ruft sonst den Anbieter, und ein Konto könnte per Skript das Monatsbudget aller leeren.
+#: Darüber rechnet nur der Wortvergleich — der Hinweis bleibt, nichts blockiert.
 BEDEUTUNG_JE_KONTO_UND_STUNDE = 5
 
 
@@ -96,13 +97,16 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     fehlende = fehlende[: max(0, zahl("aehnlichkeit-einbettungen-je-aufruf", EINBETTUNGEN_JE_AUFRUF_STANDARD))]
     from mitglieder.botschutz import drossel_zuviel
 
-    if drossel_zuviel(None, "bedeutung", BEDEUTUNG_JE_KONTO_UND_STUNDE, kennung=f"konto:{mitglied.pk}"):
+    je_stunde = max(0, zahl("aehnlichkeit-bedeutung-je-stunde", BEDEUTUNG_JE_KONTO_UND_STUNDE))
+    if drossel_zuviel(None, "bedeutung", je_stunde, kennung=f"konto:{mitglied.pk}"):
         ergebnis.gedrosselt = True
         ergebnis.bedeutung_grund = "Anbieteraufrufe dieses Kontos für diese Stunde verbraucht"
         return {}
     try:
         _lauf, einbettung = einbettung_ausfuehren(
-            [neuer_text, *(antragstext(a) for a in fehlende)], mitglied, zeitgrenze=ZEITGRENZE_ANFRAGE_SEKUNDEN
+            [neuer_text, *(antragstext(a) for a in fehlende)],
+            mitglied,
+            zeitgrenze=max(1, zahl("aehnlichkeit-zeitgrenze-sekunden", ZEITGRENZE_ANFRAGE_SEKUNDEN)),
         )
     except SteckplatzStumm as grund:
         ergebnis.bedeutung_grund = str(grund)

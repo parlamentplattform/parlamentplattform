@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.7"
+SCHEMA_VERSION = "1.8"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -43,10 +43,20 @@ PARAMETER = {
         "How many open motions without a stored text embedding are embedded in the same provider call "
         "when a new motion is submitted",
     ),
+    "aehnlichkeit-zeitgrenze-sekunden": (
+        "similarity.request_timeout_seconds", "seconds",
+        "How long submitting a motion waits for the AI provider (per connection step) before continuing "
+        "with the word comparison alone",
+    ),
+    "aehnlichkeit-bedeutung-je-stunde": (
+        "similarity.meaning_calls_per_account_hour", "calls/hour",
+        "How many times per hour one account may trigger the provider's meaning comparison when submitting; "
+        "above that only the word comparison runs (0 switches it off)",
+    ),
     "ki-tageslaeufe": (
         "ai.daily_queue_runs", "runs/day",
-        "How many queued model runs (affected laws, text embeddings) the future workshop starts per "
-        "calendar day; the rest waits for the next day",
+        "How many provider calls the future workshop's queue makes per calendar day (affected laws, text "
+        "embeddings) — every attempt counts, including failed ones; the rest waits for the next day",
     ),
     "kategorien-je-antrag": (
         "areas_of_life.per_motion", "areas",
@@ -240,6 +250,11 @@ PARAMETER = {
         "mail.fee_reminder_earliest_days", "days",
         "Minimum membership age before the administration may queue a fee reminder (consent required, "
         "at most once per calendar year)",
+    ),
+    "post-hoechstversuche": (
+        "mail.max_attempts", "attempts",
+        "After how many failed delivery attempts the mail queue gives up an e-mail about the procedure "
+        "(kept as done without delivery); account messages have no limit",
     ),
 }
 

@@ -44,3 +44,9 @@ pseudonym-offen und erfüllt das nicht. Das ist ein offener Widerspruch zwischen
 Code und Satzung; ihn entscheidet der Gründer (Fahrtenbuch Teil D, D-L6h: Satzung
 anpassen oder die Vertrauensfrage über Präsenz und Brief führen). Bis dahin läuft
 sie unverändert wie beschrieben.
+
+## Nachtrag 29.9.2026 (Prüfung 0.50.0) — Zugriffs-Audit
+Das unter „Konsequenzen“ genannte Zugriffs-Audit auf die Zuordnung Pseudonym → Konto ist nicht
+gebaut. Startseite, „Meine Stimme“ und Datenschutzerklärung versprechen es seit 0.50.0 nicht mehr;
+die übrigen Gegenmaßnahmen (getrennte Tabelle, öffentliche Benennung der Grenze) gelten. Das Audit
+ist ein Folgeschritt (Prüfbericht 0.50.0, Abschnitt 5).

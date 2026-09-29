@@ -389,3 +389,19 @@ def test_weiter_mit_steuerzeichen_fuehrt_auf_die_eigene_seite(ordnung, weiter): 
         assert ziel.startswith("/") and not ziel.startswith("//") and not teile.scheme and not teile.netloc, (name, ziel)
     assert sammelnd.unterstuetzungen.count() == 1 and abstimmung.stimmabgaben.count() == 1
     assert not sicherer_pfad(weiter)
+
+
+def test_sperrhinweise_zitieren_den_richtigen_absatz():
+    """P-42: § 4 hat im Satzungsentwurf 2.5 fünf Absätze — der Identitätsnachweis steht in Abs 1
+    (Erwerb), der Ausschluss in Abs 5 (Ende); Abs 2 sind die Rechte, einen Abs 6 gibt es nicht."""
+    import re
+
+    from django.conf import settings
+
+    baukasten = (settings.BASE_DIR / "docs" / "partner" / "SATZUNG_BAUKASTEN.md").read_text(encoding="utf-8")
+    par4 = baukasten.split("## § 4 ")[1].split("## § 5 ")[0]
+    assert re.findall(r"^(\d)\. \*\*(\w+)", par4, re.M) == [
+        ("1", "Erwerb"), ("2", "Rechte"), ("3", "Pflichten"), ("4", "Stimmberechtigung"), ("5", "Ende"),
+    ]
+    assert str(HINWEISE["gesperrt_ungeprueft"]["text"]) == "Identität noch ungeprüft (§ 4 Abs 1)."
+    assert str(HINWEISE["gesperrt_ausgeschlossen"]["text"]) == "Von der Mitwirkung ausgeschlossen (§ 4 Abs 5)."

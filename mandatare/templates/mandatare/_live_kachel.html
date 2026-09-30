@@ -1,0 +1,9 @@
+{% load i18n %}{% comment %}
+Kachel „Live“ in „Meine Region“ (FB-L5): eine laufende Sitzung eines Mandats dieser Region. Die ganze
+Kachel führt auf die Live-Seite; keine Handlung, keine Hervorhebung.
+{% endcomment %}<article class="kachel live" data-sitzung="{{ s.pk }}">
+  <div class="k-kopf"><span class="k-thema"><span class="live-punkt" aria-hidden="true"></span> {% translate "Live" %}</span></div>
+  <a class="k-titel" href="{% url 'mandatare:live' s.mandat.pk %}?sitzung={{ s.pk }}">{{ s.mandat.bezeichnung }} · {{ s.mandat.mitglied.anzeigename }}</a>
+  <div class="k-meta"><span class="badge">{% translate "Sitzung läuft" %}</span>{% if s.mandat.gebiet and not ort_versteckt %}<span class="rest ort">{{ s.mandat.gebiet }}</span>{% endif %}</div>
+  <div class="k-fuss"><span class="rest">{% blocktranslate with seit=s.beginn|date:"H:i" %}seit {{ seit }}{% endblocktranslate %}</span></div>
+</article>

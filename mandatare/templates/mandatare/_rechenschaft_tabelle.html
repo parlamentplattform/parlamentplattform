@@ -32,7 +32,9 @@ Ergebnisse von Vertrauensfragen (`vf`, § 7 Abs 10 lit e) in einer Reihe — und
     <td data-label="{% translate 'Gegenstand' %}">{{ z.r.gegenstand }}</td>
     <td data-label="{% translate 'Beschluss der Plattform' %}">{% if z.r.antrag %}<a href="{% url 'verfahren:antrag' z.r.antrag.pk %}">{{ z.beschluss_name }}</a>{% else %}{{ z.beschluss_name }}{% endif %}</td>
     <td data-label="{% translate 'Stimme' %}"{% if z.weicht_ab %} class="weicht"{% endif %}>{{ z.r.get_stimme_display }}{% if z.weicht_ab %} · {% translate "weicht ab" %}{% endif %}</td>
-    <td data-label="{% translate 'Begründung' %}" style="white-space:pre-line">{{ z.r.begruendung }}</td>
+    <td data-label="{% translate 'Begründung' %}" style="white-space:pre-line">{% if z.r.nachgetragen %}<span class="meta">{% blocktranslate with am=z.r.nachgetragen_am|date:"d.m.Y" %}nachgetragen von der Verwaltung am {{ am }}{% endblocktranslate %} · {% translate "Quelle:" %} {{ z.r.quelle|urlize }} · {% translate "Begründung nicht mehr geschuldet (§ 7 Abs 10 lit f Z 8)" %}</span>{% with f=z.r.freiwillige %}{% if f %}
+<strong>{% blocktranslate with am=f.eingetragen_am|date:"d.m.Y" %}Freiwillige Begründung vom {{ am }}:{% endblocktranslate %}</strong> {{ f.text }}{% endif %}{% endwith %}{% else %}{{ z.r.begruendung }}{% if z.r.punkt_id %}
+<a class="meta" href="{% url 'mandatare:live' z.r.mandat_id %}?sitzung={{ z.r.punkt.sitzung_id }}">{% blocktranslate with n=z.r.punkt.nummer %}aus dem Ticker, Punkt {{ n }}{% endblocktranslate %}</a>{% endif %}{% endif %}</td>
   </tr>
   {% endif %}
   {% endfor %}

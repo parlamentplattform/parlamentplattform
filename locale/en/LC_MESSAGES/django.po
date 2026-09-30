@@ -8572,3 +8572,356 @@ msgid ""
 "Zugang nur für Admins. Jede Handlung hier steht im Audit-Log; öffentlich\n"
 "erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu einer Person."
 msgstr "Admins only. Every action here is recorded in the audit log; publicly shown is the action, not the membership number and not a reason concerning a person."
+
+msgid "Alle Live-Sitzungen →"
+msgstr "All live sessions →"
+
+msgid "Als beantwortet markieren"
+msgstr "Mark as answered"
+
+msgid "Amtlicher Stream ↗"
+msgstr "Official stream ↗"
+
+msgid "Anmelden zum Mitschreiben →"
+msgstr "Log in to take part →"
+
+msgid "Antrag verknüpft."
+msgstr "Motion linked."
+
+msgid "Antrags-Nr."
+msgstr "Motion no."
+
+msgid "Antrags-Nr. (optional)"
+msgstr "Motion no. (optional)"
+
+#, python-format
+msgid "Antwort an %(name)s"
+msgstr "Reply to %(name)s"
+
+msgid "Antworten gehen nur auf Beiträge derselben Sitzung."
+msgstr "Replies only go to posts of the same session."
+
+#, python-format
+msgid "Aus dem Ticker: Punkt %(n)s der Sitzung vom %(tag)s"
+msgstr "From the ticker: item %(n)s of the session on %(tag)s"
+
+msgid "Berichtigt werden nur Meldungen derselben Sitzung."
+msgstr "Only updates of the same session can be corrected."
+
+msgid "Beschlusslage"
+msgstr "Decisions"
+
+msgid "Bitte den Sitzungstag wählen."
+msgstr "Please choose the session day."
+
+msgid "Chat zur Sitzung"
+msgstr "Session chat"
+
+msgid "Der Beitrag, auf den Sie antworten wollten, gibt es hier nicht."
+msgstr "The post you wanted to reply to does not exist here."
+
+msgid "Der Chat ist mit dem Ende der Sitzung geschlossen."
+msgstr "The chat closed when the session ended."
+
+msgid "Der Live-Modus lässt sich nur am Sitzungstag selbst einschalten."
+msgstr "Live mode can only be switched on on the session day itself."
+
+msgid "Der Live-Modus steht nur einem aktiven Mandat mit nicht ruhender Befugnis offen."
+msgstr "Live mode is only open to an active mandate whose powers are not suspended."
+
+msgid "Der Punkt braucht einen Titel."
+msgstr "The item needs a title."
+
+msgid "Der Punkt gehört nicht zu dieser Sitzung."
+msgstr "The item does not belong to this session."
+
+msgid "Der Punkt ist schon mit einem Antrag verknüpft."
+msgstr "The item is already linked to a motion."
+
+msgid "Der Stream-Link muss mit https:// beginnen."
+msgstr "The stream link must start with https://."
+
+msgid "Die Meldung braucht Text."
+msgstr "The update needs text."
+
+msgid "Die Sitzung ist beendet — der Chat bleibt als Teil des Protokolls lesbar."
+msgstr "The session has ended — the chat remains readable as part of the record."
+
+msgid "Die Sitzung ist beendet — ihr Protokoll bleibt, wie es ist."
+msgstr "The session has ended — its record stays as it is."
+
+msgid "Die Sitzung ist schon beendet."
+msgstr "The session has already ended."
+
+msgid "Diese Antragsnummer gibt es nicht — oder sie ist keine Sach- oder Mandatsfrage."
+msgstr "This motion number does not exist — or it is not a policy motion or mandate question."
+
+msgid "Diese Meldung ist schon berichtigt."
+msgstr "This update has already been corrected."
+
+msgid "Diesen Tagesordnungspunkt gibt es hier nicht."
+msgstr "This agenda item does not exist here."
+
+msgid "Ein Beitrag braucht Text."
+msgstr "A post needs text."
+
+#, python-format
+msgid "Eine Meldung hat höchstens %(n)d Zeichen."
+msgstr "An update has at most %(n)d characters."
+
+msgid "Eine Sitzung gibt es nur zu einem angekündigten Sitzungstag."
+msgstr "A session only exists for an announced session day."
+
+msgid "Es läuft keine Sitzung."
+msgstr "No session is running."
+
+msgid "Es läuft schon eine Sitzung — erst diese beenden."
+msgstr "A session is already running — end it first."
+
+msgid "Frage oder Beitrag"
+msgstr "Question or post"
+
+msgid "Gemeldet."
+msgstr "Posted."
+
+msgid "Gerade läuft keine Sitzung."
+msgstr "No session is running right now."
+
+msgid "Heute ist kein Sitzungstag angekündigt."
+msgstr "No session day is announced for today."
+
+#, python-format
+msgid "Höchstens %(n)d Punkte auf einmal."
+msgstr "At most %(n)d items at once."
+
+msgid "Ihr Text"
+msgstr "Your text"
+
+msgid "Jetzt"
+msgstr "Now"
+
+msgid "Jetzt live"
+msgstr "Live now"
+
+msgid "Keine Tagesordnung."
+msgstr "No agenda."
+
+msgid "Keine."
+msgstr "None."
+
+msgid "Link auf den amtlichen Stream (https)"
+msgstr "Link to the official stream (https)"
+
+msgid "Link auf den amtlichen Stream (https, optional)"
+msgstr "Link to the official stream (https, optional)"
+
+msgid "Live"
+msgstr "Live"
+
+msgid "Live aus den Vertretungskörpern"
+msgstr "Live from the representative bodies"
+
+msgid "Live-Modus eingeschaltet — die Live-Seite ist öffentlich."
+msgstr "Live mode switched on — the live page is public."
+
+msgid "Live-Modus einschalten"
+msgstr "Switch on live mode"
+
+msgid "Live-Seite →"
+msgstr "Live page →"
+
+msgid "Meldung"
+msgstr "Update"
+
+msgid "Noch keine Meldung."
+msgstr "No update yet."
+
+msgid "Noch keine Sitzung im Live-Modus."
+msgstr "No session in live mode yet."
+
+msgid "Nr."
+msgstr "No."
+
+msgid "Offene Fragen"
+msgstr "Open questions"
+
+msgid "Protokoll"
+msgstr "Record"
+
+msgid "Protokoll →"
+msgstr "Record →"
+
+msgid "Protokolle der letzten sieben Tage"
+msgstr "Records of the last seven days"
+
+msgid "Punkt"
+msgstr "Item"
+
+#, python-format
+msgid "Punkt %(n)d · %(titel)s — Beschluss der Plattform: %(lage)s"
+msgstr "Item %(n)d · %(titel)s — platform decision: %(lage)s"
+
+#, python-format
+msgid "Punkt %(n)s"
+msgstr "Item %(n)s"
+
+msgid "Punkt angehängt."
+msgstr "Item added."
+
+msgid "Punkt anhängen"
+msgstr "Add item"
+
+msgid "Sammelbericht aus dem Ticker"
+msgstr "Summary report from the ticker"
+
+msgid "Sitzung beenden"
+msgstr "End session"
+
+msgid "Sitzung beendet — die Live-Seite ist jetzt ihr Protokoll."
+msgstr "Session ended — the live page is now its record."
+
+msgid "Sitzung läuft"
+msgstr "Session running"
+
+msgid "Sitzungsprotokolle"
+msgstr "Session records"
+
+msgid "Stream-Link"
+msgstr "Stream link"
+
+msgid "Stream-Link gespeichert."
+msgstr "Stream link saved."
+
+msgid "Tagesordnung ergänzen"
+msgstr "Extend the agenda"
+
+msgid "Tagesordnung und Beschlusslage"
+msgstr "Agenda and decisions"
+
+msgid "Tagesordnung — ein Punkt je Zeile"
+msgstr "Agenda — one item per line"
+
+msgid "Ticker"
+msgstr "Ticker"
+
+msgid "Unbekannte Stimme."
+msgstr "Unknown vote."
+
+msgid "Verweis auf diese Meldung"
+msgstr "Link to this update"
+
+msgid "Zu diesem Punkt liegt schon Rechenschaft vor."
+msgstr "An accountability entry for this item already exists."
+
+msgid "Zu diesem Sitzungstag gibt es schon eine Sitzung."
+msgstr "There is already a session for this session day."
+
+msgid "abgestimmt"
+msgstr "voted"
+
+msgid "angekündigt"
+msgstr "announced"
+
+msgid "angezeigt"
+msgstr "shown"
+
+msgid "beantwortet"
+msgstr "answered"
+
+msgid "beendet mit Ablauf der Höchstdauer"
+msgstr "ended when the maximum duration ran out"
+
+msgid "berichtigt"
+msgstr "corrected"
+
+msgid "berichtigt eine frühere Meldung"
+msgstr "corrects an earlier update"
+
+msgid "im Chat →"
+msgstr "in the chat →"
+
+msgid "keine Antwort"
+msgstr "no reply"
+
+#, python-format
+msgid "meine Stimme: %(stimme)s (%(wort)s)"
+msgstr "my vote: %(stimme)s (%(wort)s)"
+
+msgid "noch nicht in Abstimmung"
+msgstr "not yet put to the vote"
+
+msgid "ohne Beschluss beendet"
+msgstr "ended without a decision"
+
+#, python-format
+msgid "seit %(seit)s"
+msgstr "since %(seit)s"
+
+msgid "verknüpfen"
+msgstr "link"
+
+msgid "— ohne Punkt —"
+msgstr "— no item —"
+
+msgid "„Abgestimmt“ braucht die Stimme."
+msgstr "“Voted” needs the vote."
+
+msgid "Abstimmung nach dem Ende der Vertretung nachtragen (§ 7 Abs 10 lit f Z 8)"
+msgstr "Add a vote after the end of representation (§ 7 para 10 lit f no 8)"
+
+msgid "Begründung nicht mehr geschuldet (§ 7 Abs 10 lit f Z 8)"
+msgstr "no longer required to give reasons (§ 7 para 10 lit f no 8)"
+
+msgid "Bitte Sitzungstag, Gegenstand, Stimme und Quelle angeben."
+msgstr "Please give the session day, subject, vote and source."
+
+msgid "Bitte einen Nachtrag der Verwaltung wählen und eine Begründung schreiben."
+msgstr "Please choose an entry added by the administration and write your reasons."
+
+msgid "Der Sitzungstag muss nach dem Ende der Vertretung liegen, nicht in der Zukunft und nicht nach dem Ende des Mandats."
+msgstr "The session day must lie after the end of representation, not in the future and not after the end of the mandate."
+
+msgid "Freiwillige Begründung"
+msgstr "Voluntary reasons"
+
+msgid "Freiwillige Begründung veröffentlicht."
+msgstr "Voluntary reasons published."
+
+#, python-format
+msgid "Freiwillige Begründung vom %(am)s:"
+msgstr "Voluntary reasons of %(am)s:"
+
+msgid "Freiwillige Begründung:"
+msgstr "Voluntary reasons:"
+
+msgid "Nachgetragen wird nur nach dem Ende der Vertretung (§ 7 Abs 10 lit f Z 8)."
+msgstr "Entries are only added after the end of representation (§ 7 para 10 lit f no 8)."
+
+msgid "Nachgetragen — im Register als Nachtrag der Verwaltung gekennzeichnet."
+msgstr "Added — marked in the register as added by the administration."
+
+msgid "Nachtrag der Verwaltung"
+msgstr "Added by the administration"
+
+msgid "Nachtragen"
+msgstr "Add"
+
+msgid "Veröffentlichen"
+msgstr "Publish"
+
+msgid "Zu diesem Eintrag steht schon eine freiwillige Begründung."
+msgstr "This entry already has voluntary reasons."
+
+#, python-format
+msgid "aus dem Ticker, Punkt %(n)s"
+msgstr "from the ticker, item %(n)s"
+
+#, python-format
+msgid "nachgetragen von der Verwaltung am %(am)s"
+msgstr "added by the administration on %(am)s"
+
+msgid "Öffentliche Quelle (Link oder Fundstelle)"
+msgstr "Public source (link or reference)"
+
+msgid "Die Sitzung ist beendet — der Chat bleibt, wie er ist."
+msgstr "The session has ended — the chat stays as it is."

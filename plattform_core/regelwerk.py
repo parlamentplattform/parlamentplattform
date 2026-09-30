@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 3
+VERSION = 4
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -591,10 +591,14 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=6,
-        seit="2026-09-29",
+        fassung=7,
+        seit="2026-09-30",
         grund=(
-            _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
+            _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
+            "Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest "
+            "Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die "
+            "Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. ")
+            + _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
             "des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, "
             "Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit "
             "0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene "
@@ -837,6 +841,35 @@ REGELN: tuple[Regel, ...] = (
             "den die Stellgröße nennt.")
         ),
         registerschluessel="mandatar-monatsbericht-frist-tage",
+    ),
+    Regel(
+        modul="sitzung.py",
+        titel=_("Beschlusslage und Ticker im Sitzungsmodus"),
+        zweck=(
+            _("Zeigt dem Mandatar im Sitzungssaal je Tagesordnungspunkt, was die Mitglieder beschlossen "
+            "haben: angenommen, abgelehnt, in Abstimmung bis zum Fristende, noch nicht in Abstimmung, ohne "
+            "Beschluss beendet oder kein Antrag verknüpft. Eine laufende Abstimmung zeigt keinen Zwischenstand "
+            "und keine Tendenz. Aus den Meldungen des Tickers bestimmt sie je Punkt die Meldung, aus der die "
+            "Rechenschaft vorbefüllt wird, und sie sagt, wann eine nicht beendete Sitzung als beendet gilt.")
+        ),
+        wirkung=Wirkung.RECHNET,
+        satzung="§ 7 Abs 3 lit b · § 7 Abs 5 · § 7 Abs 9",
+        fassung=1,
+        seit="2026-09-30",
+        grund=(
+            _("Erste Fassung mit dem Sitzungsmodus (Entscheidung des Gründers vom 29.9.2026: Ticker und "
+            "Live-Beschlusslage, der amtliche Stream nur als Link). Die Beschlusslage kennt keine Stimmenzahlen, "
+            "damit die Frist einer laufenden Abstimmung ungekürzt bleibt. Meldungen werden nie geändert; eine "
+            "Korrektur ist eine neue Meldung, die die alte als berichtigt kennzeichnet. Die Höchstdauer einer "
+            "Sitzung ist eine Stellgröße.")
+        ),
+        nachrechenbar=(
+            _("Die Beschlusslage ist die Phase des verknüpften Antrags, auf der Antragsseite nachzulesen. "
+            "Maßgeblich für die Rechenschaft ist je Punkt die jüngste nicht berichtigte Meldung mit Stimme, "
+            "die als abgestimmt gekennzeichnet ist, sonst die jüngste nicht berichtigte mit Stimme. Eine Sitzung "
+            "ohne gesetztes Ende endet mit Beginn plus Höchstdauer.")
+        ),
+        registerschluessel="live-hoechstdauer-stunden",
     ),
     Regel(
         modul="parametertest.py",

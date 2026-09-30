@@ -2,6 +2,7 @@
 {% load i18n phasen %}
 {% block titel %}{% translate "Mandatare-Verwaltung" %}{% endblock %}
 {% block inhalt %}
+{% include "mandatare/_stil.html" %}
 <h1>{% translate "Mandatare" %}</h1>
 <p>{% blocktranslate %}Mandate anlegen, beenden und mit der Kandidatur verknüpfen (§ 7). Aufgaben und Lichtbild
 pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingreifen. Jede Handlung wird auditiert.{% endblocktranslate %}
@@ -69,6 +70,22 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
     <p><label class="ankreuz"><input type="checkbox" name="sitzungstag"> {% translate "Die Frist ist ein Sitzungstag" %}</label></p>
     <button type="submit" class="btn-linie">{% translate "Aufgabe veröffentlichen" %}</button>
   </form>
+
+  {% if m.vertretung_beendet_am %}
+  <details class="klappe" id="nachtrag-{{ m.pk }}">
+    <summary>{% translate "Abstimmung nach dem Ende der Vertretung nachtragen (§ 7 Abs 10 lit f Z 8)" %}</summary>
+    <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" class="kr-form">{% csrf_token %}
+      <input type="hidden" name="aktion" value="rechenschaft_nachtragen"><input type="hidden" name="mandat" value="{{ m.pk }}">
+      <label for="nt-tag-{{ m.pk }}">{% translate "Sitzungstag" %}</label><input type="date" id="nt-tag-{{ m.pk }}" name="sitzung_am" required>
+      <label for="nt-gegenstand-{{ m.pk }}">{% translate "Gegenstand" %}</label><input type="text" id="nt-gegenstand-{{ m.pk }}" name="gegenstand" maxlength="200" required>
+      <label for="nt-stimme-{{ m.pk }}">{% translate "Stimme" %}</label>
+      <select id="nt-stimme-{{ m.pk }}" name="stimme" required>{% for wert, name in stimmen %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}</select>
+      <label for="nt-quelle-{{ m.pk }}">{% translate "Öffentliche Quelle (Link oder Fundstelle)" %}</label><input type="text" id="nt-quelle-{{ m.pk }}" name="quelle" maxlength="300" required>
+      <label for="nt-antrag-{{ m.pk }}">{% translate "Antrags-Nr. (optional)" %}</label><input type="text" id="nt-antrag-{{ m.pk }}" name="antrag" inputmode="numeric" maxlength="12">
+      <button type="submit" class="btn-linie klein mt">{% translate "Nachtragen" %}</button>
+    </form>
+  </details>
+  {% endif %}
 
   <details class="klappe" id="vertrauen-{{ m.pk }}"{% if k.vertrauensfragen or m.vertrauen_entzogen_am %} open{% endif %}>
     <summary>{% translate "Vertrauensfrage und Rückgabezusage (§ 7 Abs 3, Abs 10)" %}</summary>

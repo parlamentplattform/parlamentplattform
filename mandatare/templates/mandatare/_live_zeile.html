@@ -1,0 +1,5 @@
+{% load i18n %}<div class="zeile live-zeile">
+  {% if not s.ende %}<span class="live-punkt" aria-hidden="true"></span>{% endif %}
+  <a href="{% url 'mandatare:live' s.mandat.pk %}?sitzung={{ s.pk }}"><strong>{{ s.mandat.mitglied.anzeigename }}</strong> · {{ s.aufgabe.titel }}</a>
+  <span class="meta">· {{ s.mandat.bezeichnung }} · {{ s.mandat.gebiet|default:s.mandat.get_ebene_display }} · {% if s.ende %}{{ s.beginn|date:"d.m.Y, H:i" }}–{{ s.ende|date:"H:i" }}{% else %}{% blocktranslate with seit=s.beginn|date:"H:i" %}seit {{ seit }}{% endblocktranslate %}{% endif %}</span>
+</div>

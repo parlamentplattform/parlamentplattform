@@ -663,6 +663,26 @@ ERSTBESTAND = [
         "quelle": "§ 7 Abs 3 lit b",
     },
     {
+        "schluessel": "live-takt-sekunden",
+        "wert": "15",
+        "einheit": gettext_noop("Sekunden"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Wie oft sich die Live-Seite einer laufenden Sitzung selbst neu lädt — mit "
+        "JavaScript nur der Ticker, ohne JavaScript die ganze Seite. Zwischen 5 und 300. Nach dem Ende der "
+        "Sitzung lädt nichts mehr nach."),
+        "quelle": "§ 7 Abs 3 lit b · § 7 Abs 9 · Entscheidung des Gründers vom 29.9.2026 (Sitzungsmodus)",
+    },
+    {
+        "schluessel": "live-hoechstdauer-stunden",
+        "wert": "18",
+        "einheit": gettext_noop("Stunden"),
+        "gruppe": "mandatare",
+        "beschreibung": gettext_noop("Nach so vielen Stunden gilt eine Sitzung im Live-Modus als beendet, wenn der "
+        "Mandatar sie nicht selbst beendet hat; das Ende wird dann mit diesem Zeitpunkt vermerkt. Zwischen 1 "
+        "und 72. Wirkt auf laufende Sitzungen, sobald sie das nächste Mal angesehen werden."),
+        "quelle": "Entscheidung des Gründers vom 30.9.2026 (Sitzungsmodus)",
+    },
+    {
         "schluessel": "region-nebenwohnsitz-zaehlt",
         "wert": "0",
         "einheit": gettext_noop("0 oder 1"),

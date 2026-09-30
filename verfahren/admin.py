@@ -58,7 +58,7 @@ class AuditAdmin(admin.ModelAdmin):
 
 @admin.register(Kommentar)
 class KommentarAdmin(admin.ModelAdmin):
-    list_display = ("antrag", "mitglied", "erstellt_am")
+    list_display = ("antrag", "sitzung", "mitglied", "erstellt_am")
 
 
 @admin.register(Kategorie)

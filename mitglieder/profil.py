@@ -607,6 +607,7 @@ def daten_export(mitglied: Mitglied) -> dict:
         "kommentare": [
             {
                 "antrag": k.antrag_id,
+                "sitzung": k.sitzung_id,
                 "text": k.text,
                 "phase": k.phase,
                 "erstellt_am": k.erstellt_am,
@@ -670,8 +671,29 @@ def daten_export(mitglied: Mitglied) -> dict:
                         "stimme": r.stimme,
                         "begruendung": r.begruendung,
                         "eingetragen_am": r.eingetragen_am,
+                        "punkt": r.punkt_id,
+                        "nachgetragen_am": r.nachgetragen_am,
+                        "quelle": r.quelle,
+                        "freiwillige_begruendung": r.freiwillige.text if r.freiwillige else None,
                     }
                     for r in md.rechenschaft.all()
+                ],
+                # FB-L5: die Sitzungen im Live-Modus mit Tagesordnung und Meldungen
+                "sitzungen": [
+                    {
+                        "sitzung": s.pk,
+                        "aufgabe": s.aufgabe_id,
+                        "beginn": s.beginn,
+                        "ende": s.ende,
+                        "stream": s.stream,
+                        "punkte": [{"nummer": p.nummer, "titel": p.titel, "antrag": p.antrag_id} for p in s.punkte.all()],
+                        "meldungen": [
+                            {"meldung": x.pk, "zeitpunkt": x.zeitpunkt, "punkt": x.punkt_id, "text": x.text,
+                             "stimme": x.stimme, "abgestimmt": x.abgestimmt, "berichtigt": x.berichtigt_id}
+                            for x in s.meldungen.all()
+                        ],
+                    }
+                    for s in md.sitzungen.all()
                 ],
             }
             for md in m.mandate.all()

@@ -137,8 +137,9 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
       {% for zeile in region_zeilen %}
         <div class="rband r{{ forloop.counter }}" x-data="spur">
           <p class="rkopf" id="rk-{{ zeile.ebene }}">{% if zeile.ebene == "gemeinde" %}{% translate "Gemeinde" %}{% elif zeile.ebene == "bezirk" %}{% translate "Bezirk" %}{% else %}{% translate "Land" %}{% endif %}{% if zeile.ort %} · {{ zeile.ort }}{% endif %}</p>
-          {% if zeile.kacheln %}
+          {% if zeile.kacheln or zeile.live %}
           <div class="spur" x-ref="spur" aria-labelledby="rk-{{ zeile.ebene }}">
+            {% for s in zeile.live %}{% include "mandatare/_live_kachel.html" with s=s ort_versteckt=zeile.ort_versteckt %}{% endfor %}
             {% for k in zeile.kacheln %}{% include "verfahren/_kachel.html" with k=k ziel="#feld-region" feld="region" ort_versteckt=zeile.ort_versteckt %}{% endfor %}
           </div>
           <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>

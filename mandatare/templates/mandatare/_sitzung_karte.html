@@ -1,0 +1,121 @@
+{% load i18n %}{% comment %}
+Karte „Sitzung“ im Bereich des Mandatars (FB-L5): Live-Modus einschalten (nur am Sitzungstag), melden,
+Tagesordnung ergänzen, Stream-Link, beenden — rechts die Live-Beschlusslage und die offenen Fragen aus
+dem Chat. Darunter die beendeten Sitzungen, deren Rechenschaft noch läuft, mit dem Knopf je Punkt.
+Erwartet mandat, sitzungskarte (views_live.sitzung_karte), darf_live, darf_berichten.
+{% endcomment %}
+<div class="karte handlung" id="sitzung">
+  <p class="phasen-titel">{% translate "Sitzung" %}</p>
+  {% with k=sitzungskarte %}
+  {% if k.laufend %}{% with s=k.laufend %}
+  <p class="live-kopf"><span class="live-punkt" aria-hidden="true"></span><strong>{% translate "Live" %}</strong>
+    · {% blocktranslate with seit=s.beginn|date:"H:i" %}seit {{ seit }}{% endblocktranslate %} · {{ s.aufgabe.titel }}
+    · <a href="{% url 'mandatare:live' mandat.pk %}?sitzung={{ s.pk }}">{% translate "Live-Seite →" %}</a></p>
+  <div class="sitzung-raster">
+    <div>
+      {% if darf_live %}
+      <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
+        <input type="hidden" name="aktion" value="sitzung_meldung"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+        <label for="sm-punkt">{% translate "Punkt" %}</label>
+        <select id="sm-punkt" name="punkt">
+          <option value="">{% translate "— ohne Punkt —" %}</option>
+          {% for z in k.punkte %}<option value="{{ z.punkt.pk }}">{{ z.punkt.nummer }} · {{ z.punkt.titel|truncatechars:60 }}</option>{% endfor %}
+        </select>
+        <label for="sm-text">{% translate "Meldung" %}</label>
+        <textarea id="sm-text" name="text" rows="3" maxlength="280" required></textarea>
+        <div class="nebeneinander">
+          <label for="sm-stimme">{% translate "Stimme" %}
+            <select id="sm-stimme" name="stimme"><option value="">—</option>{% for wert, name in k.stimmen %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}</select></label>
+          <label class="ankreuz" for="sm-abgestimmt"><input type="checkbox" id="sm-abgestimmt" name="abgestimmt"> {% translate "abgestimmt" %}</label>
+          {% if k.ticker %}<label for="sm-berichtigt">{% translate "berichtigt" %}
+            <select id="sm-berichtigt" name="berichtigt"><option value="">—</option>{% for t in k.ticker %}{% if not t.berichtigt %}<option value="{{ t.m.pk }}">#{{ t.m.pk }} · {{ t.m.zeitpunkt|date:"H:i" }} · {{ t.m.text|truncatechars:40 }}</option>{% endif %}{% endfor %}</select></label>{% endif %}
+        </div>
+        <button type="submit" class="btn mt">{% translate "Melden" %}</button>
+      </form>
+      <details class="klappe">
+        <summary>{% translate "Tagesordnung ergänzen" %}</summary>
+        <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
+          <input type="hidden" name="aktion" value="sitzung_punkt"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+          <label for="sp-titel">{% translate "Titel" %}</label><input type="text" id="sp-titel" name="titel" maxlength="200" required>
+          <label for="sp-antrag">{% translate "Antrags-Nr. (optional)" %}</label><input type="text" id="sp-antrag" name="antrag" inputmode="numeric" maxlength="12">
+          <button type="submit" class="btn-linie klein mt">{% translate "Punkt anhängen" %}</button>
+        </form>
+      </details>
+      <details class="klappe">
+        <summary>{% translate "Stream-Link" %}</summary>
+        <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
+          <input type="hidden" name="aktion" value="sitzung_stream"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+          <label for="ss-stream">{% translate "Link auf den amtlichen Stream (https)" %}</label><input type="url" id="ss-stream" name="stream" maxlength="500" value="{{ s.stream }}">
+          <button type="submit" class="btn-linie klein mt">{% translate "Speichern" %}</button>
+        </form>
+      </details>
+      {% endif %}
+      <p class="phasen-titel mt">{% translate "Ticker" %}</p>
+      {% for t in k.ticker %}{% with m=t.m %}
+      <div class="meldung-zeile{% if t.berichtigt %} berichtigt{% endif %}">
+        <time datetime="{{ m.zeitpunkt|date:'c' }}">{{ m.zeitpunkt|date:"H:i" }}</time>
+        <div>{% if m.punkt %}<span class="chip klein">{% blocktranslate with n=m.punkt.nummer %}Punkt {{ n }}{% endblocktranslate %}</span>{% endif %}
+          {% if m.stimme %}<span class="chip klein">{% if m.abgestimmt %}{% translate "abgestimmt" %}{% else %}{% translate "angekündigt" %}{% endif %}: {{ m.get_stimme_display }}</span>{% endif %}
+          {% if t.berichtigt %}<span class="chip klein warn">{% translate "berichtigt" %}</span>{% endif %}
+          <p>{{ m.text }}</p></div>
+        <span class="meta">#{{ m.pk }}</span>
+      </div>
+      {% endwith %}{% empty %}<p class="leer">{% translate "Noch keine Meldung." %}</p>{% endfor %}
+      <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="mt">{% csrf_token %}
+        <input type="hidden" name="aktion" value="sitzung_beenden"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+        <button type="submit" class="btn-still">{% translate "Sitzung beenden" %}</button>
+      </form>
+    </div>
+    <div>
+      <p class="phasen-titel">{% translate "Beschlusslage" %}</p>
+      {% for z in k.punkte %}
+      <div class="top">
+        <span class="top-nr">{{ z.punkt.nummer }}</span>
+        <span class="top-text"><strong>{{ z.punkt.titel }}</strong><br>
+          <span class="lage lage-{{ z.lage.status }}">{{ z.lage_name }}</span>{% if z.lage.bis %} <span class="meta">· {% blocktranslate with bis=z.lage.bis|date:"d.m.Y, H:i" %}bis {{ bis }}{% endblocktranslate %}</span>{% endif %}
+          {% if z.massgeblich and not z.rechenschaft and darf_berichten %} · <a href="?punkt={{ z.punkt.pk }}#rechenschaft">{% translate "Rechenschaft eintragen" %}</a>{% endif %}
+          {% if z.punkt.antrag %} · <a href="{% url 'verfahren:antrag' z.punkt.antrag.pk %}">#{{ z.punkt.antrag.pk }}</a>
+          {% elif darf_live %}
+          <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="inline-form">{% csrf_token %}
+            <input type="hidden" name="aktion" value="sitzung_verknuepfen"><input type="hidden" name="mandat" value="{{ mandat.pk }}"><input type="hidden" name="punkt" value="{{ z.punkt.pk }}">
+            <input type="text" name="antrag" inputmode="numeric" maxlength="12" size="6" aria-label="{% translate 'Antrags-Nr.' %}" placeholder="{% translate 'Nr.' %}">
+            <button type="submit" class="btn-still klein">{% translate "verknüpfen" %}</button>
+          </form>{% endif %}
+        </span>
+      </div>
+      {% empty %}<p class="leer">{% translate "Keine Tagesordnung." %}</p>{% endfor %}
+      <p class="phasen-titel mt">{% translate "Offene Fragen" %}</p>
+      {% for f in k.fragen %}
+      <div class="zeile"><span class="breit"><strong>{{ f.mitglied.anzeigename }}</strong> <span class="meta">· {{ f.erstellt_am|date:"H:i" }}</span><br>{{ f.sichtbarer_text|truncatechars:200 }}
+        <a class="meta" href="{% url 'mandatare:live' mandat.pk %}?sitzung={{ s.pk }}#k-{{ f.pk }}">{% translate "im Chat →" %}</a></span></div>
+      {% empty %}<p class="leer">{% translate "Keine." %}</p>{% endfor %}
+    </div>
+  </div>
+  {% endwith %}
+  {% elif k.heutige and darf_live %}
+  <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
+    <input type="hidden" name="aktion" value="sitzung_beginnen"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+    <label for="sb-tag">{% translate "Sitzungstag" %}</label>
+    <select id="sb-tag" name="aufgabe">{% for a in k.heutige %}<option value="{{ a.pk }}">{{ a.frist|date:"d.m.Y" }} · {{ a.titel }}</option>{% endfor %}</select>
+    <label for="sb-stream">{% translate "Link auf den amtlichen Stream (https, optional)" %}</label>
+    <input type="url" id="sb-stream" name="stream" maxlength="500">
+    <label for="sb-to">{% translate "Tagesordnung — ein Punkt je Zeile" %}</label>
+    <textarea id="sb-to" name="tagesordnung" rows="5"></textarea>
+    <button type="submit" class="btn mt">{% translate "Live-Modus einschalten" %}</button>
+  </form>
+  {% else %}
+  <p class="leer">{% if not darf_live %}{% translate "Der Live-Modus steht nur einem aktiven Mandat mit nicht ruhender Befugnis offen." %}{% else %}{% translate "Heute ist kein Sitzungstag angekündigt." %}{% endif %}</p>
+  {% endif %}
+
+  {% for b in k.beendete %}
+  <p class="phasen-titel mt">{{ b.sitzung.beginn|date:"d.m.Y" }} · {{ b.sitzung.aufgabe.titel }} · <a href="{% url 'mandatare:live' mandat.pk %}?sitzung={{ b.sitzung.pk }}">{% translate "Protokoll →" %}</a></p>
+  {% for z in b.punkte %}
+  <div class="pflicht"><span>{{ z.punkt.nummer }} · {{ z.punkt.titel }}</span>
+    {% if z.rechenschaft %}<span class="meta">{% translate "Rechenschaft liegt vor" %}</span>
+    {% elif darf_berichten %}<a class="btn-linie klein" href="?punkt={{ z.punkt.pk }}#rechenschaft">{% translate "Rechenschaft eintragen" %}</a>{% endif %}
+  </div>
+  {% endfor %}
+  {% if darf_berichten %}<p class="pflicht"><a class="btn-linie klein" href="?aufgabe={{ b.sitzung.aufgabe_id }}&amp;vorlage=1#sammelbericht">{% translate "Sammelbericht aus dem Ticker" %}</a></p>{% endif %}
+  {% endfor %}
+  {% endwith %}
+</div>

@@ -591,10 +591,14 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=6,
-        seit="2026-09-29",
+        fassung=7,
+        seit="2026-09-30",
         grund=(
-            _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
+            _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
+            "Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest "
+            "Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die "
+            "Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. ")
+            + _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
             "des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, "
             "Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit "
             "0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene "

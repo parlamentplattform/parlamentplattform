@@ -42,7 +42,10 @@ def _(text: str) -> str:
 #: Fassung 6 (29.9.2026): vier Zeilen, die seit S9/0.45 gebaut waren, standen noch als ○ „mit S9/S11“
 #: (Diff und Absatzkommentare, Beschluss anlegen, Einschätzung im Fenster, Jahresbericht) — jetzt ●
 #: mit Adresse; offene Zeilen nennen keinen erledigten Bauschritt mehr (Bestandsaufnahme 28.9.2026, C4).
-VERSION = 6
+#: Fassung 7 (30.9.2026): der Sitzungsmodus (FB-L5) — Mandatar meldet live und markiert Fragen als
+#: beantwortet, Gast liest Live-Meldungen, Mitglied fragt im Chat der Sitzung, Verwaltung trägt nach
+#: dem Ende der Vertretung Abstimmungen nach (D-L6g).
+VERSION = 7
 
 
 class Stand(enum.StrEnum):
@@ -182,6 +185,12 @@ GAST = Rolle(
             urlname="mandatare:vertrauensfragen",
         ),
         Faehigkeit(
+            titel=_("Live-Meldungen aus den Sitzungen der Vertretungskörper lesen — Ticker, Tagesordnung, Beschlusslage der Plattform und Protokoll"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 9",
+            urlname="mandatare:live_uebersicht",
+        ),
+        Faehigkeit(
             titel=_("Das Parameterregister und die geltende Verfahrensordnung lesen"),
             stand=Stand.VERFUEGBAR,
             urlname="parameter:liste",
@@ -277,6 +286,13 @@ MITGLIED = Rolle(
             titel=_("In der Beratung mitreden"),
             stand=Stand.VERFUEGBAR,
             ort=_("auf jeder Antragsseite"),
+        ),
+        Faehigkeit(
+            titel=_("Im Chat einer laufenden Sitzung Fragen an den Mandatar stellen"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 9",
+            urlname="mandatare:live_uebersicht",
+            ort=_("auf der Live-Seite des Mandatars"),
         ),
         Faehigkeit(
             titel=_("Auf Beiträge reagieren — im Abstimmungs-Chat als Unterstützer über den Vorschlag entscheiden"),
@@ -909,6 +925,12 @@ VERWALTUNG = Rolle(
             einschraenkung=_("Vermerkt wird die Anfechtung eines veröffentlichten Ergebnisses; Anfechtungen der Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen derzeit außerhalb der Plattform."),
         ),
         Faehigkeit(
+            titel=_("Abstimmungen im Vertretungskörper nach dem Ende der Vertretung nachtragen — nach öffentlichen Quellen, gekennzeichnet, ohne Begründung"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 10 lit f Z 8",
+            urlname="mandatare:verwaltung",
+        ),
+        Faehigkeit(
             titel=_("Aufgaben und Lichtbild eines Mandatars an seiner Stelle pflegen"),
             stand=Stand.TEILWEISE,
             urlname="mandatare:verwaltung",
@@ -1135,6 +1157,19 @@ MANDATAR = Rolle(
             stand=Stand.VERFUEGBAR,
             satzung="§ 7 Abs 5",
             urlname="mandatare:rechenschaft",
+        ),
+        Faehigkeit(
+            titel=_("Sitzung live melden — Ticker je Tagesordnungspunkt mit Stimme, Beschlusslage der Plattform im Saal, amtlicher Stream nur als Link; daraus Rechenschaft und Sammelbericht"),
+            stand=Stand.VERFUEGBAR,
+            satzung="§ 7 Abs 3 lit b, Abs 5, Abs 9",
+            urlname="mandatare:mein",
+            ort=_("Karte „Sitzung“ im eigenen Bereich, am Sitzungstag"),
+        ),
+        Faehigkeit(
+            titel=_("Fragen aus dem Chat der Sitzung als beantwortet markieren"),
+            stand=Stand.VERFUEGBAR,
+            urlname="mandatare:live_uebersicht",
+            ort=_("auf der eigenen Live-Seite"),
         ),
         Faehigkeit(
             titel=_("Monatsbericht und Sammelbericht nach jedem Sitzungstag"),

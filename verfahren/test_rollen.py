@@ -259,9 +259,10 @@ def test_fassung_3_die_bewerbung_im_fremden_kandidatur_antrag_gilt_als_gebaut():
         f.einschraenkung for f in mandatar.faehigkeiten
     )
     # Fassung 3: zehn Zeilen, neun ●. Fassung 4 legt drei ● dazu (Stellungnahme, Bestätigung,
-    # Rückgabezusage); der einzige ◐ bleibt der Vollzugsbericht.
-    assert len(mandatar.faehigkeiten) == 13
-    assert sum(f.stand is Stand.VERFUEGBAR for f in mandatar.faehigkeiten) == 12
+    # Rückgabezusage), Fassung 7 zwei (Sitzung live melden, Fragen als beantwortet markieren);
+    # der einzige ◐ bleibt der Vollzugsbericht.
+    assert len(mandatar.faehigkeiten) == 15
+    assert sum(f.stand is Stand.VERFUEGBAR for f in mandatar.faehigkeiten) == 14
     (teilweise,) = [f for f in mandatar.faehigkeiten if f.stand is Stand.TEILWEISE]
     assert "Vollzug" in teilweise.titel
     assert VERSION >= 3  # die Berichtigung selbst war kein Statuswechsel — keine eigene Fassung
@@ -351,7 +352,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 6
+    assert rollen_regel.fassung == 7
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund

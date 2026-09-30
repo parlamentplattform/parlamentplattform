@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.10"
+SCHEMA_VERSION = "1.11"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -225,6 +225,14 @@ PARAMETER = {
     "mandatar-monatsbericht-frist-tage": (
         "mandate.monthly_report_grace_days", "days",
         "Day of the following month until which an office holder's monthly report counts as on time",
+    ),
+    "live-takt-sekunden": (
+        "live.refresh_seconds", "seconds",
+        "How often the live page of a running session reloads itself (between 5 and 300)",
+    ),
+    "live-hoechstdauer-stunden": (
+        "live.max_session_hours", "hours",
+        "After how many hours a live session counts as ended if the office holder did not end it (between 1 and 72)",
     ),
     "region-nebenwohnsitz-zaehlt": (
         "region.secondary_residence_counts", "flag",

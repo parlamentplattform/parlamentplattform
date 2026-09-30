@@ -68,7 +68,7 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.10, 57 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.11, 59 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
 Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
@@ -111,6 +111,8 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
 | `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
 | `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | Day of the following month until which an office holder's monthly report counts as on time |
+| `live.refresh_seconds` | `live-takt-sekunden` | seconds | How often the live page of a running session reloads itself (between 5 and 300) |
+| `live.max_session_hours` | `live-hoechstdauer-stunden` | hours | After how many hours a live session counts as ended if the office holder did not end it (between 1 and 72) |
 | `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
 | `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | Months before a rejected or lapsed motion may be resubmitted verbatim |
 | `overview.decided_votes` | `uebersicht-abstimmungen` | entries | How many decided votes the public overview lists before pointing to the registers |
@@ -193,7 +195,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.10, 12 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.11, 12 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -255,3 +257,4 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.8 | 29.9.2026 | 0.50.1 | Drei Grenzen, die bisher im Code standen, sind Stellgrößen (Entscheidung des Gründers 29.9.2026): `similarity.request_timeout_seconds` (wie lange das Einbringen höchstens auf den KI-Anbieter wartet, bevor der Wortvergleich allein gilt), `similarity.meaning_calls_per_account_hour` (wie oft ein Konto je Stunde den Bedeutungsvergleich beim Einbringen auslösen kann; 0 schaltet ihn ab), `mail.max_attempts` (nach wie vielen gescheiterten Zustellversuchen eine E-Mail zum Verfahren aufgegeben wird; Nachrichten zum Konto ohne Grenze). `ai.daily_queue_runs` zählt jetzt jeden Aufruf beim Anbieter, auch gescheiterte (bisher je Auftrag einmal) — dieselbe Einheit, genauere Zählung. |
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
 | 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und fünf Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) und `audit.head_entry` (seine laufende Nummer) |
+| 1.11 | 30.9.2026 | 0.53.0 | `live.refresh_seconds` (wie oft sich die Live-Seite einer laufenden Sitzung neu lädt, FB-L5) und `live.max_session_hours` (nach wie vielen Stunden eine nicht beendete Sitzung als beendet gilt). Beide gehören zum Sitzungsmodus der Mandatsträger; die Livemeldungen selbst stehen in `/rechenschaft.json` (Abschnitt 5) |

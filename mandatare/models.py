@@ -530,13 +530,40 @@ class Rechenschaft(models.Model):
         help_text="Bei gesetztem Antrag aus dessen Phase abgeleitet und beim Speichern gesetzt.",
     )
     stimme = models.CharField(max_length=20, choices=Stimmverhalten.choices)
-    begruendung = models.TextField(max_length=4000)
+    begruendung = models.TextField(
+        max_length=4000, blank=True,
+        help_text="Pflicht beim Eintrag des Mandatars; leer nur beim Nachtrag der Verwaltung nach dem Ende "
+        "der Vertretung (§ 7 Abs 10 lit f Z 8 — „eine Begründung ist nicht mehr geschuldet“).",
+    )
     eingetragen_am = models.DateTimeField(default=timezone.now)
+    punkt = models.ForeignKey(
+        "Tagesordnungspunkt",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="rechenschaft",
+        help_text="Der Tagesordnungspunkt des Sitzungstickers, aus dem dieser Eintrag entstand (FB-L5).",
+    )
+    nachgetragen_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Von der Verwaltung nach dem Ende der Vertretung nachgetragen (D-L6g) — nach öffentlichen "
+        "Quellen, ohne Begründung.",
+    )
+    quelle = models.CharField(
+        max_length=300, blank=True, help_text="Die öffentliche Quelle eines Nachtrags der Verwaltung (D-L6g)."
+    )
 
     class Meta:
         ordering = ["-sitzung_am", "-eingetragen_am"]
         verbose_name = "Rechenschaft"
         verbose_name_plural = "Rechenschaftsregister"
+        constraints = [
+            # Ein Eintrag je Tagesordnungspunkt: Die Rechenschaft aus dem Ticker entsteht einmal (FB-L5).
+            models.UniqueConstraint(
+                fields=["punkt"], condition=models.Q(punkt__isnull=False), name="rechenschaft_je_punkt"
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.gegenstand} ({self.sitzung_am:%d.%m.%Y}, {self.get_stimme_display()})"
@@ -590,6 +617,12 @@ class Rechenschaft(models.Model):
     def lage(self, heute: date | None = None) -> Lage:
         heute = heute or timezone.localdate()
         return lage(self.frist, timezone.localdate(self.eingetragen_am), heute)
+
+    @property
+    def nachgetragen(self) -> bool:
+        """Von der Verwaltung nach dem Ende der Vertretung nachgetragen (D-L6g) — keine Frist, keine
+        Begründung geschuldet; „verspätet“ wäre hier ein falsches Wort."""
+        return self.nachgetragen_am is not None
 
 
 class Berichtsart(models.TextChoices):
@@ -1386,3 +1419,174 @@ def bestaetigung_zulaessig_ab(mandat: Mandat):
     if abgelehnt is not None:
         letzter = max(letzter, timezone.localdate(abgelehnt.antrag.phase_beginn))
     return monate_addieren(letzter, WIEDERHOLUNGSSPERRE_MONATE)
+
+
+# ── Der Sitzungsmodus (FB-L5, S10b) ─────────────────────────────────────────────────────────
+
+
+def live_takt() -> int:
+    """Sekunden zwischen zwei Aktualisierungen der Live-Seite einer laufenden Sitzung — zwischen 5 und 300."""
+    from parameter.models import zahl
+
+    return max(5, min(300, zahl("live-takt-sekunden", 15)))
+
+
+def live_hoechstdauer_stunden() -> int:
+    """Nach so vielen Stunden gilt eine nicht beendete Sitzung als beendet (E3 zum Bauplan 0.53.0)."""
+    from parameter.models import zahl
+
+    return max(1, min(72, zahl("live-hoechstdauer-stunden", 18)))
+
+
+class Sitzung(models.Model):
+    """Ein Sitzungstag des Vertretungskörpers im Live-Modus (FB-L5, D-L5a: Ticker und Live-Beschlusslage).
+
+    Der Mandatar startet sie am angekündigten Sitzungstag (`Aufgabe` mit Kennzeichen „Sitzungstag“,
+    FB-L2) und beendet sie; je Sitzungstag gibt es höchstens eine. Der amtliche Stream ist nur ein Link
+    — kein eingebetteter Player, kein eigener Stream (D-L5a). Nichts an einer Sitzung wird gelöscht:
+    Tagesordnungspunkte und Meldungen werden nur angehängt, das Ende nur einmal gesetzt."""
+
+    mandat = models.ForeignKey(Mandat, on_delete=models.PROTECT, related_name="sitzungen")
+    aufgabe = models.OneToOneField(
+        Aufgabe,
+        on_delete=models.PROTECT,
+        related_name="sitzung",
+        help_text="Der angekündigte Sitzungstag (FB-L2) — je Sitzungstag eine Sitzung.",
+    )
+    beginn = models.DateTimeField(default=timezone.now)
+    ende = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Vom Mandatar gesetzt oder mit Ablauf der Höchstdauer (Register „live-hoechstdauer-stunden“).",
+    )
+    ende_durch_hoechstdauer = models.BooleanField(default=False)
+    stream = models.URLField(
+        max_length=500, blank=True, help_text="Link auf den amtlichen Stream — öffnet außerhalb der Plattform."
+    )
+
+    class Meta:
+        ordering = ["-beginn"]
+        verbose_name = "Sitzung"
+        verbose_name_plural = "Sitzungen"
+        indexes = [models.Index(fields=["ende", "beginn"])]
+
+    def __str__(self) -> str:
+        return f"Sitzung {timezone.localdate(self.beginn):%d.%m.%Y} ({self.mandat})"
+
+    def wirksames_ende(self, jetzt=None, hoechstdauer: int | None = None):
+        from plattform_core.sitzung import wirksames_ende
+
+        hoechstdauer = live_hoechstdauer_stunden() if hoechstdauer is None else hoechstdauer
+        return wirksames_ende(self.beginn, self.ende, jetzt or timezone.now(), hoechstdauer)
+
+    def laeuft(self, jetzt=None, hoechstdauer: int | None = None) -> bool:
+        return self.wirksames_ende(jetzt, hoechstdauer) is None
+
+    @property
+    def tag(self) -> date:
+        return timezone.localdate(self.beginn)
+
+    def fortschreiben(self, jetzt=None) -> bool:
+        """Ist die Höchstdauer um und das Ende nicht gesetzt, das Ende jetzt festhalten (lazy, wie die
+        Phasen der Anträge) — mit Audit. Idempotent unter Zeilensperre; True, wenn es geschrieben hat."""
+        jetzt = jetzt or timezone.now()
+        if self.ende is not None or self.laeuft(jetzt):
+            return False
+        with transaction.atomic():
+            frisch = Sitzung.objects.select_for_update().get(pk=self.pk)
+            if frisch.ende is not None:
+                self.ende, self.ende_durch_hoechstdauer = frisch.ende, frisch.ende_durch_hoechstdauer
+                return False
+            frisch.ende = frisch.wirksames_ende(jetzt)
+            frisch.ende_durch_hoechstdauer = True
+            frisch.save(update_fields=["ende", "ende_durch_hoechstdauer"])
+            AuditEintrag.anhaengen(
+                {"typ": "sitzung_beendet", "mandat": frisch.mandat_id, "sitzung": frisch.pk, "grund": "hoechstdauer"}
+            )
+        self.ende, self.ende_durch_hoechstdauer = frisch.ende, True
+        return True
+
+    @classmethod
+    def alle_fortschreiben(cls, jetzt=None) -> int:
+        """Alle offenen Sitzungen, deren Höchstdauer um ist, beenden — für Übersichten ohne Einzelaufruf."""
+        jetzt = jetzt or timezone.now()
+        grenze = jetzt - timedelta(hours=max(1, live_hoechstdauer_stunden()))
+        return sum(1 for s in cls.objects.filter(ende__isnull=True, beginn__lte=grenze) if s.fortschreiben(jetzt))
+
+
+class Tagesordnungspunkt(models.Model):
+    """Ein Punkt der Tagesordnung einer Sitzung — optional verknüpft mit dem Antrag oder der
+    Mandatsfrage, deren Beschluss die Live-Beschlusslage zeigt. Wird nie geändert; abgesetzte Punkte
+    sagt eine Meldung. Der Antrag kann einmal nachgereicht werden, wenn der Punkt ohne angelegt wurde."""
+
+    sitzung = models.ForeignKey(Sitzung, on_delete=models.PROTECT, related_name="punkte")
+    nummer = models.PositiveIntegerField()
+    titel = models.CharField(max_length=200)
+    antrag = models.ForeignKey(
+        Antrag, null=True, blank=True, on_delete=models.PROTECT, related_name="tagesordnungspunkte"
+    )
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["sitzung", "nummer"]
+        verbose_name = "Tagesordnungspunkt"
+        verbose_name_plural = "Tagesordnungspunkte"
+        constraints = [models.UniqueConstraint(fields=["sitzung", "nummer"], name="top_nummer_je_sitzung")]
+
+    def __str__(self) -> str:
+        return f"TOP {self.nummer}: {self.titel}"
+
+
+class Livemeldung(models.Model):
+    """Eine Meldung des Mandatars aus dem Sitzungssaal (FB-L5 B) — öffentlich, dauerhaft, append-only.
+
+    Eine Korrektur ist eine neue Meldung mit `berichtigt` auf die alte; die alte bleibt stehen und
+    trägt das Band „berichtigt“. Jede Meldung wird höchstens einmal berichtigt — die Kette bleibt eine
+    Linie. `stimme` mit `abgestimmt=False` ist die Ankündigung, mit `abgestimmt=True` das Ergebnis."""
+
+    sitzung = models.ForeignKey(Sitzung, on_delete=models.PROTECT, related_name="meldungen")
+    punkt = models.ForeignKey(
+        Tagesordnungspunkt, null=True, blank=True, on_delete=models.PROTECT, related_name="meldungen"
+    )
+    zeitpunkt = models.DateTimeField(default=timezone.now)
+    text = models.CharField(max_length=280)
+    stimme = models.CharField(max_length=20, choices=Stimmverhalten.choices, blank=True)
+    abgestimmt = models.BooleanField(default=False)
+    berichtigt = models.OneToOneField(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="berichtigung",
+        help_text="Die Meldung, die diese berichtigt — die alte bleibt stehen.",
+    )
+
+    class Meta:
+        ordering = ["-zeitpunkt", "-pk"]
+        verbose_name = "Livemeldung"
+        verbose_name_plural = "Livemeldungen"
+
+    def __str__(self) -> str:
+        return f"Livemeldung {self.pk} ({self.sitzung_id})"
+
+    @property
+    def anker(self) -> str:
+        return f"m-{self.pk}"
+
+
+class FreiwilligeBegruendung(models.Model):
+    """Die freiwillige Begründung der früheren Mandatsperson zu einem Nachtrag der Verwaltung (D-L6g,
+    E2 zum Bauplan 0.53.0): nach dem Ende der Vertretung ist keine Begründung mehr geschuldet — wer
+    trotzdem eine gibt, stellt sie neben den Eintrag. Der Eintrag selbst bleibt unverändert."""
+
+    rechenschaft = models.OneToOneField(
+        Rechenschaft, on_delete=models.PROTECT, related_name="freiwillige_begruendung"
+    )
+    text = models.TextField(max_length=4000)
+    eingetragen_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "freiwillige Begründung"
+        verbose_name_plural = "freiwillige Begründungen"
+
+    def __str__(self) -> str:
+        return f"Freiwillige Begründung zu Rechenschaft {self.rechenschaft_id}"

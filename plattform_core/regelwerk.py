@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 3
+VERSION = 4
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -837,6 +837,35 @@ REGELN: tuple[Regel, ...] = (
             "den die Stellgröße nennt.")
         ),
         registerschluessel="mandatar-monatsbericht-frist-tage",
+    ),
+    Regel(
+        modul="sitzung.py",
+        titel=_("Beschlusslage und Ticker im Sitzungsmodus"),
+        zweck=(
+            _("Zeigt dem Mandatar im Sitzungssaal je Tagesordnungspunkt, was die Mitglieder beschlossen "
+            "haben: angenommen, abgelehnt, in Abstimmung bis zum Fristende, noch nicht in Abstimmung, ohne "
+            "Beschluss beendet oder kein Antrag verknüpft. Eine laufende Abstimmung zeigt keinen Zwischenstand "
+            "und keine Tendenz. Aus den Meldungen des Tickers bestimmt sie je Punkt die Meldung, aus der die "
+            "Rechenschaft vorbefüllt wird, und sie sagt, wann eine nicht beendete Sitzung als beendet gilt.")
+        ),
+        wirkung=Wirkung.RECHNET,
+        satzung="§ 7 Abs 3 lit b · § 7 Abs 5 · § 7 Abs 9",
+        fassung=1,
+        seit="2026-09-30",
+        grund=(
+            _("Erste Fassung mit dem Sitzungsmodus (Entscheidung des Gründers vom 29.9.2026: Ticker und "
+            "Live-Beschlusslage, der amtliche Stream nur als Link). Die Beschlusslage kennt keine Stimmenzahlen, "
+            "damit die Frist einer laufenden Abstimmung ungekürzt bleibt. Meldungen werden nie geändert; eine "
+            "Korrektur ist eine neue Meldung, die die alte als berichtigt kennzeichnet. Die Höchstdauer einer "
+            "Sitzung ist eine Stellgröße.")
+        ),
+        nachrechenbar=(
+            _("Die Beschlusslage ist die Phase des verknüpften Antrags, auf der Antragsseite nachzulesen. "
+            "Maßgeblich für die Rechenschaft ist je Punkt die jüngste nicht berichtigte Meldung mit Stimme, "
+            "die als abgestimmt gekennzeichnet ist, sonst die jüngste nicht berichtigte mit Stimme. Eine Sitzung "
+            "ohne gesetztes Ende endet mit Beginn plus Höchstdauer.")
+        ),
+        registerschluessel="live-hoechstdauer-stunden",
     ),
     Regel(
         modul="parametertest.py",

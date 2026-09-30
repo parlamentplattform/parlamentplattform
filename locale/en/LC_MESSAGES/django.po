@@ -8865,3 +8865,63 @@ msgstr "— no item —"
 
 msgid "„Abgestimmt“ braucht die Stimme."
 msgstr "“Voted” needs the vote."
+
+msgid "Abstimmung nach dem Ende der Vertretung nachtragen (§ 7 Abs 10 lit f Z 8)"
+msgstr "Add a vote after the end of representation (§ 7 para 10 lit f no 8)"
+
+msgid "Begründung nicht mehr geschuldet (§ 7 Abs 10 lit f Z 8)"
+msgstr "no longer required to give reasons (§ 7 para 10 lit f no 8)"
+
+msgid "Bitte Sitzungstag, Gegenstand, Stimme und Quelle angeben."
+msgstr "Please give the session day, subject, vote and source."
+
+msgid "Bitte einen Nachtrag der Verwaltung wählen und eine Begründung schreiben."
+msgstr "Please choose an entry added by the administration and write your reasons."
+
+msgid "Der Sitzungstag muss nach dem Ende der Vertretung liegen, nicht in der Zukunft und nicht nach dem Ende des Mandats."
+msgstr "The session day must lie after the end of representation, not in the future and not after the end of the mandate."
+
+msgid "Diese Antragsnummer gibt es nicht."
+msgstr "This motion number does not exist."
+
+msgid "Freiwillige Begründung"
+msgstr "Voluntary reasons"
+
+msgid "Freiwillige Begründung veröffentlicht."
+msgstr "Voluntary reasons published."
+
+#, python-format
+msgid "Freiwillige Begründung vom %(am)s:"
+msgstr "Voluntary reasons of %(am)s:"
+
+msgid "Freiwillige Begründung:"
+msgstr "Voluntary reasons:"
+
+msgid "Nachgetragen wird nur nach dem Ende der Vertretung (§ 7 Abs 10 lit f Z 8)."
+msgstr "Entries are only added after the end of representation (§ 7 para 10 lit f no 8)."
+
+msgid "Nachgetragen — im Register als Nachtrag der Verwaltung gekennzeichnet."
+msgstr "Added — marked in the register as added by the administration."
+
+msgid "Nachtrag der Verwaltung"
+msgstr "Added by the administration"
+
+msgid "Nachtragen"
+msgstr "Add"
+
+msgid "Veröffentlichen"
+msgstr "Publish"
+
+msgid "Zu diesem Eintrag steht schon eine freiwillige Begründung."
+msgstr "This entry already has voluntary reasons."
+
+#, python-format
+msgid "aus dem Ticker, Punkt %(n)s"
+msgstr "from the ticker, item %(n)s"
+
+#, python-format
+msgid "nachgetragen von der Verwaltung am %(am)s"
+msgstr "added by the administration on %(am)s"
+
+msgid "Öffentliche Quelle (Link oder Fundstelle)"
+msgstr "Public source (link or reference)"

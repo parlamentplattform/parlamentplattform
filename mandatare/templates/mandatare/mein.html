@@ -226,9 +226,20 @@ das betroffene Formular wieder vor.
 
   <p class="phasen-titel" style="margin-top:14px">{% translate "Meine Einträge" %}</p>
   {% for z in rechenschaft %}
-  <div class="zeile"><span style="width:100%">
-    <span class="chip klein">{% translate "Rechenschaft" %}</span> <strong>{{ z.r.gegenstand }}</strong>
+  <div class="zeile"><span class="breit">
+    <span class="chip klein">{% translate "Rechenschaft" %}</span>{% if z.r.nachgetragen %} <span class="chip klein">{% translate "Nachtrag der Verwaltung" %}</span>{% endif %} <strong>{{ z.r.gegenstand }}</strong>
     <span class="meta"> · {{ z.r.sitzung_am|date:"d.m.Y" }} · {{ z.r.get_stimme_display }} · {{ z.beschluss_name }}{% if z.weicht_ab %} · <span class="abweichung">{% translate "weicht ab" %}</span>{% endif %}</span>
+    {% if z.r.nachgetragen %}{% with f=z.r.freiwillige %}{% if f %}<br><span class="meta">{% translate "Freiwillige Begründung:" %}</span> {{ f.text }}
+    {% elif darf_freiwillig %}
+    <details class="klappe">
+      <summary>{% translate "Freiwillige Begründung" %}</summary>
+      <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
+        <input type="hidden" name="aktion" value="freiwillige_begruendung"><input type="hidden" name="mandat" value="{{ mandat.pk }}"><input type="hidden" name="rechenschaft" value="{{ z.r.pk }}">
+        <label for="fb-{{ z.r.pk }}">{% translate "Begründung (öffentlich)" %}</label>
+        <textarea id="fb-{{ z.r.pk }}" name="text" rows="3" maxlength="4000" required></textarea>
+        <button type="submit" class="btn-linie klein mt">{% translate "Veröffentlichen" %}</button>
+      </form>
+    </details>{% endif %}{% endwith %}{% endif %}
   </span></div>
   {% endfor %}
   {% for z in berichte %}{% with b=z.b l=z.lage %}

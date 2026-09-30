@@ -619,6 +619,14 @@ class Rechenschaft(models.Model):
         return lage(self.frist, timezone.localdate(self.eingetragen_am), heute)
 
     @property
+    def freiwillige(self):
+        """Die freiwillige Begründung zu einem Nachtrag der Verwaltung (E2) — oder None."""
+        try:
+            return self.freiwillige_begruendung
+        except FreiwilligeBegruendung.DoesNotExist:
+            return None
+
+    @property
     def nachgetragen(self) -> bool:
         """Von der Verwaltung nach dem Ende der Vertretung nachgetragen (D-L6g) — keine Frist, keine
         Begründung geschuldet; „verspätet“ wäre hier ein falsches Wort."""

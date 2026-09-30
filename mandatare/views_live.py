@@ -454,3 +454,35 @@ def sammelbericht_vorlage(aufgabe: Aufgabe) -> str:
             zeile += " — " + _("meine Stimme: %(stimme)s (%(wort)s)") % {"stimme": m.get_stimme_display(), "wort": wort}
         zeilen.append(zeile)
     return "\n".join(zeilen)
+
+
+def sitzungen_json(ebene: str = "") -> list[dict]:
+    """Die Sitzungen im Live-Modus für `/rechenschaft.json` (FB-L5): Tagesordnung und Meldungen, öffentlich
+    und dauerhaft wie die Seite selbst — ohne Chat (der gehört den Mitgliedern, nicht dem Register)."""
+    qs = Sitzung.objects.select_related("mandat__mitglied").prefetch_related("punkte", "meldungen").order_by("-beginn")
+    if ebene:
+        qs = qs.filter(mandat__ebene=ebene)
+    ergebnis = []
+    for s in qs:
+        nummern = {p.pk: p.nummer for p in s.punkte.all()}
+        ergebnis.append(_sitzung_json(s, nummern))
+    return ergebnis
+
+
+def _sitzung_json(s: Sitzung, nummern: dict[int, int]) -> dict:
+    return {
+        "id": s.pk,
+        "mandat": s.mandat_id,
+        "mandatar": s.mandat.mitglied.anzeigename,
+        "aufgabe": s.aufgabe_id,
+        "beginn": s.beginn.isoformat(),
+        "ende": s.ende.isoformat() if s.ende else None,
+        "ende_durch_hoechstdauer": s.ende_durch_hoechstdauer,
+        "stream": s.stream or None,
+        "punkte": [{"nummer": p.nummer, "titel": p.titel, "antrag": p.antrag_id} for p in s.punkte.all()],
+        "meldungen": [
+            {"id": m.pk, "zeitpunkt": m.zeitpunkt.isoformat(), "punkt": nummern.get(m.punkt_id),
+             "text": m.text, "stimme": m.stimme or None, "abgestimmt": m.abgestimmt, "berichtigt": m.berichtigt_id}
+            for m in sorted(s.meldungen.all(), key=lambda m: (m.zeitpunkt, m.pk))
+        ],
+    }

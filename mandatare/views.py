@@ -51,6 +51,7 @@ from mandatare.models import (
     Berichtsart,
     Beschluss,
     Entscheidung,
+    FreiwilligeBegruendung,
     Mandat,
     Rechenschaft,
     Stimmverhalten,
@@ -505,7 +506,7 @@ def detail(request, pk: int):
     aufgaben = _aufgaben_sortiert(mandat)
     _antraege_fortschreiben(aufgaben)
     ausstaende = _ausstaende(mandat)
-    rechenschaft = list(mandat.rechenschaft.select_related("antrag", "aufgabe")[:RECHENSCHAFT_AUSZUG])
+    rechenschaft = list(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt")[:RECHENSCHAFT_AUSZUG])
     berichte = list(mandat.berichte.select_related("aufgabe"))
     zeilen = _berichte_zeilen(berichte, heute, ausstaende["karenz"])
     return render(
@@ -555,7 +556,7 @@ def foto(request, pk: int):
 def rechenschaft_mandat(request, pk: int):
     """§ 7 Abs 5: das ganze Register eines Mandatars, mit Ausständen."""
     mandat = get_object_or_404(_mandat_queryset(), pk=pk)
-    eintraege = list(mandat.rechenschaft.select_related("antrag", "aufgabe"))
+    eintraege = list(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt"))
     vertrauen = _vertrauen(mandat)  # zuerst: bringt Anträge und Wirkungen auf den Stand, den die Zeilen zeigen
     return render(
         request,
@@ -570,7 +571,7 @@ def rechenschaft_mandat(request, pk: int):
 
 
 def _rechenschaft_gesamt(ebene: str):
-    eintraege = Rechenschaft.objects.select_related("mandat__mitglied", "antrag", "aufgabe")
+    eintraege = Rechenschaft.objects.select_related("mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt")
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
@@ -631,10 +632,17 @@ def rechenschaft_json(request):
                 "begruendung": z["r"].begruendung,
                 "eingetragen_am": z["r"].eingetragen_am.isoformat(),
                 "frist": z["r"].frist.isoformat(),
-                "lage": z["r"].lage().status,
+                # ein Nachtrag der Verwaltung (D-L6g) kennt keine Frist — „verspätet“ wäre falsch
+                "lage": "nachgetragen" if z["r"].nachgetragen else z["r"].lage().status,
+                "sitzung": z["r"].punkt.sitzung_id if z["r"].punkt_id else None,
+                "punkt": z["r"].punkt.nummer if z["r"].punkt_id else None,
+                "nachgetragen_am": _iso(z["r"].nachgetragen_am),
+                "quelle": z["r"].quelle or None,
+                "freiwillige_begruendung": z["r"].freiwillige.text if z["r"].freiwillige else None,
             }
             for z in _rechenschaft_zeilen(list(eintraege))
         ],
+        "sitzungen": views_live.sitzungen_json(ebene),
         "ausstaende": [
             {
                 "mandat": block["mandat"].pk,
@@ -845,7 +853,7 @@ def wahlvorschlag(request, antrag_pk: int):
 def _anlaesse_von(mandat) -> list[dict]:
     """Die Einträge des Rechenschaftsregisters, in denen das Stimmverhalten vom Beschluss abweicht
     (lit b) — die Plattform stellt sie zur Auswahl, bewertet aber nicht (§ 2 Abs 6)."""
-    return [z for z in _rechenschaft_zeilen(mandat.rechenschaft.select_related("antrag", "aufgabe")) if z["weicht_ab"]]
+    return [z for z in _rechenschaft_zeilen(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt")) if z["weicht_ab"]]
 
 
 def _doppelte_vertrauensfrage(request, mandat: Mandat) -> Antrag | None:
@@ -1048,6 +1056,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "darf_mandatsfrage": mitwirken and mandat.aktiv and mandat.vertrauen_entzogen_am is None,
             "darf_berichten": darf_berichten,
             "darf_live": mitwirken and darf_live_melden(mandat),
+            "darf_freiwillig": mitwirken and mandat.vertretung_beendet_am is not None,
             "sitzungskarte": views_live.sitzung_karte(mandat),
             "vorbefuellung": vorbefuellung,
             "sammelbericht_vorlage": sammelbericht_vorlage,
@@ -1065,7 +1074,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
                 for a in sitzungstage_vorbei
             ],
             "berichte": _berichte_zeilen(list(mandat.berichte.select_related("aufgabe")), heute, ausstaende["karenz"]),
-            "rechenschaft": _rechenschaft_zeilen(list(mandat.rechenschaft.select_related("antrag", "aufgabe"))),
+            "rechenschaft": _rechenschaft_zeilen(list(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt"))),
             "stimmen": Stimmverhalten.choices,
             "beschluesse": Beschluss.choices,
             "vorgewaehlt": ((eingabe.get("aufgabe") if aktion == "rechenschaft" else request.GET.get("aufgabe")) or "").strip(),
@@ -1134,7 +1143,9 @@ def mein_aktion(request):
     if mandat is None or mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
     bestaetigung = aktion == "bestaetigung" and mandat.kandidatursperre
-    if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN) and not bestaetigung:
+    # D-L6g, E2: Die freiwillige Begründung zu einem Nachtrag der Verwaltung hängt an keiner Frist
+    freiwillig = aktion == "freiwillige_begruendung" and mandat.vertretung_beendet_am is not None
+    if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN) and not bestaetigung and not freiwillig:
         return render(request, "mandatare/kein_zugang.html", status=403)
     gesperrt = _mitwirkung_gesperrt(request)
     if gesperrt is not None:
@@ -1173,6 +1184,8 @@ def mein_aktion(request):
         _sammelbericht_anlegen(request, mandat)
     elif aktion == "rechenschaft":
         gelungen = _rechenschaft_anlegen(request, mandat)
+    elif aktion == "freiwillige_begruendung":
+        _freiwillige_begruendung(request, mandat)
     elif aktion in SITZUNG_AKTIONEN:
         views_live.sitzung_aktion(request, mandat, aktion)
         return redirect(f"{reverse('mandatare:mein_mandat', kwargs={'pk': mandat.pk})}#sitzung")
@@ -1349,6 +1362,30 @@ def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
     messages.success(request, _("Sammelbericht eingereicht."))
 
 
+def _freiwillige_begruendung(request, mandat: Mandat) -> None:
+    """E2 zu D-L6g: Die frühere Mandatsperson stellt zu einem Nachtrag der Verwaltung eine freiwillige
+    Begründung ein — einmal je Eintrag; der Eintrag selbst bleibt unverändert, die Begründung steht daneben."""
+    roh = (request.POST.get("rechenschaft") or "").strip()
+    eintrag = (
+        Rechenschaft.objects.filter(pk=int(roh), mandat=mandat, nachgetragen_am__isnull=False).first()
+        if roh.isdigit() else None
+    )
+    text = (request.POST.get("text") or "").strip()[:BEGRUENDUNG_MAX]
+    if eintrag is None or not text:
+        messages.error(request, _("Bitte einen Nachtrag der Verwaltung wählen und eine Begründung schreiben."))
+        return
+    try:
+        with transaction.atomic():
+            FreiwilligeBegruendung.objects.create(rechenschaft=eintrag, text=text)
+            AuditEintrag.anhaengen({"typ": "freiwillige_begruendung", "mandat": mandat.pk, "rechenschaft": eintrag.pk})
+    except IntegrityError:
+        if eintrag.freiwillige is None:
+            raise
+        messages.error(request, _("Zu diesem Eintrag steht schon eine freiwillige Begründung."))
+        return
+    messages.success(request, _("Freiwillige Begründung veröffentlicht."))
+
+
 def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
     """Rechenschaft eintragen; False bei einem Eingabefehler (der Bereich rendert dann neu).
 
@@ -1512,6 +1549,7 @@ def verwaltung(request):
             "karten": karten,
             "rueckgabezusagen": Rueckgabezusage.choices,
             "heute": heute,
+            "stimmen": Stimmverhalten.choices,
         },
     )
 
@@ -1652,6 +1690,57 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
     return False
 
 
+def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
+    """D-L6g: Nach dem Ende der Vertretung (§ 7 Abs 10 lit f Z 8) trägt die Verwaltung Abstimmungen im
+    Vertretungskörper nach öffentlichen Quellen nach — mit Quelle, ohne Begründung („nicht mehr geschuldet“),
+    gekennzeichnet als Nachtrag der Verwaltung. Nur Sitzungen nach dem Ende der Vertretung (davor schuldet
+    die Person selbst die Rechenschaft), nicht in der Zukunft und nicht nach dem Ende des Mandats."""
+    if mandat.vertretung_beendet_am is None:
+        messages.error(request, _("Nachgetragen wird nur nach dem Ende der Vertretung (§ 7 Abs 10 lit f Z 8)."))
+        return
+    sitzung_am = _datum_aus_eingabe(request.POST.get("sitzung_am", ""))
+    gegenstand = (request.POST.get("gegenstand") or "").strip()[:GEGENSTAND_MAX]
+    quelle = (request.POST.get("quelle") or "").strip()[:300]
+    stimme = request.POST.get("stimme", "")
+    if not gegenstand or not quelle or stimme not in Stimmverhalten.values or sitzung_am is None:
+        messages.error(request, _("Bitte Sitzungstag, Gegenstand, Stimme und Quelle angeben."))
+        return
+    if (
+        sitzung_am <= mandat.vertretung_beendet_am
+        or sitzung_am > timezone.localdate()
+        or (mandat.beendet is not None and sitzung_am > mandat.beendet)
+    ):
+        messages.error(
+            request,
+            _("Der Sitzungstag muss nach dem Ende der Vertretung liegen, nicht in der Zukunft und nicht nach dem Ende des Mandats."),
+        )
+        return
+    antrag = None
+    antrag_pk = (request.POST.get("antrag") or "").strip().lstrip("#")
+    if antrag_pk:
+        antrag = Antrag.objects.filter(pk=int(antrag_pk)).first() if antrag_pk.isdigit() else None
+        if antrag is None:
+            messages.error(request, _("Diese Antragsnummer gibt es nicht."))
+            return
+        antrag.fortschreiben()
+    with transaction.atomic():
+        eintrag = Rechenschaft.objects.create(
+            mandat=mandat,
+            antrag=antrag,
+            gegenstand=gegenstand,
+            sitzung_am=sitzung_am,
+            stimme=stimme,
+            begruendung="",
+            nachgetragen_am=timezone.now(),
+            quelle=quelle,
+        )
+        ereignis = {"typ": "rechenschaft_nachgetragen", "mandat": mandat.pk, "rechenschaft": eintrag.pk, "durch": "verwaltung"}
+        if antrag is not None:
+            ereignis["antrag"] = antrag.pk
+        AuditEintrag.anhaengen(ereignis)
+    messages.success(request, _("Nachgetragen — im Register als Nachtrag der Verwaltung gekennzeichnet."))
+
+
 def _im_integritaetsrat(mitglied) -> bool:
     from gremien.models import Gremium, Rolle
 
@@ -1763,6 +1852,9 @@ def verwaltung_aktion(request):
         )
         AuditEintrag.anhaengen({"typ": "mandats_aufgabe", "mandat": mandat.pk, "aufgabe": aufgabe.pk})
         messages.success(request, _("Aufgabe „%(titel)s“ veröffentlicht.") % {"titel": aufgabe.titel})
+
+    elif aktion == "rechenschaft_nachtragen":
+        _rechenschaft_nachtragen(request, _mandat_der_verwaltung(request))
 
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()

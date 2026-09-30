@@ -303,3 +303,116 @@ def test_sammelbericht_aus_dem_ticker(client, anna):
     html = client.get(reverse("mandatare:mein") + f"?aufgabe={aufgabe.pk}&vorlage=1").content.decode()
     assert "Punkt 1 · Budget 2027 — Beschluss der Plattform: kein Beschluss der Plattform" in html
     assert "meine Stimme: dafür (abgestimmt)" in html
+
+
+# ── Aus der gegnerischen Prüfung 0.53.0 ───────────────────────────────────────────────────
+
+
+def test_punkt_ohne_antrag_erbt_nicht_den_antrag_des_sitzungstags(client, anna, ordnung):  # noqa: F811
+    """Befund 1: Die Rechenschaft zu einem Punkt ohne Antrag bekam die Mandatsfrage der Aufgabe — falsches
+    „weicht ab“ im Register und ein falscher Anlass für eine Vertrauensfrage."""
+    aufgabe = sitzungstag(anna)
+    frage = antrag_einbringen(anna.mitglied, "Radweg?", "Radweg.", "", ordnung)
+    frage.phase = Phase.ANGENOMMEN.value
+    frage.save()
+    aufgabe.antrag = frage
+    aufgabe.save()
+    sitzung = sitzung_beginnen(anna, aufgabe, punkte=["Budget 2027"])
+    punkt = sitzung.punkte.get()
+    post(client, anna, "rechenschaft", punkt=punkt.pk, gegenstand="Budget 2027", stimme="dagegen",
+         begruendung="Zu teuer.", beschluss_plattform="keiner")
+    eintrag = Rechenschaft.objects.get()
+    assert eintrag.antrag is None and eintrag.beschluss_anzeige == "keiner" and not eintrag.weicht_ab
+
+
+def test_punkt_verknuepfen_nach_rechenschaft_gesperrt(client, anna, ordnung):  # noqa: F811
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna), punkte=["Budget"])
+    punkt = sitzung.punkte.get()
+    post(client, anna, "rechenschaft", punkt=punkt.pk, gegenstand="Budget", stimme="dafuer", begruendung="x")
+    sache = antrag_einbringen(anna.mitglied, "Budget", "Das Budget.", "", ordnung)
+    antwort = post(client, anna, "sitzung_verknuepfen", punkt=punkt.pk, antrag=sache.pk)
+    punkt.refresh_from_db()
+    assert punkt.antrag is None and "schon Rechenschaft" in antwort.content.decode()
+
+
+def test_beenden_nach_dem_ende_der_vertretung(client, anna):
+    """Befund 2: Nach dem Ende der Vertretung, des Mandats oder bei ruhender Mitwirkung ließ sich die laufende
+    Sitzung nicht beenden — Live-Status und Chat blieben bis zur Höchstdauer offen."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    Mandat.objects.filter(pk=anna.pk).update(vertretung_beendet_am=timezone.localdate())
+    post(client, anna, "sitzung_beenden")
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    # ein fremdes Mitglied beendet nichts
+    andere = mandat_anlegen(mitglied_anlegen("bernd"))
+    zweite = sitzung_beginnen(andere, sitzungstag(andere))
+    assert client.post(AKTION, {"aktion": "sitzung_beenden", "mandat": andere.pk}).status_code == 403
+    assert Sitzung.objects.get(pk=zweite.pk).laeuft()
+
+
+def test_protokoll_bleibt_nach_dem_ende(client, anna):
+    """Befunde 4 und 11: Nach dem Ende lässt sich im Chat nichts mehr zurückziehen oder als beantwortet markieren."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    bernd = mitglied_anlegen("bernd")
+    frage = sitzung_beitrag_schreiben(sitzung, bernd, "Frage")
+    antwort = sitzung_beitrag_schreiben(sitzung, bernd, "Nachsatz", frage)
+    aktion = reverse("mandatare:live_beitrag_aktion", args=[anna.pk, sitzung.pk, antwort.pk])
+    client.post(aktion, {"aktion": "beantwortet"})  # eine Antwort ist keine Frage
+    assert Kommentar.objects.get(pk=antwort.pk).beantwortet_am is None
+    sitzung_beenden(sitzung)
+    client.post(reverse("mandatare:live_beitrag_aktion", args=[anna.pk, sitzung.pk, frage.pk]), {"aktion": "beantwortet"})
+    client.force_login(bernd)
+    client.post(reverse("mandatare:live_beitrag_aktion", args=[anna.pk, sitzung.pk, frage.pk]), {"aktion": "entfernen"})
+    frage.refresh_from_db()
+    assert frage.beantwortet_am is None and not frage.geloescht
+
+
+def test_fehlerseite_verlinkt_absolut(client, anna):
+    """Befund 6: Die Fehlerseite des Chats steht unter der POST-Adresse — relative Links endeten mit 405."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    client.force_login(mitglied_anlegen("bernd"))
+    html = client.post(
+        reverse("mandatare:live_beitrag", args=[anna.pk, sitzung.pk]), {"text": "x", "antwort_auf": "999999"}
+    ).content.decode()
+    assert "gibt es hier nicht" in html
+    assert 'href="?' not in html and f'href="/mandatare/{anna.pk}/live/?sitzung={sitzung.pk}&amp;schreiben=1' in html
+    assert f'hx-get="/mandatare/{anna.pk}/live/?sitzung={sitzung.pk}"' in html
+
+
+def test_sammelbericht_nach_frueh_beendeter_sitzung(client, anna):
+    """Befund 8: Endet die Sitzung vor der Uhrzeit der Aufgabe, gibt es Sammelbericht und Vorlage trotzdem."""
+    aufgabe = sitzungstag(anna)  # Frist 23:59 heute
+    sitzung = sitzung_beginnen(anna, aufgabe, punkte=["Budget 2027"])
+    sitzung_beenden(sitzung)
+    html = client.get(reverse("mandatare:mein") + f"?aufgabe={aufgabe.pk}&vorlage=1").content.decode()
+    assert 'id="sb-aufgabe"' in html and "Punkt 1 · Budget 2027" in html
+    post(client, anna, "sammelbericht", aufgabe=aufgabe.pk, text="Bericht")
+    from mandatare.models import Bericht
+
+    assert Bericht.objects.filter(aufgabe=aufgabe).exists()
+
+
+def test_eingabefehler_behaelt_den_punkt(client, anna):
+    """Befund 20: Nach einem Eingabefehler kommt das Formular mit dem Punkt zurück."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna), punkte=["Budget"])
+    punkt = sitzung.punkte.get()
+    html = client.post(AKTION, {"aktion": "rechenschaft", "mandat": anna.pk, "punkt": punkt.pk, "gegenstand": "Budget",
+                                "stimme": "dafuer", "begruendung": ""}).content.decode()
+    assert f'name="punkt" value="{punkt.pk}"' in html
+
+
+def test_melden_ohne_javascript_ueber_die_seite_ohne_neuladen(client, anna):
+    """Befund 24: Ohne JavaScript führt „Melden“ auf die Seite ohne Neuladetakt."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    frage = sitzung_beitrag_schreiben(sitzung, mitglied_anlegen("bernd"), "Frage")
+    client.force_login(mitglied_anlegen("cora"))
+    html = client.get(live_url(anna, sitzung)).content.decode()
+    assert f"schreiben=1#k-{frage.pk}" in html and "nur-mit-js" in html
+    html = client.get(live_url(anna, sitzung, schreiben=1)).content.decode()
+    assert 'http-equiv="refresh"' not in html and 'class="blase-melden nur-mit-js"' not in html
+
+
+def test_ein_takt_fuer_stand_und_chat(client, anna):
+    """Befund 29: Ein Takt holt die Seite einmal und tauscht Stand und Chat zugleich."""
+    sitzung_beginnen(anna, sitzungstag(anna))
+    html = client.get(live_url(anna)).content.decode()
+    assert html.count("hx-trigger=") == 1 and 'hx-select-oob="#live-faden"' in html

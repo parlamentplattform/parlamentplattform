@@ -100,11 +100,17 @@ def punkt_zeilen(sitzung: Sitzung) -> list[dict]:
     nach_pk = {m.pk: m for m in meldungen}
     rechenschaft = {r.punkt_id: r for r in Rechenschaft.objects.filter(punkt__in=punkte)}
     zeilen = []
+    fortgeschrieben: set[int] = set()
     for p in punkte:
         antrag = p.antrag
         bis = None
         if antrag is not None:
-            antrag.fortschreiben()
+            # Nur laufende Verfahren fortschreiben (lazy Phasen), jedes einmal — Endphasen ändern sich nicht mehr
+            if antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value) and (
+                antrag.pk not in fortgeschrieben
+            ):
+                antrag.fortschreiben()
+                fortgeschrieben.add(antrag.pk)
             if antrag.phase == Phase.ABSTIMMUNG.value:
                 bis = _frist_fuer(antrag)
         lage = beschlusslage(antrag.phase if antrag is not None else None, bis)
@@ -289,6 +295,10 @@ def live_beitrag_aktion(request, pk: int, sitzung_pk: int, beitrag_pk: int):
     beitrag = get_object_or_404(Kommentar, pk=beitrag_pk, sitzung=sitzung)
     aktion = request.POST.get("aktion", "")
     anker = f"k-{beitrag.pk}"
+    if aktion in ("entfernen", "beantwortet") and not sitzung.laeuft():
+        # E1: Mit dem Ende ist der Chat Teil des Protokolls — er ändert sich danach nicht mehr (Prüfung 0.53.0)
+        messages.error(request, _("Die Sitzung ist beendet — der Chat bleibt, wie er ist."))
+        return redirect(_live_ziel(mandat, sitzung, anker))
     if aktion == "entfernen":
         if beitrag.mitglied_id != request.user.pk:
             return render(request, "mandatare/kein_zugang.html", status=403)
@@ -314,7 +324,8 @@ def live_beitrag_aktion(request, pk: int, sitzung_pk: int, beitrag_pk: int):
         gesperrt = _mitwirkung_gesperrt(request)
         if gesperrt is not None:
             return gesperrt
-        als_beantwortet_markieren(beitrag)
+        if beitrag.antwort_auf_id is None and not beitrag.geloescht and beitrag.ausgeblendet_am is None:
+            als_beantwortet_markieren(beitrag)
     else:
         messages.error(request, _("Unbekannte Handlung."))
     return redirect(_live_ziel(mandat, sitzung, anker))
@@ -459,6 +470,7 @@ def sammelbericht_vorlage(aufgabe: Aufgabe) -> str:
 def sitzungen_json(ebene: str = "") -> list[dict]:
     """Die Sitzungen im Live-Modus für `/rechenschaft.json` (FB-L5): Tagesordnung und Meldungen, öffentlich
     und dauerhaft wie die Seite selbst — ohne Chat (der gehört den Mitgliedern, nicht dem Register)."""
+    _sitzungen_fortschreiben(Sitzung.objects.all())
     qs = Sitzung.objects.select_related("mandat__mitglied").prefetch_related("punkte", "meldungen").order_by("-beginn")
     if ebene:
         qs = qs.filter(mandat__ebene=ebene)

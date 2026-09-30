@@ -23,7 +23,7 @@ aus base.html, kein Hex. Vorher lag es doppelt in liste.html und detail.html.
   .kr-grid .karte{margin-top:0}
   .kr-grid #sitzung{grid-column:1/-1}
   .kr-form label{display:block;margin-top:8px}
-  .kr-form input[type=text],.kr-form input[type=date],.kr-form select,.kr-form textarea{width:100%;max-width:100%}
+  .kr-form input[type=text],.kr-form input[type=url],.kr-form input[type=date],.kr-form select,.kr-form textarea{width:100%;max-width:100%}
   .kr-form input[type=time],.kr-form input[type=file]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink)}
   .kr-form textarea{min-height:60px}
   .kr-form .nebeneinander{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
@@ -59,6 +59,7 @@ aus base.html, kein Hex. Vorher lag es doppelt in liste.html und detail.html.
   .live-zeile{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   html:not(.js) .live-schreiben:not(.offen){display:none}
   html.js .live-schreiben-link,.live-schreiben-link.versteckt{display:none}
+  html.js .melden-link,html:not(.js) .nur-mit-js{display:none}
   .mt{margin-top:8px}
   .breit{width:100%}
   .inline-form{display:inline-flex;gap:6px;align-items:center;flex-wrap:nowrap;vertical-align:middle}

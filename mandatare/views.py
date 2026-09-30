@@ -54,6 +54,7 @@ from mandatare.models import (
     FreiwilligeBegruendung,
     Mandat,
     Rechenschaft,
+    Sitzung,
     Stimmverhalten,
     Tagesordnungspunkt,
     Vertrauensfrage,
@@ -1020,10 +1021,11 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     aufgaben = _aufgaben_sortiert(mandat)
     _antraege_fortschreiben(aufgaben)
     ausstaende = _ausstaende(mandat)
+    beendete_sitzungstage = set(mandat.sitzungen.filter(ende__isnull=False).values_list("aufgabe_id", flat=True))
     sitzungstage_vorbei = [
         a
         for a in aufgaben
-        if a.sitzungstag and a.frist is not None and a.frist <= jetzt
+        if a.sitzungstag and a.frist is not None and (a.frist <= jetzt or a.pk in beendete_sitzungstage)
         and (mandat.pflichtende is None or timezone.localdate(a.frist) <= mandat.pflichtende)
     ]
     ohne_sammelbericht = {p["aufgabe"].pk for p in ausstaende["sammelberichte"]}
@@ -1036,7 +1038,8 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
     darf_berichten = mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute))
     # FB-L5: Rechenschaft aus dem Ticker (?punkt=) und Sammelbericht aus dem Ticker (?aufgabe=&vorlage=1)
-    vorbefuellung = views_live.rechenschaft_vorbefuellung(mandat, request.GET.get("punkt", "")) if darf_berichten else None
+    punkt_roh = (eingabe.get("punkt") if aktion == "rechenschaft" else request.GET.get("punkt")) or ""
+    vorbefuellung = views_live.rechenschaft_vorbefuellung(mandat, punkt_roh) if darf_berichten else None
     sammelbericht_vorlage = ""
     if darf_berichten and request.GET.get("vorlage") == "1":
         vorlage_aufgabe = _eigener_sitzungstag(mandat, request.GET.get("aufgabe", ""))
@@ -1056,7 +1059,7 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "darf_mandatsfrage": mitwirken and mandat.aktiv and mandat.vertrauen_entzogen_am is None,
             "darf_berichten": darf_berichten,
             "darf_live": mitwirken and darf_live_melden(mandat),
-            "darf_freiwillig": mitwirken and mandat.vertretung_beendet_am is not None,
+            "darf_freiwillig": mitwirken,
             "sitzungskarte": views_live.sitzung_karte(mandat),
             "vorbefuellung": vorbefuellung,
             "sammelbericht_vorlage": sammelbericht_vorlage,
@@ -1122,7 +1125,10 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
     if not (pk or "").isdigit():
         return None
     aufgabe = mandat.aufgaben.filter(pk=int(pk), sitzungstag=True, frist__isnull=False).first()
-    if aufgabe is None or aufgabe.frist > timezone.now():
+    if aufgabe is None:
+        return None
+    # Ein Sitzungstag, dessen Sitzung im Live-Modus beendet ist, ist vorbei — auch vor der Uhrzeit der Aufgabe
+    if aufgabe.frist > timezone.now() and not Sitzung.objects.filter(aufgabe=aufgabe, ende__isnull=False).exists():
         return None
     if mandat.pflichtende is not None and timezone.localdate(aufgabe.frist) > mandat.pflichtende:
         return None
@@ -1144,7 +1150,13 @@ def mein_aktion(request):
         return render(request, "mandatare/kein_zugang.html", status=403)
     bestaetigung = aktion == "bestaetigung" and mandat.kandidatursperre
     # D-L6g, E2: Die freiwillige Begründung zu einem Nachtrag der Verwaltung hängt an keiner Frist
-    freiwillig = aktion == "freiwillige_begruendung" and mandat.vertretung_beendet_am is not None
+    # (hängt am Eintrag, nicht am heutigen Stempel — eine Aufhebung nach lit h lässt die Nachträge stehen)
+    freiwillig = aktion == "freiwillige_begruendung"
+    if aktion == "sitzung_beenden":
+        # Beenden schreibt nichts Neues: Es bleibt dem Mandatar auch nach dem Ende der Vertretung oder des
+        # Mandats und bei ruhender Mitwirkung, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen
+        views_live.sitzung_aktion(request, mandat, aktion)
+        return redirect(f"{reverse('mandatare:mein_mandat', kwargs={'pk': mandat.pk})}#sitzung")
     if not mandat.aktiv and not (mandat.in_nachfrist() and aktion in NACHFRIST_AKTIONEN) and not bestaetigung and not freiwillig:
         return render(request, "mandatare/kein_zugang.html", status=403)
     gesperrt = _mitwirkung_gesperrt(request)
@@ -1379,7 +1391,9 @@ def _freiwillige_begruendung(request, mandat: Mandat) -> None:
             FreiwilligeBegruendung.objects.create(rechenschaft=eintrag, text=text)
             AuditEintrag.anhaengen({"typ": "freiwillige_begruendung", "mandat": mandat.pk, "rechenschaft": eintrag.pk})
     except IntegrityError:
-        if eintrag.freiwillige is None:
+        # Der Rückweg-Cache der Beziehung kennt nach dem gescheiterten create schon das ungespeicherte Objekt —
+        # nachsehen muss die Datenbank
+        if not FreiwilligeBegruendung.objects.filter(rechenschaft=eintrag).exists():
             raise
         messages.error(request, _("Zu diesem Eintrag steht schon eine freiwillige Begründung."))
         return
@@ -1430,11 +1444,16 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
         return False
     antrag = None
     beschluss = Beschluss.KEINER
-    if punkt is not None and punkt.antrag_id:
-        punkt.antrag.fortschreiben()
-        antrag = punkt.antrag
-        if antrag.phase == Phase.ABSTIMMUNG.value:
-            messages.info(request, _("Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
+    if punkt is not None:
+        # Aus dem Ticker zählt nur der Antrag des Punkts — der Antrag des Sitzungstags gehört zu einem anderen
+        # Gegenstand; ohne Antrag am Punkt gilt die Angabe des Mandatars (Prüfung 0.53.0)
+        if punkt.antrag_id:
+            punkt.antrag.fortschreiben()
+            antrag = punkt.antrag
+            if antrag.phase == Phase.ABSTIMMUNG.value:
+                messages.info(request, _("Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
+        elif request.POST.get("beschluss_plattform") in Beschluss.values:
+            beschluss = request.POST.get("beschluss_plattform")
     elif aufgabe is not None and aufgabe.antrag_id:
         # Der Antragsbezug bleibt immer erhalten — der Beschluss der Plattform wird beim Speichern
         # abgeleitet und im Register live aus dem Antrag gelesen, auch wenn die Abstimmung erst
@@ -1718,9 +1737,12 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
     antrag = None
     antrag_pk = (request.POST.get("antrag") or "").strip().lstrip("#")
     if antrag_pk:
-        antrag = Antrag.objects.filter(pk=int(antrag_pk)).first() if antrag_pk.isdigit() else None
+        antrag = (
+            Antrag.objects.filter(pk=int(antrag_pk)).exclude(art__in=[Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE]).first()
+            if antrag_pk.isdigit() else None
+        )
         if antrag is None:
-            messages.error(request, _("Diese Antragsnummer gibt es nicht."))
+            messages.error(request, _("Diese Antragsnummer gibt es nicht — oder sie ist keine Sach- oder Mandatsfrage."))
             return
         antrag.fortschreiben()
     with transaction.atomic():

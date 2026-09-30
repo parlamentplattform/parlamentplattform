@@ -31,8 +31,11 @@ class SitzungFehler(ValueError):
 
 
 def darf_live_melden(mandat: Mandat) -> bool:
-    """Das Mandat ist aktiv, und die Befugnis ruht nicht (§ 7 Abs 10 lit f Z 6) — dieselbe Bedingung wie
-    für die Mandatsfrage. Status und Identität des Mitglieds prüft die Ansicht."""
+    """Das Mandat ist aktiv, und es ruht nicht nach einer verlorenen Vertrauensfrage — so nach dem Regieplan
+    des Gründers für S10b („schreiben nur Mandatar des Mandats, aktiv, nicht ruhend“), dieselbe Bedingung wie
+    für die Mandatsfrage. § 7 Abs 10 lit f Z 6 selbst lässt nur das Betreuen von Abstimmungen ruhen; ob der
+    Live-Modus ebenfalls ruhen soll, ist dem Gründer als offene Frage vorgelegt (Prüfung 0.53.0). Beenden
+    bleibt immer möglich. Status und Identität des Mitglieds prüft die Ansicht."""
     return mandat.aktiv and mandat.vertrauen_entzogen_am is None
 
 
@@ -122,6 +125,10 @@ def punkt_verknuepfen(punkt: Tagesordnungspunkt, antrag, jetzt=None) -> None:
         frisch = Tagesordnungspunkt.objects.select_for_update().get(pk=punkt.pk)
         if frisch.antrag_id is not None:
             raise SitzungFehler(_("Der Punkt ist schon mit einem Antrag verknüpft."))
+        if frisch.rechenschaft.exists():
+            # Die Rechenschaft zum Punkt steht mit der Angabe des Mandatars — ein später verknüpfter Antrag
+            # machte daraus nachträglich einen anderen Beschluss (Prüfung 0.53.0)
+            raise SitzungFehler(_("Zu diesem Punkt liegt schon Rechenschaft vor."))
         frisch.antrag = antrag
         frisch.save(update_fields=["antrag"])
         AuditEintrag.anhaengen(

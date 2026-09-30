@@ -14,7 +14,7 @@ from mandatare.sitzung import meldung_abgeben, sitzung_beginnen
 from mandatare.test_mandatare import mandat_anlegen
 from mandatare.test_sitzung_modelle import sitzungstag
 from verfahren.models import AuditEintrag
-from verfahren.test_views_aktionen import mitglied_anlegen
+from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
@@ -171,3 +171,24 @@ def test_datenexport_nennt_sitzungen(client):
     daten = json.loads(client.get(reverse("mitglieder:profil_export")).content)
     block = daten["mandate"][0]["sitzungen"][0]
     assert block["punkte"][0]["titel"] == "Budget" and block["meldungen"][0]["text"] == "Meldung"
+
+
+def test_nachtrag_nicht_mit_kandidatur(client, admin, ausgeschieden, ordnung):  # noqa: F811
+    """Befund 16: Eine Kandidatur oder Vertrauensfrage ist kein Beschluss der Plattform zu einer Abstimmung."""
+    from verfahren.models import antrag_einbringen
+
+    kandidatur = antrag_einbringen(ausgeschieden.mitglied, "Liste", "Reihung.", "", ordnung, art="mandat")
+    nachtrag(client, ausgeschieden, antrag=kandidatur.pk)
+    assert not Rechenschaft.objects.exists()
+
+
+def test_freiwillige_begruendung_bleibt_nach_aufhebung(client, admin, ausgeschieden):
+    """Befund 13: Hebt das Parteischiedsgericht das Ergebnis auf, bleibt der Nachtrag — und die Person kann
+    die Begründung trotzdem daneben stellen."""
+    nachtrag(client, ausgeschieden)
+    eintrag = Rechenschaft.objects.get()
+    Mandat.objects.filter(pk=ausgeschieden.pk).update(vertretung_beendet_am=None)
+    client.force_login(ausgeschieden.mitglied)
+    assert 'value="freiwillige_begruendung"' in client.get(reverse("mandatare:mein")).content.decode()
+    client.post(AKTION, {"aktion": "freiwillige_begruendung", "mandat": ausgeschieden.pk, "rechenschaft": eintrag.pk, "text": "Begründung"})
+    assert FreiwilligeBegruendung.objects.filter(rechenschaft=eintrag).exists()

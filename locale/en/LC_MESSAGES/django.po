@@ -8881,9 +8881,6 @@ msgstr "Please choose an entry added by the administration and write your reason
 msgid "Der Sitzungstag muss nach dem Ende der Vertretung liegen, nicht in der Zukunft und nicht nach dem Ende des Mandats."
 msgstr "The session day must lie after the end of representation, not in the future and not after the end of the mandate."
 
-msgid "Diese Antragsnummer gibt es nicht."
-msgstr "This motion number does not exist."
-
 msgid "Freiwillige Begründung"
 msgstr "Voluntary reasons"
 
@@ -8925,3 +8922,6 @@ msgstr "added by the administration on %(am)s"
 
 msgid "Öffentliche Quelle (Link oder Fundstelle)"
 msgstr "Public source (link or reference)"
+
+msgid "Die Sitzung ist beendet — der Chat bleibt, wie er ist."
+msgstr "The session has ended — the chat stays as it is."

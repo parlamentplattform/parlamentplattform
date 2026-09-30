@@ -1,0 +1,24 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% comment %}
+/live/ (FB-L5): laufende Sitzungen der DDÖ-Mandatsträger und die Protokolle der letzten sieben Tage.
+Reihung nach Beginn, jüngste zuerst — sonst nichts.
+{% endcomment %}
+{% block titel %}{% translate "Live" %}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<h1>{% translate "Live aus den Vertretungskörpern" %}</h1>
+<p class="erk"><a href="{% url 'mandatare:liste' %}">{% translate "Alle Mandatare →" %}</a></p>
+
+<section class="karte" aria-labelledby="h-laufend">
+  <p class="phasen-titel" id="h-laufend">{% translate "Jetzt" %}</p>
+  {% for s in laufende %}{% include "mandatare/_live_zeile.html" with s=s %}
+  {% empty %}<p class="leer">{% translate "Gerade läuft keine Sitzung." %}</p>{% endfor %}
+</section>
+
+<section class="karte" aria-labelledby="h-beendet">
+  <p class="phasen-titel" id="h-beendet">{% translate "Protokolle der letzten sieben Tage" %}</p>
+  {% for s in beendete %}{% include "mandatare/_live_zeile.html" with s=s %}
+  {% empty %}<p class="leer">{% translate "Keine." %}</p>{% endfor %}
+</section>
+{% endblock %}

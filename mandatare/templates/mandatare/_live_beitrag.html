@@ -1,0 +1,43 @@
+{% load i18n chat %}{% comment %}
+Ein Beitrag im Chat einer Sitzung (FB-L5). Erwartet b (aus chat.sitzung_faden), mandat, sitzung,
+chat_offen, darf_beantworten, meldegruende. Handlungen sind echte Formulare (ohne JavaScript bedienbar).
+{% endcomment %}<article class="blase{% if b.eigener %} eigen{% endif %}{% if b.neu %} neu{% endif %}" id="k-{{ b.k.pk }}">
+  <span class="avatar-initiale{% if b.k.geloescht or b.k.ausgeblendet_am %} still{% endif %}" aria-hidden="true">{{ b.k.mitglied.anzeigename|initiale }}</span>
+  <div class="blase-inhalt">
+    <div class="blase-kopf">
+      <strong>{{ b.k.mitglied.anzeigename }}</strong>
+      <time datetime="{{ b.k.erstellt_am|date:'c' }}" title="{{ b.k.erstellt_am|date:'d.m.Y, H:i' }}">{{ b.k.erstellt_am|date:"H:i" }}</time>
+      {% if b.k.beantwortet_am %}<span class="etikett">{% translate "beantwortet" %}</span>{% endif %}
+    </div>
+    <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{{ b.k.sichtbarer_text|urlize|linebreaksbr }}</div>
+    <div class="blase-fuss">
+      {% if chat_offen and user.is_authenticated and not b.k.geloescht and not b.k.ausgeblendet_am %}
+      <a class="blase-knopf" href="?sitzung={{ sitzung.pk }}&amp;schreiben=1&amp;antwort_auf={{ b.k.pk }}#chat-eingabe">{% translate "Antworten" %}</a>
+      {% endif %}
+      {% if darf_beantworten and not b.k.antwort_auf_id and not b.k.beantwortet_am and not b.k.geloescht %}
+      <form method="post" action="{% url 'mandatare:live_beitrag_aktion' mandat.pk sitzung.pk b.k.pk %}" class="blase-form">{% csrf_token %}
+        <button class="blase-knopf" name="aktion" value="beantwortet">{% translate "Als beantwortet markieren" %}</button>
+      </form>
+      {% endif %}
+      {% if b.eigener and not b.k.geloescht %}
+      <form method="post" action="{% url 'mandatare:live_beitrag_aktion' mandat.pk sitzung.pk b.k.pk %}" class="blase-form">{% csrf_token %}
+        <button class="blase-knopf" name="aktion" value="entfernen">{% translate "Zurückziehen" %}</button>
+      </form>
+      {% elif user.is_authenticated and not b.k.geloescht and not b.k.ausgeblendet_am %}
+      <details class="blase-melden">
+        <summary class="blase-knopf">{% translate "Melden" %}</summary>
+        <form method="post" action="{% url 'mandatare:live_beitrag_aktion' mandat.pk sitzung.pk b.k.pk %}">{% csrf_token %}
+          <input type="hidden" name="aktion" value="melden">
+          <label for="grund-{{ b.k.pk }}">{% translate "Warum melden Sie diesen Beitrag?" %}</label>
+          <select name="grund" id="grund-{{ b.k.pk }}">
+            {% for wert, name in meldegruende %}<option value="{{ wert }}">{{ name }}</option>{% endfor %}
+          </select>
+          <input type="text" name="erlaeuterung" maxlength="500" placeholder="{% translate 'Erläuterung (freiwillig)' %}" aria-label="{% translate 'Erläuterung' %}">
+          <button class="btn-linie klein">{% translate "Melden" %}</button>
+        </form>
+      </details>
+      {% endif %}
+      <a class="blase-anker" href="#k-{{ b.k.pk }}" title="{% translate 'Verweis auf diesen Beitrag' %}">#{{ b.k.pk }}</a>
+    </div>
+  </div>
+</article>

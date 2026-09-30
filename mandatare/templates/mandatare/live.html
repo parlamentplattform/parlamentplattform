@@ -1,0 +1,94 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% comment %}
+Die Live-Seite eines Mandatars (FB-L5 B): Tagesordnung mit Beschlusslage (C), Ticker, Stream als Link
+(D-L5a) und der Chat der Sitzung. Solange die Sitzung läuft, tauscht htmx im Takt des Registers den
+Stand (#live-stand) — nicht, während ein Formular darin offen ist; ohne JavaScript lädt die Seite
+über <noscript> neu, außer beim Schreiben (?schreiben=1). Nach dem Ende ist die Seite das Protokoll.
+{% endcomment %}
+{% block titel %}{% translate "Live" %} · {{ mandat.mitglied.anzeigename }}{% endblock %}
+{% block kopfzusatz %}{% if laeuft and not schreiben %}<noscript><meta http-equiv="refresh" content="{{ takt }}"></noscript>{% endif %}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<p><a href="{% url 'mandatare:detail' mandat.pk %}">&larr; {{ mandat.mitglied.anzeigename }}</a> · <a href="{% url 'mandatare:live_uebersicht' %}">{% translate "Alle Live-Sitzungen →" %}</a></p>
+<h1>{% translate "Live" %}: {{ mandat.mitglied.anzeigename }}</h1>
+<p class="erk"><span class="badge">{{ mandat.bezeichnung }}</span> <span class="badge badge--hell">{{ mandat.gebiet|default:mandat.get_ebene_display }}</span></p>
+
+{% if not sitzung %}
+<p class="leer">{% translate "Noch keine Sitzung im Live-Modus." %}</p>
+{% else %}
+<div class="live-kopf">
+  {% if laeuft %}<span class="live-punkt" aria-hidden="true"></span><strong>{% translate "läuft" %}</strong> · {% blocktranslate with seit=sitzung.beginn|date:"d.m.Y, H:i" %}seit {{ seit }}{% endblocktranslate %}
+  {% else %}<strong>{% translate "Protokoll" %}</strong> · {{ sitzung.beginn|date:"d.m.Y, H:i" }}–{{ sitzung.ende|date:"H:i" }}{% if sitzung.ende_durch_hoechstdauer %} · <span class="meta">{% translate "beendet mit Ablauf der Höchstdauer" %}</span>{% endif %}{% endif %}
+  · {{ sitzung.aufgabe.titel }}
+  {% if sitzung.stream %} · <a href="{{ sitzung.stream }}" rel="noopener noreferrer external" target="_blank">{% translate "Amtlicher Stream ↗" %}</a>{% endif %}
+</div>
+
+<div id="live-stand" class="live-raster"{% if laeuft %} hx-get="{{ request.path }}?sitzung={{ sitzung.pk }}" hx-trigger="every {{ takt }}s [!document.querySelector('#live-stand details[open]')]" hx-select="#live-stand" hx-swap="outerHTML"{% endif %}>
+  <section class="karte" aria-labelledby="h-tagesordnung">
+    <p class="phasen-titel" id="h-tagesordnung">{% translate "Tagesordnung und Beschlusslage" %}</p>
+    {% for z in punkte %}
+    <div class="top" id="top-{{ z.punkt.nummer }}">
+      <span class="top-nr">{{ z.punkt.nummer }}</span>
+      <span class="top-text"><strong>{{ z.punkt.titel }}</strong>
+        <br><span class="lage lage-{{ z.lage.status }}">{{ z.lage_name }}</span>{% if z.lage.bis %} <span class="meta">· {% blocktranslate with bis=z.lage.bis|date:"d.m.Y, H:i" %}bis {{ bis }}{% endblocktranslate %}</span>{% endif %}
+        {% if z.punkt.antrag %} · <a href="{% url 'verfahren:antrag' z.punkt.antrag.pk %}">{{ z.punkt.antrag.titel }}</a>{% endif %}
+        {% if z.massgeblich %}<br><span class="meta">{% if z.massgeblich.abgestimmt %}{% translate "abgestimmt" %}{% else %}{% translate "angekündigt" %}{% endif %}: {{ z.massgeblich.get_stimme_display }}</span>{% endif %}
+      </span>
+    </div>
+    {% empty %}<p class="leer">{% translate "Keine Tagesordnung." %}</p>{% endfor %}
+  </section>
+
+  <section class="karte" aria-labelledby="h-ticker">
+    <p class="phasen-titel" id="h-ticker">{% translate "Ticker" %}</p>
+    {% for t in ticker %}{% with m=t.m %}
+    <article class="meldung-zeile{% if t.berichtigt %} berichtigt{% endif %}" id="{{ m.anker }}">
+      <time datetime="{{ m.zeitpunkt|date:'c' }}">{{ m.zeitpunkt|date:"H:i" }}</time>
+      <div>
+        {% if m.punkt %}<span class="chip klein">{% blocktranslate with n=m.punkt.nummer %}Punkt {{ n }}{% endblocktranslate %}</span>{% endif %}
+        {% if m.stimme %}<span class="chip klein">{% if m.abgestimmt %}{% translate "abgestimmt" %}{% else %}{% translate "angekündigt" %}{% endif %}: {{ m.get_stimme_display }}</span>{% endif %}
+        {% if t.berichtigt %}<span class="chip klein warn">{% translate "berichtigt" %}</span>{% endif %}
+        {% if m.berichtigt_id %}<a class="meta" href="#m-{{ m.berichtigt_id }}">{% translate "berichtigt eine frühere Meldung" %}</a>{% endif %}
+        <p>{{ m.text }}</p>
+      </div>
+      <a class="blase-anker" href="#{{ m.anker }}" title="{% translate 'Verweis auf diese Meldung' %}">#{{ m.pk }}</a>
+    </article>
+    {% endwith %}{% empty %}<p class="leer">{% translate "Noch keine Meldung." %}</p>{% endfor %}
+  </section>
+</div>
+
+<section class="karte" id="live-chat" aria-labelledby="h-chat">
+  <p class="phasen-titel" id="h-chat">{% translate "Chat zur Sitzung" %}</p>
+  {% if chat_offen and user.is_authenticated %}
+  <p class="live-schreiben-link{% if schreiben %} versteckt{% endif %}"><a href="?sitzung={{ sitzung.pk }}&amp;schreiben=1#chat-eingabe">{% translate "Beitrag schreiben" %}</a></p>
+  <form method="post" action="{% url 'mandatare:live_beitrag' mandat.pk sitzung.pk %}" class="kr-form live-schreiben{% if schreiben %} offen{% endif %}" id="chat-eingabe">{% csrf_token %}
+    {% if fehler %}<p class="meldung error" role="alert">{{ fehler }}</p>{% endif %}
+    {% if antwort_auf %}<input type="hidden" name="antwort_auf" value="{{ antwort_auf.pk }}">
+    <p class="meta">{% blocktranslate with name=antwort_auf.mitglied.anzeigename %}Antwort an {{ name }}{% endblocktranslate %} · <a href="?sitzung={{ sitzung.pk }}&amp;schreiben=1#chat-eingabe">{% translate "keine Antwort" %}</a></p>{% endif %}
+    <label for="chat-text">{% translate "Frage oder Beitrag" %}</label>
+    <textarea id="chat-text" name="text" rows="3" maxlength="4000" required>{{ entwurf.text }}</textarea>
+    <button type="submit" class="btn klein">{% translate "Senden" %}</button>
+  </form>
+  {% elif not chat_offen %}
+  {% if fehler %}<p class="meldung error" role="alert">{{ fehler }}</p>
+  {% if entwurf.text %}<label for="chat-entwurf">{% translate "Ihr Text" %}</label><textarea id="chat-entwurf" rows="3" readonly>{{ entwurf.text }}</textarea>{% endif %}
+  {% else %}<p class="meta">{% translate "Der Chat ist mit dem Ende der Sitzung geschlossen." %}</p>{% endif %}
+  {% else %}<p class="meta"><a href="{% url 'mitglieder:login' %}?next={{ request.get_full_path|urlencode }}">{% translate "Anmelden zum Mitschreiben →" %}</a></p>{% endif %}
+  <div id="live-faden"{% if chat_offen %} hx-get="{{ request.path }}?sitzung={{ sitzung.pk }}" hx-trigger="every {{ takt }}s [!document.querySelector('#live-faden details[open]')]" hx-select="#live-faden" hx-swap="outerHTML"{% endif %}>
+  {% for f in faden %}
+    {% include "mandatare/_live_beitrag.html" with b=f %}
+    {% for a in f.antworten %}<div class="live-antwort">{% include "mandatare/_live_beitrag.html" with b=a %}</div>{% endfor %}
+  {% empty %}<p class="leer">{% translate "Noch kein Beitrag." %}</p>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if protokolle|length > 1 or protokolle and not sitzung %}
+<section class="karte">
+  <p class="phasen-titel">{% translate "Sitzungen" %}</p>
+  {% for s in protokolle %}
+  <div class="zeile"><a href="?sitzung={{ s.pk }}">{{ s.beginn|date:"d.m.Y" }} · {{ s.aufgabe.titel }}</a>{% if s.pk == sitzung.pk %} <span class="meta">· {% translate "angezeigt" %}</span>{% endif %}{% if not s.ende %} <span class="chip klein">{% translate "läuft" %}</span>{% endif %}</div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

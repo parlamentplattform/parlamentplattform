@@ -14,7 +14,8 @@
     · {% translate "seit" %} {{ mandat.angetreten|date:"d.m.Y" }}
     {% if mandat.beendet %} · <strong>{% translate "beendet am" %} {{ mandat.beendet|date:"d.m.Y" }}</strong>{% endif %}
     {% if mandat.vertretung_beendet_am %} · <strong><a href="#vertrauen">{% translate "Vertretung beendet am" %} {{ mandat.vertretung_beendet_am|date:"d.m.Y" }}</a></strong>{% endif %}
-    {% if mandat.kandidatur %} · <a href="{% url 'verfahren:antrag' mandat.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}</p>
+    {% if mandat.kandidatur %} · <a href="{% url 'verfahren:antrag' mandat.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}
+    {% if live_laeuft %} · <a href="{% url 'mandatare:live' mandat.pk %}"><span class="live-punkt" aria-hidden="true"></span> {% translate "Jetzt live" %}</a>{% elif mandat.sitzungen.exists %} · <a href="{% url 'mandatare:live' mandat.pk %}">{% translate "Sitzungsprotokolle" %}</a>{% endif %}</p>
   </div>
 </div>
 {% if mandat.vorstellung %}<div class="karte"><p>{{ mandat.vorstellung|linebreaksbr }}</p></div>{% endif %}

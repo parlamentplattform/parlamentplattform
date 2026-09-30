@@ -783,6 +783,10 @@ def parlament(request):
             Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
         )
 
+    # FB-L5: laufende Sitzungen der Mandate dieser Region als Kachel „Live“ vor den Anträgen — nach Beginn
+    from mandatare.views_live import laufende_in_region
+
+    live = laufende_in_region({e: mein_ort[e] for e in ("gemeinde", "bezirk", "land")})
     region_zeilen = []
     for ebene in ("gemeinde", "bezirk", "land"):
         orte = mein_ort[ebene]
@@ -795,6 +799,7 @@ def parlament(request):
                 # Bei genau einem Ort trägt ihn der Zeilenkopf, die Kachel schweigt; bei zweien
                 # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
                 "ort_versteckt": len(orte) == 1,
+                "live": live[ebene],
                 "kacheln": [
                     _kachel(
                         a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,

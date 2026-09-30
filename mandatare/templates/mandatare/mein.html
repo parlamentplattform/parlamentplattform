@@ -17,6 +17,7 @@ das betroffene Formular wieder vor.
   · <a href="{% url 'mandatare:detail' mandat.pk %}">{% translate "Öffentliche Seite →" %}</a>
   {% if mandate|length > 1 %} · <a href="{% url 'mandatare:mein' %}">{% translate "Anderes Mandat wählen" %}</a>{% endif %}
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
+  · <a href="#sitzung">{% translate "Sitzung" %}</a>
   · <a href="#aufgaben">{% translate "Aufgaben und Fristen" %}</a> · <a href="#berichte">{% translate "Berichte und Rechenschaft" %}</a>
   · <a href="#vertrauen">{% translate "Vertrauen" %}</a>
 </p>
@@ -44,6 +45,9 @@ das betroffene Formular wieder vor.
 {% endif %}
 
 <div class="kr-grid">
+
+{# ── Sitzung (FB-L5): am Sitzungstag zuerst, sonst nach den Berichten ──────── #}
+{% if sitzungskarte.laufend or sitzungskarte.heutige %}{% include "mandatare/_sitzung_karte.html" %}{% endif %}
 
 {# ── 1. Meine Karte ─────────────────────────────────────────────────────── #}
 <div class="karte" id="karte">
@@ -185,32 +189,36 @@ das betroffene Formular wieder vor.
         {% for s in sitzungstage %}<option value="{{ s.aufgabe.pk }}"{% if s.aufgabe.pk|stringformat:"s" == vorgewaehlt %} selected{% endif %}>{{ s.aufgabe.frist|date:"d.m.Y" }} · {{ s.aufgabe.titel }}{% if s.ohne_sammelbericht %} · {% translate "ohne Bericht" %}{% endif %}</option>{% endfor %}
       </select>
       <label for="sb-text">{% translate "Bericht" %}</label>
-      <textarea id="sb-text" name="text" rows="5" maxlength="8000" required></textarea>
+      <textarea id="sb-text" name="text" rows="5" maxlength="8000" required>{{ sammelbericht_vorlage }}</textarea>
       <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Sammelbericht einreichen" %}</button>
     </form>
     {% else %}<p class="leer">{% translate "Noch kein Sitzungstag vorbei." %}</p>{% endif %}
   </details>
 
-  <details class="klappe" id="rechenschaft"{% if vorgewaehlt or fehler_bei == "rechenschaft" %} open{% endif %}>
+  <details class="klappe" id="rechenschaft"{% if vorgewaehlt or vorbefuellung or fehler_bei == "rechenschaft" %} open{% endif %}>
     <summary>{% translate "Rechenschaft" %}{% if ausstaende.rechenschaft_ausstaendig %} · <span class="ausstand">{% blocktranslate count n=ausstaende.rechenschaft_ausstaendig %}eine ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</span>{% endif %}</summary>
     <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
       <input type="hidden" name="aktion" value="rechenschaft"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
+      {% if vorbefuellung %}<input type="hidden" name="punkt" value="{{ vorbefuellung.punkt.pk }}">
+      <p class="meta">{% blocktranslate with n=vorbefuellung.punkt.nummer tag=vorbefuellung.punkt.sitzung.beginn|date:"d.m.Y" %}Aus dem Ticker: Punkt {{ n }} der Sitzung vom {{ tag }}{% endblocktranslate %}</p>
+      {% else %}
       <label for="rs-aufgabe">{% translate "Zu welchem Sitzungstag?" %}</label>
       <select id="rs-aufgabe" name="aufgabe">
         <option value="">{% translate "— frei eintragen —" %}</option>
         {% for s in sitzungstage %}<option value="{{ s.aufgabe.pk }}"{% if s.aufgabe.pk|stringformat:"s" == vorgewaehlt %} selected{% endif %}>{{ s.aufgabe.frist|date:"d.m.Y" }} · {{ s.aufgabe.titel }}{% if s.ohne_rechenschaft %} · {% translate "ohne Eintrag" %}{% endif %}</option>{% endfor %}
       </select>
+      {% endif %}
       <label for="rs-gegenstand">{% translate "Gegenstand der Abstimmung im Vertretungskörper" %}</label>
-      <input type="text" id="rs-gegenstand" name="gegenstand" maxlength="200"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.gegenstand }}"{% endif %}>
+      <input type="text" id="rs-gegenstand" name="gegenstand" maxlength="200"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.gegenstand }}"{% elif vorbefuellung %} value="{{ vorbefuellung.gegenstand }}"{% endif %}>
       <div class="nebeneinander">
-        <label for="rs-sitzung">{% translate "Sitzung am (nur ohne Sitzungstag)" %} <input type="date" id="rs-sitzung" name="sitzung_am"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.sitzung_am }}"{% endif %}></label>
+{% if not vorbefuellung %}        <label for="rs-sitzung">{% translate "Sitzung am (nur ohne Sitzungstag)" %} <input type="date" id="rs-sitzung" name="sitzung_am"{% if fehler_bei == "rechenschaft" %} value="{{ eingabe.sitzung_am }}"{% endif %}></label>{% endif %}
         <label for="rs-beschluss">{% translate "Beschluss der Plattform (nur ohne Antrag)" %}
           <select id="rs-beschluss" name="beschluss_plattform">{% for wert, name in beschluesse %}<option value="{{ wert }}"{% if fehler_bei == "rechenschaft" %}{% if wert == eingabe.beschluss_plattform %} selected{% endif %}{% elif wert == "keiner" %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
         <label for="rs-stimme">{% translate "Meine Stimme" %}
-          <select id="rs-stimme" name="stimme" required>{% for wert, name in stimmen %}<option value="{{ wert }}"{% if fehler_bei == "rechenschaft" and wert == eingabe.stimme %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+          <select id="rs-stimme" name="stimme" required>{% for wert, name in stimmen %}<option value="{{ wert }}"{% if fehler_bei == "rechenschaft" %}{% if wert == eingabe.stimme %} selected{% endif %}{% elif vorbefuellung and wert == vorbefuellung.stimme %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
       </div>
       <label for="rs-begruendung">{% translate "Begründung (öffentlich)" %}</label>
-      <textarea id="rs-begruendung" name="begruendung" rows="4" maxlength="4000" required>{% if fehler_bei == "rechenschaft" %}{{ eingabe.begruendung }}{% endif %}</textarea>
+      <textarea id="rs-begruendung" name="begruendung" rows="4" maxlength="4000" required>{% if fehler_bei == "rechenschaft" %}{{ eingabe.begruendung }}{% elif vorbefuellung %}{{ vorbefuellung.begruendung }}{% endif %}</textarea>
       <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Rechenschaft eintragen" %}</button>
     </form>
   </details>
@@ -232,6 +240,8 @@ das betroffene Formular wieder vor.
   {% endwith %}{% endfor %}
   {% if not rechenschaft and not berichte %}<p class="leer">{% translate "Noch keine Einträge." %}</p>{% endif %}
 </div>
+
+{% if not sitzungskarte.laufend and not sitzungskarte.heutige %}{% include "mandatare/_sitzung_karte.html" %}{% endif %}
 
 {# ── 5. Vertrauen (§ 7 Abs 10) ──────────────────────────────────────────── #}
 <div class="karte" id="vertrauen">

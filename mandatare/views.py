@@ -31,6 +31,7 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -41,6 +42,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
+from mandatare import views_live
 from mandatare.models import (
     FOTO_HOECHSTGROESSE,
     Aufgabe,
@@ -52,6 +54,7 @@ from mandatare.models import (
     Mandat,
     Rechenschaft,
     Stimmverhalten,
+    Tagesordnungspunkt,
     Vertrauensfrage,
     VertrauensfrageArt,
     VertrauensfrageFehler,
@@ -65,6 +68,7 @@ from mandatare.models import (
     vertrauensfrage_entscheidung_vermerken,
     vertrauensfragen_fortschreiben,
 )
+from mandatare.sitzung import darf_live_melden
 from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
@@ -107,6 +111,10 @@ DOPPELABSENDUNG_SEKUNDEN = 120
 FRIST_JAHR_MIN, FRIST_JAHR_MAX = 2000, 2200
 #: Handlungen, die nach dem Mandatsende in der Nachfrist noch erlaubt sind (§ 7 Abs 5).
 NACHFRIST_AKTIONEN = ("sammelbericht", "rechenschaft", "monatsbericht")
+#: Handlungen der Karte „Sitzung“ (FB-L5) — nur mit aktivem Mandat, die Fachoperation prüft den Rest.
+SITZUNG_AKTIONEN = (
+    "sitzung_beginnen", "sitzung_meldung", "sitzung_punkt", "sitzung_verknuepfen", "sitzung_stream", "sitzung_beenden"
+)
 
 #: Aufgaben samt verknüpftem Antrag vorladen — `_aufgaben_sortiert` und `offene_pflichten_fuer`
 #: lesen dann `aufgaben.all()` ohne weitere Abfrage.
@@ -513,6 +521,7 @@ def detail(request, pk: int):
             "rechenschaft": _rechenschaft_zeilen(rechenschaft),
             "rechenschaft_anzahl": mandat.rechenschaft.count(),
             "vertrauen": vertrauen,
+            "live_laeuft": any(s.laeuft() for s in mandat.sitzungen.filter(ende__isnull=True)),
             # Der Knopf steht für jede Vertretungsbeziehung, die besteht — auch bei einem Sperrhinweis:
             # ob eine Sperre vorliegt, stellt der Integritätsrat fest, nicht die Seite (§ 2 Abs 6).
             "vertrauensfrage_moeglich": mandat.aktiv and vertrauen["laufende"] is None,
@@ -1017,6 +1026,14 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     ]
     mitwirken = request.user.darf_mitwirken and request.user.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT
     aktion = (eingabe.get("aktion") if eingabe is not None else "") or ""
+    darf_berichten = mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute))
+    # FB-L5: Rechenschaft aus dem Ticker (?punkt=) und Sammelbericht aus dem Ticker (?aufgabe=&vorlage=1)
+    vorbefuellung = views_live.rechenschaft_vorbefuellung(mandat, request.GET.get("punkt", "")) if darf_berichten else None
+    sammelbericht_vorlage = ""
+    if darf_berichten and request.GET.get("vorlage") == "1":
+        vorlage_aufgabe = _eigener_sitzungstag(mandat, request.GET.get("aufgabe", ""))
+        if vorlage_aufgabe is not None:
+            sammelbericht_vorlage = views_live.sammelbericht_vorlage(vorlage_aufgabe)
     ordnung_fehlt = not Verfahrensordnung.objects.filter(aktiv=True).exists()
     return render(
         request,
@@ -1029,7 +1046,11 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             # betreuen — der Report bleibt, das Häkchen „Daraus eine Abstimmung erzeugen“ nicht. Eine Aufhebung
             # (lit h) leert `vertrauen_entzogen_am` und belebt die Befugnis wieder; die Fachoperation prüft dasselbe.
             "darf_mandatsfrage": mitwirken and mandat.aktiv and mandat.vertrauen_entzogen_am is None,
-            "darf_berichten": mitwirken and (mandat.aktiv or mandat.in_nachfrist(heute)),
+            "darf_berichten": darf_berichten,
+            "darf_live": mitwirken and darf_live_melden(mandat),
+            "sitzungskarte": views_live.sitzung_karte(mandat),
+            "vorbefuellung": vorbefuellung,
+            "sammelbericht_vorlage": sammelbericht_vorlage,
             # Die Bestätigung nach § 7 Abs 10 lit f Z 3 hängt nicht an der Vertretung — sie ist der Weg zurück.
             "darf_bestaetigen": mitwirken and vertrauen["bestaetigung_moeglich"],
             "vertrauen": vertrauen,
@@ -1152,6 +1173,9 @@ def mein_aktion(request):
         _sammelbericht_anlegen(request, mandat)
     elif aktion == "rechenschaft":
         gelungen = _rechenschaft_anlegen(request, mandat)
+    elif aktion in SITZUNG_AKTIONEN:
+        views_live.sitzung_aktion(request, mandat, aktion)
+        return redirect(f"{reverse('mandatare:mein_mandat', kwargs={'pk': mandat.pk})}#sitzung")
     else:
         messages.error(request, _("Unbekannte Handlung."))
     if not gelungen:
@@ -1326,8 +1350,27 @@ def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
 
 
 def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
-    """Rechenschaft eintragen; False bei einem Eingabefehler (der Bereich rendert dann neu)."""
-    aufgabe = _eigener_sitzungstag(mandat, request.POST.get("aufgabe", ""))
+    """Rechenschaft eintragen; False bei einem Eingabefehler (der Bereich rendert dann neu).
+
+    Mit `punkt` (FB-L5) kommt der Eintrag aus dem Ticker: Sitzungstag und Antrag folgen dem Punkt, und je
+    Punkt gibt es einen Eintrag. Der Sitzungstag muss dafür nicht vorbei sein — abgestimmt ist, was der
+    Mandatar meldet —, aber heute oder früher und innerhalb seiner Pflichten liegen."""
+    punkt = None
+    roh = (request.POST.get("punkt") or "").strip()
+    if roh:
+        punkt = Tagesordnungspunkt.objects.filter(pk=int(roh), sitzung__mandat=mandat).select_related(
+            "sitzung__aufgabe", "antrag"
+        ).first() if roh.isdigit() else None
+        tag = punkt.sitzung.aufgabe.sitzungstag_datum if punkt is not None else None
+        if punkt is None or tag is None or tag > timezone.localdate() or (
+            mandat.pflichtende is not None and tag > mandat.pflichtende
+        ):
+            messages.error(request, _("Diesen Tagesordnungspunkt gibt es hier nicht."))
+            return False
+        if Rechenschaft.objects.filter(punkt=punkt).exists():
+            messages.error(request, _("Zu diesem Punkt liegt schon Rechenschaft vor."))
+            return False
+    aufgabe = punkt.sitzung.aufgabe if punkt is not None else _eigener_sitzungstag(mandat, request.POST.get("aufgabe", ""))
     gegenstand = (request.POST.get("gegenstand") or "").strip()[:GEGENSTAND_MAX]
     begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
     stimme = request.POST.get("stimme", "")
@@ -1350,7 +1393,12 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
         return False
     antrag = None
     beschluss = Beschluss.KEINER
-    if aufgabe is not None and aufgabe.antrag_id:
+    if punkt is not None and punkt.antrag_id:
+        punkt.antrag.fortschreiben()
+        antrag = punkt.antrag
+        if antrag.phase == Phase.ABSTIMMUNG.value:
+            messages.info(request, _("Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
+    elif aufgabe is not None and aufgabe.antrag_id:
         # Der Antragsbezug bleibt immer erhalten — der Beschluss der Plattform wird beim Speichern
         # abgeleitet und im Register live aus dem Antrag gelesen, auch wenn die Abstimmung erst
         # nach dem Eintrag endet. Ein von Hand gewählter Beschluss wäre erfunden.
@@ -1360,22 +1408,34 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
             messages.info(request, _("Die Abstimmung läuft noch — der Eintrag steht ohne Beschluss der Plattform."))
     elif request.POST.get("beschluss_plattform") in Beschluss.values:
         beschluss = request.POST.get("beschluss_plattform")  # frei oder ohne Antrag: Angabe des Mandatars
-    eintrag = Rechenschaft.objects.create(
-        mandat=mandat,
-        aufgabe=aufgabe,
-        antrag=antrag,
-        gegenstand=gegenstand,
-        sitzung_am=sitzung_am,
-        beschluss_plattform=beschluss,
-        stimme=stimme,
-        begruendung=begruendung,
-    )
-    ereignis = {"typ": "rechenschaft", "mandat": mandat.pk, "rechenschaft": eintrag.pk}
+    ereignis = {"typ": "rechenschaft", "mandat": mandat.pk}
     if aufgabe is not None:
         ereignis["aufgabe"] = aufgabe.pk
     if antrag is not None:
         ereignis["antrag"] = antrag.pk
-    AuditEintrag.anhaengen(ereignis)
+    if punkt is not None:
+        ereignis["punkt"] = punkt.pk
+    try:
+        with transaction.atomic():
+            eintrag = Rechenschaft.objects.create(
+                mandat=mandat,
+                aufgabe=aufgabe,
+                antrag=antrag,
+                punkt=punkt,
+                gegenstand=gegenstand,
+                sitzung_am=sitzung_am,
+                beschluss_plattform=beschluss,
+                stimme=stimme,
+                begruendung=begruendung,
+            )
+            AuditEintrag.anhaengen({**ereignis, "rechenschaft": eintrag.pk})
+    except IntegrityError:
+        # Doppelabsendung zum selben Punkt: der Eindeutigkeitsindex hält, die Meldung sagt es. Jeder andere
+        # Fehler (etwa eine überholte Audit-Kette) geht weiter — nichts ist gespeichert.
+        if punkt is None or not Rechenschaft.objects.filter(punkt=punkt).exists():
+            raise
+        messages.error(request, _("Zu diesem Punkt liegt schon Rechenschaft vor."))
+        return False
     messages.success(request, _("Rechenschaft eingetragen."))
     return True
 

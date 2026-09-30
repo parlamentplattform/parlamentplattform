@@ -1524,8 +1524,9 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
 
 
 class Kommentar(models.Model):
-    """Ein Beitrag im Chat eines Antrags (§ 5 Abs 3 lit c, FB-G1). Nur Mitglieder schreiben,
-    alle lesen mit.
+    """Ein Beitrag im Chat eines Antrags (§ 5 Abs 3 lit c, FB-G1) — oder, seit 0.53, im Chat einer
+    Sitzung des Sitzungsmodus (FB-L5): genau einer der beiden Bezüge ist gesetzt. Nur Mitglieder
+    schreiben, alle lesen mit.
 
     Der Faden ist eine Ebene tief: `antwort_auf` zeigt auf den Wurzelbeitrag; eine Antwort auf
     eine Antwort hängt sich an denselben Wurzelbeitrag (`wurzel()`), damit der Faden lesbar
@@ -1538,7 +1539,11 @@ class Kommentar(models.Model):
     #: Rückfallwert in Minuten; der gültige steht im Register unter „chat-bearbeitungsfenster-minuten".
     BEARBEITUNGSFENSTER_MINUTEN = 5
 
-    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare")
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="kommentare", null=True, blank=True)
+    sitzung = models.ForeignKey(
+        "mandatare.Sitzung", on_delete=models.PROTECT, related_name="beitraege", null=True, blank=True,
+        help_text="Der Chat einer Sitzung im Sitzungsmodus (FB-L5) — dann ohne Antrag.",
+    )
     mitglied = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
         help_text="Leer beim Systembeitrag der Plattform („Passt alles“) — sonst der Verfasser.",
@@ -1571,14 +1576,30 @@ class Kommentar(models.Model):
     bezug_absatz = models.PositiveIntegerField(
         null=True, blank=True, help_text="Absatz des Vorschlags, auf den sich die Kritik bezieht (ab 1)."
     )
+    beantwortet_am = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Im Chat einer Sitzung: vom Mandatar als beantwortet markiert (FB-L5) — nicht zurücknehmbar.",
+    )
 
     class Meta:
         ordering = ["erstellt_am"]
         verbose_name = "Kommentar"
         verbose_name_plural = "Kommentare"
-        indexes = [models.Index(fields=["antrag", "archiviert_am", "erstellt_am"])]
+        indexes = [
+            models.Index(fields=["antrag", "archiviert_am", "erstellt_am"]),
+            models.Index(fields=["sitzung", "erstellt_am"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(models.Q(antrag__isnull=False) & models.Q(sitzung__isnull=True))
+                | (models.Q(antrag__isnull=True) & models.Q(sitzung__isnull=False)),
+                name="kommentar_genau_ein_bezug",
+            )
+        ]
 
     def __str__(self) -> str:
+        if self.sitzung_id:
+            return f"Kommentar von Mitglied {self.mitglied_id} zu Sitzung {self.sitzung_id}"
         return f"Kommentar von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
 
     def wurzel(self) -> Kommentar:
@@ -1672,11 +1693,24 @@ class Lesestand(models.Model):
     das Gerät selbst (localStorage); dieser Stand hier ist die gemeinsame Wahrheit."""
 
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesestaende")
-    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="lesestaende")
+    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="lesestaende", null=True, blank=True)
+    sitzung = models.ForeignKey(
+        "mandatare.Sitzung", on_delete=models.CASCADE, related_name="lesestaende", null=True, blank=True
+    )
     gelesen_bis = models.DateTimeField(default=timezone.now, help_text="Zeitpunkt des zuletzt gelesenen Beitrags.")
 
     class Meta:
         unique_together = [("mitglied", "antrag")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["mitglied", "sitzung"], condition=models.Q(sitzung__isnull=False), name="lesestand_je_sitzung"
+            ),
+            models.CheckConstraint(
+                condition=(models.Q(antrag__isnull=False) & models.Q(sitzung__isnull=True))
+                | (models.Q(antrag__isnull=True) & models.Q(sitzung__isnull=False)),
+                name="lesestand_genau_ein_bezug",
+            ),
+        ]
         verbose_name = "Lesestand"
         verbose_name_plural = "Lesestände"
 

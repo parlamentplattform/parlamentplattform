@@ -398,7 +398,8 @@ def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
         return []
     # Alle Antworten, an denen ich beteiligt bin — als Verfasser der Antwort oder des Wurzelbeitrags
     antworten = (
-        Kommentar.objects.filter(archiviert_am__isnull=True, antwort_auf__isnull=False)
+        # Nur Chats von Anträgen: Die Gespräche im Chat einer Sitzung (FB-L5) stehen im Protokoll der Sitzung
+        Kommentar.objects.filter(archiviert_am__isnull=True, antwort_auf__isnull=False, antrag__isnull=False)
         .filter(Q(mitglied=nutzer) | Q(antwort_auf__mitglied=nutzer))
         .filter(mitglied__isnull=False, antwort_auf__mitglied__isnull=False)
         .exclude(Q(mitglied=nutzer) & Q(antwort_auf__mitglied=nutzer))  # Selbstgespräche zählen nicht
@@ -407,7 +408,7 @@ def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
         .order_by("-erstellt_am")
     )
     staende = {
-        s.antrag_id: s.gelesen_bis for s in Lesestand.objects.filter(mitglied=nutzer)
+        s.antrag_id: s.gelesen_bis for s in Lesestand.objects.filter(mitglied=nutzer, antrag__isnull=False)
     }
     zeilen: dict[tuple[int, int], dict] = {}
     for antwort in antworten:
@@ -442,6 +443,98 @@ def ungelesene_gespraeche(nutzer) -> int:
     er ausgerechnet dann zu wenig, wenn viel los ist — und verschweigt die Gespräche, für die
     er da wäre."""
     return sum(1 for g in gespraeche(nutzer, grenze=None) if g["ungelesen"])
+
+
+# ── Der Chat einer Sitzung im Sitzungsmodus (FB-L5) ───────────────────────────────────────
+#
+# Derselbe Beitrag (`Kommentar`) mit Bezug auf die Sitzung statt auf einen Antrag. Er lebt, solange die
+# Sitzung läuft, und bleibt danach als Teil des Protokolls lesbar (Entscheidung E1 zum Bauplan 0.53.0).
+# Reihenfolge: jüngster Faden zuerst, Antworten darunter chronologisch — die Zeit, keine Reaktion,
+# bestimmt die Reihe (Grundregel 6); Reaktionen gibt es hier nicht. Fragen markiert der Mandatar als
+# „beantwortet“; das ist ein Stempel, keine Reihung.
+
+#: Phase, unter der ein Sitzungsbeitrag steht — er gehört zu keinem Verfahrensabschnitt eines Antrags.
+SITZUNG_PHASE = "sitzung"
+
+
+def sitzung_chat_offen(sitzung, jetzt=None) -> bool:
+    """Geschrieben wird, solange die Sitzung läuft (E1)."""
+    return sitzung.laeuft(jetzt)
+
+
+def sitzung_beitrag_schreiben(sitzung, mitglied, text: str, antwort_auf=None, jetzt=None) -> Kommentar:
+    """Der Schreibweg für den Chat einer Sitzung — dieselben Grenzen wie im Chat eines Antrags
+    (Registerwert der Zeichenzahl, ein Faden eine Ebene tief), Antworten nur auf Beiträge derselben Sitzung."""
+    jetzt = jetzt or timezone.now()
+    if not sitzung_chat_offen(sitzung, jetzt):
+        raise ChatGesperrt(_("Die Sitzung ist beendet — der Chat bleibt als Teil des Protokolls lesbar."))
+    text = (text or "").strip()
+    if not text:
+        raise ValueError(_("Ein Beitrag braucht Text."))
+    wurzel = None
+    if antwort_auf is not None:
+        if antwort_auf.sitzung_id != sitzung.pk:
+            raise ValueError(_("Antworten gehen nur auf Beiträge derselben Sitzung."))
+        wurzel = antwort_auf.wurzel()
+    return Kommentar.objects.create(
+        sitzung=sitzung,
+        mitglied=mitglied,
+        text=text[: chat_zeichen_hoechstzahl()],
+        antwort_auf=wurzel,
+        phase=SITZUNG_PHASE,
+        erstellt_am=jetzt,
+    )
+
+
+def sitzung_faden(sitzung, nutzer=None) -> list[dict]:
+    """Der ganze Chat einer Sitzung: Wurzelbeiträge, jüngster zuerst, mit ihren Antworten (chronologisch).
+    `neu` bezieht sich auf den Lesestand des Mitglieds zu dieser Sitzung (FB-G2)."""
+    beitraege = list(sitzung.beitraege.select_related("mitglied").order_by("erstellt_am", "pk"))
+    gelesen_bis = None
+    if nutzer is not None and nutzer.is_authenticated:
+        stand = Lesestand.objects.filter(mitglied=nutzer, sitzung=sitzung).first()
+        gelesen_bis = stand.gelesen_bis if stand else None
+
+    def schmuecken(k: Kommentar) -> dict:
+        return {
+            "k": k,
+            "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
+            "eigener": nutzer is not None and k.mitglied_id is not None and getattr(nutzer, "pk", None) == k.mitglied_id,
+        }
+
+    je_wurzel: dict[int, list[dict]] = {}
+    for k in beitraege:
+        if k.antwort_auf_id:
+            je_wurzel.setdefault(k.antwort_auf_id, []).append(schmuecken(k))
+    faden = [{**schmuecken(k), "antworten": je_wurzel.get(k.pk, [])} for k in beitraege if not k.antwort_auf_id]
+    faden.reverse()
+    return faden
+
+
+def sitzung_gelesen_merken(sitzung, nutzer, jetzt=None) -> None:
+    """Den Lesestand zur Sitzung vorrücken — nie rückwärts."""
+    if nutzer is None or not nutzer.is_authenticated:
+        return
+    jetzt = jetzt or timezone.now()
+    stand, neu = Lesestand.objects.get_or_create(mitglied=nutzer, sitzung=sitzung, defaults={"gelesen_bis": jetzt})
+    if not neu and stand.gelesen_bis < jetzt:
+        stand.gelesen_bis = jetzt
+        stand.save(update_fields=["gelesen_bis"])
+
+
+def als_beantwortet_markieren(beitrag, jetzt=None) -> bool:
+    """Eine Frage im Chat der Sitzung als beantwortet stempeln (FB-L5) — einmal, nicht zurücknehmbar,
+    auditiert ohne Inhalt. Wer das darf (der Mandatar dieser Sitzung), prüft die Ansicht."""
+    jetzt = jetzt or timezone.now()
+    with transaction.atomic():
+        frisch = Kommentar.objects.select_for_update().get(pk=beitrag.pk)
+        if frisch.sitzung_id is None or frisch.beantwortet_am is not None:
+            return False
+        frisch.beantwortet_am = jetzt
+        frisch.save(update_fields=["beantwortet_am"])
+        AuditEintrag.anhaengen({"typ": "frage_beantwortet", "sitzung": frisch.sitzung_id, "beitrag": frisch.pk})
+    beitrag.beantwortet_am = jetzt
+    return True
 
 
 # ── Der Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ──────────────────────────

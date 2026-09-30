@@ -607,6 +607,7 @@ def daten_export(mitglied: Mitglied) -> dict:
         "kommentare": [
             {
                 "antrag": k.antrag_id,
+                "sitzung": k.sitzung_id,
                 "text": k.text,
                 "phase": k.phase,
                 "erstellt_am": k.erstellt_am,

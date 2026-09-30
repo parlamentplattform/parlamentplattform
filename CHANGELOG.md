@@ -2,6 +2,26 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.53.0] — 2026-09-30 · Sitzungsmodus
+
+### Hinzugefügt
+- **Live aus dem Vertretungskörper.** Am angekündigten Sitzungstag schaltet der Mandatar in „Mein Mandat“ den Live-Modus ein: Tagesordnung, kurze Meldungen je Punkt (höchstens 280 Zeichen) mit angekündigter oder abgegebener Stimme, Korrekturen als neue Meldung „berichtigt“ — nichts wird geändert oder gelöscht. Daneben sieht er die Beschlusslage der Plattform zu jedem Punkt: angenommen, abgelehnt oder in Abstimmung bis zum Fristende, ohne Zwischenstand. Der amtliche Stream erscheint nur als Link.
+- **Öffentliche Live-Seite** `/mandatare/<id>/live/` mit Ticker, Tagesordnung und Beschlusslage; sie lädt im Takt des Registerwerts `live-takt-sekunden` nach, ohne JavaScript über ein Neuladen der Seite. Nach dem Ende ist sie das Protokoll der Sitzung. `/live/` zeigt alle laufenden Sitzungen und die Protokolle der letzten sieben Tage, nach Beginn gereiht; in „Meine Region“ erscheint eine laufende Sitzung als Kachel „Live“.
+- **Chat zur Sitzung.** Mitglieder fragen den Mandatar während der Sitzung; er markiert Fragen als beantwortet. Mit dem Ende der Sitzung schließt der Chat und bleibt lesbar.
+- **Rechenschaft und Sammelbericht aus dem Ticker.** Je Punkt füllt ein Knopf die Rechenschaft mit Gegenstand, Stimme und Meldung vor; der Sammelbericht lässt sich aus der Tagesordnung vorbefüllen. Eingetragen wird erst mit dem Absenden.
+- **Nachtrag nach dem Ende der Vertretung** (§ 7 Abs 10 lit f Z 8): Die Verwaltung trägt Abstimmungen im Vertretungskörper nach öffentlichen Quellen nach, im Register gekennzeichnet als „nachgetragen von der Verwaltung“ mit dem Vermerk „Begründung nicht mehr geschuldet“. Die frühere Mandatsperson kann eine freiwillige Begründung daneben stellen.
+- Zwei neue Registerwerte: `live-takt-sekunden` (15) und `live-hoechstdauer-stunden` (18 — danach gilt eine nicht beendete Sitzung als beendet).
+
+### Geändert
+- Rollenmatrix Fassung 7, Regelverzeichnis Fassung 4 (neue Regel „Beschlusslage und Ticker im Sitzungsmodus“).
+- `/rechenschaft.json` trägt die Sitzungen mit Tagesordnung und Meldungen sowie Nachträge und freiwillige Begründungen; der persönliche Datenexport nennt die eigenen Sitzungen. Schema der Austauschformate 1.11.
+
+### Nicht gebaut
+- Ein Gastzugang für Abgeordnete anderer Parteien (Entscheidung vom 29.9.2026); ein eigener Stream, eingebettete fremde Player, die Übernahme amtlicher Protokolle.
+
+### Prüfung
+- Tests auf SQLite und PostgreSQL 16, Bildschirmtests und Übersetzungskatalog grün (Zahlen im Pull Request); Sichtprüfung unter `docs/sichtpruefung/0.53.0/`.
+
 ## [0.52.0] — 2026-09-29 · Nachrechenbarkeit und Sicherung
 
 ### Hinzugefügt

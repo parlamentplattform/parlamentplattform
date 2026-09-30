@@ -50,6 +50,17 @@ Erwartet mandat, sitzungskarte (views_live.sitzung_karte), darf_live, darf_beric
         </form>
       </details>
       {% endif %}
+      <p class="phasen-titel mt">{% translate "Ticker" %}</p>
+      {% for t in k.ticker %}{% with m=t.m %}
+      <div class="meldung-zeile{% if t.berichtigt %} berichtigt{% endif %}">
+        <time datetime="{{ m.zeitpunkt|date:'c' }}">{{ m.zeitpunkt|date:"H:i" }}</time>
+        <div>{% if m.punkt %}<span class="chip klein">{% blocktranslate with n=m.punkt.nummer %}Punkt {{ n }}{% endblocktranslate %}</span>{% endif %}
+          {% if m.stimme %}<span class="chip klein">{% if m.abgestimmt %}{% translate "abgestimmt" %}{% else %}{% translate "angekündigt" %}{% endif %}: {{ m.get_stimme_display }}</span>{% endif %}
+          {% if t.berichtigt %}<span class="chip klein warn">{% translate "berichtigt" %}</span>{% endif %}
+          <p>{{ m.text }}</p></div>
+        <span class="meta">#{{ m.pk }}</span>
+      </div>
+      {% endwith %}{% empty %}<p class="leer">{% translate "Noch keine Meldung." %}</p>{% endfor %}
       <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="mt">{% csrf_token %}
         <input type="hidden" name="aktion" value="sitzung_beenden"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
         <button type="submit" class="btn-still">{% translate "Sitzung beenden" %}</button>

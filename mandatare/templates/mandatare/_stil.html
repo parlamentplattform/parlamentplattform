@@ -61,7 +61,8 @@ aus base.html, kein Hex. Vorher lag es doppelt in liste.html und detail.html.
   html.js .live-schreiben-link,.live-schreiben-link.versteckt{display:none}
   .mt{margin-top:8px}
   .breit{width:100%}
-  .inline-form{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .inline-form{display:inline-flex;gap:6px;align-items:center;flex-wrap:nowrap;vertical-align:middle}
+  .inline-form input[type=text]{width:6.5em;padding:4px 8px;margin:0}
   .sitzung-raster{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
   @media (max-width:760px){.sitzung-raster{grid-template-columns:1fr}}
 </style>

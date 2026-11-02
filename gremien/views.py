@@ -58,6 +58,7 @@ from gremien.models import (
     unvereinbarkeiten_laden,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.auftraege import auftrag_laden
 from ki.models import Zweck, lauf_ausfuehren
 from mandatare.models import Mandat, Vertrauensfrage, VertrauensfrageArt
 from mitglieder.models import Mitglied, Mitgliedsstatus
@@ -68,18 +69,6 @@ from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 from verfahren.chat import abstimmung_stand as _abstimmung_stand
 from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag
-
-# Der Auftrag an den Modell-Steckplatz (F-60) für die Werkstatt-Einschätzung —
-# bewusst öffentlich im Quellcode: Auch der Auftrag ist Teil der Rechenschaft.
-EINSCHAETZUNGS_AUFTRAG = (
-    "Du bist Fach-Assistent des Expertenrats der ParlamentPlattform (Direkte Demokratie "
-    "Österreich). Prüfe den folgenden Antragsentwurf: Fasse ihn in drei bis fünf Sätzen "
-    "zusammen, benenne Unklarheiten im Wortlaut, offene Vollzugs- oder Kostenfragen und "
-    "mache konkrete Formulierungsvorschläge. Liegen Wünsche der Unterstützer bei, prüfe, "
-    "ob die Fassung sie aufgreift. Du machst Vorschläge — jede Entscheidung treffen "
-    "Menschen. Antworte auf Deutsch, nüchtern und knapp, in Fließtext ohne Listen."
-)
-
 
 PARAMETERVORSCHLAG_AUFTRAG = (
     "Du bist Assistent der Zukunftswerkstatt der ParlamentPlattform (Direkte Demokratie "
@@ -509,9 +498,11 @@ def fenster_aktion(request, antrag_id: int):
         ]
         if wuensche:
             eingabe += "\n\nWünsche der Unterstützer aus der Vorrunde:\n- " + "\n- ".join(wuensche)
+        auftrag = auftrag_laden(Zweck.EINSCHAETZUNG)
         try:
             lauf = lauf_ausfuehren(
-                Zweck.EINSCHAETZUNG, EINSCHAETZUNGS_AUFTRAG, eingabe, request.user, antrag=antrag
+                Zweck.EINSCHAETZUNG, auftrag.text, eingabe, request.user,
+                antrag=antrag, auftrag_version=auftrag.version,
             )
         except SteckplatzStumm as grund:
             messages.info(request, str(grund))

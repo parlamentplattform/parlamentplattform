@@ -27,6 +27,13 @@ def _gemeindeverzeichnis(db):
     call_command("gemeinden_laden")
 
 
+@pytest.fixture
+def feste_drosselzeit(monkeypatch):
+    # Diese HTTP-Tests prüfen die Herkunft der IP, nicht den Wechsel des Stundenfensters.
+    jetzt = time.time()
+    monkeypatch.setattr(time, "time", lambda: jetzt)
+
+
 def botschutz(client, alter=10.0, antwort=None, honigtopf="", url=None):
     """Gültige (oder gezielt ungültige) Menschlichkeitsprüfungs-Felder (F-49).
 
@@ -223,7 +230,7 @@ def test_falsche_rechenantwort_wird_abgewiesen(client):
     assert Mitglied.objects.count() == 0
 
 
-def test_ip_drossel_stoppt_massenregistrierung(client):
+def test_ip_drossel_stoppt_massenregistrierung(client, feste_drosselzeit):
     for i in range(5):
         client.post(
             reverse("mitglieder:registrieren"),
@@ -239,7 +246,7 @@ def test_ip_drossel_stoppt_massenregistrierung(client):
 # --- Drossel: die Verbindung zählt, nicht der Kopf (Befunde #19, #66) --------------------
 
 
-def test_drossel_liest_nie_x_forwarded_for(client):
+def test_drossel_liest_nie_x_forwarded_for(client, feste_drosselzeit):
     """XFF[0] ist vom Client frei wählbar (Cloudflare und Render hängen nur an) — wer je
     Versuch eine andere Adresse hineinschreibt, darf die Drossel nicht umgehen."""
     login = reverse("mitglieder:login")
@@ -251,7 +258,7 @@ def test_drossel_liest_nie_x_forwarded_for(client):
     assert "Zu viele Versuche" in antwort.content.decode()
 
 
-def test_proxy_kopfzeile_zaehlt_nur_wenn_sie_konfiguriert_ist(client, settings):
+def test_proxy_kopfzeile_zaehlt_nur_wenn_sie_konfiguriert_ist(client, settings, feste_drosselzeit):
     """Ohne DDOE_CLIENT_IP_KOPFZEILE (Partner-Instanz ohne Proxy) könnte ein Client
     CF-Connecting-IP selbst setzen — dann gilt ausschließlich REMOTE_ADDR."""
     login = reverse("mitglieder:login")
@@ -285,7 +292,7 @@ def test_klienten_ip_kennt_nur_remote_addr_und_die_konfigurierte_kopfzeile(rf, s
     assert klienten_ip(anfrage) == "198.51.100.7"
 
 
-def test_drossel_zaehlt_in_der_datenbank_nicht_im_prozesscache(client):
+def test_drossel_zaehlt_in_der_datenbank_nicht_im_prozesscache(client, feste_drosselzeit):
     """Zwei gunicorn-Worker, ein Neustart: Ein LocMemCache je Prozess verdoppelt das Limit
     und vergisst es beim Neustart. Der Zähler muss den Cache-Verlust überstehen."""
     from django.core.cache import cache
@@ -301,6 +308,20 @@ def test_drossel_zaehlt_in_der_datenbank_nicht_im_prozesscache(client):
     )
     assert "Zu viele Versuche" in antwort.content.decode()
     assert Drosselzaehler.objects.get(zweck="registrierung").anzahl == 5
+
+
+def test_stundenwechsel_oeffnet_neues_fenster_ohne_den_alten_zaehler_zu_verlieren(rf, monkeypatch):
+    from mitglieder.botschutz import drossel_zuviel
+
+    jetzt = [int(time.time() // 3600) * 3600 + 3599]
+    monkeypatch.setattr(time, "time", lambda: jetzt[0])
+    anfrage = rf.get("/", REMOTE_ADDR="203.0.113.8")
+    assert not drossel_zuviel(anfrage, "stundenwechsel", 1)
+    assert drossel_zuviel(anfrage, "stundenwechsel", 1)
+    jetzt[0] += 2
+    assert not drossel_zuviel(anfrage, "stundenwechsel", 1)
+    assert drossel_zuviel(anfrage, "stundenwechsel", 1)
+    assert list(Drosselzaehler.objects.filter(zweck="stundenwechsel").values_list("anzahl", flat=True)) == [1, 1]
 
 
 # --- Rechenfrage: Lösung bleibt am Server, gelöst heißt verbraucht (Befund #68) --------

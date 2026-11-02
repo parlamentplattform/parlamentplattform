@@ -18,5 +18,6 @@ urlpatterns = [
     path("", include("mandatare.urls")),  # die Mandatar-Steuerung, Stufe M1 (F-71)
     path("", include("gremien.urls")),  # die Gremien-Werkstatt, Ring 0a (F-66/F-67)
     path("", include("parameter.urls")),  # das Parameterregister, Ring 0b (F-68)
+    path("", include("faktenbasis.urls")),  # amtliche Quellen, getrennt von Modellvorschlägen
     path("i18n/", include("django.conf.urls.i18n")),  # Sprachumschalter (F-33), ohne JavaScript
 ]

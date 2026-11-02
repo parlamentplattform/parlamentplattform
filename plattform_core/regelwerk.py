@@ -591,10 +591,11 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=7,
-        seit="2026-09-30",
+        fassung=8,
+        seit="2026-11-02",
         grund=(
-            _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
+            _("Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. ")
+            + _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
             "Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest "
             "Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die "
             "Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. ")

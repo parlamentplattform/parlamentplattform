@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.12** (2.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.13** (2.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +11,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit 1.13 enthält das Register sources.snapshots_per_page: Seitengröße der öffentlichen amtlichen Metadaten-Schnappschüsse, zwischen 1 und 100. Die Faktenbasis bleibt von ungeprüften Modellvorschlägen getrennt.
 
 Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: Wartezeit nach einer Eingabe, Mindestlänge und Höchstlänge für die Vorschau. Längere Texte werden weiterhin beim ausdrücklichen Absenden geprüft. Der öffentliche Antrags- und Archivexport enthält zusätzlich `eigenstaendigkeit`: eine Liste mit referenziertem Antrag, damals angebotenem Titel und Fassung sowie dem Zeitpunkt der Erklärung. Die Erklärung beeinflusst das Verfahren nicht.
 

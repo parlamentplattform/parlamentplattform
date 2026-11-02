@@ -1,6 +1,6 @@
 [project]
 name = "parlamentplattform"
-version = "0.55.1"
+version = "0.56.0"
 description = "Offene Beteiligungs- und Entscheidungsinfrastruktur der Direkte Demokratie Österreich (DDÖ)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -39,7 +39,7 @@ prod = ["gunicorn>=22.0,<27", "whitenoise>=6.6,<7"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
-testpaths = ["tests", "verfahren", "mitglieder", "uebersicht", "plattform_core", "anstoss", "mandatare", "gremien", "ki", "parameter"]
+testpaths = ["tests", "verfahren", "mitglieder", "uebersicht", "plattform_core", "anstoss", "mandatare", "gremien", "ki", "parameter", "faktenbasis"]
 python_files = ["test_*.py", "tests.py"]
 markers = ["e2e: Bildschirmtests mit Playwright und Chromium (tests/e2e)"]
 

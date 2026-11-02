@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.56.0] — 2026-11-02 · Amtliche Metadaten mit Herkunft nachlesen
+
+- Ein ausdrücklich ausgelöster RIS-Einzelimport übernimmt höchstens zehn Dokumente zu einer exakten Gesetzesnummer und einem Stichtag. Falsche Kennungen, fremde Quellenadressen, Umleitungen und fehlerhafte Antworten werden abgewiesen.
+- Amtliche Metadaten und ihre vollständige Antwort bleiben mit Prüfsummen als Schnappschüsse erhalten. Wiederholungen duplizieren unveränderte Inhalte nicht; fehlgeschlagene Abrufe bleiben sichtbar.
+- Öffentliche Faktenbasis mit Herkunft, Stand, erhaltenen Fassungen und herunterladbarer Metadatenantwort; auch ohne JavaScript bedienbar. Schema 1.13 mit Seitengröße im Register.
+- Die Sammlung enthält zunächst nur Metadaten des konsolidierten Bundesrechts. Volltexte, Querverweise und die Anbindung an Modellkontexte folgen; die rechtliche Zuordnung zu einem Antrag bleibt ungeprüft. Kein automatischer oder periodischer Abruf und kein neuer kostenpflichtiger Dienst.
+
 ## [0.55.1] — 2026-11-02 · Den Auftrag für Parametervorschläge nachlesen
 
 - Auch der Auftrag zur Auswertung eines Parametertests liegt unverändert als versionierte Datei vor und ist in der Zukunftswerkstatt öffentlich nachlesbar.

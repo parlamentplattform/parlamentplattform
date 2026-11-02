@@ -8978,3 +8978,119 @@ msgstr "Minimum combined length of the title and text for the local similarity p
 
 msgid "Höchste Textlänge für die Vorschau beim Tippen. Längere Texte werden weiterhin beim Absenden geprüft."
 msgstr "Maximum text length for the preview while typing. Longer texts are still checked when submitted."
+
+
+msgid "Faktenbasis"
+msgstr "Source data"
+
+msgid "Amtliche Metadaten aus dem RIS"
+msgstr "Official metadata from RIS"
+
+msgid "Hier stehen gezielt abgerufene Angaben zu Dokumenten des konsolidierten Bundesrechts. Die Sammlung ist unvollständig und enthält noch keine vollständigen Gesetzestexte oder geprüften Querverweise."
+msgstr "This collection contains selectively retrieved metadata for documents of consolidated Austrian federal law. It is incomplete and does not yet contain full legal texts or verified cross-references."
+
+msgid "%(anzahl)s Dokument"
+msgid_plural "%(anzahl)s Dokumente"
+msgstr[0] "%(anzahl)s document"
+msgstr[1] "%(anzahl)s documents"
+
+msgid "%(anzahl)s Schnappschuss"
+msgid_plural "%(anzahl)s Schnappschüsse"
+msgstr[0] "%(anzahl)s snapshot"
+msgstr[1] "%(anzahl)s snapshots"
+
+msgid "Letzter erfolgreicher Import"
+msgstr "Last successful import"
+
+msgid "Stichtag"
+msgstr "As-of date"
+
+msgid "Der letzte Abruf ist fehlgeschlagen. Bereits gespeicherte Angaben bleiben erhalten."
+msgstr "The last retrieval failed. Previously stored data remains available."
+
+msgid "Ein amtlicher Fundort bestätigt nicht, dass die Norm für einen Antrag relevant ist oder geändert werden müsste. Diese Zuordnung bleibt ein ungeprüfter Modellvorschlag."
+msgstr "An official source does not confirm that a provision is relevant to a motion or needs to be amended. That association remains an unverified model suggestion."
+
+msgid "Konsolidierte Texte dienen der Information. Rechtsverbindlich ist die authentische Kundmachung."
+msgstr "Consolidated texts are provided for information. The authentic promulgation is legally binding."
+
+msgid "Gespeicherte Schnappschüsse"
+msgstr "Stored snapshots"
+
+msgid "Metadaten, kein vollständiger Gesetzestext"
+msgstr "Metadata, not the full legal text"
+
+msgid "Noch keine amtlichen Metadaten importiert."
+msgstr "No official metadata has been imported yet."
+
+msgid "Seiten der Faktenbasis"
+msgstr "Source data pages"
+
+msgid "Weiter"
+msgstr "Next"
+
+msgid "Gesetzesnummer"
+msgstr "Law identifier"
+
+msgid "Importiert am"
+msgstr "Imported on"
+
+msgid "Amtliches Dokument im RIS öffnen"
+msgstr "Open the official document in RIS"
+
+msgid "Herkunft und Prüfsumme"
+msgstr "Provenance and checksum"
+
+msgid "Inhalts-Hash (SHA-256)"
+msgstr "Content hash (SHA-256)"
+
+msgid "Antwort-Hash (SHA-256)"
+msgstr "Response hash (SHA-256)"
+
+msgid "Erhaltene Schnappschüsse dieses Dokuments"
+msgstr "Preserved snapshots of this document"
+
+msgid "RIS-Import"
+msgstr "RIS import"
+
+msgid "RIS-Importe"
+msgstr "RIS imports"
+
+msgid "Norm-Schnappschuss"
+msgstr "Legal provision snapshot"
+
+msgid "Norm-Schnappschüsse"
+msgstr "Legal provision snapshots"
+
+msgid "Ein Fakten-Schnappschuss bleibt erhalten."
+msgstr "A source data snapshot must be preserved."
+
+msgid "Ein Fakten-Schnappschuss wird nicht überschrieben."
+msgstr "A source data snapshot cannot be overwritten."
+
+msgid "Amtliche Quellen in der Faktenbasis nachlesen"
+msgstr "Read official sources in the source data collection"
+
+msgid "Schnappschüsse"
+msgstr "snapshots"
+
+msgid "Anzahl amtlicher Metadaten-Schnappschüsse je Seite der Faktenbasis (1 bis 100)."
+msgstr "Official metadata snapshots per source data page (1 to 100)."
+
+
+msgid "Gespeicherte Metadatenantwort herunterladen"
+msgstr "Download the stored metadata response"
+
+msgid "Die Prüfsummen beziehen sich auf JSON mit sortierten Schlüsseln, ohne zusätzliche Leerzeichen, als UTF-8 mit unmaskierten Unicode-Zeichen."
+msgstr "Checksums use JSON with sorted keys, no additional whitespace, UTF-8 encoding and unescaped Unicode characters."
+
+
+msgid "Reihenfolge: jüngster Stichtag zuerst, dann RIS-Kennung; bei gleicher Kennung und gleichem Stichtag jüngster Import zuerst."
+msgstr "Order: latest as-of date first, then RIS identifier; for the same identifier and date, latest import first."
+
+
+msgid "Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe und eine gezielt befüllbare amtliche Metadatensammlung; vollständige Rechtsdaten und Berichte fehlen noch."
+msgstr "The model connector status, budget, recent runs and a selectively populated collection of official metadata are public; complete legal data and reports are still pending."
+
+msgid "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "
+msgstr "Version 8 adds the official metadata collection (0.56): oversight can inspect provenance, as-of dates and preserved snapshots publicly. Full texts, verified cross-references and reports remain pending. "

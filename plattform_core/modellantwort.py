@@ -20,6 +20,7 @@ HOECHSTTIEFE = 32
 _TEXT = {"type": "string"}
 _SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$comment": "Zusätzlich gelten die dokumentierten technischen Grenzen für UTF-8, Textgröße, Tiefe und doppelte Schlüssel.",
     "title": "DDOE Rechtsbezug-Antwort, Fassung 1",
     "type": "object",
     "required": ["normen", "hinweis", "unsicherheit"],
@@ -103,6 +104,10 @@ def _pruefen(wert, schema, pfad, fehler):
         for i, eintrag in enumerate(wert[:schema["maxItems"]]):
             _pruefen(eintrag, schema["items"], f"{pfad}[{i}]", fehler)
     else:
+        try:
+            wert.encode("utf-8")
+        except UnicodeEncodeError:
+            melden("kodierung")
         if len(wert) < schema.get("minLength", 0):
             melden("laenge")
         if "maxLength" in schema and len(wert) > schema["maxLength"]:

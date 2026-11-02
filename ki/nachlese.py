@@ -4,6 +4,7 @@ from django.utils.dateparse import parse_datetime
 from django.utils.translation import gettext_lazy as _
 
 from ki.kontext import pruefen
+from plattform_core.modellantwort import pruefen as form_pruefen
 
 
 def textstand(lauf):
@@ -35,6 +36,7 @@ def lauf_export(lauf):
         "auftrag_version": lauf.auftrag_version, "erstellt_am": lauf.erstellt_am.isoformat(),
         "erfolgreich": lauf.erfolgreich, "eingabe": lauf.eingabe, "antwort": lauf.antwort,
         "fehler": lauf.fehler, "kontext": lauf.kontext,
+        "antwortformat": form_pruefen(lauf.antwort) if lauf.erfolgreich else None,
     }
 
 

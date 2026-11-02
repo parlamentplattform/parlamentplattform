@@ -18,24 +18,28 @@ from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
+from plattform_core.modellantwort import HOECHSTZEICHEN, pruefen
+
 EBENEN = ("EU", "Bund", "Land")
 AENDERUNGEN = {
     "aendern": _("zu ändern"),
     "aufheben": _("aufzuheben"),
     "neu": _("neu zu schaffen"),
     "beruehrt": _("berührt"),
+    "unklar": _("unklar"),
 }
 UNSICHERHEITEN = {
     "niedrig": _("niedrig"),
     "mittel": _("mittel"),
     "hoch": _("hoch"),
+    "unbekannt": _("nicht angegeben"),
 }
 HOECHSTNORMEN = 12
 _ZAUN = re.compile(r"^\s*```(?:json)?\s*|\s*```\s*$", re.IGNORECASE)
 
 
 def _text(wert: Any, laenge: int = 600) -> str:
-    return str(wert).strip()[:laenge] if wert is not None else ""
+    return wert.strip()[:laenge].encode("utf-8", errors="replace").decode("utf-8") if isinstance(wert, str) else ""
 
 
 def _norm(roh: Any) -> dict | None:
@@ -50,8 +54,8 @@ def _norm(roh: Any) -> dict | None:
         "titel": titel,
         "ebene": ebene if ebene in EBENEN else "",
         "kennung": _text(roh.get("kennung"), 120),
-        "aenderung": aenderung if aenderung in AENDERUNGEN else "beruehrt",
-        "aenderung_wort": AENDERUNGEN.get(aenderung, AENDERUNGEN["beruehrt"]),
+        "aenderung": aenderung if aenderung in AENDERUNGEN else "unklar",
+        "aenderung_wort": AENDERUNGEN.get(aenderung, AENDERUNGEN["unklar"]),
         "begruendung": _text(roh.get("begruendung")),
         "verifiziert": False,  # ohne RIS-Faktenbasis nie
     }
@@ -60,17 +64,31 @@ def _norm(roh: Any) -> dict | None:
 def antwort_parsen(text: str) -> dict:
     """Die Modellantwort in die feste Form bringen. Tolerant: Zäune (```json) und Text um das Objekt
     herum werden ignoriert; ist kein JSON zu finden oder ist es kaputt, wird der rohe Text der Hinweis
-    und die Unsicherheit „hoch“ — `roh` sagt, dass so gelesen wurde."""
-    bereinigt = _ZAUN.sub("", text or "").strip()
+    und die Unsicherheit „unbekannt“ — `roh` sagt, dass so gelesen wurde."""
+    formatstand = pruefen(text)
+    # Übergröße/Tiefe nicht anschließend doch im toleranten Parser verarbeiten.
+    gesperrt = any(f["code"] in {"groesse", "tiefe", "kodierung", "typ", "doppelte_schluessel"} and f["pfad"] == "$"
+                   for f in formatstand["fehler"])
+    bereinigt = _ZAUN.sub("", (text or "")[:HOECHSTZEICHEN]).strip() if isinstance(text, str) and not gesperrt else ""
     daten: Any = None
     anfang, ende = bereinigt.find("{"), bereinigt.rfind("}")
     if anfang != -1 and ende > anfang:
         try:
-            daten = json.loads(bereinigt[anfang : ende + 1])
-        except ValueError:
+            def objekt(paare):
+                wert = {}
+                for schluessel, inhalt in paare:
+                    if schluessel in wert:
+                        raise ValueError("Doppelter JSON-Schlüssel")
+                    wert[schluessel] = inhalt
+                return wert
+            def nicht_endlich(_):
+                raise ValueError("Kein JSON-Zahlenwert")
+            daten = json.loads(bereinigt[anfang : ende + 1], object_pairs_hook=objekt, parse_constant=nicht_endlich)
+        except (ValueError, RecursionError):
             daten = None
     if not isinstance(daten, dict):
-        return {"normen": [], "hinweis": _text(text, 2000), "unsicherheit": "hoch", "roh": True}
+        return {"normen": [], "hinweis": _text(text, 2000), "unsicherheit": "unbekannt", "roh": True,
+                "formatpruefung": formatstand}
     normen_roh = daten.get("normen")
     normen = []
     if isinstance(normen_roh, list):
@@ -79,8 +97,9 @@ def antwort_parsen(text: str) -> dict:
     return {
         "normen": normen,
         "hinweis": _text(daten.get("hinweis"), 2000),
-        "unsicherheit": unsicherheit if unsicherheit in UNSICHERHEITEN else "hoch",
+        "unsicherheit": unsicherheit if unsicherheit in UNSICHERHEITEN else "unbekannt",
         "roh": False,
+        "formatpruefung": formatstand,
     }
 
 

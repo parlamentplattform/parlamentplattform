@@ -107,6 +107,21 @@ def test_zu_viele_normen_und_ungepruefte_feldnamen_werden_nicht_versteckt():
     assert "private@example.org" not in str(bef["fehler"])
 
 
+def test_diagnosegrenze_ist_auch_bei_vielen_kaputten_normen_exakt_begrenzt():
+    daten = antwort()
+    daten["normen"] = [{} for _ in range(8)]
+    bef = pruefen(text(daten))
+    assert not bef["gueltig"] and len(bef["fehler"]) == HOECHSTFEHLER
+
+
+def test_maskiertes_unpaariges_unicode_ist_ebenfalls_keine_gueltige_textangabe():
+    daten = antwort()
+    daten["hinweis"] = "\ud800"
+    bef = pruefen(json.dumps(daten))
+    assert {"pfad": "$.hinweis", "code": "kodierung"} in bef["fehler"]
+    assert bef["antwort_sha256"] and not bef["gueltig"]
+
+
 _json = st.recursive(st.none() | st.booleans() | st.integers() | st.text(max_size=25),
                      lambda kind: st.lists(kind, max_size=4) | st.dictionaries(st.text(max_size=12), kind, max_size=4),
                      max_leaves=20)

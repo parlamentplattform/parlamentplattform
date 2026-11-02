@@ -175,7 +175,7 @@ REGELN: tuple[Regel, ...] = (
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 2 Abs 6",
         fassung=1,
-        seit="2026-11-02",
+        seit="2026-11-03",
         grund=_("Ein Formatfehler darf nicht wie eine leere inhaltliche Einschätzung erscheinen. Unbekannte Angaben werden nicht als bestimmte Rechtswirkung ausgegeben; Originalantworten und frühere Läufe bleiben unverändert."),
         nachrechenbar=_("Das veröffentlichte JSON-Schema und die unveränderte Antwort lassen sich erneut prüfen. Die Anzeige nennt die Fassung der aktuellen Formprüfung und die Prüfsummen; sie behauptet keine rückwirkende Prüfung beim ursprünglichen Lauf."),
     ),

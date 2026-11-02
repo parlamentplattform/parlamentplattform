@@ -119,7 +119,8 @@ def test_rechtsbezug_lauf_archiviert_mit_auftragsversion_und_erledigt_den_auftra
     ergebnis = rechtsbezug_fuer(antrag)
     assert [n["titel"] for n in ergebnis["normen"]] == ["Parteiengesetz 2012", "Erfundene Norm"]
     assert ergebnis["normen"][0]["ebene"] == "Bund" and ergebnis["normen"][0]["aenderung"] == "aendern"
-    assert ergebnis["normen"][1]["ebene"] == "" and ergebnis["normen"][1]["aenderung"] == "beruehrt"  # unbekannte Werte fallen ehrlich zurück
+    assert ergebnis["normen"][1]["ebene"] == "" and ergebnis["normen"][1]["aenderung"] == "unklar"
+    assert not ergebnis["formatpruefung"]["gueltig"]
     assert all(n["verifiziert"] is False for n in ergebnis["normen"])
     assert ergebnis["unsicherheit"] == "mittel" and ergebnis["auftrag_version"] == "rechtsbezug-v1"
 
@@ -301,16 +302,13 @@ def test_parser_zieht_json_aus_zaeunen_und_umgebendem_text():
 
 def test_parser_haelt_kaputtes_json_als_rohen_hinweis_fest():
     e = antwort_parsen('{"normen": [{"titel": "Abgebrochen…')
-    assert e["roh"] is True and e["normen"] == [] and e["unsicherheit"] == "hoch" and "Abgebrochen" in e["hinweis"]
+    assert e["roh"] is True and e["normen"] == [] and e["unsicherheit"] == "unbekannt" and "Abgebrochen" in e["hinweis"]
     assert antwort_parsen("")["hinweis"] == ""
     assert antwort_parsen("Keine Ahnung.")["hinweis"] == "Keine Ahnung."
     assert antwort_parsen('["liste"]')["roh"] is True
-    assert antwort_parsen('{"normen": "kein array", "unsicherheit": "extrem"}') == {
-        "normen": [],
-        "hinweis": "",
-        "unsicherheit": "hoch",
-        "roh": False,
-    }
+    fehler = antwort_parsen('{"normen": "kein array", "unsicherheit": "extrem"}')
+    assert fehler["normen"] == [] and fehler["unsicherheit"] == "unbekannt" and not fehler["roh"]
+    assert not fehler["formatpruefung"]["gueltig"]
 
 
 def test_parser_begrenzt_die_zahl_der_normen():

@@ -3,10 +3,13 @@
 {% blocktranslate %}zu Ihrem Antrag liegt eine KI-Einschätzung vor, welche Gesetze betroffen sein könnten:{% endblocktranslate %}
 
 {% translate "Antrag:" %} {{ titel }}
+{% if not formatpruefung.gueltig %}
+{% translate "Die Modellantwort weicht vom veröffentlichten Antwortschema ab. Angaben können fehlen oder uneindeutig sein." %}
+{% endif %}
 {% if normen %}{% for n in normen %}
 - {{ n.titel }}{% if n.kennung %} ({{ n.kennung }}){% endif %}{% if n.ebene %} · {{ n.ebene }}{% endif %} · {{ n.aenderung_wort }} · {% translate "nicht verifiziert" %}{% if n.begruendung %}
   {{ n.begruendung }}{% endif %}{% endfor %}{% else %}
-{% translate "Das Modell hat keine Norm genannt, deren es sich sicher war." %}{% endif %}
+{% if formatpruefung.gueltig %}{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}{% else %}{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}{% endif %}{% endif %}
 {% if hinweis %}
 {% translate "Hinweis:" %} {{ hinweis }}
 {% endif %}

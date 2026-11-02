@@ -1,0 +1,13 @@
+{% load i18n %}
+{% if formatstand %}
+  {% if not formatstand.gueltig %}<p class="meldung warn">{% translate "Die Modellantwort weicht vom veröffentlichten Antwortschema ab. Angaben können fehlen oder uneindeutig sein." %}</p>{% endif %}
+  <details class="klappe ki-formatstand">
+    <summary>{% translate "Antwortformat" %} · {% if formatstand.gueltig %}{% translate "eingehalten" %}{% else %}{% translate "abweichend" %}{% endif %}</summary>
+    <p class="hilfe">{% translate "Aktuelle Formprüfung — kein früherer Prüfnachweis. Sie bestätigt weder die Richtigkeit der Antwort noch die rechtliche Relevanz einer Norm." %}</p>
+    <p class="meta">{% translate "Formprüfung, Fassung" %}: {{ formatstand.fassung }}</p>
+    <p class="meta">{% translate "Schema-Prüfsumme (kanonisches JSON, SHA-256)" %}: <code class="fakten-hash">{{ formatstand.schema_sha256 }}</code></p>
+    {% if formatstand.antwort_sha256 %}<p class="meta">{% translate "Antworttext-Prüfsumme (UTF-8, SHA-256)" %}: <code class="fakten-hash">{{ formatstand.antwort_sha256 }}</code></p>{% endif %}
+    {% if formatstand.fehler %}<ul class="meta">{% for f in formatstand.fehler %}<li><code>{{ f.pfad }}</code> · <code>{{ f.code }}</code></li>{% endfor %}</ul>{% endif %}
+    <p><a href="{% url 'verfahren:antwortformat' %}">{% translate "Antwortschema herunterladen" %}</a> · <a href="{% url 'verfahren:archiv_export' antrag.pk 'json' %}">{% translate "Antworten vollständig im Archiv herunterladen" %}</a></p>
+  </details>
+{% endif %}

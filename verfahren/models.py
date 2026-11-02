@@ -628,6 +628,25 @@ class AntragsEinbettung(models.Model):
         return f"Vektor zu Antrag {self.antrag_id}, Fassung {self.fassung_nummer} ({self.modell})"
 
 
+class Eigenstaendigkeit(models.Model):
+    """Die erklärte Wahl beim Einbringen, unverändert zu den damals angebotenen Fassungen."""
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="eigenstaendigkeitsvermerke")
+    gegenueber = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="vergleichsvermerke")
+    titel = models.CharField(max_length=200)
+    fassung_nummer = models.PositiveIntegerField()
+    erklaert_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["pk"]
+        constraints = [
+            models.UniqueConstraint(fields=["antrag", "gegenueber"], name="eigenstaendigkeit_je_vergleich"),
+        ]
+
+    def __str__(self):
+        return f"Antrag {self.antrag_id} gegenüber Antrag {self.gegenueber_id}, Fassung {self.fassung_nummer}"
+
+
 class Unterstuetzung(models.Model):
     """Eine öffentliche Unterstützung (§ 5 Abs 3 lit b). Sie bestimmt den Phasenübergang und den
     Kreis der Stimmberechtigten im Abstimmungs-Chat (§ 5 Abs 12) — deshalb bleibt ein Rückzug

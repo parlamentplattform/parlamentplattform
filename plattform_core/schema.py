@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.11"
+SCHEMA_VERSION = "1.12"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,6 +25,18 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "aehnlichkeit-vorschau-wartezeit-ms": (
+        "similarity.preview_debounce_ms", "milliseconds",
+        "Idle time before the local similarity preview runs while typing",
+    ),
+    "aehnlichkeit-vorschau-mindestzeichen": (
+        "similarity.preview_min_chars", "characters",
+        "Minimum combined title and motion text length for the local preview",
+    ),
+    "aehnlichkeit-vorschau-hoechstzeichen": (
+        "similarity.preview_max_chars", "characters",
+        "Maximum text length checked while typing; longer texts are still checked when submitting",
+    ),
     "aehnlichkeit-schwelle-prozent": (
         "similarity.threshold_percent", "percent",
         "Similarity above which the platform points to an existing motion when submitting a new one",

@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path("parlament/", views.parlament, name="parlament"),
     path("einbringen/", views_aktionen.einbringen, name="einbringen"),
+    path("einbringen/vorschau/", views_aktionen.einbringen_vorschau, name="einbringen_vorschau"),
     path("kategorien/", views_aktionen.kategorie_weiter, name="kategorien"),
     path(
         "kategorien/<slug:slug>/abonnieren/", views_aktionen.kategorie_abonnieren, name="kategorie_abonnieren"

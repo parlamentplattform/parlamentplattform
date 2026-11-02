@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.10** (29.9.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.12** (2.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +11,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: Wartezeit nach einer Eingabe, Mindestlänge und Höchstlänge für die Vorschau. Längere Texte werden weiterhin beim ausdrücklichen Absenden geprüft. Der öffentliche Antrags- und Archivexport enthält zusätzlich `eigenstaendigkeit`: eine Liste mit referenziertem Antrag, damals angebotenem Titel und Fassung sowie dem Zeitpunkt der Erklärung. Die Erklärung beeinflusst das Verfahren nicht.
 
 ## 1. Grundsätze
 
@@ -119,6 +121,9 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | Whether a registered secondary residence also assigns a member to that region for regional motions (0 or 1; never affects voting rights) |
 | `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
 | `similarity.max_hits` | `aehnlichkeit-treffer` | motions | How many similar motions are shown when submitting |
+| `similarity.preview_debounce_ms` | `aehnlichkeit-vorschau-wartezeit-ms` | milliseconds | Idle time before the local preview runs |
+| `similarity.preview_min_chars` | `aehnlichkeit-vorschau-mindestzeichen` | characters | Minimum combined title and motion text length |
+| `similarity.preview_max_chars` | `aehnlichkeit-vorschau-hoechstzeichen` | characters | Maximum preview length; longer texts are checked on submission |
 | `similarity.meaning_calls_per_account_hour` | `aehnlichkeit-bedeutung-je-stunde` | calls/hour | How many times per hour one account may trigger the provider's meaning comparison when submitting; above that only the word comparison runs (0 switches it off) |
 | `similarity.meaning_threshold_percent` | `aehnlichkeit-bedeutung-schwelle-prozent` | percent | Cosine similarity of the provider's text embeddings above which an existing motion is shown when submitting (second opinion next to the word comparison; inactive without a provider) |
 | `similarity.request_timeout_seconds` | `aehnlichkeit-zeitgrenze-sekunden` | seconds | How long submitting a motion waits for the AI provider (per connection step) before continuing with the word comparison alone |

@@ -1792,29 +1792,11 @@ msgstr ""
 "<strong>%(policy_id)s v%(version)s</strong> applies — it is frozen at "
 "submission and governs this motion unchanged until the end (§ 5 (5))."
 
-msgid "Ähnliche Anträge gefunden"
-msgstr "Similar motions found"
-
-msgid ""
-"Vielleicht gibt es Ihr Anliegen schon — dann ist eine Unterstützung wirksamer als ein\n"
-"  Parallelantrag. <strong>Der Hinweis ist ein Angebot, keine Hürde:</strong> Sie können\n"
-"  unverändert einbringen (§ 2 Abs 6 — kein Algorithmus entscheidet über Zulassung)."
-msgstr ""
-"Perhaps your concern already exists — then supporting is more effective than"
-" a parallel motion. <strong>The hint is an offer, not a hurdle:</strong> you"
-" can submit unchanged (§ 2 (6) — no algorithm decides on admission)."
-
 msgid "Phase:"
 msgstr "Phase:"
 
 msgid "Beteiligung:"
 msgstr "Participation:"
-
-msgid "Trotzdem einbringen"
-msgstr "Submit anyway"
-
-msgid "Lieber einen bestehenden Antrag unterstützen"
-msgstr "Rather support an existing motion"
 
 msgid ""
 "Vor dem Einbringen gleicht die Plattform Ihren Text\n"
@@ -8307,10 +8289,6 @@ msgid ""
 "bis dahin bleibt die Zuordnung bestehen."
 msgstr "Note down the code. After the vote ends you can check in the exported list of votes whether your vote was recorded correctly — and recount the overall result independently with <code>verify/nachrechnen.py</code> (§ 5 (8)). Only the platform knows the mapping pseudonym → person (access-restricted). The procedural rules have not yet set a deletion period (§ 8 (6)); until then the mapping remains."
 
-#, python-format
-msgid "Beim Absenden gehen Titel und Wortlaut zum Bedeutungsvergleich an den KI-Anbieter (%(anbieter)s)."
-msgstr "When you submit, the title and wording go to the AI provider (%(anbieter)s) for the meaning comparison."
-
 msgid "Bedeutungsvergleich diesmal nicht gerechnet — Ihr Konto hat die Obergrenze der Anbieteraufrufe je Stunde erreicht."
 msgstr "Meaning comparison not computed this time — your account has reached the limit of provider calls per hour."
 
@@ -8931,3 +8909,72 @@ msgstr "An Austrian municipality is required only for residents in Austria. If y
 
 msgid "Bitte wählen Sie Ihre Wohnsitz-Gemeinde oder eine der anderen Wohnsitzoptionen."
 msgstr "Please select your municipality of residence or one of the other residence options."
+
+
+msgid "Beim Einbringen als eigenständig eingestuft gegenüber:"
+msgstr "Considered distinct when submitted, compared with:"
+
+msgid "Bitte wählen Sie einen der angezeigten Anträge."
+msgstr "Please choose one of the motions shown."
+
+msgid "Der Hinweis ist ein Angebot. Sie können Ihren eigenen Antrag gleichwertig einbringen."
+msgstr "This suggestion is optional. Submitting your own motion remains an equally available choice."
+
+msgid "Der Text oder die Auswahl hat sich geändert. Bitte prüfen Sie die Treffer erneut."
+msgstr "The text or selection has changed. Please review the matches again."
+
+msgid "Der Wortvergleich hat keine ähnlichen Anträge gefunden. Sie können Ihren Antrag einbringen."
+msgstr "The word comparison found no similar motions. You can submit your motion."
+
+msgid "Die Vorschau bleibt lokal. Der Bedeutungsvergleich folgt erst beim Absenden."
+msgstr "The preview stays local. Meaning is compared only when you submit."
+
+msgid "Diesen unterstützen"
+msgstr "Support this motion"
+
+msgid "Dieser Antrag sammelt keine Unterstützung mehr. Ihr eigener Text bleibt erhalten."
+msgstr "This motion is no longer collecting support. Your own text has been kept."
+
+msgid "Dieser Text ist zu lang für die Vorschau. Er wird beim Absenden geprüft."
+msgstr "This text is too long for the preview. It will be checked when you submit."
+
+msgid "Für Sachanträge prüft die Vorschau ab %(mindestzeichen)s Zeichen Ihren Titel und Wortlaut. Ohne JavaScript erfolgt die Prüfung beim Absenden."
+msgstr "For policy motions, the preview checks your title and text from %(mindestzeichen)s characters. Without JavaScript, it checks when you submit."
+
+msgid "Gibt es das schon?"
+msgstr "Has someone proposed this already?"
+
+msgid "Ihr eigener Text wird nicht eingebracht. Möchten Sie stattdessen diesen Antrag unterstützen?"
+msgstr "Your own text will not be submitted. Would you like to support this motion instead?"
+
+msgid "Ihre Unterstützung ist erfasst. Ihr eigener Text wurde nicht eingebracht."
+msgstr "Your support has been recorded. Your own text was not submitted."
+
+msgid "Ja, diesen unterstützen"
+msgstr "Yes, support this motion"
+
+msgid "Mein Antrag ist etwas anderes — einbringen"
+msgstr "My motion is different — submit it"
+
+msgid "Mit „Antrag einbringen“ können Titel und Wortlaut zum Bedeutungsvergleich an den KI-Anbieter (%(anbieter)s) gehen. Die Vorschau beim Tippen bleibt lokal."
+msgstr "Choosing “Submit motion” may send the title and text to the AI provider (%(anbieter)s) to compare meaning. The preview while typing stays local."
+
+msgid "Noch %(tage)s Tag"
+msgid_plural "Noch %(tage)s Tage"
+msgstr[0] "%(tage)s day left"
+msgstr[1] "%(tage)s days left"
+
+msgid "Zurück zu meinem Text"
+msgstr "Back to my text"
+
+msgid "Millisekunden"
+msgstr "milliseconds"
+
+msgid "Wartezeit nach der letzten Eingabe, bevor die lokale Ähnlichkeitsvorschau startet."
+msgstr "Idle time after the last input before the local similarity preview starts."
+
+msgid "Mindestlänge von Titel und Wortlaut zusammen für die lokale Ähnlichkeitsvorschau."
+msgstr "Minimum combined length of the title and text for the local similarity preview."
+
+msgid "Höchste Textlänge für die Vorschau beim Tippen. Längere Texte werden weiterhin beim Absenden geprüft."
+msgstr "Maximum text length for the preview while typing. Longer texts are still checked when submitted."

@@ -8,58 +8,41 @@
 Verfahrensordnung <strong>{{ policy_id }} v{{ version }}</strong> — sie wird
 beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum Ende (§ 5 Abs 5).{% endblocktranslate %}</p>
 
-{% if aehnliche %}
-<div class="karte hinweis">
-  <h2 style="margin:0 0 8px;font-size:20px">{% translate "Ähnliche Anträge gefunden" %}</h2>
-  <p>{% blocktranslate %}Vielleicht gibt es Ihr Anliegen schon — dann ist eine Unterstützung wirksamer als ein
-  Parallelantrag. <strong>Der Hinweis ist ein Angebot, keine Hürde:</strong> Sie können
-  unverändert einbringen (§ 2 Abs 6 — kein Algorithmus entscheidet über Zulassung).{% endblocktranslate %}</p>
-  {% for t in aehnliche %}
-    <div class="kommentar">
-      <div class="kopf">{% translate "Wortvergleich" %} {{ t.prozent }} %{% if t.bedeutung_prozent is not None %} · {% translate "Bedeutung" %} {{ t.bedeutung_prozent }} %{% endif %} · {% translate "Phase:" %} {{ t.antrag.phase|phase_name }} · {% translate "Beteiligung:" %} {{ t.beteiligung }}</div>
-      <div><a href="{% url 'verfahren:antrag' t.antrag.pk %}">{{ t.antrag.titel }}</a></div>
-      {% if t.normen %}
-      <details class="klappe erbschaft">
-        <summary>{% blocktranslate count n=t.normen|length %}Ein betroffenes Gesetz laut Zukunftswerkstatt{% plural %}{{ n }} betroffene Gesetze laut Zukunftswerkstatt{% endblocktranslate %}</summary>
-        <ul class="normen">
-          {% for n in t.normen %}
-          <li><strong>{{ n.titel }}</strong>{% if n.kennung %} ({{ n.kennung }}){% endif %}{% if n.ebene %} · {{ n.ebene }}{% endif %} · {{ n.aenderung_wort }} <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span></li>
-          {% endfor %}
-        </ul>
-        <p class="erk">{% translate "KI-Vorschlag" %} · {{ t.rechtsbezug.modell }} · {{ t.rechtsbezug.auftrag_version }} · {{ t.rechtsbezug.stand|date:"d.m.Y" }}</p>
-      </details>
+<div class="einbringen-raster">
+<form method="post" id="einbringen-form" class="einbringen-form">{% csrf_token %}
+  <div class="karte einbringen-oben">
+    {{ form.non_field_errors }}
+    {% for feld in form %}
+      {% if feld.name == "art" or feld.name == "titel" or feld.name == "wortlaut" %}
+      <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
+      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
       {% endif %}
-    </div>
-  {% endfor %}
-  <p class="erk">{% translate "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)." %}
-    {% if pruefung.bedeutung_aktiv %}{% blocktranslate with modell=pruefung.bedeutungsmodell %}Bedeutung: Textvektoren des Anbieters ({{ modell }}) — Vorschlag, keine Hürde.{% endblocktranslate %}{% elif pruefung.gedrosselt %}{% translate "Bedeutungsvergleich diesmal nicht gerechnet — Ihr Konto hat die Obergrenze der Anbieteraufrufe je Stunde erreicht." %}{% else %}{% translate "Bedeutungsvergleich nicht gerechnet — der Modell-Steckplatz war stumm (kein Anbieter, Budget oder Anbieterfehler)." %}{% endif %}</p>
-</div>
-{% endif %}
-
-<div class="karte">
-<form method="post">{% csrf_token %}
-  {% for feld in form %}
-    <p>
-      <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
-      {{ feld }}
-      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
-    </p>
-  {% endfor %}
-  <div class="stimmzeile">
-    {% if aehnliche %}
-      <button type="submit" name="trotzdem" value="1" class="btn">{% translate "Trotzdem einbringen" %}</button>
-      <a class="btn-still" href="{% url 'verfahren:parlament' %}">{% translate "Lieber einen bestehenden Antrag unterstützen" %}</a>
-    {% else %}
-      <button type="submit" class="btn">{% translate "Antrag einbringen" %}</button>
-    {% endif %}
+    {% endfor %}
   </div>
-  <p class="hilfe" style="margin-top:12px">{% blocktranslate %}Vor dem Einbringen gleicht die Plattform Ihren Text
+<aside id="aehnliche-vorschau" aria-label="{% translate 'Ähnliche Anträge' %}"
+       hx-post="{% url 'verfahren:einbringen_vorschau' %}"
+       hx-trigger="input changed delay:{{ vorschau_wartezeit }}ms from:#id_titel, input changed delay:{{ vorschau_wartezeit }}ms from:#id_wortlaut, input changed delay:{{ vorschau_wartezeit }}ms from:#id_begruendung, change from:#id_art, change from:#id_ebene"
+       hx-include="#einbringen-form" hx-target="#aehnliche-inhalt" hx-swap="outerHTML" hx-sync="this:replace">
+  {% include "verfahren/_aehnliche_antraege.html" %}
+</aside>
+  <div class="karte einbringen-unten">
+    {% for feld in form %}
+      {% if feld.name == "begruendung" or feld.name == "ebene" %}
+      <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
+      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+      {% endif %}
+    {% endfor %}
+    {% if not aehnliche and not bestaetigung %}
+    <div class="stimmzeile"><button type="submit" class="btn">{% translate "Antrag einbringen" %}</button></div>
+    {% endif %}
+  <p class="hilfe abstand">{% blocktranslate %}Vor dem Einbringen gleicht die Plattform Ihren Text
   automatisch mit laufenden Anträgen ab. Der Hinweis schlägt vor — er blockiert nie.
   Titel und Wortlaut sind öffentlich.{% endblocktranslate %}{% if ki_anbieter %}
-  {% blocktranslate with anbieter=ki_anbieter %}Beim Absenden gehen Titel und Wortlaut zum Bedeutungsvergleich an den KI-Anbieter ({{ anbieter }}).{% endblocktranslate %}{% endif %}</p>
+  {% blocktranslate with anbieter=ki_anbieter %}Mit „Antrag einbringen“ können Titel und Wortlaut zum Bedeutungsvergleich an den KI-Anbieter ({{ anbieter }}) gehen. Die Vorschau beim Tippen bleibt lokal.{% endblocktranslate %}{% endif %}</p>
   <p class="hilfe">{% blocktranslate %}Nach dem Einbringen prüft die Zukunftswerkstatt, welche Gesetze Ihr Antrag
   berühren würde (§ 5 Abs 10 lit d) — das Ergebnis erscheint auf der Antragsseite unter „Einschätzung“,
   stets als KI-Vorschlag gekennzeichnet und ohne Wirkung auf das Verfahren.{% endblocktranslate %}</p>
+  </div>
 </form>
 </div>
 {% endblock %}

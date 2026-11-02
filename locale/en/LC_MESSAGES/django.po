@@ -1177,18 +1177,6 @@ msgstr "Please pick from the official municipal register — district and provin
 msgid "Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: %s."
 msgstr "This municipality name exists more than once — please specify: %s."
 
-#, python-format
-msgid " Meinten Sie: %s?"
-msgstr "Did you mean: %s?"
-
-#, python-format
-msgid ""
-"„%(eingabe)s“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der "
-"Liste wählen."
-msgstr ""
-"“%(eingabe)s” is not in the official municipal register — please pick from "
-"the list."
-
 msgid ""
 "Ich bekenne mich zu den Grundsätzen des § 3 des Satzungsentwurfs (ein Mensch"
 " – eine Stimme, Menschenwürde, Rechtsstaat, Gewaltfreiheit)."
@@ -5883,9 +5871,6 @@ msgstr ""
 msgid "Werkstatt"
 msgstr "Workshop"
 
-msgid "Wohnsitz-Gemeinde (leer = keine Angabe)"
-msgstr "Municipality of residence (empty = not stated)"
-
 msgid ""
 "Zielbild: Zu jedem Antrag soll die Zukunftswerkstatt — mit der StaatsSimulation als Rechenkern —\n"
 "  eine mit amtlichen Quellen belegte Einschätzung liefern: berührte Gesetze, Aufwand für den Staatsapparat,\n"
@@ -8925,3 +8910,24 @@ msgstr "Public source (link or reference)"
 
 msgid "Die Sitzung ist beendet — der Chat bleibt, wie er ist."
 msgstr "The session has ended — the chat stays as it is."
+
+msgid "Wohnsitz"
+msgstr "Residence"
+
+msgid "Keine Angabe"
+msgstr "Not specified"
+
+msgid "Wohnsitz in Österreich"
+msgstr "Resident in Austria"
+
+msgid "Ohne festen Wohnsitz"
+msgstr "No fixed abode"
+
+msgid "Wohnsitz im Ausland"
+msgstr "Resident abroad"
+
+msgid "Eine österreichische Gemeinde ist nur bei „Wohnsitz in Österreich“ erforderlich. Ohne festen Wohnsitz oder mit Wohnsitz im Ausland lassen Sie die Gemeinde leer."
+msgstr "An Austrian municipality is required only for residents in Austria. If you have no fixed abode or live abroad, leave the municipality blank."
+
+msgid "Bitte wählen Sie Ihre Wohnsitz-Gemeinde oder eine der anderen Wohnsitzoptionen."
+msgstr "Please select your municipality of residence or one of the other residence options."

@@ -43,6 +43,9 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 {# ── Wohnsitz und Nebenwohnsitz ──────────────────────────────────────── #}
 <div class="karte" id="wohnsitz">
   <p class="phasen-titel">{% translate "Wohnsitz und Nebenwohnsitz" %}</p>
+  <p><label for="{{ form.wohnsitz_art.id_for_label }}">{{ form.wohnsitz_art.label }}</label>{{ form.wohnsitz_art }}
+  {% if form.wohnsitz_art.help_text %}<span class="hilfe">{{ form.wohnsitz_art.help_text }}</span>{% endif %}
+  {% if form.wohnsitz_art.errors %}<ul class="fehlerliste">{% for e in form.wohnsitz_art.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <p><label for="{{ form.gemeinde.id_for_label }}">{{ form.gemeinde.label }}</label>{{ form.gemeinde }}
   {% if form.gemeinde.errors %}<ul class="fehlerliste">{% for e in form.gemeinde.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <p><label for="{{ form.nebenwohnsitz.id_for_label }}">{{ form.nebenwohnsitz.label }}</label>{{ form.nebenwohnsitz }}

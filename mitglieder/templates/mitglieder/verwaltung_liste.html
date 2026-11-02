@@ -34,14 +34,14 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
 
 <div class="karte" style="overflow-x:auto">
 <table class="tabelle">
-  <thead><tr><th>{% translate "Mitglied" %}</th><th>{% translate "E-Mail" %}</th><th>{% translate "Gemeinde" %}</th><th>{% translate "Identität" %}</th><th>{% translate "Status" %}</th><th>{% translate "Beitritt" %}</th><th></th></tr></thead>
+  <thead><tr><th>{% translate "Mitglied" %}</th><th>{% translate "E-Mail" %}</th><th>{% translate "Wohnsitz" %}</th><th>{% translate "Identität" %}</th><th>{% translate "Status" %}</th><th>{% translate "Beitritt" %}</th><th></th></tr></thead>
   <tbody>
   {% for m in mitglieder %}
   <tr>
     <td data-label="{% translate 'Mitglied' %}"><a href="{% url 'mitglieder:verwaltung_mitglied' m.pk %}">{{ m.get_full_name|default:m.anzeigename }}</a>
       {% if m.hat_adminrechte %} <span class="badge badge--hell">{% translate "Admin" %}</span>{% endif %}</td>
     <td data-label="{% translate 'E-Mail' %}">{{ m.email }}</td>
-    <td data-label="{% translate 'Gemeinde' %}">{{ m.gemeinde|default:"—" }}</td>
+    <td data-label="{% translate 'Wohnsitz' %}">{{ m.gemeinde|default:m.get_wohnsitz_art_display }}</td>
     <td data-label="{% translate 'Identität' %}">{{ m.get_identitaetsstufe_display|truncatechars:22 }}</td>
     <td data-label="{% translate 'Status' %}">{% if m.status == "ausgetreten" %}<span class="badge badge-still">{% translate "ausgetreten" %}</span>{% elif not m.is_active and m.status != "ausgeschlossen" %}{% translate "unbestätigt" %}{% else %}{{ m.get_status_display }}{% endif %}</td>
     <td data-label="{% translate 'Beitritt' %}">{{ m.beitritt|date:"d.m.Y"|default:"—" }}</td>

@@ -49,6 +49,7 @@ from mitglieder.models import (
     Postauftrag,
 )
 from mitglieder.post import freischaltung_senden
+from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ def _auditieren(request, aktion: str, mitglied: Mitglied, **extra) -> None:
     )
 
 
-class StammdatenFormular(forms.Form):
+class StammdatenFormular(WohnsitzFormularMixin, forms.Form):
     """Falsche Angaben korrigieren — mehr nicht. Felder, die die Plattform selbst
     herleitet (Bundesland, Bezirk), folgen weiterhin dem Gemeindeverzeichnis."""
 
@@ -86,8 +87,9 @@ class StammdatenFormular(forms.Form):
         label=gettext_lazy("Klarname darf öffentlich erscheinen (Einwilligung, § 5 Abs 3 lit a — nur das Mitglied selbst kann sie erteilen; die Verwaltung kann sie hier zurücknehmen)"),
         required=False,
     )
+    wohnsitz_art = wohnsitz_auswahl()
     gemeinde = forms.CharField(
-        label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
+        label=gettext_lazy("Wohnsitz-Gemeinde"),
         max_length=140,
         required=False,
         widget=forms.TextInput(attrs={"list": "gemeinden", "autocomplete": "off"}),
@@ -125,20 +127,6 @@ class StammdatenFormular(forms.Form):
                 _("Für dieses Konto läuft bereits eine Adressänderung — zuerst abbrechen oder abwarten.")
             )
         return email
-
-    def clean_gemeinde(self):
-        eingabe = self.cleaned_data["gemeinde"].strip()
-        if not eingabe:
-            return ""
-        treffer, kandidaten = Gemeinde.finden(eingabe)
-        if treffer:
-            self.gemeinde_objekt = treffer
-            return treffer.name
-        if kandidaten:
-            optionen = "; ".join(g.anzeige for g in kandidaten)
-            raise forms.ValidationError(_("Mehrdeutig — bitte präzisieren: %(optionen)s.") % {"optionen": optionen})
-        raise forms.ValidationError(_("Steht nicht im amtlichen Gemeindeverzeichnis."))
-
 
 @nur_admins
 def liste(request):
@@ -240,14 +228,7 @@ def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) 
             geaendert.append(feld)
     war_ungeprueft = mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
     geaendert += mitglied.identitaetsstufe_setzen(d["identitaetsstufe"])
-    if d["gemeinde"]:
-        g = form.gemeinde_objekt
-        if mitglied.wohnsitz_id != g.pk:
-            mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz = g.name, g.bundesland, g
-            geaendert.append("wohnsitz")
-    elif mitglied.gemeinde:
-        mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz = "", "", None
-        geaendert.append("wohnsitz")
+    geaendert += wohnsitz_anwenden(mitglied, form)
     if geaendert:
         mitglied.save()
         _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
@@ -384,7 +365,8 @@ def mitglied(request, pk: int):
                 "email": person.email,
                 "anzeigename": person.pseudonym_oeffentlich,
                 "klarname_oeffentlich": person.klarname_oeffentlich,
-                "gemeinde": person.gemeinde,
+                "wohnsitz_art": person.wohnsitz_art_aktuell,
+                "gemeinde": person.wohnsitz.anzeige if person.wohnsitz_id else person.gemeinde,
                 "identitaetsstufe": person.identitaetsstufe,
                 "beitrag_zuletzt_am": person.beitrag_zuletzt_am,
             },

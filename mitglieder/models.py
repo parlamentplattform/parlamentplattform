@@ -10,6 +10,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from plattform_core import Gegenstand, stimmberechtigt
 
@@ -29,6 +30,13 @@ class Bundesland(models.TextChoices):
     TIROL = "tirol", "Tirol"
     VORARLBERG = "vorarlberg", "Vorarlberg"
     WIEN = "wien", "Wien"
+
+
+class Wohnsitzart(models.TextChoices):
+    KEINE_ANGABE = "", _("Keine Angabe")
+    OESTERREICH = "oesterreich", _("Wohnsitz in Österreich")
+    OHNE_FESTEN_WOHNSITZ = "ohne_festen_wohnsitz", _("Ohne festen Wohnsitz")
+    AUSLAND = "ausland", _("Wohnsitz im Ausland")
 
 
 class Identitaetsstufe(models.TextChoices):
@@ -130,6 +138,7 @@ class Mitglied(AbstractUser):
         blank=True,
         help_text="Zeitpunkt der ersten Ausstellung des einseitigen Mitgliedsausweises.",
     )
+    wohnsitz_art = models.CharField(max_length=24, choices=Wohnsitzart.choices, blank=True, default="")
     gemeinde = models.CharField(
         max_length=120,
         blank=True,
@@ -149,6 +158,11 @@ class Mitglied(AbstractUser):
         related_name="mitglieder",
         help_text="Eindeutiger Verweis ins amtliche Gemeindeverzeichnis — Quelle für gemeinde und bundesland.",
     )
+    @property
+    def wohnsitz_art_aktuell(self):
+        # Alte Datensätze ohne Kennung nicht als Wohnungslosigkeit oder Ausland deuten.
+        return self.wohnsitz_art or (Wohnsitzart.OESTERREICH if self.wohnsitz_id or self.bundesland else "")
+
     nebenwohnsitz = models.ForeignKey(
         "Gemeinde",
         null=True,

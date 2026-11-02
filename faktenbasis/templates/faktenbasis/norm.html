@@ -9,11 +9,33 @@
   <p>{% translate "Importiert am" %}: {{ norm.importlauf.beendet_am|date:"d.m.Y H:i" }}</p>
   <p>{{ norm.titel }}</p>
   <p><a href="{{ norm.quelle }}" rel="noopener">{% translate "Amtliches Dokument im RIS öffnen" %} ↗</a></p>
-  <p class="hilfe">{% translate "Metadaten, kein vollständiger Gesetzestext" %}</p>
+  {% if not texte %}<p class="hilfe">{% translate "Metadaten, kein vollständiger Gesetzestext" %}</p>{% endif %}
   <p class="hilfe">{% translate "Ein amtlicher Fundort bestätigt nicht, dass die Norm für einen Antrag relevant ist oder geändert werden müsste. Diese Zuordnung bleibt ein ungeprüfter Modellvorschlag." %}</p>
   <p class="hilfe">{% translate "Konsolidierte Texte dienen der Information. Rechtsverbindlich ist die authentische Kundmachung." %}</p>
   <p class="meta">{% translate "Quelle" %}: RIS / Bundeskanzleramt · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
 </div>
+<section aria-labelledby="dokumenttexte">
+  <h2 id="dokumenttexte">{% translate "Amtliche Dokumenttexte" %}</h2>
+  <p class="hilfe">{% translate "Einzeldokumente aus dem RIS, keine vollständige Rechtsvorschrift. Die Texte werden nicht automatisch aktualisiert." %}</p>
+  {% if letzter_textabruf and not letzter_textabruf.erfolgreich %}
+    <p class="meldung warn">{% translate "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar." %} ({{ letzter_textabruf.fehlercode }}) · {{ letzter_textabruf.beendet_am|date:"d.m.Y H:i" }}</p>
+  {% endif %}
+  {% for t in texte %}
+  <details class="karte"{% if forloop.first %} open{% endif %}>
+    <summary>{% translate "Dokumenttext" %} · {% translate "Erstmals erfasst" %}: {{ t.erfasst_am|date:"d.m.Y H:i" }} · {{ t.xml_hash|slice:":12" }}</summary>
+    <p><a href="{{ t.quelle }}" rel="noopener">{% translate "Amtliche XML-Quelle öffnen" %} ↗</a> · <a href="{% url 'faktenbasis:textxml' t.pk %}">{% translate "Gespeichertes Original-XML herunterladen" %}</a></p>
+    <p class="meta">{% translate "XML-Prüfsumme (SHA-256 der Originalbytes)" %}: <code class="fakten-hash">{{ t.xml_hash }}</code> · {% translate "Textauswertung, Fassung" %}: {{ t.parser_fassung }}</p>
+    <pre class="fakten-rohdaten fakten-wortlaut">{{ t.text }}</pre>
+  </details>
+  {% empty %}<div class="karte"><p>{% translate "Für diesen Schnappschuss wurde noch kein amtlicher Dokumenttext übernommen." %}</p></div>{% endfor %}
+  {% if textabrufe %}
+  <details class="karte">
+    <summary>{% translate "Dokumenttext-Abrufe nachlesen" %}</summary>
+    <p class="meta">{% translate "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben nachlesbar." %}</p>
+    <ul>{% for a in textabrufe %}<li>{{ a.beendet_am|date:"d.m.Y H:i" }} · {% if a.erfolgreich %}{% translate "Erfolgreich" %} · {{ a.inhalt.xml_hash|slice:":12" }}{% else %}{% translate "Fehlgeschlagen" %} · {{ a.fehlercode }}{% endif %}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+</section>
 <details class="karte">
   <summary>{% translate "Herkunft und Prüfsumme" %}</summary>
   <p>{% translate "Inhalts-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.inhalt_hash }}</code></p>

@@ -8983,12 +8983,6 @@ msgstr "Maximum text length for the preview while typing. Longer texts are still
 msgid "Faktenbasis"
 msgstr "Source data"
 
-msgid "Amtliche Metadaten aus dem RIS"
-msgstr "Official metadata from RIS"
-
-msgid "Hier stehen gezielt abgerufene Angaben zu Dokumenten des konsolidierten Bundesrechts. Die Sammlung ist unvollständig und enthält noch keine vollständigen Gesetzestexte oder geprüften Querverweise."
-msgstr "This collection contains selectively retrieved metadata for documents of consolidated Austrian federal law. It is incomplete and does not yet contain full legal texts or verified cross-references."
-
 msgid "%(anzahl)s Dokument"
 msgid_plural "%(anzahl)s Dokumente"
 msgstr[0] "%(anzahl)s document"
@@ -9088,9 +9082,76 @@ msgstr "Checksums use JSON with sorted keys, no additional whitespace, UTF-8 enc
 msgid "Reihenfolge: jüngster Stichtag zuerst, dann RIS-Kennung; bei gleicher Kennung und gleichem Stichtag jüngster Import zuerst."
 msgstr "Order: latest as-of date first, then RIS identifier; for the same identifier and date, latest import first."
 
-
-msgid "Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe und eine gezielt befüllbare amtliche Metadatensammlung; vollständige Rechtsdaten und Berichte fehlen noch."
-msgstr "The model connector status, budget, recent runs and a selectively populated collection of official metadata are public; complete legal data and reports are still pending."
-
 msgid "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "
 msgstr "Version 8 adds the official metadata collection (0.56): oversight can inspect provenance, as-of dates and preserved snapshots publicly. Full texts, verified cross-references and reports remain pending. "
+
+
+msgid "Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe sowie gezielt abgerufene amtliche Metadaten und einzelne Dokumenttexte; vollständige Rechtsdaten und Berichte fehlen noch."
+msgstr "The model connector status, budget, recent runs, selectively retrieved official metadata and individual document texts are public; complete legal data and reports remain pending."
+
+msgid "Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. "
+msgstr "Version 9 adds individual official document texts (0.57): original XML, text, retrieval records and checksums remain publicly available. The collection is incomplete; verified cross-references and reports remain pending. "
+
+msgid "Dokumenttext-Schnappschuss"
+msgstr "Document text snapshot"
+
+msgid "Dokumenttext-Schnappschüsse"
+msgstr "Document text snapshots"
+
+msgid "Dokumenttext-Abruf"
+msgstr "Document text retrieval"
+
+msgid "Dokumenttext-Abrufe"
+msgstr "Document text retrievals"
+
+msgid "Amtliche Quellen aus dem RIS"
+msgstr "Official sources from RIS"
+
+msgid "Hier stehen gezielt abgerufene Metadaten und einzelne amtliche Dokumenttexte. Die Sammlung ist unvollständig; geprüfte Querverweise fehlen."
+msgstr "This collection contains selectively retrieved metadata and individual official document texts. It is incomplete; verified cross-references are not yet available."
+
+msgid "Amtlicher Dokumenttext vorhanden"
+msgstr "Official document text available"
+
+msgid "Amtliche Dokumenttexte"
+msgstr "Official document texts"
+
+msgid "Einzeldokumente aus dem RIS, keine vollständige Rechtsvorschrift. Die Texte werden nicht automatisch aktualisiert."
+msgstr "Individual documents from RIS, not a complete legal instrument. The texts are not updated automatically."
+
+msgid "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar."
+msgstr "The last document text retrieval failed. Previous texts remain available."
+
+msgid "Dokumenttext"
+msgstr "Document text"
+
+msgid "Erstmals erfasst"
+msgstr "First recorded"
+
+msgid "Amtliche XML-Quelle öffnen"
+msgstr "Open the official XML source"
+
+msgid "Gespeichertes Original-XML herunterladen"
+msgstr "Download the stored original XML"
+
+msgid "XML-Prüfsumme (SHA-256 der Originalbytes)"
+msgstr "XML checksum (SHA-256 of the original bytes)"
+
+msgid "Textauswertung, Fassung"
+msgstr "Text extraction version"
+
+msgid "Für diesen Schnappschuss wurde noch kein amtlicher Dokumenttext übernommen."
+msgstr "No official document text has been imported for this snapshot yet."
+
+msgid "Dokumenttext-Abrufe nachlesen"
+msgstr "Read document text retrieval records"
+
+msgid "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben nachlesbar."
+msgstr "Latest retrieval first; unchanged repeated retrievals also remain visible."
+
+
+msgid "Erfolgreich"
+msgstr "Successful"
+
+msgid "Fehlgeschlagen"
+msgstr "Failed"

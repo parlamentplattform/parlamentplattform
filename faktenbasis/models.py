@@ -75,3 +75,45 @@ class Norm(Schnappschuss):
 
     def __str__(self):
         return f"{self.ris_id}: {self.kurztitel} ({self.stand})"
+
+
+class NormText(Schnappschuss):
+    norm = models.ForeignKey(Norm, on_delete=models.PROTECT, related_name="texte")
+    quelle = models.TextField()
+    xml = models.BinaryField()
+    text = models.TextField()
+    xml_hash = models.CharField(max_length=64)
+    parser_fassung = models.PositiveSmallIntegerField(default=1)
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-erfasst_am", "-pk"]
+        verbose_name = _("Dokumenttext-Schnappschuss")
+        verbose_name_plural = _("Dokumenttext-Schnappschüsse")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["norm", "xml_hash", "parser_fassung"], name="normtext_inhalt_je_parser",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Dokumenttext {self.pk}: Norm {self.norm_id} ({self.xml_hash[:12]})"
+
+
+class NormTextAbruf(Schnappschuss):
+    norm = models.ForeignKey(Norm, on_delete=models.PROTECT, related_name="textabrufe")
+    inhalt = models.ForeignKey(NormText, on_delete=models.PROTECT, related_name="abrufe", null=True)
+    quelle = models.TextField(blank=True)
+    begonnen_am = models.DateTimeField(default=timezone.now)
+    beendet_am = models.DateTimeField(default=timezone.now)
+    erfolgreich = models.BooleanField()
+    neu = models.BooleanField(default=False)
+    fehlercode = models.CharField(max_length=30, blank=True)
+
+    class Meta:
+        ordering = ["-beendet_am", "-pk"]
+        verbose_name = _("Dokumenttext-Abruf")
+        verbose_name_plural = _("Dokumenttext-Abrufe")
+
+    def __str__(self):
+        return f"Dokumenttext-Abruf {self.pk}: Norm {self.norm_id} ({self.beendet_am})"

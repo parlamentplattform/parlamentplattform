@@ -4,8 +4,8 @@
 <a href="{% url 'verfahren:zukunftswerkstatt' %}">‹ {% translate "Zukunftswerkstatt" %}</a>
 <h1>{% translate "Faktenbasis" %}</h1>
 <div class="karte">
-  <h2>{% translate "Amtliche Metadaten aus dem RIS" %}</h2>
-  <p>{% translate "Hier stehen gezielt abgerufene Angaben zu Dokumenten des konsolidierten Bundesrechts. Die Sammlung ist unvollständig und enthält noch keine vollständigen Gesetzestexte oder geprüften Querverweise." %}</p>
+  <h2>{% translate "Amtliche Quellen aus dem RIS" %}</h2>
+  <p>{% translate "Hier stehen gezielt abgerufene Metadaten und einzelne amtliche Dokumenttexte. Die Sammlung ist unvollständig; geprüfte Querverweise fehlen." %}</p>
   <p>{% blocktranslate count anzahl=umfang.dokumente %}{{ anzahl }} Dokument{% plural %}{{ anzahl }} Dokumente{% endblocktranslate %} · {% blocktranslate count anzahl=umfang.schnappschuesse %}{{ anzahl }} Schnappschuss{% plural %}{{ anzahl }} Schnappschüsse{% endblocktranslate %}</p>
   {% if erfolg %}<p>{% translate "Letzter erfolgreicher Import" %}: {{ erfolg.beendet_am|date:"d.m.Y H:i" }} · {% translate "Stichtag" %}: {{ erfolg.stand|date:"d.m.Y" }}</p>{% endif %}
   {% if letzter and not letzter.erfolgreich %}<p class="meldung warn">{% translate "Der letzte Abruf ist fehlgeschlagen. Bereits gespeicherte Angaben bleiben erhalten." %} ({{ letzter.fehlercode }}) · {{ letzter.beendet_am|date:"d.m.Y H:i" }}</p>{% endif %}
@@ -19,7 +19,7 @@
 <article class="karte">
   <h3><a href="{% url 'faktenbasis:norm' n.pk %}">{{ n.kurztitel }}</a></h3>
   <p>{{ n.abschnitt }} · {{ n.ris_id }} · {% translate "Stichtag" %}: {{ n.stand|date:"d.m.Y" }}</p>
-  <p class="meta">{% translate "Metadaten, kein vollständiger Gesetzestext" %}</p>
+  <p class="meta">{% if n.hat_text %}{% translate "Amtlicher Dokumenttext vorhanden" %}{% else %}{% translate "Metadaten, kein vollständiger Gesetzestext" %}{% endif %}</p>
 </article>
 {% empty %}<div class="karte"><p>{% translate "Noch keine amtlichen Metadaten importiert." %}</p></div>{% endfor %}
 {% if seite.has_other_pages %}

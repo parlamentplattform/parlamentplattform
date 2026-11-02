@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.59.1] — 2026-11-02 · Einführung an die tatsächlichen Wege und Regeln anpassen
+
+- Die Einführung führt zur Suche im Favoriten-Feld des Parlaments; der Verweis auf die abgeschaffte Kategorienseite entfällt.
+- Die Abstimmung nennt ihre tatsächliche Frist. Für neue Sachanträge zeigt die Einführung die geltende Verfahrensordnung, statt feste Dauern zu versprechen; bestehende Verfahren behalten ihre eingefrorenen Regeln.
+- Der Hinweis zum Stimmrecht verwendet dieselbe verständliche Erklärung wie Profil und Kontonachrichten und verspricht keine automatische Freischaltung allein durch einen Beitragseingang.
+
 ## [0.59.0] — 2026-11-02 · Einzelne amtliche Quellen in der Verwaltung übernehmen
 
 - Die Verwaltung kann zu einer exakten Gesetzesnummer und einem Stichtag ausdrücklich eine Seite amtlicher Metadaten übernehmen und anschließend einen einzelnen Dokumenttext abrufen. Gäste und gewöhnliche Mitglieder behalten ausschließlich die öffentliche Nachlese; aktive Mitgliedschaft, geprüfter Nachweis und bestehende Verwaltungsrechte werden vor dem Abruf geprüft.

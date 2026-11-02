@@ -15,8 +15,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import render
 
+from mitglieder.post import stimmrechts_satz
 from plattform_core import Phase
-from verfahren.models import Antrag, Kategorie
+from verfahren.models import Antrag, Kategorie, Verfahrensordnung
 
 SCHRITTE = (1, 2, 3)
 
@@ -35,9 +36,14 @@ def einfuehrung(request, schritt: int):
         ]
         kontext["gewaehlt"] = len(abonniert)
     elif schritt == 2:
+        kontext["stimmrechts_satz"] = stimmrechts_satz(request.user)
         kontext["abstimmung"] = (
             Antrag.objects.filter(phase=Phase.ABSTIMMUNG.value)
             .order_by("-hervorgehoben", "phase_beginn")
             .first()
         )
+    else:
+        ordnung = Verfahrensordnung.objects.filter(aktiv=True).order_by("-version").first()
+        kontext["ordnung"] = ordnung
+        kontext["policy"] = ordnung.als_policy() if ordnung else None
     return render(request, "mitglieder/einfuehrung.html", kontext)

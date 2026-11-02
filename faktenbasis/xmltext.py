@@ -12,6 +12,7 @@ from xml.etree import ElementTree
 from faktenbasis.ris import GESETZESNUMMER, HOECHSTBYTES, KENNUNG, RisFehler
 
 NAMENSRAUM = "http://www.bka.gv.at"
+PARSER_FASSUNG = 1
 
 
 def _liste(wert):

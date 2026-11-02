@@ -1,6 +1,6 @@
 # Amtliche Quellen der Zukunftswerkstatt
 
-Die erste Stufe sammelt gezielt amtliche Metadaten zu Dokumenten des konsolidierten Bundesrechts. Öffentlich nachlesbar unter /zukunftswerkstatt/faktenbasis/. Sie enthält noch keine vollständigen Normtexte, NormVerweis-Kanten oder Personalangaben. Modelle können diese Sammlung nicht befüllen; ihre rechtlichen Zuordnungen bleiben Vorschläge.
+Die Sammlung bewahrt gezielt amtliche Metadaten und einzeln abgerufene Dokumenttexte des konsolidierten Bundesrechts. Öffentlich nachlesbar unter /zukunftswerkstatt/faktenbasis/. Sie ist keine vollständige Gesetzesdatenbank und enthält noch keine geprüften NormVerweis-Kanten oder Personalangaben. Modelle können diese Sammlung nicht befüllen; ihre rechtlichen Zuordnungen bleiben Vorschläge.
 
 Ein Betreiber kann einen kleinen Einzelbezug auslösen:
 
@@ -13,5 +13,13 @@ Jeder erfolgreiche Import bewahrt die vollständige JSON-Antwort auf. Die Downlo
 Es gibt keinen automatischen oder periodischen Abruf und keine automatische Zuordnung zu Anträgen. Größere Abfragen verlangen vor ihrer Aktivierung eine BKA-Meldung, serielle Abrufe mit mindestens zwei Sekunden Abstand und die vorgegebenen Zeitfenster. Die Meldung wurde noch nicht gesendet. Diesen Einzelimport deshalb nicht als Massendownload-Schleife oder Cron betreiben. Bei einer solchen Erweiterung sind zudem konkurrierende Abrufe und Wiederholungen über mehrere Prozesse zu koordinieren.
 
 Die öffentlichen Norm-Schnappschüsse stammen aus den amtlichen Metadaten; die Frage, ob eine Norm für einen Antrag relevant ist oder geändert werden müsste, wird dadurch nicht verifiziert. Konsolidiertes Recht dient der Information; rechtlich verbindlich ist die authentische Kundmachung.
+
+Einzelne Originaltexte ab Version 0.57.0:
+
+    python manage.py ris_volltext --norm <ID-des-Metadaten-Schnappschusses>
+
+Nur die ausdrücklich als MainDocument/XML in den gespeicherten Metadaten benannte Adresse ist zulässig; Host, Pfad und NOR-Kennung müssen exakt passen. Ein Request ohne Weiterleitung, höchstens 2 MiB und 15 Sekunden; danach UTF-8/XML und die enthaltene Dokument-/Gesetzesnummer prüfen. DTD, Entitätendeklarationen und externe Verarbeitungsanweisungen sind unzulässig. Der Parser extrahiert ausschließlich als Text markierte Nutzdaten, keine Kopf-/Fußzeilen oder bibliografischen Metadaten. Die ursprünglichen XML-Bytes bleiben unverändert als Anlage verfügbar; der SHA-256-Hash bezieht sich auf genau diese Bytes, nicht auf den abgeleiteten Text oder kanonisiertes XML. Die Fassung der Textauswertung bleibt gespeichert.
+
+NormText und NormTextAbruf sind eigenständige unveränderliche Schnappschüsse. Gleiche Bytes zur gleichen Norm und Parserfassung bleiben einmal gespeichert; jeder Versuch erhält dennoch seinen eigenen Beginn/Abschluss/Erfolgs- oder Fehlernachweis. Die erste Erfassung eines Inhalts wird nicht als jüngster Abruf ausgegeben. Bei Fehler bleibt der vorherige Text lesbar, bei geändertem Inhalt entsteht ein zusätzlicher Schnappschuss. Inhalt, Erfolgsnachweis und Audit werden atomar übernommen. Es existiert keine öffentliche Importschnittstelle und kein automatisches Nachziehen. Metadaten und Text können zu verschiedenen Zeitpunkten abgerufen sein; ihre Quellenstände und Abrufzeiten bleiben getrennt nachlesbar. Einzeldokumente ergeben noch keine vollständige Rechtsvorschrift, Querverweisprüfung oder Modellkontextintegration.
 
 Quelle und Bedingungen: [RIS / Bundeskanzleramt, OGD-FAQ](https://data.bka.gv.at/ris/api/v2.6/), [API-Handbuch V2.6, Juli 2025](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Die Metadaten werden vor der Anzeige von HTML-Markierungen befreit; die unveränderten Daten bleiben im Download.

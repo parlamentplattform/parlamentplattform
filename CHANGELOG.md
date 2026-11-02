@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.57.0] — 2026-11-02 · Einzelne amtliche Dokumenttexte erhalten
+
+- Zu einem vorhandenen Metadaten-Schnappschuss lässt sich ausdrücklich ein einzelner amtlicher XML-Dokumenttext abrufen. Quelle und Dokumentkennung müssen exakt passen; Umleitungen, fremde Quellen, XML-Entitäten und zu große Antworten werden abgewiesen.
+- Originalbytes, Prüfsumme, abgeleiteter Text und jeder Abruf bleiben unveränderlich erhalten. Unveränderte Wiederholungen duplizieren keinen Inhalt; geänderte Texte erhalten eigene Schnappschüsse. Ein gescheiterter Abruf verdeckt keine früheren Texte.
+- Die öffentliche Faktenbasis zeigt einzelne Dokumenttexte, Original-XML als Anlage und die Abrufhistorie auch ohne JavaScript. Die Sammlung ist weiterhin unvollständig, ohne geprüfte Querverweise oder rechtlich geprüfte Antragszuordnungen. Kein automatischer Sammelabruf, kein neuer Dienst, keine Änderung an laufenden Verfahren.
+
 ## [0.56.0] — 2026-11-02 · Amtliche Metadaten mit Herkunft nachlesen
 
 - Ein ausdrücklich ausgelöster RIS-Einzelimport übernimmt höchstens zehn Dokumente zu einer exakten Gesetzesnummer und einem Stichtag. Falsche Kennungen, fremde Quellenadressen, Umleitungen und fehlerhafte Antworten werden abgewiesen.

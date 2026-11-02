@@ -12,3 +12,8 @@ ris_NOR12006105.xml ist der unveränderte kleine Originaltext einer gesonderten
 Einzelprobe vom 2.11.2026 aus der in den amtlichen Metadaten genannten Adresse
 https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR12006105/NOR12006105.xml.
 Gleiche Quelle und Lizenz; keine automatische Abfrage in den Tests.
+
+Die Import-/Browserprüfungen für Dokumenttexte verwenden die Metadaten-Hülle
+zusätzlich mit bewusst angepasster NOR-Kennung und Abschnitt Art. 1, passend zur
+gesonderten XML-Probe. Diese Kombination ist ein synthetischer Testaufbau,
+keine als unverändert ausgegebene zweite amtliche API-Antwort.

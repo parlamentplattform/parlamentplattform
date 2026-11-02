@@ -333,9 +333,23 @@ def sitzungstag_vorbei(mandat, tage=10):
     return Aufgabe.objects.create(
         mandat=mandat,
         titel="Gemeinderatssitzung: Radweg",
-        frist=timezone.now() - timedelta(days=tage),
+        # Der Helfer meint Wiener Kalendertage, keine UTC-Dauern über einen
+        # Wechsel der Sommerzeit hinweg. Mittags bleibt das Datum eindeutig.
+        frist=wiener(timezone.localdate() - timedelta(days=tage), stunde=12),
         sitzungstag=True,
     )
+
+
+@pytest.mark.parametrize("fest", [
+    datetime(2026, 11, 2, 23, 30),  # zehn Tage zurück liegt noch in der Sommerzeit
+    datetime(2026, 3, 30, 0, 30),  # zehn Tage zurück liegt noch in der Winterzeit
+])
+def test_sitzungstag_hilfen_meinen_kalendertage_auch_am_zeitwechsel(client, monkeypatch, fest):
+    from mandatare.test_rechenschaft import sitzungstag
+    monkeypatch.setattr(timezone, "now", lambda: timezone.make_aware(fest))
+    _, mandat = mandatar(client)
+    for aufgabe in (sitzungstag_vorbei(mandat), sitzungstag(mandat)):
+        assert aufgabe.sitzungstag_datum == timezone.localdate() - timedelta(days=10)
 
 
 def test_nach_dem_sitzungstag_zeigt_der_bereich_die_pflichten(client):
@@ -346,7 +360,7 @@ def test_nach_dem_sitzungstag_zeigt_der_bereich_die_pflichten(client):
     assert "ausständig seit 3 Tagen" in html  # Sitzungstag vor 10 Tagen, Frist 7 Tage
     assert f"?aufgabe={sitzung.pk}#rechenschaft" in html
     # innerhalb der sieben Tage: Zähler statt Ausstand
-    sitzung.frist = timezone.now() - timedelta(days=2)
+    sitzung.frist = wiener(timezone.localdate() - timedelta(days=2), stunde=12)
     sitzung.save(update_fields=["frist"])
     html = client.get(MEIN).content.decode()
     assert "noch 5 Tage" in html and "ausständig" not in html

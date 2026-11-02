@@ -2,7 +2,7 @@
 je Mandatar und gesamt (HTML und JSON, ohne Personenbezug), der Wahlvorschlag-Export (§ 7 Abs 1)."""
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pytest
 from django.urls import reverse
@@ -18,7 +18,9 @@ pytestmark = pytest.mark.django_db
 
 def sitzungstag(mandat, tage=10, titel="Gemeinderatssitzung: Radweg"):
     return Aufgabe.objects.create(
-        mandat=mandat, titel=titel, frist=timezone.now() - timedelta(days=tage), sitzungstag=True
+        mandat=mandat, titel=titel,
+        frist=timezone.make_aware(datetime.combine(timezone.localdate() - timedelta(days=tage), time(12))),
+        sitzungstag=True,
     )
 
 

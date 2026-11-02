@@ -523,7 +523,7 @@ def _abstimmung_abgelaufen_ohne_aufruf(ordnung, mandat, vor_tagen: int):  # noqa
     from verfahren.models import stimme_abgeben
 
     leute = [mitglied_anlegen(f"s{next(_ZAEHLER)}") for _ in range(5)]
-    t0 = timezone.now() - tage(vor_tagen + 14)
+    t0 = timezone.make_aware(datetime.combine(timezone.localdate() - tage(vor_tagen + 14), time(12)))
     antrag = einbringen(leute[0], mandat, ordnung, jetzt=t0)
     for m in leute[1:]:  # vier Unterstützungen — die Schwelle (fünf Prozent) wächst mit jedem angelegten Mitglied
         antrag.unterstuetzungen.create(mitglied=m, erklaert_am=t0 + tage(1))

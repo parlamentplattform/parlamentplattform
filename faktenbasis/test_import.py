@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.urls import reverse
+from django.utils import translation
 
 from faktenbasis import importieren as modul
 from faktenbasis.importieren import importieren
@@ -133,7 +134,10 @@ def test_seitengroesse_aus_register_und_englische_nachlese(client, antwort):
     antwort["OgdSearchResult"]["OgdDocumentResults"]["OgdDocumentReference"]["Data"]["Metadaten"]["Bundesrecht"]["Titel"] += " Neu"
     importieren(NUMMER, STAND)
     Parameter.objects.create(schluessel="faktenbasis-seitengroesse", wert="1", beschreibung="Test", quelle="Test")
-    seite = client.get(reverse("faktenbasis:index"), HTTP_ACCEPT_LANGUAGE="en")
+    # Die Middleware aktiviert Englisch auch im Testfaden; danach wiederherstellen,
+    # damit nachfolgende Demo-Daten nicht versehentlich englische Systemtexte speichern.
+    with translation.override("en"):
+        seite = client.get(reverse("faktenbasis:index"), HTTP_ACCEPT_LANGUAGE="en")
     assert seite.context["seite"].paginator.count == 2
     assert len(seite.context["seite"]) == 1
     assert "Source data" in seite.content.decode()

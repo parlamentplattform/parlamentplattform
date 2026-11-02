@@ -6,7 +6,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Die Einführung führt zur Suche im Favoriten-Feld des Parlaments; der Verweis auf die abgeschaffte Kategorienseite entfällt.
 - Die Abstimmung nennt ihre tatsächliche Frist. Für neue Sachanträge zeigt die Einführung die geltende Verfahrensordnung, statt feste Dauern zu versprechen; bestehende Verfahren behalten ihre eingefrorenen Regeln.
-- Der Hinweis zum Stimmrecht verwendet dieselbe verständliche Erklärung wie Profil und Kontonachrichten und verspricht keine automatische Freischaltung allein durch einen Beitragseingang.
+- Der Hinweis zum Stimmrecht verwendet dieselbe verständliche Erklärung wie Willkommensseite und Kontonachrichten und verspricht keine automatische Freischaltung allein durch einen Beitragseingang.
 
 ## [0.59.0] — 2026-11-02 · Einzelne amtliche Quellen in der Verwaltung übernehmen
 

@@ -193,6 +193,8 @@ Priorisierung nach MoSCoW: **M**uss (MVP), **S**oll (Phase 2), **K**ann (Phase 3
 
 ---
 
+**Stand 0.54.1 zu F-60:** Die Warteschlange für den Rechtsbezug und dessen versionierter Auftragstext bestehen seit 0.50. Auch die manuell angeforderte Werkstatt-Einschätzung lädt nun einen versionierten Auftragstext (`einschaetzung-v1`); erfolgreiche und gescheiterte Läufe speichern diese Fassung. Alle Auftragstexte bleiben unter `/zukunftswerkstatt/` öffentlich nachlesbar. Die Werkstatt-Anforderung bleibt synchron. Der Parametervorschlag verwendet weiterhin einen Auftragstext im Code ohne archivierte Fassung; der Korrekturlauf und die vollständige Simulationskette bleiben offen.
+
 ## 4. Technologieentscheidung
 
 ### 4.1 Die Grundsatzfrage: aufsetzen oder bauen?

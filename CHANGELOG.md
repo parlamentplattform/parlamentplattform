@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.54.1] — 2026-11-02 · Den Auftrag der Werkstatt nachlesen
+
+- Der Auftragstext für die KI-Einschätzung in der Gremien-Werkstatt liegt unverändert als `ki/auftraege/einschaetzung-v1.md` vor und ist auf der öffentlichen Zukunftswerkstatt-Seite nachlesbar.
+- Jeder neue Werkstatt-Lauf archiviert die verwendete Auftragsfassung, auch wenn der Anbieter scheitert. Neue Auftragstexte werden als zusätzliche Fassungen angelegt; vorhandene Läufe bleiben erhalten.
+- Bestehende Budgets, Rechte und die manuelle Anforderung bleiben wirksam. Es werden keine zusätzlichen Modellaufrufe ausgelöst.
+
 ## [0.54.0] — 2026-11-02 · Mitglied werden ohne erzwungene Wohnsitzgemeinde
 
 - Registrierung mit den getrennten Optionen „Ohne festen Wohnsitz“ und „Wohnsitz im Ausland“. Eine österreichische Gemeinde ist nur bei „Wohnsitz in Österreich“ erforderlich; beide neuen Wege funktionieren ohne JavaScript.

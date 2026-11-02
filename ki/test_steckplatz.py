@@ -17,6 +17,7 @@ from gremien.test_werkstatt import (  # noqa: F401
     werkstatt_lage,
 )
 from ki.anbieter import AnbieterFehler, MistralAnbieter, SteckplatzStumm, anbieter_waehlen
+from ki.auftraege import auftrag_laden
 from ki.models import KILauf, Zweck, lauf_ausfuehren
 
 pytestmark = pytest.mark.django_db
@@ -130,9 +131,63 @@ def test_werkstatt_einschaetzung_als_gekennzeichneter_beitrag(client, settings, 
     assert beitrag.ki_lauf is not None and "Attrappen-Einschätzung" in beitrag.text
     lauf = beitrag.ki_lauf
     assert lauf.zweck == Zweck.EINSCHAETZUNG and lauf.antrag_id == antrag.pk
+    assert lauf.auftrag_version == "einschaetzung-v1"
     assert ANTRAG["wortlaut"] in lauf.eingabe  # die Fassung ging in die Eingabe
     inhalt = client.get(reverse("gremien:fenster", args=[antrag.pk])).content.decode()
     assert "KI-Vorschlag" in inhalt and "attrappe-1" in inhalt  # Kennzeichnung sichtbar
+
+
+def test_neue_auftragsfassung_bleibt_neben_archivierten_laeufen_nachlesbar(
+    client, settings, ordnung, tmp_path, monkeypatch,  # noqa: F811
+):
+    from ki import auftraege
+    from ki.anbieter import AttrappenAnbieter
+
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    alt = auftrag_laden(Zweck.EINSCHAETZUNG)
+    (tmp_path / "einschaetzung-v1.md").write_text(alt.text, encoding="utf-8")
+    monkeypatch.setattr(auftraege, "ORDNER", tmp_path)
+    antrag, _, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+    url = reverse("gremien:fenster_aktion", args=[antrag.pk])
+    client.post(url, {"aktion": "ki_einschaetzung"})
+    erster = KILauf.objects.get()
+    (tmp_path / "einschaetzung-v2.md").write_text("Neuer Auftrag zur Werkstatt.", encoding="utf-8")
+    gesehen = []
+    original = AttrappenAnbieter.frage
+
+    def frage(self, auftrag, eingabe):
+        gesehen.append(auftrag)
+        return original(self, auftrag, eingabe)
+
+    monkeypatch.setattr(AttrappenAnbieter, "frage", frage)
+    client.post(url, {"aktion": "ki_einschaetzung"})
+    assert gesehen == ["Neuer Auftrag zur Werkstatt."]
+    assert KILauf.objects.exclude(pk=erster.pk).get().auftrag_version == "einschaetzung-v2"
+    erster.refresh_from_db()
+    assert erster.auftrag_version == "einschaetzung-v1"
+    seite = client.get(reverse("verfahren:zukunftswerkstatt")).content.decode()
+    assert "einschaetzung-v1" in seite and "einschaetzung-v2" in seite
+    assert alt.text in seite and "Neuer Auftrag zur Werkstatt." in seite
+
+
+def test_gescheiterte_werkstatt_einschaetzung_traegt_ihren_auftrag(
+    client, settings, ordnung, monkeypatch,  # noqa: F811
+):
+    from ki.anbieter import AttrappenAnbieter
+
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    antrag, _, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+
+    def kaputt(self, auftrag, eingabe):
+        raise AnbieterFehler("Testfehler")
+
+    monkeypatch.setattr(AttrappenAnbieter, "frage", kaputt)
+    client.post(reverse("gremien:fenster_aktion", args=[antrag.pk]), {"aktion": "ki_einschaetzung"})
+    lauf = KILauf.objects.get()
+    assert not lauf.erfolgreich and lauf.auftrag_version == "einschaetzung-v1"
+    assert antrag.entwurf.beitraege.count() == 0
 
 
 def test_werkstatt_sagt_ehrlich_wenn_der_steckplatz_leer_ist(client, settings, ordnung):  # noqa: F811

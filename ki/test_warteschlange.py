@@ -64,7 +64,9 @@ def _antrag(ordnung, name="anna", titel=None):  # noqa: F811
 def test_auftragstext_rechtsbezug_liegt_versioniert_im_repo():
     text = auftrag_laden("rechtsbezug")
     assert text.version == "rechtsbezug-v1" and "JSON" in text.text and "Rechtsberatung" in text.text
-    assert {a.version for a in auftragsversionen()} == {"einschaetzung-v1", "rechtsbezug-v1"}
+    assert {a.version for a in auftragsversionen()} == {
+        "einschaetzung-v1", "parametervorschlag-v1", "rechtsbezug-v1",
+    }
     with pytest.raises(KeyError):
         auftrag_laden("gibtesnicht")
 

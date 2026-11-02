@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.55.1] — 2026-11-02 · Den Auftrag für Parametervorschläge nachlesen
+
+- Auch der Auftrag zur Auswertung eines Parametertests liegt unverändert als versionierte Datei vor und ist in der Zukunftswerkstatt öffentlich nachlesbar.
+- Neue erfolgreiche und gescheiterte Läufe speichern ihre Auftragsfassung. Frühere Vorschläge und Läufe bleiben erhalten; eine Einschätzung führt keinen Parameterwert ein. Rechte, Budget und Beschlussweg bleiben wirksam.
+
 ## [0.55.0] — 2026-11-02 · Ähnliche Anträge prüfen und selbst wählen
 
 - Lokale Ähnlichkeitsvorschau beim Schreiben: nach 800 Millisekunden Pause und ab 40 Zeichen in Titel und Wortlaut zusammen. Drei Vorschaugrenzen stehen im Register; der Bedeutungsvergleich bleibt beim ausdrücklichen Absenden.

@@ -70,16 +70,6 @@ from verfahren.chat import abstimmung_stand as _abstimmung_stand
 from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag
 
-PARAMETERVORSCHLAG_AUFTRAG = (
-    "Du bist Assistent der Zukunftswerkstatt der ParlamentPlattform (Direkte Demokratie "
-    "Österreich). Ein befristeter Test eines Verfahrensparameters ist ausgewertet. Lies "
-    "Hypothese, Messgröße und die Zahlen vorher und während des Tests. Sag in vier bis sechs "
-    "Sätzen, ob die Zahlen die Hypothese stützen, was sie nicht zeigen können, und welcher "
-    "der drei Wege dir plausibel erscheint: einführen, verwerfen oder verlängern. Du machst "
-    "einen Vorschlag — entschieden wird vom Koordinationsrat. Antworte auf Deutsch, nüchtern, "
-    "in Fließtext ohne Listen."
-)
-
 
 def nur_gremium(*gremien: str):
     """Zugang für aktive Rolleninhaber; Admins dürfen zuschauen (Aufsicht),
@@ -1745,8 +1735,11 @@ def koordination_test(request, test_id: int):
             + (f" ({g.anteil} %)" if g.anteil is not None else "")
             + f"\\nTestzeitraum: {test.beginn} bis {test.ende}"
         )
+        auftrag = auftrag_laden(Zweck.PARAMETERVORSCHLAG)
         try:
-            lauf = lauf_ausfuehren(Zweck.PARAMETERVORSCHLAG, PARAMETERVORSCHLAG_AUFTRAG, eingabe, request.user)
+            lauf = lauf_ausfuehren(
+                Zweck.PARAMETERVORSCHLAG, auftrag.text, eingabe, request.user, auftrag_version=auftrag.version
+            )
         except SteckplatzStumm as grund:
             messages.info(request, str(grund))
         else:

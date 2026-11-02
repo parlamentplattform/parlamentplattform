@@ -7,3 +7,8 @@ Gesetzesnummer 10000362. Nur die Antwort-Hülle wurde für den Einzelobjekt-Test
 auf einen Treffer gekürzt (Hits und OgdDocumentReference). Es handelt sich um
 ein Änderungsgesetz zum Schulwesen, nicht um das Stammgesetz B-VG. Gerade dieser
 Treffer aus einer Titelsuche dient als Gegenprobe gegen falsche Zuordnungen.
+
+ris_NOR12006105.xml ist der unveränderte kleine Originaltext einer gesonderten
+Einzelprobe vom 2.11.2026 aus der in den amtlichen Metadaten genannten Adresse
+https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR12006105/NOR12006105.xml.
+Gleiche Quelle und Lizenz; keine automatische Abfrage in den Tests.

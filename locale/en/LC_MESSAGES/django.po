@@ -9287,3 +9287,10 @@ msgstr "A format error must not appear to be an assessment with no content. Unkn
 
 msgid "Das veröffentlichte JSON-Schema und die unveränderte Antwort lassen sich erneut prüfen. Die Anzeige nennt die Fassung der aktuellen Formprüfung und die Prüfsummen; sie behauptet keine rückwirkende Prüfung beim ursprünglichen Lauf."
 msgstr "The published JSON schema and unchanged response can be checked again. The display states the version and checksums of the current format check; it does not claim a retrospective check during the original run."
+
+
+msgid "Teilnehmerkreis:"
+msgstr "Eligible participants:"
+
+msgid "Bei dieser Kandidatur werden Unterstützung und Wahlberechtigung derzeit parteiweit geprüft. Die Gebietsangabe begrenzt den Kreis der unterstützenden und abstimmenden Mitglieder noch nicht."
+msgstr "Eligibility to support and vote in this candidacy is currently checked on a party-wide basis. The stated area does not yet restrict which members may support or vote."

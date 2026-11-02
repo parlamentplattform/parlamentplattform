@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.60.1] — 2026-11-03 · Teilnehmerkreis regionaler Kandidaturen ehrlich anzeigen
+
+- Regionale Mandats-Kandidaturen zeigen vor den Handlungen, dass Unterstützung und Wahlberechtigung derzeit parteiweit geprüft werden. Die Gebietsangabe wird dadurch nicht als bereits wirksame örtliche Teilnahmebegrenzung missverstanden. Der Hinweis ist deutsch und englisch sowie ohne JavaScript lesbar.
+- Die örtliche Begrenzung bleibt offen. Keine Berechtigung, Grundgesamtheit, Schwelle oder bestehende Stimme wurde verändert; eingefrorene Regeln laufender Verfahren bleiben erhalten.
 ## [0.60.0] — 2026-11-03 · Antwortform prüfen, ohne Rechtsgewissheit vorzutäuschen
 
 - Rechtsbezug-Antworten erhalten einen versionierten Formbefund und ein öffentlich herunterladbares JSON-Schema. Pflichtfelder, Typen, bekannte Werte, doppelte Schlüssel sowie Größen- und Tiefengrenzen sind nachprüfbar; ungeprüfte Zusatzfelder erscheinen nicht in Diagnosepfaden.

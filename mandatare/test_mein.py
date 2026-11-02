@@ -464,6 +464,8 @@ def test_rechenschaft_zur_mandatsfrage_uebernimmt_den_beschluss(client, ordnung)
 
 
 def test_monatsbericht_nur_fuer_faellige_monate(client, monkeypatch):
+    september = timezone.make_aware(datetime(2026, 9, 15, 12, 0))
+    monkeypatch.setattr(timezone, "now", lambda: september)
     _, mandat = mandatar(client, angetreten=date(2026, 9, 1))
     html = client.get(MEIN).content.decode()
     assert "Kein Monatsbericht fällig." in html  # Berichtspflicht beginnt mit Oktober 2026

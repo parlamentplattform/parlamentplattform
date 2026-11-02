@@ -34,9 +34,12 @@ def eine_runde():
 
 
 def post_worker_init(worker):
+    from verfahren.sicherung import starten
+
     def hintergrund():
         warten = threading.Event()
         while worker.alive:
             eine_runde()
             warten.wait(30)
     threading.Thread(target=hintergrund, name="hintergrund", daemon=True).start()
+    starten(worker)  # eigener Faden, damit ein Export keine Verfahrensfristen oder Mails aufhält

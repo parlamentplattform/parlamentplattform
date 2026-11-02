@@ -27,15 +27,17 @@ def test_ohne_adresse_wird_nichts_gesichert():
     assert ergebnis.returncode != 0 and "Datenbank-Adresse fehlt" in ergebnis.stderr
 
 
-def test_die_workflows_nutzen_das_skript_und_nur_secret_verweise():
+def test_die_workflows_pruefen_nur_die_fertige_sicherung_ohne_datenbankzugang():
     sicherung = (WORKFLOWS / "sicherung.yml").read_text(encoding="utf-8")
-    assert "tools/sicherung.sh sichern" in sicherung and "tools/sicherung.sh probe" in sicherung
-    assert "${{ secrets.DDOE_SICHERUNG_DATENBANK_URL }}" in sicherung
+    assert "tools/sicherung.sh sichern" not in sicherung and "tools/sicherung.sh probe" in sicherung
+    assert "DDOE_SICHERUNG_DATENBANK_URL" not in sicherung
+    assert "https://parlament.ddoe.at/sicherung/status.json" in sicherung
     assert "${{ secrets.DDOE_SICHERUNG_TOKEN }}" in sicherung
     assert "postgres://" not in sicherung and "postgresql://" not in sicherung
     for name in ("sicherung.yml", "wache.yml"):
         daten = yaml.safe_load((WORKFLOWS / name).read_text(encoding="utf-8"))
         assert daten[True]["schedule"], f"{name} braucht einen Zeitplan"  # YAML liest „on“ als True
+    assert yaml.safe_load(sicherung)[True]["schedule"] == [{"cron": "17 4 2 * *"}]
 
 
 def test_die_wache_fragt_den_gesundheitscheck():
@@ -54,13 +56,15 @@ def test_fehler_von_pg_dump_und_pg_restore_bleiben_aus_dem_oeffentlichen_protoko
     skript = SKRIPT.read_text(encoding="utf-8")
     assert skript.count('2> "$fehlerdatei"') >= 3
     sicherung = (WORKFLOWS / "sicherung.yml").read_text(encoding="utf-8")
-    assert "::add-mask::" in sicherung and "timeout-minutes" in sicherung
+    assert "timeout-minutes" in sicherung and "DDOE_SICHERUNG_DATENBANK_URL" not in sicherung
 
 
-def test_eine_kleinere_sicherung_loescht_nichts():
-    sicherung = (WORKFLOWS / "sicherung.yml").read_text(encoding="utf-8")
-    pruefung = sicherung.index("Nicht kleiner als die letzte Sicherung?")
-    assert pruefung < sicherung.index("In das Sicherungs-Repository") < sicherung.index("Ältere Sicherungen entfernen")
+def test_der_postgres_client_wird_signiert_und_ohne_systemaenderungen_bereitgestellt():
+    skript = (WURZEL / "tools/postgres_client.sh").read_text(encoding="utf-8")
+    assert subprocess.run(["bash", "-n", str(WURZEL / "tools/postgres_client.sh")]).returncode == 0
+    assert "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8" in skript
+    assert "signed-by=" in skript and "dpkg-deb --extract" in skript
+    assert "sudo" not in skript and "--allow-unauthenticated" not in skript
 
 
 @pytest.mark.django_db

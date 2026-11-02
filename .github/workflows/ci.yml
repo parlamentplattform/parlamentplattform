@@ -125,6 +125,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
+          --tmpfs /var/lib/postgresql/data:rw,size=1g
           --health-cmd "pg_isready -U plattform"
           --health-interval 5s
           --health-timeout 5s
@@ -159,12 +160,72 @@ jobs:
       - name: Tests gegen PostgreSQL
         run: python -m pytest -q --tb=short --ignore=tests/e2e
 
+  pruefen_sicherung:
+    # Tatsächlich dieselbe native Debian-Laufzeit wie Render; ohne Rootrechte entpacken.
+    runs-on: ubuntu-latest
+    container: python:3.12-bookworm
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: plattform
+          POSTGRES_USER: plattform
+          POSTGRES_PASSWORD: plattform
+        options: >-
+          --health-cmd "pg_isready -U plattform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: plattform
+      POSTGRES_USER: plattform
+      POSTGRES_PASSWORD: plattform
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: plattform
+      PGPASSWORD: plattform
+    steps:
+      - uses: actions/checkout@v4
+      - name: Signierter PostgreSQL-Client in Debian ohne Rootrechte
+        run: |
+          useradd --create-home pruefung
+          su pruefung -c "bash '$GITHUB_WORKSPACE/tools/postgres_client.sh' /tmp/ddoe-postgres-client"
+          echo "/tmp/ddoe-postgres-client/root/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          echo "LD_LIBRARY_PATH=/tmp/ddoe-postgres-client/root/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)" >> "$GITHUB_ENV"
+      - name: Anwendung und Testdatenbank
+        run: |
+          pip install ".[prod,postgres]"
+          python manage.py migrate --noinput
+          DDOE_DEMO=1 python manage.py demo_seed
+      - name: Echter Snapshot-Export und Prüfsumme
+        run: |
+          mkdir -p /tmp/sicherungsprobe
+          python manage.py shell <<'PY'
+          import hashlib
+          from pathlib import Path
+          from datetime import timedelta
+          from django.contrib.sessions.models import Session
+          from django.utils import timezone
+          from verfahren.sicherung import _export
+          Session.objects.create(session_key="darf-nicht-in-den-dump", session_data="probe", expire_date=timezone.now()+timedelta(days=1))
+          p = Path("/tmp/sicherungsprobe/probe.dump")
+          print(_export(p))
+          p.with_suffix(".dump.sha256").write_text(hashlib.sha256(p.read_bytes()).hexdigest()+"  probe.dump\n")
+          PY
+      - name: In leere Datenbank zurückspielen und Audit prüfen
+        run: |
+          createdb wiederherstellung
+          POSTGRES_DB=wiederherstellung bash tools/sicherung.sh probe /tmp/sicherungsprobe/probe.dump
+          POSTGRES_DB=wiederherstellung python manage.py shell -c 'from django.contrib.sessions.models import Session; assert not Session.objects.exists()'
+
   ausrollen:
     # Deploy erst nach bestandener Prüfung — besser als naives Auto-Deploy,
     # das auch rote Commits ausrollen würde. Braucht das Repository-Secret
     # RENDER_DEPLOY_HOOK (Render: Settings → Deploy Hook); ohne Secret wird
     # der Schritt sauber übersprungen.
-    needs: [pruefen, pruefen_postgres]
+    needs: [pruefen, pruefen_postgres, pruefen_sicherung]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -187,7 +248,7 @@ jobs:
     # `ausrollen` übersprungen — und die Live-Fassung bleibt stehen, ohne dass es jemand liest.
     # Dieser Job schlägt dann selbst fehl und schreibt es in die Zusammenfassung des Laufs;
     # das CI-Abzeichen in der README zeigt denselben Zustand.
-    needs: [pruefen, pruefen_postgres]
+    needs: [pruefen, pruefen_postgres, pruefen_sicherung]
     if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

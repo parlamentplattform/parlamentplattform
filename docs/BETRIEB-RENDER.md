@@ -99,40 +99,51 @@ F-50) braucht gar keinen Zugang.
   Render startet die Instanz dann neu und übernimmt keinen Deploy, dessen Instanz die
   Datenbank nicht erreicht.
 
-## Sicherung (seit 0.52, ADR-012)
+## Sicherung (0.53.1, ADR-013; Ablage nach ADR-012)
 
-Täglich 02:17 UTC sichert `.github/workflows/sicherung.yml` die Datenbank — ohne Sitzungen und
-Anmeldelinks — als Release in das private Repository `parlamentplattform/sicherung` (unverschlüsselt,
-Entscheidung des Gründers 29.9.2026) und hält sie 90 Tage, die vom Monatsersten 365 Tage. Hat eine neue
-Sicherung weniger Audit-Einträge als die vorige, bleibt der Lauf rot und löscht nichts. Am Monatsersten spielt derselbe Workflow die jüngste Sicherung in eine leere Datenbank
-zurück und prüft Migrationen und Audit-Kette. `.github/workflows/wache.yml` fragt alle 15 Minuten
-`/gesund/`. **Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4), bis dahin der Gründer.
+Einmal pro UTC-Kalendermonat sichert der vorhandene Render-Webdienst die Datenbank über seine
+interne Verbindung. Ein eigener Gunicorn-Hintergrundfaden reserviert den Auftrag über
+`Hintergrundlauf` gegen andere Worker. Nach Erfolg erfolgt im selben Monat kein weiterer Export;
+bei Ausfall wird nach Wiederanlauf nachgeholt, Fehler werden frühestens nach 15 Minuten wiederholt.
+Die Datenbank bleibt für externe Verbindungen gesperrt.
 
-**Einmal einrichten (nach dem Merge von 0.52):**
+Dump und Kontrollzahlen stammen aus demselben PostgreSQL-Snapshot. Sitzungen und Anmeldelinks
+werden ausgelassen. Erst wenn Dump und SHA-256-Datei hochgeladen sind, wird der Release im privaten
+Repository `parlamentplattform/sicherung` veröffentlicht (unverschlüsselt nach Gründerentscheidung
+vom 29.9.2026). Monatssicherungen bleiben 365 Tage. Eine sinkende Audit-Zahl verhindert Upload und
+Aufräumen. Die Werkzeuge für PostgreSQL 17 werden in der nativen Debian-Laufzeit ohne Rootrechte
+aus dem signierten offiziellen Paketindex bereitgestellt (`tools/postgres_client.sh`, ADR-013).
 
-0. Das Repository `parlamentplattform/sicherung` braucht einen ersten Commit (auf GitHub „Add a README“),
-   sonst kann der Workflow kein Release anlegen.
-1. Eine Nur-Lese-Rolle für die Sicherung anlegen (empfohlen — die Adresse des Eigentümers dürfte
-   schreiben): Render-Dashboard → Datenbank → *Connect* → „PSQL Command“ im eigenen Terminal ausführen, dann
-   `CREATE ROLE sicherung LOGIN PASSWORD '<langes Zufallspasswort>'; GRANT pg_read_all_data TO sicherung;`.
-   Die „External Database URL“ kopieren und Benutzer und Passwort darin durch `sicherung` und das neue
-   Passwort ersetzen. GitHub → Hauptrepository → *Settings → Secrets and variables → Actions → New
-   repository secret*: Name `DDOE_SICHERUNG_DATENBANK_URL`, Wert diese Adresse. Steht bei der Datenbank
-   eine IP-Zugriffsliste, muss sie Verbindungen von außen zulassen (GitHub-Runner haben wechselnde
-   Adressen) — ein Grund mehr für die Nur-Lese-Rolle.
-2. GitHub → *Settings* (des eigenen Kontos) → *Developer settings → Personal access tokens →
+`/sicherung/status.json` meldet ausschließlich Erfolg und Zeitpunkt; ohne Erfolg im aktuellen Monat
+antwortet es mit 503. `.github/workflows/sicherung.yml` kontrolliert am zweiten Monatstag um
+04:17 UTC die Sicherung und spielt sie in eine leere, isolierte PostgreSQL-17-Datenbank zurück:
+Prüfsumme, Migrationen und vollständige Audit-Kette müssen stimmen. Fehlschläge bleiben sichtbar.
+`.github/workflows/wache.yml` überwacht weiterhin `/gesund/`.
+**Zuständig:** der Technische Entwicklungsrat (§ 6 Abs 4), bis dahin der Gründer.
+
+**Einmal einrichten:**
+
+0. Das Repository `parlamentplattform/sicherung` muss privat angelegt sein. Ist es noch leer,
+   initialisiert der erste Sicherungslauf eine README, damit GitHub Releases anlegen kann.
+1. GitHub → *Settings* (des eigenen Kontos) → *Developer settings → Personal access tokens →
    Fine-grained tokens → Generate new token*: Ressourcenbesitzer `parlamentplattform`, *Only select
    repositories* → `sicherung`, Rechte *Contents: Read and write*. Ablaufdatum so lang wie erlaubt und
-   im Kalender vormerken. Als Secret `DDOE_SICHERUNG_TOKEN` im Hauptrepository hinterlegen.
-3. GitHub → Hauptrepository → *Actions → Sicherung → Run workflow* (mit Probe). Grün heißt: gesichert,
-   zurückgespielt, Migrationen und Audit-Kette stimmen. Die Zusammenfassung des Laufs nennt Datei,
-   Größe und Prüfsumme.
+   im Kalender vormerken. Im Render-Webdienst `parlamentplattform` unter *Environment* als
+   `DDOE_SICHERUNG_TOKEN` hinterlegen und die neue Codefassung deployen. Kein Secret mit einer
+   Datenbankadresse in GitHub; der frühere `DDOE_SICHERUNG_DATENBANK_URL` entfällt.
+2. Für die unabhängige Wiederherstellungsprobe denselben Token im Hauptrepository als
+   Actions-Secret `DDOE_SICHERUNG_TOKEN` hinterlegen.
+3. Nach dem Deploy `/sicherung/status.json` prüfen. Erst 200 und ein Erfolgsdatum des laufenden
+   Monats bestätigen den Upload. Danach GitHub → Hauptrepository → *Actions → Sicherung → Run
+   workflow*. Grün bestätigt die tatsächliche Wiederherstellung samt Migrationen und Audit-Kette.
 4. Prüfen, dass Fehlermails ankommen: Sie gehen an das Konto, das die Zeitpläne zuletzt geändert hat
    (*Settings → Notifications → Actions* dieses Kontos).
 
 **Wiederherstellen im Ernstfall:**
 
-1. Neue, leere PostgreSQL-Datenbank anlegen (Render oder anderswo) — nie in die laufende einspielen.
+1. Neue, leere PostgreSQL-17-Datenbank anlegen (Render oder anderswo) — nie in die laufende einspielen.
+   Der Export wird mit Client 17 erzeugt; eine Wiederherstellung in einen älteren Server ist nicht
+   zugesichert. Auch die unabhängige Probe verwendet Server und Wiederherstellungswerkzeug 17.
 2. Sicherung holen: `gh release download <name> --repo parlamentplattform/sicherung` (oder über die
    Weboberfläche des Repositorys) und die Prüfsumme vergleichen: `sha256sum --check <name>.dump.sha256`.
 3. Mit den `POSTGRES_*`-Werten der neuen Datenbank: `tools/sicherung.sh probe <name>.dump` — spielt
@@ -146,7 +157,7 @@ zurück und prüft Migrationen und Audit-Kette. `.github/workflows/wache.yml` fr
 | Datum | Quelle | Sicherung | Ergebnis |
 |---|---|---|---|
 | 29.9.2026 | Demo-Datenbank (lokales PostgreSQL 16, `tools/sicherung.sh`) | 351 KB, 7 Anträge, 5 Konten, 50 Audit-Einträge | zurückgespielt in eine leere Datenbank; keine offene Migration; Audit-Kette vollständig intakt, Kopf `6d979b7d…53652f` wie im Original; Zeilenzahlen gleich. Nach der Prüfung erneut: ohne Sitzungen und Anmeldelinks, gleiches Ergebnis |
-| — | Live-Datenbank über den Workflow | — | offen: braucht die beiden Secrets (Schritt 1–3 oben) |
+| laufend | Live-Datenbank über Render, unabhängige GitHub-Probe | [Laufprotokolle](https://github.com/parlamentplattform/parlamentplattform/actions/workflows/sicherung.yml) | Ein grüner vollständiger Lauf bestätigt Status, Prüfsumme, Wiederherstellung, Migrationen und Audit-Kette. Ein grüner Status-Endpunkt allein bestätigt nur den Upload. |
 
 ## Datenschutz-Einordnung
 

@@ -1,4 +1,8 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-trixie
+
+# Native Render-Laufzeiten bereiten den signierten Client lokal vor; im Container kommt er aus APT.
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app

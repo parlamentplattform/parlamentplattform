@@ -48,9 +48,8 @@ case "$befehl" in
   probe)
     datei="${2:?Sicherungsdatei fehlt}"
     : "${POSTGRES_HOST:?}" "${POSTGRES_DB:?}" "${POSTGRES_USER:?}"
-    if [ -f "$datei.sha256" ]; then
-      (cd "$(dirname "$datei")" && sha256sum --check --quiet "$(basename "$datei").sha256")
-    fi
+    [ -f "$datei.sha256" ] || { echo 'FEHLER: Prüfsummendatei fehlt.' >&2; exit 1; }
+    (cd "$(dirname "$datei")" && sha256sum --check --quiet "$(basename "$datei").sha256")
     if ! PGPASSWORD="${POSTGRES_PASSWORD:-}" pg_restore --no-owner --no-privileges --exit-on-error \
         --host="$POSTGRES_HOST" --port="${POSTGRES_PORT:-5432}" --username="$POSTGRES_USER" \
         --dbname="$POSTGRES_DB" "$datei" 2> "$fehlerdatei"; then

@@ -19,9 +19,15 @@ WIEN = ZoneInfo("Europe/Vienna")
 
 def test_der_stichtag_ist_der_wiener_kalendertag_nicht_das_utc_datum(ordnung, settings):  # noqa: F811
     settings.DDOE_UEBERGANGSREGEL = False  # die Anwartschaft nach § 4 Abs 4 gilt voll
-    antrag = antrag_einbringen(mitglied_anlegen("stellerin"), **ANTRAG, ordnung=ordnung)
+    stellerin = mitglied_anlegen("stellerin")
+    stellerin.beitritt = date(2026, 1, 1)
+    stellerin.save(update_fields=["beitritt"])
+    antrag = antrag_einbringen(stellerin, **ANTRAG, ordnung=ordnung)
     for name in ("u1", "u2"):
-        antrag.unterstuetzungen.create(mitglied=mitglied_anlegen(name))
+        person = mitglied_anlegen(name)
+        person.beitritt = date(2026, 1, 1)
+        person.save(update_fields=["beitritt"])
+        antrag.unterstuetzungen.create(mitglied=person)
     antrag.fortschreiben()
     assert antrag.phase == "beratung"
     # Anwartschaft für Sachfragen: drei Monate — am 1.7. erfüllt, am 30.6. noch nicht.

@@ -9,6 +9,7 @@ from hypothesis import strategies as st
 
 from plattform_core.modellantwort import (
     HOECHSTFEHLER,
+    HOECHSTTIEFE,
     HOECHSTZEICHEN,
     VERSION,
     pruefen,
@@ -120,6 +121,13 @@ def test_maskiertes_unpaariges_unicode_ist_ebenfalls_keine_gueltige_textangabe()
     bef = pruefen(json.dumps(daten))
     assert {"pfad": "$.hinweis", "code": "kodierung"} in bef["fehler"]
     assert bef["antwort_sha256"] and not bef["gueltig"]
+
+
+@pytest.mark.parametrize("vorwort", ["]" * 40, "}" * 40])
+def test_falsche_schliessklammern_im_vortext_senken_die_tiefe_nicht(vorwort):
+    roh = vorwort + '{"normen":[],"zusatz":' + '[' * (HOECHSTTIEFE + 1) + '0' + ']' * (HOECHSTTIEFE + 1) + '}'
+    bef = pruefen(roh)
+    assert not bef["gueltig"] and bef["fehler"][0]["code"] == "tiefe"
 
 
 _json = st.recursive(st.none() | st.booleans() | st.integers() | st.text(max_size=25),

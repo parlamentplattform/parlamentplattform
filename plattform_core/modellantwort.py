@@ -74,7 +74,8 @@ def _zu_tief(text):
             if tiefe > HOECHSTTIEFE:
                 return True
         elif zeichen in "]}":
-            tiefe -= 1
+            # Ungültiger Vortext darf späteren JSON-Strukturen keinen Tiefenrabatt geben.
+            tiefe = max(0, tiefe - 1)
     return False
 
 

@@ -46,3 +46,10 @@ def test_tolerantes_lesen_umgeht_keine_mehrdeutigkeit_oder_nicht_json_zahl(roh):
     assert gelesen["roh"] and gelesen["normen"] == []
     assert not gelesen["formatpruefung"]["gueltig"]
 
+
+def test_schliessklammern_im_vorwort_sind_kein_tiefenrabatt_fuer_die_nachlese():
+    roh = ']' * 40 + '{"normen":[],"zusatz":' + '[' * (HOECHSTTIEFE + 1) + '0' + ']' * (HOECHSTTIEFE + 1) + '}'
+    gelesen = antwort_parsen(roh)
+    assert gelesen["roh"] and gelesen["normen"] == []
+    assert gelesen["formatpruefung"]["fehler"][0]["code"] == "tiefe"
+

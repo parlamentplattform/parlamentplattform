@@ -366,6 +366,13 @@ class Entwurf(models.Model):
                 "weg": "pruefung" if self.vollzugsbezug else "unterstuetzer",
             }
         )
+        if fassung is not None:
+            from ki.models import Zweck
+            from ki.warteschlange import einreihen_ohne_hemmung
+
+            einreihen_ohne_hemmung(
+                Zweck.RECHTSBEZUG, self.antrag, fassung.verfasst_von, vorschlagsfassung=fassung,
+            )
         return True
 
     def pruefbeschluss_anlegen(self, jetzt=None):

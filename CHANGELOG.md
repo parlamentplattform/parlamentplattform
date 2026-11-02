@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.53.1] — 2026-11-02 · Monatssicherung über das interne Render-Netz
+
+- Datenbankexport einmal pro Kalendermonat im bestehenden Render-Dienst. Keine zusätzliche Instanz und keine externe Datenbankfreigabe. Fehlversuche werden wiederholt; ein eigener Faden hält weder Fristen-Wächter noch Postausgang auf.
+- Konsistenter Snapshot für Dump und Kontrollzahlen, weiterhin ohne Sitzungen und Anmeldelinks. Upload mit Prüfsumme ausschließlich in das private Sicherungsrepository; Veröffentlichung erst nach vollständiger Übertragung. Monatssicherungen bleiben ein Jahr.
+- GitHub benötigt keine Datenbank-Zugangsdaten mehr. Monatliche unabhängige Kontrolle und Wiederherstellungsprobe bleiben bestehen; der öffentliche Status nennt ausschließlich Erfolg und Zeitpunkt.
+- PostgreSQL-17-Client aus signierten Paketen für die native Render-Laufzeit; CI prüft Bereitstellung ohne Rootrechte und einen echten Export mit Wiederherstellung.
+
 ## [0.53.0] — 2026-09-30 · Sitzungsmodus
 
 ### Hinzugefügt

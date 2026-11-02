@@ -63,6 +63,10 @@ services:
         sync: false
       - key: DDOE_SMTP_PASSWORT
         sync: false
+      - key: DDOE_SICHERUNG_TOKEN
+        sync: false
+      - key: DDOE_SICHERUNG_REPOSITORY
+        value: parlamentplattform/sicherung
       - key: POSTGRES_HOST
         fromDatabase:
           name: plattform-db

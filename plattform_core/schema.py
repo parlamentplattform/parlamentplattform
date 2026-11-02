@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.14"
+SCHEMA_VERSION = "1.15"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,6 +25,10 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "faktenbasis-manuelle-abrufe-je-stunde": (
+        "sources.manual_requests_per_hour", "requests/hour",
+        "Shared hourly limit for explicit RIS metadata and document requests; zero disables requests",
+    ),
     "ki-einschaetzungen-je-seite": (
         "ai.assessments_per_page", "runs", "Earlier legal-impact assessments per motion page (1 to 100)",
     ),

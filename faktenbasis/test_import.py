@@ -15,10 +15,11 @@ from faktenbasis.importieren import importieren
 from faktenbasis.models import Norm, RisImport
 from faktenbasis.ris import RisFehler, antwort_parsen
 from faktenbasis.test_ris import NUMMER, STAND, beispiel
+from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from parameter.models import Parameter
 from verfahren.models import AuditEintrag
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("abrufuhr")]
 
 
 @pytest.fixture

@@ -117,3 +117,20 @@ class NormTextAbruf(Schnappschuss):
 
     def __str__(self):
         return f"Dokumenttext-Abruf {self.pk}: Norm {self.norm_id} ({self.beendet_am})"
+
+
+class AbrufSperre(models.Model):
+    """Betrieblicher Abrufschutz, kein Fakten- oder Verfahrens-Schnappschuss."""
+
+    name = models.CharField(max_length=20, primary_key=True)
+    stunde = models.PositiveIntegerField(default=0)
+    anzahl = models.PositiveIntegerField(default=0)
+    gesperrt_bis = models.DateTimeField(null=True, blank=True)
+    sperrcode = models.CharField(max_length=32, blank=True)
+
+    class Meta:
+        verbose_name = _("RIS-Abrufschutz")
+        verbose_name_plural = _("RIS-Abrufschutz")
+
+    def __str__(self):
+        return f"RIS-Abrufschutz: {self.name}"

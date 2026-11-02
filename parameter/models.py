@@ -189,6 +189,14 @@ INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0
 
 ERSTBESTAND = [
     {
+        "schluessel": "faktenbasis-manuelle-abrufe-je-stunde",
+        "wert": "10",
+        "einheit": gettext_noop("Abrufe/Stunde"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Gemeinsame Stundenobergrenze für ausdrücklich ausgelöste RIS-Einzelabrufe von Metadaten und Dokumenttexten. Null sperrt weitere Abrufe."),
+        "quelle": "Betriebsgrenze für amtliche Einzelabrufe",
+    },
+    {
         "schluessel": "faktenbasis-seitengroesse",
         "wert": "20",
         "einheit": gettext_noop("Schnappschüsse"),

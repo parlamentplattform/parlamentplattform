@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.14** (2.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.15** (2.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -256,6 +256,7 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Version | Datum | Plattform | Änderung |
 |---|---|---|---|
+| 1.15 | 2.11.2026 | 0.59.0 | sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste amtliche Metadaten- und Dokumenttextabrufe; null sperrt. Keine Verfahrensregel. |
 | 1.14 | 2.11.2026 | 0.58.0 | ai.assessments_per_page: frühere Rechtsbezug-Läufe je Seite am Antrag; Exporte bleiben vollständig. Kein Verfahrensparameter und keine Änderung bestehender Ordnungen. |
 | 1.0 | 3.9.2026 | 0.36.0 | Erste Fassung: Kopf, 5 Register-Kennungen (`draft_loop.review_days`, `draft_loop.revision_days`, `draft_loop.max_rounds`, `bodies.role_term_days`, `ai.monthly_token_budget`), 7 Kennungen der Verfahrensordnung, 7 Kennzahlen, Prüfregeln. Mit 0.39.0 (4.9.2026) kamen `draft_loop.acceptance_percent` und `draft_loop.chat_ordering_version` hinzu, ohne dass die Version stieg |
 | 1.1 | 5.9.2026 | 0.41.0 | 25 Register-Kennungen: die Stellgrößen des Verfahrens (`support.threshold`, `support.window_days`, `vote.window_days`, `vote.min_turnout_percent`, `motion.resubmission_block_months`, `council.first_draft_days`), der Lebensbereiche und Fächer (`areas_of_life.*`, `areas_fan.*`), der Beratung und des Chats (`deliberation.*`, `chat.*`-Vorläufer, `conversations.list_limit`, `draft_loop.criticism_min_chars`), der Ähnlichkeitsprüfung (`similarity.*`), des WeicherFilters (`soft_filter.*`), der Kacheln und des Archivs (`tiles.*`, `archive.audit_display_limit`), des Anstoß-Widgets (`feedback.*`) und des Modell-Steckplatzes (`ai.max_response_tokens`). **Zugleich wurden drei Kennungen aus 1.0 umbenannt** — `draft_loop.review_days` → `support.review_days`, `draft_loop.revision_days` → `council.rework_days`, `draft_loop.max_rounds` → `council.max_rounds` —, ohne dass das damals hier oder im Änderungsprotokoll stand. Nach der eigenen Regel wäre das eine Hauptversion gewesen; es blieb bei der Nebenversion, weil noch keine Partnerinstanz Exporte las. Die alten Namen gelten nicht mehr |
@@ -269,3 +270,5 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
 | 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und fünf Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) und `audit.head_entry` (seine laufende Nummer) |
 | 1.11 | 30.9.2026 | 0.53.0 | `live.refresh_seconds` (wie oft sich die Live-Seite einer laufenden Sitzung neu lädt, FB-L5) und `live.max_session_hours` (nach wie vielen Stunden eine nicht beendete Sitzung als beendet gilt). Beide gehören zum Sitzungsmodus der Mandatsträger; die Livemeldungen selbst stehen in `/rechenschaft.json` (Abschnitt 5) |
+
+Seit1.15 enthält das Register sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste RIS-Einzelbezüge von Metadaten und Dokumenttexten. Anfangswert10, null sperrt weitere Abrufe. Reservierung, UTC-Kalenderstunde und Mindestabstand sind in docs/FAKTENBASIS.md beschrieben. Es ist kein Ordnungsschlüssel und kein Bestandteil einer eingefrorenen Verfahrensordnung.

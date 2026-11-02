@@ -9198,3 +9198,58 @@ msgstr "Previous legal-impact assessments per motion page (1 to 100)."
 
 msgid "zu Ihrem Antrag liegt eine KI-Einschätzung vor, welche Gesetze betroffen sein könnten:"
 msgstr "an AI assessment is available for your motion, suggesting which laws might be affected:"
+
+
+msgid "Amtliche Quelle übernehmen"
+msgstr "Import an official source"
+
+msgid "Bitte genau acht Ziffern eingeben."
+msgstr "Please enter exactly eight digits."
+
+msgid "Das gemeinsame Stundenkontingent für Quellenabrufe ist ausgeschöpft oder gesperrt."
+msgstr "The shared hourly allowance for source requests has been exhausted or disabled."
+
+msgid "Der amtliche Dokumenttext wurde übernommen. Frühere Texte bleiben erhalten."
+msgstr "The official document text has been imported. Previous texts remain available."
+
+msgid "Die Quelle konnte nicht übernommen werden. Bereits gespeicherte Angaben bleiben erhalten."
+msgstr "The source could not be imported. Previously stored information remains available."
+
+msgid "Die achtstellige Gesetzesnummer aus dem RIS, keine Dokumentnummer oder Internetadresse."
+msgstr "The eight-digit law number from RIS, not a document number or web address."
+
+msgid "Die Übernahme bestätigt keine rechtliche Antragszuordnung. Es werden keine Modellaufrufe ausgelöst."
+msgstr "Importing a source does not verify its legal relevance to a motion. No model calls are triggered."
+
+msgid "Diesen Dokumenttext einmal abrufen"
+msgstr "Retrieve this document text once"
+
+msgid "Ein Abruf übernimmt höchstens zehn Dokumente des konsolidierten Bundesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern."
+msgstr "One request imports at most ten documents of consolidated federal law for one law number and reference date. Only metadata is imported initially. You can then request an individual document text on its page."
+
+msgid "Ein Quellenabruf läuft noch oder ist gerade beendet worden. Bitte kurz warten."
+msgstr "A source request is still running or has just finished. Please wait briefly."
+
+msgid "Gemeinsame Grenze: %(stundenkontingent)s Abrufe je Stunde für Metadaten und Dokumenttexte zusammen. Gleichzeitige Abrufe sind gesperrt; nach jedem Abruf sind mindestens zwei Sekunden Abstand einzuhalten."
+msgstr "Shared limit: %(stundenkontingent)s requests per hour for metadata and document texts together. Concurrent requests are blocked; each request must be followed by a gap of at least two seconds."
+
+msgid "Metadaten einmal abrufen"
+msgstr "Retrieve metadata once"
+
+msgid "Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse."
+msgstr "Metadata imported: %(gelesen)s documents read, %(neu)s new snapshots."
+
+msgid "RIS-Abrufschutz"
+msgstr "RIS request protection"
+
+msgid "Abrufe/Stunde"
+msgstr "requests/hour"
+
+msgid "Gemeinsame Stundenobergrenze für ausdrücklich ausgelöste RIS-Einzelabrufe von Metadaten und Dokumenttexten. Null sperrt weitere Abrufe."
+msgstr "Shared hourly limit for explicitly requested individual RIS metadata and document texts. Zero disables further requests."
+
+msgid "Amtliche Metadaten und einzelne Dokumenttexte ausdrücklich übernehmen"
+msgstr "Explicitly import official metadata and individual document texts"
+
+msgid "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "
+msgstr "Version 10 adds explicitly requested individual official sources for administrators (0.59): existing permissions, shared allowance and immutable source records. "

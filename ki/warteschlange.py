@@ -62,8 +62,28 @@ def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuft
     """Idempotent je Antrag, Zweck und Fassung: Wer zweimal einreiht, bekommt denselben Auftrag."""
     if zweck not in ZWECKE:
         raise ValueError(f"Unbekannter Zweck für die Warteschlange: {zweck}")
+    from verfahren.models import Antragsart
+
+    if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
+        raise ValueError("Über Personen rechnet die Zukunftswerkstatt nicht.")
     if vorschlagsfassung is not None and zweck != Zweck.RECHTSBEZUG:
         raise ValueError("Vorschlagsfassungen gehören nicht in den Nummernraum der Textvektoren.")
+    if vorschlagsfassung is not None:
+        from gremien.models import EntwurfsFassung
+
+        quelle = EntwurfsFassung.objects.select_related("entwurf").filter(
+            pk=vorschlagsfassung.pk, entwurf__antrag_id=antrag.pk,
+        ).first()
+        if quelle is None:
+            raise ValueError("Die Vorschlagsfassung gehört nicht zu diesem Antrag.")
+        if quelle.entwurf.eingereichte_fassung != quelle.nummer:
+            vorhanden = KIAuftrag.objects.filter(
+                zweck=zweck, antrag=antrag, quellenart="vorschlag", vorschlagsfassung=quelle,
+            ).first()
+            if vorhanden is not None:
+                return vorhanden
+            raise ValueError("Nur eine eingereichte Vorschlagsfassung darf öffentlich beauftragt werden.")
+        vorschlagsfassung = quelle
     from ki.kontext import festhalten
 
     kontext = festhalten(antrag, vorschlagsfassung=vorschlagsfassung)

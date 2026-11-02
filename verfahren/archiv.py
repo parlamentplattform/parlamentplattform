@@ -403,6 +403,7 @@ def audit_anzahl(antrag) -> int:
 
 def archiv(antrag) -> dict:
     """Das ganze Archiv eines Antrags als schlichte Abbildung — Grundlage für Anzeige und Export."""
+    from ki.nachlese import antrag_export
     from verfahren.einbringwahl import einstufungen
     fassungen = [
         {
@@ -426,6 +427,7 @@ def archiv(antrag) -> dict:
         },
         "fassungen": fassungen,
         "eigenstaendigkeit": einstufungen(antrag),
+        "rechtsbezug": antrag_export(antrag),
         "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
@@ -568,6 +570,16 @@ def als_markdown(antrag) -> str:
             zeilen += [f"### {_('Entwurfsfassung')} {f['nummer']} · {f['verfasst_von']}", "", f["wortlaut"], ""]
         for p in e["pruefungen"]:
             zeilen += [f"- {_('Prüfung')} ({p['ergebnis']}): {p['begruendung']}", ""]
+    if d["rechtsbezug"]["laeufe"]:
+        zeilen += [f"## {_('Einschätzungen und Textstände')}", ""]
+        for lauf in d["rechtsbezug"]["laeufe"]:
+            zeilen += [
+                f"### {_('Lauf')} #{lauf['id']} · {lauf['modell']} · {lauf['auftrag_version']} · {lauf['erstellt_am']}",
+                "", f"{_('Kontext-Prüfsumme (SHA-256)')}: {lauf['kontext'].get('text', {}).get('sha256', '—')}",
+                "", str(_("Tatsächlich verwendeten Text nachlesen")), "",
+                lauf["eingabe"], "", lauf["antwort"] if lauf["erfolgreich"] else lauf["fehler"], "",
+            ]
+        zeilen += [str(_("KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren.")), ""]
     if d["audit"]:
         zeilen += [f"## {_('Audit-Spur')}", ""]
         zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]

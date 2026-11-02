@@ -1,6 +1,6 @@
 {% load i18n %}{% autoescape off %}{% blocktranslate %}Guten Tag {{ name }},{% endblocktranslate %}
 
-{% blocktranslate %}die Zukunftswerkstatt hat geprüft, welche Gesetze Ihr Antrag berühren würde:{% endblocktranslate %}
+{% blocktranslate %}zu Ihrem Antrag liegt eine KI-Einschätzung vor, welche Gesetze betroffen sein könnten:{% endblocktranslate %}
 
 {% translate "Antrag:" %} {{ titel }}
 {% if normen %}{% for n in normen %}
@@ -12,6 +12,7 @@
 {% endif %}
 {% translate "Unsicherheit:" %} {{ unsicherheit }}
 {% translate "Stand:" %} {{ stand }}{% if fassung %} · {% blocktranslate with n=fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% endif %}
+{{ textstand.quelle }}{% if textstand.festgehalten %} · {% translate "Kontext-Prüfsumme (SHA-256)" %}: {{ textstand.hash }}{% endif %}
 
 {% translate "Zur Antragsseite:" %} {{ link }}
 

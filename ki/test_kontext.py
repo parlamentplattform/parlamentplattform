@@ -22,10 +22,13 @@ def antrag(ordnung):  # noqa: F811
 
 def vorschlag(antrag):
     entwurf, _ = Entwurf.objects.get_or_create(antrag=antrag)
-    return EntwurfsFassung.objects.create(
+    fassung = EntwurfsFassung.objects.create(
         entwurf=entwurf, nummer=1, wortlaut="Wortlaut des Expertenrats",
         begruendung="Begründung des Vorschlags", verfasst_von=antrag.eingebracht_von,
     )
+    entwurf.eingereichte_fassung = fassung.nummer
+    entwurf.save(update_fields=["eingereichte_fassung"])
+    return fassung
 
 
 def test_gleichlautende_nummern_bleiben_unterschiedliche_quellen(antrag):

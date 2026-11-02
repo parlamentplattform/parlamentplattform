@@ -14,6 +14,7 @@ JavaScript die Seite mit geöffnetem Block; der Export trägt immer alles.
     <p class="archiv-export">
       <a class="btn-linie klein" href="{% url 'verfahren:archiv_export' antrag.pk 'json' %}">{% translate "Als JSON" %}</a>
       <a class="btn-linie klein" href="{% url 'verfahren:archiv_export' antrag.pk 'md' %}">{% translate "Als Markdown" %}</a>
+      {% if einschaetzung %}<a class="btn-linie klein" href="?einschaetzungen=1#zone-einschaetzung">{% translate "Einschätzungen und Textstände" %}</a>{% endif %}
     </p>
   </div>
 

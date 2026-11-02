@@ -8085,9 +8085,6 @@ msgstr "to be repealed"
 msgid "berührt"
 msgstr "affected"
 
-msgid "die Zukunftswerkstatt hat geprüft, welche Gesetze Ihr Antrag berühren würde:"
-msgstr "the Zukunftswerkstatt has checked which laws your motion would affect:"
-
 msgid "erledigt:"
 msgstr "done:"
 
@@ -9155,3 +9152,49 @@ msgstr "Successful"
 
 msgid "Fehlgeschlagen"
 msgstr "Failed"
+
+
+msgid "Vorschlag des Expertenrats"
+msgstr "Expert council proposal"
+
+msgid "Textquelle nicht eigens festgehalten"
+msgstr "Text source not separately recorded"
+
+msgid "Textkontext nicht prüfbar"
+msgstr "Text context cannot be verified"
+
+msgid "Der gespeicherte Textkontext bleibt unverändert."
+msgstr "The stored text context cannot be changed."
+
+msgid "Textstand festgehalten am"
+msgstr "Text snapshot recorded on"
+
+msgid "Kontext-Prüfsumme (SHA-256)"
+msgstr "Context checksum (SHA-256)"
+
+msgid "Tatsächlich verwendeten Text nachlesen"
+msgstr "Read the text actually used"
+
+msgid "Frühere Einschätzungen und Fehlversuche"
+msgstr "Previous assessments and failed attempts"
+
+msgid "Jüngster Lauf zuerst; bei gleichem Zeitpunkt höhere Laufnummer zuerst."
+msgstr "Latest run first; for equal timestamps, higher run number first."
+
+msgid "Anbieteraufruf fehlgeschlagen"
+msgstr "Provider call failed"
+
+msgid "Seiten früherer Einschätzungen"
+msgstr "Previous assessment pages"
+
+msgid "Einschätzungen und Textstände"
+msgstr "Assessments and text snapshots"
+
+msgid "Läufe"
+msgstr "runs"
+
+msgid "Anzahl früherer Rechtsbezug-Einschätzungen je Seite am Antrag (1 bis 100)."
+msgstr "Previous legal-impact assessments per motion page (1 to 100)."
+
+msgid "zu Ihrem Antrag liegt eine KI-Einschätzung vor, welche Gesetze betroffen sein könnten:"
+msgstr "an AI assessment is available for your motion, suggesting which laws might be affected:"

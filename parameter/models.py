@@ -189,6 +189,14 @@ INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0
 
 ERSTBESTAND = [
     {
+        "schluessel": "faktenbasis-seitengroesse",
+        "wert": "20",
+        "einheit": gettext_noop("Schnappschüsse"),
+        "gruppe": "ki",
+        "beschreibung": gettext_noop("Anzahl amtlicher Metadaten-Schnappschüsse je Seite der Faktenbasis (1 bis 100)."),
+        "quelle": "Darstellung der amtlichen Faktenbasis",
+    },
+    {
         "schluessel": "aehnlichkeit-schwelle-prozent",
         "wert": "30",
         "einheit": gettext_noop("Prozent"),

@@ -352,7 +352,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 7
+    assert rollen_regel.fassung == 8
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund

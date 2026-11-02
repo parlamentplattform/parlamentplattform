@@ -45,7 +45,8 @@ def _(text: str) -> str:
 #: Fassung 7 (30.9.2026): der Sitzungsmodus (FB-L5) — Mandatar meldet live und markiert Fragen als
 #: beantwortet, Gast liest Live-Meldungen, Mitglied fragt im Chat der Sitzung, Verwaltung trägt nach
 #: dem Ende der Vertretung Abstimmungen nach (D-L6g).
-VERSION = 7
+#: Fassung 8 (2.11.2026): Herkunft und erhaltene Stände der amtlichen Metadatensammlung nachlesen.
+VERSION = 8
 
 
 class Stand(enum.StrEnum):
@@ -760,7 +761,7 @@ KOORDINATIONSRAT = Rolle(
             titel=_("Aufsicht über Faktenbasis, Parameterregister und Berichte der Zukunftswerkstatt"),
             stand=Stand.TEILWEISE,
             urlname="verfahren:zukunftswerkstatt",
-            einschraenkung=_("Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget und die letzten Läufe; eine Faktenbasis und die Berichte fehlen."),
+            einschraenkung=_("Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe und eine gezielt befüllbare amtliche Metadatensammlung; vollständige Rechtsdaten und Berichte fehlen noch."),
         ),
     ),
 )

@@ -1,0 +1,29 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ norm.kurztitel }}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
+<h1>{{ norm.kurztitel }}</h1>
+<div class="karte">
+  <p>{{ norm.abschnitt }} · {{ norm.typ }} · {{ norm.ris_id }}</p>
+  <p>{% translate "Gesetzesnummer" %}: {{ norm.gesetzesnummer }} · {% translate "Stichtag" %}: {{ norm.stand|date:"d.m.Y" }}</p>
+  <p>{% translate "Importiert am" %}: {{ norm.importlauf.beendet_am|date:"d.m.Y H:i" }}</p>
+  <p>{{ norm.titel }}</p>
+  <p><a href="{{ norm.quelle }}" rel="noopener">{% translate "Amtliches Dokument im RIS öffnen" %} ↗</a></p>
+  <p class="hilfe">{% translate "Metadaten, kein vollständiger Gesetzestext" %}</p>
+  <p class="hilfe">{% translate "Ein amtlicher Fundort bestätigt nicht, dass die Norm für einen Antrag relevant ist oder geändert werden müsste. Diese Zuordnung bleibt ein ungeprüfter Modellvorschlag." %}</p>
+  <p class="hilfe">{% translate "Konsolidierte Texte dienen der Information. Rechtsverbindlich ist die authentische Kundmachung." %}</p>
+  <p class="meta">{% translate "Quelle" %}: RIS / Bundeskanzleramt · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
+</div>
+<details class="karte">
+  <summary>{% translate "Herkunft und Prüfsumme" %}</summary>
+  <p>{% translate "Inhalts-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.inhalt_hash }}</code></p>
+  <p>{% translate "Antwort-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.importlauf.antwort_hash }}</code></p>
+  <p><a href="{% url 'faktenbasis:importantwort' norm.importlauf_id %}">{% translate "Gespeicherte Metadatenantwort herunterladen" %}</a></p>
+  <p class="hilfe">{% translate "Die Prüfsummen beziehen sich auf JSON mit sortierten Schlüsseln, ohne zusätzliche Leerzeichen, als UTF-8 mit unmaskierten Unicode-Zeichen." %}</p>
+  <pre class="fakten-rohdaten">{{ rohdaten }}</pre>
+</details>
+<div class="karte">
+  <h2>{% translate "Erhaltene Schnappschüsse dieses Dokuments" %}</h2>
+  <ul>{% for f in fassungen %}<li><a href="{% url 'faktenbasis:norm' f.pk %}">{{ f.stand|date:"d.m.Y" }} · {{ f.inhalt_hash|slice:":12" }}</a></li>{% endfor %}</ul>
+</div>
+{% endblock %}

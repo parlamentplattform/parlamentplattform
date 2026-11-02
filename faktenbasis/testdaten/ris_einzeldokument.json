@@ -1,0 +1,79 @@
+{
+  "OgdSearchResult": {
+    "OgdDocumentResults": {
+      "Hits": {
+        "@pageNumber": "1",
+        "@pageSize": "10",
+        "#text": "1"
+      },
+      "OgdDocumentReference": {
+        "Data": {
+          "Metadaten": {
+            "Technisch": {
+              "ID": "NOR11000363",
+              "Applikation": "BrKons",
+              "Organ": "BKA (Bundeskanzleramt)",
+              "ImportTimestamp": {
+                "@xsi:nil": "true",
+                "@xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance"
+              }
+            },
+            "Allgemein": {
+              "Geaendert": "2025-10-02",
+              "DokumentUrl": "https://ogd.ris.bka.gv.at/eli/bgbl/1962/215/P0/NOR11000363"
+            },
+            "Bundesrecht": {
+              "Kurztitel": "Abänderung des Bundes-Verfassungsgesetzes in der Fassung von 1929 hinsichtlich des Schulwesens",
+              "Titel": "Bundesverfassungsgesetz vom 18. Juli 1962, mit dem das Bundes-Verfassungsgesetz in der Fassung von 1929 hinsichtlich des Schulwesens abgeändert wird.<br/>StF: BGBl. Nr. 215/1962 (NR: GP IX RV 730 AB 777 S. 106. BR: S. 194.)",
+              "Eli": "https://ris.bka.gv.at/eli/bgbl/1962/215/P0/NOR11000363",
+              "BrKons": {
+                "Kundmachungsorgan": "BGBl. Nr. 215/1962",
+                "Typ": "BVG",
+                "Dokumenttyp": "Norm",
+                "ArtikelParagraphAnlage": "§ 0",
+                "Paragraphnummer": "0",
+                "StammnormPublikationsorgan": "BGBl. Nr.",
+                "StammnormBgblnummer": "215/1962",
+                "Inkrafttretensdatum": "1962-07-18",
+                "Indizes": {
+                  "item": "10/02 Novellen zum B-VG, Ämter der Landesregierungen"
+                },
+                "Aenderung": "BGBl. I Nr. 2/2008 (1. BVRBG) (NR: GP XXIII RV 314 AB 370 S. 41. BR: 7799 AB 7830 S. 751.)\r\nBGBl. I Nr. 164/2013 (NR: GP XXIV RV 2412 AB 2498 S. 215. BR: 9048 AB 9097 S. 823.)\r\nBGBl. I Nr. 138/2017 (NR: GP XXV IA 2254/A AB 1707 S. 188. BR: AB 9852 S. 871.)",
+                "Schlagworte": "e-rk3<br/>Schulbehörden – Verwaltungsreformgesetz 2013 (BGBl. I Nr. 164/2013), Bildungsreformgesetz 2017 (BGBl. I Nr. 138/2017)",
+                "Gesetzesnummer": "10000362",
+                "AlteDokumentnummer": "N1196210465S",
+                "GesamteRechtsvorschriftUrl": "https://ogd.ris.bka.gv.at/GeltendeFassung.wxe?Abfrage=Bundesnormen&Gesetzesnummer=10000362"
+              }
+            }
+          },
+          "Dokumentliste": {
+            "ContentReference": {
+              "ContentType": "MainDocument",
+              "Name": "Hauptdokument",
+              "Urls": {
+                "ContentUrl": [
+                  {
+                    "DataType": "Xml",
+                    "Url": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR11000363/NOR11000363.xml"
+                  },
+                  {
+                    "DataType": "Html",
+                    "Url": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR11000363/NOR11000363.html"
+                  },
+                  {
+                    "DataType": "Rtf",
+                    "Url": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR11000363/NOR11000363.rtf"
+                  },
+                  {
+                    "DataType": "Pdf",
+                    "Url": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR11000363/NOR11000363.pdf"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

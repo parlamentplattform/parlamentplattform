@@ -59,7 +59,7 @@ def test_ein_umformulierter_antrag_bekommt_den_hinweis_mit_wortvergleich(client,
     inhalt = antwort.content.decode()
     assert "Wortvergleich" in inhalt and "Bedeutung " not in inhalt
     assert "der Modell-Steckplatz war stumm" in inhalt  # ehrlich gesagt, nicht verschwiegen
-    assert "Trotzdem einbringen" in inhalt
+    assert "Mein Antrag ist etwas anderes — einbringen" in inhalt
 
 
 def test_die_schwelle_kommt_aus_dem_register(client, bestehend):

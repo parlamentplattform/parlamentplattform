@@ -15,6 +15,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from math import ceil
+
+from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.models import einbettung_ausfuehren
@@ -124,8 +127,8 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     }
 
 
-def aehnliche_antraege(titel: str, wortlaut: str, mitglied) -> Ergebnis:
-    """Beide Stufen für einen neuen Text gegen die offenen Anträge."""
+def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool = True) -> Ergebnis:
+    """Beide Stufen; mit bedeutung=False ruft die lokale Vorschau keinen Anbieter auf."""
     from ki.rechtsbezug import rechtsbezug_fuer
 
     ergebnis = Ergebnis()
@@ -136,7 +139,7 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied) -> Ergebnis:
         a.pk: aehnlichkeit((titel, wortlaut), (a.titel, _fassung(a).wortlaut if _fassung(a) else ""))
         for a in offene
     }
-    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", offene, mitglied, ergebnis)
+    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", offene, mitglied, ergebnis) if bedeutung else {}
     zeilen = vereinigen(
         wortwerte,
         bedeutungswerte,
@@ -146,14 +149,18 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied) -> Ergebnis:
     )
     nach_id = {a.pk: a for a in offene}
     for kid, wort, bedeutung in zeilen:
+        from verfahren.views import _frist_fuer
+
         antrag = nach_id[kid]
         rechtsbezug = rechtsbezug_fuer(antrag)
+        frist = _frist_fuer(antrag)
         ergebnis.treffer.append(
             {
                 "antrag": antrag,
                 "prozent": round(wort * 100),
                 "bedeutung_prozent": round(bedeutung * 100) if bedeutung is not None else None,
                 "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
+                "rest_tage": max(0, ceil((frist - timezone.now()).total_seconds() / 86400)) if frist else None,
                 "normen": rechtsbezug["normen"] if rechtsbezug else [],
                 "rechtsbezug": rechtsbezug,
             }

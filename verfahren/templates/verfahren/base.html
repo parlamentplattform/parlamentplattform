@@ -808,6 +808,18 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 .normen .badge{font-size:11px;padding:2px 8px;letter-spacing:.06em;margin-left:4px}
 .erbschaft>summary{font-size:13.5px}
 .auftragstext{white-space:pre-wrap;font-size:13px;line-height:1.45;margin:8px 0 0;max-height:320px;overflow:auto}
+.einbringen-raster{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:24px;align-items:start}
+.einbringen-form{display:contents}
+.einbringen-oben{grid-column:1;grid-row:1}
+.einbringen-unten{grid-column:1;grid-row:2}
+#aehnliche-vorschau{grid-column:2;grid-row:1/3}
+.einbringen-oben,.einbringen-unten,#aehnliche-vorschau,#aehnliche-inhalt{min-width:0}
+.einbringwahl-knopf{width:100%;margin-top:6px}
+#aehnliche-inhalt h2{margin-top:0}
+.vergleich-ring{float:right;width:40px;height:40px;margin-left:8px;fill:none;stroke-width:3;transform:rotate(-90deg)}
+.vergleich-ring .bahn{stroke:var(--line)}
+.vergleich-ring .wert{stroke:var(--gold)}
+@media(max-width:900px){.einbringen-raster{grid-template-columns:minmax(0,1fr);gap:12px}.einbringen-oben,.einbringen-unten,#aehnliche-vorschau{grid-column:1;grid-row:auto}}
 .neu-band a{color:inherit;text-decoration:none}.neu-band a:hover{text-decoration:underline}
 .skelett-karte{flex:none;width:52px;height:34px;border-radius:8px;background:var(--surface-2);border:1px dashed var(--line)}
 @media(min-width:1100px){

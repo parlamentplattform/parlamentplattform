@@ -14,6 +14,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -29,6 +30,14 @@ from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
 from verfahren.aehnlichkeit import aehnliche_antraege
+from verfahren.einbringwahl import (
+    direkt_unterstuetzen,
+    einstufung_festhalten,
+    einstufungen,
+    pruefstand_fuer,
+    pruefstand_lesen,
+    pruefung_aus_stand,
+)
 from verfahren.hinweise import (
     kachel_feld,
     mitwirkungssperre,
@@ -233,41 +242,64 @@ def einbringen(request):
     if ordnung is None:
         return render(request, "verfahren/keine_ordnung.html", status=503)
 
-    aehnliche = []
     pruefung = None  # das Ergebnis beider Ähnlichkeitsstufen (verfahren/aehnlichkeit.py)
+    form = AntragsFormular(request.POST if request.method == "POST" else None, mitglied=request.user)
+
+    def seite(ergebnis=None, token="", bestaetigung=None):
+        return render(request, "verfahren/einbringen.html", {
+            "form": form, "aehnliche": ergebnis.treffer if ergebnis else [],
+            "pruefung": ergebnis, "pruefstand": token, "bestaetigung": bestaetigung,
+            "vorschau_geprueft": ergebnis is not None,
+            "ordnung": ordnung, "ki_anbieter": _ki_anbieter_name(),
+            "vorschau_wartezeit": max(0, zahl("aehnlichkeit-vorschau-wartezeit-ms", 800)),
+            "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
+        })
+
     if request.method == "POST":
-        form = AntragsFormular(request.POST, mitglied=request.user)
         if form.is_valid():
             d = form.cleaned_data
+            daten = {**d, "gebiet": form.gebiet()}
+            token = request.POST.get("pruefstand", "")
+            stand = pruefstand_lesen(token, daten, request.user) if token else None
+            wahl = request.POST.get("unterstuetzen") or request.POST.get("unterstuetzen_bestaetigt")
+            if wahl or request.POST.get("vergleich_zurueck") or (request.POST.get("trotzdem") and token):
+                if stand is None or d["art"] != Antragsart.SACHE:
+                    form.add_error(None, _("Der Text oder die Auswahl hat sich geändert. Bitte prüfen Sie die Treffer erneut."))
+                    lokal = aehnliche_antraege(d["titel"], d["wortlaut"], request.user, bedeutung=False)
+                    return seite(lokal, pruefstand_fuer(daten, request.user, lokal))
+                pruefung = pruefung_aus_stand(stand)
+                if wahl:
+                    treffer = next((t for t in pruefung.treffer if str(t["antrag"].pk) == wahl), None)
+                    if treffer is None:
+                        form.add_error(None, _("Bitte wählen Sie einen der angezeigten Anträge."))
+                        return seite(pruefung, token)
+                    if request.POST.get("unterstuetzen_bestaetigt"):
+                        ziel = direkt_unterstuetzen(request.user, treffer["antrag"].pk)
+                        if ziel is not None:
+                            messages.success(request, _("Ihre Unterstützung ist erfasst. Ihr eigener Text wurde nicht eingebracht."))
+                            return redirect(reverse("verfahren:antrag", args=[ziel.pk]) + "#zone-einschaetzung")
+                        form.add_error(None, _("Dieser Antrag sammelt keine Unterstützung mehr. Ihr eigener Text bleibt erhalten."))
+                        return seite(pruefung, token)
+                    return seite(pruefung, token, treffer["antrag"])
+                if request.POST.get("vergleich_zurueck"):
+                    return seite(pruefung, token)
             # Ähnlichkeitshinweis nur für Sachanträge — Kandidaturen für dasselbe
             # Mandat sollen sich am BESTEHENDEN Antrag beteiligen (§ 7 Abs 1);
             # darauf weist die Antragsseite selbst hin.
             if not request.POST.get("trotzdem") and d["art"] == Antragsart.SACHE.value:
                 pruefung = aehnliche_antraege(d["titel"], d["wortlaut"], request.user)
+                stand = None
                 if pruefung.treffer:
                     # § 5 Abs 10 lit d: Übersicht ähnlicher Anträge SAMT Beteiligung —
                     # damit sichtbar ist, wo Unterstützung am meisten bewegt.
-                    return render(
-                        request,
-                        "verfahren/einbringen.html",
-                        {
-                            "form": form,
-                            "aehnliche": pruefung.treffer,
-                            "pruefung": pruefung,
-                            "ordnung": ordnung,
-                            "ki_anbieter": _ki_anbieter_name(),
-                        },
-                    )
-            antrag = antrag_einbringen(
-                request.user,
-                d["titel"],
-                d["wortlaut"],
-                d["begruendung"],
-                ordnung,
-                ebene=d["ebene"],
-                gebiet=form.gebiet(),
-                art=d["art"],
-            )
+                    return seite(pruefung, pruefstand_fuer(daten, request.user, pruefung))
+            with transaction.atomic():
+                antrag = antrag_einbringen(
+                    request.user, d["titel"], d["wortlaut"], d["begruendung"], ordnung,
+                    ebene=d["ebene"], gebiet=form.gebiet(), art=d["art"],
+                )
+                if request.POST.get("trotzdem"):
+                    einstufung_festhalten(antrag, stand)
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
@@ -286,19 +318,33 @@ def einbringen(request):
             # ?neu=1: Die Antragsseite zeigt das Band zur Einschätzung — dort stehen die ersten
             # Informationen der Zukunftswerkstatt (betroffene Gesetze), sobald sie da sind.
             return redirect(reverse("verfahren:antrag", kwargs={"pk": antrag.pk}) + "?neu=1")
-    else:
-        form = AntragsFormular(mitglied=request.user)
-    return render(
-        request,
-        "verfahren/einbringen.html",
-        {
-            "form": form,
-            "aehnliche": aehnliche,
-            "pruefung": pruefung,
-            "ordnung": ordnung,
-            "ki_anbieter": _ki_anbieter_name(),
-        },
-    )
+    return seite()
+
+
+@login_required
+@require_POST
+def einbringen_vorschau(request):
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
+    form = AntragsFormular(request.POST, mitglied=request.user)
+    lage = {
+        "vorschau": True, "aehnliche": [],
+        "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
+    }
+    if form.is_valid() and form.cleaned_data["art"] == Antragsart.SACHE:
+        d = form.cleaned_data
+        laenge = len(d["titel"]) + len(d["wortlaut"])
+        if lage["mindestzeichen"] <= laenge <= max(1, zahl("aehnlichkeit-vorschau-hoechstzeichen", 20000)):
+            pruefung = aehnliche_antraege(d["titel"], d["wortlaut"], request.user, bedeutung=False)
+            lage.update(
+                aehnliche=pruefung.treffer, pruefung=pruefung,
+                vorschau_geprueft=True,
+                pruefstand=pruefstand_fuer({**d, "gebiet": form.gebiet()}, request.user, pruefung),
+            )
+        elif laenge > lage["mindestzeichen"]:
+            lage["vorschau_zu_lang"] = True
+    return render(request, "verfahren/_aehnliche_antraege.html", lage)
 
 
 def _ki_anbieter_name() -> str:
@@ -981,6 +1027,7 @@ def export_json(request, pk):
         "antrag": antrag.pk,
         "titel": antrag.titel,
         "art": antrag.art,
+        "eigenstaendigkeit": einstufungen(antrag),
         "policy": antrag.policy_snapshot,
         "stimmberechtigte": antrag.stimmberechtigte_anzahl,
         "stimmen": [

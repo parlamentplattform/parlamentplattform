@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.55.0] — 2026-11-02 · Ähnliche Anträge prüfen und selbst wählen
+
+- Lokale Ähnlichkeitsvorschau beim Schreiben: nach 800 Millisekunden Pause und ab 40 Zeichen in Titel und Wortlaut zusammen. Drei Vorschaugrenzen stehen im Register; der Bedeutungsvergleich bleibt beim ausdrücklichen Absenden.
+- Einen bestehenden Sachantrag nach ausdrücklicher Rückfrage direkt unterstützen. Wiederholtes Absenden nimmt die Unterstützung nicht zurück; bei Abbruch, verändertem Text oder abgelaufener Phase bleibt der eigene Entwurf erhalten.
+- Wer den eigenen Antrag wählt, kann seine Einstufung gegenüber den angebotenen Anträgen samt damaliger Fassung auf der Antragsseite und im Archiv nachlesen. Die Auswahl ist an Konto und Text gebunden; sie verändert weder Zulassung noch Auszählung. Der Wahlweg funktioniert ohne JavaScript.
+- Schema der Parameter 1.12. Keine zusätzlichen externen Modellaufrufe beim Tippen. Eine vom Modell formulierte Gegenüberstellung bleibt offen.
+
 ## [0.54.1] — 2026-11-02 · Den Auftrag der Werkstatt nachlesen
 
 - Der Auftragstext für die KI-Einschätzung in der Gremien-Werkstatt liegt unverändert als `ki/auftraege/einschaetzung-v1.md` vor und ist auf der öffentlichen Zukunftswerkstatt-Seite nachlesbar.

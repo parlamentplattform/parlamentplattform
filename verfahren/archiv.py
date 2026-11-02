@@ -403,6 +403,7 @@ def audit_anzahl(antrag) -> int:
 
 def archiv(antrag) -> dict:
     """Das ganze Archiv eines Antrags als schlichte Abbildung — Grundlage für Anzeige und Export."""
+    from verfahren.einbringwahl import einstufungen
     fassungen = [
         {
             "nummer": f.nummer,
@@ -424,6 +425,7 @@ def archiv(antrag) -> dict:
             "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         },
         "fassungen": fassungen,
+        "eigenstaendigkeit": einstufungen(antrag),
         "zeitleiste": zeitleiste(antrag, alles=True),
         "entwurf": entwurf_bloecke(antrag),
         "audit": audit_spur(antrag),
@@ -502,6 +504,13 @@ def als_markdown(antrag) -> str:
         "",
     ]
     vf = d.get("vertrauensfrage")
+    if d["eigenstaendigkeit"]:
+        zeilen += [f"## {_('Beim Einbringen als eigenständig eingestuft gegenüber:')}", ""]
+        zeilen += [
+            f"- {v['titel']} ({_('Antrag')} {v['antrag']}, {_('Fassung')} {v['fassung']})"
+            for v in d["eigenstaendigkeit"]
+        ]
+        zeilen.append("")
     if vf:
         # § 7 Abs 10: Wer betroffen ist, die Zahlen des Einbringungstags, keine Beratungsphase, das Ergebnis
         if bestaetigung:

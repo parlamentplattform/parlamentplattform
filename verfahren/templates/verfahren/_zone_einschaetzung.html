@@ -5,6 +5,14 @@ Kontextstand, Lauf und dem Knopf „Beanstanden" (§ 6 Abs 11 lit b). Liegt noch
 zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
 {% endcomment %}
 <h2>{% translate "Einschätzung" %}</h2>
+{% with vermerke=antrag.eigenstaendigkeitsvermerke.all %}
+{% if vermerke %}
+<div class="karte">
+  <h3>{% translate "Beim Einbringen als eigenständig eingestuft gegenüber:" %}</h3>
+  <ul>{% for v in vermerke %}<li><a href="{% url 'verfahren:antrag' v.gegenueber_id %}">{{ v.titel }}</a> · {% translate "Fassung" %} {{ v.fassung_nummer }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% endwith %}
 
 <div class="karte kopfkarte">
   <p class="kennzeichnung">{% translate "Modellrechnung — sie schlägt vor, sie entscheidet nie" %}</p>

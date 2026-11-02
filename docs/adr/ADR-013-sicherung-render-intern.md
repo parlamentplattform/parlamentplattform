@@ -39,6 +39,8 @@ PGDG-Paketindex. Der Repository-Schlüssel wird gegen den veröffentlichten Fing
 APT prüft Paket-Prüfsummen. Pakete werden ohne Rootrechte in ein temporäres eigenes Verzeichnis
 entpackt. Systempakete werden nicht geändert. Docker installiert den Client direkt aus Debian.
 Die Client-Version bleibt 17, damit die unabhängige Wiederherstellungsprobe dasselbe Format liest.
+Für eine Wiederherstellung wird deshalb eine neue PostgreSQL-17-Datenbank verwendet; die
+Rückübertragung eines mit Client 17 erzeugten Dumps in Server 16 ist nicht zugesichert.
 
 Der Token liegt im Render-Webdienst für den Upload und als GitHub-Actions-Secret für die
 Wiederherstellungsprobe. Der frühere `DDOE_SICHERUNG_DATENBANK_URL` wird nicht mehr benötigt.

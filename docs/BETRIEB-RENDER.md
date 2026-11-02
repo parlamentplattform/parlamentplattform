@@ -141,7 +141,9 @@ Prüfsumme, Migrationen und vollständige Audit-Kette müssen stimmen. Fehlschl�
 
 **Wiederherstellen im Ernstfall:**
 
-1. Neue, leere PostgreSQL-Datenbank anlegen (Render oder anderswo) — nie in die laufende einspielen.
+1. Neue, leere PostgreSQL-17-Datenbank anlegen (Render oder anderswo) — nie in die laufende einspielen.
+   Der Export wird mit Client 17 erzeugt; eine Wiederherstellung in einen älteren Server ist nicht
+   zugesichert. Auch die unabhängige Probe verwendet Server und Wiederherstellungswerkzeug 17.
 2. Sicherung holen: `gh release download <name> --repo parlamentplattform/sicherung` (oder über die
    Weboberfläche des Repositorys) und die Prüfsumme vergleichen: `sha256sum --check <name>.dump.sha256`.
 3. Mit den `POSTGRES_*`-Werten der neuen Datenbank: `tools/sicherung.sh probe <name>.dump` — spielt
@@ -155,7 +157,7 @@ Prüfsumme, Migrationen und vollständige Audit-Kette müssen stimmen. Fehlschl�
 | Datum | Quelle | Sicherung | Ergebnis |
 |---|---|---|---|
 | 29.9.2026 | Demo-Datenbank (lokales PostgreSQL 16, `tools/sicherung.sh`) | 351 KB, 7 Anträge, 5 Konten, 50 Audit-Einträge | zurückgespielt in eine leere Datenbank; keine offene Migration; Audit-Kette vollständig intakt, Kopf `6d979b7d…53652f` wie im Original; Zeilenzahlen gleich. Nach der Prüfung erneut: ohne Sitzungen und Anmeldelinks, gleiches Ergebnis |
-| — | Live-Datenbank über Render, unabhängige GitHub-Probe | — | offen bis zur bestätigten ersten Sicherung und Probe; Token muss in Render und GitHub gesetzt sein |
+| laufend | Live-Datenbank über Render, unabhängige GitHub-Probe | [Laufprotokolle](https://github.com/parlamentplattform/parlamentplattform/actions/workflows/sicherung.yml) | Ein grüner vollständiger Lauf bestätigt Status, Prüfsumme, Wiederherstellung, Migrationen und Audit-Kette. Ein grüner Status-Endpunkt allein bestätigt nur den Upload. |
 
 ## Datenschutz-Einordnung
 

@@ -85,37 +85,44 @@ def antwort_parsen(text: str) -> dict:
 
 
 def antrag_eingabe(antrag, fassung_nummer: int | None = None) -> str:
-    """Was der Anbieter zu sehen bekommt: nur, was ohnehin öffentlich auf der Antragsseite steht —
-    mit `fassung_nummer` der Text dieser Fassung (der Auftrag rechnet mit seiner), sonst der jüngste."""
-    fassung = (antrag.fassungen.filter(nummer=fassung_nummer).first() if fassung_nummer else None) or antrag.aktueller_text()
-    teile = [
-        f"Titel: {antrag.titel}",
-        f"Ebene: {antrag.get_ebene_display()}" + (f" ({antrag.gebiet})" if antrag.gebiet else ""),
-        "",
-        "Wortlaut:",
-        fassung.wortlaut if fassung else "",
-    ]
-    if fassung and fassung.begruendung:
-        teile += ["", "Begründung:", fassung.begruendung]
-    return "\n".join(teile)
+    """Eine verlangte erhaltene Fassung; nie auf einen anderen Wortlaut ausweichen."""
+    from ki.kontext import eingabe, festhalten
+
+    return eingabe(festhalten(antrag, fassung_nummer=fassung_nummer))
 
 
-def rechtsbezug_fuer(antrag) -> dict | None:
+def _aktueller_textstand(antrag):
+    from gremien.models import Entwurf
+
+    vorschlag = Entwurf.objects.filter(antrag=antrag).values_list("eingereichte_fassung", flat=True).first()
+    if vorschlag:
+        return "vorschlag", vorschlag
+    return "antrag", antrag.fassungen.order_by("-nummer").values_list("nummer", flat=True).first()
+
+
+def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
     """Der jüngste erfolgreiche Lauf „rechtsbezug“ zu diesem Antrag, geparst — oder None.
     `fassung` ist die Fassung, zu der der Lauf gerechnet hat (aus seinem Auftrag; None ohne Auftrag),
     `frueher` sagt, dass der Antrag inzwischen eine jüngere Fassung hat (§ 6 Abs 11 lit b, Kontextstand)."""
     from ki.models import KILauf, Zweck
 
-    lauf = (
+    lauf = lauf or (
         KILauf.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG, erfolgreich=True)
-        .order_by("-erstellt_am")
+        .prefetch_related("auftraege").order_by("-erstellt_am", "-pk")
         .first()
     )
-    if lauf is None:
+    if lauf is None or lauf.antrag_id != antrag.pk or lauf.zweck != Zweck.RECHTSBEZUG:
         return None
-    ergebnis = antwort_parsen(lauf.antwort)
-    fassung = lauf.auftraege.values_list("fassung_nummer", flat=True).first()
-    aktuell = antrag.aktueller_text()
+    from ki.nachlese import textstand
+
+    ergebnis = antwort_parsen(lauf.antwort) if lauf.erfolgreich else {"normen": [], "hinweis": "", "unsicherheit": "hoch"}
+    quelle = textstand(lauf)
+    zuordnungen = {(a.quellenart, a.fassung_nummer) for a in lauf.auftraege.all()}
+    if not quelle["festgehalten"] and len(zuordnungen) == 1:
+        art, nummer = zuordnungen.pop()
+        quelle.update(quellenart=art, fassung=nummer)
+    fassung = quelle.get("fassung")
+    ziel = ziel or _aktueller_textstand(antrag)
     ergebnis.update(
         lauf=lauf,
         modell=lauf.modell,
@@ -123,12 +130,13 @@ def rechtsbezug_fuer(antrag) -> dict | None:
         stand=lauf.erstellt_am,
         unsicherheit_wort=UNSICHERHEITEN[ergebnis["unsicherheit"]],
         fassung=fassung,
-        frueher=bool(fassung and aktuell and aktuell.nummer > fassung),
+        frueher=bool(fassung and (quelle.get("quellenart"), fassung) != ziel),
+        textstand=quelle,
     )
     return ergebnis
 
 
-def rechtsbezug_lage(antrag, betrachter=None) -> dict:
+def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     """Der Zustand der Karte „Betroffene Gesetze“ in Zone 2:
 
     - `nicht_angeschlossen`: kein Anbieter am Steckplatz — es wird nichts gerechnet.
@@ -139,12 +147,18 @@ def rechtsbezug_lage(antrag, betrachter=None) -> dict:
 
     `mail_zusage` ist wahr, wenn der Betrachter der Antragsteller ist und Verfahrenspost
     zugestimmt hat — nur dann verspricht die Karte eine E-Mail."""
-    from ki.anbieter import anbieter_waehlen
-    from ki.models import Auftragsstatus, KIAuftrag, Zweck
-    from ki.warteschlange import platz_in_der_schlange
+    from django.core.paginator import Paginator
 
-    ergebnis = rechtsbezug_fuer(antrag)
-    auftrag = KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).order_by("-fassung_nummer").first()
+    from ki.anbieter import anbieter_waehlen
+    from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck
+    from ki.warteschlange import platz_in_der_schlange
+    from parameter.models import zahl
+
+    auftrag = KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).select_related("lauf").order_by("-erstellt_am", "-pk").first()
+    ziel = _aktueller_textstand(antrag)
+    ergebnis = rechtsbezug_fuer(antrag, auftrag.lauf, ziel=ziel) if (
+        auftrag and auftrag.status == Auftragsstatus.ERLEDIGT and auftrag.lauf and auftrag.lauf.erfolgreich
+    ) else (rechtsbezug_fuer(antrag, ziel=ziel) if auftrag is None else None)
     angeschlossen = anbieter_waehlen() is not None
     if ergebnis is not None:
         zustand = "erledigt"
@@ -156,6 +170,11 @@ def rechtsbezug_lage(antrag, betrachter=None) -> dict:
         zustand = "gescheitert"
     else:
         zustand = "wartet"
+    laeufe = KILauf.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).prefetch_related("auftraege").order_by("-erstellt_am", "-pk")
+    if ergebnis:
+        laeufe = laeufe.exclude(pk=ergebnis["lauf"].pk)
+    historie = Paginator(laeufe, max(1, min(100, zahl("ki-einschaetzungen-je-seite", 20)))).get_page(seite)
+    historie.object_list = [rechtsbezug_fuer(antrag, lauf, ziel=ziel) for lauf in historie.object_list]
     steller = getattr(antrag, "eingebracht_von", None)
     mail_zusage = bool(
         betrachter is not None
@@ -171,4 +190,5 @@ def rechtsbezug_lage(antrag, betrachter=None) -> dict:
         "platz": platz_in_der_schlange(auftrag) if zustand == "wartet" else None,
         "mail_zusage": mail_zusage and zustand == "wartet",
         "angeschlossen": angeschlossen,
+        "historie": historie,
     }

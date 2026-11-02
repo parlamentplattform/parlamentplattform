@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.13** (2.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.14** (2.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +11,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit 1.14 enthält das Register ai.assessments_per_page: Seitengröße früherer Rechtsbezug-Einschätzungen, zwischen 1 und 100. Archivexporte enthalten weiterhin alle zugehörigen Läufe. Neue Textkontexte unterscheiden Antrag und eingereichten Expertenratsvorschlag samt Fassungsnummer, Quelle und Hash; amtliche Fakten werden dabei noch nicht eingespeist oder rechtlich verifiziert (docs/KONTEXTSTAENDE.md).
 
 Seit 1.13 enthält das Register sources.snapshots_per_page: Seitengröße der öffentlichen amtlichen Metadaten-Schnappschüsse, zwischen 1 und 100. Die Faktenbasis bleibt von ungeprüften Modellvorschlägen getrennt.
 
@@ -81,6 +83,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 |---|---|---|---|
 | `account.email_change_waiting_hours` | `adresswechsel-wartefrist-stunden` | hours | Waiting time before an administrative change of a login address takes effect |
 | `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | How many provider calls the future workshop's queue makes per calendar day (affected laws, text embeddings) — every attempt counts, including failed ones; the rest waits for the next day |
+| `ai.assessments_per_page` | `ki-einschaetzungen-je-seite` | runs | Earlier legal-impact assessments per motion page (1 to 100); archive exports remain complete |
 | `ai.max_response_tokens` | `ki-antwort-hoechsttokens` | tokens | Maximum length of a model response |
 | `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | Hard monthly token budget of the model slot (cost cap of the future workshop) |
 | `archive.audit_display_limit` | `archiv-audit-anzeige` | events | How many audit events the archive timeline shows; the export always contains all |
@@ -253,6 +256,7 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Version | Datum | Plattform | Änderung |
 |---|---|---|---|
+| 1.14 | 2.11.2026 | 0.58.0 | ai.assessments_per_page: frühere Rechtsbezug-Läufe je Seite am Antrag; Exporte bleiben vollständig. Kein Verfahrensparameter und keine Änderung bestehender Ordnungen. |
 | 1.0 | 3.9.2026 | 0.36.0 | Erste Fassung: Kopf, 5 Register-Kennungen (`draft_loop.review_days`, `draft_loop.revision_days`, `draft_loop.max_rounds`, `bodies.role_term_days`, `ai.monthly_token_budget`), 7 Kennungen der Verfahrensordnung, 7 Kennzahlen, Prüfregeln. Mit 0.39.0 (4.9.2026) kamen `draft_loop.acceptance_percent` und `draft_loop.chat_ordering_version` hinzu, ohne dass die Version stieg |
 | 1.1 | 5.9.2026 | 0.41.0 | 25 Register-Kennungen: die Stellgrößen des Verfahrens (`support.threshold`, `support.window_days`, `vote.window_days`, `vote.min_turnout_percent`, `motion.resubmission_block_months`, `council.first_draft_days`), der Lebensbereiche und Fächer (`areas_of_life.*`, `areas_fan.*`), der Beratung und des Chats (`deliberation.*`, `chat.*`-Vorläufer, `conversations.list_limit`, `draft_loop.criticism_min_chars`), der Ähnlichkeitsprüfung (`similarity.*`), des WeicherFilters (`soft_filter.*`), der Kacheln und des Archivs (`tiles.*`, `archive.audit_display_limit`), des Anstoß-Widgets (`feedback.*`) und des Modell-Steckplatzes (`ai.max_response_tokens`). **Zugleich wurden drei Kennungen aus 1.0 umbenannt** — `draft_loop.review_days` → `support.review_days`, `draft_loop.revision_days` → `council.rework_days`, `draft_loop.max_rounds` → `council.max_rounds` —, ohne dass das damals hier oder im Änderungsprotokoll stand. Nach der eigenen Regel wäre das eine Hauptversion gewesen; es blieb bei der Nebenversion, weil noch keine Partnerinstanz Exporte las. Die alten Namen gelten nicht mehr |
 | 1.2 | 8.9.2026 | 0.43.0 | Nachgeholte Erhöhung für `council.review_days` und `council.decision_days`, die mit 0.42.0 (5.9.2026) ohne Versionssprung hinzugekommen waren |

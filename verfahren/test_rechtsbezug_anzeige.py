@@ -257,7 +257,8 @@ def test_mail_bei_fertigstellung_mit_normen_und_kennzeichnung(client, json_attra
     assert brief.subject == "Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag"
     assert brief.to == [antrag.eingebracht_von.email]
     assert "Parteiengesetz 2012" in brief.body and "nicht verifiziert" in brief.body
-    assert f"/antrag/{antrag.pk}/#rechtsbezug" in brief.body and "attrappe-1" in brief.body
+    assert f"/antrag/{antrag.pk}/#zone-einschaetzung" in brief.body and "attrappe-1" in brief.body
+    assert "Kontext-Prüfsumme (SHA-256)" in brief.body
     assert "Vorschlag eines KI-Modells" in brief.body and "/profil/#nachrichten" in brief.body
     # Genau einmal: ein zweiter Lauf legt keinen zweiten Auftrag an
     abarbeiten()

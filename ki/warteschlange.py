@@ -21,6 +21,7 @@ import logging
 import secrets
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import F, Q
 from django.utils import timezone
 
@@ -57,18 +58,56 @@ def heute_gestartet(jetzt=None) -> int:
     )
 
 
-def einreihen(zweck: str, antrag, mitglied) -> KIAuftrag:
+def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuftrag:
     """Idempotent je Antrag, Zweck und Fassung: Wer zweimal einreiht, bekommt denselben Auftrag."""
     if zweck not in ZWECKE:
         raise ValueError(f"Unbekannter Zweck für die Warteschlange: {zweck}")
-    fassung = antrag.aktueller_text()
+    from verfahren.models import Antragsart
+
+    if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
+        raise ValueError("Über Personen rechnet die Zukunftswerkstatt nicht.")
+    if vorschlagsfassung is not None and zweck != Zweck.RECHTSBEZUG:
+        raise ValueError("Vorschlagsfassungen gehören nicht in den Nummernraum der Textvektoren.")
+    if vorschlagsfassung is not None:
+        from gremien.models import EntwurfsFassung
+
+        quelle = EntwurfsFassung.objects.select_related("entwurf").filter(
+            pk=vorschlagsfassung.pk, entwurf__antrag_id=antrag.pk,
+        ).first()
+        if quelle is None:
+            raise ValueError("Die Vorschlagsfassung gehört nicht zu diesem Antrag.")
+        if quelle.entwurf.eingereichte_fassung != quelle.nummer:
+            vorhanden = KIAuftrag.objects.filter(
+                zweck=zweck, antrag=antrag, quellenart="vorschlag", vorschlagsfassung=quelle,
+            ).first()
+            if vorhanden is not None:
+                return vorhanden
+            raise ValueError("Nur eine eingereichte Vorschlagsfassung darf öffentlich beauftragt werden.")
+        vorschlagsfassung = quelle
+    from ki.kontext import festhalten
+
+    kontext = festhalten(antrag, vorschlagsfassung=vorschlagsfassung)
     auftrag, _neu = KIAuftrag.objects.get_or_create(
         zweck=zweck,
         antrag=antrag,
-        fassung_nummer=fassung.nummer if fassung else 1,
-        defaults={"angefordert_von": mitglied},
+        quellenart=kontext["quellenart"],
+        fassung_nummer=kontext["fassung_nummer"],
+        defaults={
+            "angefordert_von": mitglied, "kontext": kontext,
+            "vorschlagsfassung": vorschlagsfassung,
+        },
     )
     return auftrag
+
+
+def einreihen_ohne_hemmung(zweck, antrag, mitglied, **kwargs):
+    """Eigener Savepoint: Ein Auftragsfehler vergiftet keine Beschluss-Transaktion."""
+    try:
+        with transaction.atomic():
+            return einreihen(zweck, antrag, mitglied, **kwargs)
+    except Exception:
+        log.exception("KI-Einreihung für Antrag %s fehlgeschlagen", antrag.pk)
+        return None
 
 
 def platz_in_der_schlange(auftrag) -> int | None:
@@ -82,16 +121,18 @@ def platz_in_der_schlange(auftrag) -> int | None:
 
 def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
     from ki.auftraege import auftrag_laden
-    from ki.rechtsbezug import antrag_eingabe
+    from ki.kontext import eingabe
 
     text = auftrag_laden("rechtsbezug")
+    kontext = _laufkontext(auftrag)
     lauf = lauf_ausfuehren(
         Zweck.RECHTSBEZUG,
         text.text,
-        antrag_eingabe(auftrag.antrag, auftrag.fassung_nummer),
+        eingabe(kontext["text"]),
         auftrag.angefordert_von,
         antrag=auftrag.antrag,
         auftrag_version=text.version,
+        kontext=kontext,
     )
     # Der Antragsteller bekommt Post, sobald das Ergebnis da ist — nur mit Einwilligung, über den
     # Postausgang (einmal je Antrag; der Brief liest den jüngsten Lauf beim Zustellen).
@@ -102,14 +143,44 @@ def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
 
 
 def _arbeit_aehnlichkeit(auftrag: KIAuftrag) -> KILauf:
-    from verfahren.aehnlichkeit import antragstext, einbettung_speichern
+    from verfahren.aehnlichkeit import einbettung_speichern
 
     antrag = auftrag.antrag
+    kontext = _laufkontext(auftrag)
+    d = kontext["text"]
+    if d["quellenart"] != "antrag":
+        raise ValueError("Textvektoren brauchen eine Antragsfassung.")
     lauf, einbettung = einbettung_ausfuehren(
-        [antragstext(antrag, auftrag.fassung_nummer)], auftrag.angefordert_von, antrag=antrag
+        [f"{d['titel']}\n{d['wortlaut']}"], auftrag.angefordert_von, antrag=antrag,
+        kontext=kontext,
     )
     einbettung_speichern(antrag, auftrag.fassung_nummer, einbettung.modell, einbettung.vektoren[0])
     return lauf
+
+
+def _textkontext(auftrag):
+    from ki.kontext import festhalten, pruefen
+
+    if auftrag.kontext:
+        d = pruefen(auftrag.kontext)
+        if (
+            d["antrag"] != auftrag.antrag_id or d["quellenart"] != auftrag.quellenart
+            or d["fassung_nummer"] != auftrag.fassung_nummer
+            or auftrag.quellenart == "vorschlag" and d["fassung_id"] != auftrag.vorschlagsfassung_id
+        ):
+            raise ValueError("Textkontext gehört nicht zu diesem Auftrag.")
+        return auftrag.kontext
+    # Alte Aufträge werden nicht nachträglich umgeschrieben. Der neue Lauf benennt
+    # die spätere Erfassung ehrlich; ein fehlender alter Text löst einen Fehler aus.
+    return festhalten(
+        auftrag.antrag,
+        vorschlagsfassung=auftrag.vorschlagsfassung if auftrag.quellenart == "vorschlag" else None,
+        fassung_nummer=auftrag.fassung_nummer if auftrag.quellenart == "antrag" else None,
+    )
+
+
+def _laufkontext(auftrag):
+    return {"text": _textkontext(auftrag), "auftrag": auftrag.pk, "versuch": auftrag.versuche}
 
 
 ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit}
@@ -149,7 +220,10 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
     except Exception as fehler:  # der Faden darf nie sterben; der Grund steht am Auftrag
         if not isinstance(fehler, SteckplatzStumm):  # ein stummer Steckplatz ist kein Programmfehler
             log.exception("KI-Auftrag %s gescheitert", pk)
-        letzter = KILauf.objects.filter(antrag=auftrag.antrag, zweck=auftrag.zweck).order_by("-erstellt_am").first()
+        letzter = KILauf.objects.filter(
+            antrag=auftrag.antrag, zweck=auftrag.zweck,
+            kontext__auftrag=auftrag.pk, kontext__versuch=auftrag.versuche,
+        ).order_by("-erstellt_am", "-pk").first()
         stand.update(fehler=f"{type(fehler).__name__}: {fehler}"[:300], lauf=letzter)
         if auftrag.versuche >= HOECHSTVERSUCHE:
             stand.update(status=Auftragsstatus.GESCHEITERT, naechster_versuch=None)

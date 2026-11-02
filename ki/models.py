@@ -15,9 +15,11 @@ Auftrag verweist nur darauf."""
 
 from __future__ import annotations
 
+import copy
 import time
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
@@ -26,6 +28,30 @@ from django.utils.translation import gettext_lazy as _
 from ki.anbieter import AnbieterFehler, Einbettung, SteckplatzStumm, anbieter_waehlen
 
 MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
+
+
+def _textstand_schuetzen(instanz, felder, update_fields):
+    if instanz._state.adding or update_fields is not None and not any(
+        f in felder or f + "_id" in felder for f in update_fields
+    ):
+        return
+    vorher = type(instanz).objects.filter(pk=instanz.pk).values(*felder).first()
+    if vorher is None or any(vorher[f] != getattr(instanz, f) for f in felder):
+        raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+
+
+class LaufQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        if {"kontext", "eingabe"} & kwargs.keys():
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        return super().update(**kwargs)
+
+
+class AuftragQuerySet(LaufQuerySet):
+    def update(self, **kwargs):
+        if {"antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id"} & kwargs.keys():
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        return super().update(**kwargs)
 
 
 class Zweck(models.TextChoices):
@@ -49,12 +75,15 @@ class KILauf(models.Model):
     modell = models.CharField(max_length=60)
     #: Fassung des Auftragstexts (`ki/auftraege/<zweck>-v<n>.md`), leer bei Läufen ohne Datei (FB-H1).
     auftrag_version = models.CharField(max_length=40, blank=True, default="")
+    #: Tatsächlich verwendeter Textstand; leer bei früheren Läufen ohne Kontextnachweis.
+    kontext = models.JSONField(default=dict, blank=True)
     tokens_ein = models.PositiveIntegerField(default=0)
     tokens_aus = models.PositiveIntegerField(default=0)
     dauer_ms = models.PositiveIntegerField(default=0)
     erfolgreich = models.BooleanField(default=True)
     fehler = models.CharField(max_length=300, blank=True)
     erstellt_am = models.DateTimeField(default=timezone.now)
+    objects = LaufQuerySet.as_manager()
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -63,6 +92,10 @@ class KILauf(models.Model):
 
     def __str__(self) -> str:
         return f"KI-Lauf {self.get_zweck_display()} ({self.modell}, {self.erstellt_am:%d.%m.%Y})"
+
+    def save(self, *args, **kwargs):
+        _textstand_schuetzen(self, ("kontext", "eingabe"), kwargs.get("update_fields"))
+        return super().save(*args, **kwargs)
 
     @classmethod
     def monatsverbrauch(cls, jetzt=None) -> int:
@@ -103,6 +136,13 @@ class KIAuftrag(models.Model):
     zweck = models.CharField(max_length=20, choices=Zweck.choices)
     antrag = models.ForeignKey("verfahren.Antrag", on_delete=models.PROTECT, related_name="ki_auftraege")
     fassung_nummer = models.PositiveIntegerField(default=1)
+    quellenart = models.CharField(max_length=10, default="antrag", choices=[
+        ("antrag", _("Antrag")), ("vorschlag", _("Vorschlag des Expertenrats")),
+    ])
+    vorschlagsfassung = models.ForeignKey(
+        "gremien.EntwurfsFassung", null=True, blank=True, on_delete=models.PROTECT, related_name="ki_auftraege",
+    )
+    kontext = models.JSONField(default=dict, blank=True)
     angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     status = models.CharField(max_length=12, choices=Auftragsstatus.choices, default=Auftragsstatus.GEPLANT)
     lauf = models.ForeignKey(KILauf, null=True, blank=True, on_delete=models.SET_NULL, related_name="auftraege")
@@ -114,17 +154,32 @@ class KIAuftrag(models.Model):
     gesperrt_bis = models.DateTimeField(null=True, blank=True)
     sperrcode = models.CharField(max_length=32, default="", blank=True)
     fehler = models.CharField(max_length=300, default="", blank=True)
+    objects = AuftragQuerySet.as_manager()
 
     class Meta:
         ordering = ["pk"]
         verbose_name = "KI-Auftrag"
         verbose_name_plural = "KI-Aufträge"
         constraints = [
-            models.UniqueConstraint(fields=["zweck", "antrag", "fassung_nummer"], name="kiauftrag_einmal_je_fassung")
+            models.UniqueConstraint(
+                fields=["zweck", "antrag", "quellenart", "fassung_nummer"], name="kiauftrag_einmal_je_quelle",
+            ),
+            models.CheckConstraint(
+                condition=(models.Q(quellenart="antrag", vorschlagsfassung__isnull=True)
+                           | models.Q(quellenart="vorschlag", vorschlagsfassung__isnull=False)),
+                name="kiauftrag_quellenreferenz",
+            ),
         ]
 
     def __str__(self) -> str:
         return f"KI-Auftrag {self.get_zweck_display()} zu Antrag {self.antrag_id} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        _textstand_schuetzen(
+            self, ("kontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id"),
+            kwargs.get("update_fields"),
+        )
+        return super().save(*args, **kwargs)
 
 
 def steckplatz_stand() -> dict:
@@ -159,13 +214,14 @@ def _anbieter_bereit():
 
 
 def lauf_ausfuehren(
-    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = ""
+    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None,
 ) -> KILauf:
     """Der eine Weg durch den Steckplatz: Budget prüfen, fragen, archivieren.
 
     Wirft SteckplatzStumm mit ehrlichem Grund, wenn kein Anbieter angeschlossen
     ist, das Monatsbudget erschöpft ist oder der Anbieter nicht antwortet —
     ein gescheiterter Anbieter-Aufruf steht trotzdem im Archiv."""
+    kontext = copy.deepcopy(kontext or {})
     anbieter = _anbieter_bereit()
     beginn = time.monotonic()
     try:
@@ -179,6 +235,7 @@ def lauf_ausfuehren(
             anbieter=anbieter.name,
             modell=getattr(anbieter, "modell", ""),
             auftrag_version=auftrag_version,
+            kontext=kontext,
             dauer_ms=int((time.monotonic() - beginn) * 1000),
             erfolgreich=False,
             fehler=str(fehler)[:300],
@@ -193,6 +250,7 @@ def lauf_ausfuehren(
         anbieter=anbieter.name,
         modell=antwort.modell,
         auftrag_version=auftrag_version,
+        kontext=kontext,
         tokens_ein=antwort.tokens_ein,
         tokens_aus=antwort.tokens_aus,
         dauer_ms=int((time.monotonic() - beginn) * 1000),
@@ -200,7 +258,7 @@ def lauf_ausfuehren(
 
 
 def einbettung_ausfuehren(
-    texte: list[str], mitglied, antrag=None, zeitgrenze: float | None = None
+    texte: list[str], mitglied, antrag=None, zeitgrenze: float | None = None, *, kontext=None,
 ) -> tuple[KILauf, Einbettung]:
     """Textvektoren über den Steckplatz — derselbe Weg wie `lauf_ausfuehren`: Budget prüfen, einbetten,
     archivieren (Zweck „aehnlichkeit“). Das Archiv hält die Texte und die Zahl der Vektoren fest,
@@ -208,6 +266,7 @@ def einbettung_ausfuehren(
     `zeitgrenze` gibt der Anbieter-Verbindung eine eigene, kürzere Frist (Aufruf in einer Anfrage);
     ohne sie gilt die des Steckplatzes.
     Wirft SteckplatzStumm, wenn der Steckplatz leer, das Budget erschöpft oder der Anbieter stumm ist."""
+    kontext = copy.deepcopy(kontext or {})
     anbieter = _anbieter_bereit()
     eingabe = "\n\n---\n\n".join(texte)
     beginn = time.monotonic()
@@ -216,6 +275,7 @@ def einbettung_ausfuehren(
     except AnbieterFehler as fehler:
         KILauf.objects.create(
             zweck=Zweck.AEHNLICHKEIT,
+            kontext=kontext,
             antrag=antrag,
             angefordert_von=mitglied,
             eingabe=eingabe,
@@ -229,6 +289,7 @@ def einbettung_ausfuehren(
     dimension = len(einbettung.vektoren[0]) if einbettung.vektoren else 0
     lauf = KILauf.objects.create(
         zweck=Zweck.AEHNLICHKEIT,
+        kontext=kontext,
         antrag=antrag,
         angefordert_von=mitglied,
         eingabe=eingabe,

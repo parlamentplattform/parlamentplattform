@@ -1,0 +1,8 @@
+{% load i18n %}
+<div class="ki-textstand">
+  <p class="meta">{{ textstand.quelle }}{% if textstand.fassung %} · {% translate "Fassung" %} {{ textstand.fassung }}{% endif %}</p>
+  {% if textstand.festgehalten %}
+  <p class="meta">{% translate "Textstand festgehalten am" %}: {{ textstand.erfasst_am|date:"d.m.Y H:i" }}<br>{% translate "Kontext-Prüfsumme (SHA-256)" %}: <code class="textstand-hash">{{ textstand.hash }}</code></p>
+  {% endif %}
+  {% if eingabe %}<details class="klappe"><summary>{% translate "Tatsächlich verwendeten Text nachlesen" %}</summary><pre class="auftragstext">{{ eingabe }}</pre></details>{% endif %}
+</div>

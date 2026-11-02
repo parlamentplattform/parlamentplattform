@@ -1026,7 +1026,7 @@ def _lesbarer_lauf(antrag, zweck=None):
     return laeufe.order_by("-erstellt_am").first()
 
 
-def _einschaetzung(antrag, betrachter=None):
+def _einschaetzung(antrag, betrachter=None, seite=None):
     """Zone 2 (FB-F2): der Stand der Modellrechnung zu diesem Antrag — Kopfkarte,
     Beanstandungen und die Karte „Betroffene Gesetze“ (erste Stufe von FB-H3, Warteschlange).
     Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
@@ -1043,7 +1043,7 @@ def _einschaetzung(antrag, betrachter=None):
         "anbieter_da": anbieter is not None,
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
         "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
-        "rechtsbezug": rechtsbezug_lage(antrag, betrachter),
+        "rechtsbezug": rechtsbezug_lage(antrag, betrachter, seite),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [
             _("Ähnliche Anträge"),
@@ -1430,7 +1430,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "einschaetzung": (
                 None
                 if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
-                else _einschaetzung(antrag, request.user)
+                else _einschaetzung(antrag, request.user, request.GET.get("einschaetzungen"))
             ),
             "neu": request.GET.get("neu") == "1",
             "ergebnis": ergebnis,
@@ -1767,13 +1767,18 @@ def zukunftswerkstatt(request):
     Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
     from ki.auftraege import auftragsversionen
     from ki.models import KILauf, steckplatz_stand
+    from ki.nachlese import textstand
+
+    laeufe = list(KILauf.objects.select_related("antrag")[:8])
+    for lauf in laeufe:
+        lauf.textstand = textstand(lauf)
 
     return render(
         request,
         "verfahren/zukunftswerkstatt.html",
         {
             "steckplatz": steckplatz_stand(),
-            "letzte_laeufe": list(KILauf.objects.select_related("antrag")[:8]),
+            "letzte_laeufe": laeufe,
             "auftragsversionen": auftragsversionen(),
         },
     )

@@ -653,6 +653,14 @@ ERSTBESTAND = [
         "quelle": "§ 6 Abs 8",
     },
     {
+        "schluessel": "ki-einschaetzungen-je-seite",
+        "wert": "20",
+        "einheit": gettext_noop("Läufe"),
+        "beschreibung": gettext_noop("Anzahl früherer Rechtsbezug-Einschätzungen je Seite am Antrag (1 bis 100)."),
+        "quelle": "Zukunftswerkstatt / öffentliche Nachlese",
+        "gruppe": "ki",
+    },
+    {
         "schluessel": "ki-tageslaeufe",
         "wert": "20",
         "einheit": gettext_noop("Läufe/Tag"),

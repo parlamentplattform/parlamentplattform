@@ -57,6 +57,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
 {% with lage=einschaetzung.rechtsbezug %}
 <div class="karte rechtsbezug" id="rechtsbezug">
   <h3>{% translate "Betroffene Gesetze" %} <span class="badge badge-still">{% translate "Vorschlag der Zukunftswerkstatt" %}</span></h3>
+  {% if lage.auftrag and not lage.ergebnis %}<p class="meta">{{ lage.auftrag.get_quellenart_display }} · {% translate "Fassung" %} {{ lage.auftrag.fassung_nummer }}</p>{% endif %}
   {% if lage.zustand == "erledigt" %}
     {% with e=lage.ergebnis %}
     {% if e.normen %}
@@ -80,6 +81,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
       <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
     </dl>
+    {% include "verfahren/_ki_textstand.html" with textstand=e.textstand eingabe=e.lauf.eingabe %}
     <p class="kennzeichnung">{% translate "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     {% endwith %}
   {% elif lage.zustand == "wartet" %}
@@ -91,6 +93,31 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <p class="leer">{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}</p>
   {% else %}
     <p class="leer">{% translate "Für diesen Antrag wurde keine Prüfung eingereiht." %}</p>
+  {% endif %}
+  {% if lage.historie.paginator.count %}
+  <div class="ki-historie">
+    <h4>{% translate "Frühere Einschätzungen und Fehlversuche" %}</h4>
+    <p class="meta">{% translate "Jüngster Lauf zuerst; bei gleichem Zeitpunkt höhere Laufnummer zuerst." %}</p>
+    {% for h in lage.historie %}
+    <details class="klappe">
+      <summary>{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% if h.lauf.erfolgreich %}{% translate "erledigt" %}{% else %}{% translate "gescheitert" %}{% endif %}</summary>
+      <p class="meta">{{ h.modell }} · {{ h.auftrag_version }}</p>
+      {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
+      {% if h.lauf.erfolgreich %}
+        <ul class="normen">{% for n in h.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p class="erk">{{ n.begruendung }}</p>{% endif %}</li>{% endfor %}</ul>
+        {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
+      {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
+      <p class="kennzeichnung">{% translate "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
+    </details>
+    {% endfor %}
+    {% if lage.historie.has_other_pages %}
+    <nav aria-label="{% translate 'Seiten früherer Einschätzungen' %}">
+      {% if lage.historie.has_previous %}<a href="?einschaetzungen={{ lage.historie.previous_page_number }}#zone-einschaetzung">‹ {% translate "Zurück" %}</a>{% endif %}
+      <span>{{ lage.historie.number }} / {{ lage.historie.paginator.num_pages }}</span>
+      {% if lage.historie.has_next %}<a href="?einschaetzungen={{ lage.historie.next_page_number }}#zone-einschaetzung">{% translate "Weiter" %} ›</a>{% endif %}
+    </nav>
+    {% endif %}
+  </div>
   {% endif %}
 </div>
 {% endwith %}

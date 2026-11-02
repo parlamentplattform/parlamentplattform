@@ -141,6 +141,7 @@
   {% for l in letzte_laeufe %}
   <div class="zeile"><span>{{ l.get_zweck_display }}{% if l.antrag %} — <a href="{% url 'verfahren:antrag' l.antrag.pk %}">{{ l.antrag.titel }}</a>{% endif %}
     <br><span class="meta">{{ l.modell }}{% if l.auftrag_version %} · {{ l.auftrag_version }}{% endif %} · {{ l.tokens_ein }}+{{ l.tokens_aus }} Tokens · {{ l.dauer_ms }} ms · {{ l.erstellt_am|date:"d.m.Y H:i" }}{% if not l.erfolgreich %} · {% translate "gescheitert" %}: {{ l.fehler }}{% endif %}</span></span></div>
+  {% include "verfahren/_ki_textstand.html" with textstand=l.textstand eingabe="" %}
   {% endfor %}
   {% endif %}
 </div>

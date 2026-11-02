@@ -507,6 +507,7 @@ def _gremien_export(m: Mitglied) -> dict:
                 "antrag": k.antrag_id,
                 "anbieter": k.anbieter,
                 "modell": k.modell,
+                "kontext": k.kontext,
                 "erfolgreich": k.erfolgreich,
                 "erstellt_am": k.erstellt_am,
             }
@@ -517,6 +518,9 @@ def _gremien_export(m: Mitglied) -> dict:
                 "zweck": a.zweck,
                 "antrag": a.antrag_id,
                 "fassung": a.fassung_nummer,
+                "quellenart": a.quellenart,
+                "vorschlagsfassung": a.vorschlagsfassung_id,
+                "kontext": a.kontext,
                 "status": a.status,
                 "versuche": a.versuche,
                 "erstellt_am": a.erstellt_am,

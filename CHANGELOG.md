@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.58.0] — 2026-11-02 · Einschätzungen eindeutig dem Textstand zuordnen
+
+- Antrag und eingereichter Expertenratsvorschlag haben getrennte Fassungsräume. Neue Warteschlangen-Aufträge halten Titel, Wortlaut, Begründung, Ebene, Gebiet, Quelle und Prüfsumme vor dem Modellaufruf fest; spätere Änderungen ersetzen diesen Stand nicht.
+- Eingereichte und erneut eingereichte Vorschläge erhalten idempotent einen Rechtsbezug-Auftrag. Unfertige Arbeitsstände und Personenwahlen werden nicht beauftragt. Ein Fehler beim Einreihen hemmt weder Einreichung noch Beschluss; Budget und Anbieter bleiben unverändert.
+- Erfolgreiche und fehlgeschlagene Läufe bewahren ihren tatsächlichen Textkontext. Ein Fehler ohne neuen Lauf verweist nicht auf einen beliebigen früheren Erfolg. Ältere Läufe und Aufträge werden nicht nachträglich mit angeblichen Kontextnachweisen versehen.
+- Die Antragsseite zeigt einen neuen Wartestatus vor älteren Ergebnissen. Frühere Einschätzungen und Fehlversuche bleiben mit Quellenstand nachlesbar und vollständig im Archivexport erhalten. Interne Gremien-Eingaben gelangen nicht in den öffentlichen Rechtsbezug-Export. Schema1.14 ergänzt die einstellbare Seitengröße dieser Nachlese.
+- Die amtliche Faktenbasis wird noch nicht in diese Modellkontexte eingespeist. Rechtsbezüge bleiben ungeprüfte Vorschläge; Verfahrensregeln laufender Anträge bleiben unverändert.
+
 ## [0.57.0] — 2026-11-02 · Einzelne amtliche Dokumenttexte erhalten
 
 - Zu einem vorhandenen Metadaten-Schnappschuss lässt sich ausdrücklich ein einzelner amtlicher XML-Dokumenttext abrufen. Quelle und Dokumentkennung müssen exakt passen; Umleitungen, fremde Quellen, XML-Entitäten und zu große Antworten werden abgewiesen.

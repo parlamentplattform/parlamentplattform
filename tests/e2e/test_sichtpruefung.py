@@ -11,6 +11,7 @@ dann nur, dass sie entstehen.
 from __future__ import annotations
 
 import pytest
+from playwright.sync_api import expect
 
 pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
 
@@ -754,9 +755,10 @@ def test_screenshots_fuer_die_sichtpruefung_051(seite, live_server, demo, sichtp
     ):
         p = seite(dunkel=dunkel, viewport=viewport, js=js)
         p.goto(f"{live_server.url}/antrag/{testlauf.pk}/#zone-chat")
-        # Ohne JavaScript öffnet der Klick das native <details>; die Stabilitätsprüfung hängt dort (force)
-        p.locator("#zustandekommen > summary").click(force=not js)
-        assert p.locator("#zustandekommen").get_attribute("open") is not None
+        # Native Tastaturbedienung erreicht den Aufklapper auch neben den klebenden Leisten.
+        # Ein erzwungener Klick kann bei noch laufender Scrollbewegung daneben landen.
+        p.locator("#zustandekommen > summary").press("Enter")
+        expect(p.locator("#zustandekommen")).to_have_attribute("open", "")
         zeige(p, f"endabstimmung-zustandekommen-{suffix}", "#zustandekommen", js=js)
 
     # ── 1e: Karte „Abstimmen“ — verdeckt wie heute; zur Ansicht eine Ordnung mit Schalter 1 ──

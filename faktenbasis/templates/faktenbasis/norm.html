@@ -16,6 +16,11 @@
 </div>
 <section aria-labelledby="dokumenttexte">
   <h2 id="dokumenttexte">{% translate "Amtliche Dokumenttexte" %}</h2>
+  {% if darf_aktualisieren %}
+  <form method="post" action="{% url 'faktenbasis:dokumenttext_abrufen' norm.pk %}">
+    {% csrf_token %}<button class="knopf" type="submit">{% translate "Diesen Dokumenttext einmal abrufen" %}</button>
+  </form>
+  {% endif %}
   <p class="hilfe">{% translate "Einzeldokumente aus dem RIS, keine vollständige Rechtsvorschrift. Die Texte werden nicht automatisch aktualisiert." %}</p>
   {% if letzter_textabruf and not letzter_textabruf.erfolgreich %}
     <p class="meldung warn">{% translate "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar." %} ({{ letzter_textabruf.fehlercode }}) · {{ letzter_textabruf.beendet_am|date:"d.m.Y H:i" }}</p>

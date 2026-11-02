@@ -46,8 +46,8 @@ def _(text: str) -> str:
 #: beantwortet, Gast liest Live-Meldungen, Mitglied fragt im Chat der Sitzung, Verwaltung trägt nach
 #: dem Ende der Vertretung Abstimmungen nach (D-L6g).
 #: Fassung 8 (2.11.2026): Herkunft und erhaltene Stände der amtlichen Metadatensammlung nachlesen.
-#: Fassung 9 (2.11.2026): Einzelne amtliche Dokumenttexte samt Abrufnachweis nachlesen.
-VERSION = 9
+#: Fassung 10 (2.11.2026): Verwaltung übernimmt gezielt einzelne amtliche Quellen.
+VERSION = 10
 
 
 class Stand(enum.StrEnum):
@@ -860,6 +860,11 @@ VERWALTUNG = Rolle(
     was_sie_ist=_("Kein Organ der Satzung, sondern der technische Notbehelf: Ein Konto mit Adminrechten führt die Geschäfte, bis die Räte nach § 6 Abs 4 bis 6 besetzt sind."),
     wie_hinein=_("Adminrechte vergibt und entzieht ein anderes Admin-Konto; der satzungsgebende Erstzugang (DDOE_FIX_ADMIN) ist immer Admin und kann weder pausiert noch entmachtet werden. Eine Wahl oder Bestellung gibt es nicht."),
     faehigkeiten=(
+        Faehigkeit(
+            titel=_("Amtliche Metadaten und einzelne Dokumenttexte ausdrücklich übernehmen"),
+            stand=Stand.VERFUEGBAR,
+            urlname="faktenbasis:verwaltung",
+        ),
         Faehigkeit(
             titel=_("Mitglieder suchen und Stammdaten berichtigen"),
             stand=Stand.TEILWEISE,

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
 
 from faktenbasis.models import Norm, NormText, RisImport
+from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
 
 
@@ -23,6 +24,7 @@ def index(request):
         "umfang": Norm.objects.aggregate(schnappschuesse=Count("pk"), dokumente=Count("ris_id", distinct=True)),
         "letzter": RisImport.objects.first(),
         "erfolg": RisImport.objects.filter(erfolgreich=True).first(),
+        "darf_aktualisieren": darf_aktualisieren(request.user),
     })
 
 
@@ -36,6 +38,7 @@ def norm(request, pk):
         "texte": eintrag.texte.all(),
         "letzter_textabruf": eintrag.textabrufe.first(),
         "textabrufe": eintrag.textabrufe.select_related("inhalt").all(),
+        "darf_aktualisieren": darf_aktualisieren(request.user),
     })
 
 

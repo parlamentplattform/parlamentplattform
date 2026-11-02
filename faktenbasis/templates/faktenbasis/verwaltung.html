@@ -1,0 +1,20 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Amtliche Quelle übernehmen" %}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
+<h1>{% translate "Amtliche Quelle übernehmen" %}</h1>
+<section class="karte">
+  <p>{% translate "Ein Abruf übernimmt höchstens zehn Dokumente des konsolidierten Bundesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern." %}</p>
+  <p class="hilfe">{% blocktranslate %}Gemeinsame Grenze: {{ stundenkontingent }} Abrufe je Stunde für Metadaten und Dokumenttexte zusammen. Gleichzeitige Abrufe sind gesperrt; nach jedem Abruf sind mindestens zwei Sekunden Abstand einzuhalten.{% endblocktranslate %}</p>
+  <form method="post" class="formular">
+    {% csrf_token %}
+    {{ formular.non_field_errors }}
+    {% for feld in formular %}
+      <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
+      {% if feld.help_text %}<span class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</span>{% endif %}{{ feld.errors }}</p>
+    {% endfor %}
+    <button class="knopf" type="submit">{% translate "Metadaten einmal abrufen" %}</button>
+  </form>
+  <p class="hilfe">{% translate "Die Übernahme bestätigt keine rechtliche Antragszuordnung. Es werden keine Modellaufrufe ausgelöst." %}</p>
+</section>
+{% endblock %}

@@ -3,7 +3,7 @@
 import hashlib
 import json
 from email.message import Message
-from io import StringIO
+from io import BytesIO, StringIO
 from types import SimpleNamespace
 from urllib.error import URLError
 
@@ -20,9 +20,10 @@ from faktenbasis.models import Norm, NormText, NormTextAbruf
 from faktenbasis.ris import HOECHSTBYTES, ZEITGRENZE, RisFehler, _KeineUmleitung, antwort_parsen
 from faktenbasis.test_ris import STAND, beispiel
 from faktenbasis.test_xmltext import NUMMER, RIS_ID, xml_beispiel
+from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from verfahren.models import AuditEintrag
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("abrufuhr")]
 
 
 @pytest.fixture
@@ -93,12 +94,26 @@ def test_fehler_nach_erfolg_erhaelt_alte_bytes_und_wird_als_versuch_sichtbar(nor
 
 
 def test_unpassende_metadatenquelle_wird_vor_jedem_netzaufruf_abgewiesen(norm, monkeypatch):
+    # Ein eigener künstlicher beschädigter Alt-Schnappschuss, keine Änderung
+    # amtlicher Archivdaten: der Importer liest ausschließlich den DB-Stand.
+    norm.pk = None
+    norm._state.adding = True
+    norm.inhalt_hash = "0" * 64
     norm.rohdaten = {}
+    norm.save()
     monkeypatch.setattr(volltext, "abrufen", lambda url: pytest.fail("Kein Netz vor Quellenprüfung"))
     with pytest.raises(RisFehler, match="volltextquelle"):
         volltext.importieren(norm)
     assert not NormText.objects.exists()
     assert NormTextAbruf.objects.get().quelle == ""
+
+
+def test_veraenderte_objektattribute_ersetzen_nicht_die_erhaltene_quelle(norm, xml):
+    norm.rohdaten = {}
+    norm.ris_id = "NOR00000000"
+    lauf = volltext.importieren(norm)
+    assert lauf.erfolgreich and lauf.inhalt.text
+    assert RIS_ID in lauf.quelle
 
 
 def test_fremdes_xml_wird_nicht_gespeichert(norm, xml):
@@ -153,8 +168,9 @@ def test_cli_ist_explizit_und_ruft_nur_einen_bekannten_schnappschuss_ab(norm, xm
         call_command("ris_volltext", norm=999999)
 
 
-class Antwort:
+class Antwort(BytesIO):
     def __init__(self, daten, typ="application/xml", status=200):
+        super().__init__(daten)
         self.daten, self.status = daten, status
         self.headers = Message()
         self.headers["Content-Type"] = typ
@@ -164,11 +180,6 @@ class Antwort:
 
     def __exit__(self, *args):
         pass
-
-    def read(self, grenze):
-        assert grenze == HOECHSTBYTES + 1
-        return self.daten[:grenze]
-
 
 def test_netzadapter_ein_request_zeitlimit_und_umleitungsverbot(monkeypatch):
     protokoll = []

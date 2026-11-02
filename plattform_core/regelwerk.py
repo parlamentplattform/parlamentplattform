@@ -591,10 +591,11 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=9,
+        fassung=10,
         seit="2026-11-02",
         grund=(
-            _("Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. ")
+            _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
+            + _("Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
             "Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest "

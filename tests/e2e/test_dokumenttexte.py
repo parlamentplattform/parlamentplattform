@@ -11,8 +11,9 @@ from faktenbasis.models import Norm
 from faktenbasis.ris import RisFehler, antwort_parsen
 from faktenbasis.test_ris import STAND, beispiel
 from faktenbasis.test_xmltext import NUMMER, RIS_ID, xml_beispiel
+from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 
-pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
+pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e, pytest.mark.usefixtures("abrufuhr")]
 
 
 @pytest.mark.parametrize("kennung,viewport,js,dunkel", [

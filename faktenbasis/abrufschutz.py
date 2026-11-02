@@ -1,7 +1,7 @@
 """Gemeinsamer betrieblicher Schutz für manuelle Einzelabrufe.
 
-Fundament: noch nicht an CLI oder Web angebunden. Kein Netzaufruf und kein
-lang gehaltener Datenbank-Schreiblock. Schutzcodes gelangen nicht in die Nachlese.
+CLI und Web teilen Reservierung, Abstand und Stundenkontingent. Kein Netzaufruf
+und kein lang gehaltener Schreiblock hier; Schutzcodes bleiben intern.
 """
 
 import logging

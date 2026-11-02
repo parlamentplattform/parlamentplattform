@@ -162,3 +162,13 @@ def test_ungueltige_argumente_rufen_das_netz_nicht_auf(monkeypatch, nummer, stan
     with pytest.raises(RisFehler):
         abrufen(nummer, stand)
     opener.open.assert_not_called()
+
+
+def test_troepfelnde_antwort_ueberschreitet_nicht_die_technische_reservierung(monkeypatch):
+    zeiten = iter([0, 0, 1, 2, ris.ZEITGRENZE])
+    monkeypatch.setattr(ris.time, "monotonic", lambda: next(zeiten))
+    antwort = Mock()
+    antwort.read1.return_value = b"x"
+    with pytest.raises(RisFehler, match="abrufzeit"):
+        ris.begrenzt_lesen(antwort, 0)
+    assert antwort.read1.call_count <= 3

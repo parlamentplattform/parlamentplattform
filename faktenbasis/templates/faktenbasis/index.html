@@ -3,6 +3,7 @@
 {% block inhalt %}
 <a href="{% url 'verfahren:zukunftswerkstatt' %}">‹ {% translate "Zukunftswerkstatt" %}</a>
 <h1>{% translate "Faktenbasis" %}</h1>
+{% if darf_aktualisieren %}<p><a class="knopf" href="{% url 'faktenbasis:verwaltung' %}">{% translate "Amtliche Quelle übernehmen" %}</a></p>{% endif %}
 <div class="karte">
   <h2>{% translate "Amtliche Quellen aus dem RIS" %}</h2>
   <p>{% translate "Hier stehen gezielt abgerufene Metadaten und einzelne amtliche Dokumenttexte. Die Sammlung ist unvollständig; geprüfte Querverweise fehlen." %}</p>

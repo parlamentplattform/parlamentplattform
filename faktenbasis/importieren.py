@@ -1,14 +1,26 @@
 """Ein begrenzter manueller Import; kein Hintergrundlauf, keine Modellschreibrechte."""
 
+from datetime import date
+
 from django.db import transaction
 from django.utils import timezone
 
+from faktenbasis.abrufschutz import einzelabruf
 from faktenbasis.models import Norm, RisImport
-from faktenbasis.ris import RisFehler, abrufen
+from faktenbasis.ris import GESETZESNUMMER, RisFehler, abrufen
 from verfahren.models import AuditEintrag
 
 
 def importieren(gesetzesnummer, stand):
+    if not isinstance(gesetzesnummer, str) or not GESETZESNUMMER.fullmatch(gesetzesnummer):
+        raise RisFehler("gesetzesnummer")
+    if type(stand) is not date:
+        raise RisFehler("stichtag")
+    with einzelabruf():
+        return _uebernehmen(gesetzesnummer, stand)
+
+
+def _uebernehmen(gesetzesnummer, stand):
     beginn = timezone.now()
     try:
         antwort = abrufen(gesetzesnummer, stand)

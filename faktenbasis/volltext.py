@@ -2,12 +2,14 @@
 
 import urllib.error
 import urllib.request
+from time import monotonic
 
 from django.db import transaction
 from django.utils import timezone
 
-from faktenbasis.models import NormText, NormTextAbruf
-from faktenbasis.ris import HOECHSTBYTES, ZEITGRENZE, RisFehler, _KeineUmleitung
+from faktenbasis.abrufschutz import einzelabruf
+from faktenbasis.models import Norm, NormText, NormTextAbruf
+from faktenbasis.ris import ZEITGRENZE, RisFehler, _KeineUmleitung, begrenzt_lesen
 from faktenbasis.xmltext import PARSER_FASSUNG, xml_adresse, xmltext_parsen
 from verfahren.models import AuditEintrag
 
@@ -20,14 +22,13 @@ def abrufen(url):
     })
     try:
         opener = urllib.request.build_opener(_KeineUmleitung())
+        beginn = monotonic()
         with opener.open(anfrage, timeout=ZEITGRENZE) as antwort:
             if antwort.status != 200 or antwort.headers.get_content_type() not in {
                 "application/xml", "text/xml", "application/octet-stream",
             }:
                 raise RisFehler("volltextformat")
-            daten = antwort.read(HOECHSTBYTES + 1)
-        if len(daten) > HOECHSTBYTES:
-            raise RisFehler("antwortgroesse")
+            daten = begrenzt_lesen(antwort, beginn)
         return daten
     except RisFehler:
         raise
@@ -36,6 +37,14 @@ def abrufen(url):
 
 
 def importieren(norm):
+    # Ausschließlich den erhaltenen Datenbankstand lesen, keine veränderten
+    # Attribute eines übergebenen Python-Objekts als amtliche Quelle verwenden.
+    norm = Norm.objects.get(pk=norm.pk)
+    with einzelabruf():
+        return _uebernehmen(norm)
+
+
+def _uebernehmen(norm):
     beginn = timezone.now()
     quelle = ""
     try:

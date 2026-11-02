@@ -11,6 +11,7 @@ import hashlib
 import html
 import json
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -154,6 +155,27 @@ class _KeineUmleitung(urllib.request.HTTPRedirectHandler):
         raise RisFehler("umleitung")
 
 
+def begrenzt_lesen(antwort, beginn):
+    """Auch tröpfelnde Antworten begrenzen; read1 macht höchstens einen Socket-Read.
+
+    Der einzelne Socket-Read bleibt zusätzlich durch ZEITGRENZE begrenzt.
+    Damit endet die Übertragung vor der technischen Reservierungsfrist.
+    """
+    teile, groesse = [], 0
+    while True:
+        if time.monotonic() - beginn >= ZEITGRENZE:
+            raise RisFehler("abrufzeit")
+        teil = antwort.read1(min(65536, HOECHSTBYTES + 1 - groesse))
+        if time.monotonic() - beginn >= ZEITGRENZE:
+            raise RisFehler("abrufzeit")
+        if not teil:
+            return b"".join(teile)
+        groesse += len(teil)
+        if groesse > HOECHSTBYTES:
+            raise RisFehler("antwortgroesse")
+        teile.append(teil)
+
+
 def abrufen(gesetzesnummer: str, stand: date) -> ImportAntwort:
     if not GESETZESNUMMER.fullmatch(gesetzesnummer):
         raise RisFehler("gesetzesnummer")
@@ -170,12 +192,11 @@ def abrufen(gesetzesnummer: str, stand: date) -> ImportAntwort:
     })
     try:
         opener = urllib.request.build_opener(_KeineUmleitung())
+        beginn = time.monotonic()
         with opener.open(anfrage, timeout=ZEITGRENZE) as antwort:
             if antwort.headers.get_content_type() != "application/json":
                 raise RisFehler("antwortformat")
-            inhalt = antwort.read(HOECHSTBYTES + 1)
-        if len(inhalt) > HOECHSTBYTES:
-            raise RisFehler("antwortgroesse")
+            inhalt = begrenzt_lesen(antwort, beginn)
         daten = json.loads(inhalt.decode("utf-8-sig"))
         parsed = antwort_parsen(daten, gesetzesnummer)
     except RisFehler:

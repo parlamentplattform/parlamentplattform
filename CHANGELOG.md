@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.59.0] — 2026-11-02 · Einzelne amtliche Quellen in der Verwaltung übernehmen
+
+- Die Verwaltung kann zu einer exakten Gesetzesnummer und einem Stichtag ausdrücklich eine Seite amtlicher Metadaten übernehmen und anschließend einen einzelnen Dokumenttext abrufen. Gäste und gewöhnliche Mitglieder behalten ausschließlich die öffentliche Nachlese; aktive Mitgliedschaft, geprüfter Nachweis und bestehende Verwaltungsrechte werden vor dem Abruf geprüft.
+- Weboberfläche und beide Einzelbefehle teilen eine datenbankgestützte Reservierung, mindestens zwei Sekunden Abstand und ein Stundenkontingent (anfangs zehn, mit null sperrbar). Blockierte Anforderungen erzeugen keinen angeblichen Quellenabruf. Technische Größen- und Zeitgrenzen bleiben wirksam, auch bei tröpfelnden Antworten; während des Netzabrufs bleibt keine eigene Datenbanktransaktion offen.
+- Verwaltungsanforderungen werden ohne Profilwerte auditiert. Formulare sind zweisprachig und ohne JavaScript bedienbar. Schema1.15 und Rollenmatrix10 dokumentieren Grenze und Bedienweg. Die unveränderliche Quellen- und Fehlerhistorie bleibt erhalten.
+- Automatische Sammelabrufe, größere RIS-Nutzung, geprüfte Antragszuordnungen und Einspeisung in Modellkontexte bleiben offen. Kein neuer Dienst, Anbieter oder Kostenrahmen; laufende Verfahren bleiben unverändert.
+
 ## [0.58.0] — 2026-11-02 · Einschätzungen eindeutig dem Textstand zuordnen
 
 - Antrag und eingereichter Expertenratsvorschlag haben getrennte Fassungsräume. Neue Warteschlangen-Aufträge halten Titel, Wortlaut, Begründung, Ebene, Gebiet, Quelle und Prüfsumme vor dem Modellaufruf fest; spätere Änderungen ersetzen diesen Stand nicht.

@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.54.0] — 2026-11-02 · Mitglied werden ohne erzwungene Wohnsitzgemeinde
+
+- Registrierung mit den getrennten Optionen „Ohne festen Wohnsitz“ und „Wohnsitz im Ausland“. Eine österreichische Gemeinde ist nur bei „Wohnsitz in Österreich“ erforderlich; beide neuen Wege funktionieren ohne JavaScript.
+- Die Angabe lässt sich im Profil und in der Mitgliederverwaltung ändern und steht im persönlichen Datenexport. Beim Wechsel werden überholte Gemeinde und Bundesland gemeinsam entfernt; es wird keine Region erfunden. Vorhandene fehlende Angaben bleiben unbekannt.
+- Identitätsprüfung, Mitgliedsbeiträge und Stimmrechtsregeln bleiben unverändert. Änderungen werden ohne Ortsangaben auditiert; beim Austritt wird auch die Wohnsitzangabe entfernt.
+
 ## [0.53.1] — 2026-11-02 · Monatssicherung über das interne Render-Netz
 
 - Datenbankexport einmal pro Kalendermonat im bestehenden Render-Dienst. Keine zusätzliche Instanz und keine externe Datenbankfreigabe. Fehlversuche werden wiederholt; ein eigener Faden hält weder Fristen-Wächter noch Postausgang auf.

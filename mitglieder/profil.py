@@ -43,6 +43,7 @@ from django.views.decorators.http import require_POST
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
+from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from parameter.models import zahl
 from plattform_core import Phase
 from verfahren.models import (
@@ -181,7 +182,7 @@ def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
     )
 
 
-class ProfilFormular(forms.Form):
+class ProfilFormular(WohnsitzFormularMixin, forms.Form):
     """Anzeigename, Wohnsitz, Nebenwohnsitz — was ein Mitglied selbst pflegt."""
 
     anzeigename = forms.CharField(label=gettext_lazy("Öffentlicher Anzeigename"), max_length=50, required=False)
@@ -191,8 +192,9 @@ class ProfilFormular(forms.Form):
     post_einwilligung = forms.BooleanField(
         label=gettext_lazy("Die Plattform darf mir E-Mails schicken."), required=False
     )
+    wohnsitz_art = wohnsitz_auswahl()
     gemeinde = forms.CharField(
-        label=gettext_lazy("Wohnsitz-Gemeinde (leer = keine Angabe)"),
+        label=gettext_lazy("Wohnsitz-Gemeinde"),
         max_length=140,
         required=False,
         widget=forms.TextInput(attrs={"list": "gemeinden", "autocomplete": "off"}),
@@ -229,10 +231,6 @@ class ProfilFormular(forms.Form):
             raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
         return name
 
-    def clean_gemeinde(self) -> str:
-        self.gemeinde_objekt = _gemeinde_pruefen(self.cleaned_data["gemeinde"])
-        return self.gemeinde_objekt.name if self.gemeinde_objekt else ""
-
     def clean_nebenwohnsitz(self) -> str:
         self.nebenwohnsitz_objekt = _gemeinde_pruefen(self.cleaned_data["nebenwohnsitz"])
         return self.nebenwohnsitz_objekt.name if self.nebenwohnsitz_objekt else ""
@@ -261,15 +259,7 @@ def _profil_anwenden(mitglied: Mitglied, form: ProfilFormular) -> list[str]:
     if mitglied.post_einwilligung != d["post_einwilligung"]:
         mitglied.post_einwilligung = d["post_einwilligung"]
         geaendert.append("post_einwilligung")  # nur der Feldname im Audit, nie der Wert
-    g = form.gemeinde_objekt
-    if g is not None:
-        if mitglied.wohnsitz_id != g.pk:
-            # Dreiklang wie Registrierung und Verwaltung: Name, Bundesland und Verweis gemeinsam.
-            mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz = g.name, g.bundesland, g
-            geaendert.append("wohnsitz")
-    elif mitglied.gemeinde or mitglied.wohnsitz_id:
-        mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz = "", "", None
-        geaendert.append("wohnsitz")
+    geaendert += wohnsitz_anwenden(mitglied, form)
     n = form.nebenwohnsitz_objekt
     neben_pk = n.pk if n is not None else None
     if mitglied.nebenwohnsitz_id != neben_pk:
@@ -299,6 +289,7 @@ def profil(request):
                 "anzeigename": mitglied.pseudonym_oeffentlich,
                 "klarname_oeffentlich": mitglied.klarname_oeffentlich,
                 "post_einwilligung": mitglied.post_einwilligung,
+                "wohnsitz_art": mitglied.wohnsitz_art_aktuell,
                 "gemeinde": mitglied.wohnsitz.anzeige if mitglied.wohnsitz_id else mitglied.gemeinde,
                 "nebenwohnsitz": mitglied.nebenwohnsitz.anzeige if mitglied.nebenwohnsitz_id else "",
             },
@@ -580,6 +571,7 @@ def daten_export(mitglied: Mitglied) -> dict:
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,
         "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
+        "wohnsitz_art": m.wohnsitz_art_aktuell,
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),
         "beitraege": [
@@ -858,6 +850,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     mitglied.username = f"ausgetreten-{mitglied.pk}"  # unique und ohne Personenbezug
     mitglied.gemeinde, mitglied.bundesland = "", ""
     mitglied.wohnsitz = mitglied.nebenwohnsitz = None
+    mitglied.wohnsitz_art = ""
     mitglied.status_grund = ""
     if not mitglied.pseudonym_oeffentlich:
         # Sonst stünde bei früheren Beiträgen „Mitglied n“ — als wäre der Mensch noch Mitglied.

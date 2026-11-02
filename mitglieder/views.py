@@ -27,6 +27,7 @@ from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
+from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from verfahren.models import AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -37,14 +38,17 @@ MAIL_STOERUNG = gettext_lazy(
 )
 
 
-class RegistrierungsFormular(BotschutzMixin, forms.Form):
+class RegistrierungsFormular(BotschutzMixin, WohnsitzFormularMixin, forms.Form):
+    wohnsitz_pflicht = True
     vorname = forms.CharField(label=gettext_lazy("Vorname"), max_length=80)
     nachname = forms.CharField(label=gettext_lazy("Nachname"), max_length=80)
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
     geburtsjahr = forms.IntegerField(label=gettext_lazy("Geburtsjahr"), min_value=1900, max_value=2100)
+    wohnsitz_art = wohnsitz_auswahl(registrierung=True)
     gemeinde = forms.CharField(
         label=gettext_lazy("Wohnsitz-Gemeinde"),
         max_length=140,
+        required=False,
         widget=forms.TextInput(
             attrs={
                 "list": "gemeinden",
@@ -57,27 +61,6 @@ class RegistrierungsFormular(BotschutzMixin, forms.Form):
             "ordnen wir dann automatisch zu. Mit der ID Austria erfolgt das später amtlich."
         ),
     )
-
-    def clean_gemeinde(self):
-        eingabe = self.cleaned_data["gemeinde"]
-        treffer, kandidaten = Gemeinde.finden(eingabe)
-        if treffer:
-            self.gemeinde_objekt = treffer
-            return treffer.name
-        if kandidaten:
-            optionen = "; ".join(g.anzeige for g in kandidaten)
-            raise forms.ValidationError(
-                _("Diesen Gemeindenamen gibt es mehrmals — bitte präzisieren: %s.") % optionen
-            )
-        vorschlaege = list(
-            Gemeinde.objects.filter(name__istartswith=eingabe.strip()[:10]).values_list("name", flat=True)[:5]
-        )
-        hinweis = (_(" Meinten Sie: %s?") % ", ".join(vorschlaege)) if vorschlaege else ""
-        raise forms.ValidationError(
-            _("„%(eingabe)s“ steht nicht im amtlichen Gemeindeverzeichnis — bitte aus der Liste wählen.")
-            % {"eingabe": eingabe}
-            + hinweis
-        )
 
     klarname_oeffentlich = forms.BooleanField(
         label=gettext_lazy("Mein Name darf öffentlich erscheinen."),
@@ -200,10 +183,7 @@ def registrieren(request):
                     mitglied.post_einwilligung = d["post_einwilligung"]
                     mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
-                    gemeinde = form.gemeinde_objekt  # geprüft in clean_gemeinde
-                    mitglied.gemeinde = gemeinde.name
-                    mitglied.bundesland = gemeinde.bundesland
-                    mitglied.wohnsitz = gemeinde
+                    wohnsitz_anwenden(mitglied, form)
                     mitglied.set_unusable_password()
                     mitglied.save()
                     _bestaetigungslink_senden(request, mitglied)

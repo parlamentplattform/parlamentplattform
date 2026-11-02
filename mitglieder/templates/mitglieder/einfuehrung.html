@@ -57,9 +57,8 @@
   </div>
   {% endfor %}
 </div>
-<p class="hilfe">{% blocktranslate %}Sie können auch gezielt suchen — zum Beispiel Ihren Beruf oder Ihr Anliegen:
-auf der Seite <a href="/kategorien/">Lebensbereiche</a> oben rechts. Mit dem Zurück-Knopf Ihres
-Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
+{% url 'verfahren:parlament' as parlament_url %}
+<p class="hilfe">{% blocktranslate %}Ihren Beruf oder Ihr Anliegen finden Sie über die Suche im <a href="{{ parlament_url }}#feld-favoriten">Favoriten-Feld des Parlaments</a>. Mit dem Zurück-Knopf Ihres Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
 
 <div class="stimmzeile" style="margin-top:18px">
   <a class="btn" href="{% url 'mitglieder:einfuehrung' 2 %}">{% translate "Weiter: Ihre erste Abstimmung" %} →</a>
@@ -75,13 +74,12 @@ Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
     <path d="M47 28 l5 5 9 -10" stroke="#D9A441" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></g>
   </svg>
   <div style="flex:1 1 24em">
-    <p>{% blocktranslate %}Abgestimmt wird mit <strong>Ja, Nein oder Enthaltung</strong> — mindestens sieben Tage lang,
-    und bis zum Fristende können Sie Ihre Stimme ändern. Ihre Stimme steht unter einem
+    <p>{% blocktranslate %}Abgestimmt wird mit <strong>Ja, Nein oder Enthaltung</strong>.
+    Die Dauer steht bei jeder Abstimmung; bis zum Fristende können Sie Ihre Stimme ändern. Ihre Stimme steht unter einem
     <strong>Pseudonym</strong> in der öffentlichen Stimmliste; mit Ihrem persönlichen Prüfcode finden
     Sie sie dort wieder und können das Ergebnis selbst nachrechnen. Das Ergebnis erscheint erst
     nach dem Fristende — niemand läuft einer Mehrheit hinterher.{% endblocktranslate %}</p>
-    <p class="erk" style="margin-top:8px">{% blocktranslate %}Ansehen können Sie alles sofort — Ihre erste eigene Stimme folgt,
-    sobald Ihr Konto nach dem Beitragseingang freigeschaltet ist.{% endblocktranslate %}</p>
+    <p class="erk" style="margin-top:8px">{{ stimmrechts_satz }}</p>
   </div>
 </div>
 </div>
@@ -115,8 +113,15 @@ Browsers kommen Sie hierher zurück.{% endblocktranslate %}</p>
     Oft bewegt eine Unterstützung mehr als ein Parallelantrag. Einbringen bleibt trotzdem immer möglich —
     kein Algorithmus entscheidet über Zulassung. Die passenden Lebensbereiche ordnet die Plattform
     automatisch zu.{% endblocktranslate %}</p>
-    <p class="erk" style="margin-top:8px">{% blocktranslate %}Der Weg danach: Unterstützung sammeln → mindestens 21 Tage öffentliche
-    Beratung → mindestens 7 Tage Abstimmung → dauerhaft veröffentlichtes, nachrechenbares Ergebnis.{% endblocktranslate %}</p>
+    <p class="erk" style="margin-top:8px">{% translate "Der Weg danach: Unterstützung sammeln, beraten, abstimmen. Das Ergebnis bleibt veröffentlicht und nachrechenbar." %}</p>
+    {% if policy %}
+      {% if policy.beratung_entfaellt %}
+      <p class="hilfe">{% blocktranslate with abstimmung=policy.abstimmung_tage %}Für neue Sachanträge gilt derzeit eine Abstimmungsdauer von {{ abstimmung }} Tagen; die Beratungsphase entfällt nach der aktuellen Verfahrensordnung.{% endblocktranslate %}</p>
+      {% else %}
+      <p class="hilfe">{% blocktranslate with beratung=policy.beratung_tage abstimmung=policy.abstimmung_tage %}Für neue Sachanträge gelten nach der aktuellen Verfahrensordnung {{ beratung }} Tage Beratung und {{ abstimmung }} Tage Abstimmung.{% endblocktranslate %}</p>
+      {% endif %}
+    {% endif %}
+    <p class="hilfe">{% translate "Laufende Verfahren behalten ihre festgelegten Regeln. Die jeweiligen Fristen sehen Sie direkt beim Antrag; für Personenwahlen und Mandatsfragen gelten eigene Abläufe." %}</p>
   </div>
 </div>
 </div>

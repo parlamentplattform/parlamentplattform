@@ -62,3 +62,29 @@ def test_schritt_drei_fuehrt_zum_beitrag(client):
     inhalt = client.get(reverse("mitglieder:einfuehrung", args=[3])).content.decode()
     assert "hnliche laufende Antr" in inhalt  # erklärt den Ähnlichkeitshinweis
     assert reverse("mitglieder:willkommen") in inhalt  # Abschluss: Beitrags-QR
+
+
+def test_einfuehrung_nennt_die_geltende_ordnung_und_aendert_keinen_alten_antrag(client, ordnung):  # noqa: F811
+    person = mitglied_anlegen()
+    alt = antrag_fixture(person, ordnung)
+    snapshot = dict(alt.policy_snapshot)
+    from verfahren.models import Verfahrensordnung
+    neue_regeln = {**ordnung.regeln, "version": 2, "beratung_tage": 35, "abstimmung_tage": 28}
+    Verfahrensordnung.objects.create(policy_id=ordnung.policy_id, version=2, aktiv=True, regeln=neue_regeln)
+    client.force_login(person)
+    text = client.get(reverse("mitglieder:einfuehrung", args=[3])).content.decode()
+    assert "35 Tage Beratung und 28 Tage Abstimmung" in text
+    assert "Laufende Verfahren behalten ihre festgelegten Regeln" in text
+    alt.refresh_from_db()
+    assert alt.policy_snapshot == snapshot
+
+
+def test_favoritensuche_ist_erreichbar_und_aufnahme_verspricht_keine_beitragsautomatik(client):
+    from mitglieder.models import Identitaetsstufe
+    client.force_login(mitglied_anlegen(stufe=Identitaetsstufe.UNGEPRUEFT))
+    eins = client.get(reverse("mitglieder:einfuehrung", args=[1])).content.decode()
+    assert 'href="/kategorien/"' not in eins
+    assert reverse("verfahren:parlament") + "#feld-favoriten" in eins
+    zwei = client.get(reverse("mitglieder:einfuehrung", args=[2])).content.decode()
+    assert "nach dem Beitragseingang freigeschaltet" not in zwei
+    assert "mindestens sieben Tage lang" not in zwei

@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 4
+VERSION = 5
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,17 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="modellantwort.py",
+        titel=_("Formprüfung von Modellantworten"),
+        zweck=_("Prüft die Form einer Rechtsbezug-Antwort: Pflichtfelder, Typen, bekannte Werte und technische Grenzen. Sie bestätigt weder den Inhalt noch die rechtliche Relevanz einer Norm."),
+        wirkung=Wirkung.STELLT_DAR,
+        satzung="§ 2 Abs 6",
+        fassung=1,
+        seit="2026-11-02",
+        grund=_("Ein Formatfehler darf nicht wie eine leere inhaltliche Einschätzung erscheinen. Unbekannte Angaben werden nicht als bestimmte Rechtswirkung ausgegeben; Originalantworten und frühere Läufe bleiben unverändert."),
+        nachrechenbar=_("Das veröffentlichte JSON-Schema und die unveränderte Antwort lassen sich erneut prüfen. Die Anzeige nennt die Fassung der aktuellen Formprüfung und die Prüfsummen; sie behauptet keine rückwirkende Prüfung beim ursprünglichen Lauf."),
+    ),
     Regel(
         modul="tally.py",
         titel=_("Auszählung von Sachfragen"),

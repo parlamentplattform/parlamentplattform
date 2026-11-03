@@ -25,9 +25,13 @@ def _herunterladen():
                 raise ValueError("personal_antwort")
             teile, gesamt = [], 0
             while True:
-                if monotonic() - beginn > ZEITGRENZE:
+                if monotonic() - beginn >= ZEITGRENZE:
                     raise ValueError("personal_zeit")
-                teil = antwort.read(min(65536, HOECHSTBYTES + 1 - gesamt))
+                # Genau ein Socket-Read pro Zeitprüfung; read() könnte bei einer
+                # tröpfelnden Quelle mehrfach warten, um den Puffer zu füllen.
+                teil = antwort.read1(min(65536, HOECHSTBYTES + 1 - gesamt))
+                if monotonic() - beginn >= ZEITGRENZE:
+                    raise ValueError("personal_zeit")
                 if not teil:
                     return b"".join(teile)
                 gesamt += len(teil)

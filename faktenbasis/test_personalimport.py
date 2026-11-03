@@ -128,8 +128,11 @@ def test_fester_amtlicher_abruf_ohne_umleitung_oder_freie_url(gelesen, monkeypat
     assert lauf.erfolgreich and lauf.weg == "amtlich"
 
 
-@pytest.mark.parametrize("fehler", ["format", "groesse", "zeit", "umleitung"])
-def test_antwortgrenzen_und_umleitungsverbot(gelesen, monkeypatch, fehler):
+@pytest.mark.parametrize(("fehler", "erwartet"), [
+    ("format", "personal_antwort"), ("groesse", "personal_groesse"),
+    ("zeit", "personal_zeit"), ("umleitung", "personal_abruf"),
+])
+def test_antwortgrenzen_und_umleitungsverbot(gelesen, monkeypatch, fehler, erwartet):
     from urllib.error import HTTPError
 
     class Antwort(BytesIO):
@@ -147,10 +150,60 @@ def test_antwortgrenzen_und_umleitungsverbot(gelesen, monkeypatch, fehler):
             return antwort
     def opener(*handler):
         assert len(handler) == 1 and isinstance(handler[0], personalimport._KeineUmleitung)
-        assert handler[0].redirect_request(None, None, 302, "", {}, "https://example.org/") is None
         return Opener()
     monkeypatch.setattr(personalimport.urllib.request, "build_opener", opener)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=erwartet):
         personalimport.amtlich_importieren()
     assert not PersonalAggregat.objects.exists()
     assert not PersonalAbruf.objects.get().erfolgreich
+    assert PersonalAbruf.objects.get().fehlercode == erwartet
+
+
+def test_umleitung_wird_vom_handler_vor_einem_zweiten_request_abgelehnt():
+    with pytest.raises(ValueError, match="umleitung"):
+        personalimport._KeineUmleitung().redirect_request(None, None, 302, "", {}, "https://example.org/")
+
+
+def test_abruf_liest_nur_einen_socketabschnitt_je_zeitpruefung(gelesen, monkeypatch):
+    class Antwort(BytesIO):
+        status = 200
+        headers = Message()
+
+        def read(self, *args):
+            pytest.fail("read kann mehrere langsame Socket-Reads vor der nächsten Zeitprüfung ausführen")
+
+        def read1(self, grenze):
+            assert 0 < grenze <= 65536
+            return super().read(1)
+
+    antwort = Antwort(b"xyz")
+    antwort.headers["Content-Type"] = "application/pdf"
+
+    class Opener:
+        def open(self, *args, **kwargs):
+            return antwort
+
+    monkeypatch.setattr(personalimport.urllib.request, "build_opener", lambda *a: Opener())
+    assert personalimport._herunterladen() == b"xyz"
+
+
+@pytest.mark.parametrize("letzter_abschnitt", [b"", b"letzte Bytes"], ids=["eof", "daten"])
+def test_auch_eof_und_daten_nach_der_zeitgrenze_werden_verworfen(gelesen, monkeypatch, letzter_abschnitt):
+    class Antwort(BytesIO):
+        status = 200
+        headers = Message()
+
+    antwort = Antwort(letzter_abschnitt)
+    antwort.headers["Content-Type"] = "application/pdf"
+
+    class Opener:
+        def open(self, *args, **kwargs):
+            return antwort
+
+    zeiten = iter([0, 0, 15])
+    monkeypatch.setattr(personalimport, "monotonic", lambda: next(zeiten))
+    monkeypatch.setattr(personalimport.urllib.request, "build_opener", lambda *a: Opener())
+    with pytest.raises(ValueError, match="personal_zeit"):
+        personalimport.amtlich_importieren()
+    assert not PersonalAggregat.objects.exists()
+    assert PersonalAbruf.objects.get().fehlercode == "personal_zeit"

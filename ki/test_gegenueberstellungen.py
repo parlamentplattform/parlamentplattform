@@ -2,6 +2,7 @@
 # ruff: noqa: F811 -- importierte pytest-Fixtures
 
 import json
+from types import SimpleNamespace
 
 import pytest
 from django.test import Client
@@ -79,13 +80,27 @@ def test_betriebsgrenzen_starten_keinen_anbieter_und_wiederholen_nicht(lage, mod
     assert not modell and not KILauf.objects.exists()
 
 
-def test_neue_anfragen_zaehlen_eigenes_stundenlimit_doppelte_nicht(lage, modell):
+def test_neue_anfragen_zaehlen_eigenes_stundenlimit_doppelte_nicht(lage, modell, monkeypatch):
+    monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: 1800000000))
     Parameter.objects.create(schluessel="gegenueberstellung-je-stunde", wert="1")
     args = anfrage(lage)
     anfordern(*args)
     anfordern(*args)
     a = anfordern(*anfrage(lage))
     assert a.meldung == "stundengrenze" and len(modell) == 1
+
+
+def test_neue_stunde_oeffnet_kontingent_aber_beginnt_alte_kennung_nicht_neu(lage, modell, monkeypatch):
+    stunde = [1800000000]
+    monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: stunde[0]))
+    Parameter.objects.create(schluessel="gegenueberstellung-je-stunde", wert="1")
+    args = anfrage(lage)
+    anfordern(*args)
+    stunde[0] += 3600
+    anfordern(*args)
+    assert len(modell) == 1
+    anfordern(*anfrage(lage))
+    assert len(modell) == 2
 
 
 def test_zeitgrenze_kommt_aus_dem_register(lage, modell):
@@ -237,6 +252,23 @@ def test_http_csrf_bleibt_erforderlich(client, web_lage, modell):
     c = Client(enforce_csrf_checks=True)
     c.force_login(m)
     assert webpost(c, angebot).status_code == 403 and not modell
+
+
+def test_sqlite_schreibkonflikt_behaelt_formular_und_wahl_ohne_zweiten_start(client, web_lage, modell, monkeypatch):
+    import sqlite3
+
+    from django.db import OperationalError
+
+    ursprung = sqlite3.OperationalError("synthetischer Schreibkonflikt")
+    ursprung.sqlite_errorcode = sqlite3.SQLITE_LOCKED
+    def belegt(*args, **kwargs):
+        raise OperationalError("synthetisch belegt") from ursprung
+    monkeypatch.setattr("ki.gegenueberstellungen.anfordern", belegt)
+    r = webpost(client, web_lage[2])
+    assert r.status_code == 200 and not modell
+    assert r.context["form"]["wortlaut"].value() == UMFORMULIERT["wortlaut"]
+    text = r.content.decode()
+    assert "Ihr Text bleibt erhalten" in text and "Mein Antrag ist etwas anderes" in text and "Diesen unterstützen" in text
 
 
 def test_modelltext_wird_als_text_escaped_und_nie_als_html_gerendert(client, web_lage, modell, monkeypatch):

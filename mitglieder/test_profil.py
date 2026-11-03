@@ -778,6 +778,7 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
         "Fachliste.mitglied": "fachliste",
         "KILauf.angefordert_von": "ki_laeufe",
         "KIAuftrag.angefordert_von": "ki_auftraege",
+        "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
         "Interessenbindung.mitglied": "interessenbindungen",
         "Ueberlastungsmeldung.gemeldet_von": "ueberlastungsmeldungen",
         "Vollzugseintrag.durch": "vollzug",

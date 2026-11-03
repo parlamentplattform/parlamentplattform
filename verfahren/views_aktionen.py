@@ -14,7 +14,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import OperationalError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -267,6 +267,7 @@ def einbringen(request):
             token = request.POST.get("pruefstand", "")
             stand = pruefstand_lesen(token, daten, request.user) if token else None
             if request.POST.get("textvergleich"):
+                from ki.betriebszugang import _sperrkonflikt
                 from ki.gegenueberstellungen import anfordern, auswertung
 
                 if stand is None or d["art"] != Antragsart.SACHE:
@@ -279,6 +280,13 @@ def einbringen(request):
                 except ValueError:
                     form.add_error(None, _("Der Modellvergleich passt nicht mehr zu diesem Angebot oder die vollständigen Texte überschreiten seine Grenze. Prüfen Sie die Treffer erneut oder bringen Sie Ihren eigenen Antrag ein."))
                     return seite(pruefung, token)
+                except OperationalError as fehler:
+                    if not _sperrkonflikt(fehler):
+                        raise
+                    # SQLite kann bereits beim Reservieren der privaten Anfrage
+                    # einen Schreibkonflikt melden. Kein zweiter Aufruf/Retry;
+                    # die unveränderte menschliche Wahl bleibt gerendert.
+                    vergleich = {"gueltig": False, "meldung": "datenbank_belegt"}
                 return seite(pruefung, token, vergleich=vergleich)
             wahl = request.POST.get("unterstuetzen") or request.POST.get("unterstuetzen_bestaetigt")
             if wahl or request.POST.get("vergleich_zurueck") or (request.POST.get("trotzdem") and token):

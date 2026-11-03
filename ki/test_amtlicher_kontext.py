@@ -54,7 +54,7 @@ def test_anbieter_verwendet_nur_festgehaltene_quellen_auch_nach_neuem_import(a, 
     assert einreihen(Zweck.RECHTSBEZUG, a, a.eingebracht_von).pk == job.pk
     assert auftrag_ausfuehren(job.pk) == "erledigt"
     job.refresh_from_db()
-    assert job.lauf.auftrag_version == "rechtsbezug-v2"
+    assert job.lauf.auftrag_version == "rechtsbezug-v3"
     assert job.lauf.kontext["quellen"] == vorher
     assert job.lauf.eingabe.endswith(quelleneingabe(vorher))
     assert gesehen["eingabe"] == job.lauf.eingabe and "Kontextkandidaten" in gesehen["auftragstext"]

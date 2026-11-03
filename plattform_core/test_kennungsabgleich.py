@@ -11,7 +11,7 @@ N = {"kennung": Q["ris_id"], "titel": "Ungeprüfter Modelltitel", "ebene": "Bund
 def test_nur_exakte_kennung_keine_titelbestaetigung_und_keine_mutation():
     n, q = copy.deepcopy(N), copy.deepcopy(Q)
     r, = abgleichen([n], [q])
-    assert VERSION == 1 and r["zustand"] == "gleich" and r["quelle"] == Q
+    assert VERSION == 2 and r["zustand"] == "gleich" and r["quelle"] == Q
     assert r["rechtlich_verifiziert"] is False and n == N and q == Q
     r["quelle"]["kurztitel"] = "Nachträglich anders"
     assert q == Q
@@ -49,3 +49,24 @@ def test_beschaedigte_quelle_wird_nicht_tolerant_aufgeloest(feld, wert):
 def test_quellenmuessen_objekte_sein():
     with pytest.raises(ValueError):
         abgleichen([], [None])
+
+
+def test_landeskennung_braucht_ausdrueckliche_herkunft_ohne_geografische_deutung():
+    q = {**Q, "ris_id": "LOO00000001", "ebene": "Land", "bundesland": "Oberösterreich"}
+    n = {**N, "kennung": q["ris_id"], "ebene": "Land"}
+    r, = abgleichen([n], [q])
+    assert r["quelle"] == q and not r["rechtlich_verifiziert"]
+    assert abgleichen([{**n, "ebene": "Bund"}], [q])[0]["quelle"] is None
+    assert abgleichen([{**n, "aenderung": "neu"}], [q])[0]["quelle"] is None
+    # Unterschiedliche damalige Herkunft ist mehrdeutig, keine stille Auswahl nach Antragstitel.
+    assert abgleichen([n], [q, {**q, "bundesland": "Wien", "norm_id": 18}])[0]["zustand"] == "mehrdeutig"
+
+
+@pytest.mark.parametrize("felder", [
+    {"ebene": "Land"}, {"bundesland": "Oberösterreich"},
+    {"ebene": "Land", "bundesland": ""}, {"ebene": "Land", "bundesland": "Oberoesterreich"},
+    {"ebene": "Bund", "bundesland": "Oberösterreich"}, {"ebene": None, "bundesland": "Wien"},
+])
+def test_fehlerhafte_ausdrueckliche_herkunft_bekommt_keinen_bund_standard(felder):
+    with pytest.raises(ValueError):
+        abgleichen([N], [{**Q, **felder}])

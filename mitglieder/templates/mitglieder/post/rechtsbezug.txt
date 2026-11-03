@@ -19,6 +19,9 @@
 {% if quellenstand.zustand == "fest" %}
 {% translate "Amtlicher Quellenkontext" %}: {{ quellenstand.quellen|length }} · {% translate "Quellenkontext-Prüfsumme (SHA-256)" %}: {{ quellenstand.hash }}
 {% translate "Kontextkandidaten aus vorhandenen amtlichen Quellen. Die Auswahl beweist keine rechtliche Betroffenheit; die Modellantwort ist nicht gegen diese Quellen verifiziert." %}
+{% if quellenstand.umfang %}{% translate "Auswahlumfang: vorhandenes Bundes- und Landesrecht, ohne räumliche Zuständigkeitsprüfung. Das Bundesland einer Quelle bestätigt keine Zuständigkeit für diesen Antrag." %}
+{% for q in quellenstand.quellen %}{% translate "Amtliche Quellenherkunft" %}: {{ q.ris_id }} · {% if q.ebene == "Bund" %}{% translate "Bund" %}{% else %}{% translate "Land" %} · {{ q.bundesland }}{% endif %}
+{% endfor %}{% endif %}
 {% endif %}
 
 {% translate "Zur Antragsseite:" %} {{ link }}

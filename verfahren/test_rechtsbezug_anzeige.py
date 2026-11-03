@@ -94,7 +94,7 @@ def test_erledigt_zeigt_normen_mit_badges_kennzeichnung_und_beanstanden(client, 
     assert "Parteiengesetz 2012" in inhalt and "BGBl. I Nr. 56/2012" in inhalt and "Transparenz-Richtlinie" in inhalt
     assert inhalt.count("nicht verifiziert") >= 2 and "zu ändern" in inhalt and "berührt" in inhalt
     assert "Bundeskompetenz nach Art. 10 B-VG." in inhalt and "mittel" in inhalt
-    assert "attrappe-1 · rechtsbezug-v2" in inhalt
+    assert "attrappe-1 · rechtsbezug-v3" in inhalt
     assert "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung" in inhalt
     assert "Modellrechnung — sie schlägt vor, sie entscheidet nie" in inhalt  # die Kopfkarte bleibt
     assert 'href="http' not in inhalt.split('id="rechtsbezug"')[1].split("</div>")[0]  # kein Link auf eine Norm

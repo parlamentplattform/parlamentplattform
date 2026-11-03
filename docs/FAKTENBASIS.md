@@ -106,7 +106,8 @@ neuer Parserfassung ergibt einen zusätzlichen Stand, keine Änderung früherer 
 Wiederholungen derselben Auswertung behalten den ersten Erfassungszeitpunkt. Fehler löschen keine
 früheren Texte. Öffentlich nachlesbar sind Original-XML, Wortlaut, Quelle, Hash, Fassung und Abrufe.
 
-Die automatische Quellenauswahl und explizite KontexterfassungFassung1 bleiben weiterhin aufBund
-begrenzt. Landesquellen werden weder alsBund ausgegeben noch bestehenden Modellaufträgen ergänzt.
-Eine spätere Landeskontextfassung braucht einen eigenen nachgewiesenen Eingabevertrag. Die neue
-Textauswertung begründet keine rechtliche Geltungs-/Betroffenheitsprüfung oder vollständigen Graphen.
+Die explizite KontexterfassungFassung1 bleibt aufBund begrenzt. Seit0.70 verwenden neue
+Aufträge Quellenrahmen2 mit ausdrücklicher Bundes-/Landesherkunft, offenem Umfang ohne
+räumliche Zuständigkeitsprüfung und eigenem Promptvertrag. Landesquellen werden weder
+alsBund ausgegeben noch bestehenden Aufträgen ergänzt. Details: `LANDESKONTEXT.md`.
+Die Textauswertung begründet keine rechtliche Geltungs-/Betroffenheitsprüfung oder vollständigen Graphen.

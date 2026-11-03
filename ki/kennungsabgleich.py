@@ -2,9 +2,9 @@
 
 import json
 
-from faktenbasis.kontext import eingabe as quellen_eingabe
 from faktenbasis.kontext import pruefen as quellen_pruefen
-from ki.kontext import eingabe as text_eingabe
+from ki.eingabevertrag import korrektur as korrekturvertrag
+from ki.eingabevertrag import rechtsbezug as rechtsvertrag
 from ki.kontext import pruefen as text_pruefen
 from ki.models import Zweck
 from plattform_core.kennungsabgleich import VERSION, abgleichen
@@ -29,17 +29,16 @@ def fuer_lauf(lauf):
         t, q = text_pruefen(k.get("text")), quellen_pruefen(k["quellen"])
         if t["antrag"] != lauf.antrag_id or q["text_sha256"] != k["text"]["sha256"]:
             raise ValueError("Falsche Textbindung")
-        ursprungseingabe = text_eingabe(k["text"]) + "\n\n" + quellen_eingabe(k["quellen"], text_sha256=k["text"]["sha256"])
+        nummer, ursprungseingabe = rechtsvertrag(k["text"], k["quellen"])
         if lauf.zweck == Zweck.RECHTSBEZUG:
-            if lauf.auftrag_version != "rechtsbezug-v2" or lauf.eingabe != ursprungseingabe:
+            if lauf.auftrag_version != f"rechtsbezug-v{nummer}" or lauf.eingabe != ursprungseingabe:
                 raise ValueError("Kein tatsächlicher Quellenwortlaut")
         else:
             from ki.korrekturkontext import pruefen as korrektur_pruefen
 
             d = korrektur_pruefen(k.get("korrektur"))
-            erwartet = json.dumps({"urspruengliche_eingabe": d["eingabe"], "urspruengliche_antwort": d["antwort"],
-                "beanstandung": d["beanstandung"]["text"]}, ensure_ascii=False, sort_keys=True)
-            if (lauf.auftrag_version != "korrektur-v1" or lauf.eingabe != erwartet or d["eingabe"] != ursprungseingabe
+            korrnummer, erwartet = korrekturvertrag(k["korrektur"])
+            if (lauf.auftrag_version != f"korrektur-v{korrnummer}" or lauf.eingabe != erwartet or d["eingabe"] != ursprungseingabe
                     or d["text"] != k["text"] or d["quellen"] != k["quellen"] or d["antrag"] != lauf.antrag_id):
                 raise ValueError("Kein tatsächlicher Korrekturwortlaut")
         normen = json.loads(lauf.antwort)["normen"]

@@ -84,8 +84,10 @@ werden nicht über den öffentlichen Rechtsbezug-Export veröffentlicht.
 ## Altbestand und Fehler
 
 Migration `ki/0005` ergänzt nur ein leeres JSON-Feld. Ein alter Auftrag mit `{}`
-behält ausdrücklich `rechtsbezug-v1`. Ein neuer, auch leerer Quellenstand nutzt
-`rechtsbezug-v2`; das Antwortformat bleibt Version 1. Alte Promptdateien bleiben.
+behält ausdrücklich `rechtsbezug-v1`. Quellenfassung1, auch leer, nutzt
+`rechtsbezug-v2`; neue Quellenfassung2 seit0.70 nutzt `rechtsbezug-v3`.
+Das Antwortformat bleibt Version1. Alte Promptdateien und Eingaben bleiben.
+Herkunft, Umfang und die unverändert prüfbare Fassung1 beschreibt `LANDESKONTEXT.md`.
 Idempotentes Einreihen gibt zuerst den vorhandenen Auftrag zurück. Speichern,
 QuerySet.update, bulk_update und konfliktauflösendes bulk_create können die
 festgehaltene Eingabe und Quellen nicht nachträglich ersetzen.
@@ -101,7 +103,8 @@ Amtliche Herkunft und rechtliche Deutung bleiben getrennt: Nur die kontrolliert
 festgehaltenen Originalquellen sind verlinkt. Modellnormen behalten ihr Etikett
 „nicht verifiziert“, unabhängig von einem ähnlich klingenden Titel in der Sammlung.
 Verifizierte Norm-Verweis-Kanten, vollständiger Rechtsbestand, automatische
-Aktualisierung, Korrekturläufe und weitere Folgenanalysen bleiben offen.
+Aktualisierung und weitere Folgenanalysen bleiben offen. Öffentliche Korrekturläufe
+sind getrennt in `KORREKTURLAUF.md` beschrieben.
 
 
 Seit0.61.1 schützt der gewöhnliche ORM zusätzlich den gesamten fertigen Modelllauf sowie die Löschwege für Aufträge und Läufe. Eine Neuanlage mit bereits vorhandener Primärschlüsselnummer ist kein Weg zum Ersetzen alter Daten. Urheber und Einreihzeitpunkt des Auftrags sind geschützt; sein betrieblicher Status bleibt veränderlich. Das ist Anwendungsschutz, kein Ersatz für Datenbank-Zugriffsrechte, Sicherungen oder eine kryptografische Signatur.

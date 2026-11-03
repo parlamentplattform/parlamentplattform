@@ -153,7 +153,7 @@ def test_oeffentliche_nachlese_und_xml_export_lesen_nur(landnorm, textquelle, cl
     monkeypatch.setattr(volltext, "abrufen", lambda url: pytest.fail("Kein Netz beim Nachlesen"))
     html = client.get(reverse("faktenbasis:norm", args=[landnorm.pk])).content.decode()
     assert "Synthetischer Landeswortlaut" in html and "Oberösterreich" in html
-    assert "noch nicht in Modellaufträge" in html
+    assert "Neue Modellaufträge können vorhandene Landesquellen" in html
     assert "Diesen Dokumenttext einmal abrufen" not in html
     export = client.get(reverse("faktenbasis:textxml", args=[eins.inhalt_id]))
     assert export.content == xml_beispiel() and export["X-Content-Type-Options"] == "nosniff"

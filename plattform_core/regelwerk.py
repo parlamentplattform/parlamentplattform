@@ -178,9 +178,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="kennungsabgleich.py", titel=_("Modellkennung im damaligen Quellenstand"),
         zweck=_("Vergleicht ausschließlich vollständige amtliche Dokumentnummern mit eindeutig passenden damaligen Quellen. Keine Titel- oder Relevanzsuche."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
-        grund=_("Erste Fassung: Kennungsübereinstimmung getrennt von ungeprüfter rechtlicher Deutung nachlesen; Originalantwort und Quellen bleiben unverändert."),
-        nachrechenbar=_("Gleiche vollständige NOR-Nummer, Ebene Bund und bestehendes Recht; genau ein damaliger Quellenstand. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-03",
+        grund=_("Fassung 2 ergänzt ausdrücklich bezeichnete Landesquellen. Kennungsübereinstimmung bleibt von ungeprüfter rechtlicher Deutung getrennt; Originalantwort und Quellen werden nicht geändert."),
+        nachrechenbar=_("Gleiche vollständige Dokumentnummer, gleiche Ebene Bund oder Land und bestehendes Recht; genau ein damaliger Quellenstand. Neue Quellen nennen ihre Herkunft ausdrücklich, alte Bundesrahmen bleiben erkennbar. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."),
     ),
     Regel(
         modul="modellantwort.py",

@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.70.0] — 2026-11-03 · Herkunft neuer Modellquellen ausdrücklich festhalten
+
+- Neue Rechtsbezug-Aufträge können vorhandene Landesquellen neben Bundesquellen als begrenzte Worttreffer auswählen. Quellenrahmen2 hält Ebene, amtliches Bundesland und den Umfang ohne räumliche Zuständigkeitsprüfung fest. Originalmetadaten, Zeitgrenzen und getrennte XML-Pfade werden geprüft; ein freier Gebietsname wird nicht zur verifizierten Zuständigkeit oder örtlichen Wahlberechtigung.
+- Alter Quellenvertrag1 bleibt zeichengenau prüfbar. Wartende alte Aufträge verwenden ihre bisherigen Promptfassungen; neue Rahmen2 erhalten rechtsbezug-v3 und getrennte Korrekturen korrektur-v2. Eingaben müssen dem tatsächlichen öffentlichen Ursprung entsprechen, Quellenhashes allein reichen nicht. Originalantworten, frühere Kontexte und Antwortschema bleiben erhalten.
+- Kennungsnachlese2 ergänzt ausdrücklich benannte Landesquellen bei gleicher vollständiger Dokumentnummer und Ebene. Herkunft steht getrennt in Karte, Historie, Brief und Export. Kein Treffer bestätigt Modelltitel, rechtliche Betroffenheit oder Geltung; mehrdeutige Stände erhalten keinen einzelnen Link. Regelverzeichnis12 und Schema1.25, keine Migration oder neue Registerwerte, Anbieteraufgabe, Budgeterhöhung oder Produktionsbefüllung. Weitere S11-Abnahmen bleiben offen.
+
 ## [0.69.0] — 2026-11-03 · Einzelne Landes-Dokumenttexte mit Herkunft und Original nachlesen
 
 - Ein ausdrücklicher Dokumenttextabruf übernimmt jetzt auch genau benannte Landes-XML-Quellen. Dokumentnummer, Gesetzesnummer und Bundesland müssen im Original übereinstimmen; feste amtliche Pfade, bestehende Abrufgrenzen, Rechte und CSRF-Schutz. Kein automatischer Sammel- oder Produktionsimport.

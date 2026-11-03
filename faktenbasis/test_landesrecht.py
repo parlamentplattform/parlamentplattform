@@ -177,7 +177,7 @@ def test_nachlese_und_originalexport_bleiben_lesend(antwort, client, monkeypatch
         assert "Landesrecht" in html and "Oberösterreich" in html
         assert client.post(url).status_code == 405
     html = client.get(reverse("faktenbasis:norm", args=[n.pk])).content.decode()
-    assert "1 von 147" in html and "noch nicht in Modellaufträge" in html
+    assert "1 von 147" in html and "Neue Modellaufträge können vorhandene Landesquellen" in html
     assert "Diesen Dokumenttext einmal abrufen" not in html
     assert client.get(reverse("faktenbasis:importantwort", args=[lauf.pk])).json() == antwort
     assert AuditEintrag.objects.count() == vorher

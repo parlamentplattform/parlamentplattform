@@ -1,4 +1,12 @@
-# Kennungsnachlese, Fassung1
+# Kennungsnachlese, Fassung2
+
+Seit0.70 ergänzt Fassung2 ausdrücklich bezeichnete Landesquellen aus Quellenrahmen2.
+Vollständige Dokumentkennung und Ebene müssen übereinstimmen; die amtliche Herkunft
+steht getrennt neben der ungeprüften Modellbehauptung. Keine rechtliche Zuständigkeit
+oder örtliche Wahlberechtigung folgt daraus. Alte Bundesrahmen bleiben unverändert,
+fehlende Herkunftsfelder werden nicht ergänzt. Details: `LANDESKONTEXT.md`.
+
+Der folgende ursprüngliche Fassung1-Vertrag bleibt als Bundes-Teilmenge erhalten.
 
 Eine vollständige NOR-Dokumentnummer aus einer formal passenden Modellantwort
 kann genau einen Treffer im damaligen Quellenrahmen haben. In diesem Fall steht

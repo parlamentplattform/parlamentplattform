@@ -4,6 +4,7 @@
   {% if quellenstand.zustand == "fest" %}
   <p class="meta">{% translate "Festgehalten am" %}: {{ quellenstand.erfasst_am|date:"d.m.Y H:i" }} · {% translate "Quellenstand" %}: {{ quellenstand.stichtag }}</p>
   <p class="kennzeichnung">{% translate "Kontextkandidaten aus vorhandenen amtlichen Quellen. Die Auswahl beweist keine rechtliche Betroffenheit; die Modellantwort ist nicht gegen diese Quellen verifiziert." %}</p>
+  {% if quellenstand.umfang %}<p class="meta quellenumfang">{% translate "Auswahlumfang: vorhandenes Bundes- und Landesrecht, ohne räumliche Zuständigkeitsprüfung. Das Bundesland einer Quelle bestätigt keine Zuständigkeit für diesen Antrag." %} · {% translate "Herkunftsregel, Fassung" %} {{ quellenstand.umfang.regel_fassung }}</p>{% endif %}
   {% if quellenstand.auswahl %}{% with a=quellenstand.auswahl %}
   <p class="meta">{% translate "Auswahlregel, Fassung" %} {{ a.regel_fassung }} · {% translate "Geprüfte Schnappschüsse" %}: {{ a.bestand_ids|length }} / {{ a.bestand_gesamt }} · {% translate "Treffer" %}: {{ a.treffer_ids|length }} · {% translate "Ausgewählt" %}: {{ quellenstand.quellen|length }}</p>
   <p class="meta">{% translate "Wortanfänge in amtlichen Metadaten, nach amtlicher Kennung gereiht. Keine Bewertung der Wichtigkeit." %} {% translate "Mindestwortlänge" %}: {{ a.mindestwortlaenge }} · {% translate "Bestandsgrenze" %}: {{ a.bestandsgrenze }} · {% translate "Quellengrenze" %}: {{ quellenstand.hoechstzahl }} · {% translate "Textzeichen je Quelle" %}: {{ quellenstand.textzeichen }}</p>
@@ -12,6 +13,7 @@
   {% for q in quellenstand.quellen %}
   <div class="kommentar">
     <p><a href="{{ q.quelle }}" rel="noopener noreferrer">{{ q.ris_id }} · {{ q.kurztitel }}</a> {{ q.abschnitt }}</p>
+    {% if q.ebene %}<p class="meta quellenherkunft">{% translate "Amtliche Quellenherkunft" %}: {% if q.ebene == "Bund" %}{% translate "Bund" %}{% else %}{% translate "Land" %} · {{ q.bundesland }}{% endif %}</p>{% endif %}
     <p class="meta">{% translate "Quellenstand" %}: {{ q.stand }} · {% translate "Gesetzesnummer" %}: {{ q.gesetzesnummer }}</p>
     {% if q.dokumenttext %}{% with d=q.dokumenttext %}
       <p class="meta">{% translate "Amtlicher Dokumenttext als Ausschnitt" %} · {{ d.auszug|length }} / {{ d.zeichen_gesamt }} {% translate "Zeichen" %}{% if d.gekuerzt %} · {% translate "gekürzt" %}{% endif %} · <a href="{{ d.quelle }}" rel="noopener noreferrer">{% translate "Original-XML" %}</a></p>

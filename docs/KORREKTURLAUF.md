@@ -27,6 +27,12 @@ Das ist Anwendungsschutz und kein Schutz gegen privilegierte Datenbankeingriffe.
 
 ## Vorhandene Warteschlange und Budgets
 
+Seit0.70 bestimmt der erhaltene Quellenrahmen den Prompt: alte Rahmen ohne Quellen
+oder in Fassung1 weiterhin `korrektur-v1`, neue Herkunftsfassung2 `korrektur-v2`.
+Der genaue öffentliche Ursprung und sein bekannter Rechtsbezug-Prompt müssen belegt
+sein; Quellenhashes allein ersetzen nicht den tatsächlich gesendeten Wortlaut.
+Die neue Fassung ist in `LANDESKONTEXT.md` beschrieben, alte Dateien bleiben erhalten.
+
 Der Zweck `korrektur` und der Auftragstext `korrektur-v1.md` verwenden denselben
 Steckplatz, die atomare Reservierung, Fehlerwiederholung sowie Tages-/Monatsbudget.
 Jeder tatsächlich archivierte Korrekturaufruf zählt im Tageskontingent mit, auch

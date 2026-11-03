@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.24** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.25** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -342,3 +342,29 @@ Diese Erweiterung macht Landesrecht nicht zum Bestandteil des bisherigen Modellq
 Es gibt weiterhin keinen vollständigen Norm-Verweisgraphen, keine automatische Aktualisierung,
 Produktionsbefüllung oder juristische Bestätigung. Bereits eingefrorene Antrags-/Modellkontexte
 und Exporte ihrer ursprünglichen Eingaben erhalten keine späteren Landesquellen.
+
+### Ergänzung1.25: ausdrückliche Herkunft neuer Modellquellen
+
+Neue `rechtsbezug.auftraege[].quellenkontext` und entsprechende Laufkontexte tragen
+`version: 2` sowie `umfang: {regel_fassung: 1, kennung: "bund_land_ohne_gebietspruefung"}`.
+Der Umfang bezeichnet den vorhandenen Kandidatenpool, keine rechtlich geprüfte Zuständigkeit.
+Jede Quelle ergänzt `ebene` (Bund/Land) und `bundesland` (bei Bund leer, sonst amtlicher Landesname).
+Die bestehenden Herkunfts-, Text-, Auswahl- und Hashfelder bleiben; der Gesamthash umfasst die
+neuen Felder. Version1 bleibt unverändert prüfbar und enthält diese zusätzlichen Felder nicht.
+
+Promptdispatch: ohne alten Quellenrahmen `rechtsbezug-v1`, Rahmen1 `rechtsbezug-v2`, neuer
+Rahmen2 `rechtsbezug-v3`. Die Korrektur nutzt für alte Rahmen weiter `korrektur-v1`, für
+neue Rahmen `korrektur-v2`. Antwortschema und dessen Hash bleiben unverändert. Tatsächliche
+Eingaben werden für jeden bekannten Vertrag exakt rekonstruiert; unbekannte Promptfassungen
+bekommen keine positive Kennungszuordnung oder öffentliche Korrektureingabe.
+
+Die heutige `kennungsabgleich.regel_fassung` ist2. Eine eindeutige Zuordnung aus Rahmen2
+ergänzt in `quelle` die damaligen Felder `ebene`/`bundesland`; alte Quellen erhalten keine
+erfundene Herkunftsergänzung. Identität verlangt dieselbe Ebene und vollständige Dokumentnummer.
+`rechtlich_verifiziert` bleibtfalse. Mehrdeutigkeit ergibt keine Quelle, kein Titelersatz und
+keine nachträgliche Rechtsfolgenbestätigung. Originalantworten, Frames und archivierte Eingaben
+bleiben unverändert; lediglich die getrennte heutige Nachlese benennt ihre neue Regelfassung.
+
+Keine neuen Parameter, Anbieterjobs, Budgets oder Datenbankmigrationen. Keine automatische
+Netznachladung oder Zuordnung aus dem freien Antrag-Gebiet; örtliche Wahlberechtigung bleibt
+ein gesonderter offener Baustein. Details und Abnahmegrenzen: `docs/LANDESKONTEXT.md`.

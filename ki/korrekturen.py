@@ -1,7 +1,5 @@
 """Ausdrückliche Nachrechnung durch zuständige Gruppe1, getrennt vom Original."""
 
-import json
-
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
@@ -32,6 +30,11 @@ def _ursprung(beanstandung):
     if job is None or job.kontext != rahmen["text"] or job.quellenkontext != rahmen["quellen"]:
         raise ValueError("Kein eindeutiger öffentlicher Ursprungsauftrag.")
     pruefen(rahmen)
+    from ki.eingabevertrag import rechtsbezug
+
+    nummer, oeffentliche_eingabe = rechtsbezug(rahmen["text"], rahmen["quellen"])
+    if lauf.auftrag_version != f"rechtsbezug-v{nummer}" or lauf.eingabe != oeffentliche_eingabe:
+        raise ValueError("Keine belegte öffentliche Ursprungseingabe.")
     return lauf, job, rahmen
 
 
@@ -78,13 +81,13 @@ def _rahmen(auftrag):
 
 def ausfuehren(auftrag):
     from ki.auftraege import auftrag_laden
+    from ki.eingabevertrag import korrektur
     from ki.models import lauf_ausfuehren
 
     d = _rahmen(auftrag)
-    prompt = auftrag_laden("korrektur", nummer=1)
+    nummer, eingabe = korrektur(auftrag.korrekturkontext)
+    prompt = auftrag_laden("korrektur", nummer=nummer)
     # Ausschließlich der festgehaltene alte Wortlaut; kein Zugriff auf aktuelle Antragstexte/Quellen.
-    eingabe = json.dumps({"urspruengliche_eingabe": d["eingabe"], "urspruengliche_antwort": d["antwort"],
-                         "beanstandung": d["beanstandung"]["text"]}, ensure_ascii=False, sort_keys=True)
     return lauf_ausfuehren(Zweck.KORREKTUR, prompt.text, eingabe, auftrag.angefordert_von,
         antrag=auftrag.antrag, auftrag_version=prompt.version,
         kontext={"text": d["text"], "quellen": d["quellen"], "korrektur": auftrag.korrekturkontext,
@@ -96,9 +99,13 @@ def _oeffentlicher_lauf(auftrag, lauf=None):
     k = lauf if lauf is not None else auftrag.lauf
     if k is None:
         return None
+    from ki.eingabevertrag import korrektur
+
+    nummer, eingabe = korrektur(auftrag.korrekturkontext)
     if (k.zweck != Zweck.KORREKTUR or k.antrag_id != auftrag.antrag_id or not isinstance(k.kontext, dict)
             or k.kontext.get("auftrag") != auftrag.pk
-            or k.kontext.get("korrektur") != auftrag.korrekturkontext):
+            or k.kontext.get("korrektur") != auftrag.korrekturkontext
+            or k.auftrag_version != f"korrektur-v{nummer}" or k.eingabe != eingabe):
         raise ValueError("Kein zugehöriger Korrekturlauf.")
     return k
 

@@ -102,8 +102,10 @@ def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuft
             log.exception("Amtlicher Quellenkontext für Antrag %s nicht erfassbar", antrag.pk)
             # Ehrlicher Fehlerstand statt alter leerer Quellenmodus oder Behauptung
             # fehlender Rechtsfolgen. Keine Modellkosten und keine Verfahrenshemmung.
+            from faktenbasis.kontext import VERSION as QUELLENFASSUNG
+
             defaults.update(
-                quellenkontext={"version": 1, "fehler": "erfassung", "erfasst_am": timezone.now().isoformat()},
+                quellenkontext={"version": QUELLENFASSUNG, "fehler": "erfassung", "erfasst_am": timezone.now().isoformat()},
                 status=Auftragsstatus.GESCHEITERT, fehler="quellenkontext_erfassung",
             )
     auftrag, _neu = KIAuftrag.objects.get_or_create(
@@ -133,15 +135,11 @@ def platz_in_der_schlange(auftrag) -> int | None:
 
 def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
     from ki.auftraege import auftrag_laden
-    from ki.kontext import eingabe
+    from ki.eingabevertrag import rechtsbezug
 
-    text = auftrag_laden("rechtsbezug", nummer=2 if auftrag.quellenkontext else 1)
     kontext = _laufkontext(auftrag)
-    eingabetext = eingabe(kontext["text"])
-    if auftrag.quellenkontext:
-        from faktenbasis.kontext import eingabe as quellen_eingabe
-
-        eingabetext += "\n\n" + quellen_eingabe(auftrag.quellenkontext, text_sha256=kontext["text"]["sha256"])
+    nummer, eingabetext = rechtsbezug(kontext["text"], auftrag.quellenkontext)
+    text = auftrag_laden("rechtsbezug", nummer=nummer)
     lauf = lauf_ausfuehren(
         Zweck.RECHTSBEZUG,
         text.text,

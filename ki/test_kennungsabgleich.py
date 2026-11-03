@@ -51,7 +51,7 @@ def test_tatsaechliche_eingabe_und_quellenidentitaet_ohne_lesezugriff(fall, djan
     roh = lauf.antwort
     with django_assert_num_queries(0):
         d = fuer_lauf(lauf)
-    assert d["zustand"] == "geprueft" and d["regel_fassung"] == 1
+    assert d["zustand"] == "geprueft" and d["regel_fassung"] == 2
     assert d["zuordnungen"][0]["quelle"]["norm_id"] == n.pk
     assert d["zuordnungen"][0]["quelle"]["kurztitel"] == n.kurztitel
     assert not d["rechtlich_verifiziert"] and lauf.antwort == roh

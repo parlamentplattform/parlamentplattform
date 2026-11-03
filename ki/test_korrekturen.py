@@ -24,11 +24,12 @@ from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # n
 pytestmark = pytest.mark.django_db
 
 
-def test_korrekturauftrag_verlangt_nur_werte_des_oeffentlichen_antwortschemas():
+@pytest.mark.parametrize("nummer", [1, 2])
+def test_korrekturauftrag_verlangt_nur_werte_des_oeffentlichen_antwortschemas(nummer):
     from ki.auftraege import auftrag_laden
     from plattform_core.modellantwort import schema_als_dict
 
-    text = auftrag_laden("korrektur", nummer=1).text
+    text = auftrag_laden("korrektur", nummer=nummer).text
     felder = schema_als_dict()["properties"]
     normen = felder["normen"]["items"]["properties"]
     for etikett, schema in (("Erlaubte Änderungen", normen["aenderung"]), ("Ebenen", normen["ebene"]),
@@ -96,7 +97,7 @@ def test_ausfuehren_verwendet_genau_den_alten_rahmen_und_laesst_beanstandung_off
     assert auftrag_ausfuehren(job.pk) == "erledigt"
     job.refresh_from_db()
     b.refresh_from_db()
-    assert job.lauf.zweck == Zweck.KORREKTUR and job.lauf.auftrag_version == "korrektur-v1"
+    assert job.lauf.zweck == Zweck.KORREKTUR and job.lauf.auftrag_version == "korrektur-v2"
     assert job.lauf.kontext["text"] == alt.kontext and job.lauf.kontext["korrektur"] == job.korrekturkontext
     assert b.erledigt_am is None and b.erledigt_vermerk == ""
     assert antrag_export(a)["laeufe"][0]["id"] == alt.lauf_id

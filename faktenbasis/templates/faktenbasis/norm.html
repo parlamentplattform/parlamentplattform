@@ -22,7 +22,7 @@
     {% csrf_token %}<button class="knopf" type="submit">{% translate "Diesen Dokumenttext einmal abrufen" %}</button>
   </form>
   {% endif %}
-  {% if norm.ebene == 'Land' %}<p class="hilfe">{% translate "Landes-Dokumenttexte werden noch nicht in Modellaufträge übernommen. Ein Einzeltext ist keine vollständige Rechtsvorschrift oder rechtliche Zuordnung zum Antrag." %}</p>{% endif %}
+  {% if norm.ebene == 'Land' %}<p class="hilfe">{% translate "Neue Modellaufträge können vorhandene Landesquellen als Kontextkandidaten verwenden. Ein Einzeltext ist keine vollständige Rechtsvorschrift; seine Herkunft bestätigt keine rechtliche Zuständigkeit für einen Antrag." %}</p>{% endif %}
   <p class="hilfe">{% translate "Einzeldokumente aus dem RIS, keine vollständige Rechtsvorschrift. Die Texte werden nicht automatisch aktualisiert." %}</p>
   {% if letzter_textabruf and not letzter_textabruf.erfolgreich %}
     <p class="meldung warn">{% translate "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar." %} ({{ letzter_textabruf.fehlercode }}) · {{ letzter_textabruf.beendet_am|date:"d.m.Y H:i" }}</p>

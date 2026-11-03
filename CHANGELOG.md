@@ -7,6 +7,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 - Vollständige NOR-Dokumentnummern werden ausschließlich mit genau einer passenden Quelle im tatsächlichen damaligen Modellkontext verglichen. Keine Titelheuristik, URL-Teilkennung oder neuen Quellen; mehrdeutige Stände bleiben unzugeordnet. Formfehlerhafte Antworten und unprüfbare Eingaben erhalten keine positive Zuordnung.
 - Der amtliche Titel mit Abschnitt, Stichtag und Link zum gespeicherten Schnappschuss steht getrennt neben der Modellbehauptung. Die rechtliche Deutung bleibt unverifiziert; Kennungsübereinstimmung bestätigt weder Modelltitel noch Betroffenheit, Geltung oder Änderungsbedarf. Originalantwort und Quellenrahmen werden nicht geändert.
 - Gleiche lesende Nachlese für aktuelle und frühere Rechtsbezüge sowie Korrekturantworten; Export ergänzt die verwendete Regelfassung und Text-/Quellenhashes. Regelverzeichnis10, Kennungsabgleich1 und Schema1.21. Kein Netz-, Anbieter- oder Schreibaufruf, keine neue Regel für laufende Verfahren. Normgraph und weitere S11-Abnahmen bleiben offen.
+- Geprüft mit Python3.12: 2616 Tests bestanden, 6 übersprungen, Kernabdeckung97%; die reine Kennungsregel ist vollständig abgedeckt. Ruff, System-/Migrationscheck und vollständiger englischer Katalog grün; vier Browserzustände mit vier Bildern. Die Nachlese prüft zusätzlich den tatsächlich gesendeten Wortlaut, nicht allein die Kontextprüfsumme.
 
 ## [0.65.0] — 2026-11-03 · Beanstandeten öffentlichen Rechtsbezug getrennt nachrechnen
 

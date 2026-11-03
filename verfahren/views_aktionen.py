@@ -245,12 +245,17 @@ def einbringen(request):
     pruefung = None  # das Ergebnis beider Ähnlichkeitsstufen (verfahren/aehnlichkeit.py)
     form = AntragsFormular(request.POST if request.method == "POST" else None, mitglied=request.user)
 
-    def seite(ergebnis=None, token="", bestaetigung=None):
+    def seite(ergebnis=None, token="", bestaetigung=None, vergleich=None):
+        from ki.vergleichsanfragen import anbieten
+
+        vergleichsangebot = (anbieten({**form.cleaned_data, "gebiet": form.gebiet()}, request.user, token)
+                             if token and ergebnis and ergebnis.treffer and not bestaetigung else "")
         return render(request, "verfahren/einbringen.html", {
             "form": form, "aehnliche": ergebnis.treffer if ergebnis else [],
             "pruefung": ergebnis, "pruefstand": token, "bestaetigung": bestaetigung,
             "vorschau_geprueft": ergebnis is not None,
             "ordnung": ordnung, "ki_anbieter": _ki_anbieter_name(),
+            "gegenueberstellung_token": vergleichsangebot, "gegenueberstellung": vergleich,
             "vorschau_wartezeit": max(0, zahl("aehnlichkeit-vorschau-wartezeit-ms", 800)),
             "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
         })
@@ -261,6 +266,20 @@ def einbringen(request):
             daten = {**d, "gebiet": form.gebiet()}
             token = request.POST.get("pruefstand", "")
             stand = pruefstand_lesen(token, daten, request.user) if token else None
+            if request.POST.get("textvergleich"):
+                from ki.gegenueberstellungen import anfordern, auswertung
+
+                if stand is None or d["art"] != Antragsart.SACHE:
+                    form.add_error(None, _("Der Text oder die Auswahl hat sich geändert. Bitte prüfen Sie die Treffer erneut."))
+                    lokal = aehnliche_antraege(d["titel"], d["wortlaut"], request.user, bedeutung=False)
+                    return seite(lokal, pruefstand_fuer(daten, request.user, lokal))
+                pruefung = pruefung_aus_stand(stand)
+                try:
+                    vergleich = auswertung(anfordern(daten, request.user, token, request.POST["textvergleich"]), request.user)
+                except ValueError:
+                    form.add_error(None, _("Der Modellvergleich passt nicht mehr zu diesem Angebot oder die vollständigen Texte überschreiten seine Grenze. Prüfen Sie die Treffer erneut oder bringen Sie Ihren eigenen Antrag ein."))
+                    return seite(pruefung, token)
+                return seite(pruefung, token, vergleich=vergleich)
             wahl = request.POST.get("unterstuetzen") or request.POST.get("unterstuetzen_bestaetigt")
             if wahl or request.POST.get("vergleich_zurueck") or (request.POST.get("trotzdem") and token):
                 if stand is None or d["art"] != Antragsart.SACHE:

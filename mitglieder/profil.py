@@ -522,8 +522,13 @@ def _gremien_export(m: Mitglied) -> dict:
                 "eingabe_sha256": v.eingabe_sha256, "status": v.status, "meldung": v.meldung,
                 "lauf": v.lauf_id, "erstellt_am": v.erstellt_am,
                 "begonnen_am": v.begonnen_am, "beendet_am": v.beendet_am,
+                "laufnachweis": {
+                    "antwort": v.lauf.antwort, "fehler": v.lauf.fehler, "erfolgreich": v.lauf.erfolgreich,
+                    "anbieter": v.lauf.anbieter, "modell": v.lauf.modell, "auftrag_version": v.lauf.auftrag_version,
+                    "tokens_ein": v.lauf.tokens_ein, "tokens_aus": v.lauf.tokens_aus, "dauer_ms": v.lauf.dauer_ms,
+                } if v.lauf is not None else None,
             }
-            for v in Vergleichsanfrage.objects.filter(angefordert_von=m)
+            for v in Vergleichsanfrage.objects.filter(angefordert_von=m).select_related("lauf")
         ],
         "ki_auftraege": [
             {

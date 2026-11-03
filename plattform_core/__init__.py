@@ -35,4 +35,4 @@ __all__ = [
     "kette_pruefen",
 ]
 
-__version__ = "0.71.1"
+__version__ = "0.72.0"

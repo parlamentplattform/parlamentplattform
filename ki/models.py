@@ -118,6 +118,7 @@ class Zweck(models.TextChoices):
     AEHNLICHKEIT = "aehnlichkeit", _("Textvektoren für den Bedeutungsvergleich beim Einbringen")
     RECHTSBEZUG = "rechtsbezug", _("Betroffene Gesetze — Vorschlag der Zukunftswerkstatt")
     KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs")
+    GEGENUEBERSTELLUNG = "gegenueberstellung", _("Textgegenüberstellung vor dem Einbringen")
 
 
 class KILauf(models.Model):
@@ -352,7 +353,7 @@ def _anbieter_bereit():
 
 @einzeln
 def lauf_ausfuehren(
-    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None,
+    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None, zeitgrenze=None,
 ) -> KILauf:
     """Der eine Weg durch den Steckplatz: Budget prüfen, fragen, archivieren.
 
@@ -363,7 +364,8 @@ def lauf_ausfuehren(
     anbieter = _anbieter_bereit()
     beginn = time.monotonic()
     try:
-        antwort = anbieter.frage(auftrag, eingabe)
+        antwort = (anbieter.frage(auftrag, eingabe) if zeitgrenze is None
+                   else anbieter.frage(auftrag, eingabe, zeitgrenze=zeitgrenze))
     except AnbieterFehler as fehler:
         KILauf.objects.create(
             zweck=zweck,

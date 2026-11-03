@@ -9541,12 +9541,6 @@ msgstr "Only as the responsible active group 1 and with an unambiguously recorde
 msgid "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
 msgstr "Version 11 with explicit requests by responsible group 1 to recalculate public legal-impact assessments (0.65); original, objection and budgets are retained. "
 
-msgid "Fassung 2 ergänzt den Korrekturzweck. Verbrauch je Antrag bleibt vollständig; fehlende Anbieterangaben werden nicht als kostenlose Nutzung ausgelegt. Archivdaten werden nicht ergänzt."
-msgstr "Version 2 adds the correction purpose. Consumption per motion remains complete; missing provider data is not interpreted as free usage. Archive data is not supplemented."
-
-msgid "Einmal nach Zweck gruppierte Archivangaben; fünf bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
-msgstr "Archive figures grouped once by purpose; five known purposes and Other, ordered by purpose identifier. Total from the same complete groups. No rate or currency in the archive means the cost amount is unknown."
-
 msgid "Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n  zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug mit einer eigenen Nachrechnung\n  beantworten. Original und Beanstandung bleiben stehen; eine neue Modellantwort bestätigt keine sachliche\n  Erledigung. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg noch nicht enthalten."
 msgstr "The <strong>coordination council</strong> oversees the factual database and parameter register and receives simulation reports. Only the <strong>integrity council</strong> may highlight a motion by a published, reasoned decision, never an algorithm (§ 5 para. 10). The <strong>expert council</strong> works in two independent groups: for direct tasks, the second checks the first group's proposals for conflicts of interest and may return them with reasons. Every member may publicly challenge an assessment; the note is retained. The responsible group 1 may respond to a recorded public legal-impact assessment with a separate recalculation. Original and objection are retained; a new model response does not establish a factual resolution. Other assessments and legacy records are outside this initial correction process."
 
@@ -9840,15 +9834,6 @@ msgstr "Model requests share one operational access slot. Requests wait while it
 
 # Noch unverbundener Vergleichsvertrag
 
-msgid "Vorbereiteter Antwortvertrag für Textgegenüberstellungen"
-msgstr "Prepared response contract for text comparisons"
-
-msgid "Prüft zwei begrenzte Textteile je vorgegebenem Antrags- und Fassungspaar. Noch kein angeschlossener Modellweg; die Form bestätigt keine inhaltliche Aussage."
-msgstr "Checks two bounded text parts for each specified motion and version pair. No model path is connected yet; valid form does not confirm any substantive statement."
-
-msgid "Vorbereitung für die offene Gegenüberstellung ähnlicher Anträge, ohne neue Anbieteraufrufe oder Änderung der menschlichen Wahl."
-msgstr "Preparation for the outstanding comparison of similar motions, without new provider calls or changes to human choice."
-
 msgid "Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."
 msgstr "Exactly the specified pair IDs in the same order, with two text fields of at most 400 characters each. Extra response fields, different versions, duplicate JSON keys or incomplete responses fail the form check. This does not confirm their content."
 
@@ -9861,3 +9846,71 @@ msgstr "without model comparison"
 
 msgid "angefordert"
 msgstr "requested"
+
+# Freiwillige private Textgegenueberstellung
+
+msgid "Textgegenüberstellung vor dem Einbringen"
+msgstr "Text comparison before submitting"
+
+msgid "Wie viele private Textgegenüberstellungen ein Konto je Stunde ausdrücklich anfordern kann. 0 schaltet diese Modellfunktion ab. Wortvergleich und menschliche Wahl bleiben verfügbar; das bestehende Monatsbudget gilt zusätzlich."
+msgstr "How many private text comparisons an account may explicitly request per hour. Zero disables this model feature. Word comparison and human choice remain available; the existing monthly budget also applies."
+
+msgid "Zeitgrenze je Verbindungsschritt des ausdrücklich angeforderten Textvergleichs, technisch 1 bis 45 Sekunden. Keine garantierte Gesamtlaufzeit; bei Ausfall bleibt der eigene Antrag möglich."
+msgstr "Timeout per connection step for an explicitly requested text comparison, technically 1 to 45 seconds. No guaranteed total runtime; submitting your own motion remains possible if it fails."
+
+msgid "Höchstens so viele angebotene Sachantragsfassungen werden gemeinsam verglichen, technisch 1 bis 20. Eine größere angebotene Liste wird nicht still gekürzt und bleibt ohne Modellvergleich benutzbar."
+msgstr "Maximum offered policy motion versions compared together, technically 1 to 20. A larger offered list is not silently truncated and remains usable without model comparison."
+
+msgid "Gesamtgrenze aller Titel und Wortlaute für einen privaten Modellvergleich, technisch 1 bis 100000 Zeichen. Vollständige Texte oder kein Modellvergleich; kein stilles Kürzen und keine Begrenzung des eigenen Einbringens."
+msgstr "Total limit for all titles and texts in a private model comparison, technically 1 to 100000 characters. Complete texts or no model comparison; no silent truncation and no restriction on submitting your own motion."
+
+msgid "Der Modellvergleich passt nicht mehr zu diesem Angebot oder die vollständigen Texte überschreiten seine Grenze. Prüfen Sie die Treffer erneut oder bringen Sie Ihren eigenen Antrag ein."
+msgstr "The model comparison no longer matches this offer, or the complete texts exceed its limit. Review the matches again or submit your own motion."
+
+msgid "KI-Textgegenüberstellung"
+msgstr "AI text comparison"
+
+msgid "KI-Einschätzung, nicht inhaltlich geprüft"
+msgstr "AI assessment, content not verified"
+
+msgid "Gemeinsamkeit"
+msgstr "Common ground"
+
+msgid "Unterschied"
+msgstr "Difference"
+
+msgid "Die Stundengrenze für Modellvergleiche ist erreicht. Sie können weiterhin selbst wählen."
+msgstr "The hourly model comparison limit has been reached. You can still choose for yourself."
+
+msgid "Die Modellantwort passt nicht zu den angebotenen Fassungen oder zur verlangten Form. Es wird kein Teilvergleich angezeigt; Sie können weiterhin selbst wählen."
+msgstr "The model response does not match the offered versions or required format. No partial comparison is shown; you can still choose for yourself."
+
+msgid "Diese Anforderung wurde bereits begonnen. Erneutes Absenden startet keinen zweiten Modellaufruf. Sie können weiterhin selbst wählen."
+msgstr "This request has already started. Submitting it again does not start a second model call. You can still choose for yourself."
+
+msgid "Der Modellvergleich ist derzeit nicht verfügbar. Ihr Text bleibt erhalten; Sie können weiterhin selbst wählen."
+msgstr "The model comparison is currently unavailable. Your text is preserved; you can still choose for yourself."
+
+msgid "Texte durch KI gegenüberstellen lassen"
+msgstr "Ask AI to compare the texts"
+
+msgid "Mit diesem freiwilligen Auftrag gehen Ihr Titel und Wortlaut sowie die hier angebotenen öffentlichen Fassungen an den KI-Anbieter %(anbieter)s. Die Modellantwort nennt Gemeinsamkeit und Unterschied, entscheidet aber nicht über Ihren Antrag. Der private Vergleich wird für Ihr Konto archiviert."
+msgstr "This optional request sends your title and text, together with the public versions offered here, to the AI provider %(anbieter)s. The response describes common ground and differences but does not decide about your motion. The private comparison is archived for your account."
+
+msgid "Diese Texte jetzt gegenüberstellen lassen"
+msgstr "Compare these texts now"
+
+msgid "Antwortvertrag für freiwillige Textgegenüberstellungen"
+msgstr "Response contract for optional text comparisons"
+
+msgid "Prüft Gemeinsamkeit und Unterschied je vorgegebenem Antrags- und Fassungspaar. Die Form bestätigt keine inhaltliche Aussage und entscheidet nicht über das Einbringen."
+msgstr "Checks common ground and differences for each specified motion and version pair. Format does not confirm content or decide whether a motion is submitted."
+
+msgid "Erste Fassung für einen ausdrücklich angeforderten privaten Modellvergleich. Keine automatische Modellanforderung beim Tippen und keine Änderung der gleichwertigen menschlichen Wahl."
+msgstr "First version for an explicitly requested private model comparison. No automatic model request while typing and no change to the equal standing of human choice."
+
+msgid "Fassung 3 berücksichtigt den privaten Textvergleich als eigenen Zweck. Läufe ohne Antragszuordnung bleiben aus Antragssummen ausgeschlossen; Archivdaten und frühere Kontexte werden nicht ergänzt."
+msgstr "Version 3 includes private text comparison as a separate purpose. Runs not assigned to a motion remain excluded from motion totals; archived data and earlier contexts are not supplemented."
+
+msgid "Einmal nach Zweck gruppierte Archivangaben; sechs bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
+msgstr "Archived data grouped once by purpose: six known purposes and other, ordered by purpose ID. Totals use the same complete groups. No rate or currency in the archive means the cost amount is unknown."

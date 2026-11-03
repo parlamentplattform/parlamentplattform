@@ -75,7 +75,7 @@ class MistralAnbieter:
         self.modell = modell
         self.einbettungsmodell = einbettungsmodell
 
-    def frage(self, auftrag: str, eingabe: str) -> Antwort:
+    def frage(self, auftrag: str, eingabe: str, zeitgrenze: float | None = None) -> Antwort:
         daten = self._senden(
             MISTRAL_ENDPUNKT,
             {
@@ -87,6 +87,7 @@ class MistralAnbieter:
                     {"role": "user", "content": eingabe},
                 ],
             },
+            **({"zeitgrenze": zeitgrenze} if zeitgrenze is not None else {}),
         )
         try:
             text = daten["choices"][0]["message"]["content"].strip()
@@ -150,7 +151,7 @@ class AttrappenAnbieter:
     modell = "attrappe-1"
     einbettungsmodell = "attrappe-einbettung-1"
 
-    def frage(self, auftrag: str, eingabe: str) -> Antwort:
+    def frage(self, auftrag: str, eingabe: str, zeitgrenze: float | None = None) -> Antwort:
         return Antwort(
             text="Attrappen-Einschätzung (kein echtes Modell): Der Text wurde entgegengenommen — "
             f"{len(eingabe)} Zeichen. Ein echter Anbieter würde hier zusammenfassen und Unklarheiten nennen.",

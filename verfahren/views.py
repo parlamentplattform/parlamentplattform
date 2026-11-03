@@ -1772,10 +1772,12 @@ def zukunftswerkstatt(request):
     Seit Ring 0b (F-60) zeigt sie zusätzlich die Rechenschaft des
     Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
     from ki.auftraege import auftragsversionen
-    from ki.models import KILauf, steckplatz_stand
+    from ki.models import KILauf, Zweck, steckplatz_stand
     from ki.nachlese import textstand
 
-    laeufe = list(KILauf.objects.select_related("antrag")[:8])
+    # Private Vorabvergleiche enthalten noch nicht eingebrachte Entwürfe; auch
+    # Anbieterfehlertexte bleiben dort ausschließlich beim anfordernden Konto.
+    laeufe = list(KILauf.objects.exclude(zweck=Zweck.GEGENUEBERSTELLUNG).select_related("antrag")[:8])
     for lauf in laeufe:
         lauf.textstand = textstand(lauf)
 

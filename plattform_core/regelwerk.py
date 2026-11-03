@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 14
+VERSION = 15
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -169,10 +169,10 @@ def als_dict() -> list[dict]:
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
     Regel(
-        modul="gegenueberstellung.py", titel=_("Vorbereiteter Antwortvertrag für Textgegenüberstellungen"),
-        zweck=_("Prüft zwei begrenzte Textteile je vorgegebenem Antrags- und Fassungspaar. Noch kein angeschlossener Modellweg; die Form bestätigt keine inhaltliche Aussage."),
+        modul="gegenueberstellung.py", titel=_("Antwortvertrag für freiwillige Textgegenüberstellungen"),
+        zweck=_("Prüft Gemeinsamkeit und Unterschied je vorgegebenem Antrags- und Fassungspaar. Die Form bestätigt keine inhaltliche Aussage und entscheidet nicht über das Einbringen."),
         wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
-        grund=_("Vorbereitung für die offene Gegenüberstellung ähnlicher Anträge, ohne neue Anbieteraufrufe oder Änderung der menschlichen Wahl."),
+        grund=_("Erste Fassung für einen ausdrücklich angeforderten privaten Modellvergleich. Keine automatische Modellanforderung beim Tippen und keine Änderung der gleichwertigen menschlichen Wahl."),
         nachrechenbar=_("Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."),
     ),
     Regel(
@@ -947,9 +947,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="modellverbrauch.py", titel=_("Gespeicherter Modellverbrauch je Antrag"),
         zweck=_("Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."),
-        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-03",
-        grund=_("Fassung 2 ergänzt den Korrekturzweck. Verbrauch je Antrag bleibt vollständig; fehlende Anbieterangaben werden nicht als kostenlose Nutzung ausgelegt. Archivdaten werden nicht ergänzt."),
-        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; fünf bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-03",
+        grund=_("Fassung 3 berücksichtigt den privaten Textvergleich als eigenen Zweck. Läufe ohne Antragszuordnung bleiben aus Antragssummen ausgeschlossen; Archivdaten und frühere Kontexte werden nicht ergänzt."),
+        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; sechs bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
     ),
     Regel(
         modul="quellenumfang.py", titel=_("Herkunftsgrenze amtlicher Kontextkandidaten"),

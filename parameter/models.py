@@ -193,6 +193,26 @@ KI_MONAT_BESCHREIBUNG_ALT = (
 )
 
 ERSTBESTAND = [
+    {
+        "schluessel": "gegenueberstellung-je-stunde", "wert": "5", "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Wie viele private Textgegenüberstellungen ein Konto je Stunde ausdrücklich anfordern kann. 0 schaltet diese Modellfunktion ab. Wortvergleich und menschliche Wahl bleiben verfügbar; das bestehende Monatsbudget gilt zusätzlich."),
+    },
+    {
+        "schluessel": "gegenueberstellung-zeitgrenze-sekunden", "wert": "8", "einheit": gettext_noop("Sekunden"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Zeitgrenze je Verbindungsschritt des ausdrücklich angeforderten Textvergleichs, technisch 1 bis 45 Sekunden. Keine garantierte Gesamtlaufzeit; bei Ausfall bleibt der eigene Antrag möglich."),
+    },
+    {
+        "schluessel": "gegenueberstellung-hoechstpaare", "wert": "3", "einheit": gettext_noop("Anträge"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Höchstens so viele angebotene Sachantragsfassungen werden gemeinsam verglichen, technisch 1 bis 20. Eine größere angebotene Liste wird nicht still gekürzt und bleibt ohne Modellvergleich benutzbar."),
+    },
+    {
+        "schluessel": "gegenueberstellung-textzeichen", "wert": "20000", "einheit": gettext_noop("Zeichen"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Gesamtgrenze aller Titel und Wortlaute für einen privaten Modellvergleich, technisch 1 bis 100000 Zeichen. Vollständige Texte oder kein Modellvergleich; kein stilles Kürzen und keine Begrenzung des eigenen Einbringens."),
+    },
     {"schluessel": "quellenkontext-hoechstzahl", "wert": "3", "einheit": gettext_noop("Quellen"), "gruppe": "ki",
      "beschreibung": gettext_noop("Höchstens so viele Kontextkandidaten je neuem Rechtsbezug-Auftrag; 0 bis 20. Keine Aussage zur rechtlichen Relevanz."),
      "quelle": "Offengelegte Quellenkontext-Auswahl"},

@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.26"
+SCHEMA_VERSION = "1.27"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,6 +25,10 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "gegenueberstellung-je-stunde": ("comparison.requests_per_hour", "requests/hour", "Explicit private comparison requests per account and hour; zero disables the feature"),
+    "gegenueberstellung-zeitgrenze-sekunden": ("comparison.socket_timeout_seconds", "seconds", "Timeout per connection step for an explicit private comparison, clamped to 1 to 45"),
+    "gegenueberstellung-hoechstpaare": ("comparison.max_pairs", "motions", "Maximum offered public motion versions per comparison, clamped to 1 to 20; no silent truncation"),
+    "gegenueberstellung-textzeichen": ("comparison.total_text_chars", "characters", "Total title and text characters per explicit comparison, clamped to 1 to 100000; no silent truncation"),
     "quellenkontext-hoechstzahl": ("sources.context_limit", "sources", "Maximum official context candidates per new legal-impact request, 0 to 20"),
     "quellenkontext-textzeichen": ("sources.context_excerpt_chars", "characters", "Maximum characters from each stored official document, 0 to 20000"),
     "quellenkontext-mindestwortlaenge": ("sources.context_min_word_length", "characters", "Minimum word length for published local prefix matching, 2 to 12"),

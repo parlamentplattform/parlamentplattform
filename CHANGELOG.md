@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.72.0] — 2026-11-03 · Ähnliche Texte freiwillig mit Gemeinsamkeit und Unterschied vergleichen
+
+- Die Trefferanzeige bietet einen ausdrücklich ausgelösten privaten KI-Textvergleich. Wortvergleich, Vorschau und beide menschlichen Wahlwege bleiben verfügbar; kein Chat beim Tippen oder GET und kein Einbringen durch das Modell. Anbieterhinweis vor dem freiwilligen Auftrag, Fehler ohne Entwurfsverlust, Desktop/Handy sowie ohne JavaScript.
+- Eigener versionierter Auftrag und Zweck, genau die angebotenen öffentlichen Sachantragsfassungen und zwei kurze Textteile je Paar. Originalinput, Kontext und Antwort bleiben nachvollziehbar; die Formprüfung bestätigt keinen Inhalt. Geänderte Texte oder Fassungen werden nicht still untergeschoben, keine Reihenfolge oder zusätzliche Treffer vom Modell übernommen. Ausgegebene Modelltexte werden als Text escaped.
+- Kontogebundene signierte Anforderung, einmalige Reservierung und unveränderlicher privater Textstand verhindern zweite Aufrufe durch Doppel-POST oder Refresh. Ein neuer Versuch braucht eine neue ausdrückliche Anforderung. Keine internen Gremientexte, Kontodaten oder zusätzlichen Formularangaben als Anbieterbeifang; keine privaten Entwürfe oder Fehler in öffentlichen Archiven und der Werkstatt-Laufliste. Eigener Datenexport enthält die gespeicherte Antwort und ihren Laufnachweis.
+- Vier offene Registergrenzen für Stunde, Verbindungszeit, Paarzahl und gesamte Textlänge; bestehender gemeinsamer Anbieterzugang und Monatsrahmen bleiben. Zu lange Texte werden nicht gekürzt und hindern das eigene Einbringen nicht. Additive Migrationen ki0008/0009, Schema1.27, Verbrauchsregel3 und Regelverzeichnis15. Keine Änderung von Satzung, Stimme, eingefrorenen Verfahrensregeln oder Budgetwerten; kein neuer Anbieter oder Dienst. Weitere S11-Abnahmen bleiben offen.
+
 ## [0.71.1] — 2026-11-03 · Überlappende Modellaufrufe am gemeinsamen Zugang begrenzen
 
 - Text- und Einbettungsaufrufe teilen sich jetzt einen Datenbankzugang über Budgetprüfung, Anbieter und Archivierung. Andere Verbindungen und verschachtelte Aufrufe derselben Verbindung starten keinen zweiten Anbieter. Nur tatsächliche Sperrkonflikte ergeben einen Wartestatus; andere Datenbankfehler bleiben sichtbar. Keine ablaufende Lease oder neue Budgetwerte.

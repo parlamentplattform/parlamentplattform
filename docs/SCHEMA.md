@@ -1,6 +1,12 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.26** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.27** (3.11.2026)*
+
+Seit 1.27 führt `comparison.*` die offenen Stunden-, Zeit-, Paar- und Textgrenzen
+des freiwilligen Textvergleichs. Private Anforderungen und Texte werden nicht im
+öffentlichen Parameter-/Antragsexport übertragen; sie gehören nur in den eigenen
+persönlichen Datenexport. Verbrauchsformat 3 kennt den zusätzlichen Zweck und
+zählt weiterhin nur einem Antrag tatsächlich zugeordnete Läufe.
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,

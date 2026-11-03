@@ -25,7 +25,7 @@ def test_landeseinzeltext_mit_original_hash_und_parserfassung(
     p.goto(live_server.url + reverse("faktenbasis:norm", args=[landnorm.pk]))
     expect(p.get_by_text("State law · Oberösterreich" if sprache == "en" else "Landesrecht · Oberösterreich", exact=True)).to_be_visible()
     expect(p.locator(".fakten-wortlaut")).to_have_text("Synthetischer Landeswortlaut\nZweite Zeile\tFeld")
-    expect(p.get_by_text("State-law document texts are not yet added to model requests" if sprache == "en" else "Landes-Dokumenttexte werden noch nicht in Modellaufträge", exact=False)).to_be_visible()
+    expect(p.get_by_text("New model requests can use existing state sources as context candidates" if sprache == "en" else "Neue Modellaufträge können vorhandene Landesquellen als Kontextkandidaten", exact=False)).to_be_visible()
     expect(p.locator('a[href="' + reverse("faktenbasis:textxml", args=[lauf.inhalt_id]) + '"]')).to_be_visible()
     expect(p.get_by_text(lauf.inhalt.xml_hash, exact=True)).to_be_visible()
     assert len(textquelle[1]) == 1

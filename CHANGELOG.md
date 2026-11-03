@@ -7,6 +7,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 - Ein ausdrücklicher Dokumenttextabruf übernimmt jetzt auch genau benannte Landes-XML-Quellen. Dokumentnummer, Gesetzesnummer und Bundesland müssen im Original übereinstimmen; feste amtliche Pfade, bestehende Abrufgrenzen, Rechte und CSRF-Schutz. Kein automatischer Sammel- oder Produktionsimport.
 - Neue TextauswertungFassung2 erhält sichtbare Zeilenumbrüche und Tabulatoren, auch bei künftigen Bund-Einzelabrufen. Frühere Textstände und Originalbytes bleiben unverändert. Gleicher Inhalt und Parser bleiben idempotent; neue Parserstände und gescheiterte Abrufe werden zusätzlich archiviert.
 - Öffentliche Nachlese und Original-XML-Export nennen weiterhin Quelle, Hash und Parserfassung; Schema1.24. Landesquellen werden noch nicht an Modelle übergeben und keine alten Auftragskontexte ergänzt. Normgraph, juristische Verifikation, örtliches Wahlrecht und weitere Folgenketten bleiben offen. Keine Satzung, Stimme, feste Policy oder Budgetgrenze verändert.
+- Geprüft mit Python3.12: 2754 Tests bestanden, 6 übersprungen, Kernabdeckung98%; 157 integrierte Gegenproben, acht Browserprüfungen/acht Bilder, vollständiger englischer Katalog, Ruff und System-/Migrationscheck grün. Der reale Landes-XML-Beleg wurde offline gegen den Parser geprüft. Ein zusätzlicher Test erhält einen alten Bundes-Kontext mit Textfassung1 und ursprünglicher Prüfsumme trotz neuer Textauswertung2 unverändert.
 
 ## [0.68.0] — 2026-11-03 · Landesrechts-Metadaten mit eindeutiger Herkunft nachlesen
 

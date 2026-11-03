@@ -3,7 +3,7 @@
 import copy
 import hashlib
 import json
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.utils import timezone
@@ -130,3 +130,10 @@ def test_fremde_tiefe_struktur_wird_ohne_rekursion_als_quellenfehler_behandelt()
     stand["quellen"] = [fremd]
     with pytest.raises(QuellenkontextFehler, match="quellenkontext"):
         pruefen(stand)
+
+
+def test_quellenstichtag_folgt_instanzkalender_statt_aktiver_betrachterzeitzone(settings):
+    settings.TIME_ZONE = "Europe/Vienna"
+    with timezone.override("America/Los_Angeles"):
+        stand = festhalten([], hoechstzahl=3, textzeichen=50, jetzt=datetime(2026, 11, 2, 23, 30, tzinfo=UTC))
+    assert stand["stichtag"] == "2026-11-03" and stand["erfasst_am"].startswith("2026-11-02T23:30:")

@@ -7842,10 +7842,6 @@ msgstr "Affected laws — suggestion of the Zukunftswerkstatt"
 msgid "Cookies"
 msgstr "Cookies"
 
-#, python-format
-msgid "Das ist ein Vorschlag eines KI-Modells (%(modell)s, Auftrag %(auftrag_version)s), ohne Prüfung gegen das Rechtsinformationssystem und keine Rechtsberatung. Er hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden."
-msgstr "This is a suggestion by an AI model (%(modell)s, task %(auftrag_version)s), without a check against the legal information system and not legal advice. It has no effect on the procedure; you can object to it on the motion page."
-
 msgid "Datenschutz"
 msgstr "Privacy"
 
@@ -7958,9 +7954,6 @@ msgstr "Not appointed — %(name)s already has an active (or suspended) role in 
 
 msgid "Ohne Grund tritt keine Fassung in Kraft — er wird veröffentlicht."
 msgstr "Without a reason no version takes effect — it is published."
-
-msgid "Ohne Prüfung gegen das Rechtsinformationssystem — darum kein Link."
-msgstr "No check against the legal information system — hence no link."
 
 msgid "Rechtsgrundlage"
 msgstr "Legal basis"
@@ -9298,3 +9291,107 @@ msgstr "Eligibility to support and vote in this candidacy is currently checked o
 
 msgid "Amtlicher Quellenkontext"
 msgstr "Official source context"
+
+
+msgid "Quellen"
+msgstr "sources"
+
+msgid "Höchstens so viele Kontextkandidaten je neuem Rechtsbezug-Auftrag; 0 bis 20. Keine Aussage zur rechtlichen Relevanz."
+msgstr "Maximum context candidates per new legal-impact request; 0 to 20. This does not establish legal relevance."
+
+msgid "Höchstens so viele Zeichen aus jedem vorhandenen amtlichen Dokumenttext im neuen Quellenkontext; 0 bis 20000."
+msgstr "Maximum characters from each available official document in the new source context; 0 to 20000."
+
+msgid "Mindestlänge der Wörter für die lokale Wortanfangssuche in amtlichen Metadaten; 2 bis 12."
+msgstr "Minimum word length for local prefix matching in official metadata; 2 to 12."
+
+msgid "Höchstens so viele neueste Norm-Schnappschüsse werden je neuem Auftrag nach amtlicher Kennung geprüft; 1 bis 2000. Eine begrenzte Teilmenge wird ausdrücklich gekennzeichnet."
+msgstr "Maximum latest provision snapshots scanned per new request in official identifier order; 1 to 2000. A limited subset is explicitly labelled."
+
+msgid "Amtliche Kontextkandidaten für neue Rechtsbezug-Aufträge"
+msgstr "Official context candidates for new legal-impact requests"
+
+msgid "Wählt aus vorhandenen amtlichen Schnappschüssen nach Wortanfängen aus. Ein Treffer ist ein Kontextkandidat, kein juristischer Nachweis."
+msgstr "Selects existing official snapshots by word prefixes. A match is a context candidate, not legal evidence."
+
+msgid "Erste Fassung: tatsächlich übergebene amtliche Ausschnitte und Auswahlgrenzen werden vor dem Einreihen festgehalten. Keine neue Quelle wird beim Modellaufruf nachgeladen."
+msgstr "First version: the actual official excerpts and selection limits are recorded before queuing. No new sources are loaded when calling the model."
+
+msgid "Unicode-Normalisierung NFKC und Kleinschreibung, Wörter aus Buchstaben und Ziffern, veröffentlichte Stoppwörter und Mindestlänge. Ein Wort darf Anfang des anderen sein. Neuester vorhandener Stand je amtlicher Kennung; Reihung nach Kennung, keine Relevanzpunkte. Bestand, Treffer und Auswahlgrenzen stehen am Auftrag."
+msgstr "NFKC Unicode normalisation and case folding, words of letters and digits, published stop words and minimum length. Either word may be a prefix of the other. Latest available snapshot per official identifier; identifier order, no relevance scores. Scanned snapshot IDs, matches and limits are recorded in the request."
+
+msgid "Festgehalten am"
+msgstr "Recorded on"
+
+msgid "Quellenstand"
+msgstr "Source snapshot date"
+
+msgid "Kontextkandidaten aus vorhandenen amtlichen Quellen. Die Auswahl beweist keine rechtliche Betroffenheit; die Modellantwort ist nicht gegen diese Quellen verifiziert."
+msgstr "Context candidates from existing official sources. Selection does not establish legal relevance; the model response has not been verified against these sources."
+
+msgid "Auswahlregel, Fassung"
+msgstr "Selection rule, version"
+
+msgid "Geprüfte Schnappschüsse"
+msgstr "Scanned snapshots"
+
+msgid "Ausgewählt"
+msgstr "Selected"
+
+msgid "Wortanfänge in amtlichen Metadaten, nach amtlicher Kennung gereiht. Keine Bewertung der Wichtigkeit."
+msgstr "Word prefixes in official metadata, ordered by official identifier. No importance ranking."
+
+msgid "Mindestwortlänge"
+msgstr "Minimum word length"
+
+msgid "Bestandsgrenze"
+msgstr "Scan limit"
+
+msgid "Quellengrenze"
+msgstr "Source limit"
+
+msgid "Textzeichen je Quelle"
+msgstr "Text characters per source"
+
+msgid "Die Auswahl ist zusätzlich begrenzt. Weitere vorhandene Quellen können fehlen."
+msgstr "Selection is additionally limited. Other available sources may be missing."
+
+msgid "Amtlicher Dokumenttext als Ausschnitt"
+msgstr "Official document excerpt"
+
+msgid "gekürzt"
+msgstr "truncated"
+
+msgid "Ausschnitt-Prüfsumme (SHA-256)"
+msgstr "Excerpt checksum (SHA-256)"
+
+msgid "Nur Metadaten; kein amtlicher Dokumenttext im Auftrag."
+msgstr "Metadata only; no official document text in this request."
+
+msgid "Kein Kontextkandidat in dieser Auswahl. Das bedeutet nicht, dass keine Rechtsnorm betroffen ist."
+msgstr "No context candidate in this selection. This does not mean no legal provision is affected."
+
+msgid "Quellenkontext-Prüfsumme (SHA-256)"
+msgstr "Source context checksum (SHA-256)"
+
+msgid "Der amtliche Quellenkontext konnte nicht erfasst oder geprüft werden. Daraus folgt keine Aussage zu betroffenen Gesetzen."
+msgstr "The official source context could not be recorded or checked. This establishes nothing about affected laws."
+
+msgid "Für diesen älteren Stand wurde kein amtlicher Quellenkontext festgehalten. Spätere Quellen werden nicht nachträglich zugeordnet."
+msgstr "No official source context was recorded for this older request. Later sources are not assigned retroactively."
+
+msgid "Die rechtliche Zuordnung wurde nicht unabhängig geprüft — darum kein Link."
+msgstr "Legal relevance has not been independently checked, so no link is provided."
+
+msgid "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren."
+msgstr "AI proposal: legal interpretation unverified, no legal advice, no effect on the procedure."
+
+msgid "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen."
+msgstr "The request could not be prepared; no provider was called."
+
+msgid "Das ist ein Vorschlag eines KI-Modells (%(modell)s, Auftrag %(auftrag_version)s). Die rechtliche Deutung ist nicht unabhängig verifiziert und keine Rechtsberatung. Der Vorschlag hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden."
+msgstr "This is a proposal from an AI model (%(modell)s, instruction %(auftrag_version)s). The legal interpretation is not independently verified and is not legal advice. The proposal has no effect on the procedure; you can challenge it on the motion page."
+
+
+msgid "Original-XML"
+msgstr "Original XML"

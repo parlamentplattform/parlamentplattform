@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.61.0] — 2026-11-03 · Amtlichen Quellenstand vor dem Modellauftrag festhalten
+
+- Neue Rechtsbezug-Aufträge wählen Kontextkandidaten aus vorhandenen amtlichen Schnappschüssen. Wortanfänge, Stoppwörter, Kennungsreihung und Grenzen sind offengelegt; kein politischer Relevanzwert und kein zusätzlicher Netz- oder Modellaufruf.
+- Quelle, damaliger Bestand, Treffer, Metadaten, genauer Dokumentausschnitt, Kürzung und Prüfsummen bleiben am Auftrag und tatsächlichen Lauf erhalten. Neue Importe und Registeränderungen verändern bestehende Eingaben nicht. Erfassungsfehler hemmen kein Verfahren und rufen keinen Anbieter auf.
+- Antragsseite, frühere Einschätzungen, Nachricht und öffentliche bzw. persönliche Exporte zeigen denselben Quellenstand. Quellenkandidaten sind keine juristische Verifikation; Modellnormen bleiben ungeprüft. Leere Auswahl bedeutet keine rechtliche Entwarnung.
+- Alte wartende Aufträge behalten Promptv1 und erhalten keine späteren Quellen. Neue nutzen Promptv2 mit unverändertem Antwortschema. Additive Migration ki/0005, Schema1.17 und Regelverzeichnis6; keine Satzungs-, Stimmrechts-, Frist- oder Budgetänderung. Örtliche Wahlberechtigung und weitere S11-Analysen bleiben offen.
+
 ## [0.60.1] — 2026-11-03 · Teilnehmerkreis regionaler Kandidaturen ehrlich anzeigen
 
 - Regionale Mandats-Kandidaturen zeigen vor den Handlungen, dass Unterstützung und Wahlberechtigung derzeit parteiweit geprüft werden. Die Gebietsangabe wird dadurch nicht als bereits wirksame örtliche Teilnahmebegrenzung missverstanden. Der Hinweis ist deutsch und englisch sowie ohne JavaScript lesbar.

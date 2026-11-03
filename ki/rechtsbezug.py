@@ -1,4 +1,4 @@
-"""Betroffene Gesetze — die erste Stufe von FB-H3, ohne RIS-Faktenbasis.
+"""Betroffene Gesetze — ungeprüfte Modellvorschläge und ihre festgehaltenen Quellen.
 
 Beim Einbringen wird ein Auftrag „rechtsbezug“ eingereiht (`ki/warteschlange.py`); der Lauf
 fragt den Anbieter mit dem versionierten Auftragstext `ki/auftraege/rechtsbezug-v<n>.md` und
@@ -6,7 +6,7 @@ archiviert die Antwort im `KILauf`. Dieses Modul ist die **Leseschicht**: Es par
 erfolgreiche Antwort tolerant (JSON aus der Antwort ziehen; bei Parse-Fehler bleibt der rohe
 Text als Hinweis) und beschreibt den Zustand für die Antragsseite. Nichts hier schreibt.
 
-Ohne RIS-Prüfung trägt jede Norm das Etikett „nicht verifiziert“ und keinen Link (FB-H3:
+Ohne unabhängige Relevanzprüfung trägt jede Modellnorm „nicht verifiziert“ und keinen Link (FB-H3:
 Halluzinationsschutz). Der Vorschlag ist gekennzeichnet — Modell, Auftragsversion, Stand —
 und entscheidet nichts (Grundregel 5, § 2 Abs 6)."""
 
@@ -57,7 +57,7 @@ def _norm(roh: Any) -> dict | None:
         "aenderung": aenderung if aenderung in AENDERUNGEN else "unklar",
         "aenderung_wort": AENDERUNGEN.get(aenderung, AENDERUNGEN["unklar"]),
         "begruendung": _text(roh.get("begruendung")),
-        "verifiziert": False,  # ohne RIS-Faktenbasis nie
+        "verifiziert": False,  # Kontextkandidaten sind noch keine Verifikation der rechtlichen Deutung
     }
 
 
@@ -132,7 +132,7 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
     )
     if lauf is None or lauf.antrag_id != antrag.pk or lauf.zweck != Zweck.RECHTSBEZUG:
         return None
-    from ki.nachlese import textstand
+    from ki.nachlese import quellenstand, textstand
 
     ergebnis = antwort_parsen(lauf.antwort) if lauf.erfolgreich else {"normen": [], "hinweis": "", "unsicherheit": "hoch"}
     quelle = textstand(lauf)
@@ -151,6 +151,10 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
         fassung=fassung,
         frueher=bool(fassung and (quelle.get("quellenart"), fassung) != ziel),
         textstand=quelle,
+        quellenstand=quellenstand(
+            lauf.kontext.get("quellen") if isinstance(lauf.kontext, dict) else None,
+            text_sha256=lauf.kontext.get("text", {}).get("sha256") if isinstance(lauf.kontext, dict) and isinstance(lauf.kontext.get("text"), dict) else None,
+        ),
     )
     return ergebnis
 
@@ -170,6 +174,7 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
 
     from ki.anbieter import anbieter_waehlen
     from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck
+    from ki.nachlese import quellenstand
     from ki.warteschlange import platz_in_der_schlange
     from parameter.models import zahl
 
@@ -210,4 +215,8 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
         "mail_zusage": mail_zusage and zustand == "wartet",
         "angeschlossen": angeschlossen,
         "historie": historie,
+        "quellenstand": ergebnis["quellenstand"] if ergebnis else quellenstand(
+            auftrag.quellenkontext if auftrag else None,
+            text_sha256=auftrag.kontext.get("sha256") if auftrag and isinstance(auftrag.kontext, dict) else None,
+        ),
     }

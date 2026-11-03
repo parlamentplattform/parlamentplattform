@@ -1,0 +1,28 @@
+{% load i18n %}
+<details class="ki-quellenstand klappe">
+  <summary>{% translate "Amtlicher Quellenkontext" %}</summary>
+  {% if quellenstand.zustand == "fest" %}
+  <p class="meta">{% translate "Festgehalten am" %}: {{ quellenstand.erfasst_am|date:"d.m.Y H:i" }} · {% translate "Quellenstand" %}: {{ quellenstand.stichtag }}</p>
+  <p class="kennzeichnung">{% translate "Kontextkandidaten aus vorhandenen amtlichen Quellen. Die Auswahl beweist keine rechtliche Betroffenheit; die Modellantwort ist nicht gegen diese Quellen verifiziert." %}</p>
+  {% if quellenstand.auswahl %}{% with a=quellenstand.auswahl %}
+  <p class="meta">{% translate "Auswahlregel, Fassung" %} {{ a.regel_fassung }} · {% translate "Geprüfte Schnappschüsse" %}: {{ a.bestand_ids|length }} / {{ a.bestand_gesamt }} · {% translate "Treffer" %}: {{ a.treffer_ids|length }} · {% translate "Ausgewählt" %}: {{ quellenstand.quellen|length }}</p>
+  <p class="meta">{% translate "Wortanfänge in amtlichen Metadaten, nach amtlicher Kennung gereiht. Keine Bewertung der Wichtigkeit." %} {% translate "Mindestwortlänge" %}: {{ a.mindestwortlaenge }} · {% translate "Bestandsgrenze" %}: {{ a.bestandsgrenze }} · {% translate "Quellengrenze" %}: {{ quellenstand.hoechstzahl }} · {% translate "Textzeichen je Quelle" %}: {{ quellenstand.textzeichen }}</p>
+  {% if a.bestand_begrenzt or a.treffer_begrenzt %}<p class="meldung warn">{% translate "Die Auswahl ist zusätzlich begrenzt. Weitere vorhandene Quellen können fehlen." %}</p>{% endif %}
+  {% endwith %}{% endif %}
+  {% for q in quellenstand.quellen %}
+  <div class="kommentar">
+    <p><a href="{{ q.quelle }}" rel="noopener noreferrer">{{ q.ris_id }} · {{ q.kurztitel }}</a> {{ q.abschnitt }}</p>
+    <p class="meta">{% translate "Quellenstand" %}: {{ q.stand }} · {% translate "Gesetzesnummer" %}: {{ q.gesetzesnummer }}</p>
+    {% if q.dokumenttext %}{% with d=q.dokumenttext %}
+      <p class="meta">{% translate "Amtlicher Dokumenttext als Ausschnitt" %} · {{ d.auszug|length }} / {{ d.zeichen_gesamt }} {% translate "Zeichen" %}{% if d.gekuerzt %} · {% translate "gekürzt" %}{% endif %} · <a href="{{ d.quelle }}" rel="noopener noreferrer">{% translate "Original-XML" %}</a></p>
+      <div class="erk">{{ d.auszug|linebreaksbr }}</div>
+      <p class="meta">{% translate "Ausschnitt-Prüfsumme (SHA-256)" %}: <code class="textstand-hash">{{ d.auszug_sha256 }}</code></p>
+    {% endwith %}{% else %}<p class="meta">{% translate "Nur Metadaten; kein amtlicher Dokumenttext im Auftrag." %}</p>{% endif %}
+  </div>
+  {% empty %}<p class="leer">{% translate "Kein Kontextkandidat in dieser Auswahl. Das bedeutet nicht, dass keine Rechtsnorm betroffen ist." %}</p>{% endfor %}
+  <p class="meta">{% translate "Quellenkontext-Prüfsumme (SHA-256)" %}: <code class="textstand-hash">{{ quellenstand.hash }}</code></p>
+  <a href="{% url 'verfahren:archiv_export' antrag.pk 'json' %}">{% translate "Antworten vollständig im Archiv herunterladen" %}</a>
+  {% elif quellenstand.zustand == "fehler" %}
+  <p class="meldung warn">{% translate "Der amtliche Quellenkontext konnte nicht erfasst oder geprüft werden. Daraus folgt keine Aussage zu betroffenen Gesetzen." %}</p>
+  {% else %}<p class="meta">{% translate "Für diesen älteren Stand wurde kein amtlicher Quellenkontext festgehalten. Spätere Quellen werden nicht nachträglich zugeordnet." %}</p>{% endif %}
+</details>

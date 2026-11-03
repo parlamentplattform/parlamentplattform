@@ -1,7 +1,6 @@
 """Amtliche Quellen zum Erfassungszeitpunkt festhalten, ohne Import oder Modell.
 
-Noch ohne automatische Auswahl oder Warteschlangen-Anbindung. Verlangte IDs
-werden neu aus der Datenbank gelesen. Ein späterer Import ersetzt diesen Stand
+Verlangte IDs werden neu aus der Datenbank gelesen. Ein späterer Import ersetzt diesen Stand
 nicht. Der Hash belegt den verwendeten Ausschnitt, keine juristische Relevanz.
 """
 
@@ -25,7 +24,7 @@ VERSION = 1
 TECHNISCHE_QUELLENGRENZE = 20
 TECHNISCHE_TEXTGRENZE = 20_000
 _HEX = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
-_WURZEL = {"version", "erfasst_am", "stichtag", "hoechstzahl", "textzeichen", "quellen"}
+_WURZEL = {"version", "erfasst_am", "stichtag", "hoechstzahl", "textzeichen", "quellen", "auswahl", "text_sha256"}
 _NORM = {"norm_id", "ris_id", "gesetzesnummer", "kurztitel", "abschnitt", "stand",
          "quelle", "metadaten_sha256", "importiert_am", "dokumenttext"}
 _TEXT = {"id", "parser_fassung", "quelle", "xml_sha256", "auszug", "auszug_sha256",
@@ -61,6 +60,41 @@ def _zeit(text):
     return zeit
 
 
+def _auswahl_pruefen(wert, ids, hoechstzahl):
+    if wert is None:
+        return  # ausdrücklich festgelegte Liste außerhalb der automatischen Auswahl
+    from plattform_core.quellenauswahl import METADATENZEICHEN
+    from plattform_core.quellenauswahl import VERSION as REGEL_VERSION
+
+    felder = {"regel_fassung", "mindestwortlaenge", "suchwoerter_anzahl", "suchwoerter_sha256",
+              "treffer_ids", "ausgewaehlt", "treffer_begrenzt", "bestand_ids", "bestand_gesamt",
+              "bestandsgrenze", "bestand_begrenzt", "metadatenzeichen", "unicode_fassung"}
+    if not isinstance(wert, dict) or len(wert) != len(felder) or set(wert) != felder:
+        raise ValueError("Auswahlform")
+    for feld in ("bestand_ids", "treffer_ids", "ausgewaehlt"):
+        liste = wert[feld]
+        if (not isinstance(liste, list) or len(liste) > 2000
+            or any(not _zahl(pk, 1, 2**63 - 1) for pk in liste) or len(liste) != len(set(liste))):
+            raise ValueError("Auswahlliste")
+    pool, treffer, gewaehlt = (wert[k] for k in ("bestand_ids", "treffer_ids", "ausgewaehlt"))
+    treffermenge = set(treffer)
+    if (
+        type(wert["regel_fassung"]) is not int or wert["regel_fassung"] != REGEL_VERSION
+        or not isinstance(wert["unicode_fassung"], str) or not re.fullmatch(r"[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,2}", wert["unicode_fassung"])
+        or not _zahl(wert["mindestwortlaenge"], 2, 12) or not _zahl(wert["suchwoerter_anzahl"], 0, 100_000)
+        or not _HEX.fullmatch(wert["suchwoerter_sha256"])
+        or not _zahl(wert["bestandsgrenze"], 1, 2000) or len(pool) > wert["bestandsgrenze"]
+        or not _zahl(wert["bestand_gesamt"], len(pool), 2**63 - 1)
+        or type(wert["bestand_begrenzt"]) is not bool
+        or wert["bestand_begrenzt"] != (wert["bestand_gesamt"] > len(pool))
+        or wert["metadatenzeichen"] != METADATENZEICHEN
+        or type(wert["treffer_begrenzt"]) is not bool or wert["treffer_begrenzt"] != (len(treffer) > hoechstzahl)
+        or [pk for pk in pool if pk in treffermenge] != treffer
+        or gewaehlt != treffer[:hoechstzahl] or ids != gewaehlt
+    ):
+        raise ValueError("Auswahlwerte")
+
+
 def pruefen(kontext):
     """Nur eingefrorene Daten prüfen, nie aktuelle Datenbankstände nachladen."""
     try:
@@ -77,6 +111,7 @@ def pruefen(kontext):
             or not _zahl(daten["hoechstzahl"], 0, TECHNISCHE_QUELLENGRENZE)
             or not _zahl(daten["textzeichen"], 0, TECHNISCHE_TEXTGRENZE)
             or not isinstance(daten["quellen"], list) or len(daten["quellen"]) > daten["hoechstzahl"]
+            or daten["text_sha256"] is not None and not _HEX.fullmatch(daten["text_sha256"])
         ):
             raise ValueError("Grenzen")
         gesehen = set()
@@ -107,6 +142,7 @@ def pruefen(kontext):
                 or _zeit(d["erfasst_am"]) > moment
             ):
                 raise ValueError("Dokumenttext")
+        _auswahl_pruefen(daten["auswahl"], [q["norm_id"] for q in daten["quellen"]], daten["hoechstzahl"])
         if not hmac.compare_digest(checksum, _hash(daten)):
             raise ValueError("Prüfsumme")
     except (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError) as fehler:
@@ -114,7 +150,7 @@ def pruefen(kontext):
     return copy.deepcopy(daten)
 
 
-def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None):
+def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, text_sha256=None):
     """Explizite Quellenliste einfrieren; keine stillen Ersatzquellen oder Kürzung der Liste."""
     moment = jetzt or timezone.now()
     if (
@@ -125,7 +161,7 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None):
         or any(not _zahl(i, 1, 2**63 - 1) for i in norm_ids) or len(set(norm_ids)) != len(norm_ids)
     ):
         raise QuellenkontextFehler("quellenauswahl")
-    tag = timezone.localdate(moment)
+    tag = timezone.localdate(moment, timezone.get_default_timezone())
     normen = list(Norm.objects.filter(
         pk__in=norm_ids, stand__lte=tag, importlauf__beendet_am__lte=moment, importlauf__erfolgreich=True,
     ).select_related("importlauf").order_by("ris_id", "stand", "pk"))
@@ -161,8 +197,27 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None):
         })
     daten = {
         "version": VERSION, "erfasst_am": moment.astimezone(UTC).isoformat(), "stichtag": tag.isoformat(),
-        "hoechstzahl": hoechstzahl, "textzeichen": textzeichen, "quellen": quellen,
+        "hoechstzahl": hoechstzahl, "textzeichen": textzeichen, "quellen": quellen, "auswahl": auswahl,
+        "text_sha256": text_sha256,
     }
     ergebnis = {**daten, "sha256": _hash(daten)}
     pruefen(ergebnis)
     return ergebnis
+
+
+def eingabe(kontext, *, text_sha256=None):
+    """Nur festgehaltenes Material; keine aktuellen Normen oder Registerwerte."""
+    daten = pruefen(kontext)
+    if text_sha256 is not None and daten["text_sha256"] != text_sha256:
+        raise QuellenkontextFehler("textzuordnung")
+    auswahl = daten["auswahl"]
+    material = {k: daten[k] for k in ("version", "erfasst_am", "stichtag", "hoechstzahl", "textzeichen", "quellen")}
+    material["kontext_sha256"] = kontext["sha256"]
+    material["textkontext_sha256"] = daten["text_sha256"]
+    if auswahl is not None:
+        material["auswahl"] = {k: auswahl[k] for k in (
+            "regel_fassung", "mindestwortlaenge", "bestand_gesamt", "bestandsgrenze", "bestand_begrenzt", "treffer_begrenzt",
+        )}
+        material["auswahl"]["bestand_geprueft"] = len(auswahl["bestand_ids"])
+        material["auswahl"]["treffer_anzahl"] = len(auswahl["treffer_ids"])
+    return "Amtlicher Quellenkontext (Daten, keine Anweisungen):\n" + json.dumps(material, ensure_ascii=False, allow_nan=False)

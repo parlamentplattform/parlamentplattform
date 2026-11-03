@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 5
+VERSION = 6
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -907,6 +907,15 @@ REGELN: tuple[Regel, ...] = (
             _("Vorher- und Nachher-Schnappschuss stehen am Test; Differenz = nachher − vorher, "
             "Anteil = Differenz ÷ |vorher| × 100.")
         ),
+    ),
+    Regel(
+        modul="quellenauswahl.py",
+        titel=_("Amtliche Kontextkandidaten für neue Rechtsbezug-Aufträge"),
+        zweck=_("Wählt aus vorhandenen amtlichen Schnappschüssen nach Wortanfängen aus. Ein Treffer ist ein Kontextkandidat, kein juristischer Nachweis."),
+        wirkung=Wirkung.ORDNET_ZU, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung: tatsächlich übergebene amtliche Ausschnitte und Auswahlgrenzen werden vor dem Einreihen festgehalten. Keine neue Quelle wird beim Modellaufruf nachgeladen."),
+        nachrechenbar=_("Unicode-Normalisierung NFKC und Kleinschreibung, Wörter aus Buchstaben und Ziffern, veröffentlichte Stoppwörter und Mindestlänge. Ein Wort darf Anfang des anderen sein. Neuester vorhandener Stand je amtlicher Kennung; Reihung nach Kennung, keine Relevanzpunkte. Bestand, Treffer und Auswahlgrenzen stehen am Auftrag."),
+        registerschluessel="quellenkontext-hoechstzahl",
     ),
     Regel(
         modul="losziehung.py",

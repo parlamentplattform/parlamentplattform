@@ -87,15 +87,27 @@ def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuft
     from ki.kontext import festhalten
 
     kontext = festhalten(antrag, vorschlagsfassung=vorschlagsfassung)
+    identitaet = dict(zweck=zweck, antrag=antrag, quellenart=kontext["quellenart"], fassung_nummer=kontext["fassung_nummer"])
+    vorhanden = KIAuftrag.objects.filter(**identitaet).first()
+    if vorhanden is not None:
+        return vorhanden  # insbesondere alten wartenden Aufträgen keine Quellen unterschieben
+    defaults = {"angefordert_von": mitglied, "kontext": kontext, "vorschlagsfassung": vorschlagsfassung}
+    if zweck == Zweck.RECHTSBEZUG:
+        from faktenbasis.auswahl import erfassen
+
+        try:
+            with transaction.atomic():
+                defaults["quellenkontext"] = erfassen(kontext)
+        except Exception:
+            log.exception("Amtlicher Quellenkontext für Antrag %s nicht erfassbar", antrag.pk)
+            # Ehrlicher Fehlerstand statt alter leerer Quellenmodus oder Behauptung
+            # fehlender Rechtsfolgen. Keine Modellkosten und keine Verfahrenshemmung.
+            defaults.update(
+                quellenkontext={"version": 1, "fehler": "erfassung", "erfasst_am": timezone.now().isoformat()},
+                status=Auftragsstatus.GESCHEITERT, fehler="quellenkontext_erfassung",
+            )
     auftrag, _neu = KIAuftrag.objects.get_or_create(
-        zweck=zweck,
-        antrag=antrag,
-        quellenart=kontext["quellenart"],
-        fassung_nummer=kontext["fassung_nummer"],
-        defaults={
-            "angefordert_von": mitglied, "kontext": kontext,
-            "vorschlagsfassung": vorschlagsfassung,
-        },
+        **identitaet, defaults=defaults,
     )
     return auftrag
 
@@ -123,12 +135,17 @@ def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
     from ki.auftraege import auftrag_laden
     from ki.kontext import eingabe
 
-    text = auftrag_laden("rechtsbezug")
+    text = auftrag_laden("rechtsbezug", nummer=2 if auftrag.quellenkontext else 1)
     kontext = _laufkontext(auftrag)
+    eingabetext = eingabe(kontext["text"])
+    if auftrag.quellenkontext:
+        from faktenbasis.kontext import eingabe as quellen_eingabe
+
+        eingabetext += "\n\n" + quellen_eingabe(auftrag.quellenkontext, text_sha256=kontext["text"]["sha256"])
     lauf = lauf_ausfuehren(
         Zweck.RECHTSBEZUG,
         text.text,
-        eingabe(kontext["text"]),
+        eingabetext,
         auftrag.angefordert_von,
         antrag=auftrag.antrag,
         auftrag_version=text.version,
@@ -180,7 +197,10 @@ def _textkontext(auftrag):
 
 
 def _laufkontext(auftrag):
-    return {"text": _textkontext(auftrag), "auftrag": auftrag.pk, "versuch": auftrag.versuche}
+    kontext = {"text": _textkontext(auftrag), "auftrag": auftrag.pk, "versuch": auftrag.versuche}
+    if auftrag.quellenkontext:
+        kontext["quellen"] = auftrag.quellenkontext
+    return kontext
 
 
 ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit}

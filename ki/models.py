@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import copy
 import time
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -260,6 +261,56 @@ class KIAuftrag(models.Model):
                    "angefordert_von_id", "erstellt_am"),
             kwargs.get("update_fields"),
         )
+        if self._state.adding:
+            kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
+
+
+class VergleichQuerySet(LaufQuerySet):
+    geschuetzte_eingaben = frozenset({
+        "kennung", "kontext", "eingabe", "eingabe_sha256", "angefordert_von", "angefordert_von_id", "erstellt_am",
+    })
+
+
+class Vergleichsanfrage(models.Model):
+    """Private ausdrückliche Anforderung vor dem Einbringen, kein öffentlicher Antrag.
+
+    Eine Kennung darf höchstens einmal gestartet werden. Ein abgebrochener Prozess
+    gibt sie nicht zeitgesteuert für einen womöglich noch laufenden Anbieter frei.
+    Ein neuer Versuch benötigt später eine neue ausdrückliche Anforderung.
+    """
+
+    kennung = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    kontext = models.JSONField()
+    eingabe = models.TextField()
+    eingabe_sha256 = models.CharField(max_length=64)
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    begonnen_am = models.DateTimeField(null=True, blank=True)
+    beendet_am = models.DateTimeField(null=True, blank=True)
+    lauf = models.OneToOneField(KILauf, null=True, blank=True, on_delete=models.PROTECT, related_name="vergleichsanfrage")
+    # Rein betriebliche Zustände, keine inhaltliche Bewertung eines Modells.
+    status = models.CharField(max_length=16, default="bereit", choices=[
+        ("bereit", _("angefordert")), ("laeuft", _("läuft")),
+        ("fertig", _("beantwortet")), ("ohne_ergebnis", _("ohne Modellvergleich")),
+    ])
+    meldung = models.CharField(max_length=32, blank=True)
+    objects = VergleichQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["erstellt_am", "kennung"]
+
+    def __str__(self):
+        return str(self.kennung)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        _textstand_schuetzen(self, ("kennung", "kontext", "eingabe", "eingabe_sha256", "angefordert_von_id", "erstellt_am"),
+                            kwargs.get("update_fields"))
         if self._state.adding:
             kwargs["force_insert"] = True
         return super().save(*args, **kwargs)

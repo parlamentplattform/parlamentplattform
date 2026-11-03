@@ -9851,3 +9851,13 @@ msgstr "Preparation for the outstanding comparison of similar motions, without n
 
 msgid "Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."
 msgstr "Exactly the specified pair IDs in the same order, with two text fields of at most 400 characters each. Extra response fields, different versions, duplicate JSON keys or incomplete responses fail the form check. This does not confirm their content."
+
+# Private Vergleichsanfragen
+
+msgid "ohne Modellvergleich"
+msgstr "without model comparison"
+
+# Private Vergleichsanfragen
+
+msgid "angefordert"
+msgstr "requested"

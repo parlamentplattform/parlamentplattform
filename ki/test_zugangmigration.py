@@ -27,4 +27,5 @@ def test_zugangmigration_erhaelt_original_laufdaten_und_legte_nur_betriebszeile_
         zugang = apps.get_model("ki", "SteckplatzZugang").objects.get()
         assert zugang.name == "anbieter" and not zugang.belegt
     finally:
-        MigrationExecutor(connection).migrate(ziel)
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())

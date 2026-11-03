@@ -391,7 +391,7 @@ def _gremien_export(m: Mitglied) -> dict:
         Ueberlastungsmeldung,
         UnterstuetzerVotum,
     )
-    from ki.models import KIAuftrag, KILauf
+    from ki.models import KIAuftrag, KILauf, Vergleichsanfrage
     from parameter.models import ParameterTest
     from verfahren.models import Vollzugseintrag
 
@@ -515,6 +515,15 @@ def _gremien_export(m: Mitglied) -> dict:
                 "erstellt_am": k.erstellt_am,
             }
             for k in KILauf.objects.filter(angefordert_von=m)
+        ],
+        "private_textvergleiche": [
+            {
+                "kennung": str(v.pk), "kontext": v.kontext, "eingabe": v.eingabe,
+                "eingabe_sha256": v.eingabe_sha256, "status": v.status, "meldung": v.meldung,
+                "lauf": v.lauf_id, "erstellt_am": v.erstellt_am,
+                "begonnen_am": v.begonnen_am, "beendet_am": v.beendet_am,
+            }
+            for v in Vergleichsanfrage.objects.filter(angefordert_von=m)
         ],
         "ki_auftraege": [
             {

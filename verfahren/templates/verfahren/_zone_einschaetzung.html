@@ -97,7 +97,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
   {% else %}
     <p class="leer">{% translate "Für diesen Antrag wurde keine Prüfung eingereiht." %}</p>
   {% endif %}
-  {% if lage.auftrag or lage.ergebnis %}{% include "verfahren/_ki_quellenstand.html" with quellenstand=lage.quellenstand %}{% endif %}
+  {% if lage.auftrag or lage.ergebnis %}{% include "verfahren/_ki_quellenstand.html" with quellenstand=lage.quellenstand %}{% include "verfahren/_ki_quellenabgleich.html" with abgleich=lage.quellenabgleich %}{% endif %}
   {% if lage.historie.paginator.count %}
   <div class="ki-historie">
     <h4>{% translate "Frühere Einschätzungen und Fehlversuche" %}</h4>

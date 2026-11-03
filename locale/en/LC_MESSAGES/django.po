@@ -9428,3 +9428,58 @@ msgstr "return with requests"
 
 msgid "Öffentlich können Sie einen beständigen Anzeigenamen verwenden. Stimmen werden unter Pseudonym veröffentlicht; die Zuordnung zum Konto liegt getrennt bei der Plattform und ist nicht kryptografisch geheim."
 msgstr "You can use a consistent public display name. Votes are published under pseudonyms; the account link is held separately by the platform and is not cryptographically secret."
+
+
+msgid "Der damalige Quellenrahmen enthält keine Quellen zum Vergleichen. Neue Quellen werden ihm nicht nachträglich zugeschrieben."
+msgstr "The recorded source frame contains no sources to compare. New sources are not attributed to it retroactively."
+
+msgid "Der heutige Quellenabgleich ist nicht möglich. Der gespeicherte Quellenrahmen bleibt unverändert."
+msgstr "Today's source comparison is unavailable. The recorded source frame remains unchanged."
+
+msgid "Heutige Nachlese, getrennt vom festgehaltenen Modellkontext"
+msgstr "Today's review, separate from the recorded model context"
+
+msgid "Kein damaliger Quellenrahmen zum Vergleichen festgehalten."
+msgstr "No earlier source frame was recorded for comparison."
+
+msgid "Seit der Erfassung dieses Quellenrahmens wurden spätere lokale Stände erfasst. Der damalige Rahmen bleibt unverändert; dieser Vergleich löst keinen Modelllauf aus."
+msgstr "Later local snapshots have been recorded since this source frame was captured. The original frame remains unchanged; this comparison does not trigger a model run."
+
+msgid "Nicht alle damaligen Quellen haben einen vergleichbaren lokalen Stand."
+msgstr "Not all recorded sources have a comparable local snapshot."
+
+msgid "Spätere lokale Quellenstände"
+msgstr "Later local source snapshots"
+
+msgid "Späterer Dokumenttextstand"
+msgstr "Later document text snapshot"
+
+msgid "Späterer Metadatenstand"
+msgstr "Later metadata snapshot"
+
+msgid "Vergleichsregel, Fassung"
+msgstr "Comparison rule, version"
+
+msgid "Verglichen wird ausschließlich der lokale Bestand. Dieser Vergleich bestätigt weder einen vollständigen Rechtsbestand noch die Aktualität des geltenden Rechts. Eine Änderung von Metadaten oder Textaufbereitung ist kein juristisches Urteil."
+msgstr "Only the local collection is compared. This comparison establishes neither a complete legal collection nor the currency of applicable law. A change in metadata or text processing is not a legal assessment."
+
+msgid "Festgehaltener Metadatenstand"
+msgstr "Recorded metadata snapshot"
+
+msgid "Zu den verwendeten Quellen wurde kein später erfasster lokaler Inhaltsstand gefunden."
+msgstr "No later locally recorded content snapshot was found for the recorded sources."
+
+msgid "nicht vergleichbar"
+msgstr "not comparable"
+
+msgid "Spätere lokale Quellenstände im Vergleich"
+msgstr "Comparison of later local source snapshots"
+
+msgid "Zeigt nach der damaligen Erfassung hinzugekommene Metadaten- oder Dokumenttextstände. Keine juristische Aktualitätsprüfung und keine Neuberechnung des Modelllaufs."
+msgstr "Shows metadata or document text snapshots added after the original capture. No legal currency assessment or model rerun."
+
+msgid "Erste Fassung: damalige Modelleingabe und heutige lokale Nachlese unterscheiden, ohne alte Quellen oder Einschätzungen zu ersetzen."
+msgstr "First version: distinguish original model input from today's local review without replacing old sources or assessments."
+
+msgid "Gleiche amtliche Kennung, kein älterer historischer Stichtag, spätere Erfassung als der Quellenrahmen. Metadatenstand oder Hash sowie XML-Hash und Parserfassung vergleichen. Neue Nummer allein genügt nicht. Reihung nach Kennung; auch ohne späteren Fund wird rechtliche Aktualität nicht bestätigt."
+msgstr "Same official identifier, no earlier historical date, capture after the source frame. Compare metadata date or hash, XML hash and parser version. A new ID alone is insufficient. Ordered by identifier; absence of a later finding does not establish legal currency."

@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.17** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.18** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +11,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit 1.18 enthalten öffentliche Antragsarchive zusätzlich eine lesende Verbrauchssumme aus zugeordneten Läufen (rechtsbezug.verbrauch, Formatfassung1). Kostenbetrag und Währung bleiben ohne damaligen Tarif oder Abrechnung ausdrücklich null, kein Null-Euro-Betrag. Öffentliche Rechtsbezug-Läufe nennen ihre gespeicherten Token- und Dauerfelder; interne Eingaben bleiben ausgeschlossen. Siehe docs/MODELLVERBRAUCH.md.
 
 Seit 1.17 werden Quellenkontext-Grenzen unter sources.context_limit, sources.context_excerpt_chars, sources.context_min_word_length und sources.context_scan_limit ausgetauscht. Neue öffentliche Rechtsbezug-Aufträge halten vorhandene amtliche Kontextkandidaten getrennt vom Textstand fest; historische Aufträge bleiben unverändert. Siehe docs/QUELLENKONTEXT.md.
 

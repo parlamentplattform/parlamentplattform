@@ -376,3 +376,8 @@ Für die Stufen 3/4 sind Rückmeldeprotokolle der **staatlichen** Exekutive kein
 ### S11: festgehaltene amtliche Kontextkandidaten (0.61.0)
 
 Neue öffentliche Rechtsbezug-Aufträge ergänzen ihren unveränderten Textstand um vorhandene amtliche Metadaten und gekennzeichnete Dokumentausschnitte. Auswahlfassung1 ist nach Wortanfängen, amtlicher Kennung und offengelegten Registergrenzen nachrechenbar. Quelle, Zeitpunkt, Bestand, Treffer, tatsächliche Eingabe und Hash bleiben erhalten; spätere Importe ersetzen keinen Auftrag. Altaufträge bleiben bei Promptv1, neue nutzen v2 mit demselben Antwortschema. Leerer oder fehlerhafter Kontext ist keine Aussage zur rechtlichen Betroffenheit. Keine automatische Netzrecherche, neue Modellaufrufe oder Änderung von Verfahren/Fristen/Budget. Juristische Verifikation und weitere S11-Folgenanalysen bleiben offen. Details: docs/QUELLENKONTEXT.md; Schema1.17, Regelverzeichnis6.
+
+
+### S11: Verbrauchsübersicht je Antrag (0.62.0)
+
+Die Antragsseite fasst gespeicherte Aufrufe, Fehlversuche und Tokenangaben nach Zweck zusammen, ohne neue Modellaufrufe. Eine einzelne vollständige Gruppenabfrage zählt zugeordnete Läufe; vorausgehende Vergleiche ohne Antrags-ID sind ausdrücklich ausgeschlossen. Eurobetrag/Währung bleiben ohne damaligen Tarif oder Abrechnung unbekannt, auch bei gespeicherten Nullwerten. Öffentliche Exporte ergänzen dieselbe Summe und die Metadaten der öffentlichen Rechtsbezug-Läufe; interne Texte bleiben ausgeschlossen. Regelverzeichnis7, Schema1.18, docs/MODELLVERBRAUCH.md. Kein neuer Anbieter, Tarif oder Kostenrahmen. Tatsächliche Rechnungs-/Tarifdaten bleiben offen.

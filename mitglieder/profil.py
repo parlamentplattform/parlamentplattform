@@ -504,6 +504,9 @@ def _gremien_export(m: Mitglied) -> dict:
         "ki_laeufe": [
             {
                 "zweck": k.zweck,
+                "tokens_ein": k.tokens_ein,
+                "tokens_aus": k.tokens_aus,
+                "dauer_ms": k.dauer_ms,
                 "antrag": k.antrag_id,
                 "anbieter": k.anbieter,
                 "modell": k.modell,

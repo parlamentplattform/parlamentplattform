@@ -1046,6 +1046,7 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     from ki.anbieter import anbieter_waehlen
     from ki.models import Zweck
     from ki.rechtsbezug import rechtsbezug_lage
+    from ki.verbrauch import anzeige, fuer_antrag
 
     # Kopfkarte und Gremien-Fenster zeigen nur die Einschätzung; der Rechtsbezug hat seine eigene Karte.
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
@@ -1056,6 +1057,7 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
         "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
         "rechtsbezug": rechtsbezug_lage(antrag, betrachter, seite),
+        "verbrauch": anzeige(fuer_antrag(antrag)),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [
             _("Ähnliche Anträge"),

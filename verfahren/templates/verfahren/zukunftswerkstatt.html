@@ -110,10 +110,7 @@
 
 <h2>{% translate "Der Modell-Steckplatz — Rechenschaft in Zahlen" %}</h2>
 <div class="karte" id="steckplatz">
-  <p>{% blocktranslate %}Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt
-  einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Ein hartes
-  Monats-Tokenbudget deckelt die Kosten; ist es erschöpft, wird der Steckplatz stumm. Und immer gilt:
-  Die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Das Monats-Tokenbudget prüft vor weiteren Aufrufen die gespeicherten Verbrauchsangaben. Das ist keine Kostenabrechnung; ungemeldeter Verbrauch kann fehlen. Die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</p>
   <p style="margin-top:10px">
     {% if steckplatz.angeschlossen %}
       <strong>{% translate "Angeschlossen:" %}</strong> {{ steckplatz.anbieter }} · {{ steckplatz.modell }}

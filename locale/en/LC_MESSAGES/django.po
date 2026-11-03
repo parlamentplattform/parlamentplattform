@@ -2580,18 +2580,6 @@ msgstr "Who watches over what"
 msgid "Der Modell-Steckplatz — Rechenschaft in Zahlen"
 msgstr "The model socket — accountability in numbers"
 
-msgid ""
-"Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt\n"
-"  einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Ein hartes\n"
-"  Monats-Tokenbudget deckelt die Kosten; ist es erschöpft, wird der Steckplatz stumm. Und immer gilt:\n"
-"  Die KI schlägt vor, sie entscheidet nie."
-msgstr ""
-"Every AI call on the platform goes through a provider-neutral socket and "
-"leaves an archived run: purpose, model, token usage, duration — including "
-"the failed ones. A hard monthly token budget caps the costs; once it is "
-"spent, the socket goes silent. And it always holds: the AI suggests, it "
-"never decides."
-
 msgid "Angeschlossen:"
 msgstr "Connected:"
 
@@ -9402,3 +9390,59 @@ msgstr "Zukunftswerkstatt requests and runs are retained."
 
 msgid "Ein archivierter KI-Lauf bleibt unverändert."
 msgstr "An archived AI run cannot be changed."
+
+
+msgid "Weitere Zwecke"
+msgstr "Other purposes"
+
+msgid "Modellverbrauch und Kostenstand"
+msgstr "Model usage and cost records"
+
+msgid "Nur diesem Antrag zugeordnete archivierte Läufe. Vergleiche vor dem Einbringen ohne Antragsbezug sind nicht enthalten."
+msgstr "Archived runs assigned to this motion only. Comparisons made before submission without a motion reference are not included."
+
+msgid "Gespeicherte Verbrauchsangaben nach Zweck"
+msgstr "Recorded usage by purpose"
+
+msgid "Fehlversuche"
+msgstr "Failed attempts"
+
+msgid "Eingabetokens"
+msgstr "Input tokens"
+
+msgid "Ausgabetokens"
+msgstr "Output tokens"
+
+msgid "Noch keine zugeordneten Läufe im Archiv. Wartende Aufträge sind noch kein erfasster Verbrauch."
+msgstr "No assigned runs in the archive yet. Queued requests do not constitute recorded usage."
+
+msgid "Kostenbetrag nicht erfasst. Die Tokenangaben sind kein Abrechnungsnachweis. Nullwerte und Fehlversuche belegen keine Kostenfreiheit."
+msgstr "No monetary cost recorded. Token figures are not billing evidence. Zero values and failed attempts do not establish free use."
+
+msgid "Auswertung, Fassung"
+msgstr "Summary, version"
+
+msgid "Nach Zweckkennung gereiht, ohne Wertung."
+msgstr "Ordered by purpose identifier, without ranking."
+
+msgid "Gespeicherter Modellverbrauch je Antrag"
+msgstr "Recorded model usage per motion"
+
+msgid "Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."
+msgstr "Summarises archived runs, failed attempts and token figures by purpose. No monetary amount is claimed without billing evidence."
+
+msgid "Erste Fassung: Verbrauch je Antrag sichtbar machen, ohne fehlende Anbieterangaben als kostenlose Nutzung auszulegen. Archivdaten werden nicht nachträglich ergänzt."
+msgstr "First version: show usage per motion without treating missing provider figures as free use. Archive records are not backfilled."
+
+msgid "Einmal nach Zweck gruppierte Archivangaben; vier bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
+msgstr "Archive figures grouped once by purpose: four known purposes and Other, ordered by purpose identifier. Overall totals use the same complete groups. No tariff or currency in the archive means the monetary amount is unknown."
+
+msgid "Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Das Monats-Tokenbudget prüft vor weiteren Aufrufen die gespeicherten Verbrauchsangaben. Das ist keine Kostenabrechnung; ungemeldeter Verbrauch kann fehlen. Die KI schlägt vor, sie entscheidet nie."
+msgstr "Every platform AI call goes through a provider-neutral interface and leaves an archived run: purpose, model, token usage and duration, including failed calls. The monthly token budget checks recorded usage before further calls. This is not a bill; unreported usage may be missing. AI makes proposals; it never decides."
+
+
+msgid "Zweck"
+msgstr "Purpose"
+
+msgid "Summe"
+msgstr "Total"

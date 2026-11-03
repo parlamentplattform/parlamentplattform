@@ -1,0 +1,23 @@
+{% load i18n %}
+<details class="karte klappe" id="modellverbrauch">
+  <summary>{% translate "Modellverbrauch und Kostenstand" %}</summary>
+  <p class="meta">{% translate "Nur diesem Antrag zugeordnete archivierte Läufe. Vergleiche vor dem Einbringen ohne Antragsbezug sind nicht enthalten." %}</p>
+  {% if verbrauch.zeilen %}
+  <div class="tabelle-rollt" tabindex="0" role="region" aria-label="{% translate 'Gespeicherte Verbrauchsangaben nach Zweck' %}">
+  <table class="tabelle">
+    <caption>{% translate "Gespeicherte Verbrauchsangaben nach Zweck" %}</caption>
+    <thead><tr><th scope="col">{% translate "Zweck" %}</th><th scope="col">{% translate "Läufe" %}</th><th scope="col">{% translate "Fehlversuche" %}</th><th scope="col">{% translate "Eingabetokens" %}</th><th scope="col">{% translate "Ausgabetokens" %}</th></tr></thead>
+    <tbody>{% for z in verbrauch.zeilen %}<tr>
+      <td data-label="{% translate 'Zweck' %}"><span>{{ z.name }}</span></td>
+      <td data-label="{% translate 'Läufe' %}"><span>{{ z.laeufe }}</span></td>
+      <td data-label="{% translate 'Fehlversuche' %}"><span>{{ z.fehlversuche }}</span></td>
+      <td data-label="{% translate 'Eingabetokens' %}"><span>{{ z.tokens_ein }}</span></td>
+      <td data-label="{% translate 'Ausgabetokens' %}"><span>{{ z.tokens_aus }}</span></td>
+    </tr>{% endfor %}</tbody>
+  </table>
+  </div>
+  <p class="meta">{% translate "Summe" %}: {{ verbrauch.summe.laeufe }} {% translate "Läufe" %} · {{ verbrauch.summe.fehlversuche }} {% translate "Fehlversuche" %} · {{ verbrauch.summe.tokens_ein }} {% translate "Eingabetokens" %} · {{ verbrauch.summe.tokens_aus }} {% translate "Ausgabetokens" %}</p>
+  {% else %}<p class="leer">{% translate "Noch keine zugeordneten Läufe im Archiv. Wartende Aufträge sind noch kein erfasster Verbrauch." %}</p>{% endif %}
+  <p class="kennzeichnung">{% translate "Kostenbetrag nicht erfasst. Die Tokenangaben sind kein Abrechnungsnachweis. Nullwerte und Fehlversuche belegen keine Kostenfreiheit." %}</p>
+  <p class="meta">{% translate "Auswertung, Fassung" %} {{ verbrauch.version }} · {% translate "Nach Zweckkennung gereiht, ohne Wertung." %}</p>
+</details>

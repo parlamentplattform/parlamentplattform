@@ -854,13 +854,6 @@ msgstr "A sheet with a pen"
 msgid "Anträge einbringen"
 msgstr "Submit motions"
 
-msgid ""
-"Jedes Mitglied kann jeden Vorschlag einbringen — ohne inhaltliche "
-"Vorprüfung, öffentlich vom ersten Tag."
-msgstr ""
-"Every member can submit any proposal — without content screening, public "
-"from day one."
-
 msgid "Drei erhobene Hände"
 msgstr "Three raised hands"
 
@@ -926,56 +919,14 @@ msgstr "From motion to decision"
 msgid "Einbringen"
 msgstr "Submitting"
 
-msgid ""
-"Sie schreiben Ihren Vorschlag — die Plattform zeigt sofort ähnliche Anträge:\n"
-"      unterstützen oder selbst einbringen, Ihre Wahl."
-msgstr ""
-"You write your proposal — the platform immediately shows similar motions: "
-"support one or submit your own, your choice."
-
-msgid "Unterstützung sammeln"
-msgstr "Gathering support"
-
-msgid ""
-"Erreicht der Antrag die veröffentlichte Schwelle, geht er weiter — sonst bleibt er\n"
-"      offen einsehbar, nichts verschwindet."
-msgstr ""
-"If the motion reaches the published threshold, it moves on — otherwise it "
-"remains openly visible; nothing disappears."
-
 msgid "Beratung"
 msgstr "Deliberation"
 
 msgid "Abstimmung"
 msgstr "Voting"
 
-msgid ""
-"Alle Stimmberechtigten entscheiden — mit allen Unterlagen am Stimmzettel.\n"
-"      Eine Person, eine Stimme."
-msgstr ""
-"All eligible members decide — with all documents attached to the ballot. One"
-" person, one vote."
-
-msgid "Ergebnis — nachrechenbar"
-msgstr "Result — verifiable"
-
-msgid ""
-"Ergebnis, Beteiligung und aggregierte Rohdaten werden veröffentlicht;\n"
-"      jede und jeder kann die Auszählung unabhängig wiederholen."
-msgstr ""
-"Result, turnout and aggregated raw data are published; anyone can repeat the"
-" count independently."
-
 msgid "Umsetzung"
 msgstr "Implementation"
-
-msgid ""
-"Angenommene Anträge wandern ins öffentliche Umsetzungsregister: Stand, Hindernisse\n"
-"      und Fortschritt — bis der Beschluss Wirklichkeit ist. Als Partei setzen unsere Mandatare um, was Sie beschließen."
-msgstr ""
-"Adopted motions move into the public implementation register: status, "
-"obstacles and progress — until the decision is reality. As a party, our "
-"representatives implement what you decide."
 
 msgid "Die Mitgliedschaft im Detail"
 msgstr "Membership in detail"
@@ -985,17 +936,6 @@ msgstr "Qualifying period"
 
 msgid "Mitentscheiden mit Anlauf"
 msgstr "Deciding, with a run-up"
-
-msgid ""
-"Nach der Satzung sind Sie bei Sachfragen nach drei Monaten stimmberechtigt, bei\n"
-"    Personal- und Satzungsfragen nach zwölf — ein Schutz gegen feindliche Übernahmen. In der Aufbauphase gilt die\n"
-"    Übergangsregel: Die Fristen entfallen, bis die Mitglieder die erste Verfahrensordnung beschlossen haben."
-msgstr ""
-"Under the statutes you may vote on substantive questions after three months,"
-" on personnel and statute questions after twelve — a safeguard against "
-"hostile takeovers. During the founding phase the transitional rule applies: "
-"the periods are waived until the members have adopted the first rules of "
-"procedure."
 
 msgid "Selbsteinschätzung statt Tarif"
 msgstr "Self-assessment instead of a tariff"
@@ -1032,14 +972,6 @@ msgstr "How the Zukunftswerkstatt works →"
 
 msgid "Bereit, mitzuentscheiden?"
 msgstr "Ready to decide with us?"
-
-msgid ""
-"Die Registrierung dauert zwei Minuten: Name, E-Mail, Wohnsitz-Gemeinde — Bestätigungslink,\n"
-"  fertig. Alles Weitere zeigt Ihnen die Plattform Schritt für Schritt."
-msgstr ""
-"Registration takes two minutes: name, e-mail, municipality of residence — "
-"confirmation link, done. The platform walks you through everything else step"
-" by step."
 
 msgid "Ich bin schon Mitglied — anmelden"
 msgstr "I am already a member — sign in"
@@ -1803,14 +1735,6 @@ msgstr ""
 "delivered with every motion page."
 
 msgid ""
-"Jedes Mitglied kann einen Antrag stellen — für den Bund, das Land, den Bezirk oder die\n"
-"Gemeinde des eigenen Wohnsitzes. Ein Hinweis auf ähnliche Anträge hilft, Kräfte zu bündeln statt zu zersplittern."
-msgstr ""
-"Every member can submit a motion — for the federal level, the state, the "
-"district or the municipality of their own residence. A hint about similar "
-"motions helps to join forces instead of splintering them."
-
-msgid ""
 "Der Antrag sammelt öffentliche Unterstützungen. Erreicht er die Schwelle der\n"
 "Verfahrensordnung innerhalb der Frist, geht er weiter — sonst verfällt er, ehrlich dokumentiert."
 msgstr ""
@@ -1918,9 +1842,6 @@ msgstr "accepted — or deadline passed:"
 
 msgid "Untätigkeit hemmt nie"
 msgstr "inactivity never blocks"
-
-msgid "KI: Durchrechnung · Einschätzung in der Werkstatt"
-msgstr "AI: calculation · assessment in the workshop"
 
 msgid "gekennzeichnet und archiviert — sie schlägt vor, sie entscheidet nie"
 msgstr "labelled and archived — it suggests, it never decides"
@@ -5629,17 +5550,6 @@ msgstr "Request highlighting from the Integrity Council (§ 5 para 10 lit b)"
 msgid "Hervorhebung eines Antrags (§ 5 Abs 10 lit b)"
 msgstr "Highlighting a motion (§ 5 para 10 lit b)"
 
-msgid ""
-"Heute: ein Konto je E-Mail-Adresse, Bestätigungslink, Beitragseingang schaltet die Mitwirkung\n"
-"    frei. Der Identitätsnachweis nach § 2 Abs 4 (ID Austria oder Präsenzstelle) ist geplant — bis dahin ist die\n"
-"    Ein-Mensch-eine-Stimme-Regel eine Frage des Vertrauens. Öffentlich treten Sie unter einem beständigen Pseudonym\n"
-"    auf, wenn Sie möchten; Ihre Stimme bleibt bei Abstimmungen pseudonym."
-msgstr ""
-"Today: one account per email address, a confirmation link, and a received contribution unlocks\n"
-"    participation. Identity verification under § 2 para 4 (ID Austria or in person) is planned — until then the\n"
-"    one-person-one-vote rule is a matter of trust. Publicly you may appear under a persistent pseudonym\n"
-"    if you wish; your vote remains pseudonymous in ballots."
-
 msgid "Identitätsstufe"
 msgstr "Identity level"
 
@@ -5695,15 +5605,6 @@ msgstr "Last contribution received"
 msgid "Mehrdeutig — bitte präzisieren: %(optionen)s."
 msgstr "Ambiguous — please be more specific: %(optionen)s."
 
-msgid ""
-"Mindestens 21 Tage öffentliche Erörterung; der Expertenrat erarbeitet einen Vorschlag,\n"
-"      den die Unterstützer annehmen oder zurückgeben. Die Durchrechnung in der <a href=\"/zukunftswerkstatt/\">Zukunftswerkstatt</a>\n"
-"      (berührte Gesetze, Aufwand) ist im Aufbau — wie weit, steht auf der Werkstatt-Seite."
-msgstr ""
-"At least 21 days of public deliberation; the expert council prepares a proposal,\n"
-"      which the supporters accept or return. The analysis in the <a href=\"/zukunftswerkstatt/\">Futures Workshop</a>\n"
-"      (affected laws, effort) is under construction — how far along, see the workshop page."
-
 msgid "Mitglied ausgeschlossen und Konto deaktiviert."
 msgstr "Member excluded and account deactivated."
 
@@ -5739,19 +5640,6 @@ msgstr "Review of a proposal (§ 6 para 7)"
 
 msgid "Rechtswidriger Inhalt"
 msgstr "Unlawful content"
-
-msgid ""
-"Regionale Anträge sind nach Gemeinde, Bezirk und Land sortiert und erscheinen in Ihrem\n"
-"    Bereich „Meine Region“. Abstimmen dürfen bei jedem Antrag alle stimmberechtigten Mitglieder — die Satzung\n"
-"    schließt niemanden von einer Abstimmung aus (§ 5 Abs 6). Ob Betroffene bei Sachfragen besonders berücksichtigt\n"
-"    werden, entscheidet eine Verfahrensordnung, die die Mitglieder erst beschließen müssen. Ihre Lebensbereiche\n"
-"    wählen Sie als Favoriten — Neues daraus erscheint direkt in Ihrem Parlament."
-msgstr ""
-"Regional motions are sorted by municipality, district and state and appear in your\n"
-"    “My region” area. On every motion, all eligible members may vote — the statutes\n"
-"    exclude no one from a ballot (§ 5 para 6). Whether those affected receive special consideration\n"
-"    on substantive questions is decided by rules of procedure the members have yet to adopt. You choose\n"
-"    your areas of life as favourites — new items from them appear directly in your parliament."
 
 msgid "Sachantrag"
 msgstr "Substantive motion"
@@ -9446,3 +9334,97 @@ msgstr "Purpose"
 
 msgid "Summe"
 msgstr "Total"
+
+
+msgid "Ablauf als Text lesen"
+msgstr "Read the process as text"
+
+msgid "Aufwand und Dauer"
+msgstr "Effort and duration"
+
+msgid "Bei der Registrierung geben Sie Ihren Namen, Ihre E-Mail-Adresse und Ihre Wohnsitz-Situation an.\n  Nach dem Bestätigungslink zeigt Ihnen die Plattform die nächsten Schritte bis zur Freischaltung."
+msgstr "When registering, enter your name, email address and residence situation.\n  After the confirmation link, the platform shows the next steps towards activation."
+
+msgid "Die Gebietsangabe ordnet Anträge Ihrer Region zu. Unterstützung und Wahlberechtigung werden derzeit auch bei regionalen Mandats-Kandidaturen parteiweit geprüft. Eine örtliche Begrenzung ist noch nicht umgesetzt."
+msgstr "The area identifies motions for your region. Support and voting eligibility are currently checked across the entire party, including regional candidacies. Local restrictions have not yet been implemented."
+
+msgid "Die Grafik zeigt den allgemeinen Weg. Laufende Verfahren behalten ihre eigenen festgelegten Regeln; Sonderverfahren haben eigene Abläufe."
+msgstr "The diagram shows the general process. Ongoing procedures retain their own fixed rules; special procedures follow separate paths."
+
+msgid "Die Stimmberechtigten stimmen ab. Ergebnis und Auszählungsdaten bleiben öffentlich nachrechenbar; angenommene Vorschläge stehen im Umsetzungsregister."
+msgstr "Eligible members vote. Results and counting data remain publicly verifiable; adopted proposals appear in the implementation register."
+
+msgid "Ein Parteibeschluss ist noch kein staatliches Gesetz. Mandatare bringen die beschlossenen Vorschläge in die zuständigen staatlichen Gremien ein."
+msgstr "A party resolution is not yet state law. Elected representatives introduce the adopted proposals in the relevant public institutions."
+
+msgid "Eine Anmeldung ist auch ohne festen Wohnsitz oder mit Wohnsitz im Ausland möglich; dafür gibt es getrennte Auswahlfelder. Lebensbereiche wählen Sie unabhängig davon als persönliche Favoriten."
+msgstr "You can also register without a fixed address or while living abroad; separate options are provided. You choose areas of life as personal favourites independently of this."
+
+msgid "Für Mandats-Kandidaturen bewerben sich Mitglieder; eine Zustimmungswahl bestimmt die Listenreihung."
+msgstr "Members apply for candidacies; approval voting determines the candidate list order."
+
+msgid "Für neue Sachanträge: Verfahrensordnung %(kennung)s, Fassung %(fassung)s."
+msgstr "For new substantive motions: procedural rules %(kennung)s, version %(fassung)s."
+
+msgid "Geplant: Folgen für Verwaltung, Personal und Zeit. Dafür liegt noch keine vollständige Durchrechnung vor."
+msgstr "Planned: consequences for administration, staffing and time. A complete calculation is not yet available."
+
+msgid "In der Beratung können Mitglieder den Vorschlag erörtern. Der Expertenrat kann einen Entwurf erarbeiten; die Unterstützer nehmen ihn an oder geben ihn mit Wünschen zurück."
+msgstr "Members can discuss the proposal during deliberation. The expert council may prepare a draft; supporters accept it or return it with requests."
+
+msgid "Jedes freigeschaltete Mitglied kann einen Antrag stellen — für den Bund, das Land, den Bezirk oder die\nGemeinde des eigenen Wohnsitzes. Ein Hinweis auf ähnliche Anträge hilft, Kräfte zu bündeln statt zu zersplittern."
+msgstr "Every activated member can submit a motion — for the federal level, their state, district or\nmunicipality of residence. Suggestions of similar motions help concentrate efforts instead of splitting them."
+
+msgid "Modellvorschläge zu möglicherweise berührten Gesetzen sind gekennzeichnet und noch nicht juristisch verifiziert."
+msgstr "Model suggestions about potentially affected laws are labelled and have not yet been legally verified."
+
+msgid "Nach Ihrer Freischaltung können Sie Vorschläge einbringen — öffentlich und ohne politische Vorprüfung durch einen Algorithmus."
+msgstr "After activation, you can submit proposals publicly, without an algorithm screening their political content."
+
+msgid "Nach Ihrer Freischaltung und der Wartefrist ab Beitritt können Sie abstimmen: bei Sachfragen nach drei Monaten, bei Personen- und Satzungsfragen nach zwölf Monaten."
+msgstr "After activation and the waiting period from joining, you can vote: after three months on substantive matters and after twelve months in elections and on statutes."
+
+msgid "Nach der Registrierung bestätigen Sie Ihre E-Mail-Adresse. Zum Mitmachen und Abstimmen braucht Ihr Konto zusätzlich eine Freischaltung. Ein Beitragseingang allein bestätigt noch nicht Ihre Identität. Die Verwaltung prüft die Angaben; Sie erhalten Nachricht, sobald Sie mitmachen können."
+msgstr "After registering, confirm your email address. Your account also needs activation before you can participate and vote. A recorded contribution alone does not confirm your identity. The administration checks your details; you will be notified when you can participate."
+
+msgid "Noch keine aktive Verfahrensordnung; deshalb werden hier keine Fristen versprochen."
+msgstr "No active procedural rules yet; no deadlines are promised here."
+
+msgid "Rechtsbezug"
+msgstr "Legal impact"
+
+msgid "Vorhandene amtliche Schnappschüsse und verwendete Ausschnitte bleiben nachlesbar. Eine leere Auswahl ist keine rechtliche Entwarnung."
+msgstr "Existing official snapshots and the excerpts used remain available to read. An empty selection is not legal clearance."
+
+msgid "Vorschau der Einschätzungskarten — keine Daten eines echten Antrags"
+msgstr "Assessment card preview — not data from an actual motion"
+
+msgid "Vorschlag einbringen und Unterstützung sammeln. Die veröffentlichte Schwelle und Frist stehen beim Antrag."
+msgstr "Submit a proposal and gather support. The published threshold and deadline are shown with the motion."
+
+msgid "Wie das aussieht ›"
+msgstr "See how it works ›"
+
+msgid "Während der Aufbauphase können Sie nach Ihrer Freischaltung ohne zusätzliche Wartefrist abstimmen und wählen."
+msgstr "During the setup phase, you can vote in ballots and elections after activation without an additional waiting period."
+
+msgid "Zukunftswerkstatt: Einschätzung im Aufbau"
+msgstr "Zukunftswerkstatt: assessment under development"
+
+msgid "Zwei Antragswege und die Entwurfsschleife"
+msgstr "Two motion paths and the draft loop"
+
+msgid "entfällt"
+msgstr "not required"
+
+msgid "höchstens %(n)s Runden"
+msgstr "at most %(n)s rounds"
+
+msgid "nicht festgelegt"
+msgstr "not yet specified"
+
+msgid "zurück mit Wünschen"
+msgstr "return with requests"
+
+msgid "Öffentlich können Sie einen beständigen Anzeigenamen verwenden. Stimmen werden unter Pseudonym veröffentlicht; die Zuordnung zum Konto liegt getrennt bei der Plattform und ist nicht kryptografisch geheim."
+msgstr "You can use a consistent public display name. Votes are published under pseudonyms; the account link is held separately by the platform and is not cryptographically secret."

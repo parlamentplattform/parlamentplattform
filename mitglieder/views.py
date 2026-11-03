@@ -28,7 +28,7 @@ from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
-from verfahren.models import AuditEintrag
+from verfahren.models import AuditEintrag, uebergangsregel_der_instanz
 
 log = logging.getLogger(__name__)
 
@@ -346,4 +346,9 @@ def mitgliedschaft(request):
     """Öffentliche Schaufenster-Seite der Mitgliedschaft: erst plakativ, was
     Mitglieder können, dann die Details (Anwartschaft, Beitrag, Identität)
     und der Weg vom Antrag zum Beschluss — ehrlich und ohne Kleingedrucktes."""
-    return render(request, "mitglieder/mitgliedschaft.html")
+    from verfahren.schaubild import fristen_fuer_das_diagramm
+
+    return render(request, "mitglieder/mitgliedschaft.html", {
+        "fristen": fristen_fuer_das_diagramm(),
+        "uebergangsregel": uebergangsregel_der_instanz(),
+    })

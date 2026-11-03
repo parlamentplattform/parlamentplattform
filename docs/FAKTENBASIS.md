@@ -29,3 +29,13 @@ Nur die ausdrücklich als MainDocument/XML in den gespeicherten Metadaten benann
 NormText und NormTextAbruf sind eigenständige unveränderliche Schnappschüsse. Gleiche Bytes zur gleichen Norm und Parserfassung bleiben einmal gespeichert; jeder Versuch erhält dennoch seinen eigenen Beginn/Abschluss/Erfolgs- oder Fehlernachweis. Die erste Erfassung eines Inhalts wird nicht als jüngster Abruf ausgegeben. Bei Fehler bleibt der vorherige Text lesbar, bei geändertem Inhalt entsteht ein zusätzlicher Schnappschuss. Inhalt, Erfolgsnachweis und Audit werden atomar übernommen. Es existiert keine öffentliche Importschnittstelle und kein automatisches Nachziehen. Metadaten und Text können zu verschiedenen Zeitpunkten abgerufen sein; ihre Quellenstände und Abrufzeiten bleiben getrennt nachlesbar. Einzeldokumente ergeben noch keine vollständige Rechtsvorschrift, Querverweisprüfung oder Modellkontextintegration.
 
 Quelle und Bedingungen: [RIS / Bundeskanzleramt, OGD-FAQ](https://data.bka.gv.at/ris/api/v2.6/), [API-Handbuch V2.6, Juli 2025](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Die Metadaten werden vor der Anzeige von HTML-Markierungen befreit; die unveränderten Daten bleiben im Download.
+
+
+Seit0.63.1 gilt der gewöhnliche ORM-Schreibschutz auch für neue Python-Objekte
+mit einer bereits belegten ID und für Konflikt-Upserts. Neue Einfügungen erzwingen
+INSERT auch dann, wenn eine parallele Anlage die Existenzprüfung überholt.
+Mengenänderungen scheitern vor Djangos innerer Transaktion; ein abgefangener
+Schutzfehler beschädigt keine äußere Verfahrens- oder Importtransaktion.
+Die gleichen vorhandenen Stände werden weder umgeschrieben noch nachträglich
+neu importiert. Neue/idempotente Einzelimporte bleiben möglich. Dieser
+Anwendungsschutz ersetzt keine Datenbankrechte, Sicherungen oder Signatur.

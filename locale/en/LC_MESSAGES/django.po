@@ -9395,3 +9395,10 @@ msgstr "This is a proposal from an AI model (%(modell)s, instruction %(auftrag_v
 
 msgid "Original-XML"
 msgstr "Original XML"
+
+
+msgid "Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."
+msgstr "Zukunftswerkstatt requests and runs are retained."
+
+msgid "Ein archivierter KI-Lauf bleibt unverändert."
+msgstr "An archived AI run cannot be changed."

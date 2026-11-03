@@ -102,3 +102,6 @@ festgehaltenen Originalquellen sind verlinkt. Modellnormen behalten ihr Etikett
 „nicht verifiziert“, unabhängig von einem ähnlich klingenden Titel in der Sammlung.
 Verifizierte Norm-Verweis-Kanten, vollständiger Rechtsbestand, automatische
 Aktualisierung, Korrekturläufe und weitere Folgenanalysen bleiben offen.
+
+
+Seit0.61.1 schützt der gewöhnliche ORM zusätzlich den gesamten fertigen Modelllauf sowie die Löschwege für Aufträge und Läufe. Eine Neuanlage mit bereits vorhandener Primärschlüsselnummer ist kein Weg zum Ersetzen alter Daten. Urheber und Einreihzeitpunkt des Auftrags sind geschützt; sein betrieblicher Status bleibt veränderlich. Das ist Anwendungsschutz, kein Ersatz für Datenbank-Zugriffsrechte, Sicherungen oder eine kryptografische Signatur.

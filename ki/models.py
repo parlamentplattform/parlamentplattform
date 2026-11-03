@@ -31,11 +31,13 @@ MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
 
 
 def _textstand_schuetzen(instanz, felder, update_fields):
-    if instanz._state.adding or update_fields is not None and not any(
+    if instanz.pk is None or update_fields is not None and not any(
         f in felder or f + "_id" in felder for f in update_fields
     ):
         return
     vorher = type(instanz).objects.filter(pk=instanz.pk).values(*felder).first()
+    if vorher is None and instanz._state.adding:
+        return
     if vorher is None or any(vorher[f] != getattr(instanz, f) for f in felder):
         raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
 
@@ -64,11 +66,32 @@ class LaufQuerySet(models.QuerySet):
             update_fields=update_fields, unique_fields=unique_fields,
         )
 
+    def delete(self):
+        raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
+
+
+class ArchivQuerySet(LaufQuerySet):
+    """Ein fertiger Lauf hat keine betrieblich veränderlichen Felder."""
+
+    def update(self, **kwargs):
+        raise ValidationError(_("Ein archivierter KI-Lauf bleibt unverändert."))
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ValidationError(_("Ein archivierter KI-Lauf bleibt unverändert."))
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts:
+            raise ValidationError(_("Ein archivierter KI-Lauf bleibt unverändert."))
+        return super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts,
+                                   update_fields=update_fields, unique_fields=unique_fields)
+
 
 class AuftragQuerySet(LaufQuerySet):
     geschuetzte_eingaben = LaufQuerySet.geschuetzte_eingaben | frozenset({
         "antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id",
         "quellenkontext",
+        "angefordert_von", "angefordert_von_id", "erstellt_am",
     })
 
 
@@ -101,7 +124,7 @@ class KILauf(models.Model):
     erfolgreich = models.BooleanField(default=True)
     fehler = models.CharField(max_length=300, blank=True)
     erstellt_am = models.DateTimeField(default=timezone.now)
-    objects = LaufQuerySet.as_manager()
+    objects = ArchivQuerySet.as_manager()
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -112,8 +135,13 @@ class KILauf(models.Model):
         return f"KI-Lauf {self.get_zweck_display()} ({self.modell}, {self.erstellt_am:%d.%m.%Y})"
 
     def save(self, *args, **kwargs):
-        _textstand_schuetzen(self, ("kontext", "eingabe"), kwargs.get("update_fields"))
+        if not self._state.adding or self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Ein archivierter KI-Lauf bleibt unverändert."))
+        kwargs["force_insert"] = True  # auch bei gleichzeitig neu vergebener expliziter PK niemals UPDATE
         return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
 
     @classmethod
     def monatsverbrauch(cls, jetzt=None) -> int:
@@ -194,11 +222,19 @@ class KIAuftrag(models.Model):
         return f"KI-Auftrag {self.get_zweck_display()} zu Antrag {self.antrag_id} ({self.status})"
 
     def save(self, *args, **kwargs):
+        if self._state.adding and self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
         _textstand_schuetzen(
-            self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id"),
+            self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
+                   "angefordert_von_id", "erstellt_am"),
             kwargs.get("update_fields"),
         )
+        if self._state.adding:
+            kwargs["force_insert"] = True
         return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
 
 
 def steckplatz_stand() -> dict:

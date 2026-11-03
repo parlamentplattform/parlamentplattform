@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.67.0] — 2026-11-03 · Einen bekannten amtlichen Personalbeleg nachvollziehbar übernehmen
+
+- Ein ausdrücklicher Einzelimport übernimmt die nachgewiesene2025-Zeile aus Tabelle20 des Personalberichts2026. Originalhash, Publikation, Seite, Spaltenfolge, Einheit und Gesamtsumme werden vor der Übernahme geprüft. Keine freie Transkription oder Modellantwort schreibt in die Faktenbasis; unbekannte/geänderte Originaldateien bleiben ausgeschlossen.
+- Personal-Aggregate und jeder Abruf bleiben als getrennte unveränderliche Schnappschüsse erhalten. Wiederholungen ändern weder Inhalt noch erstes Erfassungsdatum. Fester amtlicher Bezug mit vorhandenem Einzelabrufschutz oder lokal geprüfte Originaldatei; kein Sammelabruf oder neuer Dienst. ADR-014 übernimmt die vorhandene pypdf-Entwicklungsbibliothek auch in die Laufzeit.
+- Öffentliche Nachlese und JSON-Nachweis trennen Datenjahr, Publikationsjahr und VBÄ von Kopfzahlen und freier Personalkapazität. Schema1.22, Regelverzeichnis11, Belegauswertung1. Keine automatische Produktionsbefüllung und keine nachträgliche Kontextänderung laufender Modellaufträge; Personalprognosen und weitere Rechtsfolgen bleiben offen.
+
 ## [0.66.0] — 2026-11-03 · Amtliche Kennung und Modellbehauptung getrennt nachlesen
 
 - Vollständige NOR-Dokumentnummern werden ausschließlich mit genau einer passenden Quelle im tatsächlichen damaligen Modellkontext verglichen. Keine Titelheuristik, URL-Teilkennung oder neuen Quellen; mehrdeutige Stände bleiben unzugeordnet. Formfehlerhafte Antworten und unprüfbare Eingaben erhalten keine positive Zuordnung.

@@ -8,7 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
 
-from faktenbasis.models import Norm, NormText, RisImport
+from faktenbasis.models import Norm, NormText, PersonalAbruf, PersonalAggregat, RisImport
 from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
 
@@ -55,5 +55,32 @@ def textxml(request, pk):
     inhalt = get_object_or_404(NormText.objects.select_related("norm"), pk=pk)
     antwort = HttpResponse(bytes(inhalt.xml), content_type="application/xml; charset=utf-8")
     antwort["Content-Disposition"] = f'attachment; filename="ris-dokument-{inhalt.pk}.xml"'
+    antwort["X-Content-Type-Options"] = "nosniff"
+    return antwort
+
+
+@require_safe
+def personal(request):
+    seiten = Paginator(PersonalAggregat.objects.all(), max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/personal.html", {
+        "seite": seiten.get_page(request.GET.get("seite")), "letzter": PersonalAbruf.objects.first(),
+    })
+
+
+@require_safe
+def personal_detail(request, pk):
+    a = get_object_or_404(PersonalAggregat, pk=pk)
+    abrufe = Paginator(a.abrufe.all(), max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/personal_detail.html", {"aggregat": a, "abrufe": abrufe.get_page(request.GET.get("seite"))})
+
+
+@require_safe
+def personal_nachweis(request, pk):
+    a = get_object_or_404(PersonalAggregat, pk=pk)
+    daten = {k: getattr(a, k) for k in ("id", "datenjahr", "bereich", "einheit", "beamte", "vertragliches_personal",
+        "gesamt", "quelle", "publikation", "seite", "tabelle", "original_sha256", "parser_fassung")}
+    daten["erfasst_am"] = a.erfasst_am.isoformat()
+    antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 2})
+    antwort["Content-Disposition"] = f'attachment; filename="personal-aggregat-{a.pk}.json"'
     antwort["X-Content-Type-Options"] = "nosniff"
     return antwort

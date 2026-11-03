@@ -5,6 +5,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from plattform_core.personalbeleg import ABRUF_REIHUNG, REIHUNG
+
 
 class SchnappschussQuerySet(models.QuerySet):
     def update(self, **kwargs):
@@ -134,6 +136,52 @@ class NormTextAbruf(Schnappschuss):
 
     def __str__(self):
         return f"Dokumenttext-Abruf {self.pk}: Norm {self.norm_id} ({self.beendet_am})"
+
+
+class PersonalAggregat(Schnappschuss):
+    datenjahr = models.PositiveSmallIntegerField()
+    bereich = models.CharField(max_length=200)
+    einheit = models.CharField(max_length=10)
+    beamte = models.PositiveIntegerField()
+    vertragliches_personal = models.PositiveIntegerField()
+    gesamt = models.PositiveIntegerField()
+    quelle = models.TextField()
+    publikation = models.CharField(max_length=200)
+    seite = models.PositiveSmallIntegerField()
+    tabelle = models.PositiveSmallIntegerField()
+    original_sha256 = models.CharField(max_length=64)
+    parser_fassung = models.PositiveSmallIntegerField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = list(REIHUNG)
+        verbose_name = _("Personal-Aggregat")
+        verbose_name_plural = _("Personal-Aggregate")
+        constraints = [models.UniqueConstraint(
+            fields=["original_sha256", "parser_fassung", "datenjahr", "bereich"],
+            name="personal_inhalt_je_parser",
+        )]
+
+    def __str__(self):
+        return f"{self.bereich}: {self.datenjahr} ({self.einheit})"
+
+
+class PersonalAbruf(Schnappschuss):
+    aggregat = models.ForeignKey(PersonalAggregat, on_delete=models.PROTECT, related_name="abrufe", null=True)
+    begonnen_am = models.DateTimeField(default=timezone.now)
+    beendet_am = models.DateTimeField(default=timezone.now)
+    erfolgreich = models.BooleanField()
+    neu = models.BooleanField(default=False)
+    fehlercode = models.CharField(max_length=40, blank=True)
+    weg = models.CharField(max_length=10, choices=[("datei", _("lokale Originaldatei")), ("amtlich", _("amtlicher Einzelabruf"))])
+
+    class Meta:
+        ordering = list(ABRUF_REIHUNG)
+        verbose_name = _("Personalbeleg-Abruf")
+        verbose_name_plural = _("Personalbeleg-Abrufe")
+
+    def __str__(self):
+        return f"Personalbeleg-Abruf {self.pk} ({self.beendet_am})"
 
 
 class AbrufSperre(models.Model):

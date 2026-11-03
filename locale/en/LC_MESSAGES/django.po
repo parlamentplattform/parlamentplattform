@@ -9571,3 +9571,105 @@ msgstr "Only the document identifier matches. This does not confirm the model ti
 
 msgid "Mehrere damalige Quellenstände tragen diese Dokumentnummer. Es wird kein einzelner Stand zugeordnet."
 msgstr "Several original source snapshots have this document identifier. No single snapshot is matched."
+
+
+msgid "Bekannte amtliche Personal-Aggregatzeile lesen"
+msgstr "Read a known official aggregate personnel row"
+
+msgid "Liest die nachgewiesene Zeile des Datenjahres 2025 aus Tabelle 20 des Personalberichts 2026. Einheit VBÄ, keine Kopfzahl oder Kapazitätsprognose."
+msgstr "Reads the evidenced row for data year 2025 from table 20 of the 2026 personnel report. Unit: full-time equivalents, not headcount or a capacity forecast."
+
+msgid "Erste Fassung: eine deterministische Zahlenübernahme vorbereiten, ohne Modellantworten oder freie Transkriptionen in die Faktenbasis zu übernehmen."
+msgstr "First version: prepare deterministic transfer of figures without admitting model responses or free transcriptions into the factual database."
+
+msgid "Bekannte Publikation und Seite, genaue Tabellenüberschrift, Spaltenfolge und Einheitsfußnote. Genau eine Zeile für 2025; drei Ganzzahlen im amtlichen Tausenderformat und passende Gesamtsumme. Andere Stände nicht erraten."
+msgstr "Known publication and page, exact table heading, column order and unit footnote. Exactly one row for 2025; three integers in the official thousands format and a matching total. Do not guess other snapshots."
+
+
+msgid "Amtliche Personal-Aggregate nachlesen"
+msgstr "Read official personnel aggregates"
+
+msgid "Personal-Aggregate"
+msgstr "Personnel aggregates"
+
+msgid "Übernommene amtliche Gesamtwerte mit Datenjahr, Einheit und Herkunft. VBÄ sind Vollbeschäftigtenäquivalente, keine Kopfzahlen. Bestandszahlen sagen nicht, wie viel freie Kapazität für neue Aufgaben besteht."
+msgstr "Imported official totals with data year, unit and provenance. VBÄ denotes full-time equivalents, not headcounts. Staff totals do not show how much spare capacity is available for new tasks."
+
+msgid "Tabelle"
+msgstr "Table"
+
+msgid "Seiten der Personal-Aggregate"
+msgstr "Personnel aggregate pages"
+
+msgid "Noch keine amtlichen Personal-Aggregate übernommen."
+msgstr "No official personnel aggregates have been imported yet."
+
+msgid "Der letzte Personalbeleg konnte nicht übernommen werden. Frühere Angaben bleiben erhalten."
+msgstr "The latest personnel source could not be imported. Earlier records are retained."
+
+msgid "Reihenfolge: jüngstes Datenjahr zuerst, dann Bereich; bei gleichem Bereich jüngster Schnappschuss zuerst."
+msgstr "Order: latest data year first, then area; for the same area, latest snapshot first."
+
+msgid "Datenjahr"
+msgstr "Data year"
+
+msgid "Einheit"
+msgstr "Unit"
+
+msgid "Amtliches Original beim Herausgeber ansehen"
+msgstr "View the official original at the publisher"
+
+msgid "Übernommene amtliche Aggregatwerte"
+msgstr "Imported official aggregate figures"
+
+msgid "Abrufe dieses Belegs nachlesen"
+msgstr "Read retrieval records for this source"
+
+msgid "Gesamt"
+msgstr "Total"
+
+msgid "Seiten der Belegabrufe"
+msgstr "Source retrieval pages"
+
+msgid "Beamtinnen und Beamte"
+msgstr "Civil servants"
+
+msgid "Aggregat mit Herkunft als JSON herunterladen"
+msgstr "Download the aggregate and provenance as JSON"
+
+msgid "VBÄ sind Vollbeschäftigtenäquivalente, keine Anzahl einzelner Personen. Die Werte sind ein Bestand, keine Prognose und keine Aussage über freie Personalkapazität."
+msgstr "VBÄ denotes full-time equivalents, not a count of individual people. These are staff totals, not a forecast or a statement of spare staffing capacity."
+
+msgid "Originaldatei-Prüfsumme (SHA-256)"
+msgstr "Original file checksum (SHA-256)"
+
+msgid "Vertragliches Personal"
+msgstr "Contract staff"
+
+msgid "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Diese Angaben werden noch nicht automatisch in Modellaufträge übernommen."
+msgstr "Import uses the known original source and a fixed table rule. These figures are not yet automatically added to model requests."
+
+msgid "Personalbeleg übernommen; Abruf %(abruf)s, Aggregat %(aggregat)s, neu %(neu)s."
+msgstr "Personnel source imported; retrieval %(abruf)s, aggregate %(aggregat)s, new %(neu)s."
+
+msgid "Der bekannte amtliche Personalbeleg konnte nicht übernommen werden."
+msgstr "The known official personnel source could not be imported."
+
+msgid "Personal-Aggregat"
+msgstr "Personnel aggregate"
+
+msgid "Personalbeleg-Abruf"
+msgstr "Personnel source retrieval"
+
+msgid "Personalbeleg-Abrufe"
+msgstr "Personnel source retrievals"
+
+msgid "lokale Originaldatei"
+msgstr "local original file"
+
+msgid "amtlicher Einzelabruf"
+msgstr "individual official retrieval"
+
+
+msgid "Den einen bekannten amtlichen Personalbeleg ausdrücklich übernehmen; keine Sammelabfrage."
+msgstr "Explicitly import the one known official personnel source; no bulk retrieval."

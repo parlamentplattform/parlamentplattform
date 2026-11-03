@@ -39,3 +39,36 @@ Schutzfehler beschädigt keine äußere Verfahrens- oder Importtransaktion.
 Die gleichen vorhandenen Stände werden weder umgeschrieben noch nachträglich
 neu importiert. Neue/idempotente Einzelimporte bleiben möglich. Dieser
 Anwendungsschutz ersetzt keine Datenbankrechte, Sicherungen oder Signatur.
+
+
+## Personal-Grundstock ab0.67.0
+
+Die getrennte öffentliche Nachlese `/zukunftswerkstatt/faktenbasis/personal/` zeigt nur
+bereits ausdrücklich übernommene Aggregatwerte. Der neue Code befüllt die Produktion nicht
+automatisch. Er ist kein Personalregister über einzelne Menschen und erzeugt keine Prognosen.
+
+    python manage.py personal_import --datei <lokal-erhaltenes-amtliches-Original.pdf>
+    python manage.py personal_import --amtliche-quelle
+
+Beide Wege akzeptieren zunächst ausschließlich den bekannten Personalbericht2026 des
+Bundeskanzleramts, Original-SHA256
+`40e720bb4aee9ae26df87452498c9e1021966d4b9a54288c46ccafa7b06ffd63`.
+Nur die2025-Zeile von Tabelle20 auf gedruckterSeite75/PDF-Index76 wird deterministisch gelesen;
+EinheitVBÄ, keine Kopfzahlen. Publikation, Seite, Tabellenkopf, Spaltenfolge und Einheitsfußnote
+werden geprüft. Ein neues/verändertes Dokument wird nicht geraten oder durch eine Modellantwort
+ersetzt. ADR-014 begründet die Laufzeitnutzung der bereits vorhandenen Bibliothek pypdf.
+
+Der feste Netzbezug teilt Mindestabstand und Stundenkontingent mit RIS-Einzelabrufen; keine
+Weiterleitung und keine freie URL. Socket-/Gesamtzeitgrenze15Sekunden plus höchstens einem
+laufenden Read, höchstens6MiB. Der Hash wird vor dem PDF-Parser geprüft. Die lokale Dateivariante
+führt keinen Netzaufruf aus. Neue Inhalte und Abrufbelege werden atomar mit Audit übernommen,
+unveränderte Wiederholungen behalten ihren ursprünglichen Erfassungszeitpunkt. Fehler ersetzen
+keinen älteren Stand. Gewöhnliche Speicher-, Mengen-, Upsert-, PK-Ersetzungs- und Löschwege
+sind wie bei den anderen Fakten-Schnappschüssen gesperrt.
+
+Der JSON-Nachweis enthält Werte, Einheit, Datenjahr, Herkunft, Originalhash und Parserfassung.
+Das vollständige PDF wird nicht öffentlich gespiegelt; die Quelle bleibt beim Herausgeber.
+Bestandszahlen belegen weder freie Kapazität noch einen erforderlichen Stellenauf- oder -abbau.
+Diese Aggregatwerte werden noch nicht automatisch in Modellaufträge eingespeist. Eine solche
+Integration für neue Aufträge braucht einen eigenen festgehaltenen Kontext; laufende Aufträge
+und frühere Einschätzungen bleiben unverändert.

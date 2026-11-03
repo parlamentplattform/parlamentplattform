@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.21"
+SCHEMA_VERSION = "1.22"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")

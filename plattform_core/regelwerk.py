@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 10
+VERSION = 11
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,13 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="personalbeleg.py", titel=_("Bekannte amtliche Personal-Aggregatzeile lesen"),
+        zweck=_("Liest die nachgewiesene Zeile des Datenjahres 2025 aus Tabelle 20 des Personalberichts 2026. Einheit VBÄ, keine Kopfzahl oder Kapazitätsprognose."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung: eine deterministische Zahlenübernahme vorbereiten, ohne Modellantworten oder freie Transkriptionen in die Faktenbasis zu übernehmen."),
+        nachrechenbar=_("Bekannte Publikation und Seite, genaue Tabellenüberschrift, Spaltenfolge und Einheitsfußnote. Genau eine Zeile für 2025; drei Ganzzahlen im amtlichen Tausenderformat und passende Gesamtsumme. Andere Stände nicht erraten."),
+    ),
     Regel(
         modul="kennungsabgleich.py", titel=_("Modellkennung im damaligen Quellenstand"),
         zweck=_("Vergleicht ausschließlich vollständige amtliche Dokumentnummern mit eindeutig passenden damaligen Quellen. Keine Titel- oder Relevanzsuche."),

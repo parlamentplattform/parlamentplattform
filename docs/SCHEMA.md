@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.21** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.22** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -297,3 +297,15 @@ fehlender Alt-Kontext und unprüfbarer Rahmen sind getrennte Gesamtzustände ohn
 Die Kennungsnachlese ist eine heutige lesende Auswertung nach ihrer genannten Regelversion, kein im
 ursprünglichen Lauf behaupteter Nachweis und keine juristische Bestätigung. Rohantworten, Originalkontexte
 und Antwortschema bleiben unverändert. Interne Zwecke sind weiterhin vom öffentlichen Export ausgeschlossen.
+
+
+### Ergänzung1.22: nachvollziehbare Personal-Aggregate
+
+`/zukunftswerkstatt/faktenbasis/personal/<id>/nachweis.json` liefert ausschließlich das öffentliche
+Aggregat mit `id`, `datenjahr`, `bereich`, `einheit`, `beamte`, `vertragliches_personal`, `gesamt`,
+`quelle`, `publikation`, `seite`, `tabelle`, `original_sha256`, `parser_fassung`, `erfasst_am`.
+EinheitVBÄ bezeichnet Vollbeschäftigtenäquivalente, keine Kopfzahl oder verfügbare Kapazität.
+Der erste bekannte Beleg ist der Personalbericht2026, Tabelle20/Seite75 mit Datenjahr2025.
+Der Hash bezeichnet genau die amtlichen Originalbytes; unbekannte Bytes werden vor dem PDF-Parser
+abgewiesen. Keine lokale Dateiadresse, Individualdaten oder öffentliche Original-PDF-Kopie.
+Bisherige Modelleingaben und Antragsarchiv-Nachweise erhalten keine nachträglich ergänzten Zahlen.

@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.63.1] — 2026-11-03 · Amtliche Fakten-Schnappschüsse gegen Ersetzen schützen
+
+- Ein neues Python-Objekt mit bereits vorhandener ID kann keinen amtlichen Metadaten-, Dokumenttext- oder Abrufstand überschreiben. Neue Datensätze erzwingen INSERT; auch eine gleichzeitige ID-Kollision fällt nicht auf UPDATE zurück.
+- Konflikt-Upserts und Mengenänderungen werden vor der inneren Transaktion abgewiesen. Neue und idempotente Importe sowie neue Stapel von Abrufbelegen bleiben möglich. Keine bestehenden Fakten verändert, keine Datenmigration, keine neue Quelle, kein Modell- oder Netzaufruf. Schema1.18 bleibt unverändert.
+
 ## [0.63.0] — 2026-11-03 · Mitgliedschaft und Verfahrensweg verständlich zeigen
 
 - Willkommens- und Mitgliedschaftsseite nutzen dasselbe Ablaufdiagramm mit zugänglicher Textalternative und tastaturbedienbarem Bildlauf. Die Zahlen stammen aus der aktiven Verfahrensordnung; vorgemerkte Registerwerte werden nicht als beschlossene Fristen ausgegeben. Ohne aktive Ordnung stehen keine erfundenen Dauern im Bild.

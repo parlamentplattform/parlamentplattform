@@ -13,6 +13,20 @@ class SchnappschussQuerySet(models.QuerySet):
     def delete(self):
         raise ValidationError(_("Ein Fakten-Schnappschuss bleibt erhalten."))
 
+    def bulk_update(self, objs, fields, batch_size=None):
+        # Vor Djangos atomic(savepoint=False) ablehnen, damit die äußere
+        # Verfahrens-/Importtransaktion bei abgefangenem Fehler lesbar bleibt.
+        raise ValidationError(_("Ein Fakten-Schnappschuss wird nicht überschrieben."))
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts:
+            raise ValidationError(_("Ein Fakten-Schnappschuss wird nicht überschrieben."))
+        return super().bulk_create(
+            objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts, update_conflicts=update_conflicts,
+            update_fields=update_fields, unique_fields=unique_fields,
+        )
+
 
 class Schnappschuss(models.Model):
     objects = SchnappschussQuerySet.as_manager()
@@ -21,8 +35,11 @@ class Schnappschuss(models.Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        if not self._state.adding:
+        if not self._state.adding or self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
             raise ValidationError(_("Ein Fakten-Schnappschuss wird nicht überschrieben."))
+        # Auch wenn eine parallele Neuanlage die Existenzabfrage überholt:
+        # Djangos normales UPDATE-vor-INSERT darf nie einen alten Stand ersetzen.
+        kwargs["force_insert"] = True
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

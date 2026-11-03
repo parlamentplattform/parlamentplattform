@@ -31,9 +31,9 @@ Formprüfung bestätigt keine Rechtsaussage. Personalbestände belegen keine
 Stellenfolgen: alle numerischen Deltas bleiben unbekannt, auch0istkein Nachweis.
 
 Der eigene Datenexport enthält den eigenen Folgenrahmen. Der genau gebundene
-Korrekturweg ist in FOLGENKORREKTUR.md beschrieben. Die vollständige öffentliche
-Hauptanzeige, Historie, Ergebnisnachricht und der Hauptexport fehlen noch vor
-automatischer Aktivierung.
+Korrekturweg ist in FOLGENKORREKTUR.md beschrieben. Öffentliche Hauptanzeige,
+Historie, Ergebnispost und Hauptexport sind in RECHTSFOLGENANZEIGE.md beschrieben.
+Offener Eingabeparameter, automatische Umstellung und vollständige Freigabe folgen.
 Eine spätere Umstellung ersetzt für neue Aufträge die bisherige automatische
 Rechtsbezug-Rechnung; sie verändert keine alten Kontexte, laufenden Regeln oder
 Budgetwerte. Kein neues Software-Release vor vollständiger Prüfung.

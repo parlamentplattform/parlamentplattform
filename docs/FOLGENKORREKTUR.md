@@ -30,6 +30,7 @@ keine bestätigte rechtliche Deutung. Qualitative Judikatur-/Exekutivtexte bleib
 Modellprosa; unbekannte Personalfolgen werden weder alsNullbedarf noch alsBalken
 mit einer erfundenen Spanne gezeichnet. Modelltexte werden beim Rendern escaped.
 
-Automatische Beauftragung neuer Folgenberichte, deren vollständige Hauptanzeige,
-Historie, Ergebnisnachricht und öffentlicher Hauptexport benötigen den nächsten
-Anschluss. Noch keine neue Software- oder S11-Gesamtabnahme dieses Zusatzstands.
+Hauptanzeige, Historie, Ergebnisnachricht und öffentlicher Hauptexport sind separat
+angeschlossen. Automatische Beauftragung neuer Folgenberichte benötigt den nächsten
+Schritt mit offenem Eingabeparameter. Noch keine neue Software- oder
+S11-Gesamtabnahme dieses Zusatzstands.

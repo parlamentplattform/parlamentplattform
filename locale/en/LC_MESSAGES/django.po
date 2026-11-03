@@ -9490,12 +9490,6 @@ msgstr "A published objection cannot be changed."
 msgid "Für diese Beanstandung fehlt ein eindeutig festgehaltener öffentlicher Rechtsbezug. Es wird nichts nachträglich ergänzt."
 msgstr "This objection lacks an unambiguously recorded public legal-impact assessment. Nothing is added retroactively."
 
-msgid "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug nachrechnen lassen; andere Einschätzungen sind in diesem ersten Korrekturweg nicht enthalten."
-msgstr "Your note is public and retained. The responsible group 1 may request recalculation of a recorded public legal-impact assessment; other assessments are outside this initial correction process."
-
-msgid "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern."
-msgstr "Your objection is publicly recorded and retained. The responsible group 1 may request recalculation of a recorded public legal-impact assessment."
-
 msgid "Keine verlässlich bestätigte Normenliste. Das ist keine Aussage, dass keine Rechtsnorm betroffen ist."
 msgstr "No reliably confirmed list of legal provisions. This does not mean that no legal provision is affected."
 
@@ -9958,3 +9952,12 @@ msgstr "Staffing increases or reductions cannot be determined from the available
 
 msgid "Regelverzeichnis"
 msgstr "Rule register"
+
+msgid "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt."
+msgstr "The stored run is not clearly bound to the public request. Its response is not displayed."
+
+msgid "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen eindeutig festgehaltenen öffentlichen Rechts- oder Folgenbericht nachrechnen lassen."
+msgstr "Your note is public and remains on record. The responsible Group 1 may request recalculation of a clearly recorded public legal or effects report."
+
+msgid "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechts- oder Folgenbericht eine Nachrechnung anfordern."
+msgstr "Your objection is publicly recorded and remains on record. The responsible Group 1 may request recalculation of a recorded public legal or effects report."

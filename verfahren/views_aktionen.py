@@ -832,7 +832,7 @@ def beanstanden(request, pk):
 
         try:
             lauf = KILauf.objects.get(pk=int(request.POST["lauf"]), antrag=antrag,
-                erfolgreich=True, zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG))
+                erfolgreich=True, zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN))
         except (ValueError, KILauf.DoesNotExist):
             messages.error(request, _("Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."))
             return _zurueck_zum_antrag(request, antrag)
@@ -850,7 +850,7 @@ def beanstanden(request, pk):
         request,
         _(
             "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann "
-            "für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern."
+            "für einen festgehaltenen öffentlichen Rechts- oder Folgenbericht eine Nachrechnung anfordern."
         ),
     )
     return _zurueck_zum_antrag(request, antrag)

@@ -1021,7 +1021,7 @@ def _lesbarer_lauf(antrag, zweck=None):
     weder als „Stand“ der Kopfkarte noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
     from ki.models import KILauf, Zweck
 
-    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).filter(zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG))
+    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).filter(zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN))
     if zweck is not None:
         laeufe = laeufe.filter(zweck=zweck)
     return laeufe.order_by("-erstellt_am").first()
@@ -1042,6 +1042,8 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
     anbieter = anbieter_waehlen()
     rechtsbezug = rechtsbezug_lage(antrag, betrachter, seite)
+    if lauf is None and rechtsbezug["ergebnis"] and rechtsbezug["ergebnis"].get("folgenbericht"):
+        lauf = rechtsbezug["ergebnis"]["lauf"]
     return {
         "lauf": lauf,
         "anbieter_da": anbieter is not None,

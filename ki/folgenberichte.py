@@ -33,7 +33,13 @@ def vertrag(lauf):
 def fuer_lauf(lauf):
     from ki.rechtsbezug import AENDERUNGEN, UNSICHERHEITEN
 
-    form = vertrag(lauf)
+    if not lauf.erfolgreich and lauf.zweck == Zweck.RECHTSFOLGEN:
+        from ki.folgenauftraege import grundlage_pruefen
+
+        grundlage_pruefen(lauf)
+        form = None
+    else:
+        form = vertrag(lauf)
     rahmen = lauf.kontext["folgen"]
     d = folgenkontext.pruefen(rahmen)
     ergebnis = {"folgenbericht": True, "formatpruefung": form, "normen": [], "personal": [],
@@ -42,7 +48,7 @@ def fuer_lauf(lauf):
                 "kennungsabgleich": {"regel_fassung": ABGLEICHFASSUNG, "rechtlich_verifiziert": False,
                                      "zustand": "antwortformat", "zuordnungen": []},
                 "text_sha256": d["text"]["sha256"], "folgen_sha256": rahmen["sha256"]}
-    if not form["gueltig"]:
+    if form is None or not form["gueltig"]:
         return ergebnis  # keine gut aussehende Teilantwort aus fehlerhaftem JSON
     daten = form["daten"]
     quellen = d["quellen"]["quellen"]

@@ -255,6 +255,7 @@ def rechtsbezug_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
                 "name": _anrede(mitglied),
                 "titel": antrag.titel,
                 "normen": ergebnis["normen"],
+                "folgen": ergebnis if ergebnis.get("folgenbericht") else None,
                 "formatpruefung": ergebnis["formatpruefung"],
                 "hinweis": ergebnis["hinweis"],
                 "unsicherheit": ergebnis["unsicherheit_wort"],

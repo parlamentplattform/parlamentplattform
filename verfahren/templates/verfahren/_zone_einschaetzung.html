@@ -35,7 +35,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       <label for="id_beanstandung">{% translate "Was ist an der Einschätzung falsch?" %}</label>
       <textarea name="text" id="id_beanstandung" rows="3" maxlength="2000" required
         placeholder="{% translate 'Sachlich, mit Beleg wenn möglich.' %}"></textarea>
-      <p class="hilfe">{% translate "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug nachrechnen lassen; andere Einschätzungen sind in diesem ersten Korrekturweg nicht enthalten." %}</p>
+      <p class="hilfe">{% translate "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen eindeutig festgehaltenen öffentlichen Rechts- oder Folgenbericht nachrechnen lassen." %}</p>
       <button type="submit" class="btn-linie klein">{% translate "Beanstandung veröffentlichen" %}</button>
     </form>
   </details>
@@ -64,7 +64,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
   {% if lage.auftrag and not lage.ergebnis %}<p class="meta">{{ lage.auftrag.get_quellenart_display }} · {% translate "Fassung" %} {{ lage.auftrag.fassung_nummer }}</p>{% endif %}
   {% if lage.zustand == "erledigt" %}
     {% with e=lage.ergebnis %}
-    {% include "verfahren/_ki_formatstand.html" with formatstand=e.formatpruefung %}
+    {% if e.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=e.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=e.formatpruefung %}{% endif %}
     {% if e.normen %}
     <ul class="normen">
       {% for n in e.normen %}
@@ -82,6 +82,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% if e.formatpruefung.gueltig %}<p class="leer">{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}</p>{% else %}<p class="leer">{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}</p>{% endif %}
     {% endif %}
     {% if e.hinweis %}<p class="erk">{% if e.roh %}{% translate "Antwort ohne festes Format — der Wortlaut:" %} {% endif %}{{ e.hinweis }}</p>{% endif %}
+    {% if e.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=e %}{% endif %}
     <dl class="lauf-daten">
       <dt>{% translate "Unsicherheit" %}</dt><dd>{{ e.unsicherheit_wort }}</dd>
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
@@ -95,6 +96,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% if lage.mail_zusage %}<p class="erk">{% translate "Sie bekommen eine E-Mail, sobald das Ergebnis da ist." %}</p>{% endif %}
   {% elif lage.zustand == "gescheitert" %}
     <p class="leer">{% if lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
+  {% elif lage.zustand == "nicht_pruefbar" %}
+    <p class="leer">{% translate "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt." %}</p>
   {% elif lage.zustand == "nicht_angeschlossen" %}
     <p class="leer">{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}</p>
   {% else %}
@@ -112,11 +115,12 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
       {% include "verfahren/_ki_quellenstand.html" with quellenstand=h.quellenstand %}
       {% if h.lauf.erfolgreich %}
-        {% include "verfahren/_ki_formatstand.html" with formatstand=h.formatpruefung %}
+        {% if h.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=h.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=h.formatpruefung %}{% endif %}
         {% if h.normen %}<ul class="normen">{% for n in h.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p class="erk">{{ n.begruendung }}</p>{% endif %}{% include "verfahren/_ki_kennungsabgleich.html" with n=n %}</li>{% endfor %}</ul>
         {% elif h.formatpruefung.gueltig %}<p class="leer">{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}</p>{% else %}<p class="leer">{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}</p>{% endif %}
         <p class="meta">{% translate "Unsicherheit" %}: {{ h.unsicherheit_wort }}</p>
         {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
+        {% if h.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=h %}{% endif %}
       {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
       <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>

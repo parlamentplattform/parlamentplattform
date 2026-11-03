@@ -66,26 +66,39 @@ def ausfuehren(auftrag):
     d = rahmen_pruefen(auftrag)
     prompt = auftrag_laden("rechtsfolgen", nummer=1)
     # Keine heutigen Quellen, keine erneute Textfassung und kein Kontobeifang.
-    return lauf_ausfuehren(
+    lauf = lauf_ausfuehren(
         Zweck.RECHTSFOLGEN, prompt.text, folgenkontext.eingabe(auftrag.folgenkontext),
         auftrag.angefordert_von, antrag=auftrag.antrag, auftrag_version=prompt.version,
         kontext={"text": d["text"], "quellen": d["quellen"], "folgen": auftrag.folgenkontext,
                  "auftrag": auftrag.pk, "versuch": auftrag.versuche},
     )
+    from mitglieder.postausgang import beauftragen
+
+    beauftragen(auftrag.antrag.eingebracht_von, "rechtsbezug", antrag=auftrag.antrag)
+    return lauf
+
+
+def grundlage_pruefen(lauf):
+    """Auch Fehlversuche brauchen einen vollständig belegten öffentlichen Input."""
+    k = lauf.kontext if isinstance(lauf.kontext, dict) else {}
+    d = folgenkontext.pruefen(k.get("folgen"))
+    if (lauf.zweck != Zweck.RECHTSFOLGEN or lauf.auftrag_version != folgenkontext.AUFTRAG
+            or lauf.antrag_id != d["text"]["antrag"]
+            or set(k) != {"text", "quellen", "folgen", "auftrag", "versuch"}
+            or type(k.get("auftrag")) is not int or k["auftrag"] < 1
+            or type(k.get("versuch")) is not int or k["versuch"] < 1
+            or k.get("text") != d["text"] or k.get("quellen") != d["quellen"]
+            or lauf.eingabe != folgenkontext.eingabe(k["folgen"])):
+        raise ValueError("Kein eindeutig festgehaltener öffentlicher Rechtsfolgenlauf.")
+    return d
 
 
 def antwort_pruefen(lauf):
     """Nur bekannte ursprüngliche Eingabe, ohne heutige Daten oder Teilantwort."""
     from plattform_core.rechtsfolgen import pruefen
 
-    k = lauf.kontext if isinstance(lauf.kontext, dict) else {}
-    d = folgenkontext.pruefen(k.get("folgen"))
-    if (lauf.zweck != Zweck.RECHTSFOLGEN or lauf.auftrag_version != folgenkontext.AUFTRAG
-            or lauf.antrag_id != d["text"]["antrag"] or not lauf.erfolgreich
-            or set(k) != {"text", "quellen", "folgen", "auftrag", "versuch"}
-            or type(k.get("auftrag")) is not int or k["auftrag"] < 1
-            or type(k.get("versuch")) is not int or k["versuch"] < 1
-            or k.get("text") != d["text"] or k.get("quellen") != d["quellen"]
-            or lauf.eingabe != folgenkontext.eingabe(k["folgen"])):
-        raise ValueError("Kein eindeutig festgehaltener erfolgreicher Rechtsfolgenlauf.")
+    grundlage_pruefen(lauf)
+    if not lauf.erfolgreich:
+        raise ValueError("Kein erfolgreicher Rechtsfolgenlauf.")
+    k = lauf.kontext
     return pruefen(lauf.antwort, **folgenkontext.antwortangebot(k["folgen"]))

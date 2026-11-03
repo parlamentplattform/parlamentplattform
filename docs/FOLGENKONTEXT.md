@@ -30,5 +30,6 @@ Spätere Nachlese liest keine heutigen Datenbankstände, Registerwerte oder Date
 nach. Hashes sind kein Schutz gegen privilegiertes SQL und keine rechtliche
 Bestätigung. Der eigene Auftrag `rechtsfolgen-v1` besitzt inzwischen einen
 gesonderten Auftragstext, Ausführungsweg und genau gebundenen Korrekturweg.
-Vollständige Hauptanzeige, Historie und Export fehlen noch; deshalb bleibt die
-automatische Beauftragung aus.
+Hauptanzeige, Historie und Export bestehen ebenfalls. Offener Eingabeparameter,
+automatische Umstellung und vollständige Freigabe folgen; bisherige automatische
+Aufträge verwenden weiterhin den früheren Rechtsbezug.

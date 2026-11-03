@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 7
+VERSION = 8
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -907,6 +907,13 @@ REGELN: tuple[Regel, ...] = (
             _("Vorher- und Nachher-Schnappschuss stehen am Test; Differenz = nachher − vorher, "
             "Anteil = Differenz ÷ |vorher| × 100.")
         ),
+    ),
+    Regel(
+        modul="quellenfortschritt.py", titel=_("Spätere lokale Quellenstände im Vergleich"),
+        zweck=_("Zeigt nach der damaligen Erfassung hinzugekommene Metadaten- oder Dokumenttextstände. Keine juristische Aktualitätsprüfung und keine Neuberechnung des Modelllaufs."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung: damalige Modelleingabe und heutige lokale Nachlese unterscheiden, ohne alte Quellen oder Einschätzungen zu ersetzen."),
+        nachrechenbar=_("Gleiche amtliche Kennung, kein älterer historischer Stichtag, spätere Erfassung als der Quellenrahmen. Metadatenstand oder Hash sowie XML-Hash und Parserfassung vergleichen. Neue Nummer allein genügt nicht. Reihung nach Kennung; auch ohne späteren Fund wird rechtliche Aktualität nicht bestätigt."),
     ),
     Regel(
         modul="modellverbrauch.py", titel=_("Gespeicherter Modellverbrauch je Antrag"),

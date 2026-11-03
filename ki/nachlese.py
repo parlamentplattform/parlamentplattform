@@ -60,7 +60,7 @@ def antrag_export(antrag):
     from ki.models import KIAuftrag, KILauf, Zweck
     from ki.verbrauch import fuer_antrag
 
-    return {
+    daten = {
         "verbrauch": fuer_antrag(antrag),
         "auftraege": [{
             "id": a.pk, "quellenart": a.quellenart, "fassung": a.fassung_nummer,
@@ -72,3 +72,32 @@ def antrag_export(antrag):
             antrag=antrag, zweck=Zweck.RECHTSBEZUG,
         ).order_by("erstellt_am", "pk")],
     }
+    daten["quellenabgleich"] = aktueller_quellenabgleich(daten)
+    return daten
+
+
+def aktueller_quellenabgleich(daten):
+    """Gleicher Ausgang wie die aktuelle Karte, ohne historische N+1-Abfragen.
+
+    Der getrennte, heutige Lesebefund verändert weder die damaligen Aufträge
+    noch ihre Modelleingaben. Kein Provider und keine öffentliche Modellantwort
+    werden für diesen reinen Quellenvergleich benötigt.
+    """
+    from faktenbasis.nachlese import abgleichen
+
+    auftrag = daten["auftraege"][-1] if daten["auftraege"] else None
+    lauf = None
+    if auftrag:
+        if auftrag["status"] == "erledigt":
+            lauf = next((eintrag for eintrag in daten["laeufe"] if eintrag["id"] == auftrag["lauf"] and eintrag["erfolgreich"]), None)
+        roh = auftrag["quellenkontext"]
+        text_hash = auftrag["kontext"].get("sha256") if isinstance(auftrag["kontext"], dict) else None
+    else:
+        lauf = next((eintrag for eintrag in reversed(daten["laeufe"]) if eintrag["erfolgreich"]), None)
+        roh, text_hash = None, None
+    if lauf:
+        kontext = lauf["kontext"] if isinstance(lauf["kontext"], dict) else {}
+        roh = kontext.get("quellen")
+        text_hash = kontext.get("text", {}).get("sha256") if isinstance(kontext.get("text"), dict) else None
+    return {"auftrag": auftrag["id"] if auftrag else None, "lauf": lauf["id"] if lauf else None,
+            **abgleichen(roh, text_sha256=text_hash)}

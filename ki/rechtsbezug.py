@@ -171,7 +171,9 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     `mail_zusage` ist wahr, wenn der Betrachter der Antragsteller ist und Verfahrenspost
     zugestimmt hat — nur dann verspricht die Karte eine E-Mail."""
     from django.core.paginator import Paginator
+    from django.utils.dateparse import parse_datetime
 
+    from faktenbasis.nachlese import abgleichen
     from ki.anbieter import anbieter_waehlen
     from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck
     from ki.nachlese import quellenstand
@@ -207,6 +209,15 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
         and betrachter.pk == steller.pk
         and getattr(steller, "post_einwilligung", False)
     )
+    if ergebnis:
+        kontext = ergebnis["lauf"].kontext
+        rahmen = kontext.get("quellen") if isinstance(kontext, dict) else None
+        text_hash = kontext.get("text", {}).get("sha256") if isinstance(kontext, dict) and isinstance(kontext.get("text"), dict) else None
+    else:
+        rahmen = auftrag.quellenkontext if auftrag else None
+        text_hash = auftrag.kontext.get("sha256") if auftrag and isinstance(auftrag.kontext, dict) else None
+    quellenabgleich = abgleichen(rahmen, text_sha256=text_hash)
+    quellenabgleich["ermittelt_am"] = parse_datetime(quellenabgleich["ermittelt_am"])
     return {
         "zustand": zustand,
         "auftrag": auftrag,
@@ -215,6 +226,7 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
         "mail_zusage": mail_zusage and zustand == "wartet",
         "angeschlossen": angeschlossen,
         "historie": historie,
+        "quellenabgleich": quellenabgleich,
         "quellenstand": ergebnis["quellenstand"] if ergebnis else quellenstand(
             auftrag.quellenkontext if auftrag else None,
             text_sha256=auftrag.kontext.get("sha256") if auftrag and isinstance(auftrag.kontext, dict) else None,

@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.64.0] — 2026-11-03 · Spätere lokale Quellen neben der damaligen Einschätzung zeigen
+
+- Der aktuelle Quellenblock zeigt getrennt, ob seit seiner Erfassung weitere lokale Metadaten- oder Dokumenttextstände zu den verwendeten amtlichen Kennungen hinzugekommen sind. Der damalige Rahmen, Originalausschnitt, Hash und Modelllauf bleiben unverändert. Kein Anbieter- oder Netzaufruf und keine automatische Neuberechnung.
+- Ältere historische Stichtage, fremde Kennungen und bloße Wiederholungen werden nicht als Fortschritt ausgegeben. Ein späterer Parserstand ist erkennbar. Fehlende lokale Vergleichsdaten und alte/fehlerhafte Rahmen erhalten eigene Zustände; auch ein unveränderter lokaler Bestand ist keine Zusage zur rechtlichen Aktualität oder Vollständigkeit.
+- Höchstens zwei gebündelte Quellenabfragen für den aktuellen Block, keine Abfrage je Quelle oder historischem Lauf. Öffentlicher Export ergänzt den ausdrücklich heutigen Abgleich außerhalb der unveränderten Originalkontexte. Vergleichsfassung1, Regelverzeichnis8 und Schema1.19; keine Verfahrens-, Satzungs-, Budget- oder Bestandsänderung.
+- Geprüft mit Python3.12: 2516 Tests bestanden, 6 übersprungen, Kernabdeckung97%; Ruff, System- und Migrationscheck grün. 64 gezielte Prüfungen, vier Browserzustände und vier Bilder, vollständiger englischer Katalog. Die reine Vergleichsregel ist vollständig durch Tests abgedeckt.
+
 ## [0.63.1] — 2026-11-03 · Amtliche Fakten-Schnappschüsse gegen Ersetzen schützen
 
 - Ein neues Python-Objekt mit bereits vorhandener ID kann keinen amtlichen Metadaten-, Dokumenttext- oder Abrufstand überschreiben. Neue Datensätze erzwingen INSERT; auch eine gleichzeitige ID-Kollision fällt nicht auf UPDATE zurück.

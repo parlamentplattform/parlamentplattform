@@ -1,0 +1,18 @@
+{% load i18n %}
+<details class="ki-quellenabgleich klappe">
+  <summary>{% translate "Spätere lokale Quellenstände" %}</summary>
+  <p class="meta">{% translate "Heutige Nachlese, getrennt vom festgehaltenen Modellkontext" %} · {% translate "Vergleichsregel, Fassung" %} {{ abgleich.fassung }} · {{ abgleich.ermittelt_am|date:"d.m.Y H:i" }}</p>
+  {% if abgleich.zustand == "verglichen" %}
+    {% if abgleich.spaetere_staende %}<p class="meldung warn">{% translate "Seit der Erfassung dieses Quellenrahmens wurden spätere lokale Stände erfasst. Der damalige Rahmen bleibt unverändert; dieser Vergleich löst keinen Modelllauf aus." %}</p>
+    {% elif abgleich.vollstaendig_vergleichbar %}<p>{% translate "Zu den verwendeten Quellen wurde kein später erfasster lokaler Inhaltsstand gefunden." %}</p>{% endif %}
+    {% if not abgleich.vollstaendig_vergleichbar %}<p class="meldung warn">{% translate "Nicht alle damaligen Quellen haben einen vergleichbaren lokalen Stand." %}</p>{% endif %}
+    <ul>{% for b in abgleich.quellen %}<li><code>{{ b.kennung }}</code> · {% translate "Festgehaltener Metadatenstand" %} #{{ b.verwendet }}
+      {% if b.metadaten_spaeter %} · <a href="{% url 'faktenbasis:norm' b.gegenuebergestellt %}">{% translate "Späterer Metadatenstand" %} #{{ b.gegenuebergestellt }}</a>{% endif %}
+      {% if b.dokument_spaeter %} · <a href="{% url 'faktenbasis:textxml' b.spaeterer_text %}">{% translate "Späterer Dokumenttextstand" %} #{{ b.spaeterer_text }}</a>{% endif %}
+      {% if not b.vergleichbar %} · {% translate "nicht vergleichbar" %}{% endif %}
+    </li>{% endfor %}</ul>
+  {% elif abgleich.zustand == "leer" %}<p>{% translate "Der damalige Quellenrahmen enthält keine Quellen zum Vergleichen. Neue Quellen werden ihm nicht nachträglich zugeschrieben." %}</p>
+  {% elif abgleich.zustand == "alt" %}<p>{% translate "Kein damaliger Quellenrahmen zum Vergleichen festgehalten." %}</p>
+  {% else %}<p class="meldung warn">{% translate "Der heutige Quellenabgleich ist nicht möglich. Der gespeicherte Quellenrahmen bleibt unverändert." %}</p>{% endif %}
+  <p class="hilfe">{% translate "Verglichen wird ausschließlich der lokale Bestand. Dieser Vergleich bestätigt weder einen vollständigen Rechtsbestand noch die Aktualität des geltenden Rechts. Eine Änderung von Metadaten oder Textaufbereitung ist kein juristisches Urteil." %}</p>
+</details>

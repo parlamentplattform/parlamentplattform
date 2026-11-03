@@ -1,12 +1,13 @@
 """Vorhandene amtliche Schnappschüsse auswählen; kein Abruf und kein Schreibrecht."""
 
-from django.db.models import Count, OuterRef, Subquery, Window
+from django.db.models import Count, OuterRef, Q, Subquery, Window
 from django.db.models.functions import Substr
 from django.utils import timezone
 
 from faktenbasis.kontext import festhalten
 from faktenbasis.models import Norm
 from plattform_core.quellenauswahl import METADATENZEICHEN, auswaehlen
+from plattform_core.quellenumfang import BUNDESLAENDER
 
 
 def erfassen(textkontext, *, jetzt=None):
@@ -22,8 +23,7 @@ def erfassen(textkontext, *, jetzt=None):
     grenze = max(1, min(2000, zahl("quellenkontext-bestandsgrenze", 500)))
     verfuegbar = Norm.objects.filter(
         stand__lte=tag, importlauf__erfolgreich=True, importlauf__beendet_am__lte=moment,
-        ebene="Bund", bundesland="",  # QuellenkontextFassung1 wurde ausschließlich für BrKons gebaut.
-    )
+    ).filter(Q(ebene="Bund", bundesland="") | Q(ebene="Land", bundesland__in=list(BUNDESLAENDER.values())))
     neueste = verfuegbar.filter(ris_id=OuterRef("ris_id")).order_by("-stand", "-pk").values("pk")[:1]
     # Anzahl und begrenzte ID-Liste stammen aus derselben SQL-Sicht. Kein alter
     # Titel kann die neuere Fassung derselben amtlichen Kennung verdrängen.

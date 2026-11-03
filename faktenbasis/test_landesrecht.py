@@ -191,8 +191,10 @@ def test_land_wird_nicht_stillschweigend_zum_bundes_modellkontext(antwort, ordnu
     a = antrag_einbringen(mitglied_anlegen("landkontext"), **ANTRAG, ordnung=ordnung)
     k = text_festhalten(a)
     assert erfassen(k)["quellen"] == []
+    neu = festhalten([n.pk], hoechstzahl=3, textzeichen=100, text_sha256=k["sha256"])
+    assert neu["version"] == 2 and neu["quellen"][0]["ebene"] == "Land"
     with pytest.raises(QuellenkontextFehler):
-        festhalten([n.pk], hoechstzahl=3, textzeichen=100, text_sha256=k["sha256"])
+        festhalten([n.pk], hoechstzahl=3, textzeichen=100, text_sha256=k["sha256"], fassung=1)
     with pytest.raises(RisFehler, match="volltextquelle"):
         volltext(n)
 

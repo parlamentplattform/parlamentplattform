@@ -12,17 +12,17 @@ import re
 from datetime import UTC, date, datetime
 from urllib.parse import parse_qs, urlsplit
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Q, Subquery
 from django.db.models.functions import Length, Substr
 from django.utils import timezone
 
 from faktenbasis.models import Norm, NormText
 from faktenbasis.ris import GESETZESNUMMER, KENNUNG, amtliche_url
 from faktenbasis.xmltext import xml_adresse
-from plattform_core.quellenumfang import dokumentart
+from plattform_core.quellenumfang import BUNDESLAENDER, als_dict, dokumentart
 from plattform_core.quellenumfang import pruefen as umfang_pruefen
 
-VERSION = 1
+VERSION = 2
 TECHNISCHE_QUELLENGRENZE = 20
 TECHNISCHE_TEXTGRENZE = 20_000
 _HEX = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
@@ -165,11 +165,28 @@ def pruefen(kontext):
     return copy.deepcopy(daten)
 
 
-def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, text_sha256=None):
+def _herkunft_pruefen(norm):
+    """Neue Herkunftsfelder zusätzlich mit dem erhaltenen amtlichen Original binden."""
+    try:
+        dokumentart(norm.ebene, norm.bundesland, norm.ris_id)
+        meta = norm.rohdaten["Metadaten"]
+        technisch = meta["Technisch"]
+        fach = meta["Bundesrecht" if norm.ebene == "Bund" else "Landesrecht"]
+        applikation = "BrKons" if norm.ebene == "Bund" else "LrKons"
+        if (technisch["ID"] != norm.ris_id or technisch["Applikation"] != applikation
+                or fach[applikation]["Gesetzesnummer"] != norm.gesetzesnummer
+                or norm.ebene == "Land" and fach["Bundesland"] != norm.bundesland):
+            raise ValueError("Herkunftsbindung")
+    except (KeyError, TypeError, AttributeError, ValueError) as fehler:
+        raise QuellenkontextFehler("quellenherkunft") from fehler
+
+
+def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, text_sha256=None, fassung=VERSION):
     """Explizite Quellenliste einfrieren; keine stillen Ersatzquellen oder Kürzung der Liste."""
     moment = jetzt or timezone.now()
     if (
-        not isinstance(moment, datetime) or timezone.is_naive(moment)
+        type(fassung) is not int or fassung not in {1, 2}
+        or not isinstance(moment, datetime) or timezone.is_naive(moment)
         or not _zahl(hoechstzahl, 0, TECHNISCHE_QUELLENGRENZE)
         or not _zahl(textzeichen, 0, TECHNISCHE_TEXTGRENZE)
         or not isinstance(norm_ids, (list, tuple)) or len(norm_ids) > hoechstzahl
@@ -177,10 +194,13 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
     ):
         raise QuellenkontextFehler("quellenauswahl")
     tag = timezone.localdate(moment, timezone.get_default_timezone())
-    normen = list(Norm.objects.filter(
+    bestand = Norm.objects.filter(
         pk__in=norm_ids, stand__lte=tag, importlauf__beendet_am__lte=moment, importlauf__erfolgreich=True,
-        ebene="Bund", bundesland="",
-    ).select_related("importlauf").order_by("ris_id", "stand", "pk"))
+    )
+    herkunft = Q(ebene="Bund", bundesland="")
+    if fassung == 2:
+        herkunft |= Q(ebene="Land", bundesland__in=list(BUNDESLAENDER.values()))
+    normen = list(bestand.filter(herkunft).select_related("importlauf").order_by("ris_id", "stand", "pk"))
     if len(normen) != len(norm_ids):
         raise QuellenkontextFehler("quellefehlt")
     letzte = NormText.objects.filter(norm_id=OuterRef("norm_id"), erfasst_am__lte=moment).order_by(
@@ -195,9 +215,12 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
     for norm in normen:
         if norm.inhalt_hash != _hash(norm.rohdaten):
             raise QuellenkontextFehler("metadaten")
+        if fassung == 2:
+            _herkunft_pruefen(norm)
         d, dokument = texte.get(norm.pk), None
         if d is not None:
-            if d["quelle"] != xml_adresse(norm.rohdaten, norm.ris_id):
+            optionen = {"bundesland": norm.bundesland} if norm.ebene == "Land" else {}
+            if d["quelle"] != xml_adresse(norm.rohdaten, norm.ris_id, **optionen):
                 raise QuellenkontextFehler("dokumentquelle")
             dokument = {
                 "id": d["pk"], "parser_fassung": d["parser_fassung"], "quelle": d["quelle"],
@@ -211,11 +234,15 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
             "quelle": norm.quelle, "metadaten_sha256": norm.inhalt_hash,
             "importiert_am": norm.importlauf.beendet_am.isoformat(), "dokumenttext": dokument,
         })
+        if fassung == 2:
+            quellen[-1].update(ebene=norm.ebene, bundesland=norm.bundesland)
     daten = {
-        "version": VERSION, "erfasst_am": moment.astimezone(UTC).isoformat(), "stichtag": tag.isoformat(),
+        "version": fassung, "erfasst_am": moment.astimezone(UTC).isoformat(), "stichtag": tag.isoformat(),
         "hoechstzahl": hoechstzahl, "textzeichen": textzeichen, "quellen": quellen, "auswahl": auswahl,
         "text_sha256": text_sha256,
     }
+    if fassung == 2:
+        daten["umfang"] = als_dict()
     ergebnis = {**daten, "sha256": _hash(daten)}
     pruefen(ergebnis)
     return ergebnis

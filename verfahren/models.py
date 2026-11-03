@@ -24,6 +24,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, models, transaction
 from django.db.models.fields.json import KeyTransform
 from django.utils import timezone
@@ -1768,24 +1769,43 @@ class Meldung(models.Model):
         return f"Meldung ({self.grund}) zu Beitrag {self.kommentar_id}"
 
 
+class BeanstandungsQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt unverändert."))
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt unverändert."))
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts:
+            raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt unverändert."))
+        return super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts,
+                                   update_fields=update_fields, unique_fields=unique_fields)
+
+    def delete(self):
+        raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt erhalten."))
+
+
 class Beanstandung(models.Model):
     """Beanstandung einer Einschätzung der Zukunftswerkstatt (§ 6 Abs 11 lit b, FB-F2).
 
     Die Modellrechnung schlägt vor, sie entscheidet nie (Grundregel 5) — und sie kann irren.
     Wer einen Fehler sieht, hält ihn hier fest: öffentlich, mit Namen, append-only. Der Eintrag
-    ist zugleich die Anforderung eines Korrekturlaufs; die Antwort der Werkstatt kommt als
-    `erledigt_vermerk` dazu, der Text selbst wird nie geändert (Grundregel 7)."""
+    kann Anlass für eine getrennte Nachrechnung sein. Historische Erledigungsvermerke bleiben
+    erhalten; neue Antworten stehen in eigenen Läufen und ändern die Beanstandung nicht."""
 
-    antrag = models.ForeignKey(Antrag, on_delete=models.CASCADE, related_name="beanstandungen")
+    antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="beanstandungen")
     lauf = models.ForeignKey(
-        "ki.KILauf", null=True, blank=True, on_delete=models.SET_NULL, related_name="beanstandungen",
-        help_text="Der beanstandete Lauf — leer, wenn die Einschätzung inzwischen ersetzt wurde.",
+        "ki.KILauf", null=True, blank=True, on_delete=models.PROTECT, related_name="beanstandungen",
+        help_text="Der beim Veröffentlichen beanstandete Lauf; frühere Vermerke können ohne Laufbezug vorliegen.",
     )
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     text = models.TextField(max_length=2000, help_text="Was ist falsch? Sachlich, mit Beleg wenn möglich.")
     erstellt_am = models.DateTimeField(default=timezone.now)
     erledigt_am = models.DateTimeField(null=True, blank=True)
     erledigt_vermerk = models.TextField(max_length=2000, blank=True)
+    objects = BeanstandungsQuerySet.as_manager()
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -1794,6 +1814,15 @@ class Beanstandung(models.Model):
 
     def __str__(self) -> str:
         return f"Beanstandung von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding or self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt unverändert."))
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Eine veröffentlichte Beanstandung bleibt erhalten."))
 
 
 def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:

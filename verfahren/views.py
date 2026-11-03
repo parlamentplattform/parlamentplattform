@@ -1021,7 +1021,7 @@ def _lesbarer_lauf(antrag, zweck=None):
     weder als „Stand“ der Kopfkarte noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
     from ki.models import KILauf, Zweck
 
-    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).exclude(zweck=Zweck.AEHNLICHKEIT)
+    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).filter(zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG))
     if zweck is not None:
         laeufe = laeufe.filter(zweck=zweck)
     return laeufe.order_by("-erstellt_am").first()
@@ -1033,6 +1033,7 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
     ehrlich, dass noch nichts vorliegt."""
     from ki.anbieter import anbieter_waehlen
+    from ki.korrekturen import hinzufuegen
     from ki.models import Zweck
     from ki.rechtsbezug import rechtsbezug_lage
     from ki.verbrauch import anzeige, fuer_antrag
@@ -1040,12 +1041,14 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     # Kopfkarte und Gremien-Fenster zeigen nur die Einschätzung; der Rechtsbezug hat seine eigene Karte.
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
     anbieter = anbieter_waehlen()
+    rechtsbezug = rechtsbezug_lage(antrag, betrachter, seite)
     return {
         "lauf": lauf,
         "anbieter_da": anbieter is not None,
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
-        "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
-        "rechtsbezug": rechtsbezug_lage(antrag, betrachter, seite),
+        "beanstandungen": hinzufuegen(antrag, list(antrag.beanstandungen.select_related("mitglied", "lauf")), betrachter),
+        "rechtsbezug": rechtsbezug,
+        "beanstandeter_lauf": lauf or (rechtsbezug["ergebnis"]["lauf"] if rechtsbezug["ergebnis"] else None),
         "verbrauch": anzeige(fuer_antrag(antrag)),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [

@@ -17,8 +17,8 @@ def test_zukunftswerkstatt_kennt_ihre_eigene_satzung(client):
     assert "§ 5 Abs 12 und 13" in inhalt and "Satzung 1.3" in inhalt
 
 
-def test_zukunftswerkstatt_verspricht_keinen_gebauten_korrekturlauf(client):
-    """Kein Codepfad beantwortet eine Beanstandung — der Korrekturlauf ist Zielbild, nicht Ist."""
+def test_zukunftswerkstatt_begrenzt_den_gebauten_korrekturlauf_ehrlich(client):
+    """Die erste Nachrechnung betrifft öffentliche Rechtsbezüge, keine internen Werkstatttexte."""
     inhalt = client.get(reverse("verfahren:zukunftswerkstatt")).content.decode()
     assert "die Antwort ist ein Korrekturlauf" not in inhalt
-    assert "noch" in inhalt and "nicht gebaut" in inhalt
+    assert "Nachrechnung" in inhalt and "diesem ersten Korrekturweg noch nicht enthalten" in inhalt

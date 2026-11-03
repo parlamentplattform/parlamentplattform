@@ -33,6 +33,7 @@ urlpatterns = [
     ),
     path("antrag/<int:pk>/export.json", views_aktionen.export_json, name="export"),
     path("antrag/<int:pk>/beanstanden/", views_aktionen.beanstanden, name="beanstanden"),
+    path("antrag/<int:pk>/beanstandung/<int:beanstandung_pk>/nachrechnen/", views_aktionen.korrektur_anfordern, name="korrektur_anfordern"),
     # Der Chat eines Antrags (FB-G1, G2)
     path("antrag/<int:pk>/chat/gelesen/", views_aktionen.chat_gelesen, name="chat_gelesen"),
     path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/bearbeiten/", views_aktionen.beitrag_bearbeiten, name="beitrag_bearbeiten"),

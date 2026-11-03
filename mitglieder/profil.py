@@ -520,6 +520,9 @@ def _gremien_export(m: Mitglied) -> dict:
             {
                 "zweck": a.zweck,
                 "quellenkontext": a.quellenkontext,
+                "beanstandung": a.beanstandung_id,
+                "ursprung": a.ursprung_id,
+                "korrekturkontext": a.korrekturkontext,
                 "antrag": a.antrag_id,
                 "fassung": a.fassung_nummer,
                 "quellenart": a.quellenart,

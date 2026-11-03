@@ -5387,25 +5387,6 @@ msgstr[0] "Show the post"
 msgstr[1] "Show all %(n)s posts"
 
 msgid ""
-"Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n"
-"  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n"
-"  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n"
-"  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n"
-"  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n"
-"  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n"
-"  Antwort darauf wird ein Korrekturlauf mit Vermerk sein, nie ein stilles Ändern — dieser Korrekturlauf ist noch\n"
-"  nicht gebaut."
-msgstr ""
-"The <strong>Coordination Council</strong> oversees the fact base and the parameter register and receives the\n"
-"  reports of the simulation. The <strong>highlighting</strong> of a motion remains solely with the\n"
-"  <strong>Integrity Council</strong> — by a published, reasoned decision, never by an algorithm\n"
-"  (§ 5 para 10). The <strong>expert council</strong> works in two independent groups: for direct tasks the second\n"
-"  checks the proposals of the first for conflicts of interest and may return them with reasons. And\n"
-"  <strong>every member</strong> may publicly object to any assessment; the note stays. The\n"
-"  answer will be a correction run with a note, never a silent change — that correction run is not\n"
-"  built yet."
-
-msgid ""
 "Der Fehler liegt bei uns, nicht bei Ihnen. Nichts von dem, was bereits abgestimmt oder\n"
 "eingebracht wurde, geht dabei verloren."
 msgstr ""
@@ -5556,14 +5537,8 @@ msgstr "Identity level"
 msgid "Ihr Anliegen"
 msgstr "Your concern"
 
-msgid "Ihr Vermerk ist öffentlich und bleibt stehen (§ 6 Abs 11 lit b). Ein Korrekturlauf der Werkstatt ist noch nicht gebaut."
-msgstr "Your note is public and stays (§ 6 para 11 lit b). A correction run by the Workshop is not built yet."
-
 msgid "Ihre Anmeldeadresse soll geändert werden — ParlamentPlattform"
 msgstr "Your login address is about to be changed — ParlamentPlattform"
-
-msgid "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Ein Korrekturlauf der Zukunftswerkstatt ist noch nicht gebaut."
-msgstr "Your objection is publicly recorded and stays. A correction run by the Futures Workshop is not built yet."
 
 msgid ""
 "Ihre bisherige Adresse bleibt Ihre\n"
@@ -9319,12 +9294,6 @@ msgstr "Recorded model usage per motion"
 msgid "Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."
 msgstr "Summarises archived runs, failed attempts and token figures by purpose. No monetary amount is claimed without billing evidence."
 
-msgid "Erste Fassung: Verbrauch je Antrag sichtbar machen, ohne fehlende Anbieterangaben als kostenlose Nutzung auszulegen. Archivdaten werden nicht nachträglich ergänzt."
-msgstr "First version: show usage per motion without treating missing provider figures as free use. Archive records are not backfilled."
-
-msgid "Einmal nach Zweck gruppierte Archivangaben; vier bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
-msgstr "Archive figures grouped once by purpose: four known purposes and Other, ordered by purpose identifier. Overall totals use the same complete groups. No tariff or currency in the archive means the monetary amount is unknown."
-
 msgid "Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Das Monats-Tokenbudget prüft vor weiteren Aufrufen die gespeicherten Verbrauchsangaben. Das ist keine Kostenabrechnung; ungemeldeter Verbrauch kann fehlen. Die KI schlägt vor, sie entscheidet nie."
 msgstr "Every platform AI call goes through a provider-neutral interface and leaves an archived run: purpose, model, token usage and duration, including failed calls. The monthly token budget checks recorded usage before further calls. This is not a bill; unreported usage may be missing. AI makes proposals; it never decides."
 
@@ -9483,3 +9452,100 @@ msgstr "First version: distinguish original model input from today's local revie
 
 msgid "Gleiche amtliche Kennung, kein älterer historischer Stichtag, spätere Erfassung als der Quellenrahmen. Metadatenstand oder Hash sowie XML-Hash und Parserfassung vergleichen. Neue Nummer allein genügt nicht. Reihung nach Kennung; auch ohne späteren Fund wird rechtliche Aktualität nicht bestätigt."
 msgstr "Same official identifier, no earlier historical date, capture after the source frame. Compare metadata date or hash, XML hash and parser version. A new ID alone is insufficient. Ordered by identifier; absence of a later finding does not establish legal currency."
+
+
+msgid "Als zuständige Gruppe 1 können Sie die ursprüngliche öffentliche Eingabe, Antwort und Beanstandung zur Nachrechnung an den vorhandenen Modellanbieter senden. Es gelten die bestehenden Budgets."
+msgstr "As the responsible group 1, you may send the original public input, response and objection to the existing model provider for recalculation. Existing budgets apply."
+
+msgid "Antwort der Nachrechnung lesen"
+msgstr "Read the recalculation response"
+
+msgid "Beanstandeter Lauf"
+msgstr "Challenged run"
+
+msgid "Der Korrekturbezug ist nicht eindeutig prüfbar. Es wird keine fremde Antwort angezeigt."
+msgstr "The correction reference cannot be verified unambiguously. No unrelated response is displayed."
+
+msgid "Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."
+msgstr "The selected run does not belong to this public assessment."
+
+msgid "Die Nachrechnung ist eingereiht. Original und Beanstandung bleiben unverändert; es gelten die vorhandenen Modellbudgets."
+msgstr "The recalculation is queued. The original and objection remain unchanged; existing model budgets apply."
+
+msgid "Die Nachrechnung konnte nicht abgeschlossen werden. Der ursprüngliche Lauf und die Beanstandung bleiben erhalten."
+msgstr "The recalculation could not be completed. The original run and objection are retained."
+
+msgid "Die Nachrechnung wartet oder wird versucht. Vorhandene Tages- und Monatsbudgets gelten weiter."
+msgstr "The recalculation is waiting or being attempted. Existing daily and monthly budgets still apply."
+
+msgid "Eine Nachrechnung kann nur die für diesen Antrag zuständige aktive Gruppe 1 anfordern."
+msgstr "Only the active group 1 responsible for this motion may request a recalculation."
+
+msgid "Eine veröffentlichte Beanstandung bleibt erhalten."
+msgstr "A published objection is retained."
+
+msgid "Eine veröffentlichte Beanstandung bleibt unverändert."
+msgstr "A published objection cannot be changed."
+
+msgid "Eine zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg nicht enthalten."
+msgstr "A responsible group 1 may request recalculation of a recorded public legal-impact assessment. Other assessments and legacy records are outside this initial correction process."
+
+msgid "Für diese Beanstandung fehlt ein eindeutig festgehaltener öffentlicher Rechtsbezug. Es wird nichts nachträglich ergänzt."
+msgstr "This objection lacks an unambiguously recorded public legal-impact assessment. Nothing is added retroactively."
+
+msgid "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug nachrechnen lassen; andere Einschätzungen sind in diesem ersten Korrekturweg nicht enthalten."
+msgstr "Your note is public and retained. The responsible group 1 may request recalculation of a recorded public legal-impact assessment; other assessments are outside this initial correction process."
+
+msgid "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern."
+msgstr "Your objection is publicly recorded and retained. The responsible group 1 may request recalculation of a recorded public legal-impact assessment."
+
+msgid "Keine verlässlich bestätigte Normenliste. Das ist keine Aussage, dass keine Rechtsnorm betroffen ist."
+msgstr "No reliably confirmed list of legal provisions. This does not mean that no legal provision is affected."
+
+msgid "Korrekturkontext nachlesen"
+msgstr "Read the correction context"
+
+msgid "Nachrechnung"
+msgstr "Recalculation"
+
+msgid "Nachrechnung anfordern"
+msgstr "Request recalculation"
+
+msgid "Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs"
+msgstr "Recalculation of a challenged public legal-impact assessment"
+
+msgid "Neue Modellantwort, keine sachliche Erledigung oder juristische Bestätigung der Beanstandung. Original und Vermerk bleiben unverändert."
+msgstr "New model response, not a factual resolution or legal confirmation of the objection. Original and note remain unchanged."
+
+msgid "Unveränderte Modellantwort"
+msgstr "Unmodified model response"
+
+msgid "Ursprüngliche Fassung"
+msgstr "Original version"
+
+msgid "Verwendet werden ausschließlich die ursprüngliche Eingabe, Antwort und diese Beanstandung. Keine neueren Texte oder Quellen werden nachgeladen."
+msgstr "Only the original input, response and this objection are used. No newer texts or sources are loaded."
+
+msgid "Vollständigen Nachweis im Antragsarchiv herunterladen"
+msgstr "Download the complete record from the motion archive"
+
+msgid "Beanstandeten öffentlichen Rechtsbezug nachrechnen lassen"
+msgstr "Request recalculation of a challenged public legal-impact assessment"
+
+msgid "auf der Antragsseite bei der Beanstandung"
+msgstr "with the objection on the motion page"
+
+msgid "Nur als zuständige aktive Gruppe 1 und bei eindeutig festgehaltenem öffentlichem Ursprung. Bestehende Modellbudgets gelten; interne Einschätzungen sind noch nicht enthalten."
+msgstr "Only as the responsible active group 1 and with an unambiguously recorded public origin. Existing model budgets apply; internal assessments are not included yet."
+
+msgid "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
+msgstr "Version 11 with explicit requests by responsible group 1 to recalculate public legal-impact assessments (0.65); original, objection and budgets are retained. "
+
+msgid "Fassung 2 ergänzt den Korrekturzweck. Verbrauch je Antrag bleibt vollständig; fehlende Anbieterangaben werden nicht als kostenlose Nutzung ausgelegt. Archivdaten werden nicht ergänzt."
+msgstr "Version 2 adds the correction purpose. Consumption per motion remains complete; missing provider data is not interpreted as free usage. Archive data is not supplemented."
+
+msgid "Einmal nach Zweck gruppierte Archivangaben; fünf bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
+msgstr "Archive figures grouped once by purpose; five known purposes and Other, ordered by purpose identifier. Total from the same complete groups. No rate or currency in the archive means the cost amount is unknown."
+
+msgid "Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n  zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug mit einer eigenen Nachrechnung\n  beantworten. Original und Beanstandung bleiben stehen; eine neue Modellantwort bestätigt keine sachliche\n  Erledigung. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg noch nicht enthalten."
+msgstr "The <strong>coordination council</strong> oversees the factual database and parameter register and receives simulation reports. Only the <strong>integrity council</strong> may highlight a motion by a published, reasoned decision, never an algorithm (§ 5 para. 10). The <strong>expert council</strong> works in two independent groups: for direct tasks, the second checks the first group's proposals for conflicts of interest and may return them with reasons. Every member may publicly challenge an assessment; the note is retained. The responsible group 1 may respond to a recorded public legal-impact assessment with a separate recalculation. Original and objection are retained; a new model response does not establish a factual resolution. Other assessments and legacy records are outside this initial correction process."

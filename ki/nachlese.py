@@ -73,6 +73,9 @@ def antrag_export(antrag):
         ).order_by("erstellt_am", "pk")],
     }
     daten["quellenabgleich"] = aktueller_quellenabgleich(daten)
+    from ki.korrekturen import export as korrektur_export
+
+    daten["korrekturen"] = korrektur_export(antrag)
     return daten
 
 

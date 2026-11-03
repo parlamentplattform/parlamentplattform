@@ -47,7 +47,7 @@ def _(text: str) -> str:
 #: dem Ende der Vertretung Abstimmungen nach (D-L6g).
 #: Fassung 8 (2.11.2026): Herkunft und erhaltene Stände der amtlichen Metadatensammlung nachlesen.
 #: Fassung 10 (2.11.2026): Verwaltung übernimmt gezielt einzelne amtliche Quellen.
-VERSION = 10
+VERSION = 11
 
 
 class Stand(enum.StrEnum):
@@ -521,6 +521,12 @@ EXPERTENRAT1 = Rolle(
             stand=Stand.TEILWEISE,
             ort=_("im Entwurfsfenster eines Antrags"),
             einschraenkung=_("Die Beiträge stehen nur im Arbeitsbereich der Gruppe; § 6 Abs 9 verlangt veröffentlichte Sitzungsprotokolle."),
+        ),
+        Faehigkeit(
+            titel=_("Beanstandeten öffentlichen Rechtsbezug nachrechnen lassen"),
+            stand=Stand.TEILWEISE,
+            ort=_("auf der Antragsseite bei der Beanstandung"),
+            einschraenkung=_("Nur als zuständige aktive Gruppe 1 und bei eindeutig festgehaltenem öffentlichem Ursprung. Bestehende Modellbudgets gelten; interne Einschätzungen sind noch nicht enthalten."),
         ),
         Faehigkeit(
             titel=_("KI-Einschätzung zum eigenen Entwurf anfordern"),

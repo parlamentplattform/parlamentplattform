@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 8
+VERSION = 9
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -602,10 +602,11 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=10,
-        seit="2026-11-02",
+        fassung=11,
+        seit="2026-11-03",
         grund=(
-            _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
+            _("Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. ")
+            + _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
             + _("Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
@@ -918,9 +919,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="modellverbrauch.py", titel=_("Gespeicherter Modellverbrauch je Antrag"),
         zweck=_("Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."),
-        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
-        grund=_("Erste Fassung: Verbrauch je Antrag sichtbar machen, ohne fehlende Anbieterangaben als kostenlose Nutzung auszulegen. Archivdaten werden nicht nachträglich ergänzt."),
-        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; vier bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-03",
+        grund=_("Fassung 2 ergänzt den Korrekturzweck. Verbrauch je Antrag bleibt vollständig; fehlende Anbieterangaben werden nicht als kostenlose Nutzung ausgelegt. Archivdaten werden nicht ergänzt."),
+        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; fünf bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
     ),
     Regel(
         modul="quellenauswahl.py",

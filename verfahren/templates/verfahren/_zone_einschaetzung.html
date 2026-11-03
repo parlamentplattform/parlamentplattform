@@ -31,10 +31,11 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <summary class="btn-still klein">{% translate "Beanstanden" %}</summary>
     <form method="post" action="{% url 'verfahren:beanstanden' antrag.pk %}">
       {% csrf_token %}<input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+      {% if einschaetzung.beanstandeter_lauf %}<input type="hidden" name="lauf" value="{{ einschaetzung.beanstandeter_lauf.pk }}">{% endif %}
       <label for="id_beanstandung">{% translate "Was ist an der Einschätzung falsch?" %}</label>
       <textarea name="text" id="id_beanstandung" rows="3" maxlength="2000" required
         placeholder="{% translate 'Sachlich, mit Beleg wenn möglich.' %}"></textarea>
-      <p class="hilfe">{% translate "Ihr Vermerk ist öffentlich und bleibt stehen (§ 6 Abs 11 lit b). Ein Korrekturlauf der Werkstatt ist noch nicht gebaut." %}</p>
+      <p class="hilfe">{% translate "Ihr Vermerk ist öffentlich und bleibt stehen. Die zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug nachrechnen lassen; andere Einschätzungen sind in diesem ersten Korrekturweg nicht enthalten." %}</p>
       <button type="submit" class="btn-linie klein">{% translate "Beanstandung veröffentlichen" %}</button>
     </form>
   </details>
@@ -49,6 +50,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <div class="kopf">{{ b.mitglied.anzeigename }} · {{ b.erstellt_am|date:"d.m.Y, H:i" }}{% if b.erledigt_am %} · <span class="badge badge-ok">{% translate "nachgerechnet" %}</span>{% endif %}</div>
     <div>{{ b.text|linebreaksbr }}</div>
     {% if b.erledigt_vermerk %}<div class="erk">{% translate "Antwort der Werkstatt:" %} {{ b.erledigt_vermerk|linebreaksbr }}</div>{% endif %}
+    {% include "verfahren/_ki_korrektur.html" with b=b %}
   </div>
   {% endfor %}
 </div>

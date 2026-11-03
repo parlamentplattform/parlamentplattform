@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.19** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.20** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +11,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit1.20 ergänzt rechtsbezug.korrekturen getrennte Nachweise öffentlicher Korrekturaufträge: Ursprung, Beanstandung, festgehaltener Korrekturrahmen, Status und zugehörige Versuche einschließlich Fehlversuchen. Die bisherigen Lauf-/Auftragslisten bleiben beim ursprünglichen Rechtsbezug. Kein Korrekturlauf bestätigt die rechtliche Relevanz oder verändert ein Verfahren. Siehe docs/KORREKTURLAUF.md.
 
 Seit 1.19 ergänzt rechtsbezug.quellenabgleich den ausdrücklich heutigen lokalen Vergleich zum aktuell angezeigten Quellenrahmen (Formatfassung1, Ermittlungszeit, Ausgangs-Prüfsumme, Auftrags-/Laufbezug und Befunde je Kennung). Er steht getrennt von den unveränderten damaligen Kontexten. Kein späterer lokaler Fund ist keine juristische Aktualitäts- oder Vollständigkeitszusage. Siehe docs/QUELLENNACHLESE.md.
 

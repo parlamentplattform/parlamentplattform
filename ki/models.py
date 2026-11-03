@@ -92,6 +92,7 @@ class AuftragQuerySet(LaufQuerySet):
         "antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id",
         "quellenkontext",
         "angefordert_von", "angefordert_von_id", "erstellt_am",
+        "beanstandung", "beanstandung_id", "ursprung", "ursprung_id", "korrekturkontext",
     })
 
 
@@ -100,6 +101,7 @@ class Zweck(models.TextChoices):
     PARAMETERVORSCHLAG = "parametervorschlag", _("Vorschlag der Zukunftswerkstatt zu einem Parametertest")
     AEHNLICHKEIT = "aehnlichkeit", _("Textvektoren für den Bedeutungsvergleich beim Einbringen")
     RECHTSBEZUG = "rechtsbezug", _("Betroffene Gesetze — Vorschlag der Zukunftswerkstatt")
+    KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs")
 
 
 class KILauf(models.Model):
@@ -173,7 +175,7 @@ class Auftragsstatus(models.TextChoices):
 class KIAuftrag(models.Model):
     """Ein Auftrag in der Warteschlange der Zukunftswerkstatt (FB-H1, FB-H6).
 
-    Je Antrag, Zweck und Fassung genau einer (Einreihen ist idempotent). Der Auftrag trägt nur
+    Je Antrag, Zweck und Fassung genau einer; Korrekturen je Beanstandung einer (idempotent). Der Auftrag trägt nur
     den Zustand — reserviert wird atomar per UPDATE wie beim Postauftrag, damit zwei Worker nie
     denselben Auftrag zugleich rechnen; scheitert ein Lauf, rückt der nächste Versuch nach hinten
     (2, 4, 8 … Minuten), nach `HOECHSTVERSUCHE` gilt der Auftrag als gescheitert. Das Ergebnis
@@ -190,6 +192,13 @@ class KIAuftrag(models.Model):
     )
     kontext = models.JSONField(default=dict, blank=True)
     quellenkontext = models.JSONField(_("Amtlicher Quellenkontext"), default=dict, blank=True)
+    beanstandung = models.OneToOneField(
+        "verfahren.Beanstandung", null=True, blank=True, on_delete=models.PROTECT, related_name="korrekturauftrag",
+    )
+    ursprung = models.ForeignKey(
+        KILauf, null=True, blank=True, on_delete=models.PROTECT, related_name="korrekturauftraege",
+    )
+    korrekturkontext = models.JSONField(default=dict, blank=True)
     angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     status = models.CharField(max_length=12, choices=Auftragsstatus.choices, default=Auftragsstatus.GEPLANT)
     lauf = models.ForeignKey(KILauf, null=True, blank=True, on_delete=models.SET_NULL, related_name="auftraege")
@@ -210,6 +219,12 @@ class KIAuftrag(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["zweck", "antrag", "quellenart", "fassung_nummer"], name="kiauftrag_einmal_je_quelle",
+                condition=models.Q(beanstandung__isnull=True),
+            ),
+            models.CheckConstraint(
+                condition=(models.Q(zweck="korrektur", beanstandung__isnull=False, ursprung__isnull=False)
+                           | (~models.Q(zweck="korrektur") & models.Q(beanstandung__isnull=True, ursprung__isnull=True, korrekturkontext={}))),
+                name="kiauftrag_korrekturbezug",
             ),
             models.CheckConstraint(
                 condition=(models.Q(quellenart="antrag", vorschlagsfassung__isnull=True)
@@ -226,6 +241,7 @@ class KIAuftrag(models.Model):
             raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
         _textstand_schuetzen(
             self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
+                   "beanstandung_id", "ursprung_id", "korrekturkontext",
                    "angefordert_von_id", "erstellt_am"),
             kwargs.get("update_fields"),
         )

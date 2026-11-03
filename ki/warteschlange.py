@@ -34,7 +34,7 @@ SPERRE_MINUTEN = 15
 HOECHSTVERSUCHE = 6
 TAGESLAEUFE_STANDARD = 20
 #: Zwecke, die die Warteschlange kennt — jeder mit seiner Arbeit.
-ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT)
+ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT, Zweck.KORREKTUR)
 
 
 def tageskontingent() -> int:
@@ -53,14 +53,14 @@ def heute_gestartet(jetzt=None) -> int:
     heute = timezone.localdate(jetzt or timezone.now())
     return (
         KILauf.objects.filter(erstellt_am__date=heute)
-        .filter(Q(zweck=Zweck.RECHTSBEZUG) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
+        .filter(Q(zweck__in=(Zweck.RECHTSBEZUG, Zweck.KORREKTUR)) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
         .count()
     )
 
 
 def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuftrag:
     """Idempotent je Antrag, Zweck und Fassung: Wer zweimal einreiht, bekommt denselben Auftrag."""
-    if zweck not in ZWECKE:
+    if zweck not in ZWECKE or zweck == Zweck.KORREKTUR:
         raise ValueError(f"Unbekannter Zweck für die Warteschlange: {zweck}")
     from verfahren.models import Antragsart
 
@@ -203,7 +203,14 @@ def _laufkontext(auftrag):
     return kontext
 
 
-ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit}
+def _arbeit_korrektur(auftrag):
+    from ki.korrekturen import ausfuehren
+
+    return ausfuehren(auftrag)
+
+
+ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit,
+          Zweck.KORREKTUR: _arbeit_korrektur}
 
 
 def _reservieren(pk: int, jetzt) -> str | None:
@@ -231,7 +238,7 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
     token = _reservieren(pk, jetzt)
     if token is None:
         return "uebersprungen"
-    auftrag = KIAuftrag.objects.select_related("antrag", "angefordert_von").get(pk=pk)
+    auftrag = KIAuftrag.objects.select_related("antrag", "angefordert_von", "ursprung", "beanstandung").get(pk=pk)
     stand: dict = {"sperrcode": "", "gesperrt_bis": None}
     ausgang = "erledigt"
     try:

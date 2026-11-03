@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.65.0] — 2026-11-03 · Beanstandeten öffentlichen Rechtsbezug getrennt nachrechnen
+
+- Die zuständige aktive Gruppe1 kann zu einer öffentlichen Beanstandung ausdrücklich eine Nachrechnung anfordern. Ursprungseingabe, Antwort, Text-/Quellenstand und Beanstandung werden vorher mit Prüfsummen festgehalten; kein neuerer Antragstext oder Quellenimport ersetzt sie. Interne Texte und unklare Altstände bleiben ausgeschlossen.
+- Eigener versionierter Korrekturauftrag in derselben Warteschlange und im selben Tages-/Monatsbudget. Wiederholtes Anfordern bleibt idempotent; Original und Beanstandung bleiben unverändert, ohne automatische sachliche Erledigung. Antwort, Formprüfung und Korrekturkontext stehen getrennt auf der Antragsseite; Archivexport enthält auch frühere Fehlversuche. Beanstandungen sind gegen gewöhnliches Ersetzen und Löschen geschützt.
+- Schema1.20 ergänzt öffentliche Korrektur-Nachweise außerhalb der alten Lauf-/Auftragslisten. Verbrauchsfassung2 erfasst den fünften Zweck plus Sonstige; Eurokosten bleiben unbekannt. Keine Satzungs-, Wahl-, Verfahrens- oder Budgetänderung, kein neuer Dienst oder Anbieter. Weitere Werkstattkorrekturen und die S11-Gesamtabnahme bleiben offen.
+
 ## [0.64.0] — 2026-11-03 · Spätere lokale Quellen neben der damaligen Einschätzung zeigen
 
 - Der aktuelle Quellenblock zeigt getrennt, ob seit seiner Erfassung weitere lokale Metadaten- oder Dokumenttextstände zu den verwendeten amtlichen Kennungen hinzugekommen sind. Der damalige Rahmen, Originalausschnitt, Hash und Modelllauf bleiben unverändert. Kein Anbieter- oder Netzaufruf und keine automatische Neuberechnung.

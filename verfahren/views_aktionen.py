@@ -779,8 +779,8 @@ def filter_anwenden(request):
 def beanstanden(request, pk):
     """FB-F2 (§ 6 Abs 11 lit b): eine Einschätzung der Zukunftswerkstatt beanstanden.
     Der Vermerk ist öffentlich und bleibt stehen. Er ist als Anforderung eines Korrekturlaufs
-    gedacht — den Korrekturlauf selbst gibt es noch nicht (S11), darum verspricht ihn kein
-    Text. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest.
+    gedacht. Für festgehaltene öffentliche Rechtsbezüge kann die zuständige Gruppe 1 eine
+    getrennte Nachrechnung anfordern. Andere Einschätzungen sind noch nicht erfasst.
     Wie jede Mitwirkung mit Namen im Arbeitsbereich: nur bestätigte, aktive Mitglieder (§ 4,
     F-51) — sonst könnte ein ungeprüftes Konto unbegrenzt öffentliche Texte absetzen."""
     from ki.models import Zweck
@@ -798,23 +798,61 @@ def beanstanden(request, pk):
     # Das Formular steht in der Kopfkarte: Ziel ist die Einschätzung, die sie zeigt; ohne eine
     # solche der jüngste lesbare Lauf (Rechtsbezug) — nie der Textvektor-Lauf, den liest kein Mensch.
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG) or _lesbarer_lauf(antrag)
-    beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "einschaetzung_beanstandet",
-            "antrag": antrag.pk,
-            "beanstandung": beanstandung.pk,
-            "lauf": lauf.pk if lauf else None,
-        }
-    )
+    # Neue Formulare binden genau den gelesenen Lauf. Eine inzwischen neue
+    # Einschätzung darf das Ziel eines bereits geöffneten Formulars nicht ändern.
+    if request.POST.get("lauf"):
+        from ki.models import KILauf
+
+        try:
+            lauf = KILauf.objects.get(pk=int(request.POST["lauf"]), antrag=antrag,
+                erfolgreich=True, zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG))
+        except (ValueError, KILauf.DoesNotExist):
+            messages.error(request, _("Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."))
+            return _zurueck_zum_antrag(request, antrag)
+    with transaction.atomic():
+        beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "einschaetzung_beanstandet",
+                "antrag": antrag.pk,
+                "beanstandung": beanstandung.pk,
+                "lauf": lauf.pk if lauf else None,
+            }
+        )
     messages.success(
         request,
         _(
-            "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Ein Korrekturlauf der "
-            "Zukunftswerkstatt ist noch nicht gebaut."
+            "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann "
+            "für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern."
         ),
     )
     return _zurueck_zum_antrag(request, antrag)
+
+
+@login_required
+@require_POST
+def korrektur_anfordern(request, pk, beanstandung_pk):
+    from django.core.exceptions import ValidationError
+    from django.http import HttpResponseForbidden
+
+    from ki.korrekturen import anfordern
+    from verfahren.models import Beanstandung
+
+    antrag = get_object_or_404(Antrag, pk=pk)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
+    b = get_object_or_404(Beanstandung, pk=beanstandung_pk, antrag=antrag)
+    try:
+        anfordern(b, request.user)
+    except PermissionError:
+        return HttpResponseForbidden(_("Eine Nachrechnung kann nur die für diesen Antrag zuständige aktive Gruppe 1 anfordern."))
+    except ValidationError as fehler:
+        messages.error(request, fehler.messages[0])
+    else:
+        messages.success(request, _("Die Nachrechnung ist eingereiht. Original und Beanstandung bleiben unverändert; es gelten die vorhandenen Modellbudgets."))
+    # Der Anker öffnet am Handy auch mit JavaScript die richtige Zone.
+    return redirect(reverse("verfahren:antrag", args=[antrag.pk]) + f"#beanstandung-{b.pk}")
 
 
 def _zurueck_zum_antrag(request, antrag):

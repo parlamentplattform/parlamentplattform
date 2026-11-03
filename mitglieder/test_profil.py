@@ -330,6 +330,10 @@ def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung
         begruendung="B",
     )
     bert = _raete_und_register(anna, admin, antrag, kategorie)
+    from mitglieder.auth_flows import EinmalToken
+
+    anmelde_token = EinmalToken.ausstellen(anna, EinmalToken.Zweck.LOGIN)
+    token_hashes = list(anna.tokens.values_list("token_hash", flat=True))
     client.force_login(anna)
     antwort = client.get(EXPORT)
     assert antwort.status_code == 200
@@ -361,10 +365,12 @@ def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung
     assert daten["parametertests"][0]["parameter"] == "gremien-review-tage"
     ki = daten["ki_laeufe"][0]
     assert ki["zweck"] == "einschaetzung" and "eingabe" not in ki and "antwort" not in ki
-    # Nichts Fremdes: weder Berts Adresse noch sein Name, weder Hashes noch Token
+    # Keine fremden Daten oder Anmeldeschlüssel. Verbrauchstokens sind reine Zählwerte.
     roh = antwort.content.decode()
     assert bert.email not in roh and "Bert" not in roh and "Brandstätter" not in roh
-    assert "einspruch_hash" not in roh and "token" not in roh.lower() and "wechsel@example.org" not in roh
+    assert "einspruch_hash" not in roh and "token_hash" not in roh and "wechsel@example.org" not in roh
+    assert anmelde_token not in roh and all(gehasht not in roh for gehasht in token_hashes)
+    assert ki["tokens_ein"] == 0 and ki["tokens_aus"] == 0
     assert "Geheime Eingabe" not in roh and "Geheime Antwort" not in roh
 
 

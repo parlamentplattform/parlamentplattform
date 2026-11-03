@@ -9914,3 +9914,17 @@ msgstr "Version 3 includes private text comparison as a separate purpose. Runs n
 
 msgid "Einmal nach Zweck gruppierte Archivangaben; sechs bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
 msgstr "Archived data grouped once by purpose: six known purposes and other, ordered by purpose ID. Totals use the same complete groups. No rate or currency in the archive means the cost amount is unknown."
+
+# Vorbereiteter Rechtsfolgenvertrag
+
+msgid "Vorbereiteter Antwortvertrag für Rechtsfolgen"
+msgstr "Prepared response contract for legal effects"
+
+msgid "Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen. Noch kein angeschlossener Modellweg; eine passende Form bestätigt keine rechtliche Aussage."
+msgstr "Checks qualitative effects sections and offered source references. No model path is connected yet; a valid format does not confirm any legal statement."
+
+msgid "Vorbereitung des getrennten Rechtsfolgenauftrags. Personalbestände sind keine Bedarfsgrundlage; alle numerischen Personalfolgen bleiben in dieser Fassung ausdrücklich unbekannt."
+msgstr "Preparation for the separate legal effects request. Staffing levels are not a basis for demand estimates; all numerical staffing effects remain explicitly unknown in this version."
+
+msgid "Begrenzte Norm-, Text-, Personal- und Quellenlisten, nur angebotene Referenzen in ihrer Reihenfolge. Numerische Personalfolgen einschließlich Nullbedarf bestehen diese erste Formprüfung nicht. Keine juristische Verifikation oder Teilfreigabe fehlerhafter Antworten."
+msgstr "Bounded law, text, staffing and source lists, using only offered references in their original order. Numerical staffing effects, including zero demand, fail this initial format check. No legal verification or partial acceptance of invalid responses."

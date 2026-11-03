@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 15
+VERSION = 16
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,13 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="rechtsfolgen.py", titel=_("Vorbereiteter Antwortvertrag für Rechtsfolgen"),
+        zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen. Noch kein angeschlossener Modellweg; eine passende Form bestätigt keine rechtliche Aussage."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Vorbereitung des getrennten Rechtsfolgenauftrags. Personalbestände sind keine Bedarfsgrundlage; alle numerischen Personalfolgen bleiben in dieser Fassung ausdrücklich unbekannt."),
+        nachrechenbar=_("Begrenzte Norm-, Text-, Personal- und Quellenlisten, nur angebotene Referenzen in ihrer Reihenfolge. Numerische Personalfolgen einschließlich Nullbedarf bestehen diese erste Formprüfung nicht. Keine juristische Verifikation oder Teilfreigabe fehlerhafter Antworten."),
+    ),
     Regel(
         modul="gegenueberstellung.py", titel=_("Antwortvertrag für freiwillige Textgegenüberstellungen"),
         zweck=_("Prüft Gemeinsamkeit und Unterschied je vorgegebenem Antrags- und Fassungspaar. Die Form bestätigt keine inhaltliche Aussage und entscheidet nicht über das Einbringen."),

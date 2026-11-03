@@ -49,6 +49,8 @@ class Schnappschuss(models.Model):
 
 
 class RisImport(Schnappschuss):
+    ebene = models.CharField(max_length=4, default="Bund", choices=[("Bund", _("Bund")), ("Land", _("Land"))])
+    bundesland = models.CharField(max_length=30, blank=True, default="")
     gesetzesnummer = models.CharField(max_length=8)
     stand = models.DateField()
     begonnen_am = models.DateTimeField(default=timezone.now)
@@ -72,6 +74,8 @@ class RisImport(Schnappschuss):
 
 
 class Norm(Schnappschuss):
+    ebene = models.CharField(max_length=4, default="Bund", choices=[("Bund", _("Bund")), ("Land", _("Land"))])
+    bundesland = models.CharField(max_length=30, blank=True, default="")
     ris_id = models.CharField(max_length=11, db_index=True)
     gesetzesnummer = models.CharField(max_length=8, db_index=True)
     kurztitel = models.TextField()

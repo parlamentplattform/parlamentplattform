@@ -40,6 +40,8 @@ def importieren(norm):
     # Ausschließlich den erhaltenen Datenbankstand lesen, keine veränderten
     # Attribute eines übergebenen Python-Objekts als amtliche Quelle verwenden.
     norm = Norm.objects.get(pk=norm.pk)
+    if norm.ebene != "Bund" or norm.bundesland:
+        raise RisFehler("landestext_offen")
     with einzelabruf():
         return _uebernehmen(norm)
 

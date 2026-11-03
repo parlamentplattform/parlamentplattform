@@ -11,24 +11,38 @@ from faktenbasis.ris import GESETZESNUMMER, RisFehler, abrufen
 from verfahren.models import AuditEintrag
 
 
-def importieren(gesetzesnummer, stand):
+def importieren(gesetzesnummer, stand, *, bundesland=""):
     if not isinstance(gesetzesnummer, str) or not GESETZESNUMMER.fullmatch(gesetzesnummer):
         raise RisFehler("gesetzesnummer")
     if type(stand) is not date:
         raise RisFehler("stichtag")
+    if bundesland != "":
+        from faktenbasis.landesrecht import argumente_pruefen
+
+        argumente_pruefen(gesetzesnummer, stand, bundesland)
     with einzelabruf():
-        return _uebernehmen(gesetzesnummer, stand)
+        return _uebernehmen(gesetzesnummer, stand, bundesland=bundesland)
 
 
-def _uebernehmen(gesetzesnummer, stand):
+def _uebernehmen(gesetzesnummer, stand, *, bundesland=""):
     beginn = timezone.now()
+    herkunft = {"ebene": "Bund", "bundesland": ""}
+    if bundesland:
+        from faktenbasis.landesrecht import BUNDESLAENDER
+
+        herkunft = {"ebene": "Land", "bundesland": BUNDESLAENDER[bundesland]}
     try:
-        antwort = abrufen(gesetzesnummer, stand)
+        if bundesland:
+            from faktenbasis.landesrecht import abrufen as land_abrufen
+
+            antwort = land_abrufen(gesetzesnummer, stand, bundesland)
+        else:
+            antwort = abrufen(gesetzesnummer, stand)
     except RisFehler as fehler:
         with transaction.atomic():
             lauf = RisImport.objects.create(
                 gesetzesnummer=gesetzesnummer, stand=stand, begonnen_am=beginn,
-                beendet_am=timezone.now(), erfolgreich=False, fehlercode=fehler.code,
+                beendet_am=timezone.now(), erfolgreich=False, fehlercode=fehler.code, **herkunft,
             )
             AuditEintrag.anhaengen({"typ": "ris_import", "import": lauf.pk, "erfolgreich": False})
         raise
@@ -44,13 +58,14 @@ def _uebernehmen(gesetzesnummer, stand):
             gesetzesnummer=gesetzesnummer, stand=stand, begonnen_am=beginn,
             beendet_am=timezone.now(), erfolgreich=True, treffer=antwort.treffer,
             gelesen=len(antwort.normen), neu=len(neue), api_url=antwort.api_url,
-            antwort_hash=antwort.antwort_hash, antwort=antwort.rohdaten,
+            antwort_hash=antwort.antwort_hash, antwort=antwort.rohdaten, **herkunft,
         )
         for norm in neue:
             Norm.objects.create(
                 ris_id=norm.ris_id, gesetzesnummer=norm.gesetzesnummer, kurztitel=norm.kurztitel,
                 titel=norm.titel, typ=norm.typ, abschnitt=norm.abschnitt, stand=stand,
                 quelle=norm.quelle, rohdaten=norm.rohdaten, inhalt_hash=norm.inhalt_hash, importlauf=lauf,
+                ebene=norm.ebene, bundesland=norm.bundesland,
             )
         AuditEintrag.anhaengen({
             "typ": "ris_import", "import": lauf.pk, "erfolgreich": True, "neu": len(neue),

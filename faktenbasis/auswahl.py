@@ -22,6 +22,7 @@ def erfassen(textkontext, *, jetzt=None):
     grenze = max(1, min(2000, zahl("quellenkontext-bestandsgrenze", 500)))
     verfuegbar = Norm.objects.filter(
         stand__lte=tag, importlauf__erfolgreich=True, importlauf__beendet_am__lte=moment,
+        ebene="Bund", bundesland="",  # QuellenkontextFassung1 wurde ausschließlich für BrKons gebaut.
     )
     neueste = verfuegbar.filter(ris_id=OuterRef("ris_id")).order_by("-stand", "-pk").values("pk")[:1]
     # Anzahl und begrenzte ID-Liste stammen aus derselben SQL-Sicht. Kein alter

@@ -72,3 +72,30 @@ Bestandszahlen belegen weder freie Kapazität noch einen erforderlichen Stellena
 Diese Aggregatwerte werden noch nicht automatisch in Modellaufträge eingespeist. Eine solche
 Integration für neue Aufträge braucht einen eigenen festgehaltenen Kontext; laufende Aufträge
 und frühere Einschätzungen bleiben unverändert.
+
+## Landesrechts-Metadaten gezielt übernehmen
+
+    python manage.py landesrecht_import --bundesland Oberoesterreich --gesetzesnummer 10000288 --stand 2026-11-03
+
+Das Beispiel benennt eine amtliche Quelle, keine politische Forderung. Der Befehl unterstützt die
+neun in der RIS-OGD-Dokumentation genannten Landesauswahlen (siehe `--help`), aber stets nur genau
+ein gewähltes Land, eine achtstellige Gesetzesnummer und einen genauen Stichtag. Es ist ein
+ausdrücklicher Einzelbezug der ersten Seite mit höchstens zehn Dokumenten; eine höhere Trefferzahl
+ist kein Nachweis, dass die ganze Rechtsvorschrift importiert wurde. Kein Sammel- oder Nachtabruf.
+
+ApplikationLrKons, zurückgeliefertes Bundesland, Gesetzesnummer, Landes-Dokumentkennung und
+amtliche Dokumentadresse werden vor jeder Übernahme geprüft. Dieselben Netzgrenzen und derselbe
+gemeinsame Abrufschutz wie beim Bundesrecht gelten. Erfolg, Fehler und unveränderte Wiederholungen
+bleiben als unveränderliche Importnachweise erhalten. Neue Metadatenstände werden angehängt.
+
+Norm und Import tragen zusätzlich `ebene` und `bundesland`. Vorhandene BrKons-Daten sind durch
+die bisherige Importprüfung eindeutigBund; die additive Migration ergänzt nur diese Herkunft,
+ohne Originalantwort, Inhaltshash, Stichtag oder ersten Import zu ersetzen. Öffentliche Seiten
+nennen das jeweilige Bundesland und den tatsächlichen Importumfang. Die Herkunft ist keine
+juristische Relevanzprüfung und keine Feststellung örtlichen Wahlrechts.
+
+Landes-Dokumenttextabrufe sind noch nicht freigegeben. Der bestehende Bundes-XML-Parser wird dafür
+nicht stillschweigend verwendet; der Server verweigert diesen Abruf vor einem Netzaufruf. Auch
+die bestehende automatische Quellenauswahl und explizite KontexterfassungFassung1 bleiben aufBund
+begrenzt. Landesquellen werden weder alsBund ausgegeben noch bestehenden Modellaufträgen ergänzt.
+Eine spätere Landeskontextfassung braucht einen eigenen nachgewiesenen Eingabevertrag.

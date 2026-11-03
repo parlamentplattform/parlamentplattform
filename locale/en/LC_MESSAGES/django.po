@@ -9673,3 +9673,27 @@ msgstr "individual official retrieval"
 
 msgid "Den einen bekannten amtlichen Personalbeleg ausdrücklich übernehmen; keine Sammelabfrage."
 msgstr "Explicitly import the one known official personnel source; no bulk retrieval."
+
+msgid "Eine Seite Landesrechts-Metadaten zu genau einem Bundesland übernehmen; höchstens zehn Dokumente."
+msgstr "Import one page of state-law metadata for exactly one federal state; at most ten documents."
+
+msgid "Bitte einen Stichtag im Format JJJJ-MM-TT angeben."
+msgstr "Please provide a reference date in YYYY-MM-DD format."
+
+msgid "Landesrechts-Import fehlgeschlagen (%(code)s); keine neuen Metadaten übernommen."
+msgstr "State-law import failed (%(code)s); no new metadata imported."
+
+msgid "Landesrechts-Import %(import)s: %(gelesen)s von %(treffer)s Dokumenten gelesen, %(neu)s neu."
+msgstr "State-law import %(import)s: %(gelesen)s of %(treffer)s documents read, %(neu)s new."
+
+msgid "Landesrecht"
+msgstr "State law"
+
+msgid "Bundesrecht"
+msgstr "Federal law"
+
+msgid "Landes-Dokumenttexte und ihre Verwendung im Modellkontext sind noch offen. Hier stehen ausschließlich die gespeicherten Metadaten."
+msgstr "State-law document texts and their use in model context are not available yet. This page contains only the stored metadata."
+
+msgid "Dieser Einzelimport hat %(gelesen)s von %(treffer)s gefundenen Dokumenten übernommen; eine vollständige Rechtsvorschrift ist damit nicht nachgewiesen."
+msgstr "This individual import retrieved %(gelesen)s of %(treffer)s matching documents; it does not establish a complete legal provision."

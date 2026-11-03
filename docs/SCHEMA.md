@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.22** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.23** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -309,3 +309,18 @@ Der erste bekannte Beleg ist der Personalbericht2026, Tabelle20/Seite75 mit Date
 Der Hash bezeichnet genau die amtlichen Originalbytes; unbekannte Bytes werden vor dem PDF-Parser
 abgewiesen. Keine lokale Dateiadresse, Individualdaten oder öffentliche Original-PDF-Kopie.
 Bisherige Modelleingaben und Antragsarchiv-Nachweise erhalten keine nachträglich ergänzten Zahlen.
+
+### Ergänzung1.23: Metadaten aus genau einem Bundesland
+
+Der gespeicherte RIS-Originalexport kann neben `Metadaten.Bundesrecht` jetzt auch eine ausdrücklich
+abgerufene Antwort mit `Technisch.Applikation: LrKons` und `Metadaten.Landesrecht` enthalten.
+`Landesrecht.Bundesland` nennt das tatsächlich angeforderte und in jedem Dokument geprüfte Bundesland.
+`LrKons.Gesetzesnummer` und die vollständige Landes-Dokumentkennung müssen zur Anfrage bzw. amtlichen
+Dokumentadresse passen. `Hits` bleibt die unveränderte amtliche Trefferangabe; gelesen wird allein die
+erste Seite mit höchstens zehn Dokumenten. Der Originalexport wird nicht in Bundesrecht umgeschrieben.
+
+Die öffentliche Nachlese trennt Bund und Bundesland. Die zusätzlichen Herkunftsfelder der lokalen
+Schnappschüsse verändern keine Originalantwort oder frühere Prüfsumme. Alte Modelleingaben und der
+QuellenkontextFassung1 bleiben ausschließlich auf Bundesrecht begrenzt; Landes-Dokumenttexte und
+ihre Einbindung in Modelle sind noch nicht Bestandteil dieses Schritts. Keine neue Datenquelle in
+laufenden Aufträgen und keine Behauptung einer vollständigen oder juristisch geprüften Rechtslage.

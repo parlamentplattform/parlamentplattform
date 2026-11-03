@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.68.0] — 2026-11-03 · Landesrechts-Metadaten mit eindeutiger Herkunft nachlesen
+
+- Ein ausdrücklicher CLI-Einzelbezug ergänzt RIS-Landesrechts-Metadaten zu genau einem Bundesland, einer Gesetzesnummer und einem Stichtag. Herkunft, Applikation, Dokumentkennung und amtliche Adresse werden geprüft; erste Seite mit höchstens zehn Dokumenten, kein Sammelabruf. Vorhandener Abrufschutz und begrenzte Übertragung bleiben erhalten.
+- Unveränderliche Norm- und Importstände nennen zusätzlich Bund bzw. das jeweilige Bundesland. Die additive Migration ergänzt bei bisherigen BrKons-Daten nur die eindeutige Bundesherkunft; Originalantworten, Hashes und historische Zeitpunkte bleiben unverändert. Öffentliche Nachlese nennt das tatsächliche Verhältnis gelesener Dokumente zu amtlichen Treffern; Schema1.23.
+- Bestehender ModellquellenkontextFassung1 bleibt ausdrücklich aufBund begrenzt. Landes-Dokumenttexte und ihre spätere Modelleingabe bleiben offen; keine automatische Produktionsbefüllung oder nachträgliche Ergänzung alter Aufträge. Keine Änderung örtlicher Wahlberechtigung, Satzung, Verfahren oder Budgets und kein neuer Dienst.
+
 ## [0.67.0] — 2026-11-03 · Einen bekannten amtlichen Personalbeleg nachvollziehbar übernehmen
 
 - Ein ausdrücklicher Einzelimport übernimmt die nachgewiesene2025-Zeile aus Tabelle20 des Personalberichts2026. Originalhash, Publikation, Seite, Spaltenfolge, Einheit und Gesamtsumme werden vor der Übernahme geprüft. Keine freie Transkription oder Modellantwort schreibt in die Faktenbasis; unbekannte/geänderte Originaldateien bleiben ausgeschlossen.

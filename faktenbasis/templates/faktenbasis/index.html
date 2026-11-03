@@ -20,6 +20,7 @@
 {% for n in seite %}
 <article class="karte">
   <h3><a href="{% url 'faktenbasis:norm' n.pk %}">{{ n.kurztitel }}</a></h3>
+  <p class="meta">{% if n.ebene == 'Land' %}{% translate "Landesrecht" %} · {{ n.bundesland }}{% else %}{% translate "Bundesrecht" %}{% endif %}</p>
   <p>{{ n.abschnitt }} · {{ n.ris_id }} · {% translate "Stichtag" %}: {{ n.stand|date:"d.m.Y" }}</p>
   <p class="meta">{% if n.hat_text %}{% translate "Amtlicher Dokumenttext vorhanden" %}{% else %}{% translate "Metadaten, kein vollständiger Gesetzestext" %}{% endif %}</p>
 </article>

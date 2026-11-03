@@ -164,6 +164,7 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
     tag = timezone.localdate(moment, timezone.get_default_timezone())
     normen = list(Norm.objects.filter(
         pk__in=norm_ids, stand__lte=tag, importlauf__beendet_am__lte=moment, importlauf__erfolgreich=True,
+        ebene="Bund", bundesland="",
     ).select_related("importlauf").order_by("ris_id", "stand", "pk"))
     if len(normen) != len(norm_ids):
         raise QuellenkontextFehler("quellefehlt")

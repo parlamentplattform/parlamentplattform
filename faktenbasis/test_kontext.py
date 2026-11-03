@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from faktenbasis import importieren as meta
 from faktenbasis import volltext
-from faktenbasis.kontext import QuellenkontextFehler, festhalten, pruefen
+from faktenbasis.kontext import QuellenkontextFehler, eingabe, festhalten, pruefen
 from faktenbasis.models import Norm, NormText
 from faktenbasis.ris import antwort_parsen
 from faktenbasis.test_ris import NUMMER, STAND, beispiel
@@ -137,3 +137,12 @@ def test_quellenstichtag_folgt_instanzkalender_statt_aktiver_betrachterzeitzone(
     with timezone.override("America/Los_Angeles"):
         stand = festhalten([], hoechstzahl=3, textzeichen=50, jetzt=datetime(2026, 11, 2, 23, 30, tzinfo=UTC))
     assert stand["stichtag"] == "2026-11-03" and stand["erfasst_am"].startswith("2026-11-02T23:30:")
+
+
+def test_jsonb_schluesselreihenfolge_aendert_die_tatsaechliche_anbietereingabe_nicht(norm):  # noqa: F811
+    original = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
+    # PostgreSQL JSONB kann Objektschlüssel anders ausgeben als die Erfassung;
+    # ein Wiederholungsaufruf muss trotzdem dieselbe Zeichenfolge übergeben.
+    anders_geordnet = json.loads(json.dumps(original, sort_keys=True, ensure_ascii=False))
+    assert original == anders_geordnet
+    assert eingabe(original) == eingabe(anders_geordnet)

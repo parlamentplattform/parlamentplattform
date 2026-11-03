@@ -8,7 +8,15 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
 
-from faktenbasis.models import Norm, NormText, PersonalAbruf, PersonalAggregat, RisImport
+from faktenbasis.models import (
+    Norm,
+    NormText,
+    PersonalAbruf,
+    PersonalAggregat,
+    PersonalRessortAbruf,
+    PersonalRessorttabelle,
+    RisImport,
+)
 from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
 
@@ -82,5 +90,35 @@ def personal_nachweis(request, pk):
     daten["erfasst_am"] = a.erfasst_am.isoformat()
     antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 2})
     antwort["Content-Disposition"] = f'attachment; filename="personal-aggregat-{a.pk}.json"'
+    antwort["X-Content-Type-Options"] = "nosniff"
+    return antwort
+
+
+@require_safe
+def personal_ressorts(request):
+    seiten = Paginator(PersonalRessorttabelle.objects.all(), max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/ressorts.html", {
+        "seite": seiten.get_page(request.GET.get("seite")), "letzter": PersonalRessortAbruf.objects.first(),
+    })
+
+
+@require_safe
+def personal_ressorts_detail(request, pk):
+    t = get_object_or_404(PersonalRessorttabelle, pk=pk)
+    abrufe = Paginator(t.abrufe.all(), max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/ressorttabelle.html", {
+        "tabelle": t, "abrufe": abrufe.get_page(request.GET.get("seite")),
+    })
+
+
+@require_safe
+def personal_ressorts_nachweis(request, pk):
+    t = get_object_or_404(PersonalRessorttabelle, pk=pk)
+    daten = {k: getattr(t, k) for k in ("id", "datenjahr", "einheit", "ressorts", "gesamt", "quelle",
+        "publikation", "seite", "methodik_seite", "tabelle", "original_sha256", "parser_fassung")}
+    daten["stichtag"] = t.stichtag.isoformat()
+    daten["erfasst_am"] = t.erfasst_am.isoformat()
+    antwort = JsonResponse(daten, json_dumps_params={"ensure_ascii": False, "indent": 2})
+    antwort["Content-Disposition"] = f'attachment; filename="personal-ressorts-{t.pk}.json"'
     antwort["X-Content-Type-Options"] = "nosniff"
     return antwort

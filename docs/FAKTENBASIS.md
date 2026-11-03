@@ -111,3 +111,12 @@ Aufträge Quellenrahmen2 mit ausdrücklicher Bundes-/Landesherkunft, offenem Umf
 räumliche Zuständigkeitsprüfung und eigenem Promptvertrag. Landesquellen werden weder
 alsBund ausgegeben noch bestehenden Aufträgen ergänzt. Details: `LANDESKONTEXT.md`.
 Die Textauswertung begründet keine rechtliche Geltungs-/Betroffenheitsprüfung oder vollständigen Graphen.
+
+## Getrennte Personal-Ressorttabelle seit0.71
+
+Tabelle7 des bekannten Personalberichts2026 mit Stichtag31.12.2025 kann ausdrücklich
+als eigener Tabellenstand übernommen werden. Die grundsätzliche EinheitVBÄ wird mit
+der Methodik geprüft. Vierzehn Ressort-/Organezeilen und Gesamtzeile, ursprüngliche
+Rundung und leere Teilspalten bleiben erhalten. Kein erfundener Beamten-/Vertrags-Split
+oder verfügbare Kapazität. Nachlese, JSON, Einzelimport und Grenzen: `PERSONALRESSORTS.md`.
+Die bisherigen Personal-Aggregate und Modellquellen werden dadurch nicht geändert.

@@ -3,6 +3,7 @@
 {% block inhalt %}
 <a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
 <h1>{% translate "Personal-Aggregate" %}</h1>
+<p><a href="{% url 'faktenbasis:personal_ressorts' %}">{% translate "Amtliche Personalstände nach Ressort nachlesen" %}</a></p>
 <p>{% translate "Übernommene amtliche Gesamtwerte mit Datenjahr, Einheit und Herkunft. VBÄ sind Vollbeschäftigtenäquivalente, keine Kopfzahlen. Bestandszahlen sagen nicht, wie viel freie Kapazität für neue Aufgaben besteht." %}</p>
 <p class="meta">{% translate "Reihenfolge: jüngstes Datenjahr zuerst, dann Bereich; bei gleichem Bereich jüngster Schnappschuss zuerst." %}</p>
 {% if letzter and not letzter.erfolgreich %}<p class="meldung warn">{% translate "Der letzte Personalbeleg konnte nicht übernommen werden. Frühere Angaben bleiben erhalten." %} · {{ letzter.beendet_am|date:"d.m.Y H:i" }} · {{ letzter.fehlercode }}</p>{% endif %}

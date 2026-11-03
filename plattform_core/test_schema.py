@@ -37,7 +37,7 @@ def test_alle_kennungen_haben_das_format_und_sind_eindeutig():
     assert "support.window_days" in gemeinsam and "vote.window_days" in gemeinsam
     assert not (set(kennzahlen) & (set(register) | set(ordnung))), "Kennzahlen messen, sie stellen nicht"
 
-    assert SCHEMA_VERSION == "1.25"
+    assert SCHEMA_VERSION == "1.26"
     assert schema_key("live-takt-sekunden") == "live.refresh_seconds"
     assert schema_key("live-hoechstdauer-stunden") == "live.max_session_hours"
     assert schema_key("audit-vollpruefung-tage") == "audit.full_check_days"

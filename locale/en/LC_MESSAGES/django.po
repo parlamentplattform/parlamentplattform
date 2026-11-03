@@ -9720,3 +9720,103 @@ msgstr "Version 2 adds explicitly identified state sources. Matching identifiers
 
 msgid "Gleiche vollständige Dokumentnummer, gleiche Ebene Bund oder Land und bestehendes Recht; genau ein damaliger Quellenstand. Neue Quellen nennen ihre Herkunft ausdrücklich, alte Bundesrahmen bleiben erkennbar. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."
 msgstr "The same complete document number, the same federal or state level and existing law; exactly one original source snapshot. New sources name their origin explicitly; old federal frames remain identifiable. Missing, different or ambiguous identifiers receive no match. Order follows the model response."
+
+# Personal-Ressorttabelle (0.71)
+
+msgid "Amtliche Personal-Ressorttabelle"
+msgstr "Official staff table by ministry"
+
+msgid "Amtliche Personal-Ressorttabellen"
+msgstr "Official staff tables by ministry"
+
+msgid "Ressorttabellen-Abruf"
+msgstr "Ministry staff table retrieval"
+
+msgid "Ressorttabellen-Abrufe"
+msgstr "Ministry staff table retrievals"
+
+msgid "Die bekannte amtliche Personal-Ressorttabelle ausdrücklich übernehmen, keine Kapazitätsprognose."
+msgstr "Explicitly import the known official staff table by ministry, without forecasting capacity."
+
+msgid "Die bekannte amtliche Personal-Ressorttabelle konnte nicht übernommen werden."
+msgstr "The known official staff table by ministry could not be imported."
+
+msgid "Ressorttabelle übernommen; Abruf %(abruf)s, Tabellenstand %(inhalt)s, neu %(neu)s."
+msgstr "Ministry staff table imported; retrieval %(abruf)s, table snapshot %(inhalt)s, new %(neu)s."
+
+msgid "Amtliche Personalstände nach Ressort nachlesen"
+msgstr "Read official staff figures by ministry"
+
+msgid "Personalstände nach Ressort"
+msgstr "Staff figures by ministry"
+
+msgid "Amtliche Bestandszahlen in Vollbeschäftigtenäquivalenten (VBÄ). Keine Kopfzahlen, freien Kapazitäten oder Personalprognosen. Die Ressortabgrenzung gilt für den jeweiligen Quellenstand."
+msgstr "Official figures in full-time equivalents (FTE). Not headcounts, available capacity or staffing forecasts. Ministry boundaries apply to the stated source date."
+
+msgid "Jüngster Stichtag zuerst, bei gleichem Stichtag jüngste Übernahme zuerst. Die einzelnen Tabellen behalten die amtliche Zeilenfolge."
+msgstr "Latest reference date first; for the same date, latest import first. Each table retains the official row order."
+
+msgid "Die letzte Ressorttabelle konnte nicht übernommen werden. Frühere Angaben bleiben erhalten."
+msgstr "The last ministry staff table could not be imported. Earlier figures remain available."
+
+msgid "Ressort- und Organezeilen"
+msgstr "ministry and body rows"
+
+msgid "Noch keine amtliche Personal-Ressorttabelle übernommen."
+msgstr "No official ministry staff table has been imported yet."
+
+msgid "Seiten der Ressorttabellen"
+msgstr "Ministry staff table pages"
+
+msgid "Amtliche Zeilenfolge. Leere Originalfelder sind nicht angegeben, nicht null. Gerundete Teilwerte können von der Gesamtzahl abweichen; sie werden nicht rechnerisch ausgeglichen."
+msgstr "Official row order. Blank original fields are not specified, rather than zero. Rounded subtotals can differ from the total; figures are not adjusted to reconcile them."
+
+msgid "Amtliche Ressort- und Teilbestände"
+msgstr "Official ministry figures and subtotals"
+
+msgid "Ressort"
+msgstr "Ministry/body"
+
+msgid "Zentralstelle"
+msgstr "Central office"
+
+msgid "Nachgeordnete Dienststellen"
+msgstr "Subordinate offices"
+
+msgid "Nachgeordnet"
+msgstr "Subordinate"
+
+msgid "Methodikseite"
+msgstr "Methodology page"
+
+msgid "Ressorttabelle mit Herkunft als JSON herunterladen"
+msgstr "Download the ministry staff table with provenance as JSON"
+
+msgid "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Sie wird nicht automatisch in Modellaufträge oder deren frühere Eingaben übernommen."
+msgstr "This table does not break down civil servants and contractual staff by ministry. It is not automatically added to model requests or their earlier inputs."
+
+msgid "Amtliche Personalstände nach Ressort"
+msgstr "Official staff figures by ministry"
+
+msgid "Liest Tabelle 7 des bekannten Personalberichts 2026 mit Stichtag 31.12.2025 und der zugehörigen Methodik. VBÄ sind keine Kopfzahlen oder freien Kapazitäten."
+msgstr "Reads table 7 of the known 2026 staff report, dated 31 December 2025, together with its methodology. FTE are not headcounts or available capacity."
+
+msgid "Erste Fassung für belegte Ressortbestände. Leere Teilspalten und amtliche Rundungsabweichungen bleiben erhalten; keine Personalschätzung oder Modellantwort wird übernommen."
+msgstr "First version for documented ministry staff figures. Blank subtotals and official rounding differences are preserved; no staffing estimate or model response is imported."
+
+msgid "Bekanntes Original und zwei genaue Seiten, Tabellenkopf, Spaltenfolge, vierzehn Ressort- und Organezeilen sowie Gesamtzeile. Die Methodik belegt Stichtag, Einheit und Rundung. Amtliche Reihenfolge, keine Ergänzung leerer Zahlen oder rechnerischer Ausgleich."
+msgstr "Known original and two exact pages, table heading, column order, fourteen ministry and body rows and the total row. Methodology establishes the date, unit and rounding. Official order, with no filled-in blanks or numerical reconciliation."
+
+# Personal-Ressorttabelle (0.71)
+
+msgid "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben dokumentiert."
+msgstr "Latest retrieval first; unchanged repeat retrievals also remain on record."
+
+msgid "Seiten der Abrufe"
+msgstr "Retrieval pages"
+
+msgid "neu übernommen"
+msgstr "newly imported"
+
+msgid "unverändert"
+msgstr "unchanged"

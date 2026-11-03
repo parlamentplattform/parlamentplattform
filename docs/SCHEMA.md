@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.25** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.26** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -368,3 +368,19 @@ bleiben unverändert; lediglich die getrennte heutige Nachlese benennt ihre neue
 Keine neuen Parameter, Anbieterjobs, Budgets oder Datenbankmigrationen. Keine automatische
 Netznachladung oder Zuordnung aus dem freien Antrag-Gebiet; örtliche Wahlberechtigung bleibt
 ein gesonderter offener Baustein. Details und Abnahmegrenzen: `docs/LANDESKONTEXT.md`.
+
+### Ergänzung1.26: eigener Ressorttabellen-Nachweis
+
+`/zukunftswerkstatt/faktenbasis/personal/ressorts/<id>/nachweis.json` liefert die
+bekannte Ressorttabelle getrennt vom unveränderten bisherigen Personal-Aggregatformat.
+Felder: `id`, `datenjahr`, `stichtag`, `einheit`, `ressorts[]`, `gesamt`, `quelle`,
+`publikation`, `seite`, `methodik_seite`, `tabelle`, `original_sha256`, `parser_fassung`,
+`erfasst_am`. Eine Ressortzeile nennt `ressort`, `gesamt`, `zentralstelle`, `nachgeordnet`.
+Das gesonderte Gesamtobjekt enthält nur die drei Zahlenspalten und zählt nicht als Ressort.
+Nicht angegebene Teilfelder sindnull, niemals als0 ergänzt. Die Zahlen bleiben wie im
+Original gerundet; ihre Summen werden nicht berichtigt. Stichtag31.12.2025, EinheitVBÄ.
+Kein Beamten-/Vertrags-Split, Personalbedarf, Kopfzahl oder verfügbare Kapazität.
+
+Originalquelle, Tabellen-/Methodikseite und Parserfassung bleiben unabhängig nachlesbar.
+Keine Änderung vorhandener Exporte oder eingefrorener Antrags-/Modellkontexte, keine
+neuen Parameter oder Modellaufrufe. Details: `docs/PERSONALRESSORTS.md`.

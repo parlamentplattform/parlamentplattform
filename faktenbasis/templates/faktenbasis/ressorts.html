@@ -1,0 +1,19 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Personalstände nach Ressort" %}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:personal' %}">‹ {% translate "Personal-Aggregate" %}</a>
+<h1>{% translate "Personalstände nach Ressort" %}</h1>
+<p>{% translate "Amtliche Bestandszahlen in Vollbeschäftigtenäquivalenten (VBÄ). Keine Kopfzahlen, freien Kapazitäten oder Personalprognosen. Die Ressortabgrenzung gilt für den jeweiligen Quellenstand." %}</p>
+<p class="meta">{% translate "Jüngster Stichtag zuerst, bei gleichem Stichtag jüngste Übernahme zuerst. Die einzelnen Tabellen behalten die amtliche Zeilenfolge." %}</p>
+{% if letzter and not letzter.erfolgreich %}<p class="meldung warn">{% translate "Die letzte Ressorttabelle konnte nicht übernommen werden. Frühere Angaben bleiben erhalten." %} · {{ letzter.beendet_am|date:"d.m.Y H:i" }} · {{ letzter.fehlercode }}</p>{% endif %}
+{% for t in seite %}<article class="karte">
+  <h2><a href="{% url 'faktenbasis:personal_ressorts_detail' t.pk %}">{% translate "Stichtag" %} {{ t.stichtag|date:"d.m.Y" }}</a></h2>
+  <p>{{ t.ressorts|length }} {% translate "Ressort- und Organezeilen" %} · {% translate "Gesamt" %}: {{ t.gesamt.gesamt }} {{ t.einheit }}</p>
+  <p class="meta">{{ t.publikation }} · {% translate "Tabelle" %} {{ t.tabelle }} · {% translate "Seite" %} {{ t.seite }}</p>
+</article>{% empty %}<div class="karte"><p>{% translate "Noch keine amtliche Personal-Ressorttabelle übernommen." %}</p></div>{% endfor %}
+{% if seite.has_other_pages %}<nav aria-label="{% translate 'Seiten der Ressorttabellen' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">‹ {% translate "Zurück" %}</a>{% endif %}
+  <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "Weiter" %} ›</a>{% endif %}
+</nav>{% endif %}
+{% endblock %}

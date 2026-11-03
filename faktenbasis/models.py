@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from plattform_core.personalbeleg import ABRUF_REIHUNG, REIHUNG
+from plattform_core.personalressorts import REIHUNG as RESSORT_REIHUNG
 
 
 class SchnappschussQuerySet(models.QuerySet):
@@ -186,6 +187,53 @@ class PersonalAbruf(Schnappschuss):
 
     def __str__(self):
         return f"Personalbeleg-Abruf {self.pk} ({self.beendet_am})"
+
+
+class PersonalRessorttabelle(Schnappschuss):
+    """Originalspalten einer bekannten Tabelle, keine Beamten-/Vertrags-Aufteilung."""
+
+    datenjahr = models.PositiveSmallIntegerField()
+    stichtag = models.DateField()
+    einheit = models.CharField(max_length=10)
+    ressorts = models.JSONField()
+    gesamt = models.JSONField()
+    quelle = models.TextField()
+    publikation = models.CharField(max_length=200)
+    seite = models.PositiveSmallIntegerField()
+    methodik_seite = models.PositiveSmallIntegerField()
+    tabelle = models.PositiveSmallIntegerField()
+    original_sha256 = models.CharField(max_length=64)
+    parser_fassung = models.PositiveSmallIntegerField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = list(RESSORT_REIHUNG)
+        verbose_name = _("Amtliche Personal-Ressorttabelle")
+        verbose_name_plural = _("Amtliche Personal-Ressorttabellen")
+        constraints = [models.UniqueConstraint(
+            fields=["original_sha256", "parser_fassung"], name="ressortbeleg_je_parser",
+        )]
+
+    def __str__(self):
+        return f"Personal-Ressorttabelle {self.stichtag} (Fassung {self.parser_fassung})"
+
+
+class PersonalRessortAbruf(Schnappschuss):
+    inhalt = models.ForeignKey(PersonalRessorttabelle, on_delete=models.PROTECT, related_name="abrufe", null=True)
+    begonnen_am = models.DateTimeField(default=timezone.now)
+    beendet_am = models.DateTimeField(default=timezone.now)
+    erfolgreich = models.BooleanField()
+    neu = models.BooleanField(default=False)
+    fehlercode = models.CharField(max_length=40, blank=True)
+    weg = models.CharField(max_length=10, choices=[("datei", _("lokale Originaldatei")), ("amtlich", _("amtlicher Einzelabruf"))])
+
+    class Meta:
+        ordering = list(ABRUF_REIHUNG)
+        verbose_name = _("Ressorttabellen-Abruf")
+        verbose_name_plural = _("Ressorttabellen-Abrufe")
+
+    def __str__(self):
+        return f"Ressorttabellen-Abruf {self.pk} ({self.beendet_am})"
 
 
 class AbrufSperre(models.Model):

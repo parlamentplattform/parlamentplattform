@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.71.0] — 2026-11-03 · Amtliche Personalstände nach Ressort getrennt nachlesen
+
+- Ein ausdrücklich ausgelöster Import kann Tabelle7 des bekannten Personalberichts2026 mit Stichtag31.12.2025 übernehmen. Originalhash wird vor dem PDF-Parser geprüft; Tabellenkopf, Spaltenfolge, alle vierzehn Ressort-/Organezeilen und die Methodik zur EinheitVBÄ bleiben nachprüfbar. Keine freie Transkription oder Modellantwort, keine neue Abhängigkeit oder Datenquelle.
+- Gesamt, Zentralstelle und nachgeordnete Dienststellen bleiben wie im Original. Leere Teilspalten sind nicht angegeben und werden nicht als0 ergänzt; Rundungsabweichungen werden nicht ausgeglichen. Keine Kopfzahlen, freie Personalkapazität, Bedarfsprognose oder erfundene Beamten-/Vertrags-Aufteilung.
+- Eigene unveränderliche Tabellen-/Abrufstände, idempotente Wiederholung und additive Migration0006. Vorhandene Personal-Aggregate und Quellen bleiben erhalten. Öffentliche Nachlese in amtlicher Zeilenfolge und eigener JSON-Nachweis mit Stichtag, Tabellen-/Methodikseite, Originalhash und Parserfassung. Regelverzeichnis13, Ressortregel1, Schema1.26. Vorhandener Einzelabrufschutz und Transport; keine automatische Produktionsbefüllung oder Modellkontextergänzung.
+
 ## [0.70.0] — 2026-11-03 · Herkunft neuer Modellquellen ausdrücklich festhalten
 
 - Neue Rechtsbezug-Aufträge können vorhandene Landesquellen neben Bundesquellen als begrenzte Worttreffer auswählen. Quellenrahmen2 hält Ebene, amtliches Bundesland und den Umfang ohne räumliche Zuständigkeitsprüfung fest. Originalmetadaten, Zeitgrenzen und getrennte XML-Pfade werden geprüft; ein freier Gebietsname wird nicht zur verifizierten Zuständigkeit oder örtlichen Wahlberechtigung.

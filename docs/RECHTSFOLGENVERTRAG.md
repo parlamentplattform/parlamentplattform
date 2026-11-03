@@ -1,9 +1,9 @@
 # Vorbereiteter Rechtsfolgen-Antwortvertrag
 
-Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 1, ist noch nicht an
-einen Modellaufruf, eine Warteschlange oder Bedienhandlung angeschlossen. Er
-bereitet die Struktur des eigenen späteren Rechtsfolgenauftrags vor. Dieser
-Stand ist keine S11-Abnahme oder neue Softwarefreigabe.
+Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 1, prüft die Struktur
+des getrennten vorbereiteten Rechtsfolgenauftrags. Ein eigener Auftrags- und
+Ausführungsweg besteht, noch keine automatische Aktivierung oder Bedienhandlung.
+Dieser Stand ist keine S11-Abnahme oder neue Softwarefreigabe.
 
 Die Antwort enthält genau `normen`, `judikatur`, `exekutive`, `personal`,
 `unsicherheit` und `quellen`. Normen sind begrenzte Behauptungen mit Kennung,

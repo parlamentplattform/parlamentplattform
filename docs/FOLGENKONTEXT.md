@@ -2,8 +2,9 @@
 
 `ki.folgenkontext`, Fassung 1, verbindet einen tatsächlich beobachteten öffentlichen
 Textstand, den vorhandenen begrenzten Normrahmen und den getrennten Personal-
-Bestandsrahmen. Noch kein Modellaufruf, keine neue Warteschlange oder Bedienhandlung,
-keine Änderung früherer Aufträge und keine neue Softwarefreigabe.
+Bestandsrahmen. Die Erfassung selbst löst keinen Modellaufruf aus. Der vorbereitete
+eigene Auftragsweg ist in RECHTSFOLGENAUFTRAG.md beschrieben; noch keine automatische
+Aktivierung, Bedienhandlung, Änderung früherer Aufträge oder neue Softwarefreigabe.
 
 Die neue Erfassung liest den Antrag erneut aus der Datenbank. Personenwahlen und
 Vertrauensfragen sind ausgeschlossen. Eine Vorschlagsfassung muss zum Antrag
@@ -27,6 +28,6 @@ angeschlossener Betriebsweg benötigt dafür einen offenen Registerwert.
 Der gespeicherte Eingabehash belegt den tatsächlich rekonstruierten Wortlaut.
 Spätere Nachlese liest keine heutigen Datenbankstände, Registerwerte oder Dateien
 nach. Hashes sind kein Schutz gegen privilegiertes SQL und keine rechtliche
-Bestätigung. Der bezeichnete künftige Auftrag `rechtsfolgen-v1` ist noch nicht
-als Providerweg angeschlossen; dafür fehlen in dieser Vorbereitung bewusst
-Auftragstext, Ausführung, Korrekturweg und Benutzeroberfläche.
+Bestätigung. Der eigene Auftrag `rechtsfolgen-v1` besitzt inzwischen einen
+gesonderten Auftragstext und Ausführungsweg. Vollständiger Korrekturweg und
+Benutzeroberfläche fehlen noch; deshalb bleibt die automatische Beauftragung aus.

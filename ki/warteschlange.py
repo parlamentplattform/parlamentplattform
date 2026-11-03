@@ -35,7 +35,7 @@ SPERRE_MINUTEN = 15
 HOECHSTVERSUCHE = 6
 TAGESLAEUFE_STANDARD = 20
 #: Zwecke, die die Warteschlange kennt — jeder mit seiner Arbeit.
-ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT, Zweck.KORREKTUR)
+ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT, Zweck.KORREKTUR, Zweck.RECHTSFOLGEN)
 
 
 def tageskontingent() -> int:
@@ -54,15 +54,19 @@ def heute_gestartet(jetzt=None) -> int:
     heute = timezone.localdate(jetzt or timezone.now())
     return (
         KILauf.objects.filter(erstellt_am__date=heute)
-        .filter(Q(zweck__in=(Zweck.RECHTSBEZUG, Zweck.KORREKTUR)) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
+        .filter(Q(zweck__in=(Zweck.RECHTSBEZUG, Zweck.KORREKTUR, Zweck.RECHTSFOLGEN)) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
         .count()
     )
 
 
-def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuftrag:
+def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None, hoechstzeichen=None) -> KIAuftrag:
     """Idempotent je Antrag, Zweck und Fassung: Wer zweimal einreiht, bekommt denselben Auftrag."""
     if zweck not in ZWECKE or zweck == Zweck.KORREKTUR:
         raise ValueError(f"Unbekannter Zweck für die Warteschlange: {zweck}")
+    if zweck == Zweck.RECHTSFOLGEN:
+        from ki.folgenauftraege import einreihen as folgen_einreihen
+
+        return folgen_einreihen(antrag, mitglied, vorschlagsfassung=vorschlagsfassung, hoechstzeichen=hoechstzeichen)
     from verfahren.models import Antragsart
 
     if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
@@ -208,8 +212,14 @@ def _arbeit_korrektur(auftrag):
     return ausfuehren(auftrag)
 
 
+def _arbeit_rechtsfolgen(auftrag):
+    from ki.folgenauftraege import ausfuehren
+
+    return ausfuehren(auftrag)
+
+
 ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit,
-          Zweck.KORREKTUR: _arbeit_korrektur}
+          Zweck.KORREKTUR: _arbeit_korrektur, Zweck.RECHTSFOLGEN: _arbeit_rechtsfolgen}
 
 
 def _reservieren(pk: int, jetzt) -> str | None:

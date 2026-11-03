@@ -22,15 +22,15 @@ def test_leere_oder_nulltoken_bedeuten_keinen_kostenbetrag_null():
         assert zusammenfassen(zeilen)["kosten"]["betrag"] is None
 
 
-def test_fassung_zwei_zaehlt_korrektur_und_sonstige_als_sechste_gruppe():
+def test_fassung_vier_zaehlt_alle_sieben_zwecke_und_sonstige():
     from plattform_core.modellverbrauch import VERSION
 
-    zwecke = ["einschaetzung", "parametervorschlag", "aehnlichkeit", "rechtsbezug", "korrektur", "gegenueberstellung", "sonstige"]
+    zwecke = ["einschaetzung", "parametervorschlag", "aehnlichkeit", "rechtsbezug", "korrektur", "gegenueberstellung", "rechtsfolgen", "sonstige"]
     d = zusammenfassen([zeile(z) for z in zwecke])
-    assert d["version"] == VERSION == 3 and d["summe"]["laeufe"] == 7
+    assert d["version"] == VERSION == 4 and d["summe"]["laeufe"] == 8
     assert [z["zweck"] for z in d["zeilen"]] == sorted(zwecke)
     with pytest.raises(ValueError):
-        zusammenfassen([zeile(z) for z in [*zwecke, "achte"]])
+        zusammenfassen([zeile(z) for z in [*zwecke, "neunte"]])
 
 
 @pytest.mark.parametrize("zeilen", [None, [zeile("x")] * 6, [zeile("x")] * 2,

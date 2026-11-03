@@ -106,7 +106,7 @@ class ArchivQuerySet(LaufQuerySet):
 class AuftragQuerySet(LaufQuerySet):
     geschuetzte_eingaben = LaufQuerySet.geschuetzte_eingaben | frozenset({
         "antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id",
-        "quellenkontext",
+        "quellenkontext", "folgenkontext",
         "angefordert_von", "angefordert_von_id", "erstellt_am",
         "beanstandung", "beanstandung_id", "ursprung", "ursprung_id", "korrekturkontext",
     })
@@ -119,6 +119,7 @@ class Zweck(models.TextChoices):
     RECHTSBEZUG = "rechtsbezug", _("Betroffene Gesetze — Vorschlag der Zukunftswerkstatt")
     KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs")
     GEGENUEBERSTELLUNG = "gegenueberstellung", _("Textgegenüberstellung vor dem Einbringen")
+    RECHTSFOLGEN = "rechtsfolgen", _("Rechtsfolgen — unverbindliche Einschätzung der Zukunftswerkstatt")
 
 
 class KILauf(models.Model):
@@ -209,6 +210,7 @@ class KIAuftrag(models.Model):
     )
     kontext = models.JSONField(default=dict, blank=True)
     quellenkontext = models.JSONField(_("Amtlicher Quellenkontext"), default=dict, blank=True)
+    folgenkontext = models.JSONField(default=dict, blank=True)
     beanstandung = models.OneToOneField(
         "verfahren.Beanstandung", null=True, blank=True, on_delete=models.PROTECT, related_name="korrekturauftrag",
     )
@@ -257,7 +259,7 @@ class KIAuftrag(models.Model):
         if self._state.adding and self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
             raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
         _textstand_schuetzen(
-            self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
+            self, ("kontext", "quellenkontext", "folgenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
                    "beanstandung_id", "ursprung_id", "korrekturkontext",
                    "angefordert_von_id", "erstellt_am"),
             kwargs.get("update_fields"),

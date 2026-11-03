@@ -7,15 +7,15 @@ eine Hürde. Das Monatsbudget, die Tagesgrenze und die vorhandene Auftragszahl
 werden nicht geändert.
 
 Die Übersicht gruppiert in **einer** SQL-Abfrage alle dem Antrag zugeordneten
-Läufe nach den sechs bekannten Zwecken; unbekannte Zwecke werden vollständig in
-„Weitere Zwecke“ zusammengefasst. Es gibt daher höchstens sieben Gruppen und keine
+Läufe nach den sieben bekannten Zwecken; unbekannte Zwecke werden vollständig in
+„Weitere Zwecke“ zusammengefasst. Es gibt daher höchstens acht Gruppen und keine
 versteckte Auswahlgrenze. Reihenfolge: Zweckkennung aufsteigend. Interne Gremien-
 Läufe tragen nur zur aggregierten Metadatenzählung bei, ihre Eingaben, Antworten
 und Urheber erscheinen hier nicht. Ein anderer Antrag oder ein Vergleich vor
 Einbringung ohne Antrags-ID zählt nicht mit.
 
-Die reine Regel `plattform_core/modellverbrauch.py`, VERSION3, summiert genau
-diese Gruppen. Regelverzeichnis15 nennt Fassung, Datum und Begründung. Gezählt
+Die reine Regel `plattform_core/modellverbrauch.py`, VERSION4, summiert genau
+diese Gruppen. Regelverzeichnis17 nennt Fassung, Datum und Begründung. Gezählt
 werden Läufe, fehlgeschlagene Läufe, gespeicherte Eingabe-/Ausgabetokens und
 gespeicherte Dauer in Millisekunden. Die Anzeige nennt Tokenangaben, keine
 Textlängen und keinen Eurobetrag. Auch eine positive Tokenangabe ist keine
@@ -46,3 +46,8 @@ Ein tatsächlicher Kostenbetrag aus belegten Tarifen oder Abrechnungen und eine
 ausdrückliche Erfassung, ob ein Anbieter seinen Verbrauch gemeldet hat, sind
 separate offene Ergänzungen. Diese Übersicht schafft keine Tarife, Verpflichtung
 oder neue Ausgabe. Die örtliche Wahlberechtigung bleibt davon unberührt.
+
+Fassung4 führt zusätzlich `rechtsfolgen` als eigenen Zweck, auch im Tageskontingent
+der Warteschlange. Dieser vorbereitete Auftrag wird noch nicht automatisch beim
+Einbringen gestartet. Seine Einführung ersetzt später den alten Rechtsbezug für
+neue Aufträge; sie darf keine zweite automatische Rechnung zusätzlich erzeugen.

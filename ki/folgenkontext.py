@@ -78,13 +78,11 @@ def _eingabe(d, q, p):
     }, ensure_ascii=False, sort_keys=True, allow_nan=False)
 
 
-def festhalten(antrag, *, hoechstzeichen, vorschlagsfassung=None, fassung_nummer=None):
-    """Aktuell beobachteten öffentlichen Stand erfassen, ohne rückdatierbare Ausgabe."""
+def text_festhalten(antrag, *, vorschlagsfassung=None, fassung_nummer=None):
+    """Öffentlichen Text vor der Jobidentität lesen, noch keine Fakten nachladen."""
     from gremien.models import EntwurfsFassung
     from verfahren.models import Antrag, Antragsart
 
-    if type(hoechstzeichen) is not int or not 1 <= hoechstzeichen <= 100000:
-        raise ValueError("Unklarer Eingaberahmen.")
     a = Antrag.objects.filter(pk=antrag.pk).first()
     if a is None or a.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
         raise ValueError("Keine öffentliche Sachfrage für die Folgenprüfung.")
@@ -93,7 +91,14 @@ def festhalten(antrag, *, hoechstzeichen, vorschlagsfassung=None, fassung_nummer
         if v is None or v.entwurf.eingereichte_fassung != v.nummer:
             raise ValueError("Keine eingereichte öffentliche Vorschlagsfassung.")
         vorschlagsfassung = v
-    text = text_erfassen(a, vorschlagsfassung=vorschlagsfassung, fassung_nummer=fassung_nummer)
+    return text_erfassen(a, vorschlagsfassung=vorschlagsfassung, fassung_nummer=fassung_nummer)
+
+
+def mit_grundlagen(text, *, hoechstzeichen):
+    """Einmal erfassten öffentlichen Text um damalige Grundlagen ergänzen."""
+    if type(hoechstzeichen) is not int or not 1 <= hoechstzeichen <= 100000:
+        raise ValueError("Unklarer Eingaberahmen.")
+    text_pruefen(text)
     moment = _zeit(text["erfasst_am"])
     q = normen_erfassen(text, jetzt=moment)
     p = personal_erfassen(text["sha256"], jetzt=moment)
@@ -107,6 +112,12 @@ def festhalten(antrag, *, hoechstzeichen, vorschlagsfassung=None, fassung_nummer
     r = {**d, "sha256": _hash(d)}
     pruefen(r)
     return r
+
+
+def festhalten(antrag, *, hoechstzeichen, vorschlagsfassung=None, fassung_nummer=None):
+    """Aktuell beobachteten öffentlichen Stand erfassen, ohne rückdatierbare Ausgabe."""
+    text = text_festhalten(antrag, vorschlagsfassung=vorschlagsfassung, fassung_nummer=fassung_nummer)
+    return mit_grundlagen(text, hoechstzeichen=hoechstzeichen)
 
 
 def _pruefen(rahmen):

@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 16
+VERSION = 17
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -169,8 +169,8 @@ def als_dict() -> list[dict]:
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
     Regel(
-        modul="rechtsfolgen.py", titel=_("Vorbereiteter Antwortvertrag für Rechtsfolgen"),
-        zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen. Noch kein angeschlossener Modellweg; eine passende Form bestätigt keine rechtliche Aussage."),
+        modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
+        zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen des getrennten Rechtsfolgenauftrags. Eine passende Form bestätigt keine rechtliche Aussage."),
         wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
         grund=_("Vorbereitung des getrennten Rechtsfolgenauftrags. Personalbestände sind keine Bedarfsgrundlage; alle numerischen Personalfolgen bleiben in dieser Fassung ausdrücklich unbekannt."),
         nachrechenbar=_("Begrenzte Norm-, Text-, Personal- und Quellenlisten, nur angebotene Referenzen in ihrer Reihenfolge. Numerische Personalfolgen einschließlich Nullbedarf bestehen diese erste Formprüfung nicht. Keine juristische Verifikation oder Teilfreigabe fehlerhafter Antworten."),
@@ -954,9 +954,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="modellverbrauch.py", titel=_("Gespeicherter Modellverbrauch je Antrag"),
         zweck=_("Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."),
-        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-03",
-        grund=_("Fassung 3 berücksichtigt den privaten Textvergleich als eigenen Zweck. Läufe ohne Antragszuordnung bleiben aus Antragssummen ausgeschlossen; Archivdaten und frühere Kontexte werden nicht ergänzt."),
-        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; sechs bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-03",
+        grund=_("Fassung 4 zählt den getrennten Rechtsfolgenauftrag als eigenen Zweck. Archivdaten und frühere Eingaben bleiben unverändert; Läufe ohne Antragszuordnung zählen nicht zu Antragssummen."),
+        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; sieben bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
     ),
     Regel(
         modul="quellenumfang.py", titel=_("Herkunftsgrenze amtlicher Kontextkandidaten"),

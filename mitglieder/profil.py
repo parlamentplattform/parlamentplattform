@@ -534,6 +534,7 @@ def _gremien_export(m: Mitglied) -> dict:
             {
                 "zweck": a.zweck,
                 "quellenkontext": a.quellenkontext,
+                "folgenkontext": a.folgenkontext,
                 "beanstandung": a.beanstandung_id,
                 "ursprung": a.ursprung_id,
                 "korrekturkontext": a.korrekturkontext,

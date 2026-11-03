@@ -69,7 +69,7 @@ def test_willkommensseite_erklaert_das_system(client):
         assert f'href="{ziel}"' in inhalt, ziel
     assert "KI schlägt vor, entscheidet nie" in inhalt  # die Grundsätze stehen am Einstieg
     assert "Die Wege durch die Plattform" in inhalt  # das Flussdiagramm der Prozesse
-    assert 'class="fluss"' in inhalt and "ENTWURFSSCHLEIFE" in inhalt
+    assert 'class="ablauf"' in inhalt and "ENTWURFSSCHLEIFE" in inhalt
 
 
 def test_uebersichtsseite_auf_englisch(client):

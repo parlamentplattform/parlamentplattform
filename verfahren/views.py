@@ -36,6 +36,7 @@ from verfahren.models import (
     Vollzugsstatus,
     uebergangsregel_fuer,
 )
+from verfahren.schaubild import fristen_fuer_das_diagramm
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
@@ -608,18 +609,6 @@ def _meine_stimmen(nutzer, antraege):
         stimmen[ab.antrag_id] = ab.stimme
     return stimmen
 
-
-def fristen_fuer_das_diagramm() -> dict:
-    """Die drei Zahlen des Flussdiagramms auf der Startseite — aus dem Register (FB-J1).
-
-    Standen sie als Text im Bild, zeigte die erste Seite nach einer Änderung im Register
-    weiter den alten Wert. Wer zwei Zahlen für dieselbe Frist findet, glaubt keiner davon."""
-    return {
-        "unterstuetzung": zahl("verfahren-unterstuetzung-tage", 60),
-        "beratung": zahl("expertenrat-erstvorschlag-tage", 21),
-        "abstimmung": zahl("verfahren-abstimmung-tage", 28),
-        "runden": zahl("gremien-hoechstrunden", 3),
-    }
 
 def index(request):
     """Die Willkommensseite unter „/" — der Einstieg für alle (auch übers

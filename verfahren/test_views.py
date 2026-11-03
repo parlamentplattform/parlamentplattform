@@ -266,10 +266,9 @@ def test_sprachwechsel_behaelt_die_abfrageparameter(client):
     assert antwort.status_code == 302 and antwort["Location"] == "/parlament/?fach=bildung&suche=kind"
 
 
-def test_startseite_nennt_die_rundenzahl_aus_dem_register(client):
-    """Das Diagramm sagte fest „höchstens 3 Runden“, obwohl `fristen.runden` den Registerwert
-    lieferte — nach einer Änderung im Register log die erste Seite (Befund #86)."""
+def test_startseite_nennt_die_rundenzahl_der_aktiven_ordnung(client, ordnung):  # noqa: F811
+    """Eine vorgemerkte Registeränderung darf keine neue Verfahrensordnung vortäuschen."""
     _register("gremien-hoechstrunden", 2)
     inhalt = client.get("/").content.decode()
-    assert "höchstens 2 Runden" in inhalt
-    assert "höchstens 3 Runden" not in inhalt
+    assert f"höchstens {ordnung.als_policy().hoechstrunden} Runden" in inhalt
+    assert "höchstens 2 Runden" not in inhalt

@@ -1,0 +1,135 @@
+{% load i18n %}
+<style>
+  .ablauf-bildlauf{background:var(--karton);border:1px solid var(--line);border-radius:16px;padding:14px;overflow-x:auto;width:min(1272px,calc(100vw - 40px));margin:14px 0 14px calc((100% - min(1272px,100vw - 40px))/2)}
+  .ablauf{display:block;min-width:1120px;width:100%;height:auto}
+  .ablauf-text{margin:12px 0}
+  .ablauf-text ol{padding-left:24px}
+  .ablauf-text li{margin:8px 0}
+  .ablauf-text dl{display:grid;grid-template-columns:minmax(9em,max-content) 1fr;gap:4px 12px}
+  .ablauf-text dt{font-weight:600}
+  .ablauf-text dd{margin:0}
+</style>
+<p class="hilfe">{% if fristen %}{% blocktranslate with kennung=fristen.id fassung=fristen.version %}Für neue Sachanträge: Verfahrensordnung {{ kennung }}, Fassung {{ fassung }}.{% endblocktranslate %}{% else %}{% translate "Noch keine aktive Verfahrensordnung; deshalb werden hier keine Fristen versprochen." %}{% endif %}</p>
+  <div class="ablauf-bildlauf" tabindex="0" role="region" aria-label="{% translate 'Flussdiagramm: Sachantrag mit Entwurfsschleife und Mandats-Kandidatur' %}">
+    <svg class="ablauf" role="img" aria-label="{% translate 'Zwei Antragswege und die Entwurfsschleife' %}" viewBox="0 0 1240 448" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="pf" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--matt)"/>
+        </marker>
+        <marker id="pfgold" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--gold)"/>
+        </marker>
+      </defs>
+      <style>
+        .ablauf .kasten{fill:var(--karton);stroke:var(--line)}
+        .ablauf .kasten.dunkel{fill:var(--nacht2);stroke:var(--nacht3)}
+        .ablauf .kasten.gold{stroke:var(--gold);stroke-width:1.6}
+        .ablauf .ki-plakette{fill:color-mix(in srgb,var(--goldsoft) 14%,var(--karton));stroke:var(--gold);stroke-dasharray:4 3}
+        .ablauf text{font-family:var(--sans);font-size:13.5px;font-weight:600;fill:var(--ink)}
+        .ablauf text.hell{fill:#F3EFE6}
+        .ablauf text.klein{font-size:10.5px;font-weight:400;fill:var(--matt)}
+        .ablauf text.klein.hell{fill:rgba(243,239,230,.75)}
+        .ablauf text.ki{font-size:11px;font-weight:600;fill:var(--goldtief)}
+        .ablauf text.ki-klein{font-size:10px;font-weight:400;fill:var(--matt)}
+        .ablauf .pfeil{stroke:var(--matt);stroke-width:1.6;fill:none;marker-end:url(#pf)}
+        .ablauf .pfeil.gold{stroke:var(--gold);marker-end:url(#pfgold)}
+        .ablauf .pfeil.zart{stroke-dasharray:5 4}
+        .ablauf .bahn{font-size:11px;font-weight:700;letter-spacing:.14em;fill:var(--matt)}
+      </style>
+
+      <text class="bahn" x="10" y="24">{% translate "SACHANTRAG" %}</text>
+      <rect class="kasten dunkel" x="10" y="40" width="136" height="56" rx="12"/>
+      <text class="hell" x="78" y="64" text-anchor="middle">{% translate "Antrag" %}</text>
+      <text class="klein hell" x="78" y="82" text-anchor="middle">{% translate "einbringen" %}</text>
+      <path class="pfeil" d="M146 68 H178"/>
+      <rect class="kasten" x="182" y="40" width="140" height="56" rx="12"/>
+      <text x="252" y="64" text-anchor="middle">{% translate "Unterstützung" %}</text>
+      <text class="klein" x="252" y="82" text-anchor="middle">{% if fristen %}{% blocktranslate with n=fristen.unterstuetzung %}{{ n }} Tage · Schwelle{% endblocktranslate %}{% else %}{% translate 'nicht festgelegt' %}{% endif %}</text>
+      <path class="pfeil" d="M322 68 H354"/>
+      <rect class="kasten" x="358" y="40" width="136" height="56" rx="12"/>
+      <text x="426" y="64" text-anchor="middle">{% translate "Beratung" %}</text>
+      <text class="klein" x="426" y="82" text-anchor="middle">{% if fristen.beratung_entfaellt %}{% translate "entfällt" %}{% elif fristen %}{% blocktranslate with n=fristen.beratung %}{{ n }} Tage{% endblocktranslate %}{% else %}{% translate 'nicht festgelegt' %}{% endif %}</text>
+      <path class="pfeil" d="M494 68 H526"/>
+      <rect class="kasten gold" x="530" y="40" width="146" height="56" rx="12"/>
+      <text x="603" y="64" text-anchor="middle">{% translate "Endabstimmung" %}</text>
+      <text class="klein" x="603" y="82" text-anchor="middle">{% if fristen %}{% blocktranslate with n=fristen.abstimmung %}{{ n }} Tage · pseudonym{% endblocktranslate %}{% else %}{% translate 'nicht festgelegt' %}{% endif %}</text>
+      <path class="pfeil gold" d="M676 68 H708"/>
+      <rect class="kasten dunkel" x="712" y="40" width="128" height="56" rx="12"/>
+      <text class="hell" x="776" y="64" text-anchor="middle">{% translate "Beschluss" %}</text>
+      <text class="klein hell" x="776" y="82" text-anchor="middle">{% translate "angenommen" %}</text>
+      <path class="pfeil" d="M840 68 H872"/>
+      <rect class="kasten" x="876" y="40" width="160" height="56" rx="12"/>
+      <text x="956" y="64" text-anchor="middle">{% translate "Umsetzungsregister" %}</text>
+      <text class="klein" x="956" y="82" text-anchor="middle">{% translate "öffentlich · mit Verlauf" %}</text>
+      <path class="pfeil" d="M1036 68 H1068"/>
+      <rect class="kasten dunkel" x="1072" y="40" width="158" height="56" rx="12"/>
+      <text class="hell" x="1151" y="60" text-anchor="middle">{% translate "Staatsapparat" %}</text>
+      <text class="klein hell" x="1151" y="76" text-anchor="middle">{% translate "Mandatare bringen ein" %}</text>
+      <text class="klein hell" x="1151" y="90" text-anchor="middle">{% translate "Vollzug · Prognoseabgleich" %}</text>
+
+      <rect class="ki-plakette" x="24" y="122" width="256" height="30" rx="9"/>
+      <text class="ki" x="152" y="141" text-anchor="middle">{% translate "KI: Ähnlichkeitshinweis · Themen-Zuordnung" %}</text>
+      <path class="pfeil zart" d="M152 122 C 152 110, 152 106, 148 100"/>
+
+      <text class="bahn" x="10" y="182">{% translate "ENTWURFSSCHLEIFE · § 5 ABS 12" %}</text>
+      <rect class="kasten" x="180" y="196" width="180" height="56" rx="12"/>
+      <text x="270" y="220" text-anchor="middle">{% translate "Expertenrat" %}</text>
+      <text class="klein" x="270" y="238" text-anchor="middle">{% translate "erarbeitet den Vorschlag" %}</text>
+      <path class="pfeil" d="M360 224 H402"/>
+      <rect class="kasten" x="406" y="196" width="170" height="56" rx="12"/>
+      <text x="491" y="220" text-anchor="middle">{% translate "Prüfung Gruppe 2" %}</text>
+      <text class="klein" x="491" y="238" text-anchor="middle">{% translate "bei Vollzugsbezug · § 6 Abs 7" %}</text>
+      <path class="pfeil" d="M576 224 H618"/>
+      <rect class="kasten" x="622" y="196" width="180" height="56" rx="12"/>
+      <text x="712" y="220" text-anchor="middle">{% translate "Unterstützer-Votum" %}</text>
+      <text class="klein" x="712" y="238" text-anchor="middle">{% translate "annehmen oder zurückgeben" %}</text>
+      <path class="pfeil zart" d="M426 100 C 426 140, 350 160, 300 192"/>
+      <text class="klein" x="446" y="146">{% translate "Werkstatt kann öffnen" %}</text>
+      <path class="pfeil zart" d="M622 246 C 500 286, 400 286, 274 258"/>
+      <text class="klein" x="452" y="290" text-anchor="middle">{% if fristen %}{% blocktranslate with n=fristen.runden %}zurück mit Wünschen · höchstens {{ n }} Runden{% endblocktranslate %}{% else %}{% translate 'zurück mit Wünschen' %}{% endif %}</text>
+      <path class="pfeil gold" d="M756 196 C 756 160, 700 140, 650 104"/>
+      <text class="klein" x="806" y="158" text-anchor="middle">{% translate "angenommen — oder Frist um:" %}</text>
+      <text class="klein" x="806" y="172" text-anchor="middle">{% translate "Untätigkeit hemmt nie" %}</text>
+
+      <rect class="ki-plakette" x="860" y="196" width="370" height="56" rx="9"/>
+      <text class="ki" x="1045" y="218" text-anchor="middle">{% translate "Zukunftswerkstatt: Einschätzung im Aufbau" %}</text>
+      <text class="ki-klein" x="1045" y="236" text-anchor="middle">{% translate "gekennzeichnet und archiviert — sie schlägt vor, sie entscheidet nie" %}</text>
+      <path class="pfeil zart" d="M860 224 H810"/>
+
+      <text class="bahn" x="10" y="330">{% translate "MANDATS-KANDIDATUR · § 7 ABS 1" %}</text>
+      <rect class="kasten dunkel" x="10" y="346" width="180" height="56" rx="12"/>
+      <text class="hell" x="100" y="370" text-anchor="middle">{% translate "Kandidatur-Antrag" %}</text>
+      <text class="klein hell" x="100" y="388" text-anchor="middle">{% translate "je Mandat einer — jederzeit" %}</text>
+      <path class="pfeil" d="M190 374 H234"/>
+      <rect class="kasten" x="238" y="346" width="180" height="56" rx="12"/>
+      <text x="328" y="370" text-anchor="middle">{% translate "Bewerbungen" %}</text>
+      <text class="klein" x="328" y="388" text-anchor="middle">{% translate "jedes wählbare Mitglied" %}</text>
+      <path class="pfeil" d="M418 374 H462"/>
+      <rect class="kasten gold" x="466" y="346" width="180" height="56" rx="12"/>
+      <text x="556" y="370" text-anchor="middle">{% translate "Zustimmungswahl" %}</text>
+      <text class="klein" x="556" y="388" text-anchor="middle">{% translate "pseudonym · mehreren zustimmbar" %}</text>
+      <path class="pfeil gold" d="M646 374 H690"/>
+      <rect class="kasten dunkel" x="694" y="346" width="280" height="56" rx="12"/>
+      <text class="hell" x="834" y="370" text-anchor="middle">{% translate "Listenreihung des Wahlvorschlags" %}</text>
+      <text class="klein hell" x="834" y="388" text-anchor="middle">{% translate "meiste Zustimmung führt die Liste an" %}</text>
+    </svg>
+  </div>
+<details class="ablauf-text">
+  <summary>{% translate "Ablauf als Text lesen" %}</summary>
+  {% if fristen %}
+  <dl>
+    <dt>{% translate "Unterstützung" %}</dt><dd>{% blocktranslate with n=fristen.unterstuetzung %}{{ n }} Tage{% endblocktranslate %}</dd>
+    <dt>{% translate "Beratung" %}</dt><dd>{% if fristen.beratung_entfaellt %}{% translate "entfällt" %}{% else %}{% blocktranslate with n=fristen.beratung %}{{ n }} Tage{% endblocktranslate %}{% endif %}</dd>
+    <dt>{% translate "Endabstimmung" %}</dt><dd>{% blocktranslate with n=fristen.abstimmung %}{{ n }} Tage{% endblocktranslate %}</dd>
+    <dt>{% translate "Entwurfsschleife" %}</dt><dd>{% blocktranslate with n=fristen.runden %}höchstens {{ n }} Runden{% endblocktranslate %}</dd>
+  </dl>
+  {% endif %}
+  <ol>
+    <li>{% translate "Vorschlag einbringen und Unterstützung sammeln. Die veröffentlichte Schwelle und Frist stehen beim Antrag." %}</li>
+    <li>{% translate "In der Beratung können Mitglieder den Vorschlag erörtern. Der Expertenrat kann einen Entwurf erarbeiten; die Unterstützer nehmen ihn an oder geben ihn mit Wünschen zurück." %}</li>
+    <li>{% translate "Die Stimmberechtigten stimmen ab. Ergebnis und Auszählungsdaten bleiben öffentlich nachrechenbar; angenommene Vorschläge stehen im Umsetzungsregister." %}</li>
+    <li>{% translate "Für Mandats-Kandidaturen bewerben sich Mitglieder; eine Zustimmungswahl bestimmt die Listenreihung." %}</li>
+  </ol>
+</details>
+<p class="hilfe">{% translate "Die Grafik zeigt den allgemeinen Weg. Laufende Verfahren behalten ihre eigenen festgelegten Regeln; Sonderverfahren haben eigene Abläufe." %}</p>
+<p class="hilfe">{% translate "Ein Parteibeschluss ist noch kein staatliches Gesetz. Mandatare bringen die beschlossenen Vorschläge in die zuständigen staatlichen Gremien ein." %}</p>

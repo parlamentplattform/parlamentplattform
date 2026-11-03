@@ -11,6 +11,7 @@ import logging
 from smtplib import SMTPException
 
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as dj_login
 from django.contrib.auth import logout as dj_logout
@@ -346,4 +347,9 @@ def mitgliedschaft(request):
     """Öffentliche Schaufenster-Seite der Mitgliedschaft: erst plakativ, was
     Mitglieder können, dann die Details (Anwartschaft, Beitrag, Identität)
     und der Weg vom Antrag zum Beschluss — ehrlich und ohne Kleingedrucktes."""
-    return render(request, "mitglieder/mitgliedschaft.html")
+    from verfahren.schaubild import fristen_fuer_das_diagramm
+
+    return render(request, "mitglieder/mitgliedschaft.html", {
+        "fristen": fristen_fuer_das_diagramm(),
+        "uebergangsregel": settings.DDOE_UEBERGANGSREGEL,
+    })

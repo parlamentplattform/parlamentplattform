@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.63.0] — 2026-11-03 · Mitgliedschaft und Verfahrensweg verständlich zeigen
+
+- Willkommens- und Mitgliedschaftsseite nutzen dasselbe Ablaufdiagramm mit zugänglicher Textalternative und tastaturbedienbarem Bildlauf. Die Zahlen stammen aus der aktiven Verfahrensordnung; vorgemerkte Registerwerte werden nicht als beschlossene Fristen ausgegeben. Ohne aktive Ordnung stehen keine erfundenen Dauern im Bild.
+- Die sechs Rechte-Karten verlinken die jeweiligen Arbeitsbereiche. Ihre Ikonen zeichnen sich kurz; reduzierte Bewegung wird respektiert, ohne JavaScript bleiben alle Inhalte bedienbar. Kleine Vorschaukarten trennen verfügbaren Rechtsbezug und Quellenstand von der noch offenen vollständigen Folgenabschätzung.
+- Freischaltung, Aufbauphase und Wohnsitz-Auswahl werden nach dem tatsächlichen Stand erklärt. Die weiterhin fehlende örtliche Teilnahmebegrenzung wird offengelegt; ein Parteibeschluss wird nicht als staatliches Gesetz ausgegeben. Keine Satzung, Berechtigung oder festgelegte Regel laufender Verfahren verändert. Schema1.18 bleibt unverändert.
+
 ## [0.62.0] — 2026-11-03 · Verbrauch je Antrag sichtbar machen
 
 - Die Antragsseite zeigt die gespeicherten Modellaufrufe, Fehlversuche sowie Eingabe- und Ausgabetokens nach Zweck. Eine einzelne Gruppenabfrage zählt ausschließlich zugeordnete Läufe; Vergleiche ohne Antragsbezug bleiben ausdrücklich außerhalb der Summe. Die Übersicht ist ohne JavaScript und auf dem Handy lesbar.

@@ -12,6 +12,7 @@ import itertools
 
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
 from gremien.models import Auslosung, Fachliste, Gremium, Rolle
 from gremien.test_werkstatt import (  # noqa: F401
@@ -109,18 +110,15 @@ def test_wer_fuer_einen_anderen_antrag_gelost_ist_schreibt_hier_nicht(client, or
     """Sonst wäre die Auslosung eine Anzeige statt einer Zuständigkeit."""
     fachliste_fuellen(12)
     erster = antrag_in_beratung(ordnung)
+    fuer_ersten = Rolle.objects.filter(antrag=erster, gremium=Gremium.EXPERTENRAT_1).first()
+    # Eine bereits besetzte Rolle bleibt bestehen; für künftige Ziehungen nimmt
+    # diese Person im Test nicht mehr teil. Gleiche Besetzungen bei unabhängigen
+    # Ziehungen sind zulässig und dürfen den Berechtigungstest nicht zufällig kippen.
+    Fachliste.objects.filter(mitglied=fuer_ersten.mitglied).update(
+        gestrichen_am=timezone.localdate(), gestrichen_grund="Testaufbau: nicht im zweiten Lostopf",
+    )
     zweiter = antrag_in_beratung(ordnung)
-    # Wer auf der Fachliste steht, kann für mehrere Anträge gelost werden — das ist richtig so.
-    # Für diesen Test brauchen wir jemanden, der nur beim ersten dabei ist.
-    beim_zweiten = set(
-        Rolle.objects.filter(antrag=zweiter).values_list("mitglied_id", flat=True)
-    )
-    fuer_ersten = (
-        Rolle.objects.filter(antrag=erster, gremium=Gremium.EXPERTENRAT_1)
-        .exclude(mitglied_id__in=beim_zweiten)
-        .first()
-    )
-    assert fuer_ersten is not None, "bei zwölf Fachleuten und je drei Plätzen praktisch sicher"
+    assert not Rolle.objects.filter(antrag=zweiter, mitglied=fuer_ersten.mitglied).exists()
     assert Rolle.hat_fuer(fuer_ersten.mitglied, Gremium.EXPERTENRAT_1, erster) is True
     assert Rolle.hat_fuer(fuer_ersten.mitglied, Gremium.EXPERTENRAT_1, zweiter) is False
 

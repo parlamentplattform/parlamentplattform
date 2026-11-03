@@ -26,6 +26,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet
 from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck, einbettung_ausfuehren, lauf_ausfuehren
 
 log = logging.getLogger(__name__)
@@ -242,6 +243,12 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
     try:
         lauf = ARBEIT[Zweck(auftrag.zweck)](auftrag)
         stand.update(status=Auftragsstatus.ERLEDIGT, lauf=lauf, erledigt_am=jetzt, fehler="", naechster_versuch=None)
+    except SteckplatzWartet as fehler:
+        # Kein Anbieter gestartet. Die technische Auftragsreservierung ist kein
+        # verbrauchter Fehlversuch; beim regulären nächsten Fadenlauf erneut prüfen.
+        stand.update(status=Auftragsstatus.GEPLANT, versuche=F("versuche") - 1,
+            fehler=f"{type(fehler).__name__}: {fehler}"[:300], naechster_versuch=None)
+        ausgang = "verschoben"
     except Exception as fehler:  # der Faden darf nie sterben; der Grund steht am Auftrag
         if not isinstance(fehler, SteckplatzStumm):  # ein stummer Steckplatz ist kein Programmfehler
             log.exception("KI-Auftrag %s gescheitert", pk)

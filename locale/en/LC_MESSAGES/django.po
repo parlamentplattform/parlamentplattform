@@ -9820,3 +9820,20 @@ msgstr "newly imported"
 
 msgid "unverändert"
 msgstr "unchanged"
+
+# Betrieblicher Modellzugang (0.71.1)
+
+msgid "Betrieblicher KI-Zugang"
+msgstr "Operational model access"
+
+msgid "Betriebliche KI-Zugänge"
+msgstr "Operational model access entries"
+
+msgid "Der Modell-Steckplatz ist bereits belegt. Dieser Aufruf wartet auf einen freien Zugang."
+msgstr "The model slot is already in use. This request is waiting for access."
+
+msgid "Monatliche Startgrenze anhand der im Archiv gemeldeten Tokens. Ist sie erreicht, startet kein weiterer Modellaufruf. Ein bereits begonnener Lauf kann die Restmenge überschreiten; ungemeldeter Verbrauch kann fehlen. Keine garantierte Geldobergrenze."
+msgstr "Monthly start limit based on tokens reported in the archive. Once reached, no further model request starts. An already started request can exceed the remaining allowance; unreported usage can be missing. This is not a guaranteed spending cap."
+
+msgid "Modellanfragen teilen sich einen betrieblichen Zugang. Besetzte Aufrufe warten ohne Anbieter-Versuch. Die Monatsgrenze prüft gemeldete Tokens vor dem Start; ein bereits begonnener Lauf kann die Restmenge überschreiten. Das ist keine garantierte Geldobergrenze."
+msgstr "Model requests share one operational access slot. Requests wait while it is occupied, without using a provider attempt. The monthly limit checks reported tokens before starting; an already started request can exceed the remaining allowance. This is not a guaranteed spending cap."

@@ -3,9 +3,9 @@
 Jeder KI-Aufruf hinterlässt einen Lauf — auch der gescheiterte: Zweck,
 Eingabe, Antwort, Modell, Tokenverbrauch, Dauer, Auftragsversion. Das Archiv ist die
 Rechenschaft des Steckplatzes; seine Kennzahlen stehen öffentlich auf der
-Zukunftswerkstatt-Seite. Ein Monats-Tokenbudget deckelt die Kosten hart:
-Ist es erschöpft, wird der Steckplatz stumm, bis der Monat wechselt
-(Register „ki-monatstokens“, F-68).
+Zukunftswerkstatt-Seite. Die Monatsgrenze stoppt neue Aufrufe ab dem archivierten
+Tokenverbrauch (Register „ki-monatstokens“, F-68). Ein bereits begonnener Aufruf
+kann Resttokens überschreiten; daraus folgt keine garantierte Geldobergrenze.
 
 Seit 0.50 gibt es daneben `KIAuftrag`: die Warteschlange (FB-H1/FB-H6). Was nicht in der
 Anfrage selbst gerechnet werden muss — betroffene Gesetze beim Einbringen, nachgezogene
@@ -26,8 +26,23 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from ki.anbieter import AnbieterFehler, Einbettung, SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet, einzeln
 
 MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
+
+
+class SteckplatzZugang(models.Model):
+    """Betriebliche Zugangssperre, weder Budgetwert noch Archiv-/Verfahrensstand."""
+
+    name = models.CharField(max_length=24, primary_key=True)
+    belegt = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = _("Betrieblicher KI-Zugang")
+        verbose_name_plural = _("Betriebliche KI-Zugänge")
+
+    def __str__(self):
+        return self.name
 
 
 def _textstand_schuetzen(instanz, felder, update_fields):
@@ -274,16 +289,17 @@ def _anbieter_bereit():
     """Der gemeinsame Vorlauf jedes Aufrufs: Anbieter da, Budget nicht erschöpft — sonst SteckplatzStumm."""
     anbieter = anbieter_waehlen()
     if anbieter is None:
-        raise SteckplatzStumm(
+        raise SteckplatzWartet(
             "Kein KI-Anbieter angeschlossen — der Steckplatz ist leer (Schlüssel fehlt)."
         )
     if KILauf.monatsverbrauch() >= KILauf.monatsbudget():
-        raise SteckplatzStumm(
+        raise SteckplatzWartet(
             "Das Monats-Tokenbudget des Steckplatzes ist erschöpft — er bleibt stumm, bis der Monat wechselt."
         )
     return anbieter
 
 
+@einzeln
 def lauf_ausfuehren(
     zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None,
 ) -> KILauf:
@@ -328,6 +344,7 @@ def lauf_ausfuehren(
     )
 
 
+@einzeln
 def einbettung_ausfuehren(
     texte: list[str], mitglied, antrag=None, zeitgrenze: float | None = None, *, kontext=None,
 ) -> tuple[KILauf, Einbettung]:

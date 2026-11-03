@@ -13,7 +13,7 @@ Experimente)."""
 from __future__ import annotations
 
 from django.conf import settings
-from django.db import DatabaseError, models
+from django.db import DatabaseError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import gettext_noop
@@ -186,6 +186,11 @@ def zahl(schluessel: str, standard: int) -> int:
 
 #: Kürzel interner Dokumente — sie gehören nicht in die öffentliche Quellenangabe.
 INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0")
+
+KI_MONAT_BESCHREIBUNG_ALT = (
+    "Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
+    "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."
+)
 
 ERSTBESTAND = [
     {"schluessel": "quellenkontext-hoechstzahl", "wert": "3", "einheit": gettext_noop("Quellen"), "gruppe": "ki",
@@ -695,8 +700,9 @@ ERSTBESTAND = [
         "wert": "1000000",
         "einheit": gettext_noop("Tokens/Monat"),
         "gruppe": "ki",
-        "beschreibung": gettext_noop("Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
-        "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."),
+        "beschreibung": gettext_noop("Monatliche Startgrenze anhand der im Archiv gemeldeten Tokens. Ist sie erreicht, "
+        "startet kein weiterer Modellaufruf. Ein bereits begonnener Lauf kann die Restmenge überschreiten; "
+        "ungemeldeter Verbrauch kann fehlen. Keine garantierte Geldobergrenze."),
         "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
     },
     {
@@ -860,6 +866,21 @@ def erstbestand_sicherstellen() -> int:
                 schluessel=eintrag["schluessel"], defaults=vorlage
             )
         neu += int(angelegt)
+        if (not angelegt and parameter.schluessel == "ki-monatstokens"
+                and parameter.beschreibung == KI_MONAT_BESCHREIBUNG_ALT):
+            from verfahren.models import AuditEintrag
+
+            # Nur den nachweislich falschen alten Systemtext berichtigen, niemals
+            # einen Menschenwert oder eine individuell geschriebene Beschreibung.
+            with transaction.atomic():
+                berichtigt = Parameter.objects.filter(pk=parameter.pk,
+                    beschreibung=KI_MONAT_BESCHREIBUNG_ALT).update(beschreibung=vorlage["beschreibung"])
+                if berichtigt:
+                    AuditEintrag.anhaengen({"typ": "parameterbeschreibung_berichtigt",
+                        "parameter": parameter.schluessel, "grund": "KI-Startgrenze statt garantierter Geldobergrenze",
+                        "alte_beschreibung": KI_MONAT_BESCHREIBUNG_ALT,
+                        "neue_beschreibung": vorlage["beschreibung"]})
+            parameter.beschreibung = vorlage["beschreibung"]
         felder = []
         # Schema-Kennung, Gruppe und Quelle sind **Beschreibung**, nicht Wert: Sie folgen dem
         # Erstbestand, damit eine Umbenennung im Schema oder eine neue Ordnung der Registerseite

@@ -21,6 +21,7 @@ from faktenbasis.ris import HOECHSTBYTES, ZEITGRENZE, RisFehler, _KeineUmleitung
 from faktenbasis.test_ris import STAND, beispiel
 from faktenbasis.test_xmltext import NUMMER, RIS_ID, xml_beispiel
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
+from faktenbasis.xmltext import PARSER_FASSUNG
 from verfahren.models import AuditEintrag
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("abrufuhr")]
@@ -48,7 +49,7 @@ def test_inhalt_einmal_abruf_jedes_mal_mit_unveraendertem_erfassungsdatum(norm, 
     zeit = inhalt.erfasst_am
     assert erster.inhalt_id == inhalt.pk and erster.erfolgreich and erster.neu
     assert bytes(inhalt.xml) == xml[0] and inhalt.xml_hash == hashlib.sha256(xml[0]).hexdigest()
-    assert "Änderung des B-VG" in inhalt.text and inhalt.parser_fassung == 1
+    assert "Änderung des B-VG" in inhalt.text and inhalt.parser_fassung == PARSER_FASSUNG == 2
     zweiter = volltext.importieren(norm)
     assert zweiter.inhalt_id == inhalt.pk and not zweiter.neu
     assert NormText.objects.count() == 1 and NormTextAbruf.objects.count() == 2

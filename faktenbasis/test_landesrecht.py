@@ -177,7 +177,7 @@ def test_nachlese_und_originalexport_bleiben_lesend(antwort, client, monkeypatch
         assert "Landesrecht" in html and "Oberösterreich" in html
         assert client.post(url).status_code == 405
     html = client.get(reverse("faktenbasis:norm", args=[n.pk])).content.decode()
-    assert "1 von 147" in html and "Modellkontext sind noch offen" in html
+    assert "1 von 147" in html and "noch nicht in Modellaufträge" in html
     assert "Diesen Dokumenttext einmal abrufen" not in html
     assert client.get(reverse("faktenbasis:importantwort", args=[lauf.pk])).json() == antwort
     assert AuditEintrag.objects.count() == vorher
@@ -193,7 +193,7 @@ def test_land_wird_nicht_stillschweigend_zum_bundes_modellkontext(antwort, ordnu
     assert erfassen(k)["quellen"] == []
     with pytest.raises(QuellenkontextFehler):
         festhalten([n.pk], hoechstzahl=3, textzeichen=100, text_sha256=k["sha256"])
-    with pytest.raises(RisFehler, match="landestext_offen"):
+    with pytest.raises(RisFehler, match="volltextquelle"):
         volltext(n)
 
 

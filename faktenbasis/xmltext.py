@@ -12,7 +12,7 @@ from xml.etree import ElementTree
 from faktenbasis.ris import GESETZESNUMMER, HOECHSTBYTES, KENNUNG, RisFehler
 
 NAMENSRAUM = "http://www.bka.gv.at"
-PARSER_FASSUNG = 1
+PARSER_FASSUNG = 2
 
 
 def _liste(wert):
@@ -23,11 +23,30 @@ def _liste(wert):
     raise RisFehler("volltextquelle")
 
 
-def xml_adresse(rohdaten, ris_id):
-    """Nur die ausdrücklich in den Metadaten benannte Original-XML-Adresse."""
-    if not isinstance(ris_id, str) or not KENNUNG.fullmatch(ris_id):
+def _dokumentart(ris_id, bundesland):
+    if not isinstance(ris_id, str):
         raise RisFehler("kennung")
+    if bundesland == "":
+        if KENNUNG.fullmatch(ris_id):
+            return "Bundesnormen"
+    else:
+        from faktenbasis.landesrecht import BUNDESLAENDER
+        from faktenbasis.landesrecht import KENNUNG as LANDKENNUNG
+
+        if isinstance(bundesland, str) and bundesland in BUNDESLAENDER.values() and LANDKENNUNG.fullmatch(ris_id):
+            return "Landesnormen"
+    raise RisFehler("kennung")
+
+
+def xml_adresse(rohdaten, ris_id, *, bundesland=""):
+    """Nur die ausdrücklich in den Metadaten benannte Original-XML-Adresse."""
+    dokumentart = _dokumentart(ris_id, bundesland)
     try:
+        if bundesland:
+            meta = rohdaten["Metadaten"]
+            if (meta["Technisch"]["Applikation"] != "LrKons" or meta["Technisch"]["ID"] != ris_id
+                    or meta["Landesrecht"]["Bundesland"] != bundesland):
+                raise RisFehler("kennung")
         referenzen = _liste(rohdaten["Dokumentliste"]["ContentReference"])
         urls = []
         for ref in referenzen:
@@ -35,7 +54,7 @@ def xml_adresse(rohdaten, ris_id):
                 for inhalt in _liste(ref["Urls"]["ContentUrl"]):
                     if inhalt.get("DataType") == "Xml":
                         urls.append(inhalt["Url"])
-        erwartet = f"https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/{ris_id}/{ris_id}.xml"
+        erwartet = f"https://ogd.ris.bka.gv.at/Dokumente/{dokumentart}/{ris_id}/{ris_id}.xml"
         if not urls or any(url != erwartet for url in urls):
             raise RisFehler("volltextquelle")
     except (KeyError, TypeError, AttributeError) as fehler:
@@ -50,10 +69,10 @@ class Textdaten:
     xml_hash: str
 
 
-def xmltext_parsen(inhalt: bytes, ris_id: str, gesetzesnummer: str) -> Textdaten:
+def xmltext_parsen(inhalt: bytes, ris_id: str, gesetzesnummer: str, *, bundesland="") -> Textdaten:
+    _dokumentart(ris_id, bundesland)
     if (
-        not isinstance(ris_id, str) or not KENNUNG.fullmatch(ris_id)
-        or not isinstance(gesetzesnummer, str) or not GESETZESNUMMER.fullmatch(gesetzesnummer)
+        not isinstance(gesetzesnummer, str) or not GESETZESNUMMER.fullmatch(gesetzesnummer)
     ):
         raise RisFehler("kennung")
     if not isinstance(inhalt, bytes) or not inhalt or len(inhalt) > HOECHSTBYTES:
@@ -81,6 +100,8 @@ def xmltext_parsen(inhalt: bytes, ris_id: str, gesetzesnummer: str) -> Textdaten
 
     if angaben("doknr") != {ris_id} or angaben("gesnr") != {gesetzesnummer}:
         raise RisFehler("kennung")
+    if bundesland and angaben("bundesland") != {bundesland}:
+        raise RisFehler("kennung")
     teile = []
 
     # Kopf, Fuß und bibliografische Metadaten sind kein Normwortlaut.
@@ -89,6 +110,11 @@ def xmltext_parsen(inhalt: bytes, ris_id: str, gesetzesnummer: str) -> Textdaten
         while stapel:
             element = stapel.pop()
             if element.get("ct") == "text":
+                # Nur die neue Textprojektion ändern, niemals die erhaltenen
+                # Originalbytes. Sonst würde etwa „§1<br/>Begriff“ zusammenkleben.
+                for kind in element.iter():
+                    if kind.tag in {f"{{{NAMENSRAUM}}}br", f"{{{NAMENSRAUM}}}tab"} and not len(kind) and not kind.text:
+                        kind.text = "\n" if kind.tag.endswith("}br") else "\t"
                 text = "".join(element.itertext()).strip()
                 if text:
                     teile.append(text)

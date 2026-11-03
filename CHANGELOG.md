@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.69.0] — 2026-11-03 · Einzelne Landes-Dokumenttexte mit Herkunft und Original nachlesen
+
+- Ein ausdrücklicher Dokumenttextabruf übernimmt jetzt auch genau benannte Landes-XML-Quellen. Dokumentnummer, Gesetzesnummer und Bundesland müssen im Original übereinstimmen; feste amtliche Pfade, bestehende Abrufgrenzen, Rechte und CSRF-Schutz. Kein automatischer Sammel- oder Produktionsimport.
+- Neue TextauswertungFassung2 erhält sichtbare Zeilenumbrüche und Tabulatoren, auch bei künftigen Bund-Einzelabrufen. Frühere Textstände und Originalbytes bleiben unverändert. Gleicher Inhalt und Parser bleiben idempotent; neue Parserstände und gescheiterte Abrufe werden zusätzlich archiviert.
+- Öffentliche Nachlese und Original-XML-Export nennen weiterhin Quelle, Hash und Parserfassung; Schema1.24. Landesquellen werden noch nicht an Modelle übergeben und keine alten Auftragskontexte ergänzt. Normgraph, juristische Verifikation, örtliches Wahlrecht und weitere Folgenketten bleiben offen. Keine Satzung, Stimme, feste Policy oder Budgetgrenze verändert.
+
 ## [0.68.0] — 2026-11-03 · Landesrechts-Metadaten mit eindeutiger Herkunft nachlesen
 
 - Ein ausdrücklicher CLI-Einzelbezug ergänzt RIS-Landesrechts-Metadaten zu genau einem Bundesland, einer Gesetzesnummer und einem Stichtag. Herkunft, Applikation, Dokumentkennung und amtliche Adresse werden geprüft; erste Seite mit höchstens zehn Dokumenten, kein Sammelabruf. Vorhandener Abrufschutz und begrenzte Übertragung bleiben erhalten.

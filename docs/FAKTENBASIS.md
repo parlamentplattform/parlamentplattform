@@ -94,8 +94,19 @@ ohne Originalantwort, Inhaltshash, Stichtag oder ersten Import zu ersetzen. Öff
 nennen das jeweilige Bundesland und den tatsächlichen Importumfang. Die Herkunft ist keine
 juristische Relevanzprüfung und keine Feststellung örtlichen Wahlrechts.
 
-Landes-Dokumenttextabrufe sind noch nicht freigegeben. Der bestehende Bundes-XML-Parser wird dafür
-nicht stillschweigend verwendet; der Server verweigert diesen Abruf vor einem Netzaufruf. Auch
-die bestehende automatische Quellenauswahl und explizite KontexterfassungFassung1 bleiben aufBund
+Ein einzelner Landes-Dokumenttext kann seit0.69 mit `ris_volltext --norm <Schnappschuss-ID>` oder
+der bestehenden ausdrücklichen Verwaltungsaktion übernommen werden. Die benannte Originalquelle,
+LrKons-Metadaten und Bundesland müssen zusammenpassen; das XML muss dieselbe Dokumentnummer,
+Gesetzesnummer und dasselbe Bundesland nennen. Bundes- und Landespfad bleiben getrennt, unbekannte
+Quellen und Umleitungen werden verweigert. Abrufschutz, Rechte und CSRF-Prüfung gelten unverändert.
+
+Die neue TextauswertungFassung2 erhält br-/tab-Grenzen. Sie gilt auch für künftige Bund-Einzelabrufe;
+vorhandene Originalbytes und TextauswertungenFassung1 bleiben erhalten. Derselbe Originalhash mit
+neuer Parserfassung ergibt einen zusätzlichen Stand, keine Änderung früherer Auswertungen.
+Wiederholungen derselben Auswertung behalten den ersten Erfassungszeitpunkt. Fehler löschen keine
+früheren Texte. Öffentlich nachlesbar sind Original-XML, Wortlaut, Quelle, Hash, Fassung und Abrufe.
+
+Die automatische Quellenauswahl und explizite KontexterfassungFassung1 bleiben weiterhin aufBund
 begrenzt. Landesquellen werden weder alsBund ausgegeben noch bestehenden Modellaufträgen ergänzt.
-Eine spätere Landeskontextfassung braucht einen eigenen nachgewiesenen Eingabevertrag.
+Eine spätere Landeskontextfassung braucht einen eigenen nachgewiesenen Eingabevertrag. Die neue
+Textauswertung begründet keine rechtliche Geltungs-/Betroffenheitsprüfung oder vollständigen Graphen.

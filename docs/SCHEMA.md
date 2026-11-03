@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.23** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.24** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -324,3 +324,21 @@ Schnappschüsse verändern keine Originalantwort oder frühere Prüfsumme. Alte 
 QuellenkontextFassung1 bleiben ausschließlich auf Bundesrecht begrenzt; Landes-Dokumenttexte und
 ihre Einbindung in Modelle sind noch nicht Bestandteil dieses Schritts. Keine neue Datenquelle in
 laufenden Aufträgen und keine Behauptung einer vollständigen oder juristisch geprüften Rechtslage.
+
+### Ergänzung1.24: einzelner Landes-Dokumenttext
+
+Die bestehende Original-XML-Nachlese kann nun auch einen ausdrücklich übernommenen einzelnen
+Landes-Dokumenttext enthalten. Quelle ist allein die in den erhaltenen LrKons-Metadaten genannte
+exakte amtliche XML-Adresse mit Landes-Dokumentkennung. Im XML werden Dokumentnummer,
+Gesetzesnummer und Bundesland zusätzlich geprüft; keine freien Quellen oder Titelzuordnungen.
+
+Die neue Textauswertung trägt `parser_fassung: 2`, auch bei künftigen Bundes-Dokumenttextabrufen.
+Sie erhält Zeilenumbrüche und Tabulatoren an entsprechenden XML-Elementen. Originalbytes und ihr
+SHA-256 bleiben unverändert; frühere TextauswertungenFassung1 werden weder ersetzt noch gelöscht.
+Ein erneuter Bezug desselben Originals kann einen zusätzlichen TextstandFassung2 ergeben;
+Wiederholungen innerhalb derselben Parserfassung bleiben idempotent und separat protokolliert.
+
+Diese Erweiterung macht Landesrecht nicht zum Bestandteil des bisherigen Modellquellenkontexts.
+Es gibt weiterhin keinen vollständigen Norm-Verweisgraphen, keine automatische Aktualisierung,
+Produktionsbefüllung oder juristische Bestätigung. Bereits eingefrorene Antrags-/Modellkontexte
+und Exporte ihrer ursprünglichen Eingaben erhalten keine späteren Landesquellen.

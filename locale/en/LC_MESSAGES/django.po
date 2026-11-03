@@ -9692,8 +9692,9 @@ msgstr "State law"
 msgid "Bundesrecht"
 msgstr "Federal law"
 
-msgid "Landes-Dokumenttexte und ihre Verwendung im Modellkontext sind noch offen. Hier stehen ausschließlich die gespeicherten Metadaten."
-msgstr "State-law document texts and their use in model context are not available yet. This page contains only the stored metadata."
-
 msgid "Dieser Einzelimport hat %(gelesen)s von %(treffer)s gefundenen Dokumenten übernommen; eine vollständige Rechtsvorschrift ist damit nicht nachgewiesen."
 msgstr "This individual import retrieved %(gelesen)s of %(treffer)s matching documents; it does not establish a complete legal provision."
+
+
+msgid "Landes-Dokumenttexte werden noch nicht in Modellaufträge übernommen. Ein Einzeltext ist keine vollständige Rechtsvorschrift oder rechtliche Zuordnung zum Antrag."
+msgstr "State-law document texts are not yet added to model requests. An individual text is not a complete legal provision or a legal association with the proposal."

@@ -26,7 +26,7 @@ def test_landesherkunft_ist_keine_rechtliche_oder_modellbestaetigung(
     p.goto(live_server.url + reverse("faktenbasis:norm", args=[n.pk]))
     expect(p.get_by_role("heading", name="Synthetisches Beispiel", exact=True)).to_be_visible()
     expect(p.get_by_text("State law · Oberösterreich" if sprache == "en" else "Landesrecht · Oberösterreich", exact=True)).to_be_visible()
-    expect(p.get_by_text("State-law document texts and their use in model context" if sprache == "en" else "Landes-Dokumenttexte und ihre Verwendung im Modellkontext", exact=False)).to_be_visible()
+    expect(p.get_by_text("State-law document texts are not yet added to model requests" if sprache == "en" else "Landes-Dokumenttexte werden noch nicht in Modellaufträge", exact=False)).to_be_visible()
     expect(p.get_by_role("button", name="Diesen Dokumenttext einmal abrufen")).to_have_count(0)
     p.get_by_text("Provenance and checksum" if sprache == "en" else "Herkunft und Prüfsumme", exact=True).click()
     expect(p.get_by_text("1 of 147" if sprache == "en" else "1 von 147", exact=False)).to_be_visible()

@@ -9837,3 +9837,17 @@ msgstr "Monthly start limit based on tokens reported in the archive. Once reache
 
 msgid "Modellanfragen teilen sich einen betrieblichen Zugang. Besetzte Aufrufe warten ohne Anbieter-Versuch. Die Monatsgrenze prüft gemeldete Tokens vor dem Start; ein bereits begonnener Lauf kann die Restmenge überschreiten. Das ist keine garantierte Geldobergrenze."
 msgstr "Model requests share one operational access slot. Requests wait while it is occupied, without using a provider attempt. The monthly limit checks reported tokens before starting; an already started request can exceed the remaining allowance. This is not a guaranteed spending cap."
+
+# Noch unverbundener Vergleichsvertrag
+
+msgid "Vorbereiteter Antwortvertrag für Textgegenüberstellungen"
+msgstr "Prepared response contract for text comparisons"
+
+msgid "Prüft zwei begrenzte Textteile je vorgegebenem Antrags- und Fassungspaar. Noch kein angeschlossener Modellweg; die Form bestätigt keine inhaltliche Aussage."
+msgstr "Checks two bounded text parts for each specified motion and version pair. No model path is connected yet; valid form does not confirm any substantive statement."
+
+msgid "Vorbereitung für die offene Gegenüberstellung ähnlicher Anträge, ohne neue Anbieteraufrufe oder Änderung der menschlichen Wahl."
+msgstr "Preparation for the outstanding comparison of similar motions, without new provider calls or changes to human choice."
+
+msgid "Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."
+msgstr "Exactly the specified pair IDs in the same order, with two text fields of at most 400 characters each. Extra response fields, different versions, duplicate JSON keys or incomplete responses fail the form check. This does not confirm their content."

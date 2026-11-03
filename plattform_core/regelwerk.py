@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 13
+VERSION = 14
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,13 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="gegenueberstellung.py", titel=_("Vorbereiteter Antwortvertrag für Textgegenüberstellungen"),
+        zweck=_("Prüft zwei begrenzte Textteile je vorgegebenem Antrags- und Fassungspaar. Noch kein angeschlossener Modellweg; die Form bestätigt keine inhaltliche Aussage."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Vorbereitung für die offene Gegenüberstellung ähnlicher Anträge, ohne neue Anbieteraufrufe oder Änderung der menschlichen Wahl."),
+        nachrechenbar=_("Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."),
+    ),
     Regel(
         modul="personalbeleg.py", titel=_("Bekannte amtliche Personal-Aggregatzeile lesen"),
         zweck=_("Liest die nachgewiesene Zeile des Datenjahres 2025 aus Tabelle 20 des Personalberichts 2026. Einheit VBÄ, keine Kopfzahl oder Kapazitätsprognose."),

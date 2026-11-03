@@ -188,6 +188,18 @@ def zahl(schluessel: str, standard: int) -> int:
 INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0")
 
 ERSTBESTAND = [
+    {"schluessel": "quellenkontext-hoechstzahl", "wert": "3", "einheit": gettext_noop("Quellen"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Höchstens so viele Kontextkandidaten je neuem Rechtsbezug-Auftrag; 0 bis 20. Keine Aussage zur rechtlichen Relevanz."),
+     "quelle": "Offengelegte Quellenkontext-Auswahl"},
+    {"schluessel": "quellenkontext-textzeichen", "wert": "1200", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Höchstens so viele Zeichen aus jedem vorhandenen amtlichen Dokumenttext im neuen Quellenkontext; 0 bis 20000."),
+     "quelle": "Offengelegter Umfang amtlicher Ausschnitte"},
+    {"schluessel": "quellenkontext-mindestwortlaenge", "wert": "3", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Mindestlänge der Wörter für die lokale Wortanfangssuche in amtlichen Metadaten; 2 bis 12."),
+     "quelle": "Offengelegte Quellenkontext-Auswahl"},
+    {"schluessel": "quellenkontext-bestandsgrenze", "wert": "500", "einheit": gettext_noop("Schnappschüsse"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Höchstens so viele neueste Norm-Schnappschüsse werden je neuem Auftrag nach amtlicher Kennung geprüft; 1 bis 2000. Eine begrenzte Teilmenge wird ausdrücklich gekennzeichnet."),
+     "quelle": "Offengelegte Quellenkontext-Auswahl"},
     {
         "schluessel": "faktenbasis-manuelle-abrufe-je-stunde",
         "wert": "10",

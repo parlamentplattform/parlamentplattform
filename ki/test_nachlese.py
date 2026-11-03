@@ -150,5 +150,7 @@ def test_persoenlicher_export_traegt_die_eigenen_kontextfelder(a):  # noqa: F811
     auftrag = erfolg(a)
     daten = daten_export(a.eingebracht_von)
     assert daten["ki_auftraege"][0]["kontext"] == auftrag.kontext
+    assert daten["ki_auftraege"][0]["quellenkontext"] == auftrag.quellenkontext
     assert daten["ki_auftraege"][0]["quellenart"] == "antrag"
     assert daten["ki_laeufe"][0]["kontext"]["text"] == auftrag.kontext
+    assert daten["ki_laeufe"][0]["kontext"]["quellen"] == auftrag.quellenkontext

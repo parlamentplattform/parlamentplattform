@@ -68,7 +68,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
         <div><strong>{{ n.titel }}</strong>{% if n.kennung %} <span class="meta">({{ n.kennung }})</span>{% endif %}
           {% if n.ebene %}<span class="badge badge-info">{{ n.ebene }}</span>{% endif %}
           <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span>
-          <span class="badge badge-warn" title="{% translate 'Ohne Prüfung gegen das Rechtsinformationssystem — darum kein Link.' %}">{% translate "nicht verifiziert" %}</span></div>
+          <span class="badge badge-warn" title="{% translate 'Die rechtliche Zuordnung wurde nicht unabhängig geprüft — darum kein Link.' %}">{% translate "nicht verifiziert" %}</span></div>
         {% if n.begruendung %}<div class="erk">{{ n.begruendung }}</div>{% endif %}
       </li>
       {% endfor %}
@@ -83,18 +83,19 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
     </dl>
     {% include "verfahren/_ki_textstand.html" with textstand=e.textstand eingabe=e.lauf.eingabe %}
-    <p class="kennzeichnung">{% translate "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
+    <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     {% endwith %}
   {% elif lage.zustand == "wartet" %}
     <p>{% translate "Die Zukunftswerkstatt prüft, welche Gesetze betroffen sind." %}{% if lage.platz %} <span class="meta">{% blocktranslate with n=lage.platz %}Warteschlange, Platz {{ n }}{% endblocktranslate %}</span>{% endif %}</p>
     {% if lage.mail_zusage %}<p class="erk">{% translate "Sie bekommen eine E-Mail, sobald das Ergebnis da ist." %}</p>{% endif %}
   {% elif lage.zustand == "gescheitert" %}
-    <p class="leer">{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}</p>
+    <p class="leer">{% if lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>
   {% elif lage.zustand == "nicht_angeschlossen" %}
     <p class="leer">{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}</p>
   {% else %}
     <p class="leer">{% translate "Für diesen Antrag wurde keine Prüfung eingereiht." %}</p>
   {% endif %}
+  {% if lage.auftrag or lage.ergebnis %}{% include "verfahren/_ki_quellenstand.html" with quellenstand=lage.quellenstand %}{% endif %}
   {% if lage.historie.paginator.count %}
   <div class="ki-historie">
     <h4>{% translate "Frühere Einschätzungen und Fehlversuche" %}</h4>
@@ -104,6 +105,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       <summary>{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% if h.lauf.erfolgreich %}{% translate "erledigt" %}{% else %}{% translate "gescheitert" %}{% endif %}</summary>
       <p class="meta">{{ h.modell }} · {{ h.auftrag_version }}</p>
       {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
+      {% include "verfahren/_ki_quellenstand.html" with quellenstand=h.quellenstand %}
       {% if h.lauf.erfolgreich %}
         {% include "verfahren/_ki_formatstand.html" with formatstand=h.formatpruefung %}
         {% if h.normen %}<ul class="normen">{% for n in h.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p class="erk">{{ n.begruendung }}</p>{% endif %}</li>{% endfor %}</ul>
@@ -111,7 +113,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
         <p class="meta">{% translate "Unsicherheit" %}: {{ h.unsicherheit_wort }}</p>
         {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
       {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
-      <p class="kennzeichnung">{% translate "KI-Vorschlag — ohne RIS-Prüfung, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
+      <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>
     {% endfor %}
     {% if lage.historie.has_other_pages %}

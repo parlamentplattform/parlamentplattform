@@ -1,6 +1,6 @@
 """Öffentlichen Textstand und Herkunft vor dem Einreihen festhalten (H6-Fundament).
 
-Noch ohne Warteschlangen-Anbindung. Die Nummernräume der Antragsfassungen und
+Die Nummernräume der Antragsfassungen und
 der Vorschläge bleiben getrennt. Fehlende Quellen werden nie durch einen
 neueren Text ersetzt. Weder Modellaufruf noch Verfahrenshandlung in diesem Modul.
 """

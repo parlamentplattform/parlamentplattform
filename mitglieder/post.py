@@ -264,6 +264,7 @@ def rechtsbezug_brief(mitglied: Mitglied, antrag: Antrag) -> bool:
                 "stand": formats.date_format(timezone.localtime(ergebnis["stand"]), "d.m.Y, H:i"),
                 "fassung": ergebnis["fassung"],
                 "textstand": ergebnis["textstand"],
+                "quellenstand": ergebnis["quellenstand"],
                 "link": settings.DDOE_BASIS_URL.rstrip("/")
                 + reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
                 + "#zone-einschaetzung",

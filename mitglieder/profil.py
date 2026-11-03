@@ -516,6 +516,7 @@ def _gremien_export(m: Mitglied) -> dict:
         "ki_auftraege": [
             {
                 "zweck": a.zweck,
+                "quellenkontext": a.quellenkontext,
                 "antrag": a.antrag_id,
                 "fassung": a.fassung_nummer,
                 "quellenart": a.quellenart,

@@ -3,7 +3,8 @@
 Jeder Auftragstext liegt als Datei `ki/auftraege/<zweck>-v<n>.md` im Repository; ein Lauf
 speichert, mit welcher Fassung er gerechnet wurde (`KILauf.auftrag_version`). Eine neue
 Fassung ist eine neue Datei — die alte bleibt, damit ein archivierter Lauf lesbar bleibt.
-Geladen wird immer die höchste Nummer."""
+Ohne ausdrückliche Auswahl wird die höchste Nummer geladen. Festgehaltene ältere
+Aufträge können gezielt ihre damalige Fassung verlangen; fehlt sie, gibt es keinen Rückfall."""
 
 from __future__ import annotations
 
@@ -37,9 +38,13 @@ def auftragsversionen() -> list[Auftragstext]:
     return sorted(treffer, key=lambda a: (a.zweck, a.nummer))
 
 
-def auftrag_laden(zweck: str) -> Auftragstext:
-    """Die höchste Fassung eines Zwecks. Ohne Datei: KeyError — ein Zweck ohne Auftragstext läuft nicht."""
+def auftrag_laden(zweck: str, *, nummer: int | None = None) -> Auftragstext:
+    """Die verlangte oder höchste Fassung. Fehlende Nummern nie durch neuere ersetzen."""
+    if nummer is not None and (type(nummer) is not int or nummer < 1):
+        raise ValueError("Eine Auftragsfassung braucht eine positive ganze Nummer.")
     passende = [a for a in auftragsversionen() if a.zweck == zweck]
+    if nummer is not None:
+        passende = [a for a in passende if a.nummer == nummer]
     if not passende:
-        raise KeyError(f"Kein Auftragstext für den Zweck „{zweck}“ in {ORDNER}")
+        raise KeyError(f"Kein Auftragstext für den Zweck „{zweck}“, Fassung {nummer}, in {ORDNER}")
     return passende[-1]

@@ -41,17 +41,35 @@ def _textstand_schuetzen(instanz, felder, update_fields):
 
 
 class LaufQuerySet(models.QuerySet):
+    geschuetzte_eingaben = frozenset({"kontext", "eingabe"})
+
     def update(self, **kwargs):
-        if {"kontext", "eingabe"} & kwargs.keys():
+        if self.geschuetzte_eingaben & kwargs.keys():
             raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
         return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        # Vor Djangos innerem atomic(savepoint=False) ablehnen, damit kein
+        # abgefangener Schreibschutzfehler die umgebende Verfahrenstransaktion vergiftet.
+        if self.geschuetzte_eingaben & set(fields):
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        return super().bulk_update(objs, fields, batch_size=batch_size)
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts and self.geschuetzte_eingaben & set(update_fields or []):
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        return super().bulk_create(
+            objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts, update_conflicts=update_conflicts,
+            update_fields=update_fields, unique_fields=unique_fields,
+        )
 
 
 class AuftragQuerySet(LaufQuerySet):
-    def update(self, **kwargs):
-        if {"antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id"} & kwargs.keys():
-            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
-        return super().update(**kwargs)
+    geschuetzte_eingaben = LaufQuerySet.geschuetzte_eingaben | frozenset({
+        "antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id",
+        "quellenkontext",
+    })
 
 
 class Zweck(models.TextChoices):
@@ -143,6 +161,7 @@ class KIAuftrag(models.Model):
         "gremien.EntwurfsFassung", null=True, blank=True, on_delete=models.PROTECT, related_name="ki_auftraege",
     )
     kontext = models.JSONField(default=dict, blank=True)
+    quellenkontext = models.JSONField(_("Amtlicher Quellenkontext"), default=dict, blank=True)
     angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     status = models.CharField(max_length=12, choices=Auftragsstatus.choices, default=Auftragsstatus.GEPLANT)
     lauf = models.ForeignKey(KILauf, null=True, blank=True, on_delete=models.SET_NULL, related_name="auftraege")
@@ -176,7 +195,7 @@ class KIAuftrag(models.Model):
 
     def save(self, *args, **kwargs):
         _textstand_schuetzen(
-            self, ("kontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id"),
+            self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id"),
             kwargs.get("update_fields"),
         )
         return super().save(*args, **kwargs)

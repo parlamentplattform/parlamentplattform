@@ -4,6 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
 
+from faktenbasis.kontext import eingabe as quelleneingabe
 from gremien.models import Entwurf
 from ki.anbieter import AnbieterFehler, AttrappenAnbieter
 from ki.kontext import eingabe
@@ -42,14 +43,14 @@ def test_vorschlagsfassung_darf_keine_originalvektoren_ueberschreiben(a):
 
 def test_rechtsbezug_erfolg_haelt_tatsaechliche_eingabe_vor_spaeterer_aenderung_fest(a):
     auftrag = einreihen(Zweck.RECHTSBEZUG, a, a.eingebracht_von)
-    vorher = eingabe(auftrag.kontext)
+    vorher = eingabe(auftrag.kontext) + "\n\n" + quelleneingabe(auftrag.quellenkontext)
     a.titel = "Späterer Titel"
     a.save(update_fields=["titel"])
     AntragsFassung.objects.create(antrag=a, nummer=2, wortlaut="Neuer Wortlaut")
     assert auftrag_ausfuehren(auftrag.pk) == "erledigt"
     auftrag.refresh_from_db()
     assert auftrag.lauf.eingabe == vorher
-    assert auftrag.lauf.kontext == {"auftrag": auftrag.pk, "versuch": 1, "text": auftrag.kontext}
+    assert auftrag.lauf.kontext == {"auftrag": auftrag.pk, "versuch": 1, "text": auftrag.kontext, "quellen": auftrag.quellenkontext}
     assert "Späterer Titel" not in auftrag.lauf.eingabe
 
 
@@ -61,7 +62,7 @@ def test_fehlgeschlagener_anbieteraufruf_hat_denselben_kontext_wie_sein_auftrag(
     assert auftrag_ausfuehren(auftrag.pk) == "verschoben"
     auftrag.refresh_from_db()
     assert not auftrag.lauf.erfolgreich
-    assert auftrag.lauf.eingabe == eingabe(auftrag.kontext)
+    assert auftrag.lauf.eingabe == eingabe(auftrag.kontext) + "\n\n" + quelleneingabe(auftrag.quellenkontext)
     assert auftrag.lauf.kontext["text"] == auftrag.kontext
     assert "sperrcode" not in auftrag.lauf.kontext
 

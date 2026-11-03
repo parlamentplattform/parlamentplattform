@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.16"
+SCHEMA_VERSION = "1.17"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,6 +25,10 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "quellenkontext-hoechstzahl": ("sources.context_limit", "sources", "Maximum official context candidates per new legal-impact request, 0 to 20"),
+    "quellenkontext-textzeichen": ("sources.context_excerpt_chars", "characters", "Maximum characters from each stored official document, 0 to 20000"),
+    "quellenkontext-mindestwortlaenge": ("sources.context_min_word_length", "characters", "Minimum word length for published local prefix matching, 2 to 12"),
+    "quellenkontext-bestandsgrenze": ("sources.context_scan_limit", "snapshots", "Maximum latest official snapshots scanned in official identifier order, 1 to 2000"),
     "faktenbasis-manuelle-abrufe-je-stunde": (
         "sources.manual_requests_per_hour", "requests/hour",
         "Shared hourly limit for explicit RIS metadata and document requests; zero disables requests",

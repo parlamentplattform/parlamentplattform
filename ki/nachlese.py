@@ -7,6 +7,21 @@ from ki.kontext import pruefen
 from plattform_core.modellantwort import pruefen as form_pruefen
 
 
+def quellenstand(roh, *, text_sha256=None):
+    from faktenbasis.kontext import QuellenkontextFehler
+    from faktenbasis.kontext import pruefen as quellen_pruefen
+
+    if not roh:
+        return {"zustand": "alt"}
+    try:
+        daten = quellen_pruefen(roh)
+        if text_sha256 is not None and daten["text_sha256"] != text_sha256:
+            return {"zustand": "fehler"}
+    except QuellenkontextFehler:
+        return {"zustand": "fehler"}
+    return {"zustand": "fest", **daten, "hash": roh["sha256"], "erfasst_am": parse_datetime(daten["erfasst_am"])}
+
+
 def textstand(lauf):
     roh = lauf.kontext.get("text") if isinstance(lauf.kontext, dict) else None
     if not roh:
@@ -46,7 +61,7 @@ def antrag_export(antrag):
     return {
         "auftraege": [{
             "id": a.pk, "quellenart": a.quellenart, "fassung": a.fassung_nummer,
-            "vorschlagsfassung": a.vorschlagsfassung_id, "kontext": a.kontext,
+            "vorschlagsfassung": a.vorschlagsfassung_id, "kontext": a.kontext, "quellenkontext": a.quellenkontext,
             "status": a.status, "lauf": a.lauf_id, "versuche": a.versuche,
             "erstellt_am": a.erstellt_am.isoformat(), "erledigt_am": a.erledigt_am.isoformat() if a.erledigt_am else None,
         } for a in KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).order_by("erstellt_am", "pk")],

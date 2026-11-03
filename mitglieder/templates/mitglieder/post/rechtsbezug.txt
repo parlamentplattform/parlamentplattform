@@ -16,10 +16,14 @@
 {% translate "Unsicherheit:" %} {{ unsicherheit }}
 {% translate "Stand:" %} {{ stand }}{% if fassung %} · {% blocktranslate with n=fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% endif %}
 {{ textstand.quelle }}{% if textstand.festgehalten %} · {% translate "Kontext-Prüfsumme (SHA-256)" %}: {{ textstand.hash }}{% endif %}
+{% if quellenstand.zustand == "fest" %}
+{% translate "Amtlicher Quellenkontext" %}: {{ quellenstand.quellen|length }} · {% translate "Quellenkontext-Prüfsumme (SHA-256)" %}: {{ quellenstand.hash }}
+{% translate "Kontextkandidaten aus vorhandenen amtlichen Quellen. Die Auswahl beweist keine rechtliche Betroffenheit; die Modellantwort ist nicht gegen diese Quellen verifiziert." %}
+{% endif %}
 
 {% translate "Zur Antragsseite:" %} {{ link }}
 
-{% blocktranslate %}Das ist ein Vorschlag eines KI-Modells ({{ modell }}, Auftrag {{ auftrag_version }}), ohne Prüfung gegen das Rechtsinformationssystem und keine Rechtsberatung. Er hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden.{% endblocktranslate %}
+{% blocktranslate %}Das ist ein Vorschlag eines KI-Modells ({{ modell }}, Auftrag {{ auftrag_version }}). Die rechtliche Deutung ist nicht unabhängig verifiziert und keine Rechtsberatung. Der Vorschlag hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden.{% endblocktranslate %}
 
 {% blocktranslate %}Sie erhalten diese Nachricht, weil Sie den Antrag eingebracht und E-Mails zum Verfahren zugestimmt haben. Abbestellen können Sie diese Nachrichten jederzeit in Ihrem Profil unter „Nachrichten“:{% endblocktranslate %} {{ basis }}/profil/#nachrichten
 

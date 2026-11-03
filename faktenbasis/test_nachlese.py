@@ -74,7 +74,7 @@ def test_spaeterer_text_bleibt_sichtbar_obwohl_weitere_metadaten_existieren(norm
     assert not b["metadaten_spaeter"] and b["dokument_spaeter"]
     assert b["spaeterer_text"] == lauf.inhalt_id and rahmen["quellen"][0]["dokumenttext"] is None
     angaben, = ergebnis["gegenuebergestellte_quellen"]
-    assert angaben["text_norm_id"] == norm.pk and angaben["text_parser"] == 1
+    assert angaben["text_norm_id"] == norm.pk and angaben["text_parser"] == lauf.inhalt.parser_fassung
     assert angaben["text_hash"] == lauf.inhalt.xml_hash and angaben["text_erfasst"]
 
 
@@ -107,7 +107,7 @@ def test_unterschiedliche_parserverarbeitung_zum_selben_xml_wird_erkannt(norm, x
     original = volltext.importieren(norm).inhalt
     rahmen = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
     neu = NormText.objects.create(norm=norm, quelle=original.quelle, xml=original.xml, text="Andere Aufbereitung",
-                                  xml_hash=original.xml_hash, parser_fassung=2)
+                                  xml_hash=original.xml_hash, parser_fassung=original.parser_fassung + 1)
     b, = abgleichen(rahmen)["quellen"]
     assert b["dokument_spaeter"] and b["spaeterer_text"] == neu.pk
 
@@ -127,14 +127,32 @@ def test_anzeige_und_export_nennen_denselben_rahmen_originale_bleiben_gleich(a, 
     assert auftrag_ausfuehren(job.pk) == "erledigt"
     job.refresh_from_db()
     vorher = copy.deepcopy(job.lauf.kontext)
-    volltext.importieren(norm)
+    textlauf = volltext.importieren(norm)
     lage, export = rechtsbezug_lage(a), antrag_export(a)
     assert lage["quellenabgleich"]["quellen"] == export["quellenabgleich"]["quellen"]
     assert export["quellenabgleich"]["ausgangs_sha256"] == job.quellenkontext["sha256"]
     assert export["quellenabgleich"]["lauf"] == job.lauf_id
-    assert export["quellenabgleich"]["gegenuebergestellte_quellen"][0]["text_parser"] == 1
+    assert export["quellenabgleich"]["gegenuebergestellte_quellen"][0]["text_parser"] == textlauf.inhalt.parser_fassung
     assert export["laeufe"][0]["kontext"] == vorher
     assert KILauf.objects.get(pk=job.lauf_id).kontext == vorher
     html = client.get(f"/antrag/{a.pk}/").content.decode()
     assert "Spätere lokale Quellenstände" in html and "Späterer Dokumenttextstand" in html
     assert "dieser Vergleich löst keinen Modelllauf aus" in html
+
+
+def test_alter_bundes_kontext_behaelt_textfassung1_trotz_neuer_textauswertung(norm, xml):  # noqa: F811
+    import hashlib
+
+    from faktenbasis.kontext import pruefen
+
+    alt = NormText.objects.create(norm=norm, quelle=norm.rohdaten["Dokumentliste"]["ContentReference"]["Urls"]["ContentUrl"][0]["Url"],
+        xml=xml[0], text="Erhaltene frühere Textprojektion", xml_hash=hashlib.sha256(xml[0]).hexdigest(), parser_fassung=1)
+    rahmen = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
+    vorher = copy.deepcopy(rahmen)
+    neu = volltext.importieren(norm).inhalt
+    assert neu.parser_fassung == 2 and neu.xml_hash == alt.xml_hash and neu.pk != alt.pk
+    assert pruefen(rahmen)["quellen"][0]["dokumenttext"]["parser_fassung"] == 1
+    vergleich = abgleichen(rahmen)
+    assert vergleich["quellen"][0]["dokument_spaeter"]
+    assert vergleich["gegenuebergestellte_quellen"][0]["text_parser"] == 2
+    assert rahmen == vorher and NormText.objects.get(pk=alt.pk).text == "Erhaltene frühere Textprojektion"

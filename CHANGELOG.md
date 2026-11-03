@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.62.0] — 2026-11-03 · Verbrauch je Antrag sichtbar machen
+
+- Die Antragsseite zeigt die gespeicherten Modellaufrufe, Fehlversuche sowie Eingabe- und Ausgabetokens nach Zweck. Eine einzelne Gruppenabfrage zählt ausschließlich zugeordnete Läufe; Vergleiche ohne Antragsbezug bleiben ausdrücklich außerhalb der Summe. Die Übersicht ist ohne JavaScript und auf dem Handy lesbar.
+- Fehlende Abrechnungsdaten werden nicht als kostenloser Betrieb ausgegeben. Eurobetrag und Währung bleiben unbekannt; Nullwerte und Fehlversuche belegen keine Kostenfreiheit. Der Budgethinweis trennt gespeicherte Tokenangaben von tatsächlicher Abrechnung.
+- Öffentlicher Antragsarchiv-Export enthält dieselben aggregierten Werte und die gespeicherten Verbrauchsfelder der öffentlichen Rechtsbezug-Läufe. Eigener Datenexport ergänzt eigene Laufmetadaten. Interne Eingaben und Antworten werden nicht mitveröffentlicht. Schema1.18 und Regelverzeichnis7, keine Tarife, neuen Aufrufe oder Budgetänderungen.
+
 ## [0.61.1] — 2026-11-03 · Modellantworten und Aufträge im Archiv erhalten
 
 - Der interne ORM-Schutz umfasst jetzt den gesamten fertigen Modelllauf: Antwort, Ergebnisstatus, Modell, Tokenangaben und Zeitstempel. Speichern, Mengenänderung und konfliktauflösendes Einfügen können keinen bestehenden Lauf ersetzen; neue Läufe bleiben möglich.

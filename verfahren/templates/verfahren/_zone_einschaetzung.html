@@ -54,6 +54,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
 </div>
 {% endif %}
 
+{% include "verfahren/_modellverbrauch.html" with verbrauch=einschaetzung.verbrauch %}
+
 {% with lage=einschaetzung.rechtsbezug %}
 <div class="karte rechtsbezug" id="rechtsbezug">
   <h3>{% translate "Betroffene Gesetze" %} <span class="badge badge-still">{% translate "Vorschlag der Zukunftswerkstatt" %}</span></h3>

@@ -51,14 +51,17 @@ def lauf_export(lauf):
         "auftrag_version": lauf.auftrag_version, "erstellt_am": lauf.erstellt_am.isoformat(),
         "erfolgreich": lauf.erfolgreich, "eingabe": lauf.eingabe, "antwort": lauf.antwort,
         "fehler": lauf.fehler, "kontext": lauf.kontext,
+        "tokens_ein": lauf.tokens_ein, "tokens_aus": lauf.tokens_aus, "dauer_ms": lauf.dauer_ms,
         "antwortformat": form_pruefen(lauf.antwort) if lauf.erfolgreich else None,
     }
 
 
 def antrag_export(antrag):
     from ki.models import KIAuftrag, KILauf, Zweck
+    from ki.verbrauch import fuer_antrag
 
     return {
+        "verbrauch": fuer_antrag(antrag),
         "auftraege": [{
             "id": a.pk, "quellenart": a.quellenart, "fassung": a.fassung_nummer,
             "vorschlagsfassung": a.vorschlagsfassung_id, "kontext": a.kontext, "quellenkontext": a.quellenkontext,

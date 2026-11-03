@@ -82,6 +82,9 @@ def antwort_pruefen(lauf):
     d = folgenkontext.pruefen(k.get("folgen"))
     if (lauf.zweck != Zweck.RECHTSFOLGEN or lauf.auftrag_version != folgenkontext.AUFTRAG
             or lauf.antrag_id != d["text"]["antrag"] or not lauf.erfolgreich
+            or set(k) != {"text", "quellen", "folgen", "auftrag", "versuch"}
+            or type(k.get("auftrag")) is not int or k["auftrag"] < 1
+            or type(k.get("versuch")) is not int or k["versuch"] < 1
             or k.get("text") != d["text"] or k.get("quellen") != d["quellen"]
             or lauf.eingabe != folgenkontext.eingabe(k["folgen"])):
         raise ValueError("Kein eindeutig festgehaltener erfolgreicher Rechtsfolgenlauf.")

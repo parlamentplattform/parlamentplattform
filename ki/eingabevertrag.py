@@ -11,7 +11,7 @@ from faktenbasis.kontext import eingabe as quellen_eingabe
 from faktenbasis.kontext import pruefen as quellen_pruefen
 from ki.kontext import eingabe as text_eingabe
 
-VERSION = 1
+VERSION = 2
 
 
 def rechtsbezug(text, quellen):
@@ -29,6 +29,10 @@ def korrektur(rahmen):
     from ki.korrekturkontext import pruefen
 
     d = pruefen(rahmen)
+    if d["version"] == 2:
+        return 3, json.dumps({"ursprungsauftrag": d["ursprungsauftrag"],
+            "urspruengliche_eingabe": d["eingabe"], "urspruengliche_antwort": d["antwort"],
+            "beanstandung": d["beanstandung"]["text"]}, ensure_ascii=False, sort_keys=True)
     ursprung, originaleingabe = rechtsbezug(d["text"], d["quellen"])
     if d["eingabe"] != originaleingabe:
         raise ValueError("Die ursprüngliche öffentliche Eingabe ist nicht eindeutig belegt.")

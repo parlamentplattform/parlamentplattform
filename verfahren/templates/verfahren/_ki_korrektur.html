@@ -9,10 +9,11 @@
       <summary>{% translate "Antwort der Nachrechnung lesen" %} · {% translate "Lauf" %} #{{ s.lauf.pk }}</summary>
       <p class="kennzeichnung">{% translate "Neue Modellantwort, keine sachliche Erledigung oder juristische Bestätigung der Beanstandung. Original und Vermerk bleiben unverändert." %}</p>
       <dl class="lauf-daten"><dt>{% translate "Modell" %}</dt><dd>{{ s.lauf.modell }} · {{ s.lauf.auftrag_version }}</dd><dt>{% translate "Stand" %}</dt><dd>{{ s.lauf.erstellt_am|date:"d.m.Y, H:i" }}</dd></dl>
-      {% include "verfahren/_ki_formatstand.html" with formatstand=s.ergebnis.formatpruefung %}
+      {% if s.ergebnis.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=s.ergebnis.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=s.ergebnis.formatpruefung %}{% endif %}
       {% if s.ergebnis.normen %}<ul class="normen">{% for n in s.ergebnis.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p>{{ n.begruendung }}</p>{% endif %}{% include "verfahren/_ki_kennungsabgleich.html" with n=n %}</li>{% endfor %}</ul>
       {% else %}<p class="hilfe">{% translate "Keine verlässlich bestätigte Normenliste. Das ist keine Aussage, dass keine Rechtsnorm betroffen ist." %}</p>{% endif %}
       {% if s.ergebnis.hinweis %}<p>{{ s.ergebnis.hinweis|linebreaksbr }}</p>{% endif %}
+      {% if s.ergebnis.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=s.ergebnis %}{% endif %}
       <details><summary>{% translate "Unveränderte Modellantwort" %}</summary><div>{{ s.lauf.antwort|linebreaksbr }}</div></details>
     </details>
     {% elif s.zustand == "gescheitert" %}<p class="hilfe">{% translate "Die Nachrechnung konnte nicht abgeschlossen werden. Der ursprüngliche Lauf und die Beanstandung bleiben erhalten." %}</p>
@@ -25,7 +26,7 @@
       <p class="hilfe">{% translate "Als zuständige Gruppe 1 können Sie die ursprüngliche öffentliche Eingabe, Antwort und Beanstandung zur Nachrechnung an den vorhandenen Modellanbieter senden. Es gelten die bestehenden Budgets." %}</p>
       <button class="btn-linie klein" type="submit">{% translate "Nachrechnung anfordern" %}</button>
     </form>
-  {% else %}<p class="hilfe">{% translate "Eine zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg nicht enthalten." %}</p>
+  {% else %}<p class="hilfe">{% translate "Eine zuständige Gruppe 1 kann für einen eindeutig festgehaltenen öffentlichen Rechts- oder Folgenbericht eine Nachrechnung anfordern. Andere interne Einschätzungen sind nicht enthalten." %}</p>
   {% endif %}
   {% endwith %}
 </div>

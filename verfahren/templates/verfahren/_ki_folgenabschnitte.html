@@ -1,0 +1,11 @@
+{% load i18n %}
+{% if ergebnis.formatpruefung.gueltig %}
+<div class="ki-folgenabschnitte">
+  <h4>{% translate "Folgen für Judikatur" %}</h4><p>{{ ergebnis.judikatur|linebreaksbr }}</p>
+  <h4>{% translate "Folgen für Exekutive" %}</h4><p>{{ ergebnis.exekutive|linebreaksbr }}</p>
+  <h4>{% translate "Personalfolgen" %}</h4>
+  <p class="hilfe">{% translate "Stellenaufbau oder Stellenabbau ist aus den vorhandenen Personalbeständen nicht bestimmbar. Unbekannte Werte bedeuten keinen Nullbedarf." %}</p>
+  {% for p in ergebnis.personal %}<p><strong>{{ p.bereich }}</strong>: {{ p.grund }}</p>{% endfor %}
+  <p class="meta">{% translate "Unsicherheit" %}: {{ ergebnis.unsicherheit_wort }}</p>
+</div>
+{% endif %}

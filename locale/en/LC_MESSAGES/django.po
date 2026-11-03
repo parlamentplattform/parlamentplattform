@@ -9487,9 +9487,6 @@ msgstr "A published objection is retained."
 msgid "Eine veröffentlichte Beanstandung bleibt unverändert."
 msgstr "A published objection cannot be changed."
 
-msgid "Eine zuständige Gruppe 1 kann für einen festgehaltenen öffentlichen Rechtsbezug eine Nachrechnung anfordern. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg nicht enthalten."
-msgstr "A responsible group 1 may request recalculation of a recorded public legal-impact assessment. Other assessments and legacy records are outside this initial correction process."
-
 msgid "Für diese Beanstandung fehlt ein eindeutig festgehaltener öffentlicher Rechtsbezug. Es wird nichts nachträglich ergänzt."
 msgstr "This objection lacks an unambiguously recorded public legal-impact assessment. Nothing is added retroactively."
 
@@ -9510,9 +9507,6 @@ msgstr "Recalculation"
 
 msgid "Nachrechnung anfordern"
 msgstr "Request recalculation"
-
-msgid "Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs"
-msgstr "Recalculation of a challenged public legal-impact assessment"
 
 msgid "Neue Modellantwort, keine sachliche Erledigung oder juristische Bestätigung der Beanstandung. Original und Vermerk bleiben unverändert."
 msgstr "New model response, not a factual resolution or legal confirmation of the objection. Original and note remain unchanged."
@@ -9931,3 +9925,36 @@ msgstr "Version 4 counts the separate legal effects request as its own purpose. 
 
 msgid "Einmal nach Zweck gruppierte Archivangaben; sieben bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."
 msgstr "Archived data grouped once by purpose; seven known purposes and other purposes, ordered by purpose code. The total uses the same complete groups. No tariff or currency in the archive means the monetary cost is unknown."
+
+msgid "Nachrechnung eines beanstandeten öffentlichen Rechts- oder Folgenberichts"
+msgstr "Recalculation of a challenged public legal or effects report"
+
+msgid "Eine zuständige Gruppe 1 kann für einen eindeutig festgehaltenen öffentlichen Rechts- oder Folgenbericht eine Nachrechnung anfordern. Andere interne Einschätzungen sind nicht enthalten."
+msgstr "The responsible Group 1 may request recalculation of a clearly recorded public legal or effects report. Other internal assessments are not included."
+
+msgid "Der Rechtsfolgenbericht erfüllt die veröffentlichte Form nicht. Es wird keine Teilantwort als verwendbarer Bericht angezeigt."
+msgstr "The legal effects report does not meet the published format. No partial response is presented as a usable report."
+
+msgid "Die Formprüfung bestätigt keine rechtliche Aussage, Quellenverwendung oder Personalprognose."
+msgstr "The format check does not confirm any legal statement, use of sources or staffing forecast."
+
+msgid "Rechtsfolgen"
+msgstr "Legal effects"
+
+msgid "Prüfsumme der unveränderten Antwort"
+msgstr "Checksum of the unchanged response"
+
+msgid "Folgen für Judikatur"
+msgstr "Effects on the judiciary"
+
+msgid "Folgen für Exekutive"
+msgstr "Effects on the executive"
+
+msgid "Personalfolgen"
+msgstr "Staffing effects"
+
+msgid "Stellenaufbau oder Stellenabbau ist aus den vorhandenen Personalbeständen nicht bestimmbar. Unbekannte Werte bedeuten keinen Nullbedarf."
+msgstr "Staffing increases or reductions cannot be determined from the available staffing levels. Unknown values do not mean zero demand."
+
+msgid "Regelverzeichnis"
+msgstr "Rule register"

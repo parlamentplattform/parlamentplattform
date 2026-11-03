@@ -15,6 +15,10 @@ def _sha(text):
 
 
 def festhalten(beanstandung, lauf):
+    if lauf.zweck == "rechtsfolgen":
+        from ki.folgenkorrekturkontext import festhalten as folgen_festhalten
+
+        return folgen_festhalten(beanstandung, lauf)
     k = lauf.kontext if isinstance(lauf.kontext, dict) else {}
     text = text_pruefen(k.get("text"))
     if text["antrag"] != beanstandung.antrag_id or lauf.antrag_id != beanstandung.antrag_id:
@@ -31,6 +35,10 @@ def festhalten(beanstandung, lauf):
 
 
 def pruefen(roh):
+    if isinstance(roh, dict) and roh.get("version") == 2:
+        from ki.folgenkorrekturkontext import pruefen as folgen_pruefen
+
+        return folgen_pruefen(roh)
     if not isinstance(roh, dict):
         raise ValueError("Kein Korrekturrahmen.")
     d = copy.deepcopy(roh)

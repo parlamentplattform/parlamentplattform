@@ -1,0 +1,11 @@
+{% load i18n %}
+{% if formatstand %}
+{% if not formatstand.gueltig %}<p class="meldung warn">{% translate "Der Rechtsfolgenbericht erfüllt die veröffentlichte Form nicht. Es wird keine Teilantwort als verwendbarer Bericht angezeigt." %}</p>{% endif %}
+<details class="klappe ki-formatstand">
+  <summary>{% translate "Antwortformat" %} · {% if formatstand.gueltig %}{% translate "eingehalten" %}{% else %}{% translate "abweichend" %}{% endif %}</summary>
+  <p class="hilfe">{% translate "Die Formprüfung bestätigt keine rechtliche Aussage, Quellenverwendung oder Personalprognose." %}</p>
+  <p>{% translate "Formprüfung, Fassung" %}: {{ formatstand.fassung }} · {% translate "Rechtsfolgen" %}</p>
+  <p class="textstand-hash">{% translate "Prüfsumme der unveränderten Antwort" %}: {{ formatstand.antwort_sha256 }}</p>
+  <a href="{% url 'parameter:regeln' %}">{% translate "Regelverzeichnis" %}</a>
+</details>
+{% endif %}

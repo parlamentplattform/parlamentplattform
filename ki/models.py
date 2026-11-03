@@ -117,7 +117,7 @@ class Zweck(models.TextChoices):
     PARAMETERVORSCHLAG = "parametervorschlag", _("Vorschlag der Zukunftswerkstatt zu einem Parametertest")
     AEHNLICHKEIT = "aehnlichkeit", _("Textvektoren für den Bedeutungsvergleich beim Einbringen")
     RECHTSBEZUG = "rechtsbezug", _("Betroffene Gesetze — Vorschlag der Zukunftswerkstatt")
-    KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechtsbezugs")
+    KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechts- oder Folgenberichts")
     GEGENUEBERSTELLUNG = "gegenueberstellung", _("Textgegenüberstellung vor dem Einbringen")
     RECHTSFOLGEN = "rechtsfolgen", _("Rechtsfolgen — unverbindliche Einschätzung der Zukunftswerkstatt")
 

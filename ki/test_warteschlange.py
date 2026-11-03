@@ -65,7 +65,7 @@ def test_auftragstext_rechtsbezug_liegt_versioniert_im_repo():
     text = auftrag_laden("rechtsbezug")
     assert text.version == "rechtsbezug-v3" and "JSON" in text.text and "Rechtsberatung" in text.text
     assert {a.version for a in auftragsversionen()} == {
-        "einschaetzung-v1", "parametervorschlag-v1", "rechtsbezug-v1", "rechtsbezug-v2", "rechtsbezug-v3", "korrektur-v1", "korrektur-v2", "gegenueberstellung-v1", "rechtsfolgen-v1",
+        "einschaetzung-v1", "parametervorschlag-v1", "rechtsbezug-v1", "rechtsbezug-v2", "rechtsbezug-v3", "korrektur-v1", "korrektur-v2", "korrektur-v3", "gegenueberstellung-v1", "rechtsfolgen-v1",
     }
     with pytest.raises(KeyError):
         auftrag_laden("gibtesnicht")

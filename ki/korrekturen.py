@@ -19,17 +19,24 @@ def darf_anfordern(mitglied, antrag):
 def _ursprung(beanstandung):
     lauf = beanstandung.lauf
     if (lauf is None or lauf.antrag_id != beanstandung.antrag_id
-            or lauf.zweck != Zweck.RECHTSBEZUG or not lauf.erfolgreich):
+            or lauf.zweck not in {Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN} or not lauf.erfolgreich):
         raise ValueError("Kein öffentlicher erfolgreicher Rechtsbezug.")
     rahmen = festhalten(beanstandung, lauf)
     k = lauf.kontext
     job = KIAuftrag.objects.filter(
-        pk=k.get("auftrag"), antrag_id=beanstandung.antrag_id, zweck=Zweck.RECHTSBEZUG,
+        pk=k.get("auftrag"), antrag_id=beanstandung.antrag_id, zweck=lauf.zweck,
         lauf=lauf, beanstandung__isnull=True, status=Auftragsstatus.ERLEDIGT,
     ).first()
     if job is None or job.kontext != rahmen["text"] or job.quellenkontext != rahmen["quellen"]:
         raise ValueError("Kein eindeutiger öffentlicher Ursprungsauftrag.")
     pruefen(rahmen)
+    if lauf.zweck == Zweck.RECHTSFOLGEN:
+        from ki.folgenauftraege import rahmen_pruefen
+
+        rahmen_pruefen(job)
+        if rahmen["version"] != 2 or job.folgenkontext != rahmen["folgen"]:
+            raise ValueError("Kein zugehöriger öffentlicher Folgenrahmen.")
+        return lauf, job, rahmen
     from ki.eingabevertrag import rechtsbezug
 
     nummer, oeffentliche_eingabe = rechtsbezug(rahmen["text"], rahmen["quellen"])
@@ -58,6 +65,7 @@ def anfordern(beanstandung, mitglied):
         "ursprung": lauf, "korrekturkontext": rahmen, "kontext": rahmen["text"],
         "quellenkontext": rahmen["quellen"], "quellenart": alt.quellenart,
         "fassung_nummer": alt.fassung_nummer, "vorschlagsfassung": alt.vorschlagsfassung,
+        "folgenkontext": rahmen.get("folgen", {}),
     })
     if neu:
         AuditEintrag.anhaengen({"typ": "ki_korrektur_angefordert", "antrag": b.antrag_id,
@@ -71,11 +79,14 @@ def _rahmen(auftrag):
     if (auftrag.zweck != Zweck.KORREKTUR or d["antrag"] != auftrag.antrag_id
             or d["ursprung"] != auftrag.ursprung_id or d["beanstandung"]["id"] != auftrag.beanstandung_id
             or d["text"] != auftrag.kontext or d["quellen"] != auftrag.quellenkontext
-            or alt is None or alt.zweck != Zweck.RECHTSBEZUG or not alt.erfolgreich
+            or alt is None or alt.zweck != (Zweck.RECHTSFOLGEN if d["version"] == 2 else Zweck.RECHTSBEZUG) or not alt.erfolgreich
             or alt.antrag_id != auftrag.antrag_id or alt.eingabe != d["eingabe"] or alt.antwort != d["antwort"]
             or b is None or b.antrag_id != auftrag.antrag_id or b.lauf_id != alt.pk
             or b.text != d["beanstandung"]["text"] or b.erstellt_am.isoformat() != d["beanstandung"]["erstellt_am"]):
         raise ValueError("Korrekturrahmen gehört nicht zu diesem Auftrag.")
+    if ((d["version"] == 2 and auftrag.folgenkontext != d["folgen"])
+            or (d["version"] == 1 and auftrag.folgenkontext)):
+        raise ValueError("Korrektur hat einen fremden Folgenrahmen.")
     return d
 
 
@@ -88,10 +99,13 @@ def ausfuehren(auftrag):
     nummer, eingabe = korrektur(auftrag.korrekturkontext)
     prompt = auftrag_laden("korrektur", nummer=nummer)
     # Ausschließlich der festgehaltene alte Wortlaut; kein Zugriff auf aktuelle Antragstexte/Quellen.
+    kontext = {"text": d["text"], "quellen": d["quellen"], "korrektur": auftrag.korrekturkontext,
+               "auftrag": auftrag.pk, "versuch": auftrag.versuche}
+    if d["version"] == 2:
+        kontext["folgen"] = d["folgen"]
     return lauf_ausfuehren(Zweck.KORREKTUR, prompt.text, eingabe, auftrag.angefordert_von,
         antrag=auftrag.antrag, auftrag_version=prompt.version,
-        kontext={"text": d["text"], "quellen": d["quellen"], "korrektur": auftrag.korrekturkontext,
-                 "auftrag": auftrag.pk, "versuch": auftrag.versuche})
+        kontext=kontext)
 
 
 def _oeffentlicher_lauf(auftrag, lauf=None):
@@ -105,8 +119,13 @@ def _oeffentlicher_lauf(auftrag, lauf=None):
     if (k.zweck != Zweck.KORREKTUR or k.antrag_id != auftrag.antrag_id or not isinstance(k.kontext, dict)
             or k.kontext.get("auftrag") != auftrag.pk
             or k.kontext.get("korrektur") != auftrag.korrekturkontext
+            or k.kontext.get("folgen", {}) != auftrag.folgenkontext
             or k.auftrag_version != f"korrektur-v{nummer}" or k.eingabe != eingabe):
         raise ValueError("Kein zugehöriger Korrekturlauf.")
+    if nummer == 3 and (set(k.kontext) != {"text", "quellen", "folgen", "korrektur", "auftrag", "versuch"}
+            or k.kontext.get("text") != auftrag.kontext or k.kontext.get("quellen") != auftrag.quellenkontext
+            or type(k.kontext.get("versuch")) is not int or k.kontext["versuch"] < 1):
+        raise ValueError("Fremder Beifang im öffentlichen Folgen-Korrekturlauf.")
     return k
 
 
@@ -119,9 +138,17 @@ def stand(auftrag):
         k = _oeffentlicher_lauf(auftrag)
     except (ValueError, TypeError, KeyError):
         return {"zustand": "fehler"}
+    ergebnis = None
+    if k and k.erfolgreich:
+        if d["version"] == 2:
+            from ki.folgenberichte import fuer_lauf
+
+            ergebnis = fuer_lauf(k)
+        else:
+            ergebnis = ergaenzen(antwort_parsen(k.antwort), k)
     return {"zustand": auftrag.status, "auftrag": auftrag, "ursprung": auftrag.ursprung_id,
             "hash": auftrag.korrekturkontext["sha256"], "fassung": d["text"]["fassung_nummer"],
-            "ergebnis": ergaenzen(antwort_parsen(k.antwort), k) if k and k.erfolgreich else None, "lauf": k}
+            "ergebnis": ergebnis, "lauf": k}
 
 
 def hinzufuegen(antrag, beanstandungen, mitglied=None):
@@ -135,7 +162,7 @@ def hinzufuegen(antrag, beanstandungen, mitglied=None):
         job = jobs.get(b.pk)
         b.korrekturstand = stand(job) if job else {"zustand": "keiner"}
         b.darf_korrektur_anfordern = bool(erlaubt and job is None and b.lauf
-            and b.lauf.zweck == Zweck.RECHTSBEZUG and isinstance(b.lauf.kontext, dict) and b.lauf.kontext.get("text"))
+            and b.lauf.zweck in {Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN} and isinstance(b.lauf.kontext, dict) and b.lauf.kontext.get("text"))
     return beanstandungen
 
 
@@ -170,9 +197,18 @@ def _laufdaten(k):
     from ki.kennungsabgleich import fuer_lauf
     from plattform_core.modellantwort import pruefen as form_pruefen
 
+    if isinstance(k.kontext, dict) and k.kontext.get("korrektur", {}).get("version") == 2:
+        from ki.folgenberichte import fuer_lauf
+
+        ergebnis = fuer_lauf(k) if k.erfolgreich else None
+        formatstand = ergebnis["formatpruefung"] if ergebnis else None
+        abgleich = ergebnis["kennungsabgleich"] if ergebnis else None
+    else:
+        formatstand = form_pruefen(k.antwort) if k.erfolgreich else None
+        abgleich = fuer_lauf(k)
     return {"id": k.pk, "auftrag_version": k.auftrag_version, "modell": k.modell, "anbieter": k.anbieter,
             "erstellt_am": k.erstellt_am.isoformat(), "erfolgreich": k.erfolgreich,
             "eingabe": k.eingabe, "antwort": k.antwort, "kontext": k.kontext,
-            "antwortformat": form_pruefen(k.antwort) if k.erfolgreich else None,
+            "antwortformat": formatstand,
             "tokens_ein": k.tokens_ein, "tokens_aus": k.tokens_aus, "dauer_ms": k.dauer_ms,
-            "kennungsabgleich": fuer_lauf(k)}
+            "kennungsabgleich": abgleich}

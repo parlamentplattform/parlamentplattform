@@ -30,9 +30,10 @@ keine automatische zweite Modellrechnung aus und gibt keine Teilantwort frei.
 Formprüfung bestätigt keine Rechtsaussage. Personalbestände belegen keine
 Stellenfolgen: alle numerischen Deltas bleiben unbekannt, auch0istkein Nachweis.
 
-Der eigene Datenexport enthält den eigenen Folgenrahmen. Die vollständige
-öffentliche Berichtsdarstellung, Quellenlinks, Historie, Ergebnisnachricht und
-ein genau gebundener Korrekturweg müssen vor automatischer Aktivierung folgen.
+Der eigene Datenexport enthält den eigenen Folgenrahmen. Der genau gebundene
+Korrekturweg ist in FOLGENKORREKTUR.md beschrieben. Die vollständige öffentliche
+Hauptanzeige, Historie, Ergebnisnachricht und der Hauptexport fehlen noch vor
+automatischer Aktivierung.
 Eine spätere Umstellung ersetzt für neue Aufträge die bisherige automatische
 Rechtsbezug-Rechnung; sie verändert keine alten Kontexte, laufenden Regeln oder
 Budgetwerte. Kein neues Software-Release vor vollständiger Prüfung.

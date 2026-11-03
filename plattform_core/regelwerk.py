@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 9
+VERSION = 10
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,13 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="kennungsabgleich.py", titel=_("Modellkennung im damaligen Quellenstand"),
+        zweck=_("Vergleicht ausschließlich vollständige amtliche Dokumentnummern mit eindeutig passenden damaligen Quellen. Keine Titel- oder Relevanzsuche."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung: Kennungsübereinstimmung getrennt von ungeprüfter rechtlicher Deutung nachlesen; Originalantwort und Quellen bleiben unverändert."),
+        nachrechenbar=_("Gleiche vollständige NOR-Nummer, Ebene Bund und bestehendes Recht; genau ein damaliger Quellenstand. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."),
+    ),
     Regel(
         modul="modellantwort.py",
         titel=_("Formprüfung von Modellantworten"),

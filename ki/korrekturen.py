@@ -104,6 +104,7 @@ def _oeffentlicher_lauf(auftrag, lauf=None):
 
 
 def stand(auftrag):
+    from ki.kennungsabgleich import ergaenzen
     from ki.rechtsbezug import antwort_parsen
 
     try:
@@ -113,7 +114,7 @@ def stand(auftrag):
         return {"zustand": "fehler"}
     return {"zustand": auftrag.status, "auftrag": auftrag, "ursprung": auftrag.ursprung_id,
             "hash": auftrag.korrekturkontext["sha256"], "fassung": d["text"]["fassung_nummer"],
-            "ergebnis": antwort_parsen(k.antwort) if k and k.erfolgreich else None, "lauf": k}
+            "ergebnis": ergaenzen(antwort_parsen(k.antwort), k) if k and k.erfolgreich else None, "lauf": k}
 
 
 def hinzufuegen(antrag, beanstandungen, mitglied=None):
@@ -159,10 +160,12 @@ def export(antrag):
 
 
 def _laufdaten(k):
+    from ki.kennungsabgleich import fuer_lauf
     from plattform_core.modellantwort import pruefen as form_pruefen
 
     return {"id": k.pk, "auftrag_version": k.auftrag_version, "modell": k.modell, "anbieter": k.anbieter,
             "erstellt_am": k.erstellt_am.isoformat(), "erfolgreich": k.erfolgreich,
             "eingabe": k.eingabe, "antwort": k.antwort, "kontext": k.kontext,
             "antwortformat": form_pruefen(k.antwort) if k.erfolgreich else None,
-            "tokens_ein": k.tokens_ein, "tokens_aus": k.tokens_aus, "dauer_ms": k.dauer_ms}
+            "tokens_ein": k.tokens_ein, "tokens_aus": k.tokens_aus, "dauer_ms": k.dauer_ms,
+            "kennungsabgleich": fuer_lauf(k)}

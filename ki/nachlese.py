@@ -42,6 +42,7 @@ def textstand(lauf):
 
 def lauf_export(lauf):
     """Kein Export interner Gremien-Eingaben, weder als Beifang noch über ein fremdes Zweckfeld."""
+    from ki.kennungsabgleich import fuer_lauf
     from ki.models import Zweck
 
     if lauf.zweck != Zweck.RECHTSBEZUG:
@@ -53,6 +54,7 @@ def lauf_export(lauf):
         "fehler": lauf.fehler, "kontext": lauf.kontext,
         "tokens_ein": lauf.tokens_ein, "tokens_aus": lauf.tokens_aus, "dauer_ms": lauf.dauer_ms,
         "antwortformat": form_pruefen(lauf.antwort) if lauf.erfolgreich else None,
+        "kennungsabgleich": fuer_lauf(lauf),
     }
 
 

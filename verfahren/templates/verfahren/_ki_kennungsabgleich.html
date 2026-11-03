@@ -1,0 +1,6 @@
+{% load i18n %}
+{% with z=n.kennungsabgleich %}
+{% if z.zustand == "gleich" %}{% with q=z.quelle %}
+<p class="meta kennungsabgleich">{% translate "Kennung im damaligen Quellenstand:" %} <a href="{% url 'faktenbasis:norm' q.norm_id %}">{{ q.ris_id }} · {{ q.kurztitel }}</a> {{ q.abschnitt }} · {{ q.stand }}<br>{% translate "Nur die Dokumentnummer stimmt überein. Modelltitel, rechtliche Betroffenheit und Änderungsbedarf sind damit nicht bestätigt." %}</p>
+{% endwith %}{% elif z.zustand == "mehrdeutig" %}<p class="meta kennungsabgleich">{% translate "Mehrere damalige Quellenstände tragen diese Dokumentnummer. Es wird kein einzelner Stand zugeordnet." %}</p>{% endif %}
+{% endwith %}

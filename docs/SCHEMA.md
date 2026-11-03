@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.20** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.21** (3.11.2026)*
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -283,3 +283,17 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 Seit1.15 enthält das Register sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste RIS-Einzelbezüge von Metadaten und Dokumenttexten. Anfangswert10, null sperrt weitere Abrufe. Reservierung, UTC-Kalenderstunde und Mindestabstand sind in docs/FAKTENBASIS.md beschrieben. Es ist kein Ordnungsschlüssel und kein Bestandteil einer eingefrorenen Verfahrensordnung.
 
 Seit1.16 ergänzt der öffentliche JSON-Archivexport erfolgreiche Rechtsbezug-Läufe um `rechtsbezug.laeufe[].antwortformat` (Fassung, zeitbezug=darstellung, schema_sha256, antwort_sha256, gueltig, fehler mit pfad/code). Bei Anbieterfehlern ist das Feld null. Es ist die aktuelle Formprüfung beim Export, keine nachträglich behauptete Prüfung während des ursprünglichen Laufs. Originalantwort und Laufkontext bleiben unverändert. `GET /zukunftswerkstatt/antwortformat.json` liefert das Schema; technische Grenzen und Hashbildung beschreibt docs/ANTWORTFORMAT.md. Keine neuen Parameter, Verfahrensregeln oder amtlichen Normzuordnungen.
+
+
+### Ergänzung1.21: getrennte Kennungsnachlese
+
+Öffentliche `rechtsbezug.laeufe[]` sowie zugehörige Korrekturversuche enthalten `kennungsabgleich`:
+`regel_fassung`, `rechtlich_verifiziert: false`, `zustand` und `zuordnungen[]` in ursprünglicher Modellreihenfolge.
+Bei prüfbarer damaliger Eingabe stehen `text_sha256` und `quellen_sha256` daneben. Eine Zuordnung nennt
+`position`, ursprüngliche `kennung`, `zustand` (gleich/mehrdeutig/keine) und nur bei genau einem Treffer
+`quelle` mit `norm_id`, `ris_id`, `kurztitel`, `abschnitt`, `stand`. Die Quelle ist der damalige gespeicherte
+Einzel-Schnappschuss, kein heute nachgeladener Ersatz. Sonst ist `quelle` null. Fehlerhafte Antwortform,
+fehlender Alt-Kontext und unprüfbarer Rahmen sind getrennte Gesamtzustände ohne positive Zuordnungen.
+Die Kennungsnachlese ist eine heutige lesende Auswertung nach ihrer genannten Regelversion, kein im
+ursprünglichen Lauf behaupteter Nachweis und keine juristische Bestätigung. Rohantworten, Originalkontexte
+und Antwortschema bleiben unverändert. Interne Zwecke sind weiterhin vom öffentlichen Export ausgeschlossen.

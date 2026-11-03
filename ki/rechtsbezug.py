@@ -6,8 +6,9 @@ archiviert die Antwort im `KILauf`. Dieses Modul ist die **Leseschicht**: Es par
 erfolgreiche Antwort tolerant (JSON aus der Antwort ziehen; bei Parse-Fehler bleibt der rohe
 Text als Hinweis) und beschreibt den Zustand für die Antragsseite. Nichts hier schreibt.
 
-Ohne unabhängige Relevanzprüfung trägt jede Modellnorm „nicht verifiziert“ und keinen Link (FB-H3:
-Halluzinationsschutz). Der Vorschlag ist gekennzeichnet — Modell, Auftragsversion, Stand —
+Ohne unabhängige Relevanzprüfung trägt jede Modellnorm „nicht verifiziert“. Ein getrennt verlinkter
+amtlicher Kennungstreffer bestätigt die rechtliche Deutung oder den Modelltitel nicht. Der Vorschlag
+ist gekennzeichnet — Modell, Auftragsversion, Stand —
 und entscheidet nichts (Grundregel 5, § 2 Abs 6)."""
 
 from __future__ import annotations
@@ -156,7 +157,9 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
             text_sha256=lauf.kontext.get("text", {}).get("sha256") if isinstance(lauf.kontext, dict) and isinstance(lauf.kontext.get("text"), dict) else None,
         ),
     )
-    return ergebnis
+    from ki.kennungsabgleich import ergaenzen
+
+    return ergaenzen(ergebnis, lauf)
 
 
 def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:

@@ -9549,3 +9549,25 @@ msgstr "Archive figures grouped once by purpose; five known purposes and Other, 
 
 msgid "Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n  zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug mit einer eigenen Nachrechnung\n  beantworten. Original und Beanstandung bleiben stehen; eine neue Modellantwort bestätigt keine sachliche\n  Erledigung. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg noch nicht enthalten."
 msgstr "The <strong>coordination council</strong> oversees the factual database and parameter register and receives simulation reports. Only the <strong>integrity council</strong> may highlight a motion by a published, reasoned decision, never an algorithm (§ 5 para. 10). The <strong>expert council</strong> works in two independent groups: for direct tasks, the second checks the first group's proposals for conflicts of interest and may return them with reasons. Every member may publicly challenge an assessment; the note is retained. The responsible group 1 may respond to a recorded public legal-impact assessment with a separate recalculation. Original and objection are retained; a new model response does not establish a factual resolution. Other assessments and legacy records are outside this initial correction process."
+
+
+msgid "Modellkennung im damaligen Quellenstand"
+msgstr "Model identifier in the original source snapshot"
+
+msgid "Vergleicht ausschließlich vollständige amtliche Dokumentnummern mit eindeutig passenden damaligen Quellen. Keine Titel- oder Relevanzsuche."
+msgstr "Compares only complete official document identifiers with unambiguously matching original sources. No title or relevance search."
+
+msgid "Erste Fassung: Kennungsübereinstimmung getrennt von ungeprüfter rechtlicher Deutung nachlesen; Originalantwort und Quellen bleiben unverändert."
+msgstr "First version: read identifier matches separately from unverified legal interpretation; original response and sources remain unchanged."
+
+msgid "Gleiche vollständige NOR-Nummer, Ebene Bund und bestehendes Recht; genau ein damaliger Quellenstand. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."
+msgstr "Same complete NOR identifier, federal level and existing law; exactly one original source snapshot. Missing, different or ambiguous identifiers are not matched. Order follows the model response."
+
+msgid "Kennung im damaligen Quellenstand:"
+msgstr "Identifier in the original source snapshot:"
+
+msgid "Nur die Dokumentnummer stimmt überein. Modelltitel, rechtliche Betroffenheit und Änderungsbedarf sind damit nicht bestätigt."
+msgstr "Only the document identifier matches. This does not confirm the model title, legal relevance or need for amendment."
+
+msgid "Mehrere damalige Quellenstände tragen diese Dokumentnummer. Es wird kein einzelner Stand zugeordnet."
+msgstr "Several original source snapshots have this document identifier. No single snapshot is matched."

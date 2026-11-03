@@ -53,6 +53,8 @@ def _zahl(wert, unten, oben):
 
 
 def _zeit(text):
+    if not isinstance(text, str) or len(text) > 40:
+        raise ValueError("Zeitformat")
     zeit = datetime.fromisoformat(text)
     if timezone.is_naive(zeit):
         raise ValueError("Zeit ohne Zeitzone")
@@ -62,9 +64,11 @@ def _zeit(text):
 def pruefen(kontext):
     """Nur eingefrorene Daten prüfen, nie aktuelle Datenbankstände nachladen."""
     try:
-        daten = copy.deepcopy(kontext)
-        checksum = daten.pop("sha256")
-        if set(daten) != _WURZEL or not _HEX.fullmatch(checksum) or not hmac.compare_digest(checksum, _hash(daten)):
+        if not isinstance(kontext, dict) or len(kontext) != len(_WURZEL) + 1 or set(kontext) != _WURZEL | {"sha256"}:
+            raise ValueError("Kontextform")
+        daten = {k: kontext[k] for k in _WURZEL}
+        checksum = kontext["sha256"]
+        if not _HEX.fullmatch(checksum):
             raise ValueError("Form oder Prüfsumme")
         moment = _zeit(daten["erfasst_am"])
         tag = date.fromisoformat(daten["stichtag"])
@@ -78,7 +82,8 @@ def pruefen(kontext):
         gesehen = set()
         for q in daten["quellen"]:
             if (
-                set(q) != _NORM or not _zahl(q["norm_id"], 1, 2**63 - 1) or q["norm_id"] in gesehen
+                not isinstance(q, dict) or len(q) != len(_NORM) or set(q) != _NORM
+                or not _zahl(q["norm_id"], 1, 2**63 - 1) or q["norm_id"] in gesehen
                 or not KENNUNG.fullmatch(q["ris_id"]) or not GESETZESNUMMER.fullmatch(q["gesetzesnummer"])
                 or not isinstance(q["kurztitel"], str) or not 0 < len(q["kurztitel"]) <= 1000
                 or not isinstance(q["abschnitt"], str) or len(q["abschnitt"]) > 100
@@ -92,7 +97,8 @@ def pruefen(kontext):
                 raise ValueError("Quellenidentität")
             d = q["dokumenttext"]
             if d is not None and (
-                set(d) != _TEXT or not _zahl(d["id"], 1, 2**63 - 1) or not _zahl(d["parser_fassung"], 1, 1000)
+                not isinstance(d, dict) or len(d) != len(_TEXT) or set(d) != _TEXT
+                or not _zahl(d["id"], 1, 2**63 - 1) or not _zahl(d["parser_fassung"], 1, 1000)
                 or d["quelle"] != f"https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/{q['ris_id']}/{q['ris_id']}.xml"
                 or not _HEX.fullmatch(d["xml_sha256"]) or not isinstance(d["auszug"], str)
                 or len(d["auszug"]) > daten["textzeichen"] or d["auszug_sha256"] != _text_hash(d["auszug"])
@@ -101,9 +107,11 @@ def pruefen(kontext):
                 or _zeit(d["erfasst_am"]) > moment
             ):
                 raise ValueError("Dokumenttext")
-    except (AttributeError, KeyError, TypeError, ValueError, OverflowError) as fehler:
+        if not hmac.compare_digest(checksum, _hash(daten)):
+            raise ValueError("Prüfsumme")
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError, RecursionError) as fehler:
         raise QuellenkontextFehler("quellenkontext") from fehler
-    return daten
+    return copy.deepcopy(daten)
 
 
 def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None):

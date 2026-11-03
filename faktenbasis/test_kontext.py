@@ -2,14 +2,18 @@
 
 import copy
 import hashlib
+import json
 from datetime import timedelta
 
 import pytest
 from django.utils import timezone
 
+from faktenbasis import importieren as meta
 from faktenbasis import volltext
 from faktenbasis.kontext import QuellenkontextFehler, festhalten, pruefen
-from faktenbasis.models import NormText
+from faktenbasis.models import Norm, NormText
+from faktenbasis.ris import antwort_parsen
+from faktenbasis.test_ris import NUMMER, STAND, beispiel
 from faktenbasis.test_volltext import norm, xml  # noqa: F401
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from verfahren.models import AuditEintrag
@@ -95,3 +99,34 @@ def test_pruefen_laedt_keine_neueren_quellen_nach(norm, django_assert_num_querie
         kopie = pruefen(gespeichert)
     kopie["quellen"][0]["kurztitel"] = "Nur die Rückgabekopie"
     assert gespeichert["quellen"][0]["kurztitel"] == norm.kurztitel
+
+
+def test_leseaufwand_waechst_nicht_pro_quelle_und_eingabereihenfolge_ist_keine_reihung(
+    norm, monkeypatch, django_assert_num_queries,  # noqa: F811
+):
+    daten = beispiel()
+    ergebnisse = daten["OgdSearchResult"]["OgdDocumentResults"]
+    ergebnisse["Hits"]["#text"] = "8"
+    ergebnisse["OgdDocumentReference"] = [
+        {"Data": json.loads(json.dumps(norm.rohdaten).replace(norm.ris_id, f"NOR120061{i:02d}"))}
+        for i in range(5, 13)
+    ]
+    monkeypatch.setattr(meta, "abrufen", lambda *args: antwort_parsen(daten, NUMMER))
+    meta.importieren(NUMMER, STAND)
+    ids = list(Norm.objects.values_list("pk", flat=True))
+    assert len(ids) == 8
+    jetzt = timezone.now()
+    with django_assert_num_queries(2):
+        stand = festhalten(ids, hoechstzahl=10, textzeichen=50, jetzt=jetzt)
+    assert [q["ris_id"] for q in stand["quellen"]] == sorted(q["ris_id"] for q in stand["quellen"])
+    assert festhalten(ids[::-1], hoechstzahl=10, textzeichen=50, jetzt=jetzt) == stand
+
+
+def test_fremde_tiefe_struktur_wird_ohne_rekursion_als_quellenfehler_behandelt():
+    stand = festhalten([], hoechstzahl=3, textzeichen=50)
+    fremd = []
+    for _ in range(2000):
+        fremd = [fremd]
+    stand["quellen"] = [fremd]
+    with pytest.raises(QuellenkontextFehler, match="quellenkontext"):
+        pruefen(stand)

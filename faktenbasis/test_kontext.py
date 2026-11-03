@@ -1,0 +1,97 @@
+"""Quellenstand ist ein unveränderter Ausschnitt, keine rechtliche Antragszuordnung."""
+
+import copy
+import hashlib
+from datetime import timedelta
+
+import pytest
+from django.utils import timezone
+
+from faktenbasis import volltext
+from faktenbasis.kontext import QuellenkontextFehler, festhalten, pruefen
+from faktenbasis.models import NormText
+from faktenbasis.test_volltext import norm, xml  # noqa: F401
+from faktenbasis.testhilfe import abrufuhr  # noqa: F401
+from verfahren.models import AuditEintrag
+
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("abrufuhr")]
+
+
+def test_metadaten_ohne_dokumenttext_werden_nicht_zum_volltext(norm):  # noqa: F811
+    stand = festhalten([norm.pk], hoechstzahl=3, textzeichen=80)
+    q, = stand["quellen"]
+    assert q["norm_id"] == norm.pk and q["ris_id"] == norm.ris_id
+    assert q["metadaten_sha256"] == norm.inhalt_hash and q["dokumenttext"] is None
+    assert pruefen(stand)["quellen"] == stand["quellen"]
+    assert "rohdaten" not in q and "verifiziert" not in q
+
+
+def test_gekürzter_wortlaut_traegt_originalbezug_und_hash_des_tatsaechlichen_ausschnitts(norm, xml):  # noqa: F811
+    volltext.importieren(norm)
+    original = NormText.objects.get()
+    auditanzahl = AuditEintrag.objects.count()
+    daten = festhalten([norm.pk], hoechstzahl=3, textzeichen=40)
+    d = daten["quellen"][0]["dokumenttext"]
+    assert d["id"] == original.pk and d["xml_sha256"] == original.xml_hash
+    assert d["auszug"] == original.text[:40] and d["gekuerzt"] is True
+    assert d["zeichen_gesamt"] == len(original.text)
+    assert d["auszug_sha256"] == hashlib.sha256(d["auszug"].encode()).hexdigest()
+    assert AuditEintrag.objects.count() == auditanzahl and NormText.objects.count() == 1
+
+
+def test_null_textzeichen_sind_ausdruecklich_nur_metadaten(norm, xml):  # noqa: F811
+    volltext.importieren(norm)
+    d = festhalten([norm.pk], hoechstzahl=1, textzeichen=0)["quellen"][0]["dokumenttext"]
+    assert d["auszug"] == "" and d["gekuerzt"]
+    assert d["zeichen_gesamt"] > 0
+
+
+def test_spaeterer_dokumenttext_ersetzt_keinen_festgehaltenen_stand(norm, xml):  # noqa: F811
+    volltext.importieren(norm)
+    jetzt = timezone.now()
+    gespeichert = festhalten([norm.pk], hoechstzahl=3, textzeichen=200, jetzt=jetzt)
+    unveraendert = copy.deepcopy(gespeichert)
+    xml[0] = xml[0].replace(b'ct="text" halign="c">', b'ct="text" halign="c">Testaenderung ', 1)
+    volltext.importieren(norm)
+    assert pruefen(gespeichert) == pruefen(unveraendert)
+    assert festhalten([norm.pk], hoechstzahl=3, textzeichen=200, jetzt=jetzt) == gespeichert
+    neu = festhalten([norm.pk], hoechstzahl=3, textzeichen=200)
+    assert neu["quellen"][0]["dokumenttext"]["id"] != gespeichert["quellen"][0]["dokumenttext"]["id"]
+
+
+def test_leere_neue_erfassung_ist_nicht_ein_angeblich_alter_quellennachweis():
+    stand = festhalten([], hoechstzahl=3, textzeichen=50)
+    assert stand["quellen"] == [] and stand["version"] == 1 and stand["erfasst_am"]
+    with pytest.raises(QuellenkontextFehler):
+        pruefen({})
+
+
+def test_ungueltige_oder_fremde_auswahl_wird_nicht_ersetzt(norm):  # noqa: F811
+    for ids in ([norm.pk, norm.pk], [norm.pk + 99], [True], [-1], ["1"]):
+        with pytest.raises(QuellenkontextFehler):
+            festhalten(ids, hoechstzahl=3, textzeichen=50)
+    with pytest.raises(QuellenkontextFehler):
+        festhalten([norm.pk], hoechstzahl=0, textzeichen=50)
+    with pytest.raises(QuellenkontextFehler):
+        festhalten([norm.pk], hoechstzahl=3, textzeichen=50, jetzt=norm.importlauf.begonnen_am - timedelta(seconds=1))
+
+
+@pytest.mark.parametrize("zahl", [-1, True, 1.5, "5", 20001])
+def test_technisch_ungueltige_textgrenze_wird_abgewiesen(zahl):
+    with pytest.raises(QuellenkontextFehler):
+        festhalten([], hoechstzahl=3, textzeichen=zahl)
+
+
+def test_nachtraegliche_aenderung_ist_keine_gueltige_quellenherkunft(norm):  # noqa: F811
+    gespeichert = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
+    gespeichert["quellen"][0]["kurztitel"] = "Anderer Text"
+    with pytest.raises(QuellenkontextFehler):
+        pruefen(gespeichert)
+
+
+def test_pruefen_laedt_keine_neueren_quellen_nach(norm, django_assert_num_queries):  # noqa: F811
+    gespeichert = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
+    with django_assert_num_queries(0):
+        kopie = pruefen(gespeichert)
+    kopie["quellen"][0]["kurztitel"] = "Nur die Rückgabekopie"
+    assert gespeichert["quellen"][0]["kurztitel"] == norm.kurztitel

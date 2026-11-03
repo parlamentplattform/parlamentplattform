@@ -18,6 +18,17 @@ _BUND = re.compile(r"NOR[0-9]{8}\Z", re.ASCII)
 _LAND = re.compile(r"L[A-Z]{2}[0-9]{8}\Z", re.ASCII)
 
 
+def als_dict():
+    return {"regel_fassung": VERSION, "kennung": UMFANG}
+
+
+def pruefen(wert):
+    if (not isinstance(wert, dict) or set(wert) != {"regel_fassung", "kennung"}
+            or type(wert["regel_fassung"]) is not int or wert["regel_fassung"] != VERSION
+            or wert["kennung"] != UMFANG):
+        raise ValueError("Quellenumfang")
+
+
 def dokumentart(ebene, bundesland, kennung):
     """Den ausdrücklichen Herkunftstyp prüfen, niemals aus einem Titel ableiten."""
     if not all(isinstance(s, str) for s in (ebene, bundesland, kennung)):

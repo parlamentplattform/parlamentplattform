@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 11
+VERSION = 12
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -936,6 +936,13 @@ REGELN: tuple[Regel, ...] = (
         wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-03",
         grund=_("Fassung 2 ergänzt den Korrekturzweck. Verbrauch je Antrag bleibt vollständig; fehlende Anbieterangaben werden nicht als kostenlose Nutzung ausgelegt. Archivdaten werden nicht ergänzt."),
         nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; fünf bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+    ),
+    Regel(
+        modul="quellenumfang.py", titel=_("Herkunftsgrenze amtlicher Kontextkandidaten"),
+        zweck=_("Trennt Bundes- und Landesherkunft anhand der gespeicherten Ebene, des Bundeslands und der vollständigen Dokumentkennung. Das ist keine rechtliche Zuständigkeitsprüfung."),
+        wirkung=Wirkung.ORDNET_ZU, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung für ausdrücklich bezeichnete Landesquellen in neuen Quellenrahmen. Ein freier Gebietsname wird nicht zu einer verifizierten Herkunft oder Wahlrechtsregel umgedeutet."),
+        nachrechenbar=_("Bund mit leerem Bundesland und NOR-Kennung; Land mit ausdrücklich benanntem Bundesland und Landes-Dokumentkennung. Kein Titelabgleich und kein Gebietsfilter. Worttreffer, Bestandsgrenze und neutrale Reihung sind getrennt im Quellenrahmen festgehalten."),
     ),
     Regel(
         modul="quellenauswahl.py",

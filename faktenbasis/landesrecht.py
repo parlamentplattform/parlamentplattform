@@ -28,13 +28,9 @@ from faktenbasis.ris import (
     amtliche_url,
     begrenzt_lesen,
 )
+from plattform_core.quellenumfang import BUNDESLAENDER
 
 API = "https://data.bka.gv.at/ris/api/v2.6/Landesrecht"
-BUNDESLAENDER = {
-    "Burgenland": "Burgenland", "Kaernten": "Kärnten", "Niederoesterreich": "Niederösterreich",
-    "Oberoesterreich": "Oberösterreich", "Salzburg": "Salzburg", "Steiermark": "Steiermark",
-    "Tirol": "Tirol", "Vorarlberg": "Vorarlberg", "Wien": "Wien",
-}
 KENNUNG = re.compile(r"L[A-Z]{2}[0-9]{8}\Z", re.ASCII)
 
 

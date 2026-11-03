@@ -1,0 +1,29 @@
+"""Herkunftstyp statt politischer oder geografischer Relevanzentscheidung."""
+
+import pytest
+
+from plattform_core.quellenumfang import BUNDESLAENDER, UMFANG, VERSION, dokumentart
+
+
+def test_bund_bleibt_ohne_bundesland_und_mit_eigener_kennung():
+    assert VERSION == 1 and UMFANG == "bund_land_ohne_gebietspruefung"
+    assert dokumentart("Bund", "", "NOR00000001") == "Bundesnormen"
+
+
+@pytest.mark.parametrize("land", list(BUNDESLAENDER.values()))
+def test_ausdrueckliche_landherkunft_ist_ein_kandidat_kein_zustaendigkeitsurteil(land):
+    assert dokumentart("Land", land, "LOO00000001") == "Landesnormen"
+
+
+@pytest.mark.parametrize("ebene,land,kennung", [
+    ("Bund", "Oberösterreich", "NOR00000001"), ("Bund", "", "LOO00000001"),
+    ("Land", "", "LOO00000001"), ("Land", "Oberoesterreich", "LOO00000001"),
+    ("Land", "Unbekannt", "LOO00000001"), ("Land", "Wien", "NOR00000001"),
+    ("EU", "", "NOR00000001"), ("bund", "", "NOR00000001"),
+    ("Bund", "", "NOR00000001\n"), ("Bund", "", "NOR１２３４５６７８"),
+    ("Land", "Wien", "https://ris.bka.gv.at/LOO00000001"),
+    (None, "", "NOR00000001"), ("Bund", None, "NOR00000001"), ("Bund", "", None),
+])
+def test_keine_stille_herkunftsumdeutung_oder_titelsuche(ebene, land, kennung):
+    with pytest.raises(ValueError, match="Quellenherkunft"):
+        dokumentart(ebene, land, kennung)

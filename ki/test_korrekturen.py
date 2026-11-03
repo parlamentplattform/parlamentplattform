@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 from datetime import timedelta
 
 import pytest
@@ -21,6 +22,20 @@ from verfahren.models import AuditEintrag, Beanstandung, antrag_einbringen
 from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
+
+
+def test_korrekturauftrag_verlangt_nur_werte_des_oeffentlichen_antwortschemas():
+    from ki.auftraege import auftrag_laden
+    from plattform_core.modellantwort import schema_als_dict
+
+    text = auftrag_laden("korrektur", nummer=1).text
+    felder = schema_als_dict()["properties"]
+    normen = felder["normen"]["items"]["properties"]
+    for etikett, schema in (("Erlaubte Änderungen", normen["aenderung"]), ("Ebenen", normen["ebene"]),
+                            ("Unsicherheit", felder["unsicherheit"])):
+        angabe = re.search(rf"{etikett}: ([^.]+)\.", text)
+        assert angabe is not None
+        assert {s.strip() for s in angabe[1].split(",")} == set(schema["enum"])
 
 
 @pytest.fixture

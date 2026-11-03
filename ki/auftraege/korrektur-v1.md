@@ -13,7 +13,7 @@ Fehlende Belege und Unsicherheiten sind ausdrücklich zu benennen. Du hast keine
 Antworte ausschließlich als JSON-Objekt im öffentlichen Rechtsbezug-Format:
 {"normen": [{"titel": "...", "ebene": "Bund", "kennung": "...", "aenderung": "aendern", "begruendung": "..."}], "hinweis": "...", "unsicherheit": "hoch"}
 
-Erlaubte Änderungen: aendern, aufheben, neu, beruehrt, unklar. Ebenen: EU, Bund, Land.
-Unsicherheit: niedrig, mittel, hoch, unbekannt. Eine leere Normenliste ist keine Entwarnung.
+Erlaubte Änderungen: aendern, aufheben, neu, beruehrt. Ebenen: EU, Bund, Land.
+Unsicherheit: niedrig, mittel, hoch. Eine leere Normenliste ist keine Entwarnung.
 Erläutere im Hinweis, welche Beanstandung geprüft wurde, ob und weshalb du die frühere Antwort
 beibehältst oder abweichst und was mit den vorhandenen Belegen ungeklärt bleibt.

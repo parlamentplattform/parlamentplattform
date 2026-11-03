@@ -113,7 +113,8 @@ def test_neuer_antrag_speichert_seinen_vektor_ohne_zweiten_aufruf(client, settin
     assert neu.einbettungen.filter(fassung_nummer=1).exists()
     assert KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT).count() == 1  # kein zweiter Aufruf
     assert not KIAuftrag.objects.filter(zweck=Zweck.AEHNLICHKEIT).exists()  # und kein Auftrag nötig
-    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSBEZUG, antrag=neu).exists()  # aber die Gesetze
+    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSFOLGEN, antrag=neu).exists()  # ein kombinierter Bericht
+    assert not KIAuftrag.objects.filter(zweck=Zweck.RECHTSBEZUG, antrag=neu).exists()
 
 
 def test_trotzdem_einbringen_reiht_den_vektor_in_die_warteschlange(client, settings, bestehend):
@@ -124,7 +125,7 @@ def test_trotzdem_einbringen_reiht_den_vektor_in_die_warteschlange(client, setti
     neu = Antrag.objects.latest("pk")
     assert not neu.einbettungen.exists()
     assert KIAuftrag.objects.filter(zweck=Zweck.AEHNLICHKEIT, antrag=neu).exists()
-    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSBEZUG, antrag=neu).exists()
+    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSFOLGEN, antrag=neu).exists()
 
 
 def test_ohne_anbieter_wird_kein_vektor_auftrag_eingereiht(client, bestehend):
@@ -132,7 +133,7 @@ def test_ohne_anbieter_wird_kein_vektor_auftrag_eingereiht(client, bestehend):
     client.post(reverse("verfahren:einbringen"), {**UMFORMULIERT, "trotzdem": "1"})
     neu = Antrag.objects.latest("pk")
     assert not KIAuftrag.objects.filter(zweck=Zweck.AEHNLICHKEIT).exists()
-    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSBEZUG, antrag=neu).exists()  # wartet auf einen Anbieter
+    assert KIAuftrag.objects.filter(zweck=Zweck.RECHTSFOLGEN, antrag=neu).exists()  # wartet auf einen Anbieter
 
 
 def test_stummer_anbieter_faellt_still_auf_den_wortvergleich_zurueck(client, settings, bestehend, monkeypatch):

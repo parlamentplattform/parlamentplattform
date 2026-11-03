@@ -43,6 +43,19 @@ def test_neuer_bericht_ist_in_hauptanzeige_und_export_derselbe_oeffentliche_lauf
     assert job.lauf.kontext["folgen"]["sha256"] == lage["ergebnis"]["folgen_sha256"]
 
 
+def test_personalquelle_und_tatsaechlicher_gesamtbestand_stehen_getrennt_von_der_folgenprosa(antrag, attrappe, client):
+    from faktenbasis.test_personalrahmen import daten
+
+    daten()
+    job = erfolg(antrag)
+    p = rechtsbezug_fuer(antrag)["personalstand"]
+    assert p["aggregat"]["gesamt"] == 138100 and p["ressorttabelle"]["gesamt"]["gesamt"] == 138100
+    html = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "Damals verwendeter Personalbestand" in html and p["sha256"] in html and "Originalpublikation" in html
+    assert str(p["aggregat"]["seite"]) in html and str(p["ressorttabelle"]["methodik_seite"]) in html
+    assert job.folgenkontext["personal"] == p
+
+
 def test_neuer_vorschlag_wartet_trotz_altem_folgenbericht_und_historie_bleibt_nachlesbar(antrag, attrappe):
     alt = erfolg(antrag)
     v = vorschlag(antrag)

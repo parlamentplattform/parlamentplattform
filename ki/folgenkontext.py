@@ -1,6 +1,6 @@
-"""Vorbereitete öffentliche Rechtsfolgen-Eingabe, getrennt von früheren Aufträgen.
+"""Öffentliche Rechtsfolgen-Eingabe, getrennt von früheren Aufträgen.
 
-Noch kein Modellweg. Nur vorhandenen öffentlichen Text, Normkandidaten und den
+Nur vorhandenen öffentlichen Text, Normkandidaten und den
 gesonderten Personalbestand festhalten. Keine privaten Vergleichsentwürfe oder
 internen Gremienfassungen als Beifang, keine späteren Quellen beim Rekonstruieren.
 """

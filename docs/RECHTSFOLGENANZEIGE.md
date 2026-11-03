@@ -36,7 +36,10 @@ Bericht, Quellen-/Textprüfsummen und die Unbestimmbarkeit numerischer Personalf
 Ohne Einwilligung wird kein Postauftrag angelegt; ein verbuchter Erfolg wird nicht
 erneut verschickt. Kein Massenversand im Rahmen dieses Baus.
 
-Dieser Zusatzstand ist noch nicht automatisch aktiviert und noch keine neue
-Softwarefreigabe. Vor der Umstellung sind offener Eingabeparameter, Schema- und
-Versionsnachführung, vollständige3.12-Abnahme sowie alle Pflicht-CI-/Liveprüfungen
-erforderlich. Alte Warteschlangenjobs und feste Verfahrensregeln bleiben erhalten.
+Neue Webanträge und eingereichte Vorschlagsfassungen verwenden den kombinierten
+Auftrag statt des alten Rechtsbezugs. Vorhandene alte Aufträge derselben Textfassung
+werden zurückgegeben und niemals durch einen zweiten Bericht ergänzt. Der offene
+Parameter `rechtsfolgen-eingabezeichen` begrenzt den vollständigen Input, ohne den
+Antrag einzuschränken. Schema1.28 dokumentiert die zusätzlichen öffentlichen Daten.
+Der lokale0.73-Stand benötigt vor Auslieferung weiterhin die vollständige3.12-
+Abnahme und alle Pflicht-CI-/Liveprüfungen. Feste Verfahrensregeln bleiben erhalten.

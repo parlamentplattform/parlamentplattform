@@ -1,8 +1,8 @@
-"""Vorbereiteter Personal-Bestandsrahmen ohne Modell-, Netz- oder Schreibzugriff.
+"""Personal-Bestandsrahmen ohne eigenen Modell-, Netz- oder Schreibzugriff.
 
 Nur die bekannte Publikation und tatsächlich zuvor gespeicherte Schnappschüsse.
 Ein vollständiger Bestandsrahmen ist weder vollständiges Österreich-Personal noch
-eine Kapazitäts-/Personalfolgenprognose. Noch kein Anschluss an Modellaufträge.
+eine Kapazitäts-/Personalfolgenprognose. Neue Rechtsfolgenaufträge halten ihn fest.
 """
 
 import copy

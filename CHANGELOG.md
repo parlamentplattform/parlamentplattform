@@ -2,6 +2,16 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.73.0] — 2026-11-04 · Qualitative Rechtsfolgen mit festgehaltenen Norm- und Personalgrundlagen
+
+- Neue Sachanträge und eingereichte Expertenratsvorschläge erhalten einen kombinierten Rechtsfolgenauftrag anstelle des bisherigen Rechtsbezugs. Vorhandene alte Aufträge derselben Fassung bleiben unverändert; keine zweite automatische Modellrechnung. Gemeinsamer Zugang, Monatsrahmen und Tageskontingent gelten weiter, keine Budgeterhöhung.
+- Unveränderlicher Folgenkontext verbindet den tatsächlichen öffentlichen Text, damalige amtliche Normkandidaten und den getrennten belegten Personalbestand. Keine internen Entwürfe, privaten Vorabvergleiche oder Kontometadaten als Anbieterbeifang. Ein offener Eingaberahmen begrenzt den vollständigen Auftrag; zu große oder fehlerhaft erfasste Grundlagen führen zu einem ehrlichen Fehlerstand, keiner Kürzung und keiner Verfahrenshemmung.
+- Eigener Auftrag rechtsfolgen-v1, strenger vollständiger Antwortvertrag und gesondertes öffentliches JSON-Schema mit Prüfsumme. Judikatur und Exekutive erhalten qualitative Modelltexte. Personalbestände begründen keine Stellenfolgen: alle numerischen Deltas bleiben unbekannt, auch Nullbedarf wird nicht behauptet. Keine Grafik mit erfundener Spanne, keine juristische Verifikation oder teilweise Freigabe fehlerhafter Antworten.
+- Hauptanzeige, frühere Fassungen, Quellenidentität, Beanstandungsbindung, öffentlicher Archivexport und zustimmungsgebundene einmalige Ergebnispost verwenden denselben festgehaltenen Bericht. Unklare Zuordnungen geben keine fremden Rohdaten aus. Ein formaler Kennungstreffer verlinkt den damaligen amtlichen Schnappschuss und bestätigt weder Modelltitel noch rechtliche Betroffenheit.
+- Eigener Korrekturrahmen2 und korrektur-v3 halten Originalinput, Antwort und Beanstandung fest. Frühere Korrekturen behalten Rahmen1 und Prompts1/2. Fehlversuche und Originale bleiben erhalten; keine automatische Erledigung der Beanstandung.
+- Additive KI-Migrationen0010/0011, Regelverzeichnis18, Rechtsfolgen-Formregel2 und Verbrauchsregel4. Schema1.28 ergänzt legal_effects.total_input_chars und die getrennten öffentlichen Folgenberichte. Keine Satzungs-, Stimmen-, Fristen- oder festgeschriebene Policyänderung; NormVerweis, juristische Verifikation und quantitative Personalfolgen bleiben offen.
+- Vollständige lokale Prüfung und CI-Freigabe dieses neuen Stands stehen aus; keine Livefreigabe behauptet.
+
 ## [0.72.0] — 2026-11-03 · Ähnliche Texte freiwillig mit Gemeinsamkeit und Unterschied vergleichen
 
 - Die Trefferanzeige bietet einen ausdrücklich ausgelösten privaten KI-Textvergleich. Wortvergleich, Vorschau und beide menschlichen Wahlwege bleiben verfügbar; kein Chat beim Tippen oder GET und kein Einbringen durch das Modell. Anbieterhinweis vor dem freiwilligen Auftrag, Fehler ohne Entwurfsverlust, Desktop/Handy sowie ohne JavaScript.

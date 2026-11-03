@@ -50,6 +50,15 @@ def antwortformat(request):
     return antwort
 
 
+def rechtsfolgenformat(request):
+    from plattform_core.rechtsfolgen import VERSION, schema_als_dict
+
+    antwort = JsonResponse(schema_als_dict(), json_dumps_params={"ensure_ascii": False, "indent": 2})
+    antwort["Content-Disposition"] = f'attachment; filename="rechtsfolgen-schema-v{VERSION}.json"'
+    antwort["X-Content-Type-Options"] = "nosniff"
+    return antwort
+
+
 # Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>)
 FELDER = ("filter", "favoriten", "wichtig", "region")
 

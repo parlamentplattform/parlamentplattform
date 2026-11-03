@@ -1,4 +1,4 @@
-"""Vorbereiteter Rechtsfolgen-Antwortvertrag, keine rechtliche Verifikation.
+"""Rechtsfolgen-Antwortvertrag, keine rechtliche Verifikation.
 
 Diese erste Fassung hat nur Personal-Bestandsbelege, keine belastbare quantitative
 Bedarfsgrundlage. Deshalb bleiben alle numerischen Personalfolgen ausdrücklich
@@ -10,7 +10,7 @@ import hashlib
 import json
 import re
 
-VERSION = 1
+VERSION = 2
 HOECHSTZEICHEN = 100_000
 HOECHSTNORMEN = 8
 HOECHSTPERSONAL = 16
@@ -18,6 +18,40 @@ QUELLE = re.compile(r"(?:norm|personal_aggregat|personal_ressorts):[1-9][0-9]{0,
 _WURZEL = {"normen", "judikatur", "exekutive", "personal", "unsicherheit", "quellen"}
 _NORM = {"ris_id", "titel", "aenderung", "grund"}
 _DELTAS = {"beamte_delta_min", "beamte_delta_max", "vb_delta_min", "vb_delta_max"}
+
+
+def schema_als_dict():
+    """Öffentliche Form; tatsächliche Quellenangebote werden zusätzlich gebunden."""
+    def text(limit, leer=False):
+        d = {"type": "string", "minLength": 0 if leer else 1, "maxLength": limit,
+             "pattern": r"^(?![\s\S]*[\u0000-\u0008\u000B-\u001F\u007F\uD800-\uDFFF])[\s\S]*$"}
+        if not leer:
+            d["allOf"] = [{"pattern": r"\S"}]
+        return d
+
+    norm = {"type": "object", "additionalProperties": False, "required": sorted(_NORM),
+        "properties": {"ris_id": text(120, True), "titel": text(200), "grund": text(800),
+                       "aenderung": {"enum": ["aendern", "aufheben", "neu", "beruehrt"]}},
+        "allOf": [{"if": {"properties": {"aenderung": {"const": "neu"}}},
+                   "then": {"properties": {"ris_id": {"const": ""}}}}]}
+    personal = {"type": "object", "additionalProperties": False,
+        "required": sorted({"bereich", "grund", *_DELTAS}),
+        "properties": {"bereich": text(200), "grund": text(800), **{k: {"type": "null"} for k in sorted(_DELTAS)}}}
+    return {"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object",
+        "title": "Rechtsfolgenantwort", "additionalProperties": False, "required": sorted(_WURZEL),
+        "properties": {"normen": {"type": "array", "maxItems": HOECHSTNORMEN, "items": norm},
+            "judikatur": {"type": "object", "additionalProperties": False, "required": ["text"], "properties": {"text": text(2000)}},
+            "exekutive": {"type": "object", "additionalProperties": False, "required": ["text"], "properties": {"text": text(2000)}},
+            "personal": {"type": "array", "maxItems": HOECHSTPERSONAL, "items": personal},
+            "unsicherheit": {"enum": ["niedrig", "mittel", "hoch"]},
+            "quellen": {"type": "array", "maxItems": 22, "uniqueItems": True,
+                        "items": {"type": "string", "pattern": r"^(norm|personal_aggregat|personal_ressorts):[1-9][0-9]{0,18}$"}}},
+        "description": "Formprüfung. Quellen und Personalbereiche müssen zusätzlich zum damaligen Angebot passen; keine Inhaltsbestätigung."}
+
+
+def schema_sha256():
+    return hashlib.sha256(json.dumps(schema_als_dict(), ensure_ascii=False, sort_keys=True,
+        separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
 
 
 def _text(wert, limit, *, leer=False):
@@ -45,6 +79,7 @@ def pruefen(text, *, quellen=(), personalbereiche=()):
             or len(set(personalbereiche)) != len(personalbereiche)):
         raise ValueError("Unklarer angebotener Quellen- oder Personalrahmen.")
     ausgang = {"fassung": VERSION, "gueltig": False, "inhaltlich_geprueft": False,
+               "schema_sha256": schema_sha256(),
                "antwort_sha256": None, "fehler": [], "daten": None,
                "personalfolgen": "nicht_bestimmbar"}
 

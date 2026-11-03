@@ -385,10 +385,10 @@ def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:
     und den Textvektor sichern — direkt, wenn die Prüfung ihn eben gerechnet hat (kein zweiter
     Aufruf), sonst als Auftrag „aehnlichkeit“ für den Hintergrundlauf. Beides ist Vorschlag,
     nichts davon hält den Antrag auf."""
-    from ki.warteschlange import einreihen
+    from ki.warteschlange import einreihen, rechtspruefung_ohne_hemmung
     from verfahren.aehnlichkeit import einbettung_speichern
 
-    einreihen(Zweck.RECHTSBEZUG, antrag, mitglied)
+    rechtspruefung_ohne_hemmung(antrag, mitglied)
     if pruefung is not None and pruefung.neuer_vektor is not None:
         einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
     elif anbieter_waehlen() is not None:

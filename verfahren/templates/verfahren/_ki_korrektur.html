@@ -13,7 +13,7 @@
       {% if s.ergebnis.normen %}<ul class="normen">{% for n in s.ergebnis.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p>{{ n.begruendung }}</p>{% endif %}{% include "verfahren/_ki_kennungsabgleich.html" with n=n %}</li>{% endfor %}</ul>
       {% else %}<p class="hilfe">{% translate "Keine verlässlich bestätigte Normenliste. Das ist keine Aussage, dass keine Rechtsnorm betroffen ist." %}</p>{% endif %}
       {% if s.ergebnis.hinweis %}<p>{{ s.ergebnis.hinweis|linebreaksbr }}</p>{% endif %}
-      {% if s.ergebnis.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=s.ergebnis %}{% endif %}
+      {% if s.ergebnis.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=s.ergebnis %}{% include "verfahren/_ki_personalstand.html" with personalstand=s.ergebnis.personalstand %}{% endif %}
       <details><summary>{% translate "Unveränderte Modellantwort" %}</summary><div>{{ s.lauf.antwort|linebreaksbr }}</div></details>
     </details>
     {% elif s.zustand == "gescheitert" %}<p class="hilfe">{% translate "Die Nachrechnung konnte nicht abgeschlossen werden. Der ursprüngliche Lauf und die Beanstandung bleiben erhalten." %}</p>

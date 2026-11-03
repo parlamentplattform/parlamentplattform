@@ -17,7 +17,7 @@
 {% translate "Folgen für Judikatur" %}: {{ folgen.judikatur }}
 {% translate "Folgen für Exekutive" %}: {{ folgen.exekutive }}
 {% translate "Personalfolgen" %}: {% translate "Stellenaufbau oder Stellenabbau ist aus den vorhandenen Personalbeständen nicht bestimmbar. Unbekannte Werte bedeuten keinen Nullbedarf." %}
-{% for p in folgen.personal %}- {{ p.bereich }}: {{ p.grund }}
+{% for p in folgen.personal %}- {{ p.bereich_wort }}: {{ p.grund }}
 {% endfor %}{% endif %}
 {% translate "Unsicherheit:" %} {{ unsicherheit }}
 {% translate "Stand:" %} {{ stand }}{% if fassung %} · {% blocktranslate with n=fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% endif %}

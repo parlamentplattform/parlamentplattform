@@ -1,7 +1,7 @@
-"""Vorbereiteter eigener Rechtsfolgenauftrag; bisherige automatische Aufträge bleiben alt.
+"""Eigener Rechtsfolgenauftrag; bereits vorhandene automatische Aufträge bleiben alt.
 
-Einreihen benötigt ausdrücklich die vollständige Eingabegrenze. Noch kein Aufruf
-aus einem Formular oder Verfahrensübergang. Kein weiterer automatischer Modelllauf.
+Einreihen benötigt ausdrücklich die vollständige Eingabegrenze. Neue Webanträge
+und öffentliche Vorschläge nutzen ihn statt einer zusätzlichen Rechtsbezug-Rechnung.
 """
 
 import logging

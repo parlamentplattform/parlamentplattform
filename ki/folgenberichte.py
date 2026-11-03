@@ -1,5 +1,7 @@
 """Vollständige qualitative Berichte lesen; Form und Quellenidentität trennen."""
 
+from django.utils.translation import gettext_lazy as _
+
 from ki import folgenkontext
 from ki.models import Zweck
 from plattform_core.kennungsabgleich import VERSION as ABGLEICHFASSUNG
@@ -48,6 +50,7 @@ def fuer_lauf(lauf):
                 "kennungsabgleich": {"regel_fassung": ABGLEICHFASSUNG, "rechtlich_verifiziert": False,
                                      "zustand": "antwortformat", "zuordnungen": []},
                 "text_sha256": d["text"]["sha256"], "folgen_sha256": rahmen["sha256"]}
+    ergebnis["personalstand"] = d["personal"]
     if form is None or not form["gueltig"]:
         return ergebnis  # keine gut aussehende Teilantwort aus fehlerhaftem JSON
     daten = form["daten"]
@@ -64,7 +67,9 @@ def fuer_lauf(lauf):
     for n, z in zip(normen, abgleich, strict=True):
         n["kennungsabgleich"] = z
     return {**ergebnis, "normen": normen, "judikatur": daten["judikatur"]["text"],
-            "exekutive": daten["exekutive"]["text"], "personal": daten["personal"],
+            "exekutive": daten["exekutive"]["text"],
+            "personal": [{**p, "bereich_wort": _("unbestimmt") if p["bereich"] == "unbestimmt" else p["bereich"]}
+                         for p in daten["personal"]],
             "quellen": daten["quellen"], "unsicherheit": daten["unsicherheit"],
             "unsicherheit_wort": UNSICHERHEITEN[daten["unsicherheit"]],
             "kennungsabgleich": {"regel_fassung": ABGLEICHFASSUNG, "rechtlich_verifiziert": False,

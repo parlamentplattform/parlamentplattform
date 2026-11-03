@@ -1,6 +1,6 @@
 # Nachrechnung eines Rechtsfolgenberichts
 
-Für den vorbereiteten eigenen Rechtsfolgenbericht besteht ein gesonderter
+Für den eigenen Rechtsfolgenbericht besteht ein gesonderter
 Korrekturvertrag. Er aktiviert keine weitere automatische Rechnung. Die
 zuständige aktive Gruppe1 muss sie zu einer Beanstandung ausdrücklich anfordern;
 dieselben Mitwirkungsrechte und bestehenden Tages-/Monatsrahmen gelten weiter.
@@ -31,6 +31,6 @@ Modellprosa; unbekannte Personalfolgen werden weder alsNullbedarf noch alsBalken
 mit einer erfundenen Spanne gezeichnet. Modelltexte werden beim Rendern escaped.
 
 Hauptanzeige, Historie, Ergebnisnachricht und öffentlicher Hauptexport sind separat
-angeschlossen. Automatische Beauftragung neuer Folgenberichte benötigt den nächsten
-Schritt mit offenem Eingabeparameter. Noch keine neue Software- oder
-S11-Gesamtabnahme dieses Zusatzstands.
+angeschlossen. Neue0.73-Webanträge und eingereichte Vorschläge beauftragen den
+kombinierten Bericht innerhalb des offenen Eingaberahmens.
+Noch keine Live- oder S11-Gesamtabnahme dieses Zusatzstands.

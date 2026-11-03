@@ -15,7 +15,7 @@ und Urheber erscheinen hier nicht. Ein anderer Antrag oder ein Vergleich vor
 Einbringung ohne Antrags-ID zählt nicht mit.
 
 Die reine Regel `plattform_core/modellverbrauch.py`, VERSION4, summiert genau
-diese Gruppen. Regelverzeichnis17 nennt Fassung, Datum und Begründung. Gezählt
+diese Gruppen. Regelverzeichnis18 nennt Fassung, Datum und Begründung. Gezählt
 werden Läufe, fehlgeschlagene Läufe, gespeicherte Eingabe-/Ausgabetokens und
 gespeicherte Dauer in Millisekunden. Die Anzeige nennt Tokenangaben, keine
 Textlängen und keinen Eurobetrag. Auch eine positive Tokenangabe ist keine
@@ -48,6 +48,6 @@ separate offene Ergänzungen. Diese Übersicht schafft keine Tarife, Verpflichtu
 oder neue Ausgabe. Die örtliche Wahlberechtigung bleibt davon unberührt.
 
 Fassung4 führt zusätzlich `rechtsfolgen` als eigenen Zweck, auch im Tageskontingent
-der Warteschlange. Dieser vorbereitete Auftrag wird noch nicht automatisch beim
-Einbringen gestartet. Seine Einführung ersetzt später den alten Rechtsbezug für
-neue Aufträge; sie darf keine zweite automatische Rechnung zusätzlich erzeugen.
+der Warteschlange. Neue0.73-Aufträge ersetzen beim Einbringen den alten
+Rechtsbezug durch den kombinierten Bericht; keine zweite automatische Rechnung.
+Bereits gespeicherte Aufträge und deren damalige Kontexte bleiben unverändert.

@@ -1,9 +1,10 @@
-# Vorbereiteter eigener Rechtsfolgenauftrag
+# Eigener Rechtsfolgenauftrag
 
-Dieser Bau ist noch keine automatische Aktivierung oder S11-Abnahme. Aufrufer
-müssen `rechtsfolgen` ausdrücklich mit einer vollständigen Eingabegrenze
-anfordern. Bisherige Formulare, Verfahrensübergänge und wartende Aufträge bleiben
-beim bisherigen Rechtsbezug. Keine zusätzliche automatische Rechnung und keine
+Dieser lokale0.73-Bau ist noch keine Live- oder S11-Gesamtabnahme. Neue Webanträge
+und eingereichte Vorschlagsfassungen erhalten einen kombinierten Auftrag statt
+des bisherigen Rechtsbezugs. Vorhandene alte Aufträge bleiben unverändert und
+werden nicht verdoppelt. Der Eingaberahmen wird offen aus dem Register gelesen
+und im Auftrag festgehalten. Keine zusätzliche automatische Rechnung und keine
 echten Anbieteraufrufe oder Produktionsimporte während der lokalen Prüfung.
 
 `KIAuftrag.folgenkontext` hält öffentlichen Text, amtlichen Normrahmen und
@@ -33,7 +34,8 @@ Stellenfolgen: alle numerischen Deltas bleiben unbekannt, auch0istkein Nachweis.
 Der eigene Datenexport enthält den eigenen Folgenrahmen. Der genau gebundene
 Korrekturweg ist in FOLGENKORREKTUR.md beschrieben. Öffentliche Hauptanzeige,
 Historie, Ergebnispost und Hauptexport sind in RECHTSFOLGENANZEIGE.md beschrieben.
-Offener Eingabeparameter, automatische Umstellung und vollständige Freigabe folgen.
-Eine spätere Umstellung ersetzt für neue Aufträge die bisherige automatische
-Rechtsbezug-Rechnung; sie verändert keine alten Kontexte, laufenden Regeln oder
-Budgetwerte. Kein neues Software-Release vor vollständiger Prüfung.
+Der offene Eingabeparameter und die Umstellung neuer Aufträge bestehen. Die
+vollständige Prüfung und Freigabe folgen vor einer Auslieferung.
+Die Umstellung ersetzt für neue Aufträge die bisherige automatische Rechtsbezug-
+Rechnung; sie verändert keine alten Kontexte, laufenden Regeln oder Budgetwerte.
+Keine Auslieferung vor vollständiger Prüfung.

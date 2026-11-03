@@ -367,11 +367,10 @@ class Entwurf(models.Model):
             }
         )
         if fassung is not None:
-            from ki.models import Zweck
-            from ki.warteschlange import einreihen_ohne_hemmung
+            from ki.warteschlange import rechtspruefung_ohne_hemmung
 
-            einreihen_ohne_hemmung(
-                Zweck.RECHTSBEZUG, self.antrag, fassung.verfasst_von, vorschlagsfassung=fassung,
+            rechtspruefung_ohne_hemmung(
+                self.antrag, fassung.verfasst_von, vorschlagsfassung=fassung,
             )
         return True
 

@@ -1,6 +1,21 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.27** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.28** (4.11.2026)*
+
+Seit1.28 begrenzt `legal_effects.total_input_chars` (`rechtsfolgen-eingabezeichen`,
+Zeichen, Standard30000, technisch1bis100000) die vollständige neue öffentliche
+Rechtsfolgen-Eingabe. Bei Überschreitung keine Kürzung, kein Modellaufruf und keine
+Verfahrenshemmung. Neue Aufträge ersetzen den alten Rechtsbezug durch einen
+kombinierten Bericht; vorhandene alte Aufträge bleiben unverändert. Im Antragsarchiv
+führen die bisherigen öffentlichen `rechtsbezug.auftraege`/`laeufe` zusätzlich den
+getrennten Zweck `rechtsfolgen` und dessen `folgenkontext`; ungeprüfte Zuordnungen
+geben nur Kennung/Zweck/Fehlerstand aus. Korrekturen an Folgenberichten nutzen
+Kontextfassung2 und Prompt3, frühere Korrekturen bleiben1/2. Verbrauchsformat4 zählt
+sieben bekannte Zwecke plus Sonstige. Numerische Personalfolgen bleiben null und
+bedeuten keinen Nullbedarf. Eigener Antwortschema-Endpunkt
+`/zukunftswerkstatt/rechtsfolgenformat.json` mit kanonischer SHA-256; Formprüfung2
+bestätigt keine rechtliche Deutung. Keine privaten Vorabvergleiche oder internen
+Gremientexte im öffentlichen Berichtsexport.
 
 Seit 1.27 führt `comparison.*` die offenen Stunden-, Zeit-, Paar- und Textgrenzen
 des freiwilligen Textvergleichs. Private Anforderungen und Texte werden nicht im

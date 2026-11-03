@@ -53,6 +53,7 @@ urlpatterns = [
     path("filter/<int:pk>/umbenennen/", views_aktionen.filter_umbenennen, name="filter_umbenennen"),
     path("zukunftswerkstatt/", views.zukunftswerkstatt, name="zukunftswerkstatt"),
     path("zukunftswerkstatt/antwortformat.json", views.antwortformat, name="antwortformat"),
+    path("zukunftswerkstatt/rechtsfolgenformat.json", views.rechtsfolgenformat, name="rechtsfolgenformat"),
     path("rollen/", views.rollen, name="rollen"),
     path("partner/", views.partner, name="partner"),
     path("partner/paket/", views.partner_paket, name="partner_paket"),

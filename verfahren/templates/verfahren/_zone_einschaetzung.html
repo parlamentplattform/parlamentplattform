@@ -82,7 +82,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% if e.formatpruefung.gueltig %}<p class="leer">{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}</p>{% else %}<p class="leer">{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}</p>{% endif %}
     {% endif %}
     {% if e.hinweis %}<p class="erk">{% if e.roh %}{% translate "Antwort ohne festes Format — der Wortlaut:" %} {% endif %}{{ e.hinweis }}</p>{% endif %}
-    {% if e.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=e %}{% endif %}
+    {% if e.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=e ohne_unsicherheit=True %}{% include "verfahren/_ki_personalstand.html" with personalstand=e.personalstand %}{% endif %}
     <dl class="lauf-daten">
       <dt>{% translate "Unsicherheit" %}</dt><dd>{{ e.unsicherheit_wort }}</dd>
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
@@ -120,7 +120,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
         {% elif h.formatpruefung.gueltig %}<p class="leer">{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}</p>{% else %}<p class="leer">{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}</p>{% endif %}
         <p class="meta">{% translate "Unsicherheit" %}: {{ h.unsicherheit_wort }}</p>
         {% if h.hinweis %}<p class="erk">{{ h.hinweis }}</p>{% endif %}
-        {% if h.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=h %}{% endif %}
+        {% if h.folgenbericht %}{% include "verfahren/_ki_folgenabschnitte.html" with ergebnis=h ohne_unsicherheit=True %}{% include "verfahren/_ki_personalstand.html" with personalstand=h.personalstand %}{% endif %}
       {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
       <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>

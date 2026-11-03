@@ -193,6 +193,9 @@ KI_MONAT_BESCHREIBUNG_ALT = (
 )
 
 ERSTBESTAND = [
+    {"schluessel": "rechtsfolgen-eingabezeichen", "wert": "30000", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Gesamtgrenze der vollständigen öffentlichen Rechtsfolgen-Eingabe einschließlich damaliger Norm- und Personalgrundlagen. Technisch 1 bis 100000 Zeichen; bei Überschreitung kein Modelllauf und keine Kürzung, das Verfahren läuft weiter."),
+     "quelle": "Offengelegter Umfang der kombinierten Rechtsfolgenprüfung"},
     {
         "schluessel": "gegenueberstellung-je-stunde", "wert": "5", "einheit": gettext_noop("Aufrufe je Stunde"),
         "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",

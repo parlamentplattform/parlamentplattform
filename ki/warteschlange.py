@@ -129,6 +129,36 @@ def einreihen_ohne_hemmung(zweck, antrag, mitglied, **kwargs):
         return None
 
 
+def rechtspruefung_einreihen(antrag, mitglied, *, vorschlagsfassung=None):
+    """Ein kombinierter neuer Bericht; vorhandene alte Aufträge niemals verdoppeln."""
+    from ki.folgenkontext import text_festhalten
+    from parameter.models import zahl
+
+    if vorschlagsfassung is not None:
+        vorhanden = KIAuftrag.objects.filter(antrag=antrag,
+            zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN), quellenart="vorschlag",
+            vorschlagsfassung_id=vorschlagsfassung.pk).order_by("-pk").first()
+        if vorhanden is not None:
+            return vorhanden
+    t = text_festhalten(antrag, vorschlagsfassung=vorschlagsfassung)
+    vorhanden = KIAuftrag.objects.filter(antrag_id=t["antrag"], quellenart=t["quellenart"],
+        fassung_nummer=t["fassung_nummer"], zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN)).order_by("-pk").first()
+    if vorhanden is not None:
+        return vorhanden
+    grenze = max(1, min(100000, zahl("rechtsfolgen-eingabezeichen", 30000)))
+    return einreihen(Zweck.RECHTSFOLGEN, antrag, mitglied,
+        vorschlagsfassung=vorschlagsfassung, hoechstzeichen=grenze)
+
+
+def rechtspruefung_ohne_hemmung(antrag, mitglied, **kwargs):
+    try:
+        with transaction.atomic():
+            return rechtspruefung_einreihen(antrag, mitglied, **kwargs)
+    except Exception:
+        log.exception("Öffentliche Rechtsprüfung für Antrag %s nicht einreihbar", antrag.pk)
+        return None
+
+
 def platz_in_der_schlange(auftrag) -> int | None:
     """1 = als Nächstes dran. None, wenn der Auftrag nicht (mehr) wartet."""
     if auftrag is None or auftrag.status not in (Auftragsstatus.GEPLANT, Auftragsstatus.LAEUFT):

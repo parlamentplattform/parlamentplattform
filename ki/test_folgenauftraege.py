@@ -45,7 +45,7 @@ def attrappe(settings, monkeypatch):
     return aufrufe
 
 
-def test_neue_factory_wird_noch_nicht_durch_einbringen_oder_alten_zweck_aktiviert(antrag):
+def test_reine_antragsanlage_und_expliziter_altzweck_erzeugen_keinen_zusaetzlichen_folgenauftrag(antrag):
     assert not KIAuftrag.objects.filter(zweck=Zweck.RECHTSFOLGEN).exists()
     alt = einreihen(Zweck.RECHTSBEZUG, antrag, antrag.eingebracht_von)
     assert not alt.folgenkontext

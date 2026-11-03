@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 17
+VERSION = 18
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -171,8 +171,8 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
         zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen des getrennten Rechtsfolgenauftrags. Eine passende Form bestätigt keine rechtliche Aussage."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
-        grund=_("Vorbereitung des getrennten Rechtsfolgenauftrags. Personalbestände sind keine Bedarfsgrundlage; alle numerischen Personalfolgen bleiben in dieser Fassung ausdrücklich unbekannt."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-04",
+        grund=_("Fassung 2 veröffentlicht das Antwortschema mit eigener Prüfsumme. Personalbestände bleiben ohne Bedarfsgrundlage; alle numerischen Personalfolgen bleiben ausdrücklich unbekannt."),
         nachrechenbar=_("Begrenzte Norm-, Text-, Personal- und Quellenlisten, nur angebotene Referenzen in ihrer Reihenfolge. Numerische Personalfolgen einschließlich Nullbedarf bestehen diese erste Formprüfung nicht. Keine juristische Verifikation oder Teilfreigabe fehlerhafter Antworten."),
     ),
     Regel(

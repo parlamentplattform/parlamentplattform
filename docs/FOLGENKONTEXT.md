@@ -1,10 +1,10 @@
-# Vorbereiteter gemeinsamer Folgenkontext
+# Gemeinsamer Folgenkontext
 
 `ki.folgenkontext`, Fassung 1, verbindet einen tatsächlich beobachteten öffentlichen
 Textstand, den vorhandenen begrenzten Normrahmen und den getrennten Personal-
-Bestandsrahmen. Die Erfassung selbst löst keinen Modellaufruf aus. Der vorbereitete
-eigene Auftragsweg ist in RECHTSFOLGENAUFTRAG.md beschrieben; noch keine automatische
-Aktivierung, Bedienhandlung, Änderung früherer Aufträge oder neue Softwarefreigabe.
+Bestandsrahmen. Die Erfassung selbst löst keinen Modellaufruf aus. Der eigene
+Auftragsweg ist in RECHTSFOLGENAUFTRAG.md beschrieben. Neue0.73-Webanträge und
+öffentliche Vorschläge verwenden ihn; frühere Aufträge werden nicht verändert.
 
 Die neue Erfassung liest den Antrag erneut aus der Datenbank. Personenwahlen und
 Vertrauensfragen sind ausgeschlossen. Eine Vorschlagsfassung muss zum Antrag
@@ -30,6 +30,6 @@ Spätere Nachlese liest keine heutigen Datenbankstände, Registerwerte oder Date
 nach. Hashes sind kein Schutz gegen privilegiertes SQL und keine rechtliche
 Bestätigung. Der eigene Auftrag `rechtsfolgen-v1` besitzt inzwischen einen
 gesonderten Auftragstext, Ausführungsweg und genau gebundenen Korrekturweg.
-Hauptanzeige, Historie und Export bestehen ebenfalls. Offener Eingabeparameter,
-automatische Umstellung und vollständige Freigabe folgen; bisherige automatische
-Aufträge verwenden weiterhin den früheren Rechtsbezug.
+Hauptanzeige, Historie und Export bestehen ebenfalls. Neue0.73-Aufträge verwenden
+den offenen Eingabeparameter und den kombinierten Bericht; vorhandene alte
+Aufträge bleiben beim früheren Rechtsbezug. Vollständige Freigabe steht aus.

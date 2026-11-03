@@ -208,10 +208,10 @@ def test_beanstandung_trifft_nie_den_textvektor_lauf(client, json_attrappe, ordn
     antrag = Antrag.objects.get()
     abarbeiten()
     zwecke = list(KILauf.objects.filter(antrag=antrag).order_by("erstellt_am", "pk").values_list("zweck", flat=True))
-    assert zwecke == [Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT]  # der Vektor-Lauf ist der jüngste
+    assert zwecke == [Zweck.RECHTSFOLGEN, Zweck.AEHNLICHKEIT]  # der Vektor-Lauf ist der jüngste
     client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Die Norm stimmt nicht."})
     b = Beanstandung.objects.get(antrag=antrag)
-    assert b.lauf.zweck == Zweck.RECHTSBEZUG
+    assert b.lauf.zweck == Zweck.RECHTSFOLGEN
     audit = AuditEintrag.objects.filter(ereignis__typ="einschaetzung_beanstandet").get()
     assert audit.ereignis["lauf"] == b.lauf_id
 

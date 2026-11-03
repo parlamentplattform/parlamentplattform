@@ -1,9 +1,11 @@
-# Vorbereiteter Rechtsfolgen-Antwortvertrag
+# Rechtsfolgen-Antwortvertrag
 
-Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 1, prüft die Struktur
-des getrennten vorbereiteten Rechtsfolgenauftrags. Ein eigener Auftrags- und
-Ausführungsweg besteht, noch keine automatische Aktivierung oder Bedienhandlung.
-Dieser Stand ist keine S11-Abnahme oder neue Softwarefreigabe.
+Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 2, prüft die Struktur
+des getrennten Rechtsfolgenauftrags. Neue0.73-Aufträge verwenden den eigenen
+kombinierten Ausführungsweg. Dieser Stand ist keine S11-Gesamtabnahme oder
+Livefreigabe. Fassung2 veröffentlicht zusätzlich das eigenständige JSON-Schema
+mit kanonischer SHA-256; tatsächliche Quellen-/Bereichsangebote werden weiter
+zusätzlich an den jeweiligen Kontext gebunden.
 
 Die Antwort enthält genau `normen`, `judikatur`, `exekutive`, `personal`,
 `unsicherheit` und `quellen`. Normen sind begrenzte Behauptungen mit Kennung,

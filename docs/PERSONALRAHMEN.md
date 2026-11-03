@@ -1,9 +1,9 @@
-# Vorbereiteter Personal-Bestandsrahmen
+# Personal-Bestandsrahmen
 
-`faktenbasis.personalrahmen` Fassung 1 ist ein noch nicht an Modellaufträge oder
-eine Bedienhandlung angeschlossener Vertrag. Er bereitet die vorhandenen
-Personalbelege für einen späteren gesonderten Rechtsfolgenauftrag vor. Kein
-Anbieteraufruf, kein Import, keine neue Softwarefreigabe oder Folgenprognose.
+`faktenbasis.personalrahmen` Fassung1 hält vorhandene Personalbelege für den
+getrennten Rechtsfolgenauftrag fest. Die Erfassung selbst löst keinen Anbieter-
+aufruf oder Import aus. Quelle und damaliger Leer-/Teil-/Fehlerstand sind in der
+Berichtsanzeige gesondert nachlesbar. Keine Kapazitäts- oder Folgenprognose.
 
 Der Rahmen umfasst ausdrücklich nur die bekannte Publikation „Das Personal des
 Bundes 2026 – Daten und Fakten“: Gesamtzeile 2025 nach Dienstverhältnis und

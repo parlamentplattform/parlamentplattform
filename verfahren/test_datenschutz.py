@@ -81,7 +81,7 @@ def test_fusszeile_registrierung_und_anstoss_verlinken_die_erklaerung(client):
     assert ziel in parlament  # … der Link steht dort im Anstoß-Widget
 
 
-def test_startseite_und_meine_stimme_versprechen_keine_geheimheit(client):
+def test_startseite_und_meine_stimme_versprechen_keine_geheimheit(client, ordnung):  # noqa: F811
     """C1: ADR-003 sagt „pseudonym-offen“, der Betreiber kann zuordnen — die Startseite darf nicht
     „keinem Menschen zuzuordnen“ behaupten, und das Flussdiagramm nennt die Stufe nicht „geheim“."""
     inhalt = client.get(reverse("verfahren:index")).content.decode()

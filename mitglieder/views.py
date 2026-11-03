@@ -11,7 +11,6 @@ import logging
 from smtplib import SMTPException
 
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as dj_login
 from django.contrib.auth import logout as dj_logout
@@ -29,7 +28,7 @@ from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
-from verfahren.models import AuditEintrag
+from verfahren.models import AuditEintrag, uebergangsregel_der_instanz
 
 log = logging.getLogger(__name__)
 
@@ -351,5 +350,5 @@ def mitgliedschaft(request):
 
     return render(request, "mitglieder/mitgliedschaft.html", {
         "fristen": fristen_fuer_das_diagramm(),
-        "uebergangsregel": settings.DDOE_UEBERGANGSREGEL,
+        "uebergangsregel": uebergangsregel_der_instanz(),
     })

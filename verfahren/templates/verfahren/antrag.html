@@ -21,6 +21,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
     <span class="a-stern">{% include "verfahren/_stern.html" with antrag=antrag %}</span>
   </div>
+  {% if antrag.art == "mandat" and antrag.ebene != "bund" %}
+  <p class="meldung warn" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong> {% translate "Bei dieser Kandidatur werden Unterstützung und Wahlberechtigung derzeit parteiweit geprüft. Die Gebietsangabe begrenzt den Kreis der unterstützenden und abstimmenden Mitglieder noch nicht." %}</p>
+  {% endif %}
   {% if mandatsfrage %}
   {# § 7 Abs 9: keine Unterstützungsphase — statt „n Unterstützungen“ der Weg zurück zum Mandatar und der Sitzungstag des Reports #}
   <p class="a-meta">{% translate "Mandatsfrage von" %} {% if mandatsfrage.mandat %}<a href="{% url 'mandatare:detail' mandatsfrage.mandat.pk %}">{{ mandatsfrage.mandat.mitglied.anzeigename }}</a>{% else %}{{ antrag.eingebracht_von.anzeigename }}{% endif %}

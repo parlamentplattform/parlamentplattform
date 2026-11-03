@@ -85,7 +85,7 @@ def test_auftragsdatenbankfehler_vergiftet_nicht_das_aeussere_verfahren(antrag, 
 def test_oeffentliches_folgenschema_ist_eigenstaendig_und_exakt_nachrechenbar(client):
     r = client.get(reverse("verfahren:rechtsfolgenformat"))
     assert r.status_code == 200 and r["X-Content-Type-Options"] == "nosniff"
-    assert r["Content-Disposition"] == 'attachment; filename="rechtsfolgen-schema-v2.json"'
+    assert r["Content-Disposition"] == 'attachment; filename="rechtsfolgen-schema-v3.json"'
     d = r.json()
     assert d == schema_als_dict()
     kanon = json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)

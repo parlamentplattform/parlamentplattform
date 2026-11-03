@@ -15,7 +15,7 @@ und Urheber erscheinen hier nicht. Ein anderer Antrag oder ein Vergleich vor
 Einbringung ohne Antrags-ID zählt nicht mit.
 
 Die reine Regel `plattform_core/modellverbrauch.py`, VERSION4, summiert genau
-diese Gruppen. Regelverzeichnis18 nennt Fassung, Datum und Begründung. Gezählt
+diese Gruppen. Regelverzeichnis19 nennt Fassung, Datum und Begründung. Gezählt
 werden Läufe, fehlgeschlagene Läufe, gespeicherte Eingabe-/Ausgabetokens und
 gespeicherte Dauer in Millisekunden. Die Anzeige nennt Tokenangaben, keine
 Textlängen und keinen Eurobetrag. Auch eine positive Tokenangabe ist keine

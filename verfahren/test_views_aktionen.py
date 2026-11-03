@@ -367,4 +367,4 @@ def test_beanstandung_verspricht_nur_den_gebauten_begrenzten_korrekturweg(client
     antwort = _beanstandung_absetzen(client, mitglied_anlegen("bernd"), antrag)
     seite = client.get(antwort.url).content.decode()
     assert "rechnet den Punkt nach" not in seite
-    assert "Gruppe 1" in seite and "öffentlichen Rechtsbezug" in seite
+    assert "Gruppe 1" in seite and "öffentlichen Rechts- oder Folgenbericht" in seite

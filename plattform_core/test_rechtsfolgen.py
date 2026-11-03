@@ -38,6 +38,35 @@ def test_passende_form_bleibt_inhaltlich_ungeprueft_und_hat_keine_zahlenspanne()
     assert d == antwort()
 
 
+def test_darstellung_ordnet_alle_normen_neutral_ohne_den_originaldatenstand_zu_aendern():
+    import unicodedata
+
+    d = antwort()
+    muster = d["normen"][0]
+    d["normen"] = [{**muster, "titel": t} for t in ["zeta", "Alpha", "beta", "alpha"]]
+    vorher = copy.deepcopy(d)
+    r = pruefe(d)
+    assert r["gueltig"] and r["daten"] == vorher == d
+    assert r["darstellungsfolge"]["normen"] == [1, 3, 2, 0]
+    assert r["darstellungsfolge"]["unicode_fassung"] == unicodedata.unidata_version
+
+
+def test_personalfolge_stammt_aus_dem_damaligen_angebot_statt_modellrelevanz():
+    d = antwort()
+    muster = d["personal"][0]
+    d["personal"] = [{**muster, "bereich": b} for b in ["unbestimmt", "Bereich A", "Bereich B"]]
+    r = pruefe(d, personalbereiche=["Bereich B", "Bereich A"])
+    assert r["gueltig"] and r["darstellungsfolge"]["personal"] == [2, 1, 0]
+    assert r["daten"]["personal"] == d["personal"]
+
+
+def test_unbestimmt_bleibt_auch_bei_versehentlicher_angebotener_nennung_zuletzt():
+    d = antwort()
+    muster = d["personal"][0]
+    d["personal"] = [{**muster, "bereich": b} for b in ["unbestimmt", "Bereich A"]]
+    assert pruefe(d, personalbereiche=["unbestimmt", "Bereich A"])["darstellungsfolge"]["personal"] == [1, 0]
+
+
 @pytest.mark.parametrize("feld", ["beamte_delta_min", "beamte_delta_max", "vb_delta_min", "vb_delta_max"])
 @pytest.mark.parametrize("wert", [0, 1, -1, 1.2, False, "unbekannt"])
 def test_kein_numerischer_bedarf_ohne_bedarfsgrundlage_auch_nullbedarf_nicht(feld, wert):

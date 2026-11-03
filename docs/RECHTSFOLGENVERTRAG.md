@@ -1,11 +1,19 @@
 # Rechtsfolgen-Antwortvertrag
 
-Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 2, prüft die Struktur
+Der reine Vertrag `plattform_core.rechtsfolgen`, Fassung 3, prüft die Struktur
 des getrennten Rechtsfolgenauftrags. Neue0.73-Aufträge verwenden den eigenen
 kombinierten Ausführungsweg. Dieser Stand ist keine S11-Gesamtabnahme oder
-Livefreigabe. Fassung2 veröffentlicht zusätzlich das eigenständige JSON-Schema
+Livefreigabe. Die Regel veröffentlicht zusätzlich das eigenständige JSON-Schema
 mit kanonischer SHA-256; tatsächliche Quellen-/Bereichsangebote werden weiter
 zusätzlich an den jeweiligen Kontext gebunden.
+
+Fassung3 nennt daneben eine vollständige neutrale Darstellungsfolge. Normen werden
+nach casefold-Modelltitel, Originaltitel, Kennung und ursprünglichem Eingabeindex
+geordnet; die verwendete Unicode-Fassung steht im Nachweis. Personalbereiche
+folgen dem damaligen Quellenangebot, `unbestimmt` zuletzt. Kein Eintrag wird
+ausgewählt oder gewichtet. `daten` und Originalantwort bleiben unverändert;
+die Darstellungsindizes sind getrennte aktuelle Lesemetadaten, keine behauptete
+damalige Sortierentscheidung oder Inhaltsbestätigung.
 
 Die Antwort enthält genau `normen`, `judikatur`, `exekutive`, `personal`,
 `unsicherheit` und `quellen`. Normen sind begrenzte Behauptungen mit Kennung,

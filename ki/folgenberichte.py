@@ -58,7 +58,8 @@ def fuer_lauf(lauf):
     # Die neue Antwort behauptet keine Herkunftsebene. Diese darf nur aus exakt
     # derselben angebotenen vollständigen Dokumentkennung stammen, nie aus Titeln.
     normen = []
-    for n in daten["normen"]:
+    for index in form["darstellungsfolge"]["normen"]:
+        n = daten["normen"][index]
         ebenen = {q.get("ebene", "Bund") for q in quellen if q["ris_id"] == n["ris_id"]}
         normen.append({**n, "kennung": n["ris_id"], "begruendung": n["grund"], "verifiziert": False,
                        "ebene": next(iter(ebenen)) if len(ebenen) == 1 else "",
@@ -66,10 +67,11 @@ def fuer_lauf(lauf):
     abgleich = abgleichen(normen, quellen)
     for n, z in zip(normen, abgleich, strict=True):
         n["kennungsabgleich"] = z
+    personal = [daten["personal"][i] for i in form["darstellungsfolge"]["personal"]]
     return {**ergebnis, "normen": normen, "judikatur": daten["judikatur"]["text"],
             "exekutive": daten["exekutive"]["text"],
             "personal": [{**p, "bereich_wort": _("unbestimmt") if p["bereich"] == "unbestimmt" else p["bereich"]}
-                         for p in daten["personal"]],
+                         for p in personal],
             "quellen": daten["quellen"], "unsicherheit": daten["unsicherheit"],
             "unsicherheit_wort": UNSICHERHEITEN[daten["unsicherheit"]],
             "kennungsabgleich": {"regel_fassung": ABGLEICHFASSUNG, "rechtlich_verifiziert": False,

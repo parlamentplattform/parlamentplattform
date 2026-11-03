@@ -64,6 +64,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
   {% if lage.auftrag and not lage.ergebnis %}<p class="meta">{{ lage.auftrag.get_quellenart_display }} · {% translate "Fassung" %} {{ lage.auftrag.fassung_nummer }}</p>{% endif %}
   {% if lage.zustand == "erledigt" %}
     {% with e=lage.ergebnis %}
+    {% include "verfahren/_ki_folgenreihung.html" with ergebnis=e %}
     {% if e.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=e.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=e.formatpruefung %}{% endif %}
     {% if e.normen %}
     <ul class="normen">
@@ -115,6 +116,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
       {% include "verfahren/_ki_quellenstand.html" with quellenstand=h.quellenstand %}
       {% if h.lauf.erfolgreich %}
+        {% include "verfahren/_ki_folgenreihung.html" with ergebnis=h %}
         {% if h.folgenbericht %}{% include "verfahren/_ki_folgenformat.html" with formatstand=h.formatpruefung %}{% else %}{% include "verfahren/_ki_formatstand.html" with formatstand=h.formatpruefung %}{% endif %}
         {% if h.normen %}<ul class="normen">{% for n in h.normen %}<li><strong>{{ n.titel }}</strong> <span class="badge badge-hinweis">{{ n.aenderung_wort }}</span> <span class="badge badge-warn">{% translate "nicht verifiziert" %}</span>{% if n.begruendung %}<p class="erk">{{ n.begruendung }}</p>{% endif %}{% include "verfahren/_ki_kennungsabgleich.html" with n=n %}</li>{% endfor %}</ul>
         {% elif h.formatpruefung.gueltig %}<p class="leer">{% translate "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist." %}</p>{% else %}<p class="leer">{% translate "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten." %}</p>{% endif %}

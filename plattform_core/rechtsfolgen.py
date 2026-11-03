@@ -9,8 +9,9 @@ import copy
 import hashlib
 import json
 import re
+import unicodedata
 
-VERSION = 2
+VERSION = 3
 HOECHSTZEICHEN = 100_000
 HOECHSTNORMEN = 8
 HOECHSTPERSONAL = 16
@@ -147,4 +148,12 @@ def pruefen(text, *, quellen=(), personalbereiche=()):
     positionen = [quellen.index(q) for q in referenzen]
     if positionen != sorted(positionen):
         return ablehnen("quellenreihung")
-    return {**ausgang, "gueltig": True, "daten": copy.deepcopy(d)}
+    bereichsrang = {b: i for i, b in enumerate(personalbereiche)}
+    reihen = {
+        "normen": sorted(range(len(d["normen"])), key=lambda i: (
+            d["normen"][i]["titel"].casefold(), d["normen"][i]["titel"], d["normen"][i]["ris_id"], i)),
+        "personal": sorted(range(len(d["personal"])), key=lambda i: (
+            len(bereichsrang) if d["personal"][i]["bereich"] == "unbestimmt" else bereichsrang[d["personal"][i]["bereich"]], i)),
+        "unicode_fassung": unicodedata.unidata_version,
+    }
+    return {**ausgang, "gueltig": True, "daten": copy.deepcopy(d), "darstellungsfolge": reihen}

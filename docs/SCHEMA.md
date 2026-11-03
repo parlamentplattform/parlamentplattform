@@ -13,8 +13,10 @@ geben nur Kennung/Zweck/Fehlerstand aus. Korrekturen an Folgenberichten nutzen
 Kontextfassung2 und Prompt3, frühere Korrekturen bleiben1/2. Verbrauchsformat4 zählt
 sieben bekannte Zwecke plus Sonstige. Numerische Personalfolgen bleiben null und
 bedeuten keinen Nullbedarf. Eigener Antwortschema-Endpunkt
-`/zukunftswerkstatt/rechtsfolgenformat.json` mit kanonischer SHA-256; Formprüfung2
-bestätigt keine rechtliche Deutung. Keine privaten Vorabvergleiche oder internen
+`/zukunftswerkstatt/rechtsfolgenformat.json` mit kanonischer SHA-256; Formprüfung3
+bestätigt keine rechtliche Deutung. Zusätzlich nennt `darstellungsfolge` die
+vollständigen Anzeigeindizes und die Unicode-Fassung; Originaldaten bleiben in
+ihrer Antwortreihenfolge. Keine privaten Vorabvergleiche oder internen
 Gremientexte im öffentlichen Berichtsexport.
 
 Seit 1.27 führt `comparison.*` die offenen Stunden-, Zeit-, Paar- und Textgrenzen

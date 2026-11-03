@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 18
+VERSION = 19
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -171,9 +171,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
         zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen des getrennten Rechtsfolgenauftrags. Eine passende Form bestätigt keine rechtliche Aussage."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-04",
-        grund=_("Fassung 2 veröffentlicht das Antwortschema mit eigener Prüfsumme. Personalbestände bleiben ohne Bedarfsgrundlage; alle numerischen Personalfolgen bleiben ausdrücklich unbekannt."),
-        nachrechenbar=_("Begrenzte Norm-, Text-, Personal- und Quellenlisten, nur angebotene Referenzen in ihrer Reihenfolge. Numerische Personalfolgen einschließlich Nullbedarf bestehen diese erste Formprüfung nicht. Keine juristische Verifikation oder Teilfreigabe fehlerhafter Antworten."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-04",
+        grund=_("Fassung 3 ordnet die vollständige Darstellung unabhängig von der Modellreihenfolge: Normtitel alphabetisch, Personalbereiche nach damaligem Quellenangebot. Originalantwort und Daten bleiben unverändert; keine Gewichtung oder Inhaltsbestätigung."),
+        nachrechenbar=_("Vollständige Form und angebotene Referenzen prüfen, keine numerischen Personalfolgen einschließlich Nullbedarf. Darstellung der Normen nach casefold-Modelltitel, Originaltitel, Kennung und Eingabeindex; Unicode-Fassung nennen. Personal nach damaligem Quellenangebot, unbestimmt zuletzt. Keine Auswahl, Gewichtung, juristische Verifikation oder Teilfreigabe."),
     ),
     Regel(
         modul="gegenueberstellung.py", titel=_("Antwortvertrag für freiwillige Textgegenüberstellungen"),

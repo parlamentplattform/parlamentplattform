@@ -56,6 +56,21 @@ def test_personalquelle_und_tatsaechlicher_gesamtbestand_stehen_getrennt_von_der
     assert job.folgenkontext["personal"] == p
 
 
+def test_darstellung_ist_neutral_geordnet_aber_originalantwort_bleibt_erhalten(antrag, attrappe, monkeypatch, client):
+    d = json.loads(ANTWORT)
+    d["normen"] = [{"ris_id": "", "titel": t, "aenderung": "neu", "grund": "Unverifizierte Aussage"}
+                   for t in ["Zweiter Modelltitel", "Erster Modelltitel"]]
+    roh = json.dumps(d)
+    monkeypatch.setattr(AttrappenAnbieter, "frage", lambda *a: Antwort(roh, "test", 1, 2))
+    job = erfolg(antrag)
+    e = rechtsbezug_fuer(antrag)
+    assert [n["titel"] for n in e["normen"]] == ["Erster Modelltitel", "Zweiter Modelltitel"]
+    assert job.lauf.antwort == roh and e["formatpruefung"]["daten"]["normen"] == d["normen"]
+    html = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "alphabetisch nach Modelltitel" in html
+    assert html.index("Erster Modelltitel") < html.index("Zweiter Modelltitel")
+
+
 def test_neuer_vorschlag_wartet_trotz_altem_folgenbericht_und_historie_bleibt_nachlesbar(antrag, attrappe):
     alt = erfolg(antrag)
     v = vorschlag(antrag)

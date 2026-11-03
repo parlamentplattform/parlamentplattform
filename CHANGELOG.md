@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.61.1] — 2026-11-03 · Modellantworten und Aufträge im Archiv erhalten
+
+- Der interne ORM-Schutz umfasst jetzt den gesamten fertigen Modelllauf: Antwort, Ergebnisstatus, Modell, Tokenangaben und Zeitstempel. Speichern, Mengenänderung und konfliktauflösendes Einfügen können keinen bestehenden Lauf ersetzen; neue Läufe bleiben möglich.
+- Aufträge und Läufe lassen sich über die gewöhnlichen Modell- und QuerySet-Wege nicht löschen. Eine vermeintliche Neuanlage mit bereits vorhandener Primärschlüsselnummer umgeht den Eingabeschutz nicht mehr. Urheber und ursprünglicher Einreihzeitpunkt des Auftrags bleiben erhalten; betriebliche Statuswechsel funktionieren weiter.
+- Keine Archivdaten nachträglich geändert, keine Datenmigration und keine Änderung an Oberfläche, Satzung, Verfahren, Fristen oder Budget. Schema1.17 bleibt unverändert.
+
 ## [0.61.0] — 2026-11-03 · Amtlichen Quellenstand vor dem Modellauftrag festhalten
 
 - Neue Rechtsbezug-Aufträge wählen Kontextkandidaten aus vorhandenen amtlichen Schnappschüssen. Wortanfänge, Stoppwörter, Kennungsreihung und Grenzen sind offengelegt; kein politischer Relevanzwert und kein zusätzlicher Netz- oder Modellaufruf.

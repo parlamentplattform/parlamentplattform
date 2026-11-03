@@ -7842,9 +7842,6 @@ msgstr "Affected laws — suggestion of the Zukunftswerkstatt"
 msgid "Cookies"
 msgstr "Cookies"
 
-msgid "Das Modell hat keine Norm genannt, deren es sich sicher war."
-msgstr "The model named no provision it was sure of."
-
 #, python-format
 msgid "Das ist ein Vorschlag eines KI-Modells (%(modell)s, Auftrag %(auftrag_version)s), ohne Prüfung gegen das Rechtsinformationssystem und keine Rechtsberatung. Er hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden."
 msgstr "This is a suggestion by an AI model (%(modell)s, task %(auftrag_version)s), without a check against the legal information system and not legal advice. It has no effect on the procedure; you can object to it on the motion page."
@@ -9235,3 +9232,58 @@ msgstr "Find your occupation or concern using the search in the <a href=\"%(parl
 
 msgid "Laufende Verfahren behalten ihre festgelegten Regeln. Die jeweiligen Fristen sehen Sie direkt beim Antrag; für Personenwahlen und Mandatsfragen gelten eigene Abläufe."
 msgstr "Ongoing procedures retain their established rules. Each motion shows its own deadlines; elections and mandate questions follow separate procedures."
+
+
+msgid "unklar"
+msgstr "unclear"
+
+msgid "nicht angegeben"
+msgstr "not stated"
+
+msgid "Die Modellantwort weicht vom veröffentlichten Antwortschema ab. Angaben können fehlen oder uneindeutig sein."
+msgstr "The model response differs from the published response schema. Information may be missing or ambiguous."
+
+msgid "Antwortformat"
+msgstr "Response format"
+
+msgid "eingehalten"
+msgstr "conforms"
+
+msgid "abweichend"
+msgstr "does not conform"
+
+msgid "Aktuelle Formprüfung — kein früherer Prüfnachweis. Sie bestätigt weder die Richtigkeit der Antwort noch die rechtliche Relevanz einer Norm."
+msgstr "Current format check, not evidence of an earlier check. It confirms neither the accuracy of the response nor the legal relevance of a provision."
+
+msgid "Formprüfung, Fassung"
+msgstr "Format check, version"
+
+msgid "Schema-Prüfsumme (kanonisches JSON, SHA-256)"
+msgstr "Schema checksum (canonical JSON, SHA-256)"
+
+msgid "Antworttext-Prüfsumme (UTF-8, SHA-256)"
+msgstr "Response text checksum (UTF-8, SHA-256)"
+
+msgid "Antwortschema herunterladen"
+msgstr "Download response schema"
+
+msgid "Antworten vollständig im Archiv herunterladen"
+msgstr "Download complete responses in the archive"
+
+msgid "Die Antwort enthält eine leere Normenliste. Das ist keine Bestätigung, dass keine Rechtsnorm betroffen ist."
+msgstr "The response contains an empty list of provisions. This does not confirm that no legal provision is affected."
+
+msgid "Aus dem Antwortformat lässt sich keine verlässliche Normenliste lesen. Der ursprüngliche Wortlaut bleibt im Archiv erhalten."
+msgstr "The response format does not provide a reliable list of provisions. The original text remains available in the archive."
+
+msgid "Formprüfung von Modellantworten"
+msgstr "Model response format check"
+
+msgid "Prüft die Form einer Rechtsbezug-Antwort: Pflichtfelder, Typen, bekannte Werte und technische Grenzen. Sie bestätigt weder den Inhalt noch die rechtliche Relevanz einer Norm."
+msgstr "Checks the format of a legal-impact response: required fields, types, known values and technical limits. It confirms neither content nor the legal relevance of a provision."
+
+msgid "Ein Formatfehler darf nicht wie eine leere inhaltliche Einschätzung erscheinen. Unbekannte Angaben werden nicht als bestimmte Rechtswirkung ausgegeben; Originalantworten und frühere Läufe bleiben unverändert."
+msgstr "A format error must not appear to be an assessment with no content. Unknown values are not presented as a definite legal effect; original responses and earlier runs remain unchanged."
+
+msgid "Das veröffentlichte JSON-Schema und die unveränderte Antwort lassen sich erneut prüfen. Die Anzeige nennt die Fassung der aktuellen Formprüfung und die Prüfsummen; sie behauptet keine rückwirkende Prüfung beim ursprünglichen Lauf."
+msgstr "The published JSON schema and unchanged response can be checked again. The display states the version and checksums of the current format check; it does not claim a retrospective check during the original run."

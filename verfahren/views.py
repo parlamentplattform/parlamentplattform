@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
+from django.views.decorators.http import require_safe
 
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase, __version__
@@ -37,6 +38,17 @@ from verfahren.models import (
 )
 
 LAUFEND = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+
+
+@require_safe
+def antwortformat(request):
+    from plattform_core.modellantwort import schema_als_dict
+    antwort = JsonResponse(schema_als_dict(), json_dumps_params={"ensure_ascii": False, "indent": 2})
+    antwort["Content-Disposition"] = 'attachment; filename="rechtsbezug-schema-v1.json"'
+    antwort["X-Content-Type-Options"] = "nosniff"
+    return antwort
+
+
 # Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>)
 FELDER = ("filter", "favoriten", "wichtig", "region")
 

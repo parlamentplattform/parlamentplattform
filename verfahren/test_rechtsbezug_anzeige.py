@@ -109,7 +109,8 @@ def test_rohe_antwort_ohne_json_bleibt_lesbar(client, settings, ordnung, monkeyp
     abarbeiten()
     inhalt = _seite(client, antrag)
     assert "Antwort ohne festes Format — der Wortlaut:" in inhalt and "Attrappen-Einschätzung" in inhalt
-    assert "keine Norm genannt" in inhalt
+    assert "keine Norm genannt" not in inhalt
+    assert "keine verlässliche Normenliste" in inhalt and "Modellantwort weicht" in inhalt
 
 
 def test_gescheitert_sagt_es(client, settings, ordnung):  # noqa: F811

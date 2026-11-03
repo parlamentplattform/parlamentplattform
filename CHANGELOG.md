@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.60.0] — 2026-11-03 · Antwortform prüfen, ohne Rechtsgewissheit vorzutäuschen
+
+- Rechtsbezug-Antworten erhalten einen versionierten Formbefund und ein öffentlich herunterladbares JSON-Schema. Pflichtfelder, Typen, bekannte Werte, doppelte Schlüssel sowie Größen- und Tiefengrenzen sind nachprüfbar; ungeprüfte Zusatzfelder erscheinen nicht in Diagnosepfaden.
+- Unbekannte Änderungstypen heißen „unklar“, fehlende Unsicherheitsangaben „nicht angegeben“. Eine fehlerhafte Normenliste wird nicht mehr als inhaltlich leere Einschätzung ausgegeben. Auch eine formal gültige leere Liste bestätigt keine rechtliche Unbedenklichkeit.
+- Aktuelle und ältere Antworten zeigen denselben Darstellungsbefund, ausdrücklich ohne rückwirklich behaupteten Laufnachweis. Der Archivexport ergänzt Antwort- und Schema-Prüfsummen; gespeicherte Eingaben, Originalantworten und Kontexte bleiben unverändert. Schema1.16 und Regelverzeichnis5 dokumentieren den Schritt.
+- Die reine Prüfung löst keinen Modellaufruf aus, schreibt nicht in die Faktenbasis und verändert weder Budget noch Verfahrensregeln. Juristische Quellenverifikation, Rechtsfolgenkette und Korrekturläufe bleiben offen.
 ## [0.59.1] — 2026-11-02 · Einführung an die tatsächlichen Wege und Regeln anpassen
 
 - Die Einführung führt zur Suche im Favoriten-Feld des Parlaments; der Verweis auf die abgeschaffte Kategorienseite entfällt.

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "config.sicherheitsheader.BrowserQuellenBegrenzen",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",  # F-33: Sprache aus Sitzung/Cookie/Browser
     "django.middleware.common.CommonMiddleware",

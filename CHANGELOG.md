@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.75.0] — 2026-11-04 · Browserquellen mit einer Content-Security-Policy begrenzen
+
+- HTML-Antworten erhalten einen wirksamen CSP-Header für eigene Skripte, Verbindungen, Schriften und Manifestdateien. Inline- und Fremdskripte, native Inline-Handler, fremde Formularziele, Basisadressen, Frames und Objekte werden nicht freigegeben. Ein bestehender CSP-Header bleibt erhalten; PDF-, JSON- und Bildantworten bleiben unverändert.
+- Alpine benötigt weiterhin dynamische Ausdrücke, bestehende Ansichten Inline-Styles. Beide Ausnahmen sind im eigenen technischen ADR benannt; keine vollständig strikte CSP oder Ablösung der Eingabe-/Ausgabeprüfung behauptet. Kein zusätzliches Paket, externer Berichtsempfänger, Modellaufruf oder neuer Dienst; keine Änderung von Fachregeln, Rechten, Budgets oder laufenden Verfahren.
+
 ## [0.74.0] — 2026-11-04 · Rollen, Regeln und Parameter auch auf Englisch nachlesen
 
 - 433 bislang nur vorgemerkte Datentexte sind jetzt im englischen Katalog enthalten: Parameterbeschreibungen und Einheiten, Regelzweck, Begründung und Nachrechnung sowie Rollenbeschreibungen, Fähigkeiten und Einschränkungen. Vorhandene Übersetzungen bleiben erhalten; die deutschen Originaltexte bleiben der Maßstab. Angaben zu fehlenden Funktionen und offenen Satzungskonflikten werden ebenso übersetzt.

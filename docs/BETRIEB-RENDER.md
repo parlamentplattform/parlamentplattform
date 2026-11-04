@@ -21,7 +21,13 @@ Zwei Render-Eigenheiten, die man kennen muss:
    September 2025 ausgehenden SMTP-Verkehr (Ports 25/465/587) komplett. Der
    bezahlte Instance Type ist also nicht nur gegen das Einschlafen, sondern
    Voraussetzung für Bestätigungs- und Anmelde-Mails.
-2. **Automatischer Deploy läuft über die CI, nicht über Render:** Der Dienst ist
+2. **Automatischer Deploy läuft über die CI, nicht über Render:** Ab0.76.1 hängen
+   sowohl `ausrollen` als auch der Fehleralarm `nicht_ausgerollt` ausdrücklich von
+   allen fünf Pflichtprüfungen ab: `pruefen (3.11)`, `pruefen (3.12)`,
+   `pruefen_postgres`, `pruefen_sicherung` und `sichtpruefung`. Ein roter oder
+   übersprungener Browserjob gibt den Deploy nicht frei. Zuvor fehlte diese
+   Browser-Abhängigkeit trotz der Arbeitsregel. Ein lokaler Lauf ersetzt keinen
+   dieser GitHub-Prüfstatus. Der Dienst ist
    als öffentliche Git-URL verbunden (kein Render-Webhook; das `autoDeploy: yes`
    im Dashboard feuert deshalb nie). Stattdessen stößt der CI-Job **ausrollen**
    nach jeder **bestandenen** Prüfung auf `main` den Render-Deploy-Hook an —

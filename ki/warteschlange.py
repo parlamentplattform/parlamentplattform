@@ -26,6 +26,7 @@ from django.db.models import F, Q
 from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet
 from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck, einbettung_ausfuehren, lauf_ausfuehren
 
 log = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ SPERRE_MINUTEN = 15
 HOECHSTVERSUCHE = 6
 TAGESLAEUFE_STANDARD = 20
 #: Zwecke, die die Warteschlange kennt — jeder mit seiner Arbeit.
-ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT)
+ZWECKE = (Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT, Zweck.KORREKTUR, Zweck.RECHTSFOLGEN)
 
 
 def tageskontingent() -> int:
@@ -53,15 +54,19 @@ def heute_gestartet(jetzt=None) -> int:
     heute = timezone.localdate(jetzt or timezone.now())
     return (
         KILauf.objects.filter(erstellt_am__date=heute)
-        .filter(Q(zweck=Zweck.RECHTSBEZUG) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
+        .filter(Q(zweck__in=(Zweck.RECHTSBEZUG, Zweck.KORREKTUR, Zweck.RECHTSFOLGEN)) | Q(zweck=Zweck.AEHNLICHKEIT, antrag__isnull=False))
         .count()
     )
 
 
-def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuftrag:
+def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None, hoechstzeichen=None) -> KIAuftrag:
     """Idempotent je Antrag, Zweck und Fassung: Wer zweimal einreiht, bekommt denselben Auftrag."""
-    if zweck not in ZWECKE:
+    if zweck not in ZWECKE or zweck == Zweck.KORREKTUR:
         raise ValueError(f"Unbekannter Zweck für die Warteschlange: {zweck}")
+    if zweck == Zweck.RECHTSFOLGEN:
+        from ki.folgenauftraege import einreihen as folgen_einreihen
+
+        return folgen_einreihen(antrag, mitglied, vorschlagsfassung=vorschlagsfassung, hoechstzeichen=hoechstzeichen)
     from verfahren.models import Antragsart
 
     if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
@@ -102,8 +107,10 @@ def einreihen(zweck: str, antrag, mitglied, *, vorschlagsfassung=None) -> KIAuft
             log.exception("Amtlicher Quellenkontext für Antrag %s nicht erfassbar", antrag.pk)
             # Ehrlicher Fehlerstand statt alter leerer Quellenmodus oder Behauptung
             # fehlender Rechtsfolgen. Keine Modellkosten und keine Verfahrenshemmung.
+            from faktenbasis.kontext import VERSION as QUELLENFASSUNG
+
             defaults.update(
-                quellenkontext={"version": 1, "fehler": "erfassung", "erfasst_am": timezone.now().isoformat()},
+                quellenkontext={"version": QUELLENFASSUNG, "fehler": "erfassung", "erfasst_am": timezone.now().isoformat()},
                 status=Auftragsstatus.GESCHEITERT, fehler="quellenkontext_erfassung",
             )
     auftrag, _neu = KIAuftrag.objects.get_or_create(
@@ -122,6 +129,36 @@ def einreihen_ohne_hemmung(zweck, antrag, mitglied, **kwargs):
         return None
 
 
+def rechtspruefung_einreihen(antrag, mitglied, *, vorschlagsfassung=None):
+    """Ein kombinierter neuer Bericht; vorhandene alte Aufträge niemals verdoppeln."""
+    from ki.folgenkontext import text_festhalten
+    from parameter.models import zahl
+
+    if vorschlagsfassung is not None:
+        vorhanden = KIAuftrag.objects.filter(antrag=antrag,
+            zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN), quellenart="vorschlag",
+            vorschlagsfassung_id=vorschlagsfassung.pk).order_by("-pk").first()
+        if vorhanden is not None:
+            return vorhanden
+    t = text_festhalten(antrag, vorschlagsfassung=vorschlagsfassung)
+    vorhanden = KIAuftrag.objects.filter(antrag_id=t["antrag"], quellenart=t["quellenart"],
+        fassung_nummer=t["fassung_nummer"], zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN)).order_by("-pk").first()
+    if vorhanden is not None:
+        return vorhanden
+    grenze = max(1, min(100000, zahl("rechtsfolgen-eingabezeichen", 30000)))
+    return einreihen(Zweck.RECHTSFOLGEN, antrag, mitglied,
+        vorschlagsfassung=vorschlagsfassung, hoechstzeichen=grenze)
+
+
+def rechtspruefung_ohne_hemmung(antrag, mitglied, **kwargs):
+    try:
+        with transaction.atomic():
+            return rechtspruefung_einreihen(antrag, mitglied, **kwargs)
+    except Exception:
+        log.exception("Öffentliche Rechtsprüfung für Antrag %s nicht einreihbar", antrag.pk)
+        return None
+
+
 def platz_in_der_schlange(auftrag) -> int | None:
     """1 = als Nächstes dran. None, wenn der Auftrag nicht (mehr) wartet."""
     if auftrag is None or auftrag.status not in (Auftragsstatus.GEPLANT, Auftragsstatus.LAEUFT):
@@ -133,15 +170,11 @@ def platz_in_der_schlange(auftrag) -> int | None:
 
 def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:
     from ki.auftraege import auftrag_laden
-    from ki.kontext import eingabe
+    from ki.eingabevertrag import rechtsbezug
 
-    text = auftrag_laden("rechtsbezug", nummer=2 if auftrag.quellenkontext else 1)
     kontext = _laufkontext(auftrag)
-    eingabetext = eingabe(kontext["text"])
-    if auftrag.quellenkontext:
-        from faktenbasis.kontext import eingabe as quellen_eingabe
-
-        eingabetext += "\n\n" + quellen_eingabe(auftrag.quellenkontext, text_sha256=kontext["text"]["sha256"])
+    nummer, eingabetext = rechtsbezug(kontext["text"], auftrag.quellenkontext)
+    text = auftrag_laden("rechtsbezug", nummer=nummer)
     lauf = lauf_ausfuehren(
         Zweck.RECHTSBEZUG,
         text.text,
@@ -203,7 +236,20 @@ def _laufkontext(auftrag):
     return kontext
 
 
-ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit}
+def _arbeit_korrektur(auftrag):
+    from ki.korrekturen import ausfuehren
+
+    return ausfuehren(auftrag)
+
+
+def _arbeit_rechtsfolgen(auftrag):
+    from ki.folgenauftraege import ausfuehren
+
+    return ausfuehren(auftrag)
+
+
+ARBEIT = {Zweck.RECHTSBEZUG: _arbeit_rechtsbezug, Zweck.AEHNLICHKEIT: _arbeit_aehnlichkeit,
+          Zweck.KORREKTUR: _arbeit_korrektur, Zweck.RECHTSFOLGEN: _arbeit_rechtsfolgen}
 
 
 def _reservieren(pk: int, jetzt) -> str | None:
@@ -231,12 +277,18 @@ def auftrag_ausfuehren(pk: int, jetzt=None) -> str:
     token = _reservieren(pk, jetzt)
     if token is None:
         return "uebersprungen"
-    auftrag = KIAuftrag.objects.select_related("antrag", "angefordert_von").get(pk=pk)
+    auftrag = KIAuftrag.objects.select_related("antrag", "angefordert_von", "ursprung", "beanstandung").get(pk=pk)
     stand: dict = {"sperrcode": "", "gesperrt_bis": None}
     ausgang = "erledigt"
     try:
         lauf = ARBEIT[Zweck(auftrag.zweck)](auftrag)
         stand.update(status=Auftragsstatus.ERLEDIGT, lauf=lauf, erledigt_am=jetzt, fehler="", naechster_versuch=None)
+    except SteckplatzWartet as fehler:
+        # Kein Anbieter gestartet. Die technische Auftragsreservierung ist kein
+        # verbrauchter Fehlversuch; beim regulären nächsten Fadenlauf erneut prüfen.
+        stand.update(status=Auftragsstatus.GEPLANT, versuche=F("versuche") - 1,
+            fehler=f"{type(fehler).__name__}: {fehler}"[:300], naechster_versuch=None)
+        ausgang = "verschoben"
     except Exception as fehler:  # der Faden darf nie sterben; der Grund steht am Auftrag
         if not isinstance(fehler, SteckplatzStumm):  # ein stummer Steckplatz ist kein Programmfehler
             log.exception("KI-Auftrag %s gescheitert", pk)

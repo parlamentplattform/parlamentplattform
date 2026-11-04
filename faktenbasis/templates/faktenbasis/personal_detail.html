@@ -1,0 +1,31 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ aggregat.bereich }} · {{ aggregat.datenjahr }}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:personal' %}">‹ {% translate "Personal-Aggregate" %}</a>
+<h1>{{ aggregat.bereich }}</h1>
+<div class="karte" id="personal-aggregat">
+  <p>{% translate "Datenjahr" %}: {{ aggregat.datenjahr }} · {% translate "Einheit" %}: {{ aggregat.einheit }}</p>
+  <p>{% translate "VBÄ sind Vollbeschäftigtenäquivalente, keine Anzahl einzelner Personen. Die Werte sind ein Bestand, keine Prognose und keine Aussage über freie Personalkapazität." %}</p>
+  <h2 id="personal-werte">{% translate "Übernommene amtliche Aggregatwerte" %}</h2>
+  <dl class="lauf-daten" aria-labelledby="personal-werte">
+    <dt>{% translate "Beamtinnen und Beamte" %}</dt><dd><strong>{{ aggregat.beamte }}</strong></dd>
+    <dt>{% translate "Vertragliches Personal" %}</dt><dd><strong>{{ aggregat.vertragliches_personal }}</strong></dd>
+    <dt>{% translate "Gesamt" %}</dt><dd><strong>{{ aggregat.gesamt }}</strong></dd>
+  </dl>
+  <p class="meta">{% translate "Quelle" %}: Bundeskanzleramt · {{ aggregat.publikation }} · {% translate "Seite" %} {{ aggregat.seite }} · {% translate "Tabelle" %} {{ aggregat.tabelle }}</p>
+  <p><a href="{{ aggregat.quelle }}" rel="noopener noreferrer">{% translate "Amtliches Original beim Herausgeber ansehen" %}</a></p>
+  <p>{% translate "Originaldatei-Prüfsumme (SHA-256)" %}: <code class="fakten-hash">{{ aggregat.original_sha256 }}</code></p>
+  <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ aggregat.parser_fassung }} · {% translate "Erstmals erfasst" %}: {{ aggregat.erfasst_am|date:"d.m.Y H:i" }}</p>
+  <p><a href="{% url 'faktenbasis:personal_nachweis' aggregat.pk %}">{% translate "Aggregat mit Herkunft als JSON herunterladen" %}</a></p>
+  <p class="hilfe">{% translate "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Diese Angaben werden noch nicht automatisch in Modellaufträge übernommen." %}</p>
+</div>
+<details class="karte"><summary>{% translate "Abrufe dieses Belegs nachlesen" %}</summary>
+<p class="meta">{% translate "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben nachlesbar." %}</p>
+<ul>{% for a in abrufe %}<li>{{ a.beendet_am|date:"d.m.Y H:i" }} · {{ a.get_weg_display }} · {% if a.erfolgreich %}{% translate "Erfolgreich" %}{% else %}{% translate "Fehlgeschlagen" %} · {{ a.fehlercode }}{% endif %}</li>{% endfor %}</ul>
+{% if abrufe.has_other_pages %}<nav aria-label="{% translate 'Seiten der Belegabrufe' %}">
+  {% if abrufe.has_previous %}<a href="?seite={{ abrufe.previous_page_number }}">‹ {% translate "Zurück" %}</a>{% endif %}
+  <span>{{ abrufe.number }} / {{ abrufe.paginator.num_pages }}</span>
+  {% if abrufe.has_next %}<a href="?seite={{ abrufe.next_page_number }}">{% translate "Weiter" %} ›</a>{% endif %}
+</nav>{% endif %}
+</details>
+{% endblock %}

@@ -14,7 +14,7 @@ from __future__ import annotations
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import OperationalError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -245,12 +245,17 @@ def einbringen(request):
     pruefung = None  # das Ergebnis beider Ähnlichkeitsstufen (verfahren/aehnlichkeit.py)
     form = AntragsFormular(request.POST if request.method == "POST" else None, mitglied=request.user)
 
-    def seite(ergebnis=None, token="", bestaetigung=None):
+    def seite(ergebnis=None, token="", bestaetigung=None, vergleich=None):
+        from ki.vergleichsanfragen import anbieten
+
+        vergleichsangebot = (anbieten({**form.cleaned_data, "gebiet": form.gebiet()}, request.user, token)
+                             if token and ergebnis and ergebnis.treffer and not bestaetigung else "")
         return render(request, "verfahren/einbringen.html", {
             "form": form, "aehnliche": ergebnis.treffer if ergebnis else [],
             "pruefung": ergebnis, "pruefstand": token, "bestaetigung": bestaetigung,
             "vorschau_geprueft": ergebnis is not None,
             "ordnung": ordnung, "ki_anbieter": _ki_anbieter_name(),
+            "gegenueberstellung_token": vergleichsangebot, "gegenueberstellung": vergleich,
             "vorschau_wartezeit": max(0, zahl("aehnlichkeit-vorschau-wartezeit-ms", 800)),
             "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
         })
@@ -261,6 +266,28 @@ def einbringen(request):
             daten = {**d, "gebiet": form.gebiet()}
             token = request.POST.get("pruefstand", "")
             stand = pruefstand_lesen(token, daten, request.user) if token else None
+            if request.POST.get("textvergleich"):
+                from ki.betriebszugang import _sperrkonflikt
+                from ki.gegenueberstellungen import anfordern, auswertung
+
+                if stand is None or d["art"] != Antragsart.SACHE:
+                    form.add_error(None, _("Der Text oder die Auswahl hat sich geändert. Bitte prüfen Sie die Treffer erneut."))
+                    lokal = aehnliche_antraege(d["titel"], d["wortlaut"], request.user, bedeutung=False)
+                    return seite(lokal, pruefstand_fuer(daten, request.user, lokal))
+                pruefung = pruefung_aus_stand(stand)
+                try:
+                    vergleich = auswertung(anfordern(daten, request.user, token, request.POST["textvergleich"]), request.user)
+                except ValueError:
+                    form.add_error(None, _("Der Modellvergleich passt nicht mehr zu diesem Angebot oder die vollständigen Texte überschreiten seine Grenze. Prüfen Sie die Treffer erneut oder bringen Sie Ihren eigenen Antrag ein."))
+                    return seite(pruefung, token)
+                except OperationalError as fehler:
+                    if not _sperrkonflikt(fehler):
+                        raise
+                    # SQLite kann bereits beim Reservieren der privaten Anfrage
+                    # einen Schreibkonflikt melden. Kein zweiter Aufruf/Retry;
+                    # die unveränderte menschliche Wahl bleibt gerendert.
+                    vergleich = {"gueltig": False, "meldung": "datenbank_belegt"}
+                return seite(pruefung, token, vergleich=vergleich)
             wahl = request.POST.get("unterstuetzen") or request.POST.get("unterstuetzen_bestaetigt")
             if wahl or request.POST.get("vergleich_zurueck") or (request.POST.get("trotzdem") and token):
                 if stand is None or d["art"] != Antragsart.SACHE:
@@ -358,10 +385,10 @@ def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:
     und den Textvektor sichern — direkt, wenn die Prüfung ihn eben gerechnet hat (kein zweiter
     Aufruf), sonst als Auftrag „aehnlichkeit“ für den Hintergrundlauf. Beides ist Vorschlag,
     nichts davon hält den Antrag auf."""
-    from ki.warteschlange import einreihen
+    from ki.warteschlange import einreihen, rechtspruefung_ohne_hemmung
     from verfahren.aehnlichkeit import einbettung_speichern
 
-    einreihen(Zweck.RECHTSBEZUG, antrag, mitglied)
+    rechtspruefung_ohne_hemmung(antrag, mitglied)
     if pruefung is not None and pruefung.neuer_vektor is not None:
         einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
     elif anbieter_waehlen() is not None:
@@ -779,8 +806,8 @@ def filter_anwenden(request):
 def beanstanden(request, pk):
     """FB-F2 (§ 6 Abs 11 lit b): eine Einschätzung der Zukunftswerkstatt beanstanden.
     Der Vermerk ist öffentlich und bleibt stehen. Er ist als Anforderung eines Korrekturlaufs
-    gedacht — den Korrekturlauf selbst gibt es noch nicht (S11), darum verspricht ihn kein
-    Text. Die Modellrechnung schlägt vor — wer einen Fehler sieht, hält ihn fest.
+    gedacht. Für festgehaltene öffentliche Rechtsbezüge kann die zuständige Gruppe 1 eine
+    getrennte Nachrechnung anfordern. Andere Einschätzungen sind noch nicht erfasst.
     Wie jede Mitwirkung mit Namen im Arbeitsbereich: nur bestätigte, aktive Mitglieder (§ 4,
     F-51) — sonst könnte ein ungeprüftes Konto unbegrenzt öffentliche Texte absetzen."""
     from ki.models import Zweck
@@ -798,23 +825,61 @@ def beanstanden(request, pk):
     # Das Formular steht in der Kopfkarte: Ziel ist die Einschätzung, die sie zeigt; ohne eine
     # solche der jüngste lesbare Lauf (Rechtsbezug) — nie der Textvektor-Lauf, den liest kein Mensch.
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG) or _lesbarer_lauf(antrag)
-    beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "einschaetzung_beanstandet",
-            "antrag": antrag.pk,
-            "beanstandung": beanstandung.pk,
-            "lauf": lauf.pk if lauf else None,
-        }
-    )
+    # Neue Formulare binden genau den gelesenen Lauf. Eine inzwischen neue
+    # Einschätzung darf das Ziel eines bereits geöffneten Formulars nicht ändern.
+    if request.POST.get("lauf"):
+        from ki.models import KILauf
+
+        try:
+            lauf = KILauf.objects.get(pk=int(request.POST["lauf"]), antrag=antrag,
+                erfolgreich=True, zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN))
+        except (ValueError, KILauf.DoesNotExist):
+            messages.error(request, _("Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."))
+            return _zurueck_zum_antrag(request, antrag)
+    with transaction.atomic():
+        beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "einschaetzung_beanstandet",
+                "antrag": antrag.pk,
+                "beanstandung": beanstandung.pk,
+                "lauf": lauf.pk if lauf else None,
+            }
+        )
     messages.success(
         request,
         _(
-            "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Ein Korrekturlauf der "
-            "Zukunftswerkstatt ist noch nicht gebaut."
+            "Ihre Beanstandung ist öffentlich vermerkt und bleibt stehen. Die zuständige Gruppe 1 kann "
+            "für einen festgehaltenen öffentlichen Rechts- oder Folgenbericht eine Nachrechnung anfordern."
         ),
     )
     return _zurueck_zum_antrag(request, antrag)
+
+
+@login_required
+@require_POST
+def korrektur_anfordern(request, pk, beanstandung_pk):
+    from django.core.exceptions import ValidationError
+    from django.http import HttpResponseForbidden
+
+    from ki.korrekturen import anfordern
+    from verfahren.models import Beanstandung
+
+    antrag = get_object_or_404(Antrag, pk=pk)
+    sperre = _mitwirkung_gesperrt(request)
+    if sperre:
+        return sperre
+    b = get_object_or_404(Beanstandung, pk=beanstandung_pk, antrag=antrag)
+    try:
+        anfordern(b, request.user)
+    except PermissionError:
+        return HttpResponseForbidden(_("Eine Nachrechnung kann nur die für diesen Antrag zuständige aktive Gruppe 1 anfordern."))
+    except ValidationError as fehler:
+        messages.error(request, fehler.messages[0])
+    else:
+        messages.success(request, _("Die Nachrechnung ist eingereiht. Original und Beanstandung bleiben unverändert; es gelten die vorhandenen Modellbudgets."))
+    # Der Anker öffnet am Handy auch mit JavaScript die richtige Zone.
+    return redirect(reverse("verfahren:antrag", args=[antrag.pk]) + f"#beanstandung-{b.pk}")
 
 
 def _zurueck_zum_antrag(request, antrag):

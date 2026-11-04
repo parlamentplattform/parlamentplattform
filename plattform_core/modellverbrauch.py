@@ -1,12 +1,12 @@
 """Gespeicherte Laufangaben zusammenfassen, ohne Rechnung oder Preisannahme."""
 
-VERSION = 1
+VERSION = 4
 ZAHLEN = ("laeufe", "fehlversuche", "tokens_ein", "tokens_aus", "dauer_ms")
 
 
 def zusammenfassen(zeilen):
-    """Vier bekannte Zwecke plus Sonstige; keine Relevanzsortierung/Teilmengengrenze."""
-    if not isinstance(zeilen, list) or len(zeilen) > 5:
+    """Sieben bekannte Zwecke plus Sonstige; keine Relevanzsortierung/Teilmengengrenze."""
+    if not isinstance(zeilen, list) or len(zeilen) > 8:
         raise ValueError("Verbrauchsgruppen")
     werte = []
     for zeile in zeilen:

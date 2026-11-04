@@ -40,6 +40,8 @@ def importieren(norm):
     # Ausschließlich den erhaltenen Datenbankstand lesen, keine veränderten
     # Attribute eines übergebenen Python-Objekts als amtliche Quelle verwenden.
     norm = Norm.objects.get(pk=norm.pk)
+    if norm.ebene not in {"Bund", "Land"} or (norm.ebene == "Land") != bool(norm.bundesland):
+        raise RisFehler("kennung")
     with einzelabruf():
         return _uebernehmen(norm)
 
@@ -48,8 +50,9 @@ def _uebernehmen(norm):
     beginn = timezone.now()
     quelle = ""
     try:
-        quelle = xml_adresse(norm.rohdaten, norm.ris_id)
-        daten = xmltext_parsen(abrufen(quelle), norm.ris_id, norm.gesetzesnummer)
+        optionen = {"bundesland": norm.bundesland} if norm.ebene == "Land" else {}
+        quelle = xml_adresse(norm.rohdaten, norm.ris_id, **optionen)
+        daten = xmltext_parsen(abrufen(quelle), norm.ris_id, norm.gesetzesnummer, **optionen)
     except RisFehler as fehler:
         with transaction.atomic():
             lauf = NormTextAbruf.objects.create(

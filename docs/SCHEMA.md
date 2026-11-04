@@ -1,6 +1,130 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.19** (3.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.29** (4.11.2026)*
+
+Seit1.29 ergänzt `sources.inventory_max_records` (`faktenbasis-bestandsnachweis-hoechstzahl`,
+Einheit snapshots) den ausschließlich lesenden Nachweis des lokalen Quellenbestands.
+Standard2000,0deaktiviert, technische Obergrenze10000. Ein vorhandener unlesbarer Wert
+sperrt den Nachweis; fehlender Eintrag verwendet den Standard. Keine Verfahrensordnung.
+
+### Datenschutzgrenze älterer Rechtsbezugarchive (0.77.2)
+
+Die öffentliche Rechtsbezuganzeige und beide Antragsarchivformate geben nur
+bekannte historische Text-/Quellenfelder mit rekonstruierbarem Eingabevertrag
+aus. Das gilt auch für noch wartende Aufträge. Kontextlose frühe Archive bleiben
+ohne nachträgliche Herkunftsbehauptung erhalten; unbekannte oder widersprüchliche
+Rahmen erhalten `kontextstatus: "fehler"` statt der rohen Eingabe, Antwort und
+Zusatzfelder. Der Markdownexport nennt diesen Fehler ausdrücklich und bleibt
+herunterladbar. Ein neuer Hash macht ein unbekanntes Feld nicht öffentlich.
+Korrekturwege prüfen dieselbe öffentliche Ursprungsgrenze. Roharchive und der
+getrennte persönliche Datenexport werden dadurch nicht bereinigt oder verändert.
+Schema1.29 und gültige alte Eingabe-/Promptfassungen bleiben unverändert.
+
+### Datenschutzgrenze älterer Korrekturläufe (0.77.1)
+
+Datenschutzkorrektur0.77.1: Öffentliche `rechtsbezug.korrekturen` prüfen auch bei
+den alten Korrektur-Promptfassungen1/2 die feste äußere Kontextfeldmenge und die
+Text-/Quellenbindung. Ein fehlerhafter ausgewählter Lauf oder wartender Rahmen
+ergibt den bestehenden Fehlerzustand; fremde Zusatzversuche werden nicht ausgegeben.
+Gültige Altverträge einschließlich einer ausdrücklich leeren Folgenangabe bleiben
+lesbar. Unbekannte zusätzliche Rahmen-/Text-/Beanstandungsfelder werden durch
+einen neu berechneten Hash nicht zu öffentlichen Angaben. Originale bleiben
+gespeichert; keine neue Datenform, nachträgliche Reparatur oder Quellenanreicherung.
+
+### Bestandsnachweis Fassung1
+
+`GET /zukunftswerkstatt/faktenbasis/bestand/` zeigt den lokalen Bestand;
+`GET /zukunftswerkstatt/faktenbasis/bestand.json` liefert `inhalt`, `sha256`,
+`erstellt_am` (ISO8601) und `hoechstzahl`. `inhalt` enthält `fassung:1`,
+`sammlungen` und `eintraege`. Sammlungen sind nach Kennung geordnet, mit
+`sammlung`, `hash_bezug`, `anzahl`. Jeder Eintrag enthält ausschließlich
+`sammlung`, `nummer` (positive lokale Datensatznummer) und `pruefsumme`.
+Einträge sind nach Sammlungskennung und numerisch aufsteigender Nummer gereiht.
+
+Hashbezüge: `norm` → `kanonische_metadaten_json` (Data-Objekt der amtlichen
+Antwort), `normtext` → `original_xml_bytes`, `personalaggregat` und
+`personalressorttabelle` → `original_pdf_bytes`. Mehrere Einträge können aus
+derselben Originaldatei stammen. Einträge zählen Schnappschüsse, keine Gesetze
+oder Personen. Der Nachweis prüft die Zuordnung gespeicherter Nummern/Hashes,
+er rechnet nicht die Originaldateien erneut nach. Er ist weder amtliche
+Signatur noch Vollständigkeits- oder rechtlicher Aktualitätsnachweis; keine
+Änderung bereits verwendeter Modellkontexte.
+
+Nachrechnung in Python ohne Zusatzpaket:
+
+```python
+import hashlib, json
+raw = json.dumps(download["inhalt"], ensure_ascii=False, sort_keys=True,
+                 separators=(",", ":"), allow_nan=False).encode("utf-8")
+assert hashlib.sha256(raw).hexdigest() == download["sha256"]
+assert download["sha256"] == zuvor_notierter_vergleichshash
+```
+
+Seit0.78 gibt es außerdem ein eigenständiges Offlinewerkzeug:
+
+```text
+python tools/faktenbestand_pruefen.py DATEI --sha256 HASH
+```
+
+`DATEI` ist der bereits heruntergeladene lokale JSON-Nachweis. `HASH` muss die
+zuvor notierte Prüfsumme sein, etwa von der Nachweisseite, nicht erst ein aus
+derselben zu prüfenden Datei übernommener Wert. Das Werkzeug benötigt nur Python
+ab3.11 und die vorhandene reine Bestandsregel im Checkout; keine installierten
+Zusatzpakete, Django-Einstellungen, Datenbank oder Netzwerkverbindung. Es schreibt
+keine Dateien und ruft keine Modelle auf. `python -I -S` ist ebenfalls möglich.
+
+Es prüft das vollständige bekannte Format mit derselben Bestandsregel1 einschließlich
+Reihung, Zählern und Hashbezügen. Ein neu gebildeter Hash für geänderte Daten besteht
+nicht gegen den alten angegebenen Vergleichshash. Doppelte JSON-Schlüssel, NaN,
+unbekannte Felder, Typverwechslungen und unvollständige Stände werden abgewiesen.
+Technische Parsergrenzen:4MiB pro Datei,16 verschachtelte Objekte/Listen; der volle
+bekannte Nachweis mit10000Einträgen liegt darunter. Diese Grenzen ändern keine
+Registerwerte oder Verfahrensregeln.
+
+Erfolg:Exit0 und JSON auf stdout mit `pruefung`, `bestandsregel_fassung`, `sha256`,
+`schnappschuesse`, `sammlungen` und ausdrücklich falschen Bestätigungsflags
+`originaldateien_geprueft`, `amtliche_signatur_geprueft`,
+`vollstaendigkeit_bestaetigt`, `metadaten_im_hash`.
+Prüffehler:Exit1, nur `{"fehler":"CODE"}` auf stderr und kein Erfolgsauszug;
+Codes umfassen `datei`, `dateigroesse`, `utf8`, `json`, `doppelte_schluessel`,
+`vergleichshash`, `format`, `metadaten`, `fassung`, `sammlungen`, `inhalt`,
+`grenze`, `umfang`, `daten`, `pruefsumme`. Fehlende Aufrufargumente:Exit2.
+Fremde Dateiinhalte werden bei Fehlern nicht ausgegeben. Das Ergebnis bestätigt
+ausschließlich die Übereinstimmung mit dem angegebenen Hash. Werden Datei und
+Vergleichshash gemeinsam ersetzt, beweist ein passender Hashvergleich keine
+Echtheit; die Beschaffung des Vergleichshashes bleibt eine getrennte Aufgabe.
+
+Nur `inhalt` gehört zum Hash, nicht Erzeugungszeit/Betriebsgrenze. Vier Sammlungen
+werden in einem Datenbankstatement gelesen; der Stand ist auf diesen Abfragezustand
+begrenzt. `?sha256=<angezeigter Hash>` bindet den Download an die Anzeige:
+400bei ungültigem Hash,409bei verändertem Bestand. 503bei ungültiger Grenze,
+Überschreitung oder defekter Zuordnung, dann nur `fehler`/`meldung`, kein
+Teilinhalt/Hash. 0sperrt auch den leeren Nachweis. POST405; keine Abrufe/Schreibwirkungen.
+Die Endpunkte verwenden `no-store`; kein unveränderliches öffentliches Archiv
+dieser dynamischen Zusammenstellung wird behauptet.
+
+Seit1.28 begrenzt `legal_effects.total_input_chars` (`rechtsfolgen-eingabezeichen`,
+Zeichen, Standard30000, technisch1bis100000) die vollständige neue öffentliche
+Rechtsfolgen-Eingabe. Bei Überschreitung keine Kürzung, kein Modellaufruf und keine
+Verfahrenshemmung. Neue Aufträge ersetzen den alten Rechtsbezug durch einen
+kombinierten Bericht; vorhandene alte Aufträge bleiben unverändert. Im Antragsarchiv
+führen die bisherigen öffentlichen `rechtsbezug.auftraege`/`laeufe` zusätzlich den
+getrennten Zweck `rechtsfolgen` und dessen `folgenkontext`; ungeprüfte Zuordnungen
+geben nur Kennung/Zweck/Fehlerstand aus. Korrekturen an Folgenberichten nutzen
+Kontextfassung2 und Prompt3, frühere Korrekturen bleiben1/2. Verbrauchsformat4 zählt
+sieben bekannte Zwecke plus Sonstige. Numerische Personalfolgen bleiben null und
+bedeuten keinen Nullbedarf. Eigener Antwortschema-Endpunkt
+`/zukunftswerkstatt/rechtsfolgenformat.json` mit kanonischer SHA-256; Formprüfung3
+bestätigt keine rechtliche Deutung. Zusätzlich nennt `darstellungsfolge` die
+vollständigen Anzeigeindizes und die Unicode-Fassung; Originaldaten bleiben in
+ihrer Antwortreihenfolge. Keine privaten Vorabvergleiche oder internen
+Gremientexte im öffentlichen Berichtsexport.
+
+Seit 1.27 führt `comparison.*` die offenen Stunden-, Zeit-, Paar- und Textgrenzen
+des freiwilligen Textvergleichs. Private Anforderungen und Texte werden nicht im
+öffentlichen Parameter-/Antragsexport übertragen; sie gehören nur in den eigenen
+persönlichen Datenexport. Verbrauchsformat 3 kennt den zusätzlichen Zweck und
+zählt weiterhin nur einem Antrag tatsächlich zugeordnete Läufe.
 
 Die ParlamentPlattform wird je Land als **eigene Instanz** betrieben (eigene Datenbank, eigenes
 Parameterregister, eigener Kategorienbaum, eigene Satzung). Der **Kern** — Quellcode, Freigaben,
@@ -11,6 +135,8 @@ verlassen eine Instanz nie.
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
 Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
 vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+
+Seit1.20 ergänzt rechtsbezug.korrekturen getrennte Nachweise öffentlicher Korrekturaufträge: Ursprung, Beanstandung, festgehaltener Korrekturrahmen, Status und zugehörige Versuche einschließlich Fehlversuchen. Die bisherigen Lauf-/Auftragslisten bleiben beim ursprünglichen Rechtsbezug. Kein Korrekturlauf bestätigt die rechtliche Relevanz oder verändert ein Verfahren. Siehe docs/KORREKTURLAUF.md.
 
 Seit 1.19 ergänzt rechtsbezug.quellenabgleich den ausdrücklich heutigen lokalen Vergleich zum aktuell angezeigten Quellenrahmen (Formatfassung1, Ermittlungszeit, Ausgangs-Prüfsumme, Auftrags-/Laufbezug und Befunde je Kennung). Er steht getrennt von den unveränderten damaligen Kontexten. Kein späterer lokaler Fund ist keine juristische Aktualitäts- oder Vollständigkeitszusage. Siehe docs/QUELLENNACHLESE.md.
 
@@ -281,3 +407,104 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 Seit1.15 enthält das Register sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste RIS-Einzelbezüge von Metadaten und Dokumenttexten. Anfangswert10, null sperrt weitere Abrufe. Reservierung, UTC-Kalenderstunde und Mindestabstand sind in docs/FAKTENBASIS.md beschrieben. Es ist kein Ordnungsschlüssel und kein Bestandteil einer eingefrorenen Verfahrensordnung.
 
 Seit1.16 ergänzt der öffentliche JSON-Archivexport erfolgreiche Rechtsbezug-Läufe um `rechtsbezug.laeufe[].antwortformat` (Fassung, zeitbezug=darstellung, schema_sha256, antwort_sha256, gueltig, fehler mit pfad/code). Bei Anbieterfehlern ist das Feld null. Es ist die aktuelle Formprüfung beim Export, keine nachträglich behauptete Prüfung während des ursprünglichen Laufs. Originalantwort und Laufkontext bleiben unverändert. `GET /zukunftswerkstatt/antwortformat.json` liefert das Schema; technische Grenzen und Hashbildung beschreibt docs/ANTWORTFORMAT.md. Keine neuen Parameter, Verfahrensregeln oder amtlichen Normzuordnungen.
+
+
+### Ergänzung1.21: getrennte Kennungsnachlese
+
+Öffentliche `rechtsbezug.laeufe[]` sowie zugehörige Korrekturversuche enthalten `kennungsabgleich`:
+`regel_fassung`, `rechtlich_verifiziert: false`, `zustand` und `zuordnungen[]` in ursprünglicher Modellreihenfolge.
+Bei prüfbarer damaliger Eingabe stehen `text_sha256` und `quellen_sha256` daneben. Eine Zuordnung nennt
+`position`, ursprüngliche `kennung`, `zustand` (gleich/mehrdeutig/keine) und nur bei genau einem Treffer
+`quelle` mit `norm_id`, `ris_id`, `kurztitel`, `abschnitt`, `stand`. Die Quelle ist der damalige gespeicherte
+Einzel-Schnappschuss, kein heute nachgeladener Ersatz. Sonst ist `quelle` null. Fehlerhafte Antwortform,
+fehlender Alt-Kontext und unprüfbarer Rahmen sind getrennte Gesamtzustände ohne positive Zuordnungen.
+Die Kennungsnachlese ist eine heutige lesende Auswertung nach ihrer genannten Regelversion, kein im
+ursprünglichen Lauf behaupteter Nachweis und keine juristische Bestätigung. Rohantworten, Originalkontexte
+und Antwortschema bleiben unverändert. Interne Zwecke sind weiterhin vom öffentlichen Export ausgeschlossen.
+
+
+### Ergänzung1.22: nachvollziehbare Personal-Aggregate
+
+`/zukunftswerkstatt/faktenbasis/personal/<id>/nachweis.json` liefert ausschließlich das öffentliche
+Aggregat mit `id`, `datenjahr`, `bereich`, `einheit`, `beamte`, `vertragliches_personal`, `gesamt`,
+`quelle`, `publikation`, `seite`, `tabelle`, `original_sha256`, `parser_fassung`, `erfasst_am`.
+EinheitVBÄ bezeichnet Vollbeschäftigtenäquivalente, keine Kopfzahl oder verfügbare Kapazität.
+Der erste bekannte Beleg ist der Personalbericht2026, Tabelle20/Seite75 mit Datenjahr2025.
+Der Hash bezeichnet genau die amtlichen Originalbytes; unbekannte Bytes werden vor dem PDF-Parser
+abgewiesen. Keine lokale Dateiadresse, Individualdaten oder öffentliche Original-PDF-Kopie.
+Bisherige Modelleingaben und Antragsarchiv-Nachweise erhalten keine nachträglich ergänzten Zahlen.
+
+### Ergänzung1.23: Metadaten aus genau einem Bundesland
+
+Der gespeicherte RIS-Originalexport kann neben `Metadaten.Bundesrecht` jetzt auch eine ausdrücklich
+abgerufene Antwort mit `Technisch.Applikation: LrKons` und `Metadaten.Landesrecht` enthalten.
+`Landesrecht.Bundesland` nennt das tatsächlich angeforderte und in jedem Dokument geprüfte Bundesland.
+`LrKons.Gesetzesnummer` und die vollständige Landes-Dokumentkennung müssen zur Anfrage bzw. amtlichen
+Dokumentadresse passen. `Hits` bleibt die unveränderte amtliche Trefferangabe; gelesen wird allein die
+erste Seite mit höchstens zehn Dokumenten. Der Originalexport wird nicht in Bundesrecht umgeschrieben.
+
+Die öffentliche Nachlese trennt Bund und Bundesland. Die zusätzlichen Herkunftsfelder der lokalen
+Schnappschüsse verändern keine Originalantwort oder frühere Prüfsumme. Alte Modelleingaben und der
+QuellenkontextFassung1 bleiben ausschließlich auf Bundesrecht begrenzt; Landes-Dokumenttexte und
+ihre Einbindung in Modelle sind noch nicht Bestandteil dieses Schritts. Keine neue Datenquelle in
+laufenden Aufträgen und keine Behauptung einer vollständigen oder juristisch geprüften Rechtslage.
+
+### Ergänzung1.24: einzelner Landes-Dokumenttext
+
+Die bestehende Original-XML-Nachlese kann nun auch einen ausdrücklich übernommenen einzelnen
+Landes-Dokumenttext enthalten. Quelle ist allein die in den erhaltenen LrKons-Metadaten genannte
+exakte amtliche XML-Adresse mit Landes-Dokumentkennung. Im XML werden Dokumentnummer,
+Gesetzesnummer und Bundesland zusätzlich geprüft; keine freien Quellen oder Titelzuordnungen.
+
+Die neue Textauswertung trägt `parser_fassung: 2`, auch bei künftigen Bundes-Dokumenttextabrufen.
+Sie erhält Zeilenumbrüche und Tabulatoren an entsprechenden XML-Elementen. Originalbytes und ihr
+SHA-256 bleiben unverändert; frühere TextauswertungenFassung1 werden weder ersetzt noch gelöscht.
+Ein erneuter Bezug desselben Originals kann einen zusätzlichen TextstandFassung2 ergeben;
+Wiederholungen innerhalb derselben Parserfassung bleiben idempotent und separat protokolliert.
+
+Diese Erweiterung macht Landesrecht nicht zum Bestandteil des bisherigen Modellquellenkontexts.
+Es gibt weiterhin keinen vollständigen Norm-Verweisgraphen, keine automatische Aktualisierung,
+Produktionsbefüllung oder juristische Bestätigung. Bereits eingefrorene Antrags-/Modellkontexte
+und Exporte ihrer ursprünglichen Eingaben erhalten keine späteren Landesquellen.
+
+### Ergänzung1.25: ausdrückliche Herkunft neuer Modellquellen
+
+Neue `rechtsbezug.auftraege[].quellenkontext` und entsprechende Laufkontexte tragen
+`version: 2` sowie `umfang: {regel_fassung: 1, kennung: "bund_land_ohne_gebietspruefung"}`.
+Der Umfang bezeichnet den vorhandenen Kandidatenpool, keine rechtlich geprüfte Zuständigkeit.
+Jede Quelle ergänzt `ebene` (Bund/Land) und `bundesland` (bei Bund leer, sonst amtlicher Landesname).
+Die bestehenden Herkunfts-, Text-, Auswahl- und Hashfelder bleiben; der Gesamthash umfasst die
+neuen Felder. Version1 bleibt unverändert prüfbar und enthält diese zusätzlichen Felder nicht.
+
+Promptdispatch: ohne alten Quellenrahmen `rechtsbezug-v1`, Rahmen1 `rechtsbezug-v2`, neuer
+Rahmen2 `rechtsbezug-v3`. Die Korrektur nutzt für alte Rahmen weiter `korrektur-v1`, für
+neue Rahmen `korrektur-v2`. Antwortschema und dessen Hash bleiben unverändert. Tatsächliche
+Eingaben werden für jeden bekannten Vertrag exakt rekonstruiert; unbekannte Promptfassungen
+bekommen keine positive Kennungszuordnung oder öffentliche Korrektureingabe.
+
+Die heutige `kennungsabgleich.regel_fassung` ist2. Eine eindeutige Zuordnung aus Rahmen2
+ergänzt in `quelle` die damaligen Felder `ebene`/`bundesland`; alte Quellen erhalten keine
+erfundene Herkunftsergänzung. Identität verlangt dieselbe Ebene und vollständige Dokumentnummer.
+`rechtlich_verifiziert` bleibtfalse. Mehrdeutigkeit ergibt keine Quelle, kein Titelersatz und
+keine nachträgliche Rechtsfolgenbestätigung. Originalantworten, Frames und archivierte Eingaben
+bleiben unverändert; lediglich die getrennte heutige Nachlese benennt ihre neue Regelfassung.
+
+Keine neuen Parameter, Anbieterjobs, Budgets oder Datenbankmigrationen. Keine automatische
+Netznachladung oder Zuordnung aus dem freien Antrag-Gebiet; örtliche Wahlberechtigung bleibt
+ein gesonderter offener Baustein. Details und Abnahmegrenzen: `docs/LANDESKONTEXT.md`.
+
+### Ergänzung1.26: eigener Ressorttabellen-Nachweis
+
+`/zukunftswerkstatt/faktenbasis/personal/ressorts/<id>/nachweis.json` liefert die
+bekannte Ressorttabelle getrennt vom unveränderten bisherigen Personal-Aggregatformat.
+Felder: `id`, `datenjahr`, `stichtag`, `einheit`, `ressorts[]`, `gesamt`, `quelle`,
+`publikation`, `seite`, `methodik_seite`, `tabelle`, `original_sha256`, `parser_fassung`,
+`erfasst_am`. Eine Ressortzeile nennt `ressort`, `gesamt`, `zentralstelle`, `nachgeordnet`.
+Das gesonderte Gesamtobjekt enthält nur die drei Zahlenspalten und zählt nicht als Ressort.
+Nicht angegebene Teilfelder sindnull, niemals als0 ergänzt. Die Zahlen bleiben wie im
+Original gerundet; ihre Summen werden nicht berichtigt. Stichtag31.12.2025, EinheitVBÄ.
+Kein Beamten-/Vertrags-Split, Personalbedarf, Kopfzahl oder verfügbare Kapazität.
+
+Originalquelle, Tabellen-/Methodikseite und Parserfassung bleiben unabhängig nachlesbar.
+Keine Änderung vorhandener Exporte oder eingefrorener Antrags-/Modellkontexte, keine
+neuen Parameter oder Modellaufrufe. Details: `docs/PERSONALRESSORTS.md`.

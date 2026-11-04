@@ -63,9 +63,9 @@ def _antrag(ordnung, name="anna", titel=None):  # noqa: F811
 
 def test_auftragstext_rechtsbezug_liegt_versioniert_im_repo():
     text = auftrag_laden("rechtsbezug")
-    assert text.version == "rechtsbezug-v2" and "JSON" in text.text and "Rechtsberatung" in text.text
+    assert text.version == "rechtsbezug-v3" and "JSON" in text.text and "Rechtsberatung" in text.text
     assert {a.version for a in auftragsversionen()} == {
-        "einschaetzung-v1", "parametervorschlag-v1", "rechtsbezug-v1", "rechtsbezug-v2",
+        "einschaetzung-v1", "parametervorschlag-v1", "rechtsbezug-v1", "rechtsbezug-v2", "rechtsbezug-v3", "korrektur-v1", "korrektur-v2", "korrektur-v3", "gegenueberstellung-v1", "rechtsfolgen-v1",
     }
     with pytest.raises(KeyError):
         auftrag_laden("gibtesnicht")
@@ -114,7 +114,7 @@ def test_rechtsbezug_lauf_archiviert_mit_auftragsversion_und_erledigt_den_auftra
     a.refresh_from_db()
     assert a.status == Auftragsstatus.ERLEDIGT and a.lauf and a.erledigt_am and a.sperrcode == ""
     lauf = a.lauf
-    assert lauf.zweck == Zweck.RECHTSBEZUG and lauf.auftrag_version == "rechtsbezug-v2" and lauf.antrag == antrag
+    assert lauf.zweck == Zweck.RECHTSBEZUG and lauf.auftrag_version == "rechtsbezug-v3" and lauf.antrag == antrag
     assert "Titel: " + ANTRAG["titel"] in lauf.eingabe and ANTRAG["wortlaut"] in lauf.eingabe
     ergebnis = rechtsbezug_fuer(antrag)
     assert [n["titel"] for n in ergebnis["normen"]] == ["Parteiengesetz 2012", "Erfundene Norm"]
@@ -122,7 +122,7 @@ def test_rechtsbezug_lauf_archiviert_mit_auftragsversion_und_erledigt_den_auftra
     assert ergebnis["normen"][1]["ebene"] == "" and ergebnis["normen"][1]["aenderung"] == "unklar"
     assert not ergebnis["formatpruefung"]["gueltig"]
     assert all(n["verifiziert"] is False for n in ergebnis["normen"])
-    assert ergebnis["unsicherheit"] == "mittel" and ergebnis["auftrag_version"] == "rechtsbezug-v2"
+    assert ergebnis["unsicherheit"] == "mittel" and ergebnis["auftrag_version"] == "rechtsbezug-v3"
 
 
 def test_tageskontingent_deckelt_die_laeufe(json_attrappe, ordnung):  # noqa: F811

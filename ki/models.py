@@ -3,9 +3,9 @@
 Jeder KI-Aufruf hinterlässt einen Lauf — auch der gescheiterte: Zweck,
 Eingabe, Antwort, Modell, Tokenverbrauch, Dauer, Auftragsversion. Das Archiv ist die
 Rechenschaft des Steckplatzes; seine Kennzahlen stehen öffentlich auf der
-Zukunftswerkstatt-Seite. Ein Monats-Tokenbudget deckelt die Kosten hart:
-Ist es erschöpft, wird der Steckplatz stumm, bis der Monat wechselt
-(Register „ki-monatstokens“, F-68).
+Zukunftswerkstatt-Seite. Die Monatsgrenze stoppt neue Aufrufe ab dem archivierten
+Tokenverbrauch (Register „ki-monatstokens“, F-68). Ein bereits begonnener Aufruf
+kann Resttokens überschreiten; daraus folgt keine garantierte Geldobergrenze.
 
 Seit 0.50 gibt es daneben `KIAuftrag`: die Warteschlange (FB-H1/FB-H6). Was nicht in der
 Anfrage selbst gerechnet werden muss — betroffene Gesetze beim Einbringen, nachgezogene
@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import copy
 import time
+import uuid
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -26,8 +27,23 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from ki.anbieter import AnbieterFehler, Einbettung, SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet, einzeln
 
 MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
+
+
+class SteckplatzZugang(models.Model):
+    """Betriebliche Zugangssperre, weder Budgetwert noch Archiv-/Verfahrensstand."""
+
+    name = models.CharField(max_length=24, primary_key=True)
+    belegt = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = _("Betrieblicher KI-Zugang")
+        verbose_name_plural = _("Betriebliche KI-Zugänge")
+
+    def __str__(self):
+        return self.name
 
 
 def _textstand_schuetzen(instanz, felder, update_fields):
@@ -90,8 +106,9 @@ class ArchivQuerySet(LaufQuerySet):
 class AuftragQuerySet(LaufQuerySet):
     geschuetzte_eingaben = LaufQuerySet.geschuetzte_eingaben | frozenset({
         "antrag", "antrag_id", "zweck", "quellenart", "fassung_nummer", "vorschlagsfassung", "vorschlagsfassung_id",
-        "quellenkontext",
+        "quellenkontext", "folgenkontext",
         "angefordert_von", "angefordert_von_id", "erstellt_am",
+        "beanstandung", "beanstandung_id", "ursprung", "ursprung_id", "korrekturkontext",
     })
 
 
@@ -100,6 +117,9 @@ class Zweck(models.TextChoices):
     PARAMETERVORSCHLAG = "parametervorschlag", _("Vorschlag der Zukunftswerkstatt zu einem Parametertest")
     AEHNLICHKEIT = "aehnlichkeit", _("Textvektoren für den Bedeutungsvergleich beim Einbringen")
     RECHTSBEZUG = "rechtsbezug", _("Betroffene Gesetze — Vorschlag der Zukunftswerkstatt")
+    KORREKTUR = "korrektur", _("Nachrechnung eines beanstandeten öffentlichen Rechts- oder Folgenberichts")
+    GEGENUEBERSTELLUNG = "gegenueberstellung", _("Textgegenüberstellung vor dem Einbringen")
+    RECHTSFOLGEN = "rechtsfolgen", _("Rechtsfolgen — unverbindliche Einschätzung der Zukunftswerkstatt")
 
 
 class KILauf(models.Model):
@@ -173,7 +193,7 @@ class Auftragsstatus(models.TextChoices):
 class KIAuftrag(models.Model):
     """Ein Auftrag in der Warteschlange der Zukunftswerkstatt (FB-H1, FB-H6).
 
-    Je Antrag, Zweck und Fassung genau einer (Einreihen ist idempotent). Der Auftrag trägt nur
+    Je Antrag, Zweck und Fassung genau einer; Korrekturen je Beanstandung einer (idempotent). Der Auftrag trägt nur
     den Zustand — reserviert wird atomar per UPDATE wie beim Postauftrag, damit zwei Worker nie
     denselben Auftrag zugleich rechnen; scheitert ein Lauf, rückt der nächste Versuch nach hinten
     (2, 4, 8 … Minuten), nach `HOECHSTVERSUCHE` gilt der Auftrag als gescheitert. Das Ergebnis
@@ -190,6 +210,14 @@ class KIAuftrag(models.Model):
     )
     kontext = models.JSONField(default=dict, blank=True)
     quellenkontext = models.JSONField(_("Amtlicher Quellenkontext"), default=dict, blank=True)
+    folgenkontext = models.JSONField(default=dict, blank=True)
+    beanstandung = models.OneToOneField(
+        "verfahren.Beanstandung", null=True, blank=True, on_delete=models.PROTECT, related_name="korrekturauftrag",
+    )
+    ursprung = models.ForeignKey(
+        KILauf, null=True, blank=True, on_delete=models.PROTECT, related_name="korrekturauftraege",
+    )
+    korrekturkontext = models.JSONField(default=dict, blank=True)
     angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     status = models.CharField(max_length=12, choices=Auftragsstatus.choices, default=Auftragsstatus.GEPLANT)
     lauf = models.ForeignKey(KILauf, null=True, blank=True, on_delete=models.SET_NULL, related_name="auftraege")
@@ -210,6 +238,12 @@ class KIAuftrag(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["zweck", "antrag", "quellenart", "fassung_nummer"], name="kiauftrag_einmal_je_quelle",
+                condition=models.Q(beanstandung__isnull=True),
+            ),
+            models.CheckConstraint(
+                condition=(models.Q(zweck="korrektur", beanstandung__isnull=False, ursprung__isnull=False)
+                           | (~models.Q(zweck="korrektur") & models.Q(beanstandung__isnull=True, ursprung__isnull=True, korrekturkontext={}))),
+                name="kiauftrag_korrekturbezug",
             ),
             models.CheckConstraint(
                 condition=(models.Q(quellenart="antrag", vorschlagsfassung__isnull=True)
@@ -225,10 +259,61 @@ class KIAuftrag(models.Model):
         if self._state.adding and self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
             raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
         _textstand_schuetzen(
-            self, ("kontext", "quellenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
+            self, ("kontext", "quellenkontext", "folgenkontext", "zweck", "antrag_id", "quellenart", "fassung_nummer", "vorschlagsfassung_id",
+                   "beanstandung_id", "ursprung_id", "korrekturkontext",
                    "angefordert_von_id", "erstellt_am"),
             kwargs.get("update_fields"),
         )
+        if self._state.adding:
+            kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
+
+
+class VergleichQuerySet(LaufQuerySet):
+    geschuetzte_eingaben = frozenset({
+        "kennung", "kontext", "eingabe", "eingabe_sha256", "angefordert_von", "angefordert_von_id", "erstellt_am",
+    })
+
+
+class Vergleichsanfrage(models.Model):
+    """Private ausdrückliche Anforderung vor dem Einbringen, kein öffentlicher Antrag.
+
+    Eine Kennung darf höchstens einmal gestartet werden. Ein abgebrochener Prozess
+    gibt sie nicht zeitgesteuert für einen womöglich noch laufenden Anbieter frei.
+    Ein neuer Versuch benötigt später eine neue ausdrückliche Anforderung.
+    """
+
+    kennung = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    angefordert_von = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    kontext = models.JSONField()
+    eingabe = models.TextField()
+    eingabe_sha256 = models.CharField(max_length=64)
+    erstellt_am = models.DateTimeField(default=timezone.now)
+    begonnen_am = models.DateTimeField(null=True, blank=True)
+    beendet_am = models.DateTimeField(null=True, blank=True)
+    lauf = models.OneToOneField(KILauf, null=True, blank=True, on_delete=models.PROTECT, related_name="vergleichsanfrage")
+    # Rein betriebliche Zustände, keine inhaltliche Bewertung eines Modells.
+    status = models.CharField(max_length=16, default="bereit", choices=[
+        ("bereit", _("angefordert")), ("laeuft", _("läuft")),
+        ("fertig", _("beantwortet")), ("ohne_ergebnis", _("ohne Modellvergleich")),
+    ])
+    meldung = models.CharField(max_length=32, blank=True)
+    objects = VergleichQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["erstellt_am", "kennung"]
+
+    def __str__(self):
+        return str(self.kennung)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.pk is not None and type(self).objects.filter(pk=self.pk).exists():
+            raise ValidationError(_("Der gespeicherte Textkontext bleibt unverändert."))
+        _textstand_schuetzen(self, ("kennung", "kontext", "eingabe", "eingabe_sha256", "angefordert_von_id", "erstellt_am"),
+                            kwargs.get("update_fields"))
         if self._state.adding:
             kwargs["force_insert"] = True
         return super().save(*args, **kwargs)
@@ -258,18 +343,19 @@ def _anbieter_bereit():
     """Der gemeinsame Vorlauf jedes Aufrufs: Anbieter da, Budget nicht erschöpft — sonst SteckplatzStumm."""
     anbieter = anbieter_waehlen()
     if anbieter is None:
-        raise SteckplatzStumm(
+        raise SteckplatzWartet(
             "Kein KI-Anbieter angeschlossen — der Steckplatz ist leer (Schlüssel fehlt)."
         )
     if KILauf.monatsverbrauch() >= KILauf.monatsbudget():
-        raise SteckplatzStumm(
+        raise SteckplatzWartet(
             "Das Monats-Tokenbudget des Steckplatzes ist erschöpft — er bleibt stumm, bis der Monat wechselt."
         )
     return anbieter
 
 
+@einzeln
 def lauf_ausfuehren(
-    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None,
+    zweck: str, auftrag: str, eingabe: str, mitglied, antrag=None, auftrag_version: str = "", *, kontext=None, zeitgrenze=None,
 ) -> KILauf:
     """Der eine Weg durch den Steckplatz: Budget prüfen, fragen, archivieren.
 
@@ -280,7 +366,8 @@ def lauf_ausfuehren(
     anbieter = _anbieter_bereit()
     beginn = time.monotonic()
     try:
-        antwort = anbieter.frage(auftrag, eingabe)
+        antwort = (anbieter.frage(auftrag, eingabe) if zeitgrenze is None
+                   else anbieter.frage(auftrag, eingabe, zeitgrenze=zeitgrenze))
     except AnbieterFehler as fehler:
         KILauf.objects.create(
             zweck=zweck,
@@ -312,6 +399,7 @@ def lauf_ausfuehren(
     )
 
 
+@einzeln
 def einbettung_ausfuehren(
     texte: list[str], mitglied, antrag=None, zeitgrenze: float | None = None, *, kontext=None,
 ) -> tuple[KILauf, Einbettung]:

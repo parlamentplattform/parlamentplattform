@@ -1,0 +1,20 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Personal-Aggregate" %}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
+<h1>{% translate "Personal-Aggregate" %}</h1>
+<p><a href="{% url 'faktenbasis:personal_ressorts' %}">{% translate "Amtliche Personalstände nach Ressort nachlesen" %}</a></p>
+<p>{% translate "Übernommene amtliche Gesamtwerte mit Datenjahr, Einheit und Herkunft. VBÄ sind Vollbeschäftigtenäquivalente, keine Kopfzahlen. Bestandszahlen sagen nicht, wie viel freie Kapazität für neue Aufgaben besteht." %}</p>
+<p class="meta">{% translate "Reihenfolge: jüngstes Datenjahr zuerst, dann Bereich; bei gleichem Bereich jüngster Schnappschuss zuerst." %}</p>
+{% if letzter and not letzter.erfolgreich %}<p class="meldung warn">{% translate "Der letzte Personalbeleg konnte nicht übernommen werden. Frühere Angaben bleiben erhalten." %} · {{ letzter.beendet_am|date:"d.m.Y H:i" }} · {{ letzter.fehlercode }}</p>{% endif %}
+{% for a in seite %}<article class="karte">
+  <h2><a href="{% url 'faktenbasis:personal_detail' a.pk %}">{{ a.bereich }}</a></h2>
+  <p>{% translate "Datenjahr" %}: {{ a.datenjahr }} · {{ a.gesamt }} {{ a.einheit }}</p>
+  <p class="meta">{{ a.publikation }} · {% translate "Seite" %} {{ a.seite }} · {% translate "Tabelle" %} {{ a.tabelle }}</p>
+</article>{% empty %}<div class="karte"><p>{% translate "Noch keine amtlichen Personal-Aggregate übernommen." %}</p></div>{% endfor %}
+{% if seite.has_other_pages %}<nav aria-label="{% translate 'Seiten der Personal-Aggregate' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">‹ {% translate "Zurück" %}</a>{% endif %}
+  <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "Weiter" %} ›</a>{% endif %}
+</nav>{% endif %}
+{% endblock %}

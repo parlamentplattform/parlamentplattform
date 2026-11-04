@@ -115,8 +115,8 @@ def texte_der_vorlage(quelle: str) -> set[str]:
 
 
 #: Module, deren `_` eine No-op-Markierung ist (plattform_core bleibt Django-frei): Die Texte
-#: sind für den Katalog vorgemerkt, ihre Übersetzung ist Datenpflege und darf nachkommen —
-#: die Vorlagen übersetzen sie per `{% translate variable %}`, sobald ein Eintrag da ist (#90).
+#: sind No-op-markiert; seit 0.74 gilt auch für sie die vollständige Katalogpflicht.
+#: Die Vorlagen übersetzen sie per `{% translate variable %}` (#90).
 NOOP_MODULE = {"plattform_core/rollen.py", "plattform_core/regelwerk.py"}
 
 
@@ -233,7 +233,7 @@ def test_jeder_markierte_text_hat_einen_katalogeintrag():
     vorhanden = katalog()
     fehlend = sorted(
         (s, orte) for s, orte in texte_im_code().items()
-        if s not in vorhanden and s not in BEWUSST_OHNE_EINTRAG and not nur_vorgemerkt(orte)
+        if s not in vorhanden and s not in BEWUSST_OHNE_EINTRAG
     )
     assert not fehlend, "Markiert, aber ohne Katalogeintrag:\n  " + "\n  ".join(
         f"{s!r}  ← {', '.join(sorted(set(orte)))}" for s, orte in fehlend

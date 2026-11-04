@@ -29,7 +29,7 @@ Offenlegung.{% endblocktranslate %}</p>
 
 <p class="erk">{% blocktranslate with n=zahlen.regeln b=zahlen.bindend l=zahlen.mit_luecke %}{{ n }} Regeln, davon {{ b }} bindend. {{ l }} tragen eine offen benannte Lücke.{% endblocktranslate %}
   <span class="meta">{{ satzung }} · {% blocktranslate with v=verzeichnis_version %}Verzeichnis Fassung {{ v }}{% endblocktranslate %} · <code>plattform_core/regelwerk.py</code></span></p>
-{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt." %}</em></p>{% endif %}
+{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die deutschen Originaltexte bleiben der Maßstab; die englische Fassung dient dem Verständnis." %}</em></p>{% endif %}
 
 {% for wirkung, regeln in gruppen %}
 <h2 class="wirkungskopf">{% translate wirkung.name_de %} <span class="was">— {% translate wirkung.erklaerung %}</span></h2>

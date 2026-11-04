@@ -391,7 +391,7 @@ def _gremien_export(m: Mitglied) -> dict:
         Ueberlastungsmeldung,
         UnterstuetzerVotum,
     )
-    from ki.models import KIAuftrag, KILauf
+    from ki.models import KIAuftrag, KILauf, Vergleichsanfrage
     from parameter.models import ParameterTest
     from verfahren.models import Vollzugseintrag
 
@@ -516,10 +516,28 @@ def _gremien_export(m: Mitglied) -> dict:
             }
             for k in KILauf.objects.filter(angefordert_von=m)
         ],
+        "private_textvergleiche": [
+            {
+                "kennung": str(v.pk), "kontext": v.kontext, "eingabe": v.eingabe,
+                "eingabe_sha256": v.eingabe_sha256, "status": v.status, "meldung": v.meldung,
+                "lauf": v.lauf_id, "erstellt_am": v.erstellt_am,
+                "begonnen_am": v.begonnen_am, "beendet_am": v.beendet_am,
+                "laufnachweis": {
+                    "antwort": v.lauf.antwort, "fehler": v.lauf.fehler, "erfolgreich": v.lauf.erfolgreich,
+                    "anbieter": v.lauf.anbieter, "modell": v.lauf.modell, "auftrag_version": v.lauf.auftrag_version,
+                    "tokens_ein": v.lauf.tokens_ein, "tokens_aus": v.lauf.tokens_aus, "dauer_ms": v.lauf.dauer_ms,
+                } if v.lauf is not None else None,
+            }
+            for v in Vergleichsanfrage.objects.filter(angefordert_von=m).select_related("lauf")
+        ],
         "ki_auftraege": [
             {
                 "zweck": a.zweck,
                 "quellenkontext": a.quellenkontext,
+                "folgenkontext": a.folgenkontext,
+                "beanstandung": a.beanstandung_id,
+                "ursprung": a.ursprung_id,
+                "korrekturkontext": a.korrekturkontext,
                 "antrag": a.antrag_id,
                 "fassung": a.fassung_nummer,
                 "quellenart": a.quellenart,

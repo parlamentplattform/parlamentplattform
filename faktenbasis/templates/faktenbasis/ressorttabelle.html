@@ -1,0 +1,34 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Personalstände nach Ressort" %} · {{ tabelle.stichtag|date:"d.m.Y" }}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:personal_ressorts' %}">‹ {% translate "Personalstände nach Ressort" %}</a>
+<h1>{% translate "Personalstände nach Ressort" %}</h1>
+<div class="karte" id="personal-ressorts">
+  <p>{% translate "Stichtag" %}: {{ tabelle.stichtag|date:"d.m.Y" }} · {% translate "Einheit" %}: {{ tabelle.einheit }}</p>
+  <p>{% translate "Amtliche Bestandszahlen in Vollbeschäftigtenäquivalenten (VBÄ). Keine Kopfzahlen, freien Kapazitäten oder Personalprognosen. Die Ressortabgrenzung gilt für den jeweiligen Quellenstand." %}</p>
+  <p class="hilfe">{% translate "Amtliche Zeilenfolge. Leere Originalfelder sind nicht angegeben, nicht null. Gerundete Teilwerte können von der Gesamtzahl abweichen; sie werden nicht rechnerisch ausgeglichen." %}</p>
+  <h2 id="ressortwerte-titel">{% translate "Amtliche Ressort- und Teilbestände" %} ({{ tabelle.einheit }})</h2>
+  <table class="tabelle ressortwerte" aria-labelledby="ressortwerte-titel">
+    <thead><tr><th scope="col">{% translate "Ressort" %}</th><th scope="col">{% translate "Gesamt" %}</th><th scope="col">{% translate "Zentralstelle" %}</th><th scope="col">{% translate "Nachgeordnete Dienststellen" %}</th></tr></thead>
+    <tbody>{% for r in tabelle.ressorts %}<tr>
+      <td data-label="{% translate 'Ressort' %}">{{ r.ressort }}</td>
+      <td data-label="{% translate 'Gesamt' %}">{{ r.gesamt }}</td>
+      <td data-label="{% translate 'Zentralstelle' %}">{% if r.zentralstelle is None %}{% translate "nicht angegeben" %}{% else %}{{ r.zentralstelle }}{% endif %}</td>
+      <td data-label="{% translate 'Nachgeordnet' %}">{% if r.nachgeordnet is None %}{% translate "nicht angegeben" %}{% else %}{{ r.nachgeordnet }}{% endif %}</td>
+    </tr>{% endfor %}
+    <tr><td data-label="{% translate 'Ressort' %}"><strong>{% translate "Gesamt" %}</strong></td><td data-label="{% translate 'Gesamt' %}"><strong>{{ tabelle.gesamt.gesamt }}</strong></td><td data-label="{% translate 'Zentralstelle' %}">{{ tabelle.gesamt.zentralstelle }}</td><td data-label="{% translate 'Nachgeordnet' %}">{{ tabelle.gesamt.nachgeordnet }}</td></tr>
+    </tbody>
+  </table>
+  <p class="meta">{{ tabelle.publikation }} · {% translate "Tabelle" %} {{ tabelle.tabelle }} · {% translate "Seite" %} {{ tabelle.seite }} · {% translate "Methodikseite" %} {{ tabelle.methodik_seite }}</p>
+  <p><a href="{{ tabelle.quelle }}" rel="noopener noreferrer">{% translate "Amtliches Original beim Herausgeber ansehen" %}</a></p>
+  <p>{% translate "Originaldatei-Prüfsumme (SHA-256)" %}: <code class="fakten-hash">{{ tabelle.original_sha256 }}</code></p>
+  <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ tabelle.parser_fassung }} · {% translate "Erstmals erfasst" %}: {{ tabelle.erfasst_am|date:"d.m.Y H:i" }}</p>
+  <p><a href="{% url 'faktenbasis:personal_ressorts_nachweis' tabelle.pk %}">{% translate "Ressorttabelle mit Herkunft als JSON herunterladen" %}</a></p>
+  <p class="hilfe">{% translate "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Sie wird nicht automatisch in Modellaufträge oder deren frühere Eingaben übernommen." %}</p>
+</div>
+<details class="karte"><summary>{% translate "Abrufe dieses Belegs nachlesen" %}</summary>
+  <p class="meta">{% translate "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben dokumentiert." %}</p>
+  {% for a in abrufe %}<p>{{ a.beendet_am|date:"d.m.Y H:i" }} · {{ a.get_weg_display }} · {% if a.neu %}{% translate "neu übernommen" %}{% else %}{% translate "unverändert" %}{% endif %}</p>{% endfor %}
+  {% if abrufe.has_other_pages %}<nav aria-label="{% translate 'Seiten der Abrufe' %}">{% if abrufe.has_previous %}<a href="?seite={{ abrufe.previous_page_number }}">‹ {% translate "Zurück" %}</a>{% endif %} <span>{{ abrufe.number }} / {{ abrufe.paginator.num_pages }}</span> {% if abrufe.has_next %}<a href="?seite={{ abrufe.next_page_number }}">{% translate "Weiter" %} ›</a>{% endif %}</nav>{% endif %}
+</details>
+{% endblock %}

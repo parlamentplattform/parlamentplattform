@@ -12,15 +12,17 @@ import re
 from datetime import UTC, date, datetime
 from urllib.parse import parse_qs, urlsplit
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Q, Subquery
 from django.db.models.functions import Length, Substr
 from django.utils import timezone
 
 from faktenbasis.models import Norm, NormText
 from faktenbasis.ris import GESETZESNUMMER, KENNUNG, amtliche_url
 from faktenbasis.xmltext import xml_adresse
+from plattform_core.quellenumfang import BUNDESLAENDER, als_dict, dokumentart
+from plattform_core.quellenumfang import pruefen as umfang_pruefen
 
-VERSION = 1
+VERSION = 2
 TECHNISCHE_QUELLENGRENZE = 20
 TECHNISCHE_TEXTGRENZE = 20_000
 _HEX = re.compile(r"[0-9a-f]{64}\Z", re.ASCII)
@@ -98,17 +100,22 @@ def _auswahl_pruefen(wert, ids, hoechstzahl):
 def pruefen(kontext):
     """Nur eingefrorene Daten prüfen, nie aktuelle Datenbankstände nachladen."""
     try:
-        if not isinstance(kontext, dict) or len(kontext) != len(_WURZEL) + 1 or set(kontext) != _WURZEL | {"sha256"}:
+        if not isinstance(kontext, dict) or type(kontext.get("version")) is not int or kontext["version"] not in {1, 2}:
+            raise ValueError("Kontextfassung")
+        fassung = kontext["version"]
+        felder = _WURZEL | ({"umfang"} if fassung == 2 else set())
+        if len(kontext) != len(felder) + 1 or set(kontext) != felder | {"sha256"}:
             raise ValueError("Kontextform")
-        daten = {k: kontext[k] for k in _WURZEL}
+        daten = {k: kontext[k] for k in felder}
+        if fassung == 2:
+            umfang_pruefen(daten["umfang"])
         checksum = kontext["sha256"]
         if not _HEX.fullmatch(checksum):
             raise ValueError("Form oder Prüfsumme")
         moment = _zeit(daten["erfasst_am"])
         tag = date.fromisoformat(daten["stichtag"])
         if (
-            type(daten["version"]) is not int or daten["version"] != VERSION
-            or not _zahl(daten["hoechstzahl"], 0, TECHNISCHE_QUELLENGRENZE)
+            not _zahl(daten["hoechstzahl"], 0, TECHNISCHE_QUELLENGRENZE)
             or not _zahl(daten["textzeichen"], 0, TECHNISCHE_TEXTGRENZE)
             or not isinstance(daten["quellen"], list) or len(daten["quellen"]) > daten["hoechstzahl"]
             or daten["text_sha256"] is not None and not _HEX.fullmatch(daten["text_sha256"])
@@ -116,10 +123,18 @@ def pruefen(kontext):
             raise ValueError("Grenzen")
         gesehen = set()
         for q in daten["quellen"]:
+            quellfelder = _NORM | ({"ebene", "bundesland"} if fassung == 2 else set())
+            if not isinstance(q, dict) or set(q) != quellfelder:
+                raise ValueError("Quellenform")
+            if fassung == 1:
+                if not KENNUNG.fullmatch(q["ris_id"]):
+                    raise ValueError("Quellenkennung")
+                verzeichnis = "Bundesnormen"
+            else:
+                verzeichnis = dokumentart(q["ebene"], q["bundesland"], q["ris_id"])
             if (
-                not isinstance(q, dict) or len(q) != len(_NORM) or set(q) != _NORM
-                or not _zahl(q["norm_id"], 1, 2**63 - 1) or q["norm_id"] in gesehen
-                or not KENNUNG.fullmatch(q["ris_id"]) or not GESETZESNUMMER.fullmatch(q["gesetzesnummer"])
+                not _zahl(q["norm_id"], 1, 2**63 - 1) or q["norm_id"] in gesehen
+                or not GESETZESNUMMER.fullmatch(q["gesetzesnummer"])
                 or not isinstance(q["kurztitel"], str) or not 0 < len(q["kurztitel"]) <= 1000
                 or not isinstance(q["abschnitt"], str) or len(q["abschnitt"]) > 100
                 or not _HEX.fullmatch(q["metadaten_sha256"]) or date.fromisoformat(q["stand"]) > tag
@@ -134,7 +149,7 @@ def pruefen(kontext):
             if d is not None and (
                 not isinstance(d, dict) or len(d) != len(_TEXT) or set(d) != _TEXT
                 or not _zahl(d["id"], 1, 2**63 - 1) or not _zahl(d["parser_fassung"], 1, 1000)
-                or d["quelle"] != f"https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/{q['ris_id']}/{q['ris_id']}.xml"
+                or d["quelle"] != f"https://ogd.ris.bka.gv.at/Dokumente/{verzeichnis}/{q['ris_id']}/{q['ris_id']}.xml"
                 or not _HEX.fullmatch(d["xml_sha256"]) or not isinstance(d["auszug"], str)
                 or len(d["auszug"]) > daten["textzeichen"] or d["auszug_sha256"] != _text_hash(d["auszug"])
                 or not _zahl(d["zeichen_gesamt"], len(d["auszug"]), 2**31 - 1)
@@ -150,11 +165,28 @@ def pruefen(kontext):
     return copy.deepcopy(daten)
 
 
-def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, text_sha256=None):
+def _herkunft_pruefen(norm):
+    """Neue Herkunftsfelder zusätzlich mit dem erhaltenen amtlichen Original binden."""
+    try:
+        dokumentart(norm.ebene, norm.bundesland, norm.ris_id)
+        meta = norm.rohdaten["Metadaten"]
+        technisch = meta["Technisch"]
+        fach = meta["Bundesrecht" if norm.ebene == "Bund" else "Landesrecht"]
+        applikation = "BrKons" if norm.ebene == "Bund" else "LrKons"
+        if (technisch["ID"] != norm.ris_id or technisch["Applikation"] != applikation
+                or fach[applikation]["Gesetzesnummer"] != norm.gesetzesnummer
+                or norm.ebene == "Land" and fach["Bundesland"] != norm.bundesland):
+            raise ValueError("Herkunftsbindung")
+    except (KeyError, TypeError, AttributeError, ValueError) as fehler:
+        raise QuellenkontextFehler("quellenherkunft") from fehler
+
+
+def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, text_sha256=None, fassung=VERSION):
     """Explizite Quellenliste einfrieren; keine stillen Ersatzquellen oder Kürzung der Liste."""
     moment = jetzt or timezone.now()
     if (
-        not isinstance(moment, datetime) or timezone.is_naive(moment)
+        type(fassung) is not int or fassung not in {1, 2}
+        or not isinstance(moment, datetime) or timezone.is_naive(moment)
         or not _zahl(hoechstzahl, 0, TECHNISCHE_QUELLENGRENZE)
         or not _zahl(textzeichen, 0, TECHNISCHE_TEXTGRENZE)
         or not isinstance(norm_ids, (list, tuple)) or len(norm_ids) > hoechstzahl
@@ -162,9 +194,13 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
     ):
         raise QuellenkontextFehler("quellenauswahl")
     tag = timezone.localdate(moment, timezone.get_default_timezone())
-    normen = list(Norm.objects.filter(
+    bestand = Norm.objects.filter(
         pk__in=norm_ids, stand__lte=tag, importlauf__beendet_am__lte=moment, importlauf__erfolgreich=True,
-    ).select_related("importlauf").order_by("ris_id", "stand", "pk"))
+    )
+    herkunft = Q(ebene="Bund", bundesland="")
+    if fassung == 2:
+        herkunft |= Q(ebene="Land", bundesland__in=list(BUNDESLAENDER.values()))
+    normen = list(bestand.filter(herkunft).select_related("importlauf").order_by("ris_id", "stand", "pk"))
     if len(normen) != len(norm_ids):
         raise QuellenkontextFehler("quellefehlt")
     letzte = NormText.objects.filter(norm_id=OuterRef("norm_id"), erfasst_am__lte=moment).order_by(
@@ -179,9 +215,12 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
     for norm in normen:
         if norm.inhalt_hash != _hash(norm.rohdaten):
             raise QuellenkontextFehler("metadaten")
+        if fassung == 2:
+            _herkunft_pruefen(norm)
         d, dokument = texte.get(norm.pk), None
         if d is not None:
-            if d["quelle"] != xml_adresse(norm.rohdaten, norm.ris_id):
+            optionen = {"bundesland": norm.bundesland} if norm.ebene == "Land" else {}
+            if d["quelle"] != xml_adresse(norm.rohdaten, norm.ris_id, **optionen):
                 raise QuellenkontextFehler("dokumentquelle")
             dokument = {
                 "id": d["pk"], "parser_fassung": d["parser_fassung"], "quelle": d["quelle"],
@@ -195,11 +234,15 @@ def festhalten(norm_ids, *, hoechstzahl, textzeichen, jetzt=None, auswahl=None, 
             "quelle": norm.quelle, "metadaten_sha256": norm.inhalt_hash,
             "importiert_am": norm.importlauf.beendet_am.isoformat(), "dokumenttext": dokument,
         })
+        if fassung == 2:
+            quellen[-1].update(ebene=norm.ebene, bundesland=norm.bundesland)
     daten = {
-        "version": VERSION, "erfasst_am": moment.astimezone(UTC).isoformat(), "stichtag": tag.isoformat(),
+        "version": fassung, "erfasst_am": moment.astimezone(UTC).isoformat(), "stichtag": tag.isoformat(),
         "hoechstzahl": hoechstzahl, "textzeichen": textzeichen, "quellen": quellen, "auswahl": auswahl,
         "text_sha256": text_sha256,
     }
+    if fassung == 2:
+        daten["umfang"] = als_dict()
     ergebnis = {**daten, "sha256": _hash(daten)}
     pruefen(ergebnis)
     return ergebnis
@@ -212,6 +255,8 @@ def eingabe(kontext, *, text_sha256=None):
         raise QuellenkontextFehler("textzuordnung")
     auswahl = daten["auswahl"]
     material = {k: daten[k] for k in ("version", "erfasst_am", "stichtag", "hoechstzahl", "textzeichen", "quellen")}
+    if daten["version"] == 2:
+        material["umfang"] = daten["umfang"]
     material["kontext_sha256"] = kontext["sha256"]
     material["textkontext_sha256"] = daten["text_sha256"]
     if auswahl is not None:

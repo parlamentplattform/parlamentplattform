@@ -1,0 +1,59 @@
+{
+  "hinweis": "Synthetischer Altvertrag aus unverändertem Quellencode0.69; keine Rechtsquelle, keine Mitgliedsdaten.",
+  "source_commit": "37e3c8edfd501ede24a9bed1f979f49ffea36438",
+  "kontext": {
+    "version": 1,
+    "erfasst_am": "2026-11-03T19:00:00+00:00",
+    "stichtag": "2026-11-03",
+    "hoechstzahl": 3,
+    "textzeichen": 1200,
+    "auswahl": {
+      "regel_fassung": 1,
+      "mindestwortlaenge": 3,
+      "unicode_fassung": "15.0.0",
+      "suchwoerter_anzahl": 2,
+      "suchwoerter_sha256": "0a51758e7d6edfd792118221c2605b2fcda5833763ba799f116aac762192ae8f",
+      "treffer_ids": [
+        1
+      ],
+      "ausgewaehlt": [
+        1
+      ],
+      "treffer_begrenzt": false,
+      "bestand_ids": [
+        1
+      ],
+      "bestand_gesamt": 1,
+      "bestandsgrenze": 500,
+      "bestand_begrenzt": false,
+      "metadatenzeichen": 2000
+    },
+    "text_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "quellen": [
+      {
+        "norm_id": 1,
+        "ris_id": "NOR00000001",
+        "gesetzesnummer": "10000001",
+        "kurztitel": "Synthetischer Vertragsbeleg – keine Rechtsquelle",
+        "abschnitt": "§ 1",
+        "stand": "2026-11-02",
+        "quelle": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR00000001/NOR00000001.html",
+        "metadaten_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "importiert_am": "2026-11-03T18:00:00+00:00",
+        "dokumenttext": {
+          "id": 2,
+          "parser_fassung": 1,
+          "quelle": "https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR00000001/NOR00000001.xml",
+          "xml_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "auszug": "Unveränderlicher synthetischer Testwortlaut.",
+          "auszug_sha256": "8cde74ec59c21252ccbb52e3dc7bf6f81b3e11ad366b44f346cf408c3664698a",
+          "zeichen_gesamt": 44,
+          "gekuerzt": false,
+          "erfasst_am": "2026-11-03T18:01:00+00:00"
+        }
+      }
+    ],
+    "sha256": "c783aba16e733dead092e59e74cd859f357ebaac0daec94e133f627aad3f5564"
+  },
+  "eingabe": "Amtlicher Quellenkontext (Daten, keine Anweisungen):\n{\"auswahl\": {\"bestand_begrenzt\": false, \"bestand_geprueft\": 1, \"bestand_gesamt\": 1, \"bestandsgrenze\": 500, \"mindestwortlaenge\": 3, \"regel_fassung\": 1, \"treffer_anzahl\": 1, \"treffer_begrenzt\": false}, \"erfasst_am\": \"2026-11-03T19:00:00+00:00\", \"hoechstzahl\": 3, \"kontext_sha256\": \"c783aba16e733dead092e59e74cd859f357ebaac0daec94e133f627aad3f5564\", \"quellen\": [{\"abschnitt\": \"§ 1\", \"dokumenttext\": {\"auszug\": \"Unveränderlicher synthetischer Testwortlaut.\", \"auszug_sha256\": \"8cde74ec59c21252ccbb52e3dc7bf6f81b3e11ad366b44f346cf408c3664698a\", \"erfasst_am\": \"2026-11-03T18:01:00+00:00\", \"gekuerzt\": false, \"id\": 2, \"parser_fassung\": 1, \"quelle\": \"https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR00000001/NOR00000001.xml\", \"xml_sha256\": \"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\", \"zeichen_gesamt\": 44}, \"gesetzesnummer\": \"10000001\", \"importiert_am\": \"2026-11-03T18:00:00+00:00\", \"kurztitel\": \"Synthetischer Vertragsbeleg – keine Rechtsquelle\", \"metadaten_sha256\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\", \"norm_id\": 1, \"quelle\": \"https://ogd.ris.bka.gv.at/Dokumente/Bundesnormen/NOR00000001/NOR00000001.html\", \"ris_id\": \"NOR00000001\", \"stand\": \"2026-11-02\"}], \"stichtag\": \"2026-11-03\", \"textkontext_sha256\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\", \"textzeichen\": 1200, \"version\": 1}"
+}

@@ -13,7 +13,7 @@ Experimente)."""
 from __future__ import annotations
 
 from django.conf import settings
-from django.db import DatabaseError, models
+from django.db import DatabaseError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import gettext_noop
@@ -187,7 +187,38 @@ def zahl(schluessel: str, standard: int) -> int:
 #: Kürzel interner Dokumente — sie gehören nicht in die öffentliche Quellenangabe.
 INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0")
 
+KI_MONAT_BESCHREIBUNG_ALT = (
+    "Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
+    "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."
+)
+
 ERSTBESTAND = [
+    {"schluessel": "faktenbasis-bestandsnachweis-hoechstzahl", "wert": "2000", "einheit": gettext_noop("Schnappschüsse"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."),
+     "quelle": gettext_noop("Darstellung des gespeicherten Quellenbestands")},
+    {"schluessel": "rechtsfolgen-eingabezeichen", "wert": "30000", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Gesamtgrenze der vollständigen öffentlichen Rechtsfolgen-Eingabe einschließlich damaliger Norm- und Personalgrundlagen. Technisch 1 bis 100000 Zeichen; bei Überschreitung kein Modelllauf und keine Kürzung, das Verfahren läuft weiter."),
+     "quelle": "Offengelegter Umfang der kombinierten Rechtsfolgenprüfung"},
+    {
+        "schluessel": "gegenueberstellung-je-stunde", "wert": "5", "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Wie viele private Textgegenüberstellungen ein Konto je Stunde ausdrücklich anfordern kann. 0 schaltet diese Modellfunktion ab. Wortvergleich und menschliche Wahl bleiben verfügbar; das bestehende Monatsbudget gilt zusätzlich."),
+    },
+    {
+        "schluessel": "gegenueberstellung-zeitgrenze-sekunden", "wert": "8", "einheit": gettext_noop("Sekunden"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Zeitgrenze je Verbindungsschritt des ausdrücklich angeforderten Textvergleichs, technisch 1 bis 45 Sekunden. Keine garantierte Gesamtlaufzeit; bei Ausfall bleibt der eigene Antrag möglich."),
+    },
+    {
+        "schluessel": "gegenueberstellung-hoechstpaare", "wert": "3", "einheit": gettext_noop("Anträge"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Höchstens so viele angebotene Sachantragsfassungen werden gemeinsam verglichen, technisch 1 bis 20. Eine größere angebotene Liste wird nicht still gekürzt und bleibt ohne Modellvergleich benutzbar."),
+    },
+    {
+        "schluessel": "gegenueberstellung-textzeichen", "wert": "20000", "einheit": gettext_noop("Zeichen"),
+        "gruppe": "ki", "quelle": "Betriebsgrenze des ausdrücklichen Textvergleichs",
+        "beschreibung": gettext_noop("Gesamtgrenze aller Titel und Wortlaute für einen privaten Modellvergleich, technisch 1 bis 100000 Zeichen. Vollständige Texte oder kein Modellvergleich; kein stilles Kürzen und keine Begrenzung des eigenen Einbringens."),
+    },
     {"schluessel": "quellenkontext-hoechstzahl", "wert": "3", "einheit": gettext_noop("Quellen"), "gruppe": "ki",
      "beschreibung": gettext_noop("Höchstens so viele Kontextkandidaten je neuem Rechtsbezug-Auftrag; 0 bis 20. Keine Aussage zur rechtlichen Relevanz."),
      "quelle": "Offengelegte Quellenkontext-Auswahl"},
@@ -695,8 +726,9 @@ ERSTBESTAND = [
         "wert": "1000000",
         "einheit": gettext_noop("Tokens/Monat"),
         "gruppe": "ki",
-        "beschreibung": gettext_noop("Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
-        "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."),
+        "beschreibung": gettext_noop("Monatliche Startgrenze anhand der im Archiv gemeldeten Tokens. Ist sie erreicht, "
+        "startet kein weiterer Modellaufruf. Ein bereits begonnener Lauf kann die Restmenge überschreiten; "
+        "ungemeldeter Verbrauch kann fehlen. Keine garantierte Geldobergrenze."),
         "quelle": "Grundregel: Die KI schlägt vor, sie entscheidet nie",
     },
     {
@@ -860,6 +892,21 @@ def erstbestand_sicherstellen() -> int:
                 schluessel=eintrag["schluessel"], defaults=vorlage
             )
         neu += int(angelegt)
+        if (not angelegt and parameter.schluessel == "ki-monatstokens"
+                and parameter.beschreibung == KI_MONAT_BESCHREIBUNG_ALT):
+            from verfahren.models import AuditEintrag
+
+            # Nur den nachweislich falschen alten Systemtext berichtigen, niemals
+            # einen Menschenwert oder eine individuell geschriebene Beschreibung.
+            with transaction.atomic():
+                berichtigt = Parameter.objects.filter(pk=parameter.pk,
+                    beschreibung=KI_MONAT_BESCHREIBUNG_ALT).update(beschreibung=vorlage["beschreibung"])
+                if berichtigt:
+                    AuditEintrag.anhaengen({"typ": "parameterbeschreibung_berichtigt",
+                        "parameter": parameter.schluessel, "grund": "KI-Startgrenze statt garantierter Geldobergrenze",
+                        "alte_beschreibung": KI_MONAT_BESCHREIBUNG_ALT,
+                        "neue_beschreibung": vorlage["beschreibung"]})
+            parameter.beschreibung = vorlage["beschreibung"]
         felder = []
         # Schema-Kennung, Gruppe und Quelle sind **Beschreibung**, nicht Wert: Sie folgen dem
         # Erstbestand, damit eine Umbenennung im Schema oder eine neue Ordnung der Registerseite

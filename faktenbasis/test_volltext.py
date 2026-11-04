@@ -21,6 +21,7 @@ from faktenbasis.ris import HOECHSTBYTES, ZEITGRENZE, RisFehler, _KeineUmleitung
 from faktenbasis.test_ris import STAND, beispiel
 from faktenbasis.test_xmltext import NUMMER, RIS_ID, xml_beispiel
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
+from faktenbasis.xmltext import PARSER_FASSUNG
 from verfahren.models import AuditEintrag
 
 pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("abrufuhr")]
@@ -48,7 +49,7 @@ def test_inhalt_einmal_abruf_jedes_mal_mit_unveraendertem_erfassungsdatum(norm, 
     zeit = inhalt.erfasst_am
     assert erster.inhalt_id == inhalt.pk and erster.erfolgreich and erster.neu
     assert bytes(inhalt.xml) == xml[0] and inhalt.xml_hash == hashlib.sha256(xml[0]).hexdigest()
-    assert "Änderung des B-VG" in inhalt.text and inhalt.parser_fassung == 1
+    assert "Änderung des B-VG" in inhalt.text and inhalt.parser_fassung == PARSER_FASSUNG == 3
     zweiter = volltext.importieren(norm)
     assert zweiter.inhalt_id == inhalt.pk and not zweiter.neu
     assert NormText.objects.count() == 1 and NormTextAbruf.objects.count() == 2
@@ -67,6 +68,24 @@ def test_aenderung_erhaelt_zusaetzlichen_inhalt_statt_zu_ueberschreiben(norm, xm
     assert zweiter.neu and zweiter.inhalt_id != erster.inhalt_id
     assert NormText.objects.count() == 2
     assert bytes(NormText.objects.get(pk=erster.inhalt_id).xml) == xml_beispiel()
+
+
+@pytest.mark.parametrize("kodierung", ["UTF-16LE", "UTF-16BE"])
+def test_kodierungsschmuggel_nach_erfolg_erhaelt_den_gueltigen_inhalt(norm, xml, kodierung):
+    from faktenbasis.test_xmlkodierung import dokument
+
+    erster = volltext.importieren(norm)
+    alter_stand = erster.inhalt
+    alte_zeit = alter_stand.erfasst_am
+    xml[0] = dokument(kodierung, "&lokal;", '<!DOCTYPE risdok [<!ENTITY lokal "Lokaler Test">]>').encode(kodierung)
+    with pytest.raises(RisFehler, match="volltextformat"):
+        volltext.importieren(norm)
+    alter_stand.refresh_from_db()
+    assert NormText.objects.count() == 1 and NormTextAbruf.objects.count() == 2
+    assert bytes(alter_stand.xml) == xml_beispiel() and alter_stand.erfasst_am == alte_zeit
+    assert alter_stand.xml_hash == hashlib.sha256(xml_beispiel()).hexdigest()
+    fehler = NormTextAbruf.objects.first()
+    assert not fehler.erfolgreich and fehler.inhalt_id is None and fehler.fehlercode == "volltextformat"
 
 
 @pytest.mark.parametrize("modell", [NormText, NormTextAbruf])

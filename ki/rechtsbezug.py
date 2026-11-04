@@ -6,8 +6,9 @@ archiviert die Antwort im `KILauf`. Dieses Modul ist die **Leseschicht**: Es par
 erfolgreiche Antwort tolerant (JSON aus der Antwort ziehen; bei Parse-Fehler bleibt der rohe
 Text als Hinweis) und beschreibt den Zustand für die Antragsseite. Nichts hier schreibt.
 
-Ohne unabhängige Relevanzprüfung trägt jede Modellnorm „nicht verifiziert“ und keinen Link (FB-H3:
-Halluzinationsschutz). Der Vorschlag ist gekennzeichnet — Modell, Auftragsversion, Stand —
+Ohne unabhängige Relevanzprüfung trägt jede Modellnorm „nicht verifiziert“. Ein getrennt verlinkter
+amtlicher Kennungstreffer bestätigt die rechtliche Deutung oder den Modelltitel nicht. Der Vorschlag
+ist gekennzeichnet — Modell, Auftragsversion, Stand —
 und entscheidet nichts (Grundregel 5, § 2 Abs 6)."""
 
 from __future__ import annotations
@@ -126,15 +127,29 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
     from ki.models import KILauf, Zweck
 
     lauf = lauf or (
-        KILauf.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG, erfolgreich=True)
+        KILauf.objects.filter(antrag=antrag, zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN), erfolgreich=True)
         .prefetch_related("auftraege").order_by("-erstellt_am", "-pk")
         .first()
     )
-    if lauf is None or lauf.antrag_id != antrag.pk or lauf.zweck != Zweck.RECHTSBEZUG:
+    if lauf is None or lauf.antrag_id != antrag.pk or lauf.zweck not in {Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN}:
         return None
     from ki.nachlese import quellenstand, textstand
 
-    ergebnis = antwort_parsen(lauf.antwort) if lauf.erfolgreich else {"normen": [], "hinweis": "", "unsicherheit": "hoch"}
+    if lauf.zweck == Zweck.RECHTSFOLGEN:
+        from ki.folgenberichte import fuer_lauf
+
+        try:
+            ergebnis = fuer_lauf(lauf)
+        except (ValueError, TypeError, KeyError):
+            return None  # kein fremder Beifang und keine ungebundene Antwort
+    else:
+        from ki.rechtsbezugvertrag import lauf_pruefen
+
+        try:
+            lauf_pruefen(lauf)
+        except (ValueError, TypeError, KeyError):
+            return None  # Zweckkennung allein macht keine fremden Kontextfelder öffentlich.
+        ergebnis = antwort_parsen(lauf.antwort) if lauf.erfolgreich else {"normen": [], "hinweis": "", "unsicherheit": "hoch"}
     quelle = textstand(lauf)
     zuordnungen = {(a.quellenart, a.fassung_nummer) for a in lauf.auftraege.all()}
     if not quelle["festgehalten"] and len(zuordnungen) == 1:
@@ -156,7 +171,9 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
             text_sha256=lauf.kontext.get("text", {}).get("sha256") if isinstance(lauf.kontext, dict) and isinstance(lauf.kontext.get("text"), dict) else None,
         ),
     )
-    return ergebnis
+    from ki.kennungsabgleich import ergaenzen
+
+    return ergebnis if lauf.zweck == Zweck.RECHTSFOLGEN else ergaenzen(ergebnis, lauf)
 
 
 def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
@@ -180,7 +197,7 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     from ki.warteschlange import platz_in_der_schlange
     from parameter.models import zahl
 
-    auftrag = KIAuftrag.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).select_related("lauf").order_by("-erstellt_am", "-pk").first()
+    auftrag = KIAuftrag.objects.filter(antrag=antrag, zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN)).select_related("lauf").order_by("-erstellt_am", "-pk").first()
     ziel = _aktueller_textstand(antrag)
     ergebnis = rechtsbezug_fuer(antrag, auftrag.lauf, ziel=ziel) if (
         auftrag and auftrag.status == Auftragsstatus.ERLEDIGT and auftrag.lauf and auftrag.lauf.erfolgreich
@@ -188,19 +205,21 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     angeschlossen = anbieter_waehlen() is not None
     if ergebnis is not None:
         zustand = "erledigt"
+    elif auftrag and auftrag.status == Auftragsstatus.ERLEDIGT:
+        zustand = "nicht_pruefbar"
+    elif auftrag and auftrag.status == Auftragsstatus.GESCHEITERT:
+        zustand = "gescheitert"
     elif not angeschlossen:
         zustand = "nicht_angeschlossen"
     elif auftrag is None:
         zustand = "keiner"
-    elif auftrag.status == Auftragsstatus.GESCHEITERT:
-        zustand = "gescheitert"
     else:
         zustand = "wartet"
-    laeufe = KILauf.objects.filter(antrag=antrag, zweck=Zweck.RECHTSBEZUG).prefetch_related("auftraege").order_by("-erstellt_am", "-pk")
+    laeufe = KILauf.objects.filter(antrag=antrag, zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN)).prefetch_related("auftraege").order_by("-erstellt_am", "-pk")
     if ergebnis:
         laeufe = laeufe.exclude(pk=ergebnis["lauf"].pk)
     historie = Paginator(laeufe, max(1, min(100, zahl("ki-einschaetzungen-je-seite", 20)))).get_page(seite)
-    historie.object_list = [rechtsbezug_fuer(antrag, lauf, ziel=ziel) for lauf in historie.object_list]
+    historie.object_list = [e for lauf in historie.object_list if (e := rechtsbezug_fuer(antrag, lauf, ziel=ziel)) is not None]
     steller = getattr(antrag, "eingebracht_von", None)
     mail_zusage = bool(
         betrachter is not None

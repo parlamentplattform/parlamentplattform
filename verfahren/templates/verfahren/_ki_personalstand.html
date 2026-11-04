@@ -1,0 +1,21 @@
+{% load i18n %}
+{% if personalstand %}
+<details class="klappe ki-personalstand">
+  <summary>{% translate "Damals verwendeter Personalbestand" %}</summary>
+  {% if personalstand.zustand == "leer" %}<p class="hilfe">{% translate "Zum Auftragszeitpunkt lag kein belegter Personalbestand im Rahmen vor." %}</p>
+  {% elif personalstand.zustand == "fehler" %}<p class="hilfe">{% translate "Die Personalgrundlage war zum Auftragszeitpunkt nicht eindeutig prüfbar." %}</p>
+  {% else %}
+    {% if personalstand.zustand == "teilweise" %}<p class="hilfe">{% translate "Der damalige Personalbestand war nur teilweise vorhanden." %}</p>{% endif %}
+    {% if personalstand.aggregat %}{% with p=personalstand.aggregat %}
+      <p>{{ p.publikation }} · {% translate "Jahr" %} {{ p.datenjahr }} · {{ p.gesamt }} {{ p.einheit }} · {% translate "Tabelle" %} {{ p.tabelle }} · {% translate "Seite" %} {{ p.seite }}</p>
+      <a href="{{ p.quelle }}">{% translate "Originalpublikation" %}</a>
+    {% endwith %}{% endif %}
+    {% if personalstand.ressorttabelle %}{% with p=personalstand.ressorttabelle %}
+      <p>{{ p.publikation }} · {{ p.stichtag }} · {{ p.gesamt.gesamt }} {{ p.einheit }} · {% translate "Tabelle" %} {{ p.tabelle }} · {% translate "Seite" %} {{ p.seite }} · {% translate "Methodik" %} {{ p.methodik_seite }}</p>
+      <a href="{{ p.quelle }}">{% translate "Originalpublikation" %}</a>
+    {% endwith %}{% endif %}
+  {% endif %}
+  <p class="hilfe">{% translate "Bestandszahlen sind keine verfügbaren Kapazitäten oder belegten Stellenfolgen. Der Rahmen umfasst die bekannte Bundespersonal-Publikation, keinen vollständigen österreichweiten Personalbestand." %}</p>
+  <p class="textstand-hash">SHA-256: {{ personalstand.sha256 }}</p>
+</details>
+{% endif %}

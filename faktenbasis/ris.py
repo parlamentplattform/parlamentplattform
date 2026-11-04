@@ -83,6 +83,8 @@ class Normdaten:
     quelle: str
     rohdaten: dict
     inhalt_hash: str
+    ebene: str = "Bund"
+    bundesland: str = ""
 
 
 @dataclass(frozen=True)

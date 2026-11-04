@@ -65,7 +65,7 @@ def test_spaeterer_dokumenttext_ersetzt_keinen_festgehaltenen_stand(norm, xml): 
 
 def test_leere_neue_erfassung_ist_nicht_ein_angeblich_alter_quellennachweis():
     stand = festhalten([], hoechstzahl=3, textzeichen=50)
-    assert stand["quellen"] == [] and stand["version"] == 1 and stand["erfasst_am"]
+    assert stand["quellen"] == [] and stand["version"] == 2 and stand["erfasst_am"]
     with pytest.raises(QuellenkontextFehler):
         pruefen({})
 

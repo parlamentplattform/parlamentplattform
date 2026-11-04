@@ -38,7 +38,7 @@ eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung.{% endblo
 </p>
 <p class="erk">{% blocktranslate with v=zahlen.verfuegbar t=zahlen.teilweise g=zahlen.geplant r=zahlen.rollen %}{{ r }} Rollen, {{ v }} Fähigkeiten verfügbar, {{ t }} teilweise, {{ g }} geplant.{% endblocktranslate %}
   <span class="meta">{% blocktranslate with n=matrix_version %}Übersicht Fassung {{ n }}{% endblocktranslate %} · <code>plattform_core/rollen.py</code></span></p>
-{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die Einträge dieser Seite liegen derzeit nur auf Deutsch vor; Überschriften und Erklärungen sind übersetzt." %}</em></p>{% endif %}
+{% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die deutschen Originaltexte bleiben der Maßstab; die englische Fassung dient dem Verständnis." %}</em></p>{% endif %}
 
 {% for gruppe in gruppen %}
 <section class="abschnitt" id="g-{{ gruppe.schluessel }}">

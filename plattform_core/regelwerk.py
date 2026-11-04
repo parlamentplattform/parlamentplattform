@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 8
+VERSION = 20
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,41 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
+        zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen des getrennten Rechtsfolgenauftrags. Eine passende Form bestätigt keine rechtliche Aussage."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-04",
+        grund=_("Fassung 3 ordnet die vollständige Darstellung unabhängig von der Modellreihenfolge: Normtitel alphabetisch, Personalbereiche nach damaligem Quellenangebot. Originalantwort und Daten bleiben unverändert; keine Gewichtung oder Inhaltsbestätigung."),
+        nachrechenbar=_("Vollständige Form und angebotene Referenzen prüfen, keine numerischen Personalfolgen einschließlich Nullbedarf. Darstellung der Normen nach casefold-Modelltitel, Originaltitel, Kennung und Eingabeindex; Unicode-Fassung nennen. Personal nach damaligem Quellenangebot, unbestimmt zuletzt. Keine Auswahl, Gewichtung, juristische Verifikation oder Teilfreigabe."),
+    ),
+    Regel(
+        modul="gegenueberstellung.py", titel=_("Antwortvertrag für freiwillige Textgegenüberstellungen"),
+        zweck=_("Prüft Gemeinsamkeit und Unterschied je vorgegebenem Antrags- und Fassungspaar. Die Form bestätigt keine inhaltliche Aussage und entscheidet nicht über das Einbringen."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung für einen ausdrücklich angeforderten privaten Modellvergleich. Keine automatische Modellanforderung beim Tippen und keine Änderung der gleichwertigen menschlichen Wahl."),
+        nachrechenbar=_("Genau die vorgegebenen Paar-IDs und dieselbe Reihenfolge, je zwei Textfelder mit höchstens 400 Zeichen. Zusätzliche Antwortfelder, andere Fassungen, doppelte JSON-Felder oder unvollständige Antworten bestehen die Formprüfung nicht. Der Inhalt wird damit nicht bestätigt."),
+    ),
+    Regel(
+        modul="personalbeleg.py", titel=_("Bekannte amtliche Personal-Aggregatzeile lesen"),
+        zweck=_("Liest die nachgewiesene Zeile des Datenjahres 2025 aus Tabelle 20 des Personalberichts 2026. Einheit VBÄ, keine Kopfzahl oder Kapazitätsprognose."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung: eine deterministische Zahlenübernahme vorbereiten, ohne Modellantworten oder freie Transkriptionen in die Faktenbasis zu übernehmen."),
+        nachrechenbar=_("Bekannte Publikation und Seite, genaue Tabellenüberschrift, Spaltenfolge und Einheitsfußnote. Genau eine Zeile für 2025; drei Ganzzahlen im amtlichen Tausenderformat und passende Gesamtsumme. Andere Stände nicht erraten."),
+    ),
+    Regel(
+        modul="personalressorts.py", titel=_("Amtliche Personalstände nach Ressort"),
+        zweck=_("Liest Tabelle 7 des bekannten Personalberichts 2026 mit Stichtag 31.12.2025 und der zugehörigen Methodik. VBÄ sind keine Kopfzahlen oder freien Kapazitäten."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung für belegte Ressortbestände. Leere Teilspalten und amtliche Rundungsabweichungen bleiben erhalten; keine Personalschätzung oder Modellantwort wird übernommen."),
+        nachrechenbar=_("Bekanntes Original und zwei genaue Seiten, Tabellenkopf, Spaltenfolge, vierzehn Ressort- und Organezeilen sowie Gesamtzeile. Die Methodik belegt Stichtag, Einheit und Rundung. Amtliche Reihenfolge, keine Ergänzung leerer Zahlen oder rechnerischer Ausgleich."),
+    ),
+    Regel(
+        modul="kennungsabgleich.py", titel=_("Modellkennung im damaligen Quellenstand"),
+        zweck=_("Vergleicht ausschließlich vollständige amtliche Dokumentnummern mit eindeutig passenden damaligen Quellen. Keine Titel- oder Relevanzsuche."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-03",
+        grund=_("Fassung 2 ergänzt ausdrücklich bezeichnete Landesquellen. Kennungsübereinstimmung bleibt von ungeprüfter rechtlicher Deutung getrennt; Originalantwort und Quellen werden nicht geändert."),
+        nachrechenbar=_("Gleiche vollständige Dokumentnummer, gleiche Ebene Bund oder Land und bestehendes Recht; genau ein damaliger Quellenstand. Neue Quellen nennen ihre Herkunft ausdrücklich, alte Bundesrahmen bleiben erkennbar. Fehlende, abweichende oder mehrdeutige Kennungen erhalten keine Zuordnung. Reihenfolge wie in der Modellantwort."),
+    ),
     Regel(
         modul="modellantwort.py",
         titel=_("Formprüfung von Modellantworten"),
@@ -417,7 +452,7 @@ REGELN: tuple[Regel, ...] = (
             ". Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. ")
             + _("Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
             "„Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand "
-            "nachprüfen würde (ADR-005).")
+            "nachprüfen würde.")
         ),
         nachrechenbar=(
             _("Die Prüfsumme ist SHA-256 über die Prüfsumme des Vorgängers und den Ereignisinhalt in "
@@ -602,10 +637,11 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=10,
-        seit="2026-11-02",
+        fassung=11,
+        seit="2026-11-03",
         grund=(
-            _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
+            _("Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. ")
+            + _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
             + _("Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. ")
             + _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
@@ -718,7 +754,7 @@ REGELN: tuple[Regel, ...] = (
             "das man nicht lesen kann, ist keine Auskunft.")
         ),
         nachrechenbar=(
-            _("Jede Zahl im Bild steht auf derselben Seite auch als Text (ADR-008), und die Tooltips "
+            _("Jede Zahl im Bild steht auf derselben Seite auch als Text, und die Tooltips "
             "nennen den Wert beim Überfahren. Farbe trägt nie allein die Information; wer die Zahlen "
             "addiert, kommt auf dieselben Anteile.")
         ),
@@ -918,9 +954,16 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="modellverbrauch.py", titel=_("Gespeicherter Modellverbrauch je Antrag"),
         zweck=_("Fasst archivierte Läufe, Fehlversuche und Tokenangaben nach Zweck zusammen. Ein Kostenbetrag wird ohne Abrechnungsnachweis nicht behauptet."),
-        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
-        grund=_("Erste Fassung: Verbrauch je Antrag sichtbar machen, ohne fehlende Anbieterangaben als kostenlose Nutzung auszulegen. Archivdaten werden nicht nachträglich ergänzt."),
-        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; vier bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+        wirkung=Wirkung.RECHNET, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-03",
+        grund=_("Fassung 4 zählt den getrennten Rechtsfolgenauftrag als eigenen Zweck. Archivdaten und frühere Eingaben bleiben unverändert; Läufe ohne Antragszuordnung zählen nicht zu Antragssummen."),
+        nachrechenbar=_("Einmal nach Zweck gruppierte Archivangaben; sieben bekannte Zwecke und Sonstige, nach Zweckkennung gereiht. Gesamtsumme aus denselben vollständigen Gruppen. Kein Tarif und keine Währung im Archiv bedeutet Kostenbetrag unbekannt."),
+    ),
+    Regel(
+        modul="quellenumfang.py", titel=_("Herkunftsgrenze amtlicher Kontextkandidaten"),
+        zweck=_("Trennt Bundes- und Landesherkunft anhand der gespeicherten Ebene, des Bundeslands und der vollständigen Dokumentkennung. Das ist keine rechtliche Zuständigkeitsprüfung."),
+        wirkung=Wirkung.ORDNET_ZU, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-03",
+        grund=_("Erste Fassung für ausdrücklich bezeichnete Landesquellen in neuen Quellenrahmen. Ein freier Gebietsname wird nicht zu einer verifizierten Herkunft oder Wahlrechtsregel umgedeutet."),
+        nachrechenbar=_("Bund mit leerem Bundesland und NOR-Kennung; Land mit ausdrücklich benanntem Bundesland und Landes-Dokumentkennung. Kein Titelabgleich und kein Gebietsfilter. Worttreffer, Bestandsgrenze und neutrale Reihung sind getrennt im Quellenrahmen festgehalten."),
     ),
     Regel(
         modul="quellenauswahl.py",
@@ -930,6 +973,15 @@ REGELN: tuple[Regel, ...] = (
         grund=_("Erste Fassung: tatsächlich übergebene amtliche Ausschnitte und Auswahlgrenzen werden vor dem Einreihen festgehalten. Keine neue Quelle wird beim Modellaufruf nachgeladen."),
         nachrechenbar=_("Unicode-Normalisierung NFKC und Kleinschreibung, Wörter aus Buchstaben und Ziffern, veröffentlichte Stoppwörter und Mindestlänge. Ein Wort darf Anfang des anderen sein. Neuester vorhandener Stand je amtlicher Kennung; Reihung nach Kennung, keine Relevanzpunkte. Bestand, Treffer und Auswahlgrenzen stehen am Auftrag."),
         registerschluessel="quellenkontext-hoechstzahl",
+    ),
+    Regel(
+        modul="faktenbestand.py",
+        titel=_("Nachweis des gespeicherten Quellenbestands"),
+        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen ihre gespeicherten Prüfsummen zu. Keine neue Prüfung der Originale, keine amtliche Signatur und keine Bestätigung rechtlicher Aktualität oder Vollständigkeit."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-04",
+        grund=_("Erste Fassung: einen unveränderten lokalen Bestand nachrechenbar wiedererkennen, ohne Quellen abzurufen oder bereits verwendete Modellkontexte zu ändern."),
+        nachrechenbar=_("Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."),
+        registerschluessel="faktenbasis-bestandsnachweis-hoechstzahl",
     ),
     Regel(
         modul="losziehung.py",

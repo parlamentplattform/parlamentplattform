@@ -225,7 +225,7 @@ jobs:
     # das auch rote Commits ausrollen würde. Braucht das Repository-Secret
     # RENDER_DEPLOY_HOOK (Render: Settings → Deploy Hook); ohne Secret wird
     # der Schritt sauber übersprungen.
-    needs: [pruefen, pruefen_postgres, pruefen_sicherung]
+    needs: [pruefen, pruefen_postgres, pruefen_sicherung, sichtpruefung]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -244,11 +244,11 @@ jobs:
           echo "### Ausgerollt: ${GITHUB_SHA::7}" >> "$GITHUB_STEP_SUMMARY"
 
   nicht_ausgerollt:
-    # Sichtbarer Alarm statt stillem Überspringen (Befund #96): Ist `pruefen` auf main rot, wird
+    # Sichtbarer Alarm statt stillem Überspringen: Ist eine der fünf Pflichtprüfungen rot, wird
     # `ausrollen` übersprungen — und die Live-Fassung bleibt stehen, ohne dass es jemand liest.
     # Dieser Job schlägt dann selbst fehl und schreibt es in die Zusammenfassung des Laufs;
     # das CI-Abzeichen in der README zeigt denselben Zustand.
-    needs: [pruefen, pruefen_postgres, pruefen_sicherung]
+    needs: [pruefen, pruefen_postgres, pruefen_sicherung, sichtpruefung]
     if: failure() && github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

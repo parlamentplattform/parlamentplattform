@@ -361,12 +361,10 @@ def test_beanstanden_verlangt_bestaetigtes_aktives_mitglied(client, ordnung):
     assert antwort.status_code == 302 and Beanstandung.objects.count() == 1
 
 
-def test_beanstandung_verspricht_keinen_korrekturlauf(client, ordnung):
-    """Öffentliche Texte sagen, was der Code tut: Einen Korrekturlauf der Zukunftswerkstatt gibt es
-    noch nicht (kein Codepfad schreibt `erledigt_vermerk`) — also verspricht ihn weder die Rückmeldung
-    noch der Hilfetext am Formular."""
+def test_beanstandung_verspricht_nur_den_gebauten_begrenzten_korrekturweg(client, ordnung):
+    """Öffentliche Nachrechnung durch Gruppe1, keine automatische sachliche Erledigung."""
     antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
     antwort = _beanstandung_absetzen(client, mitglied_anlegen("bernd"), antrag)
     seite = client.get(antwort.url).content.decode()
     assert "rechnet den Punkt nach" not in seite
-    assert "noch nicht gebaut" in seite  # Rückmeldung und Hilfetext sagen es offen
+    assert "Gruppe 1" in seite and "öffentlichen Rechts- oder Folgenbericht" in seite

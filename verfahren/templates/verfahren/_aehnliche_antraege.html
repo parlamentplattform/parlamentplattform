@@ -30,6 +30,36 @@
       </div>
     {% endfor %}
     <button type="submit" name="trotzdem" value="1" form="einbringen-form" class="btn-linie einbringwahl-knopf">{% translate "Mein Antrag ist etwas anderes — einbringen" %}</button>
+    {% if gegenueberstellung %}
+      <section class="abstand" aria-label="{% translate 'KI-Textgegenüberstellung' %}">
+        <h3>{% translate "KI-Textgegenüberstellung" %}</h3>
+        {% if gegenueberstellung.gueltig %}
+          <p class="meta">{{ gegenueberstellung.modell }} · {{ gegenueberstellung.stand|date:"d.m.Y H:i" }} · {% translate "KI-Einschätzung, nicht inhaltlich geprüft" %}</p>
+          {% for v in gegenueberstellung.vergleiche %}
+            <div class="kommentar">
+              <p><strong>{{ v.titel }}</strong> · {% translate "Fassung" %} {{ v.fassung }}</p>
+              <p><strong>{% translate "Gemeinsamkeit" %}:</strong> {{ v.gemeinsamkeit }}</p>
+              <p><strong>{% translate "Unterschied" %}:</strong> {{ v.unterschied }}</p>
+            </div>
+          {% endfor %}
+        {% elif gegenueberstellung.meldung == "stundengrenze" %}
+          <p class="erk">{% translate "Die Stundengrenze für Modellvergleiche ist erreicht. Sie können weiterhin selbst wählen." %}</p>
+        {% elif gegenueberstellung.meldung == "antwortform" %}
+          <p class="erk">{% translate "Die Modellantwort passt nicht zu den angebotenen Fassungen oder zur verlangten Form. Es wird kein Teilvergleich angezeigt; Sie können weiterhin selbst wählen." %}</p>
+        {% elif gegenueberstellung.meldung == "laeuft" %}
+          <p class="erk">{% translate "Diese Anforderung wurde bereits begonnen. Erneutes Absenden startet keinen zweiten Modellaufruf. Sie können weiterhin selbst wählen." %}</p>
+        {% else %}
+          <p class="erk">{% translate "Der Modellvergleich ist derzeit nicht verfügbar. Ihr Text bleibt erhalten; Sie können weiterhin selbst wählen." %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+    {% if gegenueberstellung_token and ki_anbieter %}
+      <details class="klappe abstand">
+        <summary>{% translate "Texte durch KI gegenüberstellen lassen" %}</summary>
+        <p class="erk">{% blocktranslate with anbieter=ki_anbieter %}Mit diesem freiwilligen Auftrag gehen Ihr Titel und Wortlaut sowie die hier angebotenen öffentlichen Fassungen an den KI-Anbieter {{ anbieter }}. Die Modellantwort nennt Gemeinsamkeit und Unterschied, entscheidet aber nicht über Ihren Antrag. Der private Vergleich wird für Ihr Konto archiviert.{% endblocktranslate %}</p>
+        <button type="submit" name="textvergleich" value="{{ gegenueberstellung_token }}" form="einbringen-form" class="btn-linie">{% translate "Diese Texte jetzt gegenüberstellen lassen" %}</button>
+      </details>
+    {% endif %}
     <p class="erk">{% translate "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)." %}
       {% if vorschau %}{% translate "Die Vorschau bleibt lokal. Der Bedeutungsvergleich folgt erst beim Absenden." %}
       {% elif pruefung.bedeutung_aktiv %}{% blocktranslate with modell=pruefung.bedeutungsmodell %}Bedeutung: Textvektoren des Anbieters ({{ modell }}) — Vorschlag, keine Hürde.{% endblocktranslate %}

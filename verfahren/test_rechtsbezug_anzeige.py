@@ -94,7 +94,7 @@ def test_erledigt_zeigt_normen_mit_badges_kennzeichnung_und_beanstanden(client, 
     assert "Parteiengesetz 2012" in inhalt and "BGBl. I Nr. 56/2012" in inhalt and "Transparenz-Richtlinie" in inhalt
     assert inhalt.count("nicht verifiziert") >= 2 and "zu ändern" in inhalt and "berührt" in inhalt
     assert "Bundeskompetenz nach Art. 10 B-VG." in inhalt and "mittel" in inhalt
-    assert "attrappe-1 · rechtsbezug-v2" in inhalt
+    assert "attrappe-1 · rechtsbezug-v3" in inhalt
     assert "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung" in inhalt
     assert "Modellrechnung — sie schlägt vor, sie entscheidet nie" in inhalt  # die Kopfkarte bleibt
     assert 'href="http' not in inhalt.split('id="rechtsbezug"')[1].split("</div>")[0]  # kein Link auf eine Norm
@@ -208,10 +208,10 @@ def test_beanstandung_trifft_nie_den_textvektor_lauf(client, json_attrappe, ordn
     antrag = Antrag.objects.get()
     abarbeiten()
     zwecke = list(KILauf.objects.filter(antrag=antrag).order_by("erstellt_am", "pk").values_list("zweck", flat=True))
-    assert zwecke == [Zweck.RECHTSBEZUG, Zweck.AEHNLICHKEIT]  # der Vektor-Lauf ist der jüngste
+    assert zwecke == [Zweck.RECHTSFOLGEN, Zweck.AEHNLICHKEIT]  # der Vektor-Lauf ist der jüngste
     client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Die Norm stimmt nicht."})
     b = Beanstandung.objects.get(antrag=antrag)
-    assert b.lauf.zweck == Zweck.RECHTSBEZUG
+    assert b.lauf.zweck == Zweck.RECHTSFOLGEN
     audit = AuditEintrag.objects.filter(ereignis__typ="einschaetzung_beanstandet").get()
     assert audit.ereignis["lauf"] == b.lauf_id
 

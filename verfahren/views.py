@@ -50,6 +50,15 @@ def antwortformat(request):
     return antwort
 
 
+def rechtsfolgenformat(request):
+    from plattform_core.rechtsfolgen import VERSION, schema_als_dict
+
+    antwort = JsonResponse(schema_als_dict(), json_dumps_params={"ensure_ascii": False, "indent": 2})
+    antwort["Content-Disposition"] = f'attachment; filename="rechtsfolgen-schema-v{VERSION}.json"'
+    antwort["X-Content-Type-Options"] = "nosniff"
+    return antwort
+
+
 # Die vier Felder des Parlaments in Rasterreihenfolge (Fokus-Modus ?fokus=<feld>)
 FELDER = ("filter", "favoriten", "wichtig", "region")
 
@@ -1021,7 +1030,7 @@ def _lesbarer_lauf(antrag, zweck=None):
     weder als „Stand“ der Kopfkarte noch als Ziel einer Beanstandung (§ 6 Abs 11 lit b)."""
     from ki.models import KILauf, Zweck
 
-    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).exclude(zweck=Zweck.AEHNLICHKEIT)
+    laeufe = KILauf.objects.filter(antrag=antrag, erfolgreich=True).filter(zweck__in=(Zweck.EINSCHAETZUNG, Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN))
     if zweck is not None:
         laeufe = laeufe.filter(zweck=zweck)
     return laeufe.order_by("-erstellt_am").first()
@@ -1033,6 +1042,7 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     Die Karten mit Grafiken folgen mit der Zukunftswerkstatt (S11); bis dahin zeigt die Zone
     ehrlich, dass noch nichts vorliegt."""
     from ki.anbieter import anbieter_waehlen
+    from ki.korrekturen import hinzufuegen
     from ki.models import Zweck
     from ki.rechtsbezug import rechtsbezug_lage
     from ki.verbrauch import anzeige, fuer_antrag
@@ -1040,12 +1050,16 @@ def _einschaetzung(antrag, betrachter=None, seite=None):
     # Kopfkarte und Gremien-Fenster zeigen nur die Einschätzung; der Rechtsbezug hat seine eigene Karte.
     lauf = _lesbarer_lauf(antrag, Zweck.EINSCHAETZUNG)
     anbieter = anbieter_waehlen()
+    rechtsbezug = rechtsbezug_lage(antrag, betrachter, seite)
+    if lauf is None and rechtsbezug["ergebnis"] and rechtsbezug["ergebnis"].get("folgenbericht"):
+        lauf = rechtsbezug["ergebnis"]["lauf"]
     return {
         "lauf": lauf,
         "anbieter_da": anbieter is not None,
         "modell": lauf.modell if lauf else (getattr(anbieter, "modell", "") or ""),
-        "beanstandungen": list(antrag.beanstandungen.select_related("mitglied")),
-        "rechtsbezug": rechtsbezug_lage(antrag, betrachter, seite),
+        "beanstandungen": hinzufuegen(antrag, list(antrag.beanstandungen.select_related("mitglied", "lauf")), betrachter),
+        "rechtsbezug": rechtsbezug,
+        "beanstandeter_lauf": lauf or (rechtsbezug["ergebnis"]["lauf"] if rechtsbezug["ergebnis"] else None),
         "verbrauch": anzeige(fuer_antrag(antrag)),
         # Was die Zone zeigen wird, sobald die Werkstatt rechnet (Skelett-Umrisse, FB-F2)
         "kommende_karten": [
@@ -1769,10 +1783,12 @@ def zukunftswerkstatt(request):
     Seit Ring 0b (F-60) zeigt sie zusätzlich die Rechenschaft des
     Modell-Steckplatzes: angeschlossen?, Läufe, Tokenverbrauch, Budget."""
     from ki.auftraege import auftragsversionen
-    from ki.models import KILauf, steckplatz_stand
+    from ki.models import KILauf, Zweck, steckplatz_stand
     from ki.nachlese import textstand
 
-    laeufe = list(KILauf.objects.select_related("antrag")[:8])
+    # Private Vorabvergleiche enthalten noch nicht eingebrachte Entwürfe; auch
+    # Anbieterfehlertexte bleiben dort ausschließlich beim anfordernden Konto.
+    laeufe = list(KILauf.objects.exclude(zweck=Zweck.GEGENUEBERSTELLUNG).select_related("antrag")[:8])
     for lauf in laeufe:
         lauf.textstand = textstand(lauf)
 

@@ -4,6 +4,7 @@
 <a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
 <h1>{{ norm.kurztitel }}</h1>
 <div class="karte">
+  <p>{% if norm.ebene == 'Land' %}{% translate "Landesrecht" %} · {{ norm.bundesland }}{% else %}{% translate "Bundesrecht" %}{% endif %}</p>
   <p>{{ norm.abschnitt }} · {{ norm.typ }} · {{ norm.ris_id }}</p>
   <p>{% translate "Gesetzesnummer" %}: {{ norm.gesetzesnummer }} · {% translate "Stichtag" %}: {{ norm.stand|date:"d.m.Y" }}</p>
   <p>{% translate "Importiert am" %}: {{ norm.importlauf.beendet_am|date:"d.m.Y H:i" }}</p>
@@ -21,6 +22,7 @@
     {% csrf_token %}<button class="knopf" type="submit">{% translate "Diesen Dokumenttext einmal abrufen" %}</button>
   </form>
   {% endif %}
+  {% if norm.ebene == 'Land' %}<p class="hilfe">{% translate "Neue Modellaufträge können vorhandene Landesquellen als Kontextkandidaten verwenden. Ein Einzeltext ist keine vollständige Rechtsvorschrift; seine Herkunft bestätigt keine rechtliche Zuständigkeit für einen Antrag." %}</p>{% endif %}
   <p class="hilfe">{% translate "Einzeldokumente aus dem RIS, keine vollständige Rechtsvorschrift. Die Texte werden nicht automatisch aktualisiert." %}</p>
   {% if letzter_textabruf and not letzter_textabruf.erfolgreich %}
     <p class="meldung warn">{% translate "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar." %} ({{ letzter_textabruf.fehlercode }}) · {{ letzter_textabruf.beendet_am|date:"d.m.Y H:i" }}</p>
@@ -46,6 +48,7 @@
   <p>{% translate "Inhalts-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.inhalt_hash }}</code></p>
   <p>{% translate "Antwort-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.importlauf.antwort_hash }}</code></p>
   <p><a href="{% url 'faktenbasis:importantwort' norm.importlauf_id %}">{% translate "Gespeicherte Metadatenantwort herunterladen" %}</a></p>
+  <p>{% blocktranslate with gelesen=norm.importlauf.gelesen treffer=norm.importlauf.treffer %}Dieser Einzelimport hat {{ gelesen }} von {{ treffer }} gefundenen Dokumenten übernommen; eine vollständige Rechtsvorschrift ist damit nicht nachgewiesen.{% endblocktranslate %}</p>
   <p class="hilfe">{% translate "Die Prüfsummen beziehen sich auf JSON mit sortierten Schlüsseln, ohne zusätzliche Leerzeichen, als UTF-8 mit unmaskierten Unicode-Zeichen." %}</p>
   <pre class="fakten-rohdaten">{{ rohdaten }}</pre>
 </details>

@@ -51,8 +51,10 @@ def test_formabweichung_und_historischer_befund_bleiben_nachlesbar(
     entwurf = Entwurf.objects.create(antrag=antrag)
     EntwurfsFassung.objects.create(entwurf=entwurf, nummer=1, wortlaut="Geänderter Testwortlaut.", verfasst_von=m)
     assert entwurf.einreichen()
-    roh = json.dumps({"normen": [], "hinweis": "", "unsicherheit": "hoch"})
+    roh = json.dumps({"normen": [], "judikatur": {"text": "Ohne vollständige Belege offen."},
+        "exekutive": {"text": "Vollzugsbedarf bleibt unbestimmt."}, "personal": [], "unsicherheit": "hoch", "quellen": []})
     neu = KIAuftrag.objects.get(antrag=antrag, quellenart="vorschlag")
+    assert neu.zweck == Zweck.RECHTSFOLGEN and alt.zweck == Zweck.RECHTSBEZUG
     assert auftrag_ausfuehren(neu.pk) == "erledigt"
     p.reload()
     expect(karte.get_by_text("empty list of provisions" if englisch else "leere Normenliste", exact=False)).to_be_visible()

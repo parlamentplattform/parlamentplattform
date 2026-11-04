@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.76.1] — 2026-11-04 · Bildschirmtests als wirkliche Auslieferungssperre
+
+- Deploy und Alarm auf `main` warten jetzt auch auf `sichtpruefung`. Zuvor konnte der Deploy nach den beiden Python-Prüfungen, PostgreSQL und Sicherung anlaufen, obwohl die Bildschirmtests noch liefen oder scheiterten. Alle fünf bestehenden Pflichtprüfungen sind damit Voraussetzung; ein Browserfehler erreicht ebenfalls den sichtbaren Alarm.
+- Zwei rote Konfigurationsgegenproben belegen die fehlenden Abhängigkeiten vor der Korrektur. Keine neuen Trigger, Berechtigungen, Dienste oder Prüfungsumgehung; der Deploy bleibt auf den Push zu `main` begrenzt. Fachcode, Datenbank, Regeln, Parameter und laufende Verfahren bleiben unverändert.
+
 ## [0.76.0] — 2026-11-04 · Den UTF-8-Vertrag beim amtlichen XML tatsächlich erzwingen
 
 - BOM-loses UTF-16 mit ASCII-Inhalten konnte den vorgeschalteten DTD-/Verarbeitungsanweisungs-Scan umgehen, obwohl nur UTF-8 vereinbart war. Nullzeichen werden jetzt vor dem XML-Parser abgewiesen; dessen Kodierung ist ausdrücklich UTF-8. Winzige lokale Regressionen belegen den Fehler vor und die Ablehnung nach der Korrektur, ohne externe Entitäten, Netz- oder Lastprobe.

@@ -6,7 +6,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Ein eigenständiges Werkzeug prüft den lokalen JSON-Download gegen eine ausdrücklich angegebene, zuvor notierte Prüfsumme. Die unveränderte Bestandsregel1 rechnet Datensätze, Reihenfolge, Zähler und Hashbezüge nach. Doppelte JSON-Schlüssel, unbekannte Felder, Typverwechslungen, Übergröße und zu tiefe Strukturen werden kontrolliert abgewiesen; keine stille Normalisierung oder Teilprüfung.
 - Aufruf mit Python ohne installierte Zusatzpakete, Django, Datenbank, Netzwerk, Modellaufrufe oder Schreibwirkungen. JSON-Ergebnis nennt den geprüften Inhaltshash und die Anzahl der Schnappschüsse; Fehler geben stabile Codes ohne fremde Dateiinhalte aus. Datum und Betriebsgrenze bleiben außerhalb des Hashes. Keine amtliche Echtheit, Originaldateiprüfung, Vollständigkeit oder rechtliche Aktualität bescheinigt; die Herkunft des Vergleichshashes muss die prüfende Person selbst sicherstellen.
-- Schema1.29, Bestandsregel1, Verfahrensregeln, Daten und Benutzeroberfläche unverändert. Keine Migration oder neue Abhängigkeit. Vollständige Prüf-/CI-/Liveabnahme steht noch aus.
+- Schema1.29, Bestandsregel1, Verfahrensregeln, Daten und Benutzeroberfläche unverändert. Keine Migration oder neue Abhängigkeit.
+- Vollständig auf Sourceae513be mit Python3.12 geprüft:3539 Tests bestanden, sechs unverändert übersprungen,981.99s,Kern98%; zusätzlich3320 Tests gegen isoliertes PostgreSQL16.15 in548.99s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.104 integrierte Prüfungen einschließlich echter gebundener Webdownloads und isolierter CLI-Aufrufe grün; Katalog3308 vollständig, Ruff/System-/Migrationscheck grün. Keine neue Browseroberfläche; bestehende Browser vollständig mitgeprüft. Anschließend ausschließlich diese Prüfdokumentation; neue GitHub-Pflichtprüfungen und tatsächliche Auslieferung bleiben offen.
 
 ## [0.77.2] — 2026-11-04 · Auch ältere Rechtsbezugarchive vor Kontextbeifang schützen
 

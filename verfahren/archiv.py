@@ -573,6 +573,10 @@ def als_markdown(antrag) -> str:
     if d["rechtsbezug"]["laeufe"]:
         zeilen += [f"## {_('Einschätzungen und Textstände')}", ""]
         for lauf in d["rechtsbezug"]["laeufe"]:
+            if lauf.get("kontextstatus") == "fehler":
+                zeilen += [f"### {_('Lauf')} #{lauf['id']}", "",
+                    str(_("Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt.")), ""]
+                continue
             zeilen += [
                 f"### {_('Lauf')} #{lauf['id']} · {lauf['modell']} · {lauf['auftrag_version']} · {lauf['erstellt_am']}",
                 "", f"{_('Kontext-Prüfsumme (SHA-256)')}: {lauf['kontext'].get('text', {}).get('sha256', '—')}",

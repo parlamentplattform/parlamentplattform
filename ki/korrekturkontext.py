@@ -34,6 +34,9 @@ def festhalten(beanstandung, lauf):
         from ki.folgenkorrekturkontext import festhalten as folgen_festhalten
 
         return folgen_festhalten(beanstandung, lauf)
+    from ki.rechtsbezugvertrag import lauf_pruefen
+
+    lauf_pruefen(lauf)
     k = lauf.kontext if isinstance(lauf.kontext, dict) else {}
     text = text_pruefen(k.get("text"))
     if text["antrag"] != beanstandung.antrag_id or lauf.antrag_id != beanstandung.antrag_id:

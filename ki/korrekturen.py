@@ -87,6 +87,10 @@ def _rahmen(auftrag):
     if ((d["version"] == 2 and auftrag.folgenkontext != d["folgen"])
             or (d["version"] == 1 and auftrag.folgenkontext)):
         raise ValueError("Korrektur hat einen fremden Folgenrahmen.")
+    if d["version"] == 1:
+        from ki.rechtsbezugvertrag import lauf_pruefen
+
+        lauf_pruefen(alt)  # Auch frühere Nachrechnungen sind kein Umweg um die öffentliche Ursprungsgrenze.
     return d
 
 

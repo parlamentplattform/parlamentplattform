@@ -7,6 +7,19 @@ Einheit snapshots) den ausschließlich lesenden Nachweis des lokalen Quellenbest
 Standard2000,0deaktiviert, technische Obergrenze10000. Ein vorhandener unlesbarer Wert
 sperrt den Nachweis; fehlender Eintrag verwendet den Standard. Keine Verfahrensordnung.
 
+### Datenschutzgrenze älterer Rechtsbezugarchive (0.77.2)
+
+Die öffentliche Rechtsbezuganzeige und beide Antragsarchivformate geben nur
+bekannte historische Text-/Quellenfelder mit rekonstruierbarem Eingabevertrag
+aus. Das gilt auch für noch wartende Aufträge. Kontextlose frühe Archive bleiben
+ohne nachträgliche Herkunftsbehauptung erhalten; unbekannte oder widersprüchliche
+Rahmen erhalten `kontextstatus: "fehler"` statt der rohen Eingabe, Antwort und
+Zusatzfelder. Der Markdownexport nennt diesen Fehler ausdrücklich und bleibt
+herunterladbar. Ein neuer Hash macht ein unbekanntes Feld nicht öffentlich.
+Korrekturwege prüfen dieselbe öffentliche Ursprungsgrenze. Roharchive und der
+getrennte persönliche Datenexport werden dadurch nicht bereinigt oder verändert.
+Schema1.29 und gültige alte Eingabe-/Promptfassungen bleiben unverändert.
+
 ### Datenschutzgrenze älterer Korrekturläufe (0.77.1)
 
 Datenschutzkorrektur0.77.1: Öffentliche `rechtsbezug.korrekturen` prüfen auch bei

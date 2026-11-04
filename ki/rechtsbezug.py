@@ -143,6 +143,12 @@ def rechtsbezug_fuer(antrag, lauf=None, *, ziel=None) -> dict | None:
         except (ValueError, TypeError, KeyError):
             return None  # kein fremder Beifang und keine ungebundene Antwort
     else:
+        from ki.rechtsbezugvertrag import lauf_pruefen
+
+        try:
+            lauf_pruefen(lauf)
+        except (ValueError, TypeError, KeyError):
+            return None  # Zweckkennung allein macht keine fremden Kontextfelder öffentlich.
         ergebnis = antwort_parsen(lauf.antwort) if lauf.erfolgreich else {"normen": [], "hinweis": "", "unsicherheit": "hoch"}
     quelle = textstand(lauf)
     zuordnungen = {(a.quellenart, a.fassung_nummer) for a in lauf.auftraege.all()}

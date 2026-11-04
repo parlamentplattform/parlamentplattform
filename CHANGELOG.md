@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.77.2] — 2026-11-04 · Auch ältere Rechtsbezugarchive vor Kontextbeifang schützen
+
+- Der getrennt nachgeprüfte ältere Rechtsbezugexport konnte unbekannte Kontextfelder von Läufen und wartenden Aufträgen öffentlich ausgeben. Drei synthetische Ausgabegegenproben belegen die Grenze vor dem Fix; ein korrekt wirkender Schreibschutz wurde dabei nicht umgangen. Kein tatsächlicher Produktionsdatenvorfall oder extern beschreibbares Archivfeld behauptet.
+- Öffentliche Anzeige und Exporte prüfen jetzt die bekannten alten Text-/Quellenverträge und die tatsächliche Eingabe. Unprüfbare Einträge erhalten einen kontrollierten Fehlerstand; JSON und Markdown bleiben herunterladbar. Neue und bereits gespeicherte Korrekturen können diese Ursprungsgrenze nicht umgehen. Kontextlose frühe Archive und gültige alte Promptfassungen bleiben lesbar, persönliche Datenexporte bleiben getrennt.
+- Keine Originale geändert, bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Schema-, Fachregel-, Policy-, Stimmen-, Fristen- oder Budgetänderung. Vollständige Prüf-/CI-/Liveabnahme dieses Folgepatches steht noch aus.
+
 ## [0.77.1] — 2026-11-04 · Interne Zusatzfelder aus alten Korrekturexporten ausschließen
 
 - Alte Korrekturläufe konnten zusätzliche Kontextfelder öffentlich ausgeben, während neue Folgenkorrekturen die äußere Feldmenge bereits begrenzten. Alle drei Promptfassungen prüfen jetzt dieselbe feste Text-/Quellenbindung und ganzzahlige Auftrags-/Versuchskennung; fremde ausgewählte Läufe erhalten den vorhandenen Fehlerzustand, fremde Zusatzversuche erscheinen nicht im öffentlichen Archiv.

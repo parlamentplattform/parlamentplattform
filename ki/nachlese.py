@@ -58,6 +58,12 @@ def lauf_export(lauf):
     elif lauf.zweck != Zweck.RECHTSBEZUG:
         raise ValueError("Nur der öffentliche Rechtsbezug gehört in diesen Export.")
     else:
+        from ki.rechtsbezugvertrag import lauf_pruefen
+
+        try:
+            lauf_pruefen(lauf)
+        except (ValueError, KeyError, TypeError):
+            return {"id": lauf.pk, "zweck": lauf.zweck, "kontextstatus": "fehler"}
         abgleich = fuer_lauf(lauf)
     return {
         "id": lauf.pk, "zweck": lauf.zweck, "modell": lauf.modell, "anbieter": lauf.anbieter,
@@ -83,6 +89,13 @@ def _auftrag_export(a):
         except (ValueError, KeyError, TypeError):
             return {**basis, "zweck": a.zweck, "kontextstatus": "fehler"}
         basis.update(zweck=a.zweck, folgenkontext=a.folgenkontext)
+    elif a.zweck == Zweck.RECHTSBEZUG:
+        from ki.rechtsbezugvertrag import auftrag_pruefen
+
+        try:
+            auftrag_pruefen(a)
+        except (ValueError, KeyError, TypeError):
+            return {**basis, "zweck": a.zweck, "kontextstatus": "fehler"}
     return {**basis, "kontext": a.kontext, "quellenkontext": a.quellenkontext}
 
 

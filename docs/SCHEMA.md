@@ -57,7 +57,42 @@ import hashlib, json
 raw = json.dumps(download["inhalt"], ensure_ascii=False, sort_keys=True,
                  separators=(",", ":"), allow_nan=False).encode("utf-8")
 assert hashlib.sha256(raw).hexdigest() == download["sha256"]
+assert download["sha256"] == zuvor_notierter_vergleichshash
 ```
+
+Seit0.78 gibt es außerdem ein eigenständiges Offlinewerkzeug:
+
+```text
+python tools/faktenbestand_pruefen.py DATEI --sha256 HASH
+```
+
+`DATEI` ist der bereits heruntergeladene lokale JSON-Nachweis. `HASH` muss die
+zuvor notierte Prüfsumme sein, etwa von der Nachweisseite, nicht erst ein aus
+derselben zu prüfenden Datei übernommener Wert. Das Werkzeug benötigt nur Python
+ab3.11 und die vorhandene reine Bestandsregel im Checkout; keine installierten
+Zusatzpakete, Django-Einstellungen, Datenbank oder Netzwerkverbindung. Es schreibt
+keine Dateien und ruft keine Modelle auf. `python -I -S` ist ebenfalls möglich.
+
+Es prüft das vollständige bekannte Format mit derselben Bestandsregel1 einschließlich
+Reihung, Zählern und Hashbezügen. Ein neu gebildeter Hash für geänderte Daten besteht
+nicht gegen den alten angegebenen Vergleichshash. Doppelte JSON-Schlüssel, NaN,
+unbekannte Felder, Typverwechslungen und unvollständige Stände werden abgewiesen.
+Technische Parsergrenzen:4MiB pro Datei,16 verschachtelte Objekte/Listen; der volle
+bekannte Nachweis mit10000Einträgen liegt darunter. Diese Grenzen ändern keine
+Registerwerte oder Verfahrensregeln.
+
+Erfolg:Exit0 und JSON auf stdout mit `pruefung`, `bestandsregel_fassung`, `sha256`,
+`schnappschuesse`, `sammlungen` und ausdrücklich falschen Bestätigungsflags
+`originaldateien_geprueft`, `amtliche_signatur_geprueft`,
+`vollstaendigkeit_bestaetigt`, `metadaten_im_hash`.
+Prüffehler:Exit1, nur `{"fehler":"CODE"}` auf stderr und kein Erfolgsauszug;
+Codes umfassen `datei`, `dateigroesse`, `utf8`, `json`, `doppelte_schluessel`,
+`vergleichshash`, `format`, `metadaten`, `fassung`, `sammlungen`, `inhalt`,
+`grenze`, `umfang`, `daten`, `pruefsumme`. Fehlende Aufrufargumente:Exit2.
+Fremde Dateiinhalte werden bei Fehlern nicht ausgegeben. Das Ergebnis bestätigt
+ausschließlich die Übereinstimmung mit dem angegebenen Hash. Werden Datei und
+Vergleichshash gemeinsam ersetzt, beweist ein passender Hashvergleich keine
+Echtheit; die Beschaffung des Vergleichshashes bleibt eine getrennte Aufgabe.
 
 Nur `inhalt` gehört zum Hash, nicht Erzeugungszeit/Betriebsgrenze. Vier Sammlungen
 werden in einem Datenbankstatement gelesen; der Stand ist auf diesen Abfragezustand

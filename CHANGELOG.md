@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.78.0] — 2026-11-04 · Heruntergeladene Bestandsnachweise offline nachrechnen
+
+- Ein eigenständiges Werkzeug prüft den lokalen JSON-Download gegen eine ausdrücklich angegebene, zuvor notierte Prüfsumme. Die unveränderte Bestandsregel1 rechnet Datensätze, Reihenfolge, Zähler und Hashbezüge nach. Doppelte JSON-Schlüssel, unbekannte Felder, Typverwechslungen, Übergröße und zu tiefe Strukturen werden kontrolliert abgewiesen; keine stille Normalisierung oder Teilprüfung.
+- Aufruf mit Python ohne installierte Zusatzpakete, Django, Datenbank, Netzwerk, Modellaufrufe oder Schreibwirkungen. JSON-Ergebnis nennt den geprüften Inhaltshash und die Anzahl der Schnappschüsse; Fehler geben stabile Codes ohne fremde Dateiinhalte aus. Datum und Betriebsgrenze bleiben außerhalb des Hashes. Keine amtliche Echtheit, Originaldateiprüfung, Vollständigkeit oder rechtliche Aktualität bescheinigt; die Herkunft des Vergleichshashes muss die prüfende Person selbst sicherstellen.
+- Schema1.29, Bestandsregel1, Verfahrensregeln, Daten und Benutzeroberfläche unverändert. Keine Migration oder neue Abhängigkeit. Vollständige Prüf-/CI-/Liveabnahme steht noch aus.
+
 ## [0.77.2] — 2026-11-04 · Auch ältere Rechtsbezugarchive vor Kontextbeifang schützen
 
 - Der getrennt nachgeprüfte ältere Rechtsbezugexport konnte unbekannte Kontextfelder von Läufen und wartenden Aufträgen öffentlich ausgeben. Drei synthetische Ausgabegegenproben belegen die Grenze vor dem Fix; ein korrekt wirkender Schreibschutz wurde dabei nicht umgangen. Kein tatsächlicher Produktionsdatenvorfall oder extern beschreibbares Archivfeld behauptet.

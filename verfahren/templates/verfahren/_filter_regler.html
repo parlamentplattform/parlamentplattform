@@ -40,7 +40,7 @@ Zurücksetzen · Löschen (mit Rückfrage). Ohne JavaScript: natives <details>, 
       <button type="submit" name="speichern" value="1" class="btn klein" disabled title="{% translate 'Als neue Konfiguration speichern' %}">{% translate "Speichern" %}</button>
       {% endif %}
       {% if filter_lage.voll %}
-      <span class="regel-hinweis" style="margin:0">{% translate "5 von 5 — eine löschen oder überschreiben" %}</span>
+      <span class="regel-hinweis">{% if filter_lage.hoechstzahl %}{% blocktranslate with anzahl=filter_lage.anzahl hoechstzahl=filter_lage.hoechstzahl %}{{ anzahl }} von {{ hoechstzahl }} — eine löschen oder überschreiben{% endblocktranslate %}{% else %}{% translate "Neue Konfigurationen sind gesperrt." %}{% endif %}</span>
       {% else %}
       <details class="neu"><summary class="btn-linie klein">{% translate "Als neue Konfiguration speichern" %}</summary>
         <span class="neu-feld"><input type="text" name="profilname" maxlength="24" placeholder="{% translate 'Name' %}" aria-label="{% translate 'Name der Konfiguration' %}">

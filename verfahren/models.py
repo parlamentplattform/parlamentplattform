@@ -1312,8 +1312,8 @@ def vertrauensfrage_einbringen(
 class FilterProfil(models.Model):
     """Ein gespeichertes Regler-Profil des WeicherFilters (P5, § 5 Abs 10 lit d).
 
-    Profile liegen serverseitig beim Mitglied; höchstens fünf (durchgesetzt in
-    der Ansicht), genau eines ist aktiv. Sie wirken ausschließlich auf die
+    Profile liegen serverseitig beim Mitglied; die Höchstzahl steht im Register
+    (Rückfall fünf), genau eines ist aktiv. Sie wirken ausschließlich auf die
     EIGENE Ansicht des Mitglieds — nie auf gemeinsame Reihung, Schwellen oder
     Ergebnisse (§ 2 Abs 6 letzter Satz: mitgliedereigene Reihung ist keine
     Sortierung durch die Partei; die Voreinstellung bleibt neutral)."""
@@ -1339,6 +1339,12 @@ class FilterProfil(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name}{' (aktiv)' if self.aktiv else ''}"
+
+    @classmethod
+    def hoechstzahl(cls):
+        from parameter.models import zahl
+
+        return max(0, zahl("weicherfilter-profile-hoechstzahl", cls.HOECHSTZAHL))
 
 
 class Bewerbung(models.Model):

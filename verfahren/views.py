@@ -422,13 +422,16 @@ def _filter_lage(profile, aktives, regler, favoriten_zuerst):
     """Was Leiste und Overlay des WeicherFilters brauchen (FB-B3–B5)."""
     from verfahren.models import FilterProfil
 
+    hoechstzahl = FilterProfil.hoechstzahl()
+    anzahl = len(profile)
     return {
         "profile": profile,
         "aktiv": aktives,
         "regler_meta": [(name, REGLER_NAMEN[name], regler[name]) for name in REGLER_NAMEN],
         "favoriten_zuerst": favoriten_zuerst,
-        "hoechstzahl": FilterProfil.HOECHSTZAHL,
-        "voll": len(profile) >= FilterProfil.HOECHSTZAHL,
+        "hoechstzahl": hoechstzahl,
+        "anzahl": anzahl,
+        "voll": anzahl >= hoechstzahl,
         # der gespeicherte Stand für die Anzeige „● Ungespeichert“ (nur bekannte Schlüssel und Zahlen)
         "gespeichert_json": mark_safe(json.dumps({**regler, "favoriten_zuerst": bool(favoriten_zuerst)})),
     }

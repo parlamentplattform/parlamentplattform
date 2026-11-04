@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.80.0] — 2026-11-04 · Landesquellen und persönliche Filtergrenzen konsistent bedienen
+
+- Der vorhandene Landesrechts-Einzelimport ist auch über die Quellenverwaltung erreichbar. Rechtsbestand, Bundesland, Gesetzesnummer, Stichtag und RIS-Seite werden ausdrücklich gewählt. Alte Bundesrechts-POSTs ohne neue Auswahl bleiben gültig.
+- Landesrecht benötigt eines der neun unterstützten Bundesländer; widersprüchliche Bundesrechts-/Landesangaben scheitern vor jedem Abruf. Verwaltungsrechte, CSRF, gemeinsamer Abrufschutz und Kontingent gelten für beide Bestände. Herkunft und Seite bleiben im Audit und im unveränderlichen Importnachweis sichtbar.
+- Beide Auswahlfelder bleiben ohne JavaScript bedienbar. Vorhandene Import-/Parserlogik, Originalstände, Modelleingaben, Schema1.29 und Verfahrensregeln unverändert; keine Migration, automatische Quellenbefüllung, zusätzliche Anbieteraufrufe oder Kosten.
+- Der WeicherFilter zeigt und meldet dieselbe bestehende Profilgrenze aus dem Register, die beim Speichern gilt. Null sperrt neue Profile; vorhandene Profile bleiben auch nach einer Absenkung nutzbar und überschreibbar. Gleichzeitige Neuanlagen desselben Mitglieds werden transaktional begrenzt. Keine Änderung der Reihungsregel oder anderer Mitgliedsrechte.
+
 ## [0.79.0] — 2026-11-04 · Amtliche Folgeseiten ausdrücklich auswählen
 
 - Der RIS-Einzelimport ist nicht mehr auf die ersten zehn Dokumente beschränkt. Bund und Länder unterstützen eine ausdrücklich gewählte Folgeseite per `--seite`; die bestehende Verwaltungsoberfläche für Bundesrecht bietet dieselbe Auswahl. Jeder Aufruf bleibt genau eine Anfrage mit höchstens zehn Dokumenten und dem gemeinsamen Abrufschutz.

@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 
 from ki.anbieter import anbieter_waehlen
 from ki.models import Zweck
-from mitglieder.models import Mitgliedsstatus
+from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
@@ -764,28 +764,36 @@ def _regler_aus_post(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_anwenden(request):
     """P5: Regler anwenden — ins aktive Profil speichern oder als neues Profil
-    anlegen (höchstens fünf). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
+    anlegen (Höchstzahl aus dem Register). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
+    # Die Grenze gilt auch bei gleichzeitigen Neuanlagen desselben Mitglieds.
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
+    hoechstzahl = FilterProfil.hoechstzahl()
     regler = _regler_aus_post(request)
     favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
     profile = request.user.filterprofile
     name_neu = (request.POST.get("profilname") or "").strip()[:24]
     werte = {"regler": regler, "favoriten_zuerst": favoriten_zuerst}
 
-    zu_viele = _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+    zu_viele = (
+        _("Höchstens %(hoechstzahl)s Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+        % {"hoechstzahl": hoechstzahl}
+        if hoechstzahl else _("Neue Konfigurationen sind gesperrt.")
+    )
     if request.POST.get("als_neues"):
         if not name_neu:
             return _zurueck_zum_parlament(
                 request, "name_fehlt", "error", _("Bitte einen Namen für die neue Konfiguration angeben.")
             )
-        if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL) and not profile.filter(name=name_neu).exists():
+        if profile.count() >= hoechstzahl and not profile.filter(name=name_neu).exists():
             return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
         profil, _egal = FilterProfil.objects.update_or_create(mitglied=request.user, name=name_neu, defaults=werte)
     else:
         profil = profile.filter(aktiv=True).first()
         if profil is None:
-            if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL):
+            if profile.count() >= hoechstzahl:
                 return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
             profil, _egal = FilterProfil.objects.get_or_create(
                 mitglied=request.user, name=str(_("Eigenes")), defaults=werte

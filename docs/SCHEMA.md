@@ -511,3 +511,10 @@ neuen Parameter oder Modellaufrufe. Details: `docs/PERSONALRESSORTS.md`.
 
 
 Seit0.79.0 hält RisImport zusätzlich die ausdrücklich gewählte RIS-Seite fest, auch bei einem fehlgeschlagenen Abruf. Historische Importe erhalten Seite1, die bis0.78 allein zulässig war. Die amtliche JSON-Antwort enthält ihre Seitennummer bereits selbst und bleibt unverändert. Keine Änderung des Parameter-/Kennzahlen-Exportvertrags oder der Bestandsnachweisfassung; Schema1.29 bleibt bestehen.
+
+Seit0.80.0 nutzen Speichern, Overlay und Rückmeldungen des WeicherFilters einheitlich
+`soft_filter.max_profiles` (`weicherfilter-profile-hoechstzahl`, Rückfall5). Null bzw.
+ein negativer Wert sperrt neue Profile; vorhandene Profile werden weder gelöscht noch
+deaktiviert und können weiter gewählt oder überschrieben werden. Gleichzeitige Neuanlagen
+eines Mitglieds werden im selben Schreibschutz nacheinander geprüft. Ausschließlich
+persönliche Anzeigeeinstellungen, keine Änderung einer Reihungs- oder Verfahrensregel.

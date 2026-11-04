@@ -2836,9 +2836,6 @@ msgstr "1 in the support phase, otherwise 0"
 msgid "1, wenn kein Lebensbereich des Antrags in meinem Abo-Ast liegt; sonst 0"
 msgstr "1 if no area of life of the motion lies in my subscribed branch; otherwise 0"
 
-msgid "5 von 5 — eine löschen oder überschreiben"
-msgstr "5 of 5 — delete or overwrite one"
-
 msgid "Als neue Konfiguration speichern"
 msgstr "Save as new configuration"
 
@@ -2880,9 +2877,6 @@ msgstr "Favourites first"
 
 msgid "Favoriten zuerst umschalten"
 msgstr "Toggle favourites first"
-
-msgid "Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben."
-msgstr "At most five configurations — please delete or overwrite one first."
 
 msgid "Interessantes außerhalb meiner Favoriten"
 msgstr "Interesting things outside my favourites"
@@ -7551,9 +7545,6 @@ msgstr "Applies to:"
 msgid "Guten Tag %(name)s!"
 msgstr "Hello %(name)s!"
 
-msgid "Höchstens fünf Konfigurationen — zuerst eine löschen oder überschreiben."
-msgstr "At most five configurations — delete or overwrite one first."
-
 msgid "Identität noch ungeprüft"
 msgstr "Identity not yet verified"
 
@@ -9025,9 +9016,6 @@ msgstr "Importing a source does not verify its legal relevance to a motion. No m
 
 msgid "Diesen Dokumenttext einmal abrufen"
 msgstr "Retrieve this document text once"
-
-msgid "Ein Abruf übernimmt höchstens zehn Dokumente des konsolidierten Bundesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern."
-msgstr "One request imports at most ten documents of consolidated federal law for one law number and reference date. Only metadata is imported initially. You can then request an individual document text on its page."
 
 msgid "Ein Quellenabruf läuft noch oder ist gerade beendet worden. Bitte kurz warten."
 msgstr "A source request is still running or has just finished. Please wait briefly."
@@ -11399,3 +11387,43 @@ msgstr "The reference date must use YYYY-MM-DD."
 
 msgid "Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse. RIS-Seite: %(seite)s."
 msgstr "Metadata imported: %(gelesen)s documents read, %(neu)s new snapshots. RIS page: %(seite)s."
+
+# Landesrecht in der Quellenverwaltung (0.80)
+
+msgid "Ein Abruf übernimmt höchstens zehn Dokumente des gewählten Bundes- oder Landesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern."
+msgstr "One request imports at most ten documents from the selected federal or state law collection for one law identifier and reference date. Only metadata is imported initially. You can then request an individual document text on its page."
+
+msgid "Rechtsbestand"
+msgstr "Law collection"
+
+msgid "Wählen Sie ausdrücklich Bundesrecht oder das Recht eines Bundeslandes."
+msgstr "Choose federal law or the law of a federal state."
+
+msgid "Bundesland"
+msgstr "Federal state"
+
+msgid "Bei Landesrecht ist ein Bundesland erforderlich; bei Bundesrecht bleibt dieses Feld leer."
+msgstr "For state law, a federal state is required; for federal law, leave this field empty."
+
+msgid "Bitte wählen Sie das Bundesland für den Landesrechtsabruf."
+msgstr "Please select the federal state for the state law request."
+
+msgid "Bei Bundesrecht leer lassen"
+msgstr "Leave empty for federal law"
+
+msgid "Für Bundesrecht bitte kein Bundesland angeben."
+msgstr "Please leave the federal state empty for federal law."
+
+# Variable Profilgrenze (0.80)
+
+msgid "Neue Konfigurationen sind gesperrt."
+msgstr "New configurations are disabled."
+
+msgid "%(anzahl)s von %(hoechstzahl)s — eine löschen oder überschreiben"
+msgstr "%(anzahl)s of %(hoechstzahl)s — delete or overwrite one"
+
+msgid "Höchstens %(hoechstzahl)s Konfigurationen — zuerst eine löschen oder überschreiben."
+msgstr "At most %(hoechstzahl)s configurations — delete or overwrite one first."
+
+msgid "Höchstens %(hoechstzahl)s Konfigurationen — bitte zuerst eine löschen oder überschreiben."
+msgstr "At most %(hoechstzahl)s configurations — please delete or overwrite one first."

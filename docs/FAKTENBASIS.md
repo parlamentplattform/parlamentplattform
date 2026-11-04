@@ -21,7 +21,12 @@ Der Befehl macht genau eine Anfrage an die feste amtliche Bundesrecht-API und li
     python manage.py ris_import --gesetzesnummer <achtstellige-amtliche-Kennung> --stand YYYY-MM-DD --seite 2
     python manage.py landesrecht_import --bundesland Oberoesterreich --gesetzesnummer <achtstellige-amtliche-Kennung> --stand YYYY-MM-DD --seite 2
 
-Die Verwaltungsoberfläche für Bundesrecht bietet dieselbe Seitenauswahl. Eine
+Die Verwaltungsoberfläche bietet dieselbe Seitenauswahl. Seit0.80.0 ist dort neben
+Bundesrecht auch Landesrecht ausdrücklich wählbar; dann ist eines der neun
+unterstützten Bundesländer anzugeben. Bei Bundesrecht bleibt das Land leer.
+Widersprüchliche oder ungültige Auswahl löst keinen Abruf aus. Beide Felder
+bleiben ohne JavaScript bedienbar; ältere POSTs ohne neue Auswahl bleiben Bund.
+Die Herkunft erscheint im Audit und im bestehenden Importnachweis. Eine
 positive Seitennummer bezeichnet genau einen Einzelabruf. Es gibt kein automatisches
 Weiterblättern. Byte-/Zeitgrenzen, zehn Dokumente je Seite, gemeinsamer Abrufschutz,
 Kontingent, Verwaltungsrechte und CSRF bleiben bestehen. GET zeigt nur das Formular

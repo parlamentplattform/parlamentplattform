@@ -13,6 +13,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Der Bildnachweis für qualitative Folgenberichte prüft jetzt tatsächlich sichtbare Folgenabschnitte und Beanstandungen. Eine neue Gegenprobe deckte einen bisherigen grünen Handyfall auf, dessen Bild nach dem Formular-Redirect nur den Textreiter zeigte. Der vorhandene Einschätzungsreiter wird für den Bildnachweis gezielt geöffnet; zwölf neue Bilder halten Hauptbericht vor/nach Beanstandung und Nachrechnung in acht vorhandenen Browserfällen fest. Neutrale Scrollposition verhindert versetzte klebende Leisten im Ganzseitenbild. Produktcode, Software0.78.0, Schema1.29 und Regeln bleiben unverändert.
 
+- Erneuter vollständiger Python3.12-Nachweis mit den verstärkten Browserprüfungen auf Sourced896bfe:3540bestanden, sechs unverändert übersprungen,898.15s, Kern98%. Acht gezielte Browserfälle und zwölf aktuelle Prüfbilder grün. PostgreSQL3321/558.78s bleibt ausdrücklich der frühere Nachweis auf8a933c3; nachgewiesen unveränderter Produktcode und unveränderte PG-Sammlung, danach nur ausgeschlossene Browsertests/Bilder/Prüfdoku. Kein neuer PG-Lauf oder neuer Live-Stand behauptet.
+
 ## [0.77.2] — 2026-11-04 · Auch ältere Rechtsbezugarchive vor Kontextbeifang schützen
 
 - Der getrennt nachgeprüfte ältere Rechtsbezugexport konnte unbekannte Kontextfelder von Läufen und wartenden Aufträgen öffentlich ausgeben. Drei synthetische Ausgabegegenproben belegen die Grenze vor dem Fix; ein korrekt wirkender Schreibschutz wurde dabei nicht umgangen. Kein tatsächlicher Produktionsdatenvorfall oder extern beschreibbares Archivfeld behauptet.

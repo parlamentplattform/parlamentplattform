@@ -930,23 +930,27 @@ def filter_vorschau(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_favoriten(request):
     """FB-B1: Schalter „★ Favoriten zuerst“ umschalten — in der aktiven Konfiguration,
     sonst in der Voreinstellung des Mitglieds."""
-    profil = request.user.filterprofile.filter(aktiv=True).first()
+    mitglied = get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
+    profil = mitglied.filterprofile.filter(aktiv=True).first()
     if profil is not None:
         profil.favoriten_zuerst = not profil.favoriten_zuerst
         profil.save(update_fields=["favoriten_zuerst"])
     else:
-        request.user.favoriten_zuerst = not request.user.favoriten_zuerst
-        request.user.save(update_fields=["favoriten_zuerst"])
+        mitglied.favoriten_zuerst = not mitglied.favoriten_zuerst
+        mitglied.save(update_fields=["favoriten_zuerst"])
     return _zurueck_zum_parlament(request)
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_umbenennen(request, pk):
     """FB-B3: Konfiguration umbenennen (≤ 24 Zeichen, je Mitglied eindeutig)."""
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     name = (request.POST.get("name") or "").strip()[:24]
     if not name:
@@ -962,7 +966,9 @@ def filter_umbenennen(request, pk):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_waehlen(request, pk):
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     request.user.filterprofile.update(aktiv=False)
     profil.aktiv = True
@@ -972,15 +978,19 @@ def filter_waehlen(request, pk):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_neutral(request):
     """Zurück zur strengen Voreinstellung: Phase und Frist, chronologisch."""
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     request.user.filterprofile.update(aktiv=False)
     return _zurueck_zum_parlament(request)
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_loeschen(request, pk):
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     profil.delete()
     return _zurueck_zum_parlament(request, "profil_geloescht", "info", _("Profil „%s“ gelöscht.") % profil.name)

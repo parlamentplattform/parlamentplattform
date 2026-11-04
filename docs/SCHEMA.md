@@ -441,7 +441,7 @@ abgerufene Antwort mit `Technisch.Applikation: LrKons` und `Metadaten.Landesrech
 `Landesrecht.Bundesland` nennt das tatsächlich angeforderte und in jedem Dokument geprüfte Bundesland.
 `LrKons.Gesetzesnummer` und die vollständige Landes-Dokumentkennung müssen zur Anfrage bzw. amtlichen
 Dokumentadresse passen. `Hits` bleibt die unveränderte amtliche Trefferangabe; gelesen wird allein die
-erste Seite mit höchstens zehn Dokumenten. Der Originalexport wird nicht in Bundesrecht umgeschrieben.
+ausdrücklich gewählte Seite mit höchstens zehn Dokumenten (ohne `--seite` weiterhin Seite1). Der Originalexport wird nicht in Bundesrecht umgeschrieben.
 
 Die öffentliche Nachlese trennt Bund und Bundesland. Die zusätzlichen Herkunftsfelder der lokalen
 Schnappschüsse verändern keine Originalantwort oder frühere Prüfsumme. Alte Modelleingaben und der
@@ -508,3 +508,6 @@ Kein Beamten-/Vertrags-Split, Personalbedarf, Kopfzahl oder verfügbare Kapazit�
 Originalquelle, Tabellen-/Methodikseite und Parserfassung bleiben unabhängig nachlesbar.
 Keine Änderung vorhandener Exporte oder eingefrorener Antrags-/Modellkontexte, keine
 neuen Parameter oder Modellaufrufe. Details: `docs/PERSONALRESSORTS.md`.
+
+
+Seit0.79.0 hält RisImport zusätzlich die ausdrücklich gewählte RIS-Seite fest, auch bei einem fehlgeschlagenen Abruf. Historische Importe erhalten Seite1, die bis0.78 allein zulässig war. Die amtliche JSON-Antwort enthält ihre Seitennummer bereits selbst und bleibt unverändert. Keine Änderung des Parameter-/Kennzahlen-Exportvertrags oder der Bestandsnachweisfassung; Schema1.29 bleibt bestehen.

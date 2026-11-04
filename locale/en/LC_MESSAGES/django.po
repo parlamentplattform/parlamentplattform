@@ -9038,9 +9038,6 @@ msgstr "Shared limit: %(stundenkontingent)s requests per hour for metadata and d
 msgid "Metadaten einmal abrufen"
 msgstr "Retrieve metadata once"
 
-msgid "Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse."
-msgstr "Metadata imported: %(gelesen)s documents read, %(neu)s new snapshots."
-
 msgid "RIS-Abrufschutz"
 msgstr "RIS request protection"
 
@@ -9656,9 +9653,6 @@ msgstr "Please provide a reference date in YYYY-MM-DD format."
 
 msgid "Landesrechts-Import fehlgeschlagen (%(code)s); keine neuen Metadaten übernommen."
 msgstr "State-law import failed (%(code)s); no new metadata imported."
-
-msgid "Landesrechts-Import %(import)s: %(gelesen)s von %(treffer)s Dokumenten gelesen, %(neu)s neu."
-msgstr "State-law import %(import)s: %(gelesen)s of %(treffer)s documents read, %(neu)s new."
 
 msgid "Landesrecht"
 msgstr "State law"
@@ -11373,3 +11367,35 @@ msgstr "First version: reproducibly recognise an unchanged local inventory witho
 
 msgid "Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."
 msgstr "Collection identifier and ascending record number; SHA-256 of the evidence content as UTF-8 JSON with sorted keys and no extra whitespace. Generation time and the operational limit are not part of the hashed content. The evidence specifies the four collections and the meaning of their stored hashes. No partial evidence when the limit is exceeded."
+
+# Explicit RIS follow-up pages (0.79).
+
+msgid "Eine ausdrücklich gewählte Seite amtlicher Bundesrechts-Metadaten übernehmen; höchstens zehn Dokumente."
+msgstr "Import an explicitly selected page of official federal-law metadata; at most ten documents."
+
+msgid "Genau eine Seite mit höchstens zehn Dokumenten abrufen. Ohne Angabe gilt Seite 1; weitere Seiten werden nicht automatisch geladen."
+msgstr "Fetch exactly one page containing at most ten documents. Page 1 is used if omitted; further pages are not fetched automatically."
+
+msgid "Gesetzesnummer muss aus acht Ziffern bestehen."
+msgstr "The act number must consist of eight digits."
+
+msgid "Import %(import)s, RIS-Seite %(seite)s: %(gelesen)s von %(treffer)s Dokumenten gelesen, %(neu)s neu. Nur Metadaten; keine vollständige Rechtsvorschrift und keine geprüfte Antragszuordnung."
+msgstr "Import %(import)s, RIS page %(seite)s: %(gelesen)s of %(treffer)s documents read, %(neu)s new. Metadata only; neither a complete legal provision nor a verified link to a motion."
+
+msgid "Landesrechts-Import %(import)s, RIS-Seite %(seite)s: %(gelesen)s von %(treffer)s Dokumenten gelesen, %(neu)s neu."
+msgstr "State-law import %(import)s, RIS page %(seite)s: %(gelesen)s of %(treffer)s documents read, %(neu)s new."
+
+msgid "RIS-Import fehlgeschlagen (%(code)s); keine Norm übernommen."
+msgstr "RIS import failed (%(code)s); no provision imported."
+
+msgid "RIS-Seite"
+msgstr "RIS page"
+
+msgid "RIS-Seite; ohne Angabe Seite 1."
+msgstr "RIS page; page 1 if omitted."
+
+msgid "Stichtag muss YYYY-MM-DD entsprechen."
+msgstr "The reference date must use YYYY-MM-DD."
+
+msgid "Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse. RIS-Seite: %(seite)s."
+msgstr "Metadata imported: %(gelesen)s documents read, %(neu)s new snapshots. RIS page: %(seite)s."

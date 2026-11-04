@@ -50,6 +50,10 @@ class QuellenFormular(forms.Form):
         label=gettext_lazy("Stichtag"), input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
+    seite = forms.IntegerField(
+        label=gettext_lazy("RIS-Seite"), min_value=1, max_value=2147483647, initial=1, required=False,
+        help_text=gettext_lazy("Genau eine Seite mit höchstens zehn Dokumenten abrufen. Ohne Angabe gilt Seite 1; weitere Seiten werden nicht automatisch geladen."),
+    )
 
 
 def _audit(request, aktion, **daten):
@@ -71,19 +75,20 @@ def _fehlermeldung(request, fehler):
 @require_http_methods(["GET", "POST"])
 def metadaten(request):
     formular = QuellenFormular(request.POST if request.method == "POST" else None,
-                              initial={"stand": timezone.localdate()})
+                              initial={"stand": timezone.localdate(), "seite": 1})
     if request.method == "POST" and formular.is_valid():
         nummer, stand = formular.cleaned_data["gesetzesnummer"], formular.cleaned_data["stand"]
-        daten = {"gesetzesnummer": nummer, "stand": stand.isoformat()}
+        seite = formular.cleaned_data["seite"] or 1
+        daten = {"gesetzesnummer": nummer, "stand": stand.isoformat(), "seite": seite}
         try:
-            lauf = importieren.importieren(nummer, stand)
+            lauf = importieren.importieren(nummer, stand, seite=seite)
         except RisFehler as fehler:
             _audit(request, "faktenbasis_metadaten", **daten, erfolgreich=False, fehlercode=fehler.code)
             _fehlermeldung(request, fehler)
         else:
             _audit(request, "faktenbasis_metadaten", **daten, erfolgreich=True, importlauf=lauf.pk)
-            messages.success(request, _("Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse.")
-                             % {"gelesen": lauf.gelesen, "neu": lauf.neu})
+            messages.success(request, _("Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse. RIS-Seite: %(seite)s.")
+                             % {"gelesen": lauf.gelesen, "neu": lauf.neu, "seite": lauf.seite})
         return redirect("faktenbasis:index")
     return render(request, "faktenbasis/verwaltung.html", {
         "formular": formular, "stundenkontingent": max(0, zahl("faktenbasis-manuelle-abrufe-je-stunde", 10)),

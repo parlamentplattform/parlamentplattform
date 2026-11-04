@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.79.0] — 2026-11-04 · Amtliche Folgeseiten ausdrücklich auswählen
+
+- Der RIS-Einzelimport ist nicht mehr auf die ersten zehn Dokumente beschränkt. Bund und Länder unterstützen eine ausdrücklich gewählte Folgeseite per `--seite`; die bestehende Verwaltungsoberfläche für Bundesrecht bietet dieselbe Auswahl. Jeder Aufruf bleibt genau eine Anfrage mit höchstens zehn Dokumenten und dem gemeinsamen Abrufschutz.
+- Antwortseite, Seitengröße und verbleibende Treffer werden geprüft. Seiten hinter dem Trefferende sind Fehler, keine leere Rechtsgrundlage. Gewählte Seiten bleiben auch bei Fehlern in Importnachweis und Audit erhalten; öffentliche Quellenansichten nennen die Herkunftsseite.
+- Eine additive Migration ergänzt für historische Importe die bisher allein mögliche Seite1. Originalantworten, Quellenstände, Textfassungen und bereits festgehaltene Modelleingaben bleiben erhalten. Kein automatisches Weiterblättern, Produktionsimport, Modellaufruf oder neuer Dienst. Einzelne Seiten beweisen weder Rechtsvollständigkeit noch juristische Verifikation.
+- Schema1.29 und sämtliche festgeschriebenen Verfahrensregeln unverändert.
+
 ## [0.78.0] — 2026-11-04 · Heruntergeladene Bestandsnachweise offline nachrechnen
 
 - Ein eigenständiges Werkzeug prüft den lokalen JSON-Download gegen eine ausdrücklich angegebene, zuvor notierte Prüfsumme. Die unveränderte Bestandsregel1 rechnet Datensätze, Reihenfolge, Zähler und Hashbezüge nach. Doppelte JSON-Schlüssel, unbekannte Felder, Typverwechslungen, Übergröße und zu tiefe Strukturen werden kontrolliert abgewiesen; keine stille Normalisierung oder Teilprüfung.

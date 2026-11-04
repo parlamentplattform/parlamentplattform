@@ -48,6 +48,7 @@
   <p>{% translate "Inhalts-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.inhalt_hash }}</code></p>
   <p>{% translate "Antwort-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.importlauf.antwort_hash }}</code></p>
   <p><a href="{% url 'faktenbasis:importantwort' norm.importlauf_id %}">{% translate "Gespeicherte Metadatenantwort herunterladen" %}</a></p>
+  <p>{% translate "RIS-Seite" %}: {{ norm.importlauf.seite }}</p>
   <p>{% blocktranslate with gelesen=norm.importlauf.gelesen treffer=norm.importlauf.treffer %}Dieser Einzelimport hat {{ gelesen }} von {{ treffer }} gefundenen Dokumenten übernommen; eine vollständige Rechtsvorschrift ist damit nicht nachgewiesen.{% endblocktranslate %}</p>
   <p class="hilfe">{% translate "Die Prüfsummen beziehen sich auf JSON mit sortierten Schlüsseln, ohne zusätzliche Leerzeichen, als UTF-8 mit unmaskierten Unicode-Zeichen." %}</p>
   <pre class="fakten-rohdaten">{{ rohdaten }}</pre>

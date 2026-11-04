@@ -94,21 +94,40 @@ class ImportAntwort:
     antwort_hash: str
     rohdaten: dict
     api_url: str = ""
+    seite: int = 1
 
 
-def antwort_parsen(daten, gesetzesnummer: str) -> ImportAntwort:
-    """Nur Metadaten passender Kennungen; ein einziger falscher Treffer bricht ab."""
-    if not GESETZESNUMMER.fullmatch(gesetzesnummer):
-        raise RisFehler("gesetzesnummer")
+def seite_pruefen(seite):
+    """Betriebliche API-Integergrenze; keine automatische Seitenauswahl."""
+    if type(seite) is not int or not 1 <= seite <= 2147483647:
+        raise RisFehler("seite")
+
+
+def seitenkopf_pruefen(daten, seite):
+    seite_pruefen(seite)
     wurzel = _objekt(_objekt(daten).get("OgdSearchResult"))
     ergebnisse = _objekt(wurzel.get("OgdDocumentResults"))
     hits = _objekt(ergebnisse.get("Hits"))
     try:
-        treffer = int(hits["#text"])
-        if not 0 <= treffer <= 2147483647 or str(hits["@pageNumber"]) != "1" or str(hits["@pageSize"]) != "10":
+        roh = hits["#text"]
+        if type(roh) is not int and (not isinstance(roh, str) or re.fullmatch(r"[0-9]+", roh) is None):
+            raise ValueError
+        treffer = int(roh)
+        if (not 0 <= treffer <= 2147483647 or str(hits["@pageNumber"]) != str(seite)
+                or str(hits["@pageSize"]) != "10"):
             raise ValueError
     except (KeyError, TypeError, ValueError) as fehler:
         raise RisFehler("antwortformat") from fehler
+    if seite > 1 and (seite - 1) * 10 >= treffer:
+        raise RisFehler("seite_ausserhalb")
+    return ergebnisse, treffer
+
+
+def antwort_parsen(daten, gesetzesnummer: str, *, seite=1) -> ImportAntwort:
+    """Nur Metadaten passender Kennungen; ein einziger falscher Treffer bricht ab."""
+    if not GESETZESNUMMER.fullmatch(gesetzesnummer):
+        raise RisFehler("gesetzesnummer")
+    ergebnisse, treffer = seitenkopf_pruefen(daten, seite)
     referenzen = ergebnisse.get("OgdDocumentReference")
     if treffer == 0:
         if referenzen is None or referenzen == [] or (
@@ -118,7 +137,7 @@ def antwort_parsen(daten, gesetzesnummer: str) -> ImportAntwort:
         raise RisFehler("antwortformat")
     if isinstance(referenzen, dict):
         referenzen = [referenzen]
-    if not isinstance(referenzen, list) or not 0 < len(referenzen) <= min(treffer, 10):
+    if not isinstance(referenzen, list) or not 0 < len(referenzen) <= min(treffer - (seite - 1) * 10, 10):
         raise RisFehler("antwortformat")
     normen = []
     kennungen = set()
@@ -149,7 +168,7 @@ def antwort_parsen(daten, gesetzesnummer: str) -> ImportAntwort:
             abschnitt=_text(brkons.get("ArtikelParagraphAnlage"), 100, leer=True),
             quelle=quelle, rohdaten=roh, inhalt_hash=_hash(roh),
         ))
-    return ImportAntwort(tuple(normen), treffer, _hash(daten), daten)
+    return ImportAntwort(tuple(normen), treffer, _hash(daten), daten, seite=seite)
 
 
 class _KeineUmleitung(urllib.request.HTTPRedirectHandler):
@@ -178,14 +197,15 @@ def begrenzt_lesen(antwort, beginn):
         teile.append(teil)
 
 
-def abrufen(gesetzesnummer: str, stand: date) -> ImportAntwort:
+def abrufen(gesetzesnummer: str, stand: date, *, seite=1) -> ImportAntwort:
     if not GESETZESNUMMER.fullmatch(gesetzesnummer):
         raise RisFehler("gesetzesnummer")
     if type(stand) is not date:
         raise RisFehler("stichtag")
+    seite_pruefen(seite)
     parameter = {
         "Applikation": "BrKons", "Gesetzesnummer": gesetzesnummer,
-        "Fassung.FassungVom": stand.isoformat(), "DokumenteProSeite": "Ten", "Seitennummer": "1",
+        "Fassung.FassungVom": stand.isoformat(), "DokumenteProSeite": "Ten", "Seitennummer": str(seite),
     }
     url = API + "?" + urllib.parse.urlencode(parameter)
     anfrage = urllib.request.Request(url, headers={
@@ -200,11 +220,11 @@ def abrufen(gesetzesnummer: str, stand: date) -> ImportAntwort:
                 raise RisFehler("antwortformat")
             inhalt = begrenzt_lesen(antwort, beginn)
         daten = json.loads(inhalt.decode("utf-8-sig"))
-        parsed = antwort_parsen(daten, gesetzesnummer)
+        parsed = antwort_parsen(daten, gesetzesnummer, seite=seite)
     except RisFehler:
         raise
     except (OSError, urllib.error.URLError) as fehler:
         raise RisFehler("abruf") from fehler
     except (ValueError, RecursionError) as fehler:
         raise RisFehler("antwortformat") from fehler
-    return ImportAntwort(parsed.normen, parsed.treffer, parsed.antwort_hash, parsed.rohdaten, url)
+    return ImportAntwort(parsed.normen, parsed.treffer, parsed.antwort_hash, parsed.rohdaten, url, seite)

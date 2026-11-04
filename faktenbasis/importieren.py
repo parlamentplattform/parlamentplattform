@@ -7,24 +7,25 @@ from django.utils import timezone
 
 from faktenbasis.abrufschutz import einzelabruf
 from faktenbasis.models import Norm, RisImport
-from faktenbasis.ris import GESETZESNUMMER, RisFehler, abrufen
+from faktenbasis.ris import GESETZESNUMMER, RisFehler, abrufen, seite_pruefen
 from verfahren.models import AuditEintrag
 
 
-def importieren(gesetzesnummer, stand, *, bundesland=""):
+def importieren(gesetzesnummer, stand, *, bundesland="", seite=1):
     if not isinstance(gesetzesnummer, str) or not GESETZESNUMMER.fullmatch(gesetzesnummer):
         raise RisFehler("gesetzesnummer")
     if type(stand) is not date:
         raise RisFehler("stichtag")
+    seite_pruefen(seite)
     if bundesland != "":
         from faktenbasis.landesrecht import argumente_pruefen
 
         argumente_pruefen(gesetzesnummer, stand, bundesland)
     with einzelabruf():
-        return _uebernehmen(gesetzesnummer, stand, bundesland=bundesland)
+        return _uebernehmen(gesetzesnummer, stand, bundesland=bundesland, seite=seite)
 
 
-def _uebernehmen(gesetzesnummer, stand, *, bundesland=""):
+def _uebernehmen(gesetzesnummer, stand, *, bundesland="", seite=1):
     beginn = timezone.now()
     herkunft = {"ebene": "Bund", "bundesland": ""}
     if bundesland:
@@ -32,19 +33,23 @@ def _uebernehmen(gesetzesnummer, stand, *, bundesland=""):
 
         herkunft = {"ebene": "Land", "bundesland": BUNDESLAENDER[bundesland]}
     try:
+        # Den bisherigen Einzelaufruf ohne neue Option unverändert lassen.
+        seitenwahl = {} if seite == 1 else {"seite": seite}
         if bundesland:
             from faktenbasis.landesrecht import abrufen as land_abrufen
 
-            antwort = land_abrufen(gesetzesnummer, stand, bundesland)
+            antwort = land_abrufen(gesetzesnummer, stand, bundesland, **seitenwahl)
         else:
-            antwort = abrufen(gesetzesnummer, stand)
+            antwort = abrufen(gesetzesnummer, stand, **seitenwahl)
+        if type(antwort.seite) is not int or antwort.seite != seite:
+            raise RisFehler("antwortformat")
     except RisFehler as fehler:
         with transaction.atomic():
             lauf = RisImport.objects.create(
                 gesetzesnummer=gesetzesnummer, stand=stand, begonnen_am=beginn,
-                beendet_am=timezone.now(), erfolgreich=False, fehlercode=fehler.code, **herkunft,
+                beendet_am=timezone.now(), erfolgreich=False, fehlercode=fehler.code, seite=seite, **herkunft,
             )
-            AuditEintrag.anhaengen({"typ": "ris_import", "import": lauf.pk, "erfolgreich": False})
+            AuditEintrag.anhaengen({"typ": "ris_import", "import": lauf.pk, "erfolgreich": False, "seite": seite})
         raise
     with transaction.atomic():
         neue = []
@@ -58,7 +63,7 @@ def _uebernehmen(gesetzesnummer, stand, *, bundesland=""):
             gesetzesnummer=gesetzesnummer, stand=stand, begonnen_am=beginn,
             beendet_am=timezone.now(), erfolgreich=True, treffer=antwort.treffer,
             gelesen=len(antwort.normen), neu=len(neue), api_url=antwort.api_url,
-            antwort_hash=antwort.antwort_hash, antwort=antwort.rohdaten, **herkunft,
+            antwort_hash=antwort.antwort_hash, antwort=antwort.rohdaten, seite=seite, **herkunft,
         )
         for norm in neue:
             Norm.objects.create(
@@ -68,6 +73,6 @@ def _uebernehmen(gesetzesnummer, stand, *, bundesland=""):
                 ebene=norm.ebene, bundesland=norm.bundesland,
             )
         AuditEintrag.anhaengen({
-            "typ": "ris_import", "import": lauf.pk, "erfolgreich": True, "neu": len(neue),
+            "typ": "ris_import", "import": lauf.pk, "erfolgreich": True, "neu": len(neue), "seite": seite,
         })
     return lauf

@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.81.0] — 2026-11-05 · Gemeindekonto ohne Parteibeitritt
+
+- Unter `/gemeinde/` beginnt ein eigenständiger Einwohnerzugang: Anmeldung ab dem vollendeten16.Lebensjahr mit tatsächlich gemeldeter Hauptgemeinde, unabhängig von der Staatsangehörigkeit. E-Mail-Bestätigung und Wiederanmeldung verwenden das vorhandene passwortlose Konto, aber einen eigenen Bestätigungszweck. Bestehende Parteikonten ergänzen freiwillig denselben Gemeindezugang, ohne eine zweite Identität anzulegen.
+- Ein Gemeindekonto erzeugt keine Parteimitgliedschaft, Mitgliedsnummer, Beitragsreferenz, Beitragsaufforderung, Mitgliedsausweis, Parteimail oder Parteistimme. Die Datenbank verhindert entsprechende Parteidaten. Parteizähler, Verwaltungsauswahl, Bankabgleich, Post und das vorbereitete örtliche Parteikreis-Fundament schließen reine Gemeindekonten ausdrücklich aus. Auf Parteiseiten erhalten sie ausschließlich den bisherigen öffentlichen Gastzugang; direkte Schreibanfragen bleiben gesperrt.
+- Eigene Gemeindeangaben und Datenexport, Wohnsitzwechsel einschließlich Wegfall einer örtlichen Zuordnung, Deutsch/Englisch und Bedienung ohneJavaScript. Das Geburtsdatum wird nur im Formular geprüft und nicht gespeichert; erfasst wird der Zeitpunkt der Alters-Selbstauskunft. E-Mail-Bestätigung wird nicht als Personenprüfung oder Melderegisterbestätigung ausgegeben. Private Gemeindeangaben gelangen nicht ins öffentliche Verfahrensaudit.
+- Additive Konto-Erweiterung ohne Änderung bestehender IDs, Parteidaten oder Verfahrenshistorien. Der persönliche Parteidatenexport umfasst auch den eigenen Gemeindezugang und gespeicherte örtliche Verfahrenszugehörigkeiten. Gleichzeitig vorbereiteter versionierter Gebietskern und unveränderlicher privater Teilnehmerkreisspeicher; noch keine Aktivierung neuer örtlicher Regeln bei Einbringung oder Stimmabgabe.
+- Noch keine Einwohnerabstimmungen, Sprechstunden oder zusätzlichen Amtsbefugnisse. Identitäts-/Einmaligkeitsprüfung und Abstimmungsstichtage sowie das Verhältnis zwischen Gemeinde- und Parteibeschlüssen bleiben eigenständige offene Bausteine. Auch der Wechsel von einem bisherigen Parteikonto zu einem reinen Gemeindekonto ist noch nicht umgesetzt. Schema1.29 und sämtliche festgeschriebenen Regeln laufender Verfahren bleiben unverändert. ArchitekturentscheidungADR-016; neue Regel zur Anmelde-Altersgrenze im öffentlichen Regelverzeichnis.
+
 ## [0.80.0] — 2026-11-04 · Landesquellen und persönliche Filtergrenzen konsistent bedienen
 
 - Der vorhandene Landesrechts-Einzelimport ist auch über die Quellenverwaltung erreichbar. Rechtsbestand, Bundesland, Gesetzesnummer, Stichtag und RIS-Seite werden ausdrücklich gewählt. Alte Bundesrechts-POSTs ohne neue Auswahl bleiben gültig.

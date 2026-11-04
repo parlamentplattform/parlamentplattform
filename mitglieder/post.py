@@ -80,7 +80,8 @@ def _anrede(mitglied: Mitglied) -> str:
 
 def _zustellbar(mitglied: Mitglied, stempel: str) -> bool:
     return (
-        mitglied.is_active
+        mitglied.parteikonto
+        and mitglied.is_active
         and bool(mitglied.email)
         and mitglied.status not in (Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN)
         and getattr(mitglied, stempel) is None
@@ -89,6 +90,8 @@ def _zustellbar(mitglied: Mitglied, stempel: str) -> bool:
 
 def _senden(mitglied: Mitglied, art: str, betreff: str, text: str, anhang: tuple[str, bytes] | None = None) -> bool:
     """Ein Brief, wahlweise mit einem PDF-Anhang (Dateiname, Inhalt) — der Mitgliedsausweis."""
+    if not mitglied.parteikonto:
+        return False
     try:
         nachricht = EmailMessage(betreff, text, settings.DEFAULT_FROM_EMAIL, [mitglied.email])
         if anhang is not None:
@@ -305,7 +308,7 @@ def region_empfaenger(antrag: Antrag):
     ganz Österreich geht an alle, solange `post-neuer-antrag-bund` auf 1 steht. Ungeprüfte Konten
     sind dabei: Betroffen ist, wer dort wohnt, nicht, wer schon stimmen darf."""
     basis = (
-        Mitglied.objects.filter(
+        Mitglied.parteikonten.filter(
             is_active=True,
             testkonto=False,
             post_einwilligung=True,

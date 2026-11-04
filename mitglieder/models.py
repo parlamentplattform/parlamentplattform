@@ -8,7 +8,8 @@ Keycloak macht nur den Login.
 from __future__ import annotations
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -68,9 +69,40 @@ class Mitgliedsnummernkreis(models.Model):
         return f"Mitgliedsnummern ab {self.naechste}"
 
 
+class KontenQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        if "parteikonto" in kwargs:
+            raise ValueError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
+        return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, **kwargs):
+        if "parteikonto" in fields:
+            raise ValueError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
+        return super().bulk_update(objs, fields, **kwargs)
+
+    def bulk_create(self, objs, **kwargs):
+        if kwargs.get("update_conflicts") and "parteikonto" in (kwargs.get("update_fields") or ()):
+            raise ValueError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
+        return super().bulk_create(objs, **kwargs)
+
+
+class KontenManager(UserManager.from_queryset(KontenQuerySet)):
+    pass
+
+
+class ParteikontenManager(KontenManager):
+    def get_queryset(self):
+        return super().get_queryset().filter(parteikonto=True)
+
+
 class Mitglied(AbstractUser):
     """Ein Mensch, ein Konto (§ 4 Abs 4 lit e)."""
 
+    objects = KontenManager()
+    parteikonten = ParteikontenManager()
+    # Kompatibler Bestand und bestehender ausdrücklicher Parteibeitritt.
+    # Der eigenständige Gemeindeweg setzt ausdrücklich False (ADR-016).
+    parteikonto = models.BooleanField(default=True, editable=False)
     mitgliedsnummer = models.PositiveBigIntegerField(null=True, blank=True, unique=True, editable=False)
     testkonto = models.BooleanField(
         default=False,
@@ -213,6 +245,26 @@ class Mitglied(AbstractUser):
     class Meta:
         verbose_name = "Mitglied"
         verbose_name_plural = "Mitglieder"
+        constraints = [
+            models.CheckConstraint(
+                name="gemeindekonto_ohne_parteidaten",
+                condition=models.Q(parteikonto=True) | models.Q(
+                    beitritt__isnull=True, mitgliedsnummer__isnull=True,
+                    beitragsreferenz_stamm="", ausweis_code="",
+                    identitaetsstufe="ungeprueft", geprueft_seit__isnull=True,
+                    ist_admin=False, is_staff=False, is_superuser=False,
+                    post_einwilligung=False,
+                ),
+            ),
+        ]
+
+    def save(self, *args, **kwargs):
+        fields = kwargs.get("update_fields")
+        if self.pk and (fields is None or "parteikonto" in fields):
+            typ = type(self).objects.filter(pk=self.pk).values_list("parteikonto", flat=True).first()
+            if typ is not None and typ != self.parteikonto:
+                raise ValidationError("Der Kontotyp wird nicht nachträglich umgeschrieben.")
+        return super().save(*args, **kwargs)
 
     def ist_stimmberechtigt(self, gegenstand: Gegenstand | str, stichtag, uebergang: bool = False) -> bool:
         """Stimmberechtigt AM STICHTAG (§ 4 Abs 4 lit a) — nicht zum Aufrufzeitpunkt.
@@ -222,7 +274,7 @@ class Mitglied(AbstractUser):
         wenn es auch im Nenner (`stimmberechtigte_zaehlen`) gezählt wurde; wer erst nach
         Abstimmungsbeginn freigeschaltet oder wieder aktiv wird, stimmt bei dieser
         Abstimmung nicht mit."""
-        if self.beitritt is None or self.testkonto:
+        if not self.parteikonto or self.beitritt is None or self.testkonto:
             return False  # Testkonten stehen in keinem Nenner und in keinem Zähler
         if self.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT:
             return False
@@ -292,7 +344,7 @@ class Mitglied(AbstractUser):
             return self.pseudonym_oeffentlich
         if self.klarname_oeffentlich and self.get_full_name():
             return self.get_full_name()
-        return f"{PLATZHALTER_MITGLIED} {self.pk}"
+        return f"{PLATZHALTER_MITGLIED} {self.pk}" if self.parteikonto else _("Gemeindekonto")
 
     @property
     def ist_fixer_admin(self) -> bool:
@@ -303,7 +355,7 @@ class Mitglied(AbstractUser):
 
     @property
     def hat_adminrechte(self) -> bool:
-        return self.is_active and (self.ist_admin or self.ist_fixer_admin)
+        return self.parteikonto and self.is_active and (self.ist_admin or self.ist_fixer_admin)
 
     @property
     def adresswechsel_offen(self) -> bool:
@@ -315,7 +367,7 @@ class Mitglied(AbstractUser):
     @property
     def darf_mitwirken(self) -> bool:
         """Einbringen, unterstützen, beraten — nur mit aktivem Status (F-51)."""
-        return self.is_active and self.status == Mitgliedsstatus.AKTIV
+        return self.parteikonto and self.is_active and self.status == Mitgliedsstatus.AKTIV
 
     @property
     def hat_gremienrolle(self) -> bool:
@@ -323,7 +375,7 @@ class Mitglied(AbstractUser):
         Gremien-Werkstatt hängt von den Mitgliedern ab, nicht umgekehrt."""
         from gremien.models import Gremium, Rolle
 
-        return Rolle.hat(self, *Gremium.values)
+        return self.parteikonto and Rolle.hat(self, *Gremium.values)
 
     @property
     def aktive_mandate(self):
@@ -337,7 +389,19 @@ class Mitglied(AbstractUser):
     def ist_mandatar(self) -> bool:
         """Die Rolle „Mandatar“ ist abgeleitet, kein Datensatz: Sie entsteht mit dem Mandat
         und endet, sobald `Mandat.beendet` gesetzt ist. Kein Gremium, keine Rollen-Zeile."""
-        return self.is_authenticated and self.aktive_mandate.exists()
+        return self.parteikonto and self.is_authenticated and self.aktive_mandate.exists()
+
+
+class Gemeindezugang(models.Model):
+    """Private freiwillige Anmeldung, keine Parteiaufnahme oder Stimmfreischaltung."""
+
+    konto = models.OneToOneField(Mitglied, on_delete=models.CASCADE, related_name="gemeindezugang")
+    angemeldet_am = models.DateTimeField()
+    alter_erklaert_am = models.DateTimeField()
+    bestaetigt_am = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Gemeindezugang {self.konto_id}"
 
 
 def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> int:
@@ -346,7 +410,7 @@ def stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang: bool = False) -> i
     veröffentlicht — danach nie mehr verändert."""
     anzahl = 0
     for m in (
-        Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
+        Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
         .exclude(beitritt=None)
         .exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
     ):
@@ -685,6 +749,8 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
     from verfahren.models import AuditEintrag
 
+    if not mitglied.parteikonto:
+        return False
     with transaction.atomic():
         _eintrag, neu = Beitragseingang.objects.get_or_create(
             umsatz_id=eingang.umsatz_id,

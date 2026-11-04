@@ -1,0 +1,15 @@
+{% load i18n %}
+<datalist id="gemeinden">{% for g in gemeinden %}<option value="{{ g }}">{% endfor %}</datalist>
+{{ form.non_field_errors }}
+{% for feld in form %}
+  {% if feld.is_hidden %}{{ feld }}{% else %}
+  <p>
+    {% if feld.field.widget.input_type == "checkbox" %}<span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}">{{ feld.label }}</label></span>
+    {% else %}<label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
+    {% if feld.name == "rechenfrage" %}{{ form.captcha_svg|safe }}{% endif %}
+    {{ feld }}{% endif %}
+    {% if feld.help_text %}<br><span class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</span>{% endif %}
+    {{ feld.errors }}
+  </p>
+  {% endif %}
+{% endfor %}

@@ -35,6 +35,7 @@ class EinmalToken(models.Model):
     class Zweck(models.TextChoices):
         BESTAETIGUNG = "bestaetigung", "E-Mail-Bestätigung"
         LOGIN = "login", "Login"
+        GEMEINDE = "gemeinde", "Gemeindezugang"
 
     mitglied = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tokens")
     zweck = models.CharField(max_length=16, choices=Zweck.choices)
@@ -54,7 +55,7 @@ class EinmalToken(models.Model):
     def ausstellen(cls, mitglied, zweck: str) -> str:
         """Erzeugt ein Token, speichert nur den Hash, gibt den Klartext zurück."""
         klar, gehasht = _neues_token()
-        dauer = BESTAETIGUNG_GUELTIG if zweck == cls.Zweck.BESTAETIGUNG else LOGIN_GUELTIG
+        dauer = LOGIN_GUELTIG if zweck == cls.Zweck.LOGIN else BESTAETIGUNG_GUELTIG
         cls.objects.create(
             mitglied=mitglied,
             zweck=zweck,
@@ -74,8 +75,11 @@ class EinmalToken(models.Model):
             return None
         if t.verbraucht_am is not None or timezone.now() > t.gueltig_bis:
             return None
-        t.verbraucht_am = timezone.now()
-        t.save(update_fields=["verbraucht_am"])
+        # Ein bedingtes UPDATE lässt auch bei zwei parallelen Klicks nur einen zu.
+        if not cls.objects.filter(pk=t.pk, verbraucht_am=None, gueltig_bis__gte=timezone.now()).update(
+            verbraucht_am=timezone.now()
+        ):
+            return None
         return t.mitglied
 
 
@@ -91,6 +95,8 @@ def beitragsreferenz(mitglied) -> str:
     Der Stamm wird beim ersten Gebrauch am Konto festgeschrieben (`beitragsreferenz_stamm`) und
     ändert sich danach nie mehr — bis 0.49 hing er am Anmeldenamen, und ein Adresswechsel
     (F-51) machte gedruckte QR-Codes und Daueraufträge still unzuordenbar (Befund A12)."""
+    if not mitglied.parteikonto:
+        raise ValueError("Ein Gemeindekonto hat keine Mitgliedsbeitragsreferenz.")
     if not mitglied.beitragsreferenz_stamm and mitglied.pk:
         from django.contrib.auth import get_user_model  # `request.user` ist ein Lazy-Objekt, kein Modelltyp
 

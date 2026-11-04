@@ -128,7 +128,7 @@ def kopplung_abschliessen() -> Bankkopplung | None:
 def _offene_referenzen() -> dict[str, int]:
     """Beitragsreferenz → Mitglieds-ID für alle Konten, denen ein Eingang guttäte."""
     referenzen = {}
-    for m in Mitglied.objects.filter(is_active=True).only("pk", "username", "beitragsreferenz_stamm"):
+    for m in Mitglied.parteikonten.filter(is_active=True).only("pk", "username", "beitragsreferenz_stamm", "parteikonto"):
         referenzen[beitragsreferenz(m)] = m.pk
     return referenzen
 
@@ -166,7 +166,7 @@ def verbuchen_aus_umsaetzen(umsaetze: list[dict]) -> tuple[int, int]:
     ordnet Umsätze den Beitragsreferenzen zu und verbucht jeden Treffer
     (idempotent). Rückgabe (neu verbucht, Referenz-Treffer gesamt)."""
     treffer = eingaenge_zuordnen(umsaetze, _offene_referenzen())
-    mitglieder = Mitglied.objects.in_bulk([mid for mid, _e in treffer])
+    mitglieder = Mitglied.parteikonten.in_bulk([mid for mid, _e in treffer])
     neu = 0
     for mid, eingang in treffer:
         mitglied = mitglieder.get(mid)

@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 21
+VERSION = 22
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,14 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="gemeindezugang.py", titel=_("Altersgrenze der Gemeindeanmeldung"),
+        zweck=_("Prüft bei der freiwilligen Gemeindeanmeldung das vollendete 16. Lebensjahr. Diese Anmeldung begründet keine Parteimitgliedschaft oder Abstimmungszulassung."),
+        wirkung=Wirkung.ENTSCHEIDET, satzung="Gründerentscheidung vom 4.11.2026", fassung=1, seit="2026-11-04",
+        grund=_("Eigenständiger Einwohnerzugang ohne Parteibeitritt und unabhängig von der Staatsangehörigkeit."),
+        nachrechenbar=_("Anmeldejahr minus Geburtsjahr; liegt der Geburtstag im Anmeldejahr noch in der Zukunft, ein Jahr abziehen. Mindestens 16 vollendete Jahre. Das Geburtsdatum wird nicht gespeichert."),
+        luecke=_("Alter und Hauptwohnsitz sind Selbstauskünfte. E-Mail-Bestätigung ist kein Identitäts- oder Meldenachweis. Stichtage und Personenprüfung für Gemeindeabstimmungen sind gesondert festzulegen."),
+    ),
     Regel(
         modul="teilnehmerkreis.py",
         titel=_("Örtlicher Teilnehmerkreis über den Hauptwohnsitz"),

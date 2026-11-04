@@ -95,7 +95,8 @@ def ausweis_moeglich(mitglied: Mitglied) -> bool:
     """Einen gültigen Ausweis hat, wer Mitglied mit geprüfter Stufe ist: aktives Konto, Stufe nicht
     „ungeprüft“ (§ 4 Abs 1 und 3), nicht ausgetreten oder ausgeschlossen."""
     return (
-        mitglied.is_active
+        mitglied.parteikonto
+        and mitglied.is_active
         and not mitglied.testkonto
         and mitglied.status not in (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)
     )

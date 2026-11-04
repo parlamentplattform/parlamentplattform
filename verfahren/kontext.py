@@ -9,7 +9,7 @@ from __future__ import annotations
 
 def gespraeche(request) -> dict:
     nutzer = getattr(request, "user", None)
-    if nutzer is None or not nutzer.is_authenticated:
+    if nutzer is None or not nutzer.is_authenticated or not nutzer.parteikonto:
         return {"gespraeche_ungelesen": 0}
     # Hat die Ansicht die Gespräche schon geladen, zählt sie nicht noch einmal (Befund #79)
     gepuffert = getattr(request, "_gespraeche_ungelesen", None)

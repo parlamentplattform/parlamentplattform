@@ -51,7 +51,7 @@ def kreis_festhalten(antrag):
         # hergeleiteter AT-Wohnsitz. Ausdrücklich Ausland/ohne festen Wohnsitz
         # bleibt auch bei einer veralteten FK außerhalb. Alle allgemeinen
         # Rechte werden separat geprüft: ungeprüfte Konten hier nicht verlieren.
-        konten = Mitglied.objects.filter(
+        konten = Mitglied.parteikonten.filter(
             Q(wohnsitz_art=Wohnsitzart.OESTERREICH) | Q(wohnsitz_art=""),
             wohnsitz__kennziffer__in=gebiet.gemeinden, testkonto=False,
         ).values_list("pk", flat=True)
@@ -71,6 +71,8 @@ def kreis_festhalten(antrag):
 
 
 def oertlich_zulaessig(antrag, mitglied):
+    if not getattr(mitglied, "parteikonto", False):
+        return False
     if antrag.teilnahmegebiet is None:
         return True  # ausschließlich Altverfahren, keine neue Regel rückwirkend
     gebiet = Gebiet.aus_dict(antrag.teilnahmegebiet)
@@ -82,7 +84,7 @@ def oertlich_zulaessig(antrag, mitglied):
 
 
 def mitglieder_im_kreis(antrag):
-    konten = Mitglied.objects.all()
+    konten = Mitglied.parteikonten.all()
     if antrag.teilnahmegebiet is None:
         return konten
     gebiet = Gebiet.aus_dict(antrag.teilnahmegebiet)

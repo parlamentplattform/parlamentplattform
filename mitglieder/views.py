@@ -105,7 +105,7 @@ class RegistrierungsFormular(BotschutzMixin, WohnsitzFormularMixin, forms.Form):
         # nicht auf Dauer — die Zeile wird überschrieben (nicht gelöscht: das Audit
         # verweist auf ihre pk, Grundregel 7). Solange der Link gilt, bleibt sie belegt;
         # der Login schickt dann einen neuen Bestätigungslink.
-        if bestehend is not None and not (nie_bestaetigt(bestehend) and not bestaetigung_offen(bestehend)):
+        if bestehend is not None and not (bestehend.parteikonto and nie_bestaetigt(bestehend) and not bestaetigung_offen(bestehend)):
             raise forms.ValidationError(
                 _("Für diese Adresse existiert bereits ein Konto — nutzen Sie den Login per E-Mail-Link.")
             )
@@ -140,6 +140,9 @@ def bestaetigung_offen(mitglied: Mitglied) -> bool:
 def _bestaetigungslink_senden(request, mitglied: Mitglied) -> None:
     """Neuer Bestätigungslink an die Adresse des Kontos — bei der Registrierung und als
     Selbsthilfe am Login (Befund #21). Wirft SMTPException/OSError weiter."""
+    if not mitglied.parteikonto:
+        from mitglieder.gemeinde import bestaetigungslink_senden
+        return bestaetigungslink_senden(request, mitglied)
     token = EinmalToken.ausstellen(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
     link = request.build_absolute_uri(reverse("mitglieder:bestaetigen", args=[token]))
     send_mail(
@@ -207,7 +210,7 @@ def registrieren(request):
 
 def bestaetigen(request, token: str):
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
-    if mitglied is None:
+    if mitglied is None or not mitglied.parteikonto:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     mitglied.is_active = True
     if mitglied.beitritt is None:
@@ -332,7 +335,7 @@ def login_einloesen(request, token: str):
     if mitglied is None:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
-    return redirect("verfahren:parlament")
+    return redirect("verfahren:parlament" if mitglied.parteikonto else "gemeinde:konto")
 
 
 @require_POST

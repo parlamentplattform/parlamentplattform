@@ -115,7 +115,7 @@ def verwaltung_beitraege(request):
 
     grenze = timezone.localdate() - timezone.timedelta(days=365)
     faellige = (
-        Mitglied.objects.filter(is_active=True)
+        Mitglied.parteikonten.filter(is_active=True)
         .exclude(status=Mitgliedsstatus.AUSGESCHLOSSEN)
         .filter(Q(beitrag_zuletzt_am__lt=grenze) | Q(beitrag_zuletzt_am=None))
         .order_by("beitrag_zuletzt_am", "date_joined")
@@ -172,7 +172,7 @@ def beitrag_erinnern(request):
     Postausgang zugestellt (Anweisung des Gründers 28.9.2026: nur mit Einwilligung)."""
     grenze = timezone.localdate() - timezone.timedelta(days=365)
     faellige = (
-        Mitglied.objects.filter(is_active=True)
+        Mitglied.parteikonten.filter(is_active=True)
         .exclude(status=Mitgliedsstatus.AUSGESCHLOSSEN)
         .filter(Q(beitrag_zuletzt_am__lt=grenze) | Q(beitrag_zuletzt_am=None))
     )

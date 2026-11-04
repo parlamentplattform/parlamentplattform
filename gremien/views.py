@@ -563,7 +563,7 @@ class MitgliedAuswahl(forms.ModelChoiceField):
 
 class RollenFormular(forms.Form):
     mitglied = MitgliedAuswahl(
-        queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
+        queryset=Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
             "last_name", "first_name", "username"
         ),
         label=gettext_lazy("Mitglied"),

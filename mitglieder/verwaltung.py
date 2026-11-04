@@ -131,7 +131,7 @@ class StammdatenFormular(WohnsitzFormularMixin, forms.Form):
 @nur_admins
 def liste(request):
     Adresswechsel.faellige_anwenden()
-    mitglieder = Mitglied.objects.order_by("-date_joined")
+    mitglieder = Mitglied.parteikonten.order_by("-date_joined")
     suche = request.GET.get("q", "").strip()
     if suche:
         mitglieder = mitglieder.filter(
@@ -145,12 +145,12 @@ def liste(request):
     if status in Mitgliedsstatus.values:
         mitglieder = mitglieder.filter(status=status)
     zahlen = {
-        "gesamt": Mitglied.objects.count(),
-        "aktiv": Mitglied.objects.filter(status=Mitgliedsstatus.AKTIV, is_active=True).count(),
-        "pausiert": Mitglied.objects.filter(status=Mitgliedsstatus.PAUSIERT).count(),
-        "ausgeschlossen": Mitglied.objects.filter(status=Mitgliedsstatus.AUSGESCHLOSSEN).count(),
-        "ausgetreten": Mitglied.objects.filter(status=Mitgliedsstatus.AUSGETRETEN).count(),
-        "unbestaetigt": Mitglied.objects.filter(is_active=False)
+        "gesamt": Mitglied.parteikonten.count(),
+        "aktiv": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AKTIV, is_active=True).count(),
+        "pausiert": Mitglied.parteikonten.filter(status=Mitgliedsstatus.PAUSIERT).count(),
+        "ausgeschlossen": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AUSGESCHLOSSEN).count(),
+        "ausgetreten": Mitglied.parteikonten.filter(status=Mitgliedsstatus.AUSGETRETEN).count(),
+        "unbestaetigt": Mitglied.parteikonten.filter(is_active=False)
         .exclude(status__in=(Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN))
         .count(),
     }
@@ -331,7 +331,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
 @nur_admins
 def mitglied(request, pk: int):
     Adresswechsel.faellige_anwenden()
-    person = get_object_or_404(Mitglied, pk=pk)
+    person = get_object_or_404(Mitglied.parteikonten, pk=pk)
     if request.method == "POST" and person.status == Mitgliedsstatus.AUSGETRETEN:
         messages.error(request, _("Ein ausgetretenes Konto wird nicht wieder aktiviert."))
         return redirect("mitglieder:verwaltung_mitglied", pk=pk)

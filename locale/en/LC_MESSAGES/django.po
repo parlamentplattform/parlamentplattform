@@ -11448,3 +11448,138 @@ msgstr "A recorded local participant circle remains unchanged."
 
 msgid "Ein örtlicher Teilnehmerkreis kann nur bei Einbringung festgehalten werden."
 msgstr "A local participant circle can only be recorded when the motion is submitted."
+
+msgid "E-Mail-Adresse, Anzeigename und Hauptgemeinde dienen Ihrem Gemeindezugang. Das Geburtsdatum wird nur bei der Anmeldung geprüft und nicht gespeichert. Gespeichert wird, wann Sie das Mindestalter erklärt haben. Hauptwohnsitz und Alter bleiben Selbstauskünfte; die E-Mail-Bestätigung prüft weder Ihre Person noch eine Melderegistereintragung."
+msgstr "Your email address, display name and primary municipality are used for your municipal account. Your date of birth is checked only at registration and is not stored. We record when you declared that you meet the minimum age. Primary residence and age are self-declared; email confirmation verifies neither your identity nor an entry in the residence register."
+
+msgid "Ihre E-Mail-Adresse und Gemeindezuordnung werden nicht öffentlich angezeigt. Es gibt keine automatische Parteiwerbung. Eine spätere Abstimmung braucht gesondert offengelegte Teilnahme- und Prüfregeln."
+msgstr "Your email address and municipal association are not displayed publicly. There is no automatic party advertising. Future polls require separately published participation and verification rules."
+
+msgid "Mein Gemeindezugang"
+msgstr "My municipal account"
+
+msgid "Kein Parteibeitritt und kein Mitgliedsbeitrag. Den Zugang aktivieren Sie über einen Bestätigungslink an Ihre E-Mail-Adresse."
+msgstr "No party membership and no membership fee. Activate your account using the confirmation link sent to your email address."
+
+msgid "Ich habe bereits ein Konto"
+msgstr "I already have an account"
+
+msgid "Bestätigungslink für mein Gemeindekonto anfordern"
+msgstr "Request a confirmation link for my municipal account"
+
+msgid "Gemeindekonto anlegen"
+msgstr "Create a municipal account"
+
+msgid "Sie verwenden Ihr bestehendes Konto. Ihre Parteimitgliedschaft und deren Rechte bleiben getrennt."
+msgstr "You are using your existing account. Your party membership and its rights remain separate."
+
+msgid "Sie sind durch dieses Konto kein Parteimitglied. Sie erhalten keine Mitgliedsnummer, Beitragsaufforderung oder Parteistimme."
+msgstr "This account does not make you a party member. You receive no party membership number, request for membership fees or party vote."
+
+msgid "Gemeindezugang einrichten"
+msgstr "Set up municipal access"
+
+msgid "Hauptwohnsitz angeben oder ändern"
+msgstr "Enter or change primary residence"
+
+msgid "Meine Gemeinde"
+msgstr "My municipality"
+
+msgid "Meine Gemeindeangaben herunterladen"
+msgstr "Download my municipal account data"
+
+msgid "Gemeindeangaben speichern"
+msgstr "Save municipal account details"
+
+msgid "Ein Nebenwohnsitz zählt nicht. Ohne festen Wohnsitz oder mit Wohnsitz im Ausland besteht keine örtliche Zuordnung. Ein Umzug ändert keine bereits festgehaltenen Verfahrenskreise."
+msgstr "A secondary residence does not count. Without a fixed residence or with residence abroad, there is no local association. Moving does not change participant circles already recorded for proceedings."
+
+msgid "E-Mail bestätigt; Hauptwohnsitz und Alter selbst erklärt. Noch keine Gemeindeabstimmungen freigeschaltet."
+msgstr "Email confirmed; primary residence and age self-declared. Municipal polls are not enabled yet."
+
+msgid "Keine aktuelle Hauptgemeinde"
+msgstr "No current primary municipality"
+
+msgid "Die Anmeldung ist der erste Schritt. Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet."
+msgstr "Registration is the first step. Local issues, consultation appointments and municipal polls will be added gradually. No municipal poll is enabled here yet."
+
+msgid "Ein Gemeindekonto ist keine Parteimitgliedschaft: kein Mitgliedsbeitrag, kein Parteiausweis und keine Parteirechte. Es vermittelt kein amtliches Wahlrecht."
+msgstr "A municipal account is not party membership: no membership fee, party membership card or party rights. It grants no official voting rights."
+
+msgid "Der Gemeindebereich entsteht"
+msgstr "The municipal area is taking shape"
+
+msgid "Die verlinkten Übersichten umfassen alle auf der Plattform veröffentlichten Mandate und Sitzungen, nicht nur Ihre Gemeinde."
+msgstr "The linked overviews cover all mandates and meetings published on the platform, not just your municipality."
+
+msgid "Ein freiwilliges Beteiligungsangebot der DDÖ. Für Einwohner ab 16 mit tatsächlich gemeldetem Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit."
+msgstr "A voluntary participation service provided by DDÖ. For residents aged 16 or over with an actually registered primary residence in an Austrian municipality, regardless of nationality."
+
+msgid "Öffentliche Sitzungsticker"
+msgstr "Public meeting tickers"
+
+msgid "Mitmachen ohne Parteibeitritt"
+msgstr "Participate without joining a party"
+
+msgid "Gemeindekonto"
+msgstr "Municipal account"
+
+msgid "Ihr Gemeindekonto ist bestätigt. Sie sind keiner Partei beigetreten."
+msgstr "Your municipal account is confirmed. You have not joined a party."
+
+msgid "Hauptwohnsitz-Gemeinde"
+msgstr "Primary municipality of residence"
+
+msgid "Die Angaben entsprechen meinem tatsächlich gemeldeten Hauptwohnsitz."
+msgstr "These details reflect my actually registered primary residence."
+
+msgid "Geburtsdatum"
+msgstr "Date of birth"
+
+msgid "Nur zur Prüfung der Altersgrenze bei der Anmeldung; wird nicht gespeichert."
+msgstr "Only used to check the age requirement at registration; not stored."
+
+msgid "Ich habe die Hinweise zum Gemeindekonto und zum Datenschutz gelesen."
+msgstr "I have read the municipal account and privacy information."
+
+msgid "Gemeindekonto: E-Mail-Adresse bestätigen"
+msgstr "Municipal account: confirm your email address"
+
+msgid "Gemeindeangaben gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."
+msgstr "Municipal account details saved. Recorded participant circles remain unchanged."
+
+msgid "Der Gemeindezugang ist ab dem vollendeten 16. Lebensjahr möglich."
+msgstr "Municipal access is available from your 16th birthday."
+
+msgid "Für die Gemeindeanmeldung ist ein tatsächlich gemeldeter Hauptwohnsitz in einer österreichischen Gemeinde erforderlich."
+msgstr "Municipal registration requires an actually registered primary residence in an Austrian municipality."
+
+msgid "Guten Tag,\n\nmit diesem Link bestätigen Sie Ihren Gemeindezugang (gültig 48 Stunden):\n\n%(link)s\n\nSie treten dadurch keiner Partei bei. Es entstehen kein Mitgliedsbeitrag und keine Parteirechte. Die Bestätigung ist kein Identitäts- oder Meldenachweis.\n\nWenn Sie diese Anmeldung nicht veranlasst haben, ignorieren Sie diese Nachricht."
+msgstr "Hello,\n\nconfirm your municipal account using this link (valid for 48 hours):\n\n%(link)s\n\nYou are not joining a party. No membership fee or party rights arise. This confirmation is not proof of identity or registered residence.\n\nIf you did not request this registration, please ignore this message."
+
+msgid "Die Anmeldung wurde nicht gespeichert. Bitte versuchen Sie den E-Mail-Versand später erneut."
+msgstr "Your registration was not saved. Please try requesting the email again later."
+
+msgid "Dieser Vorgang gehört zur Parteimitgliedschaft."
+msgstr "This action requires party membership."
+
+msgid "Altersgrenze der Gemeindeanmeldung"
+msgstr "Age requirement for municipal registration"
+
+msgid "Prüft bei der freiwilligen Gemeindeanmeldung das vollendete 16. Lebensjahr. Diese Anmeldung begründet keine Parteimitgliedschaft oder Abstimmungszulassung."
+msgstr "Checks that a person is at least 16 at voluntary municipal registration. Registration grants neither party membership nor admission to polls."
+
+msgid "Eigenständiger Einwohnerzugang ohne Parteibeitritt und unabhängig von der Staatsangehörigkeit."
+msgstr "Separate resident access without joining a party and regardless of nationality."
+
+msgid "Anmeldejahr minus Geburtsjahr; liegt der Geburtstag im Anmeldejahr noch in der Zukunft, ein Jahr abziehen. Mindestens 16 vollendete Jahre. Das Geburtsdatum wird nicht gespeichert."
+msgstr "Registration year minus birth year; subtract one year if the birthday in the registration year has not yet occurred. At least 16 completed years are required. The date of birth is not stored."
+
+msgid "Alter und Hauptwohnsitz sind Selbstauskünfte. E-Mail-Bestätigung ist kein Identitäts- oder Meldenachweis. Stichtage und Personenprüfung für Gemeindeabstimmungen sind gesondert festzulegen."
+msgstr "Age and primary residence are self-declared. Email confirmation is not proof of identity or residence. Reference dates and identity verification for municipal polls must be defined separately."
+
+msgid "Gemeindekonto ohne Parteibeitritt"
+msgstr "Municipal account without party membership"
+
+msgid "Ihre Gemeindeangaben können Sie im Gemeindezugang herunterladen und den Hauptwohnsitz dort ändern. Für die Berichtigung weiterer Daten oder die Schließung des Kontos schreiben Sie an plattform@ddoe.at. Eine E-Mail-Bestätigung löst keine Mitgliedschaft, Parteipost oder Beitragspflicht aus."
+msgstr "You can download your municipal account data and change your primary residence in the municipal area. To correct other details or close your account, write to plattform@ddoe.at. Confirming your email does not create party membership, party mail or a membership fee obligation."

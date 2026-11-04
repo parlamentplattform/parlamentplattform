@@ -562,6 +562,8 @@ def daten_export(mitglied: Mitglied) -> dict:
     (fremde Vorgänge), und Audit-Zeilen Dritter. Beschlüsse, Ein- und Ausgaben von KI-Läufen
     stehen nur als Verweis (`_gremien_export`). Der Stimmregister-Teil fehlt, solange eine
     Änderung der Anmeldeadresse offen ist — dieselbe Sperre wie „Meine Stimme prüfen“ (F-51)."""
+    from mitglieder.models import Gemeindezugang
+
     m = mitglied
     daten: dict = {
         "exportiert_am": timezone.now(),
@@ -596,6 +598,12 @@ def daten_export(mitglied: Mitglied) -> dict:
         "post": {"willkommen_am": m.willkommen_post_am, "freischaltung_am": m.freischaltung_post_am},
         "mitgliedsnummer": m.mitgliedsnummer,
         "testkonto": m.testkonto,
+        "gemeindezugang": Gemeindezugang.objects.filter(konto=m).values(
+            "angemeldet_am", "alter_erklaert_am", "bestaetigt_am"
+        ).first(),
+        "oertliche_verfahrenskreise": list(m.oertliche_verfahrenskreise.order_by("antrag_id").values(
+            "antrag_id", "antrag__teilnehmerkreis_am"
+        )),
         "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
         "wohnsitz_art": m.wohnsitz_art_aktuell,
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),

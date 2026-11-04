@@ -636,7 +636,7 @@ def index(request):
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
     laufend = antraege.filter(phase__in=LAUFEND)
     buehne = {
-        "mitglieder": Mitglied.objects.filter(is_active=True, testkonto=False).count(),
+        "mitglieder": Mitglied.parteikonten.filter(is_active=True, testkonto=False).count(),
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }

@@ -9,6 +9,7 @@ from django.urls import include, path
 from config.gesund import gesund
 
 urlpatterns = [
+    path("gemeinde/", include("mitglieder.gemeinde_urls")),
     # Gesundheitscheck mit Datenbankberührung (Befund #94) — vor den App-Routen, damit er gilt.
     path("gesund/", gesund, name="gesund"),
     path("", include("verfahren.urls")),

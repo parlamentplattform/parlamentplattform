@@ -1501,7 +1501,7 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
 
 class MandatFormular(forms.Form):
     mitglied = forms.ModelChoiceField(
-        queryset=Mitglied.objects.filter(is_active=True, status=Mitgliedsstatus.AKTIV).order_by(
+        queryset=Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV).order_by(
             "last_name", "first_name", "username"
         ),
         label=gettext_lazy("Mitglied"),

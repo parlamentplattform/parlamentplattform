@@ -30,7 +30,7 @@ ENTSCHIEDEN = [Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value]
 def _mitglieder_verlauf(heute) -> list[tuple[str, float]]:
     """Kumulierte Mitgliederzahl über die Zeit (höchstens ~60 Stützpunkte)."""
     beitritte = sorted(
-        Mitglied.objects.filter(is_active=True, testkonto=False)
+        Mitglied.parteikonten.filter(is_active=True, testkonto=False)
         .exclude(beitritt=None)
         .values_list("beitritt", flat=True)
     )
@@ -185,8 +185,8 @@ def index(request):
         meistgelesen.append({"antrag": titel[t["antrag"]], "aufrufe": t["gesamt"]})
 
     kontext = {
-        "mitglieder_gesamt": Mitglied.objects.filter(is_active=True, testkonto=False).count(),
-        "mitglieder_neu_woche": Mitglied.objects.filter(
+        "mitglieder_gesamt": Mitglied.parteikonten.filter(is_active=True, testkonto=False).count(),
+        "mitglieder_neu_woche": Mitglied.parteikonten.filter(
             is_active=True, testkonto=False, beitritt__gte=woche_start
         ).count(),
         "antraege_gesamt": Antrag.objects.count(),

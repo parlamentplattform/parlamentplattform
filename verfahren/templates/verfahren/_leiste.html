@@ -18,9 +18,14 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
     <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an" aria-current="page"{% endif %}>{% translate "Übersicht" %}</a>
   </nav>
   <div class="rechts">
-    {% if user.is_authenticated %}<a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>{% endif %}
+    {% if user.is_authenticated and user.parteikonto %}<a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>{% endif %}
     {% if anstoss_lage == "leiste" %}{% include "anstoss/_widget.html" with lage="leiste" %}{% endif %}
-    {% if user.is_authenticated %}
+    {% if request.gemeindekonto or user.is_authenticated and not user.parteikonto %}
+    <details class="konto" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
+      <summary class="avatar" x-ref="ausloeser" :aria-expanded="offen" aria-label="{% translate 'Gemeindekonto' %}">G</summary>
+      <div class="pop">{% include "mitglieder/_gemeinde_kontomenue.html" %}</div>
+    </details>
+    {% elif user.is_authenticated %}
     <details class="konto" x-data="klappmenue" @click.outside="zu(false)" @keydown.escape.window="zu()">
       <summary class="avatar{% if user.hat_gremienrolle %} ring{% endif %}" x-ref="ausloeser" :aria-expanded="offen" aria-label="{% translate 'Konto' %}" title="{{ user.anzeigename }}">{{ user.anzeigename|initiale }}</summary>
       <div class="pop">
@@ -28,6 +33,7 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
         {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
         <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
+        <a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
         {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
         {% include "verfahren/_sprache.html" %}
@@ -61,12 +67,15 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
           <a href="{% url 'verfahren:zukunftswerkstatt' %}"{% if AKTIV == "zukunftswerkstatt" %} class="an"{% endif %}>{% translate "Zukunftswerkstatt" %}</a>
           <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an"{% endif %}>{% translate "Übersicht" %}</a>
         </nav>
-        {% if user.is_authenticated %}
+        {% if request.gemeindekonto or user.is_authenticated and not user.parteikonto %}
+        {% include "mitglieder/_gemeinde_kontomenue.html" %}
+        {% elif user.is_authenticated %}
         <a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>
         <p class="pop-titel">{{ user.anzeigename }}</p>
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
         {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
         <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
+        <a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
         {% if user.hat_adminrechte %}<a href="{% url 'mitglieder:verwaltung' %}">{% translate "Verwaltung" %}</a>{% endif %}
         <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>

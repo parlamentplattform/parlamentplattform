@@ -55,5 +55,8 @@ def test_qualitative_folgenkorrektur_behaelt_original_und_unbekannte_personalfol
     expect(karte.locator(".ki-folgenabschnitte svg")).to_have_count(0)
     b.refresh_from_db()
     assert b.erledigt_am is None
+    expect(karte).to_be_visible()
+    expect(karte.locator(".ki-folgenabschnitte")).to_be_visible()
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    p.evaluate("scrollTo({top: 0, behavior: 'instant'})")
     p.screenshot(path=str(sichtpruefung / f"folgenkorrektur-{kennung}.png"), full_page=True)

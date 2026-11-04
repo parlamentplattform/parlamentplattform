@@ -6,7 +6,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Der getrennt nachgeprüfte ältere Rechtsbezugexport konnte unbekannte Kontextfelder von Läufen und wartenden Aufträgen öffentlich ausgeben. Drei synthetische Ausgabegegenproben belegen die Grenze vor dem Fix; ein korrekt wirkender Schreibschutz wurde dabei nicht umgangen. Kein tatsächlicher Produktionsdatenvorfall oder extern beschreibbares Archivfeld behauptet.
 - Öffentliche Anzeige und Exporte prüfen jetzt die bekannten alten Text-/Quellenverträge und die tatsächliche Eingabe. Unprüfbare Einträge erhalten einen kontrollierten Fehlerstand; JSON und Markdown bleiben herunterladbar. Neue und bereits gespeicherte Korrekturen können diese Ursprungsgrenze nicht umgehen. Kontextlose frühe Archive und gültige alte Promptfassungen bleiben lesbar, persönliche Datenexporte bleiben getrennt.
-- Keine Originale geändert, bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Schema-, Fachregel-, Policy-, Stimmen-, Fristen- oder Budgetänderung. Vollständige Prüf-/CI-/Liveabnahme dieses Folgepatches steht noch aus.
+- Keine Originale geändert, bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Schema-, Fachregel-, Policy-, Stimmen-, Fristen- oder Budgetänderung.
+- Vollständig auf Source22a5c55 mit Python3.12 geprüft:3496 Tests bestanden, sechs unverändert übersprungen,981.08s,Kern98%; zusätzlich3277 Tests gegen isoliertes PostgreSQL16.15 in546.97s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.961 integrierte Prüfungen, anschließend156 finale Gegenproben sowievier Browserzustände/acht Bilder grün; Katalog3308 vollständig, Ruff/System-/Migrationscheck grün. Nachträglich ausschließlich diese Prüfdokumentation; neue GitHub-Pflichtprüfungen und tatsächliche Auslieferung bleiben offen.
 
 ## [0.77.1] — 2026-11-04 · Interne Zusatzfelder aus alten Korrekturexporten ausschließen
 

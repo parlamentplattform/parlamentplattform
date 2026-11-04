@@ -83,7 +83,7 @@ HINWEISE: dict[str, dict] = {
     "name_fehlt": {"text": _("Bitte einen Namen angeben."), "art": "fehler"},
     "name_vergeben": {"text": _("Eine Konfiguration mit diesem Namen gibt es schon."), "art": "fehler"},
     "profile_voll": {
-        "text": _("Höchstens %(hoechstzahl)s Konfigurationen — zuerst eine löschen oder überschreiben."),
+        "text": _("Höchstens %(grenze)s Konfigurationen — zuerst eine löschen oder überschreiben."),
         "art": "fehler",
     },
 }
@@ -107,7 +107,7 @@ def _hinweistext(code):
         grenze = FilterProfil.hoechstzahl()
         if not grenze:
             return _("Neue Konfigurationen sind gesperrt.")
-        return str(HINWEISE[code]["text"]) % {"hoechstzahl": grenze}
+        return str(HINWEISE[code]["text"]) % {"grenze": grenze}
     return HINWEISE[code]["text"]
 
 

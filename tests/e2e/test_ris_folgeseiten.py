@@ -43,8 +43,18 @@ def test_gewaehlte_folgeseite_bleibt_nachlesbar(
     expect(p.locator("#id_seite")).to_have_value("2")
     expect(p.locator("#id_seite")).to_be_visible()
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    p.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
     p.screenshot(path=str(sichtpruefung / f"ris-folgeseite-formular-{kennung}.png"), full_page=True)
-    p.locator("form.formular button[type=submit]").click()
+    assert p.locator("form.formular").evaluate("f => f.checkValidity()")
+    # Der POST muss tatsächlich beendet sein, bevor wir die serverseitigen
+    # Schreibwirkungen prüfen — auch ohne JavaScript im mobilen Browser.
+    p.locator("form.formular button[type=submit]").evaluate(
+        "el => el.scrollIntoView({behavior: 'instant', block: 'center'})",
+    )
+    with p.expect_response(lambda r: r.request.method == "POST"
+                           and r.url == f"{live_server.url}/verwaltung/faktenbasis/") as antwort:
+        p.locator("form.formular button[type=submit]").click()
+    assert antwort.value.status == 302
     assert calls == [(NUMMER, STAND, 2)] and RisImport.objects.get().seite == 2
     n = Norm.objects.get()
     p.locator(f'a[href="/zukunftswerkstatt/faktenbasis/norm/{n.pk}/"]').click()
@@ -54,4 +64,5 @@ def test_gewaehlte_folgeseite_bleibt_nachlesbar(
     herkunft.locator("summary").click()
     expect(herkunft.get_by_text("RIS page: 2" if sprache == "en" else "RIS-Seite: 2", exact=True)).to_be_visible()
     assert len(calls) == 1 and p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    p.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
     p.screenshot(path=str(sichtpruefung / f"ris-folgeseite-herkunft-{kennung}.png"), full_page=True)

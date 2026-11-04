@@ -778,8 +778,8 @@ def filter_anwenden(request):
     werte = {"regler": regler, "favoriten_zuerst": favoriten_zuerst}
 
     zu_viele = (
-        _("Höchstens %(hoechstzahl)s Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
-        % {"hoechstzahl": hoechstzahl}
+        _("Höchstens %(grenze)s Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+        % {"grenze": hoechstzahl}
         if hoechstzahl else _("Neue Konfigurationen sind gesperrt.")
     )
     if request.POST.get("als_neues"):

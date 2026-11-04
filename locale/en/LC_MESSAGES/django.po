@@ -11419,11 +11419,11 @@ msgstr "Please leave the federal state empty for federal law."
 msgid "Neue Konfigurationen sind gesperrt."
 msgstr "New configurations are disabled."
 
-msgid "%(anzahl)s von %(hoechstzahl)s — eine löschen oder überschreiben"
-msgstr "%(anzahl)s of %(hoechstzahl)s — delete or overwrite one"
+msgid "%(anzahl)s von %(grenze)s — eine löschen oder überschreiben"
+msgstr "%(anzahl)s of %(grenze)s — delete or overwrite one"
 
-msgid "Höchstens %(hoechstzahl)s Konfigurationen — zuerst eine löschen oder überschreiben."
-msgstr "At most %(hoechstzahl)s configurations — delete or overwrite one first."
+msgid "Höchstens %(grenze)s Konfigurationen — zuerst eine löschen oder überschreiben."
+msgstr "At most %(grenze)s configurations — delete or overwrite one first."
 
-msgid "Höchstens %(hoechstzahl)s Konfigurationen — bitte zuerst eine löschen oder überschreiben."
-msgstr "At most %(hoechstzahl)s configurations — please delete or overwrite one first."
+msgid "Höchstens %(grenze)s Konfigurationen — bitte zuerst eine löschen oder überschreiben."
+msgstr "At most %(grenze)s configurations — please delete or overwrite one first."

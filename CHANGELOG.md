@@ -6,6 +6,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - HTML-Antworten erhalten einen wirksamen CSP-Header für eigene Skripte, Verbindungen, Schriften und Manifestdateien. Inline- und Fremdskripte, native Inline-Handler, fremde Formularziele, Basisadressen, Frames und Objekte werden nicht freigegeben. Ein bestehender CSP-Header bleibt erhalten; PDF-, JSON- und Bildantworten bleiben unverändert.
 - Alpine benötigt weiterhin dynamische Ausdrücke, bestehende Ansichten Inline-Styles. Beide Ausnahmen sind im eigenen technischen ADR benannt; keine vollständig strikte CSP oder Ablösung der Eingabe-/Ausgabeprüfung behauptet. Kein zusätzliches Paket, externer Berichtsempfänger, Modellaufruf oder neuer Dienst; keine Änderung von Fachregeln, Rechten, Budgets oder laufenden Verfahren.
+- Vollständig auf Source297f046 mit Python3.12 geprüft:3260 Tests bestanden, sechs übersprungen, Kern98%; zusätzlich3057 Tests gegen eine isolierte lokale PostgreSQL16.15-Datenbank in527.17s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.33 gezielte Header-/Betriebs-/Katalogproben und12 Browserproben einschließlich vier positiver/negativer CSP-Zustände grün; vier Bilder gesichtet. Neue Pflicht-CI, PR/Merge und tatsächliche Auslieferung bleiben offen.
 
 ## [0.74.0] — 2026-11-04 · Rollen, Regeln und Parameter auch auf Englisch nachlesen
 

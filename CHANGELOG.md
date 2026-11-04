@@ -5,7 +5,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 ## [0.74.0] — 2026-11-04 · Rollen, Regeln und Parameter auch auf Englisch nachlesen
 
 - 433 bislang nur vorgemerkte Datentexte sind jetzt im englischen Katalog enthalten: Parameterbeschreibungen und Einheiten, Regelzweck, Begründung und Nachrechnung sowie Rollenbeschreibungen, Fähigkeiten und Einschränkungen. Vorhandene Übersetzungen bleiben erhalten; die deutschen Originaltexte bleiben der Maßstab. Angaben zu fehlenden Funktionen und offenen Satzungskonflikten werden ebenso übersetzt.
-- Drei veraltete Hinweise auf ausschließlich deutsche Einträge sind durch einen Hinweis auf die maßgeblichen Originaltexte ersetzt. Der vorhandene Katalogwächter verlangt künftig auch für No-op-markierte Datentexte eine Übersetzung. Deutsche Datentabellen, Rollenrechte, Regel- und Schemafassungen, Parameterwerte und eingefrorene Verfahrensregeln bleiben unverändert; keine Migration oder neue Abhängigkeit.
+- Drei veraltete Hinweise auf ausschließlich deutsche Einträge sind durch einen Hinweis auf die maßgeblichen Originaltexte ersetzt. Der vorhandene Katalogwächter verlangt künftig auch für No-op-markierte Datentexte eine Übersetzung. Fachliche Inhalte der deutschen Datentabellen, Rollenrechte, Regel- und Schemafassungen, Parameterwerte und eingefrorene Verfahrensregeln bleiben unverändert; keine Migration oder neue Abhängigkeit.
+- Die vollständige Gegenprüfung erkannte zwei bisher nur vorgemerkte Regelbeschreibungen mit internen Dokumentkennungen. Diese beiden Klammerverweise sind gemäß bestehender Sprachregel aus deutschen und englischen Nutzertexten entfernt; der fachliche Text und alle Regeln bleiben gleich. Der Sprachtest prüft nun die tatsächlichen übersetzten Datentabellen und den Hinweis auf maßgebliche Originale.
 
 ## [0.73.0] — 2026-11-04 · Qualitative Rechtsfolgen mit festgehaltenen Norm- und Personalgrundlagen
 

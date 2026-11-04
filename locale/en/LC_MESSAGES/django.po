@@ -10352,8 +10352,8 @@ msgstr "Draws the public overview's charts — trend line, columns per period an
 msgid "Seit es die dunkle Ansicht gibt, bringt jedes Diagramm seinen eigenen hellen Grund mit: Die auf Farbfehlsichtigkeit geprüfte Farbwahl gilt nur auf hellem Papier, und ein Bild, das man nicht lesen kann, ist keine Auskunft."
 msgstr "Since the dark view was introduced, every chart has had its own light background: the colour palette tested for colour-vision deficiencies applies only on light paper, and a chart that cannot be read provides no information."
 
-msgid "Jede Zahl im Bild steht auf derselben Seite auch als Text (ADR-008), und die Tooltips nennen den Wert beim Überfahren. Farbe trägt nie allein die Information; wer die Zahlen addiert, kommt auf dieselben Anteile."
-msgstr "Every figure in a chart also appears as text on the same page (ADR-008), and tooltips show its value on hover. Colour never carries information alone; adding the figures gives the same shares."
+msgid "Jede Zahl im Bild steht auf derselben Seite auch als Text, und die Tooltips nennen den Wert beim Überfahren. Farbe trägt nie allein die Information; wer die Zahlen addiert, kommt auf dieselben Anteile."
+msgstr "Every figure in a chart also appears as text on the same page, and tooltips show its value on hover. Colour never carries information alone; adding the figures gives the same shares."
 
 msgid "Beitragsabgleich: Zahlung zu Mitglied"
 msgstr "Contribution matching: payment to member"
@@ -10475,8 +10475,8 @@ msgstr "Since 5 September 2026, periods and thresholds can be maintained in the 
 msgid "Seit 0.52.0 (29.9.2026) rechnet die Plattform die Kette auch nach: täglich die neuen Einträge samt dem zuletzt geprüften, in einem Abstand aus dem Parameterregister die ganze Kette von vorn; Ergebnis und Hash des letzten geprüften Eintrags stehen öffentlich in den Kennzahlen . Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. "
 msgstr "Since 0.52.0 (29 September 2026) the platform also checks the chain: daily for new entries and the last checked entry, and from the beginning for the entire chain at intervals set in the parameter register; the result and hash of the last checked entry are public in the indicators. Previously the chain was written but never checked. "
 
-msgid "Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: „Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand nachprüfen würde (ADR-005)."
-msgstr "This rule has been in place since the foundation and is deliberately explainable in about sixty lines: “Each entry seals all preceding entries” — rather than effort that nobody would ultimately verify (ADR-005)."
+msgid "Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: „Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand nachprüfen würde."
+msgstr "This rule has been in place since the foundation and is deliberately explainable in about sixty lines: “Each entry seals all preceding entries” — rather than effort that nobody would ultimately verify."
 
 msgid "Änderung vom 29.9.2026 (0.51.0), an den Eingaben, nicht an der Rechnung: Gezählt wird der Stand zum Fristende (§ 5 Abs 13: „bis zum Fristende“). Eine Reaktion ab dem Fristende wird abgewiesen, auch wenn noch nicht ausgewertet ist; zurückgenommene oder gewechselte Reaktionen bleiben gespeichert, zählen aber nicht mehr. Die Schwelle kommt aus der eingefrorenen Ordnung des Antrags, nicht aus dem heutigen Parameterregister (§ 5 Abs 5); Chat, Entwurfsfenster und Archiv zeigen sie an. Eine abgeschlossene Runde zeigt das Archiv mit den Zahlen zu ihrem Fristende. "
 msgstr "Change of 29 September 2026 (0.51.0), to the inputs, not the calculation: the state at the deadline is counted (§ 5 para 13: “until the deadline”). Reactions at or after the deadline are rejected even before evaluation; withdrawn or changed reactions remain stored but no longer count. The threshold comes from the motion's frozen policy, not today's parameter register (§ 5 para 5); chat, drafting window and archive display it. For a completed round, the archive shows the figures at its deadline. "

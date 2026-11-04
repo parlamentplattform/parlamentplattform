@@ -452,7 +452,7 @@ REGELN: tuple[Regel, ...] = (
             ". Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. ")
             + _("Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
             "„Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand "
-            "nachprüfen würde (ADR-005).")
+            "nachprüfen würde.")
         ),
         nachrechenbar=(
             _("Die Prüfsumme ist SHA-256 über die Prüfsumme des Vorgängers und den Ereignisinhalt in "
@@ -754,7 +754,7 @@ REGELN: tuple[Regel, ...] = (
             "das man nicht lesen kann, ist keine Auskunft.")
         ),
         nachrechenbar=(
-            _("Jede Zahl im Bild steht auf derselben Seite auch als Text (ADR-008), und die Tooltips "
+            _("Jede Zahl im Bild steht auf derselben Seite auch als Text, und die Tooltips "
             "nennen den Wert beim Überfahren. Farbe trägt nie allein die Information; wer die Zahlen "
             "addiert, kommt auf dieselben Anteile.")
         ),

@@ -6,6 +6,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - BOM-loses UTF-16 mit ASCII-Inhalten konnte den vorgeschalteten DTD-/Verarbeitungsanweisungs-Scan umgehen, obwohl nur UTF-8 vereinbart war. Nullzeichen werden jetzt vor dem XML-Parser abgewiesen; dessen Kodierung ist ausdrücklich UTF-8. Winzige lokale Regressionen belegen den Fehler vor und die Ablehnung nach der Korrektur, ohne externe Entitäten, Netz- oder Lastprobe.
 - Neue ausdrücklich angeforderte Dokumenttexte erhalten Parserfassung3. Gespeicherte Auswertungen der Fassungen1/2, Originalbytes, Hashes, Erfassungsdaten und damalige Modellkontexte bleiben erhalten. Fehlerhafte neue Bezüge ersetzen keinen gültigen Stand. Keine Migration, automatische Neuberechnung, Produktionsbefüllung oder Änderung von Verfahrensregeln, Rechten, Fristen und Budgetwerten.
+- Vollständig auf Sourced869ff1 mit Python3.12 geprüft:3291 Tests bestanden, sechs übersprungen, Kern98%; zusätzlich3084 Tests gegen isoliertes PostgreSQL16.15 in526.39s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.795 integrierte Quellen-/Modell-/Betriebsprüfungen undvier Browserzustände mitacht Bildern grün; Katalog3283 vollständig, Ruff/System-/Migrationscheck grün. GitHub-Pflichtprüfungen und tatsächliche Auslieferung bleiben erforderlich.
 
 ## [0.75.0] — 2026-11-04 · Browserquellen mit einer Content-Security-Policy begrenzen
 

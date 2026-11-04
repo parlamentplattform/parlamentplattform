@@ -11296,3 +11296,80 @@ msgstr "Publish the decision with reasons within six months"
 
 msgid "Die deutschen Originaltexte bleiben der Maßstab; die englische Fassung dient dem Verständnis."
 msgstr "The German original texts remain authoritative; the English version is provided to aid understanding."
+
+# 0.77: Nachweis des gespeicherten Quellenbestands
+
+msgid "Nachweis des gespeicherten Quellenbestands"
+msgstr "Evidence of the stored source inventory"
+
+msgid "Der gespeicherte Bestand überschreitet die eingestellte Nachweisgrenze. Es wird kein Teilnachweis ausgegeben."
+msgstr "The stored inventory exceeds the configured evidence limit. No partial evidence is provided."
+
+msgid "Der Bestandsnachweis ist derzeit nicht verfügbar: Die Nachweisgrenze ist deaktiviert oder ungültig eingestellt."
+msgstr "Inventory evidence is currently unavailable: the evidence limit is disabled or invalid."
+
+msgid "Der Bestandsnachweis ist derzeit nicht verfügbar: Eine gespeicherte Zuordnung ist ungültig. Es wird kein Teilnachweis ausgegeben."
+msgstr "Inventory evidence is currently unavailable: a stored association is invalid. No partial evidence is provided."
+
+msgid "Die angegebene Prüfsumme ist ungültig."
+msgstr "The supplied checksum is invalid."
+
+msgid "Der gespeicherte Bestand hat sich seit der Anzeige geändert. Bitte laden Sie die Nachweisseite neu."
+msgstr "The stored inventory has changed since it was displayed. Please reload the evidence page."
+
+msgid "Zur Faktenbasis"
+msgstr "Back to the factual sources"
+
+msgid "Lokale Schnappschüsse"
+msgstr "Local snapshots"
+
+msgid "Norm-Metadatenstände"
+msgstr "Legal metadata snapshots"
+
+msgid "Dokumenttextstände"
+msgstr "Document text snapshots"
+
+msgid "Personal-Gesamtstände"
+msgstr "Overall staffing snapshots"
+
+msgid "Personal-Ressorttabellen"
+msgstr "Departmental staffing tables"
+
+msgid "Erzeugungszeit des Nachweises"
+msgstr "Evidence generation time"
+
+msgid "SHA-256 des Nachweisinhalts"
+msgstr "SHA-256 of the evidence content"
+
+msgid "Diesen Bestand als JSON herunterladen"
+msgstr "Download this inventory as JSON"
+
+msgid "Der lokale Bestand ist leer. Der Nachweis dokumentiert auch diesen Zustand."
+msgstr "The local inventory is empty. The evidence also documents this state."
+
+msgid "Was sich nachrechnen lässt"
+msgstr "What can be independently calculated"
+
+msgid "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt."
+msgstr "The evidence associates local record numbers with their stored checksums. Records are ordered by collection identifier and ascending number. An unchanged inventory produces the same hash; generation time is not part of the hashed content."
+
+msgid "Bei Norm-Metadaten bezieht sich die gespeicherte Prüfsumme auf kanonische Metadaten als JSON, bei Dokumenttexten auf Original-XML, bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse, keine Gesetze oder Personen."
+msgstr "For legal metadata, the stored checksum refers to canonical metadata as JSON; for document texts, to original XML; and for staffing snapshots, to original PDFs. Several snapshots may come from the same file. Snapshots are counted, not laws or people."
+
+msgid "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen."
+msgstr "No official signature, renewed verification of original files, or evidence of a complete or legally current body of law is provided. Previously used model contexts remain unchanged. No sources are fetched and no models are called."
+
+msgid "Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."
+msgstr "Maximum number of local legal metadata, document text and staffing snapshots for complete inventory evidence. 0 disables evidence; the technical maximum is 10000. Exceeding the limit or an invalid value produces no partial evidence and no fallback value."
+
+msgid "Darstellung des gespeicherten Quellenbestands"
+msgstr "Presentation of the stored source inventory"
+
+msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen ihre gespeicherten Prüfsummen zu. Keine neue Prüfung der Originale, keine amtliche Signatur und keine Bestätigung rechtlicher Aktualität oder Vollständigkeit."
+msgstr "Associates local legal metadata, document text and staffing snapshots with their stored checksums. No renewed verification of originals, official signature or confirmation of legal currency or completeness."
+
+msgid "Erste Fassung: einen unveränderten lokalen Bestand nachrechenbar wiedererkennen, ohne Quellen abzurufen oder bereits verwendete Modellkontexte zu ändern."
+msgstr "First version: reproducibly recognise an unchanged local inventory without fetching sources or changing previously used model contexts."
+
+msgid "Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."
+msgstr "Collection identifier and ascending record number; SHA-256 of the evidence content as UTF-8 JSON with sorted keys and no extra whitespace. Generation time and the operational limit are not part of the hashed content. The evidence specifies the four collections and the meaning of their stored hashes. No partial evidence when the limit is exceeded."

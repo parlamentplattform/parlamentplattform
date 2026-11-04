@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.28"
+SCHEMA_VERSION = "1.29"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -25,6 +25,10 @@ SCHEMA_KEY_MUSTER = re.compile(r"^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$")
 
 # Registerschlüssel (Instanz, deutsch) → (Schema-Kennung, Einheit, Bedeutung — englisch, sprachneutral)
 PARAMETER = {
+    "faktenbasis-bestandsnachweis-hoechstzahl": (
+        "sources.inventory_max_records", "snapshots",
+        "Maximum local snapshot rows in the complete source inventory; zero disables, hard maximum 10000; invalid values or excess produce no partial evidence",
+    ),
     "rechtsfolgen-eingabezeichen": ("legal_effects.total_input_chars", "characters", "Maximum complete public legal-effects input including frozen law and staffing sources, clamped to 1 to 100000; no truncation or procedure blockage"),
     "gegenueberstellung-je-stunde": ("comparison.requests_per_hour", "requests/hour", "Explicit private comparison requests per account and hour; zero disables the feature"),
     "gegenueberstellung-zeitgrenze-sekunden": ("comparison.socket_timeout_seconds", "seconds", "Timeout per connection step for an explicit private comparison, clamped to 1 to 45"),

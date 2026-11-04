@@ -193,6 +193,9 @@ KI_MONAT_BESCHREIBUNG_ALT = (
 )
 
 ERSTBESTAND = [
+    {"schluessel": "faktenbasis-bestandsnachweis-hoechstzahl", "wert": "2000", "einheit": gettext_noop("Schnappschüsse"), "gruppe": "ki",
+     "beschreibung": gettext_noop("Höchstzahl lokaler Norm-, Dokumenttext- und Personalstände für den vollständigen Bestandsnachweis. 0 deaktiviert den Nachweis; technisch höchstens 10000. Bei Überschreitung oder ungültigem Wert kein Teilnachweis und kein Rückfall auf einen Ersatzwert."),
+     "quelle": gettext_noop("Darstellung des gespeicherten Quellenbestands")},
     {"schluessel": "rechtsfolgen-eingabezeichen", "wert": "30000", "einheit": gettext_noop("Zeichen"), "gruppe": "ki",
      "beschreibung": gettext_noop("Gesamtgrenze der vollständigen öffentlichen Rechtsfolgen-Eingabe einschließlich damaliger Norm- und Personalgrundlagen. Technisch 1 bis 100000 Zeichen; bei Überschreitung kein Modelllauf und keine Kürzung, das Verfahren läuft weiter."),
      "quelle": "Offengelegter Umfang der kombinierten Rechtsfolgenprüfung"},

@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.77.0] — 2026-11-04 · Den lokal gespeicherten Quellenbestand nachrechnen
+
+- Eigene öffentliche Nachweisseite und JSON-Download für sämtliche lokal gespeicherten Norm-Metadaten-, Dokumenttext- und Personalstände. Eine Datenbankabfrage liest alle vier Sammlungen; neutrale Datensatznummern, gespeicherte Prüfsummen und deren unterschiedliche Bezüge werden offengelegt. Identischer Bestand ergibt denselben SHA-256 des kanonischen Nachweisinhalts.
+- Der Downloadlink bindet den angezeigten Hash. Bei inzwischen geändertem Bestand wird ein neuer Seitenaufruf verlangt. Bei ungültigen Zuordnungen oder überschrittener/deaktivierter Registergrenze kein Teilnachweis. Neuer Parameter `sources.inventory_max_records`, Schema1.29 und offengelegte Darstellungsregel Fassung1; bestehende Verfahrensregeln und Modellkontexte bleiben unverändert.
+- Keine erneute Originalprüfung, amtliche Signatur, Vollständigkeit der Rechtsordnung oder juristische Aktualität behauptet. Keine Quellenabrufe, Modellaufrufe, Datenänderungen oder neue Abhängigkeiten. Die Prüfung vor der Auslieferung ist noch offen.
+
 ## [0.76.1] — 2026-11-04 · Bildschirmtests als wirkliche Auslieferungssperre
 
 - Deploy und Alarm auf `main` warten jetzt auch auf `sichtpruefung`. Zuvor konnte der Deploy nach den beiden Python-Prüfungen, PostgreSQL und Sicherung anlaufen, obwohl die Bildschirmtests noch liefen oder scheiterten. Alle fünf bestehenden Pflichtprüfungen sind damit Voraussetzung; ein Browserfehler erreicht ebenfalls den sichtbaren Alarm.

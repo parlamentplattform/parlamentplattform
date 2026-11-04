@@ -1,0 +1,32 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% trans "Nachweis des gespeicherten Quellenbestands" %}{% endblock %}
+{% block inhalt %}
+<div>
+  <div class="seitenkopf"><h1>{% trans "Nachweis des gespeicherten Quellenbestands" %}</h1>
+    <a href="{% url 'faktenbasis:index' %}">{% trans "Zur Faktenbasis" %}</a></div>
+  {% if fehler %}
+  <section class="karte" role="status"><p>{{ fehler }}</p></section>
+  {% else %}
+  <section class="karte" id="bestandsnachweis">
+    <h2>{% trans "Lokale Schnappschüsse" %}</h2>
+    <dl>
+      {% for sammlung in stand.inhalt.sammlungen %}
+      <dt>{% if sammlung.sammlung == "norm" %}{% trans "Norm-Metadatenstände" %}{% elif sammlung.sammlung == "normtext" %}{% trans "Dokumenttextstände" %}{% elif sammlung.sammlung == "personalaggregat" %}{% trans "Personal-Gesamtstände" %}{% else %}{% trans "Personal-Ressorttabellen" %}{% endif %}</dt>
+      <dd>{{ sammlung.anzahl }}</dd>{% endfor %}
+      <dt>{% trans "Regelfassung" %}</dt><dd>{{ stand.inhalt.fassung }}</dd>
+      <dt>{% trans "Erzeugungszeit des Nachweises" %}</dt><dd>{{ zeit|date:"d.m.Y H:i:s T" }}</dd>
+      <dt>{% trans "SHA-256 des Nachweisinhalts" %}</dt><dd class="fakten-hash" id="bestands-hash">{{ stand.sha256 }}</dd>
+    </dl>
+    <a class="knopf" href="{% url 'faktenbasis:bestand_json' %}?sha256={{ stand.sha256 }}">{% trans "Diesen Bestand als JSON herunterladen" %}</a>
+  </section>
+  {% if not stand.inhalt.eintraege %}<p class="hilfe">{% trans "Der lokale Bestand ist leer. Der Nachweis dokumentiert auch diesen Zustand." %}</p>{% endif %}
+  <section class="karte">
+    <h2>{% trans "Was sich nachrechnen lässt" %}</h2>
+    <p>{% trans "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt." %}</p>
+    <p>{% trans "Bei Norm-Metadaten bezieht sich die gespeicherte Prüfsumme auf kanonische Metadaten als JSON, bei Dokumenttexten auf Original-XML, bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse, keine Gesetze oder Personen." %}</p>
+    <p>{% trans "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen." %}</p>
+    <a href="{% url 'parameter:regeln' %}">{% trans "Regelverzeichnis" %}</a>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 19
+VERSION = 20
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -973,6 +973,15 @@ REGELN: tuple[Regel, ...] = (
         grund=_("Erste Fassung: tatsächlich übergebene amtliche Ausschnitte und Auswahlgrenzen werden vor dem Einreihen festgehalten. Keine neue Quelle wird beim Modellaufruf nachgeladen."),
         nachrechenbar=_("Unicode-Normalisierung NFKC und Kleinschreibung, Wörter aus Buchstaben und Ziffern, veröffentlichte Stoppwörter und Mindestlänge. Ein Wort darf Anfang des anderen sein. Neuester vorhandener Stand je amtlicher Kennung; Reihung nach Kennung, keine Relevanzpunkte. Bestand, Treffer und Auswahlgrenzen stehen am Auftrag."),
         registerschluessel="quellenkontext-hoechstzahl",
+    ),
+    Regel(
+        modul="faktenbestand.py",
+        titel=_("Nachweis des gespeicherten Quellenbestands"),
+        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen ihre gespeicherten Prüfsummen zu. Keine neue Prüfung der Originale, keine amtliche Signatur und keine Bestätigung rechtlicher Aktualität oder Vollständigkeit."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-04",
+        grund=_("Erste Fassung: einen unveränderten lokalen Bestand nachrechenbar wiedererkennen, ohne Quellen abzurufen oder bereits verwendete Modellkontexte zu ändern."),
+        nachrechenbar=_("Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."),
+        registerschluessel="faktenbasis-bestandsnachweis-hoechstzahl",
     ),
     Regel(
         modul="losziehung.py",

@@ -1,6 +1,48 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.28** (4.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.29** (4.11.2026)*
+
+Seit1.29 ergänzt `sources.inventory_max_records` (`faktenbasis-bestandsnachweis-hoechstzahl`,
+Einheit snapshots) den ausschließlich lesenden Nachweis des lokalen Quellenbestands.
+Standard2000,0deaktiviert, technische Obergrenze10000. Ein vorhandener unlesbarer Wert
+sperrt den Nachweis; fehlender Eintrag verwendet den Standard. Keine Verfahrensordnung.
+
+### Bestandsnachweis Fassung1
+
+`GET /zukunftswerkstatt/faktenbasis/bestand/` zeigt den lokalen Bestand;
+`GET /zukunftswerkstatt/faktenbasis/bestand.json` liefert `inhalt`, `sha256`,
+`erstellt_am` (ISO8601) und `hoechstzahl`. `inhalt` enthält `fassung:1`,
+`sammlungen` und `eintraege`. Sammlungen sind nach Kennung geordnet, mit
+`sammlung`, `hash_bezug`, `anzahl`. Jeder Eintrag enthält ausschließlich
+`sammlung`, `nummer` (positive lokale Datensatznummer) und `pruefsumme`.
+Einträge sind nach Sammlungskennung und numerisch aufsteigender Nummer gereiht.
+
+Hashbezüge: `norm` → `kanonische_metadaten_json` (Data-Objekt der amtlichen
+Antwort), `normtext` → `original_xml_bytes`, `personalaggregat` und
+`personalressorttabelle` → `original_pdf_bytes`. Mehrere Einträge können aus
+derselben Originaldatei stammen. Einträge zählen Schnappschüsse, keine Gesetze
+oder Personen. Der Nachweis prüft die Zuordnung gespeicherter Nummern/Hashes,
+er rechnet nicht die Originaldateien erneut nach. Er ist weder amtliche
+Signatur noch Vollständigkeits- oder rechtlicher Aktualitätsnachweis; keine
+Änderung bereits verwendeter Modellkontexte.
+
+Nachrechnung in Python ohne Zusatzpaket:
+
+```python
+import hashlib, json
+raw = json.dumps(download["inhalt"], ensure_ascii=False, sort_keys=True,
+                 separators=(",", ":"), allow_nan=False).encode("utf-8")
+assert hashlib.sha256(raw).hexdigest() == download["sha256"]
+```
+
+Nur `inhalt` gehört zum Hash, nicht Erzeugungszeit/Betriebsgrenze. Vier Sammlungen
+werden in einem Datenbankstatement gelesen; der Stand ist auf diesen Abfragezustand
+begrenzt. `?sha256=<angezeigter Hash>` bindet den Download an die Anzeige:
+400bei ungültigem Hash,409bei verändertem Bestand. 503bei ungültiger Grenze,
+Überschreitung oder defekter Zuordnung, dann nur `fehler`/`meldung`, kein
+Teilinhalt/Hash. 0sperrt auch den leeren Nachweis. POST405; keine Abrufe/Schreibwirkungen.
+Die Endpunkte verwenden `no-store`; kein unveränderliches öffentliches Archiv
+dieser dynamischen Zusammenstellung wird behauptet.
 
 Seit1.28 begrenzt `legal_effects.total_input_chars` (`rechtsfolgen-eingabezeichen`,
 Zeichen, Standard30000, technisch1bis100000) die vollständige neue öffentliche

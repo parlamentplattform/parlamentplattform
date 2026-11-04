@@ -1,6 +1,14 @@
 # Amtliche Quellen der Zukunftswerkstatt
 
-Die Sammlung bewahrt gezielt amtliche Metadaten und einzeln abgerufene Dokumenttexte des konsolidierten Bundesrechts. Öffentlich nachlesbar unter /zukunftswerkstatt/faktenbasis/. Sie ist keine vollständige Gesetzesdatenbank und enthält noch keine geprüften NormVerweis-Kanten oder Personalangaben. Modelle können diese Sammlung nicht befüllen; ihre rechtlichen Zuordnungen bleiben Vorschläge.
+Seit0.77.0 zeigt `/zukunftswerkstatt/faktenbasis/bestand/` einen nachrechenbaren
+Nachweis aller lokal gespeicherten Norm-, Dokumenttext- und Personalstände.
+Der Download ist an den angezeigten Hash gebunden. Keine erneute Originalprüfung,
+keine Aussage zur vollständigen/aktuellen Rechtsordnung und keine Kontextänderung.
+Aufbau, Hashbezüge, Grenzen und Nachrechnung stehen in `docs/SCHEMA.md`
+(Bestandsnachweis Fassung1). Nur eine konsistente Datenbank-Leseabfrage, keine
+Netz- oder Modellaufrufe. Die Registergrenze schneidet keine Teilmenge ab.
+
+Die Sammlung bewahrt gezielt amtliche Metadaten und einzeln abgerufene Dokumenttexte des konsolidierten Bundes- und Landesrechts. Öffentlich nachlesbar unter /zukunftswerkstatt/faktenbasis/. Gesonderte amtliche Personal-Gesamtbelege und Ressorttabellen bleiben als eigene Schnappschüsse nachlesbar; daraus entstehen keine belegten quantitativen Personalfolgen eines Antrags. Die Sammlung ist keine vollständige Gesetzesdatenbank und enthält noch keine geprüften NormVerweis-Kanten. Modelle können sie nicht befüllen; ihre rechtlichen Zuordnungen bleiben Vorschläge.
 
 Ein Betreiber kann einen kleinen Einzelbezug auslösen:
 

@@ -6,6 +6,7 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Deploy und Alarm auf `main` warten jetzt auch auf `sichtpruefung`. Zuvor konnte der Deploy nach den beiden Python-Prüfungen, PostgreSQL und Sicherung anlaufen, obwohl die Bildschirmtests noch liefen oder scheiterten. Alle fünf bestehenden Pflichtprüfungen sind damit Voraussetzung; ein Browserfehler erreicht ebenfalls den sichtbaren Alarm.
 - Zwei rote Konfigurationsgegenproben belegen die fehlenden Abhängigkeiten vor der Korrektur. Keine neuen Trigger, Berechtigungen, Dienste oder Prüfungsumgehung; der Deploy bleibt auf den Push zu `main` begrenzt. Fachcode, Datenbank, Regeln, Parameter und laufende Verfahren bleiben unverändert.
+- Vollständig auf Sourced18c384 mit Python3.12 geprüft:3306 Tests bestanden, sechs übersprungen, Kern98%; zusätzlich3099 Tests gegen isoliertes PostgreSQL16.15 in525.39s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.45 gezielte Freigabe-/Betriebs-/Katalog-/Versionsprüfungen, Ruff/System-/Migrationscheck und Katalog3283 grün. Die zuvor vollständig geprüften CSP-/XML- und S11-Teile sind enthalten; fünf neue GitHub-Pflichtprüfungen sowie tatsächliche Auslieferung bleiben offen.
 
 ## [0.76.0] — 2026-11-04 · Den UTF-8-Vertrag beim amtlichen XML tatsächlich erzwingen
 

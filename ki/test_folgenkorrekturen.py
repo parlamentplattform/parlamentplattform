@@ -134,6 +134,20 @@ def test_fremder_kontextbeifang_wird_weder_angezeigt_noch_exportiert(fall):
     assert "KEIN_OEFFENTLICHER_BEIFANG" not in json.dumps(export(a))
 
 
+def test_folgenkorrektur_verwirft_auftrag_als_fliesskommazahl_ohne_lesefehler(fall):
+    a, m, r, alt, b = fall
+    job = anfordern(b, m)
+    assert auftrag_ausfuehren(job.pk) == "erledigt"
+    job.refresh_from_db()
+    daten = {f.attname: copy.deepcopy(getattr(job.lauf, f.attname)) for f in KILauf._meta.concrete_fields if f.name != "id"}
+    daten["kontext"]["auftrag"] = float(job.pk)
+    fremd = KILauf.objects.create(**daten)
+    KIAuftrag.objects.filter(pk=job.pk).update(lauf=fremd)
+    job.refresh_from_db()
+    assert stand(job) == {"zustand": "fehler"}
+    assert export(a) == [{"auftrag": job.pk, "zustand": "fehler"}]
+
+
 @pytest.mark.parametrize("sperre", ["ruht", "fremd", "testkonto", "ungeprueft"])
 def test_neuer_korrekturweg_hat_dieselben_rechtegrenzen(fall, sperre):
     a, m, r, alt, b = fall

@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.77.1] — 2026-11-04 · Interne Zusatzfelder aus alten Korrekturexporten ausschließen
+
+- Alte Korrekturläufe konnten zusätzliche Kontextfelder öffentlich ausgeben, während neue Folgenkorrekturen die äußere Feldmenge bereits begrenzten. Alle drei Promptfassungen prüfen jetzt dieselbe feste Text-/Quellenbindung und ganzzahlige Auftrags-/Versuchskennung; fremde ausgewählte Läufe erhalten den vorhandenen Fehlerzustand, fremde Zusatzversuche erscheinen nicht im öffentlichen Archiv.
+- Auch wartende alte Korrekturrahmen werden vollständig vor ihrer öffentlichen Ausgabe geprüft: ausschließlich bekannte Wurzel-, Text- und Beanstandungsfelder, gültiger ursprünglicher Eingabevertrag. Ein neu gebildeter Hash allein macht unbekannte Felder nicht öffentlich.36 rote Gegenproben belegen die Lücken vor dem Fix; gültige alte Varianten bleiben unverändert lesbar.
+- Keine archivierten Daten bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Policy-, Stimmen-, Fristen- oder Budgetänderung. Schema1.29 und bestehende Katalogtexte bleiben unverändert. Noch keine vollständige Prüf-/CI-/Liveabnahme dieses Patches.
+
 ## [0.77.0] — 2026-11-04 · Den lokal gespeicherten Quellenbestand nachrechnen
 
 - Eigene öffentliche Nachweisseite und JSON-Download für sämtliche lokal gespeicherten Norm-Metadaten-, Dokumenttext- und Personalstände. Eine Datenbankabfrage liest alle vier Sammlungen; neutrale Datensatznummern, gespeicherte Prüfsummen und deren unterschiedliche Bezüge werden offengelegt. Identischer Bestand ergibt denselben SHA-256 des kanonischen Nachweisinhalts.

@@ -7,6 +7,17 @@ Einheit snapshots) den ausschließlich lesenden Nachweis des lokalen Quellenbest
 Standard2000,0deaktiviert, technische Obergrenze10000. Ein vorhandener unlesbarer Wert
 sperrt den Nachweis; fehlender Eintrag verwendet den Standard. Keine Verfahrensordnung.
 
+### Datenschutzgrenze älterer Korrekturläufe (0.77.1)
+
+Datenschutzkorrektur0.77.1: Öffentliche `rechtsbezug.korrekturen` prüfen auch bei
+den alten Korrektur-Promptfassungen1/2 die feste äußere Kontextfeldmenge und die
+Text-/Quellenbindung. Ein fehlerhafter ausgewählter Lauf oder wartender Rahmen
+ergibt den bestehenden Fehlerzustand; fremde Zusatzversuche werden nicht ausgegeben.
+Gültige Altverträge einschließlich einer ausdrücklich leeren Folgenangabe bleiben
+lesbar. Unbekannte zusätzliche Rahmen-/Text-/Beanstandungsfelder werden durch
+einen neu berechneten Hash nicht zu öffentlichen Angaben. Originale bleiben
+gespeichert; keine neue Datenform, nachträgliche Reparatur oder Quellenanreicherung.
+
 ### Bestandsnachweis Fassung1
 
 `GET /zukunftswerkstatt/faktenbasis/bestand/` zeigt den lokalen Bestand;

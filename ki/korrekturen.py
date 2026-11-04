@@ -122,10 +122,15 @@ def _oeffentlicher_lauf(auftrag, lauf=None):
             or k.kontext.get("folgen", {}) != auftrag.folgenkontext
             or k.auftrag_version != f"korrektur-v{nummer}" or k.eingabe != eingabe):
         raise ValueError("Kein zugehöriger Korrekturlauf.")
-    if nummer == 3 and (set(k.kontext) != {"text", "quellen", "folgen", "korrektur", "auftrag", "versuch"}
+    basis = {"text", "quellen", "korrektur", "auftrag", "versuch"}
+    # Auch die alten Prompts sind kein Freibrief für zusätzliche interne Felder.
+    # Eine ausdrücklich leere Folgenangabe bei Altverträgen bleibt lesbar.
+    erlaubt = (basis | {"folgen"},) if nummer == 3 else (basis, basis | {"folgen"})
+    if (set(k.kontext) not in erlaubt
             or k.kontext.get("text") != auftrag.kontext or k.kontext.get("quellen") != auftrag.quellenkontext
+            or type(k.kontext.get("auftrag")) is not int
             or type(k.kontext.get("versuch")) is not int or k.kontext["versuch"] < 1):
-        raise ValueError("Fremder Beifang im öffentlichen Folgen-Korrekturlauf.")
+        raise ValueError("Fremder Beifang im öffentlichen Korrekturlauf.")
     return k
 
 

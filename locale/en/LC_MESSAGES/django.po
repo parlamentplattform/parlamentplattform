@@ -11427,3 +11427,24 @@ msgstr "At most %(grenze)s configurations — delete or overwrite one first."
 
 msgid "Höchstens %(grenze)s Konfigurationen — bitte zuerst eine löschen oder überschreiben."
 msgstr "At most %(grenze)s configurations — please delete or overwrite one first."
+
+msgid "Örtlicher Teilnehmerkreis über den Hauptwohnsitz"
+msgstr "Local participation based on primary residence"
+
+msgid "Bestimmt das Gebiet neuer Verfahren aus der tatsächlichen Hauptgemeinde. Nebenwohnsitze zählen nicht. Die Gebietsmenge und die örtlich zugehörigen Konten werden bei Einbringung festgehalten; allgemeine Mitgliedsrechte gelten zusätzlich zum jeweiligen Stichtag."
+msgstr "Determines the area of new proceedings from the actual primary municipality. Secondary residences do not count. The area and locally associated accounts are recorded when the motion is submitted; general membership requirements also apply at their respective reference dates."
+
+msgid "Erste Fassung nach der Entscheidung für den tatsächlich gemeldeten Hauptwohnsitz als Selbstauskunft. Historische Verfahren werden nicht nachträglich örtlich begrenzt."
+msgstr "First version following the decision to use self-declared, actually registered primary residence. Historical proceedings are not retrospectively restricted to a local area."
+
+msgid "Gemeindekennziffern aufsteigend ordnen; Gemeinde durch ihre einzelne Kennziffer, Land und Bezirk durch die festgehaltene Gemeindemenge innerhalb desselben Landes abgrenzen. Die abgeleitete Gebietskennung enthält deren SHA-256-Prüfsumme. Keine amtliche Bezirksnummer und keine öffentliche Liste persönlicher Zuordnungen; die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."
+msgstr "Sort municipality codes in ascending order; identify a municipality by its single code and a state or district by the recorded set of municipalities within the same state. The derived area identifier contains the SHA-256 checksum of that set. This is neither an official district code nor a public list of personal associations; individual membership in the area is checked against the protected circle recorded at the time."
+
+msgid "Technische Vorbereitung: noch nicht an die Einbringung und Handlungswege angeschlossen. Wiener Gemeindebezirke sind im vorhandenen Stamm nicht getrennt erfasst."
+msgstr "Technical groundwork: not yet connected to submission and action flows. Vienna municipal districts are not individually represented in the existing directory."
+
+msgid "Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."
+msgstr "A recorded local participant circle remains unchanged."
+
+msgid "Ein örtlicher Teilnehmerkreis kann nur bei Einbringung festgehalten werden."
+msgstr "A local participant circle can only be recorded when the motion is submitted."

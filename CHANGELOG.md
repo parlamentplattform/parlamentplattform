@@ -6,7 +6,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Eigene öffentliche Nachweisseite und JSON-Download für sämtliche lokal gespeicherten Norm-Metadaten-, Dokumenttext- und Personalstände. Eine Datenbankabfrage liest alle vier Sammlungen; neutrale Datensatznummern, gespeicherte Prüfsummen und deren unterschiedliche Bezüge werden offengelegt. Identischer Bestand ergibt denselben SHA-256 des kanonischen Nachweisinhalts.
 - Der Downloadlink bindet den angezeigten Hash. Bei inzwischen geändertem Bestand wird ein neuer Seitenaufruf verlangt. Bei ungültigen Zuordnungen oder überschrittener/deaktivierter Registergrenze kein Teilnachweis. Neuer Parameter `sources.inventory_max_records`, Schema1.29 und offengelegte Darstellungsregel Fassung1; bestehende Verfahrensregeln und Modellkontexte bleiben unverändert.
-- Keine erneute Originalprüfung, amtliche Signatur, Vollständigkeit der Rechtsordnung oder juristische Aktualität behauptet. Keine Quellenabrufe, Modellaufrufe, Datenänderungen oder neue Abhängigkeiten. Die Prüfung vor der Auslieferung ist noch offen.
+- Keine erneute Originalprüfung, amtliche Signatur, Vollständigkeit der Rechtsordnung oder juristische Aktualität behauptet. Keine Quellenabrufe, Modellaufrufe, Datenänderungen oder neue Abhängigkeiten.
+- Vollständig auf Source2806193 mit Python3.12 geprüft:3357 Tests bestanden, sechs unverändert übersprungen,969.76s,Kern98%; zusätzlich3146 Tests gegen isoliertes PostgreSQL16.15 in544.34s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.115 integrierte und47 gezielte PostgreSQL-Gegenproben sowievier Browserzustände/acht Bilder grün; Katalog3308 vollständig, Ruff/System-/Migrationscheck grün. Fünf neue GitHub-Pflichtprüfungen und tatsächliche Auslieferung bleiben offen.
 
 ## [0.76.1] — 2026-11-04 · Bildschirmtests als wirkliche Auslieferungssperre
 

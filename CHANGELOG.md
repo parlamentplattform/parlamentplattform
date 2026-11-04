@@ -6,7 +6,8 @@ Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung na
 
 - Alte Korrekturläufe konnten zusätzliche Kontextfelder öffentlich ausgeben, während neue Folgenkorrekturen die äußere Feldmenge bereits begrenzten. Alle drei Promptfassungen prüfen jetzt dieselbe feste Text-/Quellenbindung und ganzzahlige Auftrags-/Versuchskennung; fremde ausgewählte Läufe erhalten den vorhandenen Fehlerzustand, fremde Zusatzversuche erscheinen nicht im öffentlichen Archiv.
 - Auch wartende alte Korrekturrahmen werden vollständig vor ihrer öffentlichen Ausgabe geprüft: ausschließlich bekannte Wurzel-, Text- und Beanstandungsfelder, gültiger ursprünglicher Eingabevertrag. Ein neu gebildeter Hash allein macht unbekannte Felder nicht öffentlich.36 rote Gegenproben belegen die Lücken vor dem Fix; gültige alte Varianten bleiben unverändert lesbar.
-- Keine archivierten Daten bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Policy-, Stimmen-, Fristen- oder Budgetänderung. Schema1.29 und bestehende Katalogtexte bleiben unverändert. Noch keine vollständige Prüf-/CI-/Liveabnahme dieses Patches.
+- Keine archivierten Daten bereinigt, gelöscht oder neu gehasht; keine Migration, Prompt-, Policy-, Stimmen-, Fristen- oder Budgetänderung. Schema1.29 und bestehende Katalogtexte bleiben unverändert.
+- Vollständig auf Source01134ba mit Python3.12 geprüft:3440 Tests bestanden, sechs unverändert übersprungen,969.09s,Kern98%; zusätzlich3225 Tests gegen isoliertes PostgreSQL16.15 in543.54s, Sammlung wie im PostgreSQL-Pflichtjob ohne Browser.202 integrierte und121 gezielte PostgreSQL-Gegenproben sowievier Browserzustände/acht Bilder grün; Katalog3308 vollständig, Ruff/System-/Migrationscheck grün. Nachträglich ausschließlich diese Prüfdokumentation; neue GitHub-Pflichtprüfungen und tatsächliche Auslieferung bleiben offen.
 
 ## [0.77.0] — 2026-11-04 · Den lokal gespeicherten Quellenbestand nachrechnen
 

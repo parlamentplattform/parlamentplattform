@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.76.0] — 2026-11-04 · Den UTF-8-Vertrag beim amtlichen XML tatsächlich erzwingen
+
+- BOM-loses UTF-16 mit ASCII-Inhalten konnte den vorgeschalteten DTD-/Verarbeitungsanweisungs-Scan umgehen, obwohl nur UTF-8 vereinbart war. Nullzeichen werden jetzt vor dem XML-Parser abgewiesen; dessen Kodierung ist ausdrücklich UTF-8. Winzige lokale Regressionen belegen den Fehler vor und die Ablehnung nach der Korrektur, ohne externe Entitäten, Netz- oder Lastprobe.
+- Neue ausdrücklich angeforderte Dokumenttexte erhalten Parserfassung3. Gespeicherte Auswertungen der Fassungen1/2, Originalbytes, Hashes, Erfassungsdaten und damalige Modellkontexte bleiben erhalten. Fehlerhafte neue Bezüge ersetzen keinen gültigen Stand. Keine Migration, automatische Neuberechnung, Produktionsbefüllung oder Änderung von Verfahrensregeln, Rechten, Fristen und Budgetwerten.
+
 ## [0.75.0] — 2026-11-04 · Browserquellen mit einer Content-Security-Policy begrenzen
 
 - HTML-Antworten erhalten einen wirksamen CSP-Header für eigene Skripte, Verbindungen, Schriften und Manifestdateien. Inline- und Fremdskripte, native Inline-Handler, fremde Formularziele, Basisadressen, Frames und Objekte werden nicht freigegeben. Ein bestehender CSP-Header bleibt erhalten; PDF-, JSON- und Bildantworten bleiben unverändert.

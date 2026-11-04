@@ -70,7 +70,7 @@ def test_land_kennungen_und_bundesland_binden_den_originaltext():
     text = xmltext_parsen(raw, RIS_ID, NUMMER, bundesland="Oberösterreich")
     assert text.xml == raw and text.xml_hash == hashlib.sha256(raw).hexdigest()
     assert text.text == "Synthetischer Landeswortlaut\nZweite Zeile\tFeld"
-    assert PARSER_FASSUNG == 2
+    assert PARSER_FASSUNG == 3
 
 
 @pytest.mark.parametrize("fehler", ["land", "kein_land", "bundeskennung", "fremde_nummer", "doctype", "verarbeitung", "namensraum"])
@@ -123,18 +123,20 @@ def test_nur_die_genau_benannte_land_originalquelle(landnorm, fehler):
         xml_adresse(roh, RIS_ID, bundesland="Oberösterreich")
 
 
-def test_neue_parserfassung_erhaelt_alte_auswertung_und_originalbytes(landnorm, textquelle):
+@pytest.mark.parametrize("fruehere_fassung", [1, 2])
+def test_neue_parserfassung_erhaelt_alte_auswertung_und_originalbytes(landnorm, textquelle, fruehere_fassung):
     raw = xml_beispiel()
     alt = NormText.objects.create(norm=landnorm, quelle=QUELLE, xml=raw, text="Frühere erhaltene Projektion",
-        xml_hash=hashlib.sha256(raw).hexdigest(), parser_fassung=1)
+        xml_hash=hashlib.sha256(raw).hexdigest(), parser_fassung=fruehere_fassung)
     altzeit = alt.erfasst_am
     neu = volltext.importieren(landnorm)
     wieder = volltext.importieren(landnorm)
     alt.refresh_from_db()
     assert neu.inhalt_id != alt.pk and neu.neu and not wieder.neu
-    assert neu.inhalt.parser_fassung == 2 and wieder.inhalt_id == neu.inhalt_id
+    assert neu.inhalt.parser_fassung == PARSER_FASSUNG == 3 and wieder.inhalt_id == neu.inhalt_id
     assert NormText.objects.count() == NormTextAbruf.objects.count() == 2
     assert alt.text == "Frühere erhaltene Projektion" and alt.erfasst_am == altzeit and bytes(alt.xml) == raw
+    assert alt.parser_fassung == fruehere_fassung
 
 
 def test_falsches_xml_nach_erfolg_erhaelt_den_frueheren_text(landnorm, textquelle):
@@ -170,7 +172,7 @@ def test_bestehender_admin_weg_csrf_und_get_sperren(landnorm, textquelle, client
     assert csrf.post(url).status_code == 403 and not textquelle[1]
     assert "Diesen Dokumenttext einmal abrufen" in client.get(reverse("faktenbasis:norm", args=[landnorm.pk])).content.decode()
     assert client.post(url).status_code == 302 and len(textquelle[1]) == 1
-    assert NormText.objects.get().parser_fassung == 2
+    assert NormText.objects.get().parser_fassung == PARSER_FASSUNG == 3
     assert AuditEintrag.objects.last().ereignis["aktion"] == "faktenbasis_dokumenttext"
 
 
@@ -184,4 +186,4 @@ def test_bestehender_cli_weg_importiert_einen_landestext(landnorm, textquelle):
     out = StringIO()
     call_command("ris_volltext", "--norm", str(landnorm.pk), stdout=out)
     assert "Dokumenttext" in out.getvalue() and len(textquelle[1]) == 1
-    assert NormText.objects.get().parser_fassung == 2
+    assert NormText.objects.get().parser_fassung == PARSER_FASSUNG == 3

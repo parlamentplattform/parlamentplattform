@@ -12,7 +12,7 @@ from xml.etree import ElementTree
 from faktenbasis.ris import GESETZESNUMMER, HOECHSTBYTES, KENNUNG, RisFehler
 
 NAMENSRAUM = "http://www.bka.gv.at"
-PARSER_FASSUNG = 2
+PARSER_FASSUNG = 3
 
 
 def _liste(wert):
@@ -79,12 +79,17 @@ def xmltext_parsen(inhalt: bytes, ris_id: str, gesetzesnummer: str, *, bundeslan
         raise RisFehler("antwortgroesse")
     try:
         xml = inhalt.decode("utf-8-sig")
+        # BOM-loses UTF16 mit ASCII-Inhalt lässt sich auch als UTF8 mit Nullzeichen
+        # dekodieren. Expat könnte es danach neu erkennen und den DTD-/PI-Vorscan
+        # umgehen. Nullzeichen sind kein gültiges XML; nur denselben UTF8-Strom parsen.
+        if "\x00" in xml:
+            raise RisFehler("volltextformat")
         if re.search(r"<!\s*(?:DOCTYPE|ENTITY)\b", xml, flags=re.IGNORECASE):
             raise RisFehler("xmldeklaration")
         # Keine Verarbeitungsanweisung außer der eigentlichen XML-Deklaration.
         if re.search(r"<\?(?!xml\s)", xml, flags=re.IGNORECASE):
             raise RisFehler("xmldeklaration")
-        wurzel = ElementTree.fromstring(xml)
+        wurzel = ElementTree.fromstring(xml, parser=ElementTree.XMLParser(encoding="utf-8"))
     except (UnicodeError, ElementTree.ParseError, ValueError) as fehler:
         if isinstance(fehler, RisFehler):
             raise

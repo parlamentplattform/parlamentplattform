@@ -140,19 +140,21 @@ def test_anzeige_und_export_nennen_denselben_rahmen_originale_bleiben_gleich(a, 
     assert "dieser Vergleich löst keinen Modelllauf aus" in html
 
 
-def test_alter_bundes_kontext_behaelt_textfassung1_trotz_neuer_textauswertung(norm, xml):  # noqa: F811
+@pytest.mark.parametrize("historischer_parser", [1, 2])
+def test_alter_bundes_kontext_behaelt_textfassung_trotz_neuer_textauswertung(norm, xml, historischer_parser):  # noqa: F811
     import hashlib
 
     from faktenbasis.kontext import pruefen
+    from faktenbasis.xmltext import PARSER_FASSUNG
 
     alt = NormText.objects.create(norm=norm, quelle=norm.rohdaten["Dokumentliste"]["ContentReference"]["Urls"]["ContentUrl"][0]["Url"],
-        xml=xml[0], text="Erhaltene frühere Textprojektion", xml_hash=hashlib.sha256(xml[0]).hexdigest(), parser_fassung=1)
+        xml=xml[0], text="Erhaltene frühere Textprojektion", xml_hash=hashlib.sha256(xml[0]).hexdigest(), parser_fassung=historischer_parser)
     rahmen = festhalten([norm.pk], hoechstzahl=3, textzeichen=50)
     vorher = copy.deepcopy(rahmen)
     neu = volltext.importieren(norm).inhalt
-    assert neu.parser_fassung == 2 and neu.xml_hash == alt.xml_hash and neu.pk != alt.pk
-    assert pruefen(rahmen)["quellen"][0]["dokumenttext"]["parser_fassung"] == 1
+    assert neu.parser_fassung == PARSER_FASSUNG == 3 and neu.xml_hash == alt.xml_hash and neu.pk != alt.pk
+    assert pruefen(rahmen)["quellen"][0]["dokumenttext"]["parser_fassung"] == historischer_parser
     vergleich = abgleichen(rahmen)
     assert vergleich["quellen"][0]["dokument_spaeter"]
-    assert vergleich["gegenuebergestellte_quellen"][0]["text_parser"] == 2
+    assert vergleich["gegenuebergestellte_quellen"][0]["text_parser"] == PARSER_FASSUNG
     assert rahmen == vorher and NormText.objects.get(pk=alt.pk).text == "Erhaltene frühere Textprojektion"

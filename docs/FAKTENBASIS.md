@@ -20,6 +20,20 @@ Der Registerwert faktenbasis-manuelle-abrufe-je-stunde (Schema sources.manual_re
 
 Die öffentlichen Norm-Schnappschüsse stammen aus den amtlichen Metadaten; die Frage, ob eine Norm für einen Antrag relevant ist oder geändert werden müsste, wird dadurch nicht verifiziert. Konsolidiertes Recht dient der Information; rechtlich verbindlich ist die authentische Kundmachung.
 
+## UTF-8 und erhaltene Textauswertungen ab0.76.0
+
+Neue ausdrückliche Einzelimporte verwenden Textparserfassung3. Der vorgeschaltete
+DTD-/Verarbeitungsanweisungs-Scan und der XML-Parser verarbeiten denselben UTF-8-Text;
+Nullzeichen sowie UTF-16-/UTF-32-Bytestromfolgen werden abgewiesen. Ein optionales
+UTF-8-BOM, Umlaute und die unveränderten Originalbytes samt SHA-256 bleiben erhalten.
+Die Änderung korrigiert die Annahme BOM-losen UTF-16-ASCII-XMLs trotz UTF-8-Vorscan.
+
+Frühere Auswertungen der Fassungen1/2 werden weder geändert noch gelöscht. Dieselben
+gültigen Originalbytes können bei einem späteren ausdrücklich ausgelösten Import einen
+zusätzlichen Stand mit Fassung3 ergeben. Ein fehlgeschlagener Bezug bleibt als Fehler
+nachlesbar; er ersetzt keine gespeicherten Texte oder damaligen Modellkontexte. Es gibt
+keine automatische Reparatur, Neuberechnung oder Produktionsbefüllung.
+
 Einzelne Originaltexte ab Version 0.57.0:
 
     python manage.py ris_volltext --norm <ID-des-Metadaten-Schnappschusses>

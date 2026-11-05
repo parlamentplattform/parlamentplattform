@@ -1,6 +1,7 @@
 """Amtliche Metadaten als unveränderliche Schnappschüsse, getrennt von KI-Vorschlägen."""
 
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -54,6 +55,7 @@ class RisImport(Schnappschuss):
     bundesland = models.CharField(max_length=30, blank=True, default="")
     gesetzesnummer = models.CharField(max_length=8)
     stand = models.DateField()
+    seite = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1), MaxValueValidator(2147483647)])
     begonnen_am = models.DateTimeField(default=timezone.now)
     beendet_am = models.DateTimeField(default=timezone.now)
     erfolgreich = models.BooleanField()

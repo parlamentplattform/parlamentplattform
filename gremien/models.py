@@ -121,7 +121,7 @@ class Rolle(models.Model):
     def aktive(cls, gremium: str):
         """Die aktiven Rollen eines Gremiums — nicht beendet, nicht ruhend, nicht abgelaufen."""
         return cls.objects.filter(
-            gremium=gremium, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
+            gremium=gremium, mitglied__parteikonto=True, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
         )
 
     @classmethod
@@ -129,7 +129,7 @@ class Rolle(models.Model):
         """Alle aktiven Rollen eines Mitglieds über alle Gremien — die Menge, die eine verlorene
         Vertrauensfrage ruhen lässt (§ 7 Abs 10 lit f Z 1)."""
         return cls.objects.filter(
-            mitglied=mitglied, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
+            mitglied=mitglied, mitglied__parteikonto=True, beendet_grund="", ruht_seit__isnull=True, endet_am__gte=timezone.localdate()
         )
 
     @staticmethod
@@ -148,7 +148,7 @@ class Rolle(models.Model):
         Das öffnet den Bereich. Ob dort auch geschrieben werden darf, entscheidet `hat_fuer`:
         Wer für einen Antrag gelost wurde, sieht die Werkstatt — schreiben darf er nur an
         seinem eigenen."""
-        if not getattr(mitglied, "is_authenticated", False):
+        if not getattr(mitglied, "is_authenticated", False) or not mitglied.parteikonto:
             return False
         return cls.objects.filter(
             mitglied=mitglied,
@@ -165,7 +165,7 @@ class Rolle(models.Model):
         Wer eine Rolle hatte, liest den Bereich weiter (mit Band); schreiben darf nur, wer
         eine aktive hat. Ohne diesen Lesezugang verschwände mit dem Ablaufdatum auch die
         Möglichkeit, das eigene Wirken nachzulesen."""
-        if not getattr(mitglied, "is_authenticated", False):
+        if not getattr(mitglied, "is_authenticated", False) or not mitglied.parteikonto:
             return None
         return cls.objects.filter(mitglied=mitglied, gremium__in=gremien).order_by("-endet_am").first()
 

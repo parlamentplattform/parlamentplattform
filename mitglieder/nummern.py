@@ -6,7 +6,7 @@ from mitglieder.models import Mitglied, Mitgliedsnummernkreis
 
 
 def sicherstellen(mitglied):
-    if mitglied.testkonto:
+    if not mitglied.parteikonto or mitglied.testkonto:
         return None
     if mitglied.mitgliedsnummer is not None:
         return mitglied.mitgliedsnummer
@@ -15,7 +15,7 @@ def sicherstellen(mitglied):
         # UPDATE sperrt denselben Zähler auch bei parallelen Erstvergaben.
         Mitgliedsnummernkreis.objects.filter(pk=1).update(naechste=F("naechste") + 1)
         m = Mitglied.objects.get(pk=mitglied.pk)
-        if m.testkonto:
+        if not m.parteikonto or m.testkonto:
             raise ValueError("Testkonten erhalten keine Mitgliedsnummer.")
         if m.mitgliedsnummer is None:
             m.mitgliedsnummer = Mitgliedsnummernkreis.objects.get(pk=1).naechste - 1

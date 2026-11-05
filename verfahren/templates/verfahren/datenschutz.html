@@ -10,6 +10,12 @@
   <p class="untertitel">{% blocktranslate with stand=stand %}Stand: {{ stand }}.{% endblocktranslate %}</p>
 </section>
 
+<div class="karte" id="gemeindekonto">
+  <h2>{% translate "Gemeindekonto ohne Parteibeitritt" %}</h2>
+  {% include "mitglieder/_gemeinde_datenschutz.html" %}
+  <p>{% translate "Ihre Gemeindeangaben können Sie im Gemeindezugang herunterladen und den Hauptwohnsitz dort ändern. Für die Berichtigung weiterer Daten oder die Schließung des Kontos schreiben Sie an plattform@ddoe.at. Eine E-Mail-Bestätigung löst keine Mitgliedschaft, Parteipost oder Beitragspflicht aus." %}</p>
+</div>
+
 <div class="karte" id="verantwortlicher">
   <h2>{% translate "Verantwortlicher" %}</h2>
   <p>{% blocktranslate %}Direkte Demokratie Österreich (DDÖ), Unterfreundorf 17, 4076 Unterfreundorf, Österreich.

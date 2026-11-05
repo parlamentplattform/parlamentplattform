@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 20
+VERSION = 22
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,25 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="gemeindezugang.py", titel=_("Altersgrenze der Gemeindeanmeldung"),
+        zweck=_("Prüft bei der freiwilligen Gemeindeanmeldung das vollendete 16. Lebensjahr. Diese Anmeldung begründet keine Parteimitgliedschaft oder Abstimmungszulassung."),
+        wirkung=Wirkung.ENTSCHEIDET, satzung="Gründerentscheidung vom 4.11.2026", fassung=1, seit="2026-11-04",
+        grund=_("Eigenständiger Einwohnerzugang ohne Parteibeitritt und unabhängig von der Staatsangehörigkeit."),
+        nachrechenbar=_("Anmeldejahr minus Geburtsjahr; liegt der Geburtstag im Anmeldejahr noch in der Zukunft, ein Jahr abziehen. Mindestens 16 vollendete Jahre. Das Geburtsdatum wird nicht gespeichert."),
+        luecke=_("Alter und Hauptwohnsitz sind Selbstauskünfte. E-Mail-Bestätigung ist kein Identitäts- oder Meldenachweis. Stichtage und Personenprüfung für Gemeindeabstimmungen sind gesondert festzulegen."),
+    ),
+    Regel(
+        modul="teilnehmerkreis.py",
+        titel=_("Örtlicher Teilnehmerkreis über den Hauptwohnsitz"),
+        zweck=_("Bestimmt das Gebiet neuer Verfahren aus der tatsächlichen Hauptgemeinde. Nebenwohnsitze zählen nicht. Die Gebietsmenge und die örtlich zugehörigen Konten werden bei Einbringung festgehalten; allgemeine Mitgliedsrechte gelten zusätzlich zum jeweiligen Stichtag."),
+        wirkung=Wirkung.ENTSCHEIDET,
+        satzung="§ 2 Abs 6 · § 5 Abs 5 · Gründerentscheidung vom 4.11.2026",
+        fassung=1, seit="2026-11-04",
+        grund=_("Erste Fassung nach der Entscheidung für den tatsächlich gemeldeten Hauptwohnsitz als Selbstauskunft. Historische Verfahren werden nicht nachträglich örtlich begrenzt."),
+        nachrechenbar=_("Gemeindekennziffern aufsteigend ordnen; Gemeinde durch ihre einzelne Kennziffer, Land und Bezirk durch die festgehaltene Gemeindemenge innerhalb desselben Landes abgrenzen. Die abgeleitete Gebietskennung enthält deren SHA-256-Prüfsumme. Keine amtliche Bezirksnummer und keine öffentliche Liste persönlicher Zuordnungen; die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."),
+        luecke=_("Technische Vorbereitung: noch nicht an die Einbringung und Handlungswege angeschlossen. Wiener Gemeindebezirke sind im vorhandenen Stamm nicht getrennt erfasst."),
+    ),
     Regel(
         modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
         zweck=_("Prüft qualitative Folgenabschnitte und angebotene Quellenreferenzen des getrennten Rechtsfolgenauftrags. Eine passende Form bestätigt keine rechtliche Aussage."),

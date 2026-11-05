@@ -25,7 +25,7 @@ from django.views.decorators.http import require_POST
 
 from ki.anbieter import anbieter_waehlen
 from ki.models import Zweck
-from mitglieder.models import Mitgliedsstatus
+from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
@@ -764,28 +764,36 @@ def _regler_aus_post(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_anwenden(request):
     """P5: Regler anwenden — ins aktive Profil speichern oder als neues Profil
-    anlegen (höchstens fünf). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
+    anlegen (Höchstzahl aus dem Register). Wirkt nur auf die eigene Ansicht (§ 2 Abs 6)."""
+    # Die Grenze gilt auch bei gleichzeitigen Neuanlagen desselben Mitglieds.
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
+    hoechstzahl = FilterProfil.hoechstzahl()
     regler = _regler_aus_post(request)
     favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
     profile = request.user.filterprofile
     name_neu = (request.POST.get("profilname") or "").strip()[:24]
     werte = {"regler": regler, "favoriten_zuerst": favoriten_zuerst}
 
-    zu_viele = _("Höchstens fünf Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+    zu_viele = (
+        _("Höchstens %(grenze)s Konfigurationen — bitte zuerst eine löschen oder überschreiben.")
+        % {"grenze": hoechstzahl}
+        if hoechstzahl else _("Neue Konfigurationen sind gesperrt.")
+    )
     if request.POST.get("als_neues"):
         if not name_neu:
             return _zurueck_zum_parlament(
                 request, "name_fehlt", "error", _("Bitte einen Namen für die neue Konfiguration angeben.")
             )
-        if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL) and not profile.filter(name=name_neu).exists():
+        if profile.count() >= hoechstzahl and not profile.filter(name=name_neu).exists():
             return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
         profil, _egal = FilterProfil.objects.update_or_create(mitglied=request.user, name=name_neu, defaults=werte)
     else:
         profil = profile.filter(aktiv=True).first()
         if profil is None:
-            if profile.count() >= zahl("weicherfilter-profile-hoechstzahl", FilterProfil.HOECHSTZAHL):
+            if profile.count() >= hoechstzahl:
                 return _zurueck_zum_parlament(request, "profile_voll", "error", zu_viele)
             profil, _egal = FilterProfil.objects.get_or_create(
                 mitglied=request.user, name=str(_("Eigenes")), defaults=werte
@@ -922,23 +930,27 @@ def filter_vorschau(request):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_favoriten(request):
     """FB-B1: Schalter „★ Favoriten zuerst“ umschalten — in der aktiven Konfiguration,
     sonst in der Voreinstellung des Mitglieds."""
-    profil = request.user.filterprofile.filter(aktiv=True).first()
+    mitglied = get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
+    profil = mitglied.filterprofile.filter(aktiv=True).first()
     if profil is not None:
         profil.favoriten_zuerst = not profil.favoriten_zuerst
         profil.save(update_fields=["favoriten_zuerst"])
     else:
-        request.user.favoriten_zuerst = not request.user.favoriten_zuerst
-        request.user.save(update_fields=["favoriten_zuerst"])
+        mitglied.favoriten_zuerst = not mitglied.favoriten_zuerst
+        mitglied.save(update_fields=["favoriten_zuerst"])
     return _zurueck_zum_parlament(request)
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_umbenennen(request, pk):
     """FB-B3: Konfiguration umbenennen (≤ 24 Zeichen, je Mitglied eindeutig)."""
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     name = (request.POST.get("name") or "").strip()[:24]
     if not name:
@@ -954,7 +966,9 @@ def filter_umbenennen(request, pk):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_waehlen(request, pk):
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     request.user.filterprofile.update(aktiv=False)
     profil.aktiv = True
@@ -964,15 +978,19 @@ def filter_waehlen(request, pk):
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_neutral(request):
     """Zurück zur strengen Voreinstellung: Phase und Frist, chronologisch."""
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     request.user.filterprofile.update(aktiv=False)
     return _zurueck_zum_parlament(request)
 
 
 @login_required
 @require_POST
+@transaction.atomic
 def filter_loeschen(request, pk):
+    get_object_or_404(Mitglied.objects.select_for_update(), pk=request.user.pk)
     profil = get_object_or_404(FilterProfil, pk=pk, mitglied=request.user)
     profil.delete()
     return _zurueck_zum_parlament(request, "profil_geloescht", "info", _("Profil „%s“ gelöscht.") % profil.name)

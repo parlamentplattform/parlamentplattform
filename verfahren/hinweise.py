@@ -83,7 +83,7 @@ HINWEISE: dict[str, dict] = {
     "name_fehlt": {"text": _("Bitte einen Namen angeben."), "art": "fehler"},
     "name_vergeben": {"text": _("Eine Konfiguration mit diesem Namen gibt es schon."), "art": "fehler"},
     "profile_voll": {
-        "text": _("Höchstens fünf Konfigurationen — zuerst eine löschen oder überschreiben."),
+        "text": _("Höchstens %(grenze)s Konfigurationen — zuerst eine löschen oder überschreiben."),
         "art": "fehler",
     },
 }
@@ -100,6 +100,17 @@ def _link(code: str) -> tuple[str | None, str]:
         return None, ""
 
 
+def _hinweistext(code):
+    if code == "profile_voll":
+        from verfahren.models import FilterProfil
+
+        grenze = FilterProfil.hoechstzahl()
+        if not grenze:
+            return _("Neue Konfigurationen sind gesperrt.")
+        return str(HINWEISE[code]["text"]) % {"grenze": grenze}
+    return HINWEISE[code]["text"]
+
+
 def hinweis_lage(request) -> dict | None:
     """`?hinweis=<code>&feld=<kennung>` der Adresse als Hinweis für die Vorlage — None, wenn
     Code oder Feld unbekannt sind (fremde oder alte Adressen zeigen nichts)."""
@@ -111,7 +122,7 @@ def hinweis_lage(request) -> dict | None:
     return {
         "feld": feld,
         "code": code,
-        "text": HINWEISE[code]["text"],
+        "text": _hinweistext(code),
         "art": HINWEISE[code].get("art", "ok"),
         "link": link,
         "link_text": link_text,
@@ -123,7 +134,7 @@ def kachel_sperre(code: str | None) -> dict | None:
     if not code or code not in HINWEISE:
         return None
     link, link_text = _link(code)
-    return {"code": code, "kurz": HINWEISE[code].get("kurz") or HINWEISE[code]["text"], "link": link, "link_text": link_text}
+    return {"code": code, "kurz": HINWEISE[code].get("kurz") or _hinweistext(code), "link": link, "link_text": link_text}
 
 
 def kachel_feld(request) -> str | None:

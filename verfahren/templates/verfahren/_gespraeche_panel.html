@@ -3,7 +3,7 @@ Das Gesprächs-Panel (FB-G3): links am Bildschirmrand ein Griff mit Zähler, dah
 das von links hereingleitet. Liegt auf jeder Seite der Plattform (D-G3). Ohne JavaScript ist der
 Griff schlicht ein Link auf /gespraeche/ — dieselbe Liste als eigene Seite.
 Am Handy entfällt der Randgriff; dort führt das fünfte Ziel der Tableiste hin.
-{% endcomment %}{% if user.is_authenticated %}
+{% endcomment %}{% if user.is_authenticated and user.parteikonto %}
 <div class="gespraeche" x-data="gespraechspanel" @keydown.escape.window="zu()">
   {% comment %}Der Griff öffnet das Panel und holt die Liste zugleich — sie wird erst geladen,
   wenn sie gebraucht wird. Ohne JavaScript bleibt der Griff ein Link auf /gespraeche/.{% endcomment %}

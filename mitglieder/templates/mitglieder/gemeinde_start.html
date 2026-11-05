@@ -1,0 +1,17 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Meine Gemeinde" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Meine Gemeinde" %}</h1>
+<div class="karte">
+  <h2>{% translate "Mitmachen ohne Parteibeitritt" %}</h2>
+  <p>{% translate "Ein freiwilliges Beteiligungsangebot der DDÖ. Für Einwohner ab 16 mit tatsächlich gemeldetem Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit." %}</p>
+  <p>{% translate "Ein Gemeindekonto ist keine Parteimitgliedschaft: kein Mitgliedsbeitrag, kein Parteiausweis und keine Parteirechte. Es vermittelt kein amtliches Wahlrecht." %}</p>
+  {% if user.is_authenticated %}<a class="btn" href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>{% else %}<a class="btn" href="{% url 'gemeinde:anmelden' %}">{% translate "Gemeindekonto anlegen" %}</a> <a class="btn-linie" href="{% url 'mitglieder:login' %}">{% translate "Ich habe bereits ein Konto" %}</a>{% endif %}
+</div>
+<div class="karte">
+  <h2>{% translate "Der Gemeindebereich entsteht" %}</h2>
+  <p>{% translate "Die Anmeldung ist der erste Schritt. Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet." %}</p>
+  <p><a href="{% url 'mandatare:live_uebersicht' %}">{% translate "Öffentliche Sitzungsticker" %}</a> · <a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></p>
+  <p class="hilfe">{% translate "Die verlinkten Übersichten umfassen alle auf der Plattform veröffentlichten Mandate und Sitzungen, nicht nur Ihre Gemeinde." %}</p>
+</div>
+{% endblock %}

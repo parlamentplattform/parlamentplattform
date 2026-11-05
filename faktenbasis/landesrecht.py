@@ -27,6 +27,8 @@ from faktenbasis.ris import (
     _text,
     amtliche_url,
     begrenzt_lesen,
+    seite_pruefen,
+    seitenkopf_pruefen,
 )
 from plattform_core.quellenumfang import BUNDESLAENDER
 
@@ -43,17 +45,9 @@ def argumente_pruefen(gesetzesnummer, stand, bundesland):
         raise RisFehler("bundesland")
 
 
-def antwort_parsen(daten, gesetzesnummer, bundesland):
+def antwort_parsen(daten, gesetzesnummer, bundesland, *, seite=1):
     argumente_pruefen(gesetzesnummer, date.min, bundesland)
-    ergebnisse = _objekt(_objekt(_objekt(daten).get("OgdSearchResult")).get("OgdDocumentResults"))
-    hits = _objekt(ergebnisse.get("Hits"))
-    try:
-        treffer = int(hits["#text"])
-        if (not 0 <= treffer <= 2147483647 or str(hits["@pageNumber"]) != "1"
-                or str(hits["@pageSize"]) != "10"):
-            raise ValueError
-    except (KeyError, TypeError, ValueError) as fehler:
-        raise RisFehler("antwortformat") from fehler
+    ergebnisse, treffer = seitenkopf_pruefen(daten, seite)
     referenzen = ergebnisse.get("OgdDocumentReference")
     if treffer == 0:
         if referenzen is None or referenzen == [] or (
@@ -62,7 +56,7 @@ def antwort_parsen(daten, gesetzesnummer, bundesland):
         raise RisFehler("antwortformat")
     if isinstance(referenzen, dict):
         referenzen = [referenzen]
-    if not isinstance(referenzen, list) or not 0 < len(referenzen) <= min(treffer, 10):
+    if not isinstance(referenzen, list) or not 0 < len(referenzen) <= min(treffer - (seite - 1) * 10, 10):
         raise RisFehler("antwortformat")
     normen, kennungen = [], set()
     for referenz in referenzen:
@@ -93,15 +87,16 @@ def antwort_parsen(daten, gesetzesnummer, bundesland):
             quelle=quelle, rohdaten=roh, inhalt_hash=_hash(roh),
             ebene="Land", bundesland=BUNDESLAENDER[bundesland],
         ))
-    return ImportAntwort(tuple(normen), treffer, _hash(daten), daten)
+    return ImportAntwort(tuple(normen), treffer, _hash(daten), daten, seite=seite)
 
 
-def abrufen(gesetzesnummer, stand, bundesland):
+def abrufen(gesetzesnummer, stand, bundesland, *, seite=1):
     argumente_pruefen(gesetzesnummer, stand, bundesland)
+    seite_pruefen(seite)
     parameter = {
         "Applikation": "LrKons", "Gesetzesnummer": gesetzesnummer,
         f"Bundesland.SucheIn{bundesland}": "true", "Fassung.FassungVom": stand.isoformat(),
-        "DokumenteProSeite": "Ten", "Seitennummer": "1",
+        "DokumenteProSeite": "Ten", "Seitennummer": str(seite),
     }
     url = API + "?" + urllib.parse.urlencode(parameter)
     request = urllib.request.Request(url, headers={
@@ -113,11 +108,11 @@ def abrufen(gesetzesnummer, stand, bundesland):
             if antwort.status != 200 or antwort.headers.get_content_type() != "application/json":
                 raise RisFehler("antwortformat")
             inhalt = begrenzt_lesen(antwort, beginn)
-        parsed = antwort_parsen(json.loads(inhalt.decode("utf-8-sig")), gesetzesnummer, bundesland)
+        parsed = antwort_parsen(json.loads(inhalt.decode("utf-8-sig")), gesetzesnummer, bundesland, seite=seite)
     except RisFehler:
         raise
     except (OSError, urllib.error.URLError) as fehler:
         raise RisFehler("abruf") from fehler
     except (ValueError, RecursionError) as fehler:
         raise RisFehler("antwortformat") from fehler
-    return ImportAntwort(parsed.normen, parsed.treffer, parsed.antwort_hash, parsed.rohdaten, url)
+    return ImportAntwort(parsed.normen, parsed.treffer, parsed.antwort_hash, parsed.rohdaten, url, seite)

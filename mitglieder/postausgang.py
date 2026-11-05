@@ -40,7 +40,8 @@ HOECHSTVERSUCHE_VERFAHRENSPOST = 24
 def _empfangsbereit(mitglied) -> bool:
     """Testkonten, inaktive, ausgetretene und ausgeschlossene Konten und Konten ohne Adresse bekommen nichts."""
     return bool(
-        not mitglied.testkonto
+        mitglied.parteikonto
+        and not mitglied.testkonto
         and mitglied.is_active
         and mitglied.email
         and mitglied.status not in (Mitgliedsstatus.AUSGETRETEN, Mitgliedsstatus.AUSGESCHLOSSEN)

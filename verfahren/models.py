@@ -216,6 +216,23 @@ def gegenstand_fuer(antrag):
     return Gegenstand.SACHFRAGE
 
 
+class AntragsQuerySet(models.QuerySet):
+    def _kreisfelder_schuetzen(self, felder):
+        if set(felder) & {"teilnahmegebiet", "teilnehmerkreis_am"} or (
+            set(felder) & {"ebene", "gebiet"} and self.filter(teilnahmegebiet__isnull=False).exists()
+        ):
+            raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+
+    def update(self, **kwargs):
+        self._kreisfelder_schuetzen(kwargs)
+        return super().update(**kwargs)
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        objs = list(objs)
+        self.filter(pk__in=[obj.pk for obj in objs])._kreisfelder_schuetzen(fields)
+        return super().bulk_update(objs, fields, batch_size=batch_size)
+
+
 class Antrag(models.Model):
     """Ein Antrag nach § 5 — mit eingefrorener Policy."""
 
@@ -264,6 +281,8 @@ class Antrag(models.Model):
         blank=True,
         help_text="Name des Landes, Bezirks bzw. der Gemeinde bei regionalen Anträgen.",
     )
+    teilnahmegebiet = models.JSONField(null=True, blank=True, default=None, editable=False)
+    teilnehmerkreis_am = models.DateTimeField(null=True, blank=True, editable=False)
     hervorgehoben = models.BooleanField(
         default=False,
         help_text="Bereich b des Hauptfensters: wichtige Abstimmung, die alle angeht, aber wenig "
@@ -281,6 +300,7 @@ class Antrag(models.Model):
         help_text="Lebensbereiche des Antrags — automatisch zugeordnet, "
         "durch den Integritätsrat korrigierbar.",
     )
+    objects = AntragsQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Antrag"
@@ -296,6 +316,24 @@ class Antrag(models.Model):
 
     def __str__(self) -> str:
         return f"#{self.pk} {self.titel} [{self.phase}]"
+
+    def save(self, *args, **kwargs):
+        kreisfelder = {"teilnahmegebiet", "teilnehmerkreis_am", "ebene", "gebiet"}
+        felder = kwargs.get("update_fields")
+        if not self._state.adding and (felder is None or kreisfelder & set(felder)):
+            alt = type(self).objects.only(*kreisfelder).get(pk=self.pk)
+            pruefen = kreisfelder if felder is None else kreisfelder & set(felder)
+            if alt.teilnahmegebiet is None:
+                veraendert = any(getattr(self, f) != getattr(alt, f) for f in pruefen & {"teilnahmegebiet", "teilnehmerkreis_am"})
+            else:
+                veraendert = any(getattr(self, f) != getattr(alt, f) for f in pruefen - {"teilnehmerkreis_am"})
+                veraendert = veraendert or (
+                    "teilnehmerkreis_am" in pruefen and alt.teilnehmerkreis_am is not None
+                    and self.teilnehmerkreis_am != alt.teilnehmerkreis_am
+                )
+            if veraendert:
+                raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+        return super().save(*args, **kwargs)
 
     # --- Kern-Anbindung -----------------------------------------------------
 
@@ -581,6 +619,67 @@ class Antrag(models.Model):
         """Jüngster Eintrag im Umsetzungsregister (F-55) — None, solange keiner existiert
         (ein angenommener Antrag ohne Eintrag gilt als „offen")."""
         return self.vollzug.first()
+
+
+class OertlicheTeilnahmeQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+
+    def delete(self):
+        raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+
+    def bulk_create(self, objs, *args, **kwargs):
+        objs = list(objs)
+        if kwargs.get("update_conflicts"):
+            raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+        _neue_kreiseintraege_pruefen(objs)
+        return super().bulk_create(objs, *args, **kwargs)
+
+
+def _neue_kreiseintraege_pruefen(eintraege):
+    from plattform_core.teilnehmerkreis import Gebiet
+
+    antraege = Antrag.objects.in_bulk({e.antrag_id for e in eintraege})
+    for eintrag in eintraege:
+        antrag = antraege.get(eintrag.antrag_id)
+        if eintrag.pk is not None or antrag is None or antrag.teilnahmegebiet is None or antrag.teilnehmerkreis_am is not None:
+            raise ValidationError(_("Ein örtlicher Teilnehmerkreis kann nur bei Einbringung festgehalten werden."))
+        if Gebiet.aus_dict(antrag.teilnahmegebiet).ebene == "bund":
+            raise ValidationError(_("Ein örtlicher Teilnehmerkreis kann nur bei Einbringung festgehalten werden."))
+
+
+class OertlicheTeilnahme(models.Model):
+    """Geschützter örtlicher Kreis bei Einbringung, ohne Adresse oder Stimmwert.
+
+    Keine öffentliche Teilnehmerliste. Die Zugehörigkeit überlebt einen Umzug;
+    die allgemeinen Mitgliedsrechte werden zusätzlich am jeweiligen Stichtag
+    geprüft. PROTECT erhält den Verfahrensbezug auch nach einem Austritt.
+    """
+
+    antrag = models.ForeignKey(Antrag, on_delete=models.PROTECT, related_name="oertlicher_kreis")
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="oertliche_verfahrenskreise",
+    )
+    objects = OertlicheTeilnahmeQuerySet.as_manager()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["antrag", "mitglied"], name="oertlicher_kreis_eindeutig")]
+
+    def __str__(self):
+        return f"Teilnehmerkreis von Antrag #{self.antrag_id}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+        _neue_kreiseintraege_pruefen([self])
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
 
 
 class AntragsFassung(models.Model):
@@ -1312,8 +1411,8 @@ def vertrauensfrage_einbringen(
 class FilterProfil(models.Model):
     """Ein gespeichertes Regler-Profil des WeicherFilters (P5, § 5 Abs 10 lit d).
 
-    Profile liegen serverseitig beim Mitglied; höchstens fünf (durchgesetzt in
-    der Ansicht), genau eines ist aktiv. Sie wirken ausschließlich auf die
+    Profile liegen serverseitig beim Mitglied; die Höchstzahl steht im Register
+    (Rückfall fünf), genau eines ist aktiv. Sie wirken ausschließlich auf die
     EIGENE Ansicht des Mitglieds — nie auf gemeinsame Reihung, Schwellen oder
     Ergebnisse (§ 2 Abs 6 letzter Satz: mitgliedereigene Reihung ist keine
     Sortierung durch die Partei; die Voreinstellung bleibt neutral)."""
@@ -1339,6 +1438,12 @@ class FilterProfil(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name}{' (aktiv)' if self.aktiv else ''}"
+
+    @classmethod
+    def hoechstzahl(cls):
+        from parameter.models import zahl
+
+        return max(0, zahl("weicherfilter-profile-hoechstzahl", cls.HOECHSTZAHL))
 
 
 class Bewerbung(models.Model):

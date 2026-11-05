@@ -1,5 +1,6 @@
 {% load i18n %}
 <ul class="mehr-links">
+  <li><a href="{% url 'gemeinde:start' %}">{% translate "Meine Gemeinde" %}</a></li>
   <li><a href="{% url 'verfahren:parlament' %}#feld-favoriten">{% translate "Lebensbereiche" %}</a></li>
   <li><a href="{% url 'uebersicht:index' %}">{% translate "Die Plattform in Zahlen" %}</a></li>
   <li><a href="{% url 'parameter:liste' %}">{% translate "Offene Parameter" %}</a></li>

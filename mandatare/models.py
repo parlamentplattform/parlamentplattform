@@ -242,7 +242,7 @@ class Mandat(models.Model):
     def aktive_von(cls, mitglied):
         """Die offenen Mandate eines Mitglieds — dieselbe Bedingung wie die Unvereinbarkeits-
         prüfung der Gremien (`beendet` leer). Reihenfolge: Ebene, Gebiet, Antritt (Meta)."""
-        if mitglied is None or not getattr(mitglied, "pk", None):
+        if mitglied is None or not getattr(mitglied, "pk", None) or not mitglied.parteikonto:
             return cls.objects.none()
         return cls.objects.filter(mitglied=mitglied, beendet__isnull=True, vertretung_beendet_am__isnull=True)
 

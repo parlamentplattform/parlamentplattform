@@ -1,0 +1,25 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Mein Gemeindezugang" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Mein Gemeindezugang" %}</h1>
+<div class="karte">
+  <p>{{ user.anzeigename }} · {{ user.email }}</p>
+  {% if zugang %}
+  <h2>{% if user.wohnsitz and user.wohnsitz_art_aktuell == "oesterreich" %}{{ user.wohnsitz.name }}{% else %}{% translate "Keine aktuelle Hauptgemeinde" %}{% endif %}</h2>
+  {% if user.wohnsitz and user.wohnsitz_art_aktuell == "oesterreich" %}<p>{{ user.wohnsitz.bezirk }} · {{ user.wohnsitz.get_bundesland_display }} · {{ user.wohnsitz.kennziffer }}</p>{% endif %}
+  <p>{% translate "E-Mail bestätigt; Hauptwohnsitz und Alter selbst erklärt. Noch keine Gemeindeabstimmungen freigeschaltet." %}</p>
+  {% else %}<h2>{% translate "Gemeindezugang einrichten" %}</h2>{% endif %}
+  {% if user.parteikonto %}<p>{% translate "Sie verwenden Ihr bestehendes Konto. Ihre Parteimitgliedschaft und deren Rechte bleiben getrennt." %}</p>
+  {% else %}<p>{% translate "Sie sind durch dieses Konto kein Parteimitglied. Sie erhalten keine Mitgliedsnummer, Beitragsaufforderung oder Parteistimme." %}</p>{% endif %}
+  <p><a href="{% url 'gemeinde:start' %}">{% translate "Meine Gemeinde" %}</a> · <a href="{% url 'gemeinde:export' %}">{% translate "Meine Gemeindeangaben herunterladen" %}</a></p>
+</div>
+<div class="karte">
+  <h2>{% translate "Hauptwohnsitz angeben oder ändern" %}</h2>
+  <p>{% translate "Ein Nebenwohnsitz zählt nicht. Ohne festen Wohnsitz oder mit Wohnsitz im Ausland besteht keine örtliche Zuordnung. Ein Umzug ändert keine bereits festgehaltenen Verfahrenskreise." %}</p>
+  <form method="post">{% csrf_token %}
+    {% include "mitglieder/_gemeinde_formular.html" %}
+    <button type="submit" class="btn">{% translate "Gemeindeangaben speichern" %}</button>
+  </form>
+</div>
+{% include "mitglieder/_gemeinde_datenschutz.html" %}
+{% endblock %}

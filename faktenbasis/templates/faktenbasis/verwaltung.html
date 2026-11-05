@@ -4,7 +4,7 @@
 <a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
 <h1>{% translate "Amtliche Quelle übernehmen" %}</h1>
 <section class="karte">
-  <p>{% translate "Ein Abruf übernimmt höchstens zehn Dokumente des konsolidierten Bundesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern." %}</p>
+  <p>{% translate "Ein Abruf übernimmt höchstens zehn Dokumente des gewählten Bundes- oder Landesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern." %}</p>
   <p class="hilfe">{% blocktranslate %}Gemeinsame Grenze: {{ stundenkontingent }} Abrufe je Stunde für Metadaten und Dokumenttexte zusammen. Gleichzeitige Abrufe sind gesperrt; nach jedem Abruf sind mindestens zwei Sekunden Abstand einzuhalten.{% endblocktranslate %}</p>
   <form method="post" class="formular">
     {% csrf_token %}

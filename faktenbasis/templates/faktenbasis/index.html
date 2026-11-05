@@ -10,7 +10,7 @@
   <h2>{% translate "Amtliche Quellen aus dem RIS" %}</h2>
   <p>{% translate "Hier stehen gezielt abgerufene Metadaten und einzelne amtliche Dokumenttexte. Die Sammlung ist unvollständig; geprüfte Querverweise fehlen." %}</p>
   <p>{% blocktranslate count anzahl=umfang.dokumente %}{{ anzahl }} Dokument{% plural %}{{ anzahl }} Dokumente{% endblocktranslate %} · {% blocktranslate count anzahl=umfang.schnappschuesse %}{{ anzahl }} Schnappschuss{% plural %}{{ anzahl }} Schnappschüsse{% endblocktranslate %}</p>
-  {% if erfolg %}<p>{% translate "Letzter erfolgreicher Import" %}: {{ erfolg.beendet_am|date:"d.m.Y H:i" }} · {% translate "Stichtag" %}: {{ erfolg.stand|date:"d.m.Y" }}</p>{% endif %}
+  {% if erfolg %}<p>{% translate "Letzter erfolgreicher Import" %}: {{ erfolg.beendet_am|date:"d.m.Y H:i" }} · {% translate "Stichtag" %}: {{ erfolg.stand|date:"d.m.Y" }} · {% translate "RIS-Seite" %}: {{ erfolg.seite }}</p>{% endif %}
   {% if letzter and not letzter.erfolgreich %}<p class="meldung warn">{% translate "Der letzte Abruf ist fehlgeschlagen. Bereits gespeicherte Angaben bleiben erhalten." %} ({{ letzter.fehlercode }}) · {{ letzter.beendet_am|date:"d.m.Y H:i" }}</p>{% endif %}
   <p class="hilfe">{% translate "Ein amtlicher Fundort bestätigt nicht, dass die Norm für einen Antrag relevant ist oder geändert werden müsste. Diese Zuordnung bleibt ein ungeprüfter Modellvorschlag." %}</p>
   <p class="hilfe">{% translate "Konsolidierte Texte dienen der Information. Rechtsverbindlich ist die authentische Kundmachung." %}</p>

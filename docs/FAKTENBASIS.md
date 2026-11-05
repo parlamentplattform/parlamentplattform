@@ -14,7 +14,40 @@ Ein Betreiber kann einen kleinen Einzelbezug auslösen:
 
     python manage.py ris_import --gesetzesnummer <achtstellige-amtliche-Kennung> --stand YYYY-MM-DD
 
-Der Befehl macht genau eine Anfrage an die feste amtliche Bundesrecht-API und liest ausschließlich die erste Seite mit höchstens zehn Dokumenten. Er sucht nicht nach einem Titel und übernimmt keine Modell-URLs. Stimmen Kennung, Quelle oder Antwortformat nicht, wird keine Norm der Seite übernommen. Ein Fehler ist ein fehlgeschlagener Import, keine leere Faktenbasis. Unveränderte Inhalte bleiben einmal gespeichert; geänderte Inhalte erhalten einen zusätzlichen Schnappschuss. Ein Datenbankfehler rollt die gesamte Übernahme zurück.
+Der Befehl macht genau eine Anfrage an die feste amtliche Bundesrecht-API und liest eine ausdrücklich gewählte Seite mit höchstens zehn Dokumenten. Ohne `--seite` bleibt es bei Seite1. Er sucht nicht nach einem Titel und übernimmt keine Modell-URLs. Stimmen Kennung, Quelle oder Antwortformat nicht, wird keine Norm der Seite übernommen. Ein Fehler ist ein fehlgeschlagener Import, keine leere Faktenbasis. Unveränderte Inhalte bleiben einmal gespeichert; geänderte Inhalte erhalten einen zusätzlichen Schnappschuss. Ein Datenbankfehler rollt die gesamte Übernahme zurück.
+
+## Ausdrücklich gewählte RIS-Folgeseiten ab0.79.0
+
+    python manage.py ris_import --gesetzesnummer <achtstellige-amtliche-Kennung> --stand YYYY-MM-DD --seite 2
+    python manage.py landesrecht_import --bundesland Oberoesterreich --gesetzesnummer <achtstellige-amtliche-Kennung> --stand YYYY-MM-DD --seite 2
+
+Die Verwaltungsoberfläche bietet dieselbe Seitenauswahl. Seit0.80.0 ist dort neben
+Bundesrecht auch Landesrecht ausdrücklich wählbar; dann ist eines der neun
+unterstützten Bundesländer anzugeben. Bei Bundesrecht bleibt das Land leer.
+Widersprüchliche oder ungültige Auswahl löst keinen Abruf aus. Beide Felder
+bleiben ohne JavaScript bedienbar; ältere POSTs ohne neue Auswahl bleiben Bund.
+Die Herkunft erscheint im Audit und im bestehenden Importnachweis. Eine
+positive Seitennummer bezeichnet genau einen Einzelabruf. Es gibt kein automatisches
+Weiterblättern. Byte-/Zeitgrenzen, zehn Dokumente je Seite, gemeinsamer Abrufschutz,
+Kontingent, Verwaltungsrechte und CSRF bleiben bestehen. GET zeigt nur das Formular
+und ruft keine Quelle ab.
+Die Antwort muss genau die angeforderte Seitennummer und Seitengröße nennen;
+mehr Dokumente als die noch möglichen Treffer werden abgewiesen. Eine Seite
+hinter dem gemeldeten Trefferende ist ein Fehler, kein leerer Rechtsbestand.
+
+`RisImport.seite` hält die Wahl auch im Fehlerfall fest. Audit und Quellenansicht
+nennen sie ebenfalls. Die additive Migration setzt für bisherige Importe Seite1:
+Der bisherige Parser hatte ausschließlich diese Seite zugelassen. Rohantworten,
+Hashes, Norm-/Textstände und festgehaltene Modelleingaben bleiben unverändert.
+Wiederholungen überschreiben keine früheren Schnappschüsse.
+
+Seiten werden zu unterschiedlichen Abrufzeiten gelesen. Gleicher Stichtag und
+gleiche Trefferzahl beweisen keinen gemeinsamen atomaren Gesamtstand im RIS.
+Weder eine einzelne Seite noch eine Reihe manueller Abrufe bestätigt vollständige
+Rechtsabdeckung, rechtliche Geltung oder juristische Relevanz. Aus Metadaten werden
+keine NormVerweis-Kanten erfunden. Automatische Aktualisierung und Produktionsimporte
+werden durch diesen Baustein nicht aktiviert. Das Austauschschema bleibt1.29;
+die gespeicherte amtliche Antwort enthält die Seitennummer bereits selbst.
 
 Jeder erfolgreiche Import bewahrt die vollständige JSON-Antwort auf. Die Download-Adresse steht am Norm-Schnappschuss. Beide SHA-256-Prüfsummen werden aus kanonischem JSON gebildet: Schlüssel sortiert, keine zusätzlichen Leerzeichen, UTF-8 und unmaskierte Unicode-Zeichen. Der Inhalts-Hash bezieht sich auf das Data-Objekt des Dokuments; der Antwort-Hash auf das gesamte JSON.
 
@@ -102,7 +135,7 @@ und frühere Einschätzungen bleiben unverändert.
 Das Beispiel benennt eine amtliche Quelle, keine politische Forderung. Der Befehl unterstützt die
 neun in der RIS-OGD-Dokumentation genannten Landesauswahlen (siehe `--help`), aber stets nur genau
 ein gewähltes Land, eine achtstellige Gesetzesnummer und einen genauen Stichtag. Es ist ein
-ausdrücklicher Einzelbezug der ersten Seite mit höchstens zehn Dokumenten; eine höhere Trefferzahl
+ausdrücklicher Einzelbezug einer gewählten Seite (ohne Option Seite1) mit höchstens zehn Dokumenten; eine höhere Trefferzahl
 ist kein Nachweis, dass die ganze Rechtsvorschrift importiert wurde. Kein Sammel- oder Nachtabruf.
 
 ApplikationLrKons, zurückgeliefertes Bundesland, Gesetzesnummer, Landes-Dokumentkennung und

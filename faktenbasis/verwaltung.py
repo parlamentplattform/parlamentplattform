@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from faktenbasis import importieren, volltext
+from faktenbasis.landesrecht import BUNDESLAENDER
 from faktenbasis.models import Norm
 from faktenbasis.ris import RisFehler
 from mitglieder.models import Identitaetsstufe
@@ -39,6 +40,16 @@ def nur_quellenverwaltung(ansicht):
 
 
 class QuellenFormular(forms.Form):
+    quelle = forms.ChoiceField(
+        label=gettext_lazy("Rechtsbestand"), initial="bund", required=False,
+        choices=[("bund", gettext_lazy("Bundesrecht")), ("land", gettext_lazy("Landesrecht"))],
+        help_text=gettext_lazy("Wählen Sie ausdrücklich Bundesrecht oder das Recht eines Bundeslandes."),
+    )
+    bundesland = forms.ChoiceField(
+        label=gettext_lazy("Bundesland"), required=False,
+        choices=[("", gettext_lazy("Bei Bundesrecht leer lassen")), *BUNDESLAENDER.items()],
+        help_text=gettext_lazy("Bei Landesrecht ist ein Bundesland erforderlich; bei Bundesrecht bleibt dieses Feld leer."),
+    )
     gesetzesnummer = forms.RegexField(
         regex=r"\A[0-9]{8}\Z", max_length=8,
         label=gettext_lazy("Gesetzesnummer"),
@@ -50,6 +61,22 @@ class QuellenFormular(forms.Form):
         label=gettext_lazy("Stichtag"), input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
     )
+    seite = forms.IntegerField(
+        label=gettext_lazy("RIS-Seite"), min_value=1, max_value=2147483647, initial=1, required=False,
+        help_text=gettext_lazy("Genau eine Seite mit höchstens zehn Dokumenten abrufen. Ohne Angabe gilt Seite 1; weitere Seiten werden nicht automatisch geladen."),
+    )
+
+    def clean(self):
+        daten = super().clean()
+        # Ältere POSTs ohne neue Auswahl bleiben beim bisherigen Bundesrecht.
+        quelle = daten.get("quelle") or "bund"
+        land = daten.get("bundesland", "")
+        if quelle == "land" and not land and "bundesland" not in self.errors:
+            self.add_error("bundesland", _("Bitte wählen Sie das Bundesland für den Landesrechtsabruf."))
+        elif quelle == "bund" and land:
+            self.add_error("bundesland", _("Für Bundesrecht bitte kein Bundesland angeben."))
+        daten["quelle"] = quelle
+        return daten
 
 
 def _audit(request, aktion, **daten):
@@ -71,19 +98,25 @@ def _fehlermeldung(request, fehler):
 @require_http_methods(["GET", "POST"])
 def metadaten(request):
     formular = QuellenFormular(request.POST if request.method == "POST" else None,
-                              initial={"stand": timezone.localdate()})
+                              initial={"stand": timezone.localdate(), "seite": 1})
     if request.method == "POST" and formular.is_valid():
         nummer, stand = formular.cleaned_data["gesetzesnummer"], formular.cleaned_data["stand"]
-        daten = {"gesetzesnummer": nummer, "stand": stand.isoformat()}
+        seite = formular.cleaned_data["seite"] or 1
+        land = formular.cleaned_data["bundesland"]
+        daten = {
+            "gesetzesnummer": nummer, "stand": stand.isoformat(), "seite": seite,
+            "ebene": "Land" if land else "Bund", "bundesland": BUNDESLAENDER.get(land, ""),
+        }
         try:
-            lauf = importieren.importieren(nummer, stand)
+            landeswahl = {"bundesland": land} if land else {}
+            lauf = importieren.importieren(nummer, stand, seite=seite, **landeswahl)
         except RisFehler as fehler:
             _audit(request, "faktenbasis_metadaten", **daten, erfolgreich=False, fehlercode=fehler.code)
             _fehlermeldung(request, fehler)
         else:
             _audit(request, "faktenbasis_metadaten", **daten, erfolgreich=True, importlauf=lauf.pk)
-            messages.success(request, _("Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse.")
-                             % {"gelesen": lauf.gelesen, "neu": lauf.neu})
+            messages.success(request, _("Metadaten übernommen: %(gelesen)s Dokumente gelesen, %(neu)s neue Schnappschüsse. RIS-Seite: %(seite)s.")
+                             % {"gelesen": lauf.gelesen, "neu": lauf.neu, "seite": lauf.seite})
         return redirect("faktenbasis:index")
     return render(request, "faktenbasis/verwaltung.html", {
         "formular": formular, "stundenkontingent": max(0, zahl("faktenbasis-manuelle-abrufe-je-stunde", 10)),

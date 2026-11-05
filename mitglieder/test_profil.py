@@ -750,6 +750,8 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
     from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
 
     ORDNER = {
+        "Gemeindezugang.konto": "gemeindezugang",
+        "OertlicheTeilnahme.mitglied": "oertliche_verfahrenskreise",
         "Postauftrag.mitglied": "postauftraege",
         "Adresswechsel.mitglied": "adresswechsel",
         "Beitragseingang.mitglied": "beitraege",

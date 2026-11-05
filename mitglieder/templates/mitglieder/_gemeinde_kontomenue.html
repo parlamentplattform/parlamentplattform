@@ -1,0 +1,5 @@
+{% load i18n %}
+<a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
+{% include "verfahren/_sprache.html" %}
+{% include "verfahren/_thema.html" %}
+<form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>

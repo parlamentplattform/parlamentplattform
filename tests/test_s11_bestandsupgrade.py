@@ -1,6 +1,6 @@
 """Gemeinsamer Upgrade ab dem tatsächlich veröffentlichten Stand 0.64.0.
 
-Die drei Ausgangsgrenzen stammen aus Git 2a0a326beb37bd0d4fc0561015037fab66089ba8.
+Die Ausgangsgrenzen der Projekt-Apps stammen aus Git 2a0a326beb37bd0d4fc0561015037fab66089ba8.
 Nur synthetische Daten: Kein Produktionsabzug, Anbieteraufruf oder Quellenabruf.
 Einzeltests der Migrationen ersetzen diesen gemeinsamen Altbestandsvergleich nicht.
 """
@@ -18,8 +18,14 @@ from plattform_core import GENESIS, ereignis_hash
 pytestmark = pytest.mark.django_db(transaction=True)
 
 LIVE_GRENZEN = {
+    "anstoss": "0001_initial",
     "ki": "0005_amtlicher_quellenkontext",
     "faktenbasis": "0003_abrufschutz",
+    "gremien": "0017_rolle_ruht_anlass_vertrauensfrage_sperre",
+    "mandatare": "0005_sitzungsmodus",
+    "mitglieder": "0023_wohnsitzangabe",
+    "parameter": "0006_gruppe_mandatare",
+    "uebersicht": "0001_initial",
     "verfahren": "0028_eigenstaendigkeit",
 }
 TABELLEN = (
@@ -148,6 +154,7 @@ def test_gemeinsamer_upgrade_ab_064_erhaelt_den_gesamten_synthetischen_altbestan
     executor = MigrationExecutor(connection)
     ziel = executor.loader.graph.leaf_nodes()
     vorher = [n for n in ziel if n[0] not in LIVE_GRENZEN] + list(LIVE_GRENZEN.items())
+    erwartete_apps = {app for app, migration in ziel if app in LIVE_GRENZEN and migration != LIVE_GRENZEN[app]}
     try:
         executor.migrate(vorher)
         altapps = executor.loader.project_state(vorher).apps
@@ -157,7 +164,7 @@ def test_gemeinsamer_upgrade_ab_064_erhaelt_den_gesamten_synthetischen_altbestan
         executor = MigrationExecutor(connection)
         plan = executor.migration_plan(ziel)
         assert plan and all(not rueckwaerts for _, rueckwaerts in plan)
-        assert {m.app_label for m, _ in plan} == set(LIVE_GRENZEN)
+        assert {m.app_label for m, _ in plan} == erwartete_apps
         executor.migrate(ziel)
         neuapps = executor.loader.project_state(ziel).apps
         neu = _stand(neuapps)

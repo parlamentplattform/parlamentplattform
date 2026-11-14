@@ -22,6 +22,7 @@
 </section>
 <section class="karte" aria-labelledby="gemeinde-sitzungen">
   <h2 id="gemeinde-sitzungen">{% translate "Öffentliche Sitzungsticker" %}</h2>
+  <p><a href="{% url 'gemeinde:sitzungsquellen' gemeinde.kennziffer %}">{% translate "Öffentliche Sitzungsunterlagen" %}</a></p>
   <h3>{% translate "Laufende Sitzungen" %}</h3>
   {% for s in laufend %}{% include "mandatare/_live_zeile.html" with s=s %}
   {% empty %}<p>{% translate "Derzeit kein laufender Sitzungsticker für diese Gemeinde." %}</p>{% endfor %}

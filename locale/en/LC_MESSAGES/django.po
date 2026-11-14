@@ -11743,17 +11743,11 @@ msgstr "The recorded event must not be in the future."
 msgid "Einbringung vermerkt"
 msgstr "Submission recorded"
 
-msgid "Fassung 3 ergänzt die Reihenfolge der öffentlichen Ratsinitiativen und ihrer Verlaufsvermerke."
-msgstr "Version 3 adds the ordering of public council initiatives and their updates."
-
 msgid "Für diese Gemeinde ist keine Ratsinitiative veröffentlicht."
 msgstr "No council initiatives have been published for this municipality."
 
 msgid "Gegenstand für die Tagesordnung"
 msgstr "Proposed agenda item"
-
-msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend."
-msgstr "Municipalities by name, district and code. Mandates by start date and ID in ascending order. Session tickers by start time and ID in descending order, with seven days of recent sessions. Office hours by start time and ID in ascending order, including cancellations until the scheduled end. Council initiatives by publication time and ID descending, and updates by entry time and ID ascending."
 
 msgid "Hier dokumentieren DDÖ-Mandatare eigene Vorhaben und ihren Verlauf im Gemeinderat."
 msgstr "DDÖ office holders record their own initiatives and their progress in the municipal council here."
@@ -11766,9 +11760,6 @@ msgstr "Publish a council initiative"
 
 msgid "Ratsinitiativen der DDÖ"
 msgstr "DDÖ council initiatives"
-
-msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
-msgstr "Shows municipalities, assigned DDÖ mandates, public session tickers, office hours and council initiatives."
 
 msgid "Öffentliche Beschreibung"
 msgstr "Public description"
@@ -11793,3 +11784,75 @@ msgstr "A direct link to a provincial gazette publication requires its publicati
 
 msgid "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum."
 msgstr "This snapshot names the citation of the last amendment. The gazette publication date needed for a direct link is missing."
+
+msgid "Amtliche Niederschrift"
+msgstr "Official minutes"
+
+msgid "Bestätigen Sie die öffentliche Zugänglichkeit und die Zuordnung."
+msgstr "Confirm that the document is public and relates to this meeting."
+
+msgid "DDÖ-Mandatare verlinken hier öffentliche Unterlagen der Gemeinde. Die Links führen zu den jeweiligen Quellen."
+msgstr "DDÖ representatives link to public municipal documents here. The links take you to the original sources."
+
+msgid "Der Link darf keine Zugangsdaten oder Rückstriche enthalten."
+msgstr "The link must not contain credentials or backslashes."
+
+msgid "Der öffentliche Quellenstand wurde gespeichert."
+msgstr "The public source listing has been saved."
+
+msgid "Die Niederschrift kann erst ab dem Sitzungstag verlinkt werden."
+msgstr "Minutes can only be linked on or after the date of the meeting."
+
+msgid "Diese Unterlage ist öffentlich und gehört zu dieser Gemeinderatssitzung."
+msgstr "This document is public and relates to this municipal council meeting."
+
+msgid "Einladung und Tagesordnung"
+msgstr "Meeting notice and agenda"
+
+msgid "Es sind derzeit keine Sitzungsunterlagen verzeichnet."
+msgstr "There are currently no meeting documents listed."
+
+msgid "Fassung 4 ergänzt die Reihenfolge der öffentlichen Sitzungsunterlagen."
+msgstr "Version 4 adds the ordering of public meeting documents."
+
+msgid "Geben Sie den öffentlichen Link zur Unterlage ein."
+msgstr "Enter the public link to the document."
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand."
+msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each."
+
+msgid "Hier veröffentlichen Sie den Sitzungstitel und einen Link zur öffentlich zugänglichen Unterlage der Gemeinde. Eine neue Adresse ersetzt den bisherigen öffentlichen Link derselben Unterlage."
+msgstr "This publishes the meeting title and a link to the public municipal document. A new address replaces the previous public link to that document."
+
+msgid "Link veröffentlichen"
+msgstr "Publish link"
+
+msgid "Link zurückgezogen"
+msgstr "Link withdrawn"
+
+msgid "Link zurückziehen"
+msgstr "Withdraw link"
+
+msgid "Sitzungstage und ihre Kennungen in absteigender Reihenfolge, je Sitzung Einladung vor Niederschrift."
+msgstr "Meeting dates and IDs are listed in descending order, with the notice before the minutes for each meeting."
+
+msgid "Sitzungsunterlage verlinken"
+msgstr "Link to a meeting document"
+
+msgid "Unterlage"
+msgstr "Document"
+
+msgid "Weitere Seiten"
+msgstr "More pages"
+
+msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
+msgstr "Shows municipalities, assigned DDÖ mandates, meeting documents, public live tickers, office hours and council initiatives."
+
+msgid "Zu dieser Unterlage gibt es keinen veröffentlichten Link."
+msgstr "There is no published link to this document."
+
+msgid "Öffentliche Sitzungsunterlagen"
+msgstr "Public meeting documents"
+
+msgid "Öffentlicher HTTPS-Link"
+msgstr "Public HTTPS link"

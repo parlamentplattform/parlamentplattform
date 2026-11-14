@@ -562,6 +562,29 @@ class Aufgabe(models.Model):
         return timezone.localdate(self.frist)
 
 
+class Gemeindesitzungsquelle(models.Model):
+    """Ein öffentlicher Quellenverweis oder dessen Rücknahme zu einem Gemeinderatssitzungstag."""
+
+    class Art(models.TextChoices):
+        EINLADUNG = "einladung", _("Einladung und Tagesordnung")
+        NIEDERSCHRIFT = "niederschrift", _("Amtliche Niederschrift")
+
+    aufgabe = models.ForeignKey(Aufgabe, on_delete=models.PROTECT, related_name="gemeindesitzungsquellen")
+    gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT)
+    sitzung_am = models.DateField()
+    art = models.CharField(max_length=16, choices=Art.choices)
+    url = models.URLField(max_length=500, blank=True, help_text="Eine leere URL ist eine Rücknahme.")
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["aufgabe", "art", "-id"], name="gemeinde_sitzungsquelle_stand"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.aufgabe_id}: {self.art} ({self.sitzung_am.isoformat()})"
+
+
 class Beschluss(models.TextChoices):
     """Was die Plattform zu dem Gegenstand beschlossen hatte — abgeleitet aus dem Antrag."""
 

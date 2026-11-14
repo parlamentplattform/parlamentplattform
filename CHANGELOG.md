@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.88.0] — 2026-11-15 · Öffentliche Unterlagen zu Gemeinderatssitzungen
+
+- Aktiv zugeordnete DDÖ-Gemeindemandatare können eine öffentliche Einladung mit Tagesordnung oder die amtliche Niederschrift zu einem angekündigten Sitzungstag verlinken. Die Gemeindeübersicht führt zu den Quellen, getrennt vom DDÖ-Ticker.
+- Berichtigungen und Rücknahmen bleiben nachvollziehbar. Die öffentliche Liste zeigt je Unterlage den zuletzt erfassten Link oder die Rücknahme, und die dokumentierte Gemeinde bleibt auch bei einem Mandatswechsel erhalten.
+
 ## [0.87.0] — 2026-11-14 · Novellenfundstellen für Oberösterreich
 
 - Die Faktenbasis nennt die letzte Änderung eines oberösterreichischen Normstands, sofern die archivierten RIS-Metadaten die Landesgesetzblattnummer ausdrücklich angeben. Bundesland, Fundstelle und Herkunftsnachweis bleiben zusammen sichtbar. Der bestehende Link führt zum Normstand, da in diesen Metadaten das Datum der Kundmachung für den direkten ELI-Link fehlt.

@@ -1,0 +1,23 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Sitzungsunterlage verlinken" %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}#aufgaben">{% translate "Mein Mandat" %}</a> · <a href="{% url 'gemeinde:sitzungsquellen' mandat.gemeinde.kennziffer %}">{{ mandat.gemeinde.anzeige }}</a></p>
+<h1>{% translate "Sitzungsunterlage verlinken" %}</h1>
+<p>{{ aufgabe.titel }} · <time datetime="{{ sitzung_am|date:'Y-m-d' }}">{{ sitzung_am|date:"DATE_FORMAT" }}</time></p>
+<section class="karte">
+  <p>{% translate "Hier veröffentlichen Sie den Sitzungstitel und einen Link zur öffentlich zugänglichen Unterlage der Gemeinde. Eine neue Adresse ersetzt den bisherigen öffentlichen Link derselben Unterlage." %}</p>
+  <form method="post" class="kr-form">{% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>{{ form.art.as_field_group }}</div>
+    <div>{{ form.url.as_field_group }}</div>
+    <div>
+      {{ form.bestaetigt.errors }}
+      <label class="ankreuz" for="{{ form.bestaetigt.id_for_label }}">{{ form.bestaetigt }} {{ form.bestaetigt.label }}</label>
+    </div>
+    <div>
+      <button type="submit" name="aktion" value="veroeffentlichen" class="btn">{% translate "Link veröffentlichen" %}</button>
+      <button type="submit" name="aktion" value="zurueckziehen" class="btn-linie" formnovalidate>{% translate "Link zurückziehen" %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

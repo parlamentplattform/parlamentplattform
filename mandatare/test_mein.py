@@ -490,6 +490,8 @@ def test_monatsbericht_nur_fuer_faellige_monate(client, monkeypatch):
 
     fest = timezone.make_aware(datetime(2026, 11, 3, 12, 0))
     monkeypatch.setattr(timezone, "now", lambda: fest)
+    # Das Modellfeld hält beim Laden eine Referenz auf die originale Uhr.
+    monkeypatch.setattr(Bericht._meta.get_field("eingereicht_am"), "_get_default", lambda: fest)
     client.force_login(mandat.mitglied)  # die Sitzung aus dem September wäre im November abgelaufen
     html = client.get(MEIN).content.decode()
     assert 'value="2026-10-01"' in html and "Oktober 2026" in html

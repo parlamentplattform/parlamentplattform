@@ -1,42 +1,61 @@
 """Geschützter Hauptwohnsitzkreis neuer Verfahren, getrennt von allgemeinen Rechten.
 
-Die technische Vorbereitung ist noch nicht an die Einbringungs-/Handlungswege
-angeschlossen. Ein Altverfahren ohne teilnahmegebiet wird niemals nachbefüllt.
+Ein Altverfahren ohne teilnahmegebiet wird niemals nachbefüllt.
 """
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils.translation import gettext as _
 
-from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus, Wohnsitzart
+from mitglieder.models import Bundesland, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus, Wohnsitzart
 from plattform_core.teilnehmerkreis import Gebiet, GebietsFehler, Gemeindestand, gebiet_fuer
-from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme
+from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, gegenstand_fuer, uebergangsregel_fuer
 
 
 def gemeindestand(gemeinde):
     return Gemeindestand(gemeinde.kennziffer, gemeinde.name, gemeinde.bezirk, gemeinde.bundesland)
 
 
-def hauptgebiet(mitglied, ebene):
+def hauptgebiet(mitglied, ebene, *, sperren=False):
     """Frischen eigenen Hauptwohnsitz lesen; keine Übernahme aus Neben-/Freitextorten."""
-    from mitglieder.models import Gemeinde
-
     if ebene == "bund":
         return gebiet_fuer(ebene, None, ())
-    aktuell = Mitglied.objects.select_related("wohnsitz").get(pk=mitglied.pk)
-    if aktuell.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH or not aktuell.wohnsitz_id:
-        raise GebietsFehler("Ein tatsächlich gemeldeter Hauptwohnsitz fehlt.")
-    stamm = tuple(gemeindestand(g) for g in Gemeinde.objects.all())
+    konten = Mitglied.objects.all()
+    if sperren:
+        konten = konten.select_for_update()
+    aktuell = konten.get(pk=mitglied.pk)
+    if not aktuell.parteikonto or aktuell.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH or not aktuell.wohnsitz_id:
+        raise GebietsFehler(_("Für einen örtlichen Antrag ist ein gemeldeter Hauptwohnsitz erforderlich."))
+    if ebene == "bezirk" and aktuell.wohnsitz.bundesland == Bundesland.WIEN:
+        raise GebietsFehler(_("Wiener Gemeindebezirke sind noch nicht getrennt erfasst."))
+    stamm = tuple(gemeindestand(g) for g in Gemeinde.objects.filter(bundesland=aktuell.wohnsitz.bundesland))
     return gebiet_fuer(ebene, gemeindestand(aktuell.wohnsitz), stamm)
 
 
+def konten_fuer(gebiet):
+    """Nur örtliche Zuordnung, ohne Vorwegnahme allgemeiner Rechte."""
+    konten = Mitglied.parteikonten.filter(testkonto=False)
+    if gebiet.ebene == "bund":
+        return konten
+    return konten.filter(
+        Q(wohnsitz_art=Wohnsitzart.OESTERREICH) | Q(wohnsitz_art=""),
+        wohnsitz__kennziffer__in=gebiet.gemeinden,
+    )
+
+
+def gebietsname(gebiet):
+    return str(Bundesland(gebiet.land).label) if gebiet.ebene == "land" else gebiet.name
+
+
 @transaction.atomic
-def kreis_festhalten(antrag):
+def kreis_festhalten(antrag, *, _konten_ids=None):
     """Nur einen ausdrücklich als neu deklarierten Kreis einmalig atomar aufnehmen.
 
     Der Einbringungsweg muss das teilnahmegebiet bereits beim Erstellen setzen.
     None ist allein der historische Weg und darf hier nie aufgewertet werden.
-    Erst danach die anteilige Unterstützungsschwelle aus genau diesem Kreis
-    berechnen. Die umgebende Einbringungstransaktion umfasst alle Schritte.
+    Bei der Einbringung entsprechen die übergebenen IDs der Grundgesamtheit
+    vor Prüfung der allgemeinen Rechte für die anteilige Schwelle. Die
+    umgebende Einbringungstransaktion umfasst alle Schritte.
     """
     aktuell = Antrag.objects.select_for_update().get(pk=antrag.pk)
     if aktuell.teilnahmegebiet is None:
@@ -51,10 +70,7 @@ def kreis_festhalten(antrag):
         # hergeleiteter AT-Wohnsitz. Ausdrücklich Ausland/ohne festen Wohnsitz
         # bleibt auch bei einer veralteten FK außerhalb. Alle allgemeinen
         # Rechte werden separat geprüft: ungeprüfte Konten hier nicht verlieren.
-        konten = Mitglied.parteikonten.filter(
-            Q(wohnsitz_art=Wohnsitzart.OESTERREICH) | Q(wohnsitz_art=""),
-            wohnsitz__kennziffer__in=gebiet.gemeinden, testkonto=False,
-        ).values_list("pk", flat=True)
+        konten = konten_fuer(gebiet).values_list("pk", flat=True) if _konten_ids is None else _konten_ids
         OertlicheTeilnahme.objects.bulk_create(
             [OertlicheTeilnahme(antrag=aktuell, mitglied_id=pk) for pk in konten]
         )
@@ -83,6 +99,20 @@ def oertlich_zulaessig(antrag, mitglied):
     return antrag.oertlicher_kreis.filter(mitglied_id=mitglied.pk).exists()
 
 
+def oertlich_begrenzt(antrag):
+    # Alle aktuellen regionalen Fassungen sind gebunden; None allein ist der Altweg.
+    return antrag.teilnahmegebiet is not None and antrag.ebene != "bund"
+
+
+def eigene_kreise(mitglied, antraege):
+    if mitglied is None or not mitglied.is_authenticated:
+        return set()
+    pks = [a.pk for a in antraege if oertlich_begrenzt(a) and a.teilnehmerkreis_am is not None]
+    return set(OertlicheTeilnahme.objects.filter(
+        antrag_id__in=pks, mitglied=mitglied,
+    ).values_list("antrag_id", flat=True))
+
+
 def mitglieder_im_kreis(antrag):
     konten = Mitglied.parteikonten.all()
     if antrag.teilnahmegebiet is None:
@@ -95,9 +125,40 @@ def mitglieder_im_kreis(antrag):
     return konten.filter(oertliche_verfahrenskreise__antrag=antrag)
 
 
+def aktive_berechtigung(mitglied, gegenstand, stichtag, uebergang=False):
+    return mitglied.is_active and mitglied.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang)
+
+
+def stimmrecht_im_neuen_kreis(antrag, mitglied, *, frisch=False):
+    """Historische Fachaufrufe bleiben bei ihren bisherigen Aufruferprüfungen."""
+    if not oertlich_begrenzt(antrag):
+        return True
+    if antrag.stimmberechtigte_anzahl == 0 or not oertlich_zulaessig(antrag, mitglied):
+        return False
+    if frisch:
+        mitglied = Mitglied.objects.filter(pk=mitglied.pk).first()
+        if mitglied is None:
+            return False
+    return (
+        aktive_berechtigung(
+            mitglied, gegenstand_fuer(antrag), antrag.stichtag_der_stimmberechtigung(),
+            uebergangsregel_fuer(antrag),
+        )
+        and not mitglied.adresswechsel_offen
+    )
+
+
 def berechtigte_zaehlen(antrag, gegenstand, stichtag, uebergang=False):
     """Genau dieselben allgemeinen Voraussetzungen wie die parteiweite Zählung."""
     konten = mitglieder_im_kreis(antrag).filter(
         is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False,
     ).exclude(beitritt=None).exclude(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
-    return sum(m.ist_stimmberechtigt(gegenstand, stichtag, uebergang=uebergang) for m in konten)
+    return sum(aktive_berechtigung(m, gegenstand, stichtag, uebergang) for m in konten)
+
+
+def stimmbasis(antrag, gegenstand, stichtag, uebergang=False):
+    if oertlich_begrenzt(antrag):
+        return berechtigte_zaehlen(antrag, gegenstand, stichtag, uebergang)
+    from mitglieder.models import stimmberechtigte_zaehlen
+
+    return max(1, stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang=uebergang))

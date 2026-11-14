@@ -21,7 +21,7 @@ from plattform_core.policy import Policy
 #: Schwellenwerte: Wie ausgezählt wird, steht hier; mit welchen Zahlen, in der am Antrag
 #: eingefrorenen Verfahrensordnung. Steigt diese Zahl, hat sich die Rechnung geändert —
 #: und dann muss im Regelverzeichnis stehen, warum.
-VERSION = 1
+VERSION = 2
 
 
 class Stimme(enum.StrEnum):
@@ -76,6 +76,8 @@ def auszaehlen(
     stimmen: Iterable[tuple[str, Stimme | str]],
     stimmberechtigte: int,
     policy: Policy,
+    *,
+    leerer_oertlicher_kreis: bool = False,
 ) -> Auszaehlung:
     """Zählt Stimmen aus und stellt das Ergebnis fest.
 
@@ -94,7 +96,7 @@ def auszaehlen(
                      dann faktisch wie Nein. Diese Wahl trifft die
                      Verfahrensordnung, nicht der Code.
     """
-    if stimmberechtigte < 1:
+    if stimmberechtigte < 0 or (stimmberechtigte == 0 and not leerer_oertlicher_kreis):
         raise AuszaehlungsFehler("stimmberechtigte muss >= 1 sein.")
 
     gesehen: set[str] = set()
@@ -112,6 +114,8 @@ def auszaehlen(
     nein = zaehler[Stimme.NEIN]
     enthaltung = zaehler[Stimme.ENTHALTUNG]
     abgegeben = ja + nein + enthaltung
+    if stimmberechtigte == 0 and abgegeben:
+        raise AuszaehlungsFehler("Keine Stimmen bei leerem örtlichem Teilnehmerkreis zulässig.")
 
     # Beteiligungsprüfung ohne Gleitkomma: abgegeben/berechtigte >= schwelle
     schwelle = Fraction(policy.mindestbeteiligung).limit_denominator(10_000)
@@ -126,7 +130,9 @@ def auszaehlen(
 
     angenommen = beteiligung_erreicht and mehrheit
 
-    if not beteiligung_erreicht:
+    if stimmberechtigte == 0:
+        begruendung = "Keine Stimmberechtigten im festgehaltenen örtlichen Kreis — kein Beschluss."
+    elif not beteiligung_erreicht:
         begruendung = (
             f"Abgelehnt: Mindestbeteiligung verfehlt — {abgegeben}/{stimmberechtigte} "
             f"Stimmberechtigten, erforderlich {float(schwelle):.1%} (§ 5 Abs 4)."
@@ -189,6 +195,8 @@ def personenwahl_auszaehlen(
     bewerbungen: Iterable[int],
     stimmberechtigte: int,
     policy: Policy,
+    *,
+    leerer_oertlicher_kreis: bool = False,
 ) -> Personenwahl:
     """Zählt eine Zustimmungswahl aus (§ 7 Abs 1 E-2.5).
 
@@ -223,8 +231,10 @@ def personenwahl_auszaehlen(
         gesehen.add(paar)
         zaehler[bid] += 1
         waehler.add(pseudonym)
-    if stimmberechtigte < 1:
+    if stimmberechtigte < 0 or (stimmberechtigte == 0 and not leerer_oertlicher_kreis):
         raise AuszaehlungsFehler("Stimmberechtigte müssen mindestens 1 sein.")
+    if stimmberechtigte == 0 and waehler:
+        raise AuszaehlungsFehler("Keine Zustimmungen bei leerem örtlichem Teilnehmerkreis zulässig.")
     reihung = sorted(reihenfolge, key=lambda b: (-zaehler[b], reihenfolge[b]))
     plaetze = tuple(
         PersonenwahlPlatz(bewerbung_id=b, stimmen=zaehler[b], platz=i + 1) for i, b in enumerate(reihung)
@@ -232,7 +242,9 @@ def personenwahl_auszaehlen(
     beteiligung = len(waehler)
     erreicht = mindestbeteiligung_erreicht(beteiligung, stimmberechtigte, policy.mindestbeteiligung)
     gewonnen = reihung[0] if erreicht and zaehler[reihung[0]] > 0 else None
-    if gewonnen is not None:
+    if stimmberechtigte == 0:
+        begruendung = "Keine Stimmberechtigten im festgehaltenen örtlichen Kreis — niemand gewählt."
+    elif gewonnen is not None:
         begruendung = (
             f"Gewählt ist Bewerbung {gewonnen} mit {zaehler[gewonnen]} Zustimmungen; "
             f"Beteiligung {beteiligung}/{stimmberechtigte} erreicht die Mindestbeteiligung "

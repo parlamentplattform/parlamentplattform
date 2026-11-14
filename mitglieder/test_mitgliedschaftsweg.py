@@ -56,7 +56,7 @@ def test_freischaltung_und_anwartschaft_folgen_der_tatsaechlichen_einstellung(cl
     assert ("bei Sachfragen nach drei Monaten" in s) is not aufbau
     assert "Ein Beitragseingang allein bestätigt noch nicht Ihre Identität" in s
     assert "ohne festen Wohnsitz" in s and "Wohnsitz im Ausland" in s
-    assert "Eine örtliche Begrenzung ist noch nicht umgesetzt" in s
+    assert "Ältere Verfahren behalten ihren bisherigen Teilnehmerkreis" in s
     assert "keine Daten eines echten Antrags" in s and "noch keine vollständige Durchrechnung" in s
     assert "Ein Parteibeschluss ist noch kein staatliches Gesetz" in s
 

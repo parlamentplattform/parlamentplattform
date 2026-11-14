@@ -255,7 +255,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
 | `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | Months before a rejected or lapsed motion may be resubmitted verbatim |
 | `overview.decided_votes` | `uebersicht-abstimmungen` | entries | How many decided votes the public overview lists before pointing to the registers |
-| `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | Whether a registered secondary residence also assigns a member to that region for regional motions (0 or 1; never affects voting rights) |
+| `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | Whether My Region also displays motions from the area of a registered secondary residence (0 or 1; display only) |
 | `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
 | `similarity.max_hits` | `aehnlichkeit-treffer` | motions | How many similar motions are shown when submitting |
 | `similarity.preview_debounce_ms` | `aehnlichkeit-vorschau-wartezeit-ms` | milliseconds | Idle time before the local preview runs |

@@ -156,12 +156,15 @@ def _beteiligung_lesbar(antrag) -> dict | None:
     Karte „Abstimmen“ der Antragsseite (D-D2). Dieselbe Schranke wie Kachel und Übersicht."""
     if antrag.phase != Phase.ABSTIMMUNG.value or antrag.art == Antragsart.MANDAT:
         return None
+    from verfahren.teilnahme import oertlich_begrenzt
     from verfahren.tendenz import tendenzen
 
     abgegeben, basis = _beteiligung(antrag)
     # `basis` schützt nur vor der Division durch null — ohne gespeicherten Nenner nennt die Karte keinen
     # (Prüfung 0.51.0): „–“ statt „von 1“, und keinen Prozentwert.
-    berechtigte = antrag.stimmberechtigte_anzahl or None
+    berechtigte = antrag.stimmberechtigte_anzahl
+    if berechtigte == 0 and not oertlich_begrenzt(antrag):
+        berechtigte = None
     return {
         "abgegeben": abgegeben,
         "berechtigte": berechtigte,
@@ -365,9 +368,12 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
     from plattform_core.weicherfilter import ist_neutral
     from verfahren.hinweise import handlungslage
+    from verfahren.teilnahme import eigene_kreise
 
     laufende = _als_liste(laufend)
     zaehler = zaehler if zaehler is not None else _zaehler(laufende)
+    if "eigene_teilnehmerkreise" not in zaehler:
+        zaehler["eigene_teilnehmerkreise"] = eigene_kreise(nutzer, laufende)
     beginne = beginne if beginne is not None else _wirksame_beginne(laufende, jetzt)
     vfs = dict(vfs) if vfs is not None else _vertrauensfragen(laufende)
     lage = lage if lage is not None else handlungslage(nutzer)  # einmal je Feed, nicht je Zeile
@@ -529,6 +535,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     zulassen; das Stimmrecht am Stichtag wird je Antrag geprüft. Sonst trägt `sperre` den
     Zustand mit Link statt der Knöpfe."""
     from verfahren.hinweise import handlungslage, kachel_sperre
+    from verfahren.teilnahme import oertlich_begrenzt, oertlich_zulaessig
 
     policy = antrag.policy()
     beginn = beginn or antrag.wirksamer_phase_beginn(jetzt)
@@ -580,6 +587,13 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
             sperre = lage.mitwirkung
         elif stat["typ"] == "abstimmung" and antrag.art != Antragsart.MANDAT:
             sperre = lage.stimmsperre(nutzer, antrag)
+        if sperre is None and stat["typ"] in {"unterstuetzung", "abstimmung"} and oertlich_begrenzt(antrag):
+            kreise = zaehler.get("eigene_teilnehmerkreise")
+            dabei = oertlich_zulaessig(antrag, nutzer) if kreise is None else antrag.pk in kreise
+            if not dabei:
+                sperre = "nicht_im_teilnehmerkreis"
+            elif stat["typ"] == "abstimmung" and antrag.stimmberechtigte_anzahl == 0:
+                sperre = "nicht_stimmberechtigt"
     return {
         "sperre": kachel_sperre(sperre),
         "antrag": antrag,
@@ -774,6 +788,9 @@ def parlament(request):
     # Phasenbeginne (Aussetzungen, Befund #24/#30) kommen je in einer Abfrage.
     laufende = _als_liste(laufend)
     zaehler = _zaehler(laufende)
+    from verfahren.teilnahme import eigene_kreise
+
+    zaehler["eigene_teilnehmerkreise"] = eigene_kreise(request.user, laufende)
     beginne = _wirksame_beginne(laufende, jetzt)
     vfs = _vertrauensfragen(laufende)  # Vertrauensfragen (§ 7 Abs 10): Legende, Unterstützungsrecht
 
@@ -786,7 +803,7 @@ def parlament(request):
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
-    mein_ort = _meine_orte(request.user)
+    mein_ort, meine_gemeinden = _meine_orte(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
@@ -803,7 +820,13 @@ def parlament(request):
     region_zeilen = []
     for ebene in ("gemeinde", "bezirk", "land"):
         orte = mein_ort[ebene]
-        zeile = [a for a in regionale if a.ebene == ebene and (not orte or a.gebiet in orte)]
+        zeile = [
+            a for a in regionale if a.ebene == ebene and (
+                not orte or a.pk in zaehler["eigene_teilnehmerkreise"]
+                or (meine_gemeinden.intersection(a.teilnahmegebiet["gemeinden"])
+                    if a.teilnahmegebiet else a.gebiet in orte)
+            )
+        ]
         region_zeilen.append(
             {
                 "ebene": ebene,
@@ -883,26 +906,28 @@ def _url_oder_none(name: str, *args) -> str | None:
         return None
 
 
-def _meine_orte(user) -> dict[str, list[str]]:
+def _meine_orte(user) -> tuple[dict[str, list[str]], set[str]]:
     """Die Orte je Ebene, an denen „Meine Region“ das Mitglied misst — als geordnete Liste:
     zuerst der Wohnsitz, dann (FB-J6, nur bei Schalter 1) der Nebenwohnsitz. Gäste und leere
-    Profile bekommen leere Listen und sehen alle regionalen Anträge der Ebene. Die Namen sind
-    dieselben, die `AntragsFormular.gebiet()` schreibt — reine Textgleichheit mit `Antrag.gebiet`.
-    Keine Abfrage je Antrag: höchstens Register und Nebenwohnsitz, und die nur, wenn einer
-    hinterlegt ist."""
+    Profile bekommen leere Listen und sehen alle regionalen Anträge der Ebene. Die Namen
+    sind Anzeige, Ticker-Suche und Rückfall für Verfahren ohne Gebietsstand."""
     from verfahren.views_aktionen import nebenwohnsitz_zaehlt
 
     orte: dict[str, list[str]] = {"gemeinde": [], "bezirk": [], "land": []}
+    kennziffern: set[str] = set()
     if not user.is_authenticated:
-        return orte
+        return orte, kennziffern
     if user.gemeinde:
         orte["gemeinde"].append(user.gemeinde)
-    if user.wohnsitz_id and user.wohnsitz.bezirk:
-        orte["bezirk"].append(user.wohnsitz.bezirk)
+    if user.wohnsitz_id:
+        kennziffern.add(user.wohnsitz.kennziffer)
+        if user.wohnsitz.bezirk:
+            orte["bezirk"].append(user.wohnsitz.bezirk)
     if user.bundesland:
         orte["land"].append(user.get_bundesland_display())
     if user.nebenwohnsitz_id and nebenwohnsitz_zaehlt():
         neben = user.nebenwohnsitz
+        kennziffern.add(neben.kennziffer)
         for ebene, ort in (
             ("gemeinde", neben.name),
             ("bezirk", neben.bezirk),
@@ -910,7 +935,7 @@ def _meine_orte(user) -> dict[str, list[str]]:
         ):
             if ort and ort not in orte[ebene]:
                 orte[ebene].append(ort)
-    return orte
+    return orte, kennziffern
 
 
 def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[tuple[str, str]]:
@@ -1320,6 +1345,10 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
     Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
+    from verfahren.teilnahme import oertlich_begrenzt, oertlich_zulaessig, stimmrecht_im_neuen_kreis
+
+    oertlich = oertlich_begrenzt(antrag)
+    eigener_kreis = not oertlich or oertlich_zulaessig(antrag, request.user)
     antrag.fortschreiben_bis_zum_stand()  # fällige Übergänge lazy anwenden (idempotent; dazu der Wächter)
     beendet = antrag.phase in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value)
     ergebnis = None
@@ -1427,6 +1456,11 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
         "verfahren/antrag.html",
         {
             "antrag": antrag,
+            "oertlicher_teilnehmerkreis": oertlich,
+            "eigener_teilnehmerkreis": eigener_kreis,
+            "eigene_oertliche_stimmabgabe": not oertlich or (
+                antrag.phase == Phase.ABSTIMMUNG.value and stimmrecht_im_neuen_kreis(antrag, request.user)
+            ),
             "vollzug": vollzug,
             "vollzug_statuswahl": Vollzugsstatus.choices,
             "darf_vollzug": antrag.phase == Phase.ANGENOMMEN.value

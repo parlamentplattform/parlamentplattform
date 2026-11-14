@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.83.0] — 2026-11-14 · Hauptwohnsitzkreis für neue regionale Anträge
+
+- Neue öffentlich eingebrachte Sachanträge und Mandats-Kandidaturen auf Gemeinde-, Bezirks- oder Landesebene halten die örtliche Zuordnung bei der Einbringung fest. Maßgeblich ist der angegebene gemeldete Hauptwohnsitz im Gemeindestamm. Spätere Wohnsitzänderungen wirken erst auf neue Verfahren.
+- Unterstützung, Bewerbung, Zustimmung, Stimmabgabe und die Berechnung der Beteiligung verwenden diesen Kreis. Allgemeine Mitwirkungs- und Stimmvoraussetzungen gelten zusätzlich. Regionale Antragspost geht mit Einwilligung an zugehörige Mitglieder. Der Nebenwohnsitzschalter dient der Ansicht „Meine Region“.
+- Die Antragsseite zeigt Gebiet, Festhaltungszeitpunkt und den eigenen Zugang. Ein leerer stimmberechtigter Kreis ergibt ohne Stimmen keinen Beschluss und keine Wahl. Der Ergebnisexport ergänzt Gebietsstand und Zeit ohne Mitgliederliste.
+- Alte Verfahren und ihre festgeschriebenen Regeln gelten fort. Mandats- und Vertrauensfragen folgen ihren bestehenden Abläufen. Wiener Gemeindebezirke brauchen eigene Daten. Schema 1.29.
+
 ## [0.82.0] — 2026-11-14 · Öffentliche Gemeindeübersicht
 
 - Gemeinden öffentlich nach Name, Bezirk oder Gemeindekennziffer suchen und unterscheiden. Das bestätigte Gemeindekonto verlinkt die eigene Hauptgemeinde.

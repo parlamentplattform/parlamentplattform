@@ -321,6 +321,8 @@ def region_empfaenger(antrag: Antrag):
     ebene, gebiet = antrag.ebene, antrag.gebiet
     if ebene == Ebene.BUND.value:
         return basis if zahl("post-neuer-antrag-bund", 1) == 1 else basis.none()
+    if antrag.teilnahmegebiet is not None:
+        return basis.filter(oertliche_verfahrenskreise__antrag=antrag)
     if not gebiet:
         return basis.none()
     neben = zahl("region-nebenwohnsitz-zaehlt", 0) == 1

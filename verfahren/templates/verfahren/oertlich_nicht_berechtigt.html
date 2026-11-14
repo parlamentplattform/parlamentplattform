@@ -1,0 +1,7 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Außerhalb des örtlichen Teilnehmerkreises" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Außerhalb des örtlichen Teilnehmerkreises" %}</h1>
+<p>{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}</p>
+<p><a href="{% url 'verfahren:antrag' antrag.pk %}">{{ antrag.titel }}</a></p>
+{% endblock %}

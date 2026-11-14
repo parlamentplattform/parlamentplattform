@@ -5861,18 +5861,6 @@ msgstr "no support and deliberation phase (§ 7 para 9)"
 msgid "Dauer der Mandatsfrage aus dem Register, beim Eröffnen eingefroren (§ 7 Abs 9)"
 msgstr "duration of the mandate question from the register, frozen when opened (§ 7 para 9)"
 
-#, python-format
-msgid "Mein Nebenwohnsitz-Bundesland (%s)"
-msgstr "My secondary-residence province (%s)"
-
-#, python-format
-msgid "Mein Nebenwohnsitz-Bezirk (%s)"
-msgstr "My secondary-residence district (%s)"
-
-#, python-format
-msgid "Meine Nebenwohnsitz-Gemeinde (%s)"
-msgstr "My secondary-residence municipality (%s)"
-
 msgid "Wohnsitz hinterlegen ›"
 msgstr "Add your residence ›"
 
@@ -8700,7 +8688,6 @@ msgstr "An Austrian municipality is required only for residents in Austria. If y
 msgid "Bitte wählen Sie Ihre Wohnsitz-Gemeinde oder eine der anderen Wohnsitzoptionen."
 msgstr "Please select your municipality of residence or one of the other residence options."
 
-
 msgid "Beim Einbringen als eigenständig eingestuft gegenüber:"
 msgstr "Considered distinct when submitted, compared with:"
 
@@ -8721,9 +8708,6 @@ msgstr "The preview stays local. Meaning is compared only when you submit."
 
 msgid "Diesen unterstützen"
 msgstr "Support this motion"
-
-msgid "Dieser Antrag sammelt keine Unterstützung mehr. Ihr eigener Text bleibt erhalten."
-msgstr "This motion is no longer collecting support. Your own text has been kept."
 
 msgid "Dieser Text ist zu lang für die Vorschau. Er wird beim Absenden geprüft."
 msgstr "This text is too long for the preview. It will be checked when you submit."
@@ -8768,7 +8752,6 @@ msgstr "Minimum combined length of the title and text for the local similarity p
 
 msgid "Höchste Textlänge für die Vorschau beim Tippen. Längere Texte werden weiterhin beim Absenden geprüft."
 msgstr "Maximum text length for the preview while typing. Longer texts are still checked when submitted."
-
 
 msgid "Faktenbasis"
 msgstr "Source data"
@@ -8861,20 +8844,17 @@ msgstr "snapshots"
 msgid "Anzahl amtlicher Metadaten-Schnappschüsse je Seite der Faktenbasis (1 bis 100)."
 msgstr "Official metadata snapshots per source data page (1 to 100)."
 
-
 msgid "Gespeicherte Metadatenantwort herunterladen"
 msgstr "Download the stored metadata response"
 
 msgid "Die Prüfsummen beziehen sich auf JSON mit sortierten Schlüsseln, ohne zusätzliche Leerzeichen, als UTF-8 mit unmaskierten Unicode-Zeichen."
 msgstr "Checksums use JSON with sorted keys, no additional whitespace, UTF-8 encoding and unescaped Unicode characters."
 
-
 msgid "Reihenfolge: jüngster Stichtag zuerst, dann RIS-Kennung; bei gleicher Kennung und gleichem Stichtag jüngster Import zuerst."
 msgstr "Order: latest as-of date first, then RIS identifier; for the same identifier and date, latest import first."
 
 msgid "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "
 msgstr "Version 8 adds the official metadata collection (0.56): oversight can inspect provenance, as-of dates and preserved snapshots publicly. Full texts, verified cross-references and reports remain pending. "
-
 
 msgid "Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe sowie gezielt abgerufene amtliche Metadaten und einzelne Dokumenttexte; vollständige Rechtsdaten und Berichte fehlen noch."
 msgstr "The model connector status, budget, recent runs, selectively retrieved official metadata and individual document texts are public; complete legal data and reports remain pending."
@@ -8939,13 +8919,11 @@ msgstr "Read document text retrieval records"
 msgid "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben nachlesbar."
 msgstr "Latest retrieval first; unchanged repeated retrievals also remain visible."
 
-
 msgid "Erfolgreich"
 msgstr "Successful"
 
 msgid "Fehlgeschlagen"
 msgstr "Failed"
-
 
 msgid "Vorschlag des Expertenrats"
 msgstr "Expert council proposal"
@@ -8991,7 +8969,6 @@ msgstr "Previous legal-impact assessments per motion page (1 to 100)."
 
 msgid "zu Ihrem Antrag liegt eine KI-Einschätzung vor, welche Gesetze betroffen sein könnten:"
 msgstr "an AI assessment is available for your motion, suggesting which laws might be affected:"
-
 
 msgid "Amtliche Quelle übernehmen"
 msgstr "Import an official source"
@@ -9041,7 +9018,6 @@ msgstr "Explicitly import official metadata and individual document texts"
 msgid "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "
 msgstr "Version 10 adds explicitly requested individual official sources for administrators (0.59): existing permissions, shared allowance and immutable source records. "
 
-
 msgid "Abgestimmt wird mit <strong>Ja, Nein oder Enthaltung</strong>.\n    Die Dauer steht bei jeder Abstimmung; bis zum Fristende können Sie Ihre Stimme ändern. Ihre Stimme steht unter einem\n    <strong>Pseudonym</strong> in der öffentlichen Stimmliste; mit Ihrem persönlichen Prüfcode finden\n    Sie sie dort wieder und können das Ergebnis selbst nachrechnen. Das Ergebnis erscheint erst\n    nach dem Fristende — niemand läuft einer Mehrheit hinterher."
 msgstr "Votes are cast as <strong>Yes, No or Abstain</strong>. Each vote states its duration; you may change your vote until the deadline. Your vote appears under a <strong>pseudonym</strong> in the public list; use your personal verification code to find it and verify the result yourself. Results appear only after the deadline, so no one follows an apparent majority."
 
@@ -9059,7 +9035,6 @@ msgstr "Find your occupation or concern using the search in the <a href=\"%(parl
 
 msgid "Laufende Verfahren behalten ihre festgelegten Regeln. Die jeweiligen Fristen sehen Sie direkt beim Antrag; für Personenwahlen und Mandatsfragen gelten eigene Abläufe."
 msgstr "Ongoing procedures retain their established rules. Each motion shows its own deadlines; elections and mandate questions follow separate procedures."
-
 
 msgid "unklar"
 msgstr "unclear"
@@ -9115,17 +9090,14 @@ msgstr "A format error must not appear to be an assessment with no content. Unkn
 msgid "Das veröffentlichte JSON-Schema und die unveränderte Antwort lassen sich erneut prüfen. Die Anzeige nennt die Fassung der aktuellen Formprüfung und die Prüfsummen; sie behauptet keine rückwirkende Prüfung beim ursprünglichen Lauf."
 msgstr "The published JSON schema and unchanged response can be checked again. The display states the version and checksums of the current format check; it does not claim a retrospective check during the original run."
 
-
 msgid "Teilnehmerkreis:"
 msgstr "Eligible participants:"
 
 msgid "Bei dieser Kandidatur werden Unterstützung und Wahlberechtigung derzeit parteiweit geprüft. Die Gebietsangabe begrenzt den Kreis der unterstützenden und abstimmenden Mitglieder noch nicht."
 msgstr "Eligibility to support and vote in this candidacy is currently checked on a party-wide basis. The stated area does not yet restrict which members may support or vote."
 
-
 msgid "Amtlicher Quellenkontext"
 msgstr "Official source context"
-
 
 msgid "Quellen"
 msgstr "sources"
@@ -9226,17 +9198,14 @@ msgstr "The request could not be prepared; no provider was called."
 msgid "Das ist ein Vorschlag eines KI-Modells (%(modell)s, Auftrag %(auftrag_version)s). Die rechtliche Deutung ist nicht unabhängig verifiziert und keine Rechtsberatung. Der Vorschlag hat keine Wirkung auf das Verfahren; auf der Antragsseite können Sie ihn beanstanden."
 msgstr "This is a proposal from an AI model (%(modell)s, instruction %(auftrag_version)s). The legal interpretation is not independently verified and is not legal advice. The proposal has no effect on the procedure; you can challenge it on the motion page."
 
-
 msgid "Original-XML"
 msgstr "Original XML"
-
 
 msgid "Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."
 msgstr "Zukunftswerkstatt requests and runs are retained."
 
 msgid "Ein archivierter KI-Lauf bleibt unverändert."
 msgstr "An archived AI run cannot be changed."
-
 
 msgid "Weitere Zwecke"
 msgstr "Other purposes"
@@ -9280,13 +9249,11 @@ msgstr "Summarises archived runs, failed attempts and token figures by purpose. 
 msgid "Jeder KI-Aufruf der Plattform läuft über einen anbieterneutralen Steckplatz und hinterlässt einen archivierten Lauf: Zweck, Modell, Tokenverbrauch, Dauer — auch der gescheiterte. Das Monats-Tokenbudget prüft vor weiteren Aufrufen die gespeicherten Verbrauchsangaben. Das ist keine Kostenabrechnung; ungemeldeter Verbrauch kann fehlen. Die KI schlägt vor, sie entscheidet nie."
 msgstr "Every platform AI call goes through a provider-neutral interface and leaves an archived run: purpose, model, token usage and duration, including failed calls. The monthly token budget checks recorded usage before further calls. This is not a bill; unreported usage may be missing. AI makes proposals; it never decides."
 
-
 msgid "Zweck"
 msgstr "Purpose"
 
 msgid "Summe"
 msgstr "Total"
-
 
 msgid "Ablauf als Text lesen"
 msgstr "Read the process as text"
@@ -9296,9 +9263,6 @@ msgstr "Effort and duration"
 
 msgid "Bei der Registrierung geben Sie Ihren Namen, Ihre E-Mail-Adresse und Ihre Wohnsitz-Situation an.\n  Nach dem Bestätigungslink zeigt Ihnen die Plattform die nächsten Schritte bis zur Freischaltung."
 msgstr "When registering, enter your name, email address and residence situation.\n  After the confirmation link, the platform shows the next steps towards activation."
-
-msgid "Die Gebietsangabe ordnet Anträge Ihrer Region zu. Unterstützung und Wahlberechtigung werden derzeit auch bei regionalen Mandats-Kandidaturen parteiweit geprüft. Eine örtliche Begrenzung ist noch nicht umgesetzt."
-msgstr "The area identifies motions for your region. Support and voting eligibility are currently checked across the entire party, including regional candidacies. Local restrictions have not yet been implemented."
 
 msgid "Die Grafik zeigt den allgemeinen Weg. Laufende Verfahren behalten ihre eigenen festgelegten Regeln; Sonderverfahren haben eigene Abläufe."
 msgstr "The diagram shows the general process. Ongoing procedures retain their own fixed rules; special procedures follow separate paths."
@@ -9381,7 +9345,6 @@ msgstr "return with requests"
 msgid "Öffentlich können Sie einen beständigen Anzeigenamen verwenden. Stimmen werden unter Pseudonym veröffentlicht; die Zuordnung zum Konto liegt getrennt bei der Plattform und ist nicht kryptografisch geheim."
 msgstr "You can use a consistent public display name. Votes are published under pseudonyms; the account link is held separately by the platform and is not cryptographically secret."
 
-
 msgid "Der damalige Quellenrahmen enthält keine Quellen zum Vergleichen. Neue Quellen werden ihm nicht nachträglich zugeschrieben."
 msgstr "The recorded source frame contains no sources to compare. New sources are not attributed to it retroactively."
 
@@ -9435,7 +9398,6 @@ msgstr "First version: distinguish original model input from today's local revie
 
 msgid "Gleiche amtliche Kennung, kein älterer historischer Stichtag, spätere Erfassung als der Quellenrahmen. Metadatenstand oder Hash sowie XML-Hash und Parserfassung vergleichen. Neue Nummer allein genügt nicht. Reihung nach Kennung; auch ohne späteren Fund wird rechtliche Aktualität nicht bestätigt."
 msgstr "Same official identifier, no earlier historical date, capture after the source frame. Compare metadata date or hash, XML hash and parser version. A new ID alone is insufficient. Ordered by identifier; absence of a later finding does not establish legal currency."
-
 
 msgid "Als zuständige Gruppe 1 können Sie die ursprüngliche öffentliche Eingabe, Antwort und Beanstandung zur Nachrechnung an den vorhandenen Modellanbieter senden. Es gelten die bestehenden Budgets."
 msgstr "As the responsible group 1, you may send the original public input, response and objection to the existing model provider for recalculation. Existing budgets apply."
@@ -9515,7 +9477,6 @@ msgstr "Version 11 with explicit requests by responsible group 1 to recalculate 
 msgid "Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n  zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug mit einer eigenen Nachrechnung\n  beantworten. Original und Beanstandung bleiben stehen; eine neue Modellantwort bestätigt keine sachliche\n  Erledigung. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg noch nicht enthalten."
 msgstr "The <strong>coordination council</strong> oversees the factual database and parameter register and receives simulation reports. Only the <strong>integrity council</strong> may highlight a motion by a published, reasoned decision, never an algorithm (§ 5 para. 10). The <strong>expert council</strong> works in two independent groups: for direct tasks, the second checks the first group's proposals for conflicts of interest and may return them with reasons. Every member may publicly challenge an assessment; the note is retained. The responsible group 1 may respond to a recorded public legal-impact assessment with a separate recalculation. Original and objection are retained; a new model response does not establish a factual resolution. Other assessments and legacy records are outside this initial correction process."
 
-
 msgid "Modellkennung im damaligen Quellenstand"
 msgstr "Model identifier in the original source snapshot"
 
@@ -9531,7 +9492,6 @@ msgstr "Only the document identifier matches. This does not confirm the model ti
 msgid "Mehrere damalige Quellenstände tragen diese Dokumentnummer. Es wird kein einzelner Stand zugeordnet."
 msgstr "Several original source snapshots have this document identifier. No single snapshot is matched."
 
-
 msgid "Bekannte amtliche Personal-Aggregatzeile lesen"
 msgstr "Read a known official aggregate personnel row"
 
@@ -9543,7 +9503,6 @@ msgstr "First version: prepare deterministic transfer of figures without admitti
 
 msgid "Bekannte Publikation und Seite, genaue Tabellenüberschrift, Spaltenfolge und Einheitsfußnote. Genau eine Zeile für 2025; drei Ganzzahlen im amtlichen Tausenderformat und passende Gesamtsumme. Andere Stände nicht erraten."
 msgstr "Known publication and page, exact table heading, column order and unit footnote. Exactly one row for 2025; three integers in the official thousands format and a matching total. Do not guess other snapshots."
-
 
 msgid "Amtliche Personal-Aggregate nachlesen"
 msgstr "Read official personnel aggregates"
@@ -9628,7 +9587,6 @@ msgstr "local original file"
 
 msgid "amtlicher Einzelabruf"
 msgstr "individual official retrieval"
-
 
 msgid "Den einen bekannten amtlichen Personalbeleg ausdrücklich übernehmen; keine Sammelabfrage."
 msgstr "Explicitly import the one known official personnel source; no bulk retrieval."
@@ -10139,9 +10097,6 @@ msgstr "After this many hours, a sitting in live mode is considered ended if the
 msgid "0 oder 1"
 msgstr "0 or 1"
 
-msgid "Ob ein hinterlegter Nebenwohnsitz ein Mitglied zusätzlich der zweiten Region zuordnet — für die Anzeige regionaler Anträge und das Einbringen auf dieser Ebene. Am Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht (§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."
-msgstr "Whether a recorded secondary residence also assigns a member to the second region — for displaying regional motions and submitting motions at that level. A secondary residence does not change voting rights: there is no regional voting eligibility (§ 5 para 6). Only the value 1 enables it; all other values act as 0. Takes effect immediately."
-
 msgid "Ob Kachel, Antragsseite und Übersicht während einer laufenden Abstimmung über einen Sachantrag die Tendenz — die Anteile von Ja, Nein und Enthaltung — zeigen, sobald die Mindestbeteiligung erreicht ist. 0 heißt: verdeckt bis zum Fristende. Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Der Wert gehört zur Verfahrensordnung: Er wirkt erst mit einer neuen Fassung und wird beim Einbringen in die Ordnung des Antrags eingefroren."
 msgstr "Whether the tile, motion page and overview show the trend — the shares of yes, no and abstention — during an ongoing vote on a substantive motion once minimum participation is reached. 0 means hidden until the deadline. Only the value 1 enables it; all other values act as 0. The value is part of the rules of procedure: it takes effect only with a new version and is frozen in the motion's policy at submission."
 
@@ -10172,9 +10127,6 @@ msgstr "Counting votes on substantive questions"
 msgid "Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein Rundungsfehler über einen Beschluss entscheiden kann."
 msgstr "Counts the yes, no and abstention votes on a substantive question and determines whether the motion is adopted: minimum participation must be reached first, then the majority decides. Uses integers only so that no rounding error can decide a resolution."
 
-msgid "Sie steht seit dem Fundament der Plattform so da: Das Ergebnis einer Abstimmung soll jede Person mit Papier und Bleistift nachrechnen können, und die Reihenfolge, in der die Stimmen eingehen, darf am Ergebnis nichts ändern."
-msgstr "This rule has been in place since the platform's foundation: anyone should be able to check a vote's result with pencil and paper, and the order in which votes arrive must not affect the result."
-
 msgid "Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: Ja + Nein + Enthaltung durch die Zahl der Stimmberechtigten teilen — das muss mindestens die Mindestbeteiligung ergeben; dann genügt Ja > Nein (bei der Basis „abgegeben': Ja > die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen Verfahrensordnung, nicht aus dem laufenden Parameterregister."
 msgstr "After voting ends, each motion offers a JSON export of its vote list. By hand: divide yes + no + abstention by the number of eligible voters — this must at least meet minimum participation; then yes > no is sufficient (with the “cast” basis: yes > half of all votes cast). To have it calculated: `python3 verify/nachrechnen.py export.json`, a second, independent program using only the standard library. Minimum participation comes from the rules of procedure frozen on the motion, not from the current parameter register."
 
@@ -10183,9 +10135,6 @@ msgstr "Counting approval votes for candidacies"
 
 msgid "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn."
 msgstr "Counts a mandate candidacy vote: each member may approve several applicants; the applicant with the most approvals wins, and the approval counts determine the order of the election nomination list. Ties are resolved in favour of the earlier application."
-
-msgid "Seit dem 1. September 2026 wählt das Parlament auch Personen: Mandats-Kandidaturen laufen als Anträge, an denen man sich beteiligt, statt als getrennte Wahl. Dafür brauchte es eine Auszählung, die Zustimmungen zählt statt Ja und Nein — und eine offene Regel für den Gleichstand, damit nicht der Zufall über die Listenreihung entscheidet."
-msgstr "Since 1 September 2026, Parliament also elects people: mandate candidacies run as motions that people participate in, rather than as separate elections. This required a count of approvals instead of yes and no — and a disclosed tie-breaking rule so that chance does not determine the order of the list."
 
 msgid "Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: die Zustimmungen je Bewerbung zählen, absteigend ordnen, bei gleicher Zahl die früher eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen, die mindestens einer Bewerbung zugestimmt haben; sie muss die Mindestbeteiligung der eingefrorenen Verfahrensordnung erreichen, sonst gilt niemand als gewählt."
 msgstr "The motion's JSON export contains all applications and all approvals. By hand: count approvals per application, order them from highest to lowest, and put the earlier application first when counts are equal. Participation is the number of people who approved at least one application; it must meet the minimum participation in the frozen rules of procedure, otherwise nobody is considered elected."
@@ -11440,9 +11389,6 @@ msgstr "First version following the decision to use self-declared, actually regi
 msgid "Gemeindekennziffern aufsteigend ordnen; Gemeinde durch ihre einzelne Kennziffer, Land und Bezirk durch die festgehaltene Gemeindemenge innerhalb desselben Landes abgrenzen. Die abgeleitete Gebietskennung enthält deren SHA-256-Prüfsumme. Keine amtliche Bezirksnummer und keine öffentliche Liste persönlicher Zuordnungen; die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."
 msgstr "Sort municipality codes in ascending order; identify a municipality by its single code and a state or district by the recorded set of municipalities within the same state. The derived area identifier contains the SHA-256 checksum of that set. This is neither an official district code nor a public list of personal associations; individual membership in the area is checked against the protected circle recorded at the time."
 
-msgid "Technische Vorbereitung: noch nicht an die Einbringung und Handlungswege angeschlossen. Wiener Gemeindebezirke sind im vorhandenen Stamm nicht getrennt erfasst."
-msgstr "Technical groundwork: not yet connected to submission and action flows. Vienna municipal districts are not individually represented in the existing directory."
-
 msgid "Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."
 msgstr "A recorded local participant circle remains unchanged."
 
@@ -11499,7 +11445,6 @@ msgstr "Email confirmed; primary residence and age self-declared. Municipal poll
 
 msgid "Keine aktuelle Hauptgemeinde"
 msgstr "No current primary municipality"
-
 
 msgid "Ein Gemeindekonto ist keine Parteimitgliedschaft: kein Mitgliedsbeitrag, kein Parteiausweis und keine Parteirechte. Es vermittelt kein amtliches Wahlrecht."
 msgstr "A municipal account is not party membership: no membership fee, party membership card or party rights. It grants no official voting rights."
@@ -11659,3 +11604,54 @@ msgstr "Municipalities with the same name remain distinguishable by district, pr
 
 msgid "Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Die Zuordnung ändert keine Teilnahmeberechtigung."
 msgstr "Municipalities by name, district and code; mandates by start date and ID in ascending order. Meeting tickers by start time and ID in descending order, with seven days of recent meetings. The link does not change eligibility to participate."
+
+msgid "%(ort)s · Hauptwohnsitz bei Einbringung am %(tag)s · Regelstand %(fassung)s."
+msgstr "%(ort)s · Main residence recorded when submitted on %(tag)s · rule version %(fassung)s."
+
+msgid "Außerhalb des örtlichen Teilnehmerkreises"
+msgstr "Outside the local group of participants"
+
+msgid "Bei neuen örtlichen Sachanträgen und Mandats-Kandidaturen zählt der Hauptwohnsitz bei Einbringung. Ältere Verfahren behalten ihren bisherigen Teilnehmerkreis."
+msgstr "For new local motions and candidacies, the main residence at submission determines the local group. Older proceedings retain their existing group of participants."
+
+msgid "Das Gebiet hat sich geändert. Bitte prüfen Sie Ihre Auswahl erneut."
+msgstr "The area has changed. Please check your selection again."
+
+msgid "Die allgemeinen Voraussetzungen für die Kandidatur sind noch nicht erfüllt."
+msgstr "The general requirements for this candidacy have not yet been met."
+
+msgid "Dieser Antrag kann von Ihnen nicht unterstützt werden. Ihr eigener Text bleibt erhalten."
+msgstr "You cannot support this motion. Your own text is retained."
+
+msgid "Fassung 2 ergänzt für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl. Die bisherige Auszählung bleibt für Altverfahren unverändert."
+msgstr "Version 2 covers new local candidacies with no eligible voters. Zero eligible voters and no approvals produce no election result. Counting remains unchanged for earlier proceedings."
+
+msgid "Fassung 2 ergänzt für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss. Die bisherige Auszählung bleibt für Altverfahren unverändert."
+msgstr "Version 2 covers new local proceedings with no eligible voters. Zero eligible voters and no votes produce no decision. Counting remains unchanged for earlier proceedings."
+
+msgid "Für Sie ist hier keine Stimmabgabe möglich."
+msgstr "You cannot vote here."
+
+msgid "Für einen örtlichen Antrag ist ein gemeldeter Hauptwohnsitz erforderlich."
+msgstr "A registered main residence is required for a local motion."
+
+msgid "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung."
+msgstr "Only the registered main residence at submission counts for new local motions."
+
+msgid "Gilt für neu eingebrachte örtliche Sachanträge und Kandidaturen. Wiener Gemeindebezirke sind noch nicht getrennt erfasst; Mandats- und Vertrauensfragen folgen ihrem bisherigen Weg."
+msgstr "Applies to newly submitted local motions and candidacies. Vienna's municipal districts are not yet recorded separately. Mandate and confidence questions follow the existing process."
+
+msgid "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis."
+msgstr "You are not in the recorded local group of participants."
+
+msgid "Sie gehören nicht zum stimmberechtigten örtlichen Teilnehmerkreis."
+msgstr "You are not eligible to vote in this local group."
+
+msgid "Sie gehören zum örtlichen Kreis; die allgemeinen Voraussetzungen gelten zusätzlich."
+msgstr "You are in the local group. The general requirements also apply."
+
+msgid "Wiener Gemeindebezirke sind noch nicht getrennt erfasst."
+msgstr "Vienna's municipal districts are not yet recorded separately."
+
+msgid "Wert 1 zeigt unter „Meine Region“ auch Anträge aus der Region des eingetragenen Nebenwohnsitzes. Einbringung, Unterstützung, Bewerbung und Abstimmung richten sich bei neuen örtlichen Verfahren nach dem Hauptwohnsitzkreis. Wirkt sofort auf die Anzeige."
+msgstr "Set to 1 to show motions from the registered secondary residence in My Region. For new local proceedings, the main residence group determines who can submit, support, stand and vote. Applies immediately to the display."

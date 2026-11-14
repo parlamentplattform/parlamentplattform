@@ -66,6 +66,17 @@ import sys
 from fractions import Fraction
 
 
+def _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle):
+    if berechtigte == 0:
+        gebiet = daten.get("teilnahmegebiet") or {}
+        if gebiet.get("ebene") in ("gemeinde", "bezirk", "land") and not abgegeben:
+            return False
+        raise SystemExit("FEHLER: Nenner 0 ohne gültigen leeren örtlichen Kreis.")
+    if berechtigte < 0:
+        raise SystemExit("FEHLER: Negativer Nenner.")
+    return Fraction(abgegeben, berechtigte) >= schwelle
+
+
 def sachfrage_nachrechnen(daten: dict) -> dict:
     policy = daten["policy"]
     berechtigte = int(daten["stimmberechtigte"])
@@ -83,7 +94,7 @@ def sachfrage_nachrechnen(daten: dict) -> dict:
 
     abgegeben = sum(zaehler.values())
     schwelle = Fraction(str(policy["mindestbeteiligung"]))
-    beteiligung_ok = Fraction(abgegeben, berechtigte) >= schwelle
+    beteiligung_ok = _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle)
     if policy.get("mehrheitsbasis", "ja_nein") == "ja_nein":
         mehrheit = zaehler["ja"] > zaehler["nein"]
     else:
@@ -132,7 +143,7 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
     ]
     beteiligung = len(waehler)
     schwelle = Fraction(str(policy["mindestbeteiligung"]))
-    beteiligung_ok = Fraction(beteiligung, berechtigte) >= schwelle
+    beteiligung_ok = _beteiligung_erreicht(daten, beteiligung, berechtigte, schwelle)
     gewaehlt = reihung[0] if reihung and beteiligung_ok and zaehler[reihung[0]] > 0 else None
     return {
         "art": "mandat",

@@ -1,0 +1,29 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Sprechstunden" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Sprechstunden" %}</h1>
+<p>{{ mandat.bezeichnung }} · <a href="{% url 'gemeinde:ort' mandat.gemeinde.kennziffer %}#sprechstunden">{{ mandat.gemeinde.anzeige }}</a></p>
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}">{% translate "Mein Mandat" %}</a></p>
+<section class="karte" aria-labelledby="termin-anlegen">
+  <h2 id="termin-anlegen">{% translate "Sprechstunde veröffentlichen" %}</h2>
+  <p>{% translate "Zeit und Treffpunkt erscheinen öffentlich. Bitte geben Sie nur einen öffentlichen Treffpunkt an." %}</p>
+  <form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn">{% translate "Veröffentlichen" %}</button>
+  </form>
+</section>
+<section class="karte" aria-labelledby="sprechstunden-liste">
+  <h2 id="sprechstunden-liste">{% translate "Veröffentlichte Sprechstunden" %}</h2>
+  {% for termin in termine %}
+  <div class="kommentar">
+    {% if termin.gemeinde_id != mandat.gemeinde_id %}<p class="meta">{{ termin.gemeinde.anzeige }}</p>{% endif %}
+    {% include "mandatare/_sprechstunde.html" %}
+    {% if not termin.abgesagt_am %}
+    <form method="post" action="{% url 'mandatare:sprechstunde_absagen' mandat.pk termin.pk %}">{% csrf_token %}
+      <button class="btn-linie" type="submit">{% translate "Sprechstunde absagen" %}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% empty %}<p>{% translate "Derzeit ist keine Sprechstunde angekündigt." %}</p>{% endfor %}
+</section>
+{% endblock %}

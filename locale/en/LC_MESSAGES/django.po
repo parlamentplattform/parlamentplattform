@@ -11596,15 +11596,6 @@ msgstr "Mandates are listed by start date and ID in ascending order; meetings by
 msgid "Reihenfolge der öffentlichen Gemeindeübersicht"
 msgstr "Order of the public municipal overview"
 
-msgid "Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate und ihre öffentlichen Sitzungsticker."
-msgstr "Shows municipalities, explicitly linked DDÖ mandates and their public meeting tickers."
-
-msgid "Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."
-msgstr "Municipalities with the same name remain distinguishable by district, province and code."
-
-msgid "Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Die Zuordnung ändert keine Teilnahmeberechtigung."
-msgstr "Municipalities by name, district and code; mandates by start date and ID in ascending order. Meeting tickers by start time and ID in descending order, with seven days of recent meetings. The link does not change eligibility to participate."
-
 msgid "%(ort)s · Hauptwohnsitz bei Einbringung am %(tag)s · Regelstand %(fassung)s."
 msgstr "%(ort)s · Main residence recorded when submitted on %(tag)s · rule version %(fassung)s."
 
@@ -11655,3 +11646,60 @@ msgstr "Vienna's municipal districts are not yet recorded separately."
 
 msgid "Wert 1 zeigt unter „Meine Region“ auch Anträge aus der Region des eingetragenen Nebenwohnsitzes. Einbringung, Unterstützung, Bewerbung und Abstimmung richten sich bei neuen örtlichen Verfahren nach dem Hauptwohnsitzkreis. Wirkt sofort auf die Anzeige."
 msgstr "Set to 1 to show motions from the registered secondary residence in My Region. For new local proceedings, the main residence group determines who can submit, support, stand and vote. Applies immediately to the display."
+
+msgid "Abgesagt"
+msgstr "Cancelled"
+
+msgid "Beginn (Wiener Zeit)"
+msgstr "Starts (Vienna time)"
+
+msgid "Bitte geben Sie die Wiener Ortszeit ohne Zeitzonenzusatz ein."
+msgstr "Enter the local time in Vienna without a time zone suffix."
+
+msgid "Das Ende muss nach dem Beginn liegen."
+msgstr "The end must be after the start."
+
+msgid "Der Beginn muss in der Zukunft liegen."
+msgstr "The start must be in the future."
+
+msgid "Derzeit ist keine Sprechstunde angekündigt."
+msgstr "There are no public office hours scheduled."
+
+msgid "Die Sprechstunde ist als abgesagt gekennzeichnet."
+msgstr "The office hours have been marked as cancelled."
+
+msgid "Die Sprechstunde ist veröffentlicht."
+msgstr "The office hours are now public."
+
+msgid "Dieser Zeitraum überschneidet sich mit einer veröffentlichten Sprechstunde."
+msgstr "This time overlaps with published office hours."
+
+msgid "Ende (Wiener Zeit)"
+msgstr "Ends (Vienna time)"
+
+msgid "Fassung 2 ergänzt veröffentlichte Sprechstunden. Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."
+msgstr "Version 2 adds public office hours. Places with the same name remain distinguishable by district, province and municipality code."
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Die Zuordnung ändert keine Teilnahmeberechtigung."
+msgstr "Municipalities by name, district and code. Mandates by start date and ID in ascending order. Session tickers by start time and ID in descending order, with seven days of recent sessions. Office hours by start time and ID in ascending order, including cancellations until the scheduled end. Assignment does not change participation rights."
+
+msgid "Sprechstunde absagen"
+msgstr "Cancel office hours"
+
+msgid "Sprechstunde veröffentlichen"
+msgstr "Publish office hours"
+
+msgid "Sprechstunden"
+msgstr "Office hours"
+
+msgid "Veröffentlichte Sprechstunden"
+msgstr "Published office hours"
+
+msgid "Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker und Sprechstunden."
+msgstr "Shows municipalities, explicitly assigned DDÖ mandates, public session tickers and office hours."
+
+msgid "Zeit und Treffpunkt erscheinen öffentlich. Bitte geben Sie nur einen öffentlichen Treffpunkt an."
+msgstr "The date, time and meeting place will be public. Enter a public meeting place."
+
+msgid "Öffentlicher Treffpunkt"
+msgstr "Public meeting place"

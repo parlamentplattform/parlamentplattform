@@ -14,6 +14,12 @@
   <p>{% translate "Für diese Gemeinde ist derzeit kein aktives DDÖ-Mandat in der Übersicht zugeordnet." %}</p>
   {% endfor %}
 </section>
+<section class="karte" id="sprechstunden" aria-labelledby="gemeinde-sprechstunden">
+  <h2 id="gemeinde-sprechstunden">{% translate "Sprechstunden" %}</h2>
+  {% for termin in sprechstunden %}
+    {% include "mandatare/_sprechstunde.html" %}
+  {% empty %}<p>{% translate "Derzeit ist keine Sprechstunde angekündigt." %}</p>{% endfor %}
+</section>
 <section class="karte" aria-labelledby="gemeinde-sitzungen">
   <h2 id="gemeinde-sitzungen">{% translate "Öffentliche Sitzungsticker" %}</h2>
   <h3>{% translate "Laufende Sitzungen" %}</h3>

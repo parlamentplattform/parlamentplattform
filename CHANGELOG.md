@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.84.0] — 2026-11-14 · Öffentliche Sprechstunden
+
+- Mandatare veröffentlichen Sprechstunden für das eigene aktive und ausdrücklich zugeordnete Gemeindemandat. Beginn, Ende und öffentlicher Treffpunkt erscheinen auf der zugeordneten Ortsseite nach Beginn und Kennung. Überschneidungen beim selben Mandat werden abgewiesen.
+- Eine Absage bleibt auf der Ortsseite bis zum vorgesehenen Ende sichtbar. Veröffentlichung und Absage werden auditiert. Die Terminseite verarbeitet keine Anmeldungen oder privaten Anliegen.
+
 ## [0.83.0] — 2026-11-14 · Hauptwohnsitzkreis für neue regionale Anträge
 
 - Neue öffentlich eingebrachte Sachanträge und Mandats-Kandidaturen auf Gemeinde-, Bezirks- oder Landesebene halten die örtliche Zuordnung bei der Einbringung fest. Maßgeblich ist der angegebene gemeldete Hauptwohnsitz im Gemeindestamm. Spätere Wohnsitzänderungen wirken erst auf neue Verfahren.

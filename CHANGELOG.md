@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.85.0] — 2026-11-14 · Amtlich genannte Novellenfundstellen
+
+- Die Faktenbasis zeigt bei gespeicherten Bundesdokumenten eine ausdrücklich genannte letzte Änderung mit eindeutiger Fundstelle im Bundesgesetzblatt ab 2004. Der Link zur authentischen Kundmachung wird aus dem Teil des Gesetzblatts, der Nummer und dem Jahr gebildet. Der Metadatenstand samt Prüfsumme bleibt nachlesbar.
+- Die Nachlese verwendet ausschließlich den aufgerufenen Schnappschuss. Absatzgenaue Rechtsbeziehungen, Ermächtigungen und die rechtliche Prüfung von Anträgen bleiben eigene Aufgaben.
+
 ## [0.84.0] — 2026-11-14 · Öffentliche Sprechstunden
 
 - Mandatare veröffentlichen Sprechstunden für das eigene aktive und ausdrücklich zugeordnete Gemeindemandat. Beginn, Ende und öffentlicher Treffpunkt erscheinen auf der zugeordneten Ortsseite nach Beginn und Kennung. Überschneidungen beim selben Mandat werden abgewiesen.

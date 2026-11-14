@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 25
+VERSION = 26
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,14 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Bundes-Metadaten"),
+        zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-14",
+        grund=_("Eine eindeutig benannte Bundes-Kundmachung soll direkt nachlesbar sein."),
+        nachrechenbar=_("Gleiche NOR-Kennung und Anwendung BrKons verlangen. Nur die amtliche Relation zur letzten Änderung mit eindeutigem Teil I, II oder III des Bundesgesetzblatts ab 2004 auswerten. Die ELI-Adresse wird aus Teil, Jahr und Nummer gebildet."),
+        luecke=_("Einzelne Novellenfundstelle aus den vorhandenen Metadaten. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag werden hier nicht festgestellt."),
+    ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
         zweck=_("Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker und Sprechstunden."),

@@ -11703,3 +11703,24 @@ msgstr "The date, time and meeting place will be public. Enter a public meeting 
 
 msgid "Öffentlicher Treffpunkt"
 msgstr "Public meeting place"
+
+msgid "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung."
+msgstr "The metadata for this snapshot names this gazette publication as the last amendment. See the linked official publication for its text and the dates on which its individual provisions take effect."
+
+msgid "Eine eindeutig benannte Bundes-Kundmachung soll direkt nachlesbar sein."
+msgstr "Readers can open the uniquely identified federal gazette publication directly."
+
+msgid "Einzelne Novellenfundstelle aus den vorhandenen Metadaten. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag werden hier nicht festgestellt."
+msgstr "A single amendment reference from the available metadata. Provision-level relationships, enabling powers and legal relevance to a motion are outside this record."
+
+msgid "Gleiche NOR-Kennung und Anwendung BrKons verlangen. Nur die amtliche Relation zur letzten Änderung mit eindeutigem Teil I, II oder III des Bundesgesetzblatts ab 2004 auswerten. Die ELI-Adresse wird aus Teil, Jahr und Nummer gebildet."
+msgstr "Require a matching NOR identifier and the BrKons application. Read only the official last-amendment relation with an unambiguous Part I, II or III of the Federal Law Gazette from 2004 onwards. Build the ELI address from the part, year and number."
+
+msgid "Novelle laut RIS-Metadaten"
+msgstr "Amendment named in RIS metadata"
+
+msgid "Novellenfundstelle aus amtlichen Bundes-Metadaten"
+msgstr "Amendment reference from official federal metadata"
+
+msgid "Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."
+msgstr "Shows the last amendment expressly named in a saved RIS document snapshot."

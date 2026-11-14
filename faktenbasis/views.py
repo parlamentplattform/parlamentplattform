@@ -41,9 +41,12 @@ def index(request):
 @require_safe
 def norm(request, pk):
     eintrag = get_object_or_404(Norm.objects.select_related("importlauf"), pk=pk)
+    novelle = None
+    if (eintrag.ebene == "Bund" and not eintrag.bundesland) or (eintrag.ebene == "Land" and eintrag.bundesland):
+        novelle = novellenfundstelle(eintrag.rohdaten, eintrag.ris_id, eintrag.stand, bundesland=eintrag.bundesland)
     return render(request, "faktenbasis/norm.html", {
         "norm": eintrag,
-        "novelle": novellenfundstelle(eintrag.rohdaten, eintrag.ris_id, eintrag.stand) if eintrag.ebene == "Bund" else None,
+        "novelle": novelle,
         "novellenfassung": NOVELLENFASSUNG,
         "fassungen": Norm.objects.filter(ris_id=eintrag.ris_id).order_by("-stand", "-pk"),
         "rohdaten": json.dumps(eintrag.rohdaten, ensure_ascii=False, indent=2),

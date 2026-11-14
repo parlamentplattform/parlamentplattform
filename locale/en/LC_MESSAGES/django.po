@@ -11698,20 +11698,8 @@ msgstr "Public meeting place"
 msgid "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung."
 msgstr "The metadata for this snapshot names this gazette publication as the last amendment. See the linked official publication for its text and the dates on which its individual provisions take effect."
 
-msgid "Eine eindeutig benannte Bundes-Kundmachung soll direkt nachlesbar sein."
-msgstr "Readers can open the uniquely identified federal gazette publication directly."
-
-msgid "Einzelne Novellenfundstelle aus den vorhandenen Metadaten. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag werden hier nicht festgestellt."
-msgstr "A single amendment reference from the available metadata. Provision-level relationships, enabling powers and legal relevance to a motion are outside this record."
-
-msgid "Gleiche NOR-Kennung und Anwendung BrKons verlangen. Nur die amtliche Relation zur letzten Änderung mit eindeutigem Teil I, II oder III des Bundesgesetzblatts ab 2004 auswerten. Die ELI-Adresse wird aus Teil, Jahr und Nummer gebildet."
-msgstr "Require a matching NOR identifier and the BrKons application. Read only the official last-amendment relation with an unambiguous Part I, II or III of the Federal Law Gazette from 2004 onwards. Build the ELI address from the part, year and number."
-
 msgid "Novelle laut RIS-Metadaten"
 msgstr "Amendment named in RIS metadata"
-
-msgid "Novellenfundstelle aus amtlichen Bundes-Metadaten"
-msgstr "Amendment reference from official federal metadata"
 
 msgid "Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."
 msgstr "Shows the last amendment expressly named in a saved RIS document snapshot."
@@ -11790,3 +11778,18 @@ msgstr "Add a public update"
 
 msgid "Öffentlicher Verlauf"
 msgstr "Public record"
+
+msgid "Novellenfundstelle aus amtlichen Metadaten"
+msgstr "Amendment reference from official metadata"
+
+msgid "Fassung 2 ergänzt ausdrücklich benannte oberösterreichische Landesnovellen als Fundstellenangabe."
+msgstr "Version 2 adds citations for expressly named amendments in Upper Austrian metadata."
+
+msgid "Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Beim Land die LGBl.-Fundstelle mit Bundesland anzeigen."
+msgstr "Match the document ID and RIS application, and check for Upper Austria for provincial records. Read the expressly named last amendment only if its number and year are unambiguous and the year is at or before the snapshot year. For the federal gazette from 2004 onwards, build the ELI link from part, year and number. For the provincial gazette, show the citation and province."
+
+msgid "Die Landes-Verlinkung braucht das Kundmachungsdatum. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."
+msgstr "A direct link to a provincial gazette publication requires its publication date. Provision-level relationships, enabling powers and legal relevance to a motion remain separate tasks."
+
+msgid "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum."
+msgstr "This snapshot names the citation of the last amendment. The gazette publication date needed for a direct link is missing."

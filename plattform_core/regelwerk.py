@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 27
+VERSION = 28
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -169,12 +169,12 @@ def als_dict() -> list[dict]:
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
     Regel(
-        modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Bundes-Metadaten"),
+        modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Metadaten"),
         zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-14",
-        grund=_("Eine eindeutig benannte Bundes-Kundmachung soll direkt nachlesbar sein."),
-        nachrechenbar=_("Gleiche NOR-Kennung und Anwendung BrKons verlangen. Nur die amtliche Relation zur letzten Änderung mit eindeutigem Teil I, II oder III des Bundesgesetzblatts ab 2004 auswerten. Die ELI-Adresse wird aus Teil, Jahr und Nummer gebildet."),
-        luecke=_("Einzelne Novellenfundstelle aus den vorhandenen Metadaten. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag werden hier nicht festgestellt."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-14",
+        grund=_("Fassung 2 ergänzt ausdrücklich benannte oberösterreichische Landesnovellen als Fundstellenangabe."),
+        nachrechenbar=_("Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Beim Land die LGBl.-Fundstelle mit Bundesland anzeigen."),
+        luecke=_("Die Landes-Verlinkung braucht das Kundmachungsdatum. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."),
     ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),

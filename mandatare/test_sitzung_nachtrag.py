@@ -3,7 +3,7 @@
 Dazu das Register als JSON mit Sitzungen, Punkten und Nachträgen."""
 
 import json
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from django.urls import reverse
@@ -33,8 +33,11 @@ def admin(client):
 
 
 @pytest.fixture
-def ausgeschieden():
+def ausgeschieden(monkeypatch):
     """Ein Mandat, dessen Vertretung vor 40 Tagen endete — die Nachfrist ist lange vorbei."""
+    # Genau am Wiener Tageswechsel. Fixture, Formulardaten und Ansichten lesen dieselbe Uhr.
+    jetzt = datetime(2026, 11, 14, 23, tzinfo=UTC)
+    monkeypatch.setattr(timezone, "now", lambda: jetzt)
     mandat = mandat_anlegen(mitglied_anlegen("anna"))
     Mandat.objects.filter(pk=mandat.pk).update(vertretung_beendet_am=timezone.localdate() - timedelta(days=40))
     mandat.refresh_from_db()
@@ -71,14 +74,18 @@ def test_verwaltung_traegt_nach(client, admin, ausgeschieden):
         {"quelle": ""},
         {"stimme": "vielleicht"},
         {"sitzung_am": "kaputt"},
-        {"sitzung_am": (timezone.localdate() + timedelta(days=1)).isoformat()},  # Zukunft
-        {"sitzung_am": (timezone.localdate() - timedelta(days=41)).isoformat()},  # vor dem Ende: die Person schuldet selbst
-        {"sitzung_am": (timezone.localdate() - timedelta(days=40)).isoformat()},  # der Endtag zählt noch zur Pflicht
         {"antrag": "999999"},
     ],
 )
 def test_nachtrag_pruefungen(client, admin, ausgeschieden, extra):
     nachtrag(client, ausgeschieden, **extra)
+    assert not Rechenschaft.objects.exists()
+
+
+@pytest.mark.parametrize("tage", [1, -41, -40], ids=["zukunft", "vor-vertretungsende", "am-endtag"])
+def test_nachtrag_ausserhalb_des_zulaessigen_zeitraums(client, admin, ausgeschieden, tage):
+    sitzung_am = timezone.localdate() + timedelta(days=tage)
+    nachtrag(client, ausgeschieden, sitzung_am=sitzung_am.isoformat())
     assert not Rechenschaft.objects.exists()
 
 

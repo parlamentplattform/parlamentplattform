@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if seite.has_other_pages %}
+<nav aria-label="{% translate 'Seiten' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}" rel="prev">{% translate "Zurück" %}</a>{% endif %}
+  <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}" rel="next">{% translate "Weiter" %}</a>{% endif %}
+</nav>
+{% endif %}

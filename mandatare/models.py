@@ -38,6 +38,7 @@ from django.utils.translation import gettext_lazy as _
 
 from plattform_core import Phase
 from plattform_core.eligibility import monate_addieren
+from plattform_core.gemeindeansicht import RATSVERLAUFSREIHUNG
 from plattform_core.rechenschaft import (
     RECHENSCHAFT_TAGE,
     SAMMELBERICHT_TAGE,
@@ -452,6 +453,51 @@ class Sprechstunde(models.Model):
 
     def __str__(self):
         return f"{self.mandat_id}: {self.beginn.isoformat()}"
+
+
+class Ratsinitiative(models.Model):
+    """Veröffentlichter Arbeitsstand des Mandatars, mit dem ursprünglichen Ort."""
+
+    class Art(models.TextChoices):
+        GEGENSTAND = "gegenstand", _("Gegenstand für die Tagesordnung")
+        ANFRAGE = "anfrage", _("Anfrage im Gemeinderat")
+
+    mandat = models.ForeignKey(Mandat, on_delete=models.PROTECT, related_name="ratsinitiativen")
+    gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT, related_name="ratsinitiativen")
+    art = models.CharField(max_length=12, choices=Art.choices)
+    titel = models.CharField(max_length=160)
+    text = models.TextField(max_length=4000)
+    veroeffentlicht_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [models.Index(fields=["gemeinde", "veroeffentlicht_am"], name="ratsinitiative_ort_zeit_idx")]
+
+    def __str__(self):
+        return self.titel
+
+
+class Ratsmeldung(models.Model):
+    """Weiterer öffentlicher Eintrag zum Verlauf; ältere Meldungen bleiben lesbar."""
+
+    class Art(models.TextChoices):
+        EINGEBRACHT = "eingebracht", _("Einbringung vermerkt")
+        ANTWORT = "antwort", _("Antwort oder Ergebnis")
+        NACHTRAG = "nachtrag", _("Nachtrag zur Ratsinitiative")
+
+    initiative = models.ForeignKey(Ratsinitiative, on_delete=models.PROTECT, related_name="meldungen")
+    art = models.CharField(max_length=12, choices=Art.choices)
+    datum = models.DateField()
+    text = models.TextField(max_length=4000)
+    eingetragen_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = list(RATSVERLAUFSREIHUNG)
+        constraints = [models.UniqueConstraint(
+            fields=["initiative"], condition=models.Q(art="eingebracht"), name="ratsinitiative_einbringung_einmal",
+        )]
+
+    def __str__(self):
+        return f"{self.initiative_id}: {self.datum.isoformat()}"
 
 
 class Aufgabenstatus(models.TextChoices):

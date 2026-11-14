@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 26
+VERSION = 27
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -178,10 +178,11 @@ REGELN: tuple[Regel, ...] = (
     ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
-        zweck=_("Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker und Sprechstunden."),
-        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-14",
-        grund=_("Fassung 2 ergänzt veröffentlichte Sprechstunden. Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."),
-        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Die Zuordnung ändert keine Teilnahmeberechtigung."),
+        zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-14",
+        grund=_("Fassung 3 ergänzt die Reihenfolge der öffentlichen Ratsinitiativen und ihrer Verlaufsvermerke."),
+        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend."),
+        registerschluessel=("suche-treffer-hoechstzahl",),
     ),
     Regel(
         modul="gemeindezugang.py", titel=_("Altersgrenze der Gemeindeanmeldung"),

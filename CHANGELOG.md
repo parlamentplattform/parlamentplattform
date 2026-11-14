@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.89.0] — 2026-11-15 · Archivierte RIS-Dokumenttexte vergleichen
+
+- Zwei gespeicherte Texte desselben amtlichen RIS-Dokuments lassen sich zusammen mit Stichtag, Erfassungszeit, XML-Prüfsumme und Parserfassung gegenüberstellen. Wortlaut und XML-Prüfsummen werden getrennt verglichen. Beide Originaldateien bleiben zugänglich.
+
 ## [0.88.0] — 2026-11-15 · Öffentliche Unterlagen zu Gemeinderatssitzungen
 
 - Aktiv zugeordnete DDÖ-Gemeindemandatare können eine öffentliche Einladung mit Tagesordnung oder die amtliche Niederschrift zu einem angekündigten Sitzungstag verlinken. Die Gemeindeübersicht führt zu den Quellen, getrennt vom DDÖ-Ticker.

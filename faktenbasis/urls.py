@@ -17,5 +17,7 @@ urlpatterns = [
     path("zukunftswerkstatt/faktenbasis/personal/<int:pk>/nachweis.json", views.personal_nachweis, name="personal_nachweis"),
     path("zukunftswerkstatt/faktenbasis/norm/<int:pk>/", views.norm, name="norm"),
     path("zukunftswerkstatt/faktenbasis/import/<int:pk>/antwort.json", views.importantwort, name="importantwort"),
+    path("zukunftswerkstatt/faktenbasis/text/<int:pk>/vergleich/", views.textvergleich, name="textvergleich"),
+    path("zukunftswerkstatt/faktenbasis/text/<int:pk>/vergleich/<int:mit>/", views.textvergleich, name="textvergleich"),
     path("zukunftswerkstatt/faktenbasis/text/<int:pk>/original.xml", views.textxml, name="textxml"),
 ]

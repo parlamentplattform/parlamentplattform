@@ -1,13 +1,16 @@
 """Freiwilliger Gemeindezugang ohne Parteibeitritt (ADR-016)."""
 
 import logging
+from datetime import timedelta
 from smtplib import SMTPException
 
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -22,7 +25,11 @@ from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
+from parameter.models import zahl
+from plattform_core.gemeindeansicht import MANDATSREIHUNG, ORTSREIHUNG, SITZUNGSREIHUNG
 from plattform_core.gemeindezugang import mindestens_sechzehn
+from plattform_core.rechenschaft import RECHENSCHAFT_TAGE
+from verfahren.models import Ebene
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +98,53 @@ def _gemeinden():
 
 @require_GET
 def start(request):
-    return render(request, "mitglieder/gemeinde_start.html")
+    suche = (request.GET.get("ort") or "").strip()[:140]
+    seite = None
+    if suche:
+        orte = Gemeinde.objects.filter(
+            Q(name__icontains=suche) | Q(bezirk__icontains=suche) | Q(kennziffer=suche)
+        ).order_by(*ORTSREIHUNG)
+        seite = Paginator(orte, max(1, zahl("suche-treffer-hoechstzahl", 24))).get_page(
+            request.GET.get("seite")
+        )
+    return render(request, "mitglieder/gemeinde_start.html", {"suche": suche, "trefferseite": seite})
+
+
+@require_GET
+def ort(request, kennziffer):
+    from mandatare.models import Mandat, Sitzung, live_hoechstdauer_stunden
+
+    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+    jetzt = timezone.now()
+    heute = timezone.localdate(jetzt)
+    mandate = Mandat.objects.filter(
+        gemeinde=gemeinde, ebene=Ebene.GEMEINDE, angetreten__lte=heute,
+        mitglied__parteikonto=True, mitglied__testkonto=False,
+    )
+    aktive = (
+        mandate.filter(beendet__isnull=True, vertretung_beendet_am__isnull=True)
+        .select_related("mitglied").defer("foto").order_by(*MANDATSREIHUNG)
+    )
+    dauer = live_hoechstdauer_stunden()
+    grenze = jetzt - timedelta(days=RECHENSCHAFT_TAGE)
+    sitzungen = (
+        Sitzung.objects.filter(mandat__in=mandate, beginn__lte=jetzt)
+        .filter(Q(ende__gte=grenze) | Q(
+            ende__isnull=True, beginn__gte=grenze - timedelta(hours=max(1, dauer)),
+        ))
+        .select_related("mandat__mitglied", "aufgabe").defer("mandat__foto").order_by(*SITZUNGSREIHUNG)
+    )
+    laufend, protokolle = [], []
+    for sitzung in sitzungen:
+        ende = sitzung.wirksames_ende(jetzt, dauer)
+        if ende is None:
+            laufend.append(sitzung)
+        elif ende >= grenze:
+            sitzung.ende = ende  # Anzeige der wirksamen Frist; keine Schreiboperation beim Lesen.
+            protokolle.append(sitzung)
+    return render(request, "mitglieder/gemeinde_ort.html", {
+        "gemeinde": gemeinde, "mandate": aktive, "laufend": laufend, "protokolle": protokolle,
+    })
 
 
 @require_http_methods(["GET", "POST"])

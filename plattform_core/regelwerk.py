@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 22
+VERSION = 23
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -168,6 +168,13 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
+        zweck=_("Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate und ihre öffentlichen Sitzungsticker."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-14",
+        grund=_("Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."),
+        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Die Zuordnung ändert keine Teilnahmeberechtigung."),
+    ),
     Regel(
         modul="gemeindezugang.py", titel=_("Altersgrenze der Gemeindeanmeldung"),
         zweck=_("Prüft bei der freiwilligen Gemeindeanmeldung das vollendete 16. Lebensjahr. Diese Anmeldung begründet keine Parteimitgliedschaft oder Abstimmungszulassung."),

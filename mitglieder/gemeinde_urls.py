@@ -9,4 +9,5 @@ urlpatterns = [
     path("bestaetigen/<str:token>/", gemeinde.bestaetigen, name="bestaetigen"),
     path("konto/", gemeinde.konto, name="konto"),
     path("konto/export.json", gemeinde.export, name="export"),
+    path("ort/<str:kennziffer>/", gemeinde.ort, name="ort"),
 ]

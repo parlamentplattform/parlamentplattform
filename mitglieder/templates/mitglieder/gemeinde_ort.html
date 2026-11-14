@@ -1,0 +1,27 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ gemeinde.name }}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<h1>{{ gemeinde.name }}</h1>
+<p>{{ gemeinde.bezirk }} · {{ gemeinde.get_bundesland_display }} · {{ gemeinde.kennziffer }}</p>
+<p>{% translate "Öffentliches Angebot der DDÖ. Dies ist keine amtliche Seite der Gemeinde." %}</p>
+<p><a href="{% url 'gemeinde:start' %}">{% translate "Gemeinde finden" %}</a></p>
+<section class="karte" aria-labelledby="gemeinde-mandate">
+  <h2 id="gemeinde-mandate">{% translate "Zugeordnete DDÖ-Mandate" %}</h2>
+  {% for mandat in mandate %}
+  <p><a href="{% url 'mandatare:detail' mandat.pk %}">{{ mandat.mitglied.anzeigename }} · {{ mandat.bezeichnung }}</a></p>
+  {% empty %}
+  <p>{% translate "Für diese Gemeinde ist derzeit kein aktives DDÖ-Mandat in der Übersicht zugeordnet." %}</p>
+  {% endfor %}
+</section>
+<section class="karte" aria-labelledby="gemeinde-sitzungen">
+  <h2 id="gemeinde-sitzungen">{% translate "Öffentliche Sitzungsticker" %}</h2>
+  <h3>{% translate "Laufende Sitzungen" %}</h3>
+  {% for s in laufend %}{% include "mandatare/_live_zeile.html" with s=s %}
+  {% empty %}<p>{% translate "Derzeit kein laufender Sitzungsticker für diese Gemeinde." %}</p>{% endfor %}
+  <h3>{% translate "Abgeschlossene Sitzungen der letzten sieben Tage" %}</h3>
+  {% for s in protokolle %}{% include "mandatare/_live_zeile.html" with s=s %}
+  {% empty %}<p>{% translate "Keine abgeschlossenen Sitzungsticker aus diesem Zeitraum." %}</p>{% endfor %}
+</section>
+<p class="hilfe">{% translate "Mandate erscheinen nach Beginn und Kennung aufsteigend, Sitzungen nach Beginn und Kennung absteigend." %}</p>
+{% endblock %}

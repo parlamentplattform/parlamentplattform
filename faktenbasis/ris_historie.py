@@ -1,5 +1,6 @@
 """Archiviert eine ausdrücklich ausgewählte Seite der Bundesnormen-Historie."""
 
+from dataclasses import dataclass
 from datetime import date
 from urllib.parse import urlencode
 
@@ -17,15 +18,24 @@ from faktenbasis.ris import (
     seite_pruefen,
     seitenkopf_pruefen,
 )
-from plattform_core.ris_historie import NORM_REIHUNG, PARSER_FASSUNG, dokumente
+from plattform_core.ris_historie import NORM_REIHUNG, PARSER_FASSUNG, dokumente, leere_trefferseite
 from verfahren.models import AuditEintrag
 
 HISTORY_API = "https://data.bka.gv.at/ris/api/v2.6/History"
 
 
+@dataclass(frozen=True)
+class Leermeldung:
+    original_sha256: str
+
+
 def importieren(tag: date, seite: int, daten: bytes, *, erwartete_pruefsumme: str | None = None):
     antwort, pruefsumme = lokale_antwort(daten, erwartete_pruefsumme)
     ergebnisse, treffer = seitenkopf_pruefen(antwort, seite)
+    return _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer)
+
+
+def _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer):
     verweise = dokumente(ergebnisse.get("OgdDocumentReference"), tag, min(treffer - (seite - 1) * 10, 10))
     if verweise is None:
         raise RisFehler("ris_historie")
@@ -57,8 +67,8 @@ def importieren(tag: date, seite: int, daten: bytes, *, erwartete_pruefsumme: st
     return stand
 
 
-def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None):
-    """Ruft ausdrücklich genau eine Seite ab und behält deren Originalbytes."""
+def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None) -> RisAenderungsseite | Leermeldung:
+    """Ruft genau eine Seite ab und protokolliert belegte Leertreffer getrennt."""
     if type(tag) is not date:
         raise RisFehler("ris_historie")
     seite_pruefen(seite)
@@ -72,8 +82,15 @@ def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None):
     with einzelabruf():
         try:
             daten = json_dateibytes_abrufen(url)
+            antwort, pruefsumme = lokale_antwort(daten, erwartete_pruefsumme)
+            ergebnisse, treffer = seitenkopf_pruefen(antwort, seite)
+            if treffer == 0 and leere_trefferseite(antwort):
+                AuditEintrag.anhaengen({
+                    **ereignis, "erfolgreich": True, "treffer": 0, "original_sha256": pruefsumme,
+                })
+                return Leermeldung(pruefsumme)
             with transaction.atomic():
-                stand = importieren(tag, seite, daten, erwartete_pruefsumme=erwartete_pruefsumme)
+                stand = _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer)
                 AuditEintrag.anhaengen({**ereignis, "erfolgreich": True, "beleg": stand.pk})
         except RisFehler as fehler:
             AuditEintrag.anhaengen({**ereignis, "erfolgreich": False, "fehler": fehler.code})

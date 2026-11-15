@@ -6,11 +6,11 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from faktenbasis.ris import HOECHSTBYTES, RisFehler
-from faktenbasis.ris_historie import abrufen, importieren
+from faktenbasis.ris_historie import Leermeldung, abrufen, importieren
 
 
 class Command(BaseCommand):
-    help = gettext_lazy("Eine ausgewählte RIS-Änderungsseite der Bundesnormen archivieren.")
+    help = gettext_lazy("Eine ausgewählte RIS-Änderungsseite der Bundesnormen erfassen.")
 
     def add_arguments(self, parser):
         parser.add_argument("--tag", required=True, type=date.fromisoformat, metavar="JJJJ-MM-TT")
@@ -36,4 +36,8 @@ class Command(BaseCommand):
             raise CommandError(_("Die RIS-Änderungsdatei ließ sich nicht lesen.")) from fehler
         except RisFehler as fehler:
             raise CommandError(_("RIS-Änderungsseite abgewiesen (%(grund)s).") % {"grund": fehler.code}) from fehler
-        self.stdout.write(_("RIS-Änderungsseite gespeichert. SHA-256 %(hash)s.") % {"hash": stand.original_sha256})
+        if isinstance(stand, Leermeldung):
+            meldung = _("RIS meldet für diese Abfrage keine Treffer. SHA-256 %(hash)s.")
+        else:
+            meldung = _("RIS-Änderungsseite gespeichert. SHA-256 %(hash)s.")
+        self.stdout.write(meldung % {"hash": stand.original_sha256})

@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.107.0] — 2026-11-15 · RIS-Leermeldung beim Einzelabruf
+
+- Ein Einzelabruf protokolliert eine eindeutige RIS-Leermeldung der ersten Seite mit abgefragtem Tag, Abfrageadresse und SHA-256 der Antwort.
+
 ## [0.106.0] — 2026-11-15 · Manueller Abruf einer RIS-Änderungsseite
 
 - Der Archivbefehl kann auf ausdrückliche Wahl genau eine Seite der RIS-Änderungshistorie abrufen. Der Abruf teilt den Schutz der anderen manuellen RIS-Abfragen und archiviert die Originaldatei mit Prüfsumme.

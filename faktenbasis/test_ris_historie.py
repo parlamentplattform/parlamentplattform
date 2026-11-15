@@ -27,6 +27,7 @@ TAG = date(2026, 11, 13)
 KENNUNG = "NOR40213503"
 GESETZ = "20000673"
 URL = f"https://ogd.ris.bka.gv.at/eli/bgbl/1998/38/P27/{KENNUNG}"
+LEERMELDUNG = b'{"OgdSearchResult":{"OgdDocumentResults":{"Hits":{"@pageNumber":"1","@pageSize":"10","#text":"0"}}}}'
 
 
 def referenz(tag=TAG):
@@ -200,6 +201,68 @@ def test_cli_teilt_abrufschutz_und_verlangt_eindeutige_quelle(monkeypatch, abruf
     opener.open.assert_not_called()
     assert not RisAenderungsseite.objects.exists()
     assert not AuditEintrag.objects.filter(ereignis__typ="ris_aenderungsseite_abruf").exists()
+
+
+@pytest.mark.django_db
+def test_gleiche_leermeldungen_gehoeren_zu_den_tatsaechlichen_abfragetagen(monkeypatch, abrufuhr):  # noqa: F811
+    opener, _ = scheinabruf(monkeypatch, LEERMELDUNG)
+    protokoll = io.StringIO()
+    hashwert = hashlib.sha256(LEERMELDUNG).hexdigest()
+    tage = [TAG.isoformat(), (TAG + timedelta(days=1)).isoformat()]
+    for datum in tage:
+        call_command("ris_aenderungsseite", "--tag", datum, "--seite", "1", "--abrufen", "--sha256", hashwert,
+                     stdout=protokoll)
+    assert opener.open.call_count == 2
+    assert protokoll.getvalue().count("RIS meldet für diese Abfrage keine Treffer.") == 2
+    assert protokoll.getvalue().count(hashwert) == 2
+    audits = AuditEintrag.objects.filter(ereignis__typ="ris_aenderungsseite_abruf").order_by("pk")
+    assert audits.count() == 2
+    for audit, datum in zip(audits, tage, strict=True):
+        meldung = audit.ereignis
+        assert meldung["tag"] == datum and meldung["seite"] == 1
+        assert meldung["erfolgreich"] and meldung["treffer"] == 0 and meldung["original_sha256"] == hashwert
+        assert "beleg" not in meldung
+        query = parse_qs(urlsplit(meldung["quelle"]).query)
+        assert query["AenderungenVon"] == query["AenderungenBis"] == [datum]
+    assert not RisAenderungsseite.objects.exists() and not Norm.objects.exists()
+    assert not KIAuftrag.objects.exists()
+
+
+@pytest.mark.django_db
+def test_leere_datei_belegt_keinen_abfragetag(tmp_path, monkeypatch):
+    opener, _ = scheinabruf(monkeypatch, LEERMELDUNG)
+    dateipfad = tmp_path / "ohne-tag.json"
+    dateipfad.write_bytes(LEERMELDUNG)
+    vorher = AuditEintrag.objects.count()
+    with pytest.raises(CommandError, match="ris_historie"):
+        call_command("ris_aenderungsseite", tag=TAG, seite=1, datei=dateipfad)
+    opener.open.assert_not_called()
+    assert not RisAenderungsseite.objects.exists() and AuditEintrag.objects.count() == vorher
+
+
+@pytest.mark.parametrize("fall,seite,code", [
+    ("fremde-seite", "2", "antwortformat"),
+    ("widerspruch", "1", "ris_historie"),
+    ("fehler", "1", "ris_historie"),
+    ("hash", "1", "pruefsumme"),
+])
+@pytest.mark.django_db
+def test_unbelegte_leermeldung_bleibt_abruf_fehler(monkeypatch, abrufuhr, fall, seite, code):  # noqa: F811
+    daten = json.loads(LEERMELDUNG)
+    schalter = []
+    if fall == "widerspruch":
+        daten["OgdSearchResult"]["OgdDocumentResults"]["OgdDocumentReference"] = referenz()
+    elif fall == "fehler":
+        daten["OgdSearchResult"]["Error"] = {"Message": "keine gesicherte Antwort"}
+    elif fall == "hash":
+        schalter = ["--sha256", "f" * 64]
+    scheinabruf(monkeypatch, json.dumps(daten).encode())
+    with pytest.raises(CommandError, match=code):
+        call_command("ris_aenderungsseite", "--tag", TAG.isoformat(), "--seite", seite, "--abrufen", *schalter)
+    audit = AuditEintrag.objects.get(ereignis__typ="ris_aenderungsseite_abruf").ereignis
+    assert not audit["erfolgreich"] and audit["fehler"] == code
+    assert "treffer" not in audit and "original_sha256" not in audit
+    assert not RisAenderungsseite.objects.exists()
 
 
 @pytest.mark.django_db

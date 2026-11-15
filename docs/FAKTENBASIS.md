@@ -32,8 +32,12 @@ python manage.py ris_aenderungsseite --tag JJJJ-MM-TT --seite 1 --abrufen
 
 Der Einzelabruf teilt den Mindestabstand und das Stundenkontingent mit den
 bisherigen manuellen RIS-Abrufen. Er protokolliert das Ergebnis und speichert
-bei Erfolg dieselben Originalbytes wie der Dateiweg. Der spätere Modellkontext
-wird weiterhin aus dem lokalen Normbestand gebildet.
+eine Seite mit Treffern mit denselben Originalbytes wie der Dateiweg. Für
+eine eindeutige Leermeldung auf der ersten Seite hält das Audit die
+Abfrageadresse, den abgefragten Tag und den Hash der empfangenen Datei fest.
+Solche Leermeldungen können aus einer Datei allein keinem Abfragetag zugeordnet
+werden. Der spätere Modellkontext wird weiterhin aus dem lokalen Normbestand
+gebildet.
 Weitere Antwortformen und der regelmäßige operative Abruf sind gesonderte
 Aufgaben. [RIS-OGD-Hinweise](https://ris.bka.gv.at/UI/Ogd.aspx) ·
 [API-Handbuch 2.6](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf).

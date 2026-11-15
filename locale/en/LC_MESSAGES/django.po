@@ -11773,15 +11773,6 @@ msgstr "Public record"
 msgid "Novellenfundstelle aus amtlichen Metadaten"
 msgstr "Amendment reference from official metadata"
 
-msgid "Fassung 2 ergänzt ausdrücklich benannte oberösterreichische Landesnovellen als Fundstellenangabe."
-msgstr "Version 2 adds citations for expressly named amendments in Upper Austrian metadata."
-
-msgid "Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Beim Land die LGBl.-Fundstelle mit Bundesland anzeigen."
-msgstr "Match the document ID and RIS application, and check for Upper Austria for provincial records. Read the expressly named last amendment only if its number and year are unambiguous and the year is at or before the snapshot year. For the federal gazette from 2004 onwards, build the ELI link from part, year and number. For the provincial gazette, show the citation and province."
-
-msgid "Die Landes-Verlinkung braucht das Kundmachungsdatum. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."
-msgstr "A direct link to a provincial gazette publication requires its publication date. Provision-level relationships, enabling powers and legal relevance to a motion remain separate tasks."
-
 msgid "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum."
 msgstr "This snapshot names the citation of the last amendment. The gazette publication date needed for a direct link is missing."
 
@@ -12027,3 +12018,33 @@ msgstr "Announce office hours"
 
 msgid "Zuletzt veröffentlichte eigene Initiative"
 msgstr "Your latest published initiative"
+
+msgid "Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."
+msgstr "Paragraph-level relationships, enabling provisions and legal relevance to a motion require separate work."
+
+msgid "Die RIS-Kundmachungsdatei ließ sich nicht lesen."
+msgstr "The RIS gazette file could not be read."
+
+msgid "Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Die Landesfundstelle erhält ein direktes Ziel, wenn Nummer, Jahr und Land zur authentischen Kundmachung passen und Kennung, ELI und Kundmachungsdatum im Beleg übereinstimmen."
+msgstr "Check the document identifier, the RIS application and Upper Austria for provincial law. Use only an explicitly stated last amendment with an unambiguous number and year no later than the as-of year. Construct federal ELI links from part, year and number from 2004 onward. Link a provincial citation directly when its number, year and province match the authentic gazette document and the archived identifier, ELI and publication date are consistent."
+
+msgid "Eine einzelne lokale RIS-Kundmachungsdatei dem gespeicherten Normstand zuordnen."
+msgstr "Associate one local RIS gazette file with the archived legislative document."
+
+msgid "Fassung 3 verlinkt eine oberösterreichische Novelle bei einem ausdrücklich zugeordneten Landes-Kundmachungsbeleg."
+msgstr "Version 3 links an Upper Austrian amendment when a provincial gazette record has been explicitly associated."
+
+msgid "Kundmachungsbeleg %(nummer)s gespeichert. SHA-256 %(hash)s."
+msgstr "Gazette record %(nummer)s saved. SHA-256 %(hash)s."
+
+msgid "Kundmachungsbeleg abgewiesen (%(grund)s)."
+msgstr "Gazette record rejected (%(grund)s)."
+
+msgid "Kundmachungsdatum laut archiviertem RIS-Beleg"
+msgstr "Publication date in the archived RIS record"
+
+msgid "SHA-256 der eingelesenen Kundmachungsdatei"
+msgstr "SHA-256 of the imported gazette file"
+
+msgid "Belegprüfung, Fassung"
+msgstr "Gazette record validation version"

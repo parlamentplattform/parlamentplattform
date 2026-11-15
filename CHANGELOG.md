@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.93.0] — 2026-11-15 · Nachweis zur Landes-Kundmachung
+
+- Eine einzelne, lokal bereitgestellte RIS-Kundmachungsdatei kann einem bereits gespeicherten oberösterreichischen Normstand ausdrücklich zugeordnet werden. Identität, LGBl.-Fundstelle, Kundmachungsdatum und die offizielle ELI-Adresse werden abgeglichen.
+- Die Normansicht zeigt den vollständigen amtlichen Link und die Prüfsumme der eingelesenen Datei. Die Zuordnung verwendet gespeicherte Daten und legt den Beleg unveränderlich neben den Normstand.
+
 ## [0.92.0] — 2026-11-15 · Arbeitsplatz für zugeordnete Gemeindemandate
 
 - Ein gemeinsamer Einstieg im eigenen Mandatsbereich führt zu Sitzungsmodus, Unterlagen, Rechenschaft, Sprechstunden, Ratsinitiativen, Haushalt und Projekten. Neueste eigene Einträge und die nächste veröffentlichte eigene Sprechstunde sind direkt erreichbar.

@@ -171,10 +171,10 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Metadaten"),
         zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-14",
-        grund=_("Fassung 2 ergänzt ausdrücklich benannte oberösterreichische Landesnovellen als Fundstellenangabe."),
-        nachrechenbar=_("Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Beim Land die LGBl.-Fundstelle mit Bundesland anzeigen."),
-        luecke=_("Die Landes-Verlinkung braucht das Kundmachungsdatum. Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-15",
+        grund=_("Fassung 3 verlinkt eine oberösterreichische Novelle bei einem ausdrücklich zugeordneten Landes-Kundmachungsbeleg."),
+        nachrechenbar=_("Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Die Landesfundstelle erhält ein direktes Ziel, wenn Nummer, Jahr und Land zur authentischen Kundmachung passen und Kennung, ELI und Kundmachungsdatum im Beleg übereinstimmen."),
+        luecke=_("Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."),
     ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),

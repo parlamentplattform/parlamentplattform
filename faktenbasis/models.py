@@ -103,6 +103,22 @@ class Norm(Schnappschuss):
         return f"{self.ris_id}: {self.kurztitel} ({self.stand})"
 
 
+class Kundmachungsnachweis(Schnappschuss):
+    """Der ausdrücklich geprüfte Fundort eines einzelnen gespeicherten Normstands."""
+
+    norm = models.OneToOneField(Norm, on_delete=models.PROTECT, related_name="kundmachungsnachweis")
+    dokumentnummer = models.CharField(max_length=32)
+    kundgemacht_am = models.DateField()
+    eli = models.URLField(max_length=500)
+    original = models.BinaryField()
+    original_sha256 = models.CharField(max_length=64)
+    parser_fassung = models.PositiveSmallIntegerField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.dokumentnummer} ({self.norm_id})"
+
+
 class NormText(Schnappschuss):
     norm = models.ForeignKey(Norm, on_delete=models.PROTECT, related_name="texte")
     quelle = models.TextField()

@@ -21,8 +21,11 @@ def test_archivierte_dokumenttexte_nativ_gegenueberstellen(seite, live_server, s
     p.locator(f'a[href="{auswahl}"]').press("Enter")
     expect(p.locator(".fakten-wortlaut").first).to_have_text(alt.text)
     expect(p.locator(".fakten-wortlaut").last).to_have_text(neu.text)
-    erste = p.locator(".fakten-textvergleich section").first.bounding_box()
-    zweite = p.locator(".fakten-textvergleich section").last.bounding_box()
+    # Beide Gitterpositionen aus demselben Layout lesen. Bildschirmkoordinaten
+    # aus zwei Browseraufrufen können sich durch Scrollen oder den Aufbau verschieben.
+    erste, zweite = p.locator(".fakten-textvergleich section").evaluate_all(
+        "karten => karten.map(karte => ({x: karte.offsetLeft, y: karte.offsetTop}))",
+    )
     if sprache == "de":
         assert erste["y"] < zweite["y"]
     else:

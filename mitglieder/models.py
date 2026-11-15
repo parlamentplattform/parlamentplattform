@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from mitglieder.auth_flows import EinmalToken as EinmalToken
 from plattform_core import Gegenstand, stimmberechtigt
 from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, WIENER_GEMEINDE
 

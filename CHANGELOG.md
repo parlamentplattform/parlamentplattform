@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.100.1] — 2026-11-15 · Tokenmodell beim Django-Start
+
+- Django registriert die Einmal-Tokens für E-Mail-Bestätigung und Anmeldung beim normalen Anwendungsstart. Verwaltungsbefehle finden dieselbe Tabelle auch ohne Laden der URL-Konfiguration.
+
 ## [0.100.0] — 2026-11-15 · VfGH-Belege im Quellenbestandsnachweis
 
 - Der Quellenbestandsnachweis führt VfGH-Metadatenbelege mit Datensatznummer und gespeicherter Prüfsumme des Original-JSONs.

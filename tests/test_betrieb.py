@@ -143,6 +143,28 @@ def test_deploy_systemcheck_ohne_warnung():
     assert "1 silenced" in lauf.stdout + lauf.stderr  # W021 — und nur W021
 
 
+def test_einmaltoken_ist_beim_django_start_registriert():
+    probe = """
+import sys
+
+import django
+from django.apps import apps
+from django.conf import settings
+
+django.setup()
+assert settings.ROOT_URLCONF not in sys.modules
+assert apps.get_model("mitglieder", "EinmalToken")._meta.db_table == "mitglieder_einmaltoken"
+"""
+    lauf = subprocess.run(
+        [sys.executable, "-c", probe],
+        cwd=WURZEL,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert lauf.returncode == 0, lauf.stdout + lauf.stderr
+
+
 # ── Startketten: ohne Gemeindeverzeichnis kann sich niemand registrieren ─────────────────
 
 

@@ -37,6 +37,20 @@ Stand (#live-stand) — nicht, während ein Formular darin offen ist; ohne JavaS
       </span>
     </div>
     {% empty %}<p class="leer">{% translate "Keine Tagesordnung." %}</p>{% endfor %}
+    {% if sitzungsquellen %}
+    <div id="live-unterlagen">
+      <h2 class="phasen-titel">{% translate "Öffentliche Sitzungsunterlagen" %}</h2>
+      <ul>
+        {% for quelle in sitzungsquellen %}
+        <li>
+          {% if quelle.url %}<a href="{{ quelle.url }}" rel="external noreferrer">{{ quelle.get_art_display }}</a>
+          {% else %}{{ quelle.get_art_display }} · {% translate "Link zurückgezogen" %}{% endif %}
+          <span class="meta">· {{ quelle.gemeinde.anzeige }} · {% translate "Quellenstand" %} <time datetime="{{ quelle.erfasst_am|date:'c' }}">{{ quelle.erfasst_am|date:"DATETIME_FORMAT" }}</time></span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
   </section>
 
   <section class="karte" aria-labelledby="h-ticker">

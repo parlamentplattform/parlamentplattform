@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.106.0] — 2026-11-15 · Manueller Abruf einer RIS-Änderungsseite
+
+- Der Archivbefehl kann auf ausdrückliche Wahl genau eine Seite der RIS-Änderungshistorie abrufen. Der Abruf teilt den Schutz der anderen manuellen RIS-Abfragen und archiviert die Originaldatei mit Prüfsumme.
+
 ## [0.105.0] — 2026-11-15 · RIS-Änderungsseite und lokaler Normstand
 
 - Die Detailansicht einer archivierten RIS-Änderungsseite zeigt passende Bundes-Normstände aus der Faktenbasis. Der dort gespeicherte Stichtag steht getrennt vom Bearbeitungstag der amtlichen Seite.

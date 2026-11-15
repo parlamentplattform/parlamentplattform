@@ -222,6 +222,23 @@ def begrenzt_lesen(antwort, beginn):
         teile.append(teil)
 
 
+def json_dateibytes_abrufen(url: str) -> bytes:
+    """Liest eine JSON-Antwort an einer bereits festgelegten amtlichen API-Adresse."""
+    anfrage = urllib.request.Request(url, headers={
+        "Accept": "application/json",
+        "User-Agent": "DDOE-ParlamentPlattform-Einzelimport (plattform@ddoe.at)",
+    })
+    try:
+        opener = urllib.request.build_opener(_KeineUmleitung())
+        beginn = time.monotonic()
+        with opener.open(anfrage, timeout=ZEITGRENZE) as antwort:
+            if antwort.headers.get_content_type() != "application/json":
+                raise RisFehler("antwortformat")
+            return begrenzt_lesen(antwort, beginn)
+    except (OSError, urllib.error.URLError) as fehler:
+        raise RisFehler("abruf") from fehler
+
+
 def abrufen(gesetzesnummer: str, stand: date, *, seite=1) -> ImportAntwort:
     if not GESETZESNUMMER.fullmatch(gesetzesnummer):
         raise RisFehler("gesetzesnummer")
@@ -233,23 +250,12 @@ def abrufen(gesetzesnummer: str, stand: date, *, seite=1) -> ImportAntwort:
         "Fassung.FassungVom": stand.isoformat(), "DokumenteProSeite": "Ten", "Seitennummer": str(seite),
     }
     url = API + "?" + urllib.parse.urlencode(parameter)
-    anfrage = urllib.request.Request(url, headers={
-        "Accept": "application/json",
-        "User-Agent": "DDOE-ParlamentPlattform-Einzelimport (plattform@ddoe.at)",
-    })
+    inhalt = json_dateibytes_abrufen(url)
     try:
-        opener = urllib.request.build_opener(_KeineUmleitung())
-        beginn = time.monotonic()
-        with opener.open(anfrage, timeout=ZEITGRENZE) as antwort:
-            if antwort.headers.get_content_type() != "application/json":
-                raise RisFehler("antwortformat")
-            inhalt = begrenzt_lesen(antwort, beginn)
         daten = json.loads(inhalt.decode("utf-8-sig"))
         parsed = antwort_parsen(daten, gesetzesnummer, seite=seite)
     except RisFehler:
         raise
-    except (OSError, urllib.error.URLError) as fehler:
-        raise RisFehler("abruf") from fehler
     except (ValueError, RecursionError) as fehler:
         raise RisFehler("antwortformat") from fehler
     return ImportAntwort(parsed.normen, parsed.treffer, parsed.antwort_hash, parsed.rohdaten, url, seite)

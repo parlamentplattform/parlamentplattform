@@ -11,7 +11,7 @@ from django.test.utils import CaptureQueriesContext
 
 from faktenbasis.models import RisAenderungsseite
 from faktenbasis.ris_historie import importieren
-from faktenbasis.test_ris_historie import KENNUNG, TAG, URL, original, referenz
+from faktenbasis.test_ris_historie import GESETZ, KENNUNG, TAG, URL, norm_anlegen, original, referenz
 from parameter.models import Parameter
 from plattform_core.ris_historie import TagesabgleichFehler, Tagesseite, tagesabgleich
 from verfahren.models import AuditEintrag
@@ -58,8 +58,10 @@ def seite_anlegen(seite, nummern, *, tag=TAG, treffer=11):
     return importieren(tag, seite, original(verweise, seite=seite, treffer=treffer))
 
 
-def befehl(*belege):
+def befehl(*belege, normbestand=False):
     args = ["--tag", TAG.isoformat()]
+    if normbestand:
+        args.append("--normbestand")
     for beleg in belege:
         args.extend(("--beleg", str(beleg)))
     ausgabe = io.StringIO()
@@ -76,10 +78,12 @@ def test_nur_ausgewaehlte_seiten_ohne_originale_oder_schreibwirkung():
     with CaptureQueriesContext(connection) as abfragen:
         ergebnis = befehl(zweite.pk, erste.pk)
     assert [seite["datensatz"] for seite in ergebnis["seiten"]] == [erste.pk, zweite.pk]
+    assert "normabgleich" not in ergebnis
     sql = [abfrage["sql"].lower() for abfrage in abfragen]
     archivlesen = [x for x in sql if '"faktenbasis_risaenderungsseite"' in x]
     assert len(archivlesen) == 1 and '"original"' not in archivlesen[0]
     assert all(x.startswith("select") for x in sql)
+    assert not any('"faktenbasis_norm"' in x for x in sql)
     assert AuditEintrag.objects.count() == vorher and RisAenderungsseite.objects.count() == 3
     for auswahl, grund in (
         ([erste.pk], "seitenfolge"),
@@ -99,3 +103,49 @@ def test_uebergrenze_und_unlesbare_grenze_liefern_keinen_teilbestand():
         with CaptureQueriesContext(connection) as abfragen, pytest.raises(CommandError, match=meldung):
             befehl(1, 2)
         assert not any("faktenbasis_risaenderungsseite" in x["sql"].lower() for x in abfragen)
+
+
+@pytest.mark.django_db
+def test_freiwilliger_normabgleich_nutzt_exakte_bundeskennung_und_stichtag():
+    erste = seite_anlegen(1, NUMMERN[:10])
+    zweite = seite_anlegen(2, NUMMERN[10:])
+    stichtag = TAG - timedelta(days=7)
+    norm_anlegen(stichtag, kennung=NUMMERN[0])
+    passend = norm_anlegen(stichtag, kennung=NUMMERN[0])
+    norm_anlegen(TAG, kennung=NUMMERN[0], gesetz="77777777")
+    norm_anlegen(TAG, kennung=NUMMERN[1], ebene="Land", land="Wien")
+    norm_anlegen(TAG, kennung=NUMMERN[2], erfolgreich=False)
+    letzter = norm_anlegen(TAG + timedelta(days=2), kennung=NUMMERN[-1])
+    vorher = AuditEintrag.objects.count()
+    with CaptureQueriesContext(connection) as abfragen:
+        ergebnis = befehl(zweite.pk, erste.pk, normbestand=True)
+    assert ergebnis["tag"] == TAG.isoformat()
+    assert ergebnis["normabgleich"]["fassung"] == 1
+    dokumente = ergebnis["normabgleich"]["dokumente"]
+    assert [d["dokumentnummer"] for d in dokumente] == list(NUMMERN)
+    assert dokumente[0] == {
+        "dokumentnummer": NUMMERN[0], "gesetzesnummer": GESETZ, "beleg": erste.pk,
+        "normstand": {"datensatz": passend.pk, "stichtag": stichtag.isoformat()},
+    }
+    assert all(d["normstand"] is None for d in dokumente[1:-1])
+    assert dokumente[-1]["beleg"] == zweite.pk
+    assert dokumente[-1]["normstand"] == {"datensatz": letzter.pk, "stichtag": letzter.stand.isoformat()}
+    norm_sql = [a["sql"].lower() for a in abfragen if '"faktenbasis_norm"' in a["sql"].lower()]
+    assert len(norm_sql) == 1 and '"rohdaten"' not in norm_sql[0]
+    assert all(a["sql"].lower().startswith("select") for a in abfragen)
+    assert AuditEintrag.objects.count() == vorher
+
+
+@pytest.mark.django_db
+def test_normabgleich_buendelt_mehr_als_einhundert_eindeutige_verweise():
+    nummern = [f"NOR{n:08d}" for n in range(1, 102)]
+    belege = [
+        seite_anlegen(seite + 1, nummern[seite * 10:seite * 10 + 10], treffer=101).pk
+        for seite in range(11)
+    ]
+    passend = norm_anlegen(TAG, kennung=nummern[-1])
+    with CaptureQueriesContext(connection) as abfragen:
+        ergebnis = befehl(*reversed(belege), normbestand=True)
+    assert len(ergebnis["normabgleich"]["dokumente"]) == 101
+    assert ergebnis["normabgleich"]["dokumente"][-1]["normstand"]["datensatz"] == passend.pk
+    assert sum('"faktenbasis_norm"' in a["sql"].lower() for a in abfragen) == 2

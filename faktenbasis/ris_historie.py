@@ -12,6 +12,7 @@ from faktenbasis.abrufschutz import einzelabruf
 from faktenbasis.bestandsnachweis import bestandsgrenze
 from faktenbasis.models import Norm, RisAenderungsseite
 from faktenbasis.ris import (
+    GESETZESNUMMER,
     RisFehler,
     dokumentadresse,
     json_dateibytes_abrufen,
@@ -21,6 +22,7 @@ from faktenbasis.ris import (
 )
 from plattform_core.ris_historie import (
     NORM_REIHUNG,
+    NORMABGLEICH_FASSUNG,
     PARSER_FASSUNG,
     TagesabgleichFehler,
     Tagesseite,
@@ -31,6 +33,8 @@ from plattform_core.ris_historie import (
 from verfahren.models import AuditEintrag
 
 HISTORY_API = "https://data.bka.gv.at/ris/api/v2.6/History"
+# Begrenzt die Zahl der SQL-Bindungen und die Tiefe der ODER-Ausdrücke.
+_NORMBLOCK = 100
 
 
 @dataclass(frozen=True)
@@ -107,7 +111,7 @@ def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None) -
     return stand
 
 
-def tag_pruefen(tag: date, belege: list[int]) -> dict:
+def tag_pruefen(tag: date, belege: list[int], *, mit_normbestand=False) -> dict:
     """Liest nur die gewählten lokalen Archivmetadaten."""
     if not belege or len(belege) > bestandsgrenze():
         raise TagesabgleichFehler("umfang")
@@ -124,22 +128,50 @@ def tag_pruefen(tag: date, belege: list[int]) -> dict:
             raise TagesabgleichFehler("beleg")
         nummern = tuple(d.get("dokumentnummer") if isinstance(d, dict) else None for d in s.dokumente)
         seiten.append(Tagesseite(s.pk, s.tag, s.seite, s.treffer, s.original_sha256, nummern))
-    return tagesabgleich(tag, seiten)
+    abgleich = tagesabgleich(tag, seiten)
+    if mit_normbestand:
+        abgleich["normabgleich"] = _tagesnormen(abgleich["seiten"], bestand)
+    return abgleich
 
 
-def dokumente_mit_normstand(seite):
-    """Finde in einer Abfrage höchstens einen lokalen Stand je archiviertem Verweis."""
+def _tagesnormen(seiten, bestand):
+    verweise = [
+        (seite["datensatz"], d["dokumentnummer"], d.get("gesetzesnummer"))
+        for seite in seiten for d in bestand[seite["datensatz"]].dokumente
+    ]
+    if any(not isinstance(gesetz, str) or not GESETZESNUMMER.fullmatch(gesetz) for _, _, gesetz in verweise):
+        raise TagesabgleichFehler("referenzen")
+    schluessel = [(nummer, gesetz) for _, nummer, gesetz in verweise]
+    normen = {}
+    for beginn in range(0, len(schluessel), _NORMBLOCK):
+        normen.update(_neueste_normen(schluessel[beginn:beginn + _NORMBLOCK]))
+    dokumente = []
+    for beleg, nummer, gesetz in verweise:
+        norm = normen.get((nummer, gesetz))
+        dokumente.append({
+            "beleg": beleg, "dokumentnummer": nummer, "gesetzesnummer": gesetz,
+            "normstand": {"datensatz": norm["pk"], "stichtag": norm["stand"].isoformat()} if norm else None,
+        })
+    return {"fassung": NORMABGLEICH_FASSUNG, "dokumente": dokumente}
+
+
+def _neueste_normen(schluessel):
     bereiche = Q()
-    for verweis in seite.dokumente:
-        bereiche |= Q(ris_id=verweis["dokumentnummer"], gesetzesnummer=verweis["gesetzesnummer"])
+    for dokumentnummer, gesetzesnummer in schluessel:
+        bereiche |= Q(ris_id=dokumentnummer, gesetzesnummer=gesetzesnummer)
     if not bereiche:
-        return []
+        return {}
     kandidaten = Norm.objects.filter(
         bereiche, ebene="Bund", bundesland="", importlauf__erfolgreich=True,
     ).annotate(rang=Window(
         RowNumber(), partition_by=[F("ris_id"), F("gesetzesnummer")], order_by=NORM_REIHUNG,
     )).filter(rang=1).order_by().values("pk", "ris_id", "gesetzesnummer", "stand")
-    normen = {(norm["ris_id"], norm["gesetzesnummer"]): norm for norm in kandidaten}
+    return {(norm["ris_id"], norm["gesetzesnummer"]): norm for norm in kandidaten}
+
+
+def dokumente_mit_normstand(seite):
+    """Finde in einer Abfrage höchstens einen lokalen Stand je archiviertem Verweis."""
+    normen = _neueste_normen([(d["dokumentnummer"], d["gesetzesnummer"]) for d in seite.dokumente])
     return [
         {**verweis, "normstand": normen.get((verweis["dokumentnummer"], verweis["gesetzesnummer"]))}
         for verweis in seite.dokumente

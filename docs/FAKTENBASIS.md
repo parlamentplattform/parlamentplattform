@@ -58,6 +58,14 @@ Der Abgleich enthält ausschließlich lokale Belege zu Antworten mit Treffern.
 Die einzelnen Quellenabrufe können zu verschiedenen Zeiten erfolgt sein.
 Leermeldungen stehen im Audit.
 
+Mit `--normbestand` enthält die Ausgabe zusätzlich `normabgleich` in Fassung 1.
+Er nennt je Dokument den Archivbeleg, Dokumentkennung und Gesetzesnummer.
+Bei exakter Zuordnung zu einem erfolgreich eingelesenen lokalen Bundes-Normstand
+enthält er dessen Datensatznummer und größten gespeicherten Stichtag. Bei
+gleichem Stichtag zählt die größte Datensatznummer. Andernfalls ist der Wert
+`normstand` leer. Der Abgleich lädt keine Originale und verwendet das
+RIS-Bearbeitungsdatum nicht als Geltungsdatum.
+
 ## Bundesrechtliche Aufhebungsfundstellen
 
 Die Normdetailseite zeigt eine Aufhebungsfundstelle, wenn der gespeicherte

@@ -16,10 +16,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--tag", required=True, type=date.fromisoformat, metavar="JJJJ-MM-TT")
         parser.add_argument("--beleg", required=True, action="append", type=int, metavar="DATENSATZ")
+        parser.add_argument("--normbestand", action="store_true", help=gettext_lazy("Passende lokale Bundes-Normstände mit ausgeben."))
 
     def handle(self, *args, **options):
         try:
-            ergebnis = tag_pruefen(options["tag"], options["beleg"])
+            ergebnis = tag_pruefen(options["tag"], options["beleg"], mit_normbestand=options["normbestand"])
         except (TagesabgleichFehler, BestandsFehler) as fehler:
             raise CommandError(_("RIS-Seitensatz abgewiesen (%(grund)s).") % {"grund": str(fehler)}) from fehler
         self.stdout.write(json.dumps(ergebnis, ensure_ascii=False, sort_keys=True))

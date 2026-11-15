@@ -172,9 +172,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
         zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=5, seit="2026-11-15",
-        grund=_("Ein gewählter Satz schon archivierter Seiten kann mit seiner eigenen Trefferzahl abgeglichen werden."),
-        nachrechenbar=_("Erwarteten Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle. In der Detailansicht den jüngsten gespeicherten Stichtag zu gleicher Dokumentkennung und Gesetzesnummer verlinken, bei Gleichstand die größte Datensatznummer. Der Tagesabgleich prüft lückenlose Seiten, gemeinsame Trefferzahl, erwartete Seitenumfänge und eindeutige Dokumentkennungen im ausgewählten Satz."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=6, seit="2026-11-15",
+        grund=_("Ein geprüfter Satz schon archivierter Seiten lässt sich zusätzlich mit den vorhandenen Bundes-Normständen abgleichen."),
+        nachrechenbar=_("Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Die Dokumente behalten ihre Quellenreihenfolge. Der Tagesabgleich prüft lückenlose Seiten mit gemeinsamer Trefferzahl, passenden Seitenumfängen und eindeutigen Dokumentkennungen. Für den Normabgleich je gleicher Dokumentkennung und Gesetzesnummer den größten gespeicherten Stichtag und bei Gleichheit die größte Datensatznummer wählen."),
         luecke=_("Der Abgleich prüft lokale Belege. Amtliche Tagesvollständigkeit und ein gemeinsamer Abrufzeitpunkt aller Seiten werden damit nicht nachgewiesen. Die automatische Aktualisierung ist eine gesonderte Aufgabe."),
         registerschluessel="faktenbasis-seitengroesse · faktenbasis-manuelle-abrufe-je-stunde · faktenbasis-bestandsnachweis-hoechstzahl",
     ),

@@ -114,6 +114,7 @@ class Regel:
 KEINE_REGEL: dict[str, str] = {
     "__init__.py": "Nur die Versionsnummer der Software und die Phasen-Aufzählung.",
     "regelwerk.py": "Dieses Verzeichnis selbst.",
+    "ris_antwort.py": "Extrahiert die Metadaten aus der Struktur einer einzelnen RIS-Referenz.",
 }
 
 
@@ -168,6 +169,14 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="vfgh_metadaten.py", titel=_("Archivierte VfGH-Entscheidungsmetadaten"),
+        zweck=_("Prüft die Metadaten eines ausdrücklich übergebenen amtlichen VfGH-Entscheidungstextes."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-15",
+        grund=_("Geschäftszahlen, ECLI und Normangaben eines gesicherten RIS-Belegs können mit Herkunft nachgelesen werden."),
+        nachrechenbar=_("Genau eine Dokumentreferenz auswerten. Dokumentkennung, Anwendung, Entscheidungsdatum, ECLI-Jahr und amtliche Adresse abgleichen. Nach Entscheidungsdatum absteigend, Dokumentkennung aufsteigend und bei gleicher Kennung nach jüngster Erfassung reihen."),
+        luecke=_("Die RIS-Normangaben bleiben Text. Ihre Zuordnung zu einem bestimmten Normstand bleibt offen."),
+    ),
     Regel(
         modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Metadaten"),
         zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),

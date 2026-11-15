@@ -4,6 +4,9 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
+from plattform_core.ris_antwort import einzelmetadaten as _einzelmetadaten
+from plattform_core.ris_antwort import objekt as _objekt
+
 VERSION = 4
 _BUND = re.compile(r"NOR[0-9]{8}")
 _OBEROESTERREICH = re.compile(r"LOO[0-9]{8}")
@@ -44,11 +47,6 @@ class Kundmachung:
     ausschussberichte_bundesrat: tuple[str, ...] = ()
 
 
-def _objekt(daten, feld):
-    wert = daten.get(feld)
-    return wert if isinstance(wert, dict) else {}
-
-
 def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") -> Fundstelle | None:
     """Nur die ausdrückliche Relation „zuletzt geändert durch“ auswerten."""
     if not isinstance(rohdaten, dict) or not isinstance(dokumentnummer, str):
@@ -80,18 +78,6 @@ def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") 
     if not bundesland and organ in _TEILE and 2004 <= int(treffer["jahr"]) <= 2099:
         return Fundstelle(_TEILE[organ], treffer["nummer"], treffer["jahr"])
     return None
-
-
-def _einzelmetadaten(antwort):
-    if not isinstance(antwort, dict):
-        return {}
-    ergebnis = _objekt(_objekt(antwort, "OgdSearchResult"), "OgdDocumentResults")
-    referenz = ergebnis.get("OgdDocumentReference")
-    if isinstance(referenz, list) and len(referenz) == 1:
-        referenz = referenz[0]
-    if not isinstance(referenz, dict):
-        return {}
-    return _objekt(_objekt(referenz, "Data"), "Metadaten")
 
 
 def _kundmachungsdatum(datum_roh, jahr: str, stand: date) -> date | None:

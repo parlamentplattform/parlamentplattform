@@ -1,12 +1,9 @@
 """Ausdrückliche Offline-Zuordnung eines authentischen Kundmachungsbelegs."""
 
-import json
-from hashlib import sha256
-
 from django.db import transaction
 
 from faktenbasis.models import Kundmachungsnachweis, Norm
-from faktenbasis.ris import HOECHSTBYTES, RisFehler
+from faktenbasis.ris import RisFehler, lokale_antwort
 from plattform_core.novellenfundstelle import (
     VERSION,
     bundeskundmachung,
@@ -16,23 +13,8 @@ from plattform_core.novellenfundstelle import (
 from verfahren.models import AuditEintrag
 
 
-def _eindeutiges_objekt(paare):
-    objekt = dict(paare)
-    if len(objekt) != len(paare):
-        raise ValueError("doppelte JSON-Schlüssel")
-    return objekt
-
-
 def zuordnen(norm_id: int, daten: bytes, *, erwartete_pruefsumme: str | None = None):
-    if not daten or len(daten) > HOECHSTBYTES:
-        raise RisFehler("antwortgroesse")
-    pruefsumme = sha256(daten).hexdigest()
-    if erwartete_pruefsumme is not None and pruefsumme != erwartete_pruefsumme.lower():
-        raise RisFehler("pruefsumme")
-    try:
-        antwort = json.loads(daten.decode("utf-8-sig"), object_pairs_hook=_eindeutiges_objekt)
-    except (ValueError, RecursionError) as exc:
-        raise RisFehler("antwortformat") from exc
+    antwort, pruefsumme = lokale_antwort(daten, erwartete_pruefsumme)
 
     with transaction.atomic():
         norm = Norm.objects.select_for_update(of=("self",)).filter(

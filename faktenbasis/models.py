@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from plattform_core.personalbeleg import ABRUF_REIHUNG, REIHUNG
 from plattform_core.personalressorts import REIHUNG as RESSORT_REIHUNG
+from plattform_core.vfgh_metadaten import REIHUNG as VFGH_REIHUNG
 
 
 class SchnappschussQuerySet(models.QuerySet):
@@ -121,6 +122,27 @@ class Kundmachungsnachweis(Schnappschuss):
 
     def __str__(self):
         return f"{self.dokumentnummer} ({self.norm_id})"
+
+
+class VfghEntscheidungsstand(Schnappschuss):
+    """Metadaten eines ausdrücklich eingelesenen amtlichen Entscheidungstextes."""
+
+    dokumentnummer = models.CharField(max_length=40)
+    entschieden_am = models.DateField()
+    ecli = models.CharField(max_length=64)
+    geschaeftszahlen = models.JSONField()
+    normangaben = models.JSONField()
+    quelle = models.URLField(max_length=500)
+    original = models.BinaryField()
+    original_sha256 = models.CharField(max_length=64, unique=True)
+    parser_fassung = models.PositiveSmallIntegerField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = VFGH_REIHUNG
+
+    def __str__(self):
+        return self.dokumentnummer
 
 
 class NormText(Schnappschuss):

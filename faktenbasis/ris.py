@@ -36,6 +36,26 @@ class RisFehler(ValueError):
         super().__init__(code)
 
 
+def _eindeutiges_objekt(paare):
+    objekt = dict(paare)
+    if len(objekt) != len(paare):
+        raise ValueError("doppelte JSON-Schlüssel")
+    return objekt
+
+
+def lokale_antwort(daten: bytes, erwartete_pruefsumme: str | None = None):
+    """Eine ausdrücklich bereitgestellte Datei prüfen und ihre Original-Prüfsumme liefern."""
+    if not daten or len(daten) > HOECHSTBYTES:
+        raise RisFehler("antwortgroesse")
+    pruefsumme = hashlib.sha256(daten).hexdigest()
+    if erwartete_pruefsumme is not None and pruefsumme != erwartete_pruefsumme.lower():
+        raise RisFehler("pruefsumme")
+    try:
+        return json.loads(daten.decode("utf-8-sig"), object_pairs_hook=_eindeutiges_objekt), pruefsumme
+    except (ValueError, RecursionError) as exc:
+        raise RisFehler("antwortformat") from exc
+
+
 def amtliche_url(url: object) -> str:
     if not isinstance(url, str) or len(url) > 2000 or any(c.isspace() for c in url):
         raise RisFehler("quelladresse")

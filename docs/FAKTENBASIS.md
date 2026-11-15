@@ -1,5 +1,24 @@
 # Amtliche Quellen der Zukunftswerkstatt
 
+## Metadaten zu VfGH-Entscheidungstexten
+
+Eine ausdrücklich bereitgestellte RIS-OGD-Einzelantwort lässt sich lokal einlesen:
+
+```bash
+python manage.py ris_vfgh_metadaten --dokumentnummer <RIS-Dokumentnummer> --datei <RIS-JSON> --sha256 <erwartete-SHA-256>
+```
+
+Der Import überprüft den erwarteten Dateihash, falls angegeben, sowie
+Anwendung `Vfgh`, Typ `Text`, die Dokumentkennung, ihr Datum, das ECLI-Jahr und
+die amtliche RIS-Adresse. Die Originaldatei bleibt am Beleg erhalten. Dieselben
+Bytes ergeben denselben Beleg. Abweichende archivierte Dateien bleiben als
+eigene Stände abrufbar. In der Faktenbasis stehen Geschäftszahlen, ECLI,
+amtlicher Link und der Wortlaut der übergebenen RIS-Normangaben. Die Normangaben
+sind damit als Metadaten des Entscheidungstextes belegt.
+
+Quelle des Formats ist die Judikatur-Einzelantwort der amtlichen API.
+[RIS-OGD-Handbuch](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf).
+
 Seit 0.77.0 zeigt `/zukunftswerkstatt/faktenbasis/bestand/` einen nachrechenbaren
 Nachweis aller lokal gespeicherten Norm-, Dokumenttext- und Personalstände. Ab
 0.95.0 enthält Fassung 2 auch die Datensatznummern und Prüfsummen ausdrücklich

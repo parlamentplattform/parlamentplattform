@@ -1,0 +1,23 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ stand.dokumentnummer }} · VfGH{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:vfgh' %}">‹ {% translate "Archivierte VfGH-Entscheidungsmetadaten" %}</a>
+<h1 class="fakten-hash">{{ stand.geschaeftszahlen|join:", " }}</h1>
+<p>{{ stand.entschieden_am|date:"DATE_FORMAT" }} · {{ stand.dokumentnummer }}</p>
+<p><code class="fakten-hash">{{ stand.ecli }}</code></p>
+<p><a href="{{ stand.quelle }}" rel="noopener">{% translate "Entscheidungstext im RIS öffnen" %} ↗</a></p>
+<section class="karte" aria-labelledby="normangaben">
+  <h2 id="normangaben">{% translate "Normangaben laut RIS-Metadaten" %}</h2>
+  {% if stand.normangaben %}
+    <ul>{% for norm in stand.normangaben %}<li class="fakten-hash">{{ norm }}</li>{% endfor %}</ul>
+  {% else %}
+    <p>{% translate "Dieser Beleg enthält keine Normangaben." %}</p>
+  {% endif %}
+</section>
+<section class="karte" aria-labelledby="vfgh-herkunft">
+  <h2 id="vfgh-herkunft">{% translate "Herkunft und Prüfsumme" %}</h2>
+  <p>{% translate "Quelle" %} · RIS / Bundeskanzleramt · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
+  <p>{% translate "Erstmals erfasst" %} {{ stand.erfasst_am|date:"DATETIME_FORMAT" }} · {% translate "Metadatenprüfung, Fassung" %} {{ stand.parser_fassung }}</p>
+  <p>{% translate "SHA-256 der eingelesenen Metadatendatei" %}<br><code class="fakten-hash">{{ stand.original_sha256 }}</code></p>
+</section>
+{% endblock %}

@@ -36,6 +36,8 @@ def test_bestandsnachweis_und_ehrlicher_ausfall(
     expect(p.locator("#bestandsnachweis").get_by_text(sammlung, exact=True)).to_be_visible()
     sammlung = "Constitutional Court metadata records" if sprache == "en" else "VfGH-Metadatenbelege"
     expect(p.locator("#bestandsnachweis").get_by_text(sammlung, exact=True)).to_be_visible()
+    sammlung = "Archived RIS change pages" if sprache == "en" else "Archivierte RIS-Änderungsseiten"
+    expect(p.locator("#bestandsnachweis").get_by_text(sammlung, exact=True)).to_be_visible()
     digest = p.locator("#bestands-hash").inner_text()
     if viewport["width"] <= 560:
         assert p.locator("#bestands-hash").bounding_box()["width"] > viewport["width"] * 0.65
@@ -44,14 +46,17 @@ def test_bestandsnachweis_und_ehrlicher_ausfall(
     d = json.loads(Path(down.value.path()).read_text(encoding="utf-8"))
     raw = json.dumps(d["inhalt"], sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
     assert hashlib.sha256(raw).hexdigest() == digest == d["sha256"]
-    assert d["inhalt"]["fassung"] == 3 and len(d["inhalt"]["eintraege"]) == 6
+    assert d["inhalt"]["fassung"] == 4 and len(d["inhalt"]["eintraege"]) == 7
     assert d["inhalt"]["eintraege"][0]["pruefsumme"] == bestand[4].original_sha256
     assert d["inhalt"]["eintraege"][-1] == {
         "sammlung": "vfgh_metadaten", "nummer": bestand[5].pk, "pruefsumme": bestand[5].original_sha256,
     }
+    assert d["inhalt"]["eintraege"][-2] == {
+        "sammlung": "ris_aenderungsseite", "nummer": bestand[6].pk, "pruefsumme": bestand[6].original_sha256,
+    }
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     p.screenshot(path=str(sichtpruefung / f"quellenbestand-{kennung}.png"), full_page=True)
-    Parameter.objects.update_or_create(schluessel="faktenbasis-bestandsnachweis-hoechstzahl", defaults={"wert": "5"})
+    Parameter.objects.update_or_create(schluessel="faktenbasis-bestandsnachweis-hoechstzahl", defaults={"wert": "6"})
     antwort = p.reload()
     assert antwort.status == 503
     assert p.locator("#bestands-hash").count() == 0

@@ -11,7 +11,7 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 
-VERSION = 3
+VERSION = 4
 # Technische Speicher-/Antwortschutzgrenze; die kleinere Betriebsgrenze steht im Register.
 TECHNISCHE_HOECHSTZAHL = 10000
 HASH_MUSTER = re.compile(r"[0-9a-f]{64}\Z")
@@ -22,9 +22,10 @@ _HASH_BEZUEGE_FASSUNG_1 = {
     "personalressorttabelle": "original_pdf_bytes",
 }
 _HASH_BEZUEGE_FASSUNG_2 = {**_HASH_BEZUEGE_FASSUNG_1, "kundmachung": "original_json_bytes"}
-HASH_BEZUEGE = {**_HASH_BEZUEGE_FASSUNG_2, "vfgh_metadaten": "original_json_bytes"}
+_HASH_BEZUEGE_FASSUNG_3 = {**_HASH_BEZUEGE_FASSUNG_2, "vfgh_metadaten": "original_json_bytes"}
+HASH_BEZUEGE = {**_HASH_BEZUEGE_FASSUNG_3, "ris_aenderungsseite": "original_json_bytes"}
 HASH_BEZUEGE_NACH_FASSUNG = {
-    1: _HASH_BEZUEGE_FASSUNG_1, 2: _HASH_BEZUEGE_FASSUNG_2, VERSION: HASH_BEZUEGE,
+    1: _HASH_BEZUEGE_FASSUNG_1, 2: _HASH_BEZUEGE_FASSUNG_2, 3: _HASH_BEZUEGE_FASSUNG_3, VERSION: HASH_BEZUEGE,
 }
 
 

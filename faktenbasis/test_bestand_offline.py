@@ -14,6 +14,7 @@ from faktenbasis.models import (
     NormText,
     PersonalAggregat,
     PersonalRessorttabelle,
+    RisAenderungsseite,
     VfghEntscheidungsstand,
 )
 from faktenbasis.test_bestandsnachweis import bestand  # noqa: F401
@@ -28,7 +29,7 @@ SKRIPT = Path(__file__).resolve().parents[1] / "tools/faktenbestand_pruefen.py"
 
 def test_tatsaechlicher_gebundener_download_laesst_sich_ohne_plattform_nachrechnen(bestand, client, tmp_path):  # noqa: F811
     modelle = (Norm, NormText, PersonalAggregat, PersonalRessorttabelle, Kundmachungsnachweis,
-               VfghEntscheidungsstand, AuditEintrag)
+               VfghEntscheidungsstand, RisAenderungsseite, AuditEintrag)
     vorher = [list(m.objects.values()) for m in modelle]
     erster = client.get(reverse("faktenbasis:bestand_json"))
     hashwert = erster.json()["sha256"]
@@ -36,7 +37,7 @@ def test_tatsaechlicher_gebundener_download_laesst_sich_ohne_plattform_nachrechn
     assert gebunden.status_code == 200
     p = tmp_path / "bestand.json"
     p.write_bytes(gebunden.content)
-    assert pruefen(lesen(p), hashwert)["schnappschuesse"] == 6
+    assert pruefen(lesen(p), hashwert)["schnappschuesse"] == 7
     r = subprocess.run([sys.executable, "-I", "-S", str(SKRIPT), str(p), "--sha256", hashwert],
         capture_output=True, text=True, encoding="utf-8", timeout=20, check=False, cwd=tmp_path)
     assert r.returncode == 0 and not r.stderr and json.loads(r.stdout)["sha256"] == hashwert

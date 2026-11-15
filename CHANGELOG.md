@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.104.0] — 2026-11-15 · RIS-Änderungsseiten im Quellenbestand
+
+- Der Quellenbestandsnachweis führt archivierte RIS-Änderungsseiten mit Datensatznummer und SHA-256 des jeweiligen Original-JSONs.
+- Neue Downloads verwenden Fassung 4. Ältere Dateien der Fassungen 1 bis 3 bleiben offline prüfbar.
+
 ## [0.103.0] — 2026-11-15 · Archivierte RIS-Änderungsseiten
 
 - Die Faktenbasis zeigt lokal eingelesene Seiten der RIS-Änderungshistorie für Bundesnormen. Tag, Dokumentkennungen, Seitenumfang und die gemeldete Gesamttrefferzahl stehen beim jeweiligen Originalbeleg.

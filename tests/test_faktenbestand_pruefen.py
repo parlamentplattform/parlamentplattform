@@ -31,7 +31,7 @@ def datei(tmp_path, daten):
 
 
 @pytest.mark.parametrize("leer", [False, True])
-@pytest.mark.parametrize("fassung", [1, 2, 3])
+@pytest.mark.parametrize("fassung", [1, 2, 3, 4])
 def test_vollstaendiger_und_leerer_bestand_ohne_datenbank(leer, fassung):
     d = beispiel([] if leer else None, fassung=fassung)
     vorher = copy.deepcopy(d)

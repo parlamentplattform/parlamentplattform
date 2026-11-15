@@ -571,6 +571,7 @@ class Gemeindesitzungsquelle(models.Model):
     class Art(models.TextChoices):
         EINLADUNG = "einladung", _("Einladung und Tagesordnung")
         NIEDERSCHRIFT = "niederschrift", _("Amtliche Niederschrift")
+        RATSBESCHLUESSE = "ratsbeschluesse", _("Veröffentlichte Ratsbeschlüsse")
 
     aufgabe = models.ForeignKey(Aufgabe, on_delete=models.PROTECT, related_name="gemeindesitzungsquellen")
     gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT)

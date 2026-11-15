@@ -65,9 +65,13 @@ def _quelle_erfassen(form, aufgabe, mandat, erste, jetzt, aktion):
         if not form.cleaned_data["bestaetigt"]:
             form.add_error("bestaetigt", _("Bestätigen Sie die öffentliche Zugänglichkeit und die Zuordnung."))
             return False
-        if art == Gemeindesitzungsquelle.Art.NIEDERSCHRIFT and sitzung_am > timezone.localdate(jetzt):
-            form.add_error("art", _("Die Niederschrift kann erst ab dem Sitzungstag verlinkt werden."))
-            return False
+        if sitzung_am > timezone.localdate(jetzt):
+            if art == Gemeindesitzungsquelle.Art.NIEDERSCHRIFT:
+                form.add_error("art", _("Die Niederschrift kann erst ab dem Sitzungstag verlinkt werden."))
+                return False
+            if art == Gemeindesitzungsquelle.Art.RATSBESCHLUESSE:
+                form.add_error("art", _("Die Beschlussübersicht kann erst ab dem Sitzungstag verlinkt werden."))
+                return False
     else:
         form.add_error(None, _("Unbekannte Aktion."))
         return False

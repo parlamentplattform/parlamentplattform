@@ -42,6 +42,22 @@ Weitere Antwortformen und der regelmäßige operative Abruf sind gesonderte
 Aufgaben. [RIS-OGD-Hinweise](https://ris.bka.gv.at/UI/Ogd.aspx) ·
 [API-Handbuch 2.6](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf).
 
+Ein ausdrücklich gewählter Satz archivierter Seiten lässt sich abgleichen:
+
+```bash
+python manage.py ris_aenderungstag_pruefen --tag JJJJ-MM-TT --beleg 12 --beleg 17
+```
+
+Die Belegnummern sind lokale Datensatznummern. Gezählt werden die jeweiligen
+Dokumentreferenzen. Der Abgleich akzeptiert einen Tag und eine gemeinsame
+Trefferzahl, lückenlose Seitennummern ab 1, die erwartete Anzahl je Seite und
+übergreifend eindeutige Dokumentnummern. Bei Erfolg enthält die JSON-Ausgabe
+die Belege mit ihrer gespeicherten Prüfsumme in aufsteigender RIS-Seitenfolge.
+Die Höchstzahl des Quellenbestandsnachweises gilt für die Zahl gewählter Seiten.
+Der Abgleich enthält ausschließlich lokale Belege zu Antworten mit Treffern.
+Die einzelnen Quellenabrufe können zu verschiedenen Zeiten erfolgt sein.
+Leermeldungen stehen im Audit.
+
 ## Bundesrechtliche Aufhebungsfundstellen
 
 Die Normdetailseite zeigt eine Aufhebungsfundstelle, wenn der gespeicherte

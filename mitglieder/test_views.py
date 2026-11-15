@@ -381,7 +381,7 @@ def test_mitgliedschaftsseite_verspricht_keinen_schutz_den_es_nicht_gibt(client)
     assert "Ein Beitragseingang allein bestätigt noch nicht Ihre Identität" in inhalt
     assert "zusätzlich eine Freischaltung" in inhalt
     assert "Ihre Gemeinde stimmt" not in inhalt
-    assert "Eine örtliche Begrenzung ist noch nicht umgesetzt" in inhalt
+    assert "Ältere Verfahren behalten ihren bisherigen Teilnehmerkreis" in inhalt
     assert "rechnet durch, welche Gesetze" not in inhalt
     assert "noch keine vollständige Durchrechnung" in inhalt
     assert Identitaetsstufe.GEPRUEFT.label == "geprüft (Beitragseingang verbucht)"  # kein „Einladungscode“

@@ -1,6 +1,4 @@
-"""S10, Cluster R — der Nebenwohnsitz (FB-J6, E10) an seinen zwei Wirkstellen: „Meine Region“
-und das Einbringen. Nur bei Stellgröße `region-nebenwohnsitz-zaehlt` = 1, nur zusätzlich, und
-nie am Stimmrecht (§ 5 Abs 6, Grundregel 4)."""
+"""Der Nebenwohnsitz wirkt bei gesetzter Stellgröße allein auf „Meine Region“."""
 
 import pytest
 from django.db import connection
@@ -162,7 +160,7 @@ def test_nebenwohnsitz_aendert_nichts_am_stimmrecht(client, ordnung):  # noqa: F
 # --- Einbringen ---------------------------------------------------------------------------
 
 
-def test_einbringen_bietet_nebenwohnsitz_nur_bei_schalter_1(client, ordnung):  # noqa: F811
+def test_einbringen_bietet_nebenwohnsitz_auch_bei_schalter_1_nicht(client, ordnung):  # noqa: F811
     anna = _anna()
     client.force_login(anna)
     inhalt = client.get(reverse("verfahren:einbringen")).content.decode()
@@ -173,20 +171,14 @@ def test_einbringen_bietet_nebenwohnsitz_nur_bei_schalter_1(client, ordnung):  #
 
     _schalter(1)
     inhalt = client.get(reverse("verfahren:einbringen")).content.decode()
-    assert f"Meine Nebenwohnsitz-Gemeinde ({NEBEN})" in inhalt
-    assert "Mein Nebenwohnsitz-Bezirk (Wels(Stadt))" in inhalt
-    assert "Mein Nebenwohnsitz-Bundesland (Oberösterreich)" in inhalt
-    assert 'value="gemeinde_neben"' in inhalt and 'value="bezirk_neben"' in inhalt and 'value="land_neben"' in inhalt
-    assert f"Meine Gemeinde ({HAUPT})" in inhalt and "Mein Bezirk (Eferding)" in inhalt  # der Wohnsitz bleibt
+    assert all(f'value="{ebene}_neben"' not in inhalt for ebene in ("gemeinde", "bezirk", "land"))
+    assert f"Meine Gemeinde ({HAUPT} (Eferding))" in inhalt and "Mein Bezirk (Eferding)" in inhalt
 
 
-def test_einbringen_ueber_den_nebenwohnsitz_schreibt_ebene_und_gebiet(client, ordnung):  # noqa: F811
+def test_einbringen_schreibt_nur_ebene_und_gebiet_des_hauptwohnsitzes(client, ordnung):  # noqa: F811
     _schalter(1)
     client.force_login(_anna(neben_land="salzburg"))
     for titel, ebene, erwartet_ebene, erwartet_gebiet in (
-        ("Eins", "gemeinde_neben", "gemeinde", NEBEN),
-        ("Zwei", "bezirk_neben", "bezirk", "Wels(Stadt)"),
-        ("Drei", "land_neben", "land", "Salzburg"),
         ("Vier", "gemeinde", "gemeinde", HAUPT),
         ("Fünf", "land", "land", "Oberösterreich"),
     ):
@@ -198,9 +190,10 @@ def test_einbringen_ueber_den_nebenwohnsitz_schreibt_ebene_und_gebiet(client, or
         assert (antrag.ebene, antrag.gebiet) == (erwartet_ebene, erwartet_gebiet), titel
     # Der Antrag kennt nur die Ebene — kein Nebenwohnsitz-Wert landet in der Datenbank
     assert not Antrag.objects.filter(ebene__endswith="_neben").exists()
-    # Und er erscheint im eigenen Regionsband unter dem Nebenwohnsitz
-    feld = _region(client)
-    assert "Eins" in _band(feld, "gemeinde") and "Zwei" in _band(feld, "bezirk") and "Drei" in _band(feld, "land")
+    for ebene in ("gemeinde_neben", "bezirk_neben", "land_neben"):
+        antwort = client.post(reverse("verfahren:einbringen"), {**ANTRAG, "ebene": ebene, "trotzdem": "1"})
+        assert antwort.status_code == 200
+    assert Antrag.objects.count() == 2
 
 
 def test_einbringen_ohne_nebenwohnsitz_kennt_die_optionen_nicht(client, ordnung):  # noqa: F811

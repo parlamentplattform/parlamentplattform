@@ -25,10 +25,11 @@ from django.views.decorators.http import require_POST
 
 from ki.anbieter import anbieter_waehlen
 from ki.models import Zweck
-from mitglieder.models import Mitglied, Mitgliedsstatus
+from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus, Wohnsitzart
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
+from plattform_core.teilnehmerkreis import GebietsFehler
 from verfahren.aehnlichkeit import aehnliche_antraege
 from verfahren.einbringwahl import (
     direkt_unterstuetzen,
@@ -74,22 +75,14 @@ from verfahren.models import (
     uebergangsregel_fuer,
     vollzug_fortschreiben,
 )
+from verfahren.teilnahme import eigene_kreise, gebietsname, hauptgebiet, oertlich_begrenzt, oertlich_zulaessig
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
-
-#: Die Ebenen-Werte des Nebenwohnsitzes im Einbringen-Formular (FB-J6) — eigene Werte, damit
-#: `gebiet()` weiß, welcher der beiden Orte gemeint ist; `clean_ebene` bildet sie auf `Ebene` ab.
-NEBEN_EBENEN = {
-    "land_neben": Ebene.LAND.value,
-    "bezirk_neben": Ebene.BEZIRK.value,
-    "gemeinde_neben": Ebene.GEMEINDE.value,
-}
-
 
 def nebenwohnsitz_zaehlt() -> bool:
     """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
     andere wirkt wie 0. Der Nebenwohnsitz ordnet dann ZUSÄTZLICH einer Region zu — für „Meine
-    Region“ und das Einbringen. Am Stimmrecht ändert er nie etwas (§ 5 Abs 6, Grundregel 4)."""
+    Region“. Für neue örtliche Anträge und ihre Teilnahme zählt nur der Hauptwohnsitz."""
     return zahl("region-nebenwohnsitz-zaehlt", 0) == 1
 
 
@@ -122,6 +115,12 @@ def _abbruch(request, feld, code, sonst):
     if feld:
         return weiter_mit_hinweis(request, code, feld)
     return sonst()
+
+
+def _oertlich_abweisen(request, antrag, feld=None):
+    return _abbruch(request, feld, "nicht_im_teilnehmerkreis", lambda: render(
+        request, "verfahren/oertlich_nicht_berechtigt.html", {"antrag": antrag}, status=403,
+    ))
 
 
 class AntragsFormular(forms.Form):
@@ -170,33 +169,27 @@ class AntragsFormular(forms.Form):
         super().__init__(*args, **kwargs)
         self.mitglied = mitglied
         wahlen = [(Ebene.BUND.value, _("Ganz Österreich"))]
-        if mitglied is not None and mitglied.bundesland:
-            wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % mitglied.get_bundesland_display()))
-        if mitglied is not None and mitglied.wohnsitz_id and mitglied.wohnsitz.bezirk:
-            wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % mitglied.wohnsitz.bezirk))
-        if mitglied is not None and mitglied.gemeinde:
-            wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % mitglied.gemeinde))
-        # FB-J6: Der Nebenwohnsitz bietet seine Ebenen zusätzlich an — nur bei Schalter 1 und nur,
-        # wenn er hinterlegt ist. Was hier nicht angeboten wird, weist das ChoiceField ab.
-        self.neben = None
-        if mitglied is not None and mitglied.nebenwohnsitz_id and nebenwohnsitz_zaehlt():
-            self.neben = mitglied.nebenwohnsitz
-            if self.neben.bundesland:
-                wahlen.append(
-                    ("land_neben", _("Mein Nebenwohnsitz-Bundesland (%s)") % self.neben.get_bundesland_display())
-                )
-            if self.neben.bezirk:
-                wahlen.append(("bezirk_neben", _("Mein Nebenwohnsitz-Bezirk (%s)") % self.neben.bezirk))
-            wahlen.append(("gemeinde_neben", _("Meine Nebenwohnsitz-Gemeinde (%s)") % self.neben.name))
+        haupt = (
+            mitglied.wohnsitz if mitglied is not None and mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH
+            else None
+        )
+        self.wien = haupt is not None and haupt.bundesland == Bundesland.WIEN
+        if haupt is not None:
+            wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))
+            if not self.wien:
+                wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % haupt.bezirk))
+            wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % haupt.anzeige))
+        self.gebietsstand = None
         self.fields["ebene"].choices = wahlen
         self.fields["ebene"].initial = Ebene.BUND.value
 
     def clean_ebene(self):
         wert = self.cleaned_data.get("ebene") or Ebene.BUND.value
-        # Der rohe Wert sagt `gebiet()`, ob Haupt- oder Nebenwohnsitz gemeint ist; der Antrag
-        # selbst kennt nur die Ebene (`Antrag.ebene`).
-        self.ebene_roh = wert
-        return NEBEN_EBENEN.get(wert, wert)
+        try:
+            self.gebietsstand = hauptgebiet(self.mitglied, wert)
+        except GebietsFehler as fehler:
+            raise forms.ValidationError(str(fehler)) from fehler
+        return wert
 
     def clean_art(self):
         # Nur die angebotenen Arten: Eine Mandatsfrage (§ 7 Abs 9) eröffnet allein der Mandatar
@@ -206,23 +199,13 @@ class AntragsFormular(forms.Form):
         return wert if wert in (Antragsart.SACHE.value, Antragsart.MANDAT.value) else Antragsart.SACHE.value
 
     def gebiet(self) -> str:
-        """Das Gebiet folgt zwingend dem Wohnsitz (F-43) — keine freie Eingabe. Beim Nebenwohnsitz
-        (FB-J6) liefert es dieselben Anzeigenamen wie „Meine Region“: Gemeindename, Bezirksname,
-        Bundesland-Beschriftung — nie Slug oder Kennziffer."""
-        ebene = self.cleaned_data["ebene"]
-        if getattr(self, "ebene_roh", ebene) in NEBEN_EBENEN and self.neben is not None:
-            if ebene == Ebene.GEMEINDE.value:
-                return self.neben.name
-            if ebene == Ebene.BEZIRK.value:
-                return self.neben.bezirk
-            return self.neben.get_bundesland_display()
-        if ebene == Ebene.GEMEINDE.value:
-            return self.mitglied.gemeinde
-        if ebene == Ebene.BEZIRK.value:
-            return self.mitglied.wohnsitz.bezirk if self.mitglied.wohnsitz_id else ""
-        if ebene == Ebene.LAND.value:
-            return self.mitglied.get_bundesland_display()
-        return ""
+        return gebietsname(self.gebietsstand) if self.gebietsstand else ""
+
+    def vergleichsdaten(self):
+        daten = {**self.cleaned_data, "gebiet": self.gebiet()}
+        if self.gebietsstand and self.gebietsstand.ebene != Ebene.BUND:
+            daten["gebietsschluessel"] = self.gebietsstand.kennung
+        return daten
 
 
 class KommentarFormular(forms.Form):
@@ -248,10 +231,11 @@ def einbringen(request):
     def seite(ergebnis=None, token="", bestaetigung=None, vergleich=None):
         from ki.vergleichsanfragen import anbieten
 
-        vergleichsangebot = (anbieten({**form.cleaned_data, "gebiet": form.gebiet()}, request.user, token)
+        vergleichsangebot = (anbieten(form.vergleichsdaten(), request.user, token)
                              if token and ergebnis and ergebnis.treffer and not bestaetigung else "")
         return render(request, "verfahren/einbringen.html", {
             "form": form, "aehnliche": ergebnis.treffer if ergebnis else [],
+            "oertlich_gesperrte_treffer": _oertlich_gesperrte_treffer(ergebnis, request.user),
             "pruefung": ergebnis, "pruefstand": token, "bestaetigung": bestaetigung,
             "vorschau_geprueft": ergebnis is not None,
             "ordnung": ordnung, "ki_anbieter": _ki_anbieter_name(),
@@ -263,7 +247,7 @@ def einbringen(request):
     if request.method == "POST":
         if form.is_valid():
             d = form.cleaned_data
-            daten = {**d, "gebiet": form.gebiet()}
+            daten = form.vergleichsdaten()
             token = request.POST.get("pruefstand", "")
             stand = pruefstand_lesen(token, daten, request.user) if token else None
             if request.POST.get("textvergleich"):
@@ -300,12 +284,15 @@ def einbringen(request):
                     if treffer is None:
                         form.add_error(None, _("Bitte wählen Sie einen der angezeigten Anträge."))
                         return seite(pruefung, token)
+                    if not oertlich_zulaessig(treffer["antrag"], request.user):
+                        form.add_error(None, _("Dieser Antrag kann von Ihnen nicht unterstützt werden. Ihr eigener Text bleibt erhalten."))
+                        return seite(pruefung, token)
                     if request.POST.get("unterstuetzen_bestaetigt"):
                         ziel = direkt_unterstuetzen(request.user, treffer["antrag"].pk)
                         if ziel is not None:
                             messages.success(request, _("Ihre Unterstützung ist erfasst. Ihr eigener Text wurde nicht eingebracht."))
                             return redirect(reverse("verfahren:antrag", args=[ziel.pk]) + "#zone-einschaetzung")
-                        form.add_error(None, _("Dieser Antrag sammelt keine Unterstützung mehr. Ihr eigener Text bleibt erhalten."))
+                        form.add_error(None, _("Dieser Antrag kann von Ihnen nicht unterstützt werden. Ihr eigener Text bleibt erhalten."))
                         return seite(pruefung, token)
                     return seite(pruefung, token, treffer["antrag"])
                 if request.POST.get("vergleich_zurueck"):
@@ -320,13 +307,18 @@ def einbringen(request):
                     # § 5 Abs 10 lit d: Übersicht ähnlicher Anträge SAMT Beteiligung —
                     # damit sichtbar ist, wo Unterstützung am meisten bewegt.
                     return seite(pruefung, pruefstand_fuer(daten, request.user, pruefung))
-            with transaction.atomic():
-                antrag = antrag_einbringen(
-                    request.user, d["titel"], d["wortlaut"], d["begruendung"], ordnung,
-                    ebene=d["ebene"], gebiet=form.gebiet(), art=d["art"],
-                )
-                if request.POST.get("trotzdem"):
-                    einstufung_festhalten(antrag, stand)
+            try:
+                with transaction.atomic():
+                    antrag = antrag_einbringen(
+                        request.user, d["titel"], d["wortlaut"], d["begruendung"], ordnung,
+                        ebene=d["ebene"], art=d["art"], neuer_teilnehmerkreis=True,
+                        erwartetes_gebiet=form.gebietsstand,
+                    )
+                    if request.POST.get("trotzdem"):
+                        einstufung_festhalten(antrag, stand)
+            except GebietsFehler as fehler:
+                form.add_error("ebene", str(fehler))
+                return seite()
             zugeordnet = kategorien_zuordnen(antrag)  # F-47: die Plattform ordnet zu, nicht der Mensch
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
@@ -348,6 +340,14 @@ def einbringen(request):
     return seite()
 
 
+def _oertlich_gesperrte_treffer(ergebnis, mitglied):
+    if not ergebnis:
+        return set()
+    antraege = [treffer["antrag"] for treffer in ergebnis.treffer if oertlich_begrenzt(treffer["antrag"])]
+    eigene = eigene_kreise(mitglied, antraege)
+    return {antrag.pk for antrag in antraege if antrag.pk not in eigene}
+
+
 @login_required
 @require_POST
 def einbringen_vorschau(request):
@@ -366,8 +366,9 @@ def einbringen_vorschau(request):
             pruefung = aehnliche_antraege(d["titel"], d["wortlaut"], request.user, bedeutung=False)
             lage.update(
                 aehnliche=pruefung.treffer, pruefung=pruefung,
+                oertlich_gesperrte_treffer=_oertlich_gesperrte_treffer(pruefung, request.user),
                 vorschau_geprueft=True,
-                pruefstand=pruefstand_fuer({**d, "gebiet": form.gebiet()}, request.user, pruefung),
+                pruefstand=pruefstand_fuer(form.vergleichsdaten(), request.user, pruefung),
             )
         elif laenge > lage["mindestzeichen"]:
             lage["vorschau_zu_lang"] = True
@@ -407,12 +408,15 @@ def _mit_flash(request, stufe, text, pk):
 
 @login_required
 @require_POST
+@transaction.atomic
 def unterstuetzen(request, pk):
-    antrag = get_object_or_404(Antrag, pk=pk)
+    antrag = get_object_or_404(Antrag.objects.select_for_update(), pk=pk)
     feld = kachel_feld(request)  # Kachel/Feed → Rückmeldung im Feld statt Antragsseite oder 403
     code = mitwirkungssperre(request.user)
     if code:
         return _abbruch(request, feld, code, lambda: _mitwirkung_gesperrt(request))
+    if not oertlich_zulaessig(antrag, request.user):
+        return _oertlich_abweisen(request, antrag, feld)
     antrag.fortschreiben()
     if antrag.phase != Phase.UNTERSTUETZUNG.value:
         return _abbruch(
@@ -688,6 +692,8 @@ def chat_gelesen(request, pk):
 def abstimmen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     feld = kachel_feld(request)  # Kachel/Feed → Rückmeldung im Feld statt Antragsseite oder 403
+    if not oertlich_zulaessig(antrag, request.user):
+        return _oertlich_abweisen(request, antrag, feld)
     antrag.fortschreiben()
     if antrag.art == Antragsart.MANDAT:
         return _abbruch(
@@ -1005,6 +1011,8 @@ def bewerben(request, pk):
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
+    if not oertlich_zulaessig(antrag, request.user):
+        return _oertlich_abweisen(request, antrag)
     if not request.user.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=uebergangsregel_fuer(antrag)
     ):
@@ -1072,6 +1080,8 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     """Zustimmungswahl (§ 7 Abs 1): Zustimmung geben oder zurücknehmen —
     geheim über das Stimmregister, änderbar bis zum Fristende."""
     antrag = get_object_or_404(Antrag, pk=pk)
+    if not oertlich_zulaessig(antrag, request.user):
+        return _oertlich_abweisen(request, antrag)
     antrag.fortschreiben()
     stichtag = antrag.stichtag_der_stimmberechtigung()
     if not request.user.ist_stimmberechtigt(
@@ -1119,6 +1129,9 @@ def export_json(request, pk):
         ],
         "exportiert_am": timezone.now().isoformat(),
     }
+    if antrag.teilnahmegebiet is not None:
+        daten["teilnahmegebiet"] = antrag.teilnahmegebiet
+        daten["teilnehmerkreis_am"] = antrag.teilnehmerkreis_am.isoformat() if antrag.teilnehmerkreis_am else None
     vf = antrag._vertrauensfrage()
     if vf is not None:
         # § 7 Abs 10 lit e: ausgezählt wie eine Sachfrage — `art` bleibt „vertrauensfrage“, damit

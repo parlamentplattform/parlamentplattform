@@ -464,7 +464,7 @@ class Antrag(models.Model):
         if uebergang.neue_phase is Phase.ABSTIMMUNG and self.stimmberechtigte_anzahl is None:
             # § 4 Abs 4 lit a: Zahl der Stimmberechtigten wird bei Abstimmungsbeginn
             # festgestellt, veröffentlicht und danach nie mehr verändert.
-            from mitglieder.models import stimmberechtigte_zaehlen
+            from verfahren.teilnahme import stimmbasis
 
             # § 4 Abs 4: Personenwahlen haben eine längere Anwartschaft als Sachfragen.
             gegenstand = gegenstand_fuer(self)
@@ -472,13 +472,9 @@ class Antrag(models.Model):
             # Zwischen 0 und 2 Uhr läge der Stichtag sonst einen Tag zu früh (Befund #32). Der Tag
             # wird gespeichert, damit Zählung und Einzelprüfung dieselbe Zahl lesen.
             self.stimmberechtigung_stichtag = timezone.localdate(uebergang.wirksam_ab)
-            self.stimmberechtigte_anzahl = max(
-                1,
-                stimmberechtigte_zaehlen(
-                    gegenstand,
-                    self.stimmberechtigung_stichtag,
-                    uebergang=policy.uebergangsregel,  # eingefroren beim Einbringen (A5)
-                ),
+            self.stimmberechtigte_anzahl = stimmbasis(
+                self, gegenstand, self.stimmberechtigung_stichtag,
+                uebergang=policy.uebergangsregel,  # eingefroren beim Einbringen (A5)
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         self.save(update_fields=felder)
@@ -590,15 +586,20 @@ class Antrag(models.Model):
         )
 
     def auszaehlen(self):
+        from verfahren.teilnahme import oertlich_begrenzt
+
         if self.art == Antragsart.MANDAT:
             return self.kandidatur_auszaehlen()
         stimmen = [(s.pseudonym.hex, s.stimme) for s in self.stimmabgaben.all()]
-        return auszaehlen(stimmen, self.stimmberechtigte_anzahl or 1, self.policy())
+        oertlich = oertlich_begrenzt(self)
+        basis = self.stimmberechtigte_anzahl if oertlich else self.stimmberechtigte_anzahl or 1
+        return auszaehlen(stimmen, basis, self.policy(), leerer_oertlicher_kreis=oertlich)
 
     def kandidatur_auszaehlen(self):
         """§ 7 Abs 1 (E-2.5): Zustimmungswahl über die wählbaren Bewerbungen —
         gerechnet im framework-freien Kern (plattform_core.tally)."""
         from plattform_core.tally import personenwahl_auszaehlen
+        from verfahren.teilnahme import oertlich_begrenzt
 
         waehlbar = list(
             self.bewerbungen.filter(zurueckgezogen=False)
@@ -611,9 +612,9 @@ class Antrag(models.Model):
                 bewerbung__antrag=self, bewerbung__zurueckgezogen=False
             )
         ]
-        return personenwahl_auszaehlen(
-            zustimmungen, waehlbar, self.stimmberechtigte_anzahl or 1, self.policy()
-        )
+        oertlich = oertlich_begrenzt(self)
+        basis = self.stimmberechtigte_anzahl if oertlich else self.stimmberechtigte_anzahl or 1
+        return personenwahl_auszaehlen(zustimmungen, waehlbar, basis, self.policy(), leerer_oertlicher_kreis=oertlich)
 
     def vollzugsstand(self):
         """Jüngster Eintrag im Umsetzungsregister (F-55) — None, solange keiner existiert
@@ -1024,6 +1025,7 @@ class Hintergrundlauf(models.Model):
 # --- Fachoperationen (die einzigen Schreibwege) -------------------------------
 
 
+@transaction.atomic
 def antrag_einbringen(
     mitglied,
     titel: str,
@@ -1033,11 +1035,32 @@ def antrag_einbringen(
     ebene: str = Ebene.BUND,
     gebiet: str = "",
     art: str = Antragsart.SACHE,
+    *,
+    neuer_teilnehmerkreis: bool = False,
+    erwartetes_gebiet=None,
 ) -> Antrag:
     """Einbringen nach § 5 Abs 2–3: Policy einfrieren, Fassung 1 anlegen, auditieren.
-    `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70)."""
+    `art` unterscheidet Sachantrag und Mandats-Kandidatur (§ 7 Abs 1, F-70).
+    Der öffentliche Einbringungsweg setzt den neuen Kreis ausdrücklich;
+    historische Demobelege und interne Bundesabläufe behalten ihren Vertrag."""
     from dataclasses import replace
 
+    from plattform_core.teilnehmerkreis import GebietsFehler
+    from verfahren.teilnahme import (
+        aktive_berechtigung,
+        gebietsname,
+        hauptgebiet,
+        konten_fuer,
+        kreis_festhalten,
+    )
+
+    kreis = hauptgebiet(mitglied, ebene, sperren=True) if neuer_teilnehmerkreis else None
+    if erwartetes_gebiet is not None and erwartetes_gebiet != kreis:
+        raise GebietsFehler(_("Das Gebiet hat sich geändert. Bitte prüfen Sie Ihre Auswahl erneut."))
+    konten = list(konten_fuer(kreis)) if kreis is not None and ebene != Ebene.BUND else None
+    if kreis is not None:
+        gebiet = gebietsname(kreis)
+    jetzt = timezone.now()
     # validiert die Regeln gegen die Satzungsminima; die Übergangsregel wird mit eingefroren (A5)
     policy = replace(ordnung.als_policy(), uebergangsregel=uebergangsregel_der_instanz())
     stimmberechtigte = None
@@ -1051,7 +1074,11 @@ def antrag_einbringen(
         from plattform_core.policy import unterstuetzungsschwelle
 
         gegenstand = Gegenstand.PERSONENWAHL if Antragsart(art) == Antragsart.MANDAT else Gegenstand.SACHFRAGE
-        stimmberechtigte = stimmberechtigte_zaehlen(gegenstand, timezone.localdate(), uebergang=policy.uebergangsregel)
+        stichtag = timezone.localdate(jetzt)
+        if konten is None:
+            stimmberechtigte = stimmberechtigte_zaehlen(gegenstand, stichtag, uebergang=policy.uebergangsregel)
+        else:
+            stimmberechtigte = sum(aktive_berechtigung(m, gegenstand, stichtag, policy.uebergangsregel) for m in konten)
         policy = replace(
             policy,
             unterstuetzung_schwelle=unterstuetzungsschwelle(
@@ -1063,9 +1090,12 @@ def antrag_einbringen(
     antrag = Antrag.objects.create(
         titel=titel,
         eingebracht_von=mitglied,
+        eingebracht_am=jetzt,
+        phase_beginn=jetzt,
         policy_snapshot=policy.als_dict(),
         ebene=Ebene(ebene),
         gebiet=gebiet,
+        teilnahmegebiet=kreis.als_dict() if kreis is not None else None,
         art=Antragsart(art),
     )
     AntragsFassung.objects.create(antrag=antrag, nummer=1, wortlaut=wortlaut, begruendung=begruendung)
@@ -1081,6 +1111,8 @@ def antrag_einbringen(
         ereignis["unterstuetzung_schwelle"] = policy.unterstuetzung_schwelle
         ereignis["stimmberechtigte"] = stimmberechtigte
     AuditEintrag.anhaengen(ereignis)
+    if kreis is not None:
+        kreis_festhalten(antrag, _konten_ids=[m.pk for m in konten] if konten is not None else None)
     return antrag
 
 
@@ -1542,6 +1574,16 @@ def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezu
     Bewerbung abgegeben wird; das Formular verlangt sie als Pflichtangabe, hier bleibt „“ (unbekannt)
     zulässig, weil Altbewerbungen und der Demo-Bestand ohne sie entstanden sind. Wer nach einer
     verlorenen Vertrauensfrage noch nicht bestätigt ist, wird abgewiesen (§ 7 Abs 10 lit f Z 3)."""
+    from mitglieder.models import Mitglied
+    from verfahren.hinweise import mitwirkungssperre
+    from verfahren.teilnahme import oertlich_begrenzt, oertlich_zulaessig
+
+    if oertlich_begrenzt(antrag):
+        if not oertlich_zulaessig(antrag, mitglied):
+            raise BewerbungsFehler(_("Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis."))
+        aktuell = Mitglied.parteikonten.filter(pk=mitglied.pk, is_active=True).first()
+        if aktuell is None or mitwirkungssperre(aktuell):
+            raise BewerbungsFehler(_("Die allgemeinen Voraussetzungen für die Kandidatur sind noch nicht erfüllt."))
     if antrag.art != Antragsart.MANDAT:
         raise BewerbungsFehler("Dieser Antrag ist keine Mandats-Kandidatur.")
     if kandidatursperre(mitglied):
@@ -1576,10 +1618,17 @@ def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezu
     return bewerbung
 
 
+@transaction.atomic
 def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=None) -> bool:
     """Zustimmung zu einer Bewerbung geben oder zurücknehmen (Umschalter).
     Rückgabe: True = zugestimmt, False = zurückgenommen. Läuft über das
     Stimmregister des Antrags — geheim und nachrechenbar wie jede Stimme."""
+    from verfahren.teilnahme import oertlich_begrenzt, stimmrecht_im_neuen_kreis
+
+    if oertlich_begrenzt(antrag):
+        antrag = Antrag.objects.select_for_update().get(pk=antrag.pk)
+    if not stimmrecht_im_neuen_kreis(antrag, mitglied, frisch=True):
+        raise StimmabgabeFehler(_("Sie gehören nicht zum stimmberechtigten örtlichen Teilnehmerkreis."))
     jetzt = jetzt or timezone.now()
     if antrag.art != Antragsart.MANDAT or bewerbung.antrag_id != antrag.pk:
         raise StimmabgabeFehler("Diese Bewerbung gehört nicht zu dieser Kandidatur.")
@@ -1623,8 +1672,15 @@ class StimmabgabeFehler(Exception):
     pass
 
 
+@transaction.atomic
 def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmabgabe:
     """Stimmabgabe bzw. -änderung während laufender Abstimmung (§ 5 Abs 3 lit d)."""
+    from verfahren.teilnahme import oertlich_begrenzt, stimmrecht_im_neuen_kreis
+
+    if oertlich_begrenzt(antrag):
+        antrag = Antrag.objects.select_for_update().get(pk=antrag.pk)
+    if not stimmrecht_im_neuen_kreis(antrag, mitglied, frisch=True):
+        raise StimmabgabeFehler(_("Sie gehören nicht zum stimmberechtigten örtlichen Teilnehmerkreis."))
     jetzt = jetzt or timezone.now()
     if not antrag.stimme_zulaessig(jetzt):
         raise StimmabgabeFehler("Für diesen Antrag läuft derzeit keine Abstimmung.")
@@ -1632,7 +1688,7 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
     register, neu = StimmRegister.objects.get_or_create(
         antrag=antrag, mitglied=mitglied, defaults={"pseudonym": uuid.uuid4()}
     )
-    abgabe, _ = Stimmabgabe.objects.update_or_create(
+    abgabe, _angelegt = Stimmabgabe.objects.update_or_create(
         antrag=antrag,
         pseudonym=register.pseudonym,
         defaults={"stimme": stimme, "abgegeben_am": jetzt},

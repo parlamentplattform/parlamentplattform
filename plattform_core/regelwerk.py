@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 23
+VERSION = 24
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -192,7 +192,7 @@ REGELN: tuple[Regel, ...] = (
         fassung=1, seit="2026-11-04",
         grund=_("Erste Fassung nach der Entscheidung für den tatsächlich gemeldeten Hauptwohnsitz als Selbstauskunft. Historische Verfahren werden nicht nachträglich örtlich begrenzt."),
         nachrechenbar=_("Gemeindekennziffern aufsteigend ordnen; Gemeinde durch ihre einzelne Kennziffer, Land und Bezirk durch die festgehaltene Gemeindemenge innerhalb desselben Landes abgrenzen. Die abgeleitete Gebietskennung enthält deren SHA-256-Prüfsumme. Keine amtliche Bezirksnummer und keine öffentliche Liste persönlicher Zuordnungen; die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."),
-        luecke=_("Technische Vorbereitung: noch nicht an die Einbringung und Handlungswege angeschlossen. Wiener Gemeindebezirke sind im vorhandenen Stamm nicht getrennt erfasst."),
+        luecke=_("Gilt für neu eingebrachte örtliche Sachanträge und Kandidaturen. Wiener Gemeindebezirke sind noch nicht getrennt erfasst; Mandats- und Vertrauensfragen folgen ihrem bisherigen Weg."),
     ),
     Regel(
         modul="rechtsfolgen.py", titel=_("Antwortvertrag für Rechtsfolgen"),
@@ -251,12 +251,10 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 4 (mit § 3 Abs 1 lit b — eine Stimme je Mensch)",
-        fassung=1,
-        seit="2026-08-19",
+        fassung=2,
+        seit="2026-11-14",
         grund=(
-            _("Sie steht seit dem Fundament der Plattform so da: Das Ergebnis einer Abstimmung soll "
-            "jede Person mit Papier und Bleistift nachrechnen können, und die Reihenfolge, in der die "
-            "Stimmen eingehen, darf am Ergebnis nichts ändern.")
+            _("Fassung 2 ergänzt für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
         ),
         nachrechenbar=(
             _("Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: "
@@ -279,13 +277,10 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
-        fassung=1,
-        seit="2026-09-01",
+        fassung=2,
+        seit="2026-11-14",
         grund=(
-            _("Seit dem 1. September 2026 wählt das Parlament auch Personen: Mandats-Kandidaturen "
-            "laufen als Anträge, an denen man sich beteiligt, statt als getrennte Wahl. Dafür "
-            "brauchte es eine Auszählung, die Zustimmungen zählt statt Ja und Nein — und eine offene "
-            "Regel für den Gleichstand, damit nicht der Zufall über die Listenreihung entscheidet.")
+            _("Fassung 2 ergänzt für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
         ),
         nachrechenbar=(
             _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "

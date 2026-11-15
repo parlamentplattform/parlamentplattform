@@ -3,6 +3,7 @@
 import pytest
 from django.urls import reverse
 
+from mitglieder.models import Gemeinde, Wohnsitzart
 from verfahren.models import Antrag, antrag_einbringen
 from verfahren.test_views_aktionen import (  # noqa: F401
     ANTRAG,
@@ -99,13 +100,20 @@ def test_regionale_antraege_erscheinen_im_bereich_c(client, ordnung):  # noqa: F
 
 def test_regionaler_antrag_ist_an_die_eigene_region_gebunden(client, ordnung):  # noqa: F811
     """F-43: Das Gebiet kommt IMMER aus dem Wohnsitzprofil — freie Eingaben werden ignoriert."""
-    client.force_login(mitglied_anlegen())
+    mitglied = mitglied_anlegen()
+    mitglied.wohnsitz = Gemeinde.objects.create(
+        kennziffer="40510", name=mitglied.gemeinde, bezirk="Eferding", bundesland=mitglied.bundesland,
+    )
+    mitglied.wohnsitz_art = Wohnsitzart.OESTERREICH
+    mitglied.save(update_fields=["wohnsitz", "wohnsitz_art"])
+    client.force_login(mitglied)
     daten = {**ANTRAG, "ebene": "gemeinde", "gebiet": "Wien"}  # Manipulationsversuch
     antwort = client.post(reverse("verfahren:einbringen"), daten)
     assert antwort.status_code == 302
     antrag = Antrag.objects.get()
     assert antrag.ebene == "gemeinde"
     assert antrag.gebiet == "St. Marienkirchen an der Polsenz"  # Wohnsitz, nicht „Wien“
+    assert antrag.teilnahmegebiet["kennung"] == "gemeinde:40510"
 
     antwort = client.post(
         reverse("verfahren:einbringen"),

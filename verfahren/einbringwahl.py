@@ -95,11 +95,12 @@ def einstufungen(antrag):
 def direkt_unterstuetzen(mitglied, antrag_id):
     """Explizites Unterstützen eines Sachantrags; wiederholte Aufrufe nehmen nichts zurück."""
     from verfahren.hinweise import mitwirkungssperre
+    from verfahren.teilnahme import oertlich_zulaessig
 
     if mitwirkungssperre(mitglied):
         return None
     antrag = Antrag.objects.select_for_update().filter(pk=antrag_id, art=Antragsart.SACHE).first()
-    if antrag is None:
+    if antrag is None or not oertlich_zulaessig(antrag, mitglied):
         return None
     antrag.fortschreiben()
     if antrag.phase != Phase.UNTERSTUETZUNG.value:

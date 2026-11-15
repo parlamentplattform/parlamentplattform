@@ -38,7 +38,7 @@ def test_mitgliedschaft_erklaert_lesbar_ohne_falsche_versprechen(
         if name == "mitgliedschaft":
             expect(p.locator(".mitgliedsrechte a")).to_have_count(6)
             expect(p.locator(".werkstatt-mini article")).to_have_count(3)
-            expect(p.locator("main")).to_contain_text("Local restrictions have not yet been implemented" if en else "Eine örtliche Begrenzung ist noch nicht umgesetzt")
+            expect(p.locator("main")).to_contain_text("Older proceedings retain their existing group of participants" if en else "Ältere Verfahren behalten ihren bisherigen Teilnehmerkreis")
             if reduziert:
                 assert p.locator(".mitgliedsrechte path").first.evaluate("e => getComputedStyle(e).animationName") == "none"
             else:

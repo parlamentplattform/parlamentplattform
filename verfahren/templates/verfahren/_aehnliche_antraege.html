@@ -17,7 +17,7 @@
         <div class="kopf">{% translate "Wortvergleich" %} {{ t.prozent }} %{% if t.bedeutung_prozent is not None %} · {% translate "Bedeutung" %} {{ t.bedeutung_prozent }} %{% endif %} · {% translate "Phase:" %} {{ t.antrag.phase|phase_name }} · {% translate "Beteiligung:" %} {{ t.beteiligung }}</div>
         {% if t.rest_tage is not None %}<p class="meta">{% blocktranslate count tage=t.rest_tage %}Noch {{ tage }} Tag{% plural %}Noch {{ tage }} Tage{% endblocktranslate %}</p>{% endif %}
         <p><a href="{% url 'verfahren:antrag' t.antrag.pk %}">{{ t.antrag.titel }}</a></p>
-        {% if t.antrag.phase == "unterstuetzung" and t.antrag.art == "sache" %}
+        {% if t.antrag.phase == "unterstuetzung" and t.antrag.art == "sache" and t.antrag.pk not in oertlich_gesperrte_treffer %}
           <button type="submit" name="unterstuetzen" value="{{ t.antrag.pk }}" form="einbringen-form" class="btn-linie einbringwahl-knopf">{% translate "Diesen unterstützen" %}</button>
         {% endif %}
         {% if t.normen %}

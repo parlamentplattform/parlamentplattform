@@ -32,6 +32,8 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
       {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
       {% endif %}
     {% endfor %}
+    <p class="hilfe">{% translate "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung." %}</p>
+    {% if form.wien %}<p class="hilfe">{% translate "Wiener Gemeindebezirke sind noch nicht getrennt erfasst." %}</p>{% endif %}
     {% if not aehnliche and not bestaetigung %}
     <div class="stimmzeile"><button type="submit" class="btn">{% translate "Antrag einbringen" %}</button></div>
     {% endif %}

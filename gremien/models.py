@@ -508,19 +508,15 @@ class Entwurf(models.Model):
         antrag.phase_beginn = jetzt
         felder = ["phase", "phase_beginn"]
         if antrag.stimmberechtigte_anzahl is None:
-            from mitglieder.models import stimmberechtigte_zaehlen
             from plattform_core import Gegenstand
+            from verfahren.teilnahme import stimmbasis
 
             # Stichtag im Wiener Kalender, nicht das UTC-Datum (Befund #32) — gespeichert, damit
             # Zählung und Einzelprüfung dieselbe Zahl lesen.
             antrag.stimmberechtigung_stichtag = timezone.localdate(jetzt)
-            antrag.stimmberechtigte_anzahl = max(
-                1,
-                stimmberechtigte_zaehlen(
-                    Gegenstand.SACHFRAGE,
-                    antrag.stimmberechtigung_stichtag,
-                    uebergang=antrag.policy().uebergangsregel,  # eingefroren beim Einbringen (A5)
-                ),
+            antrag.stimmberechtigte_anzahl = stimmbasis(
+                antrag, Gegenstand.SACHFRAGE, antrag.stimmberechtigung_stichtag,
+                uebergang=antrag.policy().uebergangsregel,  # eingefroren beim Einbringen (A5)
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         antrag.save(update_fields=felder)

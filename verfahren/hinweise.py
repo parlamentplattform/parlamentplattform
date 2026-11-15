@@ -28,6 +28,11 @@ FELDER = ("filter", "wichtig", "region")
 #: Hinweiscodes: `text` steht im Feldkopf, `kurz` (wenn vorhanden) in der Kachel statt der Knöpfe,
 #: `link` ist ein URL-Name (mit `link_text`), `art` färbt den Hinweis (ok / fehler).
 HINWEISE: dict[str, dict] = {
+    "nicht_im_teilnehmerkreis": {
+        "kurz": _("Außerhalb des örtlichen Teilnehmerkreises"),
+        "text": _("Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis."),
+        "art": "fehler",
+    },
     "erfasst": {"text": _("Unterstützung erfasst."), "art": "ok"},
     "zurueckgezogen": {"text": _("Unterstützung zurückgezogen."), "art": "ok"},
     "stimme": {"text": _("Stimme erfasst — änderbar bis zum Fristende."), "art": "ok"},

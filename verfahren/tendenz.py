@@ -41,7 +41,8 @@ def tendenzen(antraege, abgegeben: dict[int, int]) -> dict[int, dict | str]:
         if not _betroffen(a):
             continue
         n = abgegeben.get(a.pk, 0)
-        if tendenz_sichtbar(a.policy(), n, max(1, a.stimmberechtigte_anzahl or 1)):
+        basis = a.stimmberechtigte_anzahl if a.stimmberechtigte_anzahl is not None else 1
+        if tendenz_sichtbar(a.policy(), n, basis):
             offen.append(a.pk)
         else:
             ergebnis[a.pk] = VERDECKT_BIS_MINDESTBETEILIGUNG

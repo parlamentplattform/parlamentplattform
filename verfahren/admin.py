@@ -31,6 +31,9 @@ class AntragAdmin(admin.ModelAdmin):
         "policy_snapshot", "phase", "phase_beginn", "hervorgehoben", "hervorhebung_begruendung",
     )
 
+    def has_add_permission(self, request):
+        return False  # Neue Anträge nur über die Fachoperation mit eingefrorenem Kreis und Policy.
+
 
 @admin.register(Verfahrensordnung)
 class VerfahrensordnungAdmin(admin.ModelAdmin):
@@ -40,6 +43,15 @@ class VerfahrensordnungAdmin(admin.ModelAdmin):
 @admin.register(Unterstuetzung)
 class UnterstuetzungAdmin(admin.ModelAdmin):
     list_display = ("antrag", "mitglied", "erklaert_am")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(AuditEintrag)

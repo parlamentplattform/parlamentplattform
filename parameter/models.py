@@ -191,6 +191,16 @@ KI_MONAT_BESCHREIBUNG_ALT = (
     "Hartes Monatsbudget des Modell-Steckplatzes. Ist es erschöpft, wird der "
     "Steckplatz stumm, bis der Monat wechselt — Kostendeckel der Zukunftswerkstatt."
 )
+NEBENWOHNSITZ_BESCHREIBUNG_ALT = (
+    "Ob ein hinterlegter Nebenwohnsitz ein Mitglied zusätzlich der zweiten Region "
+    "zuordnet — für die Anzeige regionaler Anträge und das Einbringen auf dieser Ebene. Am "
+    "Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht "
+    "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."
+)
+ALTE_SYSTEMBESCHREIBUNGEN = {
+    "ki-monatstokens": (KI_MONAT_BESCHREIBUNG_ALT, "KI-Startgrenze statt garantierter Geldobergrenze"),
+    "region-nebenwohnsitz-zaehlt": (NEBENWOHNSITZ_BESCHREIBUNG_ALT, "Nebenwohnsitz nur in der Regionsanzeige"),
+}
 
 ERSTBESTAND = [
     {"schluessel": "faktenbasis-bestandsnachweis-hoechstzahl", "wert": "2000", "einheit": gettext_noop("Schnappschüsse"), "gruppe": "ki",
@@ -779,10 +789,9 @@ ERSTBESTAND = [
         "wert": "0",
         "einheit": gettext_noop("0 oder 1"),
         "gruppe": "verfahren",
-        "beschreibung": gettext_noop("Ob ein hinterlegter Nebenwohnsitz ein Mitglied zusätzlich der zweiten Region "
-        "zuordnet — für die Anzeige regionaler Anträge und das Einbringen auf dieser Ebene. Am "
-        "Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht "
-        "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."),
+        "beschreibung": gettext_noop("Wert 1 zeigt unter „Meine Region“ auch Anträge aus der Region des "
+        "eingetragenen Nebenwohnsitzes. Einbringung, Unterstützung, Bewerbung und Abstimmung "
+        "richten sich bei neuen örtlichen Verfahren nach dem Hauptwohnsitzkreis. Wirkt sofort auf die Anzeige."),
         "quelle": "§ 14 Abs 3 · § 5 Abs 6",
     },
     {
@@ -892,19 +901,19 @@ def erstbestand_sicherstellen() -> int:
                 schluessel=eintrag["schluessel"], defaults=vorlage
             )
         neu += int(angelegt)
-        if (not angelegt and parameter.schluessel == "ki-monatstokens"
-                and parameter.beschreibung == KI_MONAT_BESCHREIBUNG_ALT):
+        alte_beschreibung, grund = ALTE_SYSTEMBESCHREIBUNGEN.get(parameter.schluessel, (None, None))
+        if not angelegt and parameter.beschreibung == alte_beschreibung:
             from verfahren.models import AuditEintrag
 
             # Nur den nachweislich falschen alten Systemtext berichtigen, niemals
             # einen Menschenwert oder eine individuell geschriebene Beschreibung.
             with transaction.atomic():
                 berichtigt = Parameter.objects.filter(pk=parameter.pk,
-                    beschreibung=KI_MONAT_BESCHREIBUNG_ALT).update(beschreibung=vorlage["beschreibung"])
+                    beschreibung=alte_beschreibung).update(beschreibung=vorlage["beschreibung"])
                 if berichtigt:
                     AuditEintrag.anhaengen({"typ": "parameterbeschreibung_berichtigt",
-                        "parameter": parameter.schluessel, "grund": "KI-Startgrenze statt garantierter Geldobergrenze",
-                        "alte_beschreibung": KI_MONAT_BESCHREIBUNG_ALT,
+                        "parameter": parameter.schluessel, "grund": grund,
+                        "alte_beschreibung": alte_beschreibung,
                         "neue_beschreibung": vorlage["beschreibung"]})
             parameter.beschreibung = vorlage["beschreibung"]
         felder = []

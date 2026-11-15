@@ -271,8 +271,8 @@ PARAMETER = {
     ),
     "region-nebenwohnsitz-zaehlt": (
         "region.secondary_residence_counts", "flag",
-        "Whether a registered secondary residence also assigns a member to that region for regional "
-        "motions (0 or 1; never affects voting rights)",
+        "Whether My Region also displays motions from the area of a registered secondary residence "
+        "(0 or 1; display only)",
     ),
     "verfahren-tendenz-ab-mindestbeteiligung": (
         "vote.leaning_after_min_turnout", "flag",

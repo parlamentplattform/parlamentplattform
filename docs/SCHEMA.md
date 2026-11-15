@@ -521,3 +521,14 @@ ein negativer Wert sperrt neue Profile; vorhandene Profile werden weder gelösch
 deaktiviert und können weiter gewählt oder überschrieben werden. Gleichzeitige Neuanlagen
 eines Mitglieds werden im selben Schreibschutz nacheinander geprüft. Ausschließlich
 persönliche Anzeigeeinstellungen, keine Änderung einer Reihungs- oder Verfahrensregel.
+
+### Festgehaltener örtlicher Teilnehmerkreis
+
+Der öffentliche Export nach Verfahrensabschluss kann `teilnahmegebiet` und
+`teilnehmerkreis_am` enthalten. `teilnahmegebiet` enthält die Verfahrensebene,
+den Gebietsnamen, das Land, die Gemeindekennziffern und die Gebietskennung.
+Seit 0.98.0 verwendet ein neues Wiener Bezirksverfahren `fassung: 2` mit
+`gemeinden: ["90001"]` und dem zusätzlichen `wiener_bezirk`. Das ist ein
+amtlicher Bezirkscode von `"901"` bis `"923"` als Zeichenkette. Die
+Gebietskennung lautet `bezirk:wien:<Code>`. Die Liste der teilnahmeberechtigten
+Konten ist geschützt. Stadt- und Landesverfahren verwenden weiter Fassung 1.

@@ -74,6 +74,22 @@ def test_wien_gemeinde_und_land_sind_keine_erfundene_bezirksvertretung():
         gebiet_fuer("bezirk", WIEN, STAMM)
 
 
+def test_wiener_bezirksstand_braucht_genau_diesen_hauptwohnsitz():
+    gebiet = gebiet_fuer("bezirk", WIEN, STAMM, wiener_bezirk="922")
+    assert gebiet.kennung == "bezirk:wien:922"
+    assert gebiet.als_dict()["fassung"] == 2
+    assert Gebiet.aus_dict(gebiet.als_dict()) == gebiet
+    assert hauptwohnsitz_gehoert_dazu(gebiet, "oesterreich", WIEN.kennziffer, wiener_bezirk="922")
+    assert not hauptwohnsitz_gehoert_dazu(gebiet, "oesterreich", WIEN.kennziffer, wiener_bezirk="921")
+    assert not hauptwohnsitz_gehoert_dazu(gebiet, "oesterreich", WIEN.kennziffer)
+    assert not hauptwohnsitz_gehoert_dazu(gebiet, "ausland", WIEN.kennziffer, wiener_bezirk="922")
+    with pytest.raises(GebietsFehler):
+        Gebiet.aus_dict({**gebiet.als_dict(), "wiener_bezirk": "921"})
+    with pytest.raises(GebietsFehler):
+        Gebiet.aus_dict({**gebiet.als_dict(), "fassung": 1})
+    assert gebiet_fuer("gemeinde", WIEN, STAMM, wiener_bezirk="922").als_dict()["fassung"] == 1
+
+
 def test_gebietsausdehnung_aendert_kennung_alter_stand_bleibt_erhalten():
     alt = gebiet_fuer("bezirk", POLSENZ, STAMM)
     neu = gebiet_fuer("bezirk", POLSENZ, (*STAMM, Gemeindestand("40511", "Neu", "Eferding", "oberoesterreich")))

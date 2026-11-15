@@ -14,6 +14,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from plattform_core import Gegenstand, stimmberechtigt
+from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, WIENER_GEMEINDE
 
 #: Anzeigename ohne Pseudonym und ohne Einwilligung zum Klarnamen: „Mitglied n“ (§ 5 Abs 3 lit a).
 #: DB-nahes Literal wie „Ehemaliges Mitglied“ — steht identisch in Exporten und Prüfungstexten,
@@ -190,10 +191,20 @@ class Mitglied(AbstractUser):
         related_name="mitglieder",
         help_text="Eindeutiger Verweis ins amtliche Gemeindeverzeichnis — Quelle für gemeinde und bundesland.",
     )
+    wiener_bezirk = models.CharField(max_length=3, choices=WIENER_BEZIRKE, blank=True, default="")
+
     @property
     def wohnsitz_art_aktuell(self):
         # Alte Datensätze ohne Kennung nicht als Wohnungslosigkeit oder Ausland deuten.
         return self.wohnsitz_art or (Wohnsitzart.OESTERREICH if self.wohnsitz_id or self.bundesland else "")
+
+    @property
+    def wiener_hauptbezirk(self):
+        if (self.wiener_bezirk in WIENER_BEZIRKE and self.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH
+                and self.wohnsitz_id and self.wohnsitz.kennziffer == WIENER_GEMEINDE
+                and self.wohnsitz.bundesland == Bundesland.WIEN):
+            return self.wiener_bezirk
+        return ""
 
     nebenwohnsitz = models.ForeignKey(
         "Gemeinde",

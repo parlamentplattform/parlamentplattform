@@ -24,6 +24,7 @@ from plattform_core.phases import (
     beratung_frist_ende,
     unterstuetzung_frist_ende,
 )
+from plattform_core.teilnehmerkreis import WIENER_BEZIRKE
 from verfahren.models import (
     Antrag,
     Antragsart,
@@ -803,7 +804,7 @@ def parlament(request):
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
-    mein_ort, meine_gemeinden = _meine_orte(request.user)
+    mein_ort, meine_gemeinden, wiener_bezirk = _meine_orte(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
@@ -823,8 +824,7 @@ def parlament(request):
         zeile = [
             a for a in regionale if a.ebene == ebene and (
                 not orte or a.pk in zaehler["eigene_teilnehmerkreise"]
-                or (meine_gemeinden.intersection(a.teilnahmegebiet["gemeinden"])
-                    if a.teilnahmegebiet else a.gebiet in orte)
+                or _gebiet_passt(a, orte, meine_gemeinden, wiener_bezirk)
             )
         ]
         region_zeilen.append(
@@ -906,7 +906,16 @@ def _url_oder_none(name: str, *args) -> str | None:
         return None
 
 
-def _meine_orte(user) -> tuple[dict[str, list[str]], set[str]]:
+def _gebiet_passt(antrag, orte, gemeinden, wiener_bezirk):
+    gebiet = antrag.teilnahmegebiet
+    if not gebiet:
+        return antrag.gebiet in orte
+    if bezirk := gebiet.get("wiener_bezirk"):
+        return bezirk == wiener_bezirk
+    return bool(gemeinden.intersection(gebiet["gemeinden"]))
+
+
+def _meine_orte(user) -> tuple[dict[str, list[str]], set[str], str]:
     """Die Orte je Ebene, an denen „Meine Region“ das Mitglied misst — als geordnete Liste:
     zuerst der Wohnsitz, dann (FB-J6, nur bei Schalter 1) der Nebenwohnsitz. Gäste und leere
     Profile bekommen leere Listen und sehen alle regionalen Anträge der Ebene. Die Namen
@@ -916,13 +925,16 @@ def _meine_orte(user) -> tuple[dict[str, list[str]], set[str]]:
     orte: dict[str, list[str]] = {"gemeinde": [], "bezirk": [], "land": []}
     kennziffern: set[str] = set()
     if not user.is_authenticated:
-        return orte, kennziffern
+        return orte, kennziffern, ""
+    wiener_bezirk = user.wiener_hauptbezirk
     if user.gemeinde:
         orte["gemeinde"].append(user.gemeinde)
     if user.wohnsitz_id:
         kennziffern.add(user.wohnsitz.kennziffer)
         if user.wohnsitz.bezirk:
             orte["bezirk"].append(user.wohnsitz.bezirk)
+        if wiener_bezirk:
+            orte["bezirk"].append(WIENER_BEZIRKE[wiener_bezirk])
     if user.bundesland:
         orte["land"].append(user.get_bundesland_display())
     if user.nebenwohnsitz_id and nebenwohnsitz_zaehlt():
@@ -935,7 +947,7 @@ def _meine_orte(user) -> tuple[dict[str, list[str]], set[str]]:
         ):
             if ort and ort not in orte[ebene]:
                 orte[ebene].append(ort)
-    return orte, kennziffern
+    return orte, kennziffern, wiener_bezirk
 
 
 def _regeln_lesbar(policy, art: str = Antragsart.SACHE.value, vf=None) -> list[tuple[str, str]]:

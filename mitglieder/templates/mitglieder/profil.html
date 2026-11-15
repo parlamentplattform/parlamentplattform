@@ -48,6 +48,10 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   {% if form.wohnsitz_art.errors %}<ul class="fehlerliste">{% for e in form.wohnsitz_art.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <p><label for="{{ form.gemeinde.id_for_label }}">{{ form.gemeinde.label }}</label>{{ form.gemeinde }}
   {% if form.gemeinde.errors %}<ul class="fehlerliste">{% for e in form.gemeinde.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  {% if wiener_bezirk_anzeigen or form.wiener_bezirk.errors %}
+    <p><label for="{{ form.wiener_bezirk.id_for_label }}">{{ form.wiener_bezirk.label }}</label>{{ form.wiener_bezirk }}</p>
+    {{ form.wiener_bezirk.errors }}
+  {% endif %}
   <p><label for="{{ form.nebenwohnsitz.id_for_label }}">{{ form.nebenwohnsitz.label }}</label>{{ form.nebenwohnsitz }}
   {% if form.nebenwohnsitz.errors %}<ul class="fehlerliste">{% for e in form.nebenwohnsitz.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <button type="submit" class="btn">{% translate "Speichern" %}</button>

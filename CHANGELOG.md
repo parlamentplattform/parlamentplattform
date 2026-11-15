@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.98.0] — 2026-11-15 · Hauptwohnsitz in Wiener Gemeindebezirken
+
+- Im eigenen Profil kann der Gemeindebezirk eines gemeldeten Wiener Hauptwohnsitzes angegeben werden. Die Bezirkscodes stammen aus dem Verzeichnis von Statistik Austria, Gebietsstand 2026. [Amtliches Bezirksverzeichnis](https://www.statistik.at/verzeichnis/reglisten/polbezirke.pdf).
+- Neue Wiener Bezirksanträge und Bezirkskandidaturen halten bei Einbringung den zugehörigen Kreis ausdrücklich fest. Für die spätere Teilnahme gilt der festgehaltene Kreis. Der Bezirk ist eine private Profilangabe.
+
 ## [0.97.0] — 2026-11-15 · Archivierte Dokumentstände je Kundmachung
 
 - Der Kundmachungsbeleg führt zu den lokal archivierten Dokumentständen mit derselben amtlichen Dokumentkennung und demselben Kundmachungsdatum. Die Liste zeigt je Eintrag Stichtag, Beleg-Prüfsumme und Parserfassung.

@@ -11,16 +11,18 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 
-VERSION = 1
+VERSION = 2
 # Technische Speicher-/Antwortschutzgrenze; die kleinere Betriebsgrenze steht im Register.
 TECHNISCHE_HOECHSTZAHL = 10000
 HASH_MUSTER = re.compile(r"[0-9a-f]{64}\Z")
-HASH_BEZUEGE = {
+_HASH_BEZUEGE_FASSUNG_1 = {
     "norm": "kanonische_metadaten_json",
     "normtext": "original_xml_bytes",
     "personalaggregat": "original_pdf_bytes",
     "personalressorttabelle": "original_pdf_bytes",
 }
+HASH_BEZUEGE = {**_HASH_BEZUEGE_FASSUNG_1, "kundmachung": "original_json_bytes"}
+HASH_BEZUEGE_NACH_FASSUNG = {1: _HASH_BEZUEGE_FASSUNG_1, VERSION: HASH_BEZUEGE}
 
 
 class BestandsFehler(ValueError):
@@ -32,11 +34,14 @@ def kanonisch(daten: object) -> bytes:
                       separators=(",", ":"), allow_nan=False).encode("utf-8")
 
 
-def nachweis(eintraege: Iterable[Mapping], hoechstzahl: int) -> dict:
+def nachweis(eintraege: Iterable[Mapping], hoechstzahl: int, *, fassung: int = VERSION) -> dict:
     if type(hoechstzahl) is not int or not 0 < hoechstzahl <= TECHNISCHE_HOECHSTZAHL:
         raise BestandsFehler("grenze")
+    if type(fassung) is not int or fassung not in HASH_BEZUEGE_NACH_FASSUNG:
+        raise BestandsFehler("fassung")
+    hash_bezuege = HASH_BEZUEGE_NACH_FASSUNG[fassung]
     liste, gesehen = [], set()
-    zaehler = dict.fromkeys(HASH_BEZUEGE, 0)
+    zaehler = dict.fromkeys(hash_bezuege, 0)
     for eintrag in eintraege:
         # Erst max+1 lesen; kein Verbrauch des gesamten, möglicherweise großen Iterators.
         if len(liste) >= hoechstzahl:
@@ -44,7 +49,7 @@ def nachweis(eintraege: Iterable[Mapping], hoechstzahl: int) -> dict:
         if not isinstance(eintrag, Mapping) or set(eintrag) != {"sammlung", "nummer", "pruefsumme"}:
             raise BestandsFehler("daten")
         art, nummer, pruefsumme = (eintrag[k] for k in ("sammlung", "nummer", "pruefsumme"))
-        if (not isinstance(art, str) or art not in HASH_BEZUEGE
+        if (not isinstance(art, str) or art not in hash_bezuege
                 or type(nummer) is not int or nummer < 1
                 or not isinstance(pruefsumme, str) or not HASH_MUSTER.fullmatch(pruefsumme)
                 or (art, nummer) in gesehen):
@@ -54,9 +59,9 @@ def nachweis(eintraege: Iterable[Mapping], hoechstzahl: int) -> dict:
         liste.append({"sammlung": art, "nummer": nummer, "pruefsumme": pruefsumme})
     liste.sort(key=lambda x: (x["sammlung"], x["nummer"]))
     inhalt = {
-        "fassung": VERSION,
-        "sammlungen": [{"sammlung": art, "hash_bezug": HASH_BEZUEGE[art], "anzahl": zaehler[art]}
-                       for art in sorted(HASH_BEZUEGE)],
+        "fassung": fassung,
+        "sammlungen": [{"sammlung": art, "hash_bezug": hash_bezuege[art], "anzahl": zaehler[art]}
+                       for art in sorted(hash_bezuege)],
         "eintraege": liste,
     }
     return {"inhalt": inhalt, "sha256": hashlib.sha256(kanonisch(inhalt)).hexdigest()}

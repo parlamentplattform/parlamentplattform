@@ -22,7 +22,7 @@ def zeile(nummer=1, sammlung="norm", pruefsumme="a" * 64):
 
 def test_leerstand_und_hash_sind_mit_standard_json_nachrechenbar():
     d = nachweis([], 1)
-    assert VERSION == d["inhalt"]["fassung"] == 1
+    assert VERSION == d["inhalt"]["fassung"] == 2
     assert d["inhalt"]["eintraege"] == []
     assert {s["sammlung"]: s["hash_bezug"] for s in d["inhalt"]["sammlungen"]} == HASH_BEZUEGE
     assert all(s["anzahl"] == 0 for s in d["inhalt"]["sammlungen"])
@@ -37,6 +37,14 @@ def test_inputreihenfolge_und_registergrenze_sind_keine_inhaltsaenderung():
         assert nachweis(reihung, 50) == erwartet
     assert [e["nummer"] for e in erwartet["inhalt"]["eintraege"]] == [2, 11, 1]
     assert eingang[0]["nummer"] == 11  # Fremde Eingabe bleibt unverändert.
+
+
+def test_fassung_1_erhaelt_ihren_hash_und_keine_neue_sammlung():
+    assert nachweis([], 1, fassung=1)["sha256"] == "7943a82f70aa7752f25a291706fbd54471232a45927c826cffce6c6771f102cd"
+    with pytest.raises(BestandsFehler, match="daten"):
+        nachweis([zeile(sammlung="kundmachung")], 1, fassung=1)
+    with pytest.raises(BestandsFehler, match="fassung"):
+        nachweis([], 1, fassung=True)
 
 
 @given(st.integers(min_value=1, max_value=2**63 - 1))

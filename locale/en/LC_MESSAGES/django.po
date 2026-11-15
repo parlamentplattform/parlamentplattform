@@ -11284,8 +11284,8 @@ msgstr "What can be independently calculated"
 msgid "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt."
 msgstr "The evidence associates local record numbers with their stored checksums. Records are ordered by collection identifier and ascending number. An unchanged inventory produces the same hash; generation time is not part of the hashed content."
 
-msgid "Bei Norm-Metadaten bezieht sich die gespeicherte Prüfsumme auf kanonische Metadaten als JSON, bei Dokumenttexten auf Original-XML, bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse, keine Gesetze oder Personen."
-msgstr "For legal metadata, the stored checksum refers to canonical metadata as JSON; for document texts, to original XML; and for staffing snapshots, to original PDFs. Several snapshots may come from the same file. Snapshots are counted, not laws or people."
+msgid "Die gespeicherte Prüfsumme bezieht sich bei Norm-Metadaten auf kanonische Metadaten als JSON, bei Kundmachungsbelegen auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse."
+msgstr "The stored checksum refers to canonical JSON for legal metadata, original JSON for gazette records, original XML for document texts, and original PDFs for staff snapshots. Several snapshots may come from the same file. The counts are counts of snapshots."
 
 msgid "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen."
 msgstr "No official signature, renewed verification of original files, or evidence of a complete or legally current body of law is provided. Previously used model contexts remain unchanged. No sources are fetched and no models are called."
@@ -11296,14 +11296,14 @@ msgstr "Maximum number of local legal metadata, document text and staffing snaps
 msgid "Darstellung des gespeicherten Quellenbestands"
 msgstr "Presentation of the stored source inventory"
 
-msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen ihre gespeicherten Prüfsummen zu. Keine neue Prüfung der Originale, keine amtliche Signatur und keine Bestätigung rechtlicher Aktualität oder Vollständigkeit."
-msgstr "Associates local legal metadata, document text and staffing snapshots with their stored checksums. No renewed verification of originals, official signature or confirmation of legal currency or completeness."
+msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungsbelegen ihre gespeicherten Prüfsummen zu."
+msgstr "Matches local legal metadata, document text, staff snapshots and gazette records with their stored checksums."
 
-msgid "Erste Fassung: einen unveränderten lokalen Bestand nachrechenbar wiedererkennen, ohne Quellen abzurufen oder bereits verwendete Modellkontexte zu ändern."
-msgstr "First version: reproducibly recognise an unchanged local inventory without fetching sources or changing previously used model contexts."
+msgid "Fassung 2 ergänzt die Kundmachungsbelege mit ihren gespeicherten Prüfsummen. Ältere Nachweisdateien bleiben mit Fassung 1 prüfbar."
+msgstr "Version 2 adds gazette records and their stored checksums. Earlier evidence files remain verifiable using version 1."
 
-msgid "Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."
-msgstr "Collection identifier and ascending record number; SHA-256 of the evidence content as UTF-8 JSON with sorted keys and no extra whitespace. Generation time and the operational limit are not part of the hashed content. The evidence specifies the four collections and the meaning of their stored hashes. No partial evidence when the limit is exceeded."
+msgid "Nach Sammlungskennung und aufsteigender Datensatznummer reihen. SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen bilden. Die Erzeugungszeit und Betriebsgrenze stehen außerhalb des Hashinhalts. Die Bedeutung der gespeicherten Prüfsummen steht im Nachweis. Bei überschrittener Grenze fällt der Nachweis aus."
+msgstr "Sort by collection key and ascending record number. Compute SHA-256 over the UTF-8 JSON evidence content with sorted keys and no extra spaces. The timestamp and configured limit are outside the hashed content. The evidence explains each stored checksum. Exceeding the limit makes the evidence unavailable."
 
 # Explicit RIS follow-up pages (0.79).
 
@@ -12060,3 +12060,6 @@ msgstr "National Council committee reports"
 
 msgid "Ausschussberichte des Bundesrats"
 msgstr "Federal Council committee reports"
+
+msgid "Kundmachungsbelege"
+msgstr "Gazette records"

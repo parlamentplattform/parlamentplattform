@@ -31,11 +31,11 @@ lesbar. Unbekannte zusätzliche Rahmen-/Text-/Beanstandungsfelder werden durch
 einen neu berechneten Hash nicht zu öffentlichen Angaben. Originale bleiben
 gespeichert; keine neue Datenform, nachträgliche Reparatur oder Quellenanreicherung.
 
-### Bestandsnachweis Fassung1
+### Bestandsnachweis, Fassungen 1 und 2
 
 `GET /zukunftswerkstatt/faktenbasis/bestand/` zeigt den lokalen Bestand;
 `GET /zukunftswerkstatt/faktenbasis/bestand.json` liefert `inhalt`, `sha256`,
-`erstellt_am` (ISO8601) und `hoechstzahl`. `inhalt` enthält `fassung:1`,
+`erstellt_am` (ISO8601) und `hoechstzahl`. `inhalt` enthält `fassung`,
 `sammlungen` und `eintraege`. Sammlungen sind nach Kennung geordnet, mit
 `sammlung`, `hash_bezug`, `anzahl`. Jeder Eintrag enthält ausschließlich
 `sammlung`, `nummer` (positive lokale Datensatznummer) und `pruefsumme`.
@@ -43,7 +43,10 @@ Einträge sind nach Sammlungskennung und numerisch aufsteigender Nummer gereiht.
 
 Hashbezüge: `norm` → `kanonische_metadaten_json` (Data-Objekt der amtlichen
 Antwort), `normtext` → `original_xml_bytes`, `personalaggregat` und
-`personalressorttabelle` → `original_pdf_bytes`. Mehrere Einträge können aus
+`personalressorttabelle` → `original_pdf_bytes`. Ab 0.95.0 liefert die Plattform
+Fassung 2 mit der zusätzlichen Sammlung `kundmachung` und dem Hashbezug
+`original_json_bytes`. Sie enthält die Datensatznummern und gespeicherten
+Prüfsummen der zugeordneten RIS-Kundmachungsbelege. Weiterhin können mehrere Einträge aus
 derselben Originaldatei stammen. Einträge zählen Schnappschüsse, keine Gesetze
 oder Personen. Der Nachweis prüft die Zuordnung gespeicherter Nummern/Hashes,
 er rechnet nicht die Originaldateien erneut nach. Er ist weder amtliche
@@ -73,7 +76,7 @@ ab3.11 und die vorhandene reine Bestandsregel im Checkout; keine installierten
 Zusatzpakete, Django-Einstellungen, Datenbank oder Netzwerkverbindung. Es schreibt
 keine Dateien und ruft keine Modelle auf. `python -I -S` ist ebenfalls möglich.
 
-Es prüft das vollständige bekannte Format mit derselben Bestandsregel1 einschließlich
+Es prüft Fassung 1 und Fassung 2 jeweils mit der passenden Bestandsregel einschließlich
 Reihung, Zählern und Hashbezügen. Ein neu gebildeter Hash für geänderte Daten besteht
 nicht gegen den alten angegebenen Vergleichshash. Doppelte JSON-Schlüssel, NaN,
 unbekannte Felder, Typverwechslungen und unvollständige Stände werden abgewiesen.

@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.95.0] — 2026-11-15 · Kundmachungen im Quellenbestandsnachweis
+
+- Der Quellenbestandsnachweis führt lokale Bundes- und Landes-Kundmachungsbelege mit Datensatznummer und gespeicherter Prüfsumme des Original-JSONs. Die Dateien selbst bleiben im Archiv.
+- Neue Downloads verwenden Fassung 2. Das Offlinewerkzeug prüft weiterhin alte Downloads der Fassung 1 gegen ihre festgehaltene Prüfsumme.
+
 ## [0.94.0] — 2026-11-15 · Nachweis zur Bundes-Kundmachung
 
 - Eine einzelne, lokal bereitgestellte RIS-Kundmachungsdatei kann auch der letzten Änderung eines gespeicherten Bundesnormstands zugeordnet werden. Die Normansicht verlinkt den abgeglichenen ELI mit Ausgabedatum und zeigt die ausdrücklich genannten Ausschussberichtsnummern und die Gesetzgebungsperiode aus dem Beleg.

@@ -9,7 +9,13 @@ from django.urls import reverse
 from django.utils import translation
 
 from faktenbasis.bestandsnachweis import REGISTER, bestandsnachweis
-from faktenbasis.models import NormText, PersonalAbruf, PersonalAggregat, PersonalRessorttabelle
+from faktenbasis.models import (
+    Kundmachungsnachweis,
+    NormText,
+    PersonalAbruf,
+    PersonalAggregat,
+    PersonalRessorttabelle,
+)
 from faktenbasis.test_personalimport import DATEN as PERSONAL
 from faktenbasis.test_ressortimport import DATEN as RESSORTS
 from faktenbasis.test_volltext import norm  # noqa: F401
@@ -30,27 +36,35 @@ def bestand(norm):  # noqa: F811
                                    xml_hash=hashlib.sha256(raw).hexdigest(), parser_fassung=2)
     personal = PersonalAggregat.objects.create(**copy.deepcopy(PERSONAL))
     ressorts = PersonalRessorttabelle.objects.create(**copy.deepcopy(RESSORTS))
-    return norm, text, personal, ressorts
+    original = b'{"synthetischer_inhalt":"Nur im Archiv"}'
+    kundmachung = Kundmachungsnachweis.objects.create(
+        norm=norm, dokumentnummer="BGBLA_2024_I_70", kundgemacht_am=norm.stand,
+        eli="https://www.ris.bka.gv.at/eli/bgbl/I/2024/70/20240704", original=original,
+        original_sha256=hashlib.sha256(original).hexdigest(), parser_fassung=4,
+    )
+    return norm, text, personal, ressorts, kundmachung
 
 
 def grenze(wert):
     Parameter.objects.update_or_create(schluessel=REGISTER, defaults={"wert": str(wert)})
 
 
-def test_vier_sammlungen_in_einem_select_mit_register_und_limit(bestand):
-    grenze(4)
+def test_fuenf_sammlungen_in_einem_select_mit_register_und_limit(bestand):
+    grenze(5)
     with CaptureQueriesContext(connection) as anfragen:
         d = bestandsnachweis()
     assert len(anfragen) == 2
     sql = anfragen[-1]["sql"].upper()
-    assert sql.count("UNION ALL") == 3 and "LIMIT 5" in sql and "ORDER BY" not in sql
-    assert "XML\"" not in sql and "ROHDATEN" not in sql and "RESSORTS\"" not in sql
-    assert [s["anzahl"] for s in d["inhalt"]["sammlungen"]] == [1, 1, 1, 1]
+    assert sql.count("UNION ALL") == 4 and "LIMIT 6" in sql and "ORDER BY" not in sql
+    assert '"ORIGINAL"' not in sql and 'XML"' not in sql and "ROHDATEN" not in sql and 'RESSORTS"' not in sql
+    assert [s["anzahl"] for s in d["inhalt"]["sammlungen"]] == [1, 1, 1, 1, 1]
     assert [e["pruefsumme"] for e in d["inhalt"]["eintraege"]] == [
-        bestand[0].inhalt_hash, bestand[1].xml_hash, bestand[2].original_sha256, bestand[3].original_sha256]
+        bestand[4].original_sha256, bestand[0].inhalt_hash, bestand[1].xml_hash,
+        bestand[2].original_sha256, bestand[3].original_sha256,
+    ]
     raw = json.dumps(d["inhalt"], ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     assert hashlib.sha256(raw).hexdigest() == d["sha256"]
-    assert d["hoechstzahl"] == 4
+    assert d["hoechstzahl"] == 5
 
 
 def test_abrufversuche_zeit_und_grenze_veraendern_keinen_bestand(bestand):
@@ -76,7 +90,7 @@ def test_deaktivierte_oder_ungueltige_grenze_liest_keine_sammlung(wert):
 
 
 def test_umfang_und_unlesbarer_hash_geben_keinen_teilnachweis(bestand, client):
-    grenze(3)
+    grenze(4)
     with pytest.raises(BestandsFehler, match="umfang"):
         bestandsnachweis()
     for name in ("bestand", "bestand_json"):
@@ -118,6 +132,7 @@ def test_oeffentliche_nachlese_ist_rein_lesend_und_download_gebunden(bestand, cl
     html = seite.content.decode()
     assert digest in html and "?sha256=" + digest in html
     assert "keine amtliche Signatur" in html and "Original-PDFs" in html
+    assert "Kundmachungsbelege" in html and b"Nur im Archiv" not in download.content
     assert download.json()["sha256"] == digest
     assert download["Content-Disposition"].startswith("attachment;")
     assert download["X-Content-Type-Options"] == "nosniff"

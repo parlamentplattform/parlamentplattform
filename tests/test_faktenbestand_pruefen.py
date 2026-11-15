@@ -9,18 +9,18 @@ from pathlib import Path
 
 import pytest
 
-from plattform_core.faktenbestand import HASH_BEZUEGE, kanonisch, nachweis
+from plattform_core.faktenbestand import HASH_BEZUEGE_NACH_FASSUNG, VERSION, kanonisch, nachweis
 from tools.faktenbestand_pruefen import HOECHSTBYTES, PruefFehler, lesen, pruefen
 
 SKRIPT = Path(__file__).resolve().parents[1] / "tools/faktenbestand_pruefen.py"
 PRIVAT = "NUR_SYNTHETISCHER_FREMDINHALT"
 
 
-def beispiel(eintraege=None):
+def beispiel(eintraege=None, *, fassung=VERSION):
     if eintraege is None:
         eintraege = [{"sammlung": art, "nummer": i + 1, "pruefsumme": str(i) * 64}
-                     for i, art in enumerate(HASH_BEZUEGE)]
-    return {**nachweis(eintraege, max(1, len(eintraege))),
+                     for i, art in enumerate(HASH_BEZUEGE_NACH_FASSUNG[fassung])]
+    return {**nachweis(eintraege, max(1, len(eintraege)), fassung=fassung),
             "erstellt_am": "2026-11-04T04:00:00+00:00", "hoechstzahl": max(1, len(eintraege))}
 
 
@@ -31,11 +31,13 @@ def datei(tmp_path, daten):
 
 
 @pytest.mark.parametrize("leer", [False, True])
-def test_vollstaendiger_und_leerer_bestand_ohne_datenbank(leer):
-    d = beispiel([] if leer else None)
+@pytest.mark.parametrize("fassung", [1, 2])
+def test_vollstaendiger_und_leerer_bestand_ohne_datenbank(leer, fassung):
+    d = beispiel([] if leer else None, fassung=fassung)
     vorher = copy.deepcopy(d)
     e = pruefen(d, d["sha256"])
     assert e["sha256"] == d["sha256"] and e["schnappschuesse"] == len(d["inhalt"]["eintraege"])
+    assert e["bestandsregel_fassung"] == fassung
     assert all(e[f] is False for f in ("originaldateien_geprueft", "amtliche_signatur_geprueft",
                                      "vollstaendigkeit_bestaetigt", "metadaten_im_hash"))
     assert d == vorher
@@ -85,7 +87,7 @@ def test_form_zahlen_reihung_und_hash_werden_gemeinsam_geprueft(fehler):
     elif fehler == "hashbezug":
         s[0]["hash_bezug"] = "amtliche_signatur"
     elif fehler.startswith("version"):
-        d["inhalt"]["fassung"] = True if fehler == "version_bool" else 2
+        d["inhalt"]["fassung"] = True if fehler == "version_bool" else 99
     elif fehler == "nummer_bool":
         e[0]["nummer"] = True
     elif fehler == "doppelte_nummer":

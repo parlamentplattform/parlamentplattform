@@ -1,0 +1,26 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Dokumentstände zu dieser Kundmachung" %} · {{ beleg.dokumentnummer }}{% endblock %}
+{% block inhalt %}
+<a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
+<h1>{% translate "Dokumentstände zu dieser Kundmachung" %}</h1>
+<p><a href="{{ beleg.eli }}" rel="noopener">{{ beleg.dokumentnummer }} ↗</a> · {{ beleg.kundgemacht_am|date:"DATE_FORMAT" }}</p>
+<p class="hilfe">{% translate "Die Liste zeigt lokal gespeicherte Dokumentstände mit einem ausdrücklich zugeordneten Beleg." %}</p>
+<div id="kundmachungsstaende">
+  {% for norm in seite %}
+    <article class="karte">
+      <h2><a href="{% url 'faktenbasis:norm' norm.pk %}#novellenfundstelle">{{ norm.kurztitel }} · {{ norm.ris_id }}</a></h2>
+      <p>{% translate "Stichtag" %} {{ norm.stand|date:"DATE_FORMAT" }} · {% translate "Belegprüfung, Fassung" %} {{ norm.kundmachungsnachweis__parser_fassung }}</p>
+      <p class="meta">{% translate "SHA-256 der eingelesenen Kundmachungsdatei" %}<br>
+        <code class="fakten-hash">{{ norm.kundmachungsnachweis__original_sha256 }}</code>
+      </p>
+    </article>
+  {% endfor %}
+</div>
+{% if seite.has_other_pages %}
+  <nav aria-label="{% translate 'Weitere Seiten' %}">
+    {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">{% translate "Zurück" %}</a>{% endif %}
+    <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+    {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "Weiter" %}</a>{% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

@@ -71,6 +71,24 @@ def norm(request, pk):
 
 
 @require_safe
+def kundmachung(request, pk):
+    beleg = get_object_or_404(
+        Kundmachungsnachweis.objects.only("dokumentnummer", "kundgemacht_am", "eli"), pk=pk,
+    )
+    normen = Norm.objects.filter(
+        kundmachungsnachweis__dokumentnummer=beleg.dokumentnummer,
+        kundmachungsnachweis__kundgemacht_am=beleg.kundgemacht_am,
+    ).values(
+        "pk", "kurztitel", "ris_id", "stand",
+        "kundmachungsnachweis__original_sha256", "kundmachungsnachweis__parser_fassung",
+    )
+    seiten = Paginator(normen, max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/kundmachung.html", {
+        "beleg": beleg, "seite": seiten.get_page(request.GET.get("seite")),
+    })
+
+
+@require_safe
 def textvergleich(request, pk, mit=None):
     basis = get_object_or_404(
         NormText.objects.select_related("norm").defer("xml", "norm__rohdaten"), pk=pk,

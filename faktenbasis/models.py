@@ -116,6 +116,9 @@ class Kundmachungsnachweis(Schnappschuss):
     parser_fassung = models.PositiveSmallIntegerField()
     erfasst_am = models.DateTimeField(default=timezone.now)
 
+    class Meta:
+        indexes = [models.Index(fields=["dokumentnummer", "kundgemacht_am"], name="kundmachung_kennung_datum")]
+
     def __str__(self):
         return f"{self.dokumentnummer} ({self.norm_id})"
 

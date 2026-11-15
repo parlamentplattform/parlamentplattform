@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.97.0] — 2026-11-15 · Archivierte Dokumentstände je Kundmachung
+
+- Der Kundmachungsbeleg führt zu den lokal archivierten Dokumentständen mit derselben amtlichen Dokumentkennung und demselben Kundmachungsdatum. Die Liste zeigt je Eintrag Stichtag, Beleg-Prüfsumme und Parserfassung.
+- Die Anzeige verwendet die gespeicherten Zuordnungen und die Seitenbegrenzung der Faktenbasis. Amtlicher Link und Rückverweise zu den einzelnen Normständen sind direkt bedienbar.
+
 ## [0.96.0] — 2026-11-15 · Öffentliche Sitzungsunterlagen im Live-Ticker
 
 - Die Tagesordnungsansicht des Live-Tickers und seiner Nachlese zeigt bereits verlinkte Einladungen und amtliche Niederschriften zu genau dieser Sitzung. Gemeinde und Erfassungszeit stehen am Link.

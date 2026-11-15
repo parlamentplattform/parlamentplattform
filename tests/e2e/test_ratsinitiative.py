@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from playwright.sync_api import expect
 
-from mandatare.test_ratsinitiativen import INITIATIVE
+from mandatare.test_ratsinitiativen import INITIATIVE, QUELLE
 from mandatare.test_sprechstunden import mandat  # noqa: F401
 
 pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
@@ -25,8 +25,14 @@ def test_ratsinitiative_ohne_skript_veroeffentlichen(seite, live_server, sichtpr
     p.locator("#id_art").select_option("eingebracht")
     p.locator("#id_datum").fill(timezone.localdate().isoformat())
     p.locator("#id_text").fill("Beim Gemeindeamt übergeben.")
+    p.get_by_label("Öffentlicher HTTPS-Link").fill(QUELLE)
+    p.get_by_label("Dieser Beleg ist öffentlich zugänglich und gehört zu diesem Verlaufsvermerk.").check()
+    assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    p.evaluate("window.scrollTo({top: 0, behavior: 'instant'})")
+    p.screenshot(path=str(sichtpruefung / "ratsmeldung-quellenformular-handy.png"), full_page=True)
     p.get_by_role("button", name="Veröffentlichen", exact=True).press("Enter")
     expect(p.get_by_text("Beim Gemeindeamt übergeben.", exact=True)).to_be_visible()
+    expect(p.get_by_role("link", name="Öffentlichen Beleg öffnen")).to_have_attribute("href", QUELLE)
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     p.screenshot(path=str(sichtpruefung / "ratsinitiative-handy-ohne-js.png"), full_page=True)
 
@@ -36,5 +42,6 @@ def test_ratsinitiative_ohne_skript_veroeffentlichen(seite, live_server, sichtpr
     gast.get_by_role("link", name=INITIATIVE["titel"]).press("Enter")
     expect(gast.get_by_role("heading", name="Public record", exact=True)).to_be_visible()
     expect(gast.get_by_role("heading", name="Submission recorded", exact=False)).to_be_visible()
+    expect(gast.get_by_role("link", name="Open public reference")).to_have_attribute("href", QUELLE)
     expect(gast.get_by_role("link", name="Add a public update")).to_have_count(0)
     gast.screenshot(path=str(sichtpruefung / "ratsinitiative-oeffentlich-en.png"), full_page=True)

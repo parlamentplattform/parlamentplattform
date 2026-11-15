@@ -14,6 +14,7 @@
   <article class="kommentar" id="vermerk-{{ meldung.pk }}">
     <h3>{{ meldung.get_art_display }} · {{ meldung.datum|date:"d.m.Y" }}</h3>
     {{ meldung.text|linebreaks }}
+    {% if meldung.quellen_url %}<p><a href="{{ meldung.quellen_url }}" rel="external noreferrer">{% translate "Öffentlichen Beleg öffnen" %}</a></p>{% endif %}
   </article>
   {% empty %}<p>{% translate "Bislang liegt kein öffentlicher Verlaufsvermerk vor." %}</p>{% endfor %}
   {% include "mandatare/_ratsseiten.html" with seite=meldungen %}

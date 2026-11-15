@@ -52,6 +52,7 @@ from plattform_core.rechenschaft import (
 from verfahren.models import Antrag, AuditEintrag, Bewerbung, Ebene, Rueckgabezusage
 
 SPRECHSTUNDE_ORT_MAX = 200
+QUELLEN_URL_MAX = 500
 FOTO_HOECHSTGROESSE = 800_000  # Bytes — genug für ein Porträt, zu wenig für Missbrauch
 
 _MAGISCHE_ANFAENGE = [
@@ -488,6 +489,7 @@ class Ratsmeldung(models.Model):
     art = models.CharField(max_length=12, choices=Art.choices)
     datum = models.DateField()
     text = models.TextField(max_length=4000)
+    quellen_url = models.URLField(max_length=QUELLEN_URL_MAX, blank=True)
     eingetragen_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -560,9 +562,6 @@ class Aufgabe(models.Model):
         if not self.sitzungstag or self.frist is None:
             return None
         return timezone.localdate(self.frist)
-
-
-QUELLEN_URL_MAX = 500
 
 
 class Gemeindesitzungsquelle(models.Model):

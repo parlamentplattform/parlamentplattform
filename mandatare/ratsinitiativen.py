@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_safe
 
+from mandatare.gemeindequellen import quellen_url_feld
 from mandatare.gemeinderechte import darf_bearbeiten, eigenes_gemeindemandat
 from mandatare.models import Ratsinitiative, Ratsmeldung
 from mitglieder.models import Gemeinde
@@ -44,9 +45,15 @@ class InitiativeFormular(forms.ModelForm):
 
 
 class MeldungFormular(forms.ModelForm):
+    quellen_url = quellen_url_feld()
+    quelle_bestaetigt = forms.BooleanField(
+        label=gettext_lazy("Dieser Beleg ist öffentlich zugänglich und gehört zu diesem Verlaufsvermerk."),
+        required=False,
+    )
+
     class Meta:
         model = Ratsmeldung
-        fields = ["art", "datum", "text"]
+        fields = ["art", "datum", "text", "quellen_url", "quelle_bestaetigt"]
         labels = {"art": gettext_lazy("Art des Eintrags"), "datum": gettext_lazy("Datum des Vorgangs"),
                   "text": gettext_lazy("Öffentliche Beschreibung")}
         widgets = {"datum": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
@@ -68,6 +75,12 @@ class MeldungFormular(forms.ModelForm):
         if self.cleaned_data.get("art") == Ratsmeldung.Art.ANTWORT and datum < self.einbringung.datum:
             raise forms.ValidationError(_("Die Antwort kann nicht vor der Einbringung liegen."))
         return datum
+
+    def clean(self):
+        daten = super().clean()
+        if daten.get("quellen_url") and not daten.get("quelle_bestaetigt"):
+            self.add_error("quelle_bestaetigt", _("Bestätigen Sie die öffentliche Zugänglichkeit und die Zuordnung."))
+        return daten
 
 
 @require_safe

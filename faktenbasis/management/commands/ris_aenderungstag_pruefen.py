@@ -17,10 +17,17 @@ class Command(BaseCommand):
         parser.add_argument("--tag", required=True, type=date.fromisoformat, metavar="JJJJ-MM-TT")
         parser.add_argument("--beleg", required=True, action="append", type=int, metavar="DATENSATZ")
         parser.add_argument("--normbestand", action="store_true", help=gettext_lazy("Passende lokale Bundes-Normstände mit ausgeben."))
+        parser.add_argument(
+            "--originale-pruefen", action="store_true",
+            help=gettext_lazy("Archivierte Originaldateien und gespeicherte Verweise abgleichen."),
+        )
 
     def handle(self, *args, **options):
         try:
-            ergebnis = tag_pruefen(options["tag"], options["beleg"], mit_normbestand=options["normbestand"])
+            ergebnis = tag_pruefen(
+                options["tag"], options["beleg"], mit_normbestand=options["normbestand"],
+                mit_originalen=options["originale_pruefen"],
+            )
         except (TagesabgleichFehler, BestandsFehler) as fehler:
             raise CommandError(_("RIS-Seitensatz abgewiesen (%(grund)s).") % {"grund": str(fehler)}) from fehler
         self.stdout.write(json.dumps(ergebnis, ensure_ascii=False, sort_keys=True))

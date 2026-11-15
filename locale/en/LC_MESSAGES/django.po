@@ -12165,11 +12165,11 @@ msgstr "RIS change page archived. SHA-256 %(hash)s."
 msgid "Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."
 msgstr "Makes individual archived pages from the federal legislation change history available to read."
 
-msgid "Ein geprüfter Satz schon archivierter Seiten lässt sich zusätzlich mit den vorhandenen Bundes-Normständen abgleichen."
-msgstr "A checked set of archived pages can also be compared with stored federal legislation snapshots."
+msgid "Für einen geprüften Seitensatz können auch die archivierten Originaldateien mit den gespeicherten Verweisen abgeglichen werden."
+msgstr "For a checked set of pages, the archived original files can also be compared with the stored references."
 
-msgid "Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Die Dokumente behalten ihre Quellenreihenfolge. Der Tagesabgleich prüft lückenlose Seiten mit gemeinsamer Trefferzahl, passenden Seitenumfängen und eindeutigen Dokumentkennungen. Für den Normabgleich je gleicher Dokumentkennung und Gesetzesnummer den größten gespeicherten Stichtag und bei Gleichheit die größte Datensatznummer wählen."
-msgstr "Check the date, page and scope, distinct federal document IDs, legislation numbers and official addresses. Show pages by RIS update date descending, page number ascending and archive order descending. Documents retain their source order. The day check verifies consecutive pages with a shared result count, matching page sizes and distinct document IDs. To match snapshots, choose the latest stored reference date for the same document ID and legislation number, using the highest record number to break ties."
+msgid "Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Die Dokumente behalten ihre Quellenreihenfolge. Der Tagesabgleich prüft lückenlose Seiten mit gemeinsamer Trefferzahl, passenden Seitenumfängen und eindeutigen Dokumentkennungen. Bei der Originalprüfung die Prüfsumme nachrechnen und Trefferzahl und Verweise aus den Originaldateien mit den gespeicherten Angaben vergleichen. Für den Normabgleich je gleicher Dokumentkennung und Gesetzesnummer den größten gespeicherten Stichtag und bei Gleichheit die größte Datensatznummer wählen."
+msgstr "Check the date, page and scope, distinct federal document IDs, legislation numbers and official addresses. Show pages by RIS update date descending, page number ascending and archive order descending. Documents retain their source order. The day check verifies consecutive pages with a shared result count, matching page sizes and distinct document IDs. To verify original files, recalculate the checksum and compare the result count and references from the files with the stored data. To match snapshots, choose the latest stored reference date for the same document ID and legislation number, using the highest record number to break ties."
 
 msgid "Der Abgleich prüft lokale Belege. Amtliche Tagesvollständigkeit und ein gemeinsamer Abrufzeitpunkt aller Seiten werden damit nicht nachgewiesen. Die automatische Aktualisierung ist eine gesonderte Aufgabe."
 msgstr "The check covers local records. It does not establish official completeness for the date or show that all pages were retrieved at the same time. Automatic updates are a separate task."
@@ -12203,3 +12203,6 @@ msgstr "RIS page set rejected (%(grund)s)."
 
 msgid "Passende lokale Bundes-Normstände mit ausgeben."
 msgstr "Include matching local federal legislation snapshots."
+
+msgid "Archivierte Originaldateien und gespeicherte Verweise abgleichen."
+msgstr "Compare archived original files with their stored references."

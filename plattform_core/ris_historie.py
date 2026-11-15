@@ -7,10 +7,11 @@ from datetime import date
 from plattform_core.faktenbestand import HASH_MUSTER
 from plattform_core.ris_antwort import objekt
 
-VERSION = 6
+VERSION = 7
 PARSER_FASSUNG = 1
 TAGESABGLEICH_FASSUNG = 1
 NORMABGLEICH_FASSUNG = 1
+ORIGINALPRUEFUNG_FASSUNG = 1
 REIHUNG = ("-tag", "seite", "-pk")
 NORM_REIHUNG = ("-stand", "-pk")
 _DOKUMENTNUMMER = re.compile(r"NOR[0-9]{8}")

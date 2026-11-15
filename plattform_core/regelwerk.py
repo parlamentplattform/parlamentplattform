@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 29
+VERSION = 30
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -172,9 +172,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
         zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=6, seit="2026-11-15",
-        grund=_("Ein geprüfter Satz schon archivierter Seiten lässt sich zusätzlich mit den vorhandenen Bundes-Normständen abgleichen."),
-        nachrechenbar=_("Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Die Dokumente behalten ihre Quellenreihenfolge. Der Tagesabgleich prüft lückenlose Seiten mit gemeinsamer Trefferzahl, passenden Seitenumfängen und eindeutigen Dokumentkennungen. Für den Normabgleich je gleicher Dokumentkennung und Gesetzesnummer den größten gespeicherten Stichtag und bei Gleichheit die größte Datensatznummer wählen."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=7, seit="2026-11-15",
+        grund=_("Für einen geprüften Seitensatz können auch die archivierten Originaldateien mit den gespeicherten Verweisen abgeglichen werden."),
+        nachrechenbar=_("Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Die Dokumente behalten ihre Quellenreihenfolge. Der Tagesabgleich prüft lückenlose Seiten mit gemeinsamer Trefferzahl, passenden Seitenumfängen und eindeutigen Dokumentkennungen. Bei der Originalprüfung die Prüfsumme nachrechnen und Trefferzahl und Verweise aus den Originaldateien mit den gespeicherten Angaben vergleichen. Für den Normabgleich je gleicher Dokumentkennung und Gesetzesnummer den größten gespeicherten Stichtag und bei Gleichheit die größte Datensatznummer wählen."),
         luecke=_("Der Abgleich prüft lokale Belege. Amtliche Tagesvollständigkeit und ein gemeinsamer Abrufzeitpunkt aller Seiten werden damit nicht nachgewiesen. Die automatische Aktualisierung ist eine gesonderte Aufgabe."),
         registerschluessel="faktenbasis-seitengroesse · faktenbasis-manuelle-abrufe-je-stunde · faktenbasis-bestandsnachweis-hoechstzahl",
     ),

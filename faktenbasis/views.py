@@ -16,6 +16,7 @@ from faktenbasis.models import (
     PersonalAggregat,
     PersonalRessortAbruf,
     PersonalRessorttabelle,
+    RisAenderungsseite,
     RisImport,
     VfghEntscheidungsstand,
 )
@@ -68,6 +69,15 @@ def norm(request, pk):
         "letzter_textabruf": eintrag.textabrufe.first(),
         "textabrufe": eintrag.textabrufe.select_related("inhalt").all(),
         "darf_aktualisieren": darf_aktualisieren(request.user),
+    })
+
+
+@require_safe
+def aenderungen(request):
+    staende = RisAenderungsseite.objects.defer("original")
+    seiten = Paginator(staende, max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/aenderungen.html", {
+        "seite": seiten.get_page(request.GET.get("seite")),
     })
 
 

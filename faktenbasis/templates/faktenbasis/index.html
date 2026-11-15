@@ -5,6 +5,7 @@
 <h1>{% translate "Faktenbasis" %}</h1>
 <p><a href="{% url 'faktenbasis:personal' %}">{% translate "Amtliche Personal-Aggregate nachlesen" %}</a></p>
 <p><a href="{% url 'faktenbasis:vfgh' %}">{% translate "Archivierte VfGH-Entscheidungsmetadaten" %}</a></p>
+<p><a href="{% url 'faktenbasis:aenderungen' %}">{% translate "Archivierte RIS-Änderungsseiten" %}</a></p>
 <p><a href="{% url 'faktenbasis:bestand' %}">{% translate "Nachweis des gespeicherten Quellenbestands" %}</a></p>
 {% if darf_aktualisieren %}<p><a class="knopf" href="{% url 'faktenbasis:verwaltung' %}">{% translate "Amtliche Quelle übernehmen" %}</a></p>{% endif %}
 <div class="karte">

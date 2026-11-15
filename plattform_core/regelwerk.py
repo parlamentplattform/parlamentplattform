@@ -37,7 +37,7 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 28
+VERSION = 29
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -169,6 +169,15 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
+        zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-15",
+        grund=_("Übernimmt bestätigte Fundorte und das RIS-Bearbeitungsdatum aus ausdrücklich bereitgestellten Seiten."),
+        nachrechenbar=_("Erwarteten Tag und Seitenzahl mit der Antwort abgleichen. Pro Seite die erwartete Zahl eindeutiger Bundes-Dokumentkennungen, ihre Gesetzesnummern und amtlichen Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle."),
+        luecke=_("Die Änderungshistorie zeigt Datenpflege im RIS. Vollständige Tagesbestände und automatische Aktualisierung bleiben gesonderte Aufgaben."),
+        registerschluessel="faktenbasis-seitengroesse",
+    ),
     Regel(
         modul="vfgh_metadaten.py", titel=_("Archivierte VfGH-Entscheidungsmetadaten"),
         zweck=_("Prüft die Metadaten eines ausdrücklich übergebenen amtlichen VfGH-Entscheidungstextes."),

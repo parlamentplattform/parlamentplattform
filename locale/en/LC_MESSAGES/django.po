@@ -11701,8 +11701,8 @@ msgstr "The metadata for this snapshot names this gazette publication as the las
 msgid "Novelle laut RIS-Metadaten"
 msgstr "Amendment named in RIS metadata"
 
-msgid "Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."
-msgstr "Shows the last amendment expressly named in a saved RIS document snapshot."
+msgid "Zeigt die ausdrücklich genannte letzte Änderung oder bundesrechtliche Aufhebungsfundstelle eines gespeicherten RIS-Dokumentstands."
+msgstr "Shows the last amendment or federal repeal reference explicitly recorded in the stored RIS document snapshot."
 
 msgid "Anfrage im Gemeinderat"
 msgstr "Question to the municipal council"
@@ -12025,14 +12025,14 @@ msgstr "Paragraph-level relationships, enabling provisions and legal relevance t
 msgid "Die RIS-Kundmachungsdatei ließ sich nicht lesen."
 msgstr "The RIS gazette file could not be read."
 
-msgid "Die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."
-msgstr "Read the explicitly named latest amendment with a unique number and a year no later than the snapshot year. Build the federal ELI from the part, year and number from 2004 onward. For a dated ELI, verify the individual gazette file against the application, document ID, citation, province or part, and date. Show the committee reports and legislative period listed in the federal record."
+msgid "Dokumentkennung, Relation und eindeutige Fundstelle bis zum Stichtagsjahr prüfen. Aufhebungsfundstellen im Bundesrecht nur mit eindeutigem Außerkrafttretensdatum bis zum Stichtag anzeigen. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Ein COO-Aktenzeichen kann zusätzlich als frühere Kennung vorliegen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."
+msgstr "Check the document ID, relationship and unambiguous reference up to the reference year. Show federal repeal references only with an unambiguous date the document ceased to be in force on or before the reference date. For federal law, build the ELI from part, year and number from 2004 onwards. For the dated ELI, match the individual gazette file by application, ID, reference, state or part, and date. A COO file number may also be present as a former identifier. Show the committee reports and legislative term listed in the federal record."
 
 msgid "Eine einzelne lokale RIS-Kundmachungsdatei dem gespeicherten Normstand zuordnen."
 msgstr "Associate one local RIS gazette file with the archived legislative document."
 
-msgid "Fassung 4 ergänzt ausdrücklich zugeordnete Bundes-Kundmachungen und darin genannte Ausschussberichte."
-msgstr "Version 4 adds explicitly associated federal gazette records and the committee reports they list."
+msgid "Fassung 5 ergänzt im Bundesrecht ausdrücklich ausgewiesene Aufhebungsfundstellen mit dem angegebenen Außerkrafttretensdatum des einzelnen Dokuments."
+msgstr "Version 5 adds explicitly recorded federal repeal references and the stated date the individual document ceased to be in force."
 
 msgid "Kundmachungsbeleg %(nummer)s gespeichert. SHA-256 %(hash)s."
 msgstr "Gazette record %(nummer)s saved. SHA-256 %(hash)s."
@@ -12126,3 +12126,9 @@ msgstr "Published council decisions"
 
 msgid "Die Beschlussübersicht kann erst ab dem Sitzungstag verlinkt werden."
 msgstr "The list of decisions can only be linked on or after the meeting date."
+
+msgid "Aufhebungsfundstelle laut RIS-Metadaten"
+msgstr "Repeal reference in the RIS metadata"
+
+msgid "Außerkrafttreten dieses Dokumentstands laut RIS"
+msgstr "Date this document snapshot ceased to be in force, according to RIS"

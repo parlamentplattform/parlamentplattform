@@ -17,7 +17,10 @@
 </div>
 {% if novelle %}
 <section class="karte" aria-labelledby="novellenfundstelle">
-  <h2 id="novellenfundstelle">{% translate "Novelle laut RIS-Metadaten" %}</h2>
+  <h2 id="novellenfundstelle">{% if novelle.ausserkraft_am %}{% translate "Aufhebungsfundstelle laut RIS-Metadaten" %}{% else %}{% translate "Novelle laut RIS-Metadaten" %}{% endif %}</h2>
+  {% if novelle.ausserkraft_am %}
+    <p>{% translate "Außerkrafttreten dieses Dokumentstands laut RIS" %} <time datetime="{{ novelle.ausserkraft_am|date:'Y-m-d' }}">{{ novelle.ausserkraft_am|date:"DATE_FORMAT" }}</time></p>
+  {% endif %}
   {% if kundmachung %}
     <p><a href="{{ kundmachung.eli }}" rel="noopener">{{ novelle.bezeichnung }}</a>{% if novelle.bundesland %} · {{ novelle.bundesland }}{% endif %}</p>
     <p>{% translate "Kundmachungsdatum laut archiviertem RIS-Beleg" %} {{ kundmachung.kundgemacht_am|date:"DATE_FORMAT" }} · {{ kundmachung.dokumentnummer }}</p>
@@ -35,7 +38,9 @@
     <p><a href="{% url 'faktenbasis:kundmachung' kundmachung.pk %}">{% translate "Dokumentstände zu dieser Kundmachung" %}</a></p>
   {% elif novelle.ziel %}
     <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
+    {% if not novelle.ausserkraft_am %}
     <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
+    {% endif %}
   {% else %}
     <p><strong>{{ novelle.bezeichnung }}</strong> · {{ novelle.bundesland }}</p>
     <p class="hilfe">{% translate "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum." %}</p>

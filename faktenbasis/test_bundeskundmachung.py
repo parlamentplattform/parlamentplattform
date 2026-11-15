@@ -10,7 +10,7 @@ from faktenbasis.kundmachung import zuordnen
 from faktenbasis.models import Kundmachungsnachweis, Norm
 from faktenbasis.ris import RisFehler
 from faktenbasis.test_kundmachungsbeleg import rohbytes as landesdatei
-from faktenbasis.test_novellenfundstelle import normstaende_anlegen
+from faktenbasis.test_novellenfundstelle import AUFHEBUNGSFELDER, normstaende_anlegen
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from parameter.models import Parameter
 from plattform_core.novellenfundstelle import Fundstelle, bundeskundmachung
@@ -72,6 +72,7 @@ def test_bundesbeleg_fuer_jeden_teil(teil, teilwert):
     ("BgblAuth", "Teil", "Teil2"),
     ("BgblAuth", "Bgblnummer", "BGBl. I Nr. 70/2023"),
     ("BgblAuth", "AlteDokumentnummer", "BGBLA_2024_I_99"),
+    ("BgblAuth", "AlteDokumentnummer", "COO_2026_100_2_263307/99"),
     ("BgblAuth", "Ausgabedatum", "20240704"),
     ("BgblAuth", "Ausgabedatum", "2024-02-31"),
 ])
@@ -95,6 +96,15 @@ def test_berichtsnummern_erhalten_die_reihenfolge_der_quelle():
     assert bundeskundmachung(antwort, FUNDSTELLE, date(2024, 7, 3)) is None
 
 
+def test_alte_coo_aktenkennung_bleibt_von_der_amtlichen_kundmachungskennung_getrennt():
+    antwort, meta = antwort_und_meta()
+    meta["Bundesrecht"]["BgblAuth"]["AlteDokumentnummer"] = "COO_2026_100_2_263307"
+    beleg = bundeskundmachung(antwort, FUNDSTELLE, STAND)
+    assert (beleg.dokumentnummer, beleg.eli) == (NUMMER, ELI)
+    meta["Technisch"]["ID"] = "BGBLA_2024_I_99"
+    assert bundeskundmachung(antwort, FUNDSTELLE, STAND) is None
+
+
 @pytest.mark.django_db
 def test_bundesbeleg_bleibt_bei_der_bestaetigten_fassung(client, monkeypatch, abrufuhr):  # noqa: F811
     andere, norm = normstaende_anlegen(monkeypatch)
@@ -115,6 +125,27 @@ def test_bundesbeleg_bleibt_bei_der_bestaetigten_fassung(client, monkeypatch, ab
     assert "<dd>2594</dd>" in html and "<dd>11514</dd>" in html and "<dd>9000</dd>" not in html
     assert ELI not in client.get(reverse("faktenbasis:norm", args=[andere.pk])).content.decode()
     assert AuditEintrag.objects.count() == vorher + 1
+
+
+@pytest.mark.django_db
+def test_ausdrueckliche_aufhebung_mit_eigenem_wortlaut_und_datierter_quelle(client, monkeypatch, abrufuhr):  # noqa: F811
+    alt, norm = normstaende_anlegen(monkeypatch, AUFHEBUNGSFELDER)
+    ziel = reverse("faktenbasis:norm", args=[norm.pk])
+    antwort = client.get(ziel)
+    assert antwort.context["novelle"].ausserkraft_am == date(2025, 1, 1)
+    assert antwort.context["novelle"].ziel == ELI.rsplit("/", maxsplit=1)[0]
+    html = antwort.content.decode()
+    assert "Aufhebungsfundstelle laut RIS-Metadaten" in html and 'datetime="2025-01-01"' in html
+    assert "nennen diese Kundmachung als letzte Änderung" not in html
+    assert "Aufhebungsfundstelle laut RIS-Metadaten" not in client.get(
+        reverse("faktenbasis:norm", args=[alt.pk])
+    ).content.decode()
+
+    beleg = zuordnen(norm.pk, rohbytes())
+    assert beleg.kundgemacht_am == date(2024, 7, 4) and beleg.parser_fassung == 5
+    assert f'href="{ELI}"' in client.get(ziel).content.decode()
+    assert zuordnen(norm.pk, rohbytes()).pk == beleg.pk
+    assert AuditEintrag.objects.filter(ereignis__typ="ris_kundmachungsbeleg").count() == 1
 
 
 @pytest.mark.django_db

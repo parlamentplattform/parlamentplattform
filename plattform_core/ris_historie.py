@@ -6,8 +6,10 @@ from datetime import date
 
 from plattform_core.ris_antwort import objekt
 
-VERSION = 1
+VERSION = 2
+PARSER_FASSUNG = 1
 REIHUNG = ("-tag", "seite", "-pk")
+NORM_REIHUNG = ("-stand", "-pk")
 _DOKUMENTNUMMER = re.compile(r"NOR[0-9]{8}")
 _GESETZESNUMMER = re.compile(r"[0-9]{8}")
 

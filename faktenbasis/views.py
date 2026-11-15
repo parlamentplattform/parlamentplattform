@@ -20,6 +20,7 @@ from faktenbasis.models import (
     RisImport,
     VfghEntscheidungsstand,
 )
+from faktenbasis.ris_historie import dokumente_mit_normstand
 from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
 from plattform_core.novellenfundstelle import VERSION as NOVELLENFASSUNG
@@ -78,6 +79,14 @@ def aenderungen(request):
     seiten = Paginator(staende, max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
     return render(request, "faktenbasis/aenderungen.html", {
         "seite": seiten.get_page(request.GET.get("seite")),
+    })
+
+
+@require_safe
+def aenderungsseite(request, pk):
+    stand = get_object_or_404(RisAenderungsseite.objects.defer("original"), pk=pk)
+    return render(request, "faktenbasis/aenderungsseite.html", {
+        "stand": stand, "dokumente": dokumente_mit_normstand(stand),
     })
 
 

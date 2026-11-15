@@ -1,11 +1,13 @@
 """Nachlese einer ausdrücklich übernommenen RIS-Seite ohne JavaScript."""
 
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
 from playwright.sync_api import expect
 
 from faktenbasis.ris_historie import importieren
-from faktenbasis.test_ris_historie import KENNUNG, TAG, URL, original
+from faktenbasis.test_ris_historie import KENNUNG, TAG, URL, norm_anlegen, original
 
 pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
 
@@ -16,6 +18,7 @@ pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
 ])
 def test_ris_aenderungsseite_nativ_lesbar(seite, live_server, sichtpruefung, sprache, viewport, titel, umfang):
     stand = importieren(TAG, 2, original())
+    norm = norm_anlegen(TAG - timedelta(days=1))
     page = seite(sprache=sprache, viewport=viewport, js=False, dunkel=sprache == "en", reduziert=True)
     page.goto(live_server.url + reverse("faktenbasis:index"))
     page.get_by_role("link", name=titel, exact=True).press("Enter")
@@ -26,3 +29,15 @@ def test_ris_aenderungsseite_nativ_lesbar(seite, live_server, sichtpruefung, spr
     assert "synthetischer Originalinhalt" not in page.locator("main").inner_text()
     assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
     page.screenshot(path=str(sichtpruefung / f"ris-aenderungsseite-ohne-js-{sprache}.png"), full_page=True)
+    liste = page.get_by_role("link", name=f"‹ {titel}", exact=True)
+    page.get_by_role("article").get_by_role("heading").get_by_role("link").press("Enter")
+    expect(page.get_by_text(umfang, exact=True)).to_be_visible()
+    expect(page.get_by_text(stand.original_sha256, exact=True)).to_be_visible()
+    expect(liste).to_be_visible()
+    lokal = "Jüngster gespeicherter Stichtag" if sprache == "de" else "Latest stored reference date"
+    normlink = page.get_by_role("link", name=lokal)
+    expect(normlink).to_have_attribute("href", reverse("faktenbasis:norm", args=[norm.pk]))
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(path=str(sichtpruefung / f"ris-aenderungsabgleich-ohne-js-{sprache}.png"), full_page=True)
+    normlink.press("Enter")
+    expect(page.get_by_role("heading", name="Testnorm")).to_be_visible()

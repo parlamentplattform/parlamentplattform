@@ -17,6 +17,12 @@ Alle angesprochenen Dokumente müssen das erwartete RIS-Bearbeitungsdatum tragen
 Abweichende Dateien erhalten eigene Stände. Das Archiv verlinkt die Dokumente
 im RIS und weist die Anzahl der archivierten Referenzen getrennt von der
 gemeldeten Trefferzahl aus. Der Bearbeitungstag beschreibt die Datenpflege.
+In der Detailansicht wird pro Referenz auch ein passender lokal gespeicherter
+Bundes-Normstand verlinkt. Dokumentkennung und Gesetzesnummer müssen beide
+übereinstimmen. Bei mehreren Ständen entscheidet der größte gespeicherte
+Stichtag und danach die größte Datensatznummer. Die Reihung der Verweise bleibt
+die der Originalseite. Die Anzeige führt den RIS-Bearbeitungstag getrennt
+vom Stichtag des lokalen Stands.
 
 Der Befehl verwendet die lokale Datei. Der bisherige Normbestand und bereits
 festgehaltene Modellkontexte werden bei der Archivierung nicht geändert.

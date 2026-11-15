@@ -6,7 +6,10 @@
   <p>{{ user.anzeigename }} · {{ user.email }}</p>
   {% if zugang %}
   <h2>{% if user.wohnsitz and user.wohnsitz_art_aktuell == "oesterreich" %}{{ user.wohnsitz.name }}{% else %}{% translate "Keine aktuelle Hauptgemeinde" %}{% endif %}</h2>
-  {% if user.wohnsitz and user.wohnsitz_art_aktuell == "oesterreich" %}<p>{{ user.wohnsitz.bezirk }} · {{ user.wohnsitz.get_bundesland_display }} · {{ user.wohnsitz.kennziffer }}</p>{% endif %}
+  {% if user.wohnsitz and user.wohnsitz_art_aktuell == "oesterreich" %}
+  <p>{{ user.wohnsitz.bezirk }} · {{ user.wohnsitz.get_bundesland_display }} · {{ user.wohnsitz.kennziffer }}</p>
+  <p><a href="{% url 'gemeinde:ort' user.wohnsitz.kennziffer %}">{% translate "Zur öffentlichen Gemeindeübersicht" %}</a></p>
+  {% endif %}
   <p>{% translate "E-Mail bestätigt; Hauptwohnsitz und Alter selbst erklärt. Noch keine Gemeindeabstimmungen freigeschaltet." %}</p>
   {% else %}<h2>{% translate "Gemeindezugang einrichten" %}</h2>{% endif %}
   {% if user.parteikonto %}<p>{% translate "Sie verwenden Ihr bestehendes Konto. Ihre Parteimitgliedschaft und deren Rechte bleiben getrennt." %}</p>

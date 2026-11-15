@@ -71,7 +71,7 @@ from mandatare.models import (
     vertrauensfragen_fortschreiben,
 )
 from mandatare.sitzung import darf_live_melden
-from mitglieder.models import Identitaetsstufe, Mitglied, Mitgliedsstatus
+from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
@@ -1541,7 +1541,8 @@ def verwaltung(request):
     vertrauensfragen_fortschreiben()
     _laufende_fortschreiben(Vertrauensfrage.objects.select_related("antrag"))  # ein Ende ohne Seitenaufruf: die Karte zeigt es
     mandate = list(
-        Mandat.objects.select_related("mitglied", "kandidatur").prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
+        Mandat.objects.select_related("mitglied", "kandidatur", "gemeinde")
+        .prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
     )
     heute = timezone.localdate()
     zusagen = _rueckgabezusagen_fuer(mandate)  # dieselbe Quelle wie Seite, Register und JSON — eine Abfrage für alle
@@ -1569,6 +1570,8 @@ def verwaltung(request):
             "rueckgabezusagen": Rueckgabezusage.choices,
             "heute": heute,
             "stimmen": Stimmverhalten.choices,
+            "gemeinden": Gemeinde.objects.order_by("name", "bezirk", "kennziffer")
+            if any(m.ebene == Ebene.GEMEINDE for m in mandate) else (),
         },
     )
 
@@ -1588,12 +1591,37 @@ def _vertrauensfrage_der_verwaltung(request) -> Vertrauensfrage:
     return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=int(pk))
 
 
-def _mandat_der_verwaltung(request) -> Mandat:
+def _mandat_der_verwaltung(request, *, sperren=False) -> Mandat:
     """Das Mandat aus `POST["mandat"]` — eine verformte Kennung antwortet 404, nicht 500 (ValueError im Feld)."""
     pk = (request.POST.get("mandat") or "").strip()
-    if not pk.isdigit():
+    if not pk.isascii() or not pk.isdecimal() or len(pk) > 18:
         raise Http404("Mandat unbekannt.")
-    return get_object_or_404(Mandat, pk=int(pk))
+    mandate = Mandat.objects.select_for_update() if sperren else Mandat.objects.all()
+    return get_object_or_404(mandate, pk=int(pk))
+
+
+@transaction.atomic
+def _gemeinde_zuordnen(request) -> None:
+    mandat = _mandat_der_verwaltung(request, sperren=True)
+    if mandat.ebene != Ebene.GEMEINDE or not mandat.mitglied.parteikonto or mandat.mitglied.testkonto:
+        messages.error(request, _("Nur Gemeindemandate der DDÖ können einer Gemeinde zugeordnet werden."))
+        return
+    kennziffer = request.POST.get("gemeindekennziffer", "").strip()
+    gemeinde = Gemeinde.objects.filter(kennziffer=kennziffer).first() if kennziffer else None
+    if "gemeindekennziffer" not in request.POST or (kennziffer and gemeinde is None):
+        messages.error(request, _("Bitte eine gültige Gemeindekennziffer wählen."))
+        return
+    vorher = mandat.gemeinde_id
+    nachher = gemeinde.pk if gemeinde else None
+    if vorher == nachher:
+        return
+    mandat.gemeinde = gemeinde
+    mandat.save(update_fields=["gemeinde"])
+    AuditEintrag.anhaengen({
+        "typ": "mandat_gemeinde_zugeordnet", "mandat": mandat.pk,
+        "vorher_gemeinde": vorher, "gemeinde": nachher,
+    })
+    messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
 
 def _verwaltung_vertrauen(request, aktion: str) -> bool:
@@ -1776,6 +1804,10 @@ def verwaltung_aktion(request):
     aktion = request.POST.get("aktion", "")
 
     if _verwaltung_vertrauen(request, aktion):
+        return redirect("mandatare:verwaltung")
+
+    if aktion == "gemeinde_zuordnen":
+        _gemeinde_zuordnen(request)
         return redirect("mandatare:verwaltung")
 
     if aktion == "anlegen":

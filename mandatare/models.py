@@ -104,6 +104,10 @@ class Mandat(models.Model):
     )
     ebene = models.CharField(max_length=12, choices=Ebene.choices, default=Ebene.GEMEINDE)
     gebiet = models.CharField(max_length=120, blank=True)
+    gemeinde = models.ForeignKey(
+        "mitglieder.Gemeinde", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="kommunale_mandate",
+    )
     angetreten = models.DateField(default=timezone.localdate)
     beendet = models.DateField(null=True, blank=True)
     kandidatur = models.ForeignKey(
@@ -153,6 +157,12 @@ class Mandat(models.Model):
 
     class Meta:
         ordering = ["ebene", "gebiet", "angetreten"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(gemeinde__isnull=True) | models.Q(ebene=Ebene.GEMEINDE),
+                name="mandat_gemeinde_nur_gemeindeebene",
+            ),
+        ]
         verbose_name = "Mandat"
         verbose_name_plural = "Mandate"
 

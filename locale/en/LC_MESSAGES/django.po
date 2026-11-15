@@ -11500,8 +11500,6 @@ msgstr "Email confirmed; primary residence and age self-declared. Municipal poll
 msgid "Keine aktuelle Hauptgemeinde"
 msgstr "No current primary municipality"
 
-msgid "Die Anmeldung ist der erste Schritt. Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet."
-msgstr "Registration is the first step. Local issues, consultation appointments and municipal polls will be added gradually. No municipal poll is enabled here yet."
 
 msgid "Ein Gemeindekonto ist keine Parteimitgliedschaft: kein Mitgliedsbeitrag, kein Parteiausweis und keine Parteirechte. Es vermittelt kein amtliches Wahlrecht."
 msgstr "A municipal account is not party membership: no membership fee, party membership card or party rights. It grants no official voting rights."
@@ -11583,3 +11581,81 @@ msgstr "Municipal account without party membership"
 
 msgid "Ihre Gemeindeangaben können Sie im Gemeindezugang herunterladen und den Hauptwohnsitz dort ändern. Für die Berichtigung weiterer Daten oder die Schließung des Kontos schreiben Sie an plattform@ddoe.at. Eine E-Mail-Bestätigung löst keine Mitgliedschaft, Parteipost oder Beitragspflicht aus."
 msgstr "You can download your municipal account data and change your primary residence in the municipal area. To correct other details or close your account, write to plattform@ddoe.at. Confirming your email does not create party membership, party mail or a membership fee obligation."
+
+msgid "Nur Gemeindemandate der DDÖ können einer Gemeinde zugeordnet werden."
+msgstr "Only DDÖ municipal mandates can be linked to a municipality."
+
+msgid "Bitte eine gültige Gemeindekennziffer wählen."
+msgstr "Please choose a valid municipality code."
+
+msgid "Zuordnung für die öffentliche Gemeindeübersicht gespeichert."
+msgstr "The link for the public municipal overview was saved."
+
+msgid "Gemeindekennziffer für dieses Mandat"
+msgstr "Municipality code for this mandate"
+
+msgid "Gemeindezuordnung speichern"
+msgstr "Save municipality link"
+
+msgid "Nur für die öffentliche Anzeige von Mandat und Sitzungstickern. Leer lassen, um die Zuordnung aufzuheben."
+msgstr "For displaying the mandate and meeting tickers in public. Leave blank to remove the link."
+
+msgid "Gemeinde finden"
+msgstr "Find a municipality"
+
+msgid "Name, Bezirk oder Gemeindekennziffer"
+msgstr "Name, district or municipality code"
+
+msgid "Suchen"
+msgstr "Search"
+
+msgid "Vorherige Seite"
+msgstr "Previous page"
+
+msgid "Nächste Seite"
+msgstr "Next page"
+
+msgid "Keine passende Gemeinde gefunden."
+msgstr "No matching municipality found."
+
+msgid "Zur öffentlichen Gemeindeübersicht"
+msgstr "Open the public municipal overview"
+
+msgid "Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet."
+msgstr "Local concerns, office hours and municipal polls are being added in stages. Municipal polls are not available yet."
+
+msgid "Öffentliches Angebot der DDÖ. Dies ist keine amtliche Seite der Gemeinde."
+msgstr "A public service from DDÖ. This is not an official municipal website."
+
+msgid "Zugeordnete DDÖ-Mandate"
+msgstr "DDÖ mandates linked to this municipality"
+
+msgid "Für diese Gemeinde ist derzeit kein aktives DDÖ-Mandat in der Übersicht zugeordnet."
+msgstr "No active DDÖ mandate is currently linked to this municipality in the overview."
+
+msgid "Laufende Sitzungen"
+msgstr "Meetings in progress"
+
+msgid "Derzeit kein laufender Sitzungsticker für diese Gemeinde."
+msgstr "There is no live meeting ticker for this municipality at the moment."
+
+msgid "Abgeschlossene Sitzungen der letzten sieben Tage"
+msgstr "Meetings completed in the last seven days"
+
+msgid "Keine abgeschlossenen Sitzungsticker aus diesem Zeitraum."
+msgstr "There are no completed meeting tickers for this period."
+
+msgid "Mandate erscheinen nach Beginn und Kennung aufsteigend, Sitzungen nach Beginn und Kennung absteigend."
+msgstr "Mandates are listed by start date and ID in ascending order; meetings by start time and ID in descending order."
+
+msgid "Reihenfolge der öffentlichen Gemeindeübersicht"
+msgstr "Order of the public municipal overview"
+
+msgid "Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate und ihre öffentlichen Sitzungsticker."
+msgstr "Shows municipalities, explicitly linked DDÖ mandates and their public meeting tickers."
+
+msgid "Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."
+msgstr "Municipalities with the same name remain distinguishable by district, province and code."
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Die Zuordnung ändert keine Teilnahmeberechtigung."
+msgstr "Municipalities by name, district and code; mandates by start date and ID in ascending order. Meeting tickers by start time and ID in descending order, with seven days of recent meetings. The link does not change eligibility to participate."

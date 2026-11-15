@@ -8,9 +8,30 @@
   <p>{% translate "Ein Gemeindekonto ist keine Parteimitgliedschaft: kein Mitgliedsbeitrag, kein Parteiausweis und keine Parteirechte. Es vermittelt kein amtliches Wahlrecht." %}</p>
   {% if user.is_authenticated %}<a class="btn" href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>{% else %}<a class="btn" href="{% url 'gemeinde:anmelden' %}">{% translate "Gemeindekonto anlegen" %}</a> <a class="btn-linie" href="{% url 'mitglieder:login' %}">{% translate "Ich habe bereits ein Konto" %}</a>{% endif %}
 </div>
+<section class="karte" aria-labelledby="ortsueberschrift">
+  <h2 id="ortsueberschrift">{% translate "Gemeinde finden" %}</h2>
+  <form method="get" action="{% url 'gemeinde:start' %}">
+    <label for="ortssuche">{% translate "Name, Bezirk oder Gemeindekennziffer" %}</label>
+    <input type="search" id="ortssuche" name="ort" value="{{ suche }}" maxlength="140" required>
+    <button type="submit" class="btn">{% translate "Suchen" %}</button>
+  </form>
+  {% if suche and trefferseite.object_list %}
+    <ul>
+      {% for ort in trefferseite %}
+      <li><a href="{% url 'gemeinde:ort' ort.kennziffer %}">{{ ort.anzeige }} · {{ ort.get_bundesland_display }} · {{ ort.kennziffer }}</a></li>
+      {% endfor %}
+    </ul>
+    {% if trefferseite.has_previous %}
+      <a href="?ort={{ suche|urlencode }}&amp;seite={{ trefferseite.previous_page_number }}">{% translate "Vorherige Seite" %}</a>
+    {% endif %}
+    {% if trefferseite.has_next %}
+      <a href="?ort={{ suche|urlencode }}&amp;seite={{ trefferseite.next_page_number }}">{% translate "Nächste Seite" %}</a>
+    {% endif %}
+  {% elif suche %}<p>{% translate "Keine passende Gemeinde gefunden." %}</p>{% endif %}
+</section>
 <div class="karte">
   <h2>{% translate "Der Gemeindebereich entsteht" %}</h2>
-  <p>{% translate "Die Anmeldung ist der erste Schritt. Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet." %}</p>
+  <p>{% translate "Örtliche Anliegen, Sprechstunden und Gemeindeabstimmungen werden schrittweise ergänzt. Hier ist noch keine Gemeindeabstimmung freigeschaltet." %}</p>
   <p><a href="{% url 'mandatare:live_uebersicht' %}">{% translate "Öffentliche Sitzungsticker" %}</a> · <a href="{% url 'mandatare:liste' %}">{% translate "Mandatare" %}</a></p>
   <p class="hilfe">{% translate "Die verlinkten Übersichten umfassen alle auf der Plattform veröffentlichten Mandate und Sitzungen, nicht nur Ihre Gemeinde." %}</p>
 </div>

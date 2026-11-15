@@ -18,6 +18,12 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
   </form>
 </div>
 
+{% if gemeinden %}
+<datalist id="mandatsgemeinden">
+  {% for ort in gemeinden %}<option value="{{ ort.kennziffer }}">{{ ort.anzeige }}</option>{% endfor %}
+</datalist>
+{% endif %}
+
 {% for k in karten %}{% with m=k.m %}
 <div class="karte">
   <p style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -26,6 +32,18 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
     <span class="erk">{{ m.gebiet|default:m.get_ebene_display }} · {% translate "seit" %} {{ m.angetreten|date:"d.m.Y" }}{% if m.beendet %} · {% translate "beendet" %} {{ m.beendet|date:"d.m.Y" }}{% endif %}{% if m.kandidatur %} · <a href="{% url 'verfahren:antrag' m.kandidatur.pk %}">{% translate "Kandidatur" %}</a>{% endif %}</span>
     <a href="{% url 'mandatare:detail' m.pk %}">{% translate "öffentlich →" %}</a>
   </p>
+  {% if m.ebene == "gemeinde" and m.mitglied.parteikonto and not m.mitglied.testkonto %}
+  <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}">{% csrf_token %}
+    <input type="hidden" name="aktion" value="gemeinde_zuordnen">
+    <input type="hidden" name="mandat" value="{{ m.pk }}">
+    <label for="mandatsgemeinde-{{ m.pk }}">{% translate "Gemeindekennziffer für dieses Mandat" %}</label>
+    <input id="mandatsgemeinde-{{ m.pk }}" name="gemeindekennziffer" maxlength="5"
+           inputmode="numeric" list="mandatsgemeinden" value="{{ m.gemeinde.kennziffer|default:'' }}">
+    <button class="btn-linie" type="submit">{% translate "Gemeindezuordnung speichern" %}</button>
+    {% if m.gemeinde %}<a href="{% url 'gemeinde:ort' m.gemeinde.kennziffer %}">{{ m.gemeinde.anzeige }}</a>{% endif %}
+    <p class="hilfe">{% translate "Nur für die öffentliche Anzeige von Mandat und Sitzungstickern. Leer lassen, um die Zuordnung aufzuheben." %}</p>
+  </form>
+  {% endif %}
   <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:8px">
     <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">{% csrf_token %}
       <input type="hidden" name="aktion" value="foto"><input type="hidden" name="mandat" value="{{ m.pk }}">

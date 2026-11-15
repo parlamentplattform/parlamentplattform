@@ -2,6 +2,13 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.82.0] — 2026-11-14 · Öffentliche Gemeindeübersicht
+
+- Gemeinden öffentlich nach Name, Bezirk oder Gemeindekennziffer suchen und unterscheiden. Das bestätigte Gemeindekonto verlinkt die eigene Hauptgemeinde.
+- Die Mandatarverwaltung ordnet bestehende Gemeindemandate ausdrücklich nach Kennziffer zu. Parteirechte, Kandidaturen und alte Verfahrenskreise erhalten dadurch keine neue Regel. Die Zuordnung wird auditiert; vorhandene Freitextfelder und Sitzungshistorien bleiben erhalten.
+- Die Ortsseite zeigt aktive zugeordnete DDÖ-Mandate sowie laufende öffentliche Sitzungsticker und die Nachlese der letzten sieben Tage. Sie ist als DDÖ-Angebot gekennzeichnet. Vorhandene Streamverweise bleiben in den Tickern; keine neue Übertragung und keine Einwohnerabstimmung.
+- Die Suche sortiert nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung, Sitzungen nach Beginn und Kennung in absteigender Reihenfolge. Das Austauschschema bleibt 1.29.
+
 ## [0.81.0] — 2026-11-05 · Gemeindekonto ohne Parteibeitritt
 
 - Unter `/gemeinde/` beginnt ein eigenständiger Einwohnerzugang: Anmeldung ab dem vollendeten 16. Lebensjahr mit tatsächlich gemeldeter Hauptgemeinde, unabhängig von der Staatsangehörigkeit. E-Mail-Bestätigung und Wiederanmeldung verwenden das vorhandene passwortlose Konto, aber einen eigenen Bestätigungszweck. Bestehende Parteikonten ergänzen freiwillig denselben Gemeindezugang, ohne eine zweite Identität anzulegen.

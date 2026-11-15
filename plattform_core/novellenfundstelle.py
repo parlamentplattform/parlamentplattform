@@ -4,11 +4,14 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-VERSION = 3
+VERSION = 4
 _BUND = re.compile(r"NOR[0-9]{8}")
 _OBEROESTERREICH = re.compile(r"LOO[0-9]{8}")
 _FUNDSTELLE = re.compile(r"(?P<nummer>[1-9][0-9]{0,4})/(?P<jahr>[1-9][0-9]{3})")
 _TEILE = {f"BGBl. {teil} Nr.": teil for teil in ("I", "II", "III")}
+_BGBL_TEILE = {"I": "Teil1", "II": "Teil2", "III": "Teil3"}
+_BERICHTSNUMMER = re.compile(r"[1-9][0-9]{0,7}")
+_PERIODE = re.compile(r"[IVXLCDM]{1,12}")
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,9 @@ class Kundmachung:
     dokumentnummer: str
     datum: date
     eli: str
+    gesetzgebungsperiode: str = ""
+    ausschussberichte_nationalrat: tuple[str, ...] = ()
+    ausschussberichte_bundesrat: tuple[str, ...] = ()
 
 
 def _objekt(daten, feld):
@@ -76,17 +82,42 @@ def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") 
     return None
 
 
-def landeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachung | None:
-    """Einen einzelnen LgblAuth-Beleg mit der ausgewiesenen oberösterreichischen Fundstelle abgleichen."""
-    if not isinstance(antwort, dict) or fundstelle.bundesland != "Oberösterreich" or type(stand) is not date:
-        return None
+def _einzelmetadaten(antwort):
+    if not isinstance(antwort, dict):
+        return {}
     ergebnis = _objekt(_objekt(antwort, "OgdSearchResult"), "OgdDocumentResults")
     referenz = ergebnis.get("OgdDocumentReference")
     if isinstance(referenz, list) and len(referenz) == 1:
         referenz = referenz[0]
     if not isinstance(referenz, dict):
+        return {}
+    return _objekt(_objekt(referenz, "Data"), "Metadaten")
+
+
+def _kundmachungsdatum(datum_roh, jahr: str, stand: date) -> date | None:
+    if not isinstance(datum_roh, str) or type(stand) is not date:
         return None
-    meta = _objekt(_objekt(referenz, "Data"), "Metadaten")
+    try:
+        datum = date.fromisoformat(datum_roh)
+    except ValueError:
+        return None
+    if datum.isoformat() != datum_roh or str(datum.year) != jahr or datum > stand:
+        return None
+    return datum
+
+
+def _eli_aus_quelle(meta, eli, pfad):
+    if eli not in (f"https://www.ris.bka.gv.at{pfad}", f"https://ris.bka.gv.at{pfad}"):
+        return None
+    dokumenturl = _objekt(meta, "Allgemein").get("DokumentUrl")
+    return eli if dokumenturl in (eli, f"https://ogd.ris.bka.gv.at{pfad}") else None
+
+
+def landeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachung | None:
+    """Einen einzelnen LgblAuth-Beleg mit der ausgewiesenen oberösterreichischen Fundstelle abgleichen."""
+    if fundstelle.bundesland != "Oberösterreich":
+        return None
+    meta = _einzelmetadaten(antwort)
     technisch = _objekt(meta, "Technisch")
     land = _objekt(meta, "Landesrecht")
     if technisch.get("Applikation") != "LgblAuth" or land.get("Bundesland") != fundstelle.bundesland:
@@ -94,14 +125,8 @@ def landeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachu
     blatt = _objekt(land, "LgblAuth")
     if blatt.get("Lgblnummer") != fundstelle.bezeichnung:
         return None
-    datum_roh = land.get("Kundmachungsdatum")
-    if not isinstance(datum_roh, str):
-        return None
-    try:
-        datum = date.fromisoformat(datum_roh)
-    except ValueError:
-        return None
-    if datum.isoformat() != datum_roh or str(datum.year) != fundstelle.jahr or datum > stand:
+    datum = _kundmachungsdatum(land.get("Kundmachungsdatum"), fundstelle.jahr, stand)
+    if datum is None:
         return None
     # Die vollständige Kennung und der ELI müssen in der amtlichen Antwort selbst stehen.
     kurzdatum = datum.isoformat().replace("-", "")
@@ -109,10 +134,51 @@ def landeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachu
     if technisch.get("ID") != erwartete_id:
         return None
     pfad = f"/eli/lgbl/OB/{fundstelle.jahr}/{fundstelle.nummer}/{kurzdatum}"
-    eli = blatt.get("EuropeanLegislationIdentifier")
-    if eli not in (f"https://www.ris.bka.gv.at{pfad}", f"https://ris.bka.gv.at{pfad}"):
-        return None
-    dokumenturl = _objekt(meta, "Allgemein").get("DokumentUrl")
-    if dokumenturl not in (eli, f"https://ogd.ris.bka.gv.at{pfad}"):
+    eli = _eli_aus_quelle(meta, blatt.get("EuropeanLegislationIdentifier"), pfad)
+    if eli is None:
         return None
     return Kundmachung(erwartete_id, datum, eli)
+
+
+def _ausschussberichte(blatt, feld):
+    nummern = _objekt(blatt, feld).get("item")
+    if isinstance(nummern, str):
+        nummern = [nummern]
+    if not isinstance(nummern, list):
+        return ()
+    if not all(isinstance(nummer, str) and _BERICHTSNUMMER.fullmatch(nummer) for nummer in nummern):
+        return ()
+    return tuple(dict.fromkeys(nummern))
+
+
+def bundeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachung | None:
+    """Einen BgblAuth-Beleg und die darin genannten Ausschussberichte zuordnen."""
+    teil = _BGBL_TEILE.get(fundstelle.teil)
+    if fundstelle.bundesland or teil is None:
+        return None
+    meta = _einzelmetadaten(antwort)
+    technisch = _objekt(meta, "Technisch")
+    erwartete_id = f"BGBLA_{fundstelle.jahr}_{fundstelle.teil}_{fundstelle.nummer}"
+    if technisch.get("Applikation") != "BgblAuth" or technisch.get("ID") != erwartete_id:
+        return None
+    bund = _objekt(meta, "Bundesrecht")
+    blatt = _objekt(bund, "BgblAuth")
+    if blatt.get("Bgblnummer") != fundstelle.bezeichnung or blatt.get("Teil") != teil:
+        return None
+    if blatt.get("AlteDokumentnummer", erwartete_id) != erwartete_id:
+        return None
+    datum = _kundmachungsdatum(blatt.get("Ausgabedatum"), fundstelle.jahr, stand)
+    if datum is None:
+        return None
+    kurzdatum = datum.isoformat().replace("-", "")
+    pfad = f"/eli/bgbl/{fundstelle.teil}/{fundstelle.jahr}/{fundstelle.nummer}/{kurzdatum}"
+    eli = _eli_aus_quelle(meta, bund.get("Eli"), pfad)
+    if eli is None:
+        return None
+    periode = blatt.get("Gesetzgebungsperiode")
+    return Kundmachung(
+        erwartete_id, datum, eli,
+        periode if isinstance(periode, str) and _PERIODE.fullmatch(periode) else "",
+        _ausschussberichte(blatt, "AusschussberichtNationalrat"),
+        _ausschussberichte(blatt, "AusschussberichtBundesrat"),
+    )

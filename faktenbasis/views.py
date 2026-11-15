@@ -53,7 +53,7 @@ def norm(request, pk):
     if (eintrag.ebene == "Bund" and not eintrag.bundesland) or (eintrag.ebene == "Land" and eintrag.bundesland):
         novelle = novellenfundstelle(eintrag.rohdaten, eintrag.ris_id, eintrag.stand, bundesland=eintrag.bundesland)
     kundmachung = None
-    if novelle and novelle.bundesland:
+    if novelle:
         kundmachung = Kundmachungsnachweis.objects.filter(norm=eintrag).defer("original").first()
     return render(request, "faktenbasis/norm.html", {
         "norm": eintrag,

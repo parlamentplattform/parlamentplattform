@@ -110,6 +110,7 @@ class Kundmachungsnachweis(Schnappschuss):
     dokumentnummer = models.CharField(max_length=32)
     kundgemacht_am = models.DateField()
     eli = models.URLField(max_length=500)
+    parlamentsmaterialien = models.JSONField(default=dict)
     original = models.BinaryField()
     original_sha256 = models.CharField(max_length=64)
     parser_fassung = models.PositiveSmallIntegerField()

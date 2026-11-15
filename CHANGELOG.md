@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.94.0] — 2026-11-15 · Nachweis zur Bundes-Kundmachung
+
+- Eine einzelne, lokal bereitgestellte RIS-Kundmachungsdatei kann auch der letzten Änderung eines gespeicherten Bundesnormstands zugeordnet werden. Die Normansicht verlinkt den abgeglichenen ELI mit Ausgabedatum und zeigt die ausdrücklich genannten Ausschussberichtsnummern und die Gesetzgebungsperiode aus dem Beleg.
+- Das bisherige undatierte Ziel bleibt für Bundesnormstände ohne zugeordneten Beleg verfügbar. Die geprüfte Zuordnung und die Originaldatei bleiben neben dem unveränderten Normstand archiviert.
+
 ## [0.93.0] — 2026-11-15 · Nachweis zur Landes-Kundmachung
 
 - Eine einzelne, lokal bereitgestellte RIS-Kundmachungsdatei kann einem bereits gespeicherten oberösterreichischen Normstand ausdrücklich zugeordnet werden. Identität, LGBl.-Fundstelle, Kundmachungsdatum und die offizielle ELI-Adresse werden abgeglichen.

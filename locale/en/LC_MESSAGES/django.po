@@ -12025,14 +12025,14 @@ msgstr "Paragraph-level relationships, enabling provisions and legal relevance t
 msgid "Die RIS-Kundmachungsdatei ließ sich nicht lesen."
 msgstr "The RIS gazette file could not be read."
 
-msgid "Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Die Landesfundstelle erhält ein direktes Ziel, wenn Nummer, Jahr und Land zur authentischen Kundmachung passen und Kennung, ELI und Kundmachungsdatum im Beleg übereinstimmen."
-msgstr "Check the document identifier, the RIS application and Upper Austria for provincial law. Use only an explicitly stated last amendment with an unambiguous number and year no later than the as-of year. Construct federal ELI links from part, year and number from 2004 onward. Link a provincial citation directly when its number, year and province match the authentic gazette document and the archived identifier, ELI and publication date are consistent."
+msgid "Die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."
+msgstr "Read the explicitly named latest amendment with a unique number and a year no later than the snapshot year. Build the federal ELI from the part, year and number from 2004 onward. For a dated ELI, verify the individual gazette file against the application, document ID, citation, province or part, and date. Show the committee reports and legislative period listed in the federal record."
 
 msgid "Eine einzelne lokale RIS-Kundmachungsdatei dem gespeicherten Normstand zuordnen."
 msgstr "Associate one local RIS gazette file with the archived legislative document."
 
-msgid "Fassung 3 verlinkt eine oberösterreichische Novelle bei einem ausdrücklich zugeordneten Landes-Kundmachungsbeleg."
-msgstr "Version 3 links an Upper Austrian amendment when a provincial gazette record has been explicitly associated."
+msgid "Fassung 4 ergänzt ausdrücklich zugeordnete Bundes-Kundmachungen und darin genannte Ausschussberichte."
+msgstr "Version 4 adds explicitly associated federal gazette records and the committee reports they list."
 
 msgid "Kundmachungsbeleg %(nummer)s gespeichert. SHA-256 %(hash)s."
 msgstr "Gazette record %(nummer)s saved. SHA-256 %(hash)s."
@@ -12048,3 +12048,15 @@ msgstr "SHA-256 of the imported gazette file"
 
 msgid "Belegprüfung, Fassung"
 msgstr "Gazette record validation version"
+
+msgid "Parlamentsmaterialien laut RIS-Beleg"
+msgstr "Parliamentary papers listed in the RIS record"
+
+msgid "Gesetzgebungsperiode"
+msgstr "Legislative period"
+
+msgid "Ausschussberichte des Nationalrats"
+msgstr "National Council committee reports"
+
+msgid "Ausschussberichte des Bundesrats"
+msgstr "Federal Council committee reports"

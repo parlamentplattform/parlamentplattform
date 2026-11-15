@@ -1,6 +1,7 @@
 from django.urls import path
 
 from mandatare import (
+    gemeindearbeitsplatz,
     gemeindehaushalt,
     gemeindeprojekte,
     gemeindesitzungsquellen,
@@ -15,6 +16,7 @@ urlpatterns = [
     path("mandatare/", views.liste, name="liste"),
     path("mandatare/mein/", views.mein, name="mein"),
     path("mandatare/mein/<int:pk>/", views.mein_mandat, name="mein_mandat"),
+    path("mandatare/mein/<int:pk>/gemeinde/", gemeindearbeitsplatz.arbeitsplatz, name="gemeinde_arbeitsplatz"),
     path("mandatare/mein/<int:pk>/sprechstunden/", sprechstunden.verwalten, name="sprechstunden"),
     path("mandatare/mein/<int:pk>/haushalt/", gemeindehaushalt.verwalten, name="haushaltsquelle_verwalten"),
     path("mandatare/mein/<int:pk>/projekte/neu/", gemeindeprojekte.verwalten, name="projekt_verwalten"),

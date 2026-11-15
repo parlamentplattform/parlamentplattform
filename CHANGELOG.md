@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.92.0] — 2026-11-15 · Arbeitsplatz für zugeordnete Gemeindemandate
+
+- Ein gemeinsamer Einstieg im eigenen Mandatsbereich führt zu Sitzungsmodus, Unterlagen, Rechenschaft, Sprechstunden, Ratsinitiativen, Haushalt und Projekten. Neueste eigene Einträge und die nächste veröffentlichte eigene Sprechstunde sind direkt erreichbar.
+- Der Zugriff bleibt an dasselbe aktive zugeordnete Gemeindemandat gebunden. Bearbeitungslinks folgen den vorhandenen Mitwirkungsrechten.
+
 ## [0.91.0] — 2026-11-15 · Belegte öffentliche Gemeindeprojektstände
 
 - DDÖ-Gemeindemandatare können bereits öffentliche Projektstände mit Datum und Quellenlink dokumentieren. Die Ortsseite führt zum aktuellen Projektstand und zum datierten Verlauf.

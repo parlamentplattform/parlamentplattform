@@ -18,6 +18,7 @@ das betroffene Formular wieder vor.
   {% if mandate|length > 1 %} · <a href="{% url 'mandatare:mein' %}">{% translate "Anderes Mandat wählen" %}</a>{% endif %}
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
   · <a href="#sitzung">{% translate "Sitzung" %}</a>
+  {% if gemeindearbeitsplatz %}· <a href="{% url 'mandatare:gemeinde_arbeitsplatz' mandat.pk %}">{% translate "Gemeindearbeitsplatz" %}</a>{% endif %}
   {% if darf_schreiben and mandat.gemeinde_id and mandat.ebene == "gemeinde" and mandat.aktiv %}
   · <a href="{% url 'mandatare:sprechstunden' mandat.pk %}">{% translate "Sprechstunden" %}</a>
   · <a href="{% url 'mandatare:ratsinitiative_anlegen' mandat.pk %}">{% translate "Ratsinitiative veröffentlichen" %}</a>

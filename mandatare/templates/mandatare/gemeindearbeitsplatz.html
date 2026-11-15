@@ -1,0 +1,50 @@
+{% extends "verfahren/base.html" %}{% load i18n l10n %}
+{% block titel %}{% translate "Gemeindearbeitsplatz" %} · {{ gemeinde.name }}{% endblock %}
+{% block inhalt %}
+{% include "mandatare/_stil.html" %}
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}">{% translate "Mein Mandat" %}</a>
+  · <a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}">{{ gemeinde.anzeige }}</a></p>
+<h1>{% translate "Gemeindearbeitsplatz" %}</h1>
+<p>{{ mandat.bezeichnung }} · {{ gemeinde.name }}</p>
+<div class="kr-grid">
+  <section class="karte" aria-labelledby="arbeitsplatz-sitzung">
+    <h2 id="arbeitsplatz-sitzung">{% translate "Sitzung und Rechenschaft" %}</h2>
+    <ul>
+      <li><a href="{% url 'mandatare:mein_mandat' mandat.pk %}#sitzung">{% translate "Sitzungsmodus" %}</a></li>
+      <li><a href="{% url 'mandatare:mein_mandat' mandat.pk %}#aufgaben">{% translate "Aufgaben und Fristen" %}</a></li>
+      <li><a href="{% url 'gemeinde:sitzungsquellen' gemeinde.kennziffer %}">{% translate "Öffentliche Sitzungsunterlagen" %}</a></li>
+      <li><a href="{% url 'mandatare:rechenschaft_mandat' mandat.pk %}">{% translate "Rechenschaftsregister" %}</a></li>
+    </ul>
+  </section>
+  <section class="karte" aria-labelledby="arbeitsplatz-sprechstunden">
+    <h2 id="arbeitsplatz-sprechstunden">{% translate "Sprechstunden" %}</h2>
+    {% if naechster_termin %}
+      <p><strong>{% translate "Nächste eigene Sprechstunde" %}</strong><br>
+        <time datetime="{{ naechster_termin.beginn|date:'c' }}">{{ naechster_termin.beginn|date:"DATETIME_FORMAT" }}</time>
+        · {{ naechster_termin.treffpunkt }}</p>
+    {% endif %}
+    <p><a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}#sprechstunden">{% translate "Veröffentlichte Sprechstunden" %}</a></p>
+    {% if darf_schreiben %}<p><a href="{% url 'mandatare:sprechstunden' mandat.pk %}">{% translate "Sprechstunde ankündigen" %}</a></p>{% endif %}
+  </section>
+  <section class="karte" aria-labelledby="arbeitsplatz-ratsarbeit">
+    <h2 id="arbeitsplatz-ratsarbeit">{% translate "Ratsinitiativen der DDÖ" %}</h2>
+    {% if initiative %}<p><strong>{% translate "Zuletzt veröffentlichte eigene Initiative" %}</strong><br>
+      <a href="{% url 'gemeinde:ratsinitiative' gemeinde.kennziffer initiative.pk %}">{{ initiative.titel }}</a></p>{% endif %}
+    <p><a href="{% url 'gemeinde:ratsinitiativen' gemeinde.kennziffer %}">{% translate "Alle veröffentlichten Ratsinitiativen" %}</a></p>
+    {% if darf_schreiben %}<p><a href="{% url 'mandatare:ratsinitiative_anlegen' mandat.pk %}">{% translate "Ratsinitiative veröffentlichen" %}</a></p>{% endif %}
+  </section>
+  <section class="karte" aria-labelledby="arbeitsplatz-projekte">
+    <h2 id="arbeitsplatz-projekte">{% translate "Projekte und Haushalt" %}</h2>
+    {% if projektstand %}<p><a href="{% url 'gemeinde:projekt' gemeinde.kennziffer projektstand.projekt_id %}">{{ projektstand.titel }}</a>
+      · {{ projektstand.get_lage_display }}</p>{% endif %}
+    {% if haushaltsquelle %}<p><a href="{{ haushaltsquelle.url }}" rel="external noreferrer">{{ haushaltsquelle.get_art_display }}
+      {{ haushaltsquelle.jahr|unlocalize }}{% if haushaltsquelle.bis_jahr %}–{{ haushaltsquelle.bis_jahr|unlocalize }}{% endif %}</a></p>{% endif %}
+    <p><a href="{% url 'gemeinde:projekte' gemeinde.kennziffer %}">{% translate "Gemeindeprojekte" %}</a>
+      · <a href="{% url 'gemeinde:haushalt' gemeinde.kennziffer %}">{% translate "Gemeindehaushalt" %}</a></p>
+    {% if darf_schreiben %}
+      <p><a href="{% url 'mandatare:projekt_verwalten' mandat.pk %}">{% translate "Gemeindeprojekt aufnehmen" %}</a></p>
+      <p><a href="{% url 'mandatare:haushaltsquelle_verwalten' mandat.pk %}">{% translate "Haushaltsunterlage verlinken" %}</a></p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

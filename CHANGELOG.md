@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.90.0] — 2026-11-15 · Öffentliche Haushaltsunterlagen nach Gemeinde
+
+- Zugeordnete DDÖ-Gemeindemandatare können öffentliche Voranschläge, Rechnungsabschlüsse und mehrjährige Ergebnis- und Finanzpläne verlinken. Die Ortsseite führt zur nach Haushaltsjahr geordneten Übersicht.
+- Berichtigungen und Rücknahmen ergänzen die nachprüfbare Historie. Die Liste zeigt je Gemeinde, Mandat, erstem Haushaltsjahr und Unterlagenart den zuletzt erfassten Stand.
+
 ## [0.89.0] — 2026-11-15 · Archivierte RIS-Dokumenttexte vergleichen
 
 - Zwei gespeicherte Texte desselben amtlichen RIS-Dokuments lassen sich zusammen mit Stichtag, Erfassungszeit, XML-Prüfsumme und Parserfassung gegenüberstellen. Wortlaut und XML-Prüfsummen werden getrennt verglichen. Beide Originaldateien bleiben zugänglich.

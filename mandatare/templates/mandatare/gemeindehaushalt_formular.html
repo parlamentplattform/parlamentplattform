@@ -1,0 +1,25 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Haushaltsunterlage verlinken" %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}">{% translate "Mein Mandat" %}</a>
+  · <a href="{% url 'gemeinde:haushalt' mandat.gemeinde.kennziffer %}">{{ mandat.gemeinde.anzeige }}</a></p>
+<h1>{% translate "Haushaltsunterlage verlinken" %}</h1>
+<section class="karte">
+  <p>{% translate "Der Link erscheint öffentlich. Eine neue Adresse für dieselbe Unterlagenart und dasselbe erste Jahr ersetzt Ihren bisherigen Link." %}</p>
+  <form method="post" class="quellenformular">{% csrf_token %}
+    {{ form.non_field_errors }}
+    <div>{{ form.art.as_field_group }}</div>
+    <div>{{ form.jahr.as_field_group }}</div>
+    <div>{{ form.bis_jahr.as_field_group }}</div>
+    <div>{{ form.url.as_field_group }}</div>
+    <div>
+      {{ form.bestaetigt.errors }}
+      <label class="ankreuz" for="{{ form.bestaetigt.id_for_label }}">{{ form.bestaetigt }} {{ form.bestaetigt.label }}</label>
+    </div>
+    <div class="quellenformular-aktionen">
+      <button type="submit" name="aktion" value="veroeffentlichen" class="btn">{% translate "Link veröffentlichen" %}</button>
+      <button type="submit" name="aktion" value="zurueckziehen" class="btn-linie" formnovalidate>{% translate "Link zurückziehen" %}</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -11284,8 +11284,8 @@ msgstr "What can be independently calculated"
 msgid "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt."
 msgstr "The evidence associates local record numbers with their stored checksums. Records are ordered by collection identifier and ascending number. An unchanged inventory produces the same hash; generation time is not part of the hashed content."
 
-msgid "Die gespeicherte Prüfsumme bezieht sich bei Norm-Metadaten auf kanonische Metadaten als JSON, bei Kundmachungsbelegen auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse."
-msgstr "The stored checksum refers to canonical JSON for legal metadata, original JSON for gazette records, original XML for document texts, and original PDFs for staff snapshots. Several snapshots may come from the same file. The counts are counts of snapshots."
+msgid "Die gespeicherte Prüfsumme bezieht sich bei Norm-Metadaten auf kanonisches JSON, bei Kundmachungs- und VfGH-Belegen auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse."
+msgstr "The stored checksum refers to canonical JSON for statute metadata, original JSON for gazette and Constitutional Court records, original XML for document text and original PDFs for staffing data. Several snapshots can come from the same file. The count covers snapshots."
 
 msgid "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen."
 msgstr "No official signature, renewed verification of original files, or evidence of a complete or legally current body of law is provided. Previously used model contexts remain unchanged. No sources are fetched and no models are called."
@@ -11296,11 +11296,11 @@ msgstr "Maximum number of local legal metadata, document text and staffing snaps
 msgid "Darstellung des gespeicherten Quellenbestands"
 msgstr "Presentation of the stored source inventory"
 
-msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungsbelegen ihre gespeicherten Prüfsummen zu."
-msgstr "Matches local legal metadata, document text, staff snapshots and gazette records with their stored checksums."
+msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungs- und VfGH-Belegen ihre gespeicherten Prüfsummen zu."
+msgstr "Matches local statute metadata, document text, staffing, gazette and Constitutional Court records with their stored checksums."
 
-msgid "Fassung 2 ergänzt die Kundmachungsbelege mit ihren gespeicherten Prüfsummen. Ältere Nachweisdateien bleiben mit Fassung 1 prüfbar."
-msgstr "Version 2 adds gazette records and their stored checksums. Earlier evidence files remain verifiable using version 1."
+msgid "Fassung 3 ergänzt die VfGH-Metadatenbelege. Ältere Nachweisdateien bleiben nach ihrer bisherigen Fassung prüfbar."
+msgstr "Version 3 adds Constitutional Court metadata records. Earlier files remain verifiable under their original format."
 
 msgid "Nach Sammlungskennung und aufsteigender Datensatznummer reihen. SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen bilden. Die Erzeugungszeit und Betriebsgrenze stehen außerhalb des Hashinhalts. Die Bedeutung der gespeicherten Prüfsummen steht im Nachweis. Bei überschrittener Grenze fällt der Nachweis aus."
 msgstr "Sort by collection key and ascending record number. Compute SHA-256 over the UTF-8 JSON evidence content with sorted keys and no extra spaces. The timestamp and configured limit are outside the hashed content. The evidence explains each stored checksum. Exceeding the limit makes the evidence unavailable."
@@ -12117,3 +12117,6 @@ msgstr "Constitutional Court record %(nummer)s saved. SHA-256 %(hash)s."
 
 msgid "Metadatenprüfung, Fassung"
 msgstr "Metadata validation version"
+
+msgid "VfGH-Metadatenbelege"
+msgstr "Constitutional Court metadata records"

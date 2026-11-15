@@ -18,9 +18,12 @@ from faktenbasis.models import (
 )
 from faktenbasis.test_personalimport import DATEN as PERSONAL
 from faktenbasis.test_ressortimport import DATEN as RESSORTS
+from faktenbasis.test_vfgh_metadaten import DOKUMENT
+from faktenbasis.test_vfgh_metadaten import original as vfgh_original
 from faktenbasis.test_volltext import norm  # noqa: F401
 from faktenbasis.test_xmltext import xml_beispiel
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
+from faktenbasis.vfgh_import import importieren
 from parameter.models import Parameter
 from plattform_core.faktenbestand import BestandsFehler
 from verfahren.models import AuditEintrag
@@ -42,29 +45,31 @@ def bestand(norm):  # noqa: F811
         eli="https://www.ris.bka.gv.at/eli/bgbl/I/2024/70/20240704", original=original,
         original_sha256=hashlib.sha256(original).hexdigest(), parser_fassung=4,
     )
-    return norm, text, personal, ressorts, kundmachung
+    vfgh = importieren(DOKUMENT, vfgh_original())
+    return norm, text, personal, ressorts, kundmachung, vfgh
 
 
 def grenze(wert):
     Parameter.objects.update_or_create(schluessel=REGISTER, defaults={"wert": str(wert)})
 
 
-def test_fuenf_sammlungen_in_einem_select_mit_register_und_limit(bestand):
-    grenze(5)
+def test_sechs_sammlungen_in_einem_select_mit_register_und_limit(bestand):
+    grenze(6)
     with CaptureQueriesContext(connection) as anfragen:
         d = bestandsnachweis()
     assert len(anfragen) == 2
     sql = anfragen[-1]["sql"].upper()
-    assert sql.count("UNION ALL") == 4 and "LIMIT 6" in sql and "ORDER BY" not in sql
-    assert '"ORIGINAL"' not in sql and 'XML"' not in sql and "ROHDATEN" not in sql and 'RESSORTS"' not in sql
-    assert [s["anzahl"] for s in d["inhalt"]["sammlungen"]] == [1, 1, 1, 1, 1]
+    assert sql.count("UNION ALL") == 5 and "LIMIT 7" in sql and "ORDER BY" not in sql
+    for feld in ('"ORIGINAL"', 'XML"', "ROHDATEN", 'RESSORTS"', "NORMANGABEN", "GESCHAEFTSZAHLEN"):
+        assert feld not in sql
+    assert [s["anzahl"] for s in d["inhalt"]["sammlungen"]] == [1, 1, 1, 1, 1, 1]
     assert [e["pruefsumme"] for e in d["inhalt"]["eintraege"]] == [
         bestand[4].original_sha256, bestand[0].inhalt_hash, bestand[1].xml_hash,
-        bestand[2].original_sha256, bestand[3].original_sha256,
+        bestand[2].original_sha256, bestand[3].original_sha256, bestand[5].original_sha256,
     ]
     raw = json.dumps(d["inhalt"], ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
     assert hashlib.sha256(raw).hexdigest() == d["sha256"]
-    assert d["hoechstzahl"] == 5
+    assert d["hoechstzahl"] == 6
 
 
 def test_abrufversuche_zeit_und_grenze_veraendern_keinen_bestand(bestand):
@@ -90,7 +95,7 @@ def test_deaktivierte_oder_ungueltige_grenze_liest_keine_sammlung(wert):
 
 
 def test_umfang_und_unlesbarer_hash_geben_keinen_teilnachweis(bestand, client):
-    grenze(4)
+    grenze(5)
     with pytest.raises(BestandsFehler, match="umfang"):
         bestandsnachweis()
     for name in ("bestand", "bestand_json"):

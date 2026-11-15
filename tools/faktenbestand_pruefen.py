@@ -2,7 +2,7 @@
 
 python tools/faktenbestand_pruefen.py DATEI --sha256 HASH
 
-Nur Standardbibliothek und die Bestandsregeln der Fassungen 1 und 2. Kein Django,
+Nur Standardbibliothek und die Bestandsregeln der Fassungen 1 bis 3. Kein Django,
 keine Datenbank, kein Netzwerk und keine Schreibwirkungen. Das Ergebnis ist
 keine amtliche Signatur oder Bestätigung der Originale bzw. Rechtsvollständigkeit.
 """

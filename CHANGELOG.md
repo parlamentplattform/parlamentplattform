@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.100.0] — 2026-11-15 · VfGH-Belege im Quellenbestandsnachweis
+
+- Der Quellenbestandsnachweis führt VfGH-Metadatenbelege mit Datensatznummer und gespeicherter Prüfsumme des Original-JSONs.
+- Neue Downloads verwenden Fassung 3. Das Offlinewerkzeug überprüft auch Dateien der Fassungen 1 und 2 auf ihre festgehaltenen Prüfsummen.
+
 ## [0.99.0] — 2026-11-15 · Metadaten zu VfGH-Entscheidungstexten
 
 - Eine ausdrücklich vorgelegte lokale RIS-Einzelantwort kann als unveränderlicher VfGH-Metadatenstand mit SHA-256 archiviert werden. Der Einlesebefehl gleicht Dokumentkennung, Quelle und Entscheidungsdatum ab.

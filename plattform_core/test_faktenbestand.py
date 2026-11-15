@@ -22,7 +22,7 @@ def zeile(nummer=1, sammlung="norm", pruefsumme="a" * 64):
 
 def test_leerstand_und_hash_sind_mit_standard_json_nachrechenbar():
     d = nachweis([], 1)
-    assert VERSION == d["inhalt"]["fassung"] == 2
+    assert VERSION == d["inhalt"]["fassung"] == 3
     assert d["inhalt"]["eintraege"] == []
     assert {s["sammlung"]: s["hash_bezug"] for s in d["inhalt"]["sammlungen"]} == HASH_BEZUEGE
     assert all(s["anzahl"] == 0 for s in d["inhalt"]["sammlungen"])
@@ -45,6 +45,12 @@ def test_fassung_1_erhaelt_ihren_hash_und_keine_neue_sammlung():
         nachweis([zeile(sammlung="kundmachung")], 1, fassung=1)
     with pytest.raises(BestandsFehler, match="fassung"):
         nachweis([], 1, fassung=True)
+
+
+def test_fassung_2_erhaelt_ihren_hash_und_keine_vfgh_sammlung():
+    assert nachweis([], 1, fassung=2)["sha256"] == "aae61daea6a319045281807d9f70181b0eb8ef903ebf88823d19e646fe0c3c50"
+    with pytest.raises(BestandsFehler, match="daten"):
+        nachweis([zeile(sammlung="vfgh_metadaten")], 1, fassung=2)
 
 
 @given(st.integers(min_value=1, max_value=2**63 - 1))

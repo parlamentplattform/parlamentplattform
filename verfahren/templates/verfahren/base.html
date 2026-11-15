@@ -808,6 +808,10 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 .lauf-daten{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0 0 10px;font-size:13.5px}
 .lauf-daten dt{color:var(--matt)}
 .lauf-daten dd{margin:0}
+@media(max-width:560px){
+  #bestandsnachweis .bestands-metadatum{grid-column:1/-1}
+  #bestandsnachweis dt.bestands-metadatum{margin-top:6px}
+}
 .beanstanden>summary{list-style:none;display:inline-block;cursor:pointer}
 .beanstanden>summary::-webkit-details-marker{display:none}
 .beanstanden form{margin-top:8px}

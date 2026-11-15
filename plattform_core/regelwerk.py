@@ -1016,9 +1016,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="faktenbestand.py",
         titel=_("Nachweis des gespeicherten Quellenbestands"),
-        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungsbelegen ihre gespeicherten Prüfsummen zu."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-15",
-        grund=_("Fassung 2 ergänzt die Kundmachungsbelege mit ihren gespeicherten Prüfsummen. Ältere Nachweisdateien bleiben mit Fassung 1 prüfbar."),
+        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungs- und VfGH-Belegen ihre gespeicherten Prüfsummen zu."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-15",
+        grund=_("Fassung 3 ergänzt die VfGH-Metadatenbelege. Ältere Nachweisdateien bleiben nach ihrer bisherigen Fassung prüfbar."),
         nachrechenbar=_("Nach Sammlungskennung und aufsteigender Datensatznummer reihen. SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen bilden. Die Erzeugungszeit und Betriebsgrenze stehen außerhalb des Hashinhalts. Die Bedeutung der gespeicherten Prüfsummen steht im Nachweis. Bei überschrittener Grenze fällt der Nachweis aus."),
         registerschluessel="faktenbasis-bestandsnachweis-hoechstzahl",
     ),

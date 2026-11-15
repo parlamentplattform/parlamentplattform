@@ -40,5 +40,6 @@ def test_ortsuebersicht_bis_zum_oeffentlichen_ticker(seite, live_server, sichtpr
     assert p.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     name = f"gemeindeort-{'handy' if handy else 'desktop'}-{'js' if js else 'ohne-js'}-{'en' if englisch else 'de'}"
     p.screenshot(path=str(sichtpruefung / f"{name}.png"), full_page=True)
-    p.get_by_role("link", name="Öffentliche Sitzung", exact=False).press("Enter")
-    assert p.url.endswith(reverse("mandatare:live", args=[mandat.pk]) + f"?sitzung={sitzung.pk}")
+    ticker = reverse("mandatare:live", args=[mandat.pk]) + f"?sitzung={sitzung.pk}"
+    p.get_by_role("link", name=aufgabe.titel).and_(p.locator(f'a[href="{ticker}"]')).press("Enter")
+    assert p.url.endswith(ticker)

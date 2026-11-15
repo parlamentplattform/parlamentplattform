@@ -177,7 +177,9 @@ def test_gemeindekonto_kann_keine_parteischreibwege_benutzen(client, buerger, ur
     assert buerger.beitritt is None and not buerger.parteikonto
 
 
-@pytest.mark.parametrize("url", ["/verwaltung/", "/profil/", "/beitrag/", "/einbringen/", "/profil/ausweis.pdf"])
+@pytest.mark.parametrize("url", [
+    "/verwaltung/", "/profil/", "/beitrag/", "/einbringen/", "/profil/ausweis.pdf", reverse("mitglieder:profil_export"),
+])
 def test_partei_private_leseseiten_bleiben_wie_fuer_gaeste_gesperrt(client, buerger, url):
     client.force_login(buerger)
     r = client.get(url)
@@ -196,6 +198,7 @@ def test_oeffentlich_lesen_mit_gemeindekontomenue_und_privater_export(client, bu
     assert buerger.email not in html and buerger.wohnsitz.name not in html
     r = client.get(reverse("gemeinde:export"))
     assert r.json()["konto"]["parteikonto"] is False
+    assert set(r.json()) == {"konto", "hauptwohnsitz", "gemeindezugang"}
     assert r.json()["hauptwohnsitz"]["gemeinde"] == "40510"
     assert "no-store" in r["Cache-Control"]
     assert Client().get(reverse("gemeinde:export")).status_code == 302

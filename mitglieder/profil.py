@@ -38,8 +38,10 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
+from mandatare.gemeindeexport import gemeindearbeit_exportieren, mandate_fuer_export
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
@@ -688,8 +690,10 @@ def daten_export(mitglied: Mitglied) -> dict:
                 "angetreten": md.angetreten,
                 "beendet": md.beendet,
                 "vorstellung": md.vorstellung,
+                "gemeindearbeit": gemeindearbeit_exportieren(md),
                 "aufgaben": [
                     {
+                        "aufgabe": a.pk,
                         "titel": a.titel,
                         "beschreibung": a.beschreibung,
                         "frist": a.frist,
@@ -736,7 +740,7 @@ def daten_export(mitglied: Mitglied) -> dict:
                     for s in md.sitzungen.all()
                 ],
             }
-            for md in m.mandate.all()
+            for md in mandate_fuer_export(m)
         ],
         "rollen": [
             {
@@ -782,6 +786,7 @@ def daten_export(mitglied: Mitglied) -> dict:
 
 
 @login_required
+@never_cache
 def export_json(request):
     """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto."""
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)

@@ -401,6 +401,67 @@ def test_export_eines_voll_ausgestatteten_mitglieds_laeuft_durch(client, ordnung
     assert "Geheime Eingabe" not in roh and "Geheime Antwort" not in roh
 
 
+def test_gemeindearbeit_exportiert_eigene_historie_und_buendelt_abfragen(client):
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from mandatare.models import Mandat
+
+    anna = mitglied_anlegen("gemeinde-export")
+    bert = mitglied_anlegen("fremdes-gemeindemandat")
+    erster_ort = Gemeinde.objects.get(kennziffer="40510")
+    neuer_ort = Gemeinde.objects.get(kennziffer="41419")
+    jetzt = timezone.now()
+    heute = timezone.localdate(jetzt)
+    mandat = Mandat.objects.create(mitglied=anna, bezeichnung="Eigenes Gemeindemandat", gemeinde=neuer_ort, beendet=heute)
+    Mandat.objects.create(mitglied=anna, bezeichnung="Weiteres Mandat")
+    fremd = Mandat.objects.create(mitglied=bert, bezeichnung="Fremdes Mandat", gemeinde=erster_ort)
+    beginn = jetzt - timedelta(days=3)
+    termin = mandat.sprechstunden.create(
+        gemeinde=erster_ort, beginn=beginn, ende=beginn + timedelta(hours=1),
+        treffpunkt="Eigener Treffpunkt", abgesagt_am=beginn - timedelta(days=1),
+    )
+    fremd.sprechstunden.create(
+        gemeinde=erster_ort, beginn=beginn, ende=beginn + timedelta(hours=1), treffpunkt="Fremder Treffpunkt",
+    )
+    initiative = mandat.ratsinitiativen.create(gemeinde=erster_ort, art="anfrage", titel="Eigene Initiative", text="Frage")
+    beleg = "https://example.org/gemeinde/beleg"
+    meldung = initiative.meldungen.create(art="eingebracht", datum=heute, text="Eigener Vermerk", quellen_url=beleg)
+    aufgabe = mandat.aufgaben.create(titel="Eigene Sitzung", sitzungstag=True, frist=jetzt)
+    for url in (beleg, ""):
+        aufgabe.gemeindesitzungsquellen.create(gemeinde=erster_ort, sitzung_am=heute, art="ratsbeschluesse", url=url)
+        mandat.haushaltsquellen.create(gemeinde=erster_ort, jahr=heute.year, art="voranschlag", url=url)
+    projekt = mandat.gemeindeprojekte.create(gemeinde=erster_ort)
+    vorstellung = projekt.staende.create(lage="vorgestellt", titel="Eigenes Projekt", quelle=beleg, stand_am=heute)
+    ruecknahme = projekt.staende.create(lage="zurueckgezogen", stand_am=heute)
+
+    client.force_login(anna)
+    with CaptureQueriesContext(connection) as abfragen:
+        antwort = client.get(EXPORT, {"mandat": fremd.pk})
+    assert antwort.status_code == 200 and "no-store" in antwort["Cache-Control"]
+    assert "Fremder Treffpunkt" not in antwort.content.decode()
+    mandate = {m["mandat"]: m for m in antwort.json()["mandate"]}
+    assert len(mandate) == 2 and fremd.pk not in mandate
+    eigener_export = mandate[mandat.pk]
+    gemeindearbeit = eigener_export["gemeindearbeit"]
+    assert gemeindearbeit["gemeindekennziffer"] == neuer_ort.kennziffer
+    assert gemeindearbeit["sprechstunden"][0]["sprechstunde"] == termin.pk
+    assert gemeindearbeit["sprechstunden"][0]["abgesagt_am"]
+    assert gemeindearbeit["ratsinitiativen"][0]["meldungen"][0]["meldung"] == meldung.pk
+    assert gemeindearbeit["ratsinitiativen"][0]["meldungen"][0]["quellen_url"] == beleg
+    assert eigener_export["aufgaben"][0]["aufgabe"] == aufgabe.pk
+    assert {zeile["aufgabe"] for zeile in gemeindearbeit["sitzungsquellen"]} == {aufgabe.pk}
+    assert {zeile["stand"] for zeile in gemeindearbeit["projekte"][0]["staende"]} == {vorstellung.pk, ruecknahme.pk}
+    for name in ("sitzungsquellen", "haushaltsquellen"):
+        assert [zeile["url"] for zeile in gemeindearbeit[name]] == [beleg, ""]
+    for name in ("sprechstunden", "ratsinitiativen", "sitzungsquellen", "haushaltsquellen", "projekte"):
+        assert {zeile["gemeindekennziffer"] for zeile in gemeindearbeit[name]} == {erster_ort.kennziffer}
+    sql = [abfrage["sql"].lower() for abfrage in abfragen]
+    for tabelle in ("sprechstunde", "ratsinitiative", "ratsmeldung", "gemeindesitzungsquelle",
+                    "gemeindehaushaltsquelle", "gemeindeprojekt", "gemeindeprojektstand"):
+        assert sum(f'from "mandatare_{tabelle}"' in anfrage for anfrage in sql) == 1
+
+
 def _raete_und_register(anna, bert, antrag, kategorie):
     """Spuren in Räten, Fachliste und Registern — jede Rückbeziehung, die `_gremien_export` abdeckt."""
     from datetime import date

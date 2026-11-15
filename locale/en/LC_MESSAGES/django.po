@@ -6443,8 +6443,8 @@ msgid_plural "Alle Berichte (%(n)s) →"
 msgstr[0] "All reports (one) →"
 msgstr[1] "All reports (%(n)s) →"
 
-msgid "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
-msgstr "Everything the platform assigns to this account (Art 15 and 20 GDPR): master data, residences, fees, address changes, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates, roles, expert-list entry, declarations of interest, votes and contributions in the councils, implementation and register notes, reports, suggestions and your own votes with pseudonym and check code."
+msgid "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate samt Gemeindearbeit, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode."
+msgstr "Everything the platform assigns to this account (Art 15 and 20 GDPR): master data, residences, fees, address changes, motions, endorsements, chat posts, reactions, favourites, subscriptions, filter profiles, candidacies, mandates and municipal work, roles, expert-list entry, declarations of interest, votes and contributions in the councils, implementation and register notes, reports, suggestions and your own votes with pseudonym and check code."
 
 msgid "Betreute Abstimmung"
 msgstr "Supported vote"

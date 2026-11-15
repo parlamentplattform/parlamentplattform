@@ -2,6 +2,7 @@ from django.urls import path
 
 from mandatare import (
     gemeindehaushalt,
+    gemeindeprojekte,
     gemeindesitzungsquellen,
     ratsinitiativen,
     sprechstunden,
@@ -16,6 +17,10 @@ urlpatterns = [
     path("mandatare/mein/<int:pk>/", views.mein_mandat, name="mein_mandat"),
     path("mandatare/mein/<int:pk>/sprechstunden/", sprechstunden.verwalten, name="sprechstunden"),
     path("mandatare/mein/<int:pk>/haushalt/", gemeindehaushalt.verwalten, name="haushaltsquelle_verwalten"),
+    path("mandatare/mein/<int:pk>/projekte/neu/", gemeindeprojekte.verwalten, name="projekt_verwalten"),
+    path(
+        "mandatare/mein/<int:pk>/projekte/<int:projekt_pk>/", gemeindeprojekte.verwalten, name="projekt_verwalten",
+    ),
     path(
         "mandatare/mein/<int:pk>/sitzungstag/<int:aufgabe_pk>/quellen/",
         gemeindesitzungsquellen.verwalten, name="sitzungsquelle_verwalten",

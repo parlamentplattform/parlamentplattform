@@ -11896,9 +11896,6 @@ msgstr "This document is public and relates to this municipality and period."
 msgid "Ein letztes Planjahr gehört nur zum Finanzplan."
 msgstr "A final plan year applies only to a financing plan."
 
-msgid "Fassung 5 ergänzt die Reihenfolge der öffentlichen Haushaltsunterlagen."
-msgstr "Version 5 adds the ordering of public budget documents."
-
 msgid "Für diese Gemeinde sind noch keine Haushaltsunterlagen verlinkt."
 msgstr "No budget documents are linked for this municipality yet."
 
@@ -11907,9 +11904,6 @@ msgstr "Enter the last plan year. It cannot be earlier than the first."
 
 msgid "Gemeindehaushalt"
 msgstr "Municipal budget"
-
-msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand."
-msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each. Budget documents by first year in descending order, then by type and mandate ID in ascending order, showing the latest entry."
 
 msgid "Haushaltsjahr oder erstes Planjahr"
 msgstr "Budget year or first plan year"
@@ -11932,5 +11926,80 @@ msgstr "Public municipal budget documents linked by DDÖ representatives."
 msgid "Voranschlag"
 msgstr "Budget estimate"
 
-msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungs- und Haushaltsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
-msgstr "Shows municipalities, assigned DDÖ mandates, meeting and budget documents, public live tickers, office hours and council initiatives."
+msgid "Aktueller Projektstand"
+msgstr "Current project status"
+
+msgid "Belegter Projektstand"
+msgstr "Documented project status"
+
+msgid "Beschluss dokumentiert"
+msgstr "Decision documented"
+
+msgid "Datum des belegten Stands"
+msgstr "Date of the documented status"
+
+msgid "Der öffentliche Projektstand wurde gespeichert."
+msgstr "The public project status has been saved."
+
+msgid "Diese Quelle und diese Angaben sind öffentlich."
+msgstr "This source and this information are public."
+
+msgid "Erfasst am"
+msgstr "Recorded on"
+
+msgid "Fassung 6 ergänzt die Reihenfolge der Gemeindeprojekte und ihrer Stände."
+msgstr "Version 6 adds the ordering of municipal projects and their status entries."
+
+msgid "Frühere Projektstände"
+msgstr "Earlier status entries"
+
+msgid "Für diese Gemeinde sind noch keine Projekte dokumentiert."
+msgstr "No projects have been documented for this municipality yet."
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."
+msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each. Budget documents by first year in descending order, then by type and mandate ID in ascending order, showing the latest entry. Municipal projects by first publication and ID in descending order. Project status entries by ID in descending order."
+
+msgid "Gemeindeprojekt aufnehmen"
+msgstr "Add a municipal project"
+
+msgid "Gemeindeprojekte"
+msgstr "Municipal projects"
+
+msgid "In Umsetzung"
+msgstr "In progress"
+
+msgid "Jüngste Erstveröffentlichung zuerst, bei Gleichstand höhere Projektkennung zuerst."
+msgstr "Most recently first published, with the higher project ID first when publication times match."
+
+msgid "Projektstand ergänzen"
+msgstr "Add a project status update"
+
+msgid "Projekttitel"
+msgstr "Project title"
+
+msgid "Projektveröffentlichung zurückziehen"
+msgstr "Withdraw project publication"
+
+msgid "Veröffentlichung zurückgezogen"
+msgstr "Publication withdrawn"
+
+msgid "Von DDÖ-Mandataren dokumentierte öffentliche Projektstände der Gemeinde."
+msgstr "Public municipal project updates documented by DDÖ representatives."
+
+msgid "Vorgestellt"
+msgstr "Presented"
+
+msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungs- und Haushaltsunterlagen, öffentliche Sitzungsticker, Sprechstunden, Ratsinitiativen und Gemeindeprojekte."
+msgstr "Shows municipalities, assigned DDÖ mandates, meeting and budget documents, public live tickers, office hours, council initiatives and municipal projects."
+
+msgid "Öffentliche Quelle zum Projektstand"
+msgstr "Public source for this project status"
+
+msgid "Öffentlicher Vermerk"
+msgstr "Public note"
+
+msgid "Der Projektstand wurde inzwischen geändert."
+msgstr "The project status has changed since you opened this form."
+
+msgid "Aktuellen Projektstand prüfen"
+msgstr "Review the current project status"

@@ -1,0 +1,30 @@
+{% extends "verfahren/base.html" %}{% load i18n l10n %}
+{% block titel %}{% if projekt %}{% translate "Projektstand ergänzen" %}{% else %}{% translate "Gemeindeprojekt aufnehmen" %}{% endif %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}">{% translate "Mein Mandat" %}</a> · <a href="{% url 'gemeinde:projekte' mandat.gemeinde.kennziffer %}">{{ mandat.gemeinde.anzeige }}</a></p>
+<h1>{% if projekt %}{% translate "Projektstand ergänzen" %}{% else %}{% translate "Gemeindeprojekt aufnehmen" %}{% endif %}</h1>
+<section class="karte">
+  {% if zwischenzeitlich_geaendert %}
+    <p class="meldung warn" role="alert">{% translate "Der Projektstand wurde inzwischen geändert." %}
+      <a href="{% url 'gemeinde:projekt' mandat.gemeinde.kennziffer projekt.pk %}">{% translate "Aktuellen Projektstand prüfen" %}</a></p>
+  {% endif %}
+  <form method="post" class="quellenformular">{% csrf_token %}
+    {% if ausgang %}<input type="hidden" name="ausgang" value="{{ ausgang|unlocalize }}">{% endif %}
+    {{ form.non_field_errors }}
+    {% for feld in form %}
+      {% if feld.name == 'bestaetigt' %}
+        <div>{{ feld.errors }}<label class="ankreuz" for="{{ feld.id_for_label }}">{{ feld }} {{ feld.label }}</label></div>
+      {% else %}
+        <div>{{ feld.as_field_group }}</div>
+      {% endif %}
+    {% endfor %}
+    <div><button class="btn" type="submit" name="aktion" value="veroeffentlichen">{% translate "Veröffentlichen" %}</button></div>
+  </form>
+  {% if darf_zurueckziehen %}
+  <form method="post" class="quellenformular">{% csrf_token %}
+    <input type="hidden" name="ausgang" value="{{ ausgang|unlocalize }}">
+    <div><button class="btn-linie" type="submit" name="aktion" value="zurueckziehen">{% translate "Projektveröffentlichung zurückziehen" %}</button></div>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ aktuell.titel|default:aktuell.get_lage_display }}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'gemeinde:projekte' projekt.gemeinde.kennziffer %}">{% translate "Gemeindeprojekte" %} · {{ projekt.gemeinde.name }}</a></p>
+<h1>{{ aktuell.titel|default:aktuell.get_lage_display }}</h1>
+<section class="karte" aria-labelledby="aktueller-projektstand">
+  <h2 id="aktueller-projektstand">{% translate "Aktueller Projektstand" %}</h2>
+  <p>{% if aktuell.titel %}<span class="badge badge--hell">{{ aktuell.get_lage_display }}</span> · {% endif %}
+     <time datetime="{{ aktuell.stand_am|date:'Y-m-d' }}">{{ aktuell.stand_am|date:"DATE_FORMAT" }}</time></p>
+  {% if aktuell.vermerk %}{{ aktuell.vermerk|linebreaks }}{% endif %}
+  {% if aktuell.quelle %}<p><a href="{{ aktuell.quelle }}" rel="external noreferrer">{% translate "Öffentliche Quelle zum Projektstand" %}</a></p>{% endif %}
+  <p class="meta">{% translate "Erfasst am" %} <time datetime="{{ aktuell.erfasst_am|date:'c' }}">{{ aktuell.erfasst_am|date:"DATETIME_FORMAT" }}</time> · {{ projekt.mandat.mitglied.anzeigename }}</p>
+  {% if darf_schreiben %}<p><a class="btn-linie" href="{% url 'mandatare:projekt_verwalten' projekt.mandat_id projekt.pk %}">{% translate "Projektstand ergänzen" %}</a></p>{% endif %}
+</section>
+{% if seite %}
+<section class="karte" aria-labelledby="projektverlauf">
+  <h2 id="projektverlauf">{% translate "Frühere Projektstände" %}</h2>
+  <ul>{% for stand in seite %}
+    <li><time datetime="{{ stand.erfasst_am|date:'c' }}">{{ stand.erfasst_am|date:"DATETIME_FORMAT" }}</time> · {{ stand.get_lage_display }}</li>
+  {% endfor %}</ul>
+  {% if seite.has_other_pages %}
+  <nav aria-label="{% translate 'Weitere Seiten' %}">
+    {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}#projektverlauf">{% translate "Zurück" %}</a>{% endif %}
+    <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+    {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}#projektverlauf">{% translate "Weiter" %}</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

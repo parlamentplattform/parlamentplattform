@@ -68,6 +68,28 @@ def test_gp014_verwaltung_verweist_auf_die_meldeliste_mit_der_zahl_offener_meldu
     assert reverse("verfahren:meldungen") not in antwort.content.decode()
 
 
+def test_gp014_die_meldeliste_zeigt_nur_beitraege_mit_offener_meldung(client, lage):
+    """Sichtprüfung 0.113.0: Die Liste der Verwaltung zeigte jeden Beitrag — auch nie gemeldete —, weil der
+    Filter über die Rückbeziehung (`meldungen__erledigt_am__isnull=True`) Beiträge ganz ohne Meldung mit
+    erfasst. In die Liste gehört nur, wozu eine Meldung offen ist."""
+    mandat, sitzung, anna, bernd = lage
+    vera = _verwaltung()
+    offen = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag mit offener Meldung.")
+    nie = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag ohne jede Meldung.")
+    entschieden = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag mit erledigter Meldung.")
+    Meldung.objects.create(kommentar=offen, mitglied=bernd, grund="recht")
+    alt = Meldung.objects.create(kommentar=entschieden, mitglied=bernd, grund="recht")
+    Meldung.objects.filter(pk=alt.pk).update(erledigt_am=sitzung.beginn, entscheidung="keine_massnahme")
+
+    client.force_login(vera)
+    antwort = client.get(reverse("verfahren:meldungen"))
+    assert [z["k"].pk for z in antwort.context["zeilen"]] == [offen.pk]
+    inhalt = antwort.content.decode()
+    assert f'id="meldung-{offen.pk}"' in inhalt
+    assert f'id="meldung-{nie.pk}"' not in inhalt and "Beitrag ohne jede Meldung." not in inhalt
+    assert f'id="meldung-{entschieden.pk}"' not in inhalt
+
+
 # ── GP-014 (b): Stand der eigenen Meldung am Beitrag im Sitzungs-Chat ─────────────────────
 
 

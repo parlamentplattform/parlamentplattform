@@ -139,11 +139,18 @@ def export_json(request):
     Felder bleiben, dazu kommen Kopf und Schema-Kennungen."""
     from django.conf import settings
 
+    from gremien.models import parametertests_fortschreiben
+    from parameter.models import ParameterTest, TestStatus
     from plattform_core import __version__
     from plattform_core.schema import parameter_export
     from verfahren.models import Verfahrensordnung
 
     erstbestand_sicherstellen()
+    parametertests_fortschreiben()  # abgelaufene Tests fallen zurück — wie auf der Registerseite
+    # GP-136: Ein Wert im Test ist befristet; der Export nennt Status, Ende, Hypothese und den Wert davor.
+    vor_test = dict(
+        ParameterTest.objects.filter(status=TestStatus.LAEUFT).values_list("parameter_id", "alter_wert")
+    )
     parameter = [
         {
             "schluessel": p.schluessel,
@@ -153,6 +160,10 @@ def export_json(request):
             "beschreibung": p.beschreibung,
             "quelle": p.quelle,
             "geaendert_am": p.geaendert_am.isoformat(),
+            "status": p.status,
+            "test_bis": p.test_bis.isoformat() if p.test_bis else None,
+            "test_hypothese": p.test_hypothese,
+            "wert_vor_test": vor_test.get(p.pk),
         }
         for p in Parameter.objects.all()
     ]

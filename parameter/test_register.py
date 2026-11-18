@@ -556,3 +556,43 @@ def test_parameterbericht_des_laufenden_jahres(client):
     assert client.get(reverse("parameter:bericht", args=[jahr])).status_code == 200
     assert client.get(reverse("parameter:bericht", args=[jahr + 1])).status_code == 200
     assert client.get(reverse("parameter:bericht", args=[jahr + 2])).status_code == 404
+
+
+def test_parameter_json_nennt_den_teststatus(client):
+    """GP-136 (RVB-17): /parameter.json verschwieg, dass ein Wert im Test steht — eine
+    Partnerinstanz las den Testwert als geltend."""
+    from datetime import date
+
+    from parameter.models import ParameterTest, Status, TestStatus
+    from plattform_core.schema import SCHEMA_VERSION
+
+    erstbestand_sicherstellen()
+    ende = timezone.localdate() + timedelta(days=30)
+    eintrag = Parameter.objects.get(schluessel="gremien-beschluss-tage")
+    ParameterTest.objects.create(
+        parameter=eintrag, testwert="9", alter_wert="7", hypothese="Kürzere Frist, gleiche Beteiligung.",
+        messgroesse="votes.turnout_mean", beginn=date.today(), ende=ende, rueckweg="Zurück auf 7.",
+        status=TestStatus.LAEUFT, angeordnet_von=mitglied_anlegen("rat"),
+    )
+    Parameter.objects.filter(pk=eintrag.pk).update(
+        wert="9", status=Status.IM_TEST, test_bis=ende, test_hypothese="Kürzere Frist, gleiche Beteiligung."
+    )
+    daten = client.get(reverse("parameter:export")).json()
+    assert daten["schema_version"] == SCHEMA_VERSION
+    werte = {p["schluessel"]: p for p in daten["parameter"]}
+    im_test = werte["gremien-beschluss-tage"]
+    assert im_test["status"] == "im_test" and im_test["test_bis"] == ende.isoformat()
+    assert im_test["test_hypothese"].startswith("Kürzere Frist") and im_test["wert_vor_test"] == "7"
+    gueltig = werte["gremien-review-tage"]
+    assert gueltig["status"] == "gueltig" and gueltig["test_bis"] is None and "wert_vor_test" not in gueltig
+
+
+def test_schema_dokument_beschreibt_den_teststatus():
+    """GP-136: docs/SCHEMA.md beschreibt die Felder, die plattform_core/schema.py ausgibt."""
+    from plattform_core.schema import parameter_export
+
+    eintrag = parameter_export("at-test", "Test", "0", [{"schluessel": "x", "wert": "1"}], [], "jetzt")["parameter"][0]
+    abschnitt = _schema_dokument().split("## 3. `/parameter.json`")[1].split("### 3.1")[0]
+    for feld in eintrag:
+        assert f'"{feld}"' in abschnitt or f"`{feld}`" in abschnitt, feld
+    assert "`wert_vor_test`" in abschnitt and "`im_test`" in abschnitt

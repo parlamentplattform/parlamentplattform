@@ -386,8 +386,13 @@ def _kopf(system_id: str, system_name: str, software_version: str, jetzt) -> dic
 
 def parameter_export(system_id, system_name, software_version, parameter, ordnungen, jetzt) -> dict:
     """Baut `/parameter.json`. `parameter`: Folge von Mappings mit schluessel, wert, einheit,
-    beschreibung, quelle, geaendert_am (ISO), optional schema_key; `ordnungen`: Folge von
-    Mappings mit id, version und den Policy-Feldern (siehe VERFAHRENSORDNUNG)."""
+    beschreibung, quelle, geaendert_am (ISO), optional schema_key, status, test_bis (ISO-Datum),
+    test_hypothese und wert_vor_test; `ordnungen`: Folge von Mappings mit id, version und den
+    Policy-Feldern (siehe VERFAHRENSORDNUNG).
+
+    Seit 0.113.0 trägt jeder Eintrag seinen Status (`gueltig`, `im_test`, `vorgeschlagen`): Ein Wert im
+    Test gilt nur befristet, und eine Partnerinstanz soll ihn nicht als geltend übernehmen. Im Test
+    kommen Ende, Hypothese und der Wert davor dazu."""
     daten = _kopf(system_id, system_name, software_version, jetzt)
     daten["parameter"] = []
     for p in parameter:
@@ -400,7 +405,12 @@ def parameter_export(system_id, system_name, software_version, parameter, ordnun
             "beschreibung": p.get("beschreibung", ""),
             "quelle": p.get("quelle", ""),
             "geaendert_am": p.get("geaendert_am", ""),
+            "status": p.get("status") or "gueltig",
+            "test_bis": p.get("test_bis") or None,
+            "test_hypothese": p.get("test_hypothese", ""),
         })
+        if daten["parameter"][-1]["status"] == "im_test" and p.get("wert_vor_test") is not None:
+            daten["parameter"][-1]["wert_vor_test"] = p["wert_vor_test"]
     daten["verfahrensordnung"] = [
         {
             "id": o.get("id", ""),

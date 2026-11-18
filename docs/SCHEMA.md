@@ -188,7 +188,8 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
   "…Kopf…",
   "parameter": [
     {"schema_key": "support.review_days", "schluessel": "gremien-review-tage", "wert": "14",
-     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…"}
+     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…",
+     "status": "gueltig", "test_bis": null, "test_hypothese": ""}
   ],
   "verfahrensordnung": [
     {"id": "sachantrag-standard", "version": 1, "werte": [
@@ -205,6 +206,12 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
   ]
 }
 ```
+
+Seit 0.113.0 trägt jeder Registereintrag seinen Status: `gueltig`, `im_test` (befristeter Test
+nach § 6 Abs 11 lit c) oder `vorgeschlagen`. Ein Wert `im_test` gilt nur bis `test_bis`
+(ISO-Datum) und ist kein geltender Wert dieser Instanz; `test_hypothese` nennt, was der Test zeigen
+soll, und `wert_vor_test` den Wert, zu dem er zurückfällt. Außerhalb eines Tests ist `test_bis`
+`null`, `test_hypothese` leer, und `wert_vor_test` fehlt.
 
 Unter `verfahrensordnung` steht die **wirksame** Ordnung jeder Fassung: Felder, die eine ältere
 Fassung noch nicht kannte, erscheinen mit dem eingebauten Vorgabewert (seit 0.44.0).

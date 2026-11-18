@@ -43,7 +43,9 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/gesund/')\""]
+      # Mit erlaubtem Host (dem ersten aus DDOE_ALLOWED_HOSTS) und der Kopfzeile des Proxys — sonst
+      # antwortete Django mit 400 oder leitete auf https um, und die Datenbank würde nie berührt.
+      test: ["CMD", "python", "-c", "import os, urllib.request as u; h = os.environ['DDOE_ALLOWED_HOSTS'].split(',')[0]; u.urlopen(u.Request('http://127.0.0.1:8000/gesund/', headers={'Host': h, 'X-Forwarded-Proto': 'https'}), timeout=4)"]
       interval: 30s
       timeout: 5s
       retries: 3

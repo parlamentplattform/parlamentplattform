@@ -187,6 +187,9 @@ if not DEBUG:
     # dieser Header, dass die ursprüngliche Verbindung verschlüsselt war —
     # sonst schleift SECURE_SSL_REDIRECT endlos um.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Die Gesundheitsprüfung kommt von innen, ohne TLS und ohne Kopfzeile des Proxys (Docker-Muster der
+# Partnerinstanzen): Sie wird nicht umgeleitet, sonst erreichte sie die Datenbank nie (GP-156).
+SECURE_REDIRECT_EXEMPT = [r"^gesund/$"]
 
 # HSTS-Preload (security.W021) ist eine eigene, schwer umkehrbare Entscheidung: Die Domain
 # landet in den Browsern fest verdrahtet, auch für Subdomains, die es noch gar nicht gibt.

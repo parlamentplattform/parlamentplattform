@@ -13,11 +13,14 @@ versendet wird erst auf Knopfdruck, entschieden von Menschen.
 
 from __future__ import annotations
 
+import hashlib
+
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from mitglieder import bank
@@ -218,11 +221,11 @@ def auszug_hochladen(request):
     if datei.size > 5 * 1024 * 1024:
         messages.error(request, _("Die Datei ist größer als 5 MB — bitte einen kürzeren Zeitraum exportieren."))
         return redirect("mitglieder:verwaltung_beitraege")
-    roh = datei.read()
+    roh_datei = datei.read()
     try:
-        inhalt = roh.decode("utf-8-sig")
+        inhalt = roh_datei.decode("utf-8-sig")
     except UnicodeDecodeError:
-        inhalt = roh.decode("latin-1")
+        inhalt = roh_datei.decode("latin-1")
 
     from plattform_core.bankauszug import auszug_lesen
 
@@ -230,15 +233,38 @@ def auszug_hochladen(request):
     if not umsaetze:
         messages.error(request, _("Aus der Datei ließ sich kein Umsatz lesen — erwartet wird ein camt.053-XML oder ein Umsatz-CSV mit Kopfzeile."))
         return redirect("mitglieder:verwaltung_beitraege")
-    neu, gesamt = bank.verbuchen_aus_umsaetzen(umsaetze)
+    # GP-016: Niemand verbucht den eigenen Beitrag — Zeilen mit der Referenz des Hochladenden bleiben liegen.
+    from plattform_core.beitraege import referenz_finden, umsatz_normalisieren
+
+    eigene_referenz = beitragsreferenz(request.user)
+    fremde = []
+    for roh in umsaetze:
+        eingang = umsatz_normalisieren(roh)
+        if eingang is None or referenz_finden(eingang.verwendungszweck) != eigene_referenz:
+            fremde.append(roh)
+    eigene = len(umsaetze) - len(fremde)
+    neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
     from mitglieder.verwaltung import _auditieren
 
-    _auditieren(request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu)
+    _auditieren(
+        request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
+        pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
+    )
     messages.success(
         request,
         _("Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, %(neu)d neu verbucht.")
         % {"umsaetze": len(umsaetze), "gesamt": gesamt, "neu": neu},
     )
+    if eigene:
+        messages.warning(
+            request,
+            ngettext(
+                "%(n)d Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin.",
+                "%(n)d Zeilen mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin.",
+                eigene,
+            )
+            % {"n": eigene},
+        )
     return redirect("mitglieder:verwaltung_beitraege")
 
 

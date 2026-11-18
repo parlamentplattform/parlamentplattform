@@ -214,6 +214,12 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
 
 def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) -> None:
     d = form.cleaned_data
+    if mitglied.pk == request.user.pk and (
+        d["identitaetsstufe"] != mitglied.identitaetsstufe or d["beitrag_zuletzt_am"] != mitglied.beitrag_zuletzt_am
+    ):
+        # GP-016: Stufe und Beitragseingang des eigenen Kontos setzt nur ein anderer Admin.
+        messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
+        return
     geaendert = []
     zuordnung = {
         "first_name": d["vorname"],
@@ -272,13 +278,14 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         # reaktivieren; ein Wiedereintritt ist ein neues Konto.
         messages.error(request, _("Ein ausgetretenes Konto wird nicht wieder aktiviert."))
         return
-    if aktion in ("pausieren", "ausschliessen", "admin_nehmen"):
-        if mitglied.ist_fixer_admin:
-            messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
-            return
-        if selbst:
-            messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
-            return
+    if selbst:
+        # F-51 „niemand wirkt auf das eigene Konto“ (GP-016): keine Status- oder Rechtehandlung
+        # am eigenen Konto — auch nicht Pause aufheben, Beitrag vermerken oder Rechte geben.
+        messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
+        return
+    if aktion in ("pausieren", "ausschliessen", "admin_nehmen") and mitglied.ist_fixer_admin:
+        messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
+        return
     if aktion in ("pausieren", "ausschliessen") and not grund:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return

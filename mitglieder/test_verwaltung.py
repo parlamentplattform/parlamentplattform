@@ -549,3 +549,63 @@ def test_verwaltung_kann_die_einwilligung_zum_klarnamen_nur_zuruecknehmen(client
     client.post(reverse("mitglieder:verwaltung_mitglied", args=[person.pk]), daten)
     person.refresh_from_db()
     assert person.klarname_oeffentlich is False
+
+
+# --- Niemand wirkt auf das eigene Konto (GP-016, KM-03; CONCEPT F-51) -------------------
+
+
+@pytest.mark.parametrize('aktion', ['reaktivieren', 'beitrag', 'admin_geben'])
+def test_admin_handelt_nicht_am_eigenen_konto(client, aktion):
+    chefin = admin_anlegen('chefin')
+    chefin.status = Mitgliedsstatus.PAUSIERT
+    chefin.save(update_fields=['status'])
+    client.force_login(chefin)
+    vorher = Mitglied.objects.filter(pk=chefin.pk).values().get()
+    antwort = client.post(detail(chefin.pk), {'aktion': aktion}, follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    assert Mitglied.objects.filter(pk=chefin.pk).values().get() == vorher
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_admin_setzt_eigene_stufe_und_eigenes_beitragsdatum_nicht(client):
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    client.force_login(chefin)
+    antwort = client.post(detail(chefin.pk), stammdaten(chefin, identitaetsstufe=Identitaetsstufe.PRAESENZ), follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    client.post(detail(chefin.pk), stammdaten(chefin, beitrag_zuletzt_am=timezone.localdate().isoformat()))
+    chefin.refresh_from_db()
+    assert chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and chefin.geprueft_seit is None
+    assert chefin.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_eigener_kontoauszug_verbucht_die_eigene_zeile_nicht(client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    anna = mitglied_anlegen('anna')
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Chefin;{beitragsreferenz(chefin)} Beitrag;30,00;EUR\n'
+        f'28.08.2026;Anna;{beitragsreferenz(anna)} Beitrag;30,00;EUR\n'
+    ).encode()
+    client.force_login(chefin)
+    antwort = client.post(
+        reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}, follow=True
+    )
+    chefin.refresh_from_db()
+    anna.refresh_from_db()
+    assert chefin.beitrag_zuletzt_am is None and chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
+    assert anna.beitrag_zuletzt_am is not None
+    assert '1 Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht' in antwort.content.decode()
+    import hashlib
+
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='auszug_abgleich').get().ereignis
+    assert eintrag['pruefsumme'] == hashlib.sha256(inhalt).hexdigest()
+    assert eintrag['eigene_uebersprungen'] == 1

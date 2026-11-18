@@ -559,3 +559,16 @@ def test_gp097_startseite_fuehrt_im_hauptteil_zu_meine_gemeinde(client, sprache)
     seite = client.get('/', HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
     haupt = seite.split('<main', 1)[1].split('</main>', 1)[0]
     assert f'href="{reverse("gemeinde:start")}"' in haupt
+
+
+@pytest.mark.parametrize('art', ['ohne_festen_wohnsitz', 'ausland'])
+def test_gp169_ohne_regionale_zuordnung_steht_der_satz_statt_wohnsitz_hinterlegen(client, ordnung, art):  # noqa: F811
+    """GP-169: Konten ohne festen Wohnsitz oder im Ausland wurden aufgefordert, einen Wohnsitz zu hinterlegen."""
+    m = mitglied_anlegen('fern', tage=800, gemeinde='', bundesland='')
+    m.wohnsitz_art = art
+    m.save(update_fields=['wohnsitz_art'])
+    client.force_login(m)
+    satz = 'keine örtliche Zuordnung; die Bundesebene steht Ihnen offen'
+    region = _region(client)
+    assert satz in region and 'Wohnsitz hinterlegen' not in region
+    assert satz in client.get(reverse('verfahren:einbringen')).content.decode()

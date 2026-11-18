@@ -152,7 +152,8 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
       {% endfor %}
       </div>
       {# Ohne Wohnsitz zeigen die Bänder alle regionalen Anträge; der Weg zum eigenen Ort führt über das Profil — der Link erscheint erst, wenn es die Seite gibt #}
-      {% if user.is_authenticated and not region_gefiltert and profil_url %}<p class="leer leer-zeile region-wohnsitz"><a href="{{ profil_url }}">{% translate "Wohnsitz hinterlegen ›" %}</a></p>{% endif %}
+      {% if ohne_region %}<p class="leer leer-zeile region-wohnsitz">{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %}</p>
+      {% elif user.is_authenticated and not region_gefiltert and profil_url %}<p class="leer leer-zeile region-wohnsitz"><a href="{{ profil_url }}">{% translate "Wohnsitz hinterlegen ›" %}</a></p>{% endif %}
     </div>
     {% include "verfahren/_feld_mehr.html" %}
   </section>

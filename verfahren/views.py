@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_safe
 
+from mitglieder.models import Wohnsitzart
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase, __version__
 from plattform_core.phases import (
@@ -914,6 +915,9 @@ def parlament(request):
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
             "region_gefiltert": any(mein_ort.values()),
+            # Ohne festen Wohnsitz oder im Ausland gibt es nichts zu hinterlegen (GP-169)
+            "ohne_region": request.user.is_authenticated
+            and request.user.wohnsitz_art in (Wohnsitzart.OHNE_FESTEN_WOHNSITZ, Wohnsitzart.AUSLAND),
             # Ziel der Leerzeile „Wohnsitz hinterlegen ›“ — erst wenn es die Profilseite gibt;
             # bis dahin None, und die Vorlage zeigt nichts, was es nicht gibt.
             "profil_url": _url_oder_none("mitglieder:profil"),

@@ -35,6 +35,7 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
       {% endif %}
     {% endfor %}
     <p class="hilfe">{% translate "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung." %}</p>
+    {% if form.ohne_region %}<p class="hilfe">{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %}</p>{% endif %}
     {% if form.wohnsitz_waehlen %}<p class="hilfe"><a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis." %}</a></p>{% endif %}
     {% if form.wien_ohne_bezirk %}<p class="hilfe"><a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Wählen Sie im Profil den Gemeindebezirk Ihres Wiener Hauptwohnsitzes." %}</a></p>{% endif %}
     {% if not aehnliche and not bestaetigung %}

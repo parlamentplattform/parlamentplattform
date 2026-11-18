@@ -209,6 +209,9 @@ class AntragsFormular(forms.Form):
         # Rückfrage statt still in die neue Gemeinde (GP-170)
         self.gebiet_kennung = ""
         self.wohnsitz_waehlen = mitglied is not None and wohnsitz_ohne_verzeichnis(mitglied)  # GP-055
+        self.ohne_region = mitglied is not None and mitglied.wohnsitz_art in (  # GP-169
+            Wohnsitzart.OHNE_FESTEN_WOHNSITZ, Wohnsitzart.AUSLAND,
+        )
         if haupt is not None:
             self.gebiet_kennung = _wohnsitzstand(haupt, mitglied)
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))

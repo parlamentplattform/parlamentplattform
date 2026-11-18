@@ -12492,3 +12492,67 @@ msgstr "“%(schluessel)s” only accepts whole numbers from %(unten)s to %(oben
 
 msgid "‹ Neuere"
 msgstr "‹ Newer"
+
+msgid "Abrufe je Tag"
+msgstr "Queries per day"
+
+msgid "Anzeigename gespeichert."
+msgstr "Display name saved."
+
+msgid "Anzeigenamen speichern"
+msgstr "Save display name"
+
+msgid "Anzeigenamen wählen"
+msgstr "Choose a display name"
+
+msgid "Auf dieser Stellgröße gibt es keinen Test: Laufende Verfahren lesen ihren Wert, und ein Test darf sie nicht berühren (§ 6 Abs 11 lit c)."
+msgstr "This parameter cannot be tested: running procedures read its value, and a test must not affect them (§ 6 para 11 lit c)."
+
+msgid "Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist; seine Fähigkeiten sind mitgezählt."
+msgstr "In addition, the municipal account without party membership, which is not a role under the statutes; its capabilities are included in the count."
+
+#, python-format
+msgid "Der Vorschlag des Expertenrats (Runde %(n)s) ist angenommen — die Frist der Unterstützer ist am %(frist)s abgelaufen. Die Endabstimmung über den Vorschlag beginnt mit dem Ende der Beratung am %(ende)s."
+msgstr "The expert council's proposal (round %(n)s) is accepted — the supporters' deadline expired on %(frist)s. The final vote on the proposal begins when the deliberation ends on %(ende)s."
+
+#, python-format
+msgid "Die Frist der Unterstützer ist am %(frist)s abgelaufen, und die Höchstzahl der Runden ist erreicht — der Vorschlag des Expertenrats (Runde %(n)s) geht ohne Annahme zur Endabstimmung (§ 5 Abs 12). Sie beginnt mit dem Ende der Beratung am %(ende)s."
+msgstr "The supporters' deadline expired on %(frist)s, and the maximum number of rounds has been reached — the expert council's proposal (round %(n)s) proceeds to the final vote without acceptance (§ 5 para 12). It begins when the deliberation ends on %(ende)s."
+
+#, python-format
+msgid "Die Überarbeitungsfrist ist am %(frist)s ohne neue Einreichung abgelaufen — die zuletzt vorgelegte Fassung geht zur Endabstimmung. Sie beginnt mit dem Ende der Beratung am %(ende)s."
+msgstr "The revision period expired on %(frist)s without a new submission — the most recently presented version proceeds to the final vote. It begins when the deliberation ends on %(ende)s."
+
+msgid "Die Überarbeitungsfrist ist verstrichen — die zuletzt vorgelegte Fassung geht zur Endabstimmung (§ 5 Abs 12)."
+msgstr "The revision period has expired — the most recently presented version proceeds to the final vote (§ 5 para 12)."
+
+msgid "Ein Versionsschild lässt sich nicht testen: Es nennt die Fassung einer Regel im Code und stellt nichts ein."
+msgstr "A version label cannot be tested: it names the version of a rule in the code and sets nothing."
+
+msgid "Frist abgelaufen, wird ausgewertet"
+msgstr "Deadline passed, being evaluated"
+
+#, python-format
+msgid "Gemeldete Beiträge (%(n)s offen) →"
+msgstr "Reported posts (%(n)s open) →"
+
+msgid "Ihr gewählter Anzeigename ist inzwischen vergeben. Bitte wählen Sie einen neuen Anzeigenamen."
+msgstr "The display name you chose has been taken in the meantime. Please choose a new display name."
+
+msgid "Meldungen je Tag"
+msgstr "Reports per day"
+
+msgid "Werte der Verfahrensordnung lassen sich nicht testen: Die Ordnung ändert nur die Mitgliederversammlung (§ 5 Abs 7)."
+msgstr "Values of the procedural rules cannot be tested: only the general assembly changes the rules (§ 5 para 7)."
+
+msgid "Wie oft ein Konto je Kalenderstunde seine eigenen Daten herunterladen kann. Jeder Abruf steht im öffentlichen Audit-Log; die Grenze hält ein einzelnes Konto davon ab, die Audit-Kette mit Exportzeilen zu füllen. Mindestens 1 — der Export bleibt immer möglich. Wirkt sofort."
+msgstr "How many times per calendar hour an account can download its own data. Every download is recorded in the public audit log; the limit keeps a single account from filling the audit chain with export entries. At least 1 — the export always remains possible. Takes effect immediately."
+
+msgid "Wie oft je Kalendertag die Meldung „Ich habe überwiesen“ desselben Kontos einen Kontoabruf bei der Bank auslöst. Weitere Meldungen am selben Tag rufen nicht ab und sagen das; der Eingang wird beim nächsten Abgleich erkannt. Mindestens 1. Wirkt sofort."
+msgstr "How many times per calendar day the report “I have transferred” from the same account triggers an account query at the bank. Further reports on the same day do not query and say so; the payment is recognised at the next reconciliation. At least 1. Takes effect immediately."
+
+msgid "Wie viele der vier Kontoabrufe, die die Bank je Tag erlaubt, der Verwaltung vorbehalten bleiben. Meldungen „Ich habe überwiesen“ lösen nur Abrufe aus, solange darüber hinaus noch Abrufe frei sind; bei 4 löst keine Meldung einen Abruf aus. 0 bis 4. Wirkt sofort."
+msgstr "How many of the four account queries the bank allows per day stay reserved for the administration. Reports “I have transferred” only trigger queries while further queries remain free beyond that; at 4, no report triggers a query. 0 to 4. Takes effect immediately."
+
+msgid "ruht — der Vorschlag wurde nicht übernommen"
+msgstr "at rest — the proposal was not adopted"

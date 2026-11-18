@@ -20,7 +20,7 @@ from gremien.models import (
     Gremium,
     beschlussnummer,
 )
-from gremien.test_werkstatt import mitglied_anlegen, rolle_geben  # noqa: F401
+from gremien.test_werkstatt import mitglied_anlegen, ordnung, rolle_geben  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
@@ -414,3 +414,83 @@ def test_ohne_audit_eintrag_endet_keine_rolle(client, audit_wirft):
     antwort = client.post(reverse('gremien:rollen_aktion'), {'aktion': 'beenden', 'rolle': rolle.pk, 'grund': 'Rücktritt'})
     rolle.refresh_from_db()
     assert antwort.status_code == 500 and rolle.beendet_grund == '' and rolle.aktiv
+
+
+# --- GP-125: Ungültige Jahre und verformte Kennungen sind kein Serverfehler -------------------
+
+
+@pytest.mark.parametrize('jahr', ['0', '1', '1999', '9999', '10000', '99999', '12345678901234567890'])
+def test_ein_jahr_ausserhalb_des_bestands_ist_404(client, jahr):
+    """GP-125: Jahr 0 und fünfstellige Jahre ergaben als Gast einen Serverfehler (year out of range)."""
+    assert client.get(f'/gremien/integritaet/bericht/{jahr}/').status_code == 404
+    assert client.get(f'/gremien/protokoll/integritaetsrat/{jahr}.json').status_code == 404
+
+
+def test_das_laufende_jahr_und_das_naechste_bleiben_erreichbar(client):
+    jahr = timezone.localdate().year
+    for j in (jahr, jahr + 1):
+        assert client.get(reverse('gremien:integritaet_bericht', args=[j])).status_code == 200
+        assert client.get(reverse('gremien:protokoll', args=['integritaetsrat', j])).status_code == 200
+    assert client.get(reverse('gremien:integritaet_bericht', args=[jahr + 2])).status_code == 404
+
+
+VERFORMT = ['abc', '', '1.5', '²', '12345678901234567890']
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_verformte_kennungen_im_integritaetsrat_sind_kein_serverfehler(client, wert):
+    client.force_login(_ratsmitglied(Gremium.INTEGRITAETSRAT))
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'), {'anlass': 'hervorhebung', 'antrag': wert, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code in (302, 404) and not GremienBeschluss.objects.exists()
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+@pytest.mark.parametrize(
+    'daten',
+    [
+        {'anlass': 'austausch', 'feld': 'pruefung'},
+        {'anlass': 'ueberlastung', 'feld': 'meldung'},
+        {'anlass': 'hervorhebung_anregen', 'feld': 'antrag'},
+    ],
+)
+def test_verformte_kennungen_im_koordinationsrat_sind_kein_serverfehler(client, wert, daten):
+    client.force_login(_ratsmitglied())
+    antwort = client.post(
+        reverse('gremien:koordination_beschluss'), {'anlass': daten['anlass'], daten['feld']: wert, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code in (302, 404) and not GremienBeschluss.objects.exists()
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_verformte_kennungen_bei_test_und_umsetzung_sind_kein_serverfehler(client, wert):
+    from parameter.models import ParameterTest
+
+    rat = _ratsmitglied()
+    client.force_login(rat)
+    antwort = client.post(
+        reverse('gremien:koordination_test', args=[0]),
+        {
+            'aktion': 'anordnen', 'parameter': wert, 'testwert': '9', 'hypothese': 'H', 'messgroesse': 'motions.total',
+            'ende': (timezone.localdate() + timedelta(days=30)).isoformat(), 'rueckweg': 'R',
+        },
+    )
+    assert antwort.status_code in (302, 404) and not ParameterTest.objects.exists()
+    beschluss = beschluss_anlegen(status=BeschlussStatus.ENTSCHIEDEN, ergebnis='dafuer')
+    antwort = client.post(
+        reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.', 'umsetzung_durch': wert}
+    )
+    beschluss.refresh_from_db()
+    assert antwort.status_code in (302, 404) and beschluss.umsetzung_durch is None
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_eine_verformte_kennung_im_wunschvermerk_ist_kein_serverfehler(client, ordnung, wert):  # noqa: F811
+    from gremien.models import WunschVermerk
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+    antwort = client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'wunsch', 'kommentar': wert})
+    assert antwort.status_code in (302, 404) and not WunschVermerk.objects.exists()

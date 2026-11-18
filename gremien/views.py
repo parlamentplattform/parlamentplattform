@@ -72,6 +72,28 @@ from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag, Kategorie
 
 
+def _kennung(roh) -> int:
+    """Eine Kennung aus einem Formularfeld — verformt ist sie 404, nicht 500 (GP-125).
+
+    Nur ASCII-Ziffern in einer Länge, die jede Datenbank als Ganzzahl fasst: `"²".isdigit()` ist
+    wahr, `int("²")` wirft; eine zwanzigstellige Zahl sprengt die Spalte."""
+    roh = (roh or "").strip()
+    if not (roh.isascii() and roh.isdigit()) or len(roh) > 18:
+        raise Http404
+    return int(roh)
+
+
+#: Das früheste Jahr, für das Protokoll und Jahresbericht eine Seite haben — vor der Plattform gab es nichts.
+FRUEHESTES_JAHR = 2000
+
+
+def _jahr_pruefen(jahr: int) -> None:
+    """Jahre außerhalb des Bestands sind 404 (GP-125): Jahr 0 und fünfstellige Jahre sprengten den
+    Kalender und ergaben auf öffentlichen Adressen einen Serverfehler."""
+    if not FRUEHESTES_JAHR <= jahr <= timezone.localdate().year + 1:
+        raise Http404
+
+
 def nur_gremium(*gremien: str):
     """Zugang für aktive Rolleninhaber; Admins dürfen zuschauen (Aufsicht),
     schreiben aber nur mit echter Rolle — das prüfen die Handlungen selbst.
@@ -466,7 +488,7 @@ def fenster_aktion(request, antrag_id: int):
         # kein Urteil; deshalb umschaltbar und ohne Audit.
         from verfahren.models import Kommentar
 
-        kommentar = get_object_or_404(Kommentar, pk=request.POST.get("kommentar"), antrag=antrag, ist_kritik=True)
+        kommentar = get_object_or_404(Kommentar, pk=_kennung(request.POST.get("kommentar")), antrag=antrag, ist_kritik=True)
         vorhanden = WunschVermerk.objects.filter(entwurf=entwurf, kommentar=kommentar).first()
         if vorhanden is not None:
             vorhanden.delete()
@@ -628,10 +650,7 @@ def _bestaetigung_durch_wahl(rolle) -> bool:
 
 def _rolle_aus_post(request):
     """Die Rolle aus dem Formular — eine verformte Kennung ist 404, nicht 500."""
-    pk = request.POST.get("rolle", "")
-    if not pk.isdigit():
-        raise Http404
-    return get_object_or_404(Rolle, pk=int(pk))
+    return get_object_or_404(Rolle, pk=_kennung(request.POST.get("rolle")))
 
 
 def _meldung_zur_kandidatursperre(request, rolle, bestaetigt: bool) -> None:
@@ -869,10 +888,7 @@ def fachliste_aktion(request):
         )
 
     elif aktion == "streichen":
-        pk = request.POST.get("eintrag", "")
-        if not pk.isdigit():
-            raise Http404
-        eintrag = get_object_or_404(Fachliste, pk=int(pk))
+        eintrag = get_object_or_404(Fachliste, pk=_kennung(request.POST.get("eintrag")))
         grund = (request.POST.get("grund") or "").strip()
         if not eintrag.gefuehrt:
             messages.info(request, _("Dieser Eintrag ist bereits gestrichen."))
@@ -1176,7 +1192,13 @@ def beschluss_umsetzung(request, beschluss_id: int):
     beschluss.umsetzung_durch = None
     wer = request.POST.get("umsetzung_durch")
     if wer:
-        rolle = Rolle.aktive(beschluss.gremium).filter(mitglied_id=wer).select_related("mitglied").first()
+        # Eine verformte Kennung ist niemand aus diesem Rat (GP-125) — dieselbe Meldung, kein Serverfehler.
+        gueltig = wer.isascii() and wer.isdigit() and len(wer) <= 18
+        rolle = (
+            Rolle.aktive(beschluss.gremium).filter(mitglied_id=int(wer)).select_related("mitglied").first()
+            if gueltig
+            else None
+        )
         if rolle is None:
             messages.error(request, _("Zugewiesen werden kann nur ein Mitglied dieses Rates."))
             return redirect(zurueck)
@@ -1212,6 +1234,7 @@ def protokoll(request, gremium: str, jahr: int):
     Satzung es so will; maschinenlesbar, damit es niemand abtippen muss."""
     if gremium not in Gremium.values:
         raise Http404("Kein solches Gremium.")
+    _jahr_pruefen(jahr)
     GremienBeschluss.faellige_abschliessen()
     beschluesse = (
         GremienBeschluss.objects.filter(gremium=gremium, angelegt_am__year=jahr)
@@ -1410,7 +1433,7 @@ def integritaet_beschluss(request):
     if anlass not in erlaubt:
         messages.error(request, _("Für diesen Anlass gibt es keinen Beschlussweg."))
         return redirect("gremien:integritaet")
-    antrag = get_object_or_404(Antrag, pk=request.POST.get("antrag"))
+    antrag = get_object_or_404(Antrag, pk=_kennung(request.POST.get("antrag")))
     begruendung = (request.POST.get("beschreibung") or "").strip()
     if not begruendung:
         # Die Begründungspflicht folgt aus der Vorschrift des jeweiligen Anlasses — die Meldung nennt sie.
@@ -1733,7 +1756,7 @@ def koordination_beschluss(request):
     if anlass == Anlass.AUSTAUSCH:
         pruefung_ = get_object_or_404(
             Pruefung.objects.select_related("entwurf__antrag"),
-            pk=request.POST.get("pruefung"),
+            pk=_kennung(request.POST.get("pruefung")),
             ergebnis=Pruefung.Ergebnis.AUSTAUSCH,
             korat_entscheid="",
         )
@@ -1753,13 +1776,13 @@ def koordination_beschluss(request):
         felder["antrag"] = pruefung_.entwurf.antrag
         felder["gegenstand"] = f"Austausch der Gruppe 1: {pruefung_.entwurf.antrag.titel}"
     elif anlass == Anlass.UEBERLASTUNG:
-        meldung = get_object_or_404(Ueberlastungsmeldung, pk=request.POST.get("meldung"), erledigt_am__isnull=True)
+        meldung = get_object_or_404(Ueberlastungsmeldung, pk=_kennung(request.POST.get("meldung")), erledigt_am__isnull=True)
         if meldung.beschluss and meldung.beschluss.offen:
             messages.info(request, _("Über diese Meldung wird bereits abgestimmt."))
             return redirect("gremien:koordination")
         felder["gegenstand"] = f"Vorschlag an die Mitgliederversammlung: Überlastung {meldung.stelle}"
     elif anlass == Anlass.HERVORHEBUNG_ANREGEN:
-        antrag = get_object_or_404(Antrag, pk=request.POST.get("antrag"))
+        antrag = get_object_or_404(Antrag, pk=_kennung(request.POST.get("antrag")))
         if GremienBeschluss.objects.filter(
             gremium=Gremium.KOORDINATIONSRAT, anlass=anlass, antrag=antrag, status=BeschlussStatus.OFFEN
         ).exists():
@@ -1954,7 +1977,7 @@ def _test_anordnen(request):
     from parameter.kennzahlen import werte
     from plattform_core.parametertest import messgroessen
 
-    parameter = get_object_or_404(_testbare_parameter(), pk=request.POST.get("parameter"))
+    parameter = get_object_or_404(_testbare_parameter(), pk=_kennung(request.POST.get("parameter")))
     testwert = (request.POST.get("testwert") or "").strip()[:100]
     hypothese = (request.POST.get("hypothese") or "").strip()[:300]
     messgroesse = (request.POST.get("messgroesse") or "").strip()[:80]
@@ -2141,6 +2164,7 @@ def integritaet_bericht(request, jahr: int):
     Kein Freitext, den jemand kürzen könnte (§ 6 Abs 3 lit c: der Koordinationsrat darf die
     Berichte weder kürzen noch zurückhalten): Die Seite entsteht aus den Beschlüssen,
     Aussetzungen und der Regelprüfung des Jahres. Wer den Bericht liest, liest Daten."""
+    _jahr_pruefen(jahr)
     GremienBeschluss.faellige_abschliessen()
     beschluesse = list(
         GremienBeschluss.objects.filter(gremium=Gremium.INTEGRITAETSRAT, angelegt_am__year=jahr)

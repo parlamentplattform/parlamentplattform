@@ -1541,7 +1541,9 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
     """Verwaltungsvermerk „Entscheidung vollziehen“ (lit h): `bestaetigt` lässt Stufe 2 ab der Entscheidung
     laufen; `aufgehoben` nimmt die Wirkungen zurück — Rollen wieder aktiv, Vertrauen nicht mehr entzogen,
     eine beendete Vertretung und Mandatsvereinbarung gelten als nicht beendet; die Sperre nach lit g
-    dritter Fall läuft nicht. Nie automatisch, immer auditiert."""
+    dritter Fall läuft nicht. Zurückgenommen wird nur, was diese Vertrauensfrage bewirkt hat: eine
+    gewonnene nimmt nichts zurück; bleibt eine weitere verlorene bestehen, folgen die Stempel ihr.
+    Nie automatisch, immer auditiert."""
     from gremien.models import Rolle
 
     jetzt = jetzt or timezone.now()
@@ -1553,7 +1555,26 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
     vf.save(update_fields=["entscheidung", "entschieden_am"])
     mandat = vf.mandat
     wiederhergestellt: list[int] = []
-    if entscheidung == Entscheidung.AUFGEHOBEN and vf.art == VertrauensfrageArt.VERTRAUENSFRAGE:
+    # Zurückgenommen wird nur, was diese Vertrauensfrage bewirkt hat (GP-020): Eine gewonnene trägt keine
+    # Wirkungen; besteht eine weitere verlorene, ruhen die Rollen weiter und die Stempel folgen ihr.
+    bleibende = None
+    if entscheidung == Entscheidung.AUFGEHOBEN and vf.wirkungen_ab is not None:
+        bleibende = (
+            Vertrauensfrage.objects.filter(mandat=mandat, art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False)
+            .exclude(pk=vf.pk)
+            .exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+            .order_by("-wirkungen_ab", "-pk")
+            .first()
+        )
+    if bleibende is not None:
+        mandat.vertrauen_entzogen_am = bleibende.wirkungen_ab
+        mandat.rueckgabe_ersucht_bis = timezone.localdate(bleibende.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE)
+        mandat.save(update_fields=["vertrauen_entzogen_am", "rueckgabe_ersucht_bis"])
+    elif (
+        entscheidung == Entscheidung.AUFGEHOBEN
+        and vf.art == VertrauensfrageArt.VERTRAUENSFRAGE
+        and vf.wirkungen_ab is not None
+    ):
         heute = timezone.localdate(jetzt)
         rollen = Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, endet_am__gte=heute).filter(
             models.Q(beendet_grund="") | models.Q(beendet_grund=BEENDIGUNGSGRUND)

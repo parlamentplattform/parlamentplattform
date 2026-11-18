@@ -249,7 +249,10 @@ def test_gaeste_werden_zur_anmeldung_geschickt(client, ordnung):  # noqa: F811
 
 def test_fremde_codes_und_felder_zeigen_nichts(client, ordnung, rf):  # noqa: F811
     _lage(ordnung)
-    assert hinweis_lage(rf.get("/parlament/?hinweis=erfasst&feld=filter"))["code"] == "erfasst"
+    eigene = rf.get("/parlament/?hinweis=erfasst&feld=filter")
+    eigene.session = {"feldhinweis": "erfasst:filter"}  # nur nach eigener Handlung (Z-1)
+    assert hinweis_lage(eigene)["code"] == "erfasst"
+    assert hinweis_lage(rf.get("/parlament/?hinweis=erfasst&feld=filter")) is None
     assert hinweis_lage(rf.get("/parlament/?hinweis=<script>&feld=filter")) is None
     assert hinweis_lage(rf.get("/parlament/?hinweis=erfasst&feld=favoriten")) is None
     assert hinweis_lage(rf.get("/parlament/")) is None

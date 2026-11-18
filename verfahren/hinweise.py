@@ -116,12 +116,23 @@ def _hinweistext(code):
     return HINWEISE[code]["text"]
 
 
+#: Sitzungsschlüssel der eigenen Handlung: `weiter_mit_hinweis` setzt ihn, `hinweis_lage` prüft ihn.
+SITZUNG_SCHLUESSEL = "feldhinweis"
+
+
 def hinweis_lage(request) -> dict | None:
     """`?hinweis=<code>&feld=<kennung>` der Adresse als Hinweis für die Vorlage — None, wenn
-    Code oder Feld unbekannt sind (fremde oder alte Adressen zeigen nichts)."""
+    Code oder Feld unbekannt sind (fremde oder alte Adressen zeigen nichts).
+
+    Die Adresse allein genügt nicht (Z-1, R1-8): Ein weitergegebener Link zeigte sonst jedem
+    „Unterstützung erfasst.“, ohne dass er etwas getan hatte. Der Hinweis erscheint nur, wenn
+    dieselbe Sitzung zuletzt eben diese Handlung ausgelöst hat; die nächste Handlung ersetzt ihn."""
     code = request.GET.get("hinweis", "")
     feld = request.GET.get("feld", "")
     if code not in HINWEISE or feld not in FELDER:
+        return None
+    sitzung = getattr(request, "session", None)
+    if sitzung is None or sitzung.get(SITZUNG_SCHLUESSEL) != f"{code}:{feld}":
         return None
     link, link_text = _link(code)
     return {
@@ -173,6 +184,8 @@ def weiter_mit_hinweis(request, code: str, feld: str):
     """Redirect auf `weiter` (sicher, sonst das Parlament) mit Hinweis und Feld — und dem Anker
     des Felds, damit die Seite ohne JavaScript am Handy beim richtigen Feld steht."""
     assert code in HINWEISE, code
+    if hasattr(request, "session"):
+        request.session[SITZUNG_SCHLUESSEL] = f"{code}:{feld}"
     weiter = request.POST.get("weiter", "")
     if not sicherer_pfad(weiter):
         weiter = reverse("verfahren:parlament")

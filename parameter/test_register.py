@@ -620,3 +620,24 @@ def test_gleichzeitig_vergebene_fassungsnummer_ergibt_meldung_statt_serverfehler
     assert (Verfahrensordnung.objects.count(), AuditEintrag.objects.count()) == vorher
     inhalt = client.get(antwort.url).content.decode()
     assert "inzwischen" in inhalt
+
+
+def test_suchtreffer_beschreibung_nennt_alle_wirkungen():
+    """GP-200 (RVB-21): Die Stellgröße steuert die Fächersuche und die Seitengröße der Gemeindesuche
+    sowie der öffentlichen Listen der Gemeindemandate; beschrieben war nur die Fächersuche. Auch ein
+    bestehender Eintrag mit dem alten Systemtext wird nachgezogen — der Wert bleibt."""
+    from plattform_core.schema import PARAMETER
+
+    erstbestand_sicherstellen()
+    eintrag = Parameter.objects.get(schluessel="suche-treffer-hoechstzahl")
+    Parameter.objects.filter(pk=eintrag.pk).update(
+        wert="12", beschreibung="Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
+    )
+    erstbestand_sicherstellen()
+    eintrag.refresh_from_db()
+    assert eintrag.wert == "12"
+    for wirkung in ("Gemeindesuche", "Ratsinitiativen", "Projektstände", "Haushalt", "Sitzungsunterlagen"):
+        assert wirkung in eintrag.beschreibung, wirkung
+    assert "municipal" in PARAMETER["suche-treffer-hoechstzahl"][2]
+    zeile = next(z for z in _schema_dokument().splitlines() if "`suche-treffer-hoechstzahl`" in z)
+    assert "municipal" in zeile

@@ -258,9 +258,11 @@ NEBENWOHNSITZ_BESCHREIBUNG_ALT = (
     "Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht "
     "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."
 )
+SUCHTREFFER_BESCHREIBUNG_ALT = "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
 ALTE_SYSTEMBESCHREIBUNGEN = {
     "ki-monatstokens": (KI_MONAT_BESCHREIBUNG_ALT, "KI-Startgrenze statt garantierter Geldobergrenze"),
     "region-nebenwohnsitz-zaehlt": (NEBENWOHNSITZ_BESCHREIBUNG_ALT, "Nebenwohnsitz nur in der Regionsanzeige"),
+    "suche-treffer-hoechstzahl": (SUCHTREFFER_BESCHREIBUNG_ALT, "Alle Wirkungen der Trefferzahl beschrieben"),
 }
 
 ERSTBESTAND = [
@@ -555,7 +557,10 @@ ERSTBESTAND = [
         "wert": "24",
         "einheit": gettext_noop("Treffer"),
         "gruppe": "faecher",
-        "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."),
+        "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. "
+        "Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der "
+        "Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort "
+        "wirkt ein Wert unter 1 wie 1. Wirkt sofort."),
         "quelle": "§ 5 Abs 10 lit a",
     },
     {

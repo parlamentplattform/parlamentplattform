@@ -234,7 +234,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | Hard monthly token budget of the model slot (cost cap of the future workshop) |
 | `archive.audit_display_limit` | `archiv-audit-anzeige` | events | How many audit events the archive timeline shows; the export always contains all |
 | `areas_fan.max_children` | `faecher-kinder-hoechstzahl` | branches | How many sub-branches a branch shows before it must be fanned out |
-| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | Maximum number of hits shown by the search in the areas-of-life fan |
+| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the municipality search and of the public lists of municipal mandates (council initiatives, projects, budget links, session documents), where values below 1 act as 1 |
 | `areas_fan.rule_version` | `faecher-regel` | rule version | Version of the layout algorithm for the areas-of-life fan |
 | `areas_of_life.per_motion` | `kategorien-je-antrag` | areas | How many areas of life a motion is assigned to automatically |
 | `areas_of_life.rule_version` | `kategorien-regel` | rule version | Version of the assignment rule for areas of life (keyword lists, no AI) |

@@ -155,7 +155,9 @@ PARAMETER = {
     ),
     "suche-treffer-hoechstzahl": (
         "areas_fan.max_search_hits", "hits",
-        "Maximum number of hits shown by the search in the areas-of-life fan",
+        "Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the "
+        "municipality search and of the public lists of municipal mandates (council initiatives, projects, "
+        "budget links, session documents), where values below 1 act as 1",
     ),
     "gespraeche-liste-hoechstzahl": (
         "conversations.list_limit", "conversations",

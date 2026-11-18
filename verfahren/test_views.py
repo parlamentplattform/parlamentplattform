@@ -354,3 +354,10 @@ def test_gp174_archiv_export_kennt_nur_json_und_md(client, ordnung):  # noqa: F8
         assert antwort['Content-Disposition'].endswith(f'archiv.{art}"')
     for art in ('html', 'svg', 'exe', 'JSON'):
         assert client.get(f'/antrag/{antrag.pk}/archiv.{art}').status_code == 404
+
+
+def test_gp179_rechtsfolgenformat_nur_lesend(client):
+    """GP-179 (ZWA-24): Das Schema nahm jede HTTP-Methode an — wie das Antwortformat nur GET und HEAD."""
+    ziel = reverse('verfahren:rechtsfolgenformat')
+    assert client.get(ziel).status_code == 200
+    assert client.post(ziel).status_code == 405

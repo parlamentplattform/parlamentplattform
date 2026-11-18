@@ -51,6 +51,7 @@ def antwortformat(request):
     return antwort
 
 
+@require_safe
 def rechtsfolgenformat(request):
     from plattform_core.rechtsfolgen import VERSION, schema_als_dict
 

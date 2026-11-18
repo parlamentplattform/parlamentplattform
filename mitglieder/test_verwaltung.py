@@ -704,6 +704,51 @@ def test_ohne_audit_bleibt_die_bankkopplung_unscharf(client, monkeypatch):
     assert Bankkopplung.aktuelle() is None  # Kopplung und Audit gemeinsam oder gar nicht
 
 
+def test_ohne_audit_des_auszugs_bleibt_nichts_verbucht(client, monkeypatch):
+    """Auflage zu GP-102: Verbuchen und Audit-Eintrag „auszug_abgleich“ stehen in einer Klammer."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)})
+    zahler.refresh_from_db()
+    assert Beitragseingang.objects.count() == 0 and zahler.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='beitrag').exists()
+
+
+def test_scheitert_das_audit_meldet_die_verwaltung_keinen_erfolg(monkeypatch):
+    """Auflage zu GP-102: Die Erfolgsmeldung stand in der Klammer vor dem Audit-Eintrag — nach
+    der Rücknahme meldete die nächste Seite trotzdem „ausgeschlossen“."""
+    from django.contrib.messages import get_messages
+    from django.test import Client
+
+    anna = mitglied_anlegen()
+    client = Client(raise_request_exception=False)
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    assert antwort.status_code == 500
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == []
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV
+
+
 def test_ausschluss_vermerkt_die_entzogenen_adminrechte_im_audit(client):
     anna = mitglied_anlegen()
     anna.ist_admin = True

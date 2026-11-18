@@ -255,13 +255,15 @@ def auszug_hochladen(request):
         if eingang is None or referenz_finden(eingang.verwendungszweck) != eigene_referenz:
             fremde.append(roh)
     eigene = len(umsaetze) - len(fremde)
-    neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
     from mitglieder.verwaltung import _auditieren
 
-    _auditieren(
-        request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
-        pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
-    )
+    # GP-102: Verbuchen und Audit-Eintrag des Abgleichs gemeinsam oder gar nicht.
+    with transaction.atomic():
+        neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
+        _auditieren(
+            request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
+            pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
+        )
     messages.success(
         request,
         _("Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, %(neu)d neu verbucht.")

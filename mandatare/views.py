@@ -1564,7 +1564,7 @@ def verwaltung(request):
     mandate = list(
         Mandat.objects.select_related("mitglied", "kandidatur", "gemeinde")
         .defer("foto")
-        .prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
+        .prefetch_related(AUFGABEN_VORGELADEN, VERTRAUENSFRAGEN_VORGELADEN)  # samt Antrag: keine Abfrage je Aufgabe (GP-194)
     )
     heute = timezone.localdate()
     zusagen = _rueckgabezusagen_fuer(mandate)  # dieselbe Quelle wie Seite, Register und JSON — eine Abfrage für alle

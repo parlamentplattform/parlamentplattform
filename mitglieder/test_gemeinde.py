@@ -489,3 +489,16 @@ def test_gemeindeexport_waechter_kennt_keine_unbegruendete_auslassung(client, bu
         for schluessel in pfad:
             assert schluessel in knoten, (feld, pfad)
             knoten = knoten[schluessel]
+
+
+# --- Handy-Menü des Gemeindekontos ohne Doppel (GP-183, ZB-10/GE-16) ---------
+
+
+def test_handymenue_des_gemeindekontos_fuehrt_sprachwahl_und_farbschema_einmal(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    panel = html.split('<details class="menue"', 1)[1].split("</details>\n  </div>\n</header>", 1)[0]
+    assert panel.count('class="sprache-form"') == 1
+    assert panel.count('href="/gemeinde/konto/"') == 1
+    pop = html.split('aria-label="Gemeindekonto">G</summary>', 1)[1].split("</details>", 1)[0]
+    assert pop.count('class="sprache-form"') == 1  # das Kontomenü der Leiste behält beides

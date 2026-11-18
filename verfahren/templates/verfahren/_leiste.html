@@ -68,7 +68,7 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
           <a href="{% url 'uebersicht:index' %}"{% if AKTIV == "uebersicht" %} class="an"{% endif %}>{% translate "Übersicht" %}</a>
         </nav>
         {% if request.gemeindekonto or user.is_authenticated and not user.parteikonto %}
-        {% include "mitglieder/_gemeinde_kontomenue.html" %}
+        {% include "mitglieder/_gemeinde_kontomenue.html" with im_panel=True %}
         {% elif user.is_authenticated %}
         <a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>
         <p class="pop-titel">{{ user.anzeigename }}</p>

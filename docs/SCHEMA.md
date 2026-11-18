@@ -254,7 +254,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `draft_loop.acceptance_percent` | `vorschlag-annahme-prozent` | percent | Approval share the „fine as it is" post must exceed in the proposal chat so the draft goes to the final vote (it must also rank first) |
 | `draft_loop.chat_ordering_version` | `vorschlag-chat-reihung` | rule version | Version of the proposal-chat ordering rule (engagement-v1: engagement desc, then approval share, then time) |
 | `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | Minimum length of a criticism so it counts as a change request to the expert council |
-| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
+| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person (browser session) may send per day; the same value also caps the messages per connection and hour, shared by everyone behind one address |
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
 | `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
 | `mail.max_attempts` | `post-hoechstversuche` | attempts | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |

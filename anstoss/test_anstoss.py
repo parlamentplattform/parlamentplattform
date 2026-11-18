@@ -57,7 +57,7 @@ def test_ohne_cookie_zaehlt_die_verbindung(client):
         assert "anstoss=danke" in antwort.url
     client.cookies.clear()
     antwort = client.post(reverse("anstoss:senden"), {"text": "Der einundzwanzigste.", "seite": "/"})
-    assert "anstoss=warte" in antwort.url
+    assert "anstoss=drossel" in antwort.url
     assert Anstoss.objects.count() == 20
 
 
@@ -94,7 +94,7 @@ def test_die_grenzen_kommen_aus_dem_register(client):
         client.post(reverse("anstoss:senden"), {"text": f"Anstoß {i}.", "seite": "/"})
     client.cookies.clear()
     antwort = client.post(reverse("anstoss:senden"), {"text": "Der dritte.", "seite": "/"})
-    assert "anstoss=warte" in antwort.url and Anstoss.objects.count() == 2
+    assert "anstoss=drossel" in antwort.url and Anstoss.objects.count() == 2
 
 
 def test_leere_nachricht_wird_nicht_gespeichert(client):
@@ -231,3 +231,26 @@ def test_gemeindekonto_liest_auf_gemeindeseiten_den_anonymen_hinweis(client):
     assert "Wird Ihrem Konto zugeordnet" not in inhalt
     client.post(reverse("anstoss:senden"), {"text": "Von der Gemeindeseite.", "seite": "/gemeinde/"})
     assert Anstoss.objects.get().nutzer is None
+
+
+def test_drosselfall_hat_einen_eigenen_text(client):
+    """GP-201 (RVB-22): Die „Tagesgrenze“ wirkt zusätzlich je Verbindung und Stunde. Wer hinter
+    einer gemeinsamen Adresse noch nichts gesendet hat, las „Bitte einen Moment warten“ — wie bei
+    zu kurzem Abstand. Der Drosselfall sagt jetzt, was gilt; die Registerbeschreibung nennt beide Grenzen."""
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="anstoss-tagesgrenze").update(wert="1")
+    client.post(reverse("anstoss:senden"), {"text": "Erster.", "seite": "/"})
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Ein anderer Mensch.", "seite": "/parlament/"})
+    assert antwort.url == "/parlament/?anstoss=drossel"
+    inhalt = client.get(antwort.url).content.decode()
+    assert "Über diese Verbindung" in inhalt and "Bitte einen Moment warten" not in inhalt
+    client.cookies.clear()
+    teil = client.post(
+        reverse("anstoss:senden"), {"text": "Noch einer.", "seite": "/"}, headers={"HX-Request": "true"}
+    )
+    assert teil["HX-Trigger"] == "anstoss-drossel" and "Über diese Verbindung" in teil.content.decode()
+    beschreibung = Parameter.objects.get(schluessel="anstoss-tagesgrenze").beschreibung
+    assert "Tag" in beschreibung and "Stunde" in beschreibung and "Verbindung" in beschreibung

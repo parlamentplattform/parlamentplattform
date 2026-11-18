@@ -177,7 +177,8 @@ PARAMETER = {
     ),
     "anstoss-tagesgrenze": (
         "feedback.daily_limit", "messages",
-        "How many feedback messages a person may send per day",
+        "How many feedback messages a person (browser session) may send per day; the same value also caps "
+        "the messages per connection and hour, shared by everyone behind one address",
     ),
     "expertenrat-gruppe1-groesse": (
         "council.group1_size", "people",

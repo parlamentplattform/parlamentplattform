@@ -263,6 +263,9 @@ ALTE_SYSTEMBESCHREIBUNGEN = {
     "ki-monatstokens": (KI_MONAT_BESCHREIBUNG_ALT, "KI-Startgrenze statt garantierter Geldobergrenze"),
     "region-nebenwohnsitz-zaehlt": (NEBENWOHNSITZ_BESCHREIBUNG_ALT, "Nebenwohnsitz nur in der Regionsanzeige"),
     "suche-treffer-hoechstzahl": (SUCHTREFFER_BESCHREIBUNG_ALT, "Alle Wirkungen der Trefferzahl beschrieben"),
+    "anstoss-tagesgrenze": (
+        "Wie viele Anstöße eine Person am Tag senden kann.", "Tages- und Stundengrenze der Anstöße beschrieben"
+    ),
 }
 
 ERSTBESTAND = [
@@ -613,7 +616,9 @@ ERSTBESTAND = [
         "wert": "20",
         "einheit": gettext_noop("Anstöße"),
         "gruppe": "schutz",
-        "beschreibung": gettext_noop("Wie viele Anstöße eine Person am Tag senden kann."),
+        "beschreibung": gettext_noop("Wie viele Anstöße eine Person (Sitzung im Browser) am Tag senden kann. "
+        "Derselbe Wert begrenzt zusätzlich die Anstöße je Verbindung und Stunde — alle, die sich eine "
+        "Adresse teilen, teilen sich auch diese Grenze, auch ohne Sitzungscookie. Wirkt sofort."),
         "quelle": "§ 5 Abs 10 lit b",
     },
     {

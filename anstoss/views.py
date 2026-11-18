@@ -10,7 +10,9 @@ import csv
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from anstoss.models import Anstoss, AnstossStatus
@@ -21,6 +23,11 @@ from parameter.models import zahl
 # Zielwerte — gelesen wird das Register (anstoss-mindestabstand-sekunden, anstoss-tagesgrenze).
 MIN_ABSTAND_SEKUNDEN = 60
 TAGESGRENZE = 20
+
+
+def _drossel_text() -> str:
+    """Derselbe Satz wie im Widget (anstoss/_widget.html), für die htmx-Antwort."""
+    return _("Über diese Verbindung kamen in der letzten Stunde schon viele Anstöße — bitte später noch einmal versuchen.")
 
 
 def _mit_param(seite: str, wert: str) -> str:
@@ -75,8 +82,9 @@ def senden(request):
     elif drossel_zuviel(request, "anstoss", limit=tagesgrenze):
         # Die Sitzung gehört dem Client: Wer das Cookie weglässt, hat jedes Mal eine leere
         # (Befund #67). Darum zusätzlich je Verbindung und Stunde — und erst hier, damit
-        # leere und Honigtopf-POSTs kein Budget verbrauchen.
-        ergebnis = "warte"
+        # leere und Honigtopf-POSTs kein Budget verbrauchen. Eigene Meldung (GP-201): Wer hinter
+        # einer gemeinsamen Adresse noch nichts gesendet hat, soll nicht „warten“ lesen.
+        ergebnis = "drossel"
     else:
         Anstoss.objects.create(
             text=text[:4000],
@@ -90,7 +98,10 @@ def senden(request):
     if request.headers.get("HX-Request"):
         # Rückmeldung als Ereignis (HX-Trigger), nicht als Inline-Script: Alpine schließt die
         # Karte und zeigt die Blase; ohne JavaScript greift die Umleitung mit ?anstoss=…
-        antwort = render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
+        if ergebnis == "drossel":
+            antwort = HttpResponse(format_html('<p class="anstoss-echo">{}</p>', _drossel_text()))
+        else:
+            antwort = render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
         antwort["HX-Trigger"] = f"anstoss-{ergebnis}"
         return antwort
     return redirect(_mit_param(seite, ergebnis))

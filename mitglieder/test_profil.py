@@ -215,7 +215,7 @@ def test_anzeigename_kollidiert_nicht_mit_fremdem_pseudonym_oder_klarnamen(clien
         antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
         inhalt = antwort.content.decode()
         assert antwort.status_code == 200 and "nicht verfügbar" in inhalt, verboten
-        fehler = inhalt.split('<ul class="fehlerliste">')[1].split("</ul>")[0]
+        fehler = inhalt.split('<ul class="fehlerliste" id="id_anzeigename_error">')[1].split("</ul>")[0]
         assert "Klarname" not in fehler and "Anzeigenamen" not in fehler  # Meldung neutral
         anna.refresh_from_db()
         assert anna.pseudonym_oeffentlich == ""

@@ -220,7 +220,12 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     if ergebnis:
         laeufe = laeufe.exclude(pk=ergebnis["lauf"].pk)
     historie = Paginator(laeufe, max(1, min(100, zahl("ki-einschaetzungen-je-seite", 20)))).get_page(seite)
-    historie.object_list = [e for lauf in historie.object_list if (e := rechtsbezug_fuer(antrag, lauf, ziel=ziel)) is not None]
+    # Ein nicht eindeutig gebundener Lauf bleibt als eigene Zeile ohne Antwort stehen — nach der
+    # Seitenbildung herausgefiltert, ließe er leere Seiten mit vollem Seitenzähler zurück (GP-208).
+    historie.object_list = [
+        rechtsbezug_fuer(antrag, lauf, ziel=ziel) or {"lauf": lauf, "stand": lauf.erstellt_am, "nicht_pruefbar": True}
+        for lauf in historie.object_list
+    ]
     steller = getattr(antrag, "eingebracht_von", None)
     mail_zusage = bool(
         betrachter is not None

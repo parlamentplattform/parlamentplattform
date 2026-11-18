@@ -111,6 +111,9 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <h4>{% translate "Frühere Einschätzungen und Fehlversuche" %}</h4>
     <p class="meta">{% translate "Jüngster Lauf zuerst; bei gleichem Zeitpunkt höhere Laufnummer zuerst." %}</p>
     {% for h in lage.historie %}
+    {% if h.nicht_pruefbar %}
+    <p class="leer">{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% translate "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden. Seine Antwort wird nicht angezeigt." %}</p>
+    {% else %}
     <details class="klappe">
       <summary>{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% if h.lauf.erfolgreich %}{% translate "erledigt" %}{% else %}{% translate "gescheitert" %}{% endif %}</summary>
       <p class="meta">{{ h.modell }} · {{ h.auftrag_version }}</p>
@@ -127,6 +130,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
       {% else %}<p class="leer">{% translate "Anbieteraufruf fehlgeschlagen" %} · {{ h.lauf.fehler }}</p>{% endif %}
       <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>
     </details>
+    {% endif %}
     {% endfor %}
     {% if lage.historie.has_other_pages %}
     <nav aria-label="{% translate 'Seiten früherer Einschätzungen' %}">

@@ -103,3 +103,28 @@ def test_gp069_jeder_anker_der_parlament_vorlagen_steht_auf_der_antragsseite():
     assert 'zone-chat' in anker
     fehlend = sorted(a for a in anker if f'id="{a}"' not in ziel)
     assert fehlend == []
+
+
+def test_gp175_resttage_zaehlen_wiener_kalendertage(ordnung):  # noqa: F811
+    """GP-175 (OCR-14): `(frist - jetzt).days` rundete ab — „Frist endet heute“ stand schon am Vortag
+    und noch nach dem Fristende. Kachel und Zeile zählen jetzt Wiener Kalendertage."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    from django.utils import timezone
+
+    from verfahren.views import _kachel, resttage
+
+    wien = ZoneInfo('Europe/Vienna')
+    frist = datetime(2026, 11, 19, 12, 41, tzinfo=wien)
+    assert resttage(frist, datetime(2026, 11, 18, 13, 41, tzinfo=wien)) == 1  # 23 Stunden, aber morgen
+    assert resttage(frist, datetime(2026, 11, 19, 0, 5, tzinfo=wien)) == 0
+    assert resttage(frist, datetime(2026, 11, 17, 23, 59, tzinfo=wien)) == 2
+    assert resttage(frist, frist + timedelta(minutes=1)) is None  # verstrichen: kein „endet heute“
+    assert resttage(None, frist) is None
+
+    antrag = antrag_einbringen(mitglied_anlegen('anna'), **ANTRAG, ordnung=ordnung)
+    ende = _kachel(antrag, timezone.now())['frist']
+    vortag = datetime.combine(timezone.localdate(ende) - timedelta(days=1), datetime.max.time(), tzinfo=wien)
+    assert _kachel(antrag, vortag)['resttage'] == 1
+    assert _kachel(antrag, ende + timedelta(minutes=1))['resttage'] is None

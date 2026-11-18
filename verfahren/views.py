@@ -518,6 +518,15 @@ def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     return abstimmung_frist_ende(beginn, policy)
 
 
+def resttage(frist, jetzt) -> int | None:
+    """Ganze Wiener Kalendertage bis zum Fristende — 0 heißt „endet heute“ (GP-175). Eine verstrichene
+    oder fehlende Frist hat keine Resttage. Die eine Rechnung für Kachel und Zeile: `(frist - jetzt).days`
+    rundete ab und meldete „endet heute“ schon am Vortag und noch nach dem Ende."""
+    if frist is None or frist <= jetzt:
+        return None
+    return (timezone.localdate(frist) - timezone.localdate(jetzt)).days
+
+
 def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
             lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
@@ -548,7 +557,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     if vf is not None:
         vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
     frist = _frist_fuer(antrag, policy, beginn, vf)
-    resttage = max(0, (frist - jetzt).days) if frist else None
+    rest = resttage(frist, jetzt)
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
     if frist and beginn:
@@ -599,7 +608,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "sperre": kachel_sperre(sperre),
         "antrag": antrag,
         "frist": frist,
-        "resttage": resttage,
+        "resttage": rest,
         "verstrichen": verstrichen,
         "stat": stat,
         "thema": thema,

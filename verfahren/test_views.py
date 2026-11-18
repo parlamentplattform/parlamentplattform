@@ -107,12 +107,13 @@ def test_kachel_und_feed_zeile_rechnen_die_aussetzung_ein(client, ordnung):  # n
         hervorgehoben=True, hervorhebung_begruendung="IR-2026-01.", phase_beginn=jetzt - timedelta(days=4)
     )
     vorher = client.get("/parlament/").content.decode()
-    assert "noch <strong>2</strong> Tage" in vorher  # Frist in knapp drei Tagen
+    # Frist in drei Tagen — gezählt in Wiener Kalendertagen (GP-175)
+    assert "noch <strong>3</strong> Tage" in vorher
 
     _aussetzung(antrag, beginn=jetzt - timedelta(days=3, hours=12), beendet_am=jetzt - timedelta(hours=12))
     nachher = client.get("/parlament/").content.decode()
-    assert "noch <strong>5</strong> Tage" in nachher
-    assert "noch <strong>2</strong> Tage" not in nachher
+    assert "noch <strong>6</strong> Tage" in nachher
+    assert "noch <strong>3</strong> Tage" not in nachher
 
 
 # ── Neutrale Grundordnung nach dem Fristende (Befund #70) ─────────────────────

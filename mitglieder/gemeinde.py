@@ -184,10 +184,20 @@ def anmelden(request):
     return render(request, "mitglieder/gemeinde_formular.html", {"form": form, "gemeinden": _gemeinden(), "anmeldung": True})
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD", "POST"])
 @never_cache
 @transaction.atomic
 def bestaetigen(request, token):
+    if request.method != "POST":
+        # GP-018: Der Abruf zeigt nur die Zwischenseite; eingelöst wird erst per POST.
+        konto = EinmalToken.pruefen(token, EinmalToken.Zweck.GEMEINDE)
+        if konto is None or konto.parteikonto or not Gemeindezugang.objects.filter(
+            konto=konto, bestaetigt_am__isnull=True
+        ).exists():
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        from mitglieder.views import link_seite
+
+        return link_seite(request, _("Gemeindekonto bestätigen"), _("Gemeindekonto bestätigen"))
     konto = EinmalToken.einloesen(token, EinmalToken.Zweck.GEMEINDE)
     if konto is None or konto.parteikonto:
         return render(request, "mitglieder/token_ungueltig.html", status=400)

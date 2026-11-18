@@ -20,7 +20,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods, require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
 from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
@@ -208,7 +209,20 @@ def registrieren(request):
     return render(request, "mitglieder/registrieren.html", {"form": form, "gemeinden": gemeinden})
 
 
+def link_seite(request, titel: str, knopf: str):
+    """Zwischenseite eines E-Mail-Links (GP-018): Der Abruf — auch durch Linkprüfer von
+    Mailanbietern — löst nichts ein; erst das Absenden des Formulars (POST mit CSRF-Schutz)."""
+    return render(request, "mitglieder/link_bestaetigen.html", {"titel": titel, "knopf": knopf})
+
+
+@require_http_methods(["GET", "HEAD", "POST"])
+@never_cache
 def bestaetigen(request, token: str):
+    if request.method != "POST":
+        mitglied = EinmalToken.pruefen(token, EinmalToken.Zweck.BESTAETIGUNG)
+        if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        return link_seite(request, _("E-Mail-Adresse bestätigen"), _("Adresse bestätigen"))
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
     # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
     # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
@@ -333,7 +347,14 @@ def login_anfordern(request):
     return render(request, "mitglieder/login.html", {"form": form})
 
 
+@require_http_methods(["GET", "HEAD", "POST"])
+@never_cache
 def login_einloesen(request, token: str):
+    if request.method != "POST":
+        mitglied = EinmalToken.pruefen(token, EinmalToken.Zweck.LOGIN)
+        if mitglied is None or not mitglied.is_active:
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        return link_seite(request, _("Anmelden"), _("Jetzt anmelden"))
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.LOGIN)
     if mitglied is None or not mitglied.is_active:
         return render(request, "mitglieder/token_ungueltig.html", status=400)

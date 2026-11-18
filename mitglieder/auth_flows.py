@@ -65,6 +65,18 @@ class EinmalToken(models.Model):
         return klar
 
     @classmethod
+    def pruefen(cls, klartext: str, zweck: str):
+        """Wie `einloesen`, aber ohne zu entwerten: Der Abruf eines Links (GET, HEAD — auch durch
+        Linkprüfer von Mailanbietern) zeigt nur die Bestätigungsseite (GP-018)."""
+        gehasht = hashlib.sha256(klartext.encode()).hexdigest()
+        t = (
+            cls.objects.select_related("mitglied")
+            .filter(token_hash=gehasht, zweck=zweck, verbraucht_am=None, gueltig_bis__gte=timezone.now())
+            .first()
+        )
+        return t.mitglied if t else None
+
+    @classmethod
     def einloesen(cls, klartext: str, zweck: str):
         """Gibt das Mitglied zurück, wenn das Token gültig ist, und entwertet es.
         Sonst None. Konstantzeitvergleich ist hier unnötig (Hash-Lookup)."""

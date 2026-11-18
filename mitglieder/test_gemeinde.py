@@ -77,7 +77,7 @@ def test_anmeldung_bestaetigung_und_login_ohne_parteifolgen(client, ort):
     assert link.startswith("/gemeinde/bestaetigen/")
     assert "geburtsdatum" not in {f.name for f in Gemeindezugang._meta.fields}
     assert "geburtsdatum" not in client.session
-    assert client.get(link).url == reverse("gemeinde:konto")
+    assert client.post(link).url == reverse("gemeinde:konto")
     m.refresh_from_db()
     assert m.is_active and m.beitritt is None and m.mitgliedsnummer is None
     assert not m.ist_stimmberechtigt(Gegenstand.SACHFRAGE, timezone.localdate(), uebergang=True)
@@ -89,8 +89,26 @@ def test_anmeldung_bestaetigung_und_login_ohne_parteifolgen(client, ort):
     client.post(reverse("mitglieder:abmelden"))
     url = reverse("mitglieder:login")
     client.post(url, {"email": m.email, **botschutz(client, url=url)})
-    assert client.get(link_aus_mail(mail.outbox[-1])).url == reverse("gemeinde:konto")
+    assert client.post(link_aus_mail(mail.outbox[-1])).url == reverse("gemeinde:konto")
     assert len(mail.outbox) == 2
+
+
+def test_abruf_des_gemeindelinks_loest_nichts_ein(client, ort):
+    anmelden(client, ort)
+    m = Mitglied.objects.get(email="neu@example.org")
+    link = link_aus_mail(mail.outbox[0])
+    for methode in (client.head, client.get):
+        assert methode(link).status_code == 200
+        m.refresh_from_db()
+        assert not m.is_active and m.gemeindezugang.bestaetigt_am is None
+        assert EinmalToken.objects.filter(mitglied=m, verbraucht_am=None).count() == 1
+        assert "_auth_user_id" not in client.session
+    assert 'method="post"' in client.get(link).content.decode()
+    assert client.post(link).url == reverse("gemeinde:konto")
+    m.refresh_from_db()
+    assert m.is_active and m.gemeindezugang.bestaetigt_am is not None
+    client.post(reverse("mitglieder:abmelden"))
+    assert client.post(link).status_code == 400
 
 
 @pytest.mark.parametrize("extra", [
@@ -138,7 +156,7 @@ def test_erneuter_link_fuer_noch_unbestaetigtes_gemeindekonto(client, ort):
     url = reverse("mitglieder:login")
     client.post(url, {"email": m.email, **botschutz(client, url=url)})
     assert "/gemeinde/bestaetigen/" in mail.outbox[-1].body
-    assert client.get(link_aus_mail(mail.outbox[-1])).status_code == 302
+    assert client.post(link_aus_mail(mail.outbox[-1])).status_code == 302
     m.refresh_from_db()
     assert m.beitritt is None and not m.parteikonto
 

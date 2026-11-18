@@ -79,7 +79,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     assert not m.has_usable_password()  # passwortlos by design
     assert len(mail.outbox) == 1
 
-    antwort = client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    antwort = client.post(link_aus_mail(mail.outbox[0]), follow=True)
     m.refresh_from_db()
     assert m.is_active is True
     assert m.beitritt == timezone.localdate()  # Anwartschaft beginnt (§ 4 Abs 4) — Ortszeit, nicht UTC
@@ -93,7 +93,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
 def test_bestaetigungslink_ist_nur_einmal_gueltig(client):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
     link = link_aus_mail(mail.outbox[0])
-    assert client.get(link, follow=True).status_code == 200
+    assert client.post(link, follow=True).status_code == 200
     client.post(reverse("mitglieder:abmelden"))
     assert client.get(link).status_code == 400  # verbraucht
 
@@ -129,7 +129,7 @@ def test_login_per_magic_link_funktioniert_genau_einmal(client):
     assert len(mail.outbox) == 1
     link = link_aus_mail(mail.outbox[0])
 
-    antwort = client.get(link)
+    antwort = client.post(link)
     assert antwort.status_code == 302
     assert int(client.session["_auth_user_id"]) == m.pk
 
@@ -177,7 +177,7 @@ def test_unbestaetigtes_konto_sperrt_die_adresse_nicht_dauerhaft(client):
     assert Mitglied.objects.count() == 1  # überschrieben, nicht verdoppelt
     m.refresh_from_db()
     assert m.first_name == "Evamaria" and m.is_active is False
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)
     m.refresh_from_db()
     assert m.is_active is True and m.beitritt == timezone.localdate()
 
@@ -280,6 +280,49 @@ def test_bestaetigung_entwertet_die_uebrigen_bestaetigungslinks(client):
     assert not EinmalToken.objects.filter(
         mitglied=eva, zweck=EinmalToken.Zweck.BESTAETIGUNG, verbraucht_am=None
     ).exists()
+
+
+# --- Abruf eines Links löst nichts ein (GP-018, KM-02) ----------------------------------
+
+
+def test_abruf_des_bestaetigungslinks_loest_nichts_ein(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link = link_aus_mail(mail.outbox[0])
+    eva = Mitglied.objects.get(email='eva@example.org')
+    for methode in (client.head, client.get):
+        antwort = methode(link)
+        assert antwort.status_code == 200
+        eva.refresh_from_db()
+        assert eva.is_active is False and eva.beitritt is None and eva.mitgliedsnummer is None
+        assert EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).count() == 1
+        assert '_auth_user_id' not in client.session
+    seite = client.get(link).content.decode()
+    assert 'method="post"' in seite and 'csrfmiddlewaretoken' in seite
+    assert client.post(link).status_code == 302
+    eva.refresh_from_db()
+    assert eva.is_active is True and eva.beitritt is not None
+    assert int(client.session['_auth_user_id']) == eva.pk
+    client.post(reverse('mitglieder:abmelden'))
+    assert client.post(link).status_code == 400  # genau einmal
+
+
+def test_abruf_des_anmeldelinks_loest_nichts_ein(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    eva = Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True)
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    link = link_aus_mail(mail.outbox[0])
+    for methode in (client.head, client.get):
+        assert methode(link).status_code == 200
+        assert '_auth_user_id' not in client.session
+        assert EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).count() == 1
+    assert client.post(link).status_code == 302
+    assert int(client.session['_auth_user_id']) == eva.pk
+    client.post(reverse('mitglieder:abmelden'))
+    assert client.post(link).status_code == 400
 
 
 # --- Menschlichkeitsprüfung (F-49) ---------------------------------------------
@@ -441,7 +484,7 @@ def test_nach_einem_tippfehler_bleibt_dieselbe_aufgabe_stehen(client):
 
 def test_willkommensseite_zeigt_beitrags_qr(client):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)  # bestätigen (landet in der Einführung)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)  # bestätigen (landet in der Einführung)
     inhalt = client.get(reverse("mitglieder:willkommen")).content.decode()
     assert "<svg" in inhalt  # EPC-QR-Code (F-38): Zahlen mit Code, ohne Zahlungsdienstleister
     assert "Zahlen mit Code" in inhalt

@@ -319,3 +319,63 @@ def test_ein_unlesbarer_testwert_wird_abgewiesen(client):
     assert 'ganze Zahl' in antwort.content.decode()
     _test_anordnen(client, leute[0], parameter, '100')
     assert ParameterTest.objects.count() == 1
+
+
+# --- GP-047: Das Werkstattfenster verlinkt den Folgenbericht, statt rohes JSON zu zeigen ------
+
+
+def test_das_fenster_zeigt_den_folgenbericht_nicht_als_rohes_json(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-047: Ohne Werkstatt-Einschätzung fiel die Arbeitsunterlage auf den Rechtsfolgenlauf zurück — und
+    zeigte dessen JSON, bei 1200 Zeichen abgeschnitten. Der Verweis „in Zone 2“ zielte auf eine id, die es
+    auf der Antragsseite nicht gibt."""
+    import re
+    from types import SimpleNamespace
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    import verfahren.views
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+    echt = verfahren.views._einschaetzung
+
+    def mit_folgenlauf(antrag, *args, **kwargs):
+        lage = echt(antrag, *args, **kwargs)
+        lage['lauf'] = SimpleNamespace(zweck='rechtsfolgen', antwort='{"normen": [], "judikatur": {"text": "x"}}', erstellt_am=timezone.now(), modell='attrappe')
+        lage['beanstandungen'] = [SimpleNamespace(pk=1)]
+        return lage
+
+    monkeypatch.setattr(verfahren.views, '_einschaetzung', mit_folgenlauf)
+    seite = client.get(reverse('gremien:fenster', args=[antrag.pk])).content.decode()
+    assert '&quot;normen&quot;' not in seite and '"normen"' not in seite and '&quot;judikatur&quot;' not in seite
+    assert 'Zum Rechtsfolgenbericht am Antrag' in seite
+    assert '#zone-2' not in seite
+    ziele = set(re.findall(rf'href="/antrag/{antrag.pk}/#([a-z0-9-]+)"', seite))
+    assert ziele == {'zone-einschaetzung'}
+    client.logout()
+    antragsseite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'id="zone-einschaetzung"' in antragsseite
+
+
+def test_eine_werkstatt_einschaetzung_steht_weiter_im_fenster(client, ordnung, monkeypatch):  # noqa: F811
+    from types import SimpleNamespace
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    import verfahren.views
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+    echt = verfahren.views._einschaetzung
+
+    def mit_einschaetzung(antrag, *args, **kwargs):
+        lage = echt(antrag, *args, **kwargs)
+        lage['lauf'] = SimpleNamespace(zweck='einschaetzung', antwort='Die Fassung ist schlüssig.', erstellt_am=timezone.now(), modell='attrappe')
+        return lage
+
+    monkeypatch.setattr(verfahren.views, '_einschaetzung', mit_einschaetzung)
+    assert 'Die Fassung ist schlüssig.' in client.get(reverse('gremien:fenster', args=[antrag.pk])).content.decode()

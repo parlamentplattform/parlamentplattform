@@ -907,7 +907,8 @@ class Pruefung(models.Model):
         STATTGEGEBEN = "stattgegeben", _("stattgegeben")
         ABGELEHNT = "abgelehnt", _("abgelehnt")
         VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
-        # Der Beschluss schloss ohne Ergebnis (Gleichstand, Quorum verfehlt) — das ist keine Ablehnung (GP-040).
+        # Der Beschluss schloss VOR der Verfristung ohne Ergebnis (alle haben gestimmt, Gleichstand) — das
+        # ist keine Ablehnung (GP-040). Zur Frist ohne Ergebnis bleibt der Entscheid leer: verfristet (GP-010).
         OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
@@ -2461,7 +2462,20 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
+    if not beschluss.ergebnis and (jetzt or timezone.now()) >= pruefung.austausch_frist:
+        # Zur Verfristung ohne Ergebnis geblieben (Quorum verfehlt, Gleichstand): Das ist kein
+        # Entscheid des Rates. Der Entscheid bleibt leer, und `Entwurf.fortschreiben` verfristet den
+        # Antrag — der Vorschlag geht an die Unterstützer (GP-010). Stünde hier „ohne Ergebnis“,
+        # bliebe der Entwurf bei Gruppe 2 mit frischer Prüffrist, und Schweigen des
+        # Koordinationsrats verlängerte die Beratung (§ 5 Abs 12: Untätigkeit hemmt nie).
+        _vermerken(
+            beschluss,
+            "Ohne Ergebnis zur Frist — der Austauschantrag verfristet, der Vorschlag geht an die "
+            "Unterstützer (§ 5 Abs 12).",
+        )
+        return
     if not beschluss.ergebnis:
+        # Ohne Ergebnis VOR der Verfristung (alle haben gestimmt, Gleichstand): eigener Wert (GP-040).
         entscheid = Pruefung.KoratEntscheid.OHNE_ERGEBNIS.value
     else:
         entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"

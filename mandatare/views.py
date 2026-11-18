@@ -1838,7 +1838,7 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
             nachgetragen_am=timezone.now(),
             quelle=quelle,
         )
-        ereignis = {"typ": "rechenschaft_nachgetragen", "mandat": mandat.pk, "rechenschaft": eintrag.pk, "durch": "verwaltung"}
+        ereignis = {"typ": "rechenschaft_nachgetragen", "mandat": mandat.pk, "rechenschaft": eintrag.pk, "durch": request.user.pk}
         if antrag is not None:
             ereignis["antrag"] = antrag.pk
         AuditEintrag.anhaengen(ereignis)

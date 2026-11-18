@@ -608,8 +608,11 @@ def test_audit_der_mandate_verwaltung_nennt_das_handelnde_konto(client, ordnung)
     client.force_login(admin)
     verwaltung = reverse("mandatare:verwaltung_aktion")
     mandat = mandat_anlegen(mitglied_anlegen("bert"), angetreten=timezone.localdate() - timedelta(days=400))
-    gemeinde = Gemeinde.objects.first()
+    gemeinde = Gemeinde.objects.create(kennziffer="40510", name="Gleichort", bezirk="Eferding", bundesland="oberoesterreich")
     heute = timezone.localdate()
+    ausgeschieden = mandat_anlegen(
+        mitglied_anlegen("emil"), angetreten=heute - timedelta(days=400), vertretung_beendet_am=heute - timedelta(days=20)
+    )
 
     def neue(handlung):
         vorher = AuditEintrag.objects.count()
@@ -623,9 +626,10 @@ def test_audit_der_mandate_verwaltung_nennt_das_handelnde_konto(client, ordnung)
         {"aktion": "foto", "mandat": mandat.pk, "foto": SimpleUploadedFile("f.png", PNG_MINI, "image/png")},
         {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "abgegeben"},
         {"aktion": "lit_h", "mandat": mandat.pk, "datum": heute.isoformat()},
+        {"aktion": "gemeinde_zuordnen", "mandat": mandat.pk, "gemeindekennziffer": gemeinde.kennziffer},
+        {"aktion": "rechenschaft_nachtragen", "mandat": ausgeschieden.pk, "sitzung_am": (heute - timedelta(days=5)).isoformat(),
+         "gegenstand": "Budget", "stimme": "dagegen", "quelle": "https://gemeinde.example.org/protokoll"},
     ]
-    if gemeinde is not None:
-        handlungen.append({"aktion": "gemeinde_zuordnen", "mandat": mandat.pk, "gemeindekennziffer": gemeinde.kennziffer})
     for daten in handlungen:
         eintraege = neue(lambda d=daten: client.post(verwaltung, d))
         assert eintraege and all(e.get("durch") == admin.pk for e in eintraege), (daten["aktion"], eintraege)

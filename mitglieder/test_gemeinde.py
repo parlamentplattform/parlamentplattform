@@ -325,3 +325,44 @@ def test_gemeindekonto_kann_die_oeffentliche_rueckmeldung_wie_ein_gast_nutzen(cl
     r = client.post(reverse("anstoss:senden"), {"text": "Örtliche Bedienfrage", "seite": "/gemeinde/konto/"})
     assert r.status_code in (200, 302)
     assert Anstoss.objects.get().nutzer_id is None
+
+
+# --- Umzug über den Gemeindezugang (GP-096, GE-07/KM-14) ----------------------------------
+
+
+def test_umzug_ueber_gemeindezugang_speichert_den_wiener_bezirk(client):
+    wien = Gemeinde.objects.create(kennziffer="90001", name="Wien", bezirk="Wien", bundesland="wien")
+    linz = Gemeinde.objects.create(kennziffer="40101", name="Linz", bezirk="Linz", bundesland="oberoesterreich")
+    m = Mitglied.objects.create_user(
+        "wienerin@example.org", email="wienerin@example.org", is_active=True,
+        wohnsitz=wien, gemeinde="Wien", bundesland="wien", wohnsitz_art=Wohnsitzart.OESTERREICH, wiener_bezirk="902",
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=m, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    client.force_login(m)
+    for ziel in (linz, wien):
+        vorher = AuditEintrag.objects.count()
+        antwort = client.post(reverse("gemeinde:konto"), {"wohnsitz_art": "oesterreich", "gemeinde": ziel.anzeige, "meldung": "on"})
+        assert antwort.status_code == 302
+        m.refresh_from_db()
+        assert m.wiener_bezirk == "" and m.wiener_hauptbezirk == ""
+        assert m.wohnsitz == ziel
+        neu = [e.ereignis for e in AuditEintrag.objects.order_by("pk")[vorher:]]
+        assert [e["felder"] for e in neu] == [["wohnsitz", "wiener_bezirk"] if ziel == linz else ["wohnsitz"]]
+
+
+def test_gemeindezugang_weist_den_nebenwohnsitz_als_hauptwohnsitz_ab(client):
+    wien = Gemeinde.objects.create(kennziffer="90001", name="Wien", bezirk="Wien", bundesland="wien")
+    linz = Gemeinde.objects.create(kennziffer="40101", name="Linz", bezirk="Linz", bundesland="oberoesterreich")
+    m = Mitglied.objects.create_user(
+        "wienerin@example.org", email="wienerin@example.org", is_active=True, wohnsitz=wien,
+        gemeinde="Wien", bundesland="wien", wohnsitz_art=Wohnsitzart.OESTERREICH, nebenwohnsitz=linz,
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=m, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    client.force_login(m)
+    antwort = client.post(reverse("gemeinde:konto"), {"wohnsitz_art": "oesterreich", "gemeinde": linz.anzeige, "meldung": "on"})
+    assert antwort.status_code == 200
+    assert "Der Nebenwohnsitz ist bereits Ihr Wohnsitz." in antwort.content.decode()
+    m.refresh_from_db()
+    assert m.wohnsitz == wien

@@ -229,13 +229,19 @@ def konto(request):
         "wohnsitz_art": request.user.wohnsitz_art_aktuell,
         "gemeinde": request.user.wohnsitz.anzeige if request.user.wohnsitz_id else "",
     })
+    if request.method == "POST" and form.is_valid() and form.gemeinde_objekt is not None and (
+        form.gemeinde_objekt.pk == request.user.nebenwohnsitz_id
+    ):
+        # Wie im Profil (GP-096): Der Hauptwohnsitz ist nicht zugleich der Nebenwohnsitz.
+        form.add_error("gemeinde", _("Der Nebenwohnsitz ist bereits Ihr Wohnsitz."))
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             aktuell = Mitglied.objects.select_for_update().get(pk=request.user.pk)
             if aktuell.testkonto:
                 return render(request, "mitglieder/token_ungueltig.html", status=403)
             geaendert = wohnsitz_anwenden(aktuell, form)
-            aktuell.save(update_fields=["wohnsitz_art", "wohnsitz", "gemeinde", "bundesland"])
+            # GP-096: Auch der Wiener Gemeindebezirk wird gespeichert — das Audit nennt nur, was gespeichert ist.
+            aktuell.save(update_fields=["wohnsitz_art", "wohnsitz", "gemeinde", "bundesland", "wiener_bezirk"])
             if aktuell.parteikonto and geaendert:
                 from verfahren.models import AuditEintrag
 

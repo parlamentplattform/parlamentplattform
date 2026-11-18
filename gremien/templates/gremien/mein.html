@@ -11,7 +11,7 @@ Umweg in seinem Bereich — diese Seite sieht er nie.
   {% for b in bereiche %}
   <a class="bereich" href="{{ b.url }}" style="text-decoration:none">
     <span class="bk">{{ b.name }}</span>
-    <span class="meta">{% if b.antrag %}{% translate "für" %} „{{ b.antrag.titel }}“ · {% endif %}{% translate "bis" %} {{ b.endet_am|date:"d.m.Y" }}</span>
+    <span class="meta">{% if b.antraege %}{% translate "für" %} {% for a in b.antraege %}„{{ a.titel }}“{% if not forloop.last %}, {% endif %}{% endfor %} · {% endif %}{% translate "bis" %} {{ b.endet_am|date:"d.m.Y" }}</span>
   </a>
   {% endfor %}
 </div>

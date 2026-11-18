@@ -379,3 +379,27 @@ def test_eine_werkstatt_einschaetzung_steht_weiter_im_fenster(client, ordnung, m
 
     monkeypatch.setattr(verfahren.views, '_einschaetzung', mit_einschaetzung)
     assert 'Die Fassung ist schlüssig.' in client.get(reverse('gremien:fenster', args=[antrag.pk])).content.decode()
+
+
+# --- GP-167: „Mein Gremium“ nennt alle Anträge einer Rolle ------------------------------------
+
+
+def test_mein_gremium_nennt_alle_gelosten_antraege(client, ordnung):  # noqa: F811
+    """GP-167: Wer in Gruppe 1 für zwei Anträge gelost war, las auf der Auswahlseite nur den ersten."""
+    from django.urls import reverse
+
+    from gremien.models import Gremium
+    from gremien.test_werkstatt import rolle_geben
+    from verfahren.models import antrag_einbringen
+
+    rat = mitglied_anlegen('doppelrat')
+    stellerin = mitglied_anlegen('stellerin')
+    erster = antrag_einbringen(stellerin, titel='Radwege an der Hauptstraße', wortlaut='A.', begruendung='B.', ordnung=ordnung)
+    zweiter = antrag_einbringen(stellerin, titel='Trinkbrunnen am Marktplatz', wortlaut='A.', begruendung='B.', ordnung=ordnung)
+    rolle_geben(rat, Gremium.EXPERTENRAT_1, antrag=erster)
+    rolle_geben(rat, Gremium.EXPERTENRAT_1, antrag=zweiter)
+    rolle_geben(rat, Gremium.KOORDINATIONSRAT)
+    client.force_login(rat)
+    seite = client.get(reverse('gremien:mein')).content.decode()
+    assert 'Radwege an der Hauptstraße' in seite and 'Trinkbrunnen am Marktplatz' in seite
+    assert seite.count('class="bereich"') == 2  # je Gremium eine Kachel, nicht je Rolle

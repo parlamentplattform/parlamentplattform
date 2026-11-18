@@ -211,20 +211,22 @@ def mein(request):
     )
     if not rollen:
         return redirect("gremien:uebersicht")
-    bereiche = []
-    gesehen = set()
+    # Je Gremium eine Kachel — mit allen Anträgen, für die die Person dort gelost ist (GP-167).
+    je_gremium = {}
     for rolle in rollen:
-        if rolle.gremium in gesehen:
-            continue
-        gesehen.add(rolle.gremium)
-        bereiche.append(
+        bereich = je_gremium.setdefault(
+            rolle.gremium,
             {
                 "name": rolle.get_gremium_display(),
                 "url": _bereich_url(rolle.gremium),
-                "antrag": rolle.antrag,
+                "antraege": [],
                 "endet_am": rolle.endet_am,
-            }
+            },
         )
+        if rolle.antrag is not None:
+            bereich["antraege"].append(rolle.antrag)
+        bereich["endet_am"] = max(bereich["endet_am"], rolle.endet_am)
+    bereiche = list(je_gremium.values())
     if len(bereiche) == 1:
         return redirect(bereiche[0]["url"])
     return render(request, "gremien/mein.html", {"bereiche": bereiche})

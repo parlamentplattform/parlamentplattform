@@ -3,6 +3,7 @@
 {% block inhalt %}
 <p><a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}">{{ gemeinde.anzeige }}</a></p>
 <h1>{% translate "Öffentliche Sitzungsunterlagen" %}</h1>
+{% include "mandatare/_gemeinde_abgrenzung.html" %}
 <p>{% translate "DDÖ-Mandatare verlinken hier öffentliche Unterlagen der Gemeinde. Die Links führen zu den jeweiligen Quellen." %}</p>
 {% for quelle in seite %}
 <article class="karte" id="sitzungsquelle-{{ quelle.pk }}">

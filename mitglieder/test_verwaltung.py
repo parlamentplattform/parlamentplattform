@@ -666,3 +666,19 @@ def test_verwaltung_verweist_auf_parameter_und_quellenverwaltung(client):
     admin.save(update_fields=["identitaetsstufe"])
     html = client.get(reverse("mitglieder:verwaltung")).content.decode()
     assert f'href="{reverse("faktenbasis:verwaltung")}"' not in html  # nur für Berechtigte
+
+
+# --- Satzungsverweise auf § 4 (GP-176, OCR-16) --------------------------------
+
+
+def test_verweise_auf_paragraf_4_nennen_nur_vorhandene_absaetze():
+    """§ 4 des Satzungsentwurfs 2.5 hat fünf Absätze; der Ausschluss steht in Abs 5."""
+    from pathlib import Path
+
+    vorlagen = Path(__file__).parent / "templates"
+    zitate = [
+        (datei.name, int(absatz))
+        for datei in vorlagen.rglob("*.*")
+        for absatz in re.findall(r"§ 4 Abs (\d+)", datei.read_text(encoding="utf-8"))
+    ]
+    assert zitate and all(1 <= absatz <= 5 for _datei, absatz in zitate), zitate

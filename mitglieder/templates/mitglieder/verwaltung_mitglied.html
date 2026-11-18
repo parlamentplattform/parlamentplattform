@@ -94,7 +94,7 @@
     <textarea id="id_grund" name="grund" rows="2" placeholder="{% translate 'z. B. Beitrag seit über einem Jahr ausständig; Erinnerung am …' %}"></textarea></p>
     <div class="stimmzeile">
       {% if person.status != "pausiert" %}<button type="submit" name="aktion" value="pausieren" class="btn-linie">{% translate "Pausieren (Beitrag ausständig)" %}</button>{% endif %}
-      {% if person.status != "ausgeschlossen" %}<button type="submit" name="aktion" value="ausschliessen" class="btn-still">{% translate "Ausschließen (vollzieht den Beschluss nach § 4 Abs 6)" %}</button>{% endif %}
+      {% if person.status != "ausgeschlossen" %}<button type="submit" name="aktion" value="ausschliessen" class="btn-still">{% translate "Ausschließen (vollzieht den Beschluss nach § 4 Abs 5)" %}</button>{% endif %}
       {% if person.status != "aktiv" %}<button type="submit" name="aktion" value="reaktivieren" class="btn">{% translate "Wieder aktiv setzen" %}</button>{% endif %}
     </div>
   </form>

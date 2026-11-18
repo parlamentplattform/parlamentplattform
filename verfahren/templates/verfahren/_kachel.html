@@ -46,7 +46,10 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
     </span>
     {% endif %}
 
-    {% if k.stat.typ == "abstimmung" and not user.is_authenticated %}
+    {% if k.frist_abgelaufen %}
+      {# GP-175: Frist um, Fortschreibung steht aus — kein Knopf, der nichts mehr bewirken kann #}
+      <span class="rest frist">{% translate "Frist abgelaufen, wird ausgewertet" %}</span>
+    {% elif k.stat.typ == "abstimmung" and not user.is_authenticated %}
       <span class="rest"><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden zum Abstimmen" %}</a></span>
     {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}
       {% if k.antrag.art == "mandat" %}

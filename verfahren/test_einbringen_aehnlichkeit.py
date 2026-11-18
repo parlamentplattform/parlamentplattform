@@ -368,3 +368,36 @@ def test_karte_nennt_ihre_reihung_und_verlinkt_die_regel(client, bestehend):
     assert f'href="{ziel}"' in inhalt
     assert 'gereiht nach dem höheren der beiden Werte' in inhalt
     assert 'id="regel-similarity"' in client.get(reverse('parameter:regeln')).content.decode()
+
+
+def test_gp175_aehnlichkeitskarte_zaehlt_wiener_kalendertage(bestehend):
+    """GP-175 (Rest): Die Ähnlichkeitskarte rundete `(frist - jetzt)` auf ganze 24 Stunden auf — 25 Stunden
+    vor einem Fristende morgen stand „Noch 2 Tage“, nach dem Ende „Noch 0 Tage“ mit Knopf. Sie rechnet
+    jetzt mit derselben Funktion wie Kachel und Zeile."""
+    from datetime import datetime, timedelta
+    from unittest import mock
+    from zoneinfo import ZoneInfo
+
+    from django.template.loader import render_to_string
+
+    wien = ZoneInfo("Europe/Vienna")
+    frist = datetime(2026, 11, 19, 12, 0, tzinfo=wien)
+    tage = bestehend.policy().unterstuetzung_frist_tage
+    Antrag.objects.filter(pk=bestehend.pk).update(phase_beginn=frist - timedelta(days=tage))
+
+    def treffer(jetzt):
+        with mock.patch("django.utils.timezone.now", return_value=jetzt):
+            gefunden = aehnliche_antraege(ANTRAG["titel"], ANTRAG["wortlaut"], None, bedeutung=False).treffer
+        return next(t for t in gefunden if t["antrag"].pk == bestehend.pk)
+
+    vortag = treffer(datetime(2026, 11, 18, 11, 0, tzinfo=wien))  # 25 Stunden, aber morgen
+    assert vortag["rest_tage"] == 1 and not vortag["frist_abgelaufen"]
+    assert treffer(datetime(2026, 11, 19, 0, 5, tzinfo=wien))["rest_tage"] == 0
+    danach = treffer(frist + timedelta(minutes=1))
+    assert danach["rest_tage"] is None and danach["frist_abgelaufen"]
+
+    html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [danach], "oertlich_gesperrte_treffer": []})
+    assert "Frist abgelaufen, wird ausgewertet" in html
+    assert f'name="unterstuetzen" value="{bestehend.pk}"' not in html
+    html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [vortag], "oertlich_gesperrte_treffer": []})
+    assert "Noch 1 Tag" in html and f'name="unterstuetzen" value="{bestehend.pk}"' in html

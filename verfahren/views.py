@@ -614,6 +614,9 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "antrag": antrag,
         "frist": frist,
         "resttage": rest,
+        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt
+        # „wird ausgewertet“ und bietet keinen Knopf mehr, der nichts bewirken kann.
+        "frist_abgelaufen": frist is not None and frist <= jetzt,
         "verstrichen": verstrichen,
         "stat": stat,
         "thema": thema,

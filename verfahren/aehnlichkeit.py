@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from math import ceil
 
 from django.db.models import F
 from django.utils import timezone
@@ -170,8 +169,9 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
         limit=zahl("aehnlichkeit-treffer", 3),
     )
     nach_id = {a.pk: a for a in offene}
+    jetzt = timezone.now()
     for kid, wort, bedeutung in zeilen:
-        from verfahren.views import _frist_fuer
+        from verfahren.views import _frist_fuer, resttage
 
         antrag = nach_id[kid]
         rechtsbezug = rechtsbezug_fuer(antrag)
@@ -182,7 +182,9 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
                 "prozent": round(wort * 100),
                 "bedeutung_prozent": round(bedeutung * 100) if bedeutung is not None else None,
                 "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
-                "rest_tage": max(0, ceil((frist - timezone.now()).total_seconds() / 86400)) if frist else None,
+                # GP-175: dieselbe Rechnung wie Kachel und Zeile (Wiener Kalendertage, 0 = endet heute)
+                "rest_tage": resttage(frist, jetzt),
+                "frist_abgelaufen": frist is not None and frist <= jetzt,
                 "normen": rechtsbezug["normen"] if rechtsbezug else [],
                 "rechtsbezug": rechtsbezug,
             }

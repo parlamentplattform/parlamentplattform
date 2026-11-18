@@ -128,3 +128,36 @@ def test_gp175_resttage_zaehlen_wiener_kalendertage(ordnung):  # noqa: F811
     vortag = datetime.combine(timezone.localdate(ende) - timedelta(days=1), datetime.max.time(), tzinfo=wien)
     assert _kachel(antrag, vortag)['resttage'] == 1
     assert _kachel(antrag, ende + timedelta(minutes=1))['resttage'] is None
+
+
+def test_gp175_nach_fristende_kein_handlungsknopf_sondern_auswertung(client, ordnung):  # noqa: F811
+    """GP-175 (AF-20): Nach Fristende blieb „Unterstützen“ in Kachel und Zeile stehen — ein Knopf, der
+    nichts mehr bewirken kann (der Phasenautomat schreibt beim Klick fort). Die Kachel sagt jetzt,
+    dass die Frist abgelaufen ist und ausgewertet wird, und bietet keine Adresse zum Unterstützen."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    anna, antrag = _hervorgehoben(ordnung)
+    tage = antrag.policy().unterstuetzung_frist_tage
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=timezone.now() - timedelta(days=tage, hours=1))
+    client.force_login(anna)
+    html = client.get(reverse("verfahren:parlament")).content.decode()
+    feld = _feld(html, "feld-wichtig")
+    assert f'data-antrag="{antrag.pk}"' in feld
+    assert "Frist abgelaufen, wird ausgewertet" in feld
+    assert "Frist endet heute" not in feld
+    assert f"/antrag/{antrag.pk}/unterstuetzen/" not in html
+    # Die Zeile des WeicherFilter-Feeds sagt dasselbe (die Abnahme nennt Kachel und Zeile)
+    from django.template.loader import render_to_string
+    from django.test import RequestFactory
+
+    from verfahren.views import _kachel
+
+    antrag.refresh_from_db()
+    anfrage = RequestFactory().get(reverse("verfahren:parlament"))
+    anfrage.user = anna
+    z = _kachel(antrag, timezone.now(), nutzer=anna)
+    zeile = render_to_string("verfahren/_filter_zeile.html", {"z": z, "meine_unterstuetzungen": set()}, request=anfrage)
+    assert "Frist abgelaufen, wird ausgewertet" in zeile and "Frist endet heute" not in zeile
+    assert "/unterstuetzen/" not in zeile and ">Unterstützen<" not in zeile

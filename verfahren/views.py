@@ -4,6 +4,7 @@ Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)
 import json
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -1148,15 +1149,34 @@ def gespraeche(request):
     request._gespraeche_ungelesen = ungelesen
     nur_ungelesen = request.GET.get("filter") == "ungelesen"
     zeilen = [z for z in alle if z["ungelesen"]] if nur_ungelesen else alle
-    zeilen = zeilen[: zahl("gespraeche-liste-hoechstzahl", 30)]
+    # Seitenweise (GP-053): Die Seite nennt Gesamtzahl und Ordnung, jedes Gespräch bleibt über
+    # „Ältere ›“ erreichbar. Die Seitengröße steht im Register; ein Wert unter 1 zeigt alle.
+    gesamt = len(zeilen)
+    groesse = zahl("gespraeche-liste-hoechstzahl", 30)
+    groesse = groesse if groesse >= 1 else max(gesamt, 1)
+    seiten = max(1, -(-gesamt // groesse))
+    roh = request.GET.get("seite", "")
+    seite = min(max(int(roh), 1), seiten) if roh.isdigit() else 1
+    anfang = (seite - 1) * groesse
+
+    def _adresse(nummer):
+        daten = {"filter": "ungelesen"} if nur_ungelesen else {}
+        daten["seite"] = nummer
+        return f"{reverse('verfahren:gespraeche')}?{urlencode(daten)}"
+
     vorlage = "verfahren/_gespraeche_liste.html" if request.headers.get("HX-Request") else "verfahren/gespraeche.html"
     return render(
         request,
         vorlage,
         {
-            "gespraeche": zeilen,
+            "gespraeche": zeilen[anfang : anfang + groesse],
             "ungelesen": ungelesen,
             "nur_ungelesen": nur_ungelesen,
+            "blaettern": {
+                "gesamt": gesamt, "von": anfang + 1, "bis": min(anfang + groesse, gesamt),
+                "neuere": _adresse(seite - 1) if seite > 1 else "",
+                "aeltere": _adresse(seite + 1) if seite < seiten else "",
+            } if seiten > 1 else None,
         },
     )
 

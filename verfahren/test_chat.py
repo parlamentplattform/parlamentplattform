@@ -807,3 +807,41 @@ def test_gp083_zu_langer_beitrag_wird_abgewiesen_statt_gekuerzt(client, ordnung)
     assert beitrag.text == 'Kurz.'
     with pytest.raises(ValueError):
         chatkern.beitrag_schreiben(antrag, anna, lang)
+
+
+# ── Meine Gespräche: Gesamtzahl, Ordnung, Weiterblättern (GP-053) ─────────────
+
+
+def test_gp053_alle_gespraeche_erreichbar_mit_gesamtzahl_und_wenigen_abfragen(client, ordnung):  # noqa: F811
+    """GP-053 (SU-07): Die Seite zeigte 30 von 120 Gesprächen ohne Hinweis und ohne Weiterblättern
+    und brauchte 141 Abfragen, weil jede Zeile den Pfad ihres Lebensbereichs einzeln nachlud."""
+    import re
+
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from verfahren.models import Kategorie
+
+    eltern = None
+    for tiefe in range(5):
+        eltern = Kategorie.objects.create(slug=f'ebene-{tiefe}', name=f'Ebene {tiefe}', eltern=eltern)
+    ich = mitglied_anlegen('ich')
+    leute = [mitglied_anlegen(f'p{i}') for i in range(12)]
+    for n in range(10):
+        antrag = _antrag(ordnung, ich)
+        antrag.kategorien.add(eltern)
+        wurzel = chatkern.beitrag_schreiben(antrag, ich, f'Wurzel {n}.')
+        for person in leute:
+            chatkern.beitrag_schreiben(antrag, person, 'Antwort.', wurzel)
+    assert len(chatkern.gespraeche(ich, grenze=None)) == 120
+    client.force_login(ich)
+    gesehen = set()
+    url = reverse('verfahren:gespraeche')
+    for seite_nr in range(1, 5):
+        with CaptureQueriesContext(connection) as ctx:
+            seite = client.get(url, {'seite': seite_nr}).content.decode()
+        assert len(ctx.captured_queries) <= 20, len(ctx.captured_queries)
+        assert 'von 120' in seite and 'jüngste zuerst' in seite
+        gesehen |= set(re.findall(r'class="gz[^"]*" href="(/antrag/\d+/#k-\d+)"', seite))
+    assert len(gesehen) == 120
+    assert '?seite=2' in client.get(url).content.decode()

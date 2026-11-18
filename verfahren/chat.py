@@ -13,13 +13,13 @@ Aus diesen Paaren baut das Panel „Meine Gespräche" seine Liste.
 from __future__ import annotations
 
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
 
 from plattform_core import vorschlagschat
-from verfahren.models import AuditEintrag, Kommentar, Lesestand, Meldung, Reaktion, Reaktionsart
+from verfahren.models import AuditEintrag, Kategorie, Kommentar, Lesestand, Meldung, Reaktion, Reaktionsart
 
 #: Rückfallwert; der gültige steht im Register unter „kritik-mindestzeichen" (FB-J2).
 KRITIK_MINDESTLAENGE = 80
@@ -428,7 +428,11 @@ def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
         .filter(mitglied__isnull=False, antwort_auf__mitglied__isnull=False)
         .exclude(Q(mitglied=nutzer) & Q(antwort_auf__mitglied=nutzer))  # Selbstgespräche zählen nicht
         .select_related("antrag", "mitglied", "antwort_auf__mitglied")
-        .prefetch_related("antrag__kategorien")
+        # Lebensbereiche samt Elternkette: `pfad_kurz` im Tooltip lädt sonst je Zeile nach (GP-053)
+        .prefetch_related(Prefetch(
+            "antrag__kategorien",
+            queryset=Kategorie.objects.select_related("eltern__eltern__eltern__eltern__eltern"),
+        ))
         .order_by("-erstellt_am")
     )
     staende = {

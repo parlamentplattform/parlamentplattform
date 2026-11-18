@@ -206,6 +206,82 @@ def test_ausgeschlossene_bleiben_zu(client):
     assert "existiert bereits" in antwort.content.decode() and Mitglied.objects.count() == 1
 
 
+# --- Ausschluss: alte Links sind wirkungslos (GP-017, KM-01) -----------------------------
+
+
+def _ausschliessen(client, konto):
+    from mitglieder.models import Mitgliedsstatus
+
+    chefin = Mitglied.objects.create(username='chefin', email='chefin@example.org', is_active=True, ist_admin=True)
+    client.force_login(chefin)
+    client.post(
+        reverse('mitglieder:verwaltung_mitglied', args=[konto.pk]),
+        {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'},
+    )
+    client.post(reverse('mitglieder:abmelden'))
+    konto.refresh_from_db()
+    assert konto.status == Mitgliedsstatus.AUSGESCHLOSSEN and konto.is_active is False
+
+
+def test_alter_bestaetigungslink_oeffnet_ausgeschlossenes_konto_nicht(client):
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link1 = link_aus_mail(mail.outbox[0])
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    link2 = link_aus_mail(mail.outbox[1])
+    client.post(link2)
+    client.post(reverse('mitglieder:abmelden'))
+    eva = Mitglied.objects.get(email='eva@example.org')
+    assert eva.is_active is True
+    _ausschliessen(client, eva)
+
+    antwort = client.post(link1)
+    eva.refresh_from_db()
+    assert antwort.status_code == 400
+    assert eva.is_active is False
+    assert '_auth_user_id' not in client.session
+
+
+def test_nie_benutzter_bestaetigungslink_oeffnet_ausgeschlossenes_konto_nicht(client):
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link = link_aus_mail(mail.outbox[0])
+    eva = Mitglied.objects.get(email='eva@example.org')
+    _ausschliessen(client, eva)
+
+    antwort = client.post(link)
+    eva.refresh_from_db()
+    assert antwort.status_code == 400
+    assert eva.is_active is False and eva.beitritt is None
+    assert '_auth_user_id' not in client.session
+
+
+def test_ausschluss_entwertet_alle_links_und_nimmt_adminrechte(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    eva = Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True, ist_admin=True)
+    anmelde = EinmalToken.ausstellen(eva, EinmalToken.Zweck.LOGIN)
+    bestaetigung = EinmalToken.ausstellen(eva, EinmalToken.Zweck.BESTAETIGUNG)
+    _ausschliessen(client, eva)
+    assert eva.ist_admin is False
+    assert not EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).exists()
+    assert client.post(reverse('mitglieder:login_einloesen', args=[anmelde])).status_code == 400
+    assert client.post(reverse('mitglieder:bestaetigen', args=[bestaetigung])).status_code == 400
+    assert '_auth_user_id' not in client.session
+
+
+def test_bestaetigung_entwertet_die_uebrigen_bestaetigungslinks(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    client.post(link_aus_mail(mail.outbox[1]))
+    eva = Mitglied.objects.get(email='eva@example.org')
+    assert not EinmalToken.objects.filter(
+        mitglied=eva, zweck=EinmalToken.Zweck.BESTAETIGUNG, verbraucht_am=None
+    ).exists()
+
+
 # --- Menschlichkeitsprüfung (F-49) ---------------------------------------------
 
 

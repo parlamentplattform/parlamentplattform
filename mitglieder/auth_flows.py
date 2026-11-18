@@ -82,6 +82,15 @@ class EinmalToken(models.Model):
             return None
         return t.mitglied
 
+    @classmethod
+    def entwerten(cls, mitglied, zweck: str | None = None) -> int:
+        """Entwertet alle offenen Tokens des Kontos (optional nur eines Zwecks) — beim
+        Ausschluss alle, nach der Bestätigung die übrigen Bestätigungslinks (GP-017)."""
+        offen = cls.objects.filter(mitglied=mitglied, verbraucht_am=None)
+        if zweck is not None:
+            offen = offen.filter(zweck=zweck)
+        return offen.update(verbraucht_am=timezone.now())
+
 
 def referenzstamm_ableiten(pk: int, username: str) -> str:
     """Der Stamm, wie er bis 0.49 aus Konto-ID und Anmeldenamen abgeleitet wurde."""

@@ -210,8 +210,11 @@ def registrieren(request):
 
 def bestaetigen(request, token: str):
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
-    if mitglied is None or not mitglied.parteikonto:
+    # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
+    # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
+    if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
         return render(request, "mitglieder/token_ungueltig.html", status=400)
+    EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
     mitglied.is_active = True
     if mitglied.beitritt is None:
         mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
@@ -332,7 +335,7 @@ def login_anfordern(request):
 
 def login_einloesen(request, token: str):
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.LOGIN)
-    if mitglied is None:
+    if mitglied is None or not mitglied.is_active:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
     return redirect("verfahren:parlament" if mitglied.parteikonto else "gemeinde:konto")

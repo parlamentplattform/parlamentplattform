@@ -39,6 +39,7 @@ from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+from mitglieder.auth_flows import EinmalToken
 from mitglieder.mail import send_mail
 from mitglieder.models import (
     Adresswechsel,
@@ -290,7 +291,12 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
     elif aktion == "ausschliessen":
         felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
         mitglied.is_active = False
+        # GP-017: Kein alter Link öffnet das Konto wieder, und Adminrechte enden mit dem Ausschluss.
+        if mitglied.ist_admin:
+            mitglied.ist_admin = False
+            felder.append("ist_admin")
         mitglied.save(update_fields=[*felder, "is_active"])
+        EinmalToken.entwerten(mitglied)
         messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
     elif aktion == "reaktivieren":
         felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")

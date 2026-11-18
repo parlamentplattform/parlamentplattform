@@ -40,6 +40,9 @@ urlpatterns = [
     path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/entfernen/", views_aktionen.beitrag_entfernen, name="beitrag_entfernen"),
     path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/reagieren/", views_aktionen.reagieren, name="reagieren"),
     path("antrag/<int:pk>/beitrag/<int:beitrag_pk>/melden/", views_aktionen.melden, name="melden"),
+    # Die Bearbeitung der Meldungen aus beiden Chats durch die Verwaltung (FB-G1)
+    path("meldungen/", views.meldungen, name="meldungen"),
+    path("meldungen/<int:beitrag_pk>/entscheiden/", views_aktionen.meldung_entscheiden, name="meldung_entscheiden"),
     # Meine Gespräche (FB-G3): eigene Seite; das Panel holt sich dieselbe Liste per htmx
     path("gespraeche/", views.gespraeche, name="gespraeche"),
     path("antrag/<int:pk>/meine-stimme/", views_aktionen.eigene_stimme, name="eigene_stimme"),

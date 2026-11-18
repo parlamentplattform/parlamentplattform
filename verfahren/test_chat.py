@@ -590,3 +590,113 @@ def test_gesperrte_konten_reagieren_nicht(client, ordnung, zustand):  # noqa: F8
     client.force_login(bernd)
     assert client.post(reverse("verfahren:reagieren", args=[antrag.pk, beitrag.pk])).status_code == 403
     assert not Reaktion.objects.exists()
+
+
+# ── Meldungen bearbeiten (FB-G1, GP-014) ─────────────────────────────────────
+
+
+def _verwaltung(name='vera'):
+    m = mitglied_anlegen(name)
+    m.ist_admin = True
+    m.save()
+    return m
+
+
+def test_gp014_meldung_wird_gelistet_und_mit_grund_ausgeblendet(client, ordnung):  # noqa: F811
+    """GP-014 (OCR-01): Die Meldung erreicht die Verwaltung; ausgeblendet wird mit öffentlichem
+    Grund, auditiert ohne Personenbezug, und der Meldende sieht die Entscheidung am Beitrag."""
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, 'Ein herabwürdigender Satz.')
+    client.force_login(bernd)
+    client.post(reverse('verfahren:melden', args=[antrag.pk, beitrag.pk]), {'grund': 'beleidigung'})
+    assert 'Ihre Meldung' in _seite(client, antrag)
+    assert f'action="{reverse("verfahren:melden", args=[antrag.pk, beitrag.pk])}"' not in _seite(client, antrag)
+
+    client.force_login(vera)
+    liste = client.get(reverse('verfahren:meldungen'))
+    assert liste.status_code == 200
+    inhalt = liste.content.decode()
+    assert 'Ein herabwürdigender Satz.' in inhalt and 'Beleidigung oder Herabwürdigung' in inhalt
+    vorher = AuditEintrag.objects.count()
+    entscheiden = reverse('verfahren:meldung_entscheiden', args=[beitrag.pk])
+    # Ohne öffentlichen Grund bleibt der Beitrag stehen
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': '  '})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None and AuditEintrag.objects.count() == vorher
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'Herabwürdigung einer Person'})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is not None and beitrag.ausgeblendet_grund == 'Herabwürdigung einer Person'
+    assert beitrag.text == 'Ein herabwürdigender Satz.'  # nichts wird gelöscht
+    meldung = Meldung.objects.get()
+    assert meldung.erledigt_am is not None and meldung.entscheidung == 'ausgeblendet'
+    assert AuditEintrag.objects.count() == vorher + 1
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_ausgeblendet' and ereignis['beitrag'] == beitrag.pk
+    assert not {'durch', 'mitglied', 'grund', 'text'} & set(ereignis)
+    assert 'Ein herabwürdigender Satz.' not in client.get(reverse('verfahren:meldungen')).content.decode()
+
+    client.logout()
+    assert '[von der Verwaltung ausgeblendet: Herabwürdigung einer Person]' in _seite(client, antrag)
+    client.force_login(bernd)
+    assert 'entschieden: ausgeblendet' in _seite(client, antrag)
+
+
+def test_gp014_keine_massnahme_und_rechte(client, ordnung):  # noqa: F811
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, 'Sachlich, aber unbequem.')
+    client.force_login(bernd)
+    client.post(reverse('verfahren:melden', args=[antrag.pk, beitrag.pk]), {'grund': 'falsch'})
+    entscheiden = reverse('verfahren:meldung_entscheiden', args=[beitrag.pk])
+    # Nur die Verwaltung sieht die Liste und entscheidet
+    assert client.get(reverse('verfahren:meldungen')).status_code == 403
+    assert client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'x'}).status_code == 403
+    client.logout()
+    assert client.get(reverse('verfahren:meldungen')).status_code == 302
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None
+
+    client.force_login(vera)
+    vorher = AuditEintrag.objects.count()
+    client.post(entscheiden, {'entscheidung': 'keine_massnahme'})
+    beitrag.refresh_from_db()
+    meldung = Meldung.objects.get()
+    assert beitrag.ausgeblendet_am is None and meldung.erledigt_am is not None
+    assert meldung.entscheidung == 'keine_massnahme'
+    assert AuditEintrag.objects.count() == vorher + 1
+    assert AuditEintrag.objects.order_by('-lfd').first().ereignis['typ'] == 'meldung_ohne_massnahme'
+    # Eine zweite Entscheidung über dieselben Meldungen schreibt nichts mehr
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'Nachträglich'})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None and AuditEintrag.objects.count() == vorher + 1
+    client.force_login(bernd)
+    assert 'entschieden: keine Maßnahme' in _seite(client, antrag)
+
+
+def test_gp014_meldung_aus_dem_sitzungschat_auch_nach_dem_ende(client):
+    from mandatare.sitzung import sitzung_beenden, sitzung_beginnen
+    from mandatare.test_mandatare import mandat_anlegen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    mandat = mandat_anlegen(anna)
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat))
+    beitrag = chatkern.sitzung_beitrag_schreiben(sitzung, bernd, 'Unwahre Behauptung über Dritte.')
+    Meldung.objects.create(kommentar=beitrag, mitglied=anna, grund='recht')
+    sitzung_beenden(sitzung)
+    client.force_login(vera)
+    inhalt = client.get(reverse('verfahren:meldungen')).content.decode()
+    assert 'Unwahre Behauptung über Dritte.' in inhalt
+    assert reverse('mandatare:live', args=[mandat.pk]) in inhalt
+    client.post(
+        reverse('verfahren:meldung_entscheiden', args=[beitrag.pk]),
+        {'entscheidung': 'ausblenden', 'grund': 'Rechtswidriger Inhalt'},
+    )
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is not None
+    assert AuditEintrag.objects.order_by('-lfd').first().ereignis['sitzung'] == sitzung.pk
+    client.logout()
+    seite = client.get(reverse('mandatare:live', args=[mandat.pk]) + f'?sitzung={sitzung.pk}').content.decode()
+    assert 'Unwahre Behauptung über Dritte.' not in seite
+    assert 'von der Verwaltung ausgeblendet: Rechtswidriger Inhalt' in seite

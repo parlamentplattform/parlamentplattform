@@ -1137,6 +1137,33 @@ def gespraeche(request):
     )
 
 
+def meldungen(request):
+    """Offene Meldungen aus beiden Chats — Antrag und Sitzung (FB-G1, GP-014). Nur die Verwaltung:
+    Sie entscheidet je gemeldetem Beitrag, ob er mit öffentlichem Grund ausgeblendet wird."""
+    from verfahren.models import Kommentar, Meldung
+
+    if not request.user.is_authenticated:
+        return redirect("mitglieder:login")
+    if not request.user.hat_adminrechte:
+        return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    offene = Meldung.objects.filter(erledigt_am__isnull=True).order_by("erstellt_am")
+    beitraege = (
+        Kommentar.objects.filter(meldungen__erledigt_am__isnull=True)
+        .distinct()
+        .select_related("mitglied", "antrag", "sitzung")
+        .prefetch_related(Prefetch("meldungen", queryset=offene, to_attr="offene_meldungen"))
+        .order_by("erstellt_am")
+    )
+    zeilen = []
+    for k in beitraege:
+        if k.sitzung_id:
+            ziel = f"{reverse('mandatare:live', kwargs={'pk': k.sitzung.mandat_id})}?sitzung={k.sitzung_id}#k-{k.pk}"
+        else:
+            ziel = f"{reverse('verfahren:antrag', kwargs={'pk': k.antrag_id})}#k-{k.pk}"
+        zeilen.append({"k": k, "ziel": ziel, "meldungen": k.offene_meldungen})
+    return render(request, "verfahren/meldungen.html", {"zeilen": zeilen})
+
+
 def _antwort_vorgabe(antrag, roh):
     """Der Beitrag, auf den geantwortet werden soll — aus `?antwort_auf=<pk>` (Grundregel 3).
 

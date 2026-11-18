@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from plattform_core import vorschlagschat
-from verfahren.models import AuditEintrag, Kommentar, Lesestand, Reaktion, Reaktionsart
+from verfahren.models import AuditEintrag, Kommentar, Lesestand, Meldung, Reaktion, Reaktionsart
 
 #: Rückfallwert; der gültige steht im Register unter „kritik-mindestzeichen" (FB-J2).
 KRITIK_MINDESTLAENGE = 80
@@ -235,12 +235,18 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
     )
     gelesen_bis = None
     meine: dict[int, str] = {}
+    meine_meldungen: dict[int, Meldung] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, antrag=antrag).first()
         gelesen_bis = stand.gelesen_bis if stand else None
         meine = {
             r.kommentar_id: r.art
             for r in Reaktion.objects.aktive().filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+        }
+        # Der Stand der eigenen Meldung steht am Beitrag (GP-014): gemeldet am …, entschieden: …
+        meine_meldungen = {
+            m.kommentar_id: m
+            for m in Meldung.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
         }
 
     def schmuecken(k: Kommentar) -> dict:
@@ -254,6 +260,7 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
             "eigener": nutzer is not None and k.mitglied_id is not None
             and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "meine_meldung": meine_meldungen.get(k.pk),
         }
 
     je_wurzel: dict[int, list[dict]] = {}

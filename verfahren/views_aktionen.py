@@ -682,6 +682,49 @@ def melden(request, pk, beitrag_pk):
 
 @login_required
 @require_POST
+def meldung_entscheiden(request, beitrag_pk):
+    """Die Verwaltung entscheidet über die offenen Meldungen eines Beitrags (FB-G1, GP-014):
+    ausblenden mit öffentlichem Grund oder keine Maßnahme. Der Text bleibt gespeichert
+    (Grundregel 7), die Meldungen tragen Zeitpunkt und Entscheidung, das Audit den Vorgang."""
+    from verfahren.models import Meldung
+
+    if not request.user.hat_adminrechte:
+        return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    entscheidung = request.POST.get("entscheidung", "")
+    grund = (request.POST.get("grund") or "").strip()[:200]
+    if entscheidung not in ("ausblenden", "keine_massnahme"):
+        messages.error(request, _("Bitte eine Entscheidung wählen."))
+        return redirect("verfahren:meldungen")
+    if entscheidung == "ausblenden" and not grund:
+        messages.error(request, _("Ausblenden braucht einen öffentlichen Grund."))
+        return redirect("verfahren:meldungen")
+    with transaction.atomic():
+        beitrag = get_object_or_404(Kommentar.objects.select_for_update(), pk=beitrag_pk)
+        offene = Meldung.objects.filter(kommentar=beitrag, erledigt_am__isnull=True)
+        anzahl = offene.count()
+        if not anzahl:
+            messages.info(request, _("Über die Meldungen zu diesem Beitrag ist schon entschieden."))
+            return redirect("verfahren:meldungen")
+        jetzt = timezone.now()
+        ereignis = {"beitrag": beitrag.pk, "meldungen": anzahl}
+        ereignis.update({"sitzung": beitrag.sitzung_id} if beitrag.sitzung_id else {"antrag": beitrag.antrag_id})
+        if entscheidung == "ausblenden":
+            if beitrag.ausgeblendet_am is None:
+                beitrag.ausgeblendet_am = jetzt
+                beitrag.ausgeblendet_grund = grund
+                beitrag.save(update_fields=["ausgeblendet_am", "ausgeblendet_grund"])
+            offene.update(erledigt_am=jetzt, entscheidung="ausgeblendet")
+            AuditEintrag.anhaengen({"typ": "beitrag_ausgeblendet", **ereignis})
+            messages.success(request, _("Der Beitrag ist ausgeblendet; der Grund steht öffentlich an seiner Stelle."))
+        else:
+            offene.update(erledigt_am=jetzt, entscheidung="keine_massnahme")
+            AuditEintrag.anhaengen({"typ": "meldung_ohne_massnahme", **ereignis})
+            messages.success(request, _("Entschieden: keine Maßnahme. Der Beitrag bleibt stehen."))
+    return redirect("verfahren:meldungen")
+
+
+@login_required
+@require_POST
 def chat_gelesen(request, pk):
     """Den Lesestand vorrücken (FB-G2) — schickt die Zone, damit die „neu"-Linie verschwindet."""
     from verfahren.chat import gelesen_merken

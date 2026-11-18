@@ -1971,21 +1971,58 @@ def koordination_test(request, test_id: int):
     return redirect("gremien:koordination")
 
 
-def _testbare_parameter():
-    """Die Stellgrößen, die ein Test setzen darf — ohne die Ordnungsschlüssel (D-J3g).
+#: Stellgrößen, die ein LAUFENDES Verfahren bei jedem Zugriff aus dem Register liest — vom Test ausgenommen.
+#:
+#: Entscheidung D-J3g (Fahrtenbuch Teil D, 5.9.2026): „Ein Test wirkt nur auf Registerwerte, die kein
+#: laufendes Verfahren liest.“ § 6 Abs 11 lit c: Tests dürfen laufende Verfahren (§ 5 Abs 5) nicht berühren.
+#: Die Ordnung eines Antrags ist eingefroren; diese Werte sind es nicht — der Chat eines längst
+#: eingebrachten Antrags liest sie bei jedem Beitrag neu. Ein Test auf ihnen änderte die Bedingungen
+#: mitten im Verfahren (Gesamtprüfung GP-013).
+#:
+#: Die EINE Stelle für diese Ausnahmen: Auswahlliste, Abweisung und der Vermerk am Testbeschluss lesen
+#: sie. Aufgenommen wird nur, was eindeutig ist; der Wächter
+#: `gremien/test_gp_runde1.py::test_waechter_jede_testbare_stellgroesse_ist_nach_d_j3g_geprueft` verlangt
+#: für jede neue Stellgröße die Entscheidung. Schlüssel → Lesestelle und Grund.
+IM_LAUFENDEN_VERFAHREN_GELESEN = {
+    "chat-zeichen-hoechstzahl": (
+        "verfahren/chat.py (chat_zeichen_hoechstzahl): Höchstlänge jedes neuen und geänderten Beitrags im "
+        "Antrags- und Abstimmungs-Chat, gelesen bei jedem Beitrag."
+    ),
+    "kritik-mindestzeichen": (
+        "verfahren/chat.py (kritik_mindestzeichen): Mindestlänge einer Kritik im Abstimmungs-Chat der "
+        "Entwurfsschleife (§ 5 Abs 13), gelesen bei jedem Schreiben und Ändern."
+    ),
+    "chat-bearbeitungsfenster-minuten": (
+        "verfahren/models.py (Kommentar.bearbeitungsfenster_minuten): wie lange ein Beitrag — auch eine "
+        "Kritik im Abstimmungs-Chat — änderbar bleibt, gelesen bei jedem Änderungsversuch."
+    ),
+}
 
-    § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5). Die
-    Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
+
+def _testbare_parameter():
+    """Die Stellgrößen, die ein Test setzen darf (D-J3g). Drei Arten sind ausgenommen:
+
+    Die Ordnungsschlüssel: § 6 Abs 11 lit c — Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5).
+    Die Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
     der Ordnung — und die beschließt nach § 5 Abs 7 die Mitgliederversammlung, nicht der
     Koordinationsrat. Ein Test auf ihnen wäre ein zweiter Weg zur Ordnung; den gibt es nicht.
 
-    Ebenso ausgenommen sind die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts
-    ein, sie nennen die Fassung einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt."""
+    Die Stellgrößen, die ein laufendes Verfahren bei jedem Zugriff aus dem Register liest
+    (`IM_LAUFENDEN_VERFAHREN_GELESEN`, GP-013): Sie sind nicht eingefroren, ein Testwert stünde sofort
+    im Chat längst eingebrachter Anträge.
+
+    Die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts ein, sie nennen die Fassung
+    einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt.
+
+    Was übrig bleibt, wirkt mit dem Testbeginn sofort überall, wo es gelesen wird: bei Anzeige, Post und
+    KI-Budget — und dort, wo etwas Neues entsteht und den Wert festschreibt (ein Antrag, ein Beschluss,
+    eine Rolle). Das sagt auch der Vermerk am Beschluss (`gremien.models.parametertest_wirkung`)."""
     from plattform_core.policy import REGISTER_ZUORDNUNG
 
     ordnung = {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
     return (
         Parameter.objects.exclude(schluessel__in=ordnung)
+        .exclude(schluessel__in=IM_LAUFENDEN_VERFAHREN_GELESEN)
         .exclude(einheit=EINHEIT_REGELFASSUNG)
         .exclude(status=Status.IM_TEST)
         .order_by("gruppe", "schluessel")
@@ -2008,7 +2045,15 @@ def _test_anordnen(request):
     from parameter.kennzahlen import werte
     from plattform_core.parametertest import messgroessen
 
-    parameter = get_object_or_404(_testbare_parameter(), pk=_kennung(request.POST.get("parameter")))
+    kennung = _kennung(request.POST.get("parameter"))
+    if Parameter.objects.filter(pk=kennung, schluessel__in=IM_LAUFENDEN_VERFAHREN_GELESEN).exists():
+        # D-J3g: Auch eine handgebaute Anfrage legt hier keinen Test an (GP-013).
+        messages.error(
+            request,
+            _("Auf dieser Stellgröße gibt es keinen Test: Laufende Verfahren lesen ihren Wert, und ein Test darf sie nicht berühren (§ 6 Abs 11 lit c)."),
+        )
+        return redirect("gremien:koordination")
+    parameter = get_object_or_404(_testbare_parameter(), pk=kennung)
     testwert = (request.POST.get("testwert") or "").strip()[:100]
     hypothese = (request.POST.get("hypothese") or "").strip()[:300]
     messgroesse = (request.POST.get("messgroesse") or "").strip()[:80]

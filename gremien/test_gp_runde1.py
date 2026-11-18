@@ -95,20 +95,116 @@ def _rat_stimmt(client, leute, beschluss, option='dafuer'):
     return beschluss
 
 
-def test_der_vermerk_am_testbeschluss_sagt_was_wirklich_geschieht(client):
-    """GP-013: Der Vermerk behauptete, der Testwert gelte „für neu beginnende Verfahren“ — eine
-    Stellgröße wie die Zeichen-Höchstzahl im Chat liest aber jedes laufende Verfahren sofort. Der
-    Vermerk sagt jetzt dasselbe wie das Register: Der Wert wirkt sofort, wo er gelesen wird."""
+AUSGENOMMEN_WEIL_LIVE_GELESEN = ('chat-zeichen-hoechstzahl', 'kritik-mindestzeichen', 'chat-bearbeitungsfenster-minuten')
+
+
+@pytest.mark.parametrize('schluessel', AUSGENOMMEN_WEIL_LIVE_GELESEN)
+def test_was_ein_laufendes_verfahren_liest_laesst_sich_nicht_testen(client, schluessel):
+    """GP-013, D-J3g: „Ein Test wirkt nur auf Registerwerte, die kein laufendes Verfahren liest.“ Die
+    Zeichengrenzen und das Bearbeitungsfenster liest der Chat jedes laufenden Antrags bei jedem Beitrag —
+    ein Test auf ihnen änderte die Bedingungen mitten im Verfahren. Er wird abgewiesen, mit Meldung."""
+    from django.urls import reverse
+
+    from gremien.models import Anlass, GremienBeschluss
+    from gremien.views import IM_LAUFENDEN_VERFAHREN_GELESEN, _testbare_parameter
     from parameter.models import ParameterTest
 
     leute = _korat()
-    parameter = _register('chat-zeichen-hoechstzahl')
-    _test_anordnen(client, leute[0], parameter, '100')
+    parameter = _register(schluessel)
+    vorher = parameter.wert
+    assert schluessel in IM_LAUFENDEN_VERFAHREN_GELESEN
+    assert parameter not in _testbare_parameter()
+    client.force_login(leute[0])
+    seite = client.get(reverse('gremien:koordination')).content.decode()
+    auswahl = seite.split('id="pt-parameter"')[1].split('</select>')[0]
+    assert f'value="{parameter.pk}"' not in auswahl
+    antwort = _test_anordnen(client, leute[0], parameter, '7')
+    assert antwort.status_code == 200  # eine Meldung, kein 404
+    assert 'Laufende Verfahren lesen ihren Wert' in antwort.content.decode()
+    assert not ParameterTest.objects.exists()
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.PARAMETERTEST).exists()
+    parameter.refresh_from_db()
+    assert parameter.wert == vorher and parameter.status != 'im_test'
+
+
+def test_der_vermerk_am_testbeschluss_sagt_was_wirklich_geschieht(client):
+    """GP-013: Der Vermerk behauptete erst, der Testwert gelte „für neu beginnende Verfahren“, dann, er
+    wirke „auch in laufenden Verfahren“. Seit die live gelesenen Stellgrößen ausgenommen sind (D-J3g),
+    sagt er das: Der Wert wirkt sofort, wo er gelesen wird — und was laufende Verfahren lesen, ist ausgenommen."""
+    from parameter.models import ParameterTest
+
+    leute = _korat()
+    parameter = _register('gremien-rollen-dauer-tage')
+    _test_anordnen(client, leute[0], parameter, '365')
     beschluss = _rat_stimmt(client, leute, ParameterTest.objects.get().beschluss)
     parameter.refresh_from_db()
-    assert parameter.wert == '100'  # der Wert steht sofort im Register — für alle, die ihn lesen
-    assert 'neu beginnende Verfahren' not in beschluss.umsetzungsvermerk
-    assert 'wirkt sofort' in beschluss.umsetzungsvermerk and 'laufenden Verfahren' in beschluss.umsetzungsvermerk
+    assert parameter.wert == '365'  # der Wert steht sofort im Register — für alle, die ihn lesen
+    vermerk = beschluss.umsetzungsvermerk
+    assert 'neu beginnende Verfahren' not in vermerk and 'auch in laufenden Verfahren' not in vermerk
+    assert 'wirkt sofort' in vermerk and 'vom Test ausgenommen' in vermerk
+
+
+#: Die testbaren Stellgrößen, deren Lesestellen nach D-J3g geprüft sind (Stand der zweiten Behebungsrunde,
+#: 18.11.2026): Keine davon liest der Chat eines laufenden Verfahrens bei jedem Zugriff. Sie zählen, messen
+#: oder begrenzen Anzeige, Post und KI-Budget, oder sie werden gelesen, wenn etwas Neues entsteht (ein Antrag,
+#: ein Beschluss, eine Rolle, eine Vertrauens- oder Mandatsfrage) und dort festgeschrieben.
+GEPRUEFT_TESTBAR = frozenset({
+    'adresswechsel-wartefrist-stunden', 'aehnlichkeit-bedeutung-je-stunde', 'aehnlichkeit-bedeutung-schwelle-prozent',
+    'aehnlichkeit-einbettungen-je-aufruf', 'aehnlichkeit-schwelle-prozent', 'aehnlichkeit-treffer',
+    'aehnlichkeit-vorschau-hoechstzeichen', 'aehnlichkeit-vorschau-mindestzeichen', 'aehnlichkeit-vorschau-wartezeit-ms',
+    'aehnlichkeit-zeitgrenze-sekunden', 'anstoss-mindestabstand-sekunden', 'anstoss-tagesgrenze', 'archiv-audit-anzeige',
+    'audit-seite-eintraege', 'audit-vollpruefung-tage', 'beitrag-erinnerung-fruehestens-tage', 'chat-faden-wurzeln',
+    'faecher-kinder-hoechstzahl', 'faktenbasis-bestandsnachweis-hoechstzahl', 'faktenbasis-manuelle-abrufe-je-stunde',
+    'faktenbasis-seitengroesse', 'gegenueberstellung-hoechstpaare', 'gegenueberstellung-je-stunde',
+    'gegenueberstellung-textzeichen', 'gegenueberstellung-zeitgrenze-sekunden', 'gespraeche-liste-hoechstzahl',
+    'gremien-beschluesse-seite', 'gremien-beschluss-tage', 'gremien-rollen-dauer-tage', 'kacheln-abgeschlossen',
+    'kacheln-hervorgehoben', 'kategorien-je-antrag', 'ki-antwort-hoechsttokens', 'ki-einschaetzungen-je-seite',
+    'ki-monatstokens', 'ki-tageslaeufe', 'live-hoechstdauer-stunden', 'live-takt-sekunden',
+    'mandatar-monatsbericht-frist-tage', 'mandatsfrage-abstimmung-tage', 'post-hoechstversuche', 'post-neuer-antrag-bund',
+    'quellenkontext-bestandsgrenze', 'quellenkontext-hoechstzahl', 'quellenkontext-mindestwortlaenge',
+    'quellenkontext-textzeichen', 'rechtsfolgen-eingabezeichen', 'region-nebenwohnsitz-zaehlt', 'suche-treffer-hoechstzahl',
+    'uebersicht-abstimmungen', 'vertrauensfrage-abstimmung-tage', 'vertrauensfrage-unterstuetzung-tage',
+    'weicherfilter-profile-hoechstzahl',
+})
+
+
+def test_waechter_jede_testbare_stellgroesse_ist_nach_d_j3g_geprueft():
+    """GP-013, Wächter: Eine neue Stellgröße ist nicht von selbst testbar. Wer eine anlegt, prüft ihre
+    Lesestellen: Liest ein laufendes Verfahren den Wert bei jedem Zugriff, gehört sie in die Ausnahmeliste
+    `gremien.views.IM_LAUFENDEN_VERFAHREN_GELESEN`, sonst in `GEPRUEFT_TESTBAR` hier."""
+    from gremien.views import IM_LAUFENDEN_VERFAHREN_GELESEN, _testbare_parameter
+    from parameter.models import ERSTBESTAND, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    testbar = set(_testbare_parameter().values_list('schluessel', flat=True))
+    assert testbar == GEPRUEFT_TESTBAR, (
+        f'Ungeprüft testbar: {sorted(testbar - GEPRUEFT_TESTBAR)}; nicht mehr testbar: {sorted(GEPRUEFT_TESTBAR - testbar)}'
+    )
+    im_register = {e['schluessel'] for e in ERSTBESTAND}
+    assert set(IM_LAUFENDEN_VERFAHREN_GELESEN) <= im_register  # keine toten Einträge
+    assert set(IM_LAUFENDEN_VERFAHREN_GELESEN) == set(AUSGENOMMEN_WEIL_LIVE_GELESEN)
+    assert not set(IM_LAUFENDEN_VERFAHREN_GELESEN) & testbar
+    assert all(grund.strip() for grund in IM_LAUFENDEN_VERFAHREN_GELESEN.values())  # jede Ausnahme ist begründet
+
+
+def test_waechter_der_chat_liest_keine_testbare_stellgroesse_ungeprueft():
+    """GP-013, Wächter am Quelltext: Der Chat (Antrags- und Abstimmungs-Chat) ist der Ort, an dem ein laufendes
+    Verfahren das Register bei jedem Beitrag liest. Jeder Schlüssel, den `verfahren/chat.py` oder das
+    Beitragsmodell liest, ist ausgenommen — außer er steuert nur die Anzeige."""
+    import inspect
+    import re
+
+    from gremien.views import IM_LAUFENDEN_VERFAHREN_GELESEN
+    from verfahren import chat
+    from verfahren.models import Kommentar
+
+    # Wie viele Wurzelbeiträge eine Seite zeigt und wie lang die Liste „Meine Gespräche“ ist — Anzeige, keine Bedingung.
+    nur_anzeige = {'chat-faden-wurzeln', 'gespraeche-liste-hoechstzahl'}
+    quelltext = inspect.getsource(chat) + inspect.getsource(Kommentar)
+    gelesen = set(re.findall(r'zahl\(\s*"([a-z0-9-]+)"', quelltext))
+    assert {'chat-zeichen-hoechstzahl', 'kritik-mindestzeichen', 'chat-bearbeitungsfenster-minuten'} <= gelesen
+    offen = gelesen - nur_anzeige - set(IM_LAUFENDEN_VERFAHREN_GELESEN)
+    assert not offen, sorted(offen)
 
 
 def _laufender_test(client, leute, schluessel='gremien-beschluss-tage', testwert='9'):
@@ -313,7 +409,7 @@ def test_ein_unlesbarer_testwert_wird_abgewiesen(client):
     from parameter.models import ParameterTest
 
     leute = _korat()
-    parameter = _register('chat-zeichen-hoechstzahl')
+    parameter = _register('gremien-rollen-dauer-tage')
     antwort = _test_anordnen(client, leute[0], parameter, 'keine')
     assert not ParameterTest.objects.exists()
     assert 'ganze Zahl' in antwort.content.decode()

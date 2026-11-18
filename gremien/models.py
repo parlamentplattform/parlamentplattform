@@ -2656,13 +2656,14 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
             "beschluss": beschluss.pk,
         }
     )
-    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wird dort von jedem
-    # gelesen, auch von laufenden Verfahren. Ausgenommen sind nur die Werte der Verfahrensordnung —
-    # auf ihnen gibt es keinen Test (D-J3g). Derselbe Satz steht am Band des Registers.
+    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wirkt ab jetzt überall,
+    # wo er gelesen wird. Was ein laufendes Verfahren liest, bekommt keinen Test (D-J3g): die Werte der
+    # Verfahrensordnung und die Ausnahmeliste `gremien.views.IM_LAUFENDEN_VERFAHREN_GELESEN`.
     _vermerken(
         beschluss,
         f"Test läuft bis {test.ende:%d.%m.%Y}; der Testwert wirkt sofort überall, wo die Stellgröße "
-        "gelesen wird — auch in laufenden Verfahren.",
+        "gelesen wird. Die Werte der Verfahrensordnung und die Stellgrößen, die der Chat laufender "
+        "Verfahren liest, sind vom Test ausgenommen.",
     )
 
 

@@ -345,7 +345,10 @@ html.js .zu-ohne-js{display:none}
 .rband.r2 .rkopf{border-color:var(--gold)}.rband.r3 .rkopf{border-color:var(--ink)}
 .rband .spur{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;min-height:0;height:100%}
 .rband .spur>.kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:3px}
-.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1}
+.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1;flex:none}
+/* GP-171: Ist das Band niedriger als die Kachel, gibt die Zeile mit Phase und Ort nach — nicht der Titel,
+   der Weg der Kachel (sonst ein Tab-Halt ohne Höhe) */
+.rband .spur .k-meta{min-height:0;overflow:hidden}
 .rband .spur .balken,.rband .spur .grund,.rband .spur>.kachel>.rest,.rband .spur .badge--hell{display:none}
 .rband .spur .rest{font-size:11.5px}
 .rband .spur .k-fuss{margin-top:auto}

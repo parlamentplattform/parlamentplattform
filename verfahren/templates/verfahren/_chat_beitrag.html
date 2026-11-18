@@ -47,11 +47,15 @@ Erwartet b (aus chat.faden) und antrag.
           </form>
         </details>
         {% endif %}
-        <form method="post" action="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}" class="blase-form"
-          hx-post="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
-          hx-confirm="{% translate 'Beitrag zurückziehen? Der Text verschwindet, die Antworten darunter bleiben.' %}">
-          {% csrf_token %}<button class="blase-knopf">{% translate "Zurückziehen" %}</button>
-        </form>
+        {# Die Rückfrage trägt auch ohne JavaScript: erst der Knopf in der Klappe zieht zurück (GP-177) #}
+        <details class="blase-zurueckziehen">
+          <summary class="blase-knopf">{% translate "Zurückziehen" %}</summary>
+          <form method="post" action="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}"
+            hx-post="{% url 'verfahren:beitrag_entfernen' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
+            {% csrf_token %}<span class="hilfe">{% translate 'Beitrag zurückziehen? Der Text verschwindet, die Antworten darunter bleiben.' %}</span>
+            <button class="btn-linie klein">{% translate "Ja, zurückziehen" %}</button>
+          </form>
+        </details>
       {% elif b.meine_meldung %}
         <span class="erk">{% blocktranslate with am=b.meine_meldung.erstellt_am|date:"d.m.Y" %}Ihre Meldung vom {{ am }}{% endblocktranslate %} · {% if not b.meine_meldung.erledigt_am %}{% translate "liegt der Verwaltung vor" %}{% elif b.meine_meldung.entscheidung == "ausgeblendet" %}{% translate "entschieden: ausgeblendet" %}{% else %}{% translate "entschieden: keine Maßnahme" %}{% endif %}</span>
       {% elif user.is_authenticated and not b.k.system and not b.k.geloescht and not b.k.ausgeblendet_am %}

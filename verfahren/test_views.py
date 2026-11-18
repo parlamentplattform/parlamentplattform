@@ -534,3 +534,20 @@ def test_gp058_wiener_konto_ohne_bezirk_wird_zum_gemeindebezirk_gefuehrt(client,
     assert f'<a href="{ziel}">Gemeindebezirk wählen' in region
     seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
     assert f'<a href="{ziel}">Gemeindebezirk wählen' in seite
+
+
+def test_gp088_fehler_im_einbringformular_sind_mit_dem_feld_verknuepft(client, ordnung):  # noqa: F811
+    """GP-088 (ZB-03): aria-describedby der fehlerhaften Felder zeigte ins Leere."""
+    import re
+
+    client.force_login(mitglied_anlegen('anna'))
+    seite = client.post(reverse('verfahren:einbringen'), {'titel': '', 'wortlaut': '', 'ebene': 'gemeinde'}).content.decode()
+    felder = [f for f in re.findall(r'<(?:input|textarea|select)[^>]*aria-invalid="true"[^>]*>', seite)
+              if 'aria-describedby=' in f]
+    assert len(felder) >= 2  # Titel und Wortlaut
+    for feld in felder:
+        bezug = re.search(r'aria-describedby="([^"]+)"', feld)
+        assert any(k.endswith('_error') for k in bezug.group(1).split()), feld
+        for kennung in bezug.group(1).split():
+            treffer = re.search(rf'id="{kennung}"[^>]*>(.*?)</', seite, flags=re.S)
+            assert treffer and treffer.group(1).strip(), (feld, kennung)

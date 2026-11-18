@@ -15,6 +15,14 @@
   <p class="hilfe">{% translate "Konsolidierte Texte dienen der Information. Rechtsverbindlich ist die authentische Kundmachung." %}</p>
   <p class="meta">{% translate "Quelle" %}: RIS / Bundeskanzleramt · <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
 </div>
+{% if novelle %}
+<section class="karte" aria-labelledby="novellenfundstelle">
+  <h2 id="novellenfundstelle">{% translate "Novelle laut RIS-Metadaten" %}</h2>
+  <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
+  <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
+  <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ novellenfassung }} · <a href="#norm-herkunft">{% translate "Herkunft und Prüfsumme" %}</a></p>
+</section>
+{% endif %}
 <section aria-labelledby="dokumenttexte">
   <h2 id="dokumenttexte">{% translate "Amtliche Dokumenttexte" %}</h2>
   {% if darf_aktualisieren %}
@@ -43,7 +51,7 @@
   </details>
   {% endif %}
 </section>
-<details class="karte">
+<details class="karte" id="norm-herkunft">
   <summary>{% translate "Herkunft und Prüfsumme" %}</summary>
   <p>{% translate "Inhalts-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.inhalt_hash }}</code></p>
   <p>{% translate "Antwort-Hash (SHA-256)" %}: <code class="fakten-hash">{{ norm.importlauf.antwort_hash }}</code></p>

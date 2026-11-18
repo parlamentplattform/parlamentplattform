@@ -19,6 +19,8 @@ from faktenbasis.models import (
 )
 from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
+from plattform_core.novellenfundstelle import VERSION as NOVELLENFASSUNG
+from plattform_core.novellenfundstelle import novellenfundstelle
 
 
 @require_safe
@@ -41,6 +43,8 @@ def norm(request, pk):
     eintrag = get_object_or_404(Norm.objects.select_related("importlauf"), pk=pk)
     return render(request, "faktenbasis/norm.html", {
         "norm": eintrag,
+        "novelle": novellenfundstelle(eintrag.rohdaten, eintrag.ris_id, eintrag.stand) if eintrag.ebene == "Bund" else None,
+        "novellenfassung": NOVELLENFASSUNG,
         "fassungen": Norm.objects.filter(ris_id=eintrag.ris_id).order_by("-stand", "-pk"),
         "rohdaten": json.dumps(eintrag.rohdaten, ensure_ascii=False, indent=2),
         "texte": eintrag.texte.all(),

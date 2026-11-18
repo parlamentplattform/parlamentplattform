@@ -10,7 +10,15 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.verwaltung import nur_admins
-from parameter.models import Aenderung, Gruppe, Parameter, Status, erstbestand_sicherstellen
+from parameter.models import (
+    REGELFASSUNG,
+    Aenderung,
+    Gruppe,
+    Parameter,
+    Status,
+    erstbestand_sicherstellen,
+    wert_ausserhalb,
+)
 from verfahren.models import AuditEintrag
 
 #: Kennung der Verfahrensordnung, wenn diese Instanz noch gar keine hat. Gibt es eine geltende
@@ -382,6 +390,7 @@ def verwaltung(request):
             "karten": _karten(_register_eintraege()),
             "abgleich": _ordnung_abgleich(),
             "im_test": Status.IM_TEST,
+            "regelfassung": REGELFASSUNG,
         },
     )
 
@@ -397,6 +406,10 @@ def verwaltung_aktion(request):
         return redirect("parameter:verwaltung")
     if neuer_wert == eintrag.wert:
         messages.info(request, _("Der Wert ist unverändert — nichts zu tun."))
+        return redirect("parameter:verwaltung")
+    ausserhalb = wert_ausserhalb(eintrag, neuer_wert)
+    if ausserhalb:
+        messages.error(request, ausserhalb)
         return redirect("parameter:verwaltung")
     alt = eintrag.wert
     eintrag.wert = neuer_wert

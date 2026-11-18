@@ -430,3 +430,82 @@ def test_die_grenzen_der_maschine_stehen_im_register():
     assert schema_key("aehnlichkeit-bedeutung-je-stunde") == "similarity.meaning_calls_per_account_hour"
     assert schema_key("post-hoechstversuche") == "mail.max_attempts"
 
+
+
+# ── Gesamtprüfung 0.113 ───────────────────────────────────────────────────────────────────────
+
+
+def _register_stand():
+    return (
+        list(Parameter.objects.order_by("pk").values_list("schluessel", "wert")),
+        __import__("parameter.models", fromlist=["Aenderung"]).Aenderung.objects.count(),
+        AuditEintrag.objects.count(),
+    )
+
+
+@pytest.mark.parametrize(
+    "schluessel, wert",
+    [
+        ("chat-zeichen-hoechstzahl", "abc"),
+        ("chat-zeichen-hoechstzahl", "0"),
+        ("chat-zeichen-hoechstzahl", "-1"),
+        ("kritik-mindestzeichen", "5 Tage"),
+        ("adresswechsel-wartefrist-stunden", "0"),
+        ("adresswechsel-wartefrist-stunden", "-100"),
+        ("weicherfilter-regel", "99"),
+        ("region-nebenwohnsitz-zaehlt", "2"),
+        ("live-takt-sekunden", "4"),
+        ("aehnlichkeit-schwelle-prozent", "101"),
+    ],
+)
+def test_verwaltung_weist_werte_ausserhalb_von_typ_und_bereich_ab(client, schluessel, wert):
+    """GP-021 (RVA-01): Die Verwaltung speicherte jeden Text als Registerwert — „0“ leerte jeden
+    neuen Beitrag, „0“ hob die Wartefrist des Adresswechsels auf, „99“ behauptete eine Fassung,
+    die der Code nicht hat. Abgewiesen wird ohne Änderung, Historie und Audit, mit Meldung."""
+    _admin(client)
+    eintrag = Parameter.objects.get(schluessel=schluessel)
+    vorher = _register_stand()
+    antwort = client.post(
+        reverse("parameter:verwaltung_aktion"),
+        {"parameter": eintrag.pk, "wert": wert, "grund": "Probe."},
+        follow=True,
+    )
+    assert _register_stand() == vorher
+    inhalt = antwort.content.decode()
+    assert "unverändert" in inhalt and schluessel in inhalt
+
+
+def test_meldung_nennt_den_bereich(client):
+    _admin(client)
+    eintrag = Parameter.objects.get(schluessel="live-takt-sekunden")
+    antwort = client.post(
+        reverse("parameter:verwaltung_aktion"),
+        {"parameter": eintrag.pk, "wert": "301", "grund": "Probe."},
+        follow=True,
+    )
+    assert "5 bis 300" in antwort.content.decode()
+
+
+def test_gueltige_werte_im_bereich_gehen_durch(client):
+    _admin(client)
+    for schluessel, wert in (
+        ("chat-zeichen-hoechstzahl", "1"),
+        ("adresswechsel-wartefrist-stunden", "1"),
+        ("region-nebenwohnsitz-zaehlt", "1"),
+        ("aehnlichkeit-bedeutung-je-stunde", "0"),
+        ("live-takt-sekunden", "300"),
+    ):
+        eintrag = Parameter.objects.get(schluessel=schluessel)
+        client.post(
+            reverse("parameter:verwaltung_aktion"), {"parameter": eintrag.pk, "wert": wert, "grund": "Probe."}
+        )
+        eintrag.refresh_from_db()
+        assert eintrag.wert == wert, schluessel
+
+
+def test_versionsschilder_haben_kein_aenderungsformular(client):
+    _admin(client)
+    inhalt = client.get(reverse("parameter:verwaltung")).content.decode()
+    for schluessel in VERSIONSSCHILDER:
+        assert f'aria-label="Neuer Wert {schluessel}"' not in inhalt, schluessel
+    assert 'aria-label="Neuer Wert chat-zeichen-hoechstzahl"' in inhalt

@@ -1,0 +1,25 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Gemeindeprojekte" %} · {{ gemeinde.name }}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}">{{ gemeinde.anzeige }}</a></p>
+<h1>{% translate "Gemeindeprojekte" %}</h1>
+<p>{% translate "Von DDÖ-Mandataren dokumentierte öffentliche Projektstände der Gemeinde." %}</p>
+{% for stand in seite %}
+<article class="karte">
+  <h2><a href="{% url 'gemeinde:projekt' gemeinde.kennziffer stand.projekt_id %}">{{ stand.titel|default:stand.get_lage_display }}</a></h2>
+  <p>{% if stand.titel %}<span class="badge badge--hell">{{ stand.get_lage_display }}</span> · {% endif %}
+    <time datetime="{{ stand.stand_am|date:'Y-m-d' }}">{{ stand.stand_am|date:"DATE_FORMAT" }}</time>
+    · {{ stand.projekt.mandat.mitglied.anzeigename }}</p>
+</article>
+{% empty %}
+<p>{% translate "Für diese Gemeinde sind noch keine Projekte dokumentiert." %}</p>
+{% endfor %}
+{% if seite.has_other_pages %}
+<nav aria-label="{% translate 'Weitere Seiten' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">{% translate "Zurück" %}</a>{% endif %}
+  <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "Weiter" %}</a>{% endif %}
+</nav>
+{% endif %}
+<p class="hilfe">{% translate "Jüngste Erstveröffentlichung zuerst, bei Gleichstand höhere Projektkennung zuerst." %}</p>
+{% endblock %}

@@ -621,6 +621,53 @@ class Gemeindehaushaltsquelle(models.Model):
         return f"{self.gemeinde_id}: {self.art} ({self.jahr})"
 
 
+class Gemeindeprojekt(models.Model):
+    """Die bei der ersten Veröffentlichung festgehaltene Zuordnung eines Projekts."""
+
+    mandat = models.ForeignKey(Mandat, on_delete=models.PROTECT, related_name="gemeindeprojekte")
+    gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT)
+    veroeffentlicht_am = models.DateTimeField(default=timezone.now)
+
+    def __str__(self) -> str:
+        return f"Projekt {self.pk} ({self.gemeinde_id})"
+
+
+class Gemeindeprojektstand(models.Model):
+    """Ein belegter öffentlicher Projektstand oder die Rücknahme seiner Veröffentlichung."""
+
+    class Lage(models.TextChoices):
+        VORGESTELLT = "vorgestellt", _("Vorgestellt")
+        BESCHLOSSEN = "beschlossen", _("Beschluss dokumentiert")
+        UMSETZUNG = "umsetzung", _("In Umsetzung")
+        ABGESCHLOSSEN = "abgeschlossen", _("Abgeschlossen")
+        ZURUECKGEZOGEN = "zurueckgezogen", _("Veröffentlichung zurückgezogen")
+
+    projekt = models.ForeignKey(Gemeindeprojekt, on_delete=models.PROTECT, related_name="staende")
+    lage = models.CharField(max_length=16, choices=Lage.choices)
+    titel = models.CharField(max_length=200, blank=True)
+    vermerk = models.TextField(max_length=4000, blank=True)
+    quelle = models.URLField(max_length=QUELLEN_URL_MAX, blank=True)
+    stand_am = models.DateField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [models.Index(fields=["projekt", "-id"], name="gemeindeprojektstand_letzter")]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(lage="zurueckgezogen", titel="", vermerk="", quelle="")
+                | (
+                    models.Q(lage__in=["vorgestellt", "beschlossen", "umsetzung", "abgeschlossen"])
+                    & ~models.Q(titel="")
+                    & ~models.Q(quelle="")
+                ),
+                name="gemeindeprojektstand_inhalt",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.projekt_id}: {self.lage} ({self.pk})"
+
+
 class Beschluss(models.TextChoices):
     """Was die Plattform zu dem Gegenstand beschlossen hatte — abgeleitet aus dem Antrag."""
 

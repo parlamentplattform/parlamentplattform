@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.91.0] — 2026-11-15 · Belegte öffentliche Gemeindeprojektstände
+
+- DDÖ-Gemeindemandatare können bereits öffentliche Projektstände mit Datum und Quellenlink dokumentieren. Die Ortsseite führt zum aktuellen Projektstand und zum datierten Verlauf.
+- Berichtigungen und Rücknahmen erfolgen durch neue Einträge. Der aktuelle öffentliche Text und sein Quellenlink können zurückgezogen werden. Frühere Einträge bleiben am ursprünglichen Ort dokumentiert.
+
 ## [0.90.0] — 2026-11-15 · Öffentliche Haushaltsunterlagen nach Gemeinde
 
 - Zugeordnete DDÖ-Gemeindemandatare können öffentliche Voranschläge, Rechnungsabschlüsse und mehrjährige Ergebnis- und Finanzpläne verlinken. Die Ortsseite führt zur nach Haushaltsjahr geordneten Übersicht.

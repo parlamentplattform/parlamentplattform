@@ -57,7 +57,7 @@ def test_senden_ohne_neuladen_und_antwort_modus(seite, live_server, demo):
     p.locator(f'#k-{wurzel.pk} .blase-knopf:text("Antworten")').click()
     chip = p.locator(".antwort-chip")
     p.wait_for_selector(".antwort-chip", state="visible")
-    assert "Mitglied" in chip.inner_text()
+    assert "Demo" in chip.inner_text()  # Demo-Konten heißen seit GP-209 „Demo n“
     p.locator(".chatzeile textarea").fill("Meine Antwort im Faden.")
     p.wait_for_timeout(300)
     p.locator(".chatzeile button[type=submit]").click()

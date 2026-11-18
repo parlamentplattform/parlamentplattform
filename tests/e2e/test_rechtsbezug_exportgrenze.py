@@ -55,7 +55,7 @@ def test_oeffentlicher_altbezug_bleibt_lesbar_und_fremder_beifang_geschuetzt(
     if mobil_mit_js:
         p.locator('.zreiter[href="#zone-einschaetzung"]').click()
         expect(p.locator("#zone-einschaetzung")).to_be_visible()
-    expect(p.get_by_text("The stored run is not clearly bound" if sprache == "en" else "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden", exact=False)).to_be_visible()
+    expect(p.get_by_text("The stored run is not clearly bound" if sprache == "en" else "Der gespeicherte Lauf ist nicht eindeutig an den öffentlichen Auftrag gebunden", exact=False).first).to_be_visible()  # seit GP-208 auch als Zeile der Historie
     assert PRIVAT not in p.content()
     for art in ("json", "md"):
         r = p.request.get(live_server.url + reverse("verfahren:archiv_export", kwargs={"pk": a.pk, "art": art}))

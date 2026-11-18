@@ -355,3 +355,19 @@ def test_listen_und_register_laden_das_lichtbild_nicht_mit(client):
             assert client.get(url).status_code == 200
         mit_foto = [q["sql"] for q in abfragen.captured_queries if '"mandatare_mandat"."foto"' in q["sql"]]
         assert mit_foto == [], (url, mit_foto)
+
+
+def test_freie_rechenschaft_nur_zwischen_antritt_und_pflichtende(client):
+    """GP-192 (MV-23): Ein freier Sitzungstag vor dem Antritt oder nach dem Ende der Pflichten wird abgewiesen."""
+    heute = timezone.localdate()
+    mitglied = mitglied_anlegen("anna")
+    mandat = mandat_anlegen(mitglied, angetreten=heute - timedelta(days=60), vertretung_beendet_am=heute - timedelta(days=5))
+    client.force_login(mitglied)
+    daten = {"aktion": "rechenschaft", "mandat": mandat.pk, "aufgabe": "", "gegenstand": "Budget",
+             "beschluss_plattform": "keiner", "stimme": "enthalten", "begruendung": "Unklare Zahlen."}
+    for tag in (heute - timedelta(days=61), heute - timedelta(days=4)):
+        antwort = client.post(reverse("mandatare:mein_aktion"), {**daten, "sitzung_am": tag.isoformat()})
+        assert antwort.status_code == 200 and "zwischen dem Antritt" in antwort.content.decode(), tag
+    assert not Rechenschaft.objects.exists()
+    client.post(reverse("mandatare:mein_aktion"), {**daten, "sitzung_am": (heute - timedelta(days=5)).isoformat()})
+    assert Rechenschaft.objects.count() == 1

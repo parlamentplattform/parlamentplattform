@@ -404,7 +404,7 @@ def test_sammelbericht_und_rechenschaft_schliessen_die_pflichten(client):
 
 
 def test_rechenschaft_frei_braucht_gegenstand_sitzungstag_und_begruendung(client):
-    _, mandat = mandatar(client)
+    _, mandat = mandatar(client, angetreten=date(2026, 1, 1))  # der Sitzungstag liegt im Mandat (GP-192)
     daten = {"aktion": "rechenschaft", "mandat": mandat.pk, "aufgabe": "", "gegenstand": "Budget 2027",
              "sitzung_am": "2026-09-10", "beschluss_plattform": "keiner", "stimme": "enthalten", "begruendung": ""}
     html = client.post(AKTION, daten, follow=True).content.decode()

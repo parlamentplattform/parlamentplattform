@@ -1456,6 +1456,10 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
             # und ein ferner Tag ließe die Fristrechnung des Registers überlaufen.
             messages.error(request, _("Der Sitzungstag darf nicht in der Zukunft liegen."))
             return False
+        if sitzung_am < mandat.angetreten or (mandat.pflichtende is not None and sitzung_am > mandat.pflichtende):
+            # Rechenschaft schuldet, wer das Mandat an diesem Tag ausübte (GP-192)
+            messages.error(request, _("Der Sitzungstag muss zwischen dem Antritt und dem Ende der Pflichten liegen."))
+            return False
     if not gegenstand or not begruendung or stimme not in Stimmverhalten.values:
         messages.error(request, _("Bitte Gegenstand, Stimme und Begründung angeben."))
         return False

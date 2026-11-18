@@ -390,6 +390,47 @@ def test_zweimal_angewendeter_wechsel_ergibt_genau_einen_audit_eintrag():
     assert zweiter_lauf.status == Adresswechsel.Status.WIRKSAM
 
 
+def test_zweimal_bestaetigter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Restauflage zu GP-211 (Nachbar): Zwei Bestätigungen mit veraltetem Stand — die zweite findet
+    den Wechsel bestätigt vor und schreibt nichts."""
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    zweite = Adresswechsel.objects.get(pk=wechsel.pk)
+    adminb, adminc = admin_anlegen("adminb"), admin_anlegen("adminc")
+    assert wechsel.bestaetigen(adminb) is True
+    assert zweite.bestaetigen(adminc) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_bestaetigt") == 1
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id == adminb.pk
+
+
+def test_bestaetigung_eines_inzwischen_widerrufenen_wechsels_schreibt_nichts():
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    veraltet = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.widerrufen("einspruch") is True
+    assert veraltet.bestaetigen(admin_anlegen("adminb")) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert "email_geaendert_bestaetigt" not in aktionen
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None
+
+
+def test_bestaetigen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.bestaetigen(admin_anlegen("adminb"))
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None and wechsel.bestaetigt_am is None
+
+
 def test_wirksam_machen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
     anna = mitglied_anlegen()
     wechsel = _faelliger_wechsel(anna)

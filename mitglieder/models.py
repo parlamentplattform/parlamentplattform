@@ -544,14 +544,20 @@ class Adresswechsel(models.Model):
         )  # bewusst ohne Adressen: Das Audit-Log ist öffentlich (F-22)
 
     def bestaetigen(self, durch) -> bool:
-        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller."""
+        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller.
+
+        Wie beim Wirksammachen (GP-211): entschieden wird erst nach der Sperre und dem Neuladen;
+        Bestätigung und Audit-Eintrag gelingen gemeinsam oder gar nicht."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
-            return False
-        self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
-        self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
-        self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
+        with transaction.atomic():
+            self._sperren()
+            if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
+                return False
+            self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
+            self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
+            self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
         return True
 
     def _sperren(self) -> None:

@@ -103,8 +103,14 @@ def bericht(request, jahr: int):
 
     § 6 Abs 11 lit c: Die Einführung ist „mit Begründung im Parameterregister zu
     veröffentlichen"; der Bericht ist die Jahressicht darauf — nichts daran ist Freitext."""
+    from django.http import Http404
+
     from parameter.models import ParameterTest
 
+    # GP-125: Jahre außerhalb von 2000 bis nächstem Jahr gibt es im Register nicht — und eine
+    # zwanzigstellige Zahl darf keinen Serverfehler auslösen.
+    if not 2000 <= jahr <= timezone.localdate().year + 1:
+        raise Http404
     aenderungen = list(
         Aenderung.objects.filter(geaendert_am__year=jahr).select_related("parameter").order_by("geaendert_am")
     )

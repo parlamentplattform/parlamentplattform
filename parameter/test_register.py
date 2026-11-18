@@ -543,3 +543,16 @@ def test_eine_aeltere_fassung_laesst_sich_nicht_wieder_in_kraft_setzen(client, o
     )
     assert list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am")) == vorher
     assert "nicht jünger" in antwort.content.decode()
+
+
+@pytest.mark.parametrize("jahr", ["0", "1", "1999", "9999", "10000", "12345678901234567890"])
+def test_parameterbericht_kennt_nur_sinnvolle_jahre(client, jahr):
+    """GP-125 (RVA-17): Ungültige Jahreszahlen führten zu einem Serverfehler."""
+    assert client.get(f"/parameter/bericht/{jahr}/").status_code == 404
+
+
+def test_parameterbericht_des_laufenden_jahres(client):
+    jahr = timezone.localdate().year
+    assert client.get(reverse("parameter:bericht", args=[jahr])).status_code == 200
+    assert client.get(reverse("parameter:bericht", args=[jahr + 1])).status_code == 200
+    assert client.get(reverse("parameter:bericht", args=[jahr + 2])).status_code == 404

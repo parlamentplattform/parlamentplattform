@@ -1183,3 +1183,65 @@ def test_eine_fruehe_ueberarbeitungsfrist_oeffnet_die_endabstimmung_erst_zum_ber
     antrag.fortschreiben(t0 + timedelta(days=tage, hours=1))
     antrag.refresh_from_db()
     assert antrag.phase == 'abstimmung' and antrag.phase_beginn == t0 + timedelta(days=tage)
+
+
+# --- GP-026: Der Audit-Grund sagt, WARUM der Vorschlag zur Endabstimmung geht -----------------
+
+
+def _endabstimmung_im_audit(antrag):
+    from verfahren.archiv import _beendendes_ereignis
+
+    antrag.refresh_from_db()
+    assert antrag.phase == 'abstimmung'
+    (wechsel,) = _wechsel_in_die_abstimmung(antrag)
+    # Das Archiv findet die Runde weiterhin über den Wortlaut („Runde N,“ und die Schwelle).
+    runde = wechsel['auswertung']['runde']
+    assert _beendendes_ereignis(antrag, runde) == wechsel
+    return wechsel
+
+
+def test_stille_der_unterstuetzer_steht_als_stille_im_audit(client, ordnung):  # noqa: F811
+    """GP-026: Niemand reagiert — das Audit sagte „Vorschlag des Expertenrats angenommen“. Angenommen
+    hat ihn niemand; er GILT als angenommen, weil jede Reaktion ausblieb (§ 5 Abs 13)."""
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    frist_verstreichen(entwurf)
+    antrag.fortschreiben()
+    wechsel = _endabstimmung_im_audit(antrag)
+    assert 'Keine Reaktion' in wechsel['grund'] and '§ 5 Abs 13' in wechsel['grund']
+    assert f"{antrag.policy().review_tage} Tagen" in wechsel['grund']
+    assert wechsel['auswertung']['grund'] == 'stille' and wechsel['auswertung']['stimmen'] == 0
+
+
+def test_erreichte_hoechstrunden_stehen_nicht_als_annahme_im_audit(client, ordnung):  # noqa: F811
+    """GP-026: Die Unterstützer lehnen ab, die Höchstzahl der Runden ist erreicht — der Vorschlag geht
+    nach § 5 Abs 12 zur Endabstimmung, aber „angenommen“ hat ihn niemand."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
+    antrag.refresh_from_db()
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u, art='ablehnung')
+    frist_verstreichen(entwurf)
+    antrag.fortschreiben()
+    wechsel = _endabstimmung_im_audit(antrag)
+    assert 'Höchstzahl der Runden' in wechsel['grund'] and '§ 5 Abs 12' in wechsel['grund']
+    assert 'angenommen' not in wechsel['grund']
+    festgehalten = wechsel['auswertung']
+    assert festgehalten['grund'] == 'hoechstrunden' and festgehalten['angenommen'] is False
+    assert festgehalten['stimmen'] == 2 and (festgehalten['ja'], festgehalten['nein']) == (0, 2)
+
+
+def test_eine_wirkliche_annahme_steht_als_annahme_im_audit(client, ordnung):  # noqa: F811
+    """GP-026, Gegenprobe: Tragen die Unterstützer „Passt alles“, bleibt der Grund die Annahme."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u)
+    frist_verstreichen(entwurf)
+    antrag.fortschreiben()
+    wechsel = _endabstimmung_im_audit(antrag)
+    assert wechsel['grund'].startswith('Vorschlag des Expertenrats angenommen')
+    assert wechsel['auswertung']['grund'] == 'passt_alles_oben' and wechsel['auswertung']['stimmen'] == 2

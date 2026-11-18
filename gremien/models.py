@@ -724,9 +724,11 @@ class Entwurf(models.Model):
                 f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
                 f"Regel {stand['reihung']}"
             )
+            # Auch Grund und Stimmenzahl der Rechnung (GP-026): „stille“ und eine wirkliche Annahme
+            # sind verschiedene Ausgänge, und das Audit soll sie unterscheiden.
             festgehalten = {
                 k: stand[k]
-                for k in ("ja", "nein", "prozent", "schwelle", "oben", "angenommen", "reihung")
+                for k in ("ja", "nein", "prozent", "schwelle", "oben", "angenommen", "reihung", "grund", "stimmen")
                 if k in stand
             }
             festgehalten["runde"] = self.runde
@@ -745,12 +747,31 @@ class Entwurf(models.Model):
             wirksam = self._endabstimmung_fruehestens(antrag, wirksam, jetzt)
             if jetzt < wirksam:
                 return False
-            self._endabstimmung_oeffnen(
-                antrag,
-                f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
-                wirksam,
-                auswertung=festgehalten,
-            )
+            # Drei Wege führen zur Endabstimmung, und das Audit nennt den, der es war (GP-026):
+            # die Annahme durch die Unterstützer, ihr Schweigen (§ 5 Abs 13: „Bleibt jede Reaktion
+            # aus, gilt der Vorschlag als angenommen“) und die erreichte Höchstzahl der Runden
+            # (§ 5 Abs 12) — dann hat ihn niemand angenommen. „Runde N,“ und die Schwelle bleiben
+            # im Wortlaut: Daran erkennt das Archiv das Ereignis, das die Runde beendet hat.
+            rest = f"{rechnung}, Runde {self.runde},"
+            if not stand["angenommen"]:
+                festgehalten["grund"] = "hoechstrunden"
+                grund = (
+                    f"Höchstzahl der Runden erreicht ({ordnung.hoechstrunden}) — der Vorschlag des "
+                    f"Expertenrats geht ohne Annahme durch die Unterstützer zur Endabstimmung ({rest} § 5 Abs 12)."
+                )
+            elif stand["grund"] == "stille":
+                grund = (
+                    f"Keine Reaktion der Unterstützer binnen {ordnung.review_tage} Tagen — der Vorschlag "
+                    f"des Expertenrats gilt als angenommen ({rest} § 5 Abs 13)."
+                )
+            elif stand["grund"] == "kein_systembeitrag":
+                grund = (
+                    "Kein Bezugsbeitrag zur Auswertung — der Vorschlag des Expertenrats geht zur "
+                    f"Endabstimmung ({rest} § 5 Abs 12: Untätigkeit hemmt nie)."
+                )
+            else:
+                grund = f"Vorschlag des Expertenrats angenommen ({rest} § 5 Abs 12)."
+            self._endabstimmung_oeffnen(antrag, grund, wirksam, auswertung=festgehalten)
             return True
         if (
             self.status == EntwurfsStatus.IN_ARBEIT

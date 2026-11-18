@@ -403,3 +403,50 @@ def test_mein_gremium_nennt_alle_gelosten_antraege(client, ordnung):  # noqa: F8
     seite = client.get(reverse('gremien:mein')).content.decode()
     assert 'Radwege an der Hauptstraße' in seite and 'Trinkbrunnen am Marktplatz' in seite
     assert seite.count('class="bereich"') == 2  # je Gremium eine Kachel, nicht je Rolle
+
+
+# --- GP-166: Keine Formulare, die nur abgewiesen werden ---------------------------------------
+
+
+def test_wer_fuer_einen_anderen_antrag_gelost_ist_sieht_kein_stimmformular(client, ordnung):  # noqa: F811
+    """GP-166: `darf_stimmen` galt bereichsweit — die für Antrag A Geloste sah am Einreichungsbeschluss zu
+    Antrag B ein Stimmformular, das beim Absenden nur eine Fehlermeldung auslöste."""
+    from django.urls import reverse
+
+    from gremien.models import Anlass, GremienBeschluss, Gremium, Rolle
+    from gremien.test_werkstatt import fenster_oeffnen, rolle_geben, werkstatt_lage
+    from verfahren.models import antrag_einbringen
+
+    antrag_b, _unterstuetzer, er = werkstatt_lage(ordnung)
+    for rat in er:
+        Rolle.objects.filter(mitglied=rat).update(antrag=antrag_b)
+    fenster_oeffnen(client, antrag_b, er[0])
+    client.post(reverse('gremien:fenster_aktion', args=[antrag_b.pk]), {'aktion': 'einreichung'})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag_b)
+    antrag_a = antrag_einbringen(mitglied_anlegen('andere'), titel='Antrag A', wortlaut='A.', begruendung='B.', ordnung=ordnung)
+    fremde = mitglied_anlegen('fremde')
+    rolle_geben(fremde, Gremium.EXPERTENRAT_1, antrag=antrag_a)
+    stimmformular = reverse('gremien:beschluss_stimme', args=[beschluss.pk])
+    client.force_login(fremde)
+    seite = client.get(reverse('gremien:expertenrat')).content.decode()
+    assert beschluss.nummer in seite and stimmformular not in seite
+    client.force_login(er[1])
+    assert stimmformular in client.get(reverse('gremien:expertenrat')).content.decode()  # die Zuständige stimmt weiter ab
+
+
+def test_die_verwaltung_sieht_im_integritaetsbereich_den_hinweis_statt_des_formulars(client, ordnung):  # noqa: F811
+    from django.urls import reverse
+
+    from gremien.test_integritaet import rat
+
+    leute = rat()
+    admin = mitglied_anlegen('aufsicht')
+    admin.ist_admin = True
+    admin.save()
+    client.force_login(admin)
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    assert reverse('gremien:integritaet_beschluss') not in seite
+    assert 'Sie sehen diesen Bereich als Aufsicht' in seite
+    client.force_login(leute[0])
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    assert reverse('gremien:integritaet_beschluss') in seite and 'Sie sehen diesen Bereich als Aufsicht' not in seite

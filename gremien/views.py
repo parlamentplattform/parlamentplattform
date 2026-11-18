@@ -1008,6 +1008,9 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
                 "meine_stimme": next(
                     (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
                 ),
+                # Antragsgenau, wie die Stimmabgabe selbst prüft (GP-166): Wer für einen anderen Antrag
+                # gelost ist, bekommt hier kein Formular, das nur abgewiesen würde.
+                "zustaendig": getattr(nutzer, "pk", None) in personen[beschluss.pk],
             }
         )
     return zeilen

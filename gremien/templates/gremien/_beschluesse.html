@@ -25,7 +25,7 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
     <p style="margin-top:6px"><strong>{% translate "Beschlossen:" %} {% for o in b.beschluss.optionen %}{% if o.wert == b.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>
       {% if b.beschluss.umsetzungsvermerk %}<br><span class="meta">{{ b.beschluss.umsetzungsvermerk|linebreaksbr }}</span>{% endif %}
       {% if b.beschluss.umsetzung_durch %}<br><span class="meta">{% translate "Umsetzung:" %} {{ b.beschluss.umsetzung_durch.anzeigename }}{% if b.beschluss.umsetzung_frist %} · {% translate "bis" %} {{ b.beschluss.umsetzung_frist|date:"d.m.Y" }}{% endif %}</span>{% elif b.beschluss.umsetzung_frist %}<br><span class="meta">{% translate "Umsetzung bis" %} {{ b.beschluss.umsetzung_frist|date:"d.m.Y" }}</span>{% endif %}</p>
-    {% if umsetzungsvermerk and darf_stimmen %}
+    {% if umsetzungsvermerk and darf_stimmen and b.zustaendig %}
     <details style="margin-top:6px"><summary class="meta">{% if b.beschluss.umsetzungsvermerk %}{% translate "Umsetzungsvermerk ändern" %}{% else %}{% translate "Umsetzungsvermerk — was wie umgesetzt wird" %}{% endif %}</summary>
       <form method="post" action="{% url 'gremien:beschluss_umsetzung' b.beschluss.pk %}" style="margin-top:6px">{% csrf_token %}
         <label for="uv-{{ b.beschluss.pk }}">{% translate "Was wie umgesetzt wird (wird veröffentlicht)" %}</label>
@@ -43,7 +43,7 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
     {% endif %}
     {% elif b.beschluss.status == "ohne_ergebnis" %}
     <p class="meta" style="margin-top:6px">{% if b.beschluss.umsetzungsvermerk %}{{ b.beschluss.umsetzungsvermerk|linebreaksbr }}{% else %}{% translate "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende." %}{% endif %}</p>
-    {% elif darf_stimmen %}
+    {% elif darf_stimmen and b.zustaendig %}
     <form method="post" action="{% url 'gremien:beschluss_stimme' b.beschluss.pk %}" style="margin-top:8px">{% csrf_token %}
       {% if b.beschluss.anlass == "einreichung" %}
       <label for="ib-{{ b.beschluss.pk }}">{% translate "Interessenbindungen zu diesem Antrag — Pflicht, „keine“ ist eine Antwort (§ 6 Abs 7)" %}</label>

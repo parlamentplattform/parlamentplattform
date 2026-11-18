@@ -10,6 +10,7 @@ Menschen). Ohne JavaScript vollständig bedienbar.
 {% endcomment %}
 <h1>{% translate "Integritätsrat" %}</h1>
 {% include "gremien/_rollenband.html" %}
+{% if not darf_stimmen and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
 <p class="erk">{% translate "Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6) stützt sich auf das öffentliche Regelverzeichnis." %}
   <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a>
   · <a href="{% url 'gremien:integritaet_bericht' jahr %}">{% blocktranslate with j=jahr %}Öffentlicher Bericht {{ j }} →{% endblocktranslate %}</a>
@@ -19,6 +20,7 @@ Menschen). Ohne JavaScript vollständig bedienbar.
 <div class="band-gold">{% blocktranslate with a=aktive m=mindestbesetzung %}Der Rat ist mit {{ a }} von mindestens {{ m }} Mitgliedern besetzt (§ 6 Abs 3 lit a). Beschlüsse lassen sich anlegen und abstimmen — Wirkung entfalten sie erst, wenn der Rat satzungsgemäß besetzt ist.{% endblocktranslate %}</div>
 {% endif %}
 
+{% if darf_stimmen %}
 <div class="karte">
   <p class="phasen-titel">{% translate "Beschluss anlegen" %}</p>
   <p class="erk">{% blocktranslate %}Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage — beantwortet wird sie
@@ -38,6 +40,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     </p>
   </form>
 </div>
+{% endif %}
 
 <div class="karte feststellung">
   <p class="phasen-titel">{% translate "Vertrauensfragen · Sperre feststellen" %} <span class="chip klein">{% translate "§ 7 Abs 10 lit b und g" %}</span></p>

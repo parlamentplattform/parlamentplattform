@@ -1113,3 +1113,25 @@ def test_export_kennzeichnet_ki_beitrag_mit_laufnummer_und_modell(ordnung):  # n
     zeilen = {z["text"]: z for z in daten_export(anna)["entwurfsbeitraege"]}
     assert zeilen["KI-Text"]["ki_lauf"] == {"nummer": lauf.pk, "modell": "modell-x"}
     assert zeilen["Eigener Text"]["ki_lauf"] is None
+
+
+# --- Datenexport nur per GET und gedrosselt (GP-099, KM-12) -------------------
+
+
+def test_datenexport_nur_get_und_je_konto_gedrosselt(client):
+    from mitglieder.profil import EXPORT_JE_STUNDE
+
+    anna = mitglied_anlegen("anna")
+    client.force_login(anna)
+    assert client.head(EXPORT).status_code == 405
+    assert client.post(EXPORT).status_code == 405
+    assert not audit("profil", aktion="datenexport", mitglied=anna.pk)
+    antworten = [client.get(EXPORT) for _ in range(25)]
+    assert len(audit("profil", aktion="datenexport", mitglied=anna.pk)) == EXPORT_JE_STUNDE < 25
+    assert [a.status_code for a in antworten[:EXPORT_JE_STUNDE]] == [200] * EXPORT_JE_STUNDE
+    assert antworten[-1].status_code == 302 and antworten[-1]["Location"] == PROFIL
+    assert "Zu viele Datenexporte" in client.get(PROFIL).content.decode()
+    bert = mitglied_anlegen("bert")  # die Drossel zählt je Konto
+    anderes = Client()
+    anderes.force_login(bert)
+    assert anderes.get(EXPORT).status_code == 200

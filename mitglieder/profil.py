@@ -39,11 +39,12 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from mandatare.gemeindeexport import gemeindearbeit_exportieren, mandate_fuer_export
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.botschutz import drossel_zuviel
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from parameter.models import zahl
@@ -799,10 +800,30 @@ def daten_export(mitglied: Mitglied) -> dict:
     return daten
 
 
+# GP-099: Startwert; in der zweiten Runde wird die Grenze ein Registerwert.
+EXPORT_JE_STUNDE = 10
+
+
 @login_required
 @never_cache
+@require_GET
 def export_json(request):
-    """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto."""
+    """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto.
+
+    Nur GET; je Konto und Kalenderstunde höchstens `EXPORT_JE_STUNDE` Abrufe, damit kein
+    Konto die öffentliche Audit-Kette mit Exportzeilen füllt (GP-099)."""
+    if drossel_zuviel(None, "datenexport", EXPORT_JE_STUNDE, kennung=f"konto:{request.user.pk}"):
+        from datetime import datetime
+
+        from django.utils import formats
+
+        ende = datetime.fromtimestamp(
+            (int(timezone.now().timestamp()) // 3600 + 1) * 3600, tz=timezone.get_current_timezone()
+        )
+        messages.error(request, _("Zu viele Datenexporte in dieser Stunde — bitte ab %(zeit)s Uhr erneut.") % {
+            "zeit": formats.time_format(ende, "H:i")
+        })
+        return redirect("mitglieder:profil")
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
     _auditieren("datenexport", request.user)
     antwort = HttpResponse(inhalt, content_type="application/json; charset=utf-8")

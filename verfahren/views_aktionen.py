@@ -40,6 +40,7 @@ from verfahren.einbringwahl import (
     pruefung_aus_stand,
 )
 from verfahren.hinweise import (
+    HINWEISE,
     kachel_feld,
     mitwirkungssperre,
     sicherer_pfad,
@@ -91,17 +92,23 @@ def _mitwirkung_gesperrt(request):
 
     Gründe: Testkonto (steht in keinem Nenner, wirkt nie mit), unbestätigte Identität (§ 4)
     oder ruhender Status (F-51: pausiert bis zum Beitragseingang bzw. ausgeschlossen nach
-    § 4 Abs 6). Richtig für Formulare der Antragsseite; Kachel- und Feed-Formulare (mit
+    § 4 Abs 5). Den Satzungsbezug liefert `HINWEISE` (GP-176). Richtig für Formulare der Antragsseite; Kachel- und Feed-Formulare (mit
     `feld`) gehen den Redirect-Weg mit Hinweis im Feld (`_abbruch`), damit das Feld nie
     verschwindet."""
     code = mitwirkungssperre(request.user)
     if code == "gesperrt_ungeprueft":
-        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+        return render(
+            request, "verfahren/nur_bestaetigte.html", {"satzung": HINWEISE[code]["satzung"]}, status=403,
+        )
     if code:
         return render(
             request,
             "verfahren/mitwirkung_ruht.html",
-            {"pausiert": request.user.status == Mitgliedsstatus.PAUSIERT, "testkonto": code == "testkonto"},
+            {
+                "pausiert": request.user.status == Mitgliedsstatus.PAUSIERT,
+                "testkonto": code == "testkonto",
+                "satzung": HINWEISE[code].get("satzung", ""),
+            },
             status=403,
         )
     return None

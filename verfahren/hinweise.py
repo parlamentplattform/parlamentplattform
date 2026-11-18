@@ -27,6 +27,8 @@ FELDER = ("filter", "wichtig", "region")
 
 #: Hinweiscodes: `text` steht im Feldkopf, `kurz` (wenn vorhanden) in der Kachel statt der Knöpfe,
 #: `link` ist ein URL-Name (mit `link_text`), `art` färbt den Hinweis (ok / fehler).
+#: `satzung` ist bei Sperrgründen die eine Quelle des Satzungsbezugs: Feldhinweis und Sperrseite
+#: zitieren denselben Absatz (GP-176); ein Wächtertest hält Text und Schlüssel gleich.
 HINWEISE: dict[str, dict] = {
     "nicht_im_teilnehmerkreis": {
         "kurz": _("Außerhalb des örtlichen Teilnehmerkreises"),
@@ -51,6 +53,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_ungeprueft": {
         "kurz": _("Identität noch ungeprüft"),
         "text": _("Identität noch ungeprüft (§ 4 Abs 1)."),
+        "satzung": "§ 4 Abs 1",
         "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
@@ -58,6 +61,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_pausiert": {
         "kurz": _("Mitwirkung ruht"),
         "text": _("Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)."),
+        "satzung": "§ 4 Abs 3",
         "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
@@ -65,6 +69,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_ausgeschlossen": {
         "kurz": _("Mitwirkung ruht"),
         "text": _("Von der Mitwirkung ausgeschlossen (§ 4 Abs 5)."),
+        "satzung": "§ 4 Abs 5",
         "art": "fehler",
     },
     "testkonto": {"kurz": _("Testkonto"), "text": _("Testkonto — ohne Mitwirkung."), "art": "fehler"},
@@ -78,6 +83,7 @@ HINWEISE: dict[str, dict] = {
     "nicht_stimmberechtigt": {
         "kurz": _("Nicht stimmberechtigt am Stichtag"),
         "text": _("Nicht stimmberechtigt am Stichtag (§ 4 Abs 4)."),
+        "satzung": "§ 4 Abs 4",
         "link": "verfahren:rollen",
         "link_text": _("Wer darf was"),
         "art": "fehler",

@@ -21,7 +21,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
 from mitglieder.auth_flows import EinmalToken
-from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
+from mitglieder.botschutz import BotschutzMixin, drossel_erstatten, drossel_meldung, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
@@ -157,8 +157,13 @@ def anmelden(request):
     form = AnmeldeFormular(request.POST if request.method == "POST" else None, request=request)
     if request.method == "POST":
         if drossel_zuviel(request, "registrierung", limit=5):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            # GP-019: Tippfehler zählen nicht — wohl aber Fehler am Adressfeld, sonst ließe sich
+            # über „existiert bereits“ ungebremst abfragen, welche Adressen ein Konto haben.
+            if form.botschutz_bestanden and "email" not in form.errors:
+                drossel_erstatten(request, "registrierung")
+        else:
             try:
                 with transaction.atomic():
                     # username ist bereits datenbankweit eindeutig, auch bei paralleler Anmeldung.

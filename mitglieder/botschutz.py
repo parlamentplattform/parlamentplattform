@@ -157,6 +157,29 @@ def drossel_zuviel(request, zweck: str, limit: int, kennung: str | None = None) 
     return False
 
 
+def drossel_erstatten(request, zweck: str) -> None:
+    """Nimmt einen gezählten Versuch zurück — für Absendungen, deren Sicherheitsfrage richtig
+    gelöst war und die nur an einem Tippfehler im Formular scheiterten (GP-019): Die Drossel
+    trifft Missbrauch, nicht Tippfehler. Falsch gelöste Sicherheitsfragen bleiben gezählt."""
+    from mitglieder.models import Drosselzaehler
+
+    Drosselzaehler.objects.filter(
+        zweck=zweck, kennung=klienten_ip(request)[:64], stunde=int(time.time() // 3600), anzahl__gt=0
+    ).update(anzahl=F("anzahl") - 1)
+
+
+def drossel_meldung() -> str:
+    """Die Sperre endet zur vollen Stunde (Kalenderstunde) — die Meldung nennt diesen Zeitpunkt."""
+    from datetime import datetime
+
+    from django.utils import formats, timezone
+
+    ende = datetime.fromtimestamp((int(time.time() // 3600) + 1) * 3600, tz=timezone.get_current_timezone())
+    return _("Zu viele Versuche von dieser Verbindung — bitte ab %(zeit)s Uhr erneut.") % {
+        "zeit": formats.time_format(ende, "H:i")
+    }
+
+
 class BotschutzMixin(forms.Form):
     """In Formulare einmischen; im Template unsichtbares Feld + Rechenfrage rendern.
     Braucht `request` (Sitzung), z. B. `LoginFormular(request.POST, request=request)`."""
@@ -169,6 +192,7 @@ class BotschutzMixin(forms.Form):
     def __init__(self, *args, request, **kwargs):
         super().__init__(*args, **kwargs)
         self.request = request
+        self.botschutz_bestanden = False  # GP-019: Sicherheitsfrage richtig gelöst?
         aufgabe = aufgabe_lesen(request, self.data.get("pruefung", "")) if self.is_bound else None
         self.fields["rechenfrage"].label = _("Sicherheitsfrage: Ergebnis der Rechnung im Bild")
         self.fields["rechenfrage"].help_text = _(
@@ -200,7 +224,9 @@ class BotschutzMixin(forms.Form):
             raise forms.ValidationError(fehler)  # schneller als ein Mensch lesen kann
         if daten.get("rechenfrage") != aufgabe["a"] + aufgabe["b"]:
             self.add_error("rechenfrage", fehler)
-        elif not self.errors:
+            return daten
+        self.botschutz_bestanden = True
+        if not self.errors:
             # Erst wenn das ganze Formular trägt, ist die Aufgabe verbraucht — nach einem
             # Tippfehler anderswo bleibt dieselbe Aufgabe stehen (sie wird ja erneut gezeigt).
             aufgabe_verbrauchen(self.request, kennung)

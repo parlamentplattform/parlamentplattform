@@ -24,7 +24,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
-from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
+from mitglieder.botschutz import BotschutzMixin, drossel_erstatten, drossel_meldung, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
@@ -165,8 +165,13 @@ def registrieren(request):
     if request.method == "POST":
         form = RegistrierungsFormular(request.POST, request=request)
         if drossel_zuviel(request, "registrierung", limit=5):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            # GP-019: Tippfehler zählen nicht — wohl aber Fehler am Adressfeld, sonst ließe sich
+            # über „existiert bereits“ ungebremst abfragen, welche Adressen ein Konto haben.
+            if form.botschutz_bestanden and "email" not in form.errors:
+                drossel_erstatten(request, "registrierung")
+        else:
             d = form.cleaned_data
             try:
                 # Konto und Mailversand stehen und fallen gemeinsam: Scheitert der
@@ -309,8 +314,11 @@ def login_anfordern(request):
     if request.method == "POST":
         form = LoginFormular(request.POST, request=request)
         if drossel_zuviel(request, "anmeldelink", limit=10):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            if form.botschutz_bestanden:
+                drossel_erstatten(request, "anmeldelink")  # GP-019: Tippfehler zählen nicht
+        else:
             email = form.cleaned_data["email"].lower()
             Adresswechsel.faellige_anwenden()  # F-51: erst danach kann die neue Adresse Links bekommen
             mitglied = Mitglied.objects.filter(email__iexact=email).first()

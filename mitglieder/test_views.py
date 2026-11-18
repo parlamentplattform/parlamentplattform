@@ -362,6 +362,40 @@ def test_ip_drossel_stoppt_massenregistrierung(client, feste_drosselzeit):
     assert not Mitglied.objects.filter(email="eva99@example.org").exists()
 
 
+# --- Drossel trifft Missbrauch, nicht Tippfehler (GP-019, KM-05) ----------------------
+
+
+def test_tippfehler_verbrauchen_die_drossel_nicht(client, feste_drosselzeit):
+    for _versuch in range(5):
+        antwort = client.post(
+            reverse('mitglieder:registrieren'), {**ANMELDUNG, 'gemeinde': 'Entenhausen', **botschutz(client)}
+        )
+        assert 'amtlichen Gemeindeverzeichnis' in antwort.content.decode()
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert Mitglied.objects.filter(email='eva@example.org').exists()
+
+
+def test_falsch_geloeste_sicherheitsfragen_bleiben_begrenzt(client, feste_drosselzeit):
+    for _versuch in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client, antwort=99)})
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert 'Zu viele Versuche' in antwort.content.decode()
+    assert not Mitglied.objects.exists()
+
+
+def test_drosselmeldung_nennt_den_zeitpunkt(client, monkeypatch):
+    from django.utils import formats
+
+    stunde = int(time.time() // 3600) * 3600
+    monkeypatch.setattr(time, 'time', lambda: stunde + 600)
+    for i in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': f'eva{i}@example.org', **botschutz(client)})
+    inhalt = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)}).content.decode()
+    ende = timezone.localtime(timezone.datetime.fromtimestamp(stunde + 3600, tz=timezone.get_current_timezone()))
+    assert 'in einer Stunde' not in inhalt
+    assert formats.time_format(ende, 'H:i') in inhalt
+
+
 # --- Drossel: die Verbindung zählt, nicht der Kopf (Befunde #19, #66) --------------------
 
 
@@ -598,3 +632,12 @@ def test_anzeigename_faellt_nie_auf_den_anmeldenamen_zurueck():
     assert mit.anzeigename == f"Mitglied {mit.pk}"
     mit.pseudonym_oeffentlich = "Kornblume"
     assert mit.anzeigename == "Kornblume"
+
+
+def test_vergebene_adressen_bleiben_gedrosselt(client, feste_drosselzeit):
+    """Die Meldung „existiert bereits“ verrät, welche Adresse ein Konto hat — solche Fehler zählen weiter."""
+    Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True)
+    for _versuch in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': 'neu@example.org', **botschutz(client)})
+    assert 'Zu viele Versuche' in antwort.content.decode()

@@ -118,7 +118,10 @@ def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, o
     def beschluss_abfragen():
         with CaptureQueriesContext(connection) as erfasst:
             zeilen = _vertrauensfragen_zur_feststellung()
-        return zeilen, [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
+        alle = [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
+        # Die Fortschreibung je Antrag fragt nach fälligen Beschlüssen DIESES Antrags, um sie nach ihrer
+        # Frist einzureihen (GP-004) — das gehört zu den lazy Phasen, nicht zur Abfrage der Karte.
+        return zeilen, [sql for sql in alle if 'AS "frist"' not in sql]
 
     zeilen, klein = beschluss_abfragen()
     assert len(zeilen) == 1 and zeilen[0]["beschluss"] is not None

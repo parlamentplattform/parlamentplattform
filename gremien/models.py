@@ -28,6 +28,7 @@ sind dafür der ehrliche Rückfall."""
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -37,6 +38,8 @@ from django.utils.translation import gettext_lazy as _
 
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
+
+log = logging.getLogger(__name__)
 
 ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
 BESCHLUSS_TAGE = 7  # Rückfall für die Frist eines internen Beschlusses (§ 6 Abs 2 lit e)
@@ -593,7 +596,7 @@ class Entwurf(models.Model):
 
         return max(frist, beratung_frist_ende(antrag.wirksamer_phase_beginn(jetzt), antrag.policy()))
 
-    def fortschreiben(self, antrag: Antrag, jetzt=None) -> bool:
+    def fortschreiben(self, antrag: Antrag, jetzt=None, vorlauf: bool = False) -> bool:
         """Fristen der Schleife auswerten (idempotent, ohne Blockademacht):
 
         - Liegt der Vorschlag den Unterstützern vor und ist die Frist um (oder
@@ -601,7 +604,11 @@ class Entwurf(models.Model):
           übrig → zurück an Gruppe 1 mit den Wünschen; sonst → Endabstimmung
           über den Vorschlag (auch bei Stille — Untätigkeit hemmt nie).
         - Verstreicht eine Überarbeitungsfrist ohne neue Einreichung → die
-          zuletzt vorgelegte Fassung geht zur Endabstimmung."""
+          zuletzt vorgelegte Fassung geht zur Endabstimmung.
+
+        `vorlauf` rechnet auf einen früheren Zeitpunkt zurück (`Antrag._schritt`, GP-004): Dann
+        zählen nur abgelaufene Fristen der Schleife. Einen Prüfbeschluss anzulegen oder zu
+        schließen ist kein Fristablauf der Schleife — das bleibt dem Lauf zum echten Zeitpunkt."""
         jetzt = jetzt or timezone.now()
         if self.status == EntwurfsStatus.PRUEFUNG:
             # Zwei Wege führen aus der Prüfung ohne Beschluss heraus, und beide haben eine Frist
@@ -648,7 +655,10 @@ class Entwurf(models.Model):
                 # Erst hier, nicht schon beim Einreichen: Beim Einreichen ist manchmal noch
                 # niemand in Gruppe 2 berufen, und die Frist einer Gruppe kann nicht laufen,
                 # bevor es die Gruppe gibt.
-                if self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
+                if vorlauf:
+                    if self.eingereicht_am is None or Rolle.fuer_antrag(Gremium.EXPERTENRAT_2, antrag).exists():
+                        return False
+                elif self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
                     return False
                 # Keine Gruppe 2 — dann läuft die Prüffrist ab der Einreichung. Verstreicht sie,
                 # geht der Vorschlag weiter, und der Vermerk sagt offen, dass niemand geprüft hat.
@@ -683,6 +693,8 @@ class Entwurf(models.Model):
             # Die Prüfung der Gruppe 2 hat ihre eigene Frist (FB-I3). Läuft sie ab, wertet der
             # Beschluss aus — sonst hinge ein Beschaffungsantrag an der Aufmerksamkeit eines
             # einzelnen Rates, und genau das soll die Frist verhindern (§ 5 Abs 12).
+            if vorlauf:
+                return False  # Beschlüsse reiht die Fortschreibung des Antrags nach ihrer Frist ein
             for beschluss in offene:
                 if beschluss.abschliessen(jetzt):
                     self.refresh_from_db()
@@ -1204,6 +1216,43 @@ class GremienBeschluss(models.Model):
             }
         )
         return True
+
+    @classmethod
+    def faellige_zu_antrag(cls, antrag_id: int, jetzt) -> list[tuple]:
+        """Die offenen Beschlüsse zu einem Antrag, deren Frist um ist — als (Kennung, Frist), nach Frist.
+
+        `Antrag.fortschreiben` reiht sie nach ihrer Sollzeit zwischen die Phasenfristen (GP-004)."""
+        return list(
+            cls.objects.filter(antrag_id=antrag_id, status=BeschlussStatus.OFFEN, frist__lte=jetzt)
+            .order_by("frist", "pk")
+            .values_list("pk", "frist")
+        )
+
+    @classmethod
+    def zur_frist_abschliessen(cls, beschluss_id: int, jetzt) -> str:
+        """Schließt einen fälligen Beschluss aus der Fortschreibung seines Antrags heraus (GP-004).
+
+        Rückgabe: „geschlossen“, „erledigt“ (war schon ausgewertet), „gesperrt“ (eine andere
+        Transaktion wertet ihn gerade aus — der Aufrufer überholt sie nicht und wartet nicht auf
+        sie, denn ihre Wirkung braucht die Zeile des Antrags, die er hält) oder „fehler“.
+
+        Ein Fehler in der Wirkung hält den Antrag nicht an: Er steht im Protokoll, der Beschluss
+        bleibt offen für den Nachlauf des Wächters, und der Antrag läuft nach seinen Fristen weiter
+        (§ 5 Abs 12: Untätigkeit hemmt nie — ein Defekt ebenso wenig)."""
+        try:
+            with transaction.atomic():
+                beschluss = (
+                    cls.objects.select_for_update(skip_locked=True)
+                    .filter(pk=beschluss_id, status=BeschlussStatus.OFFEN)
+                    .first()
+                )
+                if beschluss is None:
+                    offen = cls.objects.filter(pk=beschluss_id, status=BeschlussStatus.OFFEN).exists()
+                    return "gesperrt" if offen else "erledigt"
+                return "geschlossen" if beschluss.abschliessen(jetzt) else "erledigt"
+        except Exception:
+            log.exception("Auswertung von Beschluss %s in der Fortschreibung gescheitert", beschluss_id)
+            return "fehler"
 
     @classmethod
     def faellige_abschliessen(cls, jetzt=None) -> int:

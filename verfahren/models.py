@@ -373,19 +373,56 @@ class Antrag(models.Model):
         mit zwei Zeitpunkten und zweier Hinweise im Posteingang (Befund B26; § 7 Abs 10 lit c: das
         Erreichen der Schwelle hat EINEN Zeitpunkt). SQLite kennt keine Zeilensperre und
         serialisiert ohnehin; ein veraltetes Objekt im Speicher liest so aber auch dort die
-        Datenbank, bevor es einen zweiten Übergang anwendet."""
+        Datenbank, bevor es einen zweiten Übergang anwendet.
+
+        Fällige Gremienbeschlüsse zu diesem Antrag reihen sich nach ihrer Sollzeit ein (Gesamtprüfung
+        GP-004): Ein Beschluss gilt zu seiner Frist, ein Phasenübergang zu seiner. Nach einem
+        Stillstand wertete der Wächter erst alle Phasenfristen aus und danach die Beschlüsse — eine
+        fristgerecht beschlossene Einreichung wurde verworfen, aus der Aussetzung der Abstimmung
+        wurde eine des Vollzugs. Jetzt gilt je Beschluss: erst, was am Antrag VOR der Beschlussfrist
+        fällig war (`vorlauf`), dann der Beschluss, dann der Rest."""
         jetzt = jetzt or timezone.now()
-        frisch = (
-            type(self)
-            .objects.select_for_update()
-            .only("phase", "phase_beginn", "stimmberechtigte_anzahl", "stimmberechtigung_stichtag")
-            .get(pk=self.pk)
-        )
+        self._phasenfelder_lesen(sperren=True)
+        from django.apps import apps
+
+        if apps.is_installed("gremien"):
+            from gremien.models import GremienBeschluss
+
+            anfangs = self.phase
+            for beschluss_id, frist in GremienBeschluss.faellige_zu_antrag(self.pk, jetzt):
+                if self._schritt(frist, vorlauf=True):
+                    return True
+                stand = GremienBeschluss.zur_frist_abschliessen(beschluss_id, jetzt)
+                if stand == "gesperrt":
+                    # Eine andere Transaktion schließt diesen Beschluss gerade; ihre Wirkung braucht
+                    # die Zeile dieses Antrags. Nichts überholen, nichts verklemmen: Der nächste
+                    # Aufruf (Seite oder Wächter) setzt hier fort.
+                    return False
+                self._phasenfelder_lesen()
+                if self.phase != anfangs:
+                    # Der Beschluss hat die Phase selbst geändert (Zurückweisung oder ihre Aufhebung).
+                    return True
+        return self._schritt(jetzt)
+
+    def _phasenfelder_lesen(self, sperren: bool = False) -> None:
+        """Phase, Phasenbeginn und Stimmbasis aus der Datenbank lesen — auf Wunsch unter Zeilensperre."""
+        zeilen = type(self).objects.select_for_update() if sperren else type(self).objects
+        frisch = zeilen.only(
+            "phase", "phase_beginn", "stimmberechtigte_anzahl", "stimmberechtigung_stichtag"
+        ).get(pk=self.pk)
         self.phase, self.phase_beginn = frisch.phase, frisch.phase_beginn
         self.stimmberechtigte_anzahl, self.stimmberechtigung_stichtag = (
             frisch.stimmberechtigte_anzahl,
             frisch.stimmberechtigung_stichtag,
         )
+
+    def _schritt(self, jetzt, vorlauf: bool = False) -> bool:
+        """Höchstens ein fälliger Übergang dieses Antrags (Entwurfsschleife oder Regelübergang).
+
+        `vorlauf` rechnet auf einen früheren Zeitpunkt zurück — die Frist eines Gremienbeschlusses,
+        der danach ausgewertet wird (GP-004). Dann zählt nur, was VOR diesem Zeitpunkt durch
+        Fristablauf fällig war: Was erst mit dem Augenblick der Zählung wirkt (Schwelle erreicht,
+        Anlegen eines Prüfbeschlusses), gehört nicht in den Vorlauf und wird nie zurückdatiert."""
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
         # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung
@@ -401,7 +438,7 @@ class Antrag(models.Model):
                 entwurf = (
                     apps.get_model("gremien", "Entwurf").objects.filter(antrag_id=self.pk).first()
                 )
-        if entwurf is not None and entwurf.fortschreiben(self, jetzt):
+        if entwurf is not None and entwurf.fortschreiben(self, jetzt, vorlauf=vorlauf):
             return True
         policy = self.policy()
         ausz = None
@@ -417,7 +454,7 @@ class Antrag(models.Model):
             aussetzungen_fortschreiben(jetzt)
         unterstuetzungen = self.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
         vf = self._vertrauensfrage()
-        if vf is not None and phase is Phase.UNTERSTUETZUNG and vf.schwelle_erreicht_am is None:
+        if vf is not None and phase is Phase.UNTERSTUETZUNG and vf.schwelle_erreicht_am is None and not vorlauf:
             # § 7 Abs 10 lit c: Das Erreichen der Schwelle wird veröffentlicht — der Zeitpunkt ist der
             # der Zählung, die es zuerst sieht (die Unterstützung ruft sie sofort auf), nicht der einer
             # späteren Verarbeitung. Der Kern rechnet damit den Abstimmungsbeginn (lit e).
@@ -466,6 +503,10 @@ class Antrag(models.Model):
             frei_ab = entwurf.abstimmung_fruehestens_ab()
             if frei_ab is not None and frei_ab > uebergang.wirksam_ab:
                 uebergang = dataclasses.replace(uebergang, wirksam_ab=frei_ab)
+        if vorlauf and uebergang.wirksam_ab >= jetzt:
+            # Kein Fristablauf vor dem Stichzeitpunkt: Der Übergang wirkte erst mit der Zählung
+            # (oder gleichzeitig mit dem Beschluss) — er folgt nach dem Beschluss.
+            return False
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab
         felder = ["phase", "phase_beginn"]

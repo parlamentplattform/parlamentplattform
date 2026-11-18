@@ -29,7 +29,11 @@ def alles_fortschreiben(jetzt=None) -> dict[str, int]:
     Ein Fehler trifft nur das Verfahren, in dem er entsteht: Jeder Schritt eines Antrags läuft in
     seiner eigenen Transaktion, jeder Nachlauf für sich; der Fehler steht im Protokoll und in
     `stand["fehler"]`, der Lauf geht weiter. Ohne diese Grenze hielt ein einziger werfender Antrag
-    bei jedem Takt alle Anträge mit größerer Kennung und sämtliche Nachläufe an."""
+    bei jedem Takt alle Anträge mit größerer Kennung und sämtliche Nachläufe an.
+
+    Fällige Beschlüsse zu einem laufenden Antrag wertet schon dessen Fortschreibung aus, nach ihrer
+    Frist zwischen die Phasenfristen gereiht (Gesamtprüfung GP-004); der Nachlauf schließt, was keinen
+    laufenden Antrag hat. `stand["beschluesse"]` zählt beides."""
     jetzt = jetzt or timezone.now()
     stand = {
         "phasenwechsel": 0,
@@ -39,6 +43,12 @@ def alles_fortschreiben(jetzt=None) -> dict[str, int]:
         "vertrauensfragen": 0,
         "fehler": 0,
     }
+    faellige_beschluesse = None
+    if apps.is_installed("gremien"):
+        from gremien.models import BeschlussStatus, GremienBeschluss
+
+        faellige_beschluesse = GremienBeschluss.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt)
+        faellig_vorher = faellige_beschluesse.count()
     for antrag in Antrag.objects.filter(phase__in=LAUFENDE_PHASEN).order_by("pk"):
         # Einmal je Antrag genügt nicht immer: Wertet die Entwurfsschleife aus, ist danach
         # vielleicht schon der Phasenübergang fällig — so lange fortschreiben, bis nichts mehr passiert.
@@ -75,6 +85,8 @@ def alles_fortschreiben(jetzt=None) -> dict[str, int]:
         except Exception:
             log.exception("Nachlauf %s gescheitert", schluessel)
             stand["fehler"] += 1
+    if faellige_beschluesse is not None:
+        stand["beschluesse"] = max(stand["beschluesse"], faellig_vorher - faellige_beschluesse.count())
     return stand
 
 

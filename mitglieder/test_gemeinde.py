@@ -411,6 +411,54 @@ def test_unbestaetigtes_gemeindekonto_blockiert_keinen_namen(client, ort):
     assert Mitglied.objects.filter(email="zweite@example.org").exists()
 
 
+NEUER_NAME = "Ihr gewählter Anzeigename ist inzwischen vergeben. Bitte wählen Sie einen neuen Anzeigenamen."
+
+
+def test_bestaetigung_prueft_den_namen_erneut_und_laesst_einen_neuen_waehlen(client, ort):
+    """Auflage zu GP-186: Zwei wartende Konten mit demselben Namen — das zweite verliert ihn beim
+    Einlösen, statt ihn doppelt zu vergeben, und wählt danach einen neuen."""
+    anmelden(client, ort, anzeigename="Kornblume")
+    anmelden(Client(), ort, email="zweite@example.org", anzeigename="Kornblume")
+    erster, zweiter = (link_aus_mail(n) for n in mail.outbox[:2])
+    Client().post(erster)
+    zweite = Client()
+    antwort = zweite.post(zweiter, follow=True)
+    assert NEUER_NAME in antwort.content.decode()
+    assert Mitglied.objects.get(email="neu@example.org").pseudonym_oeffentlich == "Kornblume"
+    konto = Mitglied.objects.get(email="zweite@example.org")
+    assert konto.is_active and konto.pseudonym_oeffentlich == ""
+    assert Mitglied.objects.filter(pseudonym_oeffentlich__iexact="Kornblume").count() == 1
+
+    seite = zweite.get(reverse("gemeinde:konto")).content.decode()
+    assert 'name="anzeigename"' in seite
+    abgewiesen = zweite.post(reverse("gemeinde:konto"), {"aktion": "anzeigename", "anzeigename": "kornblume"})
+    assert "Dieser Name ist nicht verfügbar." in abgewiesen.content.decode()
+    konto.refresh_from_db()
+    assert konto.pseudonym_oeffentlich == ""
+    zweite.post(reverse("gemeinde:konto"), {"aktion": "anzeigename", "anzeigename": " Wegwarte "})
+    konto.refresh_from_db()
+    assert konto.pseudonym_oeffentlich == "Wegwarte"
+    assert 'name="anzeigename"' not in zweite.get(reverse("gemeinde:konto")).content.decode()
+
+
+def test_bestaetigung_gibt_einen_inzwischen_vergebenen_namen_nicht_doppelt(ort):
+    anmelden(Client(), ort, anzeigename="Kornblume")
+    Mitglied.objects.create(username="kb@example.org", email="kb@example.org", is_active=True, pseudonym_oeffentlich="Kornblume")
+    Client().post(link_aus_mail(mail.outbox[0]))
+    konto = Mitglied.objects.get(email="neu@example.org")
+    assert konto.is_active and konto.pseudonym_oeffentlich == ""
+
+
+def test_parteikonto_waehlt_den_namen_nicht_im_gemeindezugang(client, ort):
+    mitglied = Mitglied.objects.create_user("partei@example.org", email="partei@example.org")
+    assert mitglied.parteikonto and not mitglied.pseudonym_oeffentlich
+    client.force_login(mitglied)
+    assert 'name="anzeigename"' not in client.get(reverse("gemeinde:konto")).content.decode()
+    client.post(reverse("gemeinde:konto"), {"aktion": "anzeigename", "anzeigename": "Wegwarte"})
+    mitglied.refresh_from_db()
+    assert mitglied.pseudonym_oeffentlich == ""  # Parteikonten wählen ihn im Profil, mit Audit
+
+
 # --- Export des Gemeindekontos vollständig (GP-093, DEN-10) -------------------------------
 
 # Feld-Wächter: Jedes gespeicherte Feld des Kontos steht im Gemeinde-Export (Pfad) oder hier mit Grund.

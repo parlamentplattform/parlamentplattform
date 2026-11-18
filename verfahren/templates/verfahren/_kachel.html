@@ -77,7 +77,7 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
         <button id="u-{{ feld }}-{{ k.antrag.pk }}" class="btn-linie{% if k.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}" aria-pressed="{% if k.antrag.pk in meine_unterstuetzungen %}true{% else %}false{% endif %}">{% if k.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
       </form>
     {% elif k.stat.typ == "beratung" %}
-      <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#beratung">{% translate "Mitreden" %}</a></span>
+      <span class="rest"><a href="{% url 'verfahren:antrag' k.antrag.pk %}#zone-chat">{% translate "Mitreden" %}</a></span>
     {% endif %}
   </div>
 

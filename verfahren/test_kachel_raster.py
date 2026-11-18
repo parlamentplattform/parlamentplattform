@@ -56,7 +56,7 @@ def test_kachel_zeigt_fristring_und_direkt_handlung_je_phase(client, ordnung):  
     # Beratung → „Mitreden“
     Antrag.objects.filter(pk=antrag.pk).update(phase="beratung")
     feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
-    assert f'href="/antrag/{antrag.pk}/#beratung">Mitreden</a>' in feld
+    assert f'href="/antrag/{antrag.pk}/#zone-chat">Mitreden</a>' in feld
 
 
 def test_kachel_hervorhebungsgrund_gekuerzt_mit_vollem_tooltip(client, ordnung):  # noqa: F811
@@ -85,3 +85,21 @@ def test_ring_filter_rechnet_den_versatz():
 
     assert rest_ring(0) == "50.3" and rest_ring(100) == "0.0" and rest_ring(50) == "25.1"
     assert rest_ring("kaputt") == "50.3"
+
+
+def test_gp069_jeder_anker_der_parlament_vorlagen_steht_auf_der_antragsseite():
+    """GP-069 (ASR-20): „Mitreden“ zielte auf #beratung — eine id, die es auf der Antragsseite nicht
+    gibt. Wächter: Jeder feste Anker, mit dem Kachel und Zeile auf die Antragsseite springen, steht
+    dort als id."""
+    import re
+    from pathlib import Path
+
+    ordner = Path(__file__).parent / 'templates' / 'verfahren'
+    ziel = (ordner / 'antrag.html').read_text(encoding='utf-8')
+    ziel += ''.join(p.read_text(encoding='utf-8') for p in ordner.glob('_chat*.html'))
+    anker = set()
+    for name in ('_kachel.html', '_filter_zeile.html', '_filter_liste.html', 'parlament.html'):
+        anker |= set(re.findall(r"verfahren:antrag' [\w.]+ %\}#([a-z][a-z0-9-]*)", (ordner / name).read_text(encoding='utf-8')))
+    assert 'zone-chat' in anker
+    fehlend = sorted(a for a in anker if f'id="{a}"' not in ziel)
+    assert fehlend == []

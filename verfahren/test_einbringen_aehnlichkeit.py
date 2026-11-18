@@ -294,6 +294,16 @@ def test_personenantraege_gehen_nie_an_den_anbieter(client, settings, monkeypatc
         return echt(self, texte, zeitgrenze=zeitgrenze)
 
     monkeypatch.setattr(AttrappenAnbieter, 'einbetten', horchen)
+    import verfahren.aehnlichkeit as aehnlichkeit_modul
+
+    verglichen = []
+    echter_kosinus = aehnlichkeit_modul.kosinus
+
+    def kosinus_horchen(a, b):
+        verglichen.append(list(b))
+        return echter_kosinus(a, b)
+
+    monkeypatch.setattr(aehnlichkeit_modul, 'kosinus', kosinus_horchen)
     m = mitglied_anlegen('autorin')
     vf = antrag_einbringen(m, UMFORMULIERT['titel'] + ' Musterfrau', UMFORMULIERT['wortlaut'] + ' Versagung des Vertrauens.', '', ordnung)
     kandidatur = antrag_einbringen(m, 'Kandidatur Listenreihung Gemeinderat', 'Listenreihung Gemeinderat Polsenz. ' + UMFORMULIERT['wortlaut'], '', ordnung)
@@ -310,7 +320,9 @@ def test_personenantraege_gehen_nie_an_den_anbieter(client, settings, monkeypatc
         assert verboten not in alles
     assert not AntragsEinbettung.objects.filter(antrag=vf).exists()
     assert AntragsEinbettung.objects.filter(antrag=sache).exists()  # der Sachantrag bekommt seinen Vektor
-    treffer = {t['antrag'].pk: t for t in antwort.context['aehnliche']}
+    # der gespeicherte Vektor der Kandidatur geht in keinen Kosinus ein; der Sachantrag wird verglichen
+    assert verglichen and [1.0, 0.0] not in verglichen
+    treffer ={t['antrag'].pk: t for t in antwort.context['aehnliche']}
     assert kandidatur.pk not in treffer or treffer[kandidatur.pk]['bedeutung_prozent'] is None
     assert vf.pk not in treffer or treffer[vf.pk]['bedeutung_prozent'] is None
     # der Wortvergleich bleibt: ohne Anbieter findet er die Vertrauensfrage weiterhin

@@ -50,6 +50,7 @@ from plattform_core.rechenschaft import (
 )
 from verfahren.models import Antrag, AuditEintrag, Bewerbung, Ebene, Rueckgabezusage
 
+SPRECHSTUNDE_ORT_MAX = 200
 FOTO_HOECHSTGROESSE = 800_000  # Bytes — genug für ein Porträt, zu wenig für Missbrauch
 
 _MAGISCHE_ANFAENGE = [
@@ -426,6 +427,31 @@ def rueckgabe_vermerk_fuer(mandat: Mandat, zusage: str, heute: date | None = Non
     if zusage == Rueckgabezusage.ABGEGEBEN:
         return str(_("Rückgabezusage nicht eingehalten"))
     return str(_("keine Rückgabezusage abgegeben"))
+
+
+class Sprechstunde(models.Model):
+    """Ein ausdrücklich veröffentlichter Gemeindetermin ohne Teilnehmerdaten."""
+
+    mandat = models.ForeignKey(Mandat, on_delete=models.PROTECT, related_name="sprechstunden")
+    gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT, related_name="sprechstunden")
+    beginn = models.DateTimeField()
+    ende = models.DateTimeField()
+    treffpunkt = models.CharField(max_length=SPRECHSTUNDE_ORT_MAX)
+    veroeffentlicht_am = models.DateTimeField(default=timezone.now)
+    abgesagt_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["gemeinde", "ende"], name="sprechstunde_ort_ende_idx")]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(ende__gt=models.F("beginn")), name="sprechstunde_zeitfolge"),
+            models.UniqueConstraint(
+                fields=["mandat", "beginn"], condition=models.Q(abgesagt_am__isnull=True),
+                name="sprechstunde_aktiver_beginn_eindeutig",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.mandat_id}: {self.beginn.isoformat()}"
 
 
 class Aufgabenstatus(models.TextChoices):

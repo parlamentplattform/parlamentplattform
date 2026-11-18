@@ -1,0 +1,5 @@
+{% load i18n %}
+<p><strong><time datetime="{{ termin.beginn|date:'c' }}">{{ termin.beginn|date:"d.m.Y H:i" }}</time> – <time datetime="{{ termin.ende|date:'c' }}">{{ termin.ende|date:"d.m.Y H:i" }}</time></strong>
+  {% if termin.abgesagt_am %}<span class="badge badge-warn">{% translate "Abgesagt" %}</span>{% endif %}<br>
+  {{ termin.treffpunkt }} · <a href="{% url 'mandatare:detail' termin.mandat_id %}">{{ termin.mandat.mitglied.anzeigename }}</a>
+</p>

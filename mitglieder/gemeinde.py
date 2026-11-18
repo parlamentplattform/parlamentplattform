@@ -113,6 +113,7 @@ def start(request):
 @require_GET
 def ort(request, kennziffer):
     from mandatare.models import Mandat, Sitzung, live_hoechstdauer_stunden
+    from mandatare.sprechstunden import kommende_in
 
     gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
     jetzt = timezone.now()
@@ -144,6 +145,7 @@ def ort(request, kennziffer):
             protokolle.append(sitzung)
     return render(request, "mitglieder/gemeinde_ort.html", {
         "gemeinde": gemeinde, "mandate": aktive, "laufend": laufend, "protokolle": protokolle,
+        "sprechstunden": kommende_in(gemeinde, jetzt),
     })
 
 

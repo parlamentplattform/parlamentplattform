@@ -238,7 +238,12 @@ def konto(request):
         with transaction.atomic():
             aktuell = Mitglied.objects.select_for_update().get(pk=request.user.pk)
             if aktuell.testkonto:
-                return render(request, "mitglieder/token_ungueltig.html", status=403)
+                # GP-189: der wahre Grund statt „Link nicht mehr gültig“.
+                form.add_error(None, _("Testkonten können keinen Gemeindezugang führen."))
+                return render(
+                    request, "mitglieder/gemeinde_konto.html",
+                    {"form": form, "zugang": zugang, "gemeinden": _gemeinden()}, status=403,
+                )
             geaendert = wohnsitz_anwenden(aktuell, form)
             # GP-096: Auch der Wiener Gemeindebezirk wird gespeichert — das Audit nennt nur, was gespeichert ist.
             aktuell.save(update_fields=["wohnsitz_art", "wohnsitz", "gemeinde", "bundesland", "wiener_bezirk"])

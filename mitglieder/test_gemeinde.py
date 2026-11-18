@@ -373,3 +373,14 @@ def test_gemeindeanmeldung_weist_zu_langen_anzeigenamen_ab(client, ort):
     assert antwort.status_code == 200
     assert "höchstens 50 Zeichen" in antwort.content.decode()
     assert not Mitglied.objects.exists()
+
+
+def test_testkonto_erfaehrt_beim_speichern_den_wahren_grund(client, ort, buerger):
+    buerger.testkonto = True
+    buerger.save(update_fields=["testkonto"])
+    client.force_login(buerger)
+    antwort = client.post(reverse("gemeinde:konto"), {"wohnsitz_art": "oesterreich", "gemeinde": ort.anzeige, "meldung": "on"})
+    inhalt = antwort.content.decode()
+    assert antwort.status_code == 403
+    assert "Link nicht mehr gültig" not in inhalt and "Neuen Anmeldelink" not in inhalt  # der Rahmen nennt „Links“ im CSS
+    assert "Testkonten können keinen Gemeindezugang führen." in inhalt

@@ -295,3 +295,38 @@ def test_gp076_willkommensseite_behauptet_keine_pruefung_die_nicht_stattfand(cli
         assert nachher == vorher
     else:
         assert etikett == 'Mitglieder'
+
+
+@pytest.mark.parametrize('weg', ['einreihen', 'einbettung'])
+def test_gp178_fehler_im_nachlauf_haelt_das_einbringen_nicht_auf(client, ordnung, monkeypatch, weg):  # noqa: F811
+    """GP-178 (ZWA-20): Warf der Vektor-Auftrag nach dem Speichern eine Ausnahme, sah das Mitglied eine
+    Fehlerseite, obwohl der Antrag stand — und ein erneutes Absenden brachte ihn ein zweites Mal ein."""
+    from types import SimpleNamespace
+
+    import ki.warteschlange
+    import verfahren.aehnlichkeit
+    from verfahren import views_aktionen
+    from verfahren.test_views_aktionen import ANTRAG as EINGABE
+
+    def kaputt(*args, **kwargs):
+        raise RuntimeError('Vektor-Auftrag kaputt')
+
+    if weg == 'einreihen':
+        monkeypatch.setattr(views_aktionen, 'anbieter_waehlen', lambda *a, **k: SimpleNamespace(name='Test'))
+        monkeypatch.setattr(ki.warteschlange, 'einreihen', kaputt)
+    else:
+        monkeypatch.setattr(verfahren.aehnlichkeit, 'einbettung_speichern', kaputt)
+        echt = views_aktionen.aehnliche_antraege
+
+        def mit_vektor(*args, **kwargs):
+            ergebnis = echt(*args, **kwargs)
+            ergebnis.neuer_vektor, ergebnis.bedeutungsmodell = [0.1, 0.2], 'test-modell'
+            return ergebnis
+
+        monkeypatch.setattr(views_aktionen, 'aehnliche_antraege', mit_vektor)
+    client.force_login(mitglied_anlegen('anna'))
+    antwort = client.post(reverse('verfahren:einbringen'), EINGABE)
+    assert Antrag.objects.count() == 1
+    antrag = Antrag.objects.get()
+    assert antwort.status_code == 302
+    assert antwort['Location'].startswith(reverse('verfahren:antrag', args=[antrag.pk]))

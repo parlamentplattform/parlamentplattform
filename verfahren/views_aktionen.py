@@ -389,15 +389,22 @@ def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:
     """Nach dem Einbringen eines Sachantrags: die betroffenen Gesetze einreihen (FB-H3, Warteschlange)
     und den Textvektor sichern — direkt, wenn die Prüfung ihn eben gerechnet hat (kein zweiter
     Aufruf), sonst als Auftrag „aehnlichkeit“ für den Hintergrundlauf. Beides ist Vorschlag,
-    nichts davon hält den Antrag auf."""
-    from ki.warteschlange import einreihen, rechtspruefung_ohne_hemmung
+    nichts davon hält den Antrag auf: Jeder Schritt läuft in einem eigenen Savepoint, ein Fehler
+    landet im Protokoll statt auf einer Fehlerseite — der Antrag steht ja schon (GP-178)."""
+    import logging
+
+    from ki.warteschlange import einreihen_ohne_hemmung, rechtspruefung_ohne_hemmung
     from verfahren.aehnlichkeit import einbettung_speichern
 
     rechtspruefung_ohne_hemmung(antrag, mitglied)
     if pruefung is not None and pruefung.neuer_vektor is not None:
-        einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
+        try:
+            with transaction.atomic():
+                einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
+        except Exception:
+            logging.getLogger(__name__).exception("Textvektor für Antrag %s nicht gespeichert", antrag.pk)
     elif anbieter_waehlen() is not None:
-        einreihen(Zweck.AEHNLICHKEIT, antrag, mitglied)
+        einreihen_ohne_hemmung(Zweck.AEHNLICHKEIT, antrag, mitglied)
 
 
 def _mit_flash(request, stufe, text, pk):

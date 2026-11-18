@@ -272,3 +272,25 @@ def test_startseite_nennt_die_rundenzahl_der_aktiven_ordnung(client, ordnung):  
     inhalt = client.get("/").content.decode()
     assert f"höchstens {ordnung.als_policy().hoechstrunden} Runden" in inhalt
     assert "höchstens 2 Runden" not in inhalt
+
+
+def test_gp076_willkommensseite_behauptet_keine_pruefung_die_nicht_stattfand(client):
+    """GP-076 (OCR-13): Die Zahl auf der Willkommensseite zählt jedes aktive Parteikonto — auch
+    ungeprüfte und pausierte. Ihr Etikett darf darum keine bestätigten Mitglieder behaupten."""
+    import re
+
+    from mitglieder.models import Identitaetsstufe
+
+    def zahl_und_etikett():
+        inhalt = client.get('/').content.decode()
+        treffer = re.search(r'<div class="zahl"><strong>(\d+)</strong><span>([^<]+)</span>', inhalt)
+        return int(treffer.group(1)), treffer.group(2)
+
+    mitglied_anlegen('anna')
+    vorher, _etikett = zahl_und_etikett()
+    mitglied_anlegen('neu', stufe=Identitaetsstufe.UNGEPRUEFT)
+    nachher, etikett = zahl_und_etikett()
+    if 'bestätigt' in etikett:
+        assert nachher == vorher
+    else:
+        assert etikett == 'Mitglieder'

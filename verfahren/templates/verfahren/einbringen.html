@@ -9,7 +9,7 @@ Verfahrensordnung <strong>{{ policy_id }} v{{ version }}</strong> — sie wird
 beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum Ende (§ 5 Abs 5).{% endblocktranslate %}</p>
 
 <div class="einbringen-raster">
-<form method="post" id="einbringen-form" class="einbringen-form">{% csrf_token %}
+<form method="post" id="einbringen-form" class="einbringen-form">{% csrf_token %}<input type="hidden" name="gebiet_kennung" value="{{ form.gebiet_kennung }}">
   <div class="karte einbringen-oben">
     {{ form.non_field_errors }}
     {% for feld in form %}

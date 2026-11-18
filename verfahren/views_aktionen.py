@@ -123,6 +123,14 @@ def _oertlich_abweisen(request, antrag, feld=None):
     ))
 
 
+def _wohnsitzstand(haupt, mitglied) -> str:
+    """Kennung des Hauptwohnsitzes samt Wiener Gemeindebezirk, wie das Formular ihn zeigt."""
+    stand = f"gemeinde:{haupt.kennziffer}"
+    if haupt.bundesland == Bundesland.WIEN and mitglied.wiener_hauptbezirk:
+        stand += f"/bezirk:wien:{mitglied.wiener_hauptbezirk}"
+    return stand
+
+
 class AntragsFormular(forms.Form):
     """Titel, Wortlaut, Begründung — und die Ebene, gebunden an den eigenen Wohnsitz:
     Regionale Anträge sind nur in der ansässigen Region möglich (F-43); das Gebiet
@@ -174,7 +182,11 @@ class AntragsFormular(forms.Form):
             else None
         )
         self.wien_ohne_bezirk = False
+        # Der Wohnsitzstand beim Anzeigen des Formulars; ein Umzug dazwischen führt zur
+        # Rückfrage statt still in die neue Gemeinde (GP-170)
+        self.gebiet_kennung = ""
         if haupt is not None:
+            self.gebiet_kennung = _wohnsitzstand(haupt, mitglied)
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))
             bezirk = haupt.bezirk
             if haupt.bundesland == Bundesland.WIEN:
@@ -193,6 +205,9 @@ class AntragsFormular(forms.Form):
             self.gebietsstand = hauptgebiet(self.mitglied, wert)
         except GebietsFehler as fehler:
             raise forms.ValidationError(str(fehler)) from fehler
+        gesehen = self.data.get("gebiet_kennung", "")
+        if wert != Ebene.BUND.value and gesehen and gesehen != self.gebiet_kennung:
+            raise forms.ValidationError(_("Das Gebiet hat sich geändert. Bitte prüfen Sie Ihre Auswahl erneut."))
         return wert
 
     def clean_art(self):
@@ -328,8 +343,20 @@ def einbringen(request):
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
                 _zukunftswerkstatt_beauftragen(antrag, request.user, pruefung)
-            if zugeordnet:
-                namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            if antrag.ebene != Ebene.BUND and antrag.gebiet:
+                # Die Meldung nennt das Gebiet, in dem der Antrag nun gilt (GP-170)
+                if zugeordnet:
+                    text = _(
+                        "Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung. "
+                        "Automatisch zugeordnet: %(namen)s."
+                    ) % {"gebiet": antrag.gebiet, "namen": namen}
+                else:
+                    text = _("Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung.") % {
+                        "gebiet": antrag.gebiet
+                    }
+                messages.success(request, text)
+            elif zugeordnet:
                 messages.success(
                     request,
                     _(

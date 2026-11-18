@@ -382,3 +382,32 @@ def test_gp081_englische_startseite_uebersetzt_wer_darf_was(client):
     assert 'Guest' in teil
     assert 'Das Parlament ansehen' not in teil
     assert 'Alles zu' not in teil
+
+
+def test_gp170_veraltetes_einbringformular_landet_nicht_in_der_neuen_gemeinde(client, ordnung):  # noqa: F811
+    """GP-170 (OW-13): Ein vor dem Umzug geöffnetes Formular brachte den Antrag ohne Rückfrage in
+    der neuen Gemeinde ein; die Erfolgsmeldung nannte kein Gebiet."""
+    from mitglieder.models import Gemeinde, Mitglied, Wohnsitzart
+
+    alt = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    neu = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    autor = mitglied_anlegen('autor', tage=800)
+    autor.wohnsitz, autor.wohnsitz_art = alt, Wohnsitzart.OESTERREICH
+    autor.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    client.force_login(autor)
+    url = reverse('verfahren:einbringen')
+    formular = client.get(url).content.decode()
+    assert 'name="gebiet_kennung" value="gemeinde:40510"' in formular
+
+    Mitglied.objects.filter(pk=autor.pk).update(wohnsitz=neu)
+    eingabe = {**ANTRAG, 'ebene': 'gemeinde', 'trotzdem': '1', 'gebiet_kennung': 'gemeinde:40510'}
+    antwort = client.post(url, eingabe)
+    assert antwort.status_code == 200
+    assert not Antrag.objects.exists()
+    assert 'Das Gebiet hat sich geändert' in str(antwort.context['form'].errors['ebene'])
+    assert 'name="gebiet_kennung" value="gemeinde:41419"' in antwort.content.decode()
+
+    antwort = client.post(url, {**eingabe, 'gebiet_kennung': 'gemeinde:41419'}, follow=True)
+    antrag = Antrag.objects.get()
+    assert antrag.gebiet == 'Neuort'
+    assert any('Neuort' in str(m) for m in antwort.context['messages'])

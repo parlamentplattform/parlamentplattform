@@ -155,14 +155,14 @@ fehlt, steht offen da.{% endblocktranslate %}</p>
   <div class="willkommen-karten">
     {% for rolle in startrollen %}
     <div class="wk" style="cursor:default">
-      <h3>{{ rolle.name }}</h3>
-      <p>{{ rolle.was_sie_ist }}</p>
+      {% translate rolle.name as rname %}<h3>{{ rname }}</h3>
+      <p>{% translate rolle.was_sie_ist %}</p>
       <ul class="rollen-kurz">
         {% for f in rolle.faehigkeiten|slice:":5" %}
-        <li><span class="zeichen {{ f.stand.value }}">{{ f.stand.zeichen }}</span> {{ f.titel }}</li>
+        <li><span class="zeichen {{ f.stand.value }}">{{ f.stand.zeichen }}</span> {% translate f.titel %}</li>
         {% endfor %}
       </ul>
-      <a class="weiter" href="{% url 'verfahren:rollen' %}#rolle-{{ rolle.schluessel }}">{% blocktranslate with n=rolle.name %}Alles zu „{{ n }}“ →{% endblocktranslate %}</a>
+      <a class="weiter" href="{% url 'verfahren:rollen' %}#rolle-{{ rolle.schluessel }}">{% blocktranslate with n=rname %}Alles zu „{{ n }}“ →{% endblocktranslate %}</a>
     </div>
     {% endfor %}
   </div>

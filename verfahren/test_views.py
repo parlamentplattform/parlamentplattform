@@ -372,3 +372,13 @@ def test_gp063_parlament_hat_genau_eine_h1(client, ordnung, anfrage, angemeldet)
     seite = client.get(reverse('verfahren:parlament') + anfrage).content.decode()
     assert seite.count('<h1') == 1
     assert '>Parlament</h1>' in seite
+
+
+def test_gp081_englische_startseite_uebersetzt_wer_darf_was(client):
+    """GP-081 (GAST-09): Der Block „Wer darf was“ der Startseite gab Namen und Fähigkeiten der Rollen
+    ohne Übersetzung aus."""
+    seite = client.get('/', HTTP_ACCEPT_LANGUAGE='en').content.decode()
+    teil = seite[seite.index('id="rollen"'):]
+    assert 'Guest' in teil
+    assert 'Das Parlament ansehen' not in teil
+    assert 'Alles zu' not in teil

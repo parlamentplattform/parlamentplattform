@@ -29,8 +29,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% elif user.is_authenticated %}{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}
     {% if ohne_oertliche_zuordnung %}{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %} <a href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>{% elif wien_ohne_bezirk %}<a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Gemeindebezirk wählen ›" %}</a>{% else %}<a href="{% url 'verfahren:parlament' %}?fokus=region">{% translate "Verfahren Ihrer Region ›" %}</a>{% endif %}{% endif %}
   </p>
-  {% elif antrag.art == "mandat" and antrag.ebene != "bund" %}
-  <p class="meldung warn" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong> {% translate "Bei dieser Kandidatur werden Unterstützung und Wahlberechtigung derzeit parteiweit geprüft. Die Gebietsangabe begrenzt den Kreis der unterstützenden und abstimmenden Mitglieder noch nicht." %}</p>
+  {% elif antrag.ebene != "bund" %}
+  {# Regionales Verfahren ohne Gebietsstand, gleich welcher Art: kein örtlicher Kreis (GP-059) #}
+  <p class="meldung warn" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong> {% translate "alle stimmberechtigten Mitglieder; kein örtlicher Kreis." %}</p>
   {% endif %}
   {% if mandatsfrage %}
   {# § 7 Abs 9: keine Unterstützungsphase — statt „n Unterstützungen“ der Weg zurück zum Mandatar und der Sitzungstag des Reports #}

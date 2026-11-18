@@ -1199,3 +1199,139 @@ def test_export_laedt_stimmen_und_zustimmungen_gebuendelt(ordnung):  # noqa: F81
     viele = abfragen()
     assert (wenige[0], viele[0]) == (2, 6)
     assert wenige[1] == viele[1]
+
+
+# --- Wächter über mittelbare Beziehungen (Z-2 zu FB-K5) -----------------------
+
+#: Mittelbare Rückbeziehungen mit Exportzweig: „Eltern > Kind.feld“ → Pfad im Export (Punkte trennen
+#: Ebenen; eine Liste steht für ihre Zeilen). Der Wächter steigt in jedes Kind mit Exportzweig weiter ab.
+MITTELBAR_ORDNER = {
+    "Mandat > Aufgabe.mandat": "mandate.aufgaben",
+    "Mandat > Bericht.mandat": "mandate.berichte",
+    "Mandat > Rechenschaft.mandat": "mandate.rechenschaft",
+    "Mandat > Sitzung.mandat": "mandate.sitzungen",
+    "Mandat > Sprechstunde.mandat": "mandate.gemeindearbeit.sprechstunden",
+    "Mandat > Ratsinitiative.mandat": "mandate.gemeindearbeit.ratsinitiativen",
+    "Mandat > Gemeindeprojekt.mandat": "mandate.gemeindearbeit.projekte",
+    "Mandat > Gemeindehaushaltsquelle.mandat": "mandate.gemeindearbeit.haushaltsquellen",
+    "Aufgabe > Bericht.aufgabe": "mandate.berichte",
+    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft",
+    "Aufgabe > Sitzung.aufgabe": "mandate.sitzungen.aufgabe",
+    "Aufgabe > Gemeindesitzungsquelle.aufgabe": "mandate.gemeindearbeit.sitzungsquellen",
+    "Sitzung > Tagesordnungspunkt.sitzung": "mandate.sitzungen.punkte",
+    "Sitzung > Livemeldung.sitzung": "mandate.sitzungen.meldungen",
+    "Tagesordnungspunkt > Livemeldung.punkt": "mandate.sitzungen.meldungen.punkt",
+    "Tagesordnungspunkt > Rechenschaft.punkt": "mandate.rechenschaft.punkt",
+    "Livemeldung > Livemeldung.berichtigt": "mandate.sitzungen.meldungen.berichtigt",
+    "Rechenschaft > FreiwilligeBegruendung.rechenschaft": "mandate.rechenschaft.freiwillige_begruendung",
+    "Ratsinitiative > Ratsmeldung.initiative": "mandate.gemeindearbeit.ratsinitiativen.meldungen",
+    "Gemeindeprojekt > Gemeindeprojektstand.projekt": "mandate.gemeindearbeit.projekte.staende",
+    "Fachliste > Fachliste_fachgebiete.fachliste": "fachliste.fachgebiete",
+    "KILauf > EntwurfsBeitrag.ki_lauf": "entwurfsbeitraege.ki_lauf",
+    "KILauf > Vergleichsanfrage.lauf": "private_textvergleiche.lauf",
+}
+#: Mittelbare Rückbeziehungen ohne Exportzweig — je mit Grund. Der Wächter steigt hier nicht weiter ab.
+_ANTRAG = (
+    "Verfahrensdaten des eigenen Antrags, kein Datum über die Antragstellerin; eigene Anteile stehen "
+    "in den direkten Ordnern"
+)
+_BESCHLUSS = (
+    "Vorgang am Ratsbeschluss: Verfahrensdaten des Gremiums; eigene Stimmen, Prüfungen und Tests stehen "
+    "in den direkten Ordnern"
+)
+_KI = (
+    "Verweis eines Verfahrensvorgangs auf den Lauf oder die Fassung; eigene Aufträge, Beanstandungen "
+    "und Tests stehen in den direkten Ordnern"
+)
+MITTELBAR_AUSNAHMEN = {
+    **{f"Antrag > {kind}": _ANTRAG for kind in (
+        "AntragAufruf.antrag", "Antrag_kategorien.antrag", "AntragsEinbettung.antrag", "Aufgabe.antrag",
+        "Auslosung.antrag", "Aussetzung.antrag", "Beanstandung.antrag", "Bewerbung.antrag",
+        "Eigenstaendigkeit.antrag", "Eigenstaendigkeit.gegenueber", "Entwurf.antrag", "Favorit.antrag",
+        "GremienBeschluss.antrag", "Hinweis.antrag", "Interessenbindung.antrag", "KIAuftrag.antrag",
+        "KILauf.antrag", "Kommentar.antrag", "Lesestand.antrag", "Mandat.kandidatur", "OertlicheTeilnahme.antrag",
+        "Postauftrag.antrag", "Rechenschaft.antrag", "Rolle.antrag", "StimmRegister.antrag", "Stimmabgabe.antrag",
+        "Tagesordnungspunkt.antrag", "Ueberlastungsmeldung.antrag_an_mv", "Unterstuetzung.antrag",
+        "Vertrauensfrage.antrag", "Vollzugseintrag.antrag",
+    )},
+    **{f"GremienBeschluss > {kind}": _BESCHLUSS for kind in (
+        "Aussetzung.beschluss", "GremienStimme.beschluss", "ParameterTest.beschluss",
+        "ParameterTest.einfuehrung_beschluss", "Pruefung.beschluss", "Pruefung.korat_beschluss",
+        "Regelpruefung.beschluss", "Ueberlastungsmeldung.beschluss", "Vertrauensfrage.sperre_beschluss",
+    )},
+    **{kind: _KI for kind in (
+        "KILauf > Beanstandung.lauf", "KILauf > KIAuftrag.lauf", "KILauf > KIAuftrag.ursprung",
+        "KILauf > ParameterTest.ki_lauf", "Beanstandung > KIAuftrag.beanstandung",
+        "EntwurfsFassung > KIAuftrag.vorschlagsfassung",
+    )},
+    "Bewerbung > BewerbungsZustimmung.bewerbung": "Zustimmungen anderer unter fremden Pseudonymen; eigene stehen unter stimmen",
+    "Kommentar > Kommentar.antwort_auf": "Antworten anderer auf den eigenen Beitrag; eigene Antworten stehen unter kommentare",
+    "Kommentar > Meldung.kommentar": "Meldungen anderer zum eigenen Beitrag; eigene Meldungen stehen unter meldungen",
+    "Kommentar > Reaktion.kommentar": "Reaktionen anderer; eigene stehen unter reaktionen",
+    "Kommentar > WunschVermerk.kommentar": "Vermerk der Gruppe 2 am Kommentar — Verfahrensprotokoll",
+    "Sitzung > Kommentar.sitzung": "Beiträge anderer in der Live-Sitzung; eigene stehen unter kommentare",
+    "Sitzung > Lesestand.sitzung": "Lesestände: technischer Zeiger, kein Inhalt",
+    "ParameterTest > Hinweis.parametertest": "Hinweis der Zukunftswerkstatt zum Test — Verfahrensprotokoll",
+    # Bekannte Lücken, offen in GP-089 (zweite Runde) — ausdrücklich benannt, damit nichts still dazukommt.
+    "Mandat > Vertrauensfrage.mandat": "offen in GP-089: Vertrauensfragen samt eigener Stellungnahme fehlen im Export",
+    "Rechenschaft > Vertrauensfrage.anlaesse": "offen in GP-089: Anlass einer Vertrauensfrage",
+    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "offen in GP-089: Anlass einer Vertrauensfrage",
+    "Antrag > AntragsFassung.antrag": "offen in GP-089: Fassungen des eigenen Antrags fehlen im Export",
+}
+#: Direkte Rückbeziehungen ohne eigenen Ordner (siehe AUSNAHMEN oben) — dort steigt der Wächter nicht ab.
+DIREKT_OHNE_ORDNER = {
+    "EinmalToken.mitglied", "Adresswechsel.beantragt_von", "Adresswechsel.bestaetigt_von", "WunschVermerk.durch",
+    "Hinweis.erledigt_von", "Lesestand.mitglied", "LogEntry.user", "Mitglied_groups.mitglied",
+    "Mitglied_user_permissions.mitglied",
+}
+
+
+def _rueckbeziehungen(modell) -> dict:
+    return {
+        f"{f.related_model.__name__}.{f.field.name}": f.related_model
+        for f in modell._meta.get_fields(include_hidden=True)
+        if f.auto_created and not f.concrete and (f.one_to_many or f.one_to_one or f.many_to_many)
+    }
+
+
+def test_export_deckt_jede_mittelbare_rueckbeziehung_ab(client, ordnung):  # noqa: F811
+    """Z-2 zu FB-K5: Ein Modell, das mittelbar am Mitglied hängt (über Mandat, Aufgabe, Antrag,
+    Bewerbung …), braucht einen Exportzweig oder eine begründete Ausnahme. Der Wächter beginnt bei
+    den direkt exportierten Rückbeziehungen und steigt in jeden Exportzweig weiter ab."""
+    from mandatare.models import Mandat
+    from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
+
+    offen = [m for name, m in _rueckbeziehungen(Mitglied).items() if name not in DIREKT_OHNE_ORDNER]
+    besucht, gefunden = set(), set()
+    while offen:
+        eltern = offen.pop()
+        if eltern.__name__ in besucht:
+            continue
+        besucht.add(eltern.__name__)
+        for kind, modell in _rueckbeziehungen(eltern).items():
+            schluessel = f"{eltern.__name__} > {kind}"
+            gefunden.add(schluessel)
+            if schluessel in MITTELBAR_ORDNER:
+                offen.append(modell)
+    assert not set(MITTELBAR_ORDNER) & set(MITTELBAR_AUSNAHMEN)
+    assert all(MITTELBAR_AUSNAHMEN.values())
+    unbekannt = gefunden - set(MITTELBAR_ORDNER) - set(MITTELBAR_AUSNAHMEN)
+    assert not unbekannt, f"Mittelbare Beziehung ohne Exportzweig und ohne begründete Ausnahme: {sorted(unbekannt)}"
+    veraltet = (set(MITTELBAR_ORDNER) | set(MITTELBAR_AUSNAHMEN)) - gefunden
+    assert not veraltet, f"Eintrag ohne mittelbare Beziehung im Modell: {sorted(veraltet)}"
+
+    anna = mitglied_anlegen()
+    Mandat.objects.create(mitglied=anna, bezeichnung="Gemeinderätin", gebiet="Eferding")
+    client.force_login(anna)
+    daten = json.loads(client.get(EXPORT).content)
+    for schluessel, pfad in MITTELBAR_ORDNER.items():
+        knoten = daten
+        for teil in pfad.split("."):
+            if isinstance(knoten, list):
+                if not knoten:
+                    break  # leere Liste: tiefer prüft der voll ausgestattete Export
+                knoten = knoten[0]
+            if knoten is None:
+                break
+            assert teil in knoten, (schluessel, pfad, teil)
+            knoten = knoten[teil]

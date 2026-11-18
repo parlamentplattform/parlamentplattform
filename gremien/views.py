@@ -1149,7 +1149,9 @@ IR_ANLAESSE = [
 #: Die Sperrfeststellung gehört zu genau einer laufenden Vertrauensfrage (Karte unten) — mit oder
 #: ohne Sperrhinweis der Plattform (D-L6e); ein Knopf neben jedem Sachantrag wäre eine Einladung
 #: zu wirkungslosen Beschlüssen.
-IR_ANLAESSE_MIT_EIGENEM_ORT = {Anlass.VERTRAUENSFRAGE_SPERRE}
+#: Ebenso die Aufhebung einer Zurückweisung: Sie steht je Antrag in der Karte „Zurückgewiesen“
+#: (GP-008) — die allgemeine Auswahl führt zurückgewiesene Anträge gar nicht.
+IR_ANLAESSE_MIT_EIGENEM_ORT = {Anlass.VERTRAUENSFRAGE_SPERRE, Anlass.ZURUECKWEISUNG_AUFHEBEN}
 
 
 def _vertrauensfragen_zur_feststellung(jetzt=None) -> list[dict]:
@@ -1208,6 +1210,19 @@ def integritaet(request):
     zurueckgewiesen = list(
         Antrag.objects.filter(phase=Phase.ZURUECKGEWIESEN.value).order_by("-phase_beginn")[:20]
     )
+    # Die Aufhebung wird je Antrag in der Karte angelegt (GP-008). Läuft schon ein Beschluss dazu,
+    # zeigt die Karte ihn statt eines zweiten Formulars — eine Abfrage für alle Zeilen.
+    aufhebungen = {
+        b.antrag_id: b
+        for b in GremienBeschluss.objects.filter(
+            gremium=Gremium.INTEGRITAETSRAT,
+            anlass=Anlass.ZURUECKWEISUNG_AUFHEBEN,
+            antrag__in=zurueckgewiesen,
+            status=BeschlussStatus.OFFEN,
+        )
+    }
+    for antrag in zurueckgewiesen:
+        antrag.aufhebung_beschluss = aufhebungen.get(antrag.pk)
     return render(
         request,
         "gremien/integritaet.html",

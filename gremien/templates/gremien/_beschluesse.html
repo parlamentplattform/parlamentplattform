@@ -42,7 +42,7 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
     </details>
     {% endif %}
     {% elif b.beschluss.status == "ohne_ergebnis" %}
-    <p class="meta" style="margin-top:6px">{% translate "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende." %}</p>
+    <p class="meta" style="margin-top:6px">{% if b.beschluss.umsetzungsvermerk %}{{ b.beschluss.umsetzungsvermerk|linebreaksbr }}{% else %}{% translate "Ohne Ergebnis: zu wenige Stimmen oder Gleichstand bis zum Fristende." %}{% endif %}</p>
     {% elif darf_stimmen %}
     <form method="post" action="{% url 'gremien:beschluss_stimme' b.beschluss.pk %}" style="margin-top:8px">{% csrf_token %}
       {% if b.beschluss.anlass == "einreichung" %}

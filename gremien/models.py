@@ -201,6 +201,14 @@ def standard_ende():
     return timezone.localdate() + timedelta(days=_registerzahl("gremien-rollen-dauer-tage", ROLLEN_DAUER_TAGE))
 
 
+#: So beginnt die Begründung der Antragsfassung, die `Entwurf._endabstimmung_oeffnen` aus dem
+#: Vorschlag anlegt — daran erkennt `Entwurf.vorschlag_uebernommen`, ob es sie gibt.
+VORSCHLAG_ALS_FASSUNG = "Vorschlag des Expertenrats, Runde "
+
+#: Die Fristfelder des Entwurfs, die eine Zurückweisung sichert und ihre Aufhebung verschoben wiederherstellt.
+ENTWURF_FRISTFELDER = ("review_frist", "ueberarbeitung_frist", "beratung_freigegeben_am")
+
+
 class EntwurfsStatus(models.TextChoices):
     IN_ARBEIT = "in_arbeit", _("in Arbeit (Expertenrat)")
     PRUEFUNG = "pruefung", _("in Prüfung (Gruppe 2)")
@@ -323,6 +331,17 @@ class Entwurf(models.Model):
             and self.runde > 1
             and self.ueberarbeitung_frist is not None
             and jetzt < self.ueberarbeitung_frist
+        )
+
+    def vorschlag_uebernommen(self) -> bool:
+        """Ob der Vorschlag wirklich zur neuen Antragsfassung wurde (§ 5 Abs 3 lit d).
+
+        Der Status „angenommen“ allein sagt das nicht: Eine Zurückweisung legt die Schleife mit
+        demselben Status still, ohne dass je eine Fassung übernommen wurde (Gesamtprüfung GP-008).
+        Die Antragsseite unterscheidet damit „übernommen“ von „ruht“."""
+        return (
+            self.status == EntwurfsStatus.ANGENOMMEN
+            and self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
         )
 
     def ueberarbeitung_verstrichen(self, jetzt=None) -> bool:
@@ -551,7 +570,7 @@ class Entwurf(models.Model):
                 nummer=nummer,
                 wortlaut=fassung.wortlaut,
                 begruendung=(
-                    f"Vorschlag des Expertenrats, Runde {self.runde}, Entwurfsfassung {fassung.nummer} "
+                    f"{VORSCHLAG_ALS_FASSUNG}{self.runde}, Entwurfsfassung {fassung.nummer} "
                     f"(§ 5 Abs 12). {fassung.begruendung}"
                 ).strip(),
             )
@@ -1519,7 +1538,12 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar. Ein Verfahren, das sie nicht
     zurücknehmen kann, macht dieses Recht wertlos; deshalb merkt sich der Beschluss Phase und
     Phasenbeginn. Laufende Entwurfsschleifen und offene Beschlüsse zu diesem Antrag werden
-    geschlossen: Ein zurückgewiesener Antrag darf nicht weiter durch die Automatik wandern."""
+    geschlossen: Ein zurückgewiesener Antrag darf nicht weiter durch die Automatik wandern.
+
+    Auch der Stand der Schleife gehört zu dem, was überschrieben wird (Gesamtprüfung GP-008):
+    Status und Fristen des Entwurfs stehen in `zustand_vorher`, damit die Aufhebung sie
+    wiederherstellen kann. Jeder mitgeschlossene Beschluss bekommt einen Vermerk und einen
+    Audit-Eintrag — sonst stünde er öffentlich als „zu wenige Stimmen oder Gleichstand“ da."""
     from plattform_core import Phase
 
     antrag = beschluss.antrag
@@ -1543,6 +1567,19 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         "phase_beginn": antrag.phase_beginn.isoformat(),
         "zurueckgewiesen_am": jetzt.isoformat(),
     }
+    entwurf = Entwurf.objects.filter(antrag=antrag).first()
+    if entwurf is not None and entwurf.status != EntwurfsStatus.ANGENOMMEN:
+        beschluss.zustand_vorher["entwurf"] = {
+            "status": entwurf.status,
+            **{
+                feld: wert.isoformat() if (wert := getattr(entwurf, feld)) else None
+                for feld in ENTWURF_FRISTFELDER
+            },
+        }
+    mitgeschlossen = list(
+        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
+    )
+    beschluss.zustand_vorher["geschlossene_beschluesse"] = [b.pk for b in mitgeschlossen]
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
     antrag.phase_beginn = jetzt
@@ -1551,17 +1588,30 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         f"{beschluss.beschreibung}".strip()
     )
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
-    entwurf = getattr(antrag, "entwurf", None)
     if entwurf is not None and entwurf.status != EntwurfsStatus.ANGENOMMEN:
         entwurf.status = EntwurfsStatus.ANGENOMMEN  # die Schleife ruht; nichts wird gelöscht
-        entwurf.review_frist = None
-        entwurf.ueberarbeitung_frist = None
-        entwurf.save(update_fields=["status", "review_frist", "ueberarbeitung_frist"])
-    GremienBeschluss.objects.filter(
-        antrag=antrag, status=BeschlussStatus.OFFEN
-    ).exclude(pk=beschluss.pk).update(
-        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
-    )
+        for feld in ENTWURF_FRISTFELDER:
+            setattr(entwurf, feld, None)
+        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+    for anderer in mitgeschlossen:
+        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
+        anderer.entschieden_am = jetzt
+        anderer.umsetzungsvermerk = (
+            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: Der Antrag wurde mit Beschluss "
+            f"{beschluss.nummer} zurückgewiesen (§ 5 Abs 2)."
+        ).strip()[:2000]
+        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_geschlossen",
+                "gremium": anderer.gremium,
+                "beschluss": anderer.pk,
+                "nummer": anderer.nummer,
+                "antrag": antrag.pk,
+                "grund": "zurueckweisung",
+                "durch_beschluss": beschluss.pk,
+            }
+        )
     AuditEintrag.anhaengen(
         {
             "typ": "antrag_zurueckgewiesen",
@@ -1578,7 +1628,10 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
 
     Der Antrag darf durch das Verfahren, das ihn zu Unrecht gestoppt hat, keine Zeit verlieren:
     Der Phasenbeginn rückt um die Dauer der Zurückweisung nach hinten, die Restfrist ist damit
-    dieselbe wie vorher."""
+    dieselbe wie vorher. Dasselbe gilt für die Entwurfsschleife (Gesamtprüfung GP-008): Status
+    und Fristen des Entwurfs kehren zurück, die Fristen um dieselbe Dauer verschoben — sonst
+    bliebe der Vorschlag des Expertenrats verloren, und abgestimmt würde über den Urtext. Eine
+    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen."""
     from datetime import datetime
 
     from plattform_core import Phase
@@ -1605,6 +1658,16 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     antrag.phase_beginn = datetime.fromisoformat(frueher.zustand_vorher["phase_beginn"]) + (jetzt - seit)
     antrag.zurueckweisung_begruendung = ""
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
+    wiederhergestellt = None
+    gesichert = frueher.zustand_vorher.get("entwurf")
+    entwurf = Entwurf.objects.filter(antrag=antrag).first() if gesichert else None
+    if entwurf is not None and entwurf.status == EntwurfsStatus.ANGENOMMEN:
+        entwurf.status = gesichert["status"]
+        for feld in ENTWURF_FRISTFELDER:
+            wert = gesichert.get(feld)
+            setattr(entwurf, feld, datetime.fromisoformat(wert) + (jetzt - seit) if wert else None)
+        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+        wiederhergestellt = entwurf.status
     AuditEintrag.anhaengen(
         {
             "typ": "zurueckweisung_aufgehoben",
@@ -1613,6 +1676,7 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
             "nummer": beschluss.nummer,
             "wieder_in_phase": antrag.phase,
             "gehemmt_sekunden": int((jetzt - seit).total_seconds()),
+            "entwurf_wiederhergestellt": wiederhergestellt,
         }
     )
 

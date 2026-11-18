@@ -19,8 +19,12 @@ entschieden wird im Abstimmungs-Chat unter dem Antrag (§ 5 Abs 12).{% endblockt
     {% if e.review_frist %}<br><span class="meta">{% blocktranslate with frist=e.review_frist|date:"d.m.Y H:i" %}Frist: {{ frist }}. Danach wertet der Fristablauf aus — bleibt es still, geht der Vorschlag zur Endabstimmung.{% endblocktranslate %}</span>{% endif %}</p>
     <p><a class="btn-linie klein" href="#zone-chat">{% translate "Zum Abstimmungs-Chat" %}</a></p>
   {% elif e.status == "angenommen" %}
+    {% if e.vorschlag_uebernommen %}
     <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) wurde als neue Antragsfassung übernommen —
 darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
+    {% else %}
+    <p>{% blocktranslate with n=e.runde %}Die Entwurfsschleife ruht — der Vorschlag des Expertenrats (Runde {{ n }}) wurde nicht als Antragsfassung übernommen.{% endblocktranslate %}</p>
+    {% endif %}
   {% endif %}
   {% if schleife.interessenbindungen %}
   <p class="phasen-titel" style="margin-top:12px">{% translate "Interessenbindungen der Verfasser zu diesem Antrag (§ 6 Abs 7)" %}</p>

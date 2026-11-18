@@ -80,15 +80,29 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   {% endfor %}
 </div>
 
-<div class="karte" style="margin-top:16px">
+{% comment %}Die Klasse „feststellung“ trägt Abstand, Zeilenbreite und Formularmaße der Karte darüber —
+dieselbe Gestalt: je Zeile ein Antrag mit dem Formular für genau den Beschluss, der zu ihm gehört.{% endcomment %}
+<div class="karte feststellung">
   <p class="phasen-titel">{% translate "Zurückgewiesen" %}</p>
   <p class="erk">{% translate "Eine Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2). Wird ihr stattgegeben, hebt der Rat sie hier auf — der Antrag setzt seine Phase mit der Restfrist fort, die er hatte." %}</p>
   {% for a in zurueckgewiesen %}
-  <div class="zeile"><span style="width:100%">
+  <div class="zeile"><span>
     <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
     {% if a.pk in nicht_eroeffnet %}<span class="chip klein">{% translate "nicht eröffnet (§ 7 Abs 10 lit b)" %}</span>{% endif %}
     {% if a.zurueckweisung_begruendung %}<br><span class="meta">{{ a.zurueckweisung_begruendung }}</span>{% endif %}
-    {% if a.pk in nicht_eroeffnet %}<br><span class="meta">{% translate "Eine Aufhebung dieser Feststellung durch das Parteischiedsgericht (§ 7 Abs 10 lit h) lässt sich hier noch nicht eintragen." %}</span>{% endif %}
+    {% if a.pk in nicht_eroeffnet %}<br><span class="meta">{% translate "Eine Aufhebung dieser Feststellung durch das Parteischiedsgericht (§ 7 Abs 10 lit h) lässt sich hier noch nicht eintragen." %}</span>
+    {% elif a.aufhebung_beschluss %}
+    <br><span class="meta">{% translate "Aufhebungsbeschluss läuft:" %} <a href="{% url 'gremien:beschluss' a.aufhebung_beschluss.nummer %}">{{ a.aufhebung_beschluss.nummer }}</a></span>
+    {% elif darf_stimmen %}
+    <form method="post" action="{% url 'gremien:integritaet_beschluss' %}">{% csrf_token %}
+      <input type="hidden" name="antrag" value="{{ a.pk }}">
+      <input type="hidden" name="anlass" value="zurueckweisung_aufheben">
+      <label for="aufhebung-{{ a.pk }}" class="meta">{% translate "Begründung der Aufhebung (wird veröffentlicht)" %}</label>
+      <textarea id="aufhebung-{{ a.pk }}" name="beschreibung" required></textarea>
+      <p class="knopfzeile"><button type="submit" class="btn-linie klein">{% translate "Aufhebungsbeschluss anlegen" %}</button>
+      <span class="meta">{% translate "entschieden wird danach, mit Mehrheit des Rates" %}</span></p>
+    </form>
+    {% endif %}
   </span></div>
   {% empty %}
   <p class="leer">{% translate "Kein Antrag ist zurückgewiesen." %}</p>

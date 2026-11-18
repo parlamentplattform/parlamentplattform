@@ -648,3 +648,18 @@ def test_z4_was_die_matrix_dem_gemeindekonto_zuschreibt_stimmt_mit_dem_code(clie
     ):
         assert client.post(reverse(name, args=argumente), {}).status_code == 403, name
     assert antrag.unterstuetzungen.count() == 0 and antrag.stimmabgaben.count() == 0
+
+
+@pytest.mark.django_db
+def test_z4_die_seite_zaehlt_vierzehn_rollen_und_das_gemeindekonto_getrennt(client, vorweggenommene_adressen):
+    '''Z-4: /rollen/ zählte „15 Rollen“ einschließlich des Gemeindekontos, obwohl die Seite selbst sagt,
+    es sei keine Rolle der Satzung. Gezählt werden jetzt die vierzehn Rollen der Satzung; das
+    Gemeindekonto steht getrennt daneben, wie im Regelverzeichnis.'''
+    zahlen = zaehlung(GRUPPEN)
+    assert zahlen['rollen'] == 14 and zahlen['weitere_konten'] == 1
+    konto = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gemeindekonto')
+    assert not konto.satzungsrolle
+    assert all(r.satzungsrolle for r in alle_rollen(GRUPPEN) if r.schluessel != 'gemeindekonto')
+    inhalt = client.get(reverse('verfahren:rollen')).content.decode()
+    assert '14 Rollen,' in inhalt and '15 Rollen' not in inhalt
+    assert 'Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist' in inhalt

@@ -117,6 +117,9 @@ class Rolle:
     im_code: bool = True
     #: Auf der Willkommensseite erscheinen nur die Rollen, die fast jeden betreffen.
     auf_der_startseite: bool = False
+    #: Eine Rolle der Satzung? Das Gemeindekonto ohne Parteibeitritt ist keine; es steht in der Matrix,
+    #: wird aber nicht als Rolle gezählt (Z-4). Steuert kein Verhalten, nur die Zählung.
+    satzungsrolle: bool = True
     hinweis: str = ""
 
     @property
@@ -490,6 +493,7 @@ GEMEINDEKONTO = Rolle(
     schluessel="gemeindekonto",
     name=_("Gemeindekonto ohne Parteibeitritt"),
     satzung="Gründerentscheidung vom 4.11.2026",
+    satzungsrolle=False,
     was_sie_ist=_("Keine Rolle der Satzung und keine Parteimitgliedschaft: ein freiwilliger Zugang für Einwohnerinnen und Einwohner ab 16 Jahren mit Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit. Auf den Seiten der Partei gilt dieses Konto als Gast."),
     wie_hinein=_("Im Gemeindebereich anmelden: E-Mail-Adresse, Hauptgemeinde und Geburtsdatum angeben und den Link in der E-Mail bestätigen. Das Geburtsdatum dient nur der Altersprüfung und wird nicht gespeichert. Alter und Hauptwohnsitz sind Selbstauskünfte; die bestätigte E-Mail-Adresse ist kein Identitäts- oder Meldenachweis. Mitgliedsnummer, Mitgliedsbeitrag und Mitgliedsausweis gibt es für dieses Konto nicht."),
     hinweis=_("Was dieses Konto nicht darf: einen Antrag einbringen oder unterstützen, abstimmen, für ein Mandat kandidieren, im Chat eines Antrags oder einer Sitzung schreiben, Beiträge melden, Favoriten setzen — nichts, was auf den Seiten der Partei schreibt; solche Vorgänge werden abgewiesen. In keiner Zählung der Stimmberechtigten kommt es vor. Mitglieder der Partei können denselben Gemeindezugang mit ihrem bestehenden Konto ergänzen. Der Beitritt zur Partei mit einem bestehenden Gemeindekonto ist noch nicht gebaut."),
@@ -1458,10 +1462,13 @@ def rolle(gruppen: tuple[Gruppe, ...], schluessel: str) -> Rolle | None:
 
 
 def zaehlung(gruppen: tuple[Gruppe, ...]) -> dict[str, int]:
-    """Wie viele Fähigkeiten in welchem Stand — der Soll/Ist-Abgleich in einer Zeile."""
+    """Wie viele Fähigkeiten in welchem Stand — der Soll/Ist-Abgleich in einer Zeile. `rollen` zählt
+    die Rollen der Satzung, `weitere_konten` daneben, was keine ist (das Gemeindekonto, Z-4); die
+    Fähigkeiten zählen beide mit."""
     stände = {stand.value: 0 for stand in Stand}
     for r in alle_rollen(gruppen):
         for f in r.faehigkeiten:
             stände[f.stand.value] += 1
-    stände["rollen"] = len(alle_rollen(gruppen))
+    stände["rollen"] = sum(1 for r in alle_rollen(gruppen) if r.satzungsrolle)
+    stände["weitere_konten"] = sum(1 for r in alle_rollen(gruppen) if not r.satzungsrolle)
     return stände

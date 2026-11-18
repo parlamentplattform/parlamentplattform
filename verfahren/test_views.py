@@ -343,3 +343,14 @@ def test_gp180_phase_zurueckgezogen_hat_einen_anzeigenamen():
     assert {phase.value for phase in Phase} <= set(NAMEN)  # jede Phase hat einen Anzeigenamen
     with translation.override('en'):
         assert phase_name(Phase.ZURUECKGEZOGEN.value) not in ('zurueckgezogen', '')
+
+
+def test_gp174_archiv_export_kennt_nur_json_und_md(client, ordnung):  # noqa: F811
+    """GP-174 (ASR-26): Jede Endung lieferte Nutzertext unter ihrem Dateinamen (etwa archiv.html)."""
+    antrag = antrag_einbringen(mitglied_anlegen('anna'), **ANTRAG, ordnung=ordnung)
+    for art in ('json', 'md'):
+        antwort = client.get(reverse('verfahren:archiv_export', args=[antrag.pk, art]))
+        assert antwort.status_code == 200
+        assert antwort['Content-Disposition'].endswith(f'archiv.{art}"')
+    for art in ('html', 'svg', 'exe', 'JSON'):
+        assert client.get(f'/antrag/{antrag.pk}/archiv.{art}').status_code == 404

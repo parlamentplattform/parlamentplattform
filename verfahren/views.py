@@ -1279,6 +1279,9 @@ def archiv_export(request, pk, art):
     Öffentlich wie die Antragsseite selbst — mit Anzeigenamen, ohne Kontaktdaten."""
     from verfahren import archiv as archivkern
 
+    if art not in ("json", "md"):
+        # Jede andere Endung lieferte Nutzertext unter einem fremden Dateinamen (GP-174)
+        raise Http404
     antrag = get_object_or_404(Antrag, pk=pk)
     if art == "json":
         inhalt, typ = archivkern.als_json(antrag), "application/json; charset=utf-8"

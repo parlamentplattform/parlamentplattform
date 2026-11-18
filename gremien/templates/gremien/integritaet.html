@@ -138,7 +138,7 @@ dieselbe Gestalt: je Zeile ein Antrag mit dem Formular für genau den Beschluss,
   <div class="zeile"><span style="width:100%">
     <strong>{{ p.jahr }}</strong> · <a href="{% url 'gremien:beschluss' p.beschluss.nummer %}">{{ p.beschluss.nummer }}</a>
     <span class="meta">· {% blocktranslate with n=p.stand|length v=p.verzeichnis_fassung %}{{ n }} Regeln, Verzeichnis Fassung {{ v }}{% endblocktranslate %}</span>
-    <br><span class="meta">{% if p.geprueft_am %}{{ p.get_ergebnis_display }} · {{ p.geprueft_am|date:"d.m.Y" }}{% if p.vermerk %} — {{ p.vermerk }}{% endif %}{% else %}{% translate "läuft — der Rat stimmt ab" %}{% endif %}</span>
+    <br><span class="meta">{% if p.geprueft_am %}{{ p.get_ergebnis_display }} · {{ p.geprueft_am|date:"d.m.Y" }}{% if p.vermerk %} — {{ p.vermerk }}{% endif %}{% elif p.beschluss.offen %}{% translate "läuft — der Rat stimmt ab" %}{% else %}{{ p.beschluss.get_status_display }}{% endif %}</span>
   </span></div>
   {% empty %}
   <p class="leer">{% translate "Noch keine Prüfung verzeichnet." %}</p>

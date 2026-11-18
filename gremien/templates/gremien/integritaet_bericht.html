@@ -54,7 +54,7 @@ niemand kürzen oder zurückhalten.
   <p class="phasen-titel">{% translate "Prüfung der automatisierten Regeln (§ 2 Abs 6)" %}</p>
   {% for r in regelpruefungen %}
   <div class="zeile"><span><a href="{% url 'gremien:beschluss' r.beschluss.nummer %}" class="meta">{{ r.beschluss.nummer }}</a> {{ r.beschluss.gegenstand }}
-    <br><span class="meta">{% if r.geprueft_am %}{% translate "geprüft am" %} {{ r.geprueft_am|date:"d.m.Y" }}{% else %}{% translate "offen" %}{% endif %}</span></span></div>
+    <br><span class="meta">{% if r.geprueft_am %}{% translate "geprüft am" %} {{ r.geprueft_am|date:"d.m.Y" }}{% elif r.beschluss.offen %}{% translate "offen" %}{% else %}{{ r.beschluss.get_status_display }}{% endif %}</span></span></div>
   {% endfor %}
 </div>
 {% endif %}

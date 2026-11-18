@@ -785,3 +785,35 @@ def test_der_beendigungsgrund_einer_rolle_steht_auf_keiner_oeffentlichen_seite(c
     assert 'mit Grund dokumentiert' not in uebersicht and 'der Grund ist nicht öffentlich' in uebersicht
     for pfad in ('/audit/', '/audit.json'):
         assert 'Geheimwort-123' not in client.get(pfad).content.decode()
+
+
+# --- GP-033: Eine Regelprüfung ohne Ergebnis blockiert sich nicht selbst ----------------------
+
+
+def test_eine_regelpruefung_ohne_ergebnis_laesst_sich_im_selben_jahr_wiederholen(client, ordnung):  # noqa: F811
+    """GP-033: Lief die Frist ohne Stimmen ab, zeigte die Karte weiter „läuft“, der Knopf blieb verborgen
+    und ein neuer Versuch wurde abgewiesen — die Pflicht nach § 2 Abs 6 war über die Oberfläche unerfüllbar."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import BeschlussStatus, GremienBeschluss, Regelpruefung
+
+    leute = rat()
+    client.force_login(leute[0])
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    erste = Regelpruefung.objects.get()
+    GremienBeschluss.objects.filter(pk=erste.beschluss_id).update(frist=timezone.now() - timedelta(hours=1))
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    erste.beschluss.refresh_from_db()
+    assert erste.beschluss.status == BeschlussStatus.OHNE_ERGEBNIS
+    assert 'läuft — der Rat stimmt ab' not in seite and 'ohne Ergebnis' in seite
+    assert f'Prüfung {timezone.localdate().year} anlegen' in seite  # der Knopf ist wieder da
+    bericht = client.get(reverse('gremien:integritaet_bericht', args=[timezone.localdate().year])).content.decode()
+    assert erste.beschluss.nummer in bericht and 'ohne Ergebnis' in bericht
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    assert Regelpruefung.objects.count() == 2  # die zweite desselben Jahres — die erste bleibt stehen
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    assert erste.beschluss.nummer in seite and 'läuft — der Rat stimmt ab' in seite
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    assert Regelpruefung.objects.count() == 2  # solange eine läuft, entsteht keine dritte

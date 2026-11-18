@@ -1373,7 +1373,8 @@ def integritaet(request):
             ),
             "aussetzungen": _aussetzungen_lage(),
             "regelpruefungen": Regelpruefung.objects.select_related("beschluss")[:5],
-            "regelpruefung_offen": Regelpruefung.objects.filter(geprueft_am__isnull=True).exists(),
+            # Offen ist eine Prüfung, über die noch abgestimmt wird — nicht eine, die ohne Ergebnis schloss (GP-033).
+            "regelpruefung_offen": Regelpruefung.objects.filter(beschluss__status=BeschlussStatus.OFFEN).exists(),
             "jahr": timezone.localdate().year,
             "offene_antraege": Antrag.objects.exclude(
                 phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)
@@ -1557,7 +1558,10 @@ def integritaet_regelpruefung(request):
         messages.error(request, _("Das kann nur, wer eine aktive Rolle im Integritätsrat hat."))
         return redirect("gremien:integritaet")
     jahr = timezone.localdate().year
-    if Regelpruefung.objects.filter(jahr=jahr).exists():
+    GremienBeschluss.faellige_abschliessen()
+    # Schloss die Prüfung des Jahres ohne Ergebnis, ist die Pflicht nach § 2 Abs 6 nicht erfüllt —
+    # dann lässt sie sich neu anlegen, und die frühere bleibt stehen (GP-033).
+    if Regelpruefung.objects.filter(jahr=jahr).exclude(beschluss__status=BeschlussStatus.OHNE_ERGEBNIS).exists():
         messages.info(request, _("Für dieses Jahr läuft die Prüfung bereits oder ist abgeschlossen."))
         return redirect("gremien:integritaet")
     stand = als_dict()

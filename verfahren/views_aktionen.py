@@ -976,7 +976,7 @@ def _zurueck_zum_antrag(request, antrag):
 def filter_vorschau(request):
     """FB-B2 Live-Vorschau: reiht mit den gerade gezogenen Reglern, speichert nichts —
     die Antwort ist nur die Liste (#filter-liste), htmx tauscht sie sanft aus."""
-    from verfahren.views import LAUFEND, _abo_ids, _meine_stimmen, _weicherfilter_feed
+    from verfahren.views import LAUFEND, _abo_ids, _meine_favoriten, _meine_stimmen, _weicherfilter_feed
 
     regler = _regler_aus_post(request)
     favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
@@ -992,6 +992,9 @@ def filter_vorschau(request):
         "verfahren/_filter_liste.html",
         {
             "feed": feed,
+            # Derselbe Stern wie im Parlament: Ohne die Favoriten stand er leer, und sein Klick
+            # entfernte den Favoriten (GP-072).
+            "meine_favoriten": _meine_favoriten(request.user),
             "meine_unterstuetzungen": set(
                 Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
             ),

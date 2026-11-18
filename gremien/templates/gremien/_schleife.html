@@ -19,21 +19,26 @@ entschieden wird im Abstimmungs-Chat unter dem Antrag (§ 5 Abs 12).{% endblockt
     {% if e.review_frist %}<br><span class="meta">{% blocktranslate with frist=e.review_frist|date:"d.m.Y H:i" %}Frist: {{ frist }}. Danach wertet der Fristablauf aus — bleibt es still, geht der Vorschlag zur Endabstimmung.{% endblocktranslate %}</span>{% endif %}</p>
     <p><a class="btn-linie klein" href="#zone-chat">{% translate "Zum Abstimmungs-Chat" %}</a></p>
   {% elif e.status == "angenommen" %}
+    {% if e.vorschlag_uebernommen %}
     <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) wurde als neue Antragsfassung übernommen —
 darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
+    {% else %}
+    <p>{% blocktranslate with n=e.runde %}Die Entwurfsschleife ruht — der Vorschlag des Expertenrats (Runde {{ n }}) wurde nicht als Antragsfassung übernommen.{% endblocktranslate %}</p>
+    {% endif %}
   {% endif %}
   {% if schleife.interessenbindungen %}
   <p class="phasen-titel" style="margin-top:12px">{% translate "Interessenbindungen der Verfasser zu diesem Antrag (§ 6 Abs 7)" %}</p>
   {% for i in schleife.interessenbindungen %}
-  <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+  <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %} · {{ i.erklaert_am|date:"d.m.Y H:i" }}</span><br>{{ i.text }}</span></div>
   {% endfor %}
   {% endif %}
   {% if schleife.pruefungen %}
   <p class="phasen-titel" style="margin-top:12px">{% translate "Prüfungen der Gruppe 2 (§ 6 Abs 7 — Begründungen öffentlich)" %}</p>
   {% for p in schleife.pruefungen %}
   <div class="zeile"><span><strong>{{ p.get_ergebnis_display }}</strong> <span class="meta">· {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %} · {{ p.erstellt_am|date:"d.m.Y" }}</span>
-    <br><span class="meta" style="white-space:pre-line">{{ p.begruendung }}</span>
-    {% if p.korat_entscheid %}<br><span class="meta"><em>{% translate "Koordinationsrat:" %} {{ p.korat_entscheid }} — {{ p.korat_begruendung }}</em></span>{% endif %}</span></div>
+    {% for b in p.stimmbegruendungen %}<br><span class="meta"><strong>{{ b.name }}</strong>: {{ b.option }} — {{ b.text|linebreaksbr }}</span>
+    {% empty %}<br><span class="meta" style="white-space:pre-line">{{ p.begruendung }}</span>{% endfor %}
+    {% if p.korat_entscheid %}<br><span class="meta"><em>{% translate "Koordinationsrat:" %} {{ p.get_korat_entscheid_display|default:p.korat_entscheid }} — {{ p.korat_begruendung }}</em></span>{% endif %}</span></div>
   {% endfor %}
   {% endif %}
 </div>

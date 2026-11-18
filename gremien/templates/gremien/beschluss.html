@@ -31,7 +31,7 @@ Ein einzelner Beschluss unter seiner zitierfähigen Nummer — damit eine Begrü
   {% if eintrag.beschluss.umsetzungsvermerk %}<p class="meta">{{ eintrag.beschluss.umsetzungsvermerk|linebreaksbr }}</p>{% endif %}
   {% elif eintrag.beschluss.status == "ohne_ergebnis" %}
   <p style="margin-top:10px"><strong>{% translate "Ohne Ergebnis" %}</strong>
-    <br><span class="meta">{% translate "Zu wenige Stimmen oder Gleichstand bis zum Fristende. Ein Gleichstand ist kein Beschluss — sonst entschiede die Reihenfolge der Optionen." %}</span></p>
+    <br><span class="meta">{% if eintrag.beschluss.umsetzungsvermerk %}{{ eintrag.beschluss.umsetzungsvermerk|linebreaksbr }}{% else %}{% translate "Zu wenige Stimmen oder Gleichstand bis zum Fristende. Ein Gleichstand ist kein Beschluss — sonst entschiede die Reihenfolge der Optionen." %}{% endif %}</span></p>
   {% else %}
   <p style="margin-top:10px" class="meta">{% translate "Noch offen." %}</p>
   {% endif %}

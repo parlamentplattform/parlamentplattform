@@ -15,6 +15,7 @@ from gremien.models import BeschlussStatus, EntwurfsStatus, Gremium, Pruefung, R
 from gremien.test_werkstatt import (  # noqa: F401
     beratungsfrist_ablaufen_lassen,
     einreichen,
+    frist_verstreichen,
     mitglied_anlegen,
     ordnung,
     rolle_geben,
@@ -270,8 +271,9 @@ def test_ohne_gruppe_2_geht_der_vorschlag_nach_der_prueffrist_weiter(client, ord
         e.ereignis["typ"] == "pruefung_frist_verstrichen" and e.ereignis["grund"] == "keine_gruppe_2"
         for e in AuditEintrag.objects.all()
     )
-    # Und das Verfahren läuft wirklich weiter: Nach der Unterstützerfrist folgt die Endabstimmung.
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    # Und das Verfahren läuft wirklich weiter: Nach der Unterstützerfrist folgt die Endabstimmung
+    # (im Zeitraffer samt Beratungsende, vor dem die Schleife sie nicht öffnet — GP-003).
+    frist_verstreichen(entwurf)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     assert antrag.phase == "abstimmung"
@@ -347,3 +349,215 @@ def test_die_unterstuetzerfrist_nach_verfristeter_pruefung_laeuft_ab_der_frist(c
     assert beschluss.entschieden_am == frist
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
     assert entwurf.review_frist == frist + timedelta(days=antrag.policy().review_tage)
+
+
+# --- GP-001: Die Schleife gibt die Beratung erst nach dem regulären Ende frei ----------------
+
+
+def _abstimmung_beginnt_mit_der_freigabe(antrag):
+    """Nach der Freigabe durch die Schleife: Die Abstimmung beginnt jetzt, nicht rückwirkend."""
+    antrag.refresh_from_db()
+    jetzt = timezone.now()
+    assert antrag.phase == 'abstimmung'
+    assert jetzt - antrag.phase_beginn < timedelta(minutes=1)
+    assert antrag.stimmberechtigung_stichtag == timezone.localdate()
+    assert antrag.stimme_zulaessig()
+    # Die Frist am Ende: das volle Abstimmungsfenster der eingefrorenen Ordnung (§ 5 Abs 5).
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().abstimmung_tage)
+    assert ende - jetzt > timedelta(days=antrag.policy().abstimmung_tage) - timedelta(minutes=1)
+    wechsel = [
+        e.ereignis
+        for e in AuditEintrag.objects.order_by('lfd')
+        if e.ereignis['typ'] == 'phasenwechsel' and e.ereignis.get('antrag') == antrag.pk
+    ]
+    assert [w['neue_phase'] for w in wechsel][-1] == 'abstimmung'
+    assert wechsel[-1]['wirksam_ab'] == antrag.phase_beginn.isoformat()
+
+
+@pytest.mark.parametrize('tage', [27, 29])
+def test_rueckgabe_nach_dem_beratungsende_beginnt_die_abstimmung_nicht_rueckwirkend(client, ordnung, tage):  # noqa: F811
+    """GP-001: Gibt Gruppe 2 in Runde 1 nach dem regulären Beratungsende zurück, begann die
+    Abstimmung rückwirkend zum Beratungsende — nach 29 Tagen war sie im selben Aufruf schon
+    geschlossen (abgelehnt, 0 Stimmen). Der Übergang wirkt frühestens ab der Freigabe."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung)
+    antrag.phase_beginn = timezone.now() - timedelta(days=tage)
+    antrag.save(update_fields=['phase_beginn'])
+    antrag.fortschreiben_bis_zum_stand()
+    assert antrag.phase == 'beratung'  # die Prüfung hält die Beratung offen
+    stimme(client, beschluss, gruppe2[0], 'zurueck', 'Die Vergabekriterien fehlen.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 1
+    client.logout()
+    assert client.get(reverse('verfahren:antrag', args=[antrag.pk])).status_code == 200
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+    # Ein zweiter Aufruf und ein Wächterlauf ändern daran nichts.
+    client.get(reverse('verfahren:antrag', args=[antrag.pk]))
+    antrag.fortschreiben_bis_zum_stand()
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+
+
+def test_stattgegebener_austausch_nach_dem_beratungsende_beginnt_die_abstimmung_nicht_rueckwirkend(client, ordnung):  # noqa: F811
+    """GP-001, zweiter Weg: Der Koordinationsrat gibt dem Austausch nach dem Beratungsende statt."""
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    antrag.phase_beginn = timezone.now() - timedelta(days=29)
+    antrag.save(update_fields=['phase_beginn'])
+    pruefung = entwurf.pruefungen.get()
+    korat_beschliessen(client, korat, pruefung, 'dafuer', 'Die Zweifel wiegen schwerer.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+    client.logout()
+    assert client.get(reverse('verfahren:antrag', args=[antrag.pk])).status_code == 200
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+
+
+def test_rueckgabe_vor_dem_beratungsende_laesst_das_beratungsende_gelten(client, ordnung):  # noqa: F811
+    """GP-001, Gegenprobe: Liegt die Freigabe vor dem regulären Ende, bleibt es beim Beratungsende
+    der eingefrorenen Ordnung — die Korrektur verschiebt nichts, was nicht verschoben war."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung)
+    stimme(client, beschluss, gruppe2[0], 'zurueck', 'Die Vergabekriterien fehlen.')
+    beginn = timezone.now() - timedelta(days=22)
+    antrag.phase_beginn = beginn
+    antrag.save(update_fields=['phase_beginn'])
+    Entwurf = type(entwurf)
+    frei = Entwurf.objects.get(pk=entwurf.pk).beratung_freigegeben_am
+    Entwurf.objects.filter(pk=entwurf.pk).update(beratung_freigegeben_am=frei - timedelta(days=5))
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == 'abstimmung'
+    assert antrag.phase_beginn == beginn + timedelta(days=antrag.policy().beratung_tage)
+
+
+# --- GP-027: Die Rückgabe der Gruppe 2 wirkt zum Beschlusszeitpunkt ---------------------------
+
+
+def test_die_ueberarbeitungsfrist_nach_rueckgabe_der_gruppe_2_laeuft_ab_dem_beschluss(client, ordnung):  # noqa: F811
+    """GP-027: Schließt die Frist den Prüfbeschluss, gilt er zur Frist — die Überarbeitungsfrist der
+    Gruppe 1 begann aber mit dem zufälligen Zeitpunkt der Auswertung (Wächter, Seitenaufruf). Zwei
+    Anträge mit gleichen Fristen bekamen so verschieden lange Überarbeitungsfenster."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=3)
+    type(entwurf).objects.filter(pk=entwurf.pk).update(runde=2)  # eine Überarbeitungsrunde liegt zur Prüfung vor
+    for mitglied in gruppe2[:2]:
+        stimme(client, beschluss, mitglied, 'zurueck', 'Die Vergabekriterien fehlen.')
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OFFEN  # die dritte Stimme fehlt — die Frist schließt
+    frist = timezone.now() - timedelta(days=3)
+    type(beschluss).objects.filter(pk=beschluss.pk).update(frist=frist)
+    antrag.fortschreiben_bis_zum_stand()
+    beschluss.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert beschluss.entschieden_am == frist and beschluss.ergebnis == 'zurueck'
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 2
+    assert entwurf.ueberarbeitung_frist == frist + timedelta(days=antrag.policy().ueberarbeitung_tage)
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'vorschlag_zurueckgegeben'][-1]
+    assert rueckgabe['wirksam_ab'] == frist.isoformat()
+
+
+def test_die_freigabe_nach_rueckgabe_in_runde_1_ist_der_beschlusszeitpunkt(client, ordnung):  # noqa: F811
+    """GP-027 und GP-001 zusammen: In Runde 1 gibt die Rückgabe die Beratung frei — zum Beschlusszeitpunkt."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=3)
+    for mitglied in gruppe2[:2]:
+        stimme(client, beschluss, mitglied, 'zurueck', 'Die Vergabekriterien fehlen.')
+    frist = timezone.now() - timedelta(hours=2)
+    type(beschluss).objects.filter(pk=beschluss.pk).update(frist=frist)
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.beratung_freigegeben_am == frist
+
+
+# --- GP-011: Kein Name, keine Kennung, kein Stimmtext im Audit ------------------------------
+
+
+def test_die_rueckgabe_der_gruppe_2_schreibt_keinen_namen_ins_audit(client, ordnung):  # noqa: F811
+    """GP-011: Die Rückgabe hängte Name oder „Mitglied n“ samt Stimmtext als `grund` an die
+    öffentliche Kette — dort nicht mehr zu entfernen. Jetzt steht dort nur ein Verweis; die
+    Antragsseite liest die Begründungen aus den Stimmen, mit dem jeweils geltenden Anzeigenamen."""
+    import json
+
+    from mitglieder.profil import austreten
+
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=2)
+    petra, ohne = gruppe2
+    petra.first_name, petra.last_name, petra.klarname_oeffentlich = 'Petra', 'Probekind', True
+    petra.save()
+    stimme(client, beschluss, petra, 'zurueck', 'Die Vergabekriterien fehlen völlig.')
+    stimme(client, beschluss, ohne, 'zurueck', 'Kein Vergleichsangebot vorhanden.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+    kette = '\n'.join(json.dumps(e.ereignis, ensure_ascii=False) for e in AuditEintrag.objects.all())
+    assert 'Probekind' not in kette and f'Mitglied {ohne.pk}' not in kette
+    assert 'Vergabekriterien' not in kette and 'Vergleichsangebot' not in kette
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'vorschlag_zurueckgegeben'][-1]
+    assert rueckgabe['grund'] == 'gruppe_2' and rueckgabe['beschluss'] == beschluss.pk
+    pruefung = Pruefung.objects.get(entwurf=entwurf)
+    assert 'Probekind' not in pruefung.begruendung and f'Mitglied {ohne.pk}' not in pruefung.begruendung
+    client.logout()
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'Petra Probekind' in seite and 'Die Vergabekriterien fehlen völlig.' in seite
+    austreten(petra)
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'Probekind' not in seite and f'Ehemaliges Mitglied {petra.pk}' in seite
+    assert 'Die Vergabekriterien fehlen völlig.' in seite
+
+
+# --- GP-010: Der Austauschbeschluss schließt spätestens mit der Verfristung -------------------
+
+
+def test_ein_austauschbeschluss_mit_mehrheit_verfristet_nicht(client, ordnung):  # noqa: F811
+    """GP-010: Die Beschlussfrist (sieben Tage ab Anlegen) reichte über die Verfristung des
+    Austauschantrags (Prüffrist ab Urteil) hinaus — schwieg ein einziges Ratsmitglied, verfristete der
+    Antrag trotz 4 : 0. Jetzt endet der Beschluss spätestens mit der Verfristung und entscheidet zuerst."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    rat = [korat] + [mitglied_anlegen(f'korat{i}') for i in range(4)]
+    for mitglied in rat[1:]:
+        rolle_geben(mitglied, Gremium.KOORDINATIONSRAT)
+    pruefung = entwurf.pruefungen.get()
+    tage = timedelta(days=antrag.policy().pruefung_tage)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=timezone.now() - timedelta(days=1))  # Urteil gestern
+    pruefung.refresh_from_db()
+    client.force_login(korat)
+    karte = client.get(reverse('gremien:koordination')).content.decode()
+    assert f'{timezone.localtime(pruefung.erstellt_am + tage):%d.%m.%Y %H:%M}' in karte  # die maßgebliche Frist steht da
+    client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Die Zweifel wiegen schwer.'},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    assert beschluss.frist == pruefung.erstellt_am + tage
+    for mitglied in rat[:4]:  # das fünfte Mitglied schweigt
+        stimme(client, beschluss, mitglied, 'dafuer', 'Austauschen.')
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OFFEN
+    # Zeitraffer: Urteil und Beschlussfrist rücken gemeinsam zurück — die Frist ist seit einer Stunde um.
+    versatz = tage - timedelta(days=1) + timedelta(hours=1)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=pruefung.erstellt_am - versatz)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=beschluss.frist - versatz)
+    antrag.refresh_from_db()
+    antrag.fortschreiben_bis_zum_stand()
+    pruefung.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.STATTGEGEBEN
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and 'Ohne Wirkung' not in beschluss.umsetzungsvermerk
+    assert all(not Rolle.objects.get(mitglied=m).aktiv for m in er)
+
+
+def test_nach_der_verfristung_entsteht_kein_austauschbeschluss_mehr(client, ordnung):  # noqa: F811
+    """GP-010, Kehrseite der Kappung: Ist die Frist schon um und nur noch nicht ausgewertet, entsteht kein
+    Beschluss mit einer Frist in der Vergangenheit — der Antrag verfristet, und die Seite sagt es."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    pruefung = entwurf.pruefungen.get()
+    tage = antrag.policy().pruefung_tage
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=timezone.now() - timedelta(days=tage, hours=1))
+    client.force_login(korat)
+    antwort = client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Zu spät.'},
+        follow=True,
+    )
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.AUSTAUSCH, antrag=antrag).exists()
+    assert 'Frist für diesen Austauschantrag ist verstrichen' in antwort.content.decode()
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET

@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gremien.models import Fachliste, Gremium, lostopf_der_fachliste, unvereinbar
-from gremien.test_werkstatt import mitglied_anlegen, rolle_geben  # noqa: F401
+from gremien.test_werkstatt import mitglied_anlegen, ordnung, rolle_geben  # noqa: F401
 from plattform_core.losziehung import ziehen
 from verfahren.models import Kategorie
 
@@ -155,3 +155,107 @@ def test_die_seite_sagt_ehrlich_dass_der_bestellweg_fehlt(client):
     inhalt = client.get(reverse("gremien:fachliste")).content.decode()
     assert "noch\nnicht" in inhalt or "noch nicht" in inhalt
     assert "trägt die Verwaltung die Liste ein" in inhalt
+
+
+# --- GP-009: Der Pflegeweg der Fachliste für die Verwaltung -----------------------------------
+
+
+def _verwaltung(client):
+    admin = mitglied_anlegen('verwaltung')
+    admin.ist_admin = True
+    admin.save()
+    client.force_login(admin)
+    return admin
+
+
+def _eintragen_post(client, mitglied, **felder):
+    daten = {'aktion': 'eintragen', 'mitglied': mitglied.pk, 'einwilligung': 'on', **felder}
+    return client.post(reverse('gremien:fachliste_aktion'), daten, follow=True)
+
+
+def test_die_verwaltung_traegt_ein_und_daraus_wird_gelost(client, ordnung):  # noqa: F811
+    """GP-009: Kein Weg der Anwendung legte einen Eintrag der Fachliste an — es wurde nie gelost,
+    obwohl Seite und Fahrtenbuch (FB-I1) sagen, die Verwaltung trage die Liste ein."""
+    from gremien.test_auslosung import antrag_in_beratung
+    from verfahren.models import AuditEintrag
+
+    admin = _verwaltung(client)
+    verkehr = Kategorie.objects.get_or_create(slug='verkehr', defaults={'name': 'Verkehr'})[0]
+    # Der Weg dorthin: Die Rollenverwaltung nennt die Seite — ohne Verweis fände sie nur, wer die Adresse kennt.
+    assert reverse('gremien:fachliste_verwaltung') in client.get(reverse('gremien:rollen')).content.decode()
+    assert client.get(reverse('gremien:fachliste_verwaltung')).status_code == 200
+    leute = [mitglied_anlegen(f'fachfrau{i}') for i in range(3)]
+    _eintragen_post(
+        client, leute[0], fachgebiete=[verkehr.pk],
+        interessenbindungen='Beirat einer Verkehrsplanungsgesellschaft', honorare='Gutachten 2025',
+    )
+    for mitglied in leute[1:]:
+        _eintragen_post(client, mitglied)
+    assert Fachliste.objects.count() == 3
+    erster = Fachliste.objects.get(mitglied=leute[0])
+    assert list(erster.fachgebiete.all()) == [verkehr] and erster.honorare == 'Gutachten 2025'
+    eintraege = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'fachliste_eingetragen']
+    assert len(eintraege) == 3 and all(e['einwilligung'] is True and e['durch'] == admin.pk for e in eintraege)
+    assert all('mitglied' not in e and 'Beirat' not in str(e) for e in eintraege)
+    client.logout()
+    liste = client.get(reverse('gremien:fachliste')).content.decode()
+    assert all(e.schluessel in liste for e in Fachliste.objects.all())
+    assert 'Beirat einer Verkehrsplanungsgesellschaft' in liste
+    antrag_in_beratung(ordnung)
+    assert any(e.ereignis['typ'] == 'expertenrat_ausgelost' for e in AuditEintrag.objects.all())
+
+
+def test_ohne_einwilligung_wird_niemand_eingetragen(client):
+    _verwaltung(client)
+    mitglied = mitglied_anlegen('ungefragt')
+    antwort = client.post(
+        reverse('gremien:fachliste_aktion'), {'aktion': 'eintragen', 'mitglied': mitglied.pk}, follow=True
+    )
+    assert not Fachliste.objects.exists()
+    assert 'Einwilligung' in antwort.content.decode()
+
+
+def test_niemand_steht_zweimal_auf_der_liste(client):
+    _verwaltung(client)
+    mitglied = mitglied_anlegen('doppelt')
+    _eintragen_post(client, mitglied)
+    antwort = _eintragen_post(client, mitglied)
+    assert Fachliste.objects.count() == 1
+    assert 'steht bereits auf der Fachliste' in antwort.content.decode()
+
+
+def test_streichen_braucht_einen_grund_und_loescht_nichts(client):
+    from verfahren.models import AuditEintrag
+
+    admin = _verwaltung(client)
+    eintrag = eintragen('streichkandidatin')
+    aktion = reverse('gremien:fachliste_aktion')
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': ''})
+    eintrag.refresh_from_db()
+    assert eintrag.gefuehrt
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auf eigenen Wunsch.'})
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt and eintrag.gestrichen_grund == 'Auf eigenen Wunsch.'
+    assert eintrag.gestrichen_am == timezone.localdate()
+    gestrichen = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'fachliste_gestrichen']
+    assert len(gestrichen) == 1 and gestrichen[0]['eintrag'] == eintrag.pk and gestrichen[0]['durch'] == admin.pk
+    assert 'eigenen Wunsch' not in str(gestrichen[0])  # der frei geschriebene Grund steht nicht in der Kette
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Noch einmal.'})
+    eintrag.refresh_from_db()
+    assert eintrag.gestrichen_grund == 'Auf eigenen Wunsch.'  # ein gestrichener Eintrag wird nicht überschrieben
+    assert client.post(aktion, {'aktion': 'streichen', 'eintrag': 'abc', 'grund': 'x'}).status_code == 404
+
+
+def test_die_pflege_der_fachliste_ist_der_verwaltung_vorbehalten(client):
+    """Gast, Mitglied und Ratsmitglied werden abgewiesen — lesend wie schreibend."""
+    ziel = mitglied_anlegen('ziel')
+    seite, aktion = reverse('gremien:fachliste_verwaltung'), reverse('gremien:fachliste_aktion')
+    daten = {'aktion': 'eintragen', 'mitglied': ziel.pk, 'einwilligung': 'on'}
+    assert client.get(seite).status_code == 302 and client.post(aktion, daten).status_code == 302  # Gast: zur Anmeldung
+    ratsmitglied = mitglied_anlegen('ratsmitglied')
+    rolle_geben(ratsmitglied, Gremium.KOORDINATIONSRAT)
+    for konto in (mitglied_anlegen('einfach'), ratsmitglied):
+        client.force_login(konto)
+        assert client.get(seite).status_code == 403
+        assert client.post(aktion, daten).status_code == 403
+    assert not Fachliste.objects.exists()

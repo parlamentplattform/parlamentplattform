@@ -171,7 +171,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
   <div class="karte">
     <p class="phasen-titel">{% translate "Interessenbindungen zu diesem Antrag (§ 6 Abs 7)" %}</p>
     {% for i in interessenbindungen %}
-    <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+    <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %} · {{ i.erklaert_am|date:"d.m.Y H:i" }}</span><br>{{ i.text }}</span></div>
     {% endfor %}
   </div>
   {% endif %}
@@ -180,12 +180,16 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
     <p class="phasen-titel">{% translate "Einschätzung der Zukunftswerkstatt — Arbeitsunterlage" %}</p>
     {% if einschaetzung.lauf %}
     <p class="meta"><span class="ki-kennzeichen">{% translate "Modellrechnung" %} · {{ einschaetzung.modell }}</span> {{ einschaetzung.lauf.erstellt_am|date:"d.m.Y" }}</p>
+    {% if einschaetzung.lauf.zweck == "einschaetzung" %}
     <p style="white-space:pre-line;margin-top:6px">{{ einschaetzung.lauf.antwort|truncatechars:1200 }}</p>
+    {% else %}{# Der Rechtsfolgenbericht ist strukturiert und steht aufbereitet am Antrag — hier nur der Weg dorthin (GP-047). #}
+    <p><a href="{% url 'verfahren:antrag' antrag.pk %}#zone-einschaetzung">{% translate "Zum Rechtsfolgenbericht am Antrag →" %}</a></p>
+    {% endif %}
     {% else %}
     <p class="leer">{% translate "Zu diesem Antrag liegt keine Einschätzung vor." %}</p>
     {% endif %}
     {% if einschaetzung.beanstandungen %}
-    <p class="meta" style="margin-top:6px">{% blocktranslate count n=einschaetzung.beanstandungen|length %}Eine Beanstandung{% plural %}{{ n }} Beanstandungen{% endblocktranslate %} · <a href="{% url 'verfahren:antrag' antrag.pk %}#zone-2">{% translate "in Zone 2" %}</a></p>
+    <p class="meta" style="margin-top:6px">{% blocktranslate count n=einschaetzung.beanstandungen|length %}Eine Beanstandung{% plural %}{{ n }} Beanstandungen{% endblocktranslate %} · <a href="{% url 'verfahren:antrag' antrag.pk %}#zone-einschaetzung">{% translate "in Zone 2" %}</a></p>
     {% endif %}
   </div>
 
@@ -244,7 +248,11 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
     <p class="phasen-titel">{% translate "Einschätzung der Zukunftswerkstatt — Arbeitsunterlage" %}</p>
     {% if einschaetzung.lauf %}
     <p class="meta"><span class="ki-kennzeichen">{% translate "Modellrechnung" %} · {{ einschaetzung.modell }}</span></p>
+    {% if einschaetzung.lauf.zweck == "einschaetzung" %}
     <p style="white-space:pre-line;margin-top:6px">{{ einschaetzung.lauf.antwort|truncatechars:1200 }}</p>
+    {% else %}{# Der Rechtsfolgenbericht ist strukturiert und steht aufbereitet am Antrag — hier nur der Weg dorthin (GP-047). #}
+    <p><a href="{% url 'verfahren:antrag' antrag.pk %}#zone-einschaetzung">{% translate "Zum Rechtsfolgenbericht am Antrag →" %}</a></p>
+    {% endif %}
     {% else %}
     <p class="leer">{% translate "Zu diesem Antrag liegt keine Einschätzung vor." %}</p>
     {% endif %}

@@ -20,7 +20,7 @@ from gremien.models import (
     Gremium,
     beschlussnummer,
 )
-from gremien.test_werkstatt import mitglied_anlegen, rolle_geben  # noqa: F401
+from gremien.test_werkstatt import mitglied_anlegen, ordnung, rolle_geben  # noqa: F401
 
 pytestmark = pytest.mark.django_db
 
@@ -353,3 +353,213 @@ def test_ein_durch_fristablauf_geschlossener_beschluss_ist_zur_frist_entschieden
     GremienBeschluss.faellige_abschliessen(jetzt)
     b.refresh_from_db()
     assert b.entschieden_am == frist
+
+
+# --- GP-038: Handlung und Audit-Eintrag in einer Transaktion ---------------------------------
+
+
+@pytest.fixture
+def audit_wirft(monkeypatch):
+    """Die Kette nimmt nichts an — wie nach dreimal überholtem Kettenkopf."""
+    from django.db import IntegrityError
+
+    from verfahren.models import AuditEintrag
+
+    def wirft(cls, ereignis):
+        raise IntegrityError('Audit-Kette: Eintrag nicht angehängt.')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', classmethod(wirft))
+
+
+def _ratsmitglied(gremium=Gremium.KOORDINATIONSRAT):
+    mitglied = mitglied_anlegen(f'rat{next(_ZAEHLER)}')
+    rolle_geben(mitglied, gremium)
+    return mitglied
+
+
+@pytest.mark.parametrize(
+    ('route', 'argumente', 'gremium', 'daten'),
+    [
+        ('gremien:rat_beschluss', ['koordinationsrat'], Gremium.KOORDINATIONSRAT, {'gegenstand': 'X', 'beschreibung': 'Y'}),
+        ('gremien:koordination_beschluss', [], Gremium.KOORDINATIONSRAT, {'anlass': 'intern', 'gegenstand': 'X', 'beschreibung': 'Y'}),
+        ('gremien:integritaet_regelpruefung', [], Gremium.INTEGRITAETSRAT, {}),
+    ],
+)
+def test_ohne_audit_eintrag_entsteht_kein_beschluss(client, audit_wirft, route, argumente, gremium, daten):
+    """GP-038: Scheiterte der Audit-Eintrag, blieb der Beschluss trotzdem bestehen — eine Handlung ohne Protokoll."""
+    client.force_login(_ratsmitglied(gremium))
+    client.raise_request_exception = False
+    assert client.post(reverse(route, args=argumente), daten).status_code == 500
+    assert not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_wird_keine_stimme_gespeichert(client, audit_wirft):
+    rat = _ratsmitglied()
+    beschluss = beschluss_anlegen(frist=timezone.now() + timedelta(days=7))
+    client.force_login(rat)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:beschluss_stimme', args=[beschluss.pk]), {'option': 'dafuer', 'begruendung': 'Weil.'})
+    assert antwort.status_code == 500 and beschluss.stimmen.count() == 0
+
+
+def test_ohne_audit_eintrag_endet_keine_rolle(client, audit_wirft):
+    from gremien.models import Rolle
+
+    admin = mitglied_anlegen('verwaltung')
+    admin.ist_admin = True
+    admin.save()
+    rolle = Rolle.objects.get(mitglied=_ratsmitglied())
+    client.force_login(admin)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:rollen_aktion'), {'aktion': 'beenden', 'rolle': rolle.pk, 'grund': 'Rücktritt'})
+    rolle.refresh_from_db()
+    assert antwort.status_code == 500 and rolle.beendet_grund == '' and rolle.aktiv
+
+
+def _kette_sperren(monkeypatch):
+    """Wie `audit_wirft`, aber erst nach dem Aufbau der Lage — der Aufbau selbst schreibt in die Kette."""
+    from django.db import IntegrityError
+
+    from verfahren.models import AuditEintrag
+
+    def wirft(cls, ereignis):
+        raise IntegrityError('Audit-Kette: Eintrag nicht angehängt.')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', classmethod(wirft))
+
+
+def test_ohne_audit_eintrag_entsteht_kein_beschluss_des_integritaetsrats(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-038, Gegenlesen: Auch der Beschluss zu einem Antrag (Hervorhebung, Zurückweisung, Aussetzung)
+    entsteht nur gemeinsam mit seinem Eintrag."""
+    from verfahren.models import antrag_einbringen
+
+    antrag = antrag_einbringen(mitglied_anlegen('stellerin'), titel='T', wortlaut='W.', begruendung='B.', ordnung=ordnung)
+    client.force_login(_ratsmitglied(Gremium.INTEGRITAETSRAT))
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'), {'anlass': 'hervorhebung', 'antrag': antrag.pk, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code == 500 and not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_bleibt_der_umsetzungsvermerk_ungeschrieben(client, audit_wirft):
+    rat = _ratsmitglied()
+    beschluss = beschluss_anlegen(status=BeschlussStatus.ENTSCHIEDEN, ergebnis='dafuer')
+    client.force_login(rat)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.'})
+    beschluss.refresh_from_db()
+    assert antwort.status_code == 500 and beschluss.umsetzungsvermerk == ''
+
+
+def test_ohne_audit_eintrag_wird_kein_test_angeordnet(client, monkeypatch):
+    from parameter.models import Parameter, ParameterTest, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    parameter = Parameter.objects.get(schluessel='gremien-beschluss-tage')
+    client.force_login(_ratsmitglied())
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(
+        reverse('gremien:koordination_test', args=[0]),
+        {
+            'aktion': 'anordnen', 'parameter': parameter.pk, 'testwert': '9', 'hypothese': 'H', 'messgroesse': 'motions.total',
+            'ende': (timezone.localdate() + timedelta(days=30)).isoformat(), 'rueckweg': 'R',
+        },
+    )
+    assert antwort.status_code == 500
+    assert not ParameterTest.objects.exists() and not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_bleibt_der_vollzugsbezug_wie_er_war(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-007 und GP-038 zusammen: Der Bezug wird nur gemeinsam mit seinem Eintrag umgestellt."""
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = fenster_oeffnen(client, antrag, er[0])
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'vollzugsbezug', 'vollzugsbezug': 'ja'})
+    entwurf.refresh_from_db()
+    assert antwort.status_code == 500 and entwurf.vollzugsbezug is False
+
+
+# --- GP-125: Ungültige Jahre und verformte Kennungen sind kein Serverfehler -------------------
+
+
+@pytest.mark.parametrize('jahr', ['0', '1', '1999', '9999', '10000', '99999', '12345678901234567890'])
+def test_ein_jahr_ausserhalb_des_bestands_ist_404(client, jahr):
+    """GP-125: Jahr 0 und fünfstellige Jahre ergaben als Gast einen Serverfehler (year out of range)."""
+    assert client.get(f'/gremien/integritaet/bericht/{jahr}/').status_code == 404
+    assert client.get(f'/gremien/protokoll/integritaetsrat/{jahr}.json').status_code == 404
+
+
+def test_das_laufende_jahr_und_das_naechste_bleiben_erreichbar(client):
+    jahr = timezone.localdate().year
+    for j in (jahr, jahr + 1):
+        assert client.get(reverse('gremien:integritaet_bericht', args=[j])).status_code == 200
+        assert client.get(reverse('gremien:protokoll', args=['integritaetsrat', j])).status_code == 200
+    assert client.get(reverse('gremien:integritaet_bericht', args=[jahr + 2])).status_code == 404
+
+
+VERFORMT = ['abc', '', '1.5', '²', '12345678901234567890']
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_verformte_kennungen_im_integritaetsrat_sind_kein_serverfehler(client, wert):
+    client.force_login(_ratsmitglied(Gremium.INTEGRITAETSRAT))
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'), {'anlass': 'hervorhebung', 'antrag': wert, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code in (302, 404) and not GremienBeschluss.objects.exists()
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+@pytest.mark.parametrize(
+    'daten',
+    [
+        {'anlass': 'austausch', 'feld': 'pruefung'},
+        {'anlass': 'ueberlastung', 'feld': 'meldung'},
+        {'anlass': 'hervorhebung_anregen', 'feld': 'antrag'},
+    ],
+)
+def test_verformte_kennungen_im_koordinationsrat_sind_kein_serverfehler(client, wert, daten):
+    client.force_login(_ratsmitglied())
+    antwort = client.post(
+        reverse('gremien:koordination_beschluss'), {'anlass': daten['anlass'], daten['feld']: wert, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code in (302, 404) and not GremienBeschluss.objects.exists()
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_verformte_kennungen_bei_test_und_umsetzung_sind_kein_serverfehler(client, wert):
+    from parameter.models import ParameterTest
+
+    rat = _ratsmitglied()
+    client.force_login(rat)
+    antwort = client.post(
+        reverse('gremien:koordination_test', args=[0]),
+        {
+            'aktion': 'anordnen', 'parameter': wert, 'testwert': '9', 'hypothese': 'H', 'messgroesse': 'motions.total',
+            'ende': (timezone.localdate() + timedelta(days=30)).isoformat(), 'rueckweg': 'R',
+        },
+    )
+    assert antwort.status_code in (302, 404) and not ParameterTest.objects.exists()
+    beschluss = beschluss_anlegen(status=BeschlussStatus.ENTSCHIEDEN, ergebnis='dafuer')
+    antwort = client.post(
+        reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.', 'umsetzung_durch': wert}
+    )
+    beschluss.refresh_from_db()
+    assert antwort.status_code in (302, 404) and beschluss.umsetzung_durch is None
+
+
+@pytest.mark.parametrize('wert', VERFORMT)
+def test_eine_verformte_kennung_im_wunschvermerk_ist_kein_serverfehler(client, ordnung, wert):  # noqa: F811
+    from gremien.models import WunschVermerk
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    fenster_oeffnen(client, antrag, er[0])
+    antwort = client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'wunsch', 'kommentar': wert})
+    assert antwort.status_code in (302, 404) and not WunschVermerk.objects.exists()

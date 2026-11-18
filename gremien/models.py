@@ -28,6 +28,7 @@ sind dafür der ehrliche Rückfall."""
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -37,6 +38,8 @@ from django.utils.translation import gettext_lazy as _
 
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
+
+log = logging.getLogger(__name__)
 
 ROLLEN_DAUER_TAGE = 730  # zwei Jahre, § 6 Abs 8
 BESCHLUSS_TAGE = 7  # Rückfall für die Frist eines internen Beschlusses (§ 6 Abs 2 lit e)
@@ -198,6 +201,14 @@ def standard_ende():
     return timezone.localdate() + timedelta(days=_registerzahl("gremien-rollen-dauer-tage", ROLLEN_DAUER_TAGE))
 
 
+#: So beginnt die Begründung der Antragsfassung, die `Entwurf._endabstimmung_oeffnen` aus dem
+#: Vorschlag anlegt — daran erkennt `Entwurf.vorschlag_uebernommen`, ob es sie gibt.
+VORSCHLAG_ALS_FASSUNG = "Vorschlag des Expertenrats, Runde "
+
+#: Die Fristfelder des Entwurfs, die eine Zurückweisung sichert und ihre Aufhebung verschoben wiederherstellt.
+ENTWURF_FRISTFELDER = ("review_frist", "ueberarbeitung_frist", "beratung_freigegeben_am")
+
+
 class EntwurfsStatus(models.TextChoices):
     IN_ARBEIT = "in_arbeit", _("in Arbeit (Expertenrat)")
     PRUEFUNG = "pruefung", _("in Prüfung (Gruppe 2)")
@@ -228,6 +239,13 @@ class Entwurf(models.Model):
     )
     review_frist = models.DateTimeField(null=True, blank=True)
     ueberarbeitung_frist = models.DateTimeField(null=True, blank=True)
+    beratung_freigegeben_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Zeitpunkt, zu dem die Schleife die Beratung zuletzt freigegeben hat, ohne selbst "
+        "die Endabstimmung zu öffnen (Rückgabe der Gruppe 2 oder Austausch ohne Überarbeitungsfrist). "
+        "Der Regelübergang in die Abstimmung wirkt nie vor diesem Zeitpunkt.",
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -315,6 +333,38 @@ class Entwurf(models.Model):
             and jetzt < self.ueberarbeitung_frist
         )
 
+    def vorschlag_uebernommen(self) -> bool:
+        """Ob der Vorschlag wirklich zur neuen Antragsfassung wurde (§ 5 Abs 3 lit d).
+
+        Der Status „angenommen“ allein sagt das nicht: Eine Zurückweisung legt die Schleife mit
+        demselben Status still, ohne dass je eine Fassung übernommen wurde (Gesamtprüfung GP-008).
+        Die Antragsseite unterscheidet damit „übernommen“ von „ruht“."""
+        return (
+            self.status == EntwurfsStatus.ANGENOMMEN
+            and self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
+        )
+
+    def ueberarbeitung_verstrichen(self, jetzt=None) -> bool:
+        """Ob die Überarbeitungsfrist einer Rückgabe-Runde ohne neue Einreichung abgelaufen ist."""
+        jetzt = jetzt or timezone.now()
+        return (
+            self.status == EntwurfsStatus.IN_ARBEIT
+            and self.runde > 1
+            and self.ueberarbeitung_frist is not None
+            and jetzt >= self.ueberarbeitung_frist
+        )
+
+    def abstimmung_fruehestens_ab(self):
+        """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.
+
+        Hält die Schleife die Beratung über das reguläre Ende hinaus offen und gibt sie dann frei,
+        ohne selbst die Endabstimmung zu öffnen (Rückgabe der Gruppe 2 in Runde 1, stattgegebener
+        Austausch), rechnete der Regelübergang bisher ab dem ursprünglichen Beratungsende: Die
+        Abstimmung begann rückwirkend, die Prüfzeit der Gruppe 2 fehlte im Abstimmungsfenster, und
+        im Grenzfall war die Abstimmung im selben Aufruf eröffnet und geschlossen (Gesamtprüfung
+        GP-001). Die festgeschriebene Abstimmungsfrist (§ 5 Abs 5) läuft erst ab der Freigabe."""
+        return self.beratung_freigegeben_am
+
     # ── Übergabe-Handlungen ──────────────────────────────────────────────────
 
     def einreichen(self, jetzt=None) -> bool:
@@ -337,6 +387,19 @@ class Entwurf(models.Model):
                 }
             )
             return False
+        if self.ueberarbeitung_verstrichen(jetzt):
+            # Die Frist der Gruppe 1 bleibt eine Frist, auch wenn die Endabstimmung noch auf das
+            # Beratungsende wartet (GP-003): Zur Abstimmung geht die zuletzt vorgelegte Fassung.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "vorschlag_einreichung_verworfen",
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "phase": self.antrag.phase,
+                    "grund": "ueberarbeitungsfrist_verstrichen",
+                }
+            )
+            return False
         self.eingereicht_am = jetzt
         fassung = self.aktuelle_fassung()
         if fassung is not None:
@@ -353,6 +416,7 @@ class Entwurf(models.Model):
             self.status = EntwurfsStatus.UNTERSTUETZER
             self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.ueberarbeitung_frist = None
+        self.beratung_freigegeben_am = None  # die Schleife arbeitet wieder und hält selbst offen
         self.save()
         if self.status == EntwurfsStatus.PRUEFUNG:
             self.pruefbeschluss_anlegen(jetzt)
@@ -441,10 +505,15 @@ class Entwurf(models.Model):
         neue_runde: bool = False,
         frist_erneuern: bool = False,
         auswertung: dict | None = None,
+        beschluss_id: int | None = None,
     ) -> None:
         """Zurück in die Werkstatt: mit neuer Runde (Unterstützer-Rückgabe) oder
         ohne (Gruppe 2, § 6 Abs 7). frist_erneuern gibt einer laufenden
-        Überarbeitung (Runde > 1) frische Zeit, ohne die Runden zu zählen."""
+        Überarbeitung (Runde > 1) frische Zeit, ohne die Runden zu zählen.
+
+        `grund` ist ein Schlüsselwort oder eine Rechnung, nie ein Text aus Stimmen: Die Kette fügt
+        nur an, ein Name oder Vorwurf stünde dort für immer (GP-011). `beschluss_id` verweist auf
+        den Beschluss, dessen Stimmen die Begründung tragen."""
         jetzt = jetzt or timezone.now()
         self.status = EntwurfsStatus.IN_ARBEIT
         if neue_runde:
@@ -456,6 +525,10 @@ class Entwurf(models.Model):
             self.ueberarbeitung_frist = jetzt + timedelta(
                 days=self.antrag.policy().ueberarbeitung_tage
             )
+        # Ohne Überarbeitungsfrist hält die Schleife ab jetzt nichts mehr offen: Der Regelübergang
+        # ist frei — und darf nicht vor diesem Zeitpunkt wirken (GP-001).
+        freigegeben = not self.haelt_beratung_offen(jetzt)
+        self.beratung_freigegeben_am = jetzt if freigegeben else None
         self.save()
         AuditEintrag.anhaengen(
             {
@@ -463,7 +536,9 @@ class Entwurf(models.Model):
                 "antrag": self.antrag_id,
                 "runde": self.runde,
                 "grund": grund,
+                **({"beschluss": beschluss_id} if beschluss_id else {}),
                 "wirksam_ab": jetzt.isoformat(),
+                "beratung_freigegeben": freigegeben,
                 # Die Rechnung der entschiedenen Runde, festgeschrieben: Das Archiv rechnet
                 # sie nicht mit dem Registerwert von morgen nach (Befund #22).
                 **({"auswertung": auswertung} if auswertung else {}),
@@ -473,7 +548,7 @@ class Entwurf(models.Model):
     @transaction.atomic
     def _endabstimmung_oeffnen(
         self, antrag: Antrag, grund: str, jetzt, auswertung: dict | None = None
-    ) -> None:
+    ) -> bool:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
         Vorschlag — er wird die neue, letzte Antragsfassung.
 
@@ -481,7 +556,17 @@ class Entwurf(models.Model):
         Nach einer Rückgabe hängt Gruppe 1 Arbeitsstände an, und verstreicht dann die
         Überarbeitungsfrist, geht die vorgelegte Fassung zur Abstimmung (§ 5 Abs 12: „über die
         zuletzt veröffentlichte Fassung“) — nie ein Text, den kein Organ freigegeben hat.
-        Wurde nie eingereicht, bleibt der Antragstext, wie er ist."""
+        Wurde nie eingereicht, bleibt der Antragstext, wie er ist.
+
+        Rückgabe: ob die Endabstimmung geöffnet wurde. Das Phasentor steht am Anfang (GP-165):
+        Dahinter hängte jeder Aufruf eine weitere Fassung an einen entschiedenen Antrag."""
+        from plattform_core import Phase
+
+        if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
+            # Ein zurückgewiesener oder entschiedener Antrag bekommt keine Endabstimmung mehr.
+            # Ohne dieses Tor öffnete die Schleife sie auch dann, wenn der Integritätsrat den
+            # Antrag inzwischen zurückgewiesen hat (§ 5 Abs 2).
+            return False
         fassung = self.vorgelegte_fassung()
         if fassung is not None:
             letzte = antrag.aktueller_text()
@@ -491,17 +576,10 @@ class Entwurf(models.Model):
                 nummer=nummer,
                 wortlaut=fassung.wortlaut,
                 begruendung=(
-                    f"Vorschlag des Expertenrats, Runde {self.runde}, Entwurfsfassung {fassung.nummer} "
+                    f"{VORSCHLAG_ALS_FASSUNG}{self.runde}, Entwurfsfassung {fassung.nummer} "
                     f"(§ 5 Abs 12). {fassung.begruendung}"
                 ).strip(),
             )
-        from plattform_core import Phase
-
-        if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
-            # Ein zurückgewiesener oder entschiedener Antrag bekommt keine Endabstimmung mehr.
-            # Ohne dieses Tor öffnete die Schleife sie auch dann, wenn der Integritätsrat den
-            # Antrag inzwischen zurückgewiesen hat (§ 5 Abs 2).
-            return
         self.status = EntwurfsStatus.ANGENOMMEN
         self.save(update_fields=["status"])
         antrag.phase = Phase.ABSTIMMUNG.value
@@ -533,8 +611,21 @@ class Entwurf(models.Model):
                 **({"auswertung": auswertung} if auswertung else {}),
             }
         )
+        return True
 
-    def fortschreiben(self, antrag: Antrag, jetzt=None) -> bool:
+    def _endabstimmung_fruehestens(self, antrag: Antrag, frist, jetzt):
+        """Der Zeitpunkt, zu dem die Schleife die Endabstimmung öffnet: ihre eigene Frist, aber
+        nie vor dem Ende der Beratung nach der eingefrorenen Ordnung.
+
+        § 5 Abs 3 lit c gibt der Beratung mindestens 21 Tage, und die Dauer steht mit der Ordnung
+        am Antrag fest (§ 5 Abs 5). Reichte der Expertenrat früh ein, öffnete die Schleife die
+        Endabstimmung bisher schon mit dem Ende der Unterstützerfrist — Tage vor dem Beratungsende
+        (Gesamtprüfung GP-003). Die Auswertung bleibt die zum Fristende; nur der Übergang wartet."""
+        from plattform_core.phases import beratung_frist_ende
+
+        return max(frist, beratung_frist_ende(antrag.wirksamer_phase_beginn(jetzt), antrag.policy()))
+
+    def fortschreiben(self, antrag: Antrag, jetzt=None, vorlauf: bool = False) -> bool:
         """Fristen der Schleife auswerten (idempotent, ohne Blockademacht):
 
         - Liegt der Vorschlag den Unterstützern vor und ist die Frist um (oder
@@ -542,7 +633,11 @@ class Entwurf(models.Model):
           übrig → zurück an Gruppe 1 mit den Wünschen; sonst → Endabstimmung
           über den Vorschlag (auch bei Stille — Untätigkeit hemmt nie).
         - Verstreicht eine Überarbeitungsfrist ohne neue Einreichung → die
-          zuletzt vorgelegte Fassung geht zur Endabstimmung."""
+          zuletzt vorgelegte Fassung geht zur Endabstimmung.
+
+        `vorlauf` rechnet auf einen früheren Zeitpunkt zurück (`Antrag._schritt`, GP-004): Dann
+        zählen nur abgelaufene Fristen der Schleife. Einen Prüfbeschluss anzulegen oder zu
+        schließen ist kein Fristablauf der Schleife — das bleibt dem Lauf zum echten Zeitpunkt."""
         jetzt = jetzt or timezone.now()
         if self.status == EntwurfsStatus.PRUEFUNG:
             # Zwei Wege führen aus der Prüfung ohne Beschluss heraus, und beide haben eine Frist
@@ -560,6 +655,11 @@ class Entwurf(models.Model):
                 frist = austausch.erstellt_am + pruefung_tage
                 if jetzt < frist:
                     return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+                beschluss = austausch.korat_beschluss
+                if vorlauf and beschluss is not None and beschluss.offen and beschluss.frist is not None and beschluss.frist <= frist:
+                    # Der Beschluss des Koordinationsrats schließt spätestens mit dieser Frist (GP-010)
+                    # und entscheidet zuerst: Verfristet ist der Antrag erst, wenn er ohne Entscheid blieb.
+                    return False
                 # Der Koordinationsrat hat binnen der Frist nicht entschieden: Der Austauschantrag
                 # gilt als verfristet, der Vorschlag geht — offen vermerkt — an die Unterstützer.
                 austausch.korat_entscheid = Pruefung.KoratEntscheid.VERFRISTET
@@ -589,7 +689,10 @@ class Entwurf(models.Model):
                 # Erst hier, nicht schon beim Einreichen: Beim Einreichen ist manchmal noch
                 # niemand in Gruppe 2 berufen, und die Frist einer Gruppe kann nicht laufen,
                 # bevor es die Gruppe gibt.
-                if self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
+                if vorlauf:
+                    if self.eingereicht_am is None or Rolle.fuer_antrag(Gremium.EXPERTENRAT_2, antrag).exists():
+                        return False
+                elif self.pruefbeschluss_anlegen(jetzt) is not None or self.eingereicht_am is None:
                     return False
                 # Keine Gruppe 2 — dann läuft die Prüffrist ab der Einreichung. Verstreicht sie,
                 # geht der Vorschlag weiter, und der Vermerk sagt offen, dass niemand geprüft hat.
@@ -624,6 +727,8 @@ class Entwurf(models.Model):
             # Die Prüfung der Gruppe 2 hat ihre eigene Frist (FB-I3). Läuft sie ab, wertet der
             # Beschluss aus — sonst hinge ein Beschaffungsantrag an der Aufmerksamkeit eines
             # einzelnen Rates, und genau das soll die Frist verhindern (§ 5 Abs 12).
+            if vorlauf:
+                return False  # Beschlüsse reiht die Fortschreibung des Antrags nach ihrer Frist ein
             for beschluss in offene:
                 if beschluss.abschliessen(jetzt):
                     self.refresh_from_db()
@@ -653,9 +758,11 @@ class Entwurf(models.Model):
                 f"{'an erster Stelle' if stand['oben'] else 'nicht an erster Stelle'}, "
                 f"Regel {stand['reihung']}"
             )
+            # Auch Grund und Stimmenzahl der Rechnung (GP-026): „stille“ und eine wirkliche Annahme
+            # sind verschiedene Ausgänge, und das Audit soll sie unterscheiden.
             festgehalten = {
                 k: stand[k]
-                for k in ("ja", "nein", "prozent", "schwelle", "oben", "angenommen", "reihung")
+                for k in ("ja", "nein", "prozent", "schwelle", "oben", "angenommen", "reihung", "grund", "stimmen")
                 if k in stand
             }
             festgehalten["runde"] = self.runde
@@ -669,26 +776,53 @@ class Entwurf(models.Model):
                 )
                 antrag.chat_archivieren(wirksam)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
-            self._endabstimmung_oeffnen(
-                antrag,
-                f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
-                wirksam,
-                auswertung=festgehalten,
-            )
-            return True
+            # Der Vorschlag steht (Auswertung zum Fristende) — geöffnet wird frühestens zum
+            # Beratungsende; bis dahin bleibt der Antrag in der Beratung (GP-003).
+            wirksam = self._endabstimmung_fruehestens(antrag, wirksam, jetzt)
+            if jetzt < wirksam:
+                return False
+            # Drei Wege führen zur Endabstimmung, und das Audit nennt den, der es war (GP-026):
+            # die Annahme durch die Unterstützer, ihr Schweigen (§ 5 Abs 13: „Bleibt jede Reaktion
+            # aus, gilt der Vorschlag als angenommen“) und die erreichte Höchstzahl der Runden
+            # (§ 5 Abs 12) — dann hat ihn niemand angenommen. „Runde N,“ und die Schwelle bleiben
+            # im Wortlaut: Daran erkennt das Archiv das Ereignis, das die Runde beendet hat.
+            rest = f"{rechnung}, Runde {self.runde},"
+            if not stand["angenommen"]:
+                festgehalten["grund"] = "hoechstrunden"
+                grund = (
+                    f"Höchstzahl der Runden erreicht ({ordnung.hoechstrunden}) — der Vorschlag des "
+                    f"Expertenrats geht ohne Annahme durch die Unterstützer zur Endabstimmung ({rest} § 5 Abs 12)."
+                )
+            elif stand["grund"] == "stille":
+                grund = (
+                    f"Keine Reaktion der Unterstützer binnen {ordnung.review_tage} Tagen — der Vorschlag "
+                    f"des Expertenrats gilt als angenommen ({rest} § 5 Abs 13)."
+                )
+            elif stand["grund"] == "kein_systembeitrag":
+                grund = (
+                    "Kein Bezugsbeitrag zur Auswertung — der Vorschlag des Expertenrats geht zur "
+                    f"Endabstimmung ({rest} § 5 Abs 12: Untätigkeit hemmt nie)."
+                )
+            else:
+                grund = f"Vorschlag des Expertenrats angenommen ({rest} § 5 Abs 12)."
+            return self._endabstimmung_oeffnen(antrag, grund, wirksam, auswertung=festgehalten)
         if (
             self.status == EntwurfsStatus.IN_ARBEIT
             and self.runde > 1
             and self.ueberarbeitung_frist is not None
             and jetzt >= self.ueberarbeitung_frist
         ):
-            self._endabstimmung_oeffnen(
+            # Wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33) — aber nie vor dem
+            # Beratungsende der eingefrorenen Ordnung (GP-003).
+            wirksam = self._endabstimmung_fruehestens(antrag, self.ueberarbeitung_frist, jetzt)
+            if jetzt < wirksam:
+                return False
+            return self._endabstimmung_oeffnen(
                 antrag,
                 "Überarbeitungsfrist verstrichen — die zuletzt vorgelegte Fassung geht zur "
                 "Endabstimmung (§ 5 Abs 12: Untätigkeit hemmt nie).",
-                self.ueberarbeitung_frist,  # wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33)
+                wirksam,
             )
-            return True
         return False
 
 
@@ -773,6 +907,8 @@ class Pruefung(models.Model):
         STATTGEGEBEN = "stattgegeben", _("stattgegeben")
         ABGELEHNT = "abgelehnt", _("abgelehnt")
         VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
+        # Der Beschluss schloss ohne Ergebnis (Gleichstand, Quorum verfehlt) — das ist keine Ablehnung (GP-040).
+        OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
     runde = models.PositiveIntegerField()
@@ -818,6 +954,29 @@ class Pruefung(models.Model):
 
     def __str__(self) -> str:
         return f"Prüfung zu Entwurf {self.entwurf_id}: {self.get_ergebnis_display()}"
+
+    @property
+    def austausch_frist(self):
+        """Bis wann der Koordinationsrat über einen Austauschantrag entschieden haben muss: die
+        Prüffrist der eingefrorenen Ordnung ab dem Urteil. Danach verfristet der Antrag
+        (`Entwurf.fortschreiben`, § 5 Abs 12)."""
+        return self.erstellt_am + timedelta(days=self.entwurf.antrag.policy().pruefung_tage)
+
+    def stimmbegruendungen(self) -> list[dict]:
+        """Die veröffentlichten Begründungen der Gruppe 2, aus den Stimmen des Beschlusses gelesen.
+
+        Der Name wird beim Anzeigen bestimmt, nicht beim Urteil gespeichert (GP-011): Wer die
+        Namensnennung widerruft oder austritt, steht hier danach unter dem dann geltenden
+        Anzeigenamen. Leer, wenn der Beschluss ohne Ergebnis blieb oder es keinen gibt — dann
+        steht der Vermerk in `begruendung`."""
+        beschluss = self.beschluss
+        if beschluss is None or not beschluss.ergebnis:
+            return []
+        return [
+            {"name": s.mitglied.anzeigename, "option": beschluss.name_von(s.option), "text": s.begruendung}
+            for s in beschluss.stimmen.select_related("mitglied")
+            if s.begruendung
+        ]
 
 
 class UnterstuetzerVotum(models.Model):
@@ -1137,6 +1296,43 @@ class GremienBeschluss(models.Model):
         return True
 
     @classmethod
+    def faellige_zu_antrag(cls, antrag_id: int, jetzt) -> list[tuple]:
+        """Die offenen Beschlüsse zu einem Antrag, deren Frist um ist — als (Kennung, Frist), nach Frist.
+
+        `Antrag.fortschreiben` reiht sie nach ihrer Sollzeit zwischen die Phasenfristen (GP-004)."""
+        return list(
+            cls.objects.filter(antrag_id=antrag_id, status=BeschlussStatus.OFFEN, frist__lte=jetzt)
+            .order_by("frist", "pk")
+            .values_list("pk", "frist")
+        )
+
+    @classmethod
+    def zur_frist_abschliessen(cls, beschluss_id: int, jetzt) -> str:
+        """Schließt einen fälligen Beschluss aus der Fortschreibung seines Antrags heraus (GP-004).
+
+        Rückgabe: „geschlossen“, „erledigt“ (war schon ausgewertet), „gesperrt“ (eine andere
+        Transaktion wertet ihn gerade aus — der Aufrufer überholt sie nicht und wartet nicht auf
+        sie, denn ihre Wirkung braucht die Zeile des Antrags, die er hält) oder „fehler“.
+
+        Ein Fehler in der Wirkung hält den Antrag nicht an: Er steht im Protokoll, der Beschluss
+        bleibt offen für den Nachlauf des Wächters, und der Antrag läuft nach seinen Fristen weiter
+        (§ 5 Abs 12: Untätigkeit hemmt nie — ein Defekt ebenso wenig)."""
+        try:
+            with transaction.atomic():
+                beschluss = (
+                    cls.objects.select_for_update(skip_locked=True)
+                    .filter(pk=beschluss_id, status=BeschlussStatus.OFFEN)
+                    .first()
+                )
+                if beschluss is None:
+                    offen = cls.objects.filter(pk=beschluss_id, status=BeschlussStatus.OFFEN).exists()
+                    return "gesperrt" if offen else "erledigt"
+                return "geschlossen" if beschluss.abschliessen(jetzt) else "erledigt"
+        except Exception:
+            log.exception("Auswertung von Beschluss %s in der Fortschreibung gescheitert", beschluss_id)
+            return "fehler"
+
+    @classmethod
     def faellige_abschliessen(cls, jetzt=None) -> int:
         """Schließt alle Beschlüsse, deren Frist um ist (lazy, wie die Phasenautomatik)."""
         jetzt = jetzt or timezone.now()
@@ -1260,8 +1456,10 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
     stimmen = list(beschluss.stimmen.select_related("mitglied"))
     if beschluss.ergebnis:
         ergebnis = beschluss.ergebnis
+        # Ohne Namen (GP-011): Der Anzeigename gilt nur, solange die Einwilligung gilt. Wer gestimmt
+        # hat, liest die Antragsseite aus den Stimmen des Beschlusses (`Pruefung.stimmbegruendungen`).
         begruendung = "\n\n".join(
-            f"{stimme.mitglied.anzeigename}: {beschluss.name_von(stimme.option)} — {stimme.begruendung}"
+            f"{beschluss.name_von(stimme.option)} — {stimme.begruendung}"
             for stimme in stimmen
             if stimme.begruendung
         )
@@ -1299,7 +1497,9 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
     if ergebnis == Pruefung.Ergebnis.VALIDIERT:
         entwurf.zu_den_unterstuetzern(jetzt)
     elif ergebnis == Pruefung.Ergebnis.ZURUECK:
-        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
+        # Zum Beschlusszeitpunkt, nicht zum Zeitpunkt der Auswertung (GP-027): Schließt die Frist den
+        # Beschluss, laufen Überarbeitungsfrist und Freigabe der Beratung ab der Frist.
+        entwurf.zurueck_an_gruppe_1("gruppe_2", jetzt, frist_erneuern=True, beschluss_id=beschluss.pk)
 
 
 
@@ -1351,19 +1551,50 @@ def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
     )
 
 
+def zurueckweisung_moeglich(antrag) -> bool:
+    """Ob sich dieser Antrag (noch) zurückweisen lässt — nicht mehr, wenn er entschieden oder beendet ist.
+
+    § 5 Abs 2 kennt die Zurückweisung als Ausnahme von der Veröffentlichung eingebrachter Anträge.
+    Ein angenommener, abgelehnter, verfallener oder zurückgezogener Antrag ist kein laufendes
+    Verfahren mehr: Ihn zurückzuweisen nähme einen Beschluss der Mitgliederversammlung aus
+    Parlament und Umsetzungsregister und die Stimmliste aus dem Export (Gesamtprüfung GP-005);
+    für Beschlüsse sieht § 6 Abs 3 lit d die befristete Aussetzung des Vollzugs vor. Bis zu
+    welcher LAUFENDEN Phase zurückgewiesen werden darf, entscheidet diese Prüfung nicht."""
+    from plattform_core import Phase
+
+    return antrag.phase not in (
+        Phase.ANGENOMMEN.value,
+        Phase.ABGELEHNT.value,
+        Phase.VERFALLEN.value,
+        Phase.ZURUECKGEZOGEN.value,
+    )
+
+
 def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     """Weist einen Antrag zurück (§ 5 Abs 2) — und hält fest, was dabei überschrieben wurde.
 
     Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar. Ein Verfahren, das sie nicht
     zurücknehmen kann, macht dieses Recht wertlos; deshalb merkt sich der Beschluss Phase und
     Phasenbeginn. Laufende Entwurfsschleifen und offene Beschlüsse zu diesem Antrag werden
-    geschlossen: Ein zurückgewiesener Antrag darf nicht weiter durch die Automatik wandern."""
+    geschlossen: Ein zurückgewiesener Antrag darf nicht weiter durch die Automatik wandern.
+
+    Auch der Stand der Schleife gehört zu dem, was überschrieben wird (Gesamtprüfung GP-008):
+    Status und Fristen des Entwurfs stehen in `zustand_vorher`, damit die Aufhebung sie
+    wiederherstellen kann. Jeder mitgeschlossene Beschluss bekommt einen Vermerk und einen
+    Audit-Eintrag — sonst stünde er öffentlich als „zu wenige Stimmen oder Gleichstand“ da."""
     from plattform_core import Phase
 
     antrag = beschluss.antrag
     if antrag is None or beschluss.ergebnis != "dafuer":
         return
     if antrag.phase == Phase.ZURUECKGEWIESEN.value:
+        return
+    if not zurueckweisung_moeglich(antrag):
+        _vermerken(
+            beschluss,
+            f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — ein entschiedenes oder "
+            "beendetes Verfahren lässt sich nicht mehr zurückweisen (§ 5 Abs 2).",
+        )
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
         _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
@@ -1374,6 +1605,19 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         "phase_beginn": antrag.phase_beginn.isoformat(),
         "zurueckgewiesen_am": jetzt.isoformat(),
     }
+    entwurf = Entwurf.objects.filter(antrag=antrag).first()
+    if entwurf is not None and entwurf.status != EntwurfsStatus.ANGENOMMEN:
+        beschluss.zustand_vorher["entwurf"] = {
+            "status": entwurf.status,
+            **{
+                feld: wert.isoformat() if (wert := getattr(entwurf, feld)) else None
+                for feld in ENTWURF_FRISTFELDER
+            },
+        }
+    mitgeschlossen = list(
+        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
+    )
+    beschluss.zustand_vorher["geschlossene_beschluesse"] = [b.pk for b in mitgeschlossen]
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
     antrag.phase_beginn = jetzt
@@ -1382,17 +1626,30 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         f"{beschluss.beschreibung}".strip()
     )
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
-    entwurf = getattr(antrag, "entwurf", None)
     if entwurf is not None and entwurf.status != EntwurfsStatus.ANGENOMMEN:
         entwurf.status = EntwurfsStatus.ANGENOMMEN  # die Schleife ruht; nichts wird gelöscht
-        entwurf.review_frist = None
-        entwurf.ueberarbeitung_frist = None
-        entwurf.save(update_fields=["status", "review_frist", "ueberarbeitung_frist"])
-    GremienBeschluss.objects.filter(
-        antrag=antrag, status=BeschlussStatus.OFFEN
-    ).exclude(pk=beschluss.pk).update(
-        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
-    )
+        for feld in ENTWURF_FRISTFELDER:
+            setattr(entwurf, feld, None)
+        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+    for anderer in mitgeschlossen:
+        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
+        anderer.entschieden_am = jetzt
+        anderer.umsetzungsvermerk = (
+            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: Der Antrag wurde mit Beschluss "
+            f"{beschluss.nummer} zurückgewiesen (§ 5 Abs 2)."
+        ).strip()[:2000]
+        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_geschlossen",
+                "gremium": anderer.gremium,
+                "beschluss": anderer.pk,
+                "nummer": anderer.nummer,
+                "antrag": antrag.pk,
+                "grund": "zurueckweisung",
+                "durch_beschluss": beschluss.pk,
+            }
+        )
     AuditEintrag.anhaengen(
         {
             "typ": "antrag_zurueckgewiesen",
@@ -1409,7 +1666,10 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
 
     Der Antrag darf durch das Verfahren, das ihn zu Unrecht gestoppt hat, keine Zeit verlieren:
     Der Phasenbeginn rückt um die Dauer der Zurückweisung nach hinten, die Restfrist ist damit
-    dieselbe wie vorher."""
+    dieselbe wie vorher. Dasselbe gilt für die Entwurfsschleife (Gesamtprüfung GP-008): Status
+    und Fristen des Entwurfs kehren zurück, die Fristen um dieselbe Dauer verschoben — sonst
+    bliebe der Vorschlag des Expertenrats verloren, und abgestimmt würde über den Urtext. Eine
+    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen."""
     from datetime import datetime
 
     from plattform_core import Phase
@@ -1436,6 +1696,16 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     antrag.phase_beginn = datetime.fromisoformat(frueher.zustand_vorher["phase_beginn"]) + (jetzt - seit)
     antrag.zurueckweisung_begruendung = ""
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
+    wiederhergestellt = None
+    gesichert = frueher.zustand_vorher.get("entwurf")
+    entwurf = Entwurf.objects.filter(antrag=antrag).first() if gesichert else None
+    if entwurf is not None and entwurf.status == EntwurfsStatus.ANGENOMMEN:
+        entwurf.status = gesichert["status"]
+        for feld in ENTWURF_FRISTFELDER:
+            wert = gesichert.get(feld)
+            setattr(entwurf, feld, datetime.fromisoformat(wert) + (jetzt - seit) if wert else None)
+        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+        wiederhergestellt = entwurf.status
     AuditEintrag.anhaengen(
         {
             "typ": "zurueckweisung_aufgehoben",
@@ -1444,6 +1714,7 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
             "nummer": beschluss.nummer,
             "wieder_in_phase": antrag.phase,
             "gehemmt_sekunden": int((jetzt - seit).total_seconds()),
+            "entwurf_wiederhergestellt": wiederhergestellt,
         }
     )
 
@@ -1849,8 +2120,9 @@ class Auslosung(models.Model):
 def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)):
     """Lost den Expertenrat für einen Antrag und legt die Rollen an (§ 6 Abs 7).
 
-    Der Anker ist der Kopf der Audit-Kette in diesem Augenblick: Er steht jetzt fest und war
-    vorher von niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
+    Der Anker ist der Kopf der Audit-Kette in diesem Augenblick — ein Eintrag, den die Ziehung
+    selbst anhängt (`_ziehung_vollziehen`, GP-006): Er steht jetzt fest und war vorher von
+    niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
     Verfahrensordnung des Antrags, nicht aus dem laufenden Register (§ 5 Abs 5).
 
     `gruppen` sagt, welche Gruppen diese Runde zieht: `(1,)` zu Beratungsbeginn, `(2,)` sobald
@@ -1893,7 +2165,8 @@ def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)
         for k in lostopf_der_fachliste()
     ]
     try:
-        ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
+        # Vorprüfung: Ob der Topf reicht, hängt nicht am Anker. Eine unmögliche Ziehung beginnt nicht.
+        ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     except LosFehler as fehler:
         AuditEintrag.anhaengen(
             {
@@ -1905,7 +2178,24 @@ def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)
             }
         )
         return None
+    with transaction.atomic():
+        return _ziehung_vollziehen(antrag, runde, jetzt, gruppen, groessen, kandidaten, fachgebiete)
 
+
+def _ziehung_vollziehen(antrag, runde, jetzt, gruppen, groessen, kandidaten, fachgebiete):
+    """Anker setzen, ziehen, Rollen anlegen — eine Transaktion (GP-006).
+
+    Der Anker ist der Hash eines Eintrags, den die Ziehung selbst unmittelbar vorher anhängt. Der
+    schon vorhandene Kopf der öffentlichen Kette taugte dafür nicht: Wer die Ziehung auslöst (etwa
+    mit dem Vollzugsbezug), konnte ihn vorher lesen und seine Prüfer ausrechnen. Der neue Eintrag
+    trägt den versiegelten Zeitstempel des Augenblicks — vorher von niemandem auszurechnen, nachher
+    von jedem zu prüfen (FB-I1)."""
+    from plattform_core.losziehung import ziehen
+
+    kopf = AuditEintrag.anhaengen(
+        {"typ": "auslosung_begonnen", "antrag": antrag.pk, "runde": runde, "gruppen": list(gruppen)}
+    )
+    ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     nummer_von = dict(enumerate(gruppen, start=1))  # Index der Losregel → tatsächliche Gruppe
     auslosung = Auslosung.objects.create(
         antrag=antrag,
@@ -2024,13 +2314,40 @@ class Interessenbindung(models.Model):
     erklaert_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = [("antrag", "mitglied", "runde")]
-        ordering = ["erklaert_am"]
+        # Keine Eindeutigkeit je Person und Runde mehr (GP-002): Eine Erklärung wird angefügt, nie
+        # überschrieben — sonst ließe sich ein erklärter Konflikt nachträglich spurlos tilgen.
+        ordering = ["erklaert_am", "pk"]
         verbose_name = "Interessenbindung"
         verbose_name_plural = "Interessenbindungen"
 
     def __str__(self) -> str:
         return f"Interessenbindung von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+    @classmethod
+    @transaction.atomic
+    def erklaeren(cls, antrag, mitglied, runde: int, text: str, beschluss=None, jetzt=None):
+        """Fügt eine Erklärung an (GP-002) — frühere bleiben stehen, jede mit ihrem Zeitpunkt.
+
+        Wiederholt jemand wortgleich seine jüngste Erklärung zur selben Runde (etwa beim Ändern der
+        Stimme), entsteht keine neue Zeile: Es wurde nichts Neues erklärt. Rückgabe: die neue
+        Erklärung oder None. Der Audit-Eintrag trägt weder Text noch Person."""
+        text = text[:1000]
+        letzte = cls.objects.filter(antrag=antrag, mitglied=mitglied, runde=runde).order_by("erklaert_am", "pk").last()
+        if letzte is not None and letzte.text == text:
+            return None
+        erklaerung = cls.objects.create(
+            antrag=antrag, mitglied=mitglied, runde=runde, text=text, erklaert_am=jetzt or timezone.now()
+        )
+        AuditEintrag.anhaengen(
+            {
+                "typ": "interessenbindung_erklaert",
+                "antrag": antrag.pk,
+                "runde": runde,
+                "beschluss": beschluss.pk if beschluss is not None else None,
+                "nummer": cls.objects.filter(antrag=antrag).count(),
+            }
+        )
+        return erklaerung
 
 
 class WunschVermerk(models.Model):
@@ -2119,6 +2436,9 @@ def einreichung_wirkung(beschluss, jetzt=None) -> None:
     if entwurf.antrag.phase != Phase.BERATUNG.value:
         _vermerken(beschluss, "Nicht eingereicht: Der Antrag war nicht mehr in der Beratung.")
         return
+    if entwurf.ueberarbeitung_verstrichen(jetzt):
+        _vermerken(beschluss, "Nicht eingereicht: Die Überarbeitungsfrist war verstrichen.")
+        return
     entwurf.einreichen(jetzt)
     _vermerken(beschluss, f"Eingereicht (Runde {entwurf.runde}).")
 
@@ -2141,7 +2461,10 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
-    entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
+    if not beschluss.ergebnis:
+        entscheid = Pruefung.KoratEntscheid.OHNE_ERGEBNIS.value
+    else:
+        entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
     pruefung.korat_entscheid = entscheid
     pruefung.korat_begruendung = f"Beschluss {beschluss.nummer}: {beschluss.beschreibung}"[:2000]
     pruefung.save(update_fields=["korat_entscheid", "korat_begruendung"])
@@ -2162,8 +2485,10 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
             f"Stattgegeben — {len(betroffen)} Rollen der Gruppe 1 für diesen Antrag beendet; "
             + ("neu gelost." if neue else "keine neue Ziehung möglich (Lostopf reicht nicht)."),
         )
-    else:
+    elif entscheid == "abgelehnt":
         _vermerken(beschluss, "Abgelehnt — der Vorschlag bleibt bei Gruppe 2 zur Prüfung.")
+    else:
+        _vermerken(beschluss, "Ohne Ergebnis — der Vorschlag bleibt bei Gruppe 2 zur Prüfung.")
     AuditEintrag.anhaengen(
         {
             "typ": "austausch_entschieden",
@@ -2277,6 +2602,17 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
         _vermerken(beschluss, test.auswertung)
         return
+    if test.ende <= timezone.localdate(jetzt):
+        # Ein Test beginnt nicht nach seinem eigenen Ende (GP-043): Der Wert stünde für einen
+        # Seitenaufruf im Register und fiele sofort zurück — gemessen wäre nichts.
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = (
+            f"Nicht angeordnet — das Ende des Tests ({test.ende:%d.%m.%Y}) war erreicht, als der Rat entschied."
+        )
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        _vermerken(beschluss, test.auswertung)
+        return
     test.alter_wert = parameter.wert
     test.beginn = timezone.localdate(jetzt)
     test.werte_vorher = _kennzahlen_schnappschuss()
@@ -2306,7 +2642,14 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
             "beschluss": beschluss.pk,
         }
     )
-    _vermerken(beschluss, f"Test läuft bis {test.ende:%d.%m.%Y}; der Wert gilt für neu beginnende Verfahren.")
+    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wird dort von jedem
+    # gelesen, auch von laufenden Verfahren. Ausgenommen sind nur die Werte der Verfahrensordnung —
+    # auf ihnen gibt es keinen Test (D-J3g). Derselbe Satz steht am Band des Registers.
+    _vermerken(
+        beschluss,
+        f"Test läuft bis {test.ende:%d.%m.%Y}; der Testwert wirkt sofort überall, wo die Stellgröße "
+        "gelesen wird — auch in laufenden Verfahren.",
+    )
 
 
 def parameter_einfuehrung_wirkung(beschluss, jetzt=None) -> None:
@@ -2393,8 +2736,14 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
     test.status = TestStatus.AUSGEWERTET
     test.ausgewertet_am = jetzt
     test.save(update_fields=["werte_nachher", "auswertung", "status", "ausgewertet_am"])
-    if parameter.status == Status.IM_TEST and parameter.wert == test.testwert:
-        parameter.wert = test.alter_wert
+    rueckfall = parameter.status == Status.IM_TEST and parameter.wert == test.testwert
+    if parameter.status == Status.IM_TEST:
+        # Der Teststatus endet mit dem Test — immer (GP-042). Zurück fällt der Wert nur, wenn er noch
+        # der Testwert ist: Hat die Verwaltung ihn inzwischen geändert, bleibt ihr Wert stehen, und
+        # die Historie sagt es. Sonst bliebe die Stellgröße dauerhaft „im Test“ und für Tests gesperrt.
+        stand = parameter.wert
+        if rueckfall:
+            parameter.wert = test.alter_wert
         parameter.status = Status.GUELTIG
         parameter.test_bis = None
         parameter.test_hypothese = ""
@@ -2402,9 +2751,14 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
         parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
         Aenderung.objects.create(
             parameter=parameter,
-            alter_wert=test.testwert,
-            neuer_wert=test.alter_wert,
-            grund=f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"[:1000],
+            alter_wert=stand,
+            neuer_wert=parameter.wert,
+            grund=(
+                f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"
+                if rueckfall
+                else f"Testende {test.ende:%d.%m.%Y} — kein Rückfall auf {test.alter_wert}: Der Wert wurde "
+                f"während des Tests geändert (Testwert {test.testwert}) und bleibt stehen."
+            )[:1000],
             geaendert_am=jetzt,
             durch="Testende (§ 6 Abs 11 lit c)",
         )
@@ -2416,7 +2770,13 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
         angelegt_am=jetzt,
     )
     AuditEintrag.anhaengen(
-        {"typ": "parametertest_ausgewertet", "schluessel": parameter.schluessel, "test": test.pk}
+        {
+            "typ": "parametertest_ausgewertet",
+            "schluessel": parameter.schluessel,
+            "test": test.pk,
+            "rueckfall": rueckfall,
+            "wert": parameter.wert,
+        }
     )
 
 

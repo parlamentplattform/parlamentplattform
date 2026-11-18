@@ -7,7 +7,8 @@
 <p>{% blocktranslate %}Rollen auf Zeit (§ 6 Abs 8): Berufung, Bestätigung durch die Mitgliederversammlung und jede
 vorzeitige Beendigung werden hier gepflegt — alles im öffentlichen Audit-Log, die Besetzung auf
 <a href="{{ gremien_url }}">/gremien/</a> sichtbar.{% endblocktranslate %}
-<a href="{% url 'mitglieder:verwaltung' %}">← {% translate "Mitgliederverwaltung" %}</a></p>
+<a href="{% url 'mitglieder:verwaltung' %}">← {% translate "Mitgliederverwaltung" %}</a>
+· <a href="{% url 'gremien:fachliste_verwaltung' %}">{% translate "Fachliste pflegen →" %}</a></p>
 
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Rolle berufen" %}</p>

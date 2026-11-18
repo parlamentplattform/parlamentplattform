@@ -1,0 +1,43 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Fachliste — Verwaltung" %}{% endblock %}
+{% block inhalt %}
+{% comment %}
+Der Pflegeweg der Fachliste für die Verwaltung (§ 6 Abs 7, FB-I1, GP-009): eintragen mit
+festgehaltener Einwilligung, streichen mit Grund — beides auditiert, nichts wird gelöscht.
+Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
+{% endcomment %}
+<h1>{% translate "Fachliste" %}</h1>
+<p><a href="{% url 'gremien:rollen' %}">← {% translate "Gremien-Rollen" %}</a> · <a href="{% url 'gremien:fachliste' %}">{% translate "Die Fachliste →" %}</a></p>
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Eintragen" %}</p>
+  <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
+    <input type="hidden" name="aktion" value="eintragen">
+    {{ form.as_p }}
+    <button type="submit" class="btn">{% translate "Eintragen" %}</button>
+  </form>
+</div>
+
+<div class="karte">
+  <p class="phasen-titel">{% translate "Alle Einträge" %}</p>
+  {% for e in eintraege %}
+  <div class="zeile"><span>
+    <strong>{{ e.anzeigename }}</strong> <span class="meta"><code>{{ e.schluessel }}</code> · {% blocktranslate with d=e.seit|date:"d.m.Y" %}auf der Liste seit {{ d }}{% endblocktranslate %}</span>
+    {% if not e.gefuehrt %}<span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}
+    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
+    {% if e.gefuehrt %}
+    <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
+      <input type="hidden" name="aktion" value="streichen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
+      <input type="text" name="grund" maxlength="200" placeholder="{% translate 'Grund (steht öffentlich beim Eintrag)' %}" aria-label="{% translate 'Grund (steht öffentlich beim Eintrag)' %}" required>
+      <button type="submit" class="btn-linie">{% translate "Streichen" %}</button>
+    </form>
+    {% else %}
+    <br><span class="meta">{{ e.gestrichen_am|date:"d.m.Y" }} · {{ e.gestrichen_grund }}</span>
+    {% endif %}
+  </span></div>
+  {% empty %}
+  <p class="leer">{% translate "Noch steht niemand auf der Fachliste." %}</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -559,3 +559,261 @@ def test_eine_aussetzung_nach_fristablauf_beginnt_zur_frist(ordnung):  # noqa: F
     b.refresh_from_db()
     assert b.ergebnis == "dafuer" and b.entschieden_am == frist
     assert Aussetzung.objects.get(antrag=antrag).beginn == frist
+
+
+# --- GP-005: Entschiedene und beendete Anträge lassen sich nicht mehr zurückweisen ------------
+
+BEENDET = ['angenommen', 'abgelehnt', 'verfallen', 'zurueckgezogen']
+
+
+@pytest.mark.parametrize('phase', BEENDET)
+def test_fuer_einen_beendeten_antrag_entsteht_kein_zurueckweisungsbeschluss(client, ordnung, phase):  # noqa: F811
+    """GP-005: Der Rat konnte angenommene, abgelehnte und verfallene Anträge zurückweisen — der
+    Beschluss der Mitgliederversammlung verschwand aus Parlament und Umsetzungsregister."""
+    from verfahren.models import Antrag
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)
+    client.force_login(leute[0])
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'),
+        {'anlass': Anlass.ZURUECKWEISUNG, 'antrag': antrag.pk, 'beschreibung': 'Formmangel.'},
+        follow=True,
+    )
+    assert not GremienBeschluss.objects.filter(antrag=antrag).exists()
+    meldungen = [str(m) for m in antwort.context['messages']]
+    assert any('bereits entschieden oder beendet' in m for m in meldungen), meldungen
+    antrag.refresh_from_db()
+    assert antrag.phase == phase
+
+
+@pytest.mark.parametrize('phase', BEENDET)
+def test_ein_dennoch_entschiedener_beschluss_laesst_den_beendeten_antrag_stehen(client, ordnung, phase):  # noqa: F811
+    """GP-005: Wird das Verfahren entschieden, während der Rat noch abstimmt, bleibt die spätere
+    Zurückweisung ohne Wirkung — mit Vermerk am Beschluss, ohne Eingriff in Phase und Schleife."""
+    from verfahren.models import Antrag
+
+    leute = rat()
+    antrag = antrag_in_abstimmung(ordnung)
+    client.force_login(leute[0])
+    client.post(
+        reverse('gremien:integritaet_beschluss'),
+        {'anlass': Anlass.ZURUECKWEISUNG, 'antrag': antrag.pk, 'beschreibung': 'Formmangel.'},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.ZURUECKWEISUNG, antrag=antrag)
+    beginn = antrag.phase_beginn
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)  # das Verfahren endet, bevor der Rat entscheidet
+    for m in leute:
+        client.force_login(m)
+        client.post(
+            reverse('gremien:beschluss_stimme', args=[beschluss.pk]),
+            {'option': 'dafuer', 'begruendung': 'Einverstanden.'},
+        )
+    beschluss.refresh_from_db()
+    antrag.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == 'dafuer'
+    assert antrag.phase == phase and antrag.phase_beginn == beginn
+    assert antrag.zurueckweisung_begruendung == ''
+    assert beschluss.zustand_vorher is None
+    assert 'Ohne Wirkung' in beschluss.umsetzungsvermerk and '§ 5 Abs 2' in beschluss.umsetzungsvermerk
+    assert not any(e.ereignis['typ'] == 'antrag_zurueckgewiesen' for e in AuditEintrag.objects.all())
+
+
+def test_ein_laufendes_verfahren_laesst_sich_weiter_zurueckweisen(client, ordnung):  # noqa: F811
+    """Gegenprobe: Bis zu welcher laufenden Phase zurückgewiesen werden darf, bleibt, wie es war."""
+    leute = rat()
+    for antrag in (antrag_anlegen(ordnung), antrag_in_abstimmung(ordnung)):
+        beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+        antrag.refresh_from_db()
+        assert antrag.phase == Phase.ZURUECKGEWIESEN.value
+
+
+# --- GP-008: Die Aufhebung einer Zurückweisung hat einen Weg und stellt die Schleife wieder her --
+
+UEBERNAHME = 'wurde als neue Antragsfassung übernommen'
+
+
+def _aufhebungsformular(html, antrag):
+    """Das Formular der Karte „Zurückgewiesen“ für diesen Antrag — als (Adresse, Felder) oder None."""
+    import re
+
+    for formular in re.findall(r'<form[^>]*>.*?</form>', html, flags=re.S):
+        felder = dict(re.findall(r'<input type="hidden" name="(\w+)" value="([^"]*)"', formular))
+        if felder.get('anlass') == 'zurueckweisung_aufheben' and felder.get('antrag') == str(antrag.pk):
+            assert re.search(r'<textarea[^>]*name="beschreibung"[^>]*required', formular)
+            adresse = re.search(r'action="([^"]+)"', formular).group(1)
+            return adresse, {k: v for k, v in felder.items() if k != 'csrfmiddlewaretoken'}
+    return None
+
+
+def _schleife_bei_den_unterstuetzern(client, ordnung):  # noqa: F811
+    """Antrag in der Beratung, der Vorschlag liegt den Unterstützern vor; dazu ein offener Beschluss
+    des Rates zum selben Antrag, den die Zurückweisung mitschließt."""
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    leute = rat()
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    client.force_login(leute[0])
+    client.post(
+        reverse('gremien:integritaet_beschluss'),
+        {'anlass': Anlass.HERVORHEBUNG, 'antrag': antrag.pk, 'beschreibung': 'Große Wirkung.'},
+    )
+    offen = GremienBeschluss.objects.get(anlass=Anlass.HERVORHEBUNG, antrag=antrag)
+    return leute, antrag, entwurf, offen
+
+
+def test_die_zurueckweisung_schliesst_andere_beschluesse_mit_vermerk_und_audit(client, ordnung):  # noqa: F811
+    """GP-008: Mitgeschlossene Beschlüsse standen öffentlich als „zu wenige Stimmen oder Gleichstand“
+    da und fehlten in der Audit-Kette."""
+    leute, antrag, entwurf, offen = _schleife_bei_den_unterstuetzern(client, ordnung)
+    zurueck = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    offen.refresh_from_db()
+    assert offen.status == BeschlussStatus.OHNE_ERGEBNIS
+    assert zurueck.nummer in offen.umsetzungsvermerk and 'zurückgewiesen' in offen.umsetzungsvermerk
+    geschlossen = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'gremienbeschluss_geschlossen']
+    assert [(e['beschluss'], e['grund'], e['durch_beschluss']) for e in geschlossen] == [
+        (offen.pk, 'zurueckweisung', zurueck.pk)
+    ]
+    # Die öffentliche Einzelseite und die Liste des Rates nennen den wirklichen Grund.
+    client.logout()
+    einzel = client.get(reverse('gremien:beschluss', args=[offen.nummer])).content.decode()
+    assert zurueck.nummer in einzel and 'Zu wenige Stimmen oder Gleichstand' not in einzel
+    client.force_login(leute[0])
+    bereich = client.get(reverse('gremien:integritaet')).content.decode()
+    assert 'Ohne Ergebnis: zu wenige Stimmen oder Gleichstand' not in bereich
+
+
+def test_die_aufhebung_ist_ueber_die_seite_anlegbar_und_stellt_die_schleife_wieder_her(client, ordnung):  # noqa: F811
+    """GP-008 (GB-04): Die Karte versprach „hebt der Rat sie hier auf“ und bot nichts an. Nach einer
+    Aufhebung blieb die Schleife stillgelegt: abgestimmt wurde über den Urtext, während die
+    Antragsseite die Übernahme des Vorschlags behauptete."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import EntwurfsStatus
+    from gremien.test_werkstatt import frist_verstreichen
+    from verfahren import chat
+
+    leute, antrag, entwurf, offen = _schleife_bei_den_unterstuetzern(client, ordnung)
+    frist_vorher = entwurf.review_frist
+    zurueck = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.ANGENOMMEN and entwurf.review_frist is None  # die Schleife ruht
+    antragsseite = reverse('verfahren:antrag', args=[antrag.pk])
+    assert UEBERNAHME not in client.get(antragsseite).content.decode()
+    # Zeitraffer: Die Zurückweisung liegt zwei Tage zurück.
+    zurueck.zustand_vorher['zurueckgewiesen_am'] = (timezone.now() - timedelta(days=2)).isoformat()
+    zurueck.save(update_fields=['zustand_vorher'])
+
+    client.force_login(leute[0])
+    bereich = client.get(reverse('gremien:integritaet')).content.decode()
+    formular = _aufhebungsformular(bereich, antrag)
+    assert formular is not None, 'die Karte „Zurückgewiesen“ bietet die Aufhebung an'
+    adresse, felder = formular
+    client.post(adresse, {**felder, 'beschreibung': 'Das Schiedsgericht gab der Beschwerde statt.'})
+    aufhebung = GremienBeschluss.objects.get(anlass=Anlass.ZURUECKWEISUNG_AUFHEBEN, antrag=antrag)
+    # Solange der Beschluss läuft, zeigt die Karte ihn statt eines zweiten Formulars.
+    bereich = client.get(reverse('gremien:integritaet')).content.decode()
+    assert _aufhebungsformular(bereich, antrag) is None and aufhebung.nummer in bereich
+    for m in leute:
+        client.force_login(m)
+        client.post(
+            reverse('gremien:beschluss_stimme', args=[aufhebung.pk]),
+            {'option': 'dafuer', 'begruendung': 'Einverstanden.'},
+        )
+
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == Phase.BERATUNG.value
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    verschoben = entwurf.review_frist - frist_vorher  # um die Dauer der Zurückweisung
+    assert timedelta(days=2) <= verschoben < timedelta(days=2, minutes=1)
+    assert chat.abstimmungschat(antrag) is not None
+    assert UEBERNAHME not in client.get(antragsseite).content.decode()
+    aufgehoben = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'zurueckweisung_aufgehoben'][-1]
+    assert aufgehoben['entwurf_wiederhergestellt'] == 'unterstuetzer'
+    # Und der Vorschlag kommt wirklich zur Abstimmung: Nach der Frist ist er die neue Antragsfassung.
+    frist_verstreichen(entwurf)
+    antrag.fortschreiben_bis_zum_stand()
+    antrag.refresh_from_db()
+    assert antrag.phase == Phase.ABSTIMMUNG.value and antrag.fassungen.count() == 2
+    assert UEBERNAHME in client.get(antragsseite).content.decode()
+
+
+def test_die_aufhebung_einer_frueheren_zurueckweisung_laesst_die_schleife_ruhen_und_sagt_es(client, ordnung):  # noqa: F811
+    """Bestand: Eine Zurückweisung aus der Zeit vor GP-008 hat den Stand der Schleife nicht gesichert.
+    Ihre Aufhebung stellt nichts her, was nicht überliefert ist — die Antragsseite behauptet dann aber
+    keine Übernahme mehr."""
+    leute, antrag, entwurf, offen = _schleife_bei_den_unterstuetzern(client, ordnung)
+    zurueck = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    zurueck.zustand_vorher.pop('entwurf', None)
+    zurueck.save(update_fields=['zustand_vorher'])
+    beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG_AUFHEBEN, 'Stattgegeben.')
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == Phase.BERATUNG.value and entwurf.status == 'angenommen'
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert UEBERNAHME not in seite and 'Die Entwurfsschleife ruht' in seite
+
+
+# --- GP-012: Der Beendigungsgrund einer Rolle ist nicht öffentlich ---------------------------
+
+
+def test_der_beendigungsgrund_einer_rolle_steht_auf_keiner_oeffentlichen_seite(client, ordnung):  # noqa: F811
+    """GP-012: Im Audit ist der Grund geschwärzt — der Jahresbericht zeigte ihn im Klartext neben dem
+    Namen, und /gremien/ versprach „mit Grund dokumentiert“. Den Grund sieht nur die Verwaltung."""
+    from django.utils import timezone
+
+    admin = mitglied_anlegen('admin')
+    admin.ist_admin = True
+    admin.save()
+    leute = rat()
+    rolle = Rolle.objects.get(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT)
+    client.force_login(admin)
+    client.post(reverse('gremien:rollen_aktion'), {'aktion': 'beenden', 'rolle': rolle.pk, 'grund': 'Geheimwort-123'})
+    rolle.refresh_from_db()
+    assert rolle.beendet_grund == 'Geheimwort-123'
+    assert 'Geheimwort-123' in client.get(reverse('gremien:rollen')).content.decode()
+    client.logout()
+    bericht = client.get(reverse('gremien:integritaet_bericht', args=[timezone.localdate().year])).content.decode()
+    assert 'Geheimwort-123' not in bericht and 'vorzeitig beendet' in bericht
+    uebersicht = client.get(reverse('gremien:uebersicht')).content.decode()
+    assert 'Geheimwort-123' not in uebersicht
+    assert 'mit Grund dokumentiert' not in uebersicht and 'der Grund ist nicht öffentlich' in uebersicht
+    for pfad in ('/audit/', '/audit.json'):
+        assert 'Geheimwort-123' not in client.get(pfad).content.decode()
+
+
+# --- GP-033: Eine Regelprüfung ohne Ergebnis blockiert sich nicht selbst ----------------------
+
+
+def test_eine_regelpruefung_ohne_ergebnis_laesst_sich_im_selben_jahr_wiederholen(client, ordnung):  # noqa: F811
+    """GP-033: Lief die Frist ohne Stimmen ab, zeigte die Karte weiter „läuft“, der Knopf blieb verborgen
+    und ein neuer Versuch wurde abgewiesen — die Pflicht nach § 2 Abs 6 war über die Oberfläche unerfüllbar."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import BeschlussStatus, GremienBeschluss, Regelpruefung
+
+    leute = rat()
+    client.force_login(leute[0])
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    erste = Regelpruefung.objects.get()
+    GremienBeschluss.objects.filter(pk=erste.beschluss_id).update(frist=timezone.now() - timedelta(hours=1))
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    erste.beschluss.refresh_from_db()
+    assert erste.beschluss.status == BeschlussStatus.OHNE_ERGEBNIS
+    assert 'läuft — der Rat stimmt ab' not in seite and 'ohne Ergebnis' in seite
+    assert f'Prüfung {timezone.localdate().year} anlegen' in seite  # der Knopf ist wieder da
+    bericht = client.get(reverse('gremien:integritaet_bericht', args=[timezone.localdate().year])).content.decode()
+    assert erste.beschluss.nummer in bericht and 'ohne Ergebnis' in bericht
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    assert Regelpruefung.objects.count() == 2  # die zweite desselben Jahres — die erste bleibt stehen
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    assert erste.beschluss.nummer in seite and 'läuft — der Rat stimmt ab' in seite
+    client.post(reverse('gremien:integritaet_regelpruefung'))
+    assert Regelpruefung.objects.count() == 2  # solange eine läuft, entsteht keine dritte

@@ -47,7 +47,7 @@ was der Rat führt.
   {% for r in rollen %}
   <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong><br><span class="meta">{% translate "bis" %} {{ r.endet_am|date:"d.m.Y" }}{% if not r.bestaetigt %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
   {% empty %}
-  <p class="leer">{% translate "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat." %}</p>
+  <p class="leer">{% translate "Noch unbesetzt." %}</p>
   {% endfor %}
 </div>
 {% endblock %}

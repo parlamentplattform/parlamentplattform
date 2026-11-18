@@ -1965,6 +1965,16 @@ def _test_anordnen(request):
     if ende <= timezone.localdate():
         messages.error(request, _("Das Ende des Tests muss in der Zukunft liegen."))
         return redirect("gremien:koordination")
+    frist = beschluss_frist()
+    if ende <= timezone.localdate(frist):
+        # Der Rat hat bis zur Beschlussfrist Zeit — ein Test, der vorher endet, könnte nach seinem
+        # eigenen Ende beginnen (GP-043).
+        messages.error(
+            request,
+            _("Das Ende des Tests muss nach der Beschlussfrist (%(frist)s) liegen — bis dahin stimmt der Rat ab.")
+            % {"frist": f"{timezone.localtime(frist):%d.%m.%Y}"},
+        )
+        return redirect("gremien:koordination")
     if messgroesse not in messgroessen(werte()):
         messages.error(request, _("Die Messgröße muss eine Kennzahl aus /kennzahlen.json sein."))
         return redirect("gremien:koordination")
@@ -1992,7 +2002,7 @@ def _test_anordnen(request):
             gegenstand=f"Test: {parameter.schluessel} = {testwert} bis {ende:%d.%m.%Y}"[:200],
             beschreibung=f"Hypothese: {hypothese}\nMessgröße: {messgroesse}\nRückweg: {rueckweg}"[:4000],
             optionen=JA_NEIN,
-            frist=beschluss_frist(),
+            frist=frist,
             angelegt_von=request.user,
         )
         test.beschluss = beschluss

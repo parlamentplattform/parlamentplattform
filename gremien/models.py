@@ -2595,6 +2595,17 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
         _vermerken(beschluss, test.auswertung)
         return
+    if test.ende <= timezone.localdate(jetzt):
+        # Ein Test beginnt nicht nach seinem eigenen Ende (GP-043): Der Wert stünde für einen
+        # Seitenaufruf im Register und fiele sofort zurück — gemessen wäre nichts.
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = (
+            f"Nicht angeordnet — das Ende des Tests ({test.ende:%d.%m.%Y}) war erreicht, als der Rat entschied."
+        )
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        _vermerken(beschluss, test.auswertung)
+        return
     test.alter_wert = parameter.wert
     test.beginn = timezone.localdate(jetzt)
     test.werte_vorher = _kennzahlen_schnappschuss()

@@ -153,3 +153,44 @@ def test_ein_von_der_verwaltung_ueberschriebener_testwert_bleibt_nicht_im_test(c
     client.logout()
     seite = client.get(reverse('parameter:liste')).content.decode()
     assert 'Der Testwert wirkt sofort überall' not in seite  # kein Band mehr
+
+
+def test_ein_test_beginnt_nicht_nach_seinem_eigenen_ende(client):
+    """GP-043: Lag das Testende vor dem Beschluss des Rates, begann der Test trotzdem — der Wert stand
+    im Register und fiel beim nächsten Seitenaufruf zurück, mit einer „Auswertung“ über null Tage."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from parameter.models import Aenderung, ParameterTest, Status, TestStatus
+
+    leute = _korat()
+    parameter = _register('gremien-beschluss-tage')
+    _test_anordnen(client, leute[0], parameter, '9')
+    test = ParameterTest.objects.get()
+    ParameterTest.objects.filter(pk=test.pk).update(ende=timezone.localdate() - timedelta(days=1))  # Zeitraffer
+    beschluss = _rat_stimmt(client, leute, test.beschluss)
+    test.refresh_from_db()
+    parameter.refresh_from_db()
+    assert test.status == TestStatus.VERWORFEN and 'Ende' in test.auswertung
+    assert parameter.wert == '7' and parameter.status == Status.GUELTIG
+    assert not Aenderung.objects.filter(parameter=parameter).exists()
+    assert 'Nicht angeordnet' in beschluss.umsetzungsvermerk and 'Ende' in beschluss.umsetzungsvermerk
+
+
+def test_das_testende_muss_nach_der_beschlussfrist_liegen(client):
+    """GP-043, beim Anordnen: Ein Test, der enden kann, bevor der Rat entschieden haben muss, entsteht nicht."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import GremienBeschluss
+    from parameter.models import ParameterTest
+
+    leute = _korat()
+    parameter = _register('gremien-beschluss-tage')  # Beschlussfrist: sieben Tage
+    antwort = _test_anordnen(client, leute[0], parameter, '9', ende=timezone.localdate() + timedelta(days=3))
+    assert not ParameterTest.objects.exists() and not GremienBeschluss.objects.exists()
+    assert 'nach der Beschlussfrist' in antwort.content.decode()
+    _test_anordnen(client, leute[0], parameter, '9', ende=timezone.localdate() + timedelta(days=9))
+    assert ParameterTest.objects.count() == 1

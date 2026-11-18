@@ -146,3 +146,21 @@ def test_ein_bestehender_demo_bestand_wird_beim_naechsten_lauf_berichtigt(client
     call_command('demo_seed', '--erzwingen', verbosity=0)
     gueltig, fehler = _profil_mit_anfangswerten_gueltig(client, Mitglied.objects.get(username='demo1'))
     assert gueltig, fehler
+
+
+# --- GP-159 (Teil): Die Drossel hält Verbindungsadressen rund zwei Stunden, auch ohne neuen Verkehr --
+
+
+def test_der_hintergrundlauf_loescht_alte_drosselzaehler():
+    import time
+
+    from mitglieder.models import Drosselzaehler
+    from verfahren.hintergrund import faellige_ausfuehren
+
+    jetzt = int(time.time() // 3600)
+    Drosselzaehler.objects.create(zweck='anstoss', kennung='203.0.113.7', stunde=jetzt - 240, anzahl=1)
+    Drosselzaehler.objects.create(zweck='anstoss', kennung='203.0.113.8', stunde=jetzt - 2, anzahl=1)
+    Drosselzaehler.objects.create(zweck='anmeldung', kennung='203.0.113.9', stunde=jetzt - 1, anzahl=1)
+    Drosselzaehler.objects.create(zweck='anmeldung', kennung='203.0.113.10', stunde=jetzt, anzahl=1)
+    assert 'drossel' in faellige_ausfuehren()
+    assert sorted(Drosselzaehler.objects.values_list('stunde', flat=True)) == [jetzt - 1, jetzt]

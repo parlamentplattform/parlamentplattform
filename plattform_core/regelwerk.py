@@ -37,7 +37,8 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 30
+#: Fassung 31 (18.11.2026): Die Reihung „Meistgelesene Anträge“ der Übersicht ist verzeichnet.
+VERSION = 31
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -170,6 +171,14 @@ def als_dict() -> list[dict]:
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
     Regel(
+        modul="meistgelesen.py", titel=_("Reihung „Meistgelesene Anträge“ der Übersicht"),
+        zweck=_("Zeigt auf der Übersichtsseite die fünf Anträge mit den meisten gezählten Aufrufen ihrer Antragsseite. Die Liste wirkt auf kein Verfahren und hebt im Parlament nichts hervor; sie reiht nach Aufmerksamkeit und steht deshalb hier."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6 · Gründerentscheidung vom 28.9.2026", fassung=1, seit="2026-08-20",
+        grund=_("Erste verzeichnete Fassung. Die Liste besteht unverändert seit dem 20.8.2026; nach der Gründerentscheidung vom 28.9.2026 bleibt sie und wird als offengelegte, versionierte Regel geführt. Der Eintrag vom 18.11.2026 beschreibt das Verhalten, wie es ist, und ändert es nicht."),
+        nachrechenbar=_("Gezählt wird je Antrag und Tag jeder erfolgreiche Abruf der Antragsseite durch einen Browser, auch der wiederholte; Suchmaschinen, Werkzeuge und Überwachungsdienste zählen nicht. Für jeden Antrag die Tageszahlen aller Tage zusammenzählen, absteigend ordnen, die ersten fünf zeigen. Die Seite nennt zu jedem der fünf die Summe."),
+        luecke=_("Bei gleicher Summe legt die Regel keine Reihenfolge fest; dann entscheidet die Datenbank. Die Tageszahlen der einzelnen Anträge sind nicht veröffentlicht; von außen lässt sich die Reihung deshalb nicht vollständig nachrechnen. Die Zahl fünf steht im Programm, nicht im Parameterregister."),
+    ),
+    Regel(
         modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
         zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),
         wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=7, seit="2026-11-15",
@@ -200,7 +209,7 @@ REGELN: tuple[Regel, ...] = (
         wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=7, seit="2026-11-15",
         grund=_("Fassung 7 ergänzt veröffentlichte Beschlussübersichten nach Einladung und Niederschrift."),
         nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend. Je Sitzung stehen Einladung, Niederschrift und veröffentlichte Beschlussübersicht im jeweils zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."),
-        registerschluessel=("suche-treffer-hoechstzahl",),
+        registerschluessel="suche-treffer-hoechstzahl",
     ),
     Regel(
         modul="gemeindezugang.py", titel=_("Altersgrenze der Gemeindeanmeldung"),
@@ -278,10 +287,10 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 4 (mit § 3 Abs 1 lit b — eine Stimme je Mensch)",
-        fassung=2,
-        seit="2026-11-14",
+        fassung=3,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 2 ergänzt für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
+            _("Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Mindestbeteiligung wird zusätzlich als Kopfzahl ausgewiesen, und der Begründungssatz nennt „erforderlich N Stimmen (P %)“ statt eines Prozentwerts allein. Fassung 2 ergänzte für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss; die Auszählung der Altverfahren blieb unverändert.")
         ),
         nachrechenbar=(
             _("Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: "
@@ -290,7 +299,10 @@ REGELN: tuple[Regel, ...] = (
             "die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 "
             "verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner "
             "Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen "
-            "Verfahrensordnung, nicht aus dem laufenden Parameterregister.")
+            "Verfahrensordnung, nicht aus dem laufenden Parameterregister. Als Kopfzahl: "
+            "Stimmberechtigte mal Mindestbeteiligung, auf die nächste ganze Zahl aufgerundet — so "
+            "viele Stimmen müssen mindestens abgegeben sein (5 % von 100 sind 5, von 20 ist es 1, "
+            "von 21 sind es 2).")
         ),
     ),
     Regel(
@@ -300,21 +312,24 @@ REGELN: tuple[Regel, ...] = (
             _("Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; "
             "die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der "
             "Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die "
-            "früher eingereichte Bewerbung vorn.")
+            "früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen "
+            "gleich viele Zustimmungen, ist die früher eingereichte gewählt.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
-        fassung=2,
-        seit="2026-11-14",
+        fassung=3,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 2 ergänzt für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
+            _("Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Begründung nennt die Mindestbeteiligung als Kopfzahl, „N Stimmen (P %)“. Fassung 2 ergänzte für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl; die Auszählung der Altverfahren blieb unverändert.")
         ),
         nachrechenbar=(
-            _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "
-            "die Zustimmungen je Bewerbung zählen, absteigend ordnen, bei gleicher Zahl die früher "
-            "eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen, die mindestens "
-            "einer Bewerbung zugestimmt haben; sie muss die Mindestbeteiligung der eingefrorenen "
-            "Verfahrensordnung erreichen, sonst gilt niemand als gewählt.")
+            _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen, auch die "
+            "zurückgenommenen. Von Hand: die Zustimmungen je Bewerbung zählen — ohne zurückgenommene "
+            "Zustimmungen und ohne Zustimmungen zu zurückgezogenen Bewerbungen —, absteigend ordnen, "
+            "bei gleicher Zahl die früher eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl "
+            "der Menschen mit mindestens einer zählenden Zustimmung; sie muss die Mindestbeteiligung "
+            "der eingefrorenen Verfahrensordnung erreichen, sonst gilt niemand als gewählt. Wer rechnen "
+            "lassen will: `python3 verify/nachrechnen.py export.json`.")
         ),
     ),
     Regel(
@@ -368,8 +383,8 @@ REGELN: tuple[Regel, ...] = (
             "und das Gehör des Mandatsträgers und legt den Abstimmungsbeginn fest — der Automat "
             "rechnet ihn aus dem Zeitpunkt, zu dem die Schwelle erreicht war, nicht aus dem Moment, "
             "in dem ein Programm zufällig lief. Für alle anderen Ordnungen bleibt Fassung 1 Wort für "
-            "Wort erhalten. Zur ersten Fassung: ")
-            + _("Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
+            "Wort erhalten. Zur ersten Fassung: "
+            "Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern "
             "bekommt den Zeitpunkt übergeben, und ein Übergang gilt zum Fristzeitpunkt — nicht zu dem "
             "Moment, in dem ein Hintergrundprogramm zufällig lief. Ein verspäteter Server verschiebt "
             "dadurch keine Frist eines Menschen, und jeder frühere Zustand lässt sich exakt "
@@ -379,8 +394,8 @@ REGELN: tuple[Regel, ...] = (
             _("Phasenbeginn plus die Frist aus der am Antrag eingefrorenen Verfahrensordnung ergibt das "
             "Fristende; in der Unterstützungsphase kommt der Vergleich der Unterstützungszahl mit der "
             "Schwelle dazu. Beide Zahlen stehen auf der Antragsseite, die geltenden Fristen im "
-            "Eintrag „Eingefrorene Verfahrensordnung'.")
-            + _(" Bei einer Vertrauensfrage: Abstimmungsbeginn = der spätere von „Einbringung plus "
+            "Eintrag „Eingefrorene Verfahrensordnung'."
+            " Bei einer Vertrauensfrage: Abstimmungsbeginn = der spätere von „Einbringung plus "
             "sieben Tage“ und „Schwelle erreicht“; die Antragsseite nennt beide Zeitpunkte.")
         ),
     ),
@@ -400,8 +415,8 @@ REGELN: tuple[Regel, ...] = (
             "Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die "
             "Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die "
             "Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die "
-            "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren.")
-            + _(" Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d "
+            "daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren."
+            " Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d "
             "für den Antrag gilt, und ob ein Sachantrag während der Abstimmung die Tendenz zeigt, sobald "
             "die Mindestbeteiligung erreicht ist (Voreinstellung: verdeckt bis Fristende).")
         ),
@@ -420,21 +435,21 @@ REGELN: tuple[Regel, ...] = (
             "Abstimmung: 0 hält Ja, Nein und Enthaltung bis zum Fristende verdeckt, 1 zeigt sie ab "
             "erreichter Mindestbeteiligung — für Sachanträge, nie für Mandatsfrage, Vertrauensfrage und "
             "Kandidatur. Er steht auf 0 und wird beim Einbringen eingefroren, damit eine Abstimmung vom "
-            "ersten bis zum letzten Tag unter denselben Bedingungen läuft. ")
-            + _("Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
+            "ersten bis zum letzten Tag unter denselben Bedingungen läuft. "
+            "Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als "
             "Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl "
             "bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der "
-            "Nenner einer Abstimmung; die Zahl steht danach fest. ")
-            + _("Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
+            "Nenner einer Abstimmung; die Zahl steht danach fest. "
+            "Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine "
             "Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der "
             "Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die "
             "Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über "
             "30 und nie unter 7 Tagen (§ 7 Abs 10 lit k). Ältere Fassungen lesen die Vorgaben und "
-            "verhalten sich unverändert. ")
-            + _("Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die "
+            "verhalten sich unverändert. "
+            "Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die "
             "eingefrorene Ordnung: Bis dahin las die Schleife sie live aus dem Register, und eine "
-            "Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: ")
-            + _("Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
+            "Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: "
+            "Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister "
             "pflegen und daraus eine neue Fassung der Verfahrensordnung erzeugen. Erzeugen und In- "
             "Kraft-Setzen sind bewusst zwei Schritte, weil das eine eine Rechnung und das andere eine "
             "Entscheidung ist; und die Untergrenzen der Satzung bleiben im Programmtext statt im "
@@ -497,8 +512,8 @@ REGELN: tuple[Regel, ...] = (
             _("Seit 0.52.0 (29.9.2026) rechnet die Plattform die Kette auch nach: täglich die neuen Einträge "
             "samt dem zuletzt geprüften, in einem Abstand aus dem Parameterregister die ganze Kette von vorn; "
             "Ergebnis und Hash des letzten geprüften Eintrags stehen öffentlich in den Kennzahlen "
-            ". Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. ")
-            + _("Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
+            ". Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. "
+            "Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: "
             "„Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand "
             "nachprüfen würde.")
         ),
@@ -564,8 +579,8 @@ REGELN: tuple[Regel, ...] = (
             "bleiben gespeichert, zählen aber nicht mehr. Die Schwelle kommt aus der eingefrorenen Ordnung "
             "des Antrags, nicht aus dem heutigen Parameterregister (§ 5 Abs 5); Chat, Entwurfsfenster und "
             "Archiv zeigen sie an. Eine abgeschlossene Runde zeigt das Archiv mit den Zahlen zu ihrem "
-            "Fristende. ")
-            + _("Erste Fassung (4.9.2026): Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
+            "Fristende. "
+            "Erste Fassung (4.9.2026): Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch "
             "zurückgeben“ an. Seither wird diese Entscheidung offen als Gespräch geführt, und eine "
             "Kritik zählt nur als Änderungswunsch, wenn sie sich auf einen benannten Absatz des "
             "Vorschlags bezieht.")
@@ -680,32 +695,36 @@ REGELN: tuple[Regel, ...] = (
         zweck=(
             _("Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was "
             "die Software heute davon kann — Fähigkeit für Fähigkeit mit ● verfügbar, ◐ teilweise "
-            "oder ○ geplant, bei Geplantem mit dem Bauschritt. Die Matrix wählt nichts aus, reiht "
+            "oder ○ geplant, bei Geplantem mit dem Bauschritt. Dazu das Gemeindekonto ohne "
+            "Parteibeitritt, das keine Rolle der Satzung ist. Die Matrix wählt nichts aus, reiht "
             "nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=11,
-        seit="2026-11-03",
+        fassung=13,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. ")
-            + _("Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. ")
-            + _("Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. ")
-            + _("Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. ")
-            + _("Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
+            _("Fassung 13 nimmt das Gemeindekonto ohne Parteibeitritt auf: was es liest und für sich verwaltet (Gemeindeübersicht, öffentliche Sprechstunden, eigener Zugang, eigener Export), und dass es auf den Seiten der Partei als Gast gilt — kein Antrag, keine Unterstützung, keine Stimme, kein Chat. "
+            "Fassung 12 berichtigt nach der Gesamtprüfung vom 18.11.2026 Zeilen, die den Bauzustand falsch wiedergaben: Der Einreichungsbeschluss der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird nachgelost, sobald der Vollzugsbezug gesetzt ist; die Verwaltung besetzt sechs Räte; Tests und Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort statt einer Adresse, die nur das abgeschickte Formular annimmt. "
+            "Gemeldete Beiträge sichtet und entscheidet die Verwaltung; die Zeile steht bei ihr, und das Melden beim Mitglied gilt als verfügbar. "
+            "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
+            "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "
+            "Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. "
+            "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "
+            "Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem "
             "Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest "
             "Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die "
-            "Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. ")
-            + _("Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
+            "Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. "
+            "Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und "
             "des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, "
             "Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit "
             "0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene "
             "Zeile nennt mehr einen Bauschritt, der schon abgeschlossen ist; wo Teil C keinen Schritt "
-            "vorsieht, steht das so da. ")
-            + _("Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
+            "vorsieht, steht das so da. "
+            "Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung "
             "einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der "
-            "QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. ")
-            + _("Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "
+            "QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. "
+            "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem "
             "Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung "
             "für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der "
             "Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen "
@@ -717,8 +736,8 @@ REGELN: tuple[Regel, ...] = (
             "weder entziehen noch seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i); das Recht nach "
             "§ 4 Abs 2 auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der "
             "Verfahrensordnung bleibt unberührt und hat noch keinen Bauschritt — an die Stelle einer "
-            "Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. ")
-            + _("Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
+            "Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. "
+            "Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im "
             "Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, "
             "Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet "
             "Pseudonym, Wohnsitz, Nebenwohnsitz, Datenexport und Austritt selbst; Gast liest das "

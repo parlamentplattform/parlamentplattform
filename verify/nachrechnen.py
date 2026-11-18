@@ -48,12 +48,16 @@ Mandats-Kandidatur (Zustimmungswahl, § 7 Abs 1):
   "policy": {"mindestbeteiligung": 0.05},
   "stimmberechtigte": 1234,
   "bewerbungen": [{"bewerbung": 7, "name": "…", "eingereicht_am": "…", "zurueckgezogen": false}, …],
-  "zustimmungen": [{"pseudonym": "…", "bewerbung": 7}, …]
+  "zustimmungen": [{"pseudonym": "…", "bewerbung": 7, "zurueckgenommen": false}, …]
 }
+Eine zurückgenommene Zustimmung bleibt als Zeile stehen (nichts wird gelöscht) und trägt
+"zurueckgenommen": true; ältere Exporte nennen stattdessen "zurueckgenommen_am" mit einer
+Zeitangabe. Beides liest dieses Skript; gezählt wird eine solche Zeile nicht.
 
 Regeln der Zustimmungswahl, wie die Plattform sie rechnet (plattform_core/tally.py):
 jede Person darf jeder Bewerbung höchstens einmal zustimmen, mehreren Bewerbungen
 aber schon; zurückgezogene Bewerbungen und die Zustimmungen zu ihnen zählen nicht;
+zurückgenommene Zustimmungen zählen nicht, weder für die Bewerbung noch für die Beteiligung;
 gereiht wird nach Zustimmungen, bei Gleichstand nach Einreichreihenfolge; die
 Beteiligung ist die Zahl der Pseudonyme mit mindestens einer zählenden Zustimmung;
 die Mindestbeteiligung gilt wie bei Sachfragen; gewählt ist der erste Platz, wenn
@@ -125,11 +129,15 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
     zaehler = {nummer: 0 for nummer in waehlbar}
     gesehen = set()
     waehler = set()
+    zurueckgenommen = 0
     for eintrag in daten["zustimmungen"]:
         paar = (eintrag["pseudonym"], int(eintrag["bewerbung"]))
         if paar in gesehen:
             raise SystemExit(f"FEHLER: Zustimmung doppelt: Pseudonym {paar[0]} zu Bewerbung {paar[1]}")
         gesehen.add(paar)
+        if eintrag.get("zurueckgenommen") or eintrag.get("zurueckgenommen_am"):
+            zurueckgenommen += 1
+            continue  # zurückgenommene Zustimmung: steht im Export, zählt aber nicht
         if paar[1] not in zaehler:
             continue  # Zustimmung zu einer zurückgezogenen Bewerbung: zählt nicht
         zaehler[paar[1]] += 1
@@ -149,6 +157,7 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
         "art": "mandat",
         "plaetze": plaetze,
         "beteiligung": beteiligung,
+        "zurueckgenommen": zurueckgenommen,
         "stimmberechtigte": berechtigte,
         "beteiligung_erreicht": beteiligung_ok,
         "angenommen": gewaehlt is not None,

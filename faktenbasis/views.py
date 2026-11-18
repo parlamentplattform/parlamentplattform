@@ -29,15 +29,16 @@ from plattform_core.novellenfundstelle import novellenfundstelle
 
 @require_safe
 def index(request):
-    normen = Norm.objects.select_related("importlauf").annotate(
+    # Die Titelliste zeigt weder Rohdaten noch die gespeicherte RIS-Antwort (bis 2 MiB je Import).
+    normen = Norm.objects.select_related("importlauf").defer("rohdaten", "importlauf__antwort").annotate(
         hat_text=Exists(NormText.objects.filter(norm_id=OuterRef("pk"))),
     )
     seiten = Paginator(normen, max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
     return render(request, "faktenbasis/index.html", {
         "seite": seiten.get_page(request.GET.get("seite")),
         "umfang": Norm.objects.aggregate(schnappschuesse=Count("pk"), dokumente=Count("ris_id", distinct=True)),
-        "letzter": RisImport.objects.first(),
-        "erfolg": RisImport.objects.filter(erfolgreich=True).first(),
+        "letzter": RisImport.objects.defer("antwort").first(),
+        "erfolg": RisImport.objects.defer("antwort").filter(erfolgreich=True).first(),
         "darf_aktualisieren": darf_aktualisieren(request.user),
     })
 

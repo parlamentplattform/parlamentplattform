@@ -83,7 +83,7 @@ Die Gesamtprüfung gegen ein eigenes Sollbild (FB-Q1) hat die Plattform entlang 
 - Ohne JavaScript lässt sich das Regler-Overlay schließen, und der Handlungsknopf im Handy-Menü ist wieder sichtbar.
 - Listen blättern mit „x–y von n“; die Rollenübersicht läuft bei 320 Pixel Breite nicht mehr über.
 - Nach Fristende zeigt eine Kachel „Frist abgelaufen, wird ausgewertet“ statt eines Knopfs, der nichts mehr bewirkt. „Mitreden“ führt in die Chat-Zone der Antragsseite.
-- Tippziele sind mindestens 24 mal 24 Pixel groß; die Tab-Folge hält an keinem Element ohne sichtbare Fläche.
+- Tippziele sind mindestens 24 mal 24 Pixel groß; die Tab-Folge hält an keinem Element ohne sichtbare Fläche. Der Titel einer Kachel bleibt auch dann lesbar, wenn das Feld niedriger ist als ihr Inhalt; eine Auswahlliste wird nie breiter als ihre Karte.
 - Rollenname, Beschreibung und Fähigkeiten auf der Startseite sind übersetzbar; sieben Regeltexte, die aus Teilen zusammengesetzt waren, sind es ebenfalls.
 
 ## [0.112.0] — 2026-11-15 · Gemeindearbeit im persönlichen Datenexport

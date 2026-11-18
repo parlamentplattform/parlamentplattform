@@ -367,6 +367,44 @@ def test_email_kollision_wird_abgelehnt(client):
     assert anna.email == "anna@example.org"
 
 
+def _faelliger_wechsel(anna, neue="anna.neu@example.org"):
+    wechsel, _klar = Adresswechsel.beantragen(anna, neue, durch=admin_anlegen())
+    wechsel.bestaetigt_von = admin_anlegen("adminb")
+    wechsel.frist_bis = timezone.now() - timedelta(hours=1)
+    wechsel.save()
+    return wechsel
+
+
+def test_zweimal_angewendeter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Auflage zu GP-211: Hintergrundlauf und Seitenaufruf können denselben fälligen Wechsel
+    gleichzeitig anwenden — jeder mit seinem eigenen, schon geladenen Stand."""
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+    zweiter_lauf = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.wirksam_machen() is True
+    assert zweiter_lauf.wirksam_machen() is False
+    assert Adresswechsel.faellige_anwenden() == 0
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_wirksam") == 1 and "email_geaendert_widerrufen" not in aktionen
+    zweiter_lauf.refresh_from_db()
+    assert zweiter_lauf.status == Adresswechsel.Status.WIRKSAM
+
+
+def test_wirksam_machen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.wirksam_machen()
+    anna.refresh_from_db()
+    wechsel.refresh_from_db()
+    assert anna.email == "anna@example.org" and wechsel.status == Adresswechsel.Status.OFFEN
+
+
 # --- Audit ----------------------------------------------------------------------
 
 

@@ -1092,3 +1092,24 @@ def test_mitglied_n_ist_als_anzeigename_vorbehalten(client):
         antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
         assert antwort.status_code == 200 and "vorbehalten" in antwort.content.decode(), verboten
     assert profil_speichern(client, anzeigename="Mitgliederin Sieben", gemeinde=anna.gemeinde).status_code == 302
+
+
+# --- KI-Beitrag im Export gekennzeichnet (GP-190, ZWB-14) ---------------------
+
+
+def test_export_kennzeichnet_ki_beitrag_mit_laufnummer_und_modell(ordnung):  # noqa: F811
+    from gremien.models import Entwurf, EntwurfsBeitrag
+    from ki.models import KILauf
+    from mitglieder.profil import daten_export
+
+    anna = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    entwurf = Entwurf.objects.create(antrag=antrag)
+    lauf = KILauf.objects.create(
+        zweck="einschaetzung", angefordert_von=anna, eingabe="E", antwort="KI-Text", anbieter="test", modell="modell-x",
+    )
+    EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=anna, text="KI-Text", ki_lauf=lauf)
+    EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=anna, text="Eigener Text")
+    zeilen = {z["text"]: z for z in daten_export(anna)["entwurfsbeitraege"]}
+    assert zeilen["KI-Text"]["ki_lauf"] == {"nummer": lauf.pk, "modell": "modell-x"}
+    assert zeilen["Eigener Text"]["ki_lauf"] is None

@@ -471,8 +471,12 @@ def _gremien_export(m: Mitglied) -> dict:
             for p in Pruefung.objects.filter(durch=m).select_related("entwurf")
         ],
         "entwurfsbeitraege": [
-            {"antrag": b.entwurf.antrag_id, "text": b.text, "absatz": b.absatz, "erstellt_am": b.erstellt_am}
-            for b in EntwurfsBeitrag.objects.filter(mitglied=m).select_related("entwurf")
+            {
+                "antrag": b.entwurf.antrag_id, "text": b.text, "absatz": b.absatz, "erstellt_am": b.erstellt_am,
+                # GP-190: KI-Einschätzung als solche gekennzeichnet, nicht als eigener Text
+                "ki_lauf": {"nummer": b.ki_lauf_id, "modell": b.ki_lauf.modell} if b.ki_lauf_id else None,
+            }
+            for b in EntwurfsBeitrag.objects.filter(mitglied=m).select_related("entwurf", "ki_lauf")
         ],
         "entwurfsfassungen": [
             {

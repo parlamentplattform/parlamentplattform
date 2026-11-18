@@ -651,3 +651,15 @@ def test_audit_der_mandate_verwaltung_nennt_das_handelnde_konto(client, ordnung)
         assert vermerke and all(e.get("durch") == admin.pk for e in vermerke), (daten["aktion"], eintraege)
     eintraege = neue(lambda: client.post(verwaltung, {"aktion": "beenden", "mandat": mandat.pk}))
     assert eintraege and all(e.get("durch") == admin.pk for e in eintraege)
+
+
+def test_monats_und_sammelbericht_behalten_den_text_bei_einem_eingabefehler(client):
+    """GP-123 (MG-16): Ein Eingabefehler rendert den Bereich mit dem eingegebenen Text, statt ihn zu verwerfen."""
+    _m, mandat = mandatar(client, angetreten=timezone.localdate() - timedelta(days=90))
+    antwort = client.post(AKTION, {"aktion": "monatsbericht", "mandat": mandat.pk, "monat": "1999-01-01", "text": "Mein Monatstext"})
+    assert antwort.status_code == 200 and "Mein Monatstext" in antwort.content.decode()
+    assert "Bitte einen fälligen Monat wählen." in antwort.content.decode()
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung", frist=timezone.now() - timedelta(days=2), sitzungstag=True)
+    antwort = client.post(AKTION, {"aktion": "sammelbericht", "mandat": mandat.pk, "aufgabe": "999999", "text": "Mein Sammeltext"})
+    assert antwort.status_code == 200 and "Mein Sammeltext" in antwort.content.decode()
+    assert not Bericht.objects.exists()

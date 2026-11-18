@@ -172,24 +172,24 @@ das betroffene Formular wieder vor.
   <p class="phasen-titel">{% translate "Berichte und Rechenschaft" %}</p>
 
   {% if darf_berichten %}
-  <details class="klappe" id="monatsbericht"{% if monate_faellig %} open{% endif %}>
+  <details class="klappe" id="monatsbericht"{% if monate_faellig or fehler_bei == "monatsbericht" %} open{% endif %}>
     <summary>{% translate "Monatsbericht" %}{% if ausstaende.monatsbericht_ausstaendig %} · <span class="ausstand">{% blocktranslate count n=ausstaende.monatsbericht_ausstaendig %}einer ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</span>{% endif %}</summary>
     {% if monate_faellig or monate_nachtrag %}
     <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
       <input type="hidden" name="aktion" value="monatsbericht"><input type="hidden" name="mandat" value="{{ mandat.pk }}">
       <label for="mb-monat">{% translate "Monat" %}</label>
       <select id="mb-monat" name="monat" required>
-        {% for m in monate_faellig %}<option value="{{ m.monat|date:'Y-m-d' }}">{{ m.monat|date:"F Y" }} · {% if m.lage.status == "ausstaendig" %}{% blocktranslate count t=m.lage.seit_tagen %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}{% else %}{% translate "fällig bis" %} {{ m.faellig|date:"d.m.Y" }}{% endif %}</option>{% endfor %}
-        {% for monat in monate_nachtrag %}<option value="{{ monat|date:'Y-m-d' }}">{{ monat|date:"F Y" }} · {% translate "Nachtrag" %}</option>{% endfor %}
+        {% for m in monate_faellig %}<option value="{{ m.monat|date:'Y-m-d' }}"{% if fehler_bei == "monatsbericht" and m.monat|date:'Y-m-d' == eingabe.monat %} selected{% endif %}>{{ m.monat|date:"F Y" }} · {% if m.lage.status == "ausstaendig" %}{% blocktranslate count t=m.lage.seit_tagen %}ausständig seit einem Tag{% plural %}ausständig seit {{ t }} Tagen{% endblocktranslate %}{% else %}{% translate "fällig bis" %} {{ m.faellig|date:"d.m.Y" }}{% endif %}</option>{% endfor %}
+        {% for monat in monate_nachtrag %}<option value="{{ monat|date:'Y-m-d' }}"{% if fehler_bei == "monatsbericht" and monat|date:'Y-m-d' == eingabe.monat %} selected{% endif %}>{{ monat|date:"F Y" }} · {% translate "Nachtrag" %}</option>{% endfor %}
       </select>
       <label for="mb-text">{% translate "Bericht" %}</label>
-      <textarea id="mb-text" name="text" rows="5" maxlength="8000" required></textarea>
+      <textarea id="mb-text" name="text" rows="5" maxlength="8000" required>{% if fehler_bei == "monatsbericht" %}{{ eingabe.text }}{% endif %}</textarea>
       <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Monatsbericht einreichen" %}</button>
     </form>
     {% else %}<p class="leer">{% translate "Kein Monatsbericht fällig." %}</p>{% endif %}
   </details>
 
-  <details class="klappe" id="sammelbericht"{% if vorgewaehlt %} open{% endif %}>
+  <details class="klappe" id="sammelbericht"{% if vorgewaehlt or fehler_bei == "sammelbericht" %} open{% endif %}>
     <summary>{% translate "Sammelbericht" %}{% if ausstaende.sammelbericht_ausstaendig %} · <span class="ausstand">{% blocktranslate count n=ausstaende.sammelbericht_ausstaendig %}einer ausständig{% plural %}{{ n }} ausständig{% endblocktranslate %}</span>{% endif %}</summary>
     {% if sitzungstage %}
     <form method="post" action="{% url 'mandatare:mein_aktion' %}" class="kr-form">{% csrf_token %}
@@ -199,7 +199,7 @@ das betroffene Formular wieder vor.
         {% for s in sitzungstage %}<option value="{{ s.aufgabe.pk }}"{% if s.aufgabe.pk|stringformat:"s" == vorgewaehlt %} selected{% endif %}>{{ s.aufgabe.frist|date:"d.m.Y" }} · {{ s.aufgabe.titel }}{% if s.ohne_sammelbericht %} · {% translate "ohne Bericht" %}{% endif %}</option>{% endfor %}
       </select>
       <label for="sb-text">{% translate "Bericht" %}</label>
-      <textarea id="sb-text" name="text" rows="5" maxlength="8000" required>{{ sammelbericht_vorlage }}</textarea>
+      <textarea id="sb-text" name="text" rows="5" maxlength="8000" required>{% if fehler_bei == "sammelbericht" %}{{ eingabe.text }}{% else %}{{ sammelbericht_vorlage }}{% endif %}</textarea>
       <button type="submit" class="btn klein" style="margin-top:6px">{% translate "Sammelbericht einreichen" %}</button>
     </form>
     {% else %}<p class="leer">{% translate "Noch kein Sitzungstag vorbei." %}</p>{% endif %}

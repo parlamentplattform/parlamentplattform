@@ -1085,7 +1085,9 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "rechenschaft": _rechenschaft_zeilen(list(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt"))),
             "stimmen": Stimmverhalten.choices,
             "beschluesse": Beschluss.choices,
-            "vorgewaehlt": ((eingabe.get("aufgabe") if aktion == "rechenschaft" else request.GET.get("aufgabe")) or "").strip(),
+            "vorgewaehlt": (
+                (eingabe.get("aufgabe") if aktion in ("rechenschaft", "sammelbericht") else request.GET.get("aufgabe")) or ""
+            ).strip(),
             "ordnung_fehlt": ordnung_fehlt,
             "eingabe": eingabe,
             "fehler_bei": aktion,
@@ -1196,9 +1198,9 @@ def mein_aktion(request):
         AuditEintrag.anhaengen({"typ": "mandat_vorstellung", "mandat": mandat.pk})
         messages.success(request, _("Vorstellung gespeichert."))
     elif aktion == "monatsbericht":
-        _monatsbericht_anlegen(request, mandat)
+        gelungen = _monatsbericht_anlegen(request, mandat)
     elif aktion == "sammelbericht":
-        _sammelbericht_anlegen(request, mandat)
+        gelungen = _sammelbericht_anlegen(request, mandat)
     elif aktion == "rechenschaft":
         gelungen = _rechenschaft_anlegen(request, mandat)
     elif aktion == "freiwillige_begruendung":
@@ -1332,9 +1334,10 @@ def _foto_speichern(request, mandat: Mandat) -> None:
     messages.success(request, _("Foto gespeichert."))
 
 
-def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
+def _monatsbericht_anlegen(request, mandat: Mandat) -> bool:
     """Monatsbericht für einen geschuldeten Monat — fällig oder als Nachtrag zu einem schon
-    berichteten Monat (kein Bearbeiten: der Nachtrag ist ein weiterer Bericht)."""
+    berichteten Monat (kein Bearbeiten: der Nachtrag ist ein weiterer Bericht). False bei einem
+    Eingabefehler: Der Bereich rendert dann mit dem Text neu (GP-123)."""
     text = (request.POST.get("text") or "").strip()
     try:
         monat = date.fromisoformat((request.POST.get("monat") or "").strip()).replace(day=1)
@@ -1345,10 +1348,10 @@ def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
     geschuldet = set(berichtsmonate(mandat.angetreten, mandat.pflichtende, timezone.localdate()))
     if monat is None or monat not in geschuldet:
         messages.error(request, _("Bitte einen fälligen Monat wählen."))
-        return
+        return False
     if not text:
         messages.error(request, _("Der Bericht braucht einen Text."))
-        return
+        return False
     bericht = Bericht.objects.create(
         mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=monat, text=text[:BERICHT_MAX]
     )
@@ -1359,17 +1362,19 @@ def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
         messages.success(request, _("Monatsbericht eingereicht."))
     else:
         messages.success(request, _("Nachtrag zum Monatsbericht eingereicht."))
+    return True
 
 
-def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
+def _sammelbericht_anlegen(request, mandat: Mandat) -> bool:
+    """Sammelbericht zu einem vergangenen Sitzungstag; False bei einem Eingabefehler (GP-123)."""
     aufgabe = _eigener_sitzungstag(mandat, request.POST.get("aufgabe", ""))
     text = (request.POST.get("text") or "").strip()
     if aufgabe is None:
         messages.error(request, _("Bitte einen vergangenen Sitzungstag wählen."))
-        return
+        return False
     if not text:
         messages.error(request, _("Der Bericht braucht einen Text."))
-        return
+        return False
     bericht = Bericht.objects.create(
         mandat=mandat, art=Berichtsart.SAMMELBERICHT, aufgabe=aufgabe, text=text[:BERICHT_MAX]
     )
@@ -1377,6 +1382,7 @@ def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
         {"typ": "mandatsbericht", "mandat": mandat.pk, "bericht": bericht.pk, "art": Berichtsart.SAMMELBERICHT.value}
     )
     messages.success(request, _("Sammelbericht eingereicht."))
+    return True
 
 
 def _freiwillige_begruendung(request, mandat: Mandat) -> None:

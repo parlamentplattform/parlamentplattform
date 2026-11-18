@@ -985,7 +985,7 @@ def stellungnahme(request, antrag_pk: int):
 def nur_mandatare(ansicht):
     """Zugang für Inhaber eines offenen Mandats (E1, E8) — und, für die Nachfrist, eines gerade
     beendeten: anonym → Anmeldung; ohne Mandat → 403. Lesen genügt das Mandat; jede Handlung
-    prüft zusätzlich Status aktiv und geprüfte Identität (§ 4 Abs 2), wie beim Einbringen."""
+    prüft zusätzlich Status aktiv und geprüfte Identität (§ 4 Abs 1), wie beim Einbringen."""
 
     @wraps(ansicht)
     def innen(request, *args, **kwargs):

@@ -53,7 +53,7 @@ class Mitgliedsstatus(models.TextChoices):
     """Stand der Mitgliedschaft (F-51). „pausiert“ lässt Lesen und Anmelden zu,
     Mitwirkungsrechte (einbringen, unterstützen, beraten, abstimmen) ruhen,
     bis der Mitgliedsbeitrag wieder eingegangen ist (§ 4 Abs 3).
-    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6).
+    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 5).
     „ausgetreten“ ist der selbst erklärte Austritt (§ 4 Abs 5): Konto inaktiv, Stammdaten
     geleert, Beiträge zu Verfahren bleiben stehen — nichts wird gelöscht, was ein Verfahren
     betrifft."""

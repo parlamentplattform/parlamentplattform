@@ -579,3 +579,15 @@ def test_gp086_fuss_der_startseite_verlinkt_die_faktenbasis(client):
     seite = client.get('/').content.decode()
     fuss = seite.split('<footer', 1)[1].split('</footer>', 1)[0]
     assert f'href="{reverse("faktenbasis:index")}"' in fuss
+
+
+def test_gp181_abgeschlossene_zeilen_fragen_die_aussetzungen_nicht_einzeln(client, ordnung):  # noqa: F811
+    """GP-181: Jede der bis zu 20 abgeschlossenen Zeilen des Feeds fragte ihre Aussetzungen einzeln ab."""
+    autor = mitglied_anlegen('autor')
+    for i in range(12):
+        antrag = antrag_einbringen(autor, f'Erledigt {i}', 'W.', '', ordnung)
+        Antrag.objects.filter(pk=antrag.pk).update(phase='abgelehnt')
+    with CaptureQueriesContext(connection) as ctx:
+        assert client.get(reverse('verfahren:parlament')).status_code == 200
+    aussetzungen = [q for q in ctx.captured_queries if '"gremien_aussetzung"' in q['sql']]
+    assert len(aussetzungen) <= 2, len(aussetzungen)

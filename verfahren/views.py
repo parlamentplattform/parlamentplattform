@@ -412,6 +412,8 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
     )
     vfs.update(_vertrauensfragen(abgeschlossen))
+    # Auch die abgeschlossenen Zeilen bekommen ihren Beginn aus der Sammelabfrage (GP-181)
+    beginne = {**beginne, **_wirksame_beginne(abgeschlossen, jetzt)}
     # § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag sammelt keine Unterstützung — er wartet auf den siebten
     # Tag. Er steht deshalb nicht unter „Sammeln Unterstützung“, sondern in einer eigenen Gruppe an der
     # Stelle, die seiner Nähe zur Abstimmung entspricht; die Reihung innerhalb der Gruppe bleibt dieselbe.

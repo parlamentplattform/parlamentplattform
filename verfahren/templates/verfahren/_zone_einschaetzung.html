@@ -94,6 +94,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     {% endwith %}
   {% elif lage.zustand == "wartet" %}
     <p>{% translate "Die Zukunftswerkstatt prüft, welche Gesetze betroffen sind." %}{% if lage.platz %} <span class="meta">{% blocktranslate with n=lage.platz %}Warteschlange, Platz {{ n }}{% endblocktranslate %}</span>{% endif %}</p>
+    {% if lage.wartegrund.grund == "budget" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Monatsbudget der Zukunftswerkstatt ist erschöpft; die Warteschlange rechnet erst nach dem Monatswechsel wieder, frühestens am {{ datum }}.{% endblocktranslate %}</p>{% elif lage.wartegrund.grund == "kontingent" %}<p class="erk">{% blocktranslate with datum=lage.wartegrund.ab|date:"d.m.Y" %}Das Tageskontingent der Zukunftswerkstatt ist aufgebraucht; die Warteschlange rechnet frühestens am {{ datum }} weiter.{% endblocktranslate %}</p>{% endif %}
     {% if lage.mail_zusage %}<p class="erk">{% translate "Sie bekommen eine E-Mail, sobald das Ergebnis da ist." %}</p>{% endif %}
   {% elif lage.zustand == "gescheitert" %}
     <p class="leer">{% if lage.auftrag.versuche %}{% translate "Lauf gescheitert — alle Versuche aufgebraucht." %}{% if lage.auftrag.fehler %} <span class="meta">{{ lage.auftrag.fehler }}</span>{% endif %}{% else %}{% translate "Der Auftrag konnte nicht vorbereitet werden; es wurde kein Anbieter aufgerufen." %}{% endif %}</p>

@@ -347,15 +347,6 @@ msgstr "appointed"
 msgid "von der Mitgliederversammlung bestätigt"
 msgstr "confirmed by the general assembly"
 
-msgid "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat."
-msgstr "Still vacant — the public call runs via the coordination council."
-
-#, python-format
-msgid "Eine beendete Rolle bleibt mit Grund dokumentiert."
-msgid_plural "%(n)s beendete Rollen bleiben mit Grund dokumentiert."
-msgstr[0] "One ended role remains documented with its reason."
-msgstr[1] "%(n)s ended roles remain documented with their reasons."
-
 msgid ""
 "Im Alpha-Betrieb besetzt die Verwaltung die Rollen von Hand — die Ausschreibungs- und\n"
 "Bestätigungsabläufe wachsen Schritt für Schritt in die Plattform."
@@ -1089,10 +1080,6 @@ msgid ""
 msgstr ""
 "An account already exists for this address — use the email-link sign-in."
 
-msgid ""
-"Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."
-msgstr "Too many attempts from this connection — please try again in an hour."
-
 msgid "Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform"
 msgstr "Please confirm your email address — ParlamentPlattform"
 
@@ -1217,13 +1204,6 @@ msgstr "active motions of %(gesamt)s in total · %(neu)s new this week"
 msgid "Besuche"
 msgstr "Visits"
 
-#, python-format
-msgid ""
-"Seitenaufrufe heute · %(besucher)s Besucher:innen heute · %(woche)s Aufrufe "
-"in 7 Tagen"
-msgstr ""
-"page views today · %(besucher)s visitors today · %(woche)s views in 7 days"
-
 msgid "Anträge nach Phase"
 msgstr "Motions by phase"
 
@@ -1291,9 +1271,6 @@ msgstr "Budget in the parameter register →"
 
 msgid "Entwicklung"
 msgstr "Trends"
-
-msgid "Mitglieder im Zeitverlauf (kumuliert)"
-msgstr "Members over time (cumulative)"
 
 msgid "Noch keine Daten."
 msgstr "No data yet."
@@ -1715,9 +1692,6 @@ msgstr ""
 msgid "Das Parlament ansehen"
 msgstr "View the Parliament"
 
-msgid "bestätigte Mitglieder"
-msgstr "confirmed members"
-
 msgid "laufende Verfahren"
 msgstr "ongoing procedures"
 
@@ -2038,24 +2012,8 @@ msgstr "Participation suspended"
 msgid "Ihre Mitwirkungsrechte ruhen derzeit"
 msgstr "Your participation rights are currently suspended"
 
-msgid ""
-"Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 Abs 3).\n"
-"Lesen und Anmelden bleiben selbstverständlich möglich — einbringen, unterstützen,\n"
-"beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist."
-msgstr ""
-"Your membership is paused because the membership fee is outstanding (§ 4 "
-"(3)). Reading and signing in remain available, of course — you can submit, "
-"support, deliberate and vote again as soon as the fee has arrived."
-
 msgid "Beitrag jetzt überweisen (QR-Code)"
 msgstr "Transfer the fee now (QR code)"
-
-msgid ""
-"Dieses Konto ist von der Mitwirkung ausgeschlossen (§ 4 Abs 6). Die Begründung\n"
-"steht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch erheben möchten."
-msgstr ""
-"This account is excluded from participation (§ 4 (6)). The reasons are in "
-"the audit log. Contact didide@ddoe.at if you wish to appeal."
 
 msgid "Noch nicht stimmberechtigt"
 msgstr "Not yet eligible to vote"
@@ -2082,13 +2040,6 @@ msgstr "Confirmation required"
 
 msgid "Noch einen Schritt"
 msgstr "One more step"
-
-msgid ""
-"Einbringen, Unterstützen und Mitberaten steht bestätigten Mitgliedern offen.\n"
-"Ihr Konto ist angelegt, aber Ihre Identität ist noch nicht geprüft (§ 4 Abs 2)."
-msgstr ""
-"Submitting, supporting and deliberating are open to confirmed members. Your "
-"account exists, but your identity has not been verified yet (§ 4 (2))."
 
 msgid ""
 "So geht es weiter: Überweisen Sie den Mitgliedsbeitrag mit Ihrer persönlichen\n"
@@ -2436,26 +2387,6 @@ msgid ""
 msgstr ""
 "<strong>Support.</strong> If the motion reaches the threshold — itself a "
 "learnable parameter — it enters deliberation."
-
-msgid ""
-"<strong>Beratung.</strong> Die StaatsSimulation — der Rechenkern der Zukunftswerkstatt —\n"
-"    rechnet durch (Rechtsfolgen, Aufwand, Lastampel, Vergabe), der Expertenrat erarbeitet auf dieser Grundlage seine\n"
-"    Vorschlag — Fachleute aus öffentlicher Liste, per offengelegtem Zufallsverfahren ausgewählt, Stellungnahmen im\n"
-"    Wortlaut veröffentlicht."
-msgstr ""
-"<strong>Deliberation.</strong> The StaatsSimulation — the computational core"
-" of the Zukunftswerkstatt — runs the numbers (legal consequences, effort, "
-"load signal, tendering); on this basis the Expert Council drafts its "
-"proposal — experts from a public list, chosen by a disclosed random "
-"procedure, statements published verbatim."
-
-msgid ""
-"<strong>Vorschlag an die Unterstützer.</strong> Der Vorschlag geht zuerst an jene, die den Antrag\n"
-"    getragen haben: nachbessern lassen oder weiterreichen — so bleibt sie dem Anliegen treu."
-msgstr ""
-"<strong>Proposal to the supporters.</strong> The proposal goes first to those who "
-"carried the motion: send it back for improvement or pass it on — so it stays"
-" true to the cause."
 
 msgid ""
 "<strong>Endabstimmung.</strong> Alle Stimmberechtigten entscheiden; Vorschlag, Stellungnahmen und\n"
@@ -3237,9 +3168,6 @@ msgstr "Reply from the workshop:"
 msgid "Kein Anbieter angeschlossen — es wird nichts gerechnet."
 msgstr "No provider connected — nothing is being calculated."
 
-msgid "Noch keine Einschätzung — sie entsteht mit dem Eintritt in die Beratung."
-msgstr "No assessment yet — it is produced when deliberation begins."
-
 msgid "Für diesen Antrag liegt noch keine Einschätzung vor."
 msgstr "No assessment exists for this motion yet."
 
@@ -3485,9 +3413,6 @@ msgstr "Reference to a paragraph"
 msgid "Absatz wählen …"
 msgstr "Choose a paragraph …"
 
-msgid "Kritik braucht einen Textstellenbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten."
-msgstr "Criticism needs a reference to a passage and at least 80 characters — that is what lets the expert council work with it."
-
 msgid "Bis der Vorschlag vorliegt, wird hier nicht geschrieben."
 msgstr "Until the proposal arrives, nothing is written here."
 
@@ -3608,9 +3533,6 @@ msgstr "no phase"
 
 msgid "✓ Passt alles — der Vorschlag kann so zur Endabstimmung."
 msgstr "✓ Fine as it is — the proposal can go to the final vote like this."
-
-msgid "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten."
-msgstr "Criticism of the proposal needs a paragraph reference and at least 80 characters — that is what lets the expert council work with it."
 
 msgid "Reagieren können die Unterstützer dieses Antrags."
 msgstr "The supporters of this motion can react."
@@ -3968,9 +3890,6 @@ msgstr "e.g. fee outstanding for more than a year; reminder sent on …"
 msgid "Pausieren (Beitrag ausständig)"
 msgstr "Pause (fee outstanding)"
 
-msgid "Ausschließen (vollzieht den Beschluss nach § 4 Abs 6)"
-msgstr "Exclude (executes the decision under § 4 (6))"
-
 msgid "Wieder aktiv setzen"
 msgstr "Set active again"
 
@@ -4168,9 +4087,6 @@ msgstr "No result: too few votes, or a tie when the deadline passed."
 
 msgid "Derzeit steht kein Beschluss an."
 msgstr "No decision is pending."
-
-msgid "Für diesen Vorschlag ist keine Abstimmung offen — derzeit ist keine Rolle in Gruppe 2 aktiv. Der Vorschlag wartet, bis eine besetzt ist."
-msgstr "No vote is open on this proposal — no appointment in group 2 is currently active. The proposal waits until one is filled."
 
 msgid "Beschlussfähig bei der Hälfte der aktiven Rollen, entschieden mit einfacher Mehrheit der abgegebenen Stimmen (§ 6 Abs 2 lit e). Bleibt die Prüfung ohne Ergebnis, geht der Vorschlag weiter an die Unterstützer — mit offengelegtem Vermerk, dass Gruppe 2 ihn nicht validiert hat."
 msgstr "A quorum is half of the active appointments; decided by a simple majority of the votes cast (§ 6 para 2 lit e). If the check ends without a result, the proposal moves on to the supporters — with a published note that group 2 did not validate it."
@@ -7231,9 +7147,6 @@ msgstr "The confirmation takes effect without a further resolution — the candi
 msgid "Die Wirkungen treten ohne weiteren Beschluss ein (§ 7 Abs 10 lit f); zu vollziehen bleibt die Mitteilung des Koordinationsrats an Parlamentsklub oder Fraktion (Z 7), ihr Stand wird im <a href=\"/umsetzung/\">Umsetzungsregister</a> geführt (§ 6 Abs 10)."
 msgstr "The effects take place without a further resolution (§ 7 (10) lit f); what remains to be carried out is the coordination council’s notification to the parliamentary club or group (no. 7), its status is kept in the <a href=\"/umsetzung/\">implementation register</a> (§ 6 (10))."
 
-msgid "Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel vorerst: Die Partei kann ein Mandat weder entziehen noch seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i); das Recht nach § 4 Abs 2 auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der Verfahrensordnung bleibt unberührt und hat noch keinen Bauschritt — an die Stelle einer Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. "
-msgstr "Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped for now: the party can neither withdraw a mandate nor force its return (§ 7 (2), (10) lit i); the right under § 4 (2) to rate office holders and to initiate a recall procedure under the rules of procedure remains unaffected and has no build step yet — in place of recalling a mandate stands the confidence question under § 7 (10). "
-
 msgid "Hier lässt sich nur die Anfechtung eines veröffentlichten Ergebnisses vermerken; Anfechtungen der Feststellung nach lit b oder der Voraussetzungen nach lit b, c und g (§ 7 Abs 10 lit h) laufen derzeit außerhalb der Plattform."
 msgstr "Only the challenge of a published result can be recorded here; challenges of the finding under lit b or of the requirements under lit b, c and g (§ 7 (10) lit h) currently run outside the platform."
 
@@ -7326,9 +7239,6 @@ msgid "geprüft"
 msgstr "verified"
 
 # ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
-
-msgid "Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. "
-msgstr "Version 5 with the membership card (0.49): with the activation the member receives a card as a PDF in card format — automatically by letter, at any time in the profile — and its QR code leads to the verification page, which only says “valid” or “not valid”. "
 
 # ── 0.49: FB-K8 — Mitgliedsausweis (Post, Profil, Prüfseite, Rollenmatrix Fassung 5) ──
 
@@ -7850,9 +7760,6 @@ msgstr "What we process data for"
 
 msgid "Wortvergleich"
 msgstr "Word comparison"
-
-msgid "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)."
-msgstr "Word comparison: without a model, verifiable (register of rules)."
 
 msgid "Zukunftswerkstatt: betroffene Gesetze zu Ihrem Antrag"
 msgstr "Zukunftswerkstatt: affected laws for your motion"
@@ -8853,14 +8760,8 @@ msgstr "Checksums use JSON with sorted keys, no additional whitespace, UTF-8 enc
 msgid "Reihenfolge: jüngster Stichtag zuerst, dann RIS-Kennung; bei gleicher Kennung und gleichem Stichtag jüngster Import zuerst."
 msgstr "Order: latest as-of date first, then RIS identifier; for the same identifier and date, latest import first."
 
-msgid "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "
-msgstr "Version 8 adds the official metadata collection (0.56): oversight can inspect provenance, as-of dates and preserved snapshots publicly. Full texts, verified cross-references and reports remain pending. "
-
 msgid "Öffentlich einsehbar sind der Stand des Modell-Steckplatzes, das Budget, die letzten Läufe sowie gezielt abgerufene amtliche Metadaten und einzelne Dokumenttexte; vollständige Rechtsdaten und Berichte fehlen noch."
 msgstr "The model connector status, budget, recent runs, selectively retrieved official metadata and individual document texts are public; complete legal data and reports remain pending."
-
-msgid "Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. "
-msgstr "Version 9 adds individual official document texts (0.57): original XML, text, retrieval records and checksums remain publicly available. The collection is incomplete; verified cross-references and reports remain pending. "
 
 msgid "Dokumenttext-Schnappschuss"
 msgstr "Document text snapshot"
@@ -9015,9 +8916,6 @@ msgstr "Shared hourly limit for explicitly requested individual RIS metadata and
 msgid "Amtliche Metadaten und einzelne Dokumenttexte ausdrücklich übernehmen"
 msgstr "Explicitly import official metadata and individual document texts"
 
-msgid "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "
-msgstr "Version 10 adds explicitly requested individual official sources for administrators (0.59): existing permissions, shared allowance and immutable source records. "
-
 msgid "Abgestimmt wird mit <strong>Ja, Nein oder Enthaltung</strong>.\n    Die Dauer steht bei jeder Abstimmung; bis zum Fristende können Sie Ihre Stimme ändern. Ihre Stimme steht unter einem\n    <strong>Pseudonym</strong> in der öffentlichen Stimmliste; mit Ihrem persönlichen Prüfcode finden\n    Sie sie dort wieder und können das Ergebnis selbst nachrechnen. Das Ergebnis erscheint erst\n    nach dem Fristende — niemand läuft einer Mehrheit hinterher."
 msgstr "Votes are cast as <strong>Yes, No or Abstain</strong>. Each vote states its duration; you may change your vote until the deadline. Your vote appears under a <strong>pseudonym</strong> in the public list; use your personal verification code to find it and verify the result yourself. Results appear only after the deadline, so no one follows an apparent majority."
 
@@ -9092,9 +8990,6 @@ msgstr "The published JSON schema and unchanged response can be checked again. T
 
 msgid "Teilnehmerkreis:"
 msgstr "Eligible participants:"
-
-msgid "Bei dieser Kandidatur werden Unterstützung und Wahlberechtigung derzeit parteiweit geprüft. Die Gebietsangabe begrenzt den Kreis der unterstützenden und abstimmenden Mitglieder noch nicht."
-msgstr "Eligibility to support and vote in this candidacy is currently checked on a party-wide basis. The stated area does not yet restrict which members may support or vote."
 
 msgid "Amtlicher Quellenkontext"
 msgstr "Official source context"
@@ -9471,9 +9366,6 @@ msgstr "with the objection on the motion page"
 msgid "Nur als zuständige aktive Gruppe 1 und bei eindeutig festgehaltenem öffentlichem Ursprung. Bestehende Modellbudgets gelten; interne Einschätzungen sind noch nicht enthalten."
 msgstr "Only as the responsible active group 1 and with an unambiguously recorded public origin. Existing model budgets apply; internal assessments are not included yet."
 
-msgid "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
-msgstr "Version 11 with explicit requests by responsible group 1 to recalculate public legal-impact assessments (0.65); original, objection and budgets are retained. "
-
 msgid "Der <strong>Koordinationsrat</strong> beaufsichtigt Faktenbasis und Parameterregister und empfängt die\n  Berichte der Simulation. Die <strong>Hervorhebung</strong> eines Antrags bleibt allein beim\n  <strong>Integritätsrat</strong> — durch veröffentlichten, begründeten Beschluss, niemals durch einen Algorithmus\n  (§ 5 Abs 10). Der <strong>Expertenrat</strong> arbeitet in zwei unabhängigen Gruppen: Die zweite prüft bei direkten\n  Aufgaben die Vorschläge der ersten auf Interessenkonflikte und kann sie begründet zurückgeben. Und\n  <strong>jedes Mitglied</strong> kann jede Einschätzung öffentlich beanstanden; der Vermerk bleibt stehen. Die\n  zuständige Gruppe 1 kann einen festgehaltenen öffentlichen Rechtsbezug mit einer eigenen Nachrechnung\n  beantworten. Original und Beanstandung bleiben stehen; eine neue Modellantwort bestätigt keine sachliche\n  Erledigung. Andere Einschätzungen und Altstände sind in diesem ersten Korrekturweg noch nicht enthalten."
 msgstr "The <strong>coordination council</strong> oversees the factual database and parameter register and receives simulation reports. Only the <strong>integrity council</strong> may highlight a motion by a published, reasoned decision, never an algorithm (§ 5 para. 10). The <strong>expert council</strong> works in two independent groups: for direct tasks, the second checks the first group's proposals for conflicts of interest and may return them with reasons. Every member may publicly challenge an assessment; the note is retained. The responsible group 1 may respond to a recorded public legal-impact assessment with a separate recalculation. Original and objection are retained; a new model response does not establish a factual resolution. Other assessments and legacy records are outside this initial correction process."
 
@@ -9563,9 +9455,6 @@ msgstr "Original file checksum (SHA-256)"
 
 msgid "Vertragliches Personal"
 msgstr "Contract staff"
-
-msgid "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Diese Angaben werden noch nicht automatisch in Modellaufträge übernommen."
-msgstr "Import uses the known original source and a fixed table rule. These figures are not yet automatically added to model requests."
 
 msgid "Personalbeleg übernommen; Abruf %(abruf)s, Aggregat %(aggregat)s, neu %(neu)s."
 msgstr "Personnel source imported; retrieval %(abruf)s, aggregate %(aggregat)s, new %(neu)s."
@@ -9711,9 +9600,6 @@ msgstr "Methodology page"
 
 msgid "Ressorttabelle mit Herkunft als JSON herunterladen"
 msgstr "Download the ministry staff table with provenance as JSON"
-
-msgid "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Sie wird nicht automatisch in Modellaufträge oder deren frühere Eingaben übernommen."
-msgstr "This table does not break down civil servants and contractual staff by ministry. It is not automatically added to model requests or their earlier inputs."
 
 msgid "Amtliche Personalstände nach Ressort"
 msgstr "Official staff figures by ministry"
@@ -10004,9 +9890,6 @@ msgstr "Hours"
 msgid "Wie lange eine verwaltungsseitige Änderung der Anmeldeadresse wartet, bevor sie wirksam wird. In dieser Zeit kann die bisherige Adresse widersprechen; zusätzlich braucht es einen zweiten Admin. Der Login läuft passwortlos über die Adresse — ohne Frist wäre eine Änderung eine Kontoübernahme."
 msgstr "How long an administrative change of the login email address waits before taking effect. During this time, the previous address can object; a second administrator is also required. Login uses the address without a password — without a waiting period, a change would be an account takeover."
 
-msgid "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
-msgstr "The maximum number of search results shown in the areas-of-life fan."
-
 msgid "Wie viele Gespräche das Panel „Meine Gespräche“ auf einmal zeigt. Der Zähler am Griff zählt unabhängig davon alle."
 msgstr "How many conversations the “My conversations” panel shows at once. Its handle counts all conversations regardless."
 
@@ -10021,9 +9904,6 @@ msgstr "The maximum length of a model run's response. Limits costs and keeps ass
 
 msgid "Wartezeit zwischen zwei Anstößen derselben Person — hält die Rückmeldung offen und den Kanal frei von Fluten."
 msgstr "Waiting time between two feedback messages from the same person — keeps feedback open and prevents the channel from being flooded."
-
-msgid "Wie viele Anstöße eine Person am Tag senden kann."
-msgstr "How many feedback messages a person may send per day."
 
 msgid "Wie viele Unterstützungen ein Antrag braucht, um in die Beratung zu kommen. Gilt für neue Anträge; laufende behalten ihre eingefrorene Fassung."
 msgstr "How much support a motion needs to enter deliberation. Applies to new motions; ongoing motions keep their frozen version."
@@ -10127,17 +10007,8 @@ msgstr "Counting votes on substantive questions"
 msgid "Zählt die Ja-, Nein- und Enthaltungsstimmen einer Sachabstimmung und stellt fest, ob der Antrag angenommen ist: Zuerst muss die Mindestbeteiligung erreicht sein, dann entscheidet die Mehrheit. Gerechnet wird ausschließlich mit ganzen Zahlen, damit kein Rundungsfehler über einen Beschluss entscheiden kann."
 msgstr "Counts the yes, no and abstention votes on a substantive question and determines whether the motion is adopted: minimum participation must be reached first, then the majority decides. Uses integers only so that no rounding error can decide a resolution."
 
-msgid "Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: Ja + Nein + Enthaltung durch die Zahl der Stimmberechtigten teilen — das muss mindestens die Mindestbeteiligung ergeben; dann genügt Ja > Nein (bei der Basis „abgegeben': Ja > die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen Verfahrensordnung, nicht aus dem laufenden Parameterregister."
-msgstr "After voting ends, each motion offers a JSON export of its vote list. By hand: divide yes + no + abstention by the number of eligible voters — this must at least meet minimum participation; then yes > no is sufficient (with the “cast” basis: yes > half of all votes cast). To have it calculated: `python3 verify/nachrechnen.py export.json`, a second, independent program using only the standard library. Minimum participation comes from the rules of procedure frozen on the motion, not from the current parameter register."
-
 msgid "Auszählung der Zustimmungswahl bei Kandidaturen"
 msgstr "Counting approval votes for candidacies"
-
-msgid "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn."
-msgstr "Counts a mandate candidacy vote: each member may approve several applicants; the applicant with the most approvals wins, and the approval counts determine the order of the election nomination list. Ties are resolved in favour of the earlier application."
-
-msgid "Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: die Zustimmungen je Bewerbung zählen, absteigend ordnen, bei gleicher Zahl die früher eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen, die mindestens einer Bewerbung zugestimmt haben; sie muss die Mindestbeteiligung der eingefrorenen Verfahrensordnung erreichen, sonst gilt niemand als gewählt."
-msgstr "The motion's JSON export contains all applications and all approvals. By hand: count approvals per application, order them from highest to lowest, and put the earlier application first when counts are equal. Participation is the number of people who approved at least one application; it must meet the minimum participation in the frozen rules of procedure, otherwise nobody is considered elected."
 
 msgid "Stimmberechtigung und Anwartschaft"
 msgstr "Voting eligibility and qualifying period"
@@ -10243,9 +10114,6 @@ msgstr "The keyword lists are public in policies/kategorien-v2.yaml. Counting ho
 
 msgid "Rollenmatrix „Wer darf was“"
 msgstr "“Who may do what” role matrix"
-
-msgid "Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was die Software heute davon kann — Fähigkeit für Fähigkeit mit ● verfügbar, ◐ teilweise oder ○ geplant, bei Geplantem mit dem Bauschritt. Die Matrix wählt nichts aus, reiht nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand."
-msgstr "Lists for each of the party's fourteen roles what the statutes require and what the software currently supports — ability by ability, marked ● available, ◐ partial or ○ planned, with a build step for planned items. The matrix selects nothing, orders nothing and grants no access; it describes the current state of the build."
 
 msgid "Die Zahlen unter der Übersicht sind die ausgezählten Zeilen der Tabelle darüber; wer nachzählt, kommt auf dieselbe Summe. Die Tests in verfahren/test_rollen.py halten die Matrix gegen die Rollen, die es im Code wirklich gibt: kein ○ ohne Bauschritt, kein ◐ ohne Angabe, was fehlt, keine Adresse, die ins Leere führt."
 msgstr "The figures below the overview count the rows of the table above; anyone who counts gets the same total. Tests in verfahren/test_rollen.py compare the matrix with the roles actually present in code: no ○ without a build step, no ◐ without stating what is missing, no address leading nowhere."
@@ -10382,60 +10250,6 @@ msgstr "First version. Randomness comes from the audit-chain head at the moment 
 msgid "Anker und Lostopf stehen mit dem Ergebnis. Der Loswert einer Person ist die SHA-256-Prüfsumme über Anker, ein senkrechtes Strichzeichen und ihren Schlüssel; aufsteigend geordnet ergibt sich daraus die Besetzung. Mit jedem Prüfsummenwerkzeug in wenigen Minuten nachzurechnen."
 msgstr "The anchor and draw pool accompany the result. A person's draw value is the SHA-256 checksum of the anchor, a vertical bar and their key; ascending order determines the appointments. Reproducible in minutes with any checksum tool."
 
-msgid "Fassung 2 (15.9.2026) bringt den Weg ohne Beratungsphase für die Vertrauensfrage (§ 7 Abs 10): Der Satzungsabsatz ersetzt die Beratung durch die Darstellung der Anlässe und das Gehör des Mandatsträgers und legt den Abstimmungsbeginn fest — der Automat rechnet ihn aus dem Zeitpunkt, zu dem die Schwelle erreicht war, nicht aus dem Moment, in dem ein Programm zufällig lief. Für alle anderen Ordnungen bleibt Fassung 1 Wort für Wort erhalten. Zur ersten Fassung: "
-msgstr "Version 2 (15 September 2026) adds the confidence-question route without deliberation (§ 7 para 10): this statutory paragraph replaces deliberation with presentation of the grounds and a hearing for the mandate holder, and specifies when voting starts — the mechanism calculates this from when the threshold was reached, not when a program happened to run. For all other policies, version 1 remains unchanged word for word. On the first version: "
-
-msgid "Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern bekommt den Zeitpunkt übergeben, und ein Übergang gilt zum Fristzeitpunkt — nicht zu dem Moment, in dem ein Hintergrundprogramm zufällig lief. Ein verspäteter Server verschiebt dadurch keine Frist eines Menschen, und jeder frühere Zustand lässt sich exakt wiederherstellen."
-msgstr "This rule has been in place since the foundation. The mechanism never reads the server clock; it receives the time as an argument, and a transition takes effect at the deadline — not when a background program happens to run. A late server therefore does not shift anyone's deadline, and any earlier state can be reconstructed exactly."
-
-msgid "Phasenbeginn plus die Frist aus der am Antrag eingefrorenen Verfahrensordnung ergibt das Fristende; in der Unterstützungsphase kommt der Vergleich der Unterstützungszahl mit der Schwelle dazu. Beide Zahlen stehen auf der Antragsseite, die geltenden Fristen im Eintrag „Eingefrorene Verfahrensordnung'."
-msgstr "Phase start plus the period in the motion's frozen rules of procedure gives the deadline; the support phase also compares support count with the threshold. Both figures appear on the motion page, and the applicable periods in the “Frozen rules of procedure” entry."
-
-msgid " Bei einer Vertrauensfrage: Abstimmungsbeginn = der spätere von „Einbringung plus sieben Tage“ und „Schwelle erreicht“; die Antragsseite nennt beide Zeitpunkte."
-msgstr " For a confidence question: voting starts at the later of “submission plus seven days” and “threshold reached”; the motion page states both times."
-
-msgid "Trägt die Verfahrensregeln eines Antrags: Unterstützungsschwelle, Fristen, Mindestbeteiligung und Mehrheitsbasis. Beim Einbringen wird die dann geltende Fassung als unveränderliche Kopie an den Antrag geheftet, damit eine spätere Änderung ein laufendes Verfahren nicht mehr erreicht. Jede Fassung, die die satzungsfesten Untergrenzen unterschreitet — Beratung mindestens 21 Tage, Abstimmung mindestens 7 Tage, Beteiligung mindestens 5 Prozent —, wird zurückgewiesen. Seit Fassung 2 gehören auch die Fristen, Runden und die Annahme-Schwelle der Entwurfsschleife (§ 5 Abs 12) zur Ordnung; die Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten. Seit Fassung 3 kann eine Ordnung ohne Beratungsphase auskommen und den frühesten und spätesten Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren."
-msgstr "Carries a motion's procedural rules: support threshold, periods, minimum participation and majority basis. At submission, the applicable version is attached as an immutable copy so that later changes cannot affect an ongoing procedure. Any version below the statutory minimums — at least 21 days for deliberation, 7 days for voting, 5 percent participation — is rejected. Since version 2 the drafting loop's periods, rounds and acceptance threshold (§ 5 para 12) are also included; the supporters' and Expert Council's periods must not exceed 14 days. Since version 3 a policy can omit deliberation and carry the earliest and latest voting start — the confidence question under § 7 para 10; only there may the support threshold be 0 (confirmation motion). Since version 4 the support threshold can be a share of those eligible to vote on the submission date; the calculated number is frozen on the motion along with the base population and minimum count."
-
-msgid " Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d für den Antrag gilt, und ob ein Sachantrag während der Abstimmung die Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist (Voreinstellung: verdeckt bis Fristende)."
-msgstr " Since version 5 the policy also records whether the transitional rule of § 4 para 4 lit d applies to the motion, and whether a substantive motion shows the trend during voting once minimum participation is reached (default: hidden until the deadline)."
-
-msgid "Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister pflegen und daraus eine neue Fassung der Verfahrensordnung erzeugen. Erzeugen und In- Kraft-Setzen sind bewusst zwei Schritte, weil das eine eine Rechnung und das andere eine Entscheidung ist; und die Untergrenzen der Satzung bleiben im Programmtext statt im Register, damit die Verwaltung sie über eine Stellgröße nicht aushebeln kann."
-msgstr "Since 5 September 2026, periods and thresholds can be maintained in the parameter register and used to generate a new version of the rules of procedure. Generation and enactment are deliberately separate steps: one is a calculation, the other a decision; statutory minimums remain in the program text rather than the register so that the administration cannot override them through a parameter."
-
-msgid "Seit 0.52.0 (29.9.2026) rechnet die Plattform die Kette auch nach: täglich die neuen Einträge samt dem zuletzt geprüften, in einem Abstand aus dem Parameterregister die ganze Kette von vorn; Ergebnis und Hash des letzten geprüften Eintrags stehen öffentlich in den Kennzahlen . Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. "
-msgstr "Since 0.52.0 (29 September 2026) the platform also checks the chain: daily for new entries and the last checked entry, and from the beginning for the entire chain at intervals set in the parameter register; the result and hash of the last checked entry are public in the indicators. Previously the chain was written but never checked. "
-
-msgid "Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: „Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand nachprüfen würde."
-msgstr "This rule has been in place since the foundation and is deliberately explainable in about sixty lines: “Each entry seals all preceding entries” — rather than effort that nobody would ultimately verify."
-
-msgid "Änderung vom 29.9.2026 (0.51.0), an den Eingaben, nicht an der Rechnung: Gezählt wird der Stand zum Fristende (§ 5 Abs 13: „bis zum Fristende“). Eine Reaktion ab dem Fristende wird abgewiesen, auch wenn noch nicht ausgewertet ist; zurückgenommene oder gewechselte Reaktionen bleiben gespeichert, zählen aber nicht mehr. Die Schwelle kommt aus der eingefrorenen Ordnung des Antrags, nicht aus dem heutigen Parameterregister (§ 5 Abs 5); Chat, Entwurfsfenster und Archiv zeigen sie an. Eine abgeschlossene Runde zeigt das Archiv mit den Zahlen zu ihrem Fristende. "
-msgstr "Change of 29 September 2026 (0.51.0), to the inputs, not the calculation: the state at the deadline is counted (§ 5 para 13: “until the deadline”). Reactions at or after the deadline are rejected even before evaluation; withdrawn or changed reactions remain stored but no longer count. The threshold comes from the motion's frozen policy, not today's parameter register (§ 5 para 5); chat, drafting window and archive display it. For a completed round, the archive shows the figures at its deadline. "
-
-msgid "Erste Fassung (4.9.2026): Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch zurückgeben“ an. Seither wird diese Entscheidung offen als Gespräch geführt, und eine Kritik zählt nur als Änderungswunsch, wenn sie sich auf einen benannten Absatz des Vorschlags bezieht."
-msgstr "First version (4 September 2026): previously supporters clicked a form for “accept / return with a request”. Since then this decision has taken place openly as a conversation, and criticism counts as a request for changes only if it refers to a specified paragraph of the proposal."
-
-msgid "Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet Pseudonym, Wohnsitz, Nebenwohnsitz, Datenexport und Austritt selbst; Gast liest das Rechenschaftsregister; der Text zur Unvereinbarkeitsprüfung des Integritätsrats war seit 0.44 überholt. Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, Entwicklungsrat und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die erste: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer Rolle gibt und welche davon schon gebaut sind. Die Zählung unter /rollen/ ist immer die aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet."
-msgstr "Version 3 with the mandate-holder role and profile (0.46): a mandate holder is a role in code — tied to an open mandate, not a role list — with a dedicated area, instant report, mandate question, accountability register and reports; members manage their own pseudonym, residence, secondary residence, data export and withdrawal; guests read the accountability register; the Integrity Council's incompatibility-check text had been outdated since 0.44. Version 2 with the Coordination Council area, parameter procedure and other councils' areas (0.45): the rows for the Coordination Council, Expert Council, Development Council and Reporting Council were updated to match the build. Version 1 (5 September 2026) was the first: previously there was nowhere to read which rights the statutes give a role and which were already implemented. The count under /rollen/ is always current — it is deliberately not repeated here so that this text does not become outdated."
-
-msgid "Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die eingefrorene Ordnung: Bis dahin las die Schleife sie live aus dem Register, und eine Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: "
-msgstr "Version 2 (11 September 2026) includes the drafting loop's threshold, rounds and periods in the frozen policy: previously the loop read them live from the register, so register changes affected ongoing procedures — contrary to § 5 para 5. On the first version: "
-
-msgid "Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über 30 und nie unter 7 Tagen (§ 7 Abs 10 lit k). Ältere Fassungen lesen die Vorgaben und verhalten sich unverändert. "
-msgstr "Version 3 (15 September 2026) gives the policy three fields for the confidence question: no deliberation phase, earliest voting start after submission, latest after reaching the threshold. Their values come from the statutes and are frozen at submission; the platform reads the support collection period and voting duration from the register at that point, never above 30 or below 7 days (§ 7 para 10 lit k). Older versions read the defaults and behave unchanged. "
-
-msgid "Fassung 5 (0.51.0) nimmt die Übergangsregel des § 4 Abs 4 lit d in die eingefrorene Ordnung: Ob die Anwartschaft entfällt, wird beim Einbringen aus der Einstellung der Instanz übernommen und gilt bis zum Ende des Verfahrens — für die Zahl der Stimmberechtigten, die Prüfung jeder Stimme, die Bewerbung und das Unterstützungsrecht bei der Vertrauensfrage. Bis dahin las die Plattform die Einstellung bei jedem Schritt neu; ein Umschalten während einer Abstimmung hätte Zählung und Einzelprüfung auseinanderlaufen lassen. Ältere Anträge ohne dieses Feld lesen den Wert „gilt“. Dazu kommt ein Schalter für die Tendenz während der Abstimmung: 0 hält Ja, Nein und Enthaltung bis zum Fristende verdeckt, 1 zeigt sie ab erreichter Mindestbeteiligung — für Sachanträge, nie für Mandatsfrage, Vertrauensfrage und Kandidatur. Er steht auf 0 und wird beim Einbringen eingefroren, damit eine Abstimmung vom ersten bis zum letzten Tag unter denselben Bedingungen läuft. "
-msgstr "Version 5 (0.51.0) includes the transitional rule of § 4 para 4 lit d in the frozen policy: whether the qualifying period is waived is taken from the instance setting at submission and applies until the procedure ends — for the eligible-voter count, checking each vote, applications, and confidence-question support rights. Previously the platform read the setting anew at every step; changing it during voting could have made the count and individual checks diverge. Older motions without this field read the value “applies”. There is also a switch for the trend during voting: 0 hides yes, no and abstention until the deadline; 1 shows them once minimum participation is reached — for substantive motions, never mandate questions, confidence questions or candidacies. It is set to 0 and frozen at submission so that the vote runs under the same conditions from first to last day. "
-
-msgid "Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der Nenner einer Abstimmung; die Zahl steht danach fest. "
-msgstr "Version 4 (29 September 2026, founder's instruction) permits the support threshold as a share of eligible voters: a percentage in the parameter register, while the previous number remains the minimum. Calculation takes place on the submission date with the same count used as a vote's denominator; the number is then fixed. "
-
-msgid "Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit 0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene Zeile nennt mehr einen Bauschritt, der schon abgeschlossen ist; wo Teil C keinen Schritt vorsieht, steht das so da. "
-msgstr "Version 6 following the stocktake of 28 September 2026 (0.50): four rows for the Expert Council and Integrity Council — comparing versions and commenting on paragraphs, creating a decision, the Zukunftswerkstatt assessment in the window, and the annual public report — had been implemented since 0.45 but still showed ○ “with S9/S11”; they now show ● with an address. No open row still names a build step already completed; where Part C specifies no step, this is stated explicitly. "
-
-msgid "Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. "
-msgstr "Version 7 with sitting mode (0.53): mandate holders report live from the representative body on sitting days and mark questions in the sitting's chat as answered; guests read the ticker, agenda and decision status; members ask questions in the sitting's chat; after representation ends, the administration records votes from public sources. "
-
 msgid "Gast"
 msgstr "Guest"
 
@@ -10474,9 +10288,6 @@ msgstr "Two stages (founder's decision of 5 September 2026): following a public 
 
 msgid "Die zweite, unabhängig von der ersten besetzte Gruppe des Expertenrats; sie prüft deren Vorschlag auf Interessenkonflikte und Korruptionsgefahr."
 msgstr "The Expert Council's second group, appointed independently of the first; it checks the first group's proposal for conflicts of interest and corruption risks."
-
-msgid "Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 aus derselben Fachliste mitgelost, wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt ist — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt; sonst trägt die Verwaltung die Rolle ein. Die Fachliste selbst führt die Verwaltung."
-msgstr "As for Group 1 — with the requirement that the two groups must be appointed independently (§ 6 para 7): those who developed the proposal do not review it. Today Group 2 is drawn from the same expert list if implementation relevance is already set at the time of a draw — from the remaining pool, so that nobody sits in both groups; otherwise the administration records the role. The administration also maintains the expert list itself."
 
 msgid "Er besteht aus fünf bis neun Mitgliedern und führt die laufenden Geschäfte, vertritt die Partei nach § 1 Abs 4, vollzieht die Beschlüsse der Mitgliederversammlung und ist ihr rechenschaftspflichtig."
 msgstr "It has five to nine members and manages day-to-day affairs, represents the party under § 1 para 4, implements decisions of the members' assembly and is accountable to it."
@@ -10673,9 +10484,6 @@ msgstr "Challenge a Zukunftswerkstatt assessment"
 msgid "Einen Beitrag melden"
 msgstr "Report a contribution"
 
-msgid "Gemeldet werden kann, abgeholfen wird nicht: Die Meldung wird gespeichert, aber von keiner Ansicht gelesen — es gibt keinen Weg, sie zu bearbeiten."
-msgstr "Reporting is possible, remedy is not: the report is stored but read by no view — there is no way to process it."
-
 msgid "Für ein Mandat kandidieren und Bewerbungen zustimmen"
 msgstr "Stand for a mandate and approve applications"
 
@@ -10745,9 +10553,6 @@ msgstr "in a motion's drafting window"
 msgid "Entwurfsfenster zu einem Antrag öffnen — der Antragswortlaut wird Fassung 1"
 msgstr "Open a motion's drafting window — the motion text becomes version 1"
 
-msgid "Fassungen anhängen; jede frueher geschriebene bleibt stehen"
-msgstr "Append versions; every earlier version remains"
-
 msgid "Wünsche der Unterstützer aus der Vorrunde lesen"
 msgstr "Read supporters' requests from the previous round"
 
@@ -10763,17 +10568,8 @@ msgstr "Contributions appear only in the group's workspace; § 6 para 9 requires
 msgid "KI-Einschätzung zum eigenen Entwurf anfordern"
 msgstr "Request an AI assessment of your own draft"
 
-msgid "Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm."
-msgstr "The model slot responds only if a provider is connected and the monthly token budget is not exhausted; otherwise it remains silent."
-
 msgid "Vollzugs- oder Beschaffungsbezug setzen — dann wird Gruppe 2 aus der Fachliste nachgelost und prüft vorab (§ 6 Abs 7)"
 msgstr "Set implementation or procurement relevance — Group 2 is then drawn from the expert list and reviews in advance (§ 6 para 7)"
-
-msgid "Über die Einreichung intern abstimmen"
-msgstr "Vote internally on submission"
-
-msgid "Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9)."
-msgstr "A separate vote outside the public decision list: no decision number, reasons or deadline; visible only in the workspace (§ 6 para 9)."
 
 msgid "Vorschlag einreichen — an Gruppe 2 oder an die Unterstützer"
 msgstr "Submit a proposal — to Group 2 or the supporters"
@@ -10825,12 +10621,6 @@ msgstr "Vote on the review as a body — with a deadline and quorum"
 
 msgid "Vorschlag validieren"
 msgstr "Validate a proposal"
-
-msgid "Vorschlag mit veröffentlichter Begruendung zurückgeben"
-msgstr "Return a proposal with published reasons"
-
-msgid "Jede Stimme steht mit Namen und Begruendung öffentlich"
-msgstr "Every vote is public with name and reasons"
 
 msgid "Prüfpunkte abhaken — sie wandern in die veröffentlichte Begründung"
 msgstr "Check review points — they become part of the published reasons"
@@ -10973,17 +10763,8 @@ msgstr "Grant and remove administrator rights"
 msgid "Beitragseingänge verbuchen, erinnern, Kontoauszug abgleichen"
 msgstr "Record contributions, send reminders, reconcile bank statements"
 
-msgid "Rollen in die vier bestehenden Räte berufen, bestätigen und beenden"
-msgstr "Appoint, confirm and end roles in the four existing councils"
-
-msgid "§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind nur Expertenrat 1 und 2, Koordinationsrat und Integritätsrat."
-msgstr "§ 6 para 8 separates appointment (Coordination Council) and confirmation (members' assembly); today both lie in one hand, with confirmation as a checkbox in a form. Only Expert Council 1 and 2, the Coordination Council and Integrity Council can be staffed."
-
 msgid "Werte im Parameterregister ändern"
 msgstr "Change values in the parameter register"
-
-msgid "Die Einführung eines Wertes bedarf nach § 6 Abs 11 lit c der Freigabe des Koordinationsrats, befristete Tests ordnet er an. Beides gibt es nicht; die Verwaltung ändert mit Pflicht-Grund, der im Register und im Audit-Log steht."
-msgstr "Under § 6 para 11 lit c introducing a value requires Coordination Council approval, and it orders time-limited tests. Neither is available; the administration changes values with a required reason recorded in the register and audit log."
 
 msgid "Eine Fassung der Verfahrensordnung erzeugen und in Kraft setzen"
 msgstr "Generate and enact a version of the rules of procedure"
@@ -11614,12 +11395,6 @@ msgstr "The general requirements for this candidacy have not yet been met."
 msgid "Dieser Antrag kann von Ihnen nicht unterstützt werden. Ihr eigener Text bleibt erhalten."
 msgstr "You cannot support this motion. Your own text is retained."
 
-msgid "Fassung 2 ergänzt für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl. Die bisherige Auszählung bleibt für Altverfahren unverändert."
-msgstr "Version 2 covers new local candidacies with no eligible voters. Zero eligible voters and no approvals produce no election result. Counting remains unchanged for earlier proceedings."
-
-msgid "Fassung 2 ergänzt für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss. Die bisherige Auszählung bleibt für Altverfahren unverändert."
-msgstr "Version 2 covers new local proceedings with no eligible voters. Zero eligible voters and no votes produce no decision. Counting remains unchanged for earlier proceedings."
-
 msgid "Für Sie ist hier keine Stimmabgabe möglich."
 msgstr "You cannot vote here."
 
@@ -12212,3 +11987,508 @@ msgstr "This reference is publicly accessible and relates to this update."
 
 msgid "Öffentlichen Beleg öffnen"
 msgstr "Open public reference"
+
+#, python-format
+msgid "%(n)d Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin."
+msgid_plural "%(n)d Zeilen mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin."
+msgstr[0] "%(n)d line with your own contribution reference was not booked — another admin will take care of it."
+msgstr[1] "%(n)d lines with your own contribution reference were not booked — another admin will take care of them."
+
+#, python-format
+msgid "%(von)s–%(bis)s von %(n)s · jüngste zuerst"
+msgstr "%(von)s–%(bis)s of %(n)s · most recent first"
+
+msgid "<strong>Beratung.</strong> Die StaatsSimulation — der Rechenkern der Zukunftswerkstatt —\n    rechnet durch (Rechtsfolgen, Aufwand, Lastampel, Vergabe), der Expertenrat erarbeitet auf dieser Grundlage seinen\n    Vorschlag — Fachleute aus öffentlicher Liste, per offengelegtem Zufallsverfahren ausgewählt, Stellungnahmen im\n    Wortlaut veröffentlicht."
+msgstr "<strong>Deliberation.</strong> The StaatsSimulation — the computational core of the Zukunftswerkstatt — runs the numbers (legal consequences, effort, load signal, tendering); on this basis the Expert Council drafts its proposal — experts from a public list, chosen by a disclosed random procedure, statements published verbatim."
+
+msgid "<strong>Vorschlag an die Unterstützer.</strong> Der Vorschlag geht zuerst an jene, die den Antrag\n    getragen haben: nachbessern lassen oder weiterreichen — so bleibt er dem Anliegen treu."
+msgstr "<strong>Proposal to the supporters.</strong> The proposal goes first to those who carried the motion: send it back for improvement or pass it on — so it stays true to the cause."
+
+msgid "Adresse bestätigen"
+msgstr "Confirm address"
+
+msgid "Alle Einträge"
+msgstr "All entries"
+
+msgid "An einer freiwilligen Gemeindeabstimmung teilnehmen"
+msgstr "Take part in a voluntary municipal vote"
+
+msgid "Anfechtung vermerkt — binnen sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h)."
+msgstr "Appeal recorded — within seven days of publication (§ 7 (10) lit h)."
+
+msgid "Anfechtung vermerkt — sie liegt nach der Frist von sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h)."
+msgstr "Appeal recorded — it was lodged after the seven-day period from publication (§ 7 (10) lit h)."
+
+msgid "Aufhebungsbeschluss anlegen"
+msgstr "Create decision to lift the rejection"
+
+msgid "Aufhebungsbeschluss läuft:"
+msgstr "Decision to lift the rejection in progress:"
+
+msgid "Ausblenden"
+msgstr "Hide"
+
+msgid "Ausblenden braucht einen öffentlichen Grund."
+msgstr "Hiding requires a public reason."
+
+msgid "Ausschließen (vollzieht den Beschluss nach § 4 Abs 5)"
+msgstr "Exclude (carries out the decision under § 4 (5))"
+
+msgid "Befristete Tests ordnet der Koordinationsrat durch Beschluss an, und die Einführung eines getesteten Wertes gibt er frei (§ 6 Abs 11 lit c). Daneben ändert die Verwaltung Werte weiterhin unmittelbar und ohne Beschluss des Rats — mit Pflicht-Grund, der im Register und im Audit-Log steht."
+msgstr "The Coordination Council orders time-limited tests by decision and approves the introduction of a tested value (§ 6 para 11 lit c). Alongside this, the administration still changes values directly and without a council decision — with a required reason recorded in the register and audit log."
+
+msgid "Begründung der Aufhebung (wird veröffentlicht)"
+msgstr "Reasons for lifting the rejection (will be published)"
+
+msgid "Bei gleicher Summe legt die Regel keine Reihenfolge fest; dann entscheidet die Datenbank. Die Tageszahlen der einzelnen Anträge sind nicht veröffentlicht; von außen lässt sich die Reihung deshalb nicht vollständig nachrechnen. Die Zahl fünf steht im Programm, nicht im Parameterregister."
+msgstr "For equal totals the rule fixes no order; the database then decides. The daily counts of individual motions are not published, so the ordering cannot be fully recalculated from outside. The number five is set in the program, not in the parameter register."
+
+msgid "Bitte eine Entscheidung wählen."
+msgstr "Please choose a decision."
+
+msgid "Chat einer Sitzung"
+msgstr "Chat of a session"
+
+#, python-format
+msgid "Das Datum der Anfechtung liegt zwischen der Veröffentlichung des Ergebnisses (%(ab)s) und heute."
+msgstr "The date of the appeal lies between the publication of the result (%(ab)s) and today."
+
+#, python-format
+msgid "Das Datum der Entscheidung liegt zwischen der Anfechtung (%(ab)s) und heute."
+msgstr "The date of the decision lies between the appeal (%(ab)s) and today."
+
+#, python-format
+msgid "Das Ende des Tests muss nach der Beschlussfrist (%(frist)s) liegen — bis dahin stimmt der Rat ab."
+msgstr "The end of the test must lie after the decision deadline (%(frist)s) — the council votes until then."
+
+#, python-format
+msgid "Das Monatsbudget der Zukunftswerkstatt ist erschöpft; die Warteschlange rechnet erst nach dem Monatswechsel wieder, frühestens am %(datum)s."
+msgstr "The monthly budget of the Zukunftswerkstatt is used up; the queue resumes only after the change of month, on %(datum)s at the earliest."
+
+#, python-format
+msgid "Das Tageskontingent der Zukunftswerkstatt ist aufgebraucht; die Warteschlange rechnet frühestens am %(datum)s weiter."
+msgstr "The daily quota of the Zukunftswerkstatt is used up; the queue resumes on %(datum)s at the earliest."
+
+msgid "Den eigenen Gemeindezugang verwalten — Hauptwohnsitz angeben oder ändern"
+msgstr "Manage your own municipal account — enter or change primary residence"
+
+msgid "Der Beitrag ist ausgeblendet; der Grund steht öffentlich an seiner Stelle."
+msgstr "The post is hidden; the reason is shown publicly in its place."
+
+msgid "Der Chat steht Mitgliedern offen; mit dem Gemeindekonto lesen Sie mit."
+msgstr "The chat is open to members; with your municipal account you can read along."
+
+msgid "Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen, auch die zurückgenommenen. Von Hand: die Zustimmungen je Bewerbung zählen — ohne zurückgenommene Zustimmungen und ohne Zustimmungen zu zurückgezogenen Bewerbungen —, absteigend ordnen, bei gleicher Zahl die früher eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen mit mindestens einer zählenden Zustimmung; sie muss die Mindestbeteiligung der eingefrorenen Verfahrensordnung erreichen, sonst gilt niemand als gewählt. Wer rechnen lassen will: `python3 verify/nachrechnen.py export.json`."
+msgstr "The motion's JSON export contains all applications and all approvals, including withdrawn ones. By hand: count approvals per application — without withdrawn approvals and without approvals for withdrawn applications — order them from highest to lowest, and put the earlier application first when counts are equal. Participation is the number of people with at least one counting approval; it must meet the minimum participation in the frozen rules of procedure, otherwise nobody is considered elected. To have it calculated: `python3 verify/nachrechnen.py export.json`."
+
+#, python-format
+msgid "Der Kreis umfasst die Mitglieder mit Hauptwohnsitz in %(gebiet)s bei Einbringung am %(tag)s; spätere Umzüge ändern ihn nicht."
+msgstr "The circle comprises the members whose main residence was in %(gebiet)s when the motion was submitted on %(tag)s; later moves do not change it."
+
+msgid "Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschöpft ist; sonst bleibt er stumm."
+msgstr "The model slot responds only if a provider is connected and the monthly token budget is not exhausted; otherwise it remains silent."
+
+msgid "Der Sitzungstag muss zwischen dem Antritt und dem Ende der Pflichten liegen."
+msgstr "The session day must lie between taking office and the end of the obligations."
+
+msgid "Der Testwert muss wie der geltende Wert eine ganze Zahl sein."
+msgstr "Like the current value, the test value must be a whole number."
+
+msgid "Die Einwilligung des Mitglieds in die öffentliche Führung auf der Fachliste liegt vor (§ 8 Abs 4)"
+msgstr "The member has consented to being listed publicly on the expert roster (§ 8 para. 4)"
+
+#, python-format
+msgid "Die Entwurfsschleife ruht — der Vorschlag des Expertenrats (Runde %(n)s) wurde nicht als Antragsfassung übernommen."
+msgstr "The drafting loop is at rest — the expert council's proposal (round %(n)s) has not been adopted as a version of the motion."
+
+msgid "Die Frist für diesen Austauschantrag ist verstrichen — der Vorschlag ist weitergegangen (§ 5 Abs 12)."
+msgstr "The deadline for this exchange request has passed — the proposal has moved on (§ 5 para. 12)."
+
+msgid "Die Gemeinde suchen und ihre öffentliche Übersicht lesen — Mandate, Sitzungen, Sitzungs- und Haushaltsunterlagen, Ratsinitiativen, Projekte"
+msgstr "Search for the municipality and read its public overview — mandates, sessions, session and budget documents, council initiatives, projects"
+
+msgid "Die Verwaltung entscheidet allein, auch wenn sie selbst betroffen ist; einen Rechtsbehelf gegen die Entscheidung gibt es auf der Plattform nicht."
+msgstr "The administration decides alone, even when it is itself concerned; the platform offers no remedy against the decision."
+
+msgid "Die eigenen Gemeindeangaben herunterladen (JSON)"
+msgstr "Download your own municipal account data (JSON)"
+
+msgid "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Neue Rechtsfolgenaufträge der Zukunftswerkstatt erhalten diese Angaben als Bestandsrahmen; laufende Aufträge und frühere Einschätzungen bleiben unverändert."
+msgstr "The import uses the known original document and a fixed table rule. New legal-consequence requests of the Zukunftswerkstatt receive these figures as a staffing frame; running requests and earlier assessments remain unchanged."
+
+msgid "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Neue Rechtsfolgenaufträge der Zukunftswerkstatt erhalten sie als Bestandsrahmen; laufende Aufträge und frühere Eingaben bleiben unverändert."
+msgstr "This table contains no breakdown into civil servants and contract staff per ministry. New legal-consequence requests of the Zukunftswerkstatt receive it as a staffing frame; running requests and earlier inputs remain unchanged."
+
+msgid "Dieser Antrag ist bereits entschieden oder beendet — zurückweisen lässt sich nur ein laufendes Verfahren (§ 5 Abs 2)."
+msgstr "This motion has already been decided or closed — only a running procedure can be rejected (§ 5 para 2)."
+
+msgid "Dieser Eintrag ist bereits gestrichen."
+msgstr "This entry has already been removed."
+
+#, python-format
+msgid "Dieses Konto ist von der Mitwirkung ausgeschlossen (%(satzung)s). Die Begründung\nsteht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch erheben möchten."
+msgstr "This account is excluded from participation (%(satzung)s). The reasons are in the audit log. Contact didide@ddoe.at if you wish to appeal."
+
+msgid "E-Mail-Adresse bestätigen"
+msgstr "Confirm email address"
+
+#, python-format
+msgid "Ein Beitrag darf höchstens %(n)s Zeichen lang sein — bitte kürzen."
+msgstr "A post may be at most %(n)s characters long — please shorten it."
+
+msgid "Ein örtlicher Antrag zeigt öffentlich, dass Ihr Hauptwohnsitz in diesem Gebiet liegt."
+msgstr "A local motion shows publicly that your main residence is in this area."
+
+#, python-format
+msgid "Einbringen, Unterstützen und Mitberaten steht bestätigten Mitgliedern offen.\nIhr Konto ist angelegt, aber Ihre Identität ist noch nicht geprüft (%(satzung)s)."
+msgstr "Submitting, supporting and deliberating are open to confirmed members. Your account exists, but your identity has not been verified yet (%(satzung)s)."
+
+msgid "Eine Streichung braucht einen Grund — er steht öffentlich beim Eintrag."
+msgstr "Removing an entry needs a reason — it is shown publicly with the entry."
+
+#, python-format
+msgid "Eine beendete Rolle bleibt dokumentiert; der Grund ist nicht öffentlich."
+msgid_plural "%(n)s beendete Rollen bleiben dokumentiert; der Grund ist nicht öffentlich."
+msgstr[0] "One ended role remains on record; the reason is not public."
+msgstr[1] "%(n)s ended roles remain on record; the reason is not public."
+
+#, python-format
+msgid "Eingetragen unter dem Schlüssel %(schluessel)s — öffentlich sichtbar."
+msgstr "Entered under the key %(schluessel)s — publicly visible."
+
+msgid "Eintragen"
+msgstr "Enter"
+
+#, python-format
+msgid "Entscheidung bis %(frist)s — danach verfristet der Austauschantrag (§ 5 Abs 12)."
+msgstr "Decision due by %(frist)s — after that the exchange request lapses (§ 5 para. 12)."
+
+msgid "Entschieden am"
+msgstr "Decided on"
+
+msgid "Entschieden: keine Maßnahme. Der Beitrag bleibt stehen."
+msgstr "Decided: no action. The post remains."
+
+msgid "Erste verzeichnete Fassung. Die Liste besteht unverändert seit dem 20.8.2026; nach der Gründerentscheidung vom 28.9.2026 bleibt sie und wird als offengelegte, versionierte Regel geführt. Der Eintrag vom 18.11.2026 beschreibt das Verhalten, wie es ist, und ändert es nicht."
+msgstr "First recorded version. The list has existed unchanged since 20 August 2026; following the founder's decision of 28 September 2026 it stays and is kept as a disclosed, versioned rule. The entry of 18 November 2026 describes the behaviour as it is and does not change it."
+
+msgid "Fachgebiete (ohne Angabe lost die Person bei jedem Antrag mit)"
+msgstr "Fields of expertise (without any, the person takes part in the draw for every motion)"
+
+msgid "Fachliste"
+msgstr "Expert roster"
+
+msgid "Fachliste pflegen →"
+msgstr "Maintain the expert roster →"
+
+msgid "Fachliste — Verwaltung"
+msgstr "Expert roster — administration"
+
+#, python-format
+msgid "Fassung %(version)s ist inzwischen anderweitig erzeugt worden — nichts erzeugt. Bitte prüfen, was sie sagt."
+msgstr "Version %(version)s has meanwhile been created elsewhere — nothing created. Please check what it says."
+
+#, python-format
+msgid "Fassung %(version)s ist nicht jünger als die geltende Fassung %(geltend)s — nichts geändert."
+msgstr "Version %(version)s is not newer than the version in force, %(geltend)s — nothing changed."
+
+msgid "Fassung 13 nimmt das Gemeindekonto ohne Parteibeitritt auf: was es liest und für sich verwaltet (Gemeindeübersicht, öffentliche Sprechstunden, eigener Zugang, eigener Export), und dass es auf den Seiten der Partei als Gast gilt — kein Antrag, keine Unterstützung, keine Stimme, kein Chat. Fassung 12 berichtigt nach der Gesamtprüfung vom 18.11.2026 Zeilen, die den Bauzustand falsch wiedergaben: Der Einreichungsbeschluss der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird nachgelost, sobald der Vollzugsbezug gesetzt ist; die Verwaltung besetzt sechs Räte; Tests und Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort statt einer Adresse, die nur das abgeschickte Formular annimmt. Gemeldete Beiträge sichtet und entscheidet die Verwaltung; die Zeile steht bei ihr, und das Melden beim Mitglied gilt als verfügbar. Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. Fassung 7 mit dem Sitzungsmodus (0.53): Der Mandatar meldet am Sitzungstag live aus dem Vertretungskörper und markiert Fragen aus dem Chat der Sitzung als beantwortet; der Gast liest Ticker, Tagesordnung und Beschlusslage; das Mitglied stellt im Chat der Sitzung Fragen; die Verwaltung trägt nach dem Ende der Vertretung Abstimmungen nach öffentlichen Quellen nach. Fassung 6 nach der Bestandsaufnahme vom 28.9.2026 (0.50): Vier Zeilen des Expertenrats und des Integritätsrats — Fassungen vergleichen und Absätze kommentieren, Beschluss anlegen, Einschätzung der Zukunftswerkstatt im Fenster, jährlicher öffentlicher Bericht — waren seit 0.45 gebaut, standen aber noch als ○ „mit S9/S11“; sie sind jetzt ● mit Adresse. Keine offene Zeile nennt mehr einen Bauschritt, der schon abgeschlossen ist; wo Teil C keinen Schritt vorsieht, steht das so da. Fassung 5 mit dem Mitgliedsausweis (0.49): Das Mitglied erhält mit der Freischaltung einen Ausweis als PDF im Kartenformat — automatisch per Brief, jederzeit im Profil — und der QR-Code darauf führt zur Prüfseite, die nur „gültig“ oder „nicht gültig“ sagt. Fassung 4 mit der Vertrauensfrage (0.48, § 7 Abs 10): Das Mitglied stellt sie mit einem Anlass aus dem Rechenschaftsregister und unterstützt sie, wenn es am Tag der Einbringung für Personenwahlen stimmberechtigt ist; der Mandatar nimmt Stellung, gibt bei der Bewerbung die Rückgabezusage ab oder nicht und beantragt nach einer verlorenen Vertrauensfrage die Bestätigung; der Integritätsrat stellt eine Sperre durch Beschluss fest, statt dass die Software abweist; der Gast liest Vertrauensfragen, Stellungnahmen und Ergebnisse; die Verwaltung vermerkt Anfechtung und Entscheidung des Parteischiedsgerichts, das selbst weiter als Lücke ausgewiesen ist. Die Zeile „Mandatsträger bewerten und ein Abberufungsverfahren einleiten“ entfiel vorerst: Die Partei kann ein Mandat weder entziehen noch seine Rückgabe erzwingen (§ 7 Abs 2, Abs 10 lit i); das Recht nach § 4 Abs 2 auf Bewertung der Mandatsträger und auf ein Abberufungsverfahren nach Maßgabe der Verfahrensordnung bleibt unberührt und hat noch keinen Bauschritt — an die Stelle einer Abberufung des Mandats tritt die Vertrauensfrage nach § 7 Abs 10. Fassung 3 mit der Mandatar-Rolle und dem Profil (0.46): Der Mandatar ist eine Rolle im Code — sie hängt am offenen Mandat, nicht an einer Rollenliste —, mit eigenem Bereich, Instant-Report, Mandatsfrage, Rechenschaftsregister und Berichten; das Mitglied verwaltet Pseudonym, Wohnsitz, Nebenwohnsitz, Datenexport und Austritt selbst; Gast liest das Rechenschaftsregister; der Text zur Unvereinbarkeitsprüfung des Integritätsrats war seit 0.44 überholt. Fassung 2 mit dem Koordinationsrat-Bereich, dem Parameterverfahren und den Bereichen der weiteren Räte (0.45): Die Zeilen für Koordinationsrat, Expertenrat, Entwicklungsrat und Berichtswesenrat wurden auf den Bauzustand gebracht. Fassung 1 (5.9.2026) war die erste: Bis dahin ließ sich nirgends nachlesen, welche Rechte die Satzung einer Rolle gibt und welche davon schon gebaut sind. Die Zählung unter /rollen/ ist immer die aktuelle — sie steht bewusst nicht hier, damit dieser Text nicht veraltet."
+msgstr "Version 13 adds the municipal account without party membership: what it reads and manages for itself (municipal overview, public office hours, own account, own export), and that it is treated as a guest on the party's pages — no motion, no support, no vote, no chat. Version 12 corrects, following the full review of 18 November 2026, rows that misstated the state of the build: Group 1's submission decision carries a number and a deadline and appears on the public decision list; Group 2 is drawn as soon as implementation relevance is set; the administration staffs six councils; tests and introduction of register values run through Coordination Council decisions. Feedback now names its place instead of an address that only accepts the submitted form. The administration reviews and decides on reported contributions; the row is listed there, and reporting by members counts as available. Version 11 with explicit requests by responsible group 1 to recalculate public legal-impact assessments (0.65); original, objection and budgets are retained. Version 10 adds explicitly requested individual official sources for administrators (0.59): existing permissions, shared allowance and immutable source records. Version 9 adds individual official document texts (0.57): original XML, text, retrieval records and checksums remain publicly available. The collection is incomplete; verified cross-references and reports remain pending. Version 8 adds the official metadata collection (0.56): oversight can inspect provenance, as-of dates and preserved snapshots publicly. Full texts, verified cross-references and reports remain pending. Version 7 with sitting mode (0.53): mandate holders report live from the representative body on sitting days and mark questions in the sitting's chat as answered; guests read the ticker, agenda and decision status; members ask questions in the sitting's chat; after representation ends, the administration records votes from public sources. Version 6 following the stocktake of 28 September 2026 (0.50): four rows for the Expert Council and Integrity Council — comparing versions and commenting on paragraphs, creating a decision, the Zukunftswerkstatt assessment in the window, and the annual public report — had been implemented since 0.45 but still showed ○ “with S9/S11”; they now show ● with an address. No open row still names a build step already completed; where Part C specifies no step, this is stated explicitly. Version 5 with the membership card (0.49): with the activation the member receives a card as a PDF in card format — automatically by letter, at any time in the profile — and its QR code leads to the verification page, which only says “valid” or “not valid”. Version 4 with the confidence question (0.48, § 7 (10)): a member raises it with a ground from the accountability register and supports it if eligible to vote in personal elections on the day of submission; the office holder responds, gives or declines the return pledge when applying and, after a lost confidence question, applies for confirmation; the integrity council determines a bar by decision instead of the software rejecting; guests read confidence questions, responses and results; the administration records the challenge and the decision of the party arbitration tribunal, which itself remains listed as a gap. The row “Rate office holders and initiate a recall procedure” was dropped for now: the party can neither withdraw a mandate nor force its return (§ 7 (2), (10) lit i); the right under § 4 (2) to rate office holders and to initiate a recall procedure under the rules of procedure remains unaffected and has no build step yet — in place of recalling a mandate stands the confidence question under § 7 (10). Version 3 with the mandate-holder role and profile (0.46): a mandate holder is a role in code — tied to an open mandate, not a role list — with a dedicated area, instant report, mandate question, accountability register and reports; members manage their own pseudonym, residence, secondary residence, data export and withdrawal; guests read the accountability register; the Integrity Council's incompatibility-check text had been outdated since 0.44. Version 2 with the Coordination Council area, parameter procedure and other councils' areas (0.45): the rows for the Coordination Council, Expert Council, Development Council and Reporting Council were updated to match the build. Version 1 (5 September 2026) was the first: previously there was nowhere to read which rights the statutes give a role and which were already implemented. The count under /rollen/ is always current — it is deliberately not repeated here so that this text does not become outdated."
+
+msgid "Fassung 2 (15.9.2026) bringt den Weg ohne Beratungsphase für die Vertrauensfrage (§ 7 Abs 10): Der Satzungsabsatz ersetzt die Beratung durch die Darstellung der Anlässe und das Gehör des Mandatsträgers und legt den Abstimmungsbeginn fest — der Automat rechnet ihn aus dem Zeitpunkt, zu dem die Schwelle erreicht war, nicht aus dem Moment, in dem ein Programm zufällig lief. Für alle anderen Ordnungen bleibt Fassung 1 Wort für Wort erhalten. Zur ersten Fassung: Sie steht seit dem Fundament so da. Der Automat liest nie die Uhr des Servers, sondern bekommt den Zeitpunkt übergeben, und ein Übergang gilt zum Fristzeitpunkt — nicht zu dem Moment, in dem ein Hintergrundprogramm zufällig lief. Ein verspäteter Server verschiebt dadurch keine Frist eines Menschen, und jeder frühere Zustand lässt sich exakt wiederherstellen."
+msgstr "Version 2 (15 September 2026) adds the confidence-question route without deliberation (§ 7 para 10): this statutory paragraph replaces deliberation with presentation of the grounds and a hearing for the mandate holder, and specifies when voting starts — the mechanism calculates this from when the threshold was reached, not when a program happened to run. For all other policies, version 1 remains unchanged word for word. On the first version: This rule has been in place since the foundation. The mechanism never reads the server clock; it receives the time as an argument, and a transition takes effect at the deadline — not when a background program happens to run. A late server therefore does not shift anyone's deadline, and any earlier state can be reconstructed exactly."
+
+msgid "Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Begründung nennt die Mindestbeteiligung als Kopfzahl, „N Stimmen (P %)“. Fassung 2 ergänzte für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl; die Auszählung der Altverfahren blieb unverändert."
+msgstr "Version 3 counts like version 2 and changes no result: the reasoning states minimum participation as a head count, “N votes (P %)”. Version 2 covered new local candidacies with no eligible voters: zero eligible voters and no approvals produce no election result; counting remained unchanged for earlier proceedings."
+
+msgid "Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Mindestbeteiligung wird zusätzlich als Kopfzahl ausgewiesen, und der Begründungssatz nennt „erforderlich N Stimmen (P %)“ statt eines Prozentwerts allein. Fassung 2 ergänzte für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss; die Auszählung der Altverfahren blieb unverändert."
+msgstr "Version 3 counts like version 2 and changes no result: minimum participation is additionally stated as a head count, and the reasoning says “required N votes (P %)” instead of a percentage alone. Version 2 covered new local proceedings with no eligible voters: zero eligible voters and no votes produce no decision; counting remained unchanged for earlier proceedings."
+
+msgid "Fassung 5 (0.51.0) nimmt die Übergangsregel des § 4 Abs 4 lit d in die eingefrorene Ordnung: Ob die Anwartschaft entfällt, wird beim Einbringen aus der Einstellung der Instanz übernommen und gilt bis zum Ende des Verfahrens — für die Zahl der Stimmberechtigten, die Prüfung jeder Stimme, die Bewerbung und das Unterstützungsrecht bei der Vertrauensfrage. Bis dahin las die Plattform die Einstellung bei jedem Schritt neu; ein Umschalten während einer Abstimmung hätte Zählung und Einzelprüfung auseinanderlaufen lassen. Ältere Anträge ohne dieses Feld lesen den Wert „gilt“. Dazu kommt ein Schalter für die Tendenz während der Abstimmung: 0 hält Ja, Nein und Enthaltung bis zum Fristende verdeckt, 1 zeigt sie ab erreichter Mindestbeteiligung — für Sachanträge, nie für Mandatsfrage, Vertrauensfrage und Kandidatur. Er steht auf 0 und wird beim Einbringen eingefroren, damit eine Abstimmung vom ersten bis zum letzten Tag unter denselben Bedingungen läuft. Fassung 4 (29.9.2026, Anweisung des Gründers) erlaubt die Unterstützungsschwelle als Anteil der Stimmberechtigten: ein Prozentwert im Parameterregister, die bisherige Zahl bleibt als Mindestzahl. Gerechnet wird am Einbringungstag mit derselben Zählung wie der Nenner einer Abstimmung; die Zahl steht danach fest. Fassung 3 (15.9.2026) gibt der Ordnung drei Felder für die Vertrauensfrage: keine Beratungsphase, frühester Abstimmungsbeginn nach Einbringung, spätester nach Erreichen der Schwelle. Ihre Werte kommen aus der Satzung und werden beim Einbringen eingefroren; die Sammelfrist und die Abstimmungsdauer liest die Plattform dabei aus dem Register, nie über 30 und nie unter 7 Tagen (§ 7 Abs 10 lit k). Ältere Fassungen lesen die Vorgaben und verhalten sich unverändert. Fassung 2 (11.9.2026) nimmt Schwelle, Runden und Fristen der Entwurfsschleife in die eingefrorene Ordnung: Bis dahin las die Schleife sie live aus dem Register, und eine Registeränderung traf laufende Verfahren — gegen § 5 Abs 5. Zur ersten Fassung: Seit dem 5. September 2026 lassen sich Fristen und Schwellen im Parameterregister pflegen und daraus eine neue Fassung der Verfahrensordnung erzeugen. Erzeugen und In- Kraft-Setzen sind bewusst zwei Schritte, weil das eine eine Rechnung und das andere eine Entscheidung ist; und die Untergrenzen der Satzung bleiben im Programmtext statt im Register, damit die Verwaltung sie über eine Stellgröße nicht aushebeln kann."
+msgstr "Version 5 (0.51.0) includes the transitional rule of § 4 para 4 lit d in the frozen policy: whether the qualifying period is waived is taken from the instance setting at submission and applies until the procedure ends — for the eligible-voter count, checking each vote, applications, and confidence-question support rights. Previously the platform read the setting anew at every step; changing it during voting could have made the count and individual checks diverge. Older motions without this field read the value “applies”. There is also a switch for the trend during voting: 0 hides yes, no and abstention until the deadline; 1 shows them once minimum participation is reached — for substantive motions, never mandate questions, confidence questions or candidacies. It is set to 0 and frozen at submission so that the vote runs under the same conditions from first to last day. Version 4 (29 September 2026, founder's instruction) permits the support threshold as a share of eligible voters: a percentage in the parameter register, while the previous number remains the minimum. Calculation takes place on the submission date with the same count used as a vote's denominator; the number is then fixed. Version 3 (15 September 2026) gives the policy three fields for the confidence question: no deliberation phase, earliest voting start after submission, latest after reaching the threshold. Their values come from the statutes and are frozen at submission; the platform reads the support collection period and voting duration from the register at that point, never above 30 or below 7 days (§ 7 para 10 lit k). Older versions read the defaults and behave unchanged. Version 2 (11 September 2026) includes the drafting loop's threshold, rounds and periods in the frozen policy: previously the loop read them live from the register, so register changes affected ongoing procedures — contrary to § 5 para 5. On the first version: Since 5 September 2026, periods and thresholds can be maintained in the parameter register and used to generate a new version of the rules of procedure. Generation and enactment are deliberately separate steps: one is a calculation, the other a decision; statutory minimums remain in the program text rather than the register so that the administration cannot override them through a parameter."
+
+msgid "Fassungen anhängen; jede früher geschriebene bleibt stehen"
+msgstr "Append versions; every earlier version remains"
+
+msgid "Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was die Software heute davon kann — Fähigkeit für Fähigkeit mit ● verfügbar, ◐ teilweise oder ○ geplant, bei Geplantem mit dem Bauschritt. Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist. Die Matrix wählt nichts aus, reiht nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand."
+msgstr "Lists for each of the party's fourteen roles what the statutes require and what the software currently supports — ability by ability, marked ● available, ◐ partial or ○ planned, with a build step for planned items. In addition the municipal account without party membership, which is not a role under the statutes. The matrix selects nothing, orders nothing and grants no access; it describes the current state of the build."
+
+#, python-format
+msgid "Für diesen Vorschlag ist keine Abstimmung offen — derzeit ist keine Rolle in Gruppe 2 aktiv. Nach Ablauf der Prüffrist (%(frist)s) geht der Vorschlag ohne Prüfung an die Unterstützer — mit offengelegtem Vermerk."
+msgstr "No vote is open for this proposal — there is currently no active role in group 2. Once the review period has expired (%(frist)s), the proposal goes to the supporters without review — with a published note."
+
+msgid "Gemeindebezirk wählen ›"
+msgstr "Choose your Vienna district ›"
+
+msgid "Gemeindekonto bestätigen"
+msgstr "Confirm municipal account"
+
+msgid "Gemeldete Beiträge"
+msgstr "Reported posts"
+
+msgid "Gemeldete Beiträge sichten und entscheiden — ausblenden mit öffentlichem Grund oder keine Maßnahme; jede Entscheidung steht im Audit-Log"
+msgstr "Review reported contributions and decide — hide with a public reason or take no action; every decision is recorded in the audit log"
+
+msgid "Gestrichen — der Eintrag bleibt lesbar, lost aber nicht mehr mit."
+msgstr "Removed — the entry stays readable but no longer takes part in the draw."
+
+msgid "Gezählt wird je Antrag und Tag jeder erfolgreiche Abruf der Antragsseite durch einen Browser, auch der wiederholte; Suchmaschinen, Werkzeuge und Überwachungsdienste zählen nicht. Für jeden Antrag die Tageszahlen aller Tage zusammenzählen, absteigend ordnen, die ersten fünf zeigen. Die Seite nennt zu jedem der fünf die Summe."
+msgstr "Every successful view of a motion page by a browser is counted per motion and day, including repeated views; search engines, tools and monitoring services are not counted. For each motion add up the daily counts of all days, order from highest to lowest, and show the first five. The page states the total for each of the five."
+
+msgid "Grund (steht öffentlich beim Eintrag)"
+msgstr "Reason (shown publicly with the entry)"
+
+msgid "Heutige Mitglieder nach Beitrittsdatum (kumuliert)"
+msgstr "Current members by date of joining (cumulative)"
+
+msgid "Honorare (werden veröffentlicht; leer heißt „keine“)"
+msgstr "Fees (will be published; empty means “none”)"
+
+#, python-format
+msgid "Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung."
+msgstr "Your motion for %(gebiet)s has been submitted and is now gathering support."
+
+#, python-format
+msgid "Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung. Automatisch zugeordnet: %(namen)s."
+msgstr "Your motion for %(gebiet)s has been submitted and is now gathering support. Automatically assigned: %(namen)s."
+
+msgid "Ihr Konto hat heute schon einen Kontoabruf ausgelöst — diese Meldung ruft nicht erneut ab. Ihr Eingang wird beim nächsten Abgleich erkannt: morgen auf Ihre Meldung hin oder wenn die Verwaltung abgleicht."
+msgstr "Your account has already triggered a bank query today — this notice does not query again. Your payment will be recognised at the next reconciliation: tomorrow when you report it, or when the administration reconciles."
+
+msgid "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen."
+msgstr "Your account has no local assignment; the federal level is open to you."
+
+#, python-format
+msgid "Ihre Meldung vom %(am)s"
+msgstr "Your report of %(am)s"
+
+#, python-format
+msgid "Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (%(satzung)s).\nLesen und Anmelden bleiben selbstverständlich möglich — einbringen, unterstützen,\nberaten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist."
+msgstr "Your membership is paused because the membership fee is outstanding (%(satzung)s). Reading and signing in remain available, of course — you can submit, support, deliberate and vote again as soon as the fee has arrived."
+
+msgid "Im Gemeindebereich anmelden: E-Mail-Adresse, Hauptgemeinde und Geburtsdatum angeben und den Link in der E-Mail bestätigen. Das Geburtsdatum dient nur der Altersprüfung und wird nicht gespeichert. Alter und Hauptwohnsitz sind Selbstauskünfte; die bestätigte E-Mail-Adresse ist kein Identitäts- oder Meldenachweis. Mitgliedsnummer, Mitgliedsbeitrag und Mitgliedsausweis gibt es für dieses Konto nicht."
+msgstr "Register in the municipal area: enter e-mail address, primary municipality and date of birth, and confirm the link in the e-mail. The date of birth is used only for the age check and is not stored. Age and primary residence are self-declarations; the confirmed e-mail address is not proof of identity or of registered residence. This account has no membership number, membership fee or membership card."
+
+msgid "Interessenbindungen (werden veröffentlicht; leer heißt „keine“)"
+msgstr "Conflicts of interest (will be published; empty means “none”)"
+
+msgid "Ja, zurückziehen"
+msgstr "Yes, withdraw"
+
+msgid "Jede Stimme steht mit Namen und Begründung öffentlich"
+msgstr "Every vote is public with name and reasons"
+
+msgid "Jetzt anmelden"
+msgstr "Sign in now"
+
+msgid "Keine Maßnahme"
+msgstr "No action"
+
+msgid "Keine Rolle der Satzung und keine Parteimitgliedschaft: ein freiwilliger Zugang für Einwohnerinnen und Einwohner ab 16 Jahren mit Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit. Auf den Seiten der Partei gilt dieses Konto als Gast."
+msgstr "Not a role under the statutes and not party membership: a voluntary account for residents aged 16 or over with their primary residence in an Austrian municipality, regardless of nationality. On the party's pages this account is treated as a guest."
+
+msgid "Keine offenen Meldungen."
+msgstr "No open reports."
+
+#, python-format
+msgid "Kritik am Vorschlag braucht einen Absatzbezug und mindestens %(n)s Zeichen — so kann der Expertenrat damit arbeiten."
+msgstr "Criticism of the proposal needs a paragraph reference and at least %(n)s characters — that is what lets the expert council work with it."
+
+#, python-format
+msgid "Kritik braucht einen Textstellenbezug und mindestens %(n)s Zeichen — so kann der Expertenrat damit arbeiten."
+msgstr "Criticism needs a reference to a passage and at least %(n)s characters — that is what lets the expert council work with it."
+
+#, python-format
+msgid "Mandat „%(bezeichnung)s“ ist bereits beendet (seit %(datum)s)."
+msgstr "Mandate “%(bezeichnung)s” has already ended (since %(datum)s)."
+
+msgid "Mitmachen ohne Parteibeitritt: ein Gemeindekonto für Einwohner ab 16 mit Hauptwohnsitz in einer österreichischen Gemeinde."
+msgstr "Take part without joining the party: a municipal account for residents aged 16 and over with their main residence in an Austrian municipality."
+
+msgid "Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: Ja + Nein + Enthaltung durch die Zahl der Stimmberechtigten teilen — das muss mindestens die Mindestbeteiligung ergeben; dann genügt Ja > Nein (bei der Basis „abgegeben': Ja > die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen Verfahrensordnung, nicht aus dem laufenden Parameterregister. Als Kopfzahl: Stimmberechtigte mal Mindestbeteiligung, auf die nächste ganze Zahl aufgerundet — so viele Stimmen müssen mindestens abgegeben sein (5 % von 100 sind 5, von 20 ist es 1, von 21 sind es 2)."
+msgstr "After voting ends, each motion offers a JSON export of its vote list. By hand: divide yes + no + abstention by the number of eligible voters — this must at least meet minimum participation; then yes > no is sufficient (with the “cast” basis: yes > half of all votes cast). To have it calculated: `python3 verify/nachrechnen.py export.json`, a second, independent program using only the standard library. Minimum participation comes from the rules of procedure frozen on the motion, not from the current parameter register. As a head count: eligible voters times minimum participation, rounded up to the next whole number — at least that many votes must be cast (5 % of 100 is 5, of 20 it is 1, of 21 it is 2)."
+
+#, python-format
+msgid "Nicht eingetragen — %(name)s steht bereits auf der Fachliste (geführt oder gestrichen)."
+msgstr "Not entered — %(name)s is already on the expert roster (listed or removed)."
+
+msgid "Nicht eingetragen — ohne Einwilligung des Mitglieds steht niemand auf der Fachliste (§ 8 Abs 4)."
+msgstr "Not entered — nobody is put on the expert roster without the member's consent (§ 8 para. 4)."
+
+msgid "Noch unbesetzt."
+msgstr "Not yet filled."
+
+msgid "Parameter →"
+msgstr "Parameters →"
+
+msgid "Phasenbeginn plus die Frist aus der am Antrag eingefrorenen Verfahrensordnung ergibt das Fristende; in der Unterstützungsphase kommt der Vergleich der Unterstützungszahl mit der Schwelle dazu. Beide Zahlen stehen auf der Antragsseite, die geltenden Fristen im Eintrag „Eingefrorene Verfahrensordnung'. Bei einer Vertrauensfrage: Abstimmungsbeginn = der spätere von „Einbringung plus sieben Tage“ und „Schwelle erreicht“; die Antragsseite nennt beide Zeitpunkte."
+msgstr "Phase start plus the period in the motion's frozen rules of procedure gives the deadline; the support phase also compares support count with the threshold. Both figures appear on the motion page, and the applicable periods in the “Frozen rules of procedure” entry. For a confidence question: voting starts at the later of “submission plus seven days” and “threshold reached”; the motion page states both times."
+
+msgid "Profil gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."
+msgstr "Profile saved. Recorded participant circles remain unchanged."
+
+msgid "Quellenverwaltung →"
+msgstr "Source management →"
+
+msgid "Reihung „Meistgelesene Anträge“ der Übersicht"
+msgstr "Ordering of “Most-read motions” on the overview"
+
+msgid "Rollen in die sechs bestehenden Räte berufen, bestätigen und beenden"
+msgstr "Appoint, confirm and end roles in the six existing councils"
+
+msgid "Seit 0.52.0 (29.9.2026) rechnet die Plattform die Kette auch nach: täglich die neuen Einträge samt dem zuletzt geprüften, in einem Abstand aus dem Parameterregister die ganze Kette von vorn; Ergebnis und Hash des letzten geprüften Eintrags stehen öffentlich in den Kennzahlen . Bis dahin wurde die Kette geschrieben, aber nirgends geprüft. Sie steht seit dem Fundament so da und ist absichtlich in rund sechzig Zeilen erklärbar: „Jeder Eintrag versiegelt alle vorherigen' — statt eines Aufwands, den am Ende niemand nachprüfen würde."
+msgstr "Since 0.52.0 (29 September 2026) the platform also checks the chain: daily for new entries and the last checked entry, and from the beginning for the entire chain at intervals set in the parameter register; the result and hash of the last checked entry are public in the indicators. Previously the chain was written but never checked. This rule has been in place since the foundation and is deliberately explainable in about sixty lines: “Each entry seals all preceding entries” — rather than effort that nobody would ultimately verify."
+
+#, python-format
+msgid "Seitenaufrufe heute · %(besucher)s Besuche heute · %(woche)s Aufrufe in 7 Tagen"
+msgstr "page views today · %(besucher)s visits today · %(woche)s views in 7 days"
+
+msgid "Solange über die Einreichung abgestimmt wird, ruht der Vollzugsbezug."
+msgstr "While the submission is being voted on, the execution relevance cannot be changed."
+
+msgid "Streichen"
+msgstr "Remove"
+
+#, python-format
+msgid "Teilnehmerkreis vom %(am)s"
+msgstr "Participant circle of %(am)s"
+
+msgid "Testkonten können keinen Gemeindezugang führen."
+msgstr "Test accounts cannot hold municipal access."
+
+msgid "Trägt die Verfahrensregeln eines Antrags: Unterstützungsschwelle, Fristen, Mindestbeteiligung und Mehrheitsbasis. Beim Einbringen wird die dann geltende Fassung als unveränderliche Kopie an den Antrag geheftet, damit eine spätere Änderung ein laufendes Verfahren nicht mehr erreicht. Jede Fassung, die die satzungsfesten Untergrenzen unterschreitet — Beratung mindestens 21 Tage, Abstimmung mindestens 7 Tage, Beteiligung mindestens 5 Prozent —, wird zurückgewiesen. Seit Fassung 2 gehören auch die Fristen, Runden und die Annahme-Schwelle der Entwurfsschleife (§ 5 Abs 12) zur Ordnung; die Fristen der Unterstützer und des Expertenrats dürfen 14 Tage nicht überschreiten. Seit Fassung 3 kann eine Ordnung ohne Beratungsphase auskommen und den frühesten und spätesten Abstimmungsbeginn tragen — die Vertrauensfrage nach § 7 Abs 10; nur dort darf die Unterstützungsschwelle 0 sein (Bestätigungsantrag). Seit Fassung 4 kann die Unterstützungsschwelle ein Anteil der am Einbringungstag Stimmberechtigten sein; die daraus gerechnete Zahl wird samt Grundgesamtheit und Mindestzahl am Antrag eingefroren. Seit Fassung 5 hält die Ordnung auch fest, ob die Übergangsregel des § 4 Abs 4 lit d für den Antrag gilt, und ob ein Sachantrag während der Abstimmung die Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist (Voreinstellung: verdeckt bis Fristende)."
+msgstr "Carries a motion's procedural rules: support threshold, periods, minimum participation and majority basis. At submission, the applicable version is attached as an immutable copy so that later changes cannot affect an ongoing procedure. Any version below the statutory minimums — at least 21 days for deliberation, 7 days for voting, 5 percent participation — is rejected. Since version 2 the drafting loop's periods, rounds and acceptance threshold (§ 5 para 12) are also included; the supporters' and Expert Council's periods must not exceed 14 days. Since version 3 a policy can omit deliberation and carry the earliest and latest voting start — the confidence question under § 7 para 10; only there may the support threshold be 0 (confirmation motion). Since version 4 the support threshold can be a share of those eligible to vote on the submission date; the calculated number is frozen on the motion along with the base population and minimum count. Since version 5 the policy also records whether the transitional rule of § 4 para 4 lit d applies to the motion, and whether a substantive motion shows the trend during voting once minimum participation is reached (default: hidden until the deadline)."
+
+#, python-format
+msgid "Unbekannter Umsetzungsstand: „%(stand)s“."
+msgstr "Unknown implementation status: “%(stand)s”."
+
+msgid "Verfahren Ihrer Region ›"
+msgstr "Procedures in your region ›"
+
+msgid "Vorschlag mit veröffentlichter Begründung zurückgeben"
+msgstr "Return a proposal with published reasons"
+
+msgid "Was dieses Konto nicht darf: einen Antrag einbringen oder unterstützen, abstimmen, für ein Mandat kandidieren, im Chat eines Antrags oder einer Sitzung schreiben, Beiträge melden, Favoriten setzen — nichts, was auf den Seiten der Partei schreibt; solche Vorgänge werden abgewiesen. In keiner Zählung der Stimmberechtigten kommt es vor. Mitglieder der Partei können denselben Gemeindezugang mit ihrem bestehenden Konto ergänzen. Der Beitritt zur Partei mit einem bestehenden Gemeindekonto ist noch nicht gebaut."
+msgstr "What this account may not do: submit or support a motion, vote, stand for a mandate, write in the chat of a motion or a session, report contributions, set favourites — nothing that writes on the party's pages; such requests are rejected. It appears in no count of eligible voters. Party members can add the same municipal access to their existing account. Joining the party with an existing municipal account has not been built yet."
+
+msgid "Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 aus derselben Fachliste nachgelost, sobald Gruppe 1 den Vollzugs- oder Beschaffungsbezug setzt — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt. Reicht der Lostopf nicht, prüfen die parteiweit berufenen Mitglieder der Gruppe 2; deren Rolle trägt die Verwaltung ein. Die Fachliste selbst führt die Verwaltung."
+msgstr "As for Group 1 — with the requirement that the two groups must be appointed independently (§ 6 para 7): those who developed the proposal do not review it. Today Group 2 is drawn from the same expert list as soon as Group 1 sets implementation or procurement relevance — from the remaining pool, so that nobody sits in both groups. If the pool is too small, the members appointed to Group 2 for the whole party review; the administration records their role. The administration also maintains the expert list itself."
+
+msgid "Wie viele Anstöße eine Person (Sitzung im Browser) am Tag senden kann. Derselbe Wert begrenzt zusätzlich die Anstöße je Verbindung und Stunde — alle, die sich eine Adresse teilen, teilen sich auch diese Grenze, auch ohne Sitzungscookie. Wirkt sofort."
+msgstr "How many messages a person (browser session) can send per day. The same value also limits the messages per connection and hour — everyone sharing an address also shares this limit, even without a session cookie. Takes effect immediately."
+
+msgid "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort wirkt ein Wert unter 1 wie 1. Wirkt sofort."
+msgstr "How many hits the search in the areas-of-life fan shows at most. The same value is the page size of the municipality search and of the public lists of municipal mandates: council initiatives, project updates, budget links and session documents; there a value below 1 acts as 1. Takes effect immediately."
+
+#, python-format
+msgid "Wortvergleich: ohne Modell, nachrechenbar (<a href=\"%(regel)s\">Regelverzeichnis</a>). Ähnliche Anträge sind gereiht nach dem höheren der beiden Werte, bei Gleichstand der ältere zuerst."
+msgstr "Word comparison: without a model, recomputable (<a href=\"%(regel)s\">rule register</a>). Similar motions are ranked by the higher of the two values, the older one first in a tie."
+
+msgid "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis."
+msgstr "Choose your main residence from the municipality directory in your profile."
+
+msgid "Zeigt auf der Übersichtsseite die fünf Anträge mit den meisten gezählten Aufrufen ihrer Antragsseite. Die Liste wirkt auf kein Verfahren und hebt im Parlament nichts hervor; sie reiht nach Aufmerksamkeit und steht deshalb hier."
+msgstr "Shows on the overview page the five motions whose motion pages have the most counted views. The list affects no procedure and highlights nothing in the parliament; it orders by attention and is therefore listed here."
+
+msgid "Zeitspalte weicht von der versiegelten Zeit ab"
+msgstr "time column differs from the sealed time"
+
+#, python-format
+msgid "Zu viele Datenexporte in dieser Stunde — bitte ab %(zeit)s Uhr erneut."
+msgstr "Too many data exports this hour — please try again from %(zeit)s."
+
+#, python-format
+msgid "Zu viele Versuche von dieser Verbindung — bitte ab %(zeit)s Uhr erneut."
+msgstr "Too many attempts from this connection — please try again from %(zeit)s."
+
+msgid "Zum Rechtsfolgenbericht am Antrag →"
+msgstr "To the legal-consequences report on the motion →"
+
+msgid "Zur Gemeinde →"
+msgstr "To the municipality →"
+
+msgid "Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen gleich viele Zustimmungen, ist die früher eingereichte gewählt."
+msgstr "Counts a mandate candidacy vote: each member may approve several applicants; the applicant with the most approvals wins, and the approval counts determine the order of the election nomination list. Ties are resolved in favour of the earlier application. This also applies at the top: if two applications have the same number of approvals, the earlier one is elected."
+
+msgid "alle stimmberechtigten Mitglieder; kein örtlicher Kreis."
+msgstr "all members entitled to vote; no local circle."
+
+msgid "auf der Übersicht der Gemeinde"
+msgstr "on the municipality's overview"
+
+msgid "auf jeder Seite unter „Anstoß geben“, in der Kopfleiste oder unten rechts"
+msgstr "on every page under “Give feedback”, in the top bar or at the bottom right"
+
+#, python-format
+msgid "beim Parteischiedsgericht seit %(d)s"
+msgstr "before the party arbitration tribunal since %(d)s"
+
+msgid "bereits ausgeblendet"
+msgstr "already hidden"
+
+msgid "einem eigenen Bauschritt; Teilnehmerkreis, Stichtage und Personenprüfung sind noch nicht festgelegt"
+msgstr "a separate build step; the circle of participants, reference dates and the verification of persons have not yet been defined"
+
+msgid "entschieden: ausgeblendet"
+msgstr "decided: hidden"
+
+msgid "entschieden: keine Maßnahme"
+msgstr "decided: no action"
+
+msgid "in der Verwaltung, Liste der offenen Meldungen"
+msgstr "in the administration, list of open reports"
+
+msgid "liegt der Verwaltung vor"
+msgstr "is with the administration"
+
+msgid "ohne Ergebnis"
+msgstr "no result"
+
+msgid "vom Verfasser entfernt"
+msgstr "removed by the author"
+
+msgid "vorzeitig beendet"
+msgstr "ended early"
+
+msgid "zurückgezogen"
+msgstr "withdrawn"
+
+msgid "§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind Expertenrat 1 und 2, Koordinationsrat, Integritätsrat, Technischer Entwicklungsrat sowie Integrations- und Berichtswesenrat; den Supportrat kennt die Plattform nicht."
+msgstr "§ 6 para 8 separates appointment (Coordination Council) and confirmation (members' assembly); today both lie in one hand, with confirmation as a checkbox in a form. Expert Council 1 and 2, the Coordination Council, the Integrity Council, the Technical Development Council and the Integration and Reporting Council can be staffed; the platform does not know the Support Council."
+
+msgid "Ältere ›"
+msgstr "Older ›"
+
+msgid "Änderung vom 29.9.2026 (0.51.0), an den Eingaben, nicht an der Rechnung: Gezählt wird der Stand zum Fristende (§ 5 Abs 13: „bis zum Fristende“). Eine Reaktion ab dem Fristende wird abgewiesen, auch wenn noch nicht ausgewertet ist; zurückgenommene oder gewechselte Reaktionen bleiben gespeichert, zählen aber nicht mehr. Die Schwelle kommt aus der eingefrorenen Ordnung des Antrags, nicht aus dem heutigen Parameterregister (§ 5 Abs 5); Chat, Entwurfsfenster und Archiv zeigen sie an. Eine abgeschlossene Runde zeigt das Archiv mit den Zahlen zu ihrem Fristende. Erste Fassung (4.9.2026): Bis dahin klickten die Unterstützer ein Formular „annehmen / mit Wunsch zurückgeben“ an. Seither wird diese Entscheidung offen als Gespräch geführt, und eine Kritik zählt nur als Änderungswunsch, wenn sie sich auf einen benannten Absatz des Vorschlags bezieht."
+msgstr "Change of 29 September 2026 (0.51.0), to the inputs, not the calculation: the state at the deadline is counted (§ 5 para 13: “until the deadline”). Reactions at or after the deadline are rejected even before evaluation; withdrawn or changed reactions remain stored but no longer count. The threshold comes from the motion's frozen policy, not today's parameter register (§ 5 para 5); chat, drafting window and archive display it. For a completed round, the archive shows the figures at its deadline. First version (4 September 2026): previously supporters clicked a form for “accept / return with a request”. Since then this decision has taken place openly as a conversation, and criticism counts as a request for changes only if it refers to a specified paragraph of the proposal."
+
+msgid "Öffentliche Sprechstunden der Mandatare in der Gemeinde sehen"
+msgstr "See public office hours of the mandate holders in the municipality"
+
+msgid "Öffentlicher Grund"
+msgstr "Public reason"
+
+msgid "Über die Einreichung als Gruppe abstimmen — Beschluss mit Nummer, Frist und Quorum; jede Stimme steht mit Namen auf der öffentlichen Beschlussliste"
+msgstr "Vote as a group on submission — a decision with number, deadline and quorum; every vote appears with name on the public decision list"
+
+msgid "Über die Meldungen zu diesem Beitrag ist schon entschieden."
+msgstr "The reports on this post have already been decided."
+
+msgid "Über diese Verbindung kamen in der letzten Stunde schon viele Anstöße — bitte später noch einmal versuchen."
+msgstr "Many messages have already come through this connection in the last hour — please try again later."
+
+#, python-format
+msgid "„%(schluessel)s“ ist ein Versionsschild und wird hier nicht eingestellt — der Wert bleibt unverändert."
+msgstr "“%(schluessel)s” is a version label and is not set here — the value stays unchanged."
+
+#, python-format
+msgid "„%(schluessel)s“ nimmt nur ganze Zahlen ab %(unten)s — der Wert bleibt unverändert."
+msgstr "“%(schluessel)s” only accepts whole numbers from %(unten)s — the value stays unchanged."
+
+#, python-format
+msgid "„%(schluessel)s“ nimmt nur ganze Zahlen von %(unten)s bis %(oben)s — der Wert bleibt unverändert."
+msgstr "“%(schluessel)s” only accepts whole numbers from %(unten)s to %(oben)s — the value stays unchanged."
+
+msgid "‹ Neuere"
+msgstr "‹ Newer"

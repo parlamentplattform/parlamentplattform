@@ -204,3 +204,114 @@ def test_die_schwelle_wird_nicht_auf_eine_beschlussfrist_zurueckdatiert(client, 
     beschluss.refresh_from_db()
     assert beschluss.status != BeschlussStatus.OFFEN and beschluss.entschieden_am == frist
     assert antrag.phase == 'beratung' and antrag.phase_beginn >= vorher
+
+
+# --- GP-004, Gegenrichtung: Auch Gremienseite und letzte Stimme schreiben den Antrag zuerst fort ---
+
+
+def _ir_beschluss_nach_dem_abstimmungsende(client, ordnung, anlass=Anlass.ZURUECKWEISUNG):  # noqa: F811
+    """Wie `ir_beschluss_zwei_von_drei`, aber die Beschlussfrist liegt NACH dem Abstimmungsende — und beide
+    Fristen sind um, ohne dass jemand die Antragsseite geöffnet hat: Der Antrag steht noch auf „abstimmung“."""
+    antrag, beschluss, ende = ir_beschluss_zwei_von_drei(client, ordnung, anlass)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=ende + T(days=1))
+    verschub = ende + T(days=2) - timezone.now()
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=antrag.phase_beginn - verschub)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=ende + T(days=1) - verschub)
+    antrag.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert antrag.phase == 'abstimmung'  # veralteter Stand: die Abstimmung ist seit zwei Tagen um
+    return antrag, beschluss
+
+
+def test_die_gremienseite_schreibt_den_antrag_vor_der_wirkung_fort(client, ordnung):  # noqa: F811
+    """GP-004, Gegenrichtung: Schloss eine Gremienseite den Beschluss, traf die Zurückweisung den veralteten
+    Stand „abstimmung“ — und nahm einem Antrag, dessen Abstimmung vor der Beschlussfrist geendet hatte, das
+    Ergebnis. Jetzt reiht auch dieser Weg nach Sollzeit: erst das Ergebnis, dann der Beschluss ohne Wirkung."""
+    antrag, beschluss = _ir_beschluss_nach_dem_abstimmungsende(client, ordnung)
+    client.logout()
+    assert client.get(reverse('gremien:beschluesse')).status_code == 200  # ruft faellige_abschliessen
+    antrag.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.entschieden_am == beschluss.frist
+    assert antrag.phase in ('angenommen', 'abgelehnt')
+    assert beschluss.zustand_vorher is None and 'Ohne Wirkung' in beschluss.umsetzungsvermerk
+
+
+def test_der_sammellauf_zaehlt_den_ueber_den_antrag_geschlossenen_beschluss(client, ordnung):  # noqa: F811
+    """Derselbe Fall über den Sammellauf selbst: Er meldet den Beschluss als geschlossen, genau einmal
+    ausgewertet — und endet wie die Antragsseite (`test_die_antragsseite_wendet_dieselbe_reihenfolge_an`)."""
+    antrag, beschluss = _ir_beschluss_nach_dem_abstimmungsende(client, ordnung)
+    assert GremienBeschluss.faellige_abschliessen() == 1
+    antrag.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert antrag.phase in ('angenommen', 'abgelehnt') and beschluss.zustand_vorher is None
+    ausgewertet = [
+        e.ereignis for e in AuditEintrag.objects.all()
+        if e.ereignis['typ'] == 'gremienbeschluss_ausgewertet' and e.ereignis['beschluss'] == beschluss.pk
+    ]
+    assert len(ausgewertet) == 1
+    assert GremienBeschluss.faellige_abschliessen() == 0
+
+
+def test_die_einzelseite_des_beschlusses_schreibt_den_antrag_vor_der_wirkung_fort(client, ordnung):  # noqa: F811
+    antrag, beschluss = _ir_beschluss_nach_dem_abstimmungsende(client, ordnung)
+    client.logout()
+    assert client.get(reverse('gremien:beschluss', args=[beschluss.nummer])).status_code == 200
+    antrag.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert antrag.phase in ('angenommen', 'abgelehnt') and beschluss.zustand_vorher is None
+
+
+def test_die_gremienseite_laesst_einen_beschluss_vor_dem_abstimmungsende_wirken(client, ordnung):  # noqa: F811
+    """Gegenprobe: Liegt die Beschlussfrist VOR dem Abstimmungsende, wirkt die Zurückweisung zur Frist
+    auf die laufende Abstimmung — auch über die Gremienseite, auch nach einem Stillstand."""
+    antrag, beschluss, ende = ir_beschluss_zwei_von_drei(client, ordnung, Anlass.ZURUECKWEISUNG)
+    verschub = ende + T(days=1) - timezone.now()
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=antrag.phase_beginn - verschub)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=beschluss.frist - verschub)
+    client.logout()
+    client.get(reverse('gremien:beschluesse'))
+    antrag.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert antrag.phase == 'zurueckgewiesen' and antrag.phase_beginn == beschluss.frist
+    assert beschluss.zustand_vorher['phase'] == 'abstimmung'
+
+
+def test_die_letzte_stimme_schreibt_den_antrag_vor_der_wirkung_fort(client, ordnung):  # noqa: F811
+    """GP-004, Gegenrichtung: Schließt die letzte Stimme den Beschluss, galt für die Wirkung der Stand, den
+    der Antrag beim letzten Seitenaufruf hatte. Eine Einreichung NACH dem Beratungsende wurde so wirksam,
+    weil der Antrag noch auf „beratung“ stand. Jetzt wie beim Wächter
+    (`test_einreichung_nach_dem_beratungsende_bleibt_verworfen`): erst der Phasenübergang, dann der Beschluss."""
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=timezone.now() - T(days=20))
+    antrag.refresh_from_db()
+    fenster_oeffnen(client, antrag, er[0])
+    client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'einreichung'})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag)
+    stimmen(client, beschluss, er[:1], interessenbindung='keine')
+    assert beschluss.status == BeschlussStatus.OFFEN
+    # Zeitraffer: Die Beratung ist seit einem Tag um; niemand hat seither den Antrag geöffnet.
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=antrag.phase_beginn - T(days=2))
+    antrag.refresh_from_db()
+    ende = antrag.phase_beginn + T(days=antrag.policy().beratung_tage)
+    assert antrag.phase == 'beratung' and ende < timezone.now() < beschluss.frist
+    stimmen(client, beschluss, er[1:], interessenbindung='keine')  # die letzte Stimme schließt
+    antrag.refresh_from_db()
+    entwurf = Entwurf.objects.get(antrag=antrag)
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == 'dafuer'
+    assert antrag.phase == 'abstimmung' and antrag.phase_beginn == ende
+    assert 'Nicht eingereicht' in beschluss.umsetzungsvermerk
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.eingereicht_am is None
+
+
+def test_die_letzte_stimme_vor_dem_beratungsende_reicht_weiter_ein(client, ordnung):  # noqa: F811
+    """Gegenprobe: Läuft die Beratung noch, reicht die letzte Stimme ein wie bisher."""
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    fenster_oeffnen(client, antrag, er[0])
+    client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'einreichung'})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag)
+    stimmen(client, beschluss, er, interessenbindung='keine')
+    antrag.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and 'Eingereicht' in beschluss.umsetzungsvermerk
+    assert antrag.phase == 'beratung'
+    assert Entwurf.objects.get(antrag=antrag).status == EntwurfsStatus.UNTERSTUETZER

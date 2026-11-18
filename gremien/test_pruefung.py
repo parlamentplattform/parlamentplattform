@@ -611,8 +611,9 @@ def test_ein_austauschbeschluss_ohne_ergebnis_zur_frist_verfristet(client, ordnu
 
 
 def test_ein_von_der_gremienseite_geschlossener_austauschbeschluss_ohne_ergebnis_verfristet_ebenso(client, ordnung):  # noqa: F811
-    """GP-010: Auch wenn nicht der Antrag, sondern der Sammellauf der Gremienseiten den Beschluss zur Frist
-    schließt, bleibt der Entscheid leer — die nächste Fortschreibung des Antrags verfristet ihn."""
+    """GP-010: Auch wenn nicht die Antragsseite, sondern der Sammellauf der Gremienseiten den Beschluss zur
+    Frist schließt, steht nie „ohne Ergebnis“ am Antrag. Der Sammellauf schreibt den Antrag mit fort
+    (GP-004, Gegenrichtung) — der Austauschantrag ist danach verfristet, der Vorschlag bei den Unterstützern."""
     from gremien.models import Anlass, GremienBeschluss
 
     antrag, entwurf, er, korat = korat_lage(client, ordnung)
@@ -629,11 +630,37 @@ def test_ein_von_der_gremienseite_geschlossener_austauschbeschluss_ohne_ergebnis
     Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=pruefung.erstellt_am - versatz)
     GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=beschluss.frist - versatz)
     assert GremienBeschluss.faellige_abschliessen() == 1
-    pruefung.refresh_from_db()
-    assert pruefung.korat_entscheid == ''
-    antrag.refresh_from_db()
-    antrag.fortschreiben_bis_zum_stand()
+    beschluss.refresh_from_db()
     pruefung.refresh_from_db()
     entwurf.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OHNE_ERGEBNIS and 'verfristet' in beschluss.umsetzungsvermerk
     assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert entwurf.review_frist == pruefung.austausch_frist + timedelta(days=antrag.policy().review_tage)
+
+
+def test_ohne_ergebnis_zur_frist_laesst_die_wirkung_den_entscheid_leer(client, ordnung):  # noqa: F811
+    """GP-010, die Wirkung für sich: Schließt der Beschluss zur Verfristung ohne Ergebnis, schreibt
+    `austausch_wirkung` keinen Entscheid und keinen Audit-Eintrag „austausch_entschieden“ — nur den Vermerk."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    zweite = mitglied_anlegen('koordinator2')
+    rolle_geben(zweite, Gremium.KOORDINATIONSRAT)
+    pruefung = entwurf.pruefungen.get()
+    client.force_login(korat)
+    client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Prüfen wir.'},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    versatz = timedelta(days=antrag.policy().pruefung_tage, hours=1)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=pruefung.erstellt_am - versatz)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=beschluss.frist - versatz)
+    beschluss.refresh_from_db()
+    assert beschluss.abschliessen(aus_fortschreibung=True) is True  # nur der Beschluss, ohne den Antrag
+    pruefung.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert pruefung.korat_entscheid == '' and entwurf.status == EntwurfsStatus.PRUEFUNG
+    assert 'verfristet' in beschluss.umsetzungsvermerk
+    assert not [e for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'austausch_entschieden']

@@ -784,7 +784,8 @@ class Entwurf(models.Model):
             if vorlauf:
                 return False  # Beschlüsse reiht die Fortschreibung des Antrags nach ihrer Frist ein
             for beschluss in offene:
-                if beschluss.abschliessen(jetzt):
+                # Der Antrag schreibt gerade selbst fort — kein zweiter Vorlauf (GP-004).
+                if beschluss.abschliessen(jetzt, aus_fortschreibung=True):
                     self.refresh_from_db()
                     return True
             return False
@@ -1297,7 +1298,7 @@ class GremienBeschluss(models.Model):
         return bool(personen) and self.stimmen.filter(mitglied_id__in=personen).count() >= len(personen)
 
     @transaction.atomic
-    def abschliessen(self, jetzt=None) -> bool:
+    def abschliessen(self, jetzt=None, aus_fortschreibung: bool = False) -> bool:
         """Wertet aus und schreibt das Ergebnis fest. Gibt zurück, ob sich etwas geändert hat.
 
         Ein Beschluss schließt aus zwei Gründen: Alle haben gestimmt, oder die Frist ist um.
@@ -1307,13 +1308,32 @@ class GremienBeschluss(models.Model):
         Der Status zählt, wie er unter Zeilensperre in der Datenbank steht, nicht wie ihn das
         Objekt im Speicher kennt: Wächter, Gremienseiten, Stimmabgabe und Antragsseite schließen
         aus verschiedenen Workern — ohne die Sperre wandte ein veraltetes Objekt die Wirkung ein
-        zweites Mal an und schrieb die Auswertung zweimal in die Audit-Kette."""
+        zweites Mal an und schrieb die Auswertung zweimal in die Audit-Kette.
+
+        Ein Beschluss zu einem Antrag wirkt auf dessen Stand zum Beschlusszeitpunkt (Gesamtprüfung
+        GP-004, Gegenrichtung): Schließen ihn eine Gremienseite oder die letzte Stimme, schreibt
+        zuerst der Antrag fort — sonst träfe die Wirkung den Stand des letzten Seitenaufrufs (eine
+        Zurückweisung nähme einem inzwischen ausgezählten Antrag das Ergebnis, eine Einreichung
+        gälte nach dem Beratungsende). `Antrag.fortschreiben` reiht dabei alle fälligen Beschlüsse
+        nach ihrer Frist ein, auch diesen; es ruft mit `aus_fortschreibung` zurück."""
         if self.status != BeschlussStatus.OFFEN:
             return False
+        jetzt = jetzt or timezone.now()
+        if self.antrag_id and not aus_fortschreibung:
+            # Reihenfolge der Sperren wie in `Antrag.fortschreiben`: erst der Antrag, dann der Beschluss.
+            antrag = Antrag.objects.select_for_update().get(pk=self.antrag_id)
+            if not type(self).objects.filter(pk=self.pk, status=BeschlussStatus.OFFEN).exists():
+                self.refresh_from_db()
+                return False
+            if (self.frist is not None and jetzt >= self.frist) or self.alle_haben_gestimmt():
+                antrag.fortschreiben_bis_zum_stand(jetzt)
+                # Frisch lesen — auch Antrag und Entwurf, die das Objekt zwischengespeichert hat.
+                self.refresh_from_db()
+                if self.status != BeschlussStatus.OFFEN:
+                    return True  # die Fortschreibung des Antrags hat ihn zu seiner Frist geschlossen
         if type(self).objects.select_for_update().get(pk=self.pk).status != BeschlussStatus.OFFEN:
             self.refresh_from_db()
             return False
-        jetzt = jetzt or timezone.now()
         frist_um = self.frist is not None and jetzt >= self.frist
         if not (frist_um or self.alle_haben_gestimmt()):
             return False
@@ -1382,7 +1402,7 @@ class GremienBeschluss(models.Model):
                 if beschluss is None:
                     offen = cls.objects.filter(pk=beschluss_id, status=BeschlussStatus.OFFEN).exists()
                     return "gesperrt" if offen else "erledigt"
-                return "geschlossen" if beschluss.abschliessen(jetzt) else "erledigt"
+                return "geschlossen" if beschluss.abschliessen(jetzt, aus_fortschreibung=True) else "erledigt"
         except Exception:
             log.exception("Auswertung von Beschluss %s in der Fortschreibung gescheitert", beschluss_id)
             return "fehler"
@@ -1398,16 +1418,20 @@ class GremienBeschluss(models.Model):
         # Je Beschluss eine eigene kurze Transaktion: Eine für den ganzen Stapel hielt die
         # Audit-Einträge des ersten bis zum Ende offen (Verklemmung mit einer Antragsseite) und
         # rollte bei einem einzigen werfenden Beschluss alle anderen mit zurück.
+        #
+        # Ein Beschluss zu einem Antrag sperrt zuerst den Antrag und dann sich selbst (`abschliessen`,
+        # GP-004) — hier vorab die eigene Zeile zu sperren, kehrte die Reihenfolge um und verklemmte
+        # sich mit einer Antragsseite. Die Reihenfolge der Beschlüsse eines Antrags untereinander
+        # bestimmt dessen Fortschreibung (nach Frist).
         faellige = list(
-            cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).values_list("pk", flat=True)
+            cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).values_list("pk", "antrag_id")
         )
-        for pk in faellige:
+        for pk, antrag_id in faellige:
             with transaction.atomic():
-                beschluss = (
-                    cls.objects.select_for_update(skip_locked=True)
-                    .filter(pk=pk, status=BeschlussStatus.OFFEN)
-                    .first()
-                )
+                zeilen = cls.objects.filter(pk=pk, status=BeschlussStatus.OFFEN)
+                if antrag_id is None:
+                    zeilen = zeilen.select_for_update(skip_locked=True)
+                beschluss = zeilen.first()
                 if beschluss is not None:
                     geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen

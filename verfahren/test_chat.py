@@ -700,3 +700,35 @@ def test_gp014_meldung_aus_dem_sitzungschat_auch_nach_dem_ende(client):
     seite = client.get(reverse('mandatare:live', args=[mandat.pk]) + f'?sitzung={sitzung.pk}').content.decode()
     assert 'Unwahre Behauptung über Dritte.' not in seite
     assert 'von der Verwaltung ausgeblendet: Rechtswidriger Inhalt' in seite
+
+
+# ── Abstimmungs-Chat: Ändern und Zurückziehen einer Kritik (GP-015) ──────────
+
+
+def test_gp015_kritik_aendern_prueft_die_mindestlaenge_und_ist_auditiert(client, ordnung):  # noqa: F811
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    einreichen(client, antrag, raete)
+    lang = 'Der zweite Absatz lässt die Ausschüsse aus; sie gehören ausdrücklich in den ersten Absatz des Vorschlags.'
+    client.force_login(unterstuetzer[0])
+    client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': lang, 'ist_kritik': '1', 'bezug_absatz': '1'})
+    kritik = Kommentar.objects.get(antrag=antrag, ist_kritik=True)
+    bearbeiten = reverse('verfahren:beitrag_bearbeiten', args=[antrag.pk, kritik.pk])
+    vorher = AuditEintrag.objects.count()
+    client.post(bearbeiten, {'text': 'Alles bestens.'})
+    kritik.refresh_from_db()
+    assert kritik.text == lang and kritik.bearbeitet_am is None  # zu kurz für eine Kritik
+    assert AuditEintrag.objects.count() == vorher
+    neu = lang + ' Ebenso fehlt die Frist.'
+    client.post(bearbeiten, {'text': neu})
+    kritik.refresh_from_db()
+    assert kritik.text == neu
+    assert AuditEintrag.objects.count() == vorher + 1
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_geaendert' and ereignis['beitrag'] == kritik.pk
+    assert not {'text', 'mitglied', 'durch'} & set(ereignis)
+    client.post(reverse('verfahren:beitrag_entfernen', args=[antrag.pk, kritik.pk]))
+    assert AuditEintrag.objects.count() == vorher + 2
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_zurueckgezogen' and ereignis['beitrag'] == kritik.pk

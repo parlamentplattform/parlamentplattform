@@ -581,10 +581,29 @@ def beitrag_bearbeiten(request, pk, beitrag_pk):
     if not text:
         messages.error(request, _("Bitte einen Text eingeben."))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    if beitrag.ist_kritik:
+        # Beim Ändern gilt dieselbe Mindestlänge wie beim Schreiben (GP-015, § 5 Abs 13)
+        from verfahren.chat import kritik_mindestzeichen
+
+        if len(text) < kritik_mindestzeichen():
+            messages.error(request, _(
+                "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
+                "so kann der Expertenrat damit arbeiten."
+            ))
+            return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     beitrag.text = text
     beitrag.bearbeitet_am = timezone.now()
-    beitrag.save(update_fields=["text", "bearbeitet_am"])
+    with transaction.atomic():
+        beitrag.save(update_fields=["text", "bearbeitet_am"])
+        _abstimmungschat_auditieren(beitrag, "beitrag_geaendert")
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+def _abstimmungschat_auditieren(beitrag, typ: str) -> None:
+    """Im Abstimmungs-Chat zählen Beiträge für die Entscheidung der Unterstützer (§ 5 Abs 13):
+    Ändern und Zurückziehen stehen deshalb im Audit — ohne Text und ohne Person (GP-015)."""
+    if (beitrag.phase or "").startswith("vorschlag-"):
+        AuditEintrag.anhaengen({"typ": typ, "antrag": beitrag.antrag_id, "beitrag": beitrag.pk})
 
 
 @login_required
@@ -598,7 +617,9 @@ def beitrag_entfernen(request, pk, beitrag_pk):
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     if not beitrag.geloescht:
         beitrag.geloescht = True
-        beitrag.save(update_fields=["geloescht"])
+        with transaction.atomic():
+            beitrag.save(update_fields=["geloescht"])
+            _abstimmungschat_auditieren(beitrag, "beitrag_zurueckgezogen")
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
 
 

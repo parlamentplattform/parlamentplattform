@@ -534,11 +534,20 @@ def verwaltung_ordnung_inkraft(request):
     if fassung.aktiv:
         messages.info(request, _("Fassung %(version)s gilt bereits.") % {"version": fassung.version})
         return redirect("parameter:verwaltung")
+    # GP-127: Eine abgelöste Fassung kehrt nicht über ein Formular zurück — die Seite bietet nur
+    # jüngere an, und ein Beschlussdatum wird nie überschrieben.
+    if vorher is not None and fassung.version <= vorher.version:
+        messages.error(
+            request,
+            _("Fassung %(version)s ist nicht jünger als die geltende Fassung %(geltend)s — nichts geändert.")
+            % {"version": fassung.version, "geltend": vorher.version},
+        )
+        return redirect("parameter:verwaltung")
     # Alle geltenden Fassungen abloesen, nicht nur die mit derselben Kennung: Das Einbringen
     # nimmt die aktive Ordnung ohne Rücksicht auf den Namen — zwei aktive wären ein Zufall.
     Verfahrensordnung.objects.filter(aktiv=True).update(aktiv=False)
     fassung.aktiv = True
-    fassung.beschlossen_am = timezone.now()
+    fassung.beschlossen_am = fassung.beschlossen_am or timezone.now()
     fassung.save(update_fields=["aktiv", "beschlossen_am"])
     AuditEintrag.anhaengen(
         {

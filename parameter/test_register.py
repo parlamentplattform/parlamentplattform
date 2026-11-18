@@ -523,3 +523,23 @@ def test_schema_beschreibt_zurueckgenommene_zustimmungen_ohne_zeitpunkt():
     zeile = next(z for z in _schema_dokument().splitlines() if z.startswith("| `/antrag/<id>/export.json`"))
     assert "`zustimmungen`" in zeile and "`zurueckgenommen`" in zeile
     assert "zurueckgenommen_am" not in zeile
+
+
+def test_eine_aeltere_fassung_laesst_sich_nicht_wieder_in_kraft_setzen(client, ordnung):  # noqa: F811
+    """GP-127 (RVA-11): Per Formulardaten ließ sich eine abgelöste Fassung wieder in Kraft setzen,
+    ihr Beschlussdatum wurde dabei überschrieben. Zulässig ist nur eine jüngere Fassung."""
+    from verfahren.models import Verfahrensordnung
+
+    _admin(client)
+    Parameter.objects.filter(schluessel="verfahren-abstimmung-tage").update(wert="30")
+    client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    neu = Verfahrensordnung.objects.order_by("-version").first()
+    client.post(reverse("parameter:verwaltung_ordnung_inkraft"), {"ordnung": neu.pk, "grund": "Beschluss."})
+    ordnung.refresh_from_db()
+    assert ordnung.aktiv is False
+    vorher = list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am"))
+    antwort = client.post(
+        reverse("parameter:verwaltung_ordnung_inkraft"), {"ordnung": ordnung.pk, "grund": "Zurück."}, follow=True
+    )
+    assert list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am")) == vorher
+    assert "nicht jünger" in antwort.content.decode()

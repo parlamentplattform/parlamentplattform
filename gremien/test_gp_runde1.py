@@ -174,6 +174,8 @@ GEPRUEFT_TESTBAR = frozenset({
     'aehnlichkeit-vorschau-hoechstzeichen', 'aehnlichkeit-vorschau-mindestzeichen', 'aehnlichkeit-vorschau-wartezeit-ms',
     'aehnlichkeit-zeitgrenze-sekunden', 'anstoss-mindestabstand-sekunden', 'anstoss-tagesgrenze', 'archiv-audit-anzeige',
     'audit-seite-eintraege', 'audit-vollpruefung-tage', 'beitrag-erinnerung-fruehestens-tage', 'chat-faden-wurzeln',
+    # Drosseln des Kontoabrufs und des Datenexports (C4 der Auflagenrunde): kein Verfahren liest sie.
+    'beitrag-abruf-verwaltungsvorbehalt', 'beitrag-meldungen-mit-abruf-je-konto', 'datenexport-je-stunde',
     'faecher-kinder-hoechstzahl', 'faktenbasis-bestandsnachweis-hoechstzahl', 'faktenbasis-manuelle-abrufe-je-stunde',
     'faktenbasis-seitengroesse', 'gegenueberstellung-hoechstpaare', 'gegenueberstellung-je-stunde',
     'gegenueberstellung-textzeichen', 'gegenueberstellung-zeitgrenze-sekunden', 'gespraeche-liste-hoechstzahl',

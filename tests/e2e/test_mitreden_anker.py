@@ -78,7 +78,12 @@ def test_gp069_mitreden_zeigt_die_chat_zone(seite, live_server, demo, viewport, 
     p.wait_for_url(f"**/antrag/{antrag.pk}/#zone-chat")
     p.wait_for_load_state("load")
     _scrollruhe(p)
-    lage = _ueberschrift_frei(p, "#zone-chat")
+    lage = {}
+    for _ in range(30):  # ein laufender Seitenübergang deckt die Zone kurz ab; geprüft wird die Ruhelage
+        lage = _ueberschrift_frei(p, "#zone-chat")
+        if lage.get("frei"):
+            break
+        p.wait_for_timeout(100)
     assert lage.get("frei"), f"nach „Mitreden“ liegt #zone-chat frei im Fenster: {lage}"
     if js:
         # Der Reiter folgt dem Sprung: „Chat“ ist die gewählte Zone, nicht der Text darüber

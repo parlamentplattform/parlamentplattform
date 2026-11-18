@@ -416,6 +416,75 @@ def test_ohne_audit_eintrag_endet_keine_rolle(client, audit_wirft):
     assert antwort.status_code == 500 and rolle.beendet_grund == '' and rolle.aktiv
 
 
+def _kette_sperren(monkeypatch):
+    """Wie `audit_wirft`, aber erst nach dem Aufbau der Lage — der Aufbau selbst schreibt in die Kette."""
+    from django.db import IntegrityError
+
+    from verfahren.models import AuditEintrag
+
+    def wirft(cls, ereignis):
+        raise IntegrityError('Audit-Kette: Eintrag nicht angehängt.')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', classmethod(wirft))
+
+
+def test_ohne_audit_eintrag_entsteht_kein_beschluss_des_integritaetsrats(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-038, Gegenlesen: Auch der Beschluss zu einem Antrag (Hervorhebung, Zurückweisung, Aussetzung)
+    entsteht nur gemeinsam mit seinem Eintrag."""
+    from verfahren.models import antrag_einbringen
+
+    antrag = antrag_einbringen(mitglied_anlegen('stellerin'), titel='T', wortlaut='W.', begruendung='B.', ordnung=ordnung)
+    client.force_login(_ratsmitglied(Gremium.INTEGRITAETSRAT))
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'), {'anlass': 'hervorhebung', 'antrag': antrag.pk, 'beschreibung': 'Grund.'}
+    )
+    assert antwort.status_code == 500 and not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_bleibt_der_umsetzungsvermerk_ungeschrieben(client, audit_wirft):
+    rat = _ratsmitglied()
+    beschluss = beschluss_anlegen(status=BeschlussStatus.ENTSCHIEDEN, ergebnis='dafuer')
+    client.force_login(rat)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.'})
+    beschluss.refresh_from_db()
+    assert antwort.status_code == 500 and beschluss.umsetzungsvermerk == ''
+
+
+def test_ohne_audit_eintrag_wird_kein_test_angeordnet(client, monkeypatch):
+    from parameter.models import Parameter, ParameterTest, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    parameter = Parameter.objects.get(schluessel='gremien-beschluss-tage')
+    client.force_login(_ratsmitglied())
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(
+        reverse('gremien:koordination_test', args=[0]),
+        {
+            'aktion': 'anordnen', 'parameter': parameter.pk, 'testwert': '9', 'hypothese': 'H', 'messgroesse': 'motions.total',
+            'ende': (timezone.localdate() + timedelta(days=30)).isoformat(), 'rueckweg': 'R',
+        },
+    )
+    assert antwort.status_code == 500
+    assert not ParameterTest.objects.exists() and not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_bleibt_der_vollzugsbezug_wie_er_war(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-007 und GP-038 zusammen: Der Bezug wird nur gemeinsam mit seinem Eintrag umgestellt."""
+    from gremien.test_werkstatt import fenster_oeffnen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = fenster_oeffnen(client, antrag, er[0])
+    client.raise_request_exception = False
+    _kette_sperren(monkeypatch)
+    antwort = client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'vollzugsbezug', 'vollzugsbezug': 'ja'})
+    entwurf.refresh_from_db()
+    assert antwort.status_code == 500 and entwurf.vollzugsbezug is False
+
+
 # --- GP-125: Ungültige Jahre und verformte Kennungen sind kein Serverfehler -------------------
 
 

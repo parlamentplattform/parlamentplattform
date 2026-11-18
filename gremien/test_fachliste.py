@@ -181,6 +181,8 @@ def test_die_verwaltung_traegt_ein_und_daraus_wird_gelost(client, ordnung):  # n
 
     admin = _verwaltung(client)
     verkehr = Kategorie.objects.get_or_create(slug='verkehr', defaults={'name': 'Verkehr'})[0]
+    # Der Weg dorthin: Die Rollenverwaltung nennt die Seite — ohne Verweis fände sie nur, wer die Adresse kennt.
+    assert reverse('gremien:fachliste_verwaltung') in client.get(reverse('gremien:rollen')).content.decode()
     assert client.get(reverse('gremien:fachliste_verwaltung')).status_code == 200
     leute = [mitglied_anlegen(f'fachfrau{i}') for i in range(3)]
     _eintragen_post(

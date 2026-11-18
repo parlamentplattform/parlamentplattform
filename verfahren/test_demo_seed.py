@@ -39,6 +39,11 @@ def test_der_demo_antrag_des_abstimmungschats_entsteht_nur_einmal():
     antrag = Antrag.objects.get(titel__startswith=TESTLAUF_TITEL)
     entwurf = Entwurf.objects.get(antrag=antrag)
     Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    # Die Schleife öffnet die Endabstimmung frühestens zum Beratungsende (GP-003) — im Zeitraffer ist
+    # deshalb auch die Beratung um: Sie begann vor mehr als ihrer Dauer nach der eingefrorenen Ordnung.
+    Antrag.objects.filter(pk=antrag.pk).update(
+        phase_beginn=timezone.now() - timedelta(days=antrag.policy().beratung_tage, hours=1)
+    )
     antrag.refresh_from_db()
     antrag.fortschreiben()  # ein Besucher öffnet die Seite — die Schleife wertet aus
     entwurf.refresh_from_db()

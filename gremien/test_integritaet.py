@@ -818,6 +818,148 @@ def test_die_aufhebung_in_der_pruefphase_hemmt_auch_die_prueffrist(client, ordnu
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
 
 
+def _austausch_zurueckgewiesen_und_aufgehoben(client, ordnung, tage_zurueckgewiesen, mit_beschluss=False):  # noqa: F811
+    """Die Sonde des Gegenlesers (GP-008, Austauschfall): Urteil „Austausch“ zwei Tage vor der Zurückweisung,
+    die Zurückweisung dauert `tage_zurueckgewiesen` Tage, dann hebt der Integritätsrat sie auf.
+
+    Rückgabe: Antrag, Entwurf, Prüfung, die Koordinatorin, das Urteilsdatum und der Aufhebungsbeschluss."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import EntwurfsStatus, Pruefung
+    from gremien.test_pruefung import korat_lage
+
+    leute = rat()
+    antrag, entwurf, _er, korat = korat_lage(client, ordnung)
+    pruefung = entwurf.pruefungen.get()
+    urteil = timezone.now() - timedelta(days=2)  # zwei Tage der Frist des Rates sind verbraucht
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=urteil)
+    if mit_beschluss:  # der Rat hat schon einen Beschluss angelegt, aber noch nicht abgestimmt
+        client.force_login(korat)
+        client.post(
+            reverse('gremien:koordination_beschluss'),
+            {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Prüfen wir.'},
+        )
+    zurueck = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    assert zurueck.zustand_vorher['entwurf']['status'] == 'pruefung'
+    dauer = timedelta(days=tage_zurueckgewiesen)
+    _zurueckweisung_zurueckdatieren(zurueck, entwurf, dauer)
+    urteil -= dauer  # Zeitraffer: Auch das Urteil liegt um die Dauer der Zurückweisung weiter zurück.
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=urteil)
+    aufhebung = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG_AUFHEBEN, 'Das Schiedsgericht gab statt.')
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert antrag.phase == Phase.BERATUNG.value and entwurf.status == EntwurfsStatus.PRUEFUNG
+    return antrag, entwurf, pruefung, korat, urteil, aufhebung
+
+
+@pytest.mark.parametrize('tage_zurueckgewiesen', [18, 40])
+def test_die_aufhebung_hemmt_auch_die_frist_des_austauschantrags(client, ordnung, tage_zurueckgewiesen):  # noqa: F811
+    """GP-008, Austauschfall: Lag bei der Zurückweisung ein Austauschantrag beim Koordinationsrat, rechnete
+    dessen Frist weiter ab dem Urteil. Nach 18 Tagen Zurückweisung verfristete er mit der nächsten
+    Fortschreibung, obwohl der Rat nur zwei von sieben Tagen hatte, und die Unterstützerfrist lief
+    rückwirkend ab der alten Verfristung (noch ein Tag; nach 40 Tagen war sie ganz um, und die
+    Unterstützer sahen den Vorschlag nie). Jetzt zählt die Zeit der Zurückweisung nicht mit, das
+    Urteilsdatum bleibt, wie es war, und keine Frist beginnt rückwirkend."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import EntwurfsStatus, Pruefung
+
+    antrag, entwurf, pruefung, korat, urteil, aufhebung = _austausch_zurueckgewiesen_und_aufgehoben(
+        client, ordnung, tage_zurueckgewiesen
+    )
+    ordnung_ = antrag.policy()
+    tage = timedelta(days=ordnung_.pruefung_tage)
+    assert pruefung.erstellt_am == urteil, 'das öffentlich gezeigte Urteilsdatum wird nicht verschoben'
+    # Der Rat hat nach der Aufhebung die Restfrist: sieben Tage weniger die zwei vor der Zurückweisung.
+    rest = pruefung.austausch_frist - aufhebung.entschieden_am
+    assert tage - timedelta(days=2, minutes=1) < rest <= tage - timedelta(days=2)
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == '', 'der Austauschantrag verfristet nicht mit der Aufhebung'
+    assert entwurf.status == EntwurfsStatus.PRUEFUNG and entwurf.review_frist is None
+    assert not [e for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'pruefung_frist_verstrichen']
+    # Die Karte des Rates nennt die gehemmte Frist, nicht die alte.
+    client.force_login(korat)
+    karte = client.get(reverse('gremien:koordination')).content.decode()
+    assert f'{timezone.localtime(pruefung.austausch_frist):%d.%m.%Y %H:%M}' in karte
+    # Schweigt der Rat auch die Restfrist über, verfristet der Antrag zur wirklichen Frist (§ 5 Abs 12) …
+    frist = pruefung.austausch_frist
+    spaeter = frist + timedelta(hours=1)
+    antrag.fortschreiben_bis_zum_stand(frist - timedelta(hours=1))
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == ''
+    antrag.fortschreiben_bis_zum_stand(spaeter)
+    entwurf.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    # … und die Unterstützerfrist beginnt mit dieser Verfristung und läuft in voller Länge.
+    assert entwurf.review_frist == frist + timedelta(days=ordnung_.review_tage)
+    assert entwurf.review_frist - spaeter > timedelta(days=ordnung_.review_tage - 1)
+    verstrichen = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'pruefung_frist_verstrichen']
+    assert [e['wirksam_ab'] for e in verstrichen] == [frist.isoformat()]
+
+
+def test_nach_der_aufhebung_entscheidet_der_rat_in_der_restfrist(client, ordnung):  # noqa: F811
+    """GP-008, Austauschfall: Der Beschluss des Rates, den die Zurückweisung mitgeschlossen hat, lässt sich
+    nach der Aufhebung neu anlegen. Er endet mit der gehemmten Frist und wirkt, wenn der Rat entscheidet."""
+    from datetime import timedelta
+
+    from gremien.models import EntwurfsStatus, Pruefung
+
+    antrag, entwurf, pruefung, korat, _urteil, _aufhebung = _austausch_zurueckgewiesen_und_aufgehoben(
+        client, ordnung, 18, mit_beschluss=True
+    )
+    alter = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    assert alter.status == BeschlussStatus.OHNE_ERGEBNIS and 'zurückgewiesen' in alter.umsetzungsvermerk
+    client.force_login(korat)
+    client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Die Zweifel wiegen schwer.'},
+    )
+    neuer = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag, status=BeschlussStatus.OFFEN)
+    assert neuer.frist == pruefung.austausch_frist  # gekappt auf die gehemmte Frist: die Restfrist
+    assert neuer.frist - neuer.angelegt_am > timedelta(days=antrag.policy().pruefung_tage - 3)
+    client.post(reverse('gremien:beschluss_stimme', args=[neuer.pk]), {'option': 'dafuer', 'begruendung': 'Austauschen.'})
+    pruefung.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.STATTGEGEBEN
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+
+
+def test_ohne_zurueckweisung_rechnet_die_frist_des_austauschantrags_wie_bisher(client, ordnung):  # noqa: F811
+    """Gegenprobe (Bestandsfall): Ohne Zurückweisung ist nichts gehemmt — die Frist des Rates ist die
+    Prüffrist ab dem Urteil, und mit ihr verfristet der Antrag wie zuvor."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import EntwurfsStatus, Pruefung
+    from gremien.test_pruefung import korat_lage
+
+    antrag, entwurf, _er, _korat = korat_lage(client, ordnung)
+    pruefung = entwurf.pruefungen.get()
+    ordnung_ = antrag.policy()
+    tage = timedelta(days=ordnung_.pruefung_tage)
+    assert pruefung.austausch_frist == pruefung.erstellt_am + tage
+    urteil = timezone.now() - tage - timedelta(hours=1)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=urteil)
+    antrag.refresh_from_db()
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET
+    assert pruefung.austausch_frist == urteil + tage
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert entwurf.review_frist == urteil + tage + timedelta(days=ordnung_.review_tage)
+
+
 def test_die_werkstatt_zeigt_einen_ruhenden_entwurf_nicht_als_uebergeben(client, ordnung):  # noqa: F811
     """GP-008, Rest: Die Zurückweisung legt die Schleife mit dem Status „angenommen“ still. Die Werkstatt
     zeigte ihn mit dessen Namen — „zur Endabstimmung übergeben“ —, obwohl nichts übergeben wurde."""

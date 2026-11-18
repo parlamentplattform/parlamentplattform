@@ -196,3 +196,28 @@ def test_regelseite_zeigt_keinen_programmtext(client, db):
     seite = client.get('/regeln/').content.decode()
     assert '>suche-treffer-hoechstzahl</a>' in seite
     assert '(&#x27;' not in seite and '&#x27;,)' not in seite
+
+
+# --- GP-022 und GP-203: Das Regelverzeichnis sagt, was beim Nachrechnen von Hand nicht zählt -------
+
+
+def test_regelverzeichnis_nennt_ruecknahmen_und_den_gleichstand_an_der_spitze():
+    """Wer die Kandidatur nach dem Verzeichnis von Hand nachrechnet, zählte zurückgenommene
+    Zustimmungen mit (derselbe Fehler wie im Prüfskript, GP-022). Die geltende Gleichstandsregel
+    stand nur als „steht vorn“ da; dass sie auch den ersten Platz entscheidet, steht jetzt dabei
+    (GP-203, nur die Benennung; die Regel selbst ist unverändert)."""
+    from plattform_core.regelwerk import REGELN
+
+    (regel,) = [r for r in REGELN if r.titel == 'Auszählung der Zustimmungswahl bei Kandidaturen']
+    assert 'ohne zurückgenommene Zustimmungen' in regel.nachrechenbar
+    assert 'verify/nachrechnen.py' in regel.nachrechenbar
+    assert 'ist die früher eingereichte gewählt' in regel.zweck
+
+
+def test_gleichstand_an_der_spitze_waehlt_die_frueher_eingereichte_bewerbung():
+    """Die im Verzeichnis benannte Regel, an Kern und Prüfskript nachgestellt."""
+    bewerbungen = [(7, False), (3, False)]  # 7 wurde früher eingereicht als 3
+    zustimmungen = [('p1', 3, None), ('p2', 7, None)]
+    kern = _kern(bewerbungen, zustimmungen, 10)
+    skript = nachrechnen(_kandidatur_export(bewerbungen, zustimmungen, 10))
+    assert kern.gewonnen_id == skript['gewaehlt'] == 7

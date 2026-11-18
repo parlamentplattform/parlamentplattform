@@ -303,7 +303,8 @@ REGELN: tuple[Regel, ...] = (
             _("Zählt eine Mandats-Kandidatur aus: Jedes Mitglied kann mehreren Bewerbungen zustimmen; "
             "die Bewerbung mit den meisten Zustimmungen gewinnt, und die Reihenfolge der "
             "Zustimmungszahlen ergibt die Reihung des Wahlvorschlags. Bei Stimmengleichheit steht die "
-            "früher eingereichte Bewerbung vorn.")
+            "früher eingereichte Bewerbung vorn. Das gilt auch an der Spitze: Haben zwei Bewerbungen "
+            "gleich viele Zustimmungen, ist die früher eingereichte gewählt.")
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
@@ -313,11 +314,13 @@ REGELN: tuple[Regel, ...] = (
             _("Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Begründung nennt die Mindestbeteiligung als Kopfzahl, „N Stimmen (P %)“. Fassung 2 ergänzte für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl; die Auszählung der Altverfahren blieb unverändert.")
         ),
         nachrechenbar=(
-            _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "
-            "die Zustimmungen je Bewerbung zählen, absteigend ordnen, bei gleicher Zahl die früher "
-            "eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl der Menschen, die mindestens "
-            "einer Bewerbung zugestimmt haben; sie muss die Mindestbeteiligung der eingefrorenen "
-            "Verfahrensordnung erreichen, sonst gilt niemand als gewählt.")
+            _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen, auch die "
+            "zurückgenommenen. Von Hand: die Zustimmungen je Bewerbung zählen — ohne zurückgenommene "
+            "Zustimmungen und ohne Zustimmungen zu zurückgezogenen Bewerbungen —, absteigend ordnen, "
+            "bei gleicher Zahl die früher eingereichte Bewerbung zuerst. Die Beteiligung ist die Zahl "
+            "der Menschen mit mindestens einer zählenden Zustimmung; sie muss die Mindestbeteiligung "
+            "der eingefrorenen Verfahrensordnung erreichen, sonst gilt niemand als gewählt. Wer rechnen "
+            "lassen will: `python3 verify/nachrechnen.py export.json`.")
         ),
     ),
     Regel(

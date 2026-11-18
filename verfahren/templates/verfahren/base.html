@@ -82,6 +82,7 @@ h1{font-size:26px;line-height:1.2;font-weight:700;margin:0 0 10px}
 h2{margin:32px 0 10px;font-size:19px;line-height:1.25;font-weight:600}
 h3{font-size:16px;line-height:1.3;font-weight:600}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
+summary{min-height:24px}/* GP-172 (WCAG 2.5.8): jede Aufklappzeile ist ein Tippziel von mindestens 24 px */
 .skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
 /* ── App-Leiste (Spec 3.1, FB-A1/N3/N8): eine Zeile, 56 px (Handy 52 px), klebt oben ── */
@@ -102,7 +103,7 @@ a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px
 .leiste .btn.klein{padding:0 16px;height:36px;display:inline-flex;align-items:center;font-size:14px}
 .leiste .anmelden{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
 .leiste .anmelden:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
-.ikon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
+.ikon{width:36px;height:36px;flex:none;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
 .ikon:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
 .leiste details{position:relative}
 .leiste summary{list-style:none;cursor:pointer}
@@ -266,6 +267,7 @@ body.voll main{max-width:none;padding:0}
 .chip{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;cursor:pointer;color:var(--ink);line-height:1.4;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .chip.an{background:var(--gold);color:var(--on-gold);border-color:transparent}
 .chip.klein{font-size:11.5px;font-weight:500;padding:1px 8px;cursor:default}
+a.chip.klein{min-height:24px;cursor:pointer}/* GP-172: als Verweis ein Tippziel von mindestens 24 px */
 .chip.still{color:var(--goldtief);border-style:dashed;cursor:default}
 .pfeil{flex:none;margin-left:auto;width:28px;height:28px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--matt);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:14px;position:sticky;right:0}
 .griff{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:3;height:14px;width:64px;display:none;align-items:center;justify-content:center;font:inherit;font-size:10px;line-height:1;color:var(--matt);background:var(--paper);border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;cursor:pointer;padding:0}
@@ -375,7 +377,7 @@ html.js .zu-ohne-js{display:none}
 .live-punkt{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--warn);flex:none;animation:live-puls var(--d-glanz) var(--e-out) infinite}
 @keyframes live-puls{50%{opacity:.35}}
 .kachel.live .k-thema{gap:6px}
-.stern.klein{font-size:14px;padding:0;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+.stern.klein{font-size:14px;padding:0;width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center}
 .stern-form{display:inline}
 .ring{width:20px;height:20px;transform:rotate(-90deg);flex:none}
 .ring circle{fill:none;stroke-width:3}
@@ -430,7 +432,7 @@ html.js .zu-ohne-js{display:none}
 .bk{display:block;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--deep);opacity:.85}
 .eintrag{border-top:1px solid var(--line);padding:10px 0 8px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
 .eintrag a{color:var(--linkfarbe)}
-.stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
+.stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;min-width:24px;min-height:24px;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
 .stern.aus{color:var(--stern-aus);text-shadow:none}
 .stern:hover{color:var(--gold);text-shadow:0 0 10px color-mix(in srgb,var(--gold) 75%,transparent)}
 a.stern{text-decoration:none;display:inline-block}
@@ -459,7 +461,8 @@ a.stern{text-decoration:none;display:inline-block}
 .fknoten.f18 a,.fknoten.f18 .fname{font-size:18px}
 .fknoten.f16 a,.fknoten.f16 .fname{font-size:16px;font-weight:500}
 .fknoten form{display:inline;line-height:1;flex:none}
-.fknoten .stern{font-size:13px;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+/* GP-172: Tippfläche 24 px, im Fächer aber nur 18 px Platz — der Rand nimmt das Mehr zurück */
+.fknoten .stern{font-size:13px;padding:0;width:24px;height:24px;margin:-3px;flex:none;display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .fknoten a.mehr{flex:none;font-size:12px;color:var(--matt);padding:0 5px;border-radius:999px;background:var(--surface-2);text-decoration:none}
 .fknoten a.mehr:hover{color:var(--ink)}
 .brot{font-size:12.5px;color:var(--matt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -615,7 +618,7 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .blase-text{font-size:15px;line-height:1.55;overflow-wrap:anywhere}
 .blase-text.entfernt{color:var(--matt);font-style:italic}
 .blase-fuss{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px}
-.blase-knopf{font:inherit;font-size:12.5px;background:none;border:0;padding:2px 6px;border-radius:8px;color:var(--matt);cursor:pointer;text-decoration:none;display:inline-block}
+.blase-knopf{font:inherit;font-size:12.5px;background:none;border:0;padding:2px 6px;min-height:24px;border-radius:8px;color:var(--matt);cursor:pointer;text-decoration:none;display:inline-block}
 .blase-knopf:hover{background:var(--surface-2);color:var(--ink)}
 .blase-knopf.zustimmen.an{background:color-mix(in srgb,var(--gold) 22%,transparent);color:var(--ink)}
 .blase-knopf.zustimmen.still{cursor:default}

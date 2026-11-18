@@ -93,6 +93,15 @@ class ChatGesperrt(Exception):
     """Der Chat dieses Antrags nimmt gerade keine Beiträge an."""
 
 
+class BeitragZuLang(ValueError):
+    """Der Beitrag überschreitet die Zeichenhöchstzahl des Registers — er wird abgewiesen, nicht
+    still gekürzt (GP-083)."""
+
+    def __init__(self, hoechst: int):
+        super().__init__(f"Ein Beitrag darf höchstens {hoechst} Zeichen lang sein.")
+        self.hoechst = hoechst
+
+
 def entwurf_von(antrag):
     """Das Entwurfsfenster des Antrags — oder None, solange keines geöffnet wurde."""
     try:
@@ -163,6 +172,9 @@ def beitrag_schreiben(
         raise ChatGesperrt("Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag.")
     if not chat_offen(antrag):
         raise ChatGesperrt("Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar.")
+    hoechst = chat_zeichen_hoechstzahl()
+    if len((text or "").strip()) > hoechst:
+        raise BeitragZuLang(hoechst)
     if ist_kritik:
         if abstimmungschat(antrag) is None:
             raise ValueError("Kritik am Vorschlag gibt es nur im Abstimmungs-Chat.")
@@ -182,7 +194,7 @@ def beitrag_schreiben(
     return Kommentar.objects.create(
         antrag=antrag,
         mitglied=mitglied,
-        text=text[: chat_zeichen_hoechstzahl()],
+        text=text,
         antwort_auf=wurzel,
         phase=chat_phase(antrag),
         erstellt_am=jetzt,

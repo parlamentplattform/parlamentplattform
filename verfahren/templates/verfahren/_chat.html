@@ -81,7 +81,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
       </div>
       <input type="hidden" name="antwort_auf" value="{{ chat.antwort_vorgabe.pk|default:'' }}" :value="antwortAuf || ''">
       <label for="id_text" class="nur-lesbar">{% translate "Beitrag schreiben" %}</label>
-      <textarea name="text" id="id_text" rows="2" maxlength="4000" required x-ref="feld" @input="wachsen()"
+      <textarea name="text" id="id_text" rows="2" maxlength="{{ chat.zeichen_hoechst }}" required x-ref="feld" @input="wachsen()"
         placeholder="{% translate 'Sachlich und respektvoll — unter Ihrem Anzeigenamen.' %}">{{ chat.entwurf.text|default:"" }}</textarea>
       {% if chat.abstimmung %}
       <div class="kritikwahl">
@@ -94,7 +94,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
             {% for absatz in chat.abstimmung.absaetze %}<option value="{{ forloop.counter }}"{% if chat.entwurf.bezug_absatz == forloop.counter|stringformat:"s" %} selected{% endif %}>{% blocktranslate with n=forloop.counter %}Absatz {{ n }}{% endblocktranslate %}: {{ absatz|truncatechars:60 }}</option>{% endfor %}
           </select>
         </label>
-        <p class="erk" x-show="kritik" x-cloak>{% translate "Kritik braucht einen Textstellenbezug und mindestens 80 Zeichen — so kann der Expertenrat damit arbeiten." %}</p>
+        <p class="erk" x-show="kritik" x-cloak>{% blocktranslate with n=chat.kritik_mindest %}Kritik braucht einen Textstellenbezug und mindestens {{ n }} Zeichen — so kann der Expertenrat damit arbeiten.{% endblocktranslate %}</p>
       </div>
       {% endif %}
       <div class="chatzeile-fuss">

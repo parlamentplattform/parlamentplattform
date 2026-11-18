@@ -763,3 +763,47 @@ def test_gp079_passt_alles_wird_sprachneutral_gespeichert_und_beim_anzeigen_uebe
     Kommentar.objects.filter(pk=passt.pk).update(text='✓ Fine as it is — the proposal can go to the final vote like this.')
     deutsch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='de').content.decode()
     assert 'Passt alles — der Vorschlag' in deutsch and 'Fine as it is' not in deutsch
+
+
+# ── Grenzen des Chats aus dem Register (GP-083) ──────────────────────────────
+
+
+def test_gp083_mindestzahl_der_kritik_kommt_aus_dem_register(client, ordnung):  # noqa: F811
+    """GP-083 (RVA-09): Hinweis und Fehlermeldung nannten fest 80 Zeichen, auch wenn das Register
+    anderes verlangte."""
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    _register('kritik-mindestzeichen', 200)
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    einreichen(client, antrag, raete)
+    client.force_login(unterstuetzer[0])
+    seite = _seite(client, antrag)
+    assert 'mindestens 200 Zeichen' in seite and 'mindestens 80 Zeichen' not in seite
+    antwort = client.post(
+        reverse('verfahren:kommentieren', args=[antrag.pk]),
+        {'text': 'Zu kurz für eine Kritik.', 'ist_kritik': '1', 'bezug_absatz': '1'},
+    ).content.decode()
+    assert 'mindestens 200 Zeichen' in antwort and 'mindestens 80 Zeichen' not in antwort
+
+
+def test_gp083_zu_langer_beitrag_wird_abgewiesen_statt_gekuerzt(client, ordnung):  # noqa: F811
+    _register('chat-zeichen-hoechstzahl', 100)
+    anna = mitglied_anlegen('anna')
+    antrag = _antrag(ordnung, anna)
+    client.force_login(anna)
+    seite = _seite(client, antrag)
+    assert 'name="text" id="id_text" rows="2" maxlength="100"' in seite
+    lang = 'x' * 300
+    for kopf in ({}, {'HTTP_HX_REQUEST': 'true'}):
+        antwort = client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': lang}, **kopf)
+        inhalt = antwort.content.decode()
+        assert not Kommentar.objects.exists()
+        assert 'höchstens 100 Zeichen' in inhalt
+        assert lang in inhalt  # der Entwurf bleibt im Formular
+    client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': 'Kurz.'})
+    beitrag = Kommentar.objects.get()
+    client.post(reverse('verfahren:beitrag_bearbeiten', args=[antrag.pk, beitrag.pk]), {'text': lang})
+    beitrag.refresh_from_db()
+    assert beitrag.text == 'Kurz.'
+    with pytest.raises(ValueError):
+        chatkern.beitrag_schreiben(antrag, anna, lang)

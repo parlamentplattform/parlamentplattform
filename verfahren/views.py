@@ -1226,6 +1226,9 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
         "archiviert": archiviert,
         "archiv_phase": letzte_phase,
         "darf_reagieren": chatkern.darf_reagieren(antrag, nutzer),
+        # Grenzen aus dem Register, damit Feld und Hinweis nennen, was der Server prüft (GP-083)
+        "zeichen_hoechst": chatkern.chat_zeichen_hoechstzahl(),
+        "kritik_mindest": chatkern.kritik_mindestzeichen(),
     }
     if entwurf is not None:
         lage.update(_abstimmungslage(antrag, entwurf, nutzer))

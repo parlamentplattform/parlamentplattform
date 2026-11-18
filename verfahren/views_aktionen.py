@@ -214,7 +214,8 @@ class AntragsFormular(forms.Form):
 
 class KommentarFormular(forms.Form):
     text = forms.CharField(
-        label=gettext_lazy("Beitrag zur Beratung"), widget=forms.Textarea(attrs={"rows": 4}), max_length=4000
+        # Die Höchstzahl prüft der Schreibweg gegen das Register (GP-083)
+        label=gettext_lazy("Beitrag zur Beratung"), widget=forms.Textarea(attrs={"rows": 4})
     )
 
 
@@ -512,13 +513,13 @@ def _chat_fehler(text, link: str | None = None, link_text: str = "") -> dict:
 @require_POST
 def kommentieren(request, pk):
     """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
-    from verfahren.chat import ChatGesperrt, beitrag_schreiben
+    from verfahren.chat import BeitragZuLang, ChatGesperrt, beitrag_schreiben, kritik_mindestzeichen
     from verfahren.hinweise import HINWEISE, kachel_sperre
 
     antrag = get_object_or_404(Antrag, pk=pk)
     # Der Entwurf begleitet jeden Fehler zurück ins Formular — nichts Eingegebenes geht verloren
     entwurf = {
-        "text": (request.POST.get("text") or "")[:4000],
+        "text": request.POST.get("text") or "",
         "ist_kritik": request.POST.get("ist_kritik") == "1",
         "bezug_absatz": request.POST.get("bezug_absatz") or "",
         "antwort_auf": request.POST.get("antwort_auf") or "",
@@ -557,16 +558,28 @@ def kommentieren(request, pk):
         )
     except ChatGesperrt as fehler:
         return _chat_antwort(request, antrag, fehler=_chat_fehler(str(fehler)), entwurf=entwurf)
+    except BeitragZuLang as fehler:
+        return _chat_antwort(
+            request, antrag, fehler=_chat_fehler(_zu_lang_text(fehler.hoechst)), entwurf=entwurf,
+        )
     except ValueError:
         return _chat_antwort(
             request, antrag,
-            fehler=_chat_fehler(_(
-                "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
-                "so kann der Expertenrat damit arbeiten."
-            )),
+            fehler=_chat_fehler(_kritik_zu_kurz_text(kritik_mindestzeichen())),
             entwurf=entwurf,
         )
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+def _zu_lang_text(hoechst: int) -> str:
+    return _("Ein Beitrag darf höchstens %(n)s Zeichen lang sein — bitte kürzen.") % {"n": hoechst}
+
+
+def _kritik_zu_kurz_text(mindestens: int) -> str:
+    return _(
+        "Kritik am Vorschlag braucht einen Absatzbezug und mindestens %(n)s Zeichen — "
+        "so kann der Expertenrat damit arbeiten."
+    ) % {"n": mindestens}
 
 
 def _eigener_beitrag(request, pk, beitrag_pk):
@@ -584,19 +597,23 @@ def beitrag_bearbeiten(request, pk, beitrag_pk):
     if not beitrag.darf_bearbeiten(request.user):
         messages.error(request, _("Ändern ist nur in den ersten fünf Minuten möglich."))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    text = (request.POST.get("text") or "").strip()[:4000]
+    text = (request.POST.get("text") or "").strip()
     if not text:
         messages.error(request, _("Bitte einen Text eingeben."))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    from verfahren.chat import chat_zeichen_hoechstzahl
+
+    hoechst = chat_zeichen_hoechstzahl()
+    if len(text) > hoechst:
+        # Abweisen statt still kürzen (GP-083)
+        messages.error(request, _zu_lang_text(hoechst))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     if beitrag.ist_kritik:
         # Beim Ändern gilt dieselbe Mindestlänge wie beim Schreiben (GP-015, § 5 Abs 13)
         from verfahren.chat import kritik_mindestzeichen
 
         if len(text) < kritik_mindestzeichen():
-            messages.error(request, _(
-                "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
-                "so kann der Expertenrat damit arbeiten."
-            ))
+            messages.error(request, _kritik_zu_kurz_text(kritik_mindestzeichen()))
             return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     beitrag.text = text
     beitrag.bearbeitet_am = timezone.now()

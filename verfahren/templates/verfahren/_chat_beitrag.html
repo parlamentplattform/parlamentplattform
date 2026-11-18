@@ -41,7 +41,7 @@ Erwartet b (aus chat.faden) und antrag.
           <summary class="blase-knopf">{% translate "Ändern" %}</summary>
           <form method="post" action="{% url 'verfahren:beitrag_bearbeiten' antrag.pk b.k.pk %}"
             hx-post="{% url 'verfahren:beitrag_bearbeiten' antrag.pk b.k.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML">
-            {% csrf_token %}<textarea name="text" rows="3" maxlength="4000" required aria-label="{% translate 'Beitrag ändern' %}">{{ b.k.text }}</textarea>
+            {% csrf_token %}<textarea name="text" rows="3" maxlength="{{ chat.zeichen_hoechst }}" required aria-label="{% translate 'Beitrag ändern' %}">{{ b.k.text }}</textarea>
             <button class="btn-linie klein">{% translate "Übernehmen" %}</button>
             <span class="hilfe">{% blocktranslate count n=chat.bearbeitungsfenster %}Ändern geht in der ersten Minute.{% plural %}Ändern geht in den ersten {{ n }} Minuten.{% endblocktranslate %}</span>
           </form>

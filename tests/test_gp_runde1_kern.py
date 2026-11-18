@@ -110,26 +110,24 @@ def test_pruefskript_weist_doppelte_zeilen_auch_bei_ruecknahme_ab():
         nachrechnen(export)
 
 
-_WAHL = st.integers(1, 6).flatmap(
-    lambda anzahl: st.tuples(
-        st.lists(st.booleans(), min_size=anzahl, max_size=anzahl),
-        st.lists(
-            st.tuples(st.integers(0, 11), st.integers(1, anzahl), st.sampled_from([None, 'offen', 'wert', 'zeit'])),
-            max_size=40,
-            unique_by=lambda z: (z[0], z[1]),
-        ),
-    )
+@given(
+    zurueckgezogen=st.lists(st.booleans(), min_size=1, max_size=6),
+    zeilen=st.dictionaries(
+        st.tuples(st.integers(0, 11), st.integers(1, 6)),
+        st.sampled_from([None, 'offen', 'wert', 'zeit']),
+        max_size=25,
+    ),
+    berechtigte=st.integers(1, 300),
+    prozent=st.integers(5, 100),
 )
-
-
-@given(wahl=_WAHL, berechtigte=st.integers(1, 300), prozent=st.integers(5, 100))
-def test_eigenschaft_pruefskript_und_kern_zaehlen_jede_kandidatur_gleich(wahl, berechtigte, prozent):
+def test_eigenschaft_pruefskript_und_kern_zaehlen_jede_kandidatur_gleich(zurueckgezogen, zeilen, berechtigte, prozent):
     """§ 5 Abs 8: Für jede Wahl mit zurückgezogenen Bewerbungen und zurückgenommenen Zustimmungen
     nennt das unabhängige Skript dieselben Plätze, dieselbe Beteiligung und denselben Gewinner
     wie der Kern (Schwellen in ganzen Prozent, wie das Register sie führt)."""
-    zurueckgezogen, zeilen = wahl
     bewerbungen = [(nummer, weg) for nummer, weg in enumerate(zurueckgezogen, start=1)]
-    zustimmungen = [(f'p{p}', nummer, ruecknahme) for p, nummer, ruecknahme in zeilen]
+    zustimmungen = [
+        (f'p{p}', nummer, ruecknahme) for (p, nummer), ruecknahme in zeilen.items() if nummer <= len(bewerbungen)
+    ]
     skript = nachrechnen(_kandidatur_export(bewerbungen, zustimmungen, berechtigte, prozent))
     _gleich(skript, _kern(bewerbungen, zustimmungen, berechtigte, prozent))
     assert skript['zurueckgenommen'] == sum(1 for z in zustimmungen if z[2] in ('wert', 'zeit'))
@@ -159,3 +157,42 @@ def test_eigenschaft_pruefskript_und_kern_zaehlen_jede_sachfrage_gleich(ja, nein
     assert (skript['ja'], skript['nein'], skript['enthaltung']) == (kern.ja, kern.nein, kern.enthaltung)
     assert skript['beteiligung_erreicht'] is kern.beteiligung_erreicht
     assert skript['angenommen'] is kern.angenommen
+
+
+# --- GP-204: Regelverzeichnis ohne Programmtext, jeder Regeltext ein Katalogeintrag ---------------
+
+
+def test_jeder_registerschluessel_im_regelverzeichnis_ist_ein_text():
+    """GAST-10/RVA-16: Ein Tupel im Feld erschien auf /regeln/ als Programmtext `('…',)`."""
+    from plattform_core.regelwerk import REGELN
+
+    falsch = [(r.modul, r.registerschluessel) for r in REGELN if not isinstance(r.registerschluessel, str)]
+    assert falsch == []
+
+
+def test_jeder_regeltext_ist_genau_ein_katalogeintrag():
+    """GAST-10: Sieben Texte waren aus mehreren markierten Teilen zusammengesetzt. Die Vorlage schlägt
+    den ganzen Text im Katalog nach, den es dort nur in Teilen gab; englisch blieben sie deutsch.
+    Jedes Textfeld einer Regel ist deshalb genau ein markierter Text."""
+    import ast
+    import pathlib
+
+    quelle = pathlib.Path(__file__).resolve().parent.parent / 'plattform_core' / 'regelwerk.py'
+    zusammengesetzt = []
+    for knoten in ast.walk(ast.parse(quelle.read_text(encoding='utf-8'))):
+        if not (isinstance(knoten, ast.Call) and getattr(knoten.func, 'id', '') == 'Regel'):
+            continue
+        modul = next(ast.literal_eval(s.value) for s in knoten.keywords if s.arg == 'modul')
+        for s in knoten.keywords:
+            if s.arg in ('titel', 'zweck', 'grund', 'nachrechenbar', 'luecke') and not (
+                isinstance(s.value, ast.Call) and getattr(s.value.func, 'id', '') == '_'
+            ):
+                zusammengesetzt.append((modul, s.arg))
+    assert zusammengesetzt == []
+
+
+def test_regelseite_zeigt_keinen_programmtext(client, db):
+    """Abnahme GP-204: /regeln/ zeigt den Schlüssel als Text, nicht als maskiertes Tupel `('…',)`."""
+    seite = client.get('/regeln/').content.decode()
+    assert '>suche-treffer-hoechstzahl</a>' in seite
+    assert '(&#x27;' not in seite and '&#x27;,)' not in seite

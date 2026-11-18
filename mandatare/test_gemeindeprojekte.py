@@ -1,6 +1,6 @@
 """Rechte, Herkunft und sichtbarer Projektverlauf nach Berichtigung und Rücknahme."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from django.test import Client
@@ -78,6 +78,9 @@ def test_aktuelle_projektangabe_braucht_oeffentliche_quelle(client, gemeindemand
 
 
 def test_zukuenftiges_belegdatum_ist_kein_oeffentlicher_stand(client, gemeindemandat, monkeypatch):  # noqa: F811
+    # Der Antritt liegt vor dem festen Tag der Prüfung — sonst gilt das Mandat dort noch nicht als angetreten
+    gemeindemandat.angetreten = date(2026, 11, 1)
+    gemeindemandat.save(update_fields=["angetreten"])
     client.force_login(gemeindemandat.mitglied)
     jetzt = datetime(2026, 11, 15, 8, tzinfo=UTC)
     monkeypatch.setattr(timezone, "now", lambda: jetzt)

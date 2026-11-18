@@ -52,7 +52,9 @@ def _(text: str) -> str:
 #: Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und Einführung von
 #: Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort.
 #: Gemeldete Beiträge sichtet und entscheidet die Verwaltung (Zeile dort; „Einen Beitrag melden“ ist ●).
-VERSION = 12
+#: Fassung 13 (18.11.2026): das Gemeindekonto ohne Parteibeitritt — was es liest und für sich
+#: verwaltet, und dass es auf den Seiten der Partei als Gast gilt.
+VERSION = 13
 
 
 class Stand(enum.StrEnum):
@@ -474,6 +476,61 @@ MITGLIED_RUHT = Rolle(
             titel=_("Eine Ablehnung der Aufnahme beim Parteischiedsgericht bekämpfen"),
             stand=Stand.GEPLANT,
             bauschritt=_("offen — Teil C weist dafür keinen Bauschritt aus"),
+        ),
+    ),
+)
+
+# ── Gemeindekonto ohne Parteibeitritt ─────────────────────────────────────
+# Keine Rolle der Satzung: Das Konto trägt `parteikonto = False`; auf jeder Seite außerhalb des
+# Gemeindebereichs und der Anmeldung behandelt die Plattform es wie einen Gast und weist
+# Schreibanfragen ab (`mitglieder.gemeinde_middleware`).
+GEMEINDEKONTO = Rolle(
+    schluessel="gemeindekonto",
+    name=_("Gemeindekonto ohne Parteibeitritt"),
+    satzung="Gründerentscheidung vom 4.11.2026",
+    was_sie_ist=_("Keine Rolle der Satzung und keine Parteimitgliedschaft: ein freiwilliger Zugang für Einwohnerinnen und Einwohner ab 16 Jahren mit Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit. Auf den Seiten der Partei gilt dieses Konto als Gast."),
+    wie_hinein=_("Im Gemeindebereich anmelden: E-Mail-Adresse, Hauptgemeinde und Geburtsdatum angeben und den Link in der E-Mail bestätigen. Das Geburtsdatum dient nur der Altersprüfung und wird nicht gespeichert. Alter und Hauptwohnsitz sind Selbstauskünfte; die bestätigte E-Mail-Adresse ist kein Identitäts- oder Meldenachweis. Mitgliedsnummer, Mitgliedsbeitrag und Mitgliedsausweis gibt es für dieses Konto nicht."),
+    hinweis=_("Was dieses Konto nicht darf: einen Antrag einbringen oder unterstützen, abstimmen, für ein Mandat kandidieren, im Chat eines Antrags oder einer Sitzung schreiben, Beiträge melden, Favoriten setzen — nichts, was auf den Seiten der Partei schreibt; solche Vorgänge werden abgewiesen. In keiner Zählung der Stimmberechtigten kommt es vor. Mitglieder der Partei können denselben Gemeindezugang mit ihrem bestehenden Konto ergänzen. Der Beitritt zur Partei mit einem bestehenden Gemeindekonto ist noch nicht gebaut."),
+    faehigkeiten=(
+        Faehigkeit(
+            titel=_("Alles lesen wie ohne Konto — Parlament, Anträge, Beschlüsse, Register"),
+            stand=Stand.VERFUEGBAR,
+            urlname="verfahren:parlament",
+        ),
+        Faehigkeit(
+            titel=_("Die Gemeinde suchen und ihre öffentliche Übersicht lesen — Mandate, Sitzungen, Sitzungs- und Haushaltsunterlagen, Ratsinitiativen, Projekte"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:start",
+        ),
+        Faehigkeit(
+            titel=_("Öffentliche Sprechstunden der Mandatare in der Gemeinde sehen"),
+            stand=Stand.VERFUEGBAR,
+            ort=_("auf der Übersicht der Gemeinde"),
+        ),
+        Faehigkeit(
+            titel=_("Sich anmelden und angemeldet bleiben"),
+            stand=Stand.VERFUEGBAR,
+            urlname="mitglieder:login",
+        ),
+        Faehigkeit(
+            titel=_("Den eigenen Gemeindezugang verwalten — Hauptwohnsitz angeben oder ändern"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:konto",
+        ),
+        Faehigkeit(
+            titel=_("Die eigenen Gemeindeangaben herunterladen (JSON)"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:export",
+        ),
+        Faehigkeit(
+            titel=_("Einen Anstoß zur Plattform senden"),
+            stand=Stand.VERFUEGBAR,
+            ort=_("auf jeder Seite unter „Anstoß geben“, in der Kopfleiste oder unten rechts"),
+        ),
+        Faehigkeit(
+            titel=_("An einer freiwilligen Gemeindeabstimmung teilnehmen"),
+            stand=Stand.GEPLANT,
+            bauschritt=_("einem eigenen Bauschritt; Teilnehmerkreis, Stichtage und Personenprüfung sind noch nicht festgelegt"),
         ),
     ),
 )
@@ -1358,7 +1415,7 @@ GRUPPEN: tuple[Gruppe, ...] = (
             _("Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Wer hier steht, ist kein "
             "Amtsträger — sondern jemand, der liest oder mitwirkt.")
         ),
-        rollen=(GAST, MITGLIED, MITGLIED_RUHT),
+        rollen=(GAST, MITGLIED, MITGLIED_RUHT, GEMEINDEKONTO),
     ),
     Gruppe(
         schluessel="raete",

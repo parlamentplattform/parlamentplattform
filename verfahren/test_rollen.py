@@ -18,8 +18,9 @@ from plattform_core.rollen import GRUPPEN, VERSION, Stand, alle_rollen, zaehlung
 #: Abwesenheit einer Anmeldung, die beiden Mitgliedszustände sind Felder am Mitglied, die
 #: Verwaltung hängt an `ist_admin`, und der Mandatar hängt an einem offenen Mandat
 #: (`Mitglied.ist_mandatar`) — kein Gremium, weil ein Mandat nicht befristet berufen wird
-#: (§ 6 Abs 8) und keine Beschlussnummer trägt. Alles andere muss ein `Gremium` sein.
-OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar"}
+#: (§ 6 Abs 8) und keine Beschlussnummer trägt. Das Gemeindekonto ohne Parteibeitritt hängt an
+#: `Mitglied.parteikonto` (falsch). Alles andere muss ein `Gremium` sein.
+OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar", "gemeindekonto"}
 
 #: URL-Namen, die die Matrix schon nennt, obwohl sie erst mit der Zusammenführung eines
 #: Bauschritts entstehen. Im Regelfall leer — ein Eintrag hier ist eine Zusage, die der
@@ -29,7 +30,9 @@ ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = set()
 
 def test_die_matrix_traegt_ihre_fassung():
     assert VERSION >= 1
-    assert len(alle_rollen(GRUPPEN)) == 14, "FB-K6 nennt vierzehn Rollen"
+    rollen = alle_rollen(GRUPPEN)
+    assert len(rollen) == 15, "FB-K6 nennt vierzehn Rollen; dazu das Gemeindekonto ohne Parteibeitritt (FB-L9)"
+    assert len([r for r in rollen if r.schluessel != "gemeindekonto"]) == 14
 
 
 def test_jede_rolle_des_codes_steht_in_der_matrix():
@@ -52,7 +55,8 @@ def test_jede_matrix_zeile_hat_eine_entsprechung():
     bekannt = set(Gremium.values) | OHNE_GREMIUM
     behauptet = {r.schluessel for r in alle_rollen(GRUPPEN) if r.im_code}
     assert behauptet <= bekannt, f"Ohne Entsprechung im Code: {sorted(behauptet - bekannt)}"
-    # Die Grundlagen, auf die sich die fünf Nicht-Gremien-Rollen berufen, gibt es wirklich:
+    # Die Grundlagen, auf die sich die sechs Nicht-Gremien-Rollen berufen, gibt es wirklich:
+    assert hasattr(Mitglied, "parteikonto")
     assert hasattr(Mitglied, "ist_admin")
     assert hasattr(Mitglied, "ist_mandatar")
     assert Mitgliedsstatus.PAUSIERT in Mitgliedsstatus.values
@@ -581,3 +585,72 @@ def test_gp014_das_zugesagte_ausblenden_hat_einen_schreibweg():
                 if muster.search(zeile) and 'models.' not in zeile:
                     fundstellen.append(f'{app}/{datei.name}')
     assert fundstellen, 'kein Schreibweg für ausgeblendet_am außerhalb der Tests'
+
+
+# --- Z-4 (FB-K6, FB-L9): das Gemeindekonto ohne Parteibeitritt -------------------------------------
+
+
+def test_z4_das_gemeindekonto_ohne_parteibeitritt_steht_in_der_matrix():
+    '''Die Matrix kannte das Gemeindekonto nicht. Sie führt es jetzt mit dem, was es nach dem Code
+    darf (lesen, Gemeindeseiten, Sprechstunden sehen, eigener Zugang und Export), und sagt, was es
+    nicht darf (kein Antrag, keine Unterstützung, keine Stimme, kein Chat).'''
+    from mitglieder.models import Mitglied
+
+    assert VERSION >= 13
+    assert hasattr(Mitglied, 'parteikonto')
+    konto = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gemeindekonto')
+    assert konto in GRUPPEN[0].rollen and konto.im_code and not konto.auf_der_startseite
+    adressen = {f.urlname for f in konto.faehigkeiten if f.stand is Stand.VERFUEGBAR and f.urlname}
+    assert adressen == {
+        'verfahren:parlament', 'gemeinde:start', 'mitglieder:login', 'gemeinde:konto', 'gemeinde:export',
+    }
+    assert any('Sprechstunden' in f.titel and f.stand is Stand.VERFUEGBAR for f in konto.faehigkeiten)
+    for wort in ('einbringen', 'unterstützen', 'abstimmen', 'kandidieren', 'Chat'):
+        assert wort in konto.hinweis, wort
+    # Keine Zeile verspricht dem Gemeindekonto ein Parteirecht; die Gemeindeabstimmung ist offen.
+    for f in konto.faehigkeiten:
+        if f.stand is not Stand.GEPLANT:
+            assert not any(w in f.titel for w in ('abstimm', 'unterstütz', 'einbring', 'Chat')), f.titel
+    (abstimmung,) = [f for f in konto.faehigkeiten if f.stand is Stand.GEPLANT]
+    assert 'Gemeindeabstimmung' in abstimmung.titel
+    assert 'Mitgliedsnummer' in konto.wie_hinein and 'kein Identitäts- oder Meldenachweis' in konto.wie_hinein
+
+
+@pytest.mark.django_db
+def test_z4_was_die_matrix_dem_gemeindekonto_zuschreibt_stimmt_mit_dem_code(client):
+    '''Die Zeilen gegen das Verhalten: Die eigenen Seiten antworten dem Gemeindekonto, die Seiten der
+    Partei zeigen ihm den Gastzugang, und jeder Schreibweg der Partei wird abgewiesen.'''
+    from django.utils import timezone
+
+    from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, REGELN, mitglied_anlegen
+
+    ort = Gemeinde.objects.create(
+        kennziffer='40510', name='St. Marienkirchen an der Polsenz', bezirk='Eferding', bundesland='oberoesterreich'
+    )
+    konto = Mitglied.objects.create_user(
+        'einwohner@example.org', email='einwohner@example.org', parteikonto=False,
+        wohnsitz=ort, wohnsitz_art=Wohnsitzart.OESTERREICH, klarname_oeffentlich=False,
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=konto, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    ordnung = Verfahrensordnung.objects.create(policy_id='test-ordnung', version=1, regeln=REGELN, aktiv=True)
+    antrag = antrag_einbringen(mitglied_anlegen('autor'), **ANTRAG, ordnung=ordnung)
+
+    client.force_login(konto)
+    for name in ('gemeinde:konto', 'gemeinde:export', 'gemeinde:start', 'verfahren:parlament'):
+        assert client.get(reverse(name)).status_code == 200, name
+    assert client.get(reverse('gemeinde:ort', args=[ort.kennziffer])).status_code == 200
+    # Auf den Seiten der Partei ist es ein Gast: Die Seite für eigene Gespräche verlangt die Anmeldung.
+    assert client.get(reverse('verfahren:gespraeche')).status_code in (302, 403)
+    for name, argumente in (
+        ('verfahren:einbringen', []),
+        ('verfahren:unterstuetzen', [antrag.pk]),
+        ('verfahren:abstimmen', [antrag.pk]),
+        ('verfahren:bewerben', [antrag.pk]),
+        ('verfahren:kommentieren', [antrag.pk]),
+        ('verfahren:favorisieren', [antrag.pk]),
+    ):
+        assert client.post(reverse(name, args=argumente), {}).status_code == 403, name
+    assert antrag.unterstuetzungen.count() == 0 and antrag.stimmabgaben.count() == 0

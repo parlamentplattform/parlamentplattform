@@ -695,15 +695,17 @@ REGELN: tuple[Regel, ...] = (
         zweck=(
             _("Führt für jede der vierzehn Rollen der Partei auf, was die Satzung ihr aufträgt und was "
             "die Software heute davon kann — Fähigkeit für Fähigkeit mit ● verfügbar, ◐ teilweise "
-            "oder ○ geplant, bei Geplantem mit dem Bauschritt. Die Matrix wählt nichts aus, reiht "
+            "oder ○ geplant, bei Geplantem mit dem Bauschritt. Dazu das Gemeindekonto ohne "
+            "Parteibeitritt, das keine Rolle der Satzung ist. Die Matrix wählt nichts aus, reiht "
             "nichts und öffnet keine Zugänge; sie ist eine Auskunft über den Bauzustand.")
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=12,
+        fassung=13,
         seit="2026-11-18",
         grund=(
-            _("Fassung 12 berichtigt nach der Gesamtprüfung vom 18.11.2026 Zeilen, die den Bauzustand falsch wiedergaben: Der Einreichungsbeschluss der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird nachgelost, sobald der Vollzugsbezug gesetzt ist; die Verwaltung besetzt sechs Räte; Tests und Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort statt einer Adresse, die nur das abgeschickte Formular annimmt. "
+            _("Fassung 13 nimmt das Gemeindekonto ohne Parteibeitritt auf: was es liest und für sich verwaltet (Gemeindeübersicht, öffentliche Sprechstunden, eigener Zugang, eigener Export), und dass es auf den Seiten der Partei als Gast gilt — kein Antrag, keine Unterstützung, keine Stimme, kein Chat. "
+            "Fassung 12 berichtigt nach der Gesamtprüfung vom 18.11.2026 Zeilen, die den Bauzustand falsch wiedergaben: Der Einreichungsbeschluss der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird nachgelost, sobald der Vollzugsbezug gesetzt ist; die Verwaltung besetzt sechs Räte; Tests und Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort statt einer Adresse, die nur das abgeschickte Formular annimmt. "
             "Gemeldete Beiträge sichtet und entscheidet die Verwaltung; die Zeile steht bei ihr, und das Melden beim Mitglied gilt als verfügbar. "
             "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
             "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "

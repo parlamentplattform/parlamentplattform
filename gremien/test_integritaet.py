@@ -757,3 +757,31 @@ def test_die_aufhebung_einer_frueheren_zurueckweisung_laesst_die_schleife_ruhen_
     assert antrag.phase == Phase.BERATUNG.value and entwurf.status == 'angenommen'
     seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
     assert UEBERNAHME not in seite and 'Die Entwurfsschleife ruht' in seite
+
+
+# --- GP-012: Der Beendigungsgrund einer Rolle ist nicht öffentlich ---------------------------
+
+
+def test_der_beendigungsgrund_einer_rolle_steht_auf_keiner_oeffentlichen_seite(client, ordnung):  # noqa: F811
+    """GP-012: Im Audit ist der Grund geschwärzt — der Jahresbericht zeigte ihn im Klartext neben dem
+    Namen, und /gremien/ versprach „mit Grund dokumentiert“. Den Grund sieht nur die Verwaltung."""
+    from django.utils import timezone
+
+    admin = mitglied_anlegen('admin')
+    admin.ist_admin = True
+    admin.save()
+    leute = rat()
+    rolle = Rolle.objects.get(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT)
+    client.force_login(admin)
+    client.post(reverse('gremien:rollen_aktion'), {'aktion': 'beenden', 'rolle': rolle.pk, 'grund': 'Geheimwort-123'})
+    rolle.refresh_from_db()
+    assert rolle.beendet_grund == 'Geheimwort-123'
+    assert 'Geheimwort-123' in client.get(reverse('gremien:rollen')).content.decode()
+    client.logout()
+    bericht = client.get(reverse('gremien:integritaet_bericht', args=[timezone.localdate().year])).content.decode()
+    assert 'Geheimwort-123' not in bericht and 'vorzeitig beendet' in bericht
+    uebersicht = client.get(reverse('gremien:uebersicht')).content.decode()
+    assert 'Geheimwort-123' not in uebersicht
+    assert 'mit Grund dokumentiert' not in uebersicht and 'der Grund ist nicht öffentlich' in uebersicht
+    for pfad in ('/audit/', '/audit.json'):
+        assert 'Geheimwort-123' not in client.get(pfad).content.decode()

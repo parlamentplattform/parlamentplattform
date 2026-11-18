@@ -20,7 +20,7 @@ niemand kürzen oder zurückhalten.
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Besetzung im Berichtsjahr" %}</p>
   {% for r in rollen %}
-  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong><br><span class="meta">{{ r.berufen_am|date:"d.m.Y" }} – {{ r.endet_am|date:"d.m.Y" }}{% if r.beendet_grund %} · {{ r.beendet_grund }}{% endif %}</span></span></div>
+  <div class="zeile"><span><strong>{{ r.mitglied.anzeigename }}</strong><br><span class="meta">{{ r.berufen_am|date:"d.m.Y" }} – {{ r.endet_am|date:"d.m.Y" }}{% if r.beendet_grund %} · {% translate "vorzeitig beendet" %}{% endif %}</span></span></div>
   {% empty %}
   <p class="leer">{% translate "Im Berichtsjahr war niemand berufen." %}</p>
   {% endfor %}

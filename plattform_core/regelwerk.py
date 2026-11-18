@@ -278,10 +278,10 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 5 Abs 4 (mit § 3 Abs 1 lit b — eine Stimme je Mensch)",
-        fassung=2,
-        seit="2026-11-14",
+        fassung=3,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 2 ergänzt für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
+            _("Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Mindestbeteiligung wird zusätzlich als Kopfzahl ausgewiesen, und der Begründungssatz nennt „erforderlich N Stimmen (P %)“ statt eines Prozentwerts allein. Fassung 2 ergänzte für neue örtliche Verfahren den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Stimme ergeben keinen Beschluss; die Auszählung der Altverfahren blieb unverändert.")
         ),
         nachrechenbar=(
             _("Nach Abstimmungsende gibt es zu jedem Antrag einen JSON-Export der Stimmliste. Von Hand: "
@@ -290,7 +290,10 @@ REGELN: tuple[Regel, ...] = (
             "die Hälfte aller abgegebenen Stimmen). Wer rechnen lassen will: `python3 "
             "verify/nachrechnen.py export.json`, ein zweites, unabhängiges Programm aus reiner "
             "Standardbibliothek. Die Mindestbeteiligung stammt aus der am Antrag eingefrorenen "
-            "Verfahrensordnung, nicht aus dem laufenden Parameterregister.")
+            "Verfahrensordnung, nicht aus dem laufenden Parameterregister. Als Kopfzahl: "
+            "Stimmberechtigte mal Mindestbeteiligung, auf die nächste ganze Zahl aufgerundet — so "
+            "viele Stimmen müssen mindestens abgegeben sein (5 % von 100 sind 5, von 20 ist es 1, "
+            "von 21 sind es 2).")
         ),
     ),
     Regel(
@@ -304,10 +307,10 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.ENTSCHEIDET,
         satzung="§ 7 Abs 1 (Satzungsentwurf 2.5), mit § 5 Abs 4 für die Mindestbeteiligung",
-        fassung=2,
-        seit="2026-11-14",
+        fassung=3,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 2 ergänzt für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl. Die bisherige Auszählung bleibt für Altverfahren unverändert.")
+            _("Fassung 3 rechnet wie Fassung 2 und ändert kein Ergebnis: Die Begründung nennt die Mindestbeteiligung als Kopfzahl, „N Stimmen (P %)“. Fassung 2 ergänzte für neue örtliche Kandidaturen den leeren Teilnehmerkreis: Null Stimmberechtigte und keine Zustimmung ergeben keine Wahl; die Auszählung der Altverfahren blieb unverändert.")
         ),
         nachrechenbar=(
             _("Der JSON-Export des Antrags enthält alle Bewerbungen und alle Zustimmungen. Von Hand: "

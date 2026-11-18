@@ -103,3 +103,65 @@ def test_eigenschaft_eine_zusaetzliche_ja_stimme_schadet_nie(ja, nein, berechtig
     nachher = auszaehlen(s + [("extra", Stimme.JA)], berechtigte, POLICY)
     if vorher.angenommen:
         assert nachher.angenommen
+
+
+# --- GP-050: Mindestbeteiligung als Kopfzahl ---------------------------------------------------------
+
+
+class TestMindeststimmen:
+    def test_kopfzahl_fuer_kleine_und_grosse_kreise(self):
+        from plattform_core.tally import mindeststimmen
+
+        assert mindeststimmen(20, 0.05) == 1
+        assert mindeststimmen(21, 0.05) == 2  # 1/21 liegt unter 5 %
+        assert mindeststimmen(100, 0.05) == 5
+        assert mindeststimmen(1234, 0.05) == 62
+        assert mindeststimmen(3, 0.5) == 2
+        assert mindeststimmen(0, 0.05) == 0  # leerer Kreis: keine Kopfzahl
+
+    def test_begruendung_nennt_die_kopfzahl_und_kein_punktformat(self):
+        r = auszaehlen(stimmen(ja=4), stimmberechtigte=100, policy=POLICY)
+        assert 'erforderlich 5 Stimmen (5 %)' in r.begruendung
+        assert '5.0%' not in r.begruendung and '4/100' in r.begruendung
+
+    def test_begruendung_nennt_eine_einzelne_stimme_in_der_einzahl(self):
+        r = auszaehlen([], stimmberechtigte=20, policy=POLICY)
+        assert 'erforderlich 1 Stimme (5 %)' in r.begruendung
+
+    def test_begruendung_schreibt_gebrochene_prozente_mit_komma(self):
+        ordnung = Policy(**{**POLICY.als_dict(), 'mindestbeteiligung': 0.125})
+        r = auszaehlen(stimmen(ja=1), stimmberechtigte=100, policy=ordnung)
+        assert 'erforderlich 13 Stimmen (12,5 %)' in r.begruendung
+
+    def test_kandidatur_nennt_die_kopfzahl(self):
+        from plattform_core.tally import personenwahl_auszaehlen
+
+        verfehlt = personenwahl_auszaehlen([('p1', 1)], [1, 2], 100, POLICY)
+        assert '1/100, erforderlich 5 Stimmen (5 %)' in verfehlt.begruendung
+        gewaehlt = personenwahl_auszaehlen([('p1', 1)], [1, 2], 20, POLICY)
+        assert 'Mindestbeteiligung von 1 Stimme (5 %)' in gewaehlt.begruendung
+
+
+@given(
+    berechtigte=st.integers(1, 100_000),
+    prozent=st.integers(5, 100),
+)
+def test_eigenschaft_mindeststimmen_ist_die_kleinste_zahl_die_genuegt(berechtigte, prozent):
+    """Die Kopfzahl kommt aus derselben Bedingung wie die Auszählung: Mit ihr ist die
+    Mindestbeteiligung erreicht, mit einer Stimme weniger nicht."""
+    from plattform_core.tally import mindestbeteiligung_erreicht, mindeststimmen
+
+    anteil = prozent / 100
+    n = mindeststimmen(berechtigte, anteil)
+    assert 1 <= n <= berechtigte
+    assert mindestbeteiligung_erreicht(n, berechtigte, anteil)
+    assert not mindestbeteiligung_erreicht(n - 1, berechtigte, anteil)
+
+
+@given(berechtigte=st.integers(1, 5000), anteil=st.floats(0.05, 1.0, allow_nan=False))
+def test_eigenschaft_mindeststimmen_gilt_fuer_jeden_anteil(berechtigte, anteil):
+    from plattform_core.tally import mindestbeteiligung_erreicht, mindeststimmen
+
+    n = mindeststimmen(berechtigte, anteil)
+    assert mindestbeteiligung_erreicht(n, berechtigte, anteil)
+    assert n == 0 or not mindestbeteiligung_erreicht(n - 1, berechtigte, anteil)

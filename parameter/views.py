@@ -2,6 +2,7 @@
 Verwaltung mit Pflicht-Grund — jede Änderung im Audit-Log."""
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -397,6 +398,7 @@ def verwaltung(request):
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_aktion(request):
     eintrag = get_object_or_404(Parameter, pk=request.POST.get("parameter"))
     neuer_wert = (request.POST.get("wert") or "").strip()[:100]
@@ -444,6 +446,7 @@ def verwaltung_aktion(request):
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_ordnung_entwurf(request):
     """Erzeugt aus dem Register eine neue Fassung der Verfahrensordnung — ohne Kraft (FB-J1).
 
@@ -501,6 +504,7 @@ def verwaltung_ordnung_entwurf(request):
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_ordnung_inkraft(request):
     """Setzt eine erzeugte Fassung in Kraft (FB-J1).
 

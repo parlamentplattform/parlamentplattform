@@ -24,7 +24,7 @@
   <p>{% translate "Originaldatei-Prüfsumme (SHA-256)" %}: <code class="fakten-hash">{{ tabelle.original_sha256 }}</code></p>
   <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ tabelle.parser_fassung }} · {% translate "Erstmals erfasst" %}: {{ tabelle.erfasst_am|date:"d.m.Y H:i" }}</p>
   <p><a href="{% url 'faktenbasis:personal_ressorts_nachweis' tabelle.pk %}">{% translate "Ressorttabelle mit Herkunft als JSON herunterladen" %}</a></p>
-  <p class="hilfe">{% translate "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Sie wird nicht automatisch in Modellaufträge oder deren frühere Eingaben übernommen." %}</p>
+  <p class="hilfe">{% translate "Diese Tabelle enthält keine Aufteilung nach Beamten und Vertragsbediensteten je Ressort. Neue Rechtsfolgenaufträge der Zukunftswerkstatt erhalten sie als Bestandsrahmen; laufende Aufträge und frühere Eingaben bleiben unverändert." %}</p>
 </div>
 <details class="karte"><summary>{% translate "Abrufe dieses Belegs nachlesen" %}</summary>
   <p class="meta">{% translate "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben dokumentiert." %}</p>

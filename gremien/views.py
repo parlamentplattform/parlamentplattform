@@ -558,6 +558,12 @@ def fenster_aktion(request, antrag_id: int):
     elif aktion == "einreichung":
         if entwurf.einreichungsbeschluss() is not None:
             messages.info(request, _("Über die Einreichung wird bereits abgestimmt."))
+        elif entwurf.ueberarbeitung_verstrichen():
+            # Ein Beschluss hierüber bliebe ohne Wirkung (GP-003) — die Meldung sagt, was stattdessen gilt.
+            messages.error(
+                request,
+                _("Die Überarbeitungsfrist ist verstrichen — die zuletzt vorgelegte Fassung geht zur Endabstimmung (§ 5 Abs 12)."),
+            )
         else:
             beschluss = entwurf.einreichungsbeschluss_anlegen(request.user)
             if beschluss is None:
@@ -1971,25 +1977,92 @@ def koordination_test(request, test_id: int):
     return redirect("gremien:koordination")
 
 
-def _testbare_parameter():
-    """Die Stellgrößen, die ein Test setzen darf — ohne die Ordnungsschlüssel (D-J3g).
+#: Stellgrößen, die ein LAUFENDES Verfahren bei jedem Zugriff aus dem Register liest — vom Test ausgenommen.
+#:
+#: Entscheidung D-J3g (Fahrtenbuch Teil D, 5.9.2026): „Ein Test wirkt nur auf Registerwerte, die kein
+#: laufendes Verfahren liest.“ § 6 Abs 11 lit c: Tests dürfen laufende Verfahren (§ 5 Abs 5) nicht berühren.
+#: Die Ordnung eines Antrags ist eingefroren; diese Werte sind es nicht — der Chat eines längst
+#: eingebrachten Antrags liest sie bei jedem Beitrag neu. Ein Test auf ihnen änderte die Bedingungen
+#: mitten im Verfahren (Gesamtprüfung GP-013).
+#:
+#: Die EINE Stelle für diese Ausnahmen: Auswahlliste (`_testbare_parameter`) und Abweisung
+#: (`_nicht_testbar`) lesen sie. Aufgenommen wird nur, was eindeutig ist; der Wächter
+#: `gremien/test_gp_runde1.py::test_waechter_jede_testbare_stellgroesse_ist_nach_d_j3g_geprueft` verlangt
+#: für jede neue Stellgröße die Entscheidung. Schlüssel → Lesestelle und Grund.
+IM_LAUFENDEN_VERFAHREN_GELESEN = {
+    "chat-zeichen-hoechstzahl": (
+        "verfahren/chat.py (chat_zeichen_hoechstzahl): Höchstlänge jedes neuen und geänderten Beitrags im "
+        "Antrags- und Abstimmungs-Chat, gelesen bei jedem Beitrag."
+    ),
+    "kritik-mindestzeichen": (
+        "verfahren/chat.py (kritik_mindestzeichen): Mindestlänge einer Kritik im Abstimmungs-Chat der "
+        "Entwurfsschleife (§ 5 Abs 13), gelesen bei jedem Schreiben und Ändern."
+    ),
+    "chat-bearbeitungsfenster-minuten": (
+        "verfahren/models.py (Kommentar.bearbeitungsfenster_minuten): wie lange ein Beitrag — auch eine "
+        "Kritik im Abstimmungs-Chat — änderbar bleibt, gelesen bei jedem Änderungsversuch."
+    ),
+}
 
-    § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5). Die
-    Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
+
+def _testbare_parameter():
+    """Die Stellgrößen, die ein Test setzen darf (D-J3g). Drei Arten sind ausgenommen:
+
+    Die Ordnungsschlüssel: § 6 Abs 11 lit c — Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5).
+    Die Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
     der Ordnung — und die beschließt nach § 5 Abs 7 die Mitgliederversammlung, nicht der
     Koordinationsrat. Ein Test auf ihnen wäre ein zweiter Weg zur Ordnung; den gibt es nicht.
 
-    Ebenso ausgenommen sind die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts
-    ein, sie nennen die Fassung einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt."""
-    from plattform_core.policy import REGISTER_ZUORDNUNG
+    Die Stellgrößen, die ein laufendes Verfahren bei jedem Zugriff aus dem Register liest
+    (`IM_LAUFENDEN_VERFAHREN_GELESEN`, GP-013): Sie sind nicht eingefroren, ein Testwert stünde sofort
+    im Chat längst eingebrachter Anträge.
 
-    ordnung = {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
+    Die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts ein, sie nennen die Fassung
+    einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt.
+
+    Was übrig bleibt, wirkt mit dem Testbeginn sofort überall, wo es gelesen wird — das sagt auch der
+    Vermerk am Beschluss (`gremien.models.parametertest_wirkung`). Diese Werte begrenzen Anzeige, Post,
+    Schutzgrenzen und KI-Budget, oder sie werden festgeschrieben, wo etwas Neues entsteht (ein Antrag,
+    eine Vertrauens- oder Mandatsfrage, eine Rolle). Nicht ausgenommen, weil nicht eindeutig und nicht
+    entschieden: `gremien-beschluss-tage` (die Frist eines NEU angelegten Beschlusses, auch in einem
+    laufenden Verfahren), `live-hoechstdauer-stunden` (laufende Live-Sitzung) und
+    `mandatar-monatsbericht-frist-tage` (laufender Berichtsmonat; `parameter/test_register.py`
+    führt sie ausdrücklich als testbar)."""
     return (
-        Parameter.objects.exclude(schluessel__in=ordnung)
+        Parameter.objects.exclude(schluessel__in=_ordnungsschluessel())
+        .exclude(schluessel__in=IM_LAUFENDEN_VERFAHREN_GELESEN)
         .exclude(einheit=EINHEIT_REGELFASSUNG)
         .exclude(status=Status.IM_TEST)
         .order_by("gruppe", "schluessel")
     )
+
+
+def _ordnungsschluessel() -> set[str]:
+    """Die Registerschlüssel, aus denen eine Fassung der Verfahrensordnung gebaut wird."""
+    from plattform_core.policy import REGISTER_ZUORDNUNG
+
+    return {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
+
+
+def _nicht_testbar(parameter):
+    """Warum sich diese Stellgröße nicht testen lässt — als Meldung für den Rat, oder None.
+
+    Dieselben drei Ausnahmen wie `_testbare_parameter` (ein Wächtertest hält beide zusammen). Die
+    Auswahlliste bietet sie nicht an; eine handgebaute Anfrage bekommt die Meldung statt eines 404 (GP-044)."""
+    if parameter.schluessel in IM_LAUFENDEN_VERFAHREN_GELESEN:
+        # D-J3g: Auch eine handgebaute Anfrage legt hier keinen Test an (GP-013).
+        return _(
+            "Auf dieser Stellgröße gibt es keinen Test: Laufende Verfahren lesen ihren Wert, und ein Test darf sie nicht berühren (§ 6 Abs 11 lit c)."
+        )
+    if parameter.schluessel in _ordnungsschluessel():
+        return _(
+            "Werte der Verfahrensordnung lassen sich nicht testen: Die Ordnung ändert nur die Mitgliederversammlung (§ 5 Abs 7)."
+        )
+    if parameter.einheit == EINHEIT_REGELFASSUNG:
+        return _(
+            "Ein Versionsschild lässt sich nicht testen: Es nennt die Fassung einer Regel im Code und stellt nichts ein."
+        )
+    return None
 
 
 #: Die Einheit, an der das Register ein Versionsschild erkennt (parameter/models.py, ERSTBESTAND).
@@ -2008,7 +2081,11 @@ def _test_anordnen(request):
     from parameter.kennzahlen import werte
     from plattform_core.parametertest import messgroessen
 
-    parameter = get_object_or_404(_testbare_parameter(), pk=_kennung(request.POST.get("parameter")))
+    parameter = get_object_or_404(Parameter, pk=_kennung(request.POST.get("parameter")))
+    grund = _nicht_testbar(parameter)
+    if grund is not None:
+        messages.error(request, grund)
+        return redirect("gremien:koordination")
     testwert = (request.POST.get("testwert") or "").strip()[:100]
     hypothese = (request.POST.get("hypothese") or "").strip()[:300]
     messgroesse = (request.POST.get("messgroesse") or "").strip()[:80]

@@ -759,6 +759,97 @@ def test_die_aufhebung_einer_frueheren_zurueckweisung_laesst_die_schleife_ruhen_
     assert UEBERNAHME not in seite and 'Die Entwurfsschleife ruht' in seite
 
 
+def _zurueckweisung_zurueckdatieren(zurueck, entwurf, dauer):
+    """Zeitraffer: Die Zurückweisung liegt `dauer` zurück — und mit ihr alles, was sie gesichert hat."""
+    from datetime import datetime
+
+    from gremien.models import Entwurf
+
+    vorher = zurueck.zustand_vorher
+    for schluessel in ('zurueckgewiesen_am', 'phase_beginn'):
+        vorher[schluessel] = (datetime.fromisoformat(vorher[schluessel]) - dauer).isoformat()
+    for schluessel, wert in list(vorher.get('entwurf', {}).items()):
+        if schluessel != 'status' and wert:
+            vorher['entwurf'][schluessel] = (datetime.fromisoformat(wert) - dauer).isoformat()
+    zurueck.save(update_fields=['zustand_vorher'])
+    entwurf.refresh_from_db()
+    if entwurf.eingereicht_am:
+        Entwurf.objects.filter(pk=entwurf.pk).update(eingereicht_am=entwurf.eingereicht_am - dauer)
+
+
+def test_die_aufhebung_in_der_pruefphase_hemmt_auch_die_prueffrist(client, ordnung):  # noqa: F811
+    """GP-008, Rest: In der Prüfphase läuft ohne besetzte Gruppe 2 die Prüffrist ab der Einreichung. Die
+    Aufhebung verschob sie nicht — nach einer Zurückweisung von sieben Tagen war sie sofort um, und der
+    Vorschlag ging „ohne Prüfung“ weiter, obwohl dem Verfahren die Zeit nur genommen worden war."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Entwurf, EntwurfsStatus
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    leute = rat()
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er, vollzugsbezug=True)  # niemand in Gruppe 2
+    assert entwurf.status == EntwurfsStatus.PRUEFUNG
+    tage = antrag.policy().pruefung_tage
+    eingereicht = timezone.now() - timedelta(days=1)  # ein Tag der Prüffrist ist verbraucht
+    Entwurf.objects.filter(pk=entwurf.pk).update(eingereicht_am=eingereicht)
+    zurueck = beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    assert zurueck.zustand_vorher['entwurf']['status'] == 'pruefung'
+    dauer = timedelta(days=tage)  # die Zurückweisung dauert so lang wie die ganze Prüffrist
+    _zurueckweisung_zurueckdatieren(zurueck, entwurf, dauer)
+
+    beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG_AUFHEBEN, 'Das Schiedsgericht gab statt.')
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == Phase.BERATUNG.value and entwurf.status == EntwurfsStatus.PRUEFUNG
+    # Der Beginn der Prüffrist ist um die Dauer der Zurückweisung nach hinten gerückt: Rest wie vorher.
+    verschoben = entwurf.eingereicht_am - (eingereicht - dauer)
+    assert dauer <= verschoben < dauer + timedelta(minutes=1)
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.PRUEFUNG, 'die Prüffrist ist nicht sofort um'
+    assert not entwurf.pruefungen.exists()
+    assert not [e for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'pruefung_frist_verstrichen']
+    # Und sie läuft danach normal ab: nach dem Rest von sechs Tagen geht der Vorschlag weiter.
+    antrag.fortschreiben_bis_zum_stand(timezone.now() + timedelta(days=tage - 1, hours=1))
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+
+
+def test_die_werkstatt_zeigt_einen_ruhenden_entwurf_nicht_als_uebergeben(client, ordnung):  # noqa: F811
+    """GP-008, Rest: Die Zurückweisung legt die Schleife mit dem Status „angenommen“ still. Die Werkstatt
+    zeigte ihn mit dessen Namen — „zur Endabstimmung übergeben“ —, obwohl nichts übergeben wurde."""
+    from gremien.models import EntwurfsStatus
+    from gremien.test_werkstatt import einreichen, frist_verstreichen, werkstatt_lage
+
+    leute = rat()
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    fenster = reverse('gremien:fenster', args=[antrag.pk])
+    client.force_login(er[0])
+    assert 'liegt den Unterstützern vor' in client.get(fenster).content.decode()
+    beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.ANGENOMMEN and not entwurf.vorschlag_uebernommen()
+    client.force_login(er[0])
+    seite = client.get(fenster).content.decode()
+    assert 'zur Endabstimmung übergeben' not in seite
+    assert 'ruht — der Vorschlag wurde nicht übernommen' in seite
+    # Gegenprobe: Ein wirklich übernommener Vorschlag heißt weiter „zur Endabstimmung übergeben“.
+    beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG_AUFHEBEN, 'Stattgegeben.')
+    entwurf.refresh_from_db()
+    frist_verstreichen(entwurf)
+    antrag.refresh_from_db()
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    assert entwurf.vorschlag_uebernommen()
+    client.force_login(er[0])
+    seite = client.get(fenster).content.decode()
+    assert 'zur Endabstimmung übergeben' in seite and 'ruht — der Vorschlag' not in seite
+
+
 # --- GP-012: Der Beendigungsgrund einer Rolle ist nicht öffentlich ---------------------------
 
 

@@ -1268,3 +1268,140 @@ def test_ein_entschiedener_antrag_bekommt_aus_der_schleife_keine_weitere_fassung
     assert antrag.fassungen.count() == fassungen
     assert antrag.phase == phase and entwurf.status == EntwurfsStatus.UNTERSTUETZER
     assert _wechsel_in_die_abstimmung(antrag) == []
+
+
+# --- GP-003 (Rest): Die Wartezeit zwischen Schleifenfrist und Beratungsende steht am Antrag -------
+
+
+def _nur_die_unterstuetzerfrist_verstreicht(entwurf):
+    """Wie `frist_verstreichen`, aber die Beratung läuft weiter: die Wartezeit, in der der Vorschlag steht
+    und die Endabstimmung auf das Beratungsende wartet (GP-003)."""
+    from django.db.models import F
+
+    from verfahren.models import Reaktion
+
+    frist = timezone.now() - timedelta(hours=1)
+    versatz = timezone.now() - frist + timedelta(minutes=5)
+    Reaktion.objects.filter(kommentar__antrag_id=entwurf.antrag_id).update(
+        erstellt_am=F('erstellt_am') - versatz, zurueckgenommen_am=F('zurueckgenommen_am') - versatz
+    )
+    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    return frist
+
+
+def _schleifenkarte(client, antrag):
+    inhalt = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    return inhalt.split('Entwurfsschleife', 1)[1].split('</div>', 1)[0]
+
+
+def test_in_der_wartezeit_sagt_die_antragsseite_dass_der_vorschlag_angenommen_ist(client, ordnung):  # noqa: F811
+    """GP-003, Rest: Zwischen verstrichener Unterstützerfrist und Beratungsende stand weiter „Frist: <vergangenes
+    Datum>. Danach wertet der Fristablauf aus“. Jetzt steht da, dass der Vorschlag angenommen ist und wann die
+    Endabstimmung beginnt: mit dem Ende der Beratung."""
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    client.logout()
+    vorher = _schleifenkarte(client, antrag)
+    assert 'Danach wertet der Fristablauf aus' in vorher and 'ist angenommen' not in vorher
+    frist = _nur_die_unterstuetzerfrist_verstreicht(entwurf)
+    karte = _schleifenkarte(client, antrag)
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == 'beratung' and entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage)
+    assert 'Danach wertet der Fristablauf aus' not in karte
+    assert 'liegt den Unterstützern dieses Antrags vor' not in karte
+    assert 'ist angenommen' in karte
+    assert f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' in karte
+    assert f'Ende der Beratung am {timezone.localtime(ende):%d.%m.%Y %H:%M}' in karte
+    assert entwurf.endabstimmung_wartet() == {'ab': ende, 'grund': 'angenommen'}
+
+
+def test_in_der_wartezeit_nennt_die_antragsseite_erreichte_hoechstrunden_nicht_annahme(client, ordnung):  # noqa: F811
+    """GP-003, Rest (und GP-026): Lehnen die Unterstützer ab und ist die Höchstzahl der Runden erreicht, geht der
+    Vorschlag zur Endabstimmung — „angenommen“ hat ihn niemand, und die Seite behauptet es nicht."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(policy_snapshot=dict(antrag.policy_snapshot, hoechstrunden=1))
+    antrag.refresh_from_db()
+    entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    for u in unterstuetzer:
+        reagieren(client, antrag, passt, u, art='ablehnung')
+    _nur_die_unterstuetzerfrist_verstreicht(entwurf)
+    client.logout()
+    karte = _schleifenkarte(client, antrag)
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert 'Höchstzahl der Runden ist erreicht' in karte and 'ist angenommen' not in karte
+    assert 'Ende der Beratung am' in karte and 'Danach wertet der Fristablauf aus' not in karte
+    assert entwurf.endabstimmung_wartet()['grund'] == 'hoechstrunden'
+
+
+def test_in_der_wartezeit_nach_verstrichener_ueberarbeitung_nennt_die_seite_das_beratungsende(client, ordnung):  # noqa: F811
+    """GP-003, Rest, zweiter Weg: Ist die Überarbeitungsfrist verstrichen und läuft die Beratung noch, stand
+    weiter „Überarbeitung läuft … Ohne neue Einreichung bis <vergangenes Datum>“."""
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    frist = timezone.now() - timedelta(hours=2)
+    Entwurf.objects.filter(pk=entwurf.pk).update(
+        status=EntwurfsStatus.IN_ARBEIT, runde=2, review_frist=None, ueberarbeitung_frist=frist
+    )
+    client.logout()
+    karte = _schleifenkarte(client, antrag)
+    antrag.refresh_from_db()
+    assert antrag.phase == 'beratung'
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().beratung_tage)
+    assert 'Überarbeitung läuft' not in karte and 'Ohne neue Einreichung bis' not in karte
+    assert 'Überarbeitungsfrist ist am' in karte and f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' in karte
+    assert f'Ende der Beratung am {timezone.localtime(ende):%d.%m.%Y %H:%M}' in karte
+
+
+def test_vor_dem_fristende_und_nach_dem_beratungsende_wartet_nichts(client, ordnung):  # noqa: F811
+    """Gegenprobe: Läuft die Frist noch, wartet nichts; ist auch die Beratung um, ist die Endabstimmung fällig."""
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    assert entwurf.endabstimmung_wartet() is None
+    frist_verstreichen(entwurf)  # rückt die Beratung mit
+    entwurf.refresh_from_db()
+    assert entwurf.endabstimmung_wartet() is None
+
+
+def test_nach_verstrichener_ueberarbeitungsfrist_entsteht_kein_einreichungsbeschluss(client, ordnung):  # noqa: F811
+    """GP-003, Rest: Nach verstrichener Überarbeitungsfrist ließ sich noch ein Einreichungsbeschluss anlegen,
+    der dann ohne Wirkung blieb („Nicht eingereicht: Die Überarbeitungsfrist war verstrichen“). Jetzt wird
+    das Anlegen abgewiesen — mit einer Meldung, die sagt, was stattdessen geschieht."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    Entwurf.objects.filter(pk=entwurf.pk).update(
+        status=EntwurfsStatus.IN_ARBEIT, runde=2, review_frist=None,
+        ueberarbeitung_frist=timezone.now() - timedelta(hours=2),
+    )
+    vorher = GremienBeschluss.objects.filter(anlass=Anlass.EINREICHUNG, antrag=antrag).count()
+    audit = AuditEintrag.objects.count()
+    client.force_login(er[0])
+    antwort = client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'einreichung'}, follow=True)
+    assert GremienBeschluss.objects.filter(anlass=Anlass.EINREICHUNG, antrag=antrag).count() == vorher
+    assert AuditEintrag.objects.count() == audit
+    inhalt = antwort.content.decode()
+    assert 'Die Überarbeitungsfrist ist verstrichen' in inhalt and 'Ohne Fassung gibt es nichts einzureichen' not in inhalt
+    entwurf.refresh_from_db()
+    assert entwurf.einreichungsbeschluss_anlegen(er[0]) is None  # auch am Modell, nicht nur in der Ansicht
+
+
+def test_vor_der_ueberarbeitungsfrist_entsteht_der_einreichungsbeschluss_weiter(client, ordnung):  # noqa: F811
+    """Gegenprobe: Läuft die Überarbeitungsfrist noch, legt Gruppe 1 den Beschluss an wie bisher."""
+    from gremien.models import Anlass, BeschlussStatus, GremienBeschluss
+
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    Entwurf.objects.filter(pk=entwurf.pk).update(
+        status=EntwurfsStatus.IN_ARBEIT, runde=2, review_frist=None,
+        ueberarbeitung_frist=timezone.now() + timedelta(days=2),
+    )
+    client.force_login(er[0])
+    client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'einreichung'})
+    assert GremienBeschluss.objects.filter(
+        anlass=Anlass.EINREICHUNG, antrag=antrag, status=BeschlussStatus.OFFEN
+    ).count() == 1

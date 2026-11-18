@@ -208,6 +208,11 @@ VORSCHLAG_ALS_FASSUNG = "Vorschlag des Expertenrats, Runde "
 #: Die Fristfelder des Entwurfs, die eine Zurückweisung sichert und ihre Aufhebung verschoben wiederherstellt.
 ENTWURF_FRISTFELDER = ("review_frist", "ueberarbeitung_frist", "beratung_freigegeben_am")
 
+#: Der Beginn der Prüffrist am Entwurf (ohne besetzte Gruppe 2 läuft sie ab der Einreichung): Die
+#: Zurückweisung sichert ihn mit, leert ihn aber nicht; die Aufhebung rückt ihn in der Prüfphase um
+#: die Dauer der Zurückweisung nach hinten (GP-008) — sonst wäre die Prüffrist sofort um.
+ENTWURF_FRISTBEGINNE = ("eingereicht_am",)
+
 
 class EntwurfsStatus(models.TextChoices):
     IN_ARBEIT = "in_arbeit", _("in Arbeit (Expertenrat)")
@@ -287,6 +292,10 @@ class Entwurf(models.Model):
             return None
         if self.einreichungsbeschluss() is not None:
             return None
+        if self.ueberarbeitung_verstrichen(jetzt):
+            # Die Frist der Gruppe 1 ist um, die zuletzt vorgelegte Fassung geht zur Endabstimmung
+            # (GP-003): Ein Beschluss hierüber bliebe ohne Wirkung — er entsteht gar nicht erst.
+            return None
         beschluss = GremienBeschluss.objects.create(
             gremium=Gremium.EXPERTENRAT_1,
             anlass=Anlass.EINREICHUNG,
@@ -344,6 +353,17 @@ class Entwurf(models.Model):
             and self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
         )
 
+    def status_anzeige(self):
+        """Der Status, wie ihn die Werkstatt nennt (GP-008).
+
+        Der Status „angenommen“ heißt „zur Endabstimmung übergeben“ — eine Zurückweisung legt die
+        Schleife aber mit demselben Status still, ohne dass etwas übergeben wurde. Ein eigener Status
+        wäre eine Modelländerung; die Anzeige unterscheidet wie die Antragsseite über
+        `vorschlag_uebernommen`."""
+        if self.status == EntwurfsStatus.ANGENOMMEN and not self.vorschlag_uebernommen():
+            return _("ruht — der Vorschlag wurde nicht übernommen")
+        return self.get_status_display()
+
     def ueberarbeitung_verstrichen(self, jetzt=None) -> bool:
         """Ob die Überarbeitungsfrist einer Rückgabe-Runde ohne neue Einreichung abgelaufen ist."""
         jetzt = jetzt or timezone.now()
@@ -353,6 +373,40 @@ class Entwurf(models.Model):
             and self.ueberarbeitung_frist is not None
             and jetzt >= self.ueberarbeitung_frist
         )
+
+    def endabstimmung_wartet(self, jetzt=None) -> dict | None:
+        """Die Wartezeit zwischen abgelaufener Schleifenfrist und Beratungsende — oder None (GP-003).
+
+        Die Schleife wertet zum Fristende aus, öffnet die Endabstimmung aber nie vor dem Ende der
+        Beratung (`_endabstimmung_fruehestens`). Dazwischen steht der Ausgang fest, und die
+        Antragsseite soll ihn nennen statt einer Frist in der Vergangenheit. Nur lesend; dieselbe
+        Rechnung wie `fortschreiben`. Rückgabe: `ab` (Beginn der Endabstimmung) und `grund`:
+        „angenommen“ (auch bei Stille, § 5 Abs 13), „hoechstrunden“ (§ 5 Abs 12: niemand hat
+        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung)."""
+        from plattform_core import Phase
+
+        jetzt = jetzt or timezone.now()
+        antrag = self.antrag
+        if antrag.phase != Phase.BERATUNG.value:
+            return None
+        if self.status == EntwurfsStatus.UNTERSTUETZER:
+            if self.review_frist is None or jetzt < self.review_frist:
+                return None
+            from verfahren.chat import abstimmung_stand
+
+            ordnung = antrag.policy()
+            stand = abstimmung_stand(
+                antrag, self, schwelle=ordnung.vorschlag_annahme_anteil, stichzeit=self.review_frist
+            )
+            if not stand["angenommen"] and self.runde < ordnung.hoechstrunden:
+                return None  # die Rückgabe an Gruppe 1 ist fällig, keine Endabstimmung
+            frist, grund = self.review_frist, "angenommen" if stand["angenommen"] else "hoechstrunden"
+        elif self.ueberarbeitung_verstrichen(jetzt):
+            frist, grund = self.ueberarbeitung_frist, "ueberarbeitung"
+        else:
+            return None
+        ab = self._endabstimmung_fruehestens(antrag, frist, jetzt)
+        return {"ab": ab, "grund": grund} if jetzt < ab else None
 
     def abstimmung_fruehestens_ab(self):
         """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.
@@ -730,7 +784,8 @@ class Entwurf(models.Model):
             if vorlauf:
                 return False  # Beschlüsse reiht die Fortschreibung des Antrags nach ihrer Frist ein
             for beschluss in offene:
-                if beschluss.abschliessen(jetzt):
+                # Der Antrag schreibt gerade selbst fort — kein zweiter Vorlauf (GP-004).
+                if beschluss.abschliessen(jetzt, aus_fortschreibung=True):
                     self.refresh_from_db()
                     return True
             return False
@@ -907,7 +962,9 @@ class Pruefung(models.Model):
         STATTGEGEBEN = "stattgegeben", _("stattgegeben")
         ABGELEHNT = "abgelehnt", _("abgelehnt")
         VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
-        # Der Beschluss schloss ohne Ergebnis (Gleichstand, Quorum verfehlt) — das ist keine Ablehnung (GP-040).
+        # Der Beschluss schloss VOR der Verfristung ohne Ergebnis (Gleichstand, oder Quorum verfehlt bei
+        # einer Beschlussfrist, die vor der Verfristung endet) — das ist keine Ablehnung (GP-040). Zur
+        # Frist ohne Ergebnis bleibt der Entscheid leer: verfristet (GP-010).
         OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
@@ -1242,7 +1299,7 @@ class GremienBeschluss(models.Model):
         return bool(personen) and self.stimmen.filter(mitglied_id__in=personen).count() >= len(personen)
 
     @transaction.atomic
-    def abschliessen(self, jetzt=None) -> bool:
+    def abschliessen(self, jetzt=None, aus_fortschreibung: bool = False) -> bool:
         """Wertet aus und schreibt das Ergebnis fest. Gibt zurück, ob sich etwas geändert hat.
 
         Ein Beschluss schließt aus zwei Gründen: Alle haben gestimmt, oder die Frist ist um.
@@ -1252,13 +1309,45 @@ class GremienBeschluss(models.Model):
         Der Status zählt, wie er unter Zeilensperre in der Datenbank steht, nicht wie ihn das
         Objekt im Speicher kennt: Wächter, Gremienseiten, Stimmabgabe und Antragsseite schließen
         aus verschiedenen Workern — ohne die Sperre wandte ein veraltetes Objekt die Wirkung ein
-        zweites Mal an und schrieb die Auswertung zweimal in die Audit-Kette."""
+        zweites Mal an und schrieb die Auswertung zweimal in die Audit-Kette.
+
+        Ein Beschluss zu einem Antrag wirkt auf dessen Stand zum Beschlusszeitpunkt (Gesamtprüfung
+        GP-004, Gegenrichtung): Schließen ihn eine Gremienseite oder die letzte Stimme, schreibt
+        zuerst der Antrag fort — sonst träfe die Wirkung den Stand des letzten Seitenaufrufs (eine
+        Zurückweisung nähme einem inzwischen ausgezählten Antrag das Ergebnis, eine Einreichung
+        gälte nach dem Beratungsende). `Antrag.fortschreiben` reiht dabei alle fälligen Beschlüsse
+        nach ihrer Frist ein, auch diesen; es ruft mit `aus_fortschreibung` zurück."""
         if self.status != BeschlussStatus.OFFEN:
             return False
+        jetzt = jetzt or timezone.now()
+        if self.antrag_id and not aus_fortschreibung:
+            # Reihenfolge der Sperren wie in `Antrag.fortschreiben`: erst der Antrag, dann der Beschluss.
+            antrag = Antrag.objects.select_for_update().get(pk=self.antrag_id)
+            if not type(self).objects.filter(pk=self.pk, status=BeschlussStatus.OFFEN).exists():
+                self.refresh_from_db()
+                return False
+            if (self.frist is not None and jetzt >= self.frist) or self.alle_haben_gestimmt():
+                try:
+                    with transaction.atomic():  # eigener Sicherungspunkt: ein Fehler lässt nichts halb stehen
+                        antrag.fortschreiben_bis_zum_stand(jetzt)
+                except Exception:
+                    # Ein Defekt in der Fortschreibung DIESES Antrags hält weder den Beschluss noch die
+                    # übrigen Beschlüsse des Sammellaufs an (wie umgekehrt in `zur_frist_abschliessen`): Er
+                    # steht im Protokoll, und der Beschluss schließt auf dem Stand, den der Antrag hat —
+                    # so, wie es vor dieser Vorab-Fortschreibung immer war. Der Fehler einer WIRKUNG
+                    # bleibt davon unberührt und wird unten wie bisher geworfen.
+                    log.exception(
+                        "Fortschreibung von Antrag %s vor der Auswertung von Beschluss %s gescheitert",
+                        self.antrag_id,
+                        self.pk,
+                    )
+                # Frisch lesen — auch Antrag und Entwurf, die das Objekt zwischengespeichert hat.
+                self.refresh_from_db()
+                if self.status != BeschlussStatus.OFFEN:
+                    return True  # die Fortschreibung des Antrags hat ihn zu seiner Frist geschlossen
         if type(self).objects.select_for_update().get(pk=self.pk).status != BeschlussStatus.OFFEN:
             self.refresh_from_db()
             return False
-        jetzt = jetzt or timezone.now()
         frist_um = self.frist is not None and jetzt >= self.frist
         if not (frist_um or self.alle_haben_gestimmt()):
             return False
@@ -1327,7 +1416,7 @@ class GremienBeschluss(models.Model):
                 if beschluss is None:
                     offen = cls.objects.filter(pk=beschluss_id, status=BeschlussStatus.OFFEN).exists()
                     return "gesperrt" if offen else "erledigt"
-                return "geschlossen" if beschluss.abschliessen(jetzt) else "erledigt"
+                return "geschlossen" if beschluss.abschliessen(jetzt, aus_fortschreibung=True) else "erledigt"
         except Exception:
             log.exception("Auswertung von Beschluss %s in der Fortschreibung gescheitert", beschluss_id)
             return "fehler"
@@ -1343,16 +1432,20 @@ class GremienBeschluss(models.Model):
         # Je Beschluss eine eigene kurze Transaktion: Eine für den ganzen Stapel hielt die
         # Audit-Einträge des ersten bis zum Ende offen (Verklemmung mit einer Antragsseite) und
         # rollte bei einem einzigen werfenden Beschluss alle anderen mit zurück.
+        #
+        # Ein Beschluss zu einem Antrag sperrt zuerst den Antrag und dann sich selbst (`abschliessen`,
+        # GP-004) — hier vorab die eigene Zeile zu sperren, kehrte die Reihenfolge um und verklemmte
+        # sich mit einer Antragsseite. Die Reihenfolge der Beschlüsse eines Antrags untereinander
+        # bestimmt dessen Fortschreibung (nach Frist).
         faellige = list(
-            cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).values_list("pk", flat=True)
+            cls.objects.filter(status=BeschlussStatus.OFFEN, frist__lte=jetzt).values_list("pk", "antrag_id")
         )
-        for pk in faellige:
+        for pk, antrag_id in faellige:
             with transaction.atomic():
-                beschluss = (
-                    cls.objects.select_for_update(skip_locked=True)
-                    .filter(pk=pk, status=BeschlussStatus.OFFEN)
-                    .first()
-                )
+                zeilen = cls.objects.filter(pk=pk, status=BeschlussStatus.OFFEN)
+                if antrag_id is None:
+                    zeilen = zeilen.select_for_update(skip_locked=True)
+                beschluss = zeilen.first()
                 if beschluss is not None:
                     geschlossen += int(beschluss.abschliessen(jetzt))
         return geschlossen
@@ -1570,6 +1663,39 @@ def zurueckweisung_moeglich(antrag) -> bool:
     )
 
 
+def _offene_beschluesse_zu(antrag, beschluss) -> list:
+    """Die übrigen offenen Beschlüsse zu diesem Antrag — die ein Beschluss mitschließt, der ihn stoppt."""
+    return list(
+        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
+    )
+
+
+def _beschluesse_mitschliessen(mitgeschlossen, beschluss, jetzt, grund: str, vermerk: str) -> None:
+    """Schließt Beschlüsse ohne Auswertung, weil `beschluss` ihren Antrag gestoppt hat (GP-008).
+
+    Der eine Weg für Zurückweisung und Sperrfeststellung: Jeder mitgeschlossene Beschluss bekommt einen
+    Vermerk und einen Audit-Eintrag — sonst stünde er öffentlich als „zu wenige Stimmen oder
+    Gleichstand“ da, und sein Ende fehlte in der Kette. `grund` ist ein Schlüsselwort ohne Person."""
+    for anderer in mitgeschlossen:
+        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
+        anderer.entschieden_am = jetzt
+        anderer.umsetzungsvermerk = (
+            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: {vermerk}"
+        ).strip()[:2000]
+        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_geschlossen",
+                "gremium": anderer.gremium,
+                "beschluss": anderer.pk,
+                "nummer": anderer.nummer,
+                "antrag": anderer.antrag_id,
+                "grund": grund,
+                "durch_beschluss": beschluss.pk,
+            }
+        )
+
+
 def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     """Weist einen Antrag zurück (§ 5 Abs 2) — und hält fest, was dabei überschrieben wurde.
 
@@ -1611,12 +1737,10 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
             "status": entwurf.status,
             **{
                 feld: wert.isoformat() if (wert := getattr(entwurf, feld)) else None
-                for feld in ENTWURF_FRISTFELDER
+                for feld in ENTWURF_FRISTFELDER + ENTWURF_FRISTBEGINNE
             },
         }
-    mitgeschlossen = list(
-        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
-    )
+    mitgeschlossen = _offene_beschluesse_zu(antrag, beschluss)
     beschluss.zustand_vorher["geschlossene_beschluesse"] = [b.pk for b in mitgeschlossen]
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
@@ -1631,25 +1755,13 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         for feld in ENTWURF_FRISTFELDER:
             setattr(entwurf, feld, None)
         entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
-    for anderer in mitgeschlossen:
-        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
-        anderer.entschieden_am = jetzt
-        anderer.umsetzungsvermerk = (
-            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: Der Antrag wurde mit Beschluss "
-            f"{beschluss.nummer} zurückgewiesen (§ 5 Abs 2)."
-        ).strip()[:2000]
-        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
-        AuditEintrag.anhaengen(
-            {
-                "typ": "gremienbeschluss_geschlossen",
-                "gremium": anderer.gremium,
-                "beschluss": anderer.pk,
-                "nummer": anderer.nummer,
-                "antrag": antrag.pk,
-                "grund": "zurueckweisung",
-                "durch_beschluss": beschluss.pk,
-            }
-        )
+    _beschluesse_mitschliessen(
+        mitgeschlossen,
+        beschluss,
+        jetzt,
+        grund="zurueckweisung",
+        vermerk=f"Der Antrag wurde mit Beschluss {beschluss.nummer} zurückgewiesen (§ 5 Abs 2).",
+    )
     AuditEintrag.anhaengen(
         {
             "typ": "antrag_zurueckgewiesen",
@@ -1669,7 +1781,11 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     dieselbe wie vorher. Dasselbe gilt für die Entwurfsschleife (Gesamtprüfung GP-008): Status
     und Fristen des Entwurfs kehren zurück, die Fristen um dieselbe Dauer verschoben — sonst
     bliebe der Vorschlag des Expertenrats verloren, und abgestimmt würde über den Urtext. Eine
-    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen."""
+    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen.
+
+    In der Prüfphase rückt auch der Beginn der Prüffrist (`eingereicht_am`) mit: Ohne besetzte
+    Gruppe 2 läuft sie ab der Einreichung und wäre nach einer längeren Zurückweisung sofort um.
+    Ein mitgeschlossener Prüfbeschluss der Gruppe 2 entsteht mit der nächsten Fortschreibung neu."""
     from datetime import datetime
 
     from plattform_core import Phase
@@ -1704,7 +1820,17 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
         for feld in ENTWURF_FRISTFELDER:
             wert = gesichert.get(feld)
             setattr(entwurf, feld, datetime.fromisoformat(wert) + (jetzt - seit) if wert else None)
-        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+        felder = ["status", *ENTWURF_FRISTFELDER]
+        if entwurf.status == EntwurfsStatus.PRUEFUNG:
+            # Auch die Prüffrist ruhte (GP-008): Ihr Beginn rückt um dieselbe Dauer. Gelesen wird der
+            # gesicherte Wert; eine Zurückweisung, die ihn noch nicht gesichert hat, ließ ihn stehen.
+            for feld in ENTWURF_FRISTBEGINNE:
+                wert = gesichert.get(feld)
+                beginn = datetime.fromisoformat(wert) if wert else getattr(entwurf, feld)
+                if beginn is not None:
+                    setattr(entwurf, feld, beginn + (jetzt - seit))
+                    felder.append(feld)
+        entwurf.save(update_fields=felder)
         wiederhergestellt = entwurf.status
     AuditEintrag.anhaengen(
         {
@@ -2461,7 +2587,24 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
+    if not beschluss.ergebnis and (jetzt or timezone.now()) >= pruefung.austausch_frist:
+        # Zur Verfristung ohne Ergebnis geblieben (Quorum verfehlt, Gleichstand): Das ist kein
+        # Entscheid des Rates. Der Entscheid bleibt leer, und `Entwurf.fortschreiben` verfristet den
+        # Antrag — der Vorschlag geht an die Unterstützer (GP-010). Stünde hier „ohne Ergebnis“,
+        # bliebe der Entwurf bei Gruppe 2 mit frischer Prüffrist, und Schweigen des
+        # Koordinationsrats verlängerte die Beratung (§ 5 Abs 12: Untätigkeit hemmt nie).
+        _vermerken(
+            beschluss,
+            "Ohne Ergebnis zur Frist — der Austauschantrag verfristet, der Vorschlag geht an die "
+            "Unterstützer (§ 5 Abs 12).",
+        )
+        return
     if not beschluss.ergebnis:
+        # Ohne Ergebnis VOR der Verfristung: eigener Wert (GP-040). Das ist der Gleichstand, wenn alle
+        # gestimmt haben — aber auch das verfehlte Quorum, wenn die Beschlussfrist des Rates
+        # (`gremien-beschluss-tage`) kürzer ist als die eingefrorene Prüffrist des Antrags. Dann
+        # bekommt Gruppe 2 wie bei einer Ablehnung einen neuen Prüfbeschluss mit voller Frist; so war
+        # es schon vor der Gesamtprüfung (damals als „abgelehnt“). Ob das so bleiben soll, ist offen.
         entscheid = Pruefung.KoratEntscheid.OHNE_ERGEBNIS.value
     else:
         entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
@@ -2642,13 +2785,16 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
             "beschluss": beschluss.pk,
         }
     )
-    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wird dort von jedem
-    # gelesen, auch von laufenden Verfahren. Ausgenommen sind nur die Werte der Verfahrensordnung —
-    # auf ihnen gibt es keinen Test (D-J3g). Derselbe Satz steht am Band des Registers.
+    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wirkt ab jetzt überall,
+    # wo er gelesen wird. Was ein laufendes Verfahren liest, bekommt keinen Test (D-J3g): die Werte der
+    # Verfahrensordnung und die Ausnahmeliste `gremien.views.IM_LAUFENDEN_VERFAHREN_GELESEN`. Der Satz
+    # nennt, was die Liste führt — nicht „alles, was der Chat liest“: Die Anzeigegrößen des Chats
+    # (`chat-faden-wurzeln`) bleiben testbar und wirken auch in laufenden Verfahren sofort.
     _vermerken(
         beschluss,
         f"Test läuft bis {test.ende:%d.%m.%Y}; der Testwert wirkt sofort überall, wo die Stellgröße "
-        "gelesen wird — auch in laufenden Verfahren.",
+        "gelesen wird. Die Werte der Verfahrensordnung sowie die Zeichengrenzen und das "
+        "Bearbeitungsfenster des Chats sind vom Test ausgenommen.",
     )
 
 
@@ -2822,10 +2968,12 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
             "als eröffnet (§ 7 Abs 10 lit b).",
         )
         return
+    mitgeschlossen = _offene_beschluesse_zu(antrag, beschluss)
     beschluss.zustand_vorher = {
         "phase": antrag.phase,
         "phase_beginn": antrag.phase_beginn.isoformat(),
         "zurueckgewiesen_am": jetzt.isoformat(),
+        "geschlossene_beschluesse": [b.pk for b in mitgeschlossen],
     }
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
@@ -2838,8 +2986,16 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
     vf.sperre_beschluss = beschluss
     vf.save(update_fields=["sperre_beschluss"])
-    GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk).update(
-        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
+    # Wie bei der Zurückweisung (GP-008): mit Vermerk und Audit-Eintrag je Beschluss, nicht stumm.
+    _beschluesse_mitschliessen(
+        mitgeschlossen,
+        beschluss,
+        jetzt,
+        grund="vertrauensfrage_sperre",
+        vermerk=(
+            f"Mit Beschluss {beschluss.nummer} wurde die Sperre der Vertrauensfrage festgestellt — "
+            "der Antrag gilt als nicht eröffnet (§ 7 Abs 10 lit g)."
+        ),
     )
     AuditEintrag.anhaengen(
         {

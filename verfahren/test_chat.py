@@ -732,3 +732,14 @@ def test_gp015_kritik_aendern_prueft_die_mindestlaenge_und_ist_auditiert(client,
     assert AuditEintrag.objects.count() == vorher + 2
     ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
     assert ereignis['typ'] == 'beitrag_zurueckgezogen' and ereignis['beitrag'] == kritik.pk
+
+
+@pytest.mark.parametrize('wert', ['0', '-1', 'abc'])
+def test_gp021_zeichenhoechstzahl_unter_eins_kuerzt_nicht(ordnung, wert):  # noqa: F811
+    """GP-021 (RVA-01): Ein Registerwert 0 oder darunter schnitt jeden Beitrag ab (text[:0] leer,
+    text[:-1] ohne letztes Zeichen) — die Lesestelle fällt dann auf den Rückfallwert."""
+    _register('chat-zeichen-hoechstzahl', wert)
+    assert chatkern.chat_zeichen_hoechstzahl() == chatkern.CHAT_ZEICHEN
+    anna = mitglied_anlegen('anna')
+    beitrag = chatkern.beitrag_schreiben(_antrag(ordnung, anna), anna, 'Vollständig.')
+    assert beitrag.text == 'Vollständig.'

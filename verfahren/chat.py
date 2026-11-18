@@ -36,10 +36,12 @@ def kritik_mindestzeichen() -> int:
 
 
 def chat_zeichen_hoechstzahl() -> int:
-    """Wie lang ein Beitrag sein darf — aus dem Register (FB-J2)."""
+    """Wie lang ein Beitrag sein darf — aus dem Register (FB-J2). Ein Wert unter 1 schnitte jeden
+    Beitrag ab (`text[:0]`, `text[:-1]`); dann gilt der Rückfallwert (GP-021)."""
     from parameter.models import zahl
 
-    return zahl("chat-zeichen-hoechstzahl", CHAT_ZEICHEN)
+    wert = zahl("chat-zeichen-hoechstzahl", CHAT_ZEICHEN)
+    return wert if wert >= 1 else CHAT_ZEICHEN
 
 
 def faden_wurzeln() -> int:

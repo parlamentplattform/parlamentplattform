@@ -374,13 +374,24 @@ def _gemeinde_export(g: Gemeinde | None) -> dict | None:
 
 def _stimmen_export(mitglied: Mitglied) -> list[dict]:
     """Die eigenen Stimmen über das Stimmregister — Antrag, Pseudonym, Prüfcode, Stimmwert und
-    Zustimmungen zu Bewerbungen. Nur der Mensch selbst sieht diese Brücke (F-25)."""
+    Zustimmungen zu Bewerbungen. Nur der Mensch selbst sieht diese Brücke (F-25).
+
+    Abgaben und Zustimmungen kommen je in einer Abfrage über die Pseudonyme (GP-181) — die Zahl
+    der Abfragen hängt nicht an der Zahl der Registereinträge."""
+    eintraege = list(
+        StimmRegister.objects.filter(mitglied=mitglied).select_related("antrag").order_by("antrag_id")
+    )
+    pseudonyme = [e.pseudonym for e in eintraege]
+    abgaben = {
+        (a.antrag_id, a.pseudonym): a for a in Stimmabgabe.objects.filter(pseudonym__in=pseudonyme)
+    }
+    zustimmungen_je: dict = {}
+    for z in BewerbungsZustimmung.objects.filter(pseudonym__in=pseudonyme).select_related("bewerbung"):
+        zustimmungen_je.setdefault((z.bewerbung.antrag_id, z.pseudonym), []).append(z)
     stimmen = []
-    for eintrag in StimmRegister.objects.filter(mitglied=mitglied).select_related("antrag").order_by("antrag_id"):
-        abgabe = Stimmabgabe.objects.filter(antrag=eintrag.antrag, pseudonym=eintrag.pseudonym).first()
-        zustimmungen = BewerbungsZustimmung.objects.filter(
-            bewerbung__antrag=eintrag.antrag, pseudonym=eintrag.pseudonym
-        ).select_related("bewerbung")
+    for eintrag in eintraege:
+        abgabe = abgaben.get((eintrag.antrag_id, eintrag.pseudonym))
+        zustimmungen = zustimmungen_je.get((eintrag.antrag_id, eintrag.pseudonym), [])
         stimmen.append(
             {
                 "antrag": eintrag.antrag_id,

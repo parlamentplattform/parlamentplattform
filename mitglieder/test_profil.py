@@ -1162,3 +1162,40 @@ def test_wohnsitzwechsel_im_profil_meldet_unveraenderte_verfahrenskreise(client)
     assert "Festgehaltene Verfahrenskreise bleiben unverändert." in client.get(PROFIL).content.decode()
     antwort = profil_speichern(client, anzeigename="Kornblume", wohnsitz_art="oesterreich", gemeinde=linz)
     assert "Festgehaltene Verfahrenskreise" not in client.get(PROFIL).content.decode()  # nur beim Ortswechsel
+
+
+# --- Stimmen im Export gebündelt geladen (GP-181, SU-10) ----------------------
+
+
+def test_export_laedt_stimmen_und_zustimmungen_gebuendelt(ordnung):  # noqa: F811
+    import uuid
+
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from mitglieder.profil import _stimmen_export
+    from verfahren.models import Bewerbung, BewerbungsZustimmung
+
+    anna, bert = mitglied_anlegen("anna"), mitglied_anlegen("bert")
+
+    def eintraege(anzahl):
+        for _i in range(anzahl):
+            antrag = antrag_einbringen(bert, **ANTRAG, ordnung=ordnung)
+            pseudonym = uuid.uuid4()
+            StimmRegister.objects.create(antrag=antrag, mitglied=anna, pseudonym=pseudonym)
+            Stimmabgabe.objects.create(antrag=antrag, pseudonym=pseudonym, stimme="ja")
+            bewerbung = Bewerbung.objects.create(antrag=antrag, mitglied=bert, vorstellung="Ich")
+            BewerbungsZustimmung.objects.create(bewerbung=bewerbung, pseudonym=pseudonym)
+
+    def abfragen():
+        with CaptureQueriesContext(connection) as erfasst:
+            stimmen = _stimmen_export(anna)
+        assert all(s["stimme"] == "ja" and len(s["zustimmungen"]) == 1 for s in stimmen)
+        return len(stimmen), len(erfasst)
+
+    eintraege(2)
+    wenige = abfragen()
+    eintraege(4)
+    viele = abfragen()
+    assert (wenige[0], viele[0]) == (2, 6)
+    assert wenige[1] == viele[1]

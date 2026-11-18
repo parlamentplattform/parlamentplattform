@@ -1417,7 +1417,9 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
     if ergebnis == Pruefung.Ergebnis.VALIDIERT:
         entwurf.zu_den_unterstuetzern(jetzt)
     elif ergebnis == Pruefung.Ergebnis.ZURUECK:
-        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", frist_erneuern=True)
+        # Zum Beschlusszeitpunkt, nicht zum Zeitpunkt der Auswertung (GP-027): Schließt die Frist den
+        # Beschluss, laufen Überarbeitungsfrist und Freigabe der Beratung ab der Frist.
+        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", jetzt, frist_erneuern=True)
 
 
 

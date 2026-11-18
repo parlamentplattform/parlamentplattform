@@ -425,3 +425,40 @@ def test_rueckgabe_vor_dem_beratungsende_laesst_das_beratungsende_gelten(client,
     antrag.refresh_from_db()
     assert antrag.phase == 'abstimmung'
     assert antrag.phase_beginn == beginn + timedelta(days=antrag.policy().beratung_tage)
+
+
+# --- GP-027: Die Rückgabe der Gruppe 2 wirkt zum Beschlusszeitpunkt ---------------------------
+
+
+def test_die_ueberarbeitungsfrist_nach_rueckgabe_der_gruppe_2_laeuft_ab_dem_beschluss(client, ordnung):  # noqa: F811
+    """GP-027: Schließt die Frist den Prüfbeschluss, gilt er zur Frist — die Überarbeitungsfrist der
+    Gruppe 1 begann aber mit dem zufälligen Zeitpunkt der Auswertung (Wächter, Seitenaufruf). Zwei
+    Anträge mit gleichen Fristen bekamen so verschieden lange Überarbeitungsfenster."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=3)
+    type(entwurf).objects.filter(pk=entwurf.pk).update(runde=2)  # eine Überarbeitungsrunde liegt zur Prüfung vor
+    for mitglied in gruppe2[:2]:
+        stimme(client, beschluss, mitglied, 'zurueck', 'Die Vergabekriterien fehlen.')
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OFFEN  # die dritte Stimme fehlt — die Frist schließt
+    frist = timezone.now() - timedelta(days=3)
+    type(beschluss).objects.filter(pk=beschluss.pk).update(frist=frist)
+    antrag.fortschreiben_bis_zum_stand()
+    beschluss.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert beschluss.entschieden_am == frist and beschluss.ergebnis == 'zurueck'
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 2
+    assert entwurf.ueberarbeitung_frist == frist + timedelta(days=antrag.policy().ueberarbeitung_tage)
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'vorschlag_zurueckgegeben'][-1]
+    assert rueckgabe['wirksam_ab'] == frist.isoformat()
+
+
+def test_die_freigabe_nach_rueckgabe_in_runde_1_ist_der_beschlusszeitpunkt(client, ordnung):  # noqa: F811
+    """GP-027 und GP-001 zusammen: In Runde 1 gibt die Rückgabe die Beratung frei — zum Beschlusszeitpunkt."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=3)
+    for mitglied in gruppe2[:2]:
+        stimme(client, beschluss, mitglied, 'zurueck', 'Die Vergabekriterien fehlen.')
+    frist = timezone.now() - timedelta(hours=2)
+    type(beschluss).objects.filter(pk=beschluss.pk).update(frist=frist)
+    antrag.fortschreiben_bis_zum_stand()
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.beratung_freigegeben_am == frist

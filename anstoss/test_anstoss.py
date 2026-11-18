@@ -169,3 +169,24 @@ def test_status_und_exporte(client, django_user_model):
     json_antwort = client.get(reverse("anstoss:export_json")).json()
     assert json_antwort["anstoesse"][0]["text"] == "Bitte Fächer bauen."
     assert json_antwort["anstoesse"][0]["status"] == "gesichtet"
+
+
+@pytest.mark.parametrize(
+    "seite, gespeichert",
+    [
+        ("/adresse/einspruch/geheimekennung123/", "mitglieder:adresswechsel_einspruch"),
+        ("/ausweis/4711/abcdef12/", "mitglieder:ausweis_pruefen"),
+        ("/parlament/?suche=meine+krankheit", "/parlament/"),
+        ("/?suche=x&anstoss=warte", "/"),
+    ],
+)
+def test_seite_speichert_weder_kennung_noch_code_noch_suchbegriff(client, seite, gespeichert):
+    """GP-131 (RVA-29, RVB-09): Der Anstoß legte Einspruchskennung, Ausweiscode und Suchbegriffe im
+    Klartext in Liste und Ausfuhr. Gespeichert wird der Pfad ohne Abfrage, bei Routen mit Kennung
+    der Routenname; zurück geht es weiterhin auf die Seite, von der der Anstoß kam."""
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Etwas fehlt.", "seite": seite})
+    assert antwort.status_code == 302
+    a = Anstoss.objects.get()
+    assert a.seite == gespeichert
+    for geheim in ("geheimekennung123", "abcdef12", "4711", "krankheit", "suche"):
+        assert geheim not in a.seite

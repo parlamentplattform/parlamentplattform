@@ -33,6 +33,22 @@ def _mit_param(seite: str, wert: str) -> str:
     return urlunsplit(("", "", teile.path or "/", urlencode(q), ""))
 
 
+def _seite_zum_speichern(seite: str) -> str:
+    """Was von der Herkunftsseite gespeichert wird (GP-131): der Pfad ohne Abfrage — Suchbegriffe
+    gehören nicht in Liste und Ausfuhr —, bei Routen mit Kennung im Pfad nur der Routenname, damit
+    weder Einspruchskennung noch Ausweiscode im Klartext liegen."""
+    from urllib.parse import urlsplit
+
+    from django.urls import Resolver404, resolve
+
+    pfad = urlsplit(seite).path or "/"
+    try:
+        treffer = resolve(pfad)
+    except Resolver404:
+        return pfad
+    return treffer.view_name if (treffer.kwargs or treffer.args) else pfad
+
+
 @require_POST
 def senden(request):
     seite = (request.POST.get("seite") or "/")[:300]
@@ -64,7 +80,7 @@ def senden(request):
     else:
         Anstoss.objects.create(
             text=text[:4000],
-            seite=seite,
+            seite=_seite_zum_speichern(seite)[:300],
             nutzer=request.user if request.user.is_authenticated else None,
         )
         request.session["anstoss_zuletzt"] = jetzt.timestamp()

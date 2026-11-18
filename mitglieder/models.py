@@ -403,6 +403,14 @@ class Mitglied(AbstractUser):
         und endet, sobald `Mandat.beendet` gesetzt ist. Kein Gremium, keine Rollen-Zeile."""
         return self.parteikonto and self.is_authenticated and self.aktive_mandate.exists()
 
+    @property
+    def hat_mandatsbereich(self) -> bool:
+        """Darf den Bereich „Mein Mandat“ öffnen: offenes Mandat oder beendetes, dessen Nachfrist
+        noch läuft (`Mandat.zugaenglich_von`) — danach richtet sich der Menüpunkt (GP-104)."""
+        from mandatare.models import Mandat
+
+        return self.parteikonto and self.is_authenticated and Mandat.zugaenglich_von(self).exists()
+
 
 class Gemeindezugang(models.Model):
     """Private freiwillige Anmeldung, keine Parteiaufnahme oder Stimmfreischaltung."""

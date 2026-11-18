@@ -672,3 +672,21 @@ def test_erneute_registrierung_loescht_das_pruefdatum(client):
     assert eva.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and eva.geprueft_seit is None
     eva.identitaetsstufe_setzen(Identitaetsstufe.PRAESENZ)
     assert eva.geprueft_seit == timezone.localdate()  # der Tag der Freischaltung
+
+
+# --- „Mein Mandat“ in der Nachfrist (GP-104, MV-17) ---------------------------
+
+
+def test_menue_fuehrt_mein_mandat_bis_zum_ende_der_nachfrist(client):
+    from mandatare.models import NACHFRIST_TAGE, Mandat
+    from verfahren.test_views_aktionen import mitglied_anlegen as anlegen
+
+    m = anlegen("frueher")
+    heute = timezone.localdate()
+    mandat = Mandat.objects.create(mitglied=m, bezeichnung="Gemeinderätin", gebiet="Eferding", beendet=heute)
+    client.force_login(m)
+    assert 'href="/mandatare/mein/"' in client.get("/").content.decode()
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE))
+    assert 'href="/mandatare/mein/"' in client.get("/").content.decode()  # letzter Tag der Nachfrist
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
+    assert 'href="/mandatare/mein/"' not in client.get("/").content.decode()  # neunter Tag

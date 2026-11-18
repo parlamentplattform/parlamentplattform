@@ -31,7 +31,7 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
       <div class="pop">
         <p class="pop-kopf">{{ user.anzeigename }}</p>
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
-        {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
+        {% if user.hat_mandatsbereich %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
         <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
         <a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>
@@ -73,7 +73,7 @@ das Menü gleitet als Panel von rechts. Jedes Aufklappen ist ein natives <detail
         <a class="cta" href="{% url 'verfahren:einbringen' %}"><span aria-hidden="true">＋</span><span class="cta-text">{% translate "Antrag einbringen" %}</span></a>
         <p class="pop-titel">{{ user.anzeigename }}</p>
         {% if user.hat_gremienrolle %}<a href="{% url 'gremien:mein' %}">{% translate "Mein Gremium" %}</a>{% endif %}
-        {% if user.ist_mandatar %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
+        {% if user.hat_mandatsbereich %}<a href="{% url 'mandatare:mein' %}">{% translate "Mein Mandat" %}</a>{% endif %}
         <a href="{% url 'mitglieder:profil' %}">{% translate "Profil" %}</a>
         <a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
         <a href="{% url 'mitglieder:beitrag' %}">{% translate "Beitrag" context "mitgliedsbeitrag" %}</a>

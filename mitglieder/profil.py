@@ -300,7 +300,11 @@ def profil(request):
     if request.method == "POST":
         form = ProfilFormular(request.POST, mitglied=mitglied)
         if form.is_valid():
-            if _profil_anwenden(mitglied, form):
+            geaendert = _profil_anwenden(mitglied, form)
+            if {"wohnsitz", "wiener_bezirk", "nebenwohnsitz"} & set(geaendert):
+                # GP-056: wie im Gemeindezugang — ein Umzug ändert keinen festgehaltenen Kreis.
+                messages.success(request, _("Profil gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."))
+            elif geaendert:
                 messages.success(request, _("Profil gespeichert."))
             else:
                 messages.info(request, _("Keine Änderungen."))

@@ -1148,3 +1148,17 @@ def test_feldfehler_im_profil_sind_verknuepft(client):
     antwort = profil_speichern(client, anzeigename="Mitglied 7", gemeinde="Nirgendwo im Nichts", nebenwohnsitz="Auch nicht")
     assert antwort.status_code == 200
     assert verweise_ins_leere(antwort.content.decode()) == []
+
+
+# --- Wohnsitzwechsel nennt die festgehaltenen Verfahrenskreise (GP-056, OW-04) -
+
+
+def test_wohnsitzwechsel_im_profil_meldet_unveraenderte_verfahrenskreise(client):
+    m = mit_wohnsitz("anna")
+    client.force_login(m)
+    linz = Gemeinde.objects.get(kennziffer="40101").anzeige
+    antwort = profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=linz)
+    assert antwort.status_code == 302
+    assert "Festgehaltene Verfahrenskreise bleiben unverändert." in client.get(PROFIL).content.decode()
+    antwort = profil_speichern(client, anzeigename="Kornblume", wohnsitz_art="oesterreich", gemeinde=linz)
+    assert "Festgehaltene Verfahrenskreise" not in client.get(PROFIL).content.decode()  # nur beim Ortswechsel

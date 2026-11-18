@@ -230,7 +230,8 @@ GAST = Rolle(
         Faehigkeit(
             titel=_("Einen Anstoß zur Plattform senden"),
             stand=Stand.VERFUEGBAR,
-            urlname="anstoss:senden",
+            # Kein `urlname`: Die Adresse nimmt nur das abgeschickte Formular an (POST).
+            ort=_("auf jeder Seite unter „Anstoß geben“, in der Kopfleiste oder unten rechts"),
         ),
         Faehigkeit(
             titel=_("Mitglied werden"),

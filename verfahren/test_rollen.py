@@ -464,3 +464,27 @@ def test_fassung_6_die_neuen_bauschritt_zeilen_lesen_sich_nach_kommt_mit(client)
         assert satz in inhalt, satz
     assert "CONCEPT § 5" not in inhalt and "Teil C „danach“" not in inhalt
     assert "kommt mit offen — die Betroffenheitsregeln" not in inhalt
+
+
+# --- Gesamtprüfung 18.11.2026, erste Behebungsrunde ---------------------------------------------
+
+
+@pytest.mark.django_db
+def test_gp141_jede_adresse_der_matrix_antwortet_einem_gast_auf_get(client, vorweggenommene_adressen):
+    '''GP-141: Die Zeile „Einen Anstoß zur Plattform senden“ verwies auf eine Adresse, die nur POST
+    annimmt; der Klick endete auf einer leeren Seite (405). Jede Adresse der Matrix muss einem Gast
+    auf GET antworten: mit der Seite, einer Weiterleitung zur Anmeldung oder einer Abweisung,
+    nie mit 404, 405 oder einem Serverfehler.'''
+    kaputt = []
+    for name in sorted({f.urlname for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten if f.urlname}):
+        status = client.get(reverse(name)).status_code
+        if status in (404, 405) or status >= 500:
+            kaputt.append(f'{name} → {status}')
+    assert not kaputt, 'Adressen der Matrix ohne Seite: ' + ', '.join(kaputt)
+
+
+def test_gp141_der_anstoss_nennt_seinen_ort_statt_einer_adresse():
+    gast = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gast')
+    (anstoss,) = [f for f in gast.faehigkeiten if 'Anstoß' in f.titel]
+    assert anstoss.stand is Stand.VERFUEGBAR and not anstoss.urlname
+    assert 'auf jeder Seite' in anstoss.ort

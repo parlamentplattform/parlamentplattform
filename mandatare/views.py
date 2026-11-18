@@ -1015,6 +1015,8 @@ def _eigene_mandate(request) -> list[Mandat]:
 def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
     """Der Bereich. `eingabe` (request.POST) belegt nach einem Validierungsfehler das betroffene
     Formular wieder vor, damit nichts Eingetipptes verloren geht (Grundregel 3: ohne Skript)."""
+    from mandatare.gemeinderechte import aktive_gemeindemandate
+
     heute = timezone.localdate()
     jetzt = timezone.now()
     vertrauen = _vertrauen(mandat, heute)  # zuerst — wie in `detail`: Ausstände rechnen mit dem nachgeladenen Stand
@@ -1052,6 +1054,9 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
         {
             "mandat": mandat,
             "mandate": mandate,
+            "gemeindearbeitsplatz": (
+                mandat.gemeinde_id is not None and aktive_gemeindemandate(jetzt).filter(pk=mandat.pk).exists()
+            ),
             "darf_schreiben": mitwirken and mandat.aktiv,
             # § 7 Abs 10 lit f Z 6: Nach einer verlorenen Vertrauensfrage ruht die Befugnis, Abstimmungen zu
             # betreuen — der Report bleibt, das Häkchen „Daraus eine Abstimmung erzeugen“ nicht. Eine Aufhebung

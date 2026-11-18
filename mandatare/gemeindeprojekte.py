@@ -61,15 +61,19 @@ def _aktueller_stand(staende):
     return stand
 
 
-@require_safe
-def liste(request, kennziffer):
-    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+def projektstaende_in(gemeinde):
     letzte = Gemeindeprojektstand.objects.filter(projekt_id=OuterRef("projekt_id")).order_by(
         *PROJEKTVERLAUFSREIHUNG,
     ).values("pk")[:1]
-    staende = (Gemeindeprojektstand.objects.filter(projekt__gemeinde=gemeinde, pk=Subquery(letzte))
-               .select_related("projekt__mandat__mitglied").defer("projekt__mandat__foto", "vermerk")
-               .order_by(*PROJEKTREIHUNG))
+    return (Gemeindeprojektstand.objects.filter(projekt__gemeinde=gemeinde, pk=Subquery(letzte))
+            .select_related("projekt__mandat__mitglied").defer("projekt__mandat__foto", "vermerk")
+            .order_by(*PROJEKTREIHUNG))
+
+
+@require_safe
+def liste(request, kennziffer):
+    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+    staende = projektstaende_in(gemeinde)
     return render(request, "mandatare/gemeindeprojekte.html", {"gemeinde": gemeinde, "seite": _seite(request, staende)})
 
 

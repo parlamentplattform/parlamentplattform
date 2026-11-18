@@ -12003,3 +12003,27 @@ msgstr "The project status has changed since you opened this form."
 
 msgid "Aktuellen Projektstand prüfen"
 msgstr "Review the current project status"
+
+msgid "Alle veröffentlichten Ratsinitiativen"
+msgstr "All published council initiatives"
+
+msgid "Gemeindearbeitsplatz"
+msgstr "Municipal workspace"
+
+msgid "Nächste eigene Sprechstunde"
+msgstr "Your next office hours"
+
+msgid "Projekte und Haushalt"
+msgstr "Projects and budget"
+
+msgid "Sitzung und Rechenschaft"
+msgstr "Meetings and accountability"
+
+msgid "Sitzungsmodus"
+msgstr "Meeting mode"
+
+msgid "Sprechstunde ankündigen"
+msgstr "Announce office hours"
+
+msgid "Zuletzt veröffentlichte eigene Initiative"
+msgstr "Your latest published initiative"

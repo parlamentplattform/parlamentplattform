@@ -58,17 +58,21 @@ class Haushaltsquellenformular(forms.Form):
         return daten
 
 
-@require_safe
-def liste(request, kennziffer):
-    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+def haushaltsquellen_in(gemeinde):
     letzte = Gemeindehaushaltsquelle.objects.filter(
         gemeinde_id=OuterRef("gemeinde_id"), mandat_id=OuterRef("mandat_id"),
         jahr=OuterRef("jahr"), art=OuterRef("art"),
     ).order_by("-pk").values("pk")[:1]
-    quellen = (
+    return (
         Gemeindehaushaltsquelle.objects.filter(gemeinde=gemeinde, pk=Subquery(letzte))
         .select_related("mandat__mitglied").defer("mandat__foto").order_by(*HAUSHALTSQUELLENREIHUNG)
     )
+
+
+@require_safe
+def liste(request, kennziffer):
+    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+    quellen = haushaltsquellen_in(gemeinde)
     seite = Paginator(quellen, max(1, zahl("suche-treffer-hoechstzahl", 24))).get_page(request.GET.get("seite"))
     return render(request, "mandatare/gemeindehaushalt.html", {"gemeinde": gemeinde, "seite": seite})
 

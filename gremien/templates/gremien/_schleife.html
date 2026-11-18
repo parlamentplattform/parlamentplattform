@@ -1,12 +1,13 @@
 {% load i18n %}{% comment %}Die Entwurfsschleife auf der Antragsseite (§ 5 Abs 12, F-67).
 Erwartet "schleife" (entwurf, vorschlag, pruefungen). Die Entscheidung der Unterstützer
 fällt seit 0.39.0 im Abstimmungs-Chat der Zone 3 (FB-G6), nicht mehr über ein Formular.{% endcomment %}
-{% with e=schleife.entwurf %}
+{% with e=schleife.entwurf %}{% with warte=e.endabstimmung_wartet %}
 <h2>{% translate "Entwurfsschleife" %} <span class="meta">§ 5 {% translate "Abs" %} 12</span></h2>
 <div class="karte">
   {% if e.status == "in_arbeit" %}
     <p>{% if e.runde == 1 %}{% blocktranslate %}Der Expertenrat erarbeitet zu diesem Antrag einen Vorschlag (Runde 1). Das hält nichts auf:
 Läuft die Beratungsfrist ab, geht der Antrag regulär weiter.{% endblocktranslate %}
+    {% elif warte %}{% blocktranslate trimmed with frist=e.ueberarbeitung_frist|date:"d.m.Y H:i" ende=warte.ab|date:"d.m.Y H:i" %}Die Überarbeitungsfrist ist am {{ frist }} ohne neue Einreichung abgelaufen — die zuletzt vorgelegte Fassung geht zur Endabstimmung. Sie beginnt mit dem Ende der Beratung am {{ ende }}.{% endblocktranslate %}
     {% else %}{% blocktranslate with n=e.runde %}Der Vorschlag wurde mit Wünschen an den Expertenrat zurückgegeben — Überarbeitung läuft (Runde {{ n }}).{% endblocktranslate %}
     {% if e.ueberarbeitung_frist %}<br><span class="meta">{% blocktranslate with frist=e.ueberarbeitung_frist|date:"d.m.Y H:i" %}Ohne neue Einreichung bis {{ frist }} geht die zuletzt vorgelegte Fassung zur Endabstimmung — Untätigkeit hemmt nie.{% endblocktranslate %}</span>{% endif %}
     {% endif %}</p>
@@ -14,9 +15,15 @@ Läuft die Beratungsfrist ab, geht der Antrag regulär weiter.{% endblocktransla
     <p>{% blocktranslate %}Der Vorschlag des Expertenrats hat Vollzugs- oder Beschaffungsbezug und liegt der zweiten,
 getrennt besetzten Gruppe zur Prüfung vor (§ 6 Abs 7) — ihr Ergebnis wird samt Begründung veröffentlicht.{% endblocktranslate %}</p>
   {% elif e.status == "unterstuetzer" %}
+    {% if warte %}
+    <p>{% if warte.grund == "angenommen" %}{% blocktranslate trimmed with n=e.runde frist=e.review_frist|date:"d.m.Y H:i" ende=warte.ab|date:"d.m.Y H:i" %}Der Vorschlag des Expertenrats (Runde {{ n }}) ist angenommen — die Frist der Unterstützer ist am {{ frist }} abgelaufen. Die Endabstimmung über den Vorschlag beginnt mit dem Ende der Beratung am {{ ende }}.{% endblocktranslate %}
+    {% else %}{% blocktranslate trimmed with n=e.runde frist=e.review_frist|date:"d.m.Y H:i" ende=warte.ab|date:"d.m.Y H:i" %}Die Frist der Unterstützer ist am {{ frist }} abgelaufen, und die Höchstzahl der Runden ist erreicht — der Vorschlag des Expertenrats (Runde {{ n }}) geht ohne Annahme zur Endabstimmung (§ 5 Abs 12). Sie beginnt mit dem Ende der Beratung am {{ ende }}.{% endblocktranslate %}
+    {% endif %}</p>
+    {% else %}
     <p>{% blocktranslate with n=e.runde %}Der Vorschlag des Expertenrats (Runde {{ n }}) liegt den Unterstützern dieses Antrags vor —
 entschieden wird im Abstimmungs-Chat unter dem Antrag (§ 5 Abs 12).{% endblocktranslate %}
     {% if e.review_frist %}<br><span class="meta">{% blocktranslate with frist=e.review_frist|date:"d.m.Y H:i" %}Frist: {{ frist }}. Danach wertet der Fristablauf aus — bleibt es still, geht der Vorschlag zur Endabstimmung.{% endblocktranslate %}</span>{% endif %}</p>
+    {% endif %}
     <p><a class="btn-linie klein" href="#zone-chat">{% translate "Zum Abstimmungs-Chat" %}</a></p>
   {% elif e.status == "angenommen" %}
     {% if e.vorschlag_uebernommen %}
@@ -42,4 +49,4 @@ darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
   {% endfor %}
   {% endif %}
 </div>
-{% endwith %}
+{% endwith %}{% endwith %}

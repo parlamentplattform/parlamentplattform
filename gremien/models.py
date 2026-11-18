@@ -287,6 +287,10 @@ class Entwurf(models.Model):
             return None
         if self.einreichungsbeschluss() is not None:
             return None
+        if self.ueberarbeitung_verstrichen(jetzt):
+            # Die Frist der Gruppe 1 ist um, die zuletzt vorgelegte Fassung geht zur Endabstimmung
+            # (GP-003): Ein Beschluss hierüber bliebe ohne Wirkung — er entsteht gar nicht erst.
+            return None
         beschluss = GremienBeschluss.objects.create(
             gremium=Gremium.EXPERTENRAT_1,
             anlass=Anlass.EINREICHUNG,
@@ -353,6 +357,40 @@ class Entwurf(models.Model):
             and self.ueberarbeitung_frist is not None
             and jetzt >= self.ueberarbeitung_frist
         )
+
+    def endabstimmung_wartet(self, jetzt=None) -> dict | None:
+        """Die Wartezeit zwischen abgelaufener Schleifenfrist und Beratungsende — oder None (GP-003).
+
+        Die Schleife wertet zum Fristende aus, öffnet die Endabstimmung aber nie vor dem Ende der
+        Beratung (`_endabstimmung_fruehestens`). Dazwischen steht der Ausgang fest, und die
+        Antragsseite soll ihn nennen statt einer Frist in der Vergangenheit. Nur lesend; dieselbe
+        Rechnung wie `fortschreiben`. Rückgabe: `ab` (Beginn der Endabstimmung) und `grund`:
+        „angenommen“ (auch bei Stille, § 5 Abs 13), „hoechstrunden“ (§ 5 Abs 12: niemand hat
+        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung)."""
+        from plattform_core import Phase
+
+        jetzt = jetzt or timezone.now()
+        antrag = self.antrag
+        if antrag.phase != Phase.BERATUNG.value:
+            return None
+        if self.status == EntwurfsStatus.UNTERSTUETZER:
+            if self.review_frist is None or jetzt < self.review_frist:
+                return None
+            from verfahren.chat import abstimmung_stand
+
+            ordnung = antrag.policy()
+            stand = abstimmung_stand(
+                antrag, self, schwelle=ordnung.vorschlag_annahme_anteil, stichzeit=self.review_frist
+            )
+            if not stand["angenommen"] and self.runde < ordnung.hoechstrunden:
+                return None  # die Rückgabe an Gruppe 1 ist fällig, keine Endabstimmung
+            frist, grund = self.review_frist, "angenommen" if stand["angenommen"] else "hoechstrunden"
+        elif self.ueberarbeitung_verstrichen(jetzt):
+            frist, grund = self.ueberarbeitung_frist, "ueberarbeitung"
+        else:
+            return None
+        ab = self._endabstimmung_fruehestens(antrag, frist, jetzt)
+        return {"ab": ab, "grund": grund} if jetzt < ab else None
 
     def abstimmung_fruehestens_ab(self):
         """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.

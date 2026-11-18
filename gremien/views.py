@@ -558,6 +558,12 @@ def fenster_aktion(request, antrag_id: int):
     elif aktion == "einreichung":
         if entwurf.einreichungsbeschluss() is not None:
             messages.info(request, _("Über die Einreichung wird bereits abgestimmt."))
+        elif entwurf.ueberarbeitung_verstrichen():
+            # Ein Beschluss hierüber bliebe ohne Wirkung (GP-003) — die Meldung sagt, was stattdessen gilt.
+            messages.error(
+                request,
+                _("Die Überarbeitungsfrist ist verstrichen — die zuletzt vorgelegte Fassung geht zur Endabstimmung (§ 5 Abs 12)."),
+            )
         else:
             beschluss = entwurf.einreichungsbeschluss_anlegen(request.user)
             if beschluss is None:

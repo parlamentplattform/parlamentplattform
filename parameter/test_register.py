@@ -649,6 +649,45 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
     assert "`nur_tag`" in audit
 
 
+def _tabellenzeilen(abschnitt: str) -> list[list[str]]:
+    zeilen = [z for z in abschnitt.splitlines() if z.startswith("| `")]
+    return [[zelle.strip() for zelle in z.strip().strip("|").split(" | ")] for z in zeilen]
+
+
+def test_schema_tabelle_der_stellgroessen_steht_wie_im_code():
+    """Restauflage zu GP-136: Die Tabelle 3.1 von docs/SCHEMA.md war veraltet (zwölf Kennungen fehlten,
+    Überschrift „Schema 1.11, 59 Kennungen“). Jede Registerkennung steht mit Schlüssel, Einheit,
+    Startwert des Erstbestands und Bedeutung in der Tabelle, und die Tabelle führt nichts anderes."""
+    from plattform_core.schema import PARAMETER, SCHEMA_VERSION
+
+    dokument = _schema_dokument()
+    abschnitt = dokument.split("### 3.1")[1].split("### 3.2")[0]
+    start = {e["schluessel"]: e["wert"] for e in ERSTBESTAND}
+    erwartet = {
+        kennung: [f"`{kennung}`", f"`{schluessel}`", einheit, start[schluessel], bedeutung]
+        for schluessel, (kennung, einheit, bedeutung) in PARAMETER.items()
+    }
+    im_dokument = {zeile[0].strip("`"): zeile for zeile in _tabellenzeilen(abschnitt)}
+    fehlend = sorted(set(erwartet) - set(im_dokument))
+    fremd = sorted(set(im_dokument) - set(erwartet))
+    assert not fehlend, "fehlt in docs/SCHEMA.md 3.1: " + "\n".join(
+        "| " + " | ".join(erwartet[k]) + " |" for k in fehlend
+    )
+    assert not fremd, f"nicht im Code: {fremd}"
+    for kennung, zeile in erwartet.items():
+        assert im_dokument[kennung] == zeile, "| " + " | ".join(zeile) + " |"
+    assert abschnitt.startswith(f" Kennungen der Stellgrößen (Schema {SCHEMA_VERSION}, {len(PARAMETER)} Kennungen)")
+    assert f"Stand Schema {SCHEMA_VERSION}" in dokument and "Stand 0.50.1" not in dokument
+
+
+def test_schema_tabelle_der_kennzahlen_steht_wie_im_code():
+    from plattform_core.schema import KENNZAHLEN, SCHEMA_VERSION
+
+    abschnitt = _schema_dokument().split("### 4.1")[1].split("\n## ")[0]
+    assert _tabellenzeilen(abschnitt) == [[f"`{k}`", e, b] for k, e, b in KENNZAHLEN]
+    assert abschnitt.startswith(f" Kennungen der Kennzahlen (Schema {SCHEMA_VERSION}, {len(KENNZAHLEN)} Kennungen)")
+
+
 def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):
     """GP-197 (RVA-18): Auf frischer Instanz lieferte jede Parameterseite 404, bis jemand das
     Register öffnete."""

@@ -1310,6 +1310,13 @@ def vollzug_eintragen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     if not request.user.hat_adminrechte:
         return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    from verfahren.models import Vollzugsstatus
+
+    status = request.POST.get("status", "")
+    if status not in Vollzugsstatus.values:
+        # Eigene Meldung (GP-173): Sonst fiel der unbekannte Stand unter „nur angenommene Anträge“.
+        messages.error(request, _("Unbekannter Umsetzungsstand: „%(stand)s“.") % {"stand": status[:40]})
+        return redirect("verfahren:antrag", pk=pk)
     try:
         vollzug_fortschreiben(
             antrag, request.user, request.POST.get("status", ""), request.POST.get("vermerk", "")

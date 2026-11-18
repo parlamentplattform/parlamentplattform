@@ -472,7 +472,9 @@ def test_verwaltung_weist_werte_ausserhalb_von_typ_und_bereich_ab(client, schlue
     )
     assert _register_stand() == vorher
     inhalt = antwort.content.decode()
-    assert "unverändert" in inhalt and schluessel in inhalt
+    # „unverändert“ und der Schlüssel stehen ohnehin auf der Seite (Stilblock, Liste); geprüft wird
+    # die Meldung selbst: Schlüssel in Anführungszeichen und der Satz zum Wert.
+    assert f"„{schluessel}“" in inhalt and "der Wert bleibt unverändert" in inhalt
 
 
 def test_meldung_nennt_den_bereich(client):

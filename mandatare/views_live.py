@@ -157,7 +157,7 @@ def _chat_sperre(nutzer) -> dict | None:
 
 
 def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str = "", entwurf: dict | None = None):
-    from verfahren.chat import sitzung_faden, sitzung_gelesen_merken
+    from verfahren.chat import chat_zeichen_hoechstzahl, sitzung_faden, sitzung_gelesen_merken
 
     kontext = {
         "mandat": mandat,
@@ -183,6 +183,8 @@ def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str 
             "ticker": ticker(sitzung),
             "faden": faden,
             "chat_offen": laeuft,
+            # Feld und Prüfung nennen dieselbe Höchstzahl aus dem Register (GP-083)
+            "zeichen_hoechst": chat_zeichen_hoechstzahl(),
             "chat_sperre": _chat_sperre(request.user) if laeuft else None,
             "ist_mandatar": ist_mandatar,
             "darf_beantworten": ist_mandatar and darf_live_melden(mandat),
@@ -278,10 +280,12 @@ def _sitzung_des_mandats(pk: int, sitzung_pk: int) -> tuple[Mandat, Sitzung]:
 def live_beitrag(request, pk: int, sitzung_pk: int):
     """Einen Beitrag in den Chat der Sitzung schreiben — Mitglieder mit Mitwirkungsrecht, solange die
     Sitzung läuft (E1). Bei einem Fehler kommt die Seite mit Meldung und Entwurf zurück, nichts geht verloren."""
-    from verfahren.chat import ChatGesperrt, sitzung_beitrag_schreiben
+    from verfahren.chat import BeitragZuLang, ChatGesperrt, sitzung_beitrag_schreiben
+    from verfahren.views_aktionen import _zu_lang_text
 
     mandat, sitzung = _sitzung_des_mandats(pk, sitzung_pk)
-    entwurf = {"text": (request.POST.get("text") or "")[:4000], "antwort_auf": request.POST.get("antwort_auf") or ""}
+    # Der Entwurf kommt ungekürzt zurück; die Höchstzahl prüft der Schreibweg gegen das Register (GP-083)
+    entwurf = {"text": request.POST.get("text") or "", "antwort_auf": request.POST.get("antwort_auf") or ""}
     sperre = _chat_sperre(request.user)
     if sperre is not None:
         # Ohne Mitwirkungsrecht: die Live-Seite mit dem Hinweis und dem Text, nicht eine 403-Seite ohne ihn (GP-122)
@@ -299,6 +303,10 @@ def live_beitrag(request, pk: int, sitzung_pk: int):
             )
     try:
         beitrag = sitzung_beitrag_schreiben(sitzung, request.user, entwurf["text"], antwort_auf)
+    except BeitragZuLang as fehler:
+        return render(
+            request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, _zu_lang_text(fehler.hoechst), entwurf)
+        )
     except (ChatGesperrt, ValueError) as fehler:
         return render(request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, str(fehler), entwurf))
     return redirect(_live_ziel(mandat, sitzung, f"k-{beitrag.pk}"))

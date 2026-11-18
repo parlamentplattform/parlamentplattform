@@ -10,7 +10,7 @@ from mandatare.sitzung import sitzung_beenden, sitzung_beginnen
 from mandatare.test_mandatare import mandat_anlegen
 from mandatare.test_sitzung_modelle import sitzungstag
 from verfahren import chat as chatkern
-from verfahren.models import Meldung
+from verfahren.models import Kommentar, Meldung
 from verfahren.test_views_aktionen import mitglied_anlegen
 
 pytestmark = pytest.mark.django_db
@@ -140,3 +140,30 @@ def test_gp014_meldung_ohne_massnahme_nennt_oeffentlich_keinen_beitrag():
     # Das Ausblenden ist öffentlich: Der Vermerk steht ohnehin am Beitrag
     sichtbar, _ = ereignis_oeffentlich({"typ": "beitrag_ausgeblendet", "beitrag": 9, "meldungen": 1, "antrag": 3})
     assert sichtbar["beitrag"] == 9
+
+
+# ── GP-083: Der Sitzungs-Chat weist zu lange Beiträge ab ──────────────────────────────────
+
+
+def test_gp083_sitzungschat_weist_zu_lange_beitraege_ab_und_behaelt_den_entwurf(client, lage):
+    mandat, sitzung, anna, bernd = lage
+    _register("chat-zeichen-hoechstzahl", 100)
+    lang = "y" * 300
+    with pytest.raises(chatkern.BeitragZuLang):
+        chatkern.sitzung_beitrag_schreiben(sitzung, bernd, lang)
+    assert not Kommentar.objects.exists()
+
+    client.force_login(bernd)
+    seite = _live(client, mandat, sitzung)
+    assert 'id="chat-text" name="text" rows="3" maxlength="100"' in seite
+    antwort = client.post(reverse("mandatare:live_beitrag", args=[mandat.pk, sitzung.pk]), {"text": lang})
+    inhalt = antwort.content.decode()
+    assert not Kommentar.objects.exists()
+    assert "höchstens 100 Zeichen" in inhalt
+    assert f">{lang}</textarea>" in inhalt  # der Entwurf bleibt im Formular, ohne JavaScript
+
+    # Ein Registerwert über 4000 wirkt auch hier: Der Entwurf wird nicht vorab abgeschnitten
+    _register("chat-zeichen-hoechstzahl", 5000)
+    lang = "z" * 4500
+    client.post(reverse("mandatare:live_beitrag", args=[mandat.pk, sitzung.pk]), {"text": lang})
+    assert Kommentar.objects.get().text == lang

@@ -178,10 +178,10 @@ REGELN: tuple[Regel, ...] = (
     ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
-        zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."),
-        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-14",
-        grund=_("Fassung 3 ergänzt die Reihenfolge der öffentlichen Ratsinitiativen und ihrer Verlaufsvermerke."),
-        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend."),
+        zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-15",
+        grund=_("Fassung 4 ergänzt die Reihenfolge der öffentlichen Sitzungsunterlagen."),
+        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand."),
         registerschluessel=("suche-treffer-hoechstzahl",),
     ),
     Regel(

@@ -134,6 +134,9 @@ das betroffene Formular wieder vor.
       {% endif %}
     </div>
     {% if a.beschreibung %}<div style="white-space:pre-line">{{ a.beschreibung }}</div>{% endif %}
+    {% if darf_schreiben and mandat.gemeinde_id and mandat.ebene == "gemeinde" and a.sitzungstag and a.frist %}
+    <p><a href="{% url 'mandatare:sitzungsquelle_verwalten' mandat.pk a.pk %}">{% translate "Sitzungsunterlage verlinken" %}</a></p>
+    {% endif %}
     {% if a.antrag %}
     <p class="pflicht"><span class="chip klein">{% if a.antrag.art == "mandatsfrage" %}{% translate "Mandatsfrage" %}{% else %}{% translate "Betreute Abstimmung" %}{% endif %}</span>
       <a href="{% url 'verfahren:antrag' a.antrag.pk %}{{ z.anker }}">{{ a.antrag.titel }}</a>

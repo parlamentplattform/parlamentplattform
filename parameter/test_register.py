@@ -624,6 +624,31 @@ def test_schema_dokument_beschreibt_den_teststatus():
     assert "`wert_vor_test`" in abschnitt and "`im_test`" in abschnitt
 
 
+def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
+    """Auflage zu GP-136: Neue Exportfelder, Audit-Arten und Kennungen der Gesamtprüfung heben die
+    Nebenversion; Kopf und Änderungsverlauf von docs/SCHEMA.md nennen sie, die neuen Kennungen
+    stehen in der Tabelle 3.1, /audit.json in Abschnitt 5."""
+    from plattform_core.schema import SCHEMA_VERSION
+
+    zeilen = _schema_dokument().splitlines()
+    assert f"Schema-Version **{SCHEMA_VERSION}**" in zeilen[2]
+    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    for wort in (
+        "`status`", "`test_bis`", "`test_hypothese`", "`wert_vor_test`", "`nur_tag`", "`zurueckgenommen`",
+        "`gremienbeschluss_geschlossen`", "`vollzugsbezug_gesetzt`", "`interessenbindung_erklaert`",
+        "`auslosung_begonnen`", "`fachliste_eingetragen`", "`fachliste_gestrichen`", "`meldung_ohne_massnahme`",
+        "`beitrag_ausgeblendet`", "`beratung_freigegeben`", "`entwurf_wiederhergestellt`", "`auswertung.grund`",
+        "`auswertung.stimmen`", "`account.data_exports_per_hour`", "`fees.member_reports_with_bank_call_per_day`",
+        "`fees.bank_calls_reserved_for_administration`",
+    ):
+        assert wort in eintrag, wort
+    tabelle = _schema_dokument().split("### 3.1")[1].split("### 3.2")[0]
+    for schluessel in ("datenexport-je-stunde", "beitrag-meldungen-mit-abruf-je-konto", "beitrag-abruf-verwaltungsvorbehalt"):
+        assert f"| `{schluessel}` |" in tabelle, schluessel
+    audit = next(z for z in zeilen if z.startswith("| `/audit.json`"))
+    assert "`nur_tag`" in audit
+
+
 def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):
     """GP-197 (RVA-18): Auf frischer Instanz lieferte jede Parameterseite 404, bis jemand das
     Register öffnete."""

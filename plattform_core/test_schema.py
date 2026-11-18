@@ -37,7 +37,10 @@ def test_alle_kennungen_haben_das_format_und_sind_eindeutig():
     assert "support.window_days" in gemeinsam and "vote.window_days" in gemeinsam
     assert not (set(kennzahlen) & (set(register) | set(ordnung))), "Kennzahlen messen, sie stellen nicht"
 
-    assert SCHEMA_VERSION == "1.29"
+    # 1.30: Teststatus in /parameter.json, nur_tag in /audit.json, neue Audit-Arten und drei Drosseln als
+    # Registerwerte (Gesamtprüfung, erste und zweite Behebungsrunde).
+    assert SCHEMA_VERSION == "1.30"
+    assert schema_key("datenexport-je-stunde") == "account.data_exports_per_hour"
     assert schema_key("live-takt-sekunden") == "live.refresh_seconds"
     assert schema_key("live-hoechstdauer-stunden") == "live.max_session_hours"
     assert schema_key("audit-vollpruefung-tage") == "audit.full_check_days"

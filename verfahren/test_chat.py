@@ -145,6 +145,32 @@ def test_reaktion_ist_umschaltbar_und_rein_informativ(client, ordnung):  # noqa:
     assert [f["k"].pk for f in faden] == [beitrag.pk, zweiter.pk]
 
 
+@pytest.mark.parametrize(("minuten", "meldung"), [
+    (2, "Ändern ist nur in den ersten 2 Minuten möglich."),
+    (1, "Ändern ist nur in der ersten Minute möglich."),
+])
+def test_meldung_nach_dem_bearbeitungsfenster_nennt_den_registerwert(client, ordnung, minuten, meldung):  # noqa: F811
+    """Nebenbefund der Auflagenrunde: Die Meldung nannte fest „fünf Minuten“, das Fenster kommt aber
+    aus dem Register (chat-bearbeitungsfenster-minuten)."""
+    from django.contrib.messages import get_messages
+
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="chat-bearbeitungsfenster-minuten").update(wert=str(minuten))
+    anna = mitglied_anlegen("anna")
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, "Erst so gemeint.")
+    Kommentar.objects.filter(pk=beitrag.pk).update(erstellt_am=timezone.now() - timedelta(minutes=minuten + 1))
+    client.force_login(anna)
+    antwort = client.post(
+        reverse("verfahren:beitrag_bearbeiten", args=[antrag.pk, beitrag.pk]), {"text": "Zu spät."}
+    )
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == [meldung]
+    beitrag.refresh_from_db()
+    assert beitrag.text == "Erst so gemeint."
+
+
 def test_aendern_nur_fuenf_minuten_zurueckziehen_laesst_den_faden_stehen(client, ordnung):  # noqa: F811
     anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
     antrag = _antrag(ordnung, anna)

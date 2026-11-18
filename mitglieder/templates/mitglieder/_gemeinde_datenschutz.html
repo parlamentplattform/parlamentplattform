@@ -2,5 +2,5 @@
 <div class="karte">
   <p>{% translate "E-Mail-Adresse, Anzeigename und Hauptgemeinde dienen Ihrem Gemeindezugang. Das Geburtsdatum wird nur bei der Anmeldung geprüft und nicht gespeichert. Gespeichert wird, wann Sie das Mindestalter erklärt haben. Hauptwohnsitz und Alter bleiben Selbstauskünfte; die E-Mail-Bestätigung prüft weder Ihre Person noch eine Melderegistereintragung." %}</p>
   <p>{% translate "Ihre E-Mail-Adresse und Gemeindezuordnung werden nicht öffentlich angezeigt. Es gibt keine automatische Parteiwerbung. Eine spätere Abstimmung braucht gesondert offengelegte Teilnahme- und Prüfregeln." %}</p>
-  <a href="{% url 'verfahren:datenschutz' %}">{% translate "Datenschutzerklärung" %}</a>
+  {% url 'verfahren:datenschutz' as datenschutz_url %}{% if request.path != datenschutz_url %}<a href="{{ datenschutz_url }}">{% translate "Datenschutzerklärung" %}</a>{% endif %}
 </div>

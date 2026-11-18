@@ -502,3 +502,15 @@ def test_handymenue_des_gemeindekontos_fuehrt_sprachwahl_und_farbschema_einmal(c
     assert panel.count('href="/gemeinde/konto/"') == 1
     pop = html.split('aria-label="Gemeindekonto">G</summary>', 1)[1].split("</details>", 1)[0]
     assert pop.count('class="sprache-form"') == 1  # das Kontomenü der Leiste behält beides
+
+
+# --- Kein Selbstverweis auf der Datenschutzerklärung (GP-205, GAST-20) -------
+
+
+def test_datenschutzerklaerung_verweist_nicht_auf_sich_selbst(client, ort):
+    url = reverse("verfahren:datenschutz")
+    html = client.get(url).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
+    assert f'href="{url}"' not in hauptteil
+    formular = client.get(reverse("gemeinde:anmelden")).content.decode()
+    assert f'href="{url}"' in formular.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]

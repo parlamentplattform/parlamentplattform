@@ -15,7 +15,7 @@ Blättern sind Links und ein GET-Formular — ohne JavaScript vollständig bedie
     · {% blocktranslate with nr=pruefung.geprueft_bis %}bis Eintrag {{ nr }}{% endblocktranslate %}
     {% if pruefung.kopf %}<br><span class="meta">{% translate "Kopf" %}</span> <code class="audit-kopf-hash">{{ pruefung.kopf }}</code>{% endif %}
   {% else %}{% blocktranslate with am=pruefung.geprueft_am|ortszeit nr=pruefung.bruch %}Kette geprüft am {{ am }}: gebrochen bei Eintrag {{ nr }}{% endblocktranslate %}
-    — {% if pruefung.grund == "hash" %}{% translate "Inhalt passt nicht zum Hash" %}{% elif pruefung.grund == "vorgaenger" %}{% translate "hängt nicht am Vorgänger" %}{% else %}{% translate "der zuletzt geprüfte Eintrag wurde verändert oder entfernt" %}{% endif %}
+    — {% if pruefung.grund == "hash" %}{% translate "Inhalt passt nicht zum Hash" %}{% elif pruefung.grund == "vorgaenger" %}{% translate "hängt nicht am Vorgänger" %}{% elif pruefung.grund == "zeit" %}{% translate "Zeitspalte weicht von der versiegelten Zeit ab" %}{% else %}{% translate "der zuletzt geprüfte Eintrag wurde verändert oder entfernt" %}{% endif %}
     · <a href="{% url 'verfahren:audit' %}?seite={{ bruch_seite }}#e-{{ pruefung.bruch }}">{% translate "zur Stelle" %}</a>
   {% endif %}
 </p>

@@ -154,10 +154,12 @@ def nur_tag(zeit: str) -> str:
 
 def eintrag_oeffentlich(eintrag) -> dict:
     """Ein Audit-Eintrag für Export und Seite: Hash, Vorgänger und der öffentliche Inhalt. Hash bzw.
-    Vorgänger sind None, wo sie ein Durchprobieren erlaubten (`hash_oeffentlich`)."""
+    Vorgänger sind None, wo sie ein Durchprobieren erlaubten (`hash_oeffentlich`). Die Zeit ist die
+    versiegelte im Ereignis (seit 0.45); nur ältere Einträge ohne sie zeigen die Spalte (GP-158)."""
     ereignis, geschwaerzt = ereignis_oeffentlich(eintrag.ereignis)
     vorher = getattr(eintrag, "vorher", None)
-    zeit = eintrag.zeit.isoformat()
+    versiegelt = eintrag.ereignis.get("zeit")
+    zeit = versiegelt if isinstance(versiegelt, str) and versiegelt else eintrag.zeit.isoformat()
     tag = _abstimmung_laeuft(eintrag)
     if tag:
         zeit = nur_tag(zeit)

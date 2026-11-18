@@ -103,3 +103,59 @@ def test_die_seite_zeigt_waehrend_der_abstimmung_keine_uhrzeit(client, ordnung):
     kopf = re.findall(r'<span class="meta">#\d+ · ([^<]*)</span>', html)
     assert kopf and all(re.fullmatch(r'\d\d\.\d\d\.\d{4}', k) for k in kopf), kopf
     assert antrag.pk
+
+
+# --- GP-158 ---------------------------------------------------------------------------------------
+
+
+def _verschobene_spalte():
+    from datetime import timedelta
+
+    AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': 3, 'neue_phase': 'beratung'})
+    AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': 3, 'neue_phase': 'abstimmung'})
+    AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': 3, 'neue_phase': 'angenommen'})
+    zweiter = AuditEintrag.objects.order_by('lfd')[1]
+    AuditEintrag.objects.filter(pk=zweiter.pk).update(zeit=zweiter.zeit - timedelta(days=400))
+    return zweiter
+
+
+def test_seite_und_json_zeigen_die_versiegelte_zeit(client):
+    from verfahren.templatetags.chat import ortszeit
+
+    zweiter = _verschobene_spalte()
+    versiegelt = zweiter.ereignis['zeit']
+    eintraege = {e['lfd']: e for e in client.get(reverse('verfahren:audit_json')).json()['eintraege']}
+    assert eintraege[zweiter.lfd]['zeit'] == versiegelt
+    html = client.get(reverse('verfahren:audit')).content.decode()
+    assert f'#{zweiter.lfd} · {ortszeit(versiegelt)}' in html
+
+
+def test_die_vollpruefung_meldet_eine_verschobene_zeitspalte():
+    from verfahren.audit_pruefung import pruefen
+
+    zweiter = _verschobene_spalte()
+    ergebnis = pruefen(voll=True)
+    assert ergebnis['intakt'] is False
+    assert ergebnis['bruch'] == zweiter.lfd and ergebnis['grund'] == 'zeit'
+    assert [zweiter.lfd, 'zeit'] in [list(b) for b in ergebnis['brueche']]
+    # der nächste Lauf findet die Stelle wieder, auch stückweise
+    weiter = pruefen(stand=ergebnis)
+    assert weiter['intakt'] is False and weiter['bruch'] == zweiter.lfd
+
+
+def test_eine_unveraenderte_kette_bleibt_mit_zeitabgleich_intakt():
+    from verfahren.audit_pruefung import pruefen
+
+    for i in range(3):
+        AuditEintrag.anhaengen({'typ': 'phasenwechsel', 'antrag': i, 'neue_phase': 'beratung'})
+    assert pruefen(voll=True)['intakt'] is True
+
+
+def test_die_seite_nennt_den_grund_zeit(client):
+    from verfahren.audit_pruefung import LAUF, pruefen
+    from verfahren.models import Hintergrundlauf
+
+    _verschobene_spalte()
+    Hintergrundlauf.objects.update_or_create(name=LAUF, defaults={'zuletzt_stand': pruefen(voll=True)})
+    html = client.get(reverse('verfahren:audit')).content.decode()
+    assert 'Zeitspalte weicht von der versiegelten Zeit ab' in html

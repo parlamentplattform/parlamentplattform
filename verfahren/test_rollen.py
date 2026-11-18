@@ -541,3 +541,43 @@ def test_gp105_die_verwaltung_widerspricht_dem_koordinationsrat_nicht():
     assert register.stand is Stand.TEILWEISE
     assert 'gibt es nicht' not in register.einschraenkung
     assert 'durch Beschluss' in register.einschraenkung and 'ohne Beschluss' in register.einschraenkung
+
+
+def test_gp014_die_matrix_beschreibt_die_bearbeitung_gemeldeter_beitraege():
+    '''GP-014: Beim Mitglied stand „Gemeldet werden kann, abgeholfen wird nicht“. Mit der Liste offener
+    Meldungen und der auditierten Entscheidung der Verwaltung (ausblenden mit öffentlichem Grund oder
+    keine Maßnahme) beschreibt die Matrix den Weg: Das Mitglied meldet, die Verwaltung entscheidet.
+    Offen bleibt, wer entscheidet, wenn die Verwaltung selbst betroffen ist, und der Rechtsbehelf.'''
+    melden = _zeile('mitglied', 'Einen Beitrag melden')
+    assert melden.stand is Stand.VERFUEGBAR and not melden.einschraenkung
+    sichten = _zeile('verwaltung', 'Gemeldete Beiträge')
+    assert sichten.stand is Stand.TEILWEISE
+    assert 'ausblenden mit öffentlichem Grund' in sichten.titel and 'keine Maßnahme' in sichten.titel
+    assert 'Rechtsbehelf' in sichten.einschraenkung
+    alle = ' '.join(f.einschraenkung for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten)
+    assert 'von keiner Ansicht gelesen' not in alle and 'abgeholfen wird nicht' not in alle
+
+
+@pytest.mark.xfail(
+    reason='GP-014: Liste und Entscheidung über Meldungen bauen andere Pakete derselben Runde. '
+    'Nach der Zusammenführung muss dieser Test bestehen und die Markierung entfallen; '
+    'fehlt der Schreibweg dann noch, ist der Matrix-Commit zu GP-014 zurückzunehmen.',
+    strict=False,
+)
+def test_gp014_das_zugesagte_ausblenden_hat_einen_schreibweg():
+    '''Wächter zur Zeile der Verwaltung: Das Ausblenden eines Beitrags muss im Code geschrieben
+    werden (`ausgeblendet_am`), sonst verspricht die Matrix etwas Ungebautes.'''
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r'ausgeblendet_am\s*=(?!=)|update_fields=.*ausgeblendet_am')
+    fundstellen = []
+    for app in ('verfahren', 'mandatare', 'mitglieder', 'gremien'):
+        for datei in (wurzel / app).glob('*.py'):
+            if datei.name.startswith('test_'):
+                continue
+            for zeile in datei.read_text(encoding='utf-8').splitlines():
+                if muster.search(zeile) and 'models.' not in zeile:
+                    fundstellen.append(f'{app}/{datei.name}')
+    assert fundstellen, 'kein Schreibweg für ausgeblendet_am außerhalb der Tests'

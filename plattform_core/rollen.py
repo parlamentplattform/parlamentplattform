@@ -51,6 +51,7 @@ def _(text: str) -> str:
 #: Gruppe 1 ist ● (Nummer, Frist, öffentliche Beschlussliste); Gruppe 2 wird beim Setzen des
 #: Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und Einführung von
 #: Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort.
+#: Gemeldete Beiträge sichtet und entscheidet die Verwaltung (Zeile dort; „Einen Beitrag melden“ ist ●).
 VERSION = 12
 
 
@@ -344,11 +345,8 @@ MITGLIED = Rolle(
         ),
         Faehigkeit(
             titel=_("Einen Beitrag melden"),
-            stand=Stand.TEILWEISE,
+            stand=Stand.VERFUEGBAR,
             ort=_("auf jeder Antragsseite"),
-            einschraenkung=(
-                _("Gemeldet werden kann, abgeholfen wird nicht: Die Meldung wird gespeichert, aber von keiner Ansicht gelesen — es gibt keinen Weg, sie zu bearbeiten.")
-            ),
         ),
         Faehigkeit(
             titel=_("Für ein Mandat kandidieren und Bewerbungen zustimmen"),
@@ -960,6 +958,12 @@ VERWALTUNG = Rolle(
             stand=Stand.TEILWEISE,
             urlname="anstoss:verwaltung",
             einschraenkung=_("Stand setzen und Ausfuhr als CSV oder JSON gehen. Ein Feld für den Vermerk und eine Rückfrage per E-Mail fehlen in der Ansicht; wiederkehrende Probleme weiterzuleiten ist nach § 6 Abs 6 Sache des Supportrats."),
+        ),
+        Faehigkeit(
+            titel=_("Gemeldete Beiträge sichten und entscheiden — ausblenden mit öffentlichem Grund oder keine Maßnahme; jede Entscheidung steht im Audit-Log"),
+            stand=Stand.TEILWEISE,
+            ort=_("in der Verwaltung, Liste der offenen Meldungen"),
+            einschraenkung=_("Die Verwaltung entscheidet allein, auch wenn sie selbst betroffen ist; einen Rechtsbehelf gegen die Entscheidung gibt es auf der Plattform nicht."),
         ),
         Faehigkeit(
             titel=_("In die Arbeitsbereiche der Räte sehen"),

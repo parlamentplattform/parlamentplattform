@@ -228,6 +228,13 @@ class Entwurf(models.Model):
     )
     review_frist = models.DateTimeField(null=True, blank=True)
     ueberarbeitung_frist = models.DateTimeField(null=True, blank=True)
+    beratung_freigegeben_am = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Zeitpunkt, zu dem die Schleife die Beratung zuletzt freigegeben hat, ohne selbst "
+        "die Endabstimmung zu öffnen (Rückgabe der Gruppe 2 oder Austausch ohne Überarbeitungsfrist). "
+        "Der Regelübergang in die Abstimmung wirkt nie vor diesem Zeitpunkt.",
+    )
     erstellt_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -315,6 +322,17 @@ class Entwurf(models.Model):
             and jetzt < self.ueberarbeitung_frist
         )
 
+    def abstimmung_fruehestens_ab(self):
+        """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.
+
+        Hält die Schleife die Beratung über das reguläre Ende hinaus offen und gibt sie dann frei,
+        ohne selbst die Endabstimmung zu öffnen (Rückgabe der Gruppe 2 in Runde 1, stattgegebener
+        Austausch), rechnete der Regelübergang bisher ab dem ursprünglichen Beratungsende: Die
+        Abstimmung begann rückwirkend, die Prüfzeit der Gruppe 2 fehlte im Abstimmungsfenster, und
+        im Grenzfall war die Abstimmung im selben Aufruf eröffnet und geschlossen (Gesamtprüfung
+        GP-001). Die festgeschriebene Abstimmungsfrist (§ 5 Abs 5) läuft erst ab der Freigabe."""
+        return self.beratung_freigegeben_am
+
     # ── Übergabe-Handlungen ──────────────────────────────────────────────────
 
     def einreichen(self, jetzt=None) -> bool:
@@ -353,6 +371,7 @@ class Entwurf(models.Model):
             self.status = EntwurfsStatus.UNTERSTUETZER
             self.review_frist = jetzt + timedelta(days=self.antrag.policy().review_tage)
         self.ueberarbeitung_frist = None
+        self.beratung_freigegeben_am = None  # die Schleife arbeitet wieder und hält selbst offen
         self.save()
         if self.status == EntwurfsStatus.PRUEFUNG:
             self.pruefbeschluss_anlegen(jetzt)
@@ -456,6 +475,10 @@ class Entwurf(models.Model):
             self.ueberarbeitung_frist = jetzt + timedelta(
                 days=self.antrag.policy().ueberarbeitung_tage
             )
+        # Ohne Überarbeitungsfrist hält die Schleife ab jetzt nichts mehr offen: Der Regelübergang
+        # ist frei — und darf nicht vor diesem Zeitpunkt wirken (GP-001).
+        freigegeben = not self.haelt_beratung_offen(jetzt)
+        self.beratung_freigegeben_am = jetzt if freigegeben else None
         self.save()
         AuditEintrag.anhaengen(
             {
@@ -464,6 +487,7 @@ class Entwurf(models.Model):
                 "runde": self.runde,
                 "grund": grund,
                 "wirksam_ab": jetzt.isoformat(),
+                "beratung_freigegeben": freigegeben,
                 # Die Rechnung der entschiedenen Runde, festgeschrieben: Das Archiv rechnet
                 # sie nicht mit dem Registerwert von morgen nach (Befund #22).
                 **({"auswertung": auswertung} if auswertung else {}),

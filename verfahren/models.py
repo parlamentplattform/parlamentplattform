@@ -458,6 +458,14 @@ class Antrag(models.Model):
             # oder in laufender Überarbeitung) — der Regelübergang wartet auf sie.
             # Ein bloß offenes, nie eingereichtes Fenster hält dagegen nichts auf.
             return False
+        if entwurf is not None and phase is Phase.BERATUNG and uebergang.neue_phase is Phase.ABSTIMMUNG:
+            # Hat die Schleife die Beratung über das reguläre Ende hinaus offen gehalten und dann
+            # freigegeben, wirkt der Übergang ab der Freigabe — nie rückwirkend zum ursprünglichen
+            # Beratungsende: Sonst fehlte der Abstimmung die Zeit, die das Gremium gebraucht hat,
+            # und Stichtag wie Fristende lägen vor dem tatsächlichen Übergang (GP-001, § 5 Abs 5).
+            frei_ab = entwurf.abstimmung_fruehestens_ab()
+            if frei_ab is not None and frei_ab > uebergang.wirksam_ab:
+                uebergang = dataclasses.replace(uebergang, wirksam_ab=frei_ab)
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab
         felder = ["phase", "phase_beginn"]

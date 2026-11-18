@@ -347,3 +347,79 @@ def test_die_unterstuetzerfrist_nach_verfristeter_pruefung_laeuft_ab_der_frist(c
     assert beschluss.entschieden_am == frist
     assert entwurf.status == EntwurfsStatus.UNTERSTUETZER
     assert entwurf.review_frist == frist + timedelta(days=antrag.policy().review_tage)
+
+
+# --- GP-001: Die Schleife gibt die Beratung erst nach dem regulären Ende frei ----------------
+
+
+def _abstimmung_beginnt_mit_der_freigabe(antrag):
+    """Nach der Freigabe durch die Schleife: Die Abstimmung beginnt jetzt, nicht rückwirkend."""
+    antrag.refresh_from_db()
+    jetzt = timezone.now()
+    assert antrag.phase == 'abstimmung'
+    assert jetzt - antrag.phase_beginn < timedelta(minutes=1)
+    assert antrag.stimmberechtigung_stichtag == timezone.localdate()
+    assert antrag.stimme_zulaessig()
+    # Die Frist am Ende: das volle Abstimmungsfenster der eingefrorenen Ordnung (§ 5 Abs 5).
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy().abstimmung_tage)
+    assert ende - jetzt > timedelta(days=antrag.policy().abstimmung_tage) - timedelta(minutes=1)
+    wechsel = [
+        e.ereignis
+        for e in AuditEintrag.objects.order_by('lfd')
+        if e.ereignis['typ'] == 'phasenwechsel' and e.ereignis.get('antrag') == antrag.pk
+    ]
+    assert [w['neue_phase'] for w in wechsel][-1] == 'abstimmung'
+    assert wechsel[-1]['wirksam_ab'] == antrag.phase_beginn.isoformat()
+
+
+@pytest.mark.parametrize('tage', [27, 29])
+def test_rueckgabe_nach_dem_beratungsende_beginnt_die_abstimmung_nicht_rueckwirkend(client, ordnung, tage):  # noqa: F811
+    """GP-001: Gibt Gruppe 2 in Runde 1 nach dem regulären Beratungsende zurück, begann die
+    Abstimmung rückwirkend zum Beratungsende — nach 29 Tagen war sie im selben Aufruf schon
+    geschlossen (abgelehnt, 0 Stimmen). Der Übergang wirkt frühestens ab der Freigabe."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung)
+    antrag.phase_beginn = timezone.now() - timedelta(days=tage)
+    antrag.save(update_fields=['phase_beginn'])
+    antrag.fortschreiben_bis_zum_stand()
+    assert antrag.phase == 'beratung'  # die Prüfung hält die Beratung offen
+    stimme(client, beschluss, gruppe2[0], 'zurueck', 'Die Vergabekriterien fehlen.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.runde == 1
+    client.logout()
+    assert client.get(reverse('verfahren:antrag', args=[antrag.pk])).status_code == 200
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+    # Ein zweiter Aufruf und ein Wächterlauf ändern daran nichts.
+    client.get(reverse('verfahren:antrag', args=[antrag.pk]))
+    antrag.fortschreiben_bis_zum_stand()
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+
+
+def test_stattgegebener_austausch_nach_dem_beratungsende_beginnt_die_abstimmung_nicht_rueckwirkend(client, ordnung):  # noqa: F811
+    """GP-001, zweiter Weg: Der Koordinationsrat gibt dem Austausch nach dem Beratungsende statt."""
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    antrag.phase_beginn = timezone.now() - timedelta(days=29)
+    antrag.save(update_fields=['phase_beginn'])
+    pruefung = entwurf.pruefungen.get()
+    korat_beschliessen(client, korat, pruefung, 'dafuer', 'Die Zweifel wiegen schwerer.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+    client.logout()
+    assert client.get(reverse('verfahren:antrag', args=[antrag.pk])).status_code == 200
+    _abstimmung_beginnt_mit_der_freigabe(antrag)
+
+
+def test_rueckgabe_vor_dem_beratungsende_laesst_das_beratungsende_gelten(client, ordnung):  # noqa: F811
+    """GP-001, Gegenprobe: Liegt die Freigabe vor dem regulären Ende, bleibt es beim Beratungsende
+    der eingefrorenen Ordnung — die Korrektur verschiebt nichts, was nicht verschoben war."""
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung)
+    stimme(client, beschluss, gruppe2[0], 'zurueck', 'Die Vergabekriterien fehlen.')
+    beginn = timezone.now() - timedelta(days=22)
+    antrag.phase_beginn = beginn
+    antrag.save(update_fields=['phase_beginn'])
+    Entwurf = type(entwurf)
+    frei = Entwurf.objects.get(pk=entwurf.pk).beratung_freigegeben_am
+    Entwurf.objects.filter(pk=entwurf.pk).update(beratung_freigegeben_am=frei - timedelta(days=5))
+    antrag.fortschreiben()
+    antrag.refresh_from_db()
+    assert antrag.phase == 'abstimmung'
+    assert antrag.phase_beginn == beginn + timedelta(days=antrag.policy().beratung_tage)

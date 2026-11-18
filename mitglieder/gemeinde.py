@@ -277,13 +277,20 @@ def konto(request):
     if namenswahl and namensformular is not None:
         namensformular = NamensFormular(request.POST, konto=request.user)
         if namensformular.is_valid():
+            from mitglieder.profil import anzeigename_frei_unter_sperre
+
+            name = namensformular.cleaned_data["anzeigename"]
             with transaction.atomic():
+                # GP-186: Das Formular prüfte vor jeder Sperre — unter der Sperre wird erneut geprüft.
+                frei = anzeigename_frei_unter_sperre(name, request.user)
                 aktuell = Mitglied.objects.select_for_update().get(pk=request.user.pk)
-                if _name_waehlbar(aktuell):
-                    aktuell.pseudonym_oeffentlich = namensformular.cleaned_data["anzeigename"]
+                if frei and _name_waehlbar(aktuell):
+                    aktuell.pseudonym_oeffentlich = name
                     aktuell.save(update_fields=["pseudonym_oeffentlich"])
-            messages.success(request, _("Anzeigename gespeichert."))
-            return redirect("gemeinde:konto")
+            if frei:
+                messages.success(request, _("Anzeigename gespeichert."))
+                return redirect("gemeinde:konto")
+            namensformular.add_error("anzeigename", _("Dieser Name ist nicht verfügbar."))
     elif namenswahl:
         return redirect("gemeinde:konto")
     formular = OrtsFormular if zugang else ZugangsFormular

@@ -190,6 +190,26 @@ def anzeigename_vergeben(name: str, ausser: Mitglied | None) -> bool:
     )
 
 
+def anzeigename_frei_unter_sperre(name: str, konto: Mitglied) -> bool:
+    """Prüft den gewählten Namen erneut, diesmal unter Sperre (GP-186). Nur innerhalb von
+    transaction.atomic aufrufen; die Sperren halten bis zu deren Ende.
+
+    Die Formularprüfung lief vor jeder Sperre: Zwei Konten, die gleichzeitig denselben Namen wählen,
+    bestünden sie beide. Darum werden hier (a) das eigene Konto und alle Konten, die den Namen schon
+    führen, in fester pk-Reihenfolge gesperrt (wie beim Bestätigen des Gemeindekontos) und (b) unter
+    PostgreSQL zusätzlich eine Sperre auf den Namen selbst genommen. Zeilensperren allein reihen zwei
+    Konten nicht, wenn noch keines den Namen trägt; die Namenssperre reiht sie."""
+    from django.db import connection
+
+    if connection.vendor == "postgresql":
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(74889, hashtext(lower(%s)))", [name])
+    list(Mitglied.objects.select_for_update().filter(
+        Q(pk=konto.pk) | Q(pseudonym_oeffentlich__iexact=name)
+    ).order_by("pk").values_list("pk", flat=True))
+    return not anzeigename_vergeben(name, ausser=konto)
+
+
 def anzeigename_pruefen(eingabe: str, ausser: Mitglied | None) -> str:
     """Normalisiert einen Wunsch-Anzeigenamen und weist Vorbehaltenes und Vergebenes ab — im Profil
     und bei der Gemeindeanmeldung gleich (GP-186)."""
@@ -299,8 +319,18 @@ def profil(request):
     mitglied = request.user
     if request.method == "POST":
         form = ProfilFormular(request.POST, mitglied=mitglied)
+        geaendert = None
         if form.is_valid():
-            geaendert = _profil_anwenden(mitglied, form)
+            # GP-186: Der Name wird unter Sperre erneut geprüft; das Formular prüfte ihn vor jeder Sperre.
+            with transaction.atomic():
+                name = form.cleaned_data["anzeigename"]
+                if name and name != mitglied.pseudonym_oeffentlich and not anzeigename_frei_unter_sperre(
+                    name, mitglied
+                ):
+                    form.add_error("anzeigename", _("Dieser Name ist nicht verfügbar."))
+                else:
+                    geaendert = _profil_anwenden(mitglied, form)
+        if geaendert is not None:
             if {"wohnsitz", "wiener_bezirk", "nebenwohnsitz"} & set(geaendert):
                 # GP-056: wie im Gemeindezugang — ein Umzug ändert keinen festgehaltenen Kreis.
                 messages.success(request, _("Profil gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."))

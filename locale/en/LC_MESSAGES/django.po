@@ -11856,3 +11856,39 @@ msgstr "Public meeting documents"
 
 msgid "Öffentlicher HTTPS-Link"
 msgstr "Public HTTPS link"
+
+msgid "Ausgangstext"
+msgstr "Base text"
+
+msgid "Der gespeicherte Wortlaut ist identisch."
+msgstr "The archived wording is identical."
+
+msgid "Der gespeicherte Wortlaut unterscheidet sich."
+msgstr "The archived wording differs."
+
+msgid "Die Gegenüberstellung zeigt archivierte Inhalte. Ob sich die Rechtslage geändert hat, muss anhand der Kundmachung geprüft werden."
+msgstr "This comparison shows archived material. Check the official publication to determine whether the law has changed."
+
+msgid "Die XML-Prüfsummen stimmen überein."
+msgstr "The XML checksums match."
+
+msgid "Die XML-Prüfsummen unterscheiden sich."
+msgstr "The XML checksums differ."
+
+msgid "Dokumenttexte vergleichen"
+msgstr "Compare document texts"
+
+msgid "Für dieses RIS-Dokument ist kein zweiter Dokumenttext gespeichert."
+msgstr "There is no second archived text for this RIS document."
+
+msgid "Gespeicherten Vergleichstext wählen"
+msgstr "Choose an archived text to compare"
+
+msgid "Jüngster gespeicherter Text zuerst."
+msgstr "Newest archived text first."
+
+msgid "Mit einem gespeicherten Dokumenttext vergleichen"
+msgstr "Compare with an archived document text"
+
+msgid "Vergleichstext"
+msgstr "Comparison text"

@@ -1,0 +1,42 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Dokumenttexte vergleichen" %} · {{ basis.norm.ris_id }}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'faktenbasis:norm' basis.norm_id %}#dokumenttext-{{ basis.pk }}">{{ basis.norm.kurztitel }} · {{ basis.norm.ris_id }}</a></p>
+<h1>{% translate "Dokumenttexte vergleichen" %}</h1>
+{% if vergleich %}
+<p>{% if wortlaut_gleich %}{% translate "Der gespeicherte Wortlaut ist identisch." %}{% else %}{% translate "Der gespeicherte Wortlaut unterscheidet sich." %}{% endif %}
+   {% if pruefsumme_gleich %}{% translate "Die XML-Prüfsummen stimmen überein." %}{% else %}{% translate "Die XML-Prüfsummen unterscheiden sich." %}{% endif %}</p>
+<p class="hilfe">{% translate "Die Gegenüberstellung zeigt archivierte Inhalte. Ob sich die Rechtslage geändert hat, muss anhand der Kundmachung geprüft werden." %}</p>
+<div class="fakten-textvergleich">
+  {% for t in texte %}
+  <section class="karte" aria-labelledby="vergleich-text-{{ t.pk }}">
+    <h2 id="vergleich-text-{{ t.pk }}">{% if forloop.first %}{% translate "Ausgangstext" %}{% else %}{% translate "Vergleichstext" %}{% endif %}</h2>
+    <p>{% translate "Stichtag" %} {{ t.norm.stand|date:"DATE_FORMAT" }} · {% translate "Erstmals erfasst" %} {{ t.erfasst_am|date:"DATETIME_FORMAT" }}</p>
+    <p class="meta">{% translate "Textauswertung, Fassung" %} {{ t.parser_fassung }} · {% translate "XML-Prüfsumme (SHA-256 der Originalbytes)" %} <code class="fakten-hash">{{ t.xml_hash }}</code></p>
+    <p><a href="{% url 'faktenbasis:norm' t.norm_id %}#dokumenttext-{{ t.pk }}">{% translate "Herkunft und Prüfsumme" %}</a> · <a href="{% url 'faktenbasis:textxml' t.pk %}">{% translate "Gespeichertes Original-XML herunterladen" %}</a></p>
+    <pre class="fakten-rohdaten fakten-wortlaut">{{ t.text }}</pre>
+  </section>
+  {% endfor %}
+</div>
+{% else %}
+<p>{% translate "Ausgangstext" %} · {% translate "Stichtag" %} {{ basis.norm.stand|date:"DATE_FORMAT" }} · {% translate "Erstmals erfasst" %} {{ basis.erfasst_am|date:"DATETIME_FORMAT" }} · <code>{{ basis.xml_hash|slice:":12" }}</code></p>
+{% endif %}
+<section class="karte" aria-labelledby="vergleich-auswahl">
+  <h2 id="vergleich-auswahl">{% translate "Gespeicherten Vergleichstext wählen" %}</h2>
+  {% if seite %}
+  <ul>{% for t in seite %}
+  <li><a href="{% url 'faktenbasis:textvergleich' basis.pk t.pk %}"{% if t.pk == vergleich.pk %} aria-current="page"{% endif %}>{{ t.norm__stand|date:"DATE_FORMAT" }} · {{ t.erfasst_am|date:"DATETIME_FORMAT" }} · {% translate "Textauswertung, Fassung" %} {{ t.parser_fassung }} · <code>{{ t.xml_hash|slice:":12" }}</code></a></li>
+  {% endfor %}</ul>
+  <p class="meta">{% translate "Jüngster gespeicherter Text zuerst." %}</p>
+  {% else %}
+  <p>{% translate "Für dieses RIS-Dokument ist kein zweiter Dokumenttext gespeichert." %}</p>
+  {% endif %}
+  {% if seite.has_other_pages %}
+  <nav aria-label="{% translate 'Weitere Seiten' %}">
+    {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}#vergleich-auswahl">{% translate "Zurück" %}</a>{% endif %}
+    <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+    {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}#vergleich-auswahl">{% translate "Weiter" %}</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}

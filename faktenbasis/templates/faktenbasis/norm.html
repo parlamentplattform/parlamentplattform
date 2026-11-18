@@ -41,10 +41,11 @@
     <p class="meldung warn">{% translate "Der letzte Dokumenttext-Abruf ist fehlgeschlagen. Frühere Texte bleiben lesbar." %} ({{ letzter_textabruf.fehlercode }}) · {{ letzter_textabruf.beendet_am|date:"d.m.Y H:i" }}</p>
   {% endif %}
   {% for t in texte %}
-  <details class="karte"{% if forloop.first %} open{% endif %}>
+  <details class="karte" id="dokumenttext-{{ t.pk }}"{% if forloop.first %} open{% endif %}>
     <summary>{% translate "Dokumenttext" %} · {% translate "Erstmals erfasst" %}: {{ t.erfasst_am|date:"d.m.Y H:i" }} · {{ t.xml_hash|slice:":12" }}</summary>
     <p><a href="{{ t.quelle }}" rel="noopener">{% translate "Amtliche XML-Quelle öffnen" %} ↗</a> · <a href="{% url 'faktenbasis:textxml' t.pk %}">{% translate "Gespeichertes Original-XML herunterladen" %}</a></p>
     <p class="meta">{% translate "XML-Prüfsumme (SHA-256 der Originalbytes)" %}: <code class="fakten-hash">{{ t.xml_hash }}</code> · {% translate "Textauswertung, Fassung" %}: {{ t.parser_fassung }}</p>
+    {% if textvergleich_moeglich %}<p><a href="{% url 'faktenbasis:textvergleich' t.pk %}">{% translate "Mit einem gespeicherten Dokumenttext vergleichen" %}</a></p>{% endif %}
     <pre class="fakten-rohdaten fakten-wortlaut">{{ t.text }}</pre>
   </details>
   {% empty %}<div class="karte"><p>{% translate "Für diesen Schnappschuss wurde noch kein amtlicher Dokumenttext übernommen." %}</p></div>{% endfor %}

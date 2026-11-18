@@ -38,6 +38,13 @@ def index(request):
     })
 
 
+def _texte_des_dokuments(norm):
+    return NormText.objects.filter(
+        norm__ris_id=norm.ris_id, norm__ebene=norm.ebene,
+        norm__gesetzesnummer=norm.gesetzesnummer, norm__bundesland=norm.bundesland,
+    )
+
+
 @require_safe
 def norm(request, pk):
     eintrag = get_object_or_404(Norm.objects.select_related("importlauf"), pk=pk)
@@ -50,10 +57,36 @@ def norm(request, pk):
         "novellenfassung": NOVELLENFASSUNG,
         "fassungen": Norm.objects.filter(ris_id=eintrag.ris_id).order_by("-stand", "-pk"),
         "rohdaten": json.dumps(eintrag.rohdaten, ensure_ascii=False, indent=2),
-        "texte": eintrag.texte.all(),
+        "texte": eintrag.texte.defer("xml"),
+        "textvergleich_moeglich": _texte_des_dokuments(eintrag).order_by("pk")[1:2].exists(),
         "letzter_textabruf": eintrag.textabrufe.first(),
         "textabrufe": eintrag.textabrufe.select_related("inhalt").all(),
         "darf_aktualisieren": darf_aktualisieren(request.user),
+    })
+
+
+@require_safe
+def textvergleich(request, pk, mit=None):
+    basis = get_object_or_404(
+        NormText.objects.select_related("norm").defer("xml", "norm__rohdaten"), pk=pk,
+    )
+    moegliche_texte = _texte_des_dokuments(basis.norm).exclude(pk=basis.pk)
+    vergleich = None
+    texte = ()
+    if mit is not None:
+        vergleich = get_object_or_404(
+            moegliche_texte.select_related("norm").defer("xml", "norm__rohdaten"), pk=mit,
+        )
+        texte = (basis, vergleich)
+    seiten = Paginator(
+        moegliche_texte.values("pk", "erfasst_am", "xml_hash", "parser_fassung", "norm__stand"),
+        max(1, min(100, zahl("faktenbasis-seitengroesse", 20))),
+    )
+    return render(request, "faktenbasis/textvergleich.html", {
+        "basis": basis, "vergleich": vergleich, "texte": texte,
+        "seite": seiten.get_page(request.GET.get("seite")),
+        "wortlaut_gleich": vergleich is not None and basis.text == vergleich.text,
+        "pruefsumme_gleich": vergleich is not None and basis.xml_hash == vergleich.xml_hash,
     })
 
 

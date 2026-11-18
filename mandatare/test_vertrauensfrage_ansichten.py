@@ -393,6 +393,24 @@ def test_anfechtung_eines_gewonnenen_ergebnisses_ist_binnen_sieben_tagen_rechtze
     assert audit("vertrauensfrage_angefochten")[-1]["rechtzeitig"] is False
 
 
+def test_entscheidung_des_parteischiedsgerichts_traegt_ihr_datum(client, altmandat):  # noqa: F811
+    """GP-193 (MV-24): Das Datum der Entscheidung kommt aus der Eingabe — zwischen Anfechtung und heute —,
+    nicht vom Tag des Vermerks; die Endgültigkeit rechnet damit."""
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, timezone.now() - tage(20))
+    client.force_login(admin_anlegen())
+    _anfechten(client, vf, timezone.localdate() - tage(18))
+    entscheidung = {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "bestaetigt"}
+    for falsch in (timezone.localdate() + tage(1), timezone.localdate() - tage(19)):
+        antwort = client.post(VERWALTUNG_AKTION, {**entscheidung, "datum": falsch.isoformat()})
+        vf.refresh_from_db()
+        assert vf.entscheidung == "" and "Datum der Entscheidung" in meldungen(antwort)
+    tag = timezone.localdate() - tage(5)
+    client.post(VERWALTUNG_AKTION, {**entscheidung, "datum": tag.isoformat()})
+    vf.refresh_from_db()
+    assert timezone.localdate(vf.entschieden_am) == tag
+    assert vf.wirkungen_endgueltig_am is not None and timezone.localdate(vf.wirkungen_endgueltig_am) == tag
+
+
 def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F811
     rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
     antrag, ende = _verloren(ordnung, altmandat)

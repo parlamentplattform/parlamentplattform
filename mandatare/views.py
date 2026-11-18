@@ -1751,7 +1751,18 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if wert not in ENTSCHEIDUNGEN:
             messages.error(request, _("Bitte „aufgehoben“ oder „bestätigt“ wählen."))
             return True
-        vertrauensfrage_entscheidung_vermerken(vf, wert, durch=request.user.pk)
+        # Die Entscheidung trägt ihren eigenen Tag, nicht den des Vermerks (GP-193): zwischen Anfechtung und heute
+        tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        anfechtungstag = timezone.localdate(vf.angefochten_am)
+        if tag is not None and not anfechtungstag <= tag <= timezone.localdate():
+            messages.error(
+                request,
+                _("Das Datum der Entscheidung liegt zwischen der Anfechtung (%(ab)s) und heute.")
+                % {"ab": anfechtungstag.strftime("%d.%m.%Y")},
+            )
+            return True
+        entschieden = timezone.now() if tag is None else max(timezone.make_aware(datetime.combine(tag, time.min)), vf.angefochten_am)
+        vertrauensfrage_entscheidung_vermerken(vf, wert, jetzt=entschieden, durch=request.user.pk)
         vertrauensfragen_fortschreiben()  # „bestätigt“: Stufe 2 läuft ab der Entscheidung — sofort nachgezogen
         if wert == Entscheidung.AUFGEHOBEN.value and vf.art == VertrauensfrageArt.BESTAETIGUNG:
             messages.success(

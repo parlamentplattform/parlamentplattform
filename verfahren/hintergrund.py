@@ -59,6 +59,25 @@ def _audit() -> dict:
 AUDIT_TAKT_MINUTEN = 24 * 60
 
 
+def _adresswechsel() -> dict:
+    from mitglieder.models import Adresswechsel
+
+    return {"wirksam": Adresswechsel.faellige_anwenden()}
+
+
+def _drossel() -> dict:
+    """Die Datenschutzerklärung sagt: Die Verbindungsadresse hält die Drossel „rund zwei Stunden“.
+    Bisher räumte nur ein neuer Zähler im Vorbeigehen auf (mitglieder/botschutz.py) — ohne neuen
+    Verkehr blieb die Adresse liegen (GP-159). Dieselbe Grenze wie dort: laufende und vorige Stunde."""
+    import time
+
+    from mitglieder.models import Drosselzaehler
+
+    stunde = int(time.time() // 3600)
+    geloescht, _ = Drosselzaehler.objects.filter(stunde__lt=stunde - 1).delete()
+    return {"geloescht": geloescht}
+
+
 def _zukunftswerkstatt() -> dict:
     from ki.warteschlange import abarbeiten
 
@@ -70,6 +89,10 @@ LAEUFE: list[Lauf] = [
     # Die Warteschlange der Zukunftswerkstatt (ki/warteschlange.py): jede Minute die fälligen
     # Aufträge im Tageskontingent — betroffene Gesetze, nachgezogene Textvektoren.
     Lauf("zukunftswerkstatt", lambda: 1, _zukunftswerkstatt),
+    # Bestätigte Adresswechsel nach Ablauf der Einspruchsfrist wirksam machen (GP-211) — bisher nur
+    # beiläufig beim Öffnen einer Verwaltungsseite oder beim Anfordern eines Anmeldelinks.
+    Lauf("adresswechsel", lambda: max(1, int(getattr(settings, "DDOE_WAECHTER_MINUTEN", 10))), _adresswechsel),
+    Lauf("drossel", lambda: max(1, int(getattr(settings, "DDOE_WAECHTER_MINUTEN", 10))), _drossel),
     # Die Audit-Kette nachrechnen (Bestandsaufnahme A7): stückweise ab dem gemerkten Stand.
     Lauf("audit", lambda: AUDIT_TAKT_MINUTEN, _audit),
 ]

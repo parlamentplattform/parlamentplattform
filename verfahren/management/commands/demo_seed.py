@@ -142,7 +142,9 @@ class Command(BaseCommand):
                     "email": f"demo{i}@example.org",
                     "beitritt": timezone.localdate() - timedelta(days=200),
                     "identitaetsstufe": Identitaetsstufe.GEPRUEFT,
-                    "pseudonym_oeffentlich": f"Mitglied {i}",
+                    # „Mitglied n“ ist der Plattform vorbehalten (Anzeigename ohne Pseudonym); damit
+                    # scheiterte jedes Speichern des Profils eines Demo-Kontos (GP-209).
+                    "pseudonym_oeffentlich": f"Demo {i}",
                     "gemeinde": "St. Marienkirchen an der Polsenz",
                     "bundesland": "oberoesterreich",
                 },
@@ -151,6 +153,9 @@ class Command(BaseCommand):
                 m.wohnsitz = Gemeinde.finden(m.gemeinde)[0]
                 m.set_unusable_password()
                 m.save()
+            elif m.pseudonym_oeffentlich == f"Mitglied {i}":  # Bestand vor 0.113: berichtigen
+                m.pseudonym_oeffentlich = f"Demo {i}"
+                m.save(update_fields=["pseudonym_oeffentlich"])
             leute.append(m)
 
         if not Antrag.objects.exists():

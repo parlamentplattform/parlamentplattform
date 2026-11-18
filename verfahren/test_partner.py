@@ -171,3 +171,53 @@ def test_die_sprachregel_faerbt_nicht_auf_andere_seiten_ab(client):
     client.get(reverse("verfahren:partner"), headers={"accept-language": "es"})
     inhalt = client.get(reverse("verfahren:parlament"), headers={"accept-language": "es"}).content.decode()
     assert "Parlament" in inhalt and "International partners" not in inhalt
+
+
+# --- GP-156: Die Gesundheitsprüfung des Docker-Musters erreicht die Ansicht --------------------------
+
+PRODUKTION = {
+    'DEBUG': False,
+    'SECURE_SSL_REDIRECT': True,
+    'SECURE_PROXY_SSL_HEADER': ('HTTP_X_FORWARDED_PROTO', 'https'),
+    'ALLOWED_HOSTS': ['parlament.partei.example'],
+}
+
+
+def test_gesund_antwortet_in_produktion_ohne_weiterleitung():
+    from django.test import Client, override_settings
+
+    with override_settings(**PRODUKTION):
+        gast = Client()
+        antwort = gast.get('/gesund/', HTTP_HOST='parlament.partei.example')
+        assert antwort.status_code == 200 and antwort.json() == {'status': 'ok'}
+        anderes = gast.get('/audit/', HTTP_HOST='parlament.partei.example')
+        assert anderes.status_code == 301 and anderes['Location'].startswith('https://')
+
+
+def test_der_pruefbefehl_der_musterdatei_gelingt(monkeypatch):
+    """Der Prüfbefehl des Docker-Musters, ausgeführt gegen die Plattform mit Produktionsschaltern: Er
+    endet nur ohne Ausnahme, wenn die Antwort 200 ist (urllib wirft sonst)."""
+    import os
+    import re
+    import urllib.error
+    import urllib.request
+
+    from django.test import Client, override_settings
+
+    text = (WURZEL / 'docs' / 'partner' / 'instanz' / 'docker-compose.yml').read_text(encoding='utf-8')
+    web = text.split('\n  web:', 1)[1]
+    befehl = json.loads(re.search(r'^\s*test: (\[.*\])$', web, re.M).group(1))
+    assert befehl[:3] == ['CMD', 'python', '-c']
+    monkeypatch.setitem(os.environ, 'DDOE_ALLOWED_HOSTS', 'parlament.partei.example,www.partei.example')
+
+    def urlopen(anfrage, timeout=None):
+        kopf = {k.lower(): v for k, v in anfrage.header_items()}
+        extra = {'HTTP_X_FORWARDED_PROTO': kopf['x-forwarded-proto']} if 'x-forwarded-proto' in kopf else {}
+        with override_settings(**PRODUKTION):
+            antwort = Client().get(anfrage.selector, HTTP_HOST=kopf.get('host', anfrage.host), **extra)
+        if antwort.status_code != 200:
+            raise urllib.error.HTTPError(anfrage.full_url, antwort.status_code, 'kaputt', {}, None)
+        return antwort
+
+    monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    exec(befehl[3], {})  # noqa: S102 — der Befehl aus der eigenen Musterdatei

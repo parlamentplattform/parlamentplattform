@@ -457,3 +457,18 @@ def test_gp054_kachel_im_eigenen_ort_bleibt_ohne_ortsangabe(client, ordnung):  #
     client.force_login(m)
     kachel = _region(client).split(f'href="/antrag/{antrag.pk}/"', 1)[1].split('</article>', 1)[0]
     assert 'class="rest ort"' not in kachel
+
+
+def test_gp055_altkonto_mit_gemeindetext_wird_zum_verzeichnis_gefuehrt(client, ordnung):  # noqa: F811
+    """GP-055 (OW-03): Konten mit Gemeinde nur als Freitext sahen „Noch nichts in Ihrer Gemeinde“
+    unter dem eigenen Ortsnamen, aber keinen Weg zum Gemeindeverzeichnis."""
+    m = mitglied_anlegen('altkonto', tage=800)  # Gemeindetext und Bundesland, kein Verzeichnisverweis
+    assert m.gemeinde and not m.wohnsitz_id
+    client.force_login(m)
+    ziel = reverse('mitglieder:profil') + '#wohnsitz'
+    region = _region(client)
+    assert 'Noch nichts in Ihrer Gemeinde' not in region
+    assert f'href="{ziel}"' in region and 'Hauptwohnsitz aus dem Gemeindeverzeichnis' in region
+    assert f'Gemeinde · {m.gemeinde}' not in region
+    formular = client.get(reverse('verfahren:einbringen')).content.decode()
+    assert f'href="{ziel}"' in formular and 'Hauptwohnsitz aus dem Gemeindeverzeichnis' in formular

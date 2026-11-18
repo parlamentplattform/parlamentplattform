@@ -815,6 +815,11 @@ def parlament(request):
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
     mein_ort, meine_gemeinden, wiener_bezirk = _meine_orte(request.user)
+    from verfahren.teilnahme import wohnsitz_ohne_verzeichnis
+
+    # Gemeinde nur als Freitext: Die Zeile trägt den Namen nicht als eigene Gemeinde und führt
+    # statt des Leertexts zum Gemeindeverzeichnis im Profil (GP-055)
+    wohnsitz_waehlen = wohnsitz_ohne_verzeichnis(request.user)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
@@ -837,14 +842,16 @@ def parlament(request):
                 or _gebiet_passt(a, orte, meine_gemeinden, wiener_bezirk)
             )
         ]
+        ohne_verzeichnis = wohnsitz_waehlen and ebene == "gemeinde"
         region_zeilen.append(
             {
                 "ebene": ebene,
-                "ort": " · ".join(orte),  # Zeilenkopf „Gemeinde · Ort1 · Ort2“
+                "ort": "" if ohne_verzeichnis else " · ".join(orte),  # Zeilenkopf „Gemeinde · Ort1 · Ort2“
                 "orte": orte,
                 # Bei genau einem Ort trägt ihn der Zeilenkopf, die Kachel schweigt; bei zweien
                 # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
-                "ort_versteckt": len(orte) == 1,
+                "ort_versteckt": len(orte) == 1 and not ohne_verzeichnis,
+                "wohnsitz_waehlen": ohne_verzeichnis,
                 "live": live[ebene],
                 "kacheln": [
                     {

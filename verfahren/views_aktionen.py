@@ -76,7 +76,14 @@ from verfahren.models import (
     uebergangsregel_fuer,
     vollzug_fortschreiben,
 )
-from verfahren.teilnahme import eigene_kreise, gebietsname, hauptgebiet, oertlich_begrenzt, oertlich_zulaessig
+from verfahren.teilnahme import (
+    eigene_kreise,
+    gebietsname,
+    hauptgebiet,
+    oertlich_begrenzt,
+    oertlich_zulaessig,
+    wohnsitz_ohne_verzeichnis,
+)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
@@ -192,6 +199,7 @@ class AntragsFormular(forms.Form):
         # Der Wohnsitzstand beim Anzeigen des Formulars; ein Umzug dazwischen führt zur
         # Rückfrage statt still in die neue Gemeinde (GP-170)
         self.gebiet_kennung = ""
+        self.wohnsitz_waehlen = mitglied is not None and wohnsitz_ohne_verzeichnis(mitglied)  # GP-055
         if haupt is not None:
             self.gebiet_kennung = _wohnsitzstand(haupt, mitglied)
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))

@@ -12,6 +12,18 @@ from plattform_core.teilnehmerkreis import Gebiet, GebietsFehler, Gemeindestand,
 from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, gegenstand_fuer, uebergangsregel_fuer
 
 
+def wohnsitz_ohne_verzeichnis(mitglied) -> bool:
+    """Altkonto mit österreichischem Wohnort nur als Freitext, ohne Eintrag im Gemeindeverzeichnis:
+    Für neue örtliche Verfahren zählt es zu keinem Kreis, bis der Hauptwohnsitz gewählt ist (GP-055)."""
+    if not getattr(mitglied, "is_authenticated", False) or not getattr(mitglied, "parteikonto", False):
+        return False
+    if mitglied.wohnsitz_id:
+        return False
+    return mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH or (
+        not mitglied.wohnsitz_art and bool(mitglied.gemeinde)
+    )
+
+
 def gemeindestand(gemeinde):
     return Gemeindestand(gemeinde.kennziffer, gemeinde.name, gemeinde.bezirk, gemeinde.bundesland)
 

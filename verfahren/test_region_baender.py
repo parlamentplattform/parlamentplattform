@@ -10,12 +10,23 @@ pytestmark = pytest.mark.django_db
 ORT = "St. Marienkirchen an der Polsenz"
 
 
+def _mit_verzeichnis(m):
+    """Hauptwohnsitz aus dem Gemeindeverzeichnis — ein Konto nur mit Gemeindetext führt die
+    Gemeindezeile stattdessen zum Profil (GP-055)."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    m.wohnsitz = Gemeinde.objects.create(kennziffer="40819", name=ORT, bezirk="Eferding", bundesland="oberoesterreich")
+    m.wohnsitz_art = Wohnsitzart.OESTERREICH
+    m.save(update_fields=["wohnsitz", "wohnsitz_art"])
+    return m
+
+
 def _region(client):
     return client.get("/parlament/").content.decode().split('id="feld-region"')[1].split("</section>")[0]
 
 
 def test_region_ist_ein_drei_mal_drei_raster_aus_baendern(client, ordnung):  # noqa: F811
-    anna = mitglied_anlegen("anna")
+    anna = _mit_verzeichnis(mitglied_anlegen("anna"))
     for i in range(4):
         antrag_einbringen(anna, f"Gemeindesache {i}", "W.", "", ordnung, ebene="gemeinde", gebiet=ORT)
     client.force_login(anna)
@@ -30,7 +41,7 @@ def test_region_ist_ein_drei_mal_drei_raster_aus_baendern(client, ordnung):  # n
 
 
 def test_leerzustaende_sind_kurz_und_haben_eine_handlung(client, ordnung):  # noqa: F811
-    client.force_login(mitglied_anlegen("anna"))
+    client.force_login(_mit_verzeichnis(mitglied_anlegen("anna")))
     feld = _region(client)
     for satz in ("Noch nichts in Ihrer Gemeinde.", "Noch nichts in Ihrem Bezirk.", "Noch nichts in Ihrem Land."):
         assert satz in feld and len(satz.split()) <= 8

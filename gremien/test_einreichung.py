@@ -256,3 +256,38 @@ def test_die_pruefseite_zeigt_die_erklaerungen_der_runde_vor_dem_stimmformular(c
     seite = client.get(reverse('gremien:pruefung')).content.decode()
     assert 'Beraterin der Musterbau GmbH' in seite
     assert seite.index('Beraterin der Musterbau GmbH') < seite.index('name="begruendung"')
+
+
+# --- GP-007: Der Vollzugsbezug ruht während der Einreich-Abstimmung und steht im Audit -------
+
+
+def _vollzugsbezug_setzen(client, antrag, wert):
+    return client.post(
+        reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'vollzugsbezug', 'vollzugsbezug': wert}, follow=True
+    )
+
+
+def test_der_vollzugsbezug_ruht_waehrend_der_einreich_abstimmung(client, ordnung):  # noqa: F811
+    """GP-007: Ein einzelnes Mitglied der Gruppe 1 konnte den Vollzugsbezug umstellen, während die Gruppe
+    über die Einreichung abstimmte — und so die Prüfung durch Gruppe 2 an- oder abschalten, ohne Spur."""
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    entwurf = fenster_oeffnen(client, antrag, er[0])
+    _vollzugsbezug_setzen(client, antrag, 'ja')
+    zur_einreichung_stellen(client, antrag, er[0])
+    antwort = _vollzugsbezug_setzen(client, antrag, 'nein')
+    entwurf.refresh_from_db()
+    assert entwurf.vollzugsbezug is True
+    assert 'ruht der Vollzugsbezug' in antwort.content.decode()
+
+
+def test_jede_aenderung_des_vollzugsbezugs_steht_im_audit(client, ordnung):  # noqa: F811
+    from verfahren.models import AuditEintrag
+
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    fenster_oeffnen(client, antrag, er[0])
+    _vollzugsbezug_setzen(client, antrag, 'ja')
+    _vollzugsbezug_setzen(client, antrag, 'ja')  # unverändert: kein zweiter Eintrag
+    _vollzugsbezug_setzen(client, antrag, 'nein')
+    eintraege = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'vollzugsbezug_gesetzt']
+    assert [(e['alt'], e['neu']) for e in eintraege] == [(False, True), (True, False)]
+    assert all(e['antrag'] == antrag.pk and 'mitglied' not in e and 'durch' not in e for e in eintraege)

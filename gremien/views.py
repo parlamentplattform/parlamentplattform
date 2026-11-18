@@ -507,8 +507,19 @@ def fenster_aktion(request, antrag_id: int):
             )
 
     elif aktion == "vollzugsbezug":
-        entwurf.vollzugsbezug = request.POST.get("vollzugsbezug") == "ja"
-        entwurf.save(update_fields=["vollzugsbezug"])
+        if entwurf.einreichungsbeschluss() is not None:
+            # Wie die Fassung (GP-007): Der Bezug entscheidet, ob Gruppe 2 prüft — das stellt niemand
+            # allein um, während die Gruppe über genau diese Einreichung abstimmt.
+            messages.error(request, _("Solange über die Einreichung abgestimmt wird, ruht der Vollzugsbezug."))
+            return redirect("gremien:fenster", antrag_id=antrag.pk)
+        alt, neu = entwurf.vollzugsbezug, request.POST.get("vollzugsbezug") == "ja"
+        if alt != neu:
+            with transaction.atomic():
+                entwurf.vollzugsbezug = neu
+                entwurf.save(update_fields=["vollzugsbezug"])
+                AuditEintrag.anhaengen(
+                    {"typ": "vollzugsbezug_gesetzt", "antrag": antrag.pk, "runde": entwurf.runde, "alt": alt, "neu": neu}
+                )
         messages.success(
             request,
             _("Vollzugs-/Beschaffungsbezug: %(wert)s.")

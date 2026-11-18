@@ -15,6 +15,7 @@ from gremien.models import BeschlussStatus, EntwurfsStatus, Gremium, Pruefung, R
 from gremien.test_werkstatt import (  # noqa: F401
     beratungsfrist_ablaufen_lassen,
     einreichen,
+    frist_verstreichen,
     mitglied_anlegen,
     ordnung,
     rolle_geben,
@@ -270,8 +271,9 @@ def test_ohne_gruppe_2_geht_der_vorschlag_nach_der_prueffrist_weiter(client, ord
         e.ereignis["typ"] == "pruefung_frist_verstrichen" and e.ereignis["grund"] == "keine_gruppe_2"
         for e in AuditEintrag.objects.all()
     )
-    # Und das Verfahren läuft wirklich weiter: Nach der Unterstützerfrist folgt die Endabstimmung.
-    Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=timezone.now() - timedelta(hours=1))
+    # Und das Verfahren läuft wirklich weiter: Nach der Unterstützerfrist folgt die Endabstimmung
+    # (im Zeitraffer samt Beratungsende, vor dem die Schleife sie nicht öffnet — GP-003).
+    frist_verstreichen(entwurf)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     assert antrag.phase == "abstimmung"

@@ -70,10 +70,21 @@ def schreiben(client, antrag, mitglied, text, kritik=False, absatz=None):
     return antrag.kommentare.filter(mitglied=mitglied).order_by("-erstellt_am").first()
 
 
+def beratung_zu_ende(antrag_id, zeitpunkt):
+    """Zeitraffer der Beratung: Sie hat so früh begonnen, dass ihre Dauer nach der eingefrorenen Ordnung
+    zum Zeitpunkt um ist. Die Schleife öffnet die Endabstimmung nie vor dem Beratungsende (GP-003) —
+    eine Schleifenfrist in der Vergangenheit setzt deshalb eine entsprechend ältere Beratung voraus."""
+    antrag = Antrag.objects.get(pk=antrag_id)
+    beginn = zeitpunkt - timedelta(days=antrag.policy().beratung_tage)
+    if antrag.phase == "beratung" and antrag.phase_beginn > beginn:
+        Antrag.objects.filter(pk=antrag_id).update(phase_beginn=beginn)
+
+
 def frist_setzen(entwurf, frist):
     """Zeitraffer der Unterstützer-Frist: Die Frist rückt in die Vergangenheit, und mit ihr die Reaktionen
     dieses Antrags — sie wurden ja vor dem Fristende abgegeben. Gezählt wird der Stand zum Fristende
-    (§ 5 Abs 13, Bestandsaufnahme A8); ohne die Verschiebung lägen die Klicks des Tests „nach“ der Frist."""
+    (§ 5 Abs 13, Bestandsaufnahme A8); ohne die Verschiebung lägen die Klicks des Tests „nach“ der Frist.
+    Die Beratung rückt mit: Ihr Ende liegt nicht nach der Frist (siehe `beratung_zu_ende`)."""
     from django.db.models import F
 
     from verfahren.models import Reaktion
@@ -83,6 +94,7 @@ def frist_setzen(entwurf, frist):
         erstellt_am=F("erstellt_am") - versatz, zurueckgenommen_am=F("zurueckgenommen_am") - versatz
     )
     Entwurf.objects.filter(pk=entwurf.pk).update(review_frist=frist)
+    beratung_zu_ende(entwurf.antrag_id, frist)
 
 
 def frist_verstreichen(entwurf):
@@ -1090,3 +1102,84 @@ def test_der_link_zur_reihung_fuehrt_auf_die_regel(client, ordnung):  # noqa: F8
     inhalt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
     assert f'href="{ziel}#regel-vorschlagschat"' in inhalt and "#vorschlag-chat-reihung" not in inhalt
     assert 'id="regel-vorschlagschat"' in client.get(ziel).content.decode()
+
+
+# --- GP-003: Die Schleife verkürzt die Beratung nicht unter die Dauer der Ordnung -------------
+
+
+def _wechsel_in_die_abstimmung(antrag):
+    return [
+        e.ereignis
+        for e in AuditEintrag.objects.order_by('lfd')
+        if e.ereignis['typ'] == 'phasenwechsel'
+        and e.ereignis.get('antrag') == antrag.pk
+        and e.ereignis['neue_phase'] == 'abstimmung'
+    ]
+
+
+def test_die_endabstimmung_aus_der_schleife_oeffnet_fruehestens_zum_beratungsende(client, ordnung):  # noqa: F811
+    """GP-003: Reicht der Expertenrat am ersten Tag ein und rührt sich niemand, begann die
+    Endabstimmung nach 14 Tagen — sieben Tage vor dem Ende der Beratung, die § 5 Abs 3 lit c und
+    die eingefrorene Ordnung mit mindestens 21 Tagen festlegen. Die Auswertung der Unterstützer
+    bleibt, wie sie zum Fristende stand; geöffnet wird zum Beratungsende."""
+    from verfahren.management.commands.verfahren_fortschreiben import alles_fortschreiben
+
+    antrag, _, er = werkstatt_lage(ordnung)
+    t0 = antrag.phase_beginn
+    entwurf = einreichen(client, antrag, er)
+    tage = antrag.policy().beratung_tage
+    assert entwurf.review_frist < t0 + timedelta(days=tage)
+    alles_fortschreiben(t0 + timedelta(days=14, minutes=5))  # der Wächter am Tag 14
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.phase == 'beratung' and antrag.phase_beginn == t0
+    assert entwurf.status == EntwurfsStatus.UNTERSTUETZER  # der Vorschlag steht, die Beratung läuft
+    assert _wechsel_in_die_abstimmung(antrag) == []
+    alles_fortschreiben(t0 + timedelta(days=tage, minutes=5))  # der Wächter nach dem Beratungsende
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    ende = t0 + timedelta(days=tage)
+    assert antrag.phase == 'abstimmung' and antrag.phase_beginn == ende
+    assert antrag.phase_beginn - t0 >= timedelta(days=21)
+    assert entwurf.status == EntwurfsStatus.ANGENOMMEN
+    assert antrag.stimmberechtigung_stichtag == timezone.localdate(ende)
+    (wechsel,) = _wechsel_in_die_abstimmung(antrag)
+    assert wechsel['wirksam_ab'] == ende.isoformat()
+    assert wechsel['entwurfsfassung'] == entwurf.eingereichte_fassung  # abgestimmt wird über den Vorschlag
+
+
+def test_ein_einziger_spaeter_lauf_oeffnet_die_endabstimmung_zum_beratungsende(client, ordnung):  # noqa: F811
+    """GP-003, Stillstand: Auch ein einziger Lauf lange nach beiden Fristen rechnet ab dem Beratungsende."""
+    from verfahren.management.commands.verfahren_fortschreiben import alles_fortschreiben
+
+    antrag, _, er = werkstatt_lage(ordnung)
+    t0 = antrag.phase_beginn
+    einreichen(client, antrag, er)
+    tage = antrag.policy().beratung_tage
+    alles_fortschreiben(t0 + timedelta(days=tage + 2))
+    antrag.refresh_from_db()
+    assert antrag.phase == 'abstimmung' and antrag.phase_beginn == t0 + timedelta(days=tage)
+
+
+def test_eine_fruehe_ueberarbeitungsfrist_oeffnet_die_endabstimmung_erst_zum_beratungsende(client, ordnung):  # noqa: F811
+    """GP-003, zweiter Weg der Schleife: Verstreicht die Überarbeitungsfrist vor dem Beratungsende,
+    wartet die Endabstimmung auf das Beratungsende — und die Frist der Gruppe 1 bleibt verstrichen."""
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    t0 = antrag.phase_beginn
+    entwurf = einreichen(client, antrag, er)
+    tage = antrag.policy().beratung_tage
+    frist = t0 + timedelta(days=10)
+    Entwurf.objects.filter(pk=entwurf.pk).update(
+        status=EntwurfsStatus.IN_ARBEIT, runde=2, review_frist=None, ueberarbeitung_frist=frist
+    )
+    antrag.fortschreiben(t0 + timedelta(days=12))
+    antrag.refresh_from_db()
+    assert antrag.phase == 'beratung'
+    # In der Wartezeit reicht Gruppe 1 nicht mehr ein: Ihre Frist ist um.
+    entwurf.refresh_from_db()
+    assert entwurf.einreichen(t0 + timedelta(days=12)) is False
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+    antrag.fortschreiben(t0 + timedelta(days=tage, hours=1))
+    antrag.refresh_from_db()
+    assert antrag.phase == 'abstimmung' and antrag.phase_beginn == t0 + timedelta(days=tage)

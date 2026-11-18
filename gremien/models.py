@@ -322,6 +322,16 @@ class Entwurf(models.Model):
             and jetzt < self.ueberarbeitung_frist
         )
 
+    def ueberarbeitung_verstrichen(self, jetzt=None) -> bool:
+        """Ob die Überarbeitungsfrist einer Rückgabe-Runde ohne neue Einreichung abgelaufen ist."""
+        jetzt = jetzt or timezone.now()
+        return (
+            self.status == EntwurfsStatus.IN_ARBEIT
+            and self.runde > 1
+            and self.ueberarbeitung_frist is not None
+            and jetzt >= self.ueberarbeitung_frist
+        )
+
     def abstimmung_fruehestens_ab(self):
         """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.
 
@@ -352,6 +362,19 @@ class Entwurf(models.Model):
                     "antrag": self.antrag_id,
                     "runde": self.runde,
                     "phase": self.antrag.phase,
+                }
+            )
+            return False
+        if self.ueberarbeitung_verstrichen(jetzt):
+            # Die Frist der Gruppe 1 bleibt eine Frist, auch wenn die Endabstimmung noch auf das
+            # Beratungsende wartet (GP-003): Zur Abstimmung geht die zuletzt vorgelegte Fassung.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "vorschlag_einreichung_verworfen",
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "phase": self.antrag.phase,
+                    "grund": "ueberarbeitungsfrist_verstrichen",
                 }
             )
             return False
@@ -558,6 +581,18 @@ class Entwurf(models.Model):
             }
         )
 
+    def _endabstimmung_fruehestens(self, antrag: Antrag, frist, jetzt):
+        """Der Zeitpunkt, zu dem die Schleife die Endabstimmung öffnet: ihre eigene Frist, aber
+        nie vor dem Ende der Beratung nach der eingefrorenen Ordnung.
+
+        § 5 Abs 3 lit c gibt der Beratung mindestens 21 Tage, und die Dauer steht mit der Ordnung
+        am Antrag fest (§ 5 Abs 5). Reichte der Expertenrat früh ein, öffnete die Schleife die
+        Endabstimmung bisher schon mit dem Ende der Unterstützerfrist — Tage vor dem Beratungsende
+        (Gesamtprüfung GP-003). Die Auswertung bleibt die zum Fristende; nur der Übergang wartet."""
+        from plattform_core.phases import beratung_frist_ende
+
+        return max(frist, beratung_frist_ende(antrag.wirksamer_phase_beginn(jetzt), antrag.policy()))
+
     def fortschreiben(self, antrag: Antrag, jetzt=None) -> bool:
         """Fristen der Schleife auswerten (idempotent, ohne Blockademacht):
 
@@ -693,6 +728,11 @@ class Entwurf(models.Model):
                 )
                 antrag.chat_archivieren(wirksam)  # die Runde ist vorbei — ihre Beiträge ins Archiv (FB-G5)
                 return True
+            # Der Vorschlag steht (Auswertung zum Fristende) — geöffnet wird frühestens zum
+            # Beratungsende; bis dahin bleibt der Antrag in der Beratung (GP-003).
+            wirksam = self._endabstimmung_fruehestens(antrag, wirksam, jetzt)
+            if jetzt < wirksam:
+                return False
             self._endabstimmung_oeffnen(
                 antrag,
                 f"Vorschlag des Expertenrats angenommen ({rechnung}, Runde {self.runde}, § 5 Abs 12).",
@@ -706,11 +746,16 @@ class Entwurf(models.Model):
             and self.ueberarbeitung_frist is not None
             and jetzt >= self.ueberarbeitung_frist
         ):
+            # Wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33) — aber nie vor dem
+            # Beratungsende der eingefrorenen Ordnung (GP-003).
+            wirksam = self._endabstimmung_fruehestens(antrag, self.ueberarbeitung_frist, jetzt)
+            if jetzt < wirksam:
+                return False
             self._endabstimmung_oeffnen(
                 antrag,
                 "Überarbeitungsfrist verstrichen — die zuletzt vorgelegte Fassung geht zur "
                 "Endabstimmung (§ 5 Abs 12: Untätigkeit hemmt nie).",
-                self.ueberarbeitung_frist,  # wirksam ab Fristablauf, nicht ab Seitenaufruf (Befund #33)
+                wirksam,
             )
             return True
         return False
@@ -2142,6 +2187,9 @@ def einreichung_wirkung(beschluss, jetzt=None) -> None:
 
     if entwurf.antrag.phase != Phase.BERATUNG.value:
         _vermerken(beschluss, "Nicht eingereicht: Der Antrag war nicht mehr in der Beratung.")
+        return
+    if entwurf.ueberarbeitung_verstrichen(jetzt):
+        _vermerken(beschluss, "Nicht eingereicht: Die Überarbeitungsfrist war verstrichen.")
         return
     entwurf.einreichen(jetzt)
     _vermerken(beschluss, f"Eingereicht (Runde {entwurf.runde}).")

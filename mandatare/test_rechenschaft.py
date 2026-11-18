@@ -312,3 +312,21 @@ def test_wahlvorschlag_nur_fuer_beendete_kandidaturen(client, ordnung):  # noqa:
     sache.save(update_fields=["phase"])
     assert client.get(reverse("mandatare:wahlvorschlag", args=[sache.pk])).status_code == 404
     assert client.get(reverse("mandatare:wahlvorschlag", args=[9999])).status_code == 404
+
+
+def test_auszug_auf_der_mandatsseite_kennzeichnet_den_nachtrag_der_verwaltung(client):
+    """GP-121 (MG-13): Der Auszug zeigt einen Nachtrag der Verwaltung wie das Register — mit Kennzeichen,
+    Quelle und freiwilliger Begründung, nicht wie eine eigene Rechenschaft."""
+    from mandatare.models import FreiwilligeBegruendung
+
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), vertretung_beendet_am=timezone.localdate() - timedelta(days=20))
+    eintrag = eintragen(
+        mandat, sitzung_am=timezone.localdate() - timedelta(days=5), begruendung="",
+        nachgetragen_am=timezone.now(), quelle="https://gemeinde.example.org/protokoll",
+    )
+    FreiwilligeBegruendung.objects.create(rechenschaft=eintrag, text="Ich habe so gestimmt, weil die Kosten stiegen.")
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    auszug = html.split('id="rechenschaft"')[1].split('id="vertrauen"')[0]
+    assert "nachgetragen von der Verwaltung am" in auszug
+    assert "gemeinde.example.org/protokoll" in auszug
+    assert "Ich habe so gestimmt, weil die Kosten stiegen." in auszug

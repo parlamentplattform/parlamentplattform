@@ -651,3 +651,18 @@ def test_abschluss_einer_bankkopplung_wird_auditiert(client, monkeypatch):
     client.get(reverse('mitglieder:bank_rueckkehr'))
     eintrag = AuditEintrag.objects.filter(ereignis__aktion='bank_gekoppelt').get().ereignis
     assert eintrag['typ'] == 'verwaltung' and 'requisition' not in json.dumps(eintrag)
+
+
+# --- Einstiege in Parameter- und Quellenverwaltung (GP-105, GP-086) -----------
+
+
+def test_verwaltung_verweist_auf_parameter_und_quellenverwaltung(client):
+    admin = admin_anlegen()
+    client.force_login(admin)
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("parameter:verwaltung")}"' in html
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' in html
+    admin.identitaetsstufe = "ungeprueft"
+    admin.save(update_fields=["identitaetsstufe"])
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' not in html  # nur für Berechtigte

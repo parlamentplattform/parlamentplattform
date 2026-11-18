@@ -131,6 +131,9 @@ class StammdatenFormular(WohnsitzFormularMixin, forms.Form):
 
 @nur_admins
 def liste(request):
+    # faktenbasis hängt an der Verwaltung, nicht umgekehrt
+    from faktenbasis.verwaltung import darf_aktualisieren
+
     Adresswechsel.faellige_anwenden()
     mitglieder = Mitglied.parteikonten.order_by("-date_joined")
     suche = request.GET.get("q", "").strip()
@@ -164,6 +167,7 @@ def liste(request):
             "status": status,
             "zahlen": zahlen,
             "statuswahl": Mitgliedsstatus.choices,
+            "quellenverwaltung": darf_aktualisieren(request.user),  # GP-086: nur, wer sie öffnen darf
         },
     )
 

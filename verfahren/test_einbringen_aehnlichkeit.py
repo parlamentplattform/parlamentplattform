@@ -206,6 +206,30 @@ def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, be
     assert laeufe.count() == BEDEUTUNG_JE_KONTO_UND_STUNDE + 1
 
 
+def test_belegter_steckplatz_verbraucht_kein_stundenkontingent(client, settings, bestehend, monkeypatch):
+    """GP-207 (ZWA-23): Ohne Anbieteraufruf zählt die Drossel nicht — fünf Versuche bei belegtem Zugang
+    lassen den Zähler bei 0, der sechste bei freiem Zugang ruft den Anbieter."""
+    from types import SimpleNamespace
+
+    from ki.models import SteckplatzZugang
+    from mitglieder.models import Drosselzaehler
+
+    monkeypatch.setattr('mitglieder.botschutz.time', SimpleNamespace(time=lambda: 3600 * 480_000 + 1800))
+    settings.DDOE_KI_ANBIETER = 'attrappe'
+    bernd = mitglied_anlegen('bernd')
+    client.force_login(bernd)
+    SteckplatzZugang.objects.update_or_create(name='anbieter', defaults={'belegt': True})
+    for _ in range(5):
+        assert client.post(reverse('verfahren:einbringen'), UMFORMULIERT).status_code == 200
+    zaehler = Drosselzaehler.objects.filter(zweck='bedeutung', kennung=f'konto:{bernd.pk}')
+    assert sum(zaehler.values_list('anzahl', flat=True)) == 0
+    assert not KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT).exists()
+    SteckplatzZugang.objects.filter(name='anbieter').update(belegt=False)
+    antwort = client.post(reverse('verfahren:einbringen'), UMFORMULIERT)
+    assert antwort.context['aehnliche'][0]['bedeutung_prozent'] is not None
+    assert KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT).count() == 1
+
+
 def test_zeitgrenze_und_drossel_kommen_aus_dem_register(client, settings, bestehend, monkeypatch):
     """Entscheidung des Gründers 29.9.2026: Zeitgrenze und Drossel der Bedeutungsstufe sind Registerwerte."""
     from types import SimpleNamespace
@@ -254,6 +278,58 @@ def test_mandats_kandidaturen_bleiben_ohne_pruefung_und_ohne_auftrag(client, set
     assert not KIAuftrag.objects.exists() and not KILauf.objects.exists()
 
 
+def test_personenantraege_gehen_nie_an_den_anbieter(client, settings, monkeypatch, ordnung):  # noqa: F811
+    """GP-023 (ZWA-07): Über Personen rechnet keine Maschine (FB-F4, ADR-011). Titel und Wortlaut offener
+    Vertrauensfragen und Kandidaturen gehen im Bedeutungsvergleich nicht an den Anbieter, landen nicht im
+    Lauf-Archiv und bekommen keinen Vektor; vorhandene Vektoren werden nicht gelesen. Der Wortvergleich
+    (ohne Modell) bleibt."""
+    from verfahren.models import Antragsart
+
+    settings.DDOE_KI_ANBIETER = 'attrappe'
+    gesendet = []
+    echt = AttrappenAnbieter.einbetten
+
+    def horchen(self, texte, zeitgrenze=None):
+        gesendet.extend(texte)
+        return echt(self, texte, zeitgrenze=zeitgrenze)
+
+    monkeypatch.setattr(AttrappenAnbieter, 'einbetten', horchen)
+    import verfahren.aehnlichkeit as aehnlichkeit_modul
+
+    verglichen = []
+    echter_kosinus = aehnlichkeit_modul.kosinus
+
+    def kosinus_horchen(a, b):
+        verglichen.append(list(b))
+        return echter_kosinus(a, b)
+
+    monkeypatch.setattr(aehnlichkeit_modul, 'kosinus', kosinus_horchen)
+    m = mitglied_anlegen('autorin')
+    vf = antrag_einbringen(m, UMFORMULIERT['titel'] + ' Musterfrau', UMFORMULIERT['wortlaut'] + ' Versagung des Vertrauens.', '', ordnung)
+    kandidatur = antrag_einbringen(m, 'Kandidatur Listenreihung Gemeinderat', 'Listenreihung Gemeinderat Polsenz. ' + UMFORMULIERT['wortlaut'], '', ordnung)
+    Antrag.objects.filter(pk=vf.pk).update(art=Antragsart.VERTRAUENSFRAGE)
+    Antrag.objects.filter(pk=kandidatur.pk).update(art=Antragsart.MANDAT)
+    # ein früher gespeicherter Vektor zu einer Kandidatur wird nicht mehr gelesen
+    AntragsEinbettung.objects.create(antrag=kandidatur, fassung_nummer=1, modell='attrappe-einbettung-1', vektor=[1.0, 0.0])
+    sache = antrag_einbringen(m, ANTRAG['titel'], ANTRAG['wortlaut'], '', ordnung)
+    client.force_login(mitglied_anlegen('bernd'))
+    antwort = client.post(reverse('verfahren:einbringen'), UMFORMULIERT)
+    assert antwort.status_code == 200
+    alles = '\n'.join(gesendet) + '\n'.join(KILauf.objects.values_list('eingabe', flat=True))
+    for verboten in ('Musterfrau', 'Versagung des Vertrauens', 'Listenreihung'):
+        assert verboten not in alles
+    assert not AntragsEinbettung.objects.filter(antrag=vf).exists()
+    assert AntragsEinbettung.objects.filter(antrag=sache).exists()  # der Sachantrag bekommt seinen Vektor
+    # der gespeicherte Vektor der Kandidatur geht in keinen Kosinus ein; der Sachantrag wird verglichen
+    assert verglichen and [1.0, 0.0] not in verglichen
+    treffer ={t['antrag'].pk: t for t in antwort.context['aehnliche']}
+    assert kandidatur.pk not in treffer or treffer[kandidatur.pk]['bedeutung_prozent'] is None
+    assert vf.pk not in treffer or treffer[vf.pk]['bedeutung_prozent'] is None
+    # der Wortvergleich bleibt: ohne Anbieter findet er die Vertrauensfrage weiterhin
+    wort = aehnliche_antraege(UMFORMULIERT['titel'], UMFORMULIERT['wortlaut'], m, bedeutung=False)
+    assert vf.pk in {t['antrag'].pk for t in wort.treffer}
+
+
 # --- Erbschaft: Treffer bringen ihre Rechtsbezug-Normen mit --------------------------------------
 
 
@@ -281,3 +357,14 @@ def test_treffer_ohne_normen_zeigen_keine_klappe(client, bestehend):
     client.force_login(mitglied_anlegen("bernd"))
     inhalt = client.post(reverse("verfahren:einbringen"), UMFORMULIERT).content.decode()
     assert "laut Zukunftswerkstatt" not in inhalt
+
+
+def test_karte_nennt_ihre_reihung_und_verlinkt_die_regel(client, bestehend):
+    """GP-206 (ZWB-03): Die Karte sagt, wie sie reiht, und das Regelverzeichnis ist ein Link auf den
+    vorhandenen Anker der Ähnlichkeitsregel."""
+    client.force_login(mitglied_anlegen('bernd'))
+    inhalt = client.post(reverse('verfahren:einbringen'), UMFORMULIERT).content.decode()
+    ziel = reverse('parameter:regeln') + '#regel-similarity'
+    assert f'href="{ziel}"' in inhalt
+    assert 'gereiht nach dem höheren der beiden Werte' in inhalt
+    assert 'id="regel-similarity"' in client.get(reverse('parameter:regeln')).content.decode()

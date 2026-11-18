@@ -60,7 +60,7 @@
         <button type="submit" name="textvergleich" value="{{ gegenueberstellung_token }}" form="einbringen-form" class="btn-linie">{% translate "Diese Texte jetzt gegenüberstellen lassen" %}</button>
       </details>
     {% endif %}
-    <p class="erk">{% translate "Wortvergleich: ohne Modell, nachrechenbar (Regelverzeichnis)." %}
+    <p class="erk">{% url 'parameter:regeln' as regeln_url %}{% blocktranslate with regel=regeln_url|add:"#regel-similarity" %}Wortvergleich: ohne Modell, nachrechenbar (<a href="{{ regel }}">Regelverzeichnis</a>). Ähnliche Anträge sind gereiht nach dem höheren der beiden Werte, bei Gleichstand der ältere zuerst.{% endblocktranslate %}
       {% if vorschau %}{% translate "Die Vorschau bleibt lokal. Der Bedeutungsvergleich folgt erst beim Absenden." %}
       {% elif pruefung.bedeutung_aktiv %}{% blocktranslate with modell=pruefung.bedeutungsmodell %}Bedeutung: Textvektoren des Anbieters ({{ modell }}) — Vorschlag, keine Hürde.{% endblocktranslate %}
       {% elif pruefung.gedrosselt %}{% translate "Bedeutungsvergleich diesmal nicht gerechnet — Ihr Konto hat die Obergrenze der Anbieteraufrufe je Stunde erreicht." %}

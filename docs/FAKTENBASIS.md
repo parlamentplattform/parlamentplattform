@@ -230,9 +230,9 @@ sind wie bei den anderen Fakten-Schnappschüssen gesperrt.
 Der JSON-Nachweis enthält Werte, Einheit, Datenjahr, Herkunft, Originalhash und Parserfassung.
 Das vollständige PDF wird nicht öffentlich gespiegelt; die Quelle bleibt beim Herausgeber.
 Bestandszahlen belegen weder freie Kapazität noch einen erforderlichen Stellenauf- oder -abbau.
-Diese Aggregatwerte werden noch nicht automatisch in Modellaufträge eingespeist. Eine solche
-Integration für neue Aufträge braucht einen eigenen festgehaltenen Kontext; laufende Aufträge
-und frühere Einschätzungen bleiben unverändert.
+Neue Rechtsfolgenaufträge der Zukunftswerkstatt halten Aggregat und Ressorttabelle als
+Personal-Bestandsrahmen in ihrem eigenen festgehaltenen Kontext fest (`ki/folgenkontext.py`,
+`faktenbasis/personalrahmen.py`); laufende Aufträge und frühere Einschätzungen bleiben unverändert.
 
 ## Landesrechts-Metadaten gezielt übernehmen
 

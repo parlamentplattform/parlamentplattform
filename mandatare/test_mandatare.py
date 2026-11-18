@@ -269,3 +269,19 @@ def test_meldungen_und_beschriftungen_der_mandatare_views_sind_uebersetzbar():
     assert re.findall(r'label="', quelle) == []
     assert re.findall(r'help_text="', quelle) == []
     assert re.findall(r'ValidationError\(\s*f?"', quelle) == []
+
+
+def test_ein_beendetes_mandat_wird_nicht_ein_zweites_mal_beendet(client):
+    """GP-113 (MV-09): Die Wiederholung verschiebt weder das Ende noch öffnet sie die Nachfrist neu."""
+    from django.contrib.messages import get_messages
+
+    from verfahren.models import AuditEintrag
+
+    ende = timezone.localdate() - timedelta(days=20)
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), beendet=ende)
+    client.force_login(admin_anlegen())
+    vorher = AuditEintrag.objects.count()
+    antwort = client.post(reverse("mandatare:verwaltung_aktion"), {"aktion": "beenden", "mandat": mandat.pk})
+    mandat.refresh_from_db()
+    assert mandat.beendet == ende and AuditEintrag.objects.count() == vorher
+    assert "bereits beendet" in " ".join(str(m) for m in get_messages(antwort.wsgi_request))

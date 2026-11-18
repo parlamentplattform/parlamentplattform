@@ -1875,6 +1875,14 @@ def verwaltung_aktion(request):
 
     elif aktion == "beenden":
         mandat = _mandat_der_verwaltung(request)
+        if mandat.beendet is not None:
+            # Eine Wiederholung verschöbe das dokumentierte Ende und öffnete die Nachfrist neu (GP-113)
+            messages.info(
+                request,
+                _("Mandat „%(bezeichnung)s“ ist bereits beendet (seit %(datum)s).")
+                % {"bezeichnung": mandat.bezeichnung, "datum": mandat.beendet.strftime("%d.%m.%Y")},
+            )
+            return redirect("mandatare:verwaltung")
         mandat.beendet = timezone.localdate()
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})

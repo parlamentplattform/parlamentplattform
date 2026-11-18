@@ -141,7 +141,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
 
 {% if not einschaetzung.lauf %}
 <div class="karte leerkarte">
-  <p class="leer">{% if not einschaetzung.anbieter_da %}{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}{% elif antrag.phase == "unterstuetzung" %}{% translate "Noch keine Einschätzung — sie entsteht mit dem Eintritt in die Beratung." %}{% else %}{% translate "Für diesen Antrag liegt noch keine Einschätzung vor." %}{% endif %}</p>
+  <p class="leer">{% if not einschaetzung.anbieter_da and einschaetzung.rechtsbezug.zustand != "nicht_angeschlossen" %}{% translate "Kein Anbieter angeschlossen — es wird nichts gerechnet." %}{% else %}{% translate "Für diesen Antrag liegt noch keine Einschätzung vor." %}{% endif %}</p>
   <p class="erk">{% translate "Was hier stehen wird:" %}</p>
   <ul class="kommende">
     {% for karte in einschaetzung.kommende_karten %}

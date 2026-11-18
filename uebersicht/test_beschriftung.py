@@ -13,3 +13,10 @@ def test_mitgliederverlauf_nennt_seine_zaehlweise(client):
     inhalt = client.get(reverse("uebersicht:index"), headers={"accept-language": "de"}).content.decode()
     assert "Mitglieder im Zeitverlauf" not in inhalt
     assert "Heutige Mitglieder nach Beitrittsdatum" in inhalt
+
+
+def test_besuche_ohne_doppelpunkt_schreibweise(client):
+    """GP-205 (GAST-20): „Besucher:innen“ kam sonst nirgends auf der Plattform vor."""
+    inhalt = client.get(reverse("uebersicht:index"), headers={"accept-language": "de"}).content.decode()
+    assert "Besucher:innen" not in inhalt
+    assert "Besuche heute" in inhalt

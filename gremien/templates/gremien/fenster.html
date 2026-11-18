@@ -171,7 +171,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
   <div class="karte">
     <p class="phasen-titel">{% translate "Interessenbindungen zu diesem Antrag (§ 6 Abs 7)" %}</p>
     {% for i in interessenbindungen %}
-    <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+    <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %} · {{ i.erklaert_am|date:"d.m.Y H:i" }}</span><br>{{ i.text }}</span></div>
     {% endfor %}
   </div>
   {% endif %}

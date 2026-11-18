@@ -787,6 +787,10 @@ def pruefung(request):
                 "beschluss": beschluss,
                 "auswertung": beschluss.auswertung() if beschluss else None,
                 "stimmen": list(beschluss.stimmen.select_related("mitglied")) if beschluss else [],
+                # § 6 Abs 7: Was Gruppe 2 prüfen soll, steht vor ihr — die Erklärungen dieser Runde (GP-002).
+                "interessenbindungen": list(
+                    entwurf.antrag.interessenbindungen.filter(runde=entwurf.runde).select_related("mitglied")
+                ),
                 "meine_stimme": (
                     beschluss.stimmen.filter(mitglied=request.user).first()
                     if beschluss and request.user.is_authenticated
@@ -966,11 +970,12 @@ def beschluss_stimme(request, beschluss_id: int):
                 _("Bitte die Interessenbindungen zu diesem Antrag angeben — „keine“ ist eine Antwort (§ 6 Abs 7)."),
             )
             return redirect(zurueck)
-        Interessenbindung.objects.update_or_create(
-            antrag=beschluss.antrag,
-            mitglied=request.user,
-            runde=beschluss.entwurf.runde if beschluss.entwurf_id else 1,
-            defaults={"text": bindung[:1000], "erklaert_am": timezone.now()},
+        Interessenbindung.erklaeren(
+            beschluss.antrag,
+            request.user,
+            beschluss.entwurf.runde if beschluss.entwurf_id else 1,
+            bindung,
+            beschluss=beschluss,
         )
     haken = [name for schluessel, name in PRUEFPUNKTE if request.POST.get(f"punkt_{schluessel}")]
     if haken:

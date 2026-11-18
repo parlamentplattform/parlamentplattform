@@ -29,7 +29,7 @@ darüber wird abgestimmt (§ 5 Abs 3 lit d).{% endblocktranslate %}</p>
   {% if schleife.interessenbindungen %}
   <p class="phasen-titel" style="margin-top:12px">{% translate "Interessenbindungen der Verfasser zu diesem Antrag (§ 6 Abs 7)" %}</p>
   {% for i in schleife.interessenbindungen %}
-  <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %}</span><br>{{ i.text }}</span></div>
+  <div class="zeile"><span><strong>{{ i.mitglied.anzeigename }}</strong> <span class="meta">· {% blocktranslate with n=i.runde %}Runde {{ n }}{% endblocktranslate %} · {{ i.erklaert_am|date:"d.m.Y H:i" }}</span><br>{{ i.text }}</span></div>
   {% endfor %}
   {% endif %}
   {% if schleife.pruefungen %}

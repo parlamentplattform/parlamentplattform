@@ -18,6 +18,12 @@ bedienbar — ein Formular je Vorschlag.
     <a href="{% url 'verfahren:antrag' z.entwurf.antrag.pk %}"><strong>{{ z.entwurf.antrag.titel }}</strong></a>
     <span class="meta"> · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}</span>
     <p style="white-space:pre-line;margin-top:6px">{{ z.fassung.wortlaut }}</p>
+    {% if z.interessenbindungen %}
+    <p class="phasen-titel">{% translate "Interessenbindungen der Verfasser zu diesem Antrag (§ 6 Abs 7)" %}</p>
+    {% for i in z.interessenbindungen %}
+    <p class="meta"><strong>{{ i.mitglied.anzeigename }}</strong> · {{ i.erklaert_am|date:"d.m.Y H:i" }}<br>{{ i.text }}</p>
+    {% endfor %}
+    {% endif %}
 
     {% if z.austausch_offen %}
     <p class="erk" style="margin-top:6px">{% translate "Ein Austauschantrag liegt beim Koordinationsrat — seine Entscheidung steht aus." %}</p>

@@ -2281,13 +2281,40 @@ class Interessenbindung(models.Model):
     erklaert_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = [("antrag", "mitglied", "runde")]
-        ordering = ["erklaert_am"]
+        # Keine Eindeutigkeit je Person und Runde mehr (GP-002): Eine Erklärung wird angefügt, nie
+        # überschrieben — sonst ließe sich ein erklärter Konflikt nachträglich spurlos tilgen.
+        ordering = ["erklaert_am", "pk"]
         verbose_name = "Interessenbindung"
         verbose_name_plural = "Interessenbindungen"
 
     def __str__(self) -> str:
         return f"Interessenbindung von Mitglied {self.mitglied_id} zu Antrag {self.antrag_id}"
+
+    @classmethod
+    @transaction.atomic
+    def erklaeren(cls, antrag, mitglied, runde: int, text: str, beschluss=None, jetzt=None):
+        """Fügt eine Erklärung an (GP-002) — frühere bleiben stehen, jede mit ihrem Zeitpunkt.
+
+        Wiederholt jemand wortgleich seine jüngste Erklärung zur selben Runde (etwa beim Ändern der
+        Stimme), entsteht keine neue Zeile: Es wurde nichts Neues erklärt. Rückgabe: die neue
+        Erklärung oder None. Der Audit-Eintrag trägt weder Text noch Person."""
+        text = text[:1000]
+        letzte = cls.objects.filter(antrag=antrag, mitglied=mitglied, runde=runde).order_by("erklaert_am", "pk").last()
+        if letzte is not None and letzte.text == text:
+            return None
+        erklaerung = cls.objects.create(
+            antrag=antrag, mitglied=mitglied, runde=runde, text=text, erklaert_am=jetzt or timezone.now()
+        )
+        AuditEintrag.anhaengen(
+            {
+                "typ": "interessenbindung_erklaert",
+                "antrag": antrag.pk,
+                "runde": runde,
+                "beschluss": beschluss.pk if beschluss is not None else None,
+                "nummer": cls.objects.filter(antrag=antrag).count(),
+            }
+        )
+        return erklaerung
 
 
 class WunschVermerk(models.Model):

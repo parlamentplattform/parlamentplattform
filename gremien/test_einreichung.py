@@ -210,3 +210,49 @@ def test_wuensche_der_unterstuetzer_lassen_sich_abhaken(client, ordnung):  # noq
     assert "berücksichtigt in Fassung 1" in seite
     client.post(reverse("gremien:fenster_aktion", args=[antrag.pk]), {"aktion": "wunsch", "kommentar": kritik.pk})
     assert not WunschVermerk.objects.filter(entwurf=entwurf).exists()
+
+
+# --- GP-002: Die Offenlegung wird angefügt, nie überschrieben --------------------------------
+
+
+def test_eine_zweite_erklaerung_ersetzt_die_erste_nicht(client, ordnung):  # noqa: F811
+    """GP-002: `update_or_create` überschrieb die Erklärung spurlos — wer einen Konflikt erklärt hatte,
+    konnte ihn verschwinden lassen. Jetzt wird jede Erklärung angefügt, steht mit Zeitpunkt öffentlich
+    und hinterlässt einen Audit-Eintrag ohne Text und ohne Person."""
+    import json
+
+    from verfahren.models import AuditEintrag
+
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    fenster_oeffnen(client, antrag, er[0])
+    beschluss = zur_einreichung_stellen(client, antrag, er[0])
+    stimmen(client, beschluss, er[0], bindung='Beraterin der Musterbau GmbH')
+    stimmen(client, beschluss, er[0], bindung='keine')
+    stimmen(client, beschluss, er[0], bindung='keine')  # unverändert wiederholt: keine dritte Zeile
+    erklaerungen = list(Interessenbindung.objects.filter(antrag=antrag, mitglied=er[0], runde=1))
+    assert [e.text for e in erklaerungen] == ['Beraterin der Musterbau GmbH', 'keine']
+    client.logout()
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'Beraterin der Musterbau GmbH' in seite
+    assert f'{erklaerungen[0].erklaert_am:%d.%m.%Y}' in seite
+    eintraege = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'interessenbindung_erklaert']
+    assert len(eintraege) == 2 and [e['nummer'] for e in eintraege] == [1, 2]
+    assert all(e['antrag'] == antrag.pk and e['runde'] == 1 and e['beschluss'] == beschluss.pk for e in eintraege)
+    kette = json.dumps(eintraege, ensure_ascii=False)
+    assert 'Musterbau' not in kette and 'mitglied' not in kette
+
+
+def test_die_pruefseite_zeigt_die_erklaerungen_der_runde_vor_dem_stimmformular(client, ordnung):  # noqa: F811
+    """GP-002 (GA-27): Gruppe 2 soll die Interessenbindungen prüfen — ihre Seite zeigte sie nicht."""
+    antrag, _, er = werkstatt_lage(ordnung, raete=2)
+    fenster_oeffnen(client, antrag, er[0])
+    client.post(reverse('gremien:fenster_aktion', args=[antrag.pk]), {'aktion': 'vollzugsbezug', 'vollzugsbezug': 'ja'})
+    beschluss = zur_einreichung_stellen(client, antrag, er[0])
+    stimmen(client, beschluss, er[0], bindung='Beraterin der Musterbau GmbH')
+    stimmen(client, beschluss, er[1])
+    pruefer = mitglied_anlegen('pruefer')
+    rolle_geben(pruefer, Gremium.EXPERTENRAT_2)
+    client.force_login(pruefer)
+    seite = client.get(reverse('gremien:pruefung')).content.decode()
+    assert 'Beraterin der Musterbau GmbH' in seite
+    assert seite.index('Beraterin der Musterbau GmbH') < seite.index('name="begruendung"')

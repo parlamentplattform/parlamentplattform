@@ -3374,9 +3374,6 @@ msgstr "The post you wanted to reply to is no longer in the running chat."
 msgid "Bitte einen Text eingeben."
 msgstr "Please enter some text."
 
-msgid "Ändern ist nur in den ersten fünf Minuten möglich."
-msgstr "Editing is only possible in the first five minutes."
-
 msgid "Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen."
 msgstr "Only your own posts in the running chat can be withdrawn."
 
@@ -6013,9 +6010,6 @@ msgstr[1] "Your %(n)s open mandates are recorded as ended as of today."
 
 msgid "Ihre Anträge, Unterstützungen, Beiträge im Chat, Reaktionen und Bewerbungen — unter Ihrem bisherigen Anzeigenamen. Traten Sie unter Klarnamen oder als „Mitglied n“ auf, steht dort künftig „Ehemaliges Mitglied“ mit Ihrer Mitgliedsnummer."
 msgstr "Your motions, endorsements, chat posts, reactions and candidacies — under your previous display name. If you appeared under your real name or as “Mitglied n”, “Former member” with your member number appears there from now on."
-
-msgid "Ihre Identität ist noch nicht geprüft (§ 4 Abs 2) — Sie lesen hier, schreiben geht nach der Bestätigung."
-msgstr "Your identity has not been verified yet (§ 4 para 2) — you can read here; writing follows confirmation."
 
 msgid "Ihre Mitwirkung ruht — Sie lesen hier, schreiben geht erst wieder mit aktivem Status."
 msgstr "Your participation is paused — you can read here; writing resumes with active status."
@@ -12556,3 +12550,12 @@ msgstr "How many of the four account queries the bank allows per day stay reserv
 
 msgid "ruht — der Vorschlag wurde nicht übernommen"
 msgstr "at rest — the proposal was not adopted"
+
+msgid "Ihre Identität ist noch nicht geprüft (§ 4 Abs 1) — Sie lesen hier, schreiben geht nach der Bestätigung."
+msgstr "Your identity has not been verified yet (§ 4 para 1) — you can read here; writing follows confirmation."
+
+#, python-format
+msgid "Ändern ist nur in der ersten Minute möglich."
+msgid_plural "Ändern ist nur in den ersten %(n)s Minuten möglich."
+msgstr[0] "Editing is only possible in the first minute."
+msgstr[1] "Editing is only possible in the first %(n)s minutes."

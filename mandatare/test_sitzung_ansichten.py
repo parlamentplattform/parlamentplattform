@@ -416,3 +416,27 @@ def test_ein_takt_fuer_stand_und_chat(client, anna):
     sitzung_beginnen(anna, sitzungstag(anna))
     html = client.get(live_url(anna)).content.decode()
     assert html.count("hx-trigger=") == 1 and 'hx-select-oob="#live-faden"' in html
+
+
+@pytest.mark.parametrize("art", ["ungeprueft", "pausiert"])
+def test_chat_ohne_schreibrecht_zeigt_den_hinweis_und_behaelt_den_text(client, anna, art):
+    """GP-122 (MG-15): Wer nicht mitwirken darf, sieht statt des Formulars den Hinweis mit dem nächsten
+    Schritt; ein dennoch gesendeter Text kommt auf der Live-Seite zurück."""
+    from mitglieder.models import Mitgliedsstatus
+
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    if art == "ungeprueft":
+        m = mitglied_anlegen("emil", stufe=Identitaetsstufe.UNGEPRUEFT)
+        hinweis = "Identität noch ungeprüft"
+    else:
+        m = mitglied_anlegen("emil")
+        m.status = Mitgliedsstatus.PAUSIERT
+        m.save(update_fields=["status"])
+        hinweis = "Mitwirkung ruht"
+    client.force_login(m)
+    html = client.get(live_url(anna, sitzung, schreiben=1)).content.decode()
+    assert 'id="chat-eingabe"' not in html and hinweis in html
+    antwort = client.post(reverse("mandatare:live_beitrag", args=[anna.pk, sitzung.pk]), {"text": "Mein langer Text zur Sitzung"})
+    html = antwort.content.decode()
+    assert antwort.status_code == 403 and "Mein langer Text zur Sitzung" in html and 'id="live-chat"' in html
+    assert not Kommentar.objects.filter(sitzung=sitzung).exists()

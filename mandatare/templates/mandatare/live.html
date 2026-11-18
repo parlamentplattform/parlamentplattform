@@ -73,7 +73,11 @@ Stand (#live-stand) — nicht, während ein Formular darin offen ist; ohne JavaS
 
 <section class="karte" id="live-chat" aria-labelledby="h-chat">
   <p class="phasen-titel" id="h-chat">{% translate "Chat zur Sitzung" %}</p>
-  {% if chat_offen and user.is_authenticated %}
+  {% if chat_offen and chat_sperre %}
+  {% if fehler %}<p class="meldung error" role="alert">{{ fehler }}</p>{% endif %}
+  <p class="meta">{{ chat_sperre.kurz }}{% if chat_sperre.link %} · <a href="{{ chat_sperre.link }}">{{ chat_sperre.link_text }}</a>{% endif %}</p>
+  {% if entwurf.text %}<label for="chat-entwurf">{% translate "Ihr Text" %}</label><textarea id="chat-entwurf" rows="3" readonly>{{ entwurf.text }}</textarea>{% endif %}
+  {% elif chat_offen and user.is_authenticated %}
   <p class="live-schreiben-link{% if schreiben %} versteckt{% endif %}"><a href="{% url 'mandatare:live' mandat.pk %}?sitzung={{ sitzung.pk }}&amp;schreiben=1#chat-eingabe">{% translate "Beitrag schreiben" %}</a></p>
   <form method="post" action="{% url 'mandatare:live_beitrag' mandat.pk sitzung.pk %}" class="kr-form live-schreiben{% if schreiben %} offen{% endif %}" id="chat-eingabe">{% csrf_token %}
     {% if fehler %}<p class="meldung error" role="alert">{{ fehler }}</p>{% endif %}

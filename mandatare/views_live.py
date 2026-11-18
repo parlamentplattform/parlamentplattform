@@ -143,6 +143,19 @@ def _sitzungen_fortschreiben(qs) -> None:
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────
 
 
+def _chat_sperre(nutzer) -> dict | None:
+    """Warum ein angemeldetes Mitglied im Chat nicht schreiben darf — Zustand und nächster Schritt wie in
+    der Kachel des Parlaments (Befund B2); None, wenn es darf (GP-122)."""
+    from verfahren.hinweise import HINWEISE, kachel_sperre, mitwirkungssperre
+
+    if nutzer is None or not nutzer.is_authenticated:
+        return None
+    sperre = kachel_sperre(mitwirkungssperre(nutzer))
+    if sperre is not None:
+        sperre["text"] = str(HINWEISE[sperre["code"]]["text"])
+    return sperre
+
+
 def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str = "", entwurf: dict | None = None):
     from verfahren.chat import sitzung_faden, sitzung_gelesen_merken
 
@@ -170,6 +183,7 @@ def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str 
             "ticker": ticker(sitzung),
             "faden": faden,
             "chat_offen": laeuft,
+            "chat_sperre": _chat_sperre(request.user) if laeuft else None,
             "ist_mandatar": ist_mandatar,
             "darf_beantworten": ist_mandatar and darf_live_melden(mandat),
             "antwort_auf": _antwort_vorgabe(sitzung, request.GET.get("antwort_auf") or (entwurf or {}).get("antwort_auf")),
@@ -262,13 +276,15 @@ def live_beitrag(request, pk: int, sitzung_pk: int):
     """Einen Beitrag in den Chat der Sitzung schreiben — Mitglieder mit Mitwirkungsrecht, solange die
     Sitzung läuft (E1). Bei einem Fehler kommt die Seite mit Meldung und Entwurf zurück, nichts geht verloren."""
     from verfahren.chat import ChatGesperrt, sitzung_beitrag_schreiben
-    from verfahren.views_aktionen import _mitwirkung_gesperrt
 
     mandat, sitzung = _sitzung_des_mandats(pk, sitzung_pk)
-    gesperrt = _mitwirkung_gesperrt(request)
-    if gesperrt is not None:
-        return gesperrt
     entwurf = {"text": (request.POST.get("text") or "")[:4000], "antwort_auf": request.POST.get("antwort_auf") or ""}
+    sperre = _chat_sperre(request.user)
+    if sperre is not None:
+        # Ohne Mitwirkungsrecht: die Live-Seite mit dem Hinweis und dem Text, nicht eine 403-Seite ohne ihn (GP-122)
+        return render(
+            request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, sperre["text"], entwurf), status=403
+        )
     antwort_auf = None
     if entwurf["antwort_auf"]:
         antwort_auf = _antwort_vorgabe(sitzung, entwurf["antwort_auf"])

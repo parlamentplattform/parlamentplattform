@@ -609,3 +609,45 @@ def test_eigener_kontoauszug_verbucht_die_eigene_zeile_nicht(client):
     eintrag = AuditEintrag.objects.filter(ereignis__aktion='auszug_abgleich').get().ereignis
     assert eintrag['pruefsumme'] == hashlib.sha256(inhalt).hexdigest()
     assert eintrag['eigene_uebersprungen'] == 1
+
+
+# --- Handlung und Audit-Eintrag stehen in einer Klammer (GP-102, KM-17) -----------------
+
+
+def _audit_kaputt(monkeypatch):
+    def kaputt(*args, **kwargs):
+        raise RuntimeError('Audit nicht schreibbar')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', kaputt)
+
+
+def test_ohne_audit_bleibt_der_status_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV and anna.is_active is True
+
+
+def test_ohne_audit_bleiben_die_stammdaten_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), stammdaten(anna, vorname='Anneliese'))
+    anna.refresh_from_db()
+    assert anna.first_name != 'Anneliese'
+
+
+def test_abschluss_einer_bankkopplung_wird_auditiert(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    kopplung = Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate() + timedelta(days=180))
+    monkeypatch.setattr(bank, 'kopplung_abschliessen', lambda: kopplung)
+    client.force_login(admin_anlegen())
+    client.get(reverse('mitglieder:bank_rueckkehr'))
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='bank_gekoppelt').get().ereignis
+    assert eintrag['typ'] == 'verwaltung' and 'requisition' not in json.dumps(eintrag)

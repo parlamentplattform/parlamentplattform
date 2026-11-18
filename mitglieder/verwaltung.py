@@ -237,8 +237,9 @@ def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) 
     geaendert += mitglied.identitaetsstufe_setzen(d["identitaetsstufe"])
     geaendert += wohnsitz_anwenden(mitglied, form)
     if geaendert:
-        mitglied.save()
-        _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
+        with transaction.atomic():  # GP-102: Änderung und Audit-Eintrag gemeinsam oder gar nicht
+            mitglied.save()
+            _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
         messages.success(request, _("Stammdaten gespeichert."))
         if war_ungeprueft and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
             freischaltung_senden(mitglied)  # FB-K7: gleich durch wen — einmal je Konto
@@ -290,55 +291,57 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
 
-    if aktion == "pausieren":
-        mitglied.save(update_fields=mitglied.status_setzen(Mitgliedsstatus.PAUSIERT, grund))
-        messages.success(
-            request, _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
-        )
-    elif aktion == "ausschliessen":
-        felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
-        mitglied.is_active = False
-        # GP-017: Kein alter Link öffnet das Konto wieder, und Adminrechte enden mit dem Ausschluss.
-        if mitglied.ist_admin:
+    # GP-102: Handlung und Audit-Eintrag gelingen gemeinsam oder gar nicht.
+    with transaction.atomic():
+        if aktion == "pausieren":
+            mitglied.save(update_fields=mitglied.status_setzen(Mitgliedsstatus.PAUSIERT, grund))
+            messages.success(
+                request, _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
+            )
+        elif aktion == "ausschliessen":
+            felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
+            mitglied.is_active = False
+            # GP-017: Kein alter Link öffnet das Konto wieder, und Adminrechte enden mit dem Ausschluss.
+            if mitglied.ist_admin:
+                mitglied.ist_admin = False
+                felder.append("ist_admin")
+            mitglied.save(update_fields=[*felder, "is_active"])
+            EinmalToken.entwerten(mitglied)
+            messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
+        elif aktion == "reaktivieren":
+            felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
+            mitglied.is_active = True
+            felder.append("is_active")
+            if mitglied.beitritt is None:
+                # Unbestätigtes Konto von Hand freigeschaltet: Ohne Beitritt bliebe es für immer
+                # ohne Anwartschaft (§ 4 Abs 4) — der Rettungsweg wäre wirkungslos.
+                mitglied.beitritt = timezone.localdate()
+                felder.append("beitritt")
+            mitglied.save(update_fields=felder)
+            messages.success(request, _("Mitgliedschaft ist wieder aktiv."))
+        elif aktion == "beitrag":
+            mitglied.beitrag_zuletzt_am = timezone.localdate()
+            felder = ["beitrag_zuletzt_am"]
+            if mitglied.status == Mitgliedsstatus.PAUSIERT:
+                felder += mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
+                messages.success(request, _("Beitragseingang vermerkt — die Pause ist damit aufgehoben."))
+            else:
+                messages.success(request, _("Beitragseingang vermerkt."))
+            mitglied.save(update_fields=felder)
+        elif aktion == "admin_geben":
+            mitglied.ist_admin = True
+            mitglied.save(update_fields=["ist_admin"])
+            messages.success(
+                request, _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
+            )
+        elif aktion == "admin_nehmen":
             mitglied.ist_admin = False
-            felder.append("ist_admin")
-        mitglied.save(update_fields=[*felder, "is_active"])
-        EinmalToken.entwerten(mitglied)
-        messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
-    elif aktion == "reaktivieren":
-        felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
-        mitglied.is_active = True
-        felder.append("is_active")
-        if mitglied.beitritt is None:
-            # Unbestätigtes Konto von Hand freigeschaltet: Ohne Beitritt bliebe es für immer
-            # ohne Anwartschaft (§ 4 Abs 4) — der Rettungsweg wäre wirkungslos.
-            mitglied.beitritt = timezone.localdate()
-            felder.append("beitritt")
-        mitglied.save(update_fields=felder)
-        messages.success(request, _("Mitgliedschaft ist wieder aktiv."))
-    elif aktion == "beitrag":
-        mitglied.beitrag_zuletzt_am = timezone.localdate()
-        felder = ["beitrag_zuletzt_am"]
-        if mitglied.status == Mitgliedsstatus.PAUSIERT:
-            felder += mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
-            messages.success(request, _("Beitragseingang vermerkt — die Pause ist damit aufgehoben."))
+            mitglied.save(update_fields=["ist_admin"])
+            messages.success(request, _("Adminrechte entzogen."))
         else:
-            messages.success(request, _("Beitragseingang vermerkt."))
-        mitglied.save(update_fields=felder)
-    elif aktion == "admin_geben":
-        mitglied.ist_admin = True
-        mitglied.save(update_fields=["ist_admin"])
-        messages.success(
-            request, _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
-        )
-    elif aktion == "admin_nehmen":
-        mitglied.ist_admin = False
-        mitglied.save(update_fields=["ist_admin"])
-        messages.success(request, _("Adminrechte entzogen."))
-    else:
-        messages.error(request, _("Unbekannte Aktion."))
-        return
-    _auditieren(request, aktion, mitglied, **({"grund": grund} if grund else {}))
+            messages.error(request, _("Unbekannte Aktion."))
+            return
+        _auditieren(request, aktion, mitglied, **({"grund": grund} if grund else {}))
 
 
 @nur_admins

@@ -293,6 +293,10 @@ def bank_rueckkehr(request):
     except Exception:  # noqa: BLE001
         kopplung = None
     if kopplung:
+        from mitglieder.verwaltung import _auditieren
+
+        # GP-102: Die Kopplung ist eine schreibende Verwaltungshandlung — ohne Konto- oder Bankkennungen im Audit.
+        _auditieren(request, "bank_gekoppelt", request.user, consent_bis=kopplung.consent_bis.isoformat())
         messages.success(
             request,
             _("Bankkonto gekoppelt — Zustimmung gültig bis %s. Der Abgleich läuft ab jetzt automatisch.")

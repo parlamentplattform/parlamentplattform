@@ -39,6 +39,11 @@ IMMER = ("pseudonym", SALZ)
 #: („verwaltung“) und die vorzeitig beendete Rolle, deren Grund die Verwaltung frei schreibt.
 PERSONENGRUENDE = ("verwaltung", "rolle_beendet")
 
+#: Je Art die Anfänge einer Begründung, die Personen nennt: Gibt Gruppe 2 einen Vorschlag zurück, setzt
+#: sich der Grund aus den Stimmen mit dem Anzeigenamen der Prüfenden zusammen (GP-011). Die Rechnung des
+#: Abstimmungs-Chats und der Austausch durch den Koordinationsrat nennen niemanden und bleiben lesbar.
+PERSONENGRUENDE_ANFANG = {"vorschlag_zurueckgegeben": ("Gruppe 2:",)}
+
 #: Je Art weitere Schlüssel: Der gemeldete Beitrag stünde sonst am Pranger, bevor die Verwaltung
 #: über die Meldung entschieden hat.
 JE_ART = {"beitrag_gemeldet": ("beitrag",)}
@@ -70,7 +75,8 @@ def ereignis_oeffentlich(ereignis: dict) -> tuple[dict, bool]:
     for schluessel in (*IMMER, *JE_ART.get(art, ())):
         if oeffentlich.get(schluessel) not in (None, ""):
             oeffentlich[schluessel], geschwaerzt = MASKE, True
-    if art in PERSONENGRUENDE and oeffentlich.get("grund"):
+    grund = oeffentlich.get("grund")
+    if grund and (art in PERSONENGRUENDE or str(grund).startswith(PERSONENGRUENDE_ANFANG.get(art, ()))):
         oeffentlich["grund"], geschwaerzt = MASKE, True
     return oeffentlich, geschwaerzt
 

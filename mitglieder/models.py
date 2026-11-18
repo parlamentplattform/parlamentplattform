@@ -825,17 +825,25 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
     from mitglieder.mail import send_mail
 
-    try:  # Bestätigung ist Höflichkeit, keine Bedingung — Verbuchung steht bereits.
-        send_mail(
-            "Ihr Mitgliedsbeitrag ist eingegangen",
-            "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
-            "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
-            "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
-            settings.DEFAULT_FROM_EMAIL,
-            [mitglied.email],
-        )
-    except OSError:
-        pass
+    empfaenger = mitglied.email
+
+    def bestaetigen():
+        try:  # Bestätigung ist Höflichkeit, keine Bedingung.
+            send_mail(
+                "Ihr Mitgliedsbeitrag ist eingegangen",
+                "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
+                "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
+                "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
+                settings.DEFAULT_FROM_EMAIL,
+                [empfaenger],
+            )
+        except OSError:
+            pass
+
+    # GP-102: Läuft die Verbuchung in einer äußeren Klammer (Auszug-Upload samt Audit), steht sie
+    # hier noch nicht fest. Die Bestätigung geht erst nach dem Festschreiben hinaus; wird die
+    # Klammer zurückgenommen, entfällt sie.
+    transaction.on_commit(bestaetigen)
     if freigeschaltet:
         # Eigener Brief (FB-K7): Prüfung abgeschlossen, Stimmrecht ab wann — einmal je Konto.
         from mitglieder.post import freischaltung_senden

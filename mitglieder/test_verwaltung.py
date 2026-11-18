@@ -732,6 +732,55 @@ def test_ohne_audit_des_auszugs_bleibt_nichts_verbucht(client, monkeypatch):
     assert not AuditEintrag.objects.filter(ereignis__typ='beitrag').exists()
 
 
+def _auszug_mit_beitrag(zahler):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    return {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}
+
+
+def test_ohne_audit_des_auszugs_geht_keine_beitragsbestaetigung_hinaus(
+    client, monkeypatch, django_capture_on_commit_callbacks
+):
+    """Restauflage zu GP-102: Die Mail „Ihr Mitgliedsbeitrag ist eingegangen“ geht erst nach dem
+    Festschreiben hinaus. Scheitert der Audit-Eintrag des Abgleichs, gibt es keine Buchung und keine Mail."""
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with django_capture_on_commit_callbacks(execute=True), pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert Beitragseingang.objects.count() == 0
+    assert [n.subject for n in mail.outbox] == []
+
+
+def test_gelingt_der_abgleich_geht_die_beitragsbestaetigung_nach_dem_festschreiben(
+    client, django_capture_on_commit_callbacks
+):
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    with django_capture_on_commit_callbacks(execute=False) as rueckrufe:
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert mail.outbox == []  # noch nichts verschickt, solange nicht festgeschrieben ist
+    for rueckruf in rueckrufe:
+        rueckruf()
+    assert [n.subject for n in mail.outbox] == ['Ihr Mitgliedsbeitrag ist eingegangen']
+    assert mail.outbox[0].to == [zahler.email]
+
+
 def test_scheitert_das_audit_meldet_die_verwaltung_keinen_erfolg(monkeypatch):
     """Auflage zu GP-102: Die Erfolgsmeldung stand in der Klammer vor dem Audit-Eintrag — nach
     der Rücknahme meldete die nächste Seite trotzdem „ausgeschlossen“."""

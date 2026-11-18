@@ -156,8 +156,19 @@ def export_csv(request):
     )
     schreiber.writeheader()
     for zeile in _zeilen():
-        schreiber.writerow(zeile)
+        schreiber.writerow({k: _zelle(v) for k, v in zeile.items()})
     return antwort
+
+
+#: Zeichen, mit denen eine Tabellenkalkulation eine Zelle als Formel liest (GP-132).
+FORMELZEICHEN = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _zelle(wert):
+    """Eine CSV-Zelle, die keine Formel werden kann: führendes Formelzeichen → Hochkomma davor."""
+    if isinstance(wert, str) and wert.startswith(FORMELZEICHEN):
+        return "'" + wert
+    return wert
 
 
 @nur_admins

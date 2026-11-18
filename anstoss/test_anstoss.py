@@ -190,3 +190,22 @@ def test_seite_speichert_weder_kennung_noch_code_noch_suchbegriff(client, seite,
     assert a.seite == gespeichert
     for geheim in ("geheimekennung123", "abcdef12", "4711", "krankheit", "suche"):
         assert geheim not in a.seite
+
+
+def test_csv_ausfuhr_entschaerft_formeln_json_bleibt_unveraendert(client, django_user_model):
+    """GP-132 (RVA-31, RVB-10): Freitext mit führendem =, +, -, @, Tabulator oder Wagenrücklauf
+    wurde in einer Tabellenkalkulation als Formel ausgewertet."""
+    import csv
+    import io
+
+    texte = ['=HYPERLINK("http://x","y")', "+1+1", "-2+3", "@SUMME(A1)", "\tTab", "\rWagen"]
+    for text in texte:
+        Anstoss.objects.create(text=text, seite="/", vermerk="=1+1")
+    client.force_login(person(django_user_model, "chefin", admin=True))
+    inhalt = client.get(reverse("anstoss:export_csv")).content.decode("utf-8-sig")
+    zeilen = list(csv.reader(io.StringIO(inhalt)))
+    zellen = [zelle for zeile in zeilen[1:] for zelle in zeile]
+    assert zellen and not [z for z in zellen if z[:1] in ("=", "+", "-", "@", "\t", "\r")]
+    assert "'=HYPERLINK" in inhalt
+    daten = client.get(reverse("anstoss:export_json")).json()
+    assert sorted(a["text"] for a in daten["anstoesse"]) == sorted(texte)

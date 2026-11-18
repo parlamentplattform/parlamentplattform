@@ -743,3 +743,23 @@ def test_gp021_zeichenhoechstzahl_unter_eins_kuerzt_nicht(ordnung, wert):  # noq
     anna = mitglied_anlegen('anna')
     beitrag = chatkern.beitrag_schreiben(_antrag(ordnung, anna), anna, 'Vollständig.')
     assert beitrag.text == 'Vollständig.'
+
+
+def test_gp079_passt_alles_wird_sprachneutral_gespeichert_und_beim_anzeigen_uebersetzt(client, ordnung):  # noqa: F811
+    """GP-079 (GAST-07): Der Systembeitrag stand in der Sprache des ersten Abrufs in der Datenbank."""
+    from gremien.test_werkstatt import einreichen, systembeitrag, werkstatt_lage
+
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    client.defaults['HTTP_ACCEPT_LANGUAGE'] = 'en'
+    einreichen(client, antrag, raete)
+    passt = systembeitrag(antrag)
+    assert passt.text == '✓ Passt alles — der Vorschlag kann so zur Endabstimmung.'
+    client.logout()
+    englisch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='en').content.decode()
+    deutsch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='de').content.decode()
+    assert 'Fine as it is' in englisch and 'Passt alles — der Vorschlag' not in englisch
+    assert 'Passt alles — der Vorschlag' in deutsch and 'Fine as it is' not in deutsch
+    # Altbestand: ein auf Englisch gespeicherter Systembeitrag erscheint auf Deutsch über den Katalog
+    Kommentar.objects.filter(pk=passt.pk).update(text='✓ Fine as it is — the proposal can go to the final vote like this.')
+    deutsch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='de').content.decode()
+    assert 'Passt alles — der Vorschlag' in deutsch and 'Fine as it is' not in deutsch

@@ -16,6 +16,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 
 from plattform_core import vorschlagschat
 from verfahren.models import AuditEintrag, Kommentar, Lesestand, Meldung, Reaktion, Reaktionsart
@@ -263,6 +264,8 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
             "eigener": nutzer is not None and k.mitglied_id is not None
             and getattr(nutzer, "pk", None) == k.mitglied_id,
             "meine_meldung": meine_meldungen.get(k.pk),
+            # Der Systembeitrag erscheint in der Sprache der Anzeige — auch wo er in einer anderen gespeichert ist
+            "systemtext": passt_alles_text() if k.system else "",
         }
 
     je_wurzel: dict[int, list[dict]] = {}
@@ -549,9 +552,14 @@ def als_beantwortet_markieren(beitrag, jetzt=None) -> bool:
 # ── Der Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ──────────────────────────
 
 
+#: Der Wortlaut des Systembeitrags als deutsche Quelle: Gespeichert wird immer er, übersetzt wird
+#: beim Anzeigen — sonst stünde er in der Sprache des ersten Abrufs in der Datenbank (GP-079).
+PASST_ALLES = gettext_noop("✓ Passt alles — der Vorschlag kann so zur Endabstimmung.")
+
+
 def passt_alles_text() -> str:
-    """Der Wortlaut des Systembeitrags — hier, damit er an einer Stelle steht."""
-    return str(_("✓ Passt alles — der Vorschlag kann so zur Endabstimmung."))
+    """Der Wortlaut des Systembeitrags in der Sprache der Anzeige — hier, damit er an einer Stelle steht."""
+    return str(_(PASST_ALLES))
 
 
 def passt_alles_anlegen(antrag, entwurf, jetzt=None) -> Kommentar:
@@ -565,7 +573,7 @@ def passt_alles_anlegen(antrag, entwurf, jetzt=None) -> Kommentar:
     if vorhanden is not None:
         return vorhanden
     return Kommentar.objects.create(
-        antrag=antrag, mitglied=None, text=passt_alles_text(), phase=phase, system=True, erstellt_am=jetzt,
+        antrag=antrag, mitglied=None, text=PASST_ALLES, phase=phase, system=True, erstellt_am=jetzt,
     )
 
 

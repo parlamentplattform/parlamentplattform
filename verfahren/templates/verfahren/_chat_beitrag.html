@@ -14,7 +14,7 @@ Erwartet b (aus chat.faden) und antrag.
       <time datetime="{{ b.k.erstellt_am|date:'c' }}" title="{{ b.k.erstellt_am|date:'d.m.Y, H:i' }}">{{ b.k.erstellt_am|zeit_her }}</time>
       {% if b.k.bearbeitet_am %}<span class="erk">· {% translate "bearbeitet" %}</span>{% endif %}
     </div>
-    <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{{ b.k.sichtbarer_text|urlize|linebreaksbr }}</div>
+    <div class="blase-text{% if b.k.geloescht or b.k.ausgeblendet_am %} entfernt{% endif %}">{% if b.k.system %}{{ b.systemtext }}{% else %}{{ b.k.sichtbarer_text|urlize|linebreaksbr }}{% endif %}</div>
     <div class="blase-fuss">
       {% if chat.offen and user.is_authenticated and not b.k.system and not b.k.geloescht and not b.k.ausgeblendet_am %}
       {# Ohne JavaScript ein Link: die Seite belegt das Antwortfeld über ?antwort_auf= vor (Grundregel 3) #}

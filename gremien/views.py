@@ -764,9 +764,10 @@ def rollen_aktion(request):
         if not grund:
             messages.error(request, _("Eine vorzeitige Beendigung braucht einen Grund — er bleibt dokumentiert."))
             return redirect("gremien:rollen")
-        rolle.beendet_grund = grund[:200]
-        rolle.save(update_fields=["beendet_grund"])
-        AuditEintrag.anhaengen({"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund})
+        with transaction.atomic():  # wie berufen und bestätigen: Handlung und Protokoll gemeinsam (GP-038)
+            rolle.beendet_grund = grund[:200]
+            rolle.save(update_fields=["beendet_grund"])
+            AuditEintrag.anhaengen({"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund})
         messages.info(request, _("Rolle beendet — Grund im Audit-Log festgehalten."))
 
     return redirect("gremien:rollen")
@@ -1093,35 +1094,41 @@ def beschluss_stimme(request, beschluss_id: int):
                 _("Bitte die Interessenbindungen zu diesem Antrag angeben — „keine“ ist eine Antwort (§ 6 Abs 7)."),
             )
             return redirect(zurueck)
-        Interessenbindung.erklaeren(
-            beschluss.antrag,
-            request.user,
-            beschluss.entwurf.runde if beschluss.entwurf_id else 1,
-            bindung,
-            beschluss=beschluss,
-        )
+    else:
+        bindung = ""
     haken = [name for schluessel, name in PRUEFPUNKTE if request.POST.get(f"punkt_{schluessel}")]
     if haken:
         # Abgehakte Prüfpunkte gehören in die Begründung, nicht in eine Datenspalte: Sie sind
         # Teil dessen, was das Gremium öffentlich behauptet zu haben (§ 6 Abs 7).
         begruendung = begruendung + "\n\nGeprüft: " + "; ".join(haken) + "."
-    stimme, neu = GremienStimme.objects.update_or_create(
-        beschluss=beschluss,
-        mitglied=request.user,
-        defaults={"option": option, "begruendung": begruendung[:4000]},
-    )
-    if not neu:
-        stimme.geaendert_am = timezone.now()
-        stimme.save(update_fields=["geaendert_am"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienstimme_abgegeben",
-            "gremium": beschluss.gremium,
-            "beschluss": beschluss.pk,
-            "option": option,
-            "geaendert": not neu,
-        }
-    )
+    # Erklärung, Stimme und Protokoll gemeinsam oder gar nicht (GP-038). Die Auswertung danach
+    # bleibt außerhalb: Scheitert eine Wirkung, steht die Stimme, und die Frist schließt den Beschluss.
+    with transaction.atomic():
+        if bindung:
+            Interessenbindung.erklaeren(
+                beschluss.antrag,
+                request.user,
+                beschluss.entwurf.runde if beschluss.entwurf_id else 1,
+                bindung,
+                beschluss=beschluss,
+            )
+        stimme, neu = GremienStimme.objects.update_or_create(
+            beschluss=beschluss,
+            mitglied=request.user,
+            defaults={"option": option, "begruendung": begruendung[:4000]},
+        )
+        if not neu:
+            stimme.geaendert_am = timezone.now()
+            stimme.save(update_fields=["geaendert_am"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienstimme_abgegeben",
+                "gremium": beschluss.gremium,
+                "beschluss": beschluss.pk,
+                "option": option,
+                "geaendert": not neu,
+            }
+        )
     if beschluss.abschliessen():
         beschluss.refresh_from_db()
         if beschluss.ergebnis:
@@ -1178,16 +1185,17 @@ def beschluss_umsetzung(request, beschluss_id: int):
         except ValueError:
             messages.error(request, _("Die Frist braucht ein Datum."))
             return redirect(zurueck)
-    beschluss.save(update_fields=["umsetzungsvermerk", "umsetzung_durch", "umsetzung_frist"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "umsetzungsvermerk",
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-            "zugewiesen": beschluss.umsetzung_durch_id is not None,
-            "frist": beschluss.umsetzung_frist.isoformat() if beschluss.umsetzung_frist else None,
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        beschluss.save(update_fields=["umsetzungsvermerk", "umsetzung_durch", "umsetzung_frist"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "umsetzungsvermerk",
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+                "zugewiesen": beschluss.umsetzung_durch_id is not None,
+                "frist": beschluss.umsetzung_frist.isoformat() if beschluss.umsetzung_frist else None,
+            }
+        )
     messages.success(request, _("Umsetzungsvermerk festgehalten — er steht öffentlich beim Beschluss."))
     return redirect(zurueck)
 
@@ -1471,28 +1479,29 @@ def integritaet_beschluss(request):
         messages.info(request, _("Zu diesem Antrag läuft bereits ein solcher Beschluss."))
         return redirect("gremien:integritaet")
     name = next(n for wert, n, _s in IR_ANLAESSE if wert == anlass)
-    beschluss = GremienBeschluss.objects.create(
-        gremium=Gremium.INTEGRITAETSRAT,
-        anlass=anlass,
-        gegenstand=f"{name}: {antrag.titel}"[:200],
-        beschreibung=begruendung[:4000],
-        optionen=JA_NEIN,
-        frist=frist,
-        antrag=antrag,
-        angelegt_von=request.user,
-    )
-    ereignis = {
-        "typ": "gremienbeschluss_angelegt",
-        "gremium": Gremium.INTEGRITAETSRAT.value,
-        "anlass": anlass,
-        "antrag": antrag.pk,
-        "beschluss": beschluss.pk,
-        "nummer": beschluss.nummer,
-    }
-    if anlass == Anlass.VERTRAUENSFRAGE_SPERRE:
-        # Nachrechenbar bleibt, ob der Rat mit oder ohne Sperrhinweis der Plattform festgestellt hat (D-L6e).
-        ereignis["sperrhinweis"] = bool(antrag.vertrauensfrage.sperrhinweis)
-    AuditEintrag.anhaengen(ereignis)
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        beschluss = GremienBeschluss.objects.create(
+            gremium=Gremium.INTEGRITAETSRAT,
+            anlass=anlass,
+            gegenstand=f"{name}: {antrag.titel}"[:200],
+            beschreibung=begruendung[:4000],
+            optionen=JA_NEIN,
+            frist=frist,
+            antrag=antrag,
+            angelegt_von=request.user,
+        )
+        ereignis = {
+            "typ": "gremienbeschluss_angelegt",
+            "gremium": Gremium.INTEGRITAETSRAT.value,
+            "anlass": anlass,
+            "antrag": antrag.pk,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+        }
+        if anlass == Anlass.VERTRAUENSFRAGE_SPERRE:
+            # Nachrechenbar bleibt, ob der Rat mit oder ohne Sperrhinweis der Plattform festgestellt hat (D-L6e).
+            ereignis["sperrhinweis"] = bool(antrag.vertrauensfrage.sperrhinweis)
+        AuditEintrag.anhaengen(ereignis)
     messages.success(
         request,
         _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer},
@@ -1529,17 +1538,18 @@ def integritaet_schiedsgericht(request, aussetzung_id: int):
     if not aussetzung.laeuft():
         messages.error(request, _("Diese Aussetzung wirkt nicht mehr."))
         return redirect("gremien:integritaet")
-    aussetzung.schiedsgericht_am = timezone.now()
-    aussetzung.schiedsgericht_kennung = kennung[:60]
-    aussetzung.save(update_fields=["schiedsgericht_am", "schiedsgericht_kennung"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "aussetzung_beim_schiedsgericht",
-            "antrag": aussetzung.antrag_id,
-            "aussetzung": aussetzung.pk,
-            "kennung": aussetzung.schiedsgericht_kennung,
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        aussetzung.schiedsgericht_am = timezone.now()
+        aussetzung.schiedsgericht_kennung = kennung[:60]
+        aussetzung.save(update_fields=["schiedsgericht_am", "schiedsgericht_kennung"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "aussetzung_beim_schiedsgericht",
+                "antrag": aussetzung.antrag_id,
+                "aussetzung": aussetzung.pk,
+                "kennung": aussetzung.schiedsgericht_kennung,
+            }
+        )
     messages.success(request, _("Vermerkt — die Aussetzung endet jetzt nicht mehr mit der Frist."))
     return redirect("gremien:integritaet")
 
@@ -1565,33 +1575,34 @@ def integritaet_regelpruefung(request):
         messages.info(request, _("Für dieses Jahr läuft die Prüfung bereits oder ist abgeschlossen."))
         return redirect("gremien:integritaet")
     stand = als_dict()
-    beschluss = GremienBeschluss.objects.create(
-        gremium=Gremium.INTEGRITAETSRAT,
-        anlass=Anlass.REGELPRUEFUNG,
-        gegenstand=f"Jährliche Prüfung der automatisierten Regeln {jahr}",
-        beschreibung=(
-            f"{len(stand)} Regeln geprüft (Verzeichnis Fassung {VERZEICHNIS_VERSION}). "
-            "Der geprüfte Stand ist an diesem Beschluss eingefroren."
-        ),
-        optionen=[
-            {"wert": "geprueft", "name": "geprüft, keine Beanstandung"},
-            {"wert": "beanstandet", "name": "beanstandet"},
-        ],
-        frist=beschluss_frist(),
-        angelegt_von=request.user,
-    )
-    Regelpruefung.objects.create(
-        jahr=jahr, beschluss=beschluss, stand=stand, verzeichnis_fassung=VERZEICHNIS_VERSION
-    )
-    AuditEintrag.anhaengen(
-        {
-            "typ": "regelpruefung_angelegt",
-            "jahr": jahr,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-            "regeln": len(stand),
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        beschluss = GremienBeschluss.objects.create(
+            gremium=Gremium.INTEGRITAETSRAT,
+            anlass=Anlass.REGELPRUEFUNG,
+            gegenstand=f"Jährliche Prüfung der automatisierten Regeln {jahr}",
+            beschreibung=(
+                f"{len(stand)} Regeln geprüft (Verzeichnis Fassung {VERZEICHNIS_VERSION}). "
+                "Der geprüfte Stand ist an diesem Beschluss eingefroren."
+            ),
+            optionen=[
+                {"wert": "geprueft", "name": "geprüft, keine Beanstandung"},
+                {"wert": "beanstandet", "name": "beanstandet"},
+            ],
+            frist=beschluss_frist(),
+            angelegt_von=request.user,
+        )
+        Regelpruefung.objects.create(
+            jahr=jahr, beschluss=beschluss, stand=stand, verzeichnis_fassung=VERZEICHNIS_VERSION
+        )
+        AuditEintrag.anhaengen(
+            {
+                "typ": "regelpruefung_angelegt",
+                "jahr": jahr,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+                "regeln": len(stand),
+            }
+        )
     messages.success(
         request,
         _("Prüfung %(nummer)s angelegt — %(n)s Regeln eingefroren.")
@@ -1757,32 +1768,33 @@ def koordination_beschluss(request):
         if not felder["gegenstand"]:
             messages.error(request, _("Ein Beschluss braucht einen Gegenstand."))
             return redirect("gremien:koordination")
-    beschluss = GremienBeschluss.objects.create(
-        gremium=Gremium.KOORDINATIONSRAT,
-        anlass=anlass,
-        gegenstand=felder["gegenstand"][:200],
-        beschreibung=beschreibung[:4000],
-        optionen=JA_NEIN,
-        frist=frist,
-        antrag=felder["antrag"],
-        angelegt_von=request.user,
-    )
-    if pruefung_ is not None:
-        pruefung_.korat_beschluss = beschluss
-        pruefung_.save(update_fields=["korat_beschluss"])
-    if meldung is not None:
-        meldung.beschluss = beschluss
-        meldung.save(update_fields=["beschluss"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienbeschluss_angelegt",
-            "gremium": Gremium.KOORDINATIONSRAT.value,
-            "anlass": anlass,
-            "antrag": felder["antrag"].pk if felder["antrag"] else None,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        beschluss = GremienBeschluss.objects.create(
+            gremium=Gremium.KOORDINATIONSRAT,
+            anlass=anlass,
+            gegenstand=felder["gegenstand"][:200],
+            beschreibung=beschreibung[:4000],
+            optionen=JA_NEIN,
+            frist=frist,
+            antrag=felder["antrag"],
+            angelegt_von=request.user,
+        )
+        if pruefung_ is not None:
+            pruefung_.korat_beschluss = beschluss
+            pruefung_.save(update_fields=["korat_beschluss"])
+        if meldung is not None:
+            meldung.beschluss = beschluss
+            meldung.save(update_fields=["beschluss"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_angelegt",
+                "gremium": Gremium.KOORDINATIONSRAT.value,
+                "anlass": anlass,
+                "antrag": felder["antrag"].pk if felder["antrag"] else None,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+            }
+        )
     messages.success(request, _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer})
     return redirect("gremien:koordination")
 
@@ -1964,37 +1976,38 @@ def _test_anordnen(request):
     ).exists():
         messages.info(request, _("Auf diesem Parameter läuft schon ein Test oder ist einer geplant."))
         return redirect("gremien:koordination")
-    test = ParameterTest.objects.create(
-        parameter=parameter,
-        testwert=testwert,
-        hypothese=hypothese,
-        messgroesse=messgroesse,
-        ende=ende,
-        rueckweg=rueckweg,
-        angeordnet_von=request.user,
-    )
-    beschluss = GremienBeschluss.objects.create(
-        gremium=Gremium.KOORDINATIONSRAT,
-        anlass=Anlass.PARAMETERTEST,
-        gegenstand=f"Test: {parameter.schluessel} = {testwert} bis {ende:%d.%m.%Y}"[:200],
-        beschreibung=f"Hypothese: {hypothese}\nMessgröße: {messgroesse}\nRückweg: {rueckweg}"[:4000],
-        optionen=JA_NEIN,
-        frist=beschluss_frist(),
-        angelegt_von=request.user,
-    )
-    test.beschluss = beschluss
-    test.save(update_fields=["beschluss"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienbeschluss_angelegt",
-            "gremium": Gremium.KOORDINATIONSRAT.value,
-            "anlass": Anlass.PARAMETERTEST.value,
-            "schluessel": parameter.schluessel,
-            "test": test.pk,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        test = ParameterTest.objects.create(
+            parameter=parameter,
+            testwert=testwert,
+            hypothese=hypothese,
+            messgroesse=messgroesse,
+            ende=ende,
+            rueckweg=rueckweg,
+            angeordnet_von=request.user,
+        )
+        beschluss = GremienBeschluss.objects.create(
+            gremium=Gremium.KOORDINATIONSRAT,
+            anlass=Anlass.PARAMETERTEST,
+            gegenstand=f"Test: {parameter.schluessel} = {testwert} bis {ende:%d.%m.%Y}"[:200],
+            beschreibung=f"Hypothese: {hypothese}\nMessgröße: {messgroesse}\nRückweg: {rueckweg}"[:4000],
+            optionen=JA_NEIN,
+            frist=beschluss_frist(),
+            angelegt_von=request.user,
+        )
+        test.beschluss = beschluss
+        test.save(update_fields=["beschluss"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_angelegt",
+                "gremium": Gremium.KOORDINATIONSRAT.value,
+                "anlass": Anlass.PARAMETERTEST.value,
+                "schluessel": parameter.schluessel,
+                "test": test.pk,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+            }
+        )
     messages.success(request, _("Beschluss %(nummer)s angelegt — der Test beginnt, wenn der Rat zustimmt.") % {"nummer": beschluss.nummer})
     return redirect("gremien:koordination")
 
@@ -2082,24 +2095,25 @@ def rat_beschluss(request, gremium: str):
     if not gegenstand or not beschreibung:
         messages.error(request, _("Gegenstand und Beschreibung sind Pflicht — beides wird veröffentlicht."))
         return redirect(zurueck)
-    beschluss = GremienBeschluss.objects.create(
-        gremium=gremium,
-        anlass=Anlass.INTERN,
-        gegenstand=gegenstand[:200],
-        beschreibung=beschreibung[:4000],
-        optionen=JA_NEIN,
-        frist=beschluss_frist(),
-        angelegt_von=request.user,
-    )
-    AuditEintrag.anhaengen(
-        {
-            "typ": "gremienbeschluss_angelegt",
-            "gremium": gremium,
-            "anlass": Anlass.INTERN.value,
-            "beschluss": beschluss.pk,
-            "nummer": beschluss.nummer,
-        }
-    )
+    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
+        beschluss = GremienBeschluss.objects.create(
+            gremium=gremium,
+            anlass=Anlass.INTERN,
+            gegenstand=gegenstand[:200],
+            beschreibung=beschreibung[:4000],
+            optionen=JA_NEIN,
+            frist=beschluss_frist(),
+            angelegt_von=request.user,
+        )
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_angelegt",
+                "gremium": gremium,
+                "anlass": Anlass.INTERN.value,
+                "beschluss": beschluss.pk,
+                "nummer": beschluss.nummer,
+            }
+        )
     messages.success(request, _("Beschluss %(nummer)s angelegt — jetzt stimmt der Rat ab.") % {"nummer": beschluss.nummer})
     return redirect(zurueck)
 

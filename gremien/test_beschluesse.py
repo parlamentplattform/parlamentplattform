@@ -353,3 +353,64 @@ def test_ein_durch_fristablauf_geschlossener_beschluss_ist_zur_frist_entschieden
     GremienBeschluss.faellige_abschliessen(jetzt)
     b.refresh_from_db()
     assert b.entschieden_am == frist
+
+
+# --- GP-038: Handlung und Audit-Eintrag in einer Transaktion ---------------------------------
+
+
+@pytest.fixture
+def audit_wirft(monkeypatch):
+    """Die Kette nimmt nichts an — wie nach dreimal überholtem Kettenkopf."""
+    from django.db import IntegrityError
+
+    from verfahren.models import AuditEintrag
+
+    def wirft(cls, ereignis):
+        raise IntegrityError('Audit-Kette: Eintrag nicht angehängt.')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', classmethod(wirft))
+
+
+def _ratsmitglied(gremium=Gremium.KOORDINATIONSRAT):
+    mitglied = mitglied_anlegen(f'rat{next(_ZAEHLER)}')
+    rolle_geben(mitglied, gremium)
+    return mitglied
+
+
+@pytest.mark.parametrize(
+    ('route', 'argumente', 'gremium', 'daten'),
+    [
+        ('gremien:rat_beschluss', ['koordinationsrat'], Gremium.KOORDINATIONSRAT, {'gegenstand': 'X', 'beschreibung': 'Y'}),
+        ('gremien:koordination_beschluss', [], Gremium.KOORDINATIONSRAT, {'anlass': 'intern', 'gegenstand': 'X', 'beschreibung': 'Y'}),
+        ('gremien:integritaet_regelpruefung', [], Gremium.INTEGRITAETSRAT, {}),
+    ],
+)
+def test_ohne_audit_eintrag_entsteht_kein_beschluss(client, audit_wirft, route, argumente, gremium, daten):
+    """GP-038: Scheiterte der Audit-Eintrag, blieb der Beschluss trotzdem bestehen — eine Handlung ohne Protokoll."""
+    client.force_login(_ratsmitglied(gremium))
+    client.raise_request_exception = False
+    assert client.post(reverse(route, args=argumente), daten).status_code == 500
+    assert not GremienBeschluss.objects.exists()
+
+
+def test_ohne_audit_eintrag_wird_keine_stimme_gespeichert(client, audit_wirft):
+    rat = _ratsmitglied()
+    beschluss = beschluss_anlegen(frist=timezone.now() + timedelta(days=7))
+    client.force_login(rat)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:beschluss_stimme', args=[beschluss.pk]), {'option': 'dafuer', 'begruendung': 'Weil.'})
+    assert antwort.status_code == 500 and beschluss.stimmen.count() == 0
+
+
+def test_ohne_audit_eintrag_endet_keine_rolle(client, audit_wirft):
+    from gremien.models import Rolle
+
+    admin = mitglied_anlegen('verwaltung')
+    admin.ist_admin = True
+    admin.save()
+    rolle = Rolle.objects.get(mitglied=_ratsmitglied())
+    client.force_login(admin)
+    client.raise_request_exception = False
+    antwort = client.post(reverse('gremien:rollen_aktion'), {'aktion': 'beenden', 'rolle': rolle.pk, 'grund': 'Rücktritt'})
+    rolle.refresh_from_db()
+    assert antwort.status_code == 500 and rolle.beendet_grund == '' and rolle.aktiv

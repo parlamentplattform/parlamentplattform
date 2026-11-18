@@ -79,6 +79,7 @@ def parameter_detail(request, schluessel: str):
 
     from gremien.models import parametertests_fortschreiben
 
+    erstbestand_sicherstellen()  # GP-197: auch als erste Anfrage einer frischen Instanz
     parametertests_fortschreiben()
     p = get_object_or_404(Parameter, schluessel=schluessel)
     tests = [

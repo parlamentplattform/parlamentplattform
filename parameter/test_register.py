@@ -596,3 +596,10 @@ def test_schema_dokument_beschreibt_den_teststatus():
     for feld in eintrag:
         assert f'"{feld}"' in abschnitt or f"`{feld}`" in abschnitt, feld
     assert "`wert_vor_test`" in abschnitt and "`im_test`" in abschnitt
+
+
+def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):
+    """GP-197 (RVA-18): Auf frischer Instanz lieferte jede Parameterseite 404, bis jemand das
+    Register öffnete."""
+    assert not Parameter.objects.exists()
+    assert client.get(reverse("parameter:parameter", args=["kritik-mindestzeichen"])).status_code == 200

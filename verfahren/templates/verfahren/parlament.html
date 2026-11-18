@@ -145,7 +145,7 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
           </div>
           <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>
           {% else %}
-          <div class="spur leer"><p class="leer leer-zeile">{% if zeile.wohnsitz_waehlen and profil_url %}<a href="{{ profil_url }}#wohnsitz">{% translate "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis." %}</a>{% else %}{% if zeile.ebene == "gemeinde" %}{% translate "Noch nichts in Ihrer Gemeinde." %}{% elif zeile.ebene == "bezirk" %}{% translate "Noch nichts in Ihrem Bezirk." %}{% else %}{% translate "Noch nichts in Ihrem Land." %}{% endif %}
+          <div class="spur leer"><p class="leer leer-zeile">{% if zeile.wohnsitz_waehlen and profil_url %}<a href="{{ profil_url }}#wohnsitz">{% translate "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis." %}</a>{% elif zeile.bezirk_waehlen and profil_url %}<a href="{{ profil_url }}#wohnsitz">{% translate "Gemeindebezirk wählen ›" %}</a>{% else %}{% if zeile.ebene == "gemeinde" %}{% translate "Noch nichts in Ihrer Gemeinde." %}{% elif zeile.ebene == "bezirk" %}{% translate "Noch nichts in Ihrem Bezirk." %}{% else %}{% translate "Noch nichts in Ihrem Land." %}{% endif %}
             <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a>{% endif %}</p></div>
           {% endif %}
         </div>

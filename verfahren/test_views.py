@@ -511,3 +511,26 @@ def test_gp056_sperrseite_nennt_grund_und_naechsten_schritt(client, ordnung):  #
     assert reverse('verfahren:parlament') + '?fokus=region' in seite
     antragsseite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
     assert reverse('verfahren:parlament') + '?fokus=region' in antragsseite
+
+
+def test_gp058_wiener_konto_ohne_bezirk_wird_zum_gemeindebezirk_gefuehrt(client, ordnung):  # noqa: F811
+    """GP-058 (OW-07): Wiener Konten ohne Bezirksangabe sahen „Noch nichts in Ihrem Bezirk“, obwohl
+    Bezirksverfahren liefen — ohne Hinweis, dass der Gemeindebezirk fehlt."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    wien = Gemeinde.objects.create(kennziffer='90001', name='Wien', bezirk='Wien', bundesland='wien')
+    autor = mitglied_anlegen('autorin', tage=800, gemeinde='Wien', bundesland='wien')
+    ohne = mitglied_anlegen('ohnebezirk', tage=800, gemeinde='Wien', bundesland='wien')
+    for konto in (autor, ohne):
+        konto.wohnsitz, konto.wohnsitz_art = wien, Wohnsitzart.OESTERREICH
+        konto.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    autor.wiener_bezirk = '922'
+    autor.save(update_fields=['wiener_bezirk'])
+    antrag = antrag_einbringen(autor, **ANTRAG, ordnung=ordnung, ebene='bezirk', neuer_teilnehmerkreis=True)
+    client.force_login(ohne)
+    ziel = reverse('mitglieder:profil') + '#wohnsitz'
+    region = _region(client)
+    assert 'Noch nichts in Ihrem Bezirk' not in region
+    assert f'<a href="{ziel}">Gemeindebezirk wählen' in region
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert f'<a href="{ziel}">Gemeindebezirk wählen' in seite

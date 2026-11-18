@@ -32,6 +32,17 @@ def ohne_oertliche_zuordnung(mitglied) -> bool:
     return not mitglied.wohnsitz_id or mitglied.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH
 
 
+def wien_ohne_bezirk(mitglied) -> bool:
+    """Wiener Hauptwohnsitz ohne Gemeindebezirk: Kein Wiener Bezirkskreis nimmt das Konto auf (GP-058)."""
+    if not getattr(mitglied, "is_authenticated", False) or not mitglied.wohnsitz_id:
+        return False
+    return (
+        mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH
+        and mitglied.wohnsitz.bundesland == Bundesland.WIEN
+        and not mitglied.wiener_hauptbezirk
+    )
+
+
 def gemeindestand(gemeinde):
     return Gemeindestand(gemeinde.kennziffer, gemeinde.name, gemeinde.bezirk, gemeinde.bundesland)
 

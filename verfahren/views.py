@@ -815,11 +815,12 @@ def parlament(request):
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
     mein_ort, meine_gemeinden, wiener_bezirk = _meine_orte(request.user)
-    from verfahren.teilnahme import wohnsitz_ohne_verzeichnis
+    from verfahren.teilnahme import wien_ohne_bezirk, wohnsitz_ohne_verzeichnis
 
     # Gemeinde nur als Freitext: Die Zeile trägt den Namen nicht als eigene Gemeinde und führt
     # statt des Leertexts zum Gemeindeverzeichnis im Profil (GP-055)
     wohnsitz_waehlen = wohnsitz_ohne_verzeichnis(request.user)
+    bezirk_waehlen = wien_ohne_bezirk(request.user)  # Wien ohne Gemeindebezirk (GP-058)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
@@ -852,6 +853,7 @@ def parlament(request):
                 # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
                 "ort_versteckt": len(orte) == 1 and not ohne_verzeichnis,
                 "wohnsitz_waehlen": ohne_verzeichnis,
+                "bezirk_waehlen": bezirk_waehlen and ebene == "bezirk",
                 "live": live[ebene],
                 "kacheln": [
                     {
@@ -1417,6 +1419,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
         oertlich_zulaessig,
         ohne_oertliche_zuordnung,
         stimmrecht_im_neuen_kreis,
+        wien_ohne_bezirk,
     )
 
     oertlich = oertlich_begrenzt(antrag)
@@ -1531,6 +1534,8 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "oertlicher_teilnehmerkreis": oertlich,
             "eigener_teilnehmerkreis": eigener_kreis,
             "ohne_oertliche_zuordnung": not eigener_kreis and ohne_oertliche_zuordnung(request.user),
+            "wien_ohne_bezirk": not eigener_kreis and bool((antrag.teilnahmegebiet or {}).get("wiener_bezirk"))
+            and wien_ohne_bezirk(request.user),
             "eigene_oertliche_stimmabgabe": not oertlich or (
                 antrag.phase == Phase.ABSTIMMUNG.value and stimmrecht_im_neuen_kreis(antrag, request.user)
             ),

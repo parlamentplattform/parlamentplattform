@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import secrets
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import BooleanField, Case, OuterRef, Q, Subquery, Value, When
+from django.utils import timezone
 
 #: Das Zeichen, das einen ausgeblendeten Wert ersetzt.
 MASKE = "•"
@@ -47,6 +48,11 @@ PERSONENGRUENDE_ANFANG = {"vorschlag_zurueckgegeben": ("Gruppe 2:",)}
 #: Je Art weitere Schlüssel: Der gemeldete Beitrag stünde sonst am Pranger, bevor die Verwaltung
 #: über die Meldung entschieden hat.
 JE_ART = {"beitrag_gemeldet": ("beitrag",)}
+
+#: Stimm-Ereignisse: Solange ihre Abstimmung läuft, tragen sie öffentlich nur das Tagesdatum (GP-210,
+#: Fahrtenbuch D-D2b, § 5 Abs 3 lit e) — wer wann gestimmt hat, ließe sich sonst mit anderem Wissen
+#: über den Zeitpunkt eingrenzen. Nach der Abstimmung steht die genaue Zeit wieder da.
+STIMMARTEN = ("stimme", "stimme_geaendert", "personenwahl_stimme", "personenwahl_stimme_zurueckgenommen")
 
 
 def _ist_kennung(wert, arten) -> bool:
@@ -103,7 +109,47 @@ def mit_vorgaenger(eintraege):
     from verfahren.models import AuditEintrag
 
     davor = AuditEintrag.objects.filter(lfd__lt=OuterRef("lfd")).order_by("-lfd").values("ereignis")[:1]
-    return eintraege.annotate(vorher=Subquery(davor))
+    laufend = laufende_abstimmungen()
+    return eintraege.annotate(
+        vorher=Subquery(davor),
+        abstimmung_laeuft=Case(
+            When(Q(ereignis__typ__in=STIMMARTEN, ereignis__antrag__in=laufend), then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+        if laufend
+        else Value(False, output_field=BooleanField()),
+    )
+
+
+def laufende_abstimmungen() -> list[int]:
+    """Die Anträge, deren Abstimmung läuft — solange die Phase nicht fortgeschrieben ist, auch kurz
+    nach dem Fristende (dann bleibt es beim Tagesdatum, bis der Antrag weiterrückt)."""
+    from plattform_core.phases import Phase
+    from verfahren.models import Antrag
+
+    return list(Antrag.objects.filter(phase=Phase.ABSTIMMUNG).values_list("pk", flat=True))
+
+
+def _abstimmung_laeuft(eintrag) -> bool:
+    if art_von(eintrag.ereignis) not in STIMMARTEN:
+        return False
+    if hasattr(eintrag, "abstimmung_laeuft"):
+        return bool(eintrag.abstimmung_laeuft)
+    return eintrag.ereignis.get("antrag") in laufende_abstimmungen()
+
+
+def nur_tag(zeit: str) -> str:
+    """Ein Zeitpunkt auf den Tag gekürzt (Ortszeit, ohne Uhrzeit): „2026-11-18T00:00:00“."""
+    from datetime import datetime
+
+    try:
+        wann = datetime.fromisoformat(zeit)
+    except (TypeError, ValueError):
+        return str(zeit)[:10] + "T00:00:00"
+    if timezone.is_aware(wann):
+        wann = timezone.localtime(wann)
+    return wann.date().isoformat() + "T00:00:00"
 
 
 def eintrag_oeffentlich(eintrag) -> dict:
@@ -111,10 +157,17 @@ def eintrag_oeffentlich(eintrag) -> dict:
     Vorgänger sind None, wo sie ein Durchprobieren erlaubten (`hash_oeffentlich`)."""
     ereignis, geschwaerzt = ereignis_oeffentlich(eintrag.ereignis)
     vorher = getattr(eintrag, "vorher", None)
+    zeit = eintrag.zeit.isoformat()
+    tag = _abstimmung_laeuft(eintrag)
+    if tag:
+        zeit = nur_tag(zeit)
+        if ereignis.get("zeit"):
+            ereignis["zeit"] = nur_tag(ereignis["zeit"])
     return {
         "lfd": eintrag.lfd,
         "typ": art_von(eintrag.ereignis),
-        "zeit": eintrag.zeit.isoformat(),
+        "zeit": zeit,
+        "nur_tag": tag,
         "vorgaenger": eintrag.vorgaenger if hash_oeffentlich(vorher) else None,
         "hash": eintrag.hash if hash_oeffentlich(eintrag.ereignis) else None,
         "geschwaerzt": geschwaerzt,

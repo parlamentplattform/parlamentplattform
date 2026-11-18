@@ -2,7 +2,7 @@
 Verwaltung mit Pflicht-Grund — jede Änderung im Audit-Log."""
 
 from django.contrib import messages
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -502,9 +502,20 @@ def verwaltung_ordnung_entwurf(request):
                 % {"version": juengste.version},
             )
         return redirect("parameter:verwaltung")
-    Verfahrensordnung.objects.create(
-        policy_id=kennung, version=version, regeln=erzeugt.als_dict(), aktiv=False
-    )
+    # GP-202: Zwei Admins können zugleich dieselbe Nummer lesen; die Eindeutigkeit hält, und der
+    # zweite bekommt eine Meldung statt einer Fehlerseite.
+    try:
+        with transaction.atomic():
+            Verfahrensordnung.objects.create(
+                policy_id=kennung, version=version, regeln=erzeugt.als_dict(), aktiv=False
+            )
+    except IntegrityError:
+        messages.info(
+            request,
+            _("Fassung %(version)s ist inzwischen anderweitig erzeugt worden — nichts erzeugt. Bitte prüfen, was sie sagt.")
+            % {"version": version},
+        )
+        return redirect("parameter:verwaltung")
     AuditEintrag.anhaengen(
         {
             "typ": "verfahrensordnung_erzeugt",

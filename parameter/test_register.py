@@ -603,3 +603,20 @@ def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):
     Register öffnete."""
     assert not Parameter.objects.exists()
     assert client.get(reverse("parameter:parameter", args=["kritik-mindestzeichen"])).status_code == 200
+
+
+def test_gleichzeitig_vergebene_fassungsnummer_ergibt_meldung_statt_serverfehler(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-202 (RVB-23): Vergeben zwei Admins zugleich dieselbe Nummer, scheiterte der zweite mit
+    einem Serverfehler. Jetzt: Umleitung mit Meldung, keine Fassung und kein Audit-Eintrag mehr."""
+    import parameter.views as ansichten
+    from verfahren.models import Verfahrensordnung
+
+    _admin(client)
+    Parameter.objects.filter(schluessel="verfahren-abstimmung-tage").update(wert="30")
+    monkeypatch.setattr(ansichten, "_naechste_version", lambda kennung: ordnung.version)
+    vorher = (Verfahrensordnung.objects.count(), AuditEintrag.objects.count())
+    antwort = client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    assert antwort.status_code == 302 and antwort.url == reverse("parameter:verwaltung")
+    assert (Verfahrensordnung.objects.count(), AuditEintrag.objects.count()) == vorher
+    inhalt = client.get(antwort.url).content.decode()
+    assert "inzwischen" in inhalt

@@ -148,3 +148,16 @@ def test_gp175_nach_fristende_kein_handlungsknopf_sondern_auswertung(client, ord
     assert "Frist abgelaufen, wird ausgewertet" in feld
     assert "Frist endet heute" not in feld
     assert f"/antrag/{antrag.pk}/unterstuetzen/" not in html
+    # Die Zeile des WeicherFilter-Feeds sagt dasselbe (die Abnahme nennt Kachel und Zeile)
+    from django.template.loader import render_to_string
+    from django.test import RequestFactory
+
+    from verfahren.views import _kachel
+
+    antrag.refresh_from_db()
+    anfrage = RequestFactory().get(reverse("verfahren:parlament"))
+    anfrage.user = anna
+    z = _kachel(antrag, timezone.now(), nutzer=anna)
+    zeile = render_to_string("verfahren/_filter_zeile.html", {"z": z, "meine_unterstuetzungen": set()}, request=anfrage)
+    assert "Frist abgelaufen, wird ausgewertet" in zeile and "Frist endet heute" not in zeile
+    assert "/unterstuetzen/" not in zeile and ">Unterstützen<" not in zeile

@@ -641,3 +641,9 @@ def test_suchtreffer_beschreibung_nennt_alle_wirkungen():
     assert "municipal" in PARAMETER["suche-treffer-hoechstzahl"][2]
     zeile = next(z for z in _schema_dokument().splitlines() if "`suche-treffer-hoechstzahl`" in z)
     assert "municipal" in zeile
+
+
+def test_regelverzeichnis_verweist_auf_die_faktenbasis(client):
+    """GP-086 (ZWB-06): Die Faktenbasis war nur über einen Textlink der Zukunftswerkstatt auffindbar."""
+    inhalt = client.get(reverse("parameter:regeln")).content.decode()
+    assert f'href="{reverse("faktenbasis:index")}"' in inhalt

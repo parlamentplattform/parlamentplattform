@@ -931,6 +931,12 @@ def pruefung(request):
                 "beschluss": beschluss,
                 "auswertung": beschluss.auswertung() if beschluss else None,
                 "stimmen": list(beschluss.stimmen.select_related("mitglied")) if beschluss else [],
+                # Ohne besetzte Gruppe 2 geht der Vorschlag mit dieser Frist weiter (`Entwurf.fortschreiben`).
+                "pruefung_frist": (
+                    entwurf.eingereicht_am + timedelta(days=entwurf.antrag.policy().pruefung_tage)
+                    if entwurf.eingereicht_am
+                    else None
+                ),
                 # § 6 Abs 7: Was Gruppe 2 prüfen soll, steht vor ihr — die Erklärungen dieser Runde (GP-002).
                 "interessenbindungen": list(
                     entwurf.antrag.interessenbindungen.filter(runde=entwurf.runde).select_related("mitglied")

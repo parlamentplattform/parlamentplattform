@@ -194,3 +194,97 @@ def test_das_testende_muss_nach_der_beschlussfrist_liegen(client):
     assert 'nach der Beschlussfrist' in antwort.content.decode()
     _test_anordnen(client, leute[0], parameter, '9', ende=timezone.localdate() + timedelta(days=9))
     assert ParameterTest.objects.count() == 1
+
+
+# --- GP-040: Sätze, die sagen, was geschieht -------------------------------------------------
+
+
+def test_die_pruefliste_nennt_die_frist_und_ihre_folge_statt_zu_warten(client, ordnung):  # noqa: F811
+    """GP-040 (a): Ohne besetzte Gruppe 2 „wartet“ der Vorschlag nicht — nach der Prüffrist geht er weiter."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er, vollzugsbezug=True)
+    entwurf.refresh_from_db()
+    admin = mitglied_anlegen('aufsicht')
+    admin.ist_admin = True
+    admin.save()
+    client.force_login(admin)
+    seite = client.get(reverse('gremien:pruefung')).content.decode()
+    frist = timezone.localtime(entwurf.eingereicht_am + timedelta(days=antrag.policy().pruefung_tage))
+    assert 'wartet, bis eine besetzt ist' not in seite
+    assert 'ohne Prüfung an die Unterstützer' in seite and f'{frist:%d.%m.%Y %H:%M}' in seite
+
+
+def test_unbesetzte_gremien_versprechen_keine_laufende_ausschreibung(client):
+    """GP-040 (b): Eine Ausschreibung gibt es auf der Plattform nicht — die Verwaltung besetzt von Hand."""
+    from django.urls import reverse
+
+    assert 'Ausschreibung läuft' not in client.get(reverse('gremien:uebersicht')).content.decode()
+    assert 'Noch unbesetzt.' in client.get(reverse('gremien:uebersicht')).content.decode()
+    admin = mitglied_anlegen('aufsicht')
+    admin.ist_admin = True
+    admin.save()
+    client.force_login(admin)
+    seite = client.get(reverse('gremien:rat', args=['berichtswesenrat'])).content.decode()
+    assert 'Ausschreibung läuft' not in seite and 'Noch unbesetzt.' in seite
+
+
+def test_ein_austauschbeschluss_ohne_ergebnis_ist_keine_ablehnung(client, ordnung):  # noqa: F811
+    """GP-040: Ein Gleichstand im Koordinationsrat stand als „abgelehnt“ am Antrag."""
+    from django.urls import reverse
+
+    from gremien.models import Anlass, BeschlussStatus, GremienBeschluss, Gremium, Pruefung
+    from gremien.test_pruefung import korat_lage, stimme
+    from gremien.test_werkstatt import rolle_geben
+
+    antrag, entwurf, _er, korat = korat_lage(client, ordnung)
+    zweite = mitglied_anlegen('koordinator2')
+    rolle_geben(zweite, Gremium.KOORDINATIONSRAT)
+    pruefung = entwurf.pruefungen.get()
+    client.force_login(korat)
+    client.post(reverse('gremien:koordination_beschluss'), {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Prüfen wir.'})
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    stimme(client, beschluss, korat, 'dafuer')
+    stimme(client, beschluss, zweite, 'dagegen')
+    beschluss.refresh_from_db()
+    pruefung.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OHNE_ERGEBNIS
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.OHNE_ERGEBNIS != 'abgelehnt'
+    assert 'Ohne Ergebnis' in beschluss.umsetzungsvermerk and 'Abgelehnt' not in beschluss.umsetzungsvermerk
+    ereignis = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'austausch_entschieden'][-1]
+    assert ereignis['entscheid'] == 'ergebnislos'
+    client.logout()
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'ohne Ergebnis' in seite
+
+
+def test_die_aussetzungskarte_nennt_nach_dem_vermerk_das_schiedsgericht_statt_der_frist(client, ordnung):  # noqa: F811
+    """GP-040: Nach dem Vermerk endet die Aussetzung nicht mehr mit der Frist — die Karte nannte sie weiter."""
+    from django.urls import reverse
+
+    from gremien.models import Anlass, Aussetzung
+    from gremien.test_integritaet import beschluss_fassen, rat
+
+    leute = rat()
+    antrag = antrag_in_abstimmung(ordnung)
+    beschluss_fassen(client, leute, antrag, Anlass.AUSSETZUNG, 'Verdacht auf Manipulation.')
+    aussetzung = Aussetzung.objects.get(antrag=antrag)
+    client.force_login(leute[0])
+    assert 'Antrag ans Schiedsgericht bis' in client.get(reverse('gremien:integritaet')).content.decode()
+    client.post(reverse('gremien:integritaet_schiedsgericht', args=[aussetzung.pk]), {'kennung': 'PSG-2026-004'})
+    seite = client.get(reverse('gremien:integritaet')).content.decode()
+    assert 'Antrag ans Schiedsgericht bis' not in seite and 'beim Parteischiedsgericht seit' in seite
+
+
+def test_die_alten_saetze_stehen_in_keinem_template_mehr():
+    from pathlib import Path
+
+    alle = '\n'.join(p.read_text(encoding='utf-8') for p in Path(__file__).parent.glob('templates/gremien/*.html'))
+    for alt in ('wartet, bis eine besetzt ist', 'die Ausschreibung läuft über den Koordinationsrat', 'mit Grund dokumentiert'):
+        assert alt not in alle

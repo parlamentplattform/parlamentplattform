@@ -117,7 +117,7 @@ dieselbe Gestalt: je Zeile ein Antrag mit dem Formular für genau den Beschluss,
     <span class="chip klein{% if not z.laeuft %} still{% endif %}">{{ z.aussetzung.get_gegenstand_display }}</span>
     <br><span class="meta"><a href="{% url 'gremien:beschluss' z.aussetzung.beschluss.nummer %}">{{ z.aussetzung.beschluss.nummer }}</a>
       · {% blocktranslate with d=z.aussetzung.beginn|date:"d.m.Y H:i" %}seit {{ d }}{% endblocktranslate %}
-      {% if z.laeuft %}· {% blocktranslate with f=z.aussetzung.frist|date:"d.m.Y H:i" %}Antrag ans Schiedsgericht bis {{ f }}{% endblocktranslate %}{% else %}· {{ z.stand }}{% endif %}</span>
+      {% if z.laeuft and z.aussetzung.schiedsgericht_am %}· {% blocktranslate with d=z.aussetzung.schiedsgericht_am|date:"d.m.Y" %}beim Parteischiedsgericht seit {{ d }}{% endblocktranslate %}{% elif z.laeuft %}· {% blocktranslate with f=z.aussetzung.frist|date:"d.m.Y H:i" %}Antrag ans Schiedsgericht bis {{ f }}{% endblocktranslate %}{% else %}· {{ z.stand }}{% endif %}</span>
     {% if z.aussetzung.schiedsgericht_kennung %}<br><span class="meta">{% translate "Beim Parteischiedsgericht:" %} {{ z.aussetzung.schiedsgericht_kennung }}</span>{% endif %}
     {% if z.laeuft and not z.aussetzung.schiedsgericht_am and darf_stimmen %}
     <form method="post" action="{% url 'gremien:integritaet_schiedsgericht' z.aussetzung.pk %}" style="margin-top:6px">{% csrf_token %}

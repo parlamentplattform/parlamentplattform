@@ -907,6 +907,8 @@ class Pruefung(models.Model):
         STATTGEGEBEN = "stattgegeben", _("stattgegeben")
         ABGELEHNT = "abgelehnt", _("abgelehnt")
         VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
+        # Der Beschluss schloss ohne Ergebnis (Gleichstand, Quorum verfehlt) — das ist keine Ablehnung (GP-040).
+        OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
     runde = models.PositiveIntegerField()
@@ -2459,7 +2461,10 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
     if pruefung.korat_entscheid:
         return
     entwurf = pruefung.entwurf
-    entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
+    if not beschluss.ergebnis:
+        entscheid = Pruefung.KoratEntscheid.OHNE_ERGEBNIS.value
+    else:
+        entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"
     pruefung.korat_entscheid = entscheid
     pruefung.korat_begruendung = f"Beschluss {beschluss.nummer}: {beschluss.beschreibung}"[:2000]
     pruefung.save(update_fields=["korat_entscheid", "korat_begruendung"])
@@ -2480,8 +2485,10 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
             f"Stattgegeben — {len(betroffen)} Rollen der Gruppe 1 für diesen Antrag beendet; "
             + ("neu gelost." if neue else "keine neue Ziehung möglich (Lostopf reicht nicht)."),
         )
-    else:
+    elif entscheid == "abgelehnt":
         _vermerken(beschluss, "Abgelehnt — der Vorschlag bleibt bei Gruppe 2 zur Prüfung.")
+    else:
+        _vermerken(beschluss, "Ohne Ergebnis — der Vorschlag bleibt bei Gruppe 2 zur Prüfung.")
     AuditEintrag.anhaengen(
         {
             "typ": "austausch_entschieden",

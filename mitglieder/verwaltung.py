@@ -16,7 +16,7 @@ Grundsätze:
   Öffentlich (`/audit/`) sind Mitgliedsnummer und Begründung geschwärzt und gesalzen
   (verfahren/audit_oeffentlich.py, 0.52.0).
 - Statusfolgen: „pausiert“ lässt Anmelden und Lesen zu, Mitwirkungsrechte ruhen
-  (§ 4 Abs 3); „ausgeschlossen“ deaktiviert das Konto (§ 4 Abs 6 — der Knopf
+  (§ 4 Abs 3); „ausgeschlossen“ deaktiviert das Konto (§ 4 Abs 5 — der Knopf
   vollzieht den satzungsmäßigen Beschluss, er ersetzt ihn nicht). Jeder Wechsel
   trägt sein Datum (`status_seit`), damit die Stimmberechtigung am Stichtag
   geprüft werden kann (§ 4 Abs 4 lit a).

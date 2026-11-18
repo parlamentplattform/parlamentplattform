@@ -98,6 +98,8 @@ def test_ungeprueftes_konto_liest_mit_eigenem_hinweis(client):
     m.save(update_fields=["identitaetsstufe"])
     html = client.get(MEIN).content.decode()
     assert "Identität ist noch nicht geprüft" in html and "Mitwirkung ruht" not in html
+    # Satzungsentwurf 2.5: Der Identitätsnachweis steht in § 4 Abs 1, Abs 2 sind die Rechte (wie GP-176).
+    assert "Identität ist noch nicht geprüft (§ 4 Abs 1)" in html and "§ 4 Abs 2" not in html
     assert 'name="aktion" value="report"' not in html
     assert "Schreiben geht nach der Bestätigung." in html and "aktiven Status" not in html
     # pausiert mit geprüfter Identität: der andere Grund, an beiden Stellen

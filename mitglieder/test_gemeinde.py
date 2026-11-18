@@ -449,6 +449,36 @@ def test_bestaetigung_gibt_einen_inzwischen_vergebenen_namen_nicht_doppelt(ort):
     assert konto.is_active and konto.pseudonym_oeffentlich == ""
 
 
+def _wettlauf_um_den_namen(monkeypatch, rivale):
+    """Stellt den Wettlauf nach: Nach der Formularprüfung, aber vor dem Speichern sichert sich ein
+    anderes Konto denselben Namen (dessen Transaktion ist schon festgeschrieben)."""
+    import mitglieder.profil as profil
+
+    echt = profil.anzeigename_pruefen
+
+    def pruefen_und_verlieren(eingabe, ausser):
+        name = echt(eingabe, ausser=ausser)
+        if name:
+            Mitglied.objects.filter(pk=rivale.pk).update(pseudonym_oeffentlich=name)
+        return name
+
+    monkeypatch.setattr(profil, "anzeigename_pruefen", pruefen_und_verlieren)
+
+
+def test_namenswahl_im_gemeindezugang_prueft_den_namen_unter_der_sperre(client, ort, buerger, monkeypatch):
+    """Restauflage zu GP-186: Wählen zwei Konten gleichzeitig denselben Namen, erhält ihn nur eines;
+    das zweite bekommt die Meldung und bleibt ohne Namen."""
+    rivale = Mitglied.objects.create(username="rivale@example.org", email="rivale@example.org", is_active=True)
+    client.force_login(buerger)
+    _wettlauf_um_den_namen(monkeypatch, rivale)
+    antwort = client.post(reverse("gemeinde:konto"), {"aktion": "anzeigename", "anzeigename": "Wegwarte"})
+    assert antwort.status_code == 200
+    assert "Dieser Name ist nicht verfügbar." in antwort.content.decode()
+    buerger.refresh_from_db()
+    assert buerger.pseudonym_oeffentlich == ""
+    assert Mitglied.objects.filter(pseudonym_oeffentlich__iexact="Wegwarte").count() == 1
+
+
 def test_parteikonto_waehlt_den_namen_nicht_im_gemeindezugang(client, ort):
     mitglied = Mitglied.objects.create_user("partei@example.org", email="partei@example.org")
     assert mitglied.parteikonto and not mitglied.pseudonym_oeffentlich

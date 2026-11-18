@@ -20,7 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
 from ki.anbieter import anbieter_waehlen
@@ -646,10 +646,15 @@ def _eigener_beitrag(request, pk, beitrag_pk):
 @login_required
 @require_POST
 def beitrag_bearbeiten(request, pk, beitrag_pk):
-    """Den eigenen Beitrag ändern — nur binnen fünf Minuten, danach steht er (FB-G1)."""
+    """Den eigenen Beitrag ändern — nur binnen des Bearbeitungsfensters aus dem Register, danach steht er (FB-G1)."""
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if not beitrag.darf_bearbeiten(request.user):
-        messages.error(request, _("Ändern ist nur in den ersten fünf Minuten möglich."))
+        minuten = Kommentar.bearbeitungsfenster_minuten()  # die geltende Zahl, nicht fest „fünf“
+        messages.error(request, ngettext(
+            "Ändern ist nur in der ersten Minute möglich.",
+            "Ändern ist nur in den ersten %(n)s Minuten möglich.",
+            minuten,
+        ) % {"n": minuten})
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     text = (request.POST.get("text") or "").strip()
     if not text:

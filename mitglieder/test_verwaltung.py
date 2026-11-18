@@ -390,6 +390,47 @@ def test_zweimal_angewendeter_wechsel_ergibt_genau_einen_audit_eintrag():
     assert zweiter_lauf.status == Adresswechsel.Status.WIRKSAM
 
 
+def test_zweimal_bestaetigter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Restauflage zu GP-211 (Nachbar): Zwei Bestätigungen mit veraltetem Stand — die zweite findet
+    den Wechsel bestätigt vor und schreibt nichts."""
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    zweite = Adresswechsel.objects.get(pk=wechsel.pk)
+    adminb, adminc = admin_anlegen("adminb"), admin_anlegen("adminc")
+    assert wechsel.bestaetigen(adminb) is True
+    assert zweite.bestaetigen(adminc) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_bestaetigt") == 1
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id == adminb.pk
+
+
+def test_bestaetigung_eines_inzwischen_widerrufenen_wechsels_schreibt_nichts():
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    veraltet = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.widerrufen("einspruch") is True
+    assert veraltet.bestaetigen(admin_anlegen("adminb")) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert "email_geaendert_bestaetigt" not in aktionen
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None
+
+
+def test_bestaetigen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.bestaetigen(admin_anlegen("adminb"))
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None and wechsel.bestaetigt_am is None
+
+
 def test_wirksam_machen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
     anna = mitglied_anlegen()
     wechsel = _faelliger_wechsel(anna)
@@ -730,6 +771,55 @@ def test_ohne_audit_des_auszugs_bleibt_nichts_verbucht(client, monkeypatch):
     zahler.refresh_from_db()
     assert Beitragseingang.objects.count() == 0 and zahler.beitrag_zuletzt_am is None
     assert not AuditEintrag.objects.filter(ereignis__typ='beitrag').exists()
+
+
+def _auszug_mit_beitrag(zahler):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    return {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}
+
+
+def test_ohne_audit_des_auszugs_geht_keine_beitragsbestaetigung_hinaus(
+    client, monkeypatch, django_capture_on_commit_callbacks
+):
+    """Restauflage zu GP-102: Die Mail „Ihr Mitgliedsbeitrag ist eingegangen“ geht erst nach dem
+    Festschreiben hinaus. Scheitert der Audit-Eintrag des Abgleichs, gibt es keine Buchung und keine Mail."""
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with django_capture_on_commit_callbacks(execute=True), pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert Beitragseingang.objects.count() == 0
+    assert [n.subject for n in mail.outbox] == []
+
+
+def test_gelingt_der_abgleich_geht_die_beitragsbestaetigung_nach_dem_festschreiben(
+    client, django_capture_on_commit_callbacks
+):
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    with django_capture_on_commit_callbacks(execute=False) as rueckrufe:
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert mail.outbox == []  # noch nichts verschickt, solange nicht festgeschrieben ist
+    for rueckruf in rueckrufe:
+        rueckruf()
+    assert [n.subject for n in mail.outbox] == ['Ihr Mitgliedsbeitrag ist eingegangen']
+    assert mail.outbox[0].to == [zahler.email]
 
 
 def test_scheitert_das_audit_meldet_die_verwaltung_keinen_erfolg(monkeypatch):

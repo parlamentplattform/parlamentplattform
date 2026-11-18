@@ -53,7 +53,7 @@ class Mitgliedsstatus(models.TextChoices):
     """Stand der Mitgliedschaft (F-51). „pausiert“ lässt Lesen und Anmelden zu,
     Mitwirkungsrechte (einbringen, unterstützen, beraten, abstimmen) ruhen,
     bis der Mitgliedsbeitrag wieder eingegangen ist (§ 4 Abs 3).
-    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6).
+    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 5).
     „ausgetreten“ ist der selbst erklärte Austritt (§ 4 Abs 5): Konto inaktiv, Stammdaten
     geleert, Beiträge zu Verfahren bleiben stehen — nichts wird gelöscht, was ein Verfahren
     betrifft."""
@@ -544,14 +544,20 @@ class Adresswechsel(models.Model):
         )  # bewusst ohne Adressen: Das Audit-Log ist öffentlich (F-22)
 
     def bestaetigen(self, durch) -> bool:
-        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller."""
+        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller.
+
+        Wie beim Wirksammachen (GP-211): entschieden wird erst nach der Sperre und dem Neuladen;
+        Bestätigung und Audit-Eintrag gelingen gemeinsam oder gar nicht."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
-            return False
-        self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
-        self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
-        self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
+        with transaction.atomic():
+            self._sperren()
+            if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
+                return False
+            self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
+            self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
+            self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
         return True
 
     def _sperren(self) -> None:
@@ -825,17 +831,25 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
     from mitglieder.mail import send_mail
 
-    try:  # Bestätigung ist Höflichkeit, keine Bedingung — Verbuchung steht bereits.
-        send_mail(
-            "Ihr Mitgliedsbeitrag ist eingegangen",
-            "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
-            "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
-            "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
-            settings.DEFAULT_FROM_EMAIL,
-            [mitglied.email],
-        )
-    except OSError:
-        pass
+    empfaenger = mitglied.email
+
+    def bestaetigen():
+        try:  # Bestätigung ist Höflichkeit, keine Bedingung.
+            send_mail(
+                "Ihr Mitgliedsbeitrag ist eingegangen",
+                "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
+                "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
+                "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
+                settings.DEFAULT_FROM_EMAIL,
+                [empfaenger],
+            )
+        except OSError:
+            pass
+
+    # GP-102: Läuft die Verbuchung in einer äußeren Klammer (Auszug-Upload samt Audit), steht sie
+    # hier noch nicht fest. Die Bestätigung geht erst nach dem Festschreiben hinaus; wird die
+    # Klammer zurückgenommen, entfällt sie.
+    transaction.on_commit(bestaetigen)
     if freigeschaltet:
         # Eigener Brief (FB-K7): Prüfung abgeschlossen, Stimmrecht ab wann — einmal je Konto.
         from mitglieder.post import freischaltung_senden

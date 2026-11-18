@@ -233,6 +233,22 @@ def test_anzeigename_kollidiert_nicht_mit_fremdem_pseudonym_oder_klarnamen(clien
     assert anna.pseudonym_oeffentlich == ""
 
 
+def test_profil_prueft_den_anzeigenamen_unter_der_sperre(client, monkeypatch):
+    """Restauflage zu GP-186: Sichert sich ein anderes Konto denselben Namen zwischen Formularprüfung
+    und Speichern, bekommt das zweite die Meldung; der Name ist genau einmal vergeben."""
+    from mitglieder.test_gemeinde import _wettlauf_um_den_namen
+
+    anna, bert = mit_wohnsitz("anna"), mitglied_anlegen("bert")
+    client.force_login(anna)
+    _wettlauf_um_den_namen(monkeypatch, bert)
+    antwort = profil_speichern(client, anzeigename="Nachtfalter", gemeinde=anna.gemeinde)
+    assert antwort.status_code == 200 and "Dieser Name ist nicht verfügbar." in antwort.content.decode()
+    anna.refresh_from_db()
+    assert anna.pseudonym_oeffentlich == ""
+    assert Mitglied.objects.filter(pseudonym_oeffentlich__iexact="Nachtfalter").count() == 1
+    assert audit("profil", mitglied=anna.pk) == []  # nichts gespeichert, nichts auditiert
+
+
 def test_vorbehaltene_anzeigenamen_werden_abgewiesen(client):
     """„Die Plattform“ ist der Verfasser der Systembeiträge, „Ehemaliges Mitglied n“ der Platzhalter
     Ausgetretener — beides darf sich niemand geben (Verwechslung mit der Plattform selbst)."""

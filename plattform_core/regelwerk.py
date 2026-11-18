@@ -685,10 +685,11 @@ REGELN: tuple[Regel, ...] = (
         ),
         wirkung=Wirkung.STELLT_DAR,
         satzung="§ 6 · § 3 Abs 1 lit c",
-        fassung=11,
-        seit="2026-11-03",
+        fassung=12,
+        seit="2026-11-18",
         grund=(
-            _("Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
+            _("Fassung 12 berichtigt nach der Gesamtprüfung vom 18.11.2026 Zeilen, die den Bauzustand falsch wiedergaben: Der Einreichungsbeschluss der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird nachgelost, sobald der Vollzugsbezug gesetzt ist; die Verwaltung besetzt sechs Räte; Tests und Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort statt einer Adresse, die nur das abgeschickte Formular annimmt. "
+            "Fassung 11 mit ausdrücklich angeforderten Nachrechnungen öffentlicher Rechtsbezüge durch die zuständige Gruppe 1 (0.65); Original, Beanstandung und Budgets bleiben erhalten. "
             "Fassung 10 mit ausdrücklich ausgelösten amtlichen Einzelabrufen durch die Verwaltung (0.59): bestehende Rechte, gemeinsames Kontingent und unveränderliche Quellen-Nachlese. "
             "Fassung 9 mit einzelnen amtlichen Dokumenttexten (0.57): Original-XML, Text, Abrufnachweise und Prüfsummen bleiben öffentlich erhalten. Die Sammlung ist unvollständig; geprüfte Querverweise und Berichte bleiben offen. "
             "Fassung 8 mit der amtlichen Metadaten-Faktenbasis (0.56): Die Aufsicht kann Herkunft, Stichtag und erhaltene Schnappschüsse öffentlich nachlesen. Volltexte, geprüfte Querverweise und Berichte bleiben offen. "

@@ -352,7 +352,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 11
+    assert rollen_regel.fassung == VERSION
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund
@@ -488,3 +488,56 @@ def test_gp141_der_anstoss_nennt_seinen_ort_statt_einer_adresse():
     (anstoss,) = [f for f in gast.faehigkeiten if 'Anstoß' in f.titel]
     assert anstoss.stand is Stand.VERFUEGBAR and not anstoss.urlname
     assert 'auf jeder Seite' in anstoss.ort
+
+
+def _zeile(schluessel: str, wort: str):
+    rolle = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == schluessel)
+    (zeile,) = [f for f in rolle.faehigkeiten if wort in f.titel]
+    return zeile
+
+
+@pytest.mark.django_db
+def test_gp142_die_seite_beschreibt_vier_dinge_wie_sie_gebaut_sind(client, vorweggenommene_adressen):
+    '''GP-142 und GP-105: Die Matrix unterschätzte den Stand an vier Stellen. Der Einreichungsbeschluss
+    der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird
+    beim Setzen des Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und
+    Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats.'''
+    inhalt = ' '.join(client.get(reverse('verfahren:rollen')).content.decode().split())
+    for satz in (
+        'ohne Beschlussnummer',
+        'wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt',
+        'vier bestehenden Räte',
+        'Besetzbar sind nur',
+        'Beides gibt es nicht',
+    ):
+        assert satz not in inhalt, satz
+    for umschrift in ('erschoepft', 'ausserhalb', 'Begruendung', 'frueher'):
+        assert umschrift not in inhalt, umschrift
+    assert VERSION >= 12
+
+
+def test_gp142_einreichung_nachlosung_und_raete_im_einzelnen():
+    from gremien.models import Gremium
+
+    einreichung = _zeile('expertenrat1', 'Über die Einreichung')
+    assert einreichung.stand is Stand.VERFUEGBAR and einreichung.urlname == 'gremien:beschluesse'
+    assert 'Nummer' in einreichung.titel and 'Frist' in einreichung.titel
+
+    gruppe2 = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'expertenrat2')
+    assert 'nachgelost, sobald Gruppe 1 den Vollzugs- oder Beschaffungsbezug setzt' in gruppe2.wie_hinein
+
+    berufen = _zeile('verwaltung', 'berufen, bestätigen und beenden')
+    assert 'sechs bestehenden Räte' in berufen.titel and len(Gremium.values) == 6
+    for name in ('Entwicklungsrat', 'Berichtswesenrat', 'Supportrat'):
+        assert name in berufen.einschraenkung, name
+
+
+def test_gp105_die_verwaltung_widerspricht_dem_koordinationsrat_nicht():
+    '''GP-105: Bei der Verwaltung stand, Tests und Freigabe durch den Koordinationsrat gebe es
+    nicht; beim Koordinationsrat stehen beide als verfügbar.'''
+    for wort in ('Befristete Tests neuer Registerwerte', 'Einführung eines getesteten Registerwertes'):
+        assert _zeile('koordinationsrat', wort).stand is Stand.VERFUEGBAR
+    register = _zeile('verwaltung', 'Werte im Parameterregister ändern')
+    assert register.stand is Stand.TEILWEISE
+    assert 'gibt es nicht' not in register.einschraenkung
+    assert 'durch Beschluss' in register.einschraenkung and 'ohne Beschluss' in register.einschraenkung

@@ -47,7 +47,11 @@ def _(text: str) -> str:
 #: dem Ende der Vertretung Abstimmungen nach (D-L6g).
 #: Fassung 8 (2.11.2026): Herkunft und erhaltene Stände der amtlichen Metadatensammlung nachlesen.
 #: Fassung 10 (2.11.2026): Verwaltung übernimmt gezielt einzelne amtliche Quellen.
-VERSION = 11
+#: Fassung 12 (18.11.2026): Berichtigungen nach der Gesamtprüfung. Der Einreichungsbeschluss der
+#: Gruppe 1 ist ● (Nummer, Frist, öffentliche Beschlussliste); Gruppe 2 wird beim Setzen des
+#: Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und Einführung von
+#: Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort.
+VERSION = 12
 
 
 class Stand(enum.StrEnum):
@@ -503,7 +507,7 @@ EXPERTENRAT1 = Rolle(
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel=_("Fassungen anhängen; jede frueher geschriebene bleibt stehen"),
+            titel=_("Fassungen anhängen; jede früher geschriebene bleibt stehen"),
             stand=Stand.VERFUEGBAR,
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
@@ -533,7 +537,7 @@ EXPERTENRAT1 = Rolle(
             titel=_("KI-Einschätzung zum eigenen Entwurf anfordern"),
             stand=Stand.TEILWEISE,
             ort=_("im Entwurfsfenster eines Antrags"),
-            einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm."),
+            einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschöpft ist; sonst bleibt er stumm."),
         ),
         Faehigkeit(
             titel=_("Vollzugs- oder Beschaffungsbezug setzen — dann wird Gruppe 2 aus der Fachliste nachgelost und prüft vorab (§ 6 Abs 7)"),
@@ -541,10 +545,10 @@ EXPERTENRAT1 = Rolle(
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel=_("Über die Einreichung intern abstimmen"),
-            stand=Stand.TEILWEISE,
+            titel=_("Über die Einreichung als Gruppe abstimmen — Beschluss mit Nummer, Frist und Quorum; jede Stimme steht mit Namen auf der öffentlichen Beschlussliste"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:beschluesse",
             ort=_("im Entwurfsfenster eines Antrags"),
-            einschraenkung=_("Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9)."),
         ),
         Faehigkeit(
             titel=_("Vorschlag einreichen — an Gruppe 2 oder an die Unterstützer"),
@@ -608,9 +612,10 @@ EXPERTENRAT2 = Rolle(
     wie_hinein=(
         _("Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein "
         "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 "
-        "aus derselben Fachliste mitgelost, wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt "
-        "ist — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt; sonst trägt die "
-        "Verwaltung die Rolle ein. Die Fachliste selbst führt die Verwaltung.")
+        "aus derselben Fachliste nachgelost, sobald Gruppe 1 den Vollzugs- oder Beschaffungsbezug setzt "
+        "— aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt. Reicht der Lostopf "
+        "nicht, prüfen die parteiweit berufenen Mitglieder der Gruppe 2; deren Rolle trägt die "
+        "Verwaltung ein. Die Fachliste selbst führt die Verwaltung.")
     ),
     faehigkeiten=(
         Faehigkeit(
@@ -629,12 +634,12 @@ EXPERTENRAT2 = Rolle(
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel=_("Vorschlag mit veröffentlichter Begruendung zurückgeben"),
+            titel=_("Vorschlag mit veröffentlichter Begründung zurückgeben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel=_("Jede Stimme steht mit Namen und Begruendung öffentlich"),
+            titel=_("Jede Stimme steht mit Namen und Begründung öffentlich"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
@@ -903,16 +908,16 @@ VERWALTUNG = Rolle(
             urlname="mitglieder:verwaltung_beitraege",
         ),
         Faehigkeit(
-            titel=_("Rollen in die vier bestehenden Räte berufen, bestätigen und beenden"),
+            titel=_("Rollen in die sechs bestehenden Räte berufen, bestätigen und beenden"),
             stand=Stand.TEILWEISE,
             urlname="gremien:rollen",
-            einschraenkung=_("§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind nur Expertenrat 1 und 2, Koordinationsrat und Integritätsrat."),
+            einschraenkung=_("§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind Expertenrat 1 und 2, Koordinationsrat, Integritätsrat, Technischer Entwicklungsrat sowie Integrations- und Berichtswesenrat; den Supportrat kennt die Plattform nicht."),
         ),
         Faehigkeit(
             titel=_("Werte im Parameterregister ändern"),
             stand=Stand.TEILWEISE,
             urlname="parameter:verwaltung",
-            einschraenkung=_("Die Einführung eines Wertes bedarf nach § 6 Abs 11 lit c der Freigabe des Koordinationsrats, befristete Tests ordnet er an. Beides gibt es nicht; die Verwaltung ändert mit Pflicht-Grund, der im Register und im Audit-Log steht."),
+            einschraenkung=_("Befristete Tests ordnet der Koordinationsrat durch Beschluss an, und die Einführung eines getesteten Wertes gibt er frei (§ 6 Abs 11 lit c). Daneben ändert die Verwaltung Werte weiterhin unmittelbar und ohne Beschluss des Rats — mit Pflicht-Grund, der im Register und im Audit-Log steht."),
         ),
         Faehigkeit(
             titel=_("Eine Fassung der Verfahrensordnung erzeugen und in Kraft setzen"),

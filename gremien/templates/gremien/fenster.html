@@ -68,7 +68,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
   {% else %}
     <div class="karte">
       <p class="phasen-titel">{% translate "Stand der Schleife" %}</p>
-      <p><span class="stand-punkt">{{ entwurf.get_status_display }}</span>
+      <p><span class="stand-punkt">{{ entwurf.status_anzeige }}</span>
          <span class="stand-punkt">{% blocktranslate with n=entwurf.runde %}Runde {{ n }}{% endblocktranslate %}</span>
          {% if entwurf.vollzugsbezug %}<span class="stand-punkt">{% translate "Vollzugsbezug — Gruppe 2 prüft" %}</span>{% endif %}</p>
       {% if entwurf.status == "in_arbeit" and entwurf.runde == 1 and beratungsfrist %}

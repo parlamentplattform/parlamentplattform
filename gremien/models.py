@@ -208,6 +208,11 @@ VORSCHLAG_ALS_FASSUNG = "Vorschlag des Expertenrats, Runde "
 #: Die Fristfelder des Entwurfs, die eine Zurückweisung sichert und ihre Aufhebung verschoben wiederherstellt.
 ENTWURF_FRISTFELDER = ("review_frist", "ueberarbeitung_frist", "beratung_freigegeben_am")
 
+#: Der Beginn der Prüffrist am Entwurf (ohne besetzte Gruppe 2 läuft sie ab der Einreichung): Die
+#: Zurückweisung sichert ihn mit, leert ihn aber nicht; die Aufhebung rückt ihn in der Prüfphase um
+#: die Dauer der Zurückweisung nach hinten (GP-008) — sonst wäre die Prüffrist sofort um.
+ENTWURF_FRISTBEGINNE = ("eingereicht_am",)
+
 
 class EntwurfsStatus(models.TextChoices):
     IN_ARBEIT = "in_arbeit", _("in Arbeit (Expertenrat)")
@@ -347,6 +352,17 @@ class Entwurf(models.Model):
             self.status == EntwurfsStatus.ANGENOMMEN
             and self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
         )
+
+    def status_anzeige(self):
+        """Der Status, wie ihn die Werkstatt nennt (GP-008).
+
+        Der Status „angenommen“ heißt „zur Endabstimmung übergeben“ — eine Zurückweisung legt die
+        Schleife aber mit demselben Status still, ohne dass etwas übergeben wurde. Ein eigener Status
+        wäre eine Modelländerung; die Anzeige unterscheidet wie die Antragsseite über
+        `vorschlag_uebernommen`."""
+        if self.status == EntwurfsStatus.ANGENOMMEN and not self.vorschlag_uebernommen():
+            return _("ruht — der Vorschlag wurde nicht übernommen")
+        return self.get_status_display()
 
     def ueberarbeitung_verstrichen(self, jetzt=None) -> bool:
         """Ob die Überarbeitungsfrist einer Rückgabe-Runde ohne neue Einreichung abgelaufen ist."""
@@ -1609,6 +1625,39 @@ def zurueckweisung_moeglich(antrag) -> bool:
     )
 
 
+def _offene_beschluesse_zu(antrag, beschluss) -> list:
+    """Die übrigen offenen Beschlüsse zu diesem Antrag — die ein Beschluss mitschließt, der ihn stoppt."""
+    return list(
+        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
+    )
+
+
+def _beschluesse_mitschliessen(mitgeschlossen, beschluss, jetzt, grund: str, vermerk: str) -> None:
+    """Schließt Beschlüsse ohne Auswertung, weil `beschluss` ihren Antrag gestoppt hat (GP-008).
+
+    Der eine Weg für Zurückweisung und Sperrfeststellung: Jeder mitgeschlossene Beschluss bekommt einen
+    Vermerk und einen Audit-Eintrag — sonst stünde er öffentlich als „zu wenige Stimmen oder
+    Gleichstand“ da, und sein Ende fehlte in der Kette. `grund` ist ein Schlüsselwort ohne Person."""
+    for anderer in mitgeschlossen:
+        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
+        anderer.entschieden_am = jetzt
+        anderer.umsetzungsvermerk = (
+            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: {vermerk}"
+        ).strip()[:2000]
+        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "gremienbeschluss_geschlossen",
+                "gremium": anderer.gremium,
+                "beschluss": anderer.pk,
+                "nummer": anderer.nummer,
+                "antrag": anderer.antrag_id,
+                "grund": grund,
+                "durch_beschluss": beschluss.pk,
+            }
+        )
+
+
 def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     """Weist einen Antrag zurück (§ 5 Abs 2) — und hält fest, was dabei überschrieben wurde.
 
@@ -1650,12 +1699,10 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
             "status": entwurf.status,
             **{
                 feld: wert.isoformat() if (wert := getattr(entwurf, feld)) else None
-                for feld in ENTWURF_FRISTFELDER
+                for feld in ENTWURF_FRISTFELDER + ENTWURF_FRISTBEGINNE
             },
         }
-    mitgeschlossen = list(
-        GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk)
-    )
+    mitgeschlossen = _offene_beschluesse_zu(antrag, beschluss)
     beschluss.zustand_vorher["geschlossene_beschluesse"] = [b.pk for b in mitgeschlossen]
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
@@ -1670,25 +1717,13 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
         for feld in ENTWURF_FRISTFELDER:
             setattr(entwurf, feld, None)
         entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
-    for anderer in mitgeschlossen:
-        anderer.status = BeschlussStatus.OHNE_ERGEBNIS
-        anderer.entschieden_am = jetzt
-        anderer.umsetzungsvermerk = (
-            f"{anderer.umsetzungsvermerk} Ohne Auswertung geschlossen: Der Antrag wurde mit Beschluss "
-            f"{beschluss.nummer} zurückgewiesen (§ 5 Abs 2)."
-        ).strip()[:2000]
-        anderer.save(update_fields=["status", "entschieden_am", "umsetzungsvermerk"])
-        AuditEintrag.anhaengen(
-            {
-                "typ": "gremienbeschluss_geschlossen",
-                "gremium": anderer.gremium,
-                "beschluss": anderer.pk,
-                "nummer": anderer.nummer,
-                "antrag": antrag.pk,
-                "grund": "zurueckweisung",
-                "durch_beschluss": beschluss.pk,
-            }
-        )
+    _beschluesse_mitschliessen(
+        mitgeschlossen,
+        beschluss,
+        jetzt,
+        grund="zurueckweisung",
+        vermerk=f"Der Antrag wurde mit Beschluss {beschluss.nummer} zurückgewiesen (§ 5 Abs 2).",
+    )
     AuditEintrag.anhaengen(
         {
             "typ": "antrag_zurueckgewiesen",
@@ -1708,7 +1743,11 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     dieselbe wie vorher. Dasselbe gilt für die Entwurfsschleife (Gesamtprüfung GP-008): Status
     und Fristen des Entwurfs kehren zurück, die Fristen um dieselbe Dauer verschoben — sonst
     bliebe der Vorschlag des Expertenrats verloren, und abgestimmt würde über den Urtext. Eine
-    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen."""
+    Zurückweisung, die den Stand der Schleife noch nicht gesichert hat, lässt sie ruhen.
+
+    In der Prüfphase rückt auch der Beginn der Prüffrist (`eingereicht_am`) mit: Ohne besetzte
+    Gruppe 2 läuft sie ab der Einreichung und wäre nach einer längeren Zurückweisung sofort um.
+    Ein mitgeschlossener Prüfbeschluss der Gruppe 2 entsteht mit der nächsten Fortschreibung neu."""
     from datetime import datetime
 
     from plattform_core import Phase
@@ -1743,7 +1782,17 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
         for feld in ENTWURF_FRISTFELDER:
             wert = gesichert.get(feld)
             setattr(entwurf, feld, datetime.fromisoformat(wert) + (jetzt - seit) if wert else None)
-        entwurf.save(update_fields=["status", *ENTWURF_FRISTFELDER])
+        felder = ["status", *ENTWURF_FRISTFELDER]
+        if entwurf.status == EntwurfsStatus.PRUEFUNG:
+            # Auch die Prüffrist ruhte (GP-008): Ihr Beginn rückt um dieselbe Dauer. Gelesen wird der
+            # gesicherte Wert; eine Zurückweisung, die ihn noch nicht gesichert hat, ließ ihn stehen.
+            for feld in ENTWURF_FRISTBEGINNE:
+                wert = gesichert.get(feld)
+                beginn = datetime.fromisoformat(wert) if wert else getattr(entwurf, feld)
+                if beginn is not None:
+                    setattr(entwurf, feld, beginn + (jetzt - seit))
+                    felder.append(feld)
+        entwurf.save(update_fields=felder)
         wiederhergestellt = entwurf.status
     AuditEintrag.anhaengen(
         {
@@ -2875,10 +2924,12 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
             "als eröffnet (§ 7 Abs 10 lit b).",
         )
         return
+    mitgeschlossen = _offene_beschluesse_zu(antrag, beschluss)
     beschluss.zustand_vorher = {
         "phase": antrag.phase,
         "phase_beginn": antrag.phase_beginn.isoformat(),
         "zurueckgewiesen_am": jetzt.isoformat(),
+        "geschlossene_beschluesse": [b.pk for b in mitgeschlossen],
     }
     beschluss.save(update_fields=["zustand_vorher"])
     antrag.phase = Phase.ZURUECKGEWIESEN.value
@@ -2891,8 +2942,16 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
     vf.sperre_beschluss = beschluss
     vf.save(update_fields=["sperre_beschluss"])
-    GremienBeschluss.objects.filter(antrag=antrag, status=BeschlussStatus.OFFEN).exclude(pk=beschluss.pk).update(
-        status=BeschlussStatus.OHNE_ERGEBNIS, entschieden_am=jetzt
+    # Wie bei der Zurückweisung (GP-008): mit Vermerk und Audit-Eintrag je Beschluss, nicht stumm.
+    _beschluesse_mitschliessen(
+        mitgeschlossen,
+        beschluss,
+        jetzt,
+        grund="vertrauensfrage_sperre",
+        vermerk=(
+            f"Mit Beschluss {beschluss.nummer} wurde die Sperre der Vertrauensfrage festgestellt — "
+            "der Antrag gilt als nicht eröffnet (§ 7 Abs 10 lit g)."
+        ),
     )
     AuditEintrag.anhaengen(
         {

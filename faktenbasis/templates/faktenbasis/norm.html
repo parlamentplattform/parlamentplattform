@@ -21,6 +21,10 @@
   {% if novelle.ziel %}
     <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
     <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
+  {% elif kundmachung %}
+    <p><a href="{{ kundmachung.eli }}" rel="noopener">{{ novelle.bezeichnung }}</a> · {{ novelle.bundesland }}</p>
+    <p>{% translate "Kundmachungsdatum laut archiviertem RIS-Beleg" %} {{ kundmachung.kundgemacht_am|date:"DATE_FORMAT" }} · {{ kundmachung.dokumentnummer }}</p>
+    <p class="meta">{% translate "SHA-256 der eingelesenen Kundmachungsdatei" %} <code class="fakten-hash">{{ kundmachung.original_sha256 }}</code> · {% translate "Belegprüfung, Fassung" %} {{ kundmachung.parser_fassung }}</p>
   {% else %}
     <p><strong>{{ novelle.bezeichnung }}</strong> · {{ novelle.bundesland }}</p>
     <p class="hilfe">{% translate "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum." %}</p>

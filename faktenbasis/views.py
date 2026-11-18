@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_safe
 
 from faktenbasis.models import (
+    Kundmachungsnachweis,
     Norm,
     NormText,
     PersonalAbruf,
@@ -51,9 +52,13 @@ def norm(request, pk):
     novelle = None
     if (eintrag.ebene == "Bund" and not eintrag.bundesland) or (eintrag.ebene == "Land" and eintrag.bundesland):
         novelle = novellenfundstelle(eintrag.rohdaten, eintrag.ris_id, eintrag.stand, bundesland=eintrag.bundesland)
+    kundmachung = None
+    if novelle and novelle.bundesland:
+        kundmachung = Kundmachungsnachweis.objects.filter(norm=eintrag).defer("original").first()
     return render(request, "faktenbasis/norm.html", {
         "norm": eintrag,
         "novelle": novelle,
+        "kundmachung": kundmachung,
         "novellenfassung": NOVELLENFASSUNG,
         "fassungen": Norm.objects.filter(ris_id=eintrag.ris_id).order_by("-stand", "-pk"),
         "rohdaten": json.dumps(eintrag.rohdaten, ensure_ascii=False, indent=2),

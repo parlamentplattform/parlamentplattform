@@ -1066,10 +1066,12 @@ class Vertrauensfrage(models.Model):
         """Ob die vermerkte Anfechtung binnen sieben Tagen ab Veröffentlichung erhoben wurde (lit h).
         Nur eine rechtzeitige hält Z 1/2/6 und Z 5 an (lit f letzter Unterabsatz: „bei rechtzeitiger
         Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
-        trotzdem, ehrlich datiert."""
-        if self.angefochten_am is None or self.wirkungen_ab is None:
+        trotzdem, ehrlich datiert. Die Frist läuft ab der Veröffentlichung jedes Ergebnisses (lit h), auch
+        eines gewonnenen oder einer Bestätigung, die keine Wirkungen nach lit f tragen (GP-112)."""
+        ab = self.wirkungen_ab or self.ergebnis_am
+        if self.angefochten_am is None or ab is None:
             return False
-        return self.angefochten_am <= self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+        return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def endgueltig_ab(self):
         """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der

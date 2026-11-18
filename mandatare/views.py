@@ -1682,12 +1682,31 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
             return True
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        ergebnistag = timezone.localdate(vf.ergebnis_am)
+        if tag is not None and not ergebnistag <= tag <= timezone.localdate():
+            # Eine Anfechtung, die noch nicht erhoben ist oder vor dem Ergebnis läge, hielte die Wirkungen an (GP-110)
+            messages.error(
+                request,
+                _("Das Datum der Anfechtung liegt zwischen der Veröffentlichung des Ergebnisses (%(ab)s) und heute.")
+                % {"ab": ergebnistag.strftime("%d.%m.%Y")},
+            )
+            return True
         # Ein eingegebener Tag gilt ab seinem Beginn: Die Sieben-Tage-Frist (lit h) wird zeitpunktgenau gegen die
         # Veröffentlichung gerechnet — am siebten Tag eingebracht heißt rechtzeitig, gleich zu welcher Uhrzeit.
+        # Am Ergebnistag liegt der Vermerk nie vor der Veröffentlichung.
         jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
+        jetzt = max(jetzt, vf.ergebnis_am)
         vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt)
         vf.refresh_from_db()
-        if vf.anfechtung_rechtzeitig:
+        if vf.wirkungen_ab is None:
+            # Gewonnen oder Bestätigung: keine Wirkungen nach lit f, die auf die Entscheidung warten (GP-112)
+            if vf.anfechtung_rechtzeitig:
+                messages.success(request, _("Anfechtung vermerkt — binnen sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h)."))
+            else:
+                messages.warning(
+                    request, _("Anfechtung vermerkt — sie liegt nach der Frist von sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h).")
+                )
+        elif vf.anfechtung_rechtzeitig:
             messages.success(
                 request,
                 _("Anfechtung vermerkt — das Ruhen der Rollen und das Ende der Mandatsvereinbarung warten auf die "

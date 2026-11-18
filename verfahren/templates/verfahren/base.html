@@ -211,7 +211,7 @@ main{max-width:960px;margin:0 auto;padding:36px 20px 90px}
 form p{margin:0 0 16px}
 form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
 input[type=text],input[type=email],input[type=url],input[type=number],input[type=search],input[type=date],input[type=time],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color var(--d-fast),box-shadow var(--d-fast)}
-input[type=search],input[type=date],input[type=time],select{width:auto}
+input[type=search],input[type=date],input[type=time],select{width:auto;max-width:100%}
 .wohnsitz-auswahl{display:block;width:100%}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--fokus);outline-offset:1px;border-color:var(--fokus)}
@@ -365,7 +365,9 @@ html.js .zu-ohne-js{display:none}
 .kachel .k-thema{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .kachel .k-thema-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kachel .k-stern{margin-left:auto;flex:none}
-.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Sichtprüfung 0.113.0: Ist die Kachel niedriger als ihr Inhalt, gibt nicht der Titel nach (er ist der Weg
+   der Kachel); im Feld „Wichtige Abstimmungen“ blieben ihm am Desktop sonst vier Pixel */
+.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:none}
 .kachel .k-titel:hover{text-decoration:underline}
 .kachel .k-titel::before{content:"";position:absolute;inset:0}
 .kachel .k-kopf,.kachel .k-meta,.kachel .k-fuss{position:relative;z-index:1}

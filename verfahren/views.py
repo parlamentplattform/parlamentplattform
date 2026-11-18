@@ -1201,8 +1201,9 @@ def meldungen(request):
         return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
     offene = Meldung.objects.filter(erledigt_am__isnull=True).order_by("erstellt_am")
     beitraege = (
-        Kommentar.objects.filter(meldungen__erledigt_am__isnull=True)
-        .distinct()
+        # Über die Kennungen der offenen Meldungen: Ein Filter über die Rückbeziehung
+        # (`meldungen__erledigt_am__isnull=True`) träfe auch jeden Beitrag ganz ohne Meldung.
+        Kommentar.objects.filter(pk__in=offene.values("kommentar_id"))
         .select_related("mitglied", "antrag", "sitzung")
         .prefetch_related(Prefetch("meldungen", queryset=offene, to_attr="offene_meldungen"))
         .order_by("erstellt_am")

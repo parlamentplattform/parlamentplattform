@@ -17,9 +17,11 @@ import logging
 from dataclasses import dataclass, field
 from math import ceil
 
+from django.db.models import F
 from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet
 from ki.models import einbettung_ausfuehren
 from parameter.models import zahl
 from plattform_core import Phase
@@ -64,6 +66,17 @@ class Ergebnis:
         return bool(self.bedeutungsmodell)
 
 
+def drossel_zuruecknehmen(zweck: str, kennung: str) -> None:
+    """Einen gezählten Versuch zurücknehmen, der den Anbieter nie erreicht hat (`SteckplatzWartet`:
+    Zugang belegt, kein Anbieter, Budget erschöpft) — die Stundengrenze je Konto zählt Anbieteraufrufe,
+    nicht Wartezeit (GP-207). Trifft den jüngsten Eimer dieses Zwecks und dieser Kennung."""
+    from mitglieder.models import Drosselzaehler
+
+    zeile = Drosselzaehler.objects.filter(zweck=zweck, kennung=kennung, anzahl__gt=0).order_by("-stunde").first()
+    if zeile is not None:
+        Drosselzaehler.objects.filter(pk=zeile.pk, anzahl__gt=0).update(anzahl=F("anzahl") - 1)
+
+
 def _fassung(antrag: Antrag):
     """Die jüngste Fassung aus dem Vorab-Laden (`prefetch_related("fassungen")`), ohne neue Abfrage."""
     return max(antrag.fassungen.all(), key=lambda f: f.nummer, default=None)
@@ -103,7 +116,8 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     from mitglieder.botschutz import drossel_zuviel
 
     je_stunde = max(0, zahl("aehnlichkeit-bedeutung-je-stunde", BEDEUTUNG_JE_KONTO_UND_STUNDE))
-    if drossel_zuviel(None, "bedeutung", je_stunde, kennung=f"konto:{mitglied.pk}"):
+    kennung = f"konto:{mitglied.pk}"
+    if drossel_zuviel(None, "bedeutung", je_stunde, kennung=kennung):
         ergebnis.gedrosselt = True
         ergebnis.bedeutung_grund = "Anbieteraufrufe dieses Kontos für diese Stunde verbraucht"
         return {}
@@ -114,6 +128,8 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
             zeitgrenze=max(1, zahl("aehnlichkeit-zeitgrenze-sekunden", ZEITGRENZE_ANFRAGE_SEKUNDEN)),
         )
     except SteckplatzStumm as grund:
+        if isinstance(grund, SteckplatzWartet):
+            drossel_zuruecknehmen("bedeutung", kennung)
         ergebnis.bedeutung_grund = str(grund)
         log.info("Bedeutungsstufe übersprungen: %s", grund)
         return {}

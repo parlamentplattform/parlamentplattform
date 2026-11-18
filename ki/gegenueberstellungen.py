@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm
 from ki.auftraege import auftrag_laden
+from ki.betriebszugang import SteckplatzWartet
 from ki.models import KILauf, Vergleichsanfrage, Zweck, lauf_ausfuehren
 from ki.vergleichsanfragen import anlegen, kennung_lesen, reservieren
 from ki.vergleichskontext import eingabe, festhalten, pruefen
@@ -31,8 +32,8 @@ def anfordern(daten, mitglied, pruefstand, token):
     if not reservieren(anfrage, mitglied):
         anfrage.refresh_from_db()
         return anfrage
-    if drossel_zuviel(None, "gegenueberstellung", max(0, zahl("gegenueberstellung-je-stunde", 5)),
-                     kennung=f"konto:{mitglied.pk}"):
+    kennung = f"konto:{mitglied.pk}"
+    if drossel_zuviel(None, "gegenueberstellung", max(0, zahl("gegenueberstellung-je-stunde", 5)), kennung=kennung):
         Vergleichsanfrage.objects.filter(pk=anfrage.pk).update(
             status="ohne_ergebnis", meldung="stundengrenze", beendet_am=timezone.now())
     else:
@@ -44,7 +45,12 @@ def anfordern(daten, mitglied, pruefstand, token):
                 kontext={"vergleichsanfrage": str(anfrage.pk), "vergleich": anfrage.kontext},
                 zeitgrenze=max(1, min(45, zahl("gegenueberstellung-zeitgrenze-sekunden", 8))),
             )
-        except SteckplatzStumm:
+        except SteckplatzStumm as grund:
+            if isinstance(grund, SteckplatzWartet):
+                # Kein Anbieteraufruf: der Versuch verbraucht die Stundengrenze nicht (GP-207).
+                from verfahren.aehnlichkeit import drossel_zuruecknehmen
+
+                drossel_zuruecknehmen("gegenueberstellung", kennung)
             fehlauf = KILauf.objects.filter(
                 zweck=Zweck.GEGENUEBERSTELLUNG, angefordert_von=mitglied,
                 kontext__vergleichsanfrage=str(anfrage.pk), erfolgreich=False,

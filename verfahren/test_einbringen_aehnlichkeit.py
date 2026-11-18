@@ -206,6 +206,30 @@ def test_bedeutungsstufe_ist_je_konto_und_stunde_gedrosselt(client, settings, be
     assert laeufe.count() == BEDEUTUNG_JE_KONTO_UND_STUNDE + 1
 
 
+def test_belegter_steckplatz_verbraucht_kein_stundenkontingent(client, settings, bestehend, monkeypatch):
+    """GP-207 (ZWA-23): Ohne Anbieteraufruf zählt die Drossel nicht — fünf Versuche bei belegtem Zugang
+    lassen den Zähler bei 0, der sechste bei freiem Zugang ruft den Anbieter."""
+    from types import SimpleNamespace
+
+    from ki.models import SteckplatzZugang
+    from mitglieder.models import Drosselzaehler
+
+    monkeypatch.setattr('mitglieder.botschutz.time', SimpleNamespace(time=lambda: 3600 * 480_000 + 1800))
+    settings.DDOE_KI_ANBIETER = 'attrappe'
+    bernd = mitglied_anlegen('bernd')
+    client.force_login(bernd)
+    SteckplatzZugang.objects.update_or_create(name='anbieter', defaults={'belegt': True})
+    for _ in range(5):
+        assert client.post(reverse('verfahren:einbringen'), UMFORMULIERT).status_code == 200
+    zaehler = Drosselzaehler.objects.filter(zweck='bedeutung', kennung=f'konto:{bernd.pk}')
+    assert sum(zaehler.values_list('anzahl', flat=True)) == 0
+    assert not KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT).exists()
+    SteckplatzZugang.objects.filter(name='anbieter').update(belegt=False)
+    antwort = client.post(reverse('verfahren:einbringen'), UMFORMULIERT)
+    assert antwort.context['aehnliche'][0]['bedeutung_prozent'] is not None
+    assert KILauf.objects.filter(zweck=Zweck.AEHNLICHKEIT).count() == 1
+
+
 def test_zeitgrenze_und_drossel_kommen_aus_dem_register(client, settings, bestehend, monkeypatch):
     """Entscheidung des Gründers 29.9.2026: Zeitgrenze und Drossel der Bedeutungsstufe sind Registerwerte."""
     from types import SimpleNamespace

@@ -33,7 +33,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="phasen-titel">{% translate "Anzeigename" %}</p>
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   <p><label for="{{ form.anzeigename.id_for_label }}">{{ form.anzeigename.label }}</label>{{ form.anzeigename }}
-  {% if form.anzeigename.errors %}<ul class="fehlerliste">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  {% if form.anzeigename.errors %}<ul class="fehlerliste" id="{{ form.anzeigename.auto_id }}_error">{% for e in form.anzeigename.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <p><span class="checkzeile">{{ form.klarname_oeffentlich }} <label for="{{ form.klarname_oeffentlich.id_for_label }}">{{ form.klarname_oeffentlich.label }}</label></span></p>
   <p class="hilfe">{% translate "So erscheinen Sie bei Anträgen und Beiträgen. Die Satzung sieht ein beständiges Pseudonym als Regelfall vor (§ 5 Abs 3 lit a). Ohne Anzeigenamen zeigt die Plattform Ihren Klarnamen nur, wenn Sie es hier erlauben; sonst „Mitglied n“ mit Ihrer Mitgliedsnummer." %}</p>
   <p class="hilfe">{% blocktranslate with name=user.anzeigename %}Derzeit erscheinen Sie als „{{ name }}“.{% endblocktranslate %}</p>
@@ -44,16 +44,16 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 <div class="karte" id="wohnsitz">
   <p class="phasen-titel">{% translate "Wohnsitz und Nebenwohnsitz" %}</p>
   <p><label for="{{ form.wohnsitz_art.id_for_label }}">{{ form.wohnsitz_art.label }}</label>{{ form.wohnsitz_art }}
-  {% if form.wohnsitz_art.help_text %}<span class="hilfe">{{ form.wohnsitz_art.help_text }}</span>{% endif %}
-  {% if form.wohnsitz_art.errors %}<ul class="fehlerliste">{% for e in form.wohnsitz_art.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  {% if form.wohnsitz_art.help_text %}<span class="hilfe" id="{{ form.wohnsitz_art.auto_id }}_helptext">{{ form.wohnsitz_art.help_text }}</span>{% endif %}
+  {% if form.wohnsitz_art.errors %}<ul class="fehlerliste" id="{{ form.wohnsitz_art.auto_id }}_error">{% for e in form.wohnsitz_art.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <p><label for="{{ form.gemeinde.id_for_label }}">{{ form.gemeinde.label }}</label>{{ form.gemeinde }}
-  {% if form.gemeinde.errors %}<ul class="fehlerliste">{% for e in form.gemeinde.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  {% if form.gemeinde.errors %}<ul class="fehlerliste" id="{{ form.gemeinde.auto_id }}_error">{% for e in form.gemeinde.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   {% if wiener_bezirk_anzeigen or form.wiener_bezirk.errors %}
     <p><label for="{{ form.wiener_bezirk.id_for_label }}">{{ form.wiener_bezirk.label }}</label>{{ form.wiener_bezirk }}</p>
     {{ form.wiener_bezirk.errors }}
   {% endif %}
   <p><label for="{{ form.nebenwohnsitz.id_for_label }}">{{ form.nebenwohnsitz.label }}</label>{{ form.nebenwohnsitz }}
-  {% if form.nebenwohnsitz.errors %}<ul class="fehlerliste">{% for e in form.nebenwohnsitz.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+  {% if form.nebenwohnsitz.errors %}<ul class="fehlerliste" id="{{ form.nebenwohnsitz.auto_id }}_error">{% for e in form.nebenwohnsitz.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
   <button type="submit" class="btn">{% translate "Speichern" %}</button>
   <p class="hilfe">{% translate "Bezirk und Bundesland folgen dem amtlichen Gemeindeverzeichnis; der Wohnsitz bestimmt „Meine Region“ (§ 14 Abs 3). Die Änderung wird ohne Ortsnamen im Audit-Log vermerkt." %}</p>
   <p class="hilfe">{% blocktranslate with wert=nebenwohnsitz_zaehlt schluessel=registerschluessel %}Der Nebenwohnsitz ordnet Sie zusätzlich einer Region zu, sobald die Stellgröße „{{ schluessel }}“ auf 1 steht (heute: {{ wert }}). Am Stimmrecht ändert er nichts (§ 5 Abs 6).{% endblocktranslate %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %} ›</a></p>

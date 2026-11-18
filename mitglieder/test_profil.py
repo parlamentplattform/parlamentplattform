@@ -1135,3 +1135,16 @@ def test_datenexport_nur_get_und_je_konto_gedrosselt(client):
     anderes = Client()
     anderes.force_login(bert)
     assert anderes.get(EXPORT).status_code == 200
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def test_feldfehler_im_profil_sind_verknuepft(client):
+    from mitglieder.test_views import verweise_ins_leere
+
+    anna = mit_wohnsitz("anna")
+    client.force_login(anna)
+    antwort = profil_speichern(client, anzeigename="Mitglied 7", gemeinde="Nirgendwo im Nichts", nebenwohnsitz="Auch nicht")
+    assert antwort.status_code == 200
+    assert verweise_ins_leere(antwort.content.decode()) == []

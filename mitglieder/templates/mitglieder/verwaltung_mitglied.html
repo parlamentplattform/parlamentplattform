@@ -65,8 +65,8 @@
   {% if form.non_field_errors %}<ul class="fehlerliste">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   {% for feld in form.visible_fields %}
     <p>{% if feld.field.widget.input_type == "checkbox" %}<span class="checkzeile">{{ feld }} <label for="{{ feld.id_for_label }}">{{ feld.label }}</label></span>{% else %}<label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}{% endif %}
-    {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
-    {% if feld.name == "wohnsitz_art" %}<p class="hilfe">{{ feld.help_text }}</p>{% endif %}
+    {% if feld.errors %}<ul class="fehlerliste" id="{{ feld.auto_id }}_error">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+    {% if feld.name == "wohnsitz_art" %}<p class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</p>{% endif %}
   {% endfor %}
   <button type="submit" class="btn">{% translate "Speichern" %}</button>
   <p class="hilfe" style="margin-top:10px">{% blocktranslate %}Bezirk und Bundesland folgen automatisch dem Gemeindeverzeichnis.

@@ -682,3 +682,19 @@ def test_verweise_auf_paragraf_4_nennen_nur_vorhandene_absaetze():
         for absatz in re.findall(r"§ 4 Abs (\d+)", datei.read_text(encoding="utf-8"))
     ]
     assert zitate and all(1 <= absatz <= 5 for _datei, absatz in zitate), zitate
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def test_feldfehler_der_stammdaten_sind_verknuepft(client):
+    from mitglieder.test_views import verweise_ins_leere
+
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    antwort = client.post(detail(anna.pk), {
+        "aktion": "stammdaten", "email": "keine-adresse", "wohnsitz_art": "oesterreich",
+        "gemeinde": "Nirgendwo im Nichts", "identitaetsstufe": "falsch", "beitrag_zuletzt_am": "kein-datum",
+    })
+    assert antwort.status_code == 200
+    assert verweise_ins_leere(antwort.content.decode()) == []

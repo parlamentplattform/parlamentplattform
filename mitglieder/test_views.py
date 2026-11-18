@@ -700,3 +700,60 @@ def test_anmeldeseite_verweist_auf_das_gemeindekonto(client, sprache):
     html = client.get(reverse("mitglieder:login"), HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
     hauptteil = html.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
     assert f'href="{reverse("gemeinde:anmelden")}"' in hauptteil
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def verweise_ins_leere(html: str) -> list[str]:
+    """Für jedes Feld mit aria-invalid: Jede Kennung in aria-describedby gehört zu einem Element;
+    das Fehlerelement (`…_error`) trägt Text. Gibt die Mängel zurück; leer heißt verknüpft."""
+    from html.parser import HTMLParser
+
+    class Leser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.ungueltig, self.texte, self.offen = [], {}, []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if a.get("aria-invalid") == "true":
+                self.ungueltig.append((a.get("name"), (a.get("aria-describedby") or "").split()))
+            if a.get("id"):
+                self.texte.setdefault(a["id"], "")
+                if tag not in ("input", "br", "img", "meta", "link"):
+                    self.offen.append((tag, a["id"]))
+            elif tag not in ("input", "br", "img", "meta", "link"):
+                self.offen.append((tag, None))
+
+        def handle_endtag(self, tag):
+            while self.offen:
+                t, _kennung = self.offen.pop()
+                if t == tag:
+                    break
+
+        def handle_data(self, data):
+            for _t, kennung in self.offen:
+                if kennung:
+                    self.texte[kennung] += data
+
+    leser = Leser()
+    leser.feed(html)
+    assert leser.ungueltig, "kein ungültiges Feld gerendert"
+    maengel = []
+    for name, kennungen in leser.ungueltig:
+        if not any(k.endswith("_error") for k in kennungen):
+            maengel.append(f"{name}: kein Fehlerverweis")
+        for k in kennungen:
+            if k not in leser.texte:
+                maengel.append(f"{name}: {k} fehlt")
+            elif k.endswith("_error") and not leser.texte[k].strip():
+                maengel.append(f"{name}: {k} ohne Text")
+    return maengel
+
+
+def test_feldfehler_von_anmeldung_und_registrierung_sind_verknuepft(client):
+    html = client.post(reverse("mitglieder:login"), {"email": "keine-adresse"}).content.decode()
+    assert verweise_ins_leere(html) == []
+    html = client.post(reverse("mitglieder:registrieren"), {"email": "keine-adresse"}).content.decode()
+    assert verweise_ins_leere(html) == []

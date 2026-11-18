@@ -1737,6 +1737,12 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
     register, neu = StimmRegister.objects.get_or_create(
         antrag=antrag, mitglied=mitglied, defaults={"pseudonym": uuid.uuid4()}
     )
+    if not neu:
+        # Dieselbe Stimme noch einmal ist keine Änderung (GP-164): kein Ereignis „Stimme geändert“
+        # in der öffentlichen Kette, und die Stimmzeile bleibt samt Zeitpunkt, wie sie war.
+        bisher = Stimmabgabe.objects.filter(antrag=antrag, pseudonym=register.pseudonym).first()
+        if bisher is not None and bisher.stimme == stimme:
+            return bisher
     abgabe, _angelegt = Stimmabgabe.objects.update_or_create(
         antrag=antrag,
         pseudonym=register.pseudonym,

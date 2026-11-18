@@ -345,3 +345,14 @@ def test_treffer_ohne_normen_zeigen_keine_klappe(client, bestehend):
     client.force_login(mitglied_anlegen("bernd"))
     inhalt = client.post(reverse("verfahren:einbringen"), UMFORMULIERT).content.decode()
     assert "laut Zukunftswerkstatt" not in inhalt
+
+
+def test_karte_nennt_ihre_reihung_und_verlinkt_die_regel(client, bestehend):
+    """GP-206 (ZWB-03): Die Karte sagt, wie sie reiht, und das Regelverzeichnis ist ein Link auf den
+    vorhandenen Anker der Ähnlichkeitsregel."""
+    client.force_login(mitglied_anlegen('bernd'))
+    inhalt = client.post(reverse('verfahren:einbringen'), UMFORMULIERT).content.decode()
+    ziel = reverse('parameter:regeln') + '#regel-similarity'
+    assert f'href="{ziel}"' in inhalt
+    assert 'gereiht nach dem höheren der beiden Werte' in inhalt
+    assert 'id="regel-similarity"' in client.get(reverse('parameter:regeln')).content.decode()

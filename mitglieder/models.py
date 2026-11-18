@@ -739,7 +739,10 @@ class Bankkopplung(models.Model):
         from django.utils import timezone
 
         heute = timezone.localdate()
-        return self.abruf_tag != heute or self.abrufe_heute < self.ABRUFE_PRO_TAG - vorbehalt
+        # Auch der erste Abruf des Tages zählt gegen den Vorbehalt: Seit er ein Registerwert ist, kann
+        # er das ganze Kontingent umfassen.
+        bisher = self.abrufe_heute if self.abruf_tag == heute else 0
+        return bisher < self.ABRUFE_PRO_TAG - vorbehalt
 
     def abruf_vermerken(self) -> None:
         from django.utils import timezone

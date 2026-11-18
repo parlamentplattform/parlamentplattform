@@ -815,7 +815,7 @@ def daten_export(mitglied: Mitglied) -> dict:
     return daten
 
 
-# GP-099: Startwert; in der zweiten Runde wird die Grenze ein Registerwert.
+#: Erstbestand und Rückfall des Registerwerts „datenexport-je-stunde“ (GP-099).
 EXPORT_JE_STUNDE = 10
 
 
@@ -825,9 +825,10 @@ EXPORT_JE_STUNDE = 10
 def export_json(request):
     """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto.
 
-    Nur GET; je Konto und Kalenderstunde höchstens `EXPORT_JE_STUNDE` Abrufe, damit kein
+    Nur GET; je Konto und Kalenderstunde höchstens „datenexport-je-stunde“ Abrufe, damit kein
     Konto die öffentliche Audit-Kette mit Exportzeilen füllt (GP-099)."""
-    if drossel_zuviel(None, "datenexport", EXPORT_JE_STUNDE, kennung=f"konto:{request.user.pk}"):
+    grenze = max(1, zahl("datenexport-je-stunde", EXPORT_JE_STUNDE))  # nie ganz gesperrt (Art 15/20 DSGVO)
+    if drossel_zuviel(None, "datenexport", grenze, kennung=f"konto:{request.user.pk}"):
         from datetime import datetime
 
         from django.utils import formats

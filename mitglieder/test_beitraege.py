@@ -277,3 +277,24 @@ def test_ein_konto_verbraucht_nicht_das_tageskontingent_fuer_alle(client, settin
     abstand_vorbei()
     assert bank.abgleich_ausfuehren() == (0, "ok")
     assert len(abrufe) == Bankkopplung.ABRUFE_PRO_TAG
+
+
+@pytest.mark.parametrize("meldungen, vorbehalt, erwartet", [("2", "1", 2), ("1", "4", 0)])
+def test_meldungen_je_konto_und_vorbehalt_kommen_aus_dem_register(
+    client, settings, monkeypatch, meldungen, vorbehalt, erwartet
+):
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    settings.DDOE_BANK_SECRET_ID = "x"
+    settings.DDOE_BANK_SECRET_KEY = "y"
+    Bankkopplung.objects.create(requisition_id="r1", institution_id="TEST", account_id="k1")
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="beitrag-meldungen-mit-abruf-je-konto").update(wert=meldungen)
+    Parameter.objects.filter(schluessel="beitrag-abruf-verwaltungsvorbehalt").update(wert=vorbehalt)
+    abrufe = []
+    monkeypatch.setattr(bank, "_get", lambda pfad, **params: abrufe.append(pfad) or {"transactions": {"booked": []}})
+    client.force_login(mitglied_anlegen("ungeduldig"))
+    for _ in range(2):
+        Bankkopplung.objects.update(zuletzt_abgerufen=timezone.now() - timedelta(hours=1))
+        client.post(reverse("mitglieder:beitrag_gemeldet"))
+    assert len(abrufe) == erwartet

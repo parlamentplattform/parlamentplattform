@@ -431,6 +431,27 @@ def test_die_grenzen_der_maschine_stehen_im_register():
     assert schema_key("post-hoechstversuche") == "mail.max_attempts"
 
 
+def test_die_drosseln_der_ersten_behebungsrunde_stehen_im_register():
+    """Repo-Regel „keine neuen harten Konstanten“: Die erste Behebungsrunde der Gesamtprüfung führte
+    drei Drosseln als Konstanten ein (Datenexport je Stunde, Bankabruf je Konto und Tag, Vorbehalt der
+    Verwaltung). Sie sind Registerwerte mit unverändertem Startwert und Schema-Kennung."""
+    from mitglieder.models import Bankkopplung
+    from parameter.models import wertbereich
+    from plattform_core.schema import schema_key
+
+    werte = {e["schluessel"]: e for e in ERSTBESTAND}
+    assert werte["datenexport-je-stunde"]["wert"] == "10"
+    assert werte["beitrag-meldungen-mit-abruf-je-konto"]["wert"] == "1"
+    assert werte["beitrag-abruf-verwaltungsvorbehalt"]["wert"] == "1"
+    assert schema_key("datenexport-je-stunde") == "account.data_exports_per_hour"
+    assert schema_key("beitrag-meldungen-mit-abruf-je-konto") == "fees.member_reports_with_bank_call_per_day"
+    assert schema_key("beitrag-abruf-verwaltungsvorbehalt") == "fees.bank_calls_reserved_for_administration"
+    bereich = {s: wertbereich(s, werte[s]["einheit"]) for s in werte}
+    assert bereich["datenexport-je-stunde"] == (1, None)  # Art 15/20 DSGVO: der Export bleibt möglich
+    assert bereich["beitrag-meldungen-mit-abruf-je-konto"] == (1, None)
+    assert bereich["beitrag-abruf-verwaltungsvorbehalt"] == (0, Bankkopplung.ABRUFE_PRO_TAG)
+
+
 
 # ── Gesamtprüfung 0.113 ───────────────────────────────────────────────────────────────────────
 
@@ -456,6 +477,9 @@ def _register_stand():
         ("region-nebenwohnsitz-zaehlt", "2"),
         ("live-takt-sekunden", "4"),
         ("aehnlichkeit-schwelle-prozent", "101"),
+        ("datenexport-je-stunde", "0"),
+        ("beitrag-meldungen-mit-abruf-je-konto", "0"),
+        ("beitrag-abruf-verwaltungsvorbehalt", "5"),
     ],
 )
 def test_verwaltung_weist_werte_ausserhalb_von_typ_und_bereich_ab(client, schluessel, wert):

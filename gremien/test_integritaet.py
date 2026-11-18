@@ -559,3 +559,71 @@ def test_eine_aussetzung_nach_fristablauf_beginnt_zur_frist(ordnung):  # noqa: F
     b.refresh_from_db()
     assert b.ergebnis == "dafuer" and b.entschieden_am == frist
     assert Aussetzung.objects.get(antrag=antrag).beginn == frist
+
+
+# --- GP-005: Entschiedene und beendete Anträge lassen sich nicht mehr zurückweisen ------------
+
+BEENDET = ['angenommen', 'abgelehnt', 'verfallen', 'zurueckgezogen']
+
+
+@pytest.mark.parametrize('phase', BEENDET)
+def test_fuer_einen_beendeten_antrag_entsteht_kein_zurueckweisungsbeschluss(client, ordnung, phase):  # noqa: F811
+    """GP-005: Der Rat konnte angenommene, abgelehnte und verfallene Anträge zurückweisen — der
+    Beschluss der Mitgliederversammlung verschwand aus Parlament und Umsetzungsregister."""
+    from verfahren.models import Antrag
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)
+    client.force_login(leute[0])
+    antwort = client.post(
+        reverse('gremien:integritaet_beschluss'),
+        {'anlass': Anlass.ZURUECKWEISUNG, 'antrag': antrag.pk, 'beschreibung': 'Formmangel.'},
+        follow=True,
+    )
+    assert not GremienBeschluss.objects.filter(antrag=antrag).exists()
+    meldungen = [str(m) for m in antwort.context['messages']]
+    assert any('bereits entschieden oder beendet' in m for m in meldungen), meldungen
+    antrag.refresh_from_db()
+    assert antrag.phase == phase
+
+
+@pytest.mark.parametrize('phase', BEENDET)
+def test_ein_dennoch_entschiedener_beschluss_laesst_den_beendeten_antrag_stehen(client, ordnung, phase):  # noqa: F811
+    """GP-005: Wird das Verfahren entschieden, während der Rat noch abstimmt, bleibt die spätere
+    Zurückweisung ohne Wirkung — mit Vermerk am Beschluss, ohne Eingriff in Phase und Schleife."""
+    from verfahren.models import Antrag
+
+    leute = rat()
+    antrag = antrag_in_abstimmung(ordnung)
+    client.force_login(leute[0])
+    client.post(
+        reverse('gremien:integritaet_beschluss'),
+        {'anlass': Anlass.ZURUECKWEISUNG, 'antrag': antrag.pk, 'beschreibung': 'Formmangel.'},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.ZURUECKWEISUNG, antrag=antrag)
+    beginn = antrag.phase_beginn
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)  # das Verfahren endet, bevor der Rat entscheidet
+    for m in leute:
+        client.force_login(m)
+        client.post(
+            reverse('gremien:beschluss_stimme', args=[beschluss.pk]),
+            {'option': 'dafuer', 'begruendung': 'Einverstanden.'},
+        )
+    beschluss.refresh_from_db()
+    antrag.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and beschluss.ergebnis == 'dafuer'
+    assert antrag.phase == phase and antrag.phase_beginn == beginn
+    assert antrag.zurueckweisung_begruendung == ''
+    assert beschluss.zustand_vorher is None
+    assert 'Ohne Wirkung' in beschluss.umsetzungsvermerk and '§ 5 Abs 2' in beschluss.umsetzungsvermerk
+    assert not any(e.ereignis['typ'] == 'antrag_zurueckgewiesen' for e in AuditEintrag.objects.all())
+
+
+def test_ein_laufendes_verfahren_laesst_sich_weiter_zurueckweisen(client, ordnung):  # noqa: F811
+    """Gegenprobe: Bis zu welcher laufenden Phase zurückgewiesen werden darf, bleibt, wie es war."""
+    leute = rat()
+    for antrag in (antrag_anlegen(ordnung), antrag_in_abstimmung(ordnung)):
+        beschluss_fassen(client, leute, antrag, Anlass.ZURUECKWEISUNG, 'Gesetzwidrig.')
+        antrag.refresh_from_db()
+        assert antrag.phase == Phase.ZURUECKGEWIESEN.value

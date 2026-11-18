@@ -1494,6 +1494,25 @@ def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
     )
 
 
+def zurueckweisung_moeglich(antrag) -> bool:
+    """Ob sich dieser Antrag (noch) zurückweisen lässt — nicht mehr, wenn er entschieden oder beendet ist.
+
+    § 5 Abs 2 kennt die Zurückweisung als Ausnahme von der Veröffentlichung eingebrachter Anträge.
+    Ein angenommener, abgelehnter, verfallener oder zurückgezogener Antrag ist kein laufendes
+    Verfahren mehr: Ihn zurückzuweisen nähme einen Beschluss der Mitgliederversammlung aus
+    Parlament und Umsetzungsregister und die Stimmliste aus dem Export (Gesamtprüfung GP-005);
+    für Beschlüsse sieht § 6 Abs 3 lit d die befristete Aussetzung des Vollzugs vor. Bis zu
+    welcher LAUFENDEN Phase zurückgewiesen werden darf, entscheidet diese Prüfung nicht."""
+    from plattform_core import Phase
+
+    return antrag.phase not in (
+        Phase.ANGENOMMEN.value,
+        Phase.ABGELEHNT.value,
+        Phase.VERFALLEN.value,
+        Phase.ZURUECKGEZOGEN.value,
+    )
+
+
 def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     """Weist einen Antrag zurück (§ 5 Abs 2) — und hält fest, was dabei überschrieben wurde.
 
@@ -1507,6 +1526,13 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
     if antrag is None or beschluss.ergebnis != "dafuer":
         return
     if antrag.phase == Phase.ZURUECKGEWIESEN.value:
+        return
+    if not zurueckweisung_moeglich(antrag):
+        _vermerken(
+            beschluss,
+            f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — ein entschiedenes oder "
+            "beendetes Verfahren lässt sich nicht mehr zurückweisen (§ 5 Abs 2).",
+        )
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
         _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")

@@ -56,6 +56,7 @@ from gremien.models import (
     unvereinbar,
     unvereinbar_fuer,
     unvereinbarkeiten_laden,
+    zurueckweisung_moeglich,
 )
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.auftraege import auftrag_laden
@@ -1274,6 +1275,17 @@ def integritaet_beschluss(request):
             messages.error(
                 request,
                 _("Aussetzen lässt sich nur eine laufende Abstimmung oder der Vollzug eines Beschlusses (§ 6 Abs 3 lit d)."),
+            )
+            return redirect("gremien:integritaet")
+    elif anlass == Anlass.ZURUECKWEISUNG:
+        # § 5 Abs 2 betrifft eingebrachte, laufende Anträge. Ein entschiedenes oder beendetes
+        # Verfahren weist niemand mehr zurück (GP-005) — geprüft beim Anlegen wie die Aussetzung,
+        # damit der Rat nicht über etwas abstimmt, das ohne Wirkung bliebe. Vorher fortschreiben.
+        antrag.fortschreiben_bis_zum_stand()
+        if not zurueckweisung_moeglich(antrag):
+            messages.error(
+                request,
+                _("Dieser Antrag ist bereits entschieden oder beendet — zurückweisen lässt sich nur ein laufendes Verfahren (§ 5 Abs 2)."),
             )
             return redirect("gremien:integritaet")
     elif anlass == Anlass.VERTRAUENSFRAGE_SPERRE:

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<title>{% for m in messages %}{% if forloop.first %}{{ m }} · {% endif %}{% endfor %}{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
 {% comment %}App-Manifest (Teil 7): „Zum Startbildschirm“ am Handy und „App installieren“ im Desktop-Browser
 öffnen das Parlament bildschirmfüllend ohne Browserrahmen. Bewusst OHNE Service Worker: kein Offline-Versprechen
 und keine Cache-Falle bei Fristen — jede Ansicht kommt frisch vom Server. Farben = Tokens --papier und --deep
@@ -892,7 +892,7 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 {% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
 {% block band %}{% if user.is_authenticated and user.status == "pausiert" %}<div class="band pausiert"><span class="band-text">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}</span><a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>{% endif %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
-{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
+{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" role="{% if m.level_tag == 'error' %}alert{% else %}status{% endif %}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
 {% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}

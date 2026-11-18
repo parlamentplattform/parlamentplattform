@@ -188,7 +188,8 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
   "…Kopf…",
   "parameter": [
     {"schema_key": "support.review_days", "schluessel": "gremien-review-tage", "wert": "14",
-     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…"}
+     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…",
+     "status": "gueltig", "test_bis": null, "test_hypothese": ""}
   ],
   "verfahrensordnung": [
     {"id": "sachantrag-standard", "version": 1, "werte": [
@@ -205,6 +206,12 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
   ]
 }
 ```
+
+Seit 0.113.0 trägt jeder Registereintrag seinen Status: `gueltig`, `im_test` (befristeter Test
+nach § 6 Abs 11 lit c) oder `vorgeschlagen`. Ein Wert `im_test` gilt nur bis `test_bis`
+(ISO-Datum) und ist kein geltender Wert dieser Instanz; `test_hypothese` nennt, was der Test zeigen
+soll, und `wert_vor_test` den Wert, zu dem er zurückfällt. Außerhalb eines Tests ist `test_bis`
+`null`, `test_hypothese` leer, und `wert_vor_test` fehlt.
 
 Unter `verfahrensordnung` steht die **wirksame** Ordnung jeder Fassung: Felder, die eine ältere
 Fassung noch nicht kannte, erscheinen mit dem eingebauten Vorgabewert (seit 0.44.0).
@@ -227,7 +234,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | Hard monthly token budget of the model slot (cost cap of the future workshop) |
 | `archive.audit_display_limit` | `archiv-audit-anzeige` | events | How many audit events the archive timeline shows; the export always contains all |
 | `areas_fan.max_children` | `faecher-kinder-hoechstzahl` | branches | How many sub-branches a branch shows before it must be fanned out |
-| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | Maximum number of hits shown by the search in the areas-of-life fan |
+| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the municipality search and of the public lists of municipal mandates (council initiatives, projects, budget links, session documents), where values below 1 act as 1 |
 | `areas_fan.rule_version` | `faecher-regel` | rule version | Version of the layout algorithm for the areas-of-life fan |
 | `areas_of_life.per_motion` | `kategorien-je-antrag` | areas | How many areas of life a motion is assigned to automatically |
 | `areas_of_life.rule_version` | `kategorien-regel` | rule version | Version of the assignment rule for areas of life (keyword lists, no AI) |
@@ -247,7 +254,7 @@ Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
 | `draft_loop.acceptance_percent` | `vorschlag-annahme-prozent` | percent | Approval share the „fine as it is" post must exceed in the proposal chat so the draft goes to the final vote (it must also rank first) |
 | `draft_loop.chat_ordering_version` | `vorschlag-chat-reihung` | rule version | Version of the proposal-chat ordering rule (engagement-v1: engagement desc, then approval share, then time) |
 | `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | Minimum length of a criticism so it counts as a change request to the expert council |
-| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
+| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person (browser session) may send per day; the same value also caps the messages per connection and hour, shared by everyone behind one address |
 | `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
 | `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
 | `mail.max_attempts` | `post-hoechstversuche` | attempts | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |
@@ -376,7 +383,7 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Adresse | Inhalt | Personenbezug |
 |---|---|---|
-| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen; beim Bestätigungsantrag, erkennbar am Block `vertrauensfrage.art` = `bestaetigung`, stattdessen `bestaetigt`/`nicht_bestaetigt` — dieselben Wörter wie in `rechenschaft.json`) | Pseudonyme (nur der Mensch selbst kennt seines) |
+| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen; beim Bestätigungsantrag, erkennbar am Block `vertrauensfrage.art` = `bestaetigung`, stattdessen `bestaetigt`/`nicht_bestaetigt` — dieselben Wörter wie in `rechenschaft.json`); bei Kandidaturen der Block `zustimmungen` je Pseudonym und Bewerbung, eine zurückgenommene Zustimmung nur mit `zurueckgenommen`: `true`, ohne Zeitpunkt — das Skript zählt sie nicht mit und weist ihre Zahl als „zurückgenommen“ aus (seit 0.113.0) | Pseudonyme (nur der Mensch selbst kennt seines) |
 | `/umsetzung.json` | Umsetzungsregister mit voller Historie | Anzeigenamen der Vollzugsmeldenden (Gremien-Rollen, öffentlich) |
 | `/gremien/protokoll/<gremium>/<jahr>.json` | Sitzungsprotokoll eines Rates: die Beschlüsse des Jahres mit Stimmen, Begründungen und Umsetzungsvermerken (§ 6 Abs 9) | Anzeigenamen der Ratsmitglieder (öffentliche Besetzung) |
 | `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0; seit 0.48.0 zusätzlich `vertrauensfragen` — je Vertrauensfrage und Bestätigungsantrag die Zahlen des Einbringungstags, Stand und Ergebnis (`ergebnis`: verloren/gewonnen/bestaetigt/nicht_bestaetigt bzw. Endphase), Rechtsschutz, Rückgabefrist, Rückgabezusage samt Quelle (`rueckgabezusage_quelle`: mandat/bewerbung) und Vermerk (§ 7 Abs 10 lit e, f Z 4, h); seit 0.53.0 zusätzlich `sitzungen` — je Sitzung im Live-Modus Beginn, Ende, Stream-Link, Tagesordnung (Nummer, Titel, Antrag) und Meldungen (Zeitpunkt, Punkt, Text, Stimme, `abgestimmt`, `berichtigt`), ohne Chat — und je Eintrag `sitzung`/`punkt` (Rechenschaft aus dem Ticker), `nachgetragen_am`/`quelle` (Nachtrag der Verwaltung nach dem Ende der Vertretung, `lage` = `nachgetragen`) und `freiwillige_begruendung` | Anzeigenamen der Mandatare (öffentliches Amt) |

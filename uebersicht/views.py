@@ -28,7 +28,10 @@ ENTSCHIEDEN = [Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value]
 
 
 def _mitglieder_verlauf(heute) -> list[tuple[str, float]]:
-    """Kumulierte Mitgliederzahl über die Zeit (höchstens ~60 Stützpunkte)."""
+    """Die heutigen Mitglieder kumuliert nach Beitrittsdatum (höchstens ~60 Stützpunkte).
+
+    Kein Zeitverlauf der Mitgliederzahl: Ausgetretene fehlen auch in früheren Punkten. Die
+    Beschriftung auf der Seite sagt das (GP-198)."""
     beitritte = sorted(
         Mitglied.parteikonten.filter(is_active=True, testkonto=False)
         .exclude(beitritt=None)

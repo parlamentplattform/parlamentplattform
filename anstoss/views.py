@@ -10,7 +10,9 @@ import csv
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.html import format_html
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_POST
 
 from anstoss.models import Anstoss, AnstossStatus
@@ -23,6 +25,11 @@ MIN_ABSTAND_SEKUNDEN = 60
 TAGESGRENZE = 20
 
 
+def _drossel_text() -> str:
+    """Derselbe Satz wie im Widget (anstoss/_widget.html), für die htmx-Antwort."""
+    return _("Über diese Verbindung kamen in der letzten Stunde schon viele Anstöße — bitte später noch einmal versuchen.")
+
+
 def _mit_param(seite: str, wert: str) -> str:
     """Hängt ?anstoss=<wert> an — vorhandene Anstoß-Parameter werden ersetzt."""
     from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -31,6 +38,22 @@ def _mit_param(seite: str, wert: str) -> str:
     q = [(k, v) for k, v in parse_qsl(teile.query) if k != "anstoss"]
     q.append(("anstoss", wert))
     return urlunsplit(("", "", teile.path or "/", urlencode(q), ""))
+
+
+def _seite_zum_speichern(seite: str) -> str:
+    """Was von der Herkunftsseite gespeichert wird (GP-131): der Pfad ohne Abfrage — Suchbegriffe
+    gehören nicht in Liste und Ausfuhr —, bei Routen mit Kennung im Pfad nur der Routenname, damit
+    weder Einspruchskennung noch Ausweiscode im Klartext liegen."""
+    from urllib.parse import urlsplit
+
+    from django.urls import Resolver404, resolve
+
+    pfad = urlsplit(seite).path or "/"
+    try:
+        treffer = resolve(pfad)
+    except Resolver404:
+        return pfad
+    return treffer.view_name if (treffer.kwargs or treffer.args) else pfad
 
 
 @require_POST
@@ -59,12 +82,13 @@ def senden(request):
     elif drossel_zuviel(request, "anstoss", limit=tagesgrenze):
         # Die Sitzung gehört dem Client: Wer das Cookie weglässt, hat jedes Mal eine leere
         # (Befund #67). Darum zusätzlich je Verbindung und Stunde — und erst hier, damit
-        # leere und Honigtopf-POSTs kein Budget verbrauchen.
-        ergebnis = "warte"
+        # leere und Honigtopf-POSTs kein Budget verbrauchen. Eigene Meldung (GP-201): Wer hinter
+        # einer gemeinsamen Adresse noch nichts gesendet hat, soll nicht „warten“ lesen.
+        ergebnis = "drossel"
     else:
         Anstoss.objects.create(
             text=text[:4000],
-            seite=seite,
+            seite=_seite_zum_speichern(seite)[:300],
             nutzer=request.user if request.user.is_authenticated else None,
         )
         request.session["anstoss_zuletzt"] = jetzt.timestamp()
@@ -74,7 +98,10 @@ def senden(request):
     if request.headers.get("HX-Request"):
         # Rückmeldung als Ereignis (HX-Trigger), nicht als Inline-Script: Alpine schließt die
         # Karte und zeigt die Blase; ohne JavaScript greift die Umleitung mit ?anstoss=…
-        antwort = render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
+        if ergebnis == "drossel":
+            antwort = HttpResponse(format_html('<p class="anstoss-echo">{}</p>', _drossel_text()))
+        else:
+            antwort = render(request, "anstoss/_meldung.html", {"ergebnis": ergebnis})
         antwort["HX-Trigger"] = f"anstoss-{ergebnis}"
         return antwort
     return redirect(_mit_param(seite, ergebnis))
@@ -140,8 +167,19 @@ def export_csv(request):
     )
     schreiber.writeheader()
     for zeile in _zeilen():
-        schreiber.writerow(zeile)
+        schreiber.writerow({k: _zelle(v) for k, v in zeile.items()})
     return antwort
+
+
+#: Zeichen, mit denen eine Tabellenkalkulation eine Zelle als Formel liest (GP-132).
+FORMELZEICHEN = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _zelle(wert):
+    """Eine CSV-Zelle, die keine Formel werden kann: führendes Formelzeichen → Hochkomma davor."""
+    if isinstance(wert, str) and wert.startswith(FORMELZEICHEN):
+        return "'" + wert
+    return wert
 
 
 @nur_admins

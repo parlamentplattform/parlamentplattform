@@ -17,7 +17,7 @@ ausschließlich als Summe je Abstimmung: Einzelne Stimmen sind und bleiben pseud
   </div>
   <div class="bereich"><span class="bk">{% translate "Besuche" %}</span>
     <h2 style="font-size:34px;margin:4px 0 2px">{{ aufrufe_heute }}</h2>
-    <p class="erk">{% blocktranslate with besucher=besucher_heute woche=aufrufe_woche %}Seitenaufrufe heute · {{ besucher }} Besucher:innen heute · {{ woche }} Aufrufe in 7 Tagen{% endblocktranslate %}</p>
+    <p class="erk">{% blocktranslate with besucher=besucher_heute woche=aufrufe_woche %}Seitenaufrufe heute · {{ besucher }} Besuche heute · {{ woche }} Aufrufe in 7 Tagen{% endblocktranslate %}</p>
   </div>
 </div>
 
@@ -97,7 +97,7 @@ entschiedene Anträge; Personenwahlen haben kein Ja/Nein, sondern eine gewählte
 
 <h2>{% translate "Entwicklung" %}</h2>
 <div class="karte">
-  <p class="erk">{% translate "Mitglieder im Zeitverlauf (kumuliert)" %}</p>
+  <p class="erk">{% translate "Heutige Mitglieder nach Beitrittsdatum (kumuliert)" %}</p>
   {% if diagramm_mitglieder %}{{ diagramm_mitglieder|safe }}{% else %}<p class="leer">{% translate "Noch keine Daten." %}</p>{% endif %}
 </div>
 <div class="karte">

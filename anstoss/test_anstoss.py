@@ -57,7 +57,7 @@ def test_ohne_cookie_zaehlt_die_verbindung(client):
         assert "anstoss=danke" in antwort.url
     client.cookies.clear()
     antwort = client.post(reverse("anstoss:senden"), {"text": "Der einundzwanzigste.", "seite": "/"})
-    assert "anstoss=warte" in antwort.url
+    assert "anstoss=drossel" in antwort.url
     assert Anstoss.objects.count() == 20
 
 
@@ -94,7 +94,7 @@ def test_die_grenzen_kommen_aus_dem_register(client):
         client.post(reverse("anstoss:senden"), {"text": f"Anstoß {i}.", "seite": "/"})
     client.cookies.clear()
     antwort = client.post(reverse("anstoss:senden"), {"text": "Der dritte.", "seite": "/"})
-    assert "anstoss=warte" in antwort.url and Anstoss.objects.count() == 2
+    assert "anstoss=drossel" in antwort.url and Anstoss.objects.count() == 2
 
 
 def test_leere_nachricht_wird_nicht_gespeichert(client):
@@ -169,3 +169,88 @@ def test_status_und_exporte(client, django_user_model):
     json_antwort = client.get(reverse("anstoss:export_json")).json()
     assert json_antwort["anstoesse"][0]["text"] == "Bitte Fächer bauen."
     assert json_antwort["anstoesse"][0]["status"] == "gesichtet"
+
+
+@pytest.mark.parametrize(
+    "seite, gespeichert",
+    [
+        ("/adresse/einspruch/geheimekennung123/", "mitglieder:adresswechsel_einspruch"),
+        ("/ausweis/4711/abcdef12/", "mitglieder:ausweis_pruefen"),
+        ("/parlament/?suche=meine+krankheit", "/parlament/"),
+        ("/?suche=x&anstoss=warte", "/"),
+    ],
+)
+def test_seite_speichert_weder_kennung_noch_code_noch_suchbegriff(client, seite, gespeichert):
+    """GP-131 (RVA-29, RVB-09): Der Anstoß legte Einspruchskennung, Ausweiscode und Suchbegriffe im
+    Klartext in Liste und Ausfuhr. Gespeichert wird der Pfad ohne Abfrage, bei Routen mit Kennung
+    der Routenname; zurück geht es weiterhin auf die Seite, von der der Anstoß kam."""
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Etwas fehlt.", "seite": seite})
+    assert antwort.status_code == 302
+    a = Anstoss.objects.get()
+    assert a.seite == gespeichert
+    for geheim in ("geheimekennung123", "abcdef12", "4711", "krankheit", "suche"):
+        assert geheim not in a.seite
+
+
+def test_csv_ausfuhr_entschaerft_formeln_json_bleibt_unveraendert(client, django_user_model):
+    """GP-132 (RVA-31, RVB-10): Freitext mit führendem =, +, -, @, Tabulator oder Wagenrücklauf
+    wurde in einer Tabellenkalkulation als Formel ausgewertet."""
+    import csv
+    import io
+
+    texte = ['=HYPERLINK("http://x","y")', "+1+1", "-2+3", "@SUMME(A1)", "\tTab", "\rWagen"]
+    for text in texte:
+        Anstoss.objects.create(text=text, seite="/", vermerk="=1+1")
+    client.force_login(person(django_user_model, "chefin", admin=True))
+    inhalt = client.get(reverse("anstoss:export_csv")).content.decode("utf-8-sig")
+    zeilen = list(csv.reader(io.StringIO(inhalt)))
+    zellen = [zelle for zeile in zeilen[1:] for zelle in zeile]
+    assert zellen and not [z for z in zellen if z[:1] in ("=", "+", "-", "@", "\t", "\r")]
+    assert "'=HYPERLINK" in inhalt
+    daten = client.get(reverse("anstoss:export_json")).json()
+    assert sorted(a["text"] for a in daten["anstoesse"]) == sorted(texte)
+
+
+def test_gemeindekonto_liest_auf_gemeindeseiten_den_anonymen_hinweis(client):
+    """GP-124 (GE-09, RVA-30): Auf Gemeindeseiten bleibt das Gemeindekonto angemeldet, der Anstoß
+    wird aber ohne Konto gespeichert — die Zusage „Wird Ihrem Konto zugeordnet“ galt nicht."""
+    from django.utils import timezone
+
+    from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer="40510", name="Probeort", bezirk="Eferding", bundesland="oberoesterreich")
+    konto = Mitglied.objects.create_user(
+        "einwohner@example.org", email="einwohner@example.org", parteikonto=False,
+        wohnsitz=ort, wohnsitz_art=Wohnsitzart.OESTERREICH, klarname_oeffentlich=False,
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=konto, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    client.force_login(konto)
+    inhalt = client.get(reverse("gemeinde:start")).content.decode()
+    assert "Sie schreiben anonym" in inhalt
+    assert "Wird Ihrem Konto zugeordnet" not in inhalt
+    client.post(reverse("anstoss:senden"), {"text": "Von der Gemeindeseite.", "seite": "/gemeinde/"})
+    assert Anstoss.objects.get().nutzer is None
+
+
+def test_drosselfall_hat_einen_eigenen_text(client):
+    """GP-201 (RVB-22): Die „Tagesgrenze“ wirkt zusätzlich je Verbindung und Stunde. Wer hinter
+    einer gemeinsamen Adresse noch nichts gesendet hat, las „Bitte einen Moment warten“ — wie bei
+    zu kurzem Abstand. Der Drosselfall sagt jetzt, was gilt; die Registerbeschreibung nennt beide Grenzen."""
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="anstoss-tagesgrenze").update(wert="1")
+    client.post(reverse("anstoss:senden"), {"text": "Erster.", "seite": "/"})
+    client.cookies.clear()
+    antwort = client.post(reverse("anstoss:senden"), {"text": "Ein anderer Mensch.", "seite": "/parlament/"})
+    assert antwort.url == "/parlament/?anstoss=drossel"
+    inhalt = client.get(antwort.url).content.decode()
+    assert "Über diese Verbindung" in inhalt and "Bitte einen Moment warten" not in inhalt
+    client.cookies.clear()
+    teil = client.post(
+        reverse("anstoss:senden"), {"text": "Noch einer.", "seite": "/"}, headers={"HX-Request": "true"}
+    )
+    assert teil["HX-Trigger"] == "anstoss-drossel" and "Über diese Verbindung" in teil.content.decode()
+    beschreibung = Parameter.objects.get(schluessel="anstoss-tagesgrenze").beschreibung
+    assert "Tag" in beschreibung and "Stunde" in beschreibung and "Verbindung" in beschreibung

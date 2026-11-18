@@ -1405,3 +1405,81 @@ def test_vor_der_ueberarbeitungsfrist_entsteht_der_einreichungsbeschluss_weiter(
     assert GremienBeschluss.objects.filter(
         anlass=Anlass.EINREICHUNG, antrag=antrag, status=BeschlussStatus.OFFEN
     ).count() == 1
+
+
+# --- GP-008 (c): Die Listen der Werkstatt nennen einen ruhenden Entwurf nicht „übergeben“ ---------
+
+
+def _entwurf_mit_stand(ordnung, nummer, phase, uebernommen):  # noqa: F811
+    """Ein Antrag in `phase` mit stillgelegtem Entwurf (Status „angenommen“) — mit oder ohne die
+    Antragsfassung, die `Entwurf._endabstimmung_oeffnen` aus einem übernommenen Vorschlag anlegt."""
+    from gremien.models import VORSCHLAG_ALS_FASSUNG
+    from verfahren.models import AntragsFassung
+
+    daten = {**ANTRAG, 'titel': f'Listenantrag {nummer}'}
+    antrag = antrag_einbringen(mitglied_anlegen(f'liste{nummer}'), **daten, ordnung=ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)
+    antrag.refresh_from_db()
+    Entwurf.objects.create(antrag=antrag, status=EntwurfsStatus.ANGENOMMEN)
+    if uebernommen:
+        AntragsFassung.objects.create(
+            antrag=antrag, nummer=2, wortlaut=ANTRAG['wortlaut'],
+            begruendung=f'{VORSCHLAG_ALS_FASSUNG}1, Entwurfsfassung 1 (§ 5 Abs 12).',
+        )
+    return antrag
+
+
+def _zeile_zu(html, antrag):
+    """Die Listenzeile eines Antrags auf der Werkstattseite (vom Titel bis zum Ende der Zeile)."""
+    return html.split(antrag.titel, 1)[1].split('</div>', 1)[0]
+
+
+def test_die_listen_der_werkstatt_zeigen_einen_ruhenden_entwurf_nicht_als_uebergeben(client, ordnung):  # noqa: F811
+    """GP-008 (c), Rest: Eine Zurückweisung legt die Schleife mit dem Status „angenommen“ still. Das Fenster
+    sagt seit der Auflagenrunde „ruht“, die beiden Listen der Werkstatt nannten denselben Entwurf weiter
+    „zur Endabstimmung übergeben“. Jetzt zeigen sie denselben Stand wie das Fenster."""
+    rat = mitglied_anlegen('listenrat')
+    rolle_geben(rat)
+    ruht_zurueckgewiesen = _entwurf_mit_stand(ordnung, 1, 'zurueckgewiesen', uebernommen=False)
+    ruht_in_beratung = _entwurf_mit_stand(ordnung, 2, 'beratung', uebernommen=False)  # Aufhebung ohne gesicherten Stand
+    uebergeben = _entwurf_mit_stand(ordnung, 3, 'abstimmung', uebernommen=True)
+    client.force_login(rat)
+    seite = client.get(reverse('gremien:expertenrat')).content.decode()
+    for antrag in (ruht_zurueckgewiesen, ruht_in_beratung):
+        zeile = _zeile_zu(seite, antrag)
+        assert 'ruht — der Vorschlag wurde nicht übernommen' in zeile, antrag.phase
+        assert 'zur Endabstimmung übergeben' not in zeile, antrag.phase
+    # Gegenprobe: Ein wirklich übernommener Vorschlag heißt weiter „zur Endabstimmung übergeben“.
+    zeile = _zeile_zu(seite, uebergeben)
+    assert 'zur Endabstimmung übergeben' in zeile and 'ruht' not in zeile
+    # Und die Listen sagen dasselbe wie das Fenster des Antrags.
+    for antrag in (ruht_zurueckgewiesen, ruht_in_beratung, uebergeben):
+        fenster = client.get(reverse('gremien:fenster', args=[antrag.pk])).content.decode()
+        assert str(antrag.entwurf.status_anzeige()) in fenster
+        assert str(antrag.entwurf.status_anzeige()) in _zeile_zu(seite, antrag)
+
+
+def test_der_stand_in_den_listen_kostet_keine_abfrage_je_zeile(client, ordnung):  # noqa: F811
+    """GP-008 (c): `Entwurf.status_anzeige` fragt je Entwurf nach der übernommenen Fassung. Die Listen laden
+    das für alle Zeilen in einer Abfrage vor — die Seite kostet mit acht stillgelegten Entwürfen so viel
+    wie mit zweien."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    rat = mitglied_anlegen('listenrat')
+    rolle_geben(rat)
+    _entwurf_mit_stand(ordnung, 1, 'zurueckgewiesen', uebernommen=False)
+    _entwurf_mit_stand(ordnung, 2, 'beratung', uebernommen=False)
+    client.force_login(rat)
+    adresse = reverse('gremien:expertenrat')
+    client.get(adresse)  # Aufwärmen: Sitzung, Kontextprozessoren
+    with CaptureQueriesContext(connection) as klein:
+        assert client.get(adresse).status_code == 200
+    for nummer, (phase, uebernommen) in enumerate(
+        [('zurueckgewiesen', False), ('beratung', False), ('abstimmung', True)] * 2, start=3
+    ):
+        _entwurf_mit_stand(ordnung, nummer, phase, uebernommen)
+    with CaptureQueriesContext(connection) as gross:
+        seite = client.get(adresse).content.decode()
+    assert seite.count('ruht — der Vorschlag wurde nicht übernommen') == 6
+    assert len(gross) == len(klein), [q['sql'][:120] for q in gross][len(klein) - 2:]

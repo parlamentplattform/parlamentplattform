@@ -13,7 +13,7 @@
     <a href="{% url 'gremien:fenster' z.antrag.pk %}"><strong>{{ z.antrag.titel }}</strong></a>
     <br><span class="meta">
     {% if z.entwurf %}
-      {{ z.entwurf.get_status_display }} · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}{% if z.entwurf.vollzugsbezug %} · {% translate "Vollzugsbezug — Gruppe 2 prüft" %}{% endif %}
+      {{ z.entwurf.status_anzeige }} · {% blocktranslate with n=z.entwurf.runde %}Runde {{ n }}{% endblocktranslate %}{% if z.entwurf.vollzugsbezug %} · {% translate "Vollzugsbezug — Gruppe 2 prüft" %}{% endif %}
     {% else %}
       {% translate "Noch kein Entwurfsfenster geöffnet." %}
     {% endif %}
@@ -28,7 +28,7 @@
   <p class="phasen-titel">{% translate "Zuletzt übergebene Entwürfe" %}</p>
   {% for e in zurueckliegend %}
   <div class="zeile"><span><a href="{% url 'verfahren:antrag' e.antrag.pk %}">{{ e.antrag.titel }}</a>
-    <br><span class="meta">{{ e.get_status_display }} · {% blocktranslate with n=e.runde %}Runde {{ n }}{% endblocktranslate %}</span></span></div>
+    <br><span class="meta">{{ e.status_anzeige }} · {% blocktranslate with n=e.runde %}Runde {{ n }}{% endblocktranslate %}</span></span></div>
   {% endfor %}
 </div>
 {% endif %}

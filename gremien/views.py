@@ -316,6 +316,8 @@ def expertenrat(request):
         .select_related("antrag")
         .order_by("-erstellt_am")[:10]
     )
+    # Beide Listen nennen den Stand wie das Fenster (`status_anzeige`, GP-008): eine Abfrage für alle Zeilen.
+    Entwurf.uebernahme_vorladen([z["entwurf"] for z in zeilen if z["entwurf"] is not None] + zurueckliegend)
     return render(
         request,
         "gremien/expertenrat.html",

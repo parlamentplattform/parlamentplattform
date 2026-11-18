@@ -347,11 +347,36 @@ class Entwurf(models.Model):
 
         Der Status „angenommen“ allein sagt das nicht: Eine Zurückweisung legt die Schleife mit
         demselben Status still, ohne dass je eine Fassung übernommen wurde (Gesamtprüfung GP-008).
-        Die Antragsseite unterscheidet damit „übernommen“ von „ruht“."""
-        return (
-            self.status == EntwurfsStatus.ANGENOMMEN
-            and self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
+        Die Antragsseite unterscheidet damit „übernommen“ von „ruht“.
+
+        Listen laden die Antwort für alle Zeilen vor (`uebernahme_vorladen`); sonst fragt der Aufruf."""
+        if self.status != EntwurfsStatus.ANGENOMMEN:
+            return False
+        if self.uebernahme_vorgeladen is not None:
+            return self.uebernahme_vorgeladen
+        return self.antrag.fassungen.filter(begruendung__startswith=VORSCHLAG_ALS_FASSUNG).exists()
+
+    #: Von `uebernahme_vorladen` gesetzt: ob es die übernommene Antragsfassung gibt. None = nicht vorgeladen.
+    uebernahme_vorgeladen: bool | None = None
+
+    @staticmethod
+    def uebernahme_vorladen(entwuerfe) -> None:
+        """Beantwortet `vorschlag_uebernommen` für eine Liste in EINER Abfrage (GP-008).
+
+        `status_anzeige` kostete sonst je stillgelegtem Entwurf eine Abfrage. Gefragt wird nur für
+        Entwürfe mit dem Status „angenommen“ — bei allen anderen entscheidet schon der Status. Für die
+        Anzeige einer Seite gedacht: Die Antwort steht am Objekt und folgt späteren Änderungen nicht."""
+        stillgelegt = [e for e in entwuerfe if e.status == EntwurfsStatus.ANGENOMMEN]
+        if not stillgelegt:
+            return
+        uebernommen = set(
+            AntragsFassung.objects.filter(
+                antrag_id__in=[e.antrag_id for e in stillgelegt],
+                begruendung__startswith=VORSCHLAG_ALS_FASSUNG,
+            ).values_list("antrag_id", flat=True)
         )
+        for entwurf in stillgelegt:
+            entwurf.uebernahme_vorgeladen = entwurf.antrag_id in uebernommen
 
     def status_anzeige(self):
         """Der Status, wie ihn die Werkstatt nennt (GP-008).

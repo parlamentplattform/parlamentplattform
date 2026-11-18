@@ -962,8 +962,9 @@ class Pruefung(models.Model):
         STATTGEGEBEN = "stattgegeben", _("stattgegeben")
         ABGELEHNT = "abgelehnt", _("abgelehnt")
         VERFRISTET = "verfristet", _("keine Entscheidung binnen der Frist")
-        # Der Beschluss schloss VOR der Verfristung ohne Ergebnis (alle haben gestimmt, Gleichstand) — das
-        # ist keine Ablehnung (GP-040). Zur Frist ohne Ergebnis bleibt der Entscheid leer: verfristet (GP-010).
+        # Der Beschluss schloss VOR der Verfristung ohne Ergebnis (Gleichstand, oder Quorum verfehlt bei
+        # einer Beschlussfrist, die vor der Verfristung endet) — das ist keine Ablehnung (GP-040). Zur
+        # Frist ohne Ergebnis bleibt der Entscheid leer: verfristet (GP-010).
         OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis")
 
     entwurf = models.ForeignKey(Entwurf, on_delete=models.CASCADE, related_name="pruefungen")
@@ -2586,7 +2587,11 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
         )
         return
     if not beschluss.ergebnis:
-        # Ohne Ergebnis VOR der Verfristung (alle haben gestimmt, Gleichstand): eigener Wert (GP-040).
+        # Ohne Ergebnis VOR der Verfristung: eigener Wert (GP-040). Das ist der Gleichstand, wenn alle
+        # gestimmt haben — aber auch das verfehlte Quorum, wenn die Beschlussfrist des Rates
+        # (`gremien-beschluss-tage`) kürzer ist als die eingefrorene Prüffrist des Antrags. Dann
+        # bekommt Gruppe 2 wie bei einer Ablehnung einen neuen Prüfbeschluss mit voller Frist; so war
+        # es schon vor der Gesamtprüfung (damals als „abgelehnt“). Ob das so bleiben soll, ist offen.
         entscheid = Pruefung.KoratEntscheid.OHNE_ERGEBNIS.value
     else:
         entscheid = "stattgegeben" if beschluss.ergebnis == "dafuer" else "abgelehnt"

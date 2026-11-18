@@ -209,3 +209,25 @@ def test_csv_ausfuhr_entschaerft_formeln_json_bleibt_unveraendert(client, django
     assert "'=HYPERLINK" in inhalt
     daten = client.get(reverse("anstoss:export_json")).json()
     assert sorted(a["text"] for a in daten["anstoesse"]) == sorted(texte)
+
+
+def test_gemeindekonto_liest_auf_gemeindeseiten_den_anonymen_hinweis(client):
+    """GP-124 (GE-09, RVA-30): Auf Gemeindeseiten bleibt das Gemeindekonto angemeldet, der Anstoß
+    wird aber ohne Konto gespeichert — die Zusage „Wird Ihrem Konto zugeordnet“ galt nicht."""
+    from django.utils import timezone
+
+    from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer="40510", name="Probeort", bezirk="Eferding", bundesland="oberoesterreich")
+    konto = Mitglied.objects.create_user(
+        "einwohner@example.org", email="einwohner@example.org", parteikonto=False,
+        wohnsitz=ort, wohnsitz_art=Wohnsitzart.OESTERREICH, klarname_oeffentlich=False,
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=konto, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    client.force_login(konto)
+    inhalt = client.get(reverse("gemeinde:start")).content.decode()
+    assert "Sie schreiben anonym" in inhalt
+    assert "Wird Ihrem Konto zugeordnet" not in inhalt
+    client.post(reverse("anstoss:senden"), {"text": "Von der Gemeindeseite.", "seite": "/gemeinde/"})
+    assert Anstoss.objects.get().nutzer is None

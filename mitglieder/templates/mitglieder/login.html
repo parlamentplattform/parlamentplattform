@@ -21,5 +21,5 @@ Sobald die ID Austria angebunden ist, ersetzt sie diesen Schritt.{% endblocktran
   <button type="submit" class="btn">{% translate "Anmeldelink senden" %}</button>
 </form>
 </div>
-<p class="hilfe">{% translate "Noch kein Zugang?" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a></p>
+<p class="hilfe">{% translate "Noch kein Zugang?" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a> · <a href="{% url 'gemeinde:anmelden' %}">{% translate "Gemeindekonto anlegen" %}</a></p>
 {% endblock %}

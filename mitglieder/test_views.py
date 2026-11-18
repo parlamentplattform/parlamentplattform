@@ -690,3 +690,13 @@ def test_menue_fuehrt_mein_mandat_bis_zum_ende_der_nachfrist(client):
     assert 'href="/mandatare/mein/"' in client.get("/").content.decode()  # letzter Tag der Nachfrist
     Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
     assert 'href="/mandatare/mein/"' not in client.get("/").content.decode()  # neunter Tag
+
+
+# --- Anmeldeseite nennt den Weg für Einwohner (GP-097, GAST-02) ---------------
+
+
+@pytest.mark.parametrize("sprache", ["de", "en"])
+def test_anmeldeseite_verweist_auf_das_gemeindekonto(client, sprache):
+    html = client.get(reverse("mitglieder:login"), HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
+    assert f'href="{reverse("gemeinde:anmelden")}"' in hauptteil

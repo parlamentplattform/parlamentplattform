@@ -316,3 +316,45 @@ def test_ohne_ziehung_sagt_die_seite_das_auch(client, ordnung):  # noqa: F811
     antrag = antrag_in_beratung(ordnung)
     inhalt = client.get(reverse("gremien:auslosung", args=[antrag.pk])).content.decode()
     assert "nicht gelost" in inhalt
+
+
+# --- GP-006: Der Anker entsteht mit der Ziehung, nicht vor ihr -------------------------------
+
+
+def test_der_anker_der_nachziehung_ist_vor_dem_klick_nicht_lesbar(client, ordnung):  # noqa: F811
+    """GP-006: Der Anker war der jüngste schon vorhandene Eintrag der öffentlichen Kette — wer den
+    Vollzugsbezug setzte, konnte seine Prüfer vorher ausrechnen. Jetzt hängt die Ziehung unmittelbar
+    vor dem Losen einen eigenen Eintrag an und nimmt dessen Hash."""
+    fachliste_fuellen(12)
+    antrag = antrag_in_beratung(ordnung)
+    rat = Rolle.objects.filter(antrag=antrag, gremium=Gremium.EXPERTENRAT_1).first().mitglied
+    client.force_login(rat)
+    aktion = reverse('gremien:fenster_aktion', args=[antrag.pk])
+    client.post(aktion, {'aktion': 'oeffnen'})
+    kopf_vorher = AuditEintrag.objects.order_by('-lfd').first()  # was ein Gast vor dem Klick lesen kann
+
+    client.post(aktion, {'aktion': 'vollzugsbezug', 'vollzugsbezug': 'ja'})
+
+    zweite = Auslosung.objects.get(antrag=antrag, runde=2)
+    anker = AuditEintrag.objects.get(lfd=zweite.anker_lfd)
+    assert zweite.anker != kopf_vorher.hash and zweite.anker_lfd > kopf_vorher.lfd
+    assert anker.hash == zweite.anker and anker.ereignis['typ'] == 'auslosung_begonnen'
+    assert anker.ereignis['antrag'] == antrag.pk and anker.ereignis['runde'] == 2
+    for platz in zweite.plaetze:  # nachrechenbar mit dem neuen Anker, nicht mit dem alten Kopf
+        assert platz['loswert'] == loswert(zweite.anker, platz['schluessel'])
+        assert platz['loswert'] != loswert(kopf_vorher.hash, platz['schluessel'])
+
+
+def test_auch_die_erste_ziehung_ankert_an_ihrem_eigenen_eintrag(client, ordnung):  # noqa: F811
+    fachliste_fuellen(9)
+    antrag = antrag_in_beratung(ordnung)
+    a = Auslosung.objects.get(antrag=antrag)
+    assert AuditEintrag.objects.get(lfd=a.anker_lfd).ereignis['typ'] == 'auslosung_begonnen'
+
+
+def test_eine_unmoegliche_ziehung_beginnt_gar_nicht_erst(client, ordnung):  # noqa: F811
+    """Reicht der Lostopf nicht, steht wie bisher nur „nicht möglich“ in der Kette — kein Beginn ohne Ziehung."""
+    fachliste_fuellen(2)
+    antrag_in_beratung(ordnung)
+    typen = [e.ereignis['typ'] for e in AuditEintrag.objects.all()]
+    assert 'auslosung_nicht_moeglich' in typen and 'auslosung_begonnen' not in typen

@@ -2106,8 +2106,9 @@ class Auslosung(models.Model):
 def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)):
     """Lost den Expertenrat für einen Antrag und legt die Rollen an (§ 6 Abs 7).
 
-    Der Anker ist der Kopf der Audit-Kette in diesem Augenblick: Er steht jetzt fest und war
-    vorher von niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
+    Der Anker ist der Kopf der Audit-Kette in diesem Augenblick — ein Eintrag, den die Ziehung
+    selbst anhängt (`_ziehung_vollziehen`, GP-006): Er steht jetzt fest und war vorher von
+    niemandem auszurechnen. Größen und Regelfassung kommen aus der **eingefrorenen**
     Verfahrensordnung des Antrags, nicht aus dem laufenden Register (§ 5 Abs 5).
 
     `gruppen` sagt, welche Gruppen diese Runde zieht: `(1,)` zu Beratungsbeginn, `(2,)` sobald
@@ -2150,7 +2151,8 @@ def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)
         for k in lostopf_der_fachliste()
     ]
     try:
-        ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
+        # Vorprüfung: Ob der Topf reicht, hängt nicht am Anker. Eine unmögliche Ziehung beginnt nicht.
+        ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     except LosFehler as fehler:
         AuditEintrag.anhaengen(
             {
@@ -2162,7 +2164,24 @@ def auslosen(antrag, runde: int = 1, jetzt=None, gruppen: tuple[int, ...] = (1,)
             }
         )
         return None
+    with transaction.atomic():
+        return _ziehung_vollziehen(antrag, runde, jetzt, gruppen, groessen, kandidaten, fachgebiete)
 
+
+def _ziehung_vollziehen(antrag, runde, jetzt, gruppen, groessen, kandidaten, fachgebiete):
+    """Anker setzen, ziehen, Rollen anlegen — eine Transaktion (GP-006).
+
+    Der Anker ist der Hash eines Eintrags, den die Ziehung selbst unmittelbar vorher anhängt. Der
+    schon vorhandene Kopf der öffentlichen Kette taugte dafür nicht: Wer die Ziehung auslöst (etwa
+    mit dem Vollzugsbezug), konnte ihn vorher lesen und seine Prüfer ausrechnen. Der neue Eintrag
+    trägt den versiegelten Zeitstempel des Augenblicks — vorher von niemandem auszurechnen, nachher
+    von jedem zu prüfen (FB-I1)."""
+    from plattform_core.losziehung import ziehen
+
+    kopf = AuditEintrag.anhaengen(
+        {"typ": "auslosung_begonnen", "antrag": antrag.pk, "runde": runde, "gruppen": list(gruppen)}
+    )
+    ziehung = ziehen(kopf.hash, kandidaten, groessen, fachgebiete)
     nummer_von = dict(enumerate(gruppen, start=1))  # Index der Losregel → tatsächliche Gruppe
     auslosung = Auslosung.objects.create(
         antrag=antrag,

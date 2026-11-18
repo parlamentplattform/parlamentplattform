@@ -744,6 +744,9 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .zreiter:hover{color:var(--ink)}
 .zreiter.an{color:var(--ink);border-bottom-color:var(--gold)}
 .zonen,.zonen-oben{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+/* GP-069: Ein Sprung auf #zone-… hält die Überschrift unter Kopfleiste und Zonenleiste (44,7 px) frei —
+   knapp darunter, damit der Reiter-Spion (Oberkante ≤ 1 px unter der Leiste) dieselbe Zone wählt */
+.zone{scroll-margin-top:calc(var(--bar) + 44px)}
 .zone h2{margin:0 0 10px;font-size:19px}
 .zone h3{margin:0 0 8px;font-size:16px}
 .wortlaut h3{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}

@@ -28,7 +28,7 @@ def _registrieren_und_bestaetigen(client):
     from mitglieder.models import Mitglied
 
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)
     return Mitglied.objects.get(email=ANMELDUNG["email"])
 
 

@@ -21,7 +21,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_http_methods
 
 from mitglieder.auth_flows import EinmalToken
-from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
+from mitglieder.botschutz import BotschutzMixin, drossel_erstatten, drossel_meldung, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
@@ -72,7 +72,15 @@ class AnmeldeFormular(BotschutzMixin, ZugangsFormular):
     field_order = ["email", "anzeigename", "wohnsitz_art", "gemeinde", "geburtsdatum",
                    "meldung", "datenschutz", "rechenfrage", "website", "pruefung"]
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"), max_length=150)
-    anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=120)
+    anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=50)  # Spalte pseudonym_oeffentlich (GP-098)
+
+    def clean_anzeigename(self):
+        from mitglieder.profil import anzeigename_pruefen
+
+        name = anzeigename_pruefen(self.cleaned_data["anzeigename"], ausser=None)  # wie im Profil (GP-186)
+        if not name:
+            raise forms.ValidationError(self.fields["anzeigename"].error_messages["required"], code="required")
+        return name
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
@@ -157,8 +165,13 @@ def anmelden(request):
     form = AnmeldeFormular(request.POST if request.method == "POST" else None, request=request)
     if request.method == "POST":
         if drossel_zuviel(request, "registrierung", limit=5):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            # GP-019: Tippfehler zählen nicht — wohl aber Fehler am Adressfeld, sonst ließe sich
+            # über „existiert bereits“ ungebremst abfragen, welche Adressen ein Konto haben.
+            if form.botschutz_bestanden and "email" not in form.errors:
+                drossel_erstatten(request, "registrierung")
+        else:
             try:
                 with transaction.atomic():
                     # username ist bereits datenbankweit eindeutig, auch bei paralleler Anmeldung.
@@ -184,10 +197,20 @@ def anmelden(request):
     return render(request, "mitglieder/gemeinde_formular.html", {"form": form, "gemeinden": _gemeinden(), "anmeldung": True})
 
 
-@require_GET
+@require_http_methods(["GET", "HEAD", "POST"])
 @never_cache
 @transaction.atomic
 def bestaetigen(request, token):
+    if request.method != "POST":
+        # GP-018: Der Abruf zeigt nur die Zwischenseite; eingelöst wird erst per POST.
+        konto = EinmalToken.pruefen(token, EinmalToken.Zweck.GEMEINDE)
+        if konto is None or konto.parteikonto or not Gemeindezugang.objects.filter(
+            konto=konto, bestaetigt_am__isnull=True
+        ).exists():
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        from mitglieder.views import link_seite
+
+        return link_seite(request, _("Gemeindekonto bestätigen"), _("Gemeindekonto bestätigen"))
     konto = EinmalToken.einloesen(token, EinmalToken.Zweck.GEMEINDE)
     if konto is None or konto.parteikonto:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
@@ -214,13 +237,24 @@ def konto(request):
         "wohnsitz_art": request.user.wohnsitz_art_aktuell,
         "gemeinde": request.user.wohnsitz.anzeige if request.user.wohnsitz_id else "",
     })
+    if request.method == "POST" and form.is_valid() and form.gemeinde_objekt is not None and (
+        form.gemeinde_objekt.pk == request.user.nebenwohnsitz_id
+    ):
+        # Wie im Profil (GP-096): Der Hauptwohnsitz ist nicht zugleich der Nebenwohnsitz.
+        form.add_error("gemeinde", _("Der Nebenwohnsitz ist bereits Ihr Wohnsitz."))
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             aktuell = Mitglied.objects.select_for_update().get(pk=request.user.pk)
             if aktuell.testkonto:
-                return render(request, "mitglieder/token_ungueltig.html", status=403)
+                # GP-189: der wahre Grund statt „Link nicht mehr gültig“.
+                form.add_error(None, _("Testkonten können keinen Gemeindezugang führen."))
+                return render(
+                    request, "mitglieder/gemeinde_konto.html",
+                    {"form": form, "zugang": zugang, "gemeinden": _gemeinden()}, status=403,
+                )
             geaendert = wohnsitz_anwenden(aktuell, form)
-            aktuell.save(update_fields=["wohnsitz_art", "wohnsitz", "gemeinde", "bundesland"])
+            # GP-096: Auch der Wiener Gemeindebezirk wird gespeichert — das Audit nennt nur, was gespeichert ist.
+            aktuell.save(update_fields=["wohnsitz_art", "wohnsitz", "gemeinde", "bundesland", "wiener_bezirk"])
             if aktuell.parteikonto and geaendert:
                 from verfahren.models import AuditEintrag
 
@@ -238,14 +272,32 @@ def konto(request):
 @never_cache
 @require_GET
 def export(request):
+    """Alle gespeicherten Gemeindeangaben (GP-093); der Feld-Wächter steht in test_gemeinde.py."""
     m = request.user
     zugang = Gemeindezugang.objects.filter(konto=m).values(
         "angemeldet_am", "alter_erklaert_am", "bestaetigt_am"
     ).first()
+    g = m.wohnsitz
+    n = m.nebenwohnsitz
     antwort = JsonResponse({
-        "konto": {"email": m.email, "anzeigename": m.pseudonym_oeffentlich, "parteikonto": m.parteikonto},
-        "hauptwohnsitz": {"art": m.wohnsitz_art_aktuell, "gemeinde": m.wohnsitz.kennziffer if m.wohnsitz_id else None},
+        "konto": {
+            "email": m.email, "anzeigename": m.pseudonym_oeffentlich, "parteikonto": m.parteikonto,
+            "testkonto": m.testkonto, "aktiv": m.is_active, "status": m.status, "status_grund": m.status_grund,
+            "status_seit": m.status_seit, "registriert_am": m.date_joined, "zuletzt_angemeldet": m.last_login,
+        },
+        "hauptwohnsitz": {
+            "art": m.wohnsitz_art_aktuell, "gemeinde": g.kennziffer if g else None,
+            "name": g.name if g else (m.gemeinde or None), "bezirk": g.bezirk if g else None,
+            "bundesland": g.get_bundesland_display() if g else (m.get_bundesland_display() or None),
+            "wiener_bezirk": m.wiener_hauptbezirk or None,
+        },
+        "nebenwohnsitz": {"gemeinde": n.kennziffer, "name": n.name, "bezirk": n.bezirk} if n else None,
         "gemeindezugang": zugang,
+        "postauftraege": list(m.postauftrag_set.order_by("pk").values(
+            "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
+            "naechster_versuch")),
+        "oertliche_verfahrenskreise": list(m.oertliche_verfahrenskreise.order_by("antrag_id").values(
+            "antrag_id", "antrag__teilnehmerkreis_am")),
     }, json_dumps_params={"ensure_ascii": False})
     antwort["Content-Disposition"] = 'attachment; filename="gemeindekonto.json"'
     return antwort

@@ -8,7 +8,9 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
 <a href="{% url 'mitglieder:verwaltung_beitraege' %}">{% translate "Beiträge &amp; Bank →" %}</a> ·
 <a href="{% url 'anstoss:verwaltung' %}">{% translate "Anstöße →" %}</a> ·
 <a href="{% url 'mandatare:verwaltung' %}">{% translate "Mandatare →" %}</a> ·
-<a href="{% url 'gremien:rollen' %}">{% translate "Gremien-Rollen →" %}</a></p>
+<a href="{% url 'gremien:rollen' %}">{% translate "Gremien-Rollen →" %}</a> ·
+<a href="{% url 'parameter:verwaltung' %}">{% translate "Parameter →" %}</a>{% if quellenverwaltung %} ·
+<a href="{% url 'faktenbasis:verwaltung' %}">{% translate "Quellenverwaltung →" %}</a>{% endif %}</p>
 
 <div class="hf-grid" style="margin-top:18px">
   <div class="bereich"><span class="bk">{% translate "Bestand" %}</span>

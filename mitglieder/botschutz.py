@@ -39,6 +39,9 @@ from django.utils.translation import gettext_lazy
 GUELTIG_SEKUNDEN = 3600
 SITZUNGSSCHLUESSEL = "botschutz"
 HOECHSTZAHL_AUFGABEN = 3  # zwei offene Tabs sollen einander nicht die Aufgabe wegnehmen
+# Zwecke, deren Zähler einen Kalendertag gelten (`tagesdrossel_zuviel`, GP-101): Ihre Zeilen
+# übersteht das stündliche Aufräumen zwei Tage lang. Die Kennung ist dort stets „konto:<pk>“.
+TAGESZWECKE = ("bankmeldung",)
 
 
 def mindestzeit() -> int:
@@ -153,8 +156,54 @@ def drossel_zuviel(request, zweck: str, limit: int, kennung: str | None = None) 
     if neu:
         # Aufräumen im Vorbeigehen: Zähler sind keine Verfahrensdaten, nach zwei Stunden
         # sagen sie nichts mehr aus.
-        Drosselzaehler.objects.filter(stunde__lt=stunde - 1).delete()
+        Drosselzaehler.objects.filter(stunde__lt=stunde - 1).exclude(
+            zweck__in=TAGESZWECKE, stunde__gte=stunde - 48
+        ).delete()
     return False
+
+
+def tagesdrossel_zuviel(zweck: str, kennung: str, limit: int) -> bool:
+    """Wie `drossel_zuviel`, aber je Kalendertag (Ortszeit) und nur für Kontokennungen."""
+    from datetime import datetime
+    from datetime import time as uhrzeit
+
+    from django.utils import timezone
+
+    from mitglieder.models import Drosselzaehler
+
+    assert zweck in TAGESZWECKE and kennung.startswith("konto:")
+    beginn = datetime.combine(timezone.localdate(), uhrzeit.min, tzinfo=timezone.get_current_timezone())
+    with transaction.atomic():
+        zaehler, _neu = Drosselzaehler.objects.select_for_update().get_or_create(
+            zweck=zweck, kennung=kennung[:64], stunde=int(beginn.timestamp() // 3600)
+        )
+        if zaehler.anzahl >= limit:
+            return True
+        Drosselzaehler.objects.filter(pk=zaehler.pk).update(anzahl=F("anzahl") + 1)
+    return False
+
+
+def drossel_erstatten(request, zweck: str) -> None:
+    """Nimmt einen gezählten Versuch zurück — für Absendungen, deren Sicherheitsfrage richtig
+    gelöst war und die nur an einem Tippfehler im Formular scheiterten (GP-019): Die Drossel
+    trifft Missbrauch, nicht Tippfehler. Falsch gelöste Sicherheitsfragen bleiben gezählt."""
+    from mitglieder.models import Drosselzaehler
+
+    Drosselzaehler.objects.filter(
+        zweck=zweck, kennung=klienten_ip(request)[:64], stunde=int(time.time() // 3600), anzahl__gt=0
+    ).update(anzahl=F("anzahl") - 1)
+
+
+def drossel_meldung() -> str:
+    """Die Sperre endet zur vollen Stunde (Kalenderstunde) — die Meldung nennt diesen Zeitpunkt."""
+    from datetime import datetime
+
+    from django.utils import formats, timezone
+
+    ende = datetime.fromtimestamp((int(time.time() // 3600) + 1) * 3600, tz=timezone.get_current_timezone())
+    return _("Zu viele Versuche von dieser Verbindung — bitte ab %(zeit)s Uhr erneut.") % {
+        "zeit": formats.time_format(ende, "H:i")
+    }
 
 
 class BotschutzMixin(forms.Form):
@@ -169,6 +218,7 @@ class BotschutzMixin(forms.Form):
     def __init__(self, *args, request, **kwargs):
         super().__init__(*args, **kwargs)
         self.request = request
+        self.botschutz_bestanden = False  # GP-019: Sicherheitsfrage richtig gelöst?
         aufgabe = aufgabe_lesen(request, self.data.get("pruefung", "")) if self.is_bound else None
         self.fields["rechenfrage"].label = _("Sicherheitsfrage: Ergebnis der Rechnung im Bild")
         self.fields["rechenfrage"].help_text = _(
@@ -200,7 +250,9 @@ class BotschutzMixin(forms.Form):
             raise forms.ValidationError(fehler)  # schneller als ein Mensch lesen kann
         if daten.get("rechenfrage") != aufgabe["a"] + aufgabe["b"]:
             self.add_error("rechenfrage", fehler)
-        elif not self.errors:
+            return daten
+        self.botschutz_bestanden = True
+        if not self.errors:
             # Erst wenn das ganze Formular trägt, ist die Aufgabe verbraucht — nach einem
             # Tippfehler anderswo bleibt dieselbe Aufgabe stehen (sie wird ja erneut gezeigt).
             aufgabe_verbrauchen(self.request, kennung)

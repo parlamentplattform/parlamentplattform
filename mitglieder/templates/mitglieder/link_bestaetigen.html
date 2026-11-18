@@ -1,0 +1,11 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{{ titel }}{% endblock %}
+{% block inhalt %}
+<h1>{{ titel }}</h1>
+<div class="karte">
+  <form method="post">{% csrf_token %}
+    <button type="submit" class="btn">{{ knopf }}</button>
+  </form>
+</div>
+{% endblock %}

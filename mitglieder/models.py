@@ -403,6 +403,14 @@ class Mitglied(AbstractUser):
         und endet, sobald `Mandat.beendet` gesetzt ist. Kein Gremium, keine Rollen-Zeile."""
         return self.parteikonto and self.is_authenticated and self.aktive_mandate.exists()
 
+    @property
+    def hat_mandatsbereich(self) -> bool:
+        """Darf den Bereich „Mein Mandat“ öffnen: offenes Mandat oder beendetes, dessen Nachfrist
+        noch läuft (`Mandat.zugaenglich_von`) — danach richtet sich der Menüpunkt (GP-104)."""
+        from mandatare.models import Mandat
+
+        return self.parteikonto and self.is_authenticated and Mandat.zugaenglich_von(self).exists()
+
 
 class Gemeindezugang(models.Model):
     """Private freiwillige Anmeldung, keine Parteiaufnahme oder Stimmfreischaltung."""
@@ -606,7 +614,7 @@ class Drosselzaehler(models.Model):
     zwei Eimer, und ein Neustart setzt den Stand auf null. Keine Verfahrensdaten —
     Zeilen älter als zwei Stunden räumt `drossel_zuviel` im Vorbeigehen ab. Die
     Kennung ist die Verbindungsadresse (bei Drosseln je Konto „konto:<pk>“); gespeichert
-    wird sie nur für diese Stunde."""
+    wird sie nur für diese Stunde — Tageszähler je Konto (`botschutz.TAGESZWECKE`) zwei Tage."""
 
     zweck = models.CharField(max_length=30)
     kennung = models.CharField(max_length=64)
@@ -710,11 +718,12 @@ class Bankkopplung(models.Model):
     def aktuelle(cls):
         return cls.objects.filter(aktiv=True, account_id__gt="").first()
 
-    def abruf_erlaubt(self) -> bool:
+    def abruf_erlaubt(self, vorbehalt: int = 0) -> bool:
+        """`vorbehalt`: so viele Abrufe des Tages bleiben anderen vorbehalten (GP-101: der Verwaltung)."""
         from django.utils import timezone
 
         heute = timezone.localdate()
-        return self.abruf_tag != heute or self.abrufe_heute < self.ABRUFE_PRO_TAG
+        return self.abruf_tag != heute or self.abrufe_heute < self.ABRUFE_PRO_TAG - vorbehalt
 
     def abruf_vermerken(self) -> None:
         from django.utils import timezone

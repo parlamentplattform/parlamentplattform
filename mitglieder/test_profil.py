@@ -215,7 +215,7 @@ def test_anzeigename_kollidiert_nicht_mit_fremdem_pseudonym_oder_klarnamen(clien
         antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
         inhalt = antwort.content.decode()
         assert antwort.status_code == 200 and "nicht verfügbar" in inhalt, verboten
-        fehler = inhalt.split('<ul class="fehlerliste">')[1].split("</ul>")[0]
+        fehler = inhalt.split('<ul class="fehlerliste" id="id_anzeigename_error">')[1].split("</ul>")[0]
         assert "Klarname" not in fehler and "Anzeigenamen" not in fehler  # Meldung neutral
         anna.refresh_from_db()
         assert anna.pseudonym_oeffentlich == ""
@@ -1092,3 +1092,246 @@ def test_mitglied_n_ist_als_anzeigename_vorbehalten(client):
         antwort = profil_speichern(client, anzeigename=verboten, gemeinde=anna.gemeinde)
         assert antwort.status_code == 200 and "vorbehalten" in antwort.content.decode(), verboten
     assert profil_speichern(client, anzeigename="Mitgliederin Sieben", gemeinde=anna.gemeinde).status_code == 302
+
+
+# --- KI-Beitrag im Export gekennzeichnet (GP-190, ZWB-14) ---------------------
+
+
+def test_export_kennzeichnet_ki_beitrag_mit_laufnummer_und_modell(ordnung):  # noqa: F811
+    from gremien.models import Entwurf, EntwurfsBeitrag
+    from ki.models import KILauf
+    from mitglieder.profil import daten_export
+
+    anna = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(anna, **ANTRAG, ordnung=ordnung)
+    entwurf = Entwurf.objects.create(antrag=antrag)
+    lauf = KILauf.objects.create(
+        zweck="einschaetzung", angefordert_von=anna, eingabe="E", antwort="KI-Text", anbieter="test", modell="modell-x",
+    )
+    EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=anna, text="KI-Text", ki_lauf=lauf)
+    EntwurfsBeitrag.objects.create(entwurf=entwurf, mitglied=anna, text="Eigener Text")
+    zeilen = {z["text"]: z for z in daten_export(anna)["entwurfsbeitraege"]}
+    assert zeilen["KI-Text"]["ki_lauf"] == {"nummer": lauf.pk, "modell": "modell-x"}
+    assert zeilen["Eigener Text"]["ki_lauf"] is None
+
+
+# --- Datenexport nur per GET und gedrosselt (GP-099, KM-12) -------------------
+
+
+def test_datenexport_nur_get_und_je_konto_gedrosselt(client):
+    from mitglieder.profil import EXPORT_JE_STUNDE
+
+    anna = mitglied_anlegen("anna")
+    client.force_login(anna)
+    assert client.head(EXPORT).status_code == 405
+    assert client.post(EXPORT).status_code == 405
+    assert not audit("profil", aktion="datenexport", mitglied=anna.pk)
+    antworten = [client.get(EXPORT) for _ in range(25)]
+    assert len(audit("profil", aktion="datenexport", mitglied=anna.pk)) == EXPORT_JE_STUNDE < 25
+    assert [a.status_code for a in antworten[:EXPORT_JE_STUNDE]] == [200] * EXPORT_JE_STUNDE
+    assert antworten[-1].status_code == 302 and antworten[-1]["Location"] == PROFIL
+    assert "Zu viele Datenexporte" in client.get(PROFIL).content.decode()
+    bert = mitglied_anlegen("bert")  # die Drossel zählt je Konto
+    anderes = Client()
+    anderes.force_login(bert)
+    assert anderes.get(EXPORT).status_code == 200
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def test_feldfehler_im_profil_sind_verknuepft(client):
+    from mitglieder.test_views import verweise_ins_leere
+
+    anna = mit_wohnsitz("anna")
+    client.force_login(anna)
+    antwort = profil_speichern(client, anzeigename="Mitglied 7", gemeinde="Nirgendwo im Nichts", nebenwohnsitz="Auch nicht")
+    assert antwort.status_code == 200
+    assert verweise_ins_leere(antwort.content.decode()) == []
+
+
+# --- Wohnsitzwechsel nennt die festgehaltenen Verfahrenskreise (GP-056, OW-04) -
+
+
+def test_wohnsitzwechsel_im_profil_meldet_unveraenderte_verfahrenskreise(client):
+    m = mit_wohnsitz("anna")
+    client.force_login(m)
+    linz = Gemeinde.objects.get(kennziffer="40101").anzeige
+    antwort = profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=linz)
+    assert antwort.status_code == 302
+    assert "Festgehaltene Verfahrenskreise bleiben unverändert." in client.get(PROFIL).content.decode()
+    antwort = profil_speichern(client, anzeigename="Kornblume", wohnsitz_art="oesterreich", gemeinde=linz)
+    assert "Festgehaltene Verfahrenskreise" not in client.get(PROFIL).content.decode()  # nur beim Ortswechsel
+
+
+# --- Stimmen im Export gebündelt geladen (GP-181, SU-10) ----------------------
+
+
+def test_export_laedt_stimmen_und_zustimmungen_gebuendelt(ordnung):  # noqa: F811
+    import uuid
+
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from mitglieder.profil import _stimmen_export
+    from verfahren.models import Bewerbung, BewerbungsZustimmung
+
+    anna, bert = mitglied_anlegen("anna"), mitglied_anlegen("bert")
+
+    def eintraege(anzahl):
+        for _i in range(anzahl):
+            antrag = antrag_einbringen(bert, **ANTRAG, ordnung=ordnung)
+            pseudonym = uuid.uuid4()
+            StimmRegister.objects.create(antrag=antrag, mitglied=anna, pseudonym=pseudonym)
+            Stimmabgabe.objects.create(antrag=antrag, pseudonym=pseudonym, stimme="ja")
+            bewerbung = Bewerbung.objects.create(antrag=antrag, mitglied=bert, vorstellung="Ich")
+            BewerbungsZustimmung.objects.create(bewerbung=bewerbung, pseudonym=pseudonym)
+
+    def abfragen():
+        with CaptureQueriesContext(connection) as erfasst:
+            stimmen = _stimmen_export(anna)
+        assert all(s["stimme"] == "ja" and len(s["zustimmungen"]) == 1 for s in stimmen)
+        return len(stimmen), len(erfasst)
+
+    eintraege(2)
+    wenige = abfragen()
+    eintraege(4)
+    viele = abfragen()
+    assert (wenige[0], viele[0]) == (2, 6)
+    assert wenige[1] == viele[1]
+
+
+# --- Wächter über mittelbare Beziehungen (Z-2 zu FB-K5) -----------------------
+
+#: Mittelbare Rückbeziehungen mit Exportzweig: „Eltern > Kind.feld“ → Pfad im Export (Punkte trennen
+#: Ebenen; eine Liste steht für ihre Zeilen). Der Wächter steigt in jedes Kind mit Exportzweig weiter ab.
+MITTELBAR_ORDNER = {
+    "Mandat > Aufgabe.mandat": "mandate.aufgaben",
+    "Mandat > Bericht.mandat": "mandate.berichte",
+    "Mandat > Rechenschaft.mandat": "mandate.rechenschaft",
+    "Mandat > Sitzung.mandat": "mandate.sitzungen",
+    "Mandat > Sprechstunde.mandat": "mandate.gemeindearbeit.sprechstunden",
+    "Mandat > Ratsinitiative.mandat": "mandate.gemeindearbeit.ratsinitiativen",
+    "Mandat > Gemeindeprojekt.mandat": "mandate.gemeindearbeit.projekte",
+    "Mandat > Gemeindehaushaltsquelle.mandat": "mandate.gemeindearbeit.haushaltsquellen",
+    "Aufgabe > Bericht.aufgabe": "mandate.berichte",
+    "Aufgabe > Rechenschaft.aufgabe": "mandate.rechenschaft",
+    "Aufgabe > Sitzung.aufgabe": "mandate.sitzungen.aufgabe",
+    "Aufgabe > Gemeindesitzungsquelle.aufgabe": "mandate.gemeindearbeit.sitzungsquellen",
+    "Sitzung > Tagesordnungspunkt.sitzung": "mandate.sitzungen.punkte",
+    "Sitzung > Livemeldung.sitzung": "mandate.sitzungen.meldungen",
+    "Tagesordnungspunkt > Livemeldung.punkt": "mandate.sitzungen.meldungen.punkt",
+    "Tagesordnungspunkt > Rechenschaft.punkt": "mandate.rechenschaft.punkt",
+    "Livemeldung > Livemeldung.berichtigt": "mandate.sitzungen.meldungen.berichtigt",
+    "Rechenschaft > FreiwilligeBegruendung.rechenschaft": "mandate.rechenschaft.freiwillige_begruendung",
+    "Ratsinitiative > Ratsmeldung.initiative": "mandate.gemeindearbeit.ratsinitiativen.meldungen",
+    "Gemeindeprojekt > Gemeindeprojektstand.projekt": "mandate.gemeindearbeit.projekte.staende",
+    "Fachliste > Fachliste_fachgebiete.fachliste": "fachliste.fachgebiete",
+    "KILauf > EntwurfsBeitrag.ki_lauf": "entwurfsbeitraege.ki_lauf",
+    "KILauf > Vergleichsanfrage.lauf": "private_textvergleiche.lauf",
+}
+#: Mittelbare Rückbeziehungen ohne Exportzweig — je mit Grund. Der Wächter steigt hier nicht weiter ab.
+_ANTRAG = (
+    "Verfahrensdaten des eigenen Antrags, kein Datum über die Antragstellerin; eigene Anteile stehen "
+    "in den direkten Ordnern"
+)
+_BESCHLUSS = (
+    "Vorgang am Ratsbeschluss: Verfahrensdaten des Gremiums; eigene Stimmen, Prüfungen und Tests stehen "
+    "in den direkten Ordnern"
+)
+_KI = (
+    "Verweis eines Verfahrensvorgangs auf den Lauf oder die Fassung; eigene Aufträge, Beanstandungen "
+    "und Tests stehen in den direkten Ordnern"
+)
+MITTELBAR_AUSNAHMEN = {
+    **{f"Antrag > {kind}": _ANTRAG for kind in (
+        "AntragAufruf.antrag", "Antrag_kategorien.antrag", "AntragsEinbettung.antrag", "Aufgabe.antrag",
+        "Auslosung.antrag", "Aussetzung.antrag", "Beanstandung.antrag", "Bewerbung.antrag",
+        "Eigenstaendigkeit.antrag", "Eigenstaendigkeit.gegenueber", "Entwurf.antrag", "Favorit.antrag",
+        "GremienBeschluss.antrag", "Hinweis.antrag", "Interessenbindung.antrag", "KIAuftrag.antrag",
+        "KILauf.antrag", "Kommentar.antrag", "Lesestand.antrag", "Mandat.kandidatur", "OertlicheTeilnahme.antrag",
+        "Postauftrag.antrag", "Rechenschaft.antrag", "Rolle.antrag", "StimmRegister.antrag", "Stimmabgabe.antrag",
+        "Tagesordnungspunkt.antrag", "Ueberlastungsmeldung.antrag_an_mv", "Unterstuetzung.antrag",
+        "Vertrauensfrage.antrag", "Vollzugseintrag.antrag",
+    )},
+    **{f"GremienBeschluss > {kind}": _BESCHLUSS for kind in (
+        "Aussetzung.beschluss", "GremienStimme.beschluss", "ParameterTest.beschluss",
+        "ParameterTest.einfuehrung_beschluss", "Pruefung.beschluss", "Pruefung.korat_beschluss",
+        "Regelpruefung.beschluss", "Ueberlastungsmeldung.beschluss", "Vertrauensfrage.sperre_beschluss",
+    )},
+    **{kind: _KI for kind in (
+        "KILauf > Beanstandung.lauf", "KILauf > KIAuftrag.lauf", "KILauf > KIAuftrag.ursprung",
+        "KILauf > ParameterTest.ki_lauf", "Beanstandung > KIAuftrag.beanstandung",
+        "EntwurfsFassung > KIAuftrag.vorschlagsfassung",
+    )},
+    "Bewerbung > BewerbungsZustimmung.bewerbung": "Zustimmungen anderer unter fremden Pseudonymen; eigene stehen unter stimmen",
+    "Kommentar > Kommentar.antwort_auf": "Antworten anderer auf den eigenen Beitrag; eigene Antworten stehen unter kommentare",
+    "Kommentar > Meldung.kommentar": "Meldungen anderer zum eigenen Beitrag; eigene Meldungen stehen unter meldungen",
+    "Kommentar > Reaktion.kommentar": "Reaktionen anderer; eigene stehen unter reaktionen",
+    "Kommentar > WunschVermerk.kommentar": "Vermerk der Gruppe 2 am Kommentar — Verfahrensprotokoll",
+    "Sitzung > Kommentar.sitzung": "Beiträge anderer in der Live-Sitzung; eigene stehen unter kommentare",
+    "Sitzung > Lesestand.sitzung": "Lesestände: technischer Zeiger, kein Inhalt",
+    "ParameterTest > Hinweis.parametertest": "Hinweis der Zukunftswerkstatt zum Test — Verfahrensprotokoll",
+    # Bekannte Lücken, offen in GP-089 (zweite Runde) — ausdrücklich benannt, damit nichts still dazukommt.
+    "Mandat > Vertrauensfrage.mandat": "offen in GP-089: Vertrauensfragen samt eigener Stellungnahme fehlen im Export",
+    "Rechenschaft > Vertrauensfrage.anlaesse": "offen in GP-089: Anlass einer Vertrauensfrage",
+    "Rechenschaft > Vertrauensfrage_anlaesse.rechenschaft": "offen in GP-089: Anlass einer Vertrauensfrage",
+    "Antrag > AntragsFassung.antrag": "offen in GP-089: Fassungen des eigenen Antrags fehlen im Export",
+}
+#: Direkte Rückbeziehungen ohne eigenen Ordner (siehe AUSNAHMEN oben) — dort steigt der Wächter nicht ab.
+DIREKT_OHNE_ORDNER = {
+    "EinmalToken.mitglied", "Adresswechsel.beantragt_von", "Adresswechsel.bestaetigt_von", "WunschVermerk.durch",
+    "Hinweis.erledigt_von", "Lesestand.mitglied", "LogEntry.user", "Mitglied_groups.mitglied",
+    "Mitglied_user_permissions.mitglied",
+}
+
+
+def _rueckbeziehungen(modell) -> dict:
+    return {
+        f"{f.related_model.__name__}.{f.field.name}": f.related_model
+        for f in modell._meta.get_fields(include_hidden=True)
+        if f.auto_created and not f.concrete and (f.one_to_many or f.one_to_one or f.many_to_many)
+    }
+
+
+def test_export_deckt_jede_mittelbare_rueckbeziehung_ab(client, ordnung):  # noqa: F811
+    """Z-2 zu FB-K5: Ein Modell, das mittelbar am Mitglied hängt (über Mandat, Aufgabe, Antrag,
+    Bewerbung …), braucht einen Exportzweig oder eine begründete Ausnahme. Der Wächter beginnt bei
+    den direkt exportierten Rückbeziehungen und steigt in jeden Exportzweig weiter ab."""
+    from mandatare.models import Mandat
+    from mitglieder.auth_flows import EinmalToken  # noqa: F401 — das Modell muss geladen sein
+
+    offen = [m for name, m in _rueckbeziehungen(Mitglied).items() if name not in DIREKT_OHNE_ORDNER]
+    besucht, gefunden = set(), set()
+    while offen:
+        eltern = offen.pop()
+        if eltern.__name__ in besucht:
+            continue
+        besucht.add(eltern.__name__)
+        for kind, modell in _rueckbeziehungen(eltern).items():
+            schluessel = f"{eltern.__name__} > {kind}"
+            gefunden.add(schluessel)
+            if schluessel in MITTELBAR_ORDNER:
+                offen.append(modell)
+    assert not set(MITTELBAR_ORDNER) & set(MITTELBAR_AUSNAHMEN)
+    assert all(MITTELBAR_AUSNAHMEN.values())
+    unbekannt = gefunden - set(MITTELBAR_ORDNER) - set(MITTELBAR_AUSNAHMEN)
+    assert not unbekannt, f"Mittelbare Beziehung ohne Exportzweig und ohne begründete Ausnahme: {sorted(unbekannt)}"
+    veraltet = (set(MITTELBAR_ORDNER) | set(MITTELBAR_AUSNAHMEN)) - gefunden
+    assert not veraltet, f"Eintrag ohne mittelbare Beziehung im Modell: {sorted(veraltet)}"
+
+    anna = mitglied_anlegen()
+    Mandat.objects.create(mitglied=anna, bezeichnung="Gemeinderätin", gebiet="Eferding")
+    client.force_login(anna)
+    daten = json.loads(client.get(EXPORT).content)
+    for schluessel, pfad in MITTELBAR_ORDNER.items():
+        knoten = daten
+        for teil in pfad.split("."):
+            if isinstance(knoten, list):
+                if not knoten:
+                    break  # leere Liste: tiefer prüft der voll ausgestattete Export
+                knoten = knoten[0]
+            if knoten is None:
+                break
+            assert teil in knoten, (schluessel, pfad, teil)
+            knoten = knoten[teil]

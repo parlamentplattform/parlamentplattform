@@ -13,15 +13,20 @@ versendet wird erst auf Knopfdruck, entschieden von Menschen.
 
 from __future__ import annotations
 
+import hashlib
+
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import ngettext
 from django.views.decorators.http import require_POST
 
 from mitglieder import bank
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.botschutz import tagesdrossel_zuviel
 from mitglieder.models import Bankkopplung, Beitragseingang, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from mitglieder.views import BEITRAG_RICHTWERT, IBAN, _beitrags_qr
@@ -29,6 +34,8 @@ from parameter.models import zahl
 
 ABGLEICH_MINDESTABSTAND = 180  # Sekunden zwischen zwei mitglieder-ausgelösten Abrufen
 VERWALTUNG_NACHHOLFRIST = 6 * 3600  # Verwaltungsbesuch holt einen Abgleich nach, wenn älter
+VERWALTUNG_VORBEHALT = 1  # Abrufe je Tag, die keine Meldung verbraucht (GP-101)
+MELDUNGEN_MIT_ABRUF_JE_KONTO = 1  # je Kalendertag (GP-101)
 
 
 def _beitrags_kontext(nutzer) -> dict:
@@ -79,8 +86,16 @@ def beitrag_gemeldet(request):
         messages.info(request, _("Der letzte Abgleich ist keine drei Minuten her — bitte gleich noch einmal versuchen."))
         return redirect("mitglieder:beitrag")
 
+    # GP-101: Der letzte Abruf des Tages bleibt der Verwaltung; je Konto ruft nur eine Meldung am Tag ab.
+    frei = kopplung.abruf_erlaubt(vorbehalt=VERWALTUNG_VORBEHALT)
+    if frei and tagesdrossel_zuviel("bankmeldung", f"konto:{request.user.pk}", MELDUNGEN_MIT_ABRUF_JE_KONTO):
+        messages.info(
+            request,
+            _("Ihr Konto hat heute schon einen Kontoabruf ausgelöst — diese Meldung ruft nicht erneut ab. Ihr Eingang wird beim nächsten Abgleich erkannt: morgen auf Ihre Meldung hin oder wenn die Verwaltung abgleicht."),
+        )
+        return redirect("mitglieder:beitrag")
     vorher = set(request.user.beitraege.values_list("pk", flat=True))
-    _neu, meldung = bank.abgleich_ausfuehren()
+    _neu, meldung = bank.abgleich_ausfuehren() if frei else (0, "kontingent_erschoepft")
     if request.user.beitraege.exclude(pk__in=vorher).exists():
         messages.success(
             request,
@@ -218,11 +233,11 @@ def auszug_hochladen(request):
     if datei.size > 5 * 1024 * 1024:
         messages.error(request, _("Die Datei ist größer als 5 MB — bitte einen kürzeren Zeitraum exportieren."))
         return redirect("mitglieder:verwaltung_beitraege")
-    roh = datei.read()
+    roh_datei = datei.read()
     try:
-        inhalt = roh.decode("utf-8-sig")
+        inhalt = roh_datei.decode("utf-8-sig")
     except UnicodeDecodeError:
-        inhalt = roh.decode("latin-1")
+        inhalt = roh_datei.decode("latin-1")
 
     from plattform_core.bankauszug import auszug_lesen
 
@@ -230,15 +245,38 @@ def auszug_hochladen(request):
     if not umsaetze:
         messages.error(request, _("Aus der Datei ließ sich kein Umsatz lesen — erwartet wird ein camt.053-XML oder ein Umsatz-CSV mit Kopfzeile."))
         return redirect("mitglieder:verwaltung_beitraege")
-    neu, gesamt = bank.verbuchen_aus_umsaetzen(umsaetze)
+    # GP-016: Niemand verbucht den eigenen Beitrag — Zeilen mit der Referenz des Hochladenden bleiben liegen.
+    from plattform_core.beitraege import referenz_finden, umsatz_normalisieren
+
+    eigene_referenz = beitragsreferenz(request.user)
+    fremde = []
+    for roh in umsaetze:
+        eingang = umsatz_normalisieren(roh)
+        if eingang is None or referenz_finden(eingang.verwendungszweck) != eigene_referenz:
+            fremde.append(roh)
+    eigene = len(umsaetze) - len(fremde)
+    neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
     from mitglieder.verwaltung import _auditieren
 
-    _auditieren(request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu)
+    _auditieren(
+        request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
+        pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
+    )
     messages.success(
         request,
         _("Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, %(neu)d neu verbucht.")
         % {"umsaetze": len(umsaetze), "gesamt": gesamt, "neu": neu},
     )
+    if eigene:
+        messages.warning(
+            request,
+            ngettext(
+                "%(n)d Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin.",
+                "%(n)d Zeilen mit Ihrer eigenen Beitragsreferenz nicht verbucht — das übernimmt ein anderer Admin.",
+                eigene,
+            )
+            % {"n": eigene},
+        )
     return redirect("mitglieder:verwaltung_beitraege")
 
 
@@ -262,8 +300,15 @@ def bank_koppeln(request):
 
 @nur_admins
 def bank_rueckkehr(request):
+    from mitglieder.verwaltung import _auditieren
+
     try:
-        kopplung = bank.kopplung_abschliessen()
+        # GP-102: Kopplung und Audit-Eintrag gemeinsam oder gar nicht — ohne Konto- oder Bankkennungen
+        # im Audit. Scheitert der Eintrag, bleibt die Kopplung unscharf und kann erneut abgeschlossen werden.
+        with transaction.atomic():
+            kopplung = bank.kopplung_abschliessen()
+            if kopplung:
+                _auditieren(request, "bank_gekoppelt", request.user, consent_bis=kopplung.consent_bis.isoformat())
     except Exception:  # noqa: BLE001
         kopplung = None
     if kopplung:

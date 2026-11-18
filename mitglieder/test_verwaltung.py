@@ -549,3 +549,177 @@ def test_verwaltung_kann_die_einwilligung_zum_klarnamen_nur_zuruecknehmen(client
     client.post(reverse("mitglieder:verwaltung_mitglied", args=[person.pk]), daten)
     person.refresh_from_db()
     assert person.klarname_oeffentlich is False
+
+
+# --- Niemand wirkt auf das eigene Konto (GP-016, KM-03; CONCEPT F-51) -------------------
+
+
+@pytest.mark.parametrize('aktion', ['reaktivieren', 'beitrag', 'admin_geben'])
+def test_admin_handelt_nicht_am_eigenen_konto(client, aktion):
+    chefin = admin_anlegen('chefin')
+    chefin.status = Mitgliedsstatus.PAUSIERT
+    chefin.save(update_fields=['status'])
+    client.force_login(chefin)
+    vorher = Mitglied.objects.filter(pk=chefin.pk).values().get()
+    antwort = client.post(detail(chefin.pk), {'aktion': aktion}, follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    assert Mitglied.objects.filter(pk=chefin.pk).values().get() == vorher
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_admin_setzt_eigene_stufe_und_eigenes_beitragsdatum_nicht(client):
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    client.force_login(chefin)
+    antwort = client.post(detail(chefin.pk), stammdaten(chefin, identitaetsstufe=Identitaetsstufe.PRAESENZ), follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    client.post(detail(chefin.pk), stammdaten(chefin, beitrag_zuletzt_am=timezone.localdate().isoformat()))
+    chefin.refresh_from_db()
+    assert chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and chefin.geprueft_seit is None
+    assert chefin.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_eigener_kontoauszug_verbucht_die_eigene_zeile_nicht(client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    anna = mitglied_anlegen('anna')
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Chefin;{beitragsreferenz(chefin)} Beitrag;30,00;EUR\n'
+        f'28.08.2026;Anna;{beitragsreferenz(anna)} Beitrag;30,00;EUR\n'
+    ).encode()
+    client.force_login(chefin)
+    antwort = client.post(
+        reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}, follow=True
+    )
+    chefin.refresh_from_db()
+    anna.refresh_from_db()
+    assert chefin.beitrag_zuletzt_am is None and chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
+    assert anna.beitrag_zuletzt_am is not None
+    assert '1 Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht' in antwort.content.decode()
+    import hashlib
+
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='auszug_abgleich').get().ereignis
+    assert eintrag['pruefsumme'] == hashlib.sha256(inhalt).hexdigest()
+    assert eintrag['eigene_uebersprungen'] == 1
+
+
+# --- Handlung und Audit-Eintrag stehen in einer Klammer (GP-102, KM-17) -----------------
+
+
+def _audit_kaputt(monkeypatch):
+    def kaputt(*args, **kwargs):
+        raise RuntimeError('Audit nicht schreibbar')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', kaputt)
+
+
+def test_ohne_audit_bleibt_der_status_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV and anna.is_active is True
+
+
+def test_ohne_audit_bleiben_die_stammdaten_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), stammdaten(anna, vorname='Anneliese'))
+    anna.refresh_from_db()
+    assert anna.first_name != 'Anneliese'
+
+
+def test_abschluss_einer_bankkopplung_wird_auditiert(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    kopplung = Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate() + timedelta(days=180))
+    monkeypatch.setattr(bank, 'kopplung_abschliessen', lambda: kopplung)
+    client.force_login(admin_anlegen())
+    client.get(reverse('mitglieder:bank_rueckkehr'))
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='bank_gekoppelt').get().ereignis
+    assert eintrag['typ'] == 'verwaltung' and 'requisition' not in json.dumps(eintrag)
+
+
+def test_ohne_audit_bleibt_die_bankkopplung_unscharf(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate())
+    monkeypatch.setattr(bank, '_get', lambda pfad, **params: {'status': 'LN', 'accounts': ['k1']})
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.get(reverse('mitglieder:bank_rueckkehr'), follow=True)
+    assert 'nicht abgeschlossen' in antwort.content.decode()
+    assert Bankkopplung.aktuelle() is None  # Kopplung und Audit gemeinsam oder gar nicht
+
+
+def test_ausschluss_vermerkt_die_entzogenen_adminrechte_im_audit(client):
+    anna = mitglied_anlegen()
+    anna.ist_admin = True
+    anna.save(update_fields=['ist_admin'])
+    client.force_login(admin_anlegen())
+    client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.ist_admin is False
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='ausschliessen').get().ereignis
+    assert eintrag['adminrechte_entzogen'] is True and eintrag['mitglied'] == anna.pk
+
+
+# --- Einstiege in Parameter- und Quellenverwaltung (GP-105, GP-086) -----------
+
+
+def test_verwaltung_verweist_auf_parameter_und_quellenverwaltung(client):
+    admin = admin_anlegen()
+    client.force_login(admin)
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("parameter:verwaltung")}"' in html
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' in html
+    admin.identitaetsstufe = "ungeprueft"
+    admin.save(update_fields=["identitaetsstufe"])
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' not in html  # nur für Berechtigte
+
+
+# --- Satzungsverweise auf § 4 (GP-176, OCR-16) --------------------------------
+
+
+def test_verweise_auf_paragraf_4_nennen_nur_vorhandene_absaetze():
+    """§ 4 des Satzungsentwurfs 2.5 hat fünf Absätze; der Ausschluss steht in Abs 5."""
+    from pathlib import Path
+
+    vorlagen = Path(__file__).parent / "templates"
+    zitate = [
+        (datei.name, int(absatz))
+        for datei in vorlagen.rglob("*.*")
+        for absatz in re.findall(r"§ 4 Abs (\d+)", datei.read_text(encoding="utf-8"))
+    ]
+    assert zitate and all(1 <= absatz <= 5 for _datei, absatz in zitate), zitate
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def test_feldfehler_der_stammdaten_sind_verknuepft(client):
+    from mitglieder.test_views import verweise_ins_leere
+
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    antwort = client.post(detail(anna.pk), {
+        "aktion": "stammdaten", "email": "keine-adresse", "wohnsitz_art": "oesterreich",
+        "gemeinde": "Nirgendwo im Nichts", "identitaetsstufe": "falsch", "beitrag_zuletzt_am": "kein-datum",
+    })
+    assert antwort.status_code == 200
+    assert verweise_ins_leere(antwort.content.decode()) == []

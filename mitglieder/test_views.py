@@ -79,7 +79,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
     assert not m.has_usable_password()  # passwortlos by design
     assert len(mail.outbox) == 1
 
-    antwort = client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    antwort = client.post(link_aus_mail(mail.outbox[0]), follow=True)
     m.refresh_from_db()
     assert m.is_active is True
     assert m.beitritt == timezone.localdate()  # Anwartschaft beginnt (§ 4 Abs 4) — Ortszeit, nicht UTC
@@ -93,7 +93,7 @@ def test_registrierung_legt_inaktives_konto_an_und_bestaetigung_aktiviert(client
 def test_bestaetigungslink_ist_nur_einmal_gueltig(client):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
     link = link_aus_mail(mail.outbox[0])
-    assert client.get(link, follow=True).status_code == 200
+    assert client.post(link, follow=True).status_code == 200
     client.post(reverse("mitglieder:abmelden"))
     assert client.get(link).status_code == 400  # verbraucht
 
@@ -129,7 +129,7 @@ def test_login_per_magic_link_funktioniert_genau_einmal(client):
     assert len(mail.outbox) == 1
     link = link_aus_mail(mail.outbox[0])
 
-    antwort = client.get(link)
+    antwort = client.post(link)
     assert antwort.status_code == 302
     assert int(client.session["_auth_user_id"]) == m.pk
 
@@ -177,7 +177,7 @@ def test_unbestaetigtes_konto_sperrt_die_adresse_nicht_dauerhaft(client):
     assert Mitglied.objects.count() == 1  # überschrieben, nicht verdoppelt
     m.refresh_from_db()
     assert m.first_name == "Evamaria" and m.is_active is False
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)
     m.refresh_from_db()
     assert m.is_active is True and m.beitritt == timezone.localdate()
 
@@ -204,6 +204,125 @@ def test_ausgeschlossene_bleiben_zu(client):
     assert mail.outbox == []
     antwort = client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
     assert "existiert bereits" in antwort.content.decode() and Mitglied.objects.count() == 1
+
+
+# --- Ausschluss: alte Links sind wirkungslos (GP-017, KM-01) -----------------------------
+
+
+def _ausschliessen(client, konto):
+    from mitglieder.models import Mitgliedsstatus
+
+    chefin = Mitglied.objects.create(username='chefin', email='chefin@example.org', is_active=True, ist_admin=True)
+    client.force_login(chefin)
+    client.post(
+        reverse('mitglieder:verwaltung_mitglied', args=[konto.pk]),
+        {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'},
+    )
+    client.post(reverse('mitglieder:abmelden'))
+    konto.refresh_from_db()
+    assert konto.status == Mitgliedsstatus.AUSGESCHLOSSEN and konto.is_active is False
+
+
+def test_alter_bestaetigungslink_oeffnet_ausgeschlossenes_konto_nicht(client):
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link1 = link_aus_mail(mail.outbox[0])
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    link2 = link_aus_mail(mail.outbox[1])
+    client.post(link2)
+    client.post(reverse('mitglieder:abmelden'))
+    eva = Mitglied.objects.get(email='eva@example.org')
+    assert eva.is_active is True
+    _ausschliessen(client, eva)
+
+    antwort = client.post(link1)
+    eva.refresh_from_db()
+    assert antwort.status_code == 400
+    assert eva.is_active is False
+    assert '_auth_user_id' not in client.session
+
+
+def test_nie_benutzter_bestaetigungslink_oeffnet_ausgeschlossenes_konto_nicht(client):
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link = link_aus_mail(mail.outbox[0])
+    eva = Mitglied.objects.get(email='eva@example.org')
+    _ausschliessen(client, eva)
+
+    antwort = client.post(link)
+    eva.refresh_from_db()
+    assert antwort.status_code == 400
+    assert eva.is_active is False and eva.beitritt is None
+    assert '_auth_user_id' not in client.session
+
+
+def test_ausschluss_entwertet_alle_links_und_nimmt_adminrechte(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    eva = Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True, ist_admin=True)
+    anmelde = EinmalToken.ausstellen(eva, EinmalToken.Zweck.LOGIN)
+    bestaetigung = EinmalToken.ausstellen(eva, EinmalToken.Zweck.BESTAETIGUNG)
+    _ausschliessen(client, eva)
+    assert eva.ist_admin is False
+    assert not EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).exists()
+    assert client.post(reverse('mitglieder:login_einloesen', args=[anmelde])).status_code == 400
+    assert client.post(reverse('mitglieder:bestaetigen', args=[bestaetigung])).status_code == 400
+    assert '_auth_user_id' not in client.session
+
+
+def test_bestaetigung_entwertet_die_uebrigen_bestaetigungslinks(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    client.post(link_aus_mail(mail.outbox[1]))
+    eva = Mitglied.objects.get(email='eva@example.org')
+    assert not EinmalToken.objects.filter(
+        mitglied=eva, zweck=EinmalToken.Zweck.BESTAETIGUNG, verbraucht_am=None
+    ).exists()
+
+
+# --- Abruf eines Links löst nichts ein (GP-018, KM-02) ----------------------------------
+
+
+def test_abruf_des_bestaetigungslinks_loest_nichts_ein(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    link = link_aus_mail(mail.outbox[0])
+    eva = Mitglied.objects.get(email='eva@example.org')
+    for methode in (client.head, client.get):
+        antwort = methode(link)
+        assert antwort.status_code == 200
+        eva.refresh_from_db()
+        assert eva.is_active is False and eva.beitritt is None and eva.mitgliedsnummer is None
+        assert EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).count() == 1
+        assert '_auth_user_id' not in client.session
+    seite = client.get(link).content.decode()
+    assert 'method="post"' in seite and 'csrfmiddlewaretoken' in seite
+    assert client.post(link).status_code == 302
+    eva.refresh_from_db()
+    assert eva.is_active is True and eva.beitritt is not None
+    assert int(client.session['_auth_user_id']) == eva.pk
+    client.post(reverse('mitglieder:abmelden'))
+    assert client.post(link).status_code == 400  # genau einmal
+
+
+def test_abruf_des_anmeldelinks_loest_nichts_ein(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    eva = Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True)
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    link = link_aus_mail(mail.outbox[0])
+    for methode in (client.head, client.get):
+        assert methode(link).status_code == 200
+        assert '_auth_user_id' not in client.session
+        assert EinmalToken.objects.filter(mitglied=eva, verbraucht_am=None).count() == 1
+    assert client.post(link).status_code == 302
+    assert int(client.session['_auth_user_id']) == eva.pk
+    client.post(reverse('mitglieder:abmelden'))
+    assert client.post(link).status_code == 400
 
 
 # --- Menschlichkeitsprüfung (F-49) ---------------------------------------------
@@ -241,6 +360,40 @@ def test_ip_drossel_stoppt_massenregistrierung(client, feste_drosselzeit):
     )
     assert "Zu viele Versuche" in antwort.content.decode()
     assert not Mitglied.objects.filter(email="eva99@example.org").exists()
+
+
+# --- Drossel trifft Missbrauch, nicht Tippfehler (GP-019, KM-05) ----------------------
+
+
+def test_tippfehler_verbrauchen_die_drossel_nicht(client, feste_drosselzeit):
+    for _versuch in range(5):
+        antwort = client.post(
+            reverse('mitglieder:registrieren'), {**ANMELDUNG, 'gemeinde': 'Entenhausen', **botschutz(client)}
+        )
+        assert 'amtlichen Gemeindeverzeichnis' in antwort.content.decode()
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert Mitglied.objects.filter(email='eva@example.org').exists()
+
+
+def test_falsch_geloeste_sicherheitsfragen_bleiben_begrenzt(client, feste_drosselzeit):
+    for _versuch in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client, antwort=99)})
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert 'Zu viele Versuche' in antwort.content.decode()
+    assert not Mitglied.objects.exists()
+
+
+def test_drosselmeldung_nennt_den_zeitpunkt(client, monkeypatch):
+    from django.utils import formats
+
+    stunde = int(time.time() // 3600) * 3600
+    monkeypatch.setattr(time, 'time', lambda: stunde + 600)
+    for i in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': f'eva{i}@example.org', **botschutz(client)})
+    inhalt = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)}).content.decode()
+    ende = timezone.localtime(timezone.datetime.fromtimestamp(stunde + 3600, tz=timezone.get_current_timezone()))
+    assert 'in einer Stunde' not in inhalt
+    assert formats.time_format(ende, 'H:i') in inhalt
 
 
 # --- Drossel: die Verbindung zählt, nicht der Kopf (Befunde #19, #66) --------------------
@@ -365,7 +518,7 @@ def test_nach_einem_tippfehler_bleibt_dieselbe_aufgabe_stehen(client):
 
 def test_willkommensseite_zeigt_beitrags_qr(client):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **botschutz(client)})
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)  # bestätigen (landet in der Einführung)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)  # bestätigen (landet in der Einführung)
     inhalt = client.get(reverse("mitglieder:willkommen")).content.decode()
     assert "<svg" in inhalt  # EPC-QR-Code (F-38): Zahlen mit Code, ohne Zahlungsdienstleister
     assert "Zahlen mit Code" in inhalt
@@ -479,3 +632,128 @@ def test_anzeigename_faellt_nie_auf_den_anmeldenamen_zurueck():
     assert mit.anzeigename == f"Mitglied {mit.pk}"
     mit.pseudonym_oeffentlich = "Kornblume"
     assert mit.anzeigename == "Kornblume"
+
+
+def test_vergebene_adressen_bleiben_gedrosselt(client, feste_drosselzeit):
+    """Die Meldung „existiert bereits“ verrät, welche Adresse ein Konto hat — solche Fehler zählen weiter."""
+    Mitglied.objects.create(username='eva@example.org', email='eva@example.org', is_active=True)
+    for _versuch in range(5):
+        client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': 'neu@example.org', **botschutz(client)})
+    assert 'Zu viele Versuche' in antwort.content.decode()
+
+
+# --- Formulare fassen nur, was die Spalten fassen (GP-098, KM-11) -----------------------
+
+
+def test_beitritt_weist_zu_lange_adresse_ab(client):
+    lang = 'e' * (151 - len('@example.org')) + '@example.org'
+    assert len(lang) == 151
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': lang, **botschutz(client)})
+    assert antwort.status_code == 200
+    assert 'höchstens 150 Zeichen' in antwort.content.decode()
+    assert not Mitglied.objects.exists()
+
+
+# --- Erneute Registrierung setzt auch das Prüfdatum zurück (GP-185, KM-15) ----------------
+
+
+def test_erneute_registrierung_loescht_das_pruefdatum(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    eva = Mitglied.objects.get(email='eva@example.org')
+    eva.identitaetsstufe_setzen(Identitaetsstufe.PRAESENZ)
+    eva.geprueft_seit = timezone.localdate() - timedelta(days=30)
+    eva.save()
+    EinmalToken.objects.filter(mitglied=eva).update(gueltig_bis=timezone.now() - timedelta(hours=1))
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    eva.refresh_from_db()
+    assert eva.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and eva.geprueft_seit is None
+    eva.identitaetsstufe_setzen(Identitaetsstufe.PRAESENZ)
+    assert eva.geprueft_seit == timezone.localdate()  # der Tag der Freischaltung
+
+
+# --- „Mein Mandat“ in der Nachfrist (GP-104, MV-17) ---------------------------
+
+
+def test_menue_fuehrt_mein_mandat_bis_zum_ende_der_nachfrist(client):
+    from mandatare.models import NACHFRIST_TAGE, Mandat
+    from verfahren.test_views_aktionen import mitglied_anlegen as anlegen
+
+    m = anlegen("frueher")
+    heute = timezone.localdate()
+    mandat = Mandat.objects.create(mitglied=m, bezeichnung="Gemeinderätin", gebiet="Eferding", beendet=heute)
+    client.force_login(m)
+    assert 'href="/mandatare/mein/"' in client.get("/").content.decode()
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE))
+    assert 'href="/mandatare/mein/"' in client.get("/").content.decode()  # letzter Tag der Nachfrist
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
+    assert 'href="/mandatare/mein/"' not in client.get("/").content.decode()  # neunter Tag
+
+
+# --- Anmeldeseite nennt den Weg für Einwohner (GP-097, GAST-02) ---------------
+
+
+@pytest.mark.parametrize("sprache", ["de", "en"])
+def test_anmeldeseite_verweist_auf_das_gemeindekonto(client, sprache):
+    html = client.get(reverse("mitglieder:login"), HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split("</main>", 1)[0]
+    assert f'href="{reverse("gemeinde:anmelden")}"' in hauptteil
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def verweise_ins_leere(html: str) -> list[str]:
+    """Für jedes Feld mit aria-invalid: Jede Kennung in aria-describedby gehört zu einem Element;
+    das Fehlerelement (`…_error`) trägt Text. Gibt die Mängel zurück; leer heißt verknüpft."""
+    from html.parser import HTMLParser
+
+    class Leser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.ungueltig, self.texte, self.offen = [], {}, []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if a.get("aria-invalid") == "true":
+                self.ungueltig.append((a.get("name"), (a.get("aria-describedby") or "").split()))
+            if a.get("id"):
+                self.texte.setdefault(a["id"], "")
+                if tag not in ("input", "br", "img", "meta", "link"):
+                    self.offen.append((tag, a["id"]))
+            elif tag not in ("input", "br", "img", "meta", "link"):
+                self.offen.append((tag, None))
+
+        def handle_endtag(self, tag):
+            while self.offen:
+                t, _kennung = self.offen.pop()
+                if t == tag:
+                    break
+
+        def handle_data(self, data):
+            for _t, kennung in self.offen:
+                if kennung:
+                    self.texte[kennung] += data
+
+    leser = Leser()
+    leser.feed(html)
+    assert leser.ungueltig, "kein ungültiges Feld gerendert"
+    maengel = []
+    for name, kennungen in leser.ungueltig:
+        if not any(k.endswith("_error") for k in kennungen):
+            maengel.append(f"{name}: kein Fehlerverweis")
+        for k in kennungen:
+            if k not in leser.texte:
+                maengel.append(f"{name}: {k} fehlt")
+            elif k.endswith("_error") and not leser.texte[k].strip():
+                maengel.append(f"{name}: {k} ohne Text")
+    return maengel
+
+
+def test_feldfehler_von_anmeldung_und_registrierung_sind_verknuepft(client):
+    html = client.post(reverse("mitglieder:login"), {"email": "keine-adresse"}).content.decode()
+    assert verweise_ins_leere(html) == []
+    html = client.post(reverse("mitglieder:registrieren"), {"email": "keine-adresse"}).content.decode()
+    assert verweise_ins_leere(html) == []

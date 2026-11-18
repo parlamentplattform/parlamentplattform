@@ -14,12 +14,12 @@ Sobald die ID Austria angebunden ist, ersetzt sie diesen Schritt.{% endblocktran
       <label for="{{ feld.id_for_label }}">{{ feld.label }}</label>
       {% if feld.name == "rechenfrage" %}<div style="margin:6px 0">{{ form.captcha_svg|safe }}</div>{% endif %}
       {{ feld }}
-      {% if feld.help_text %}<span class="hilfe">{{ feld.help_text }}</span>{% endif %}
-      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      {% if feld.help_text %}<span class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</span>{% endif %}
+      {% if feld.errors %}<ul class="fehlerliste" id="{{ feld.auto_id }}_error">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
     </p>
   {% endfor %}
   <button type="submit" class="btn">{% translate "Anmeldelink senden" %}</button>
 </form>
 </div>
-<p class="hilfe">{% translate "Noch kein Zugang?" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a></p>
+<p class="hilfe">{% translate "Noch kein Zugang?" %} <a href="{% url 'mitglieder:registrieren' %}">{% translate "Mitglied werden" %}</a> · <a href="{% url 'gemeinde:anmelden' %}">{% translate "Gemeindekonto anlegen" %}</a></p>
 {% endblock %}

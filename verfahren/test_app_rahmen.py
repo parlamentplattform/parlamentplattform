@@ -110,10 +110,13 @@ def test_konto_menue_mit_gremienrolle(client):
 
 def test_konto_menue_mandatar(client):
     """Die Rolle „Mandatar“ hängt am offenen Mandat (§ 7 Abs 9): Mit ihm erscheint „Mein Mandat“,
-    mit seinem Ende verschwindet der Eintrag wieder — ohne dass jemand eine Rolle pflegt."""
+    nach dem Ende der Nachfrist verschwindet der Eintrag wieder (GP-104) — ohne dass jemand eine
+    Rolle pflegt."""
+    from datetime import timedelta
+
     from django.utils import timezone
 
-    from mandatare.models import Mandat
+    from mandatare.models import NACHFRIST_TAGE, Mandat
 
     m = mitglied_anlegen("mandatarin")
     client.force_login(m)
@@ -122,6 +125,9 @@ def test_konto_menue_mandatar(client):
     konto = _konto(client.get("/").content.decode())
     assert 'href="/mandatare/mein/">Mein Mandat</a>' in konto and 'href="/profil/">Profil</a>' in konto
     mandat.beendet = timezone.localdate()
+    mandat.save(update_fields=["beendet"])
+    assert "Mein Mandat" in client.get("/").content.decode()  # Nachfrist für Rechenschaft und Berichte
+    mandat.beendet = timezone.localdate() - timedelta(days=NACHFRIST_TAGE + 1)
     mandat.save(update_fields=["beendet"])
     assert "Mein Mandat" not in client.get("/").content.decode()
 

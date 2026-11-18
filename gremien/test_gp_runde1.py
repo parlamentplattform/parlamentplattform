@@ -288,3 +288,34 @@ def test_die_alten_saetze_stehen_in_keinem_template_mehr():
     alle = '\n'.join(p.read_text(encoding='utf-8') for p in Path(__file__).parent.glob('templates/gremien/*.html'))
     for alt in ('wartet, bis eine besetzt ist', 'die Ausschreibung läuft über den Koordinationsrat', 'mit Grund dokumentiert'):
         assert alt not in alle
+
+
+# --- GP-044: Keine Tests auf Versionsschildern, keine unlesbaren Testwerte --------------------
+
+
+def test_versionsschilder_stehen_nicht_zur_wahl_und_lassen_sich_nicht_testen(client):
+    """GP-044: Der Rat konnte eine Regelfassung „testen“, die es im Code nicht gibt — das Register wies
+    dann eine Fassung „im Test“ aus, nach der niemand rechnete."""
+    from gremien.views import _testbare_parameter
+    from parameter.models import ParameterTest
+
+    leute = _korat()
+    schild = _register('weicherfilter-regel')
+    assert schild.einheit == 'Regelfassung'
+    assert not _testbare_parameter().filter(einheit='Regelfassung').exists()
+    antwort = _test_anordnen(client, leute[0], schild, '3')
+    assert antwort.status_code == 404 and not ParameterTest.objects.exists()
+
+
+def test_ein_unlesbarer_testwert_wird_abgewiesen(client):
+    """GP-044: „keine“ als Testwert einer Zahl las die Plattform als den eingebauten Zielwert — der Test
+    maß nichts, stand aber im Register, im Bericht und im Posteingang."""
+    from parameter.models import ParameterTest
+
+    leute = _korat()
+    parameter = _register('chat-zeichen-hoechstzahl')
+    antwort = _test_anordnen(client, leute[0], parameter, 'keine')
+    assert not ParameterTest.objects.exists()
+    assert 'ganze Zahl' in antwort.content.decode()
+    _test_anordnen(client, leute[0], parameter, '100')
+    assert ParameterTest.objects.count() == 1

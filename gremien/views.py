@@ -1972,11 +1972,31 @@ def _testbare_parameter():
     § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren (§ 5 Abs 5). Die
     Schlüssel, aus denen die Verfahrensordnung gebaut wird, wirken erst über eine neue Fassung
     der Ordnung — und die beschließt nach § 5 Abs 7 die Mitgliederversammlung, nicht der
-    Koordinationsrat. Ein Test auf ihnen wäre ein zweiter Weg zur Ordnung; den gibt es nicht."""
+    Koordinationsrat. Ein Test auf ihnen wäre ein zweiter Weg zur Ordnung; den gibt es nicht.
+
+    Ebenso ausgenommen sind die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts
+    ein, sie nennen die Fassung einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt."""
     from plattform_core.policy import REGISTER_ZUORDNUNG
 
     ordnung = {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
-    return Parameter.objects.exclude(schluessel__in=ordnung).exclude(status=Status.IM_TEST).order_by("gruppe", "schluessel")
+    return (
+        Parameter.objects.exclude(schluessel__in=ordnung)
+        .exclude(einheit=EINHEIT_REGELFASSUNG)
+        .exclude(status=Status.IM_TEST)
+        .order_by("gruppe", "schluessel")
+    )
+
+
+#: Die Einheit, an der das Register ein Versionsschild erkennt (parameter/models.py, ERSTBESTAND).
+EINHEIT_REGELFASSUNG = "Regelfassung"
+
+
+def _ganze_zahl(wert: str) -> bool:
+    try:
+        int(wert)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def _test_anordnen(request):
@@ -2010,6 +2030,11 @@ def _test_anordnen(request):
         return redirect("gremien:koordination")
     if messgroesse not in messgroessen(werte()):
         messages.error(request, _("Die Messgröße muss eine Kennzahl aus /kennzahlen.json sein."))
+        return redirect("gremien:koordination")
+    if _ganze_zahl(parameter.wert) and not _ganze_zahl(testwert):
+        # Einen unlesbaren Wert läse die Plattform still als den eingebauten Zielwert (`parameter.zahl`) —
+        # der Test stünde im Register und mäße nichts (GP-044).
+        messages.error(request, _("Der Testwert muss wie der geltende Wert eine ganze Zahl sein."))
         return redirect("gremien:koordination")
     if testwert == parameter.wert:
         messages.info(request, _("Der Testwert ist der geltende Wert — nichts zu testen."))

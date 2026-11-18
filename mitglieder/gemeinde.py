@@ -272,14 +272,32 @@ def konto(request):
 @never_cache
 @require_GET
 def export(request):
+    """Alle gespeicherten Gemeindeangaben (GP-093); der Feld-Wächter steht in test_gemeinde.py."""
     m = request.user
     zugang = Gemeindezugang.objects.filter(konto=m).values(
         "angemeldet_am", "alter_erklaert_am", "bestaetigt_am"
     ).first()
+    g = m.wohnsitz
+    n = m.nebenwohnsitz
     antwort = JsonResponse({
-        "konto": {"email": m.email, "anzeigename": m.pseudonym_oeffentlich, "parteikonto": m.parteikonto},
-        "hauptwohnsitz": {"art": m.wohnsitz_art_aktuell, "gemeinde": m.wohnsitz.kennziffer if m.wohnsitz_id else None},
+        "konto": {
+            "email": m.email, "anzeigename": m.pseudonym_oeffentlich, "parteikonto": m.parteikonto,
+            "testkonto": m.testkonto, "aktiv": m.is_active, "status": m.status, "status_grund": m.status_grund,
+            "status_seit": m.status_seit, "registriert_am": m.date_joined, "zuletzt_angemeldet": m.last_login,
+        },
+        "hauptwohnsitz": {
+            "art": m.wohnsitz_art_aktuell, "gemeinde": g.kennziffer if g else None,
+            "name": g.name if g else (m.gemeinde or None), "bezirk": g.bezirk if g else None,
+            "bundesland": g.get_bundesland_display() if g else (m.get_bundesland_display() or None),
+            "wiener_bezirk": m.wiener_hauptbezirk or None,
+        },
+        "nebenwohnsitz": {"gemeinde": n.kennziffer, "name": n.name, "bezirk": n.bezirk} if n else None,
         "gemeindezugang": zugang,
+        "postauftraege": list(m.postauftrag_set.order_by("pk").values(
+            "art", "bezug", "antrag", "erstellt_am", "versandt_am", "anhang_versandt_am", "erledigt", "versuche",
+            "naechster_versuch")),
+        "oertliche_verfahrenskreise": list(m.oertliche_verfahrenskreise.order_by("antrag_id").values(
+            "antrag_id", "antrag__teilnehmerkreis_am")),
     }, json_dumps_params={"ensure_ascii": False})
     antwort["Content-Disposition"] = 'attachment; filename="gemeindekonto.json"'
     return antwort

@@ -216,7 +216,9 @@ def test_oeffentlich_lesen_mit_gemeindekontomenue_und_privater_export(client, bu
     assert buerger.email not in html and buerger.wohnsitz.name not in html
     r = client.get(reverse("gemeinde:export"))
     assert r.json()["konto"]["parteikonto"] is False
-    assert set(r.json()) == {"konto", "hauptwohnsitz", "gemeindezugang"}
+    assert set(r.json()) == {
+        "konto", "hauptwohnsitz", "nebenwohnsitz", "gemeindezugang", "postauftraege", "oertliche_verfahrenskreise",
+    }
     assert r.json()["hauptwohnsitz"]["gemeinde"] == "40510"
     assert "no-store" in r["Cache-Control"]
     assert Client().get(reverse("gemeinde:export")).status_code == 302
@@ -407,3 +409,83 @@ def test_unbestaetigtes_gemeindekonto_blockiert_keinen_namen(client, ort):
     assert anzeigename_vergeben("Kornblume", ausser=anna) is False
     anmelden(Client(), ort, email="zweite@example.org", anzeigename="Kornblume")
     assert Mitglied.objects.filter(email="zweite@example.org").exists()
+
+
+# --- Export des Gemeindekontos vollständig (GP-093, DEN-10) -------------------------------
+
+# Feld-Wächter: Jedes gespeicherte Feld des Kontos steht im Gemeinde-Export (Pfad) oder hier mit Grund.
+GEMEINDEEXPORT_PFADE = {
+    "email": ("konto", "email"),
+    "pseudonym_oeffentlich": ("konto", "anzeigename"),
+    "parteikonto": ("konto", "parteikonto"),
+    "testkonto": ("konto", "testkonto"),
+    "is_active": ("konto", "aktiv"),
+    "status": ("konto", "status"),
+    "status_grund": ("konto", "status_grund"),
+    "status_seit": ("konto", "status_seit"),
+    "date_joined": ("konto", "registriert_am"),
+    "last_login": ("konto", "zuletzt_angemeldet"),
+    "wohnsitz_art": ("hauptwohnsitz", "art"),
+    "wohnsitz": ("hauptwohnsitz", "gemeinde"),
+    "gemeinde": ("hauptwohnsitz", "name"),
+    "bundesland": ("hauptwohnsitz", "bundesland"),
+    "wiener_bezirk": ("hauptwohnsitz", "wiener_bezirk"),
+    "nebenwohnsitz": ("nebenwohnsitz",),
+    "gemeindezugang": ("gemeindezugang",),
+    "postauftrag": ("postauftraege",),
+    "oertliche_verfahrenskreise": ("oertliche_verfahrenskreise",),
+}
+GEMEINDEEXPORT_AUSNAHMEN = {
+    "id": "interne Zeilennummer, kein Datum über den Menschen",
+    "password": "Schlüssel (unbrauchbar gesetzt), kein Datum über den Menschen",
+    "username": "beim Gemeindekonto gleich der E-Mail-Adresse",
+    "first_name": "der Gemeindeweg erhebt keinen Namen (ADR-016)",
+    "last_name": "der Gemeindeweg erhebt keinen Namen (ADR-016)",
+    "klarname_oeffentlich": "ohne erhobenen Namen bedeutungslos, beim Gemeindeweg stets nein",
+    "favoriten_zuerst": "WeicherFilter-Voreinstellung der Parteimitglieder",
+    "willkommen_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
+    "freischaltung_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
+    "ausweis_ausgestellt_am": "Mitgliedsausweis; ein Gemeindekonto bekommt keinen",
+    "beitrag_zuletzt_am": "Mitgliedsbeitrag; ein Gemeindekonto zahlt keinen",
+    **{f: "Datenbankregel gemeindekonto_ohne_parteidaten: beim Gemeindekonto stets leer" for f in (
+        "beitritt", "mitgliedsnummer", "beitragsreferenz_stamm", "ausweis_code", "identitaetsstufe",
+        "geprueft_seit", "ist_admin", "is_staff", "is_superuser", "post_einwilligung",
+    )},
+}
+
+
+def test_gemeindeexport_nennt_bezirk_gemeindename_und_zeitpunkte(client):
+    wien = Gemeinde.objects.create(kennziffer="90001", name="Wien", bezirk="Wien", bundesland="wien")
+    m = Mitglied.objects.create_user(
+        "wienerin@example.org", email="wienerin@example.org", is_active=True, parteikonto=False,
+        klarname_oeffentlich=False, wohnsitz=wien, gemeinde="Wien", bundesland="wien",
+        wohnsitz_art=Wohnsitzart.OESTERREICH, wiener_bezirk="902",
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=m, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    client.force_login(m)
+    m.refresh_from_db()
+    daten = client.get(reverse("gemeinde:export")).json()
+    assert daten["hauptwohnsitz"]["wiener_bezirk"] == "902"
+    assert daten["hauptwohnsitz"]["name"] == "Wien" and daten["hauptwohnsitz"]["bezirk"] == "Wien"
+    assert daten["konto"]["registriert_am"].startswith(m.date_joined.date().isoformat())
+    assert daten["konto"]["zuletzt_angemeldet"] is not None
+    assert daten["konto"]["status"] == "aktiv"
+    assert daten["postauftraege"] == [] and daten["oertliche_verfahrenskreise"] == []
+
+
+def test_gemeindeexport_waechter_kennt_keine_unbegruendete_auslassung(client, buerger):
+    felder = {
+        f.name for f in Mitglied._meta.get_fields()
+        if (f.concrete and not f.many_to_many) or f.name in ("gemeindezugang", "postauftrag", "oertliche_verfahrenskreise")
+    }
+    assert not set(GEMEINDEEXPORT_PFADE) & set(GEMEINDEEXPORT_AUSNAHMEN)
+    assert felder - set(GEMEINDEEXPORT_PFADE) - set(GEMEINDEEXPORT_AUSNAHMEN) == set()
+    assert all(GEMEINDEEXPORT_AUSNAHMEN.values())
+    client.force_login(buerger)
+    daten = client.get(reverse("gemeinde:export")).json()
+    for feld, pfad in GEMEINDEEXPORT_PFADE.items():
+        knoten = daten
+        for schluessel in pfad:
+            assert schluessel in knoten, (feld, pfad)
+            knoten = knoten[schluessel]

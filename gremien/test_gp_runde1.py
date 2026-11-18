@@ -144,6 +144,24 @@ def test_der_vermerk_am_testbeschluss_sagt_was_wirklich_geschieht(client):
     assert 'wirkt sofort' in vermerk and 'vom Test ausgenommen' in vermerk
 
 
+def test_der_vermerk_nimmt_nicht_alles_aus_was_der_chat_liest(client):
+    """GP-013, Gegenlesen: Der Vermerk sagte, „die Stellgrößen, die der Chat laufender Verfahren liest“, seien
+    vom Test ausgenommen. Ausgenommen sind aber nur die Zeichengrenzen und das Bearbeitungsfenster; wie viele
+    Beiträge der Faden zeigt (`chat-faden-wurzeln`), liest der Chat jedes laufenden Antrags ebenfalls, und
+    das bleibt testbar. Der Vermerk nennt deshalb, was ausgenommen ist, statt mehr zu behaupten."""
+    from parameter.models import ParameterTest
+    from verfahren import chat
+
+    leute = _korat()
+    parameter = _register('chat-faden-wurzeln')
+    _test_anordnen(client, leute[0], parameter, '5')
+    beschluss = _rat_stimmt(client, leute, ParameterTest.objects.get().beschluss)
+    assert chat.faden_wurzeln() == 5  # der Chat liest den Testwert sofort — auch in laufenden Verfahren
+    vermerk = beschluss.umsetzungsvermerk
+    assert 'die der Chat laufender Verfahren liest' not in vermerk
+    assert 'Zeichengrenzen' in vermerk and 'Bearbeitungsfenster' in vermerk and 'vom Test ausgenommen' in vermerk
+
+
 #: Die testbaren Stellgrößen, deren Lesestellen nach D-J3g geprüft sind (Stand der zweiten Behebungsrunde,
 #: 18.11.2026): Keine davon liest der Chat eines laufenden Verfahrens bei jedem Zugriff. Sie begrenzen Anzeige,
 #: Post, Schutzgrenzen und KI-Budget, oder sie werden gelesen, wenn etwas Neues entsteht (ein Antrag, eine

@@ -37,7 +37,8 @@ def _(text: str) -> str:
 
 #: Fassung dieses Verzeichnisses. Sie steigt, wenn eine Regel hinzukommt, verschwindet oder
 #: ihre Wirkung ändert — nicht, wenn eine der verzeichneten Regeln ihre eigene Fassung erhöht.
-VERSION = 30
+#: Fassung 31 (18.11.2026): Die Reihung „Meistgelesene Anträge“ der Übersicht ist verzeichnet.
+VERSION = 31
 
 SATZUNG = "§ 2 Abs 6"
 
@@ -169,6 +170,14 @@ def als_dict() -> list[dict]:
 #: Das Verzeichnis. Jede Zeile ist von Hand geschrieben — Datum und Begründung verlangt die
 #: Satzung, und beides kann kein Programm erfinden.
 REGELN: tuple[Regel, ...] = (
+    Regel(
+        modul="meistgelesen.py", titel=_("Reihung „Meistgelesene Anträge“ der Übersicht"),
+        zweck=_("Zeigt auf der Übersichtsseite die fünf Anträge mit den meisten gezählten Aufrufen ihrer Antragsseite. Die Liste wirkt auf kein Verfahren und hebt im Parlament nichts hervor; sie reiht nach Aufmerksamkeit und steht deshalb hier."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6 · Gründerentscheidung vom 28.9.2026", fassung=1, seit="2026-08-20",
+        grund=_("Erste verzeichnete Fassung. Die Liste besteht unverändert seit dem 20.8.2026; nach der Gründerentscheidung vom 28.9.2026 bleibt sie und wird als offengelegte, versionierte Regel geführt. Der Eintrag vom 18.11.2026 beschreibt das Verhalten, wie es ist, und ändert es nicht."),
+        nachrechenbar=_("Gezählt wird je Antrag und Tag jeder erfolgreiche Abruf der Antragsseite durch einen Browser, auch der wiederholte; Suchmaschinen, Werkzeuge und Überwachungsdienste zählen nicht. Für jeden Antrag die Tageszahlen aller Tage zusammenzählen, absteigend ordnen, die ersten fünf zeigen. Die Seite nennt zu jedem der fünf die Summe."),
+        luecke=_("Bei gleicher Summe legt die Regel keine Reihenfolge fest; dann entscheidet die Datenbank. Die Tageszahlen der einzelnen Anträge sind nicht veröffentlicht; von außen lässt sich die Reihung deshalb nicht vollständig nachrechnen. Die Zahl fünf steht im Programm, nicht im Parameterregister."),
+    ),
     Regel(
         modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
         zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),

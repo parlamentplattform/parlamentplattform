@@ -221,3 +221,48 @@ def test_gleichstand_an_der_spitze_waehlt_die_frueher_eingereichte_bewerbung():
     kern = _kern(bewerbungen, zustimmungen, 10)
     skript = nachrechnen(_kandidatur_export(bewerbungen, zustimmungen, 10))
     assert kern.gewonnen_id == skript['gewaehlt'] == 7
+
+
+# --- Z-3 (Fahrtenbuch D-C7): „Meistgelesene Anträge“ steht als Regel im Verzeichnis -----------------
+
+
+def test_meistgelesene_antraege_stehen_als_versionierte_regel_im_verzeichnis():
+    """Gründer 28.9.2026: Die Liste bleibt und wird als offengelegte, versionierte Regel geführt.
+    Der Eintrag beschreibt das heutige Verhalten und benennt, was daran offen ist."""
+    from plattform_core import meistgelesen
+    from plattform_core.regelwerk import REGELN, Wirkung
+
+    (regel,) = [r for r in REGELN if r.modul == 'meistgelesen.py']
+    assert regel.wirkung is Wirkung.REIHT and regel.fassung == meistgelesen.VERSION == 1
+    assert regel.seit and regel.grund and regel.nachrechenbar
+    assert 'fünf' in regel.zweck and 'absteigend' in regel.nachrechenbar
+    assert 'gleicher Summe' in regel.luecke
+
+
+def test_die_uebersicht_reiht_die_meistgelesenen_wie_die_regel(client, db):
+    """Die Regel beschreibt, was die Seite tut: Summe der Aufrufe aller Tage je Antrag, absteigend,
+    höchstens fünf. Verglichen wird die Seite mit der Nachrechnung aus den Tageszahlen."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from plattform_core.meistgelesen import HOECHSTZAHL, meistgelesene
+    from uebersicht.models import AntragAufruf
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, REGELN, mitglied_anlegen
+
+    ordnung = Verfahrensordnung.objects.create(policy_id='test-ordnung', version=1, regeln=REGELN, aktiv=True)
+    autor = mitglied_anlegen('autor')
+    heute = timezone.localdate()
+    tageszahlen = []
+    for nummer, je_tag in enumerate([(3, 4), (20,), (1, 1, 1), (9, 2), (6,), (5, 7), (2,)]):
+        antrag = antrag_einbringen(autor, **{**ANTRAG, 'titel': f'Antrag {nummer}'}, ordnung=ordnung)
+        for tage, aufrufe in enumerate(je_tag):
+            AntragAufruf.objects.create(antrag=antrag, datum=heute - timedelta(days=tage), aufrufe=aufrufe)
+            tageszahlen.append((antrag.pk, aufrufe))
+
+    seite = client.get(reverse('uebersicht:index'))
+    gezeigt = [(zeile['antrag'].pk, zeile['aufrufe']) for zeile in seite.context['meistgelesen']]
+    assert len(gezeigt) == HOECHSTZAHL
+    assert gezeigt == meistgelesene(tageszahlen)

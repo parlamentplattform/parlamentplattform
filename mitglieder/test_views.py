@@ -653,3 +653,22 @@ def test_beitritt_weist_zu_lange_adresse_ab(client):
     assert antwort.status_code == 200
     assert 'höchstens 150 Zeichen' in antwort.content.decode()
     assert not Mitglied.objects.exists()
+
+
+# --- Erneute Registrierung setzt auch das Prüfdatum zurück (GP-185, KM-15) ----------------
+
+
+def test_erneute_registrierung_loescht_das_pruefdatum(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    eva = Mitglied.objects.get(email='eva@example.org')
+    eva.identitaetsstufe_setzen(Identitaetsstufe.PRAESENZ)
+    eva.geprueft_seit = timezone.localdate() - timedelta(days=30)
+    eva.save()
+    EinmalToken.objects.filter(mitglied=eva).update(gueltig_bis=timezone.now() - timedelta(hours=1))
+    client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    eva.refresh_from_db()
+    assert eva.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and eva.geprueft_seit is None
+    eva.identitaetsstufe_setzen(Identitaetsstufe.PRAESENZ)
+    assert eva.geprueft_seit == timezone.localdate()  # der Tag der Freischaltung

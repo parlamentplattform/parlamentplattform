@@ -190,7 +190,8 @@ def registrieren(request):
                     # E-Mails über das Verfahren nur mit ausdrücklichem Haken (Voreinstellung: nein);
                     # Konto- und Anmeldenachrichten gehen unabhängig davon.
                     mitglied.post_einwilligung = d["post_einwilligung"]
-                    mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+                    # GP-185: über `identitaetsstufe_setzen`, damit auch ein altes Prüfdatum fällt.
+                    mitglied.identitaetsstufe_setzen(Identitaetsstufe.UNGEPRUEFT)
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
                     wohnsitz_anwenden(mitglied, form)
                     mitglied.set_unusable_password()

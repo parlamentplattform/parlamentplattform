@@ -509,3 +509,17 @@ def test_versionsschilder_haben_kein_aenderungsformular(client):
     for schluessel in VERSIONSSCHILDER:
         assert f'aria-label="Neuer Wert {schluessel}"' not in inhalt, schluessel
     assert 'aria-label="Neuer Wert chat-zeichen-hoechstzahl"' in inhalt
+
+
+def _schema_dokument() -> str:
+    import pathlib
+
+    return (pathlib.Path(__file__).resolve().parent.parent / "docs" / "SCHEMA.md").read_text(encoding="utf-8")
+
+
+def test_schema_beschreibt_zurueckgenommene_zustimmungen_ohne_zeitpunkt():
+    """GP-022 (ASR-01, ASR-09): Der Block `zustimmungen` des Kandidatur-Exports kennzeichnet eine
+    Rücknahme nur als Wahrheitswert — ein Zeitpunkt je Pseudonym höbe die Schwärzung im Audit auf."""
+    zeile = next(z for z in _schema_dokument().splitlines() if z.startswith("| `/antrag/<id>/export.json`"))
+    assert "`zustimmungen`" in zeile and "`zurueckgenommen`" in zeile
+    assert "zurueckgenommen_am" not in zeile

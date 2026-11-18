@@ -330,3 +330,16 @@ def test_gp178_fehler_im_nachlauf_haelt_das_einbringen_nicht_auf(client, ordnung
     antrag = Antrag.objects.get()
     assert antwort.status_code == 302
     assert antwort['Location'].startswith(reverse('verfahren:antrag', args=[antrag.pk]))
+
+
+def test_gp180_phase_zurueckgezogen_hat_einen_anzeigenamen():
+    """GP-180 (AF-14): Ohne Eintrag stand der rohe Bezeichner „zurueckgezogen“ im Badge."""
+    from django.utils import translation
+
+    from plattform_core import Phase
+    from verfahren.templatetags.phasen import NAMEN, phase_name
+
+    assert phase_name(Phase.ZURUECKGEZOGEN.value) == 'zurückgezogen'
+    assert {phase.value for phase in Phase} <= set(NAMEN)  # jede Phase hat einen Anzeigenamen
+    with translation.override('en'):
+        assert phase_name(Phase.ZURUECKGEZOGEN.value) not in ('zurueckgezogen', '')

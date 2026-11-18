@@ -1224,13 +1224,14 @@ def export_json(request, pk):
             }
             for b in antrag.bewerbungen.all()
         ]
-        # Vollständig UND nachrechenbar: zurückgenommene Zustimmungen stehen mit Zeitstempel
-        # dabei (Grundregel 7), die Auszählung zählt nur die gültigen.
+        # Vollständig UND nachrechenbar: zurückgenommene Zustimmungen stehen mit Vermerk dabei
+        # (Grundregel 7), die Auszählung zählt nur die gültigen. Kein Zeitpunkt: Er verbände das
+        # Pseudonym mit einem Eintrag der öffentlichen Audit-Kette (GP-022).
         daten["zustimmungen"] = [
             {
                 "pseudonym": z.pseudonym.hex,
                 "bewerbung": z.bewerbung_id,
-                "zurueckgenommen_am": z.zurueckgenommen_am.isoformat() if z.zurueckgenommen_am else None,
+                "zurueckgenommen": z.zurueckgenommen_am is not None,
             }
             for z in BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).order_by(
                 "pseudonym", "bewerbung_id"

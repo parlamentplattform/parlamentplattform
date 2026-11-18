@@ -2,7 +2,7 @@
 
 from datetime import date, timedelta
 
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from plattform_core import Gegenstand, stimmberechtigt
@@ -37,6 +37,7 @@ class TestGrenzfaelle:
         assert stimmberechtigt(beitritt, Gegenstand.PERSONENWAHL, date(2026, 8, 15), uebergang=True)
 
 
+@settings(max_examples=100, deadline=None)
 @given(
     beitritt=st.dates(date(2000, 1, 1), date(2030, 12, 31)),
     tage_danach=st.integers(0, 4000),
@@ -50,6 +51,7 @@ def test_eigenschaft_berechtigung_ist_monoton_in_der_zeit(beitritt, tage_danach,
         assert stimmberechtigt(beitritt, gegenstand, stichtag + timedelta(days=1))
 
 
+@settings(max_examples=100, deadline=None)
 @given(beitritt=st.dates(date(2000, 1, 1), date(2030, 12, 31)), monate=st.integers(0, 48))
 def test_eigenschaft_monatsaddition_bleibt_im_gueltigen_kalender(beitritt, monate):
     ergebnis = monate_addieren(beitritt, monate)

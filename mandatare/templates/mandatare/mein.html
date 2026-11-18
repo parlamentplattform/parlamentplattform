@@ -19,7 +19,7 @@ das betroffene Formular wieder vor.
   · <a href="#karte">{% translate "Meine Karte" %}</a> · <a href="#report">{% translate "Instant-Report" %}</a>
   · <a href="#sitzung">{% translate "Sitzung" %}</a>
   {% if gemeindearbeitsplatz %}· <a href="{% url 'mandatare:gemeinde_arbeitsplatz' mandat.pk %}">{% translate "Gemeindearbeitsplatz" %}</a>{% endif %}
-  {% if darf_schreiben and mandat.gemeinde_id and mandat.ebene == "gemeinde" and mandat.aktiv %}
+  {% if darf_schreiben and gemeindearbeitsplatz %}
   · <a href="{% url 'mandatare:sprechstunden' mandat.pk %}">{% translate "Sprechstunden" %}</a>
   · <a href="{% url 'mandatare:ratsinitiative_anlegen' mandat.pk %}">{% translate "Ratsinitiative veröffentlichen" %}</a>
   · <a href="{% url 'mandatare:haushaltsquelle_verwalten' mandat.pk %}">{% translate "Haushaltsunterlage verlinken" %}</a>

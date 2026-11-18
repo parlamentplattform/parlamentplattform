@@ -663,3 +663,19 @@ def test_monats_und_sammelbericht_behalten_den_text_bei_einem_eingabefehler(clie
     antwort = client.post(AKTION, {"aktion": "sammelbericht", "mandat": mandat.pk, "aufgabe": "999999", "text": "Mein Sammeltext"})
     assert antwort.status_code == 200 and "Mein Sammeltext" in antwort.content.decode()
     assert not Bericht.objects.exists()
+
+
+def test_gemeindelinks_im_bereich_erst_ab_dem_antritt(client):
+    """GP-195 (MG-17): Vor dem Antrittstag zeigt der Bereich keine Gemeindelinks, die auf 404 führten."""
+    from mitglieder.models import Gemeinde
+
+    ort = Gemeinde.objects.create(kennziffer="40510", name="Gleichort", bezirk="Eferding", bundesland="oberoesterreich")
+    _m, mandat = mandatar(client, gemeinde=ort, angetreten=timezone.localdate() + timedelta(days=10))
+    html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
+    for name in ("sprechstunden", "ratsinitiative_anlegen", "haushaltsquelle_verwalten", "projekt_verwalten",
+                 "gemeinde_arbeitsplatz"):
+        url = reverse(f"mandatare:{name}", args=[mandat.pk])
+        assert f'href="{url}"' not in html, name
+    Mandat.objects.filter(pk=mandat.pk).update(angetreten=timezone.localdate())
+    html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
+    assert f'href="{reverse("mandatare:sprechstunden", args=[mandat.pk])}"' in html

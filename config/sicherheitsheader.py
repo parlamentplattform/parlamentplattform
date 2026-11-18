@@ -34,3 +34,21 @@ class BrowserQuellenBegrenzen:
         if typ in {"text/html", "application/xhtml+xml"}:
             antwort.setdefault("Content-Security-Policy", RICHTLINIE)
         return antwort
+
+
+class PersoenlichesNichtSpeichern:
+    """Antworten an ein angemeldetes Konto landen in keinem Zwischenspeicher (GP-154): Profil, Postfach
+    und Verwaltungslisten tragen Personenbezug, ein geteilter Rechner oder Proxy hielte sie sonst fest.
+    Legt die Ansicht selbst `Cache-Control` fest, bleibt es dabei; Gastantworten bleiben unverändert."""
+
+    WERT = "no-store, private"
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        antwort = self.get_response(request)
+        nutzer = getattr(request, "user", None)
+        if nutzer is not None and nutzer.is_authenticated and not antwort.has_header("Cache-Control"):
+            antwort["Cache-Control"] = self.WERT
+        return antwort

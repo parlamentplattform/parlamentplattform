@@ -1,0 +1,14 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% if initiative %}{% translate "Öffentlichen Verlauf ergänzen" %}{% else %}{% translate "Ratsinitiative veröffentlichen" %}{% endif %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'mandatare:mein_mandat' mandat.pk %}">{% translate "Mein Mandat" %}</a> · <a href="{% url 'gemeinde:ratsinitiativen' mandat.gemeinde.kennziffer %}">{{ mandat.gemeinde.anzeige }}</a></p>
+<h1>{% if initiative %}{% translate "Öffentlichen Verlauf ergänzen" %}{% else %}{% translate "Ratsinitiative veröffentlichen" %}{% endif %}</h1>
+{% if initiative %}<p><a href="{% url 'gemeinde:ratsinitiative' initiative.gemeinde.kennziffer initiative.pk %}">{{ initiative.titel }}</a></p>{% endif %}
+<section class="karte">
+  <p>{% translate "Die Eingabe wird öffentlich. Sie löst keine Zustellung an Gemeindeamt oder Gemeinderat aus." %}</p>
+  <form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn">{% translate "Veröffentlichen" %}</button>
+  </form>
+</section>
+{% endblock %}

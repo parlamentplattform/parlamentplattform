@@ -1,0 +1,22 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{{ initiative.titel }}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'gemeinde:ratsinitiativen' gemeinde.kennziffer %}">{% translate "Ratsinitiativen der DDÖ" %}</a> · {{ gemeinde.anzeige }}</p>
+<h1>{{ initiative.titel }}</h1>
+<article class="karte">
+  <p class="meta">{{ initiative.get_art_display }} · <a href="{% url 'mandatare:detail' initiative.mandat_id %}">{{ initiative.mandat.mitglied.anzeigename }}</a> · {{ initiative.veroeffentlicht_am|date:"d.m.Y" }}</p>
+  {{ initiative.text|linebreaks }}
+</article>
+<section class="karte" aria-labelledby="ratsverlauf">
+  <h2 id="ratsverlauf">{% translate "Öffentlicher Verlauf" %}</h2>
+  <p class="hilfe">{% translate "Die Einträge geben den Bericht des DDÖ-Mandatars wieder." %}</p>
+  {% for meldung in meldungen %}
+  <article class="kommentar" id="vermerk-{{ meldung.pk }}">
+    <h3>{{ meldung.get_art_display }} · {{ meldung.datum|date:"d.m.Y" }}</h3>
+    {{ meldung.text|linebreaks }}
+  </article>
+  {% empty %}<p>{% translate "Bislang liegt kein öffentlicher Verlaufsvermerk vor." %}</p>{% endfor %}
+  {% include "mandatare/_ratsseiten.html" with seite=meldungen %}
+  {% if darf_schreiben %}<p><a class="btn-linie" href="{% url 'mandatare:ratsinitiative_melden' initiative.mandat_id initiative.pk %}">{% translate "Öffentlichen Verlauf ergänzen" %}</a></p>{% endif %}
+</section>
+{% endblock %}

@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.86.0] — 2026-11-14 · Öffentliche Ratsinitiativen
+
+- Ein Mandatar kann eigene Tagesordnungsgegenstände und Anfragen aus seinem ausdrücklich zugeordneten Gemeindemandat veröffentlichen. Die Ortsansicht verlinkt die Initiativen mit ihren fortlaufenden öffentlichen Vermerken. Veröffentlichte Initiativen bleiben auch nach Ende oder Ortswechsel des Mandats am ursprünglichen Ort lesbar.
+- Die tatsächliche Einbringung und spätere Antwort erfasst der Mandatar ausdrücklich. Die Plattform dokumentiert diesen Bericht und löst keine Zustellung oder amtliche Wirkung aus.
+
 ## [0.85.0] — 2026-11-14 · Amtlich genannte Novellenfundstellen
 
 - Die Faktenbasis zeigt bei gespeicherten Bundesdokumenten eine ausdrücklich genannte letzte Änderung mit eindeutiger Fundstelle im Bundesgesetzblatt ab 2004. Der Link zur authentischen Kundmachung wird aus dem Teil des Gesetzblatts, der Nummer und dem Jahr gebildet. Der Metadatenstand samt Prüfsumme bleibt nachlesbar.

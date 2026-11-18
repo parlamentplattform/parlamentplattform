@@ -11677,12 +11677,6 @@ msgstr "This time overlaps with published office hours."
 msgid "Ende (Wiener Zeit)"
 msgstr "Ends (Vienna time)"
 
-msgid "Fassung 2 ergänzt veröffentlichte Sprechstunden. Gleichnamige Orte bleiben durch Bezirk, Bundesland und Kennziffer unterscheidbar."
-msgstr "Version 2 adds public office hours. Places with the same name remain distinguishable by district, province and municipality code."
-
-msgid "Gemeinden nach Name, Bezirk und Kennziffer; Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend; Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Die Zuordnung ändert keine Teilnahmeberechtigung."
-msgstr "Municipalities by name, district and code. Mandates by start date and ID in ascending order. Session tickers by start time and ID in descending order, with seven days of recent sessions. Office hours by start time and ID in ascending order, including cancellations until the scheduled end. Assignment does not change participation rights."
-
 msgid "Sprechstunde absagen"
 msgstr "Cancel office hours"
 
@@ -11694,9 +11688,6 @@ msgstr "Office hours"
 
 msgid "Veröffentlichte Sprechstunden"
 msgstr "Published office hours"
-
-msgid "Zeigt Gemeinden, ausdrücklich zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker und Sprechstunden."
-msgstr "Shows municipalities, explicitly assigned DDÖ mandates, public session tickers and office hours."
 
 msgid "Zeit und Treffpunkt erscheinen öffentlich. Bitte geben Sie nur einen öffentlichen Treffpunkt an."
 msgstr "The date, time and meeting place will be public. Enter a public meeting place."
@@ -11724,3 +11715,78 @@ msgstr "Amendment reference from official federal metadata"
 
 msgid "Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."
 msgstr "Shows the last amendment expressly named in a saved RIS document snapshot."
+
+msgid "Anfrage im Gemeinderat"
+msgstr "Question to the municipal council"
+
+msgid "Antwort oder Ergebnis"
+msgstr "Reply or outcome"
+
+msgid "Art der Ratsinitiative"
+msgstr "Type of council initiative"
+
+msgid "Art des Eintrags"
+msgstr "Type of entry"
+
+msgid "Bislang liegt kein öffentlicher Verlaufsvermerk vor."
+msgstr "No public updates have been recorded yet."
+
+msgid "Datum des Vorgangs"
+msgstr "Date of the event"
+
+msgid "Der öffentliche Verlauf wurde ergänzt."
+msgstr "The public record has been updated."
+
+msgid "Die Antwort kann nicht vor der Einbringung liegen."
+msgstr "The reply cannot predate the submission."
+
+msgid "Die Eingabe wird öffentlich. Sie löst keine Zustellung an Gemeindeamt oder Gemeinderat aus."
+msgstr "This entry will be public. It does not send anything to the municipal office or council."
+
+msgid "Die Einträge geben den Bericht des DDÖ-Mandatars wieder."
+msgstr "These entries are reported by the DDÖ office holder."
+
+msgid "Die Ratsinitiative ist veröffentlicht."
+msgstr "The council initiative is now public."
+
+msgid "Ein dokumentierter Vorgang darf nicht in der Zukunft liegen."
+msgstr "The recorded event must not be in the future."
+
+msgid "Einbringung vermerkt"
+msgstr "Submission recorded"
+
+msgid "Fassung 3 ergänzt die Reihenfolge der öffentlichen Ratsinitiativen und ihrer Verlaufsvermerke."
+msgstr "Version 3 adds the ordering of public council initiatives and their updates."
+
+msgid "Für diese Gemeinde ist keine Ratsinitiative veröffentlicht."
+msgstr "No council initiatives have been published for this municipality."
+
+msgid "Gegenstand für die Tagesordnung"
+msgstr "Proposed agenda item"
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend."
+msgstr "Municipalities by name, district and code. Mandates by start date and ID in ascending order. Session tickers by start time and ID in descending order, with seven days of recent sessions. Office hours by start time and ID in ascending order, including cancellations until the scheduled end. Council initiatives by publication time and ID descending, and updates by entry time and ID ascending."
+
+msgid "Hier dokumentieren DDÖ-Mandatare eigene Vorhaben und ihren Verlauf im Gemeinderat."
+msgstr "DDÖ office holders record their own initiatives and their progress in the municipal council here."
+
+msgid "Nachtrag zur Ratsinitiative"
+msgstr "Addendum to the initiative"
+
+msgid "Ratsinitiative veröffentlichen"
+msgstr "Publish a council initiative"
+
+msgid "Ratsinitiativen der DDÖ"
+msgstr "DDÖ council initiatives"
+
+msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
+msgstr "Shows municipalities, assigned DDÖ mandates, public session tickers, office hours and council initiatives."
+
+msgid "Öffentliche Beschreibung"
+msgstr "Public description"
+
+msgid "Öffentlichen Verlauf ergänzen"
+msgstr "Add a public update"
+
+msgid "Öffentlicher Verlauf"
+msgstr "Public record"

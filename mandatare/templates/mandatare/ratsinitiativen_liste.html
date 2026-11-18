@@ -1,0 +1,14 @@
+{% extends "verfahren/base.html" %}{% load i18n %}
+{% block titel %}{% translate "Ratsinitiativen der DDÖ" %}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}">{{ gemeinde.anzeige }}</a></p>
+<h1>{% translate "Ratsinitiativen der DDÖ" %}</h1>
+<p>{% translate "Hier dokumentieren DDÖ-Mandatare eigene Vorhaben und ihren Verlauf im Gemeinderat." %}</p>
+<ul class="karte">
+{% for initiative in seite %}
+  <li><a href="{% url 'gemeinde:ratsinitiative' gemeinde.kennziffer initiative.pk %}">{{ initiative.titel }}</a>
+  <span class="meta"> · {{ initiative.get_art_display }} · {{ initiative.veroeffentlicht_am|date:"d.m.Y" }}</span></li>
+{% empty %}<li>{% translate "Für diese Gemeinde ist keine Ratsinitiative veröffentlicht." %}</li>{% endfor %}
+</ul>
+{% include "mandatare/_ratsseiten.html" with seite=seite %}
+{% endblock %}

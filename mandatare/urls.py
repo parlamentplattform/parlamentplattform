@@ -1,6 +1,6 @@
 from django.urls import path
 
-from mandatare import sprechstunden, views, views_live
+from mandatare import ratsinitiativen, sprechstunden, views, views_live
 
 app_name = "mandatare"
 urlpatterns = [
@@ -8,6 +8,9 @@ urlpatterns = [
     path("mandatare/mein/", views.mein, name="mein"),
     path("mandatare/mein/<int:pk>/", views.mein_mandat, name="mein_mandat"),
     path("mandatare/mein/<int:pk>/sprechstunden/", sprechstunden.verwalten, name="sprechstunden"),
+    path("mandatare/mein/<int:pk>/ratsinitiative/neu/", ratsinitiativen.anlegen, name="ratsinitiative_anlegen"),
+    path("mandatare/mein/<int:pk>/ratsinitiative/<int:initiative_pk>/meldung/", ratsinitiativen.melden,
+         name="ratsinitiative_melden"),
     path("mandatare/mein/<int:pk>/sprechstunden/<int:termin_pk>/absagen/", sprechstunden.absagen,
          name="sprechstunde_absagen"),
     path("mandatare/mein/aktion/", views.mein_aktion, name="mein_aktion"),

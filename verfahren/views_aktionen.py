@@ -82,6 +82,7 @@ from verfahren.teilnahme import (
     hauptgebiet,
     oertlich_begrenzt,
     oertlich_zulaessig,
+    ohne_oertliche_zuordnung,
     wohnsitz_ohne_verzeichnis,
 )
 
@@ -132,8 +133,11 @@ def _abbruch(request, feld, code, sonst):
 
 
 def _oertlich_abweisen(request, antrag, feld=None):
+    # Grund und nächster Schritt: ohne örtliche Zuordnung bleibt die Bundesebene, sonst die eigene
+    # Region; der Kreis selbst ist bei Einbringung festgehalten (GP-056)
+    lage = {"antrag": antrag, "ohne_oertliche_zuordnung": ohne_oertliche_zuordnung(request.user)}
     return _abbruch(request, feld, "nicht_im_teilnehmerkreis", lambda: render(
-        request, "verfahren/oertlich_nicht_berechtigt.html", {"antrag": antrag}, status=403,
+        request, "verfahren/oertlich_nicht_berechtigt.html", lage, status=403,
     ))
 
 

@@ -24,6 +24,14 @@ def wohnsitz_ohne_verzeichnis(mitglied) -> bool:
     )
 
 
+def ohne_oertliche_zuordnung(mitglied) -> bool:
+    """Kein Hauptwohnsitz aus dem Gemeindeverzeichnis: Örtliche Kreise bleiben verschlossen, die
+    Bundesebene offen — Sperrseite und Antragsseite nennen das als Grund (GP-056)."""
+    if not getattr(mitglied, "is_authenticated", False):
+        return False
+    return not mitglied.wohnsitz_id or mitglied.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH
+
+
 def gemeindestand(gemeinde):
     return Gemeindestand(gemeinde.kennziffer, gemeinde.name, gemeinde.bezirk, gemeinde.bundesland)
 

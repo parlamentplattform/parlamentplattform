@@ -1412,7 +1412,12 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
     Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
-    from verfahren.teilnahme import oertlich_begrenzt, oertlich_zulaessig, stimmrecht_im_neuen_kreis
+    from verfahren.teilnahme import (
+        oertlich_begrenzt,
+        oertlich_zulaessig,
+        ohne_oertliche_zuordnung,
+        stimmrecht_im_neuen_kreis,
+    )
 
     oertlich = oertlich_begrenzt(antrag)
     eigener_kreis = not oertlich or oertlich_zulaessig(antrag, request.user)
@@ -1525,6 +1530,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "antrag": antrag,
             "oertlicher_teilnehmerkreis": oertlich,
             "eigener_teilnehmerkreis": eigener_kreis,
+            "ohne_oertliche_zuordnung": not eigener_kreis and ohne_oertliche_zuordnung(request.user),
             "eigene_oertliche_stimmabgabe": not oertlich or (
                 antrag.phase == Phase.ABSTIMMUNG.value and stimmrecht_im_neuen_kreis(antrag, request.user)
             ),

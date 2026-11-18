@@ -472,3 +472,42 @@ def test_gp055_altkonto_mit_gemeindetext_wird_zum_verzeichnis_gefuehrt(client, o
     assert f'Gemeinde · {m.gemeinde}' not in region
     formular = client.get(reverse('verfahren:einbringen')).content.decode()
     assert f'href="{ziel}"' in formular and 'Hauptwohnsitz aus dem Gemeindeverzeichnis' in formular
+
+
+def _fremder_gemeindeantrag(ordnung):  # noqa: F811
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    autor = mitglied_anlegen('autor', tage=800, gemeinde='Altort')
+    autor.wohnsitz, autor.wohnsitz_art = ort, Wohnsitzart.OESTERREICH
+    autor.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    return antrag_einbringen(autor, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+
+
+def test_gp056_sperrseite_nennt_grund_und_naechsten_schritt(client, ordnung):  # noqa: F811
+    """GP-056 (OW-04): Die 403-Seite sagte nur „Sie gehören nicht zum Kreis“ — ohne Grund und Weg."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    antrag = _fremder_gemeindeantrag(ordnung)
+    tag = f'{timezone.localtime(antrag.teilnehmerkreis_am):%d.%m.%Y}'
+    ohne = mitglied_anlegen('ohne', tage=800)  # kein Verzeichnisverweis
+    client.force_login(ohne)
+    antwort = client.post(reverse('verfahren:unterstuetzen', args=[antrag.pk]))
+    assert antwort.status_code == 403
+    seite = antwort.content.decode()
+    assert 'keine örtliche Zuordnung' in seite and 'Bundesebene steht Ihnen offen' in seite
+    assert 'keine örtliche Zuordnung' in client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+
+    woanders = mitglied_anlegen('woanders', tage=800, gemeinde='Neuort')
+    woanders.wohnsitz = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    woanders.wohnsitz_art = Wohnsitzart.OESTERREICH
+    woanders.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    client.force_login(woanders)
+    antwort = client.post(reverse('verfahren:unterstuetzen', args=[antrag.pk]))
+    assert antwort.status_code == 403
+    seite = antwort.content.decode()
+    assert f'Hauptwohnsitz in Altort bei Einbringung am {tag}' in seite
+    assert 'keine örtliche Zuordnung' not in seite
+    assert reverse('verfahren:parlament') + '?fokus=region' in seite
+    antragsseite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert reverse('verfahren:parlament') + '?fokus=region' in antragsseite

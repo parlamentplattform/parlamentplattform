@@ -572,3 +572,10 @@ def test_gp169_ohne_regionale_zuordnung_steht_der_satz_statt_wohnsitz_hinterlege
     region = _region(client)
     assert satz in region and 'Wohnsitz hinterlegen' not in region
     assert satz in client.get(reverse('verfahren:einbringen')).content.decode()
+
+
+def test_gp086_fuss_der_startseite_verlinkt_die_faktenbasis(client):
+    """GP-086 (ZWB): Die Faktenbasis war nur über einen Textlink der Zukunftswerkstatt auffindbar."""
+    seite = client.get('/').content.decode()
+    fuss = seite.split('<footer', 1)[1].split('</footer>', 1)[0]
+    assert f'href="{reverse("faktenbasis:index")}"' in fuss

@@ -655,6 +655,11 @@ class Entwurf(models.Model):
                 frist = austausch.erstellt_am + pruefung_tage
                 if jetzt < frist:
                     return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
+                beschluss = austausch.korat_beschluss
+                if vorlauf and beschluss is not None and beschluss.offen and beschluss.frist is not None and beschluss.frist <= frist:
+                    # Der Beschluss des Koordinationsrats schließt spätestens mit dieser Frist (GP-010)
+                    # und entscheidet zuerst: Verfristet ist der Antrag erst, wenn er ohne Entscheid blieb.
+                    return False
                 # Der Koordinationsrat hat binnen der Frist nicht entschieden: Der Austauschantrag
                 # gilt als verfristet, der Vorschlag geht — offen vermerkt — an die Unterstützer.
                 austausch.korat_entscheid = Pruefung.KoratEntscheid.VERFRISTET
@@ -947,6 +952,13 @@ class Pruefung(models.Model):
 
     def __str__(self) -> str:
         return f"Prüfung zu Entwurf {self.entwurf_id}: {self.get_ergebnis_display()}"
+
+    @property
+    def austausch_frist(self):
+        """Bis wann der Koordinationsrat über einen Austauschantrag entschieden haben muss: die
+        Prüffrist der eingefrorenen Ordnung ab dem Urteil. Danach verfristet der Antrag
+        (`Entwurf.fortschreiben`, § 5 Abs 12)."""
+        return self.erstellt_am + timedelta(days=self.entwurf.antrag.policy().pruefung_tage)
 
     def stimmbegruendungen(self) -> list[dict]:
         """Die veröffentlichten Begründungen der Gruppe 2, aus den Stimmen des Beschlusses gelesen.

@@ -1598,6 +1598,7 @@ def koordination_beschluss(request):
         return redirect("gremien:koordination")
     felder = {"antrag": None, "gegenstand": ""}
     pruefung_ = meldung = None
+    frist = beschluss_frist()
     if anlass == Anlass.AUSTAUSCH:
         pruefung_ = get_object_or_404(
             Pruefung.objects.select_related("entwurf__antrag"),
@@ -1607,6 +1608,16 @@ def koordination_beschluss(request):
         )
         if pruefung_.korat_beschluss and pruefung_.korat_beschluss.offen:
             messages.info(request, _("Über diesen Austauschantrag wird bereits abgestimmt."))
+            return redirect("gremien:koordination")
+        # Der Antrag verfristet mit der Prüffrist ab dem Urteil (§ 5 Abs 12). Ein Beschluss, der
+        # später schlösse, bliebe trotz Mehrheit ohne Wirkung (GP-010) — er endet spätestens dann.
+        frist = min(frist, pruefung_.austausch_frist)
+        if frist <= timezone.now():
+            pruefung_.entwurf.antrag.fortschreiben_bis_zum_stand()
+            messages.error(
+                request,
+                _("Die Frist für diesen Austauschantrag ist verstrichen — der Vorschlag ist weitergegangen (§ 5 Abs 12)."),
+            )
             return redirect("gremien:koordination")
         felder["antrag"] = pruefung_.entwurf.antrag
         felder["gegenstand"] = f"Austausch der Gruppe 1: {pruefung_.entwurf.antrag.titel}"
@@ -1636,7 +1647,7 @@ def koordination_beschluss(request):
         gegenstand=felder["gegenstand"][:200],
         beschreibung=beschreibung[:4000],
         optionen=JA_NEIN,
-        frist=beschluss_frist(),
+        frist=frist,
         antrag=felder["antrag"],
         angelegt_von=request.user,
     )

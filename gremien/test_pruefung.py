@@ -497,3 +497,67 @@ def test_die_rueckgabe_der_gruppe_2_schreibt_keinen_namen_ins_audit(client, ordn
     seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
     assert 'Probekind' not in seite and f'Ehemaliges Mitglied {petra.pk}' in seite
     assert 'Die Vergabekriterien fehlen völlig.' in seite
+
+
+# --- GP-010: Der Austauschbeschluss schließt spätestens mit der Verfristung -------------------
+
+
+def test_ein_austauschbeschluss_mit_mehrheit_verfristet_nicht(client, ordnung):  # noqa: F811
+    """GP-010: Die Beschlussfrist (sieben Tage ab Anlegen) reichte über die Verfristung des
+    Austauschantrags (Prüffrist ab Urteil) hinaus — schwieg ein einziges Ratsmitglied, verfristete der
+    Antrag trotz 4 : 0. Jetzt endet der Beschluss spätestens mit der Verfristung und entscheidet zuerst."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    rat = [korat] + [mitglied_anlegen(f'korat{i}') for i in range(4)]
+    for mitglied in rat[1:]:
+        rolle_geben(mitglied, Gremium.KOORDINATIONSRAT)
+    pruefung = entwurf.pruefungen.get()
+    tage = timedelta(days=antrag.policy().pruefung_tage)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=timezone.now() - timedelta(days=1))  # Urteil gestern
+    pruefung.refresh_from_db()
+    client.force_login(korat)
+    karte = client.get(reverse('gremien:koordination')).content.decode()
+    assert f'{timezone.localtime(pruefung.erstellt_am + tage):%d.%m.%Y %H:%M}' in karte  # die maßgebliche Frist steht da
+    client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Die Zweifel wiegen schwer.'},
+    )
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.AUSTAUSCH, antrag=antrag)
+    assert beschluss.frist == pruefung.erstellt_am + tage
+    for mitglied in rat[:4]:  # das fünfte Mitglied schweigt
+        stimme(client, beschluss, mitglied, 'dafuer', 'Austauschen.')
+    beschluss.refresh_from_db()
+    assert beschluss.status == BeschlussStatus.OFFEN
+    # Zeitraffer: Urteil und Beschlussfrist rücken gemeinsam zurück — die Frist ist seit einer Stunde um.
+    versatz = tage - timedelta(days=1) + timedelta(hours=1)
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=pruefung.erstellt_am - versatz)
+    GremienBeschluss.objects.filter(pk=beschluss.pk).update(frist=beschluss.frist - versatz)
+    antrag.refresh_from_db()
+    antrag.fortschreiben_bis_zum_stand()
+    pruefung.refresh_from_db()
+    beschluss.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.STATTGEGEBEN
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and 'Ohne Wirkung' not in beschluss.umsetzungsvermerk
+    assert all(not Rolle.objects.get(mitglied=m).aktiv for m in er)
+
+
+def test_nach_der_verfristung_entsteht_kein_austauschbeschluss_mehr(client, ordnung):  # noqa: F811
+    """GP-010, Kehrseite der Kappung: Ist die Frist schon um und nur noch nicht ausgewertet, entsteht kein
+    Beschluss mit einer Frist in der Vergangenheit — der Antrag verfristet, und die Seite sagt es."""
+    from gremien.models import Anlass, GremienBeschluss
+
+    antrag, entwurf, er, korat = korat_lage(client, ordnung)
+    pruefung = entwurf.pruefungen.get()
+    tage = antrag.policy().pruefung_tage
+    Pruefung.objects.filter(pk=pruefung.pk).update(erstellt_am=timezone.now() - timedelta(days=tage, hours=1))
+    client.force_login(korat)
+    antwort = client.post(
+        reverse('gremien:koordination_beschluss'),
+        {'anlass': 'austausch', 'pruefung': pruefung.pk, 'beschreibung': 'Zu spät.'},
+        follow=True,
+    )
+    assert not GremienBeschluss.objects.filter(anlass=Anlass.AUSTAUSCH, antrag=antrag).exists()
+    assert 'Frist für diesen Austauschantrag ist verstrichen' in antwort.content.decode()
+    pruefung.refresh_from_db()
+    assert pruefung.korat_entscheid == Pruefung.KoratEntscheid.VERFRISTET

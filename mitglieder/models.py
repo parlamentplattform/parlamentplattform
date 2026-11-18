@@ -554,42 +554,58 @@ class Adresswechsel(models.Model):
         self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
         return True
 
+    def _sperren(self) -> None:
+        """Sperrt die Zeile bis zum Ende der Transaktion und übernimmt ihren aktuellen Stand (GP-211):
+        Hintergrundlauf und Seitenaufruf können denselben Wechsel gleichzeitig anwenden, jeder mit
+        einem schon geladenen Stand — entschieden wird erst nach der Sperre."""
+        list(type(self).objects.select_for_update().filter(pk=self.pk).values_list("pk", flat=True))
+        self.refresh_from_db(fields=["status", "erledigt_am", "bestaetigt_von", "bestaetigt_am", "frist_bis"])
+
     def widerrufen(self, anlass: str, durch=None) -> bool:
         """Einspruch des Mitglieds („einspruch“) oder Abbruch durch einen Admin („abbruch“)."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if self.status != self.Status.OFFEN:
-            return False
-        self.status, self.erledigt_am = self.Status.WIDERRUFEN, timezone.now()
-        self.save(update_fields=["status", "erledigt_am"])
-        extra = {"anlass": anlass}
-        if durch is not None:
-            extra["durch"] = durch.pk
-        self._protokollieren("email_geaendert_widerrufen", **extra)
+        with transaction.atomic():
+            self._sperren()
+            if self.status != self.Status.OFFEN:
+                return False
+            self.status, self.erledigt_am = self.Status.WIDERRUFEN, timezone.now()
+            self.save(update_fields=["status", "erledigt_am"])
+            extra = {"anlass": anlass}
+            if durch is not None:
+                extra["durch"] = durch.pk
+            self._protokollieren("email_geaendert_widerrufen", **extra)
         return True
 
     def wirksam_machen(self) -> bool:
         """Macht die neue Adresse zur Anmeldeadresse — nur wenn Frist um, zweiter Admin
-        bestätigt hat und weder der fixe Admin betroffen ist noch seine Adresse vergeben wird."""
+        bestätigt hat und weder der fixe Admin betroffen ist noch seine Adresse vergeben wird.
+
+        Konto, Status und Audit-Eintrag gelingen gemeinsam oder gar nicht, und ein zweiter Lauf
+        über denselben Wechsel findet ihn erledigt (GP-211)."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if not self.ist_faellig:
-            return False
-        m = self.mitglied
-        fix = getattr(settings, "DDOE_FIX_ADMIN", "").lower()
-        vergeben = Mitglied.objects.filter(email__iexact=self.neue_email).exclude(pk=m.pk).exists()
-        if m.ist_fixer_admin or self.neue_email == fix or vergeben:
-            self.widerrufen("nicht_zulaessig")
-            return False
-        felder = ["email"]
-        if m.username == m.email:
-            m.username = self.neue_email  # Registrierte führen die Adresse als Anmeldenamen
-            felder.append("username")
-        m.email = self.neue_email
-        m.save(update_fields=felder)
-        self.status, self.erledigt_am = self.Status.WIRKSAM, timezone.now()
-        self.save(update_fields=["status", "erledigt_am"])
-        self._protokollieren("email_geaendert_wirksam")
+        with transaction.atomic():
+            self._sperren()
+            if not self.ist_faellig:
+                return False
+            m = self.mitglied = Mitglied.objects.select_for_update().get(pk=self.mitglied_id)
+            fix = getattr(settings, "DDOE_FIX_ADMIN", "").lower()
+            vergeben = Mitglied.objects.filter(email__iexact=self.neue_email).exclude(pk=m.pk).exists()
+            if m.ist_fixer_admin or self.neue_email == fix or vergeben:
+                self.widerrufen("nicht_zulaessig")
+                return False
+            felder = ["email"]
+            if m.username == m.email:
+                m.username = self.neue_email  # Registrierte führen die Adresse als Anmeldenamen
+                felder.append("username")
+            m.email = self.neue_email
+            m.save(update_fields=felder)
+            self.status, self.erledigt_am = self.Status.WIRKSAM, timezone.now()
+            self.save(update_fields=["status", "erledigt_am"])
+            self._protokollieren("email_geaendert_wirksam")
         return True
 
     @classmethod
@@ -723,7 +739,10 @@ class Bankkopplung(models.Model):
         from django.utils import timezone
 
         heute = timezone.localdate()
-        return self.abruf_tag != heute or self.abrufe_heute < self.ABRUFE_PRO_TAG - vorbehalt
+        # Auch der erste Abruf des Tages zählt gegen den Vorbehalt: Seit er ein Registerwert ist, kann
+        # er das ganze Kontingent umfassen.
+        bisher = self.abrufe_heute if self.abruf_tag == heute else 0
+        return bisher < self.ABRUFE_PRO_TAG - vorbehalt
 
     def abruf_vermerken(self) -> None:
         from django.utils import timezone

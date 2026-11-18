@@ -1137,6 +1137,15 @@ def test_datenexport_nur_get_und_je_konto_gedrosselt(client):
     assert anderes.get(EXPORT).status_code == 200
 
 
+def test_die_grenze_der_datenexporte_kommt_aus_dem_register(client):
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="datenexport-je-stunde").update(wert="2")
+    client.force_login(mitglied_anlegen("anna"))
+    assert [client.get(EXPORT).status_code for _ in range(3)] == [200, 200, 302]
+
+
 # --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
 
 

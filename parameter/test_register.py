@@ -431,6 +431,27 @@ def test_die_grenzen_der_maschine_stehen_im_register():
     assert schema_key("post-hoechstversuche") == "mail.max_attempts"
 
 
+def test_die_drosseln_der_ersten_behebungsrunde_stehen_im_register():
+    """Repo-Regel „keine neuen harten Konstanten“: Die erste Behebungsrunde der Gesamtprüfung führte
+    drei Drosseln als Konstanten ein (Datenexport je Stunde, Bankabruf je Konto und Tag, Vorbehalt der
+    Verwaltung). Sie sind Registerwerte mit unverändertem Startwert und Schema-Kennung."""
+    from mitglieder.models import Bankkopplung
+    from parameter.models import wertbereich
+    from plattform_core.schema import schema_key
+
+    werte = {e["schluessel"]: e for e in ERSTBESTAND}
+    assert werte["datenexport-je-stunde"]["wert"] == "10"
+    assert werte["beitrag-meldungen-mit-abruf-je-konto"]["wert"] == "1"
+    assert werte["beitrag-abruf-verwaltungsvorbehalt"]["wert"] == "1"
+    assert schema_key("datenexport-je-stunde") == "account.data_exports_per_hour"
+    assert schema_key("beitrag-meldungen-mit-abruf-je-konto") == "fees.member_reports_with_bank_call_per_day"
+    assert schema_key("beitrag-abruf-verwaltungsvorbehalt") == "fees.bank_calls_reserved_for_administration"
+    bereich = {s: wertbereich(s, werte[s]["einheit"]) for s in werte}
+    assert bereich["datenexport-je-stunde"] == (1, None)  # Art 15/20 DSGVO: der Export bleibt möglich
+    assert bereich["beitrag-meldungen-mit-abruf-je-konto"] == (1, None)
+    assert bereich["beitrag-abruf-verwaltungsvorbehalt"] == (0, Bankkopplung.ABRUFE_PRO_TAG)
+
+
 
 # ── Gesamtprüfung 0.113 ───────────────────────────────────────────────────────────────────────
 
@@ -456,6 +477,9 @@ def _register_stand():
         ("region-nebenwohnsitz-zaehlt", "2"),
         ("live-takt-sekunden", "4"),
         ("aehnlichkeit-schwelle-prozent", "101"),
+        ("datenexport-je-stunde", "0"),
+        ("beitrag-meldungen-mit-abruf-je-konto", "0"),
+        ("beitrag-abruf-verwaltungsvorbehalt", "5"),
     ],
 )
 def test_verwaltung_weist_werte_ausserhalb_von_typ_und_bereich_ab(client, schluessel, wert):
@@ -598,6 +622,31 @@ def test_schema_dokument_beschreibt_den_teststatus():
     for feld in eintrag:
         assert f'"{feld}"' in abschnitt or f"`{feld}`" in abschnitt, feld
     assert "`wert_vor_test`" in abschnitt and "`im_test`" in abschnitt
+
+
+def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
+    """Auflage zu GP-136: Neue Exportfelder, Audit-Arten und Kennungen der Gesamtprüfung heben die
+    Nebenversion; Kopf und Änderungsverlauf von docs/SCHEMA.md nennen sie, die neuen Kennungen
+    stehen in der Tabelle 3.1, /audit.json in Abschnitt 5."""
+    from plattform_core.schema import SCHEMA_VERSION
+
+    zeilen = _schema_dokument().splitlines()
+    assert f"Schema-Version **{SCHEMA_VERSION}**" in zeilen[2]
+    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    for wort in (
+        "`status`", "`test_bis`", "`test_hypothese`", "`wert_vor_test`", "`nur_tag`", "`zurueckgenommen`",
+        "`gremienbeschluss_geschlossen`", "`vollzugsbezug_gesetzt`", "`interessenbindung_erklaert`",
+        "`auslosung_begonnen`", "`fachliste_eingetragen`", "`fachliste_gestrichen`", "`meldung_ohne_massnahme`",
+        "`beitrag_ausgeblendet`", "`beratung_freigegeben`", "`entwurf_wiederhergestellt`", "`auswertung.grund`",
+        "`auswertung.stimmen`", "`account.data_exports_per_hour`", "`fees.member_reports_with_bank_call_per_day`",
+        "`fees.bank_calls_reserved_for_administration`",
+    ):
+        assert wort in eintrag, wort
+    tabelle = _schema_dokument().split("### 3.1")[1].split("### 3.2")[0]
+    for schluessel in ("datenexport-je-stunde", "beitrag-meldungen-mit-abruf-je-konto", "beitrag-abruf-verwaltungsvorbehalt"):
+        assert f"| `{schluessel}` |" in tabelle, schluessel
+    audit = next(z for z in zeilen if z.startswith("| `/audit.json`"))
+    assert "`nur_tag`" in audit
 
 
 def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):

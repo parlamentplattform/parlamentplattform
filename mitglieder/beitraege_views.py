@@ -34,8 +34,10 @@ from parameter.models import zahl
 
 ABGLEICH_MINDESTABSTAND = 180  # Sekunden zwischen zwei mitglieder-ausgelösten Abrufen
 VERWALTUNG_NACHHOLFRIST = 6 * 3600  # Verwaltungsbesuch holt einen Abgleich nach, wenn älter
-VERWALTUNG_VORBEHALT = 1  # Abrufe je Tag, die keine Meldung verbraucht (GP-101)
-MELDUNGEN_MIT_ABRUF_JE_KONTO = 1  # je Kalendertag (GP-101)
+#: Erstbestand und Rückfall der Registerwerte „beitrag-abruf-verwaltungsvorbehalt“ (Abrufe je Tag, die
+#: keine Meldung verbraucht) und „beitrag-meldungen-mit-abruf-je-konto“ (je Kalendertag), GP-101.
+VERWALTUNG_VORBEHALT = 1
+MELDUNGEN_MIT_ABRUF_JE_KONTO = 1
 
 
 def _beitrags_kontext(nutzer) -> dict:
@@ -87,8 +89,9 @@ def beitrag_gemeldet(request):
         return redirect("mitglieder:beitrag")
 
     # GP-101: Der letzte Abruf des Tages bleibt der Verwaltung; je Konto ruft nur eine Meldung am Tag ab.
-    frei = kopplung.abruf_erlaubt(vorbehalt=VERWALTUNG_VORBEHALT)
-    if frei and tagesdrossel_zuviel("bankmeldung", f"konto:{request.user.pk}", MELDUNGEN_MIT_ABRUF_JE_KONTO):
+    frei = kopplung.abruf_erlaubt(vorbehalt=zahl("beitrag-abruf-verwaltungsvorbehalt", VERWALTUNG_VORBEHALT))
+    je_konto = max(1, zahl("beitrag-meldungen-mit-abruf-je-konto", MELDUNGEN_MIT_ABRUF_JE_KONTO))
+    if frei and tagesdrossel_zuviel("bankmeldung", f"konto:{request.user.pk}", je_konto):
         messages.info(
             request,
             _("Ihr Konto hat heute schon einen Kontoabruf ausgelöst — diese Meldung ruft nicht erneut ab. Ihr Eingang wird beim nächsten Abgleich erkannt: morgen auf Ihre Meldung hin oder wenn die Verwaltung abgleicht."),
@@ -255,13 +258,15 @@ def auszug_hochladen(request):
         if eingang is None or referenz_finden(eingang.verwendungszweck) != eigene_referenz:
             fremde.append(roh)
     eigene = len(umsaetze) - len(fremde)
-    neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
     from mitglieder.verwaltung import _auditieren
 
-    _auditieren(
-        request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
-        pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
-    )
+    # GP-102: Verbuchen und Audit-Eintrag des Abgleichs gemeinsam oder gar nicht.
+    with transaction.atomic():
+        neu, gesamt = bank.verbuchen_aus_umsaetzen(fremde)
+        _auditieren(
+            request, "auszug_abgleich", request.user, umsaetze=len(umsaetze), verbucht=neu,
+            pruefsumme=hashlib.sha256(roh_datei).hexdigest(), eigene_uebersprungen=eigene,
+        )
     messages.success(
         request,
         _("Auszug gelesen: %(umsaetze)d Umsätze, %(gesamt)d mit Beitragsreferenz, %(neu)d neu verbucht.")

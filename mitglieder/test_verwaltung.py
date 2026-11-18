@@ -367,6 +367,44 @@ def test_email_kollision_wird_abgelehnt(client):
     assert anna.email == "anna@example.org"
 
 
+def _faelliger_wechsel(anna, neue="anna.neu@example.org"):
+    wechsel, _klar = Adresswechsel.beantragen(anna, neue, durch=admin_anlegen())
+    wechsel.bestaetigt_von = admin_anlegen("adminb")
+    wechsel.frist_bis = timezone.now() - timedelta(hours=1)
+    wechsel.save()
+    return wechsel
+
+
+def test_zweimal_angewendeter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Auflage zu GP-211: Hintergrundlauf und Seitenaufruf können denselben fälligen Wechsel
+    gleichzeitig anwenden — jeder mit seinem eigenen, schon geladenen Stand."""
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+    zweiter_lauf = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.wirksam_machen() is True
+    assert zweiter_lauf.wirksam_machen() is False
+    assert Adresswechsel.faellige_anwenden() == 0
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_wirksam") == 1 and "email_geaendert_widerrufen" not in aktionen
+    zweiter_lauf.refresh_from_db()
+    assert zweiter_lauf.status == Adresswechsel.Status.WIRKSAM
+
+
+def test_wirksam_machen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.wirksam_machen()
+    anna.refresh_from_db()
+    wechsel.refresh_from_db()
+    assert anna.email == "anna@example.org" and wechsel.status == Adresswechsel.Status.OFFEN
+
+
 # --- Audit ----------------------------------------------------------------------
 
 
@@ -664,6 +702,51 @@ def test_ohne_audit_bleibt_die_bankkopplung_unscharf(client, monkeypatch):
     antwort = client.get(reverse('mitglieder:bank_rueckkehr'), follow=True)
     assert 'nicht abgeschlossen' in antwort.content.decode()
     assert Bankkopplung.aktuelle() is None  # Kopplung und Audit gemeinsam oder gar nicht
+
+
+def test_ohne_audit_des_auszugs_bleibt_nichts_verbucht(client, monkeypatch):
+    """Auflage zu GP-102: Verbuchen und Audit-Eintrag „auszug_abgleich“ stehen in einer Klammer."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)})
+    zahler.refresh_from_db()
+    assert Beitragseingang.objects.count() == 0 and zahler.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='beitrag').exists()
+
+
+def test_scheitert_das_audit_meldet_die_verwaltung_keinen_erfolg(monkeypatch):
+    """Auflage zu GP-102: Die Erfolgsmeldung stand in der Klammer vor dem Audit-Eintrag — nach
+    der Rücknahme meldete die nächste Seite trotzdem „ausgeschlossen“."""
+    from django.contrib.messages import get_messages
+    from django.test import Client
+
+    anna = mitglied_anlegen()
+    client = Client(raise_request_exception=False)
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    assert antwort.status_code == 500
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == []
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV
 
 
 def test_ausschluss_vermerkt_die_entzogenen_adminrechte_im_audit(client):

@@ -296,12 +296,13 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         return
 
     extra = {"grund": grund} if grund else {}
-    # GP-102: Handlung und Audit-Eintrag gelingen gemeinsam oder gar nicht.
+    # GP-102: Handlung und Audit-Eintrag gelingen gemeinsam oder gar nicht — und gemeldet wird erst,
+    # was beides überstanden hat: Eine Meldung in der Klammer bliebe nach einer Rücknahme stehen.
     with transaction.atomic():
         if aktion == "pausieren":
             mitglied.save(update_fields=mitglied.status_setzen(Mitgliedsstatus.PAUSIERT, grund))
-            messages.success(
-                request, _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
+            erfolg = (
+                _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
             )
         elif aktion == "ausschliessen":
             felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
@@ -313,7 +314,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
                 extra["adminrechte_entzogen"] = True  # die Rechteänderung steht mit im Audit
             mitglied.save(update_fields=[*felder, "is_active"])
             EinmalToken.entwerten(mitglied)
-            messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
+            erfolg = _("Mitglied ausgeschlossen und Konto deaktiviert.")
         elif aktion == "reaktivieren":
             felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
             mitglied.is_active = True
@@ -324,30 +325,31 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
                 mitglied.beitritt = timezone.localdate()
                 felder.append("beitritt")
             mitglied.save(update_fields=felder)
-            messages.success(request, _("Mitgliedschaft ist wieder aktiv."))
+            erfolg = _("Mitgliedschaft ist wieder aktiv.")
         elif aktion == "beitrag":
             mitglied.beitrag_zuletzt_am = timezone.localdate()
             felder = ["beitrag_zuletzt_am"]
             if mitglied.status == Mitgliedsstatus.PAUSIERT:
                 felder += mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
-                messages.success(request, _("Beitragseingang vermerkt — die Pause ist damit aufgehoben."))
+                erfolg = _("Beitragseingang vermerkt — die Pause ist damit aufgehoben.")
             else:
-                messages.success(request, _("Beitragseingang vermerkt."))
+                erfolg = _("Beitragseingang vermerkt.")
             mitglied.save(update_fields=felder)
         elif aktion == "admin_geben":
             mitglied.ist_admin = True
             mitglied.save(update_fields=["ist_admin"])
-            messages.success(
-                request, _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
+            erfolg = (
+                _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
             )
         elif aktion == "admin_nehmen":
             mitglied.ist_admin = False
             mitglied.save(update_fields=["ist_admin"])
-            messages.success(request, _("Adminrechte entzogen."))
+            erfolg = _("Adminrechte entzogen.")
         else:
             messages.error(request, _("Unbekannte Aktion."))
             return
         _auditieren(request, aktion, mitglied, **extra)
+    messages.success(request, erfolg)
 
 
 @nur_admins

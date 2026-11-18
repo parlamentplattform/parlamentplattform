@@ -209,6 +209,13 @@ WERTBEREICHE: dict[str, tuple[int, int | None]] = {
     # eine Kontoübernahme. Fachliche Untergrenzen darüber entscheidet der Gründer.
     "chat-zeichen-hoechstzahl": (1, None),
     "adresswechsel-wartefrist-stunden": (1, None),
+    # Der Datenexport ist ein Recht (Art 15/20 DSGVO): Die Drossel begrenzt ihn, sperrt ihn aber nie.
+    "datenexport-je-stunde": (1, None),
+    # 0 sperrte jeden Abruf durch Meldungen, und die Meldung behauptete trotzdem „heute schon abgerufen“.
+    "beitrag-meldungen-mit-abruf-je-konto": (1, None),
+    # Mehr als das Tageskontingent der Bank (Bankkopplung.ABRUFE_PRO_TAG, PSD2: vier) lässt sich
+    # nicht vorbehalten; das Kontingent selbst ist eine Grenze der Maschine und bleibt im Code.
+    "beitrag-abruf-verwaltungsvorbehalt": (0, 4),
 }
 
 #: Bereich, den die Einheit selbst festlegt.
@@ -920,6 +927,36 @@ ERSTBESTAND = [
         "eine Beitragserinnerung beauftragen kann. Die Erinnerung geht nur mit E-Mail-Einwilligung, nie an "
         "Testkonten und höchstens einmal je Kalenderjahr; die Höhe des Beitrags bleibt Selbsteinschätzung."),
         "quelle": "§ 4 Abs 3 · Anweisung des Gründers 28.9.2026",
+    },
+    {
+        "schluessel": "beitrag-meldungen-mit-abruf-je-konto",
+        "wert": "1",
+        "einheit": gettext_noop("Meldungen je Tag"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie oft je Kalendertag die Meldung „Ich habe überwiesen“ desselben Kontos "
+        "einen Kontoabruf bei der Bank auslöst. Weitere Meldungen am selben Tag rufen nicht ab und sagen das; "
+        "der Eingang wird beim nächsten Abgleich erkannt. Mindestens 1. Wirkt sofort."),
+        "quelle": "§ 4 Abs 3 · Tageskontingent des Bankabrufs",
+    },
+    {
+        "schluessel": "beitrag-abruf-verwaltungsvorbehalt",
+        "wert": "1",
+        "einheit": gettext_noop("Abrufe je Tag"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie viele der vier Kontoabrufe, die die Bank je Tag erlaubt, der Verwaltung "
+        "vorbehalten bleiben. Meldungen „Ich habe überwiesen“ lösen nur Abrufe aus, solange darüber hinaus "
+        "noch Abrufe frei sind; bei 4 löst keine Meldung einen Abruf aus. 0 bis 4. Wirkt sofort."),
+        "quelle": "§ 4 Abs 3 · Tageskontingent des Bankabrufs",
+    },
+    {
+        "schluessel": "datenexport-je-stunde",
+        "wert": "10",
+        "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie oft ein Konto je Kalenderstunde seine eigenen Daten herunterladen kann. "
+        "Jeder Abruf steht im öffentlichen Audit-Log; die Grenze hält ein einzelnes Konto davon ab, die "
+        "Audit-Kette mit Exportzeilen zu füllen. Mindestens 1 — der Export bleibt immer möglich. Wirkt sofort."),
+        "quelle": "Art 15 und Art 20 DSGVO · Schutz der öffentlichen Audit-Kette",
     },
     {
         "schluessel": "post-hoechstversuche",

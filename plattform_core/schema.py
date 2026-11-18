@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.29"
+SCHEMA_VERSION = "1.30"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -302,6 +302,21 @@ PARAMETER = {
         "mail.fee_reminder_earliest_days", "days",
         "Minimum membership age before the administration may queue a fee reminder (consent required, "
         "at most once per calendar year)",
+    ),
+    "beitrag-meldungen-mit-abruf-je-konto": (
+        "fees.member_reports_with_bank_call_per_day", "reports/day",
+        "How many times per calendar day a member's report of a transfer triggers a bank account query; "
+        "further reports that day do not query (at least 1)",
+    ),
+    "beitrag-abruf-verwaltungsvorbehalt": (
+        "fees.bank_calls_reserved_for_administration", "calls/day",
+        "How many of the bank's daily account queries stay reserved for the administration; members' "
+        "reports only trigger a query while more than that remain (0 up to the bank's daily quota)",
+    ),
+    "datenexport-je-stunde": (
+        "account.data_exports_per_hour", "requests/hour",
+        "How many times per hour an account may download its own data export; every download is an entry "
+        "in the public audit log (at least 1, the export always stays possible)",
     ),
     "post-hoechstversuche": (
         "mail.max_attempts", "attempts",

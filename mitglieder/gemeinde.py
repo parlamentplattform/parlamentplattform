@@ -89,6 +89,29 @@ class AnmeldeFormular(BotschutzMixin, ZugangsFormular):
         return email
 
 
+class NamensFormular(forms.Form):
+    """Anzeigename eines Gemeindekontos, das beim Bestätigen keinen behalten konnte (GP-186)."""
+
+    anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=50)
+
+    def __init__(self, *args, konto, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.konto = konto
+
+    def clean_anzeigename(self):
+        from mitglieder.profil import anzeigename_pruefen
+
+        name = anzeigename_pruefen(self.cleaned_data["anzeigename"], ausser=self.konto)
+        if not name:
+            raise forms.ValidationError(self.fields["anzeigename"].error_messages["required"], code="required")
+        return name
+
+
+def _name_waehlbar(konto) -> bool:
+    """Nur ein Gemeindekonto ohne Namen wählt ihn hier; Parteikonten wählen ihn im Profil."""
+    return not konto.parteikonto and not konto.pseudonym_oeffentlich
+
+
 def bestaetigungslink_senden(request, konto):
     token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.GEMEINDE)
     link = request.build_absolute_uri(reverse("gemeinde:bestaetigen", args=[token]))
@@ -214,16 +237,33 @@ def bestaetigen(request, token):
     konto = EinmalToken.einloesen(token, EinmalToken.Zweck.GEMEINDE)
     if konto is None or konto.parteikonto:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
+    if konto.pseudonym_oeffentlich:
+        # GP-186: Alle Konten mit diesem Namen in fester Reihenfolge sperren — zwei wartende Konten
+        # mit demselben Namen lösen so nacheinander ein, und das zweite sieht das erste bestätigt.
+        list(Mitglied.objects.select_for_update().filter(
+            Q(pk=konto.pk) | Q(pseudonym_oeffentlich__iexact=konto.pseudonym_oeffentlich)
+        ).order_by("pk").values_list("pk", flat=True))
     konto = Mitglied.objects.select_for_update().get(pk=konto.pk)
     zugang = get_object_or_404(Gemeindezugang, konto=konto)
     if zugang.bestaetigt_am is not None:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
+    from mitglieder.profil import anzeigename_vergeben
+
+    # GP-186: Ein wartendes Konto belegt keinen Namen — beim Einlösen wird er darum erneut geprüft.
+    # Ist er inzwischen vergeben, bleibt das Konto ohne Namen, bis sein Mensch einen neuen wählt.
+    name_vergeben = bool(konto.pseudonym_oeffentlich) and anzeigename_vergeben(konto.pseudonym_oeffentlich, ausser=konto)
+    if name_vergeben:
+        konto.pseudonym_oeffentlich = ""
     konto.is_active = True
-    konto.save(update_fields=["is_active"])
+    konto.save(update_fields=["is_active", "pseudonym_oeffentlich"])
     zugang.bestaetigt_am = timezone.now()
     zugang.save(update_fields=["bestaetigt_am"])
     login(request, konto)
     messages.success(request, _("Ihr Gemeindekonto ist bestätigt. Sie sind keiner Partei beigetreten."))
+    if name_vergeben:
+        messages.warning(
+            request, _("Ihr gewählter Anzeigename ist inzwischen vergeben. Bitte wählen Sie einen neuen Anzeigenamen.")
+        )
     return redirect("gemeinde:konto")
 
 
@@ -232,8 +272,22 @@ def bestaetigen(request, token):
 @require_http_methods(["GET", "POST"])
 def konto(request):
     zugang = Gemeindezugang.objects.filter(konto=request.user, bestaetigt_am__isnull=False).first()
+    namensformular = NamensFormular(konto=request.user) if _name_waehlbar(request.user) else None
+    namenswahl = request.method == "POST" and request.POST.get("aktion") == "anzeigename"
+    if namenswahl and namensformular is not None:
+        namensformular = NamensFormular(request.POST, konto=request.user)
+        if namensformular.is_valid():
+            with transaction.atomic():
+                aktuell = Mitglied.objects.select_for_update().get(pk=request.user.pk)
+                if _name_waehlbar(aktuell):
+                    aktuell.pseudonym_oeffentlich = namensformular.cleaned_data["anzeigename"]
+                    aktuell.save(update_fields=["pseudonym_oeffentlich"])
+            messages.success(request, _("Anzeigename gespeichert."))
+            return redirect("gemeinde:konto")
+    elif namenswahl:
+        return redirect("gemeinde:konto")
     formular = OrtsFormular if zugang else ZugangsFormular
-    form = formular(request.POST if request.method == "POST" else None, initial={
+    form = formular(request.POST if request.method == "POST" and not namenswahl else None, initial={
         "wohnsitz_art": request.user.wohnsitz_art_aktuell,
         "gemeinde": request.user.wohnsitz.anzeige if request.user.wohnsitz_id else "",
     })
@@ -250,7 +304,8 @@ def konto(request):
                 form.add_error(None, _("Testkonten können keinen Gemeindezugang führen."))
                 return render(
                     request, "mitglieder/gemeinde_konto.html",
-                    {"form": form, "zugang": zugang, "gemeinden": _gemeinden()}, status=403,
+                    {"form": form, "zugang": zugang, "gemeinden": _gemeinden(), "namensformular": namensformular},
+                    status=403,
                 )
             geaendert = wohnsitz_anwenden(aktuell, form)
             # GP-096: Auch der Wiener Gemeindebezirk wird gespeichert — das Audit nennt nur, was gespeichert ist.
@@ -265,7 +320,9 @@ def konto(request):
             })
         messages.success(request, _("Gemeindeangaben gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."))
         return redirect("gemeinde:konto")
-    return render(request, "mitglieder/gemeinde_konto.html", {"form": form, "zugang": zugang, "gemeinden": _gemeinden()})
+    return render(request, "mitglieder/gemeinde_konto.html", {
+        "form": form, "zugang": zugang, "gemeinden": _gemeinden(), "namensformular": namensformular,
+    })
 
 
 @login_required

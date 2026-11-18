@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.87.0] — 2026-11-14 · Novellenfundstellen für Oberösterreich
+
+- Die Faktenbasis nennt die letzte Änderung eines oberösterreichischen Normstands, sofern die archivierten RIS-Metadaten die Landesgesetzblattnummer ausdrücklich angeben. Bundesland, Fundstelle und Herkunftsnachweis bleiben zusammen sichtbar. Der bestehende Link führt zum Normstand, da in diesen Metadaten das Datum der Kundmachung für den direkten ELI-Link fehlt.
+
 ## [0.86.0] — 2026-11-14 · Öffentliche Ratsinitiativen
 
 - Ein Mandatar kann eigene Tagesordnungsgegenstände und Anfragen aus seinem ausdrücklich zugeordneten Gemeindemandat veröffentlichen. Die Ortsansicht verlinkt die Initiativen mit ihren fortlaufenden öffentlichen Vermerken. Veröffentlichte Initiativen bleiben auch nach Ende oder Ortswechsel des Mandats am ursprünglichen Ort lesbar.

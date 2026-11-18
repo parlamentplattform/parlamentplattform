@@ -18,8 +18,13 @@
 {% if novelle %}
 <section class="karte" aria-labelledby="novellenfundstelle">
   <h2 id="novellenfundstelle">{% translate "Novelle laut RIS-Metadaten" %}</h2>
-  <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
-  <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
+  {% if novelle.ziel %}
+    <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
+    <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
+  {% else %}
+    <p><strong>{{ novelle.bezeichnung }}</strong> · {{ novelle.bundesland }}</p>
+    <p class="hilfe">{% translate "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum." %}</p>
+  {% endif %}
   <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ novellenfassung }} · <a href="#norm-herkunft">{% translate "Herkunft und Prüfsumme" %}</a></p>
 </section>
 {% endif %}

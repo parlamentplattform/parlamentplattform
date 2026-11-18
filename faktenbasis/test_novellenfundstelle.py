@@ -6,8 +6,11 @@ import pytest
 from django.urls import reverse
 
 from faktenbasis import importieren as metadaten
+from faktenbasis import landesrecht
 from faktenbasis.models import Norm
 from faktenbasis.ris import antwort_parsen
+from faktenbasis.test_landesrecht import NUMMER as LAND_NUMMER
+from faktenbasis.test_landesrecht import beispiel as landesbeispiel
 from faktenbasis.test_ris import STAND, beispiel
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from plattform_core.novellenfundstelle import novellenfundstelle
@@ -68,3 +71,35 @@ def test_normseite_zeigt_je_schnappschuss_dessen_novelle_ohne_schreibzugriff(cli
     assert 'id="novellenfundstelle"' not in html_alt
     assert 'href="https://www.ris.bka.gv.at/eli/bgbl/I/2024/70"' in html_neu
     assert AuditEintrag.objects.count() == vorher and Norm.objects.count() == 2
+
+
+def landesnorm_anlegen(monkeypatch):
+    daten = landesbeispiel()
+    roh = daten["OgdSearchResult"]["OgdDocumentResults"]["OgdDocumentReference"]["Data"]
+    meta = roh["Metadaten"]
+    meta["Technisch"]["ID"] = "LOO40027105"
+    meta["Allgemein"]["DokumentUrl"] = "https://ris.bka.gv.at/eli/lgbl/OB/1990/91/P3/LOO40027105"
+    land = meta["Landesrecht"]
+    land.update(Kurztitel="Oö. Gemeindeordnung 1990", Titel="Oö. Gemeindeordnung 1990 (synthetischer Prüfstand)")
+    land["LrKons"].update({**FELDER, "NovellenPublikationsorgan": "LGBl.Nr.", "NovellenBgblnummer": "62/2026",
+                          "ArtikelParagraphAnlage": "§ 3", "Inkrafttretensdatum": "2026-09-01"})
+    monkeypatch.setattr(landesrecht, "abrufen", lambda *args, **kwargs: landesrecht.antwort_parsen(
+        daten, LAND_NUMMER, "Oberoesterreich",
+    ))
+    lauf = metadaten.importieren(LAND_NUMMER, STAND, bundesland="Oberoesterreich")
+    return Norm.objects.get(importlauf=lauf)
+
+
+@pytest.mark.django_db
+def test_landesfundstelle_verwendet_weder_inkrafttreten_als_eli_datum_noch_fremdes_land(client, monkeypatch, abrufuhr):  # noqa: F811
+    norm = landesnorm_anlegen(monkeypatch)
+    vorher = AuditEintrag.objects.count()
+    antwort = client.get(reverse("faktenbasis:norm", args=[norm.pk]))
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert "<strong>LGBl. Nr. 62/2026</strong> · Oberösterreich" in html
+    assert "/eli/lgbl/OB/2026/62/20260901" not in html
+    assert antwort.context["novelle"].ziel is None
+    for bundesland in ("", "Tirol", "Niederösterreich"):
+        assert novellenfundstelle(norm.rohdaten, norm.ris_id, STAND, bundesland=bundesland) is None
+    assert AuditEintrag.objects.count() == vorher

@@ -361,3 +361,14 @@ def test_gp179_rechtsfolgenformat_nur_lesend(client):
     ziel = reverse('verfahren:rechtsfolgenformat')
     assert client.get(ziel).status_code == 200
     assert client.post(ziel).status_code == 405
+
+
+@pytest.mark.parametrize('anfrage', ['', '?fokus=region', '?suche=Wohnen'])
+@pytest.mark.parametrize('angemeldet', [False, True])
+def test_gp063_parlament_hat_genau_eine_h1(client, ordnung, anfrage, angemeldet):  # noqa: F811
+    """GP-063 (ZB-07, GAST-17): Das Parlament hatte in keiner Rolle und Variante eine h1."""
+    if angemeldet:
+        client.force_login(mitglied_anlegen('anna'))
+    seite = client.get(reverse('verfahren:parlament') + anfrage).content.decode()
+    assert seite.count('<h1') == 1
+    assert '>Parlament</h1>' in seite

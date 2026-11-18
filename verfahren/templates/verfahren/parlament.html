@@ -9,6 +9,7 @@
 {% block inhalt %}
 {% comment %}Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld serverseitig auf das ganze Raster (ohne JavaScript);
 mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her, der Zustand liegt in sessionStorage.{% endcomment %}
+<h1 class="nur-lesbar">{% translate "Parlament" %}</h1>
 <div class="parlament{% if fokus %} fokus fokus-{{ fokus }}{% endif %}" id="parlament" x-data="parlament('{{ fokus|default:"" }}')"
   :class="{'fokus': fokus !== '', 'fokus-filter': fokus === 'filter', 'fokus-favoriten': fokus === 'favoriten', 'fokus-wichtig': fokus === 'wichtig', 'fokus-region': fokus === 'region'}" @keydown.escape.window="alleFelder()">
 

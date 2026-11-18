@@ -1,12 +1,9 @@
 """Öffentlich verlinkte Sitzungsunterlagen, getrennt vom DDÖ-Bericht und vom Ticker."""
 
-from urllib.parse import urlsplit
-
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.core.validators import URLValidator
 from django.db import transaction
 from django.db.models import OuterRef, Subquery
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,6 +13,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_safe
 
+from mandatare.gemeindequellen import quellen_url_feld
 from mandatare.gemeinderechte import darf_bearbeiten, eigenes_gemeindemandat
 from mandatare.models import Gemeindesitzungsquelle
 from mitglieder.models import Gemeinde
@@ -26,26 +24,11 @@ from verfahren.models import AuditEintrag
 
 class Quellenformular(forms.Form):
     art = forms.ChoiceField(label=gettext_lazy("Unterlage"), choices=Gemeindesitzungsquelle.Art.choices)
-    url = forms.CharField(
-        label=gettext_lazy("Öffentlicher HTTPS-Link"),
-        required=False,
-        max_length=Gemeindesitzungsquelle._meta.get_field("url").max_length,
-        validators=[URLValidator(schemes=["https"])],
-        widget=forms.URLInput,
-    )
+    url = quellen_url_feld()
     bestaetigt = forms.BooleanField(
         label=gettext_lazy("Diese Unterlage ist öffentlich und gehört zu dieser Gemeinderatssitzung."),
         required=False,
     )
-
-    def clean_url(self):
-        url = self.cleaned_data["url"]
-        if url:
-            teile = urlsplit(url)
-            if teile.username is not None or teile.password is not None or "\\" in url:
-                raise forms.ValidationError(_("Der Link darf keine Zugangsdaten oder Rückstriche enthalten."))
-        return url
-
 
 @require_safe
 def liste(request, kennziffer):

@@ -562,6 +562,9 @@ class Aufgabe(models.Model):
         return timezone.localdate(self.frist)
 
 
+QUELLEN_URL_MAX = 500
+
+
 class Gemeindesitzungsquelle(models.Model):
     """Ein öffentlicher Quellenverweis oder dessen Rücknahme zu einem Gemeinderatssitzungstag."""
 
@@ -573,7 +576,7 @@ class Gemeindesitzungsquelle(models.Model):
     gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT)
     sitzung_am = models.DateField()
     art = models.CharField(max_length=16, choices=Art.choices)
-    url = models.URLField(max_length=500, blank=True, help_text="Eine leere URL ist eine Rücknahme.")
+    url = models.URLField(max_length=QUELLEN_URL_MAX, blank=True, help_text="Eine leere URL ist eine Rücknahme.")
     erfasst_am = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -583,6 +586,39 @@ class Gemeindesitzungsquelle(models.Model):
 
     def __str__(self) -> str:
         return f"{self.aufgabe_id}: {self.art} ({self.sitzung_am.isoformat()})"
+
+
+class Gemeindehaushaltsquelle(models.Model):
+    """Veröffentlichter Quellenlink eines Gemeindemandatars oder eine spätere Rücknahme."""
+
+    class Art(models.TextChoices):
+        VORANSCHLAG = "voranschlag", _("Voranschlag")
+        RECHNUNGSABSCHLUSS = "rechnungsabschluss", _("Rechnungsabschluss")
+        FINANZPLAN = "finanzplan", _("Mittelfristiger Ergebnis- und Finanzplan")
+
+    mandat = models.ForeignKey(Mandat, on_delete=models.PROTECT, related_name="haushaltsquellen")
+    gemeinde = models.ForeignKey("mitglieder.Gemeinde", on_delete=models.PROTECT)
+    jahr = models.PositiveSmallIntegerField()
+    bis_jahr = models.PositiveSmallIntegerField(null=True, blank=True)
+    art = models.CharField(max_length=20, choices=Art.choices)
+    url = models.URLField(max_length=QUELLEN_URL_MAX, blank=True, help_text="Eine leere URL ist eine Rücknahme.")
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["gemeinde", "mandat", "jahr", "art", "-id"], name="gemeinde_haushaltsquelle_stand"),
+        ]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(jahr__range=(1, 9999)), name="haushaltsquelle_jahr"),
+            models.CheckConstraint(
+                condition=models.Q(art="finanzplan", bis_jahr__range=(models.F("jahr"), 9999), bis_jahr__isnull=False)
+                | models.Q(art__in=["voranschlag", "rechnungsabschluss"], bis_jahr__isnull=True),
+                name="haushaltsquelle_zeitraum",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.gemeinde_id}: {self.art} ({self.jahr})"
 
 
 class Beschluss(models.TextChoices):

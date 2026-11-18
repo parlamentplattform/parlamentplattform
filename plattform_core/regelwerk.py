@@ -178,10 +178,10 @@ REGELN: tuple[Regel, ...] = (
     ),
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
-        zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."),
-        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-15",
-        grund=_("Fassung 4 ergänzt die Reihenfolge der öffentlichen Sitzungsunterlagen."),
-        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand."),
+        zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungs- und Haushaltsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=5, seit="2026-11-15",
+        grund=_("Fassung 5 ergänzt die Reihenfolge der öffentlichen Haushaltsunterlagen."),
+        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand."),
         registerschluessel=("suche-treffer-hoechstzahl",),
     ),
     Regel(

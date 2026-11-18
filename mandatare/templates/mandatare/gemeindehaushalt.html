@@ -1,0 +1,24 @@
+{% extends "verfahren/base.html" %}{% load i18n l10n %}
+{% block titel %}{% translate "Gemeindehaushalt" %} · {{ gemeinde.name }}{% endblock %}
+{% block inhalt %}
+<p><a href="{% url 'gemeinde:ort' gemeinde.kennziffer %}">{{ gemeinde.anzeige }}</a></p>
+<h1>{% translate "Gemeindehaushalt" %}</h1>
+<p>{% translate "Von DDÖ-Mandataren verlinkte öffentliche Haushaltsunterlagen der Gemeinde." %}</p>
+{% for quelle in seite %}
+<article class="karte">
+  <h2>{% if quelle.url %}<a href="{{ quelle.url }}" rel="external noreferrer">{% endif %}{{ quelle.get_art_display }} {{ quelle.jahr|unlocalize }}{% if quelle.bis_jahr %}–{{ quelle.bis_jahr|unlocalize }}{% endif %}{% if quelle.url %}</a>{% endif %}</h2>
+  <p>{{ quelle.mandat.mitglied.anzeigename }}{% if not quelle.url %} · {% translate "Link zurückgezogen" %}{% endif %}</p>
+  <p class="meta">{% translate "Quellenstand" %} · <time datetime="{{ quelle.erfasst_am|date:'c' }}">{{ quelle.erfasst_am|date:"DATETIME_FORMAT" }}</time></p>
+</article>
+{% empty %}
+<p>{% translate "Für diese Gemeinde sind noch keine Haushaltsunterlagen verlinkt." %}</p>
+{% endfor %}
+{% if seite.has_other_pages %}
+<nav aria-label="{% translate 'Weitere Seiten' %}">
+  {% if seite.has_previous %}<a href="?seite={{ seite.previous_page_number }}">{% translate "Zurück" %}</a>{% endif %}
+  <span>{{ seite.number }} / {{ seite.paginator.num_pages }}</span>
+  {% if seite.has_next %}<a href="?seite={{ seite.next_page_number }}">{% translate "Weiter" %}</a>{% endif %}
+</nav>
+{% endif %}
+<p class="hilfe">{% translate "Absteigend nach Haushaltsjahr oder erstem Planjahr, dann nach Unterlagenart und Mandatskennung." %}</p>
+{% endblock %}

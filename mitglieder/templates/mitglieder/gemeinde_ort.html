@@ -5,7 +5,9 @@
 <h1>{{ gemeinde.name }}</h1>
 <p>{{ gemeinde.bezirk }} · {{ gemeinde.get_bundesland_display }} · {{ gemeinde.kennziffer }}</p>
 <p>{% translate "Öffentliches Angebot der DDÖ. Dies ist keine amtliche Seite der Gemeinde." %}</p>
-<p><a href="{% url 'gemeinde:start' %}">{% translate "Gemeinde finden" %}</a> · <a href="{% url 'gemeinde:ratsinitiativen' gemeinde.kennziffer %}">{% translate "Ratsinitiativen der DDÖ" %}</a></p>
+<p><a href="{% url 'gemeinde:start' %}">{% translate "Gemeinde finden" %}</a>
+ · <a href="{% url 'gemeinde:ratsinitiativen' gemeinde.kennziffer %}">{% translate "Ratsinitiativen der DDÖ" %}</a>
+ · <a href="{% url 'gemeinde:haushalt' gemeinde.kennziffer %}">{% translate "Gemeindehaushalt" %}</a></p>
 <section class="karte" aria-labelledby="gemeinde-mandate">
   <h2 id="gemeinde-mandate">{% translate "Zugeordnete DDÖ-Mandate" %}</h2>
   {% for mandat in mandate %}

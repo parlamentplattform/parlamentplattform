@@ -11812,14 +11812,8 @@ msgstr "Meeting notice and agenda"
 msgid "Es sind derzeit keine Sitzungsunterlagen verzeichnet."
 msgstr "There are currently no meeting documents listed."
 
-msgid "Fassung 4 ergänzt die Reihenfolge der öffentlichen Sitzungsunterlagen."
-msgstr "Version 4 adds the ordering of public meeting documents."
-
 msgid "Geben Sie den öffentlichen Link zur Unterlage ein."
 msgstr "Enter the public link to the document."
-
-msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand."
-msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each."
 
 msgid "Hier veröffentlichen Sie den Sitzungstitel und einen Link zur öffentlich zugänglichen Unterlage der Gemeinde. Eine neue Adresse ersetzt den bisherigen öffentlichen Link derselben Unterlage."
 msgstr "This publishes the meeting title and a link to the public municipal document. A new address replaces the previous public link to that document."
@@ -11844,9 +11838,6 @@ msgstr "Document"
 
 msgid "Weitere Seiten"
 msgstr "More pages"
-
-msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
-msgstr "Shows municipalities, assigned DDÖ mandates, meeting documents, public live tickers, office hours and council initiatives."
 
 msgid "Zu dieser Unterlage gibt es keinen veröffentlichten Link."
 msgstr "There is no published link to this document."
@@ -11892,3 +11883,54 @@ msgstr "Compare with an archived document text"
 
 msgid "Vergleichstext"
 msgstr "Comparison text"
+
+msgid "Absteigend nach Haushaltsjahr oder erstem Planjahr, dann nach Unterlagenart und Mandatskennung."
+msgstr "By budget year or first plan year in descending order, then by document type and mandate ID."
+
+msgid "Der Link erscheint öffentlich. Eine neue Adresse für dieselbe Unterlagenart und dasselbe erste Jahr ersetzt Ihren bisherigen Link."
+msgstr "The link will be public. A new address for the same document type and first year replaces your previous link."
+
+msgid "Diese Unterlage ist öffentlich und gehört zu dieser Gemeinde und diesem Zeitraum."
+msgstr "This document is public and relates to this municipality and period."
+
+msgid "Ein letztes Planjahr gehört nur zum Finanzplan."
+msgstr "A final plan year applies only to a financing plan."
+
+msgid "Fassung 5 ergänzt die Reihenfolge der öffentlichen Haushaltsunterlagen."
+msgstr "Version 5 adds the ordering of public budget documents."
+
+msgid "Für diese Gemeinde sind noch keine Haushaltsunterlagen verlinkt."
+msgstr "No budget documents are linked for this municipality yet."
+
+msgid "Geben Sie das letzte Planjahr an. Es darf nicht vor dem ersten liegen."
+msgstr "Enter the last plan year. It cannot be earlier than the first."
+
+msgid "Gemeindehaushalt"
+msgstr "Municipal budget"
+
+msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand."
+msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each. Budget documents by first year in descending order, then by type and mandate ID in ascending order, showing the latest entry."
+
+msgid "Haushaltsjahr oder erstes Planjahr"
+msgstr "Budget year or first plan year"
+
+msgid "Haushaltsunterlage verlinken"
+msgstr "Link to a budget document"
+
+msgid "Letztes Planjahr (nur beim Finanzplan)"
+msgstr "Last plan year (financing plans only)"
+
+msgid "Mittelfristiger Ergebnis- und Finanzplan"
+msgstr "Medium-term operating and financing plan"
+
+msgid "Rechnungsabschluss"
+msgstr "Annual accounts"
+
+msgid "Von DDÖ-Mandataren verlinkte öffentliche Haushaltsunterlagen der Gemeinde."
+msgstr "Public municipal budget documents linked by DDÖ representatives."
+
+msgid "Voranschlag"
+msgstr "Budget estimate"
+
+msgid "Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungs- und Haushaltsunterlagen, öffentliche Sitzungsticker, Sprechstunden und Ratsinitiativen."
+msgstr "Shows municipalities, assigned DDÖ mandates, meeting and budget documents, public live tickers, office hours and council initiatives."

@@ -1985,8 +1985,8 @@ def koordination_test(request, test_id: int):
 #: eingebrachten Antrags liest sie bei jedem Beitrag neu. Ein Test auf ihnen änderte die Bedingungen
 #: mitten im Verfahren (Gesamtprüfung GP-013).
 #:
-#: Die EINE Stelle für diese Ausnahmen: Auswahlliste, Abweisung und der Vermerk am Testbeschluss lesen
-#: sie. Aufgenommen wird nur, was eindeutig ist; der Wächter
+#: Die EINE Stelle für diese Ausnahmen: Auswahlliste (`_testbare_parameter`) und Abweisung
+#: (`_nicht_testbar`) lesen sie. Aufgenommen wird nur, was eindeutig ist; der Wächter
 #: `gremien/test_gp_runde1.py::test_waechter_jede_testbare_stellgroesse_ist_nach_d_j3g_geprueft` verlangt
 #: für jede neue Stellgröße die Entscheidung. Schlüssel → Lesestelle und Grund.
 IM_LAUFENDEN_VERFAHREN_GELESEN = {
@@ -2020,19 +2020,49 @@ def _testbare_parameter():
     Die Versionsschilder (Einheit „Regelfassung“, GP-044): Sie stellen nichts ein, sie nennen die Fassung
     einer Regel im Code. Ein „Test“ wiese eine Fassung aus, die es nicht gibt.
 
-    Was übrig bleibt, wirkt mit dem Testbeginn sofort überall, wo es gelesen wird: bei Anzeige, Post und
-    KI-Budget — und dort, wo etwas Neues entsteht und den Wert festschreibt (ein Antrag, ein Beschluss,
-    eine Rolle). Das sagt auch der Vermerk am Beschluss (`gremien.models.parametertest_wirkung`)."""
-    from plattform_core.policy import REGISTER_ZUORDNUNG
-
-    ordnung = {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
+    Was übrig bleibt, wirkt mit dem Testbeginn sofort überall, wo es gelesen wird — das sagt auch der
+    Vermerk am Beschluss (`gremien.models.parametertest_wirkung`). Diese Werte begrenzen Anzeige, Post,
+    Schutzgrenzen und KI-Budget, oder sie werden festgeschrieben, wo etwas Neues entsteht (ein Antrag,
+    eine Vertrauens- oder Mandatsfrage, eine Rolle). Nicht ausgenommen, weil nicht eindeutig und nicht
+    entschieden: `gremien-beschluss-tage` (die Frist eines NEU angelegten Beschlusses, auch in einem
+    laufenden Verfahren), `live-hoechstdauer-stunden` (laufende Live-Sitzung) und
+    `mandatar-monatsbericht-frist-tage` (laufender Berichtsmonat; `parameter/test_register.py`
+    führt sie ausdrücklich als testbar)."""
     return (
-        Parameter.objects.exclude(schluessel__in=ordnung)
+        Parameter.objects.exclude(schluessel__in=_ordnungsschluessel())
         .exclude(schluessel__in=IM_LAUFENDEN_VERFAHREN_GELESEN)
         .exclude(einheit=EINHEIT_REGELFASSUNG)
         .exclude(status=Status.IM_TEST)
         .order_by("gruppe", "schluessel")
     )
+
+
+def _ordnungsschluessel() -> set[str]:
+    """Die Registerschlüssel, aus denen eine Fassung der Verfahrensordnung gebaut wird."""
+    from plattform_core.policy import REGISTER_ZUORDNUNG
+
+    return {schluessel for schluessel, _wandler in REGISTER_ZUORDNUNG.values()}
+
+
+def _nicht_testbar(parameter):
+    """Warum sich diese Stellgröße nicht testen lässt — als Meldung für den Rat, oder None.
+
+    Dieselben drei Ausnahmen wie `_testbare_parameter` (ein Wächtertest hält beide zusammen). Die
+    Auswahlliste bietet sie nicht an; eine handgebaute Anfrage bekommt die Meldung statt eines 404 (GP-044)."""
+    if parameter.schluessel in IM_LAUFENDEN_VERFAHREN_GELESEN:
+        # D-J3g: Auch eine handgebaute Anfrage legt hier keinen Test an (GP-013).
+        return _(
+            "Auf dieser Stellgröße gibt es keinen Test: Laufende Verfahren lesen ihren Wert, und ein Test darf sie nicht berühren (§ 6 Abs 11 lit c)."
+        )
+    if parameter.schluessel in _ordnungsschluessel():
+        return _(
+            "Werte der Verfahrensordnung lassen sich nicht testen: Die Ordnung ändert nur die Mitgliederversammlung (§ 5 Abs 7)."
+        )
+    if parameter.einheit == EINHEIT_REGELFASSUNG:
+        return _(
+            "Ein Versionsschild lässt sich nicht testen: Es nennt die Fassung einer Regel im Code und stellt nichts ein."
+        )
+    return None
 
 
 #: Die Einheit, an der das Register ein Versionsschild erkennt (parameter/models.py, ERSTBESTAND).
@@ -2051,15 +2081,11 @@ def _test_anordnen(request):
     from parameter.kennzahlen import werte
     from plattform_core.parametertest import messgroessen
 
-    kennung = _kennung(request.POST.get("parameter"))
-    if Parameter.objects.filter(pk=kennung, schluessel__in=IM_LAUFENDEN_VERFAHREN_GELESEN).exists():
-        # D-J3g: Auch eine handgebaute Anfrage legt hier keinen Test an (GP-013).
-        messages.error(
-            request,
-            _("Auf dieser Stellgröße gibt es keinen Test: Laufende Verfahren lesen ihren Wert, und ein Test darf sie nicht berühren (§ 6 Abs 11 lit c)."),
-        )
+    parameter = get_object_or_404(Parameter, pk=_kennung(request.POST.get("parameter")))
+    grund = _nicht_testbar(parameter)
+    if grund is not None:
+        messages.error(request, grund)
         return redirect("gremien:koordination")
-    parameter = get_object_or_404(_testbare_parameter(), pk=kennung)
     testwert = (request.POST.get("testwert") or "").strip()[:100]
     hypothese = (request.POST.get("hypothese") or "").strip()[:300]
     messgroesse = (request.POST.get("messgroesse") or "").strip()[:80]

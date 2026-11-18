@@ -145,9 +145,11 @@ def test_der_vermerk_am_testbeschluss_sagt_was_wirklich_geschieht(client):
 
 
 #: Die testbaren Stellgrößen, deren Lesestellen nach D-J3g geprüft sind (Stand der zweiten Behebungsrunde,
-#: 18.11.2026): Keine davon liest der Chat eines laufenden Verfahrens bei jedem Zugriff. Sie zählen, messen
-#: oder begrenzen Anzeige, Post und KI-Budget, oder sie werden gelesen, wenn etwas Neues entsteht (ein Antrag,
-#: ein Beschluss, eine Rolle, eine Vertrauens- oder Mandatsfrage) und dort festgeschrieben.
+#: 18.11.2026): Keine davon liest der Chat eines laufenden Verfahrens bei jedem Zugriff. Sie begrenzen Anzeige,
+#: Post, Schutzgrenzen und KI-Budget, oder sie werden gelesen, wenn etwas Neues entsteht (ein Antrag, eine
+#: Vertrauens- oder Mandatsfrage, eine Rolle), und dort festgeschrieben. Zweifelsfälle, bewusst nicht ausgenommen:
+#: gremien-beschluss-tage, live-hoechstdauer-stunden, mandatar-monatsbericht-frist-tage (siehe Docstring von
+#: `gremien.views._testbare_parameter`).
 GEPRUEFT_TESTBAR = frozenset({
     'adresswechsel-wartefrist-stunden', 'aehnlichkeit-bedeutung-je-stunde', 'aehnlichkeit-bedeutung-schwelle-prozent',
     'aehnlichkeit-einbettungen-je-aufruf', 'aehnlichkeit-schwelle-prozent', 'aehnlichkeit-treffer',
@@ -400,7 +402,35 @@ def test_versionsschilder_stehen_nicht_zur_wahl_und_lassen_sich_nicht_testen(cli
     assert schild.einheit == 'Regelfassung'
     assert not _testbare_parameter().filter(einheit='Regelfassung').exists()
     antwort = _test_anordnen(client, leute[0], schild, '3')
-    assert antwort.status_code == 404 and not ParameterTest.objects.exists()
+    # Eine Meldung wie bei den übrigen Abweisungen, kein 404 (GP-044, Gegenlesen).
+    assert antwort.status_code == 200 and not ParameterTest.objects.exists()
+    assert 'Ein Versionsschild lässt sich nicht testen' in antwort.content.decode()
+
+
+def test_auch_ordnungsschluessel_und_laufende_tests_werden_mit_meldung_abgewiesen(client):
+    """GP-044, Gegenlesen: Jede Abweisung beim Anordnen sagt, warum — auch bei einer handgebauten Anfrage auf
+    einen Wert der Verfahrensordnung (D-J3g) oder auf eine Stellgröße, die schon im Test steht. Nur eine
+    Kennung, die es nicht gibt, bleibt ein 404."""
+    from gremien.views import _nicht_testbar, _testbare_parameter
+    from parameter.models import Parameter, ParameterTest, Status
+
+    leute = _korat()
+    ordnungswert = _register('verfahren-abstimmung-tage')
+    antwort = _test_anordnen(client, leute[0], ordnungswert, '10')
+    assert antwort.status_code == 200 and not ParameterTest.objects.exists()
+    assert 'Werte der Verfahrensordnung lassen sich nicht testen' in antwort.content.decode()
+    im_test = _register('gremien-rollen-dauer-tage')
+    Parameter.objects.filter(pk=im_test.pk).update(status=Status.IM_TEST)
+    antwort = _test_anordnen(client, leute[0], im_test, '365')
+    assert antwort.status_code == 200 and not ParameterTest.objects.exists()
+    assert 'läuft schon ein Test' in antwort.content.decode()
+    im_test.pk = 999999
+    assert _test_anordnen(client, leute[0], im_test, '365').status_code == 404
+    # Auswahlliste und Abweisung lesen dieselben Ausnahmen: Was nicht zur Wahl steht, hat einen Grund.
+    Parameter.objects.filter(status=Status.IM_TEST).update(status=Status.GUELTIG)
+    testbar = set(_testbare_parameter().values_list('pk', flat=True))
+    for parameter in Parameter.objects.all():
+        assert (_nicht_testbar(parameter) is None) == (parameter.pk in testbar), parameter.schluessel
 
 
 def test_ein_unlesbarer_testwert_wird_abgewiesen(client):

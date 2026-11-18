@@ -1624,7 +1624,7 @@ def _gemeinde_zuordnen(request) -> None:
     mandat.save(update_fields=["gemeinde"])
     AuditEintrag.anhaengen({
         "typ": "mandat_gemeinde_zugeordnet", "mandat": mandat.pk,
-        "vorher_gemeinde": vorher, "gemeinde": nachher,
+        "vorher_gemeinde": vorher, "gemeinde": nachher, "durch": request.user.pk,
     })
     messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
@@ -1638,7 +1638,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if wert not in RUECKGABEZUSAGE_VERMERKE:
             messages.error(request, _("Bitte „abgegeben“, „nicht abgegeben“ oder „widerrufen“ wählen."))
             return True
-        rueckgabezusage_vermerken(mandat, RUECKGABEZUSAGE_VERMERKE[wert])
+        rueckgabezusage_vermerken(mandat, RUECKGABEZUSAGE_VERMERKE[wert], durch=request.user.pk)
         messages.success(
             request,
             _("Rückgabezusage vermerkt: %(stand)s — öffentlich im Register und auf der Mandatar-Seite.")
@@ -1654,7 +1654,9 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             return True
         mandat.mandatsvereinbarung_lit_h_am = tag
         mandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
-        AuditEintrag.anhaengen({"typ": "mandatsvereinbarung_lit_h", "mandat": mandat.pk, "feld": "mandatsvereinbarung_lit_h_am"})
+        AuditEintrag.anhaengen(
+            {"typ": "mandatsvereinbarung_lit_h", "mandat": mandat.pk, "feld": "mandatsvereinbarung_lit_h_am", "durch": request.user.pk}
+        )
         messages.success(
             request,
             _("Vermerkt: Die Mandatsvereinbarung enthält § 7 Abs 3 lit h seit %(datum)s.") % {"datum": tag.strftime("%d.%m.%Y")},
@@ -1696,7 +1698,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         # Am Ergebnistag liegt der Vermerk nie vor der Veröffentlichung.
         jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
         jetzt = max(jetzt, vf.ergebnis_am)
-        vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt)
+        vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt, durch=request.user.pk)
         vf.refresh_from_db()
         if vf.wirkungen_ab is None:
             # Gewonnen oder Bestätigung: keine Wirkungen nach lit f, die auf die Entscheidung warten (GP-112)
@@ -1732,7 +1734,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if wert not in ENTSCHEIDUNGEN:
             messages.error(request, _("Bitte „aufgehoben“ oder „bestätigt“ wählen."))
             return True
-        vertrauensfrage_entscheidung_vermerken(vf, wert)
+        vertrauensfrage_entscheidung_vermerken(vf, wert, durch=request.user.pk)
         vertrauensfragen_fortschreiben()  # „bestätigt“: Stufe 2 läuft ab der Entscheidung — sofort nachgezogen
         if wert == Entscheidung.AUFGEHOBEN.value and vf.art == VertrauensfrageArt.BESTAETIGUNG:
             messages.success(
@@ -1753,7 +1755,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if not mandat.kandidatursperre:
             messages.info(request, _("Keine Kandidatursperre — nichts zu bestätigen."))
             return True
-        mandat.bestaetigen("wahl")
+        mandat.bestaetigen("wahl", durch=request.user.pk)
         messages.success(
             request, _("Bestätigung durch Wahl in ein Organ vermerkt — die Kandidatursperre ist aufgehoben (§ 7 Abs 10 lit f Z 3).")
         )
@@ -1865,7 +1867,7 @@ def verwaltung_aktion(request):
             vorstellung=d["vorstellung"],
             kandidatur=d["kandidatur"],
         )
-        ereignis = {"typ": "mandat_angelegt", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung}
+        ereignis = {"typ": "mandat_angelegt", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "durch": request.user.pk}
         if mandat.kandidatur_id:
             ereignis["kandidatur"] = mandat.kandidatur_id
         AuditEintrag.anhaengen(ereignis)
@@ -1885,7 +1887,7 @@ def verwaltung_aktion(request):
             return redirect("mandatare:verwaltung")
         mandat.beendet = timezone.localdate()
         mandat.save(update_fields=["beendet"])
-        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk, "durch": request.user.pk})
         messages.info(
             request,
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")
@@ -1906,7 +1908,7 @@ def verwaltung_aktion(request):
         mandat.foto = daten
         mandat.foto_typ = typ
         mandat.save(update_fields=["foto", "foto_typ"])
-        AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "durch": "verwaltung"})
+        AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "durch": request.user.pk})
         messages.success(request, _("Foto gespeichert."))
 
     elif aktion == "aufgabe":
@@ -1936,7 +1938,7 @@ def verwaltung_aktion(request):
             sitzungstag=request.POST.get("sitzungstag") == "on" and frist is not None,
             antrag=antrag,
         )
-        AuditEintrag.anhaengen({"typ": "mandats_aufgabe", "mandat": mandat.pk, "aufgabe": aufgabe.pk})
+        AuditEintrag.anhaengen({"typ": "mandats_aufgabe", "mandat": mandat.pk, "aufgabe": aufgabe.pk, "durch": request.user.pk})
         messages.success(request, _("Aufgabe „%(titel)s“ veröffentlicht.") % {"titel": aufgabe.titel})
 
     elif aktion == "rechenschaft_nachtragen":
@@ -1952,7 +1954,7 @@ def verwaltung_aktion(request):
             aufgabe.status = status
             aufgabe.save(update_fields=["status", "aktualisiert_am"])
             AuditEintrag.anhaengen(
-                {"typ": "mandats_aufgabe_status", "mandat": aufgabe.mandat_id, "aufgabe": aufgabe.pk, "durch": "verwaltung"}
+                {"typ": "mandats_aufgabe_status", "mandat": aufgabe.mandat_id, "aufgabe": aufgabe.pk, "durch": request.user.pk}
             )
             messages.success(
                 request, _("„%(titel)s“: %(status)s.") % {"titel": aufgabe.titel, "status": aufgabe.get_status_display()}

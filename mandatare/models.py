@@ -218,7 +218,7 @@ class Mandat(models.Model):
         (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
         return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
-    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None) -> bool:
+    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None, durch: int | None = None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
         (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
         `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
@@ -231,6 +231,8 @@ class Mandat(models.Model):
         ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
         if rolle is not None:
             ereignis["rolle"] = rolle
+        if durch is not None:
+            ereignis["durch"] = durch  # Vermerk der Verwaltung: das handelnde Konto (GP-119)
         AuditEintrag.anhaengen(ereignis)
         return True
 
@@ -1486,7 +1488,9 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
 
 
 @transaction.atomic
-def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> bool:
+def vertrauensfrage_anfechtung_vermerken(
+    vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None, durch: int | None = None
+) -> bool:
     """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). `jetzt` ist
     der Tag der Anrufung — die Verwaltung vermerkt ihn meist später und rückdatiert.
 
@@ -1512,6 +1516,7 @@ def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str 
             "antrag": vf.antrag_id,
             "mandat": vf.mandat_id,
             "rechtzeitig": vf.anfechtung_rechtzeitig,
+            **({"durch": durch} if durch is not None else {}),
         }
     )
     if not (vf.anfechtung_rechtzeitig and vf.wirkungen_endgueltig_am is not None):
@@ -1539,7 +1544,9 @@ def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str 
 
 
 @transaction.atomic
-def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: str, jetzt=None) -> None:
+def vertrauensfrage_entscheidung_vermerken(
+    vf: Vertrauensfrage, entscheidung: str, jetzt=None, durch: int | None = None
+) -> None:
     """Verwaltungsvermerk „Entscheidung vollziehen“ (lit h): `bestaetigt` lässt Stufe 2 ab der Entscheidung
     laufen; `aufgehoben` nimmt die Wirkungen zurück — Rollen wieder aktiv, Vertrauen nicht mehr entzogen,
     eine beendete Vertretung und Mandatsvereinbarung gelten als nicht beendet; die Sperre nach lit g
@@ -1608,17 +1615,21 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
             "mandat": mandat.pk,
             "rollen_wiederhergestellt": wiederhergestellt,
             "bestaetigung_entfallen": bestaetigung_entfallen,
+            **({"durch": durch} if durch is not None else {}),
         }
     )
 
 
-def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None) -> None:
+def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None, durch: int | None = None) -> None:
     """Verwaltungsvermerk: Rückgabezusage nachgetragen oder widerrufen (§ 7 Abs 3) — mit Datum, auditiert."""
     jetzt = jetzt or timezone.now()
     mandat.rueckgabezusage = Rueckgabezusage(wert)
     mandat.rueckgabezusage_am = timezone.localdate(jetzt)
     mandat.save(update_fields=["rueckgabezusage", "rueckgabezusage_am"])
-    AuditEintrag.anhaengen({"typ": "rueckgabezusage", "mandat": mandat.pk, "wert": mandat.rueckgabezusage})
+    ereignis = {"typ": "rueckgabezusage", "mandat": mandat.pk, "wert": mandat.rueckgabezusage}
+    if durch is not None:
+        ereignis["durch"] = durch  # das handelnde Konto der Verwaltung (GP-119)
+    AuditEintrag.anhaengen(ereignis)
 
 
 def bestaetigung_zulaessig_ab(mandat: Mandat):

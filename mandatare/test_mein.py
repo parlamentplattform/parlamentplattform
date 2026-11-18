@@ -592,3 +592,62 @@ def test_betreute_sachabstimmung_heisst_im_bereich_nicht_mandatsfrage(client, or
     Aufgabe.objects.create(mandat=mandat, titel="Budget-Sitzung", antrag=sache)
     html = client.get(MEIN).content.decode()
     assert ">Betreute Abstimmung</span>" in html and ">Mandatsfrage</span>" not in html
+
+
+def test_audit_der_mandate_verwaltung_nennt_das_handelnde_konto(client, ordnung):  # noqa: F811
+    """GP-119 (MG-10, MV-02): Jede Handlung der Mandate-Verwaltung trägt `durch` mit dem handelnden Konto —
+    auch die Vermerke zur Vertrauensfrage. Die öffentliche Ausgabe schwärzt die Kennung."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mandatare import models as mm
+    from mandatare.test_mandatare import admin_anlegen
+    from mitglieder.models import Gemeinde
+    from plattform_core import Phase
+
+    admin = admin_anlegen()
+    client.force_login(admin)
+    verwaltung = reverse("mandatare:verwaltung_aktion")
+    mandat = mandat_anlegen(mitglied_anlegen("bert"), angetreten=timezone.localdate() - timedelta(days=400))
+    gemeinde = Gemeinde.objects.first()
+    heute = timezone.localdate()
+
+    def neue(handlung):
+        vorher = AuditEintrag.objects.count()
+        handlung()
+        return [e.ereignis for e in AuditEintrag.objects.order_by("pk")[vorher:]]
+
+    handlungen = [
+        {"aktion": "anlegen", "mitglied": mitglied_anlegen("carl").pk, "bezeichnung": "Gemeinderat", "ebene": "gemeinde",
+         "gebiet": "Polsenz", "angetreten": heute.isoformat()},
+        {"aktion": "aufgabe", "mandat": mandat.pk, "titel": "Aufgabe", "frist": heute.isoformat()},
+        {"aktion": "foto", "mandat": mandat.pk, "foto": SimpleUploadedFile("f.png", PNG_MINI, "image/png")},
+        {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "abgegeben"},
+        {"aktion": "lit_h", "mandat": mandat.pk, "datum": heute.isoformat()},
+    ]
+    if gemeinde is not None:
+        handlungen.append({"aktion": "gemeinde_zuordnen", "mandat": mandat.pk, "gemeindekennziffer": gemeinde.kennziffer})
+    for daten in handlungen:
+        eintraege = neue(lambda d=daten: client.post(verwaltung, d))
+        assert eintraege and all(e.get("durch") == admin.pk for e in eintraege), (daten["aktion"], eintraege)
+    aufgabe = mandat.aufgaben.get()
+    eintraege = neue(lambda: client.post(verwaltung, {"aktion": "aufgabe_status", "aufgabe": aufgabe.pk, "status": "erledigt"}))
+    assert eintraege and all(e.get("durch") == admin.pk for e in eintraege)
+    # Vermerke zur Vertrauensfrage: Anfechtung, Entscheidung, Bestätigung durch Wahl
+    ergebnis = timezone.now() - timedelta(days=2)
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage", art=Antragsart.VERTRAUENSFRAGE, eingebracht_von=mitglied_anlegen("dora"),
+        eingebracht_am=ergebnis - timedelta(days=20), phase=Phase.ANGENOMMEN.value, phase_beginn=ergebnis, policy_snapshot={},
+    )
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat)
+    mm.vertrauensfrage_wirkungen(vf, jetzt=ergebnis)
+    for daten in (
+        {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "aktenkennung": "PSG"},
+        {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "bestaetigt"},
+        {"aktion": "bestaetigung_durch_wahl", "mandat": mandat.pk},
+    ):
+        eintraege = neue(lambda d=daten: client.post(verwaltung, d))
+        vermerke = [e for e in eintraege if e["typ"] in (
+            "vertrauensfrage_angefochten", "vertrauensfrage_bestaetigt", "vertrauen_bestaetigt")]
+        assert vermerke and all(e.get("durch") == admin.pk for e in vermerke), (daten["aktion"], eintraege)
+    eintraege = neue(lambda: client.post(verwaltung, {"aktion": "beenden", "mandat": mandat.pk}))
+    assert eintraege and all(e.get("durch") == admin.pk for e in eintraege)

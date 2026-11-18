@@ -108,3 +108,41 @@ def test_der_hintergrundlauf_macht_faellige_adresswechsel_wirksam():
     mitglied.refresh_from_db()
     assert wechsel.status == Adresswechsel.Status.WIRKSAM
     assert mitglied.email == 'wechsel-neu@example.org'
+
+
+# --- GP-209: Der Demo-Bestand vergibt keine vorbehaltenen Anzeigenamen ------------------------------
+
+
+def _profil_mit_anfangswerten_gueltig(client, mitglied):
+    from django.urls import reverse
+
+    from mitglieder.profil import ProfilFormular
+
+    client.force_login(mitglied)
+    anfang = client.get(reverse('mitglieder:profil')).context['form'].initial
+    daten = {k: v for k, v in anfang.items() if v not in (None, False)}
+    formular = ProfilFormular(daten, mitglied=mitglied)
+    return formular.is_valid(), formular.errors
+
+
+def test_nach_demo_seed_laesst_sich_das_profil_von_demo1_unveraendert_speichern(client):
+    from django.core.management import call_command
+
+    from mitglieder.models import Mitglied
+
+    call_command('demo_seed', '--erzwingen', verbosity=0)
+    for i in range(1, 6):
+        gueltig, fehler = _profil_mit_anfangswerten_gueltig(client, Mitglied.objects.get(username=f'demo{i}'))
+        assert gueltig, fehler
+
+
+def test_ein_bestehender_demo_bestand_wird_beim_naechsten_lauf_berichtigt(client):
+    from django.core.management import call_command
+
+    from mitglieder.models import Mitglied
+
+    call_command('demo_seed', '--erzwingen', verbosity=0)
+    Mitglied.objects.filter(username='demo1').update(pseudonym_oeffentlich='Mitglied 1')
+    call_command('demo_seed', '--erzwingen', verbosity=0)
+    gueltig, fehler = _profil_mit_anfangswerten_gueltig(client, Mitglied.objects.get(username='demo1'))
+    assert gueltig, fehler

@@ -315,3 +315,50 @@ def test_die_letzte_stimme_vor_dem_beratungsende_reicht_weiter_ein(client, ordnu
     assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and 'Eingereicht' in beschluss.umsetzungsvermerk
     assert antrag.phase == 'beratung'
     assert Entwurf.objects.get(antrag=antrag).status == EntwurfsStatus.UNTERSTUETZER
+
+
+def test_ein_defekt_in_der_fortschreibung_eines_antrags_haelt_die_beschluesse_nicht_an(client, ordnung, monkeypatch, caplog):  # noqa: F811
+    """GP-004, Gegenlesen: Seit der Antrag vor der Wirkung fortschreibt, traf ein Fehler in SEINER
+    Fortschreibung jede Gremienseite (500) und hielt im Sammellauf alle Beschlüsse an, die nach ihm an der
+    Reihe waren — vorher berührte ein solcher Defekt die Beschlüsse nicht. Jetzt steht er im Protokoll,
+    und der Beschluss schließt wie vor der Änderung auf dem Stand, den der Antrag hat (ein Defekt hemmt nie)."""
+    from gremien.models import Gremium
+    from gremien.test_integritaet import antrag_anlegen
+
+    leute = rat()
+    antrag = antrag_anlegen(ordnung)
+    frist = timezone.now() - T(minutes=1)
+    optionen = [{'wert': 'dafuer', 'name': 'dafür'}, {'wert': 'dagegen', 'name': 'dagegen'}]
+    innere = GremienBeschluss.objects.create(
+        gremium=Gremium.KOORDINATIONSRAT, gegenstand='Innere Angelegenheit', optionen=optionen,
+        angelegt_von=leute[0], frist=frist,
+    )
+    # Älter angelegt: Im Sammellauf (neueste zuerst) kommt sie NACH dem Beschluss zum defekten Antrag.
+    GremienBeschluss.objects.filter(pk=innere.pk).update(angelegt_am=timezone.now() - T(hours=2))
+    zum_antrag = GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT, anlass=Anlass.HERVORHEBUNG, antrag=antrag, gegenstand='Hervorhebung',
+        beschreibung='Wichtig.', optionen=optionen, angelegt_von=leute[0], frist=timezone.now() + T(days=1),
+    )
+    stimmen(client, zum_antrag, leute[:2])  # zwei von drei: entschieden wird erst mit der Frist
+    assert zum_antrag.status == BeschlussStatus.OFFEN
+    GremienBeschluss.objects.filter(pk=zum_antrag.pk).update(frist=frist)  # Zeitraffer: die Frist ist um
+
+    def defekt(self, jetzt, vorlauf=False):
+        raise RuntimeError('Defekt in der Fortschreibung dieses Antrags')
+
+    monkeypatch.setattr(Antrag, '_schritt', defekt)
+    client.logout()
+    with caplog.at_level('ERROR', logger='gremien.models'):
+        assert client.get(reverse('gremien:beschluesse')).status_code == 200
+    innere.refresh_from_db()
+    zum_antrag.refresh_from_db()
+    antrag.refresh_from_db()
+    assert innere.status != BeschlussStatus.OFFEN, 'der Sammellauf ist nicht am defekten Antrag hängen geblieben'
+    assert zum_antrag.status == BeschlussStatus.ENTSCHIEDEN and zum_antrag.entschieden_am == frist
+    assert antrag.hervorgehoben  # die Wirkung ist eingetreten, wie vor der Änderung
+    assert any('Fortschreibung von Antrag' in eintrag.getMessage() for eintrag in caplog.records)
+    ausgewertet = [
+        e.ereignis for e in AuditEintrag.objects.all()
+        if e.ereignis['typ'] == 'gremienbeschluss_ausgewertet' and e.ereignis['beschluss'] == zum_antrag.pk
+    ]
+    assert len(ausgewertet) == 1

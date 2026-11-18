@@ -1327,7 +1327,20 @@ class GremienBeschluss(models.Model):
                 self.refresh_from_db()
                 return False
             if (self.frist is not None and jetzt >= self.frist) or self.alle_haben_gestimmt():
-                antrag.fortschreiben_bis_zum_stand(jetzt)
+                try:
+                    with transaction.atomic():  # eigener Sicherungspunkt: ein Fehler lässt nichts halb stehen
+                        antrag.fortschreiben_bis_zum_stand(jetzt)
+                except Exception:
+                    # Ein Defekt in der Fortschreibung DIESES Antrags hält weder den Beschluss noch die
+                    # übrigen Beschlüsse des Sammellaufs an (wie umgekehrt in `zur_frist_abschliessen`): Er
+                    # steht im Protokoll, und der Beschluss schließt auf dem Stand, den der Antrag hat —
+                    # so, wie es vor dieser Vorab-Fortschreibung immer war. Der Fehler einer WIRKUNG
+                    # bleibt davon unberührt und wird unten wie bisher geworfen.
+                    log.exception(
+                        "Fortschreibung von Antrag %s vor der Auswertung von Beschluss %s gescheitert",
+                        self.antrag_id,
+                        self.pk,
+                    )
                 # Frisch lesen — auch Antrag und Entwurf, die das Objekt zwischengespeichert hat.
                 self.refresh_from_db()
                 if self.status != BeschlussStatus.OFFEN:

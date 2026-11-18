@@ -2624,7 +2624,14 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
             "beschluss": beschluss.pk,
         }
     )
-    _vermerken(beschluss, f"Test läuft bis {test.ende:%d.%m.%Y}; der Wert gilt für neu beginnende Verfahren.")
+    # Der Vermerk sagt, was geschieht (GP-013): Der Wert steht im Register und wird dort von jedem
+    # gelesen, auch von laufenden Verfahren. Ausgenommen sind nur die Werte der Verfahrensordnung —
+    # auf ihnen gibt es keinen Test (D-J3g). Derselbe Satz steht am Band des Registers.
+    _vermerken(
+        beschluss,
+        f"Test läuft bis {test.ende:%d.%m.%Y}; der Testwert wirkt sofort überall, wo die Stellgröße "
+        "gelesen wird — auch in laufenden Verfahren.",
+    )
 
 
 def parameter_einfuehrung_wirkung(beschluss, jetzt=None) -> None:

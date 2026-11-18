@@ -91,6 +91,7 @@ Stand (#live-stand) — nicht, während ein Formular darin offen ist; ohne JavaS
   {% if fehler %}<p class="meldung error" role="alert">{{ fehler }}</p>
   {% if entwurf.text %}<label for="chat-entwurf">{% translate "Ihr Text" %}</label><textarea id="chat-entwurf" rows="3" readonly>{{ entwurf.text }}</textarea>{% endif %}
   {% else %}<p class="meta">{% translate "Der Chat ist mit dem Ende der Sitzung geschlossen." %}</p>{% endif %}
+  {% elif request.gemeindekonto %}<p class="meta">{% translate "Der Chat steht Mitgliedern offen; mit dem Gemeindekonto lesen Sie mit." %}</p>
   {% else %}<p class="meta"><a href="{% url 'mitglieder:login' %}?next={{ request.get_full_path|urlencode }}">{% translate "Anmelden zum Mitschreiben →" %}</a></p>{% endif %}
   <div id="live-faden">
   {% for f in faden %}

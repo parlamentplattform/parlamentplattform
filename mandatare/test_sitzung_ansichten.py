@@ -440,3 +440,16 @@ def test_chat_ohne_schreibrecht_zeigt_den_hinweis_und_behaelt_den_text(client, a
     html = antwort.content.decode()
     assert antwort.status_code == 403 and "Mein langer Text zur Sitzung" in html and 'id="live-chat"' in html
     assert not Kommentar.objects.filter(sitzung=sitzung).exists()
+
+
+def test_gemeindekonto_sieht_keinen_anmeldelink_zum_mitschreiben(client, anna):
+    """GP-196 (MG-18): Ein angemeldetes Gemeindekonto liest mit; der Link „Anmelden zum Mitschreiben“
+    führte nur zurück auf die Anmeldung."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    from mitglieder.models import Mitglied
+
+    konto = Mitglied.objects.create_user("einwohnerin@example.org", email="einwohnerin@example.org", parteikonto=False)
+    client.force_login(konto)
+    html = client.get(live_url(anna, sitzung)).content.decode()
+    assert "Anmelden zum Mitschreiben" not in html
+    assert "Der Chat steht Mitgliedern offen; mit dem Gemeindekonto lesen Sie mit." in html

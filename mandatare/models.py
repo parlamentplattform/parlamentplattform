@@ -1409,6 +1409,7 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             | models.Q(mandat__mandatsvereinbarung_lit_h_am__isnull=False, mandat__mandatsvereinbarung_endet_am__isnull=True)
         )
         .select_related("mandat", "mandat__mitglied")
+        .defer("mandat__foto")
         .order_by("wirkungen_ab", "pk")
     )
 
@@ -1438,7 +1439,7 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             # laufen in mehreren Workern — mit dem vorher gelesenen Stand vollzog ein zweiter Aufruf
             # dieselbe Stufe ein zweites Mal und schrieb sie zweimal in die Audit-Kette.
             vf = Vertrauensfrage.objects.select_for_update().get(pk=vf.pk)
-            mandat = Mandat.objects.select_for_update(of=("self",)).select_related("mitglied").get(pk=vf.mandat_id)
+            mandat = Mandat.objects.select_for_update(of=("self",)).select_related("mitglied").defer("foto").get(pk=vf.mandat_id)
             mandate[mandat.pk] = mandat
             vf.mandat = mandat
             endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)

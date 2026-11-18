@@ -330,3 +330,28 @@ def test_auszug_auf_der_mandatsseite_kennzeichnet_den_nachtrag_der_verwaltung(cl
     assert "nachgetragen von der Verwaltung am" in auszug
     assert "gemeinde.example.org/protokoll" in auszug
     assert "Ich habe so gestimmt, weil die Kosten stiegen." in auszug
+
+
+def test_listen_und_register_laden_das_lichtbild_nicht_mit(client):
+    """GP-120 (MG-11): Liste, Register, JSON und Live-Übersicht laden die Spalte `foto` nicht — das Bild
+    lädt nur die eigene Route."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_mandatare import PNG_MINI
+    from mandatare.test_sitzung_modelle import sitzungstag as heutiger_sitzungstag
+
+    for name in ("anna", "bert"):
+        mandat = mandat_anlegen(mitglied_anlegen(name), foto=PNG_MINI, foto_typ="image/png")
+        eintragen(mandat)
+    sitzung_beginnen(mandat, heutiger_sitzungstag(mandat))
+    for url in (
+        reverse("mandatare:liste"), reverse("mandatare:rechenschaft"), reverse("mandatare:rechenschaft_json"),
+        reverse("mandatare:live_uebersicht"),
+    ):
+        client.get(url)  # der erste Aufruf schreibt lazy fort
+        with CaptureQueriesContext(connection) as abfragen:
+            assert client.get(url).status_code == 200
+        mit_foto = [q["sql"] for q in abfragen.captured_queries if '"mandatare_mandat"."foto"' in q["sql"]]
+        assert mit_foto == [], (url, mit_foto)

@@ -149,8 +149,10 @@ RUECKGABEZUSAGE_VERMERKE = {
 
 
 def _mandat_queryset():
+    # Das Lichtbild lädt nur die Route `foto` — in Listen wöge es je Zeile bis 800 kB (GP-120)
     return (
         Mandat.objects.select_related("mitglied")
+        .defer("foto")
         .prefetch_related(AUFGABEN_VORGELADEN, VERTRAUENSFRAGEN_VORGELADEN)
     )
 
@@ -159,7 +161,9 @@ def _mandat_queryset():
 #: lit f) eben auf einer anderen Instanz gestempelt hat. Alle, nicht eine Auswahl: stempelt das Fundament ein
 #: weiteres Feld, zeigt die Seite es trotzdem. Beziehungen (mitglied, kandidatur) und der Prefetch von Aufgaben
 #: und Vertrauensfragen bleiben erhalten — `refresh_from_db()` ohne `fields` würfe beides weg.
-MANDATSFELDER = [f.attname for f in Mandat._meta.concrete_fields if not (f.primary_key or f.is_relation)]
+MANDATSFELDER = [
+    f.attname for f in Mandat._meta.concrete_fields if not (f.primary_key or f.is_relation or f.attname == "foto")
+]
 
 
 def _vertrauensfragen_von(mandat) -> tuple[list[Vertrauensfrage], bool]:
@@ -366,7 +370,7 @@ def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None
     „im Rechenschaftsregister dauerhaft ausgewiesen — ein gewonnenes Vertrauen ebenso wie ein verlorenes“).
     Laufende Anträge desselben Ausschnitts werden vorher fortgeschrieben (lazy Phasen): Ein Ergebnis,
     dessen Frist ohne Seitenaufruf ablief, steht so schon im ersten Register, das danach gelesen wird."""
-    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied").defer("mandat__foto")
     if mandat is not None:
         qs = qs.filter(mandat=mandat)
     if ebene in Ebene.values:
@@ -572,7 +576,9 @@ def rechenschaft_mandat(request, pk: int):
 
 
 def _rechenschaft_gesamt(ebene: str):
-    eintraege = Rechenschaft.objects.select_related("mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt")
+    eintraege = Rechenschaft.objects.select_related(
+        "mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt"
+    ).defer("mandat__foto")
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
@@ -731,7 +737,7 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     samt Quelle (eine Abfrage für alle) und der Registervermerk (einmal je Mandat) — Seite und JSON lesen
     dieselben Zeilen. Laufende Anträge werden vorher fortgeschrieben (lazy Phasen); ihre Zahl bestimmt dafür
     die Abfragen, nicht die der entschiedenen."""
-    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied").defer("mandat__foto")
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
     _laufende_fortschreiben(qs)
@@ -1553,6 +1559,7 @@ def verwaltung(request):
     _laufende_fortschreiben(Vertrauensfrage.objects.select_related("antrag"))  # ein Ende ohne Seitenaufruf: die Karte zeigt es
     mandate = list(
         Mandat.objects.select_related("mitglied", "kandidatur", "gemeinde")
+        .defer("foto")
         .prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
     )
     heute = timezone.localdate()

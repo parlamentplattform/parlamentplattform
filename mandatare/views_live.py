@@ -225,12 +225,15 @@ def live_uebersicht(request):
     läuft die Frist der Rechenschaft dazu (§ 7 Abs 5). Reihung: Beginn, jüngste zuerst; nichts anderes."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
     grenze = timezone.now() - timedelta(days=RECHENSCHAFT_TAGE)
+    # Das Lichtbild des Mandats lädt nur seine eigene Route (GP-120)
     alle = list(
         Sitzung.objects.select_related("mandat__mitglied", "aufgabe")
+        .defer("mandat__foto")
         .filter(ende__isnull=True)
         .order_by("-beginn")
     ) + list(
         Sitzung.objects.select_related("mandat__mitglied", "aufgabe")
+        .defer("mandat__foto")
         .filter(ende__isnull=False, ende__gte=grenze)
         .order_by("-beginn")
     )
@@ -247,7 +250,7 @@ def laufende_in_region(orte_je_ebene: dict[str, list[str]]) -> dict[str, list[Si
     Reihung nach Beginn, jüngste zuerst; keine Hervorhebung (die bleibt beim Integritätsrat)."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
     laufende = list(
-        Sitzung.objects.filter(ende__isnull=True).select_related("mandat__mitglied").order_by("-beginn")
+        Sitzung.objects.filter(ende__isnull=True).select_related("mandat__mitglied").defer("mandat__foto").order_by("-beginn")
     )
     ergebnis: dict[str, list[Sitzung]] = {}
     for ebene, orte in orte_je_ebene.items():
@@ -489,7 +492,12 @@ def sitzungen_json(ebene: str = "") -> list[dict]:
     """Die Sitzungen im Live-Modus für `/rechenschaft.json` (FB-L5): Tagesordnung und Meldungen, öffentlich
     und dauerhaft wie die Seite selbst — ohne Chat (der gehört den Mitgliedern, nicht dem Register)."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
-    qs = Sitzung.objects.select_related("mandat__mitglied").prefetch_related("punkte", "meldungen").order_by("-beginn")
+    qs = (
+        Sitzung.objects.select_related("mandat__mitglied")
+        .defer("mandat__foto")
+        .prefetch_related("punkte", "meldungen")
+        .order_by("-beginn")
+    )
     if ebene:
         qs = qs.filter(mandat__ebene=ebene)
     ergebnis = []

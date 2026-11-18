@@ -1815,7 +1815,7 @@ def koordination_hinweis(request, hinweis_id: int):
         if hinweis.parametertest and hinweis.parametertest.status == TestStatus.AUSGEWERTET:
             test = hinweis.parametertest
             test.status = TestStatus.VERWORFEN
-            test.auswertung = (test.auswertung + f"\\n\\nVerworfen: {grund}")[:4000]
+            test.auswertung = (test.auswertung + f"\n\nVerworfen: {grund}")[:4000]
             test.save(update_fields=["status", "auswertung"])
     else:
         messages.error(request, _("Unbekannte Handlung."))
@@ -1884,7 +1884,7 @@ def koordination_test(request, test_id: int):
             messages.error(request, _("Verwerfen braucht einen Grund — er bleibt stehen."))
             return redirect("gremien:koordination")
         test.status = TestStatus.VERWORFEN
-        test.auswertung = (test.auswertung + f"\\n\\nVerworfen: {grund}")[:4000]
+        test.auswertung = (test.auswertung + f"\n\nVerworfen: {grund}")[:4000]
         test.save(update_fields=["status", "auswertung"])
         Hinweis.objects.filter(parametertest=test, status=HinweisStatus.OFFEN).update(
             status=HinweisStatus.VERWORFEN, grund=grund[:500], erledigt_von=request.user, erledigt_am=timezone.now()
@@ -1894,12 +1894,12 @@ def koordination_test(request, test_id: int):
     elif aktion == "zukunftswerkstatt":
         g = test.gegenueberstellung()
         eingabe = (
-            f"Parameter: {test.parameter.schluessel} ({test.parameter.beschreibung})\\n"
-            f"Alter Wert: {test.alter_wert} — Testwert: {test.testwert}\\n"
-            f"Hypothese: {test.hypothese}\\nMessgröße: {test.messgroesse}\\n"
+            f"Parameter: {test.parameter.schluessel} ({test.parameter.beschreibung})\n"
+            f"Alter Wert: {test.alter_wert} — Testwert: {test.testwert}\n"
+            f"Hypothese: {test.hypothese}\nMessgröße: {test.messgroesse}\n"
             f"Vorher: {g.vorher} — während des Tests: {g.nachher} — Differenz: {g.differenz}"
             + (f" ({g.anteil} %)" if g.anteil is not None else "")
-            + f"\\nTestzeitraum: {test.beginn} bis {test.ende}"
+            + f"\nTestzeitraum: {test.beginn} bis {test.ende}"
         )
         auftrag = auftrag_laden(Zweck.PARAMETERVORSCHLAG)
         try:
@@ -1973,7 +1973,7 @@ def _test_anordnen(request):
         gremium=Gremium.KOORDINATIONSRAT,
         anlass=Anlass.PARAMETERTEST,
         gegenstand=f"Test: {parameter.schluessel} = {testwert} bis {ende:%d.%m.%Y}"[:200],
-        beschreibung=f"Hypothese: {hypothese}\\nMessgröße: {messgroesse}\\nRückweg: {rueckweg}"[:4000],
+        beschreibung=f"Hypothese: {hypothese}\nMessgröße: {messgroesse}\nRückweg: {rueckweg}"[:4000],
         optionen=JA_NEIN,
         frist=beschluss_frist(),
         angelegt_von=request.user,

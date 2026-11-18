@@ -566,7 +566,9 @@ def test_gp014_die_matrix_beschreibt_die_bearbeitung_gemeldeter_beitraege():
     reason='GP-014: Liste und Entscheidung über Meldungen bauen andere Pakete derselben Runde. '
     'Nach der Zusammenführung muss dieser Test bestehen und die Markierung entfallen; '
     'fehlt der Schreibweg dann noch, ist der Matrix-Commit zu GP-014 zurückzunehmen.',
-    strict=False,
+    # Streng: Besteht der Wächter nach der Zusammenführung, meldet die Testreihe das, bis die
+    # Markierung entfernt ist — eine stille Markierung bewiese in keiner Richtung etwas.
+    strict=True,
 )
 def test_gp014_das_zugesagte_ausblenden_hat_einen_schreibweg():
     '''Wächter zur Zeile der Verwaltung: Das Ausblenden eines Beitrags muss im Code geschrieben

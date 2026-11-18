@@ -110,6 +110,42 @@ def test_pruefskript_weist_doppelte_zeilen_auch_bei_ruecknahme_ab():
         nachrechnen(export)
 
 
+def test_pruefskript_rechnet_den_echten_export_mit_ruecknahmen_wie_die_plattform(client, db):
+    """Abnahme GP-022 am echten Export: Zwei Mitglieder stimmen B zu und nehmen zurück, eines stimmt
+    A zu. `export_json` führt die zurückgenommenen Zeilen weiter; das Skript muss denselben Gewinner
+    und dieselbe Beteiligung nennen wie `kandidatur_auszaehlen` (vorher: B mit Beteiligung 3)."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from verfahren.models import Verfahrensordnung, bewerbung_einreichen, bewerbung_zustimmen
+    from verfahren.test_kandidatur import _in_abstimmung, _kandidatur
+    from verfahren.test_views_aktionen import REGELN, mitglied_anlegen
+
+    ordnung = Verfahrensordnung.objects.create(policy_id='test-ordnung', version=1, regeln=REGELN, aktiv=True)
+    autor = mitglied_anlegen('autor')
+    leute = [mitglied_anlegen(f'm{i}') for i in range(3)]
+    antrag = _kandidatur(ordnung, autor)
+    a = bewerbung_einreichen(antrag, leute[0], 'A')
+    b = bewerbung_einreichen(antrag, leute[1], 'B')
+    _in_abstimmung(antrag, leute)
+    for wer in leute[:2]:
+        assert bewerbung_zustimmen(antrag, wer, b) is True
+        assert bewerbung_zustimmen(antrag, wer, b) is False  # zurückgenommen
+    assert bewerbung_zustimmen(antrag, leute[2], a) is True
+    antrag.phase_beginn = timezone.now() - timedelta(days=8)
+    antrag.save(update_fields=['phase_beginn'])
+
+    daten = client.get(reverse('verfahren:export', args=[antrag.pk])).json()
+    assert len(daten['zustimmungen']) == 3  # die zurückgenommenen Zeilen stehen im Export
+    skript = nachrechnen(daten)
+    kern = antrag.kandidatur_auszaehlen()
+    assert skript['gewaehlt'] == kern.gewonnen_id == a.pk
+    assert skript['beteiligung'] == kern.beteiligung == 1
+    assert skript['zurueckgenommen'] == 2
+
+
 @given(
     zurueckgezogen=st.lists(st.booleans(), min_size=1, max_size=6),
     zeilen=st.dictionaries(

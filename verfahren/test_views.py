@@ -551,3 +551,11 @@ def test_gp088_fehler_im_einbringformular_sind_mit_dem_feld_verknuepft(client, o
         for kennung in bezug.group(1).split():
             treffer = re.search(rf'id="{kennung}"[^>]*>(.*?)</', seite, flags=re.S)
             assert treffer and treffer.group(1).strip(), (feld, kennung)
+
+
+@pytest.mark.parametrize('sprache', ['de', 'en'])
+def test_gp097_startseite_fuehrt_im_hauptteil_zu_meine_gemeinde(client, sprache):
+    """GP-097 (GAST-02): Der Weg für Einwohner (Gemeindekonto) fehlte im Hauptteil der Startseite."""
+    seite = client.get('/', HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
+    haupt = seite.split('<main', 1)[1].split('</main>', 1)[0]
+    assert f'href="{reverse("gemeinde:start")}"' in haupt

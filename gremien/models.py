@@ -2718,8 +2718,14 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
     test.status = TestStatus.AUSGEWERTET
     test.ausgewertet_am = jetzt
     test.save(update_fields=["werte_nachher", "auswertung", "status", "ausgewertet_am"])
-    if parameter.status == Status.IM_TEST and parameter.wert == test.testwert:
-        parameter.wert = test.alter_wert
+    rueckfall = parameter.status == Status.IM_TEST and parameter.wert == test.testwert
+    if parameter.status == Status.IM_TEST:
+        # Der Teststatus endet mit dem Test — immer (GP-042). Zurück fällt der Wert nur, wenn er noch
+        # der Testwert ist: Hat die Verwaltung ihn inzwischen geändert, bleibt ihr Wert stehen, und
+        # die Historie sagt es. Sonst bliebe die Stellgröße dauerhaft „im Test“ und für Tests gesperrt.
+        stand = parameter.wert
+        if rueckfall:
+            parameter.wert = test.alter_wert
         parameter.status = Status.GUELTIG
         parameter.test_bis = None
         parameter.test_hypothese = ""
@@ -2727,9 +2733,14 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
         parameter.save(update_fields=["wert", "status", "test_bis", "test_hypothese", "geaendert_am"])
         Aenderung.objects.create(
             parameter=parameter,
-            alter_wert=test.testwert,
-            neuer_wert=test.alter_wert,
-            grund=f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"[:1000],
+            alter_wert=stand,
+            neuer_wert=parameter.wert,
+            grund=(
+                f"Testende {test.ende:%d.%m.%Y} — Rückweg: {test.rueckweg}"
+                if rueckfall
+                else f"Testende {test.ende:%d.%m.%Y} — kein Rückfall auf {test.alter_wert}: Der Wert wurde "
+                f"während des Tests geändert (Testwert {test.testwert}) und bleibt stehen."
+            )[:1000],
             geaendert_am=jetzt,
             durch="Testende (§ 6 Abs 11 lit c)",
         )
@@ -2741,7 +2752,13 @@ def _parametertest_beenden(test, jetzt, heute) -> None:
         angelegt_am=jetzt,
     )
     AuditEintrag.anhaengen(
-        {"typ": "parametertest_ausgewertet", "schluessel": parameter.schluessel, "test": test.pk}
+        {
+            "typ": "parametertest_ausgewertet",
+            "schluessel": parameter.schluessel,
+            "test": test.pk,
+            "rueckfall": rueckfall,
+            "wert": parameter.wert,
+        }
     )
 
 

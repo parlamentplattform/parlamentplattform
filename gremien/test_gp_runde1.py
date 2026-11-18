@@ -109,3 +109,47 @@ def test_der_vermerk_am_testbeschluss_sagt_was_wirklich_geschieht(client):
     assert parameter.wert == '100'  # der Wert steht sofort im Register — für alle, die ihn lesen
     assert 'neu beginnende Verfahren' not in beschluss.umsetzungsvermerk
     assert 'wirkt sofort' in beschluss.umsetzungsvermerk and 'laufenden Verfahren' in beschluss.umsetzungsvermerk
+
+
+def _laufender_test(client, leute, schluessel='gremien-beschluss-tage', testwert='9'):
+    from parameter.models import ParameterTest
+
+    parameter = _register(schluessel)
+    _test_anordnen(client, leute[0], parameter, testwert)
+    test = ParameterTest.objects.get()
+    _rat_stimmt(client, leute, test.beschluss)
+    test.refresh_from_db()
+    return parameter, test
+
+
+def test_ein_von_der_verwaltung_ueberschriebener_testwert_bleibt_nicht_im_test(client):
+    """GP-042: Der Rückfall am Testende griff nur, wenn der Registerwert noch der Testwert war. Hatte
+    die Verwaltung ihn während des Tests geändert, blieb die Stellgröße für immer „im Test“ — mit Band,
+    und für jeden weiteren Test gesperrt. Jetzt endet der Teststatus immer; der abweichende Wert bleibt
+    stehen und ist in Historie und Audit vermerkt."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from gremien.models import parametertests_fortschreiben
+    from gremien.views import _testbare_parameter
+    from parameter.models import Aenderung, Parameter, ParameterTest, Status
+
+    leute = _korat()
+    parameter, test = _laufender_test(client, leute)
+    Parameter.objects.filter(pk=parameter.pk).update(wert='12')  # die Verwaltung ändert nur den Wert
+    ParameterTest.objects.filter(pk=test.pk).update(ende=timezone.localdate() - timedelta(days=1))
+    assert parametertests_fortschreiben() == 1
+    parameter.refresh_from_db()
+    assert parameter.status == Status.GUELTIG and parameter.test_bis is None and parameter.test_hypothese == ''
+    assert parameter.wert == '12'  # der Wert der Verwaltung bleibt stehen — kein Rückfall über ihn hinweg
+    assert parameter in _testbare_parameter()
+    letzte = Aenderung.objects.filter(parameter=parameter).order_by('-geaendert_am', '-pk').first()
+    assert 'Testende' in letzte.durch and letzte.alter_wert == '12' and letzte.neuer_wert == '12'
+    assert 'kein Rückfall' in letzte.grund
+    ereignis = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'parametertest_ausgewertet'][-1]
+    assert ereignis['rueckfall'] is False and ereignis['wert'] == '12'
+    client.logout()
+    seite = client.get(reverse('parameter:liste')).content.decode()
+    assert 'Der Testwert wirkt sofort überall' not in seite  # kein Band mehr

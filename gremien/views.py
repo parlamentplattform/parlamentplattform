@@ -69,7 +69,7 @@ from plattform_core import Phase, wortdiff
 from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
 from verfahren.chat import abstimmung_stand as _abstimmung_stand
 from verfahren.chat import kritik_der_runde as _kritik_der_runde
-from verfahren.models import Antrag, Antragsart, AuditEintrag
+from verfahren.models import Antrag, Antragsart, AuditEintrag, Kategorie
 
 
 def nur_gremium(*gremien: str):
@@ -770,6 +770,118 @@ def rollen_aktion(request):
         messages.info(request, _("Rolle beendet — Grund im Audit-Log festgehalten."))
 
     return redirect("gremien:rollen")
+
+
+# ── Verwaltung: Fachliste (§ 6 Abs 7, FB-I1) ─────────────────────────────────
+
+
+class FachlistenFormular(forms.Form):
+    """Ein Eintrag der Fachliste, von der Verwaltung gepflegt (GP-009).
+
+    Bis es den Bestellweg nach § 6 Abs 8 gibt, trägt die Verwaltung ein (FB-I1). Der Eintrag steht
+    öffentlich mit Namen — deshalb nur mit festgehaltener Einwilligung des Mitglieds (§ 8 Abs 4)."""
+
+    mitglied = MitgliedAuswahl(
+        queryset=Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False).order_by(
+            "last_name", "first_name", "username"
+        ),
+        label=gettext_lazy("Mitglied"),
+    )
+    fachgebiete = forms.ModelMultipleChoiceField(
+        queryset=Kategorie.objects.filter(aktiv=True).order_by("name"),
+        label=gettext_lazy("Fachgebiete (ohne Angabe lost die Person bei jedem Antrag mit)"),
+        required=False,
+    )
+    interessenbindungen = forms.CharField(
+        label=gettext_lazy("Interessenbindungen (werden veröffentlicht; leer heißt „keine“)"),
+        widget=forms.Textarea(attrs={"rows": 3}),
+        max_length=4000,
+        required=False,
+    )
+    honorare = forms.CharField(
+        label=gettext_lazy("Honorare (werden veröffentlicht; leer heißt „keine“)"),
+        widget=forms.Textarea(attrs={"rows": 3}),
+        max_length=4000,
+        required=False,
+    )
+    einwilligung = forms.BooleanField(
+        label=gettext_lazy("Die Einwilligung des Mitglieds in die öffentliche Führung auf der Fachliste liegt vor (§ 8 Abs 4)"),
+        required=False,  # geprüft in der Ansicht, damit die Meldung den Grund nennt
+    )
+
+
+@nur_admins
+def fachliste_verwaltung(request):
+    eintraege = list(
+        Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete").order_by("gestrichen_am", "schluessel")
+    )
+    return render(request, "gremien/verwaltung_fachliste.html", {"form": FachlistenFormular(), "eintraege": eintraege})
+
+
+@nur_admins
+@require_POST
+def fachliste_aktion(request):
+    """Eintragen und Streichen — jede Handlung auditiert, nichts wird gelöscht (Grundregel 7)."""
+    aktion = request.POST.get("aktion", "")
+
+    if aktion == "eintragen":
+        form = FachlistenFormular(request.POST)
+        if not form.is_valid():
+            messages.error(request, _("Bitte alle Pflichtfelder prüfen."))
+            return redirect("gremien:fachliste_verwaltung")
+        d = form.cleaned_data
+        if not d["einwilligung"]:
+            messages.error(
+                request,
+                _("Nicht eingetragen — ohne Einwilligung des Mitglieds steht niemand auf der Fachliste (§ 8 Abs 4)."),
+            )
+            return redirect("gremien:fachliste_verwaltung")
+        if Fachliste.objects.filter(mitglied=d["mitglied"]).exists():
+            # Auch ein gestrichener Eintrag bleibt bestehen (aus ihm wurde vielleicht gelost) —
+            # einen zweiten daneben gibt es nicht.
+            messages.error(
+                request,
+                _("Nicht eingetragen — %(name)s steht bereits auf der Fachliste (geführt oder gestrichen).")
+                % {"name": d["mitglied"].anzeigename},
+            )
+            return redirect("gremien:fachliste_verwaltung")
+        with transaction.atomic():
+            eintrag = Fachliste.objects.create(
+                mitglied=d["mitglied"], interessenbindungen=d["interessenbindungen"], honorare=d["honorare"]
+            )
+            eintrag.fachgebiete.set(d["fachgebiete"])
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "fachliste_eingetragen",
+                    "eintrag": eintrag.pk,
+                    "fachgebiete": sorted(k.slug for k in d["fachgebiete"]),
+                    "einwilligung": True,
+                    "durch": request.user.pk,
+                }
+            )
+        messages.success(
+            request, _("Eingetragen unter dem Schlüssel %(schluessel)s — öffentlich sichtbar.") % {"schluessel": eintrag.schluessel}
+        )
+
+    elif aktion == "streichen":
+        pk = request.POST.get("eintrag", "")
+        if not pk.isdigit():
+            raise Http404
+        eintrag = get_object_or_404(Fachliste, pk=int(pk))
+        grund = (request.POST.get("grund") or "").strip()
+        if not eintrag.gefuehrt:
+            messages.info(request, _("Dieser Eintrag ist bereits gestrichen."))
+        elif not grund:
+            messages.error(request, _("Eine Streichung braucht einen Grund — er steht öffentlich beim Eintrag."))
+        else:
+            with transaction.atomic():
+                eintrag.gestrichen_am, eintrag.gestrichen_grund = timezone.localdate(), grund[:200]
+                eintrag.save(update_fields=["gestrichen_am", "gestrichen_grund"])
+                # Ohne den frei geschriebenen Grund: Er betrifft eine Person, und die Kette fügt nur an.
+                AuditEintrag.anhaengen({"typ": "fachliste_gestrichen", "eintrag": eintrag.pk, "durch": request.user.pk})
+            messages.info(request, _("Gestrichen — der Eintrag bleibt lesbar, lost aber nicht mehr mit."))
+
+    return redirect("gremien:fachliste_verwaltung")
 
 
 # ── Arbeitsbereich Expertenrat, Gruppe 2 (§ 6 Abs 7) ─────────────────────────

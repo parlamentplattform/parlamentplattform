@@ -31,4 +31,6 @@ urlpatterns = [
     path("gremien/integritaet/bericht/<int:jahr>/", views.integritaet_bericht, name="integritaet_bericht"),
     path("verwaltung/rollen/", views.rollen, name="rollen"),
     path("verwaltung/rollen/aktion/", views.rollen_aktion, name="rollen_aktion"),
+    path("verwaltung/fachliste/", views.fachliste_verwaltung, name="fachliste_verwaltung"),
+    path("verwaltung/fachliste/aktion/", views.fachliste_aktion, name="fachliste_aktion"),
 ]

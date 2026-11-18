@@ -366,3 +366,10 @@ def test_gemeindezugang_weist_den_nebenwohnsitz_als_hauptwohnsitz_ab(client):
     assert "Der Nebenwohnsitz ist bereits Ihr Wohnsitz." in antwort.content.decode()
     m.refresh_from_db()
     assert m.wohnsitz == wien
+
+
+def test_gemeindeanmeldung_weist_zu_langen_anzeigenamen_ab(client, ort):
+    antwort = anmelden(client, ort, anzeigename="A" * 51)
+    assert antwort.status_code == 200
+    assert "höchstens 50 Zeichen" in antwort.content.decode()
+    assert not Mitglied.objects.exists()

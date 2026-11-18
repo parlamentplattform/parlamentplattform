@@ -72,7 +72,7 @@ class AnmeldeFormular(BotschutzMixin, ZugangsFormular):
     field_order = ["email", "anzeigename", "wohnsitz_art", "gemeinde", "geburtsdatum",
                    "meldung", "datenschutz", "rechenfrage", "website", "pruefung"]
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"), max_length=150)
-    anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=120)
+    anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=50)  # Spalte pseudonym_oeffentlich (GP-098)
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()

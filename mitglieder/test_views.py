@@ -641,3 +641,15 @@ def test_vergebene_adressen_bleiben_gedrosselt(client, feste_drosselzeit):
         client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
     antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': 'neu@example.org', **botschutz(client)})
     assert 'Zu viele Versuche' in antwort.content.decode()
+
+
+# --- Formulare fassen nur, was die Spalten fassen (GP-098, KM-11) -----------------------
+
+
+def test_beitritt_weist_zu_lange_adresse_ab(client):
+    lang = 'e' * (151 - len('@example.org')) + '@example.org'
+    assert len(lang) == 151
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'email': lang, **botschutz(client)})
+    assert antwort.status_code == 200
+    assert 'höchstens 150 Zeichen' in antwort.content.decode()
+    assert not Mitglied.objects.exists()

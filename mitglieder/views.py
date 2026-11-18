@@ -43,7 +43,7 @@ class RegistrierungsFormular(BotschutzMixin, WohnsitzFormularMixin, forms.Form):
     wohnsitz_pflicht = True
     vorname = forms.CharField(label=gettext_lazy("Vorname"), max_length=80)
     nachname = forms.CharField(label=gettext_lazy("Nachname"), max_length=80)
-    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
+    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"), max_length=150)  # Spalte username (GP-098)
     geburtsjahr = forms.IntegerField(label=gettext_lazy("Geburtsjahr"), min_value=1900, max_value=2100)
     wohnsitz_art = wohnsitz_auswahl(registrierung=True)
     gemeinde = forms.CharField(

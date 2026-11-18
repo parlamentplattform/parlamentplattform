@@ -85,3 +85,26 @@ def test_die_musterdatei_traegt_keinen_platzhalter_als_schluessel():
     muster = Path(__file__).resolve().parent.parent / 'docs' / 'partner' / 'instanz' / 'env.example'
     zeilen = [z for z in muster.read_text(encoding='utf-8').splitlines() if z.startswith('DDOE_SECRET_KEY=')]
     assert zeilen == ['DDOE_SECRET_KEY=']
+
+
+# --- GP-211: Fällige Adresswechsel werden ohne Seitenaufruf wirksam ---------------------------------
+
+
+def test_der_hintergrundlauf_macht_faellige_adresswechsel_wirksam():
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from mitglieder.models import Adresswechsel
+    from verfahren.hintergrund import faellige_ausfuehren
+
+    mitglied, admin = mitglied_anlegen('wechsel'), mitglied_anlegen('zweite')
+    wechsel = Adresswechsel.objects.create(
+        mitglied=mitglied, neue_email='wechsel-neu@example.org', frist_bis=timezone.now() - timedelta(hours=1),
+        einspruch_hash='y' * 64, bestaetigt_von=admin, bestaetigt_am=timezone.now() - timedelta(days=1),
+    )
+    assert 'adresswechsel' in faellige_ausfuehren()
+    wechsel.refresh_from_db()
+    mitglied.refresh_from_db()
+    assert wechsel.status == Adresswechsel.Status.WIRKSAM
+    assert mitglied.email == 'wechsel-neu@example.org'

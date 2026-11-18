@@ -59,6 +59,12 @@ def _audit() -> dict:
 AUDIT_TAKT_MINUTEN = 24 * 60
 
 
+def _adresswechsel() -> dict:
+    from mitglieder.models import Adresswechsel
+
+    return {"wirksam": Adresswechsel.faellige_anwenden()}
+
+
 def _zukunftswerkstatt() -> dict:
     from ki.warteschlange import abarbeiten
 
@@ -70,6 +76,9 @@ LAEUFE: list[Lauf] = [
     # Die Warteschlange der Zukunftswerkstatt (ki/warteschlange.py): jede Minute die fälligen
     # Aufträge im Tageskontingent — betroffene Gesetze, nachgezogene Textvektoren.
     Lauf("zukunftswerkstatt", lambda: 1, _zukunftswerkstatt),
+    # Bestätigte Adresswechsel nach Ablauf der Einspruchsfrist wirksam machen (GP-211) — bisher nur
+    # beiläufig beim Öffnen einer Verwaltungsseite oder beim Anfordern eines Anmeldelinks.
+    Lauf("adresswechsel", lambda: max(1, int(getattr(settings, "DDOE_WAECHTER_MINUTEN", 10))), _adresswechsel),
     # Die Audit-Kette nachrechnen (Bestandsaufnahme A7): stückweise ab dem gemerkten Stand.
     Lauf("audit", lambda: AUDIT_TAKT_MINUTEN, _audit),
 ]

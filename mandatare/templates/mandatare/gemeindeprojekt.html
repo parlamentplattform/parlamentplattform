@@ -3,6 +3,7 @@
 {% block inhalt %}
 <p><a href="{% url 'gemeinde:projekte' projekt.gemeinde.kennziffer %}">{% translate "Gemeindeprojekte" %} · {{ projekt.gemeinde.name }}</a></p>
 <h1>{{ aktuell.titel|default:aktuell.get_lage_display }}</h1>
+{% include "mandatare/_gemeinde_abgrenzung.html" %}
 <section class="karte" aria-labelledby="aktueller-projektstand">
   <h2 id="aktueller-projektstand">{% translate "Aktueller Projektstand" %}</h2>
   <p>{% if aktuell.titel %}<span class="badge badge--hell">{{ aktuell.get_lage_display }}</span> · {% endif %}

@@ -3,6 +3,7 @@
 {% block inhalt %}
 <p><a href="{% url 'gemeinde:ratsinitiativen' gemeinde.kennziffer %}">{% translate "Ratsinitiativen der DDÖ" %}</a> · {{ gemeinde.anzeige }}</p>
 <h1>{{ initiative.titel }}</h1>
+{% include "mandatare/_gemeinde_abgrenzung.html" %}
 <article class="karte">
   <p class="meta">{{ initiative.get_art_display }} · <a href="{% url 'mandatare:detail' initiative.mandat_id %}">{{ initiative.mandat.mitglied.anzeigename }}</a> · {{ initiative.veroeffentlicht_am|date:"d.m.Y" }}</p>
   {{ initiative.text|linebreaks }}

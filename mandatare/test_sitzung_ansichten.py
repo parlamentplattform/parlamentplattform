@@ -416,3 +416,40 @@ def test_ein_takt_fuer_stand_und_chat(client, anna):
     sitzung_beginnen(anna, sitzungstag(anna))
     html = client.get(live_url(anna)).content.decode()
     assert html.count("hx-trigger=") == 1 and 'hx-select-oob="#live-faden"' in html
+
+
+@pytest.mark.parametrize("art", ["ungeprueft", "pausiert"])
+def test_chat_ohne_schreibrecht_zeigt_den_hinweis_und_behaelt_den_text(client, anna, art):
+    """GP-122 (MG-15): Wer nicht mitwirken darf, sieht statt des Formulars den Hinweis mit dem nächsten
+    Schritt; ein dennoch gesendeter Text kommt auf der Live-Seite zurück."""
+    from mitglieder.models import Mitgliedsstatus
+
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    if art == "ungeprueft":
+        m = mitglied_anlegen("emil", stufe=Identitaetsstufe.UNGEPRUEFT)
+        hinweis = "Identität noch ungeprüft"
+    else:
+        m = mitglied_anlegen("emil")
+        m.status = Mitgliedsstatus.PAUSIERT
+        m.save(update_fields=["status"])
+        hinweis = "Mitwirkung ruht"
+    client.force_login(m)
+    html = client.get(live_url(anna, sitzung, schreiben=1)).content.decode()
+    assert 'id="chat-eingabe"' not in html and hinweis in html
+    antwort = client.post(reverse("mandatare:live_beitrag", args=[anna.pk, sitzung.pk]), {"text": "Mein langer Text zur Sitzung"})
+    html = antwort.content.decode()
+    assert antwort.status_code == 403 and "Mein langer Text zur Sitzung" in html and 'id="live-chat"' in html
+    assert not Kommentar.objects.filter(sitzung=sitzung).exists()
+
+
+def test_gemeindekonto_sieht_keinen_anmeldelink_zum_mitschreiben(client, anna):
+    """GP-196 (MG-18): Ein angemeldetes Gemeindekonto liest mit; der Link „Anmelden zum Mitschreiben“
+    führte nur zurück auf die Anmeldung."""
+    sitzung = sitzung_beginnen(anna, sitzungstag(anna))
+    from mitglieder.models import Mitglied
+
+    konto = Mitglied.objects.create_user("einwohnerin@example.org", email="einwohnerin@example.org", parteikonto=False)
+    client.force_login(konto)
+    html = client.get(live_url(anna, sitzung)).content.decode()
+    assert "Anmelden zum Mitschreiben" not in html
+    assert "Der Chat steht Mitgliedern offen; mit dem Gemeindekonto lesen Sie mit." in html

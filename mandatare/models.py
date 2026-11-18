@@ -218,7 +218,7 @@ class Mandat(models.Model):
         (`views._rueckgabezusagen_fuer`), statt je Zeile die Bewerbung abzufragen (Befund B28)."""
         return rueckgabe_vermerk_fuer(self, self.rueckgabezusage_wirksam()[0])
 
-    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None) -> bool:
+    def bestaetigen(self, grund: str, jetzt=None, rolle: int | None = None, durch: int | None = None) -> bool:
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
         (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
         `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
@@ -231,6 +231,8 @@ class Mandat(models.Model):
         ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
         if rolle is not None:
             ereignis["rolle"] = rolle
+        if durch is not None:
+            ereignis["durch"] = durch  # Vermerk der Verwaltung: das handelnde Konto (GP-119)
         AuditEintrag.anhaengen(ereignis)
         return True
 
@@ -1066,10 +1068,12 @@ class Vertrauensfrage(models.Model):
         """Ob die vermerkte Anfechtung binnen sieben Tagen ab Veröffentlichung erhoben wurde (lit h).
         Nur eine rechtzeitige hält Z 1/2/6 und Z 5 an (lit f letzter Unterabsatz: „bei rechtzeitiger
         Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
-        trotzdem, ehrlich datiert."""
-        if self.angefochten_am is None or self.wirkungen_ab is None:
+        trotzdem, ehrlich datiert. Die Frist läuft ab der Veröffentlichung jedes Ergebnisses (lit h), auch
+        eines gewonnenen oder einer Bestätigung, die keine Wirkungen nach lit f tragen (GP-112)."""
+        ab = self.wirkungen_ab or self.ergebnis_am
+        if self.angefochten_am is None or ab is None:
             return False
-        return self.angefochten_am <= self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+        return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def endgueltig_ab(self):
         """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
@@ -1405,6 +1409,7 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             | models.Q(mandat__mandatsvereinbarung_lit_h_am__isnull=False, mandat__mandatsvereinbarung_endet_am__isnull=True)
         )
         .select_related("mandat", "mandat__mitglied")
+        .defer("mandat__foto")
         .order_by("wirkungen_ab", "pk")
     )
 
@@ -1434,7 +1439,7 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             # laufen in mehreren Workern — mit dem vorher gelesenen Stand vollzog ein zweiter Aufruf
             # dieselbe Stufe ein zweites Mal und schrieb sie zweimal in die Audit-Kette.
             vf = Vertrauensfrage.objects.select_for_update().get(pk=vf.pk)
-            mandat = Mandat.objects.select_for_update(of=("self",)).select_related("mitglied").get(pk=vf.mandat_id)
+            mandat = Mandat.objects.select_for_update(of=("self",)).select_related("mitglied").defer("foto").get(pk=vf.mandat_id)
             mandate[mandat.pk] = mandat
             vf.mandat = mandat
             endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)
@@ -1484,7 +1489,9 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
 
 
 @transaction.atomic
-def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None) -> bool:
+def vertrauensfrage_anfechtung_vermerken(
+    vf: Vertrauensfrage, aktenkennung: str = "", jetzt=None, durch: int | None = None
+) -> bool:
     """Verwaltungsvermerk: Das Ergebnis ist beim Parteischiedsgericht angefochten (lit h). `jetzt` ist
     der Tag der Anrufung — die Verwaltung vermerkt ihn meist später und rückdatiert.
 
@@ -1510,6 +1517,7 @@ def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str 
             "antrag": vf.antrag_id,
             "mandat": vf.mandat_id,
             "rechtzeitig": vf.anfechtung_rechtzeitig,
+            **({"durch": durch} if durch is not None else {}),
         }
     )
     if not (vf.anfechtung_rechtzeitig and vf.wirkungen_endgueltig_am is not None):
@@ -1537,11 +1545,15 @@ def vertrauensfrage_anfechtung_vermerken(vf: Vertrauensfrage, aktenkennung: str 
 
 
 @transaction.atomic
-def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: str, jetzt=None) -> None:
+def vertrauensfrage_entscheidung_vermerken(
+    vf: Vertrauensfrage, entscheidung: str, jetzt=None, durch: int | None = None
+) -> None:
     """Verwaltungsvermerk „Entscheidung vollziehen“ (lit h): `bestaetigt` lässt Stufe 2 ab der Entscheidung
     laufen; `aufgehoben` nimmt die Wirkungen zurück — Rollen wieder aktiv, Vertrauen nicht mehr entzogen,
     eine beendete Vertretung und Mandatsvereinbarung gelten als nicht beendet; die Sperre nach lit g
-    dritter Fall läuft nicht. Nie automatisch, immer auditiert."""
+    dritter Fall läuft nicht. Zurückgenommen wird nur, was diese Vertrauensfrage bewirkt hat: eine
+    gewonnene nimmt nichts zurück; bleibt eine weitere verlorene bestehen, folgen die Stempel ihr.
+    Nie automatisch, immer auditiert."""
     from gremien.models import Rolle
 
     jetzt = jetzt or timezone.now()
@@ -1553,7 +1565,26 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
     vf.save(update_fields=["entscheidung", "entschieden_am"])
     mandat = vf.mandat
     wiederhergestellt: list[int] = []
-    if entscheidung == Entscheidung.AUFGEHOBEN and vf.art == VertrauensfrageArt.VERTRAUENSFRAGE:
+    # Zurückgenommen wird nur, was diese Vertrauensfrage bewirkt hat (GP-020): Eine gewonnene trägt keine
+    # Wirkungen; besteht eine weitere verlorene, ruhen die Rollen weiter und die Stempel folgen ihr.
+    bleibende = None
+    if entscheidung == Entscheidung.AUFGEHOBEN and vf.wirkungen_ab is not None:
+        bleibende = (
+            Vertrauensfrage.objects.filter(mandat=mandat, art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False)
+            .exclude(pk=vf.pk)
+            .exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+            .order_by("-wirkungen_ab", "-pk")
+            .first()
+        )
+    if bleibende is not None:
+        mandat.vertrauen_entzogen_am = bleibende.wirkungen_ab
+        mandat.rueckgabe_ersucht_bis = timezone.localdate(bleibende.wirkungen_ab) + timedelta(days=RUECKGABEFRIST_TAGE)
+        mandat.save(update_fields=["vertrauen_entzogen_am", "rueckgabe_ersucht_bis"])
+    elif (
+        entscheidung == Entscheidung.AUFGEHOBEN
+        and vf.art == VertrauensfrageArt.VERTRAUENSFRAGE
+        and vf.wirkungen_ab is not None
+    ):
         heute = timezone.localdate(jetzt)
         rollen = Rolle.objects.filter(mitglied=mandat.mitglied, ruht_grund=RUHENSGRUND, endet_am__gte=heute).filter(
             models.Q(beendet_grund="") | models.Q(beendet_grund=BEENDIGUNGSGRUND)
@@ -1585,17 +1616,21 @@ def vertrauensfrage_entscheidung_vermerken(vf: Vertrauensfrage, entscheidung: st
             "mandat": mandat.pk,
             "rollen_wiederhergestellt": wiederhergestellt,
             "bestaetigung_entfallen": bestaetigung_entfallen,
+            **({"durch": durch} if durch is not None else {}),
         }
     )
 
 
-def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None) -> None:
+def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None, durch: int | None = None) -> None:
     """Verwaltungsvermerk: Rückgabezusage nachgetragen oder widerrufen (§ 7 Abs 3) — mit Datum, auditiert."""
     jetzt = jetzt or timezone.now()
     mandat.rueckgabezusage = Rueckgabezusage(wert)
     mandat.rueckgabezusage_am = timezone.localdate(jetzt)
     mandat.save(update_fields=["rueckgabezusage", "rueckgabezusage_am"])
-    AuditEintrag.anhaengen({"typ": "rueckgabezusage", "mandat": mandat.pk, "wert": mandat.rueckgabezusage})
+    ereignis = {"typ": "rueckgabezusage", "mandat": mandat.pk, "wert": mandat.rueckgabezusage}
+    if durch is not None:
+        ereignis["durch"] = durch  # das handelnde Konto der Verwaltung (GP-119)
+    AuditEintrag.anhaengen(ereignis)
 
 
 def bestaetigung_zulaessig_ab(mandat: Mandat):

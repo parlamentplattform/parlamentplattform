@@ -510,3 +510,69 @@ def test_eine_ruhende_rolle_zaehlt_nicht_bleibt_aber_lesbar():
     r1.beendet_grund = "abberufen"
     r1.save()
     assert not r1.ruht  # beendet geht vor
+
+
+# ── Aufhebung bindet an die eigene Vertrauensfrage (GP-020) ────────────────────────────────
+
+
+def _vf_mit_ergebnis(mandat, phase, ergebnis_am):
+    """Eine Vertrauensfrage mit Ergebnis — bei „verloren“ mit Stufe 1 über die Fachoperation."""
+    from verfahren.models import Antrag, Antragsart
+
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage: Gemeinderätin, Polsenz",
+        art=Antragsart.VERTRAUENSFRAGE,
+        eingebracht_von=mitglied_anlegen(f"steller{antrag_nr()}"),
+        eingebracht_am=ergebnis_am - tage(20),
+        phase=phase,
+        phase_beginn=ergebnis_am,
+        policy_snapshot={},
+    )
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat)
+    if phase == Phase.ANGENOMMEN.value:
+        mm.vertrauensfrage_wirkungen(vf, jetzt=ergebnis_am)
+    return vf
+
+
+def test_aufhebung_einer_gewonnenen_laesst_die_wirkungen_einer_verlorenen_stehen(altmandat):  # noqa: F811
+    """GP-020 (MV-01): Die Aufhebung an der gewonnenen VF1 nimmt nichts zurück, was die verlorene VF2
+    bewirkt hat; die Aufhebung an VF2 nimmt alles zurück."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    t0 = timezone.now() - tage(10)
+    vf1 = _vf_mit_ergebnis(altmandat, Phase.ABGELEHNT.value, t0 - tage(30))
+    vf2 = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, t0)
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    vorher = (altmandat.vertrauen_entzogen_am, altmandat.rueckgabe_ersucht_bis, rolle.ruht_seit)
+    assert all(w is not None for w in vorher)
+    mm.vertrauensfrage_anfechtung_vermerken(vf1, "PSG-1", jetzt=t0 - tage(28))
+    mm.vertrauensfrage_entscheidung_vermerken(vf1, "aufgehoben", jetzt=t0 + tage(1))
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    assert (altmandat.vertrauen_entzogen_am, altmandat.rueckgabe_ersucht_bis, rolle.ruht_seit) == vorher
+    eintrag = [e for e in audit("vertrauensfrage_aufgehoben") if e["antrag"] == vf1.antrag_id][0]
+    assert eintrag["rollen_wiederhergestellt"] == []
+    # Gegenprobe: die Aufhebung der verlorenen nimmt alles zurück
+    mm.vertrauensfrage_anfechtung_vermerken(vf2, "PSG-2", jetzt=t0 + tage(2))
+    mm.vertrauensfrage_entscheidung_vermerken(vf2, "aufgehoben", jetzt=t0 + tage(3))
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    assert altmandat.vertrauen_entzogen_am is None and altmandat.rueckgabe_ersucht_bis is None
+    assert rolle.ruht_seit is None
+
+
+def test_aufhebung_einer_von_zwei_verlorenen_leitet_die_stempel_aus_der_anderen_ab(altmandat):  # noqa: F811
+    """GP-020: Bleibt eine weitere verlorene Vertrauensfrage bestehen, ruhen die Rollen weiter und die
+    Stempel am Mandat folgen ihr."""
+    rolle = rolle_geben(altmandat.mitglied, Gremium.BERICHTSWESENRAT)
+    t0 = timezone.now() - tage(5)
+    vf1 = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, t0 - tage(10))
+    vf2 = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, t0)
+    mm.vertrauensfrage_anfechtung_vermerken(vf2, "PSG-2", jetzt=t0 + tage(1))
+    mm.vertrauensfrage_entscheidung_vermerken(vf2, "aufgehoben", jetzt=t0 + tage(2))
+    altmandat.refresh_from_db()
+    rolle.refresh_from_db()
+    vf1.refresh_from_db()
+    assert altmandat.vertrauen_entzogen_am == vf1.wirkungen_ab
+    assert altmandat.rueckgabe_ersucht_bis == timezone.localdate(vf1.wirkungen_ab) + tage(mm.RUECKGABEFRIST_TAGE)
+    assert rolle.ruht_seit is not None

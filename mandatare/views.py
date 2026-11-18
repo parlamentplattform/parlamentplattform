@@ -149,8 +149,10 @@ RUECKGABEZUSAGE_VERMERKE = {
 
 
 def _mandat_queryset():
+    # Das Lichtbild lädt nur die Route `foto` — in Listen wöge es je Zeile bis 800 kB (GP-120)
     return (
         Mandat.objects.select_related("mitglied")
+        .defer("foto")
         .prefetch_related(AUFGABEN_VORGELADEN, VERTRAUENSFRAGEN_VORGELADEN)
     )
 
@@ -159,7 +161,9 @@ def _mandat_queryset():
 #: lit f) eben auf einer anderen Instanz gestempelt hat. Alle, nicht eine Auswahl: stempelt das Fundament ein
 #: weiteres Feld, zeigt die Seite es trotzdem. Beziehungen (mitglied, kandidatur) und der Prefetch von Aufgaben
 #: und Vertrauensfragen bleiben erhalten — `refresh_from_db()` ohne `fields` würfe beides weg.
-MANDATSFELDER = [f.attname for f in Mandat._meta.concrete_fields if not (f.primary_key or f.is_relation)]
+MANDATSFELDER = [
+    f.attname for f in Mandat._meta.concrete_fields if not (f.primary_key or f.is_relation or f.attname == "foto")
+]
 
 
 def _vertrauensfragen_von(mandat) -> tuple[list[Vertrauensfrage], bool]:
@@ -366,7 +370,7 @@ def _entschiedene_vertrauensfragen(ebene: str = "", mandat: Mandat | None = None
     „im Rechenschaftsregister dauerhaft ausgewiesen — ein gewonnenes Vertrauen ebenso wie ein verlorenes“).
     Laufende Anträge desselben Ausschnitts werden vorher fortgeschrieben (lazy Phasen): Ein Ergebnis,
     dessen Frist ohne Seitenaufruf ablief, steht so schon im ersten Register, das danach gelesen wird."""
-    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied").defer("mandat__foto")
     if mandat is not None:
         qs = qs.filter(mandat=mandat)
     if ebene in Ebene.values:
@@ -572,7 +576,9 @@ def rechenschaft_mandat(request, pk: int):
 
 
 def _rechenschaft_gesamt(ebene: str):
-    eintraege = Rechenschaft.objects.select_related("mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt")
+    eintraege = Rechenschaft.objects.select_related(
+        "mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt"
+    ).defer("mandat__foto")
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
@@ -731,7 +737,7 @@ def _vertrauensfragen_zeilen(ebene: str = "") -> list[dict]:
     samt Quelle (eine Abfrage für alle) und der Registervermerk (einmal je Mandat) — Seite und JSON lesen
     dieselben Zeilen. Laufende Anträge werden vorher fortgeschrieben (lazy Phasen); ihre Zahl bestimmt dafür
     die Abfragen, nicht die der entschiedenen."""
-    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied")
+    qs = Vertrauensfrage.objects.select_related("antrag", "mandat__mitglied").defer("mandat__foto")
     if ebene in Ebene.values:
         qs = qs.filter(mandat__ebene=ebene)
     _laufende_fortschreiben(qs)
@@ -1085,7 +1091,9 @@ def _bereich(request, mandat: Mandat, mandate: list[Mandat], eingabe=None):
             "rechenschaft": _rechenschaft_zeilen(list(mandat.rechenschaft.select_related("antrag", "aufgabe", "freiwillige_begruendung", "punkt"))),
             "stimmen": Stimmverhalten.choices,
             "beschluesse": Beschluss.choices,
-            "vorgewaehlt": ((eingabe.get("aufgabe") if aktion == "rechenschaft" else request.GET.get("aufgabe")) or "").strip(),
+            "vorgewaehlt": (
+                (eingabe.get("aufgabe") if aktion in ("rechenschaft", "sammelbericht") else request.GET.get("aufgabe")) or ""
+            ).strip(),
             "ordnung_fehlt": ordnung_fehlt,
             "eingabe": eingabe,
             "fehler_bei": aktion,
@@ -1196,9 +1204,9 @@ def mein_aktion(request):
         AuditEintrag.anhaengen({"typ": "mandat_vorstellung", "mandat": mandat.pk})
         messages.success(request, _("Vorstellung gespeichert."))
     elif aktion == "monatsbericht":
-        _monatsbericht_anlegen(request, mandat)
+        gelungen = _monatsbericht_anlegen(request, mandat)
     elif aktion == "sammelbericht":
-        _sammelbericht_anlegen(request, mandat)
+        gelungen = _sammelbericht_anlegen(request, mandat)
     elif aktion == "rechenschaft":
         gelungen = _rechenschaft_anlegen(request, mandat)
     elif aktion == "freiwillige_begruendung":
@@ -1332,9 +1340,10 @@ def _foto_speichern(request, mandat: Mandat) -> None:
     messages.success(request, _("Foto gespeichert."))
 
 
-def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
+def _monatsbericht_anlegen(request, mandat: Mandat) -> bool:
     """Monatsbericht für einen geschuldeten Monat — fällig oder als Nachtrag zu einem schon
-    berichteten Monat (kein Bearbeiten: der Nachtrag ist ein weiterer Bericht)."""
+    berichteten Monat (kein Bearbeiten: der Nachtrag ist ein weiterer Bericht). False bei einem
+    Eingabefehler: Der Bereich rendert dann mit dem Text neu (GP-123)."""
     text = (request.POST.get("text") or "").strip()
     try:
         monat = date.fromisoformat((request.POST.get("monat") or "").strip()).replace(day=1)
@@ -1345,10 +1354,10 @@ def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
     geschuldet = set(berichtsmonate(mandat.angetreten, mandat.pflichtende, timezone.localdate()))
     if monat is None or monat not in geschuldet:
         messages.error(request, _("Bitte einen fälligen Monat wählen."))
-        return
+        return False
     if not text:
         messages.error(request, _("Der Bericht braucht einen Text."))
-        return
+        return False
     bericht = Bericht.objects.create(
         mandat=mandat, art=Berichtsart.MONATSBERICHT, monat=monat, text=text[:BERICHT_MAX]
     )
@@ -1359,17 +1368,19 @@ def _monatsbericht_anlegen(request, mandat: Mandat) -> None:
         messages.success(request, _("Monatsbericht eingereicht."))
     else:
         messages.success(request, _("Nachtrag zum Monatsbericht eingereicht."))
+    return True
 
 
-def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
+def _sammelbericht_anlegen(request, mandat: Mandat) -> bool:
+    """Sammelbericht zu einem vergangenen Sitzungstag; False bei einem Eingabefehler (GP-123)."""
     aufgabe = _eigener_sitzungstag(mandat, request.POST.get("aufgabe", ""))
     text = (request.POST.get("text") or "").strip()
     if aufgabe is None:
         messages.error(request, _("Bitte einen vergangenen Sitzungstag wählen."))
-        return
+        return False
     if not text:
         messages.error(request, _("Der Bericht braucht einen Text."))
-        return
+        return False
     bericht = Bericht.objects.create(
         mandat=mandat, art=Berichtsart.SAMMELBERICHT, aufgabe=aufgabe, text=text[:BERICHT_MAX]
     )
@@ -1377,6 +1388,7 @@ def _sammelbericht_anlegen(request, mandat: Mandat) -> None:
         {"typ": "mandatsbericht", "mandat": mandat.pk, "bericht": bericht.pk, "art": Berichtsart.SAMMELBERICHT.value}
     )
     messages.success(request, _("Sammelbericht eingereicht."))
+    return True
 
 
 def _freiwillige_begruendung(request, mandat: Mandat) -> None:
@@ -1443,6 +1455,10 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
             # Rechenschaft gibt es nur über eine Abstimmung, die stattgefunden hat (§ 7 Abs 5) —
             # und ein ferner Tag ließe die Fristrechnung des Registers überlaufen.
             messages.error(request, _("Der Sitzungstag darf nicht in der Zukunft liegen."))
+            return False
+        if sitzung_am < mandat.angetreten or (mandat.pflichtende is not None and sitzung_am > mandat.pflichtende):
+            # Rechenschaft schuldet, wer das Mandat an diesem Tag ausübte (GP-192)
+            messages.error(request, _("Der Sitzungstag muss zwischen dem Antritt und dem Ende der Pflichten liegen."))
             return False
     if not gegenstand or not begruendung or stimme not in Stimmverhalten.values:
         messages.error(request, _("Bitte Gegenstand, Stimme und Begründung angeben."))
@@ -1547,7 +1563,8 @@ def verwaltung(request):
     _laufende_fortschreiben(Vertrauensfrage.objects.select_related("antrag"))  # ein Ende ohne Seitenaufruf: die Karte zeigt es
     mandate = list(
         Mandat.objects.select_related("mitglied", "kandidatur", "gemeinde")
-        .prefetch_related("aufgaben", VERTRAUENSFRAGEN_VORGELADEN)
+        .defer("foto")
+        .prefetch_related(AUFGABEN_VORGELADEN, VERTRAUENSFRAGEN_VORGELADEN)  # samt Antrag: keine Abfrage je Aufgabe (GP-194)
     )
     heute = timezone.localdate()
     zusagen = _rueckgabezusagen_fuer(mandate)  # dieselbe Quelle wie Seite, Register und JSON — eine Abfrage für alle
@@ -1624,7 +1641,7 @@ def _gemeinde_zuordnen(request) -> None:
     mandat.save(update_fields=["gemeinde"])
     AuditEintrag.anhaengen({
         "typ": "mandat_gemeinde_zugeordnet", "mandat": mandat.pk,
-        "vorher_gemeinde": vorher, "gemeinde": nachher,
+        "vorher_gemeinde": vorher, "gemeinde": nachher, "durch": request.user.pk,
     })
     messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
@@ -1638,7 +1655,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if wert not in RUECKGABEZUSAGE_VERMERKE:
             messages.error(request, _("Bitte „abgegeben“, „nicht abgegeben“ oder „widerrufen“ wählen."))
             return True
-        rueckgabezusage_vermerken(mandat, RUECKGABEZUSAGE_VERMERKE[wert])
+        rueckgabezusage_vermerken(mandat, RUECKGABEZUSAGE_VERMERKE[wert], durch=request.user.pk)
         messages.success(
             request,
             _("Rückgabezusage vermerkt: %(stand)s — öffentlich im Register und auf der Mandatar-Seite.")
@@ -1654,7 +1671,9 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             return True
         mandat.mandatsvereinbarung_lit_h_am = tag
         mandat.save(update_fields=["mandatsvereinbarung_lit_h_am"])
-        AuditEintrag.anhaengen({"typ": "mandatsvereinbarung_lit_h", "mandat": mandat.pk, "feld": "mandatsvereinbarung_lit_h_am"})
+        AuditEintrag.anhaengen(
+            {"typ": "mandatsvereinbarung_lit_h", "mandat": mandat.pk, "feld": "mandatsvereinbarung_lit_h_am", "durch": request.user.pk}
+        )
         messages.success(
             request,
             _("Vermerkt: Die Mandatsvereinbarung enthält § 7 Abs 3 lit h seit %(datum)s.") % {"datum": tag.strftime("%d.%m.%Y")},
@@ -1682,12 +1701,31 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
             return True
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        ergebnistag = timezone.localdate(vf.ergebnis_am)
+        if tag is not None and not ergebnistag <= tag <= timezone.localdate():
+            # Eine Anfechtung, die noch nicht erhoben ist oder vor dem Ergebnis läge, hielte die Wirkungen an (GP-110)
+            messages.error(
+                request,
+                _("Das Datum der Anfechtung liegt zwischen der Veröffentlichung des Ergebnisses (%(ab)s) und heute.")
+                % {"ab": ergebnistag.strftime("%d.%m.%Y")},
+            )
+            return True
         # Ein eingegebener Tag gilt ab seinem Beginn: Die Sieben-Tage-Frist (lit h) wird zeitpunktgenau gegen die
         # Veröffentlichung gerechnet — am siebten Tag eingebracht heißt rechtzeitig, gleich zu welcher Uhrzeit.
+        # Am Ergebnistag liegt der Vermerk nie vor der Veröffentlichung.
         jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
-        vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt)
+        jetzt = max(jetzt, vf.ergebnis_am)
+        vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt, durch=request.user.pk)
         vf.refresh_from_db()
-        if vf.anfechtung_rechtzeitig:
+        if vf.wirkungen_ab is None:
+            # Gewonnen oder Bestätigung: keine Wirkungen nach lit f, die auf die Entscheidung warten (GP-112)
+            if vf.anfechtung_rechtzeitig:
+                messages.success(request, _("Anfechtung vermerkt — binnen sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h)."))
+            else:
+                messages.warning(
+                    request, _("Anfechtung vermerkt — sie liegt nach der Frist von sieben Tagen ab Veröffentlichung (§ 7 Abs 10 lit h).")
+                )
+        elif vf.anfechtung_rechtzeitig:
             messages.success(
                 request,
                 _("Anfechtung vermerkt — das Ruhen der Rollen und das Ende der Mandatsvereinbarung warten auf die "
@@ -1713,7 +1751,18 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if wert not in ENTSCHEIDUNGEN:
             messages.error(request, _("Bitte „aufgehoben“ oder „bestätigt“ wählen."))
             return True
-        vertrauensfrage_entscheidung_vermerken(vf, wert)
+        # Die Entscheidung trägt ihren eigenen Tag, nicht den des Vermerks (GP-193): zwischen Anfechtung und heute
+        tag = _datum_aus_eingabe(request.POST.get("datum", ""))
+        anfechtungstag = timezone.localdate(vf.angefochten_am)
+        if tag is not None and not anfechtungstag <= tag <= timezone.localdate():
+            messages.error(
+                request,
+                _("Das Datum der Entscheidung liegt zwischen der Anfechtung (%(ab)s) und heute.")
+                % {"ab": anfechtungstag.strftime("%d.%m.%Y")},
+            )
+            return True
+        entschieden = timezone.now() if tag is None else max(timezone.make_aware(datetime.combine(tag, time.min)), vf.angefochten_am)
+        vertrauensfrage_entscheidung_vermerken(vf, wert, jetzt=entschieden, durch=request.user.pk)
         vertrauensfragen_fortschreiben()  # „bestätigt“: Stufe 2 läuft ab der Entscheidung — sofort nachgezogen
         if wert == Entscheidung.AUFGEHOBEN.value and vf.art == VertrauensfrageArt.BESTAETIGUNG:
             messages.success(
@@ -1734,7 +1783,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         if not mandat.kandidatursperre:
             messages.info(request, _("Keine Kandidatursperre — nichts zu bestätigen."))
             return True
-        mandat.bestaetigen("wahl")
+        mandat.bestaetigen("wahl", durch=request.user.pk)
         messages.success(
             request, _("Bestätigung durch Wahl in ein Organ vermerkt — die Kandidatursperre ist aufgehoben (§ 7 Abs 10 lit f Z 3).")
         )
@@ -1789,7 +1838,7 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
             nachgetragen_am=timezone.now(),
             quelle=quelle,
         )
-        ereignis = {"typ": "rechenschaft_nachgetragen", "mandat": mandat.pk, "rechenschaft": eintrag.pk, "durch": "verwaltung"}
+        ereignis = {"typ": "rechenschaft_nachgetragen", "mandat": mandat.pk, "rechenschaft": eintrag.pk, "durch": request.user.pk}
         if antrag is not None:
             ereignis["antrag"] = antrag.pk
         AuditEintrag.anhaengen(ereignis)
@@ -1846,7 +1895,7 @@ def verwaltung_aktion(request):
             vorstellung=d["vorstellung"],
             kandidatur=d["kandidatur"],
         )
-        ereignis = {"typ": "mandat_angelegt", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung}
+        ereignis = {"typ": "mandat_angelegt", "mandat": mandat.pk, "bezeichnung": mandat.bezeichnung, "durch": request.user.pk}
         if mandat.kandidatur_id:
             ereignis["kandidatur"] = mandat.kandidatur_id
         AuditEintrag.anhaengen(ereignis)
@@ -1856,9 +1905,17 @@ def verwaltung_aktion(request):
 
     elif aktion == "beenden":
         mandat = _mandat_der_verwaltung(request)
+        if mandat.beendet is not None:
+            # Eine Wiederholung verschöbe das dokumentierte Ende und öffnete die Nachfrist neu (GP-113)
+            messages.info(
+                request,
+                _("Mandat „%(bezeichnung)s“ ist bereits beendet (seit %(datum)s).")
+                % {"bezeichnung": mandat.bezeichnung, "datum": mandat.beendet.strftime("%d.%m.%Y")},
+            )
+            return redirect("mandatare:verwaltung")
         mandat.beendet = timezone.localdate()
         mandat.save(update_fields=["beendet"])
-        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk, "durch": request.user.pk})
         messages.info(
             request,
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")
@@ -1879,7 +1936,7 @@ def verwaltung_aktion(request):
         mandat.foto = daten
         mandat.foto_typ = typ
         mandat.save(update_fields=["foto", "foto_typ"])
-        AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "durch": "verwaltung"})
+        AuditEintrag.anhaengen({"typ": "mandat_foto", "mandat": mandat.pk, "durch": request.user.pk})
         messages.success(request, _("Foto gespeichert."))
 
     elif aktion == "aufgabe":
@@ -1909,7 +1966,7 @@ def verwaltung_aktion(request):
             sitzungstag=request.POST.get("sitzungstag") == "on" and frist is not None,
             antrag=antrag,
         )
-        AuditEintrag.anhaengen({"typ": "mandats_aufgabe", "mandat": mandat.pk, "aufgabe": aufgabe.pk})
+        AuditEintrag.anhaengen({"typ": "mandats_aufgabe", "mandat": mandat.pk, "aufgabe": aufgabe.pk, "durch": request.user.pk})
         messages.success(request, _("Aufgabe „%(titel)s“ veröffentlicht.") % {"titel": aufgabe.titel})
 
     elif aktion == "rechenschaft_nachtragen":
@@ -1925,7 +1982,7 @@ def verwaltung_aktion(request):
             aufgabe.status = status
             aufgabe.save(update_fields=["status", "aktualisiert_am"])
             AuditEintrag.anhaengen(
-                {"typ": "mandats_aufgabe_status", "mandat": aufgabe.mandat_id, "aufgabe": aufgabe.pk, "durch": "verwaltung"}
+                {"typ": "mandats_aufgabe_status", "mandat": aufgabe.mandat_id, "aufgabe": aufgabe.pk, "durch": request.user.pk}
             )
             messages.success(
                 request, _("„%(titel)s“: %(status)s.") % {"titel": aufgabe.titel, "status": aufgabe.get_status_display()}

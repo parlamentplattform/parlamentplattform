@@ -847,10 +847,15 @@ def parlament(request):
                 "ort_versteckt": len(orte) == 1,
                 "live": live[ebene],
                 "kacheln": [
-                    _kachel(
-                        a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
-                        vfs=vfs, nutzer=request.user, lage=lage,
-                    )
+                    {
+                        **_kachel(
+                            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
+                            vfs=vfs, nutzer=request.user, lage=lage,
+                        ),
+                        # Steht die Kachel nur über den festgehaltenen Kreis in der Zeile (etwa nach
+                        # einem Umzug), nennt sie ihr Gebiet, auch wenn der Kopf einen Ort trägt (GP-054)
+                        "ort_fremd": bool(orte) and not _gebiet_passt(a, orte, meine_gemeinden, wiener_bezirk),
+                    }
                     for a in zeile
                 ],
             }

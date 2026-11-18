@@ -411,3 +411,49 @@ def test_gp170_veraltetes_einbringformular_landet_nicht_in_der_neuen_gemeinde(cl
     antrag = Antrag.objects.get()
     assert antrag.gebiet == 'Neuort'
     assert any('Neuort' in str(m) for m in antwort.context['messages'])
+
+
+def _umzug_lage(ordnung):  # noqa: F811
+    """Ein Mitglied bringt in Altort einen Gemeindeantrag ein und zieht dann nach Neuort."""
+    from mitglieder.models import Gemeinde, Mitglied, Wohnsitzart
+
+    alt = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    neu = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    m = mitglied_anlegen('wanderin', tage=800, gemeinde='Altort')
+    m.wohnsitz, m.wohnsitz_art = alt, Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    antrag = antrag_einbringen(m, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+    Mitglied.objects.filter(pk=m.pk).update(wohnsitz=neu, gemeinde='Neuort')
+    m.refresh_from_db()
+    return m, antrag
+
+
+def _region(client) -> str:
+    seite = client.get(reverse('verfahren:parlament')).content.decode()
+    return seite.split('id="feld-region"', 1)[1].split('</section>', 1)[0]
+
+
+def test_gp054_region_nennt_den_ort_einer_kachel_aus_dem_alten_wohnort(client, ordnung):  # noqa: F811
+    """GP-054 (OW-02): Nach dem Umzug stand der Antrag des alten Wohnorts ohne Ortsangabe unter
+    dem Kopf „Gemeinde · Neuort“."""
+    m, antrag = _umzug_lage(ordnung)
+    assert antrag.gebiet == 'Altort'
+    client.force_login(m)
+    region = _region(client)
+    assert 'Gemeinde · Neuort' in region
+    kachel = region.split(f'href="/antrag/{antrag.pk}/"', 1)[1].split('</article>', 1)[0]
+    assert '<span class="rest ort">Altort</span>' in kachel
+    assert 'Teilnehmerkreis vom' in kachel
+
+
+def test_gp054_kachel_im_eigenen_ort_bleibt_ohne_ortsangabe(client, ordnung):  # noqa: F811
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    m = mitglied_anlegen('sesshaft', tage=800, gemeinde='Altort')
+    m.wohnsitz, m.wohnsitz_art = ort, Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    antrag = antrag_einbringen(m, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+    client.force_login(m)
+    kachel = _region(client).split(f'href="/antrag/{antrag.pk}/"', 1)[1].split('</article>', 1)[0]
+    assert 'class="rest ort"' not in kachel

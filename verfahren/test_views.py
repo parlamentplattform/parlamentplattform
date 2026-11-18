@@ -591,3 +591,17 @@ def test_gp181_abgeschlossene_zeilen_fragen_die_aussetzungen_nicht_einzeln(clien
         assert client.get(reverse('verfahren:parlament')).status_code == 200
     aussetzungen = [q for q in ctx.captured_queries if '"gremien_aussetzung"' in q['sql']]
     assert len(aussetzungen) <= 2, len(aussetzungen)
+
+
+def test_gp182_einbringformular_sagt_was_ein_oertlicher_antrag_offenlegt(client, ordnung):  # noqa: F811
+    """GP-182: Örtliches Einbringen legt das Gebiet des Hauptwohnsitzes offen; das Formular sagte es nicht."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    satz = 'Ein örtlicher Antrag zeigt öffentlich, dass Ihr Hauptwohnsitz in diesem Gebiet liegt.'
+    m = mitglied_anlegen('anna', tage=800, gemeinde='Altort')
+    client.force_login(m)
+    assert satz not in client.get(reverse('verfahren:einbringen')).content.decode()  # nur Bundesebene
+    m.wohnsitz = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    m.wohnsitz_art = Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    assert satz in client.get(reverse('verfahren:einbringen')).content.decode()

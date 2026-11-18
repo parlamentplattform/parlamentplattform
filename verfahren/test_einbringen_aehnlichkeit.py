@@ -254,6 +254,46 @@ def test_mandats_kandidaturen_bleiben_ohne_pruefung_und_ohne_auftrag(client, set
     assert not KIAuftrag.objects.exists() and not KILauf.objects.exists()
 
 
+def test_personenantraege_gehen_nie_an_den_anbieter(client, settings, monkeypatch, ordnung):  # noqa: F811
+    """GP-023 (ZWA-07): Über Personen rechnet keine Maschine (FB-F4, ADR-011). Titel und Wortlaut offener
+    Vertrauensfragen und Kandidaturen gehen im Bedeutungsvergleich nicht an den Anbieter, landen nicht im
+    Lauf-Archiv und bekommen keinen Vektor; vorhandene Vektoren werden nicht gelesen. Der Wortvergleich
+    (ohne Modell) bleibt."""
+    from verfahren.models import Antragsart
+
+    settings.DDOE_KI_ANBIETER = 'attrappe'
+    gesendet = []
+    echt = AttrappenAnbieter.einbetten
+
+    def horchen(self, texte, zeitgrenze=None):
+        gesendet.extend(texte)
+        return echt(self, texte, zeitgrenze=zeitgrenze)
+
+    monkeypatch.setattr(AttrappenAnbieter, 'einbetten', horchen)
+    m = mitglied_anlegen('autorin')
+    vf = antrag_einbringen(m, UMFORMULIERT['titel'] + ' Musterfrau', UMFORMULIERT['wortlaut'] + ' Versagung des Vertrauens.', '', ordnung)
+    kandidatur = antrag_einbringen(m, 'Kandidatur Listenreihung Gemeinderat', 'Listenreihung Gemeinderat Polsenz. ' + UMFORMULIERT['wortlaut'], '', ordnung)
+    Antrag.objects.filter(pk=vf.pk).update(art=Antragsart.VERTRAUENSFRAGE)
+    Antrag.objects.filter(pk=kandidatur.pk).update(art=Antragsart.MANDAT)
+    # ein früher gespeicherter Vektor zu einer Kandidatur wird nicht mehr gelesen
+    AntragsEinbettung.objects.create(antrag=kandidatur, fassung_nummer=1, modell='attrappe-einbettung-1', vektor=[1.0, 0.0])
+    sache = antrag_einbringen(m, ANTRAG['titel'], ANTRAG['wortlaut'], '', ordnung)
+    client.force_login(mitglied_anlegen('bernd'))
+    antwort = client.post(reverse('verfahren:einbringen'), UMFORMULIERT)
+    assert antwort.status_code == 200
+    alles = '\n'.join(gesendet) + '\n'.join(KILauf.objects.values_list('eingabe', flat=True))
+    for verboten in ('Musterfrau', 'Versagung des Vertrauens', 'Listenreihung'):
+        assert verboten not in alles
+    assert not AntragsEinbettung.objects.filter(antrag=vf).exists()
+    assert AntragsEinbettung.objects.filter(antrag=sache).exists()  # der Sachantrag bekommt seinen Vektor
+    treffer = {t['antrag'].pk: t for t in antwort.context['aehnliche']}
+    assert kandidatur.pk not in treffer or treffer[kandidatur.pk]['bedeutung_prozent'] is None
+    assert vf.pk not in treffer or treffer[vf.pk]['bedeutung_prozent'] is None
+    # der Wortvergleich bleibt: ohne Anbieter findet er die Vertrauensfrage weiterhin
+    wort = aehnliche_antraege(UMFORMULIERT['titel'], UMFORMULIERT['wortlaut'], m, bedeutung=False)
+    assert vf.pk in {t['antrag'].pk for t in wort.treffer}
+
+
 # --- Erbschaft: Treffer bringen ihre Rechtsbezug-Normen mit --------------------------------------
 
 

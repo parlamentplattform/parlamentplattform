@@ -24,11 +24,13 @@ from ki.models import einbettung_ausfuehren
 from parameter.models import zahl
 from plattform_core import Phase
 from plattform_core.similarity import aehnlichkeit, kosinus, vereinigen
-from verfahren.models import Antrag, AntragsEinbettung
+from verfahren.models import Antrag, Antragsart, AntragsEinbettung
 
 log = logging.getLogger(__name__)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+#: Personenanträge — sie bleiben außerhalb der Bedeutungsstufe (GP-023).
+PERSONENARTEN = (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
 EINBETTUNGEN_JE_AUFRUF_STANDARD = 20
 #: Zeitgrenze (Sekunden je Socket-Operation) für den Anbieter-Aufruf in der Anfrage „Einbringen“ —
 #: Erstbestand und Rückfall des Registerwerts „aehnlichkeit-zeitgrenze-sekunden“ (Entscheidung des
@@ -139,7 +141,11 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
         a.pk: aehnlichkeit((titel, wortlaut), (a.titel, _fassung(a).wortlaut if _fassung(a) else ""))
         for a in offene
     }
-    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", offene, mitglied, ergebnis) if bedeutung else {}
+    # Über Personen rechnet keine Maschine (FB-F4, ADR-011): Titel und Wortlaut von Kandidaturen und
+    # Vertrauensfragen gehen nie an den Anbieter, und ihre Vektoren werden nicht gelesen. Der
+    # Wortvergleich oben rechnet ohne Modell und bleibt für alle offenen Anträge.
+    sachlich = [a for a in offene if a.art not in PERSONENARTEN]
+    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", sachlich, mitglied, ergebnis) if bedeutung else {}
     zeilen = vereinigen(
         wortwerte,
         bedeutungswerte,

@@ -195,3 +195,22 @@ def test_migration_0021_schreibt_den_stamm_fest_legt_demo_konten_still_und_ist_i
     anzahl = len(kette)
     _migration_0021_ausfuehren()  # zweiter Lauf: nichts mehr zu tun
     assert AuditEintrag.objects.count() == anzahl
+
+
+# --- Stillgelegtes Testkonto ohne Beitritt bleibt zu (GP-187, KM-24) -----------------------
+
+
+def test_testkonto_ohne_beitritt_bekommt_keinen_bestaetigungslink(client):
+    from django.core import mail
+
+    from mitglieder.test_views import ANMELDUNG, botschutz
+
+    call_command('gemeinden_laden')
+    _mitglied('probe', email='eva@example.org', beitritt=None, is_active=False, testkonto=True)
+    login = reverse('mitglieder:login')
+    client.post(login, {'email': 'eva@example.org', **botschutz(client, url=login)})
+    assert mail.outbox == []
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client)})
+    assert 'existiert bereits' in antwort.content.decode()
+    assert Mitglied.objects.get(email='eva@example.org').testkonto is True
+    assert mail.outbox == []

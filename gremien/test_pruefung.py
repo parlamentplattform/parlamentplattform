@@ -462,3 +462,38 @@ def test_die_freigabe_nach_rueckgabe_in_runde_1_ist_der_beschlusszeitpunkt(clien
     antrag.fortschreiben_bis_zum_stand()
     entwurf.refresh_from_db()
     assert entwurf.status == EntwurfsStatus.IN_ARBEIT and entwurf.beratung_freigegeben_am == frist
+
+
+# --- GP-011: Kein Name, keine Kennung, kein Stimmtext im Audit ------------------------------
+
+
+def test_die_rueckgabe_der_gruppe_2_schreibt_keinen_namen_ins_audit(client, ordnung):  # noqa: F811
+    """GP-011: Die Rückgabe hängte Name oder „Mitglied n“ samt Stimmtext als `grund` an die
+    öffentliche Kette — dort nicht mehr zu entfernen. Jetzt steht dort nur ein Verweis; die
+    Antragsseite liest die Begründungen aus den Stimmen, mit dem jeweils geltenden Anzeigenamen."""
+    import json
+
+    from mitglieder.profil import austreten
+
+    antrag, entwurf, er, gruppe2, beschluss = pruef_lage(client, ordnung, zweitpruefer=2)
+    petra, ohne = gruppe2
+    petra.first_name, petra.last_name, petra.klarname_oeffentlich = 'Petra', 'Probekind', True
+    petra.save()
+    stimme(client, beschluss, petra, 'zurueck', 'Die Vergabekriterien fehlen völlig.')
+    stimme(client, beschluss, ohne, 'zurueck', 'Kein Vergleichsangebot vorhanden.')
+    entwurf.refresh_from_db()
+    assert entwurf.status == EntwurfsStatus.IN_ARBEIT
+    kette = '\n'.join(json.dumps(e.ereignis, ensure_ascii=False) for e in AuditEintrag.objects.all())
+    assert 'Probekind' not in kette and f'Mitglied {ohne.pk}' not in kette
+    assert 'Vergabekriterien' not in kette and 'Vergleichsangebot' not in kette
+    rueckgabe = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'vorschlag_zurueckgegeben'][-1]
+    assert rueckgabe['grund'] == 'gruppe_2' and rueckgabe['beschluss'] == beschluss.pk
+    pruefung = Pruefung.objects.get(entwurf=entwurf)
+    assert 'Probekind' not in pruefung.begruendung and f'Mitglied {ohne.pk}' not in pruefung.begruendung
+    client.logout()
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'Petra Probekind' in seite and 'Die Vergabekriterien fehlen völlig.' in seite
+    austreten(petra)
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert 'Probekind' not in seite and f'Ehemaliges Mitglied {petra.pk}' in seite
+    assert 'Die Vergabekriterien fehlen völlig.' in seite

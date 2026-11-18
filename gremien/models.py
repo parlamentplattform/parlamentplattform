@@ -505,10 +505,15 @@ class Entwurf(models.Model):
         neue_runde: bool = False,
         frist_erneuern: bool = False,
         auswertung: dict | None = None,
+        beschluss_id: int | None = None,
     ) -> None:
         """Zurück in die Werkstatt: mit neuer Runde (Unterstützer-Rückgabe) oder
         ohne (Gruppe 2, § 6 Abs 7). frist_erneuern gibt einer laufenden
-        Überarbeitung (Runde > 1) frische Zeit, ohne die Runden zu zählen."""
+        Überarbeitung (Runde > 1) frische Zeit, ohne die Runden zu zählen.
+
+        `grund` ist ein Schlüsselwort oder eine Rechnung, nie ein Text aus Stimmen: Die Kette fügt
+        nur an, ein Name oder Vorwurf stünde dort für immer (GP-011). `beschluss_id` verweist auf
+        den Beschluss, dessen Stimmen die Begründung tragen."""
         jetzt = jetzt or timezone.now()
         self.status = EntwurfsStatus.IN_ARBEIT
         if neue_runde:
@@ -531,6 +536,7 @@ class Entwurf(models.Model):
                 "antrag": self.antrag_id,
                 "runde": self.runde,
                 "grund": grund,
+                **({"beschluss": beschluss_id} if beschluss_id else {}),
                 "wirksam_ab": jetzt.isoformat(),
                 "beratung_freigegeben": freigegeben,
                 # Die Rechnung der entschiedenen Runde, festgeschrieben: Das Archiv rechnet
@@ -941,6 +947,22 @@ class Pruefung(models.Model):
 
     def __str__(self) -> str:
         return f"Prüfung zu Entwurf {self.entwurf_id}: {self.get_ergebnis_display()}"
+
+    def stimmbegruendungen(self) -> list[dict]:
+        """Die veröffentlichten Begründungen der Gruppe 2, aus den Stimmen des Beschlusses gelesen.
+
+        Der Name wird beim Anzeigen bestimmt, nicht beim Urteil gespeichert (GP-011): Wer die
+        Namensnennung widerruft oder austritt, steht hier danach unter dem dann geltenden
+        Anzeigenamen. Leer, wenn der Beschluss ohne Ergebnis blieb oder es keinen gibt — dann
+        steht der Vermerk in `begruendung`."""
+        beschluss = self.beschluss
+        if beschluss is None or not beschluss.ergebnis:
+            return []
+        return [
+            {"name": s.mitglied.anzeigename, "option": beschluss.name_von(s.option), "text": s.begruendung}
+            for s in beschluss.stimmen.select_related("mitglied")
+            if s.begruendung
+        ]
 
 
 class UnterstuetzerVotum(models.Model):
@@ -1420,8 +1442,10 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
     stimmen = list(beschluss.stimmen.select_related("mitglied"))
     if beschluss.ergebnis:
         ergebnis = beschluss.ergebnis
+        # Ohne Namen (GP-011): Der Anzeigename gilt nur, solange die Einwilligung gilt. Wer gestimmt
+        # hat, liest die Antragsseite aus den Stimmen des Beschlusses (`Pruefung.stimmbegruendungen`).
         begruendung = "\n\n".join(
-            f"{stimme.mitglied.anzeigename}: {beschluss.name_von(stimme.option)} — {stimme.begruendung}"
+            f"{beschluss.name_von(stimme.option)} — {stimme.begruendung}"
             for stimme in stimmen
             if stimme.begruendung
         )
@@ -1461,7 +1485,7 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
     elif ergebnis == Pruefung.Ergebnis.ZURUECK:
         # Zum Beschlusszeitpunkt, nicht zum Zeitpunkt der Auswertung (GP-027): Schließt die Frist den
         # Beschluss, laufen Überarbeitungsfrist und Freigabe der Beratung ab der Frist.
-        entwurf.zurueck_an_gruppe_1(f"Gruppe 2: {begruendung[:160]}", jetzt, frist_erneuern=True)
+        entwurf.zurueck_an_gruppe_1("gruppe_2", jetzt, frist_erneuern=True, beschluss_id=beschluss.pk)
 
 
 

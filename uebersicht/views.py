@@ -19,6 +19,7 @@ from mitglieder.models import Mitglied
 from parameter.kennzahlen import abgegeben_je_antrag
 from parameter.models import zahl
 from plattform_core import Phase
+from plattform_core import meistgelesen as meistgelesen_regel
 from plattform_core.diagramme import BLAU, GOLD, ROT, anteils_balken, balken_diagramm, linien_diagramm
 from uebersicht.models import AntragAufruf, TagesBesucher, TagesZahl
 from verfahren.models import Antrag, Antragsart, Stimmabgabe
@@ -182,7 +183,13 @@ def index(request):
     woche_start = heute - timedelta(days=6)
 
     meistgelesen = []
-    top = AntragAufruf.objects.values("antrag").annotate(gesamt=Sum("aufrufe")).order_by("-gesamt")[:5]
+    # Reihung und Länge der Liste stehen als offengelegte Regel im Kern (Z-3, § 2 Abs 6) — die Seite
+    # liest sie dort, damit Regelverzeichnis und Anzeige nicht auseinanderlaufen
+    top = (
+        AntragAufruf.objects.values("antrag")
+        .annotate(gesamt=Sum("aufrufe"))
+        .order_by(*meistgelesen_regel.REIHUNG)[: meistgelesen_regel.HOECHSTZAHL]
+    )
     titel = {a.pk: a for a in Antrag.objects.filter(pk__in=[t["antrag"] for t in top])}
     for t in top:
         meistgelesen.append({"antrag": titel[t["antrag"]], "aufrufe": t["gesamt"]})

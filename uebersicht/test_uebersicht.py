@@ -193,3 +193,25 @@ def test_antragstitel_mit_hochkomma_wird_auf_der_uebersicht_kein_markup(client, 
         wurzel = ET.fromstring("<svg" + svg)  # wohlgeformt — der Titel hat die Struktur nicht verändert
         assert all("onload" not in e.attrib for e in wurzel.iter())
         assert "alert(1)" in unescape(wurzel.get("aria-label"))  # der Titel steht drin — als Text
+
+
+def test_z3_die_seite_liest_reihung_und_hoechstzahl_aus_der_kernregel(client, ordnung, monkeypatch):  # noqa: F811
+    """Z-3: Die Ansicht rechnete „Meistgelesene Anträge“ selbst (order_by("-gesamt")[:5]), neben der
+    Regel in plattform_core/meistgelesen.py. Sie liest jetzt deren Konstanten — ändert sich die Regel,
+    ändert sich die Seite mit, und Verzeichnis und Seite können nicht auseinanderlaufen."""
+    from plattform_core import meistgelesen
+
+    autor = mitglied_anlegen("autor")
+    heute = timezone.localdate()
+    for nummer, aufrufe in enumerate([4, 9, 1, 7]):
+        antrag = antrag_einbringen(autor, **{**ANTRAG, "titel": f"Antrag {nummer}"}, ordnung=ordnung)
+        AntragAufruf.objects.create(antrag=antrag, datum=heute - timedelta(days=1), aufrufe=aufrufe)
+
+    def gezeigt():
+        return [z["aufrufe"] for z in client.get(reverse("uebersicht:index")).context["meistgelesen"]]
+
+    assert gezeigt() == [9, 7, 4, 1]  # Verhalten unverändert: Summe absteigend, höchstens fünf
+    monkeypatch.setattr(meistgelesen, "HOECHSTZAHL", 2)
+    assert gezeigt() == [9, 7]
+    monkeypatch.setattr(meistgelesen, "REIHUNG", ("gesamt",))
+    assert gezeigt() == [1, 4]

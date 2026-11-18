@@ -1,6 +1,7 @@
 {% load i18n chat %}{% comment %}
 Ein Beitrag im Chat einer Sitzung (FB-L5). Erwartet b (aus chat.sitzung_faden), mandat, sitzung,
-chat_offen, darf_beantworten, meldegruende. Handlungen sind echte Formulare (ohne JavaScript bedienbar).
+chat_offen, darf_beantworten, meldegruende. Hat die angemeldete Person den Beitrag gemeldet, steht der
+Stand ihrer Meldung an seiner Stelle statt des Meldeformulars (GP-014). Handlungen sind echte Formulare (ohne JavaScript bedienbar).
 {% endcomment %}<article class="blase{% if b.eigener %} eigen{% endif %}{% if b.neu %} neu{% endif %}" id="k-{{ b.k.pk }}">
   <span class="avatar-initiale{% if b.k.geloescht or b.k.ausgeblendet_am %} still{% endif %}" aria-hidden="true">{{ b.k.mitglied.anzeigename|initiale }}</span>
   <div class="blase-inhalt">
@@ -23,6 +24,9 @@ chat_offen, darf_beantworten, meldegruende. Handlungen sind echte Formulare (ohn
       <form method="post" action="{% url 'mandatare:live_beitrag_aktion' mandat.pk sitzung.pk b.k.pk %}" class="blase-form">{% csrf_token %}
         <button class="blase-knopf" name="aktion" value="entfernen">{% translate "Zurückziehen" %}</button>
       </form>
+      {% elif b.meine_meldung %}
+      {# Der Stand der eigenen Meldung — wie im Chat eines Antrags, auch im Protokoll (GP-014) #}
+      <span class="erk">{% blocktranslate with am=b.meine_meldung.erstellt_am|date:"d.m.Y" %}Ihre Meldung vom {{ am }}{% endblocktranslate %} · {% if not b.meine_meldung.erledigt_am %}{% translate "liegt der Verwaltung vor" %}{% elif b.meine_meldung.entscheidung == "ausgeblendet" %}{% translate "entschieden: ausgeblendet" %}{% else %}{% translate "entschieden: keine Maßnahme" %}{% endif %}</span>
       {% elif user.is_authenticated and not b.eigener and not b.k.geloescht and not b.k.ausgeblendet_am %}
       {# Ohne JavaScript lädt die Seite im Takt neu — gemeldet wird dann auf der Seite ohne Neuladen (?schreiben=1) #}
       {% if not schreiben %}<a class="blase-knopf melden-link" href="{% url 'mandatare:live' mandat.pk %}?sitzung={{ sitzung.pk }}&amp;schreiben=1#k-{{ b.k.pk }}">{% translate "Melden" %}</a>{% endif %}

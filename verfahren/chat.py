@@ -492,13 +492,18 @@ def sitzung_chat_offen(sitzung, jetzt=None) -> bool:
 
 def sitzung_beitrag_schreiben(sitzung, mitglied, text: str, antwort_auf=None, jetzt=None) -> Kommentar:
     """Der Schreibweg für den Chat einer Sitzung — dieselben Grenzen wie im Chat eines Antrags
-    (Registerwert der Zeichenzahl, ein Faden eine Ebene tief), Antworten nur auf Beiträge derselben Sitzung."""
+    (Registerwert der Zeichenzahl, ein Faden eine Ebene tief), Antworten nur auf Beiträge derselben Sitzung.
+    Ein zu langer Beitrag wird mit `BeitragZuLang` abgewiesen, nicht gekürzt (GP-083)."""
     jetzt = jetzt or timezone.now()
     if not sitzung_chat_offen(sitzung, jetzt):
         raise ChatGesperrt(_("Die Sitzung ist beendet — der Chat bleibt als Teil des Protokolls lesbar."))
     text = (text or "").strip()
     if not text:
         raise ValueError(_("Ein Beitrag braucht Text."))
+    hoechst = chat_zeichen_hoechstzahl()
+    if len(text) > hoechst:
+        # Abweisen statt still kürzen — wie im Chat eines Antrags (GP-083)
+        raise BeitragZuLang(hoechst)
     wurzel = None
     if antwort_auf is not None:
         if antwort_auf.sitzung_id != sitzung.pk:
@@ -507,7 +512,7 @@ def sitzung_beitrag_schreiben(sitzung, mitglied, text: str, antwort_auf=None, je
     return Kommentar.objects.create(
         sitzung=sitzung,
         mitglied=mitglied,
-        text=text[: chat_zeichen_hoechstzahl()],
+        text=text,
         antwort_auf=wurzel,
         phase=SITZUNG_PHASE,
         erstellt_am=jetzt,
@@ -519,15 +524,22 @@ def sitzung_faden(sitzung, nutzer=None) -> list[dict]:
     `neu` bezieht sich auf den Lesestand des Mitglieds zu dieser Sitzung (FB-G2)."""
     beitraege = list(sitzung.beitraege.select_related("mitglied").order_by("erstellt_am", "pk"))
     gelesen_bis = None
+    meine_meldungen: dict[int, Meldung] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, sitzung=sitzung).first()
         gelesen_bis = stand.gelesen_bis if stand else None
+        # Der Stand der eigenen Meldung steht am Beitrag — wie im Chat eines Antrags (GP-014)
+        meine_meldungen = {
+            m.kommentar_id: m
+            for m in Meldung.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+        }
 
     def schmuecken(k: Kommentar) -> dict:
         return {
             "k": k,
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
             "eigener": nutzer is not None and k.mitglied_id is not None and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "meine_meldung": meine_meldungen.get(k.pk),
         }
 
     je_wurzel: dict[int, list[dict]] = {}

@@ -68,3 +68,17 @@ def kompakt(wert) -> str:
 def darf_bearbeiten(kommentar, mitglied) -> bool:
     """Ob das Bearbeitungsfenster (Register `chat-bearbeitungsfenster-minuten`) noch offen ist (FB-G1)."""
     return kommentar.darf_bearbeiten(mitglied)
+
+
+@register.simple_tag(takes_context=True)
+def offene_meldungen(context) -> int | None:
+    """Wie viele Meldungen aus beiden Chats auf die Entscheidung der Verwaltung warten (GP-014) —
+    für den Verweis aus der Verwaltung auf die Meldeliste. Nur für Konten mit Verwaltungsrechten;
+    allen anderen `None`, damit kein Verweis entsteht."""
+    from verfahren.models import Meldung
+
+    request = context.get("request")
+    nutzer = getattr(request, "user", None)
+    if nutzer is None or not getattr(nutzer, "hat_adminrechte", False):
+        return None
+    return Meldung.objects.filter(erledigt_am__isnull=True).count()

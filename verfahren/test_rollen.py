@@ -562,14 +562,6 @@ def test_gp014_die_matrix_beschreibt_die_bearbeitung_gemeldeter_beitraege():
     assert 'von keiner Ansicht gelesen' not in alle and 'abgeholfen wird nicht' not in alle
 
 
-@pytest.mark.xfail(
-    reason='GP-014: Liste und Entscheidung über Meldungen bauen andere Pakete derselben Runde. '
-    'Nach der Zusammenführung muss dieser Test bestehen und die Markierung entfallen; '
-    'fehlt der Schreibweg dann noch, ist der Matrix-Commit zu GP-014 zurückzunehmen.',
-    # Streng: Besteht der Wächter nach der Zusammenführung, meldet die Testreihe das, bis die
-    # Markierung entfernt ist — eine stille Markierung bewiese in keiner Richtung etwas.
-    strict=True,
-)
 def test_gp014_das_zugesagte_ausblenden_hat_einen_schreibweg():
     '''Wächter zur Zeile der Verwaltung: Das Ausblenden eines Beitrags muss im Code geschrieben
     werden (`ausgeblendet_am`), sonst verspricht die Matrix etwas Ungebautes.'''
@@ -656,3 +648,18 @@ def test_z4_was_die_matrix_dem_gemeindekonto_zuschreibt_stimmt_mit_dem_code(clie
     ):
         assert client.post(reverse(name, args=argumente), {}).status_code == 403, name
     assert antrag.unterstuetzungen.count() == 0 and antrag.stimmabgaben.count() == 0
+
+
+@pytest.mark.django_db
+def test_z4_die_seite_zaehlt_vierzehn_rollen_und_das_gemeindekonto_getrennt(client, vorweggenommene_adressen):
+    '''Z-4: /rollen/ zählte „15 Rollen“ einschließlich des Gemeindekontos, obwohl die Seite selbst sagt,
+    es sei keine Rolle der Satzung. Gezählt werden jetzt die vierzehn Rollen der Satzung; das
+    Gemeindekonto steht getrennt daneben, wie im Regelverzeichnis.'''
+    zahlen = zaehlung(GRUPPEN)
+    assert zahlen['rollen'] == 14 and zahlen['weitere_konten'] == 1
+    konto = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gemeindekonto')
+    assert not konto.satzungsrolle
+    assert all(r.satzungsrolle for r in alle_rollen(GRUPPEN) if r.schluessel != 'gemeindekonto')
+    inhalt = client.get(reverse('verfahren:rollen')).content.decode()
+    assert '14 Rollen,' in inhalt and '15 Rollen' not in inhalt
+    assert 'Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist' in inhalt

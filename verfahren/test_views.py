@@ -107,12 +107,13 @@ def test_kachel_und_feed_zeile_rechnen_die_aussetzung_ein(client, ordnung):  # n
         hervorgehoben=True, hervorhebung_begruendung="IR-2026-01.", phase_beginn=jetzt - timedelta(days=4)
     )
     vorher = client.get("/parlament/").content.decode()
-    assert "noch <strong>2</strong> Tage" in vorher  # Frist in knapp drei Tagen
+    # Frist in drei Tagen — gezählt in Wiener Kalendertagen (GP-175)
+    assert "noch <strong>3</strong> Tage" in vorher
 
     _aussetzung(antrag, beginn=jetzt - timedelta(days=3, hours=12), beendet_am=jetzt - timedelta(hours=12))
     nachher = client.get("/parlament/").content.decode()
-    assert "noch <strong>5</strong> Tage" in nachher
-    assert "noch <strong>2</strong> Tage" not in nachher
+    assert "noch <strong>6</strong> Tage" in nachher
+    assert "noch <strong>3</strong> Tage" not in nachher
 
 
 # ── Neutrale Grundordnung nach dem Fristende (Befund #70) ─────────────────────
@@ -272,3 +273,335 @@ def test_startseite_nennt_die_rundenzahl_der_aktiven_ordnung(client, ordnung):  
     inhalt = client.get("/").content.decode()
     assert f"höchstens {ordnung.als_policy().hoechstrunden} Runden" in inhalt
     assert "höchstens 2 Runden" not in inhalt
+
+
+def test_gp076_willkommensseite_behauptet_keine_pruefung_die_nicht_stattfand(client):
+    """GP-076 (OCR-13): Die Zahl auf der Willkommensseite zählt jedes aktive Parteikonto — auch
+    ungeprüfte und pausierte. Ihr Etikett darf darum keine bestätigten Mitglieder behaupten."""
+    import re
+
+    from mitglieder.models import Identitaetsstufe
+
+    def zahl_und_etikett():
+        inhalt = client.get('/').content.decode()
+        treffer = re.search(r'<div class="zahl"><strong>(\d+)</strong><span>([^<]+)</span>', inhalt)
+        return int(treffer.group(1)), treffer.group(2)
+
+    mitglied_anlegen('anna')
+    vorher, _etikett = zahl_und_etikett()
+    mitglied_anlegen('neu', stufe=Identitaetsstufe.UNGEPRUEFT)
+    nachher, etikett = zahl_und_etikett()
+    if 'bestätigt' in etikett:
+        assert nachher == vorher
+    else:
+        assert etikett == 'Mitglieder'
+
+
+@pytest.mark.parametrize('weg', ['einreihen', 'einbettung'])
+def test_gp178_fehler_im_nachlauf_haelt_das_einbringen_nicht_auf(client, ordnung, monkeypatch, weg):  # noqa: F811
+    """GP-178 (ZWA-20): Warf der Vektor-Auftrag nach dem Speichern eine Ausnahme, sah das Mitglied eine
+    Fehlerseite, obwohl der Antrag stand — und ein erneutes Absenden brachte ihn ein zweites Mal ein."""
+    from types import SimpleNamespace
+
+    import ki.warteschlange
+    import verfahren.aehnlichkeit
+    from verfahren import views_aktionen
+    from verfahren.test_views_aktionen import ANTRAG as EINGABE
+
+    def kaputt(*args, **kwargs):
+        raise RuntimeError('Vektor-Auftrag kaputt')
+
+    if weg == 'einreihen':
+        monkeypatch.setattr(views_aktionen, 'anbieter_waehlen', lambda *a, **k: SimpleNamespace(name='Test'))
+        monkeypatch.setattr(ki.warteschlange, 'einreihen', kaputt)
+    else:
+        monkeypatch.setattr(verfahren.aehnlichkeit, 'einbettung_speichern', kaputt)
+        echt = views_aktionen.aehnliche_antraege
+
+        def mit_vektor(*args, **kwargs):
+            ergebnis = echt(*args, **kwargs)
+            ergebnis.neuer_vektor, ergebnis.bedeutungsmodell = [0.1, 0.2], 'test-modell'
+            return ergebnis
+
+        monkeypatch.setattr(views_aktionen, 'aehnliche_antraege', mit_vektor)
+    client.force_login(mitglied_anlegen('anna'))
+    antwort = client.post(reverse('verfahren:einbringen'), EINGABE)
+    assert Antrag.objects.count() == 1
+    antrag = Antrag.objects.get()
+    assert antwort.status_code == 302
+    assert antwort['Location'].startswith(reverse('verfahren:antrag', args=[antrag.pk]))
+
+
+def test_gp180_phase_zurueckgezogen_hat_einen_anzeigenamen():
+    """GP-180 (AF-14): Ohne Eintrag stand der rohe Bezeichner „zurueckgezogen“ im Badge."""
+    from django.utils import translation
+
+    from plattform_core import Phase
+    from verfahren.templatetags.phasen import NAMEN, phase_name
+
+    assert phase_name(Phase.ZURUECKGEZOGEN.value) == 'zurückgezogen'
+    assert {phase.value for phase in Phase} <= set(NAMEN)  # jede Phase hat einen Anzeigenamen
+    with translation.override('en'):
+        assert phase_name(Phase.ZURUECKGEZOGEN.value) not in ('zurueckgezogen', '')
+
+
+def test_gp174_archiv_export_kennt_nur_json_und_md(client, ordnung):  # noqa: F811
+    """GP-174 (ASR-26): Jede Endung lieferte Nutzertext unter ihrem Dateinamen (etwa archiv.html)."""
+    antrag = antrag_einbringen(mitglied_anlegen('anna'), **ANTRAG, ordnung=ordnung)
+    for art in ('json', 'md'):
+        antwort = client.get(reverse('verfahren:archiv_export', args=[antrag.pk, art]))
+        assert antwort.status_code == 200
+        assert antwort['Content-Disposition'].endswith(f'archiv.{art}"')
+    for art in ('html', 'svg', 'exe', 'JSON'):
+        assert client.get(f'/antrag/{antrag.pk}/archiv.{art}').status_code == 404
+
+
+def test_gp179_rechtsfolgenformat_nur_lesend(client):
+    """GP-179 (ZWA-24): Das Schema nahm jede HTTP-Methode an — wie das Antwortformat nur GET und HEAD."""
+    ziel = reverse('verfahren:rechtsfolgenformat')
+    assert client.get(ziel).status_code == 200
+    assert client.post(ziel).status_code == 405
+
+
+@pytest.mark.parametrize('anfrage', ['', '?fokus=region', '?suche=Wohnen'])
+@pytest.mark.parametrize('angemeldet', [False, True])
+def test_gp063_parlament_hat_genau_eine_h1(client, ordnung, anfrage, angemeldet):  # noqa: F811
+    """GP-063 (ZB-07, GAST-17): Das Parlament hatte in keiner Rolle und Variante eine h1."""
+    if angemeldet:
+        client.force_login(mitglied_anlegen('anna'))
+    seite = client.get(reverse('verfahren:parlament') + anfrage).content.decode()
+    assert seite.count('<h1') == 1
+    assert '>Parlament</h1>' in seite
+
+
+def test_gp081_englische_startseite_uebersetzt_wer_darf_was(client):
+    """GP-081 (GAST-09): Der Block „Wer darf was“ der Startseite gab Namen und Fähigkeiten der Rollen
+    ohne Übersetzung aus."""
+    seite = client.get('/', HTTP_ACCEPT_LANGUAGE='en').content.decode()
+    teil = seite[seite.index('id="rollen"'):]
+    assert 'Guest' in teil
+    assert 'Das Parlament ansehen' not in teil
+    assert 'Alles zu' not in teil
+
+
+def test_gp170_veraltetes_einbringformular_landet_nicht_in_der_neuen_gemeinde(client, ordnung):  # noqa: F811
+    """GP-170 (OW-13): Ein vor dem Umzug geöffnetes Formular brachte den Antrag ohne Rückfrage in
+    der neuen Gemeinde ein; die Erfolgsmeldung nannte kein Gebiet."""
+    from mitglieder.models import Gemeinde, Mitglied, Wohnsitzart
+
+    alt = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    neu = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    autor = mitglied_anlegen('autor', tage=800)
+    autor.wohnsitz, autor.wohnsitz_art = alt, Wohnsitzart.OESTERREICH
+    autor.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    client.force_login(autor)
+    url = reverse('verfahren:einbringen')
+    formular = client.get(url).content.decode()
+    assert 'name="gebiet_kennung" value="gemeinde:40510"' in formular
+
+    Mitglied.objects.filter(pk=autor.pk).update(wohnsitz=neu)
+    eingabe = {**ANTRAG, 'ebene': 'gemeinde', 'trotzdem': '1', 'gebiet_kennung': 'gemeinde:40510'}
+    antwort = client.post(url, eingabe)
+    assert antwort.status_code == 200
+    assert not Antrag.objects.exists()
+    assert 'Das Gebiet hat sich geändert' in str(antwort.context['form'].errors['ebene'])
+    assert 'name="gebiet_kennung" value="gemeinde:41419"' in antwort.content.decode()
+
+    antwort = client.post(url, {**eingabe, 'gebiet_kennung': 'gemeinde:41419'}, follow=True)
+    antrag = Antrag.objects.get()
+    assert antrag.gebiet == 'Neuort'
+    assert any('Neuort' in str(m) for m in antwort.context['messages'])
+
+
+def _umzug_lage(ordnung):  # noqa: F811
+    """Ein Mitglied bringt in Altort einen Gemeindeantrag ein und zieht dann nach Neuort."""
+    from mitglieder.models import Gemeinde, Mitglied, Wohnsitzart
+
+    alt = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    neu = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    m = mitglied_anlegen('wanderin', tage=800, gemeinde='Altort')
+    m.wohnsitz, m.wohnsitz_art = alt, Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    antrag = antrag_einbringen(m, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+    Mitglied.objects.filter(pk=m.pk).update(wohnsitz=neu, gemeinde='Neuort')
+    m.refresh_from_db()
+    return m, antrag
+
+
+def _region(client) -> str:
+    seite = client.get(reverse('verfahren:parlament')).content.decode()
+    return seite.split('id="feld-region"', 1)[1].split('</section>', 1)[0]
+
+
+def test_gp054_region_nennt_den_ort_einer_kachel_aus_dem_alten_wohnort(client, ordnung):  # noqa: F811
+    """GP-054 (OW-02): Nach dem Umzug stand der Antrag des alten Wohnorts ohne Ortsangabe unter
+    dem Kopf „Gemeinde · Neuort“."""
+    m, antrag = _umzug_lage(ordnung)
+    assert antrag.gebiet == 'Altort'
+    client.force_login(m)
+    region = _region(client)
+    assert 'Gemeinde · Neuort' in region
+    kachel = region.split(f'href="/antrag/{antrag.pk}/"', 1)[1].split('</article>', 1)[0]
+    assert '<span class="rest ort">Altort</span>' in kachel
+    assert 'Teilnehmerkreis vom' in kachel
+
+
+def test_gp054_kachel_im_eigenen_ort_bleibt_ohne_ortsangabe(client, ordnung):  # noqa: F811
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    m = mitglied_anlegen('sesshaft', tage=800, gemeinde='Altort')
+    m.wohnsitz, m.wohnsitz_art = ort, Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    antrag = antrag_einbringen(m, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+    client.force_login(m)
+    kachel = _region(client).split(f'href="/antrag/{antrag.pk}/"', 1)[1].split('</article>', 1)[0]
+    assert 'class="rest ort"' not in kachel
+
+
+def test_gp055_altkonto_mit_gemeindetext_wird_zum_verzeichnis_gefuehrt(client, ordnung):  # noqa: F811
+    """GP-055 (OW-03): Konten mit Gemeinde nur als Freitext sahen „Noch nichts in Ihrer Gemeinde“
+    unter dem eigenen Ortsnamen, aber keinen Weg zum Gemeindeverzeichnis."""
+    m = mitglied_anlegen('altkonto', tage=800)  # Gemeindetext und Bundesland, kein Verzeichnisverweis
+    assert m.gemeinde and not m.wohnsitz_id
+    client.force_login(m)
+    ziel = reverse('mitglieder:profil') + '#wohnsitz'
+    region = _region(client)
+    assert 'Noch nichts in Ihrer Gemeinde' not in region
+    assert f'href="{ziel}"' in region and 'Hauptwohnsitz aus dem Gemeindeverzeichnis' in region
+    assert f'Gemeinde · {m.gemeinde}' not in region
+    formular = client.get(reverse('verfahren:einbringen')).content.decode()
+    assert f'href="{ziel}"' in formular and 'Hauptwohnsitz aus dem Gemeindeverzeichnis' in formular
+
+
+def _fremder_gemeindeantrag(ordnung):  # noqa: F811
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    ort = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    autor = mitglied_anlegen('autor', tage=800, gemeinde='Altort')
+    autor.wohnsitz, autor.wohnsitz_art = ort, Wohnsitzart.OESTERREICH
+    autor.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    return antrag_einbringen(autor, **ANTRAG, ordnung=ordnung, ebene='gemeinde', neuer_teilnehmerkreis=True)
+
+
+def test_gp056_sperrseite_nennt_grund_und_naechsten_schritt(client, ordnung):  # noqa: F811
+    """GP-056 (OW-04): Die 403-Seite sagte nur „Sie gehören nicht zum Kreis“ — ohne Grund und Weg."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    antrag = _fremder_gemeindeantrag(ordnung)
+    tag = f'{timezone.localtime(antrag.teilnehmerkreis_am):%d.%m.%Y}'
+    ohne = mitglied_anlegen('ohne', tage=800)  # kein Verzeichnisverweis
+    client.force_login(ohne)
+    antwort = client.post(reverse('verfahren:unterstuetzen', args=[antrag.pk]))
+    assert antwort.status_code == 403
+    seite = antwort.content.decode()
+    assert 'keine örtliche Zuordnung' in seite and 'Bundesebene steht Ihnen offen' in seite
+    assert 'keine örtliche Zuordnung' in client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+
+    woanders = mitglied_anlegen('woanders', tage=800, gemeinde='Neuort')
+    woanders.wohnsitz = Gemeinde.objects.create(kennziffer='41419', name='Neuort', bezirk='Schärding', bundesland='oberoesterreich')
+    woanders.wohnsitz_art = Wohnsitzart.OESTERREICH
+    woanders.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    client.force_login(woanders)
+    antwort = client.post(reverse('verfahren:unterstuetzen', args=[antrag.pk]))
+    assert antwort.status_code == 403
+    seite = antwort.content.decode()
+    assert f'Hauptwohnsitz in Altort bei Einbringung am {tag}' in seite
+    assert 'keine örtliche Zuordnung' not in seite
+    assert reverse('verfahren:parlament') + '?fokus=region' in seite
+    antragsseite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert reverse('verfahren:parlament') + '?fokus=region' in antragsseite
+
+
+def test_gp058_wiener_konto_ohne_bezirk_wird_zum_gemeindebezirk_gefuehrt(client, ordnung):  # noqa: F811
+    """GP-058 (OW-07): Wiener Konten ohne Bezirksangabe sahen „Noch nichts in Ihrem Bezirk“, obwohl
+    Bezirksverfahren liefen — ohne Hinweis, dass der Gemeindebezirk fehlt."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    wien = Gemeinde.objects.create(kennziffer='90001', name='Wien', bezirk='Wien', bundesland='wien')
+    autor = mitglied_anlegen('autorin', tage=800, gemeinde='Wien', bundesland='wien')
+    ohne = mitglied_anlegen('ohnebezirk', tage=800, gemeinde='Wien', bundesland='wien')
+    for konto in (autor, ohne):
+        konto.wohnsitz, konto.wohnsitz_art = wien, Wohnsitzart.OESTERREICH
+        konto.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    autor.wiener_bezirk = '922'
+    autor.save(update_fields=['wiener_bezirk'])
+    antrag = antrag_einbringen(autor, **ANTRAG, ordnung=ordnung, ebene='bezirk', neuer_teilnehmerkreis=True)
+    client.force_login(ohne)
+    ziel = reverse('mitglieder:profil') + '#wohnsitz'
+    region = _region(client)
+    assert 'Noch nichts in Ihrem Bezirk' not in region
+    assert f'<a href="{ziel}">Gemeindebezirk wählen' in region
+    seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert f'<a href="{ziel}">Gemeindebezirk wählen' in seite
+
+
+def test_gp088_fehler_im_einbringformular_sind_mit_dem_feld_verknuepft(client, ordnung):  # noqa: F811
+    """GP-088 (ZB-03): aria-describedby der fehlerhaften Felder zeigte ins Leere."""
+    import re
+
+    client.force_login(mitglied_anlegen('anna'))
+    seite = client.post(reverse('verfahren:einbringen'), {'titel': '', 'wortlaut': '', 'ebene': 'gemeinde'}).content.decode()
+    felder = [f for f in re.findall(r'<(?:input|textarea|select)[^>]*aria-invalid="true"[^>]*>', seite)
+              if 'aria-describedby=' in f]
+    assert len(felder) >= 2  # Titel und Wortlaut
+    for feld in felder:
+        bezug = re.search(r'aria-describedby="([^"]+)"', feld)
+        assert any(k.endswith('_error') for k in bezug.group(1).split()), feld
+        for kennung in bezug.group(1).split():
+            treffer = re.search(rf'id="{kennung}"[^>]*>(.*?)</', seite, flags=re.S)
+            assert treffer and treffer.group(1).strip(), (feld, kennung)
+
+
+@pytest.mark.parametrize('sprache', ['de', 'en'])
+def test_gp097_startseite_fuehrt_im_hauptteil_zu_meine_gemeinde(client, sprache):
+    """GP-097 (GAST-02): Der Weg für Einwohner (Gemeindekonto) fehlte im Hauptteil der Startseite."""
+    seite = client.get('/', HTTP_ACCEPT_LANGUAGE=sprache).content.decode()
+    haupt = seite.split('<main', 1)[1].split('</main>', 1)[0]
+    assert f'href="{reverse("gemeinde:start")}"' in haupt
+
+
+@pytest.mark.parametrize('art', ['ohne_festen_wohnsitz', 'ausland'])
+def test_gp169_ohne_regionale_zuordnung_steht_der_satz_statt_wohnsitz_hinterlegen(client, ordnung, art):  # noqa: F811
+    """GP-169: Konten ohne festen Wohnsitz oder im Ausland wurden aufgefordert, einen Wohnsitz zu hinterlegen."""
+    m = mitglied_anlegen('fern', tage=800, gemeinde='', bundesland='')
+    m.wohnsitz_art = art
+    m.save(update_fields=['wohnsitz_art'])
+    client.force_login(m)
+    satz = 'keine örtliche Zuordnung; die Bundesebene steht Ihnen offen'
+    region = _region(client)
+    assert satz in region and 'Wohnsitz hinterlegen' not in region
+    assert satz in client.get(reverse('verfahren:einbringen')).content.decode()
+
+
+def test_gp086_fuss_der_startseite_verlinkt_die_faktenbasis(client):
+    """GP-086 (ZWB): Die Faktenbasis war nur über einen Textlink der Zukunftswerkstatt auffindbar."""
+    seite = client.get('/').content.decode()
+    fuss = seite.split('<footer', 1)[1].split('</footer>', 1)[0]
+    assert f'href="{reverse("faktenbasis:index")}"' in fuss
+
+
+def test_gp181_abgeschlossene_zeilen_fragen_die_aussetzungen_nicht_einzeln(client, ordnung):  # noqa: F811
+    """GP-181: Jede der bis zu 20 abgeschlossenen Zeilen des Feeds fragte ihre Aussetzungen einzeln ab."""
+    autor = mitglied_anlegen('autor')
+    for i in range(12):
+        antrag = antrag_einbringen(autor, f'Erledigt {i}', 'W.', '', ordnung)
+        Antrag.objects.filter(pk=antrag.pk).update(phase='abgelehnt')
+    with CaptureQueriesContext(connection) as ctx:
+        assert client.get(reverse('verfahren:parlament')).status_code == 200
+    aussetzungen = [q for q in ctx.captured_queries if '"gremien_aussetzung"' in q['sql']]
+    assert len(aussetzungen) <= 2, len(aussetzungen)
+
+
+def test_gp182_einbringformular_sagt_was_ein_oertlicher_antrag_offenlegt(client, ordnung):  # noqa: F811
+    """GP-182: Örtliches Einbringen legt das Gebiet des Hauptwohnsitzes offen; das Formular sagte es nicht."""
+    from mitglieder.models import Gemeinde, Wohnsitzart
+
+    satz = 'Ein örtlicher Antrag zeigt öffentlich, dass Ihr Hauptwohnsitz in diesem Gebiet liegt.'
+    m = mitglied_anlegen('anna', tage=800, gemeinde='Altort')
+    client.force_login(m)
+    assert satz not in client.get(reverse('verfahren:einbringen')).content.decode()  # nur Bundesebene
+    m.wohnsitz = Gemeinde.objects.create(kennziffer='40510', name='Altort', bezirk='Eferding', bundesland='oberoesterreich')
+    m.wohnsitz_art = Wohnsitzart.OESTERREICH
+    m.save(update_fields=['wohnsitz', 'wohnsitz_art'])
+    assert satz in client.get(reverse('verfahren:einbringen')).content.decode()

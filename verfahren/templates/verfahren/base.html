@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<title>{% for m in messages %}{% if forloop.first %}{{ m }} · {% endif %}{% endfor %}{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
 {% comment %}App-Manifest (Teil 7): „Zum Startbildschirm“ am Handy und „App installieren“ im Desktop-Browser
 öffnen das Parlament bildschirmfüllend ohne Browserrahmen. Bewusst OHNE Service Worker: kein Offline-Versprechen
 und keine Cache-Falle bei Fristen — jede Ansicht kommt frisch vom Server. Farben = Tokens --papier und --deep
@@ -160,6 +160,7 @@ body.menue-offen{overflow:hidden}
   :root{--bar:52px}
   .leiste{padding:0 8px 0 12px;gap:4px}
   .leiste .cta,.leiste .konto,.leiste .mehr,.leiste .anmelden,.leiste .btn.klein,.leiste .rechts>.sprache-form{display:none}
+  .leiste .panel .cta{display:inline-flex}
   .anstoss-leiste{position:static}
   .anstoss-leiste .anstoss-karte,.anstoss-leiste .anstoss-bestaetigung{position:fixed;left:8px;right:8px;top:calc(var(--bar) + 6px);width:auto}
 }
@@ -276,6 +277,8 @@ body.voll main{max-width:none;padding:0}
 .regler-kopf b{font-size:15px;outline:none}
 .regler-kopf .pkt{color:var(--goldtief);font-size:12px;font-weight:600}
 .regler-kopf .zu-knopf{margin-left:auto}
+.zu-ohne-js{text-decoration:none}
+html.js .zu-ohne-js{display:none}
 .regler-form{flex:1;min-height:0;display:flex;flex-direction:column}
 .regler-korpus{flex:1;min-height:0;overflow:auto;padding:8px 14px}
 .schalter{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:8px;font-size:13.5px;font-weight:600;cursor:pointer}
@@ -619,9 +622,9 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .blase-form{display:inline}
 .blase-anker{margin-left:auto;color:var(--muted);text-decoration:none;font-variant-numeric:tabular-nums}
 .blase-anker:hover{color:var(--ink)}
-.blase-aendern>summary,.blase-melden>summary{list-style:none;display:inline-block}
-.blase-aendern>summary::-webkit-details-marker,.blase-melden>summary::-webkit-details-marker{display:none}
-.blase-aendern form,.blase-melden form{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;background:var(--surface-2);border-radius:10px}
+.blase-aendern>summary,.blase-melden>summary,.blase-zurueckziehen>summary{list-style:none;display:inline-block}
+.blase-aendern>summary::-webkit-details-marker,.blase-melden>summary::-webkit-details-marker,.blase-zurueckziehen>summary::-webkit-details-marker{display:none}
+.blase-aendern form,.blase-melden form,.blase-zurueckziehen form{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;background:var(--surface-2);border-radius:10px}
 .blase-melden label{font-size:12.5px;font-weight:600}
 .antworten{display:flex;flex-direction:column;gap:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--line)}
 .antworten .blase{background:var(--surface-2)}
@@ -890,7 +893,7 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 {% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
 {% block band %}{% if user.is_authenticated and user.status == "pausiert" %}<div class="band pausiert"><span class="band-text">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}</span><a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>{% endif %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
-{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
+{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" role="{% if m.level_tag == 'error' %}alert{% else %}status{% endif %}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
 {% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}

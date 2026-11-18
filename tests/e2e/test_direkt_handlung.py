@@ -225,3 +225,19 @@ def test_haken_bleibt_bei_reduzierter_bewegung_sichtbar(seite, live_server, demo
     haken = p.locator(f'.fz[data-antrag="{antrag.pk}"] .k-erfasst')
     assert haken.is_visible()
     assert p.evaluate("(el) => getComputedStyle(el).opacity", haken.element_handle()) == "1"
+
+
+@pytest.mark.parametrize("js", [True, False])
+def test_gp062_stimmbestaetigung_wird_angesagt(seite, live_server, demo, js):
+    """GP-062 (ZB-05): Die Bestätigung nach „Ja“ stand in einem div ohne Statusrolle — Vorleser
+    sagten nichts an. Jetzt trägt sie role=status und steht vorn im Seitentitel."""
+    from verfahren.models import Antrag
+
+    antrag = Antrag.objects.filter(phase="abstimmung").exclude(art="mandat").order_by("pk").first()
+    p = seite(als=_mitglied(), js=js, reduziert=True)
+    p.goto(f"{live_server.url}/antrag/{antrag.pk}/")
+    p.locator("#abstimmen button[name=stimme][value=ja]").click()
+    p.wait_for_load_state()
+    meldung = p.locator(".meldung", has_text="Stimme ist erfasst")
+    assert meldung.get_attribute("role") == "status"
+    assert "Stimme ist erfasst" in p.title()

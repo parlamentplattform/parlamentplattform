@@ -17,6 +17,7 @@ NAMEN = {
     "abgelehnt": _("abgelehnt"),
     "verfallen": _("verfallen"),
     "zurueckgewiesen": _("zurückgewiesen"),
+    "zurueckgezogen": _("zurückgezogen"),
     # Stimmwerte (für „Ihre aktuelle Stimme“)
     "ja": _("Ja"),
     "nein": _("Nein"),

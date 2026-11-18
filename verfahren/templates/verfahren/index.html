@@ -42,7 +42,7 @@
     <a class="btn-hell" href="{% url 'verfahren:parlament' %}">{% translate "Das Parlament ansehen" %}</a>
   </div>
   <div class="zahlenband">
-    <div class="zahl"><strong>{{ buehne.mitglieder }}</strong><span>{% translate "bestätigte Mitglieder" %}</span></div>
+    <div class="zahl"><strong>{{ buehne.mitglieder }}</strong><span>{% translate "Mitglieder" %}</span></div>
     <div class="zahl"><strong>{{ buehne.laufend }}</strong><span>{% translate "laufende Verfahren" %}</span></div>
     <div class="zahl"><strong>{{ buehne.beschluesse }}</strong><span>{% translate "gefasste Beschlüsse" %}</span></div>
   </div>
@@ -137,6 +137,11 @@ zeigen öffentlich, was sie daraus machen.{% endblocktranslate %}</p>
       <p>{% translate "Wie die Plattform lernt: offene Parameter, nachrechenbare Regeln — Verbesserungen am System gehen denselben Antragsweg wie alles andere." %}</p>
       <span class="weiter">{% translate "Werkstatt ansehen →" %}</span>
     </a>
+    <a class="wk" href="{% url 'gemeinde:start' %}">
+      <h3>{% translate "Meine Gemeinde" %}</h3>
+      <p>{% translate "Mitmachen ohne Parteibeitritt: ein Gemeindekonto für Einwohner ab 16 mit Hauptwohnsitz in einer österreichischen Gemeinde." %}</p>
+      <span class="weiter">{% translate "Zur Gemeinde →" %}</span>
+    </a>
     <a class="wk" href="{% url 'mitglieder:mitgliedschaft' %}">
       <h3>{% translate "Die Mitgliedschaft" %}</h3>
       <p>{% translate "Sechs Rechte, ein Weg vom Antrag zum Beschluss — und ein Beitrag nach Selbsteinschätzung." %}</p>
@@ -155,14 +160,14 @@ fehlt, steht offen da.{% endblocktranslate %}</p>
   <div class="willkommen-karten">
     {% for rolle in startrollen %}
     <div class="wk" style="cursor:default">
-      <h3>{{ rolle.name }}</h3>
-      <p>{{ rolle.was_sie_ist }}</p>
+      {% translate rolle.name as rname %}<h3>{{ rname }}</h3>
+      <p>{% translate rolle.was_sie_ist %}</p>
       <ul class="rollen-kurz">
         {% for f in rolle.faehigkeiten|slice:":5" %}
-        <li><span class="zeichen {{ f.stand.value }}">{{ f.stand.zeichen }}</span> {{ f.titel }}</li>
+        <li><span class="zeichen {{ f.stand.value }}">{{ f.stand.zeichen }}</span> {% translate f.titel %}</li>
         {% endfor %}
       </ul>
-      <a class="weiter" href="{% url 'verfahren:rollen' %}#rolle-{{ rolle.schluessel }}">{% blocktranslate with n=rolle.name %}Alles zu „{{ n }}“ →{% endblocktranslate %}</a>
+      <a class="weiter" href="{% url 'verfahren:rollen' %}#rolle-{{ rolle.schluessel }}">{% blocktranslate with n=rname %}Alles zu „{{ n }}“ →{% endblocktranslate %}</a>
     </div>
     {% endfor %}
   </div>

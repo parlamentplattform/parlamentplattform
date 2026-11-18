@@ -40,3 +40,34 @@ def test_grenze_aus_dem_register_ist_sichtbar(
     gesperrt.scroll_into_view_if_needed()
     assert m.filterprofile.count() == 2
     p.screenshot(path=str(sichtpruefung / f"filtergrenze-null-{kennung}.png"), full_page=True)
+
+
+@pytest.mark.parametrize('breite', [390, 320])
+def test_gp061_regler_ohne_javascript_wieder_schliessen(seite, live_server, breite):
+    """GP-061 (ZB-04): Ohne JavaScript ließ sich das geöffnete Regler-Overlay nicht mehr schließen;
+    es lag über dem Auslöser und der Filterliste."""
+    m = mitglied_anlegen()
+    FilterProfil.objects.create(mitglied=m, name='Profil', aktiv=True)
+    p = seite(als=m, viewport={'width': breite, 'height': 844}, js=False, reduziert=True)
+    p.goto(f'{live_server.url}/parlament/')
+    klappe = p.locator('#feld-filter details.regler-klappe')
+    klappe.locator('> summary').click()
+    expect(klappe).to_have_attribute('open', '')
+    schliessen = klappe.get_by_role('link', name='Schließen')
+    expect(schliessen).to_be_visible()
+    schliessen.click()
+    p.wait_for_load_state()
+    klappe = p.locator('#feld-filter details.regler-klappe')
+    expect(klappe).not_to_have_attribute('open', '')
+    p.locator('#filter-liste').click(trial=True, timeout=3000)
+
+
+def test_gp061_mit_javascript_nur_ein_schliessen(seite, live_server):
+    m = mitglied_anlegen()
+    FilterProfil.objects.create(mitglied=m, name='Profil', aktiv=True)
+    p = seite(als=m, viewport={'width': 390, 'height': 844}, js=True, reduziert=True)
+    p.goto(f'{live_server.url}/parlament/')
+    klappe = p.locator('#feld-filter details.regler-klappe')
+    klappe.locator('> summary').click()
+    expect(klappe.get_by_role('button', name='Schließen')).to_be_visible()
+    expect(klappe.get_by_role('link', name='Schließen')).to_be_hidden()

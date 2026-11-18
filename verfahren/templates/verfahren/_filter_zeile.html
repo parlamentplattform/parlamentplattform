@@ -65,7 +65,7 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
         <button id="u-filter-{{ z.antrag.pk }}" class="knopf{% if z.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}" aria-pressed="{% if z.antrag.pk in meine_unterstuetzungen %}true{% else %}false{% endif %}">{% if z.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
       </form>
     {% elif z.stat.typ == "beratung" %}
-      <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#beratung">{% translate "Mitreden" %}</a>
+      <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#zone-chat">{% translate "Mitreden" %}</a>
     {% endif %}
   </div>
   <span class="k-erfasst" role="status">✓ {% translate "Erfasst" %}</span>

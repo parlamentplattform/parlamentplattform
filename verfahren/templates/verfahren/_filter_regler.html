@@ -20,6 +20,8 @@ Zurücksetzen · Löschen (mit Rückfrage). Ohne JavaScript: natives <details>, 
     </details>
     {% endif %}
     <button type="button" class="ikon zu-knopf" x-cloak @click="zu()" aria-label="{% translate 'Schließen' %}">&#10005;</button>
+    {# Ohne JavaScript schließt das Neuladen der Adresse die native Klappe (GP-061) #}
+    <a class="ikon zu-knopf zu-ohne-js" href="{{ request.get_full_path }}" aria-label="{% translate 'Schließen' %}" title="{% translate 'Schließen' %}">&#10005;</a>
   </div>
   <form method="post" action="{% url 'verfahren:filter_anwenden' %}" class="regler-form"
     hx-post="{% url 'verfahren:filter_vorschau' %}" hx-trigger="input[target.type!=='text'] delay:400ms" hx-target="#filter-liste" hx-swap="outerHTML transition:true">

@@ -590,3 +590,258 @@ def test_gesperrte_konten_reagieren_nicht(client, ordnung, zustand):  # noqa: F8
     client.force_login(bernd)
     assert client.post(reverse("verfahren:reagieren", args=[antrag.pk, beitrag.pk])).status_code == 403
     assert not Reaktion.objects.exists()
+
+
+# ── Meldungen bearbeiten (FB-G1, GP-014) ─────────────────────────────────────
+
+
+def _verwaltung(name='vera'):
+    m = mitglied_anlegen(name)
+    m.ist_admin = True
+    m.save()
+    return m
+
+
+def test_gp014_meldung_wird_gelistet_und_mit_grund_ausgeblendet(client, ordnung):  # noqa: F811
+    """GP-014 (OCR-01): Die Meldung erreicht die Verwaltung; ausgeblendet wird mit öffentlichem
+    Grund, auditiert ohne Personenbezug, und der Meldende sieht die Entscheidung am Beitrag."""
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, 'Ein herabwürdigender Satz.')
+    client.force_login(bernd)
+    client.post(reverse('verfahren:melden', args=[antrag.pk, beitrag.pk]), {'grund': 'beleidigung'})
+    assert 'Ihre Meldung' in _seite(client, antrag)
+    assert f'action="{reverse("verfahren:melden", args=[antrag.pk, beitrag.pk])}"' not in _seite(client, antrag)
+
+    client.force_login(vera)
+    liste = client.get(reverse('verfahren:meldungen'))
+    assert liste.status_code == 200
+    inhalt = liste.content.decode()
+    assert 'Ein herabwürdigender Satz.' in inhalt and 'Beleidigung oder Herabwürdigung' in inhalt
+    vorher = AuditEintrag.objects.count()
+    entscheiden = reverse('verfahren:meldung_entscheiden', args=[beitrag.pk])
+    # Ohne öffentlichen Grund bleibt der Beitrag stehen
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': '  '})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None and AuditEintrag.objects.count() == vorher
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'Herabwürdigung einer Person'})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is not None and beitrag.ausgeblendet_grund == 'Herabwürdigung einer Person'
+    assert beitrag.text == 'Ein herabwürdigender Satz.'  # nichts wird gelöscht
+    meldung = Meldung.objects.get()
+    assert meldung.erledigt_am is not None and meldung.entscheidung == 'ausgeblendet'
+    assert AuditEintrag.objects.count() == vorher + 1
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_ausgeblendet' and ereignis['beitrag'] == beitrag.pk
+    assert not {'durch', 'mitglied', 'grund', 'text'} & set(ereignis)
+    assert 'Ein herabwürdigender Satz.' not in client.get(reverse('verfahren:meldungen')).content.decode()
+
+    client.logout()
+    assert '[von der Verwaltung ausgeblendet: Herabwürdigung einer Person]' in _seite(client, antrag)
+    client.force_login(bernd)
+    assert 'entschieden: ausgeblendet' in _seite(client, antrag)
+
+
+def test_gp014_keine_massnahme_und_rechte(client, ordnung):  # noqa: F811
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    antrag = _antrag(ordnung, anna)
+    beitrag = chatkern.beitrag_schreiben(antrag, anna, 'Sachlich, aber unbequem.')
+    client.force_login(bernd)
+    client.post(reverse('verfahren:melden', args=[antrag.pk, beitrag.pk]), {'grund': 'falsch'})
+    entscheiden = reverse('verfahren:meldung_entscheiden', args=[beitrag.pk])
+    # Nur die Verwaltung sieht die Liste und entscheidet
+    assert client.get(reverse('verfahren:meldungen')).status_code == 403
+    assert client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'x'}).status_code == 403
+    client.logout()
+    assert client.get(reverse('verfahren:meldungen')).status_code == 302
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None
+
+    client.force_login(vera)
+    vorher = AuditEintrag.objects.count()
+    client.post(entscheiden, {'entscheidung': 'keine_massnahme'})
+    beitrag.refresh_from_db()
+    meldung = Meldung.objects.get()
+    assert beitrag.ausgeblendet_am is None and meldung.erledigt_am is not None
+    assert meldung.entscheidung == 'keine_massnahme'
+    assert AuditEintrag.objects.count() == vorher + 1
+    assert AuditEintrag.objects.order_by('-lfd').first().ereignis['typ'] == 'meldung_ohne_massnahme'
+    # Eine zweite Entscheidung über dieselben Meldungen schreibt nichts mehr
+    client.post(entscheiden, {'entscheidung': 'ausblenden', 'grund': 'Nachträglich'})
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is None and AuditEintrag.objects.count() == vorher + 1
+    client.force_login(bernd)
+    assert 'entschieden: keine Maßnahme' in _seite(client, antrag)
+
+
+def test_gp014_meldung_aus_dem_sitzungschat_auch_nach_dem_ende(client):
+    from mandatare.sitzung import sitzung_beenden, sitzung_beginnen
+    from mandatare.test_mandatare import mandat_anlegen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    anna, bernd, vera = mitglied_anlegen('anna'), mitglied_anlegen('bernd'), _verwaltung()
+    mandat = mandat_anlegen(anna)
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat))
+    beitrag = chatkern.sitzung_beitrag_schreiben(sitzung, bernd, 'Unwahre Behauptung über Dritte.')
+    Meldung.objects.create(kommentar=beitrag, mitglied=anna, grund='recht')
+    sitzung_beenden(sitzung)
+    client.force_login(vera)
+    inhalt = client.get(reverse('verfahren:meldungen')).content.decode()
+    assert 'Unwahre Behauptung über Dritte.' in inhalt
+    assert reverse('mandatare:live', args=[mandat.pk]) in inhalt
+    client.post(
+        reverse('verfahren:meldung_entscheiden', args=[beitrag.pk]),
+        {'entscheidung': 'ausblenden', 'grund': 'Rechtswidriger Inhalt'},
+    )
+    beitrag.refresh_from_db()
+    assert beitrag.ausgeblendet_am is not None
+    assert AuditEintrag.objects.order_by('-lfd').first().ereignis['sitzung'] == sitzung.pk
+    client.logout()
+    seite = client.get(reverse('mandatare:live', args=[mandat.pk]) + f'?sitzung={sitzung.pk}').content.decode()
+    assert 'Unwahre Behauptung über Dritte.' not in seite
+    assert 'von der Verwaltung ausgeblendet: Rechtswidriger Inhalt' in seite
+
+
+# ── Abstimmungs-Chat: Ändern und Zurückziehen einer Kritik (GP-015) ──────────
+
+
+def test_gp015_kritik_aendern_prueft_die_mindestlaenge_und_ist_auditiert(client, ordnung):  # noqa: F811
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    einreichen(client, antrag, raete)
+    lang = 'Der zweite Absatz lässt die Ausschüsse aus; sie gehören ausdrücklich in den ersten Absatz des Vorschlags.'
+    client.force_login(unterstuetzer[0])
+    client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': lang, 'ist_kritik': '1', 'bezug_absatz': '1'})
+    kritik = Kommentar.objects.get(antrag=antrag, ist_kritik=True)
+    bearbeiten = reverse('verfahren:beitrag_bearbeiten', args=[antrag.pk, kritik.pk])
+    vorher = AuditEintrag.objects.count()
+    client.post(bearbeiten, {'text': 'Alles bestens.'})
+    kritik.refresh_from_db()
+    assert kritik.text == lang and kritik.bearbeitet_am is None  # zu kurz für eine Kritik
+    assert AuditEintrag.objects.count() == vorher
+    neu = lang + ' Ebenso fehlt die Frist.'
+    client.post(bearbeiten, {'text': neu})
+    kritik.refresh_from_db()
+    assert kritik.text == neu
+    assert AuditEintrag.objects.count() == vorher + 1
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_geaendert' and ereignis['beitrag'] == kritik.pk
+    assert not {'text', 'mitglied', 'durch'} & set(ereignis)
+    client.post(reverse('verfahren:beitrag_entfernen', args=[antrag.pk, kritik.pk]))
+    assert AuditEintrag.objects.count() == vorher + 2
+    ereignis = AuditEintrag.objects.order_by('-lfd').first().ereignis
+    assert ereignis['typ'] == 'beitrag_zurueckgezogen' and ereignis['beitrag'] == kritik.pk
+
+
+@pytest.mark.parametrize('wert', ['0', '-1', 'abc'])
+def test_gp021_zeichenhoechstzahl_unter_eins_kuerzt_nicht(ordnung, wert):  # noqa: F811
+    """GP-021 (RVA-01): Ein Registerwert 0 oder darunter schnitt jeden Beitrag ab (text[:0] leer,
+    text[:-1] ohne letztes Zeichen) — die Lesestelle fällt dann auf den Rückfallwert."""
+    _register('chat-zeichen-hoechstzahl', wert)
+    assert chatkern.chat_zeichen_hoechstzahl() == chatkern.CHAT_ZEICHEN
+    anna = mitglied_anlegen('anna')
+    beitrag = chatkern.beitrag_schreiben(_antrag(ordnung, anna), anna, 'Vollständig.')
+    assert beitrag.text == 'Vollständig.'
+
+
+def test_gp079_passt_alles_wird_sprachneutral_gespeichert_und_beim_anzeigen_uebersetzt(client, ordnung):  # noqa: F811
+    """GP-079 (GAST-07): Der Systembeitrag stand in der Sprache des ersten Abrufs in der Datenbank."""
+    from gremien.test_werkstatt import einreichen, systembeitrag, werkstatt_lage
+
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    client.defaults['HTTP_ACCEPT_LANGUAGE'] = 'en'
+    einreichen(client, antrag, raete)
+    passt = systembeitrag(antrag)
+    assert passt.text == '✓ Passt alles — der Vorschlag kann so zur Endabstimmung.'
+    client.logout()
+    englisch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='en').content.decode()
+    deutsch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='de').content.decode()
+    assert 'Fine as it is' in englisch and 'Passt alles — der Vorschlag' not in englisch
+    assert 'Passt alles — der Vorschlag' in deutsch and 'Fine as it is' not in deutsch
+    # Altbestand: ein auf Englisch gespeicherter Systembeitrag erscheint auf Deutsch über den Katalog
+    Kommentar.objects.filter(pk=passt.pk).update(text='✓ Fine as it is — the proposal can go to the final vote like this.')
+    deutsch = client.get(reverse('verfahren:antrag', args=[antrag.pk]), HTTP_ACCEPT_LANGUAGE='de').content.decode()
+    assert 'Passt alles — der Vorschlag' in deutsch and 'Fine as it is' not in deutsch
+
+
+# ── Grenzen des Chats aus dem Register (GP-083) ──────────────────────────────
+
+
+def test_gp083_mindestzahl_der_kritik_kommt_aus_dem_register(client, ordnung):  # noqa: F811
+    """GP-083 (RVA-09): Hinweis und Fehlermeldung nannten fest 80 Zeichen, auch wenn das Register
+    anderes verlangte."""
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    _register('kritik-mindestzeichen', 200)
+    antrag, unterstuetzer, raete = werkstatt_lage(ordnung)
+    einreichen(client, antrag, raete)
+    client.force_login(unterstuetzer[0])
+    seite = _seite(client, antrag)
+    assert 'mindestens 200 Zeichen' in seite and 'mindestens 80 Zeichen' not in seite
+    antwort = client.post(
+        reverse('verfahren:kommentieren', args=[antrag.pk]),
+        {'text': 'Zu kurz für eine Kritik.', 'ist_kritik': '1', 'bezug_absatz': '1'},
+    ).content.decode()
+    assert 'mindestens 200 Zeichen' in antwort and 'mindestens 80 Zeichen' not in antwort
+
+
+def test_gp083_zu_langer_beitrag_wird_abgewiesen_statt_gekuerzt(client, ordnung):  # noqa: F811
+    _register('chat-zeichen-hoechstzahl', 100)
+    anna = mitglied_anlegen('anna')
+    antrag = _antrag(ordnung, anna)
+    client.force_login(anna)
+    seite = _seite(client, antrag)
+    assert 'name="text" id="id_text" rows="2" maxlength="100"' in seite
+    lang = 'x' * 300
+    for kopf in ({}, {'HTTP_HX_REQUEST': 'true'}):
+        antwort = client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': lang}, **kopf)
+        inhalt = antwort.content.decode()
+        assert not Kommentar.objects.exists()
+        assert 'höchstens 100 Zeichen' in inhalt
+        assert lang in inhalt  # der Entwurf bleibt im Formular
+    client.post(reverse('verfahren:kommentieren', args=[antrag.pk]), {'text': 'Kurz.'})
+    beitrag = Kommentar.objects.get()
+    client.post(reverse('verfahren:beitrag_bearbeiten', args=[antrag.pk, beitrag.pk]), {'text': lang})
+    beitrag.refresh_from_db()
+    assert beitrag.text == 'Kurz.'
+    with pytest.raises(ValueError):
+        chatkern.beitrag_schreiben(antrag, anna, lang)
+
+
+# ── Meine Gespräche: Gesamtzahl, Ordnung, Weiterblättern (GP-053) ─────────────
+
+
+def test_gp053_alle_gespraeche_erreichbar_mit_gesamtzahl_und_wenigen_abfragen(client, ordnung):  # noqa: F811
+    """GP-053 (SU-07): Die Seite zeigte 30 von 120 Gesprächen ohne Hinweis und ohne Weiterblättern
+    und brauchte 141 Abfragen, weil jede Zeile den Pfad ihres Lebensbereichs einzeln nachlud."""
+    import re
+
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from verfahren.models import Kategorie
+
+    eltern = None
+    for tiefe in range(5):
+        eltern = Kategorie.objects.create(slug=f'ebene-{tiefe}', name=f'Ebene {tiefe}', eltern=eltern)
+    ich = mitglied_anlegen('ich')
+    leute = [mitglied_anlegen(f'p{i}') for i in range(12)]
+    for n in range(10):
+        antrag = _antrag(ordnung, ich)
+        antrag.kategorien.add(eltern)
+        wurzel = chatkern.beitrag_schreiben(antrag, ich, f'Wurzel {n}.')
+        for person in leute:
+            chatkern.beitrag_schreiben(antrag, person, 'Antwort.', wurzel)
+    assert len(chatkern.gespraeche(ich, grenze=None)) == 120
+    client.force_login(ich)
+    gesehen = set()
+    url = reverse('verfahren:gespraeche')
+    for seite_nr in range(1, 5):
+        with CaptureQueriesContext(connection) as ctx:
+            seite = client.get(url, {'seite': seite_nr}).content.decode()
+        assert len(ctx.captured_queries) <= 20, len(ctx.captured_queries)
+        assert 'von 120' in seite and 'jüngste zuerst' in seite
+        gesehen |= set(re.findall(r'class="gz[^"]*" href="(/antrag/\d+/#k-\d+)"', seite))
+    assert len(gesehen) == 120
+    assert '?seite=2' in client.get(url).content.decode()

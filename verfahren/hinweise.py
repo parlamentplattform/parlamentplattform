@@ -27,6 +27,8 @@ FELDER = ("filter", "wichtig", "region")
 
 #: Hinweiscodes: `text` steht im Feldkopf, `kurz` (wenn vorhanden) in der Kachel statt der Knöpfe,
 #: `link` ist ein URL-Name (mit `link_text`), `art` färbt den Hinweis (ok / fehler).
+#: `satzung` ist bei Sperrgründen die eine Quelle des Satzungsbezugs: Feldhinweis und Sperrseite
+#: zitieren denselben Absatz (GP-176); ein Wächtertest hält Text und Schlüssel gleich.
 HINWEISE: dict[str, dict] = {
     "nicht_im_teilnehmerkreis": {
         "kurz": _("Außerhalb des örtlichen Teilnehmerkreises"),
@@ -51,6 +53,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_ungeprueft": {
         "kurz": _("Identität noch ungeprüft"),
         "text": _("Identität noch ungeprüft (§ 4 Abs 1)."),
+        "satzung": "§ 4 Abs 1",
         "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
@@ -58,6 +61,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_pausiert": {
         "kurz": _("Mitwirkung ruht"),
         "text": _("Mitwirkung ruht — Beitrag ausständig (§ 4 Abs 3)."),
+        "satzung": "§ 4 Abs 3",
         "link": "mitglieder:beitrag",
         "link_text": _("Beitrag"),
         "art": "fehler",
@@ -65,6 +69,7 @@ HINWEISE: dict[str, dict] = {
     "gesperrt_ausgeschlossen": {
         "kurz": _("Mitwirkung ruht"),
         "text": _("Von der Mitwirkung ausgeschlossen (§ 4 Abs 5)."),
+        "satzung": "§ 4 Abs 5",
         "art": "fehler",
     },
     "testkonto": {"kurz": _("Testkonto"), "text": _("Testkonto — ohne Mitwirkung."), "art": "fehler"},
@@ -78,6 +83,7 @@ HINWEISE: dict[str, dict] = {
     "nicht_stimmberechtigt": {
         "kurz": _("Nicht stimmberechtigt am Stichtag"),
         "text": _("Nicht stimmberechtigt am Stichtag (§ 4 Abs 4)."),
+        "satzung": "§ 4 Abs 4",
         "link": "verfahren:rollen",
         "link_text": _("Wer darf was"),
         "art": "fehler",
@@ -116,12 +122,23 @@ def _hinweistext(code):
     return HINWEISE[code]["text"]
 
 
+#: Sitzungsschlüssel der eigenen Handlung: `weiter_mit_hinweis` setzt ihn, `hinweis_lage` prüft ihn.
+SITZUNG_SCHLUESSEL = "feldhinweis"
+
+
 def hinweis_lage(request) -> dict | None:
     """`?hinweis=<code>&feld=<kennung>` der Adresse als Hinweis für die Vorlage — None, wenn
-    Code oder Feld unbekannt sind (fremde oder alte Adressen zeigen nichts)."""
+    Code oder Feld unbekannt sind (fremde oder alte Adressen zeigen nichts).
+
+    Die Adresse allein genügt nicht (Z-1, R1-8): Ein weitergegebener Link zeigte sonst jedem
+    „Unterstützung erfasst.“, ohne dass er etwas getan hatte. Der Hinweis erscheint nur, wenn
+    dieselbe Sitzung zuletzt eben diese Handlung ausgelöst hat; die nächste Handlung ersetzt ihn."""
     code = request.GET.get("hinweis", "")
     feld = request.GET.get("feld", "")
     if code not in HINWEISE or feld not in FELDER:
+        return None
+    sitzung = getattr(request, "session", None)
+    if sitzung is None or sitzung.get(SITZUNG_SCHLUESSEL) != f"{code}:{feld}":
         return None
     link, link_text = _link(code)
     return {
@@ -173,6 +190,8 @@ def weiter_mit_hinweis(request, code: str, feld: str):
     """Redirect auf `weiter` (sicher, sonst das Parlament) mit Hinweis und Feld — und dem Anker
     des Felds, damit die Seite ohne JavaScript am Handy beim richtigen Feld steht."""
     assert code in HINWEISE, code
+    if hasattr(request, "session"):
+        request.session[SITZUNG_SCHLUESSEL] = f"{code}:{feld}"
     weiter = request.POST.get("weiter", "")
     if not sicherer_pfad(weiter):
         weiter = reverse("verfahren:parlament")

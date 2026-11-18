@@ -237,15 +237,41 @@ def test_export_macht_die_wahl_nachrechenbar(client, ordnung):  # noqa: F811
     daten = client.get(reverse("verfahren:export", args=[antrag.pk])).json()
     assert daten["art"] == "mandat"
     assert daten["bewerbungen"][0]["bewerbung"] == b.pk
-    # Seit 0.45 steht jede Zustimmung im Export — auch eine zurückgenommene, mit Zeitstempel
-    # (Grundregel 7); die Auszählung zählt nur die gültigen.
+    # Seit 0.45 steht jede Zustimmung im Export — auch eine zurückgenommene (Grundregel 7); seit
+    # 0.113 nur mit dem Vermerk, ohne Zeitpunkt (GP-022). Die Auszählung zählt nur die gültigen.
     assert daten["zustimmungen"] == [
         {
             "pseudonym": antrag.stimmregister.get(mitglied=autor).pseudonym.hex,
             "bewerbung": b.pk,
-            "zurueckgenommen_am": None,
+            "zurueckgenommen": False,
         }
     ]
+
+
+def test_gp022_export_nennt_keinen_zeitpunkt_der_ruecknahme(client, ordnung):  # noqa: F811
+    """GP-022 (ASR-09): Der Zeitpunkt der Rücknahme je Pseudonym verband das Pseudonym mit einem
+    Ereignis der Audit-Kette — der Export trägt nur noch den Vermerk."""
+    import re
+
+    autor = mitglied_anlegen('autor')
+    leute = [mitglied_anlegen(f'm{i}') for i in range(2)]
+    antrag = _kandidatur(ordnung, autor)
+    b = bewerbung_einreichen(antrag, leute[0], 'A')
+    _in_abstimmung(antrag, leute)
+    bewerbung_zustimmen(antrag, autor, b)
+    bewerbung_zustimmen(antrag, leute[1], b)
+    bewerbung_zustimmen(antrag, leute[1], b)  # zurückgenommen
+    antrag.phase_beginn = timezone.now() - timedelta(days=8)
+    antrag.save(update_fields=['phase_beginn'])
+
+    daten = client.get(reverse('verfahren:export', args=[antrag.pk])).json()
+    zurueck = antrag.stimmregister.get(mitglied=leute[1]).pseudonym.hex
+    vermerke = {z['pseudonym']: z['zurueckgenommen'] for z in daten['zustimmungen']}
+    assert vermerke[zurueck] is True and list(vermerke.values()).count(True) == 1
+    zeitstempel = re.compile(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}')
+    assert not any(
+        isinstance(wert, str) and zeitstempel.search(wert) for z in daten['zustimmungen'] for wert in z.values()
+    )
 
 
 def test_pruefskript_und_plattform_zaehlen_die_kandidatur_gleich(client, ordnung):  # noqa: F811

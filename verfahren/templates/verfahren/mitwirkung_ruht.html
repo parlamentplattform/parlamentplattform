@@ -7,12 +7,12 @@
 {% if testkonto %}
 <p>{% translate "Testkonto — ohne Mitwirkung." %}</p>
 {% elif pausiert %}
-<p>{% blocktranslate %}Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht (§ 4 Abs 3).
+<p>{% blocktranslate %}Ihre Mitgliedschaft ist pausiert, weil der Mitgliedsbeitrag aussteht ({{ satzung }}).
 Lesen und Anmelden bleiben selbstverständlich möglich — einbringen, unterstützen,
 beraten und abstimmen können Sie wieder, sobald der Beitrag eingegangen ist.{% endblocktranslate %}</p>
 <p style="margin-top:12px"><a class="btn" href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen (QR-Code)" %}</a></p>
 {% else %}
-<p>{% blocktranslate %}Dieses Konto ist von der Mitwirkung ausgeschlossen (§ 4 Abs 6). Die Begründung
+<p>{% blocktranslate %}Dieses Konto ist von der Mitwirkung ausgeschlossen ({{ satzung }}). Die Begründung
 steht im Audit-Log. Wenden Sie sich an didide@ddoe.at, wenn Sie Einspruch erheben möchten.{% endblocktranslate %}</p>
 {% endif %}
 </div>

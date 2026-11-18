@@ -1245,3 +1245,26 @@ def test_eine_wirkliche_annahme_steht_als_annahme_im_audit(client, ordnung):  # 
     wechsel = _endabstimmung_im_audit(antrag)
     assert wechsel['grund'].startswith('Vorschlag des Expertenrats angenommen')
     assert wechsel['auswertung']['grund'] == 'passt_alles_oben' and wechsel['auswertung']['stimmen'] == 2
+
+
+# --- GP-165: Das Phasentor der Endabstimmung steht vor dem Anlegen der Fassung ----------------
+
+
+@pytest.mark.parametrize('phase', ['zurueckgewiesen', 'angenommen', 'abgelehnt'])
+def test_ein_entschiedener_antrag_bekommt_aus_der_schleife_keine_weitere_fassung(client, ordnung, phase):  # noqa: F811
+    """GP-165: Das Tor für zurückgewiesene und entschiedene Anträge stand hinter dem Anlegen der neuen
+    Antragsfassung — jeder Aufruf hängte eine weitere Fassung an und meldete einen Übergang."""
+    antrag, _, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    frist_verstreichen(entwurf)
+    Antrag.objects.filter(pk=antrag.pk).update(phase=phase)
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    fassungen = antrag.fassungen.count()
+    assert entwurf.fortschreiben(antrag) is False
+    assert entwurf.fortschreiben(antrag) is False
+    antrag.refresh_from_db()
+    entwurf.refresh_from_db()
+    assert antrag.fassungen.count() == fassungen
+    assert antrag.phase == phase and entwurf.status == EntwurfsStatus.UNTERSTUETZER
+    assert _wechsel_in_die_abstimmung(antrag) == []

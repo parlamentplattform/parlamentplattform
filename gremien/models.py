@@ -523,7 +523,7 @@ class Entwurf(models.Model):
     @transaction.atomic
     def _endabstimmung_oeffnen(
         self, antrag: Antrag, grund: str, jetzt, auswertung: dict | None = None
-    ) -> None:
+    ) -> bool:
         """§ 5 Abs 3 lit d: Abgestimmt wird über den zustande gekommenen
         Vorschlag — er wird die neue, letzte Antragsfassung.
 
@@ -531,7 +531,17 @@ class Entwurf(models.Model):
         Nach einer Rückgabe hängt Gruppe 1 Arbeitsstände an, und verstreicht dann die
         Überarbeitungsfrist, geht die vorgelegte Fassung zur Abstimmung (§ 5 Abs 12: „über die
         zuletzt veröffentlichte Fassung“) — nie ein Text, den kein Organ freigegeben hat.
-        Wurde nie eingereicht, bleibt der Antragstext, wie er ist."""
+        Wurde nie eingereicht, bleibt der Antragstext, wie er ist.
+
+        Rückgabe: ob die Endabstimmung geöffnet wurde. Das Phasentor steht am Anfang (GP-165):
+        Dahinter hängte jeder Aufruf eine weitere Fassung an einen entschiedenen Antrag."""
+        from plattform_core import Phase
+
+        if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
+            # Ein zurückgewiesener oder entschiedener Antrag bekommt keine Endabstimmung mehr.
+            # Ohne dieses Tor öffnete die Schleife sie auch dann, wenn der Integritätsrat den
+            # Antrag inzwischen zurückgewiesen hat (§ 5 Abs 2).
+            return False
         fassung = self.vorgelegte_fassung()
         if fassung is not None:
             letzte = antrag.aktueller_text()
@@ -545,13 +555,6 @@ class Entwurf(models.Model):
                     f"(§ 5 Abs 12). {fassung.begruendung}"
                 ).strip(),
             )
-        from plattform_core import Phase
-
-        if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
-            # Ein zurückgewiesener oder entschiedener Antrag bekommt keine Endabstimmung mehr.
-            # Ohne dieses Tor öffnete die Schleife sie auch dann, wenn der Integritätsrat den
-            # Antrag inzwischen zurückgewiesen hat (§ 5 Abs 2).
-            return
         self.status = EntwurfsStatus.ANGENOMMEN
         self.save(update_fields=["status"])
         antrag.phase = Phase.ABSTIMMUNG.value
@@ -583,6 +586,7 @@ class Entwurf(models.Model):
                 **({"auswertung": auswertung} if auswertung else {}),
             }
         )
+        return True
 
     def _endabstimmung_fruehestens(self, antrag: Antrag, frist, jetzt):
         """Der Zeitpunkt, zu dem die Schleife die Endabstimmung öffnet: ihre eigene Frist, aber
@@ -771,8 +775,7 @@ class Entwurf(models.Model):
                 )
             else:
                 grund = f"Vorschlag des Expertenrats angenommen ({rest} § 5 Abs 12)."
-            self._endabstimmung_oeffnen(antrag, grund, wirksam, auswertung=festgehalten)
-            return True
+            return self._endabstimmung_oeffnen(antrag, grund, wirksam, auswertung=festgehalten)
         if (
             self.status == EntwurfsStatus.IN_ARBEIT
             and self.runde > 1
@@ -784,13 +787,12 @@ class Entwurf(models.Model):
             wirksam = self._endabstimmung_fruehestens(antrag, self.ueberarbeitung_frist, jetzt)
             if jetzt < wirksam:
                 return False
-            self._endabstimmung_oeffnen(
+            return self._endabstimmung_oeffnen(
                 antrag,
                 "Überarbeitungsfrist verstrichen — die zuletzt vorgelegte Fassung geht zur "
                 "Endabstimmung (§ 5 Abs 12: Untätigkeit hemmt nie).",
                 wirksam,
             )
-            return True
         return False
 
 

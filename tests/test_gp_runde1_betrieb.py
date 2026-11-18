@@ -37,3 +37,51 @@ def test_eine_eigene_festlegung_der_ansicht_bleibt():
     eigene = HttpResponse('x')
     eigene['Cache-Control'] = 'max-age=60, public'
     assert PersoenlichesNichtSpeichern(lambda r: eigene)(anfrage)['Cache-Control'] == 'max-age=60, public'
+
+
+# --- GP-160: Ohne eigenen Schlüssel startet der Dienst nicht ---------------------------------------
+
+
+def _einstellungen_laden(**umgebung):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    env = {k: v for k, v in os.environ.items() if k != 'DDOE_SECRET_KEY'}
+    env.update(umgebung)
+    return subprocess.run(
+        [sys.executable, '-c', 'import config.settings'],
+        cwd=Path(__file__).resolve().parent.parent, env=env, capture_output=True, text=True, timeout=120,
+    )
+
+
+@pytest.mark.parametrize('schluessel', [
+    None, '', 'nur-fuer-entwicklung-niemals-produktiv', 'hier-einen-langen-zufaelligen-schluessel-eintragen',
+])
+def test_ohne_eigenen_schluessel_verweigert_die_produktion_den_start(schluessel):
+    umgebung = {'DDOE_DEBUG': '0'}
+    if schluessel is not None:
+        umgebung['DDOE_SECRET_KEY'] = schluessel
+    lauf = _einstellungen_laden(**umgebung)
+    assert lauf.returncode != 0
+    assert 'ImproperlyConfigured' in lauf.stderr
+
+
+def test_mit_zufaelligem_schluessel_startet_die_produktion():
+    import secrets
+
+    lauf = _einstellungen_laden(DDOE_DEBUG='0', DDOE_SECRET_KEY=secrets.token_urlsafe(50))
+    assert lauf.returncode == 0, lauf.stderr
+
+
+def test_die_entwicklung_braucht_keinen_schluessel():
+    assert _einstellungen_laden(DDOE_DEBUG='1').returncode == 0
+
+
+def test_die_musterdatei_traegt_keinen_platzhalter_als_schluessel():
+    from pathlib import Path
+
+    muster = Path(__file__).resolve().parent.parent / 'docs' / 'partner' / 'instanz' / 'env.example'
+    zeilen = [z for z in muster.read_text(encoding='utf-8').splitlines() if z.startswith('DDOE_SECRET_KEY=')]
+    assert zeilen == ['DDOE_SECRET_KEY=']

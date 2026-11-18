@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n chat %}
 {% block titel %}{% translate "Mitgliederverwaltung" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Mitgliederverwaltung" %}</h1>
@@ -10,7 +10,8 @@ erscheinen die Aktion, nicht die Mitgliedsnummer und nicht die Begründung zu ei
 <a href="{% url 'mandatare:verwaltung' %}">{% translate "Mandatare →" %}</a> ·
 <a href="{% url 'gremien:rollen' %}">{% translate "Gremien-Rollen →" %}</a> ·
 <a href="{% url 'parameter:verwaltung' %}">{% translate "Parameter →" %}</a>{% if quellenverwaltung %} ·
-<a href="{% url 'faktenbasis:verwaltung' %}">{% translate "Quellenverwaltung →" %}</a>{% endif %}</p>
+<a href="{% url 'faktenbasis:verwaltung' %}">{% translate "Quellenverwaltung →" %}</a>{% endif %}{% offene_meldungen as meldungen_offen %}{% if meldungen_offen is not None %} ·
+<a href="{% url 'verfahren:meldungen' %}">{% blocktranslate with n=meldungen_offen %}Gemeldete Beiträge ({{ n }} offen) →{% endblocktranslate %}</a>{% endif %}</p>
 
 <div class="hf-grid" style="margin-top:18px">
   <div class="bereich"><span class="bk">{% translate "Bestand" %}</span>

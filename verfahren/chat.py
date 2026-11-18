@@ -519,15 +519,22 @@ def sitzung_faden(sitzung, nutzer=None) -> list[dict]:
     `neu` bezieht sich auf den Lesestand des Mitglieds zu dieser Sitzung (FB-G2)."""
     beitraege = list(sitzung.beitraege.select_related("mitglied").order_by("erstellt_am", "pk"))
     gelesen_bis = None
+    meine_meldungen: dict[int, Meldung] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, sitzung=sitzung).first()
         gelesen_bis = stand.gelesen_bis if stand else None
+        # Der Stand der eigenen Meldung steht am Beitrag — wie im Chat eines Antrags (GP-014)
+        meine_meldungen = {
+            m.kommentar_id: m
+            for m in Meldung.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+        }
 
     def schmuecken(k: Kommentar) -> dict:
         return {
             "k": k,
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
             "eigener": nutzer is not None and k.mitglied_id is not None and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "meine_meldung": meine_meldungen.get(k.pk),
         }
 
     je_wurzel: dict[int, list[dict]] = {}

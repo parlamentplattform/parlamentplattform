@@ -54,6 +54,8 @@ def _(text: str) -> str:
 #: Gemeldete Beiträge sichtet und entscheidet die Verwaltung (Zeile dort; „Einen Beitrag melden“ ist ●).
 #: Fassung 13 (18.11.2026): das Gemeindekonto ohne Parteibeitritt — was es liest und für sich
 #: verwaltet, und dass es auf den Seiten der Partei als Gast gilt.
+#: Nachtrag ohne neue Fassung (GP-014): Die Zeile der Verwaltung zu gemeldeten Beiträgen führt zur
+#: Meldeliste (`verfahren:meldungen`) — ein Verweis, kein geänderter Stand.
 VERSION = 13
 
 
@@ -1019,6 +1021,7 @@ VERWALTUNG = Rolle(
         Faehigkeit(
             titel=_("Gemeldete Beiträge sichten und entscheiden — ausblenden mit öffentlichem Grund oder keine Maßnahme; jede Entscheidung steht im Audit-Log"),
             stand=Stand.TEILWEISE,
+            urlname="verfahren:meldungen",
             ort=_("in der Verwaltung, Liste der offenen Meldungen"),
             einschraenkung=_("Die Verwaltung entscheidet allein, auch wenn sie selbst betroffen ist; einen Rechtsbehelf gegen die Entscheidung gibt es auf der Plattform nicht."),
         ),

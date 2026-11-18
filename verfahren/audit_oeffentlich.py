@@ -46,8 +46,9 @@ PERSONENGRUENDE = ("verwaltung", "rolle_beendet")
 PERSONENGRUENDE_ANFANG = {"vorschlag_zurueckgegeben": ("Gruppe 2:",)}
 
 #: Je Art weitere Schlüssel: Der gemeldete Beitrag stünde sonst am Pranger, bevor die Verwaltung
-#: über die Meldung entschieden hat.
-JE_ART = {"beitrag_gemeldet": ("beitrag",)}
+#: über die Meldung entschieden hat — und danach, wenn sie keine Maßnahme ergriffen hat (GP-014).
+#: Das Ausblenden bleibt lesbar; sein Vermerk steht ohnehin öffentlich am Beitrag.
+JE_ART = {"beitrag_gemeldet": ("beitrag",), "meldung_ohne_massnahme": ("beitrag",)}
 
 #: Stimm-Ereignisse: Solange ihre Abstimmung läuft, tragen sie öffentlich nur das Tagesdatum (GP-210,
 #: Fahrtenbuch D-D2b, § 5 Abs 3 lit e) — wer wann gestimmt hat, ließe sich sonst mit anderem Wissen

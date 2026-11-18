@@ -39,6 +39,9 @@ from django.utils.translation import gettext_lazy
 GUELTIG_SEKUNDEN = 3600
 SITZUNGSSCHLUESSEL = "botschutz"
 HOECHSTZAHL_AUFGABEN = 3  # zwei offene Tabs sollen einander nicht die Aufgabe wegnehmen
+# Zwecke, deren Zähler einen Kalendertag gelten (`tagesdrossel_zuviel`, GP-101): Ihre Zeilen
+# übersteht das stündliche Aufräumen zwei Tage lang. Die Kennung ist dort stets „konto:<pk>“.
+TAGESZWECKE = ("bankmeldung",)
 
 
 def mindestzeit() -> int:
@@ -153,7 +156,30 @@ def drossel_zuviel(request, zweck: str, limit: int, kennung: str | None = None) 
     if neu:
         # Aufräumen im Vorbeigehen: Zähler sind keine Verfahrensdaten, nach zwei Stunden
         # sagen sie nichts mehr aus.
-        Drosselzaehler.objects.filter(stunde__lt=stunde - 1).delete()
+        Drosselzaehler.objects.filter(stunde__lt=stunde - 1).exclude(
+            zweck__in=TAGESZWECKE, stunde__gte=stunde - 48
+        ).delete()
+    return False
+
+
+def tagesdrossel_zuviel(zweck: str, kennung: str, limit: int) -> bool:
+    """Wie `drossel_zuviel`, aber je Kalendertag (Ortszeit) und nur für Kontokennungen."""
+    from datetime import datetime
+    from datetime import time as uhrzeit
+
+    from django.utils import timezone
+
+    from mitglieder.models import Drosselzaehler
+
+    assert zweck in TAGESZWECKE and kennung.startswith("konto:")
+    beginn = datetime.combine(timezone.localdate(), uhrzeit.min, tzinfo=timezone.get_current_timezone())
+    with transaction.atomic():
+        zaehler, _neu = Drosselzaehler.objects.select_for_update().get_or_create(
+            zweck=zweck, kennung=kennung[:64], stunde=int(beginn.timestamp() // 3600)
+        )
+        if zaehler.anzahl >= limit:
+            return True
+        Drosselzaehler.objects.filter(pk=zaehler.pk).update(anzahl=F("anzahl") + 1)
     return False
 
 

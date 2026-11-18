@@ -25,6 +25,7 @@ from django.views.decorators.http import require_POST
 
 from mitglieder import bank
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.botschutz import tagesdrossel_zuviel
 from mitglieder.models import Bankkopplung, Beitragseingang, Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from mitglieder.views import BEITRAG_RICHTWERT, IBAN, _beitrags_qr
@@ -32,6 +33,8 @@ from parameter.models import zahl
 
 ABGLEICH_MINDESTABSTAND = 180  # Sekunden zwischen zwei mitglieder-ausgelösten Abrufen
 VERWALTUNG_NACHHOLFRIST = 6 * 3600  # Verwaltungsbesuch holt einen Abgleich nach, wenn älter
+VERWALTUNG_VORBEHALT = 1  # Abrufe je Tag, die keine Meldung verbraucht (GP-101)
+MELDUNGEN_MIT_ABRUF_JE_KONTO = 1  # je Kalendertag (GP-101)
 
 
 def _beitrags_kontext(nutzer) -> dict:
@@ -82,8 +85,16 @@ def beitrag_gemeldet(request):
         messages.info(request, _("Der letzte Abgleich ist keine drei Minuten her — bitte gleich noch einmal versuchen."))
         return redirect("mitglieder:beitrag")
 
+    # GP-101: Der letzte Abruf des Tages bleibt der Verwaltung; je Konto ruft nur eine Meldung am Tag ab.
+    frei = kopplung.abruf_erlaubt(vorbehalt=VERWALTUNG_VORBEHALT)
+    if frei and tagesdrossel_zuviel("bankmeldung", f"konto:{request.user.pk}", MELDUNGEN_MIT_ABRUF_JE_KONTO):
+        messages.info(
+            request,
+            _("Ihr Konto hat heute schon einen Kontoabruf ausgelöst — diese Meldung ruft nicht erneut ab. Ihr Eingang wird beim nächsten Abgleich erkannt: morgen auf Ihre Meldung hin oder wenn die Verwaltung abgleicht."),
+        )
+        return redirect("mitglieder:beitrag")
     vorher = set(request.user.beitraege.values_list("pk", flat=True))
-    _neu, meldung = bank.abgleich_ausfuehren()
+    _neu, meldung = bank.abgleich_ausfuehren() if frei else (0, "kontingent_erschoepft")
     if request.user.beitraege.exclude(pk__in=vorher).exists():
         messages.success(
             request,

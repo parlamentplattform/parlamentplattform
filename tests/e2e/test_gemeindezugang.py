@@ -57,6 +57,9 @@ def test_gemeindeanmeldung_bis_zur_bestaetigung(seite, live_server, sichtpruefun
     assert mail.outbox
     link = re.search(r"https?://[^\s]+/gemeinde/bestaetigen/[A-Za-z0-9_-]+/", mail.outbox[-1].body).group()
     p.goto(link)
+    # GP-018: Der Abruf zeigt nur die Zwischenseite; eingelöst wird erst mit dem Knopf (POST).
+    p.locator("main form[method=post] button[type=submit]").click()
+    p.wait_for_url(f"**{reverse('gemeinde:konto')}")
     assert p.url.endswith(reverse("gemeinde:konto"))
     assert p.locator("h1").inner_text() == ("My municipal account" if englisch else "Mein Gemeindezugang")
     assert p.locator('a[href="/beitrag/"]').count() == 0

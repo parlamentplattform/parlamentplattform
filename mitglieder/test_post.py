@@ -43,7 +43,7 @@ def post_audit(art=None):
 def registrieren_und_bestaetigen(client, **extra):
     client.post(reverse("mitglieder:registrieren"), {**ANMELDUNG, **extra, **botschutz(client)})
     link = link_aus_mail(mail.outbox[0])
-    client.get(link, follow=True)
+    client.post(link, follow=True)
     return Mitglied.objects.get(email=ANMELDUNG["email"]), link
 
 
@@ -188,7 +188,7 @@ def test_vor_der_bestaetigung_festgestellte_identitaet_bekommt_den_brief_mit_der
     assert eva.identitaetsstufe == Identitaetsstufe.PRAESENZ and eva.freischaltung_post_am is None
     assert [n.subject for n in mail.outbox] == ["Bitte bestätigen Sie Ihre E-Mail-Adresse — ParlamentPlattform"]
     client.post(reverse("mitglieder:abmelden"))
-    client.get(link_aus_mail(mail.outbox[0]), follow=True)
+    client.post(link_aus_mail(mail.outbox[0]), follow=True)
     assert [n.subject for n in mail.outbox][1:] == [WILLKOMMEN, FREISCHALTUNG]
     assert sorted(e["art"] for e in post_audit()) == ["freischaltung", "willkommen"]
 

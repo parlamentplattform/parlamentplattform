@@ -653,6 +653,31 @@ def test_abschluss_einer_bankkopplung_wird_auditiert(client, monkeypatch):
     assert eintrag['typ'] == 'verwaltung' and 'requisition' not in json.dumps(eintrag)
 
 
+def test_ohne_audit_bleibt_die_bankkopplung_unscharf(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate())
+    monkeypatch.setattr(bank, '_get', lambda pfad, **params: {'status': 'LN', 'accounts': ['k1']})
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.get(reverse('mitglieder:bank_rueckkehr'), follow=True)
+    assert 'nicht abgeschlossen' in antwort.content.decode()
+    assert Bankkopplung.aktuelle() is None  # Kopplung und Audit gemeinsam oder gar nicht
+
+
+def test_ausschluss_vermerkt_die_entzogenen_adminrechte_im_audit(client):
+    anna = mitglied_anlegen()
+    anna.ist_admin = True
+    anna.save(update_fields=['ist_admin'])
+    client.force_login(admin_anlegen())
+    client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.ist_admin is False
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='ausschliessen').get().ereignis
+    assert eintrag['adminrechte_entzogen'] is True and eintrag['mitglied'] == anna.pk
+
+
 # --- Einstiege in Parameter- und Quellenverwaltung (GP-105, GP-086) -----------
 
 

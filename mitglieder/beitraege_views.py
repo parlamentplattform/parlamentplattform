@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -299,15 +300,18 @@ def bank_koppeln(request):
 
 @nur_admins
 def bank_rueckkehr(request):
+    from mitglieder.verwaltung import _auditieren
+
     try:
-        kopplung = bank.kopplung_abschliessen()
+        # GP-102: Kopplung und Audit-Eintrag gemeinsam oder gar nicht — ohne Konto- oder Bankkennungen
+        # im Audit. Scheitert der Eintrag, bleibt die Kopplung unscharf und kann erneut abgeschlossen werden.
+        with transaction.atomic():
+            kopplung = bank.kopplung_abschliessen()
+            if kopplung:
+                _auditieren(request, "bank_gekoppelt", request.user, consent_bis=kopplung.consent_bis.isoformat())
     except Exception:  # noqa: BLE001
         kopplung = None
     if kopplung:
-        from mitglieder.verwaltung import _auditieren
-
-        # GP-102: Die Kopplung ist eine schreibende Verwaltungshandlung — ohne Konto- oder Bankkennungen im Audit.
-        _auditieren(request, "bank_gekoppelt", request.user, consent_bis=kopplung.consent_bis.isoformat())
         messages.success(
             request,
             _("Bankkonto gekoppelt — Zustimmung gültig bis %s. Der Abgleich läuft ab jetzt automatisch.")

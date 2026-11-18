@@ -295,6 +295,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
 
+    extra = {"grund": grund} if grund else {}
     # GP-102: Handlung und Audit-Eintrag gelingen gemeinsam oder gar nicht.
     with transaction.atomic():
         if aktion == "pausieren":
@@ -309,6 +310,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
             if mitglied.ist_admin:
                 mitglied.ist_admin = False
                 felder.append("ist_admin")
+                extra["adminrechte_entzogen"] = True  # die Rechteänderung steht mit im Audit
             mitglied.save(update_fields=[*felder, "is_active"])
             EinmalToken.entwerten(mitglied)
             messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
@@ -345,7 +347,7 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         else:
             messages.error(request, _("Unbekannte Aktion."))
             return
-        _auditieren(request, aktion, mitglied, **({"grund": grund} if grund else {}))
+        _auditieren(request, aktion, mitglied, **extra)
 
 
 @nur_admins

@@ -358,3 +358,29 @@ def test_eine_unmoegliche_ziehung_beginnt_gar_nicht_erst(client, ordnung):  # no
     antrag_in_beratung(ordnung)
     typen = [e.ereignis['typ'] for e in AuditEintrag.objects.all()]
     assert 'auslosung_nicht_moeglich' in typen and 'auslosung_begonnen' not in typen
+
+
+# --- GP-029: Gelost wird nur für Sachanträge -------------------------------------------------
+
+
+def test_fuer_eine_kandidatur_wird_kein_expertenrat_gelost(client, ordnung):  # noqa: F811
+    """GP-029: Auch für Kandidaturen wurde ein Expertenrat gelost — das Entwurfsfenster gibt es aber nur
+    für Sachanträge. Die Gelosten hielten Rollen, mit denen sich nichts tun ließ."""
+    from verfahren.models import Antragsart
+
+    fachliste_fuellen(10)
+    kandidatur = antrag_einbringen(
+        mitglied_anlegen(f'stellerin{next(_ZAEHLER)}'), **ANTRAG, ordnung=ordnung, art=Antragsart.MANDAT
+    )
+    in_beratung_bringen(kandidatur, [mitglied_anlegen(f'u{next(_ZAEHLER)}') for _ in range(2)])
+    assert not Auslosung.objects.filter(antrag=kandidatur).exists()
+    assert not Rolle.objects.filter(antrag=kandidatur).exists()
+    typen = {e.ereignis['typ'] for e in AuditEintrag.objects.all()}
+    assert not typen & {'auslosung_begonnen', 'expertenrat_ausgelost', 'auslosung_nicht_moeglich'}
+    client.logout()
+    seite = client.get(reverse('verfahren:antrag', args=[kandidatur.pk])).content.decode()
+    assert 'aus der öffentlichen Fachliste gelost' not in seite
+    # Gegenprobe: Beim Sachantrag bleibt alles, wie es war — eine Ziehung, drei Rollen.
+    sache = antrag_in_beratung(ordnung)
+    assert Auslosung.objects.filter(antrag=sache).count() == 1
+    assert Rolle.objects.filter(antrag=sache, gremium=Gremium.EXPERTENRAT_1).count() == 3

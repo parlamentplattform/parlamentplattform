@@ -527,10 +527,12 @@ class Antrag(models.Model):
             )
             felder += ["stimmberechtigte_anzahl", "stimmberechtigung_stichtag"]
         self.save(update_fields=felder)
-        if uebergang.neue_phase is Phase.BERATUNG and apps.is_installed("gremien"):
+        if uebergang.neue_phase is Phase.BERATUNG and self.art == Antragsart.SACHE and apps.is_installed("gremien"):
             # § 6 Abs 7: Der Expertenrat wird für DIESEN Antrag aus der Fachliste gelost —
             # erst jetzt, denn erst jetzt steht fest, dass beraten wird. Der Anker ist der
             # Kopf der Audit-Kette in diesem Augenblick: vorher von niemandem auszurechnen.
+            # Nur für Sachanträge (GP-029): Das Entwurfsfenster gibt es nur dort — für eine
+            # Kandidatur Geloste hielten Rollen, mit denen sich nichts tun lässt.
             from gremien.models import auslosen
 
             auslosen(self, jetzt=uebergang.wirksam_ab)

@@ -732,6 +732,8 @@ def rollen_aktion(request):
                     "gremium": rolle.gremium,
                     "endet_am": rolle.endet_am.isoformat(),
                     "bestaetigt": rolle.bestaetigt,
+                    # Welches Konto gehandelt hat (GP-048) — öffentlich geschwärzt wie jede Kennung.
+                    "durch": request.user.pk,
                 }
             )
             bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
@@ -753,7 +755,7 @@ def rollen_aktion(request):
         with transaction.atomic():
             rolle.bestaetigt = True
             rolle.save(update_fields=["bestaetigt"])
-            AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk})
+            AuditEintrag.anhaengen({"typ": "rolle_bestaetigt", "rolle": rolle.pk, "durch": request.user.pk})
             bestaetigt_mandat = _bestaetigung_durch_wahl(rolle)
         messages.success(request, _("Bestätigung der Mitgliederversammlung vermerkt."))
         _meldung_zur_kandidatursperre(request, rolle, bestaetigt_mandat)
@@ -767,7 +769,9 @@ def rollen_aktion(request):
         with transaction.atomic():  # wie berufen und bestätigen: Handlung und Protokoll gemeinsam (GP-038)
             rolle.beendet_grund = grund[:200]
             rolle.save(update_fields=["beendet_grund"])
-            AuditEintrag.anhaengen({"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund})
+            AuditEintrag.anhaengen(
+                {"typ": "rolle_beendet", "rolle": rolle.pk, "grund": rolle.beendet_grund, "durch": request.user.pk}
+            )
         messages.info(request, _("Rolle beendet — Grund im Audit-Log festgehalten."))
 
     return redirect("gremien:rollen")

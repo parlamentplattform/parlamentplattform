@@ -434,6 +434,7 @@ def verwaltung_aktion(request):
             "alt": alt,
             "neu": neuer_wert,
             "grund": grund[:500],
+            "durch": request.user.pk,
         }
     )
     messages.success(
@@ -492,6 +493,7 @@ def verwaltung_ordnung_entwurf(request):
             "policy_id": kennung,
             "version": version,
             "regeln": erzeugt.als_dict(),
+            "durch": request.user.pk,
         }
     )
     messages.success(
@@ -556,6 +558,7 @@ def verwaltung_ordnung_inkraft(request):
             "version": fassung.version,
             "vorher": vorher.version if vorher else None,
             "grund": grund[:500],
+            "durch": request.user.pk,
         }
     )
     messages.success(

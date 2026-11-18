@@ -104,3 +104,24 @@ def test_scheitert_der_audit_eintrag_bleibt_alles_unveraendert(client, lage, nam
     with pytest.raises(RuntimeError):
         client.post(reverse(name), ZIELE[name](lage))
     assert _voller_stand() == vorher
+
+
+def test_das_protokoll_nennt_den_admin_versiegelt_und_oeffentlich_geschwaerzt(client, lage):
+    """GP-128 (RVA-12): Wertänderung, Erzeugen und In-Kraft-Setzen nannten nicht, welcher Admin
+    gehandelt hat. `durch` steht im versiegelten Ereignis wie in mitglieder/verwaltung.py und ist
+    auf /audit/ und /audit.json geschwärzt."""
+    admin = _admin(client)
+    client.post(reverse("parameter:verwaltung_aktion"), ZIELE["parameter:verwaltung_aktion"](lage))
+    client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    client.post(reverse("parameter:verwaltung_ordnung_inkraft"), ZIELE["parameter:verwaltung_ordnung_inkraft"](lage))
+    typen = ("parameter_geaendert", "verfahrensordnung_erzeugt", "verfahrensordnung_in_kraft")
+    ereignisse = {e.ereignis["typ"]: e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") in typen}
+    assert set(ereignisse) == set(typen)
+    assert all(e["durch"] == admin.pk for e in ereignisse.values())
+
+    client.logout()
+    daten = client.get(reverse("verfahren:audit_json")).json()
+    oeffentlich = [e for e in daten["eintraege"] if e["typ"] in typen]
+    assert len(oeffentlich) == 3
+    assert all(e["ereignis"]["durch"] == "•" and e["geschwaerzt"] for e in oeffentlich)
+    assert client.get(reverse("verfahren:audit")).status_code == 200

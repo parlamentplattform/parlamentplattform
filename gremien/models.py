@@ -706,7 +706,11 @@ class Entwurf(models.Model):
                 .first()
             )
             if austausch is not None:
-                frist = austausch.erstellt_am + pruefung_tage
+                # Die Frist rechnet nur `Pruefung.austausch_frist` — samt der Hemmung durch eine
+                # aufgehobene Zurückweisung (GP-008). Eine zweite Rechnung hier ließe den Antrag
+                # nach der Aufhebung sofort verfristen und die Unterstützerfrist rückwirkend laufen.
+                austausch.entwurf = self
+                frist = austausch.austausch_frist
                 if jetzt < frist:
                     return False  # der Koordinationsrat ist am Zug, nicht Gruppe 2
                 beschluss = austausch.korat_beschluss
@@ -1003,6 +1007,11 @@ class Pruefung(models.Model):
         related_name="pruefungen_austausch",
         help_text="Der Beschluss des Koordinationsrats über den Austauschantrag (§ 6 Abs 7).",
     )
+    frist_gehemmt = models.DurationField(
+        default=timedelta,
+        help_text="Nur bei Austauschanträgen: die Dauer aufgehobener Zurückweisungen des Antrags, während "
+        "deren die Frist des Koordinationsrats ruhte (§ 5 Abs 2). Das Urteilsdatum bleibt, wie es war.",
+    )
 
     class Meta:
         ordering = ["-erstellt_am"]
@@ -1016,8 +1025,17 @@ class Pruefung(models.Model):
     def austausch_frist(self):
         """Bis wann der Koordinationsrat über einen Austauschantrag entschieden haben muss: die
         Prüffrist der eingefrorenen Ordnung ab dem Urteil. Danach verfristet der Antrag
-        (`Entwurf.fortschreiben`, § 5 Abs 12)."""
-        return self.erstellt_am + timedelta(days=self.entwurf.antrag.policy().pruefung_tage)
+        (`Entwurf.fortschreiben`, § 5 Abs 12).
+
+        Die eine Quelle dieser Frist — Karte des Rates, Kappung des Beschlusses, Wirkung und
+        Verfristung lesen sie hier. War der Antrag zwischendurch zu Unrecht zurückgewiesen, zählt
+        diese Zeit nicht mit (`frist_gehemmt`, GP-008): Die Frist rückt um die Dauer nach hinten,
+        das öffentlich gezeigte Urteilsdatum `erstellt_am` bleibt."""
+        return (
+            self.erstellt_am
+            + timedelta(days=self.entwurf.antrag.policy().pruefung_tage)
+            + self.frist_gehemmt
+        )
 
     def stimmbegruendungen(self) -> list[dict]:
         """Die veröffentlichten Begründungen der Gruppe 2, aus den Stimmen des Beschlusses gelesen.
@@ -1785,7 +1803,11 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
 
     In der Prüfphase rückt auch der Beginn der Prüffrist (`eingereicht_am`) mit: Ohne besetzte
     Gruppe 2 läuft sie ab der Einreichung und wäre nach einer längeren Zurückweisung sofort um.
-    Ein mitgeschlossener Prüfbeschluss der Gruppe 2 entsteht mit der nächsten Fortschreibung neu."""
+    Ein mitgeschlossener Prüfbeschluss der Gruppe 2 entsteht mit der nächsten Fortschreibung neu.
+
+    Liegt ein Austauschantrag beim Koordinationsrat, ruhte auch dessen Frist: Die Dauer der
+    Zurückweisung steht danach an der Prüfung (`Pruefung.frist_gehemmt`) und zählt in
+    `austausch_frist` nicht mit. Das Urteilsdatum wird dafür nicht verschoben — es ist öffentlich."""
     from datetime import datetime
 
     from plattform_core import Phase
@@ -1813,6 +1835,7 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     antrag.zurueckweisung_begruendung = ""
     antrag.save(update_fields=["phase", "phase_beginn", "zurueckweisung_begruendung"])
     wiederhergestellt = None
+    austausch_gehemmt = []
     gesichert = frueher.zustand_vorher.get("entwurf")
     entwurf = Entwurf.objects.filter(antrag=antrag).first() if gesichert else None
     if entwurf is not None and entwurf.status == EntwurfsStatus.ANGENOMMEN:
@@ -1832,6 +1855,12 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
                     felder.append(feld)
         entwurf.save(update_fields=felder)
         wiederhergestellt = entwurf.status
+        if entwurf.status == EntwurfsStatus.PRUEFUNG:
+            # Ein unentschiedener Austauschantrag: Die Frist des Koordinationsrats ruhte mit (GP-008).
+            for pruefung in entwurf.pruefungen.filter(ergebnis=Pruefung.Ergebnis.AUSTAUSCH, korat_entscheid=""):
+                pruefung.frist_gehemmt += jetzt - seit
+                pruefung.save(update_fields=["frist_gehemmt"])
+                austausch_gehemmt.append(pruefung.pk)
     AuditEintrag.anhaengen(
         {
             "typ": "zurueckweisung_aufgehoben",
@@ -1841,6 +1870,8 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
             "wieder_in_phase": antrag.phase,
             "gehemmt_sekunden": int((jetzt - seit).total_seconds()),
             "entwurf_wiederhergestellt": wiederhergestellt,
+            # Die Prüfungen, deren Austauschfrist um dieselbe Dauer nach hinten rückt (nachrechenbar).
+            **({"austauschfrist_gehemmt": austausch_gehemmt} if austausch_gehemmt else {}),
         }
     )
 

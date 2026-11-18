@@ -156,7 +156,7 @@ def _oeffentliche_funktion() -> Q:
     )
 
 
-def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
+def anzeigename_vergeben(name: str, ausser: Mitglied | None) -> bool:
     """Kollidiert der gewünschte Anzeigename mit dem öffentlichen Namensraum?
 
     Geprüft wird gegen (a) jedes vergebene Pseudonym und (b) die Klarnamen (Vor- und Nachname,
@@ -177,12 +177,38 @@ def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
         | Q(first_name__iexact=name, last_name="")
         | Q(first_name="", last_name__iexact=name)
     )
+    andere = Mitglied.objects.exclude(pk=ausser.pk) if ausser is not None and ausser.pk else Mitglied.objects.all()
+    # GP-186: Ein nie bestätigtes Gemeindekonto belegt keinen Namen — sonst sperrte jede Anmeldung
+    # mit fremder Adresse einen Namen für alle.
+    andere = andere.exclude(parteikonto=False, gemeindezugang__bestaetigt_am__isnull=True)
     return (
-        Mitglied.objects.exclude(pk=ausser.pk)
+        andere
         .annotate(klarname=Concat("first_name", Value(" "), "last_name"))
         .filter(Q(pseudonym_oeffentlich__iexact=name) | (_oeffentliche_funktion() & klarname_gleich))
         .exists()
     )
+
+
+def anzeigename_pruefen(eingabe: str, ausser: Mitglied | None) -> str:
+    """Normalisiert einen Wunsch-Anzeigenamen und weist Vorbehaltenes und Vergebenes ab — im Profil
+    und bei der Gemeindeanmeldung gleich (GP-186)."""
+    name = " ".join(eingabe.split())  # Leerraum normalisieren
+    if not name:
+        return ""
+    if (
+        name.casefold() in VORBEHALTEN
+        or name.casefold().startswith(PLATZHALTER.casefold())
+        or MITGLIED_N.fullmatch(name)
+    ):
+        # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
+        # der Platzhalter Ausgetretener, „Mitglied n“ der Anzeigename ohne Pseudonym und ohne
+        # Einwilligung zum Klarnamen — nichts davon darf sich jemand als Anzeigenamen geben.
+        raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
+    if anzeigename_vergeben(name, ausser=ausser):
+        # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
+        # kollidiert — sonst verriete sie, wessen Klarname hier geführt wird.
+        raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
+    return name
 
 
 class ProfilFormular(WohnsitzFormularMixin, forms.Form):
@@ -220,23 +246,7 @@ class ProfilFormular(WohnsitzFormularMixin, forms.Form):
         self.nebenwohnsitz_objekt: Gemeinde | None = None
 
     def clean_anzeigename(self) -> str:
-        name = " ".join(self.cleaned_data["anzeigename"].split())  # Leerraum normalisieren
-        if not name:
-            return ""
-        if (
-            name.casefold() in VORBEHALTEN
-            or name.casefold().startswith(PLATZHALTER.casefold())
-            or MITGLIED_N.fullmatch(name)
-        ):
-            # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
-            # der Platzhalter Ausgetretener, „Mitglied n“ der Anzeigename ohne Pseudonym und ohne
-            # Einwilligung zum Klarnamen — nichts davon darf sich jemand als Anzeigenamen geben.
-            raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
-        if anzeigename_vergeben(name, ausser=self.mitglied):
-            # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
-            # kollidiert — sonst verriete sie, wessen Klarname hier geführt wird.
-            raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
-        return name
+        return anzeigename_pruefen(self.cleaned_data["anzeigename"], ausser=self.mitglied)
 
     def clean_nebenwohnsitz(self) -> str:
         self.nebenwohnsitz_objekt = _gemeinde_pruefen(self.cleaned_data["nebenwohnsitz"])

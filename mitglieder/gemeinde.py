@@ -74,6 +74,14 @@ class AnmeldeFormular(BotschutzMixin, ZugangsFormular):
     email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"), max_length=150)
     anzeigename = forms.CharField(label=gettext_lazy("Anzeigename"), max_length=50)  # Spalte pseudonym_oeffentlich (GP-098)
 
+    def clean_anzeigename(self):
+        from mitglieder.profil import anzeigename_pruefen
+
+        name = anzeigename_pruefen(self.cleaned_data["anzeigename"], ausser=None)  # wie im Profil (GP-186)
+        if not name:
+            raise forms.ValidationError(self.fields["anzeigename"].error_messages["required"], code="required")
+        return name
+
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
         if Mitglied.objects.filter(email__iexact=email).exists():

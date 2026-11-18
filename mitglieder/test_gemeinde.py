@@ -384,3 +384,26 @@ def test_testkonto_erfaehrt_beim_speichern_den_wahren_grund(client, ort, buerger
     assert antwort.status_code == 403
     assert "Link nicht mehr gültig" not in inhalt and "Neuen Anmeldelink" not in inhalt  # der Rahmen nennt „Links“ im CSS
     assert "Testkonten können keinen Gemeindezugang führen." in inhalt
+
+
+# --- Anzeigename des Gemeindekontos wie im Profil prüfen (GP-186, GE-13/KM-22) -----------
+
+
+@pytest.mark.parametrize("name", ["Die Plattform", "Mitglied 7", "Kornblume", "  kornblume "])
+def test_gemeindeanmeldung_prueft_den_anzeigenamen_wie_das_profil(client, ort, name):
+    Mitglied.objects.create(username="kb@example.org", email="kb@example.org", is_active=True, pseudonym_oeffentlich="Kornblume")
+    antwort = anmelden(client, ort, anzeigename=name)
+    assert antwort.status_code == 200
+    assert not Mitglied.objects.filter(email="neu@example.org").exists()
+
+
+def test_unbestaetigtes_gemeindekonto_blockiert_keinen_namen(client, ort):
+    from mitglieder.profil import anzeigename_vergeben
+
+    anmelden(client, ort, anzeigename="Kornblume")
+    unbestaetigt = Mitglied.objects.get(email="neu@example.org")
+    assert unbestaetigt.pseudonym_oeffentlich == "Kornblume" and not unbestaetigt.is_active
+    anna = Mitglied.objects.create(username="anna@example.org", email="anna@example.org", is_active=True)
+    assert anzeigename_vergeben("Kornblume", ausser=anna) is False
+    anmelden(Client(), ort, email="zweite@example.org", anzeigename="Kornblume")
+    assert Mitglied.objects.filter(email="zweite@example.org").exists()

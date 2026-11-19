@@ -1,0 +1,29 @@
+{% load i18n %}
+<article class="karte" aria-labelledby="aenderungsseite-{{ stand.pk }}">
+  <h2 id="aenderungsseite-{{ stand.pk }}">
+    {% if not detail %}<a href="{% url 'faktenbasis:aenderungsseite' stand.pk %}">{% endif %}
+    <time datetime="{{ stand.tag|date:'Y-m-d' }}">{{ stand.tag|date:"DATE_FORMAT" }}</time> · {% translate "RIS-Seite" %} {{ stand.seite }}
+    {% if not detail %}</a>{% endif %}
+  </h2>
+  <p>{% blocktranslate count hier=dokumente|length with gesamt=stand.treffer %}{{ hier }} Dokument auf dieser Seite, {{ gesamt }} Treffer laut RIS.{% plural %}{{ hier }} Dokumente auf dieser Seite, {{ gesamt }} Treffer laut RIS.{% endblocktranslate %}</p>
+  <details{% if offen %} open{% endif %}>
+    <summary>{% translate "Dokumente auf dieser Seite" %}</summary>
+    <ul>
+      {% for dokument in dokumente %}
+        <li><a href="{{ dokument.quelle }}" rel="noopener">{{ dokument.dokumentnummer }}</a>
+          · {% translate "Gesetzesnummer" %} {{ dokument.gesetzesnummer }}
+          {% if detail %}
+            <br>
+            {% if dokument.normstand %}
+              <a href="{% url 'faktenbasis:norm' dokument.normstand.pk %}">{% translate "Jüngster gespeicherter Stichtag" %} {{ dokument.normstand.stand|date:"DATE_FORMAT" }}</a>
+            {% else %}
+              <span class="meta">{% translate "Kein lokaler Normstand vorhanden." %}</span>
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </details>
+  <p class="meta">{% translate "Erstmals erfasst" %} {{ stand.erfasst_am|date:"DATETIME_FORMAT" }} · {% translate "Metadatenprüfung, Fassung" %} {{ stand.parser_fassung }}</p>
+  <p class="meta">{% translate "SHA-256 der eingelesenen Metadatendatei" %}<br><code class="fakten-hash">{{ stand.original_sha256 }}</code></p>
+</article>

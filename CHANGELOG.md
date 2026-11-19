@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.105.0] — 2026-11-15 · RIS-Änderungsseite und lokaler Normstand
+
+- Die Detailansicht einer archivierten RIS-Änderungsseite zeigt passende Bundes-Normstände aus der Faktenbasis. Der dort gespeicherte Stichtag steht getrennt vom Bearbeitungstag der amtlichen Seite.
+
 ## [0.104.0] — 2026-11-15 · RIS-Änderungsseiten im Quellenbestand
 
 - Der Quellenbestandsnachweis führt archivierte RIS-Änderungsseiten mit Datensatznummer und SHA-256 des jeweiligen Original-JSONs.

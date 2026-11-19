@@ -12,6 +12,7 @@ urlpatterns = [
     path("zukunftswerkstatt/faktenbasis/vfgh/", views.vfgh, name="vfgh"),
     path("zukunftswerkstatt/faktenbasis/vfgh/<int:pk>/", views.vfgh_detail, name="vfgh_detail"),
     path("zukunftswerkstatt/faktenbasis/aenderungen/", views.aenderungen, name="aenderungen"),
+    path("zukunftswerkstatt/faktenbasis/aenderungen/<int:pk>/", views.aenderungsseite, name="aenderungsseite"),
     path("zukunftswerkstatt/faktenbasis/personal/", views.personal, name="personal"),
     path("zukunftswerkstatt/faktenbasis/personal/ressorts/", views.personal_ressorts, name="personal_ressorts"),
     path("zukunftswerkstatt/faktenbasis/personal/ressorts/<int:pk>/", views.personal_ressorts_detail, name="personal_ressorts_detail"),

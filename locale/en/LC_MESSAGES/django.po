@@ -12165,11 +12165,23 @@ msgstr "RIS change page archived. SHA-256 %(hash)s."
 msgid "Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."
 msgstr "Makes individual archived pages from the federal legislation change history available to read."
 
-msgid "Übernimmt bestätigte Fundorte und das RIS-Bearbeitungsdatum aus ausdrücklich bereitgestellten Seiten."
-msgstr "Records verified document addresses and the RIS update date from explicitly provided pages."
+msgid "Bestätigte Fundorte ausdrücklich bereitgestellter Änderungsseiten können neben passenden lokalen Normständen nachgelesen werden."
+msgstr "Verified document addresses from explicitly provided change pages can be viewed alongside matching local records."
 
-msgid "Erwarteten Tag und Seitenzahl mit der Antwort abgleichen. Pro Seite die erwartete Zahl eindeutiger Bundes-Dokumentkennungen, ihre Gesetzesnummern und amtlichen Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle."
-msgstr "Match the expected date and page number against the response. Check the expected number of distinct federal document IDs, their legislation numbers and official addresses. Show pages by update date descending, page number ascending and archive order descending. Documents retain their source order."
+msgid "Erwarteten Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle. In der Detailansicht für gleiche Dokumentkennung und Gesetzesnummer den gespeicherten Bundes-Normstand mit dem größten Stichtag und bei Gleichheit der größten Datensatznummer auswählen."
+msgstr "Check the expected date, page and scope, distinct federal document IDs, legislation numbers and official addresses. Show pages by RIS update date descending, page number ascending and archive order descending. Documents retain their source order. In the detail view, select the stored federal legislation snapshot with the latest reference date for the same document ID and legislation number, using the highest record number to break ties."
 
 msgid "Die Änderungshistorie zeigt Datenpflege im RIS. Vollständige Tagesbestände und automatische Aktualisierung bleiben gesonderte Aufgaben."
 msgstr "The change history records updates to entries in RIS. Complete daily inventories and automatic updates are separate tasks."
+
+msgid "Archivierte RIS-Änderungsseite"
+msgstr "Archived RIS change page"
+
+msgid "Der angegebene Tag bezeichnet die Bearbeitung der Dokumenteinträge im RIS. Der Stichtag gehört zum lokal gespeicherten Normstand."
+msgstr "The displayed day is when the document entries were updated in RIS. The reference date belongs to the locally stored legislation snapshot."
+
+msgid "Jüngster gespeicherter Stichtag"
+msgstr "Latest stored reference date"
+
+msgid "Kein lokaler Normstand vorhanden."
+msgstr "No local legislation snapshot available."

@@ -11,7 +11,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from faktenbasis.models import Norm, RisAenderungsseite
+from faktenbasis.models import Norm, RisAenderungsseite, RisImport
 from faktenbasis.ris import RisFehler
 from faktenbasis.ris_historie import importieren
 from ki.models import KIAuftrag
@@ -21,6 +21,7 @@ from verfahren.models import AuditEintrag
 
 TAG = date(2026, 11, 13)
 KENNUNG = "NOR40213503"
+GESETZ = "20000673"
 URL = f"https://ogd.ris.bka.gv.at/eli/bgbl/1998/38/P27/{KENNUNG}"
 
 
@@ -28,7 +29,7 @@ def referenz(tag=TAG):
     return {"Data": {"Metadaten": {
         "Technisch": {"Applikation": "BrKons", "ID": KENNUNG},
         "Allgemein": {"Geaendert": tag.isoformat(), "DokumentUrl": URL},
-        "Bundesrecht": {"BrKons": {"Gesetzesnummer": "20000673"}},
+        "Bundesrecht": {"BrKons": {"Gesetzesnummer": GESETZ}},
     }, "NurImArchiv": "synthetischer Originalinhalt"}}
 
 
@@ -37,6 +38,16 @@ def original(ref=None, *, seite=2, treffer=11, seitengroesse=10):
         "Hits": {"@pageNumber": str(seite), "@pageSize": str(seitengroesse), "#text": str(treffer)},
         "OgdDocumentReference": referenz() if ref is None else ref,
     }}}).encode()
+
+
+def norm_anlegen(stichtag, *, kennung=KENNUNG, gesetz=GESETZ, ebene="Bund", land="", erfolgreich=True):
+    lauf = RisImport.objects.create(ebene=ebene, bundesland=land, gesetzesnummer=gesetz,
+                                    stand=stichtag, erfolgreich=erfolgreich)
+    return Norm.objects.create(
+        ris_id=kennung, ebene=ebene, bundesland=land, gesetzesnummer=gesetz, stand=stichtag,
+        kurztitel="Testnorm", quelle=URL, rohdaten={"nicht_anzeigen": "Norm-Rohdaten"},
+        inhalt_hash=hashlib.sha256(str(lauf.pk).encode()).hexdigest(), importlauf=lauf,
+    )
 
 
 @pytest.mark.parametrize("anzahl,ref", [(0, {}), (11, []), (True, []), (1, [None]), (2, []), (1, "")])
@@ -136,7 +147,50 @@ def test_aenderungsseite_nur_lesend_und_neutral_paginierten_bestand_anzeigen(cli
     assert all('"faktenbasis_risaenderungsseite"."original"' not in query["sql"] for query in anfragen)
     html = antwort.content.decode()
     assert KENNUNG in html and "1 Dokument auf dieser Seite, 11 Treffer laut RIS" in html
+    assert reverse("faktenbasis:aenderungsseite", args=[aktuell.pk]) in html
     assert aktuell.original_sha256 in html and "synthetischer Originalinhalt" not in html
     assert [stand.pk for stand in client.get(pfad, {"seite": 2}).context["seite"]] == [aelter.pk]
     assert client.post(pfad).status_code == 405
+    assert AuditEintrag.objects.count() == vorher
+
+
+@pytest.mark.django_db
+def test_detail_gleicht_kennungen_gebuendelt_mit_dem_bundesbestand_ab(client):
+    zweite_kennung = "NOR40213504"
+    zweiter_verweis = referenz()
+    meta = zweiter_verweis["Data"]["Metadaten"]
+    meta["Technisch"]["ID"] = zweite_kennung
+    meta["Allgemein"]["DokumentUrl"] = URL.replace(KENNUNG, zweite_kennung)
+    meta["Bundesrecht"]["BrKons"]["Gesetzesnummer"] = "20000099"
+    archiv = importieren(TAG, 2, original([zweiter_verweis, referenz()], treffer=12))
+    stichtag = TAG - timedelta(days=2)
+    norm_anlegen(stichtag)
+    passend = norm_anlegen(stichtag)
+    norm_anlegen(stichtag - timedelta(days=1))
+    norm_anlegen(TAG, gesetz="20000099")
+    norm_anlegen(TAG, ebene="Land", land="Wien")
+    norm_anlegen(TAG, erfolgreich=False)
+    norm_anlegen(TAG, kennung=zweite_kennung)
+    vorher = AuditEintrag.objects.count()
+    pfad = reverse("faktenbasis:aenderungsseite", args=[archiv.pk])
+    with CaptureQueriesContext(connection) as anfragen:
+        antwort = client.get(pfad)
+    assert antwort.status_code == 200
+    assert [(d["dokumentnummer"], (d["normstand"] or {}).get("pk")) for d in antwort.context["dokumente"]] == [
+        (zweite_kennung, None), (KENNUNG, passend.pk),
+    ]
+    sql = [abfrage["sql"].lower() for abfrage in anfragen]
+    normabfragen = [abfrage for abfrage in sql if '"faktenbasis_norm"' in abfrage]
+    assert len(normabfragen) == 1
+    assert '"rohdaten"' not in normabfragen[0]
+    assert all('"faktenbasis_risaenderungsseite"."original"' not in abfrage for abfrage in sql)
+    html = antwort.content.decode()
+    assert f'datetime="{TAG.isoformat()}"' in html
+    assert "Jüngster gespeicherter Stichtag" in html
+    assert reverse("faktenbasis:norm", args=[passend.pk]) in html
+    assert "Kein lokaler Normstand vorhanden." in html
+    assert "Norm-Rohdaten" not in html and "synthetischer Originalinhalt" not in html
+    assert client.head(pfad).status_code == 200
+    assert client.post(pfad).status_code == 405
+    assert client.get(reverse("faktenbasis:aenderungsseite", args=[archiv.pk + 1])).status_code == 404
     assert AuditEintrag.objects.count() == vorher

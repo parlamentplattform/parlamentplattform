@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.108.0] — 2026-11-15 · Abgleich ausgewählter RIS-Änderungsseiten
+
+- Ein lokaler Prüfbefehl gleicht einen ausdrücklich gewählten Seitensatz gegen die gemeldete Trefferzahl, die Seitennummern und die Dokumentkennungen seiner Belege ab. Die JSON-Ausgabe ordnet die Belege und ihre Prüfsummen in Seitenfolge.
+
 ## [0.107.0] — 2026-11-15 · RIS-Leermeldung beim Einzelabruf
 
 - Ein Einzelabruf protokolliert eine eindeutige RIS-Leermeldung der ersten Seite mit abgefragtem Tag, Abfrageadresse und SHA-256 der Antwort.

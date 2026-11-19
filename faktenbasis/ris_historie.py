@@ -9,6 +9,7 @@ from django.db.models import F, Q, Window
 from django.db.models.functions import RowNumber
 
 from faktenbasis.abrufschutz import einzelabruf
+from faktenbasis.bestandsnachweis import bestandsgrenze
 from faktenbasis.models import Norm, RisAenderungsseite
 from faktenbasis.ris import (
     RisFehler,
@@ -18,7 +19,15 @@ from faktenbasis.ris import (
     seite_pruefen,
     seitenkopf_pruefen,
 )
-from plattform_core.ris_historie import NORM_REIHUNG, PARSER_FASSUNG, dokumente, leere_trefferseite
+from plattform_core.ris_historie import (
+    NORM_REIHUNG,
+    PARSER_FASSUNG,
+    TagesabgleichFehler,
+    Tagesseite,
+    dokumente,
+    leere_trefferseite,
+    tagesabgleich,
+)
 from verfahren.models import AuditEintrag
 
 HISTORY_API = "https://data.bka.gv.at/ris/api/v2.6/History"
@@ -96,6 +105,26 @@ def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None) -
             AuditEintrag.anhaengen({**ereignis, "erfolgreich": False, "fehler": fehler.code})
             raise
     return stand
+
+
+def tag_pruefen(tag: date, belege: list[int]) -> dict:
+    """Liest nur die gewählten lokalen Archivmetadaten."""
+    if not belege or len(belege) > bestandsgrenze():
+        raise TagesabgleichFehler("umfang")
+    if any(type(n) is not int or not 1 <= n <= 2**63 - 1 for n in belege) or len(set(belege)) != len(belege):
+        raise TagesabgleichFehler("auswahl")
+    bestand = RisAenderungsseite.objects.only(
+        "tag", "seite", "treffer", "original_sha256", "dokumente", "parser_fassung",
+    ).in_bulk(belege)
+    if len(bestand) != len(belege):
+        raise TagesabgleichFehler("beleg_fehlt")
+    seiten = []
+    for s in bestand.values():
+        if s.parser_fassung != PARSER_FASSUNG or not isinstance(s.dokumente, list) or len(s.dokumente) > 10:
+            raise TagesabgleichFehler("beleg")
+        nummern = tuple(d.get("dokumentnummer") if isinstance(d, dict) else None for d in s.dokumente)
+        seiten.append(Tagesseite(s.pk, s.tag, s.seite, s.treffer, s.original_sha256, nummern))
+    return tagesabgleich(tag, seiten)
 
 
 def dokumente_mit_normstand(seite):

@@ -172,10 +172,10 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="ris_historie.py", titel=_("Archivierte RIS-Änderungsseiten"),
         zweck=_("Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-15",
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-15",
         grund=_("Änderungsseiten können aus einer Datei oder mit einem ausdrücklich gewählten Einzelabruf archiviert und neben passenden lokalen Normständen nachgelesen werden."),
         nachrechenbar=_("Erwarteten Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle. In der Detailansicht für gleiche Dokumentkennung und Gesetzesnummer den gespeicherten Bundes-Normstand mit dem größten Stichtag und bei Gleichheit der größten Datensatznummer auswählen."),
-        luecke=_("Die Änderungshistorie zeigt Datenpflege im RIS. Vollständige Tagesbestände und automatische Aktualisierung bleiben gesonderte Aufgaben."),
+        luecke=_("Die Änderungshistorie zeigt Datenpflege im RIS. Bei einem Einzelabruf wird eine eindeutige Leermeldung für Seite 1 mit Abfragetag und Prüfsumme protokolliert. Vollständige Tagesbestände und automatische Aktualisierung sind gesonderte Aufgaben."),
         registerschluessel="faktenbasis-seitengroesse · faktenbasis-manuelle-abrufe-je-stunde",
     ),
     Regel(

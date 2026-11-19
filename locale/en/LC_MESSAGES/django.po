@@ -12150,8 +12150,8 @@ msgstr "Documents on this page"
 msgid "Es sind noch keine RIS-Änderungsseiten archiviert."
 msgstr "No RIS change pages have been archived yet."
 
-msgid "Eine ausgewählte RIS-Änderungsseite der Bundesnormen archivieren."
-msgstr "Archive a selected RIS change page for federal legislation."
+msgid "Eine ausgewählte RIS-Änderungsseite der Bundesnormen erfassen."
+msgstr "Record a selected RIS change page for federal legislation."
 
 msgid "Die RIS-Änderungsdatei ließ sich nicht lesen."
 msgstr "The RIS change file could not be read."
@@ -12171,8 +12171,8 @@ msgstr "Change pages can be archived from a file or by explicitly fetching a sin
 msgid "Erwarteten Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle. In der Detailansicht für gleiche Dokumentkennung und Gesetzesnummer den gespeicherten Bundes-Normstand mit dem größten Stichtag und bei Gleichheit der größten Datensatznummer auswählen."
 msgstr "Check the expected date, page and scope, distinct federal document IDs, legislation numbers and official addresses. Show pages by RIS update date descending, page number ascending and archive order descending. Documents retain their source order. In the detail view, select the stored federal legislation snapshot with the latest reference date for the same document ID and legislation number, using the highest record number to break ties."
 
-msgid "Die Änderungshistorie zeigt Datenpflege im RIS. Vollständige Tagesbestände und automatische Aktualisierung bleiben gesonderte Aufgaben."
-msgstr "The change history records updates to entries in RIS. Complete daily inventories and automatic updates are separate tasks."
+msgid "Die Änderungshistorie zeigt Datenpflege im RIS. Bei einem Einzelabruf wird eine eindeutige Leermeldung für Seite 1 mit Abfragetag und Prüfsumme protokolliert. Vollständige Tagesbestände und automatische Aktualisierung sind gesonderte Aufgaben."
+msgstr "The change history records updates to entries in RIS. A clear no-results response on page 1 of a single request is logged with the requested date and checksum. Complete daily inventories and automatic updates are separate tasks."
 
 msgid "Archivierte RIS-Änderungsseite"
 msgstr "Archived RIS change page"
@@ -12191,3 +12191,6 @@ msgstr "Fetch one page directly from RIS."
 
 msgid "Wählen Sie eine lokale Datei oder den RIS-Einzelabruf."
 msgstr "Choose either a local file or a single RIS request."
+
+msgid "RIS meldet für diese Abfrage keine Treffer. SHA-256 %(hash)s."
+msgstr "RIS reports no results for this request. SHA-256 %(hash)s."

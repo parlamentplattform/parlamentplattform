@@ -6,7 +6,7 @@ from datetime import date
 
 from plattform_core.ris_antwort import objekt
 
-VERSION = 3
+VERSION = 4
 PARSER_FASSUNG = 1
 REIHUNG = ("-tag", "seite", "-pk")
 NORM_REIHUNG = ("-stand", "-pk")
@@ -19,6 +19,13 @@ class Dokumentverweis:
     dokumentnummer: str
     gesetzesnummer: str
     quelle: str
+
+
+def leere_trefferseite(antwort):
+    """Erkennt die beobachtete RIS-Leermeldung für die erste Seite."""
+    return antwort == {"OgdSearchResult": {"OgdDocumentResults": {
+        "Hits": {"@pageNumber": "1", "@pageSize": "10", "#text": "0"},
+    }}}
 
 
 def dokumente(referenzen, tag: date, anzahl: int) -> tuple[Dokumentverweis, ...] | None:

@@ -6,13 +6,14 @@ from urllib.parse import urlencode
 
 from django.db import transaction
 from django.db.models import F, Q, Window
-from django.db.models.functions import RowNumber
+from django.db.models.functions import Length, RowNumber
 
 from faktenbasis.abrufschutz import einzelabruf
 from faktenbasis.bestandsnachweis import bestandsgrenze
 from faktenbasis.models import Norm, RisAenderungsseite
 from faktenbasis.ris import (
     GESETZESNUMMER,
+    HOECHSTBYTES,
     RisFehler,
     dokumentadresse,
     json_dateibytes_abrufen,
@@ -23,6 +24,7 @@ from faktenbasis.ris import (
 from plattform_core.ris_historie import (
     NORM_REIHUNG,
     NORMABGLEICH_FASSUNG,
+    ORIGINALPRUEFUNG_FASSUNG,
     PARSER_FASSUNG,
     TagesabgleichFehler,
     Tagesseite,
@@ -34,7 +36,7 @@ from verfahren.models import AuditEintrag
 
 HISTORY_API = "https://data.bka.gv.at/ris/api/v2.6/History"
 # Begrenzt die Zahl der SQL-Bindungen und die Tiefe der ODER-Ausdrücke.
-_NORMBLOCK = 100
+_ABFRAGEBLOCK = 100
 
 
 @dataclass(frozen=True)
@@ -48,11 +50,11 @@ def importieren(tag: date, seite: int, daten: bytes, *, erwartete_pruefsumme: st
     return _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer)
 
 
-def _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer):
+def _referenzen(tag, seite, ergebnisse, treffer):
     verweise = dokumente(ergebnisse.get("OgdDocumentReference"), tag, min(treffer - (seite - 1) * 10, 10))
     if verweise is None:
         raise RisFehler("ris_historie")
-    referenzen = [
+    return [
         {
             "dokumentnummer": verweis.dokumentnummer,
             "gesetzesnummer": verweis.gesetzesnummer,
@@ -60,6 +62,10 @@ def _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer):
         }
         for verweis in verweise
     ]
+
+
+def _archivieren(tag, seite, daten, pruefsumme, ergebnisse, treffer):
+    referenzen = _referenzen(tag, seite, ergebnisse, treffer)
     with transaction.atomic():
         stand, neu = RisAenderungsseite.objects.defer("original").get_or_create(
             original_sha256=pruefsumme,
@@ -111,8 +117,8 @@ def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None) -
     return stand
 
 
-def tag_pruefen(tag: date, belege: list[int], *, mit_normbestand=False) -> dict:
-    """Liest nur die gewählten lokalen Archivmetadaten."""
+def tag_pruefen(tag: date, belege: list[int], *, mit_normbestand=False, mit_originalen=False) -> dict:
+    """Prüft gewählte, lokale Belege und auf Wunsch ihre Originaldateien."""
     if not belege or len(belege) > bestandsgrenze():
         raise TagesabgleichFehler("umfang")
     if any(type(n) is not int or not 1 <= n <= 2**63 - 1 for n in belege) or len(set(belege)) != len(belege):
@@ -129,9 +135,35 @@ def tag_pruefen(tag: date, belege: list[int], *, mit_normbestand=False) -> dict:
         nummern = tuple(d.get("dokumentnummer") if isinstance(d, dict) else None for d in s.dokumente)
         seiten.append(Tagesseite(s.pk, s.tag, s.seite, s.treffer, s.original_sha256, nummern))
     abgleich = tagesabgleich(tag, seiten)
+    if mit_originalen:
+        _originale_pruefen(bestand)
+        abgleich["originalpruefung"] = {"fassung": ORIGINALPRUEFUNG_FASSUNG, "gepruefte_seiten": len(bestand)}
     if mit_normbestand:
         abgleich["normabgleich"] = _tagesnormen(abgleich["seiten"], bestand)
     return abgleich
+
+
+def _originale_pruefen(bestand):
+    belege = list(bestand)
+    for beginn in range(0, len(belege), _ABFRAGEBLOCK):
+        block = belege[beginn:beginn + _ABFRAGEBLOCK]
+        originale = RisAenderungsseite.objects.filter(pk__in=block).annotate(groesse=Length("original")).filter(
+            groesse__range=(1, HOECHSTBYTES),
+        ).order_by("pk").values_list("pk", "original")
+        offen = set(block)
+        for pk, original in originale.iterator(chunk_size=1):
+            stand = bestand[pk]
+            try:
+                antwort, _ = lokale_antwort(bytes(original), stand.original_sha256)
+                ergebnisse, treffer = seitenkopf_pruefen(antwort, stand.seite)
+                referenzen = _referenzen(stand.tag, stand.seite, ergebnisse, treffer)
+            except RisFehler as fehler:
+                raise TagesabgleichFehler(f"original_{fehler.code} {pk}") from fehler
+            if treffer != stand.treffer or referenzen != stand.dokumente:
+                raise TagesabgleichFehler(f"original_abgleich {pk}")
+            offen.remove(pk)
+        if offen:
+            raise TagesabgleichFehler(f"original_umfang {min(offen)}")
 
 
 def _tagesnormen(seiten, bestand):
@@ -143,8 +175,8 @@ def _tagesnormen(seiten, bestand):
         raise TagesabgleichFehler("referenzen")
     schluessel = [(nummer, gesetz) for _, nummer, gesetz in verweise]
     normen = {}
-    for beginn in range(0, len(schluessel), _NORMBLOCK):
-        normen.update(_neueste_normen(schluessel[beginn:beginn + _NORMBLOCK]))
+    for beginn in range(0, len(schluessel), _ABFRAGEBLOCK):
+        normen.update(_neueste_normen(schluessel[beginn:beginn + _ABFRAGEBLOCK]))
     dokumente = []
     for beleg, nummer, gesetz in verweise:
         norm = normen.get((nummer, gesetz))

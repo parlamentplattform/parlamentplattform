@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.110.0] — 2026-11-15 · Originalprüfung im RIS-Tagesabgleich
+
+- `ris_aenderungstag_pruefen --originale-pruefen` rechnet für ausdrücklich gewählte Archivseiten die SHA-256-Prüfsummen nach. Der Importparser liest aus den archivierten Dateien die Seitendaten und geordneten Dokumentverweise erneut. Der Befehl meldet eine Originalprüfung nur bei vollständiger Übereinstimmung mit den gespeicherten Seiten. Er liest die begrenzte lokale Auswahl und greift auf keine externen Quellen zu. Der Aufruf ohne diese Option verwendet weiterhin ausschließlich Metadaten.
+
 ## [0.109.0] — 2026-11-15 · Lokale Normstände im RIS-Tagesabgleich
 
 - Der Prüfbefehl kann zusätzlich passende gespeicherte Bundes-Normstände ausgeben. Dokumentkennung und Gesetzesnummer müssen übereinstimmen. Die Ausgabe enthält den gespeicherten Stichtag oder eine fehlende Zuordnung.

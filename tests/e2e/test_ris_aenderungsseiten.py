@@ -41,3 +41,14 @@ def test_ris_aenderungsseite_nativ_lesbar(seite, live_server, sichtpruefung, spr
     page.screenshot(path=str(sichtpruefung / f"ris-aenderungsabgleich-ohne-js-{sprache}.png"), full_page=True)
     normlink.press("Enter")
     expect(page.get_by_role("heading", name="Testnorm")).to_be_visible()
+
+    page.goto(live_server.url + reverse("parameter:regeln") + "#regel-ris_historie")
+    regel = page.locator("#regel-ris_historie")
+    expect(regel.get_by_role("heading", name=titel, exact=True)).to_be_visible()
+    fassung = "Fassung 7" if sprache == "de" else "Version 7"
+    originalpruefung = "Bei der Originalprüfung" if sprache == "de" else "To verify original files"
+    expect(regel.get_by_text(fassung, exact=False)).to_be_visible()
+    expect(regel.get_by_text(originalpruefung, exact=False)).to_be_visible()
+    assert regel.evaluate("r => r.scrollWidth <= r.clientWidth")
+    assert regel.evaluate("r => r.getBoundingClientRect().top >= document.querySelector('.leiste').getBoundingClientRect().bottom")
+    page.screenshot(path=str(sichtpruefung / f"ris-originalpruefung-regel-{sprache}.png"))

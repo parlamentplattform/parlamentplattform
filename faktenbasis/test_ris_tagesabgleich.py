@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 from dataclasses import replace
@@ -10,6 +11,7 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from faktenbasis.models import RisAenderungsseite
+from faktenbasis.ris import HOECHSTBYTES
 from faktenbasis.ris_historie import importieren
 from faktenbasis.test_ris_historie import GESETZ, KENNUNG, TAG, URL, norm_anlegen, original, referenz
 from parameter.models import Parameter
@@ -58,13 +60,16 @@ def seite_anlegen(seite, nummern, *, tag=TAG, treffer=11):
     return importieren(tag, seite, original(verweise, seite=seite, treffer=treffer))
 
 
-def befehl(*belege, normbestand=False):
+def befehl(*belege, normbestand=False, originale=False, ausgabe=None):
     args = ["--tag", TAG.isoformat()]
     if normbestand:
         args.append("--normbestand")
+    if originale:
+        args.append("--originale-pruefen")
     for beleg in belege:
         args.extend(("--beleg", str(beleg)))
-    ausgabe = io.StringIO()
+    if ausgabe is None:
+        ausgabe = io.StringIO()
     call_command("ris_aenderungstag_pruefen", *args, stdout=ausgabe)
     return json.loads(ausgabe.getvalue())
 
@@ -79,6 +84,7 @@ def test_nur_ausgewaehlte_seiten_ohne_originale_oder_schreibwirkung():
         ergebnis = befehl(zweite.pk, erste.pk)
     assert [seite["datensatz"] for seite in ergebnis["seiten"]] == [erste.pk, zweite.pk]
     assert "normabgleich" not in ergebnis
+    assert "originalpruefung" not in ergebnis
     sql = [abfrage["sql"].lower() for abfrage in abfragen]
     archivlesen = [x for x in sql if '"faktenbasis_risaenderungsseite"' in x]
     assert len(archivlesen) == 1 and '"original"' not in archivlesen[0]
@@ -149,3 +155,75 @@ def test_normabgleich_buendelt_mehr_als_einhundert_eindeutige_verweise():
     assert len(ergebnis["normabgleich"]["dokumente"]) == 101
     assert ergebnis["normabgleich"]["dokumente"][-1]["normstand"]["datensatz"] == passend.pk
     assert sum('"faktenbasis_norm"' in a["sql"].lower() for a in abfragen) == 2
+
+
+@pytest.mark.django_db
+def test_originalpruefung_liest_nur_ausgewaehlte_seiten_und_bleibt_lesend():
+    zweite = seite_anlegen(2, NUMMERN[10:])
+    erste = seite_anlegen(1, NUMMERN[:10])
+    andere = seite_anlegen(2, ("NOR00000012",))
+    erwartet = befehl(erste.pk, zweite.pk, normbestand=True)
+    vorher = AuditEintrag.objects.count()
+    with CaptureQueriesContext(connection) as abfragen:
+        ergebnis = befehl(zweite.pk, erste.pk, normbestand=True, originale=True)
+    assert ergebnis.pop("originalpruefung") == {"fassung": 1, "gepruefte_seiten": 2}
+    assert ergebnis == erwartet
+    sql = [a["sql"].lower() for a in abfragen]
+    originalabfragen = [a for a in sql if '"original"' in a]
+    assert len(originalabfragen) == 1 and "length(" in originalabfragen[0]
+    assert f"in ({erste.pk}, {zweite.pk})" in originalabfragen[0] or (
+        f"in ({zweite.pk}, {erste.pk})" in originalabfragen[0]
+    )
+    assert f"{andere.pk})" not in originalabfragen[0]
+    assert all(a.startswith(("select", "declare")) for a in sql)
+    assert AuditEintrag.objects.count() == vorher
+
+
+@pytest.mark.parametrize("fall,grund", [
+    ("hash", "original_pruefsumme"),
+    ("format", "original_antwortformat"),
+    ("tag", "original_ris_historie"),
+    ("treffer", "original_abgleich"),
+    ("reihenfolge", "original_abgleich"),
+    ("adresse", "original_abgleich"),
+    ("leer", "original_umfang"),
+    ("zu_gross", "original_umfang"),
+])
+@pytest.mark.django_db
+def test_originalwiderspruch_gibt_keinen_teilnachweis(fall, grund):
+    ref = referenz()
+    anderer = referenz()
+    andere_nummer = "NOR00000001"
+    anderer["Data"]["Metadaten"]["Technisch"]["ID"] = andere_nummer
+    anderer["Data"]["Metadaten"]["Allgemein"]["DokumentUrl"] = URL.replace(KENNUNG, andere_nummer)
+    daten = original([ref, anderer], seite=1, treffer=2)
+    verweise = [
+        {"dokumentnummer": kennung, "gesetzesnummer": GESETZ, "quelle": URL.replace(KENNUNG, kennung)}
+        for kennung in (KENNUNG, andere_nummer)
+    ]
+    if fall == "format":
+        daten = b"{"
+    elif fall == "tag":
+        daten = daten.replace(TAG.isoformat().encode(), (TAG - timedelta(days=1)).isoformat().encode())
+    elif fall == "treffer":
+        daten = original(ref, seite=1, treffer=1)
+    elif fall == "reihenfolge":
+        verweise.reverse()
+    elif fall == "adresse":
+        verweise[0]["quelle"] = f"https://www.ris.bka.gv.at/Dokument.wxe?Dokumentnummer={KENNUNG}"
+    elif fall == "leer":
+        daten = b""
+    elif fall == "zu_gross":
+        daten += b" " * HOECHSTBYTES
+    pruefsumme = "a" * 64 if fall == "hash" else hashlib.sha256(daten).hexdigest()
+    stand = RisAenderungsseite.objects.create(
+        tag=TAG, seite=1, treffer=2, dokumente=verweise, original=daten,
+        original_sha256=pruefsumme, parser_fassung=1,
+    )
+    assert befehl(stand.pk)["gemeldete_treffer"] == 2
+    ausgabe = io.StringIO()
+    vorher = AuditEintrag.objects.count()
+    with pytest.raises(CommandError, match=rf"{grund} {stand.pk}\)"):
+        befehl(stand.pk, originale=True, ausgabe=ausgabe)
+    assert ausgabe.getvalue() == ""
+    assert AuditEintrag.objects.count() == vorher

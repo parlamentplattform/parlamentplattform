@@ -1,5 +1,6 @@
 """Eigener Gemeindearbeitsplatz und native Navigation zu laufenden Arbeiten."""
 
+import json
 from datetime import timedelta
 
 import pytest
@@ -33,3 +34,18 @@ def test_gemeindearbeitsplatz_oeffnen_und_weiterarbeiten(
     aktion = "Sprechstunde ankündigen" if sprache == "de" else "Announce office hours"
     p.get_by_role("link", name=aktion, exact=True).press("Enter")
     expect(p).to_have_url(live_server.url + reverse("mandatare:sprechstunden", args=[gemeindemandat.pk]))
+
+    p.goto(live_server.url + reverse("mitglieder:profil"))
+    karte = p.locator("#datenexport")
+    hinweis = "Mandate samt Gemeindearbeit" if sprache == "de" else "mandates and municipal work"
+    expect(karte.get_by_text(hinweis, exact=False)).to_be_visible()
+    karte.evaluate("el => el.scrollIntoView({block: 'center', behavior: 'instant'})")
+    karte.screenshot(path=str(sichtpruefung / f"gemeindearbeit-datenexport-{sprache}.png"))
+    with p.expect_download() as herunterladen:
+        karte.get_by_role("link").press("Enter")
+    download = herunterladen.value
+    assert download.suggested_filename == "meine-daten.json"
+    daten = json.loads(download.path().read_text(encoding="utf-8"))
+    export = daten["mandate"][0]["gemeindearbeit"]
+    assert export["gemeindekennziffer"] == gemeindemandat.gemeinde.kennziffer
+    assert export["sprechstunden"][0]["treffpunkt"] == "Öffentlicher Treffpunkt"

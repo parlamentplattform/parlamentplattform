@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.112.0] — 2026-11-15 · Gemeindearbeit im persönlichen Datenexport
+
+- Der persönliche Download umfasst die gespeicherte Gemeindezuordnung eigener Mandate, Sprechstunden und Absagen, Ratsinitiativen und ihre Meldungen, Sitzungs- und Haushaltsquellen sowie Gemeindeprojekte mit ihren früheren Ständen und Rücknahmen. Jeder Eintrag behält seine erfasste Gemeindekennziffer. Die Download-Antwort ist vor Zwischenspeicherung geschützt.
+
 ## [0.111.0] — 2026-11-15 · Öffentliche Belege zur Ratsarbeit
 
 - Zugeordnete DDÖ-Mandatare können beim Veröffentlichen eines Verlaufsvermerks zu einer Ratsinitiative einen öffentlichen Beleg verlinken. Der Beleg benötigt eine gültige HTTPS-Adresse und die Bestätigung, dass er öffentlich erreichbar ist und zum Vermerk gehört. Der Link erscheint direkt am Eintrag.

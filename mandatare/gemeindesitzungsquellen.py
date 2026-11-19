@@ -30,15 +30,20 @@ class Quellenformular(forms.Form):
         required=False,
     )
 
-@require_safe
-def liste(request, kennziffer):
-    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
+def aktuelle_quellen():
+    """Der jüngste Quellenvermerk je Sitzungsaufgabe und Unterlagenart."""
     letzte = Gemeindesitzungsquelle.objects.filter(
         aufgabe_id=OuterRef("aufgabe_id"), art=OuterRef("art")
     ).order_by("-pk").values("pk")[:1]
+    return Gemeindesitzungsquelle.objects.filter(pk=Subquery(letzte)).order_by(*SITZUNGSQUELLENREIHUNG)
+
+
+@require_safe
+def liste(request, kennziffer):
+    gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
     quellen = (
-        Gemeindesitzungsquelle.objects.filter(gemeinde=gemeinde, pk=Subquery(letzte))
-        .select_related("aufgabe__mandat__mitglied").defer("aufgabe__mandat__foto").order_by(*SITZUNGSQUELLENREIHUNG)
+        aktuelle_quellen().filter(gemeinde=gemeinde)
+        .select_related("aufgabe__mandat__mitglied").defer("aufgabe__mandat__foto")
     )
     seite = Paginator(quellen, max(1, zahl("suche-treffer-hoechstzahl", 24))).get_page(request.GET.get("seite"))
     return render(request, "mandatare/gemeindesitzungsquellen.html", {"gemeinde": gemeinde, "seite": seite})

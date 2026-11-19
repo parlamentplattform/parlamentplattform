@@ -7,7 +7,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from mandatare.models import Aufgabe, Gemeindesitzungsquelle
+from mandatare.models import Aufgabe, Gemeindesitzungsquelle, Sitzung
 from mandatare.test_sprechstunden import mandat as gemeindemandat  # noqa: F401
 from mitglieder.models import Gemeinde
 from verfahren.models import AuditEintrag
@@ -90,6 +90,33 @@ def test_angekuendigter_sitzungstag_mit_einladung_und_spaeterer_niederschrift(cl
     oeffentlich = Client().get(_liste(aufgabe.mandat.gemeinde))
     assert [q.art for q in oeffentlich.context["seite"]] == ["einladung", "niederschrift"]
     assert oeffentlich.content.decode().index(ERSTE_URL) < oeffentlich.content.decode().index(NEUE_URL)
+
+
+def test_live_nachlese_zeigt_nur_die_neuesten_unterlagen_dieser_sitzung(client, aufgabe):
+    mandat = aufgabe.mandat
+    jetzt = timezone.now()
+    aufgabe.frist = jetzt - timedelta(days=1)
+    aufgabe.save(update_fields=["frist"])
+    sitzung = Sitzung.objects.create(aufgabe=aufgabe, mandat=mandat, beginn=aufgabe.frist, ende=jetzt)
+    andere = Aufgabe.objects.create(mandat=mandat, sitzungstag=True, frist=jetzt, titel="Andere Sitzung")
+    fremder_link = "https://gemeinde.example.org/andere.pdf"
+    client.force_login(mandat.mitglied)
+    for ziel, daten in [
+        (aufgabe, QUELLE), (aufgabe, {**QUELLE, "url": NEUE_URL}),
+        (andere, {**QUELLE, "url": fremder_link}),
+    ]:
+        assert client.post(_verwalten(ziel), daten).status_code == 302
+    pfad = reverse("mandatare:live", args=[mandat.pk])
+    gast = Client()
+    html = gast.get(pfad, {"sitzung": sitzung.pk}).content.decode()
+    assert 'id="live-unterlagen"' in html and NEUE_URL in html
+    assert ERSTE_URL not in html and fremder_link not in html
+    assert mandat.gemeinde.anzeige in html
+    assert client.post(_verwalten(aufgabe), {"art": "einladung", "aktion": "zurueckziehen"}).status_code == 302
+    vorher = AuditEintrag.objects.count()
+    html = gast.get(pfad, {"sitzung": sitzung.pk}).content.decode()
+    assert "Link zurückgezogen" in html and NEUE_URL not in html
+    assert AuditEintrag.objects.count() == vorher
 
 
 def test_rechte_csrf_alter_ort_und_mandatsende(client, aufgabe):

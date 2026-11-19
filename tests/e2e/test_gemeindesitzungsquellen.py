@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 from playwright.sync_api import expect
 
+from mandatare.models import Sitzung
 from mandatare.test_gemeindesitzungsquellen import ERSTE_URL, aufgabe  # noqa: F401
 from mandatare.test_sprechstunden import mandat as gemeindemandat  # noqa: F401
 
@@ -28,3 +29,18 @@ def test_einladung_auf_der_oeffentlichen_ortsseite(seite, live_server, sichtprue
     expect(gast.get_by_role("link", name="Meeting notice and agenda")).to_have_attribute("href", ERSTE_URL)
     assert gast.evaluate("document.documentElement.scrollWidth <= innerWidth")
     gast.screenshot(path=str(sichtpruefung / "sitzungsquelle-oeffentlich-ohne-js-en.png"), full_page=True)
+
+    sitzung = Sitzung.objects.create(mandat=mandat, aufgabe=aufgabe)
+    live_url = live_server.url + reverse("mandatare:live", args=[mandat.pk]) + f"?sitzung={sitzung.pk}&schreiben=1"
+    gast.goto(live_url)
+    quellen = gast.locator("#live-unterlagen")
+    expect(quellen.get_by_role("heading", name="Public meeting documents")).to_be_visible()
+    expect(quellen.get_by_role("link", name="Meeting notice and agenda")).to_have_attribute("href", ERSTE_URL)
+    assert gast.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    quellen.screenshot(path=str(sichtpruefung / "sitzungsquelle-live-ohne-js-en.png"))
+
+    p.goto(live_url)
+    quellen = p.locator("#live-unterlagen")
+    expect(quellen.get_by_role("link", name="Einladung und Tagesordnung")).to_have_attribute("href", ERSTE_URL)
+    assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    quellen.screenshot(path=str(sichtpruefung / "sitzungsquelle-live-ohne-js-de.png"))

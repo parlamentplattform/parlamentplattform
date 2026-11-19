@@ -24,6 +24,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from mandatare.gemeindesitzungsquellen import aktuelle_quellen
 from mandatare.models import (
     Aufgabe,
     Livemeldung,
@@ -165,6 +166,7 @@ def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str 
         {
             "laeuft": laeuft,
             "punkte": punkt_zeilen(sitzung),
+            "sitzungsquellen": aktuelle_quellen().filter(aufgabe_id=sitzung.aufgabe_id).select_related("gemeinde"),
             "ticker": ticker(sitzung),
             "faden": faden,
             "chat_offen": laeuft,

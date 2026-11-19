@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.96.0] — 2026-11-15 · Öffentliche Sitzungsunterlagen im Live-Ticker
+
+- Die Tagesordnungsansicht des Live-Tickers und seiner Nachlese zeigt bereits verlinkte Einladungen und amtliche Niederschriften zu genau dieser Sitzung. Gemeinde und Erfassungszeit stehen am Link.
+- Sichtbar bleibt je Unterlagenart der zuletzt erfasste Stand. Zurückgezogene Links erscheinen als Vermerk.
+
 ## [0.95.0] — 2026-11-15 · Kundmachungen im Quellenbestandsnachweis
 
 - Der Quellenbestandsnachweis führt lokale Bundes- und Landes-Kundmachungsbelege mit Datensatznummer und gespeicherter Prüfsumme des Original-JSONs. Die Dateien selbst bleiben im Archiv.

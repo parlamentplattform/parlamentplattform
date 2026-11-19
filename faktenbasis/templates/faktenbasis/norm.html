@@ -18,13 +18,23 @@
 {% if novelle %}
 <section class="karte" aria-labelledby="novellenfundstelle">
   <h2 id="novellenfundstelle">{% translate "Novelle laut RIS-Metadaten" %}</h2>
-  {% if novelle.ziel %}
+  {% if kundmachung %}
+    <p><a href="{{ kundmachung.eli }}" rel="noopener">{{ novelle.bezeichnung }}</a>{% if novelle.bundesland %} · {{ novelle.bundesland }}{% endif %}</p>
+    <p>{% translate "Kundmachungsdatum laut archiviertem RIS-Beleg" %} {{ kundmachung.kundgemacht_am|date:"DATE_FORMAT" }} · {{ kundmachung.dokumentnummer }}</p>
+    {% with materialien=kundmachung.parlamentsmaterialien %}
+    {% if materialien %}
+      <h3>{% translate "Parlamentsmaterialien laut RIS-Beleg" %}</h3>
+      <dl class="lauf-daten">
+        {% if materialien.periode %}<dt>{% translate "Gesetzgebungsperiode" %}</dt><dd>{{ materialien.periode }}</dd>{% endif %}
+        {% if materialien.nationalrat %}<dt>{% translate "Ausschussberichte des Nationalrats" %}</dt><dd>{{ materialien.nationalrat|join:", " }}</dd>{% endif %}
+        {% if materialien.bundesrat %}<dt>{% translate "Ausschussberichte des Bundesrats" %}</dt><dd>{{ materialien.bundesrat|join:", " }}</dd>{% endif %}
+      </dl>
+    {% endif %}
+    {% endwith %}
+    <p class="meta">{% translate "SHA-256 der eingelesenen Kundmachungsdatei" %} <code class="fakten-hash">{{ kundmachung.original_sha256 }}</code> · {% translate "Belegprüfung, Fassung" %} {{ kundmachung.parser_fassung }}</p>
+  {% elif novelle.ziel %}
     <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
     <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>
-  {% elif kundmachung %}
-    <p><a href="{{ kundmachung.eli }}" rel="noopener">{{ novelle.bezeichnung }}</a> · {{ novelle.bundesland }}</p>
-    <p>{% translate "Kundmachungsdatum laut archiviertem RIS-Beleg" %} {{ kundmachung.kundgemacht_am|date:"DATE_FORMAT" }} · {{ kundmachung.dokumentnummer }}</p>
-    <p class="meta">{% translate "SHA-256 der eingelesenen Kundmachungsdatei" %} <code class="fakten-hash">{{ kundmachung.original_sha256 }}</code> · {% translate "Belegprüfung, Fassung" %} {{ kundmachung.parser_fassung }}</p>
   {% else %}
     <p><strong>{{ novelle.bezeichnung }}</strong> · {{ novelle.bundesland }}</p>
     <p class="hilfe">{% translate "Fundstelle der letzten Änderung laut diesem Dokumentstand. Für einen direkten Kundmachungslink fehlt hier das Kundmachungsdatum." %}</p>

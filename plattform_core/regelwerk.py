@@ -171,9 +171,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Metadaten"),
         zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=3, seit="2026-11-15",
-        grund=_("Fassung 3 verlinkt eine oberösterreichische Novelle bei einem ausdrücklich zugeordneten Landes-Kundmachungsbeleg."),
-        nachrechenbar=_("Dokumentkennung, RIS-Anwendung und beim Land auch Oberösterreich abgleichen. Nur die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Die Landesfundstelle erhält ein direktes Ziel, wenn Nummer, Jahr und Land zur authentischen Kundmachung passen und Kennung, ELI und Kundmachungsdatum im Beleg übereinstimmen."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-15",
+        grund=_("Fassung 4 ergänzt ausdrücklich zugeordnete Bundes-Kundmachungen und darin genannte Ausschussberichte."),
+        nachrechenbar=_("Die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."),
         luecke=_("Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."),
     ),
     Regel(

@@ -12150,8 +12150,8 @@ msgstr "Documents on this page"
 msgid "Es sind noch keine RIS-Änderungsseiten archiviert."
 msgstr "No RIS change pages have been archived yet."
 
-msgid "Eine einzelne lokale RIS-Änderungsseite der Bundesnormen archivieren."
-msgstr "Archive one local RIS change page for federal legislation."
+msgid "Eine ausgewählte RIS-Änderungsseite der Bundesnormen archivieren."
+msgstr "Archive a selected RIS change page for federal legislation."
 
 msgid "Die RIS-Änderungsdatei ließ sich nicht lesen."
 msgstr "The RIS change file could not be read."
@@ -12165,8 +12165,8 @@ msgstr "RIS change page archived. SHA-256 %(hash)s."
 msgid "Macht einzelne gesicherte Seiten der Änderungshistorie der Bundesnormen nachlesbar."
 msgstr "Makes individual archived pages from the federal legislation change history available to read."
 
-msgid "Bestätigte Fundorte ausdrücklich bereitgestellter Änderungsseiten können neben passenden lokalen Normständen nachgelesen werden."
-msgstr "Verified document addresses from explicitly provided change pages can be viewed alongside matching local records."
+msgid "Änderungsseiten können aus einer Datei oder mit einem ausdrücklich gewählten Einzelabruf archiviert und neben passenden lokalen Normständen nachgelesen werden."
+msgstr "Change pages can be archived from a file or by explicitly fetching a single page, and viewed alongside matching local legislation snapshots."
 
 msgid "Erwarteten Tag, Seite, Umfang, eindeutige Bundes-Dokumentkennungen, Gesetzesnummern und amtliche Adressen prüfen. Seiten nach Bearbeitungstag absteigend, Seitennummer aufsteigend und Erfassung absteigend. Dokumente behalten die Reihenfolge der Quelle. In der Detailansicht für gleiche Dokumentkennung und Gesetzesnummer den gespeicherten Bundes-Normstand mit dem größten Stichtag und bei Gleichheit der größten Datensatznummer auswählen."
 msgstr "Check the expected date, page and scope, distinct federal document IDs, legislation numbers and official addresses. Show pages by RIS update date descending, page number ascending and archive order descending. Documents retain their source order. In the detail view, select the stored federal legislation snapshot with the latest reference date for the same document ID and legislation number, using the highest record number to break ties."
@@ -12185,3 +12185,9 @@ msgstr "Latest stored reference date"
 
 msgid "Kein lokaler Normstand vorhanden."
 msgstr "No local legislation snapshot available."
+
+msgid "Eine Seite direkt beim RIS abrufen."
+msgstr "Fetch one page directly from RIS."
+
+msgid "Wählen Sie eine lokale Datei oder den RIS-Einzelabruf."
+msgstr "Choose either a local file or a single RIS request."

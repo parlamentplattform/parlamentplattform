@@ -1,15 +1,26 @@
-"""Archiviert eine ausdrücklich übergebene Seite der Bundesnormen-Historie."""
+"""Archiviert eine ausdrücklich ausgewählte Seite der Bundesnormen-Historie."""
 
 from datetime import date
+from urllib.parse import urlencode
 
 from django.db import transaction
 from django.db.models import F, Q, Window
 from django.db.models.functions import RowNumber
 
+from faktenbasis.abrufschutz import einzelabruf
 from faktenbasis.models import Norm, RisAenderungsseite
-from faktenbasis.ris import RisFehler, dokumentadresse, lokale_antwort, seitenkopf_pruefen
+from faktenbasis.ris import (
+    RisFehler,
+    dokumentadresse,
+    json_dateibytes_abrufen,
+    lokale_antwort,
+    seite_pruefen,
+    seitenkopf_pruefen,
+)
 from plattform_core.ris_historie import NORM_REIHUNG, PARSER_FASSUNG, dokumente
 from verfahren.models import AuditEintrag
+
+HISTORY_API = "https://data.bka.gv.at/ris/api/v2.6/History"
 
 
 def importieren(tag: date, seite: int, daten: bytes, *, erwartete_pruefsumme: str | None = None):
@@ -43,6 +54,30 @@ def importieren(tag: date, seite: int, daten: bytes, *, erwartete_pruefsumme: st
                 "typ": "ris_aenderungsseite", "beleg": stand.pk,
                 "original_sha256": pruefsumme, "parser_fassung": PARSER_FASSUNG,
             })
+    return stand
+
+
+def abrufen(tag: date, seite: int, *, erwartete_pruefsumme: str | None = None):
+    """Ruft ausdrücklich genau eine Seite ab und behält deren Originalbytes."""
+    if type(tag) is not date:
+        raise RisFehler("ris_historie")
+    seite_pruefen(seite)
+    datum = tag.isoformat()
+    parameter = {
+        "Anwendung": "Bundesnormen", "AenderungenVon": datum, "AenderungenBis": datum,
+        "DokumenteProSeite": "Ten", "Seitennummer": str(seite),
+    }
+    url = HISTORY_API + "?" + urlencode(parameter)
+    ereignis = {"typ": "ris_aenderungsseite_abruf", "tag": datum, "seite": seite, "quelle": url}
+    with einzelabruf():
+        try:
+            daten = json_dateibytes_abrufen(url)
+            with transaction.atomic():
+                stand = importieren(tag, seite, daten, erwartete_pruefsumme=erwartete_pruefsumme)
+                AuditEintrag.anhaengen({**ereignis, "erfolgreich": True, "beleg": stand.pk})
+        except RisFehler as fehler:
+            AuditEintrag.anhaengen({**ereignis, "erfolgreich": False, "fehler": fehler.code})
+            raise
     return stand
 
 

@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 from datetime import date, timedelta
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -11,9 +12,12 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 
-from faktenbasis.models import Norm, RisAenderungsseite, RisImport
-from faktenbasis.ris import RisFehler
-from faktenbasis.ris_historie import importieren
+from faktenbasis.abrufschutz import einzelabruf
+from faktenbasis.models import AbrufSperre, Norm, RisAenderungsseite, RisImport
+from faktenbasis.ris import HOECHSTBYTES, ZEITGRENZE, RisFehler
+from faktenbasis.ris_historie import HISTORY_API, importieren
+from faktenbasis.test_ris import scheinabruf
+from faktenbasis.testhilfe import abrufuhr  # noqa: F401
 from ki.models import KIAuftrag
 from parameter.models import Parameter
 from plattform_core.ris_historie import dokumente
@@ -113,8 +117,8 @@ def test_cli_archiviert_bytes_idempotent_ohne_folgen_fuer_normen_oder_modellauft
     belege.write_bytes(roh)
     args = ["--tag", TAG.isoformat(), "--seite", "2", "--datei", str(belege), "--sha256", hashwert]
     protokoll = io.StringIO()
-    for _ in range(2):
-        call_command("ris_aenderungsseite", *args, stdout=protokoll)
+    call_command("ris_aenderungsseite", *args, stdout=protokoll)
+    call_command("ris_aenderungsseite", tag=TAG, seite=2, datei=belege, sha256=hashwert, stdout=protokoll)
     stand = RisAenderungsseite.objects.get()
     assert stand.tag == TAG and stand.seite == 2 and stand.treffer == 11
     assert stand.dokumente == [{"dokumentnummer": KENNUNG, "gesetzesnummer": "20000673", "quelle": URL}]
@@ -129,6 +133,73 @@ def test_cli_archiviert_bytes_idempotent_ohne_folgen_fuer_normen_oder_modellauft
     with pytest.raises(CommandError, match="ließ sich nicht lesen"):
         call_command("ris_aenderungsseite", "--tag", TAG.isoformat(), "--seite", "2",
                      "--datei", str(tmp_path / "fehlt.json"))
+
+
+@pytest.mark.django_db
+def test_cli_waehlt_eine_feste_amtliche_abfrage_und_archiviert_unveraenderte_bytes(monkeypatch, abrufuhr):  # noqa: F811
+    roh = original()
+    opener, factory = scheinabruf(monkeypatch, roh)
+    args = ["--tag", TAG.isoformat(), "--seite", "2", "--abrufen", "--sha256", hashlib.sha256(roh).hexdigest()]
+    call_command("ris_aenderungsseite", *args, stdout=io.StringIO())
+    anfrage, = opener.open.call_args.args
+    assert opener.open.call_count == 1 and opener.open.call_args.kwargs == {"timeout": ZEITGRENZE}
+    assert anfrage.full_url.startswith(HISTORY_API + "?")
+    assert parse_qs(urlsplit(anfrage.full_url).query) == {
+        "Anwendung": ["Bundesnormen"], "AenderungenVon": [TAG.isoformat()], "AenderungenBis": [TAG.isoformat()],
+        "DokumenteProSeite": ["Ten"], "Seitennummer": ["2"],
+    }
+    assert anfrage.get_header("Accept") == "application/json"
+    assert "plattform@ddoe.at" in anfrage.get_header("User-agent")
+    handler, = factory.call_args.args
+    with pytest.raises(RisFehler, match="umleitung"):
+        handler.redirect_request(None, None, 302, "", {}, "https://fremd.example/")
+    stand = RisAenderungsseite.objects.get()
+    assert bytes(stand.original) == roh
+    assert stand.parser_fassung == 1 and stand.treffer == 11
+    audit = AuditEintrag.objects.get(ereignis__typ="ris_aenderungsseite_abruf").ereignis
+    assert audit["quelle"] == anfrage.full_url and audit["seite"] == 2
+    assert audit["erfolgreich"] and audit["beleg"] == stand.pk
+    call_command("ris_aenderungsseite", *args, stdout=io.StringIO())
+    assert opener.open.call_count == 2 and RisAenderungsseite.objects.count() == 1
+    assert AuditEintrag.objects.filter(ereignis__typ="ris_aenderungsseite").count() == 1
+    assert AuditEintrag.objects.filter(ereignis__typ="ris_aenderungsseite_abruf").count() == 2
+    assert not Norm.objects.exists() and not KIAuftrag.objects.exists()
+
+
+@pytest.mark.parametrize("roh,typ,code", [
+    (b"{}", "text/html", "antwortformat"),
+    (b"x" * (HOECHSTBYTES + 1), "application/json", "antwortgroesse"),
+    (original(seite=1), "application/json", "antwortformat"),
+    (original(referenz(TAG - timedelta(days=1))), "application/json", "ris_historie"),
+], ids=["html-statt-json", "zu-gross", "falsche-seite", "falscher-tag"])
+@pytest.mark.django_db
+def test_cli_abruf_fehler_sichert_keinen_teilbeleg(monkeypatch, abrufuhr, roh, typ, code):  # noqa: F811
+    opener, _ = scheinabruf(monkeypatch, roh, typ)
+    with pytest.raises(CommandError, match=code):
+        call_command("ris_aenderungsseite", "--tag", TAG.isoformat(), "--seite", "2", "--abrufen")
+    assert opener.open.call_count == 1
+    assert not RisAenderungsseite.objects.exists()
+    fehler = AuditEintrag.objects.get(ereignis__typ="ris_aenderungsseite_abruf").ereignis
+    assert fehler["fehler"] == code and not fehler["erfolgreich"] and "beleg" not in fehler
+    assert AbrufSperre.objects.get().sperrcode == ""
+
+
+@pytest.mark.django_db
+def test_cli_teilt_abrufschutz_und_verlangt_eindeutige_quelle(monkeypatch, abrufuhr):  # noqa: F811
+    opener, _ = scheinabruf(monkeypatch, original())
+    args = ["--tag", TAG.isoformat(), "--seite", "2"]
+    with pytest.raises(CommandError):
+        call_command("ris_aenderungsseite", *args)
+    with pytest.raises(CommandError):
+        call_command("ris_aenderungsseite", *args, "--datei", "nicht-lesen.json", "--abrufen")
+    with einzelabruf(), pytest.raises(CommandError, match="abruf_belegt"):
+        call_command("ris_aenderungsseite", *args, "--abrufen")
+    Parameter.objects.update_or_create(schluessel="faktenbasis-manuelle-abrufe-je-stunde", defaults={"wert": "1"})
+    with pytest.raises(CommandError, match="abruf_kontingent"):
+        call_command("ris_aenderungsseite", *args, "--abrufen")
+    opener.open.assert_not_called()
+    assert not RisAenderungsseite.objects.exists()
+    assert not AuditEintrag.objects.filter(ereignis__typ="ris_aenderungsseite_abruf").exists()
 
 
 @pytest.mark.django_db

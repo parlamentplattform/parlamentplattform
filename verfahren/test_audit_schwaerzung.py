@@ -59,9 +59,12 @@ def _alter_eintrag(ereignis):
 
     letzter = AuditEintrag.objects.order_by("-lfd").first()
     vorgaenger = letzter.hash if letzter else GENESIS
-    versiegelt = {**ereignis, "zeit": timezone.now().isoformat()}
+    # Spalte und versiegelte Zeit aus demselben Augenblick, wie `anhaengen` es tut: Die Kettenprüfung
+    # meldet seit GP-158 jede Abweichung, und zwei Aufrufe der Uhr liegen unter Linux Mikrosekunden auseinander.
+    jetzt = timezone.now()
+    versiegelt = {**ereignis, "zeit": jetzt.isoformat()}
     return AuditEintrag.objects.create(
-        zeit=timezone.now(), ereignis=versiegelt, vorgaenger=vorgaenger, hash=ereignis_hash(vorgaenger, versiegelt)
+        zeit=jetzt, ereignis=versiegelt, vorgaenger=vorgaenger, hash=ereignis_hash(vorgaenger, versiegelt)
     )
 
 

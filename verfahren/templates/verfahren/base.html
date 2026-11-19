@@ -358,7 +358,7 @@ html.js .zu-ohne-js{display:none}
 /* „Mehr vorhanden" (FB-A5): Verlauf am unteren Feldrand und Pille „↓ n weitere" */
 .feld-mehr,.spur-mehr{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:999px;font:600 12px var(--sans);padding:3px 12px;box-shadow:var(--schatten);cursor:pointer;white-space:nowrap}
 .feld-mehr:hover,.spur-mehr:hover{border-color:var(--gold)}
-.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3}
+.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3;min-height:24px}/* GP-172: unter Linux-Schrift sonst 22 px hoch */
 .feld.mehr-da::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--surface));pointer-events:none;z-index:2}
 .kachel{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}
 .kachel .k-kopf{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}

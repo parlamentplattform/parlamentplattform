@@ -8,6 +8,7 @@ from django.utils import timezone
 
 @pytest.mark.django_db(transaction=True)
 def test_bestandskonten_bleiben_ohne_historienumbau_parteikonten():
+    from mitglieder.auth_flows import EinmalToken
     from verfahren.models import AuditEintrag
 
     AuditEintrag.anhaengen({"typ": "migrationsprobe_gemeinde"})
@@ -35,9 +36,10 @@ def test_bestandskonten_bleiben_ohne_historienumbau_parteikonten():
         Neu = apps.get_model("mitglieder", "Mitglied")
         nachher = Neu.objects.filter(pk=m.pk).values().get()
         assert nachher.pop("parteikonto") is True
+        assert nachher.pop("wiener_bezirk") == ""
         assert nachher == vorher
         assert apps.get_model("mitglieder", "Gemeindezugang").objects.count() == 0
-        assert apps.get_model("mitglieder", "EinmalToken").objects.get(pk=token.pk).mitglied_id == m.pk
+        assert EinmalToken.objects.get(pk=token.pk).mitglied_id == m.pk
         assert list(AuditEintrag.objects.order_by("pk").values()) == audit
     finally:
         MigrationExecutor(connection).migrate(latest)

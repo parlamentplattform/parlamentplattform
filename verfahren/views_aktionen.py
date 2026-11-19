@@ -29,7 +29,7 @@ from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus, Wohnsitzart
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
-from plattform_core.teilnehmerkreis import GebietsFehler
+from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, GebietsFehler
 from verfahren.aehnlichkeit import aehnliche_antraege
 from verfahren.einbringwahl import (
     direkt_unterstuetzen,
@@ -173,11 +173,15 @@ class AntragsFormular(forms.Form):
             mitglied.wohnsitz if mitglied is not None and mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH
             else None
         )
-        self.wien = haupt is not None and haupt.bundesland == Bundesland.WIEN
+        self.wien_ohne_bezirk = False
         if haupt is not None:
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))
-            if not self.wien:
-                wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % haupt.bezirk))
+            bezirk = haupt.bezirk
+            if haupt.bundesland == Bundesland.WIEN:
+                bezirk = WIENER_BEZIRKE.get(mitglied.wiener_hauptbezirk, "")
+                self.wien_ohne_bezirk = not bezirk
+            if bezirk:
+                wahlen.append((Ebene.BEZIRK.value, _("Mein Bezirk (%s)") % bezirk))
             wahlen.append((Ebene.GEMEINDE.value, _("Meine Gemeinde (%s)") % haupt.anzeige))
         self.gebietsstand = None
         self.fields["ebene"].choices = wahlen

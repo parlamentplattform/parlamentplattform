@@ -26,10 +26,11 @@ def hauptgebiet(mitglied, ebene, *, sperren=False):
     aktuell = konten.get(pk=mitglied.pk)
     if not aktuell.parteikonto or aktuell.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH or not aktuell.wohnsitz_id:
         raise GebietsFehler(_("Für einen örtlichen Antrag ist ein gemeldeter Hauptwohnsitz erforderlich."))
-    if ebene == "bezirk" and aktuell.wohnsitz.bundesland == Bundesland.WIEN:
-        raise GebietsFehler(_("Wiener Gemeindebezirke sind noch nicht getrennt erfasst."))
+    wiener_bezirk = aktuell.wiener_hauptbezirk
+    if ebene == "bezirk" and aktuell.wohnsitz.bundesland == Bundesland.WIEN and not wiener_bezirk:
+        raise GebietsFehler(_("Wählen Sie im Profil den Gemeindebezirk Ihres Wiener Hauptwohnsitzes."))
     stamm = tuple(gemeindestand(g) for g in Gemeinde.objects.filter(bundesland=aktuell.wohnsitz.bundesland))
-    return gebiet_fuer(ebene, gemeindestand(aktuell.wohnsitz), stamm)
+    return gebiet_fuer(ebene, gemeindestand(aktuell.wohnsitz), stamm, wiener_bezirk=wiener_bezirk)
 
 
 def konten_fuer(gebiet):
@@ -37,10 +38,13 @@ def konten_fuer(gebiet):
     konten = Mitglied.parteikonten.filter(testkonto=False)
     if gebiet.ebene == "bund":
         return konten
-    return konten.filter(
+    konten = konten.filter(
         Q(wohnsitz_art=Wohnsitzart.OESTERREICH) | Q(wohnsitz_art=""),
         wohnsitz__kennziffer__in=gebiet.gemeinden,
     )
+    if gebiet.wiener_bezirk:
+        konten = konten.filter(wohnsitz__bundesland=Bundesland.WIEN, wiener_bezirk=gebiet.wiener_bezirk)
+    return konten
 
 
 def gebietsname(gebiet):

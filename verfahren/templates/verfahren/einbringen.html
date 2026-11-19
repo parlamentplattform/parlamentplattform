@@ -33,7 +33,7 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
       {% endif %}
     {% endfor %}
     <p class="hilfe">{% translate "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung." %}</p>
-    {% if form.wien %}<p class="hilfe">{% translate "Wiener Gemeindebezirke sind noch nicht getrennt erfasst." %}</p>{% endif %}
+    {% if form.wien_ohne_bezirk %}<p class="hilfe"><a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Wählen Sie im Profil den Gemeindebezirk Ihres Wiener Hauptwohnsitzes." %}</a></p>{% endif %}
     {% if not aehnliche and not bestaetigung %}
     <div class="stimmzeile"><button type="submit" class="btn">{% translate "Antrag einbringen" %}</button></div>
     {% endif %}

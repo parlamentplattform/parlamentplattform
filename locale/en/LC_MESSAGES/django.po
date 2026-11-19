@@ -11383,11 +11383,11 @@ msgstr "Local participation based on primary residence"
 msgid "Bestimmt das Gebiet neuer Verfahren aus der tatsächlichen Hauptgemeinde. Nebenwohnsitze zählen nicht. Die Gebietsmenge und die örtlich zugehörigen Konten werden bei Einbringung festgehalten; allgemeine Mitgliedsrechte gelten zusätzlich zum jeweiligen Stichtag."
 msgstr "Determines the area of new proceedings from the actual primary municipality. Secondary residences do not count. The area and locally associated accounts are recorded when the motion is submitted; general membership requirements also apply at their respective reference dates."
 
-msgid "Erste Fassung nach der Entscheidung für den tatsächlich gemeldeten Hauptwohnsitz als Selbstauskunft. Historische Verfahren werden nicht nachträglich örtlich begrenzt."
-msgstr "First version following the decision to use self-declared, actually registered primary residence. Historical proceedings are not retrospectively restricted to a local area."
+msgid "Fassung 2 ergänzt Wiener Gemeindebezirke nach dem amtlichen Verzeichnis 2026. Bereits festgehaltene Teilnehmerkreise behalten ihren Stand."
+msgstr "Version 2 adds Vienna’s municipal districts from the official 2026 register. Previously frozen participation groups keep their recorded scope."
 
-msgid "Gemeindekennziffern aufsteigend ordnen; Gemeinde durch ihre einzelne Kennziffer, Land und Bezirk durch die festgehaltene Gemeindemenge innerhalb desselben Landes abgrenzen. Die abgeleitete Gebietskennung enthält deren SHA-256-Prüfsumme. Keine amtliche Bezirksnummer und keine öffentliche Liste persönlicher Zuordnungen; die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."
-msgstr "Sort municipality codes in ascending order; identify a municipality by its single code and a state or district by the recorded set of municipalities within the same state. The derived area identifier contains the SHA-256 checksum of that set. This is neither an official district code nor a public list of personal associations; individual membership in the area is checked against the protected circle recorded at the time."
+msgid "Gemeindekennziffern aufsteigend ordnen. Die Gemeinde hat eine einzelne Kennziffer. Bundesländer und Bezirke außerhalb Wiens nutzen die festgehaltene Gemeindemenge und deren SHA-256-Prüfsumme. Ein Wiener Gemeindebezirk erfordert die Wiener Hauptgemeinde und den ausdrücklich angegebenen Bezirkscode. Die eigene Zugehörigkeit wird gegen den geschützten damaligen Kreis geprüft."
+msgstr "Sort municipality codes in ascending order. A municipality has a single code. Provinces and districts outside Vienna use the recorded set of municipalities and its SHA-256 checksum. A Vienna municipal district requires Vienna as the primary municipality and an explicitly selected district code. Eligibility is checked against the protected group recorded at submission."
 
 msgid "Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."
 msgstr "A recorded local participant circle remains unchanged."
@@ -11629,8 +11629,8 @@ msgstr "A registered main residence is required for a local motion."
 msgid "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung."
 msgstr "Only the registered main residence at submission counts for new local motions."
 
-msgid "Gilt für neu eingebrachte örtliche Sachanträge und Kandidaturen. Wiener Gemeindebezirke sind noch nicht getrennt erfasst; Mandats- und Vertrauensfragen folgen ihrem bisherigen Weg."
-msgstr "Applies to newly submitted local motions and candidacies. Vienna's municipal districts are not yet recorded separately. Mandate and confidence questions follow the existing process."
+msgid "Gilt für neu eingebrachte örtliche Sachanträge und Kandidaturen. Mandats- und Vertrauensfragen folgen ihrem bisherigen Weg."
+msgstr "Applies to newly submitted local proposals and candidacies. Mandate and confidence votes follow their existing process."
 
 msgid "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis."
 msgstr "You are not in the recorded local group of participants."
@@ -11641,8 +11641,8 @@ msgstr "You are not eligible to vote in this local group."
 msgid "Sie gehören zum örtlichen Kreis; die allgemeinen Voraussetzungen gelten zusätzlich."
 msgstr "You are in the local group. The general requirements also apply."
 
-msgid "Wiener Gemeindebezirke sind noch nicht getrennt erfasst."
-msgstr "Vienna's municipal districts are not yet recorded separately."
+msgid "Wählen Sie im Profil den Gemeindebezirk Ihres Wiener Hauptwohnsitzes."
+msgstr "Select the district of your main residence in Vienna in your profile."
 
 msgid "Wert 1 zeigt unter „Meine Region“ auch Anträge aus der Region des eingetragenen Nebenwohnsitzes. Einbringung, Unterstützung, Bewerbung und Abstimmung richten sich bei neuen örtlichen Verfahren nach dem Hauptwohnsitzkreis. Wirkt sofort auf die Anzeige."
 msgstr "Set to 1 to show motions from the registered secondary residence in My Region. For new local proceedings, the main residence group determines who can submit, support, stand and vote. Applies immediately to the display."
@@ -12069,3 +12069,6 @@ msgstr "Document snapshots linked to this gazette record"
 
 msgid "Die Liste zeigt lokal gespeicherte Dokumentstände mit einem ausdrücklich zugeordneten Beleg."
 msgstr "This list shows locally stored document snapshots with an explicitly associated record."
+
+msgid "Gemeindebezirk des Hauptwohnsitzes in Wien"
+msgstr "Municipal district of your main residence in Vienna"

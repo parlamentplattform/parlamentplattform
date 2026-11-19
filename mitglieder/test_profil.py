@@ -65,6 +65,33 @@ def mit_wohnsitz(name="anna"):
 # --- Zugang -------------------------------------------------------------------
 
 
+def test_wiener_hauptbezirk_im_eigenen_profil_und_export(client):
+    m = mitglied_anlegen()
+    client.force_login(m)
+    wien = Gemeinde.objects.get(kennziffer="90001").anzeige
+    polsenz = Gemeinde.objects.get(kennziffer="40510").anzeige
+    assert profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=wien, wiener_bezirk="922").status_code == 302
+    m.refresh_from_db()
+    assert m.wiener_hauptbezirk == "922"
+    assert json.loads(client.get(EXPORT).content)["wiener_bezirk"] == "922"
+    assert profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=wien).status_code == 302
+    m.refresh_from_db()
+    assert m.wiener_hauptbezirk == "922"
+    assert profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=polsenz, wiener_bezirk="922").status_code == 302
+    m.refresh_from_db()
+    assert m.wohnsitz.kennziffer == "40510" and m.wiener_bezirk == ""
+
+
+def test_unbekannter_wiener_bezirkscode_wird_abgewiesen(client):
+    m = mitglied_anlegen()
+    client.force_login(m)
+    wien = Gemeinde.objects.get(kennziffer="90001").anzeige
+    antwort = profil_speichern(client, wohnsitz_art="oesterreich", gemeinde=wien, wiener_bezirk="900")
+    assert "wiener_bezirk" in antwort.context["form"].errors
+    m.refresh_from_db()
+    assert not m.wiener_bezirk
+
+
 def test_gast_wird_zum_login_geschickt(client):
     for url in (PROFIL, EXPORT, AUSTRITT):
         antwort = client.get(url)

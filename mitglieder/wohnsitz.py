@@ -4,7 +4,8 @@ from django import forms
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
-from mitglieder.models import Gemeinde, Wohnsitzart
+from mitglieder.models import Bundesland, Gemeinde, Wohnsitzart
+from plattform_core.teilnehmerkreis import WIENER_GEMEINDE
 
 
 def wohnsitz_auswahl(*, registrierung=False):
@@ -63,5 +64,12 @@ def wohnsitz_anwenden(mitglied, form):
     art = form.cleaned_data["wohnsitz_art"]
     alt = (mitglied.wohnsitz_art_aktuell, mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz_id)
     neu = (art, g.name if g else "", g.bundesland if g else "", g.pk if g else None)
+    bezirk = ""
+    if g and g.kennziffer == WIENER_GEMEINDE and g.bundesland == Bundesland.WIEN and art == Wohnsitzart.OESTERREICH:
+        bezirk = form.cleaned_data.get("wiener_bezirk", mitglied.wiener_hauptbezirk)
+    geaendert = ["wohnsitz"] if alt != neu else []
+    if mitglied.wiener_bezirk != bezirk:
+        mitglied.wiener_bezirk = bezirk
+        geaendert.append("wiener_bezirk")
     mitglied.wohnsitz_art, mitglied.gemeinde, mitglied.bundesland, mitglied.wohnsitz_id = neu
-    return ["wohnsitz"] if alt != neu else []
+    return geaendert

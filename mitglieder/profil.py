@@ -46,6 +46,7 @@ from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mit
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from parameter.models import zahl
 from plattform_core import Phase
+from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, WIENER_GEMEINDE
 from verfahren.models import (
     Antrag,
     AuditEintrag,
@@ -199,6 +200,10 @@ class ProfilFormular(WohnsitzFormularMixin, forms.Form):
         required=False,
         widget=forms.TextInput(attrs={"list": "gemeinden", "autocomplete": "off"}),
     )
+    wiener_bezirk = forms.ChoiceField(
+        label=gettext_lazy("Gemeindebezirk des Hauptwohnsitzes in Wien"), required=False,
+        choices=[("", gettext_lazy("Keine Angabe")), *WIENER_BEZIRKE.items()],
+    )
     nebenwohnsitz = forms.CharField(
         label=gettext_lazy("Nebenwohnsitz-Gemeinde (leer = keiner)"),
         max_length=140,
@@ -234,6 +239,11 @@ class ProfilFormular(WohnsitzFormularMixin, forms.Form):
     def clean_nebenwohnsitz(self) -> str:
         self.nebenwohnsitz_objekt = _gemeinde_pruefen(self.cleaned_data["nebenwohnsitz"])
         return self.nebenwohnsitz_objekt.name if self.nebenwohnsitz_objekt else ""
+
+    def clean_wiener_bezirk(self) -> str:
+        if "wiener_bezirk" not in self.data:
+            return self.mitglied.wiener_hauptbezirk
+        return self.cleaned_data["wiener_bezirk"]
 
     def clean(self):
         daten = super().clean()
@@ -291,14 +301,17 @@ def profil(request):
                 "post_einwilligung": mitglied.post_einwilligung,
                 "wohnsitz_art": mitglied.wohnsitz_art_aktuell,
                 "gemeinde": mitglied.wohnsitz.anzeige if mitglied.wohnsitz_id else mitglied.gemeinde,
+                "wiener_bezirk": mitglied.wiener_hauptbezirk,
                 "nebenwohnsitz": mitglied.nebenwohnsitz.anzeige if mitglied.nebenwohnsitz_id else "",
             },
         )
+    gemeinde = form.gemeinde_objekt or mitglied.wohnsitz
     return render(
         request,
         "mitglieder/profil.html",
         {
             "form": form,
+            "wiener_bezirk_anzeigen": gemeinde is not None and gemeinde.kennziffer == WIENER_GEMEINDE,
             "gemeinden": gemeinden_datalist(),
             "nebenwohnsitz_zaehlt": nebenwohnsitz_zaehlt(),
             "registerschluessel": REGISTERSCHLUESSEL,
@@ -607,6 +620,7 @@ def daten_export(mitglied: Mitglied) -> dict:
         "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
         "wohnsitz_art": m.wohnsitz_art_aktuell,
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
+        "wiener_bezirk": m.wiener_hauptbezirk or None,
         "nebenwohnsitz": _gemeinde_export(m.nebenwohnsitz),
         "beitraege": [
             {"betrag": b.betrag, "gebucht_am": b.gebucht_am, "namens_hinweis": b.namens_hinweis}
@@ -885,6 +899,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     mitglied.gemeinde, mitglied.bundesland = "", ""
     mitglied.wohnsitz = mitglied.nebenwohnsitz = None
     mitglied.wohnsitz_art = ""
+    mitglied.wiener_bezirk = ""
     mitglied.status_grund = ""
     if not mitglied.pseudonym_oeffentlich:
         # Sonst stünde bei früheren Beiträgen „Mitglied n“ — als wäre der Mensch noch Mitglied.

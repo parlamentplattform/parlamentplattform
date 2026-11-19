@@ -18,7 +18,7 @@ from mitglieder.models import (
 )
 from plattform_core import Gegenstand
 from plattform_core.teilnehmerkreis import GebietsFehler
-from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, antrag_einbringen
+from verfahren.models import Antrag, Antragsart, AuditEintrag, OertlicheTeilnahme, antrag_einbringen
 from verfahren.teilnahme import berechtigte_zaehlen, hauptgebiet, kreis_festhalten, oertlich_zulaessig
 from verfahren.test_views_aktionen import mitglied_anlegen, ordnung  # noqa: F401
 
@@ -94,6 +94,30 @@ def test_spaeteres_konto_kommt_nicht_rueckwirkend_in_den_regionalen_kreis(ordnun
     neu = mit_ort("neu", orte[0])
     assert not oertlich_zulaessig(antrag, neu)
     assert berechtigte_zaehlen(antrag, Gegenstand.SACHFRAGE, timezone.localdate()) == 1
+
+
+def test_wiener_bezirkskandidatur_haelt_nur_den_ausdruecklich_zugeordneten_kreis_fest(ordnung):  # noqa: F811
+    wien = Gemeinde.objects.create(kennziffer="90001", name="Wien", bezirk="Wien", bundesland="wien")
+    autor, innen, aussen, ohne, ausland = [mit_ort(name, wien) for name in ("autor", "innen", "aussen", "ohne", "ausland")]
+    for konto, bezirk in [(autor, "922"), (innen, "922"), (aussen, "921"), (ausland, "922")]:
+        konto.wiener_bezirk = bezirk
+        konto.save(update_fields=["wiener_bezirk"])
+    ausland.wohnsitz_art = Wohnsitzart.AUSLAND
+    ausland.save(update_fields=["wohnsitz_art"])
+
+    with pytest.raises(GebietsFehler, match="Profil"):
+        hauptgebiet(ohne, "bezirk")
+    assert hauptgebiet(ohne, "gemeinde").als_dict()["fassung"] == 1
+    antrag = antrag_einbringen(
+        autor, "Bezirkskandidatur", "Eine interne Bezirkskandidatur.", "", ordnung,
+        art=Antragsart.MANDAT, ebene="bezirk", neuer_teilnehmerkreis=True,
+    )
+    assert antrag.teilnahmegebiet["wiener_bezirk"] == "922"
+    assert set(antrag.oertlicher_kreis.values_list("mitglied_id", flat=True)) == {autor.pk, innen.pk}
+    innen.wiener_bezirk, aussen.wiener_bezirk = "921", "922"
+    innen.save(update_fields=["wiener_bezirk"])
+    aussen.save(update_fields=["wiener_bezirk"])
+    assert oertlich_zulaessig(antrag, innen) and not oertlich_zulaessig(antrag, aussen)
 
 
 def test_territoriale_aufnahme_ersetzt_nicht_die_allgemeine_stichtagspruefung(ordnung, orte):  # noqa: F811

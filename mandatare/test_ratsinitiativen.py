@@ -10,10 +10,12 @@ from django.utils import timezone
 from mandatare.models import Ratsinitiative, Ratsmeldung
 from mandatare.test_sprechstunden import mandat  # noqa: F401
 from mitglieder.models import Gemeinde
+from verfahren.models import AuditEintrag
 from verfahren.test_views_aktionen import mitglied_anlegen
 
 pytestmark = pytest.mark.django_db
 INITIATIVE = {"titel": "Öffentlicher Gegenstand", "text": "Arbeitsstand des Mandatars.", "art": "anfrage"}
+QUELLE = "https://example.org/gemeinderat/protokoll"
 
 
 def test_verlauf_bleibt_oeffentlich_in_der_urspruenglichen_gemeinde(client, mandat):  # noqa: F811
@@ -53,3 +55,45 @@ def test_fremde_und_unbestaetigte_mandate_koennen_nicht_veroeffentlichen(client,
     mandat.mitglied.save(update_fields=["identitaetsstufe"])
     assert client.post(anlegen, INITIATIVE).status_code == 403
     assert not Ratsinitiative.objects.exists() and not Ratsmeldung.objects.exists()
+
+
+def test_oeffentlicher_beleg_gehoert_zur_einzelnen_meldung(client, mandat):  # noqa: F811
+    client.force_login(mandat.mitglied)
+    initiative_url = client.post(reverse("mandatare:ratsinitiative_anlegen", args=[mandat.pk]), INITIATIVE).url
+    initiative = Ratsinitiative.objects.get()
+    url = reverse("mandatare:ratsinitiative_melden", args=[mandat.pk, initiative.pk])
+    daten = {"datum": timezone.localdate().isoformat(), "text": "Beim Gemeindeamt übergeben"}
+    client.post(url, {**daten, "art": "eingebracht"})
+    response = client.post(url, {
+        **daten, "art": "antwort", "text": "Öffentliche Antwort",
+        "quellen_url": QUELLE, "quelle_bestaetigt": "on",
+    })
+    assert response.status_code == 302
+    einbringung, antwort = initiative.meldungen.all()
+    assert not einbringung.quellen_url and antwort.quellen_url == QUELLE
+    assert response.url.endswith(f"#vermerk-{antwort.pk}")
+    html = Client().get(initiative_url).content.decode()
+    assert html.count(f'href="{QUELLE}"') == 1
+    assert html.index(f'id="vermerk-{antwort.pk}"') < html.index(f'href="{QUELLE}"')
+    protokoll = AuditEintrag.objects.filter(ereignis__meldung=antwort.pk).get().ereignis
+    assert set(protokoll) == {"zeit", "typ", "initiative", "meldung", "art"}
+
+
+@pytest.mark.parametrize("quelle,bestaetigt,feld", [
+    (QUELLE, "", "quelle_bestaetigt"),
+    ("http://example.org/beleg", "on", "quellen_url"),
+    ("https://benutzer@example.org/beleg", "on", "quellen_url"),
+    ("javascript:alert(1)", "on", "quellen_url"),
+])
+def test_unbestaetigter_oder_ungueltiger_beleg_schreibt_nichts(client, mandat, quelle, bestaetigt, feld):  # noqa: F811
+    client.force_login(mandat.mitglied)
+    client.post(reverse("mandatare:ratsinitiative_anlegen", args=[mandat.pk]), INITIATIVE)
+    initiative = Ratsinitiative.objects.get()
+    url = reverse("mandatare:ratsinitiative_melden", args=[mandat.pk, initiative.pk])
+    vorher = AuditEintrag.objects.count()
+    response = client.post(url, {
+        "datum": timezone.localdate().isoformat(), "art": "eingebracht", "text": "Vermerk",
+        "quellen_url": quelle, "quelle_bestaetigt": bestaetigt,
+    })
+    assert response.status_code == 200 and feld in response.context["form"].errors
+    assert not initiative.meldungen.exists() and AuditEintrag.objects.count() == vorher

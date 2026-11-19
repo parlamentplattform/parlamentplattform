@@ -2,6 +2,10 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.111.0] — 2026-11-15 · Öffentliche Belege zur Ratsarbeit
+
+- Zugeordnete DDÖ-Mandatare können beim Veröffentlichen eines Verlaufsvermerks zu einer Ratsinitiative einen öffentlichen Beleg verlinken. Der Beleg benötigt eine gültige HTTPS-Adresse und die Bestätigung, dass er öffentlich erreichbar ist und zum Vermerk gehört. Der Link erscheint direkt am Eintrag.
+
 ## [0.110.0] — 2026-11-15 · Originalprüfung im RIS-Tagesabgleich
 
 - `ris_aenderungstag_pruefen --originale-pruefen` rechnet für ausdrücklich gewählte Archivseiten die SHA-256-Prüfsummen nach. Der Importparser liest aus den archivierten Dateien die Seitendaten und geordneten Dokumentverweise erneut. Der Befehl meldet eine Originalprüfung nur bei vollständiger Übereinstimmung mit den gespeicherten Seiten. Er liest die begrenzte lokale Auswahl und greift auf keine externen Quellen zu. Der Aufruf ohne diese Option verwendet weiterhin ausschließlich Metadaten.

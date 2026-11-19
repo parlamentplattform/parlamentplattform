@@ -12206,3 +12206,9 @@ msgstr "Include matching local federal legislation snapshots."
 
 msgid "Archivierte Originaldateien und gespeicherte Verweise abgleichen."
 msgstr "Compare archived original files with their stored references."
+
+msgid "Dieser Beleg ist öffentlich zugänglich und gehört zu diesem Verlaufsvermerk."
+msgstr "This reference is publicly accessible and relates to this update."
+
+msgid "Öffentlichen Beleg öffnen"
+msgstr "Open public reference"

@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.101.0] — 2026-11-15 · Veröffentlichte Gemeinderatsbeschlüsse
+
+- Zugeordnete Gemeindemandatare können ab dem Sitzungstag die öffentliche Beschlussübersicht der Gemeinde verlinken. Der Quellenstand erscheint bei den Sitzungsunterlagen sowie im Ticker und in der Nachlese.
+- Berichtigungen und Rücknahmen ergänzen den bisherigen Verlauf. Einladung, Niederschrift und Beschlussübersicht haben jeweils einen eigenen Link und Erfassungszeitpunkt.
+
 ## [0.100.1] — 2026-11-15 · Tokenmodell beim Django-Start
 
 - Django registriert die Einmal-Tokens für E-Mail-Bestätigung und Anmeldung beim normalen Anwendungsstart. Verwaltungsbefehle finden dieselbe Tabelle auch ohne Laden der URL-Konfiguration.

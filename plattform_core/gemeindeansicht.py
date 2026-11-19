@@ -1,6 +1,6 @@
 """Reihenfolge der öffentlichen Ortsübersicht, als ORM-Feldnamen ausführbar."""
 
-VERSION = 6
+VERSION = 7
 
 ORTSREIHUNG = ("name", "bezirk", "kennziffer")
 MANDATSREIHUNG = ("angetreten", "pk")

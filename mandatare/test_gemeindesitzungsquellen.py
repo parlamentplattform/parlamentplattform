@@ -17,6 +17,7 @@ pytestmark = pytest.mark.django_db
 
 ERSTE_URL = "https://gemeinde.example.org/sitzungen/einladung.pdf"
 NEUE_URL = "https://gemeinde.example.org/sitzungen/berichtigte-einladung.pdf"
+BESCHLUSS_URL = "https://gemeinde.example.org/sitzungen/beschluesse"
 QUELLE = {"art": "einladung", "url": ERSTE_URL, "bestaetigt": "on", "aktion": "veroeffentlichen"}
 
 
@@ -71,6 +72,7 @@ def test_berichtigung_und_ruecknahme_mit_geschuetzter_historie(client, aufgabe):
     {"url": "https://[falsch"},
     {"art": "vertraulich"},
     {"art": "niederschrift"},
+    {"art": "ratsbeschluesse"},
     {"aktion": "zurueckziehen"},
     {"aktion": ""},
 ])
@@ -81,18 +83,22 @@ def test_nur_bestaetigte_oeffentliche_links_zu_zulaessigen_unterlagen(client, au
     assert not Gemeindesitzungsquelle.objects.exists()
 
 
-def test_angekuendigter_sitzungstag_mit_einladung_und_spaeterer_niederschrift(client, aufgabe):
-    aufgabe.frist -= timedelta(days=3)
+def test_beschlussquelle_ab_sitzungstag_neben_einladung_und_niederschrift(client, aufgabe):
+    aufgabe.frist = timezone.now()
     aufgabe.save(update_fields=["frist"])
     client.force_login(aufgabe.mandat.mitglied)
-    for art, link in [("niederschrift", NEUE_URL), ("einladung", ERSTE_URL)]:
+    for art, link in [("ratsbeschluesse", BESCHLUSS_URL), ("niederschrift", NEUE_URL), ("einladung", ERSTE_URL)]:
         assert client.post(_verwalten(aufgabe), {**QUELLE, "art": art, "url": link}).status_code == 302
     oeffentlich = Client().get(_liste(aufgabe.mandat.gemeinde))
-    assert [q.art for q in oeffentlich.context["seite"]] == ["einladung", "niederschrift"]
-    assert oeffentlich.content.decode().index(ERSTE_URL) < oeffentlich.content.decode().index(NEUE_URL)
+    assert [(q.art, q.url) for q in oeffentlich.context["seite"]] == [
+        ("einladung", ERSTE_URL), ("niederschrift", NEUE_URL), ("ratsbeschluesse", BESCHLUSS_URL),
+    ]
+    html = oeffentlich.content.decode()
+    assert html.index(ERSTE_URL) < html.index(NEUE_URL) < html.index(BESCHLUSS_URL)
 
 
-def test_live_nachlese_zeigt_nur_die_neuesten_unterlagen_dieser_sitzung(client, aufgabe):
+@pytest.mark.parametrize("art", ["einladung", "ratsbeschluesse"])
+def test_live_nachlese_zeigt_nur_die_neuesten_unterlagen_dieser_sitzung(client, aufgabe, art):
     mandat = aufgabe.mandat
     jetzt = timezone.now()
     aufgabe.frist = jetzt - timedelta(days=1)
@@ -101,9 +107,10 @@ def test_live_nachlese_zeigt_nur_die_neuesten_unterlagen_dieser_sitzung(client, 
     andere = Aufgabe.objects.create(mandat=mandat, sitzungstag=True, frist=jetzt, titel="Andere Sitzung")
     fremder_link = "https://gemeinde.example.org/andere.pdf"
     client.force_login(mandat.mitglied)
+    quelle = {**QUELLE, "art": art}
     for ziel, daten in [
-        (aufgabe, QUELLE), (aufgabe, {**QUELLE, "url": NEUE_URL}),
-        (andere, {**QUELLE, "url": fremder_link}),
+        (aufgabe, quelle), (aufgabe, {**quelle, "url": NEUE_URL}),
+        (andere, {**quelle, "url": fremder_link}),
     ]:
         assert client.post(_verwalten(ziel), daten).status_code == 302
     pfad = reverse("mandatare:live", args=[mandat.pk])
@@ -112,7 +119,7 @@ def test_live_nachlese_zeigt_nur_die_neuesten_unterlagen_dieser_sitzung(client, 
     assert 'id="live-unterlagen"' in html and NEUE_URL in html
     assert ERSTE_URL not in html and fremder_link not in html
     assert mandat.gemeinde.anzeige in html
-    assert client.post(_verwalten(aufgabe), {"art": "einladung", "aktion": "zurueckziehen"}).status_code == 302
+    assert client.post(_verwalten(aufgabe), {"art": art, "aktion": "zurueckziehen"}).status_code == 302
     vorher = AuditEintrag.objects.count()
     html = gast.get(pfad, {"sitzung": sitzung.pk}).content.decode()
     assert "Link zurückgezogen" in html and NEUE_URL not in html

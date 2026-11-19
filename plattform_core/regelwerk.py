@@ -188,9 +188,9 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="gemeindeansicht.py", titel=_("Reihenfolge der öffentlichen Gemeindeübersicht"),
         zweck=_("Zeigt Gemeinden, zugeordnete DDÖ-Mandate, Sitzungs- und Haushaltsunterlagen, öffentliche Sitzungsticker, Sprechstunden, Ratsinitiativen und Gemeindeprojekte."),
-        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=6, seit="2026-11-15",
-        grund=_("Fassung 6 ergänzt die Reihenfolge der Gemeindeprojekte und ihrer Stände."),
-        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."),
+        wirkung=Wirkung.REIHT, satzung="§ 2 Abs 6", fassung=7, seit="2026-11-15",
+        grund=_("Fassung 7 ergänzt veröffentlichte Beschlussübersichten nach Einladung und Niederschrift."),
+        nachrechenbar=_("Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend. Je Sitzung stehen Einladung, Niederschrift und veröffentlichte Beschlussübersicht im jeweils zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."),
         registerschluessel=("suche-treffer-hoechstzahl",),
     ),
     Regel(

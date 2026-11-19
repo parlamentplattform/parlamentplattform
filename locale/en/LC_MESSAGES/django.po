@@ -11818,8 +11818,8 @@ msgstr "Link withdrawn"
 msgid "Link zurückziehen"
 msgstr "Withdraw link"
 
-msgid "Sitzungstage und ihre Kennungen in absteigender Reihenfolge, je Sitzung Einladung vor Niederschrift."
-msgstr "Meeting dates and IDs are listed in descending order, with the notice before the minutes for each meeting."
+msgid "Sitzungstage und ihre Kennungen in absteigender Reihenfolge. Je Sitzung folgen Einladung, Niederschrift und Beschlussübersicht aufeinander."
+msgstr "Meeting dates and IDs are listed in descending order. Each meeting lists the notice, minutes and published decisions in that order."
 
 msgid "Sitzungsunterlage verlinken"
 msgstr "Link to a meeting document"
@@ -11938,8 +11938,8 @@ msgstr "This source and this information are public."
 msgid "Erfasst am"
 msgstr "Recorded on"
 
-msgid "Fassung 6 ergänzt die Reihenfolge der Gemeindeprojekte und ihrer Stände."
-msgstr "Version 6 adds the ordering of municipal projects and their status entries."
+msgid "Fassung 7 ergänzt veröffentlichte Beschlussübersichten nach Einladung und Niederschrift."
+msgstr "Version 7 adds published lists of decisions after the meeting notice and minutes."
 
 msgid "Frühere Projektstände"
 msgstr "Earlier status entries"
@@ -11947,8 +11947,8 @@ msgstr "Earlier status entries"
 msgid "Für diese Gemeinde sind noch keine Projekte dokumentiert."
 msgstr "No projects have been documented for this municipality yet."
 
-msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend, Einladung vor Niederschrift, jeweils im zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."
-msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order, with notices before minutes and the latest entry shown for each. Budget documents by first year in descending order, then by type and mandate ID in ascending order, showing the latest entry. Municipal projects by first publication and ID in descending order. Project status entries by ID in descending order."
+msgid "Gemeinden nach Name, Bezirk und Kennziffer, Mandate nach Antritt und Kennung aufsteigend. Sitzungsticker nach Beginn und Kennung absteigend, Nachlese für sieben Tage. Sprechstunden bis zum Terminende nach Beginn und Kennung aufsteigend, auch bei Absage. Ratsinitiativen nach Veröffentlichung und Kennung absteigend, Verlaufsvermerke nach Erfassung und Kennung aufsteigend. Sitzungsunterlagen nach Sitzungstag und Aufgabenkennung absteigend. Je Sitzung stehen Einladung, Niederschrift und veröffentlichte Beschlussübersicht im jeweils zuletzt erfassten Stand. Haushaltsunterlagen nach erstem Jahr absteigend, dann Art und Mandatskennung aufsteigend, jeweils im zuletzt erfassten Stand. Gemeindeprojekte nach Erstveröffentlichung und Kennung absteigend, Projektstände nach ihrer Kennung absteigend."
+msgstr "Municipalities by name, district and code, and mandates by starting date and ID in ascending order. Live tickers by start time and ID in descending order, with replays for seven days. Office hours by start time and ID in ascending order until the end of the session, including cancellations. Council initiatives by publication date and ID in descending order, and updates by entry date and ID in ascending order. Meeting documents by meeting date and task ID in descending order. For each meeting, show the latest notice, minutes and published list of decisions in that order. Budget documents by first year in descending order, then by type and mandate ID in ascending order, showing the latest entry. Municipal projects by first publication and ID in descending order. Project status entries by ID in descending order."
 
 msgid "Gemeindeprojekt aufnehmen"
 msgstr "Add a municipal project"
@@ -12120,3 +12120,9 @@ msgstr "Metadata validation version"
 
 msgid "VfGH-Metadatenbelege"
 msgstr "Constitutional Court metadata records"
+
+msgid "Veröffentlichte Ratsbeschlüsse"
+msgstr "Published council decisions"
+
+msgid "Die Beschlussübersicht kann erst ab dem Sitzungstag verlinkt werden."
+msgstr "The list of decisions can only be linked on or after the meeting date."

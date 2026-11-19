@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from plattform_core.personalbeleg import ABRUF_REIHUNG, REIHUNG
 from plattform_core.personalressorts import REIHUNG as RESSORT_REIHUNG
+from plattform_core.ris_historie import REIHUNG as HISTORIEN_REIHUNG
 from plattform_core.vfgh_metadaten import REIHUNG as VFGH_REIHUNG
 
 
@@ -122,6 +123,25 @@ class Kundmachungsnachweis(Schnappschuss):
 
     def __str__(self):
         return f"{self.dokumentnummer} ({self.norm_id})"
+
+
+class RisAenderungsseite(Schnappschuss):
+    """Vollständiger Beleg zu genau einer Seite der RIS-Änderungshistorie."""
+
+    tag = models.DateField()
+    seite = models.PositiveIntegerField()
+    treffer = models.PositiveIntegerField()
+    dokumente = models.JSONField()
+    original = models.BinaryField()
+    original_sha256 = models.CharField(max_length=64, unique=True)
+    parser_fassung = models.PositiveSmallIntegerField()
+    erfasst_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = HISTORIEN_REIHUNG
+
+    def __str__(self):
+        return f"{self.tag} · {self.seite}"
 
 
 class VfghEntscheidungsstand(Schnappschuss):

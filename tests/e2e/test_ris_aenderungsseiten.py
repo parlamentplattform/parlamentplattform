@@ -1,0 +1,28 @@
+"""Nachlese einer ausdrücklich übernommenen RIS-Seite ohne JavaScript."""
+
+import pytest
+from django.urls import reverse
+from playwright.sync_api import expect
+
+from faktenbasis.ris_historie import importieren
+from faktenbasis.test_ris_historie import KENNUNG, TAG, URL, original
+
+pytestmark = [pytest.mark.django_db(transaction=True), pytest.mark.e2e]
+
+
+@pytest.mark.parametrize("sprache,viewport,titel,umfang", [
+    ("de", {"width": 390, "height": 844}, "Archivierte RIS-Änderungsseiten", "1 Dokument auf dieser Seite, 11 Treffer laut RIS."),
+    ("en", {"width": 1440, "height": 900}, "Archived RIS change pages", "1 document on this page, 11 results reported by RIS."),
+])
+def test_ris_aenderungsseite_nativ_lesbar(seite, live_server, sichtpruefung, sprache, viewport, titel, umfang):
+    stand = importieren(TAG, 2, original())
+    page = seite(sprache=sprache, viewport=viewport, js=False, dunkel=sprache == "en", reduziert=True)
+    page.goto(live_server.url + reverse("faktenbasis:index"))
+    page.get_by_role("link", name=titel, exact=True).press("Enter")
+    expect(page.get_by_role("heading", name=titel, exact=True)).to_be_visible()
+    expect(page.get_by_text(umfang, exact=True)).to_be_visible()
+    expect(page.get_by_role("link", name=KENNUNG)).to_have_attribute("href", URL)
+    expect(page.get_by_text(stand.original_sha256, exact=True)).to_be_visible()
+    assert "synthetischer Originalinhalt" not in page.locator("main").inner_text()
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.screenshot(path=str(sichtpruefung / f"ris-aenderungsseite-ohne-js-{sprache}.png"), full_page=True)

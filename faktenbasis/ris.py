@@ -72,6 +72,14 @@ def amtliche_url(url: object) -> str:
     return url
 
 
+def dokumentadresse(url: object, ris_id: str) -> str:
+    quelle = amtliche_url(url)
+    adresse = urllib.parse.urlsplit(quelle)
+    if ris_id not in adresse.path.split("/") and urllib.parse.parse_qs(adresse.query).get("Dokumentnummer") != [ris_id]:
+        raise RisFehler("kennung")
+    return quelle
+
+
 def _objekt(wert):
     if not isinstance(wert, dict):
         raise RisFehler("antwortformat")
@@ -173,10 +181,7 @@ def antwort_parsen(daten, gesetzesnummer: str, *, seite=1) -> ImportAntwort:
             raise RisFehler("kennung")
         if nummer != gesetzesnummer or ris_id in kennungen:
             raise RisFehler("kennung")
-        quelle = amtliche_url(_objekt(meta.get("Allgemein")).get("DokumentUrl"))
-        url = urllib.parse.urlsplit(quelle)
-        if ris_id not in url.path.split("/") and urllib.parse.parse_qs(url.query).get("Dokumentnummer") != [ris_id]:
-            raise RisFehler("kennung")
+        quelle = dokumentadresse(_objekt(meta.get("Allgemein")).get("DokumentUrl"), ris_id)
         kennungen.add(ris_id)
         normen.append(Normdaten(
             ris_id=ris_id, gesetzesnummer=nummer,

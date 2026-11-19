@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.103.0] — 2026-11-15 · Archivierte RIS-Änderungsseiten
+
+- Die Faktenbasis zeigt lokal eingelesene Seiten der RIS-Änderungshistorie für Bundesnormen. Tag, Dokumentkennungen, Seitenumfang und die gemeldete Gesamttrefferzahl stehen beim jeweiligen Originalbeleg.
+- Der lokale Einlesebefehl gleicht Tag, Seite und die vollständigen Dokumentreferenzen dieser Seite ab. Die Originaldatei und ihre Prüfsumme bleiben erhalten.
+
 ## [0.102.0] — 2026-11-15 · Bundesrechtliche Aufhebungsfundstellen
 
 - Der RIS-Dokumentstand zeigt ausdrücklich ausgewiesene Aufhebungsfundstellen mit dem angegebenen Außerkrafttretensdatum. Die Angaben beziehen sich auf den einzelnen gespeicherten Dokumentstand.

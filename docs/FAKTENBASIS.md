@@ -1,5 +1,29 @@
 # Amtliche Quellen der Zukunftswerkstatt
 
+## Änderungshistorie der Bundesnormen
+
+Eine ausdrücklich bereitgestellte, nicht leere JSON-Seite aus `History` kann
+lokal archiviert werden:
+
+```bash
+python manage.py ris_aenderungsseite --tag JJJJ-MM-TT --seite 1 --datei <RIS-JSON> --sha256 <erwartete-SHA-256>
+```
+
+Die erste Prüffassung erwartet `Anwendung=Bundesnormen`, denselben Tag in
+`AenderungenVon` und `AenderungenBis` sowie `DokumenteProSeite=Ten`. Sie prüft
+Seitennummer, Trefferzahl, den vollständigen Umfang der einzelnen Seite und
+eindeutige `BrKons`-Dokumentreferenzen mit Gesetzesnummer und amtlicher Adresse.
+Alle angesprochenen Dokumente müssen das erwartete RIS-Bearbeitungsdatum tragen.
+Abweichende Dateien erhalten eigene Stände. Das Archiv verlinkt die Dokumente
+im RIS und weist die Anzahl der archivierten Referenzen getrennt von der
+gemeldeten Trefferzahl aus. Der Bearbeitungstag beschreibt die Datenpflege.
+
+Der Befehl verwendet die lokale Datei. Der bisherige Normbestand und bereits
+festgehaltene Modellkontexte werden bei der Archivierung nicht geändert.
+Weitere Antwortformen und der regelmäßige operative Abruf sind gesonderte
+Aufgaben. [RIS-OGD-Hinweise](https://ris.bka.gv.at/UI/Ogd.aspx) ·
+[API-Handbuch 2.6](https://www.data.gv.at/katalog/dataset/0fb9ae1a-92cb-4ab8-a589-470c16d4fe21/resource/42070d46-01fe-4b36-803f-4af925290f59/download/dokumentation_ogd-ris_api.pdf).
+
 ## Bundesrechtliche Aufhebungsfundstellen
 
 Die Normdetailseite zeigt eine Aufhebungsfundstelle, wenn der gespeicherte

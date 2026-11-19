@@ -1007,10 +1007,10 @@ REGELN: tuple[Regel, ...] = (
     Regel(
         modul="faktenbestand.py",
         titel=_("Nachweis des gespeicherten Quellenbestands"),
-        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen ihre gespeicherten Prüfsummen zu. Keine neue Prüfung der Originale, keine amtliche Signatur und keine Bestätigung rechtlicher Aktualität oder Vollständigkeit."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=1, seit="2026-11-04",
-        grund=_("Erste Fassung: einen unveränderten lokalen Bestand nachrechenbar wiedererkennen, ohne Quellen abzurufen oder bereits verwendete Modellkontexte zu ändern."),
-        nachrechenbar=_("Sammlungskennung und aufsteigende Datensatznummer; SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen. Erzeugungszeit und Betriebsgrenze sind nicht Teil des Hashinhalts. Die vier Sammlungen und die Bedeutung ihrer gespeicherten Hashes stehen im Nachweis. Bei überschrittener Grenze kein Teilnachweis."),
+        zweck=_("Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungsbelegen ihre gespeicherten Prüfsummen zu."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=2, seit="2026-11-15",
+        grund=_("Fassung 2 ergänzt die Kundmachungsbelege mit ihren gespeicherten Prüfsummen. Ältere Nachweisdateien bleiben mit Fassung 1 prüfbar."),
+        nachrechenbar=_("Nach Sammlungskennung und aufsteigender Datensatznummer reihen. SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen bilden. Die Erzeugungszeit und Betriebsgrenze stehen außerhalb des Hashinhalts. Die Bedeutung der gespeicherten Prüfsummen steht im Nachweis. Bei überschrittener Grenze fällt der Nachweis aus."),
         registerschluessel="faktenbasis-bestandsnachweis-hoechstzahl",
     ),
     Regel(

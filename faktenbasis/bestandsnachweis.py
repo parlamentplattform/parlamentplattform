@@ -3,7 +3,7 @@
 from django.db.models import F, Value
 from django.utils import timezone
 
-from faktenbasis.models import Norm, NormText, PersonalAggregat, PersonalRessorttabelle
+from faktenbasis.models import Kundmachungsnachweis, Norm, NormText, PersonalAggregat, PersonalRessorttabelle
 from parameter.models import Parameter
 from plattform_core.faktenbestand import TECHNISCHE_HOECHSTZAHL, BestandsFehler, nachweis
 
@@ -27,6 +27,7 @@ def bestandsnachweis() -> dict:
         for modell, art, hashfeld in (
             (Norm, "norm", "inhalt_hash"),
             (NormText, "normtext", "xml_hash"),
+            (Kundmachungsnachweis, "kundmachung", "original_sha256"),
             (PersonalAggregat, "personalaggregat", "original_sha256"),
             (PersonalRessorttabelle, "personalressorttabelle", "original_sha256"),
         )

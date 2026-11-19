@@ -18,6 +18,7 @@ from verfahren.models import AuditEintrag
 
 FELDER = {"NovellenPublikationsorgan": "BGBl. I Nr.", "NovellenBgblnummer": "70/2024",
           "NovellenBeziehung": "zuletzt geändert durch"}
+AUFHEBUNGSFELDER = {**FELDER, "NovellenBeziehung": "aufgehoben durch", "Ausserkrafttretensdatum": "2025-01-01"}
 DSG_NUMMER = "10001597"
 
 
@@ -43,7 +44,18 @@ def test_unbekannte_oder_mehrdeutige_angaben_bleiben_ohne_link(feld, wert):
     assert novellenfundstelle(roh, "NOR40262691", date(2026, 11, 3)) is None
 
 
-def normstaende_anlegen(monkeypatch):
+@pytest.mark.parametrize("datum", [None, "", "20240704", "2024-02-30", "2024-07-05"])
+def test_aufhebung_braucht_kanonisches_datum_bis_zum_gespeicherten_stichtag(datum):
+    roh = {
+        "Metadaten": {
+            "Technisch": {"ID": "NOR40262691", "Applikation": "BrKons"},
+            "Bundesrecht": {"BrKons": {**AUFHEBUNGSFELDER, "Ausserkrafttretensdatum": datum}},
+        },
+    }
+    assert novellenfundstelle(roh, "NOR40262691", date(2024, 7, 4)) is None
+
+
+def normstaende_anlegen(monkeypatch, beziehung=FELDER):
     daten = beispiel()
     referenzen = daten["OgdSearchResult"]["OgdDocumentResults"]["OgdDocumentReference"]
     referenz = referenzen[0] if isinstance(referenzen, list) else referenzen
@@ -57,7 +69,7 @@ def normstaende_anlegen(monkeypatch):
     felder.update(Gesetzesnummer=DSG_NUMMER, Typ="BG")
     monkeypatch.setattr(metadaten, "abrufen", lambda *args, **kwargs: antwort_parsen(daten, DSG_NUMMER))
     alt = metadaten.importieren(DSG_NUMMER, STAND)
-    felder.update(FELDER)
+    felder.update(beziehung)
     neu = metadaten.importieren(DSG_NUMMER, STAND)
     return Norm.objects.get(importlauf=alt), Norm.objects.get(importlauf=neu)
 

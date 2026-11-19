@@ -1,4 +1,4 @@
-"""Amtlich bezeichnete Novelle eines gespeicherten Dokumentstands."""
+"""Amtlich bezeichnete Änderung oder Aufhebung eines gespeicherten Dokumentstands."""
 
 import re
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from datetime import date
 from plattform_core.ris_antwort import einzelmetadaten as _einzelmetadaten
 from plattform_core.ris_antwort import objekt as _objekt
 
-VERSION = 4
+VERSION = 5
 _BUND = re.compile(r"NOR[0-9]{8}")
 _OBEROESTERREICH = re.compile(r"LOO[0-9]{8}")
 _FUNDSTELLE = re.compile(r"(?P<nummer>[1-9][0-9]{0,4})/(?P<jahr>[1-9][0-9]{3})")
@@ -15,6 +15,7 @@ _TEILE = {f"BGBl. {teil} Nr.": teil for teil in ("I", "II", "III")}
 _BGBL_TEILE = {"I": "Teil1", "II": "Teil2", "III": "Teil3"}
 _BERICHTSNUMMER = re.compile(r"[1-9][0-9]{0,7}")
 _PERIODE = re.compile(r"[IVXLCDM]{1,12}")
+_COO_AKTENKENNUNG = re.compile(r"COO_[0-9]{4}(?:_[0-9]{1,8}){3}")
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class Fundstelle:
     nummer: str
     jahr: str
     bundesland: str = ""
+    ausserkraft_am: date | None = None
 
     @property
     def bezeichnung(self):
@@ -48,8 +50,8 @@ class Kundmachung:
 
 
 def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") -> Fundstelle | None:
-    """Nur die ausdrückliche Relation „zuletzt geändert durch“ auswerten."""
-    if not isinstance(rohdaten, dict) or not isinstance(dokumentnummer, str):
+    """Nur ausdrücklich bezeichnete Änderungen und belegte Bundesaufhebungen auswerten."""
+    if not isinstance(rohdaten, dict) or not isinstance(dokumentnummer, str) or type(stand) is not date:
         return None
     meta = _objekt(rohdaten, "Metadaten")
     technisch = _objekt(meta, "Technisch")
@@ -65,7 +67,13 @@ def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") 
         norm = _objekt(land, "LrKons")
     else:
         return None
-    if norm.get("NovellenBeziehung") != "zuletzt geändert durch":
+    ausserkraft_am = None
+    beziehung = norm.get("NovellenBeziehung")
+    if beziehung == "aufgehoben durch" and not bundesland:
+        ausserkraft_am = _iso_datum(norm.get("Ausserkrafttretensdatum"))
+        if ausserkraft_am is None or ausserkraft_am > stand:
+            return None
+    elif beziehung != "zuletzt geändert durch":
         return None
     organ, nummer = norm.get("NovellenPublikationsorgan"), norm.get("NovellenBgblnummer")
     if not isinstance(organ, str) or not isinstance(nummer, str):
@@ -76,18 +84,23 @@ def novellenfundstelle(rohdaten, dokumentnummer, stand: date, *, bundesland="") 
     if bundesland and organ == "LGBl.Nr.":
         return Fundstelle("", treffer["nummer"], treffer["jahr"], bundesland=bundesland)
     if not bundesland and organ in _TEILE and 2004 <= int(treffer["jahr"]) <= 2099:
-        return Fundstelle(_TEILE[organ], treffer["nummer"], treffer["jahr"])
+        return Fundstelle(_TEILE[organ], treffer["nummer"], treffer["jahr"], ausserkraft_am=ausserkraft_am)
     return None
 
 
-def _kundmachungsdatum(datum_roh, jahr: str, stand: date) -> date | None:
-    if not isinstance(datum_roh, str) or type(stand) is not date:
+def _iso_datum(datum_roh) -> date | None:
+    if not isinstance(datum_roh, str):
         return None
     try:
         datum = date.fromisoformat(datum_roh)
     except ValueError:
         return None
-    if datum.isoformat() != datum_roh or str(datum.year) != jahr or datum > stand:
+    return datum if datum.isoformat() == datum_roh else None
+
+
+def _kundmachungsdatum(datum_roh, jahr: str, stand: date) -> date | None:
+    datum = _iso_datum(datum_roh)
+    if datum is None or type(stand) is not date or str(datum.year) != jahr or datum > stand:
         return None
     return datum
 
@@ -151,7 +164,11 @@ def bundeskundmachung(antwort, fundstelle: Fundstelle, stand: date) -> Kundmachu
     blatt = _objekt(bund, "BgblAuth")
     if blatt.get("Bgblnummer") != fundstelle.bezeichnung or blatt.get("Teil") != teil:
         return None
-    if blatt.get("AlteDokumentnummer", erwartete_id) != erwartete_id:
+    alte_kennung = blatt.get("AlteDokumentnummer", erwartete_id)
+    # Einzelne Originalantworten führen hier ein COO-Aktenzeichen. Es ist keine Fundstelle.
+    if alte_kennung != erwartete_id and (
+        not isinstance(alte_kennung, str) or not _COO_AKTENKENNUNG.fullmatch(alte_kennung)
+    ):
         return None
     datum = _kundmachungsdatum(blatt.get("Ausgabedatum"), fundstelle.jahr, stand)
     if datum is None:

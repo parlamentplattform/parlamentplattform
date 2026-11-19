@@ -179,10 +179,10 @@ REGELN: tuple[Regel, ...] = (
     ),
     Regel(
         modul="novellenfundstelle.py", titel=_("Novellenfundstelle aus amtlichen Metadaten"),
-        zweck=_("Zeigt die in einem gespeicherten RIS-Dokumentstand ausdrücklich genannte letzte Änderung."),
-        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=4, seit="2026-11-15",
-        grund=_("Fassung 4 ergänzt ausdrücklich zugeordnete Bundes-Kundmachungen und darin genannte Ausschussberichte."),
-        nachrechenbar=_("Die ausdrücklich genannte letzte Änderung mit eindeutiger Nummer und Jahr bis zum Stichtagsjahr auswerten. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."),
+        zweck=_("Zeigt die ausdrücklich genannte letzte Änderung oder bundesrechtliche Aufhebungsfundstelle eines gespeicherten RIS-Dokumentstands."),
+        wirkung=Wirkung.STELLT_DAR, satzung="§ 2 Abs 6", fassung=5, seit="2026-11-15",
+        grund=_("Fassung 5 ergänzt im Bundesrecht ausdrücklich ausgewiesene Aufhebungsfundstellen mit dem angegebenen Außerkrafttretensdatum des einzelnen Dokuments."),
+        nachrechenbar=_("Dokumentkennung, Relation und eindeutige Fundstelle bis zum Stichtagsjahr prüfen. Aufhebungsfundstellen im Bundesrecht nur mit eindeutigem Außerkrafttretensdatum bis zum Stichtag anzeigen. Beim Bund ELI aus Teil, Jahr und Nummer ab 2004 bilden. Für den datierten ELI die einzelne Kundmachungsdatei mit Anwendung, Kennung, Fundstelle, Land oder Teil und Datum abgleichen. Ein COO-Aktenzeichen kann zusätzlich als frühere Kennung vorliegen. Im Bundesbeleg ausgewiesene Ausschussberichte und Gesetzgebungsperiode anzeigen."),
         luecke=_("Absatzgenaue Beziehungen, Ermächtigungen und juristische Relevanz für einen Antrag bleiben gesonderte Aufgaben."),
     ),
     Regel(

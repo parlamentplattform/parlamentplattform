@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.102.0] — 2026-11-15 · Bundesrechtliche Aufhebungsfundstellen
+
+- Der RIS-Dokumentstand zeigt ausdrücklich ausgewiesene Aufhebungsfundstellen mit dem angegebenen Außerkrafttretensdatum. Die Angaben beziehen sich auf den einzelnen gespeicherten Dokumentstand.
+- Der lokale Kundmachungsimport kann dazu einen authentischen Bundesbeleg abgleichen und mit Prüfsumme archivieren.
+
 ## [0.101.0] — 2026-11-15 · Veröffentlichte Gemeinderatsbeschlüsse
 
 - Zugeordnete Gemeindemandatare können ab dem Sitzungstag die öffentliche Beschlussübersicht der Gemeinde verlinken. Der Quellenstand erscheint bei den Sitzungsunterlagen sowie im Ticker und in der Nachlese.

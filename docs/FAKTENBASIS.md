@@ -1,5 +1,21 @@
 # Amtliche Quellen der Zukunftswerkstatt
 
+## Bundesrechtliche Aufhebungsfundstellen
+
+Die Normdetailseite zeigt eine Aufhebungsfundstelle, wenn der gespeicherte
+Bundes-Dokumentstand die Relation „aufgehoben durch“, eine eindeutige Fundstelle
+ab 2004 und das Außerkrafttretensdatum bis zum Stichtag ausdrücklich enthält.
+Das angezeigte Datum gehört zum einzelnen Dokument. Die Angaben zum
+Außerkrafttreten und zur Kundmachung bleiben getrennt.
+
+Ein ausdrücklich bereitgestellter Bundes-Kundmachungsbeleg lässt sich mit
+`ris_kundmachungsbeleg` wie bei einer letzten Änderung zuordnen. Beispiel für
+eine solche Fundstelle ist [BGBl. I Nr. 113/2006](https://www.ris.bka.gv.at/eli/bgbl/I/2006/113)
+in den amtlichen Metadaten einzelner Dokumente des Richtwertgesetzes.
+Die Originalantwort darf im Feld für die frühere Kennung ein COO-Aktenzeichen
+führen. Für die Zuordnung zählen die amtliche Dokumentkennung, Fundstelle, das
+Kundmachungsdatum und der datierte ELI.
+
 ## Metadaten zu VfGH-Entscheidungstexten
 
 Eine ausdrücklich bereitgestellte RIS-OGD-Einzelantwort lässt sich lokal einlesen:

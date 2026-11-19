@@ -367,6 +367,85 @@ def test_email_kollision_wird_abgelehnt(client):
     assert anna.email == "anna@example.org"
 
 
+def _faelliger_wechsel(anna, neue="anna.neu@example.org"):
+    wechsel, _klar = Adresswechsel.beantragen(anna, neue, durch=admin_anlegen())
+    wechsel.bestaetigt_von = admin_anlegen("adminb")
+    wechsel.frist_bis = timezone.now() - timedelta(hours=1)
+    wechsel.save()
+    return wechsel
+
+
+def test_zweimal_angewendeter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Auflage zu GP-211: Hintergrundlauf und Seitenaufruf können denselben fälligen Wechsel
+    gleichzeitig anwenden — jeder mit seinem eigenen, schon geladenen Stand."""
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+    zweiter_lauf = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.wirksam_machen() is True
+    assert zweiter_lauf.wirksam_machen() is False
+    assert Adresswechsel.faellige_anwenden() == 0
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_wirksam") == 1 and "email_geaendert_widerrufen" not in aktionen
+    zweiter_lauf.refresh_from_db()
+    assert zweiter_lauf.status == Adresswechsel.Status.WIRKSAM
+
+
+def test_zweimal_bestaetigter_wechsel_ergibt_genau_einen_audit_eintrag():
+    """Restauflage zu GP-211 (Nachbar): Zwei Bestätigungen mit veraltetem Stand — die zweite findet
+    den Wechsel bestätigt vor und schreibt nichts."""
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    zweite = Adresswechsel.objects.get(pk=wechsel.pk)
+    adminb, adminc = admin_anlegen("adminb"), admin_anlegen("adminc")
+    assert wechsel.bestaetigen(adminb) is True
+    assert zweite.bestaetigen(adminc) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert aktionen.count("email_geaendert_bestaetigt") == 1
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id == adminb.pk
+
+
+def test_bestaetigung_eines_inzwischen_widerrufenen_wechsels_schreibt_nichts():
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+    veraltet = Adresswechsel.objects.get(pk=wechsel.pk)
+    assert wechsel.widerrufen("einspruch") is True
+    assert veraltet.bestaetigen(admin_anlegen("adminb")) is False
+    aktionen = [e.ereignis["aktion"] for e in AuditEintrag.objects.filter(ereignis__typ="verwaltung")]
+    assert "email_geaendert_bestaetigt" not in aktionen
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None
+
+
+def test_bestaetigen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel, _klar = Adresswechsel.beantragen(anna, "anna.neu@example.org", durch=admin_anlegen())
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.bestaetigen(admin_anlegen("adminb"))
+    wechsel.refresh_from_db()
+    assert wechsel.bestaetigt_von_id is None and wechsel.bestaetigt_am is None
+
+
+def test_wirksam_machen_mit_scheiterndem_audit_aendert_nichts(monkeypatch):
+    anna = mitglied_anlegen()
+    wechsel = _faelliger_wechsel(anna)
+
+    def kaputt(ereignis):
+        raise RuntimeError("Audit nicht erreichbar")
+
+    monkeypatch.setattr("verfahren.models.AuditEintrag.anhaengen", kaputt)
+    with pytest.raises(RuntimeError):
+        wechsel.wirksam_machen()
+    anna.refresh_from_db()
+    wechsel.refresh_from_db()
+    assert anna.email == "anna@example.org" and wechsel.status == Adresswechsel.Status.OFFEN
+
+
 # --- Audit ----------------------------------------------------------------------
 
 
@@ -549,3 +628,271 @@ def test_verwaltung_kann_die_einwilligung_zum_klarnamen_nur_zuruecknehmen(client
     client.post(reverse("mitglieder:verwaltung_mitglied", args=[person.pk]), daten)
     person.refresh_from_db()
     assert person.klarname_oeffentlich is False
+
+
+# --- Niemand wirkt auf das eigene Konto (GP-016, KM-03; CONCEPT F-51) -------------------
+
+
+@pytest.mark.parametrize('aktion', ['reaktivieren', 'beitrag', 'admin_geben'])
+def test_admin_handelt_nicht_am_eigenen_konto(client, aktion):
+    chefin = admin_anlegen('chefin')
+    chefin.status = Mitgliedsstatus.PAUSIERT
+    chefin.save(update_fields=['status'])
+    client.force_login(chefin)
+    vorher = Mitglied.objects.filter(pk=chefin.pk).values().get()
+    antwort = client.post(detail(chefin.pk), {'aktion': aktion}, follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    assert Mitglied.objects.filter(pk=chefin.pk).values().get() == vorher
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_admin_setzt_eigene_stufe_und_eigenes_beitragsdatum_nicht(client):
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    client.force_login(chefin)
+    antwort = client.post(detail(chefin.pk), stammdaten(chefin, identitaetsstufe=Identitaetsstufe.PRAESENZ), follow=True)
+    assert 'Diese Aktion können nur andere Admins auf Ihr Konto anwenden.' in antwort.content.decode()
+    client.post(detail(chefin.pk), stammdaten(chefin, beitrag_zuletzt_am=timezone.localdate().isoformat()))
+    chefin.refresh_from_db()
+    assert chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT and chefin.geprueft_seit is None
+    assert chefin.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='verwaltung', ereignis__mitglied=chefin.pk).exists()
+
+
+def test_eigener_kontoauszug_verbucht_die_eigene_zeile_nicht(client):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    chefin = admin_anlegen('chefin')
+    chefin.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+    chefin.save(update_fields=['identitaetsstufe'])
+    anna = mitglied_anlegen('anna')
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Chefin;{beitragsreferenz(chefin)} Beitrag;30,00;EUR\n'
+        f'28.08.2026;Anna;{beitragsreferenz(anna)} Beitrag;30,00;EUR\n'
+    ).encode()
+    client.force_login(chefin)
+    antwort = client.post(
+        reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}, follow=True
+    )
+    chefin.refresh_from_db()
+    anna.refresh_from_db()
+    assert chefin.beitrag_zuletzt_am is None and chefin.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
+    assert anna.beitrag_zuletzt_am is not None
+    assert '1 Zeile mit Ihrer eigenen Beitragsreferenz nicht verbucht' in antwort.content.decode()
+    import hashlib
+
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='auszug_abgleich').get().ereignis
+    assert eintrag['pruefsumme'] == hashlib.sha256(inhalt).hexdigest()
+    assert eintrag['eigene_uebersprungen'] == 1
+
+
+# --- Handlung und Audit-Eintrag stehen in einer Klammer (GP-102, KM-17) -----------------
+
+
+def _audit_kaputt(monkeypatch):
+    def kaputt(*args, **kwargs):
+        raise RuntimeError('Audit nicht schreibbar')
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', kaputt)
+
+
+def test_ohne_audit_bleibt_der_status_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV and anna.is_active is True
+
+
+def test_ohne_audit_bleiben_die_stammdaten_unveraendert(client, monkeypatch):
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    with pytest.raises(RuntimeError):
+        client.post(detail(anna.pk), stammdaten(anna, vorname='Anneliese'))
+    anna.refresh_from_db()
+    assert anna.first_name != 'Anneliese'
+
+
+def test_abschluss_einer_bankkopplung_wird_auditiert(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    kopplung = Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate() + timedelta(days=180))
+    monkeypatch.setattr(bank, 'kopplung_abschliessen', lambda: kopplung)
+    client.force_login(admin_anlegen())
+    client.get(reverse('mitglieder:bank_rueckkehr'))
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='bank_gekoppelt').get().ereignis
+    assert eintrag['typ'] == 'verwaltung' and 'requisition' not in json.dumps(eintrag)
+
+
+def test_ohne_audit_bleibt_die_bankkopplung_unscharf(client, monkeypatch):
+    from mitglieder import bank
+    from mitglieder.models import Bankkopplung
+
+    Bankkopplung.objects.create(requisition_id='r1', consent_bis=timezone.localdate())
+    monkeypatch.setattr(bank, '_get', lambda pfad, **params: {'status': 'LN', 'accounts': ['k1']})
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.get(reverse('mitglieder:bank_rueckkehr'), follow=True)
+    assert 'nicht abgeschlossen' in antwort.content.decode()
+    assert Bankkopplung.aktuelle() is None  # Kopplung und Audit gemeinsam oder gar nicht
+
+
+def test_ohne_audit_des_auszugs_bleibt_nichts_verbucht(client, monkeypatch):
+    """Auflage zu GP-102: Verbuchen und Audit-Eintrag „auszug_abgleich“ stehen in einer Klammer."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), {'auszug': SimpleUploadedFile('auszug.csv', inhalt)})
+    zahler.refresh_from_db()
+    assert Beitragseingang.objects.count() == 0 and zahler.beitrag_zuletzt_am is None
+    assert not AuditEintrag.objects.filter(ereignis__typ='beitrag').exists()
+
+
+def _auszug_mit_beitrag(zahler):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mitglieder.auth_flows import beitragsreferenz
+
+    inhalt = (
+        'Buchungsdatum;Teilnehmer;Verwendungszweck;Betrag;Währung\n'
+        f'28.08.2026;Zahler;{beitragsreferenz(zahler)} Beitrag;30,00;EUR\n'
+    ).encode()
+    return {'auszug': SimpleUploadedFile('auszug.csv', inhalt)}
+
+
+def test_ohne_audit_des_auszugs_geht_keine_beitragsbestaetigung_hinaus(
+    client, monkeypatch, django_capture_on_commit_callbacks
+):
+    """Restauflage zu GP-102: Die Mail „Ihr Mitgliedsbeitrag ist eingegangen“ geht erst nach dem
+    Festschreiben hinaus. Scheitert der Audit-Eintrag des Abgleichs, gibt es keine Buchung und keine Mail."""
+    from mitglieder.models import Beitragseingang
+
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    echt = AuditEintrag.anhaengen
+
+    def nur_der_abgleich_scheitert(ereignis):
+        if ereignis.get('aktion') == 'auszug_abgleich':
+            raise RuntimeError('Audit nicht erreichbar')
+        return echt(ereignis)
+
+    monkeypatch.setattr(AuditEintrag, 'anhaengen', nur_der_abgleich_scheitert)
+    with django_capture_on_commit_callbacks(execute=True), pytest.raises(RuntimeError):
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert Beitragseingang.objects.count() == 0
+    assert [n.subject for n in mail.outbox] == []
+
+
+def test_gelingt_der_abgleich_geht_die_beitragsbestaetigung_nach_dem_festschreiben(
+    client, django_capture_on_commit_callbacks
+):
+    zahler = mitglied_anlegen('zahler')
+    client.force_login(admin_anlegen())
+    with django_capture_on_commit_callbacks(execute=False) as rueckrufe:
+        client.post(reverse('mitglieder:auszug_hochladen'), _auszug_mit_beitrag(zahler))
+    assert mail.outbox == []  # noch nichts verschickt, solange nicht festgeschrieben ist
+    for rueckruf in rueckrufe:
+        rueckruf()
+    assert [n.subject for n in mail.outbox] == ['Ihr Mitgliedsbeitrag ist eingegangen']
+    assert mail.outbox[0].to == [zahler.email]
+
+
+def test_scheitert_das_audit_meldet_die_verwaltung_keinen_erfolg(monkeypatch):
+    """Auflage zu GP-102: Die Erfolgsmeldung stand in der Klammer vor dem Audit-Eintrag — nach
+    der Rücknahme meldete die nächste Seite trotzdem „ausgeschlossen“."""
+    from django.contrib.messages import get_messages
+    from django.test import Client
+
+    anna = mitglied_anlegen()
+    client = Client(raise_request_exception=False)
+    client.force_login(admin_anlegen())
+    _audit_kaputt(monkeypatch)
+    antwort = client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    assert antwort.status_code == 500
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == []
+    anna.refresh_from_db()
+    assert anna.status == Mitgliedsstatus.AKTIV
+
+
+def test_ausschluss_vermerkt_die_entzogenen_adminrechte_im_audit(client):
+    anna = mitglied_anlegen()
+    anna.ist_admin = True
+    anna.save(update_fields=['ist_admin'])
+    client.force_login(admin_anlegen())
+    client.post(detail(anna.pk), {'aktion': 'ausschliessen', 'grund': 'Beschluss S-1.'})
+    anna.refresh_from_db()
+    assert anna.ist_admin is False
+    eintrag = AuditEintrag.objects.filter(ereignis__aktion='ausschliessen').get().ereignis
+    assert eintrag['adminrechte_entzogen'] is True and eintrag['mitglied'] == anna.pk
+
+
+# --- Einstiege in Parameter- und Quellenverwaltung (GP-105, GP-086) -----------
+
+
+def test_verwaltung_verweist_auf_parameter_und_quellenverwaltung(client):
+    admin = admin_anlegen()
+    client.force_login(admin)
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("parameter:verwaltung")}"' in html
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' in html
+    admin.identitaetsstufe = "ungeprueft"
+    admin.save(update_fields=["identitaetsstufe"])
+    html = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("faktenbasis:verwaltung")}"' not in html  # nur für Berechtigte
+
+
+# --- Satzungsverweise auf § 4 (GP-176, OCR-16) --------------------------------
+
+
+def test_verweise_auf_paragraf_4_nennen_nur_vorhandene_absaetze():
+    """§ 4 des Satzungsentwurfs 2.5 hat fünf Absätze; der Ausschluss steht in Abs 5."""
+    from pathlib import Path
+
+    vorlagen = Path(__file__).parent / "templates"
+    zitate = [
+        (datei.name, int(absatz))
+        for datei in vorlagen.rglob("*.*")
+        for absatz in re.findall(r"§ 4 Abs (\d+)", datei.read_text(encoding="utf-8"))
+    ]
+    assert zitate and all(1 <= absatz <= 5 for _datei, absatz in zitate), zitate
+
+
+# --- Feldfehler mit dem Feld verknüpft (GP-088, ZB-03) ------------------------
+
+
+def test_feldfehler_der_stammdaten_sind_verknuepft(client):
+    from mitglieder.test_views import verweise_ins_leere
+
+    anna = mitglied_anlegen()
+    client.force_login(admin_anlegen())
+    antwort = client.post(detail(anna.pk), {
+        "aktion": "stammdaten", "email": "keine-adresse", "wohnsitz_art": "oesterreich",
+        "gemeinde": "Nirgendwo im Nichts", "identitaetsstufe": "falsch", "beitrag_zuletzt_am": "kein-datum",
+    })
+    assert antwort.status_code == 200
+    assert verweise_ins_leere(antwort.content.decode()) == []

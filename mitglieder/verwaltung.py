@@ -16,7 +16,7 @@ Grundsätze:
   Öffentlich (`/audit/`) sind Mitgliedsnummer und Begründung geschwärzt und gesalzen
   (verfahren/audit_oeffentlich.py, 0.52.0).
 - Statusfolgen: „pausiert“ lässt Anmelden und Lesen zu, Mitwirkungsrechte ruhen
-  (§ 4 Abs 3); „ausgeschlossen“ deaktiviert das Konto (§ 4 Abs 6 — der Knopf
+  (§ 4 Abs 3); „ausgeschlossen“ deaktiviert das Konto (§ 4 Abs 5 — der Knopf
   vollzieht den satzungsmäßigen Beschluss, er ersetzt ihn nicht). Jeder Wechsel
   trägt sein Datum (`status_seit`), damit die Stimmberechtigung am Stichtag
   geprüft werden kann (§ 4 Abs 4 lit a).
@@ -39,6 +39,7 @@ from django.utils import formats, timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
+from mitglieder.auth_flows import EinmalToken
 from mitglieder.mail import send_mail
 from mitglieder.models import (
     Adresswechsel,
@@ -130,6 +131,9 @@ class StammdatenFormular(WohnsitzFormularMixin, forms.Form):
 
 @nur_admins
 def liste(request):
+    # faktenbasis hängt an der Verwaltung, nicht umgekehrt
+    from faktenbasis.verwaltung import darf_aktualisieren
+
     Adresswechsel.faellige_anwenden()
     mitglieder = Mitglied.parteikonten.order_by("-date_joined")
     suche = request.GET.get("q", "").strip()
@@ -163,6 +167,7 @@ def liste(request):
             "status": status,
             "zahlen": zahlen,
             "statuswahl": Mitgliedsstatus.choices,
+            "quellenverwaltung": darf_aktualisieren(request.user),  # GP-086: nur, wer sie öffnen darf
         },
     )
 
@@ -213,6 +218,12 @@ def _adresswechsel_beantragen(request, mitglied: Mitglied, neue_email: str) -> b
 
 def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) -> None:
     d = form.cleaned_data
+    if mitglied.pk == request.user.pk and (
+        d["identitaetsstufe"] != mitglied.identitaetsstufe or d["beitrag_zuletzt_am"] != mitglied.beitrag_zuletzt_am
+    ):
+        # GP-016: Stufe und Beitragseingang des eigenen Kontos setzt nur ein anderer Admin.
+        messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
+        return
     geaendert = []
     zuordnung = {
         "first_name": d["vorname"],
@@ -230,8 +241,9 @@ def _stammdaten_anwenden(request, mitglied: Mitglied, form: StammdatenFormular) 
     geaendert += mitglied.identitaetsstufe_setzen(d["identitaetsstufe"])
     geaendert += wohnsitz_anwenden(mitglied, form)
     if geaendert:
-        mitglied.save()
-        _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
+        with transaction.atomic():  # GP-102: Änderung und Audit-Eintrag gemeinsam oder gar nicht
+            mitglied.save()
+            _auditieren(request, "stammdaten_geaendert", mitglied, felder=sorted(set(geaendert)))
         messages.success(request, _("Stammdaten gespeichert."))
         if war_ungeprueft and mitglied.identitaetsstufe != Identitaetsstufe.UNGEPRUEFT:
             freischaltung_senden(mitglied)  # FB-K7: gleich durch wen — einmal je Konto
@@ -271,61 +283,73 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
         # reaktivieren; ein Wiedereintritt ist ein neues Konto.
         messages.error(request, _("Ein ausgetretenes Konto wird nicht wieder aktiviert."))
         return
-    if aktion in ("pausieren", "ausschliessen", "admin_nehmen"):
-        if mitglied.ist_fixer_admin:
-            messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
-            return
-        if selbst:
-            messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
-            return
+    if selbst:
+        # F-51 „niemand wirkt auf das eigene Konto“ (GP-016): keine Status- oder Rechtehandlung
+        # am eigenen Konto — auch nicht Pause aufheben, Beitrag vermerken oder Rechte geben.
+        messages.error(request, _("Diese Aktion können nur andere Admins auf Ihr Konto anwenden."))
+        return
+    if aktion in ("pausieren", "ausschliessen", "admin_nehmen") and mitglied.ist_fixer_admin:
+        messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
+        return
     if aktion in ("pausieren", "ausschliessen") and not grund:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return
 
-    if aktion == "pausieren":
-        mitglied.save(update_fields=mitglied.status_setzen(Mitgliedsstatus.PAUSIERT, grund))
-        messages.success(
-            request, _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
-        )
-    elif aktion == "ausschliessen":
-        felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
-        mitglied.is_active = False
-        mitglied.save(update_fields=[*felder, "is_active"])
-        messages.success(request, _("Mitglied ausgeschlossen und Konto deaktiviert."))
-    elif aktion == "reaktivieren":
-        felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
-        mitglied.is_active = True
-        felder.append("is_active")
-        if mitglied.beitritt is None:
-            # Unbestätigtes Konto von Hand freigeschaltet: Ohne Beitritt bliebe es für immer
-            # ohne Anwartschaft (§ 4 Abs 4) — der Rettungsweg wäre wirkungslos.
-            mitglied.beitritt = timezone.localdate()
-            felder.append("beitritt")
-        mitglied.save(update_fields=felder)
-        messages.success(request, _("Mitgliedschaft ist wieder aktiv."))
-    elif aktion == "beitrag":
-        mitglied.beitrag_zuletzt_am = timezone.localdate()
-        felder = ["beitrag_zuletzt_am"]
-        if mitglied.status == Mitgliedsstatus.PAUSIERT:
-            felder += mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
-            messages.success(request, _("Beitragseingang vermerkt — die Pause ist damit aufgehoben."))
+    extra = {"grund": grund} if grund else {}
+    # GP-102: Handlung und Audit-Eintrag gelingen gemeinsam oder gar nicht — und gemeldet wird erst,
+    # was beides überstanden hat: Eine Meldung in der Klammer bliebe nach einer Rücknahme stehen.
+    with transaction.atomic():
+        if aktion == "pausieren":
+            mitglied.save(update_fields=mitglied.status_setzen(Mitgliedsstatus.PAUSIERT, grund))
+            erfolg = (
+                _("Mitgliedschaft pausiert — Mitwirkungsrechte ruhen bis zum Beitragseingang.")
+            )
+        elif aktion == "ausschliessen":
+            felder = mitglied.status_setzen(Mitgliedsstatus.AUSGESCHLOSSEN, grund)
+            mitglied.is_active = False
+            # GP-017: Kein alter Link öffnet das Konto wieder, und Adminrechte enden mit dem Ausschluss.
+            if mitglied.ist_admin:
+                mitglied.ist_admin = False
+                felder.append("ist_admin")
+                extra["adminrechte_entzogen"] = True  # die Rechteänderung steht mit im Audit
+            mitglied.save(update_fields=[*felder, "is_active"])
+            EinmalToken.entwerten(mitglied)
+            erfolg = _("Mitglied ausgeschlossen und Konto deaktiviert.")
+        elif aktion == "reaktivieren":
+            felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
+            mitglied.is_active = True
+            felder.append("is_active")
+            if mitglied.beitritt is None:
+                # Unbestätigtes Konto von Hand freigeschaltet: Ohne Beitritt bliebe es für immer
+                # ohne Anwartschaft (§ 4 Abs 4) — der Rettungsweg wäre wirkungslos.
+                mitglied.beitritt = timezone.localdate()
+                felder.append("beitritt")
+            mitglied.save(update_fields=felder)
+            erfolg = _("Mitgliedschaft ist wieder aktiv.")
+        elif aktion == "beitrag":
+            mitglied.beitrag_zuletzt_am = timezone.localdate()
+            felder = ["beitrag_zuletzt_am"]
+            if mitglied.status == Mitgliedsstatus.PAUSIERT:
+                felder += mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")
+                erfolg = _("Beitragseingang vermerkt — die Pause ist damit aufgehoben.")
+            else:
+                erfolg = _("Beitragseingang vermerkt.")
+            mitglied.save(update_fields=felder)
+        elif aktion == "admin_geben":
+            mitglied.ist_admin = True
+            mitglied.save(update_fields=["ist_admin"])
+            erfolg = (
+                _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
+            )
+        elif aktion == "admin_nehmen":
+            mitglied.ist_admin = False
+            mitglied.save(update_fields=["ist_admin"])
+            erfolg = _("Adminrechte entzogen.")
         else:
-            messages.success(request, _("Beitragseingang vermerkt."))
-        mitglied.save(update_fields=felder)
-    elif aktion == "admin_geben":
-        mitglied.ist_admin = True
-        mitglied.save(update_fields=["ist_admin"])
-        messages.success(
-            request, _("%(name)s hat jetzt Zugang zur Verwaltung.") % {"name": mitglied.anzeigename}
-        )
-    elif aktion == "admin_nehmen":
-        mitglied.ist_admin = False
-        mitglied.save(update_fields=["ist_admin"])
-        messages.success(request, _("Adminrechte entzogen."))
-    else:
-        messages.error(request, _("Unbekannte Aktion."))
-        return
-    _auditieren(request, aktion, mitglied, **({"grund": grund} if grund else {}))
+            messages.error(request, _("Unbekannte Aktion."))
+            return
+        _auditieren(request, aktion, mitglied, **extra)
+    messages.success(request, erfolg)
 
 
 @nur_admins

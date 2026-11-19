@@ -1,0 +1,34 @@
+{% extends "verfahren/base.html" %}
+{% load i18n %}
+{% block titel %}{% translate "Gemeldete Beiträge" %}{% endblock %}
+{% block inhalt %}
+<h1>{% translate "Gemeldete Beiträge" %}</h1>
+
+{% for z in zeilen %}
+<div class="karte" id="meldung-{{ z.k.pk }}">
+  <p class="erk">
+    <a href="{{ z.ziel }}">{% if z.k.sitzung_id %}{% translate "Chat einer Sitzung" %}{% else %}{{ z.k.antrag.titel }}{% endif %} · #{{ z.k.pk }}</a>
+    · {% if z.k.mitglied %}{{ z.k.mitglied.anzeigename }}{% else %}{% translate "Die Plattform" %}{% endif %}
+    · {{ z.k.erstellt_am|date:"d.m.Y, H:i" }}
+    {% if z.k.ausgeblendet_am %}· {% translate "bereits ausgeblendet" %}{% elif z.k.geloescht %}· {% translate "vom Verfasser entfernt" %}{% endif %}
+  </p>
+  <blockquote>{{ z.k.text|linebreaksbr }}</blockquote>
+  <ul>
+    {% for m in z.meldungen %}
+    <li>{{ m.get_grund_display }} · {{ m.erstellt_am|date:"d.m.Y, H:i" }}{% if m.erlaeuterung %} — {{ m.erlaeuterung }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="{% url 'verfahren:meldung_entscheiden' z.k.pk %}">
+    {% csrf_token %}
+    <label for="grund-{{ z.k.pk }}">{% translate "Öffentlicher Grund" %}</label>
+    <input type="text" name="grund" id="grund-{{ z.k.pk }}" maxlength="200">
+    <div class="stimmzeile">
+      <button type="submit" name="entscheidung" value="ausblenden" class="btn-linie">{% translate "Ausblenden" %}</button>
+      <button type="submit" name="entscheidung" value="keine_massnahme" class="btn-still">{% translate "Keine Maßnahme" %}</button>
+    </div>
+  </form>
+</div>
+{% empty %}
+<p class="leer">{% translate "Keine offenen Meldungen." %}</p>
+{% endfor %}
+{% endblock %}

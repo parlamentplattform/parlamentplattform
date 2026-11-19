@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<title>{% for m in messages %}{% if forloop.first %}{{ m }} · {% endif %}{% endfor %}{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
 {% comment %}App-Manifest (Teil 7): „Zum Startbildschirm“ am Handy und „App installieren“ im Desktop-Browser
 öffnen das Parlament bildschirmfüllend ohne Browserrahmen. Bewusst OHNE Service Worker: kein Offline-Versprechen
 und keine Cache-Falle bei Fristen — jede Ansicht kommt frisch vom Server. Farben = Tokens --papier und --deep
@@ -82,6 +82,7 @@ h1{font-size:26px;line-height:1.2;font-weight:700;margin:0 0 10px}
 h2{margin:32px 0 10px;font-size:19px;line-height:1.25;font-weight:600}
 h3{font-size:16px;line-height:1.3;font-weight:600}
 a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px}
+summary{min-height:24px}/* GP-172 (WCAG 2.5.8): jede Aufklappzeile ist ein Tippziel von mindestens 24 px */
 .skip{position:absolute;left:-9999px;top:0;background:var(--gold);color:var(--on-gold);padding:10px 18px;border-radius:0 0 10px 0;z-index:99}
 .skip:focus{left:0}
 /* ── App-Leiste (Spec 3.1, FB-A1/N3/N8): eine Zeile, 56 px (Handy 52 px), klebt oben ── */
@@ -102,7 +103,7 @@ a{color:var(--linkfarbe);text-decoration-thickness:1px;text-underline-offset:2px
 .leiste .btn.klein{padding:0 16px;height:36px;display:inline-flex;align-items:center;font-size:14px}
 .leiste .anmelden{font-size:14px;font-weight:500;padding:7px 12px;border-radius:999px}
 .leiste .anmelden:hover{background:color-mix(in srgb,var(--gold-soft) 12%,transparent)}
-.ikon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
+.ikon{width:36px;height:36px;flex:none;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-ink);background:none;border:0;cursor:pointer;padding:0;transition:background var(--d-fast)}
 .ikon:hover{background:color-mix(in srgb,var(--gold-soft) 14%,transparent)}
 .leiste details{position:relative}
 .leiste summary{list-style:none;cursor:pointer}
@@ -160,6 +161,7 @@ body.menue-offen{overflow:hidden}
   :root{--bar:52px}
   .leiste{padding:0 8px 0 12px;gap:4px}
   .leiste .cta,.leiste .konto,.leiste .mehr,.leiste .anmelden,.leiste .btn.klein,.leiste .rechts>.sprache-form{display:none}
+  .leiste .panel .cta{display:inline-flex}
   .anstoss-leiste{position:static}
   .anstoss-leiste .anstoss-karte,.anstoss-leiste .anstoss-bestaetigung{position:fixed;left:8px;right:8px;top:calc(var(--bar) + 6px);width:auto}
 }
@@ -209,7 +211,7 @@ main{max-width:960px;margin:0 auto;padding:36px 20px 90px}
 form p{margin:0 0 16px}
 form label{display:block;font-size:14px;font-weight:600;margin-bottom:5px}
 input[type=text],input[type=email],input[type=url],input[type=number],input[type=search],input[type=date],input[type=time],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--karton);color:var(--ink);transition:border-color var(--d-fast),box-shadow var(--d-fast)}
-input[type=search],input[type=date],input[type=time],select{width:auto}
+input[type=search],input[type=date],input[type=time],select{width:auto;max-width:100%}
 .wohnsitz-auswahl{display:block;width:100%}
 textarea{resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--fokus);outline-offset:1px;border-color:var(--fokus)}
@@ -265,6 +267,7 @@ body.voll main{max-width:none;padding:0}
 .chip{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;cursor:pointer;color:var(--ink);line-height:1.4;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
 .chip.an{background:var(--gold);color:var(--on-gold);border-color:transparent}
 .chip.klein{font-size:11.5px;font-weight:500;padding:1px 8px;cursor:default}
+a.chip.klein{min-height:24px;cursor:pointer}/* GP-172: als Verweis ein Tippziel von mindestens 24 px */
 .chip.still{color:var(--goldtief);border-style:dashed;cursor:default}
 .pfeil{flex:none;margin-left:auto;width:28px;height:28px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--matt);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;font-size:14px;position:sticky;right:0}
 .griff{position:absolute;left:50%;top:44px;transform:translateX(-50%);z-index:3;height:14px;width:64px;display:none;align-items:center;justify-content:center;font:inherit;font-size:10px;line-height:1;color:var(--matt);background:var(--paper);border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;cursor:pointer;padding:0}
@@ -276,6 +279,8 @@ body.voll main{max-width:none;padding:0}
 .regler-kopf b{font-size:15px;outline:none}
 .regler-kopf .pkt{color:var(--goldtief);font-size:12px;font-weight:600}
 .regler-kopf .zu-knopf{margin-left:auto}
+.zu-ohne-js{text-decoration:none}
+html.js .zu-ohne-js{display:none}
 .regler-form{flex:1;min-height:0;display:flex;flex-direction:column}
 .regler-korpus{flex:1;min-height:0;overflow:auto;padding:8px 14px}
 .schalter{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:8px;font-size:13.5px;font-weight:600;cursor:pointer}
@@ -340,7 +345,10 @@ body.voll main{max-width:none;padding:0}
 .rband.r2 .rkopf{border-color:var(--gold)}.rband.r3 .rkopf{border-color:var(--ink)}
 .rband .spur{position:relative;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 20px)/3);gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;min-height:0;height:100%}
 .rband .spur>.kachel{scroll-snap-align:start;min-height:0;padding:6px 10px;gap:3px}
-.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1}
+.rband .spur .k-titel{font-size:14px;-webkit-line-clamp:1;flex:none}
+/* GP-171: Ist das Band niedriger als die Kachel, gibt die Zeile mit Phase und Ort nach — nicht der Titel,
+   der Weg der Kachel (sonst ein Tab-Halt ohne Höhe) */
+.rband .spur .k-meta{min-height:0;overflow:hidden}
 .rband .spur .balken,.rband .spur .grund,.rband .spur>.kachel>.rest,.rband .spur .badge--hell{display:none}
 .rband .spur .rest{font-size:11.5px}
 .rband .spur .k-fuss{margin-top:auto}
@@ -350,14 +358,16 @@ body.voll main{max-width:none;padding:0}
 /* „Mehr vorhanden" (FB-A5): Verlauf am unteren Feldrand und Pille „↓ n weitere" */
 .feld-mehr,.spur-mehr{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:999px;font:600 12px var(--sans);padding:3px 12px;box-shadow:var(--schatten);cursor:pointer;white-space:nowrap}
 .feld-mehr:hover,.spur-mehr:hover{border-color:var(--gold)}
-.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3}
+.feld-mehr{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3;min-height:24px}/* GP-172: unter Linux-Schrift sonst 22 px hoch */
 .feld.mehr-da::after{content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--surface));pointer-events:none;z-index:2}
 .kachel{position:relative;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0;overflow:hidden}
 .kachel .k-kopf{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:24px}
 .kachel .k-thema{display:inline-flex;align-items:center;gap:2px;min-width:0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .kachel .k-thema-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kachel .k-stern{margin-left:auto;flex:none}
-.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* Sichtprüfung 0.113.0: Ist die Kachel niedriger als ihr Inhalt, gibt nicht der Titel nach (er ist der Weg
+   der Kachel); im Feld „Wichtige Abstimmungen“ blieben ihm am Desktop sonst vier Pixel */
+.kachel .k-titel{font-weight:600;font-size:15px;line-height:1.3;color:var(--ink);text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:none}
 .kachel .k-titel:hover{text-decoration:underline}
 .kachel .k-titel::before{content:"";position:absolute;inset:0}
 .kachel .k-kopf,.kachel .k-meta,.kachel .k-fuss{position:relative;z-index:1}
@@ -372,7 +382,7 @@ body.voll main{max-width:none;padding:0}
 .live-punkt{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--warn);flex:none;animation:live-puls var(--d-glanz) var(--e-out) infinite}
 @keyframes live-puls{50%{opacity:.35}}
 .kachel.live .k-thema{gap:6px}
-.stern.klein{font-size:14px;padding:0;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+.stern.klein{font-size:14px;padding:0;width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center}
 .stern-form{display:inline}
 .ring{width:20px;height:20px;transform:rotate(-90deg);flex:none}
 .ring circle{fill:none;stroke-width:3}
@@ -427,7 +437,7 @@ body.voll main{max-width:none;padding:0}
 .bk{display:block;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--deep);opacity:.85}
 .eintrag{border-top:1px solid var(--line);padding:10px 0 8px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
 .eintrag a{color:var(--linkfarbe)}
-.stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
+.stern{background:none;border:0;cursor:pointer;font-size:21px;color:var(--gold);padding:0 3px;line-height:1.2;min-width:24px;min-height:24px;text-shadow:0 0 8px color-mix(in srgb,var(--gold) 55%,transparent)}
 .stern.aus{color:var(--stern-aus);text-shadow:none}
 .stern:hover{color:var(--gold);text-shadow:0 0 10px color-mix(in srgb,var(--gold) 75%,transparent)}
 a.stern{text-decoration:none;display:inline-block}
@@ -456,7 +466,8 @@ a.stern{text-decoration:none;display:inline-block}
 .fknoten.f18 a,.fknoten.f18 .fname{font-size:18px}
 .fknoten.f16 a,.fknoten.f16 .fname{font-size:16px;font-weight:500}
 .fknoten form{display:inline;line-height:1;flex:none}
-.fknoten .stern{font-size:13px;padding:0;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+/* GP-172: Tippfläche 24 px, im Fächer aber nur 18 px Platz — der Rand nimmt das Mehr zurück */
+.fknoten .stern{font-size:13px;padding:0;width:24px;height:24px;margin:-3px;flex:none;display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .fknoten a.mehr{flex:none;font-size:12px;color:var(--matt);padding:0 5px;border-radius:999px;background:var(--surface-2);text-decoration:none}
 .fknoten a.mehr:hover{color:var(--ink)}
 .brot{font-size:12.5px;color:var(--matt);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -612,16 +623,16 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .blase-text{font-size:15px;line-height:1.55;overflow-wrap:anywhere}
 .blase-text.entfernt{color:var(--matt);font-style:italic}
 .blase-fuss{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px}
-.blase-knopf{font:inherit;font-size:12.5px;background:none;border:0;padding:2px 6px;border-radius:8px;color:var(--matt);cursor:pointer;text-decoration:none;display:inline-block}
+.blase-knopf{font:inherit;font-size:12.5px;background:none;border:0;padding:2px 6px;min-height:24px;border-radius:8px;color:var(--matt);cursor:pointer;text-decoration:none;display:inline-block}
 .blase-knopf:hover{background:var(--surface-2);color:var(--ink)}
 .blase-knopf.zustimmen.an{background:color-mix(in srgb,var(--gold) 22%,transparent);color:var(--ink)}
 .blase-knopf.zustimmen.still{cursor:default}
 .blase-form{display:inline}
 .blase-anker{margin-left:auto;color:var(--muted);text-decoration:none;font-variant-numeric:tabular-nums}
 .blase-anker:hover{color:var(--ink)}
-.blase-aendern>summary,.blase-melden>summary{list-style:none;display:inline-block}
-.blase-aendern>summary::-webkit-details-marker,.blase-melden>summary::-webkit-details-marker{display:none}
-.blase-aendern form,.blase-melden form{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;background:var(--surface-2);border-radius:10px}
+.blase-aendern>summary,.blase-melden>summary,.blase-zurueckziehen>summary{list-style:none;display:inline-block}
+.blase-aendern>summary::-webkit-details-marker,.blase-melden>summary::-webkit-details-marker,.blase-zurueckziehen>summary::-webkit-details-marker{display:none}
+.blase-aendern form,.blase-melden form,.blase-zurueckziehen form{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding:8px;background:var(--surface-2);border-radius:10px}
 .blase-melden label{font-size:12.5px;font-weight:600}
 .antworten{display:flex;flex-direction:column;gap:8px;margin-left:16px;padding-left:12px;border-left:2px solid var(--line)}
 .antworten .blase{background:var(--surface-2)}
@@ -741,6 +752,9 @@ main .wk:nth-child(6),main .wk:nth-child(7),main .wk:nth-child(8){animation-dela
 .zreiter:hover{color:var(--ink)}
 .zreiter.an{color:var(--ink);border-bottom-color:var(--gold)}
 .zonen,.zonen-oben{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+/* GP-069: Ein Sprung auf #zone-… hält die Überschrift unter Kopfleiste und Zonenleiste (44,7 px) frei —
+   knapp darunter, damit der Reiter-Spion (Oberkante ≤ 1 px unter der Leiste) dieselbe Zone wählt */
+.zone{scroll-margin-top:calc(var(--bar) + 44px)}
 .zone h2{margin:0 0 10px;font-size:19px}
 .zone h3{margin:0 0 8px;font-size:16px}
 .wortlaut h3{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
@@ -890,7 +904,7 @@ fieldset.rueckgabezusage legend{font-size:13.5px;font-weight:600;color:var(--dee
 {% block leiste %}{% include "verfahren/_leiste.html" %}{% endblock %}
 {% block band %}{% if user.is_authenticated and user.status == "pausiert" %}<div class="band pausiert"><span class="band-text">{% translate "Ihre Mitgliedschaft ist pausiert, bis der Mitgliedsbeitrag eingegangen ist — Lesen und Anmelden bleiben möglich." %}</span><a href="{% url 'mitglieder:willkommen' %}">{% translate "Beitrag jetzt überweisen →" %}</a></div>{% endif %}{% endblock %}
 <main id="inhalt" class="{% block mainklasse %}{% endblock %}">
-{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
+{% if messages %}<div class="meldungen">{% for m in messages %}<div class="meldung {{ m.tags }}" role="{% if m.level_tag == 'error' %}alert{% else %}status{% endif %}" x-data="meldung" x-show="sichtbar">{{ m }} <a class="meldung-x" href="{{ request.path }}" aria-label="{% translate 'Meldung schließen' %}" @click.prevent="sichtbar=false">&times;</a></div>{% endfor %}</div>{% endif %}
 {% block inhalt %}{% endblock %}
 </main>
 {% block anstoss %}{% include "anstoss/_widget.html" %}{% endblock %}

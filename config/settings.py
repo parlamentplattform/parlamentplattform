@@ -10,8 +10,15 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DDOE_SECRET_KEY", "nur-fuer-entwicklung-niemals-produktiv")
+ENTWICKLUNGSSCHLUESSEL = "nur-fuer-entwicklung-niemals-produktiv"
+SECRET_KEY = os.environ.get("DDOE_SECRET_KEY") or ENTWICKLUNGSSCHLUESSEL
 DEBUG = os.environ.get("DDOE_DEBUG", "1") == "1"
+# Ohne DEBUG startet der Dienst nur mit eigenem Schlüssel (GP-160): Der Entwicklungswert steht im
+# Repository, der frühere Platzhalter der Partner-Musterdatei (docs/partner/instanz/env.example) auch.
+if not DEBUG and SECRET_KEY in (ENTWICKLUNGSSCHLUESSEL, "hier-einen-langen-zufaelligen-schluessel-eintragen"):
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured("DDOE_SECRET_KEY fehlt oder ist ein bekannter Platzhalter (DDOE_DEBUG=0).")
 ALLOWED_HOSTS = [h for h in os.environ.get("DDOE_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
 if DEBUG:
     ALLOWED_HOSTS += ["testserver"]  # Django-Testclient
@@ -42,6 +49,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "config.sicherheitsheader.PersoenlichesNichtSpeichern",  # angemeldet: no-store, private (GP-154)
     "mitglieder.gemeinde_middleware.GemeindezugangBegrenzen",
     "verfahren.middleware.AnmeldungFuerHtmx",  # htmx ohne Sitzung: ganze Seite zur Anmeldung (Befund B1)
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -179,6 +187,9 @@ if not DEBUG:
     # dieser Header, dass die ursprüngliche Verbindung verschlüsselt war —
     # sonst schleift SECURE_SSL_REDIRECT endlos um.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# Die Gesundheitsprüfung kommt von innen, ohne TLS und ohne Kopfzeile des Proxys (Docker-Muster der
+# Partnerinstanzen): Sie wird nicht umgeleitet, sonst erreichte sie die Datenbank nie (GP-156).
+SECURE_REDIRECT_EXEMPT = [r"^gesund/$"]
 
 # HSTS-Preload (security.W021) ist eine eigene, schwer umkehrbare Entscheidung: Die Domain
 # landet in den Browsern fest verdrahtet, auch für Subdomains, die es noch gar nicht gibt.

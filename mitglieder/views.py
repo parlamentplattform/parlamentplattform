@@ -20,10 +20,11 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
-from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods, require_POST
 
 from mitglieder.auth_flows import EinmalToken, beitragsreferenz
-from mitglieder.botschutz import BotschutzMixin, drossel_zuviel
+from mitglieder.botschutz import BotschutzMixin, drossel_erstatten, drossel_meldung, drossel_zuviel
 from mitglieder.mail import send_mail
 from mitglieder.models import Adresswechsel, Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import freischaltung_senden, stimmrechts_satz, willkommen_senden
@@ -42,7 +43,7 @@ class RegistrierungsFormular(BotschutzMixin, WohnsitzFormularMixin, forms.Form):
     wohnsitz_pflicht = True
     vorname = forms.CharField(label=gettext_lazy("Vorname"), max_length=80)
     nachname = forms.CharField(label=gettext_lazy("Nachname"), max_length=80)
-    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"))
+    email = forms.EmailField(label=gettext_lazy("E-Mail-Adresse"), max_length=150)  # Spalte username (GP-098)
     geburtsjahr = forms.IntegerField(label=gettext_lazy("Geburtsjahr"), min_value=1900, max_value=2100)
     wohnsitz_art = wohnsitz_auswahl(registrierung=True)
     gemeinde = forms.CharField(
@@ -119,9 +120,11 @@ class LoginFormular(BotschutzMixin, forms.Form):
 
 def nie_bestaetigt(mitglied: Mitglied) -> bool:
     """Konto, dessen Bestätigungslink nie geklickt wurde (Befund #21): inaktiv, ohne
-    Beitritt, weder ausgeschlossen noch ausgetreten — beide sind ebenfalls inaktiv, bleiben aber zu."""
+    Beitritt, weder ausgeschlossen noch ausgetreten — beide sind ebenfalls inaktiv, bleiben aber zu.
+    Ein stillgelegtes Testkonto ist nie „nie bestätigt“: Es wird nicht anmeldbar (GP-187)."""
     return (
         not mitglied.is_active
+        and not mitglied.testkonto
         and mitglied.beitritt is None
         and mitglied.status not in (Mitgliedsstatus.AUSGESCHLOSSEN, Mitgliedsstatus.AUSGETRETEN)
     )
@@ -164,8 +167,13 @@ def registrieren(request):
     if request.method == "POST":
         form = RegistrierungsFormular(request.POST, request=request)
         if drossel_zuviel(request, "registrierung", limit=5):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            # GP-019: Tippfehler zählen nicht — wohl aber Fehler am Adressfeld, sonst ließe sich
+            # über „existiert bereits“ ungebremst abfragen, welche Adressen ein Konto haben.
+            if form.botschutz_bestanden and "email" not in form.errors:
+                drossel_erstatten(request, "registrierung")
+        else:
             d = form.cleaned_data
             try:
                 # Konto und Mailversand stehen und fallen gemeinsam: Scheitert der
@@ -184,7 +192,8 @@ def registrieren(request):
                     # E-Mails über das Verfahren nur mit ausdrücklichem Haken (Voreinstellung: nein);
                     # Konto- und Anmeldenachrichten gehen unabhängig davon.
                     mitglied.post_einwilligung = d["post_einwilligung"]
-                    mitglied.identitaetsstufe = Identitaetsstufe.UNGEPRUEFT
+                    # GP-185: über `identitaetsstufe_setzen`, damit auch ein altes Prüfdatum fällt.
+                    mitglied.identitaetsstufe_setzen(Identitaetsstufe.UNGEPRUEFT)
                     mitglied.is_active = False  # aktiv erst nach E-Mail-Bestätigung
                     wohnsitz_anwenden(mitglied, form)
                     mitglied.set_unusable_password()
@@ -208,10 +217,26 @@ def registrieren(request):
     return render(request, "mitglieder/registrieren.html", {"form": form, "gemeinden": gemeinden})
 
 
+def link_seite(request, titel: str, knopf: str):
+    """Zwischenseite eines E-Mail-Links (GP-018): Der Abruf — auch durch Linkprüfer von
+    Mailanbietern — löst nichts ein; erst das Absenden des Formulars (POST mit CSRF-Schutz)."""
+    return render(request, "mitglieder/link_bestaetigen.html", {"titel": titel, "knopf": knopf})
+
+
+@require_http_methods(["GET", "HEAD", "POST"])
+@never_cache
 def bestaetigen(request, token: str):
+    if request.method != "POST":
+        mitglied = EinmalToken.pruefen(token, EinmalToken.Zweck.BESTAETIGUNG)
+        if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        return link_seite(request, _("E-Mail-Adresse bestätigen"), _("Adresse bestätigen"))
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.BESTAETIGUNG)
-    if mitglied is None or not mitglied.parteikonto:
+    # GP-017: Bestätigen kann nur ein nie bestätigtes Konto — ein ausgeschlossenes oder schon
+    # bestätigtes wird über einen alten Link nicht wieder anmeldbar.
+    if mitglied is None or not mitglied.parteikonto or not nie_bestaetigt(mitglied):
         return render(request, "mitglieder/token_ungueltig.html", status=400)
+    EinmalToken.entwerten(mitglied, EinmalToken.Zweck.BESTAETIGUNG)
     mitglied.is_active = True
     if mitglied.beitritt is None:
         mitglied.beitritt = timezone.localdate()  # Beginn der Anwartschaft (§ 4 Abs 4), Ortszeit
@@ -292,8 +317,11 @@ def login_anfordern(request):
     if request.method == "POST":
         form = LoginFormular(request.POST, request=request)
         if drossel_zuviel(request, "anmeldelink", limit=10):
-            form.add_error(None, _("Zu viele Versuche von dieser Verbindung — bitte in einer Stunde erneut."))
-        elif form.is_valid():
+            form.add_error(None, drossel_meldung())
+        elif not form.is_valid():
+            if form.botschutz_bestanden:
+                drossel_erstatten(request, "anmeldelink")  # GP-019: Tippfehler zählen nicht
+        else:
             email = form.cleaned_data["email"].lower()
             Adresswechsel.faellige_anwenden()  # F-51: erst danach kann die neue Adresse Links bekommen
             mitglied = Mitglied.objects.filter(email__iexact=email).first()
@@ -330,9 +358,16 @@ def login_anfordern(request):
     return render(request, "mitglieder/login.html", {"form": form})
 
 
+@require_http_methods(["GET", "HEAD", "POST"])
+@never_cache
 def login_einloesen(request, token: str):
+    if request.method != "POST":
+        mitglied = EinmalToken.pruefen(token, EinmalToken.Zweck.LOGIN)
+        if mitglied is None or not mitglied.is_active:
+            return render(request, "mitglieder/token_ungueltig.html", status=400)
+        return link_seite(request, _("Anmelden"), _("Jetzt anmelden"))
     mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.LOGIN)
-    if mitglied is None:
+    if mitglied is None or not mitglied.is_active:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
     return redirect("verfahren:parlament" if mitglied.parteikonto else "gemeinde:konto")

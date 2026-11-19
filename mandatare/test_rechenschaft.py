@@ -312,3 +312,62 @@ def test_wahlvorschlag_nur_fuer_beendete_kandidaturen(client, ordnung):  # noqa:
     sache.save(update_fields=["phase"])
     assert client.get(reverse("mandatare:wahlvorschlag", args=[sache.pk])).status_code == 404
     assert client.get(reverse("mandatare:wahlvorschlag", args=[9999])).status_code == 404
+
+
+def test_auszug_auf_der_mandatsseite_kennzeichnet_den_nachtrag_der_verwaltung(client):
+    """GP-121 (MG-13): Der Auszug zeigt einen Nachtrag der Verwaltung wie das Register — mit Kennzeichen,
+    Quelle und freiwilliger Begründung, nicht wie eine eigene Rechenschaft."""
+    from mandatare.models import FreiwilligeBegruendung
+
+    mandat = mandat_anlegen(mitglied_anlegen("anna"), vertretung_beendet_am=timezone.localdate() - timedelta(days=20))
+    eintrag = eintragen(
+        mandat, sitzung_am=timezone.localdate() - timedelta(days=5), begruendung="",
+        nachgetragen_am=timezone.now(), quelle="https://gemeinde.example.org/protokoll",
+    )
+    FreiwilligeBegruendung.objects.create(rechenschaft=eintrag, text="Ich habe so gestimmt, weil die Kosten stiegen.")
+    html = client.get(reverse("mandatare:detail", args=[mandat.pk])).content.decode()
+    auszug = html.split('id="rechenschaft"')[1].split('id="vertrauen"')[0]
+    assert "nachgetragen von der Verwaltung am" in auszug
+    assert "gemeinde.example.org/protokoll" in auszug
+    assert "Ich habe so gestimmt, weil die Kosten stiegen." in auszug
+
+
+def test_listen_und_register_laden_das_lichtbild_nicht_mit(client):
+    """GP-120 (MG-11): Liste, Register, JSON und Live-Übersicht laden die Spalte `foto` nicht — das Bild
+    lädt nur die eigene Route."""
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_mandatare import PNG_MINI
+    from mandatare.test_sitzung_modelle import sitzungstag as heutiger_sitzungstag
+
+    for name in ("anna", "bert"):
+        mandat = mandat_anlegen(mitglied_anlegen(name), foto=PNG_MINI, foto_typ="image/png")
+        eintragen(mandat)
+    sitzung_beginnen(mandat, heutiger_sitzungstag(mandat))
+    for url in (
+        reverse("mandatare:liste"), reverse("mandatare:rechenschaft"), reverse("mandatare:rechenschaft_json"),
+        reverse("mandatare:live_uebersicht"),
+    ):
+        client.get(url)  # der erste Aufruf schreibt lazy fort
+        with CaptureQueriesContext(connection) as abfragen:
+            assert client.get(url).status_code == 200
+        mit_foto = [q["sql"] for q in abfragen.captured_queries if '"mandatare_mandat"."foto"' in q["sql"]]
+        assert mit_foto == [], (url, mit_foto)
+
+
+def test_freie_rechenschaft_nur_zwischen_antritt_und_pflichtende(client):
+    """GP-192 (MV-23): Ein freier Sitzungstag vor dem Antritt oder nach dem Ende der Pflichten wird abgewiesen."""
+    heute = timezone.localdate()
+    mitglied = mitglied_anlegen("anna")
+    mandat = mandat_anlegen(mitglied, angetreten=heute - timedelta(days=60), vertretung_beendet_am=heute - timedelta(days=5))
+    client.force_login(mitglied)
+    daten = {"aktion": "rechenschaft", "mandat": mandat.pk, "aufgabe": "", "gegenstand": "Budget",
+             "beschluss_plattform": "keiner", "stimme": "enthalten", "begruendung": "Unklare Zahlen."}
+    for tag in (heute - timedelta(days=61), heute - timedelta(days=4)):
+        antwort = client.post(reverse("mandatare:mein_aktion"), {**daten, "sitzung_am": tag.isoformat()})
+        assert antwort.status_code == 200 and "zwischen dem Antritt" in antwort.content.decode(), tag
+    assert not Rechenschaft.objects.exists()
+    client.post(reverse("mandatare:mein_aktion"), {**daten, "sitzung_am": (heute - timedelta(days=5)).isoformat()})
+    assert Rechenschaft.objects.count() == 1

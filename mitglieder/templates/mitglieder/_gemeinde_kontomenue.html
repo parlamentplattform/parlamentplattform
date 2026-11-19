@@ -1,5 +1,7 @@
 {% load i18n %}
 <a href="{% url 'gemeinde:konto' %}">{% translate "Mein Gemeindezugang" %}</a>
+{% if not im_panel %}{# das Handy-Panel führt beides selbst (GP-183) #}
 {% include "verfahren/_sprache.html" %}
 {% include "verfahren/_thema.html" %}
+{% endif %}
 <form method="post" action="{% url 'mitglieder:abmelden' %}" class="pop-form">{% csrf_token %}<button type="submit" class="z">{% translate "Abmelden" %}</button></form>

@@ -18,8 +18,9 @@ from plattform_core.rollen import GRUPPEN, VERSION, Stand, alle_rollen, zaehlung
 #: Abwesenheit einer Anmeldung, die beiden Mitgliedszustände sind Felder am Mitglied, die
 #: Verwaltung hängt an `ist_admin`, und der Mandatar hängt an einem offenen Mandat
 #: (`Mitglied.ist_mandatar`) — kein Gremium, weil ein Mandat nicht befristet berufen wird
-#: (§ 6 Abs 8) und keine Beschlussnummer trägt. Alles andere muss ein `Gremium` sein.
-OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar"}
+#: (§ 6 Abs 8) und keine Beschlussnummer trägt. Das Gemeindekonto ohne Parteibeitritt hängt an
+#: `Mitglied.parteikonto` (falsch). Alles andere muss ein `Gremium` sein.
+OHNE_GREMIUM = {"gast", "mitglied", "mitglied_ruht", "verwaltung", "mandatar", "gemeindekonto"}
 
 #: URL-Namen, die die Matrix schon nennt, obwohl sie erst mit der Zusammenführung eines
 #: Bauschritts entstehen. Im Regelfall leer — ein Eintrag hier ist eine Zusage, die der
@@ -29,7 +30,9 @@ ERWARTET_NACH_ZUSAMMENFUEHRUNG: set[str] = set()
 
 def test_die_matrix_traegt_ihre_fassung():
     assert VERSION >= 1
-    assert len(alle_rollen(GRUPPEN)) == 14, "FB-K6 nennt vierzehn Rollen"
+    rollen = alle_rollen(GRUPPEN)
+    assert len(rollen) == 15, "FB-K6 nennt vierzehn Rollen; dazu das Gemeindekonto ohne Parteibeitritt (FB-L9)"
+    assert len([r for r in rollen if r.schluessel != "gemeindekonto"]) == 14
 
 
 def test_jede_rolle_des_codes_steht_in_der_matrix():
@@ -52,7 +55,8 @@ def test_jede_matrix_zeile_hat_eine_entsprechung():
     bekannt = set(Gremium.values) | OHNE_GREMIUM
     behauptet = {r.schluessel for r in alle_rollen(GRUPPEN) if r.im_code}
     assert behauptet <= bekannt, f"Ohne Entsprechung im Code: {sorted(behauptet - bekannt)}"
-    # Die Grundlagen, auf die sich die fünf Nicht-Gremien-Rollen berufen, gibt es wirklich:
+    # Die Grundlagen, auf die sich die sechs Nicht-Gremien-Rollen berufen, gibt es wirklich:
+    assert hasattr(Mitglied, "parteikonto")
     assert hasattr(Mitglied, "ist_admin")
     assert hasattr(Mitglied, "ist_mandatar")
     assert Mitgliedsstatus.PAUSIERT in Mitgliedsstatus.values
@@ -352,7 +356,7 @@ def test_der_regelverzeichnis_grund_der_fassung_4_stimmt_mit_der_satzung(client)
     from plattform_core.regelwerk import verzeichnis
 
     (rollen_regel,) = [r for r in verzeichnis() if r.modul == "rollen.py"]
-    assert rollen_regel.fassung == 11
+    assert rollen_regel.fassung == VERSION
     assert "weder Bewertung" not in rollen_regel.grund
     assert "§ 4 Abs 2" in rollen_regel.grund and "bleibt unberührt" in rollen_regel.grund
     assert "weder entziehen noch seine Rückgabe erzwingen" in rollen_regel.grund
@@ -464,3 +468,198 @@ def test_fassung_6_die_neuen_bauschritt_zeilen_lesen_sich_nach_kommt_mit(client)
         assert satz in inhalt, satz
     assert "CONCEPT § 5" not in inhalt and "Teil C „danach“" not in inhalt
     assert "kommt mit offen — die Betroffenheitsregeln" not in inhalt
+
+
+# --- Gesamtprüfung 18.11.2026, erste Behebungsrunde ---------------------------------------------
+
+
+@pytest.mark.django_db
+def test_gp141_jede_adresse_der_matrix_antwortet_einem_gast_auf_get(client, vorweggenommene_adressen):
+    '''GP-141: Die Zeile „Einen Anstoß zur Plattform senden“ verwies auf eine Adresse, die nur POST
+    annimmt; der Klick endete auf einer leeren Seite (405). Jede Adresse der Matrix muss einem Gast
+    auf GET antworten: mit der Seite, einer Weiterleitung zur Anmeldung oder einer Abweisung,
+    nie mit 404, 405 oder einem Serverfehler.'''
+    kaputt = []
+    for name in sorted({f.urlname for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten if f.urlname}):
+        status = client.get(reverse(name)).status_code
+        if status in (404, 405) or status >= 500:
+            kaputt.append(f'{name} → {status}')
+    assert not kaputt, 'Adressen der Matrix ohne Seite: ' + ', '.join(kaputt)
+
+
+def test_gp141_der_anstoss_nennt_seinen_ort_statt_einer_adresse():
+    gast = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gast')
+    (anstoss,) = [f for f in gast.faehigkeiten if 'Anstoß' in f.titel]
+    assert anstoss.stand is Stand.VERFUEGBAR and not anstoss.urlname
+    assert 'auf jeder Seite' in anstoss.ort
+
+
+def _zeile(schluessel: str, wort: str):
+    rolle = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == schluessel)
+    (zeile,) = [f for f in rolle.faehigkeiten if wort in f.titel]
+    return zeile
+
+
+@pytest.mark.django_db
+def test_gp142_die_seite_beschreibt_vier_dinge_wie_sie_gebaut_sind(client, vorweggenommene_adressen):
+    '''GP-142 und GP-105: Die Matrix unterschätzte den Stand an vier Stellen. Der Einreichungsbeschluss
+    der Gruppe 1 trägt Nummer und Frist und steht auf der öffentlichen Beschlussliste; Gruppe 2 wird
+    beim Setzen des Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und
+    Einführung von Registerwerten laufen über Beschlüsse des Koordinationsrats.'''
+    inhalt = ' '.join(client.get(reverse('verfahren:rollen')).content.decode().split())
+    for satz in (
+        'ohne Beschlussnummer',
+        'wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt',
+        'vier bestehenden Räte',
+        'Besetzbar sind nur',
+        'Beides gibt es nicht',
+    ):
+        assert satz not in inhalt, satz
+    for umschrift in ('erschoepft', 'ausserhalb', 'Begruendung', 'frueher'):
+        assert umschrift not in inhalt, umschrift
+    assert VERSION >= 12
+
+
+def test_gp142_einreichung_nachlosung_und_raete_im_einzelnen():
+    from gremien.models import Gremium
+
+    einreichung = _zeile('expertenrat1', 'Über die Einreichung')
+    assert einreichung.stand is Stand.VERFUEGBAR and einreichung.urlname == 'gremien:beschluesse'
+    assert 'Nummer' in einreichung.titel and 'Frist' in einreichung.titel
+
+    gruppe2 = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'expertenrat2')
+    assert 'nachgelost, sobald Gruppe 1 den Vollzugs- oder Beschaffungsbezug setzt' in gruppe2.wie_hinein
+
+    berufen = _zeile('verwaltung', 'berufen, bestätigen und beenden')
+    assert 'sechs bestehenden Räte' in berufen.titel and len(Gremium.values) == 6
+    for name in ('Entwicklungsrat', 'Berichtswesenrat', 'Supportrat'):
+        assert name in berufen.einschraenkung, name
+
+
+def test_gp105_die_verwaltung_widerspricht_dem_koordinationsrat_nicht():
+    '''GP-105: Bei der Verwaltung stand, Tests und Freigabe durch den Koordinationsrat gebe es
+    nicht; beim Koordinationsrat stehen beide als verfügbar.'''
+    for wort in ('Befristete Tests neuer Registerwerte', 'Einführung eines getesteten Registerwertes'):
+        assert _zeile('koordinationsrat', wort).stand is Stand.VERFUEGBAR
+    register = _zeile('verwaltung', 'Werte im Parameterregister ändern')
+    assert register.stand is Stand.TEILWEISE
+    assert 'gibt es nicht' not in register.einschraenkung
+    assert 'durch Beschluss' in register.einschraenkung and 'ohne Beschluss' in register.einschraenkung
+
+
+def test_gp014_die_matrix_beschreibt_die_bearbeitung_gemeldeter_beitraege():
+    '''GP-014: Beim Mitglied stand „Gemeldet werden kann, abgeholfen wird nicht“. Mit der Liste offener
+    Meldungen und der auditierten Entscheidung der Verwaltung (ausblenden mit öffentlichem Grund oder
+    keine Maßnahme) beschreibt die Matrix den Weg: Das Mitglied meldet, die Verwaltung entscheidet.
+    Offen bleibt, wer entscheidet, wenn die Verwaltung selbst betroffen ist, und der Rechtsbehelf.'''
+    melden = _zeile('mitglied', 'Einen Beitrag melden')
+    assert melden.stand is Stand.VERFUEGBAR and not melden.einschraenkung
+    sichten = _zeile('verwaltung', 'Gemeldete Beiträge')
+    assert sichten.stand is Stand.TEILWEISE
+    assert 'ausblenden mit öffentlichem Grund' in sichten.titel and 'keine Maßnahme' in sichten.titel
+    assert 'Rechtsbehelf' in sichten.einschraenkung
+    alle = ' '.join(f.einschraenkung for r in alle_rollen(GRUPPEN) for f in r.faehigkeiten)
+    assert 'von keiner Ansicht gelesen' not in alle and 'abgeholfen wird nicht' not in alle
+
+
+def test_gp014_das_zugesagte_ausblenden_hat_einen_schreibweg():
+    '''Wächter zur Zeile der Verwaltung: Das Ausblenden eines Beitrags muss im Code geschrieben
+    werden (`ausgeblendet_am`), sonst verspricht die Matrix etwas Ungebautes.'''
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r'ausgeblendet_am\s*=(?!=)|update_fields=.*ausgeblendet_am')
+    fundstellen = []
+    for app in ('verfahren', 'mandatare', 'mitglieder', 'gremien'):
+        for datei in (wurzel / app).glob('*.py'):
+            if datei.name.startswith('test_'):
+                continue
+            for zeile in datei.read_text(encoding='utf-8').splitlines():
+                if muster.search(zeile) and 'models.' not in zeile:
+                    fundstellen.append(f'{app}/{datei.name}')
+    assert fundstellen, 'kein Schreibweg für ausgeblendet_am außerhalb der Tests'
+
+
+# --- Z-4 (FB-K6, FB-L9): das Gemeindekonto ohne Parteibeitritt -------------------------------------
+
+
+def test_z4_das_gemeindekonto_ohne_parteibeitritt_steht_in_der_matrix():
+    '''Die Matrix kannte das Gemeindekonto nicht. Sie führt es jetzt mit dem, was es nach dem Code
+    darf (lesen, Gemeindeseiten, Sprechstunden sehen, eigener Zugang und Export), und sagt, was es
+    nicht darf (kein Antrag, keine Unterstützung, keine Stimme, kein Chat).'''
+    from mitglieder.models import Mitglied
+
+    assert VERSION >= 13
+    assert hasattr(Mitglied, 'parteikonto')
+    konto = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gemeindekonto')
+    assert konto in GRUPPEN[0].rollen and konto.im_code and not konto.auf_der_startseite
+    adressen = {f.urlname for f in konto.faehigkeiten if f.stand is Stand.VERFUEGBAR and f.urlname}
+    assert adressen == {
+        'verfahren:parlament', 'gemeinde:start', 'mitglieder:login', 'gemeinde:konto', 'gemeinde:export',
+    }
+    assert any('Sprechstunden' in f.titel and f.stand is Stand.VERFUEGBAR for f in konto.faehigkeiten)
+    for wort in ('einbringen', 'unterstützen', 'abstimmen', 'kandidieren', 'Chat'):
+        assert wort in konto.hinweis, wort
+    # Keine Zeile verspricht dem Gemeindekonto ein Parteirecht; die Gemeindeabstimmung ist offen.
+    for f in konto.faehigkeiten:
+        if f.stand is not Stand.GEPLANT:
+            assert not any(w in f.titel for w in ('abstimm', 'unterstütz', 'einbring', 'Chat')), f.titel
+    (abstimmung,) = [f for f in konto.faehigkeiten if f.stand is Stand.GEPLANT]
+    assert 'Gemeindeabstimmung' in abstimmung.titel
+    assert 'Mitgliedsnummer' in konto.wie_hinein and 'kein Identitäts- oder Meldenachweis' in konto.wie_hinein
+
+
+@pytest.mark.django_db
+def test_z4_was_die_matrix_dem_gemeindekonto_zuschreibt_stimmt_mit_dem_code(client):
+    '''Die Zeilen gegen das Verhalten: Die eigenen Seiten antworten dem Gemeindekonto, die Seiten der
+    Partei zeigen ihm den Gastzugang, und jeder Schreibweg der Partei wird abgewiesen.'''
+    from django.utils import timezone
+
+    from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
+    from verfahren.models import Verfahrensordnung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, REGELN, mitglied_anlegen
+
+    ort = Gemeinde.objects.create(
+        kennziffer='40510', name='St. Marienkirchen an der Polsenz', bezirk='Eferding', bundesland='oberoesterreich'
+    )
+    konto = Mitglied.objects.create_user(
+        'einwohner@example.org', email='einwohner@example.org', parteikonto=False,
+        wohnsitz=ort, wohnsitz_art=Wohnsitzart.OESTERREICH, klarname_oeffentlich=False,
+    )
+    jetzt = timezone.now()
+    Gemeindezugang.objects.create(konto=konto, angemeldet_am=jetzt, alter_erklaert_am=jetzt, bestaetigt_am=jetzt)
+    ordnung = Verfahrensordnung.objects.create(policy_id='test-ordnung', version=1, regeln=REGELN, aktiv=True)
+    antrag = antrag_einbringen(mitglied_anlegen('autor'), **ANTRAG, ordnung=ordnung)
+
+    client.force_login(konto)
+    for name in ('gemeinde:konto', 'gemeinde:export', 'gemeinde:start', 'verfahren:parlament'):
+        assert client.get(reverse(name)).status_code == 200, name
+    assert client.get(reverse('gemeinde:ort', args=[ort.kennziffer])).status_code == 200
+    # Auf den Seiten der Partei ist es ein Gast: Die Seite für eigene Gespräche verlangt die Anmeldung.
+    assert client.get(reverse('verfahren:gespraeche')).status_code in (302, 403)
+    for name, argumente in (
+        ('verfahren:einbringen', []),
+        ('verfahren:unterstuetzen', [antrag.pk]),
+        ('verfahren:abstimmen', [antrag.pk]),
+        ('verfahren:bewerben', [antrag.pk]),
+        ('verfahren:kommentieren', [antrag.pk]),
+        ('verfahren:favorisieren', [antrag.pk]),
+    ):
+        assert client.post(reverse(name, args=argumente), {}).status_code == 403, name
+    assert antrag.unterstuetzungen.count() == 0 and antrag.stimmabgaben.count() == 0
+
+
+@pytest.mark.django_db
+def test_z4_die_seite_zaehlt_vierzehn_rollen_und_das_gemeindekonto_getrennt(client, vorweggenommene_adressen):
+    '''Z-4: /rollen/ zählte „15 Rollen“ einschließlich des Gemeindekontos, obwohl die Seite selbst sagt,
+    es sei keine Rolle der Satzung. Gezählt werden jetzt die vierzehn Rollen der Satzung; das
+    Gemeindekonto steht getrennt daneben, wie im Regelverzeichnis.'''
+    zahlen = zaehlung(GRUPPEN)
+    assert zahlen['rollen'] == 14 and zahlen['weitere_konten'] == 1
+    konto = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == 'gemeindekonto')
+    assert not konto.satzungsrolle
+    assert all(r.satzungsrolle for r in alle_rollen(GRUPPEN) if r.schluessel != 'gemeindekonto')
+    inhalt = client.get(reverse('verfahren:rollen')).content.decode()
+    assert '14 Rollen,' in inhalt and '15 Rollen' not in inhalt
+    assert 'Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist' in inhalt

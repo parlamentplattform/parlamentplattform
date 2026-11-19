@@ -21,7 +21,10 @@ from plattform_core.policy import Policy
 #: Schwellenwerte: Wie ausgezählt wird, steht hier; mit welchen Zahlen, in der am Antrag
 #: eingefrorenen Verfahrensordnung. Steigt diese Zahl, hat sich die Rechnung geändert —
 #: und dann muss im Regelverzeichnis stehen, warum.
-VERSION = 2
+#: Fassung 3 (18.11.2026) rechnet wie Fassung 2. Neu ist die Mindestbeteiligung als Kopfzahl
+#: (`mindeststimmen`): Die Begründungssätze nennen „erforderlich N Stimmen (P %)“ statt eines
+#: Prozentwerts allein. Kein Ergebnis ändert sich.
+VERSION = 3
 
 
 class Stimme(enum.StrEnum):
@@ -39,6 +42,31 @@ def mindestbeteiligung_erreicht(abgegeben: int, stimmberechtigte: int, mindestbe
         return False
     schwelle = Fraction(mindestbeteiligung).limit_denominator(10_000)
     return Fraction(abgegeben, stimmberechtigte) >= schwelle
+
+
+def mindeststimmen(stimmberechtigte: int, mindestbeteiligung: float) -> int:
+    """Die Mindestbeteiligung als Kopfzahl: die kleinste Zahl abgegebener Stimmen, mit der
+    `mindestbeteiligung_erreicht` wahr ist — der Anteil der Stimmberechtigten, aufgerundet.
+
+    Von Hand: Stimmberechtigte mal Anteil, auf die nächste ganze Zahl aufrunden. 5 % von 100
+    sind 5; 5 % von 20 sind 1; 5 % von 21 sind 1,05, also 2. Gerechnet wird mit demselben Bruch
+    wie in der Auszählung, damit Anzeige und Ergebnis nie auseinanderfallen. Bei einem Kreis ohne
+    Stimmberechtigte gibt es keine Kopfzahl: 0."""
+    if stimmberechtigte < 1:
+        return 0
+    schwelle = Fraction(mindestbeteiligung).limit_denominator(10_000)
+    return max(0, -(-schwelle.numerator * stimmberechtigte // schwelle.denominator))
+
+
+def _mindestbeteiligung_text(stimmberechtigte: int, mindestbeteiligung: float) -> str:
+    """„5 Stimmen (5 %)“ — Kopfzahl und Anteil für die Begründungssätze, Komma als Dezimalzeichen."""
+    kopfzahl = mindeststimmen(stimmberechtigte, mindestbeteiligung)
+    prozent = Fraction(mindestbeteiligung).limit_denominator(10_000) * 100
+    if prozent.denominator == 1:
+        anteil = str(prozent.numerator)
+    else:
+        anteil = f"{float(prozent):.2f}".rstrip("0").rstrip(".").replace(".", ",")
+    return f"{kopfzahl} {'Stimme' if kopfzahl == 1 else 'Stimmen'} ({anteil} %)"
 
 
 def tendenz_sichtbar(policy: Policy, abgegeben: int, stimmberechtigte: int) -> bool:
@@ -118,7 +146,6 @@ def auszaehlen(
         raise AuszaehlungsFehler("Keine Stimmen bei leerem örtlichem Teilnehmerkreis zulässig.")
 
     # Beteiligungsprüfung ohne Gleitkomma: abgegeben/berechtigte >= schwelle
-    schwelle = Fraction(policy.mindestbeteiligung).limit_denominator(10_000)
     beteiligung_erreicht = mindestbeteiligung_erreicht(abgegeben, stimmberechtigte, policy.mindestbeteiligung)
 
     if policy.mehrheitsbasis == "ja_nein":
@@ -135,7 +162,8 @@ def auszaehlen(
     elif not beteiligung_erreicht:
         begruendung = (
             f"Abgelehnt: Mindestbeteiligung verfehlt — {abgegeben}/{stimmberechtigte} "
-            f"Stimmberechtigten, erforderlich {float(schwelle):.1%} (§ 5 Abs 4)."
+            f"Stimmberechtigten, erforderlich "
+            f"{_mindestbeteiligung_text(stimmberechtigte, policy.mindestbeteiligung)} (§ 5 Abs 4)."
         )
     elif angenommen:
         begruendung = (
@@ -248,12 +276,14 @@ def personenwahl_auszaehlen(
         begruendung = (
             f"Gewählt ist Bewerbung {gewonnen} mit {zaehler[gewonnen]} Zustimmungen; "
             f"Beteiligung {beteiligung}/{stimmberechtigte} erreicht die Mindestbeteiligung "
-            f"von {policy.mindestbeteiligung:.0%} (§ 5 Abs 4, § 7 Abs 1)."
+            f"von {_mindestbeteiligung_text(stimmberechtigte, policy.mindestbeteiligung)} "
+            f"(§ 5 Abs 4, § 7 Abs 1)."
         )
     elif not erreicht:
         begruendung = (
-            f"Mindestbeteiligung verfehlt: {beteiligung}/{stimmberechtigte} bei geforderten "
-            f"{policy.mindestbeteiligung:.0%} (§ 5 Abs 4) — keine Bewerbung gilt als gewählt."
+            f"Mindestbeteiligung verfehlt: {beteiligung}/{stimmberechtigte}, erforderlich "
+            f"{_mindestbeteiligung_text(stimmberechtigte, policy.mindestbeteiligung)} (§ 5 Abs 4) "
+            f"— keine Bewerbung gilt als gewählt."
         )
     else:
         begruendung = "Keine Bewerbung erhielt eine Zustimmung — niemand gilt als gewählt."

@@ -29,7 +29,8 @@ def test_datentexte_englisch_lesbar(
     expect(p.locator("#rolle-mitglied")).to_contain_text("after the qualifying period")
     expect(p.locator("#rolle-schiedsgericht")).to_contain_text("not currently maintain this list")
     expect(p.get_by_text("The German original texts remain authoritative", exact=False)).to_be_visible()
-    assert p.locator(".rk").count() == 14
+    # Vierzehn Rollen der Satzung, dazu seit 0.113.0 das Gemeindekonto ohne Parteibeitritt (Z-4).
+    assert p.locator(".rk").count() == 15
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     # Bei einer langen Elementaufnahme würden feste Navigation und Feedbackknopf
     # mitten im Bild landen. Nur für diese isolierte Kartenaufnahme ausblenden.

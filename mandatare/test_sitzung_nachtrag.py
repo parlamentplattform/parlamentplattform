@@ -63,7 +63,7 @@ def test_verwaltung_traegt_nach(client, admin, ausgeschieden):
     eintrag = Rechenschaft.objects.get()
     assert eintrag.nachgetragen and eintrag.begruendung == "" and eintrag.quelle.startswith("https://")
     ereignis = AuditEintrag.objects.get(ereignis__typ="rechenschaft_nachgetragen").ereignis
-    assert ereignis["rechenschaft"] == eintrag.pk and ereignis["durch"] == "verwaltung" and "quelle" not in ereignis
+    assert ereignis["rechenschaft"] == eintrag.pk and ereignis["durch"] == admin.pk and "quelle" not in ereignis
     register = client.get(reverse("mandatare:rechenschaft_mandat", args=[ausgeschieden.pk])).content.decode()
     assert "nachgetragen von der Verwaltung am" in register and "Begründung nicht mehr geschuldet" in register
 

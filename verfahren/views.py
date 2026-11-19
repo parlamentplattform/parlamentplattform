@@ -4,6 +4,7 @@ Phase — niemals nach Beliebtheit. Ergebnisseiten sind ohne Login lesbar (F-20)
 import json
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
@@ -17,6 +18,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_safe
 
+from mitglieder.models import Wohnsitzart
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase, __version__
 from plattform_core.phases import (
@@ -51,6 +53,7 @@ def antwortformat(request):
     return antwort
 
 
+@require_safe
 def rechtsfolgenformat(request):
     from plattform_core.rechtsfolgen import VERSION, schema_als_dict
 
@@ -409,6 +412,8 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
     )
     vfs.update(_vertrauensfragen(abgeschlossen))
+    # Auch die abgeschlossenen Zeilen bekommen ihren Beginn aus der Sammelabfrage (GP-181)
+    beginne = {**beginne, **_wirksame_beginne(abgeschlossen, jetzt)}
     # § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag sammelt keine Unterstützung — er wartet auf den siebten
     # Tag. Er steht deshalb nicht unter „Sammeln Unterstützung“, sondern in einer eigenen Gruppe an der
     # Stelle, die seiner Nähe zur Abstimmung entspricht; die Reihung innerhalb der Gruppe bleibt dieselbe.
@@ -518,6 +523,15 @@ def _frist_fuer(antrag, policy=None, beginn=None, vf=None):
     return abstimmung_frist_ende(beginn, policy)
 
 
+def resttage(frist, jetzt) -> int | None:
+    """Ganze Wiener Kalendertage bis zum Fristende — 0 heißt „endet heute“ (GP-175). Eine verstrichene
+    oder fehlende Frist hat keine Resttage. Die eine Rechnung für Kachel und Zeile: `(frist - jetzt).days`
+    rundete ab und meldete „endet heute“ schon am Vortag und noch nach dem Ende."""
+    if frist is None or frist <= jetzt:
+        return None
+    return (timezone.localdate(frist) - timezone.localdate(jetzt)).days
+
+
 def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
             lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
@@ -548,7 +562,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     if vf is not None:
         vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
     frist = _frist_fuer(antrag, policy, beginn, vf)
-    resttage = max(0, (frist - jetzt).days) if frist else None
+    rest = resttage(frist, jetzt)
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
     if frist and beginn:
@@ -599,7 +613,10 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "sperre": kachel_sperre(sperre),
         "antrag": antrag,
         "frist": frist,
-        "resttage": resttage,
+        "resttage": rest,
+        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt
+        # „wird ausgewertet“ und bietet keinen Knopf mehr, der nichts bewirken kann.
+        "frist_abgelaufen": frist is not None and frist <= jetzt,
         "verstrichen": verstrichen,
         "stat": stat,
         "thema": thema,
@@ -805,6 +822,12 @@ def parlament(request):
     # Profil) alle regionalen Anträge der jeweiligen Ebene.
     regionale = [a for a in laufende if a.ebene != "bund"]
     mein_ort, meine_gemeinden, wiener_bezirk = _meine_orte(request.user)
+    from verfahren.teilnahme import wien_ohne_bezirk, wohnsitz_ohne_verzeichnis
+
+    # Gemeinde nur als Freitext: Die Zeile trägt den Namen nicht als eigene Gemeinde und führt
+    # statt des Leertexts zum Gemeindeverzeichnis im Profil (GP-055)
+    wohnsitz_waehlen = wohnsitz_ohne_verzeichnis(request.user)
+    bezirk_waehlen = wien_ohne_bezirk(request.user)  # Wien ohne Gemeindebezirk (GP-058)
 
     meine_stimmen = _meine_stimmen(request.user, laufende)  # Kacheln und Feed-Zeilen
     lage = handlungslage(request.user)  # was das Mitglied handeln darf — einmal je Seite (Befund B2)
@@ -827,20 +850,28 @@ def parlament(request):
                 or _gebiet_passt(a, orte, meine_gemeinden, wiener_bezirk)
             )
         ]
+        ohne_verzeichnis = wohnsitz_waehlen and ebene == "gemeinde"
         region_zeilen.append(
             {
                 "ebene": ebene,
-                "ort": " · ".join(orte),  # Zeilenkopf „Gemeinde · Ort1 · Ort2“
+                "ort": "" if ohne_verzeichnis else " · ".join(orte),  # Zeilenkopf „Gemeinde · Ort1 · Ort2“
                 "orte": orte,
                 # Bei genau einem Ort trägt ihn der Zeilenkopf, die Kachel schweigt; bei zweien
                 # (Nebenwohnsitz) sagt die Kachel, zu welchem sie gehört.
-                "ort_versteckt": len(orte) == 1,
+                "ort_versteckt": len(orte) == 1 and not ohne_verzeichnis,
+                "wohnsitz_waehlen": ohne_verzeichnis,
+                "bezirk_waehlen": bezirk_waehlen and ebene == "bezirk",
                 "live": live[ebene],
                 "kacheln": [
-                    _kachel(
-                        a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
-                        vfs=vfs, nutzer=request.user, lage=lage,
-                    )
+                    {
+                        **_kachel(
+                            a, jetzt, meine_stimmen, abo_ids, beginn=beginne.get(a.pk), zaehler=zaehler,
+                            vfs=vfs, nutzer=request.user, lage=lage,
+                        ),
+                        # Steht die Kachel nur über den festgehaltenen Kreis in der Zeile (etwa nach
+                        # einem Umzug), nennt sie ihr Gebiet, auch wenn der Kopf einen Ort trägt (GP-054)
+                        "ort_fremd": bool(orte) and not _gebiet_passt(a, orte, meine_gemeinden, wiener_bezirk),
+                    }
                     for a in zeile
                 ],
             }
@@ -889,6 +920,9 @@ def parlament(request):
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
             "region_gefiltert": any(mein_ort.values()),
+            # Ohne festen Wohnsitz oder im Ausland gibt es nichts zu hinterlegen (GP-169)
+            "ohne_region": request.user.is_authenticated
+            and request.user.wohnsitz_art in (Wohnsitzart.OHNE_FESTEN_WOHNSITZ, Wohnsitzart.AUSLAND),
             # Ziel der Leerzeile „Wohnsitz hinterlegen ›“ — erst wenn es die Profilseite gibt;
             # bis dahin None, und die Vorlage zeigt nichts, was es nicht gibt.
             "profil_url": _url_oder_none("mitglieder:profil"),
@@ -1124,17 +1158,64 @@ def gespraeche(request):
     request._gespraeche_ungelesen = ungelesen
     nur_ungelesen = request.GET.get("filter") == "ungelesen"
     zeilen = [z for z in alle if z["ungelesen"]] if nur_ungelesen else alle
-    zeilen = zeilen[: zahl("gespraeche-liste-hoechstzahl", 30)]
+    # Seitenweise (GP-053): Die Seite nennt Gesamtzahl und Ordnung, jedes Gespräch bleibt über
+    # „Ältere ›“ erreichbar. Die Seitengröße steht im Register; ein Wert unter 1 zeigt alle.
+    gesamt = len(zeilen)
+    groesse = zahl("gespraeche-liste-hoechstzahl", 30)
+    groesse = groesse if groesse >= 1 else max(gesamt, 1)
+    seiten = max(1, -(-gesamt // groesse))
+    roh = request.GET.get("seite", "")
+    seite = min(max(int(roh), 1), seiten) if roh.isdigit() else 1
+    anfang = (seite - 1) * groesse
+
+    def _adresse(nummer):
+        daten = {"filter": "ungelesen"} if nur_ungelesen else {}
+        daten["seite"] = nummer
+        return f"{reverse('verfahren:gespraeche')}?{urlencode(daten)}"
+
     vorlage = "verfahren/_gespraeche_liste.html" if request.headers.get("HX-Request") else "verfahren/gespraeche.html"
     return render(
         request,
         vorlage,
         {
-            "gespraeche": zeilen,
+            "gespraeche": zeilen[anfang : anfang + groesse],
             "ungelesen": ungelesen,
             "nur_ungelesen": nur_ungelesen,
+            "blaettern": {
+                "gesamt": gesamt, "von": anfang + 1, "bis": min(anfang + groesse, gesamt),
+                "neuere": _adresse(seite - 1) if seite > 1 else "",
+                "aeltere": _adresse(seite + 1) if seite < seiten else "",
+            } if seiten > 1 else None,
         },
     )
+
+
+def meldungen(request):
+    """Offene Meldungen aus beiden Chats — Antrag und Sitzung (FB-G1, GP-014). Nur die Verwaltung:
+    Sie entscheidet je gemeldetem Beitrag, ob er mit öffentlichem Grund ausgeblendet wird."""
+    from verfahren.models import Kommentar, Meldung
+
+    if not request.user.is_authenticated:
+        return redirect("mitglieder:login")
+    if not request.user.hat_adminrechte:
+        return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    offene = Meldung.objects.filter(erledigt_am__isnull=True).order_by("erstellt_am")
+    beitraege = (
+        # Über die Kennungen der offenen Meldungen: Ein Filter über die Rückbeziehung
+        # (`meldungen__erledigt_am__isnull=True`) träfe auch jeden Beitrag ganz ohne Meldung.
+        Kommentar.objects.filter(pk__in=offene.values("kommentar_id"))
+        .select_related("mitglied", "antrag", "sitzung")
+        .prefetch_related(Prefetch("meldungen", queryset=offene, to_attr="offene_meldungen"))
+        .order_by("erstellt_am")
+    )
+    zeilen = []
+    for k in beitraege:
+        if k.sitzung_id:
+            ziel = f"{reverse('mandatare:live', kwargs={'pk': k.sitzung.mandat_id})}?sitzung={k.sitzung_id}#k-{k.pk}"
+        else:
+            ziel = f"{reverse('verfahren:antrag', kwargs={'pk': k.antrag_id})}#k-{k.pk}"
+        zeilen.append({"k": k, "ziel": ziel, "meldungen": k.offene_meldungen})
+    return render(request, "verfahren/meldungen.html", {"zeilen": zeilen})
 
 
 def _antwort_vorgabe(antrag, roh):
@@ -1189,6 +1270,9 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
         "archiviert": archiviert,
         "archiv_phase": letzte_phase,
         "darf_reagieren": chatkern.darf_reagieren(antrag, nutzer),
+        # Grenzen aus dem Register, damit Feld und Hinweis nennen, was der Server prüft (GP-083)
+        "zeichen_hoechst": chatkern.chat_zeichen_hoechstzahl(),
+        "kritik_mindest": chatkern.kritik_mindestzeichen(),
     }
     if entwurf is not None:
         lage.update(_abstimmungslage(antrag, entwurf, nutzer))
@@ -1243,6 +1327,9 @@ def archiv_export(request, pk, art):
     Öffentlich wie die Antragsseite selbst — mit Anzeigenamen, ohne Kontaktdaten."""
     from verfahren import archiv as archivkern
 
+    if art not in ("json", "md"):
+        # Jede andere Endung lieferte Nutzertext unter einem fremden Dateinamen (GP-174)
+        raise Http404
     antrag = get_object_or_404(Antrag, pk=pk)
     if art == "json":
         inhalt, typ = archivkern.als_json(antrag), "application/json; charset=utf-8"
@@ -1357,7 +1444,13 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
     Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
     antrag = get_object_or_404(Antrag.objects.prefetch_related(_mit_pfad()), pk=pk)
-    from verfahren.teilnahme import oertlich_begrenzt, oertlich_zulaessig, stimmrecht_im_neuen_kreis
+    from verfahren.teilnahme import (
+        oertlich_begrenzt,
+        oertlich_zulaessig,
+        ohne_oertliche_zuordnung,
+        stimmrecht_im_neuen_kreis,
+        wien_ohne_bezirk,
+    )
 
     oertlich = oertlich_begrenzt(antrag)
     eigener_kreis = not oertlich or oertlich_zulaessig(antrag, request.user)
@@ -1470,6 +1563,9 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "antrag": antrag,
             "oertlicher_teilnehmerkreis": oertlich,
             "eigener_teilnehmerkreis": eigener_kreis,
+            "ohne_oertliche_zuordnung": not eigener_kreis and ohne_oertliche_zuordnung(request.user),
+            "wien_ohne_bezirk": not eigener_kreis and bool((antrag.teilnahmegebiet or {}).get("wiener_bezirk"))
+            and wien_ohne_bezirk(request.user),
             "eigene_oertliche_stimmabgabe": not oertlich or (
                 antrag.phase == Phase.ABSTIMMUNG.value and stimmrecht_im_neuen_kreis(antrag, request.user)
             ),

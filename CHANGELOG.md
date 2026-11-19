@@ -2,6 +2,90 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.113.0] — 2026-11-18 · Erste Behebungsrunde der Gesamtprüfung
+
+Die Gesamtprüfung gegen ein eigenes Sollbild (FB-Q1) hat die Plattform entlang konkreter Abläufe aus Sicht von Gästen, Mitgliedern, Gemeindeeinwohnern ohne Parteibeitritt, Mandataren und prüfenden Rollen untersucht. Diese Fassung behebt die belegten Fehler, die ohne neue Regelentscheidung behebbar waren. Sie führt keine neue Regel, Zahl, Rolle oder Zuständigkeit ein; was eine Entscheidung des Gründers braucht, ist nicht gebaut.
+
+### Verfahren und Fristen
+
+- Die Abstimmung beginnt nicht mehr rückwirkend, wenn die Entwurfsschleife die Beratung erst nach dem regulären Ende freigibt. Der Entwurf hält den Zeitpunkt der Freigabe fest; der Übergang wirkt ab dem späteren der beiden Zeitpunkte, und das Abstimmungsfenster bleibt in voller Länge erhalten. Bestehende Verfahren rechnen unverändert.
+- Die Endabstimmung aus der Schleife öffnet frühestens mit dem Beratungsende. Fällige Beschlüsse der Räte wirken beim Fortschreiben in der Reihenfolge ihrer Fristen. Überarbeitungsfrist und Freigabe rechnen ab dem Zeitpunkt des Beschlusses, nicht ab dem Zeitpunkt, zu dem ein Programm zufällig lief.
+- Das Audit-Log unterscheidet bei der Schleife Annahme, Schweigen der Unterstützer (§ 5 Abs 13) und Höchstzahl der Runden (§ 5 Abs 12).
+- Abgeschlossene, verfallene und zurückgezogene Anträge können nicht mehr zurückgewiesen werden. Die Aufhebung einer Zurückweisung stellt den festgehaltenen Stand des Entwurfs wieder her; die Zeit der Zurückweisung zählt für die Fristen der Schleife, die Prüffrist und die Frist eines Austauschantrags nicht mit.
+- Eine unveränderte Stimme, die erneut abgesendet wird, erzeugt kein Ereignis und keinen neuen Zeitstempel.
+- Die Begründung einer Auszählung nennt die erforderliche Stimmenzahl neben dem Prozentwert. Die Rechnung ist unverändert (Auszählregel Fassung 3).
+- Der Export einer Kandidatur und das unabhängige Prüfskript `verify/nachrechnen.py` zählen zurückgenommene Zustimmungen nicht mehr mit. Der Export führt je Zustimmung nur noch `zurueckgenommen: true/false`.
+- Örtliche Verfahren: Kacheln, Antragsseite und Sperrseite nennen das Gebiet, den Grund einer Sperre samt Datum und den nächsten Schritt. Wer in Wien noch keinen Gemeindebezirk gewählt hat, wird dorthin verwiesen. Ohne festen Wohnsitz oder mit Wohnsitz im Ausland steht der Hinweis auf die offene Bundesebene.
+
+### Räte und Entwurfsschleife
+
+- Interessenbindungen werden angefügt statt überschrieben und stehen vor dem Stimmformular.
+- Der Vollzugsbezug ruht, solange ein Einreichungsbeschluss offen ist; jede Änderung steht im Audit-Log.
+- Jede Auslosung hängt vor der Ziehung einen Eintrag an die Audit-Kette und verankert sich an dessen Hash.
+- Der Austauschbeschluss des Koordinationsrats endet spätestens mit der Verfristung. Bleibt er zur Frist ohne Ergebnis, verfristet der Antrag wie bisher; Untätigkeit verlängert die Beratung nicht.
+- Nach verstrichener Überarbeitungsfrist legt die Werkstatt keinen Einreichungsbeschluss mehr an. In der Wartezeit bis zum Beratungsende sagt die Antragsseite, wann die Endabstimmung beginnt. Ein ruhender Entwurf heißt in der Werkstatt nicht mehr „zur Endabstimmung übergeben“.
+- Die Verwaltung pflegt die Fachliste auf einer eigenen Seite: Eintragen nur mit festgehaltener Einwilligung, Streichen mit Grund, beides im Audit-Log.
+- Die Begründung einer Rückgabe steht ohne Namen im Audit-Log. Der Grund einer vorzeitig beendeten Rolle ist nicht mehr öffentlich.
+- Parametertests: Das Testende muss nach der Beschlussfrist liegen, der Teststatus endet am Testende in jedem Fall, Versionsschilder und nicht ganzzahlige Testwerte werden abgewiesen. Zeichengrenzen und Bearbeitungsfenster des Chats, die laufende Verfahren bei jedem Zugriff lesen, sind vom Test ausgenommen (D-J3g); ein Wächtertest verlangt für jede neue Stellgröße diese Prüfung.
+- Schreibende Handlungen der Räte und der Verwaltung stehen mit ihrem Audit-Eintrag in einer Transaktion.
+
+### Konten, Mitgliedschaft und Gemeindezugang
+
+- Ein ausgeschlossenes Konto lässt sich über einen alten Bestätigungs- oder Anmeldelink nicht mehr anmelden. Der Ausschluss entwertet alle offenen Links und nimmt die Verwaltungsrechte.
+- Bestätigungs- und Anmeldelinks werden nicht mehr durch den bloßen Abruf verbraucht (etwa durch die Linkvorschau eines Mailprogramms). Der Abruf zeigt eine Zwischenseite; erst der Knopf löst den Link ein.
+- Wer Verwaltungsrechte hat, kann Status, Rechte, Identitätsstufe und Beitrag des eigenen Kontos nicht selbst ändern. Der Kontoauszug überspringt die eigene Beitragsreferenz mit Meldung.
+- Der persönliche Datenexport nimmt nur Abrufe an und ist je Konto gedrosselt. Der Export eines Gemeindekontos enthält Bezirk, Name, Zeitpunkte, Status, Postaufträge und Verfahrenskreise.
+- Formulare nennen Fehler und Hilfetexte so, dass Vorleseprogramme sie dem Feld zuordnen. Längenbegrenzungen stehen am Feld statt als Serverfehler.
+- Ein Anzeigename wird beim Bestätigen eines Gemeindekontos und bei jeder Namenswahl unter Sperre erneut auf Eindeutigkeit geprüft.
+- Die Bestätigung eines Beitragseingangs geht erst hinaus, wenn die Buchung samt Audit-Eintrag feststeht. Adresswechsel werden unter Sperre bestätigt und wirksam, mit genau einem Audit-Eintrag.
+- Die Sperrseiten und die Verwaltung zitieren § 4 in der Zählung des Satzungsentwurfs 2.5.
+
+### Mandatare
+
+- Die Aufhebung an einer Vertrauensfrage nimmt nur die Wirkungen dieser Vertrauensfrage zurück; eine weitere verlorene bleibt wirksam.
+- Anfechtungs- und Entscheidungsdatum werden auf den möglichen Zeitraum begrenzt. Fristen laufen ab der Veröffentlichung jedes Ergebnisses.
+- Verwaltungseinträge im Audit-Log tragen das handelnde Konto; öffentlich bleibt es geschwärzt.
+- Der Auszug zeigt Nachträge wie das Register. Wer nicht mitwirken darf, liest den Grund und den nächsten Schritt statt eines Formulars.
+- Der Menüpunkt „Mein Mandat“ bleibt während der Nachfrist erreichbar.
+
+### Chat und Meldungen
+
+- Gemeldete Beiträge erreichen die Verwaltung: Eine Liste zeigt die offenen Meldungen aus Antrags-Chat und Sitzungs-Chat. Die Verwaltung blendet mit öffentlichem Grund aus oder entscheidet, dass keine Maßnahme nötig ist; beides steht ohne Text und ohne Person im Audit-Log. Wer gemeldet hat, sieht den Stand am Beitrag. Die Verwaltung erreicht die Liste von ihrer Startseite; eine folgenlose Meldung nennt den Beitrag im öffentlichen Audit-Log nicht.
+- Die Mindestlänge gilt auch beim Ändern einer Kritik. Ändern und Zurückziehen im Abstimmungs-Chat stehen im Audit-Log.
+- Zu lange Beiträge werden im Antrags-Chat und im Sitzungs-Chat mit Meldung abgewiesen statt still gekürzt; der Entwurf bleibt im Formular erhalten. Die Meldung zum Bearbeitungsfenster nennt die geltende Minutenzahl.
+- Das Zurückziehen eines Beitrags fragt nach.
+
+### Zukunftswerkstatt und Faktenbasis
+
+- Titel und Wortlaut von Kandidaturen und Vertrauensfragen gehen nicht mehr an den KI-Anbieter, nicht ins Lauf-Archiv und nicht in Textvektoren. Der Wortvergleich ohne Modell bleibt.
+- Die Warteschlange nennt den Grund des Wartens (Budget oder Kontingent) mit dem frühesten Datum.
+- Die Ähnlichkeitskarte nennt die Reihung und verweist auf das Regelverzeichnis.
+
+### Parameterregister, Regelverzeichnis und Rollenmatrix
+
+- Die Verwaltung kann einen Registerwert nur als ganze Zahl im dokumentierten Bereich setzen. Nur jüngere Fassungen der Verfahrensordnung treten in Kraft; ein Beschlussdatum wird nie überschrieben.
+- `/parameter.json` zeigt laufende Tests mit Status, Testende, Hypothese und Wert vor dem Test (Schema 1.30). Die Drosseln für Datenexport und Kontoabruf stehen als Stellgrößen im Register. Die Kennungstabelle in `docs/SCHEMA.md` ist aus dem Code erzeugt und wird per Test gegen ihn gehalten.
+- Das Regelverzeichnis führt die „Meistgelesenen Anträge“ als Regel (D-C7), die Übersicht liest Reihung und Höchstzahl aus dem Kern. Das Verzeichnis benennt, dass zurückgenommene Zustimmungen nicht zählen.
+- Die Rollenmatrix ist auf den Bauzustand gebracht und führt das Gemeindekonto ohne Parteibeitritt getrennt von den vierzehn Rollen der Satzung.
+- Anstöße speichern die Seite ohne Abfrageteil und ohne Kennungen. Die CSV-Ausfuhr entschärft Zellen mit führendem Formelzeichen.
+
+### Betrieb, Nachweise und Datenschutz
+
+- Stimm-Ereignisse laufender Abstimmungen zeigen im öffentlichen Audit-Log nur den Tag. Öffentlich gilt die versiegelte Zeit eines Eintrags; die Kettenprüfung meldet eine abweichende Zeitspalte.
+- Seiten angemeldeter Konten werden nicht zwischengespeichert, wenn die Ansicht nichts anderes festlegt.
+- Die Instanz startet im Produktivbetrieb nicht mit einem fehlenden oder einem Platzhalter-Schlüssel. Die Gesundheitsprüfung wird nicht mehr umgeleitet.
+- Ein bestätigter Adresswechsel wird im Takt des Wächters wirksam, auch wenn niemand eine Seite aufruft. Drosselzähler werden nach rund zwei Stunden gelöscht, wie die Erklärung zusagt.
+- Die Eigenschaftstests des Kerns laufen ohne Zeitgrenze je Beispiel.
+
+### Oberfläche und Barrierefreiheit
+
+- Das Parlament hat in allen Rollen eine Hauptüberschrift für Vorleseprogramme. Meldungen tragen ihre Rolle und stehen im Seitentitel.
+- Ohne JavaScript lässt sich das Regler-Overlay schließen, und der Handlungsknopf im Handy-Menü ist wieder sichtbar.
+- Listen blättern mit „x–y von n“; die Rollenübersicht läuft bei 320 Pixel Breite nicht mehr über.
+- Nach Fristende zeigt eine Kachel „Frist abgelaufen, wird ausgewertet“ statt eines Knopfs, der nichts mehr bewirkt. „Mitreden“ führt in die Chat-Zone der Antragsseite.
+- Tippziele sind mindestens 24 mal 24 Pixel groß; die Tab-Folge hält an keinem Element ohne sichtbare Fläche. Der Titel einer Kachel bleibt auch dann lesbar, wenn das Feld niedriger ist als ihr Inhalt; eine Auswahlliste wird nie breiter als ihre Karte.
+- Rollenname, Beschreibung und Fähigkeiten auf der Startseite sind übersetzbar; sieben Regeltexte, die aus Teilen zusammengesetzt waren, sind es ebenfalls.
+
 ## [0.112.0] — 2026-11-15 · Gemeindearbeit im persönlichen Datenexport
 
 - Der persönliche Download umfasst die gespeicherte Gemeindezuordnung eigener Mandate, Sprechstunden und Absagen, Ratsinitiativen und ihre Meldungen, Sitzungs- und Haushaltsquellen sowie Gemeindeprojekte mit ihren früheren Ständen und Rücknahmen. Jeder Eintrag behält seine erfasste Gemeindekennziffer. Die Download-Antwort ist vor Zwischenspeicherung geschützt.

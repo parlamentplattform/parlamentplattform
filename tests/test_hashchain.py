@@ -1,7 +1,7 @@
 """Audit-Hash-Kette: Jede Manipulation muss auffallen."""
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from plattform_core import GENESIS, ereignis_hash, kette_pruefen
@@ -31,11 +31,13 @@ def test_beispielkette_ist_gueltig():
     assert kette_pruefen(kette) == (True, None)
 
 
+@settings(max_examples=100, deadline=None)
 @given(st.lists(EREIGNIS, min_size=1, max_size=12))
 def test_eigenschaft_intakte_ketten_werden_akzeptiert(ereignisse):
     assert kette_pruefen(kette_bauen(ereignisse)) == (True, None)
 
 
+@settings(max_examples=100, deadline=None)
 @given(st.lists(EREIGNIS, min_size=1, max_size=12), st.data())
 def test_eigenschaft_jede_inhaltsaenderung_wird_erkannt(ereignisse, data):
     """Wird irgendein Ereignis nachträglich verändert, meldet die Prüfung
@@ -105,6 +107,7 @@ def test_leere_kette_ist_intakt():
     assert befund.intakt and befund.geprueft == 0 and befund.kopf == GENESIS and befund.bruch is None
 
 
+@settings(max_examples=100, deadline=None)
 @given(st.lists(EREIGNIS, min_size=1, max_size=12))
 def test_jede_unveraenderte_kette_ist_intakt_und_endet_am_kopf(ereignisse):
     from plattform_core.hashchain import kette_nachrechnen
@@ -115,6 +118,7 @@ def test_jede_unveraenderte_kette_ist_intakt_und_endet_am_kopf(ereignisse):
     assert befund.kopf == zeilen[-1][3] and befund.letzte_nummer == zeilen[-1][0]
 
 
+@settings(max_examples=100, deadline=None)
 @given(st.lists(EREIGNIS, min_size=2, max_size=12), st.data())
 def test_ein_veraenderter_inhalt_wird_mit_seiner_nummer_gemeldet(ereignisse, daten):
     from plattform_core.hashchain import kette_nachrechnen

@@ -160,12 +160,29 @@ def rechtspruefung_ohne_hemmung(antrag, mitglied, **kwargs):
 
 
 def platz_in_der_schlange(auftrag) -> int | None:
-    """1 = als Nächstes dran. None, wenn der Auftrag nicht (mehr) wartet."""
+    """1 = als Nächstes dran. None, wenn der Auftrag nicht (mehr) wartet. Gezählt werden nur die
+    fälligen älteren Aufträge — einer im Fehlerrückzug wird erst später gerechnet (wie `abarbeiten`)."""
     if auftrag is None or auftrag.status not in (Auftragsstatus.GEPLANT, Auftragsstatus.LAEUFT):
         return None
-    return (
-        KIAuftrag.objects.filter(status__in=(Auftragsstatus.GEPLANT, Auftragsstatus.LAEUFT), pk__lte=auftrag.pk).count()
+    faellig = Q(naechster_versuch__isnull=True) | Q(naechster_versuch__lte=timezone.now())
+    return 1 + (
+        KIAuftrag.objects.filter(status__in=(Auftragsstatus.GEPLANT, Auftragsstatus.LAEUFT), pk__lt=auftrag.pk)
+        .filter(faellig)
+        .count()
     )
+
+
+def wartegrund(jetzt=None) -> dict | None:
+    """Warum die Warteschlange gerade gar nicht rechnet — dieselben Prüfungen und dieselbe Reihenfolge
+    wie `abarbeiten`: erschöpftes Monatsbudget (bis zum Monatswechsel), dann aufgebrauchtes
+    Tageskontingent (bis zum nächsten Kalendertag). None, wenn sie rechnen darf."""
+    jetzt = jetzt or timezone.now()
+    heute = timezone.localdate(jetzt)
+    if KILauf.monatsverbrauch(jetzt) >= KILauf.monatsbudget():
+        return {"grund": "budget", "ab": (heute.replace(day=1) + timedelta(days=32)).replace(day=1)}
+    if tageskontingent() - heute_gestartet(jetzt) <= 0:
+        return {"grund": "kontingent", "ab": heute + timedelta(days=1)}
+    return None
 
 
 def _arbeit_rechtsbezug(auftrag: KIAuftrag) -> KILauf:

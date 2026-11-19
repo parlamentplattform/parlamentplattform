@@ -9,6 +9,7 @@
 {% block inhalt %}
 {% comment %}Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld serverseitig auf das ganze Raster (ohne JavaScript);
 mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her, der Zustand liegt in sessionStorage.{% endcomment %}
+<h1 class="nur-lesbar">{% translate "Parlament" %}</h1>
 <div class="parlament{% if fokus %} fokus fokus-{{ fokus }}{% endif %}" id="parlament" x-data="parlament('{{ fokus|default:"" }}')"
   :class="{'fokus': fokus !== '', 'fokus-filter': fokus === 'filter', 'fokus-favoriten': fokus === 'favoriten', 'fokus-wichtig': fokus === 'wichtig', 'fokus-region': fokus === 'region'}" @keydown.escape.window="alleFelder()">
 
@@ -144,14 +145,15 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
           </div>
           <button type="button" class="spur-mehr" x-cloak x-show="rest > 0" @click="weiter()" aria-label="{% translate 'Weitere Kacheln anzeigen' %}">› <span x-text="rest"></span> {% translate "weitere" %}</button>
           {% else %}
-          <div class="spur leer"><p class="leer leer-zeile">{% if zeile.ebene == "gemeinde" %}{% translate "Noch nichts in Ihrer Gemeinde." %}{% elif zeile.ebene == "bezirk" %}{% translate "Noch nichts in Ihrem Bezirk." %}{% else %}{% translate "Noch nichts in Ihrem Land." %}{% endif %}
-            <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a></p></div>
+          <div class="spur leer"><p class="leer leer-zeile">{% if zeile.wohnsitz_waehlen and profil_url %}<a href="{{ profil_url }}#wohnsitz">{% translate "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis." %}</a>{% elif zeile.bezirk_waehlen and profil_url %}<a href="{{ profil_url }}#wohnsitz">{% translate "Gemeindebezirk wählen ›" %}</a>{% else %}{% if zeile.ebene == "gemeinde" %}{% translate "Noch nichts in Ihrer Gemeinde." %}{% elif zeile.ebene == "bezirk" %}{% translate "Noch nichts in Ihrem Bezirk." %}{% else %}{% translate "Noch nichts in Ihrem Land." %}{% endif %}
+            <a href="{% url 'verfahren:einbringen' %}">{% translate "Antrag einbringen →" %}</a>{% endif %}</p></div>
           {% endif %}
         </div>
       {% endfor %}
       </div>
       {# Ohne Wohnsitz zeigen die Bänder alle regionalen Anträge; der Weg zum eigenen Ort führt über das Profil — der Link erscheint erst, wenn es die Seite gibt #}
-      {% if user.is_authenticated and not region_gefiltert and profil_url %}<p class="leer leer-zeile region-wohnsitz"><a href="{{ profil_url }}">{% translate "Wohnsitz hinterlegen ›" %}</a></p>{% endif %}
+      {% if ohne_region %}<p class="leer leer-zeile region-wohnsitz">{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %}</p>
+      {% elif user.is_authenticated and not region_gefiltert and profil_url %}<p class="leer leer-zeile region-wohnsitz"><a href="{{ profil_url }}">{% translate "Wohnsitz hinterlegen ›" %}</a></p>{% endif %}
     </div>
     {% include "verfahren/_feld_mehr.html" %}
   </section>

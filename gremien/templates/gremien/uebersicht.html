@@ -18,13 +18,13 @@ automatisch. Alle Besetzungen stehen hier — jede Berufung, Bestätigung und Be
       {% if r.ruht %} · {% blocktranslate with seit=r.ruht_seit|date:"d.m.Y" grund=r.ruht_grund %}ruht seit {{ seit }} — {{ grund }}{% endblocktranslate %}{% endif %}
       {% if r.bestaetigt %} · {% translate "von der Mitgliederversammlung bestätigt" %}{% else %} · {% translate "Bestätigung ausständig" %}{% endif %}</span></span></div>
     {% empty %}
-    <p class="leer">{% translate "Noch unbesetzt — die Ausschreibung läuft über den Koordinationsrat." %}</p>
+    <p class="leer">{% translate "Noch unbesetzt." %}</p>
     {% endfor %}
   </div>
   {% endfor %}
 </div>
 
-{% if beendete %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=beendete %}Eine beendete Rolle bleibt mit Grund dokumentiert.{% plural %}{{ n }} beendete Rollen bleiben mit Grund dokumentiert.{% endblocktranslate %}</p>{% endif %}
+{% if beendete %}<p class="erk" style="margin-top:12px">{% blocktranslate count n=beendete %}Eine beendete Rolle bleibt dokumentiert; der Grund ist nicht öffentlich.{% plural %}{{ n }} beendete Rollen bleiben dokumentiert; der Grund ist nicht öffentlich.{% endblocktranslate %}</p>{% endif %}
 <p class="erk" style="margin-top:6px">{% blocktranslate %}Im Alpha-Betrieb besetzt die Verwaltung die Rollen von Hand — die Ausschreibungs- und
 Bestätigungsabläufe wachsen Schritt für Schritt in die Plattform.{% endblocktranslate %}</p>
 {% endblock %}

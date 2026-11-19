@@ -321,3 +321,59 @@ def test_austausch_lost_die_gruppe_neu(client, ordnung):  # noqa: F811
     schon_dabei = {p["schluessel"] for p in erste.plaetze} | {p["schluessel"] for p in gruppe_2.plaetze}
     assert not (schon_dabei & {p["schluessel"] for p in neue.plaetze})
     assert Antrag.objects.get(pk=antrag.pk).phase == "beratung"
+
+
+# --- GP-036: Zeilenumbrüche statt des Zeichenpaars Rückstrich-n -------------------------------
+
+
+RUECKSTRICH_N = chr(92) + 'n'  # das wörtliche Zeichenpaar, kein Zeilenumbruch
+
+
+def _ausgewerteter_test(client, leute):
+    from gremien.models import parametertests_fortschreiben
+    from parameter.models import Parameter, ParameterTest, erstbestand_sicherstellen
+
+    erstbestand_sicherstellen()
+    parameter = Parameter.objects.get(schluessel='gremien-beschluss-tage')
+    client.force_login(leute[0])
+    client.post(
+        reverse('gremien:koordination_test', args=[0]),
+        {
+            'aktion': 'anordnen', 'parameter': parameter.pk, 'testwert': '9', 'hypothese': 'Kürzere Fristen.',
+            'messgroesse': 'motions.total', 'ende': (timezone.localdate() + timedelta(days=30)).isoformat(),
+            'rueckweg': 'Der alte Wert kommt zurück.',
+        },
+    )
+    test = ParameterTest.objects.get()
+    beschluss = abstimmen(client, leute, test.beschluss)
+    ParameterTest.objects.filter(pk=test.pk).update(ende=timezone.localdate() - timedelta(days=1))
+    parametertests_fortschreiben()
+    test.refresh_from_db()
+    return test, beschluss
+
+
+def test_veroeffentlichte_testtexte_tragen_zeilenumbrueche_statt_rueckstrich_n(client):
+    """GP-036: Beschreibung des Testbeschlusses und Auswertung eines verworfenen Tests enthielten das
+    wörtliche Zeichenpaar Rückstrich-n — öffentlich lesbar mitten im Satz."""
+    from gremien.models import Hinweis
+
+    leute = korat()
+    test, beschluss = _ausgewerteter_test(client, leute)
+    assert RUECKSTRICH_N not in beschluss.beschreibung and beschluss.beschreibung.count('\n') == 2
+    client.force_login(leute[0])
+    client.post(reverse('gremien:koordination_test', args=[test.pk]), {'aktion': 'verwerfen', 'grund': 'Die Beteiligung sank.'})
+    test.refresh_from_db()
+    assert RUECKSTRICH_N not in test.auswertung and '\n\nVerworfen: Die Beteiligung sank.' in test.auswertung
+    assert Hinweis.objects.filter(parametertest=test).exists()
+
+
+def test_auch_das_verwerfen_ueber_den_posteingang_schreibt_zeilenumbrueche(client):
+    from gremien.models import Hinweis
+
+    leute = korat()
+    test, _beschluss = _ausgewerteter_test(client, leute)
+    hinweis = Hinweis.objects.get(parametertest=test)
+    client.force_login(leute[1])
+    client.post(reverse('gremien:koordination_hinweis', args=[hinweis.pk]), {'aktion': 'verwerfen', 'grund': 'Kein Nutzen.'})
+    test.refresh_from_db()
+    assert RUECKSTRICH_N not in test.auswertung and '\n\nVerworfen: Kein Nutzen.' in test.auswertung

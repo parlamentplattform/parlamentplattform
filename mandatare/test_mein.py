@@ -98,6 +98,8 @@ def test_ungeprueftes_konto_liest_mit_eigenem_hinweis(client):
     m.save(update_fields=["identitaetsstufe"])
     html = client.get(MEIN).content.decode()
     assert "Identität ist noch nicht geprüft" in html and "Mitwirkung ruht" not in html
+    # Satzungsentwurf 2.5: Der Identitätsnachweis steht in § 4 Abs 1, Abs 2 sind die Rechte (wie GP-176).
+    assert "Identität ist noch nicht geprüft (§ 4 Abs 1)" in html and "§ 4 Abs 2" not in html
     assert 'name="aktion" value="report"' not in html
     assert "Schreiben geht nach der Bestätigung." in html and "aktiven Status" not in html
     # pausiert mit geprüfter Identität: der andere Grund, an beiden Stellen
@@ -404,7 +406,7 @@ def test_sammelbericht_und_rechenschaft_schliessen_die_pflichten(client):
 
 
 def test_rechenschaft_frei_braucht_gegenstand_sitzungstag_und_begruendung(client):
-    _, mandat = mandatar(client)
+    _, mandat = mandatar(client, angetreten=date(2026, 1, 1))  # der Sitzungstag liegt im Mandat (GP-192)
     daten = {"aktion": "rechenschaft", "mandat": mandat.pk, "aufgabe": "", "gegenstand": "Budget 2027",
              "sitzung_am": "2026-09-10", "beschluss_plattform": "keiner", "stimme": "enthalten", "begruendung": ""}
     html = client.post(AKTION, daten, follow=True).content.decode()
@@ -592,3 +594,94 @@ def test_betreute_sachabstimmung_heisst_im_bereich_nicht_mandatsfrage(client, or
     Aufgabe.objects.create(mandat=mandat, titel="Budget-Sitzung", antrag=sache)
     html = client.get(MEIN).content.decode()
     assert ">Betreute Abstimmung</span>" in html and ">Mandatsfrage</span>" not in html
+
+
+def test_audit_der_mandate_verwaltung_nennt_das_handelnde_konto(client, ordnung):  # noqa: F811
+    """GP-119 (MG-10, MV-02): Jede Handlung der Mandate-Verwaltung trägt `durch` mit dem handelnden Konto —
+    auch die Vermerke zur Vertrauensfrage. Die öffentliche Ausgabe schwärzt die Kennung."""
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from mandatare import models as mm
+    from mandatare.test_mandatare import admin_anlegen
+    from mitglieder.models import Gemeinde
+    from plattform_core import Phase
+
+    admin = admin_anlegen()
+    client.force_login(admin)
+    verwaltung = reverse("mandatare:verwaltung_aktion")
+    mandat = mandat_anlegen(mitglied_anlegen("bert"), angetreten=timezone.localdate() - timedelta(days=400))
+    gemeinde = Gemeinde.objects.create(kennziffer="40510", name="Gleichort", bezirk="Eferding", bundesland="oberoesterreich")
+    heute = timezone.localdate()
+    ausgeschieden = mandat_anlegen(
+        mitglied_anlegen("emil"), angetreten=heute - timedelta(days=400), vertretung_beendet_am=heute - timedelta(days=20)
+    )
+
+    def neue(handlung):
+        vorher = AuditEintrag.objects.count()
+        handlung()
+        return [e.ereignis for e in AuditEintrag.objects.order_by("pk")[vorher:]]
+
+    handlungen = [
+        {"aktion": "anlegen", "mitglied": mitglied_anlegen("carl").pk, "bezeichnung": "Gemeinderat", "ebene": "gemeinde",
+         "gebiet": "Polsenz", "angetreten": heute.isoformat()},
+        {"aktion": "aufgabe", "mandat": mandat.pk, "titel": "Aufgabe", "frist": heute.isoformat()},
+        {"aktion": "foto", "mandat": mandat.pk, "foto": SimpleUploadedFile("f.png", PNG_MINI, "image/png")},
+        {"aktion": "rueckgabezusage", "mandat": mandat.pk, "wert": "abgegeben"},
+        {"aktion": "lit_h", "mandat": mandat.pk, "datum": heute.isoformat()},
+        {"aktion": "gemeinde_zuordnen", "mandat": mandat.pk, "gemeindekennziffer": gemeinde.kennziffer},
+        {"aktion": "rechenschaft_nachtragen", "mandat": ausgeschieden.pk, "sitzung_am": (heute - timedelta(days=5)).isoformat(),
+         "gegenstand": "Budget", "stimme": "dagegen", "quelle": "https://gemeinde.example.org/protokoll"},
+    ]
+    for daten in handlungen:
+        eintraege = neue(lambda d=daten: client.post(verwaltung, d))
+        assert eintraege and all(e.get("durch") == admin.pk for e in eintraege), (daten["aktion"], eintraege)
+    aufgabe = mandat.aufgaben.get()
+    eintraege = neue(lambda: client.post(verwaltung, {"aktion": "aufgabe_status", "aufgabe": aufgabe.pk, "status": "erledigt"}))
+    assert eintraege and all(e.get("durch") == admin.pk for e in eintraege)
+    # Vermerke zur Vertrauensfrage: Anfechtung, Entscheidung, Bestätigung durch Wahl
+    ergebnis = timezone.now() - timedelta(days=2)
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage", art=Antragsart.VERTRAUENSFRAGE, eingebracht_von=mitglied_anlegen("dora"),
+        eingebracht_am=ergebnis - timedelta(days=20), phase=Phase.ANGENOMMEN.value, phase_beginn=ergebnis, policy_snapshot={},
+    )
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat)
+    mm.vertrauensfrage_wirkungen(vf, jetzt=ergebnis)
+    for daten in (
+        {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "aktenkennung": "PSG"},
+        {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "bestaetigt"},
+        {"aktion": "bestaetigung_durch_wahl", "mandat": mandat.pk},
+    ):
+        eintraege = neue(lambda d=daten: client.post(verwaltung, d))
+        vermerke = [e for e in eintraege if e["typ"] in (
+            "vertrauensfrage_angefochten", "vertrauensfrage_bestaetigt", "vertrauen_bestaetigt")]
+        assert vermerke and all(e.get("durch") == admin.pk for e in vermerke), (daten["aktion"], eintraege)
+    eintraege = neue(lambda: client.post(verwaltung, {"aktion": "beenden", "mandat": mandat.pk}))
+    assert eintraege and all(e.get("durch") == admin.pk for e in eintraege)
+
+
+def test_monats_und_sammelbericht_behalten_den_text_bei_einem_eingabefehler(client):
+    """GP-123 (MG-16): Ein Eingabefehler rendert den Bereich mit dem eingegebenen Text, statt ihn zu verwerfen."""
+    _m, mandat = mandatar(client, angetreten=timezone.localdate() - timedelta(days=90))
+    antwort = client.post(AKTION, {"aktion": "monatsbericht", "mandat": mandat.pk, "monat": "1999-01-01", "text": "Mein Monatstext"})
+    assert antwort.status_code == 200 and "Mein Monatstext" in antwort.content.decode()
+    assert "Bitte einen fälligen Monat wählen." in antwort.content.decode()
+    Aufgabe.objects.create(mandat=mandat, titel="Sitzung", frist=timezone.now() - timedelta(days=2), sitzungstag=True)
+    antwort = client.post(AKTION, {"aktion": "sammelbericht", "mandat": mandat.pk, "aufgabe": "999999", "text": "Mein Sammeltext"})
+    assert antwort.status_code == 200 and "Mein Sammeltext" in antwort.content.decode()
+    assert not Bericht.objects.exists()
+
+
+def test_gemeindelinks_im_bereich_erst_ab_dem_antritt(client):
+    """GP-195 (MG-17): Vor dem Antrittstag zeigt der Bereich keine Gemeindelinks, die auf 404 führten."""
+    from mitglieder.models import Gemeinde
+
+    ort = Gemeinde.objects.create(kennziffer="40510", name="Gleichort", bezirk="Eferding", bundesland="oberoesterreich")
+    _m, mandat = mandatar(client, gemeinde=ort, angetreten=timezone.localdate() + timedelta(days=10))
+    html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
+    for name in ("sprechstunden", "ratsinitiative_anlegen", "haushaltsquelle_verwalten", "projekt_verwalten",
+                 "gemeinde_arbeitsplatz"):
+        url = reverse(f"mandatare:{name}", args=[mandat.pk])
+        assert f'href="{url}"' not in html, name
+    Mandat.objects.filter(pk=mandat.pk).update(angetreten=timezone.localdate())
+    html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
+    assert f'href="{reverse("mandatare:sprechstunden", args=[mandat.pk])}"' in html

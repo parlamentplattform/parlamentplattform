@@ -47,7 +47,16 @@ def _(text: str) -> str:
 #: dem Ende der Vertretung Abstimmungen nach (D-L6g).
 #: Fassung 8 (2.11.2026): Herkunft und erhaltene Stände der amtlichen Metadatensammlung nachlesen.
 #: Fassung 10 (2.11.2026): Verwaltung übernimmt gezielt einzelne amtliche Quellen.
-VERSION = 11
+#: Fassung 12 (18.11.2026): Berichtigungen nach der Gesamtprüfung. Der Einreichungsbeschluss der
+#: Gruppe 1 ist ● (Nummer, Frist, öffentliche Beschlussliste); Gruppe 2 wird beim Setzen des
+#: Vollzugsbezugs nachgelost; die Verwaltung besetzt sechs Räte; Tests und Einführung von
+#: Registerwerten laufen über Beschlüsse des Koordinationsrats. Der Anstoß nennt seinen Ort.
+#: Gemeldete Beiträge sichtet und entscheidet die Verwaltung (Zeile dort; „Einen Beitrag melden“ ist ●).
+#: Fassung 13 (18.11.2026): das Gemeindekonto ohne Parteibeitritt — was es liest und für sich
+#: verwaltet, und dass es auf den Seiten der Partei als Gast gilt.
+#: Nachtrag ohne neue Fassung (GP-014): Die Zeile der Verwaltung zu gemeldeten Beiträgen führt zur
+#: Meldeliste (`verfahren:meldungen`) — ein Verweis, kein geänderter Stand.
+VERSION = 13
 
 
 class Stand(enum.StrEnum):
@@ -108,6 +117,9 @@ class Rolle:
     im_code: bool = True
     #: Auf der Willkommensseite erscheinen nur die Rollen, die fast jeden betreffen.
     auf_der_startseite: bool = False
+    #: Eine Rolle der Satzung? Das Gemeindekonto ohne Parteibeitritt ist keine; es steht in der Matrix,
+    #: wird aber nicht als Rolle gezählt (Z-4). Steuert kein Verhalten, nur die Zählung.
+    satzungsrolle: bool = True
     hinweis: str = ""
 
     @property
@@ -230,7 +242,8 @@ GAST = Rolle(
         Faehigkeit(
             titel=_("Einen Anstoß zur Plattform senden"),
             stand=Stand.VERFUEGBAR,
-            urlname="anstoss:senden",
+            # Kein `urlname`: Die Adresse nimmt nur das abgeschickte Formular an (POST).
+            ort=_("auf jeder Seite unter „Anstoß geben“, in der Kopfleiste oder unten rechts"),
         ),
         Faehigkeit(
             titel=_("Mitglied werden"),
@@ -339,11 +352,8 @@ MITGLIED = Rolle(
         ),
         Faehigkeit(
             titel=_("Einen Beitrag melden"),
-            stand=Stand.TEILWEISE,
+            stand=Stand.VERFUEGBAR,
             ort=_("auf jeder Antragsseite"),
-            einschraenkung=(
-                _("Gemeldet werden kann, abgeholfen wird nicht: Die Meldung wird gespeichert, aber von keiner Ansicht gelesen — es gibt keinen Weg, sie zu bearbeiten.")
-            ),
         ),
         Faehigkeit(
             titel=_("Für ein Mandat kandidieren und Bewerbungen zustimmen"),
@@ -475,6 +485,62 @@ MITGLIED_RUHT = Rolle(
     ),
 )
 
+# ── Gemeindekonto ohne Parteibeitritt ─────────────────────────────────────
+# Keine Rolle der Satzung: Das Konto trägt `parteikonto = False`; auf jeder Seite außerhalb des
+# Gemeindebereichs und der Anmeldung behandelt die Plattform es wie einen Gast und weist
+# Schreibanfragen ab (`mitglieder.gemeinde_middleware`).
+GEMEINDEKONTO = Rolle(
+    schluessel="gemeindekonto",
+    name=_("Gemeindekonto ohne Parteibeitritt"),
+    satzung="Gründerentscheidung vom 4.11.2026",
+    satzungsrolle=False,
+    was_sie_ist=_("Keine Rolle der Satzung und keine Parteimitgliedschaft: ein freiwilliger Zugang für Einwohnerinnen und Einwohner ab 16 Jahren mit Hauptwohnsitz in einer österreichischen Gemeinde, unabhängig von der Staatsangehörigkeit. Auf den Seiten der Partei gilt dieses Konto als Gast."),
+    wie_hinein=_("Im Gemeindebereich anmelden: E-Mail-Adresse, Hauptgemeinde und Geburtsdatum angeben und den Link in der E-Mail bestätigen. Das Geburtsdatum dient nur der Altersprüfung und wird nicht gespeichert. Alter und Hauptwohnsitz sind Selbstauskünfte; die bestätigte E-Mail-Adresse ist kein Identitäts- oder Meldenachweis. Mitgliedsnummer, Mitgliedsbeitrag und Mitgliedsausweis gibt es für dieses Konto nicht."),
+    hinweis=_("Was dieses Konto nicht darf: einen Antrag einbringen oder unterstützen, abstimmen, für ein Mandat kandidieren, im Chat eines Antrags oder einer Sitzung schreiben, Beiträge melden, Favoriten setzen — nichts, was auf den Seiten der Partei schreibt; solche Vorgänge werden abgewiesen. In keiner Zählung der Stimmberechtigten kommt es vor. Mitglieder der Partei können denselben Gemeindezugang mit ihrem bestehenden Konto ergänzen. Der Beitritt zur Partei mit einem bestehenden Gemeindekonto ist noch nicht gebaut."),
+    faehigkeiten=(
+        Faehigkeit(
+            titel=_("Alles lesen wie ohne Konto — Parlament, Anträge, Beschlüsse, Register"),
+            stand=Stand.VERFUEGBAR,
+            urlname="verfahren:parlament",
+        ),
+        Faehigkeit(
+            titel=_("Die Gemeinde suchen und ihre öffentliche Übersicht lesen — Mandate, Sitzungen, Sitzungs- und Haushaltsunterlagen, Ratsinitiativen, Projekte"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:start",
+        ),
+        Faehigkeit(
+            titel=_("Öffentliche Sprechstunden der Mandatare in der Gemeinde sehen"),
+            stand=Stand.VERFUEGBAR,
+            ort=_("auf der Übersicht der Gemeinde"),
+        ),
+        Faehigkeit(
+            titel=_("Sich anmelden und angemeldet bleiben"),
+            stand=Stand.VERFUEGBAR,
+            urlname="mitglieder:login",
+        ),
+        Faehigkeit(
+            titel=_("Den eigenen Gemeindezugang verwalten — Hauptwohnsitz angeben oder ändern"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:konto",
+        ),
+        Faehigkeit(
+            titel=_("Die eigenen Gemeindeangaben herunterladen (JSON)"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gemeinde:export",
+        ),
+        Faehigkeit(
+            titel=_("Einen Anstoß zur Plattform senden"),
+            stand=Stand.VERFUEGBAR,
+            ort=_("auf jeder Seite unter „Anstoß geben“, in der Kopfleiste oder unten rechts"),
+        ),
+        Faehigkeit(
+            titel=_("An einer freiwilligen Gemeindeabstimmung teilnehmen"),
+            stand=Stand.GEPLANT,
+            bauschritt=_("einem eigenen Bauschritt; Teilnehmerkreis, Stichtage und Personenprüfung sind noch nicht festgelegt"),
+        ),
+    ),
+)
+
 # ── Expertenrat Gruppe 1 und Gruppe 2 ─────────────────────────────────────
 EXPERTENRAT1 = Rolle(
     schluessel="expertenrat1",
@@ -502,7 +568,7 @@ EXPERTENRAT1 = Rolle(
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel=_("Fassungen anhängen; jede frueher geschriebene bleibt stehen"),
+            titel=_("Fassungen anhängen; jede früher geschriebene bleibt stehen"),
             stand=Stand.VERFUEGBAR,
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
@@ -532,7 +598,7 @@ EXPERTENRAT1 = Rolle(
             titel=_("KI-Einschätzung zum eigenen Entwurf anfordern"),
             stand=Stand.TEILWEISE,
             ort=_("im Entwurfsfenster eines Antrags"),
-            einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschoepft ist; sonst bleibt er stumm."),
+            einschraenkung=_("Der Modell-Steckplatz antwortet nur, wenn ein Anbieter angeschlossen und das Monats-Tokenbudget nicht erschöpft ist; sonst bleibt er stumm."),
         ),
         Faehigkeit(
             titel=_("Vollzugs- oder Beschaffungsbezug setzen — dann wird Gruppe 2 aus der Fachliste nachgelost und prüft vorab (§ 6 Abs 7)"),
@@ -540,10 +606,10 @@ EXPERTENRAT1 = Rolle(
             ort=_("im Entwurfsfenster eines Antrags"),
         ),
         Faehigkeit(
-            titel=_("Über die Einreichung intern abstimmen"),
-            stand=Stand.TEILWEISE,
+            titel=_("Über die Einreichung als Gruppe abstimmen — Beschluss mit Nummer, Frist und Quorum; jede Stimme steht mit Namen auf der öffentlichen Beschlussliste"),
+            stand=Stand.VERFUEGBAR,
+            urlname="gremien:beschluesse",
             ort=_("im Entwurfsfenster eines Antrags"),
-            einschraenkung=_("Eigene Abstimmung ausserhalb der öffentlichen Beschlussliste: ohne Beschlussnummer, ohne Begruendung, ohne Frist; nur im Arbeitsbereich sichtbar (§ 6 Abs 9)."),
         ),
         Faehigkeit(
             titel=_("Vorschlag einreichen — an Gruppe 2 oder an die Unterstützer"),
@@ -607,9 +673,10 @@ EXPERTENRAT2 = Rolle(
     wie_hinein=(
         _("Wie Gruppe 1 — mit dem Unterschied, dass beide Gruppen unabhängig voneinander besetzt sein "
         "müssen (§ 6 Abs 7): Wer den Vorschlag erarbeitet hat, prüft ihn nicht. Heute wird Gruppe 2 "
-        "aus derselben Fachliste mitgelost, wenn der Vollzugsbezug zur Zeit einer Ziehung schon gesetzt "
-        "ist — aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt; sonst trägt die "
-        "Verwaltung die Rolle ein. Die Fachliste selbst führt die Verwaltung.")
+        "aus derselben Fachliste nachgelost, sobald Gruppe 1 den Vollzugs- oder Beschaffungsbezug setzt "
+        "— aus dem Rest des Lostopfs, sodass niemand in beiden Gruppen sitzt. Reicht der Lostopf "
+        "nicht, prüfen die parteiweit berufenen Mitglieder der Gruppe 2; deren Rolle trägt die "
+        "Verwaltung ein. Die Fachliste selbst führt die Verwaltung.")
     ),
     faehigkeiten=(
         Faehigkeit(
@@ -628,12 +695,12 @@ EXPERTENRAT2 = Rolle(
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel=_("Vorschlag mit veröffentlichter Begruendung zurückgeben"),
+            titel=_("Vorschlag mit veröffentlichter Begründung zurückgeben"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:pruefung",
         ),
         Faehigkeit(
-            titel=_("Jede Stimme steht mit Namen und Begruendung öffentlich"),
+            titel=_("Jede Stimme steht mit Namen und Begründung öffentlich"),
             stand=Stand.VERFUEGBAR,
             urlname="gremien:beschluesse",
         ),
@@ -902,16 +969,16 @@ VERWALTUNG = Rolle(
             urlname="mitglieder:verwaltung_beitraege",
         ),
         Faehigkeit(
-            titel=_("Rollen in die vier bestehenden Räte berufen, bestätigen und beenden"),
+            titel=_("Rollen in die sechs bestehenden Räte berufen, bestätigen und beenden"),
             stand=Stand.TEILWEISE,
             urlname="gremien:rollen",
-            einschraenkung=_("§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind nur Expertenrat 1 und 2, Koordinationsrat und Integritätsrat."),
+            einschraenkung=_("§ 6 Abs 8 trennt Bestellung (Koordinationsrat) und Bestätigung (Mitgliederversammlung); heute liegt beides in einer Hand, die Bestätigung ist ein Haken im Formular. Besetzbar sind Expertenrat 1 und 2, Koordinationsrat, Integritätsrat, Technischer Entwicklungsrat sowie Integrations- und Berichtswesenrat; den Supportrat kennt die Plattform nicht."),
         ),
         Faehigkeit(
             titel=_("Werte im Parameterregister ändern"),
             stand=Stand.TEILWEISE,
             urlname="parameter:verwaltung",
-            einschraenkung=_("Die Einführung eines Wertes bedarf nach § 6 Abs 11 lit c der Freigabe des Koordinationsrats, befristete Tests ordnet er an. Beides gibt es nicht; die Verwaltung ändert mit Pflicht-Grund, der im Register und im Audit-Log steht."),
+            einschraenkung=_("Befristete Tests ordnet der Koordinationsrat durch Beschluss an, und die Einführung eines getesteten Wertes gibt er frei (§ 6 Abs 11 lit c). Daneben ändert die Verwaltung Werte weiterhin unmittelbar und ohne Beschluss des Rats — mit Pflicht-Grund, der im Register und im Audit-Log steht."),
         ),
         Faehigkeit(
             titel=_("Eine Fassung der Verfahrensordnung erzeugen und in Kraft setzen"),
@@ -954,6 +1021,13 @@ VERWALTUNG = Rolle(
             stand=Stand.TEILWEISE,
             urlname="anstoss:verwaltung",
             einschraenkung=_("Stand setzen und Ausfuhr als CSV oder JSON gehen. Ein Feld für den Vermerk und eine Rückfrage per E-Mail fehlen in der Ansicht; wiederkehrende Probleme weiterzuleiten ist nach § 6 Abs 6 Sache des Supportrats."),
+        ),
+        Faehigkeit(
+            titel=_("Gemeldete Beiträge sichten und entscheiden — ausblenden mit öffentlichem Grund oder keine Maßnahme; jede Entscheidung steht im Audit-Log"),
+            stand=Stand.TEILWEISE,
+            urlname="verfahren:meldungen",
+            ort=_("in der Verwaltung, Liste der offenen Meldungen"),
+            einschraenkung=_("Die Verwaltung entscheidet allein, auch wenn sie selbst betroffen ist; einen Rechtsbehelf gegen die Entscheidung gibt es auf der Plattform nicht."),
         ),
         Faehigkeit(
             titel=_("In die Arbeitsbereiche der Räte sehen"),
@@ -1348,7 +1422,7 @@ GRUPPEN: tuple[Gruppe, ...] = (
             _("Die Mitgliederversammlung ist diese Plattform (§ 5 Abs 1). Wer hier steht, ist kein "
             "Amtsträger — sondern jemand, der liest oder mitwirkt.")
         ),
-        rollen=(GAST, MITGLIED, MITGLIED_RUHT),
+        rollen=(GAST, MITGLIED, MITGLIED_RUHT, GEMEINDEKONTO),
     ),
     Gruppe(
         schluessel="raete",
@@ -1388,10 +1462,13 @@ def rolle(gruppen: tuple[Gruppe, ...], schluessel: str) -> Rolle | None:
 
 
 def zaehlung(gruppen: tuple[Gruppe, ...]) -> dict[str, int]:
-    """Wie viele Fähigkeiten in welchem Stand — der Soll/Ist-Abgleich in einer Zeile."""
+    """Wie viele Fähigkeiten in welchem Stand — der Soll/Ist-Abgleich in einer Zeile. `rollen` zählt
+    die Rollen der Satzung, `weitere_konten` daneben, was keine ist (das Gemeindekonto, Z-4); die
+    Fähigkeiten zählen beide mit."""
     stände = {stand.value: 0 for stand in Stand}
     for r in alle_rollen(gruppen):
         for f in r.faehigkeiten:
             stände[f.stand.value] += 1
-    stände["rollen"] = len(alle_rollen(gruppen))
+    stände["rollen"] = sum(1 for r in alle_rollen(gruppen) if r.satzungsrolle)
+    stände["weitere_konten"] = sum(1 for r in alle_rollen(gruppen) if not r.satzungsrolle)
     return stände

@@ -155,6 +155,31 @@ def test_fremder_beifang_im_neuen_zweck_wird_nicht_als_oeffentliche_antwort_expo
     assert "nicht eindeutig an den öffentlichen Auftrag gebunden" in html
 
 
+def test_historie_zeigt_auf_jeder_seite_so_viele_eintraege_wie_sie_zaehlt(antrag, attrappe, client):
+    """GP-208 (ZWB-17): Nicht prüfbare Läufe werden nicht erst nach der Seitenbildung entfernt — keine
+    Seite ist leer, und die Einträge aller Seiten ergeben die gezählte Menge."""
+    from parameter.models import Parameter
+
+    job = erfolg(antrag)
+    daten = {f.name: getattr(job.lauf, f.name) for f in KILauf._meta.fields if f.name != 'id'}
+    daten['kontext'] = {**daten['kontext'], 'privat': 'VERTRAULICHER_BEIFANG'}
+    daten['antwort'] = 'INTERNE_ANTWORT'
+    fremde = [KILauf.objects.create(**daten) for _ in range(5)]
+    Parameter.objects.create(schluessel='ki-einschaetzungen-je-seite', wert='2', beschreibung='x', quelle='Test')
+    erste = rechtsbezug_lage(antrag)['historie']
+    assert erste.paginator.count == 5 and erste.paginator.num_pages == 3
+    gezeigt = []
+    for seite in range(1, 4):
+        historie = rechtsbezug_lage(antrag, seite=seite)['historie']
+        eintraege = list(historie)
+        assert eintraege and len(eintraege) == len(historie.object_list)
+        gezeigt += [h['lauf'].pk for h in eintraege]
+    assert sorted(gezeigt) == sorted(f.pk for f in fremde)
+    html = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
+    assert f'#{fremde[-1].pk}' in html
+    assert 'VERTRAULICHER_BEIFANG' not in html and 'INTERNE_ANTWORT' not in html
+
+
 def test_beanstandung_waehlt_den_gelesenen_folgenlauf_auch_nach_spaeterer_antwort(antrag, attrappe, client):
     alt = erfolg(antrag)
     neuer = neu(antrag, vorschlagsfassung=vorschlag(antrag))

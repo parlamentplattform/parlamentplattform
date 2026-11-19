@@ -143,8 +143,21 @@ def _sitzungen_fortschreiben(qs) -> None:
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────
 
 
+def _chat_sperre(nutzer) -> dict | None:
+    """Warum ein angemeldetes Mitglied im Chat nicht schreiben darf — Zustand und nächster Schritt wie in
+    der Kachel des Parlaments (Befund B2); None, wenn es darf (GP-122)."""
+    from verfahren.hinweise import HINWEISE, kachel_sperre, mitwirkungssperre
+
+    if nutzer is None or not nutzer.is_authenticated:
+        return None
+    sperre = kachel_sperre(mitwirkungssperre(nutzer))
+    if sperre is not None:
+        sperre["text"] = str(HINWEISE[sperre["code"]]["text"])
+    return sperre
+
+
 def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str = "", entwurf: dict | None = None):
-    from verfahren.chat import sitzung_faden, sitzung_gelesen_merken
+    from verfahren.chat import chat_zeichen_hoechstzahl, sitzung_faden, sitzung_gelesen_merken
 
     kontext = {
         "mandat": mandat,
@@ -170,6 +183,9 @@ def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str 
             "ticker": ticker(sitzung),
             "faden": faden,
             "chat_offen": laeuft,
+            # Feld und Prüfung nennen dieselbe Höchstzahl aus dem Register (GP-083)
+            "zeichen_hoechst": chat_zeichen_hoechstzahl(),
+            "chat_sperre": _chat_sperre(request.user) if laeuft else None,
             "ist_mandatar": ist_mandatar,
             "darf_beantworten": ist_mandatar and darf_live_melden(mandat),
             "antwort_auf": _antwort_vorgabe(sitzung, request.GET.get("antwort_auf") or (entwurf or {}).get("antwort_auf")),
@@ -211,12 +227,15 @@ def live_uebersicht(request):
     läuft die Frist der Rechenschaft dazu (§ 7 Abs 5). Reihung: Beginn, jüngste zuerst; nichts anderes."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
     grenze = timezone.now() - timedelta(days=RECHENSCHAFT_TAGE)
+    # Das Lichtbild des Mandats lädt nur seine eigene Route (GP-120)
     alle = list(
         Sitzung.objects.select_related("mandat__mitglied", "aufgabe")
+        .defer("mandat__foto")
         .filter(ende__isnull=True)
         .order_by("-beginn")
     ) + list(
         Sitzung.objects.select_related("mandat__mitglied", "aufgabe")
+        .defer("mandat__foto")
         .filter(ende__isnull=False, ende__gte=grenze)
         .order_by("-beginn")
     )
@@ -233,7 +252,7 @@ def laufende_in_region(orte_je_ebene: dict[str, list[str]]) -> dict[str, list[Si
     Reihung nach Beginn, jüngste zuerst; keine Hervorhebung (die bleibt beim Integritätsrat)."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
     laufende = list(
-        Sitzung.objects.filter(ende__isnull=True).select_related("mandat__mitglied").order_by("-beginn")
+        Sitzung.objects.filter(ende__isnull=True).select_related("mandat__mitglied").defer("mandat__foto").order_by("-beginn")
     )
     ergebnis: dict[str, list[Sitzung]] = {}
     for ebene, orte in orte_je_ebene.items():
@@ -261,14 +280,18 @@ def _sitzung_des_mandats(pk: int, sitzung_pk: int) -> tuple[Mandat, Sitzung]:
 def live_beitrag(request, pk: int, sitzung_pk: int):
     """Einen Beitrag in den Chat der Sitzung schreiben — Mitglieder mit Mitwirkungsrecht, solange die
     Sitzung läuft (E1). Bei einem Fehler kommt die Seite mit Meldung und Entwurf zurück, nichts geht verloren."""
-    from verfahren.chat import ChatGesperrt, sitzung_beitrag_schreiben
-    from verfahren.views_aktionen import _mitwirkung_gesperrt
+    from verfahren.chat import BeitragZuLang, ChatGesperrt, sitzung_beitrag_schreiben
+    from verfahren.views_aktionen import _zu_lang_text
 
     mandat, sitzung = _sitzung_des_mandats(pk, sitzung_pk)
-    gesperrt = _mitwirkung_gesperrt(request)
-    if gesperrt is not None:
-        return gesperrt
-    entwurf = {"text": (request.POST.get("text") or "")[:4000], "antwort_auf": request.POST.get("antwort_auf") or ""}
+    # Der Entwurf kommt ungekürzt zurück; die Höchstzahl prüft der Schreibweg gegen das Register (GP-083)
+    entwurf = {"text": request.POST.get("text") or "", "antwort_auf": request.POST.get("antwort_auf") or ""}
+    sperre = _chat_sperre(request.user)
+    if sperre is not None:
+        # Ohne Mitwirkungsrecht: die Live-Seite mit dem Hinweis und dem Text, nicht eine 403-Seite ohne ihn (GP-122)
+        return render(
+            request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, sperre["text"], entwurf), status=403
+        )
     antwort_auf = None
     if entwurf["antwort_auf"]:
         antwort_auf = _antwort_vorgabe(sitzung, entwurf["antwort_auf"])
@@ -280,6 +303,10 @@ def live_beitrag(request, pk: int, sitzung_pk: int):
             )
     try:
         beitrag = sitzung_beitrag_schreiben(sitzung, request.user, entwurf["text"], antwort_auf)
+    except BeitragZuLang as fehler:
+        return render(
+            request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, _zu_lang_text(fehler.hoechst), entwurf)
+        )
     except (ChatGesperrt, ValueError) as fehler:
         return render(request, "mandatare/live.html", _live_kontext(request, mandat, sitzung, str(fehler), entwurf))
     return redirect(_live_ziel(mandat, sitzung, f"k-{beitrag.pk}"))
@@ -473,7 +500,12 @@ def sitzungen_json(ebene: str = "") -> list[dict]:
     """Die Sitzungen im Live-Modus für `/rechenschaft.json` (FB-L5): Tagesordnung und Meldungen, öffentlich
     und dauerhaft wie die Seite selbst — ohne Chat (der gehört den Mitgliedern, nicht dem Register)."""
     _sitzungen_fortschreiben(Sitzung.objects.all())
-    qs = Sitzung.objects.select_related("mandat__mitglied").prefetch_related("punkte", "meldungen").order_by("-beginn")
+    qs = (
+        Sitzung.objects.select_related("mandat__mitglied")
+        .defer("mandat__foto")
+        .prefetch_related("punkte", "meldungen")
+        .order_by("-beginn")
+    )
     if ebene:
         qs = qs.filter(mandat__ebene=ebene)
     ergebnis = []

@@ -241,3 +241,60 @@ def test_meldung_verspricht_keinen_zeitplan_und_keine_gespeicherte_meldung(clien
         assert "nicht gespeichert" in inhalt and "Kontoauszug" in inhalt
     else:
         assert "beim nächsten Abgleich" in inhalt and "Verwaltung" in inhalt
+
+
+# --- Tageskontingent je Konto, ein Abruf für die Verwaltung (GP-101, KM-16) ---
+
+
+def test_ein_konto_verbraucht_nicht_das_tageskontingent_fuer_alle(client, settings, monkeypatch):
+    settings.DDOE_BANK_SECRET_ID = "x"
+    settings.DDOE_BANK_SECRET_KEY = "y"
+    Bankkopplung.objects.create(requisition_id="r1", institution_id="TEST", account_id="k1")
+    abrufe = []
+
+    def unechte_umsaetze(pfad, **params):
+        abrufe.append(pfad)
+        return {"transactions": {"booked": []}}
+
+    def abstand_vorbei():
+        Bankkopplung.objects.update(zuletzt_abgerufen=timezone.now() - timedelta(hours=1))
+
+    monkeypatch.setattr(bank, "_get", unechte_umsaetze)
+    ungeduldig = mitglied_anlegen("ungeduldig")
+    client.force_login(ungeduldig)
+    client.post(reverse("mitglieder:beitrag_gemeldet"))
+    assert len(abrufe) == 1
+    abstand_vorbei()
+    zweite = client.post(reverse("mitglieder:beitrag_gemeldet"), follow=True).content.decode()
+    assert len(abrufe) == 1  # die zweite Meldung desselben Kontos ruft nicht ab ...
+    assert "heute schon" in zweite  # ... und sagt das
+    for name in ("zwei", "drei", "vier"):
+        abstand_vorbei()
+        client.force_login(mitglied_anlegen(name))
+        client.post(reverse("mitglieder:beitrag_gemeldet"))
+    assert len(abrufe) == Bankkopplung.ABRUFE_PRO_TAG - 1  # einer bleibt der Verwaltung
+    assert Bankkopplung.aktuelle().abruf_erlaubt()
+    abstand_vorbei()
+    assert bank.abgleich_ausfuehren() == (0, "ok")
+    assert len(abrufe) == Bankkopplung.ABRUFE_PRO_TAG
+
+
+@pytest.mark.parametrize("meldungen, vorbehalt, erwartet", [("2", "1", 2), ("1", "4", 0)])
+def test_meldungen_je_konto_und_vorbehalt_kommen_aus_dem_register(
+    client, settings, monkeypatch, meldungen, vorbehalt, erwartet
+):
+    from parameter.models import Parameter, erstbestand_sicherstellen
+
+    settings.DDOE_BANK_SECRET_ID = "x"
+    settings.DDOE_BANK_SECRET_KEY = "y"
+    Bankkopplung.objects.create(requisition_id="r1", institution_id="TEST", account_id="k1")
+    erstbestand_sicherstellen()
+    Parameter.objects.filter(schluessel="beitrag-meldungen-mit-abruf-je-konto").update(wert=meldungen)
+    Parameter.objects.filter(schluessel="beitrag-abruf-verwaltungsvorbehalt").update(wert=vorbehalt)
+    abrufe = []
+    monkeypatch.setattr(bank, "_get", lambda pfad, **params: abrufe.append(pfad) or {"transactions": {"booked": []}})
+    client.force_login(mitglied_anlegen("ungeduldig"))
+    for _ in range(2):
+        Bankkopplung.objects.update(zuletzt_abgerufen=timezone.now() - timedelta(hours=1))
+        client.post(reverse("mitglieder:beitrag_gemeldet"))
+    assert len(abrufe) == erwartet

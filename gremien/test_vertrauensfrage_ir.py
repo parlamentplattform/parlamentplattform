@@ -118,7 +118,10 @@ def test_die_karte_laedt_die_offenen_beschluesse_einmal_statt_je_zeile(client, o
     def beschluss_abfragen():
         with CaptureQueriesContext(connection) as erfasst:
             zeilen = _vertrauensfragen_zur_feststellung()
-        return zeilen, [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
+        alle = [q["sql"] for q in erfasst if "gremien_gremienbeschluss" in q["sql"]]
+        # Die Fortschreibung je Antrag fragt nach fälligen Beschlüssen DIESES Antrags, um sie nach ihrer
+        # Frist einzureihen (GP-004) — das gehört zu den lazy Phasen, nicht zur Abfrage der Karte.
+        return zeilen, [sql for sql in alle if 'AS "frist"' not in sql]
 
     zeilen, klein = beschluss_abfragen()
     assert len(zeilen) == 1 and zeilen[0]["beschluss"] is not None
@@ -701,3 +704,30 @@ def test_neben_einer_ruhenden_rolle_gibt_es_keine_zweite_berufung_im_selben_rat(
     assert Rolle.objects.filter(mitglied=leute[0], gremium=Gremium.INTEGRITAETSRAT).count() == 1
     assert "schon eine aktive Rolle (oder eine ruhende)" in antwort.content.decode()
     assert Rolle.hat(leute[0], Gremium.INTEGRITAETSRAT) is False
+
+
+def test_die_sperrfeststellung_schliesst_andere_beschluesse_mit_vermerk_und_audit(client, ordnung):  # noqa: F811
+    """GP-008, Rest: Die Sperrfeststellung schloss offene Beschlüsse zum selben Antrag stumm — sie standen
+    öffentlich als „ohne Ergebnis“ da und fehlten in der Audit-Kette. Jetzt wie bei der Zurückweisung:
+    Vermerk am Beschluss und ein Eintrag `gremienbeschluss_geschlossen` je Beschluss."""
+    leute = rat(3)
+    antrag, _vf = mit_hinweis(ordnung)
+    client.force_login(leute[0])
+    client.post(
+        reverse("gremien:integritaet_beschluss"),
+        {"anlass": Anlass.HERVORHEBUNG, "antrag": antrag.pk, "beschreibung": "Große Wirkung."},
+    )
+    offen = GremienBeschluss.objects.get(anlass=Anlass.HERVORHEBUNG, antrag=antrag)
+    sperre = feststellen(client, leute, antrag)
+    assert antrag.phase == "zurueckgewiesen"
+    offen.refresh_from_db()
+    assert offen.status == BeschlussStatus.OHNE_ERGEBNIS and offen.entschieden_am is not None
+    assert sperre.nummer in offen.umsetzungsvermerk and "Ohne Auswertung geschlossen" in offen.umsetzungsvermerk
+    assert [(e["beschluss"], e["grund"], e["durch_beschluss"]) for e in audit("gremienbeschluss_geschlossen")] == [
+        (offen.pk, "vertrauensfrage_sperre", sperre.pk)
+    ]
+    sperre.refresh_from_db()
+    assert sperre.zustand_vorher["geschlossene_beschluesse"] == [offen.pk]
+    client.logout()
+    einzel = client.get(reverse("gremien:beschluss", args=[offen.nummer])).content.decode()
+    assert sperre.nummer in einzel and "Zu wenige Stimmen oder Gleichstand" not in einzel

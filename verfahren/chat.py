@@ -13,12 +13,13 @@ Aus diesen Paaren baut das Panel „Meine Gespräche" seine Liste.
 from __future__ import annotations
 
 from django.db import IntegrityError, transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_noop
 
 from plattform_core import vorschlagschat
-from verfahren.models import AuditEintrag, Kommentar, Lesestand, Reaktion, Reaktionsart
+from verfahren.models import AuditEintrag, Kategorie, Kommentar, Lesestand, Meldung, Reaktion, Reaktionsart
 
 #: Rückfallwert; der gültige steht im Register unter „kritik-mindestzeichen" (FB-J2).
 KRITIK_MINDESTLAENGE = 80
@@ -36,10 +37,12 @@ def kritik_mindestzeichen() -> int:
 
 
 def chat_zeichen_hoechstzahl() -> int:
-    """Wie lang ein Beitrag sein darf — aus dem Register (FB-J2)."""
+    """Wie lang ein Beitrag sein darf — aus dem Register (FB-J2). Ein Wert unter 1 schnitte jeden
+    Beitrag ab (`text[:0]`, `text[:-1]`); dann gilt der Rückfallwert (GP-021)."""
     from parameter.models import zahl
 
-    return zahl("chat-zeichen-hoechstzahl", CHAT_ZEICHEN)
+    wert = zahl("chat-zeichen-hoechstzahl", CHAT_ZEICHEN)
+    return wert if wert >= 1 else CHAT_ZEICHEN
 
 
 def faden_wurzeln() -> int:
@@ -88,6 +91,15 @@ def leicht(qs, stichzeit=None) -> list[dict]:
 
 class ChatGesperrt(Exception):
     """Der Chat dieses Antrags nimmt gerade keine Beiträge an."""
+
+
+class BeitragZuLang(ValueError):
+    """Der Beitrag überschreitet die Zeichenhöchstzahl des Registers — er wird abgewiesen, nicht
+    still gekürzt (GP-083)."""
+
+    def __init__(self, hoechst: int):
+        super().__init__(f"Ein Beitrag darf höchstens {hoechst} Zeichen lang sein.")
+        self.hoechst = hoechst
 
 
 def entwurf_von(antrag):
@@ -160,6 +172,9 @@ def beitrag_schreiben(
         raise ChatGesperrt("Der Expertenrat arbeitet am Vorschlag — der Chat öffnet mit dem Vorschlag.")
     if not chat_offen(antrag):
         raise ChatGesperrt("Das Verfahren ist beendet — der Chat ist nur noch im Archiv lesbar.")
+    hoechst = chat_zeichen_hoechstzahl()
+    if len((text or "").strip()) > hoechst:
+        raise BeitragZuLang(hoechst)
     if ist_kritik:
         if abstimmungschat(antrag) is None:
             raise ValueError("Kritik am Vorschlag gibt es nur im Abstimmungs-Chat.")
@@ -179,7 +194,7 @@ def beitrag_schreiben(
     return Kommentar.objects.create(
         antrag=antrag,
         mitglied=mitglied,
-        text=text[: chat_zeichen_hoechstzahl()],
+        text=text,
         antwort_auf=wurzel,
         phase=chat_phase(antrag),
         erstellt_am=jetzt,
@@ -235,12 +250,18 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
     )
     gelesen_bis = None
     meine: dict[int, str] = {}
+    meine_meldungen: dict[int, Meldung] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, antrag=antrag).first()
         gelesen_bis = stand.gelesen_bis if stand else None
         meine = {
             r.kommentar_id: r.art
             for r in Reaktion.objects.aktive().filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+        }
+        # Der Stand der eigenen Meldung steht am Beitrag (GP-014): gemeldet am …, entschieden: …
+        meine_meldungen = {
+            m.kommentar_id: m
+            for m in Meldung.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
         }
 
     def schmuecken(k: Kommentar) -> dict:
@@ -254,6 +275,9 @@ def faden_fenster(antrag, nutzer=None, nach_engagement: bool = False, ab: int | 
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
             "eigener": nutzer is not None and k.mitglied_id is not None
             and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "meine_meldung": meine_meldungen.get(k.pk),
+            # Der Systembeitrag erscheint in der Sprache der Anzeige — auch wo er in einer anderen gespeichert ist
+            "systemtext": passt_alles_text() if k.system else "",
         }
 
     je_wurzel: dict[int, list[dict]] = {}
@@ -404,7 +428,11 @@ def gespraeche(nutzer, grenze: int | None = -1) -> list[dict]:
         .filter(mitglied__isnull=False, antwort_auf__mitglied__isnull=False)
         .exclude(Q(mitglied=nutzer) & Q(antwort_auf__mitglied=nutzer))  # Selbstgespräche zählen nicht
         .select_related("antrag", "mitglied", "antwort_auf__mitglied")
-        .prefetch_related("antrag__kategorien")
+        # Lebensbereiche samt Elternkette: `pfad_kurz` im Tooltip lädt sonst je Zeile nach (GP-053)
+        .prefetch_related(Prefetch(
+            "antrag__kategorien",
+            queryset=Kategorie.objects.select_related("eltern__eltern__eltern__eltern__eltern"),
+        ))
         .order_by("-erstellt_am")
     )
     staende = {
@@ -464,13 +492,18 @@ def sitzung_chat_offen(sitzung, jetzt=None) -> bool:
 
 def sitzung_beitrag_schreiben(sitzung, mitglied, text: str, antwort_auf=None, jetzt=None) -> Kommentar:
     """Der Schreibweg für den Chat einer Sitzung — dieselben Grenzen wie im Chat eines Antrags
-    (Registerwert der Zeichenzahl, ein Faden eine Ebene tief), Antworten nur auf Beiträge derselben Sitzung."""
+    (Registerwert der Zeichenzahl, ein Faden eine Ebene tief), Antworten nur auf Beiträge derselben Sitzung.
+    Ein zu langer Beitrag wird mit `BeitragZuLang` abgewiesen, nicht gekürzt (GP-083)."""
     jetzt = jetzt or timezone.now()
     if not sitzung_chat_offen(sitzung, jetzt):
         raise ChatGesperrt(_("Die Sitzung ist beendet — der Chat bleibt als Teil des Protokolls lesbar."))
     text = (text or "").strip()
     if not text:
         raise ValueError(_("Ein Beitrag braucht Text."))
+    hoechst = chat_zeichen_hoechstzahl()
+    if len(text) > hoechst:
+        # Abweisen statt still kürzen — wie im Chat eines Antrags (GP-083)
+        raise BeitragZuLang(hoechst)
     wurzel = None
     if antwort_auf is not None:
         if antwort_auf.sitzung_id != sitzung.pk:
@@ -479,7 +512,7 @@ def sitzung_beitrag_schreiben(sitzung, mitglied, text: str, antwort_auf=None, je
     return Kommentar.objects.create(
         sitzung=sitzung,
         mitglied=mitglied,
-        text=text[: chat_zeichen_hoechstzahl()],
+        text=text,
         antwort_auf=wurzel,
         phase=SITZUNG_PHASE,
         erstellt_am=jetzt,
@@ -491,15 +524,22 @@ def sitzung_faden(sitzung, nutzer=None) -> list[dict]:
     `neu` bezieht sich auf den Lesestand des Mitglieds zu dieser Sitzung (FB-G2)."""
     beitraege = list(sitzung.beitraege.select_related("mitglied").order_by("erstellt_am", "pk"))
     gelesen_bis = None
+    meine_meldungen: dict[int, Meldung] = {}
     if nutzer is not None and nutzer.is_authenticated:
         stand = Lesestand.objects.filter(mitglied=nutzer, sitzung=sitzung).first()
         gelesen_bis = stand.gelesen_bis if stand else None
+        # Der Stand der eigenen Meldung steht am Beitrag — wie im Chat eines Antrags (GP-014)
+        meine_meldungen = {
+            m.kommentar_id: m
+            for m in Meldung.objects.filter(mitglied=nutzer, kommentar_id__in=[k.pk for k in beitraege])
+        }
 
     def schmuecken(k: Kommentar) -> dict:
         return {
             "k": k,
             "neu": bool(gelesen_bis and k.erstellt_am > gelesen_bis and k.mitglied_id != getattr(nutzer, "pk", None)),
             "eigener": nutzer is not None and k.mitglied_id is not None and getattr(nutzer, "pk", None) == k.mitglied_id,
+            "meine_meldung": meine_meldungen.get(k.pk),
         }
 
     je_wurzel: dict[int, list[dict]] = {}
@@ -540,9 +580,14 @@ def als_beantwortet_markieren(beitrag, jetzt=None) -> bool:
 # ── Der Abstimmungs-Chat zum Vorschlag des Expertenrats (FB-G6) ──────────────────────────
 
 
+#: Der Wortlaut des Systembeitrags als deutsche Quelle: Gespeichert wird immer er, übersetzt wird
+#: beim Anzeigen — sonst stünde er in der Sprache des ersten Abrufs in der Datenbank (GP-079).
+PASST_ALLES = gettext_noop("✓ Passt alles — der Vorschlag kann so zur Endabstimmung.")
+
+
 def passt_alles_text() -> str:
-    """Der Wortlaut des Systembeitrags — hier, damit er an einer Stelle steht."""
-    return str(_("✓ Passt alles — der Vorschlag kann so zur Endabstimmung."))
+    """Der Wortlaut des Systembeitrags in der Sprache der Anzeige — hier, damit er an einer Stelle steht."""
+    return str(_(PASST_ALLES))
 
 
 def passt_alles_anlegen(antrag, entwurf, jetzt=None) -> Kommentar:
@@ -556,7 +601,7 @@ def passt_alles_anlegen(antrag, entwurf, jetzt=None) -> Kommentar:
     if vorhanden is not None:
         return vorhanden
     return Kommentar.objects.create(
-        antrag=antrag, mitglied=None, text=passt_alles_text(), phase=phase, system=True, erstellt_am=jetzt,
+        antrag=antrag, mitglied=None, text=PASST_ALLES, phase=phase, system=True, erstellt_am=jetzt,
     )
 
 

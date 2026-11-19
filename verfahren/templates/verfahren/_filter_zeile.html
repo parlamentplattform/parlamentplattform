@@ -17,7 +17,7 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
   {% if z.stat %}
   <div class="zs{% if z.stat.typ == 'beratung' or z.stat.typ == 'wartezeit' %} ohne{% endif %}">
     {% if z.stat.typ != "beratung" and z.stat.typ != "wartezeit" %}<span class="balken" aria-hidden="true"><b style="width:{{ z.stat.prozent }}%"></b></span>{% endif %}
-    <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% if z.abstimmung_ab %} · {% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% endif %}{% elif z.stat.typ == "wartezeit" %}{% if z.abstimmung_ab %}{% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% else %}{% translate "Abstimmung am siebten Tag nach Einbringung" %}{% endif %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
+    <span>{% if z.stat.typ == "unterstuetzung" %}{% blocktranslate with n=z.stat.n s=z.stat.schwelle %}{{ n }} von {{ s }} Unterstützungen{% endblocktranslate %}{% if z.abstimmung_ab %} · {% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% endif %}{% elif z.stat.typ == "wartezeit" %}{% if z.abstimmung_ab %}{% blocktranslate with ab=z.abstimmung_ab|date:"d.m.Y" %}Abstimmung ab {{ ab }}{% endblocktranslate %}{% else %}{% translate "Abstimmung am siebten Tag nach Einbringung" %}{% endif %}{% elif z.stat.typ == "abstimmung" %}{% blocktranslate with p=z.stat.prozent %}{{ p }} % Beteiligung{% endblocktranslate %}{% else %}{% blocktranslate count b=z.stat.beitraege %}{{ b }} Beitrag{% plural %}{{ b }} Beiträge{% endblocktranslate %}{% endif %}{% if z.frist_abgelaufen %} · {% translate "Frist abgelaufen, wird ausgewertet" %}{% elif z.resttage is not None %} · {% if z.resttage == 0 %}{% translate "Frist endet heute" %}{% else %}{% blocktranslate count t=z.resttage %}noch {{ t }} Tag{% plural %}noch {{ t }} Tage{% endblocktranslate %}{% endif %}{% endif %}</span>
   </div>
   {% else %}
   <div class="zs ohne"><span>{% blocktranslate with wann=z.antrag.phase_beginn|date:"d.m.Y" %}seit {{ wann }}{% endblocktranslate %}</span></div>
@@ -34,7 +34,9 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
   {% endif %}
   <div class="za">
     {% include "verfahren/_stern.html" with antrag=z.antrag %}
-    {% if z.stat.typ == "abstimmung" and not user.is_authenticated %}
+    {% if z.frist_abgelaufen %}
+      {# GP-175: Frist um, Fortschreibung steht aus — kein Knopf, der nichts mehr bewirken kann #}
+    {% elif z.stat.typ == "abstimmung" and not user.is_authenticated %}
       <a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
     {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}
       <a class="knopf gold" href="{% url 'verfahren:antrag' z.antrag.pk %}#bewerbungen">{% translate "Zur Wahl ›" %}</a>
@@ -65,7 +67,7 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
         <button id="u-filter-{{ z.antrag.pk }}" class="knopf{% if z.antrag.pk in meine_unterstuetzungen %} gewaehlt{% endif %}" aria-pressed="{% if z.antrag.pk in meine_unterstuetzungen %}true{% else %}false{% endif %}">{% if z.antrag.pk in meine_unterstuetzungen %}✓ {% translate "Unterstützt" %}{% else %}{% translate "Unterstützen" %}{% endif %}</button>
       </form>
     {% elif z.stat.typ == "beratung" %}
-      <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#beratung">{% translate "Mitreden" %}</a>
+      <a class="knopf" href="{% url 'verfahren:antrag' z.antrag.pk %}#zone-chat">{% translate "Mitreden" %}</a>
     {% endif %}
   </div>
   <span class="k-erfasst" role="status">✓ {% translate "Erfasst" %}</span>

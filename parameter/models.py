@@ -15,8 +15,8 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import DatabaseError, models, transaction
 from django.utils import timezone
+from django.utils.translation import gettext, gettext_noop
 from django.utils.translation import gettext_lazy as _
-from django.utils.translation import gettext_noop
 
 
 class Gruppe(models.TextChoices):
@@ -184,6 +184,74 @@ def zahl(schluessel: str, standard: int) -> int:
         return standard
 
 
+#: Einheit der Versionsschilder: Sie beschreiben die Fassung einer Regel und stellen nichts ein.
+REGELFASSUNG = "Regelfassung"
+
+#: Wertbereich je Stellgröße (Gesamtprüfung GP-021): nur Grenzen, die Erstbestand, Schema oder
+#: Zweck schon nennen — (kleinster, größter Wert), None = nach oben offen. Ohne Eintrag gilt der
+#: Typ allein: ganze Zahl ab 0. Einheit „0 oder 1“ und „Prozent“ tragen ihren Bereich selbst.
+WERTBEREICHE: dict[str, tuple[int, int | None]] = {
+    "faktenbasis-bestandsnachweis-hoechstzahl": (0, 10000),
+    "rechtsfolgen-eingabezeichen": (1, 100000),
+    "gegenueberstellung-zeitgrenze-sekunden": (1, 45),
+    "gegenueberstellung-hoechstpaare": (1, 20),
+    "gegenueberstellung-textzeichen": (1, 100000),
+    "quellenkontext-hoechstzahl": (0, 20),
+    "quellenkontext-textzeichen": (0, 20000),
+    "quellenkontext-mindestwortlaenge": (2, 12),
+    "quellenkontext-bestandsgrenze": (1, 2000),
+    "faktenbasis-seitengroesse": (1, 100),
+    "ki-einschaetzungen-je-seite": (1, 100),
+    "audit-seite-eintraege": (10, 500),
+    "live-takt-sekunden": (5, 300),
+    "live-hoechstdauer-stunden": (1, 72),
+    # Eine Höchstlänge 0 leert jeden neuen Beitrag; eine Wartefrist 0 ist laut Beschreibung
+    # eine Kontoübernahme. Fachliche Untergrenzen darüber entscheidet der Gründer.
+    "chat-zeichen-hoechstzahl": (1, None),
+    "adresswechsel-wartefrist-stunden": (1, None),
+    # Der Datenexport ist ein Recht (Art 15/20 DSGVO): Die Drossel begrenzt ihn, sperrt ihn aber nie.
+    "datenexport-je-stunde": (1, None),
+    # 0 sperrte jeden Abruf durch Meldungen, und die Meldung behauptete trotzdem „heute schon abgerufen“.
+    "beitrag-meldungen-mit-abruf-je-konto": (1, None),
+    # Mehr als das Tageskontingent der Bank (Bankkopplung.ABRUFE_PRO_TAG, PSD2: vier) lässt sich
+    # nicht vorbehalten; das Kontingent selbst ist eine Grenze der Maschine und bleibt im Code.
+    "beitrag-abruf-verwaltungsvorbehalt": (0, 4),
+}
+
+#: Bereich, den die Einheit selbst festlegt.
+EINHEIT_BEREICHE: dict[str, tuple[int, int | None]] = {"0 oder 1": (0, 1), "Prozent": (0, 100)}
+
+
+def wertbereich(schluessel: str, einheit: str) -> tuple[int, int | None] | None:
+    """Zulässiger Bereich eines Registerwerts als ganze Zahl; None bei einem Versionsschild."""
+    if einheit == REGELFASSUNG:
+        return None
+    return WERTBEREICHE.get(schluessel) or EINHEIT_BEREICHE.get(einheit) or (0, None)
+
+
+def wert_ausserhalb(eintrag: Parameter, text: str) -> str | None:
+    """Meldung, wenn `text` kein zulässiger Wert der Stellgröße ist — sonst None (GP-021)."""
+    bereich = wertbereich(eintrag.schluessel, eintrag.einheit)
+    if bereich is None:
+        return gettext(
+            "„%(schluessel)s“ ist ein Versionsschild und wird hier nicht eingestellt — der Wert bleibt unverändert."
+        ) % {"schluessel": eintrag.schluessel}
+    unten, oben = bereich
+    try:
+        zahl_wert = int(text)
+    except (TypeError, ValueError):
+        zahl_wert = None
+    if zahl_wert is not None and str(zahl_wert) == text and zahl_wert >= unten and (oben is None or zahl_wert <= oben):
+        return None
+    if oben is None:
+        return gettext(
+            "„%(schluessel)s“ nimmt nur ganze Zahlen ab %(unten)s — der Wert bleibt unverändert."
+        ) % {"schluessel": eintrag.schluessel, "unten": unten}
+    return gettext(
+        "„%(schluessel)s“ nimmt nur ganze Zahlen von %(unten)s bis %(oben)s — der Wert bleibt unverändert."
+    ) % {"schluessel": eintrag.schluessel, "unten": unten, "oben": oben}
+
+
 #: Kürzel interner Dokumente — sie gehören nicht in die öffentliche Quellenangabe.
 INTERNE_KENNUNGEN = ("F-6", "F-4", "F-2", "FB-", "A0-", "ADR-", "· L7", "Ring 0")
 
@@ -197,9 +265,14 @@ NEBENWOHNSITZ_BESCHREIBUNG_ALT = (
     "Stimmrecht ändert der Nebenwohnsitz nichts: Eine regionale Stimmberechtigung gibt es nicht "
     "(§ 5 Abs 6). Nur der Wert 1 schaltet ein; alles andere wirkt wie 0. Wirkt sofort."
 )
+SUCHTREFFER_BESCHREIBUNG_ALT = "Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
 ALTE_SYSTEMBESCHREIBUNGEN = {
     "ki-monatstokens": (KI_MONAT_BESCHREIBUNG_ALT, "KI-Startgrenze statt garantierter Geldobergrenze"),
     "region-nebenwohnsitz-zaehlt": (NEBENWOHNSITZ_BESCHREIBUNG_ALT, "Nebenwohnsitz nur in der Regionsanzeige"),
+    "suche-treffer-hoechstzahl": (SUCHTREFFER_BESCHREIBUNG_ALT, "Alle Wirkungen der Trefferzahl beschrieben"),
+    "anstoss-tagesgrenze": (
+        "Wie viele Anstöße eine Person am Tag senden kann.", "Tages- und Stundengrenze der Anstöße beschrieben"
+    ),
 }
 
 ERSTBESTAND = [
@@ -494,7 +567,10 @@ ERSTBESTAND = [
         "wert": "24",
         "einheit": gettext_noop("Treffer"),
         "gruppe": "faecher",
-        "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."),
+        "beschreibung": gettext_noop("Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt. "
+        "Derselbe Wert ist die Seitengröße der Gemeindesuche und der öffentlichen Listen der "
+        "Gemeindemandate: Ratsinitiativen, Projektstände, Haushaltslinks und Sitzungsunterlagen; dort "
+        "wirkt ein Wert unter 1 wie 1. Wirkt sofort."),
         "quelle": "§ 5 Abs 10 lit a",
     },
     {
@@ -547,7 +623,9 @@ ERSTBESTAND = [
         "wert": "20",
         "einheit": gettext_noop("Anstöße"),
         "gruppe": "schutz",
-        "beschreibung": gettext_noop("Wie viele Anstöße eine Person am Tag senden kann."),
+        "beschreibung": gettext_noop("Wie viele Anstöße eine Person (Sitzung im Browser) am Tag senden kann. "
+        "Derselbe Wert begrenzt zusätzlich die Anstöße je Verbindung und Stunde — alle, die sich eine "
+        "Adresse teilen, teilen sich auch diese Grenze, auch ohne Sitzungscookie. Wirkt sofort."),
         "quelle": "§ 5 Abs 10 lit b",
     },
     {
@@ -849,6 +927,36 @@ ERSTBESTAND = [
         "eine Beitragserinnerung beauftragen kann. Die Erinnerung geht nur mit E-Mail-Einwilligung, nie an "
         "Testkonten und höchstens einmal je Kalenderjahr; die Höhe des Beitrags bleibt Selbsteinschätzung."),
         "quelle": "§ 4 Abs 3 · Anweisung des Gründers 28.9.2026",
+    },
+    {
+        "schluessel": "beitrag-meldungen-mit-abruf-je-konto",
+        "wert": "1",
+        "einheit": gettext_noop("Meldungen je Tag"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie oft je Kalendertag die Meldung „Ich habe überwiesen“ desselben Kontos "
+        "einen Kontoabruf bei der Bank auslöst. Weitere Meldungen am selben Tag rufen nicht ab und sagen das; "
+        "der Eingang wird beim nächsten Abgleich erkannt. Mindestens 1. Wirkt sofort."),
+        "quelle": "§ 4 Abs 3 · Tageskontingent des Bankabrufs",
+    },
+    {
+        "schluessel": "beitrag-abruf-verwaltungsvorbehalt",
+        "wert": "1",
+        "einheit": gettext_noop("Abrufe je Tag"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie viele der vier Kontoabrufe, die die Bank je Tag erlaubt, der Verwaltung "
+        "vorbehalten bleiben. Meldungen „Ich habe überwiesen“ lösen nur Abrufe aus, solange darüber hinaus "
+        "noch Abrufe frei sind; bei 4 löst keine Meldung einen Abruf aus. 0 bis 4. Wirkt sofort."),
+        "quelle": "§ 4 Abs 3 · Tageskontingent des Bankabrufs",
+    },
+    {
+        "schluessel": "datenexport-je-stunde",
+        "wert": "10",
+        "einheit": gettext_noop("Aufrufe je Stunde"),
+        "gruppe": "schutz",
+        "beschreibung": gettext_noop("Wie oft ein Konto je Kalenderstunde seine eigenen Daten herunterladen kann. "
+        "Jeder Abruf steht im öffentlichen Audit-Log; die Grenze hält ein einzelnes Konto davon ab, die "
+        "Audit-Kette mit Exportzeilen zu füllen. Mindestens 1 — der Export bleibt immer möglich. Wirkt sofort."),
+        "quelle": "Art 15 und Art 20 DSGVO · Schutz der öffentlichen Audit-Kette",
     },
     {
         "schluessel": "post-hoechstversuche",

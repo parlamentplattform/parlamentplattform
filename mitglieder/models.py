@@ -53,7 +53,7 @@ class Mitgliedsstatus(models.TextChoices):
     """Stand der Mitgliedschaft (F-51). „pausiert“ lässt Lesen und Anmelden zu,
     Mitwirkungsrechte (einbringen, unterstützen, beraten, abstimmen) ruhen,
     bis der Mitgliedsbeitrag wieder eingegangen ist (§ 4 Abs 3).
-    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 6).
+    „ausgeschlossen“ setzt zusätzlich das Konto inaktiv (§ 4 Abs 5).
     „ausgetreten“ ist der selbst erklärte Austritt (§ 4 Abs 5): Konto inaktiv, Stammdaten
     geleert, Beiträge zu Verfahren bleiben stehen — nichts wird gelöscht, was ein Verfahren
     betrifft."""
@@ -403,6 +403,14 @@ class Mitglied(AbstractUser):
         und endet, sobald `Mandat.beendet` gesetzt ist. Kein Gremium, keine Rollen-Zeile."""
         return self.parteikonto and self.is_authenticated and self.aktive_mandate.exists()
 
+    @property
+    def hat_mandatsbereich(self) -> bool:
+        """Darf den Bereich „Mein Mandat“ öffnen: offenes Mandat oder beendetes, dessen Nachfrist
+        noch läuft (`Mandat.zugaenglich_von`) — danach richtet sich der Menüpunkt (GP-104)."""
+        from mandatare.models import Mandat
+
+        return self.parteikonto and self.is_authenticated and Mandat.zugaenglich_von(self).exists()
+
 
 class Gemeindezugang(models.Model):
     """Private freiwillige Anmeldung, keine Parteiaufnahme oder Stimmfreischaltung."""
@@ -536,52 +544,74 @@ class Adresswechsel(models.Model):
         )  # bewusst ohne Adressen: Das Audit-Log ist öffentlich (F-22)
 
     def bestaetigen(self, durch) -> bool:
-        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller."""
+        """Vier-Augen: nur ein ANDERER Admin als der Antragsteller.
+
+        Wie beim Wirksammachen (GP-211): entschieden wird erst nach der Sperre und dem Neuladen;
+        Bestätigung und Audit-Eintrag gelingen gemeinsam oder gar nicht."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
-            return False
-        self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
-        self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
-        self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
+        with transaction.atomic():
+            self._sperren()
+            if self.status != self.Status.OFFEN or durch.pk == self.beantragt_von_id or self.bestaetigt_von_id:
+                return False
+            self.bestaetigt_von, self.bestaetigt_am = durch, timezone.now()
+            self.save(update_fields=["bestaetigt_von", "bestaetigt_am"])
+            self._protokollieren("email_geaendert_bestaetigt", durch=durch.pk)
         return True
+
+    def _sperren(self) -> None:
+        """Sperrt die Zeile bis zum Ende der Transaktion und übernimmt ihren aktuellen Stand (GP-211):
+        Hintergrundlauf und Seitenaufruf können denselben Wechsel gleichzeitig anwenden, jeder mit
+        einem schon geladenen Stand — entschieden wird erst nach der Sperre."""
+        list(type(self).objects.select_for_update().filter(pk=self.pk).values_list("pk", flat=True))
+        self.refresh_from_db(fields=["status", "erledigt_am", "bestaetigt_von", "bestaetigt_am", "frist_bis"])
 
     def widerrufen(self, anlass: str, durch=None) -> bool:
         """Einspruch des Mitglieds („einspruch“) oder Abbruch durch einen Admin („abbruch“)."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if self.status != self.Status.OFFEN:
-            return False
-        self.status, self.erledigt_am = self.Status.WIDERRUFEN, timezone.now()
-        self.save(update_fields=["status", "erledigt_am"])
-        extra = {"anlass": anlass}
-        if durch is not None:
-            extra["durch"] = durch.pk
-        self._protokollieren("email_geaendert_widerrufen", **extra)
+        with transaction.atomic():
+            self._sperren()
+            if self.status != self.Status.OFFEN:
+                return False
+            self.status, self.erledigt_am = self.Status.WIDERRUFEN, timezone.now()
+            self.save(update_fields=["status", "erledigt_am"])
+            extra = {"anlass": anlass}
+            if durch is not None:
+                extra["durch"] = durch.pk
+            self._protokollieren("email_geaendert_widerrufen", **extra)
         return True
 
     def wirksam_machen(self) -> bool:
         """Macht die neue Adresse zur Anmeldeadresse — nur wenn Frist um, zweiter Admin
-        bestätigt hat und weder der fixe Admin betroffen ist noch seine Adresse vergeben wird."""
+        bestätigt hat und weder der fixe Admin betroffen ist noch seine Adresse vergeben wird.
+
+        Konto, Status und Audit-Eintrag gelingen gemeinsam oder gar nicht, und ein zweiter Lauf
+        über denselben Wechsel findet ihn erledigt (GP-211)."""
+        from django.db import transaction
         from django.utils import timezone
 
-        if not self.ist_faellig:
-            return False
-        m = self.mitglied
-        fix = getattr(settings, "DDOE_FIX_ADMIN", "").lower()
-        vergeben = Mitglied.objects.filter(email__iexact=self.neue_email).exclude(pk=m.pk).exists()
-        if m.ist_fixer_admin or self.neue_email == fix or vergeben:
-            self.widerrufen("nicht_zulaessig")
-            return False
-        felder = ["email"]
-        if m.username == m.email:
-            m.username = self.neue_email  # Registrierte führen die Adresse als Anmeldenamen
-            felder.append("username")
-        m.email = self.neue_email
-        m.save(update_fields=felder)
-        self.status, self.erledigt_am = self.Status.WIRKSAM, timezone.now()
-        self.save(update_fields=["status", "erledigt_am"])
-        self._protokollieren("email_geaendert_wirksam")
+        with transaction.atomic():
+            self._sperren()
+            if not self.ist_faellig:
+                return False
+            m = self.mitglied = Mitglied.objects.select_for_update().get(pk=self.mitglied_id)
+            fix = getattr(settings, "DDOE_FIX_ADMIN", "").lower()
+            vergeben = Mitglied.objects.filter(email__iexact=self.neue_email).exclude(pk=m.pk).exists()
+            if m.ist_fixer_admin or self.neue_email == fix or vergeben:
+                self.widerrufen("nicht_zulaessig")
+                return False
+            felder = ["email"]
+            if m.username == m.email:
+                m.username = self.neue_email  # Registrierte führen die Adresse als Anmeldenamen
+                felder.append("username")
+            m.email = self.neue_email
+            m.save(update_fields=felder)
+            self.status, self.erledigt_am = self.Status.WIRKSAM, timezone.now()
+            self.save(update_fields=["status", "erledigt_am"])
+            self._protokollieren("email_geaendert_wirksam")
         return True
 
     @classmethod
@@ -606,7 +636,7 @@ class Drosselzaehler(models.Model):
     zwei Eimer, und ein Neustart setzt den Stand auf null. Keine Verfahrensdaten —
     Zeilen älter als zwei Stunden räumt `drossel_zuviel` im Vorbeigehen ab. Die
     Kennung ist die Verbindungsadresse (bei Drosseln je Konto „konto:<pk>“); gespeichert
-    wird sie nur für diese Stunde."""
+    wird sie nur für diese Stunde — Tageszähler je Konto (`botschutz.TAGESZWECKE`) zwei Tage."""
 
     zweck = models.CharField(max_length=30)
     kennung = models.CharField(max_length=64)
@@ -710,11 +740,15 @@ class Bankkopplung(models.Model):
     def aktuelle(cls):
         return cls.objects.filter(aktiv=True, account_id__gt="").first()
 
-    def abruf_erlaubt(self) -> bool:
+    def abruf_erlaubt(self, vorbehalt: int = 0) -> bool:
+        """`vorbehalt`: so viele Abrufe des Tages bleiben anderen vorbehalten (GP-101: der Verwaltung)."""
         from django.utils import timezone
 
         heute = timezone.localdate()
-        return self.abruf_tag != heute or self.abrufe_heute < self.ABRUFE_PRO_TAG
+        # Auch der erste Abruf des Tages zählt gegen den Vorbehalt: Seit er ein Registerwert ist, kann
+        # er das ganze Kontingent umfassen.
+        bisher = self.abrufe_heute if self.abruf_tag == heute else 0
+        return bisher < self.ABRUFE_PRO_TAG - vorbehalt
 
     def abruf_vermerken(self) -> None:
         from django.utils import timezone
@@ -797,17 +831,25 @@ def beitrag_verbuchen(mitglied: Mitglied, eingang, namens_ok: bool) -> bool:
 
     from mitglieder.mail import send_mail
 
-    try:  # Bestätigung ist Höflichkeit, keine Bedingung — Verbuchung steht bereits.
-        send_mail(
-            "Ihr Mitgliedsbeitrag ist eingegangen",
-            "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
-            "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
-            "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
-            settings.DEFAULT_FROM_EMAIL,
-            [mitglied.email],
-        )
-    except OSError:
-        pass
+    empfaenger = mitglied.email
+
+    def bestaetigen():
+        try:  # Bestätigung ist Höflichkeit, keine Bedingung.
+            send_mail(
+                "Ihr Mitgliedsbeitrag ist eingegangen",
+                "Danke! Ihr Beitrag wurde Ihrem Konto zugeordnet — Ihre Mitwirkungsrechte "
+                "sind damit aktiv. Den Stand sehen Sie jederzeit unter "
+                "https://parlament.ddoe.at/beitrag/\n\nDirekte Demokratie Österreich",
+                settings.DEFAULT_FROM_EMAIL,
+                [empfaenger],
+            )
+        except OSError:
+            pass
+
+    # GP-102: Läuft die Verbuchung in einer äußeren Klammer (Auszug-Upload samt Audit), steht sie
+    # hier noch nicht fest. Die Bestätigung geht erst nach dem Festschreiben hinaus; wird die
+    # Klammer zurückgenommen, entfällt sie.
+    transaction.on_commit(bestaetigen)
     if freigeschaltet:
         # Eigener Brief (FB-K7): Prüfung abgeschlossen, Stimmrecht ab wann — einmal je Konto.
         from mitglieder.post import freischaltung_senden

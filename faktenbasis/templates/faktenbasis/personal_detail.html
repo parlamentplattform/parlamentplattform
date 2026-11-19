@@ -17,7 +17,7 @@
   <p>{% translate "Originaldatei-Prüfsumme (SHA-256)" %}: <code class="fakten-hash">{{ aggregat.original_sha256 }}</code></p>
   <p class="meta">{% translate "Textauswertung, Fassung" %}: {{ aggregat.parser_fassung }} · {% translate "Erstmals erfasst" %}: {{ aggregat.erfasst_am|date:"d.m.Y H:i" }}</p>
   <p><a href="{% url 'faktenbasis:personal_nachweis' aggregat.pk %}">{% translate "Aggregat mit Herkunft als JSON herunterladen" %}</a></p>
-  <p class="hilfe">{% translate "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Diese Angaben werden noch nicht automatisch in Modellaufträge übernommen." %}</p>
+  <p class="hilfe">{% translate "Die Übernahme nutzt den bekannten Originalbeleg und eine feste Tabellenregel. Neue Rechtsfolgenaufträge der Zukunftswerkstatt erhalten diese Angaben als Bestandsrahmen; laufende Aufträge und frühere Einschätzungen bleiben unverändert." %}</p>
 </div>
 <details class="karte"><summary>{% translate "Abrufe dieses Belegs nachlesen" %}</summary>
 <p class="meta">{% translate "Jüngster Abruf zuerst; auch unveränderte Wiederholungen bleiben nachlesbar." %}</p>

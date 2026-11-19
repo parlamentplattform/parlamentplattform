@@ -10,6 +10,7 @@ Menschen). Ohne JavaScript vollständig bedienbar.
 {% endcomment %}
 <h1>{% translate "Integritätsrat" %}</h1>
 {% include "gremien/_rollenband.html" %}
+{% if not darf_stimmen and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
 <p class="erk">{% translate "Die jährliche Prüfung der automatisierten Regeln (§ 2 Abs 6) stützt sich auf das öffentliche Regelverzeichnis." %}
   <a href="{% url 'parameter:regeln' %}">{% translate "Die Regeln der Plattform →" %}</a>
   · <a href="{% url 'gremien:integritaet_bericht' jahr %}">{% blocktranslate with j=jahr %}Öffentlicher Bericht {{ j }} →{% endblocktranslate %}</a>
@@ -19,6 +20,7 @@ Menschen). Ohne JavaScript vollständig bedienbar.
 <div class="band-gold">{% blocktranslate with a=aktive m=mindestbesetzung %}Der Rat ist mit {{ a }} von mindestens {{ m }} Mitgliedern besetzt (§ 6 Abs 3 lit a). Beschlüsse lassen sich anlegen und abstimmen — Wirkung entfalten sie erst, wenn der Rat satzungsgemäß besetzt ist.{% endblocktranslate %}</div>
 {% endif %}
 
+{% if darf_stimmen %}
 <div class="karte">
   <p class="phasen-titel">{% translate "Beschluss anlegen" %}</p>
   <p class="erk">{% blocktranslate %}Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage — beantwortet wird sie
@@ -38,6 +40,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     </p>
   </form>
 </div>
+{% endif %}
 
 <div class="karte feststellung">
   <p class="phasen-titel">{% translate "Vertrauensfragen · Sperre feststellen" %} <span class="chip klein">{% translate "§ 7 Abs 10 lit b und g" %}</span></p>
@@ -80,15 +83,29 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   {% endfor %}
 </div>
 
-<div class="karte" style="margin-top:16px">
+{% comment %}Die Klasse „feststellung“ trägt Abstand, Zeilenbreite und Formularmaße der Karte darüber —
+dieselbe Gestalt: je Zeile ein Antrag mit dem Formular für genau den Beschluss, der zu ihm gehört.{% endcomment %}
+<div class="karte feststellung">
   <p class="phasen-titel">{% translate "Zurückgewiesen" %}</p>
   <p class="erk">{% translate "Eine Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2). Wird ihr stattgegeben, hebt der Rat sie hier auf — der Antrag setzt seine Phase mit der Restfrist fort, die er hatte." %}</p>
   {% for a in zurueckgewiesen %}
-  <div class="zeile"><span style="width:100%">
+  <div class="zeile"><span>
     <a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a>
     {% if a.pk in nicht_eroeffnet %}<span class="chip klein">{% translate "nicht eröffnet (§ 7 Abs 10 lit b)" %}</span>{% endif %}
     {% if a.zurueckweisung_begruendung %}<br><span class="meta">{{ a.zurueckweisung_begruendung }}</span>{% endif %}
-    {% if a.pk in nicht_eroeffnet %}<br><span class="meta">{% translate "Eine Aufhebung dieser Feststellung durch das Parteischiedsgericht (§ 7 Abs 10 lit h) lässt sich hier noch nicht eintragen." %}</span>{% endif %}
+    {% if a.pk in nicht_eroeffnet %}<br><span class="meta">{% translate "Eine Aufhebung dieser Feststellung durch das Parteischiedsgericht (§ 7 Abs 10 lit h) lässt sich hier noch nicht eintragen." %}</span>
+    {% elif a.aufhebung_beschluss %}
+    <br><span class="meta">{% translate "Aufhebungsbeschluss läuft:" %} <a href="{% url 'gremien:beschluss' a.aufhebung_beschluss.nummer %}">{{ a.aufhebung_beschluss.nummer }}</a></span>
+    {% elif darf_stimmen %}
+    <form method="post" action="{% url 'gremien:integritaet_beschluss' %}">{% csrf_token %}
+      <input type="hidden" name="antrag" value="{{ a.pk }}">
+      <input type="hidden" name="anlass" value="zurueckweisung_aufheben">
+      <label for="aufhebung-{{ a.pk }}" class="meta">{% translate "Begründung der Aufhebung (wird veröffentlicht)" %}</label>
+      <textarea id="aufhebung-{{ a.pk }}" name="beschreibung" required></textarea>
+      <p class="knopfzeile"><button type="submit" class="btn-linie klein">{% translate "Aufhebungsbeschluss anlegen" %}</button>
+      <span class="meta">{% translate "entschieden wird danach, mit Mehrheit des Rates" %}</span></p>
+    </form>
+    {% endif %}
   </span></div>
   {% empty %}
   <p class="leer">{% translate "Kein Antrag ist zurückgewiesen." %}</p>
@@ -103,7 +120,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
     <span class="chip klein{% if not z.laeuft %} still{% endif %}">{{ z.aussetzung.get_gegenstand_display }}</span>
     <br><span class="meta"><a href="{% url 'gremien:beschluss' z.aussetzung.beschluss.nummer %}">{{ z.aussetzung.beschluss.nummer }}</a>
       · {% blocktranslate with d=z.aussetzung.beginn|date:"d.m.Y H:i" %}seit {{ d }}{% endblocktranslate %}
-      {% if z.laeuft %}· {% blocktranslate with f=z.aussetzung.frist|date:"d.m.Y H:i" %}Antrag ans Schiedsgericht bis {{ f }}{% endblocktranslate %}{% else %}· {{ z.stand }}{% endif %}</span>
+      {% if z.laeuft and z.aussetzung.schiedsgericht_am %}· {% blocktranslate with d=z.aussetzung.schiedsgericht_am|date:"d.m.Y" %}beim Parteischiedsgericht seit {{ d }}{% endblocktranslate %}{% elif z.laeuft %}· {% blocktranslate with f=z.aussetzung.frist|date:"d.m.Y H:i" %}Antrag ans Schiedsgericht bis {{ f }}{% endblocktranslate %}{% else %}· {{ z.stand }}{% endif %}</span>
     {% if z.aussetzung.schiedsgericht_kennung %}<br><span class="meta">{% translate "Beim Parteischiedsgericht:" %} {{ z.aussetzung.schiedsgericht_kennung }}</span>{% endif %}
     {% if z.laeuft and not z.aussetzung.schiedsgericht_am and darf_stimmen %}
     <form method="post" action="{% url 'gremien:integritaet_schiedsgericht' z.aussetzung.pk %}" style="margin-top:6px">{% csrf_token %}
@@ -124,7 +141,7 @@ Beschlussnummer am Antrag.{% endblocktranslate %}</p>
   <div class="zeile"><span style="width:100%">
     <strong>{{ p.jahr }}</strong> · <a href="{% url 'gremien:beschluss' p.beschluss.nummer %}">{{ p.beschluss.nummer }}</a>
     <span class="meta">· {% blocktranslate with n=p.stand|length v=p.verzeichnis_fassung %}{{ n }} Regeln, Verzeichnis Fassung {{ v }}{% endblocktranslate %}</span>
-    <br><span class="meta">{% if p.geprueft_am %}{{ p.get_ergebnis_display }} · {{ p.geprueft_am|date:"d.m.Y" }}{% if p.vermerk %} — {{ p.vermerk }}{% endif %}{% else %}{% translate "läuft — der Rat stimmt ab" %}{% endif %}</span>
+    <br><span class="meta">{% if p.geprueft_am %}{{ p.get_ergebnis_display }} · {{ p.geprueft_am|date:"d.m.Y" }}{% if p.vermerk %} — {{ p.vermerk }}{% endif %}{% elif p.beschluss.offen %}{% translate "läuft — der Rat stimmt ab" %}{% else %}{{ p.beschluss.get_status_display }}{% endif %}</span>
   </span></div>
   {% empty %}
   <p class="leer">{% translate "Noch keine Prüfung verzeichnet." %}</p>

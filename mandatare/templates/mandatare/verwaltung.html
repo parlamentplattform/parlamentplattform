@@ -155,6 +155,7 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
       <form method="post" action="{% url 'mandatare:verwaltung_aktion' %}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px">{% csrf_token %}
         <input type="hidden" name="aktion" value="entscheidung"><input type="hidden" name="vertrauensfrage" value="{{ vf.pk }}">
         <span>{% translate "Entscheidung des Parteischiedsgerichts:" %}</span>
+        <label>{% translate "Entschieden am" %} <input type="date" name="datum" value="{{ heute|date:'Y-m-d' }}"></label>
         <button type="submit" class="btn-linie" name="entscheidung" value="aufgehoben">{% translate "aufgehoben" %}</button>
         <button type="submit" class="btn-linie" name="entscheidung" value="bestaetigt">{% translate "bestätigt" %}</button>
       </form>

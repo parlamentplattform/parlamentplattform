@@ -180,7 +180,8 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     """Der Zustand der Karte „Betroffene Gesetze“ in Zone 2:
 
     - `nicht_angeschlossen`: kein Anbieter am Steckplatz — es wird nichts gerechnet.
-    - `wartet`: Auftrag in der Warteschlange (mit Platz), noch kein Ergebnis.
+    - `wartet`: Auftrag in der Warteschlange (mit Platz), noch kein Ergebnis; `wartegrund` nennt ein
+      erschöpftes Monatsbudget oder Tageskontingent und ab wann wieder gerechnet wird.
     - `erledigt`: Ergebnis liegt vor.
     - `gescheitert`: der Auftrag hat alle Versuche aufgebraucht.
     - `keiner`: nichts eingereiht (Altbestand, Kandidaturen).
@@ -194,7 +195,7 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     from ki.anbieter import anbieter_waehlen
     from ki.models import Auftragsstatus, KIAuftrag, KILauf, Zweck
     from ki.nachlese import quellenstand
-    from ki.warteschlange import platz_in_der_schlange
+    from ki.warteschlange import platz_in_der_schlange, wartegrund
     from parameter.models import zahl
 
     auftrag = KIAuftrag.objects.filter(antrag=antrag, zweck__in=(Zweck.RECHTSBEZUG, Zweck.RECHTSFOLGEN)).select_related("lauf").order_by("-erstellt_am", "-pk").first()
@@ -219,7 +220,12 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
     if ergebnis:
         laeufe = laeufe.exclude(pk=ergebnis["lauf"].pk)
     historie = Paginator(laeufe, max(1, min(100, zahl("ki-einschaetzungen-je-seite", 20)))).get_page(seite)
-    historie.object_list = [e for lauf in historie.object_list if (e := rechtsbezug_fuer(antrag, lauf, ziel=ziel)) is not None]
+    # Ein nicht eindeutig gebundener Lauf bleibt als eigene Zeile ohne Antwort stehen — nach der
+    # Seitenbildung herausgefiltert, ließe er leere Seiten mit vollem Seitenzähler zurück (GP-208).
+    historie.object_list = [
+        rechtsbezug_fuer(antrag, lauf, ziel=ziel) or {"lauf": lauf, "stand": lauf.erstellt_am, "nicht_pruefbar": True}
+        for lauf in historie.object_list
+    ]
     steller = getattr(antrag, "eingebracht_von", None)
     mail_zusage = bool(
         betrachter is not None
@@ -242,6 +248,7 @@ def rechtsbezug_lage(antrag, betrachter=None, seite=None) -> dict:
         "auftrag": auftrag,
         "ergebnis": ergebnis,
         "platz": platz_in_der_schlange(auftrag) if zustand == "wartet" else None,
+        "wartegrund": wartegrund() if zustand == "wartet" else None,
         "mail_zusage": mail_zusage and zustand == "wartet",
         "angeschlossen": angeschlossen,
         "historie": historie,

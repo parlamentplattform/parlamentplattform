@@ -15,20 +15,23 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from math import ceil
 
+from django.db.models import F
 from django.utils import timezone
 
 from ki.anbieter import SteckplatzStumm, anbieter_waehlen
+from ki.betriebszugang import SteckplatzWartet
 from ki.models import einbettung_ausfuehren
 from parameter.models import zahl
 from plattform_core import Phase
 from plattform_core.similarity import aehnlichkeit, kosinus, vereinigen
-from verfahren.models import Antrag, AntragsEinbettung
+from verfahren.models import Antrag, Antragsart, AntragsEinbettung
 
 log = logging.getLogger(__name__)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+#: Personenanträge — sie bleiben außerhalb der Bedeutungsstufe (GP-023).
+PERSONENARTEN = (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE)
 EINBETTUNGEN_JE_AUFRUF_STANDARD = 20
 #: Zeitgrenze (Sekunden je Socket-Operation) für den Anbieter-Aufruf in der Anfrage „Einbringen“ —
 #: Erstbestand und Rückfall des Registerwerts „aehnlichkeit-zeitgrenze-sekunden“ (Entscheidung des
@@ -60,6 +63,17 @@ class Ergebnis:
     @property
     def bedeutung_aktiv(self) -> bool:
         return bool(self.bedeutungsmodell)
+
+
+def drossel_zuruecknehmen(zweck: str, kennung: str) -> None:
+    """Einen gezählten Versuch zurücknehmen, der den Anbieter nie erreicht hat (`SteckplatzWartet`:
+    Zugang belegt, kein Anbieter, Budget erschöpft) — die Stundengrenze je Konto zählt Anbieteraufrufe,
+    nicht Wartezeit (GP-207). Trifft den jüngsten Eimer dieses Zwecks und dieser Kennung."""
+    from mitglieder.models import Drosselzaehler
+
+    zeile = Drosselzaehler.objects.filter(zweck=zweck, kennung=kennung, anzahl__gt=0).order_by("-stunde").first()
+    if zeile is not None:
+        Drosselzaehler.objects.filter(pk=zeile.pk, anzahl__gt=0).update(anzahl=F("anzahl") - 1)
 
 
 def _fassung(antrag: Antrag):
@@ -101,7 +115,8 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
     from mitglieder.botschutz import drossel_zuviel
 
     je_stunde = max(0, zahl("aehnlichkeit-bedeutung-je-stunde", BEDEUTUNG_JE_KONTO_UND_STUNDE))
-    if drossel_zuviel(None, "bedeutung", je_stunde, kennung=f"konto:{mitglied.pk}"):
+    kennung = f"konto:{mitglied.pk}"
+    if drossel_zuviel(None, "bedeutung", je_stunde, kennung=kennung):
         ergebnis.gedrosselt = True
         ergebnis.bedeutung_grund = "Anbieteraufrufe dieses Kontos für diese Stunde verbraucht"
         return {}
@@ -112,6 +127,8 @@ def _bedeutung(neuer_text: str, offene: list[Antrag], mitglied, ergebnis: Ergebn
             zeitgrenze=max(1, zahl("aehnlichkeit-zeitgrenze-sekunden", ZEITGRENZE_ANFRAGE_SEKUNDEN)),
         )
     except SteckplatzStumm as grund:
+        if isinstance(grund, SteckplatzWartet):
+            drossel_zuruecknehmen("bedeutung", kennung)
         ergebnis.bedeutung_grund = str(grund)
         log.info("Bedeutungsstufe übersprungen: %s", grund)
         return {}
@@ -139,7 +156,11 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
         a.pk: aehnlichkeit((titel, wortlaut), (a.titel, _fassung(a).wortlaut if _fassung(a) else ""))
         for a in offene
     }
-    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", offene, mitglied, ergebnis) if bedeutung else {}
+    # Über Personen rechnet keine Maschine (FB-F4, ADR-011): Titel und Wortlaut von Kandidaturen und
+    # Vertrauensfragen gehen nie an den Anbieter, und ihre Vektoren werden nicht gelesen. Der
+    # Wortvergleich oben rechnet ohne Modell und bleibt für alle offenen Anträge.
+    sachlich = [a for a in offene if a.art not in PERSONENARTEN]
+    bedeutungswerte = _bedeutung(f"{titel}\n{wortlaut}", sachlich, mitglied, ergebnis) if bedeutung else {}
     zeilen = vereinigen(
         wortwerte,
         bedeutungswerte,
@@ -148,8 +169,9 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
         limit=zahl("aehnlichkeit-treffer", 3),
     )
     nach_id = {a.pk: a for a in offene}
+    jetzt = timezone.now()
     for kid, wort, bedeutung in zeilen:
-        from verfahren.views import _frist_fuer
+        from verfahren.views import _frist_fuer, resttage
 
         antrag = nach_id[kid]
         rechtsbezug = rechtsbezug_fuer(antrag)
@@ -160,7 +182,9 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
                 "prozent": round(wort * 100),
                 "bedeutung_prozent": round(bedeutung * 100) if bedeutung is not None else None,
                 "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
-                "rest_tage": max(0, ceil((frist - timezone.now()).total_seconds() / 86400)) if frist else None,
+                # GP-175: dieselbe Rechnung wie Kachel und Zeile (Wiener Kalendertage, 0 = endet heute)
+                "rest_tage": resttage(frist, jetzt),
+                "frist_abgelaufen": frist is not None and frist <= jetzt,
                 "normen": rechtsbezug["normen"] if rechtsbezug else [],
                 "rechtsbezug": rechtsbezug,
             }

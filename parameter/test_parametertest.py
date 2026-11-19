@@ -215,12 +215,14 @@ def test_ordnungsschluessel_lassen_sich_nicht_testen(client, korat):
 def test_ein_laufendes_verfahren_bleibt_unberuehrt(client, korat, ordnung):  # noqa: F811
     """§ 5 Abs 5, § 6 Abs 11 lit c: Tests dürfen laufende Verfahren nicht berühren.
 
-    Ein Test setzt einen Registerwert; die Ordnung eines Antrags ist beim Einbringen eingefroren
-    und liest das Register nie wieder — der Test kann sie deshalb gar nicht erreichen."""
+    Zwei Sicherungen (D-J3g): Die Ordnung eines Antrags ist beim Einbringen eingefroren und liest das
+    Register nie wieder — ein Test erreicht sie nicht. Und was ein laufendes Verfahren doch aus dem
+    Register liest (die Zeichengrenzen des Chats), ist vom Test ausgenommen (Gesamtprüfung GP-013):
+    Bis dahin stand ein Testwert der Kritik-Mindestlänge sofort im Abstimmungs-Chat laufender Anträge."""
+    from verfahren.chat import kritik_mindestzeichen
     from verfahren.models import antrag_einbringen
 
     erstbestand_sicherstellen()
-    parameter = Parameter.objects.get(schluessel="kritik-mindestzeichen")
     antrag = antrag_einbringen(
         mitglied_anlegen("stellerin"),
         titel="Ein Antrag vor dem Test",
@@ -229,10 +231,19 @@ def test_ein_laufendes_verfahren_bleibt_unberuehrt(client, korat, ordnung):  # n
         ordnung=ordnung,
     )
     vorher = antrag.policy().als_dict()
-    anordnen(client, korat[0], parameter, testwert="120")
+    mindestens = kritik_mindestzeichen()
+    # Ein Test auf einer Stellgröße, die der Chat laufender Verfahren liest, entsteht nicht …
+    kritik = Parameter.objects.get(schluessel="kritik-mindestzeichen")
+    anordnen(client, korat[0], kritik, testwert="120")
+    assert not ParameterTest.objects.exists()
+    kritik.refresh_from_db()
+    assert kritik.wert == str(mindestens) and kritik_mindestzeichen() == mindestens
+    # … und ein Test auf einer anderen setzt den Registerwert, ohne die eingefrorene Ordnung zu erreichen.
+    parameter = Parameter.objects.get(schluessel=SCHLUESSEL)
+    anordnen(client, korat[0], parameter, testwert="9")
     abstimmen(client, korat, ParameterTest.objects.get().beschluss)
     parameter.refresh_from_db()
-    assert parameter.wert == "120"
+    assert parameter.wert == "9"
     antrag.refresh_from_db()
     assert antrag.policy().als_dict() == vorher
 

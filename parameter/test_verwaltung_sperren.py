@@ -69,3 +69,59 @@ def test_admin_aendert_erzeugt_und_setzt_in_kraft(client, lage):
     assert antwort.status_code == 302 and antwort.url == zurueck
     lage["fassung"].refresh_from_db()
     assert lage["fassung"].aktiv is True
+
+
+def _admin(client):
+    admin = mitglied_anlegen("admin")
+    admin.ist_admin = True
+    admin.save()
+    client.force_login(admin)
+    return admin
+
+
+def _voller_stand():
+    from parameter.models import Aenderung
+
+    return (
+        list(Parameter.objects.order_by("pk").values_list("schluessel", "wert", "geaendert_am")),
+        Aenderung.objects.count(),
+        list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am")),
+        AuditEintrag.objects.count(),
+    )
+
+
+@pytest.mark.parametrize("name", ZIELE)
+def test_scheitert_der_audit_eintrag_bleibt_alles_unveraendert(client, lage, name, monkeypatch):
+    """GP-129 (RVA-13, RVB-01): Wert, Historie, Fassung und In-Kraft-Setzung wurden geschrieben,
+    auch wenn der Audit-Eintrag danach scheiterte — eine Handlung ohne Spur in der Kette."""
+    _admin(client)
+    vorher = _voller_stand()
+
+    def scheitert(*args, **kwargs):
+        raise RuntimeError("Audit-Kette nicht erreichbar")
+
+    monkeypatch.setattr(AuditEintrag, "anhaengen", scheitert)
+    with pytest.raises(RuntimeError):
+        client.post(reverse(name), ZIELE[name](lage))
+    assert _voller_stand() == vorher
+
+
+def test_das_protokoll_nennt_den_admin_versiegelt_und_oeffentlich_geschwaerzt(client, lage):
+    """GP-128 (RVA-12): Wertänderung, Erzeugen und In-Kraft-Setzen nannten nicht, welcher Admin
+    gehandelt hat. `durch` steht im versiegelten Ereignis wie in mitglieder/verwaltung.py und ist
+    auf /audit/ und /audit.json geschwärzt."""
+    admin = _admin(client)
+    client.post(reverse("parameter:verwaltung_aktion"), ZIELE["parameter:verwaltung_aktion"](lage))
+    client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    client.post(reverse("parameter:verwaltung_ordnung_inkraft"), ZIELE["parameter:verwaltung_ordnung_inkraft"](lage))
+    typen = ("parameter_geaendert", "verfahrensordnung_erzeugt", "verfahrensordnung_in_kraft")
+    ereignisse = {e.ereignis["typ"]: e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") in typen}
+    assert set(ereignisse) == set(typen)
+    assert all(e["durch"] == admin.pk for e in ereignisse.values())
+
+    client.logout()
+    daten = client.get(reverse("verfahren:audit_json")).json()
+    oeffentlich = [e for e in daten["eintraege"] if e["typ"] in typen]
+    assert len(oeffentlich) == 3
+    assert all(e["ereignis"]["durch"] == "•" and e["geschwaerzt"] for e in oeffentlich)
+    assert client.get(reverse("verfahren:audit")).status_code == 200

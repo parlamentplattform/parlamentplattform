@@ -1,0 +1,191 @@
+"""Gesamtprüfung, zweite Runde (Paket B1): Meldungen erreichen die Verwaltung auf einem sichtbaren
+Weg, Meldende sehen den Stand auch im Sitzungs-Chat, die Matrix nennt die Adresse, das öffentliche
+Audit stellt keinen folgenlos gemeldeten Beitrag aus (GP-014); der Sitzungs-Chat weist zu lange
+Beiträge ab statt sie still zu kürzen (GP-083)."""
+
+import pytest
+from django.urls import reverse
+
+from mandatare.sitzung import sitzung_beenden, sitzung_beginnen
+from mandatare.test_mandatare import mandat_anlegen
+from mandatare.test_sitzung_modelle import sitzungstag
+from verfahren import chat as chatkern
+from verfahren.models import Kommentar, Meldung
+from verfahren.test_views_aktionen import mitglied_anlegen
+
+pytestmark = pytest.mark.django_db
+
+
+def _verwaltung(name="vera"):
+    m = mitglied_anlegen(name)
+    m.ist_admin = True
+    m.save()
+    return m
+
+
+def _register(schluessel, wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel=schluessel, defaults={"wert": str(wert), "beschreibung": "Test", "quelle": "Test"}
+    )
+
+
+@pytest.fixture
+def lage():
+    anna, bernd = mitglied_anlegen("anna"), mitglied_anlegen("bernd")
+    mandat = mandat_anlegen(anna)
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat))
+    return mandat, sitzung, anna, bernd
+
+
+def _live(client, mandat, sitzung):
+    return client.get(reverse("mandatare:live", args=[mandat.pk]) + f"?sitzung={sitzung.pk}").content.decode()
+
+
+# ── GP-014 (a): Verweis aus der Verwaltung auf die Meldeliste ─────────────────────────────
+
+
+def test_gp014_verwaltung_verweist_auf_die_meldeliste_mit_der_zahl_offener_meldungen(client, lage):
+    mandat, sitzung, anna, bernd = lage
+    vera = _verwaltung()
+    eins = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Erster Beitrag.")
+    zwei = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Zweiter Beitrag.")
+    Meldung.objects.create(kommentar=eins, mitglied=bernd, grund="recht")
+    Meldung.objects.create(kommentar=zwei, mitglied=bernd, grund="recht")
+    erledigt = Meldung.objects.create(kommentar=zwei, mitglied=vera, grund="recht")
+    Meldung.objects.filter(pk=erledigt.pk).update(erledigt_am=sitzung.beginn, entscheidung="keine_massnahme")
+
+    client.force_login(vera)
+    inhalt = client.get(reverse("mitglieder:verwaltung")).content.decode()
+    assert f'href="{reverse("verfahren:meldungen")}"' in inhalt
+    assert "Gemeldete Beiträge (2 offen)" in inhalt
+
+    # Ohne Verwaltungsrechte: kein Zugang zur Seite und damit auch kein Verweis
+    client.force_login(bernd)
+    antwort = client.get(reverse("mitglieder:verwaltung"))
+    assert antwort.status_code == 403
+    assert reverse("verfahren:meldungen") not in antwort.content.decode()
+
+
+def test_gp014_die_meldeliste_zeigt_nur_beitraege_mit_offener_meldung(client, lage):
+    """Sichtprüfung 0.113.0: Die Liste der Verwaltung zeigte jeden Beitrag — auch nie gemeldete —, weil der
+    Filter über die Rückbeziehung (`meldungen__erledigt_am__isnull=True`) Beiträge ganz ohne Meldung mit
+    erfasst. In die Liste gehört nur, wozu eine Meldung offen ist."""
+    mandat, sitzung, anna, bernd = lage
+    vera = _verwaltung()
+    offen = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag mit offener Meldung.")
+    nie = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag ohne jede Meldung.")
+    entschieden = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beitrag mit erledigter Meldung.")
+    Meldung.objects.create(kommentar=offen, mitglied=bernd, grund="recht")
+    alt = Meldung.objects.create(kommentar=entschieden, mitglied=bernd, grund="recht")
+    Meldung.objects.filter(pk=alt.pk).update(erledigt_am=sitzung.beginn, entscheidung="keine_massnahme")
+
+    client.force_login(vera)
+    antwort = client.get(reverse("verfahren:meldungen"))
+    assert [z["k"].pk for z in antwort.context["zeilen"]] == [offen.pk]
+    inhalt = antwort.content.decode()
+    assert f'id="meldung-{offen.pk}"' in inhalt
+    assert f'id="meldung-{nie.pk}"' not in inhalt and "Beitrag ohne jede Meldung." not in inhalt
+    assert f'id="meldung-{entschieden.pk}"' not in inhalt
+
+
+# ── GP-014 (b): Stand der eigenen Meldung am Beitrag im Sitzungs-Chat ─────────────────────
+
+
+def test_gp014_meldende_sehen_den_stand_am_beitrag_im_sitzungschat_und_im_protokoll(client, lage):
+    mandat, sitzung, anna, bernd = lage
+    vera = _verwaltung()
+    beitrag = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Eine fragwürdige Behauptung.")
+    client.force_login(bernd)
+    client.post(
+        reverse("mandatare:live_beitrag_aktion", args=[mandat.pk, sitzung.pk, beitrag.pk]),
+        {"aktion": "melden", "grund": "recht"},
+    )
+    assert Meldung.objects.filter(kommentar=beitrag, mitglied=bernd).exists()
+    seite = _live(client, mandat, sitzung)
+    assert "Ihre Meldung vom" in seite and "liegt der Verwaltung vor" in seite
+    # Wer gemeldet hat, bekommt kein zweites Meldeformular für denselben Beitrag
+    block = seite.split(f'id="k-{beitrag.pk}"', 1)[1].split("</article>", 1)[0]
+    assert 'value="melden"' not in block
+    # Andere sehen den Stand fremder Meldungen nicht
+    client.force_login(anna)
+    assert "Ihre Meldung vom" not in _live(client, mandat, sitzung)
+
+    client.force_login(vera)
+    client.post(reverse("verfahren:meldung_entscheiden", args=[beitrag.pk]), {"entscheidung": "keine_massnahme"})
+    sitzung_beenden(sitzung)
+    client.force_login(bernd)
+    protokoll = _live(client, mandat, sitzung)
+    assert "Ihre Meldung vom" in protokoll and "entschieden: keine Maßnahme" in protokoll
+
+
+def test_gp014_stand_ausgeblendet_im_sitzungschat(client, lage):
+    mandat, sitzung, anna, bernd = lage
+    vera = _verwaltung()
+    beitrag = chatkern.sitzung_beitrag_schreiben(sitzung, anna, "Beleidigender Satz.")
+    Meldung.objects.create(kommentar=beitrag, mitglied=bernd, grund="beleidigung")
+    client.force_login(vera)
+    client.post(
+        reverse("verfahren:meldung_entscheiden", args=[beitrag.pk]),
+        {"entscheidung": "ausblenden", "grund": "Herabwürdigung"},
+    )
+    client.force_login(bernd)
+    seite = _live(client, mandat, sitzung)
+    assert "entschieden: ausgeblendet" in seite
+    assert "von der Verwaltung ausgeblendet: Herabwürdigung" in seite
+
+
+# ── GP-014 (c): Die Matrix nennt die Adresse der Meldeliste ───────────────────────────────
+
+
+def test_gp014_die_verwaltungszeile_der_matrix_fuehrt_zur_meldeliste(client):
+    from plattform_core.rollen import GRUPPEN, alle_rollen
+
+    verwaltung = next(r for r in alle_rollen(GRUPPEN) if r.schluessel == "verwaltung")
+    zeile = next(f for f in verwaltung.faehigkeiten if str(f.titel).startswith("Gemeldete Beiträge"))
+    assert zeile.urlname == "verfahren:meldungen"
+    assert f'href="{reverse("verfahren:meldungen")}"' in client.get(reverse("verfahren:rollen")).content.decode()
+
+
+# ── GP-014 (d): Das öffentliche Audit stellt folgenlos gemeldete Beiträge nicht aus ──────
+
+
+def test_gp014_meldung_ohne_massnahme_nennt_oeffentlich_keinen_beitrag():
+    from verfahren.audit_oeffentlich import MASKE, ereignis_oeffentlich
+
+    sichtbar, geschwaerzt = ereignis_oeffentlich(
+        {"typ": "meldung_ohne_massnahme", "beitrag": 9, "meldungen": 2, "antrag": 3}
+    )
+    assert geschwaerzt and sichtbar["beitrag"] == MASKE
+    assert sichtbar["antrag"] == 3 and sichtbar["meldungen"] == 2
+    # Das Ausblenden ist öffentlich: Der Vermerk steht ohnehin am Beitrag
+    sichtbar, _ = ereignis_oeffentlich({"typ": "beitrag_ausgeblendet", "beitrag": 9, "meldungen": 1, "antrag": 3})
+    assert sichtbar["beitrag"] == 9
+
+
+# ── GP-083: Der Sitzungs-Chat weist zu lange Beiträge ab ──────────────────────────────────
+
+
+def test_gp083_sitzungschat_weist_zu_lange_beitraege_ab_und_behaelt_den_entwurf(client, lage):
+    mandat, sitzung, anna, bernd = lage
+    _register("chat-zeichen-hoechstzahl", 100)
+    lang = "y" * 300
+    with pytest.raises(chatkern.BeitragZuLang):
+        chatkern.sitzung_beitrag_schreiben(sitzung, bernd, lang)
+    assert not Kommentar.objects.exists()
+
+    client.force_login(bernd)
+    seite = _live(client, mandat, sitzung)
+    assert 'id="chat-text" name="text" rows="3" maxlength="100"' in seite
+    antwort = client.post(reverse("mandatare:live_beitrag", args=[mandat.pk, sitzung.pk]), {"text": lang})
+    inhalt = antwort.content.decode()
+    assert not Kommentar.objects.exists()
+    assert "höchstens 100 Zeichen" in inhalt
+    assert f">{lang}</textarea>" in inhalt  # der Entwurf bleibt im Formular, ohne JavaScript
+
+    # Ein Registerwert über 4000 wirkt auch hier: Der Entwurf wird nicht vorab abgeschnitten
+    _register("chat-zeichen-hoechstzahl", 5000)
+    lang = "z" * 4500
+    client.post(reverse("mandatare:live_beitrag", args=[mandat.pk, sitzung.pk]), {"text": lang})
+    assert Kommentar.objects.get().text == lang

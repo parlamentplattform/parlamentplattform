@@ -9,7 +9,7 @@ hier — sonst wäre die Seite nach dem ersten neuen Gremium falsch, ohne dass e
 Ohne JavaScript vollständig lesbar.
 {% endcomment %}
 <style>
-  .rollen-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin:14px 0 8px}
+  .rollen-karten{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px;margin:14px 0 8px}
   .rk{background:var(--karton);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px}
   .rk h3{font-size:17px;margin:0 0 2px}
   .rk .satzungschip{font-size:12px;color:var(--goldtief);border:1px dashed var(--line);border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -37,6 +37,7 @@ eine Übersicht, die nur Fertiges zeigt, verschwiege die halbe Satzung.{% endblo
   <span><span class="zeichen geplant">○</span> {% translate "geplant — mit dem Bauschritt, der sie bringt" %}</span>
 </p>
 <p class="erk">{% blocktranslate with v=zahlen.verfuegbar t=zahlen.teilweise g=zahlen.geplant r=zahlen.rollen %}{{ r }} Rollen, {{ v }} Fähigkeiten verfügbar, {{ t }} teilweise, {{ g }} geplant.{% endblocktranslate %}
+  {% if zahlen.weitere_konten %}{% translate "Dazu das Gemeindekonto ohne Parteibeitritt, das keine Rolle der Satzung ist; seine Fähigkeiten sind mitgezählt." %}{% endif %}
   <span class="meta">{% blocktranslate with n=matrix_version %}Übersicht Fassung {{ n }}{% endblocktranslate %} · <code>plattform_core/rollen.py</code></span></p>
 {% get_current_language as sprache %}{% if sprache != "de" %}<p class="erk"><em>{% translate "Die deutschen Originaltexte bleiben der Maßstab; die englische Fassung dient dem Verständnis." %}</em></p>{% endif %}
 

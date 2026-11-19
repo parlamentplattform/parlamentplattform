@@ -12,6 +12,37 @@ from plattform_core.teilnehmerkreis import Gebiet, GebietsFehler, Gemeindestand,
 from verfahren.models import Antrag, AuditEintrag, OertlicheTeilnahme, gegenstand_fuer, uebergangsregel_fuer
 
 
+def wohnsitz_ohne_verzeichnis(mitglied) -> bool:
+    """Altkonto mit österreichischem Wohnort nur als Freitext, ohne Eintrag im Gemeindeverzeichnis:
+    Für neue örtliche Verfahren zählt es zu keinem Kreis, bis der Hauptwohnsitz gewählt ist (GP-055)."""
+    if not getattr(mitglied, "is_authenticated", False) or not getattr(mitglied, "parteikonto", False):
+        return False
+    if mitglied.wohnsitz_id:
+        return False
+    return mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH or (
+        not mitglied.wohnsitz_art and bool(mitglied.gemeinde)
+    )
+
+
+def ohne_oertliche_zuordnung(mitglied) -> bool:
+    """Kein Hauptwohnsitz aus dem Gemeindeverzeichnis: Örtliche Kreise bleiben verschlossen, die
+    Bundesebene offen — Sperrseite und Antragsseite nennen das als Grund (GP-056)."""
+    if not getattr(mitglied, "is_authenticated", False):
+        return False
+    return not mitglied.wohnsitz_id or mitglied.wohnsitz_art_aktuell != Wohnsitzart.OESTERREICH
+
+
+def wien_ohne_bezirk(mitglied) -> bool:
+    """Wiener Hauptwohnsitz ohne Gemeindebezirk: Kein Wiener Bezirkskreis nimmt das Konto auf (GP-058)."""
+    if not getattr(mitglied, "is_authenticated", False) or not mitglied.wohnsitz_id:
+        return False
+    return (
+        mitglied.wohnsitz_art_aktuell == Wohnsitzart.OESTERREICH
+        and mitglied.wohnsitz.bundesland == Bundesland.WIEN
+        and not mitglied.wiener_hauptbezirk
+    )
+
+
 def gemeindestand(gemeinde):
     return Gemeindestand(gemeinde.kennziffer, gemeinde.name, gemeinde.bezirk, gemeinde.bundesland)
 

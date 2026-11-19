@@ -33,6 +33,7 @@ Nichts hier wirkt unmittelbar: Jeder Knopf legt einen Beschluss an oder vermerkt
     <a href="{% url 'verfahren:antrag' p.entwurf.antrag.pk %}"><strong>{{ p.entwurf.antrag.titel }}</strong></a>
     <span class="meta"> · {% blocktranslate with n=p.runde %}Runde {{ n }}{% endblocktranslate %} · {{ p.erstellt_am|date:"d.m.Y" }}</span>
     <p style="white-space:pre-line;margin-top:6px"><em>{% translate "Begründung der Gruppe 2:" %}</em> {{ p.begruendung }}</p>
+    <p class="meta">{% blocktranslate with frist=p.austausch_frist|date:"d.m.Y H:i" %}Entscheidung bis {{ frist }} — danach verfristet der Austauschantrag (§ 5 Abs 12).{% endblocktranslate %}</p>
     {% if p.beschluss_offen %}
     <p class="meta" style="margin-top:6px">{% blocktranslate with nummer=p.beschluss_offen.nummer %}Beschluss {{ nummer }} läuft — abstimmen unter „Beschlüsse“.{% endblocktranslate %}</p>
     {% elif darf_schreiben %}

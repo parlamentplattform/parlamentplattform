@@ -23,4 +23,7 @@ benennen. Klick führt direkt zum letzten Beitrag des Gegenübers. Wird vom Pane
   {% empty %}
   <p class="leer abstand">{% if nur_ungelesen %}{% translate "Nichts Ungelesenes." %}{% else %}{% translate "Noch keine Gespräche — sie entstehen, sobald jemand auf Ihren Beitrag antwortet oder Sie auf einen." %}{% endif %}</p>
   {% endfor %}
+  {% if blaettern %}<p class="meta g-blaettern">{% blocktranslate with von=blaettern.von bis=blaettern.bis n=blaettern.gesamt %}{{ von }}–{{ bis }} von {{ n }} · jüngste zuerst{% endblocktranslate %}
+    {% if blaettern.neuere %}<a href="{{ blaettern.neuere }}">{% translate "‹ Neuere" %}</a>{% endif %}
+    {% if blaettern.aeltere %}<a href="{{ blaettern.aeltere }}">{% translate "Ältere ›" %}</a>{% endif %}</p>{% endif %}
 </div>

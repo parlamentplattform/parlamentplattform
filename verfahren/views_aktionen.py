@@ -20,7 +20,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.utils.translation import gettext_lazy
+from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
 from ki.anbieter import anbieter_waehlen
@@ -40,6 +40,7 @@ from verfahren.einbringwahl import (
     pruefung_aus_stand,
 )
 from verfahren.hinweise import (
+    HINWEISE,
     kachel_feld,
     mitwirkungssperre,
     sicherer_pfad,
@@ -75,7 +76,16 @@ from verfahren.models import (
     uebergangsregel_fuer,
     vollzug_fortschreiben,
 )
-from verfahren.teilnahme import eigene_kreise, gebietsname, hauptgebiet, oertlich_begrenzt, oertlich_zulaessig
+from verfahren.teilnahme import (
+    eigene_kreise,
+    gebietsname,
+    hauptgebiet,
+    oertlich_begrenzt,
+    oertlich_zulaessig,
+    ohne_oertliche_zuordnung,
+    wien_ohne_bezirk,
+    wohnsitz_ohne_verzeichnis,
+)
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
@@ -91,17 +101,23 @@ def _mitwirkung_gesperrt(request):
 
     Gründe: Testkonto (steht in keinem Nenner, wirkt nie mit), unbestätigte Identität (§ 4)
     oder ruhender Status (F-51: pausiert bis zum Beitragseingang bzw. ausgeschlossen nach
-    § 4 Abs 6). Richtig für Formulare der Antragsseite; Kachel- und Feed-Formulare (mit
+    § 4 Abs 5). Den Satzungsbezug liefert `HINWEISE` (GP-176). Richtig für Formulare der Antragsseite; Kachel- und Feed-Formulare (mit
     `feld`) gehen den Redirect-Weg mit Hinweis im Feld (`_abbruch`), damit das Feld nie
     verschwindet."""
     code = mitwirkungssperre(request.user)
     if code == "gesperrt_ungeprueft":
-        return render(request, "verfahren/nur_bestaetigte.html", status=403)
+        return render(
+            request, "verfahren/nur_bestaetigte.html", {"satzung": HINWEISE[code]["satzung"]}, status=403,
+        )
     if code:
         return render(
             request,
             "verfahren/mitwirkung_ruht.html",
-            {"pausiert": request.user.status == Mitgliedsstatus.PAUSIERT, "testkonto": code == "testkonto"},
+            {
+                "pausiert": request.user.status == Mitgliedsstatus.PAUSIERT,
+                "testkonto": code == "testkonto",
+                "satzung": HINWEISE[code].get("satzung", ""),
+            },
             status=403,
         )
     return None
@@ -118,9 +134,24 @@ def _abbruch(request, feld, code, sonst):
 
 
 def _oertlich_abweisen(request, antrag, feld=None):
+    # Grund und nächster Schritt: ohne örtliche Zuordnung bleibt die Bundesebene, sonst die eigene
+    # Region; der Kreis selbst ist bei Einbringung festgehalten (GP-056)
+    lage = {
+        "antrag": antrag,
+        "ohne_oertliche_zuordnung": ohne_oertliche_zuordnung(request.user),
+        "wien_ohne_bezirk": bool((antrag.teilnahmegebiet or {}).get("wiener_bezirk")) and wien_ohne_bezirk(request.user),
+    }
     return _abbruch(request, feld, "nicht_im_teilnehmerkreis", lambda: render(
-        request, "verfahren/oertlich_nicht_berechtigt.html", {"antrag": antrag}, status=403,
+        request, "verfahren/oertlich_nicht_berechtigt.html", lage, status=403,
     ))
+
+
+def _wohnsitzstand(haupt, mitglied) -> str:
+    """Kennung des Hauptwohnsitzes samt Wiener Gemeindebezirk, wie das Formular ihn zeigt."""
+    stand = f"gemeinde:{haupt.kennziffer}"
+    if haupt.bundesland == Bundesland.WIEN and mitglied.wiener_hauptbezirk:
+        stand += f"/bezirk:wien:{mitglied.wiener_hauptbezirk}"
+    return stand
 
 
 class AntragsFormular(forms.Form):
@@ -174,7 +205,15 @@ class AntragsFormular(forms.Form):
             else None
         )
         self.wien_ohne_bezirk = False
+        # Der Wohnsitzstand beim Anzeigen des Formulars; ein Umzug dazwischen führt zur
+        # Rückfrage statt still in die neue Gemeinde (GP-170)
+        self.gebiet_kennung = ""
+        self.wohnsitz_waehlen = mitglied is not None and wohnsitz_ohne_verzeichnis(mitglied)  # GP-055
+        self.ohne_region = mitglied is not None and mitglied.wohnsitz_art in (  # GP-169
+            Wohnsitzart.OHNE_FESTEN_WOHNSITZ, Wohnsitzart.AUSLAND,
+        )
         if haupt is not None:
+            self.gebiet_kennung = _wohnsitzstand(haupt, mitglied)
             wahlen.append((Ebene.LAND.value, _("Mein Bundesland (%s)") % haupt.get_bundesland_display()))
             bezirk = haupt.bezirk
             if haupt.bundesland == Bundesland.WIEN:
@@ -193,6 +232,9 @@ class AntragsFormular(forms.Form):
             self.gebietsstand = hauptgebiet(self.mitglied, wert)
         except GebietsFehler as fehler:
             raise forms.ValidationError(str(fehler)) from fehler
+        gesehen = self.data.get("gebiet_kennung", "")
+        if wert != Ebene.BUND.value and gesehen and gesehen != self.gebiet_kennung:
+            raise forms.ValidationError(_("Das Gebiet hat sich geändert. Bitte prüfen Sie Ihre Auswahl erneut."))
         return wert
 
     def clean_art(self):
@@ -214,7 +256,8 @@ class AntragsFormular(forms.Form):
 
 class KommentarFormular(forms.Form):
     text = forms.CharField(
-        label=gettext_lazy("Beitrag zur Beratung"), widget=forms.Textarea(attrs={"rows": 4}), max_length=4000
+        # Die Höchstzahl prüft der Schreibweg gegen das Register (GP-083)
+        label=gettext_lazy("Beitrag zur Beratung"), widget=forms.Textarea(attrs={"rows": 4})
     )
 
 
@@ -327,8 +370,20 @@ def einbringen(request):
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
                 _zukunftswerkstatt_beauftragen(antrag, request.user, pruefung)
-            if zugeordnet:
-                namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            if antrag.ebene != Ebene.BUND and antrag.gebiet:
+                # Die Meldung nennt das Gebiet, in dem der Antrag nun gilt (GP-170)
+                if zugeordnet:
+                    text = _(
+                        "Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung. "
+                        "Automatisch zugeordnet: %(namen)s."
+                    ) % {"gebiet": antrag.gebiet, "namen": namen}
+                else:
+                    text = _("Ihr Antrag für %(gebiet)s ist eingebracht und sammelt jetzt Unterstützung.") % {
+                        "gebiet": antrag.gebiet
+                    }
+                messages.success(request, text)
+            elif zugeordnet:
                 messages.success(
                     request,
                     _(
@@ -389,15 +444,22 @@ def _zukunftswerkstatt_beauftragen(antrag, mitglied, pruefung) -> None:
     """Nach dem Einbringen eines Sachantrags: die betroffenen Gesetze einreihen (FB-H3, Warteschlange)
     und den Textvektor sichern — direkt, wenn die Prüfung ihn eben gerechnet hat (kein zweiter
     Aufruf), sonst als Auftrag „aehnlichkeit“ für den Hintergrundlauf. Beides ist Vorschlag,
-    nichts davon hält den Antrag auf."""
-    from ki.warteschlange import einreihen, rechtspruefung_ohne_hemmung
+    nichts davon hält den Antrag auf: Jeder Schritt läuft in einem eigenen Savepoint, ein Fehler
+    landet im Protokoll statt auf einer Fehlerseite — der Antrag steht ja schon (GP-178)."""
+    import logging
+
+    from ki.warteschlange import einreihen_ohne_hemmung, rechtspruefung_ohne_hemmung
     from verfahren.aehnlichkeit import einbettung_speichern
 
     rechtspruefung_ohne_hemmung(antrag, mitglied)
     if pruefung is not None and pruefung.neuer_vektor is not None:
-        einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
+        try:
+            with transaction.atomic():
+                einbettung_speichern(antrag, 1, pruefung.bedeutungsmodell, pruefung.neuer_vektor)
+        except Exception:
+            logging.getLogger(__name__).exception("Textvektor für Antrag %s nicht gespeichert", antrag.pk)
     elif anbieter_waehlen() is not None:
-        einreihen(Zweck.AEHNLICHKEIT, antrag, mitglied)
+        einreihen_ohne_hemmung(Zweck.AEHNLICHKEIT, antrag, mitglied)
 
 
 def _mit_flash(request, stufe, text, pk):
@@ -505,13 +567,13 @@ def _chat_fehler(text, link: str | None = None, link_text: str = "") -> dict:
 @require_POST
 def kommentieren(request, pk):
     """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
-    from verfahren.chat import ChatGesperrt, beitrag_schreiben
+    from verfahren.chat import BeitragZuLang, ChatGesperrt, beitrag_schreiben, kritik_mindestzeichen
     from verfahren.hinweise import HINWEISE, kachel_sperre
 
     antrag = get_object_or_404(Antrag, pk=pk)
     # Der Entwurf begleitet jeden Fehler zurück ins Formular — nichts Eingegebenes geht verloren
     entwurf = {
-        "text": (request.POST.get("text") or "")[:4000],
+        "text": request.POST.get("text") or "",
         "ist_kritik": request.POST.get("ist_kritik") == "1",
         "bezug_absatz": request.POST.get("bezug_absatz") or "",
         "antwort_auf": request.POST.get("antwort_auf") or "",
@@ -550,16 +612,28 @@ def kommentieren(request, pk):
         )
     except ChatGesperrt as fehler:
         return _chat_antwort(request, antrag, fehler=_chat_fehler(str(fehler)), entwurf=entwurf)
+    except BeitragZuLang as fehler:
+        return _chat_antwort(
+            request, antrag, fehler=_chat_fehler(_zu_lang_text(fehler.hoechst)), entwurf=entwurf,
+        )
     except ValueError:
         return _chat_antwort(
             request, antrag,
-            fehler=_chat_fehler(_(
-                "Kritik am Vorschlag braucht einen Absatzbezug und mindestens 80 Zeichen — "
-                "so kann der Expertenrat damit arbeiten."
-            )),
+            fehler=_chat_fehler(_kritik_zu_kurz_text(kritik_mindestzeichen())),
             entwurf=entwurf,
         )
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+def _zu_lang_text(hoechst: int) -> str:
+    return _("Ein Beitrag darf höchstens %(n)s Zeichen lang sein — bitte kürzen.") % {"n": hoechst}
+
+
+def _kritik_zu_kurz_text(mindestens: int) -> str:
+    return _(
+        "Kritik am Vorschlag braucht einen Absatzbezug und mindestens %(n)s Zeichen — "
+        "so kann der Expertenrat damit arbeiten."
+    ) % {"n": mindestens}
 
 
 def _eigener_beitrag(request, pk, beitrag_pk):
@@ -572,19 +646,47 @@ def _eigener_beitrag(request, pk, beitrag_pk):
 @login_required
 @require_POST
 def beitrag_bearbeiten(request, pk, beitrag_pk):
-    """Den eigenen Beitrag ändern — nur binnen fünf Minuten, danach steht er (FB-G1)."""
+    """Den eigenen Beitrag ändern — nur binnen des Bearbeitungsfensters aus dem Register, danach steht er (FB-G1)."""
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if not beitrag.darf_bearbeiten(request.user):
-        messages.error(request, _("Ändern ist nur in den ersten fünf Minuten möglich."))
+        minuten = Kommentar.bearbeitungsfenster_minuten()  # die geltende Zahl, nicht fest „fünf“
+        messages.error(request, ngettext(
+            "Ändern ist nur in der ersten Minute möglich.",
+            "Ändern ist nur in den ersten %(n)s Minuten möglich.",
+            minuten,
+        ) % {"n": minuten})
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
-    text = (request.POST.get("text") or "").strip()[:4000]
+    text = (request.POST.get("text") or "").strip()
     if not text:
         messages.error(request, _("Bitte einen Text eingeben."))
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    from verfahren.chat import chat_zeichen_hoechstzahl
+
+    hoechst = chat_zeichen_hoechstzahl()
+    if len(text) > hoechst:
+        # Abweisen statt still kürzen (GP-083)
+        messages.error(request, _zu_lang_text(hoechst))
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    if beitrag.ist_kritik:
+        # Beim Ändern gilt dieselbe Mindestlänge wie beim Schreiben (GP-015, § 5 Abs 13)
+        from verfahren.chat import kritik_mindestzeichen
+
+        if len(text) < kritik_mindestzeichen():
+            messages.error(request, _kritik_zu_kurz_text(kritik_mindestzeichen()))
+            return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     beitrag.text = text
     beitrag.bearbeitet_am = timezone.now()
-    beitrag.save(update_fields=["text", "bearbeitet_am"])
+    with transaction.atomic():
+        beitrag.save(update_fields=["text", "bearbeitet_am"])
+        _abstimmungschat_auditieren(beitrag, "beitrag_geaendert")
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+def _abstimmungschat_auditieren(beitrag, typ: str) -> None:
+    """Im Abstimmungs-Chat zählen Beiträge für die Entscheidung der Unterstützer (§ 5 Abs 13):
+    Ändern und Zurückziehen stehen deshalb im Audit — ohne Text und ohne Person (GP-015)."""
+    if (beitrag.phase or "").startswith("vorschlag-"):
+        AuditEintrag.anhaengen({"typ": typ, "antrag": beitrag.antrag_id, "beitrag": beitrag.pk})
 
 
 @login_required
@@ -598,7 +700,9 @@ def beitrag_entfernen(request, pk, beitrag_pk):
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
     if not beitrag.geloescht:
         beitrag.geloescht = True
-        beitrag.save(update_fields=["geloescht"])
+        with transaction.atomic():
+            beitrag.save(update_fields=["geloescht"])
+            _abstimmungschat_auditieren(beitrag, "beitrag_zurueckgezogen")
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
 
 
@@ -678,6 +782,49 @@ def melden(request, pk, beitrag_pk):
         )
     messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+
+
+@login_required
+@require_POST
+def meldung_entscheiden(request, beitrag_pk):
+    """Die Verwaltung entscheidet über die offenen Meldungen eines Beitrags (FB-G1, GP-014):
+    ausblenden mit öffentlichem Grund oder keine Maßnahme. Der Text bleibt gespeichert
+    (Grundregel 7), die Meldungen tragen Zeitpunkt und Entscheidung, das Audit den Vorgang."""
+    from verfahren.models import Meldung
+
+    if not request.user.hat_adminrechte:
+        return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    entscheidung = request.POST.get("entscheidung", "")
+    grund = (request.POST.get("grund") or "").strip()[:200]
+    if entscheidung not in ("ausblenden", "keine_massnahme"):
+        messages.error(request, _("Bitte eine Entscheidung wählen."))
+        return redirect("verfahren:meldungen")
+    if entscheidung == "ausblenden" and not grund:
+        messages.error(request, _("Ausblenden braucht einen öffentlichen Grund."))
+        return redirect("verfahren:meldungen")
+    with transaction.atomic():
+        beitrag = get_object_or_404(Kommentar.objects.select_for_update(), pk=beitrag_pk)
+        offene = Meldung.objects.filter(kommentar=beitrag, erledigt_am__isnull=True)
+        anzahl = offene.count()
+        if not anzahl:
+            messages.info(request, _("Über die Meldungen zu diesem Beitrag ist schon entschieden."))
+            return redirect("verfahren:meldungen")
+        jetzt = timezone.now()
+        ereignis = {"beitrag": beitrag.pk, "meldungen": anzahl}
+        ereignis.update({"sitzung": beitrag.sitzung_id} if beitrag.sitzung_id else {"antrag": beitrag.antrag_id})
+        if entscheidung == "ausblenden":
+            if beitrag.ausgeblendet_am is None:
+                beitrag.ausgeblendet_am = jetzt
+                beitrag.ausgeblendet_grund = grund
+                beitrag.save(update_fields=["ausgeblendet_am", "ausgeblendet_grund"])
+            offene.update(erledigt_am=jetzt, entscheidung="ausgeblendet")
+            AuditEintrag.anhaengen({"typ": "beitrag_ausgeblendet", **ereignis})
+            messages.success(request, _("Der Beitrag ist ausgeblendet; der Grund steht öffentlich an seiner Stelle."))
+        else:
+            offene.update(erledigt_am=jetzt, entscheidung="keine_massnahme")
+            AuditEintrag.anhaengen({"typ": "meldung_ohne_massnahme", **ereignis})
+            messages.success(request, _("Entschieden: keine Maßnahme. Der Beitrag bleibt stehen."))
+    return redirect("verfahren:meldungen")
 
 
 @login_required
@@ -912,7 +1059,7 @@ def _zurueck_zum_antrag(request, antrag):
 def filter_vorschau(request):
     """FB-B2 Live-Vorschau: reiht mit den gerade gezogenen Reglern, speichert nichts —
     die Antwort ist nur die Liste (#filter-liste), htmx tauscht sie sanft aus."""
-    from verfahren.views import LAUFEND, _abo_ids, _meine_stimmen, _weicherfilter_feed
+    from verfahren.views import LAUFEND, _abo_ids, _meine_favoriten, _meine_stimmen, _weicherfilter_feed
 
     regler = _regler_aus_post(request)
     favoriten_zuerst = bool(request.POST.get("favoriten_zuerst"))
@@ -928,6 +1075,9 @@ def filter_vorschau(request):
         "verfahren/_filter_liste.html",
         {
             "feed": feed,
+            # Derselbe Stern wie im Parlament: Ohne die Favoriten stand er leer, und sein Klick
+            # entfernte den Favoriten (GP-072).
+            "meine_favoriten": _meine_favoriten(request.user),
             "meine_unterstuetzungen": set(
                 Unterstuetzung.gueltige().filter(mitglied=request.user).values_list("antrag_id", flat=True)
             ),
@@ -1160,13 +1310,14 @@ def export_json(request, pk):
             }
             for b in antrag.bewerbungen.all()
         ]
-        # Vollständig UND nachrechenbar: zurückgenommene Zustimmungen stehen mit Zeitstempel
-        # dabei (Grundregel 7), die Auszählung zählt nur die gültigen.
+        # Vollständig UND nachrechenbar: zurückgenommene Zustimmungen stehen mit Vermerk dabei
+        # (Grundregel 7), die Auszählung zählt nur die gültigen. Kein Zeitpunkt: Er verbände das
+        # Pseudonym mit einem Eintrag der öffentlichen Audit-Kette (GP-022).
         daten["zustimmungen"] = [
             {
                 "pseudonym": z.pseudonym.hex,
                 "bewerbung": z.bewerbung_id,
-                "zurueckgenommen_am": z.zurueckgenommen_am.isoformat() if z.zurueckgenommen_am else None,
+                "zurueckgenommen": z.zurueckgenommen_am is not None,
             }
             for z in BewerbungsZustimmung.objects.filter(bewerbung__antrag=antrag).order_by(
                 "pseudonym", "bewerbung_id"
@@ -1235,6 +1386,13 @@ def vollzug_eintragen(request, pk):
     antrag = get_object_or_404(Antrag, pk=pk)
     if not request.user.hat_adminrechte:
         return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
+    from verfahren.models import Vollzugsstatus
+
+    status = request.POST.get("status", "")
+    if status not in Vollzugsstatus.values:
+        # Eigene Meldung (GP-173): Sonst fiel der unbekannte Stand unter „nur angenommene Anträge“.
+        messages.error(request, _("Unbekannter Umsetzungsstand: „%(stand)s“.") % {"stand": status[:40]})
+        return redirect("verfahren:antrag", pk=pk)
     try:
         vollzug_fortschreiben(
             antrag, request.user, request.POST.get("status", ""), request.POST.get("vermerk", "")

@@ -311,8 +311,8 @@ def test_anfechtungsvermerk_zaehlt_den_eingegebenen_tag_ab_seinem_beginn(client,
     """Die Sieben-Tage-Frist nach lit h: Ein am siebten Tag datierter Vermerk ist rechtzeitig, gleich zu welcher
     Uhrzeit das Ergebnis veröffentlicht wurde (Tagesbeginn statt 12:00); ein späterer Tag ist ehrlich verspätet
     — die Wirkungen laufen dann weiter, die Verwaltung erfährt es."""
-    antrag, ende = _verloren(ordnung, altmandat)
-    vf = antrag.vertrauensfrage
+    ende = timezone.now() - tage(10)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, ende)
     client.force_login(admin_anlegen())
     siebter = timezone.localdate(ende + tage(7))
     antwort = client.post(
@@ -323,8 +323,9 @@ def test_anfechtungsvermerk_zaehlt_den_eingegebenen_tag_ab_seinem_beginn(client,
     assert vf.anfechtung_rechtzeitig and "warten auf die Entscheidung" in meldungen(antwort)
     assert vf.angefochten_am == timezone.make_aware(datetime.combine(siebter, time.min))
 
-    zweiter, ende2 = _verloren(ordnung, mandat_anlegen(mitglied_anlegen("zweite", tage=900), angetreten=timezone.localdate() - tage(400)))
-    vf2 = zweiter.vertrauensfrage
+    vf2 = _vf_mit_ergebnis(
+        mandat_anlegen(mitglied_anlegen("zweite", tage=900), angetreten=timezone.localdate() - tage(400)), Phase.ANGENOMMEN.value, ende
+    )
     antwort = client.post(
         VERWALTUNG_AKTION,
         {"aktion": "anfechtung", "vertrauensfrage": vf2.pk, "datum": (siebter + tage(1)).isoformat(), "aktenkennung": "PSG 2"},
@@ -332,6 +333,82 @@ def test_anfechtungsvermerk_zaehlt_den_eingegebenen_tag_ab_seinem_beginn(client,
     vf2.refresh_from_db()
     assert not vf2.anfechtung_rechtzeitig and "nach der Frist von sieben Tagen" in meldungen(antwort)
     assert vf2.angefochten_am is not None and vf2.endgueltig_ab() is not None  # verspätet: Stufe 2 läuft weiter
+
+
+def _vf_mit_ergebnis(mandat, phase, ergebnis_am, art=mm.VertrauensfrageArt.VERTRAUENSFRAGE):
+    """Eine Vertrauensfrage mit veröffentlichtem Ergebnis in der Vergangenheit — bei „verloren“ mit
+    Stufe 1 über die Fachoperation."""
+    antrag = Antrag.objects.create(
+        titel="Vertrauensfrage: Gemeinderätin, Polsenz",
+        art=Antragsart.VERTRAUENSFRAGE,
+        eingebracht_von=mitglied_anlegen(f"steller{next(_ZAEHLER)}"),
+        eingebracht_am=ergebnis_am - tage(20),
+        phase=phase,
+        phase_beginn=ergebnis_am,
+        policy_snapshot={},
+    )
+    vf = Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat, art=art)
+    if art == mm.VertrauensfrageArt.VERTRAUENSFRAGE and phase == Phase.ANGENOMMEN.value:
+        mm.vertrauensfrage_wirkungen(vf, jetzt=ergebnis_am)
+        vf.refresh_from_db()
+    return vf
+
+
+def _anfechten(client, vf, datum):
+    return client.post(
+        VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "datum": datum.isoformat(), "aktenkennung": "PSG"}
+    )
+
+
+def test_anfechtungsdatum_liegt_zwischen_ergebnis_und_heute(client, altmandat):  # noqa: F811
+    """GP-110 (MV-03): Ein Datum in der Zukunft oder vor dem Ergebnistag wird abgewiesen; am Ergebnistag
+    liegt der Vermerk nicht vor der Veröffentlichung."""
+    ergebnis = timezone.now() - tage(2)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, ergebnis)
+    client.force_login(admin_anlegen())
+    heute = timezone.localdate()
+    for datum in (heute + tage(1), timezone.localdate(ergebnis) - tage(1)):
+        antwort = _anfechten(client, vf, datum)
+        vf.refresh_from_db()
+        assert vf.angefochten_am is None and "Datum der Anfechtung" in meldungen(antwort)
+    assert not audit("vertrauensfrage_angefochten")
+    _anfechten(client, vf, timezone.localdate(ergebnis))
+    vf.refresh_from_db()
+    assert vf.angefochten_am >= vf.ergebnis_am and vf.anfechtung_rechtzeitig
+
+
+def test_anfechtung_eines_gewonnenen_ergebnisses_ist_binnen_sieben_tagen_rechtzeitig(client, altmandat):  # noqa: F811
+    """GP-112 (MV-08): Die Frist läuft ab der Veröffentlichung jedes Ergebnisses, nicht nur eines verlorenen."""
+    client.force_login(admin_anlegen())
+    vf = _vf_mit_ergebnis(altmandat, Phase.ABGELEHNT.value, timezone.now() - tage(0.05))
+    antwort = _anfechten(client, vf, timezone.localdate())
+    vf.refresh_from_db()
+    assert vf.angefochten_am is not None and vf.anfechtung_rechtzeitig
+    assert "nach der Frist" not in meldungen(antwort) and "Anfechtung vermerkt" in meldungen(antwort)
+    assert audit("vertrauensfrage_angefochten")[-1]["rechtzeitig"] is True
+    spaet = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, timezone.now() - tage(10), art=mm.VertrauensfrageArt.BESTAETIGUNG)
+    antwort = _anfechten(client, spaet, timezone.localdate(spaet.ergebnis_am) + tage(8))
+    spaet.refresh_from_db()
+    assert not spaet.anfechtung_rechtzeitig and "nach der Frist" in meldungen(antwort)
+    assert audit("vertrauensfrage_angefochten")[-1]["rechtzeitig"] is False
+
+
+def test_entscheidung_des_parteischiedsgerichts_traegt_ihr_datum(client, altmandat):  # noqa: F811
+    """GP-193 (MV-24): Das Datum der Entscheidung kommt aus der Eingabe — zwischen Anfechtung und heute —,
+    nicht vom Tag des Vermerks; die Endgültigkeit rechnet damit."""
+    vf = _vf_mit_ergebnis(altmandat, Phase.ANGENOMMEN.value, timezone.now() - tage(20))
+    client.force_login(admin_anlegen())
+    _anfechten(client, vf, timezone.localdate() - tage(18))
+    entscheidung = {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "bestaetigt"}
+    for falsch in (timezone.localdate() + tage(1), timezone.localdate() - tage(19)):
+        antwort = client.post(VERWALTUNG_AKTION, {**entscheidung, "datum": falsch.isoformat()})
+        vf.refresh_from_db()
+        assert vf.entscheidung == "" and "Datum der Entscheidung" in meldungen(antwort)
+    tag = timezone.localdate() - tage(5)
+    client.post(VERWALTUNG_AKTION, {**entscheidung, "datum": tag.isoformat()})
+    vf.refresh_from_db()
+    assert timezone.localdate(vf.entschieden_am) == tag
+    assert vf.wirkungen_endgueltig_am is not None and timezone.localdate(vf.wirkungen_endgueltig_am) == tag
 
 
 def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F811
@@ -366,7 +443,7 @@ def test_verwaltungshandlungen_mit_audit(client, ordnung, altmandat):  # noqa: F
     # Entscheidung ohne Anfechtung: nichts
     antwort = client.post(VERWALTUNG_AKTION, {"aktion": "entscheidung", "vertrauensfrage": vf.pk, "entscheidung": "aufgehoben"})
     assert "Anfechtung voraus" in meldungen(antwort)
-    client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "datum": timezone.localdate().isoformat(), "aktenkennung": "PSG 2026/7"})
+    client.post(VERWALTUNG_AKTION, {"aktion": "anfechtung", "vertrauensfrage": vf.pk, "aktenkennung": "PSG 2026/7"})
     vf.refresh_from_db()
     assert vf.angefochten_am is not None and vf.aktenkennung == "PSG 2026/7" and audit("vertrauensfrage_angefochten")
     html = client.get(reverse("mandatare:verwaltung")).content.decode()

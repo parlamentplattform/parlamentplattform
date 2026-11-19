@@ -430,3 +430,310 @@ def test_die_grenzen_der_maschine_stehen_im_register():
     assert schema_key("aehnlichkeit-bedeutung-je-stunde") == "similarity.meaning_calls_per_account_hour"
     assert schema_key("post-hoechstversuche") == "mail.max_attempts"
 
+
+def test_die_drosseln_der_ersten_behebungsrunde_stehen_im_register():
+    """Repo-Regel „keine neuen harten Konstanten“: Die erste Behebungsrunde der Gesamtprüfung führte
+    drei Drosseln als Konstanten ein (Datenexport je Stunde, Bankabruf je Konto und Tag, Vorbehalt der
+    Verwaltung). Sie sind Registerwerte mit unverändertem Startwert und Schema-Kennung."""
+    from mitglieder.models import Bankkopplung
+    from parameter.models import wertbereich
+    from plattform_core.schema import schema_key
+
+    werte = {e["schluessel"]: e for e in ERSTBESTAND}
+    assert werte["datenexport-je-stunde"]["wert"] == "10"
+    assert werte["beitrag-meldungen-mit-abruf-je-konto"]["wert"] == "1"
+    assert werte["beitrag-abruf-verwaltungsvorbehalt"]["wert"] == "1"
+    assert schema_key("datenexport-je-stunde") == "account.data_exports_per_hour"
+    assert schema_key("beitrag-meldungen-mit-abruf-je-konto") == "fees.member_reports_with_bank_call_per_day"
+    assert schema_key("beitrag-abruf-verwaltungsvorbehalt") == "fees.bank_calls_reserved_for_administration"
+    bereich = {s: wertbereich(s, werte[s]["einheit"]) for s in werte}
+    assert bereich["datenexport-je-stunde"] == (1, None)  # Art 15/20 DSGVO: der Export bleibt möglich
+    assert bereich["beitrag-meldungen-mit-abruf-je-konto"] == (1, None)
+    assert bereich["beitrag-abruf-verwaltungsvorbehalt"] == (0, Bankkopplung.ABRUFE_PRO_TAG)
+
+
+
+# ── Gesamtprüfung 0.113 ───────────────────────────────────────────────────────────────────────
+
+
+def _register_stand():
+    return (
+        list(Parameter.objects.order_by("pk").values_list("schluessel", "wert")),
+        __import__("parameter.models", fromlist=["Aenderung"]).Aenderung.objects.count(),
+        AuditEintrag.objects.count(),
+    )
+
+
+@pytest.mark.parametrize(
+    "schluessel, wert",
+    [
+        ("chat-zeichen-hoechstzahl", "abc"),
+        ("chat-zeichen-hoechstzahl", "0"),
+        ("chat-zeichen-hoechstzahl", "-1"),
+        ("kritik-mindestzeichen", "5 Tage"),
+        ("adresswechsel-wartefrist-stunden", "0"),
+        ("adresswechsel-wartefrist-stunden", "-100"),
+        ("weicherfilter-regel", "99"),
+        ("region-nebenwohnsitz-zaehlt", "2"),
+        ("live-takt-sekunden", "4"),
+        ("aehnlichkeit-schwelle-prozent", "101"),
+        ("datenexport-je-stunde", "0"),
+        ("beitrag-meldungen-mit-abruf-je-konto", "0"),
+        ("beitrag-abruf-verwaltungsvorbehalt", "5"),
+    ],
+)
+def test_verwaltung_weist_werte_ausserhalb_von_typ_und_bereich_ab(client, schluessel, wert):
+    """GP-021 (RVA-01): Die Verwaltung speicherte jeden Text als Registerwert — „0“ leerte jeden
+    neuen Beitrag, „0“ hob die Wartefrist des Adresswechsels auf, „99“ behauptete eine Fassung,
+    die der Code nicht hat. Abgewiesen wird ohne Änderung, Historie und Audit, mit Meldung."""
+    _admin(client)
+    eintrag = Parameter.objects.get(schluessel=schluessel)
+    vorher = _register_stand()
+    antwort = client.post(
+        reverse("parameter:verwaltung_aktion"),
+        {"parameter": eintrag.pk, "wert": wert, "grund": "Probe."},
+        follow=True,
+    )
+    assert _register_stand() == vorher
+    inhalt = antwort.content.decode()
+    # „unverändert“ und der Schlüssel stehen ohnehin auf der Seite (Stilblock, Liste); geprüft wird
+    # die Meldung selbst: Schlüssel in Anführungszeichen und der Satz zum Wert.
+    assert f"„{schluessel}“" in inhalt and "der Wert bleibt unverändert" in inhalt
+
+
+def test_meldung_nennt_den_bereich(client):
+    _admin(client)
+    eintrag = Parameter.objects.get(schluessel="live-takt-sekunden")
+    antwort = client.post(
+        reverse("parameter:verwaltung_aktion"),
+        {"parameter": eintrag.pk, "wert": "301", "grund": "Probe."},
+        follow=True,
+    )
+    assert "5 bis 300" in antwort.content.decode()
+
+
+def test_gueltige_werte_im_bereich_gehen_durch(client):
+    _admin(client)
+    for schluessel, wert in (
+        ("chat-zeichen-hoechstzahl", "1"),
+        ("adresswechsel-wartefrist-stunden", "1"),
+        ("region-nebenwohnsitz-zaehlt", "1"),
+        ("aehnlichkeit-bedeutung-je-stunde", "0"),
+        ("live-takt-sekunden", "300"),
+    ):
+        eintrag = Parameter.objects.get(schluessel=schluessel)
+        client.post(
+            reverse("parameter:verwaltung_aktion"), {"parameter": eintrag.pk, "wert": wert, "grund": "Probe."}
+        )
+        eintrag.refresh_from_db()
+        assert eintrag.wert == wert, schluessel
+
+
+def test_versionsschilder_haben_kein_aenderungsformular(client):
+    _admin(client)
+    inhalt = client.get(reverse("parameter:verwaltung")).content.decode()
+    for schluessel in VERSIONSSCHILDER:
+        assert f'aria-label="Neuer Wert {schluessel}"' not in inhalt, schluessel
+    assert 'aria-label="Neuer Wert chat-zeichen-hoechstzahl"' in inhalt
+
+
+def _schema_dokument() -> str:
+    import pathlib
+
+    return (pathlib.Path(__file__).resolve().parent.parent / "docs" / "SCHEMA.md").read_text(encoding="utf-8")
+
+
+def test_schema_beschreibt_zurueckgenommene_zustimmungen_ohne_zeitpunkt():
+    """GP-022 (ASR-01, ASR-09): Der Block `zustimmungen` des Kandidatur-Exports kennzeichnet eine
+    Rücknahme nur als Wahrheitswert — ein Zeitpunkt je Pseudonym höbe die Schwärzung im Audit auf."""
+    zeile = next(z for z in _schema_dokument().splitlines() if z.startswith("| `/antrag/<id>/export.json`"))
+    assert "`zustimmungen`" in zeile and "`zurueckgenommen`" in zeile
+    assert "zurueckgenommen_am" not in zeile
+
+
+def test_eine_aeltere_fassung_laesst_sich_nicht_wieder_in_kraft_setzen(client, ordnung):  # noqa: F811
+    """GP-127 (RVA-11): Per Formulardaten ließ sich eine abgelöste Fassung wieder in Kraft setzen,
+    ihr Beschlussdatum wurde dabei überschrieben. Zulässig ist nur eine jüngere Fassung."""
+    from verfahren.models import Verfahrensordnung
+
+    _admin(client)
+    Parameter.objects.filter(schluessel="verfahren-abstimmung-tage").update(wert="30")
+    client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    neu = Verfahrensordnung.objects.order_by("-version").first()
+    client.post(reverse("parameter:verwaltung_ordnung_inkraft"), {"ordnung": neu.pk, "grund": "Beschluss."})
+    ordnung.refresh_from_db()
+    assert ordnung.aktiv is False
+    vorher = list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am"))
+    antwort = client.post(
+        reverse("parameter:verwaltung_ordnung_inkraft"), {"ordnung": ordnung.pk, "grund": "Zurück."}, follow=True
+    )
+    assert list(Verfahrensordnung.objects.order_by("pk").values_list("pk", "aktiv", "beschlossen_am")) == vorher
+    assert "nicht jünger" in antwort.content.decode()
+
+
+@pytest.mark.parametrize("jahr", ["0", "1", "1999", "9999", "10000", "12345678901234567890"])
+def test_parameterbericht_kennt_nur_sinnvolle_jahre(client, jahr):
+    """GP-125 (RVA-17): Ungültige Jahreszahlen führten zu einem Serverfehler."""
+    assert client.get(f"/parameter/bericht/{jahr}/").status_code == 404
+
+
+def test_parameterbericht_des_laufenden_jahres(client):
+    jahr = timezone.localdate().year
+    assert client.get(reverse("parameter:bericht", args=[jahr])).status_code == 200
+    assert client.get(reverse("parameter:bericht", args=[jahr + 1])).status_code == 200
+    assert client.get(reverse("parameter:bericht", args=[jahr + 2])).status_code == 404
+
+
+def test_parameter_json_nennt_den_teststatus(client):
+    """GP-136 (RVB-17): /parameter.json verschwieg, dass ein Wert im Test steht — eine
+    Partnerinstanz las den Testwert als geltend."""
+    from datetime import date
+
+    from parameter.models import ParameterTest, Status, TestStatus
+    from plattform_core.schema import SCHEMA_VERSION
+
+    erstbestand_sicherstellen()
+    ende = timezone.localdate() + timedelta(days=30)
+    eintrag = Parameter.objects.get(schluessel="gremien-beschluss-tage")
+    ParameterTest.objects.create(
+        parameter=eintrag, testwert="9", alter_wert="7", hypothese="Kürzere Frist, gleiche Beteiligung.",
+        messgroesse="votes.turnout_mean", beginn=date.today(), ende=ende, rueckweg="Zurück auf 7.",
+        status=TestStatus.LAEUFT, angeordnet_von=mitglied_anlegen("rat"),
+    )
+    Parameter.objects.filter(pk=eintrag.pk).update(
+        wert="9", status=Status.IM_TEST, test_bis=ende, test_hypothese="Kürzere Frist, gleiche Beteiligung."
+    )
+    daten = client.get(reverse("parameter:export")).json()
+    assert daten["schema_version"] == SCHEMA_VERSION
+    werte = {p["schluessel"]: p for p in daten["parameter"]}
+    im_test = werte["gremien-beschluss-tage"]
+    assert im_test["status"] == "im_test" and im_test["test_bis"] == ende.isoformat()
+    assert im_test["test_hypothese"].startswith("Kürzere Frist") and im_test["wert_vor_test"] == "7"
+    gueltig = werte["gremien-review-tage"]
+    assert gueltig["status"] == "gueltig" and gueltig["test_bis"] is None and "wert_vor_test" not in gueltig
+
+
+def test_schema_dokument_beschreibt_den_teststatus():
+    """GP-136: docs/SCHEMA.md beschreibt die Felder, die plattform_core/schema.py ausgibt."""
+    from plattform_core.schema import parameter_export
+
+    eintrag = parameter_export("at-test", "Test", "0", [{"schluessel": "x", "wert": "1"}], [], "jetzt")["parameter"][0]
+    abschnitt = _schema_dokument().split("## 3. `/parameter.json`")[1].split("### 3.1")[0]
+    for feld in eintrag:
+        assert f'"{feld}"' in abschnitt or f"`{feld}`" in abschnitt, feld
+    assert "`wert_vor_test`" in abschnitt and "`im_test`" in abschnitt
+
+
+def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
+    """Auflage zu GP-136: Neue Exportfelder, Audit-Arten und Kennungen der Gesamtprüfung heben die
+    Nebenversion; Kopf und Änderungsverlauf von docs/SCHEMA.md nennen sie, die neuen Kennungen
+    stehen in der Tabelle 3.1, /audit.json in Abschnitt 5."""
+    from plattform_core.schema import SCHEMA_VERSION
+
+    zeilen = _schema_dokument().splitlines()
+    assert f"Schema-Version **{SCHEMA_VERSION}**" in zeilen[2]
+    eintrag = next(z for z in zeilen if z.startswith(f"| {SCHEMA_VERSION} |"))
+    for wort in (
+        "`status`", "`test_bis`", "`test_hypothese`", "`wert_vor_test`", "`nur_tag`", "`zurueckgenommen`",
+        "`gremienbeschluss_geschlossen`", "`vollzugsbezug_gesetzt`", "`interessenbindung_erklaert`",
+        "`auslosung_begonnen`", "`fachliste_eingetragen`", "`fachliste_gestrichen`", "`meldung_ohne_massnahme`",
+        "`beitrag_ausgeblendet`", "`beratung_freigegeben`", "`entwurf_wiederhergestellt`", "`auswertung.grund`",
+        "`auswertung.stimmen`", "`account.data_exports_per_hour`", "`fees.member_reports_with_bank_call_per_day`",
+        "`fees.bank_calls_reserved_for_administration`",
+    ):
+        assert wort in eintrag, wort
+    tabelle = _schema_dokument().split("### 3.1")[1].split("### 3.2")[0]
+    for schluessel in ("datenexport-je-stunde", "beitrag-meldungen-mit-abruf-je-konto", "beitrag-abruf-verwaltungsvorbehalt"):
+        assert f"| `{schluessel}` |" in tabelle, schluessel
+    audit = next(z for z in zeilen if z.startswith("| `/audit.json`"))
+    assert "`nur_tag`" in audit
+
+
+def _tabellenzeilen(abschnitt: str) -> list[list[str]]:
+    zeilen = [z for z in abschnitt.splitlines() if z.startswith("| `")]
+    return [[zelle.strip() for zelle in z.strip().strip("|").split(" | ")] for z in zeilen]
+
+
+def test_schema_tabelle_der_stellgroessen_steht_wie_im_code():
+    """Restauflage zu GP-136: Die Tabelle 3.1 von docs/SCHEMA.md war veraltet (zwölf Kennungen fehlten,
+    Überschrift „Schema 1.11, 59 Kennungen“). Jede Registerkennung steht mit Schlüssel, Einheit,
+    Startwert des Erstbestands und Bedeutung in der Tabelle, und die Tabelle führt nichts anderes."""
+    from plattform_core.schema import PARAMETER, SCHEMA_VERSION
+
+    dokument = _schema_dokument()
+    abschnitt = dokument.split("### 3.1")[1].split("### 3.2")[0]
+    start = {e["schluessel"]: e["wert"] for e in ERSTBESTAND}
+    erwartet = {
+        kennung: [f"`{kennung}`", f"`{schluessel}`", einheit, start[schluessel], bedeutung]
+        for schluessel, (kennung, einheit, bedeutung) in PARAMETER.items()
+    }
+    im_dokument = {zeile[0].strip("`"): zeile for zeile in _tabellenzeilen(abschnitt)}
+    fehlend = sorted(set(erwartet) - set(im_dokument))
+    fremd = sorted(set(im_dokument) - set(erwartet))
+    assert not fehlend, "fehlt in docs/SCHEMA.md 3.1: " + "\n".join(
+        "| " + " | ".join(erwartet[k]) + " |" for k in fehlend
+    )
+    assert not fremd, f"nicht im Code: {fremd}"
+    for kennung, zeile in erwartet.items():
+        assert im_dokument[kennung] == zeile, "| " + " | ".join(zeile) + " |"
+    assert abschnitt.startswith(f" Kennungen der Stellgrößen (Schema {SCHEMA_VERSION}, {len(PARAMETER)} Kennungen)")
+    assert f"Stand Schema {SCHEMA_VERSION}" in dokument and "Stand 0.50.1" not in dokument
+
+
+def test_schema_tabelle_der_kennzahlen_steht_wie_im_code():
+    from plattform_core.schema import KENNZAHLEN, SCHEMA_VERSION
+
+    abschnitt = _schema_dokument().split("### 4.1")[1].split("\n## ")[0]
+    assert _tabellenzeilen(abschnitt) == [[f"`{k}`", e, b] for k, e, b in KENNZAHLEN]
+    assert abschnitt.startswith(f" Kennungen der Kennzahlen (Schema {SCHEMA_VERSION}, {len(KENNZAHLEN)} Kennungen)")
+
+
+def test_parameterseite_als_erste_anfrage_auf_leerer_datenbank(client):
+    """GP-197 (RVA-18): Auf frischer Instanz lieferte jede Parameterseite 404, bis jemand das
+    Register öffnete."""
+    assert not Parameter.objects.exists()
+    assert client.get(reverse("parameter:parameter", args=["kritik-mindestzeichen"])).status_code == 200
+
+
+def test_gleichzeitig_vergebene_fassungsnummer_ergibt_meldung_statt_serverfehler(client, ordnung, monkeypatch):  # noqa: F811
+    """GP-202 (RVB-23): Vergeben zwei Admins zugleich dieselbe Nummer, scheiterte der zweite mit
+    einem Serverfehler. Jetzt: Umleitung mit Meldung, keine Fassung und kein Audit-Eintrag mehr."""
+    import parameter.views as ansichten
+    from verfahren.models import Verfahrensordnung
+
+    _admin(client)
+    Parameter.objects.filter(schluessel="verfahren-abstimmung-tage").update(wert="30")
+    monkeypatch.setattr(ansichten, "_naechste_version", lambda kennung: ordnung.version)
+    vorher = (Verfahrensordnung.objects.count(), AuditEintrag.objects.count())
+    antwort = client.post(reverse("parameter:verwaltung_ordnung_entwurf"))
+    assert antwort.status_code == 302 and antwort.url == reverse("parameter:verwaltung")
+    assert (Verfahrensordnung.objects.count(), AuditEintrag.objects.count()) == vorher
+    inhalt = client.get(antwort.url).content.decode()
+    assert "inzwischen" in inhalt
+
+
+def test_suchtreffer_beschreibung_nennt_alle_wirkungen():
+    """GP-200 (RVB-21): Die Stellgröße steuert die Fächersuche und die Seitengröße der Gemeindesuche
+    sowie der öffentlichen Listen der Gemeindemandate; beschrieben war nur die Fächersuche. Auch ein
+    bestehender Eintrag mit dem alten Systemtext wird nachgezogen — der Wert bleibt."""
+    from plattform_core.schema import PARAMETER
+
+    erstbestand_sicherstellen()
+    eintrag = Parameter.objects.get(schluessel="suche-treffer-hoechstzahl")
+    Parameter.objects.filter(pk=eintrag.pk).update(
+        wert="12", beschreibung="Wie viele Treffer die Suche im Lebensbereiche-Fächer höchstens zeigt."
+    )
+    erstbestand_sicherstellen()
+    eintrag.refresh_from_db()
+    assert eintrag.wert == "12"
+    for wirkung in ("Gemeindesuche", "Ratsinitiativen", "Projektstände", "Haushalt", "Sitzungsunterlagen"):
+        assert wirkung in eintrag.beschreibung, wirkung
+    assert "municipal" in PARAMETER["suche-treffer-hoechstzahl"][2]
+    zeile = next(z for z in _schema_dokument().splitlines() if "`suche-treffer-hoechstzahl`" in z)
+    assert "municipal" in zeile
+
+
+def test_regelverzeichnis_verweist_auf_die_faktenbasis(client):
+    """GP-086 (ZWB-06): Die Faktenbasis war nur über einen Textlink der Zukunftswerkstatt auffindbar."""
+    inhalt = client.get(reverse("parameter:regeln")).content.decode()
+    assert f'href="{reverse("faktenbasis:index")}"' in inhalt

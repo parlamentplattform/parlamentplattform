@@ -39,11 +39,12 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from mandatare.gemeindeexport import gemeindearbeit_exportieren, mandate_fuer_export
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
+from mitglieder.botschutz import drossel_zuviel
 from mitglieder.models import PLATZHALTER_MITGLIED, Adresswechsel, Gemeinde, Mitglied, Mitgliedsstatus
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from parameter.models import zahl
@@ -156,7 +157,7 @@ def _oeffentliche_funktion() -> Q:
     )
 
 
-def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
+def anzeigename_vergeben(name: str, ausser: Mitglied | None) -> bool:
     """Kollidiert der gewünschte Anzeigename mit dem öffentlichen Namensraum?
 
     Geprüft wird gegen (a) jedes vergebene Pseudonym und (b) die Klarnamen (Vor- und Nachname,
@@ -177,12 +178,58 @@ def anzeigename_vergeben(name: str, ausser: Mitglied) -> bool:
         | Q(first_name__iexact=name, last_name="")
         | Q(first_name="", last_name__iexact=name)
     )
+    andere = Mitglied.objects.exclude(pk=ausser.pk) if ausser is not None and ausser.pk else Mitglied.objects.all()
+    # GP-186: Ein nie bestätigtes Gemeindekonto belegt keinen Namen — sonst sperrte jede Anmeldung
+    # mit fremder Adresse einen Namen für alle.
+    andere = andere.exclude(parteikonto=False, gemeindezugang__bestaetigt_am__isnull=True)
     return (
-        Mitglied.objects.exclude(pk=ausser.pk)
+        andere
         .annotate(klarname=Concat("first_name", Value(" "), "last_name"))
         .filter(Q(pseudonym_oeffentlich__iexact=name) | (_oeffentliche_funktion() & klarname_gleich))
         .exists()
     )
+
+
+def anzeigename_frei_unter_sperre(name: str, konto: Mitglied) -> bool:
+    """Prüft den gewählten Namen erneut, diesmal unter Sperre (GP-186). Nur innerhalb von
+    transaction.atomic aufrufen; die Sperren halten bis zu deren Ende.
+
+    Die Formularprüfung lief vor jeder Sperre: Zwei Konten, die gleichzeitig denselben Namen wählen,
+    bestünden sie beide. Darum werden hier (a) das eigene Konto und alle Konten, die den Namen schon
+    führen, in fester pk-Reihenfolge gesperrt (wie beim Bestätigen des Gemeindekontos) und (b) unter
+    PostgreSQL zusätzlich eine Sperre auf den Namen selbst genommen. Zeilensperren allein reihen zwei
+    Konten nicht, wenn noch keines den Namen trägt; die Namenssperre reiht sie."""
+    from django.db import connection
+
+    if connection.vendor == "postgresql":
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(74889, hashtext(lower(%s)))", [name])
+    list(Mitglied.objects.select_for_update().filter(
+        Q(pk=konto.pk) | Q(pseudonym_oeffentlich__iexact=name)
+    ).order_by("pk").values_list("pk", flat=True))
+    return not anzeigename_vergeben(name, ausser=konto)
+
+
+def anzeigename_pruefen(eingabe: str, ausser: Mitglied | None) -> str:
+    """Normalisiert einen Wunsch-Anzeigenamen und weist Vorbehaltenes und Vergebenes ab — im Profil
+    und bei der Gemeindeanmeldung gleich (GP-186)."""
+    name = " ".join(eingabe.split())  # Leerraum normalisieren
+    if not name:
+        return ""
+    if (
+        name.casefold() in VORBEHALTEN
+        or name.casefold().startswith(PLATZHALTER.casefold())
+        or MITGLIED_N.fullmatch(name)
+    ):
+        # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
+        # der Platzhalter Ausgetretener, „Mitglied n“ der Anzeigename ohne Pseudonym und ohne
+        # Einwilligung zum Klarnamen — nichts davon darf sich jemand als Anzeigenamen geben.
+        raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
+    if anzeigename_vergeben(name, ausser=ausser):
+        # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
+        # kollidiert — sonst verriete sie, wessen Klarname hier geführt wird.
+        raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
+    return name
 
 
 class ProfilFormular(WohnsitzFormularMixin, forms.Form):
@@ -220,23 +267,7 @@ class ProfilFormular(WohnsitzFormularMixin, forms.Form):
         self.nebenwohnsitz_objekt: Gemeinde | None = None
 
     def clean_anzeigename(self) -> str:
-        name = " ".join(self.cleaned_data["anzeigename"].split())  # Leerraum normalisieren
-        if not name:
-            return ""
-        if (
-            name.casefold() in VORBEHALTEN
-            or name.casefold().startswith(PLATZHALTER.casefold())
-            or MITGLIED_N.fullmatch(name)
-        ):
-            # „Die Plattform“ ist der Verfasser der Systembeiträge im Chat, „Ehemaliges Mitglied n“
-            # der Platzhalter Ausgetretener, „Mitglied n“ der Anzeigename ohne Pseudonym und ohne
-            # Einwilligung zum Klarnamen — nichts davon darf sich jemand als Anzeigenamen geben.
-            raise forms.ValidationError(_("Dieser Name ist der Plattform vorbehalten."))
-        if anzeigename_vergeben(name, ausser=self.mitglied):
-            # Bewusst neutral: Die Meldung sagt nicht, ob ein Pseudonym oder ein Klarname
-            # kollidiert — sonst verriete sie, wessen Klarname hier geführt wird.
-            raise forms.ValidationError(_("Dieser Name ist nicht verfügbar."))
-        return name
+        return anzeigename_pruefen(self.cleaned_data["anzeigename"], ausser=self.mitglied)
 
     def clean_nebenwohnsitz(self) -> str:
         self.nebenwohnsitz_objekt = _gemeinde_pruefen(self.cleaned_data["nebenwohnsitz"])
@@ -288,8 +319,22 @@ def profil(request):
     mitglied = request.user
     if request.method == "POST":
         form = ProfilFormular(request.POST, mitglied=mitglied)
+        geaendert = None
         if form.is_valid():
-            if _profil_anwenden(mitglied, form):
+            # GP-186: Der Name wird unter Sperre erneut geprüft; das Formular prüfte ihn vor jeder Sperre.
+            with transaction.atomic():
+                name = form.cleaned_data["anzeigename"]
+                if name and name != mitglied.pseudonym_oeffentlich and not anzeigename_frei_unter_sperre(
+                    name, mitglied
+                ):
+                    form.add_error("anzeigename", _("Dieser Name ist nicht verfügbar."))
+                else:
+                    geaendert = _profil_anwenden(mitglied, form)
+        if geaendert is not None:
+            if {"wohnsitz", "wiener_bezirk", "nebenwohnsitz"} & set(geaendert):
+                # GP-056: wie im Gemeindezugang — ein Umzug ändert keinen festgehaltenen Kreis.
+                messages.success(request, _("Profil gespeichert. Festgehaltene Verfahrenskreise bleiben unverändert."))
+            elif geaendert:
                 messages.success(request, _("Profil gespeichert."))
             else:
                 messages.info(request, _("Keine Änderungen."))
@@ -359,13 +404,24 @@ def _gemeinde_export(g: Gemeinde | None) -> dict | None:
 
 def _stimmen_export(mitglied: Mitglied) -> list[dict]:
     """Die eigenen Stimmen über das Stimmregister — Antrag, Pseudonym, Prüfcode, Stimmwert und
-    Zustimmungen zu Bewerbungen. Nur der Mensch selbst sieht diese Brücke (F-25)."""
+    Zustimmungen zu Bewerbungen. Nur der Mensch selbst sieht diese Brücke (F-25).
+
+    Abgaben und Zustimmungen kommen je in einer Abfrage über die Pseudonyme (GP-181) — die Zahl
+    der Abfragen hängt nicht an der Zahl der Registereinträge."""
+    eintraege = list(
+        StimmRegister.objects.filter(mitglied=mitglied).select_related("antrag").order_by("antrag_id")
+    )
+    pseudonyme = [e.pseudonym for e in eintraege]
+    abgaben = {
+        (a.antrag_id, a.pseudonym): a for a in Stimmabgabe.objects.filter(pseudonym__in=pseudonyme)
+    }
+    zustimmungen_je: dict = {}
+    for z in BewerbungsZustimmung.objects.filter(pseudonym__in=pseudonyme).select_related("bewerbung"):
+        zustimmungen_je.setdefault((z.bewerbung.antrag_id, z.pseudonym), []).append(z)
     stimmen = []
-    for eintrag in StimmRegister.objects.filter(mitglied=mitglied).select_related("antrag").order_by("antrag_id"):
-        abgabe = Stimmabgabe.objects.filter(antrag=eintrag.antrag, pseudonym=eintrag.pseudonym).first()
-        zustimmungen = BewerbungsZustimmung.objects.filter(
-            bewerbung__antrag=eintrag.antrag, pseudonym=eintrag.pseudonym
-        ).select_related("bewerbung")
+    for eintrag in eintraege:
+        abgabe = abgaben.get((eintrag.antrag_id, eintrag.pseudonym))
+        zustimmungen = zustimmungen_je.get((eintrag.antrag_id, eintrag.pseudonym), [])
         stimmen.append(
             {
                 "antrag": eintrag.antrag_id,
@@ -461,8 +517,12 @@ def _gremien_export(m: Mitglied) -> dict:
             for p in Pruefung.objects.filter(durch=m).select_related("entwurf")
         ],
         "entwurfsbeitraege": [
-            {"antrag": b.entwurf.antrag_id, "text": b.text, "absatz": b.absatz, "erstellt_am": b.erstellt_am}
-            for b in EntwurfsBeitrag.objects.filter(mitglied=m).select_related("entwurf")
+            {
+                "antrag": b.entwurf.antrag_id, "text": b.text, "absatz": b.absatz, "erstellt_am": b.erstellt_am,
+                # GP-190: KI-Einschätzung als solche gekennzeichnet, nicht als eigener Text
+                "ki_lauf": {"nummer": b.ki_lauf_id, "modell": b.ki_lauf.modell} if b.ki_lauf_id else None,
+            }
+            for b in EntwurfsBeitrag.objects.filter(mitglied=m).select_related("entwurf", "ki_lauf")
         ],
         "entwurfsfassungen": [
             {
@@ -785,10 +845,31 @@ def daten_export(mitglied: Mitglied) -> dict:
     return daten
 
 
+#: Erstbestand und Rückfall des Registerwerts „datenexport-je-stunde“ (GP-099).
+EXPORT_JE_STUNDE = 10
+
+
 @login_required
 @never_cache
+@require_GET
 def export_json(request):
-    """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto."""
+    """Art 15/20 DSGVO: die eigenen Daten zum Mitnehmen — nur an das angemeldete Konto.
+
+    Nur GET; je Konto und Kalenderstunde höchstens „datenexport-je-stunde“ Abrufe, damit kein
+    Konto die öffentliche Audit-Kette mit Exportzeilen füllt (GP-099)."""
+    grenze = max(1, zahl("datenexport-je-stunde", EXPORT_JE_STUNDE))  # nie ganz gesperrt (Art 15/20 DSGVO)
+    if drossel_zuviel(None, "datenexport", grenze, kennung=f"konto:{request.user.pk}"):
+        from datetime import datetime
+
+        from django.utils import formats
+
+        ende = datetime.fromtimestamp(
+            (int(timezone.now().timestamp()) // 3600 + 1) * 3600, tz=timezone.get_current_timezone()
+        )
+        messages.error(request, _("Zu viele Datenexporte in dieser Stunde — bitte ab %(zeit)s Uhr erneut.") % {
+            "zeit": formats.time_format(ende, "H:i")
+        })
+        return redirect("mitglieder:profil")
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
     _auditieren("datenexport", request.user)
     antwort = HttpResponse(inhalt, content_type="application/json; charset=utf-8")

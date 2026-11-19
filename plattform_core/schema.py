@@ -17,7 +17,7 @@ from __future__ import annotations
 import re
 from statistics import mean
 
-SCHEMA_VERSION = "1.29"
+SCHEMA_VERSION = "1.30"
 
 # Kennung eines Systems: <Ländercode>-<Kurzname>, z. B. at-ddoe, de-kipartei, se-ddk
 SYSTEM_ID_MUSTER = re.compile(r"^[a-z]{2}-[a-z0-9][a-z0-9-]{1,30}$")
@@ -155,7 +155,9 @@ PARAMETER = {
     ),
     "suche-treffer-hoechstzahl": (
         "areas_fan.max_search_hits", "hits",
-        "Maximum number of hits shown by the search in the areas-of-life fan",
+        "Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the "
+        "municipality search and of the public lists of municipal mandates (council initiatives, projects, "
+        "budget links, session documents), where values below 1 act as 1",
     ),
     "gespraeche-liste-hoechstzahl": (
         "conversations.list_limit", "conversations",
@@ -175,7 +177,8 @@ PARAMETER = {
     ),
     "anstoss-tagesgrenze": (
         "feedback.daily_limit", "messages",
-        "How many feedback messages a person may send per day",
+        "How many feedback messages a person (browser session) may send per day; the same value also caps "
+        "the messages per connection and hour, shared by everyone behind one address",
     ),
     "expertenrat-gruppe1-groesse": (
         "council.group1_size", "people",
@@ -300,6 +303,21 @@ PARAMETER = {
         "Minimum membership age before the administration may queue a fee reminder (consent required, "
         "at most once per calendar year)",
     ),
+    "beitrag-meldungen-mit-abruf-je-konto": (
+        "fees.member_reports_with_bank_call_per_day", "reports/day",
+        "How many times per calendar day a member's report of a transfer triggers a bank account query; "
+        "further reports that day do not query (at least 1)",
+    ),
+    "beitrag-abruf-verwaltungsvorbehalt": (
+        "fees.bank_calls_reserved_for_administration", "calls/day",
+        "How many of the bank's daily account queries stay reserved for the administration; members' "
+        "reports only trigger a query while more than that remain (0 up to the bank's daily quota)",
+    ),
+    "datenexport-je-stunde": (
+        "account.data_exports_per_hour", "requests/hour",
+        "How many times per hour an account may download its own data export; every download is an entry "
+        "in the public audit log (at least 1, the export always stays possible)",
+    ),
     "post-hoechstversuche": (
         "mail.max_attempts", "attempts",
         "After how many failed delivery attempts the mail queue gives up an e-mail about the procedure "
@@ -386,8 +404,13 @@ def _kopf(system_id: str, system_name: str, software_version: str, jetzt) -> dic
 
 def parameter_export(system_id, system_name, software_version, parameter, ordnungen, jetzt) -> dict:
     """Baut `/parameter.json`. `parameter`: Folge von Mappings mit schluessel, wert, einheit,
-    beschreibung, quelle, geaendert_am (ISO), optional schema_key; `ordnungen`: Folge von
-    Mappings mit id, version und den Policy-Feldern (siehe VERFAHRENSORDNUNG)."""
+    beschreibung, quelle, geaendert_am (ISO), optional schema_key, status, test_bis (ISO-Datum),
+    test_hypothese und wert_vor_test; `ordnungen`: Folge von Mappings mit id, version und den
+    Policy-Feldern (siehe VERFAHRENSORDNUNG).
+
+    Seit 0.113.0 trägt jeder Eintrag seinen Status (`gueltig`, `im_test`, `vorgeschlagen`): Ein Wert im
+    Test gilt nur befristet, und eine Partnerinstanz soll ihn nicht als geltend übernehmen. Im Test
+    kommen Ende, Hypothese und der Wert davor dazu."""
     daten = _kopf(system_id, system_name, software_version, jetzt)
     daten["parameter"] = []
     for p in parameter:
@@ -400,7 +423,12 @@ def parameter_export(system_id, system_name, software_version, parameter, ordnun
             "beschreibung": p.get("beschreibung", ""),
             "quelle": p.get("quelle", ""),
             "geaendert_am": p.get("geaendert_am", ""),
+            "status": p.get("status") or "gueltig",
+            "test_bis": p.get("test_bis") or None,
+            "test_hypothese": p.get("test_hypothese", ""),
         })
+        if daten["parameter"][-1]["status"] == "im_test" and p.get("wert_vor_test") is not None:
+            daten["parameter"][-1]["wert_vor_test"] = p["wert_vor_test"]
     daten["verfahrensordnung"] = [
         {
             "id": o.get("id", ""),

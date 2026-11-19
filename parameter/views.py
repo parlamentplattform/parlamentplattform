@@ -2,6 +2,7 @@
 Verwaltung mit Pflicht-Grund — jede Änderung im Audit-Log."""
 
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -10,7 +11,15 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
 from mitglieder.verwaltung import nur_admins
-from parameter.models import Aenderung, Gruppe, Parameter, Status, erstbestand_sicherstellen
+from parameter.models import (
+    REGELFASSUNG,
+    Aenderung,
+    Gruppe,
+    Parameter,
+    Status,
+    erstbestand_sicherstellen,
+    wert_ausserhalb,
+)
 from verfahren.models import AuditEintrag
 
 #: Kennung der Verfahrensordnung, wenn diese Instanz noch gar keine hat. Gibt es eine geltende
@@ -70,6 +79,7 @@ def parameter_detail(request, schluessel: str):
 
     from gremien.models import parametertests_fortschreiben
 
+    erstbestand_sicherstellen()  # GP-197: auch als erste Anfrage einer frischen Instanz
     parametertests_fortschreiben()
     p = get_object_or_404(Parameter, schluessel=schluessel)
     tests = [
@@ -94,8 +104,14 @@ def bericht(request, jahr: int):
 
     § 6 Abs 11 lit c: Die Einführung ist „mit Begründung im Parameterregister zu
     veröffentlichen"; der Bericht ist die Jahressicht darauf — nichts daran ist Freitext."""
+    from django.http import Http404
+
     from parameter.models import ParameterTest
 
+    # GP-125: Jahre außerhalb von 2000 bis nächstem Jahr gibt es im Register nicht — und eine
+    # zwanzigstellige Zahl darf keinen Serverfehler auslösen.
+    if not 2000 <= jahr <= timezone.localdate().year + 1:
+        raise Http404
     aenderungen = list(
         Aenderung.objects.filter(geaendert_am__year=jahr).select_related("parameter").order_by("geaendert_am")
     )
@@ -124,11 +140,18 @@ def export_json(request):
     Felder bleiben, dazu kommen Kopf und Schema-Kennungen."""
     from django.conf import settings
 
+    from gremien.models import parametertests_fortschreiben
+    from parameter.models import ParameterTest, TestStatus
     from plattform_core import __version__
     from plattform_core.schema import parameter_export
     from verfahren.models import Verfahrensordnung
 
     erstbestand_sicherstellen()
+    parametertests_fortschreiben()  # abgelaufene Tests fallen zurück — wie auf der Registerseite
+    # GP-136: Ein Wert im Test ist befristet; der Export nennt Status, Ende, Hypothese und den Wert davor.
+    vor_test = dict(
+        ParameterTest.objects.filter(status=TestStatus.LAEUFT).values_list("parameter_id", "alter_wert")
+    )
     parameter = [
         {
             "schluessel": p.schluessel,
@@ -138,6 +161,10 @@ def export_json(request):
             "beschreibung": p.beschreibung,
             "quelle": p.quelle,
             "geaendert_am": p.geaendert_am.isoformat(),
+            "status": p.status,
+            "test_bis": p.test_bis.isoformat() if p.test_bis else None,
+            "test_hypothese": p.test_hypothese,
+            "wert_vor_test": vor_test.get(p.pk),
         }
         for p in Parameter.objects.all()
     ]
@@ -382,12 +409,14 @@ def verwaltung(request):
             "karten": _karten(_register_eintraege()),
             "abgleich": _ordnung_abgleich(),
             "im_test": Status.IM_TEST,
+            "regelfassung": REGELFASSUNG,
         },
     )
 
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_aktion(request):
     eintrag = get_object_or_404(Parameter, pk=request.POST.get("parameter"))
     neuer_wert = (request.POST.get("wert") or "").strip()[:100]
@@ -397,6 +426,10 @@ def verwaltung_aktion(request):
         return redirect("parameter:verwaltung")
     if neuer_wert == eintrag.wert:
         messages.info(request, _("Der Wert ist unverändert — nichts zu tun."))
+        return redirect("parameter:verwaltung")
+    ausserhalb = wert_ausserhalb(eintrag, neuer_wert)
+    if ausserhalb:
+        messages.error(request, ausserhalb)
         return redirect("parameter:verwaltung")
     alt = eintrag.wert
     eintrag.wert = neuer_wert
@@ -419,6 +452,7 @@ def verwaltung_aktion(request):
             "alt": alt,
             "neu": neuer_wert,
             "grund": grund[:500],
+            "durch": request.user.pk,
         }
     )
     messages.success(
@@ -431,6 +465,7 @@ def verwaltung_aktion(request):
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_ordnung_entwurf(request):
     """Erzeugt aus dem Register eine neue Fassung der Verfahrensordnung — ohne Kraft (FB-J1).
 
@@ -467,15 +502,27 @@ def verwaltung_ordnung_entwurf(request):
                 % {"version": juengste.version},
             )
         return redirect("parameter:verwaltung")
-    Verfahrensordnung.objects.create(
-        policy_id=kennung, version=version, regeln=erzeugt.als_dict(), aktiv=False
-    )
+    # GP-202: Zwei Admins können zugleich dieselbe Nummer lesen; die Eindeutigkeit hält, und der
+    # zweite bekommt eine Meldung statt einer Fehlerseite.
+    try:
+        with transaction.atomic():
+            Verfahrensordnung.objects.create(
+                policy_id=kennung, version=version, regeln=erzeugt.als_dict(), aktiv=False
+            )
+    except IntegrityError:
+        messages.info(
+            request,
+            _("Fassung %(version)s ist inzwischen anderweitig erzeugt worden — nichts erzeugt. Bitte prüfen, was sie sagt.")
+            % {"version": version},
+        )
+        return redirect("parameter:verwaltung")
     AuditEintrag.anhaengen(
         {
             "typ": "verfahrensordnung_erzeugt",
             "policy_id": kennung,
             "version": version,
             "regeln": erzeugt.als_dict(),
+            "durch": request.user.pk,
         }
     )
     messages.success(
@@ -488,6 +535,7 @@ def verwaltung_ordnung_entwurf(request):
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_ordnung_inkraft(request):
     """Setzt eine erzeugte Fassung in Kraft (FB-J1).
 
@@ -517,11 +565,20 @@ def verwaltung_ordnung_inkraft(request):
     if fassung.aktiv:
         messages.info(request, _("Fassung %(version)s gilt bereits.") % {"version": fassung.version})
         return redirect("parameter:verwaltung")
+    # GP-127: Eine abgelöste Fassung kehrt nicht über ein Formular zurück — die Seite bietet nur
+    # jüngere an, und ein Beschlussdatum wird nie überschrieben.
+    if vorher is not None and fassung.version <= vorher.version:
+        messages.error(
+            request,
+            _("Fassung %(version)s ist nicht jünger als die geltende Fassung %(geltend)s — nichts geändert.")
+            % {"version": fassung.version, "geltend": vorher.version},
+        )
+        return redirect("parameter:verwaltung")
     # Alle geltenden Fassungen abloesen, nicht nur die mit derselben Kennung: Das Einbringen
     # nimmt die aktive Ordnung ohne Rücksicht auf den Namen — zwei aktive wären ein Zufall.
     Verfahrensordnung.objects.filter(aktiv=True).update(aktiv=False)
     fassung.aktiv = True
-    fassung.beschlossen_am = timezone.now()
+    fassung.beschlossen_am = fassung.beschlossen_am or timezone.now()
     fassung.save(update_fields=["aktiv", "beschlossen_am"])
     AuditEintrag.anhaengen(
         {
@@ -530,6 +587,7 @@ def verwaltung_ordnung_inkraft(request):
             "version": fassung.version,
             "vorher": vorher.version if vorher else None,
             "grund": grund[:500],
+            "durch": request.user.pk,
         }
     )
     messages.success(

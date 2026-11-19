@@ -62,6 +62,49 @@ def _zeilen(ab_nummer: int | None):
     return eintraege.values_list("lfd", "ereignis", "vorgaenger", "hash").iterator(chunk_size=2000)
 
 
+def _zeitabweichungen(ab_nummer: int | None, hoechstens: int = 20) -> list[int]:
+    """Die laufenden Nummern der Einträge, deren Spalte `zeit` nicht die versiegelte Zeit im Ereignis
+    ist (GP-158). Die Spalte liegt nicht unter dem Hash; wer sie ändert, verschöbe sonst unbemerkt, wann
+    etwas geschah. Ältere Einträge ohne versiegelte Zeit bleiben außen vor."""
+    eintraege = AuditEintrag.objects.order_by("lfd")
+    if ab_nummer is not None:
+        eintraege = eintraege.filter(lfd__gt=ab_nummer)
+    gefunden: list[int] = []
+    for nummer, ereignis, spalte in eintraege.values_list("lfd", "ereignis", "zeit").iterator(chunk_size=2000):
+        versiegelt = ereignis.get("zeit") if isinstance(ereignis, dict) else None
+        if not isinstance(versiegelt, str):
+            continue
+        try:
+            stimmt = datetime.fromisoformat(versiegelt) == spalte
+        except (TypeError, ValueError):
+            stimmt = False
+        if not stimmt:
+            gefunden.append(nummer)
+            if len(gefunden) >= hoechstens:
+                break
+    return gefunden
+
+
+def _zeitbrueche_melden(ergebnis: dict, ab_nummer: int | None) -> None:
+    """Eine abweichende Zeitspalte ist eine eigene Bruchstelle (Grund „zeit“). Liegt sie vor dem ersten
+    Hash-Bruch, rückt der Anker vor sie — so findet sie auch der nächste stückweise Lauf wieder."""
+    zeit = _zeitabweichungen(ab_nummer)
+    if not zeit:
+        return
+    erste = zeit[0]
+    if ergebnis["intakt"] or erste < ergebnis["bruch"]:
+        davor = AuditEintrag.objects.filter(lfd__lt=erste).order_by("-lfd").values_list("lfd", "hash").first()
+        ergebnis.update(
+            intakt=False,
+            bruch=erste,
+            grund="zeit",
+            geprueft_bis=davor[0] if davor else 0,
+            kopf=davor[1] if davor else GENESIS,
+        )
+    brueche = {tuple(b) for b in ergebnis.get("brueche") or []} | {(n, "zeit") for n in zeit}
+    ergebnis["brueche"] = sorted(brueche)[:20]
+
+
 def _faellig_voll(stand: dict, jetzt) -> bool:
     letzte = stand.get("letzte_volle")
     if not letzte or stand.get("geprueft_bis") is None:
@@ -126,6 +169,8 @@ def pruefen(voll: bool = False, stand: dict | None = None, jetzt=None) -> dict:
         # Einträge dahinter für immer ungeprüft (gegnerische Prüfung 0.52.0).
         ab = ergebnis["geprueft_bis"] or None
         ergebnis["brueche"] = bruchstellen(_zeilen(ab), start_hash=ergebnis["kopf"] if ab else GENESIS)
+    if ergebnis["grund"] != "anker":
+        _zeitbrueche_melden(ergebnis, None if voll else (int(stand["geprueft_bis"]) or None))
     ergebnis.update(
         voll=voll,
         # gezählt bis zum geprüften Eintrag: was danach kam, ist noch nicht geprüft

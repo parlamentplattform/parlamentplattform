@@ -1,6 +1,6 @@
 # SCHEMA.md — Die Schnittstelle zwischen den Landesinstanzen
 
-*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.29** (4.11.2026)*
+*Satzung § 12 Abs 5 · Fahrtenbuch FB-M5/M6 · ADR-009 · Schema-Version **1.30** (18.11.2026)*
 
 Seit1.29 ergänzt `sources.inventory_max_records` (`faktenbasis-bestandsnachweis-hoechstzahl`,
 Einheit snapshots) den ausschließlich lesenden Nachweis des lokalen Quellenbestands.
@@ -140,8 +140,9 @@ Stellgrößen mit **sprachneutralen Kennungen** und **aggregierte Kennzahlen**. 
 verlassen eine Instanz nie.
 
 Maßgeblich ist `plattform_core/schema.py` (rein, getestet); diese Datei ist die lesbare Fassung.
-Die Tabellen in Abschnitt 3 und 4 sind aus dem Code erzeugt (Stand 0.50.1) — weicht die Datei
-vom Code ab, gilt der Code, und die Datei ist nachzuziehen.
+Die Tabellen 3.1 und 4.1 sind aus dem Code erzeugt (Stand Schema 1.30, Plattform 0.113.0) — weicht
+die Datei vom Code ab, gilt der Code, und die Datei ist nachzuziehen. Ein Test
+(`parameter/test_register.py`) hält beide Tabellen gegen `plattform_core/schema.py` und den Erstbestand.
 
 Seit1.20 ergänzt rechtsbezug.korrekturen getrennte Nachweise öffentlicher Korrekturaufträge: Ursprung, Beanstandung, festgehaltener Korrekturrahmen, Status und zugehörige Versuche einschließlich Fehlversuchen. Die bisherigen Lauf-/Auftragslisten bleiben beim ursprünglichen Rechtsbezug. Kein Korrekturlauf bestätigt die rechtliche Relevanz oder verändert ein Verfahren. Siehe docs/KORREKTURLAUF.md.
 
@@ -188,7 +189,8 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
   "…Kopf…",
   "parameter": [
     {"schema_key": "support.review_days", "schluessel": "gremien-review-tage", "wert": "14",
-     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…"}
+     "einheit": "Tage", "beschreibung": "…", "quelle": "§ 5 Abs 12", "geaendert_am": "…",
+     "status": "gueltig", "test_bis": null, "test_hypothese": ""}
   ],
   "verfahrensordnung": [
     {"id": "sachantrag-standard", "version": 1, "werte": [
@@ -206,6 +208,12 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
 }
 ```
 
+Seit 0.113.0 (Schema 1.30) trägt jeder Registereintrag seinen Status: `gueltig`, `im_test` (befristeter Test
+nach § 6 Abs 11 lit c) oder `vorgeschlagen`. Ein Wert `im_test` gilt nur bis `test_bis`
+(ISO-Datum) und ist kein geltender Wert dieser Instanz; `test_hypothese` nennt, was der Test zeigen
+soll, und `wert_vor_test` den Wert, zu dem er zurückfällt. Außerhalb eines Tests ist `test_bis`
+`null`, `test_hypothese` leer, und `wert_vor_test` fehlt.
+
 Unter `verfahrensordnung` steht die **wirksame** Ordnung jeder Fassung: Felder, die eine ältere
 Fassung noch nicht kannte, erscheinen mit dem eingebauten Vorgabewert (seit 0.44.0).
 
@@ -213,76 +221,93 @@ Ein Registereintrag ohne `schema_key` wäre eine **lokale** Stellgröße (nur f�
 bedeutsam). In der Instanz `at-ddoe` gibt es keine: Ein Wächter (`verfahren/test_partner.py`)
 verlangt für jeden Erstbestandsschlüssel eine Kennung.
 
-### 3.1 Kennungen der Stellgrößen (Schema 1.11, 59 Kennungen)
+### 3.1 Kennungen der Stellgrößen (Schema 1.30, 78 Kennungen)
 
 Die Spalte „Registerschlüssel“ nennt den deutschen Schlüssel der Instanz `at-ddoe`; andere
-Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung.
+Instanzen wählen ihre eigenen Schlüssel und tragen dieselbe Kennung. „Startwert“ ist der Wert
+des Erstbestands dieser Instanz (`parameter/models.py`, ERSTBESTAND), nicht der geltende Wert —
+der steht in `/parameter.json`; jede Instanz lernt ihren Wert selbst.
 
-| Kennung | Registerschlüssel (at-ddoe) | Einheit | Bedeutung |
-|---|---|---|---|
-| `account.email_change_waiting_hours` | `adresswechsel-wartefrist-stunden` | hours | Waiting time before an administrative change of a login address takes effect |
-| `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | How many provider calls the future workshop's queue makes per calendar day (affected laws, text embeddings) — every attempt counts, including failed ones; the rest waits for the next day |
-| `ai.assessments_per_page` | `ki-einschaetzungen-je-seite` | runs | Earlier legal-impact assessments per motion page (1 to 100); archive exports remain complete |
-| `ai.max_response_tokens` | `ki-antwort-hoechsttokens` | tokens | Maximum length of a model response |
-| `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | Hard monthly token budget of the model slot (cost cap of the future workshop) |
-| `archive.audit_display_limit` | `archiv-audit-anzeige` | events | How many audit events the archive timeline shows; the export always contains all |
-| `areas_fan.max_children` | `faecher-kinder-hoechstzahl` | branches | How many sub-branches a branch shows before it must be fanned out |
-| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | Maximum number of hits shown by the search in the areas-of-life fan |
-| `areas_fan.rule_version` | `faecher-regel` | rule version | Version of the layout algorithm for the areas-of-life fan |
-| `areas_of_life.per_motion` | `kategorien-je-antrag` | areas | How many areas of life a motion is assigned to automatically |
-| `areas_of_life.rule_version` | `kategorien-regel` | rule version | Version of the assignment rule for areas of life (keyword lists, no AI) |
-| `bodies.role_term_days` | `gremien-rollen-dauer-tage` | days | Regular term of a body role (public call, confirmation by the assembly, automatic expiry) |
-| `chat.thread_roots` | `chat-faden-wurzeln` | posts | How many root posts (with replies) a motion's chat shows at once |
-| `conversations.list_limit` | `gespraeche-liste-hoechstzahl` | conversations | How many conversations the panel shows at once; the counter covers all of them |
-| `council.decision_days` | `gremien-beschluss-tage` | days | Default deadline for an internal decision in a council body |
-| `council.decisions_per_page` | `gremien-beschluesse-seite` | decisions | How many council decisions the public list shows at once |
-| `council.first_draft_days` | `expertenrat-erstvorschlag-tage` | days | Days the expert council has for its first proposal; also the minimum deliberation period |
-| `council.group1_size` | `expertenrat-gruppe1-groesse` | people | Size of the first expert group drawn for a motion |
-| `council.group2_size` | `expertenrat-gruppe2-groesse` | people | Size of the second expert group, which checks proposals with procurement relevance |
-| `council.max_rounds` | `gremien-hoechstrunden` | rounds | Maximum number of draft-loop rounds before the proposal goes to the final vote |
-| `council.review_days` | `gremien-pruefung-tage` | days | How long the second expert group has to check a proposal with implementation or procurement relevance |
-| `council.rework_days` | `gremien-ueberarbeitung-tage` | days | Days the expert council has to revise a draft after it was returned |
-| `deliberation.edit_window_minutes` | `chat-bearbeitungsfenster-minuten` | minutes | How long an author may still edit their own post |
-| `deliberation.post_max_chars` | `chat-zeichen-hoechstzahl` | characters | Maximum length of a post in the deliberation chat |
-| `draft_loop.acceptance_percent` | `vorschlag-annahme-prozent` | percent | Approval share the „fine as it is" post must exceed in the proposal chat so the draft goes to the final vote (it must also rank first) |
-| `draft_loop.chat_ordering_version` | `vorschlag-chat-reihung` | rule version | Version of the proposal-chat ordering rule (engagement-v1: engagement desc, then approval share, then time) |
-| `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | Minimum length of a criticism so it counts as a change request to the expert council |
-| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | How many feedback messages a person may send per day |
-| `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | Waiting time between two feedback messages from the same person |
-| `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
-| `mail.max_attempts` | `post-hoechstversuche` | attempts | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |
-| `audit.entries_per_page` | `audit-seite-eintraege` | entries | How many entries the public audit log shows per page (newest first) and per request of /audit.json |
-| `audit.full_check_days` | `audit-vollpruefung-tage` | days | After how many days the daily audit chain check recomputes the whole chain from the start (in between it checks new entries and that the last checked one is unchanged) |
-| `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
-| `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
-| `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
-| `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | Day of the following month until which an office holder's monthly report counts as on time |
-| `live.refresh_seconds` | `live-takt-sekunden` | seconds | How often the live page of a running session reloads itself (between 5 and 300) |
-| `live.max_session_hours` | `live-hoechstdauer-stunden` | hours | After how many hours a live session counts as ended if the office holder did not end it (between 1 and 72) |
-| `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
-| `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | Months before a rejected or lapsed motion may be resubmitted verbatim |
-| `overview.decided_votes` | `uebersicht-abstimmungen` | entries | How many decided votes the public overview lists before pointing to the registers |
-| `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | Whether My Region also displays motions from the area of a registered secondary residence (0 or 1; display only) |
-| `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
-| `similarity.max_hits` | `aehnlichkeit-treffer` | motions | How many similar motions are shown when submitting |
-| `similarity.preview_debounce_ms` | `aehnlichkeit-vorschau-wartezeit-ms` | milliseconds | Idle time before the local preview runs |
-| `similarity.preview_min_chars` | `aehnlichkeit-vorschau-mindestzeichen` | characters | Minimum combined title and motion text length |
-| `similarity.preview_max_chars` | `aehnlichkeit-vorschau-hoechstzeichen` | characters | Maximum preview length; longer texts are checked on submission |
-| `similarity.meaning_calls_per_account_hour` | `aehnlichkeit-bedeutung-je-stunde` | calls/hour | How many times per hour one account may trigger the provider's meaning comparison when submitting; above that only the word comparison runs (0 switches it off) |
-| `similarity.meaning_threshold_percent` | `aehnlichkeit-bedeutung-schwelle-prozent` | percent | Cosine similarity of the provider's text embeddings above which an existing motion is shown when submitting (second opinion next to the word comparison; inactive without a provider) |
-| `similarity.request_timeout_seconds` | `aehnlichkeit-zeitgrenze-sekunden` | seconds | How long submitting a motion waits for the AI provider (per connection step) before continuing with the word comparison alone |
-| `similarity.threshold_percent` | `aehnlichkeit-schwelle-prozent` | percent | Similarity above which the platform points to an existing motion when submitting a new one |
-| `soft_filter.max_profiles` | `weicherfilter-profile-hoechstzahl` | profiles | How many personal filter profiles a member may store |
-| `soft_filter.rule_version` | `weicherfilter-regel` | rule version | Version of the member-controlled ordering rule (nine sliders, neutral by default) |
-| `support.review_days` | `gremien-review-tage` | days | Days the supporters have to accept a draft or return it with a concrete wish (draft loop) |
-| `support.threshold` | `verfahren-unterstuetzung-schwelle` | supporters | Number of supporters a motion needs to enter deliberation |
-| `support.threshold_share_percent` | `verfahren-unterstuetzung-anteil-prozent` | percent | Support threshold as a share of the members eligible to vote on the day of submission (0 = off; `support.threshold` stays the minimum); the resulting number is frozen into the motion |
-| `support.window_days` | `verfahren-unterstuetzung-tage` | days | Days a motion has to reach the support threshold |
-| `tiles.completed` | `kacheln-abgeschlossen` | entries | How many completed procedures appear in the feed |
-| `tiles.highlighted` | `kacheln-hervorgehoben` | tiles | How many highlighted votes the important-votes field shows |
-| `vote.leaning_after_min_turnout` | `verfahren-tendenz-ab-mindestbeteiligung` | flag | Whether tiles, the motion page and the overview show the leaning (shares of yes, no and abstain) of a running vote on a motion once the minimum turnout is reached (0 or 1; part of the rules of procedure, frozen into the motion when it is submitted) |
-| `vote.min_turnout_percent` | `verfahren-mindestbeteiligung-prozent` | percent | Share of eligible members that must take part for a result to stand |
-| `vote.window_days` | `verfahren-abstimmung-tage` | days | Duration of the final vote |
+| Kennung | Registerschlüssel (at-ddoe) | Einheit | Startwert (at-ddoe) | Bedeutung |
+|---|---|---|---|---|
+| `account.data_exports_per_hour` | `datenexport-je-stunde` | requests/hour | 10 | How many times per hour an account may download its own data export; every download is an entry in the public audit log (at least 1, the export always stays possible) |
+| `account.email_change_waiting_hours` | `adresswechsel-wartefrist-stunden` | hours | 72 | Waiting time before an administrative change of a login address takes effect |
+| `ai.assessments_per_page` | `ki-einschaetzungen-je-seite` | runs | 20 | Earlier legal-impact assessments per motion page (1 to 100) |
+| `ai.daily_queue_runs` | `ki-tageslaeufe` | runs/day | 20 | How many provider calls the future workshop's queue makes per calendar day (affected laws, text embeddings) — every attempt counts, including failed ones; the rest waits for the next day |
+| `ai.max_response_tokens` | `ki-antwort-hoechsttokens` | tokens | 900 | Maximum length of a model response |
+| `ai.monthly_token_budget` | `ki-monatstokens` | tokens/month | 1000000 | Hard monthly token budget of the model slot (cost cap of the future workshop) |
+| `archive.audit_display_limit` | `archiv-audit-anzeige` | events | 60 | How many audit events the archive timeline shows; the export always contains all |
+| `areas_fan.max_children` | `faecher-kinder-hoechstzahl` | branches | 3 | How many sub-branches a branch shows before it must be fanned out |
+| `areas_fan.max_search_hits` | `suche-treffer-hoechstzahl` | hits | 24 | Maximum number of hits shown by the search in the areas-of-life fan; also the page size of the municipality search and of the public lists of municipal mandates (council initiatives, projects, budget links, session documents), where values below 1 act as 1 |
+| `areas_fan.rule_version` | `faecher-regel` | rule version | 2 | Version of the layout algorithm for the areas-of-life fan |
+| `areas_of_life.per_motion` | `kategorien-je-antrag` | areas | 3 | How many areas of life a motion is assigned to automatically |
+| `areas_of_life.rule_version` | `kategorien-regel` | rule version | 1 | Version of the assignment rule for areas of life (keyword lists, no AI) |
+| `audit.entries_per_page` | `audit-seite-eintraege` | entries | 50 | How many entries the public audit log shows per page (newest first) and per request of /audit.json |
+| `audit.full_check_days` | `audit-vollpruefung-tage` | days | 7 | After how many days the daily audit chain check recomputes the whole chain from the start (in between it checks new entries and that the last checked one is unchanged) |
+| `bodies.role_term_days` | `gremien-rollen-dauer-tage` | days | 730 | Regular term of a body role (public call, confirmation by the assembly, automatic expiry) |
+| `chat.thread_roots` | `chat-faden-wurzeln` | posts | 50 | How many root posts (with replies) a motion's chat shows at once |
+| `comparison.max_pairs` | `gegenueberstellung-hoechstpaare` | motions | 3 | Maximum offered public motion versions per comparison, clamped to 1 to 20; no silent truncation |
+| `comparison.requests_per_hour` | `gegenueberstellung-je-stunde` | requests/hour | 5 | Explicit private comparison requests per account and hour; zero disables the feature |
+| `comparison.socket_timeout_seconds` | `gegenueberstellung-zeitgrenze-sekunden` | seconds | 8 | Timeout per connection step for an explicit private comparison, clamped to 1 to 45 |
+| `comparison.total_text_chars` | `gegenueberstellung-textzeichen` | characters | 20000 | Total title and text characters per explicit comparison, clamped to 1 to 100000; no silent truncation |
+| `conversations.list_limit` | `gespraeche-liste-hoechstzahl` | conversations | 30 | How many conversations the panel shows at once; the counter covers all of them |
+| `council.decision_days` | `gremien-beschluss-tage` | days | 7 | Default deadline for an internal decision in a council body |
+| `council.decisions_per_page` | `gremien-beschluesse-seite` | decisions | 50 | How many council decisions the public list shows at once |
+| `council.first_draft_days` | `expertenrat-erstvorschlag-tage` | days | 21 | Days the expert council has for its first proposal; also the minimum deliberation period |
+| `council.group1_size` | `expertenrat-gruppe1-groesse` | people | 3 | Size of the first expert group drawn for a motion |
+| `council.group2_size` | `expertenrat-gruppe2-groesse` | people | 3 | Size of the second expert group, which checks proposals with procurement relevance |
+| `council.max_rounds` | `gremien-hoechstrunden` | rounds | 3 | Maximum number of draft-loop rounds before the proposal goes to the final vote |
+| `council.review_days` | `gremien-pruefung-tage` | days | 7 | How long the second expert group has to check a proposal with implementation or procurement relevance |
+| `council.rework_days` | `gremien-ueberarbeitung-tage` | days | 14 | Days the expert council has to revise a draft after it was returned |
+| `deliberation.edit_window_minutes` | `chat-bearbeitungsfenster-minuten` | minutes | 5 | How long an author may still edit their own post |
+| `deliberation.post_max_chars` | `chat-zeichen-hoechstzahl` | characters | 4000 | Maximum length of a post in the deliberation chat |
+| `draft_loop.acceptance_percent` | `vorschlag-annahme-prozent` | percent | 50 | Approval share the „fine as it is" post must exceed in the proposal chat so the draft goes to the final vote (it must also rank first) |
+| `draft_loop.chat_ordering_version` | `vorschlag-chat-reihung` | rule version | 1 | Version of the proposal-chat ordering rule (engagement-v1: engagement desc, then approval share, then time) |
+| `draft_loop.criticism_min_chars` | `kritik-mindestzeichen` | characters | 80 | Minimum length of a criticism so it counts as a change request to the expert council |
+| `feedback.daily_limit` | `anstoss-tagesgrenze` | messages | 20 | How many feedback messages a person (browser session) may send per day; the same value also caps the messages per connection and hour, shared by everyone behind one address |
+| `feedback.min_interval_seconds` | `anstoss-mindestabstand-sekunden` | seconds | 60 | Waiting time between two feedback messages from the same person |
+| `fees.bank_calls_reserved_for_administration` | `beitrag-abruf-verwaltungsvorbehalt` | calls/day | 1 | How many of the bank's daily account queries stay reserved for the administration; members' reports only trigger a query while more than that remain (0 up to the bank's daily quota) |
+| `fees.member_reports_with_bank_call_per_day` | `beitrag-meldungen-mit-abruf-je-konto` | reports/day | 1 | How many times per calendar day a member's report of a transfer triggers a bank account query; further reports that day do not query (at least 1) |
+| `legal_effects.total_input_chars` | `rechtsfolgen-eingabezeichen` | characters | 30000 | Maximum complete public legal-effects input including frozen law and staffing sources, clamped to 1 to 100000; no truncation or procedure blockage |
+| `live.max_session_hours` | `live-hoechstdauer-stunden` | hours | 18 | After how many hours a live session counts as ended if the office holder did not end it (between 1 and 72) |
+| `live.refresh_seconds` | `live-takt-sekunden` | seconds | 15 | How often the live page of a running session reloads itself (between 5 and 300) |
+| `mail.fee_reminder_earliest_days` | `beitrag-erinnerung-fruehestens-tage` | days | 30 | Minimum membership age before the administration may queue a fee reminder (consent required, at most once per calendar year) |
+| `mail.max_attempts` | `post-hoechstversuche` | attempts | 24 | After how many failed delivery attempts the mail queue gives up an e-mail about the procedure (kept as done without delivery); account messages have no limit |
+| `mail.new_motion_federal` | `post-neuer-antrag-bund` | flag | 1 | Whether a new nationwide motion is mailed to every member who consented to platform mail (0 or 1; regional motions always go only to the members whose residence is affected) |
+| `mandate.confidence_support_days` | `vertrauensfrage-unterstuetzung-tage` | days | 30 | Support window of a confidence question about an office holder (never above the statutory maximum of 30 days; frozen into the motion when it is submitted) |
+| `mandate.confidence_vote_window_days` | `vertrauensfrage-abstimmung-tage` | days | 7 | Duration of the vote on a confidence question (never below the statutory minimum of 7 days; frozen into the motion when it is submitted) |
+| `mandate.monthly_report_grace_days` | `mandatar-monatsbericht-frist-tage` | days | 7 | Day of the following month until which an office holder's monthly report counts as on time |
+| `mandate.question_vote_window_days` | `mandatsfrage-abstimmung-tage` | days | 7 | Duration of the vote on a mandate question opened by an office holder (never below the statutory minimum; frozen into the motion when it is opened) |
+| `motion.resubmission_block_months` | `verfahren-wiedereinbringung-monate` | months | 6 | Months before a rejected or lapsed motion may be resubmitted verbatim |
+| `overview.decided_votes` | `uebersicht-abstimmungen` | entries | 20 | How many decided votes the public overview lists before pointing to the registers |
+| `region.secondary_residence_counts` | `region-nebenwohnsitz-zaehlt` | flag | 0 | Whether My Region also displays motions from the area of a registered secondary residence (0 or 1; display only) |
+| `similarity.embeddings_per_call` | `aehnlichkeit-einbettungen-je-aufruf` | motions | 20 | How many open motions without a stored text embedding are embedded in the same provider call when a new motion is submitted |
+| `similarity.max_hits` | `aehnlichkeit-treffer` | motions | 3 | How many similar motions are shown when submitting |
+| `similarity.meaning_calls_per_account_hour` | `aehnlichkeit-bedeutung-je-stunde` | calls/hour | 5 | How many times per hour one account may trigger the provider's meaning comparison when submitting; above that only the word comparison runs (0 switches it off) |
+| `similarity.meaning_threshold_percent` | `aehnlichkeit-bedeutung-schwelle-prozent` | percent | 78 | Cosine similarity of the provider's text embeddings above which an existing motion is shown when submitting (second opinion next to the word comparison; inactive without a provider) |
+| `similarity.preview_debounce_ms` | `aehnlichkeit-vorschau-wartezeit-ms` | milliseconds | 800 | Idle time before the local similarity preview runs while typing |
+| `similarity.preview_max_chars` | `aehnlichkeit-vorschau-hoechstzeichen` | characters | 20000 | Maximum text length checked while typing; longer texts are still checked when submitting |
+| `similarity.preview_min_chars` | `aehnlichkeit-vorschau-mindestzeichen` | characters | 40 | Minimum combined title and motion text length for the local preview |
+| `similarity.request_timeout_seconds` | `aehnlichkeit-zeitgrenze-sekunden` | seconds | 8 | How long submitting a motion waits for the AI provider (per connection step) before continuing with the word comparison alone |
+| `similarity.threshold_percent` | `aehnlichkeit-schwelle-prozent` | percent | 30 | Similarity above which the platform points to an existing motion when submitting a new one |
+| `soft_filter.max_profiles` | `weicherfilter-profile-hoechstzahl` | profiles | 5 | How many personal filter profiles a member may store |
+| `soft_filter.rule_version` | `weicherfilter-regel` | rule version | 2 | Version of the member-controlled ordering rule (nine sliders, neutral by default) |
+| `sources.context_excerpt_chars` | `quellenkontext-textzeichen` | characters | 1200 | Maximum characters from each stored official document, 0 to 20000 |
+| `sources.context_limit` | `quellenkontext-hoechstzahl` | sources | 3 | Maximum official context candidates per new legal-impact request, 0 to 20 |
+| `sources.context_min_word_length` | `quellenkontext-mindestwortlaenge` | characters | 3 | Minimum word length for published local prefix matching, 2 to 12 |
+| `sources.context_scan_limit` | `quellenkontext-bestandsgrenze` | snapshots | 500 | Maximum latest official snapshots scanned in official identifier order, 1 to 2000 |
+| `sources.inventory_max_records` | `faktenbasis-bestandsnachweis-hoechstzahl` | snapshots | 2000 | Maximum local snapshot rows in the complete source inventory; zero disables, hard maximum 10000; invalid values or excess produce no partial evidence |
+| `sources.manual_requests_per_hour` | `faktenbasis-manuelle-abrufe-je-stunde` | requests/hour | 10 | Shared hourly limit for explicit RIS metadata and document requests; zero disables requests |
+| `sources.snapshots_per_page` | `faktenbasis-seitengroesse` | snapshots | 20 | Official metadata snapshots per page (1 to 100) |
+| `support.review_days` | `gremien-review-tage` | days | 14 | Days the supporters have to accept a draft or return it with a concrete wish (draft loop) |
+| `support.threshold` | `verfahren-unterstuetzung-schwelle` | supporters | 3 | Number of supporters a motion needs to enter deliberation |
+| `support.threshold_share_percent` | `verfahren-unterstuetzung-anteil-prozent` | percent | 5 | Support threshold as a share of the members eligible to vote on the day of submission (0 = off; support.threshold stays the minimum); the resulting number is frozen into the motion |
+| `support.window_days` | `verfahren-unterstuetzung-tage` | days | 60 | Days a motion has to reach the support threshold |
+| `tiles.completed` | `kacheln-abgeschlossen` | entries | 20 | How many completed procedures appear in the feed |
+| `tiles.highlighted` | `kacheln-hervorgehoben` | tiles | 3 | How many highlighted votes the important-votes field shows |
+| `vote.leaning_after_min_turnout` | `verfahren-tendenz-ab-mindestbeteiligung` | flag | 0 | Whether tiles, the motion page and the overview show the leaning (shares of yes, no and abstain) of a running vote on a motion once the minimum turnout is reached (0 or 1; part of the rules of procedure, frozen into the motion when it is submitted) |
+| `vote.min_turnout_percent` | `verfahren-mindestbeteiligung-prozent` | percent | 5 | Share of eligible members that must take part for a result to stand |
+| `vote.window_days` | `verfahren-abstimmung-tage` | days | 28 | Duration of the final vote |
 
 Einheiten sind freier Text; `flag` steht seit 1.5 für einen Schalter mit den Werten 0 und 1,
 `rule version` für die Fassung einer offengelegten Regel (kein Testwert, kein Vergleichswert).
@@ -344,7 +369,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 }
 ```
 
-### 4.1 Kennungen der Kennzahlen (Schema 1.11, 12 Kennungen)
+### 4.1 Kennungen der Kennzahlen (Schema 1.30, 12 Kennungen)
 
 | Kennung | Einheit | Bedeutung |
 |---|---|---|
@@ -376,7 +401,8 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Adresse | Inhalt | Personenbezug |
 |---|---|---|
-| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen; beim Bestätigungsantrag, erkennbar am Block `vertrauensfrage.art` = `bestaetigung`, stattdessen `bestaetigt`/`nicht_bestaetigt` — dieselben Wörter wie in `rechenschaft.json`) | Pseudonyme (nur der Mensch selbst kennt seines) |
+| `/antrag/<id>/export.json` | Nachrechenbare Auszählung einer Abstimmung: Policy-Kopie, Stimmberechtigte, Stimmen je Pseudonym, Prüfsumme — mit `verify/nachrechnen.py` unabhängig nachrechenbar (Sachfragen, Kandidaturen, Mandatsfragen und — seit 0.48.0 — Vertrauensfragen samt Bestätigungsanträgen: `art` = `vertrauensfrage`; das Skript gibt dazu `vertrauensfrage`: `verloren`/`gewonnen` aus — angenommen heißt verloren, alles andere, auch eine verfehlte Mindestbeteiligung, gewonnen; beim Bestätigungsantrag, erkennbar am Block `vertrauensfrage.art` = `bestaetigung`, stattdessen `bestaetigt`/`nicht_bestaetigt` — dieselben Wörter wie in `rechenschaft.json`); bei Kandidaturen der Block `zustimmungen` je Pseudonym und Bewerbung, eine zurückgenommene Zustimmung nur mit `zurueckgenommen`: `true`, ohne Zeitpunkt — das Skript zählt sie nicht mit und weist ihre Zahl als „zurückgenommen“ aus (seit 0.113.0) | Pseudonyme (nur der Mensch selbst kennt seines) |
+| `/audit.json` | Die öffentliche Audit-Kette, aufsteigend ab `?ab=<laufende Nummer>` und seitenweise (`weiter` = nächste Seite oder null; Einträge je Seite: `audit.entries_per_page`), dazu `pruefung` (Ergebnis der letzten Kettenprüfung). Je Eintrag `lfd`, `typ`, `zeit`, `nur_tag`, `vorgaenger`, `hash`, `geschwaerzt`, `grund`, `ereignis`. Seit 0.113.0 (Schema 1.30) ist `nur_tag` true, solange die Abstimmung eines Stimmereignisses (`stimme`, `stimme_geaendert`, `personenwahl_stimme`, `personenwahl_stimme_zurueckgenommen`) läuft: Dann tragen `zeit` und `ereignis.zeit` nur den Tag (Ortszeit, `JJJJ-MM-TTT00:00:00`); nach der Abstimmung steht die genaue Zeit wieder da | Mitgliedskennungen, Pseudonyme und Begründungen zu Personen erscheinen geschwärzt (`•`, `geschwaerzt`: true) |
 | `/umsetzung.json` | Umsetzungsregister mit voller Historie | Anzeigenamen der Vollzugsmeldenden (Gremien-Rollen, öffentlich) |
 | `/gremien/protokoll/<gremium>/<jahr>.json` | Sitzungsprotokoll eines Rates: die Beschlüsse des Jahres mit Stimmen, Begründungen und Umsetzungsvermerken (§ 6 Abs 9) | Anzeigenamen der Ratsmitglieder (öffentliche Besetzung) |
 | `/rechenschaft.json` | Rechenschaftsregister der Mandatare (§ 7 Abs 5): Gegenstand, Sitzungstag, Beschluss der Plattform, Stimme im Vertretungskörper, Begründung — seit 0.46.0; seit 0.48.0 zusätzlich `vertrauensfragen` — je Vertrauensfrage und Bestätigungsantrag die Zahlen des Einbringungstags, Stand und Ergebnis (`ergebnis`: verloren/gewonnen/bestaetigt/nicht_bestaetigt bzw. Endphase), Rechtsschutz, Rückgabefrist, Rückgabezusage samt Quelle (`rueckgabezusage_quelle`: mandat/bewerbung) und Vermerk (§ 7 Abs 10 lit e, f Z 4, h); seit 0.53.0 zusätzlich `sitzungen` — je Sitzung im Live-Modus Beginn, Ende, Stream-Link, Tagesordnung (Nummer, Titel, Antrag) und Meldungen (Zeitpunkt, Punkt, Text, Stimme, `abgestimmt`, `berichtigt`), ohne Chat — und je Eintrag `sitzung`/`punkt` (Rechenschaft aus dem Ticker), `nachgetragen_am`/`quelle` (Nachtrag der Verwaltung nach dem Ende der Vertretung, `lage` = `nachgetragen`) und `freiwillige_begruendung` | Anzeigenamen der Mandatare (öffentliches Amt) |
@@ -410,6 +436,7 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
 | 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und fünf Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) und `audit.head_entry` (seine laufende Nummer) |
 | 1.11 | 30.9.2026 | 0.53.0 | `live.refresh_seconds` (wie oft sich die Live-Seite einer laufenden Sitzung neu lädt, FB-L5) und `live.max_session_hours` (nach wie vielen Stunden eine nicht beendete Sitzung als beendet gilt). Beide gehören zum Sitzungsmodus der Mandatsträger; die Livemeldungen selbst stehen in `/rechenschaft.json` (Abschnitt 5) |
+| 1.30 | 18.11.2026 | 0.113.0 | Gesamtprüfung, erste und zweite Behebungsrunde. **`/parameter.json`** (Abschnitt 3): je Eintrag `status` (`gueltig`, `im_test`, `vorgeschlagen`), `test_bis` (ISO-Datum oder null) und `test_hypothese`; nur bei `im_test` zusätzlich `wert_vor_test`, der Wert, zu dem der Test zurückfällt. **`/audit.json`** (Abschnitt 5): je Eintrag `nur_tag` — true, solange die Abstimmung eines Stimmereignisses läuft; `zeit` und `ereignis.zeit` tragen dann nur den Tag. **Kandidatur-Export** (`/antrag/<id>/export.json`, Block `zustimmungen`): eine zurückgenommene Zustimmung trägt `zurueckgenommen`: true statt des Zeitpunkts `zurueckgenommen_am`; `verify/nachrechnen.py` liest beide Schreibweisen und zählt solche Zeilen nicht. **Neue Audit-Arten** (`typ`): `gremienbeschluss_geschlossen` (ein offener Gremienbeschluss endet ohne Auswertung, weil der Antrag zurückgewiesen wurde; `gremium`, `beschluss`, `nummer`, `antrag`, `grund` = `zurueckweisung`, `durch_beschluss`), `vollzugsbezug_gesetzt` (`antrag`, `runde`, `alt`, `neu`), `interessenbindung_erklaert` (`antrag`, `runde`, `beschluss`, `nummer` = Zahl der Erklärungen zum Antrag; ohne Text und Person), `auslosung_begonnen` (`antrag`, `runde`, `gruppen`; der Hash dieses Eintrags ist der Anker der Ziehung), `fachliste_eingetragen` (`eintrag`, `fachgebiete`, `einwilligung`, `durch`), `fachliste_gestrichen` (`eintrag`, `durch`; der Grund steht nur beim Eintrag), `beitrag_ausgeblendet` und `meldung_ohne_massnahme` (Entscheidung der Verwaltung über gemeldete Beiträge: `beitrag`, `meldungen` = Zahl der erledigten Meldungen, dazu `antrag` oder `sitzung`); unter `typ` = `verwaltung` die Aktion `bank_gekoppelt` (`consent_bis`, ohne Konto- oder Bankkennung). **Neue Felder in bestehenden Audit-Arten**: `vorschlag_zurueckgegeben` nennt `beratung_freigegeben` (ob die Entwurfsschleife die Beratung ab diesem Zeitpunkt nicht mehr offen hält), `zurueckweisung_aufgehoben` nennt `entwurf_wiederhergestellt` (der wiederhergestellte Status des Entwurfs oder null) und, wenn dabei ein unentschiedener Austauschantrag beim Koordinationsrat lag, `austauschfrist_gehemmt` (Kennungen der Prüfungen, deren Frist um die Dauer der Zurückweisung aus `gehemmt_sekunden` später endet; das Urteilsdatum bleibt unverändert), `vorschlag_einreichung_verworfen` kennt den `grund` `ueberarbeitungsfrist_verstrichen`; die festgeschriebene Rechnung `auswertung` (in `vorschlag_zurueckgegeben` und im `phasenwechsel` zur Endabstimmung) nennt zusätzlich `auswertung.grund` (`passt_alles_oben`, `stille`, `kein_systembeitrag`, `rueckgabe`, beim Erreichen der Höchstzahl der Runden `hoechstrunden`) und `auswertung.stimmen` (Zustimmungen und Ablehnungen über alle Beiträge des Vorschlags-Chats). **Drei Drosseln als Stellgrößen** (3.1): `account.data_exports_per_hour` (`datenexport-je-stunde`, Startwert 10, mindestens 1), `fees.member_reports_with_bank_call_per_day` (`beitrag-meldungen-mit-abruf-je-konto`, Startwert 1, mindestens 1), `fees.bank_calls_reserved_for_administration` (`beitrag-abruf-verwaltungsvorbehalt`, Startwert 1, 0 bis zum Tageskontingent der Bank von 4) |
 
 Seit1.15 enthält das Register sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste RIS-Einzelbezüge von Metadaten und Dokumenttexten. Anfangswert10, null sperrt weitere Abrufe. Reservierung, UTC-Kalenderstunde und Mindestabstand sind in docs/FAKTENBASIS.md beschrieben. Es ist kein Ordnungsschlüssel und kein Bestandteil einer eingefrorenen Verfahrensordnung.
 

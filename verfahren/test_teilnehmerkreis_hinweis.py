@@ -16,7 +16,10 @@ pytestmark = pytest.mark.django_db
     (Ebene.GEMEINDE, Antragsart.MANDAT, True),
     (Ebene.LAND, Antragsart.MANDAT, True),
     (Ebene.BUND, Antragsart.MANDAT, False),
-    (Ebene.GEMEINDE, Antragsart.SACHE, False),
+    # GP-059 (OW-10): Jedes regionale Verfahren ohne Gebietsstand sagt, wer teilnimmt — nicht nur Kandidaturen
+    (Ebene.GEMEINDE, Antragsart.SACHE, True),
+    (Ebene.BEZIRK, Antragsart.SACHE, True),
+    (Ebene.BUND, Antragsart.SACHE, False),
 ])
 def test_tatsaechlicher_teilnehmerkreis_ist_vor_der_aktion_sichtbar_ohne_regelaenderung(
     client, ordnung, angemeldet, ebene, art, hinweis,  # noqa: F811
@@ -32,7 +35,9 @@ def test_tatsaechlicher_teilnehmerkreis_ist_vor_der_aktion_sichtbar_ohne_regelae
     html = antwort.content.decode()
     assert ('id="teilnehmerkreis"' in html) == hinweis
     if hinweis:
-        assert "parteiweit geprüft" in html and "noch nicht" in html
+        assert a.teilnahmegebiet is None
+        kreis = html.split('id="teilnehmerkreis"', 1)[1].split("</p>", 1)[0]
+        assert "alle stimmberechtigten Mitglieder; kein örtlicher Kreis" in kreis
         assert html.index('id="teilnehmerkreis"') < html.index('id="zone-text"')
     a.refresh_from_db()
     assert a.policy_snapshot == eingefroren

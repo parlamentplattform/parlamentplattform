@@ -23,6 +23,7 @@ def test_regionaler_teilnehmerkreis_wird_nicht_als_oertliche_sperre_versprochen(
     p = seite(js=js, dunkel=dunkel, viewport=viewport, reduziert=True, sprache=sprache)
     p.goto(f"{live_server.url}/antrag/{a.pk}/")
     expect(p.locator("#teilnehmerkreis")).to_be_visible()
-    expect(p.locator("#teilnehmerkreis")).to_contain_text("party-wide" if sprache == "en" else "parteiweit geprüft")
+    # GP-059: fester Satz für jedes regionale Verfahren ohne Gebietsstand
+    expect(p.locator("#teilnehmerkreis")).to_contain_text("no local circle" if sprache == "en" else "kein örtlicher Kreis")
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     p.screenshot(path=str(sichtpruefung / f"teilnehmerkreis-{kennung}.png"), full_page=True)

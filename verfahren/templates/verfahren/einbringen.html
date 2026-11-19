@@ -9,13 +9,14 @@ Verfahrensordnung <strong>{{ policy_id }} v{{ version }}</strong> — sie wird
 beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum Ende (§ 5 Abs 5).{% endblocktranslate %}</p>
 
 <div class="einbringen-raster">
-<form method="post" id="einbringen-form" class="einbringen-form">{% csrf_token %}
+<form method="post" id="einbringen-form" class="einbringen-form">{% csrf_token %}<input type="hidden" name="gebiet_kennung" value="{{ form.gebiet_kennung }}">
   <div class="karte einbringen-oben">
     {{ form.non_field_errors }}
     {% for feld in form %}
       {% if feld.name == "art" or feld.name == "titel" or feld.name == "wortlaut" %}
       <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
-      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+      {% if feld.help_text %}<span class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</span>{% endif %}
+      {% if feld.errors %}<ul class="fehlerliste" id="{{ feld.auto_id }}_error">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
       {% endif %}
     {% endfor %}
   </div>
@@ -29,10 +30,14 @@ beim Einbringen eingefroren und gilt für diesen Antrag unverändert bis zum End
     {% for feld in form %}
       {% if feld.name == "begruendung" or feld.name == "ebene" %}
       <p><label for="{{ feld.id_for_label }}">{{ feld.label }}</label>{{ feld }}
-      {% if feld.errors %}<ul class="fehlerliste">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
+      {% if feld.help_text %}<span class="hilfe" id="{{ feld.auto_id }}_helptext">{{ feld.help_text }}</span>{% endif %}
+      {% if feld.errors %}<ul class="fehlerliste" id="{{ feld.auto_id }}_error">{% for e in feld.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}</p>
       {% endif %}
     {% endfor %}
     <p class="hilfe">{% translate "Für neue örtliche Anträge zählt ausschließlich der gemeldete Hauptwohnsitz bei Einbringung." %}</p>
+    {% if form.gebiet_kennung %}<p class="hilfe">{% translate "Ein örtlicher Antrag zeigt öffentlich, dass Ihr Hauptwohnsitz in diesem Gebiet liegt." %}</p>{% endif %}
+    {% if form.ohne_region %}<p class="hilfe">{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %}</p>{% endif %}
+    {% if form.wohnsitz_waehlen %}<p class="hilfe"><a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Wählen Sie im Profil Ihren Hauptwohnsitz aus dem Gemeindeverzeichnis." %}</a></p>{% endif %}
     {% if form.wien_ohne_bezirk %}<p class="hilfe"><a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Wählen Sie im Profil den Gemeindebezirk Ihres Wiener Hauptwohnsitzes." %}</a></p>{% endif %}
     {% if not aehnliche and not bestaetigung %}
     <div class="stimmzeile"><button type="submit" class="btn">{% translate "Antrag einbringen" %}</button></div>

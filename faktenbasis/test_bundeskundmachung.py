@@ -7,11 +7,12 @@ import pytest
 from django.urls import reverse
 
 from faktenbasis.kundmachung import zuordnen
-from faktenbasis.models import Kundmachungsnachweis
+from faktenbasis.models import Kundmachungsnachweis, Norm
 from faktenbasis.ris import RisFehler
 from faktenbasis.test_kundmachungsbeleg import rohbytes as landesdatei
 from faktenbasis.test_novellenfundstelle import normstaende_anlegen
 from faktenbasis.testhilfe import abrufuhr  # noqa: F401
+from parameter.models import Parameter
 from plattform_core.novellenfundstelle import Fundstelle, bundeskundmachung
 from verfahren.models import AuditEintrag
 
@@ -114,3 +115,38 @@ def test_bundesbeleg_bleibt_bei_der_bestaetigten_fassung(client, monkeypatch, ab
     assert "<dd>2594</dd>" in html and "<dd>11514</dd>" in html and "<dd>9000</dd>" not in html
     assert ELI not in client.get(reverse("faktenbasis:norm", args=[andere.pk])).content.decode()
     assert AuditEintrag.objects.count() == vorher + 1
+
+
+@pytest.mark.django_db
+def test_rueckverweis_gruppiert_nur_belegte_staende_mit_derselben_kennung_und_demselben_datum(
+    client, monkeypatch, abrufuhr,  # noqa: F811
+):
+    alt, norm = normstaende_anlegen(monkeypatch)
+    basis = zuordnen(norm.pk, rohbytes())
+    daten = Norm.objects.filter(pk=norm.pk).values().get()
+    daten.pop("id")
+    neuer = Norm.objects.create(**(daten | {"stand": date(2026, 11, 4)}))
+    zweiter = zuordnen(neuer.pk, rohbytes() + b"\n")
+    ohne = Norm.objects.create(**(daten | {"stand": date(2026, 11, 5)}))
+    fremder_tag = Norm.objects.create(**(daten | {"stand": date(2026, 11, 6)}))
+    zuordnen(fremder_tag.pk, rohbytes().replace(b"2024-07-04", b"2024-07-03").replace(b"20240704", b"20240703"))
+
+    ziel = reverse("faktenbasis:kundmachung", args=[basis.pk])
+    assert ziel in client.get(reverse("faktenbasis:norm", args=[norm.pk])).content.decode()
+    assert ziel not in client.get(reverse("faktenbasis:norm", args=[ohne.pk])).content.decode()
+    vorher = AuditEintrag.objects.count()
+    antwort = client.get(ziel)
+    assert antwort.status_code == 200
+    assert [e["pk"] for e in antwort.context["seite"]] == [neuer.pk, norm.pk]
+    html = antwort.content.decode()
+    assert zweiter.original_sha256 in html and basis.original_sha256 in html
+    assert f'href="{ELI}"' in html
+    for nicht_belegt in (alt, ohne, fremder_tag):
+        assert reverse("faktenbasis:norm", args=[nicht_belegt.pk]) not in html
+
+    Parameter.objects.update_or_create(schluessel="faktenbasis-seitengroesse", defaults={"wert": "1"})
+    assert list(client.get(ziel).context["seite"])[0]["pk"] == neuer.pk
+    assert list(client.get(ziel, {"seite": "2"}).context["seite"])[0]["pk"] == norm.pk
+    assert client.post(ziel).status_code == 405
+    assert client.get(reverse("faktenbasis:kundmachung", args=[999_999])).status_code == 404
+    assert AuditEintrag.objects.count() == vorher

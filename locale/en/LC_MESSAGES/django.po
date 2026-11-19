@@ -12063,3 +12063,9 @@ msgstr "Federal Council committee reports"
 
 msgid "Kundmachungsbelege"
 msgstr "Gazette records"
+
+msgid "Dokumentstände zu dieser Kundmachung"
+msgstr "Document snapshots linked to this gazette record"
+
+msgid "Die Liste zeigt lokal gespeicherte Dokumentstände mit einem ausdrücklich zugeordneten Beleg."
+msgstr "This list shows locally stored document snapshots with an explicitly associated record."

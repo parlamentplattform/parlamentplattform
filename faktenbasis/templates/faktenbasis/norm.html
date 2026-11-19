@@ -32,6 +32,7 @@
     {% endif %}
     {% endwith %}
     <p class="meta">{% translate "SHA-256 der eingelesenen Kundmachungsdatei" %} <code class="fakten-hash">{{ kundmachung.original_sha256 }}</code> · {% translate "Belegprüfung, Fassung" %} {{ kundmachung.parser_fassung }}</p>
+    <p><a href="{% url 'faktenbasis:kundmachung' kundmachung.pk %}">{% translate "Dokumentstände zu dieser Kundmachung" %}</a></p>
   {% elif novelle.ziel %}
     <p><a href="{{ novelle.ziel }}" rel="noopener">{{ novelle.bezeichnung }}</a></p>
     <p class="hilfe">{% translate "Die Metadaten dieses Dokumentstands nennen diese Kundmachung als letzte Änderung. Maßgeblich für den Wortlaut und die einzelnen Inkrafttretensdaten ist die verlinkte Kundmachung." %}</p>

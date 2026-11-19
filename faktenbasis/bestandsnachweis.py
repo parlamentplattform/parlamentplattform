@@ -3,7 +3,14 @@
 from django.db.models import F, Value
 from django.utils import timezone
 
-from faktenbasis.models import Kundmachungsnachweis, Norm, NormText, PersonalAggregat, PersonalRessorttabelle
+from faktenbasis.models import (
+    Kundmachungsnachweis,
+    Norm,
+    NormText,
+    PersonalAggregat,
+    PersonalRessorttabelle,
+    VfghEntscheidungsstand,
+)
 from parameter.models import Parameter
 from plattform_core.faktenbestand import TECHNISCHE_HOECHSTZAHL, BestandsFehler, nachweis
 
@@ -30,6 +37,7 @@ def bestandsnachweis() -> dict:
             (Kundmachungsnachweis, "kundmachung", "original_sha256"),
             (PersonalAggregat, "personalaggregat", "original_sha256"),
             (PersonalRessorttabelle, "personalressorttabelle", "original_sha256"),
+            (VfghEntscheidungsstand, "vfgh_metadaten", "original_sha256"),
         )
     ]
     # Erst begrenzt lesen, danach rein sortieren: kein unnötiger Sortierlauf

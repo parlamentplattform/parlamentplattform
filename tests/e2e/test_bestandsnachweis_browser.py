@@ -34,17 +34,24 @@ def test_bestandsnachweis_und_ehrlicher_ausfall(
     expect(p.get_by_role("heading", name=titel, exact=True)).to_be_visible()
     sammlung = "Gazette records" if sprache == "en" else "Kundmachungsbelege"
     expect(p.locator("#bestandsnachweis").get_by_text(sammlung, exact=True)).to_be_visible()
+    sammlung = "Constitutional Court metadata records" if sprache == "en" else "VfGH-Metadatenbelege"
+    expect(p.locator("#bestandsnachweis").get_by_text(sammlung, exact=True)).to_be_visible()
     digest = p.locator("#bestands-hash").inner_text()
+    if viewport["width"] <= 560:
+        assert p.locator("#bestands-hash").bounding_box()["width"] > viewport["width"] * 0.65
     with p.expect_download() as down:
         p.locator("#bestandsnachweis a.knopf").click()
     d = json.loads(Path(down.value.path()).read_text(encoding="utf-8"))
     raw = json.dumps(d["inhalt"], sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode()
     assert hashlib.sha256(raw).hexdigest() == digest == d["sha256"]
-    assert d["inhalt"]["fassung"] == 2 and len(d["inhalt"]["eintraege"]) == 5
+    assert d["inhalt"]["fassung"] == 3 and len(d["inhalt"]["eintraege"]) == 6
     assert d["inhalt"]["eintraege"][0]["pruefsumme"] == bestand[4].original_sha256
+    assert d["inhalt"]["eintraege"][-1] == {
+        "sammlung": "vfgh_metadaten", "nummer": bestand[5].pk, "pruefsumme": bestand[5].original_sha256,
+    }
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     p.screenshot(path=str(sichtpruefung / f"quellenbestand-{kennung}.png"), full_page=True)
-    Parameter.objects.update_or_create(schluessel="faktenbasis-bestandsnachweis-hoechstzahl", defaults={"wert": "4"})
+    Parameter.objects.update_or_create(schluessel="faktenbasis-bestandsnachweis-hoechstzahl", defaults={"wert": "5"})
     antwort = p.reload()
     assert antwort.status == 503
     assert p.locator("#bestands-hash").count() == 0

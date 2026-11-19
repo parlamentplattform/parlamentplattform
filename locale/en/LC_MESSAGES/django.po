@@ -11284,8 +11284,8 @@ msgstr "What can be independently calculated"
 msgid "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt."
 msgstr "The evidence associates local record numbers with their stored checksums. Records are ordered by collection identifier and ascending number. An unchanged inventory produces the same hash; generation time is not part of the hashed content."
 
-msgid "Die gespeicherte Prüfsumme bezieht sich bei Norm-Metadaten auf kanonisches JSON, bei Kundmachungs- und VfGH-Belegen auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse."
-msgstr "The stored checksum refers to canonical JSON for statute metadata, original JSON for gazette and Constitutional Court records, original XML for document text and original PDFs for staffing data. Several snapshots can come from the same file. The count covers snapshots."
+msgid "Der Hash bezieht sich bei Norm-Metadaten auf kanonisches JSON, bei Kundmachungsbelegen, VfGH-Belegen und RIS-Änderungsseiten auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse."
+msgstr "The hash refers to canonical JSON for statute metadata, original JSON for gazette and Constitutional Court records and RIS change pages, original XML for document text, and original PDFs for staffing data. Several snapshots can come from the same file. The count covers snapshots."
 
 msgid "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen."
 msgstr "No official signature, renewed verification of original files, or evidence of a complete or legally current body of law is provided. Previously used model contexts remain unchanged. No sources are fetched and no models are called."
@@ -11296,11 +11296,11 @@ msgstr "Maximum number of local legal metadata, document text and staffing snaps
 msgid "Darstellung des gespeicherten Quellenbestands"
 msgstr "Presentation of the stored source inventory"
 
-msgid "Ordnet lokalen Norm-, Dokumenttext- und Personalständen sowie Kundmachungs- und VfGH-Belegen ihre gespeicherten Prüfsummen zu."
-msgstr "Matches local statute metadata, document text, staffing, gazette and Constitutional Court records with their stored checksums."
+msgid "Ordnet gespeicherten Dokument-, Norm- und Personalständen, Kundmachungs- und VfGH-Belegen sowie RIS-Änderungsseiten ihre Prüfsummen zu."
+msgstr "Matches stored document text, statute and staffing snapshots, gazette and Constitutional Court records, and RIS change pages with their checksums."
 
-msgid "Fassung 3 ergänzt die VfGH-Metadatenbelege. Ältere Nachweisdateien bleiben nach ihrer bisherigen Fassung prüfbar."
-msgstr "Version 3 adds Constitutional Court metadata records. Earlier files remain verifiable under their original format."
+msgid "Fassung 4 ergänzt die RIS-Änderungsseiten. Ältere Nachweisdateien bleiben nach ihrer bisherigen Fassung prüfbar."
+msgstr "Version 4 adds archived RIS change pages. Earlier files remain verifiable under their original format."
 
 msgid "Nach Sammlungskennung und aufsteigender Datensatznummer reihen. SHA-256 über UTF-8-JSON des Nachweisinhalts mit sortierten Schlüsseln und ohne zusätzliche Leerzeichen bilden. Die Erzeugungszeit und Betriebsgrenze stehen außerhalb des Hashinhalts. Die Bedeutung der gespeicherten Prüfsummen steht im Nachweis. Bei überschrittener Grenze fällt der Nachweis aus."
 msgstr "Sort by collection key and ascending record number. Compute SHA-256 over the UTF-8 JSON evidence content with sorted keys and no extra spaces. The timestamp and configured limit are outside the hashed content. The evidence explains each stored checksum. Exceeding the limit makes the evidence unavailable."

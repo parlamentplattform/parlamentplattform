@@ -11,7 +11,7 @@
     <h2>{% trans "Lokale Schnappschüsse" %}</h2>
     <dl class="lauf-daten">
       {% for sammlung in stand.inhalt.sammlungen %}
-      <dt>{% if sammlung.sammlung == "norm" %}{% trans "Norm-Metadatenstände" %}{% elif sammlung.sammlung == "normtext" %}{% trans "Dokumenttextstände" %}{% elif sammlung.sammlung == "kundmachung" %}{% trans "Kundmachungsbelege" %}{% elif sammlung.sammlung == "personalaggregat" %}{% trans "Personal-Gesamtstände" %}{% elif sammlung.sammlung == "vfgh_metadaten" %}{% trans "VfGH-Metadatenbelege" %}{% else %}{% trans "Personal-Ressorttabellen" %}{% endif %}</dt>
+      <dt>{% if sammlung.sammlung == "norm" %}{% trans "Norm-Metadatenstände" %}{% elif sammlung.sammlung == "normtext" %}{% trans "Dokumenttextstände" %}{% elif sammlung.sammlung == "kundmachung" %}{% trans "Kundmachungsbelege" %}{% elif sammlung.sammlung == "personalaggregat" %}{% trans "Personal-Gesamtstände" %}{% elif sammlung.sammlung == "vfgh_metadaten" %}{% trans "VfGH-Metadatenbelege" %}{% elif sammlung.sammlung == "ris_aenderungsseite" %}{% trans "Archivierte RIS-Änderungsseiten" %}{% else %}{% trans "Personal-Ressorttabellen" %}{% endif %}</dt>
       <dd>{{ sammlung.anzahl }}</dd>{% endfor %}
       <dt>{% trans "Regelfassung" %}</dt><dd>{{ stand.inhalt.fassung }}</dd>
       <dt class="bestands-metadatum">{% trans "Erzeugungszeit des Nachweises" %}</dt>
@@ -25,7 +25,7 @@
   <section class="karte">
     <h2>{% trans "Was sich nachrechnen lässt" %}</h2>
     <p>{% trans "Der Nachweis ordnet lokale Datensatznummern ihren gespeicherten Prüfsummen zu. Die Reihung ist nach Sammlungskennung und aufsteigender Nummer festgelegt. Unveränderter Bestand ergibt denselben Hash; die Erzeugungszeit gehört nicht zum Hashinhalt." %}</p>
-    <p>{% trans "Die gespeicherte Prüfsumme bezieht sich bei Norm-Metadaten auf kanonisches JSON, bei Kundmachungs- und VfGH-Belegen auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse." %}</p>
+    <p>{% trans "Der Hash bezieht sich bei Norm-Metadaten auf kanonisches JSON, bei Kundmachungsbelegen, VfGH-Belegen und RIS-Änderungsseiten auf Original-JSON, bei Dokumenttexten auf Original-XML und bei Personalständen auf Original-PDFs. Mehrere Stände können aus derselben Datei stammen. Gezählt werden Schnappschüsse." %}</p>
     <p>{% trans "Dies ist keine amtliche Signatur, keine erneute Prüfung der Originaldateien und kein Nachweis einer vollständigen oder rechtlich aktuellen Rechtsordnung. Bereits verwendete Modellkontexte bleiben unverändert. Es werden keine Quellen abgerufen und keine Modelle aufgerufen." %}</p>
     <a href="{% url 'parameter:regeln' %}">{% trans "Regelverzeichnis" %}</a>
   </section>

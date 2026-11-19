@@ -9,6 +9,7 @@ from faktenbasis.models import (
     NormText,
     PersonalAggregat,
     PersonalRessorttabelle,
+    RisAenderungsseite,
     VfghEntscheidungsstand,
 )
 from parameter.models import Parameter
@@ -38,6 +39,7 @@ def bestandsnachweis() -> dict:
             (PersonalAggregat, "personalaggregat", "original_sha256"),
             (PersonalRessorttabelle, "personalressorttabelle", "original_sha256"),
             (VfghEntscheidungsstand, "vfgh_metadaten", "original_sha256"),
+            (RisAenderungsseite, "ris_aenderungsseite", "original_sha256"),
         )
     ]
     # Erst begrenzt lesen, danach rein sortieren: kein unnötiger Sortierlauf

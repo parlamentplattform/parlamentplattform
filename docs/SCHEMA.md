@@ -31,7 +31,7 @@ lesbar. Unbekannte zusätzliche Rahmen-/Text-/Beanstandungsfelder werden durch
 einen neu berechneten Hash nicht zu öffentlichen Angaben. Originale bleiben
 gespeichert; keine neue Datenform, nachträgliche Reparatur oder Quellenanreicherung.
 
-### Bestandsnachweis, Fassungen 1 bis 3
+### Bestandsnachweis, Fassungen 1 bis 4
 
 `GET /zukunftswerkstatt/faktenbasis/bestand/` zeigt den lokalen Bestand;
 `GET /zukunftswerkstatt/faktenbasis/bestand.json` liefert `inhalt`, `sha256`,
@@ -48,6 +48,8 @@ Fassung 2 mit der zusätzlichen Sammlung `kundmachung` und dem Hashbezug
 `original_json_bytes`. Sie enthält die Datensatznummern und gespeicherten
 Prüfsummen der zugeordneten RIS-Kundmachungsbelege. Ab 0.100.0 erfasst
 Fassung 3 auch `vfgh_metadaten` mit dem Hashbezug `original_json_bytes`.
+Ab 0.104.0 enthält Fassung 4 die Sammlung `ris_aenderungsseite` mit demselben
+Hashbezug zum Original-JSON.
 Weiterhin können mehrere Einträge aus
 derselben Originaldatei stammen. Einträge zählen Schnappschüsse, keine Gesetze
 oder Personen. Der Nachweis prüft die Zuordnung gespeicherter Nummern/Hashes,
@@ -78,7 +80,7 @@ ab3.11 und die vorhandene reine Bestandsregel im Checkout; keine installierten
 Zusatzpakete, Django-Einstellungen, Datenbank oder Netzwerkverbindung. Es schreibt
 keine Dateien und ruft keine Modelle auf. `python -I -S` ist ebenfalls möglich.
 
-Es prüft die Fassungen 1 bis 3 jeweils mit der passenden Bestandsregel einschließlich
+Es prüft die Fassungen 1 bis 4 jeweils mit der passenden Bestandsregel einschließlich
 Reihung, Zählern und Hashbezügen. Ein neu gebildeter Hash für geänderte Daten besteht
 nicht gegen den alten angegebenen Vergleichshash. Doppelte JSON-Schlüssel, NaN,
 unbekannte Felder, Typverwechslungen und unvollständige Stände werden abgewiesen.

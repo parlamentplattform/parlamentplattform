@@ -12072,3 +12072,48 @@ msgstr "This list shows locally stored document snapshots with an explicitly ass
 
 msgid "Gemeindebezirk des Hauptwohnsitzes in Wien"
 msgstr "Municipal district of your main residence in Vienna"
+
+msgid "Archivierte VfGH-Entscheidungsmetadaten"
+msgstr "Archived Austrian Constitutional Court decision metadata"
+
+msgid "Es sind noch keine VfGH-Metadaten archiviert."
+msgstr "No Constitutional Court metadata has been archived yet."
+
+msgid "Entscheidungstext im RIS öffnen"
+msgstr "Open the decision text in RIS"
+
+msgid "Normangaben laut RIS-Metadaten"
+msgstr "Legal provisions listed in the RIS metadata"
+
+msgid "Dieser Beleg enthält keine Normangaben."
+msgstr "This record lists no legal provisions."
+
+msgid "SHA-256 der eingelesenen Metadatendatei"
+msgstr "SHA-256 of the imported metadata file"
+
+msgid "Prüft die Metadaten eines ausdrücklich übergebenen amtlichen VfGH-Entscheidungstextes."
+msgstr "Checks the metadata of an explicitly supplied official Austrian Constitutional Court decision text."
+
+msgid "Geschäftszahlen, ECLI und Normangaben eines gesicherten RIS-Belegs können mit Herkunft nachgelesen werden."
+msgstr "Displays case numbers, the ECLI and legal provisions from an archived RIS record along with its provenance."
+
+msgid "Genau eine Dokumentreferenz auswerten. Dokumentkennung, Anwendung, Entscheidungsdatum, ECLI-Jahr und amtliche Adresse abgleichen. Nach Entscheidungsdatum absteigend, Dokumentkennung aufsteigend und bei gleicher Kennung nach jüngster Erfassung reihen."
+msgstr "Read exactly one document reference. Check the document identifier, application, decision date, ECLI year and official address. Sort by decision date descending, document identifier ascending and newest archive entry first for identical identifiers."
+
+msgid "Die RIS-Normangaben bleiben Text. Ihre Zuordnung zu einem bestimmten Normstand bleibt offen."
+msgstr "The RIS provisions are kept as text. Matching them to a particular version of a legal provision remains open."
+
+msgid "Eine einzelne lokale RIS-Metadatendatei zu einem VfGH-Entscheidungstext einlesen."
+msgstr "Read a single local RIS metadata file for an Austrian Constitutional Court decision text."
+
+msgid "Die RIS-Metadatendatei ließ sich nicht lesen."
+msgstr "The RIS metadata file could not be read."
+
+msgid "VfGH-Metadaten abgewiesen (%(grund)s)."
+msgstr "Constitutional Court metadata rejected (%(grund)s)."
+
+msgid "VfGH-Beleg %(nummer)s gespeichert. SHA-256 %(hash)s."
+msgstr "Constitutional Court record %(nummer)s saved. SHA-256 %(hash)s."
+
+msgid "Metadatenprüfung, Fassung"
+msgstr "Metadata validation version"

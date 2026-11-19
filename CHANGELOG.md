@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.99.0] — 2026-11-15 · Metadaten zu VfGH-Entscheidungstexten
+
+- Eine ausdrücklich vorgelegte lokale RIS-Einzelantwort kann als unveränderlicher VfGH-Metadatenstand mit SHA-256 archiviert werden. Der Einlesebefehl gleicht Dokumentkennung, Quelle und Entscheidungsdatum ab.
+- Die Faktenbasis zeigt Geschäftszahlen, ECLI, amtlichen Link, Herkunft und die vom RIS genannten Normangaben. Letztere erscheinen im Wortlaut der archivierten Metadaten.
+
 ## [0.98.0] — 2026-11-15 · Hauptwohnsitz in Wiener Gemeindebezirken
 
 - Im eigenen Profil kann der Gemeindebezirk eines gemeldeten Wiener Hauptwohnsitzes angegeben werden. Die Bezirkscodes stammen aus dem Verzeichnis von Statistik Austria, Gebietsstand 2026. [Amtliches Bezirksverzeichnis](https://www.statistik.at/verzeichnis/reglisten/polbezirke.pdf).

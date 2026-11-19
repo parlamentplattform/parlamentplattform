@@ -17,6 +17,7 @@ from faktenbasis.models import (
     PersonalRessortAbruf,
     PersonalRessorttabelle,
     RisImport,
+    VfghEntscheidungsstand,
 )
 from faktenbasis.verwaltung import darf_aktualisieren
 from parameter.models import zahl
@@ -68,6 +69,19 @@ def norm(request, pk):
         "textabrufe": eintrag.textabrufe.select_related("inhalt").all(),
         "darf_aktualisieren": darf_aktualisieren(request.user),
     })
+
+
+@require_safe
+def vfgh(request):
+    staende = VfghEntscheidungsstand.objects.only("dokumentnummer", "entschieden_am", "ecli", "geschaeftszahlen")
+    seiten = Paginator(staende, max(1, min(100, zahl("faktenbasis-seitengroesse", 20))))
+    return render(request, "faktenbasis/vfgh.html", {"seite": seiten.get_page(request.GET.get("seite"))})
+
+
+@require_safe
+def vfgh_detail(request, pk):
+    stand = get_object_or_404(VfghEntscheidungsstand.objects.defer("original"), pk=pk)
+    return render(request, "faktenbasis/vfgh_detail.html", {"stand": stand})
 
 
 @require_safe

@@ -71,10 +71,17 @@ def _drossel() -> dict:
     Verkehr blieb die Adresse liegen (GP-159). Dieselbe Grenze wie dort: laufende und vorige Stunde."""
     import time
 
+    from mitglieder.botschutz import TAGESZWECKE
     from mitglieder.models import Drosselzaehler
 
     stunde = int(time.time() // 3600)
-    geloescht, _ = Drosselzaehler.objects.filter(stunde__lt=stunde - 1).delete()
+    # Tageszähler je Konto (ein Kontoabruf je Tag) tragen die Stunde des Tagesbeginns und bleiben zwei
+    # Tage — sonst wäre die Tagesgrenze nach zwei Stunden wieder frei (wie in botschutz.drossel_zuviel).
+    geloescht, _ = (
+        Drosselzaehler.objects.filter(stunde__lt=stunde - 1)
+        .exclude(zweck__in=TAGESZWECKE, stunde__gte=stunde - 48)
+        .delete()
+    )
     return {"geloescht": geloescht}
 
 

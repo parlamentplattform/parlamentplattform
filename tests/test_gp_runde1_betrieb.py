@@ -164,3 +164,25 @@ def test_der_hintergrundlauf_loescht_alte_drosselzaehler():
     Drosselzaehler.objects.create(zweck='anmeldung', kennung='203.0.113.10', stunde=jetzt, anzahl=1)
     assert 'drossel' in faellige_ausfuehren()
     assert sorted(Drosselzaehler.objects.values_list('stunde', flat=True)) == [jetzt - 1, jetzt]
+
+
+@pytest.mark.django_db
+def test_der_hintergrundlauf_laesst_den_tageszaehler_des_kontoabrufs_stehen():
+    """Nachtrag zu GP-159 (0.114.0): Der Tageszähler des Kontoabrufs trägt die Stunde des Tagesbeginns.
+    Der Aufräumlauf löschte ihn wie einen Stundenzähler nach rund zwei Stunden — die Grenze „ein Abruf je
+    Konto und Tag“ ließ sich danach am selben Tag erneut nutzen. Er bleibt jetzt zwei Tage, wie beim
+    Aufräumen im Vorbeigehen (mitglieder/botschutz.py)."""
+    import time
+
+    from mitglieder.botschutz import TAGESZWECKE
+    from mitglieder.models import Drosselzaehler
+    from verfahren.hintergrund import _drossel
+
+    stunde = int(time.time() // 3600)
+    tag = Drosselzaehler.objects.create(zweck=TAGESZWECKE[0], kennung='konto:1', stunde=stunde - 20, anzahl=1)
+    uralt = Drosselzaehler.objects.create(zweck=TAGESZWECKE[0], kennung='konto:2', stunde=stunde - 60, anzahl=1)
+    stundenweise = Drosselzaehler.objects.create(zweck='registrierung', kennung='ip:x', stunde=stunde - 20, anzahl=1)
+    _drossel()
+    geblieben = set(Drosselzaehler.objects.values_list('pk', flat=True))
+    assert tag.pk in geblieben, 'der Tageszähler von heute bleibt'
+    assert uralt.pk not in geblieben and stundenweise.pk not in geblieben

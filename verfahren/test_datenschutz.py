@@ -236,6 +236,12 @@ def test_cookies_nennen_die_rueckmeldung_und_den_browserspeicher(client):
     assert antwort.cookies["messages"].value
 
     karte = _karte(client, "cookies")
+    # GP-024: die Dauern, die Django ohne eigene Einstellung setzt (config/settings.py setzt keine).
+    from django.conf import settings
+
+    assert settings.SESSION_COOKIE_AGE == 14 * 24 * 3600 and "(sessionid, Anmeldung, 14 Tage)" in karte
+    assert settings.CSRF_COOKIE_AGE == 52 * 7 * 24 * 3600 and "(csrftoken, ein Jahr)" in karte
+    assert settings.LANGUAGE_COOKIE_AGE is None  # bis zum Schließen des Browsers; die Karte nennt keine Dauer
     assert "Drei, alle technisch" not in karte
     for name in ("sessionid", "csrftoken", "django_language", "messages", "Browserspeicher"):
         assert name in karte, name

@@ -7884,23 +7884,8 @@ msgid ""
 "    eine Kennung; der sachliche Inhalt bleibt."
 msgstr "<strong>Expert roster:</strong> if you are on it, name, fields of expertise, conflicts of interest and fees — public with your consent (§ 6 (7), § 8 (4)). After a withdrawal an identifier replaces the name; the factual content remains."
 
-msgid ""
-"<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst\n"
-"    hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch; die Eingabe zeigt die Plattform nicht an."
-msgstr "<strong>AI jobs:</strong> every call to the AI provider stays permanently in the run archive together with the account that triggered it — with input, answer and usage; the platform does not display the input."
-
 msgid "Diese Erklärung sagt nur, was der Code tut."
 msgstr "This policy says only what the code does."
-
-msgid ""
-"Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz\n"
-"  geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und\n"
-"  Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder\n"
-"  als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen\n"
-"  Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die\n"
-"  Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Die\n"
-"  Audit-Kette wird nie gelöscht; sie enthält keine Namen."
-msgstr "Your account exists until you resign. On resignation, name, e-mail address and residence are emptied and the account can no longer sign in. An exclusion blocks the account; name, e-mail address and residence remain. What remains after resignation: your procedural contributions under your pseudonym or as “Former member n” — pseudonymised, not anonymised, because they are part of a public procedure that must remain verifiable (§ 5 (8)) — and the mapping in the vote register, until the procedural rules set a deletion period (§ 8 (6)); no such period exists today. The audit chain is never deleted; it contains no names."
 
 #, python-format
 msgid "Stand: %(stand)s."
@@ -7911,14 +7896,6 @@ msgid ""
 "    vom Mandatar selbst oder von der Verwaltung, öffentlich. Das Lichtbild entfernt die Plattform mit dem Austritt,\n"
 "    vorher auf Anfrage bei der Verwaltung (plattform@ddoe.at)."
 msgstr "<strong>Mandate:</strong> photo and introduction if you hold a mandate — uploaded by the mandate holder or by the administration, public. The platform removes the photo when you resign, earlier on request to the administration (plattform@ddoe.at)."
-
-msgid ""
-"Nur technische: die Sitzung (sessionid, Anmeldung), der CSRF-Schutz gegen untergeschobene\n"
-"  Formulare (csrftoken), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten\n"
-"  Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine\n"
-"  Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild,\n"
-"  Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht."
-msgstr "Only technical ones: the session (sessionid, sign-in), the CSRF protection against forged forms (csrftoken), briefly the feedback after an action (messages; it disappears with the next page) and — only if you switch the language — the language choice (django_language). No analytics cookies, no third-party cookies, no tracking. In your device’s browser storage the platform also remembers appearance, filter bar, reading position in the chat and focus mode; these settings do not leave the device."
 
 msgid ""
 "<strong>GoCardless Ltd. (Bank Account Data)</strong> als\n"
@@ -7941,17 +7918,6 @@ msgid ""
 "<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die\n"
 "    Besetzung ist öffentlich."
 msgstr "<strong>Body roles:</strong> your appointments to councils and bodies with start and end; the membership of bodies is public."
-
-#, python-format
-msgid ""
-"<strong>%(anbieter)s</strong> (KI-Anbieter der\n"
-"    Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Anträgen sowie Beratungsbeiträge — Texte,\n"
-"    die öffentlich sind. Beim Absenden auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres\n"
-"    Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann,\n"
-"    wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird\n"
-"    archiviert und gekennzeichnet; der Entwurf bleibt dabei im Lauf-Archiv, das seine Texte nicht anzeigt. Die KI\n"
-"    schlägt vor, sie entscheidet nie."
-msgstr "<strong>%(anbieter)s</strong> (AI provider of the Zukunftswerkstatt): it receives the title, wording and reasoning of motions and deliberation contributions — texts that are public. When you submit the form on the page “Submit a motion”, the title and wording of your draft also go to it, for comparison with running motions — before the motion is published, and even if you then do not submit it. Names, e-mail addresses or votes never go to it. Every call is archived and labelled; the draft stays in the run archive, which does not display its texts. The AI proposes, it never decides."
 
 msgid ""
 "<strong>Verfahrensbeiträge:</strong> Anträge, Beratungsbeiträge, Bewerbungen und Vorstellungen — sie\n"
@@ -8203,12 +8169,6 @@ msgstr "the last checked entry was changed or removed"
 
 msgid "zur Stelle"
 msgstr "go to the entry"
-
-msgid "<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal täglich geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen."
-msgstr "<strong>GitHub, Inc.</strong> (backup copies): once a day a copy of the whole database — without login sessions and login links — goes to a private repository of the party at GitHub. The copy is not encrypted. GitHub is a US company."
-
-msgid "Sicherungskopien der Datenbank bleiben 90 Tage, die vom Monatsersten 365 Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind."
-msgstr "Backup copies of the database are kept for 90 days, those from the first of each month for 365 days; for that long they also contain details that were already cleared in the database after a member left."
 
 msgid ""
 "Zugang nur für Admins. Jede Handlung hier steht im Audit-Log; öffentlich\n"
@@ -12559,3 +12519,35 @@ msgid "Ändern ist nur in der ersten Minute möglich."
 msgid_plural "Ändern ist nur in den ersten %(n)s Minuten möglich."
 msgstr[0] "Editing is only possible in the first minute."
 msgstr[1] "Editing is only possible in the first %(n)s minutes."
+
+#, python-format
+msgid "<strong>%(anbieter)s</strong> (KI-Anbieter der Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Sachanträgen und ihren Entwurfsfassungen, Beratungsbeiträge und die Wünsche der Unterstützer an den Expertenrat, Beanstandungen öffentlicher Berichte und die Angaben eines Parametertests — Texte, die öffentlich sind. Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann, wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird archiviert und gekennzeichnet; bei öffentlichen Berichten ist die Eingabe am Antrag nachlesbar, Ihr Entwurf bleibt im Lauf-Archiv, ohne angezeigt zu werden. Die KI schlägt vor, sie entscheidet nie."
+msgstr "<strong>%(anbieter)s</strong> (AI provider of the Zukunftswerkstatt): It receives title, wording and justification of substantive motions and their draft versions, deliberation contributions and the supporters' requests to the expert council, objections to public reports and the details of a parameter test — texts that are public. When you submit a substantive motion on the page “Submit a motion”, the title and wording of your draft are also sent to it, for comparison with ongoing motions — before the motion is published and even if you do not submit it afterwards. Names, e-mail addresses or votes are never sent to it. Every call is archived and labelled; for public reports the input can be read on the motion, your draft stays in the run archive without being displayed. The AI proposes, it never decides."
+
+msgid "<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert, die neue Adresse, wann der Wechsel beantragt, bestätigt und wirksam wurde und welche Verwaltungskonten beteiligt waren. Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse."
+msgstr "<strong>Change of address:</strong> if the administration changes your login address, the new address, when the change was requested, confirmed and took effect, and which administration accounts were involved. After you leave, only the process remains, without the address."
+
+msgid "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben."
+msgstr "<strong>Login:</strong> when your account was created and when you last logged in."
+
+msgid "<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal im Monat geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen."
+msgstr "<strong>GitHub, Inc.</strong> (backup copies): Once a month a copy of the whole database — without login sessions and login links — goes to a private repository of the party at GitHub. The copy is not encrypted. GitHub is a US company."
+
+msgid "<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch. Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht. Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an."
+msgstr "<strong>AI requests:</strong> Every call to the AI provider is kept permanently in the run archive with the account that triggered it — with input, response and usage. For reports on a motion (affected laws, legal consequences) the input can be read publicly on the motion and in the archive export; the account behind it cannot. The platform does not display inputs on the assessment for the council workshop, on drafts before submission or on parameter tests."
+
+msgid "<strong>Mitgliedsausweis:</strong> ein Prüfcode, über den der QR-Code des Ausweises Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Der Code bleibt gleich, damit gedruckte Ausweise gültig bleiben."
+msgstr "<strong>Membership card:</strong> a verification code through which the card's QR code confirms your membership, and the time it was first issued. The code stays the same so that printed cards remain valid."
+
+msgid "Die Abstimmung beginnt"
+msgstr "The vote is starting"
+
+msgid "Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen."
+msgstr "Your account exists until you resign. On resignation, name, e-mail address and residence are emptied and the account can no longer sign in. An exclusion blocks the account; name, e-mail address and residence remain. What remains after resignation: your procedural contributions under your pseudonym or as “Former member n” — pseudonymised, not anonymised, because they are part of a public procedure that must remain verifiable (§ 5 (8)) — and the mapping in the vote register, until the procedural rules set a deletion period (§ 8 (6)); no such period exists today. For accounting reasons, your membership number, the stem of your payment reference and the recorded membership fee payments (date, amount, transaction ID) also remain with the closed account, as well as the list of messages sent to your account (without content), your suggestions linked to the account, any municipal access, the verification code of your membership card and the time of your last login. The audit chain is never deleted; it contains no names."
+
+msgid "Nur technische: die Sitzung (sessionid, Anmeldung, 14 Tage), der CSRF-Schutz gegen untergeschobene Formulare (csrftoken, ein Jahr), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild, Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht."
+msgstr "Technical ones only: the session (sessionid, login, 14 days), the CSRF protection against forged forms (csrftoken, one year), briefly the feedback after an action (messages; it disappears with the next page) and — only if you switch the language — the language choice (django_language). No analytics cookies, no third-party cookies, no tracking. In your device's browser storage the platform also remembers appearance, filter bar, reading position in the chat and focus mode; these settings never leave the device."
+
+#, python-format
+msgid "Sicherungskopien der Datenbank bleiben %(tage)s Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind."
+msgstr "Backup copies of the database are kept for %(tage)s days; for that long they also contain details that have already been cleared in the database after a member leaves."

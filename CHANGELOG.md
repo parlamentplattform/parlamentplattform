@@ -2,6 +2,15 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [0.114.0] — 2026-11-21 · Datenschutzerklärung berichtigt, Fristtext und Tastaturführung
+
+- Die Datenschutzerklärung stimmt an acht Stellen wieder mit dem Betrieb überein (Freigabe des Gründers vom 20.11.2026, Stand der Erklärung 20.11.2026). Die Sicherungskopie entsteht einmal im Monat und bleibt 365 Tage; bisher standen dort „täglich“ und „90 Tage“. Neu genannt sind der Verlauf eines Adresswechsels, der Prüfcode des Mitgliedsausweises, die Anmeldezeiten, die Dauer der Cookies und was nach einem Austritt am geschlossenen Konto bleibt.
+- Die Angaben zum KI-Anbieter sagen, was tatsächlich gesendet und was öffentlich nachlesbar ist: An ihn gehen Texte von Sachanträgen, nicht von Kandidaturen und Vertrauensfragen; nachlesbar ist die Eingabe bei betroffenen Gesetzen und Rechtsfolgen, nicht bei der Einschätzung für die Gremien-Werkstatt.
+- Tests binden den Text an die Werte im Code: Takt und Frist der Sicherung, die Dauer der Cookies, jeden Zweck des KI-Steckplatzes und den Stand des Kontos nach einem Austritt.
+- Nach Fristende sagt eine Kachel, was als Nächstes geschieht: nach der Beratung und vor dem Abstimmungsbeginn einer Vertrauensfrage „Die Abstimmung beginnt“, sonst wie bisher „Frist abgelaufen, wird ausgewertet“.
+- Tastatur: Nach „mehr“ steht der Fokus auf dem ersten neu sichtbaren Ziel statt mit dem Knopf zu verschwinden. Im Fächer folgen die Unterpunkte in der Tab-Folge direkt auf ihren Ast.
+- Der Aufräumlauf lässt den Tageszähler des Kontoabrufs zwei Tage stehen. Bisher löschte er ihn nach rund zwei Stunden, und die Grenze von einem Abruf je Konto und Tag war am selben Tag wieder frei.
+
 ## [0.113.0] — 2026-11-18 · Erste Behebungsrunde der Gesamtprüfung
 
 Die Gesamtprüfung gegen ein eigenes Sollbild (FB-Q1) hat die Plattform entlang konkreter Abläufe aus Sicht von Gästen, Mitgliedern, Gemeindeeinwohnern ohne Parteibeitritt, Mandataren und prüfenden Rollen untersucht. Diese Fassung behebt die belegten Fehler, die ohne neue Regelentscheidung behebbar waren. Sie führt keine neue Regel, Zahl, Rolle oder Zuständigkeit ein; was eine Entscheidung des Gründers braucht, ist nicht gebaut.

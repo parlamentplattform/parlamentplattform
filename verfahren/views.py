@@ -1635,6 +1635,7 @@ def datenschutz(request):
     erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
     from ki.models import steckplatz_stand
     from mitglieder.bank import eingerichtet as bank_eingerichtet
+    from verfahren.sicherung import AUFBEWAHRUNG_TAGE
 
     ki = steckplatz_stand()
     return render(
@@ -1644,6 +1645,7 @@ def datenschutz(request):
             "ki_angeschlossen": ki["angeschlossen"],
             "ki_anbieter": ki["anbieter"],
             "bank_angeschlossen": bank_eingerichtet(),
+            "sicherung_tage": AUFBEWAHRUNG_TAGE,
             "stand": "29.9.2026",
             "AKTIV": "datenschutz",
         },

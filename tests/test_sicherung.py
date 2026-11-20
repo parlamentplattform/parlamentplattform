@@ -2,10 +2,14 @@
 die Workflows rufen es auf und nennen ihre Secrets nur als Verweis, nie als Wert."""
 
 import subprocess
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
 import yaml
+
+from verfahren import sicherung as s
+from verfahren.test_sicherung import JETZT, github, release  # noqa: F401
 
 WURZEL = Path(__file__).resolve().parents[1]
 SKRIPT = WURZEL / "tools" / "sicherung.sh"
@@ -68,7 +72,31 @@ def test_der_postgres_client_wird_signiert_und_ohne_systemaenderungen_bereitgest
 
 
 @pytest.mark.django_db
-def test_die_datenschutzerklaerung_nennt_die_sicherung_bei_github(client):
-    """Die Erklärung sagt, was der Code tut: tägliche Kopie bei GitHub, unverschlüsselt, mit Frist."""
-    inhalt = client.get("/datenschutz/").content.decode()
-    assert "GitHub, Inc." in inhalt and "nicht verschlüsselt" in inhalt and "90 Tage" in inhalt
+def test_die_datenschutzerklaerung_nennt_takt_und_frist_der_sicherung(client, github, monkeypatch):  # noqa: F811
+    """Die Erklärung sagt, was der Code tut (GP-024): eine Kopie im Monat bei GitHub, unverschlüsselt,
+    aufbewahrt so lange, wie `verfahren/sicherung.py` sie behält — Takt und Frist am Code geprüft."""
+    inhalt = " ".join(client.get("/datenschutz/").content.decode().split())
+    assert "GitHub, Inc." in inhalt and "nicht verschlüsselt" in inhalt
+    assert "Einmal im Monat geht eine Kopie" in inhalt and "täglich" not in inhalt
+    assert f"Sicherungskopien der Datenbank bleiben {s.AUFBEWAHRUNG_TAGE} Tage;" in inhalt
+    assert "90 Tage" not in inhalt
+
+    # Takt: im selben Kalendermonat keine zweite Sicherung, im nächsten wieder eine.
+    jetzt = {"wert": JETZT}
+    monkeypatch.setattr(s.timezone, "now", lambda: jetzt["wert"])
+    s.eine_runde()
+    s.eine_runde()
+    assert len(github.assets) == 2
+    jetzt["wert"] = JETZT + timedelta(days=30)
+    s.eine_runde()
+    assert len(github.assets) == 4
+
+    # Frist: eine Sicherung bleibt genau so viele Tage, wie die Erklärung nennt.
+    def monatssicherung(nummer, alter):
+        zeit = JETZT - timedelta(days=alter)
+        return release(f"ddoe-sicherung-{zeit:%Y-%m-%dT%H%M%S}Z", id=nummer, body="art=monatlich audit=1")
+
+    github.aufrufe.clear()
+    s._aufraeumen(github, [monatssicherung(7, s.AUFBEWAHRUNG_TAGE - 1), monatssicherung(8, s.AUFBEWAHRUNG_TAGE + 1)], JETZT)
+    geloescht = [x[0] for x in github.aufrufe if x[1] == "DELETE"]
+    assert "/releases/8" in geloescht and "/releases/7" not in geloescht

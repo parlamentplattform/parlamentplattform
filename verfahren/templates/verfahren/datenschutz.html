@@ -38,6 +38,9 @@
     <li>{% blocktranslate %}<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein
     Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe
     und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert, die neue Adresse, wann der Wechsel beantragt, bestätigt und wirksam wurde und welche Verwaltungskonten beteiligt waren. Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Mitgliedsausweis:</strong> ein Prüfcode, über den der QR-Code des Ausweises Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Der Code bleibt gleich, damit gedruckte Ausweise gültig bleiben.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Beitrag:</strong> eine Zahlungsreferenz, gebildet aus der Konto-Kennung und einem festen Stamm,
     und die Buchung des Beitragseingangs (Datum, Betrag, Umsatzkennung und ob der Name der Überweisung zu Ihrem
     passte); keine Kontonummer des Mitglieds. Für den Abgleich liest die Plattform die Umsätze des Parteikontos — aus
@@ -61,8 +64,7 @@
     eine Kennung; der sachliche Inhalt bleibt.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die
     Besetzung ist öffentlich.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst
-    hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch; die Eingabe zeigt die Plattform nicht an.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch. Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht. Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Anstoß:</strong> der Freitext Ihrer Meldung, die Seite, von der sie kam, und — nur wenn Sie
     angemeldet sind — Ihr Konto, damit wir nachfragen können.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Besuche:</strong> die Zahl der Aufrufe je Tag, plattformweit und je Antrag, und je Tag eine
@@ -92,15 +94,9 @@
     (docs/BETRIEB-RENDER.md im Quellcode).{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>World4You Internet Services GmbH</strong> (Postfach und Versand aller E-Mails der
     Plattform über plattform@ddoe.at).{% endblocktranslate %}</li>
-    <li id="empfaenger-sicherung">{% blocktranslate %}<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal täglich geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen.{% endblocktranslate %}</li>
+    <li id="empfaenger-sicherung">{% blocktranslate %}<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal im Monat geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen.{% endblocktranslate %}</li>
     {% if ki_angeschlossen %}
-    <li id="empfaenger-ki">{% blocktranslate with anbieter=ki_anbieter %}<strong>{{ anbieter }}</strong> (KI-Anbieter der
-    Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Anträgen sowie Beratungsbeiträge — Texte,
-    die öffentlich sind. Beim Absenden auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres
-    Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann,
-    wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird
-    archiviert und gekennzeichnet; der Entwurf bleibt dabei im Lauf-Archiv, das seine Texte nicht anzeigt. Die KI
-    schlägt vor, sie entscheidet nie.{% endblocktranslate %}</li>
+    <li id="empfaenger-ki">{% blocktranslate with anbieter=ki_anbieter %}<strong>{{ anbieter }}</strong> (KI-Anbieter der Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Sachanträgen und ihren Entwurfsfassungen, Beratungsbeiträge und die Wünsche der Unterstützer an den Expertenrat, Beanstandungen öffentlicher Berichte und die Angaben eines Parametertests — Texte, die öffentlich sind. Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann, wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird archiviert und gekennzeichnet; bei öffentlichen Berichten ist die Eingabe am Antrag nachlesbar, Ihr Entwurf bleibt im Lauf-Archiv, ohne angezeigt zu werden. Die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</li>
     {% endif %}
     {% if bank_angeschlossen %}
     <li id="empfaenger-bank">{% blocktranslate %}<strong>GoCardless Ltd. (Bank Account Data)</strong> als
@@ -115,14 +111,8 @@
 
 <div class="karte" id="speicherdauer">
   <h2>{% translate "Wie lange" %}</h2>
-  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz
-  geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und
-  Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder
-  als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen
-  Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die
-  Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Die
-  Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
-  <p>{% blocktranslate %}Sicherungskopien der Datenbank bleiben 90 Tage, die vom Monatsersten 365 Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
+  <p>{% blocktranslate with tage=sicherung_tage %}Sicherungskopien der Datenbank bleiben {{ tage }} Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind.{% endblocktranslate %}</p>
 </div>
 
 <div class="karte" id="rechte">
@@ -136,11 +126,7 @@
 
 <div class="karte" id="cookies">
   <h2>{% translate "Cookies" %}</h2>
-  <p>{% blocktranslate %}Nur technische: die Sitzung (sessionid, Anmeldung), der CSRF-Schutz gegen untergeschobene
-  Formulare (csrftoken), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten
-  Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine
-  Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild,
-  Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Nur technische: die Sitzung (sessionid, Anmeldung, 14 Tage), der CSRF-Schutz gegen untergeschobene Formulare (csrftoken, ein Jahr), kurzlebig die Rückmeldung nach einer Handlung (messages; sie verschwindet mit der nächsten Seite) und — nur wenn Sie die Sprache umschalten — die Sprachwahl (django_language). Keine Analyse-Cookies, keine Cookies Dritter, kein Tracking. Im Browserspeicher Ihres Geräts merkt sich die Plattform außerdem Erscheinungsbild, Filterleiste, Leseposition im Chat und Fokus-Modus; diese Einstellungen verlassen das Gerät nicht.{% endblocktranslate %}</p>
 </div>
 
 {% endblock %}

@@ -1627,14 +1627,19 @@ def _register_zeilen():
     return zeilen
 
 
+#: Stand der Datenschutzerklärung = Tag der letzten Freigabe ihres Wortlauts durch den Gründer.
+DATENSCHUTZ_STAND = "20.11.2026"
+
+
 def datenschutz(request):
     """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
 
-    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026)
-    und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
+    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026;
+    Berichtigung GP-024, GP-161, GP-092 freigegeben 20.11.2026, E-27) und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
     erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
     from ki.models import steckplatz_stand
     from mitglieder.bank import eingerichtet as bank_eingerichtet
+    from verfahren.sicherung import AUFBEWAHRUNG_TAGE
 
     ki = steckplatz_stand()
     return render(
@@ -1644,7 +1649,8 @@ def datenschutz(request):
             "ki_angeschlossen": ki["angeschlossen"],
             "ki_anbieter": ki["anbieter"],
             "bank_angeschlossen": bank_eingerichtet(),
-            "stand": "29.9.2026",
+            "sicherung_tage": AUFBEWAHRUNG_TAGE,
+            "stand": DATENSCHUTZ_STAND,
             "AKTIV": "datenschutz",
         },
     )

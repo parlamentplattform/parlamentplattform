@@ -26,13 +26,17 @@ pytestmark = pytest.mark.django_db
 
 
 def test_datenschutzseite_ist_fuer_gaeste_erreichbar_und_freigegeben(client):
-    """Der Gründer hat die Erklärung am 29.9.2026 freigegeben — kein Entwurfshinweis mehr."""
+    """Der Gründer hat die Erklärung am 29.9.2026 freigegeben, die Berichtigung am 20.11.2026 (E-27)
+    — kein Entwurfshinweis mehr; der Stand ist das Freigabedatum."""
+    from verfahren.views import DATENSCHUTZ_STAND
+
+    assert DATENSCHUTZ_STAND == "20.11.2026"
     antwort = client.get(reverse("verfahren:datenschutz"))
     assert antwort.status_code == 200
     inhalt = antwort.content.decode()
     kopf = " ".join(inhalt.split())
     assert "ist ein Entwurf" not in kopf and "keine Zusage" not in kopf
-    assert "Stand: 29.9.2026." in kopf and "— Entwurf" not in kopf
+    assert f"Stand: {DATENSCHUTZ_STAND}." in kopf and "— Entwurf" not in kopf
     for pflicht in (
         "Direkte Demokratie Österreich",
         "Unterfreundorf 17",
@@ -153,6 +157,63 @@ def test_der_entwurf_geht_vor_dem_einbringen_an_den_anbieter_und_die_texte_sagen
     assert satz not in client.get(reverse("verfahren:einbringen")).content.decode()
 
 
+#: GP-161: Was je Zweck des Steckplatzes an den Anbieter geht — als Satzteil der Erklärung (Absatz
+#: „empfaenger-ki“ oder Datenart „KI-Aufträge“) — und ob die Eingabe öffentlich nachlesbar ist (am
+#: Antrag oder im Archivexport). Ein neuer Zweck ohne Eintrag lässt den Test scheitern.
+ZWECKE_IN_DER_ERKLAERUNG = {
+    Zweck.EINSCHAETZUNG: ("und ihren Entwurfsfassungen, Beratungsbeiträge und die Wünsche der Unterstützer an den Expertenrat", False),
+    Zweck.RECHTSBEZUG: ("Titel, Wortlaut und Begründung von Sachanträgen", True),
+    Zweck.RECHTSFOLGEN: ("Titel, Wortlaut und Begründung von Sachanträgen", True),
+    Zweck.KORREKTUR: ("Beanstandungen öffentlicher Berichte", True),
+    Zweck.GEGENUEBERSTELLUNG: ("Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn", False),
+    Zweck.AEHNLICHKEIT: ("Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn", False),
+    Zweck.PARAMETERVORSCHLAG: ("die Angaben eines Parametertests", False),
+}
+
+
+def test_jeder_zweck_des_steckplatzes_steht_in_der_erklaerung(client, settings, ordnung):  # noqa: F811
+    """GP-161: Jeder Zweck hat einen Satzteil in der Erklärung; was nicht als öffentlich nachlesbar
+    gilt, zeigen weder Antragsseite noch Archivexport noch Lauf-Archiv."""
+    assert set(ZWECKE_IN_DER_ERKLAERUNG) == set(Zweck), "Zweck ohne Eintrag in der Datenschutzerklärung"
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    text = _ki_absatz(client) + _karte(client, "datenarten")
+    for zweck, (satzteil, _oeffentlich) in ZWECKE_IN_DER_ERKLAERUNG.items():
+        assert satzteil in text, zweck
+
+    m = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(m, ANTRAG["titel"], ANTRAG["wortlaut"], "", ordnung)
+    verdeckt = {z: f"VERDECKTE-EINGABE-{z.value}" for z, (_s, oeffentlich) in ZWECKE_IN_DER_ERKLAERUNG.items() if not oeffentlich}
+    for zweck, eingabe in verdeckt.items():
+        KILauf.objects.create(zweck=zweck, antrag=antrag, angefordert_von=m, eingabe=eingabe, antwort="Antwort",
+                              anbieter="attrappe", modell="probe")
+    for seite in (
+        reverse("verfahren:antrag", args=[antrag.pk]),
+        reverse("verfahren:archiv_export", args=[antrag.pk, "json"]),
+        reverse("verfahren:archiv_export", args=[antrag.pk, "md"]),
+        reverse("verfahren:zukunftswerkstatt"),
+    ):
+        antwort = client.get(seite)
+        assert antwort.status_code == 200, seite
+        inhalt = antwort.content.decode()
+        for zweck, eingabe in verdeckt.items():
+            assert eingabe not in inhalt, (zweck, seite)
+
+
+def test_ki_texte_nennen_nur_sachantraege_und_keine_nachlese_der_einschaetzung(client, settings):
+    """Seit 0.113.0 gehen Titel und Wortlaut von Kandidaturen und Vertrauensfragen nicht mehr an den
+    Anbieter (verfahren/aehnlichkeit.py, ki/warteschlange.py); die Eingabe der Einschätzung für die
+    Gremien-Werkstatt zeigt keine Seite (nur Rechtsbezug und Rechtsfolgen haben die Klappe)."""
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    absatz = _ki_absatz(client)
+    assert "Begründung von Anträgen" not in absatz and "Beim Absenden auf der Seite" not in absatz
+    assert "bei öffentlichen Berichten ist die Eingabe am Antrag nachlesbar" in absatz
+    assert "das seine Texte nicht anzeigt" not in absatz
+    ki = re.search(r"<strong>KI-Aufträge:</strong>(.*?)</li>", _karte(client, "datenarten")).group(1)
+    assert "die Eingabe zeigt die Plattform nicht an" not in ki
+    assert "Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht." in ki
+    assert "Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an." in ki
+
+
 def _karte(client, kennung: str) -> str:
     """Der Text einer Karte der Datenschutzseite, Leerraum zusammengezogen."""
     inhalt = " ".join(client.get(reverse("verfahren:datenschutz")).content.decode().split())
@@ -174,6 +235,45 @@ def test_speicherdauer_ausschluss_leert_nichts_und_austritt_pseudonymisiert(clie
     assert "Austritt oder Ausschluss" not in karte and "Wohnsitz anonymisiert" not in karte
     assert "pseudonymisiert, nicht anonymisiert" in karte and "„Ehemaliges Mitglied n“" in karte
     assert "Ausschluss sperrt das Konto" in karte
+
+
+def test_speicherdauer_nennt_was_der_austritt_am_konto_laesst(client):
+    """GP-092, längere Fassung (E-27): Solange die Löschung der Reste nicht gebaut ist (E-41), nennt die
+    Erklärung alles, was `austreten` am geschlossenen Konto stehen lässt — der Test prüft beides."""
+    from datetime import date
+    from decimal import Decimal
+
+    from django.utils import timezone
+
+    from anstoss.models import Anstoss
+    from mitglieder.models import Beitragseingang, Gemeindezugang, Postauftrag
+    from mitglieder.profil import austreten
+
+    m = mitglied_anlegen("greta")
+    client.force_login(m)
+    jetzt = timezone.now()
+    Mitglied.objects.filter(pk=m.pk).update(mitgliedsnummer=4711, beitragsreferenz_stamm="AB12CD",
+                                            ausweis_code="PRUEFCODE", ausweis_ausgestellt_am=jetzt)
+    Beitragseingang.objects.create(mitglied=m, betrag=Decimal("24.00"), gebucht_am=date(2026, 11, 2), umsatz_id="U-1")
+    Postauftrag.objects.create(mitglied=m, art="willkommen")
+    Anstoss.objects.create(text="Bitte prüfen", seite="/", nutzer=m)
+    Gemeindezugang.objects.create(konto=m, angemeldet_am=jetzt, alter_erklaert_am=jetzt)
+    austreten(Mitglied.objects.get(pk=m.pk), jetzt)
+
+    m = Mitglied.objects.get(pk=m.pk)
+    assert m.email == "" and m.mitgliedsnummer == 4711 and m.beitragsreferenz_stamm == "AB12CD"
+    assert m.ausweis_code == "PRUEFCODE" and m.last_login is not None
+    assert Beitragseingang.objects.filter(mitglied=m).exists() and Postauftrag.objects.filter(mitglied=m).exists()
+    assert Anstoss.objects.filter(nutzer=m).exists() and Gemeindezugang.objects.filter(konto=m).exists()
+
+    karte = _karte(client, "speicherdauer")
+    assert (
+        "eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, "
+        "der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am "
+        "geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit "
+        "Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten "
+        "Anmeldung. Die Audit-Kette wird nie gelöscht"
+    ) in karte
 
 
 def test_zahlungsreferenz_haengt_an_der_konto_kennung_nicht_an_der_mitgliedsnummer(client):
@@ -232,12 +332,36 @@ def test_cookies_nennen_die_rueckmeldung_und_den_browserspeicher(client):
     assert antwort.cookies["messages"].value
 
     karte = _karte(client, "cookies")
+    # GP-024: die Dauern, die Django ohne eigene Einstellung setzt (config/settings.py setzt keine).
+    from django.conf import settings
+
+    assert settings.SESSION_COOKIE_AGE == 14 * 24 * 3600 and "(sessionid, Anmeldung, 14 Tage)" in karte
+    assert settings.CSRF_COOKIE_AGE == 52 * 7 * 24 * 3600 and "(csrftoken, ein Jahr)" in karte
+    assert settings.LANGUAGE_COOKIE_AGE is None  # bis zum Schließen des Browsers; die Karte nennt keine Dauer
     assert "Drei, alle technisch" not in karte
     for name in ("sessionid", "csrftoken", "django_language", "messages", "Browserspeicher"):
         assert name in karte, name
     rollen = " ".join(client.get(reverse("verfahren:rollen")).content.decode().split())
     assert "keine Cookies außer Session, CSRF und" not in rollen
     assert "der kurzen Rückmeldung nach einer Handlung" in rollen
+
+
+def test_datenarten_nennen_adresswechsel_ausweis_und_anmeldezeiten(client):
+    """GP-024: Adresswechsel (mitglieder/models.py Adresswechsel), Mitgliedsausweis (ausweis_code,
+    ausweis_ausgestellt_am) und die Anmeldezeiten des Kontos (date_joined, last_login) stehen in der Liste."""
+    m = mitglied_anlegen("anna")
+    client.force_login(m)
+    m.refresh_from_db()
+    assert m.last_login is not None and m.date_joined is not None
+    karte = _karte(client, "datenarten")
+    for teil in (
+        "<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert",
+        "Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse.",
+        "<strong>Mitgliedsausweis:</strong> ein Prüfcode",
+        "damit gedruckte Ausweise gültig bleiben",
+        "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben.",
+    ):
+        assert teil in karte, teil
 
 
 def test_datenarten_nennen_fachliste_rollen_ki_und_ueberzeichnen_unterstuetzungen_nicht(client):

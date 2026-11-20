@@ -64,8 +64,7 @@
     eine Kennung; der sachliche Inhalt bleibt.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die
     Besetzung ist öffentlich.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst
-    hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch; die Eingabe zeigt die Plattform nicht an.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch. Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht. Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Anstoß:</strong> der Freitext Ihrer Meldung, die Seite, von der sie kam, und — nur wenn Sie
     angemeldet sind — Ihr Konto, damit wir nachfragen können.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Besuche:</strong> die Zahl der Aufrufe je Tag, plattformweit und je Antrag, und je Tag eine
@@ -97,13 +96,7 @@
     Plattform über plattform@ddoe.at).{% endblocktranslate %}</li>
     <li id="empfaenger-sicherung">{% blocktranslate %}<strong>GitHub, Inc.</strong> (Sicherungskopien): Einmal im Monat geht eine Kopie der ganzen Datenbank — ohne Anmeldesitzungen und Anmeldelinks — in ein privates Repository der Partei bei GitHub. Die Kopie ist nicht verschlüsselt. GitHub ist ein US-Unternehmen.{% endblocktranslate %}</li>
     {% if ki_angeschlossen %}
-    <li id="empfaenger-ki">{% blocktranslate with anbieter=ki_anbieter %}<strong>{{ anbieter }}</strong> (KI-Anbieter der
-    Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Anträgen sowie Beratungsbeiträge — Texte,
-    die öffentlich sind. Beim Absenden auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres
-    Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann,
-    wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird
-    archiviert und gekennzeichnet; der Entwurf bleibt dabei im Lauf-Archiv, das seine Texte nicht anzeigt. Die KI
-    schlägt vor, sie entscheidet nie.{% endblocktranslate %}</li>
+    <li id="empfaenger-ki">{% blocktranslate with anbieter=ki_anbieter %}<strong>{{ anbieter }}</strong> (KI-Anbieter der Zukunftswerkstatt): An ihn gehen Titel, Wortlaut und Begründung von Sachanträgen und ihren Entwurfsfassungen, Beratungsbeiträge und die Wünsche der Unterstützer an den Expertenrat, Beanstandungen öffentlicher Berichte und die Angaben eines Parametertests — Texte, die öffentlich sind. Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn, zum Vergleich mit laufenden Anträgen — bevor der Antrag veröffentlicht ist und auch dann, wenn Sie ihn danach nicht einbringen. Nie gehen Namen, E-Mail-Adressen oder Stimmen an ihn. Jeder Aufruf wird archiviert und gekennzeichnet; bei öffentlichen Berichten ist die Eingabe am Antrag nachlesbar, Ihr Entwurf bleibt im Lauf-Archiv, ohne angezeigt zu werden. Die KI schlägt vor, sie entscheidet nie.{% endblocktranslate %}</li>
     {% endif %}
     {% if bank_angeschlossen %}
     <li id="empfaenger-bank">{% blocktranslate %}<strong>GoCardless Ltd. (Bank Account Data)</strong> als

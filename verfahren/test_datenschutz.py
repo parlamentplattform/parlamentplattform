@@ -157,6 +157,63 @@ def test_der_entwurf_geht_vor_dem_einbringen_an_den_anbieter_und_die_texte_sagen
     assert satz not in client.get(reverse("verfahren:einbringen")).content.decode()
 
 
+#: GP-161: Was je Zweck des Steckplatzes an den Anbieter geht — als Satzteil der Erklärung (Absatz
+#: „empfaenger-ki“ oder Datenart „KI-Aufträge“) — und ob die Eingabe öffentlich nachlesbar ist (am
+#: Antrag oder im Archivexport). Ein neuer Zweck ohne Eintrag lässt den Test scheitern.
+ZWECKE_IN_DER_ERKLAERUNG = {
+    Zweck.EINSCHAETZUNG: ("und ihren Entwurfsfassungen, Beratungsbeiträge und die Wünsche der Unterstützer an den Expertenrat", False),
+    Zweck.RECHTSBEZUG: ("Titel, Wortlaut und Begründung von Sachanträgen", True),
+    Zweck.RECHTSFOLGEN: ("Titel, Wortlaut und Begründung von Sachanträgen", True),
+    Zweck.KORREKTUR: ("Beanstandungen öffentlicher Berichte", True),
+    Zweck.GEGENUEBERSTELLUNG: ("Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn", False),
+    Zweck.AEHNLICHKEIT: ("Beim Absenden eines Sachantrags auf der Seite „Antrag einbringen“ gehen außerdem Titel und Wortlaut Ihres Entwurfs an ihn", False),
+    Zweck.PARAMETERVORSCHLAG: ("die Angaben eines Parametertests", False),
+}
+
+
+def test_jeder_zweck_des_steckplatzes_steht_in_der_erklaerung(client, settings, ordnung):  # noqa: F811
+    """GP-161: Jeder Zweck hat einen Satzteil in der Erklärung; was nicht als öffentlich nachlesbar
+    gilt, zeigen weder Antragsseite noch Archivexport noch Lauf-Archiv."""
+    assert set(ZWECKE_IN_DER_ERKLAERUNG) == set(Zweck), "Zweck ohne Eintrag in der Datenschutzerklärung"
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    text = _ki_absatz(client) + _karte(client, "datenarten")
+    for zweck, (satzteil, _oeffentlich) in ZWECKE_IN_DER_ERKLAERUNG.items():
+        assert satzteil in text, zweck
+
+    m = mitglied_anlegen("anna")
+    antrag = antrag_einbringen(m, ANTRAG["titel"], ANTRAG["wortlaut"], "", ordnung)
+    verdeckt = {z: f"VERDECKTE-EINGABE-{z.value}" for z, (_s, oeffentlich) in ZWECKE_IN_DER_ERKLAERUNG.items() if not oeffentlich}
+    for zweck, eingabe in verdeckt.items():
+        KILauf.objects.create(zweck=zweck, antrag=antrag, angefordert_von=m, eingabe=eingabe, antwort="Antwort",
+                              anbieter="attrappe", modell="probe")
+    for seite in (
+        reverse("verfahren:antrag", args=[antrag.pk]),
+        reverse("verfahren:archiv_export", args=[antrag.pk, "json"]),
+        reverse("verfahren:archiv_export", args=[antrag.pk, "md"]),
+        reverse("verfahren:zukunftswerkstatt"),
+    ):
+        antwort = client.get(seite)
+        assert antwort.status_code == 200, seite
+        inhalt = antwort.content.decode()
+        for zweck, eingabe in verdeckt.items():
+            assert eingabe not in inhalt, (zweck, seite)
+
+
+def test_ki_texte_nennen_nur_sachantraege_und_keine_nachlese_der_einschaetzung(client, settings):
+    """Seit 0.113.0 gehen Titel und Wortlaut von Kandidaturen und Vertrauensfragen nicht mehr an den
+    Anbieter (verfahren/aehnlichkeit.py, ki/warteschlange.py); die Eingabe der Einschätzung für die
+    Gremien-Werkstatt zeigt keine Seite (nur Rechtsbezug und Rechtsfolgen haben die Klappe)."""
+    settings.DDOE_KI_ANBIETER = "attrappe"
+    absatz = _ki_absatz(client)
+    assert "Begründung von Anträgen" not in absatz and "Beim Absenden auf der Seite" not in absatz
+    assert "bei öffentlichen Berichten ist die Eingabe am Antrag nachlesbar" in absatz
+    assert "das seine Texte nicht anzeigt" not in absatz
+    ki = re.search(r"<strong>KI-Aufträge:</strong>(.*?)</li>", _karte(client, "datenarten")).group(1)
+    assert "die Eingabe zeigt die Plattform nicht an" not in ki
+    assert "Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht." in ki
+    assert "Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an." in ki
+
+
 def _karte(client, kennung: str) -> str:
     """Der Text einer Karte der Datenschutzseite, Leerraum zusammengezogen."""
     inhalt = " ".join(client.get(reverse("verfahren:datenschutz")).content.decode().split())

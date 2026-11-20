@@ -237,6 +237,45 @@ def test_speicherdauer_ausschluss_leert_nichts_und_austritt_pseudonymisiert(clie
     assert "Ausschluss sperrt das Konto" in karte
 
 
+def test_speicherdauer_nennt_was_der_austritt_am_konto_laesst(client):
+    """GP-092, längere Fassung (E-27): Solange die Löschung der Reste nicht gebaut ist (E-41), nennt die
+    Erklärung alles, was `austreten` am geschlossenen Konto stehen lässt — der Test prüft beides."""
+    from datetime import date
+    from decimal import Decimal
+
+    from django.utils import timezone
+
+    from anstoss.models import Anstoss
+    from mitglieder.models import Beitragseingang, Gemeindezugang, Postauftrag
+    from mitglieder.profil import austreten
+
+    m = mitglied_anlegen("greta")
+    client.force_login(m)
+    jetzt = timezone.now()
+    Mitglied.objects.filter(pk=m.pk).update(mitgliedsnummer=4711, beitragsreferenz_stamm="AB12CD",
+                                            ausweis_code="PRUEFCODE", ausweis_ausgestellt_am=jetzt)
+    Beitragseingang.objects.create(mitglied=m, betrag=Decimal("24.00"), gebucht_am=date(2026, 11, 2), umsatz_id="U-1")
+    Postauftrag.objects.create(mitglied=m, art="willkommen")
+    Anstoss.objects.create(text="Bitte prüfen", seite="/", nutzer=m)
+    Gemeindezugang.objects.create(konto=m, angemeldet_am=jetzt, alter_erklaert_am=jetzt)
+    austreten(Mitglied.objects.get(pk=m.pk), jetzt)
+
+    m = Mitglied.objects.get(pk=m.pk)
+    assert m.email == "" and m.mitgliedsnummer == 4711 and m.beitragsreferenz_stamm == "AB12CD"
+    assert m.ausweis_code == "PRUEFCODE" and m.last_login is not None
+    assert Beitragseingang.objects.filter(mitglied=m).exists() and Postauftrag.objects.filter(mitglied=m).exists()
+    assert Anstoss.objects.filter(nutzer=m).exists() and Gemeindezugang.objects.filter(konto=m).exists()
+
+    karte = _karte(client, "speicherdauer")
+    assert (
+        "eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, "
+        "der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am "
+        "geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit "
+        "Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten "
+        "Anmeldung. Die Audit-Kette wird nie gelöscht"
+    ) in karte
+
+
 def test_zahlungsreferenz_haengt_an_der_konto_kennung_nicht_an_der_mitgliedsnummer(client):
     for i in range(3):
         mitglied_anlegen(f"vor{i}")

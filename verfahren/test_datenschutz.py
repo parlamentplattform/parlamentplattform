@@ -26,13 +26,17 @@ pytestmark = pytest.mark.django_db
 
 
 def test_datenschutzseite_ist_fuer_gaeste_erreichbar_und_freigegeben(client):
-    """Der Gründer hat die Erklärung am 29.9.2026 freigegeben — kein Entwurfshinweis mehr."""
+    """Der Gründer hat die Erklärung am 29.9.2026 freigegeben, die Berichtigung am 20.11.2026 (E-27)
+    — kein Entwurfshinweis mehr; der Stand ist das Freigabedatum."""
+    from verfahren.views import DATENSCHUTZ_STAND
+
+    assert DATENSCHUTZ_STAND == "20.11.2026"
     antwort = client.get(reverse("verfahren:datenschutz"))
     assert antwort.status_code == 200
     inhalt = antwort.content.decode()
     kopf = " ".join(inhalt.split())
     assert "ist ein Entwurf" not in kopf and "keine Zusage" not in kopf
-    assert "Stand: 29.9.2026." in kopf and "— Entwurf" not in kopf
+    assert f"Stand: {DATENSCHUTZ_STAND}." in kopf and "— Entwurf" not in kopf
     for pflicht in (
         "Direkte Demokratie Österreich",
         "Unterfreundorf 17",

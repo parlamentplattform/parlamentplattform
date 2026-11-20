@@ -234,7 +234,10 @@ def test_eine_zweite_erklaerung_ersetzt_die_erste_nicht(client, ordnung):  # noq
     client.logout()
     seite = client.get(reverse('verfahren:antrag', args=[antrag.pk])).content.decode()
     assert 'Beraterin der Musterbau GmbH' in seite
-    assert f'{erklaerungen[0].erklaert_am:%d.%m.%Y}' in seite
+    # Die Seite zeigt Ortszeit; der gespeicherte Zeitpunkt ist UTC und liegt um Mitternacht einen Tag davor
+    from django.utils import timezone
+
+    assert f'{timezone.localtime(erklaerungen[0].erklaert_am):%d.%m.%Y}' in seite
     eintraege = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'interessenbindung_erklaert']
     assert len(eintraege) == 2 and [e['nummer'] for e in eintraege] == [1, 2]
     assert all(e['antrag'] == antrag.pk and e['runde'] == 1 and e['beschluss'] == beschluss.pk for e in eintraege)

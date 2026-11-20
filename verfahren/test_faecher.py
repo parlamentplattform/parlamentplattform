@@ -224,3 +224,24 @@ def test_alte_lebensbereiche_adressen_landen_im_faecher(client):
     assert antwort.status_code == 302 and antwort.url.endswith("#feld-favoriten")
     antwort = client.get("/kategorien/energie/")
     assert antwort.url.endswith("?fach=energie#feld-favoriten")
+
+
+def test_e43_knoten_eines_asts_folgen_in_der_tab_folge_direkt_auf_ihren_ast():
+    """E-43 Zeile 3 (GP-171): Die Reihenfolge der Knoten ist die Tab-Folge des Fächers. Standen die Knoten aller
+    Äste hinter der letzten vollen Ebene, erreichte die Tab-Taste nur die Unterknoten des zuletzt angesprungenen
+    Asts (der Fokus entfaltet ihn und verbirgt die übrigen). Jetzt folgt jeder Ast-Knoten direkt auf seinen Ast."""
+    breit = _zeilen(
+        (1, "w", None),
+        *[(10 + i, f"k{i}", 1) for i in range(4)],
+        *[(100 + i, f"e{i}", 10 + (i % 4)) for i in range(16)],
+        *[(200 + i, f"u{i}", 100 + i) for i in range(16)],  # je Enkel ein Kind: die Säule über dem Ast
+    )
+    lage = faecher_layout(breit)
+    folge = [k["slug"] for k in lage["knoten"]]
+    for ast in lage["aeste"]:
+        eigene = [k["slug"] for k in lage["knoten"] if k["ast"] == ast["slug"]]
+        assert eigene, ast
+        start = folge.index(ast["slug"]) + 1
+        assert folge[start:start + len(eigene)] == eigene, ast["slug"]
+    # die Lagen bleiben, wie sie waren: nur die Reihenfolge ändert sich
+    assert len(folge) == len(set(folge))

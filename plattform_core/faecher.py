@@ -298,6 +298,20 @@ def faecher_layout(
             faden(vorher["id"], elter)
             vorher = elter
 
+    # Tab-Folge (E-43 Zeile 3): Die Reihenfolge der Knoten ist die Reihenfolge im Dokument und damit die der
+    # Tab-Taste. Die Knoten eines Asts stehen direkt hinter ihrem Ast — der Fokus auf den Ast entfaltet ihn, der
+    # nächste Tab erreicht seine Unterknoten. Die Lagen bleiben unberührt.
+    je_ast: dict[str, list[dict]] = {}
+    for k in knoten:
+        if k["ast"]:
+            je_ast.setdefault(k["ast"], []).append(k)
+    folge: list[dict] = []
+    for k in knoten:
+        if not k["ast"]:
+            folge.append(k)
+            folge.extend(je_ast.get(k["slug"], []) if k["ast_kandidat"] else [])
+    knoten = folge
+
     brotkrume = [{"slug": z["slug"], "name": z["name"]} for z in reversed(weg)] + [
         {"slug": fokus["slug"], "name": fokus["name"]}
     ]

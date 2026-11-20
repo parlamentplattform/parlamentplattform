@@ -699,3 +699,35 @@ def test_parlament_und_uebersicht_bleiben_bei_vielen_vertrauensfragen_bei_konsta
     vertrauensfragen(4, 5, in_abstimmung=True)
     gross = messen()
     assert gross == klein, (klein, gross)
+
+
+def test_e43_vertrauensfrage_nach_erreichtem_abstimmungsbeginn_sagt_die_abstimmung_beginnt(client, ordnung, mandat_daheim):  # noqa: F811
+    """E-43 Zeile 2 (GP-175): Hat eine Vertrauensfrage die Schwelle erreicht und ist ihr veröffentlichter
+    Abstimmungsbeginn da (§ 7 Abs 10 lit e), beginnt die Abstimmung — die Kachel sagt nicht „wird ausgewertet“.
+    Ohne erreichte Schwelle verfällt der Antrag zum Fristende; dort bleibt „Frist abgelaufen, wird ausgewertet“."""
+    from django.template.loader import render_to_string
+    from django.test import RequestFactory
+
+    from verfahren.views import _kachel, _vertrauensfragen
+
+    jetzt = timezone.now()
+    t0 = jetzt - tage(8)
+    antrag = einbringen(mitglied_anlegen(f"vf{next(_N)}", tage=400), mandat_daheim, ordnung, jetzt=t0)
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=t0)
+    Vertrauensfrage.objects.filter(antrag=antrag).update(schwelle_erreicht_am=t0 + tage(1))
+    antrag.refresh_from_db()
+    assert antrag.phase == "unterstuetzung"  # noch nicht fortgeschrieben
+    k = _kachel(antrag, jetzt, vfs=_vertrauensfragen([antrag]))
+    assert k["frist_abgelaufen"] and k["abstimmung_beginnt"]
+    anfrage = RequestFactory().get(reverse("verfahren:parlament"))
+    anfrage.user = mandat_daheim.mitglied
+    kachel = render_to_string("verfahren/_kachel.html", {"k": k, "user": anfrage.user}, request=anfrage)
+    zeile = render_to_string("verfahren/_filter_zeile.html", {"z": k, "meine_unterstuetzungen": set()}, request=anfrage)
+    for html in (kachel, zeile):
+        assert "Die Abstimmung beginnt" in html and "wird ausgewertet" not in html
+
+    # ohne erreichte Schwelle: Die Sammelfrist läuft ab, ausgewertet wird die Zahl der Unterstützungen
+    Vertrauensfrage.objects.filter(antrag=antrag).update(schwelle_erreicht_am=None)
+    ende = jetzt + tage(antrag.policy().unterstuetzung_frist_tage)
+    k = _kachel(antrag, ende, vfs=_vertrauensfragen([antrag]))
+    assert k["frist_abgelaufen"] and not k["abstimmung_beginnt"]

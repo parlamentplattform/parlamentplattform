@@ -401,3 +401,20 @@ def test_gp175_aehnlichkeitskarte_zaehlt_wiener_kalendertage(bestehend):
     assert f'name="unterstuetzen" value="{bestehend.pk}"' not in html
     html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [vortag], "oertlich_gesperrte_treffer": []})
     assert "Noch 1 Tag" in html and f'name="unterstuetzen" value="{bestehend.pk}"' in html
+
+
+def test_e43_aehnlichkeitskarte_sagt_nach_dem_beratungsende_die_abstimmung_beginnt(bestehend):
+    """E-43 Zeile 2 (GP-175): Die Karte „Gibt es das schon?“ sagt nach dem Ende der Beratung, was wirklich geschieht
+    — dieselbe Angabe wie Kachel und Zeile."""
+    from datetime import timedelta
+
+    from django.template.loader import render_to_string
+    from django.utils import timezone
+
+    tage = bestehend.policy().beratung_tage
+    Antrag.objects.filter(pk=bestehend.pk).update(phase="beratung", phase_beginn=timezone.now() - timedelta(days=tage, hours=1))
+    gefunden = aehnliche_antraege(ANTRAG["titel"], ANTRAG["wortlaut"], None, bedeutung=False).treffer
+    t = next(t for t in gefunden if t["antrag"].pk == bestehend.pk)
+    assert t["frist_abgelaufen"] and t["abstimmung_beginnt"]
+    html = render_to_string("verfahren/_aehnliche_antraege.html", {"aehnliche": [t], "oertlich_gesperrte_treffer": []})
+    assert "Die Abstimmung beginnt" in html and "wird ausgewertet" not in html

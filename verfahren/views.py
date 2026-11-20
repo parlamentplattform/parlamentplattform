@@ -532,6 +532,18 @@ def resttage(frist, jetzt) -> int | None:
     return (timezone.localdate(frist) - timezone.localdate(jetzt)).days
 
 
+def abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab) -> bool:
+    """E-43 Zeile 2 (GP-175): Ist die Frist um, und eröffnet der Phasenautomat als Nächstes die Abstimmung? So nach
+    der Beratung (§ 5 Abs 3 lit c) und bei einer Vertrauensfrage mit erreichter Schwelle, deren Abstimmungsbeginn
+    veröffentlicht ist (§ 7 Abs 10 lit e). Ausgewertet wird nur nach der Unterstützung (Schwelle erreicht oder
+    verfallen) und nach der Abstimmung (Auszählung)."""
+    if frist is None or frist > jetzt:
+        return False
+    return antrag.phase == Phase.BERATUNG.value or (
+        antrag.phase == Phase.UNTERSTUETZUNG.value and abstimmung_ab is not None
+    )
+
+
 def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
             lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
@@ -563,6 +575,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
     frist = _frist_fuer(antrag, policy, beginn, vf)
     rest = resttage(frist, jetzt)
+    abstimmung_ab = _vf_abstimmung_ab(vf, antrag, policy, beginn)
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
     if frist and beginn:
@@ -614,9 +627,10 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "antrag": antrag,
         "frist": frist,
         "resttage": rest,
-        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt
-        # „wird ausgewertet“ und bietet keinen Knopf mehr, der nichts bewirken kann.
+        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt, was
+        # als Nächstes geschieht, und bietet keinen Knopf mehr, der nichts bewirken kann.
         "frist_abgelaufen": frist is not None and frist <= jetzt,
+        "abstimmung_beginnt": abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab),
         "verstrichen": verstrichen,
         "stat": stat,
         "thema": thema,
@@ -624,7 +638,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "meine_stimme": (meine_stimmen or {}).get(antrag.pk),
         "vertrauensfrage": vf,
         "legende": _vf_legende(vf),
-        "abstimmung_ab": _vf_abstimmung_ab(vf, antrag, policy, beginn),
+        "abstimmung_ab": abstimmung_ab,
         "unterstuetzen_erlaubt": (
             vf is None or (nutzer is not None and vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag))
         ),

@@ -244,6 +244,24 @@ def test_cookies_nennen_die_rueckmeldung_und_den_browserspeicher(client):
     assert "der kurzen Rückmeldung nach einer Handlung" in rollen
 
 
+def test_datenarten_nennen_adresswechsel_ausweis_und_anmeldezeiten(client):
+    """GP-024: Adresswechsel (mitglieder/models.py Adresswechsel), Mitgliedsausweis (ausweis_code,
+    ausweis_ausgestellt_am) und die Anmeldezeiten des Kontos (date_joined, last_login) stehen in der Liste."""
+    m = mitglied_anlegen("anna")
+    client.force_login(m)
+    m.refresh_from_db()
+    assert m.last_login is not None and m.date_joined is not None
+    karte = _karte(client, "datenarten")
+    for teil in (
+        "<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert",
+        "Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse.",
+        "<strong>Mitgliedsausweis:</strong> ein Prüfcode",
+        "damit gedruckte Ausweise gültig bleiben",
+        "<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben.",
+    ):
+        assert teil in karte, teil
+
+
 def test_datenarten_nennen_fachliste_rollen_ki_und_ueberzeichnen_unterstuetzungen_nicht(client):
     karte = _karte(client, "datenarten")
     for teil in ("Fachliste", "Interessenbindungen", "Honorare", "Gremienrollen", "Lauf-Archiv"):

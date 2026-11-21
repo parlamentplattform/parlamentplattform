@@ -159,6 +159,97 @@ def test_ende_der_vertretung_sagt_kommende_sprechstunden_ab(mandat):
     assert [e["anlass"] for e in _absagen_audit()] == ["vertretung_beendet"]
 
 
+def _verlorene_vertrauensfrage(mandat, angefochten: bool):
+    """Verloren vor 40 Tagen — die Rückgabefrist ist um; auf Wunsch am dritten Tag rechtzeitig angefochten."""
+    from mandatare import models as mm
+    from plattform_core import Phase
+    from verfahren.models import Antrag, Antragsart
+
+    ende = timezone.now() - timedelta(days=40)
+    antrag = Antrag.objects.create(titel="Vertrauensfrage", art=Antragsart.VERTRAUENSFRAGE, eingebracht_von=mandat.mitglied,
+                                   eingebracht_am=ende - timedelta(days=20), phase=Phase.ANGENOMMEN.value, phase_beginn=ende,
+                                   policy_snapshot={})
+    vf = mm.Vertrauensfrage.objects.create(antrag=antrag, mandat=mandat)
+    mm.vertrauensfrage_wirkungen(vf, jetzt=ende)
+    if angefochten:
+        mm.vertrauensfrage_anfechtung_vermerken(vf, "PSG 1/26", jetzt=ende + timedelta(days=3))
+        vf.refresh_from_db()
+        assert vf.anfechtung_rechtzeitig
+    return vf
+
+
+def _ortsseite(mandat):
+    return Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
+
+
+def test_bei_offener_anfechtung_blendet_das_vertretungsende_termine_nur_aus_und_beendet_die_sitzung(mandat):
+    """Regelvorgriff GP-116: Solange eine rechtzeitige Anfechtung offen ist, sagt das Ende der Vertretung
+    die Sprechstunden nicht ab — sie sind wie im Stand 0.114.0 nur ausgeblendet. Eine laufende Sitzung endet."""
+    from mandatare import models as mm
+    from mandatare.models import Sitzung
+
+    Mandat.objects.filter(pk=mandat.pk).update(ebene="gemeinde")
+    termin = _termin(mandat, tage=5)
+    sitzung = _laufende_sitzung(mandat)
+    _verlorene_vertrauensfrage(mandat, angefochten=True)
+    mm.vertrauensfragen_fortschreiben()
+    mandat.refresh_from_db()
+    termin.refresh_from_db()
+    assert mandat.vertretung_beendet_am is not None
+    assert termin.abgesagt_am is None and not _absagen_audit()
+    assert "Öffentlicher Raum A" not in _ortsseite(mandat)  # ausgeblendet wie live
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    assert AuditEintrag.objects.filter(ereignis__typ="sitzung_beendet", ereignis__anlass="vertretung_beendet").count() == 1
+    mm.vertrauensfragen_fortschreiben()  # ein weiterer Lauf sagt auch nichts ab
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is None
+
+
+def test_bestaetigt_das_schiedsgericht_werden_die_kommenden_termine_dann_abgesagt(mandat):
+    from mandatare import models as mm
+
+    Mandat.objects.filter(pk=mandat.pk).update(ebene="gemeinde")
+    termin = _termin(mandat, tage=5)
+    vf = _verlorene_vertrauensfrage(mandat, angefochten=True)
+    mm.vertrauensfragen_fortschreiben()
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is None
+    mm.vertrauensfrage_entscheidung_vermerken(mm.Vertrauensfrage.objects.get(pk=vf.pk), "bestaetigt")
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert [e["anlass"] for e in _absagen_audit()] == ["vertretung_beendet"]
+    seite = _ortsseite(mandat)
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite
+
+
+def test_hebt_das_schiedsgericht_auf_stehen_die_termine_wieder_da(mandat):
+    from mandatare import models as mm
+
+    Mandat.objects.filter(pk=mandat.pk).update(ebene="gemeinde")
+    termin = _termin(mandat, tage=5)
+    vf = _verlorene_vertrauensfrage(mandat, angefochten=True)
+    mm.vertrauensfragen_fortschreiben()
+    assert "Öffentlicher Raum A" not in _ortsseite(mandat)
+    mm.vertrauensfrage_entscheidung_vermerken(mm.Vertrauensfrage.objects.get(pk=vf.pk), "aufgehoben")
+    mandat.refresh_from_db()
+    termin.refresh_from_db()
+    assert mandat.vertretung_beendet_am is None
+    assert termin.abgesagt_am is None and not _absagen_audit()
+    seite = _ortsseite(mandat)
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" not in seite
+
+
+def test_ohne_anfechtung_bleibt_die_absage_beim_vertretungsende(mandat):
+    from mandatare import models as mm
+
+    termin = _termin(mandat, tage=5)
+    _verlorene_vertrauensfrage(mandat, angefochten=False)
+    mm.vertrauensfragen_fortschreiben()
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert [e["anlass"] for e in _absagen_audit()] == ["vertretung_beendet"]
+
+
 def test_altbestand_abgesagter_termin_eines_beendeten_mandats_bleibt_bis_zum_ende_sichtbar(mandat):
     termin = _termin(mandat)
     Sprechstunde.objects.filter(pk=termin.pk).update(abgesagt_am=timezone.now())

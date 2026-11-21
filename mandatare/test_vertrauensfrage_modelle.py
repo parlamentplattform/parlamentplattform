@@ -153,10 +153,13 @@ def test_ein_liegengebliebener_angenommener_bestaetigungsantrag_hebt_die_sperre_
 
 
 def test_anlass_ausstaende_nur_ueber_30_tage(altmandat):  # noqa: F811
-    Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=timezone.now() - tage(20), sitzungstag=True)
-    assert altmandat.anlass_ausstaende() == []  # Frist um 13 Tage — noch kein Anlass
-    Aufgabe.objects.create(mandat=altmandat, titel="alt", frist=timezone.now() - tage(60), sitzungstag=True)
-    treffer = altmandat.anlass_ausstaende()
+    # Fester Stichtag: Mit der echten Uhr wäre ab 8.12.2026 der Monatsbericht Oktober selbst ein Anlass.
+    heute = date(2026, 11, 20)
+    mittag = timezone.make_aware(datetime.combine(heute, time(12)))
+    Aufgabe.objects.create(mandat=altmandat, titel="jung", frist=mittag - tage(20), sitzungstag=True)
+    assert altmandat.anlass_ausstaende(heute) == []  # Frist um 13 Tage — noch kein Anlass
+    Aufgabe.objects.create(mandat=altmandat, titel="alt", frist=mittag - tage(60), sitzungstag=True)
+    treffer = altmandat.anlass_ausstaende(heute)
     assert {a["art"] for a in treffer} == {"rechenschaft", "sammelbericht"}
     assert all(a["tage"] > 30 and isinstance(a["seit"], date) and a["bezug"] for a in treffer)
     monate = [a for a in altmandat.anlass_ausstaende(date(2026, 12, 15)) if a["art"] == "monatsbericht"]

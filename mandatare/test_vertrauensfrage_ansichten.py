@@ -117,6 +117,11 @@ def test_ohne_anlass_kein_antrag_und_die_eingabe_bleibt(client, ordnung, altmand
 
 
 def test_ohne_jeden_moeglichen_anlass_gibt_es_kein_formular(client, ordnung, altmandat):  # noqa: F811
+    # Jeder bis heute geschuldete Monatsbericht liegt vor — sonst wäre ab 8.12.2026 der Oktober ein Anlass.
+    from plattform_core.rechenschaft import berichtsmonate
+
+    for monat in berichtsmonate(altmandat.angetreten, None, timezone.localdate()):
+        mm.Bericht.objects.create(mandat=altmandat, art=mm.Berichtsart.MONATSBERICHT, monat=monat, text="Bericht.")
     client.force_login(mitglied_anlegen("anna"))
     html = client.get(stellen_url(altmandat)).content.decode()
     assert "Kein Anlass vorhanden." in html and 'name="begruendung"' not in html

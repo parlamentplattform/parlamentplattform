@@ -80,3 +80,20 @@ def test_der_koordinationsrat_findet_jeden_laufenden_antrag(client, ordnung):  #
     assert _optionen(gesucht, 'hv-antrag') == [str(aeltester.pk)]
     # Unsinn in der Suche ist kein Serverfehler.
     assert client.get(seite, {'antrag_suche': '9' * 40, 'antrag': 'x'}).status_code == 200
+
+
+def test_eine_suche_ohne_treffer_sagt_es(client, ordnung):  # noqa: F811
+    """Oberflächen-Fund: Bei einer Suche ohne Treffer blieb die Pflicht-Auswahl leer, ohne dass ein Satz
+    sagte, warum. Ohne Suche und mit Treffern steht der Satz nicht da."""
+    _bestand(ordnung, anzahl=3)
+    ir = [mitglied_anlegen(f'ir{i}') for i in range(3)]
+    for m in ir:
+        rolle_geben(m, Gremium.INTEGRITAETSRAT)
+    kr = mitglied_anlegen('kr0')
+    rolle_geben(kr, Gremium.KOORDINATIONSRAT)
+    for mitglied, seite, auswahl in ((ir[0], 'gremien:integritaet', 'ir-antrag'), (kr, 'gremien:koordination', 'hv-antrag')):
+        client.force_login(mitglied)
+        leer = client.get(reverse(seite), {'antrag_suche': 'Gibt es nicht'}).content.decode()
+        assert _optionen(leer, auswahl) == [] and 'Kein Antrag gefunden.' in leer
+        assert 'Kein Antrag gefunden.' not in client.get(reverse(seite)).content.decode()
+        assert 'Kein Antrag gefunden.' not in client.get(reverse(seite), {'antrag_suche': 'Jüngerer'}).content.decode()

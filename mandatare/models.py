@@ -1428,6 +1428,20 @@ def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None, veroeffentlicht_am
         AuditEintrag.anhaengen({"typ": "vertrauensfrage_gewonnen", "antrag": vf.antrag_id, "mandat": vf.mandat_id})
 
 
+def _vertretungsende_offen_angefochten(mandat: Mandat) -> bool:
+    """Ob jede verlorene, nicht aufgehobene Vertrauensfrage des Mandats rechtzeitig angefochten und noch
+    nicht entschieden ist — dann kann eine Aufhebung das Ende der Vertretung zurücknehmen (lit h), und
+    die Sprechstunden bleiben bis dahin nur ausgeblendet statt abgesagt (GP-116)."""
+    verlorene = list(
+        Vertrauensfrage.objects.filter(
+            mandat=mandat, art=VertrauensfrageArt.VERTRAUENSFRAGE, wirkungen_ab__isnull=False
+        ).exclude(entscheidung=Entscheidung.AUFGEHOBEN)
+    )
+    return bool(verlorene) and all(
+        vf.entscheidung == Entscheidung.OFFEN and vf.anfechtung_rechtzeitig for vf in verlorene
+    )
+
+
 def vertrauensfragen_fortschreiben(jetzt=None) -> int:
     """Stufe 2 der Wirkungen — lazy, aus Mandatar- und Antragsseiten und `verfahren_fortschreiben`
     (§ 7 Abs 10 lit f letzter Unterabsatz, Z 5 und Z 8). Drei Schritte, jeder für sich:
@@ -1495,6 +1509,10 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)
             if not (tue_a or tue_b or tue_c):
                 continue
+            if tue_b:
+                from mandatare.sitzung import sitzungen_sperren
+
+                sitzungen_sperren(mandat)  # vor dem ersten Audit-Eintrag: keine Verklemmung mit einer Livemeldung
             # (a) Ruhen wird zum Ende
             if tue_a:
                 vf.wirkungen_endgueltig_am = endgueltig_ab
@@ -1528,7 +1546,11 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
                 )
                 from mandatare.sitzung import ANLASS_VERTRETUNGSENDE, mandatsende_folgen
 
-                mandatsende_folgen(mandat, ANLASS_VERTRETUNGSENDE, jetzt)  # GP-116
+                # GP-116: Bei offener rechtzeitiger Anfechtung werden die Sprechstunden nur ausgeblendet
+                # (wie 0.114.0), abgesagt erst, wenn die Entscheidung nicht aufhebt; die Sitzung endet.
+                mandatsende_folgen(
+                    mandat, ANLASS_VERTRETUNGSENDE, jetzt, termine=not _vertretungsende_offen_angefochten(mandat)
+                )
             # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
             if tue_c:
                 # Der Tag bleibt der Fristtag (Z 5: „mit Ablauf dieser Frist“); später nur bei rechtzeitiger
@@ -1676,6 +1698,17 @@ def vertrauensfrage_entscheidung_vermerken(
             **({"durch": durch} if durch is not None else {}),
         }
     )
+    if (
+        vf.art == VertrauensfrageArt.VERTRAUENSFRAGE
+        and Mandat.objects.filter(pk=mandat.pk, vertretung_beendet_am__isnull=False).exists()
+        and not _vertretungsende_offen_angefochten(mandat)
+    ):
+        # GP-116: Das Ende der Vertretung bleibt — jetzt werden die bis dahin nur ausgeblendeten kommenden
+        # Sprechstunden abgesagt (wiederholt sich nicht: abgesagte findet die Abfrage nicht mehr).
+        from mandatare.sitzung import ANLASS_VERTRETUNGSENDE
+        from mandatare.sprechstunden import termine_absagen
+
+        termine_absagen(mandat, ANLASS_VERTRETUNGSENDE, max(jetzt, timezone.now()))
 
 
 @transaction.atomic

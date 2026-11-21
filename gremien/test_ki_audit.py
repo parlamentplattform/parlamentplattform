@@ -163,7 +163,10 @@ def test_scheitert_der_eintrag_bleibt_der_laufverweis_am_test_unveraendert(clien
     assert test.ki_lauf_id is None
 
 
-def test_scheitert_der_eintrag_ist_der_auftrag_nicht_als_gescheitert_verbucht(a, monkeypatch, scheitert):  # noqa: F811
+def test_scheitert_der_eintrag_steht_der_endzustand_und_der_eintrag_wird_nachgeholt(a, monkeypatch, scheitert):  # noqa: F811
+    """Bis zur Gesamtprüfung 0.115.0 blieb der Auftrag dann „läuft“ — und wurde nach der Sperrfrist neu
+    reserviert, das Modell erneut gerufen (Kosten). Jetzt steht „gescheitert“ mit Merkmal „Eintrag fehlt“
+    (stehengebliebener Sperrcode), und der nächste Lauf holt den Eintrag genau einmal nach."""
     from ki import warteschlange
 
     def abgeschnitten(auftrag):
@@ -172,7 +175,13 @@ def test_scheitert_der_eintrag_ist_der_auftrag_nicht_als_gescheitert_verbucht(a,
     monkeypatch.setitem(warteschlange.ARBEIT, Zweck.RECHTSBEZUG, abgeschnitten)
     auftrag = einreihen(Zweck.RECHTSBEZUG, a, a.eingebracht_von)
     scheitert('ki_auftrag_gescheitert')
-    with pytest.raises(KetteGestoert):
-        auftrag_ausfuehren(auftrag.pk)
+    assert auftrag_ausfuehren(auftrag.pk) == 'gescheitert'
     auftrag.refresh_from_db()
-    assert auftrag.status == Auftragsstatus.LAEUFT  # Endzustand und Eintrag gemeinsam oder gar nicht
+    assert auftrag.status == Auftragsstatus.GESCHEITERT and auftrag.sperrcode != ''
+    assert not AuditEintrag.objects.filter(ereignis__typ='ki_auftrag_gescheitert').exists()
+    monkeypatch.undo()
+    assert warteschlange.eintraege_nachholen() == 1
+    assert warteschlange.eintraege_nachholen() == 0
+    auftrag.refresh_from_db()
+    assert auftrag.sperrcode == ''
+    assert AuditEintrag.objects.filter(ereignis__typ='ki_auftrag_gescheitert', ereignis__auftrag=auftrag.pk).count() == 1

@@ -51,8 +51,10 @@ def stream_pruefen(url: str) -> str:
 
 
 def _gesperrt(sitzung: Sitzung, jetzt) -> Sitzung:
-    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf."""
-    frisch = Sitzung.objects.select_for_update().select_related("mandat").get(pk=sitzung.pk)
+    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf.
+    Gesperrt wird nur die Sitzung, nicht das Mandat: Das Mandatsende hält die Mandatszeile und sperrt
+    dann die Sitzungen — eine Meldung, die beide in umgekehrter Folge sperrte, verklemmte sich mit ihm."""
+    frisch = Sitzung.objects.select_for_update(of=("self",)).select_related("mandat").get(pk=sitzung.pk)
     if not darf_live_melden(frisch.mandat):
         raise SitzungFehler(_("Der Live-Modus steht nur einem aktiven Mandat mit nicht ruhender Befugnis offen."))
     if not frisch.laeuft(jetzt):
@@ -225,7 +227,21 @@ ANLASS_ZUORDNUNG = "gemeinde_zuordnung"
 OEFFENTLICHE_ANLAESSE = frozenset({ANLASS_MANDATSENDE, ANLASS_VERTRETUNGSENDE, ANLASS_ZUORDNUNG})
 
 
-def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None) -> None:
+def sitzungen_sperren(mandat: Mandat) -> None:
+    """Die offenen Sitzungen eines Mandats sperren — aufzurufen vor dem ersten Audit-Eintrag einer
+    Transaktion, die sie später beendet (Mandatsende, Ende der Vertretung). Eine Livemeldung sperrt
+    zuerst die Sitzung und hängt dann an die Kette an; wer zuerst anhängt und dann die Sitzung sperrt,
+    wartet auf sie, während sie auf seinen Eintrag wartet (PostgreSQL: „deadlock detected“).
+
+    Zuerst die Mandatszeile, dann die Sitzungen — in der Folge, in der auch `sitzung_beginnen` sperrt
+    (Mandat, dann über `Sitzung.fortschreiben` eine überfällige offene Sitzung). Umgekehrt hielte ein
+    Mandatsende die Sitzung und wartete auf das Mandat, während der Sitzungsbeginn das Mandat hält und
+    auf die Sitzung wartet."""
+    list(Mandat.objects.select_for_update().filter(pk=mandat.pk).values_list("pk", flat=True))
+    list(Sitzung.objects.select_for_update().filter(mandat=mandat, ende__isnull=True).values_list("pk", flat=True))
+
+
+def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None, *, termine: bool = True) -> None:
     """Was mit dem Ende eines Mandats oder der Vertretung geschieht (GP-116): Kommende Sprechstunden
     werden mit Anlass abgesagt und bleiben bis zu ihrem Ende als abgesagt sichtbar; eine laufende
     Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen.
@@ -234,14 +250,17 @@ def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=N
     Folgen) — gelesen werden nur die Termine und Sitzungen des Mandats. Ein zweiter Aufruf findet
     nichts mehr und schreibt nichts. Absagen und Sitzungsende stehen gemeinsam oder gar nicht.
     `anlass` ist eines der `OEFFENTLICHE_ANLAESSE`; jedes andere Wort wird zu `ANLASS_MANDATSENDE`,
-    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt."""
+    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt. `termine=False` lässt
+    die Sprechstunden stehen (ausgeblendet über `aktive_gemeindemandate`): beim Ende der Vertretung,
+    solange eine rechtzeitige Anfechtung offen ist — eine Aufhebung stellt sie dann wieder her."""
     from mandatare.sprechstunden import termine_absagen
 
     if anlass not in OEFFENTLICHE_ANLAESSE:
         anlass = ANLASS_MANDATSENDE
     jetzt = jetzt or timezone.now()
     with transaction.atomic():
-        termine_absagen(mandat, anlass, jetzt)
+        if termine:
+            termine_absagen(mandat, anlass, jetzt)
         for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True).order_by("pk"):
             if sitzung.laeuft(jetzt):
                 try:

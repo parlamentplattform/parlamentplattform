@@ -148,3 +148,63 @@ def test_ohne_stoerung_steht_die_handlung_samt_audit(welt):
     assert client.post(url, daten).status_code == 302
     assert Mandat.objects.get(pk=welt['mandat'].pk).beendet == welt['heute']
     assert AuditEintrag.objects.filter(ereignis__typ='mandat_beendet').count() == 1
+
+
+# ── GP-129 (Folgewelle): jede Stelle der App steht mit ihrem Audit-Eintrag in einer Transaktion ──
+
+
+def test_gescheiterter_audit_eintrag_laesst_keine_bestaetigung_stehen(welt):
+    """`Mandat.bestaetigen` wird auch von außerhalb der App gerufen (Wahl in einen Rat): Die Methode fasst
+    sich selbst. Scheitert der Eintrag, bleibt die Kandidatursperre — in der Datenbank und am Objekt."""
+    mandat = welt['mandat']
+    with pytest.raises(IntegrityError):
+        _scheiternd(lambda: mandat.bestaetigen('wahl'))
+    assert Mandat.objects.get(pk=mandat.pk).bestaetigt_am is None
+    assert mandat.bestaetigt_am is None
+    assert mandat.bestaetigen('wahl') is True  # ohne Störung gelingt es danach — einmal
+    assert Mandat.objects.get(pk=mandat.pk).bestaetigt_am is not None and mandat.bestaetigen('wahl') is False
+
+
+def test_gescheiterter_audit_eintrag_laesst_keine_rueckgabezusage_stehen(welt):
+    mandat = welt['mandat']
+    vorher = Mandat.objects.get(pk=mandat.pk).rueckgabezusage
+    with pytest.raises(IntegrityError):
+        _scheiternd(lambda: mm.rueckgabezusage_vermerken(mandat, 'abgegeben'))
+    assert Mandat.objects.get(pk=mandat.pk).rueckgabezusage == vorher
+
+
+def test_gescheiterter_audit_eintrag_laesst_keine_bestaetigung_durch_wahl_stehen(welt):
+    """Die Verwaltungshandlung zur Bestätigung (lit f Z 3) über die Ansicht."""
+    mandat = welt['mandat']
+    Mandat.objects.filter(pk=mandat.pk).update(vertrauen_entzogen_am=timezone.now() - timedelta(days=40))
+    assert Mandat.objects.get(pk=mandat.pk).kandidatursperre
+    client = welt['client']
+    client.force_login(welt['admin'])
+    antwort = _scheiternd(lambda: client.post(VERWALTUNG, {'aktion': 'bestaetigung_durch_wahl', 'mandat': mandat.pk}))
+    assert antwort.status_code == 500
+    assert Mandat.objects.get(pk=mandat.pk).bestaetigt_am is None
+
+
+def test_gescheiterter_audit_eintrag_laesst_keine_frage_als_beantwortet_stehen(welt):
+    """Die dritte Handlung von `live_beitrag_aktion`: „beantwortet“ durch den Mandatar der Sitzung."""
+    mandat = welt['mandat']
+    sitzung = sitzung_beginnen(mandat, sitzungstag(mandat), punkte=['Budget'])
+    frage = Kommentar.objects.create(sitzung=sitzung, mitglied=welt['admin'], text='Frage', phase='sitzung',
+                                     erstellt_am=timezone.now())
+    client = welt['client']
+    client.force_login(welt['anna'])
+    url = reverse('mandatare:live_beitrag_aktion', args=[mandat.pk, sitzung.pk, frage.pk])
+    antwort = _scheiternd(lambda: client.post(url, {'aktion': 'beantwortet'}))
+    assert antwort.status_code == 500
+    assert Kommentar.objects.get(pk=frage.pk).beantwortet_am is None
+
+
+def test_keine_audit_stelle_der_app_wartet_noch_auf_ihre_fassung():
+    """Die Eigenschaft, die bleibt: Jeder Aufruf von `AuditEintrag.anhaengen` in mandatare/ ist lexikalisch
+    gefasst oder wird nur aus gefassten Stellen gerufen — keiner ist bloß „gemeldet“ oder „offen“."""
+    from tools import audit_klammer
+
+    eigene = [s for s in audit_klammer.stellen() if s.datei.split('/')[0] == 'mandatare']
+    assert eigene
+    ungefasst = [f'{s.datei}:{s.zeile} {s.funktion}' for s in eigene if s.einstufung not in ('atomic', 'aufrufer')]
+    assert ungefasst == []

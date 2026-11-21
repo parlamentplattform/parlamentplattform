@@ -222,18 +222,26 @@ class Mandat(models.Model):
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
         (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
         `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
-        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent."""
+        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent.
+
+        Vermerk und Audit-Eintrag stehen in einer Transaktion (GP-129) — hier in der Methode, weil sie
+        auch von außerhalb der App gerufen wird. Scheitert der Eintrag, bleibt die Sperre, auch am Objekt."""
         if self.bestaetigt_am is not None:
             return False
         jetzt = jetzt or timezone.now()
-        self.bestaetigt_am = timezone.localdate(jetzt)
-        self.save(update_fields=["bestaetigt_am"])
         ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
         if rolle is not None:
             ereignis["rolle"] = rolle
         if durch is not None:
             ereignis["durch"] = durch  # Vermerk der Verwaltung: das handelnde Konto (GP-119)
-        AuditEintrag.anhaengen(ereignis)
+        try:
+            with transaction.atomic():
+                self.bestaetigt_am = timezone.localdate(jetzt)
+                self.save(update_fields=["bestaetigt_am"])
+                AuditEintrag.anhaengen(ereignis)
+        except BaseException:
+            self.bestaetigt_am = None  # die Datenbank wurde zurückgerollt — das Objekt folgt ihr
+            raise
         return True
 
     @property

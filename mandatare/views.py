@@ -74,6 +74,7 @@ from mandatare.models import (
 )
 from mandatare.sitzung import darf_live_melden, mandatsende_folgen
 from mandatare.sprechstunden import termine_absagen
+from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
@@ -944,7 +945,7 @@ def vertrauensfrage_stellen(request, pk: int):
     Einbringungstags (Stimmberechtigte, Schwelle — lit c). Der regionale Weg steht offen, sobald die
     Plattform Gliederungen führt."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     gesperrt = _mitwirkung_gesperrt(request)
     if gesperrt is not None:
         return gesperrt
@@ -1021,7 +1022,7 @@ def stellungnahme(request, antrag_pk: int):
     Eintrag bleibt, wie er war (append-only). Die Fachoperation prüft Person und Phase; zurück geht es
     auf die Antragsseite zur Karte der Stellungnahmen (Teiltemplate `mandatare/_stellungnahmen.html`)."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     vf = get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), antrag_id=antrag_pk)
     if vf.mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
@@ -1046,7 +1047,7 @@ def nur_mandatare(ansicht):
     @wraps(ansicht)
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect("mitglieder:login")
+            return zur_anmeldung(request)
         if not _zugaengliche_mandate(request.user).exists():
             return render(request, "mandatare/kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)
@@ -1213,7 +1214,7 @@ def mein_aktion(request):
     Jede auditiert — in einer Transaktion: Scheitert der Audit-Eintrag, bleibt auch die Handlung
     nicht bestehen (GP-118). Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     pk = (request.POST.get("mandat") or "").strip()
     mandat = Mandat.objects.filter(pk=kennung(pk)).first() if kennung(pk) is not None else None
     aktion = request.POST.get("aktion", "")

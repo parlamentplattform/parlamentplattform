@@ -1056,3 +1056,14 @@ def test_anfechtungsdatum_liegt_nicht_vor_der_tatsaechlichen_veroeffentlichung(c
     _anfechten(client, vf, lauftag)
     vf.refresh_from_db()
     assert vf.angefochten_am == lauf and vf.anfechtung_rechtzeitig  # am Tag der Veröffentlichung: nie davor
+
+
+def test_gast_kommt_nach_der_anmeldung_zum_formular_der_vertrauensfrage_zurueck(client, altmandat):  # noqa: F811
+    """GP-100: Das Formular „Vertrauensfrage stellen“ ist das Ziel der Anmeldung; schreibende Aufrufe
+    tragen keines."""
+    pfad = stellen_url(altmandat)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == reverse('mitglieder:login') + '?next=' + pfad.replace('/', '%2F')
+    for schreibend in (client.post(pfad, {}), client.post(stellungnahme_url(Antrag(pk=1)), {'text': 'x'})):
+        assert schreibend.status_code == 302 and schreibend['Location'] == reverse('mitglieder:login')

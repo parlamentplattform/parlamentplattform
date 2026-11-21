@@ -685,3 +685,40 @@ def test_gemeindelinks_im_bereich_erst_ab_dem_antritt(client):
     Mandat.objects.filter(pk=mandat.pk).update(angetreten=timezone.localdate())
     html = client.get(reverse("mandatare:mein_mandat", args=[mandat.pk])).content.decode()
     assert f'href="{reverse("mandatare:sprechstunden", args=[mandat.pk])}"' in html
+
+
+# ── GP-100: Die Anmeldung führt auf die aufgerufene Seite zurück ───────────────────────────
+
+
+def test_gast_landet_nach_der_anmeldung_wieder_im_bereich(client):
+    """Wer als Gast den Bereich des Mandatars öffnet, bekommt die Seite als Ziel der Anmeldung mit und
+    landet nach dem Anmeldelink dort — auch wenn der Link auf einem anderen Gerät geöffnet wird."""
+    import re
+
+    from django.core import mail
+    from django.test import Client
+
+    from mitglieder.test_views import botschutz, link_aus_mail
+
+    m = mitglied_anlegen('ziel')
+    mandat = mandat_anlegen(m)
+    for pfad in (MEIN, reverse('mandatare:mein_mandat', args=[mandat.pk])):
+        umleitung = client.get(pfad)
+        assert umleitung.status_code == 302
+        assert umleitung['Location'] == reverse('mitglieder:login') + '?next=' + pfad.replace('/', '%2F')
+    html = client.get(umleitung['Location']).content.decode()
+    weiter = re.search(r'name="ziel" value="([^"]*)"', html).group(1)
+    assert weiter == pfad
+    mail.outbox.clear()
+    client.post(umleitung['Location'], {'email': m.email, 'ziel': weiter, **botschutz(client, url=umleitung['Location'])})
+    assert len(mail.outbox) == 1
+    anderes_geraet = Client()
+    antwort = anderes_geraet.post(link_aus_mail(mail.outbox[0]))
+    assert antwort['Location'] == pfad
+    assert anderes_geraet.get(pfad).status_code == 200
+
+
+def test_schreibender_aufruf_eines_gastes_traegt_kein_ziel(client):
+    """Ein POST ist kein Ziel einer Anmeldung: Die Umleitung bleibt die bloße Anmeldeseite."""
+    antwort = client.post(AKTION, {'aktion': 'report', 'mandat': 1})
+    assert antwort.status_code == 302 and antwort['Location'] == reverse('mitglieder:login')

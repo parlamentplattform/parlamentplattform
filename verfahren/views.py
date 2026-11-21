@@ -1930,6 +1930,10 @@ def datenschutz(request):
     )
 
 
+#: Einträge je Seite des Umsetzungsregisters (GP-191) — Registerwert folgt (vorgeschlagen: umsetzung-seite-hoechstzahl).
+REGISTER_SEITE = 50
+
+
 def umsetzung(request):
     """F-55, § 6 Abs 10: das öffentliche Umsetzungsregister. Ein Beschluss, den
     niemand umsetzt, entwertet das Verfahren (L6) — deshalb steht hier zu jedem
@@ -1943,12 +1947,18 @@ def umsetzung(request):
         zeilen = [z for z in zeilen if z["status"] == gewaehlt]
     else:
         gewaehlt = ""
+    # GP-191: seitenweise mit Gesamtzahl, ohne JavaScript; die Wahl des Standes bleibt beim Blättern erhalten
+    from plattform_core.parlamentlisten import seite as seite_rechnen
+
+    teil = seite_rechnen(len(zeilen), REGISTER_SEITE, ganze_zahl(request.GET.get("seite")))
+    zeilen = zeilen[teil.von - 1 : teil.bis]
     nutzer = request.user
     return render(
         request,
         "verfahren/umsetzung.html",
         {
             "zeilen": zeilen,
+            "seite": teil,
             "zaehlung": zaehlung,
             "gewaehlt": gewaehlt,
             "statuswahl": Vollzugsstatus.choices,

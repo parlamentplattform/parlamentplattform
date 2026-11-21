@@ -346,3 +346,30 @@ def test_gp109_zahlenparameter_ohne_serverfehler(client, ordnung, wert):  # noqa
         {"text": "Ein Beitrag mit seltsamer Bezugszahl.", "antwort_auf": wert, "bezug_absatz": wert},
     )
     assert antwort.status_code in (200, 302), antwort.status_code
+
+
+# ── GP-191 (Teil verfahren): Das Umsetzungsregister blättert ───────────────────────────────────
+
+
+def test_gp191_umsetzungsregister_mit_400_beschluessen_blaettert(client, ordnung):  # noqa: F811
+    from verfahren.views import REGISTER_SEITE
+
+    person, vorlage = _bestand(ordnung, 0)
+    beschluesse = _kopien(vorlage, 400, "angenommen", timezone.now(), titel="Beschluss")
+    antwort = client.get(reverse("verfahren:umsetzung"))
+    html = antwort.content.decode()
+    assert len(antwort.content) < 150 * 1024, f"{len(antwort.content) // 1024} KiB"
+    assert f"1–{REGISTER_SEITE} von 400" in html
+    assert 'href="?seite=2"' in html
+    gesehen = set()
+    seite = 1
+    while True:
+        html = client.get(reverse("verfahren:umsetzung") + f"?seite={seite}").content.decode()
+        gesehen |= {int(n) for n in re.findall(r'href="/antrag/(\d+)/"><strong>Beschluss', html)}
+        if f'href="?seite={seite + 1}"' not in html:
+            break
+        seite += 1
+    assert gesehen == {a.pk for a in beschluesse}
+    # Der Filter nach Stand bleibt beim Blättern erhalten
+    gefiltert = client.get(reverse("verfahren:umsetzung") + "?status=offen").content.decode()
+    assert 'href="?status=offen&amp;seite=2"' in gefiltert

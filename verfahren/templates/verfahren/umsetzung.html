@@ -17,6 +17,8 @@ und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
   {% endfor %}
 </div>
 
+{# GP-191: Gesamtzahl und Blättern ohne JavaScript, neueste Beschlüsse zuerst #}
+{% if seite.gesamt %}<p class="erk">{% blocktranslate with von=seite.von bis=seite.bis n=seite.gesamt %}{{ von }}–{{ bis }} von {{ n }}{% endblocktranslate %}</p>{% endif %}
 {% for z in zeilen %}
 <div class="karte">
   <div class="register-kopf">
@@ -37,6 +39,11 @@ und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
 {% empty %}
 <p class="leer">{% translate "Noch keine angenommenen Anträge — sobald der erste Beschluss fällt, beginnt hier seine Umsetzungsgeschichte." %}</p>
 {% endfor %}
+{% if seite.seiten > 1 %}<nav class="blaettern" aria-label="{% translate 'Seiten des Registers' %}">
+  {% if seite.zurueck %}<a href="?{% if gewaehlt %}status={{ gewaehlt }}&amp;{% endif %}seite={{ seite.zurueck }}">‹ {% translate "zurück" %}</a>{% endif %}
+  <span>{% blocktranslate with von=seite.von bis=seite.bis n=seite.gesamt %}{{ von }}–{{ bis }} von {{ n }}{% endblocktranslate %}</span>
+  {% if seite.weiter %}<a href="?{% if gewaehlt %}status={{ gewaehlt }}&amp;{% endif %}seite={{ seite.weiter }}">{% translate "weiter" %} ›</a>{% endif %}
+</nav>{% endif %}
 
 {% if ueberlastungen or darf_ueberlastung_melden %}
 <div class="karte" id="ueberlastung" style="margin-top:16px">

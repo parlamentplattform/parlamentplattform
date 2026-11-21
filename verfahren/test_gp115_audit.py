@@ -84,7 +84,7 @@ def test_altbestand_ohne_oder_mit_unlesbarem_pruefzeitpunkt(client):
 def test_ein_gebrochener_alter_stand_bleibt_gebrochen_und_ist_ueberfaellig(client):
     _kette_geprueft()
     eintrag = AuditEintrag.objects.order_by("lfd")[1]
-    AuditEintrag.objects.filter(pk=eintrag.pk).update(ereignis={**eintrag.ereignis, "nr": 99})
+    AuditEintrag._base_manager.filter(pk=eintrag.pk).update(ereignis={**eintrag.ereignis, "nr": 99})
     lauf_stand = audit_pruefung.pruefen(voll=True)
     Hintergrundlauf.objects.filter(name=LAUF).update(zuletzt_stand=lauf_stand)
     _geprueft_vor(45)
@@ -104,7 +104,7 @@ def test_jeder_bruchgrund_hat_einen_lesbaren_text():
 def test_der_lauf_meldet_den_grund_zeit():
     _kette_geprueft()
     eintrag = AuditEintrag.objects.order_by("lfd")[1]
-    AuditEintrag.objects.filter(pk=eintrag.pk).update(zeit=eintrag.zeit - timedelta(days=400))
+    AuditEintrag._base_manager.filter(pk=eintrag.pk).update(zeit=eintrag.zeit - timedelta(days=400))
     Hintergrundlauf.objects.filter(name=LAUF).update(zuletzt_stand={})
     stand = lauf()
     assert stand["intakt"] is False and stand["grund"] == "zeit" and stand["bruch"] == eintrag.lfd

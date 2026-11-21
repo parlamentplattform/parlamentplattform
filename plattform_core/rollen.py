@@ -56,6 +56,8 @@ def _(text: str) -> str:
 #: verwaltet, und dass es auf den Seiten der Partei als Gast gilt.
 #: Nachtrag ohne neue Fassung (GP-014): Die Zeile der Verwaltung zu gemeldeten Beiträgen führt zur
 #: Meldeliste (`verfahren:meldungen`) — ein Verweis, kein geänderter Stand.
+#: Nachtrag ohne neue Fassung (GP-030): Die Berichtszeile des Integritätsrats führt auf die öffentliche
+#: Seite „Gremien“ statt in den Arbeitsbereich des Rates — ein Verweis, kein geänderter Stand.
 VERSION = 13
 
 
@@ -914,8 +916,8 @@ INTEGRITAETSRAT = Rolle(
         Faehigkeit(
             titel=_("Mindestens jährlich öffentlich berichten"),
             stand=Stand.VERFUEGBAR,
-            urlname="gremien:integritaet",
-            ort=_("Jahresbericht je Kalenderjahr, erzeugt aus Beschlüssen, Aussetzungen und Regelprüfung — Link im eigenen Bereich"),
+            urlname="gremien:uebersicht",
+            ort=_("Jahresbericht je Kalenderjahr, erzeugt aus Beschlüssen, Aussetzungen und Regelprüfung — öffentlich, verlinkt auf der Seite „Gremien“"),
         ),
         Faehigkeit(
             titel=_("Ein unabhängiges externes Sicherheitsaudit veranlassen und veröffentlichen"),

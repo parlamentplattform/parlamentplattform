@@ -800,9 +800,9 @@ class Entwurf(models.Model):
                 Pruefung.objects.create(
                     entwurf=self,
                     runde=self.runde,
-                    ergebnis=Pruefung.Ergebnis.VALIDIERT,
+                    ergebnis=Pruefung.Ergebnis.UNGEPRUEFT,  # niemand hat geprüft (GP-032)
                     begruendung=(
-                        "Die Prüfung blieb aus: In Gruppe 2 war binnen der Prüffrist von "
+                        "Die Prüfung blieb aus:In Gruppe 2 war binnen der Prüffrist von "
                         f"{antrag.policy().pruefung_tage} Tagen keine Rolle besetzt. Der Vorschlag "
                         "geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
                         "(§ 5 Abs 12: Untätigkeit hemmt nie)."
@@ -997,6 +997,10 @@ class Pruefung(models.Model):
         VALIDIERT = "validiert", _("validiert")
         ZURUECK = "zurueck", _("mit Begründung zurückgegeben")
         AUSTAUSCH = "austausch", _("Austausch bei Gruppe 1 beantragt")
+        # Kein Urteil der Gruppe 2 (GP-032, Fahrtenbuch D-I3): Der Vorschlag geht trotzdem weiter
+        # (§ 5 Abs 12) — aber „validiert“ wäre eine Bescheinigung, die niemand ausgestellt hat.
+        OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis — nicht validiert")
+        UNGEPRUEFT = "ungeprueft", _("nicht geprüft — Gruppe 2 unbesetzt")
 
     class KoratEntscheid(models.TextChoices):
         """Wie der Koordinationsrat über einen Austauschantrag befand — oder dass er es nicht tat:
@@ -1615,7 +1619,9 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
             if stimme.begruendung
         )
     else:
-        ergebnis = Pruefung.Ergebnis.VALIDIERT
+        # Ein eigener Wert, nicht „validiert“ (GP-032): Urteil, Antragsseite und Kette sagen dasselbe
+        # wie der Vermerk darunter.
+        ergebnis = Pruefung.Ergebnis.OHNE_ERGEBNIS.value
         begruendung = (
             "Die Prüfung der Gruppe 2 blieb ohne Ergebnis: "
             + (
@@ -1645,7 +1651,8 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
             "ohne_ergebnis": not beschluss.ergebnis,
         }
     )
-    if ergebnis == Pruefung.Ergebnis.VALIDIERT:
+    if ergebnis in (Pruefung.Ergebnis.VALIDIERT, Pruefung.Ergebnis.OHNE_ERGEBNIS):
+        # Validiert oder ohne Ergebnis: Beides führt weiter an die Unterstützer (§ 5 Abs 12).
         entwurf.zu_den_unterstuetzern(jetzt)
     elif ergebnis == Pruefung.Ergebnis.ZURUECK:
         # Zum Beschlusszeitpunkt, nicht zum Zeitpunkt der Auswertung (GP-027): Schließt die Frist den

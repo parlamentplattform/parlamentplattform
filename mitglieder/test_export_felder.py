@@ -56,6 +56,7 @@ AUSNAHMEN_FELDER = {
     )},
     **{f"GremienBeschluss.{feld}": _BESCHLUSS for feld in (
         "beschreibung", "optionen", "frist", "ergebnis", "regel_version", "zustand_vorher", "entschieden_am", "anlass",
+        "festgehalten",  # Auszählung des Rates zum Beschlusszeitpunkt; eigene Stimmen unter gremienstimmen
     )},
     **{f"KILauf.{feld}": _KI for feld in ("eingabe", "antwort", "auftrag_version", "fehler")},
 }

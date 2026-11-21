@@ -199,11 +199,13 @@ def beitrag_erinnern(request):
         ids = request.POST.getlist("mitglied")
         faellige = faellige.filter(pk__in=ids)
 
-    angelegt, ohne_einwilligung, uebersprungen = erinnerung_beauftragen(faellige)
-    if angelegt:
-        from mitglieder.verwaltung import _auditieren
+    from mitglieder.verwaltung import _auditieren
 
-        _auditieren(request, "beitrag_erinnerung", request.user, anzahl=angelegt)
+    with transaction.atomic():  # GP-129: Aufträge und Audit-Eintrag gemeinsam oder gar nicht
+        angelegt, ohne_einwilligung, uebersprungen = erinnerung_beauftragen(faellige)
+        if angelegt:
+            _auditieren(request, "beitrag_erinnerung", request.user, anzahl=angelegt)
+    if angelegt:
         messages.success(
             request,
             _("%(n)d Erinnerung(en) beauftragt — der Versand läuft im Postausgang.") % {"n": angelegt},

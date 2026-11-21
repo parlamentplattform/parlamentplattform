@@ -10,6 +10,7 @@ import logging
 from datetime import date
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.urls import reverse
@@ -350,6 +351,7 @@ def region_empfaenger(antrag: Antrag):
     return basis.filter(treffer).distinct()
 
 
+@transaction.atomic  # GP-129: Aufträge und Audit-Eintrag gemeinsam oder gar nicht
 def region_benachrichtigen(antrag: Antrag) -> int:
     """Je betroffenem Mitglied ein Postauftrag „neuer_antrag“ (Bezug `antrag:<pk>`, genau einmal je
     Antrag und Konto); zugestellt wird im Hintergrundlauf. Gibt die Zahl der neu angelegten Aufträge

@@ -1,6 +1,7 @@
 {% extends "verfahren/base.html" %}
-{% load i18n static phasen %}
-{% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Profil" %}{% endblock %}
+{% load i18n static phasen gremien_profil %}
+{% block titelvorsatz %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% endblock %}
+{% block titel %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
 Das eigene Profil (FB-K5): Anzeigename, Einwilligung zum Klarnamen, Wohnsitz und Nebenwohnsitz in einem Formular,
@@ -22,7 +23,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
-{% include "mitglieder/_formularfehler.html" %}
+{% include "verfahren/_formularfehler.html" %}
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.mitgliedsnummer_text %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
 
 <form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}
@@ -117,6 +118,9 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="hilfe">{% translate "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate samt Gemeindearbeit, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
   <p class="hilfe">{% translate "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter." %}</p>
 </div>
+
+{# ── Fachliste: eigene Einwilligung (GP-009) — nur für Konten, die der Endpunkt annimmt ── #}
+{% fachliste_einwilligung %}
 
 {# ── Mitgliedsausweis (FB-K8) ────────────────────────────────────────── #}
 <div class="karte" id="ausweis">

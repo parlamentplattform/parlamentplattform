@@ -17,6 +17,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import formats, timezone, translation
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_noop
@@ -153,6 +154,7 @@ def ausweis_stand(mitglied: Mitglied) -> str:
     return "ausstaendig" if mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT else "gueltig"
 
 
+@transaction.atomic  # GP-129: Vergabe und Audit-Eintrag gemeinsam oder gar nicht
 def ausweis_code_sicherstellen(mitglied: Mitglied, jetzt=None) -> str:
     """Vergibt Prüfcode und Adressschlüssel je einmal je Konto — mit dem ersten Ausweis; danach
     bleiben sie, damit QR-Codes gedruckter Karten weiter stimmen. Die bedingten UPDATE-Anweisungen

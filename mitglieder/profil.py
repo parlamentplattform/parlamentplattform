@@ -31,7 +31,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
-from django.db.models import Exists, OuterRef, Q, Value
+from django.db.models import Exists, OuterRef, Prefetch, Q, Value
 from django.db.models.functions import Concat
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -41,7 +41,7 @@ from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from mandatare.gemeindeexport import gemeindearbeit_exportieren, mandate_fuer_export
+from mandatare.gemeindeexport import mandat_exportieren, mandate_fuer_export
 from mitglieder.ausweis import ausweis_erstellbar, ausweis_moeglich, ausweis_svg
 from mitglieder.auth_flows import beitragsreferenz
 from mitglieder.botschutz import drossel_zuviel
@@ -390,10 +390,11 @@ def sitzungen_beenden(request):
     nächsten Aufruf. `update_session_auth_hash` schreibt der aktuellen Sitzung den neuen Hash,
     darum bleibt genau dieses Gerät angemeldet. Die Beitragsreferenz hängt nicht am Passwort."""
     mitglied = request.user
-    mitglied.set_unusable_password()
-    mitglied.save(update_fields=["password"])
+    with transaction.atomic():  # GP-129: neuer Sitzungs-Hash und Audit-Eintrag gemeinsam oder gar nicht
+        mitglied.set_unusable_password()
+        mitglied.save(update_fields=["password"])
+        _auditieren("sitzungen_beendet", mitglied)
     update_session_auth_hash(request, mitglied)
-    _auditieren("sitzungen_beendet", mitglied)
     messages.success(request, _("Alle anderen Geräte sind abgemeldet — dieses bleibt angemeldet."))
     return redirect("mitglieder:profil")
 
@@ -461,6 +462,7 @@ def _gremien_export(m: Mitglied) -> dict:
         EntwurfsBeitrag,
         EntwurfsFassung,
         Fachliste,
+        FachlistenEinwilligung,
         GremienStimme,
         Interessenbindung,
         Pruefung,
@@ -496,6 +498,11 @@ def _gremien_export(m: Mitglied) -> dict:
             "gestrichen_grund": fachliste.gestrichen_grund,
             "einwilligung_widerrufen_am": fachliste.einwilligung_widerrufen_am,
         },
+        # GP-009: die selbst erklärten Einwilligungen zur Fachliste, auch widerrufene (nur anfügend)
+        "fachlisten_einwilligungen": [
+            {"erklaert_am": e.erklaert_am, "widerrufen_am": e.widerrufen_am}
+            for e in FachlistenEinwilligung.objects.filter(mitglied=m).order_by("erklaert_am", "pk")
+        ],
         "interessenbindungen": [
             {"antrag": i.antrag_id, "runde": i.runde, "text": i.text, "erklaert_am": i.erklaert_am}
             for i in Interessenbindung.objects.filter(mitglied=m)
@@ -664,6 +671,7 @@ def daten_export(mitglied: Mitglied) -> dict:
     Jede Auslassung steht Feld für Feld mit Grund in `mitglieder/test_export_felder.py`
     (`AUSNAHMEN_FELDER`); der Wächter dort wird rot, sobald ein gespeichertes Feld weder im
     Export noch in der Liste steht (GP-089, GP-162)."""
+    from gremien.models import Umsetzungsvermerk
     from mitglieder.models import Gemeindezugang
 
     m = mitglied
@@ -801,115 +809,8 @@ def daten_export(mitglied: Mitglied) -> dict:
             }
             for b in m.bewerbungen.all()
         ],
-        "mandate": [
-            {
-                "mandat": md.pk,
-                "bezeichnung": md.bezeichnung,
-                "ebene": md.ebene,
-                "gebiet": md.gebiet,
-                "angetreten": md.angetreten,
-                "beendet": md.beendet,
-                "vorstellung": md.vorstellung,
-                "kandidatur": md.kandidatur_id,
-                "bestaetigt_am": md.bestaetigt_am,
-                "foto_typ": md.foto_typ,
-                "rueckgabezusage": md.rueckgabezusage,
-                "rueckgabezusage_am": md.rueckgabezusage_am,
-                "mandatsvereinbarung_lit_h_am": md.mandatsvereinbarung_lit_h_am,
-                "mandatsvereinbarung_endet_am": md.mandatsvereinbarung_endet_am,
-                "vertretung_beendet_am": md.vertretung_beendet_am,
-                "vertrauen_entzogen_am": md.vertrauen_entzogen_am,
-                "rueckgabe_ersucht_bis": md.rueckgabe_ersucht_bis,
-                # GP-089: jede Vertrauensfrage zu diesem Mandat samt eigener Stellungnahme (§ 7 Abs 10)
-                "vertrauensfragen": [
-                    {
-                        "vertrauensfrage": vf.pk,
-                        "antrag": vf.antrag_id,
-                        "art": vf.art,
-                        "anlaesse": [r.pk for r in vf.anlaesse.all()],
-                        "anlass_ausstaende": vf.anlass_ausstaende,
-                        "stimmberechtigte_partei_am_einbringungstag": vf.stimmberechtigte_partei_am_einbringungstag,
-                        "schwelle_partei": vf.schwelle_partei,
-                        "schwelle_erreicht_am": vf.schwelle_erreicht_am,
-                        "sperrhinweis": vf.sperrhinweis,
-                        "sperre_beschluss": vf.sperre_beschluss_id,
-                        "angefochten_am": vf.angefochten_am,
-                        "aktenkennung": vf.aktenkennung,
-                        "entscheidung": vf.entscheidung,
-                        "entschieden_am": vf.entschieden_am,
-                        "wirkungen_ab": vf.wirkungen_ab,
-                        "wirkungen_endgueltig_am": vf.wirkungen_endgueltig_am,
-                        "verstaendigt_am": vf.verstaendigt_am,
-                        "stellungnahmen": [
-                            {"text": st.text, "erstellt_am": st.erstellt_am} for st in vf.stellungnahmen.all()
-                        ],
-                    }
-                    for vf in md.vertrauensfragen.all()
-                ],
-                "gemeindearbeit": gemeindearbeit_exportieren(md),
-                "aufgaben": [
-                    {
-                        "aufgabe": a.pk,
-                        "titel": a.titel,
-                        "beschreibung": a.beschreibung,
-                        "frist": a.frist,
-                        "sitzungstag": a.sitzungstag,
-                        "status": a.status,
-                        "antrag": a.antrag_id,
-                        "erstellt_am": a.erstellt_am,
-                        "aktualisiert_am": a.aktualisiert_am,
-                    }
-                    for a in md.aufgaben.all()
-                ],
-                "berichte": [
-                    {"art": b.art, "monat": b.monat, "text": b.text, "eingereicht_am": b.eingereicht_am,
-                     "aufgabe": b.aufgabe_id}
-                    for b in md.berichte.all()
-                ],
-                "rechenschaft": [
-                    {
-                        "gegenstand": r.gegenstand,
-                        "sitzung_am": r.sitzung_am,
-                        "beschluss_plattform": r.beschluss_plattform,
-                        "stimme": r.stimme,
-                        "begruendung": r.begruendung,
-                        "eingetragen_am": r.eingetragen_am,
-                        "punkt": r.punkt_id,
-                        "aufgabe": r.aufgabe_id,
-                        "antrag": r.antrag_id,
-                        "nachgetragen_am": r.nachgetragen_am,
-                        "quelle": r.quelle,
-                        "freiwillige_begruendung": r.freiwillige.text if r.freiwillige else None,
-                        "freiwillige_begruendung_am": r.freiwillige.eingetragen_am if r.freiwillige else None,
-                    }
-                    for r in md.rechenschaft.all()
-                ],
-                # FB-L5: die Sitzungen im Live-Modus mit Tagesordnung und Meldungen
-                "sitzungen": [
-                    {
-                        "sitzung": s.pk,
-                        "aufgabe": s.aufgabe_id,
-                        "beginn": s.beginn,
-                        "ende": s.ende,
-                        "ende_durch_hoechstdauer": s.ende_durch_hoechstdauer,
-                        "stream": s.stream,
-                        "punkte": [
-                            {"nummer": p.nummer, "titel": p.titel, "antrag": p.antrag_id, "erstellt_am": p.erstellt_am}
-                            for p in s.punkte.all()
-                        ],
-                        "meldungen": [
-                            {"meldung": x.pk, "zeitpunkt": x.zeitpunkt, "punkt": x.punkt_id, "text": x.text,
-                             "stimme": x.stimme, "abgestimmt": x.abgestimmt, "berichtigt": x.berichtigt_id}
-                            for x in s.meldungen.all()
-                        ],
-                    }
-                    for s in md.sitzungen.all()
-                ],
-            }
-            for md in mandate_fuer_export(m).prefetch_related(
-                "vertrauensfragen__anlaesse", "vertrauensfragen__stellungnahmen"
-            )
-        ],
+        # GP-089: der Ordner je Mandat kommt aus mandatare (eine Quelle); Schlüssel bis 0.114.0 bleiben
+        "mandate": [mandat_exportieren(md) for md in mandate_fuer_export(m)],
         "rollen": [
             {
                 "gremium": r.gremium,
@@ -920,8 +821,22 @@ def daten_export(mitglied: Mitglied) -> dict:
                 "ruht_seit": r.ruht_seit,
                 "ruht_grund": r.ruht_grund,
                 "antrag": r.antrag_id,
+                # GP-025: Vermerke, die dieser Rolle die Umsetzung eines Beschlusses zuweisen
+                "umsetzungsvermerke": [
+                    {
+                        "beschluss": {"gremium": v.beschluss.gremium, "nummer": v.beschluss.nummer},
+                        "nummer": v.nummer,
+                        "text": v.text,
+                        "frist": v.frist,
+                        "erstellt_am": v.erstellt_am,
+                    }
+                    for v in r.umsetzungsvermerke.all()
+                ],
             }
-            for r in m.rollen.all()
+            for r in m.rollen.prefetch_related(
+                Prefetch("umsetzungsvermerke", queryset=Umsetzungsvermerk.objects.select_related("beschluss")
+                         .order_by("beschluss_id", "nummer"))
+            )
         ],
         "meldungen": [
             {
@@ -984,7 +899,8 @@ def export_json(request):
         })
         return redirect("mitglieder:profil")
     inhalt = json.dumps(daten_export(request.user), ensure_ascii=False, indent=2, cls=DjangoJSONEncoder)
-    _auditieren("datenexport", request.user)
+    with transaction.atomic():  # GP-129: der Eintrag ist hier die einzige Schreibhandlung
+        _auditieren("datenexport", request.user)
     antwort = HttpResponse(inhalt, content_type="application/json; charset=utf-8")
     antwort["Content-Disposition"] = 'attachment; filename="meine-daten.json"'
     return antwort
@@ -1014,8 +930,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     und der Fachlisteneintrag werden beendet, ein offener Adresswechsel widerrufen und die
     Adresswerte der gesamten Wechselhistorie geleert; Bewerbungen in Kandidaturen vor der
     Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
-    from gremien.models import Fachliste
+    from gremien.models import Fachliste, FachlistenEinwilligung
     from mandatare.models import Mandat
+    from mandatare.sitzung import mandatsende_folgen
 
     # Guard VOR dem Leeren: `ist_fixer_admin` hängt an der E-Mail-Adresse — nach dem Leeren
     # wäre er es nicht mehr, und die Verwaltung stünde herrenlos da.
@@ -1039,6 +956,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
         mandat.beendet = heute
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk})
+        # GP-116: kommende Sprechstunden absagen, eine laufende Sitzung beenden. Anlass ist das neutrale
+        # Mandatsende — das öffentliche Protokoll nennt Mandatsnummer und Anlass, nicht den Austritt.
+        mandatsende_folgen(mandat, "mandat_beendet", jetzt)
     # Das Lichtbild ist ein rein persönliches Datum, kein Verfahrensinhalt — es geht mit dem
     # Menschen (§ 8 Abs 4), auch an längst beendeten Mandaten; Berichte und Rechenschaft bleiben.
     for mandat in mitglied.mandate.exclude(foto_typ=""):
@@ -1062,6 +982,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
             felder.append("einwilligung_widerrufen_am")
         if felder:
             eintrag.save(update_fields=felder)
+    # GP-009: die eigene offene Erklärung zur Fachliste endet mit dem Austritt. Nur die Erklärung
+    # (mit_eintrag=False): Den Eintrag selbst behandelt der Austritt oben, wie bisher (E-10.8 offen).
+    FachlistenEinwilligung.widerrufen(mitglied, jetzt=jetzt, mit_eintrag=False)
 
     # Bewerbungen in Kandidaturen, die noch nicht in der Abstimmung sind, werden zurückgezogen —
     # derselbe Stempel wie beim freiwilligen Rückzug (§ 7 Abs 1: nur Mitglieder kandidieren).

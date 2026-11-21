@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n static phasen %}
+{% load i18n static phasen gremien_profil %}
 {% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -117,6 +117,9 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   <p class="hilfe">{% translate "Alles, was die Plattform diesem Konto zuordnet (Art 15 und 20 DSGVO): Stammdaten, Wohnsitze, Beiträge, Adresswechsel, Anträge, Unterstützungen, Beiträge im Chat, Reaktionen, Favoriten, Abos, Filterprofile, Bewerbungen, Mandate samt Gemeindearbeit, Rollen, Fachlisteneintrag, Interessenbindungen, Stimmen und Beiträge in den Räten, Umsetzungs- und Registervermerke, Meldungen, Anstöße und Ihre eigenen Stimmen mit Pseudonym und Prüfcode." %}</p>
   <p class="hilfe">{% translate "Nicht enthalten: Anmelde-Token und Prüf-Hashes, Bank-Kennungen der Beitragseingänge, Vorgänge, die Sie als Verwaltung für andere Mitglieder geführt haben, und Audit-Zeilen Dritter." %}</p>
 </div>
+
+{# ── Fachliste: eigene Einwilligung (GP-009) — nur für Konten, die der Endpunkt annimmt ── #}
+{% fachliste_einwilligung %}
 
 {# ── Mitgliedsausweis (FB-K8) ────────────────────────────────────────── #}
 <div class="karte" id="ausweis">

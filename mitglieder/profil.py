@@ -928,7 +928,7 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
     und der Fachlisteneintrag werden beendet, ein offener Adresswechsel widerrufen und die
     Adresswerte der gesamten Wechselhistorie geleert; Bewerbungen in Kandidaturen vor der
     Abstimmung werden zurückgezogen (Stempel, kein Löschen)."""
-    from gremien.models import Fachliste
+    from gremien.models import Fachliste, FachlistenEinwilligung
     from mandatare.models import Mandat
 
     # Guard VOR dem Leeren: `ist_fixer_admin` hängt an der E-Mail-Adresse — nach dem Leeren
@@ -976,6 +976,9 @@ def austreten(mitglied: Mitglied, jetzt=None) -> None:
             felder.append("einwilligung_widerrufen_am")
         if felder:
             eintrag.save(update_fields=felder)
+    # GP-009: die eigene offene Erklärung zur Fachliste endet mit dem Austritt. Nur die Erklärung
+    # (mit_eintrag=False): Den Eintrag selbst behandelt der Austritt oben, wie bisher (E-10.8 offen).
+    FachlistenEinwilligung.widerrufen(mitglied, jetzt=jetzt, mit_eintrag=False)
 
     # Bewerbungen in Kandidaturen, die noch nicht in der Abstimmung sind, werden zurückgezogen —
     # derselbe Stempel wie beim freiwilligen Rückzug (§ 7 Abs 1: nur Mitglieder kandidieren).

@@ -1456,3 +1456,44 @@ def test_export_fuehrt_einwilligungen_umsetzungsvermerke_der_eigenen_rolle_und_d
     for alt in ('mandat', 'bezeichnung', 'vertrauensfragen', 'gemeindearbeit', 'aufgaben', 'berichte', 'rechenschaft',
                 'sitzungen', 'foto_typ', 'vertretung_beendet_am'):
         assert alt in daten['mandate'][0]  # Schlüssel bis 0.114.0 bleiben
+
+
+# --- Fachliste: Einwilligung im Profil, Widerruf beim Austritt (GP-009) -------
+
+
+def test_profil_zeigt_die_karte_zur_fachliste_nur_wem_der_endpunkt_sie_erlaubt(client):
+    ziel = reverse('gremien:fachliste_einwilligung')
+    aktiv = mitglied_anlegen('aktiv')
+    pausiert = mitglied_anlegen('pausiert')
+    pausiert.status = Mitgliedsstatus.PAUSIERT
+    pausiert.save(update_fields=['status'])
+    testkonto = mitglied_anlegen('testkonto')
+    Mitglied.objects.filter(pk=testkonto.pk).update(testkonto=True)
+    gesehen = {}
+    for konto in (aktiv, pausiert, Mitglied.objects.get(pk=testkonto.pk)):
+        client.force_login(konto)
+        html = client.get(PROFIL).content.decode()
+        gesehen[konto.username] = 'id="fachliste-einwilligung"' in html
+        if gesehen[konto.username]:
+            assert f'action="{ziel}"' in html
+        darf = client.post(ziel, {'aktion': 'erklaeren'}).status_code != 403
+        assert gesehen[konto.username] == darf, konto.username
+    assert gesehen == {'aktiv': True, 'pausiert': False, 'testkonto': False}
+
+
+def test_austritt_widerruft_die_offene_einwilligung_zur_fachliste_in_derselben_transaktion(monkeypatch):
+    from gremien.models import FachlistenEinwilligung
+
+    anna = mitglied_anlegen('anna')
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.erklaeren(mitglied_anlegen('bert'))
+    # Bricht der Austritt danach ab, bleibt auch die Erklärung offen (alles oder nichts).
+    monkeypatch.setattr(Mitglied, 'set_unusable_password', lambda self: (_ for _ in ()).throw(RuntimeError('Abbruch')))
+    with pytest.raises(RuntimeError):
+        austreten(Mitglied.objects.get(pk=anna.pk))
+    assert FachlistenEinwilligung.liegt_vor(anna)
+    monkeypatch.undo()
+    austreten(Mitglied.objects.get(pk=anna.pk))
+    assert not FachlistenEinwilligung.liegt_vor(anna)
+    assert FachlistenEinwilligung.objects.filter(mitglied=anna).count() == 1  # nur angefügt, nichts gelöscht
+    assert FachlistenEinwilligung.offene().filter(mitglied__username='bert').exists()  # fremde bleibt

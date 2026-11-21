@@ -272,6 +272,15 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     </div>
     {% endif %}
 
+    {% if angehalten %}
+    {# GP-138: Die Gegenprobe hält die Feststellung an — der Befund mit Zahlen statt der bevorstehenden Auswertung #}
+    <div class="karte handlung" id="auszaehlung-angehalten">
+      <h3>{% translate "Auszählung angehalten" %}</h3>
+      <p><strong>{% translate "Die Stimmliste besteht die Gegenprobe nicht; es wird kein Ergebnis festgestellt." %}</strong></p>
+      <ul>{% for befund in angehalten.befunde %}<li>{{ befund }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
     {% if kandidatur.wahl %}
     <div class="karte handlung">
       <h3>{% translate "Ergebnis" %}</h3>
@@ -285,6 +294,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         </tbody>
       </table></div>
       <p>{% translate "Beteiligung" %} {{ kandidatur.wahl.beteiligung }} / {{ kandidatur.wahl.stimmberechtigte }} {% translate "Stimmberechtigte" %}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=kandidatur.wahl.beteiligung n=kandidatur.wahl.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}{% if wahlvorschlag_url %} · <a href="{{ wahlvorschlag_url }}">{% translate "Reihung als Wahlvorschlag (Markdown)" %}</a>{% endif %}</p>
     </div>
     {% endif %}
@@ -301,6 +311,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <p><strong>{{ ergebnis.begruendung }}</strong></p>
       {% endif %}
       <p>{% translate "Ja" %} {{ ergebnis.ja }} · {% translate "Nein" %} {{ ergebnis.nein }} · {% translate "Enthaltung" %} {{ ergebnis.enthaltung }} · {% translate "Stimmberechtigte" %} {{ ergebnis.stimmberechtigte }}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=ergebnis.abgegeben n=ergebnis.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a> {% blocktranslate %}und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8).{% endblocktranslate %}{% if user.is_authenticated %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>.{% endif %}</p>
     </div>
     {% endif %}

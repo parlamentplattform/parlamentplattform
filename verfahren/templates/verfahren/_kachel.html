@@ -48,7 +48,7 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
 
     {% if k.frist_abgelaufen %}
       {# GP-175: Frist um, Fortschreibung steht aus — kein Knopf, der nichts mehr bewirken kann; E-43 Z 2: was als Nächstes geschieht #}
-      <span class="rest frist">{% if k.abstimmung_beginnt %}{% translate "Die Abstimmung beginnt" %}{% else %}{% translate "Frist abgelaufen, wird ausgewertet" %}{% endif %}</span>
+      <span class="rest frist">{% if k.angehalten %}{% translate "Auszählung angehalten" %}{% elif k.abstimmung_beginnt %}{% translate "Die Abstimmung beginnt" %}{% else %}{% translate "Frist abgelaufen, wird ausgewertet" %}{% endif %}</span>
     {% elif k.stat.typ == "abstimmung" and not user.is_authenticated %}
       <span class="rest">{% if request.gemeindekonto %}{% include "verfahren/_nur_partei.html" with kurz=True %}{% else %}<a href="{% url 'mitglieder:login' %}">{% translate "Anmelden zum Abstimmen" %}</a>{% endif %}</span>
     {% elif k.stat.typ == "abstimmung" and user.is_authenticated %}

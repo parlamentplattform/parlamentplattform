@@ -724,6 +724,11 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt, was
         # als Nächstes geschieht, und bietet keinen Knopf mehr, der nichts bewirken kann.
         "frist_abgelaufen": frist is not None and frist <= jetzt,
+        # GP-138: Hält die Gegenprobe die Feststellung an, sagt die Kachel das statt „wird ausgewertet“
+        "angehalten": antrag.phase == Phase.ABSTIMMUNG.value
+        and frist is not None
+        and frist <= jetzt
+        and antrag.auszaehlung_angehalten() is not None,
         "abstimmung_beginnt": abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab),
         "verstrichen": verstrichen,
         "stat": stat,
@@ -1646,6 +1651,44 @@ def _verfall_lage(antrag, policy, unterstuetzungen: int, vertrauensfrage) -> dic
     }
 
 
+def _angehalten_lesbar(antrag) -> dict | None:
+    """GP-138: Der Befund einer angehaltenen Auszählung als Zeilen mit Zahlen — statt des Texts zur
+    bevorstehenden Feststellung. Nur Zahlen aus dem Audit-Ereignis, keine Namen und keine Pseudonyme."""
+    if antrag.phase != Phase.ABSTIMMUNG.value:
+        return None
+    halt = antrag.auszaehlung_angehalten()
+    if halt is None:
+        return None
+    from plattform_core.tally import EREIGNISSE_WEICHEN_AB, OHNE_REGISTERZEILE, UEBERZAHL
+
+    zeilen = {
+        OHNE_REGISTERZEILE: _("Stimmzettel ohne Registerzeile: %(n)s") % {"n": halt.get("ohne_registerzeile")},
+        UEBERZAHL: _("Stimmen: %(stimmen)s, festgestellte Stimmberechtigte: %(n)s")
+        % {"stimmen": halt.get("waehler"), "n": halt.get("stimmberechtigte")},
+        EREIGNISSE_WEICHEN_AB: _("Stimmzettel: %(zettel)s, Stimm-Ereignisse in der Audit-Kette: %(ereignisse)s")
+        % {"zettel": halt.get("stimmzettel"), "ereignisse": halt.get("stimmereignisse")},
+    }
+    return {"befunde": [zeilen[k] for k in halt.get("abweichungen") or [] if k in zeilen]}
+
+
+def _ergebnis_mit_ueberzahl(antrag) -> bool:
+    """GP-138: Ob das Ergebnis-Ereignis die Abweichung „mehr Stimmen als festgestellte Stimmberechtigte“
+    trägt — die Ergebnisanzeige nennt sie dann in einem Satz. Ältere Ergebnisse tragen kein solches Feld."""
+    from plattform_core.tally import UEBERZAHL
+    from verfahren.models import AuditEintrag
+
+    eintrag = (
+        AuditEintrag.objects.filter(
+            ereignis__antrag=antrag.pk,
+            ereignis__typ="phasenwechsel",
+            ereignis__neue_phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value],
+        )
+        .order_by("-lfd")
+        .first()
+    )
+    return eintrag is not None and UEBERZAHL in ((eintrag.ereignis or {}).get("abweichungen") or [])
+
+
 def _handlungssperren(antrag, nutzer) -> dict:
     """GP-070: Dieselbe Rechnung wie Kachel und Feed (`handlungslage`) für die Formulare der Antragsseite —
     wer nicht handeln darf, sieht statt des Knopfs den Grund samt Link, denselben wie im Parlament.
@@ -1691,6 +1734,8 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     ergebnis = None
     if beendet and antrag.art != Antragsart.MANDAT:
         ergebnis = antrag.auszaehlen()
+    angehalten = _angehalten_lesbar(antrag)  # GP-138
+    ueberzahl = beendet and _ergebnis_mit_ueberzahl(antrag)
 
     # Mandats-Kandidatur (§ 7 Abs 1, F-70): Bewerbungen, eigene Zustimmungen, Ergebnis
     kandidatur = None
@@ -1727,7 +1772,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "meine_zustimmungen": meine_zustimmungen,
             "bewerben_offen": antrag.phase
             in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
-            "zustimmen_offen": antrag.phase == Phase.ABSTIMMUNG.value,
+            "zustimmen_offen": antrag.phase == Phase.ABSTIMMUNG.value and angehalten is None,
             "wahl": wahl,
             "ergebnis_zeilen": ergebnis_zeilen,
         }
@@ -1856,8 +1901,10 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "sperren": sperren,
             "meine_stimme": meine_stimme,
             "phase_offen": antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
-            "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value,
+            "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value and angehalten is None,
             "beteiligung": _beteiligung_lesbar(antrag),
+            "angehalten": angehalten,
+            "ueberzahl": ueberzahl,
         },
     )
 

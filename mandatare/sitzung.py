@@ -244,4 +244,11 @@ def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=N
         termine_absagen(mandat, anlass, jetzt)
         for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True).order_by("pk"):
             if sitzung.laeuft(jetzt):
-                sitzung_beenden(sitzung, jetzt, anlass=anlass)
+                try:
+                    sitzung_beenden(sitzung, jetzt, anlass=anlass)
+                except SitzungFehler:
+                    # Gleichzeitig von anderer Seite beendet (der Mandatar, die Höchstdauer): Das Ziel ist
+                    # erreicht, Austritt oder Mandatsende laufen weiter. Läuft sie doch noch, ist es ein
+                    # anderer Fehler, und er bleibt einer.
+                    if Sitzung.objects.get(pk=sitzung.pk).laeuft(jetzt):
+                        raise

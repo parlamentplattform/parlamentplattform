@@ -249,3 +249,48 @@ def test_folgen_des_mandatsendes_stehen_gemeinsam_oder_gar_nicht(mandat):
     termin.refresh_from_db()
     assert termin.abgesagt_am is None and not _absagen_audit()
     assert Sitzung.objects.get(pk=sitzung.pk).ende is None
+
+
+def test_eine_gleichzeitig_beendete_sitzung_bricht_das_mandatsende_nicht_ab(mandat, monkeypatch):
+    """GP-116, Wettlauf: Der Mandatar beendet seine Sitzung genau, während das Mandat endet. Die Plattform
+    findet sie dann schon beendet — das Ziel ist erreicht, die Absage der Termine bleibt stehen."""
+    from mandatare import sitzung as sitzung_modul
+    from mandatare.models import Sitzung
+    from mandatare.sitzung import ANLASS_MANDATSENDE, mandatsende_folgen
+
+    termin = _termin(mandat)
+    sitzung = _laufende_sitzung(mandat)
+    echt = sitzung_modul.sitzung_beenden
+
+    def wettlauf(s, jetzt=None, anlass=""):
+        echt(Sitzung.objects.get(pk=s.pk), jetzt)  # der Mandatar war einen Augenblick schneller
+        return echt(s, jetzt, anlass=anlass)
+
+    monkeypatch.setattr(sitzung_modul, "sitzung_beenden", wettlauf)
+    mandatsende_folgen(Mandat.objects.get(pk=mandat.pk), ANLASS_MANDATSENDE)
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None and [e["anlass"] for e in _absagen_audit()] == ["mandat_beendet"]
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    beendet = [e.ereignis for e in AuditEintrag.objects.filter(ereignis__typ="sitzung_beendet").order_by("lfd")]
+    assert len(beendet) == 1 and "anlass" not in beendet[0]  # beendet hat der Mandatar, einmal
+
+
+def test_ein_anderer_fehler_beim_beenden_bleibt_ein_fehler(mandat, monkeypatch):
+    """Nur der Wettlauf wird abgefangen: Läuft die Sitzung nach dem Fehler noch, bricht das Mandatsende ab,
+    und auch die Absage der Termine bleibt nicht stehen."""
+    from mandatare import sitzung as sitzung_modul
+    from mandatare.models import Sitzung
+    from mandatare.sitzung import ANLASS_MANDATSENDE, SitzungFehler, mandatsende_folgen
+
+    termin = _termin(mandat)
+    sitzung = _laufende_sitzung(mandat)
+
+    def scheitert(*args, **kwargs):
+        raise SitzungFehler("anderer Fehler")
+
+    monkeypatch.setattr(sitzung_modul, "sitzung_beenden", scheitert)
+    with pytest.raises(SitzungFehler):
+        mandatsende_folgen(Mandat.objects.get(pk=mandat.pk), ANLASS_MANDATSENDE)
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is None and not _absagen_audit()
+    assert Sitzung.objects.get(pk=sitzung.pk).laeuft()

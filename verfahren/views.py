@@ -1680,6 +1680,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
                 zurueckgezogen_am__isnull=True, mitglied__testkonto=True
             ).count(),
             "verfall": _verfall_lage(antrag, policy, unterstuetzungen, vertrauensfrage),
+            "rechenschaft": _rechenschaft_je_antrag([antrag.pk]).get(antrag.pk, []),
             "chat": chat,
             "archiv": archiv,
             "zustandekommen": archivkern.zustandekommen(antrag, archiv["zeitleiste"]),
@@ -1695,17 +1696,42 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     )
 
 
+def _rechenschaft_je_antrag(antrag_ids) -> dict[int, list]:
+    """GP-065: Die Einträge des Rechenschaftsregisters (§ 7 Abs 5), die auf einen Beschluss der Plattform
+    verweisen — je Antrag, neueste Sitzung zuerst, mit Mandat und Mandatar. Nur lesend über die vorhandene
+    Verknüpfung `Rechenschaft.antrag`; ohne die App der Mandatare gibt es keine Einträge."""
+    from django.apps import apps
+
+    if not antrag_ids or not apps.is_installed("mandatare"):
+        return {}
+    from mandatare.models import Rechenschaft
+
+    je: dict[int, list] = {}
+    for r in (
+        Rechenschaft.objects.filter(antrag_id__in=list(antrag_ids))
+        .select_related("mandat__mitglied", "antrag")
+        .order_by("-sitzung_am", "-eingetragen_am", "-pk")
+    ):
+        je.setdefault(r.antrag_id, []).append(r)
+    return je
+
+
 def _register_zeilen():
     """Alle angenommenen Anträge mit aktuellem Vollzugsstand (F-55) — ohne Eintrag gilt „offen"."""
-    angenommene = (
+    angenommene = list(
         Antrag.objects.filter(phase=Phase.ANGENOMMEN.value)
         .order_by("-phase_beginn")
         .prefetch_related("vollzug__durch")
     )
+    rechenschaft = _rechenschaft_je_antrag([a.pk for a in angenommene])
     zeilen = []
     for a in angenommene:
         stand = a.vollzugsstand()
-        zeilen.append({"antrag": a, "stand": stand, "status": stand.status if stand else "offen"})
+        zeilen.append({
+            "antrag": a, "stand": stand, "status": stand.status if stand else "offen",
+            # GP-065: Wie der Mandatar im Vertretungskörper dazu stimmte — aus dem Rechenschaftsregister
+            "rechenschaft": rechenschaft.get(a.pk, []),
+        })
     return zeilen
 
 
@@ -1785,6 +1811,19 @@ def umsetzung_json(request):
                     "durch": v.durch.anzeigename,
                 }
                 for v in reversed(list(z["antrag"].vollzug.all()))
+            ],
+            # GP-065: die verknüpften Einträge des Rechenschaftsregisters, Felder wie in rechenschaft.json
+            "rechenschaft": [
+                {
+                    "id": r.pk,
+                    "mandat": r.mandat_id,
+                    "mandatar": r.mandat.mitglied.anzeigename,
+                    "bezeichnung": r.mandat.bezeichnung,
+                    "sitzung_am": r.sitzung_am.isoformat(),
+                    "stimme": r.stimme,
+                    "weicht_ab": r.weicht_ab,
+                }
+                for r in z["rechenschaft"]
             ],
         }
         for z in _register_zeilen()

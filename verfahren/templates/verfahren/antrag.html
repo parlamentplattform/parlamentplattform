@@ -353,6 +353,14 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     </div>
     {% endif %}
 
+    {% if rechenschaft %}
+    {# GP-065: Wie Mandatare im Vertretungskörper zu diesem Beschluss stimmten — aus dem Rechenschaftsregister (§ 7 Abs 5), nebeneinandergestellt, nicht bewertet #}
+    <div class="karte" id="rechenschaft">
+      <h3>{% translate "Rechenschaft" %}</h3>
+      {% include "verfahren/_rechenschaft_zeilen.html" with eintraege=rechenschaft %}
+    </div>
+    {% endif %}
+
     {% if schleife %}{% include "gremien/_schleife.html" %}{% endif %}
 
     {# Aufklappbares zum Verfahren — da, aber nicht im Weg (FB-F1) #}

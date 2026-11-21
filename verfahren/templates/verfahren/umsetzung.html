@@ -32,6 +32,7 @@ und im Audit-Log verzeichnet.{% endblocktranslate %}</p>
   {% else %}
     <p class="erk" style="margin-top:6px">{% translate "Noch kein Vollzugseintrag — der Stand gilt als offen." %}</p>
   {% endif %}
+  {% if z.rechenschaft %}{% include "verfahren/_rechenschaft_zeilen.html" with eintraege=z.rechenschaft %}{% endif %}
 </div>
 {% empty %}
 <p class="leer">{% translate "Noch keine angenommenen Anträge — sobald der erste Beschluss fällt, beginnt hier seine Umsetzungsgeschichte." %}</p>

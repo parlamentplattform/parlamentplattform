@@ -332,3 +332,39 @@ def test_gp126_antragsseite_nennt_die_abweichung_durch_testkonten(client, ordnun
     leute[2].save(update_fields=["testkonto"])
     kopf = client.get(url).content.decode().split('class="a-meta"')[1].split("</p>")[0]
     assert "1 Unterstützung" in kopf and "ohne eine Unterstützung eines Testkontos" in kopf
+
+
+# ── GP-065: Antragsseite und Umsetzungsregister zeigen verknüpfte Rechenschaftseinträge ──────
+
+
+def test_gp065_rechenschaft_zum_beschluss_steht_bei_antrag_und_register(client, ordnung):  # noqa: F811
+    import json
+    from datetime import date
+
+    from mandatare.models import Rechenschaft
+    from mandatare.test_mandatare import mandat_anlegen
+    from verfahren.test_vollzug import angenommenen_antrag
+
+    antrag, leute = angenommenen_antrag(ordnung)
+    mandat = mandat_anlegen(leute[1])
+    Rechenschaft.objects.create(
+        mandat=mandat, antrag=antrag, gegenstand="Radweg", sitzung_am=date(2026, 9, 1),
+        stimme="dagegen", begruendung="Die Finanzierung war offen.",
+    )
+    seite = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()  # als Gast
+    karte = seite.split('id="rechenschaft"')[1].split("</div>")[0]
+    assert f'href="{reverse("mandatare:detail", args=[mandat.pk])}"' in karte
+    assert "dagegen" in karte and "weicht ab" in karte and "01.09.2026" in karte
+
+    register = client.get(reverse("verfahren:umsetzung")).content.decode()
+    assert f'href="{reverse("mandatare:detail", args=[mandat.pk])}"' in register and "dagegen" in register
+    daten = json.loads(client.get(reverse("verfahren:umsetzung_json")).content)
+    eintrag = daten["register"][0]["rechenschaft"][0]
+    assert eintrag["mandat"] == mandat.pk and eintrag["stimme"] == "dagegen" and eintrag["sitzung_am"] == "2026-09-01"
+
+
+def test_gp065_ohne_rechenschaft_keine_karte(client, ordnung):  # noqa: F811
+    from verfahren.test_vollzug import angenommenen_antrag
+
+    antrag, _ = angenommenen_antrag(ordnung)
+    assert 'id="rechenschaft"' not in client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()

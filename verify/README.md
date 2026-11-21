@@ -65,9 +65,6 @@ als JSON ohne Leerzeichen (UTF-8), darüber SHA-256. Bei der Zustimmungswahl je 
 `["bewerbung", Platz in der Einreichreihenfolge, Nummer, zurückgezogen]` und je Zustimmung
 `["zustimmung", Pseudonym, Bewerbung, zurückgenommen]`.
 
-Unabhängig von jedem Siegel gilt: Mehr Stimmen als Stimmberechtigte zählt das Skript nicht aus, es
-endet mit `FEHLER`.
-
 Die Plattform macht dieselbe Gegenprobe, bevor sie ein Ergebnis feststellt: Stimmzettel gegen
 Stimmregister, Zahl der Stimmberechtigten und Stimm-Ereignisse. Fehlt zu einem Stimmzettel die Zeile
 im Stimmregister oder führt die Audit-Spur nicht so viele Stimm-Ereignisse wie Stimmzettel, stellt
@@ -75,7 +72,28 @@ die Plattform kein Ergebnis fest; der Antrag bleibt in der Abstimmung stehen, un
 Ereignis `auszaehlung_angehalten` in der Audit-Spur (nur Zahlen, keine Pseudonyme). Mehr Stimmen als
 Stimmberechtigte halten die Feststellung nicht an: Die Plattform stellt das Ergebnis fest und weist die
 Abweichung im Ereignis `phasenwechsel` des Ergebnisses aus (`abweichungen`:
-`mehr_stimmen_als_stimmberechtigte`); das Skript endet an einem solchen Export mit `FEHLER`.
+`mehr_stimmen_als_stimmberechtigte`).
+
+### Mehr Stimmen als Stimmberechtigte
+
+Die Zahl der Stimmberechtigten wird bei Abstimmungsbeginn festgestellt. Wer am selben Tag erst nach
+dieser Zählung stimmberechtigt wird, darf stimmen, steht aber nicht in der Zahl. Stimmen dann genug
+Mitglieder, stehen mehr Stimmen in der Liste als Stimmberechtigte. Das Skript zählt einen solchen Export
+voll aus, macht alle Vergleiche mit der Audit-Spur und gibt die Abweichung als Hinweis aus:
+
+| Ausgabe | Bedeutung |
+|---|---|
+| `abweichung` | `mehr_stimmen_als_stimmberechtigte (n bei m)`: n Menschen haben gestimmt, m Stimmberechtigte wurden festgestellt. Fehlt die Zeile, gibt es keine Überzahl |
+| `abweichung_ausgewiesen` | `True`: Das Ereignis `phasenwechsel` des Ergebnisses nennt die Abweichung selbst unter `abweichungen`. `False`: Der Export trägt kein Siegel der Stimmliste, es gibt nichts zu vergleichen |
+| `hinweis` | derselbe Befund als Satz |
+
+Gezählt werden Menschen: bei Sachfragen die Stimmen, bei der Zustimmungswahl die Pseudonyme mit
+mindestens einer nicht zurückgenommenen Zustimmung, auch zu einer zurückgezogenen Bewerbung.
+
+Mit `FEHLER` endet das Skript, wenn der Export das Siegel der Stimmliste trägt und das Ereignis des
+Ergebnisses die Überzahl **nicht** nennt: Dann gab es sie bei der Feststellung nicht; die Stimmen kamen
+danach dazu, oder die Zahl der Stimmberechtigten wurde verändert. Ein Export ohne Audit-Spur oder von
+vor diesem Siegel wird gerechnet wie bisher, mit Hinweis und ohne `FEHLER`.
 
 Abstimmungen aus der Zeit vor einem dieser Siegel tragen die Felder im Ereignis nicht. Das Skript
 rechnet sie wie bisher und gibt `False` aus: nicht versiegelt, kein Fehler.

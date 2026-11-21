@@ -806,7 +806,7 @@ class Entwurf(models.Model):
                     runde=self.runde,
                     ergebnis=Pruefung.Ergebnis.UNGEPRUEFT,  # niemand hat geprüft (GP-032)
                     begruendung=(
-                        "Die Prüfung blieb aus:In Gruppe 2 war binnen der Prüffrist von "
+                        "Die Prüfung blieb aus: In Gruppe 2 war binnen der Prüffrist von "
                         f"{antrag.policy().pruefung_tage} Tagen keine Rolle besetzt. Der Vorschlag "
                         "geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
                         "(§ 5 Abs 12: Untätigkeit hemmt nie)."

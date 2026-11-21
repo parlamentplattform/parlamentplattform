@@ -234,3 +234,43 @@ def test_gp077_reihung_zeit_zeigt_chronologisch_bei_gleicher_auswertung(client, 
         return html.split('class="meta stand"')[1].split("</p>")[0]
 
     assert stand(zeit) == stand(engagement), "die Auswertung bleibt unverändert"
+
+
+# ── GP-084: Beanstanden mit Stundengrenze je Konto, nie an Personenwahlen ────────────────────
+
+
+def test_gp084_beanstanden_ueber_der_stundengrenze_legt_nichts_an(client, ordnung, monkeypatch):  # noqa: F811
+    from types import SimpleNamespace
+
+    from verfahren import views_aktionen
+    from verfahren.models import Beanstandung
+    from verfahren.test_views_aktionen import ANTRAG
+
+    monkeypatch.setattr(views_aktionen, "BEANSTANDUNGEN_JE_STUNDE", 2, raising=False)
+    # EINE Stunde für alle Versuche — der Test hängt nicht an der Uhrzeit
+    monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: 1_000_000 * 3600.0 + 60))
+    from verfahren.models import antrag_einbringen
+
+    antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
+    client.force_login(mitglied_anlegen("bernd"))
+    url = reverse("verfahren:beanstanden", args=[antrag.pk])
+    for i in range(2):
+        assert client.post(url, {"text": f"Die Zahl {i} stimmt nicht."}).status_code == 302
+    assert Beanstandung.objects.count() == 2
+    antwort = client.post(url, {"text": "Noch eine."}, follow=True)
+    assert Beanstandung.objects.count() == 2, "der Versuch über der Grenze legt nichts an"
+    assert "Höchstens 2 Beanstandungen je Stunde" in antwort.content.decode()
+
+
+@pytest.mark.parametrize("art", ["mandat", "vertrauensfrage"])
+def test_gp084_an_einer_personenwahl_entsteht_keine_beanstandung(client, ordnung, art):  # noqa: F811
+    from verfahren.models import Antrag, AuditEintrag, Beanstandung, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG
+
+    antrag = antrag_einbringen(mitglied_anlegen("autorin"), **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(art=art)
+    vorher = AuditEintrag.objects.count()
+    client.force_login(mitglied_anlegen("bernd"))
+    antwort = client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Falsch."})
+    assert antwort.status_code == 404
+    assert Beanstandung.objects.count() == 0 and AuditEintrag.objects.count() == vorher

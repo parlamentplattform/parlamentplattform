@@ -15,7 +15,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import OperationalError, transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -88,6 +88,10 @@ from verfahren.teilnahme import (
 )
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
+
+#: Beanstandungen je Konto und Kalenderstunde (GP-084) — Registerwert folgt („beanstandung-je-stunde“);
+#: bis dahin gilt diese Vorgabe. Großzügig gewählt: Sie trifft das Fluten, nicht das Mitreden.
+BEANSTANDUNGEN_JE_STUNDE = 10
 
 def nebenwohnsitz_zaehlt() -> bool:
     """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
@@ -996,6 +1000,10 @@ def beanstanden(request, pk):
     from verfahren.views import _lesbarer_lauf
 
     antrag = get_object_or_404(Antrag, pk=pk)
+    if antrag.art in (Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE):
+        # Über Menschen rechnet keine Maschine (FB-F4): Bei Personenwahlen gibt es keine Einschätzung,
+        # also nichts zu beanstanden — kein unsichtbarer Datensatz, keine falsche Rückmeldung (GP-084).
+        raise Http404
     sperre = _mitwirkung_gesperrt(request)
     if sperre:
         return sperre
@@ -1017,6 +1025,18 @@ def beanstanden(request, pk):
         except (ValueError, KILauf.DoesNotExist):
             messages.error(request, _("Der gewählte Lauf gehört nicht zu dieser öffentlichen Einschätzung."))
             return _zurueck_zum_antrag(request, antrag)
+    # Drossel je Konto und Stunde, wie beim Bedeutungsvergleich: Jeder Vermerk bleibt dauerhaft
+    # öffentlich stehen — ein einzelnes Konto soll die Zone nicht füllen können (GP-084).
+    from mitglieder.botschutz import drossel_zuviel
+
+    grenze = max(0, zahl("beanstandung-je-stunde", BEANSTANDUNGEN_JE_STUNDE))
+    if drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
+        messages.error(request, ngettext(
+            "Höchstens eine Beanstandung je Stunde — bitte später noch einmal.",
+            "Höchstens %(n)s Beanstandungen je Stunde — bitte später noch einmal.",
+            grenze,
+        ) % {"n": grenze})
+        return _zurueck_zum_antrag(request, antrag)
     with transaction.atomic():
         beanstandung = Beanstandung.objects.create(antrag=antrag, lauf=lauf, mitglied=request.user, text=text)
         AuditEintrag.anhaengen(

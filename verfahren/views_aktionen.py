@@ -44,6 +44,7 @@ from verfahren.hinweise import (
     kachel_feld,
     mitwirkungssperre,
     sicherer_pfad,
+    unerreichbare_schwellen,
     weiter_mit_hinweis,
     weiter_ohne_hinweis,
 )
@@ -293,6 +294,8 @@ def einbringen(request):
             "gegenueberstellung_token": vergleichsangebot, "gegenueberstellung": vergleich,
             "vorschau_wartezeit": max(0, zahl("aehnlichkeit-vorschau-wartezeit-ms", 800)),
             "mindestzeichen": max(1, zahl("aehnlichkeit-vorschau-mindestzeichen", 40)),
+            # Z-5 (E-05): Hinweis vor dem Absenden, wo die Schwelle im Ortskreis nicht erreichbar ist
+            "schwelle_hinweise": unerreichbare_schwellen(request.user, ordnung, request.POST.get("art") or "sache"),
         })
 
     if request.method == "POST":

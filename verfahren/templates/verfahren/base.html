@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>{% for m in messages %}{% if forloop.first %}{{ m }} · {% endif %}{% endfor %}{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
+<title>{% block titelvorsatz %}{% endblock %}{% for m in messages %}{% if forloop.first %}{{ m }} · {% endif %}{% endfor %}{% block titel %}ParlamentPlattform{% endblock %} · DDÖ</title>
 {% comment %}App-Manifest (Teil 7): „Zum Startbildschirm“ am Handy und „App installieren“ im Desktop-Browser
 öffnen das Parlament bildschirmfüllend ohne Browserrahmen. Bewusst OHNE Service Worker: kein Offline-Versprechen
 und keine Cache-Falle bei Fristen — jede Ansicht kommt frisch vom Server. Farben = Tokens --papier und --deep
@@ -323,6 +323,10 @@ html.js .zu-ohne-js{display:none}
 .gruppe{padding:14px 0 4px;margin:0;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--deep);opacity:.8;border-bottom:1px solid var(--line)}
 .gruppe:first-child{padding-top:4px}
 .gruppe-zahl{letter-spacing:.04em}
+.formularfehler{border:1px solid var(--warn-rand);border-radius:12px;padding:10px 14px;margin:0 0 14px;background:var(--warn-grund);color:var(--warn-text)}
+.formularfehler p{margin:0 0 4px}
+.formularfehler ul{margin:0;padding-left:18px}
+.formularfehler a{display:inline-flex;align-items:center;min-height:24px}
 .gruppe-zahl a,.feld-kopf .bk a{color:inherit}
 .ast-liste{margin-top:8px}
 .gruppe-mehr,.gemerkt-link{margin:0;padding:4px 0;font-size:13px}

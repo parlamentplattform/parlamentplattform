@@ -49,7 +49,7 @@ def test_dieselbe_anforderung_zur_selben_fassung_erzeugt_einen_lauf(client, ordn
 
 
 def test_ueber_der_stundengrenze_entsteht_kein_lauf(client, ordnung, attrappe, monkeypatch):  # noqa: F811
-    monkeypatch.setattr(views, 'GREMIEN_KI_JE_STUNDE', 2)
+    monkeypatch.setattr(views, '_ki_je_stunde', lambda: 2)
     antrag, er, aktion = _fenster(client, ordnung)
     from gremien.models import EntwurfsFassung
 
@@ -75,8 +75,25 @@ def test_auch_der_koordinationsrat_fragt_die_zukunftswerkstatt_nur_einmal_je_sta
     client.post(ziel, {'aktion': 'zukunftswerkstatt'})
     client.post(ziel, {'aktion': 'zukunftswerkstatt'})
     assert KILauf.objects.count() == vorher + 1
-    monkeypatch.setattr(views, 'GREMIEN_KI_JE_STUNDE', 1)
+    monkeypatch.setattr(views, '_ki_je_stunde', lambda: 1)
     type(test).objects.filter(pk=test.pk).update(hypothese='Eine neue Hypothese.')  # ein neuer Stand
     antwort = client.post(ziel, {'aktion': 'zukunftswerkstatt'}, follow=True)
     assert KILauf.objects.count() == vorher + 1  # neuer Stand, aber die Stundengrenze ist erreicht
     assert 'Stundengrenze' in antwort.content.decode()
+
+
+def test_die_stundengrenze_kommt_aus_dem_register_und_sperrt_nie_ganz():
+    """Gegenlesen: Die Grenze ist eine Stellgröße (`gremien-ki-je-stunde`); ohne Registereintrag gilt der
+    eingebaute Zielwert. Ein Wert unter 1 sperrte die Räte ganz aus — die Lesestelle klammert auf 1."""
+    from parameter.models import Parameter
+
+    Parameter.objects.filter(schluessel='gremien-ki-je-stunde').delete()
+    assert views._ki_je_stunde() == views.GREMIEN_KI_JE_STUNDE
+    eintrag = Parameter.objects.create(
+        schluessel='gremien-ki-je-stunde', wert='3', beschreibung='KI-Anfragen je Konto und Stunde in den Räten.',
+        quelle='GP-046',
+    )
+    assert views._ki_je_stunde() == 3
+    for wert in ('0', '-5'):
+        Parameter.objects.filter(pk=eintrag.pk).update(wert=wert)
+        assert views._ki_je_stunde() == 1

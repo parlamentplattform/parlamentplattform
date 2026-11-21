@@ -97,9 +97,17 @@ def _jahr_pruefen(jahr: int) -> None:
 
 
 #: Wie oft ein Konto in den Räten je Stunde die Zukunftswerkstatt fragen darf — Einschätzung im
-#: Entwurfsfenster und Einschätzung eines Parametertests zusammen (GP-046). Registerwert folgt
-#: (vorgeschlagen: `gremien-ki-je-stunde`); bis dahin hier, großzügig gewählt.
+#: Entwurfsfenster und Einschätzung eines Parametertests zusammen (GP-046). Der eingebaute Zielwert;
+#: gelesen wird der Registerwert `gremien-ki-je-stunde` (`_ki_je_stunde`), sobald das Register ihn führt.
 GREMIEN_KI_JE_STUNDE = 10
+
+
+def _ki_je_stunde() -> int:
+    """Die Stundengrenze der Gremienaufrufe aus dem Register, ersatzweise der eingebaute Zielwert.
+
+    Nach unten geklammert (GP-021): Mit 0 oder einem negativen Wert fragte kein Rat die
+    Zukunftswerkstatt mehr — eine Drossel bremst, sie sperrt nicht."""
+    return max(1, _register("gremien-ki-je-stunde", GREMIEN_KI_JE_STUNDE))
 
 
 def _ki_vorhanden(zweck: str, eingabe: str, auftrag, antrag=None):
@@ -123,13 +131,14 @@ def _ki_gedrosselt(request) -> bool:
 
     from mitglieder.botschutz import drossel_zuviel
 
-    if not drossel_zuviel(None, "gremien_ki", GREMIEN_KI_JE_STUNDE, kennung=f"konto:{request.user.pk}"):
+    grenze = _ki_je_stunde()
+    if not drossel_zuviel(None, "gremien_ki", grenze, kennung=f"konto:{request.user.pk}"):
         return False
     ende = datetime.fromtimestamp((int(time.time() // 3600) + 1) * 3600, tz=timezone.get_current_timezone())
     messages.error(
         request,
         _("Stundengrenze erreicht — höchstens %(n)d Anfragen an die Zukunftswerkstatt je Stunde und Konto; wieder ab %(zeit)s Uhr.")
-        % {"n": GREMIEN_KI_JE_STUNDE, "zeit": formats.time_format(ende, "H:i")},
+        % {"n": grenze, "zeit": formats.time_format(ende, "H:i")},
     )
     return True
 

@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import pytest
 from django.core import mail
+from django.core.serializers.json import DjangoJSONEncoder
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
@@ -883,6 +884,7 @@ DIREKT_ORDNER = {
     "GremienBeschluss.angelegt_von": "angelegte_beschluesse",
     "GremienStimme.mitglied": "gremienstimmen",
     "Fachliste.mitglied": "fachliste",
+    "FachlistenEinwilligung.mitglied": "fachlisten_einwilligungen",
     "KILauf.angefordert_von": "ki_laeufe",
     "KIAuftrag.angefordert_von": "ki_auftraege",
     "Vergleichsanfrage.angefordert_von": "private_textvergleiche",
@@ -1268,6 +1270,8 @@ MITTELBAR_ORDNER = {
     "Ratsinitiative > Ratsmeldung.initiative": "mandate.gemeindearbeit.ratsinitiativen.meldungen",
     "Gemeindeprojekt > Gemeindeprojektstand.projekt": "mandate.gemeindearbeit.projekte.staende",
     "Fachliste > Fachliste_fachgebiete.fachliste": "fachliste.fachgebiete",
+    # GP-025: Vermerke, die einer eigenen Rolle die Umsetzung zuweisen — Angabe über die Person
+    "Rolle > Umsetzungsvermerk.rolle": "rollen.umsetzungsvermerke",
     "KILauf > EntwurfsBeitrag.ki_lauf": "entwurfsbeitraege.ki_lauf",
     "KILauf > Vergleichsanfrage.lauf": "private_textvergleiche.lauf",
 }
@@ -1299,6 +1303,8 @@ MITTELBAR_AUSNAHMEN = {
         "Aussetzung.beschluss", "GremienStimme.beschluss", "ParameterTest.beschluss",
         "ParameterTest.einfuehrung_beschluss", "Pruefung.beschluss", "Pruefung.korat_beschluss",
         "Regelpruefung.beschluss", "Ueberlastungsmeldung.beschluss", "Vertrauensfrage.sperre_beschluss",
+        # GP-025: ohne Verfasser am Vermerk; weist er einer eigenen Rolle die Umsetzung zu, steht er unter rollen
+        "Umsetzungsvermerk.beschluss",
     )},
     **{kind: _KI for kind in (
         "KILauf > Beanstandung.lauf", "KILauf > KIAuftrag.lauf", "KILauf > KIAuftrag.ursprung",
@@ -1410,3 +1416,43 @@ def test_profilfehler_steht_oben_als_alert_mit_sprungverweis(client):
     alarm = hauptteil.split('role="alert"', 1)
     assert len(alarm) == 2 and '<form' not in alarm[0]  # vor dem ersten Formular
     assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]
+
+
+# --- Export: Einwilligung zur Fachliste, Umsetzungsvermerke, Mandatsordner (GP-009, GP-025, GP-089) -----
+
+
+def test_export_fuehrt_einwilligungen_umsetzungsvermerke_der_eigenen_rolle_und_den_mandatsordner():
+    from gremien.models import FachlistenEinwilligung, GremienBeschluss, Gremium, Rolle, Umsetzungsvermerk
+    from mandatare.gemeindeexport import mandat_exportieren, mandate_fuer_export
+    from mandatare.models import Mandat
+    from mitglieder.profil import daten_export
+
+    anna, bert = mitglied_anlegen('anna'), mitglied_anlegen('bert')
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.widerrufen(anna, mit_eintrag=False)
+    FachlistenEinwilligung.erklaeren(anna)
+    FachlistenEinwilligung.erklaeren(bert)
+    ende = timezone.localdate() + timedelta(days=300)
+    eigene = Rolle.objects.create(mitglied=anna, gremium=Gremium.KOORDINATIONSRAT, endet_am=ende)
+    fremde = Rolle.objects.create(mitglied=bert, gremium=Gremium.KOORDINATIONSRAT, endet_am=ende)
+    beschluss = GremienBeschluss.objects.create(
+        gremium=Gremium.KOORDINATIONSRAT, gegenstand='Probe',
+        optionen=[{'wert': 'dafuer', 'name': 'dafür'}, {'wert': 'dagegen', 'name': 'dagegen'}], angelegt_von=bert,
+    )
+    Umsetzungsvermerk.objects.create(beschluss=beschluss, nummer=1, text='Anna übernimmt', rolle=eigene)
+    Umsetzungsvermerk.objects.create(beschluss=beschluss, nummer=2, text='Bert übernimmt', rolle=fremde)
+    Mandat.objects.create(mitglied=anna, bezeichnung='Gemeinderätin', gebiet='Eferding')
+
+    daten = json.loads(json.dumps(daten_export(anna), cls=DjangoJSONEncoder))
+    einwilligungen = daten['fachlisten_einwilligungen']
+    assert len(einwilligungen) == 2
+    assert einwilligungen[0]['widerrufen_am'] is not None and einwilligungen[1]['widerrufen_am'] is None
+    vermerke = daten['rollen'][0]['umsetzungsvermerke']
+    assert [(v['nummer'], v['text']) for v in vermerke] == [(1, 'Anna übernimmt')]
+    assert vermerke[0]['beschluss'] == {'gremium': beschluss.gremium, 'nummer': beschluss.nummer}
+    assert 'Bert übernimmt' not in json.dumps(daten, ensure_ascii=False)  # nichts über Dritte
+    erwartet = json.loads(json.dumps([mandat_exportieren(md) for md in mandate_fuer_export(anna)], cls=DjangoJSONEncoder))
+    assert daten['mandate'] == erwartet
+    for alt in ('mandat', 'bezeichnung', 'vertrauensfragen', 'gemeindearbeit', 'aufgaben', 'berichte', 'rechenschaft',
+                'sitzungen', 'foto_typ', 'vertretung_beendet_am'):
+        assert alt in daten['mandate'][0]  # Schlüssel bis 0.114.0 bleiben

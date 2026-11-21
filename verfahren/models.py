@@ -472,7 +472,7 @@ class Antrag(models.Model):
 
             anfangs = self.phase
             for beschluss_id, frist in GremienBeschluss.faellige_zu_antrag(self.pk, jetzt):
-                if self._schritt(frist, vorlauf=True):
+                if self._schritt(frist, vorlauf=True, lauf=jetzt):
                     return True
                 stand = GremienBeschluss.zur_frist_abschliessen(beschluss_id, jetzt)
                 if stand == "gesperrt":
@@ -498,13 +498,16 @@ class Antrag(models.Model):
             frisch.stimmberechtigung_stichtag,
         )
 
-    def _schritt(self, jetzt, vorlauf: bool = False) -> bool:
+    def _schritt(self, jetzt, vorlauf: bool = False, lauf=None) -> bool:
         """Höchstens ein fälliger Übergang dieses Antrags (Entwurfsschleife oder Regelübergang).
 
         `vorlauf` rechnet auf einen früheren Zeitpunkt zurück — die Frist eines Gremienbeschlusses,
         der danach ausgewertet wird (GP-004). Dann zählt nur, was VOR diesem Zeitpunkt durch
         Fristablauf fällig war: Was erst mit dem Augenblick der Zählung wirkt (Schwelle erreicht,
-        Anlegen eines Prüfbeschlusses), gehört nicht in den Vorlauf und wird nie zurückdatiert."""
+        Anlegen eines Prüfbeschlusses), gehört nicht in den Vorlauf und wird nie zurückdatiert.
+
+        `lauf` ist der Zeitpunkt des Laufs selbst (ohne Angabe `jetzt`): Zu ihm wird ein Ergebnis
+        veröffentlicht, auch wenn der Vorlauf auf eine frühere Frist zurückrechnet (GP-106)."""
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
         # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung
@@ -660,7 +663,9 @@ class Antrag(models.Model):
             # Veröffentlichung des Ergebnisses ein, also zum Fristzeitpunkt, nicht zum Jobzeitpunkt.
             from mandatare.models import vertrauensfrage_ergebnis
 
-            vertrauensfrage_ergebnis(vf, uebergang.wirksam_ab)
+            # Wirkungen ab der Sollzeit; veröffentlicht ist mit diesem Lauf — ab ihm zählt die
+            # Anfechtungsfrist (lit h, GP-106). Ausdrücklich übergeben statt dort von der Uhr gelesen.
+            vertrauensfrage_ergebnis(vf, uebergang.wirksam_ab, veroeffentlicht_am=lauf or jetzt)
         return True
 
     def _vertrauensfrage(self):

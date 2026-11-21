@@ -108,7 +108,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
       </div>
     </form>
     {% else %}
-    <p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>
+    {% if request.gemeindekonto %}<p class="hilfe chat-hinweis">{% include "verfahren/_nur_partei.html" %}</p>{% else %}<p class="hilfe chat-hinweis">{% translate "Mitlesen ist offen — zum Mitreden bitte" %} <a href="{% url 'mitglieder:login' %}">{% translate "anmelden" %}</a>.</p>{% endif %}
     {% endif %}
   {% elif chat.ruht %}
     <p class="hilfe chat-hinweis">{% translate "Bis der Vorschlag vorliegt, wird hier nicht geschrieben." %}</p>

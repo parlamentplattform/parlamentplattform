@@ -37,7 +37,7 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
     {% if z.frist_abgelaufen %}
       {# GP-175: Frist um, Fortschreibung steht aus — kein Knopf, der nichts mehr bewirken kann #}
     {% elif z.stat.typ == "abstimmung" and not user.is_authenticated %}
-      <a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>
+      {% if request.gemeindekonto %}<span class="erk">{% include "verfahren/_nur_partei.html" with kurz=True %}</span>{% else %}<a class="knopf" href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a>{% endif %}
     {% elif z.stat.typ == "abstimmung" and z.antrag.art == "mandat" %}
       <a class="knopf gold" href="{% url 'verfahren:antrag' z.antrag.pk %}#bewerbungen">{% translate "Zur Wahl ›" %}</a>
     {% elif z.stat.typ == "abstimmung" and z.sperre %}

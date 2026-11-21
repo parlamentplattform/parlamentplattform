@@ -1,0 +1,5 @@
+{% load i18n %}{% comment %}
+GP-078: Ein angemeldetes Gemeindekonto ist auf Parteiseiten weder Gast noch Mitglied — statt „bitte anmelden“
+steht, dass die Handlung Parteimitgliedern vorbehalten ist, mit dem Weg zum eigenen Gemeindekonto.
+Mit kurz=True nur der Satz (Kachel, Zeile); der Weg steht dann im Band.
+{% endcomment %}<span class="nur-partei">{% translate "Nur für Parteimitglieder" %}{% if not kurz %} — <a href="{% url 'gemeinde:konto' %}">{% translate "zu Ihrem Gemeindekonto" %}</a>{% endif %}</span>

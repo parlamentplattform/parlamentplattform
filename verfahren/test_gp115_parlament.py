@@ -373,3 +373,60 @@ def test_gp191_umsetzungsregister_mit_400_beschluessen_blaettert(client, ordnung
     # Der Filter nach Stand bleibt beim Blättern erhalten
     gefiltert = client.get(reverse("verfahren:umsetzung") + "?status=offen").content.decode()
     assert 'href="?status=offen&amp;seite=2"' in gefiltert
+
+
+# ── GP-078 (Teil verfahren): Ein Gemeindekonto ist kein Gast ───────────────────────────────────
+
+
+def _gemeindekonto():
+    from mitglieder.models import Mitglied
+
+    return Mitglied.objects.create_user(
+        "einwohnerin-gp078@example.org", email="einwohnerin-gp078@example.org", parteikonto=False,
+    )
+
+
+def test_gp078_gemeindekonto_im_parlament_weder_gast_noch_anmeldeverweis(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 2)
+    Antrag.objects.filter(phase="abstimmung").update(hervorgehoben=True)
+    login = reverse("mitglieder:login")
+    # Gegenprobe: Ein Gast wird als Gast angesprochen und zur Anmeldung geführt
+    gast = client.get(reverse("verfahren:parlament")).content.decode()
+    assert "als Gast" in gast and f'href="{login}' in gast
+    client.force_login(_gemeindekonto())
+    for adresse in (reverse("verfahren:parlament"), reverse("verfahren:antrag", args=[vorlage.pk])):
+        html = client.get(adresse).content.decode()
+        assert "als Gast" not in html, adresse
+        assert f'href="{login}' not in html, adresse
+        assert f'href="{reverse("gemeinde:konto")}"' in html, adresse
+    tabs = client.get(reverse("verfahren:parlament")).content.decode().split('class="tabs"')[1].split("</nav>")[0]
+    assert reverse("verfahren:einbringen") not in tabs  # kein Plus, das in die Anmeldung führt
+
+
+# ── Z-5 (E-05): Hinweis beim Einbringen, wenn die Schwelle im Ortskreis nicht erreichbar ist ───
+
+
+def test_z5_hinweis_wenn_die_schwelle_im_ortskreis_nicht_erreichbar_ist(client, ordnung):  # noqa: F811
+    from mitglieder.models import Identitaetsstufe, Mitglied
+    from verfahren.test_oertliche_teilnahme import menschen as menschen_fixture
+
+    leute, _ort, _fremdort = menschen_fixture.__wrapped__()
+    client.force_login(leute["autor"])
+    # Gleichort: die einbringende Person und eine zweite, ungeprüfte — unterstützen kann nur eine; Schwelle 2
+    Mitglied.objects.filter(pk=leute["ort"].pk).update(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)
+    seite = client.get(reverse("verfahren:einbringen")).content.decode()
+    hinweis = seite.split('id="schwelle-hinweis"')[1].split("</div>")[0]
+    assert "Gleichort" in hinweis and "Eferding" in hinweis  # Gemeinde und Bezirk
+    assert "Oberösterreich" not in hinweis  # im Land unterstützt auch die Person aus Schärding
+    assert "2 Unterstützungen" in hinweis
+    # Ein Hinweis, keine Sperre: Einbringen bleibt möglich
+    antwort = client.post(reverse("verfahren:einbringen"), {**ANTRAG, "ebene": "gemeinde", "art": "sache", "trotzdem": "1"})
+    assert antwort.status_code == 302
+    # Mit zwei Unterstützungsberechtigten ist die Schwelle erreichbar: kein Hinweis
+    Mitglied.objects.filter(pk=leute["ort"].pk).update(identitaetsstufe=Identitaetsstufe.GEPRUEFT)
+    assert 'id="schwelle-hinweis"' not in client.get(reverse("verfahren:einbringen")).content.decode()
+
+
+def test_z5_kein_hinweis_ohne_oertliche_wahl(client, ordnung):  # noqa: F811
+    client.force_login(mitglied_anlegen("bundesperson"))
+    assert 'id="schwelle-hinweis"' not in client.get(reverse("verfahren:einbringen")).content.decode()

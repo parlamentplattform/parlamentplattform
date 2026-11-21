@@ -5,7 +5,7 @@
 {% block anstoss %}{% endblock %}
 {% block fuss %}{% endblock %}
 {% block bodyklasse %}voll{% if not user.is_authenticated %} mit-band{% endif %}{% endblock %}
-{% block band %}{{ block.super }}{% if not user.is_authenticated %}<div class="band gast"><span class="band-text">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}</span><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% endif %}{% endblock %}
+{% block band %}{{ block.super }}{% if request.gemeindekonto %}<div class="band gast"><span class="band-text">{% translate "Mit dem Gemeindekonto lesen Sie das Parlament mit — mitentscheiden können Parteimitglieder." %}</span><a href="{% url 'gemeinde:konto' %}">{% translate "Gemeindekonto" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% elif not user.is_authenticated %}<div class="band gast"><span class="band-text">{% translate "Sie sehen das Parlament als Gast — mitlesen ist offen, mitentscheiden können Mitglieder." %}</span><a href="{% url 'mitglieder:login' %}">{% translate "Anmelden" %}</a> · <a href="{% url 'mitglieder:mitgliedschaft' %}">{% translate "Mitglied werden" %}</a></div>{% endif %}{% endblock %}
 {% block inhalt %}
 {% comment %}Fokus-Modus (Teil 7): ?fokus=<feld> dehnt ein Feld serverseitig auf das ganze Raster (ohne JavaScript);
 mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her, der Zustand liegt in sessionStorage.{% endcomment %}

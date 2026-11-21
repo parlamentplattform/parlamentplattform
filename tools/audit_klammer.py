@@ -48,6 +48,10 @@ VERMITTLER: dict[str, str] = {
 
 # Nicht gefasste Stellen, die keine gemeinsame Transaktion brauchen — je ein Satz, warum.
 BEGRUENDET: dict[str, str] = {
+    "anstoss/views.py:_ausfuhr_vermerken": (
+        "Die Ausfuhr der Anstöße liest nur; der Eintrag ist ihre einzige Schreibhandlung und steht "
+        "vor der Antwort, sodass ohne Eintrag keine Datei hinausgeht."
+    ),
     "faktenbasis/ris_historie.py:abrufen": (
         "Die beiden ungefassten Einträge sind die einzige Schreibhandlung ihres Zweigs (leere "
         "Trefferseite, gescheiterter Abruf); der Fehlereintrag muss gerade die Rücknahme der "

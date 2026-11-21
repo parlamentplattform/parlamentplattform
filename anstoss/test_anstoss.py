@@ -254,3 +254,84 @@ def test_drosselfall_hat_einen_eigenen_text(client):
     assert teil["HX-Trigger"] == "anstoss-drossel" and "Über diese Verbindung" in teil.content.decode()
     beschreibung = Parameter.objects.get(schluessel="anstoss-tagesgrenze").beschreibung
     assert "Tag" in beschreibung and "Stunde" in beschreibung and "Verbindung" in beschreibung
+
+
+def _audit(typ):
+    from verfahren.models import AuditEintrag
+
+    return [e.ereignis for e in AuditEintrag.objects.order_by("lfd") if e.ereignis.get("typ") == typ]
+
+
+def test_jede_zeile_hat_ein_vermerkfeld_und_der_vermerk_wird_gespeichert(client, django_user_model):
+    """GP-133 (RVA-32, RVB-11): Die Verwaltung hält fest, was aus einem Anstoß wurde."""
+    erster = Anstoss.objects.create(text="Erster.", seite="/")
+    zweiter = Anstoss.objects.create(text="Zweiter.", seite="/", status="erledigt", vermerk="Schon erledigt.")
+    client.force_login(person(django_user_model, "admina", admin=True))
+    html = client.get(reverse("anstoss:verwaltung")).content.decode()
+    assert html.count('name="vermerk"') == 2
+    assert 'value="Schon erledigt."' in html
+    client.post(
+        reverse("anstoss:status", args=[erster.pk]),
+        {"status": "erledigt", "vermerk": "In 0.115 umgesetzt.", "weiter": "/verwaltung/anstoesse/"},
+    )
+    erster.refresh_from_db()
+    assert (erster.status, erster.vermerk) == ("erledigt", "In 0.115 umgesetzt.")
+    # Den Vermerk allein ändern, ohne den Status zu wechseln
+    client.post(reverse("anstoss:status", args=[zweiter.pk]), {"status": "erledigt", "vermerk": "Nachgetragen."})
+    zweiter.refresh_from_db()
+    assert (zweiter.status, zweiter.vermerk) == ("erledigt", "Nachgetragen.")
+
+
+def test_statuswechsel_schreibt_einen_audit_eintrag_ohne_vermerktext(client, django_user_model):
+    a = Anstoss.objects.create(text="Bitte prüfen.", seite="/")
+    admin = person(django_user_model, "admina", admin=True)
+    client.force_login(admin)
+    client.post(reverse("anstoss:status", args=[a.pk]), {"status": "gesichtet", "vermerk": "Name einer Person"})
+    eintraege = _audit("anstoss_status")
+    assert eintraege == [
+        {**eintraege[0], "typ": "anstoss_status", "anstoss": a.pk, "vorher": "neu", "status": "gesichtet",
+         "vermerk_geaendert": True, "durch": admin.pk}
+    ]
+    assert "Name einer Person" not in str(eintraege)
+    # Ein unbekannter Status ändert nichts und schreibt nichts
+    client.post(reverse("anstoss:status", args=[a.pk]), {"status": "gibtsnicht"})
+    assert len(_audit("anstoss_status")) == 1
+
+
+def test_scheitert_der_audit_eintrag_bleibt_der_anstoss_unveraendert(client, django_user_model, monkeypatch):
+    from verfahren.models import AuditEintrag
+
+    a = Anstoss.objects.create(text="Bitte prüfen.", seite="/")
+    client.force_login(person(django_user_model, "admina", admin=True))
+
+    def scheitert(*args, **kwargs):
+        raise RuntimeError("Kette nicht erreichbar")
+
+    monkeypatch.setattr(AuditEintrag, "anhaengen", scheitert)
+    client.raise_request_exception = False
+    antwort = client.post(reverse("anstoss:status", args=[a.pk]), {"status": "erledigt", "vermerk": "x"})
+    assert antwort.status_code == 500
+    a.refresh_from_db()
+    assert (a.status, a.vermerk) == ("neu", "")
+
+
+@pytest.mark.parametrize("name, format_", [("anstoss:export_csv", "csv"), ("anstoss:export_json", "json")])
+def test_ausfuhr_schreibt_einen_audit_eintrag_mit_zeilenzahl(client, django_user_model, name, format_):
+    for text in ("Eins.", "Zwei.", "Drei."):
+        Anstoss.objects.create(text=text, seite="/")
+    admin = person(django_user_model, "admina", admin=True)
+    client.force_login(admin)
+    assert client.get(reverse(name)).status_code == 200
+    eintraege = _audit("anstoss_ausfuhr")
+    assert len(eintraege) == 1
+    assert {k: eintraege[0][k] for k in ("format", "zeilen", "durch")} == {"format": format_, "zeilen": 3, "durch": admin.pk}
+
+
+def test_altbestand_ohne_vermerk_laesst_sich_bearbeiten(client, django_user_model):
+    """Anstöße von vor dieser Fassung haben einen leeren Vermerk und einen der drei Status."""
+    alt = Anstoss.objects.create(text="Alt.", seite="/", status="gesichtet")
+    client.force_login(person(django_user_model, "admina", admin=True))
+    assert 'name="vermerk"' in client.get(reverse("anstoss:verwaltung")).content.decode()
+    client.post(reverse("anstoss:status", args=[alt.pk]), {"status": "erledigt"})
+    alt.refresh_from_db()
+    assert (alt.status, alt.vermerk) == ("erledigt", "")

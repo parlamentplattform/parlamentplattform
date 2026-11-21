@@ -7,6 +7,7 @@ Anmeldepflicht. Die Verwaltungsansicht ist wie jede andere Seite übersetzbar
 
 import csv
 
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -19,6 +20,7 @@ from anstoss.models import Anstoss, AnstossStatus
 from mitglieder.botschutz import drossel_zuviel
 from mitglieder.verwaltung import nur_admins
 from parameter.models import zahl
+from verfahren.models import AuditEintrag
 
 # Zielwerte — gelesen wird das Register (anstoss-mindestabstand-sekunden, anstoss-tagesgrenze).
 MIN_ABSTAND_SEKUNDEN = 60
@@ -132,12 +134,28 @@ def verwaltung_liste(request):
 @nur_admins
 @require_POST
 def status_setzen(request, pk: int):
-    anstoss = get_object_or_404(Anstoss, pk=pk)
     status = request.POST.get("status", "")
     if status in AnstossStatus.values:
-        anstoss.status = status
-        anstoss.vermerk = (request.POST.get("vermerk") or anstoss.vermerk)[:300]
-        anstoss.save(update_fields=["status", "vermerk"])
+        with transaction.atomic():
+            anstoss = get_object_or_404(Anstoss.objects.select_for_update(), pk=pk)
+            vorher, alter_vermerk = anstoss.status, anstoss.vermerk
+            anstoss.status = status
+            anstoss.vermerk = (request.POST.get("vermerk") or "").strip()[:300] or alter_vermerk
+            if (anstoss.status, anstoss.vermerk) != (vorher, alter_vermerk):
+                anstoss.save(update_fields=["status", "vermerk"])
+                # GP-133: Status und Vermerk mit Spur, der Vermerktext selbst bleibt intern.
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "anstoss_status",
+                        "anstoss": anstoss.pk,
+                        "vorher": vorher,
+                        "status": anstoss.status,
+                        "vermerk_geaendert": anstoss.vermerk != alter_vermerk,
+                        "durch": request.user.pk,
+                    }
+                )
+    else:
+        get_object_or_404(Anstoss, pk=pk)
     weiter = request.POST.get("weiter") or ""
     if not weiter.startswith("/") or not url_has_allowed_host_and_scheme(weiter, allowed_hosts=None):
         return redirect("anstoss:verwaltung")
@@ -166,9 +184,17 @@ def export_csv(request):
         antwort, fieldnames=["nr", "erstellt", "seite", "status", "mitglied", "vermerk", "text"]
     )
     schreiber.writeheader()
-    for zeile in _zeilen():
+    zeilen = list(_zeilen())
+    for zeile in zeilen:
         schreiber.writerow({k: _zelle(v) for k, v in zeile.items()})
+    _ausfuhr_vermerken(request, "csv", len(zeilen))
     return antwort
+
+
+def _ausfuhr_vermerken(request, format_: str, zeilen: int) -> None:
+    """GP-133: Die Ausfuhr nennt Anzeigenamen — sie geschieht nicht ohne Spur. Der Eintrag ist die
+    einzige Schreibhandlung; scheitert er, geht keine Datei hinaus."""
+    AuditEintrag.anhaengen({"typ": "anstoss_ausfuhr", "format": format_, "zeilen": zeilen, "durch": request.user.pk})
 
 
 #: Zeichen, mit denen eine Tabellenkalkulation eine Zelle als Formel liest (GP-132).
@@ -184,9 +210,11 @@ def _zelle(wert):
 
 @nur_admins
 def export_json(request):
+    zeilen = list(_zeilen())
     antwort = JsonResponse(
-        {"anstoesse": list(_zeilen()), "exportiert_am": timezone.now().isoformat()},
+        {"anstoesse": zeilen, "exportiert_am": timezone.now().isoformat()},
         json_dumps_params={"ensure_ascii": False, "indent": 1},
     )
+    _ausfuhr_vermerken(request, "json", len(zeilen))
     antwort["Content-Disposition"] = 'attachment; filename="anstoesse.json"'
     return antwort

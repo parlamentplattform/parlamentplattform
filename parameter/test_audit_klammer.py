@@ -32,7 +32,7 @@ def test_register_uebersicht_und_anstoss_sind_selbst_gefasst():
         s for s in audit_klammer.stellen() if s.datei.split("/")[0] in {"parameter", "uebersicht", "anstoss", "plattform_core"}
     ]
     assert eigene, "die Registerverwaltung schreibt Audit-Einträge"
-    assert {s.einstufung for s in eigene} <= {"atomic", "aufrufer"}
+    assert {s.einstufung for s in eigene} <= {"atomic", "aufrufer", "begruendet"}
 
 
 def _baum(tmp_path, quelltext: str):

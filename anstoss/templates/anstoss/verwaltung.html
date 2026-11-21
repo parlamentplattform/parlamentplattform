@@ -38,9 +38,11 @@ Zur gemeinsamen Auswertung stehen die Exporte bereit.{% endblocktranslate %}
     <td data-label="{% translate 'Von' %}">{% if a.nutzer %}{{ a.nutzer.anzeigename }}{% else %}<span class="leer">{% translate "anonym" %}</span>{% endif %}</td>
     <td data-label="{% translate 'Status' %}"><span class="badge{% if a.status != 'neu' %} badge--hell{% endif %}">{{ a.get_status_display }}</span></td>
     <td data-label="">
-      <form method="post" action="{% url 'anstoss:status' a.pk %}" style="display:flex;gap:6px;flex-wrap:wrap">
+      <form method="post" action="{% url 'anstoss:status' a.pk %}" class="stimmzeile">
         {% csrf_token %}
         <input type="hidden" name="weiter" value="{{ request.get_full_path }}">
+        <label class="erk">{% translate "Vermerk" %} <input type="text" name="vermerk" maxlength="300" value="{{ a.vermerk }}"></label>
+        <button class="btn-linie" name="status" value="{{ a.status }}">{% translate "Vermerk speichern" %}</button>
         {% if a.status == "neu" %}<button class="btn-linie" name="status" value="gesichtet">{% translate "gesichtet" %}</button>{% endif %}
         {% if a.status != "erledigt" %}<button class="btn-linie" name="status" value="erledigt">{% translate "erledigt" %}</button>
         {% else %}<button class="btn-linie" name="status" value="neu">{% translate "wieder öffnen" %}</button>{% endif %}

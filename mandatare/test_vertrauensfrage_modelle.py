@@ -576,3 +576,58 @@ def test_aufhebung_einer_von_zwei_verlorenen_leitet_die_stempel_aus_der_anderen_
     assert altmandat.vertrauen_entzogen_am == vf1.wirkungen_ab
     assert altmandat.rueckgabe_ersucht_bis == timezone.localdate(vf1.wirkungen_ab) + tage(mm.RUECKGABEFRIST_TAGE)
     assert rolle.ruht_seit is not None
+
+
+# ── GP-106: Die Anfechtungsfrist läuft ab der Veröffentlichung, nicht ab der Sollzeit ─────────
+
+
+@pytest.mark.parametrize('stimme', ['ja', 'nein'])
+def test_anfechtungsfrist_laeuft_ab_der_tatsaechlichen_veroeffentlichung(client, ordnung, altmandat, monkeypatch, stimme):  # noqa: F811
+    """§ 7 Abs 10 lit h: sieben Tage ab Veröffentlichung des Ergebnisses. Steht der Wächter, wird das
+    Ergebnis erst mit dem nächsten Lauf sichtbar — die Frist beginnt dann, nicht zur Sollzeit. Sollzeit,
+    Wirkungen und ihr Beginn bleiben unverändert."""
+    from verfahren.test_vertrauensfrage import abstimmen, unterstuetzen
+
+    leute = [mitglied_anlegen(f'gp106{stimme}{i}') for i in range(5)]
+    t0 = timezone.now()
+    antrag = einbringen(leute[0], altmandat, ordnung, jetzt=t0)
+    unterstuetzen(antrag, leute[1:2], t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    abstimmen(antrag, leute, stimme, t0 + tage(8))
+    lauf = t0 + tage(120)  # der Wächter stand; EIN Lauf am Tag 120
+    monkeypatch.setattr(timezone, 'now', lambda: lauf)
+    antrag.fortschreiben(lauf)
+    vf = mm.Vertrauensfrage.objects.get(antrag=antrag)
+    assert vf.ergebnis_am == t0 + tage(14)  # die Abstimmung endete zur Sollzeit
+    assert vf.anfechtungsfrist_ende == lauf + tage(7)
+    if stimme == 'ja':
+        assert vf.verloren and vf.wirkungen_ab == t0 + tage(14)  # Wirkungen unverändert
+    seite = client.get(f'/antrag/{antrag.pk}/').content.decode()
+    bis = timezone.localtime(lauf + tage(7)).strftime('%d.%m.%Y, %H:%M')
+    assert f'bis {bis}' in seite
+    mm.vertrauensfrage_anfechtung_vermerken(vf, 'PSG-106', jetzt=lauf + tage(3))
+    vf.refresh_from_db()
+    assert vf.anfechtung_rechtzeitig
+
+
+def test_anfechtungsfrist_im_regelbetrieb_sieben_tage_nach_dem_lauf(ordnung, altmandat, monkeypatch):  # noqa: F811
+    from verfahren.test_vertrauensfrage import abstimmen, unterstuetzen
+
+    leute = [mitglied_anlegen(f'gp106r{i}') for i in range(5)]
+    t0 = timezone.now()
+    antrag = einbringen(leute[0], altmandat, ordnung, jetzt=t0)
+    unterstuetzen(antrag, leute[1:2], t0 + tage(1))
+    antrag.fortschreiben(t0 + tage(7))
+    abstimmen(antrag, leute, 'nein', t0 + tage(8))
+    lauf = t0 + tage(14) + timedelta(minutes=2)
+    monkeypatch.setattr(timezone, 'now', lambda: lauf)
+    antrag.fortschreiben(lauf)
+    vf = mm.Vertrauensfrage.objects.get(antrag=antrag)
+    assert vf.anfechtungsfrist_ende == lauf + tage(7)
+
+
+def test_anfechtungsfrist_altbestand_ohne_vermerk_rechnet_ab_der_sollzeit(altmandat):  # noqa: F811
+    ende = timezone.now() - tage(3)
+    vf = _vf_mit_ergebnis(altmandat, Phase.ABGELEHNT.value, ende)
+    assert vf.ergebnis_veroeffentlicht_am is None
+    assert vf.anfechtungsfrist_ende == ende + tage(7)

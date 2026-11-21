@@ -972,6 +972,11 @@ class Vertrauensfrage(models.Model):
     verstaendigt_am = models.DateTimeField(
         null=True, blank=True, help_text="Erster Versandversuch der Verständigung des Mandatars (lit b)."
     )
+    ergebnis_veroeffentlicht_am = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Zeitpunkt, zu dem das Ergebnis tatsächlich festgestellt und sichtbar wurde — Beginn der "
+        "Anfechtungsfrist (lit h). Leer bei Altbeständen: dann gilt das Abstimmungsende.",
+    )
 
     class Meta:
         ordering = ["-antrag__eingebracht_am"]
@@ -1027,9 +1032,19 @@ class Vertrauensfrage(models.Model):
         return ""
 
     @property
+    def veroeffentlicht_am(self):
+        """Wann das Ergebnis veröffentlicht wurde: der Lauf, der es festgestellt hat — nach einem Stillstand
+        des Wächters später als das Abstimmungsende (`ergebnis_am`). Altbestände ohne Vermerk rechnen mit
+        dem Abstimmungsende. None, solange kein Ergebnis vorliegt (GP-106)."""
+        ab = self.ergebnis_am
+        if ab is None:
+            return None
+        return max(ab, self.ergebnis_veroeffentlicht_am or ab)
+
+    @property
     def anfechtungsfrist_ende(self):
         """Ende der sieben Tage ab Veröffentlichung des Ergebnisses (lit h) — None ohne Ergebnis."""
-        ab = self.ergebnis_am
+        ab = self.veroeffentlicht_am
         return None if ab is None else ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def rueckgabefrist_tag(self):
@@ -1070,7 +1085,8 @@ class Vertrauensfrage(models.Model):
         Anfechtung“); eine verspätete ändert an den Wirkungen nichts — die Verwaltung vermerkt sie
         trotzdem, ehrlich datiert. Die Frist läuft ab der Veröffentlichung jedes Ergebnisses (lit h), auch
         eines gewonnenen oder einer Bestätigung, die keine Wirkungen nach lit f tragen (GP-112)."""
-        ab = self.wirkungen_ab or self.ergebnis_am
+        # Der Vermerk liegt nie vor dem Abstimmungsende; ohne ihn (Altbestand) wie bisher — ohne den Antrag zu laden.
+        ab = self.ergebnis_veroeffentlicht_am or self.wirkungen_ab or self.ergebnis_am
         if self.angefochten_am is None or ab is None:
             return False
         return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
@@ -1360,10 +1376,17 @@ def vertrauensfrage_wirkungen(vf: Vertrauensfrage, jetzt=None) -> bool:
     return True
 
 
-def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None) -> None:
+def vertrauensfrage_ergebnis(vf: Vertrauensfrage, jetzt=None, veroeffentlicht_am=None) -> None:
     """Was mit dem Ergebnis eines Vertrauensfrage- oder Bestätigungsantrags geschieht — aus
-    `Antrag.fortschreiben` beim Übergang in eine Endphase gerufen (§ 7 Abs 10 lit e und f Z 3)."""
+    `Antrag.fortschreiben` beim Übergang in eine Endphase gerufen (§ 7 Abs 10 lit e und f Z 3).
+
+    `jetzt` ist das Abstimmungsende (Sollzeit), ab dem die Wirkungen gelten. `veroeffentlicht_am` ist der
+    Lauf, der das Ergebnis feststellt — ohne Angabe die Uhrzeit dieses Aufrufs, nie früher als die
+    Sollzeit. Ab ihm läuft die Anfechtungsfrist (lit h, GP-106)."""
     jetzt = jetzt or timezone.now()
+    if vf.ergebnis_veroeffentlicht_am is None:
+        vf.ergebnis_veroeffentlicht_am = max(jetzt, veroeffentlicht_am or timezone.now())
+        vf.save(update_fields=["ergebnis_veroeffentlicht_am"])
     phase = vf.antrag.phase
     if vf.art == VertrauensfrageArt.BESTAETIGUNG:
         if phase == Phase.ANGENOMMEN.value:

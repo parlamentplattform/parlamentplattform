@@ -44,7 +44,7 @@ Vermerk des Registers (lit f Z 4). Filter nach Ebene; JSON über das Rechenschaf
     <span class="chip klein">{{ vf.get_art_display }}</span> <a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
     {% if z.ergebnis_wort %} · <strong{% if vf.verloren %} class="ausstand"{% endif %}>{{ z.ergebnis_wort }}</strong>{% elif vf.nicht_eroeffnet %} · <strong>{% translate "nicht eröffnet (Feststellung des Integritätsrats)" %}</strong>{% else %} · <strong>{{ a.phase|phase_name }}</strong>{% endif %}
     <br><span class="meta"><a href="{% url 'mandatare:detail' vf.mandat.pk %}">{{ vf.mandat.mitglied.anzeigename }}</a> · {{ vf.mandat.gebiet|default:vf.mandat.get_ebene_display }}
-      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }}{% if vf.ergebnis_am %} · {% translate "Ergebnis veröffentlicht am" %} {{ vf.ergebnis_am|date:"d.m.Y" }}
+      · {% translate "eingebracht" %} {{ a.eingebracht_am|date:"d.m.Y" }}{% if vf.ergebnis_am %} · {% translate "Ergebnis veröffentlicht am" %} {{ vf.veroeffentlicht_am|date:"d.m.Y" }}
       · {% blocktranslate count n=z.stimmen with s=a.stimmberechtigte_anzahl|default:"–" %}{{ n }} Stimme von {{ s }} Stimmberechtigten{% plural %}{{ n }} Stimmen von {{ s }} Stimmberechtigten{% endblocktranslate %}{% endif %}
       {% if z.rechtsschutz %} · {{ z.rechtsschutz }}{% endif %}
       {% if z.vermerk %} · {{ z.vermerk }}{% endif %}</span>

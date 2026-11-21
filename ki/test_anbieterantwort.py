@@ -69,3 +69,36 @@ def test_vollstaendige_antwort_bleibt_erledigt(antrag, attrappe, monkeypatch):
     assert auftrag_ausfuehren(job.pk) == 'erledigt'
     assert KILauf.objects.get(pk=job.__class__.objects.get(pk=job.pk).lauf_id).erfolgreich
 
+
+# --- GP-145: Jeder Anbieteraufruf hinterlässt einen Lauf ------------------------------------------
+
+
+@pytest.fixture
+def mistral(settings):
+    settings.DDOE_KI_ANBIETER = 'mistral'
+    settings.DDOE_KI_SCHLUESSEL = 'attrappen-wert'
+
+
+def _mitglied():
+    from verfahren.test_views_aktionen import mitglied_anlegen
+
+    return mitglied_anlegen('verbrauch')
+
+
+@pytest.mark.parametrize('usage', [None, 'kaputt', {'prompt_tokens': None, 'completion_tokens': 'viele'}])
+def test_antwort_ohne_verbrauchsangabe_ergibt_einen_archivierten_lauf(mistral, monkeypatch, usage):
+    from ki.models import lauf_ausfuehren
+
+    _mistral(monkeypatch, {'model': 'test-modell', 'usage': usage,
+                           'choices': [{'message': {'content': 'Antwort'}, 'finish_reason': 'stop'}]})
+    lauf = lauf_ausfuehren(Zweck.EINSCHAETZUNG, 'Auftrag', 'Eingabe', _mitglied())
+    assert lauf.erfolgreich and lauf.antwort == 'Antwort' and lauf.tokens_ein == 0 and lauf.tokens_aus == 0
+    assert KILauf.objects.filter(pk=lauf.pk).exists()
+
+
+def test_einbettung_ohne_verbrauchsangabe_bleibt_verwendbar(mistral, monkeypatch):
+    from ki.models import einbettung_ausfuehren
+
+    _mistral(monkeypatch, {'model': 'einbettung', 'usage': None, 'data': [{'index': 0, 'embedding': [0.5, 0.5]}]})
+    lauf, einbettung = einbettung_ausfuehren(['Text'], _mitglied())
+    assert lauf.erfolgreich and lauf.tokens_ein == 0 and einbettung.vektoren == [[0.5, 0.5]]

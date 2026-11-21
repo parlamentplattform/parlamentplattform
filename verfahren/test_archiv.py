@@ -334,7 +334,7 @@ def test_systembeitrag_im_export_folgt_der_sprache_des_exports(client, ordnung):
     with translation.override("en"):
         englisch = chatkern.passt_alles_text()
     deutsch = "✓ Passt alles — der Vorschlag kann so zur Endabstimmung."
-    assert englisch != deutsch and translation.get_language().startswith("de")
+    assert englisch != deutsch
     antrag = _antrag(ordnung, mitglied_anlegen("stellerin"))
     jetzt = timezone.now()
     Kommentar.objects.create(

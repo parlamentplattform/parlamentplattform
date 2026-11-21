@@ -1380,7 +1380,9 @@ def eigene_stimme(request, pk):
     (F-21: 'meine Stimme steht korrekt in der Liste')."""
     antrag = get_object_or_404(Antrag, pk=pk)
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        from mitglieder.anmeldeziel import zur_anmeldung
+
+        return zur_anmeldung(request)  # GP-100: mit der Seite als Ziel
     if request.user.adresswechsel_offen:
         # F-51: Bis die Adressänderung entschieden ist, bleibt das Pseudonym verborgen — sonst
         # erreichte eine Kontoübernahme genau das, was das Stimmgeheimnis schützt.

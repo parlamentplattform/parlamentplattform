@@ -1388,7 +1388,9 @@ def meldungen(request):
     from verfahren.models import Kommentar, Meldung
 
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        from mitglieder.anmeldeziel import zur_anmeldung
+
+        return zur_anmeldung(request)  # GP-100: mit der Seite als Ziel
     if not request.user.hat_adminrechte:
         return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
     offene = Meldung.objects.filter(erledigt_am__isnull=True).order_by("erstellt_am")

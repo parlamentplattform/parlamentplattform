@@ -199,3 +199,27 @@ def test_in_der_wartezeit_nennt_zone_3_den_beginn_der_endabstimmung_und_den_fest
     stand = warte['stand']
     assert f'„Passt alles": {stand["ja"]} 👍 / {stand["nein"]} 👎' in kopf
 
+
+
+# --- GP-100: Umleitung zur Anmeldung mit Ziel ---------------------------------------------------------
+
+
+@pytest.mark.parametrize('name,args', [('verfahren:meldungen', []), ('verfahren:eigene_stimme', [1])])
+def test_der_gast_kommt_mit_ziel_zur_anmeldung(client, ordnung, name, args):  # noqa: F811
+    from urllib.parse import quote
+
+    if args:
+        antrag_einbringen(mitglied_anlegen('ziel'), **ANTRAG, ordnung=ordnung)
+        args = [Antrag.objects.get().pk]
+    pfad = reverse(name, args=args)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == f"{reverse('mitglieder:login')}?next={quote(pfad, safe='')}"
+
+
+def test_in_verfahren_bleibt_keine_umleitung_ohne_ziel():
+    from pathlib import Path
+
+    for datei in ('views.py', 'views_aktionen.py'):
+        text = (Path(__file__).parent / datei).read_text(encoding='utf-8')
+        assert 'redirect("mitglieder:login")' not in text and "redirect('mitglieder:login')" not in text

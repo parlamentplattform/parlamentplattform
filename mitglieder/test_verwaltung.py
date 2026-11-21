@@ -1023,3 +1023,42 @@ def test_seitengroesse_der_liste_kommt_aus_dem_register(client):
     html = client.get(reverse('mitglieder:verwaltung')).content.decode()
     assert '10 von 15' in html and html.count('öffnen →') == 10
     assert client.get(reverse('mitglieder:verwaltung'), {'seite': 2}).content.decode().count('öffnen →') == 5
+
+
+# ── GP-100, Schlusspflege 0.115.0: jede Verwaltungsseite schickt Gäste mit Ziel zur Anmeldung ───────
+
+
+@pytest.mark.parametrize('name', [
+    'mitglieder:verwaltung', 'mitglieder:verwaltung_beitraege', 'anstoss:verwaltung', 'faktenbasis:verwaltung',
+    'gremien:rollen', 'gremien:fachliste_verwaltung', 'mandatare:verwaltung', 'parameter:verwaltung',
+])
+def test_gast_kommt_von_jeder_verwaltungsseite_mit_ziel_zur_anmeldung(client, name):
+    from urllib.parse import urlencode
+
+    pfad = reverse(name)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 302
+    assert antwort['Location'] == reverse('mitglieder:login') + '?' + urlencode({'next': pfad})
+
+
+def test_schreibende_verwaltungswege_schicken_ohne_ziel_zur_anmeldung(client):
+    for name in ('parameter:verwaltung_aktion', 'mandatare:verwaltung_aktion', 'gremien:rollen_aktion'):
+        antwort = client.post(reverse(name), {})
+        assert antwort.status_code == 302 and antwort['Location'] == reverse('mitglieder:login'), name
+
+
+def test_keine_umleitung_zur_anmeldung_ohne_ziel_im_code():
+    '''Gäste kommen über `mitglieder.anmeldeziel.zur_anmeldung` (oder `login_required`) zur Anmeldung;
+    ein blankes `redirect('mitglieder:login')` verlöre bei einem Lesezugriff die aufgerufene Seite.'''
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r'''redirect\(\s*(?:reverse\(\s*)?["']mitglieder:login["']''')
+    funde = [
+        str(datei.relative_to(wurzel))
+        for datei in wurzel.rglob('*.py')
+        if not set(datei.parts) & {'venv', '.venv', 'migrations'} and not datei.name.startswith('test_')
+        and muster.search(datei.read_text(encoding='utf-8'))
+    ]
+    assert funde == []

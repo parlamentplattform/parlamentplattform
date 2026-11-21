@@ -14,6 +14,7 @@ neue Kennungen erhöhen die Nebenversion, umgedeutete Kennungen die Hauptversion
 
 from __future__ import annotations
 
+import functools
 import re
 from statistics import mean
 
@@ -367,7 +368,7 @@ def _prozent(anteil):
 KENNZAHLEN = (
     ("members.active", "count", "Active member accounts"),
     ("motions.total", "count", "Motions submitted (without formally rejected ones)"),
-    ("motions.by_phase", "map", "Motions per phase: support, deliberation, vote, adopted, rejected, lapsed"),
+    ("motions.by_phase", "map", "Motions per phase: support, deliberation, vote, adopted, rejected, lapsed, withdrawn; the parts add up to motions.total"),
     ("votes.completed", "count", "Completed votes (adopted or rejected after a vote)"),
     ("votes.turnout_mean", "share", "Mean turnout of completed votes: ballots cast / eligible members"),
     ("implementation.by_status", "map", "Adopted motions per implementation status"),
@@ -492,3 +493,37 @@ def pruefe_export(daten) -> list[str]:
             if verboten & {k.lower() for k in e}:
                 fehler.append(f"{block}[{i}]: personenbezogenes Feld")
     return fehler
+
+
+# ── Die Hülle der offenen Formate (docs/SCHEMA.md Abschnitt 1, „Offen“; GP-199) ─────────
+#
+# Die offenen Formate sind öffentlich und ohne Anmeldung lesbar. Damit auch ein Nachrechenwerkzeug
+# im Browser einer Schwesterpartei sie lesen kann, trägt jede Antwort eines öffentlichen Abrufs die
+# Kopfzeile `Access-Control-Allow-Origin: *`. Sie gehört nur an Antworten auf GET und HEAD von
+# Ansichten, die ohne Anmeldung dasselbe liefern: Eine schreibende Anfrage oder eine Antwort, die
+# von der Anmeldung abhängt, bekommt sie nicht. Ohne Django: Die Antwort braucht nur Kopfzeilen,
+# die sich per Schlüssel setzen lassen.
+
+#: Die Kopfzeilen eines offenen Formats.
+KOPFZEILEN = {"Access-Control-Allow-Origin": "*"}
+
+#: Nur diese Methoden lesen; nur ihre Antworten werden geöffnet.
+LESENDE_METHODEN = frozenset({"GET", "HEAD"})
+
+
+def oeffnen(antwort, methode: str):
+    """Setzt die Kopfzeilen der offenen Formate, wenn die Anfrage nur liest; gibt die Antwort zurück."""
+    if methode.upper() in LESENDE_METHODEN:
+        for name, wert in KOPFZEILEN.items():
+            antwort[name] = wert
+    return antwort
+
+
+def offenes_format(ansicht):
+    """Dekorator für eine öffentliche, ohne Anmeldung abrufbare Ansicht eines offenen Formats."""
+
+    @functools.wraps(ansicht)
+    def huelle(request, *args, **kwargs):
+        return oeffnen(ansicht(request, *args, **kwargs), request.method)
+
+    return huelle

@@ -1,6 +1,6 @@
 """Reihung „Meistgelesene Anträge“ (Fahrtenbuch D-C7): die offengelegte Regel, nachgerechnet."""
 
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from plattform_core.meistgelesen import HOECHSTZAHL, REIHUNG, VERSION, meistgelesene
@@ -27,6 +27,7 @@ def test_bei_gleicher_summe_legt_die_regel_keine_reihenfolge_fest():
     assert sorted(ergebnis) == [(1, 5), (2, 5), (3, 5)]
 
 
+@settings(deadline=None)  # unabhängig von der Rechnergeschwindigkeit
 @given(st.lists(st.tuples(st.integers(1, 12), st.integers(0, 500)), max_size=60))
 def test_eigenschaft_summen_stimmen_und_die_liste_faellt(tageszahlen):
     summen: dict[int, int] = {}

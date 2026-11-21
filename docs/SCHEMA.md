@@ -167,16 +167,19 @@ Seit 1.12 enthält das Register drei Grenzen der lokalen Ähnlichkeitsvorschau: 
 | **Werte bleiben eigen** | Das Schema sagt, *was* eine Stellgröße bedeutet — nie, *wie hoch* sie sein muss. Jede Instanz lernt ihren Wert selbst (Parameterregister, F-68). |
 | **Nie personenbezogen** | Exporte enthalten keine Namen, E-Mails, Pseudonyme, Stimmen einzelner Menschen. Die Prüfung (`pruefe_export`) beanstandet solche Felder. |
 | **Versioniert** | `schema_version` nach SemVer: neue Kennungen → Nebenversion (1.1), umgedeutete Kennungen → Hauptversion (2.0). Leser verarbeiten unbekannte Kennungen tolerant; `pruefe_export` verlangt nur dieselbe Hauptversion. |
-| **Offen** | Alle Exporte sind öffentlich, ohne Anmeldung, mit `Access-Control-Allow-Origin: *`. |
+| **Offen** | Alle Exporte sind öffentlich, ohne Anmeldung, mit `Access-Control-Allow-Origin: *` auf GET und HEAD (`plattform_core.schema.offenes_format`). |
 
-## 2. Der Kopf jedes Exports
+## 2. Der Kopf der Schema-Exporte
+
+`/parameter.json` und `/kennzahlen.json` beginnen mit diesem Kopf. Die weiteren offenen Formate
+(Abschnitt 5) haben ihren eigenen Aufbau und tragen ihn nicht.
 
 ```json
 {
-  "schema_version": "1.10",
+  "schema_version": "1.30",
   "system_id": "at-ddoe",
   "system_name": "Direkte Demokratie Österreich",
-  "software": {"name": "ParlamentPlattform", "version": "0.52.0",
+  "software": {"name": "ParlamentPlattform", "version": "0.113.0",
                "quelle": "https://github.com/parlamentplattform/parlamentplattform", "lizenz": "AGPL-3.0-or-later"},
   "exportiert_am": "2026-09-15T08:00:00+00:00"
 }
@@ -359,8 +362,9 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
     {"schema_key": "members.active", "einheit": "count", "wert": 128},
     {"schema_key": "motions.total", "einheit": "count", "wert": 41},
     {"schema_key": "motions.by_phase", "einheit": "map",
-     "wert": {"unterstuetzung": 5, "beratung": 2, "abstimmung": 3, "angenommen": 24, "abgelehnt": 6, "verfallen": 1}},
-    {"schema_key": "votes.completed", "einheit": "count", "wert": 30},
+     "wert": {"unterstuetzung": 5, "beratung": 2, "abstimmung": 3, "angenommen": 24, "abgelehnt": 5, "verfallen": 1,
+              "zurueckgezogen": 1}},
+    {"schema_key": "votes.completed", "einheit": "count", "wert": 29},
     {"schema_key": "votes.turnout_mean", "einheit": "share", "wert": 0.37},
     {"schema_key": "implementation.by_status", "einheit": "map",
      "wert": {"offen": 4, "in_umsetzung": 9, "blockiert": 1, "umgesetzt": 10, "zurueckgestellt": 0}},
@@ -375,7 +379,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 |---|---|---|
 | `members.active` | count | Active member accounts |
 | `motions.total` | count | Motions submitted (without formally rejected ones) |
-| `motions.by_phase` | map | Motions per phase: support, deliberation, vote, adopted, rejected, lapsed |
+| `motions.by_phase` | map | Motions per phase: support, deliberation, vote, adopted, rejected, lapsed, withdrawn; the parts add up to motions.total |
 | `votes.completed` | count | Completed votes (adopted or rejected after a vote) |
 | `votes.turnout_mean` | share | Mean turnout of completed votes: ballots cast / eligible members |
 | `implementation.by_status` | map | Adopted motions per implementation status |
@@ -421,9 +425,6 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 
 | Version | Datum | Plattform | Änderung |
 |---|---|---|---|
-| 1.15 | 2.11.2026 | 0.59.0 | sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste amtliche Metadaten- und Dokumenttextabrufe; null sperrt. Keine Verfahrensregel. |
-| 1.16 | 3.11.2026 | 0.60.0 | rechtsbezug.laeufe[].antwortformat: aktuelle Formprüfung mit Fassung, Schema- und Antwort-Prüfsumme, Gültigkeit und Diagnosecodes; keine nachträgliche Laufbestätigung oder juristische Verifikation. |
-| 1.14 | 2.11.2026 | 0.58.0 | ai.assessments_per_page: frühere Rechtsbezug-Läufe je Seite am Antrag; Exporte bleiben vollständig. Kein Verfahrensparameter und keine Änderung bestehender Ordnungen. |
 | 1.0 | 3.9.2026 | 0.36.0 | Erste Fassung: Kopf, 5 Register-Kennungen (`draft_loop.review_days`, `draft_loop.revision_days`, `draft_loop.max_rounds`, `bodies.role_term_days`, `ai.monthly_token_budget`), 7 Kennungen der Verfahrensordnung, 7 Kennzahlen, Prüfregeln. Mit 0.39.0 (4.9.2026) kamen `draft_loop.acceptance_percent` und `draft_loop.chat_ordering_version` hinzu, ohne dass die Version stieg |
 | 1.1 | 5.9.2026 | 0.41.0 | 25 Register-Kennungen: die Stellgrößen des Verfahrens (`support.threshold`, `support.window_days`, `vote.window_days`, `vote.min_turnout_percent`, `motion.resubmission_block_months`, `council.first_draft_days`), der Lebensbereiche und Fächer (`areas_of_life.*`, `areas_fan.*`), der Beratung und des Chats (`deliberation.*`, `chat.*`-Vorläufer, `conversations.list_limit`, `draft_loop.criticism_min_chars`), der Ähnlichkeitsprüfung (`similarity.*`), des WeicherFilters (`soft_filter.*`), der Kacheln und des Archivs (`tiles.*`, `archive.audit_display_limit`), des Anstoß-Widgets (`feedback.*`) und des Modell-Steckplatzes (`ai.max_response_tokens`). **Zugleich wurden drei Kennungen aus 1.0 umbenannt** — `draft_loop.review_days` → `support.review_days`, `draft_loop.revision_days` → `council.rework_days`, `draft_loop.max_rounds` → `council.max_rounds` —, ohne dass das damals hier oder im Änderungsprotokoll stand. Nach der eigenen Regel wäre das eine Hauptversion gewesen; es blieb bei der Nebenversion, weil noch keine Partnerinstanz Exporte las. Die alten Namen gelten nicht mehr |
 | 1.2 | 8.9.2026 | 0.43.0 | Nachgeholte Erhöhung für `council.review_days` und `council.decision_days`, die mit 0.42.0 (5.9.2026) ohne Versionssprung hinzugekommen waren |
@@ -436,6 +437,24 @@ Mandatsfragen (Antragsart `mandatsfrage`, seit 0.46.0) und Vertrauensfragen (Ant
 | 1.9 | 29.9.2026 | 0.51.0 | `vote.leaning_after_min_turnout` (Schalter 0/1, im Register und in der Verfahrensordnung: ob eine laufende Abstimmung über einen Sachantrag ihre Tendenz zeigt, sobald die Mindestbeteiligung erreicht ist; Erstbestand 0 = verdeckt bis Fristende; eingefroren beim Einbringen, Ordnung Fassung 5). Die Übergangsregel steht seit derselben Fassung im Schnappschuss jedes Antrags, nicht im Export je Fassung (3.2) |
 | 1.10 | 29.9.2026 | 0.52.0 | `audit.entries_per_page` (Einträge je Seite des öffentlichen Audit-Logs `/audit/` und je Abruf von `/audit.json`), `audit.full_check_days` (Stellgröße: nach wie vielen Tagen die tägliche Prüfung die Audit-Kette von vorn nachrechnet) und fünf Kennzahlen zur Prüfung der Audit-Kette: `audit.chain_intact`, `audit.entries`, `audit.verified_at`, `audit.head` (der veröffentlichte Kettenkopf) und `audit.head_entry` (seine laufende Nummer) |
 | 1.11 | 30.9.2026 | 0.53.0 | `live.refresh_seconds` (wie oft sich die Live-Seite einer laufenden Sitzung neu lädt, FB-L5) und `live.max_session_hours` (nach wie vielen Stunden eine nicht beendete Sitzung als beendet gilt). Beide gehören zum Sitzungsmodus der Mandatsträger; die Livemeldungen selbst stehen in `/rechenschaft.json` (Abschnitt 5) |
+| 1.12 | 2.11.2026 | 0.55.0 | `similarity.preview_debounce_ms`, `similarity.preview_min_chars`, `similarity.preview_max_chars`: Wartezeit, Mindest- und Höchstlänge der lokalen Ähnlichkeitsvorschau; Antrags- und Archivexport mit `eigenstaendigkeit` (referenzierter Antrag, damals angebotener Titel und Fassung, Zeitpunkt der Erklärung) |
+| 1.13 | 2.11.2026 | 0.56.0 | `sources.snapshots_per_page`: Seitengröße der öffentlichen amtlichen Metadaten-Schnappschüsse (1 bis 100) |
+| 1.14 | 2.11.2026 | 0.58.0 | ai.assessments_per_page: frühere Rechtsbezug-Läufe je Seite am Antrag; Exporte bleiben vollständig. Kein Verfahrensparameter und keine Änderung bestehender Ordnungen. |
+| 1.15 | 2.11.2026 | 0.59.0 | sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste amtliche Metadaten- und Dokumenttextabrufe; null sperrt. Keine Verfahrensregel. |
+| 1.16 | 3.11.2026 | 0.60.0 | rechtsbezug.laeufe[].antwortformat: aktuelle Formprüfung mit Fassung, Schema- und Antwort-Prüfsumme, Gültigkeit und Diagnosecodes; keine nachträgliche Laufbestätigung oder juristische Verifikation. |
+| 1.17 | 3.11.2026 | 0.61.0 | `sources.context_limit`, `sources.context_excerpt_chars`, `sources.context_min_word_length`, `sources.context_scan_limit`: Grenzen des Quellenkontexts neuer Rechtsbezug-Aufträge (docs/QUELLENKONTEXT.md) |
+| 1.18 | 3.11.2026 | 0.62.0 | `rechtsbezug.verbrauch` im öffentlichen Antragsarchiv (Formatfassung 1): Verbrauchssumme zugeordneter Läufe, Kostenbetrag und Währung ohne Tarif null (docs/MODELLVERBRAUCH.md) |
+| 1.19 | 3.11.2026 | 0.64.0 | `rechtsbezug.quellenabgleich`: heutiger lokaler Vergleich zum angezeigten Quellenrahmen, getrennt von den damaligen Kontexten (docs/QUELLENNACHLESE.md) |
+| 1.20 | 3.11.2026 | 0.65.0 | `rechtsbezug.korrekturen`: getrennte Nachweise öffentlicher Korrekturaufträge samt Versuchen (docs/KORREKTURLAUF.md) |
+| 1.21 | 3.11.2026 | 0.66.0 | `kennungsabgleich` an `rechtsbezug.laeufe[]` und Korrekturversuchen (Ergänzung 1.21) |
+| 1.22 | 3.11.2026 | 0.67.0 | `/zukunftswerkstatt/faktenbasis/personal/<id>/nachweis.json`: öffentliches Personal-Aggregat (Ergänzung 1.22) |
+| 1.23 | 3.11.2026 | 0.68.0 | RIS-Originalexport auch mit `Metadaten.Landesrecht` aus genau einem Bundesland (Ergänzung 1.23) |
+| 1.24 | 3.11.2026 | 0.69.0 | Original-XML-Nachlese auch für einen einzelnen Landes-Dokumenttext (Ergänzung 1.24) |
+| 1.25 | 3.11.2026 | 0.70.0 | `quellenkontext` neuer Aufträge in `version` 2 mit ausdrücklichem `umfang` (Ergänzung 1.25) |
+| 1.26 | 3.11.2026 | 0.71.0 | `/zukunftswerkstatt/faktenbasis/personal/ressorts/<id>/nachweis.json`: Ressorttabelle getrennt vom Personal-Aggregat (Ergänzung 1.26) |
+| 1.27 | 3.11.2026 | 0.72.0 | `comparison.requests_per_hour`, `comparison.socket_timeout_seconds`, `comparison.max_pairs`, `comparison.total_text_chars`: Grenzen des freiwilligen Textvergleichs; Verbrauchsformat 3 |
+| 1.28 | 4.11.2026 | 0.73.0 | `legal_effects.total_input_chars`; Zweck `rechtsfolgen` mit `folgenkontext` im Antragsarchiv, `darstellungsfolge`, `/zukunftswerkstatt/rechtsfolgenformat.json`; Verbrauchsformat 4 |
+| 1.29 | 4.11.2026 | 0.77.0 | `sources.inventory_max_records`: Höchstzahl des lesenden Nachweises des lokalen Quellenbestands |
 | 1.30 | 18.11.2026 | 0.113.0 | Gesamtprüfung, erste und zweite Behebungsrunde. **`/parameter.json`** (Abschnitt 3): je Eintrag `status` (`gueltig`, `im_test`, `vorgeschlagen`), `test_bis` (ISO-Datum oder null) und `test_hypothese`; nur bei `im_test` zusätzlich `wert_vor_test`, der Wert, zu dem der Test zurückfällt. **`/audit.json`** (Abschnitt 5): je Eintrag `nur_tag` — true, solange die Abstimmung eines Stimmereignisses läuft; `zeit` und `ereignis.zeit` tragen dann nur den Tag. **Kandidatur-Export** (`/antrag/<id>/export.json`, Block `zustimmungen`): eine zurückgenommene Zustimmung trägt `zurueckgenommen`: true statt des Zeitpunkts `zurueckgenommen_am`; `verify/nachrechnen.py` liest beide Schreibweisen und zählt solche Zeilen nicht. **Neue Audit-Arten** (`typ`): `gremienbeschluss_geschlossen` (ein offener Gremienbeschluss endet ohne Auswertung, weil der Antrag zurückgewiesen wurde; `gremium`, `beschluss`, `nummer`, `antrag`, `grund` = `zurueckweisung`, `durch_beschluss`), `vollzugsbezug_gesetzt` (`antrag`, `runde`, `alt`, `neu`), `interessenbindung_erklaert` (`antrag`, `runde`, `beschluss`, `nummer` = Zahl der Erklärungen zum Antrag; ohne Text und Person), `auslosung_begonnen` (`antrag`, `runde`, `gruppen`; der Hash dieses Eintrags ist der Anker der Ziehung), `fachliste_eingetragen` (`eintrag`, `fachgebiete`, `einwilligung`, `durch`), `fachliste_gestrichen` (`eintrag`, `durch`; der Grund steht nur beim Eintrag), `beitrag_ausgeblendet` und `meldung_ohne_massnahme` (Entscheidung der Verwaltung über gemeldete Beiträge: `beitrag`, `meldungen` = Zahl der erledigten Meldungen, dazu `antrag` oder `sitzung`); unter `typ` = `verwaltung` die Aktion `bank_gekoppelt` (`consent_bis`, ohne Konto- oder Bankkennung). **Neue Felder in bestehenden Audit-Arten**: `vorschlag_zurueckgegeben` nennt `beratung_freigegeben` (ob die Entwurfsschleife die Beratung ab diesem Zeitpunkt nicht mehr offen hält), `zurueckweisung_aufgehoben` nennt `entwurf_wiederhergestellt` (der wiederhergestellte Status des Entwurfs oder null) und, wenn dabei ein unentschiedener Austauschantrag beim Koordinationsrat lag, `austauschfrist_gehemmt` (Kennungen der Prüfungen, deren Frist um die Dauer der Zurückweisung aus `gehemmt_sekunden` später endet; das Urteilsdatum bleibt unverändert), `vorschlag_einreichung_verworfen` kennt den `grund` `ueberarbeitungsfrist_verstrichen`; die festgeschriebene Rechnung `auswertung` (in `vorschlag_zurueckgegeben` und im `phasenwechsel` zur Endabstimmung) nennt zusätzlich `auswertung.grund` (`passt_alles_oben`, `stille`, `kein_systembeitrag`, `rueckgabe`, beim Erreichen der Höchstzahl der Runden `hoechstrunden`) und `auswertung.stimmen` (Zustimmungen und Ablehnungen über alle Beiträge des Vorschlags-Chats). **Drei Drosseln als Stellgrößen** (3.1): `account.data_exports_per_hour` (`datenexport-je-stunde`, Startwert 10, mindestens 1), `fees.member_reports_with_bank_call_per_day` (`beitrag-meldungen-mit-abruf-je-konto`, Startwert 1, mindestens 1), `fees.bank_calls_reserved_for_administration` (`beitrag-abruf-verwaltungsvorbehalt`, Startwert 1, 0 bis zum Tageskontingent der Bank von 4) |
 
 Seit1.15 enthält das Register sources.manual_requests_per_hour: gemeinsames Stundenkontingent für ausdrücklich ausgelöste RIS-Einzelbezüge von Metadaten und Dokumenttexten. Anfangswert10, null sperrt weitere Abrufe. Reservierung, UTC-Kalenderstunde und Mindestabstand sind in docs/FAKTENBASIS.md beschrieben. Es ist kein Ordnungsschlüssel und kein Bestandteil einer eingefrorenen Verfahrensordnung.

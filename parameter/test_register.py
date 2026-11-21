@@ -649,6 +649,25 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
     assert "`nur_tag`" in audit
 
 
+def test_schema_kopfbeispiel_und_verlauf_reichen_bis_zur_aktuellen_version():
+    """GP-135 (RVB-15, Rest): Das Kopfbeispiel nannte 1.10, der Änderungsverlauf ließ 1.12, 1.13 und
+    1.17 bis 1.29 aus. Das Kopfbeispiel nennt SCHEMA_VERSION; der Verlauf hat je Nebenversion bis
+    zur aktuellen genau eine Zeile, aufsteigend geordnet."""
+    from plattform_core.schema import SCHEMA_VERSION
+
+    dokument = _schema_dokument()
+    kopf = dokument.split("## 2. Der Kopf der Schema-Exporte")[1].split("\n## ")[0]
+    assert f'"schema_version": "{SCHEMA_VERSION}"' in kopf
+    verlauf = dokument.split("## 7. Änderungsverlauf")[1]
+    zeilen = [z for z in verlauf.splitlines() if z.startswith("| 1.")]
+    versionen = [z.split(" | ")[0].lstrip("| ").strip() for z in zeilen]
+    haupt, neben = SCHEMA_VERSION.split(".")
+    assert versionen == [f"{haupt}.{n}" for n in range(int(neben) + 1)]
+    for zeile in zeilen:
+        version, datum, plattform, aenderung = zeile.strip().strip("|").split(" | ", 3)
+        assert datum.strip() and plattform.strip().startswith("0.") and aenderung.strip(), version
+
+
 def _tabellenzeilen(abschnitt: str) -> list[list[str]]:
     zeilen = [z for z in abschnitt.splitlines() if z.startswith("| `")]
     return [[zelle.strip() for zelle in z.strip().strip("|").split(" | ")] for z in zeilen]

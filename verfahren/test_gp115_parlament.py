@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from verfahren.models import Antrag, antrag_einbringen
+from verfahren.test_oertliche_teilnahme import menschen  # noqa: F401
 from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
 
 pytestmark = pytest.mark.django_db
@@ -189,6 +190,16 @@ def test_gp073_hervorhebungen_nach_fristende_mit_regel_und_gesamtzahl(client, or
     assert "3 von 5" in kopf
     assert f'href="{reverse("parameter:regeln")}#regel-parlamentlisten"' in kopf
     assert "nach Fristende" in kopf
+    # Alle fünf gezeigt: die ganze Reihe folgt dem Fristende (gleiche Frist: kleinere Antragsnummer zuerst)
+    from parameter.models import Parameter
+    from verfahren.views import _frist_fuer
+
+    Parameter.objects.update_or_create(schluessel="kacheln-hervorgehoben", defaults={"wert": "5"})
+    teil = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "wichtig")
+    reihe = list(dict.fromkeys(int(n) for n in re.findall(r'href="/antrag/(\d+)/', teil)))
+    alle = Antrag.objects.filter(pk__in=[a.pk for a in beratung + abstimmung])
+    erwartet = sorted(alle, key=lambda a: (_frist_fuer(a, a.policy()), a.pk))
+    assert reihe == [a.pk for a in erwartet]
 
 
 # ── GP-075: Vom Lebensbereich zu seinen Anträgen, Suche über den Titel ─────────────────────────
@@ -406,11 +417,10 @@ def test_gp078_gemeindekonto_im_parlament_weder_gast_noch_anmeldeverweis(client,
 # ── Z-5 (E-05): Hinweis beim Einbringen, wenn die Schwelle im Ortskreis nicht erreichbar ist ───
 
 
-def test_z5_hinweis_wenn_die_schwelle_im_ortskreis_nicht_erreichbar_ist(client, ordnung):  # noqa: F811
+def test_z5_hinweis_wenn_die_schwelle_im_ortskreis_nicht_erreichbar_ist(client, ordnung, menschen):  # noqa: F811
     from mitglieder.models import Identitaetsstufe, Mitglied
-    from verfahren.test_oertliche_teilnahme import menschen as menschen_fixture
 
-    leute, _ort, _fremdort = menschen_fixture.__wrapped__()
+    leute, _ort, _fremdort = menschen
     client.force_login(leute["autor"])
     # Gleichort: die einbringende Person und eine zweite, ungeprüfte — unterstützen kann nur eine; Schwelle 2
     Mitglied.objects.filter(pk=leute["ort"].pk).update(identitaetsstufe=Identitaetsstufe.UNGEPRUEFT)

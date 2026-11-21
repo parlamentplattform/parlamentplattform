@@ -242,11 +242,14 @@ def test_gp077_reihung_zeit_zeigt_chronologisch_bei_gleicher_auswertung(client, 
 def test_gp084_beanstanden_ueber_der_stundengrenze_legt_nichts_an(client, ordnung, monkeypatch):  # noqa: F811
     from types import SimpleNamespace
 
+    from parameter.models import Parameter
     from verfahren import views_aktionen
     from verfahren.models import Beanstandung
     from verfahren.test_views_aktionen import ANTRAG
 
     monkeypatch.setattr(views_aktionen, "BEANSTANDUNGEN_JE_STUNDE", 2, raising=False)
+    # Auch der Registerwert, sobald es ihn gibt (Zuarbeit register-kern): der Test hängt an keiner der Quellen
+    Parameter.objects.update_or_create(schluessel="beanstandung-je-stunde", defaults={"wert": "2"})
     # EINE Stunde für alle Versuche — der Test hängt nicht an der Uhrzeit
     monkeypatch.setattr("mitglieder.botschutz.time", SimpleNamespace(time=lambda: 1_000_000 * 3600.0 + 60))
     from verfahren.models import antrag_einbringen

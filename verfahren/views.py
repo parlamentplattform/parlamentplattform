@@ -1674,6 +1674,11 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "kandidatur": kandidatur,
             "schleife": schleife,
             "unterstuetzungen": unterstuetzungen,
+            # GP-126: Testkonten zählen nie mit — die Seite sagt, wie viele Unterstützungen deshalb fehlen,
+            # damit Kopfzeile und Audit-Spur (die bei Einbringung noch mitzählte) zusammengehen
+            "testkonto_unterstuetzungen": antrag.unterstuetzungen.filter(
+                zurueckgezogen_am__isnull=True, mitglied__testkonto=True
+            ).count(),
             "verfall": _verfall_lage(antrag, policy, unterstuetzungen, vertrauensfrage),
             "chat": chat,
             "archiv": archiv,

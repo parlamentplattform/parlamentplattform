@@ -313,3 +313,22 @@ def test_gp066_zurueckgewiesener_antrag_nennt_grund_und_naechsten_schritt(client
     html = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
     karte = html.split('id="ergebnis-ende"')[1].split("</div>")[0]
     assert "Stimmt mit Antrag 1 überein." in karte and "Parteischiedsgericht" in karte
+
+
+# ── GP-126: Die Antragsseite nennt die Unterstützungen von Testkonten, die sie nicht zählt ───
+
+
+def test_gp126_antragsseite_nennt_die_abweichung_durch_testkonten(client, ordnung):  # noqa: F811
+    from verfahren.models import antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG
+
+    leute = [mitglied_anlegen(f"t{i}") for i in range(3)]
+    antrag = antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung)
+    for person in leute[1:]:
+        antrag.unterstuetzungen.create(mitglied=person)
+    url = reverse("verfahren:antrag", args=[antrag.pk])
+    assert "Testkont" not in client.get(url).content.decode().split('class="a-meta"')[1].split("</p>")[0]
+    leute[2].testkonto = True
+    leute[2].save(update_fields=["testkonto"])
+    kopf = client.get(url).content.decode().split('class="a-meta"')[1].split("</p>")[0]
+    assert "1 Unterstützung" in kopf and "ohne eine Unterstützung eines Testkontos" in kopf

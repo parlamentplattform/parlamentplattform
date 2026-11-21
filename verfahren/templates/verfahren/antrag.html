@@ -49,7 +49,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="a-meta">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigungsantrag von" %}{% else %}{% translate "Vertrauensfrage zu" %}{% endif %} <a href="{% url 'mandatare:detail' vertrauensfrage.mandat.pk %}">{{ vertrauensfrage.mandatar.anzeigename }}</a> ({{ vertrauensfrage.mandat.bezeichnung }})
     · {% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }}{% if not vertrauensfrage.ist_bestaetigung %} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
     · {% translate "Anlässe:" %} {{ vertrauensfrage.anzahl_anlaesse }}
-    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% endif %}{% if frist %}
+    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if testkonto_unterstuetzungen %} ({% blocktranslate count n=testkonto_unterstuetzungen %}ohne eine Unterstützung eines Testkontos{% plural %}ohne {{ n }} Unterstützungen von Testkonten{% endblocktranslate %}){% endif %}{% endif %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   {% if vertrauensfrage.ist_bestaetigung %}
   <div class="band-gold vf-band"><strong>{% translate "Bestätigungsantrag nach § 7 Abs 10 lit f Z 3 — ohne Unterstützungs- und Beratungsphase; die Abstimmung beginnt am siebten Tag nach Einbringung." %}</strong></div>
@@ -74,7 +74,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% endif %}
   {% else %}
   <p class="a-meta">{% translate "eingebracht" %} {{ antrag.eingebracht_am|date:"d.m.Y" }} {% translate "von" %} {{ antrag.eingebracht_von.anzeigename }}
-    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if frist %}
+    · {% blocktranslate count n=unterstuetzungen %}{{ n }} Unterstützung{% plural %}{{ n }} Unterstützungen{% endblocktranslate %}{% if testkonto_unterstuetzungen %} ({% blocktranslate count n=testkonto_unterstuetzungen %}ohne eine Unterstützung eines Testkontos{% plural %}ohne {{ n }} Unterstützungen von Testkonten{% endblocktranslate %}){% endif %}{% if frist %}
     · {% translate "Frist" %} {{ frist|date:"d.m.Y" }}{% endif %}</p>
   {% endif %}
   {% if neu and einschaetzung %}<div class="band-gold neu-band"><a href="#zone-einschaetzung" @click="waehle('einschaetzung', $event)"><strong>{% translate "Einschätzung der Zukunftswerkstatt:" %}</strong> {% translate "betroffene Gesetze zu diesem Antrag →" %}</a></div>{% endif %}

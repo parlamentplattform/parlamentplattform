@@ -746,7 +746,9 @@ class Antrag(models.Model):
             return [[pseudonym.hex, stimme] for pseudonym, stimme in self.stimmabgaben.values_list("pseudonym", "stimme")]
         zeilen = [
             ["bewerbung", platz, pk, zurueckgezogen]
-            for platz, (pk, zurueckgezogen) in enumerate(self.bewerbungen.values_list("pk", "zurueckgezogen"), start=1)
+            for platz, (pk, zurueckgezogen) in enumerate(
+                self.bewerbungen.order_by("erstellt_am", "pk").values_list("pk", "zurueckgezogen"), start=1
+            )
         ]
         zeilen += [
             ["zustimmung", pseudonym.hex, bewerbung_id, zurueckgenommen_am is not None]
@@ -1274,10 +1276,33 @@ def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = 
     return eintrag
 
 
+def _audit_fest():
+    return ValidationError(_("Ein Eintrag der Audit-Kette bleibt unverändert; es wird nur angehängt."))
+
+
+class AuditQuerySet(models.QuerySet):
+    """Schreibriegel der Audit-Kette (Gesamtprüfung GP-130): anhängen ja, ändern und löschen nie."""
+
+    def update(self, **kwargs):
+        raise _audit_fest()
+
+    def delete(self):
+        raise _audit_fest()
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise _audit_fest()
+
+    def bulk_create(self, objs, *args, **kwargs):
+        if kwargs.get("update_conflicts"):
+            raise _audit_fest()
+        return super().bulk_create(objs, *args, **kwargs)
+
+
 class AuditEintrag(models.Model):
     """Append-only-Audit-Log mit Hash-Kette (F-22, ADR-005).
     Einträge werden nie geändert oder gelöscht — dafür gibt es keinen Code-Pfad,
-    und der Admin ist read-only registriert.
+    der Admin ist read-only registriert, und seit GP-130 werfen `save` auf einem bestehenden
+    Eintrag, `delete` und die Mengenwege `update`, `bulk_update` und `delete`.
 
     `vorgaenger` ist eindeutig: Zwei Einträge können nie am selben Kopf hängen. Ohne diese
     Bedingung konnten zwei gleichzeitige Schreiber (zwei Worker, READ COMMITTED) denselben Kopf
@@ -1294,6 +1319,7 @@ class AuditEintrag(models.Model):
         help_text="Hash des Vorgängers — eindeutig, damit die Kette sich nicht gabeln kann.",
     )
     hash = models.CharField(max_length=64, editable=False)
+    objects = AuditQuerySet.as_manager()
 
     class Meta:
         verbose_name = "Audit-Eintrag"
@@ -1307,6 +1333,15 @@ class AuditEintrag(models.Model):
 
     def __str__(self) -> str:
         return f"Audit #{self.lfd} {self.ereignis.get('typ', '?')}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _audit_fest()
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _audit_fest()
 
     #: Wie oft `anhaengen` einen überholten Kopf neu liest, bevor es aufgibt.
     VERSUCHE = 3

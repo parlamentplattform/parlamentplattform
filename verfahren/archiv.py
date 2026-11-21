@@ -509,10 +509,20 @@ def beanstandungen(antrag) -> list[dict]:
     return ergebnis
 
 
-def _ortszeit(iso: str) -> str:
+def _ortszeit(iso: str, nur_tag: bool = False) -> str:
     """Ein Zeitstempel des Archivs (ISO, UTC) für den Markdown-Export: Ortszeit, „2026-10-20 01:30“ —
-    derselbe Kalendertag wie auf der Antragsseite (GP-126)."""
-    return f"{timezone.localtime(datetime.fromisoformat(iso)):%Y-%m-%d %H:%M}"
+    derselbe Kalendertag wie auf der Antragsseite (GP-126). Mit `nur_tag` nur der Tag.
+
+    Das Markdown schnitt die Zeitstempel bisher ab und nannte so UTC, ohne es zu sagen. Ein
+    Zeitstempel ohne Versatz ist schon Ortszeit (die auf den Tag gekürzten Stimm-Ereignisse einer
+    laufenden Abstimmung) und bleibt, wie er ist; was sich nicht lesen lässt, ebenso."""
+    try:
+        wann = datetime.fromisoformat(str(iso))
+    except ValueError:
+        return str(iso)[: 10 if nur_tag else 16]
+    if timezone.is_aware(wann):
+        wann = timezone.localtime(wann)
+    return f"{wann:%Y-%m-%d}" if nur_tag else f"{wann:%Y-%m-%d %H:%M}"
 
 
 def audit_anzahl(antrag) -> int:
@@ -619,7 +629,8 @@ def als_markdown(antrag) -> str:
     # Der Bestätigungsantrag (§ 7 Abs 10 lit f Z 3) kennt weder Unterstützung noch Anlässe noch die Zahlen
     # nach lit c — lit b, c und g gelten für ihn nicht; der Export sagt das statt „0 Unterstützungen · Schwelle: 0“.
     bestaetigung = _ist_bestaetigung(antrag)
-    eingebracht = a["eingebracht_am"][:10]
+    # Tage und Uhrzeiten in Ortszeit, wie auf der Antragsseite (GP-126) — der Kopf sagt es dazu.
+    eingebracht = _ortszeit(a["eingebracht_am"], nur_tag=True)
     if antrag.art == Antragsart.MANDATSFRAGE:
         kopf = f"{_('Eröffnet')}: {eingebracht} · {_('ohne Unterstützungs- und Beratungsphase (§ 7 Abs 9)')}"
     elif bestaetigung:
@@ -631,6 +642,7 @@ def als_markdown(antrag) -> str:
         "",
         f"Antrag {a['id']} · {a['art']} · {a['ebene']} · {_('Phase')}: {a['phase_name']}",
         kopf,
+        _("Zeitangaben in Ortszeit (%(zone)s)") % {"zone": timezone.get_current_timezone_name()},
         "",
     ]
     vf = d.get("vertrauensfrage")
@@ -660,9 +672,9 @@ def als_markdown(antrag) -> str:
         if vf["stellungnahmen"]:
             zeilen += [f"## {_('Stellungnahme des Mandatsträgers')}", ""]
             for st in vf["stellungnahmen"]:
-                zeilen += [f"- ({st['erstellt_am'][:16].replace('T', ' ')})", f"  {st['text']}".replace("\n", "\n  "), ""]
+                zeilen += [f"- ({_ortszeit(st['erstellt_am'])})", f"  {st['text']}".replace("\n", "\n  "), ""]
     for f in d["fassungen"]:
-        zeilen += [f"## {_('Fassung')} {f['nummer']} ({f['erstellt_am'][:10]})", "", f["wortlaut"], ""]
+        zeilen += [f"## {_('Fassung')} {f['nummer']} ({_ortszeit(f['erstellt_am'], nur_tag=True)})", "", f["wortlaut"], ""]
         if f["begruendung"]:
             zeilen += [f"*{f['begruendung']}*", ""]
     for block in d["zeitleiste"]:
@@ -684,7 +696,7 @@ def als_markdown(antrag) -> str:
                 "",
             ]
         for b in block["beitraege"]:
-            kopf = f"- **{b['verfasser']}** ({b['geschrieben_am'][:16].replace('T', ' ')})"
+            kopf = f"- **{b['verfasser']}** ({_ortszeit(b['geschrieben_am'])})"
             if b["ist_kritik"]:
                 kopf += f" · {_('Kritik')}" + (f" {_('Absatz')} {b['bezug_absatz']}" if b["bezug_absatz"] else "")
             if b["antwort_auf"]:
@@ -736,6 +748,6 @@ def als_markdown(antrag) -> str:
             zeilen.append("")
     if d["audit"]:
         zeilen += [f"## {_('Audit-Spur')}", ""]
-        zeilen += [f"- {e['zeit'][:16].replace('T', ' ')} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]
+        zeilen += [f"- {_ortszeit(e['zeit'], nur_tag=bool(e.get('nur_tag')))} · {e['typ']} · `{e['hash'] or '•'}`" for e in d["audit"]]
         zeilen.append("")
     return "\n".join(zeilen)

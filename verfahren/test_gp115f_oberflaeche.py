@@ -78,6 +78,9 @@ def test_die_kachel_nennt_die_angehaltene_auszaehlung(ordnung):  # noqa: F811
     assert k['frist_abgelaufen'] and k['angehalten']
     html = render_to_string('verfahren/_kachel.html', {'k': k, 'ziel': '#feld-x', 'feld': 'x'})
     assert 'Auszählung angehalten' in html and 'wird ausgewertet' not in html
+    # Die Zeile des Feeds zeigt dieselbe Lage — auch sie behauptet keine bevorstehende Auswertung
+    zeile = render_to_string('verfahren/_filter_zeile.html', {'z': k, 'meine_unterstuetzungen': set()})
+    assert 'Auszählung angehalten' in zeile and 'wird ausgewertet' not in zeile
 
 
 def test_die_kachel_ohne_halt_bleibt_wie_bisher(ordnung):  # noqa: F811
@@ -173,6 +176,27 @@ def test_ohne_festgestellten_nenner_nennt_die_karte_keine_kopfzahl(client, ordnu
     assert 'Mindestbeteiligung' not in karte
 
 
+def test_die_kopfzahl_nennt_den_anteil_mit_komma(client, ordnung):  # noqa: F811
+    antrag, leute = _abstimmung(ordnung)
+    Antrag._base_manager.filter(pk=antrag.pk).update(
+        policy_snapshot=dict(antrag.policy_snapshot, mindestbeteiligung=0.125)
+    )
+    client.force_login(leute[5])
+    karte = _seite(client, antrag).split('id="abstimmen"', 1)[1].split('</div>', 1)[0]
+    assert f'(12,5 % von {antrag.stimmberechtigte_anzahl})' in karte and '12.5' not in karte
+
+
+def test_im_leeren_oertlichen_kreis_nennt_die_karte_keine_kopfzahl(ordnung, monkeypatch):  # noqa: F811
+    from verfahren import views
+
+    antrag, _leute = _abstimmung(ordnung)
+    Antrag._base_manager.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=0)
+    antrag.refresh_from_db()
+    monkeypatch.setattr('verfahren.teilnahme.oertlich_begrenzt', lambda _antrag: True)
+    lage = views._beteiligung_lesbar(antrag)
+    assert lage['berechtigte'] == 0 and lage['mindest'] is None  # „0 Stimmen (5 % von 0)“ stünde sonst da
+
+
 # --- GP-003 (Auflage): Zone 3 in der Wartezeit vor der Endabstimmung --------------------------------
 
 
@@ -182,22 +206,36 @@ def _zone3_kopf(client, antrag):
 
 
 def test_in_der_wartezeit_nennt_zone_3_den_beginn_der_endabstimmung_und_den_festgestellten_stand(client, ordnung):  # noqa: F811
-    from gremien.test_werkstatt import _nur_die_unterstuetzerfrist_verstreicht, einreichen, werkstatt_lage
+    from gremien.test_werkstatt import (
+        _nur_die_unterstuetzerfrist_verstreicht,
+        einreichen,
+        reagieren,
+        systembeitrag,
+        werkstatt_lage,
+    )
+    from verfahren import chat as chatkern
+    from verfahren.models import Reaktion
 
-    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
     entwurf = einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    reagieren(client, antrag, passt, unterstuetzer[0])  # vor dem Fristende: zählt
     client.logout()
     vorher = _zone3_kopf(client, antrag)
     assert 'Beratung bis' in vorher and 'Endabstimmung ab' not in vorher
     frist = _nur_die_unterstuetzerfrist_verstreicht(entwurf)
+    # Eine Ablehnung nach dem Fristende: Der laufende Stand kennt sie, der festgestellte nicht
+    Reaktion.objects.create(kommentar=passt, mitglied=unterstuetzer[1], art='ablehnung')
     kopf = _zone3_kopf(client, antrag)
     entwurf.refresh_from_db()
     warte = entwurf.endabstimmung_wartet()
     assert warte is not None and warte['ab'] > timezone.now() > frist
     assert f'Endabstimmung ab {timezone.localtime(warte["ab"]):%d.%m.%Y %H:%M}' in kopf
     assert 'Beratung bis' not in kopf and f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' not in kopf
-    stand = warte['stand']
-    assert f'„Passt alles": {stand["ja"]} 👍 / {stand["nein"]} 👎' in kopf
+    laufend = chatkern.abstimmung_stand(antrag, entwurf)
+    assert (laufend['ja'], laufend['nein']) == (1, 1)
+    assert (warte['stand']['ja'], warte['stand']['nein']) == (1, 0)
+    assert '„Passt alles": 1 👍 / 0 👎' in kopf and '1 👍 / 1 👎' not in kopf
 
 
 

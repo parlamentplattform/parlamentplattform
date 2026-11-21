@@ -171,12 +171,14 @@ def _beteiligung_lesbar(antrag) -> dict | None:
     if berechtigte == 0 and not oertlich_begrenzt(antrag):
         berechtigte = None
     mindest = None
-    if berechtigte is not None:
-        # GP-050: Die Mindestbeteiligung als Kopfzahl aus dem Kern — nur bei festgestelltem Nenner
+    if berechtigte:
+        # GP-050: Die Mindestbeteiligung als Kopfzahl aus dem Kern — nur bei festgestelltem Nenner; im leeren
+        # örtlichen Kreis (0) gibt es keine Kopfzahl. Der Anteil mit dem Dezimalzeichen der Sprache.
         from plattform_core.tally import mindeststimmen
+        from verfahren.templatetags.phasen import anteil_text
 
         anteil = antrag.policy().mindestbeteiligung
-        mindest = {"stimmen": mindeststimmen(berechtigte, anteil), "prozent": f"{anteil * 100:g}"}
+        mindest = {"stimmen": mindeststimmen(berechtigte, anteil), "prozent": anteil_text(anteil)}
     return {
         "abgegeben": abgegeben,
         "berechtigte": berechtigte,

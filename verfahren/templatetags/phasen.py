@@ -64,16 +64,20 @@ KLASSEN = {
 }
 
 
+def anteil_text(mindestbeteiligung: float) -> str:
+    """Die Mindestbeteiligung als Prozentzahl ohne Zeichen („5“, „12,5“) — derselbe Bruch wie in
+    `tally._mindestbeteiligung_text`, mit dem Dezimalzeichen der Sprache."""
+    prozent = Fraction(mindestbeteiligung).limit_denominator(10_000) * 100
+    if prozent.denominator == 1:
+        return str(prozent.numerator)
+    return f"{float(prozent):.2f}".rstrip("0").rstrip(".").replace(".", formats.get_format("DECIMAL_SEPARATOR"))
+
+
 def _mindest_text(stimmberechtigte: int, mindestbeteiligung: float) -> str:
     """„5 Stimmen (5 %)“ wie in `tally._mindestbeteiligung_text`, mit dem Dezimalzeichen der Sprache."""
     kopfzahl = tally.mindeststimmen(stimmberechtigte, mindestbeteiligung)
-    prozent = Fraction(mindestbeteiligung).limit_denominator(10_000) * 100
-    if prozent.denominator == 1:
-        anteil = str(prozent.numerator)
-    else:
-        anteil = f"{float(prozent):.2f}".rstrip("0").rstrip(".").replace(".", formats.get_format("DECIMAL_SEPARATOR"))
     return ngettext("%(n)s Stimme (%(anteil)s %%)", "%(n)s Stimmen (%(anteil)s %%)", kopfzahl) % {
-        "n": kopfzahl, "anteil": anteil,
+        "n": kopfzahl, "anteil": anteil_text(mindestbeteiligung),
     }
 
 

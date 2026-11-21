@@ -1,8 +1,9 @@
 {% extends "verfahren/base.html" %}
 {% load i18n %}
-{% block titel %}{% translate "Mitglied werden" %}{% endblock %}
+{% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Mitglied werden" %}{% endblock %}
 {% block inhalt %}
 <h1>{% translate "Mitglied werden" %}</h1>
+{% include "mitglieder/_formularfehler.html" %}
 <p>{% blocktranslate %}Mitglied kann jede natürliche Person ab dem vollendeten 16. Lebensjahr werden, die sich zu
 den Grundsätzen des § 3 bekennt. Die Aufnahme ist nicht an Staatsbürgerschaft oder Wohnsitz
 gebunden — stimmberechtigt bei staatsnahen Fragen sind Mitglieder nach Maßgabe der Satzung.{% endblocktranslate %}

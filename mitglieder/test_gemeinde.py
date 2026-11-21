@@ -669,3 +669,27 @@ def test_anmeldeseite_nennt_dem_angemeldeten_gemeindekonto_seinen_zugang(client,
 def test_gast_wird_weiter_zur_anmeldung_geschickt(client):
     antwort = client.get('/profil/')
     assert antwort.status_code == 302 and antwort['Location'].startswith('/anmelden/')
+
+
+# --- Formularfehler oben im Hauptteil (GP-060, ZB-02) -------------------------
+
+
+def test_falsche_gemeinde_meldet_sich_oben_als_alert_mit_sprungverweis(client, buerger):
+    client.force_login(buerger)
+    antwort = client.post(reverse('gemeinde:konto'), {
+        'wohnsitz_art': 'oesterreich', 'gemeinde': 'Entenhausen an der Gans', 'meldung': 'on',
+    })
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert html.split('<title>', 1)[1].startswith('Fehler:')
+    hauptteil = html.split('<main id="inhalt"', 1)[1]
+    alarm = hauptteil.split('role="alert"', 1)
+    assert len(alarm) == 2 and '<form' not in alarm[0]
+    assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]
+
+
+def test_ohne_fehler_kein_alert(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('gemeinde:konto')).content.decode()
+    assert 'role="alert"' not in html.split('<main id="inhalt"', 1)[1]
+    assert not html.split('<title>', 1)[1].startswith('Fehler:')

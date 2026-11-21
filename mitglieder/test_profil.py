@@ -1395,3 +1395,18 @@ def test_profil_ohne_eigene_antraege_bleibt_ruhig(client):
     html = client.get(reverse('mitglieder:profil')).content.decode()
     karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
     assert 'Noch keine eigenen Anträge.' in karte
+
+
+# --- Formularfehler oben im Hauptteil (GP-060, ZB-02) -------------------------
+
+
+def test_profilfehler_steht_oben_als_alert_mit_sprungverweis(client):
+    client.force_login(mitglied_anlegen('anna'))
+    antwort = profil_speichern(client, wohnsitz_art='oesterreich', gemeinde='Entenhausen an der Gans')
+    assert antwort.status_code == 200
+    html = antwort.content.decode()
+    assert html.split('<title>', 1)[1].startswith('Fehler:')
+    hauptteil = html.split('<main id="inhalt"', 1)[1]
+    alarm = hauptteil.split('role="alert"', 1)
+    assert len(alarm) == 2 and '<form' not in alarm[0]  # vor dem ersten Formular
+    assert 'href="#id_gemeinde"' in alarm[1].split('</div>', 1)[0]

@@ -1,6 +1,6 @@
 {% extends "verfahren/base.html" %}
 {% load i18n static phasen %}
-{% block titel %}{% translate "Profil" %}{% endblock %}
+{% block titel %}{% if form.errors %}{% translate "Fehler:" %} {% endif %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
 Das eigene Profil (FB-K5): Anzeigename, Einwilligung zum Klarnamen, Wohnsitz und Nebenwohnsitz in einem Formular,
@@ -22,6 +22,7 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
   .ausweis-vorschau svg{border-radius:3.7%/5.9%;box-shadow:var(--shadow)}
 </style>
 <h1>{% translate "Profil" %}</h1>
+{% include "mitglieder/_formularfehler.html" %}
 <p class="erk">{% blocktranslate with name=user.anzeigename pk=user.mitgliedsnummer_text %}Angemeldet als <strong>{{ name }}</strong> · Mitglied #{{ pk }}{% endblocktranslate %}</p>
 
 <form method="post" action="{% url 'mitglieder:profil' %}" class="pf-form">{% csrf_token %}

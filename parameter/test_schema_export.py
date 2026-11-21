@@ -107,3 +107,23 @@ def test_der_export_zeigt_die_wirksame_ordnung_nicht_den_rohdatensatz(client):
     assert "council.group1_size" in kennungen and "council.group2_size" in kennungen
     groesse = next(w for w in ausgegeben["werte"] if w["schema_key"] == "council.group1_size")
     assert groesse["wert"] == 3
+
+
+def test_gp126_motions_by_phase_summiert_auf_motions_total(ordnung):  # noqa: F811
+    '''GP-126 (RVB-13): `motions.by_phase` kannte „zurueckgezogen“ nicht; zurückgezogene Anträge
+    zählten in `motions.total`, fehlten aber in der Aufgliederung. Zurückgewiesene stehen in
+    keiner der beiden Zahlen (Schema 4.1: „without formally rejected ones“).'''
+    from parameter.kennzahlen import werte
+    from plattform_core import Phase
+    from verfahren.models import Antrag, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen
+
+    autor = mitglied_anlegen('autor')
+    for phase in Phase:
+        a = antrag_einbringen(autor, **ANTRAG, ordnung=ordnung)
+        Antrag.objects.filter(pk=a.pk).update(phase=phase.value)
+    kennzahlen = werte()
+    assert kennzahlen['motions.total'] == len(Phase) - 1
+    assert sum(kennzahlen['motions.by_phase'].values()) == kennzahlen['motions.total']
+    assert kennzahlen['motions.by_phase']['zurueckgezogen'] == 1
+    assert 'zurueckgewiesen' not in kennzahlen['motions.by_phase']

@@ -231,3 +231,23 @@ def test_gp134_gleichstand_steht_nach_antragsnummer_und_die_liste_verlinkt_die_r
     gezeigt = [(z["antrag"].pk, z["aufrufe"]) for z in seite.context["meistgelesen"]]
     assert gezeigt == [(antraege[2].pk, 9), (antraege[0].pk, 6), (antraege[1].pk, 6), (antraege[3].pk, 6)]
     assert f'href="{reverse("parameter:regeln")}#regel-meistgelesen"' in seite.content.decode()
+
+
+def test_gp126_die_phasenaufstellung_summiert_auf_die_gesamtzahl(client, ordnung):  # noqa: F811
+    '''GP-126 (GAST-12, RVB-13): Die Phasenzeile kannte nur fünf Phasen; verfallene, zurückgezogene
+    und zurückgewiesene Anträge steckten in „insgesamt“, fehlten aber in der Aufstellung. Mit je
+    einem Antrag jeder Phase ergeben die Teile die Gesamtzahl.'''
+    from plattform_core import Phase
+    from verfahren.models import Antrag
+
+    autor = mitglied_anlegen('autor')
+    for phase in Phase:
+        a = antrag_einbringen(autor, **ANTRAG, ordnung=ordnung)
+        Antrag.objects.filter(pk=a.pk).update(phase=phase.value)
+    antwort = client.get(reverse('uebersicht:index'))
+    teile = [anzahl for _name, anzahl in antwort.context['je_phase']]
+    assert antwort.context['antraege_gesamt'] == len(Phase) == sum(teile)
+    assert all(anzahl == 1 for anzahl in teile)
+    inhalt = antwort.content.decode()
+    for wort in ('verfallen', 'zurückgezogen', 'zurückgewiesen'):
+        assert wort in inhalt, wort

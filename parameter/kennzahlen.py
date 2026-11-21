@@ -48,7 +48,10 @@ def werte() -> dict:
     from verfahren.views import _register_zeilen
 
     antraege = Antrag.objects.exclude(phase=Phase.ZURUECKGEWIESEN.value)
-    je_phase = dict.fromkeys(("unterstuetzung", "beratung", "abstimmung", "angenommen", "abgelehnt", "verfallen"), 0)
+    # Jede Phase außer der formalen Zurückweisung, damit die Teile `motions.total` ergeben (GP-126)
+    je_phase = dict.fromkeys(
+        ("unterstuetzung", "beratung", "abstimmung", "angenommen", "abgelehnt", "verfallen", "zurueckgezogen"), 0
+    )
     for zeile in antraege.values("phase").annotate(n=Count("pk")):
         if zeile["phase"] in je_phase:
             je_phase[zeile["phase"]] = zeile["n"]

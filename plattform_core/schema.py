@@ -367,7 +367,7 @@ def _prozent(anteil):
 KENNZAHLEN = (
     ("members.active", "count", "Active member accounts"),
     ("motions.total", "count", "Motions submitted (without formally rejected ones)"),
-    ("motions.by_phase", "map", "Motions per phase: support, deliberation, vote, adopted, rejected, lapsed"),
+    ("motions.by_phase", "map", "Motions per phase: support, deliberation, vote, adopted, rejected, lapsed, withdrawn; the parts add up to motions.total"),
     ("votes.completed", "count", "Completed votes (adopted or rejected after a vote)"),
     ("votes.turnout_mean", "share", "Mean turnout of completed votes: ballots cast / eligible members"),
     ("implementation.by_status", "map", "Adopted motions per implementation status"),

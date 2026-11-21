@@ -359,8 +359,9 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
     {"schema_key": "members.active", "einheit": "count", "wert": 128},
     {"schema_key": "motions.total", "einheit": "count", "wert": 41},
     {"schema_key": "motions.by_phase", "einheit": "map",
-     "wert": {"unterstuetzung": 5, "beratung": 2, "abstimmung": 3, "angenommen": 24, "abgelehnt": 6, "verfallen": 1}},
-    {"schema_key": "votes.completed", "einheit": "count", "wert": 30},
+     "wert": {"unterstuetzung": 5, "beratung": 2, "abstimmung": 3, "angenommen": 24, "abgelehnt": 5, "verfallen": 1,
+              "zurueckgezogen": 1}},
+    {"schema_key": "votes.completed", "einheit": "count", "wert": 29},
     {"schema_key": "votes.turnout_mean", "einheit": "share", "wert": 0.37},
     {"schema_key": "implementation.by_status", "einheit": "map",
      "wert": {"offen": 4, "in_umsetzung": 9, "blockiert": 1, "umgesetzt": 10, "zurueckgestellt": 0}},
@@ -375,7 +376,7 @@ lesbar im Export jedes Antrags (`/antrag/<id>/export.json`, Feld `policy`).
 |---|---|---|
 | `members.active` | count | Active member accounts |
 | `motions.total` | count | Motions submitted (without formally rejected ones) |
-| `motions.by_phase` | map | Motions per phase: support, deliberation, vote, adopted, rejected, lapsed |
+| `motions.by_phase` | map | Motions per phase: support, deliberation, vote, adopted, rejected, lapsed, withdrawn; the parts add up to motions.total |
 | `votes.completed` | count | Completed votes (adopted or rejected after a vote) |
 | `votes.turnout_mean` | share | Mean turnout of completed votes: ballots cast / eligible members |
 | `implementation.by_status` | map | Adopted motions per implementation status |

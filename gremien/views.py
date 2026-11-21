@@ -180,7 +180,9 @@ def uebersicht(request):
         )
         bloecke.append({"wert": wert, "name": name, "rollen": rollen})
     beendete = Rolle.objects.exclude(beendet_grund="").count()
-    return render(request, "gremien/uebersicht.html", {"bloecke": bloecke, "beendete": beendete})
+    return render(
+        request, "gremien/uebersicht.html", {"bloecke": bloecke, "beendete": beendete, "jahr": heute.year}
+    )
 
 
 def _bereich_url(gremium: str) -> str:

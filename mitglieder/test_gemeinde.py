@@ -644,3 +644,28 @@ def test_wohnsitz_in_oesterreich_verlangt_den_meldehaken_weiter(client, buerger,
 def test_ortssuche_nennt_ihre_reihung(client, ort):
     html = client.get(reverse('gemeinde:start'), {'ort': 'Marien'}).content.decode()
     assert 'alphabetisch nach Gemeindename' in html
+
+
+# --- Gemeindekonto auf geschützten Parteiseiten (GP-078, GE-05/GAST-16) -------
+
+
+@pytest.mark.parametrize('pfad', ['/profil/', '/einbringen/', '/beitrag/', '/verwaltung/'])
+def test_geschuetzte_parteiseite_nennt_dem_gemeindekonto_den_weg_statt_der_anmeldung(client, buerger, pfad):
+    client.force_login(buerger)
+    antwort = client.get(pfad)
+    assert antwort.status_code == 403
+    assert '/anmelden/' not in antwort.get('Location', '')
+    hauptteil = antwort.content.decode().split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Gemeindekonto' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+
+
+def test_anmeldeseite_nennt_dem_angemeldeten_gemeindekonto_seinen_zugang(client, buerger):
+    client.force_login(buerger)
+    html = client.get(reverse('mitglieder:login')).content.decode()
+    hauptteil = html.split('<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+    assert 'Sie sind mit Ihrem Gemeindekonto angemeldet.' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
+
+
+def test_gast_wird_weiter_zur_anmeldung_geschickt(client):
+    antwort = client.get('/profil/')
+    assert antwort.status_code == 302 and antwort['Location'].startswith('/anmelden/')

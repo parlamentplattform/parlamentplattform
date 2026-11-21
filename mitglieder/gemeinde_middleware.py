@@ -4,8 +4,11 @@ Die Grenze gilt auch für neue, künftig ergänzte Parteiseiten. Auf Gemeinde- u
 Anmeldewegen bleibt dieselbe authentifizierte Identität verfügbar (ADR-016).
 """
 
+from urllib.parse import urlsplit
+
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.shortcuts import render
+from django.shortcuts import render, resolve_url
 from django.utils.deprecation import MiddlewareMixin
 
 
@@ -31,3 +34,14 @@ class GemeindezugangBegrenzen(MiddlewareMixin):
             # GP-095: eine ganze Seite mit Grund und Weg zurück zum Gemeindekonto statt eines nackten Satzes
             return render(request, "mitglieder/gemeinde_gesperrt.html", status=403)
         return None
+
+    def process_response(self, request, response):
+        # GP-078: Eine geschützte Parteiseite schickte das angemeldete Gemeindekonto zur Anmeldung —
+        # ein Kreis ohne Ausgang. Statt der Umleitung kommt dieselbe Auskunft wie bei Schreibwegen.
+        if (
+            getattr(request, "gemeindekonto", None) is not None
+            and response.status_code == 302
+            and urlsplit(response.get("Location", "")).path == resolve_url(settings.LOGIN_URL)
+        ):
+            return render(request, "mitglieder/gemeinde_gesperrt.html", status=403)
+        return response

@@ -993,14 +993,14 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
     offene = list(
         GremienBeschluss.objects.filter(gremium=gremium, status=BeschlussStatus.OFFEN)
         .select_related("antrag")
-        .prefetch_related("stimmen__mitglied")
+        .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
         .order_by("frist", "angelegt_am")
     )
     erledigte = list(
         GremienBeschluss.objects.filter(gremium=gremium)
         .exclude(status=BeschlussStatus.OFFEN)
         .select_related("antrag")
-        .prefetch_related("stimmen__mitglied")
+        .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
         .order_by("-entschieden_am")[:grenze]
     )
     # eine Abfrage je Seite (Befund #77): Nenner und — bei offenen — Filter des Zählers (Befund B4)
@@ -1034,7 +1034,7 @@ def beschluesse_oeffentlich(request):
     gewaehlt = request.GET.get("gremium", "")
     beschluesse = (
         GremienBeschluss.objects.select_related("antrag")
-        .prefetch_related("stimmen__mitglied")
+        .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
         .order_by("-angelegt_am")
     )
     if gewaehlt in Gremium.values:
@@ -1067,7 +1067,7 @@ def beschluss_oeffentlich(request, nummer: str):
 
     Damit eine Begründung, die sich auf „IR-2026-04" beruft, auch irgendwohin führt."""
     beschluss = get_object_or_404(
-        GremienBeschluss.objects.prefetch_related("stimmen__mitglied"), nummer=nummer
+        GremienBeschluss.objects.prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied"), nummer=nummer
     )
     beschluss.abschliessen()
     beschluss.refresh_from_db()
@@ -1207,8 +1207,7 @@ def beschluss_umsetzung(request, beschluss_id: int):
     if not vermerk:
         messages.error(request, _("Bitte sagen, was wie umgesetzt wird."))
         return redirect(zurueck)
-    beschluss.umsetzungsvermerk = vermerk[:2000]
-    beschluss.umsetzung_durch = None
+    rolle = None
     wer = request.POST.get("umsetzung_durch")
     if wer:
         # Eine verformte Kennung ist niemand aus diesem Rat (GP-125) — dieselbe Meldung, kein Serverfehler.
@@ -1221,26 +1220,17 @@ def beschluss_umsetzung(request, beschluss_id: int):
         if rolle is None:
             messages.error(request, _("Zugewiesen werden kann nur ein Mitglied dieses Rates."))
             return redirect(zurueck)
-        beschluss.umsetzung_durch = rolle.mitglied
-    beschluss.umsetzung_frist = None
+    bis = None
     frist = (request.POST.get("umsetzung_frist") or "").strip()
     if frist:
         try:
-            beschluss.umsetzung_frist = date.fromisoformat(frist)
+            bis = date.fromisoformat(frist)
         except ValueError:
             messages.error(request, _("Die Frist braucht ein Datum."))
             return redirect(zurueck)
-    with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-038)
-        beschluss.save(update_fields=["umsetzungsvermerk", "umsetzung_durch", "umsetzung_frist"])
-        AuditEintrag.anhaengen(
-            {
-                "typ": "umsetzungsvermerk",
-                "beschluss": beschluss.pk,
-                "nummer": beschluss.nummer,
-                "zugewiesen": beschluss.umsetzung_durch_id is not None,
-                "frist": beschluss.umsetzung_frist.isoformat() if beschluss.umsetzung_frist else None,
-            }
-        )
+    # Angefügt, nie ersetzt (GP-025); der Vermerk der Plattform bleibt unberührt (GP-034). Vermerk
+    # und Protokoll entstehen gemeinsam oder gar nicht (GP-038).
+    beschluss.umsetzungsvermerk_anfuegen(vermerk, rolle=rolle, frist=bis)
     messages.success(request, _("Umsetzungsvermerk festgehalten — er steht öffentlich beim Beschluss."))
     return redirect(zurueck)
 
@@ -1257,7 +1247,7 @@ def protokoll(request, gremium: str, jahr: int):
     GremienBeschluss.faellige_abschliessen()
     beschluesse = (
         GremienBeschluss.objects.filter(gremium=gremium, angelegt_am__year=jahr)
-        .prefetch_related("stimmen__mitglied")
+        .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
         .select_related("antrag", "umsetzung_durch")
         .order_by("angelegt_am")
     )
@@ -1290,9 +1280,21 @@ def protokoll(request, gremium: str, jahr: int):
                     }
                     for s in b.stimmen.all()
                 ],
+                # Der Vermerk der Plattform; darunter Zuweisung und Frist des jüngsten Vermerks des Rates.
                 "umsetzungsvermerk": b.umsetzungsvermerk,
                 "umsetzung_durch": b.umsetzung_durch.anzeigename if b.umsetzung_durch else None,
                 "umsetzung_frist": b.umsetzung_frist.isoformat() if b.umsetzung_frist else None,
+                # Die Vermerke des Rates, in der Reihenfolge, in der sie geschrieben wurden (GP-025).
+                "umsetzungsvermerke": [
+                    {
+                        "nummer": v.nummer,
+                        "text": v.text,
+                        "umsetzung_durch": v.rolle.mitglied.anzeigename if v.rolle else None,
+                        "umsetzung_frist": v.frist.isoformat() if v.frist else None,
+                        "erstellt_am": v.erstellt_am.isoformat(),
+                    }
+                    for v in sorted(b.umsetzungsvermerke.all(), key=lambda v: v.nummer)
+                ],
             }
         )
     antwort = JsonResponse(
@@ -2285,6 +2287,7 @@ def integritaet_bericht(request, jahr: int):
     beschluesse = list(
         GremienBeschluss.objects.filter(gremium=Gremium.INTEGRITAETSRAT, angelegt_am__year=jahr)
         .select_related("antrag")
+        .prefetch_related("umsetzungsvermerke")
         .order_by("angelegt_am")
     )
     nach_anlass = {}

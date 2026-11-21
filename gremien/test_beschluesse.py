@@ -453,6 +453,7 @@ def test_ohne_audit_eintrag_bleibt_der_umsetzungsvermerk_ungeschrieben(client, a
     antwort = client.post(reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.'})
     beschluss.refresh_from_db()
     assert antwort.status_code == 500 and beschluss.umsetzungsvermerk == ''
+    assert not beschluss.umsetzungsvermerke.exists() and beschluss.umsetzung_frist is None  # GP-025: nichts halb
 
 
 def test_ohne_audit_eintrag_wird_kein_test_angeordnet(client, monkeypatch):

@@ -32,7 +32,7 @@ niemand kürzen oder zurückhalten.
   <p class="phasen-titel">{{ anlass }} ({{ liste|length }})</p>
   {% for b in liste %}
   <div class="zeile"><span><a href="{% url 'gremien:beschluss' b.nummer %}" class="meta">{{ b.nummer }}</a> <strong>{{ b.gegenstand }}</strong> <span class="chip klein">{{ b.get_status_display }}</span>{% if b.ergebnis %} · {% for o in b.optionen %}{% if o.wert == b.ergebnis %}{{ o.name }}{% endif %}{% endfor %}{% endif %}
-    <br><span class="meta">{{ b.angelegt_am|date:"d.m.Y" }}{% if b.umsetzungsvermerk %} · {{ b.umsetzungsvermerk }}{% endif %}</span></span></div>
+    <br><span class="meta">{{ b.angelegt_am|date:"d.m.Y" }}{% if b.umsetzungsvermerk %} · {{ b.umsetzungsvermerk }}{% endif %}{% for v in b.umsetzungsvermerke.all %} · {{ v.text }}{% endfor %}</span></span></div>
   {% endfor %}
 </div>
 {% empty %}

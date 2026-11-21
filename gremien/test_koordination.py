@@ -84,7 +84,9 @@ def test_ein_interner_beschluss_mit_umsetzungsvermerk(client):
         {"umsetzungsvermerk": "Einladung geht per Mail.", "umsetzung_durch": leute[2].pk, "umsetzung_frist": frist},
     )
     beschluss.refresh_from_db()
-    assert beschluss.umsetzungsvermerk == "Einladung geht per Mail."
+    # Der Vermerk des Rates ist ein eigener Eintrag (GP-025); das Feld gehört der Plattform (GP-034).
+    assert beschluss.umsetzungsvermerk == ""
+    assert [v.text for v in beschluss.umsetzungsvermerke.all()] == ["Einladung geht per Mail."]
     assert beschluss.umsetzung_durch == leute[2] and beschluss.umsetzung_frist.isoformat() == frist
     assert any(e.ereignis["typ"] == "umsetzungsvermerk" for e in AuditEintrag.objects.all())
     # Öffentlich beim Beschluss
@@ -105,6 +107,7 @@ def test_der_umsetzungsvermerk_geht_nur_an_ratsmitglieder(client):
     )
     beschluss.refresh_from_db()
     assert beschluss.umsetzungsvermerk == "" and beschluss.umsetzung_durch is None
+    assert not beschluss.umsetzungsvermerke.exists()
 
 
 def test_wer_keine_rolle_hat_legt_keinen_beschluss_an(client):

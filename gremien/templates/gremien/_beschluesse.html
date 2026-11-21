@@ -24,12 +24,12 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
     {% if b.beschluss.status == "entschieden" %}
     <p style="margin-top:6px"><strong>{% translate "Beschlossen:" %} {% for o in b.beschluss.optionen %}{% if o.wert == b.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>
       {% if b.beschluss.umsetzungsvermerk %}<br><span class="meta">{{ b.beschluss.umsetzungsvermerk|linebreaksbr }}</span>{% endif %}
-      {% if b.beschluss.umsetzung_durch %}<br><span class="meta">{% translate "Umsetzung:" %} {{ b.beschluss.umsetzung_durch.anzeigename }}{% if b.beschluss.umsetzung_frist %} · {% translate "bis" %} {{ b.beschluss.umsetzung_frist|date:"d.m.Y" }}{% endif %}</span>{% elif b.beschluss.umsetzung_frist %}<br><span class="meta">{% translate "Umsetzung bis" %} {{ b.beschluss.umsetzung_frist|date:"d.m.Y" }}</span>{% endif %}</p>
+      {% include "gremien/_umsetzungsvermerke.html" with beschluss=b.beschluss %}</p>
     {% if umsetzungsvermerk and darf_stimmen and b.zustaendig %}
-    <details style="margin-top:6px"><summary class="meta">{% if b.beschluss.umsetzungsvermerk %}{% translate "Umsetzungsvermerk ändern" %}{% else %}{% translate "Umsetzungsvermerk — was wie umgesetzt wird" %}{% endif %}</summary>
+    <details style="margin-top:6px"><summary class="meta">{% if b.beschluss.umsetzungsvermerke.all %}{% translate "Weiteren Umsetzungsvermerk anfügen" %}{% else %}{% translate "Umsetzungsvermerk — was wie umgesetzt wird" %}{% endif %}</summary>
       <form method="post" action="{% url 'gremien:beschluss_umsetzung' b.beschluss.pk %}" style="margin-top:6px">{% csrf_token %}
         <label for="uv-{{ b.beschluss.pk }}">{% translate "Was wie umgesetzt wird (wird veröffentlicht)" %}</label>
-        <textarea id="uv-{{ b.beschluss.pk }}" name="umsetzungsvermerk" style="width:100%;min-height:50px" required>{{ b.beschluss.umsetzungsvermerk }}</textarea>
+        <textarea id="uv-{{ b.beschluss.pk }}" name="umsetzungsvermerk" style="width:100%;min-height:50px" required></textarea>
         <label for="ud-{{ b.beschluss.pk }}" style="display:block;margin-top:6px">{% translate "Übernimmt (Mitglied des Rates, freiwillig)" %}</label>
         <select id="ud-{{ b.beschluss.pk }}" name="umsetzung_durch">
           <option value="">—</option>

@@ -1218,7 +1218,10 @@ class GremienBeschluss(models.Model):
         default=0, help_text="Fassung der Auszählregel, mit der entschieden wurde."
     )
     umsetzungsvermerk = models.TextField(
-        max_length=2000, blank=True, help_text="Was wie umgesetzt wird — nach der Entscheidung."
+        max_length=2000,
+        blank=True,
+        help_text="Der Vermerk der Plattform: was der Beschluss bewirkt hat oder warum er ohne Wirkung "
+        "blieb. Nur anfügend; die Vermerke des Rates stehen als eigene Einträge daneben.",
     )
     umsetzung_durch = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -1226,9 +1229,11 @@ class GremienBeschluss(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="zugewiesene_umsetzungen",
-        help_text="Wer die Umsetzung übernimmt — ein Mitglied des Rates.",
+        help_text="Wer die Umsetzung übernimmt — ein Mitglied des Rates. Stand des jüngsten Vermerks.",
     )
-    umsetzung_frist = models.DateField(null=True, blank=True, help_text="Bis wann.")
+    umsetzung_frist = models.DateField(
+        null=True, blank=True, help_text="Bis wann. Stand des jüngsten Vermerks."
+    )
     zustand_vorher = models.JSONField(
         null=True,
         blank=True,
@@ -1399,6 +1404,48 @@ class GremienBeschluss(models.Model):
             "beschlussfaehig": ergebnis.beschlussfaehig,
             "gleichstand": ergebnis.gleichstand,
         }
+
+    def umsetzung_ueberfaellig_seit(self, heute=None):
+        """Der erste Tag nach der Umsetzungsfrist, wenn sie verstrichen ist — sonst None (GP-025).
+
+        Es gilt die Frist des jüngsten Vermerks. Sie ist ein Tagesdatum („bis wann“): Am Tag der
+        Frist selbst ist noch nichts überfällig."""
+        if self.status != BeschlussStatus.ENTSCHIEDEN or self.umsetzung_frist is None:
+            return None
+        heute = heute or timezone.localdate()
+        return self.umsetzung_frist + timedelta(days=1) if heute > self.umsetzung_frist else None
+
+    def umsetzungsvermerk_anfuegen(self, text: str, rolle=None, frist=None, jetzt=None):
+        """Fügt einen Vermerk des Rates an — ersetzt wird nie etwas (GP-025, Grundregel 7).
+
+        Der Beschluss trägt danach Zuweisung und Frist des jüngsten Vermerks; die früheren bleiben
+        an ihren Einträgen lesbar. Die Zeile des Beschlusses wird gesperrt, damit zwei gleichzeitige
+        Vermerke nicht dieselbe Nummer bekommen. Der Eintrag der Kette nennt niemanden."""
+        with transaction.atomic():
+            type(self).objects.select_for_update().get(pk=self.pk)
+            hoechste = self.umsetzungsvermerke.aggregate(n=models.Max("nummer"))["n"] or 0
+            vermerk = Umsetzungsvermerk.objects.create(
+                beschluss=self,
+                nummer=hoechste + 1,
+                text=text[:2000],
+                rolle=rolle,
+                frist=frist,
+                erstellt_am=jetzt or timezone.now(),
+            )
+            self.umsetzung_durch = rolle.mitglied if rolle is not None else None
+            self.umsetzung_frist = frist
+            self.save(update_fields=["umsetzung_durch", "umsetzung_frist"])
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "umsetzungsvermerk",
+                    "beschluss": self.pk,
+                    "nummer": self.nummer,
+                    "vermerk_nr": vermerk.nummer,
+                    "zugewiesen": rolle is not None,
+                    "frist": frist.isoformat() if frist else None,
+                }
+            )
+        return vermerk
 
     def alle_haben_gestimmt(self) -> bool:
         personen = self._aktive_personen()
@@ -1620,6 +1667,40 @@ class GremienStimme(models.Model):
         return f"{self.mitglied_id} → {self.option}"
 
 
+class Umsetzungsvermerk(models.Model):
+    """Ein Vermerk des Rates zur Umsetzung eines entschiedenen Beschlusses (FB-I5, § 6 Abs 9).
+
+    Nur anfügend (GP-025): Bis 0.114.0 ersetzte jeder Vermerk den vorigen samt Zuweisung und Frist —
+    was zugesagt war, stand danach nirgends mehr. Jetzt bleibt jeder Vermerk als eigener Eintrag
+    stehen, je Beschluss durchgezählt, öffentlich wie bisher.
+
+    Die Zuweisung verweist auf die Rolle, nicht auf das Mitglied: Übernehmen kann nur, wer im Rat
+    sitzt, und der Name wird beim Anzeigen bestimmt (GP-011)."""
+
+    beschluss = models.ForeignKey(GremienBeschluss, on_delete=models.CASCADE, related_name="umsetzungsvermerke")
+    nummer = models.PositiveIntegerField(help_text="Je Beschluss fortlaufend.")
+    text = models.TextField(max_length=2000)
+    rolle = models.ForeignKey(
+        Rolle,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="umsetzungsvermerke",
+        help_text="Die Rolle des Ratsmitglieds, das die Umsetzung übernimmt — freiwillig.",
+    )
+    frist = models.DateField(null=True, blank=True, help_text="Bis wann — freiwillig.")
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("beschluss", "nummer")]
+        ordering = ["-nummer"]
+        verbose_name = "Umsetzungsvermerk"
+        verbose_name_plural = "Umsetzungsvermerke"
+
+    def __str__(self) -> str:
+        return f"Vermerk {self.nummer} zu Beschluss {self.beschluss_id}"
+
+
 def beschluss_frist(tage_schluessel: str = "gremien-beschluss-tage", standard: int = BESCHLUSS_TAGE):
     """Wann ein neu angelegter Beschluss ausgewertet wird."""
     return timezone.now() + timedelta(days=_registerzahl(tage_schluessel, standard))
@@ -1721,9 +1802,30 @@ def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
 
 
 def _vermerken(beschluss, text: str) -> None:
-    """Hält am Beschluss fest, warum eine Wirkung ausblieb — statt sie stumm zu unterlassen."""
+    """Hält am Beschluss fest, was er bewirkt hat oder warum eine Wirkung ausblieb — statt sie stumm
+    zu unterlassen.
+
+    Der Vermerk steht auch in der Kette (GP-034): Das Feld gehört der Plattform, das Formular des
+    Rates schreibt es nicht mehr — und was hier steht, ist ein Satz der Plattform ohne Person.
+    `ohne_wirkung` macht den Fall auffindbar, in dem ein Beschluss entschieden aussieht und nichts
+    bewirkt hat."""
     beschluss.umsetzungsvermerk = (beschluss.umsetzungsvermerk + " " + text).strip()[:2000]
     beschluss.save(update_fields=["umsetzungsvermerk"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "gremienbeschluss_vermerkt",
+            "gremium": beschluss.gremium,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "vermerk": text[:2000],
+            "ohne_wirkung": text.startswith(OHNE_WIRKUNG_ANFAENGE),
+        }
+    )
+
+
+#: Woran die Kette einen Vermerk erkennt, nach dem der Beschluss nicht bewirkt hat, was er beschloss:
+#: die Satzanfänge, mit denen die Wirkungen das sagen („Ohne Wirkung: …“, „Nicht eingereicht: …“).
+OHNE_WIRKUNG_ANFAENGE = ("Ohne Wirkung", "Nicht ")
 
 
 def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:

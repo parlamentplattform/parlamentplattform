@@ -358,3 +358,195 @@ def test_altbestand_die_zahlen_kommen_aus_dem_audit_oder_gar_nicht(client):
     # Der offene Beschluss rechnet weiter mit der Besetzung von heute.
     einzel = client.get(reverse('gremien:beschluss', args=[offener.nummer])).content.decode()
     assert '0 von 1 nötigen Stimmen bei 1 aktiven Rollen' in einzel
+
+
+# --- GP-034, GP-025 · Vermerke am Beschluss: nichts wird still überschrieben -------------------
+
+
+def _vermerk_schreiben(client, wer, beschluss, text, **felder):
+    from django.urls import reverse
+
+    client.force_login(wer)
+    antwort = client.post(
+        reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': text, **felder}
+    )
+    client.logout()
+    return antwort
+
+
+def _einzelseite(client, beschluss):
+    from django.urls import reverse
+
+    client.logout()
+    return client.get(reverse('gremien:beschluss', args=[beschluss.nummer])).content.decode()
+
+
+def test_ein_vermerk_des_rates_laesst_den_vermerk_der_plattform_stehen(client, ordnung):  # noqa: F811
+    """GP-034: Das Formular „Umsetzungsvermerk“ ersetzte den Vermerk der Plattform, warum ein Beschluss
+    ohne Wirkung blieb — öffentlich stand dann „entschieden: dafür, erledigt wie beschlossen“. Beide
+    Texte bleiben jetzt stehen, und die Kette hält fest, dass der Beschluss ohne Wirkung blieb."""
+    from django.urls import reverse
+
+    from gremien.models import Anlass, BeschlussStatus
+    from gremien.test_integritaet import antrag_anlegen, beschluss_fassen, rat
+
+    leute = rat(2)  # zwei sind kein Integritätsrat (§ 6 Abs 3 lit a)
+    antrag = antrag_anlegen(ordnung)
+    beschluss_fassen(client, leute, antrag, Anlass.HERVORHEBUNG)
+    beschluss = antrag.gremienbeschluesse.get()
+    plattform = beschluss.umsetzungsvermerk
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN and plattform.startswith('Ohne Wirkung')
+    _vermerk_schreiben(client, leute[0], beschluss, 'Erledigt wie beschlossen.')
+    beschluss.refresh_from_db()
+    assert beschluss.umsetzungsvermerk == plattform
+    einzel = _einzelseite(client, beschluss)
+    assert 'Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt' in einzel
+    assert 'Erledigt wie beschlossen.' in einzel
+    liste = client.get(reverse('gremien:beschluesse')).content.decode()
+    assert 'Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt' in liste
+    assert 'Erledigt wie beschlossen.' in liste
+    vermerkt = ereignisse('gremienbeschluss_vermerkt', beschluss=beschluss.pk)
+    assert len(vermerkt) == 1 and vermerkt[0]['ohne_wirkung'] is True
+    assert vermerkt[0]['vermerk'] == plattform and vermerkt[0]['nummer'] == beschluss.nummer
+    assert not set(vermerkt[0]) & set(PERSONENSCHLUESSEL)
+
+
+def test_ein_vermerk_der_plattform_mit_wirkung_ist_nicht_ohne_wirkung(client, ordnung):  # noqa: F811
+    """Gegenprobe zu GP-034: Auch der gewöhnliche Vermerk der Plattform steht in der Kette — ohne
+    das Kennzeichen „ohne Wirkung“."""
+    from gremien.models import Anlass, GremienBeschluss
+    from gremien.test_werkstatt import einreichen, werkstatt_lage
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    beschluss = GremienBeschluss.objects.get(anlass=Anlass.EINREICHUNG, antrag=antrag)
+    assert beschluss.umsetzungsvermerk.startswith('Eingereicht')
+    vermerkt = ereignisse('gremienbeschluss_vermerkt', beschluss=beschluss.pk)
+    assert len(vermerkt) == 1 and vermerkt[0]['ohne_wirkung'] is False
+
+
+def _entschiedener_beschluss(leute, **felder):
+    from django.utils import timezone
+
+    from gremien.models import BeschlussStatus
+    from gremien.test_beschluesse import beschluss_anlegen
+
+    return beschluss_anlegen(
+        angelegt_von=leute[0], gegenstand='Monatliche Sitzung', status=BeschlussStatus.ENTSCHIEDEN,
+        ergebnis='dafuer', entschieden_am=timezone.now(), **felder,
+    )
+
+
+def test_zwei_vermerke_sind_zwei_oeffentliche_eintraege(client):
+    """GP-025: Der zweite Umsetzungsvermerk ersetzte den ersten spurlos, samt Zuweisung und Frist. Jetzt
+    wird angefügt: Beide stehen öffentlich mit Zeitpunkt, die Frist und die Zuweisung des ersten
+    bleiben lesbar, und die Kette zählt die Vermerke je Beschluss durch — ohne jemanden zu nennen."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import Umsetzungsvermerk
+
+    leute, rollen = _rat(3)
+    beschluss = _entschiedener_beschluss(leute)
+    heute = timezone.localdate()
+    frist = heute + timedelta(days=14)
+    _vermerk_schreiben(
+        client, leute[0], beschluss, 'Einladung geht per Mail.',
+        umsetzung_durch=leute[2].pk, umsetzung_frist=frist.isoformat(),
+    )
+    _vermerk_schreiben(client, leute[1], beschluss, 'Raum ist gebucht.')
+    vermerke = list(Umsetzungsvermerk.objects.filter(beschluss=beschluss).order_by('nummer'))
+    assert [(v.nummer, v.text) for v in vermerke] == [(1, 'Einladung geht per Mail.'), (2, 'Raum ist gebucht.')]
+    assert vermerke[0].rolle == rollen[2] and vermerke[0].frist == frist
+    assert vermerke[1].rolle is None and vermerke[1].frist is None
+    beschluss.refresh_from_db()
+    assert beschluss.umsetzungsvermerk == ''  # das Feld gehört den Vermerken der Plattform
+    assert beschluss.umsetzung_durch is None and beschluss.umsetzung_frist is None  # es gilt der jüngste
+    einzel = _einzelseite(client, beschluss)
+    assert 'Einladung geht per Mail.' in einzel and 'Raum ist gebucht.' in einzel
+    assert einzel.index('Raum ist gebucht.') < einzel.index('Einladung geht per Mail.')  # jüngster zuerst
+    assert leute[2].anzeigename in einzel and frist.strftime('%d.%m.%Y') in einzel
+    for vermerk in vermerke:
+        assert timezone.localtime(vermerk.erstellt_am).strftime('%d.%m.%Y %H:%M') in einzel
+    eintraege = ereignisse('umsetzungsvermerk', beschluss=beschluss.pk)
+    assert [(e['vermerk_nr'], e['zugewiesen'], e['frist']) for e in eintraege] == [
+        (1, True, frist.isoformat()), (2, False, None),
+    ]
+    assert not any(set(e) & set(PERSONENSCHLUESSEL) for e in eintraege)
+    protokoll = _protokoll_eintrag(client, beschluss)
+    assert [v['text'] for v in protokoll['umsetzungsvermerke']] == ['Einladung geht per Mail.', 'Raum ist gebucht.']
+    assert protokoll['umsetzungsvermerke'][0]['umsetzung_frist'] == frist.isoformat()
+    assert protokoll['umsetzungsvermerke'][0]['umsetzung_durch'] == leute[2].anzeigename
+
+
+def test_eine_verstrichene_umsetzungsfrist_steht_als_ueberfaellig_da(client):
+    """GP-025: Eine versäumte Umsetzungsfrist hatte keine Folge — sie stand nirgends. Jetzt nennen
+    Beschlussseite und Beschlussliste den ersten Tag nach der Frist, für Gäste wie für den Rat."""
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    leute, rollen = _rat(3)
+    beschluss = _entschiedener_beschluss(leute)
+    heute = timezone.localdate()
+    frist = heute - timedelta(days=40)
+    marke = f'überfällig seit {(frist + timedelta(days=1)).strftime("%d.%m.%Y")}'
+    assert beschluss.umsetzung_ueberfaellig_seit(heute) is None  # ohne Frist ist nichts überfällig
+    _vermerk_schreiben(
+        client, leute[0], beschluss, 'Einladung geht per Mail.',
+        umsetzung_durch=leute[2].pk, umsetzung_frist=frist.isoformat(),
+    )
+    beschluss.refresh_from_db()
+    assert beschluss.umsetzung_ueberfaellig_seit(frist) is None  # am Tag der Frist noch nicht
+    assert beschluss.umsetzung_ueberfaellig_seit(frist + timedelta(days=1)) == frist + timedelta(days=1)
+    assert marke in _einzelseite(client, beschluss)
+    assert marke in client.get(reverse('gremien:beschluesse')).content.decode()
+    client.force_login(leute[2])  # die zugewiesene Person in ihrem Ratsbereich
+    assert marke in client.get(reverse('gremien:koordination')).content.decode()
+    # Ein späterer Vermerk ohne Frist beendet die Überfälligkeit — sichtbar, nicht spurlos.
+    _vermerk_schreiben(client, leute[2], beschluss, 'Erledigt am Montag.')
+    einzel = _einzelseite(client, beschluss)
+    assert marke not in einzel and frist.strftime('%d.%m.%Y') in einzel and 'Erledigt am Montag.' in einzel
+
+
+def test_altbestand_der_vermerk_des_rates_wandert_in_die_liste(client):
+    """GP-025, Altbestand: Vor dieser Fassung stand der Vermerk des Rates im selben Feld wie der der
+    Plattform. Wo die Kette einen Umsetzungsvermerk verzeichnet, ist der Text der des Rates und wird
+    zum Eintrag der Liste — mit Zuweisung, Frist und dem Zeitpunkt aus der Kette. Ein Vermerk der
+    Plattform bleibt, wo er ist. Ein weiterer Vermerk reiht sich danach ein."""
+    import importlib
+    from datetime import timedelta
+
+    from django.apps import apps
+    from django.utils import timezone
+
+    from gremien.models import Umsetzungsvermerk
+
+    migration = importlib.import_module('gremien.migrations.0024_umsetzungsvermerke_anfuegen')
+    leute, rollen = _rat(3)
+    frist = timezone.localdate() + timedelta(days=14)
+    vom_rat = _entschiedener_beschluss(
+        leute, umsetzungsvermerk='Einladung geht per Mail.', umsetzung_durch=leute[2], umsetzung_frist=frist,
+    )
+    for _n in range(2):  # zweimal geschrieben: Der erste Wortlaut ist nicht erhalten
+        letzter = AuditEintrag.anhaengen(
+            {'typ': 'umsetzungsvermerk', 'beschluss': vom_rat.pk, 'nummer': vom_rat.nummer,
+             'zugewiesen': True, 'frist': frist.isoformat()}
+        )
+    von_der_plattform = _entschiedener_beschluss(leute, umsetzungsvermerk='Ohne Wirkung: Beispiel.')
+    for _lauf in range(2):  # beliebig oft wiederholbar
+        migration.vermerke_des_rates_uebertragen(apps, None)
+        vom_rat.refresh_from_db()
+        von_der_plattform.refresh_from_db()
+        assert vom_rat.umsetzungsvermerk == '' and von_der_plattform.umsetzungsvermerk == 'Ohne Wirkung: Beispiel.'
+        (uebertragen,) = Umsetzungsvermerk.objects.all()
+        assert (uebertragen.beschluss, uebertragen.nummer, uebertragen.text) == (vom_rat, 2, 'Einladung geht per Mail.')
+        assert uebertragen.rolle == rollen[2] and uebertragen.frist == frist and uebertragen.erstellt_am == letzter.zeit
+    assert vom_rat.umsetzung_durch == leute[2] and vom_rat.umsetzung_frist == frist
+    _vermerk_schreiben(client, leute[1], vom_rat, 'Raum ist gebucht.')
+    assert list(Umsetzungsvermerk.objects.filter(beschluss=vom_rat).order_by('nummer').values_list('nummer', flat=True)) == [2, 3]
+    einzel = _einzelseite(client, vom_rat)
+    assert 'Einladung geht per Mail.' in einzel and 'Raum ist gebucht.' in einzel and frist.strftime('%d.%m.%Y') in einzel
+    assert 'Ohne Wirkung: Beispiel.' in _einzelseite(client, von_der_plattform)

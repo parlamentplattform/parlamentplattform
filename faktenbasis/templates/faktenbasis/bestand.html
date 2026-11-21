@@ -5,7 +5,8 @@
   <div class="seitenkopf"><h1>{% trans "Nachweis des gespeicherten Quellenbestands" %}</h1>
     <a href="{% url 'faktenbasis:index' %}">{% trans "Zur Faktenbasis" %}</a></div>
   {% if fehler %}
-  <section class="karte" role="status"><p>{{ fehler }}</p></section>
+  <section class="karte" role="status"><p>{{ fehler }}</p>
+    {% if grenzhinweis %}<p>{% for satz in grenzhinweis %}{{ satz }} {% endfor %}<a href="{% url 'parameter:liste' %}">{% trans "Parameterregister" %}</a></p>{% endif %}</section>
   {% else %}
   <section class="karte" id="bestandsnachweis">
     <h2>{% trans "Lokale Schnappschüsse" %}</h2>

@@ -17,6 +17,9 @@ from plattform_core.faktenbestand import TECHNISCHE_HOECHSTZAHL, BestandsFehler,
 
 REGISTER = "faktenbasis-bestandsnachweis-hoechstzahl"
 STANDARD = 2000
+#: Ab welchem Anteil der Nachweisgrenze (in Prozent) die Verwaltung gewarnt wird (GP-147).
+#: Registerwert folgt; 100 warnt erst, wenn der nächste Import den Nachweis ausfallen ließe.
+WARNANTEIL_PROZENT = 100
 
 
 def bestandsgrenze() -> int:
@@ -32,20 +35,40 @@ def bestandsgrenze() -> int:
     return grenze
 
 
+SAMMLUNGEN = (
+    (Norm, "norm", "inhalt_hash"),
+    (NormText, "normtext", "xml_hash"),
+    (Kundmachungsnachweis, "kundmachung", "original_sha256"),
+    (PersonalAggregat, "personalaggregat", "original_sha256"),
+    (PersonalRessorttabelle, "personalressorttabelle", "original_sha256"),
+    (VfghEntscheidungsstand, "vfgh_metadaten", "original_sha256"),
+    (RisAenderungsseite, "ris_aenderungsseite", "original_sha256"),
+)
+
+
+def bestandszahl() -> int:
+    """Alle Schnappschüsse, die der Nachweis zählt — dieselben Sammlungen wie `bestandsnachweis`."""
+    return sum(modell.objects.order_by().count() for modell, _art, _hash in SAMMLUNGEN)
+
+
+def grenzstand() -> dict:
+    """Bestand gegen Nachweisgrenze für Verwaltung und Fehlerkarte (GP-147). `grenze` ist None, wenn
+    der Registerwert ungültig oder 0 ist; dann gibt es ohnehin keinen Nachweis."""
+    bestand = bestandszahl()
+    try:
+        grenze = bestandsgrenze()
+    except BestandsFehler:
+        return {"bestand": bestand, "grenze": None, "warnung": False, "ausfall": True}
+    return {"bestand": bestand, "grenze": grenze, "ausfall": bestand > grenze,
+            "warnung": bestand * 100 >= grenze * WARNANTEIL_PROZENT}
+
+
 def bestandsnachweis() -> dict:
     grenze = bestandsgrenze()
     teile = [
         modell.objects.order_by().annotate(sammlung=Value(art), nummer=F("pk"),
                                          pruefsumme=F(hashfeld)).values("sammlung", "nummer", "pruefsumme")
-        for modell, art, hashfeld in (
-            (Norm, "norm", "inhalt_hash"),
-            (NormText, "normtext", "xml_hash"),
-            (Kundmachungsnachweis, "kundmachung", "original_sha256"),
-            (PersonalAggregat, "personalaggregat", "original_sha256"),
-            (PersonalRessorttabelle, "personalressorttabelle", "original_sha256"),
-            (VfghEntscheidungsstand, "vfgh_metadaten", "original_sha256"),
-            (RisAenderungsseite, "ris_aenderungsseite", "original_sha256"),
-        )
+        for modell, art, hashfeld in SAMMLUNGEN
     ]
     # Erst begrenzt lesen, danach rein sortieren: kein unnötiger Sortierlauf
     # über einen bereits zu großen Gesamtbestand. Der Überlauffall hat kein Ergebnis.

@@ -7,7 +7,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_safe
 
-from faktenbasis.bestandsnachweis import bestandsnachweis
+from faktenbasis.bestandsnachweis import REGISTER, bestandsnachweis, grenzstand
 from plattform_core.faktenbestand import HASH_MUSTER, BestandsFehler
 
 
@@ -19,13 +19,27 @@ def _fehler(exc):
     return _("Der Bestandsnachweis ist derzeit nicht verfügbar: Eine gespeicherte Zuordnung ist ungültig. Es wird kein Teilnachweis ausgegeben.")
 
 
+def _grenzhinweis(exc) -> list[str]:
+    """Bei Grenzfehlern Bestand, Grenze und die zuständige Stelle nennen (GP-147)."""
+    if str(exc) not in ("umfang", "grenze"):
+        return []
+    stand = grenzstand()
+    saetze = []
+    if stand["grenze"] is not None:
+        saetze.append(_("Gespeicherter Bestand: %(bestand)s Schnappschüsse, Nachweisgrenze: %(grenze)s.")
+                      % {"bestand": stand["bestand"], "grenze": stand["grenze"]})
+    saetze.append(_("Die Grenze stellt die Verwaltung im Parameterregister ein (%(schluessel)s).") % {"schluessel": REGISTER})
+    return saetze
+
+
 @never_cache
 @require_safe
 def bestand(request):
     try:
         stand = bestandsnachweis()
     except BestandsFehler as exc:
-        return render(request, "faktenbasis/bestand.html", {"fehler": _fehler(exc)}, status=503)
+        return render(request, "faktenbasis/bestand.html", {"fehler": _fehler(exc), "grenzhinweis": _grenzhinweis(exc)},
+                      status=503)
     return render(request, "faktenbasis/bestand.html", {"stand": stand, "zeit": parse_datetime(stand["erstellt_am"])})
 
 
@@ -38,7 +52,7 @@ def bestand_json(request):
     try:
         stand = bestandsnachweis()
     except BestandsFehler as exc:
-        return JsonResponse({"fehler": str(exc), "meldung": _fehler(exc)}, status=503)
+        return JsonResponse({"fehler": str(exc), "meldung": " ".join([_fehler(exc), *_grenzhinweis(exc)])}, status=503)
     if pin is not None and pin != stand["sha256"]:
         return JsonResponse({"fehler": "geaendert", "meldung": _("Der gespeicherte Bestand hat sich seit der Anzeige geändert. Bitte laden Sie die Nachweisseite neu.")}, status=409)
     antwort = JsonResponse(stand, json_dumps_params={"ensure_ascii": False, "indent": 2})

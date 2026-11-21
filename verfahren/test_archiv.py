@@ -322,3 +322,30 @@ def test_archivzeiten_stehen_in_ortszeit_nicht_in_utc():
     assert ortszeit("") == ""
     assert ortszeit(None) == ""
     assert ortszeit("kaputt") == "kaputt"
+
+
+def test_systembeitrag_im_export_folgt_der_sprache_des_exports(client, ordnung):  # noqa: F811
+    """GP-079 (Rest): Altbestand, dessen Systembeitrag beim ersten Aufruf englisch gespeichert wurde.
+    Der Export zeigt ihn in der Sprache des Exports, nicht als gespeicherten Rohtext."""
+    from django.utils import timezone, translation
+
+    from verfahren.models import Kommentar
+
+    with translation.override("en"):
+        englisch = chatkern.passt_alles_text()
+    deutsch = "✓ Passt alles — der Vorschlag kann so zur Endabstimmung."
+    assert englisch != deutsch
+    antrag = _antrag(ordnung, mitglied_anlegen("stellerin"))
+    jetzt = timezone.now()
+    Kommentar.objects.create(
+        antrag=antrag, mitglied=None, text=englisch, phase="vorschlag-r1", system=True,
+        erstellt_am=jetzt, archiviert_am=jetzt,
+    )
+    with translation.override("de"):  # die Anfragen schalten die Sprache um; danach gilt wieder die alte
+        for art in ("md", "json"):
+            adresse = reverse("verfahren:archiv_export", args=[antrag.pk, art])
+            inhalt = client.get(adresse, HTTP_ACCEPT_LANGUAGE="en").content.decode()
+            assert englisch in inhalt and deutsch not in inhalt, art
+            inhalt = client.get(adresse, HTTP_ACCEPT_LANGUAGE="de").content.decode()
+            assert deutsch in inhalt and englisch not in inhalt, art
+    assert Kommentar.objects.get(antrag=antrag, system=True).text == englisch  # gespeichert bleibt, was war

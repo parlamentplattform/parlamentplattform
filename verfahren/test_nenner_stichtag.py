@@ -50,7 +50,7 @@ def test_puenktliche_und_verspaetete_verarbeitung_liefern_denselben_nenner(ordnu
 def test_festgehaltener_nenner_wird_nicht_neu_gerechnet(ordnung):  # noqa: F811
     """Altbestand: Eine vor dieser Fassung festgestellte Zahl bleibt, was sie war."""
     antrag, _stichtag = _fall(ordnung, spaet=False)
-    Antrag.objects.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=8)
+    Antrag._base_manager.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=8)
     antrag.refresh_from_db()
     antrag.fortschreiben()
     antrag.refresh_from_db()
@@ -73,3 +73,16 @@ def test_oertlicher_kreis_zaehlt_wie_die_bundesebene_am_stichtag(ordnung, orte):
     assert not stimmrecht_im_neuen_kreis(antrag, zweite, frisch=True)
     zweite.save(update_fields=zweite.status_setzen(Mitgliedsstatus.AKTIV, ''))
     assert stimmrecht_im_neuen_kreis(antrag, zweite, frisch=True)
+
+
+def test_altbestand_ohne_stichtag_laeuft_regulaer_zu_ende_und_behaelt_seinen_nenner(ordnung):  # noqa: F811
+    """Altbestand von vor dem Stichtagsfeld: Zahl festgestellt, Stichtag leer. Der reguläre Weg bis
+    zum Ergebnis schreibt keines der beiden Felder und scheitert nicht am Schreibriegel (GP-028)."""
+    antrag, _stichtag = _fall(ordnung, spaet=False)
+    Antrag._base_manager.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=8, stimmberechtigung_stichtag=None)
+    antrag.refresh_from_db()
+    ende = antrag.phase_beginn + timedelta(days=antrag.policy_snapshot['abstimmung_tage'], minutes=1)
+    assert antrag.fortschreiben(ende)
+    antrag.refresh_from_db()
+    assert antrag.phase in ('angenommen', 'abgelehnt')
+    assert antrag.stimmberechtigte_anzahl == 8 and antrag.stimmberechtigung_stichtag is None

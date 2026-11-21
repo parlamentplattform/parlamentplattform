@@ -11,7 +11,10 @@ bleibt“. Dafür gibt es hier ein Skript, das **nur die Python-Standardbiblioth
 
 Unter `ergebnis` nennt das Skript den Ausgang in einem Wort: `angenommen`, `abgelehnt` oder
 `kein_beschluss` — Letzteres, wenn der festgehaltene örtliche Kreis keinen einzigen Stimmberechtigten
-hatte. Der Export nennt sein Wort im Feld `ergebnis`; beide müssen gleich lauten.
+hatte. Das Skript errechnet dieses Wort selbst aus Stimmen und Nenner; das Feld `ergebnis` des
+Exports liest es dafür nicht und vergleicht es auch nicht damit. Den Vergleich zieht, wer nachrechnet:
+Das ausgegebene Wort gehört neben das Feld `ergebnis` im Export und neben die Ergebnisseite. Lauten
+sie verschieden, stimmt etwas nicht. Ältere Exporte nennen kein Wort.
 
 Das Skript zählt die Stimmen unter Pseudonym zweitens und unabhängig von der Plattform aus
 (`plattform_core/tally.py` ist die erste Zählung). Die eigene Stimme findet man in der Liste über das

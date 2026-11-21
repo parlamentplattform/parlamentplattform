@@ -472,7 +472,7 @@ class Antrag(models.Model):
 
             anfangs = self.phase
             for beschluss_id, frist in GremienBeschluss.faellige_zu_antrag(self.pk, jetzt):
-                if self._schritt(frist, vorlauf=True):
+                if self._schritt(frist, vorlauf=True, lauf=jetzt):
                     return True
                 stand = GremienBeschluss.zur_frist_abschliessen(beschluss_id, jetzt)
                 if stand == "gesperrt":
@@ -498,13 +498,16 @@ class Antrag(models.Model):
             frisch.stimmberechtigung_stichtag,
         )
 
-    def _schritt(self, jetzt, vorlauf: bool = False) -> bool:
+    def _schritt(self, jetzt, vorlauf: bool = False, lauf=None) -> bool:
         """Höchstens ein fälliger Übergang dieses Antrags (Entwurfsschleife oder Regelübergang).
 
         `vorlauf` rechnet auf einen früheren Zeitpunkt zurück — die Frist eines Gremienbeschlusses,
         der danach ausgewertet wird (GP-004). Dann zählt nur, was VOR diesem Zeitpunkt durch
         Fristablauf fällig war: Was erst mit dem Augenblick der Zählung wirkt (Schwelle erreicht,
-        Anlegen eines Prüfbeschlusses), gehört nicht in den Vorlauf und wird nie zurückdatiert."""
+        Anlegen eines Prüfbeschlusses), gehört nicht in den Vorlauf und wird nie zurückdatiert.
+
+        `lauf` ist der Zeitpunkt des Laufs selbst (ohne Angabe `jetzt`): Zu ihm wird ein Ergebnis
+        veröffentlicht, auch wenn der Vorlauf auf eine frühere Frist zurückrechnet (GP-106)."""
         phase = Phase(self.phase)
         # Entwurfsfenster der Gremien-Werkstatt (F-66/F-67, § 5 Abs 12): Die Schleife
         # wertet ihre eigenen Fristen zuerst aus — sie kann selbst die Endabstimmung
@@ -660,7 +663,9 @@ class Antrag(models.Model):
             # Veröffentlichung des Ergebnisses ein, also zum Fristzeitpunkt, nicht zum Jobzeitpunkt.
             from mandatare.models import vertrauensfrage_ergebnis
 
-            vertrauensfrage_ergebnis(vf, uebergang.wirksam_ab)
+            # Wirkungen ab der Sollzeit; veröffentlicht ist mit diesem Lauf — ab ihm zählt die
+            # Anfechtungsfrist (lit h, GP-106). Ausdrücklich übergeben statt dort von der Uhr gelesen.
+            vertrauensfrage_ergebnis(vf, uebergang.wirksam_ab, veroeffentlicht_am=lauf or jetzt)
         return True
 
     def _vertrauensfrage(self):
@@ -775,6 +780,25 @@ class Antrag(models.Model):
     def ergebnis_name(self):
         """Das Ergebniswort zum Anzeigen, übersetzt — leer, solange kein Ergebnis festgestellt ist."""
         return ERGEBNIS_NAMEN.get(self.ergebnis, "")
+
+    def kreis_stimmberechtigte(self) -> int | None:
+        """Wie viele im festgehaltenen örtlichen Kreis am Einbringungstag stimmberechtigt waren
+        (GP-057) — gelesen aus dem Ereignis `teilnehmerkreis_festgehalten`, nie neu gezählt.
+
+        None heißt „nicht festgehalten“: Kreise von vor dieser Fassung tragen die Zahl nicht, und
+        Verfahren ohne örtlichen Kreis haben keine."""
+        if self.teilnahmegebiet is None or self.ebene == Ebene.BUND:
+            return None
+        ereignis = (
+            AuditEintrag.objects.filter(ereignis__typ="teilnehmerkreis_festgehalten", ereignis__antrag=self.pk)
+            .order_by("lfd")
+            .values_list("ereignis", flat=True)
+            .first()
+        )
+        anzahl = (ereignis or {}).get("stimmberechtigte")
+        if isinstance(anzahl, bool) or not isinstance(anzahl, int) or anzahl < 0:
+            return None
+        return anzahl
 
     def stimmliste_zeilen(self) -> list[list]:
         """Die veröffentlichte Stimmliste als Zeilen einfacher Werte — die Eingabe der Prüfsumme
@@ -1310,12 +1334,13 @@ def vollzug_fortschreiben(antrag: Antrag, mitglied, status: str, vermerk: str = 
             "Der Vollzug dieses Beschlusses ist durch den Integritätsrat ausgesetzt (§ 6 Abs 3 lit d) — "
             "solange die Aussetzung läuft, wird das Umsetzungsregister nicht fortgeschrieben."
         )
-    eintrag = Vollzugseintrag.objects.create(
-        antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
-    )
-    AuditEintrag.anhaengen(
-        {"typ": "vollzug", "antrag": antrag.pk, "status": eintrag.status, "durch": mitglied.pk}
-    )
+    with transaction.atomic():  # Registereintrag und Audit-Eintrag gemeinsam oder gar nicht (GP-129)
+        eintrag = Vollzugseintrag.objects.create(
+            antrag=antrag, status=Vollzugsstatus(status), vermerk=vermerk.strip(), durch=mitglied
+        )
+        AuditEintrag.anhaengen(
+            {"typ": "vollzug", "antrag": antrag.pk, "status": eintrag.status, "durch": mitglied.pk}
+        )
     return eintrag
 
 
@@ -2043,23 +2068,26 @@ def bewerbung_einreichen(antrag: Antrag, mitglied, vorstellung: str, rueckgabezu
         raise BewerbungsFehler("Bewerben ist nur bis zum Beginn der Abstimmung möglich (§ 7 Abs 1).")
     text = (vorstellung or "").strip()[:2000]
     zusage = Rueckgabezusage(rueckgabezusage or "")
-    bewerbung, neu = Bewerbung.objects.get_or_create(
-        antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text, "rueckgabezusage": zusage}
-    )
-    if not neu:
-        bewerbung.vorstellung = text or bewerbung.vorstellung
-        bewerbung.zurueckgezogen = False
-        if zusage != Rueckgabezusage.UNBEKANNT:
-            bewerbung.rueckgabezusage = zusage
-        bewerbung.save(update_fields=["vorstellung", "zurueckgezogen", "rueckgabezusage"])
-    AuditEintrag.anhaengen(
-        {
-            "typ": "bewerbung" if neu else "bewerbung_erneuert",
-            "antrag": antrag.pk,
-            "bewerbung": bewerbung.pk,
-            "rueckgabezusage": str(bewerbung.rueckgabezusage),
-        }
-    )
+    # Bewerbung und Audit-Eintrag gemeinsam oder gar nicht (GP-129). Die Fortschreibung davor bleibt
+    # außerhalb: Ein fälliger Phasenwechsel gilt auch, wenn die Bewerbung abgewiesen wird.
+    with transaction.atomic():
+        bewerbung, neu = Bewerbung.objects.get_or_create(
+            antrag=antrag, mitglied=mitglied, defaults={"vorstellung": text, "rueckgabezusage": zusage}
+        )
+        if not neu:
+            bewerbung.vorstellung = text or bewerbung.vorstellung
+            bewerbung.zurueckgezogen = False
+            if zusage != Rueckgabezusage.UNBEKANNT:
+                bewerbung.rueckgabezusage = zusage
+            bewerbung.save(update_fields=["vorstellung", "zurueckgezogen", "rueckgabezusage"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "bewerbung" if neu else "bewerbung_erneuert",
+                "antrag": antrag.pk,
+                "bewerbung": bewerbung.pk,
+                "rueckgabezusage": str(bewerbung.rueckgabezusage),
+            }
+        )
     return bewerbung
 
 
@@ -2453,13 +2481,14 @@ def kategorien_zuordnen(antrag: Antrag) -> list[Kategorie]:
     treffer = zuordnen(text, aktive, limit=zahl("kategorien-je-antrag", 3))
     kategorien = list(Kategorie.objects.filter(id__in=[kid for kid, _ in treffer]))
     kategorien.sort(key=lambda k: [kid for kid, _ in treffer].index(k.pk))
-    antrag.kategorien.set(kategorien)
-    AuditEintrag.anhaengen(
-        {
-            "typ": "kategorien_zugeordnet",
-            "antrag": antrag.pk,
-            "kategorien": [k.slug for k in kategorien],
-            "methode": "schlagworte-v1",
-        }
-    )
+    with transaction.atomic():  # Zuordnung und Audit-Eintrag gemeinsam oder gar nicht (GP-129)
+        antrag.kategorien.set(kategorien)
+        AuditEintrag.anhaengen(
+            {
+                "typ": "kategorien_zugeordnet",
+                "antrag": antrag.pk,
+                "kategorien": [k.slug for k in kategorien],
+                "methode": "schlagworte-v1",
+            }
+        )
     return kategorien

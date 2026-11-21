@@ -25,7 +25,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 
 from plattform_core import Phase, vorschlagschat
-from verfahren.chat import leicht, mit_zaehlern
+from verfahren.chat import leicht, mit_zaehlern, passt_alles_text
 from verfahren.models import Antragsart, AuditEintrag, Kommentar
 from verfahren.templatetags.phasen import NAMEN as PHASEN_NAMEN
 
@@ -71,7 +71,9 @@ def _beitrag(k: Kommentar) -> dict:
         "verfasser": k.mitglied.anzeigename if k.mitglied_id else _("Die Plattform"),
         "system": k.system,
         "antwort_auf": k.antwort_auf_id,
-        "text": k.sichtbarer_text(),
+        # Der Systembeitrag in der Sprache des Exports, nicht als gespeicherter Rohtext (GP-079): Älterer
+        # Bestand trägt ihn in der Sprache des ersten Aufrufs.
+        "text": passt_alles_text() if k.system else k.sichtbarer_text(),
         "geschrieben_am": k.erstellt_am.isoformat(),
         "bearbeitet": bool(k.bearbeitet_am),
         "archiviert_am": k.archiviert_am.isoformat() if k.archiviert_am else None,

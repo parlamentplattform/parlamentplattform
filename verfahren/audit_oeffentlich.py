@@ -37,8 +37,10 @@ KENNUNGEN = {"mitglied": (int, list), "durch": (int, list), "konten": (list,)}
 IMMER = ("pseudonym", SALZ)
 
 #: Ereignisarten, deren Begründung eine Person betrifft: Pausieren, Ausschluss, Adresswechsel
-#: („verwaltung“) und die vorzeitig beendete Rolle, deren Grund die Verwaltung frei schreibt.
-PERSONENGRUENDE = ("verwaltung", "rolle_beendet")
+#: („verwaltung“), die vorzeitig beendete Rolle und die Streichung von der Fachliste — beide Gründe
+#: schreibt die Verwaltung frei. Der Grund der Streichung steht am Eintrag der Fachliste, solange er
+#: gestrichen ist; die Kette behielte ihn sonst öffentlich über eine Wiederaufnahme hinaus (GP-009).
+PERSONENGRUENDE = ("verwaltung", "rolle_beendet", "fachliste_gestrichen")
 
 #: Je Art die Anfänge einer Begründung, die Personen nennt: Gibt Gruppe 2 einen Vorschlag zurück, setzt
 #: sich der Grund aus den Stimmen mit dem Anzeigenamen der Prüfenden zusammen (GP-011). Die Rechnung des

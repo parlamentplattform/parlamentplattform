@@ -15,6 +15,7 @@ from django.db.models.fields.json import KeyTextTransform
 from django.http import JsonResponse
 from django.shortcuts import render
 
+from plattform_core.schema import offenes_format
 from verfahren.audit_oeffentlich import eintrag_oeffentlich, mit_vorgaenger
 from verfahren.audit_pruefung import oeffentlicher_stand, pruefstand_ueberfaellig, ungeprueft
 from verfahren.models import AuditEintrag
@@ -108,9 +109,13 @@ def audit(request):
     )
 
 
+@offenes_format
 def audit_json(request):
     """Maschinenlesbar, aufsteigend ab `?ab=<laufende Nummer>` (ausschließlich), seitenweise. `weiter` ist
-    die Adresse der nächsten Seite oder null. Geschwärzte Einträge tragen "geschwaerzt": true."""
+    die Adresse der nächsten Seite oder null. Geschwärzte Einträge tragen "geschwaerzt": true.
+
+    Ein offenes Format (GP-199): für jeden dasselbe, gleich ob angemeldet — lesende Anfragen tragen
+    die Kopfzeile, mit der auch ein Nachrechenwerkzeug im Browser sie abrufen kann."""
     gewaehlt, bedingung = _filter(request)
     ab = request.GET.get("ab", "")
     eintraege = mit_vorgaenger(AuditEintrag.objects.filter(bedingung)).order_by("lfd")

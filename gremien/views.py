@@ -70,6 +70,7 @@ from mitglieder.verwaltung import nur_admins
 from parameter.models import Parameter, ParameterTest, Status, TestStatus, wert_ausserhalb
 from plattform_core import Phase, wortdiff
 from plattform_core.losziehung import SATZUNG_MIN_RATSGROESSE
+from plattform_core.schema import offenes_format
 from verfahren.chat import abstimmung_stand as _abstimmung_stand
 from verfahren.chat import kritik_der_runde as _kritik_der_runde
 from verfahren.models import Antrag, Antragsart, AuditEintrag, Kategorie
@@ -1413,6 +1414,7 @@ def beschluss_umsetzung(request, beschluss_id: int):
     return redirect(zurueck)
 
 
+@offenes_format  # öffentlich und ohne Anmeldung gleich: ein offenes Format (GP-199)
 def protokoll(request, gremium: str, jahr: int):
     """Das Sitzungsprotokoll eines Rates für ein Jahr (FB-I4, § 6 Abs 9) — als JSON.
 

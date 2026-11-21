@@ -200,3 +200,37 @@ def timedelta_tage(n):
     from datetime import timedelta
 
     return timedelta(days=n)
+
+
+# ── GP-077: Abstimmungs-Chat chronologisch über ?reihung=zeit ────────────────────────────────
+
+
+def test_gp077_reihung_zeit_zeigt_chronologisch_bei_gleicher_auswertung(client, ordnung):  # noqa: F811
+    from gremien.test_werkstatt import einreichen, reagieren, systembeitrag, werkstatt_lage
+    from verfahren.test_chat import _faden_html
+
+    antrag, unterstuetzer, er = werkstatt_lage(ordnung)
+    einreichen(client, antrag, er)
+    passt = systembeitrag(antrag)
+    beitrag_schreiben(antrag, unterstuetzer[0], "Ohne Reaktion.")
+    bewegt = beitrag_schreiben(antrag, unterstuetzer[1], "Das bewegt am meisten.")
+    for u in unterstuetzer:
+        reagieren(client, antrag, bewegt, u)
+    reagieren(client, antrag, passt, unterstuetzer[0])
+    client.force_login(unterstuetzer[0])
+    ziel = reverse("verfahren:antrag", args=[antrag.pk])
+
+    engagement = client.get(ziel).content.decode()
+    faden = _faden_html(engagement)
+    assert faden.index("Das bewegt am meisten.") < faden.index("Ohne Reaktion."), "Vorgabe: Engagement"
+    assert f'href="{ziel}?reihung=zeit#chat-faden"' in engagement, "der Umschalter als Link, ohne JavaScript"
+
+    zeit = client.get(f"{ziel}?reihung=zeit").content.decode()
+    faden = _faden_html(zeit)
+    assert faden.index("Passt alles") < faden.index("Ohne Reaktion.") < faden.index("Das bewegt am meisten.")
+    assert f'href="{ziel}#chat-faden"' in zeit, "zurück zur Reihung nach Engagement"
+
+    def stand(html):
+        return html.split('class="meta stand"')[1].split("</p>")[0]
+
+    assert stand(zeit) == stand(engagement), "die Auswertung bleibt unverändert"

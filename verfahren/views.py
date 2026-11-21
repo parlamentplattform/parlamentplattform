@@ -1254,10 +1254,11 @@ def _antwort_vorgabe(antrag, roh):
     )
 
 
-def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
+def _chat_lage(antrag, nutzer, ab: int | None = None, zeitfolge: bool = False) -> dict:
     """Zone 3 (FB-G1, G2, G5): ein Fenster des laufenden Fadens (`ab` = ältere bzw. weitere
     Beiträge, Befund #42), was neu ist, ob geschrieben werden darf und wie viele Beiträge im
-    Archiv der vorigen Phasen liegen."""
+    Archiv der vorigen Phasen liegen. `zeitfolge` (?reihung=zeit, GP-077) zeigt den
+    Abstimmungs-Chat chronologisch — nur die Anzeige; die Auswertung rechnet unverändert."""
     from verfahren import chat as chatkern
 
     archiviert = antrag.kommentare.filter(archiviert_am__isnull=False).count()
@@ -1269,7 +1270,8 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
     from verfahren.models import Meldung
 
     entwurf = chatkern.abstimmungschat(antrag)
-    fenster = chatkern.faden_fenster(antrag, nutzer, nach_engagement=entwurf is not None, ab=ab)
+    zeitfolge = zeitfolge and entwurf is not None
+    fenster = chatkern.faden_fenster(antrag, nutzer, nach_engagement=entwurf is not None and not zeitfolge, ab=ab)
     # GP-070: Wer nicht mitberaten darf, sieht statt Eingabe und Reaktionsknöpfen den Grund
     sperre = mitwirkungssperre(nutzer) if nutzer is not None and nutzer.is_authenticated else None
     lage = {
@@ -1280,6 +1282,7 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
         "faden_mehr_ab": fenster["mehr_ab"],
         "faden_richtung": fenster["richtung"],
         "faden_ab": fenster["ab"],
+        "zeitfolge": zeitfolge,
         "meldegruende": Meldung.Grund.choices,
         "anzahl": antrag.kommentare.filter(archiviert_am__isnull=True).count(),
         "neue": chatkern.neue_zaehlen(antrag, nutzer),
@@ -1592,7 +1595,9 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     if antrag.phase == Phase.ANGENOMMEN.value:
         vollzug = list(antrag.vollzug.select_related("durch"))
     ab = request.GET.get("ab", "")
-    chat = _chat_lage(antrag, request.user, ab=int(ab) if ab.isdigit() else None)
+    chat = _chat_lage(
+        antrag, request.user, ab=int(ab) if ab.isdigit() else None, zeitfolge=request.GET.get("reihung") == "zeit"
+    )
     # GP-068: Erst „neu“ rechnen (oben), dann den Lesestand setzen — am Server, wie im Chat einer Sitzung:
     # Das trägt beim ersten Besuch, im ruhenden Chat und ohne JavaScript.
     from verfahren.chat import gelesen_merken

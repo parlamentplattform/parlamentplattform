@@ -337,12 +337,6 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
                 extra["adminrechte_entzogen"] = True  # die Rechteänderung steht mit im Audit
             mitglied.save(update_fields=[*felder, "is_active"])
             EinmalToken.entwerten(mitglied)
-            # GP-116: Das gesperrte Konto erscheint auf keiner Ortsseite mehr als aktives Mandat — seine
-            # kommenden Sprechstunden werden mit Anlass abgesagt, laufende Sitzungen beendet.
-            from mandatare.models import Mandat
-            from mitglieder.mandatsfolgen import mandatsende_folgen
-
-            mandatsende_folgen(Mandat.objects.filter(mitglied=mitglied), "kontosperre")
             erfolg = _("Mitglied ausgeschlossen und Konto deaktiviert.")
         elif aktion == "reaktivieren":
             felder = mitglied.status_setzen(Mitgliedsstatus.AKTIV, "")

@@ -659,7 +659,7 @@ def test_schema_dokument_fuehrt_die_aktuelle_version_und_ihren_verlauf():
         "`regeln_sha256`", "`auszaehlung_angehalten`", "`gremienbeschluss_vermerkt`", "`fachliste_einwilligung`",
         "`fachliste_wieder_aufgenommen`", "`mandat_berichtigt`", "`anstoss_status`", "`anstoss_ausfuhr`",
         "`eintraege[].beschluss_quelle`", "`umsetzungsvermerke`", "`register[].rechenschaft`", "`beanstandungen`",
-        "`ergebnislos`",
+        "`ergebnislos`", "`gremien_ki_lauf`", "`ki_auftrag_gescheitert`", "`teilnehmerkreis_festgehalten`",
     ):
         assert wort in eintrag, wort
 

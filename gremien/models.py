@@ -531,22 +531,37 @@ class Entwurf(models.Model):
         )
         if angelegt_von is None:
             return None
-        return GremienBeschluss.objects.create(
-            gremium=Gremium.EXPERTENRAT_2,
-            anlass=Anlass.PRUEFUNG,
-            gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
-            beschreibung=(
-                "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
-                "Zu prüfen sind Interessenbindungen, Bieterkreis, Schwellenwerte und "
-                "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
-            ),
-            optionen=PRUEFOPTIONEN,
-            frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
-            antrag=self.antrag,
-            entwurf=self,
-            angelegt_von=angelegt_von.mitglied,
-            angelegt_am=jetzt,
-        )
+        with transaction.atomic():  # Beschluss und Eintrag entstehen gemeinsam oder gar nicht
+            beschluss = GremienBeschluss.objects.create(
+                gremium=Gremium.EXPERTENRAT_2,
+                anlass=Anlass.PRUEFUNG,
+                gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
+                beschreibung=(
+                    "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
+                    "Zu prüfen sind Interessenbindungen, Bieterkreis, Schwellenwerte und "
+                    "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
+                ),
+                optionen=PRUEFOPTIONEN,
+                frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
+                antrag=self.antrag,
+                entwurf=self,
+                angelegt_von=angelegt_von.mitglied,
+                angelegt_am=jetzt,
+            )
+            # Wie jeder andere Beschluss der Räte (GP-037). Die Plattform legt ihn an, niemand in
+            # Person — der Eintrag nennt deshalb auch niemanden.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "gremienbeschluss_angelegt",
+                    "gremium": Gremium.EXPERTENRAT_2.value,
+                    "anlass": Anlass.PRUEFUNG.value,
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "beschluss": beschluss.pk,
+                    "nummer": beschluss.nummer,
+                }
+            )
+        return beschluss
 
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
         jetzt = jetzt or timezone.now()
@@ -2672,6 +2687,19 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
         for rolle in betroffen:
             rolle.beendet_grund = f"Austausch durch den Koordinationsrat, Beschluss {beschluss.nummer} (§ 6 Abs 7)"
             rolle.save(update_fields=["beendet_grund"])
+            # Je Rolle ein Eintrag (GP-037). Der Grund ist der Beschluss, kein Text zu einer Person —
+            # er steht deshalb als Anlass und Nummer da und bleibt öffentlich lesbar.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "rolle_beendet",
+                    "rolle": rolle.pk,
+                    "gremium": rolle.gremium,
+                    "antrag": entwurf.antrag_id,
+                    "anlass": Anlass.AUSTAUSCH.value,
+                    "beschluss": beschluss.pk,
+                    "nummer": beschluss.nummer,
+                }
+            )
         letzte = Auslosung.objects.filter(antrag=entwurf.antrag).order_by("-runde").first()
         neue = auslosen(entwurf.antrag, runde=(letzte.runde + 1) if letzte else 2, jetzt=jetzt)
         entwurf.zurueck_an_gruppe_1(

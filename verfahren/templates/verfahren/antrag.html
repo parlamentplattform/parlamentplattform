@@ -253,6 +253,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     <div class="karte handlung" id="abstimmen">
       <h3>{% translate "Abstimmen" %}</h3>
       {% if beteiligung %}<p class="meta">{% blocktranslate with abgegeben=beteiligung.abgegeben berechtigte=beteiligung.berechtigte|default_if_none:"–" %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}{% if beteiligung.prozent is not None %} ({{ beteiligung.prozent }} % {% translate "Beteiligung" %}){% endif %} · {% include "verfahren/_tendenz.html" with tendenz=beteiligung.tendenz %}</p>{% endif %}
+      {% if beteiligung.mindest %}<p class="meta">{% blocktranslate with prozent=beteiligung.mindest.prozent von=beteiligung.berechtigte count n=beteiligung.mindest.stimmen %}Mindestbeteiligung: {{ n }} Stimme ({{ prozent }} % von {{ von }}){% plural %}Mindestbeteiligung: {{ n }} Stimmen ({{ prozent }} % von {{ von }}){% endblocktranslate %}</p>{% endif %}
       {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
       {% if sperren.stimme %}
         {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}

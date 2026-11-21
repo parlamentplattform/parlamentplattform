@@ -145,3 +145,29 @@ def test_abgelehnt_und_laufend_heissen_weiter_wie_ihre_phase(ordnung):  # noqa: 
     Antrag.objects.filter(pk=a.pk).update(phase='abgelehnt')
     a.refresh_from_db()
     assert antrag_phase(a) == 'abgelehnt'
+
+
+# --- GP-050: Mindestbeteiligung als Kopfzahl in der Abstimmen-Karte -----------------------------------
+
+
+def test_die_abstimmen_karte_nennt_die_mindestbeteiligung_als_kopfzahl(client, ordnung):  # noqa: F811
+    from plattform_core.tally import mindeststimmen
+
+    antrag, leute = _abstimmung(ordnung)
+    client.force_login(leute[5])
+    inhalt = _seite(client, antrag)
+    karte = inhalt.split('id="abstimmen"', 1)[1].split('</div>', 1)[0]
+    policy = antrag.policy()
+    n = mindeststimmen(antrag.stimmberechtigte_anzahl, policy.mindestbeteiligung)
+    prozent = f'{policy.mindestbeteiligung * 100:g}'
+    wort = 'Stimme' if n == 1 else 'Stimmen'
+    assert f'Mindestbeteiligung: {n} {wort} ({prozent} % von {antrag.stimmberechtigte_anzahl})' in karte
+
+
+def test_ohne_festgestellten_nenner_nennt_die_karte_keine_kopfzahl(client, ordnung):  # noqa: F811
+    antrag, leute = _abstimmung(ordnung)
+    Antrag._base_manager.filter(pk=antrag.pk).update(stimmberechtigte_anzahl=None)  # Altbestand
+    client.force_login(leute[5])
+    inhalt = _seite(client, antrag)
+    karte = inhalt.split('id="abstimmen"', 1)[1].split('</div>', 1)[0]
+    assert 'Mindestbeteiligung' not in karte

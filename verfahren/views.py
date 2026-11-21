@@ -169,9 +169,17 @@ def _beteiligung_lesbar(antrag) -> dict | None:
     berechtigte = antrag.stimmberechtigte_anzahl
     if berechtigte == 0 and not oertlich_begrenzt(antrag):
         berechtigte = None
+    mindest = None
+    if berechtigte is not None:
+        # GP-050: Die Mindestbeteiligung als Kopfzahl aus dem Kern — nur bei festgestelltem Nenner
+        from plattform_core.tally import mindeststimmen
+
+        anteil = antrag.policy().mindestbeteiligung
+        mindest = {"stimmen": mindeststimmen(berechtigte, anteil), "prozent": f"{anteil * 100:g}"}
     return {
         "abgegeben": abgegeben,
         "berechtigte": berechtigte,
+        "mindest": mindest,
         "prozent": min(100, round(100 * abgegeben / basis)) if berechtigte else None,
         "tendenz": tendenzen([antrag], {antrag.pk: abgegeben}).get(antrag.pk),
     }

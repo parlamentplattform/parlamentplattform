@@ -223,8 +223,17 @@ def uebersicht(request):
         )
         bloecke.append({"wert": wert, "name": name, "rollen": rollen})
     beendete = Rolle.objects.exclude(beendet_grund="").count()
+    # Der öffentliche Bericht jedes Jahres, in dem der Integritätsrat beschlossen hat, und der des
+    # laufenden (GP-030); `dates` rechnet in der Ortszeit wie die Berichtsseite selbst.
+    berichtsjahre = sorted(
+        {d.year for d in GremienBeschluss.objects.filter(gremium=Gremium.INTEGRITAETSRAT).dates("angelegt_am", "year")}
+        | {heute.year},
+        reverse=True,
+    )
     return render(
-        request, "gremien/uebersicht.html", {"bloecke": bloecke, "beendete": beendete, "jahr": heute.year}
+        request,
+        "gremien/uebersicht.html",
+        {"bloecke": bloecke, "beendete": beendete, "jahr": heute.year, "berichtsjahre": berichtsjahre},
     )
 
 

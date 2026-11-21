@@ -49,3 +49,24 @@ def test_ein_gast_erreicht_von_der_startseite_die_unterlagen_der_raete():
         treffer = [z for z in erreicht if re.match(ausdruck, z)]
         assert treffer, name
         assert Client().get(treffer[0]).status_code == 200, treffer[0]
+
+
+def test_ein_gast_erreicht_von_der_gremienseite_jeden_vorhandenen_jahresbericht():
+    """Die Übersicht verweist auf den Bericht jedes Jahres, in dem der Integritätsrat beschlossen hat —
+    nicht nur auf den des laufenden Jahres (Auflage zu GP-030: „verlinkt auf der Seite Gremien“)."""
+    from datetime import datetime
+
+    from django.utils import timezone
+
+    from gremien.models import JA_NEIN, GremienBeschluss, Gremium
+    from verfahren.test_views_aktionen import mitglied_anlegen
+
+    frueher = datetime(2024, 6, 1, 12, tzinfo=timezone.get_current_timezone())
+    GremienBeschluss.objects.create(
+        gremium=Gremium.INTEGRITAETSRAT, gegenstand='Ob wir uns monatlich treffen', optionen=JA_NEIN,
+        angelegt_von=mitglied_anlegen('rat'), angelegt_am=frueher, frist=frueher,
+    )
+    html = Client().get(reverse('gremien:uebersicht')).content.decode()
+    ziel = reverse('gremien:integritaet_bericht', args=[2024])
+    assert f'href="{ziel}"' in html
+    assert Client().get(ziel).status_code == 200

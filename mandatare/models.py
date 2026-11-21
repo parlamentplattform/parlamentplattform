@@ -1103,13 +1103,20 @@ class Vertrauensfrage(models.Model):
         return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def endgueltig_ab(self):
-        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
-        Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden Entscheidung; None,
-        solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
+        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz: „mit Ablauf der Anfechtungsfrist
+        nach lit h“): sieben Tage nach der Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der
+        bestätigenden Entscheidung; None, solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis
+        aufgehoben wurde.
+
+        Dieselbe Frist wie `anfechtung_rechtzeitig` (GP-106): Sie zählt ab dem Lauf, der das Ergebnis
+        festgestellt hat (`ergebnis_veroeffentlicht_am`), nie vor dem Beginn der Wirkungen. Sonst wurde das
+        Ruhen nach einem Stillstand des Fristenlaufs im ersten Lauf endgültig, während die Anfechtung noch
+        offenstand. Altbestände ohne Vermerk rechnen wie bisher ab `wirkungen_ab`."""
         if self.wirkungen_ab is None or self.entscheidung == Entscheidung.AUFGEHOBEN:
             return None
         if not self.anfechtung_rechtzeitig:
-            return self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+            ab = max(self.wirkungen_ab, self.ergebnis_veroeffentlicht_am or self.wirkungen_ab)
+            return ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
         if self.entscheidung == Entscheidung.BESTAETIGT and self.entschieden_am is not None:
             return self.entschieden_am
         return None

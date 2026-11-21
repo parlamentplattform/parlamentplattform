@@ -1761,7 +1761,10 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
             return True
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
-        ergebnistag = timezone.localdate(vf.ergebnis_am)
+        # Die Veröffentlichung ist der Lauf, der das Ergebnis festgestellt hat — nach einem Stillstand des
+        # Fristenlaufs später als das Abstimmungsende; Altbestand ohne Vermerk: das Abstimmungsende (GP-106).
+        veroeffentlicht = vf.veroeffentlicht_am
+        ergebnistag = timezone.localdate(veroeffentlicht)
         if tag is not None and not ergebnistag <= tag <= timezone.localdate():
             # Eine Anfechtung, die noch nicht erhoben ist oder vor dem Ergebnis läge, hielte die Wirkungen an (GP-110)
             messages.error(
@@ -1774,7 +1777,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         # Veröffentlichung gerechnet — am siebten Tag eingebracht heißt rechtzeitig, gleich zu welcher Uhrzeit.
         # Am Ergebnistag liegt der Vermerk nie vor der Veröffentlichung.
         jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
-        jetzt = max(jetzt, vf.ergebnis_am)
+        jetzt = max(jetzt, veroeffentlicht)
         vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt, durch=request.user.pk)
         vf.refresh_from_db()
         if vf.wirkungen_ab is None:

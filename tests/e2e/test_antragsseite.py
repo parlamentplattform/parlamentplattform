@@ -30,7 +30,8 @@ def _ruhe(p):
 def _langer_wortlaut(antrag):
     """Nur im Test: ein Wortlaut, lang genug, dass neben ihm etwas kleben kann."""
     fassung = antrag.fassungen.order_by("-nummer").first()
-    type(fassung).objects.filter(pk=fassung.pk).update(wortlaut="\n\n".join(["Absatz des Antragstexts. " * 12] * 14))
+    # über den Basis-Manager: Eine bestehende Fassung ist über `objects` nicht mehr schreibbar (GP-067)
+    type(fassung)._base_manager.filter(pk=fassung.pk).update(wortlaut="\n\n".join(["Absatz des Antragstexts. " * 12] * 14))
 
 
 def test_desktop_zwei_spalten_mit_klebender_einschaetzung(seite, live_server, demo):

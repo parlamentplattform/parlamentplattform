@@ -14,12 +14,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from gremien.models import EntwurfsBeitrag
+from gremien.test_gp129_fassung import KetteGestoert, scheitert  # noqa: F401
 from gremien.test_koordination import _ausgewerteter_test, korat
 from gremien.test_werkstatt import ordnung, werkstatt_lage  # noqa: F401
 from ki.anbieter import AnbieterFehler, AntwortAbgeschnitten, AttrappenAnbieter
 from ki.models import Auftragsstatus, KILauf, Zweck
 from ki.test_kontext_auftrag import a  # noqa: F401
 from ki.warteschlange import HOECHSTVERSUCHE, auftrag_ausfuehren, einreihen
+from verfahren.audit_oeffentlich import ereignis_oeffentlich
 from verfahren.models import AuditEintrag
 
 pytestmark = pytest.mark.django_db
@@ -45,6 +47,8 @@ def _ohne_person(ereignis, *leute):
     assert not any('@' in v for v in werte)
     for person in leute:
         assert not {person.anzeigename, person.email, person.username} & werte
+    # Im öffentlichen Protokoll steht der Eintrag, wie er ist: Es gibt darin nichts zu schwärzen.
+    assert ereignis_oeffentlich(ereignis) == (ereignis, False)
 
 
 def test_die_einschaetzung_im_entwurfsfenster_steht_mit_laufnummer_im_audit(client, ordnung, attrappe):  # noqa: F811
@@ -131,3 +135,44 @@ def test_auch_eine_abgeschnittene_antwort_endet_mit_eintrag(a, monkeypatch):  # 
     eintraege = _eintraege('ki_auftrag_gescheitert')
     assert [e['auftrag'] for e in eintraege] == [auftrag.pk]
     assert 'Längengrenze' not in json.dumps(eintraege[0], ensure_ascii=False)
+
+
+# Gegenlesen: Die neuen Einträge stehen mit ihrer Handlung in einer Transaktion (CLAUDE.md § 4, GP-129).
+
+
+def test_scheitert_der_eintrag_bleibt_von_der_einschaetzung_kein_beitrag(client, ordnung, attrappe, scheitert):  # noqa: F811
+    antrag, _u, er = werkstatt_lage(ordnung)
+    client.force_login(er[0])
+    aktion = reverse('gremien:fenster_aktion', args=[antrag.pk])
+    client.post(aktion, {'aktion': 'oeffnen'})
+    scheitert('gremien_ki_lauf')
+    with pytest.raises(KetteGestoert):
+        client.post(aktion, {'aktion': 'ki_einschaetzung'})
+    assert not EntwurfsBeitrag.objects.filter(ki_lauf__isnull=False).exists()
+    assert KILauf.objects.filter(antrag=antrag).count() == 1  # der bezahlte Lauf bleibt im Archiv
+
+
+def test_scheitert_der_eintrag_bleibt_der_laufverweis_am_test_unveraendert(client, attrappe, scheitert):  # noqa: F811
+    leute = korat()
+    test, _beschluss = _ausgewerteter_test(client, leute)
+    client.force_login(leute[0])
+    scheitert('gremien_ki_lauf')
+    with pytest.raises(KetteGestoert):
+        client.post(reverse('gremien:koordination_test', args=[test.pk]), {'aktion': 'zukunftswerkstatt'})
+    test.refresh_from_db()
+    assert test.ki_lauf_id is None
+
+
+def test_scheitert_der_eintrag_ist_der_auftrag_nicht_als_gescheitert_verbucht(a, monkeypatch, scheitert):  # noqa: F811
+    from ki import warteschlange
+
+    def abgeschnitten(auftrag):
+        raise AntwortAbgeschnitten('Die Antwort des Anbieters wurde an der Längengrenze abgeschnitten.')
+
+    monkeypatch.setitem(warteschlange.ARBEIT, Zweck.RECHTSBEZUG, abgeschnitten)
+    auftrag = einreihen(Zweck.RECHTSBEZUG, a, a.eingebracht_von)
+    scheitert('ki_auftrag_gescheitert')
+    with pytest.raises(KetteGestoert):
+        auftrag_ausfuehren(auftrag.pk)
+    auftrag.refresh_from_db()
+    assert auftrag.status == Auftragsstatus.LAEUFT  # Endzustand und Eintrag gemeinsam oder gar nicht

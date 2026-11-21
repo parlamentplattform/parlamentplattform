@@ -103,6 +103,8 @@ def test_die_stundengrenze_kommt_aus_dem_register_und_0_heisst_keine_grenze():
     assert views._ki_je_stunde() == 0
     _grenze(3)
     assert views._ki_je_stunde() == 3
+    _grenze(-5)
+    assert views._ki_je_stunde() == 0  # ein Wert unter 0 sperrt nicht — er schaltet die Drossel aus
 
 
 def test_bei_grenze_0_greift_die_drossel_nie(client, ordnung, attrappe):  # noqa: F811

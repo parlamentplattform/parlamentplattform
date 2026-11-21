@@ -26,7 +26,7 @@ from mitglieder.mail import send_mail
 from mitglieder.models import Gemeinde, Gemeindezugang, Mitglied, Wohnsitzart
 from mitglieder.wohnsitz import WohnsitzFormularMixin, wohnsitz_anwenden, wohnsitz_auswahl
 from parameter.models import zahl
-from plattform_core.gemeindeansicht import MANDATSREIHUNG, ORTSREIHUNG, SITZUNGSREIHUNG
+from plattform_core.gemeindeansicht import MANDATSREIHUNG, ORTSREIHUNG, SITZUNGSREIHUNG, SPRECHSTUNDENREIHUNG
 from plattform_core.gemeindezugang import mindestens_sechzehn
 from plattform_core.rechenschaft import RECHENSCHAFT_TAGE
 from verfahren.models import Ebene
@@ -151,7 +151,7 @@ def start(request):
 
 @require_GET
 def ort(request, kennziffer):
-    from mandatare.models import Mandat, Sitzung, live_hoechstdauer_stunden
+    from mandatare.models import Mandat, Sitzung, Sprechstunde, live_hoechstdauer_stunden
     from mandatare.sprechstunden import kommende_in
 
     gemeinde = get_object_or_404(Gemeinde, kennziffer=kennziffer)
@@ -184,7 +184,12 @@ def ort(request, kennziffer):
             protokolle.append(sitzung)
     return render(request, "mitglieder/gemeinde_ort.html", {
         "gemeinde": gemeinde, "mandate": aktive, "laufend": laufend, "protokolle": protokolle,
-        "sprechstunden": kommende_in(gemeinde, jetzt),
+        # GP-116: Ein abgesagter kommender Termin bleibt bis zu seinem Ende als „Abgesagt“ stehen,
+        # auch wenn das Mandat inzwischen geendet hat — er verschwindet nicht kommentarlos.
+        "sprechstunden": Sprechstunde.objects.filter(gemeinde=gemeinde, ende__gt=jetzt).filter(
+            Q(pk__in=kommende_in(gemeinde, jetzt).values("pk"))
+            | Q(abgesagt_am__isnull=False, mandat__mitglied__parteikonto=True, mandat__mitglied__testkonto=False)
+        ).select_related("mandat__mitglied").defer("mandat__foto").order_by(*SPRECHSTUNDENREIHUNG),
     })
 
 

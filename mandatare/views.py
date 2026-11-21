@@ -78,6 +78,7 @@ from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
+from parameter.models import zahl
 from plattform_core import Phase
 from plattform_core.phases import END_PHASEN
 from plattform_core.rechenschaft import berichtsmonate
@@ -111,8 +112,6 @@ BEGRUENDUNG_MAX = 4000
 RECHENSCHAFT_AUSZUG = 5
 #: Berichte auf der öffentlichen Detailseite — der Rest steht vollständig unter `berichte`.
 BERICHTE_AUSZUG = 12
-#: Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert folgt.
-MANDATE_SEITE = 50
 #: Ein zweiter, gleichlautender Report desselben Mandats binnen dieser Sekunden ist eine
 #: Doppelabsendung (Doppelklick, Zurück + neu senden), kein neuer Report.
 DOPPELABSENDUNG_SEKUNDEN = 120
@@ -478,6 +477,12 @@ def _ausstaende_fuer(mandate, heute: date | None = None) -> dict[int, dict]:
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────
 
 
+def mandate_je_seite() -> int:
+    """Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert
+    `mandatare-liste-seite`; mindestens eines, damit ein verformter Wert die Seite nicht bricht."""
+    return max(1, zahl("mandatare-liste-seite", 50))
+
+
 def liste(request):
     """Alle Mandate, seitenweise (GP-191): erst die offenen als Karten in der Ordnung des Modells (Ebene, Gebiet,
     Antritt), dann die beendeten als Zeilen, zuletzt beendet zuerst. Eine Folge, eine Seitenzählung — so steht
@@ -485,7 +490,8 @@ def liste(request):
     offen = Mandat.objects.filter(beendet__isnull=True)
     beendet = Mandat.objects.filter(beendet__isnull=False)
     n_offen, n_beendet = offen.count(), beendet.count()
-    seite = Paginator(range(n_offen + n_beendet), MANDATE_SEITE).get_page(request.GET.get("seite"))
+    je_seite = mandate_je_seite()
+    seite = Paginator(range(n_offen + n_beendet), je_seite).get_page(request.GET.get("seite"))
     anfang, ende = max(0, seite.start_index() - 1), seite.end_index()  # 0-basiert, Ende ausschließlich
     mandate = []
     if anfang < n_offen:
@@ -527,7 +533,7 @@ def liste(request):
             "n_beendet": n_beendet,
             "gesamt": n_offen + n_beendet,
             # die Seite, auf der die beendeten Mandate beginnen — Ziel des Hinweises auf den anderen Seiten
-            "beendet_ab_seite": n_offen // MANDATE_SEITE + 1,
+            "beendet_ab_seite": n_offen // je_seite + 1,
             "seite": seite,
             "kandidaturen": kandidaturen,
         },

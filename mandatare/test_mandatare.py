@@ -495,3 +495,53 @@ def test_liste_mit_400_mandaten_blaettert_ohne_javascript_und_nennt_die_gesamtza
     assert sorted(set(gesehen), key=int) == sorted((str(m.pk) for m in Mandat.objects.all()), key=int)
     erste = client.get(reverse('mandatare:liste')).content.decode()
     assert re.search(r'href="\?seite=\d+#beendet"', erste)
+
+
+# ── Folgewelle: Die Seitengröße der Liste ist ein Registerwert ────────────────────────────
+
+
+def _seitengroesse(wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(schluessel='mandatare-liste-seite', defaults={'wert': str(wert)})
+
+
+def test_seitengroesse_der_liste_kommt_aus_dem_register(client):
+    """`mandatare-liste-seite` (Startwert 50): Der Test setzt den Wert selbst und hängt nicht am Erstbestand.
+    Zwölf offene und drei beendete Mandate bei zehn je Seite — zwei Seiten, die beendeten beginnen auf der
+    zweiten."""
+    import re
+
+    from mandatare import views
+    from mitglieder.models import Mitglied
+    from parameter.models import Parameter
+
+    heute = timezone.localdate()
+    leute = Mitglied.objects.bulk_create(
+        Mitglied(username=f'seite{i}', email=f'seite{i}@example.org', beitritt=heute) for i in range(15)
+    )
+    Mandat.objects.bulk_create(
+        Mandat(
+            mitglied=m, bezeichnung='Gemeinderat', ebene='gemeinde', gebiet=f'Ort {i:03d}',
+            beendet=heute - timedelta(days=i) if i >= 12 else None,
+        )
+        for i, m in enumerate(leute)
+    )
+    url = reverse('mandatare:liste')
+    _seitengroesse(10)
+    erste = client.get(url).content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', erste))) == 10
+    assert 'href="?seite=2" rel="next"' in erste and 'href="?seite=2#beendet"' in erste
+    zweite = client.get(url + '?seite=2').content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', zweite))) == 5 and 'rel="next"' not in zweite
+    _seitengroesse(500)
+    alle = client.get(url).content.decode()
+    assert len(set(re.findall(r'href="/mandatare/(\d+)/"', alle))) == 15 and 'rel="next"' not in alle
+    # ohne Eintrag gilt der Startwert; ein unlesbarer oder unsinniger Wert bricht die Seite nicht
+    Parameter.objects.filter(schluessel='mandatare-liste-seite').delete()
+    assert views.mandate_je_seite() == 50
+    for unsinn in ('0', '-3', 'viele'):
+        _seitengroesse(unsinn)
+        assert views.mandate_je_seite() >= 1
+        assert client.get(url).status_code == 200
+    assert not hasattr(views, 'MANDATE_SEITE')  # keine harte Zahl neben dem Register

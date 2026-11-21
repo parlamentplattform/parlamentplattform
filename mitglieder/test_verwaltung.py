@@ -970,3 +970,18 @@ def test_unbestaetigtes_konto_hat_den_freischaltknopf_und_wird_nicht_admin(clien
     offen.refresh_from_db()
     assert offen.is_active and offen.beitritt is not None
 
+
+# --- Satzungsverweis beim Ausschluss (GP-176, OCR-16) -------------------------
+
+
+def test_ausschluss_verweist_auf_paragraf_4_absatz_5():
+    from pathlib import Path
+
+    from django.conf import settings
+
+    hilfe = Mitglied._meta.get_field('status_grund').help_text
+    assert '§ 4 Abs 5' in hilfe and '§ 4 Abs 6' not in hilfe
+    konzept = Path(settings.BASE_DIR, 'docs', 'CONCEPT.md').read_text(encoding='utf-8')
+    zeile = next(z for z in konzept.splitlines() if z.startswith('| F-51 |'))
+    assert '§ 4 Abs 6' not in zeile and '§ 4 Abs 5' in zeile
+

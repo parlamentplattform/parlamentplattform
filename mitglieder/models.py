@@ -234,7 +234,7 @@ class Mitglied(AbstractUser):
     )
     status_grund = models.TextField(
         blank=True,
-        help_text="Begründung des aktuellen Status (z. B. Beschlussreferenz bei Ausschluss, § 4 Abs 6).",
+        help_text="Begründung des aktuellen Status (z. B. Beschlussreferenz bei Ausschluss, § 4 Abs 5).",
     )
     status_seit = models.DateField(
         null=True,

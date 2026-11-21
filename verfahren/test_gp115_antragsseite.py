@@ -148,3 +148,55 @@ def test_gp068_lesestand_rueckt_auch_im_ruhenden_chat_vor(client, ordnung):  # n
     Antrag.objects.filter(pk=sammelnd.pk).update(phase="angenommen")  # Chat geschlossen, nur lesbar
     assert 'id="neu"' in client.get(url).content.decode()
     assert 'id="neu"' not in client.get(url).content.decode()
+
+
+# ── GP-071: Rückmeldungen der Chat-Handlungen unter htmx stehen im Chat-Faden ────────────────
+
+
+def _meldungen(antwort) -> list[str]:
+    from django.contrib.messages import get_messages
+
+    return [str(m) for m in get_messages(antwort.wsgi_request)]
+
+
+def test_gp071_vier_handlungen_melden_sich_im_chat_faden(client, ordnung):  # noqa: F811
+    from verfahren.models import Kommentar
+
+    leute, sammelnd, _ = _lage(ordnung)
+    fremd = beitrag_schreiben(sammelnd, leute[0], "Ein fremder Beitrag.")
+    eigen = beitrag_schreiben(sammelnd, leute[1], "Mein Beitrag.")
+    client.force_login(leute[1])
+
+    def post(name, beitrag, daten=None):
+        antwort = client.post(reverse(f"verfahren:{name}", args=[sammelnd.pk, beitrag.pk]), daten or {}, **HX)
+        assert antwort.status_code == 200, name
+        html = antwort.content.decode()
+        assert html.startswith('<div id="chat-faden"'), name
+        assert _meldungen(antwort) == [], name  # nichts für die nächste Seite
+        return html
+
+    # Melden: Fehler und Erfolg in der Zone
+    assert '<p class="chat-fehler" role="alert">Bitte einen Grund wählen.</p>' in post("melden", fremd)
+    assert "Danke — die Meldung liegt der Verwaltung vor." in post("melden", fremd, {"grund": "thema"})
+    # Ändern: leerer Text und Frist vorbei
+    assert "Bitte einen Text eingeben." in post("beitrag_bearbeiten", eigen, {"text": "  "})
+    Kommentar.objects.filter(pk=eigen.pk).update(erstellt_am=eigen.erstellt_am - timedelta_tage(1))
+    assert "Ändern ist nur in den ersten" in post("beitrag_bearbeiten", eigen, {"text": "Neu."})
+    # Zurückziehen eines fremden Beitrags
+    assert "Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen." in post("beitrag_entfernen", fremd)
+    # Reagieren als gesperrtes Konto: kein stummer 403
+    pause = mitglied_anlegen("pause")
+    pause.status = Mitgliedsstatus.PAUSIERT
+    pause.save(update_fields=["status"])
+    client.force_login(pause)
+    html = post("reagieren", fremd, {"art": "zustimmung"})
+    assert str(HINWEISE["gesperrt_pausiert"]["text"]) in html
+    # Die nächste volle Seite trägt keine nachgereichte Meldung
+    html = client.get("/parlament/").content.decode()
+    assert "Meldung liegt der Verwaltung vor" not in html and "Bitte einen Grund" not in html
+
+
+def timedelta_tage(n):
+    from datetime import timedelta
+
+    return timedelta(days=n)

@@ -166,7 +166,9 @@ def test_meldung_nach_dem_bearbeitungsfenster_nennt_den_registerwert(client, ord
     antwort = client.post(
         reverse("verfahren:beitrag_bearbeiten", args=[antrag.pk, beitrag.pk]), {"text": "Zu spät."}
     )
-    assert [str(m) for m in get_messages(antwort.wsgi_request)] == [meldung]
+    # Der Fehler steht im Chat der neu gezeichneten Seite, nicht als Meldung für später (GP-071)
+    assert [str(m) for m in get_messages(antwort.wsgi_request)] == []
+    assert f'<p class="chat-fehler" role="alert">{meldung}</p>' in antwort.content.decode()
     beitrag.refresh_from_db()
     assert beitrag.text == "Erst so gemeint."
 

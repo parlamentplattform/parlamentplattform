@@ -538,23 +538,28 @@ def unterstuetzen(request, pk):
     )
 
 
-def _chat_antwort(request, antrag, anker: str = "", fehler=None, entwurf=None):
+def _chat_antwort(request, antrag, anker: str = "", fehler=None, entwurf=None, erfolg=None):
     """Nach jeder Chat-Handlung: mit htmx nur die Zone tauschen, sonst zurück auf den Anker.
 
     Ein Fehler (Befund B2) geht nie über Django-messages: Die Zone trägt `chat.fehler` (Text,
     optional Link) und `chat.entwurf` (text, ist_kritik, bezug_absatz, antwort_auf), das Formular
     zeigt den eingegebenen Text mit der Meldung darüber. Ohne JavaScript steht dafür die ganze
-    Antragsseite mit Fehler und Entwurf — kein Redirect, der den Text verlöre."""
+    Antragsseite mit Fehler und Entwurf — kein Redirect, der den Text verlöre. Eine Bestätigung
+    (`erfolg`) steht mit htmx ebenso in der Zone, ohne JavaScript als Meldung auf der Antragsseite,
+    auf die der Redirect führt — nie auf einer fremden, späteren Seite (GP-071)."""
     from verfahren.views import _antwort_vorgabe, _chat_lage, antrag_detail
 
     if request.headers.get("HX-Request"):
         lage = _chat_lage(antrag, request.user)
         lage["fehler"] = fehler
+        lage["erfolg"] = erfolg
         lage["entwurf"] = entwurf
         lage["antwort_vorgabe"] = _antwort_vorgabe(antrag, (entwurf or {}).get("antwort_auf"))
         return render(request, "verfahren/_chat.html", {"antrag": antrag, "chat": lage})
     if fehler:
         return antrag_detail(request, antrag.pk, chat_fehler=fehler, chat_entwurf=entwurf)
+    if erfolg:
+        messages.success(request, erfolg)
     ziel = reverse("verfahren:antrag", kwargs={"pk": antrag.pk})
     return redirect(f"{ziel}#{anker}" if anker else ziel)
 
@@ -650,30 +655,28 @@ def beitrag_bearbeiten(request, pk, beitrag_pk):
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if not beitrag.darf_bearbeiten(request.user):
         minuten = Kommentar.bearbeitungsfenster_minuten()  # die geltende Zahl, nicht fest „fünf“
-        messages.error(request, ngettext(
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(ngettext(
             "Ändern ist nur in der ersten Minute möglich.",
             "Ändern ist nur in den ersten %(n)s Minuten möglich.",
             minuten,
-        ) % {"n": minuten})
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        ) % {"n": minuten}))
     text = (request.POST.get("text") or "").strip()
     if not text:
-        messages.error(request, _("Bitte einen Text eingeben."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Text eingeben.")))
     from verfahren.chat import chat_zeichen_hoechstzahl
 
     hoechst = chat_zeichen_hoechstzahl()
     if len(text) > hoechst:
         # Abweisen statt still kürzen (GP-083)
-        messages.error(request, _zu_lang_text(hoechst))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_zu_lang_text(hoechst)))
     if beitrag.ist_kritik:
         # Beim Ändern gilt dieselbe Mindestlänge wie beim Schreiben (GP-015, § 5 Abs 13)
         from verfahren.chat import kritik_mindestzeichen
 
         if len(text) < kritik_mindestzeichen():
-            messages.error(request, _kritik_zu_kurz_text(kritik_mindestzeichen()))
-            return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+            return _chat_antwort(
+                request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_kritik_zu_kurz_text(kritik_mindestzeichen()))
+            )
     beitrag.text = text
     beitrag.bearbeitet_am = timezone.now()
     with transaction.atomic():
@@ -696,8 +699,10 @@ def beitrag_entfernen(request, pk, beitrag_pk):
     Gelöscht wird nichts — Antworten darunter verlören sonst ihren Bezug (Grundregel 7)."""
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     if beitrag.mitglied_id != request.user.pk or beitrag.archiviert_am:
-        messages.error(request, _("Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(
+            request, antrag, f"k-{beitrag.pk}",
+            fehler=_chat_fehler(_("Nur eigene Beiträge im laufenden Chat lassen sich zurückziehen.")),
+        )
     if not beitrag.geloescht:
         beitrag.geloescht = True
         with transaction.atomic():
@@ -726,9 +731,18 @@ def reagieren(request, pk, beitrag_pk):
     from verfahren.models import Reaktionsart
 
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
-    sperre = _mitwirkung_gesperrt(request)
-    if sperre:
-        return sperre
+    code = mitwirkungssperre(request.user)
+    if code and request.headers.get("HX-Request"):
+        # Kein stummer Klick: Der Grund steht in der Zone, wie beim Schreiben (GP-071)
+        from verfahren.hinweise import HINWEISE, kachel_sperre
+
+        sperre = kachel_sperre(code)
+        return _chat_antwort(
+            request, antrag, f"k-{beitrag.pk}",
+            fehler=_chat_fehler(HINWEISE[code]["text"], sperre["link"], sperre["link_text"]),
+        )
+    if code:
+        return _mitwirkung_gesperrt(request)
     # § 5 Abs 13: Reagieren geht „bis zum Fristende“. Erst fortschreiben — ist die Frist um, wertet das
     # die Runde aus und räumt ihre Beiträge ins Archiv; die Reaktion trifft dann ins Leere statt in
     # eine schon entschiedene Rechnung (Bestandsaufnahme A8). Hat das die Phase gewechselt, zeichnet
@@ -769,8 +783,7 @@ def melden(request, pk, beitrag_pk):
     antrag, beitrag = _eigener_beitrag(request, pk, beitrag_pk)
     grund = request.POST.get("grund", "")
     if grund not in Meldung.Grund.values:
-        messages.error(request, _("Bitte einen Grund wählen."))
-        return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+        return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Grund wählen.")))
     meldung, neu = Meldung.objects.get_or_create(
         kommentar=beitrag,
         mitglied=request.user,
@@ -780,8 +793,7 @@ def melden(request, pk, beitrag_pk):
         AuditEintrag.anhaengen(
             {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
         )
-    messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
-    return _chat_antwort(request, antrag, f"k-{beitrag.pk}")
+    return _chat_antwort(request, antrag, f"k-{beitrag.pk}", erfolg=_("Danke — die Meldung liegt der Verwaltung vor."))
 
 
 @login_required

@@ -67,6 +67,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
 
   {# Fehler einer Chat-Handlung (Befund B2): nie als Flash — hier, über dem Formular, das den Entwurf behält #}
   {% if chat.fehler %}<p class="chat-fehler" role="alert">{{ chat.fehler.text }}{% if chat.fehler.link %} <a href="{{ chat.fehler.link }}">{{ chat.fehler.link_text }} ›</a>{% endif %}</p>{% endif %}
+  {% if chat.erfolg %}<p class="chat-erfolg" role="status">{{ chat.erfolg }}</p>{% endif %}
 
   {% if chat.offen %}
     {% if chat.sperre and not chat.entwurf %}{# ein schon geschriebener Entwurf bleibt samt Fehler im Formular stehen #}

@@ -941,3 +941,32 @@ def test_bestand_zaehlt_keine_testkonten_und_die_liste_kennzeichnet_sie(client):
     assert antwort.context['zahlen']['aktiv'] == 1
     zeile = antwort.content.decode().split(reverse('mitglieder:verwaltung_mitglied', args=[test.pk]), 1)[1]
     assert 'Testkonto' in zeile.split('</tr>', 1)[0]
+
+
+# --- GP-188 Punkte 3 und 4 (KM-26) -------------------------------------------
+
+
+def test_auswahltexte_von_status_und_identitaet_sind_uebersetzbar():
+    # Die englische Fassung folgt mit dem Katalog; hier zählt, dass jeder Text durch gettext läuft.
+    from django.utils.functional import Promise
+
+    for wahl in (Mitgliedsstatus, Identitaetsstufe):
+        for wert in wahl:
+            assert isinstance(wert.label, Promise), wert
+    assert str(Mitgliedsstatus.PAUSIERT.label) == 'pausiert (Beitrag ausständig)'
+
+
+def test_unbestaetigtes_konto_hat_den_freischaltknopf_und_wird_nicht_admin(client):
+    client.force_login(admin_anlegen())
+    offen = Mitglied.objects.create(username='offen@example.org', email='offen@example.org', is_active=False)
+    html = client.get(detail(offen.pk)).content.decode()
+    assert 'value="reaktivieren"' in html and 'Ohne E-Mail-Bestätigung freischalten' in html
+    assert 'value="admin_geben"' not in html
+    client.post(detail(offen.pk), {'aktion': 'admin_geben'})
+    offen.refresh_from_db()
+    assert not offen.ist_admin
+    assert not AuditEintrag.objects.filter(ereignis__aktion='admin_geben').exists()
+    client.post(detail(offen.pk), {'aktion': 'reaktivieren'})
+    offen.refresh_from_db()
+    assert offen.is_active and offen.beitritt is not None
+

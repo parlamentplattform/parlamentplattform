@@ -41,9 +41,17 @@ class OrtsFormular(WohnsitzFormularMixin, forms.Form):
         label=gettext_lazy("Hauptwohnsitz-Gemeinde"), required=False, max_length=140,
         widget=forms.TextInput(attrs={"list": "gemeinden", "autocomplete": "off"}),
     )
-    meldung = forms.BooleanField(label=gettext_lazy(
+    meldung = forms.BooleanField(required=False, label=gettext_lazy(
         "Die Angaben entsprechen meinem tatsächlich gemeldeten Hauptwohnsitz."
     ))
+
+    def clean(self):
+        daten = super().clean()
+        # GP-188: Die Meldebestätigung gilt einem Hauptwohnsitz in Österreich; wer auf „ohne festen
+        # Wohnsitz“ oder „im Ausland“ wechselt, hat keinen zu bestätigen.
+        if daten.get("wohnsitz_art") == Wohnsitzart.OESTERREICH and not daten.get("meldung"):
+            self.add_error("meldung", self.fields["meldung"].error_messages["required"])
+        return daten
 
 
 class ZugangsFormular(OrtsFormular):

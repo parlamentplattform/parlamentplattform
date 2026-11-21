@@ -305,6 +305,11 @@ def _status_aktion(request, mitglied: Mitglied, aktion: str) -> None:
     if aktion in ("pausieren", "ausschliessen", "admin_nehmen") and mitglied.ist_fixer_admin:
         messages.error(request, _("Der satzungsgebende Erstzugang ist unantastbar."))
         return
+    if aktion == "admin_geben" and not mitglied.is_active:
+        # GP-188: Ein Konto, das sich nicht anmelden kann (unbestätigt, ausgeschlossen), bekommt keine
+        # Adminrechte — der Ausschluss nimmt sie ebenso (GP-017).
+        messages.error(request, _("Adminrechte erst für ein anmeldbares Konto."))
+        return
     if aktion in ("pausieren", "ausschliessen") and not grund:
         messages.error(request, _("Bitte eine Begründung angeben — sie steht im Audit-Log."))
         return

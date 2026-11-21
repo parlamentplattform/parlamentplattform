@@ -247,7 +247,11 @@ class BotschutzMixin(forms.Form):
         if aufgabe is None:
             raise forms.ValidationError(fehler)  # unbekannt, abgelaufen oder schon verbraucht
         if time.time() - aufgabe["t"] < mindestzeit():
-            raise forms.ValidationError(fehler)  # schneller als ein Mensch lesen kann
+            # Schneller, als ein Mensch lesen kann — oft ein automatisch ausgefülltes Formular.
+            # Der wahre Grund statt „nicht richtig beantwortet“ (GP-188); die Aufgabe bleibt stehen.
+            raise forms.ValidationError(
+                _("Das Formular wurde sehr schnell abgeschickt — bitte einen Moment warten und erneut absenden.")
+            )
         if daten.get("rechenfrage") != aufgabe["a"] + aufgabe["b"]:
             self.add_error("rechenfrage", fehler)
             return daten

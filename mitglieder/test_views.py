@@ -844,3 +844,14 @@ def test_gemeindekonto_kehrt_nur_auf_gemeindewege_zurueck(client):
     assert ziel_pruefen(ziel) == ziel
     token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel=ziel)
     assert client.post(reverse('mitglieder:login_einloesen', args=[token]))['Location'] == ziel
+
+
+# --- GP-188 Punkt 1: zu schnelles Absenden nennt den wahren Grund (KM-26) ----
+
+
+def test_zu_schnelles_absenden_nennt_den_wartesatz(client):
+    antwort = client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, **botschutz(client, alter=0.5)})
+    html = antwort.content.decode()
+    assert 'bitte einen Moment warten und erneut absenden' in html
+    assert 'Die Sicherheitsfrage wurde nicht richtig beantwortet' not in html
+    assert Mitglied.objects.count() == 0

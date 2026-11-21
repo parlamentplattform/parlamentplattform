@@ -621,3 +621,26 @@ def test_beitrittsformular_nennt_dem_gemeindekonto_den_naechsten_schritt(client,
     assert 'Gemeindekonto' in hauptteil and 'href="/gemeinde/konto/"' in hauptteil
     assert 'Gemeindekonto' not in Client().get(reverse('mitglieder:registrieren')).content.decode().split(
         '<main id="inhalt"', 1)[1].split('</main>', 1)[0]
+
+
+# --- GP-188 Punkte 2 und 5 (KM-26) -------------------------------------------
+
+
+def test_wechsel_auf_ohne_festen_wohnsitz_braucht_keinen_meldehaken(client, buerger):
+    client.force_login(buerger)
+    r = client.post(reverse('gemeinde:konto'), {'wohnsitz_art': 'ohne_festen_wohnsitz'})
+    assert r.status_code == 302
+    buerger.refresh_from_db()
+    assert buerger.wohnsitz_id is None
+
+
+def test_wohnsitz_in_oesterreich_verlangt_den_meldehaken_weiter(client, buerger, ort):
+    client.force_login(buerger)
+    r = client.post(reverse('gemeinde:konto'), {'wohnsitz_art': 'oesterreich', 'gemeinde': ort.anzeige})
+    assert r.status_code == 200
+    assert 'meldung' in r.context['form'].errors
+
+
+def test_ortssuche_nennt_ihre_reihung(client, ort):
+    html = client.get(reverse('gemeinde:start'), {'ort': 'Marien'}).content.decode()
+    assert 'alphabetisch nach Gemeindename' in html

@@ -43,10 +43,10 @@ class Wohnsitzart(models.TextChoices):
 
 
 class Identitaetsstufe(models.TextChoices):
-    UNGEPRUEFT = "ungeprueft", "ungeprüft"
-    GEPRUEFT = "geprueft", "geprüft (Beitragseingang verbucht)"
-    PRAESENZ = "praesenz", "Präsenz-Identitätsfeststellung (§ 13 Abs 2)"
-    EID = "eid", "elektronischer Identitätsnachweis (§ 2 Abs 4)"
+    UNGEPRUEFT = "ungeprueft", _("ungeprüft")
+    GEPRUEFT = "geprueft", _("geprüft (Beitragseingang verbucht)")
+    PRAESENZ = "praesenz", _("Präsenz-Identitätsfeststellung (§ 13 Abs 2)")
+    EID = "eid", _("elektronischer Identitätsnachweis (§ 2 Abs 4)")
 
 
 class Mitgliedsstatus(models.TextChoices):
@@ -58,10 +58,10 @@ class Mitgliedsstatus(models.TextChoices):
     geleert, Beiträge zu Verfahren bleiben stehen — nichts wird gelöscht, was ein Verfahren
     betrifft."""
 
-    AKTIV = "aktiv", "aktiv"
-    PAUSIERT = "pausiert", "pausiert (Beitrag ausständig)"
-    AUSGESCHLOSSEN = "ausgeschlossen", "ausgeschlossen"
-    AUSGETRETEN = "ausgetreten", "ausgetreten"
+    AKTIV = "aktiv", _("aktiv")
+    PAUSIERT = "pausiert", _("pausiert (Beitrag ausständig)")
+    AUSGESCHLOSSEN = "ausgeschlossen", _("ausgeschlossen")
+    AUSGETRETEN = "ausgetreten", _("ausgetreten")
 
 
 class Mitgliedsnummernkreis(models.Model):

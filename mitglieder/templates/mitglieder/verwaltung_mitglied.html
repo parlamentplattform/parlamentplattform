@@ -95,7 +95,8 @@
     <div class="stimmzeile">
       {% if person.status != "pausiert" %}<button type="submit" name="aktion" value="pausieren" class="btn-linie">{% translate "Pausieren (Beitrag ausständig)" %}</button>{% endif %}
       {% if person.status != "ausgeschlossen" %}<button type="submit" name="aktion" value="ausschliessen" class="btn-still">{% translate "Ausschließen (vollzieht den Beschluss nach § 4 Abs 5)" %}</button>{% endif %}
-      {% if person.status != "aktiv" %}<button type="submit" name="aktion" value="reaktivieren" class="btn">{% translate "Wieder aktiv setzen" %}</button>{% endif %}
+      {% if person.status != "aktiv" %}<button type="submit" name="aktion" value="reaktivieren" class="btn">{% translate "Wieder aktiv setzen" %}</button>
+      {% elif not person.is_active %}<button type="submit" name="aktion" value="reaktivieren" class="btn">{% translate "Ohne E-Mail-Bestätigung freischalten" %}</button>{% endif %}
     </div>
   </form>
   <p class="hilfe">{% blocktranslate %}Pausiert: Anmelden und Lesen bleiben möglich, Mitwirkungsrechte ruhen.
@@ -110,8 +111,10 @@
     <span class="erk">{% translate "Immer Admin (DDOE_FIX_ADMIN) — nicht entziehbar." %}</span>
   {% elif person.ist_admin %}
     <button type="submit" name="aktion" value="admin_nehmen" class="btn-still">{% translate "Adminrechte entziehen" %}</button>
-  {% else %}
+  {% elif person.is_active %}
     <button type="submit" name="aktion" value="admin_geben" class="btn-linie">{% translate "Zum Admin ernennen" %}</button>
+  {% else %}
+    <span class="erk">{% translate "Adminrechte erst für ein anmeldbares Konto." %}</span>
   {% endif %}
 </form>
 </div>

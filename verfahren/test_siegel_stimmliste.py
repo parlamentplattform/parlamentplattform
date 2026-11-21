@@ -430,6 +430,7 @@ def test_weist_die_kette_eine_ueberzahl_aus_die_der_export_nicht_zeigt_steht_das
 
 
 def test_das_skript_als_programm_gibt_die_abweichung_als_zeile_aus(tmp_path):
+    import os
     import subprocess
     import sys
 
@@ -441,8 +442,11 @@ def test_das_skript_als_programm_gibt_die_abweichung_als_zeile_aus(tmp_path):
     }
     datei = tmp_path / 'export.json'
     datei.write_text(json.dumps(export), encoding='utf-8')
+    # Die Kodierung der Ausgabe steht fest: Auf einer Windows-Konsole (cp1252) wären die Umlaute des
+    # Hinweises sonst nicht als UTF-8 lesbar, und der Test hinge am Rechner, auf dem er läuft.
     lauf = subprocess.run(
-        [sys.executable, str(NACHRECHNEN_PFAD), str(datei)], capture_output=True, text=True, encoding='utf-8', check=False
+        [sys.executable, str(NACHRECHNEN_PFAD), str(datei)], capture_output=True, text=True, encoding='utf-8',
+        check=False, env={**os.environ, 'PYTHONIOENCODING': 'utf-8'},
     )
     assert lauf.returncode == 0, lauf.stderr
     zeilen = lauf.stdout.splitlines()

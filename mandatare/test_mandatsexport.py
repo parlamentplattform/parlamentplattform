@@ -109,6 +109,29 @@ def test_ordner_des_mandats_fuehrt_jedes_feld_oder_begruendet_die_auslassung(ord
             if f'"{_schluessel(name, feld)}":' not in roh:
                 fehlt.append((name, feld))
     assert fehlt == [], fehlt
+    # Je Modell, nicht nur irgendwo: Ein Schlüssel wie „text“ oder „meldung“ steht in mehreren Ordnern — erst ein
+    # einzelner Eintrag mit ALLEN Feldern des Modells zeigt, dass gerade dieses Modell vollständig ausgeführt ist.
+    eintraege = []
+
+    def sammeln(knoten):
+        if isinstance(knoten, dict):
+            eintraege.append(set(knoten))
+            for wert in knoten.values():
+                sammeln(wert)
+        elif isinstance(knoten, list):
+            for wert in knoten:
+                sammeln(wert)
+
+    sammeln(json.loads(roh))
+    eintraege.append(set(ordner) | set(ordner['gemeindearbeit']))  # die Zuordnung des Mandats steht bei der Gemeindearbeit
+    unvollstaendig = []
+    for modell in apps.get_app_config('mandatare').get_models():
+        name = modell.__name__
+        felder = [f.attname for f in modell._meta.concrete_fields] + [f.name for f in modell._meta.many_to_many]
+        noetig = {_schluessel(name, f) for f in felder if (name, f) not in EXPORT_AUSNAHMEN}
+        if noetig and not any(noetig <= schluessel for schluessel in eintraege):
+            unvollstaendig.append((name, sorted(noetig - max(eintraege, key=lambda s: len(noetig & s)))))
+    assert unvollstaendig == [], unvollstaendig
     assert all(grund.strip() for grund in EXPORT_AUSNAHMEN.values())
     assert GEFORDERT.isdisjoint(EXPORT_AUSNAHMEN), GEFORDERT & set(EXPORT_AUSNAHMEN)
 

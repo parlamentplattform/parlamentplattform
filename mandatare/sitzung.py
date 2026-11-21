@@ -225,7 +225,7 @@ ANLASS_ZUORDNUNG = "gemeinde_zuordnung"
 OEFFENTLICHE_ANLAESSE = frozenset({ANLASS_MANDATSENDE, ANLASS_VERTRETUNGSENDE, ANLASS_ZUORDNUNG})
 
 
-def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None) -> None:
+def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None, *, termine: bool = True) -> None:
     """Was mit dem Ende eines Mandats oder der Vertretung geschieht (GP-116): Kommende Sprechstunden
     werden mit Anlass abgesagt und bleiben bis zu ihrem Ende als abgesagt sichtbar; eine laufende
     Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen.
@@ -234,14 +234,17 @@ def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=N
     Folgen) — gelesen werden nur die Termine und Sitzungen des Mandats. Ein zweiter Aufruf findet
     nichts mehr und schreibt nichts. Absagen und Sitzungsende stehen gemeinsam oder gar nicht.
     `anlass` ist eines der `OEFFENTLICHE_ANLAESSE`; jedes andere Wort wird zu `ANLASS_MANDATSENDE`,
-    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt."""
+    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt. `termine=False` lässt
+    die Sprechstunden stehen (ausgeblendet über `aktive_gemeindemandate`): beim Ende der Vertretung,
+    solange eine rechtzeitige Anfechtung offen ist — eine Aufhebung stellt sie dann wieder her."""
     from mandatare.sprechstunden import termine_absagen
 
     if anlass not in OEFFENTLICHE_ANLAESSE:
         anlass = ANLASS_MANDATSENDE
     jetzt = jetzt or timezone.now()
     with transaction.atomic():
-        termine_absagen(mandat, anlass, jetzt)
+        if termine:
+            termine_absagen(mandat, anlass, jetzt)
         for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True).order_by("pk"):
             if sitzung.laeuft(jetzt):
                 try:

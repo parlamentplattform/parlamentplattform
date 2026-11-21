@@ -335,3 +335,21 @@ def test_altbestand_ohne_vermerk_laesst_sich_bearbeiten(client, django_user_mode
     client.post(reverse("anstoss:status", args=[alt.pk]), {"status": "erledigt"})
     alt.refresh_from_db()
     assert (alt.status, alt.vermerk) == ("erledigt", "")
+
+
+def test_ein_leeres_vermerkfeld_leert_den_vermerk(client, django_user_model):
+    '''GP-133, Rest: Wer das Feld leert, löscht den Vermerk; die Spur nennt nur, dass er sich änderte.
+    Eine Anfrage ganz ohne Vermerkfeld lässt ihn stehen.'''
+    a = Anstoss.objects.create(text="Bitte prüfen.", seite="/", status="gesichtet", vermerk="Alter Vermerk.")
+    admin = person(django_user_model, "admina", admin=True)
+    client.force_login(admin)
+    client.post(reverse("anstoss:status", args=[a.pk]), {"status": "gesichtet", "vermerk": "  "})
+    a.refresh_from_db()
+    assert (a.status, a.vermerk) == ("gesichtet", "")
+    eintraege = _audit("anstoss_status")
+    assert len(eintraege) == 1 and eintraege[0]["vermerk_geaendert"] is True
+    assert "Alter Vermerk" not in str(eintraege)
+    Anstoss.objects.filter(pk=a.pk).update(vermerk="Wieder da.")
+    client.post(reverse("anstoss:status", args=[a.pk]), {"status": "erledigt"})
+    a.refresh_from_db()
+    assert (a.status, a.vermerk) == ("erledigt", "Wieder da.")

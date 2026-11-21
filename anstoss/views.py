@@ -140,7 +140,9 @@ def status_setzen(request, pk: int):
             anstoss = get_object_or_404(Anstoss.objects.select_for_update(), pk=pk)
             vorher, alter_vermerk = anstoss.status, anstoss.vermerk
             anstoss.status = status
-            anstoss.vermerk = (request.POST.get("vermerk") or "").strip()[:300] or alter_vermerk
+            if "vermerk" in request.POST:
+                # Ein leeres Feld leert den Vermerk (GP-133); fehlt das Feld ganz, bleibt er stehen.
+                anstoss.vermerk = request.POST["vermerk"].strip()[:300]
             if (anstoss.status, anstoss.vermerk) != (vorher, alter_vermerk):
                 anstoss.save(update_fields=["status", "vermerk"])
                 # GP-133: Status und Vermerk mit Spur, der Vermerktext selbst bleibt intern.

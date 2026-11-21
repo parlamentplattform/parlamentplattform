@@ -40,3 +40,30 @@ def test_gp060_fehler_beim_einbringen_steht_oben_im_bild(seite, live_server, men
     assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
     assert p.locator("#id_ebene").count() == 1  # das Sprungziel gibt es
     p.screenshot(path=str(sichtpruefung / "formularfehler-einbringen-handy-ohne-js.png"))
+
+
+def test_gp060_fehler_im_profil_steht_oben_im_bild(seite, live_server, sichtpruefung):
+    """Dasselbe für ein Formular des Pakets mitglieder: Im Profil eine Gemeinde, die es nicht gibt. Die
+    Gemeinde steht weit unten auf der Seite — die Meldung oben verweist dorthin, und der Verweis springt."""
+    from verfahren.test_views_aktionen import mitglied_anlegen
+
+    p = seite(als=mitglied_anlegen("anna"), js=False, viewport=HANDY, reduziert=True)
+    p.goto(live_server.url + reverse("mitglieder:profil"))
+    p.select_option("#id_wohnsitz_art", "oesterreich")
+    p.fill("#id_gemeinde", "Entenhausen an der Gans")
+    p.locator("form.pf-form button[type=submit]").first.click()
+    p.wait_for_load_state()
+    meldung = p.locator("[role=alert]").first
+    expect(meldung).to_be_visible()
+    verweis = meldung.locator('a[href="#id_gemeinde"]')
+    expect(verweis).to_have_count(1)
+    kasten = meldung.bounding_box()
+    assert kasten is not None and 0 <= kasten["y"] and kasten["y"] + min(kasten["height"], 80) <= HANDY["height"]
+    assert p.title().startswith("Fehler:")
+    assert p.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    p.screenshot(path=str(sichtpruefung / "formularfehler-profil-handy-ohne-js.png"))
+    verweis.click()
+    p.wait_for_load_state()
+    assert p.evaluate("location.hash") == "#id_gemeinde"
+    feld = p.locator("#id_gemeinde").bounding_box()
+    assert feld is not None and 0 <= feld["y"] and feld["y"] + feld["height"] <= HANDY["height"]

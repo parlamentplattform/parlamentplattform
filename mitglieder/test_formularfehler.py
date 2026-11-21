@@ -56,3 +56,20 @@ def test_anmeldung_zum_gemeindekonto(client, ort):  # noqa: F811
 
 def test_registrierung(client):
     _pruefen(client.post(reverse('mitglieder:registrieren'), {**ANMELDUNG, 'gemeinde': FALSCH, **botschutz(client)}))
+
+
+def test_fehler_versteckter_felder_ohne_sprungverweis_und_ohne_feldnamen():
+    '''Auflage M6: Ein verstecktes Feld (Botschutz, Anmeldeziel) lässt sich nicht anspringen, und sein Name ist
+    technisch. Die Übersicht nennt seinen Fehler ohne Verweis und ohne Namen; sichtbare Felder wie bisher.'''
+    from django import forms
+    from django.template.loader import render_to_string
+
+    class Formular(forms.Form):
+        gemeinde = forms.CharField(label='Wohnsitz-Gemeinde')
+        pruefung = forms.CharField(widget=forms.HiddenInput)
+
+    html = render_to_string('verfahren/_formularfehler.html', {'form': Formular(data={})})
+    assert 'role="alert"' in html
+    assert '<a href="#id_gemeinde">Wohnsitz-Gemeinde</a>' in html
+    assert 'href="#id_pruefung"' not in html and 'Pruefung' not in html and 'pruefung' not in html
+    assert 'Formular unvollständig übermittelt: ' in html

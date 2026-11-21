@@ -1,7 +1,7 @@
 """Auszählung: Beispiele plus Eigenschaften, die für ALLE Eingaben gelten müssen."""
 
 import pytest
-from hypothesis import given
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from plattform_core import Policy, Stimme, auszaehlen
@@ -18,6 +18,10 @@ POLICY = Policy(
     mehrheitsbasis="ja_nein",
 )
 POLICY_ABGEGEBEN = Policy(**{**POLICY.als_dict(), "mehrheitsbasis": "abgegeben"})
+
+#: Für jeden Eigenschaftstest: keine Zeitgrenze je Beispiel und keine Prüfung, wie schnell die Eingaben
+#: entstehen. Geprüft wird die Aussage, nicht die Geschwindigkeit des Rechners.
+OHNE_UHR = settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 
 
 def stimmen(ja=0, nein=0, enthaltung=0):
@@ -67,6 +71,7 @@ class TestBeispiele:
             auszaehlen([("p1", "vielleicht")], 100, POLICY)
 
 
+@OHNE_UHR
 @given(
     ja=st.integers(0, 300),
     nein=st.integers(0, 300),
@@ -81,6 +86,7 @@ def test_eigenschaft_reihenfolge_ist_egal(ja, nein, enthaltung, berechtigte):
     assert r1 == r2
 
 
+@OHNE_UHR
 @given(
     ja=st.integers(0, 300),
     nein=st.integers(0, 300),
@@ -95,6 +101,7 @@ def test_eigenschaft_annahme_impliziert_beteiligung_und_mehrheit(ja, nein, entha
     assert r.abgegeben == ja + nein + enthaltung
 
 
+@OHNE_UHR
 @given(ja=st.integers(0, 200), nein=st.integers(0, 200), berechtigte=st.integers(1, 2000))
 def test_eigenschaft_eine_zusaetzliche_ja_stimme_schadet_nie(ja, nein, berechtigte):
     """Monotonie: Eine zusätzliche Ja-Stimme kann einen angenommenen Antrag nie kippen."""
@@ -142,6 +149,7 @@ class TestMindeststimmen:
         assert 'Mindestbeteiligung von 1 Stimme (5 %)' in gewaehlt.begruendung
 
 
+@OHNE_UHR
 @given(
     berechtigte=st.integers(1, 100_000),
     prozent=st.integers(5, 100),
@@ -158,6 +166,7 @@ def test_eigenschaft_mindeststimmen_ist_die_kleinste_zahl_die_genuegt(berechtigt
     assert not mindestbeteiligung_erreicht(n - 1, berechtigte, anteil)
 
 
+@OHNE_UHR
 @given(berechtigte=st.integers(1, 5000), anteil=st.floats(0.05, 1.0, allow_nan=False))
 def test_eigenschaft_mindeststimmen_gilt_fuer_jeden_anteil(berechtigte, anteil):
     from plattform_core.tally import mindestbeteiligung_erreicht, mindeststimmen
@@ -251,6 +260,7 @@ class TestPruefsummeDerStimmliste:
         assert stimmliste_pruefsumme([]) == hashlib.sha256(b'[]').hexdigest()
 
 
+@OHNE_UHR
 @given(
     ja=st.integers(0, 40), nein=st.integers(0, 40), enthaltung=st.integers(0, 40),
     berechtigte=st.integers(1, 200),
@@ -307,9 +317,32 @@ class TestErgebniswort:
         assert uebergang.neue_phase is Phase.ABGELEHNT
 
 
+@OHNE_UHR
 @given(ja=st.integers(0, 40), nein=st.integers(0, 40), enthaltung=st.integers(0, 40), berechtigte=st.integers(1, 200))
 def test_eigenschaft_das_ergebniswort_folgt_allein_aus_annahme_und_nenner(ja, nein, enthaltung, berechtigte):
     from plattform_core.tally import ergebnis_wort
 
     r = auszaehlen(stimmen(ja=ja, nein=nein, enthaltung=enthaltung), stimmberechtigte=berechtigte, policy=POLICY)
     assert r.ergebnis == ('angenommen' if r.angenommen else 'abgelehnt') == ergebnis_wort(r.angenommen, berechtigte)
+
+
+# --- Eigenschaftstests hängen nicht an der Rechnergeschwindigkeit ------------------------------------
+
+
+def test_kein_eigenschaftstest_des_zaehlkerns_haengt_an_der_rechnergeschwindigkeit():
+    """Hypothesis bricht in der Voreinstellung ab, wenn ein Beispiel länger als 200 ms braucht oder die
+    Eingaben zu langsam entstehen — auf einem ausgelasteten Rechner fiel so ein Test rot aus, dessen
+    Aussage stimmt. Jeder Eigenschaftstest dieser Datei und der Gegenprobe des Prüfskripts läuft
+    deshalb ohne Zeitgrenze und ohne die Prüfung der Erzeugungsdauer."""
+    from pathlib import Path
+
+    assert OHNE_UHR.deadline is None and HealthCheck.too_slow in OHNE_UHR.suppress_health_check
+    gefunden = 0
+    for datei in ("test_tally.py", "test_gp_runde1_kern.py"):
+        zeilen = (Path(__file__).parent / datei).read_text(encoding="utf-8").splitlines()
+        assert any(z.startswith("OHNE_UHR = settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])") for z in zeilen), datei
+        for nummer, zeile in enumerate(zeilen):
+            if zeile.startswith("@given("):
+                gefunden += 1
+                assert zeilen[nummer - 1] == "@OHNE_UHR", f"{datei}:{nummer + 1}"
+    assert gefunden >= 9  # die Suche findet die Tests wirklich: sieben hier, zwei in der Gegenprobe

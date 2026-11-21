@@ -2,7 +2,7 @@
 
 Jeder Test stellt einen Befund (GP-Kennung) nach und hält die Behebung fest."""
 
-from hypothesis import given
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from plattform_core import Policy
@@ -10,6 +10,10 @@ from plattform_core.tally import auszaehlen, personenwahl_auszaehlen
 from verify.nachrechnen import nachrechnen
 
 ZEIT = '2026-11-18T12:58:55.763580+00:00'
+
+#: Für jeden Eigenschaftstest: keine Zeitgrenze je Beispiel und keine Prüfung, wie schnell die Eingaben
+#: entstehen. Geprüft wird die Aussage, nicht die Geschwindigkeit des Rechners.
+OHNE_UHR = settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 
 
 def _policy(prozent=5, mehrheitsbasis='ja_nein'):
@@ -146,6 +150,7 @@ def test_pruefskript_rechnet_den_echten_export_mit_ruecknahmen_wie_die_plattform
     assert skript['zurueckgenommen'] == 2
 
 
+@OHNE_UHR
 @given(
     zurueckgezogen=st.lists(st.booleans(), min_size=1, max_size=6),
     zeilen=st.dictionaries(
@@ -184,6 +189,7 @@ def _ueberzahl_ist_ein_hinweis(skript, menschen, berechtigte):
         assert 'abweichung' not in skript and 'hinweis' not in skript
 
 
+@OHNE_UHR
 @given(
     ja=st.integers(0, 120),
     nein=st.integers(0, 120),

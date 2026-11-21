@@ -18,11 +18,11 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
     <br><span class="meta">{% if b.auswertung %}{% blocktranslate with a=b.auswertung.abgegeben n=b.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}{% else %}{% translate "Keine Auszählung zum Beschlusszeitpunkt festgehalten." %}{% endif %}{% if b.beschluss.frist %} · {% blocktranslate with frist=b.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}</span>
 
     {% for s in b.stimmen %}
-    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in b.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
+    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in b.beschluss.optionen %}{% if o.wert == s.option %}{% translate o.name %}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
     {% endfor %}
 
     {% if b.beschluss.status == "entschieden" %}
-    <p style="margin-top:6px"><strong>{% translate "Beschlossen:" %} {% for o in b.beschluss.optionen %}{% if o.wert == b.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>
+    <p style="margin-top:6px"><strong>{% translate "Beschlossen:" %} {% for o in b.beschluss.optionen %}{% if o.wert == b.beschluss.ergebnis %}{% translate o.name %}{% endif %}{% endfor %}</strong>
       {% if b.beschluss.umsetzungsvermerk %}<br><span class="meta">{{ b.beschluss.umsetzungsvermerk|linebreaksbr }}</span>{% endif %}
       {% include "gremien/_umsetzungsvermerke.html" with beschluss=b.beschluss %}</p>
     {% if umsetzungsvermerk and darf_stimmen and b.zustaendig %}
@@ -52,7 +52,7 @@ Bei einer Einreichung (FB-I2) verlangt die Stimme die Interessenbindungen zu die
       <label for="bg-{{ b.beschluss.pk }}">{% translate "Begründung (wird veröffentlicht)" %}</label>
       <textarea id="bg-{{ b.beschluss.pk }}" name="begruendung" style="width:100%;min-height:50px" required>{{ b.meine_stimme.begruendung|default:"" }}</textarea>
       {% for o in b.beschluss.optionen %}
-      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}{% if b.meine_stimme and b.meine_stimme.option == o.wert %} ✓{% endif %}</button>
+      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{% translate o.name %}{% if b.meine_stimme and b.meine_stimme.option == o.wert %} ✓{% endif %}</button>
       {% endfor %}
     </form>
     {% endif %}

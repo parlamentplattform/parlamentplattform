@@ -35,6 +35,7 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_noop
 
 from parameter.models import Aenderung, ParameterTest, Status, TestStatus, wert_ausserhalb
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
@@ -1149,7 +1150,9 @@ class Anlass(models.TextChoices):
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
 #: entscheiden will, stimmt nicht ab — dann fehlt er in der Beschlussfähigkeit, und genau das
 #: soll er auch, statt eine dritte Farbe ins Ergebnis zu tragen.
-JA_NEIN = [{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}]
+#: Die Namen sind zur Übersetzung markiert und werden beim Anzeigen übersetzt (GP-039); gespeichert
+#: wird die deutsche Quelle.
+JA_NEIN = [{"wert": "dafuer", "name": gettext_noop("dafür")}, {"wert": "dagegen", "name": gettext_noop("dagegen")}]
 
 #: § 6 Abs 3 lit a: „Er besteht aus drei bis sieben Mitgliedern." Ein Rat unter dieser Grenze
 #: ist kein Integritätsrat, und ein Beschluss mit Außenwirkung — Hervorhebung, Zurückweisung —
@@ -1711,18 +1714,18 @@ def beschluss_frist(tage_schluessel: str = "gremien-beschluss-tage", standard: i
 
 #: Die drei Wege der Gruppe 2 (§ 6 Abs 7). Der Wert steht im Code, der Name auf dem Knopf.
 PRUEFOPTIONEN = [
-    {"wert": "validiert", "name": "validieren"},
-    {"wert": "zurueck", "name": "mit Begründung zurückgeben"},
-    {"wert": "austausch", "name": "Austausch bei Gruppe 1 beantragen"},
+    {"wert": "validiert", "name": gettext_noop("validieren")},
+    {"wert": "zurueck", "name": gettext_noop("mit Begründung zurückgeben")},
+    {"wert": "austausch", "name": gettext_noop("Austausch bei Gruppe 1 beantragen")},
 ]
 
 #: Die Prüfpunkte der Gruppe 2 (§ 6 Abs 7). Abgehakte Punkte wandern in die Begründung —
 #: eine Liste, die niemand sieht, prüft nichts.
 PRUEFPUNKTE = [
-    ("interessen", "Interessenbindungen der Gruppe 1 offengelegt und unauffällig"),
-    ("bieter", "Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter"),
-    ("schwellen", "Schwellenwerte des Vergaberechts beachtet"),
-    ("vergleich", "Vergleichsangebote oder eine Begründung, warum es keine gibt"),
+    ("interessen", gettext_noop("Interessenbindungen der Gruppe 1 offengelegt und unauffällig")),
+    ("bieter", gettext_noop("Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter")),
+    ("schwellen", gettext_noop("Schwellenwerte des Vergaberechts beachtet")),
+    ("vergleich", gettext_noop("Vergleichsangebote oder eine Begründung, warum es keine gibt")),
 ]
 
 
@@ -2474,9 +2477,9 @@ def unvereinbar_fuer(mitglied_id: int, im_integritaetsrat: set[int], mit_mandat:
     Mandat und Beratung. Diese Prüfung gehört an den Lostopf und nicht an die Ansicht: Wer sie
     dort vergisst, hat sie nie."""
     if mitglied_id in im_integritaetsrat:
-        return "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
+        return gettext_noop("Mitglied des Integritätsrats (§ 6 Abs 3 lit a)")  # übersetzt beim Anzeigen (GP-039)
     if mitglied_id in mit_mandat:
-        return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+        return gettext_noop("übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)")
     return ""
 
 

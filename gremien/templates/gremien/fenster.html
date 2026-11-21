@@ -137,7 +137,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
         <a href="{% url 'gremien:beschluss' einreichung.beschluss.nummer %}" class="meta">{{ einreichung.beschluss.nummer }}</a> <strong>{{ einreichung.beschluss.gegenstand }}</strong>
         <br><span class="meta">{% blocktranslate with a=einreichung.auswertung.abgegeben n=einreichung.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}{% if einreichung.beschluss.frist %} · {% blocktranslate with frist=einreichung.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}</span>
         {% for s in einreichung.stimmen %}
-        <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in einreichung.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
+        <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in einreichung.beschluss.optionen %}{% if o.wert == s.option %}{% translate o.name %}{% endif %}{% endfor %}{% if s.begruendung %}<br>{{ s.begruendung|linebreaksbr }}{% endif %}</p>
         {% endfor %}
         {% if darf_schreiben %}
         <form method="post" action="{% url 'gremien:beschluss_stimme' einreichung.beschluss.pk %}" class="werk-form" style="margin-top:8px">{% csrf_token %}
@@ -146,7 +146,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
           <label for="bg-{{ einreichung.beschluss.pk }}" style="display:block;margin-top:6px">{% translate "Begründung (wird veröffentlicht)" %}</label>
           <textarea id="bg-{{ einreichung.beschluss.pk }}" name="begruendung" style="min-height:50px" required>{{ einreichung.meine_stimme.begruendung|default:"" }}</textarea>
           {% for o in einreichung.beschluss.optionen %}
-          <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}{% if einreichung.meine_stimme and einreichung.meine_stimme.option == o.wert %} ✓{% endif %}</button>
+          <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %} klein" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{% translate o.name %}{% if einreichung.meine_stimme and einreichung.meine_stimme.option == o.wert %} ✓{% endif %}</button>
           {% endfor %}
         </form>
         {% endif %}

@@ -147,18 +147,19 @@ def _ruhende_rolle(mitglied, *gremien: str):
 #: Die Räte, die einen gemeinsamen Bereich ohne eigene Werkstatt haben (FB-I1).
 RAT_BEREICHE = {
     Gremium.BERICHTSWESENRAT.value: {
-        "satzung": "§ 6 Abs 5 · § 6 Abs 10: führt das öffentliche Umsetzungsregister und nimmt Vollzugsberichte entgegen.",
+        # Zur Übersetzung markiert, übersetzt in rat.html (GP-039).
+        "satzung": gettext_noop("§ 6 Abs 5 · § 6 Abs 10: führt das öffentliche Umsetzungsregister und nimmt Vollzugsberichte entgegen."),
         "verweise": lambda: [
-            {"url": reverse("verfahren:umsetzung"), "titel": "Das Umsetzungsregister", "text": "Stand der Umsetzung zu jedem angenommenen Antrag, mit Historie."},
-            {"url": reverse("verfahren:umsetzung_json"), "titel": "Umsetzungsregister als JSON", "text": "Maschinenlesbar, mit voller Historie."},
+            {"url": reverse("verfahren:umsetzung"), "titel": gettext_noop("Das Umsetzungsregister"), "text": gettext_noop("Stand der Umsetzung zu jedem angenommenen Antrag, mit Historie.")},
+            {"url": reverse("verfahren:umsetzung_json"), "titel": gettext_noop("Umsetzungsregister als JSON"), "text": gettext_noop("Maschinenlesbar, mit voller Historie.")},
         ],
     },
     Gremium.ENTWICKLUNGSRAT.value: {
-        "satzung": "§ 6 Abs 4: verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt.",
+        "satzung": gettext_noop("§ 6 Abs 4: verantwortet Erstellung, Betrieb und Optimierung von ParlamentPlattform und Zukunftswerkstatt."),
         "verweise": lambda: [
-            {"url": reverse("parameter:regeln"), "titel": "Das Regelverzeichnis", "text": "Jede automatisierte Regel mit Fassung, Datum und Begründung (§ 2 Abs 6)."},
-            {"url": reverse("parameter:liste"), "titel": "Das Parameterregister", "text": "Die Stellgrößen mit Herkunft und Änderungsgeschichte."},
-            {"url": reverse("verfahren:zukunftswerkstatt"), "titel": "Die Zukunftswerkstatt", "text": "Stand des Modell-Steckplatzes, Budget, Läufe."},
+            {"url": reverse("parameter:regeln"), "titel": gettext_noop("Das Regelverzeichnis"), "text": gettext_noop("Jede automatisierte Regel mit Fassung, Datum und Begründung (§ 2 Abs 6).")},
+            {"url": reverse("parameter:liste"), "titel": gettext_noop("Das Parameterregister"), "text": gettext_noop("Die Stellgrößen mit Herkunft und Änderungsgeschichte.")},
+            {"url": reverse("verfahren:zukunftswerkstatt"), "titel": gettext_noop("Die Zukunftswerkstatt"), "text": gettext_noop("Stand des Modell-Steckplatzes, Budget, Läufe.")},
         ],
     },
 }
@@ -635,13 +636,13 @@ def _unvereinbarkeit(mitglied, gremium: str) -> str:
             mitglied=mitglied, beendet_grund="", endet_am__gte=timezone.localdate()
         ).exclude(gremium=Gremium.INTEGRITAETSRAT)
         if andere.exists():
-            return "Mitglied eines anderen Rates (§ 6 Abs 3 lit a)"
+            return gettext_noop("Mitglied eines anderen Rates (§ 6 Abs 3 lit a)")  # übersetzt in der Meldung
         grund = unvereinbar(mitglied)
         if grund and "Mandat" in grund:
             return grund
         return ""
     if Rolle.hat(mitglied, Gremium.INTEGRITAETSRAT):
-        return "Mitglied des Integritätsrats — kein anderer Rat (§ 6 Abs 3 lit a)"
+        return gettext_noop("Mitglied des Integritätsrats — kein anderer Rat (§ 6 Abs 3 lit a)")
     return ""
 
 
@@ -729,7 +730,7 @@ def rollen_aktion(request):
         if grund:
             # § 6 Abs 3 lit a — geprüft bei der Vergabe, nicht erst beim Losen: Eine Rolle,
             # die es nicht geben darf, soll gar nicht erst entstehen.
-            messages.error(request, _("Nicht berufen — %(grund)s.") % {"grund": grund})
+            messages.error(request, _("Nicht berufen — %(grund)s.") % {"grund": _(grund)})
             return redirect("gremien:rollen")
         if Rolle.objects.filter(
             gremium=d["gremium"],
@@ -1273,7 +1274,7 @@ def beschluss_stimme(request, beschluss_id: int):
             messages.success(
                 request,
                 _("Beschlossen: %(ergebnis)s — alle aktiven Rollen haben abgestimmt.")
-                % {"ergebnis": beschluss.name_von(beschluss.ergebnis)},
+                % {"ergebnis": _(beschluss.name_von(beschluss.ergebnis))},
             )
         else:
             messages.info(request, _("Abgestimmt haben alle, ein Ergebnis kam nicht zustande."))
@@ -1420,13 +1421,14 @@ def protokoll(request, gremium: str, jahr: int):
 #: Die Vorschrift je Anlass ist übersetzbar markiert (Prüfung 0.51.0): Meldung und Knopf zeigen sie in
 #: der Sprache der Seite („§ 7 (10) lit b and g“), gespeichert und auditiert wird nichts davon.
 IR_ANLAESSE = [
-    (Anlass.HERVORHEBUNG, "Antrag hervorheben", gettext_noop("§ 5 Abs 10 lit b")),
-    (Anlass.HERVORHEBUNG_AUFHEBEN, "Hervorhebung aufheben", gettext_noop("§ 5 Abs 10 lit b")),
-    (Anlass.ZURUECKWEISUNG, "Antrag zurückweisen", gettext_noop("§ 5 Abs 2")),
-    (Anlass.ZURUECKWEISUNG_AUFHEBEN, "Zurückweisung aufheben", gettext_noop("§ 5 Abs 2")),
-    (Anlass.AUSSETZUNG, "Aussetzen", gettext_noop("§ 6 Abs 3 lit d")),
-    (Anlass.AUSSETZUNG_AUFHEBEN, "Aussetzung aufheben", gettext_noop("§ 6 Abs 3 lit d")),
-    (Anlass.VERTRAUENSFRAGE_SPERRE, "Sperre einer Vertrauensfrage feststellen", gettext_noop("§ 7 Abs 10 lit b und g")),
+    # Die Namen sind seit GP-039 ebenfalls markiert; der Gegenstand des Beschlusses bleibt deutsch.
+    (Anlass.HERVORHEBUNG, gettext_noop("Antrag hervorheben"), gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.HERVORHEBUNG_AUFHEBEN, gettext_noop("Hervorhebung aufheben"), gettext_noop("§ 5 Abs 10 lit b")),
+    (Anlass.ZURUECKWEISUNG, gettext_noop("Antrag zurückweisen"), gettext_noop("§ 5 Abs 2")),
+    (Anlass.ZURUECKWEISUNG_AUFHEBEN, gettext_noop("Zurückweisung aufheben"), gettext_noop("§ 5 Abs 2")),
+    (Anlass.AUSSETZUNG, gettext_noop("Aussetzen"), gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.AUSSETZUNG_AUFHEBEN, gettext_noop("Aussetzung aufheben"), gettext_noop("§ 6 Abs 3 lit d")),
+    (Anlass.VERTRAUENSFRAGE_SPERRE, gettext_noop("Sperre einer Vertrauensfrage feststellen"), gettext_noop("§ 7 Abs 10 lit b und g")),
 ]
 
 #: Anlässe, die nicht im allgemeinen Formular stehen, sondern nur dort, wo ihr Gegenstand liegt:
@@ -1733,8 +1735,8 @@ def integritaet_regelpruefung(request):
                 "Der geprüfte Stand ist an diesem Beschluss eingefroren."
             ),
             optionen=[
-                {"wert": "geprueft", "name": "geprüft, keine Beanstandung"},
-                {"wert": "beanstandet", "name": "beanstandet"},
+                {"wert": "geprueft", "name": gettext_noop("geprüft, keine Beanstandung")},
+                {"wert": "beanstandet", "name": gettext_noop("beanstandet")},
             ],
             frist=beschluss_frist(),
             angelegt_von=request.user,

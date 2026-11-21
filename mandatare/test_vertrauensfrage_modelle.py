@@ -680,6 +680,40 @@ def test_endgueltigkeit_wartet_nach_einem_stillstand_auf_das_ende_der_anfechtung
     assert audit('vertrauensfrage_endgueltig')[-1]['endgueltig_ab'] == (lauf + tage(7)).isoformat()
 
 
+def test_mandatsvereinbarung_endet_nach_einem_stillstand_weiter_mit_dem_fristtag(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Z 5 knüpft das Ende der Mandatsvereinbarung an den Ablauf der Rückgabefrist, später nur bei
+    rechtzeitiger Anfechtung. Die Anfechtungsfrist ab dem Lauf (Tag 120) verschiebt, wann die Plattform das
+    Ende vollzieht — der vermerkte Tag bleibt der Fristtag, wie vor GP-106."""
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=['mandatsvereinbarung_lit_h_am'])
+    vf, _soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106m')
+    mm.vertrauensfragen_fortschreiben(lauf)
+    altmandat.refresh_from_db()
+    fristtag = altmandat.rueckgabe_ersucht_bis
+    assert altmandat.vertretung_beendet_am == fristtag
+    assert altmandat.mandatsvereinbarung_endet_am is None  # die Anfechtung steht noch offen
+    assert mm.vertrauensfragen_fortschreiben(lauf + tage(7)) == 1
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am == fristtag
+    assert audit('mandatsvereinbarung_beendet')[-1]['ab'] == fristtag.isoformat()
+
+
+def test_mandatsvereinbarung_endet_nach_stillstand_und_anfechtung_mit_der_entscheidung(ordnung, altmandat, monkeypatch):  # noqa: F811
+    """Z 5 letzter Satz bleibt: Bei rechtzeitiger Anfechtung nach dem späten Lauf endet die
+    Mandatsvereinbarung mit der bestätigenden Entscheidung, nicht davor."""
+    altmandat.mandatsvereinbarung_lit_h_am = date(2026, 9, 20)
+    altmandat.save(update_fields=['mandatsvereinbarung_lit_h_am'])
+    vf, _soll, lauf = _verloren_mit_lauf(ordnung, altmandat, monkeypatch, tage(106), 'gp106p')
+    mm.vertrauensfrage_anfechtung_vermerken(vf, 'PSG-106', jetzt=lauf + tage(3))
+    mm.vertrauensfragen_fortschreiben(lauf + tage(20))
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am is None
+    mm.vertrauensfrage_entscheidung_vermerken(vf, 'bestaetigt', jetzt=lauf + tage(25))
+    mm.vertrauensfragen_fortschreiben(lauf + tage(25))
+    altmandat.refresh_from_db()
+    assert altmandat.mandatsvereinbarung_endet_am == timezone.localdate(lauf + tage(25))
+
+
 def test_rechtzeitige_anfechtung_nach_einem_stillstand_haelt_die_endgueltigkeit_ohne_ruecknahme_an(ordnung, altmandat, monkeypatch):  # noqa: F811
     """Die Anfechtung am dritten Tag nach dem Lauf trifft auf ein Ruhen, das noch nicht zum Ende geworden
     ist: Es gibt nichts zurückzunehmen (kein „anfechtung_nachgeholt“)."""

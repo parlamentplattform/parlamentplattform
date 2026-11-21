@@ -740,13 +740,14 @@ def test_mandatsseite_verlinkt_in_der_nachfrist_den_eigenen_bereich(client):
 
     heute = timezone.localdate()
     m = mitglied_anlegen('frueher')
-    mandat = mandat_anlegen(m, angetreten=heute - timedelta(days=400), beendet=heute - timedelta(days=NACHFRIST_TAGE))
+    # ein Tag Abstand zur Grenze: Der Test hält auch, wenn zwischen dieser Zeile und dem Aufruf Mitternacht liegt
+    mandat = mandat_anlegen(m, angetreten=heute - timedelta(days=400), beendet=heute - timedelta(days=NACHFRIST_TAGE - 1))
     ziel = f'href="{MEIN}"'
     assert ziel not in _karte_vertrauen(client, mandat)  # Gast
     client.force_login(mitglied_anlegen('fremd'))
     assert ziel not in _karte_vertrauen(client, mandat)  # fremde Person
     client.force_login(m)
-    assert ziel in _karte_vertrauen(client, mandat)  # letzter Tag der Nachfrist
+    assert ziel in _karte_vertrauen(client, mandat)  # die Nachfrist läuft noch
     assert client.get(MEIN).status_code == 200  # der Link führt nicht ins Leere
     Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
     assert ziel not in _karte_vertrauen(client, mandat)  # Nachfrist vorbei: kein Bereich, kein Link

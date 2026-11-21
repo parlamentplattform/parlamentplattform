@@ -1531,7 +1531,11 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
                 mandatsende_folgen(mandat, ANLASS_VERTRETUNGSENDE, jetzt)  # GP-116
             # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
             if tue_c:
-                tag = max(frist_tag, timezone.localdate(endgueltig_ab))
+                # Der Tag bleibt der Fristtag (Z 5: „mit Ablauf dieser Frist“); später nur bei rechtzeitiger
+                # Anfechtung, dann mit der Entscheidung (Z 5 letzter Satz). Die Anfechtungsfrist ab der
+                # tatsächlichen Veröffentlichung (GP-106) verschiebt nur, wann vollzogen wird — nicht den Tag.
+                grenze = endgueltig_ab if vf.anfechtung_rechtzeitig else vf.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+                tag = max(frist_tag, timezone.localdate(grenze))
                 mandat.mandatsvereinbarung_endet_am = tag
                 mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
                 AuditEintrag.anhaengen(

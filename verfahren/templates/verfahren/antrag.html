@@ -24,7 +24,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% if oertlicher_teilnehmerkreis %}
   <p class="meldung" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong>
     {% blocktranslate with ort=antrag.gebiet tag=antrag.teilnehmerkreis_am|date:"d.m.Y H:i" fassung=antrag.teilnahmegebiet.fassung %}{{ ort }} · Hauptwohnsitz bei Einbringung am {{ tag }} · Regelstand {{ fassung }}.{% endblocktranslate %}
-    {% if antrag.ebene == "gemeinde" %}{{ antrag.teilnahmegebiet.kennung }}{% endif %}
+    {% if antrag.ebene == "gemeinde" %}{% blocktranslate with k=antrag.teilnahmegebiet.kennung %}Kennung des Kreises: {{ k }}.{% endblocktranslate %}{% endif %}
     {# GP-057: Kreisgröße am Einbringungstag (aus der Audit-Kette) und Prüfgrundlage des Wohnsitzes #}
     {% with n=antrag.kreis_stimmberechtigte %}{% if n is None %}{% translate "Stimmberechtigte am Einbringungstag: nicht festgehalten." %}{% else %}{% blocktranslate %}Stimmberechtigte am Einbringungstag: {{ n }}.{% endblocktranslate %}{% endif %}{% endwith %}
     {% translate "Hauptwohnsitz laut Selbstauskunft, nicht amtlich geprüft." %}
@@ -90,7 +90,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% if verfall %}
   {# GP-066: Ende mit Begründung auf der Seite — erreichte Zahl gegen die Schwelle, Fristende, nächster Schritt #}
   <div class="karte" id="ergebnis-ende"><strong>{% blocktranslate with n=verfall.erreicht frist=verfall.frist|date:"d.m.Y" count m=verfall.schwelle %}Verfallen: {{ n }} von {{ m }} Unterstützung bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% plural %}Verfallen: {{ n }} von {{ m }} Unterstützungen bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% endblocktranslate %}</strong>{% if verfall.wieder_ab %}
-    <br>{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag ab {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% endif %}</div>
+    <br>{% if verfall.wieder_offen %}{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag seit {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% else %}{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag ab {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% endif %}{% endif %}</div>
   {% endif %}
 </header>
 

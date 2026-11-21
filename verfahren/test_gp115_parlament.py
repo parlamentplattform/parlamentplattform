@@ -414,6 +414,8 @@ def test_gp078_gemeindekonto_im_parlament_weder_gast_noch_anmeldeverweis(client,
         assert f'href="{reverse("gemeinde:konto")}"' in html, adresse
     tabs = client.get(reverse("verfahren:parlament")).content.decode().split('class="tabs"')[1].split("</nav>")[0]
     assert reverse("verfahren:einbringen") not in tabs  # kein Plus, das in die Anmeldung führt
+    # Sichtprüfung 0.115.0: auch „Meine Region“ bietet dem Gemeindekonto kein Einbringen an
+    assert f'href="{reverse("verfahren:einbringen")}"' not in client.get(reverse("verfahren:parlament")).content.decode()
 
 
 # ── Z-5 (E-05): Hinweis beim Einbringen, wenn die Schwelle im Ortskreis nicht erreichbar ist ───

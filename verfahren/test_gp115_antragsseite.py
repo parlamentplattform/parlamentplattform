@@ -225,7 +225,10 @@ def test_gp077_reihung_zeit_zeigt_chronologisch_bei_gleicher_auswertung(client, 
     assert faden.index("Das bewegt am meisten.") < faden.index("Ohne Reaktion."), "Vorgabe: Engagement"
     assert f'href="{ziel}?reihung=zeit#chat-faden"' in engagement, "der Umschalter als Link, ohne JavaScript"
 
+    assert "Reihung: Engagement" in engagement and "Anzeige chronologisch" not in engagement
     zeit = client.get(f"{ziel}?reihung=zeit").content.decode()
+    # Sichtprüfung 0.115.0: Der Kopf sagt, was die Seite gerade zeigt; die Auswertung bleibt die der Regel
+    assert "Anzeige chronologisch, Auswertung nach Regel" in zeit and "Reihung: Engagement" not in zeit
     faden = _faden_html(zeit)
     assert faden.index("Passt alles") < faden.index("Ohne Reaktion.") < faden.index("Das bewegt am meisten.")
     assert f'href="{ziel}#chat-faden"' in zeit, "zurück zur Reihung nach Engagement"
@@ -303,6 +306,15 @@ def test_gp066_verfallener_antrag_nennt_zahl_schwelle_frist_und_naechsten_schrit
     assert frist.strftime("%d.%m.%Y") in karte
     wieder = monate_addieren(frist, policy.wiedereinbringung_sperre_monate)
     assert wieder.strftime("%d.%m.%Y") in karte and "§ 5 Abs 3 lit b" in karte
+    # Sichtprüfung 0.115.0: Liegt der Tag schon zurück, steht „seit“ da, sonst „ab“ (beide Fälle)
+    wort = "seit" if wieder <= timezone.localdate() else "ab"
+    assert f"Neu einbringen lässt sich der Antrag {wort} {wieder:%d.%m.%Y}" in karte
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=timezone.now() - timedelta(days=1))
+    frisch = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "Neu einbringen lässt sich der Antrag ab " in frisch.split('id="ergebnis-ende"')[1].split("</div>")[0]
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=timezone.now() - timedelta(days=3000))
+    alt = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    assert "Neu einbringen lässt sich der Antrag seit " in alt.split('id="ergebnis-ende"')[1].split("</div>")[0]
 
 
 def test_gp066_zurueckgewiesener_antrag_nennt_grund_und_naechsten_schritt(client, ordnung):  # noqa: F811

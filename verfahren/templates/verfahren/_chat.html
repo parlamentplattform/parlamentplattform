@@ -22,7 +22,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
     <h3>{% blocktranslate with n=a.entwurf.runde %}Vorschlag des Expertenrats — Runde {{ n }}{% endblocktranslate %}</h3>
     <p class="meta">
       {% if a.endabstimmung_ab %}{% blocktranslate with ab=a.endabstimmung_ab|date:"d.m.Y H:i" %}Endabstimmung ab {{ ab }}{% endblocktranslate %} · {% elif a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
-      <a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
+      <a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% if chat.zeitfolge %}{% blocktranslate with r=a.reihung %}Anzeige chronologisch, Auswertung nach Regel {{ r }}{% endblocktranslate %}{% else %}{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}{% endif %}</a>
       {# GP-077: Die Anzeige lässt sich chronologisch schalten — ein Link, ohne JavaScript; die Auswertung bleibt dieselbe #}
       · {% if chat.zeitfolge %}<a href="{% url 'verfahren:antrag' antrag.pk %}#chat-faden">{% translate "Nach Engagement zeigen" %}</a>{% else %}<a href="{% url 'verfahren:antrag' antrag.pk %}?reihung=zeit#chat-faden">{% translate "Chronologisch zeigen" %}</a>{% endif %}
     </p>
@@ -37,7 +37,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
       <p class="diff-text">{% for art, stueck in a.diff %}{% if art == "ein" %}<ins>{{ stueck }}</ins>{% elif art == "aus" %}<del>{{ stueck }}</del>{% else %}{{ stueck }}{% endif %}{% endfor %}</p>
     </details>
     {% if a.stand %}
-    <p class="meta stand">{% blocktranslate with ja=a.stand.ja nein=a.stand.nein %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎{% endblocktranslate %}
+    <p class="meta stand">{% blocktranslate with ja=a.stand.ja nein=a.stand.nein %}„Passt alles": {{ ja }} 👍 / {{ nein }} 👎{% endblocktranslate %}{% if a.endabstimmung_ab %} · {% translate "Stand zum Fristende" %}{% endif %}
       {% if a.stand.stimmen %}· {{ a.stand.prozent }} %{% endif %}
       {% if a.stand.oben %}· {% translate "an erster Stelle" %}{% endif %}
       · {% blocktranslate with p=a.stand.schwelle_prozent %}Schwelle {{ p }} %{% endblocktranslate %}{% if a.stand.schwelle_vorgabe %} ({% translate "Vorgabe" %}){% endif %}</p>
@@ -61,7 +61,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
       </div>
       {% endif %}
     {% empty %}
-      <p class="leer">{% if user.is_authenticated %}{% translate "Noch kein Beitrag — der erste kann Ihrer sein." %}{% else %}{% translate "Noch kein Beitrag." %}{% endif %}</p>
+      <p class="leer">{% if user.is_authenticated and chat.offen %}{% translate "Noch kein Beitrag — der erste kann Ihrer sein." %}{% else %}{% translate "Noch kein Beitrag." %}{% endif %}</p>
     {% endfor %}
     {% if chat.faden_mehr and chat.faden_richtung == "weiter" %}{% include "verfahren/_chat_mehr.html" %}{% endif %}
     </div>

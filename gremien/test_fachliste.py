@@ -499,6 +499,8 @@ def test_ein_gestrichener_eintrag_laesst_sich_wieder_aufnehmen(client):
     assert _audit('fachliste_gestrichen')[-1] == {'typ': 'fachliste_gestrichen', 'eintrag': eintrag.pk, 'durch': admin.pk}
     seite = client.get(reverse('gremien:fachliste_verwaltung')).content.decode()
     assert 'value="wieder_aufnehmen"' in seite
+    # Sichtprüfung 0.115.0: Datum und Grund der Streichung sind beschriftet
+    assert f'gestrichen am {eintrag.gestrichen_am:%d.%m.%Y} · Grund: Auszeit bis Herbst.' in seite
     # Ohne Einwilligung keine Wiederaufnahme.
     client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk})
     eintrag.refresh_from_db()

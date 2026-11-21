@@ -32,7 +32,7 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
   <div class="zeile"><span>
     <strong>{{ e.anzeigename }}</strong> <span class="meta"><code>{{ e.schluessel }}</code> · {% blocktranslate with d=e.seit|date:"d.m.Y" %}auf der Liste seit {{ d }}{% endblocktranslate %}</span>
     {% if not e.gefuehrt %}<span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}
-    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k|lb_name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
+    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k|lb_name }}{% if not forloop.last %}, {% endif %}{% empty %}{% if e.gefuehrt %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% else %}{% translate "keine angegeben" %}{% endif %}{% endfor %}</span>
     {% if e.gefuehrt %}
     <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="streichen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
@@ -40,7 +40,7 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
       <button type="submit" class="btn-linie">{% translate "Streichen" %}</button>
     </form>
     {% else %}
-    <br><span class="meta">{{ e.gestrichen_am|date:"d.m.Y" }} · {{ e.gestrichen_grund }}</span>
+    <br><span class="meta">{% blocktranslate with d=e.gestrichen_am|date:"d.m.Y" g=e.gestrichen_grund %}gestrichen am {{ d }} · Grund: {{ g }}{% endblocktranslate %}</span>
     <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="wieder_aufnehmen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
       <span class="checkzeile"><input type="checkbox" name="einwilligung" id="einwilligung-{{ e.pk }}"> <label for="einwilligung-{{ e.pk }}">{% translate "Die Einwilligung des Mitglieds liegt vor (§ 8 Abs 4)" %}</label></span>

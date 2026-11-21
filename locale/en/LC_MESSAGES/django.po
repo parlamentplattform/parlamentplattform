@@ -13258,9 +13258,6 @@ msgstr "Civil protection & rescue"
 msgid "Kein Anbieter angeschlossen."
 msgstr "No provider connected."
 
-msgid "Kein Antrag gefunden."
-msgstr "No motion found."
-
 msgid "Keine Auszählung zum Beschlusszeitpunkt festgehalten."
 msgstr "No count was recorded when the decision was closed."
 
@@ -13451,10 +13448,6 @@ msgstr "member of the integrity council — no other council (§ 6 para 3 lit a)
 
 msgid "Mitglied eines anderen Rates (§ 6 Abs 3 lit a)"
 msgstr "member of another council (§ 6 para 3 lit a)"
-
-#, python-format
-msgid "Mitglieder · %(neu)s neu in den letzten 7 Tagen"
-msgstr "members · %(neu)s new in the last 7 days"
 
 msgid "Mobilität & Verkehr"
 msgstr "Mobility & transport"
@@ -14154,3 +14147,29 @@ msgstr "overdue since %(datum)s"
 
 msgid "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
 msgstr "holds a mandate for the DDÖ (§ 6 para 3 lit a)"
+
+#, python-format
+msgid "%(neu)s neu in den letzten 7 Tagen"
+msgstr "%(neu)s new in the last 7 days"
+
+#, python-format
+msgid "Anzeige chronologisch, Auswertung nach Regel %(r)s"
+msgstr "Shown chronologically, evaluated by rule %(r)s"
+
+msgid "Kein wählbarer Antrag gefunden."
+msgstr "No selectable motion found."
+
+#, python-format
+msgid "Kennung des Kreises: %(k)s."
+msgstr "Circle identifier: %(k)s."
+
+#, python-format
+msgid "Neu einbringen lässt sich der Antrag seit %(ab)s (§ 5 Abs 3 lit b)."
+msgstr "The motion has been open for resubmission since %(ab)s (§ 5 para 3 lit b)."
+
+msgid "Stand zum Fristende"
+msgstr "as of the deadline"
+
+#, python-format
+msgid "gestrichen am %(d)s · Grund: %(g)s"
+msgstr "removed on %(d)s · reason: %(g)s"

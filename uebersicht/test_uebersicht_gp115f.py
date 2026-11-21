@@ -23,7 +23,7 @@ def test_die_mitgliederzeile_heisst_wie_auf_der_startseite(client):
     '''GP-076: Die Zahl zählt alle aktiven Parteikonten, nicht nur bestätigte — also heißt sie „Mitglieder“.'''
     mitglied_anlegen('bestaetigt')
     zeile = _mitgliederzeile(client)
-    assert 'bestätigte' not in zeile and zeile.startswith('Mitglieder ·')
+    assert 'bestätigte' not in zeile and 'Mitglieder' not in zeile  # das Wort steht als Überschrift der Karte
     vorher = client.get(reverse('uebersicht:index')).context['mitglieder_gesamt']
     mitglied_anlegen('ungeprueft', tage=0, stufe=Identitaetsstufe.UNGEPRUEFT)
     nachher = client.get(reverse('uebersicht:index')).context['mitglieder_gesamt']

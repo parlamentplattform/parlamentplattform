@@ -1670,11 +1670,14 @@ def _verfall_lage(antrag, policy, unterstuetzungen: int, vertrauensfrage) -> dic
     from plattform_core.eligibility import monate_addieren
 
     frist = timezone.localdate(antrag.phase_beginn)
+    wieder_ab = None if vertrauensfrage else monate_addieren(frist, policy.wiedereinbringung_sperre_monate)
     return {
         "erreicht": unterstuetzungen,
         "schwelle": vertrauensfrage["schwelle"] if vertrauensfrage else policy.unterstuetzung_schwelle,
         "frist": frist,
-        "wieder_ab": None if vertrauensfrage else monate_addieren(frist, policy.wiedereinbringung_sperre_monate),
+        "wieder_ab": wieder_ab,
+        # Sichtprüfung 0.115.0: liegt der Tag schon zurück, heißt es „seit“ statt „ab“
+        "wieder_offen": wieder_ab is not None and wieder_ab <= timezone.localdate(),
     }
 
 

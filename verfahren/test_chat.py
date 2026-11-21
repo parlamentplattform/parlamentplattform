@@ -348,6 +348,8 @@ def test_nach_verfahrensende_bleibt_der_chat_lesbar_aber_geschlossen(client, ord
     client.force_login(anna)
     inhalt = _seite(client, antrag)
     assert "Das Verfahren ist beendet — der Chat bleibt lesbar." in inhalt
+    # Sichtprüfung 0.115.0: Ein geschlossener leerer Chat lädt nicht zum ersten Beitrag ein
+    assert "der erste kann Ihrer sein" not in inhalt
 
 
 # ── Meine Gespräche (FB-G3) ───────────────────────────────────────────────────

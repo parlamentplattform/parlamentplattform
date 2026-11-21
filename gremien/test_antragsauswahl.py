@@ -94,6 +94,6 @@ def test_eine_suche_ohne_treffer_sagt_es(client, ordnung):  # noqa: F811
     for mitglied, seite, auswahl in ((ir[0], 'gremien:integritaet', 'ir-antrag'), (kr, 'gremien:koordination', 'hv-antrag')):
         client.force_login(mitglied)
         leer = client.get(reverse(seite), {'antrag_suche': 'Gibt es nicht'}).content.decode()
-        assert _optionen(leer, auswahl) == [] and 'Kein Antrag gefunden.' in leer
-        assert 'Kein Antrag gefunden.' not in client.get(reverse(seite)).content.decode()
-        assert 'Kein Antrag gefunden.' not in client.get(reverse(seite), {'antrag_suche': 'Jüngerer'}).content.decode()
+        assert _optionen(leer, auswahl) == [] and 'Kein wählbarer Antrag gefunden.' in leer
+        assert 'Kein wählbarer Antrag gefunden.' not in client.get(reverse(seite)).content.decode()
+        assert 'Kein wählbarer Antrag gefunden.' not in client.get(reverse(seite), {'antrag_suche': 'Jüngerer'}).content.decode()

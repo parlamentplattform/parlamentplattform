@@ -66,7 +66,8 @@ Diese Fassung ist die zweite Behebungsrunde nach der Gesamtprüfung gegen das ei
 - Nach Verfall oder Zurückweisung nennt die Antragsseite erreichte Zahl, Schwelle, Fristende und ab wann eine Wiedereinbringung möglich ist (§ 5 Abs 3 lit b), bei Zurückweisung auch den Weg zum Parteischiedsgericht.
 - Die Antragsseite zeigt verknüpfte Rechenschaft der Mandatare; `/umsetzung.json` trägt sie je Beschluss. Bestehen Unterstützungen von Testkonten, nennt die Kopfzeile, dass sie nicht mitzählen.
 - Die Linie „neu“ im Chat erscheint genau einmal, auch ohne JavaScript. Reagieren, Melden, Ändern und Zurückziehen melden Erfolg und Fehler im Chat-Faden.
-- Der Abstimmungs-Chat lässt sich mit `?reihung=zeit` in Zeitfolge lesen; Stand und Auswertung bleiben gleich.
+- Der Abstimmungs-Chat lässt sich mit `?reihung=zeit` in Zeitfolge lesen; Stand und Auswertung bleiben gleich. Der Kopf nennt dann die chronologische Anzeige und die Regel der Auswertung.
+- Ein geschlossener leerer Chat lädt nicht mehr zum ersten Beitrag ein. Ein Gemeindekonto bekommt in „Meine Region“ keinen Verweis auf das Einbringen. Nach einem Verfall heißt es „seit“ statt „ab“, wenn der Tag der Wiedereinbringung schon zurückliegt.
 - Neutrale Gruppen im Parlament zeigen höchstens 60 Anträge mit Gesamtzahl und blättern ohne JavaScript weiter. „★ Gemerkt“ führt zu allen gemerkten Anträgen. Wichtige Abstimmungen sind nach Fristende gereiht; die Reihung jeder Liste verweist auf ihren Eintrag im Regelverzeichnis.
 - Ein Lebensbereich führt zu den laufenden Verfahren seines ganzen Astes; die Suche findet Anträge auch über ein Wort im Titel.
 - Am letzten Tag nennen Kachel, Zeile und Ähnlichkeitskarte „Frist endet heute um HH:MM“.

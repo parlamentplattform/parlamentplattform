@@ -231,6 +231,7 @@ def test_in_der_wartezeit_nennt_zone_3_den_beginn_der_endabstimmung_und_den_fest
     warte = entwurf.endabstimmung_wartet()
     assert warte is not None and warte['ab'] > timezone.now() > frist
     assert f'Endabstimmung ab {timezone.localtime(warte["ab"]):%d.%m.%Y %H:%M}' in kopf
+    assert 'Stand zum Fristende' in kopf and 'Stand zum Fristende' not in vorher  # Sichtprüfung 0.115.0
     assert 'Beratung bis' not in kopf and f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' not in kopf
     laufend = chatkern.abstimmung_stand(antrag, entwurf)
     assert (laufend['ja'], laufend['nein']) == (1, 1)

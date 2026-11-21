@@ -93,6 +93,7 @@ def test_die_antragsseite_zeigt_die_zahl_und_das_wort_selbstauskunft(client, men
     assert 'Stimmberechtigte am Einbringungstag: 2.' in absatz
     assert 'Selbstauskunft' in absatz and 'nicht amtlich geprüft' in absatz
     assert 'nicht festgehalten' not in absatz
+    assert 'Kennung des Kreises: gemeinde:' in absatz  # Sichtprüfung 0.115.0: beschriftet, nicht nackt
 
 
 def test_ein_kreis_ohne_stimmberechtigte_zeigt_null_nicht_nichts(client, ordnung, orte):  # noqa: F811

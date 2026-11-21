@@ -309,3 +309,19 @@ def test_jeder_abgelaufene_test_endet_in_seiner_eigenen_transaktion(korat, regis
     zweiter.refresh_from_db()
     assert erster.status == pm.TestStatus.AUSGEWERTET
     assert zweiter.status == pm.TestStatus.LAEUFT
+
+
+def test_gp013_das_band_nennt_die_vom_chat_gelesenen_stellgroessen_als_ausgenommen(client, register):
+    """GP-013 (Rest): Das Band sagte nur, Werte der Verfahrensordnung seien vom Test ausgenommen.
+    Ausgenommen sind auch die Stellgrößen, die der Chat laufender Verfahren liest (D-J3g) — das
+    Band nennt sie wie der Vermerk am Beschluss."""
+    from gremien.views import IM_LAUFENDEN_VERFAHREN_GELESEN
+
+    assert set(IM_LAUFENDEN_VERFAHREN_GELESEN) == {
+        "chat-zeichen-hoechstzahl", "kritik-mindestzeichen", "chat-bearbeitungsfenster-minuten",
+    }, "Kommt eine Ausnahme hinzu, muss das Band sie nennen"
+    Parameter.objects.filter(pk=register.pk).update(status=Status.IM_TEST, test_bis=timezone.localdate())
+    for seite in (reverse("parameter:liste"), reverse("parameter:parameter", args=[SCHLUESSEL])):
+        inhalt = client.get(seite).content.decode()
+        assert "Im Test" in inhalt, seite
+        assert "Werte der Verfahrensordnung sowie die Zeichengrenzen und das Bearbeitungsfenster des Chats" in inhalt, seite

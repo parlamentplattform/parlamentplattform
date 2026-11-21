@@ -73,3 +73,24 @@ def test_feldkopf_bleibt_am_grossen_bildschirm_44_pixel_hoch(seite, live_server,
         ".map(k => k.getBoundingClientRect().height)"
     )
     assert hoehen and all(abs(h - 44) < 0.5 for h in hoehen), hoehen
+
+
+def test_griff_der_eingefahrenen_leiste_liegt_am_handy_unter_dem_feldkopf(seite, live_server, demo):
+    """Gegenlesen 0.115.0: Der Griff hing 44 Pixel unter dem Feldrand und lag im umgebrochenen Feldkopf
+    über dem Regelverweis. Er gehört direkt unter den Kopf, auf die eingefahrene Leiste."""
+    p = seite(viewport=HANDY, reduziert=True, als=_mitglied())
+    p.add_init_script("try { localStorage.setItem('ddoe.filterleiste', 'zu'); } catch (e) {}")
+    p.goto(f"{live_server.url}/parlament/")
+    p.wait_for_load_state("load")
+    p.wait_for_timeout(300)
+    lage = p.evaluate(
+        """() => {
+            const f = document.querySelector('#feld-filter');
+            const r = s => f.querySelector(s).getBoundingClientRect();
+            return {griff: r('.griff'), kopf: r('.feld-kopf'), leiste: r('.filter-leiste'),
+                    sichtbar: getComputedStyle(f.querySelector('.griff')).display !== 'none'};
+        }"""
+    )
+    assert lage["sichtbar"], "Die Leiste ist eingefahren, der Griff sichtbar"
+    assert abs(lage["griff"]["top"] - lage["kopf"]["bottom"]) < 0.5, lage
+    assert lage["griff"]["bottom"] <= lage["leiste"]["bottom"] + 0.5, lage

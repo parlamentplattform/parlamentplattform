@@ -442,6 +442,9 @@ html.js .zu-ohne-js{display:none}
   .feld-kopf:has(.bk a){height:auto;min-height:44px;flex-wrap:wrap;row-gap:0;padding-top:4px;padding-bottom:4px}
   .feld-kopf .bk:has(a){order:1;flex-basis:100%;margin-left:0;overflow:visible;white-space:normal}
   .feld-kopf .bk a{display:inline-block;max-width:100%;min-height:24px;line-height:24px;vertical-align:middle}
+  /* Der Griff hängt sonst 44 px unter dem Feldrand — im umgebrochenen Kopf, über dem Verweis. Statische Lage
+     (unter der 40 px hohen Leiste) minus deren Höhe: direkt unter dem Kopf, wie hoch er auch ist. */
+  .feld-kopf:has(.bk a)~.filter-leiste .griff{top:auto;margin-top:-40px}
   .parlament.fokus>.feld[hidden]{display:flex!important}  /* auch nicht über ?fokus= ohne JavaScript */
 }
 /* ── Hauptfenster & Listen ── */

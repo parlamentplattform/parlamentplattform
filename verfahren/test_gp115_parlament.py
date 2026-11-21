@@ -1,0 +1,191 @@
+"""Zweite Behebungsrunde nach der Gesamtprüfung (0.115): Parlament und Listen.
+
+Je Befund ein Abschnitt; die Kennung steht im Testnamen. Großbestände entstehen mit
+`bulk_create` als Kopien eines regulär eingebrachten Antrags (dieselbe eingefrorene Ordnung)."""
+
+import copy
+import re
+from datetime import timedelta
+
+import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.urls import reverse
+from django.utils import timezone
+
+from verfahren.models import Antrag, antrag_einbringen
+from verfahren.test_views_aktionen import ANTRAG, mitglied_anlegen, ordnung  # noqa: F401
+
+pytestmark = pytest.mark.django_db
+
+
+def _kopien(vorlage, anzahl, phase, jetzt, titel="Lastprobe", **extra):
+    """`anzahl` Kopien der Vorlage in `phase`, je eine Minute später begonnen — ein Zeitpunkt für alle."""
+    neue = []
+    for i in range(anzahl):
+        a = Antrag(
+            titel=f"{titel} {phase} {i:04d}", art=vorlage.art, phase=phase,
+            eingebracht_von_id=vorlage.eingebracht_von_id,
+            eingebracht_am=jetzt - timedelta(days=3, minutes=i),
+            phase_beginn=jetzt - timedelta(days=1, minutes=i),
+            policy_snapshot=copy.deepcopy(vorlage.policy_snapshot), ebene=vorlage.ebene, gebiet=vorlage.gebiet,
+            **extra,
+        )
+        if phase in ("abstimmung", "angenommen", "abgelehnt"):
+            a.stimmberechtigte_anzahl = 10
+            a.stimmberechtigung_stichtag = timezone.localdate(a.phase_beginn)
+        neue.append(a)
+    Antrag.objects.bulk_create(neue, batch_size=300)
+    return list(Antrag.objects.filter(titel__startswith=f"{titel} {phase} ").order_by("pk"))
+
+
+def _bestand(ordnung, je_phase, abgeschlossen=0):  # noqa: F811
+    person = mitglied_anlegen("lastperson")
+    vorlage = antrag_einbringen(person, **ANTRAG, ordnung=ordnung)
+    jetzt = timezone.now()
+    for phase in ("unterstuetzung", "beratung", "abstimmung"):
+        _kopien(vorlage, je_phase, phase, jetzt)
+    if abgeschlossen:
+        _kopien(vorlage, abgeschlossen, "angenommen", jetzt)
+    return person, vorlage
+
+
+def _feld(html, name):
+    return html.split(f'id="feld-{name}"')[1].split("</section>")[0]
+
+
+# ── GP-051: Parlament wächst ungebremst (D-B1a) ────────────────────────────────────────────────
+
+
+def test_gp051_parlament_bleibt_bei_2000_verfahren_klein(client, ordnung):  # noqa: F811
+    _bestand(ordnung, 667, abgeschlossen=26)
+    antwort = client.get(reverse("verfahren:parlament"))
+    groesse = len(antwort.content)
+    assert groesse < 400 * 1024, f"{groesse // 1024} KiB"
+    feld = _feld(antwort.content.decode(), "filter")
+    # Jede Gruppe nennt die Gesamtzahl und führt ohne JavaScript weiter
+    for schluessel in ("abstimmung", "beratung", "unterstuetzung"):
+        assert f'href="?mehr={schluessel}#feld-filter"' in feld
+    assert feld.count('class="fz') <= 3 * 60 + 20
+    # Auch für ein Mitglied mit Handlungsknöpfen in jeder Zeile
+    client.force_login(mitglied_anlegen("zweite"))
+    groesse = len(client.get(reverse("verfahren:parlament")).content)
+    assert groesse < 400 * 1024, f"{groesse // 1024} KiB"
+
+
+def test_gp051_abfragezahl_waechst_nicht_mit_dem_bestand(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 3, abgeschlossen=21)
+    with CaptureQueriesContext(connection) as klein:
+        client.get(reverse("verfahren:parlament"))
+    jetzt = timezone.now()
+    for phase in ("unterstuetzung", "beratung", "abstimmung"):
+        _kopien(vorlage, 80, phase, jetzt, titel="Nachschub")
+    _kopien(vorlage, 40, "angenommen", jetzt, titel="Nachschub")
+    with CaptureQueriesContext(connection) as gross:
+        client.get(reverse("verfahren:parlament"))
+    assert len(gross.captured_queries) == len(klein.captured_queries)
+
+
+def test_gp051_mehr_blaettert_ohne_javascript(client, ordnung):  # noqa: F811
+    _bestand(ordnung, 130)
+    seite1 = _feld(client.get(reverse("verfahren:parlament") + "?mehr=abstimmung").content.decode(), "filter")
+    assert seite1.count('class="fz') == 60
+    assert "130" in seite1
+    weiter = re.search(r'href="(\?mehr=abstimmung&amp;seite=2)#feld-filter"', seite1)
+    assert weiter, seite1[:2000]
+    seite2 = _feld(client.get(reverse("verfahren:parlament") + "?mehr=abstimmung&seite=2").content.decode(), "filter")
+    seite3 = _feld(client.get(reverse("verfahren:parlament") + "?mehr=abstimmung&seite=3").content.decode(), "filter")
+    assert seite2.count('class="fz') == 60 and seite3.count('class="fz') == 10
+    titel = set()
+    for teil in (seite1, seite2, seite3):
+        titel |= set(re.findall(r"Lastprobe abstimmung \d{4}", teil))
+    assert len(titel) == 130
+    # Unbekannte Gruppe oder Seite: die gewöhnliche Übersicht, kein Fehler
+    for adresse in ("?mehr=xyz", "?mehr=abstimmung&seite=99", "?mehr=abstimmung&seite=²"):
+        assert client.get(reverse("verfahren:parlament") + adresse).status_code == 200
+
+
+def test_gp051_beendete_verfahren_mit_zwei_klicks(client, ordnung):  # noqa: F811
+    _bestand(ordnung, 1, abgeschlossen=26)
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "filter")
+    assert 'href="?mehr=abgeschlossen#feld-filter"' in feld  # erster Klick
+    mehr = _feld(client.get(reverse("verfahren:parlament") + "?mehr=abgeschlossen").content.decode(), "filter")
+    for a in Antrag.objects.filter(phase="angenommen"):
+        assert reverse("verfahren:antrag", args=[a.pk]) in mehr  # zweiter Klick
+
+
+def test_gp051_mehr_wirkt_auch_mit_eigener_reihung(client, ordnung):  # noqa: F811
+    """Mit gestellten Reglern fehlt die Gruppe „Abgeschlossen“ im Feed — ?mehr= erreicht sie trotzdem."""
+    from verfahren.models import FilterProfil
+
+    person, _vorlage = _bestand(ordnung, 1, abgeschlossen=3)
+    FilterProfil.objects.create(mitglied=person, name="Eigen", aktiv=True, regler={"chronologisch": 60})
+    client.force_login(person)
+    mehr = _feld(client.get(reverse("verfahren:parlament") + "?mehr=abgeschlossen").content.decode(), "filter")
+    assert mehr.count("Lastprobe angenommen") == 3
+
+
+# ── GP-052: Der Stern nennt einen Ort, den es gibt ──────────────────────────────────────────────
+
+
+def test_gp052_gemerkter_antrag_auf_rang_601_ist_einen_klick_entfernt(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 0)
+    sammelnd = _kopien(vorlage, 650, "unterstuetzung", timezone.now(), titel="Tief")
+    ziel = sammelnd[49]  # je kleiner i, desto später die Frist: Rang 601 von 650
+    leser = mitglied_anlegen("leserin")
+    client.force_login(leser)
+    antwort = client.post(
+        reverse("verfahren:favorisieren", args=[ziel.pk]), {"weiter": "/parlament/"}, follow=True
+    )
+    meldung = " ".join(str(m) for m in antwort.context["messages"])
+    assert "Startseite" not in meldung
+    assert "★ Gemerkt" in meldung
+    feld = _feld(antwort.content.decode(), "filter")
+    assert 'href="?mehr=gemerkt#feld-filter"' in feld and "★ Gemerkt · 1" in feld  # der eine Klick
+    assert reverse("verfahren:antrag", args=[ziel.pk]) not in feld  # Rang 601: nicht in der ersten Seite
+    gemerkt = _feld(client.get(reverse("verfahren:parlament") + "?mehr=gemerkt").content.decode(), "filter")
+    assert reverse("verfahren:antrag", args=[ziel.pk]) in gemerkt
+    assert gemerkt.count('class="fz') == 1
+    # Ein Gast hat keine gemerkten Anträge: ?mehr=gemerkt zeigt die gewöhnliche Übersicht
+    client.logout()
+    gast = _feld(client.get(reverse("verfahren:parlament") + "?mehr=gemerkt").content.decode(), "filter")
+    assert "Gemerkt" not in gast
+
+
+def test_gp051_seitenrechnung_der_regel():
+    from plattform_core.parlamentlisten import nach_fristende, neutral, seite
+
+    s = seite(130, 60, 3)
+    assert (s.nummer, s.seiten, s.von, s.bis, s.zurueck, s.weiter) == (3, 3, 121, 130, 2, None)
+    assert seite(130, 60, 99).nummer == 3 and seite(130, 60, None).nummer == 1 and seite(130, 60, 0).nummer == 1
+    leer = seite(0, 60, 1)
+    assert (leer.seiten, leer.von, leer.bis, leer.weiter) == (1, 1, 0, None)
+    alles = seite(7, 0, 1)
+    assert (alles.seiten, alles.bis) == (1, 7)
+    jetzt = timezone.now()
+    frueh, spaet = jetzt, jetzt + timedelta(days=1)
+    assert sorted([neutral("unterstuetzung", frueh, jetzt, 1), neutral("abstimmung", spaet, jetzt, 2)])[0][0] == 0
+    assert neutral("angenommen", None, jetzt, 3) == (9, jetzt, 3)
+    assert nach_fristende(None, jetzt, 4) < nach_fristende(spaet, jetzt, 1)
+
+
+# ── GP-073: Wichtige Abstimmungen nach Fristende, mit Regel und Gesamtzahl ─────────────────────
+
+
+def test_gp073_hervorhebungen_nach_fristende_mit_regel_und_gesamtzahl(client, ordnung):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 0)
+    jetzt = timezone.now()
+    # Drei ältere Anträge in Beratung (Frist in elf Tagen), zwei jüngere Abstimmungen (Frist in sechs Tagen)
+    beratung = _kopien(vorlage, 3, "beratung", jetzt, titel="Alt", hervorgehoben=True)
+    Antrag.objects.filter(pk__in=[a.pk for a in beratung]).update(phase_beginn=jetzt - timedelta(days=10))
+    abstimmung = _kopien(vorlage, 2, "abstimmung", jetzt, titel="Neu", hervorgehoben=True)
+    for feld_url in (reverse("verfahren:parlament"), "/"):
+        html = client.get(feld_url).content.decode()
+        teil = _feld(html, "wichtig") if feld_url != "/" else html.split('class="willkommen-wichtig')[1]
+        reihe = [int(n) for n in re.findall(r'href="/antrag/(\d+)/', teil)]
+        reihe = list(dict.fromkeys(reihe))
+        assert reihe[:2] == [a.pk for a in sorted(abstimmung, key=lambda a: a.phase_beginn)], feld_url
+    kopf = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "wichtig").split("</div>")[0]
+    assert "3 von 5" in kopf
+    assert f'href="{reverse("parameter:regeln")}#regel-parlamentlisten"' in kopf
+    assert "nach Fristende" in kopf

@@ -350,8 +350,33 @@ def _neutraler_schluessel(antrag, frist):
 
     Das Regelverzeichnis und § 5 Abs 10 lit d sprechen von „Phase und Frist“ — der Phasenbeginn
     wäre nur deckungsgleich, solange alle Anträge einer Phase dieselbe eingefrorene Dauer haben
-    und keine Aussetzung wirkt. Ohne Frist (Endphasen) bleibt der Beginn."""
-    return (PHASEN_RANG.get(antrag.phase, 9), frist or antrag.phase_beginn)
+    und keine Aussetzung wirkt. Ohne Frist (Endphasen) bleibt der Beginn. Die Regel steht in
+    `plattform_core.parlamentlisten` (GP-074)."""
+    from plattform_core.parlamentlisten import neutral
+
+    return neutral(antrag.phase, frist, antrag.phase_beginn, antrag.pk)
+
+
+#: D-B1a (Gründer 29.9.2026, Variante b): Höchstzahl der Zeilen je neutraler Gruppe des WeicherFilters und
+#: Seitengröße unter ?mehr=<gruppe> (GP-051). Registerwert folgt (vorgeschlagen: parlament-gruppe-hoechstzahl).
+GRUPPE_HOECHSTZAHL = 60
+
+#: Die Gruppen, die ?mehr= seitenweise zeigt — die neutralen Gruppen und die eigenen gemerkten Anträge.
+MEHR_GRUPPEN = ("abstimmung", "wartezeit", "beratung", "unterstuetzung", "abgeschlossen", "gemerkt")
+
+#: Größte Zahl, die ein Zahlenparameter einer Adresse tragen darf (GP-109): passt in jede Ganzzahlspalte.
+ZAHL_HOECHSTSTELLEN = 18
+
+
+def ganze_zahl(roh) -> int | None:
+    """Ein Zahlenparameter aus der Adresse — nur ASCII-Ziffern mit höchstens 18 Stellen, sonst None (GP-109).
+
+    `"²".isdigit()` ist wahr, `int("²")` wirft; Vollbreite-Ziffern nimmt `int` an, die Datenbank nicht immer,
+    und 26 Stellen sprengen jede Ganzzahlspalte."""
+    roh = str(roh or "")
+    if not (roh.isascii() and roh.isdecimal()) or len(roh) > ZAHL_HOECHSTSTELLEN:
+        return None
+    return int(roh)
 
 
 def _als_liste(antraege) -> list:
@@ -363,10 +388,15 @@ def _als_liste(antraege) -> list:
 
 
 def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
-                        zaehler=None, beginne=None, vfs=None, lage=None):
+                        zaehler=None, beginne=None, vfs=None, lage=None, mehr="", seite=None, gemerkt_ids=None):
     """Bereich d (FB-B1): EINE punktgereihte Liste, wenn Regler gesetzt sind — sonst die neutralen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
+
+    D-B1a (GP-051): Jede neutrale Gruppe zeigt höchstens `GRUPPE_HOECHSTZAHL` Zeilen (Abgeschlossen:
+    `kacheln-abgeschlossen`) und nennt ihre Gesamtzahl; `mehr` (eine der `MEHR_GRUPPEN`) zeigt statt
+    des Feeds genau diese Gruppe seitenweise, auch bei gestellten Reglern. „gemerkt“ sind die Anträge
+    mit dem Stern des Mitglieds (GP-052); `gemerkt_ids` reicht das Parlament herein.
 
     `laufend` darf ein QuerySet oder die schon geladene Liste sein; Zählwerte und wirksame
     Phasenbeginne werden einmal je Aufruf geholt und an jede Zeile gereicht."""
@@ -391,43 +421,107 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         z.update(extra or {})
         return z
 
-    if nutzer.is_authenticated and not ist_neutral(regler):
+    if mehr not in MEHR_GRUPPEN or (mehr == "gemerkt" and not nutzer.is_authenticated):
+        mehr = ""
+    if gemerkt_ids is None:
+        gemerkt_ids = _meine_favoriten(nutzer)
+    if nutzer.is_authenticated and not ist_neutral(regler) and not mehr:
         gereiht = _weicherfilter_reihen(
             nutzer, laufende, jetzt, regler, abo_ids, favoriten_zuerst, zaehler=zaehler, beginne=beginne, vfs=vfs
         )
-        return {"gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "leer": not gereiht}
+        return {
+            "gereiht": [zeile(e["antrag"], e) for e in gereiht], "gruppen": None, "mehr": None,
+            "leer": not gereiht, "gemerkt": len(gemerkt_ids),
+        }
 
     fav_ids: set[int] = set()
     if abo_ids and favoriten_zuerst:
         fav_ids = {a.pk for a in laufende if any(k.pk in abo_ids for k in a.kategorien.all())}
+    # Frist je laufendem Antrag ohne Kachel (keine Abfrage): Erst wird geordnet und gekappt, dann werden nur
+    # die gezeigten Zeilen gebaut (GP-051) — bei tausenden Verfahren der größte Teil der Rechenzeit.
+    fristen = {a.pk: _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk)) for a in laufende}
 
-    def gruppe(phase):
-        zeilen = [zeile(a, {"favorit": a.pk in fav_ids}) for a in laufende if a.phase == phase]
-        zeilen.sort(key=lambda z: (0 if z["favorit"] else 1, z["frist"] or z["antrag"].phase_beginn))
-        return zeilen
+    def geordnet(phase):
+        liste = [a for a in laufende if a.phase == phase]
+        liste.sort(key=lambda a: (0 if a.pk in fav_ids else 1, *_neutraler_schluessel(a, fristen[a.pk])[1:]))
+        return liste
 
-    abgeschlossen = list(
-        antraege.filter(phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value])
-        .order_by("-phase_beginn")
-        .prefetch_related(_mit_pfad())[: zahl("kacheln-abgeschlossen", 20)]
-    )
-    vfs.update(_vertrauensfragen(abgeschlossen))
-    # Auch die abgeschlossenen Zeilen bekommen ihren Beginn aus der Sammelabfrage (GP-181)
-    beginne = {**beginne, **_wirksame_beginne(abgeschlossen, jetzt)}
+    def wartet(a):  # § 7 Abs 10 lit f Z 3 — dieselbe Unterscheidung wie die Kachel
+        vf = vfs.get(a.pk)
+        return vf is not None and vf.art == "bestaetigung"
+
+    def zeilen_aus(liste):
+        return [zeile(a, {"favorit": a.pk in fav_ids}) for a in liste]
+
+    abgeschlossen_qs = antraege.filter(
+        phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value, Phase.VERFALLEN.value]
+    ).order_by("-phase_beginn", "-pk")
+
+    def abgeschlossen_laden(liste):
+        liste = list(liste)
+        vfs.update(_vertrauensfragen(liste))
+        # Auch die abgeschlossenen Zeilen bekommen ihren Beginn aus der Sammelabfrage (GP-181)
+        beginne.update(_wirksame_beginne(liste, jetzt))
+        return liste
+
     # § 7 Abs 10 lit f Z 3: Der Bestätigungsantrag sammelt keine Unterstützung — er wartet auf den siebten
     # Tag. Er steht deshalb nicht unter „Sammeln Unterstützung“, sondern in einer eigenen Gruppe an der
     # Stelle, die seiner Nähe zur Abstimmung entspricht; die Reihung innerhalb der Gruppe bleibt dieselbe.
-    sammelnde = gruppe(Phase.UNTERSTUETZUNG.value)
-    wartende = [z for z in sammelnde if z["stat"]["typ"] == "wartezeit"]
-    sammelnde = [z for z in sammelnde if z["stat"]["typ"] != "wartezeit"]
+    sammelnde = geordnet(Phase.UNTERSTUETZUNG.value)
+    laufende_gruppen = {
+        "abstimmung": (_("Laufende Abstimmungen"), geordnet(Phase.ABSTIMMUNG.value)),
+        "wartezeit": (_("Wartezeit bis zur Abstimmung"), [a for a in sammelnde if wartet(a)]),
+        "beratung": (_("In Beratung"), geordnet(Phase.BERATUNG.value)),
+        "unterstuetzung": (_("Sammeln Unterstützung"), [a for a in sammelnde if not wartet(a)]),
+    }
+    beginne = dict(beginne)
+
+    if mehr:
+        from plattform_core.parlamentlisten import seite as seite_rechnen
+
+        if mehr == "abgeschlossen":
+            titel, gesamt = _("Abgeschlossen"), abgeschlossen_qs.count()
+        elif mehr == "gemerkt":
+            # Die eigenen Sterne (GP-052): laufende in neutraler Ordnung, danach die übrigen, zuletzt Entschiedenes zuerst
+            laufend_gemerkt = sorted(
+                (a for a in laufende if a.pk in gemerkt_ids), key=lambda a: _neutraler_schluessel(a, fristen[a.pk])
+            )
+            uebrige = Antrag.objects.filter(pk__in=gemerkt_ids).exclude(phase__in=LAUFEND).order_by("-phase_beginn", "-pk")
+            titel, gesamt = _("Gemerkt"), len(gemerkt_ids)
+        else:
+            titel, liste = laufende_gruppen[mehr]
+            gesamt = len(liste)
+        teil = seite_rechnen(gesamt, GRUPPE_HOECHSTZAHL, seite)
+        von, bis = teil.von - 1, teil.bis
+        if mehr == "abgeschlossen":
+            gezeigt = abgeschlossen_laden(abgeschlossen_qs.prefetch_related(_mit_pfad())[von:bis])
+        elif mehr == "gemerkt":
+            gezeigt = (laufend_gemerkt + abgeschlossen_laden(uebrige.prefetch_related(_mit_pfad())))[von:bis]
+        else:
+            gezeigt = liste[von:bis]
+        return {
+            "gereiht": None, "gruppen": None, "leer": False, "gemerkt": len(gemerkt_ids),
+            "mehr": {"schluessel": mehr, "titel": titel, "zeilen": zeilen_aus(gezeigt), "seite": teil},
+        }
+
+    hoechst = GRUPPE_HOECHSTZAHL if GRUPPE_HOECHSTZAHL >= 1 else None
     gruppen = [
-        (_("Laufende Abstimmungen"), gruppe(Phase.ABSTIMMUNG.value)),
-        (_("Wartezeit bis zur Abstimmung"), wartende),
-        (_("In Beratung"), gruppe(Phase.BERATUNG.value)),
-        (_("Sammeln Unterstützung"), sammelnde),
-        (_("Abgeschlossen"), [zeile(a) for a in abgeschlossen]),
+        {"schluessel": schluessel, "titel": titel, "zeilen": zeilen_aus(liste[:hoechst]), "gesamt": len(liste)}
+        for schluessel, (titel, liste) in laufende_gruppen.items()
     ]
-    return {"gereiht": None, "gruppen": gruppen, "leer": not any(liste for _titel, liste in gruppen[:-1])}
+    grenze = zahl("kacheln-abgeschlossen", 20)
+    abgeschlossen = abgeschlossen_laden(abgeschlossen_qs.prefetch_related(_mit_pfad())[:grenze])
+    gruppen.append({
+        "schluessel": "abgeschlossen", "titel": _("Abgeschlossen"), "zeilen": zeilen_aus(abgeschlossen),
+        # gezählt wird nur, wenn die Grenze greift — sonst ist die geladene Liste schon alles
+        "gesamt": abgeschlossen_qs.count() if len(abgeschlossen) >= grenze else len(abgeschlossen),
+    })
+    for g in gruppen:
+        g["gekappt"] = g["gesamt"] > len(g["zeilen"])
+    return {
+        "gereiht": None, "gruppen": gruppen, "mehr": None, "gemerkt": len(gemerkt_ids),
+        "leer": not any(g["gesamt"] for g in gruppen[:-1]),
+    }
 
 
 def _filter_lage(profile, aktives, regler, favoriten_zuerst):
@@ -645,6 +739,23 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
     }
 
 
+def _wichtige_ordnen(hervorgehobene, beginne=None, vfs=None) -> list:
+    """Die vom Integritätsrat hervorgehobenen laufenden Anträge nach Fristende aufsteigend (GP-073,
+    `plattform_core.parlamentlisten.nach_fristende`) — Parlament und Willkommensseite reihen gleich."""
+    from plattform_core.parlamentlisten import nach_fristende
+
+    hervorgehobene = list(hervorgehobene)
+    jetzt = timezone.now()
+    beginne = beginne if beginne is not None else _wirksame_beginne(hervorgehobene, jetzt)
+    vfs = vfs if vfs is not None else _vertrauensfragen(hervorgehobene)
+
+    def schluessel(a):
+        frist = _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))
+        return nach_fristende(frist, a.phase_beginn, a.pk)
+
+    return sorted(hervorgehobene, key=schluessel)
+
+
 def _meine_stimmen(nutzer, antraege):
     """Bulk: {antrag_id: eigene Sach-Stimme} für die Kachel-Markierung.
 
@@ -686,7 +797,7 @@ def index(request):
         "laufend": laufend.count(),
         "beschluesse": Antrag.objects.filter(phase=Phase.ANGENOMMEN.value).count(),
     }
-    wichtige = laufend.filter(hervorgehoben=True).order_by("phase_beginn")[: zahl("kacheln-hervorgehoben", 3)]
+    wichtige = _wichtige_ordnen(laufend.filter(hervorgehoben=True))[: zahl("kacheln-hervorgehoben", 3)]  # GP-073
     return render(
         request,
         "verfahren/index.html",
@@ -829,7 +940,10 @@ def parlament(request):
     # Bereich b — vom Integritätsrat hervorgehobene Abstimmungen (F-42, nie
     # algorithmisch), als Kacheln (P3): Stern, Beteiligung, Resttage. Wie viele
     # Platz haben, sagt das Register (Befund #45).
-    wichtige = [a for a in laufende if a.hervorgehoben][: zahl("kacheln-hervorgehoben", 3)]
+    # GP-073: nach Fristende (plattform_core.parlamentlisten) — was zuerst endet, steht vorn; der Feldkopf
+    # nennt die Gesamtzahl, statt still abzuschneiden.
+    wichtige_alle = _wichtige_ordnen([a for a in laufende if a.hervorgehoben], beginne, vfs)
+    wichtige = wichtige_alle[: zahl("kacheln-hervorgehoben", 3)]
 
     # Bereich c — Meine Region (F-43, P4): drei Zeilen Gemeinde/Bezirk/Land.
     # Mit Wohnsitz zeigt jede Zeile die EIGENE Region; ohne (Gäste, fehlendes
@@ -916,6 +1030,8 @@ def parlament(request):
     feed = _weicherfilter_feed(
         request.user, antraege, laufende, jetzt, abo_ids, meine_stimmen, regler, favoriten_zuerst,
         zaehler=zaehler, beginne=beginne, vfs=vfs, lage=lage,
+        # D-B1a (GP-051): ?mehr=<gruppe>&seite=<n> zeigt eine Gruppe seitenweise, ohne JavaScript
+        mehr=request.GET.get("mehr") or "", seite=ganze_zahl(request.GET.get("seite")), gemerkt_ids=meine_favoriten,
     )
     return render(
         request,
@@ -931,6 +1047,7 @@ def parlament(request):
             "meine_favoriten": meine_favoriten,
             "filter_lage": filter_lage,
             "wichtige_kacheln": wichtige_kacheln,
+            "wichtige_gesamt": len(wichtige_alle),
         "meine_unterstuetzungen": meine_unterstuetzungen,
             "region_zeilen": region_zeilen,
             "region_gefiltert": any(mein_ort.values()),

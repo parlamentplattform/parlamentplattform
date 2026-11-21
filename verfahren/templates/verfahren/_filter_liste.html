@@ -1,16 +1,31 @@
 {% load i18n %}{% comment %}
 Der Feed des WeicherFilters (FB-B1): bei gesetzten Reglern EINE punktgereihte Liste, sonst die
 neutralen Gruppen (Laufende Abstimmungen · Wartezeit bis zur Abstimmung · In Beratung · Sammeln
-Unterstützung · Abgeschlossen; eine leere Gruppe erscheint nicht).
+Unterstützung · Abgeschlossen; eine leere Gruppe erscheint nicht). Jede Gruppe nennt ihre Zahl und zeigt
+höchstens die Höchstzahl (D-B1a, GP-051); der Rest steht unter ?mehr=<gruppe> in Seiten, ohne JavaScript.
+„★ Gemerkt“ führt zu den eigenen Sternen (GP-052).
 Die Live-Vorschau (FB-B2) tauscht genau dieses Element (#filter-liste).
 {% endcomment %}<div id="filter-liste">
+{% if feed.mehr %}{% with m=feed.mehr %}
+  <p class="gruppe">{{ m.titel }}<span class="gruppe-zahl"> · {{ m.seite.gesamt }}</span></p>
+  {% for z in m.zeilen %}{% include "verfahren/_filter_zeile.html" with z=z %}{% empty %}<p class="leer abstand">{% translate "Hier steht nichts." %}</p>{% endfor %}
+  <nav class="blaettern" aria-label="{% translate 'Seiten der Gruppe' %}">
+    {% if m.seite.zurueck %}<a href="?mehr={{ m.schluessel }}&amp;seite={{ m.seite.zurueck }}#feld-filter">‹ {% translate "zurück" %}</a>{% endif %}
+    {% if m.seite.gesamt %}<span>{% blocktranslate with von=m.seite.von bis=m.seite.bis n=m.seite.gesamt %}{{ von }}–{{ bis }} von {{ n }}{% endblocktranslate %}</span>{% endif %}
+    {% if m.seite.weiter %}<a href="?mehr={{ m.schluessel }}&amp;seite={{ m.seite.weiter }}#feld-filter">{% translate "weiter" %} ›</a>{% endif %}
+    <a href="{% url 'verfahren:parlament' %}#feld-filter">{% translate "Alle Gruppen" %}</a>
+  </nav>
+{% endwith %}{% else %}
+{% if feed.gemerkt %}<p class="gemerkt-link"><a href="?mehr=gemerkt#feld-filter">★ {% translate "Gemerkt" %} · {{ feed.gemerkt }} ›</a></p>{% endif %}
 {% if feed.gereiht is not None %}
   {% for z in feed.gereiht %}{% include "verfahren/_filter_zeile.html" with z=z %}{% empty %}<p class="leer abstand">{% translate "Derzeit läuft kein Verfahren." %}</p>{% endfor %}
 {% else %}
-  {% for titel, liste in feed.gruppen %}{% if liste %}
-  <p class="gruppe">{{ titel }}</p>
-  {% for z in liste %}{% include "verfahren/_filter_zeile.html" with z=z %}{% endfor %}
+  {% for g in feed.gruppen %}{% if g.zeilen %}
+  <p class="gruppe">{{ g.titel }}<span class="gruppe-zahl"> · {% if g.gekappt %}{% blocktranslate with n=g.zeilen|length gesamt=g.gesamt %}{{ n }} von {{ gesamt }}{% endblocktranslate %}{% else %}{{ g.gesamt }}{% endif %}</span></p>
+  {% for z in g.zeilen %}{% include "verfahren/_filter_zeile.html" with z=z %}{% endfor %}
+  {% if g.gekappt %}<p class="gruppe-mehr"><a href="?mehr={{ g.schluessel }}#feld-filter">{% blocktranslate with n=g.gesamt %}Alle {{ n }} zeigen ›{% endblocktranslate %}</a></p>{% endif %}
   {% endif %}{% endfor %}
   {% if feed.leer %}<p class="leer abstand">{% translate "Derzeit läuft kein Verfahren." %}</p>{% endif %}
+{% endif %}
 {% endif %}
 </div>

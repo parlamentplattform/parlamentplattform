@@ -1405,7 +1405,8 @@ def favorisieren(request, pk):
     if neu:
         messages.success(
             request,
-            _("Als Favorit gemerkt — Sie finden das Thema jetzt in Ihrem Bereich auf der Startseite."),
+            # GP-052: der Ort, den es gibt — „★ Gemerkt“ im WeicherFilter führt zu allen gemerkten Anträgen
+            _("Gemerkt — Sie finden den Antrag im Parlament unter „★ Gemerkt“."),
         )
     else:
         messages.info(request, _("Favorit entfernt."))

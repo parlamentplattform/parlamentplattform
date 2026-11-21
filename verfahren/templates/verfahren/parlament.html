@@ -106,7 +106,8 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
   <section class="feld" id="feld-wichtig" aria-labelledby="h-wichtig" x-data="feldmehr" :class="{'mehr-da': sichtbar}"{% if fokus and fokus != "wichtig" %} hidden{% endif %} :hidden="fokus !== '' && fokus !== 'wichtig'">
     <div class="feld-kopf">
       <h2 id="h-wichtig">{% translate "Wichtige Abstimmungen" %}</h2>
-      <span class="bk">{% if wichtige_kacheln %}{{ wichtige_kacheln|length }} · {% endif %}{% translate "Beschluss des Integritätsrats" %}</span>
+      {# GP-073: Gesamtzahl statt stillem Abschneiden, die Reihung „nach Fristende“ verweist auf ihre Regel #}
+      <span class="bk">{% if wichtige_gesamt > wichtige_kacheln|length %}{% blocktranslate with n=wichtige_kacheln|length gesamt=wichtige_gesamt %}{{ n }} von {{ gesamt }}{% endblocktranslate %} · {% elif wichtige_kacheln %}{{ wichtige_kacheln|length }} · {% endif %}{% if wichtige_gesamt > 1 %}<a href="{% url 'parameter:regeln' %}#regel-parlamentlisten">{% translate "nach Fristende" %}</a> · {% endif %}{% translate "Beschluss des Integritätsrats" %}</span>
       {% include "verfahren/_fokus_knopf.html" with feld="wichtig" %}
     </div>
     {% include "verfahren/_feld_hinweis.html" with feld="wichtig" %}

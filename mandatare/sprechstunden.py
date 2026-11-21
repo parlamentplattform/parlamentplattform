@@ -24,9 +24,11 @@ def kommende_in(gemeinde, jetzt):
     zu seinem Ende, auch wenn das Mandat inzwischen geendet hat oder umgeordnet ist: Wer den Termin gesehen
     hat, liest die Absage statt einer leeren Liste (GP-116)."""
     gueltig = Q(mandat__in=aktive_gemeindemandate(jetzt), mandat__gemeinde=F("gemeinde"))
+    # Abgesagte nur von Parteikonten ohne Testkennzeichen — wie die Sitzungen der Ortsseite; Testkonten erscheinen nie
+    abgesagt = Q(abgesagt_am__isnull=False, mandat__mitglied__parteikonto=True, mandat__mitglied__testkonto=False)
     return (
         Sprechstunde.objects.filter(gemeinde=gemeinde, ende__gt=jetzt)
-        .filter(gueltig | Q(abgesagt_am__isnull=False))
+        .filter(gueltig | abgesagt)
         .select_related("mandat__mitglied").defer("mandat__foto").order_by(*SPRECHSTUNDENREIHUNG)
     )
 

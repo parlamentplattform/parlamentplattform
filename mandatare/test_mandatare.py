@@ -422,6 +422,11 @@ def test_enddatum_ist_eine_eingabe_mit_grenzen(client):
     client.post(url, {"aktion": "beenden", "mandat": mandat.pk, "datum": (heute - timedelta(days=5)).isoformat()})
     mandat.refresh_from_db()
     assert mandat.beendet == heute - timedelta(days=5)
+    # Der eingegebene Tag steht im Audit — er weicht nun vom Zeitpunkt des Eintrags ab (Gegenlesen GP-113)
+    from verfahren.models import AuditEintrag
+
+    (e,) = [x.ereignis for x in AuditEintrag.objects.filter(ereignis__typ="mandat_beendet")]
+    assert e["beendet"] == (heute - timedelta(days=5)).isoformat()
 
 
 def test_berichtigung_des_enddatums_steht_als_eigener_vermerk_mit_alt_und_neu(client):

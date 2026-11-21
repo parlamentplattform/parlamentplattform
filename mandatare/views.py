@@ -2066,7 +2066,9 @@ def verwaltung_aktion(request):
             return redirect("mandatare:verwaltung")
         mandat.beendet = ende
         mandat.save(update_fields=["beendet"])
-        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk, "durch": request.user.pk})
+        AuditEintrag.anhaengen(
+            {"typ": "mandat_beendet", "mandat": mandat.pk, "beendet": ende.isoformat(), "durch": request.user.pk}
+        )
         mandatsende_folgen(mandat, "mandat_beendet")  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
         messages.info(
             request,

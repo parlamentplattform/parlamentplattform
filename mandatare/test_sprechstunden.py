@@ -165,3 +165,7 @@ def test_altbestand_abgesagter_termin_eines_beendeten_mandats_bleibt_bis_zum_end
     Mandat.objects.filter(pk=mandat.pk).update(beendet=timezone.localdate())
     seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
     assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite
+    # Ein Testkonto erscheint auch mit abgesagtem Termin nie auf der Ortsseite (Gegenlesen GP-116)
+    type(mandat.mitglied).objects.filter(pk=mandat.mitglied_id).update(testkonto=True)
+    seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
+    assert "Öffentlicher Raum A" not in seite

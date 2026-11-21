@@ -363,8 +363,10 @@ def test_gp109_zahlenparameter_ohne_serverfehler(client, ordnung, wert):  # noqa
 
 
 def test_gp191_umsetzungsregister_mit_400_beschluessen_blaettert(client, ordnung):  # noqa: F811
-    from verfahren.views import REGISTER_SEITE
+    from parameter.models import Parameter
 
+    REGISTER_SEITE = 50  # der Registerwert umsetzung-seite-hoechstzahl, hier selbst gesetzt
+    Parameter.objects.update_or_create(schluessel="umsetzung-seite-hoechstzahl", defaults={"wert": str(REGISTER_SEITE)})
     person, vorlage = _bestand(ordnung, 0)
     beschluesse = _kopien(vorlage, 400, "angenommen", timezone.now(), titel="Beschluss")
     antwort = client.get(reverse("verfahren:umsetzung"))

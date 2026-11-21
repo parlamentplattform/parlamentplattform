@@ -366,9 +366,10 @@ def _neutraler_schluessel(antrag, frist):
     return neutral(antrag.phase, frist, antrag.phase_beginn, antrag.pk)
 
 
-#: D-B1a (Gründer 29.9.2026, Variante b): Höchstzahl der Zeilen je neutraler Gruppe des WeicherFilters und
-#: Seitengröße unter ?mehr=<gruppe> (GP-051). Registerwert folgt (vorgeschlagen: parlament-gruppe-hoechstzahl).
-GRUPPE_HOECHSTZAHL = 60
+def _gruppe_hoechstzahl() -> int:
+    """D-B1a (Gründer 29.9.2026, Variante b): Höchstzahl der Zeilen je neutraler Gruppe des WeicherFilters und
+    Seitengröße unter ?mehr=<gruppe> (GP-051) — Registerwert `parlament-gruppe-hoechstzahl`, 0 = alle."""
+    return zahl("parlament-gruppe-hoechstzahl", 60)
 
 #: Die Gruppen, die ?mehr= seitenweise zeigt — die neutralen Gruppen und die eigenen gemerkten Anträge.
 MEHR_GRUPPEN = ("abstimmung", "wartezeit", "beratung", "unterstuetzung", "abgeschlossen", "gemerkt")
@@ -402,7 +403,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
 
-    D-B1a (GP-051): Jede neutrale Gruppe zeigt höchstens `GRUPPE_HOECHSTZAHL` Zeilen (Abgeschlossen:
+    D-B1a (GP-051): Jede neutrale Gruppe zeigt höchstens `parlament-gruppe-hoechstzahl` Zeilen (Abgeschlossen:
     `kacheln-abgeschlossen`) und nennt ihre Gesamtzahl; `mehr` (eine der `MEHR_GRUPPEN`) zeigt statt
     des Feeds genau diese Gruppe seitenweise, auch bei gestellten Reglern. „gemerkt“ sind die Anträge
     mit dem Stern des Mitglieds (GP-052); `gemerkt_ids` reicht das Parlament herein.
@@ -500,7 +501,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         else:
             titel, liste = laufende_gruppen[mehr]
             gesamt = len(liste)
-        teil = seite_rechnen(gesamt, GRUPPE_HOECHSTZAHL, seite)
+        teil = seite_rechnen(gesamt, _gruppe_hoechstzahl(), seite)
         von, bis = teil.von - 1, teil.bis
         if mehr == "abgeschlossen":
             gezeigt = abgeschlossen_laden(abgeschlossen_qs.prefetch_related(_mit_pfad())[von:bis])
@@ -513,7 +514,8 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
             "mehr": {"schluessel": mehr, "titel": titel, "zeilen": zeilen_aus(gezeigt), "seite": teil},
         }
 
-    hoechst = GRUPPE_HOECHSTZAHL if GRUPPE_HOECHSTZAHL >= 1 else None
+    hoechst = _gruppe_hoechstzahl()
+    hoechst = hoechst if hoechst >= 1 else None
     gruppen = [
         {"schluessel": schluessel, "titel": titel, "zeilen": zeilen_aus(liste[:hoechst]), "gesamt": len(liste)}
         for schluessel, (titel, liste) in laufende_gruppen.items()
@@ -910,7 +912,7 @@ def _ast_lage(zeilen, fokus_slug, laufende, beginne, vfs, seite_nr):
         offen.extend(kinder.get(k, []))
     treffer = [a for a in laufende if any(k.pk in ids for k in a.kategorien.all())]
     treffer.sort(key=lambda a: _neutraler_schluessel(a, _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))))
-    teil = seite(len(treffer), GRUPPE_HOECHSTZAHL, seite_nr)
+    teil = seite(len(treffer), _gruppe_hoechstzahl(), seite_nr)
     return {"slug": fokus["slug"], "zeilen": treffer[teil.von - 1 : teil.bis], "seite": teil}
 
 
@@ -1992,8 +1994,9 @@ def datenschutz(request):
     )
 
 
-#: Einträge je Seite des Umsetzungsregisters (GP-191) — Registerwert folgt (vorgeschlagen: umsetzung-seite-hoechstzahl).
-REGISTER_SEITE = 50
+def _register_seite() -> int:
+    """Einträge je Seite des Umsetzungsregisters (GP-191) — Registerwert `umsetzung-seite-hoechstzahl`, 0 = alle."""
+    return zahl("umsetzung-seite-hoechstzahl", 50)
 
 
 def umsetzung(request):
@@ -2012,7 +2015,7 @@ def umsetzung(request):
     # GP-191: seitenweise mit Gesamtzahl, ohne JavaScript; die Wahl des Standes bleibt beim Blättern erhalten
     from plattform_core.parlamentlisten import seite as seite_rechnen
 
-    teil = seite_rechnen(len(zeilen), REGISTER_SEITE, ganze_zahl(request.GET.get("seite")))
+    teil = seite_rechnen(len(zeilen), _register_seite(), ganze_zahl(request.GET.get("seite")))
     zeilen = zeilen[teil.von - 1 : teil.bis]
     nutzer = request.user
     return render(

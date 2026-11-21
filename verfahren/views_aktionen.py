@@ -91,10 +91,6 @@ from verfahren.teilnahme import (
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
 
-#: Beanstandungen je Konto und Kalenderstunde (GP-084) — Registerwert folgt („beanstandung-je-stunde“);
-#: bis dahin gilt diese Vorgabe. Großzügig gewählt: Sie trifft das Fluten, nicht das Mitreden.
-BEANSTANDUNGEN_JE_STUNDE = 10
-
 def nebenwohnsitz_zaehlt() -> bool:
     """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
     andere wirkt wie 0. Der Nebenwohnsitz ordnet dann ZUSÄTZLICH einer Region zu — für „Meine
@@ -1035,8 +1031,10 @@ def beanstanden(request, pk):
     # öffentlich stehen — ein einzelnes Konto soll die Zone nicht füllen können (GP-084).
     from mitglieder.botschutz import drossel_zuviel
 
-    grenze = max(0, zahl("beanstandung-je-stunde", BEANSTANDUNGEN_JE_STUNDE))
-    if drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
+    # Registerwert `beanstandung-je-stunde` je Konto und Kalenderstunde: 0 heißt keine Grenze und sperrt nie
+    # (ausgeliefert ausgeschaltet, Zahl offen: E-13.4); ab 1 drosselt der Wert.
+    grenze = zahl("beanstandung-je-stunde", 0)
+    if grenze >= 1 and drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
         messages.error(request, ngettext(
             "Höchstens eine Beanstandung je Stunde — bitte später noch einmal.",
             "Höchstens %(n)s Beanstandungen je Stunde — bitte später noch einmal.",

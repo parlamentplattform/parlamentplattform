@@ -276,3 +276,81 @@ def test_umsetzung_und_stimmen_export_tragen_die_kopfzeile_der_offenen_formate(c
         for antwort in (client.get(adresse), client.head(adresse)):
             assert antwort.status_code == 200, adresse
             assert antwort['Access-Control-Allow-Origin'] == '*', adresse
+
+
+# --- Registerwerte dieser Welle -------------------------------------------------------------------------
+
+
+def _register(schluessel, wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(schluessel=schluessel, defaults={'wert': str(wert)})
+
+
+def test_gruppe_und_registerseite_lesen_das_register():
+    from verfahren import views
+
+    assert not hasattr(views, 'GRUPPE_HOECHSTZAHL') and not hasattr(views, 'REGISTER_SEITE')
+    assert views._gruppe_hoechstzahl() == 60 and views._register_seite() == 50  # Startwerte ohne Eintrag
+    _register('parlament-gruppe-hoechstzahl', 3)
+    _register('umsetzung-seite-hoechstzahl', 0)
+    assert views._gruppe_hoechstzahl() == 3 and views._register_seite() == 0
+
+
+def test_die_registerseite_folgt_dem_registerwert(client, ordnung):  # noqa: F811
+    from verfahren.test_gp115_parlament import _bestand, _kopien
+
+    _person, vorlage = _bestand(ordnung, 0)
+    _kopien(vorlage, 5, 'angenommen', timezone.now(), titel='Beschluss')
+    _register('umsetzung-seite-hoechstzahl', 2)
+    html = client.get(reverse('verfahren:umsetzung')).content.decode()
+    assert '1–2 von 5' in html and 'href="?seite=2"' in html
+    _register('umsetzung-seite-hoechstzahl', 0)  # 0 = alle
+    html = client.get(reverse('verfahren:umsetzung')).content.decode()
+    assert 'href="?seite=2"' not in html and html.count('<strong>Beschluss') == 5
+
+
+def test_die_parlamentsgruppe_folgt_dem_registerwert(client, ordnung):  # noqa: F811
+    from verfahren.test_gp115_parlament import _bestand, _feld
+
+    _bestand(ordnung, 4)
+    _register('parlament-gruppe-hoechstzahl', 2)
+    feld = _feld(client.get(reverse('verfahren:parlament')).content.decode(), 'filter')
+    assert '?mehr=beratung' in feld
+    mehr = client.get(reverse('verfahren:parlament') + '?mehr=beratung').content.decode()
+    assert 'seite=2' in mehr
+
+
+def _beanstanden_lage(client, ordnung, monkeypatch):  # noqa: F811
+    from types import SimpleNamespace
+
+    monkeypatch.setattr('mitglieder.botschutz.time', SimpleNamespace(time=lambda: 1_000_000 * 3600.0 + 60))
+    antrag = antrag_einbringen(mitglied_anlegen('autorin'), **ANTRAG, ordnung=ordnung)
+    client.force_login(mitglied_anlegen('bernd'))
+    return reverse('verfahren:beanstanden', args=[antrag.pk])
+
+
+@pytest.mark.parametrize('wert', [None, 0])
+def test_ohne_grenze_sperrt_die_beanstandung_nie(client, ordnung, monkeypatch, wert):  # noqa: F811
+    from verfahren.models import Beanstandung
+
+    if wert is not None:
+        _register('beanstandung-je-stunde', wert)
+    url = _beanstanden_lage(client, ordnung, monkeypatch)
+    for i in range(12):
+        antwort = client.post(url, {'text': f'Die Zahl {i} stimmt nicht.'}, follow=True)
+        assert 'Höchstens' not in antwort.content.decode()
+    assert Beanstandung.objects.count() == 12
+
+
+def test_ab_eins_drosselt_der_registerwert_die_beanstandung(client, ordnung, monkeypatch):  # noqa: F811
+    from verfahren import views_aktionen
+    from verfahren.models import Beanstandung
+
+    assert not hasattr(views_aktionen, 'BEANSTANDUNGEN_JE_STUNDE')
+    _register('beanstandung-je-stunde', 1)
+    url = _beanstanden_lage(client, ordnung, monkeypatch)
+    client.post(url, {'text': 'Erste.'})
+    antwort = client.post(url, {'text': 'Zweite.'}, follow=True)
+    assert Beanstandung.objects.count() == 1
+    assert 'Höchstens eine Beanstandung je Stunde' in antwort.content.decode()

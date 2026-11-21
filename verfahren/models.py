@@ -789,20 +789,27 @@ class Antrag(models.Model):
         """Wie viele im festgehaltenen örtlichen Kreis am Einbringungstag stimmberechtigt waren
         (GP-057) — gelesen aus dem Ereignis `teilnehmerkreis_festgehalten`, nie neu gezählt.
 
-        None heißt „nicht festgehalten“: Kreise von vor dieser Fassung tragen die Zahl nicht, und
-        Verfahren ohne örtlichen Kreis haben keine."""
+        Kreise von vor dieser Fassung tragen die Zahl nicht. Dann gilt die Zahl aus `antrag_eingebracht`
+        desselben Antrags, wenn die Ordnung die Schwelle als Anteil rechnete: gezählt in derselben
+        Transaktion, am selben Tag, über dieselben Konten des Kreises und nach derselben Regel — und
+        schon öffentlich (Auflage zu GP-057). None heißt „nicht festgehalten“: Auch dort steht keine
+        Zahl, oder das Verfahren hat keinen örtlichen Kreis."""
         if self.teilnahmegebiet is None or self.ebene == Ebene.BUND:
             return None
-        ereignis = (
-            AuditEintrag.objects.filter(ereignis__typ="teilnehmerkreis_festgehalten", ereignis__antrag=self.pk)
+        ereignisse = {}
+        for ereignis in (
+            AuditEintrag.objects.filter(
+                ereignis__typ__in=("teilnehmerkreis_festgehalten", "antrag_eingebracht"), ereignis__antrag=self.pk
+            )
             .order_by("lfd")
             .values_list("ereignis", flat=True)
-            .first()
-        )
-        anzahl = (ereignis or {}).get("stimmberechtigte")
-        if isinstance(anzahl, bool) or not isinstance(anzahl, int) or anzahl < 0:
-            return None
-        return anzahl
+        ):
+            ereignisse.setdefault(ereignis.get("typ"), ereignis)  # je Art das erste
+        for typ in ("teilnehmerkreis_festgehalten", "antrag_eingebracht"):
+            anzahl = ereignisse.get(typ, {}).get("stimmberechtigte")
+            if not isinstance(anzahl, bool) and isinstance(anzahl, int) and anzahl >= 0:
+                return anzahl
+        return None
 
     def stimmliste_zeilen(self) -> list[list]:
         """Die veröffentlichte Stimmliste als Zeilen einfacher Werte — die Eingabe der Prüfsumme

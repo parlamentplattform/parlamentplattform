@@ -124,6 +124,35 @@ def test_altbestand_ohne_die_zahl_gilt_als_nicht_festgehalten(client, ordnung, o
     assert 'Selbstauskunft' in absatz
 
 
+def test_altbestand_mit_anteil_nennt_die_zahl_der_einbringung(client, menschen, ordnung, monkeypatch):  # noqa: F811
+    '''Auflage zu GP-057: Ein Kreis von vor dieser Fassung trägt keine Zahl — rechnete die Ordnung die
+    Schwelle aber als Anteil (Live-Erstbestand: fünf Prozent), nennt `antrag_eingebracht` desselben Antrags
+    die Stimmberechtigten des Kreises schon öffentlich. Die Seite zeigt diese Zahl statt „nicht festgehalten“;
+    nachgerechnet wird nichts.'''
+    leute, ort, _fremdort = menschen
+    _ungeprueft('neuling', ort)
+    ordnung.regeln = {**ordnung.regeln, 'unterstuetzung_anteil': 0.05}
+    ordnung.save(update_fields=['regeln'])
+    echt = AuditEintrag.anhaengen
+
+    def frueher(ereignis, *args, **kwargs):
+        if ereignis.get('typ') == 'teilnehmerkreis_festgehalten':
+            ereignis = {k: v for k, v in ereignis.items() if k not in ('stimmberechtigte', 'stichtag')}
+        return echt(ereignis, *args, **kwargs)
+
+    with monkeypatch.context() as alt:
+        alt.setattr(AuditEintrag, 'anhaengen', frueher)
+        antrag = _einbringen(client, leute['autor'])
+    assert 'stimmberechtigte' not in _ereignis(antrag)
+    eingebracht = AuditEintrag.objects.get(ereignis__typ='antrag_eingebracht', ereignis__antrag=antrag.pk).ereignis
+    assert eingebracht['stimmberechtigte'] == 2
+    mit_ort('spaeter', ort)  # wer danach dazukommt, ändert die festgehaltene Zahl nicht
+    assert Antrag.objects.get(pk=antrag.pk).kreis_stimmberechtigte() == 2
+    client.logout()
+    absatz = _kreisabsatz(client, antrag)
+    assert 'Stimmberechtigte am Einbringungstag: 2.' in absatz and 'nicht festgehalten' not in absatz
+
+
 def test_bundesweite_und_alte_verfahren_bekommen_keine_kreiszahl(client, ordnung, orte):  # noqa: F811
     autor = mit_ort('autor', orte[0])
     bund = vorbereiten(ordnung, autor, ebene='bund')

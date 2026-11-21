@@ -799,6 +799,8 @@ def daten_export(mitglied: Mitglied) -> dict:
              "geaendert_am": p.geaendert_am}
             for p in m.filterprofile.all()
         ],
+        # Zeitpunkt des letzten Besuchs je Antrag oder Sitzung (FB-G2) — beim Austritt gelöscht
+        "lesestaende": list(m.lesestaende.order_by("pk").values("antrag", "sitzung", "gelesen_bis")),
         "bewerbungen": [
             {
                 "antrag": b.antrag_id,

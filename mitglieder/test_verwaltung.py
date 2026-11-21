@@ -1010,3 +1010,16 @@ def test_wartefrist_des_adresswechsels_folgt_einem_gueltigen_registerwert():
         defaults={'wert': '48', 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
     )
     assert Adresswechsel.wartefrist_stunden() == 48
+
+
+def test_seitengroesse_der_liste_kommt_aus_dem_register(client):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='verwaltung-liste-seitengroesse', defaults={'wert': '10', 'beschreibung': 'Test', 'quelle': 'Test'}
+    )
+    client.force_login(admin_anlegen())
+    _konten_anlegen(14)  # mit der Admina 15 Konten
+    html = client.get(reverse('mitglieder:verwaltung')).content.decode()
+    assert '10 von 15' in html and html.count('öffnen →') == 10
+    assert client.get(reverse('mitglieder:verwaltung'), {'seite': 2}).content.decode().count('öffnen →') == 5

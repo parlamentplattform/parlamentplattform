@@ -161,3 +161,45 @@ def test_gp175_nach_fristende_kein_handlungsknopf_sondern_auswertung(client, ord
     zeile = render_to_string("verfahren/_filter_zeile.html", {"z": z, "meine_unterstuetzungen": set()}, request=anfrage)
     assert "Frist abgelaufen, wird ausgewertet" in zeile and "Frist endet heute" not in zeile
     assert "/unterstuetzen/" not in zeile and ">Unterstützen<" not in zeile
+
+
+def test_e43_nach_dem_beratungsende_beginnt_die_abstimmung(client, ordnung):  # noqa: F811
+    """E-43 Zeile 2 (GP-175, Variante a): Nach dem Ende der Beratung wird nichts ausgewertet — der Phasenautomat
+    eröffnet die Abstimmung (§ 5 Abs 3 lit c). Kachel und Zeile sagen das; nach Unterstützung und Abstimmung bleibt
+    „Frist abgelaufen, wird ausgewertet“."""
+    from datetime import timedelta
+
+    from django.template.loader import render_to_string
+    from django.test import RequestFactory
+    from django.utils import timezone
+
+    from verfahren.views import _kachel
+
+    anna, antrag = _hervorgehoben(ordnung)
+    jetzt = timezone.now()
+    tage = antrag.policy().beratung_tage
+    Antrag.objects.filter(pk=antrag.pk).update(phase="beratung", phase_beginn=jetzt - timedelta(days=tage, hours=1))
+    client.force_login(anna)
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
+    assert "Die Abstimmung beginnt" in feld
+    assert "wird ausgewertet" not in feld and "Mitreden" not in feld
+
+    antrag.refresh_from_db()
+    anfrage = RequestFactory().get(reverse("verfahren:parlament"))
+    anfrage.user = anna
+    z = _kachel(antrag, jetzt, nutzer=anna)
+    assert z["frist_abgelaufen"] and z["abstimmung_beginnt"]
+    zeile = render_to_string("verfahren/_filter_zeile.html", {"z": z, "meine_unterstuetzungen": set()}, request=anfrage)
+    assert "Die Abstimmung beginnt" in zeile and "wird ausgewertet" not in zeile
+    # Vor dem Fristende: keine der beiden Angaben
+    z = _kachel(antrag, jetzt - timedelta(hours=2), nutzer=anna)
+    assert not z["frist_abgelaufen"] and not z["abstimmung_beginnt"]
+
+    # Abstimmung vorbei: Jetzt wird ausgezählt
+    tage = antrag.policy().abstimmung_tage
+    Antrag.objects.filter(pk=antrag.pk).update(phase="abstimmung", phase_beginn=jetzt - timedelta(days=tage, hours=1))
+    antrag.refresh_from_db()
+    z = _kachel(antrag, jetzt, nutzer=anna)
+    assert z["frist_abgelaufen"] and not z["abstimmung_beginnt"]
+    feld = _feld(client.get(reverse("verfahren:parlament")).content.decode(), "feld-wichtig")
+    assert "Frist abgelaufen, wird ausgewertet" in feld and "Die Abstimmung beginnt" not in feld

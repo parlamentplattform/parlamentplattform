@@ -80,3 +80,7 @@ was das heißt:
   `migrate --check` fehl, ohne dass etwas kaputt ist — dann nach dem Ausrollen wiederholen.
 - Die erste echte Probe ist erst möglich, wenn beide Secrets gesetzt sind; bis dahin ist die Probe auf
   der Demo-Datenbank geprobt und protokolliert (BETRIEB-RENDER › Sicherung).
+
+## Nachtrag 21.11.2026 (0.114.0)
+
+Titel und Text dieses ADR nennen eine tägliche Sicherung und 90 Tage Aufbewahrung. Gebaut und in Betrieb ist seit Langem etwas anderes: eine Sicherung je Kalendermonat, die 365 Tage bleibt (`verfahren/sicherung.py`, `AUFBEWAHRUNG_TAGE`). Die Datenschutzerklärung nennt seit 0.114.0 diese Werte; ein Test hält Text und Code zusammen. Der ursprüngliche Text bleibt als Protokoll der damaligen Entscheidung stehen.

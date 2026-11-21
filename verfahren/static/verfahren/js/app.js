@@ -429,7 +429,10 @@ document.addEventListener("alpine:init", function () {
   /* „Mehr vorhanden" (FB-A5): auf der <section class="feld">. Sobald der Feldkörper mehr enthält
      als sichtbar, erscheint unten die Pille „↓ n weitere" (n = Kacheln, Zeilen oder Bänder unter
      der Sichtkante) über einem weichen Verlauf; Klick rollt eine Feldhöhe weiter. Neu gerechnet
-     beim Rollen, bei Größenänderung und nach jedem htmx-Tausch (die Komponente entsteht dann neu). */
+     beim Rollen, bei Größenänderung und nach jedem htmx-Tausch (die Komponente entsteht dann neu).
+     E-43 Zeile 3: Der Fokus springt dabei auf das erste Ziel, das bisher unter der Sichtkante lag —
+     er verschwindet nicht mit der Pille, wenn das Feld am Ende ist. */
+  var FOKUSZIELE = "a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex='-1'])";
   Alpine.data("feldmehr", function () {
     return {
       rest: 0,
@@ -452,7 +455,14 @@ document.addEventListener("alpine:init", function () {
       },
       weiter: function () {
         var korpus = this.$root.querySelector(".feld-korpus");
-        if (korpus) korpus.scrollBy({ top: korpus.clientHeight - 24, behavior: reduziert() ? "auto" : "smooth" });
+        if (!korpus) return;
+        var kante = korpus.getBoundingClientRect().top + korpus.clientHeight - 2;
+        var ziel = Array.prototype.find.call(korpus.querySelectorAll(FOKUSZIELE), function (e) {
+          var r = e.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && r.top >= kante;
+        });
+        korpus.scrollBy({ top: korpus.clientHeight - 24, behavior: reduziert() ? "auto" : "smooth" });
+        if (ziel) ziel.focus({ preventScroll: true });
       }
     };
   });

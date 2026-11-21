@@ -91,8 +91,8 @@ F-50) braucht gar keinen Zugang.
 
 ## Betriebliches
 
-- **Sicherung und Wache (seit 0.52):** täglich außerhalb von Render, monatlich geprobt, `/gesund/` alle
-  15 Minuten — Abschnitt „Sicherung“ unten, ADR-012. Zusätzlich bleiben die Snapshots von Render-Postgres.
+- **Sicherung und Wache (seit 0.52):** einmal im Kalendermonat in ein privates GitHub-Repository außerhalb
+  von Render, monatlich geprobt, `/gesund/` alle 15 Minuten — Abschnitt „Sicherung“ unten, ADR-012. Zusätzlich bleiben die Snapshots von Render-Postgres.
 - **Fristen-Wächter (seit 0.50, D-J1a):** Phasenübergänge, Beschlussfristen, Aussetzungen, Parametertests und
   Stufe 2 der Vertrauensfrage wertet der Hintergrundfaden aus `gunicorn.conf.py` alle `DDOE_WAECHTER_MINUTEN`
   aus (`verfahren/hintergrund.py`, `manage.py verfahren_fortschreiben`), unter einer Datenbanksperre, sodass

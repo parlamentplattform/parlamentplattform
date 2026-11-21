@@ -532,6 +532,18 @@ def resttage(frist, jetzt) -> int | None:
     return (timezone.localdate(frist) - timezone.localdate(jetzt)).days
 
 
+def abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab) -> bool:
+    """E-43 Zeile 2 (GP-175): Ist die Frist um, und eröffnet der Phasenautomat als Nächstes die Abstimmung? So nach
+    der Beratung (§ 5 Abs 3 lit c) und bei einer Vertrauensfrage mit erreichter Schwelle, deren Abstimmungsbeginn
+    veröffentlicht ist (§ 7 Abs 10 lit e). Ausgewertet wird nur nach der Unterstützung (Schwelle erreicht oder
+    verfallen) und nach der Abstimmung (Auszählung)."""
+    if frist is None or frist > jetzt:
+        return False
+    return antrag.phase == Phase.BERATUNG.value or (
+        antrag.phase == Phase.UNTERSTUETZUNG.value and abstimmung_ab is not None
+    )
+
+
 def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehler=None, vfs=None, nutzer=None,
             lage=None):
     """Eine Kachel für P3/P4 (F-42/F-43, FB-D2): Thema mit eigenem Stern, Titel,
@@ -563,6 +575,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         vf.antrag = antrag  # dieselbe Instanz — `ergebnis_wort` liest die Phase ohne zweite Abfrage
     frist = _frist_fuer(antrag, policy, beginn, vf)
     rest = resttage(frist, jetzt)
+    abstimmung_ab = _vf_abstimmung_ab(vf, antrag, policy, beginn)
     # Ring: Anteil der bereits verstrichenen Phase (FB-D2 Punkt 4)
     verstrichen = None
     if frist and beginn:
@@ -614,9 +627,10 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "antrag": antrag,
         "frist": frist,
         "resttage": rest,
-        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt
-        # „wird ausgewertet“ und bietet keinen Knopf mehr, der nichts bewirken kann.
+        # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt, was
+        # als Nächstes geschieht, und bietet keinen Knopf mehr, der nichts bewirken kann.
         "frist_abgelaufen": frist is not None and frist <= jetzt,
+        "abstimmung_beginnt": abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab),
         "verstrichen": verstrichen,
         "stat": stat,
         "thema": thema,
@@ -624,7 +638,7 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         "meine_stimme": (meine_stimmen or {}).get(antrag.pk),
         "vertrauensfrage": vf,
         "legende": _vf_legende(vf),
-        "abstimmung_ab": _vf_abstimmung_ab(vf, antrag, policy, beginn),
+        "abstimmung_ab": abstimmung_ab,
         "unterstuetzen_erlaubt": (
             vf is None or (nutzer is not None and vertrauensfrage_unterstuetzen_erlaubt(nutzer, antrag))
         ),
@@ -1627,14 +1641,19 @@ def _register_zeilen():
     return zeilen
 
 
+#: Stand der Datenschutzerklärung = Tag der letzten Freigabe ihres Wortlauts durch den Gründer.
+DATENSCHUTZ_STAND = "20.11.2026"
+
+
 def datenschutz(request):
     """Die Datenschutzerklärung — eine Erklärseite wie /mitgliedschaft/, öffentlich und ohne Anmeldung.
 
-    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026)
-    und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
+    Der Text ist vom Gründer freigegeben (Bestandsaufnahme 28.9.2026, C3; Freigabe 29.9.2026;
+    Berichtigung GP-024, GP-161, GP-092 freigegeben 20.11.2026, E-27) und sagt nur, was der Code tut: Die Absätze zu KI-Anbieter und Kontoinformationsdienst
     erscheinen nur, wenn der jeweilige Dienst in dieser Instanz tatsächlich angeschlossen ist."""
     from ki.models import steckplatz_stand
     from mitglieder.bank import eingerichtet as bank_eingerichtet
+    from verfahren.sicherung import AUFBEWAHRUNG_TAGE
 
     ki = steckplatz_stand()
     return render(
@@ -1644,7 +1663,8 @@ def datenschutz(request):
             "ki_angeschlossen": ki["angeschlossen"],
             "ki_anbieter": ki["anbieter"],
             "bank_angeschlossen": bank_eingerichtet(),
-            "stand": "29.9.2026",
+            "sicherung_tage": AUFBEWAHRUNG_TAGE,
+            "stand": DATENSCHUTZ_STAND,
             "AKTIV": "datenschutz",
         },
     )

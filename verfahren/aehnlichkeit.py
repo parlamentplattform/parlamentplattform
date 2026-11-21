@@ -170,12 +170,22 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
     )
     nach_id = {a.pk: a for a in offene}
     jetzt = timezone.now()
-    for kid, wort, bedeutung in zeilen:
-        from verfahren.views import _frist_fuer, resttage
+    from verfahren.views import (
+        _frist_fuer,
+        _vertrauensfragen,
+        _vf_abstimmung_ab,
+        abstimmung_beginnt,
+        resttage,
+    )
 
+    # Vertrauensfragen enden ihre Sammelphase mit dem veröffentlichten Abstimmungsbeginn — wie Kachel und Zeile
+    vfs = _vertrauensfragen([nach_id[kid] for kid, _w, _b in zeilen])
+    for kid, wort, bedeutung in zeilen:
         antrag = nach_id[kid]
         rechtsbezug = rechtsbezug_fuer(antrag)
-        frist = _frist_fuer(antrag)
+        vf = vfs.get(antrag.pk)
+        beginn = antrag.wirksamer_phase_beginn(jetzt)
+        frist = _frist_fuer(antrag, beginn=beginn, vf=vf)
         ergebnis.treffer.append(
             {
                 "antrag": antrag,
@@ -185,6 +195,10 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
                 # GP-175: dieselbe Rechnung wie Kachel und Zeile (Wiener Kalendertage, 0 = endet heute)
                 "rest_tage": resttage(frist, jetzt),
                 "frist_abgelaufen": frist is not None and frist <= jetzt,
+                # E-43 Zeile 2: nach der Beratung beginnt die Abstimmung, ausgewertet wird dort nichts
+                "abstimmung_beginnt": abstimmung_beginnt(
+                    antrag, frist, jetzt, _vf_abstimmung_ab(vf, antrag, antrag.policy(), beginn)
+                ),
                 "normen": rechtsbezug["normen"] if rechtsbezug else [],
                 "rechtsbezug": rechtsbezug,
             }

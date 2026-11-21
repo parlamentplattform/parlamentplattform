@@ -33,6 +33,8 @@ from verfahren.models import Hintergrundlauf
 NAME = "sicherung"
 ZEITLIMIT = 600  # kürzer als die 15-Minuten-Reservierung
 VERSUCH_MINUTEN = 15
+#: So viele Tage bleibt jede Sicherung mit „art=monatlich“; die Datenschutzerklärung nennt diese Zahl.
+AUFBEWAHRUNG_TAGE = 365
 TAG = re.compile(r"ddoe-sicherung-\d{4}-\d{2}-\d{2}T(?:\d{4}|\d{6})Z\Z")
 log = logging.getLogger(__name__)
 
@@ -189,7 +191,7 @@ def _aufraeumen(github, releases, jetzt):
         zeittext = tag.removeprefix("ddoe-sicherung-")
         formatierung = "%Y-%m-%dT%H%MZ" if len(zeittext) == 16 else "%Y-%m-%dT%H%M%SZ"
         datum = datetime.strptime(zeittext, formatierung).replace(tzinfo=UTC)
-        frist = 365 if datum.day == 1 or "art=monatlich" in (r.get("body") or "") else 90
+        frist = AUFBEWAHRUNG_TAGE if datum.day == 1 or "art=monatlich" in (r.get("body") or "") else 90
         if jetzt - datum > timedelta(days=frist):
             github.api(f"/releases/{r['id']}", "DELETE")
             github.api(f"/git/refs/tags/{tag}", "DELETE")

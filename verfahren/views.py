@@ -26,6 +26,7 @@ from plattform_core.phases import (
     beratung_frist_ende,
     unterstuetzung_frist_ende,
 )
+from plattform_core.schema import offenes_format
 from plattform_core.teilnehmerkreis import WIENER_BEZIRKE
 from verfahren.models import (
     Antrag,
@@ -169,9 +170,19 @@ def _beteiligung_lesbar(antrag) -> dict | None:
     berechtigte = antrag.stimmberechtigte_anzahl
     if berechtigte == 0 and not oertlich_begrenzt(antrag):
         berechtigte = None
+    mindest = None
+    if berechtigte:
+        # GP-050: Die Mindestbeteiligung als Kopfzahl aus dem Kern — nur bei festgestelltem Nenner; im leeren
+        # örtlichen Kreis (0) gibt es keine Kopfzahl. Der Anteil mit dem Dezimalzeichen der Sprache.
+        from plattform_core.tally import mindeststimmen
+        from verfahren.templatetags.phasen import anteil_text
+
+        anteil = antrag.policy().mindestbeteiligung
+        mindest = {"stimmen": mindeststimmen(berechtigte, anteil), "prozent": anteil_text(anteil)}
     return {
         "abgegeben": abgegeben,
         "berechtigte": berechtigte,
+        "mindest": mindest,
         "prozent": min(100, round(100 * abgegeben / basis)) if berechtigte else None,
         "tendenz": tendenzen([antrag], {antrag.pk: abgegeben}).get(antrag.pk),
     }
@@ -357,9 +368,10 @@ def _neutraler_schluessel(antrag, frist):
     return neutral(antrag.phase, frist, antrag.phase_beginn, antrag.pk)
 
 
-#: D-B1a (Gründer 29.9.2026, Variante b): Höchstzahl der Zeilen je neutraler Gruppe des WeicherFilters und
-#: Seitengröße unter ?mehr=<gruppe> (GP-051). Registerwert folgt (vorgeschlagen: parlament-gruppe-hoechstzahl).
-GRUPPE_HOECHSTZAHL = 60
+def _gruppe_hoechstzahl() -> int:
+    """D-B1a (Gründer 29.9.2026, Variante b): Höchstzahl der Zeilen je neutraler Gruppe des WeicherFilters und
+    Seitengröße unter ?mehr=<gruppe> (GP-051) — Registerwert `parlament-gruppe-hoechstzahl`, 0 = alle."""
+    return zahl("parlament-gruppe-hoechstzahl", 60)
 
 #: Die Gruppen, die ?mehr= seitenweise zeigt — die neutralen Gruppen und die eigenen gemerkten Anträge.
 MEHR_GRUPPEN = ("abstimmung", "wartezeit", "beratung", "unterstuetzung", "abgeschlossen", "gemerkt")
@@ -393,7 +405,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
     Gruppen nach Phase und Frist; in beiden stehen Favoriten zuerst, wenn der Schalter steht.
     Jede Zeile trägt, was auch die Kachel weiß (Stand, Frist, Thema, eigene Stimme).
 
-    D-B1a (GP-051): Jede neutrale Gruppe zeigt höchstens `GRUPPE_HOECHSTZAHL` Zeilen (Abgeschlossen:
+    D-B1a (GP-051): Jede neutrale Gruppe zeigt höchstens `parlament-gruppe-hoechstzahl` Zeilen (Abgeschlossen:
     `kacheln-abgeschlossen`) und nennt ihre Gesamtzahl; `mehr` (eine der `MEHR_GRUPPEN`) zeigt statt
     des Feeds genau diese Gruppe seitenweise, auch bei gestellten Reglern. „gemerkt“ sind die Anträge
     mit dem Stern des Mitglieds (GP-052); `gemerkt_ids` reicht das Parlament herein.
@@ -491,7 +503,7 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
         else:
             titel, liste = laufende_gruppen[mehr]
             gesamt = len(liste)
-        teil = seite_rechnen(gesamt, GRUPPE_HOECHSTZAHL, seite)
+        teil = seite_rechnen(gesamt, _gruppe_hoechstzahl(), seite)
         von, bis = teil.von - 1, teil.bis
         if mehr == "abgeschlossen":
             gezeigt = abgeschlossen_laden(abgeschlossen_qs.prefetch_related(_mit_pfad())[von:bis])
@@ -504,7 +516,8 @@ def _weicherfilter_feed(nutzer, antraege, laufend, jetzt, abo_ids, meine_stimmen
             "mehr": {"schluessel": mehr, "titel": titel, "zeilen": zeilen_aus(gezeigt), "seite": teil},
         }
 
-    hoechst = GRUPPE_HOECHSTZAHL if GRUPPE_HOECHSTZAHL >= 1 else None
+    hoechst = _gruppe_hoechstzahl()
+    hoechst = hoechst if hoechst >= 1 else None
     gruppen = [
         {"schluessel": schluessel, "titel": titel, "zeilen": zeilen_aus(liste[:hoechst]), "gesamt": len(liste)}
         for schluessel, (titel, liste) in laufende_gruppen.items()
@@ -724,6 +737,11 @@ def _kachel(antrag, jetzt, meine_stimmen=None, abo_ids=None, beginn=None, zaehle
         # GP-175: Die Frist ist um, der Phasenautomat hat noch nicht fortgeschrieben — die Kachel sagt, was
         # als Nächstes geschieht, und bietet keinen Knopf mehr, der nichts bewirken kann.
         "frist_abgelaufen": frist is not None and frist <= jetzt,
+        # GP-138: Hält die Gegenprobe die Feststellung an, sagt die Kachel das statt „wird ausgewertet“
+        "angehalten": antrag.phase == Phase.ABSTIMMUNG.value
+        and frist is not None
+        and frist <= jetzt
+        and antrag.auszaehlung_angehalten() is not None,
         "abstimmung_beginnt": abstimmung_beginnt(antrag, frist, jetzt, abstimmung_ab),
         "verstrichen": verstrichen,
         "stat": stat,
@@ -852,7 +870,9 @@ def _meine_favoriten(nutzer) -> set[int]:
 def _kategorien_suchen(suchtext: str, nutzer) -> tuple[list[dict], int]:
     """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
     Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
-    Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
+    Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort.
+    Gesucht wird im deutschen und im angezeigten Namen (GP-139), gereiht nach dem angezeigten."""
+    from verfahren.templatetags.lebensbereiche import anzeigename
     from verfahren.views_aktionen import _laufend_je_ast
 
     abonniert: set[int] = set()
@@ -866,13 +886,14 @@ def _kategorien_suchen(suchtext: str, nutzer) -> tuple[list[dict], int]:
     for k in Kategorie.objects.filter(aktiv=True).select_related("eltern__eltern__eltern__eltern__eltern"):
         if (
             norm in k.name.casefold()
+            or norm in anzeigename(k.name).casefold()
             or norm in k.beschreibung.casefold()
             or any(norm in wort.casefold() for wort in k.schlagworte)
         ):
             treffer.append(
                 {"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert}
             )
-    treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
+    treffer.sort(key=lambda t: (t["k"].tiefe, anzeigename(t["k"].name)))
     # Mit Gesamtzahl (GP-074): Die Suche schneidet nicht still ab
     return treffer[: max(zahl("suche-treffer-hoechstzahl", 24), 0)], len(treffer)
 
@@ -896,7 +917,7 @@ def _ast_lage(zeilen, fokus_slug, laufende, beginne, vfs, seite_nr):
         offen.extend(kinder.get(k, []))
     treffer = [a for a in laufende if any(k.pk in ids for k in a.kategorien.all())]
     treffer.sort(key=lambda a: _neutraler_schluessel(a, _frist_fuer(a, a.policy(), beginne.get(a.pk), vfs.get(a.pk))))
-    teil = seite(len(treffer), GRUPPE_HOECHSTZAHL, seite_nr)
+    teil = seite(len(treffer), _gruppe_hoechstzahl(), seite_nr)
     return {"slug": fokus["slug"], "zeilen": treffer[teil.von - 1 : teil.bis], "seite": teil}
 
 
@@ -928,6 +949,7 @@ def parlament(request):
     # Klick eine Seite, mit htmx wechselt nur das Feld.
     from plattform_core.faecher import faecher_layout
     from verfahren.hinweise import handlungslage, hinweis_lage
+    from verfahren.templatetags.lebensbereiche import anzeigename
 
     zeilen = list(
         Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id", "reihenfolge")
@@ -935,6 +957,8 @@ def parlament(request):
     for zeile in zeilen:  # die Wurzel heißt im Fächer schlicht „Lebensbereiche"
         if zeile["eltern_id"] is None:
             zeile["name"] = str(_("Lebensbereiche"))
+        else:  # die übrigen in der Sprache der Seite (GP-139)
+            zeile["name"] = anzeigename(zeile["name"])
     abo_slugs = (
         set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
         if request.user.is_authenticated
@@ -1375,7 +1399,9 @@ def meldungen(request):
     from verfahren.models import Kommentar, Meldung
 
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        from mitglieder.anmeldeziel import zur_anmeldung
+
+        return zur_anmeldung(request)  # GP-100: mit der Seite als Ziel
     if not request.user.hat_adminrechte:
         return render(request, "mitglieder/verwaltung_kein_zugang.html", status=403)
     offene = Meldung.objects.filter(erledigt_am__isnull=True).order_by("erstellt_am")
@@ -1476,15 +1502,19 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
     vorlage = antrag.aktueller_text()
     wortlaut = fassung.wortlaut if fassung else ""
     teile = wortdiff.vergleichen(vorlage.wortlaut if vorlage else "", wortlaut)
+    # GP-003: Zwischen abgelaufener Schleifenfrist und Beratungsende nennt die Zone den Beginn der
+    # Endabstimmung und den zum Fristende festgestellten Stand — keine Frist in der Vergangenheit.
+    warte = entwurf.endabstimmung_wartet()
     return {
         "abstimmung": {
             "entwurf": entwurf,
             "vorschlag": fassung,
             "frist": entwurf.review_frist,
+            "endabstimmung_ab": warte["ab"] if warte else None,
             "diff": teile,
             "diff_stand": wortdiff.zusammenfassung(teile),
             "absaetze": wortdiff.absaetze(wortlaut),
-            "stand": chatkern.abstimmung_stand(antrag, entwurf),
+            "stand": warte["stand"] if warte else chatkern.abstimmung_stand(antrag, entwurf),
             "reihung": vorschlagschat.REIHUNG,
             "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         }
@@ -1646,6 +1676,44 @@ def _verfall_lage(antrag, policy, unterstuetzungen: int, vertrauensfrage) -> dic
     }
 
 
+def _angehalten_lesbar(antrag) -> dict | None:
+    """GP-138: Der Befund einer angehaltenen Auszählung als Zeilen mit Zahlen — statt des Texts zur
+    bevorstehenden Feststellung. Nur Zahlen aus dem Audit-Ereignis, keine Namen und keine Pseudonyme."""
+    if antrag.phase != Phase.ABSTIMMUNG.value:
+        return None
+    halt = antrag.auszaehlung_angehalten()
+    if halt is None:
+        return None
+    from plattform_core.tally import EREIGNISSE_WEICHEN_AB, OHNE_REGISTERZEILE, UEBERZAHL
+
+    zeilen = {
+        OHNE_REGISTERZEILE: _("Stimmzettel ohne Registerzeile: %(n)s") % {"n": halt.get("ohne_registerzeile")},
+        UEBERZAHL: _("Stimmen: %(stimmen)s, festgestellte Stimmberechtigte: %(n)s")
+        % {"stimmen": halt.get("waehler"), "n": halt.get("stimmberechtigte")},
+        EREIGNISSE_WEICHEN_AB: _("Stimmzettel: %(zettel)s, Stimm-Ereignisse in der Audit-Kette: %(ereignisse)s")
+        % {"zettel": halt.get("stimmzettel"), "ereignisse": halt.get("stimmereignisse")},
+    }
+    return {"befunde": [zeilen[k] for k in halt.get("abweichungen") or [] if k in zeilen]}
+
+
+def _ergebnis_mit_ueberzahl(antrag) -> bool:
+    """GP-138: Ob das Ergebnis-Ereignis die Abweichung „mehr Stimmen als festgestellte Stimmberechtigte“
+    trägt — die Ergebnisanzeige nennt sie dann in einem Satz. Ältere Ergebnisse tragen kein solches Feld."""
+    from plattform_core.tally import UEBERZAHL
+    from verfahren.models import AuditEintrag
+
+    eintrag = (
+        AuditEintrag.objects.filter(
+            ereignis__antrag=antrag.pk,
+            ereignis__typ="phasenwechsel",
+            ereignis__neue_phase__in=[Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value],
+        )
+        .order_by("-lfd")
+        .first()
+    )
+    return eintrag is not None and UEBERZAHL in ((eintrag.ereignis or {}).get("abweichungen") or [])
+
+
 def _handlungssperren(antrag, nutzer) -> dict:
     """GP-070: Dieselbe Rechnung wie Kachel und Feed (`handlungslage`) für die Formulare der Antragsseite —
     wer nicht handeln darf, sieht statt des Knopfs den Grund samt Link, denselben wie im Parlament.
@@ -1691,6 +1759,8 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     ergebnis = None
     if beendet and antrag.art != Antragsart.MANDAT:
         ergebnis = antrag.auszaehlen()
+    angehalten = _angehalten_lesbar(antrag)  # GP-138
+    ueberzahl = beendet and _ergebnis_mit_ueberzahl(antrag)
 
     # Mandats-Kandidatur (§ 7 Abs 1, F-70): Bewerbungen, eigene Zustimmungen, Ergebnis
     kandidatur = None
@@ -1727,7 +1797,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "meine_zustimmungen": meine_zustimmungen,
             "bewerben_offen": antrag.phase
             in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
-            "zustimmen_offen": antrag.phase == Phase.ABSTIMMUNG.value,
+            "zustimmen_offen": antrag.phase == Phase.ABSTIMMUNG.value and angehalten is None,
             "wahl": wahl,
             "ergebnis_zeilen": ergebnis_zeilen,
         }
@@ -1856,8 +1926,10 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "sperren": sperren,
             "meine_stimme": meine_stimme,
             "phase_offen": antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
-            "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value,
+            "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value and angehalten is None,
             "beteiligung": _beteiligung_lesbar(antrag),
+            "angehalten": angehalten,
+            "ueberzahl": ueberzahl,
         },
     )
 
@@ -1930,8 +2002,9 @@ def datenschutz(request):
     )
 
 
-#: Einträge je Seite des Umsetzungsregisters (GP-191) — Registerwert folgt (vorgeschlagen: umsetzung-seite-hoechstzahl).
-REGISTER_SEITE = 50
+def _register_seite() -> int:
+    """Einträge je Seite des Umsetzungsregisters (GP-191) — Registerwert `umsetzung-seite-hoechstzahl`, 0 = alle."""
+    return zahl("umsetzung-seite-hoechstzahl", 50)
 
 
 def umsetzung(request):
@@ -1950,7 +2023,7 @@ def umsetzung(request):
     # GP-191: seitenweise mit Gesamtzahl, ohne JavaScript; die Wahl des Standes bleibt beim Blättern erhalten
     from plattform_core.parlamentlisten import seite as seite_rechnen
 
-    teil = seite_rechnen(len(zeilen), REGISTER_SEITE, ganze_zahl(request.GET.get("seite")))
+    teil = seite_rechnen(len(zeilen), _register_seite(), ganze_zahl(request.GET.get("seite")))
     zeilen = zeilen[teil.von - 1 : teil.bis]
     nutzer = request.user
     return render(
@@ -1971,6 +2044,7 @@ def umsetzung(request):
     )
 
 
+@offenes_format  # GP-199: öffentlich, ohne Anmeldung dasselbe
 def umsetzung_json(request):
     """F-23: das Umsetzungsregister maschinenlesbar — Stand und volle Historie."""
     daten = [
@@ -2249,3 +2323,43 @@ def zukunftswerkstatt(request):
             "auftragsversionen": auftragsversionen(),
         },
     )
+
+
+def _archivierte_laeufe():
+    """Das öffentliche Lauf-Archiv (GP-149): alle Läufe außer den privaten Vorabvergleichen,
+    nach Laufnummer absteigend — dieselbe Reihenfolge auf jeder Seite."""
+    from ki.models import KILauf, Zweck
+
+    return KILauf.objects.exclude(zweck=Zweck.GEGENUEBERSTELLUNG).order_by("-pk")
+
+
+def _laeufe_je_seite():
+    return max(1, zahl("ki-laeufe-je-seite", 50))
+
+
+@require_safe
+def laeufe(request):
+    """GP-149: seitenweise Liste aller archivierten Läufe mit Nummer und Anker `#lauf-<n>`. Sie zeigt
+    je Lauf dieselben Angaben wie die letzten Läufe der Werkstattseite: Zweck, Antrag, Modell,
+    Auftragsfassung, Verbrauch, Dauer, Zeit, öffentlicher Fehler und Textstand."""
+    from django.core.paginator import Paginator
+
+    from ki.nachlese import textstand
+
+    # Eingabe und Antwort zeigt die Liste nicht; sie werden auch nicht geladen.
+    liste = _archivierte_laeufe().select_related("antrag").defer("eingabe", "antwort")
+    seite = Paginator(liste, _laeufe_je_seite()).get_page(request.GET.get("seite"))
+    for lauf in seite.object_list:
+        lauf.textstand = textstand(lauf)
+    return render(request, "verfahren/laeufe.html", {"seite": seite})
+
+
+@require_safe
+def lauf(request, nummer):
+    """Die Laufnummer einer Einschätzung: leitet auf die Archivseite mit diesem Lauf und seinen Anker."""
+    archiv = _archivierte_laeufe()
+    if not archiv.filter(pk=nummer).exists():
+        raise Http404
+    davor = archiv.filter(pk__gt=nummer).count()
+    ziel = reverse("verfahren:laeufe") + f"?seite={davor // _laeufe_je_seite() + 1}#lauf-{nummer}"
+    return redirect(ziel)

@@ -23,7 +23,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <dd>{% if einschaetzung.lauf %}{{ einschaetzung.lauf.erstellt_am|date:"d.m.Y, H:i" }}{% else %}{% translate "noch kein Lauf" %}{% endif %}</dd>
     {% if einschaetzung.lauf %}
     <dt>{% translate "Lauf" %}</dt>
-    <dd>#{{ einschaetzung.lauf.pk }} · <a href="{% url 'verfahren:zukunftswerkstatt' %}">{% translate "Lauf-Archiv" %}</a></dd>
+    <dd>{% if einschaetzung.lauf.pk %}<a href="{% url 'verfahren:lauf' einschaetzung.lauf.pk %}">#{{ einschaetzung.lauf.pk }}</a> · {% endif %}<a href="{% url 'verfahren:laeufe' %}">{% translate "Lauf-Archiv" %}</a></dd>
     {% endif %}
   </dl>
   {% if user.is_authenticated %}
@@ -93,7 +93,7 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <dl class="lauf-daten">
       <dt>{% translate "Unsicherheit" %}</dt><dd>{{ e.unsicherheit_wort }}</dd>
       <dt>{% translate "Modell" %}</dt><dd>{{ e.modell }} · {{ e.auftrag_version }}</dd>
-      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:zukunftswerkstatt' %}#steckplatz">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
+      <dt>{% translate "Stand" %}</dt><dd>{{ e.stand|date:"d.m.Y, H:i" }}{% if e.fassung %} · {% blocktranslate with n=e.fassung %}zu Fassung {{ n }}{% endblocktranslate %}{% if e.frueher %} <span class="badge badge-warn">{% translate "zu einer früheren Fassung" %}</span>{% endif %}{% endif %} · <a href="{% url 'verfahren:lauf' e.lauf.pk %}">{% translate "Lauf" %} #{{ e.lauf.pk }}</a></dd>
     </dl>
     {% include "verfahren/_ki_textstand.html" with textstand=e.textstand eingabe=e.lauf.eingabe %}
     <p class="kennzeichnung">{% translate "KI-Vorschlag — rechtliche Deutung nicht verifiziert, keine Rechtsberatung, keine Wirkung auf das Verfahren." %}</p>

@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n phasen %}
+{% load i18n phasen lebensbereiche %}
 {% block titel %}{{ antrag.titel }}{% endblock %}
 {% block mainklasse %}breit{% endblock %}
 {% block inhalt %}
@@ -15,10 +15,10 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="zurueck"><a href="{% url 'verfahren:parlament' %}">&larr; {% translate "Parlament" %}</a></p>
   <h1>{{ antrag.titel }}</h1>
   <div class="a-chips">
-    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% elif vertrauensfrage.ist_bestaetigung and antrag.phase == "unterstuetzung" %}{# § 7 Abs 10 lit f Z 3: keine Unterstützungsphase — die Wartezeit bis zum siebten Tag #}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ antrag.phase|phase_name }}{% endif %}</span>
+    <span class="badge b-{{ antrag.phase }}">{% if vertrauensfrage.ergebnis_wort %}{{ vertrauensfrage.ergebnis_wort }}{% elif vertrauensfrage.ist_bestaetigung and antrag.phase == "unterstuetzung" %}{# § 7 Abs 10 lit f Z 3: keine Unterstützungsphase — die Wartezeit bis zum siebten Tag #}{% translate "Wartezeit bis zur Abstimmung" %}{% else %}{{ antrag|antrag_phase }}{% endif %}</span>
     {% if antrag.art == "mandat" %}<span class="chip klein">{% translate "Mandats-Kandidatur" %}</span>{% elif antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if vertrauensfrage.ist_bestaetigung %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if antrag.ebene != "bund" %}<span class="chip klein">{{ antrag.get_ebene_display }}{% if antrag.gebiet %} · {{ antrag.gebiet }}{% endif %}</span>{% endif %}
-    {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k.pfad_kurz }}">{{ k.name }}</a>{% endfor %}
+    {% for k in antrag.kategorien.all %}<a class="chip klein" href="{% url 'verfahren:parlament' %}?fach={{ k.slug }}#feld-favoriten" title="{{ k|lb_pfad_kurz }}">{{ k|lb_name }}</a>{% endfor %}
     <span class="a-stern">{% include "verfahren/_stern.html" with antrag=antrag %}</span>
   </div>
   {% if oertlicher_teilnehmerkreis %}
@@ -256,6 +256,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     <div class="karte handlung" id="abstimmen">
       <h3>{% translate "Abstimmen" %}</h3>
       {% if beteiligung %}<p class="meta">{% blocktranslate with abgegeben=beteiligung.abgegeben berechtigte=beteiligung.berechtigte|default_if_none:"–" %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}{% if beteiligung.prozent is not None %} ({{ beteiligung.prozent }} % {% translate "Beteiligung" %}){% endif %} · {% include "verfahren/_tendenz.html" with tendenz=beteiligung.tendenz %}</p>{% endif %}
+      {% if beteiligung.mindest %}<p class="meta">{% blocktranslate with prozent=beteiligung.mindest.prozent von=beteiligung.berechtigte count n=beteiligung.mindest.stimmen %}Mindestbeteiligung: {{ n }} Stimme ({{ prozent }} % von {{ von }}){% plural %}Mindestbeteiligung: {{ n }} Stimmen ({{ prozent }} % von {{ von }}){% endblocktranslate %}</p>{% endif %}
       {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
       {% if sperren.stimme %}
         {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}
@@ -275,10 +276,19 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     </div>
     {% endif %}
 
+    {% if angehalten %}
+    {# GP-138: Die Gegenprobe hält die Feststellung an — der Befund mit Zahlen statt der bevorstehenden Auswertung #}
+    <div class="karte handlung" id="auszaehlung-angehalten">
+      <h3>{% translate "Auszählung angehalten" %}</h3>
+      <p><strong>{% translate "Die Stimmliste besteht die Gegenprobe nicht; es wird kein Ergebnis festgestellt." %}</strong></p>
+      <ul>{% for befund in angehalten.befunde %}<li>{{ befund }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
     {% if kandidatur.wahl %}
     <div class="karte handlung">
       <h3>{% translate "Ergebnis" %}</h3>
-      <p><strong>{{ kandidatur.wahl.begruendung }}</strong></p>
+      <p><strong>{{ kandidatur.wahl|ergebnis_satz }}</strong></p>
       <div class="tabelle-rollt"><table class="tabelle">
         <thead><tr><th>{% translate "Platz" %}</th><th>{% translate "Bewerbung" %}</th><th>{% translate "Zustimmungen" %}</th></tr></thead>
         <tbody>
@@ -288,6 +298,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
         </tbody>
       </table></div>
       <p>{% translate "Beteiligung" %} {{ kandidatur.wahl.beteiligung }} / {{ kandidatur.wahl.stimmberechtigte }} {% translate "Stimmberechtigte" %}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=kandidatur.wahl.beteiligung n=kandidatur.wahl.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a>{% if user.is_authenticated %} · <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>{% endif %}{% if wahlvorschlag_url %} · <a href="{{ wahlvorschlag_url }}">{% translate "Reihung als Wahlvorschlag (Markdown)" %}</a>{% endif %}</p>
     </div>
     {% endif %}
@@ -298,12 +309,13 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       {% if vertrauensfrage.ergebnis_wort %}
       {# § 7 Abs 10 lit e: verloren, wenn angenommen — sonst gewonnen, auch bei verfehlter Mindestbeteiligung; die Auszählung bleibt dieselbe #}
       <p><strong>{{ vertrauensfrage.ergebnis_wort }}</strong></p>
-      <p class="erk">{% translate "Auszählung:" %} {{ ergebnis.begruendung }}</p>
+      <p class="erk">{% translate "Auszählung:" %} {{ ergebnis|ergebnis_satz }}</p>
       <p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>
       {% else %}
-      <p><strong>{{ ergebnis.begruendung }}</strong></p>
+      <p><strong>{{ ergebnis|ergebnis_satz }}</strong></p>
       {% endif %}
       <p>{% translate "Ja" %} {{ ergebnis.ja }} · {% translate "Nein" %} {{ ergebnis.nein }} · {% translate "Enthaltung" %} {{ ergebnis.enthaltung }} · {% translate "Stimmberechtigte" %} {{ ergebnis.stimmberechtigte }}</p>
+      {% if ueberzahl %}<p class="erk">{% blocktranslate with stimmen=ergebnis.abgegeben n=ergebnis.stimmberechtigte %}Mehr Stimmen als festgestellte Stimmberechtigte ({{ stimmen }} zu {{ n }}); die Abweichung ist mit dem Ergebnis in der Audit-Kette ausgewiesen.{% endblocktranslate %}</p>{% endif %}
       <p class="hilfe">{% translate "Nachrechnen:" %} <a href="{% url 'verfahren:export' antrag.pk %}">{% translate "Stimmliste exportieren" %}</a> {% blocktranslate %}und mit <code>verify/nachrechnen.py</code> unabhängig prüfen (§ 5 Abs 8).{% endblocktranslate %}{% if user.is_authenticated %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Meine Stimme in der Liste finden" %}</a>.{% endif %}</p>
     </div>
     {% endif %}

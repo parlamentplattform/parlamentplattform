@@ -219,7 +219,7 @@ oben führt hin. Alles ohne JavaScript: der Diff ist ein Link, der Absatzbezug e
     {% for b in beitraege %}
     <div class="zeile"><span><strong>{{ b.mitglied.anzeigename }}</strong> <span class="meta">{{ b.erstellt_am|date:"d.m.Y H:i" }}</span>
       {% if b.absatz %}<span class="etikett kritik">{% blocktranslate with n=b.absatz %}Absatz {{ n }}{% endblocktranslate %}</span>{% endif %}
-      {% if b.ki_lauf %}<span class="ki-kennzeichen" title="{% translate 'Aus dem Modell-Steckplatz — jeder Lauf steht im öffentlichen Archiv.' %}">{% translate "KI-Vorschlag" %} · {{ b.ki_lauf.modell }}</span>{% endif %}
+      {% if b.ki_lauf %}<span class="ki-kennzeichen" title="{% translate 'Aus dem Modell-Steckplatz — im öffentlichen Lauf-Archiv stehen Zweck, Modell, Verbrauch und Zeit dieses Laufs, nicht Eingabe und Antwort.' %}">{% translate "KI-Vorschlag" %} · {{ b.ki_lauf.modell }} · <a href="{% url 'verfahren:lauf' b.ki_lauf.pk %}">{% translate "Lauf" %} #{{ b.ki_lauf.pk }}</a></span>{% endif %}
       <br><span style="white-space:pre-line">{{ b.text }}</span></span></div>
     {% empty %}
     <p class="leer">{% translate "Noch keine Beiträge." %}</p>

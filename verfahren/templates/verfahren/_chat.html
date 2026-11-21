@@ -21,7 +21,7 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
   <div class="vorschlagskopf">
     <h3>{% blocktranslate with n=a.entwurf.runde %}Vorschlag des Expertenrats — Runde {{ n }}{% endblocktranslate %}</h3>
     <p class="meta">
-      {% if a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
+      {% if a.endabstimmung_ab %}{% blocktranslate with ab=a.endabstimmung_ab|date:"d.m.Y H:i" %}Endabstimmung ab {{ ab }}{% endblocktranslate %} · {% elif a.frist %}{% blocktranslate with frist=a.frist|date:"d.m.Y H:i" %}Beratung bis {{ frist }}{% endblocktranslate %} · {% endif %}
       <a href="{% url 'parameter:regeln' %}#regel-vorschlagschat">{% blocktranslate with r=a.reihung %}Reihung: Engagement, Regel {{ r }}{% endblocktranslate %}</a>
       {# GP-077: Die Anzeige lässt sich chronologisch schalten — ein Link, ohne JavaScript; die Auswertung bleibt dieselbe #}
       · {% if chat.zeitfolge %}<a href="{% url 'verfahren:antrag' antrag.pk %}#chat-faden">{% translate "Nach Engagement zeigen" %}</a>{% else %}<a href="{% url 'verfahren:antrag' antrag.pk %}?reihung=zeit#chat-faden">{% translate "Chronologisch zeigen" %}</a>{% endif %}

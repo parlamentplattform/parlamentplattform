@@ -181,7 +181,7 @@ fehlt, steht offen da.{% endblocktranslate %}</p>
   {% for a in wichtige %}
   <div class="zeile">
     <span><a href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-      <br><span class="meta">{{ a.phase|phase_name }}</span></span>
+      <br><span class="meta">{{ a|antrag_phase }}</span></span>
     {% include "verfahren/_stern.html" with antrag=a %}
   </div>
   {% endfor %}

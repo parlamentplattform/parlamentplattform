@@ -29,6 +29,7 @@ from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus, Wohnsitzart
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
+from plattform_core.schema import offenes_format
 from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, GebietsFehler
 from verfahren.aehnlichkeit import aehnliche_antraege
 from verfahren.einbringwahl import (
@@ -89,10 +90,6 @@ from verfahren.teilnahme import (
 )
 
 OFFENE_PHASEN = [Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value, Phase.ABSTIMMUNG.value]
-
-#: Beanstandungen je Konto und Kalenderstunde (GP-084) — Registerwert folgt („beanstandung-je-stunde“);
-#: bis dahin gilt diese Vorgabe. Großzügig gewählt: Sie trifft das Fluten, nicht das Mitreden.
-BEANSTANDUNGEN_JE_STUNDE = 10
 
 def nebenwohnsitz_zaehlt() -> bool:
     """Stellgröße `region-nebenwohnsitz-zaehlt` (§ 14 Abs 3): Nur der Wert 1 schaltet ein, alles
@@ -377,7 +374,9 @@ def einbringen(request):
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
                 _zukunftswerkstatt_beauftragen(antrag, request.user, pruefung)
-            namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            from verfahren.templatetags.lebensbereiche import anzeigepfad
+
+            namen = ", ".join(anzeigepfad(k) for k in zugeordnet)  # in der Sprache der Seite (GP-139)
             if antrag.ebene != Ebene.BUND and antrag.gebiet:
                 # Die Meldung nennt das Gebiet, in dem der Antrag nun gilt (GP-170)
                 if zugeordnet:
@@ -792,15 +791,16 @@ def melden(request, pk, beitrag_pk):
     grund = request.POST.get("grund", "")
     if grund not in Meldung.Grund.values:
         return _chat_antwort(request, antrag, f"k-{beitrag.pk}", fehler=_chat_fehler(_("Bitte einen Grund wählen.")))
-    meldung, neu = Meldung.objects.get_or_create(
-        kommentar=beitrag,
-        mitglied=request.user,
-        defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
-    )
-    if neu:
-        AuditEintrag.anhaengen(
-            {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+    with transaction.atomic():  # GP-129: Meldung und Eintrag gemeinsam oder gar nicht
+        meldung, neu = Meldung.objects.get_or_create(
+            kommentar=beitrag,
+            mitglied=request.user,
+            defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
         )
+        if neu:
+            AuditEintrag.anhaengen(
+                {"typ": "beitrag_gemeldet", "antrag": antrag.pk, "beitrag": beitrag.pk, "grund": grund}
+            )
     return _chat_antwort(request, antrag, f"k-{beitrag.pk}", erfolg=_("Danke — die Meldung liegt der Verwaltung vor."))
 
 
@@ -1033,8 +1033,10 @@ def beanstanden(request, pk):
     # öffentlich stehen — ein einzelnes Konto soll die Zone nicht füllen können (GP-084).
     from mitglieder.botschutz import drossel_zuviel
 
-    grenze = max(0, zahl("beanstandung-je-stunde", BEANSTANDUNGEN_JE_STUNDE))
-    if drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
+    # Registerwert `beanstandung-je-stunde` je Konto und Kalenderstunde: 0 heißt keine Grenze und sperrt nie
+    # (ausgeliefert ausgeschaltet, Zahl offen: E-13.4); ab 1 drosselt der Wert.
+    grenze = zahl("beanstandung-je-stunde", 0)
+    if grenze >= 1 and drossel_zuviel(None, "beanstandung", grenze, kennung=f"konto:{request.user.pk}"):
         messages.error(request, ngettext(
             "Höchstens eine Beanstandung je Stunde — bitte später noch einmal.",
             "Höchstens %(n)s Beanstandungen je Stunde — bitte später noch einmal.",
@@ -1257,13 +1259,14 @@ def bewerbung_zurueckziehen(request, pk):
         return redirect("verfahren:antrag", pk=pk)
     bewerbung = antrag.bewerbungen.filter(mitglied=request.user, zurueckgezogen=False).first()
     if bewerbung:
-        bewerbung.zurueckgezogen = True
-        bewerbung.save(update_fields=["zurueckgezogen"])
         from verfahren.models import AuditEintrag
 
-        AuditEintrag.anhaengen(
-            {"typ": "bewerbung_zurueckgezogen", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
-        )
+        with transaction.atomic():  # GP-129: Rückzug und Eintrag gemeinsam oder gar nicht
+            bewerbung.zurueckgezogen = True
+            bewerbung.save(update_fields=["zurueckgezogen"])
+            AuditEintrag.anhaengen(
+                {"typ": "bewerbung_zurueckgezogen", "antrag": antrag.pk, "bewerbung": bewerbung.pk}
+            )
         messages.info(request, _("Ihre Bewerbung ist zurückgezogen — das bleibt öffentlich dokumentiert."))
     return redirect("verfahren:antrag", pk=pk)
 
@@ -1303,6 +1306,7 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     return redirect("verfahren:antrag", pk=pk)
 
 
+@offenes_format  # GP-199: öffentlich, ohne Anmeldung dasselbe
 def export_json(request, pk):
     """F-21/F-23: maschinenlesbarer Export zum unabhängigen Nachrechnen —
     kompatibel mit verify/nachrechnen.py. Erst nach Abstimmungsende verfügbar,
@@ -1380,7 +1384,9 @@ def eigene_stimme(request, pk):
     (F-21: 'meine Stimme steht korrekt in der Liste')."""
     antrag = get_object_or_404(Antrag, pk=pk)
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        from mitglieder.anmeldeziel import zur_anmeldung
+
+        return zur_anmeldung(request)  # GP-100: mit der Seite als Ziel
     if request.user.adresswechsel_offen:
         # F-51: Bis die Adressänderung entschieden ist, bleibt das Pseudonym verborgen — sonst
         # erreichte eine Kontoübernahme genau das, was das Stimmgeheimnis schützt.
@@ -1498,18 +1504,21 @@ def kategorie_abonnieren(request, slug):
         KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
     weiter = request.POST.get("weiter", "")
     weiter = weiter_ohne_hinweis(weiter) if sicherer_pfad(weiter) else reverse("verfahren:parlament")
+    from verfahren.templatetags.lebensbereiche import anzeigename
+
+    name = anzeigename(kategorie.name)  # in der Sprache der Seite (GP-139)
     if request.headers.get("HX-Request"):
         # FB-C4: mit htmx wechselt nur der Stern selbst — kein Feldtausch, keine Flash-Meldung
         return render(
             request,
             "verfahren/_kategorie_stern.html",
-            {"slug": slug, "name": kategorie.name, "abonniert": neu, "weiter": weiter},
+            {"slug": slug, "name": name, "abonniert": neu, "weiter": weiter},
         )
     if neu:
         messages.success(
             request,
-            _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % kategorie.name,
+            _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % name,
         )
     else:
-        messages.info(request, _("Favorit „%s“ entfernt.") % kategorie.name)
+        messages.info(request, _("Favorit „%s“ entfernt.") % name)
     return redirect(weiter)

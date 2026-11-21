@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n phasen %}
+{% load i18n phasen lebensbereiche %}
 {% block mainklasse %}breit{% endblock %}
 {% block leiste %}{% include "verfahren/_leiste.html" with anstoss_lage="leiste" %}{% endblock %}
 {% block anstoss %}{% endblock %}
@@ -88,14 +88,14 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
         {% for t in suchtreffer %}
         <div class="zeile">
           <span><a class="treffer-link" href="?fach={{ t.k.slug }}#feld-favoriten"
-              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten"><strong>{{ t.k.name }}</strong></a>
-            <br><span class="meta">{{ t.k.pfad_kurz }}{% if t.laufend %} · {% blocktranslate count n=t.laufend %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% endif %}</span></span>
-          {% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k.name abonniert=t.abonniert %}
+              hx-get="{{ request.path }}?fach={{ t.k.slug }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten"><strong>{{ t.k|lb_name }}</strong></a>
+            <br><span class="meta">{{ t.k|lb_pfad_kurz }}{% if t.laufend %} · {% blocktranslate count n=t.laufend %}ein laufendes Verfahren{% plural %}{{ n }} laufende Verfahren{% endblocktranslate %}{% endif %}</span></span>
+          {% include "verfahren/_kategorie_stern.html" with slug=t.k.slug name=t.k|lb_name abonniert=t.abonniert %}
         </div>
         {% endfor %}
         {% if antrag_treffer.zeilen %}<p class="gruppe">{% translate "Anträge" %}<span class="gruppe-zahl"> · {% if antrag_treffer.gesamt > antrag_treffer.zeilen|length %}{% blocktranslate with n=antrag_treffer.zeilen|length gesamt=antrag_treffer.gesamt %}{{ n }} von {{ gesamt }}{% endblocktranslate %}{% else %}{{ antrag_treffer.gesamt }}{% endif %}{% if antrag_treffer.gesamt > 1 %} · <a href="{% url 'parameter:regeln' %}#regel-parlamentlisten">{% translate "nach Phase und Frist" %}</a>{% endif %}</span></p>
         {% for a in antrag_treffer.zeilen %}<div class="zeile"><span><a class="treffer-antrag" href="{% url 'verfahren:antrag' a.pk %}"><strong>{{ a.titel }}</strong></a>
-          <br><span class="meta">{{ a.phase|phase_name }}</span></span></div>{% endfor %}{% endif %}
+          <br><span class="meta">{{ a|antrag_phase }}</span></span></div>{% endfor %}{% endif %}
         {% if not suchtreffer and not antrag_treffer.zeilen %}<p class="leer abstand">{% translate "Nichts gefunden — andere Schreibweise oder ein Schlagwort versuchen." %}</p>{% endif %}
       {% else %}
         {% include "verfahren/_faecher.html" %}

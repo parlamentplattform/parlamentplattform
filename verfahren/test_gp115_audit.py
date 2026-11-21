@@ -62,12 +62,43 @@ def test_ein_frischer_pruefstand_ist_nicht_ueberfaellig(client):
     assert "überfällig" not in absatz and "ueberfaellig" not in absatz
 
 
-def test_die_grenze_sind_zwei_prueftakte():
+def _takte_im_register(wert):
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel="audit-pruefstand-ueberfaellig-takte",
+        defaults={"wert": str(wert), "beschreibung": "Test", "quelle": "Test"},
+    )
+
+
+def _ueberfaellig_nach(stunden, jetzt):
+    return audit_pruefung.pruefstand_ueberfaellig({"geprueft_am": (jetzt - timedelta(hours=stunden)).isoformat()}, jetzt)
+
+
+@pytest.mark.parametrize(("takte", "noch_nicht", "schon"), [(2, 47, 49), (5, 119, 121)])
+def test_die_grenze_kommt_aus_dem_register(takte, noch_nicht, schon):
+    """Die Zahl der Prüftakte ist ein Registerwert (audit-pruefstand-ueberfaellig-takte), keine Konstante."""
     jetzt = timezone.now()
-    tage = audit_pruefung.PRUEFSTAND_UEBERFAELLIG_TAKTE
-    assert tage == 2
-    assert not audit_pruefung.pruefstand_ueberfaellig({"geprueft_am": (jetzt - timedelta(hours=47)).isoformat()}, jetzt)
-    assert audit_pruefung.pruefstand_ueberfaellig({"geprueft_am": (jetzt - timedelta(hours=49)).isoformat()}, jetzt)
+    _takte_im_register(takte)
+    assert audit_pruefung.pruefstand_ueberfaellig_takte() == takte
+    assert not _ueberfaellig_nach(noch_nicht, jetzt)
+    assert _ueberfaellig_nach(schon, jetzt)
+    assert not hasattr(audit_pruefung, "PRUEFSTAND_UEBERFAELLIG_TAKTE")
+
+
+@pytest.mark.parametrize(("wert", "gilt"), [(0, 2), (1, 2), (400, 31), ("kaputt", 2)])
+def test_ein_registerwert_ausserhalb_des_bereichs_schaltet_die_anzeige_nicht_ab(wert, gilt):
+    """Bereich 2 bis 31: Ein Wert darunter, darüber oder ein unlesbarer hält die Grenze im Bereich."""
+    _takte_im_register(wert)
+    assert audit_pruefung.pruefstand_ueberfaellig_takte() == gilt
+
+
+def test_ohne_registereintrag_gelten_zwei_prueftakte():
+    from parameter.models import Parameter
+
+    Parameter.objects.filter(schluessel="audit-pruefstand-ueberfaellig-takte").delete()
+    jetzt = timezone.now()
+    assert not _ueberfaellig_nach(47, jetzt) and _ueberfaellig_nach(49, jetzt)
 
 
 def test_altbestand_ohne_oder_mit_unlesbarem_pruefzeitpunkt(client):

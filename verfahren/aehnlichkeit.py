@@ -270,6 +270,7 @@ def aehnliche_antraege(titel: str, wortlaut: str, mitglied, *, bedeutung: bool =
                 "beteiligung": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
                 # GP-175: dieselbe Rechnung wie Kachel und Zeile (Wiener Kalendertage, 0 = endet heute)
                 "rest_tage": resttage(frist, jetzt),
+                "frist": frist,  # am letzten Tag nennt die Karte die Uhrzeit, wie Kachel und Zeile
                 "frist_abgelaufen": frist is not None and frist <= jetzt,
                 # E-43 Zeile 2: nach der Beratung beginnt die Abstimmung, ausgewertet wird dort nichts
                 "abstimmung_beginnt": abstimmung_beginnt(

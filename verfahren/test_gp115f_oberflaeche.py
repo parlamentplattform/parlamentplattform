@@ -264,3 +264,15 @@ def test_scheitert_der_eintrag_bleibt_die_bewerbung_stehen(client, ordnung, monk
         client.post(reverse('verfahren:bewerbung_zurueckziehen', args=[antrag.pk]))
     bewerbung.refresh_from_db()
     assert bewerbung.zurueckgezogen is False
+
+
+# --- GP-199: offene Formate mit der Kopfzeile der Hülle ------------------------------------------------
+
+
+def test_umsetzung_und_stimmen_export_tragen_die_kopfzeile_der_offenen_formate(client, ordnung):  # noqa: F811
+    antrag, _leute = _abstimmung(ordnung)
+    assert antrag.fortschreiben(antrag.phase_beginn + timedelta(days=8)) is True
+    for adresse in (reverse('verfahren:umsetzung_json'), reverse('verfahren:export', args=[antrag.pk])):
+        for antwort in (client.get(adresse), client.head(adresse)):
+            assert antwort.status_code == 200, adresse
+            assert antwort['Access-Control-Allow-Origin'] == '*', adresse

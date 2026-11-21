@@ -26,6 +26,7 @@ from plattform_core.phases import (
     beratung_frist_ende,
     unterstuetzung_frist_ende,
 )
+from plattform_core.schema import offenes_format
 from plattform_core.teilnehmerkreis import WIENER_BEZIRKE
 from verfahren.models import (
     Antrag,
@@ -2032,6 +2033,7 @@ def umsetzung(request):
     )
 
 
+@offenes_format  # GP-199: öffentlich, ohne Anmeldung dasselbe
 def umsetzung_json(request):
     """F-23: das Umsetzungsregister maschinenlesbar — Stand und volle Historie."""
     daten = [

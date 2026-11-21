@@ -29,6 +29,7 @@ from mitglieder.models import Bundesland, Mitglied, Mitgliedsstatus, Wohnsitzart
 from mitglieder.post import region_benachrichtigen
 from parameter.models import zahl
 from plattform_core import Gegenstand, Phase
+from plattform_core.schema import offenes_format
 from plattform_core.teilnehmerkreis import WIENER_BEZIRKE, GebietsFehler
 from verfahren.aehnlichkeit import aehnliche_antraege
 from verfahren.einbringwahl import (
@@ -1305,6 +1306,7 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     return redirect("verfahren:antrag", pk=pk)
 
 
+@offenes_format  # GP-199: öffentlich, ohne Anmeldung dasselbe
 def export_json(request, pk):
     """F-21/F-23: maschinenlesbarer Export zum unabhängigen Nachrechnen —
     kompatibel mit verify/nachrechnen.py. Erst nach Abstimmungsende verfügbar,

@@ -1808,14 +1808,16 @@ def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
     return Rolle.personen(Rolle.aktive(Gremium.INTEGRITAETSRAT)) >= SATZUNG_MIN_INTEGRITAETSRAT
 
 
-def _vermerken(beschluss, text: str) -> None:
+def _vermerken(beschluss, text: str, ohne_wirkung: bool = False) -> None:
     """Hält am Beschluss fest, was er bewirkt hat oder warum eine Wirkung ausblieb — statt sie stumm
     zu unterlassen.
 
     Der Vermerk steht auch in der Kette (GP-034): Das Feld gehört der Plattform, das Formular des
     Rates schreibt es nicht mehr — und was hier steht, ist ein Satz der Plattform ohne Person.
     `ohne_wirkung` macht den Fall auffindbar, in dem ein Beschluss entschieden aussieht und nichts
-    bewirkt hat."""
+    bewirkt hat. Die Wirkung, die ausbleibt, sagt das selbst; der Wortlaut des Vermerks entscheidet
+    darüber nicht (bis 0.114 hing es am Satzanfang). Ein Beschluss ohne Ergebnis ist nicht gemeint:
+    Er hat nichts entschieden, das ohne Wirkung bleiben könnte."""
     beschluss.umsetzungsvermerk = (beschluss.umsetzungsvermerk + " " + text).strip()[:2000]
     beschluss.save(update_fields=["umsetzungsvermerk"])
     AuditEintrag.anhaengen(
@@ -1825,14 +1827,9 @@ def _vermerken(beschluss, text: str) -> None:
             "beschluss": beschluss.pk,
             "nummer": beschluss.nummer,
             "vermerk": text[:2000],
-            "ohne_wirkung": text.startswith(OHNE_WIRKUNG_ANFAENGE),
+            "ohne_wirkung": ohne_wirkung,
         }
     )
-
-
-#: Woran die Kette einen Vermerk erkennt, nach dem der Beschluss nicht bewirkt hat, was er beschloss:
-#: die Satzanfänge, mit denen die Wirkungen das sagen („Ohne Wirkung: …“, „Nicht eingereicht: …“).
-OHNE_WIRKUNG_ANFAENGE = ("Ohne Wirkung", "Nicht ")
 
 
 def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
@@ -1845,7 +1842,7 @@ def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
     if antrag is None or beschluss.ergebnis != "dafuer":
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
-        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).", ohne_wirkung=True)
         return
     jetzt = jetzt or timezone.now()
     if aufheben:
@@ -1944,10 +1941,11 @@ def zurueckweisung_wirkung(beschluss, jetzt=None) -> None:
             beschluss,
             f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — ein entschiedenes oder "
             "beendetes Verfahren lässt sich nicht mehr zurückweisen (§ 5 Abs 2).",
+            ohne_wirkung=True,
         )
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
-        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).", ohne_wirkung=True)
         return
     jetzt = jetzt or timezone.now()
     beschluss.zustand_vorher = {
@@ -2032,7 +2030,7 @@ def zurueckweisung_aufheben_wirkung(beschluss, jetzt=None) -> None:
         .first()
     )
     if frueher is None:
-        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag ist keine Zurückweisung verzeichnet.")
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag ist keine Zurückweisung verzeichnet.", ohne_wirkung=True)
         return
     jetzt = jetzt or timezone.now()
     seit = datetime.fromisoformat(frueher.zustand_vorher["zurueckgewiesen_am"])
@@ -2194,7 +2192,7 @@ def aussetzung_wirkung(beschluss, jetzt=None) -> None:
     if antrag is None or beschluss.ergebnis != "dafuer":
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
-        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).", ohne_wirkung=True)
         return
     gegenstand = aussetzungs_gegenstand(antrag)
     if gegenstand is None:
@@ -2202,10 +2200,11 @@ def aussetzung_wirkung(beschluss, jetzt=None) -> None:
             beschluss,
             f"Ohne Wirkung: Der Antrag steht in der Phase „{antrag.phase}“ — weder eine laufende "
             "Abstimmung noch der Vollzug eines Beschlusses (§ 6 Abs 3 lit d).",
+            ohne_wirkung=True,
         )
         return
     if Aussetzung.objects.filter(antrag=antrag, beendet_am__isnull=True).exists():
-        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft bereits eine Aussetzung.")
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft bereits eine Aussetzung.", ohne_wirkung=True)
         return
     jetzt = jetzt or timezone.now()
 
@@ -2236,7 +2235,7 @@ def aussetzung_aufheben_wirkung(beschluss, jetzt=None) -> None:
     jetzt = jetzt or timezone.now()
     laufende = [a for a in Aussetzung.objects.filter(antrag=antrag) if a.laeuft(jetzt)]
     if not laufende:
-        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft keine Aussetzung.")
+        _vermerken(beschluss, "Ohne Wirkung: Zu diesem Antrag läuft keine Aussetzung.", ohne_wirkung=True)
         return
     for aussetzung in laufende:
         aussetzung.beendet_am = jetzt
@@ -2851,15 +2850,15 @@ def einreichung_wirkung(beschluss, jetzt=None) -> None:
     if entwurf is None or beschluss.ergebnis != "dafuer":
         return
     if entwurf.status != EntwurfsStatus.IN_ARBEIT:
-        _vermerken(beschluss, "Nicht eingereicht: Das Entwurfsfenster war nicht mehr in Arbeit.")
+        _vermerken(beschluss, "Nicht eingereicht: Das Entwurfsfenster war nicht mehr in Arbeit.", ohne_wirkung=True)
         return
     from plattform_core import Phase
 
     if entwurf.antrag.phase != Phase.BERATUNG.value:
-        _vermerken(beschluss, "Nicht eingereicht: Der Antrag war nicht mehr in der Beratung.")
+        _vermerken(beschluss, "Nicht eingereicht: Der Antrag war nicht mehr in der Beratung.", ohne_wirkung=True)
         return
     if entwurf.ueberarbeitung_verstrichen(jetzt):
-        _vermerken(beschluss, "Nicht eingereicht: Die Überarbeitungsfrist war verstrichen.")
+        _vermerken(beschluss, "Nicht eingereicht: Die Überarbeitungsfrist war verstrichen.", ohne_wirkung=True)
         return
     entwurf.einreichen(jetzt)
     _vermerken(beschluss, f"Eingereicht (Runde {entwurf.runde}).")
@@ -2878,7 +2877,7 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
         # Der Rat hat zu spät entschieden: Die Prüffrist war um, der Vorschlag liegt schon den
         # Unterstützern vor (§ 5 Abs 12). Der Beschluss bleibt stehen — mit dem Vermerk, warum
         # er nichts mehr bewirkt.
-        _vermerken(beschluss, "Ohne Wirkung: Die Prüffrist war verstrichen, der Vorschlag lag schon den Unterstützern vor.")
+        _vermerken(beschluss, "Ohne Wirkung: Die Prüffrist war verstrichen, der Vorschlag lag schon den Unterstützern vor.", ohne_wirkung=True)
         return
     if pruefung.korat_entscheid:
         return
@@ -2966,7 +2965,7 @@ def hervorhebung_anregen_wirkung(beschluss, jetzt=None) -> None:
         antrag=beschluss.antrag,
         status=BeschlussStatus.OFFEN,
     ).exists():
-        _vermerken(beschluss, "Beim Integritätsrat läuft bereits ein Beschluss zur Hervorhebung.")
+        _vermerken(beschluss, "Beim Integritätsrat läuft bereits ein Beschluss zur Hervorhebung.", ohne_wirkung=True)
         return
     neu = GremienBeschluss.objects.create(
         gremium=Gremium.INTEGRITAETSRAT,
@@ -3002,7 +3001,7 @@ def ueberlastung_wirkung(beschluss, jetzt=None) -> None:
 
     ordnung = Verfahrensordnung.objects.filter(aktiv=True).first()
     if ordnung is None:
-        _vermerken(beschluss, "Nicht eingebracht: Es gilt keine Verfahrensordnung.")
+        _vermerken(beschluss, "Nicht eingebracht: Es gilt keine Verfahrensordnung.", ohne_wirkung=True)
         return
     antrag = antrag_einbringen(
         beschluss.angelegt_von,
@@ -3052,7 +3051,7 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         test.auswertung = "Nicht angeordnet — auf diesem Parameter läuft schon ein Test."
         test.ausgewertet_am = jetzt
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
-        _vermerken(beschluss, test.auswertung)
+        _vermerken(beschluss, test.auswertung, ohne_wirkung=True)
         return
     if test.ende <= timezone.localdate(jetzt):
         # Ein Test beginnt nicht nach seinem eigenen Ende (GP-043): Der Wert stünde für einen
@@ -3063,7 +3062,7 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         )
         test.ausgewertet_am = jetzt
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
-        _vermerken(beschluss, test.auswertung)
+        _vermerken(beschluss, test.auswertung, ohne_wirkung=True)
         return
     if wert_ausserhalb(parameter, test.testwert):
         # Das Anordnen weist solche Werte ab (GP-021); ein vor dieser Fassung angeordneter Test trägt
@@ -3074,7 +3073,7 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         )
         test.ausgewertet_am = jetzt
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
-        _vermerken(beschluss, test.auswertung)
+        _vermerken(beschluss, test.auswertung, ohne_wirkung=True)
         return
     test.alter_wert = parameter.wert
     test.beginn = timezone.localdate(jetzt)
@@ -3264,16 +3263,16 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
         return
     vf = apps.get_model("mandatare", "Vertrauensfrage").objects.filter(antrag_id=antrag.pk).first()
     if vf is None:
-        _vermerken(beschluss, "Ohne Wirkung: Der Antrag ist keine Vertrauensfrage.")
+        _vermerken(beschluss, "Ohne Wirkung: Der Antrag ist keine Vertrauensfrage.", ohne_wirkung=True)
         return
     if vf.art != "vertrauensfrage":
         # lit f Z 3: Für den Bestätigungsantrag gelten lit b, c und g nicht (D-L6e, Prüfung 0.51.0).
-        _vermerken(beschluss, "Ohne Wirkung: Ein Bestätigungsantrag kennt keine Sperre (§ 7 Abs 10 lit f Z 3).")
+        _vermerken(beschluss, "Ohne Wirkung: Ein Bestätigungsantrag kennt keine Sperre (§ 7 Abs 10 lit f Z 3).", ohne_wirkung=True)
         return
     if antrag.phase in (Phase.ZURUECKGEWIESEN.value, Phase.ZURUECKGEZOGEN.value):
         return
     if not _integritaetsrat_beschlussfaehig(beschluss):
-        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).")
+        _vermerken(beschluss, "Ohne Wirkung: Der Integritätsrat war nicht satzungsgemäß besetzt (§ 6 Abs 3 lit a).", ohne_wirkung=True)
         return
     jetzt = jetzt or timezone.now()
     if beschluss.frist is not None and beschluss.frist < jetzt:
@@ -3286,6 +3285,7 @@ def vertrauensfrage_sperre_wirkung(beschluss, jetzt=None) -> None:
             beschluss,
             "Ohne Wirkung: Die Frist von drei Tagen nach Einbringung ist verstrichen — der Antrag gilt "
             "als eröffnet (§ 7 Abs 10 lit b).",
+            ohne_wirkung=True,
         )
         return
     mitgeschlossen = _offene_beschluesse_zu(antrag, beschluss)

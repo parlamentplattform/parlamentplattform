@@ -1129,6 +1129,15 @@ def pruefung(request):
 
 
 
+def _eigener_antrag(beschluss, stimmen) -> bool:
+    """Ob ein mitstimmendes Ratsmitglied den betroffenen Antrag selbst eingebracht hat (Z-6, E-10).
+
+    Nur eine Kennzeichnung ohne Namen: Ratsmitglieder stimmen in eigener Sache mit (Entscheidung des
+    Gründers 20.11.2026); Ergebnis und Wirkung bleiben unberührt."""
+    antrag = beschluss.antrag
+    return antrag is not None and any(s.mitglied_id == antrag.eingebracht_von_id for s in stimmen)
+
+
 def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
     """Die Beschlüsse eines Rates für seinen Bereich (FB-I4).
 
@@ -1159,6 +1168,7 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
                 "beschluss": beschluss,
                 "auswertung": beschluss.auswertung(aktive=len(personen[beschluss.pk]), personen=personen[beschluss.pk]),
                 "stimmen": stimmen,
+                "eigener_antrag": _eigener_antrag(beschluss, stimmen),
                 "meine_stimme": next(
                     (s for s in stimmen if s.mitglied_id == getattr(nutzer, "pk", None)), None
                 ),
@@ -1192,6 +1202,7 @@ def beschluesse_oeffentlich(request):
             "beschluss": b,
             "auswertung": b.auswertung(aktive=len(personen[b.pk]), personen=personen[b.pk]),
             "stimmen": list(b.stimmen.all()),
+            "eigener_antrag": _eigener_antrag(b, b.stimmen.all()),
             "meine_stimme": None,
         }
         for b in seite
@@ -1225,6 +1236,7 @@ def beschluss_oeffentlich(request, nummer: str):
                 "beschluss": beschluss,
                 "auswertung": beschluss.auswertung(),
                 "stimmen": list(beschluss.stimmen.all()),
+                "eigener_antrag": _eigener_antrag(beschluss, beschluss.stimmen.all()),
                 "meine_stimme": None,
             },
             "darf_stimmen": False,

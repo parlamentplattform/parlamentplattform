@@ -1314,7 +1314,8 @@ def test_in_der_wartezeit_sagt_die_antragsseite_dass_der_vorschlag_angenommen_is
     assert 'ist angenommen' in karte
     assert f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' in karte
     assert f'Ende der Beratung am {timezone.localtime(ende):%d.%m.%Y %H:%M}' in karte
-    assert entwurf.endabstimmung_wartet() == {'ab': ende, 'grund': 'angenommen'}
+    warte = entwurf.endabstimmung_wartet()
+    assert (warte['ab'], warte['grund'], warte['frist']) == (ende, 'angenommen', frist)
 
 
 def test_in_der_wartezeit_nennt_die_antragsseite_erreichte_hoechstrunden_nicht_annahme(client, ordnung):  # noqa: F811

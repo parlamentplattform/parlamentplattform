@@ -21,15 +21,20 @@ Menschen). Ohne JavaScript vollständig bedienbar.
 {% endif %}
 
 {% if darf_stimmen %}
-<div class="karte">
+<div class="karte" id="beschluss-anlegen">
   <p class="phasen-titel">{% translate "Beschluss anlegen" %}</p>
   <p class="erk">{% blocktranslate %}Der Rat entscheidet nie mit einem Klick: Wer hier drückt, stellt die Frage — beantwortet wird sie
 von der Gruppe, mit Frist und veröffentlichter Begründung. Die Begründung erscheint mit der
 Beschlussnummer am Antrag.{% endblocktranslate %}</p>
+  <form method="get" action="{{ request.path }}#beschluss-anlegen" class="stimmzeile">
+    <label for="ir-suche">{% translate "Antrag suchen (Nummer oder Titel)" %}</label>
+    <input type="search" id="ir-suche" name="antrag_suche" value="{{ antrag_suche }}" maxlength="200">
+    <button type="submit" class="btn-linie klein">{% translate "Suchen" %}</button>
+  </form>
   <form method="post" action="{% url 'gremien:integritaet_beschluss' %}" style="margin-top:10px">{% csrf_token %}
     <label for="ir-antrag">{% translate "Antrag" %}</label>
     <select id="ir-antrag" name="antrag" required style="width:100%;max-width:44em">
-      {% for a in offene_antraege %}<option value="{{ a.pk }}">{{ a.titel }} — {{ a.phase|phase_name }}</option>{% endfor %}
+      {% for a in offene_antraege %}<option value="{{ a.pk }}"{% if a.pk == antrag_vorgewaehlt %} selected{% endif %}>{{ a.titel }} — {{ a.phase|phase_name }}</option>{% endfor %}
     </select>
     <label for="ir-grund" style="display:block;margin-top:8px">{% translate "Begründung (wird veröffentlicht)" %}</label>
     <textarea id="ir-grund" name="beschreibung" required style="width:100%;max-width:44em;min-height:70px"></textarea>

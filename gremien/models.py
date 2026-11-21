@@ -35,8 +35,9 @@ from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_noop
 
-from parameter.models import Aenderung, ParameterTest, Status, TestStatus
+from parameter.models import Aenderung, ParameterTest, Status, TestStatus, wert_ausserhalb
 from verfahren.models import Antrag, AntragsFassung, AuditEintrag
 
 log = logging.getLogger(__name__)
@@ -407,7 +408,10 @@ class Entwurf(models.Model):
         Antragsseite soll ihn nennen statt einer Frist in der Vergangenheit. Nur lesend; dieselbe
         Rechnung wie `fortschreiben`. Rückgabe: `ab` (Beginn der Endabstimmung) und `grund`:
         „angenommen“ (auch bei Stille, § 5 Abs 13), „hoechstrunden“ (§ 5 Abs 12: niemand hat
-        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung)."""
+        angenommen) oder „ueberarbeitung“ (die Frist der Gruppe 1 verstrich ohne Einreichung).
+        Dazu `frist` (die abgelaufene Schleifenfrist) und `stand`: die Rechnung des
+        Abstimmungs-Chats zum Fristende — der festgestellte Stand, nicht der beim Aufruf
+        (§ 5 Abs 13); None, wenn die Überarbeitungsfrist verstrich."""
         from plattform_core import Phase
 
         jetzt = jetzt or timezone.now()
@@ -427,11 +431,11 @@ class Entwurf(models.Model):
                 return None  # die Rückgabe an Gruppe 1 ist fällig, keine Endabstimmung
             frist, grund = self.review_frist, "angenommen" if stand["angenommen"] else "hoechstrunden"
         elif self.ueberarbeitung_verstrichen(jetzt):
-            frist, grund = self.ueberarbeitung_frist, "ueberarbeitung"
+            frist, grund, stand = self.ueberarbeitung_frist, "ueberarbeitung", None
         else:
             return None
         ab = self._endabstimmung_fruehestens(antrag, frist, jetzt)
-        return {"ab": ab, "grund": grund} if jetzt < ab else None
+        return {"ab": ab, "grund": grund, "frist": frist, "stand": stand} if jetzt < ab else None
 
     def abstimmung_fruehestens_ab(self):
         """Der Zeitpunkt, vor dem der Regelübergang in die Abstimmung nicht wirken darf — oder None.
@@ -531,22 +535,37 @@ class Entwurf(models.Model):
         )
         if angelegt_von is None:
             return None
-        return GremienBeschluss.objects.create(
-            gremium=Gremium.EXPERTENRAT_2,
-            anlass=Anlass.PRUEFUNG,
-            gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
-            beschreibung=(
-                "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
-                "Zu prüfen sind Interessenbindungen, Bieterkreis, Schwellenwerte und "
-                "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
-            ),
-            optionen=PRUEFOPTIONEN,
-            frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
-            antrag=self.antrag,
-            entwurf=self,
-            angelegt_von=angelegt_von.mitglied,
-            angelegt_am=jetzt,
-        )
+        with transaction.atomic():  # Beschluss und Eintrag entstehen gemeinsam oder gar nicht
+            beschluss = GremienBeschluss.objects.create(
+                gremium=Gremium.EXPERTENRAT_2,
+                anlass=Anlass.PRUEFUNG,
+                gegenstand=f"Prüfung: {self.antrag.titel}"[:200],
+                beschreibung=(
+                    "Vorschlag der Gruppe 1 mit Vollzugs- oder Beschaffungsbezug (§ 6 Abs 7). "
+                    "Zu prüfen sind Interessenbindungen, Bieterkreis, Schwellenwerte und "
+                    "Vergleichsangebote; jede Stimme wird mit Begründung veröffentlicht."
+                ),
+                optionen=PRUEFOPTIONEN,
+                frist=jetzt + timedelta(days=self.antrag.policy().pruefung_tage),
+                antrag=self.antrag,
+                entwurf=self,
+                angelegt_von=angelegt_von.mitglied,
+                angelegt_am=jetzt,
+            )
+            # Wie jeder andere Beschluss der Räte (GP-037). Die Plattform legt ihn an, niemand in
+            # Person — der Eintrag nennt deshalb auch niemanden.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "gremienbeschluss_angelegt",
+                    "gremium": Gremium.EXPERTENRAT_2.value,
+                    "anlass": Anlass.PRUEFUNG.value,
+                    "antrag": self.antrag_id,
+                    "runde": self.runde,
+                    "beschluss": beschluss.pk,
+                    "nummer": beschluss.nummer,
+                }
+            )
+        return beschluss
 
     def zu_den_unterstuetzern(self, jetzt=None) -> None:
         jetzt = jetzt or timezone.now()
@@ -786,7 +805,7 @@ class Entwurf(models.Model):
                 Pruefung.objects.create(
                     entwurf=self,
                     runde=self.runde,
-                    ergebnis=Pruefung.Ergebnis.VALIDIERT,
+                    ergebnis=Pruefung.Ergebnis.UNGEPRUEFT,  # niemand hat geprüft (GP-032)
                     begruendung=(
                         "Die Prüfung blieb aus: In Gruppe 2 war binnen der Prüffrist von "
                         f"{antrag.policy().pruefung_tage} Tagen keine Rolle besetzt. Der Vorschlag "
@@ -983,6 +1002,10 @@ class Pruefung(models.Model):
         VALIDIERT = "validiert", _("validiert")
         ZURUECK = "zurueck", _("mit Begründung zurückgegeben")
         AUSTAUSCH = "austausch", _("Austausch bei Gruppe 1 beantragt")
+        # Kein Urteil der Gruppe 2 (GP-032, Fahrtenbuch D-I3): Der Vorschlag geht trotzdem weiter
+        # (§ 5 Abs 12) — aber „validiert“ wäre eine Bescheinigung, die niemand ausgestellt hat.
+        OHNE_ERGEBNIS = "ergebnislos", _("ohne Ergebnis — nicht validiert")
+        UNGEPRUEFT = "ungeprueft", _("nicht geprüft — Gruppe 2 unbesetzt")
 
     class KoratEntscheid(models.TextChoices):
         """Wie der Koordinationsrat über einen Austauschantrag befand — oder dass er es nicht tat:
@@ -1128,7 +1151,9 @@ class Anlass(models.TextChoices):
 #: Die Regelfrage eines Rates an sich selbst. Zwei Optionen, keine Enthaltung: Wer sich nicht
 #: entscheiden will, stimmt nicht ab — dann fehlt er in der Beschlussfähigkeit, und genau das
 #: soll er auch, statt eine dritte Farbe ins Ergebnis zu tragen.
-JA_NEIN = [{"wert": "dafuer", "name": "dafür"}, {"wert": "dagegen", "name": "dagegen"}]
+#: Die Namen sind zur Übersetzung markiert und werden beim Anzeigen übersetzt (GP-039); gespeichert
+#: wird die deutsche Quelle.
+JA_NEIN = [{"wert": "dafuer", "name": gettext_noop("dafür")}, {"wert": "dagegen", "name": gettext_noop("dagegen")}]
 
 #: § 6 Abs 3 lit a: „Er besteht aus drei bis sieben Mitgliedern." Ein Rat unter dieser Grenze
 #: ist kein Integritätsrat, und ein Beschluss mit Außenwirkung — Hervorhebung, Zurückweisung —
@@ -1200,7 +1225,10 @@ class GremienBeschluss(models.Model):
         default=0, help_text="Fassung der Auszählregel, mit der entschieden wurde."
     )
     umsetzungsvermerk = models.TextField(
-        max_length=2000, blank=True, help_text="Was wie umgesetzt wird — nach der Entscheidung."
+        max_length=2000,
+        blank=True,
+        help_text="Der Vermerk der Plattform: was der Beschluss bewirkt hat oder warum er ohne Wirkung "
+        "blieb. Nur anfügend; die Vermerke des Rates stehen als eigene Einträge daneben.",
     )
     umsetzung_durch = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -1208,15 +1236,24 @@ class GremienBeschluss(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="zugewiesene_umsetzungen",
-        help_text="Wer die Umsetzung übernimmt — ein Mitglied des Rates.",
+        help_text="Wer die Umsetzung übernimmt — ein Mitglied des Rates. Stand des jüngsten Vermerks.",
     )
-    umsetzung_frist = models.DateField(null=True, blank=True, help_text="Bis wann.")
+    umsetzung_frist = models.DateField(
+        null=True, blank=True, help_text="Bis wann. Stand des jüngsten Vermerks."
+    )
     zustand_vorher = models.JSONField(
         null=True,
         blank=True,
         help_text="Was der Beschluss überschrieben hat — damit eine Aufhebung den alten Stand "
         "wiederherstellen kann, statt ihn zu erraten (§ 5 Abs 2: die Zurückweisung ist beim "
         "Parteischiedsgericht bekämpfbar).",
+    )
+    festgehalten = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Die Auszählung zum Beschlusszeitpunkt: abgegebene und nötige Stimmen, aktive Rollen, "
+        "Zählung je Option. Ein geschlossener Beschluss zeigt nur diese Zahlen. Leer, solange er offen "
+        "ist, und wenn er ohne Auswertung geschlossen wurde.",
     )
 
     antrag = models.ForeignKey(
@@ -1322,21 +1359,100 @@ class GremienBeschluss(models.Model):
 
         Solange der Beschluss offen ist, zählen nur die Stimmen der Personen, deren Rolle zählt
         (`_aktive_personen`; Listen reichen die Menge als `personen` durch, `personen_fuer`).
-        Ein entschiedener Beschluss bleibt, wie er ausgewertet wurde: alle gespeicherten Stimmen,
-        Nenner `aktive` oder der heutige. Der Kern (`plattform_core.gremienbeschluss`) bleibt
-        unverändert — gefiltert wird davor."""
+        Der Kern (`plattform_core.gremienbeschluss`) bleibt unverändert — gefiltert wird davor.
+
+        Ein geschlossener Beschluss bleibt, wie er ausgewertet wurde (GP-035): Er gibt die beim
+        Schließen festgehaltenen Zahlen zurück — nie eine Rechnung mit der Besetzung von heute, die
+        sich mit jeder späteren Berufung änderte und dem Audit-Eintrag widerspräche. Ist nichts
+        festgehalten (ohne Auswertung geschlossen, oder älter als die Kette), ist die Antwort None:
+        Eine Zahl wird nicht nachträglich erfunden."""
         from plattform_core.gremienbeschluss import auswerten
 
-        stimmen = list(self.stimmen.all())
-        if self.offen:
-            if personen is None:
-                personen = self._aktive_personen()
-            stimmen = [s for s in stimmen if s.mitglied_id in personen]
-            if aktive is None:
-                aktive = len(personen)
-        elif aktive is None:
-            aktive = self.aktive_rollen()
+        if not self.offen:
+            return self._festgehaltene_auswertung()
+        if personen is None:
+            personen = self._aktive_personen()
+        stimmen = [s for s in self.stimmen.all() if s.mitglied_id in personen]
+        if aktive is None:
+            aktive = len(personen)
         return auswerten([s.option for s in stimmen], self.optionswerte(), aktive)
+
+    def _festgehaltene_auswertung(self):
+        """Die Auszählung zum Beschlusszeitpunkt aus `festgehalten` — oder None.
+
+        Aus dem Audit nachgetragene Altbeschlüsse kennen die Zahl der aktiven Rollen nicht (der
+        Eintrag trug sie nicht): `aktive` ist dann None, und die Anzeige lässt sie weg."""
+        from plattform_core.gremienbeschluss import Auswertung
+
+        fest = self.festgehalten
+        if not fest:
+            return None
+        abgegeben, noetig = fest["abgegeben"], fest["noetig"]
+        ergebnis = self.ergebnis or None
+        beschlussfaehig = fest.get("beschlussfaehig", abgegeben > 0 and abgegeben >= noetig)
+        return Auswertung(
+            zaehlung=dict(fest.get("zaehlung") or {}),
+            abgegeben=abgegeben,
+            aktive=fest.get("aktive"),
+            noetig=noetig,
+            beschlussfaehig=beschlussfaehig,
+            ergebnis=ergebnis,
+            gleichstand=fest.get("gleichstand", beschlussfaehig and ergebnis is None),
+            version=self.regel_version,
+        )
+
+    def auszaehlung_festhalten(self, ergebnis) -> None:
+        """Schreibt die Auszählung des Beschlusszeitpunkts an den Beschluss (GP-035). Speichert nicht."""
+        self.festgehalten = {
+            "abgegeben": ergebnis.abgegeben,
+            "aktive": ergebnis.aktive,
+            "noetig": ergebnis.noetig,
+            "zaehlung": dict(ergebnis.zaehlung),
+            "beschlussfaehig": ergebnis.beschlussfaehig,
+            "gleichstand": ergebnis.gleichstand,
+        }
+
+    def umsetzung_ueberfaellig_seit(self, heute=None):
+        """Der erste Tag nach der Umsetzungsfrist, wenn sie verstrichen ist — sonst None (GP-025).
+
+        Es gilt die Frist des jüngsten Vermerks. Sie ist ein Tagesdatum („bis wann“): Am Tag der
+        Frist selbst ist noch nichts überfällig."""
+        if self.status != BeschlussStatus.ENTSCHIEDEN or self.umsetzung_frist is None:
+            return None
+        heute = heute or timezone.localdate()
+        return self.umsetzung_frist + timedelta(days=1) if heute > self.umsetzung_frist else None
+
+    def umsetzungsvermerk_anfuegen(self, text: str, rolle=None, frist=None, jetzt=None):
+        """Fügt einen Vermerk des Rates an — ersetzt wird nie etwas (GP-025, Grundregel 7).
+
+        Der Beschluss trägt danach Zuweisung und Frist des jüngsten Vermerks; die früheren bleiben
+        an ihren Einträgen lesbar. Die Zeile des Beschlusses wird gesperrt, damit zwei gleichzeitige
+        Vermerke nicht dieselbe Nummer bekommen. Der Eintrag der Kette nennt niemanden."""
+        with transaction.atomic():
+            type(self).objects.select_for_update().get(pk=self.pk)
+            hoechste = self.umsetzungsvermerke.aggregate(n=models.Max("nummer"))["n"] or 0
+            vermerk = Umsetzungsvermerk.objects.create(
+                beschluss=self,
+                nummer=hoechste + 1,
+                text=text[:2000],
+                rolle=rolle,
+                frist=frist,
+                erstellt_am=jetzt or timezone.now(),
+            )
+            self.umsetzung_durch = rolle.mitglied if rolle is not None else None
+            self.umsetzung_frist = frist
+            self.save(update_fields=["umsetzung_durch", "umsetzung_frist"])
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "umsetzungsvermerk",
+                    "beschluss": self.pk,
+                    "nummer": self.nummer,
+                    "vermerk_nr": vermerk.nummer,
+                    "zugewiesen": rolle is not None,
+                    "frist": frist.isoformat() if frist else None,
+                }
+            )
+        return vermerk
 
     def alle_haben_gestimmt(self) -> bool:
         personen = self._aktive_personen()
@@ -1408,7 +1524,10 @@ class GremienBeschluss(models.Model):
         else:
             self.status = BeschlussStatus.OHNE_ERGEBNIS
             self.ergebnis = ""
-        self.save(update_fields=["status", "ergebnis", "regel_version", "entschieden_am"])
+        # Die Zahlen des Beschlusszeitpunkts bleiben am Beschluss (GP-035) — dieselben, die unten
+        # in die Kette gehen. Seiten und Protokoll lesen danach nur noch sie.
+        self.auszaehlung_festhalten(ergebnis)
+        self.save(update_fields=["status", "ergebnis", "regel_version", "entschieden_am", "festgehalten"])
         # Die Wirkungstabelle steht am Ende des Moduls. Sie hier auszulösen und nicht bei den
         # Aufrufern ist Absicht: Ein Aufrufer, der sie vergisst, hinterließe einen Beschluss,
         # der entschieden aussieht und nichts bewirkt hat.
@@ -1422,6 +1541,7 @@ class GremienBeschluss(models.Model):
                 "ergebnis": self.ergebnis,
                 "zaehlung": ergebnis.zaehlung,
                 "abgegeben": ergebnis.abgegeben,
+                "aktive": ergebnis.aktive,
                 "noetig": ergebnis.noetig,
                 "regel_version": ergebnis.version,
             }
@@ -1554,6 +1674,40 @@ class GremienStimme(models.Model):
         return f"{self.mitglied_id} → {self.option}"
 
 
+class Umsetzungsvermerk(models.Model):
+    """Ein Vermerk des Rates zur Umsetzung eines entschiedenen Beschlusses (FB-I5, § 6 Abs 9).
+
+    Nur anfügend (GP-025): Bis 0.114.0 ersetzte jeder Vermerk den vorigen samt Zuweisung und Frist —
+    was zugesagt war, stand danach nirgends mehr. Jetzt bleibt jeder Vermerk als eigener Eintrag
+    stehen, je Beschluss durchgezählt, öffentlich wie bisher.
+
+    Die Zuweisung verweist auf die Rolle, nicht auf das Mitglied: Übernehmen kann nur, wer im Rat
+    sitzt, und der Name wird beim Anzeigen bestimmt (GP-011)."""
+
+    beschluss = models.ForeignKey(GremienBeschluss, on_delete=models.CASCADE, related_name="umsetzungsvermerke")
+    nummer = models.PositiveIntegerField(help_text="Je Beschluss fortlaufend.")
+    text = models.TextField(max_length=2000)
+    rolle = models.ForeignKey(
+        Rolle,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="umsetzungsvermerke",
+        help_text="Die Rolle des Ratsmitglieds, das die Umsetzung übernimmt — freiwillig.",
+    )
+    frist = models.DateField(null=True, blank=True, help_text="Bis wann — freiwillig.")
+    erstellt_am = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = [("beschluss", "nummer")]
+        ordering = ["-nummer"]
+        verbose_name = "Umsetzungsvermerk"
+        verbose_name_plural = "Umsetzungsvermerke"
+
+    def __str__(self) -> str:
+        return f"Vermerk {self.nummer} zu Beschluss {self.beschluss_id}"
+
+
 def beschluss_frist(tage_schluessel: str = "gremien-beschluss-tage", standard: int = BESCHLUSS_TAGE):
     """Wann ein neu angelegter Beschluss ausgewertet wird."""
     return timezone.now() + timedelta(days=_registerzahl(tage_schluessel, standard))
@@ -1561,18 +1715,18 @@ def beschluss_frist(tage_schluessel: str = "gremien-beschluss-tage", standard: i
 
 #: Die drei Wege der Gruppe 2 (§ 6 Abs 7). Der Wert steht im Code, der Name auf dem Knopf.
 PRUEFOPTIONEN = [
-    {"wert": "validiert", "name": "validieren"},
-    {"wert": "zurueck", "name": "mit Begründung zurückgeben"},
-    {"wert": "austausch", "name": "Austausch bei Gruppe 1 beantragen"},
+    {"wert": "validiert", "name": gettext_noop("validieren")},
+    {"wert": "zurueck", "name": gettext_noop("mit Begründung zurückgeben")},
+    {"wert": "austausch", "name": gettext_noop("Austausch bei Gruppe 1 beantragen")},
 ]
 
 #: Die Prüfpunkte der Gruppe 2 (§ 6 Abs 7). Abgehakte Punkte wandern in die Begründung —
 #: eine Liste, die niemand sieht, prüft nichts.
 PRUEFPUNKTE = [
-    ("interessen", "Interessenbindungen der Gruppe 1 offengelegt und unauffällig"),
-    ("bieter", "Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter"),
-    ("schwellen", "Schwellenwerte des Vergaberechts beachtet"),
-    ("vergleich", "Vergleichsangebote oder eine Begründung, warum es keine gibt"),
+    ("interessen", gettext_noop("Interessenbindungen der Gruppe 1 offengelegt und unauffällig")),
+    ("bieter", gettext_noop("Bieterkreis nachvollziehbar, keine Häufung derselben Anbieter")),
+    ("schwellen", gettext_noop("Schwellenwerte des Vergaberechts beachtet")),
+    ("vergleich", gettext_noop("Vergleichsangebote oder eine Begründung, warum es keine gibt")),
 ]
 
 
@@ -1601,13 +1755,17 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
             if stimme.begruendung
         )
     else:
-        ergebnis = Pruefung.Ergebnis.VALIDIERT
+        # Ein eigener Wert, nicht „validiert“ (GP-032): Urteil, Antragsseite und Kette sagen dasselbe
+        # wie der Vermerk darunter.
+        ergebnis = Pruefung.Ergebnis.OHNE_ERGEBNIS.value
         begruendung = (
-            "Die Prüfung der Gruppe 2 blieb ohne Ergebnis: "
+            "Die Prüfung der Gruppe 2 blieb ohne Ergebnis"
             + (
-                "Gleichstand der Stimmen."
+                "."  # ohne festgehaltene Auszählung nennt der Vermerk keine Zahl (GP-035)
+                if auswertung is None
+                else ": Gleichstand der Stimmen."
                 if auswertung.gleichstand
-                else f"{auswertung.abgegeben} von {auswertung.noetig} nötigen Stimmen bis zum Fristende."
+                else f": {auswertung.abgegeben} von {auswertung.noetig} nötigen Stimmen bis zum Fristende."
             )
             + " Der Vorschlag geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
             "(§ 5 Abs 12: Untätigkeit hemmt nie)."
@@ -1631,7 +1789,8 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
             "ohne_ergebnis": not beschluss.ergebnis,
         }
     )
-    if ergebnis == Pruefung.Ergebnis.VALIDIERT:
+    if ergebnis in (Pruefung.Ergebnis.VALIDIERT, Pruefung.Ergebnis.OHNE_ERGEBNIS):
+        # Validiert oder ohne Ergebnis: Beides führt weiter an die Unterstützer (§ 5 Abs 12).
         entwurf.zu_den_unterstuetzern(jetzt)
     elif ergebnis == Pruefung.Ergebnis.ZURUECK:
         # Zum Beschlusszeitpunkt, nicht zum Zeitpunkt der Auswertung (GP-027): Schließt die Frist den
@@ -1650,9 +1809,30 @@ def _integritaetsrat_beschlussfaehig(beschluss) -> bool:
 
 
 def _vermerken(beschluss, text: str) -> None:
-    """Hält am Beschluss fest, warum eine Wirkung ausblieb — statt sie stumm zu unterlassen."""
+    """Hält am Beschluss fest, was er bewirkt hat oder warum eine Wirkung ausblieb — statt sie stumm
+    zu unterlassen.
+
+    Der Vermerk steht auch in der Kette (GP-034): Das Feld gehört der Plattform, das Formular des
+    Rates schreibt es nicht mehr — und was hier steht, ist ein Satz der Plattform ohne Person.
+    `ohne_wirkung` macht den Fall auffindbar, in dem ein Beschluss entschieden aussieht und nichts
+    bewirkt hat."""
     beschluss.umsetzungsvermerk = (beschluss.umsetzungsvermerk + " " + text).strip()[:2000]
     beschluss.save(update_fields=["umsetzungsvermerk"])
+    AuditEintrag.anhaengen(
+        {
+            "typ": "gremienbeschluss_vermerkt",
+            "gremium": beschluss.gremium,
+            "beschluss": beschluss.pk,
+            "nummer": beschluss.nummer,
+            "vermerk": text[:2000],
+            "ohne_wirkung": text.startswith(OHNE_WIRKUNG_ANFAENGE),
+        }
+    )
+
+
+#: Woran die Kette einen Vermerk erkennt, nach dem der Beschluss nicht bewirkt hat, was er beschloss:
+#: die Satzanfänge, mit denen die Wirkungen das sagen („Ohne Wirkung: …“, „Nicht eingereicht: …“).
+OHNE_WIRKUNG_ANFAENGE = ("Ohne Wirkung", "Nicht ")
 
 
 def hervorhebung_wirkung(beschluss, jetzt=None, aufheben: bool = False) -> None:
@@ -2225,6 +2405,65 @@ class Fachliste(models.Model):
         )
 
 
+class FachlistenEinwilligung(models.Model):
+    """Die selbst erklärte Einwilligung eines Mitglieds, öffentlich auf der Fachliste geführt zu werden
+    (§ 6 Abs 7, § 8 Abs 4; GP-009).
+
+    Bis 0.114 hielt nur die Verwaltung beim Eintragen fest, dass die Einwilligung vorliege. Jetzt erklärt
+    das Mitglied sie im Profil selbst und nimmt sie dort zurück, solange es nicht auf der Liste geführt
+    wird. Nur anfügend: Ein Widerruf trägt sein Datum in die offene Erklärung, eine neue Erklärung ist
+    eine neue Zeile."""
+
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="fachlisten_einwilligungen"
+    )
+    erklaert_am = models.DateTimeField(default=timezone.now)
+    widerrufen_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-erklaert_am", "-pk"]
+        verbose_name = "Einwilligung zur Fachliste"
+        verbose_name_plural = "Einwilligungen zur Fachliste"
+
+    def __str__(self) -> str:
+        return f"Einwilligung {self.pk} ({'widerrufen' if self.widerrufen_am else 'offen'})"
+
+    @classmethod
+    def offene(cls):
+        return cls.objects.filter(widerrufen_am__isnull=True)
+
+    @classmethod
+    def liegt_vor(cls, mitglied) -> bool:
+        return cls.offene().filter(mitglied=mitglied).exists()
+
+    @classmethod
+    def erklaeren(cls, mitglied) -> bool:
+        """Legt eine Erklärung an, wenn keine offen ist — True, wenn sich etwas geändert hat."""
+        if cls.liegt_vor(mitglied):
+            return False
+        cls.objects.create(mitglied=mitglied)
+        return True
+
+    @classmethod
+    def widerrufen(cls, mitglied, jetzt=None, mit_eintrag: bool = True) -> bool:
+        """Widerruft die offene Erklärung; ein Eintrag der Fachliste zeigt danach den Schlüssel statt des
+        Namens (§ 8 Abs 4) — True, wenn sich etwas geändert hat.
+
+        `mit_eintrag=False` nimmt nur die Erklärung zurück und lässt den Eintrag, wie er ist: Das
+        Profil ändert an der öffentlichen Liste nichts, solange offen ist, wie die Nennung des Namens
+        widerrufen wird (Entscheidungsliste E-10.8). Mit dem Eintrag wirkt der Widerruf beim Austritt."""
+        jetzt = jetzt or timezone.now()
+        geaendert = bool(cls.offene().filter(mitglied=mitglied).update(widerrufen_am=jetzt))
+        if not mit_eintrag:
+            return geaendert
+        eintrag = Fachliste.objects.filter(mitglied=mitglied, einwilligung_widerrufen_am__isnull=True).first()
+        if eintrag is not None:
+            eintrag.einwilligung_widerrufen_am = timezone.localdate(jetzt)
+            eintrag.save(update_fields=["einwilligung_widerrufen_am"])
+            geaendert = True
+        return geaendert
+
+
 def unvereinbarkeiten_laden() -> tuple[set[int], set[int]]:
     """Die beiden Mengen, aus denen sich jede Unvereinbarkeit ergibt — zwei Abfragen für die
     ganze Liste statt zwei je Kopf (Befund #44): Mitglieder mit aktiver Rolle im Integritätsrat
@@ -2246,9 +2485,9 @@ def unvereinbar_fuer(mitglied_id: int, im_integritaetsrat: set[int], mit_mandat:
     Mandat und Beratung. Diese Prüfung gehört an den Lostopf und nicht an die Ansicht: Wer sie
     dort vergisst, hat sie nie."""
     if mitglied_id in im_integritaetsrat:
-        return "Mitglied des Integritätsrats (§ 6 Abs 3 lit a)"
+        return gettext_noop("Mitglied des Integritätsrats (§ 6 Abs 3 lit a)")  # übersetzt beim Anzeigen (GP-039)
     if mitglied_id in mit_mandat:
-        return "übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)"
+        return gettext_noop("übt ein Mandat für die DDÖ aus (§ 6 Abs 3 lit a)")
     return ""
 
 
@@ -2673,6 +2912,19 @@ def austausch_wirkung(beschluss, jetzt=None) -> None:
         for rolle in betroffen:
             rolle.beendet_grund = f"Austausch durch den Koordinationsrat, Beschluss {beschluss.nummer} (§ 6 Abs 7)"
             rolle.save(update_fields=["beendet_grund"])
+            # Je Rolle ein Eintrag (GP-037). Der Grund ist der Beschluss, kein Text zu einer Person —
+            # er steht deshalb als Anlass und Nummer da und bleibt öffentlich lesbar.
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "rolle_beendet",
+                    "rolle": rolle.pk,
+                    "gremium": rolle.gremium,
+                    "antrag": entwurf.antrag_id,
+                    "anlass": Anlass.AUSTAUSCH.value,
+                    "beschluss": beschluss.pk,
+                    "nummer": beschluss.nummer,
+                }
+            )
         letzte = Auslosung.objects.filter(antrag=entwurf.antrag).order_by("-runde").first()
         neue = auslosen(entwurf.antrag, runde=(letzte.runde + 1) if letzte else 2, jetzt=jetzt)
         entwurf.zurueck_an_gruppe_1(
@@ -2808,6 +3060,17 @@ def parametertest_wirkung(beschluss, jetzt=None) -> None:
         test.status = TestStatus.VERWORFEN
         test.auswertung = (
             f"Nicht angeordnet — das Ende des Tests ({test.ende:%d.%m.%Y}) war erreicht, als der Rat entschied."
+        )
+        test.ausgewertet_am = jetzt
+        test.save(update_fields=["status", "auswertung", "ausgewertet_am"])
+        _vermerken(beschluss, test.auswertung)
+        return
+    if wert_ausserhalb(parameter, test.testwert):
+        # Das Anordnen weist solche Werte ab (GP-021); ein vor dieser Fassung angeordneter Test trägt
+        # ihn vielleicht noch. Die Grenze des Registers gilt auch für ihn: Er beginnt nicht.
+        test.status = TestStatus.VERWORFEN
+        test.auswertung = (
+            f"Nicht angeordnet — der Testwert {test.testwert} liegt außerhalb des Wertbereichs der Stellgröße."
         )
         test.ausgewertet_am = jetzt
         test.save(update_fields=["status", "auswertung", "ausgewertet_am"])

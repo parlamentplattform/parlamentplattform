@@ -11,12 +11,12 @@ was der Rat führt.
 <h1>{{ name }}</h1>
 {% include "gremien/_rollenband.html" %}
 {% if not darf_schreiben and not abgelaufene_rolle %}<p class="erk">{% translate "Sie sehen diesen Bereich als Aufsicht (Verwaltung) — schreiben können nur aktive Rolleninhaber." %}</p>{% endif %}
-<p class="erk">{{ satzung }}</p>
+<p class="erk">{% translate satzung %}</p>
 
 <div class="karte" style="margin-top:16px">
   <p class="phasen-titel">{% translate "Was der Rat führt" %}</p>
   {% for v in verweise %}
-  <div class="zeile"><span><a href="{{ v.url }}"><strong>{{ v.titel }}</strong></a><br><span class="meta">{{ v.text }}</span></span></div>
+  <div class="zeile"><span><a href="{{ v.url }}"><strong>{% translate v.titel %}</strong></a><br><span class="meta">{% translate v.text %}</span></span></div>
   {% endfor %}
   {% if ueberlastungen %}
   {% for m in ueberlastungen %}

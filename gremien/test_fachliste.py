@@ -239,7 +239,9 @@ def test_streichen_braucht_einen_grund_und_loescht_nichts(client):
     assert eintrag.gestrichen_am == timezone.localdate()
     gestrichen = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'fachliste_gestrichen']
     assert len(gestrichen) == 1 and gestrichen[0]['eintrag'] == eintrag.pk and gestrichen[0]['durch'] == admin.pk
-    assert 'eigenen Wunsch' not in str(gestrichen[0])  # der frei geschriebene Grund steht nicht in der Kette
+    # GP-009 (Rest): Der Grund steht in der Kette — er ist ohnehin öffentlich am Eintrag, und eine
+    # Wiederaufnahme leert ihn dort.
+    assert gestrichen[0]['grund'] == 'Auf eigenen Wunsch.'
     client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Noch einmal.'})
     eintrag.refresh_from_db()
     assert eintrag.gestrichen_grund == 'Auf eigenen Wunsch.'  # ein gestrichener Eintrag wird nicht überschrieben
@@ -259,3 +261,192 @@ def test_die_pflege_der_fachliste_ist_der_verwaltung_vorbehalten(client):
         assert client.get(seite).status_code == 403
         assert client.post(aktion, daten).status_code == 403
     assert not Fachliste.objects.exists()
+
+
+# --- GP-009 (Rest): Selbsterklärung, Wiederaufnahme, Grund in der Kette ----------------------
+
+
+def _audit(typ):
+    from verfahren.models import AuditEintrag
+
+    return [
+        {k: v for k, v in e.ereignis.items() if k not in ('zeit', 'salz')}
+        for e in AuditEintrag.objects.order_by('lfd') if e.ereignis.get('typ') == typ
+    ]
+
+
+def test_das_mitglied_erklaert_die_einwilligung_selbst_und_die_verwaltung_traegt_ohne_haken_ein(client):
+    """GP-009: Bisher hielt nur die Verwaltung die Einwilligung fest. Das Mitglied erklärt sie im
+    Profil selbst; danach trägt die Verwaltung ohne eigenen Haken ein."""
+    from django.template import Context, Template
+
+    mitglied = mitglied_anlegen('selbsterklaerend')
+    client.force_login(mitglied)
+    vorlage = Template('{% load gremien_profil %}{% fachliste_einwilligung %}')
+    from django.test import RequestFactory
+
+    anfrage = RequestFactory().get('/profil/')
+    anfrage.user = mitglied
+    karte = vorlage.render(Context({'request': anfrage, 'user': mitglied}))
+    assert reverse('gremien:fachliste_einwilligung') in karte and 'value="erklaeren"' in karte
+    client.post(reverse('gremien:fachliste_einwilligung'), {'aktion': 'erklaeren'})
+    from gremien.models import FachlistenEinwilligung
+
+    assert FachlistenEinwilligung.liegt_vor(mitglied)
+    assert _audit('fachliste_einwilligung')[-1]['aktion'] == 'erklaert'
+    karte = vorlage.render(Context({'request': anfrage, 'user': mitglied}))
+    assert 'value="widerrufen"' in karte
+
+    admin = _verwaltung(client)
+    seite = client.get(reverse('gremien:fachliste_verwaltung')).content.decode()
+    assert 'selbsterklaerend' in seite  # die Verwaltung sieht, wer selbst eingewilligt hat
+    client.post(reverse('gremien:fachliste_aktion'), {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    eintrag = Fachliste.objects.get(mitglied=mitglied)
+    ereignis = _audit('fachliste_eingetragen')[-1]
+    assert ereignis['einwilligung'] is True and ereignis['selbst_erklaert'] is True and ereignis['durch'] == admin.pk
+
+    # Wer geführt wird, widerruft im Profil nicht (Gegenlesen, E-10.8): Wie die Nennung des Namens auf der
+    # Liste widerrufen wird, ist nicht entschieden — Eintrag, Name und Erklärung bleiben, wie sie sind.
+    client.force_login(mitglied)
+    karte = vorlage.render(Context({'request': anfrage, 'user': mitglied}))
+    assert 'value="widerrufen"' not in karte and 'value="erklaeren"' not in karte
+    vorher = len(_audit('fachliste_einwilligung'))
+    client.post(reverse('gremien:fachliste_einwilligung'), {'aktion': 'widerrufen'})
+    eintrag.refresh_from_db()
+    assert FachlistenEinwilligung.liegt_vor(mitglied)
+    assert eintrag.einwilligung_widerrufen_am is None and eintrag.anzeigename == mitglied.anzeigename
+    assert len(_audit('fachliste_einwilligung')) == vorher
+    client.force_login(admin)
+    client.post(reverse('gremien:fachliste_aktion'), {'aktion': 'eintragen', 'mitglied': mitglied_anlegen('zweite').pk})
+    assert Fachliste.objects.count() == 1  # ohne Selbsterklärung und ohne Haken: niemand
+
+
+def test_eine_erklaerung_laesst_sich_zuruecknehmen_solange_niemand_gefuehrt_wird(client):
+    """GP-009, Gegenlesen: Vor dem Eintrag und nach einer Streichung nimmt das Mitglied seine Erklärung
+    im Profil zurück — die Verwaltung trägt dann nicht mehr ohne eigenen Haken ein und nimmt nicht
+    ohne ihn wieder auf. Am Eintrag selbst und am Namen auf der Liste ändert das nichts (E-10.8)."""
+    from gremien.models import FachlistenEinwilligung
+
+    ziel = reverse('gremien:fachliste_einwilligung')
+    aktion = reverse('gremien:fachliste_aktion')
+    mitglied = mitglied_anlegen('ueberlegt-es-sich')
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    client.post(ziel, {'aktion': 'widerrufen'})
+    assert not FachlistenEinwilligung.liegt_vor(mitglied)
+    assert _audit('fachliste_einwilligung')[-1] == {
+        'typ': 'fachliste_einwilligung', 'aktion': 'widerrufen', 'eintrag': None, 'durch': mitglied.pk,
+    }
+    admin = _verwaltung(client)
+    client.post(aktion, {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    assert not Fachliste.objects.exists()  # zurückgenommen: ohne Haken trägt niemand ein
+
+    # Nach einer Streichung: Die alte Erklärung gilt nicht still weiter, wenn das Mitglied sie zurücknimmt.
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    client.force_login(admin)
+    client.post(aktion, {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    eintrag = Fachliste.objects.get(mitglied=mitglied)
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auf eigenen Wunsch.'})
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'widerrufen'})
+    eintrag.refresh_from_db()
+    assert not FachlistenEinwilligung.liegt_vor(mitglied)
+    assert eintrag.einwilligung_widerrufen_am is None  # der Eintrag bleibt, wie er ist
+    assert _audit('fachliste_einwilligung')[-1]['eintrag'] == eintrag.pk
+    client.force_login(admin)
+    client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk})
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt  # ohne Erklärung und ohne Haken keine Wiederaufnahme
+
+
+def test_die_verwaltung_sieht_als_selbst_erklaert_nur_wer_es_erklaert_hat(client):
+    """GP-009, Gegenlesen: Die Karte „Einwilligung selbst erklärt“ nannte jedes aktive Mitglied ohne
+    Eintrag — auch wer nie etwas erklärt hatte. Sie nennt nur offene Erklärungen."""
+    from gremien.models import FachlistenEinwilligung
+
+    erklaert = mitglied_anlegen('hat-erklaert')
+    mitglied_anlegen('nie-erklaert')
+    widerrufen = mitglied_anlegen('hat-widerrufen')
+    schon_gefuehrt = eintragen('schon-gefuehrt').mitglied
+    for m in (erklaert, widerrufen, schon_gefuehrt):
+        FachlistenEinwilligung.erklaeren(m)
+    FachlistenEinwilligung.widerrufen(widerrufen)
+    _verwaltung(client)
+    seite = client.get(reverse('gremien:fachliste_verwaltung'))
+    assert [m.username for m in seite.context['selbst_erklaert']] == ['hat-erklaert']
+
+
+def test_die_profilkarte_sieht_nur_wer_sich_erklaeren_kann(client):
+    """GP-009, Gegenlesen: Wen der Endpunkt abweist (hier: pausiert), dem zeigt das Profil die Karte nicht."""
+    from django.template import Context, Template
+    from django.test import RequestFactory
+
+    vorlage = Template('{% load gremien_profil %}{% fachliste_einwilligung %}')
+    pausiert = mitglied_anlegen('pausiert')
+    pausiert.status = 'pausiert'
+    pausiert.save(update_fields=['status'])
+    anfrage = RequestFactory().get('/profil/')
+    anfrage.user = pausiert
+    assert 'fachliste-einwilligung' not in vorlage.render(Context({'request': anfrage, 'user': pausiert}))
+    client.force_login(pausiert)
+    assert client.post(reverse('gremien:fachliste_einwilligung'), {'aktion': 'erklaeren'}).status_code == 403
+
+
+def test_die_selbsterklaerung_braucht_ein_aktives_parteikonto(client):
+    from gremien.models import FachlistenEinwilligung
+
+    ziel = reverse('gremien:fachliste_einwilligung')
+    assert client.post(ziel, {'aktion': 'erklaeren'}).status_code == 302  # Gast: zur Anmeldung
+    assert client.get(ziel).status_code in (302, 405)
+    ausgetreten = mitglied_anlegen('ausgetreten')
+    ausgetreten.status = 'ausgetreten'
+    ausgetreten.save(update_fields=['status'])
+    client.force_login(ausgetreten)
+    assert client.post(ziel, {'aktion': 'erklaeren'}).status_code == 403
+    assert not FachlistenEinwilligung.objects.exists()
+
+
+def test_ein_gestrichener_eintrag_laesst_sich_wieder_aufnehmen_und_die_kette_traegt_den_grund(client):
+    """GP-009: Gestrichen hieß für immer — die Verwaltung konnte niemanden zurückholen, und der Grund
+    stand nur am Eintrag, den eine Wiederaufnahme leert. Jetzt trägt `fachliste_gestrichen` den Grund."""
+    admin = _verwaltung(client)
+    eintrag = eintragen('rueckkehrerin')
+    aktion = reverse('gremien:fachliste_aktion')
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auszeit bis Herbst.'})
+    assert _audit('fachliste_gestrichen')[-1]['grund'] == 'Auszeit bis Herbst.'
+    seite = client.get(reverse('gremien:fachliste_verwaltung')).content.decode()
+    assert 'value="wieder_aufnehmen"' in seite
+    # Ohne Einwilligung keine Wiederaufnahme.
+    client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk})
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt
+    client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk, 'einwilligung': 'on'})
+    eintrag.refresh_from_db()
+    assert eintrag.gefuehrt and eintrag.gestrichen_grund == '' and eintrag.einwilligung_widerrufen_am is None
+    ereignis = _audit('fachliste_wieder_aufgenommen')[-1]
+    assert ereignis == {
+        'typ': 'fachliste_wieder_aufgenommen', 'eintrag': eintrag.pk, 'einwilligung': True,
+        'selbst_erklaert': False, 'durch': admin.pk,
+    }
+    assert Fachliste.objects.count() == 1  # derselbe Eintrag, derselbe Schlüssel — kein zweiter daneben
+    # Ein ausgetretenes Mitglied kommt nicht zurück.
+    eintrag.mitglied.status = 'ausgetreten'
+    eintrag.mitglied.save(update_fields=['status'])
+    client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Austritt'})
+    client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk, 'einwilligung': 'on'})
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt
+    assert client.post(aktion, {'aktion': 'wieder_aufnehmen', 'eintrag': 'x'}).status_code == 404
+
+
+def test_die_wiederaufnahme_ist_der_verwaltung_vorbehalten(client):
+    eintrag = eintragen('gestrichen-fremd', gestrichen_am=timezone.localdate(), gestrichen_grund='x')
+    daten = {'aktion': 'wieder_aufnehmen', 'eintrag': eintrag.pk, 'einwilligung': 'on'}
+    ratsmitglied = mitglied_anlegen('ratsmitglied-w')
+    rolle_geben(ratsmitglied, Gremium.KOORDINATIONSRAT)
+    for konto in (eintrag.mitglied, ratsmitglied):
+        client.force_login(konto)
+        assert client.post(reverse('gremien:fachliste_aktion'), daten).status_code == 403
+    eintrag.refresh_from_db()
+    assert not eintrag.gefuehrt

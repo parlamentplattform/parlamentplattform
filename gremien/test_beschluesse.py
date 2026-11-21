@@ -222,14 +222,16 @@ def test_die_stimme_einer_ruhenden_rolle_zaehlt_nicht_und_schliesst_nicht_vorzei
     ausgewertet = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis.get("typ") == "gremienbeschluss_ausgewertet"][-1]
     assert ausgewertet["abgegeben"] == 2 and ausgewertet["zaehlung"] == {"dafuer": 2, "dagegen": 0}  # A's Stimme nicht dabei
     assert beschluss.stimmen.count() == 3  # gespeichert bleibt sie (Grundregel 7)
-    # Ein entschiedener Beschluss wird nicht mehr gefiltert: Die Anzeige rechnet wie bisher aus allen
-    # gespeicherten Stimmen mit dem heutigen Nenner; das Ergebnis selbst und der Audit-Eintrag der
-    # Auswertung stehen fest, auch wenn B's Rolle später ruht.
+    # Ein entschiedener Beschluss zeigt die Zahlen seines Beschlusszeitpunkts (GP-035): dieselben wie
+    # der Audit-Eintrag der Auswertung — nicht alle gespeicherten Stimmen mit dem heutigen Nenner —,
+    # auch wenn B's Rolle später ruht.
     rollen[b].ruht_seit = timezone.now()
     rollen[b].ruht_grund = RUHENSGRUND
     rollen[b].save(update_fields=["ruht_seit", "ruht_grund"])
     beschluss.refresh_from_db()
-    assert beschluss.ergebnis == "dafuer" and beschluss.auswertung().abgegeben == beschluss.stimmen.count()
+    stand = beschluss.auswertung()
+    assert beschluss.ergebnis == "dafuer" and (stand.abgegeben, stand.aktive, stand.noetig) == (2, 2, 1)
+    assert stand.zaehlung == ausgewertet["zaehlung"] and stand.abgegeben == ausgewertet["abgegeben"]
 
 
 def test_der_anlass_entscheidet_ueber_die_wirkung():
@@ -451,6 +453,7 @@ def test_ohne_audit_eintrag_bleibt_der_umsetzungsvermerk_ungeschrieben(client, a
     antwort = client.post(reverse('gremien:beschluss_umsetzung', args=[beschluss.pk]), {'umsetzungsvermerk': 'Wird erledigt.'})
     beschluss.refresh_from_db()
     assert antwort.status_code == 500 and beschluss.umsetzungsvermerk == ''
+    assert not beschluss.umsetzungsvermerke.exists() and beschluss.umsetzung_frist is None  # GP-025: nichts halb
 
 
 def test_ohne_audit_eintrag_wird_kein_test_angeordnet(client, monkeypatch):

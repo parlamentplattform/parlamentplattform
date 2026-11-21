@@ -19,6 +19,13 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
   </form>
 </div>
 
+{% if selbst_erklaert %}
+<div class="karte">
+  <p class="phasen-titel">{% translate "Einwilligung selbst erklärt" %}</p>
+  {% for m in selbst_erklaert %}<div class="zeile"><span>{{ m.anzeigename }} <span class="meta">{{ m.username }}</span></span></div>{% endfor %}
+</div>
+{% endif %}
+
 <div class="karte">
   <p class="phasen-titel">{% translate "Alle Einträge" %}</p>
   {% for e in eintraege %}
@@ -34,6 +41,11 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
     </form>
     {% else %}
     <br><span class="meta">{{ e.gestrichen_am|date:"d.m.Y" }} · {{ e.gestrichen_grund }}</span>
+    <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
+      <input type="hidden" name="aktion" value="wieder_aufnehmen"><input type="hidden" name="eintrag" value="{{ e.pk }}">
+      <span class="checkzeile"><input type="checkbox" name="einwilligung" id="einwilligung-{{ e.pk }}"> <label for="einwilligung-{{ e.pk }}">{% translate "Die Einwilligung des Mitglieds liegt vor (§ 8 Abs 4)" %}</label></span>
+      <button type="submit" class="btn-linie">{% translate "Wieder aufnehmen" %}</button>
+    </form>
     {% endif %}
   </span></div>
   {% empty %}

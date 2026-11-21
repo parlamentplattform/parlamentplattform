@@ -39,7 +39,7 @@ bedienbar — ein Formular je Vorschlag.
     </div>
 
     {% for s in z.stimmen %}
-    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in z.beschluss.optionen %}{% if o.wert == s.option %}{{ o.name }}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}<br>{{ s.begruendung|linebreaksbr }}</p>
+    <p class="meta" style="margin-top:6px"><strong>{{ s.mitglied.anzeigename }}</strong>: {% for o in z.beschluss.optionen %}{% if o.wert == s.option %}{% translate o.name %}{% endif %}{% endfor %}{% if s.geaendert_am %} · {% translate "geändert" %}{% endif %}<br>{{ s.begruendung|linebreaksbr }}</p>
     {% endfor %}
 
     {% if darf_schreiben %}
@@ -47,13 +47,13 @@ bedienbar — ein Formular je Vorschlag.
       <fieldset style="border:0;padding:0;margin:0">
         <legend class="meta">{% translate "Prüfpunkte (§ 6 Abs 7) — was Sie abhaken, steht in Ihrer Begründung" %}</legend>
         {% for schluessel, punkt in pruefpunkte %}
-        <label style="display:block;font-size:13.5px"><input type="checkbox" name="punkt_{{ schluessel }}" value="1"> {{ punkt }}</label>
+        <label style="display:block;font-size:13.5px"><input type="checkbox" name="punkt_{{ schluessel }}" value="1"> {% translate punkt %}</label>
         {% endfor %}
       </fieldset>
       <label for="beg-{{ z.beschluss.pk }}" style="margin-top:6px;display:block">{% translate "Begründung (wird veröffentlicht)" %}</label>
       <textarea id="beg-{{ z.beschluss.pk }}" name="begruendung" style="width:100%;min-height:60px" required>{{ z.meine_stimme.begruendung|default:"" }}</textarea>
       {% for o in z.beschluss.optionen %}
-      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %}" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{{ o.name }}</button>
+      <button type="submit" name="option" value="{{ o.wert }}" class="{% if forloop.first %}btn{% else %}btn-linie{% endif %}" style="margin-top:6px{% if not forloop.first %};margin-left:6px{% endif %}">{% translate o.name %}</button>
       {% endfor %}
       {% if z.meine_stimme %}<p class="meta" style="margin-top:4px">{% translate "Sie haben bereits abgestimmt — eine neue Stimme ersetzt Ihre alte, solange der Beschluss offen ist." %}</p>{% endif %}
     </form>

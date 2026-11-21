@@ -72,7 +72,9 @@ versiegelt ist. Mehr Stimmen als Stimmberechtigte sind in jedem Export ein Fehle
 
 Das Ergebniswort: Das Skript gibt unter "ergebnis" aus, wie der Ausgang heißt — "angenommen",
 "abgelehnt" oder "kein_beschluss" (es gab keinen einzigen Stimmberechtigten; das kommt nur im leeren
-örtlichen Kreis vor). Der Export nennt sein Wort ebenfalls unter "ergebnis"; beide müssen gleich lauten.
+örtlichen Kreis vor). Der Export nennt sein Wort ebenfalls unter "ergebnis" (ältere Exporte nennen
+keines). Das Skript liest dieses Feld nicht und vergleicht nicht: Es errechnet sein Wort aus Stimmen und
+Nenner; wer nachrechnet, legt es neben das Feld des Exports und neben die Ergebnisseite.
 """
 
 import hashlib

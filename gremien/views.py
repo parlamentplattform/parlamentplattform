@@ -1004,6 +1004,16 @@ def fachliste_einwilligung(request):
             )
     if aktion_audit == "erklaert":
         messages.success(request, _("Einwilligung zur Fachliste erklärt — die Verwaltung kann Sie eintragen."))
+    elif aktion_audit == "widerrufen" and eintrag is not None:
+        # Am gestrichenen Eintrag bleibt der Name stehen (E-10.8 offen) — die Meldung sagt es offen.
+        messages.info(
+            request,
+            _(
+                "Einwilligung zurückgenommen: Die Verwaltung trägt Sie nicht erneut ein. Der gestrichene Eintrag "
+                "bleibt mit Ihrem Namen auf der Fachliste stehen; die Nennung Ihres Namens widerrufen Sie bei der "
+                "Verwaltung (plattform@ddoe.at)."
+            ),
+        )
     elif aktion_audit == "widerrufen":
         messages.info(request, _("Einwilligung zur Fachliste widerrufen."))
     return redirect(reverse("mitglieder:profil") + "#fachliste-einwilligung")

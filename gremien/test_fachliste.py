@@ -360,6 +360,64 @@ def test_eine_erklaerung_laesst_sich_zuruecknehmen_solange_niemand_gefuehrt_wird
     assert not eintrag.gefuehrt  # ohne Erklärung und ohne Haken keine Wiederaufnahme
 
 
+def _profilkarte(mitglied):
+    from django.template import Context, Template
+    from django.test import RequestFactory
+
+    anfrage = RequestFactory().get('/profil/')
+    anfrage.user = mitglied
+    return Template('{% load gremien_profil %}{% fachliste_einwilligung %}').render(
+        Context({'request': anfrage, 'user': mitglied})
+    )
+
+
+def _meldungen(antwort):
+    from django.contrib.messages import get_messages
+
+    return ' '.join(str(m) for m in get_messages(antwort.wsgi_request))
+
+
+def test_am_gestrichenen_eintrag_sagt_die_ruecknahme_offen_was_sie_bewirkt(client):
+    """Datenschutz-Fund: Am gestrichenen Eintrag bestätigte das Profil einen datierten Widerruf, während der
+    Name dort öffentlich stehen bleibt (E-10.8 offen). Karte, Knopf und Meldung sagen jetzt, dass die
+    Rücknahme nur eine erneute Eintragung verhindert und wo man die Nennung des Namens widerruft."""
+    ziel = reverse('gremien:fachliste_einwilligung')
+    mitglied = mitglied_anlegen('gestrichen-und-genannt')
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    admin = _verwaltung(client)
+    client.post(reverse('gremien:fachliste_aktion'), {'aktion': 'eintragen', 'mitglied': mitglied.pk})
+    eintrag = Fachliste.objects.get(mitglied=mitglied)
+    client.post(reverse('gremien:fachliste_aktion'), {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auf eigenen Wunsch.'})
+    assert admin.pk
+    client.force_login(mitglied)
+    karte = _profilkarte(mitglied)
+    assert 'value="widerrufen"' in karte
+    assert 'Einwilligung zur erneuten Eintragung zurücknehmen' in karte
+    assert 'Einwilligung widerrufen<' not in karte
+    assert 'nur, dass die Verwaltung Sie erneut einträgt' in karte
+    assert 'bleibt mit Ihrem Namen' in karte and 'plattform@ddoe.at' in karte
+    antwort = client.post(ziel, {'aktion': 'widerrufen'}, follow=True)
+    meldung = _meldungen(antwort)
+    assert 'Die Verwaltung trägt Sie nicht erneut ein.' in meldung
+    assert 'bleibt mit Ihrem Namen' in meldung and 'plattform@ddoe.at' in meldung
+    assert 'Einwilligung zur Fachliste widerrufen.' not in meldung
+    eintrag.refresh_from_db()
+    assert eintrag.einwilligung_widerrufen_am is None  # am Eintrag selbst ändert sich nichts (E-10.8)
+
+
+def test_ohne_eintrag_bleibt_der_widerruf_wie_er_war(client):
+    ziel = reverse('gremien:fachliste_einwilligung')
+    mitglied = mitglied_anlegen('nie-gefuehrt')
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    karte = _profilkarte(mitglied)
+    assert 'value="widerrufen"' in karte and 'Einwilligung widerrufen<' in karte
+    assert 'erneuten Eintragung' not in karte and 'bleibt mit Ihrem Namen' not in karte
+    meldung = _meldungen(client.post(ziel, {'aktion': 'widerrufen'}, follow=True))
+    assert 'Einwilligung zur Fachliste widerrufen.' in meldung and 'bleibt mit Ihrem Namen' not in meldung
+
+
 def test_die_verwaltung_sieht_als_selbst_erklaert_nur_wer_es_erklaert_hat(client):
     """GP-009, Gegenlesen: Die Karte „Einwilligung selbst erklärt“ nannte jedes aktive Mitglied ohne
     Eintrag — auch wer nie etwas erklärt hatte. Sie nennt nur offene Erklärungen."""

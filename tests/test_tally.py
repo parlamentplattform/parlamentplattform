@@ -261,3 +261,47 @@ def test_eigenschaft_die_gegenprobe_aendert_kein_ergebnis(ja, nein, enthaltung, 
         stimmzettel=abgegeben, waehler=abgegeben, ohne_registerzeile=0, stimmberechtigte=berechtigte, stimmereignisse=abgegeben
     )
     assert (UEBERZAHL in befund) == (abgegeben > berechtigte)
+
+
+# --- GP-049: das Ergebniswort der Auszählung ---------------------------------------------------------
+
+
+class TestErgebniswort:
+    def test_leerer_oertlicher_kreis_heisst_kein_beschluss_und_bleibt_nicht_angenommen(self):
+        r = auszaehlen([], stimmberechtigte=0, policy=POLICY, leerer_oertlicher_kreis=True)
+        assert r.ergebnis == 'kein_beschluss'
+        assert not r.angenommen and 'kein Beschluss' in r.begruendung  # Rechtsfolge und Satz unverändert
+
+    def test_angenommen_und_abgelehnt_heissen_wie_bisher(self):
+        assert auszaehlen(stimmen(ja=6, nein=3), stimmberechtigte=100, policy=POLICY).ergebnis == 'angenommen'
+        assert auszaehlen(stimmen(ja=3, nein=6), stimmberechtigte=100, policy=POLICY).ergebnis == 'abgelehnt'
+        # Verfehlte Mindestbeteiligung bleibt „abgelehnt“ — ob sie ein eigenes Wort bekommt, ist nicht entschieden.
+        assert auszaehlen(stimmen(ja=4), stimmberechtigte=100, policy=POLICY).ergebnis == 'abgelehnt'
+
+    def test_personenwahl_im_leeren_kreis_heisst_kein_beschluss(self):
+        from plattform_core.tally import personenwahl_auszaehlen
+
+        leer = personenwahl_auszaehlen([], [7], 0, POLICY, leerer_oertlicher_kreis=True)
+        assert leer.ergebnis == 'kein_beschluss' and not leer.angenommen and leer.gewonnen_id is None
+        assert personenwahl_auszaehlen([('p1', 7)], [7], 10, POLICY).ergebnis == 'angenommen'
+        assert personenwahl_auszaehlen([], [7], 10, POLICY).ergebnis == 'abgelehnt'
+
+    def test_die_phasenfolge_bleibt_abgelehnt(self):
+        from datetime import UTC, datetime, timedelta
+
+        from plattform_core.phases import Phase, naechster_uebergang
+
+        beginn = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+        r = auszaehlen([], stimmberechtigte=0, policy=POLICY, leerer_oertlicher_kreis=True)
+        uebergang = naechster_uebergang(
+            Phase.ABSTIMMUNG, beginn, beginn + timedelta(days=8), POLICY, unterstuetzungen=0, auszaehlung=r
+        )
+        assert uebergang.neue_phase is Phase.ABGELEHNT
+
+
+@given(ja=st.integers(0, 40), nein=st.integers(0, 40), enthaltung=st.integers(0, 40), berechtigte=st.integers(1, 200))
+def test_eigenschaft_das_ergebniswort_folgt_allein_aus_annahme_und_nenner(ja, nein, enthaltung, berechtigte):
+    from plattform_core.tally import ergebnis_wort
+
+    r = auszaehlen(stimmen(ja=ja, nein=nein, enthaltung=enthaltung), stimmberechtigte=berechtigte, policy=POLICY)
+    assert r.ergebnis == ('angenommen' if r.angenommen else 'abgelehnt') == ergebnis_wort(r.angenommen, berechtigte)

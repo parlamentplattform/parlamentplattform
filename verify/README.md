@@ -9,6 +9,10 @@ bleibt“. Dafür gibt es hier ein Skript, das **nur die Python-Standardbiblioth
 2. `python3 verify/nachrechnen.py antrag-<nummer>-export.json`
 3. Die ausgegebenen Zahlen mit der Ergebnisseite vergleichen.
 
+Unter `ergebnis` nennt das Skript den Ausgang in einem Wort: `angenommen`, `abgelehnt` oder
+`kein_beschluss` — Letzteres, wenn der festgehaltene örtliche Kreis keinen einzigen Stimmberechtigten
+hatte. Der Export nennt sein Wort im Feld `ergebnis`; beide müssen gleich lauten.
+
 Das Skript zählt die Stimmen unter Pseudonym zweitens und unabhängig von der Plattform aus
 (`plattform_core/tally.py` ist die erste Zählung). Die eigene Stimme findet man in der Liste über das
 Pseudonym, das die Plattform einem nach der Anmeldung zeigt.

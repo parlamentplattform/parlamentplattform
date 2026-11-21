@@ -161,6 +161,14 @@ class Kategorie(models.Model):
         return ids
 
 
+#: Die Ergebniswörter der Auszählung zum Anzeigen (GP-049) — Schlüssel aus `plattform_core.tally`.
+ERGEBNIS_NAMEN = {
+    "angenommen": _("angenommen"),
+    "abgelehnt": _("abgelehnt"),
+    "kein_beschluss": _("kein Beschluss"),
+}
+
+
 class Antragsart(models.TextChoices):
     """§ 7 Abs 1 (E-2.5): Mandats-Kandidaturen laufen als eigene Antragsart —
     Bewerbungen statt Ja/Nein, Zustimmung je Bewerbung, die meiste Zustimmung
@@ -734,6 +742,28 @@ class Antrag(models.Model):
         oertlich = oertlich_begrenzt(self)
         basis = self.stimmberechtigte_anzahl if oertlich else self.stimmberechtigte_anzahl or 1
         return auszaehlen(stimmen, basis, self.policy(), leerer_oertlicher_kreis=oertlich)
+
+    @property
+    def ergebnis(self) -> str | None:
+        """Das Ergebniswort eines entschiedenen Antrags (GP-049): `angenommen`, `abgelehnt` oder
+        `kein_beschluss` — None, solange kein Ergebnis festgestellt ist.
+
+        Die Phase bleibt, was sie ist (auch der leere örtliche Kreis endet in „abgelehnt“); dieses
+        Wort sagt, wie der Ausgang heißt. Es folgt aus der Phase und dem festgestellten Nenner und
+        zählt keine Stimmen — Listen können es je Zeile lesen. Gerechnet im Kern (`tally.ergebnis_wort`),
+        mit demselben Nenner wie `auszaehlen`."""
+        if self.phase not in (Phase.ANGENOMMEN.value, Phase.ABGELEHNT.value):
+            return None
+        from plattform_core.tally import ergebnis_wort
+        from verfahren.teilnahme import oertlich_begrenzt
+
+        nenner = self.stimmberechtigte_anzahl if oertlich_begrenzt(self) else self.stimmberechtigte_anzahl or 1
+        return ergebnis_wort(self.phase == Phase.ANGENOMMEN.value, nenner)
+
+    @property
+    def ergebnis_name(self):
+        """Das Ergebniswort zum Anzeigen, übersetzt — leer, solange kein Ergebnis festgestellt ist."""
+        return ERGEBNIS_NAMEN.get(self.ergebnis, "")
 
     def stimmliste_zeilen(self) -> list[list]:
         """Die veröffentlichte Stimmliste als Zeilen einfacher Werte — die Eingabe der Prüfsumme

@@ -54,6 +54,15 @@ def phasenname(schluessel: str) -> str:
     return schluessel or _("ohne Phase")
 
 
+def _endname(antrag) -> str:
+    """Wie die Phase des Antrags im Archiv heißt. Ein Ergebnis, das anders heißt als seine Phase,
+    trägt sein Ergebniswort (GP-049): Der leere örtliche Kreis endet in der Phase „abgelehnt“,
+    beschlossen wurde aber nichts — er heißt „Kein Beschluss“."""
+    if antrag.ergebnis is not None and antrag.ergebnis != antrag.phase:
+        return capfirst(str(antrag.ergebnis_name))
+    return phasenname(antrag.phase)
+
+
 def _beitrag(k: Kommentar) -> dict:
     return {
         "id": k.pk,
@@ -301,6 +310,8 @@ def zeitleiste(antrag, geoeffnet: str | None = None, alles: bool = False) -> lis
                 "name": (
                     str(WARTEZEIT_NAME)
                     if bestaetigung and phase == Phase.UNTERSTUETZUNG.value
+                    else _endname(antrag)
+                    if phase == antrag.phase
                     else phasenname(phase)
                 ),
                 "laufend": phase == antrag.phase and phase not in ENDZUSTAENDE,
@@ -410,9 +421,14 @@ def nachweis_felder(antrag) -> dict:
 
     `fassungen` (GP-067): Nummer und Wortlaut jeder Fassung. Das Ereignis der Einbringung trägt seit
     dieser Fassung die Prüfsummen des ersten Wortlauts und der eingefrorenen Regeln (Block `policy`),
-    das Ereignis des Abstimmungsbeginns die der Fassung, über die abgestimmt wurde."""
+    das Ereignis des Abstimmungsbeginns die der Fassung, über die abgestimmt wurde.
+
+    `ergebnis` (GP-049): das Ergebniswort — `angenommen`, `abgelehnt` oder `kein_beschluss` (der
+    festgehaltene örtliche Kreis hatte keinen Stimmberechtigten). verify/nachrechnen.py errechnet es
+    unabhängig aus Stimmen und Nenner."""
     stichtag = antrag.stimmberechtigung_stichtag
     return {
+        "ergebnis": antrag.ergebnis,
         "stichtag": stichtag.isoformat() if stichtag else None,
         "stimmliste_sha256": antrag.stimmliste_pruefsumme(),
         "fassungen": [
@@ -452,7 +468,10 @@ def archiv(antrag) -> dict:
             "art": antrag.get_art_display(),
             "ebene": antrag.get_ebene_display(),
             "phase": antrag.phase,
-            "phase_name": phasenname(antrag.phase),
+            "phase_name": _endname(antrag),
+            # Das Ergebniswort eines entschiedenen Antrags (GP-049), sonst null; `phase` bleibt die Phase.
+            "ergebnis": antrag.ergebnis,
+            "ergebnis_name": str(antrag.ergebnis_name) or None,
             "eingebracht_am": antrag.eingebracht_am.isoformat(),
             "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         },

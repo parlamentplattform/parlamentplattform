@@ -81,6 +81,28 @@ def tendenz_sichtbar(policy: Policy, abgegeben: int, stimmberechtigte: int) -> b
     return mindestbeteiligung_erreicht(abgegeben, stimmberechtigte, policy.mindestbeteiligung)
 
 
+#: Die Ergebniswörter der Auszählung (Gesamtprüfung GP-049). Sie benennen den Ausgang, sie ändern ihn
+#: nicht: Welche Phase folgt, entscheidet weiter allein `angenommen`.
+ERGEBNIS_ANGENOMMEN = "angenommen"
+ERGEBNIS_ABGELEHNT = "abgelehnt"
+#: Der festgehaltene örtliche Kreis hatte bei Abstimmungsbeginn keinen Stimmberechtigten — niemand
+#: konnte stimmen, also wurde nichts beschlossen und nichts abgelehnt.
+ERGEBNIS_KEIN_BESCHLUSS = "kein_beschluss"
+
+
+def ergebnis_wort(angenommen: bool, stimmberechtigte: int | None) -> str:
+    """Wie der Ausgang einer Auszählung heißt — die eine Stelle für Kern, Antrag, Export und Anzeige.
+
+    Von Hand: angenommen heißt „angenommen“. Sonst: Gab es keinen einzigen Stimmberechtigten
+    (Nenner 0, das kommt nur im leeren örtlichen Kreis vor), heißt es „kein_beschluss“; in jedem
+    anderen Fall „abgelehnt“. Ein nie festgestellter Nenner (None, Altbestand) ist kein leerer Kreis."""
+    if angenommen:
+        return ERGEBNIS_ANGENOMMEN
+    if stimmberechtigte == 0:
+        return ERGEBNIS_KEIN_BESCHLUSS
+    return ERGEBNIS_ABGELEHNT
+
+
 class AuszaehlungsFehler(ValueError):
     """Ungültige Eingaben, z. B. doppelte Pseudonyme oder unbekannte Stimmwerte."""
 
@@ -100,6 +122,11 @@ class Auszaehlung:
     @property
     def abgegeben(self) -> int:
         return self.ja + self.nein + self.enthaltung
+
+    @property
+    def ergebnis(self) -> str:
+        """Das Ergebniswort (`ergebnis_wort`): angenommen, abgelehnt oder kein_beschluss."""
+        return ergebnis_wort(self.angenommen, self.stimmberechtigte)
 
 
 def auszaehlen(
@@ -218,6 +245,11 @@ class Personenwahl:
     angenommen: bool
     gewonnen_id: int | None
     begruendung: str
+
+    @property
+    def ergebnis(self) -> str:
+        """Das Ergebniswort (`ergebnis_wort`) — dieselben drei Wörter wie bei der Sachfrage."""
+        return ergebnis_wort(self.angenommen, self.stimmberechtigte)
 
 
 def personenwahl_auszaehlen(

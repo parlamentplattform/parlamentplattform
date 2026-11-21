@@ -69,6 +69,10 @@ vergleicht den Export damit (siehe nenner_gegen_kette, stimmliste_gegen_kette un
 regeln_und_wortlaut_gegen_kette; für den Wortlaut nennt der Export unter "fassungen" jede Fassung mit
 Nummer und Text). Ältere Exporte ohne diese Angaben rechnet es wie bisher und weist aus, was nicht
 versiegelt ist. Mehr Stimmen als Stimmberechtigte sind in jedem Export ein Fehler.
+
+Das Ergebniswort: Das Skript gibt unter "ergebnis" aus, wie der Ausgang heißt — "angenommen",
+"abgelehnt" oder "kein_beschluss" (es gab keinen einzigen Stimmberechtigten; das kommt nur im leeren
+örtlichen Kreis vor). Der Export nennt sein Wort ebenfalls unter "ergebnis"; beide müssen gleich lauten.
 """
 
 import hashlib
@@ -90,6 +94,17 @@ def _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle):
         # festgestellt wurden — eine solche Liste wird nicht ausgezählt.
         raise SystemExit(f"FEHLER: mehr Stimmen als Stimmberechtigte ({abgegeben} bei {berechtigte}).")
     return Fraction(abgegeben, berechtigte) >= schwelle
+
+
+def _ergebnis_wort(angenommen, berechtigte):
+    """Wie der Ausgang heißt: „angenommen“, „abgelehnt“ — oder „kein_beschluss“, wenn es keinen
+    einzigen Stimmberechtigten gab (leerer örtlicher Kreis). Der Export nennt dasselbe Wort unter
+    "ergebnis"; ältere Exporte nennen keines."""
+    if angenommen:
+        return "angenommen"
+    if berechtigte == 0:
+        return "kein_beschluss"
+    return "abgelehnt"
 
 
 def sachfrage_nachrechnen(daten: dict) -> dict:
@@ -121,6 +136,7 @@ def sachfrage_nachrechnen(daten: dict) -> dict:
         "stimmberechtigte": berechtigte,
         "beteiligung_erreicht": beteiligung_ok,
         "angenommen": beteiligung_ok and mehrheit,
+        "ergebnis": _ergebnis_wort(beteiligung_ok and mehrheit, berechtigte),
     }
 
 
@@ -172,6 +188,7 @@ def personenwahl_nachrechnen(daten: dict) -> dict:
         "stimmberechtigte": berechtigte,
         "beteiligung_erreicht": beteiligung_ok,
         "angenommen": gewaehlt is not None,
+        "ergebnis": _ergebnis_wort(gewaehlt is not None, berechtigte),
         "gewaehlt": gewaehlt,
         "gewaehlt_name": namen.get(gewaehlt) if gewaehlt is not None else None,
     }

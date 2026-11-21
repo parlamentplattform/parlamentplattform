@@ -167,6 +167,8 @@ Der Registerwert faktenbasis-manuelle-abrufe-je-stunde (Schema sources.manual_re
 
 Die öffentlichen Norm-Schnappschüsse stammen aus den amtlichen Metadaten; die Frage, ob eine Norm für einen Antrag relevant ist oder geändert werden müsste, wird dadurch nicht verifiziert. Konsolidiertes Recht dient der Information; rechtlich verbindlich ist die authentische Kundmachung.
 
+Die Seite eines Norm-Schnappschusses enthält seit GP-153 den Wortlaut nur eines gespeicherten Dokumenttexts: den jüngsten, oder den mit `?text=<ID>` gewählten. Jeder weitere Text steht mit Erfassungszeit, Prüfsumme, Original-XML und Vergleich in der Liste und ist über seine eigene Adresse lesbar. Eine unbekannte oder fremde ID zeigt den jüngsten Text. Ein Dokumenttext kann mehrere hunderttausend Zeichen haben; fünf eingebettete Texte ergaben zuvor eine Seite von rund 2,5 MB.
+
 ## UTF-8 und erhaltene Textauswertungen ab0.76.0
 
 Neue ausdrückliche Einzelimporte verwenden Textparserfassung3. Der vorgeschaltete

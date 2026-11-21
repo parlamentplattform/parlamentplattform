@@ -3,6 +3,11 @@
 {% block inhalt %}
 <a href="{% url 'faktenbasis:index' %}">‹ {% translate "Faktenbasis" %}</a>
 <h1>{% translate "Amtliche Quelle übernehmen" %}</h1>
+{% with g=grenzstand %}{% if g.grenze is None %}<p class="meldung warn">{% translate "Nachweisgrenze deaktiviert oder ungültig eingestellt: Es gibt keinen öffentlichen Bestandsnachweis." %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %}</a></p>
+{% else %}<p class="meta">{% blocktranslate with bestand=g.bestand grenze=g.grenze %}Bestandsnachweis: {{ bestand }} von höchstens {{ grenze }} Schnappschüssen{% endblocktranslate %}</p>
+{% if g.ausfall %}<p class="meldung warn">{% translate "Nachweisgrenze überschritten: Der öffentliche Bestandsnachweis ist nicht verfügbar." %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %}</a></p>
+{% elif g.warnung %}<p class="meldung warn">{% translate "Nachweisgrenze erreicht: Weitere Importe lassen den öffentlichen Bestandsnachweis ausfallen." %} <a href="{% url 'parameter:liste' %}">{% translate "Parameterregister" %}</a></p>{% endif %}
+{% endif %}{% endwith %}
 <section class="karte">
   <p>{% translate "Ein Abruf übernimmt höchstens zehn Dokumente des gewählten Bundes- oder Landesrechts zu einer Gesetzesnummer und einem Stichtag. Zunächst werden nur Metadaten übernommen. Einen einzelnen Dokumenttext können Sie anschließend auf dessen Seite anfordern." %}</p>
   <p class="hilfe">{% blocktranslate %}Gemeinsame Grenze: {{ stundenkontingent }} Abrufe je Stunde für Metadaten und Dokumenttexte zusammen. Gleichzeitige Abrufe sind gesperrt; nach jedem Abruf sind mindestens zwei Sekunden Abstand einzuhalten.{% endblocktranslate %}</p>

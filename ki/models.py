@@ -16,6 +16,7 @@ Auftrag verweist nur darauf."""
 from __future__ import annotations
 
 import copy
+import re
 import time
 import uuid
 
@@ -24,12 +25,66 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
+from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
-from ki.anbieter import AnbieterFehler, Einbettung, SteckplatzStumm, anbieter_waehlen
+from ki.anbieter import (
+    ABBRUCH_LAENGE,
+    AnbieterFehler,
+    AntwortAbgeschnitten,
+    Einbettung,
+    SteckplatzStumm,
+    anbieter_waehlen,
+)
 from ki.betriebszugang import SteckplatzWartet, einzeln
 
 MONATSTOKENS_STANDARD = 1_000_000  # Zielwert, offener Parameter (→ F-68)
+
+#: Öffentliche Fehlersätze (GP-146): Gäste lesen nur einen dieser festen, übersetzbaren Sätze. Der
+#: Rohtext einer Ausnahme (Klassenname, Rechnernamen, Pfade) bleibt am Auftrag, im Lauf-Archiv und im
+#: Serverprotokoll.
+FEHLERSAETZE = {
+    "anbieter_nicht_erreichbar": _("Der Anbieter war nicht erreichbar."),
+    "antwortform": _("Die Antwort des Anbieters hatte eine unerwartete Form."),
+    "abgeschnitten": _("Die Modellantwort wurde an der Längengrenze abgeschnitten."),
+    "kein_anbieter": _("Kein Anbieter angeschlossen."),
+    "budget": _("Das Monatsbudget der Zukunftswerkstatt war erschöpft."),
+    "vorbereitung": _("Der Auftrag konnte nicht vorbereitet werden."),
+    "intern": _("Interner Fehler der Plattform."),
+}
+_HTTP = re.compile(r"\bHTTP (\d{3})\b")
+
+
+def fehlercode(roh: str) -> str:
+    """Den festen öffentlichen Fehlercode zu einem gespeicherten Rohtext — auch für Altbestände.
+    Gelesen werden nur die festen Texte, die der Steckplatz selbst schreibt; alles andere ist „intern“."""
+    roh = roh or ""
+    if not roh:
+        return ""
+    if roh in ("quellenkontext_erfassung", "folgenkontext_erfassung"):
+        return "vorbereitung"
+    if "AntwortAbgeschnitten" in roh or "finish_reason" in roh:
+        return "abgeschnitten"
+    if "Antwortformat unerwartet" in roh or "nicht je Text einen Vektor" in roh:
+        return "antwortform"
+    if _HTTP.search(roh):
+        return "anbieter_http"
+    if "Anbieter nicht erreichbar" in roh:
+        return "anbieter_nicht_erreichbar"
+    if "Steckplatz ist leer" in roh:
+        return "kein_anbieter"
+    if "Monats-Tokenbudget" in roh:
+        return "budget"
+    return "intern"
+
+
+def oeffentlicher_fehler(roh: str):
+    """Der feste öffentliche Satz; beim Anbieterfehler mit dem dreistelligen HTTP-Status (keine Adresse)."""
+    code = fehlercode(roh)
+    if code == "anbieter_http":
+        return gettext("Der Anbieter hat die Anfrage mit einem Fehler beantwortet (HTTP %(status)s).") % {
+            "status": _HTTP.search(roh).group(1)}
+    return FEHLERSAETZE[code] if code else ""
 
 
 class SteckplatzZugang(models.Model):
@@ -163,6 +218,14 @@ class KILauf(models.Model):
     def delete(self, *args, **kwargs):
         raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
 
+    @property
+    def fehlercode(self) -> str:
+        return fehlercode(self.fehler)
+
+    @property
+    def fehler_oeffentlich(self):
+        return oeffentlicher_fehler(self.fehler)
+
     @classmethod
     def monatsverbrauch(cls, jetzt=None) -> int:
         """Tokens des laufenden Kalendermonats nach Wiener Kalender — `jetzt` darf UTC sein."""
@@ -270,6 +333,14 @@ class KIAuftrag(models.Model):
 
     def delete(self, *args, **kwargs):
         raise ValidationError(_("Aufträge und Läufe der Zukunftswerkstatt bleiben erhalten."))
+
+    @property
+    def fehlercode(self) -> str:
+        return fehlercode(self.fehler)
+
+    @property
+    def fehler_oeffentlich(self):
+        return oeffentlicher_fehler(self.fehler)
 
 
 class VergleichQuerySet(LaufQuerySet):
@@ -383,7 +454,9 @@ def lauf_ausfuehren(
             fehler=str(fehler)[:300],
         )
         raise SteckplatzStumm(f"Der Anbieter hat nicht geantwortet ({fehler}).") from fehler
-    return KILauf.objects.create(
+    abbruch = getattr(antwort, "abbruchgrund", "") or ""
+    abgeschnitten = abbruch in ABBRUCH_LAENGE
+    lauf = KILauf.objects.create(
         zweck=zweck,
         antrag=antrag,
         angefordert_von=mitglied,
@@ -396,7 +469,13 @@ def lauf_ausfuehren(
         tokens_ein=antwort.tokens_ein,
         tokens_aus=antwort.tokens_aus,
         dauer_ms=int((time.monotonic() - beginn) * 1000),
+        # Abgeschnitten ist kein Ergebnis (GP-143): Wortlaut und Verbrauch bleiben im Archiv.
+        erfolgreich=not abgeschnitten,
+        fehler=f"Antwort an der Längengrenze abgeschnitten (finish_reason: {abbruch})" if abgeschnitten else "",
     )
+    if abgeschnitten:
+        raise AntwortAbgeschnitten("Die Antwort des Anbieters wurde an der Längengrenze abgeschnitten.")
+    return lauf
 
 
 @einzeln

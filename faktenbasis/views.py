@@ -59,6 +59,13 @@ def norm(request, pk):
     kundmachung = None
     if novelle:
         kundmachung = Kundmachungsnachweis.objects.filter(norm=eintrag).defer("original").first()
+    # Nur ein Dokumenttext steht in der Seite (GP-153): der jüngste oder der mit ?text= gewählte. Jeder
+    # weitere bleibt über seine eigene Adresse lesbar; ein Text kann mehrere hunderttausend Zeichen haben.
+    texte = eintrag.texte.defer("xml", "text")
+    wahl = request.GET.get("text", "")
+    gewaehlt = (texte.filter(pk=int(wahl)).first() if wahl.isdecimal() else None) or texte.first()
+    if gewaehlt is not None:
+        gewaehlt = eintrag.texte.defer("xml").get(pk=gewaehlt.pk)
     return render(request, "faktenbasis/norm.html", {
         "norm": eintrag,
         "novelle": novelle,
@@ -66,7 +73,8 @@ def norm(request, pk):
         "novellenfassung": NOVELLENFASSUNG,
         "fassungen": Norm.objects.filter(ris_id=eintrag.ris_id).order_by("-stand", "-pk"),
         "rohdaten": json.dumps(eintrag.rohdaten, ensure_ascii=False, indent=2),
-        "texte": eintrag.texte.defer("xml"),
+        "texte": texte,
+        "gewaehlter_text": gewaehlt,
         "textvergleich_moeglich": _texte_des_dokuments(eintrag).order_by("pk")[1:2].exists(),
         "letzter_textabruf": eintrag.textabrufe.first(),
         "textabrufe": eintrag.textabrufe.select_related("inhalt").all(),

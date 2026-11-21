@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import math
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -38,12 +39,18 @@ def antwort_hoechsttokens() -> int:
     return max(1, zahl("ki-antwort-hoechsttokens", ANTWORT_HOECHSTTOKENS))
 
 
+#: Abbruchgründe des Anbieters, an denen die Antwort an einer Längengrenze abgeschnitten ist (GP-143).
+ABBRUCH_LAENGE = frozenset({"length", "model_length"})
+
+
 @dataclass(frozen=True)
 class Antwort:
     text: str
     modell: str
     tokens_ein: int
     tokens_aus: int
+    #: `finish_reason` des Anbieters; leer, wenn er keinen nennt (Attrappe, ältere Schnittstellen).
+    abbruchgrund: str = ""
 
 
 @dataclass(frozen=True)
@@ -63,6 +70,25 @@ class AnbieterFehler(RuntimeError):
 class SteckplatzStumm(RuntimeError):
     """Der Steckplatz kann gerade nicht antworten; args[0] nennt den Grund
     (kein Anbieter angeschlossen, Monatsbudget erschöpft, Anbieterfehler)."""
+
+
+class AntwortAbgeschnitten(SteckplatzStumm):
+    """Der Anbieter hat geantwortet, die Antwort aber an der Längengrenze abgebrochen (GP-143). Der Lauf
+    steht mit Wortlaut und Verbrauch im Archiv, gilt aber nicht als Ergebnis; ein neuer Versuch mit
+    derselben Grenze bräche wieder ab."""
+
+
+def _tokens(verbrauch, schluessel: str) -> int:
+    """Eine fehlende oder unlesbare Verbrauchsangabe ist 0 (GP-145): Die Antwort bleibt verwendbar
+    und archiviert; ungemeldeter Verbrauch fehlt im Budget, wie die Werkstatt-Seite offenlegt."""
+    wert = verbrauch.get(schluessel) if isinstance(verbrauch, dict) else None
+    if isinstance(wert, bool) or not isinstance(wert, int | float) or isinstance(wert, float) and not math.isfinite(wert):
+        return 0
+    return min(max(0, int(wert)), 2_147_483_647)
+
+
+def _wort(wert, ersatz: str) -> str:
+    return wert[:60] if isinstance(wert, str) and wert else ersatz
 
 
 class MistralAnbieter:
@@ -90,15 +116,18 @@ class MistralAnbieter:
             **({"zeitgrenze": zeitgrenze} if zeitgrenze is not None else {}),
         )
         try:
-            text = daten["choices"][0]["message"]["content"].strip()
-            verbrauch = daten.get("usage", {})
-        except (KeyError, IndexError, AttributeError) as fehler:
+            wahl = daten["choices"][0]
+            text = wahl["message"]["content"].strip()
+        except (KeyError, IndexError, AttributeError, TypeError) as fehler:
             raise AnbieterFehler("Antwortformat unerwartet") from fehler
+        abbruch = wahl.get("finish_reason") if isinstance(wahl, dict) else None
+        verbrauch = daten.get("usage")
         return Antwort(
             text=text,
-            modell=daten.get("model", self.modell),
-            tokens_ein=int(verbrauch.get("prompt_tokens", 0)),
-            tokens_aus=int(verbrauch.get("completion_tokens", 0)),
+            modell=_wort(daten.get("model"), self.modell),
+            tokens_ein=_tokens(verbrauch, "prompt_tokens"),
+            tokens_aus=_tokens(verbrauch, "completion_tokens"),
+            abbruchgrund=abbruch[:40] if isinstance(abbruch, str) else "",
         )
 
     def einbetten(self, texte: list[str], zeitgrenze: float | None = None) -> Einbettung:
@@ -110,12 +139,12 @@ class MistralAnbieter:
         try:
             zeilen = sorted(daten["data"], key=lambda z: int(z.get("index", 0)))
             vektoren = [[float(x) for x in z["embedding"]] for z in zeilen]
-            tokens = int(daten.get("usage", {}).get("total_tokens", 0))
         except (KeyError, TypeError, ValueError, AttributeError) as fehler:
             raise AnbieterFehler("Antwortformat unerwartet") from fehler
         if len(vektoren) != len(texte):
             raise AnbieterFehler("Anbieter lieferte nicht je Text einen Vektor")
-        return Einbettung(vektoren=vektoren, modell=daten.get("model", self.einbettungsmodell), tokens=tokens)
+        return Einbettung(vektoren=vektoren, modell=_wort(daten.get("model"), self.einbettungsmodell),
+                          tokens=_tokens(daten.get("usage"), "total_tokens"))
 
     def _senden(self, endpunkt: str, rumpf: dict, zeitgrenze: float | None = None) -> dict:
         anfrage = urllib.request.Request(

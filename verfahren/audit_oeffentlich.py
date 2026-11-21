@@ -38,8 +38,9 @@ IMMER = ("pseudonym", SALZ)
 
 #: Ereignisarten, deren Begründung eine Person betrifft: Pausieren, Ausschluss, Adresswechsel
 #: („verwaltung“), die vorzeitig beendete Rolle und die Streichung von der Fachliste — beide Gründe
-#: schreibt die Verwaltung frei. Der Grund der Streichung steht am Eintrag der Fachliste, solange er
-#: gestrichen ist; die Kette behielte ihn sonst öffentlich über eine Wiederaufnahme hinaus (GP-009).
+#: schreibt die Verwaltung frei. Den Grund der Streichung schreibt die Plattform derzeit nicht in die
+#: Kette, er steht nur am Eintrag der Fachliste (GP-009, Entscheidung des Gründers offen); der Eintrag
+#: hier sichert, dass ein Grund dieser Art öffentlich nie lesbar würde.
 PERSONENGRUENDE = ("verwaltung", "rolle_beendet", "fachliste_gestrichen")
 
 #: Je Art die Anfänge einer Begründung, die Personen nennt: Gibt Gruppe 2 einen Vorschlag zurück, setzt

@@ -1064,16 +1064,9 @@ def fachliste_aktion(request):
             with transaction.atomic():
                 eintrag.gestrichen_am, eintrag.gestrichen_grund = timezone.localdate(), grund[:200]
                 eintrag.save(update_fields=["gestrichen_am", "gestrichen_grund"])
-                # Mit dem Grund (GP-009): Er steht ohnehin öffentlich am Eintrag, und eine Wiederaufnahme
-                # leert ihn dort — die Kette behält ihn.
-                AuditEintrag.anhaengen(
-                    {
-                        "typ": "fachliste_gestrichen",
-                        "eintrag": eintrag.pk,
-                        "grund": eintrag.gestrichen_grund,
-                        "durch": request.user.pk,
-                    }
-                )
+                # Ohne den frei geschriebenen Grund: Er betrifft eine Person, und die Kette fügt nur an. Ob er
+                # dauerhaft in die Kette gehört, entscheidet der Gründer (GP-009); bis dahin steht er nur am Eintrag.
+                AuditEintrag.anhaengen({"typ": "fachliste_gestrichen", "eintrag": eintrag.pk, "durch": request.user.pk})
             messages.info(request, _("Gestrichen — der Eintrag bleibt lesbar, lost aber nicht mehr mit."))
 
     elif aktion == "wieder_aufnehmen":
@@ -1090,8 +1083,8 @@ def fachliste_aktion(request):
             )
         else:
             with transaction.atomic():
-                # Derselbe Eintrag mit demselben Schlüssel: Aus ihm wurde vielleicht schon gelost. Streichung
-                # und Grund stehen in der Kette (`fachliste_gestrichen`).
+                # Derselbe Eintrag mit demselben Schlüssel: Aus ihm wurde vielleicht schon gelost. Die Streichung
+                # steht in der Kette (`fachliste_gestrichen`, ohne Grund).
                 eintrag.gestrichen_am, eintrag.gestrichen_grund = None, ""
                 eintrag.einwilligung_widerrufen_am = None  # die Einwilligung liegt wieder vor
                 eintrag.save(update_fields=["gestrichen_am", "gestrichen_grund", "einwilligung_widerrufen_am"])

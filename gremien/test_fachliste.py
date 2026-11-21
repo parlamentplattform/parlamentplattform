@@ -239,9 +239,9 @@ def test_streichen_braucht_einen_grund_und_loescht_nichts(client):
     assert eintrag.gestrichen_am == timezone.localdate()
     gestrichen = [e.ereignis for e in AuditEintrag.objects.all() if e.ereignis['typ'] == 'fachliste_gestrichen']
     assert len(gestrichen) == 1 and gestrichen[0]['eintrag'] == eintrag.pk and gestrichen[0]['durch'] == admin.pk
-    # GP-009 (Rest): Der Grund steht in der Kette — er ist ohnehin öffentlich am Eintrag, und eine
-    # Wiederaufnahme leert ihn dort.
-    assert gestrichen[0]['grund'] == 'Auf eigenen Wunsch.'
+    # Der frei geschriebene Grund steht nur am Eintrag, nicht in der unveränderlichen Kette (Live-Stand;
+    # ob er dorthin gehört, entscheidet der Gründer, GP-009).
+    assert 'grund' not in gestrichen[0]
     client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Noch einmal.'})
     eintrag.refresh_from_db()
     assert eintrag.gestrichen_grund == 'Auf eigenen Wunsch.'  # ein gestrichener Eintrag wird nicht überschrieben
@@ -407,14 +407,17 @@ def test_die_selbsterklaerung_braucht_ein_aktives_parteikonto(client):
     assert not FachlistenEinwilligung.objects.exists()
 
 
-def test_ein_gestrichener_eintrag_laesst_sich_wieder_aufnehmen_und_die_kette_traegt_den_grund(client):
-    """GP-009: Gestrichen hieß für immer — die Verwaltung konnte niemanden zurückholen, und der Grund
-    stand nur am Eintrag, den eine Wiederaufnahme leert. Jetzt trägt `fachliste_gestrichen` den Grund."""
+def test_ein_gestrichener_eintrag_laesst_sich_wieder_aufnehmen(client):
+    """GP-009: Gestrichen hieß für immer — die Verwaltung konnte niemanden zurückholen. Der frei geschriebene
+    Grund steht nur am Eintrag, nicht in der Kette: Ob ein personenbezogener Freitext dauerhaft in die
+    unveränderliche Kette gehört, entscheidet der Gründer (Schlusspflege 0.115.0, Live-Stand)."""
     admin = _verwaltung(client)
     eintrag = eintragen('rueckkehrerin')
     aktion = reverse('gremien:fachliste_aktion')
     client.post(aktion, {'aktion': 'streichen', 'eintrag': eintrag.pk, 'grund': 'Auszeit bis Herbst.'})
-    assert _audit('fachliste_gestrichen')[-1]['grund'] == 'Auszeit bis Herbst.'
+    eintrag.refresh_from_db()
+    assert eintrag.gestrichen_grund == 'Auszeit bis Herbst.'
+    assert _audit('fachliste_gestrichen')[-1] == {'typ': 'fachliste_gestrichen', 'eintrag': eintrag.pk, 'durch': admin.pk}
     seite = client.get(reverse('gremien:fachliste_verwaltung')).content.decode()
     assert 'value="wieder_aufnehmen"' in seite
     # Ohne Einwilligung keine Wiederaufnahme.

@@ -1168,6 +1168,7 @@ class Stellungnahme(models.Model):
         return f"Stellungnahme zu Vertrauensfrage {self.vertrauensfrage_id} ({self.erstellt_am:%d.%m.%Y})"
 
 
+@transaction.atomic
 def stellungnahme_abgeben(vf: Vertrauensfrage, mitglied, text: str, jetzt=None) -> Stellungnahme:
     """Nur der betroffene Mandatsträger, nur solange das Verfahren läuft (lit d); append-only."""
     jetzt = jetzt or timezone.now()
@@ -1644,6 +1645,7 @@ def vertrauensfrage_entscheidung_vermerken(
     )
 
 
+@transaction.atomic
 def rueckgabezusage_vermerken(mandat: Mandat, wert: str, jetzt=None, durch: int | None = None) -> None:
     """Verwaltungsvermerk: Rückgabezusage nachgetragen oder widerrufen (§ 7 Abs 3) — mit Datum, auditiert."""
     jetzt = jetzt or timezone.now()

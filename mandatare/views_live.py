@@ -17,6 +17,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -339,13 +340,14 @@ def live_beitrag_aktion(request, pk: int, sitzung_pk: int, beitrag_pk: int):
         if grund not in BeitragsMeldung.Grund.values:
             messages.error(request, _("Bitte einen Grund wählen."))
             return redirect(_live_ziel(mandat, sitzung, anker))
-        _meldung, neu = BeitragsMeldung.objects.get_or_create(
-            kommentar=beitrag,
-            mitglied=request.user,
-            defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
-        )
-        if neu:
-            AuditEintrag.anhaengen({"typ": "beitrag_gemeldet", "sitzung": sitzung.pk, "beitrag": beitrag.pk, "grund": grund})
+        with transaction.atomic():  # Meldung und Audit-Eintrag stehen gemeinsam oder gar nicht (GP-118)
+            _meldung, neu = BeitragsMeldung.objects.get_or_create(
+                kommentar=beitrag,
+                mitglied=request.user,
+                defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
+            )
+            if neu:
+                AuditEintrag.anhaengen({"typ": "beitrag_gemeldet", "sitzung": sitzung.pk, "beitrag": beitrag.pk, "grund": grund})
         messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
     elif aktion == "beantwortet":
         if request.user.pk != mandat.mitglied_id or not darf_live_melden(mandat):

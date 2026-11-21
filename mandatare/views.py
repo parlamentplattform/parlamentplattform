@@ -1149,11 +1149,13 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
 
 
 @require_POST
+@transaction.atomic
 def mein_aktion(request):
     """Alle Handlungen des Mandatars — ein POST je Handlung, Dispatch über `aktion`.
     Jede prüft: eigenes Mandat (offen — oder beendet in der Nachfrist, dann nur Sammelbericht,
     Rechenschaft und Monatsbericht); Mitwirkung erlaubt (Status aktiv, Identität geprüft).
-    Jede auditiert. Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
+    Jede auditiert — in einer Transaktion: Scheitert der Audit-Eintrag, bleibt auch die Handlung
+    nicht bestehen (GP-118). Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
     pk = (request.POST.get("mandat") or "").strip()
@@ -1853,8 +1855,10 @@ def _im_integritaetsrat(mitglied) -> bool:
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_aktion(request):
-    """Eine Verwaltungsseite, mehrere kleine Handlungen — jede auditiert."""
+    """Eine Verwaltungsseite, mehrere kleine Handlungen — jede auditiert, in einer Transaktion mit
+    ihrem Audit-Eintrag (GP-118)."""
     aktion = request.POST.get("aktion", "")
 
     if _verwaltung_vertrauen(request, aktion):

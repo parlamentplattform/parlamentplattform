@@ -10,6 +10,8 @@ Rundungsfehler über einen Beschluss entscheidet.
 from __future__ import annotations
 
 import enum
+import hashlib
+import json
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -297,3 +299,62 @@ def personenwahl_auszaehlen(
         gewonnen_id=gewonnen,
         begruendung=begruendung,
     )
+
+
+# ---------------------------------------------------------------------------
+# Gegenprobe und Prüfsumme der Stimmliste (Gesamtprüfung GP-138).
+# Beides steht NEBEN der Auszählung: Ob eine Liste gezählt werden darf, entscheidet die
+# Gegenprobe; wie gezählt wird, bleibt oben unverändert — kein Ergebnis ändert sich.
+# ---------------------------------------------------------------------------
+
+#: Ein Stimmzettel steht in der Liste, zu dem das Stimmregister keinen Eintrag führt.
+OHNE_REGISTERZEILE = "stimmzettel_ohne_registerzeile"
+#: Es haben mehr Menschen gestimmt, als bei Abstimmungsbeginn als stimmberechtigt festgestellt wurden.
+UEBERZAHL = "mehr_stimmen_als_stimmberechtigte"
+#: Die Audit-Kette führt nicht so viele Stimm-Ereignisse, wie Stimmzettel in der Liste stehen.
+EREIGNISSE_WEICHEN_AB = "stimmereignisse_weichen_ab"
+
+
+def gegenprobe(
+    *,
+    stimmzettel: int,
+    waehler: int,
+    ohne_registerzeile: int,
+    stimmberechtigte: int | None,
+    stimmereignisse: int | None,
+) -> tuple[str, ...]:
+    """Prüft eine Stimmliste gegen das, was unabhängig von ihr feststeht — bevor ein Ergebnis
+    festgestellt wird. Rückgabe: die Abweichungen als Kennungen, leer, wenn alles stimmt.
+
+    Von Hand, mit vier Zahlen:
+    - `ohne_registerzeile`: Stimmzettel, deren Pseudonym im Stimmregister des Antrags fehlt. Jede
+      Stimme entsteht mit ihrem Registereintrag; fehlt er, kam der Zettel nicht aus einer Stimmabgabe.
+    - `waehler` gegen `stimmberechtigte`: Es können nicht mehr Menschen stimmen, als bei
+      Abstimmungsbeginn festgestellt wurden (§ 4 Abs 4 lit a). `None` heißt: nie festgestellt
+      (Altbestand) — dann entfällt der Vergleich.
+    - `stimmzettel` gegen `stimmereignisse`: Jede Stimmabgabe schreibt ein Ereignis in die
+      Audit-Kette. Bei Sachfragen ist das die Zahl der Ereignisse „stimme“; bei der Zustimmungswahl
+      die der gegebenen abzüglich der zurückgenommenen Zustimmungen. `None` heißt: Die Abstimmung
+      begann vor dieser Prüfung — dann entfällt der Vergleich.
+
+    Bei Sachfragen ist `waehler` gleich `stimmzettel`; bei der Zustimmungswahl zählt `stimmzettel`
+    die geltenden Zustimmungen und `waehler` die Menschen dahinter."""
+    abweichungen = []
+    if ohne_registerzeile > 0:
+        abweichungen.append(OHNE_REGISTERZEILE)
+    if stimmberechtigte is not None and waehler > stimmberechtigte:
+        abweichungen.append(UEBERZAHL)
+    if stimmereignisse is not None and stimmereignisse != stimmzettel:
+        abweichungen.append(EREIGNISSE_WEICHEN_AB)
+    return tuple(abweichungen)
+
+
+def stimmliste_pruefsumme(zeilen: Iterable[Iterable]) -> str:
+    """SHA-256 über die sortierte Stimmliste — das Siegel, das mit dem Ergebnis in die Audit-Kette
+    kommt. Wer die veröffentlichte Liste später ändert, ändert diese Zahl.
+
+    `zeilen`: je Stimmzettel eine Liste einfacher Werte, bei Sachfragen `[pseudonym, stimme]`.
+    Von Hand: die Zeilen sortieren, als JSON ohne Leerzeichen schreiben (UTF-8), SHA-256 bilden.
+    Die Reihenfolge der Eingabe spielt keine Rolle."""
+    text = json.dumps(sorted(list(zeile) for zeile in zeilen), separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()

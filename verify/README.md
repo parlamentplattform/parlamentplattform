@@ -49,6 +49,20 @@ Export damit. Stimmt etwas nicht überein, endet es mit `FEHLER`.
 | Ausgabe | Was verglichen wird |
 |---|---|
 | `nenner_versiegelt` | Zahl der Stimmberechtigten (`stimmberechtigte`) und ihr Stichtag (`stichtag`) im Export gegen das Ereignis `phasenwechsel`, mit dem die Abstimmung begann (`neue_phase`: `abstimmung`, Felder `stimmberechtigte` und `stichtag`) |
+| `stimmliste_versiegelt` | Die Stimmliste des Exports gegen den Abschluss im Ereignis `phasenwechsel`, das das Ergebnis feststellt: Prüfsumme der Liste (`stimmliste_sha256`), Zahl der Stimmzettel (`stimmzettel`) und Zahl der Stimm-Ereignisse in der Spur (`stimmereignisse`) |
+
+Die Prüfsumme der Stimmliste von Hand: je Stimme eine Zeile `[Pseudonym, Stimme]`, die Zeilen sortiert,
+als JSON ohne Leerzeichen (UTF-8), darüber SHA-256. Bei der Zustimmungswahl je Bewerbung
+`["bewerbung", Platz in der Einreichreihenfolge, Nummer, zurückgezogen]` und je Zustimmung
+`["zustimmung", Pseudonym, Bewerbung, zurückgenommen]`.
+
+Unabhängig von jedem Siegel gilt: Mehr Stimmen als Stimmberechtigte zählt das Skript nicht aus, es
+endet mit `FEHLER`.
+
+Die Plattform macht dieselbe Gegenprobe, bevor sie ein Ergebnis feststellt: Stimmzettel gegen
+Stimmregister, Zahl der Stimmberechtigten und Stimm-Ereignisse. Besteht die Liste sie nicht, stellt
+die Plattform kein Ergebnis fest; der Antrag bleibt in der Abstimmung stehen, und der Befund steht als
+Ereignis `auszaehlung_angehalten` in der Audit-Spur (nur Zahlen, keine Pseudonyme).
 
 Abstimmungen aus der Zeit vor einem dieser Siegel tragen die Felder im Ereignis nicht. Das Skript
 rechnet sie wie bisher und gibt `False` aus: nicht versiegelt, kein Fehler.

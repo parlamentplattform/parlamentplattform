@@ -402,9 +402,16 @@ def nachweis_felder(antrag) -> dict:
 
     `stichtag` (GP-028): der Kalendertag, an dem die Zahl der Stimmberechtigten festgestellt wurde
     (§ 4 Abs 4 lit a); None bei Altbestand ohne gespeicherten Stichtag. Nenner und Stichtag stehen seit
-    dieser Fassung auch im Ereignis `phasenwechsel` des Abstimmungsbeginns."""
+    dieser Fassung auch im Ereignis `phasenwechsel` des Abstimmungsbeginns.
+
+    `stimmliste_sha256` (GP-138): die Prüfsumme der Stimmliste dieses Exports, wie
+    `plattform_core.tally.stimmliste_pruefsumme` sie bildet. Dieselbe Zahl steht seit dieser Fassung im
+    Ereignis `phasenwechsel`, mit dem das Ergebnis festgestellt wurde."""
     stichtag = antrag.stimmberechtigung_stichtag
-    return {"stichtag": stichtag.isoformat() if stichtag else None}
+    return {
+        "stichtag": stichtag.isoformat() if stichtag else None,
+        "stimmliste_sha256": antrag.stimmliste_pruefsumme(),
+    }
 
 
 def audit_anzahl(antrag) -> int:

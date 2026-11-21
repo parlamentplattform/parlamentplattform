@@ -65,8 +65,9 @@ er mindestens eine Zustimmung hat.
 
 Abgleich mit der Audit-Spur: Jeder Export nennt zusätzlich "stichtag" (der Tag, an dem die Zahl der
 Stimmberechtigten festgestellt wurde) und im Block "audit" die Audit-Einträge des Antrags. Das Skript
-vergleicht den Export damit (siehe nenner_gegen_kette). Ältere Exporte ohne diese Angaben rechnet es
-wie bisher und weist aus, was nicht versiegelt ist.
+vergleicht den Export damit (siehe nenner_gegen_kette und stimmliste_gegen_kette). Ältere Exporte ohne
+diese Angaben rechnet es wie bisher und weist aus, was nicht versiegelt ist. Mehr Stimmen als
+Stimmberechtigte sind in jedem Export ein Fehler.
 """
 
 import hashlib
@@ -83,6 +84,10 @@ def _beteiligung_erreicht(daten, abgegeben, berechtigte, schwelle):
         raise SystemExit("FEHLER: Nenner 0 ohne gültigen leeren örtlichen Kreis.")
     if berechtigte < 0:
         raise SystemExit("FEHLER: Negativer Nenner.")
+    if abgegeben > berechtigte:
+        # Es können nicht mehr Menschen stimmen, als bei Abstimmungsbeginn als stimmberechtigt
+        # festgestellt wurden — eine solche Liste wird nicht ausgezählt.
+        raise SystemExit(f"FEHLER: mehr Stimmen als Stimmberechtigte ({abgegeben} bei {berechtigte}).")
     return Fraction(abgegeben, berechtigte) >= schwelle
 
 
@@ -228,10 +233,84 @@ def nenner_gegen_kette(daten: dict) -> dict:
     return {"nenner_versiegelt": versiegelt}
 
 
+def stimmliste_pruefsumme(daten: dict) -> str:
+    """Die Prüfsumme der Stimmliste, wie die Plattform sie bildet (plattform_core/tally.py):
+    je Stimmzettel eine Zeile, die Zeilen sortiert, als JSON ohne Leerzeichen, darüber SHA-256.
+
+    Sachfragen: je Stimme [Pseudonym, Stimme]. Zustimmungswahl: je Bewerbung
+    ["bewerbung", Platz in der Einreichreihenfolge, Nummer, zurückgezogen] und je Zustimmung
+    ["zustimmung", Pseudonym, Bewerbung, zurückgenommen] — dort entscheiden Reihenfolge und Rückzüge
+    mit über das Ergebnis."""
+    if daten.get("art", "sache") == "mandat":
+        zeilen = [
+            ["bewerbung", platz, int(b["bewerbung"]), bool(b.get("zurueckgezogen", False))]
+            for platz, b in enumerate(daten["bewerbungen"], start=1)
+        ]
+        zeilen += [
+            ["zustimmung", z["pseudonym"], int(z["bewerbung"]), bool(z.get("zurueckgenommen") or z.get("zurueckgenommen_am"))]
+            for z in daten["zustimmungen"]
+        ]
+    else:
+        zeilen = [[s["pseudonym"], s["stimme"]] for s in daten["stimmen"]]
+    text = json.dumps(sorted(zeilen), separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def stimmliste_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Stimmliste des Exports mit dem, was die Audit-Spur über sie festhält.
+
+    Mit dem Ergebnis schreibt die Plattform einen Abschluss in die Kette: Das Ereignis "phasenwechsel",
+    das das Ergebnis feststellt, nennt die Zahl der gezählten Stimmzettel ("stimmzettel"), die Prüfsumme
+    der Stimmliste ("stimmliste_sha256") und die Zahl der Stimm-Ereignisse, die die Kette bis dahin
+    führte ("stimmereignisse"). Das Skript bricht ab, wenn
+    - die Prüfsumme der Liste im Export nicht zu diesem Abschluss passt (ein Stimmzettel wurde
+      geändert, hinzugefügt oder entfernt),
+    - die Zahl der Stimmzettel eine andere ist als im Abschluss, oder
+    - die Audit-Spur nicht so viele Stimm-Ereignisse zeigt, wie Stimmzettel gezählt wurden. Bei
+      Sachfragen sind das die Ereignisse "stimme"; bei der Zustimmungswahl die Ereignisse
+      "personenwahl_stimme" abzüglich "personenwahl_stimme_zurueckgenommen".
+
+    Abstimmungen, die vor dieser Prüfung endeten, haben keinen Abschluss mit Prüfsumme. Dann ist die
+    Stimmliste nicht versiegelt ("stimmliste_versiegelt": False) — kein Fehler, nur weniger Nachweis."""
+    audit = daten.get("audit") or []
+    abschluesse = [
+        e for e in audit if e.get("typ") == "phasenwechsel" and "stimmliste_sha256" in (e.get("ereignis") or {})
+    ]
+    if not abschluesse:
+        return {"stimmliste_versiegelt": False}
+    abschluss = abschluesse[-1]["ereignis"]
+    nummer = abschluesse[-1].get("lfd")
+    if stimmliste_pruefsumme(daten) != abschluss["stimmliste_sha256"]:
+        raise SystemExit(
+            f"FEHLER: Die Prüfsumme der Stimmliste passt nicht zum Abschluss in der Audit-Spur (Eintrag {nummer})."
+        )
+    if daten.get("art", "sache") == "mandat":
+        zettel = sum(
+            1 for z in daten["zustimmungen"] if not (z.get("zurueckgenommen") or z.get("zurueckgenommen_am"))
+        )
+        ereignisse = sum(1 for e in audit if e.get("typ") == "personenwahl_stimme") - sum(
+            1 for e in audit if e.get("typ") == "personenwahl_stimme_zurueckgenommen"
+        )
+    else:
+        zettel = len(daten["stimmen"])
+        ereignisse = sum(1 for e in audit if e.get("typ") == "stimme")
+    if zettel != abschluss.get("stimmzettel"):
+        raise SystemExit(
+            f"FEHLER: {zettel} Stimmzettel im Export, der Abschluss in der Audit-Spur nennt {abschluss.get('stimmzettel')}."
+        )
+    if "stimmereignisse" in abschluss and not (ereignisse == abschluss["stimmereignisse"] == zettel):
+        raise SystemExit(
+            f"FEHLER: {zettel} Stimmzettel, aber {ereignisse} Stimm-Ereignisse in der Audit-Spur "
+            f"(der Abschluss nennt {abschluss['stimmereignisse']})."
+        )
+    return {"stimmliste_versiegelt": True}
+
+
 def nachrechnen(daten: dict) -> dict:
     """Zählt aus und vergleicht danach den Export mit seiner Audit-Spur."""
     ergebnis = auszaehlung_nachrechnen(daten)
     ergebnis.update(nenner_gegen_kette(daten))
+    ergebnis.update(stimmliste_gegen_kette(daten))
     return ergebnis
 
 

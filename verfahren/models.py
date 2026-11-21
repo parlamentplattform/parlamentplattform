@@ -18,6 +18,7 @@ Zwei bewusste Designentscheidungen:
 from __future__ import annotations
 
 import dataclasses
+import logging
 import math
 import secrets
 import uuid
@@ -42,6 +43,8 @@ from plattform_core import (
     Stimme as KernStimme,
 )
 from plattform_core.phases import stimme_zulaessig
+
+log = logging.getLogger(__name__)
 
 
 class Verfahrensordnung(models.Model):
@@ -534,6 +537,19 @@ class Antrag(models.Model):
             # Kein Fristablauf vor dem Stichzeitpunkt: Der Übergang wirkte erst mit der Zählung
             # (oder gleichzeitig mit dem Beschluss) — er folgt nach dem Beschluss.
             return False
+        siegel = {}
+        if phase is Phase.ABSTIMMUNG:
+            # Gegenprobe vor der Feststellung (GP-138): Passen Stimmzettel, Stimmregister, Nenner und
+            # Stimm-Ereignisse nicht zusammen, wird kein Ergebnis festgestellt — der Antrag bleibt in
+            # der Abstimmung stehen, der Befund steht in der Kette. Besteht die Liste, kommt ihre
+            # Prüfsumme mit dem Ergebnis unter die Kette.
+            probe = self.stimmliste_gegenprobe()
+            if probe["abweichungen"]:
+                self._auszaehlung_anhalten(probe)
+                return False
+            siegel = {"stimmzettel": probe["stimmzettel"], "stimmliste_sha256": self.stimmliste_pruefsumme()}
+            if probe["stimmereignisse"] is not None:
+                siegel["stimmereignisse"] = probe["stimmereignisse"]
         self.phase = uebergang.neue_phase.value
         self.phase_beginn = uebergang.wirksam_ab
         felder = ["phase", "phase_beginn"]
@@ -573,6 +589,7 @@ class Antrag(models.Model):
                 "grund": uebergang.grund,
                 "chat_archiviert": archiviert,
                 **(self.nenner_versiegelung() if uebergang.neue_phase is Phase.ABSTIMMUNG else {}),
+                **siegel,
             }
         )
         if vf is not None and uebergang.neue_phase in (Phase.ANGENOMMEN, Phase.ABGELEHNT):
@@ -673,6 +690,115 @@ class Antrag(models.Model):
         oertlich = oertlich_begrenzt(self)
         basis = self.stimmberechtigte_anzahl if oertlich else self.stimmberechtigte_anzahl or 1
         return auszaehlen(stimmen, basis, self.policy(), leerer_oertlicher_kreis=oertlich)
+
+    def stimmliste_zeilen(self) -> list[list]:
+        """Die veröffentlichte Stimmliste als Zeilen einfacher Werte — die Eingabe der Prüfsumme
+        (`plattform_core.tally.stimmliste_pruefsumme`), Zeile für Zeile so, wie der Export sie nennt.
+
+        Sachfragen: `[pseudonym, stimme]`. Zustimmungswahl: je Bewerbung `["bewerbung", Platz in der
+        Einreichreihenfolge, Kennung, zurückgezogen]` und je Zustimmung `["zustimmung", pseudonym,
+        Bewerbung, zurückgenommen]` — Reihenfolge und Rückzüge entscheiden dort mit über das Ergebnis."""
+        if self.art != Antragsart.MANDAT:
+            return [[pseudonym.hex, stimme] for pseudonym, stimme in self.stimmabgaben.values_list("pseudonym", "stimme")]
+        zeilen = [
+            ["bewerbung", platz, pk, zurueckgezogen]
+            for platz, (pk, zurueckgezogen) in enumerate(self.bewerbungen.values_list("pk", "zurueckgezogen"), start=1)
+        ]
+        zeilen += [
+            ["zustimmung", pseudonym.hex, bewerbung_id, zurueckgenommen_am is not None]
+            for pseudonym, bewerbung_id, zurueckgenommen_am in BewerbungsZustimmung.objects.filter(
+                bewerbung__antrag=self
+            ).values_list("pseudonym", "bewerbung_id", "zurueckgenommen_am")
+        ]
+        return zeilen
+
+    def stimmliste_pruefsumme(self) -> str:
+        from plattform_core.tally import stimmliste_pruefsumme
+
+        return stimmliste_pruefsumme(self.stimmliste_zeilen())
+
+    def stimmliste_gegenprobe(self) -> dict:
+        """Die Gegenprobe vor der Feststellung eines Ergebnisses (GP-138): Stimmzettel gegen
+        Stimmregister, Nenner und Stimm-Ereignisse — gerechnet im Kern (`tally.gegenprobe`).
+
+        Die Zahl der Stimm-Ereignisse wird nur verglichen, wenn der Beginn dieser Abstimmung schon
+        versiegelt wurde (GP-028); ältere Abstimmungen werden gegen Register und Nenner geprüft."""
+        from plattform_core.tally import gegenprobe
+
+        register = set(self.stimmregister.values_list("pseudonym", flat=True))
+        if self.art == Antragsart.MANDAT:
+            pseudonyme = list(
+                BewerbungsZustimmung.gueltige().filter(bewerbung__antrag=self).values_list("pseudonym", flat=True)
+            )
+            dazu, weg = "personenwahl_stimme", "personenwahl_stimme_zurueckgenommen"
+        else:
+            pseudonyme = list(self.stimmabgaben.values_list("pseudonym", flat=True))
+            dazu, weg = "stimme", None
+        ereignisse = None
+        if AuditEintrag.objects.filter(
+            ereignis__antrag=self.pk, ereignis__typ="phasenwechsel", ereignis__neue_phase=Phase.ABSTIMMUNG.value,
+            ereignis__has_key="stimmberechtigte",
+        ).exists():
+            typen = list(
+                AuditEintrag.objects.filter(
+                    ereignis__antrag=self.pk, ereignis__typ__in=[t for t in (dazu, weg) if t]
+                ).values_list("ereignis__typ", flat=True)
+            )
+            ereignisse = typen.count(dazu) - (typen.count(weg) if weg else 0)
+        probe = {
+            "stimmzettel": len(pseudonyme),
+            "waehler": len(set(pseudonyme)),
+            "ohne_registerzeile": len(set(pseudonyme) - register),
+            "stimmberechtigte": self.stimmberechtigte_anzahl,
+            "stimmereignisse": ereignisse,
+        }
+        return {**probe, "abweichungen": list(gegenprobe(**probe))}
+
+    def _auszaehlung_anhalten(self, probe: dict) -> None:
+        """Die Gegenprobe ist nicht bestanden: Es wird kein Ergebnis festgestellt, und der Befund
+        steht in der öffentlichen Kette — einmal je Befund, nicht bei jedem Seitenaufruf. Nur Zahlen,
+        keine Pseudonyme und keine Kennungen."""
+        from plattform_core.tally import EREIGNISSE_WEICHEN_AB, OHNE_REGISTERZEILE, UEBERZAHL
+
+        letzter = self._letzter_halt()
+        if letzter is not None and all(letzter.get(k) == v for k, v in probe.items()):
+            return
+        teile = {
+            OHNE_REGISTERZEILE: f"{probe['ohne_registerzeile']} Stimmzettel ohne Registerzeile",
+            UEBERZAHL: f"{probe['waehler']} Stimmen bei {probe['stimmberechtigte']} Stimmberechtigten",
+            EREIGNISSE_WEICHEN_AB: (
+                f"{probe['stimmzettel']} Stimmzettel bei {probe['stimmereignisse']} Stimm-Ereignissen in der Audit-Kette"
+            ),
+        }
+        befund = "; ".join(teile[kennung] for kennung in probe["abweichungen"])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "auszaehlung_angehalten",
+                "antrag": self.pk,
+                "grund": (
+                    f"Die Stimmliste besteht die Gegenprobe nicht: {befund}. "
+                    "Es wird kein Ergebnis festgestellt, bis die Abweichung geklärt ist."
+                ),
+                **probe,
+            }
+        )
+        log.error("Auszählung von Antrag %s angehalten: %s", self.pk, befund)
+
+    def _letzter_halt(self) -> dict | None:
+        eintrag = (
+            AuditEintrag.objects.filter(ereignis__antrag=self.pk, ereignis__typ="auszaehlung_angehalten")
+            .order_by("-lfd")
+            .first()
+        )
+        return eintrag.ereignis if eintrag is not None else None
+
+    def auszaehlung_angehalten(self) -> dict | None:
+        """Der Befund, mit dem die Feststellung des Ergebnisses angehalten ist (GP-138) — das
+        Audit-Ereignis `auszaehlung_angehalten` mit `grund`, `abweichungen` und den Zahlen. None,
+        solange nichts angehalten ist oder sobald ein Ergebnis festgestellt wurde."""
+        if self.phase != Phase.ABSTIMMUNG.value:
+            return None
+        return self._letzter_halt()
 
     def kandidatur_auszaehlen(self):
         """§ 7 Abs 1 (E-2.5): Zustimmungswahl über die wählbaren Bewerbungen —
@@ -858,6 +984,65 @@ class Unterstuetzung(models.Model):
         return cls.objects.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False)
 
 
+def _stimmzettel_fest():
+    return ValidationError(_("Ein Stimmzettel lässt sich nur über die Stimmabgabe schreiben."))
+
+
+class StimmzettelQuerySet(models.QuerySet):
+    """Schreibriegel für Stimmzettel — `Stimmabgabe` und `BewerbungsZustimmung` (Gesamtprüfung GP-138).
+
+    Ändern und Löschen gibt es hier nicht; anlegen lässt sich ein Zettel nur zu einer Zeile des
+    Stimmregisters. Eine abgegebene Stimme ändern nur `stimme_abgeben` und `bewerbung_zustimmen`
+    (`_stimmzettel_fortschreiben`), nachdem sie Frist, Stimmrecht und Kreis geprüft haben."""
+
+    def update(self, **kwargs):
+        raise _stimmzettel_fest()
+
+    def delete(self):
+        raise _stimmzettel_fest()
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise _stimmzettel_fest()
+
+    def bulk_create(self, objs, *args, **kwargs):
+        objs = list(objs)
+        if kwargs.get("update_conflicts"):
+            raise _stimmzettel_fest()
+        _neue_stimmzettel_pruefen(objs)
+        return super().bulk_create(objs, *args, **kwargs)
+
+
+def _neue_stimmzettel_pruefen(zettel) -> None:
+    """Ein Stimmzettel entsteht nur zu einer Registerzeile desselben Antrags (GP-138): Das Register
+    führt je Mensch und Antrag genau ein Pseudonym — ein Zettel unter einem anderen ist erfunden."""
+    zettel = list(zettel)
+    if not zettel:
+        return
+    if isinstance(zettel[0], BewerbungsZustimmung):
+        antrag_zu = dict(
+            Bewerbung.objects.filter(pk__in={z.bewerbung_id for z in zettel}).values_list("pk", "antrag_id")
+        )
+        paare = [(antrag_zu.get(z.bewerbung_id), z.pseudonym) for z in zettel]
+    else:
+        paare = [(z.antrag_id, z.pseudonym) for z in zettel]
+    paare = [(antrag_id, p if isinstance(p, uuid.UUID) else uuid.UUID(str(p))) for antrag_id, p in paare]
+    bekannt = set(
+        StimmRegister.objects.filter(
+            antrag_id__in={antrag_id for antrag_id, p in paare}, pseudonym__in={p for antrag_id, p in paare}
+        ).values_list("antrag_id", "pseudonym")
+    )
+    if any(z.pk is not None for z in zettel) or any(paar not in bekannt for paar in paare):
+        raise _stimmzettel_fest()
+
+
+def _stimmzettel_fortschreiben(zettel, **werte) -> None:
+    """Der eine Weg, einen bestehenden Stimmzettel zu ändern (GP-138) — nur aus `stimme_abgeben` und
+    `bewerbung_zustimmen`: Bis zum Fristende darf jede Stimme geändert werden (§ 5 Abs 3 lit d)."""
+    for feld, wert in werte.items():
+        setattr(zettel, feld, wert)
+    models.Model.save(zettel, update_fields=list(werte))
+
+
 class Stimmabgabe(models.Model):
     """Die veröffentlichte Seite einer Stimme: Pseudonym + Wert. KEIN Personenbezug."""
 
@@ -865,6 +1050,7 @@ class Stimmabgabe(models.Model):
     pseudonym = models.UUIDField(default=uuid.uuid4, editable=False)
     stimme = models.CharField(max_length=12, choices=[(s.value, s.value) for s in KernStimme])
     abgegeben_am = models.DateTimeField(default=timezone.now)
+    objects = StimmzettelQuerySet.as_manager()
 
     class Meta:
         unique_together = [("antrag", "pseudonym")]
@@ -873,6 +1059,16 @@ class Stimmabgabe(models.Model):
 
     def __str__(self) -> str:
         return f"Stimme {self.pseudonym.hex[:8]}… zu Antrag {self.antrag_id}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _stimmzettel_fest()
+        _neue_stimmzettel_pruefen([self])
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _stimmzettel_fest()
 
 
 class StimmRegister(models.Model):
@@ -1612,6 +1808,7 @@ class BewerbungsZustimmung(models.Model):
         help_text="Gesetzt, wenn die Zustimmung zurückgenommen wurde — Stimmdaten werden nie gelöscht "
         "(Grundregel 7); gezählt wird sie dann nicht mehr.",
     )
+    objects = StimmzettelQuerySet.as_manager()
 
     class Meta:
         unique_together = [("bewerbung", "pseudonym")]
@@ -1620,6 +1817,16 @@ class BewerbungsZustimmung(models.Model):
 
     def __str__(self) -> str:
         return f"Zustimmung {self.pseudonym.hex[:8]}… zu Bewerbung {self.bewerbung_id}"
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            raise _stimmzettel_fest()
+        _neue_stimmzettel_pruefen([self])
+        kwargs["force_insert"] = True
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise _stimmzettel_fest()
 
     @classmethod
     def gueltige(cls):
@@ -1728,13 +1935,10 @@ def bewerbung_zustimmen(antrag: Antrag, mitglied, bewerbung: Bewerbung, jetzt=No
     # zurückgenommenen unterscheiden zu können.
     if angelegt or zustimmung.zurueckgenommen_am is not None:
         if not angelegt:
-            zustimmung.zurueckgenommen_am = None
-            zustimmung.abgegeben_am = jetzt
-            zustimmung.save(update_fields=["zurueckgenommen_am", "abgegeben_am"])
+            _stimmzettel_fortschreiben(zustimmung, zurueckgenommen_am=None, abgegeben_am=jetzt)
         dazu, typ = True, "personenwahl_stimme"
     else:
-        zustimmung.zurueckgenommen_am = jetzt
-        zustimmung.save(update_fields=["zurueckgenommen_am"])
+        _stimmzettel_fortschreiben(zustimmung, zurueckgenommen_am=jetzt)
         dazu, typ = False, "personenwahl_stimme_zurueckgenommen"
     AuditEintrag.anhaengen(
         {
@@ -1768,20 +1972,23 @@ def stimme_abgeben(antrag: Antrag, mitglied, stimme: str, jetzt=None) -> Stimmab
     register, neu = StimmRegister.objects.get_or_create(
         antrag=antrag, mitglied=mitglied, defaults={"pseudonym": uuid.uuid4()}
     )
-    if not neu:
+    abgabe = None if neu else Stimmabgabe.objects.filter(antrag=antrag, pseudonym=register.pseudonym).first()
+    if abgabe is not None and abgabe.stimme == stimme:
         # Dieselbe Stimme noch einmal ist keine Änderung (GP-164): kein Ereignis „Stimme geändert“
         # in der öffentlichen Kette, und die Stimmzeile bleibt samt Zeitpunkt, wie sie war.
-        bisher = Stimmabgabe.objects.filter(antrag=antrag, pseudonym=register.pseudonym).first()
-        if bisher is not None and bisher.stimme == stimme:
-            return bisher
-    abgabe, _angelegt = Stimmabgabe.objects.update_or_create(
-        antrag=antrag,
-        pseudonym=register.pseudonym,
-        defaults={"stimme": stimme, "abgegeben_am": jetzt},
-    )
+        return abgabe
+    angelegt = abgabe is None
+    if angelegt:
+        abgabe = Stimmabgabe.objects.create(
+            antrag=antrag, pseudonym=register.pseudonym, stimme=stimme, abgegeben_am=jetzt
+        )
+    else:
+        _stimmzettel_fortschreiben(abgabe, stimme=stimme, abgegeben_am=jetzt)
     AuditEintrag.anhaengen(
         {
-            "typ": "stimme" if neu else "stimme_geaendert",
+            # „stimme“ genau dann, wenn ein Stimmzettel entsteht — die Gegenprobe vor der Feststellung
+            # vergleicht die Zahl dieser Ereignisse mit der Zahl der Stimmzettel (GP-138).
+            "typ": "stimme" if angelegt else "stimme_geaendert",
             "antrag": antrag.pk,
             "pseudonym": register.pseudonym.hex,
             # bewusst OHNE Stimmwert und OHNE Mitglieds-ID: Das Audit-Log ist öffentlich.

@@ -231,8 +231,14 @@ def sitzungen_sperren(mandat: Mandat) -> None:
     """Die offenen Sitzungen eines Mandats sperren — aufzurufen vor dem ersten Audit-Eintrag einer
     Transaktion, die sie später beendet (Mandatsende, Ende der Vertretung). Eine Livemeldung sperrt
     zuerst die Sitzung und hängt dann an die Kette an; wer zuerst anhängt und dann die Sitzung sperrt,
-    wartet auf sie, während sie auf seinen Eintrag wartet (PostgreSQL: „deadlock detected“)."""
-    list(Sitzung.objects.select_for_update(of=("self",)).filter(mandat=mandat, ende__isnull=True).values_list("pk", flat=True))
+    wartet auf sie, während sie auf seinen Eintrag wartet (PostgreSQL: „deadlock detected“).
+
+    Zuerst die Mandatszeile, dann die Sitzungen — in der Folge, in der auch `sitzung_beginnen` sperrt
+    (Mandat, dann über `Sitzung.fortschreiben` eine überfällige offene Sitzung). Umgekehrt hielte ein
+    Mandatsende die Sitzung und wartete auf das Mandat, während der Sitzungsbeginn das Mandat hält und
+    auf die Sitzung wartet."""
+    list(Mandat.objects.select_for_update().filter(pk=mandat.pk).values_list("pk", flat=True))
+    list(Sitzung.objects.select_for_update().filter(mandat=mandat, ende__isnull=True).values_list("pk", flat=True))
 
 
 def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None, *, termine: bool = True) -> None:

@@ -84,6 +84,24 @@ def test_das_ende_der_vertretung_sperrt_die_sitzung_vor_seinem_ersten_audit_eint
     assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
 
 
+@pytest.mark.django_db
+def test_gesperrt_wird_erst_das_mandat_dann_die_sitzung():
+    """Gegenlesen: `sitzung_beginnen` sperrt das Mandat und danach (über `Sitzung.fortschreiben`) eine
+    überfällige offene Sitzung. Sperrte das Mandatsende erst die Sitzungen und schriebe dann das Mandat,
+    warteten beide aufeinander. Darum nimmt `sitzungen_sperren` dieselbe Folge: Mandat, dann Sitzungen."""
+    from django.test.utils import CaptureQueriesContext
+
+    mandat, _sitzung = _laufend()
+    with CaptureQueriesContext(connection) as abfragen:
+        sitzung_modul.sitzungen_sperren(mandat)
+    sql = [a["sql"] for a in abfragen]
+    assert len(sql) == 2
+    assert f'FROM "{Mandat._meta.db_table}"' in sql[0] and Sitzung._meta.db_table not in sql[0]
+    assert f'FROM "{Sitzung._meta.db_table}"' in sql[1]
+    if connection.features.has_select_for_update:
+        assert all("FOR UPDATE" in s for s in sql)
+
+
 def _faden(ziel, fehler):
     def lauf():
         try:

@@ -6,7 +6,8 @@
     {% if erklaert %}
     <p>{% translate "Ihre Einwilligung liegt vor: Sie dürfen mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste stehen." %}</p>
     {# Nur solange niemand geführt wird: Wie die Nennung des Namens auf der Liste widerrufen wird, ist offen (E-10.8). #}
-    {% if not eintrag %}
+    {# Steht am gestrichenen Eintrag schon der Schlüssel statt des Namens, gibt es keinen Namen, der bliebe. #}
+    {% if not eintrag or not eintrag.gefuehrt and eintrag.einwilligung_widerrufen_am %}
     <input type="hidden" name="aktion" value="widerrufen">
     <button type="submit" class="btn-linie">{% translate "Einwilligung widerrufen" %}</button>
     {% elif not eintrag.gefuehrt %}

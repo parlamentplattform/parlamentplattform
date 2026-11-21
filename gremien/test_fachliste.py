@@ -418,6 +418,27 @@ def test_ohne_eintrag_bleibt_der_widerruf_wie_er_war(client):
     assert 'Einwilligung zur Fachliste widerrufen.' in meldung and 'bleibt mit Ihrem Namen' not in meldung
 
 
+def test_steht_am_gestrichenen_eintrag_schon_der_schluessel_behauptet_niemand_einen_bleibenden_namen(client):
+    """Gegenlesen: Hat die Verwaltung die Nennung am gestrichenen Eintrag schon widerrufen (Schlüssel statt
+    Name, § 8 Abs 4), wäre der Satz „bleibt mit Ihrem Namen auf der Fachliste stehen“ falsch. Karte und
+    Meldung bleiben dann beim schlichten Widerruf; am Eintrag ändert sich weiter nichts."""
+    ziel = reverse('gremien:fachliste_einwilligung')
+    mitglied = mitglied_anlegen('gestrichen-ohne-namen')
+    eintrag = Fachliste.objects.create(
+        mitglied=mitglied, gestrichen_am=timezone.localdate(), einwilligung_widerrufen_am=timezone.localdate()
+    )
+    assert eintrag.anzeigename == eintrag.schluessel
+    client.force_login(mitglied)
+    client.post(ziel, {'aktion': 'erklaeren'})
+    karte = _profilkarte(mitglied)
+    assert 'value="widerrufen"' in karte and 'Einwilligung widerrufen<' in karte
+    assert 'erneuten Eintragung' not in karte and 'bleibt mit Ihrem Namen' not in karte
+    meldung = _meldungen(client.post(ziel, {'aktion': 'widerrufen'}, follow=True))
+    assert 'Einwilligung zur Fachliste widerrufen.' in meldung and 'bleibt mit Ihrem Namen' not in meldung
+    stand = Fachliste.objects.get(pk=eintrag.pk)
+    assert stand.einwilligung_widerrufen_am == eintrag.einwilligung_widerrufen_am and not stand.gefuehrt
+
+
 def test_die_verwaltung_sieht_als_selbst_erklaert_nur_wer_es_erklaert_hat(client):
     """GP-009, Gegenlesen: Die Karte „Einwilligung selbst erklärt“ nannte jedes aktive Mitglied ohne
     Eintrag — auch wer nie etwas erklärt hatte. Sie nennt nur offene Erklärungen."""

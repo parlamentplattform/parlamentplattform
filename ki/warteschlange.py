@@ -372,8 +372,8 @@ def _abschliessen(pk: int, token: str, stand: dict, gescheitert: bool, auftrag) 
         # Ohne Eintrag gibt es nur den Endzustand selbst; scheitert er weiter, ist die Datenbank das Problem.
         KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**stand)
         return
-    KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**{**stand, "sperrcode": token})
-    log.error("Abschlusseintrag für KI-Auftrag %s fehlt — der nächste Lauf holt ihn nach", pk)
+    if KIAuftrag.objects.filter(pk=pk, sperrcode=token).update(**{**stand, "sperrcode": token}):
+        log.error("Abschlusseintrag für KI-Auftrag %s fehlt — der nächste Lauf holt ihn nach", pk)
 
 
 def eintraege_nachholen() -> int:

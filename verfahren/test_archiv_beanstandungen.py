@@ -46,8 +46,8 @@ def test_beide_exportformen_nennen_jede_beanstandung_mit_ihrem_stand(client, fal
     assert [b['id'] for b in daten['beanstandungen']] == [erste.pk, ohne.pk, mit.pk]  # in der Reihenfolge des Eingangs
     markdown = client.get(reverse('verfahren:archiv_export', kwargs={'pk': a.pk, 'art': 'md'})).content.decode()
     assert EINWAND_A in markdown and EINWAND_B in markdown
-    zeile_a = next(z for z in markdown.split('\n') if f'#{ohne.pk}' in z and 'Beanstandung' in z)
-    zeile_b = next(z for z in markdown.split('\n') if f'#{mit.pk}' in z and 'Beanstandung' in z)
+    zeile_a = next(z for z in markdown.split('\n') if f'**Beanstandung #{ohne.pk}**' in z)
+    zeile_b = next(z for z in markdown.split('\n') if f'**Beanstandung #{mit.pk}**' in z)
     assert 'keine Nachrechnung' in zeile_a and f'#{alt.lauf_id}' in zeile_a
     assert 'Nachrechnung angefordert' in zeile_b
 
@@ -62,7 +62,7 @@ def test_der_stand_folgt_dem_auftrag_erledigt_und_gescheitert(fall):  # noqa: F8
         KIAuftrag.objects.filter(pk=auftrag.pk).update(status=status)
         eintrag = next(b for b in archivkern.beanstandungen(a) if b['id'] == mit.pk)
         assert eintrag['nachrechnung'] == stand
-        zeile = next(z for z in archivkern.als_markdown(a).split('\n') if f'#{mit.pk}' in z and 'Beanstandung' in z)
+        zeile = next(z for z in archivkern.als_markdown(a).split('\n') if f'**Beanstandung #{mit.pk}**' in z)
         assert wort in zeile
 
 

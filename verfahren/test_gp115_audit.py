@@ -126,3 +126,37 @@ def test_der_befehl_nennt_den_grund_zeit_in_worten():
     assert f"bei Eintrag {eintrag.lfd}: " in meldung
     assert str(audit_pruefung.GRUENDE["zeit"]) in meldung
     assert not hasattr(audit_pruefen, "GRUENDE") or audit_pruefen.GRUENDE is audit_pruefung.GRUENDE
+
+
+# ── GP-009 (Auflage): der frei geschriebene Grund einer Streichung von der Fachliste ──────
+
+STREICHUNG = {"typ": "fachliste_gestrichen", "eintrag": 7, "grund": "Frau Beispielname ist verzogen.", "durch": 815}
+
+
+def test_der_grund_einer_streichung_von_der_fachliste_ist_oeffentlich_geschwaerzt(client):
+    eintrag = AuditEintrag.anhaengen(dict(STREICHUNG))
+    assert "salz" in eintrag.ereignis  # schutzwürdig: gesalzen, der Hash darf offen stehen
+    seite = client.get(reverse("verfahren:audit")).content.decode()
+    assert "Beispielname" not in seite and "<dt>grund</dt><dd>•</dd>" in seite
+    antwort = client.get(reverse("verfahren:audit_json"))
+    assert "Beispielname" not in antwort.content.decode()
+    zeile = antwort.json()["eintraege"][-1]
+    assert zeile["typ"] == "fachliste_gestrichen" and zeile["geschwaerzt"] is True
+    assert zeile["grund"] == "•" and zeile["ereignis"]["grund"] == "•" and zeile["ereignis"]["eintrag"] == 7
+    assert zeile["hash"] == eintrag.hash
+
+
+def test_die_schwaerzung_wirkt_auch_auf_frueher_geschriebene_streichungen(client, monkeypatch):
+    """Altbestand: Ein Eintrag, der beim Schreiben noch nicht als schutzwürdig galt und kein Salz
+    trägt, zeigt öffentlich weder den Grund noch seinen Hash (sonst ließe er sich durchprobieren)."""
+    from verfahren import audit_oeffentlich
+
+    with monkeypatch.context() as frueher:
+        frueher.setattr(audit_oeffentlich, "PERSONENGRUENDE", ("verwaltung", "rolle_beendet"))
+        alt = AuditEintrag.anhaengen({"typ": "fachliste_gestrichen", "eintrag": 8, "grund": "Herr Beispielname pausiert."})
+    assert "salz" not in alt.ereignis
+    danach = AuditEintrag.anhaengen({"typ": "probe"})
+    zeilen = {z["lfd"]: z for z in client.get(reverse("verfahren:audit_json")).json()["eintraege"]}
+    assert zeilen[alt.lfd]["grund"] == "•" and zeilen[alt.lfd]["hash"] is None
+    assert zeilen[danach.lfd]["vorgaenger"] is None
+    assert "Beispielname" not in client.get(reverse("verfahren:audit")).content.decode()

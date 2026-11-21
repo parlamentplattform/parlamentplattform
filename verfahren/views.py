@@ -1593,6 +1593,11 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
         vollzug = list(antrag.vollzug.select_related("durch"))
     ab = request.GET.get("ab", "")
     chat = _chat_lage(antrag, request.user, ab=int(ab) if ab.isdigit() else None)
+    # GP-068: Erst „neu“ rechnen (oben), dann den Lesestand setzen — am Server, wie im Chat einer Sitzung:
+    # Das trägt beim ersten Besuch, im ruhenden Chat und ohne JavaScript.
+    from verfahren.chat import gelesen_merken
+
+    gelesen_merken(antrag, request.user)
     chat["fehler"] = chat_fehler
     chat["entwurf"] = chat_entwurf
     chat["antwort_vorgabe"] = _antwort_vorgabe(

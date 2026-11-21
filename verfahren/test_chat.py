@@ -520,6 +520,7 @@ def test_antragsseite_fragt_unabhaengig_von_der_zahl_der_beitraege(client, ordnu
 
     client.force_login(leute[1])
     schreiben(3, 0)
+    abfragen()  # der erste Besuch legt den Lesestand an (GP-068) — gemessen werden die folgenden
     wenig, _sql = abfragen()
     schreiben(40, 100)
     viel, sql = abfragen()

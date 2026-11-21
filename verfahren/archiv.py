@@ -396,6 +396,17 @@ def audit_spur(antrag, grenze: int | None = None) -> list[dict]:
     return [eintrag_oeffentlich(eintrag) for eintrag in eintraege]
 
 
+def nachweis_felder(antrag) -> dict:
+    """Was der Stimmen-Export zusätzlich nennt, damit verify/nachrechnen.py ihn mit der Audit-Kette
+    vergleichen kann — neue Felder werden nur angefügt.
+
+    `stichtag` (GP-028): der Kalendertag, an dem die Zahl der Stimmberechtigten festgestellt wurde
+    (§ 4 Abs 4 lit a); None bei Altbestand ohne gespeicherten Stichtag. Nenner und Stichtag stehen seit
+    dieser Fassung auch im Ereignis `phasenwechsel` des Abstimmungsbeginns."""
+    stichtag = antrag.stimmberechtigung_stichtag
+    return {"stichtag": stichtag.isoformat() if stichtag else None}
+
+
 def audit_anzahl(antrag) -> int:
     """Wie viele Audit-Ereignisse dieser Antrag hat — gezählt in der Datenbank."""
     return AuditEintrag.objects.filter(ereignis__antrag=antrag.pk).count()

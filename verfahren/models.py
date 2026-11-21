@@ -216,12 +216,25 @@ def gegenstand_fuer(antrag):
     return Gegenstand.SACHFRAGE
 
 
+#: Der Nenner einer Abstimmung (§ 4 Abs 4 lit a): einmal festgestellt, bleibt jedes der beiden Felder,
+#: wie es ist (Gesamtprüfung GP-028). Ein leeres Feld darf gesetzt werden — so stellt der Übergang in
+#: die Abstimmung fest, und Altbestand ohne Stichtag bleibt speicherbar.
+NENNERFELDER = frozenset({"stimmberechtigte_anzahl", "stimmberechtigung_stichtag"})
+
+
+def _nenner_fest():
+    return ValidationError(_("Die festgestellte Zahl der Stimmberechtigten und ihr Stichtag bleiben unverändert."))
+
+
 class AntragsQuerySet(models.QuerySet):
     def _kreisfelder_schuetzen(self, felder):
         if set(felder) & {"teilnahmegebiet", "teilnehmerkreis_am"} or (
             set(felder) & {"ebene", "gebiet"} and self.filter(teilnahmegebiet__isnull=False).exists()
         ):
             raise ValidationError(_("Ein festgehaltener örtlicher Teilnehmerkreis bleibt unverändert."))
+        for feld in sorted(NENNERFELDER & set(felder)):
+            if self.filter(**{f"{feld}__isnull": False}).exists():
+                raise _nenner_fest()
 
     def update(self, **kwargs):
         self._kreisfelder_schuetzen(kwargs)
@@ -319,10 +332,14 @@ class Antrag(models.Model):
 
     def save(self, *args, **kwargs):
         kreisfelder = {"teilnahmegebiet", "teilnehmerkreis_am", "ebene", "gebiet"}
+        fest = kreisfelder | NENNERFELDER
         felder = kwargs.get("update_fields")
-        if not self._state.adding and (felder is None or kreisfelder & set(felder)):
-            alt = type(self).objects.only(*kreisfelder).get(pk=self.pk)
-            pruefen = kreisfelder if felder is None else kreisfelder & set(felder)
+        if not self._state.adding and (felder is None or fest & set(felder)):
+            alt = type(self).objects.only(*fest).get(pk=self.pk)
+            pruefen = fest if felder is None else fest & set(felder)
+            if any(getattr(alt, f) is not None and getattr(self, f) != getattr(alt, f) for f in pruefen & NENNERFELDER):
+                raise _nenner_fest()
+            pruefen = pruefen & kreisfelder
             if alt.teilnahmegebiet is None:
                 veraendert = any(getattr(self, f) != getattr(alt, f) for f in pruefen & {"teilnahmegebiet", "teilnehmerkreis_am"})
             else:
@@ -354,6 +371,16 @@ class Antrag(models.Model):
         des Phasenbeginns. Nie `phase_beginn.date()`: Das wäre das UTC-Datum, und zwischen 0 und
         2 Uhr läge es einen Tag vor dem, was die Seite als Abstimmungsbeginn zeigt (Befund #32)."""
         return self.stimmberechtigung_stichtag or timezone.localdate(self.phase_beginn)
+
+    def nenner_versiegelung(self) -> dict:
+        """Was das Ereignis des Abstimmungsbeginns unter die Kette legt (GP-028): die festgestellte Zahl
+        der Stimmberechtigten und ihr Stichtag. Alle drei Wege in die Abstimmung hängen es an ihr
+        Ereignis `phasenwechsel`; Ereignisse von vor dieser Fassung tragen die Felder nicht."""
+        stichtag = self.stimmberechtigung_stichtag
+        return {
+            "stimmberechtigte": self.stimmberechtigte_anzahl,
+            "stichtag": stichtag.isoformat() if stichtag else None,
+        }
 
     def aktueller_text(self) -> AntragsFassung | None:
         return self.fassungen.order_by("-nummer").first()
@@ -545,6 +572,7 @@ class Antrag(models.Model):
                 "wirksam_ab": uebergang.wirksam_ab.isoformat(),
                 "grund": uebergang.grund,
                 "chat_archiviert": archiviert,
+                **(self.nenner_versiegelung() if uebergang.neue_phase is Phase.ABSTIMMUNG else {}),
             }
         )
         if vf is not None and uebergang.neue_phase in (Phase.ANGENOMMEN, Phase.ABGELEHNT):
@@ -1269,6 +1297,7 @@ def mandatsfrage_eroeffnen(mandat, aufgabe, titel: str, wortlaut: str, ordnung: 
             "neue_phase": Phase.ABSTIMMUNG.value,
             "wirksam_ab": jetzt.isoformat(),
             "grund": "Mandatsfrage nach § 7 Abs 9 — ohne Unterstützungs- und Beratungsphase",
+            **antrag.nenner_versiegelung(),
         }
     )
     return antrag

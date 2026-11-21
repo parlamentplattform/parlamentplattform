@@ -39,3 +39,16 @@ zwischen denen anderer Anträge. Die ganze Kette rechnet die Plattform täglich 
 (`manage.py audit_pruefen`); das Ergebnis und der Hash des letzten geprüften Eintrags (`audit.head`)
 stehen öffentlich in `/kennzahlen.json`. Wer sich diesen Kopf notiert, erkennt später, ob jemand die
 Kette von dort an neu gerechnet hat.
+
+## Der Abgleich des Exports mit der Audit-Spur
+
+Die Audit-Spur beweist, dass etwas geschah. Damit sie auch beweist, **was** gezählt wurde, legt die
+Plattform die Größen, die über ein Ergebnis entscheiden, unter die Kette, und das Skript vergleicht den
+Export damit. Stimmt etwas nicht überein, endet es mit `FEHLER`.
+
+| Ausgabe | Was verglichen wird |
+|---|---|
+| `nenner_versiegelt` | Zahl der Stimmberechtigten (`stimmberechtigte`) und ihr Stichtag (`stichtag`) im Export gegen das Ereignis `phasenwechsel`, mit dem die Abstimmung begann (`neue_phase`: `abstimmung`, Felder `stimmberechtigte` und `stichtag`) |
+
+Abstimmungen aus der Zeit vor einem dieser Siegel tragen die Felder im Ereignis nicht. Das Skript
+rechnet sie wie bisher und gibt `False` aus: nicht versiegelt, kein Fehler.

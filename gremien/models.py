@@ -688,6 +688,7 @@ class Entwurf(models.Model):
                 "entwurfsfassung": fassung.nummer if fassung is not None else None,
                 "chat_archiviert": archiviert,
                 **({"auswertung": auswertung} if auswertung else {}),
+                **antrag.nenner_versiegelung(),  # Nenner und Stichtag unter die Kette (GP-028)
             }
         )
         return True

@@ -62,6 +62,11 @@ gereiht wird nach Zustimmungen, bei Gleichstand nach Einreichreihenfolge; die
 Beteiligung ist die Zahl der Pseudonyme mit mindestens einer zählenden Zustimmung;
 die Mindestbeteiligung gilt wie bei Sachfragen; gewählt ist der erste Platz, wenn
 er mindestens eine Zustimmung hat.
+
+Abgleich mit der Audit-Spur: Jeder Export nennt zusätzlich "stichtag" (der Tag, an dem die Zahl der
+Stimmberechtigten festgestellt wurde) und im Block "audit" die Audit-Einträge des Antrags. Das Skript
+vergleicht den Export damit (siehe nenner_gegen_kette). Ältere Exporte ohne diese Angaben rechnet es
+wie bisher und weist aus, was nicht versiegelt ist.
 """
 
 import hashlib
@@ -191,7 +196,46 @@ def audit_nachrechnen(eintraege: list) -> dict:
     return {"audit_nachgerechnet": geprueft, "audit_geschwaerzt": geschwaerzt}
 
 
+def nenner_gegen_kette(daten: dict) -> dict:
+    """Vergleicht die Zahl der Stimmberechtigten und ihren Stichtag mit der Audit-Spur des Exports.
+
+    Die Zahl der Stimmberechtigten entscheidet über die Mindestbeteiligung. Die Plattform stellt sie
+    bei Abstimmungsbeginn fest und schreibt sie samt Stichtag in das Audit-Ereignis "phasenwechsel",
+    mit dem die Abstimmung beginnt ("neue_phase": "abstimmung", Felder "stimmberechtigte" und
+    "stichtag"). Nennt der Export eine andere Zahl oder einen anderen Stichtag als dieses Ereignis,
+    wurde eines von beiden nachträglich verändert — das Skript bricht ab.
+
+    Abstimmungen, die vor dieser Prüfung begonnen haben, tragen die Felder im Ereignis nicht. Dann ist
+    der Nenner nicht versiegelt ("nenner_versiegelt": False); das ist kein Fehler, nur weniger Nachweis."""
+    versiegelt = False
+    for eintrag in daten.get("audit") or []:
+        ereignis = eintrag.get("ereignis") or {}
+        if eintrag.get("typ") != "phasenwechsel" or ereignis.get("neue_phase") != "abstimmung":
+            continue
+        if "stimmberechtigte" not in ereignis:
+            continue  # Ereignis von vor dieser Prüfung: nicht versiegelt
+        versiegelt = True
+        if ereignis["stimmberechtigte"] != daten.get("stimmberechtigte"):
+            raise SystemExit(
+                f"FEHLER: Stimmberechtigte im Export ({daten.get('stimmberechtigte')}) weichen vom "
+                f"Audit-Ereignis des Abstimmungsbeginns ab ({ereignis['stimmberechtigte']}, Eintrag {eintrag.get('lfd')})."
+            )
+        if ereignis.get("stichtag") != daten.get("stichtag"):
+            raise SystemExit(
+                f"FEHLER: Stichtag im Export ({daten.get('stichtag')}) weicht vom "
+                f"Audit-Ereignis des Abstimmungsbeginns ab ({ereignis.get('stichtag')}, Eintrag {eintrag.get('lfd')})."
+            )
+    return {"nenner_versiegelt": versiegelt}
+
+
 def nachrechnen(daten: dict) -> dict:
+    """Zählt aus und vergleicht danach den Export mit seiner Audit-Spur."""
+    ergebnis = auszaehlung_nachrechnen(daten)
+    ergebnis.update(nenner_gegen_kette(daten))
+    return ergebnis
+
+
+def auszaehlung_nachrechnen(daten: dict) -> dict:
     """Verzweigt nach der Antragsart des Exports. Eine unbekannte Art wird abgewiesen —
     ein Skript, das etwas anderes still als Sachfrage mit 0 Stimmen rechnet, wäre
     schlimmer als eines, das nicht rechnet (§ 5 Abs 8)."""

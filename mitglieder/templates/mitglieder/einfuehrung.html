@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n lebensbereiche %}
 {% block titel %}{% translate "Einführung" %}{% endblock %}
 {% block inhalt %}
 
@@ -46,7 +46,7 @@
   {% for s in saeulen %}
   <div class="bereich">
     <p style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">
-      <a href="{% url 'verfahren:parlament' %}?fach={{ s.k.slug }}#feld-favoriten" style="color:var(--deep);font-weight:600">{{ s.k.name }}</a>
+      <a href="{% url 'verfahren:parlament' %}?fach={{ s.k.slug }}#feld-favoriten" style="color:var(--deep);font-weight:600">{{ s.k|lb_name }}</a>
       <form method="post" action="{% url 'verfahren:kategorie_abonnieren' s.k.slug %}">{% csrf_token %}
         <input type="hidden" name="weiter" value="{% url 'mitglieder:einfuehrung' 1 %}">
         <button type="submit" class="stern {% if not s.abonniert %}aus{% endif %}" title="{% if s.abonniert %}{% translate 'Favorit entfernen' %}{% else %}{% translate 'Favorisieren' %}{% endif %}">{% if s.abonniert %}&#9733;{% else %}&#9734;{% endif %}</button>

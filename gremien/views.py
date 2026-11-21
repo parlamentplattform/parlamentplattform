@@ -898,6 +898,15 @@ def rollen_aktion(request):
 # ── Verwaltung: Fachliste (§ 6 Abs 7, FB-I1) ─────────────────────────────────
 
 
+class FachgebietAuswahl(forms.ModelMultipleChoiceField):
+    """Die Lebensbereiche in der Sprache der Seite (GP-139); gespeichert wird der Bereich selbst."""
+
+    def label_from_instance(self, kategorie):
+        from verfahren.templatetags.lebensbereiche import anzeigename
+
+        return anzeigename(kategorie.name)
+
+
 class FachlistenFormular(forms.Form):
     """Ein Eintrag der Fachliste, von der Verwaltung gepflegt (GP-009).
 
@@ -910,7 +919,7 @@ class FachlistenFormular(forms.Form):
         ),
         label=gettext_lazy("Mitglied"),
     )
-    fachgebiete = forms.ModelMultipleChoiceField(
+    fachgebiete = FachgebietAuswahl(
         queryset=Kategorie.objects.filter(aktiv=True).order_by("name"),
         label=gettext_lazy("Fachgebiete (ohne Angabe lost die Person bei jedem Antrag mit)"),
         required=False,

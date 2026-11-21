@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n %}
+{% load i18n lebensbereiche %}
 {% block titel %}{% translate "Fachliste — Verwaltung" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -32,7 +32,7 @@ Ohne JavaScript vollständig bedienbar: zwei schlichte Formulare.
   <div class="zeile"><span>
     <strong>{{ e.anzeigename }}</strong> <span class="meta"><code>{{ e.schluessel }}</code> · {% blocktranslate with d=e.seit|date:"d.m.Y" %}auf der Liste seit {{ d }}{% endblocktranslate %}</span>
     {% if not e.gefuehrt %}<span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}
-    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k.name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
+    <br><span class="meta">{% translate "Fachgebiete:" %} {% for k in e.fachgebiete.all %}{{ k|lb_name }}{% if not forloop.last %}, {% endif %}{% empty %}{% translate "keine angegeben — lost bei jedem Antrag mit" %}{% endfor %}</span>
     {% if e.gefuehrt %}
     <form method="post" action="{% url 'gremien:fachliste_aktion' %}">{% csrf_token %}
       <input type="hidden" name="aktion" value="streichen"><input type="hidden" name="eintrag" value="{{ e.pk }}">

@@ -70,6 +70,29 @@ def test_jede_offene_adresse_traegt_den_dekorator(name):
     assert getattr(ansicht, 'offenes_format', False) is True, name
 
 
+def _gekennzeichnete_adressen(muster=None, namensraum='') -> set[str]:
+    '''Die Namen aller Adressen der URL-Konfiguration, deren Ansicht das Merkmal des Dekorators trägt.'''
+    from django.urls import URLResolver, get_resolver
+
+    namen = set()
+    for eintrag in get_resolver().url_patterns if muster is None else muster:
+        if isinstance(eintrag, URLResolver):
+            raum = ':'.join(teil for teil in (namensraum, eintrag.namespace or '') if teil)
+            namen |= _gekennzeichnete_adressen(eintrag.url_patterns, raum)
+        elif getattr(eintrag.callback, 'offenes_format', False) is True:
+            namen.add(':'.join(teil for teil in (namensraum, eintrag.name or '') if teil))
+    return namen
+
+
+def test_keine_adresse_ist_offen_ohne_in_der_liste_zu_stehen():
+    '''Gegenlesen: die Gegenrichtung. Wer eine weitere Ansicht öffnet, trägt ihre Adresse in OFFENE_ADRESSEN
+    ein — und damit in docs/SCHEMA.md, Abschnitt 1 (`test_schema_dokument_nennt_jede_offene_adresse`).'''
+    gekennzeichnet = _gekennzeichnete_adressen()
+    assert gekennzeichnet <= set(OFFENE_ADRESSEN), sorted(gekennzeichnet - set(OFFENE_ADRESSEN))
+    # Die Suche findet die Ansichten, die den Dekorator schon tragen — sonst bewiese die Zeile oben nichts.
+    assert set(OFFENE_ADRESSEN) - NOCH_OHNE_DEKORATOR <= gekennzeichnet
+
+
 def test_der_dekorator_kennzeichnet_die_ansicht():
     @offenes_format
     def ansicht(anfrage):

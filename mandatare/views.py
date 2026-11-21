@@ -43,6 +43,7 @@ from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
 from mandatare import views_live
+from mandatare.eingabe import kennung
 from mandatare.models import (
     FOTO_HOECHSTGROESSE,
     Aufgabe,
@@ -929,8 +930,8 @@ def vertrauensfrage_stellen(request, pk: int):
     ausstaende = mandat.anlass_ausstaende()
     fehler = ""
     if request.method == "POST":
-        gewaehlte_pks = {a for a in request.POST.getlist("anlass") if a.isdigit()}
-        gewaehlte = [z["r"] for z in anlaesse if str(z["r"].pk) in gewaehlte_pks]
+        gewaehlte_pks = {kennung(a) for a in request.POST.getlist("anlass")} - {None}
+        gewaehlte = [z["r"] for z in anlaesse if z["r"].pk in gewaehlte_pks]
         kennungen = [k for k in request.POST.getlist("ausstand") if k in {a["kennung"] for a in ausstaende}]
         begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
         bestehend = _doppelte_vertrauensfrage(request, mandat)
@@ -1166,9 +1167,9 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
     """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None. Nach dem Ende der Pflichten
     (Mandatsende oder Ende der Vertretung, § 7 Abs 10 lit f Z 8) nur Sitzungstage bis zu diesem Tag
     (danach bestand keine Pflicht, § 7 Abs 5)."""
-    if not (pk or "").isdigit():
+    if kennung(pk) is None:
         return None
-    aufgabe = mandat.aufgaben.filter(pk=int(pk), sitzungstag=True, frist__isnull=False).first()
+    aufgabe = mandat.aufgaben.filter(pk=kennung(pk), sitzungstag=True, frist__isnull=False).first()
     if aufgabe is None:
         return None
     # Ein Sitzungstag, dessen Sitzung im Live-Modus beendet ist, ist vorbei — auch vor der Uhrzeit der Aufgabe
@@ -1190,7 +1191,7 @@ def mein_aktion(request):
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
     pk = (request.POST.get("mandat") or "").strip()
-    mandat = Mandat.objects.filter(pk=int(pk)).first() if pk.isdigit() else None
+    mandat = Mandat.objects.filter(pk=kennung(pk)).first() if kennung(pk) is not None else None
     aktion = request.POST.get("aktion", "")
     if mandat is None or mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
@@ -1218,9 +1219,9 @@ def mein_aktion(request):
             return antwort
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
-        if not aufgabe_pk.isdigit():
+        if kennung(aufgabe_pk) is None:
             raise Http404("Aufgabe unbekannt.")  # sonst ValueError → 500 bei verformter Eingabe
-        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk), mandat=mandat)
+        aufgabe = get_object_or_404(Aufgabe, pk=kennung(aufgabe_pk), mandat=mandat)
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status
@@ -1429,8 +1430,8 @@ def _freiwillige_begruendung(request, mandat: Mandat) -> None:
     Begründung ein — einmal je Eintrag; der Eintrag selbst bleibt unverändert, die Begründung steht daneben."""
     roh = (request.POST.get("rechenschaft") or "").strip()
     eintrag = (
-        Rechenschaft.objects.filter(pk=int(roh), mandat=mandat, nachgetragen_am__isnull=False).first()
-        if roh.isdigit() else None
+        Rechenschaft.objects.filter(pk=kennung(roh), mandat=mandat, nachgetragen_am__isnull=False).first()
+        if kennung(roh) is not None else None
     )
     text = (request.POST.get("text") or "").strip()[:BEGRUENDUNG_MAX]
     if eintrag is None or not text:
@@ -1459,9 +1460,9 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
     punkt = None
     roh = (request.POST.get("punkt") or "").strip()
     if roh:
-        punkt = Tagesordnungspunkt.objects.filter(pk=int(roh), sitzung__mandat=mandat).select_related(
+        punkt = Tagesordnungspunkt.objects.filter(pk=kennung(roh), sitzung__mandat=mandat).select_related(
             "sitzung__aufgabe", "antrag"
-        ).first() if roh.isdigit() else None
+        ).first() if kennung(roh) is not None else None
         tag = punkt.sitzung.aufgabe.sitzungstag_datum if punkt is not None else None
         if punkt is None or tag is None or tag > timezone.localdate() or (
             mandat.pflichtende is not None and tag > mandat.pflichtende
@@ -1641,18 +1642,18 @@ def _datum_aus_eingabe(wert: str) -> date | None:
 
 def _vertrauensfrage_der_verwaltung(request) -> Vertrauensfrage:
     pk = (request.POST.get("vertrauensfrage") or "").strip()
-    if not pk.isdigit():
+    if kennung(pk) is None:
         raise Http404("Vertrauensfrage unbekannt.")
-    return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=int(pk))
+    return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=kennung(pk))
 
 
 def _mandat_der_verwaltung(request, *, sperren=False) -> Mandat:
     """Das Mandat aus `POST["mandat"]` — eine verformte Kennung antwortet 404, nicht 500 (ValueError im Feld)."""
     pk = (request.POST.get("mandat") or "").strip()
-    if not pk.isascii() or not pk.isdecimal() or len(pk) > 18:
+    if kennung(pk) is None:
         raise Http404("Mandat unbekannt.")
     mandate = Mandat.objects.select_for_update() if sperren else Mandat.objects.all()
-    return get_object_or_404(mandate, pk=int(pk))
+    return get_object_or_404(mandate, pk=kennung(pk))
 
 
 @transaction.atomic
@@ -1855,8 +1856,8 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
     antrag_pk = (request.POST.get("antrag") or "").strip().lstrip("#")
     if antrag_pk:
         antrag = (
-            Antrag.objects.filter(pk=int(antrag_pk)).exclude(art__in=[Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE]).first()
-            if antrag_pk.isdigit() else None
+            Antrag.objects.filter(pk=kennung(antrag_pk)).exclude(art__in=[Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE]).first()
+            if kennung(antrag_pk) is not None else None
         )
         if antrag is None:
             messages.error(request, _("Diese Antragsnummer gibt es nicht — oder sie ist keine Sach- oder Mandatsfrage."))
@@ -2077,8 +2078,8 @@ def verwaltung_aktion(request):
             return redirect("mandatare:verwaltung")
         antrag = None
         antrag_pk = (request.POST.get("antrag") or "").strip()
-        if antrag_pk.isdigit():
-            antrag = Antrag.objects.filter(pk=int(antrag_pk)).first()
+        if kennung(antrag_pk) is not None:
+            antrag = Antrag.objects.filter(pk=kennung(antrag_pk)).first()
         frist = None
         if (request.POST.get("frist") or "").strip():
             # Die Verwaltung nimmt weiterhin ein reines Datum an (dann 23:59 Ortszeit);
@@ -2104,9 +2105,9 @@ def verwaltung_aktion(request):
 
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
-        if not aufgabe_pk.isdigit():
+        if kennung(aufgabe_pk) is None:
             raise Http404("Aufgabe unbekannt.")
-        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk))
+        aufgabe = get_object_or_404(Aufgabe, pk=kennung(aufgabe_pk))
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status

@@ -868,7 +868,9 @@ def _meine_favoriten(nutzer) -> set[int]:
 def _kategorien_suchen(suchtext: str, nutzer) -> tuple[list[dict], int]:
     """Die Tiefen-Ansicht als Feld-Suche (P2): findet Lebensbereiche über
     Name, Beschreibung und Schlagworte; jeder Treffer trägt Pfad, laufende
-    Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort."""
+    Verfahren im ganzen Ast und den Abo-Stand — Klick öffnet den Fächer dort.
+    Gesucht wird im deutschen und im angezeigten Namen (GP-139), gereiht nach dem angezeigten."""
+    from verfahren.templatetags.lebensbereiche import anzeigename
     from verfahren.views_aktionen import _laufend_je_ast
 
     abonniert: set[int] = set()
@@ -882,13 +884,14 @@ def _kategorien_suchen(suchtext: str, nutzer) -> tuple[list[dict], int]:
     for k in Kategorie.objects.filter(aktiv=True).select_related("eltern__eltern__eltern__eltern__eltern"):
         if (
             norm in k.name.casefold()
+            or norm in anzeigename(k.name).casefold()
             or norm in k.beschreibung.casefold()
             or any(norm in wort.casefold() for wort in k.schlagworte)
         ):
             treffer.append(
                 {"k": k, "laufend": laufend.get(k.pk, 0), "abonniert": k.pk in abonniert}
             )
-    treffer.sort(key=lambda t: (t["k"].tiefe, t["k"].name))
+    treffer.sort(key=lambda t: (t["k"].tiefe, anzeigename(t["k"].name)))
     # Mit Gesamtzahl (GP-074): Die Suche schneidet nicht still ab
     return treffer[: max(zahl("suche-treffer-hoechstzahl", 24), 0)], len(treffer)
 
@@ -944,6 +947,7 @@ def parlament(request):
     # Klick eine Seite, mit htmx wechselt nur das Feld.
     from plattform_core.faecher import faecher_layout
     from verfahren.hinweise import handlungslage, hinweis_lage
+    from verfahren.templatetags.lebensbereiche import anzeigename
 
     zeilen = list(
         Kategorie.objects.filter(aktiv=True).values("id", "slug", "name", "eltern_id", "reihenfolge")
@@ -951,6 +955,8 @@ def parlament(request):
     for zeile in zeilen:  # die Wurzel heißt im Fächer schlicht „Lebensbereiche"
         if zeile["eltern_id"] is None:
             zeile["name"] = str(_("Lebensbereiche"))
+        else:  # die übrigen in der Sprache der Seite (GP-139)
+            zeile["name"] = anzeigename(zeile["name"])
     abo_slugs = (
         set(request.user.kategorie_abos.values_list("kategorie__slug", flat=True))
         if request.user.is_authenticated

@@ -1,4 +1,4 @@
-{% load i18n phasen %}{% comment %}
+{% load i18n phasen lebensbereiche %}{% comment %}
 Eine Zeile des WeicherFilter-Feeds (FB-B1): Titel mit Stern rechts, Chips (Phase farbig, Ebene,
 Lebensbereich), Stand mit Mini-Balken und Frist, Direkt-Handlung der Phase rechts; bei aktivem
 Profil das Aufklapp-Feld „Warum hier?“ mit der offenen Rechnung. Erwartet z (wie _kachel plus
@@ -12,7 +12,7 @@ Knöpfe nur ohne z.sperre (B2). weiter_ziel setzt die Live-Vorschau (ihre Adress
     {% if z.vertrauensfrage.rechtsschutz_stand %}<span class="badge badge--hell">{{ z.vertrauensfrage.rechtsschutz_stand }}</span>{% endif %}
     {% if z.antrag.art == "mandat" %}<span class="chip klein">{% translate "Personenwahl" %}</span>{% elif z.antrag.art == "mandatsfrage" %}<span class="chip klein">{% translate "Mandatsfrage" %}</span>{% elif z.antrag.art == "vertrauensfrage" %}<span class="chip klein">{% if z.vertrauensfrage.art == "bestaetigung" %}{% translate "Bestätigung (§ 7 Abs 10)" %}{% else %}{% translate "Vertrauensfrage" %}{% endif %}</span>{% endif %}
     {% if z.antrag.ebene != "bund" %}<span class="chip klein">{{ z.antrag.get_ebene_display }}{% if z.antrag.gebiet %} · {{ z.antrag.gebiet }}{% endif %}</span>{% endif %}
-    {% if z.thema %}<span class="chip klein{% if z.favorit %} still{% endif %}" title="{{ z.thema.pfad_kurz }}">{% if z.favorit %}★ {% endif %}{{ z.thema.name }}</span>{% endif %}
+    {% if z.thema %}<span class="chip klein{% if z.favorit %} still{% endif %}" title="{{ z.thema|lb_pfad_kurz }}">{% if z.favorit %}★ {% endif %}{{ z.thema|lb_name }}</span>{% endif %}
   </div>
   {% if z.stat %}
   <div class="zs{% if z.stat.typ == 'beratung' or z.stat.typ == 'wartezeit' %} ohne{% endif %}">

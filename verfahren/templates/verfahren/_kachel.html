@@ -1,4 +1,4 @@
-{% load i18n phasen %}
+{% load i18n phasen lebensbereiche %}
 {% comment %}
 Die Kachel (FB-D2): Thema mit eigenem Stern · Titel · Stand mit Balken · Frist mit Ring ·
 Direkt-Handlung der Phase · (nur in „Wichtige Abstimmungen") der Hervorhebungsgrund.
@@ -10,8 +10,8 @@ kehrt mit Hinweis in dieses Feld zurück, Befund B1); Knöpfe nur, wenn k.sperre
   <div class="k-kopf">
     {% if k.thema %}
     <span class="k-thema">
-      {% include "verfahren/_kategorie_stern.html" with slug=k.thema.slug name=k.thema.name abonniert=k.thema_abonniert klein=True %}
-      <span class="k-thema-name" title="{{ k.thema.pfad_kurz }}">{{ k.thema.name }}</span>
+      {% include "verfahren/_kategorie_stern.html" with slug=k.thema.slug name=k.thema|lb_name abonniert=k.thema_abonniert klein=True %}
+      <span class="k-thema-name" title="{{ k.thema|lb_pfad_kurz }}">{{ k.thema|lb_name }}</span>
     </span>
     {% endif %}
     <span class="k-stern">{% include "verfahren/_stern.html" with antrag=k.antrag %}</span>

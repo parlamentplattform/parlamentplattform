@@ -374,7 +374,9 @@ def einbringen(request):
             region_benachrichtigen(antrag)  # Post an die betroffene Region — nur mit Einwilligung, im Hintergrundlauf
             if antrag.art == Antragsart.SACHE:
                 _zukunftswerkstatt_beauftragen(antrag, request.user, pruefung)
-            namen = ", ".join(k.pfad_kurz for k in zugeordnet)
+            from verfahren.templatetags.lebensbereiche import anzeigepfad
+
+            namen = ", ".join(anzeigepfad(k) for k in zugeordnet)  # in der Sprache der Seite (GP-139)
             if antrag.ebene != Ebene.BUND and antrag.gebiet:
                 # Die Meldung nennt das Gebiet, in dem der Antrag nun gilt (GP-170)
                 if zugeordnet:
@@ -1502,18 +1504,21 @@ def kategorie_abonnieren(request, slug):
         KategorieAbo.objects.filter(kategorie=kategorie, mitglied=request.user).delete()
     weiter = request.POST.get("weiter", "")
     weiter = weiter_ohne_hinweis(weiter) if sicherer_pfad(weiter) else reverse("verfahren:parlament")
+    from verfahren.templatetags.lebensbereiche import anzeigename
+
+    name = anzeigename(kategorie.name)  # in der Sprache der Seite (GP-139)
     if request.headers.get("HX-Request"):
         # FB-C4: mit htmx wechselt nur der Stern selbst — kein Feldtausch, keine Flash-Meldung
         return render(
             request,
             "verfahren/_kategorie_stern.html",
-            {"slug": slug, "name": kategorie.name, "abonniert": neu, "weiter": weiter},
+            {"slug": slug, "name": name, "abonniert": neu, "weiter": weiter},
         )
     if neu:
         messages.success(
             request,
-            _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % kategorie.name,
+            _("„%s“ ist jetzt Favorit — Neues daraus erscheint in Ihrem Hauptfenster.") % name,
         )
     else:
-        messages.info(request, _("Favorit „%s“ entfernt.") % kategorie.name)
+        messages.info(request, _("Favorit „%s“ entfernt.") % name)
     return redirect(weiter)

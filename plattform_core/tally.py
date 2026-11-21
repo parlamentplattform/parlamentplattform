@@ -103,6 +103,19 @@ def ergebnis_wort(angenommen: bool, stimmberechtigte: int | None) -> str:
     return ERGEBNIS_ABGELEHNT
 
 
+#: Welcher Satz die Begründung ist (Gesamtprüfung GP-139): ein Schlüssel neben dem deutschen Satz, damit
+#: eine Anzeige ihn in jeder Sprache aus den Zahlen bauen kann. Der Satz selbst bleibt Urtext in Audit und
+#: Export; der Fall rechnet nichts und ändert kein Ergebnis — er liest dieselben Felder in derselben Reihenfolge
+#: wie die Verzweigung, aus der der Satz stammt.
+FALL_LEERER_KREIS = "leerer_kreis"
+FALL_BETEILIGUNG_VERFEHLT = "beteiligung_verfehlt"
+FALL_ANGENOMMEN = "angenommen"
+FALL_KEINE_MEHRHEIT = "keine_mehrheit"
+FALL_KEINE_BEWERBUNG = "keine_bewerbung"
+FALL_GEWAEHLT = "gewaehlt"
+FALL_KEINE_ZUSTIMMUNG = "keine_zustimmung"
+
+
 class AuszaehlungsFehler(ValueError):
     """Ungültige Eingaben, z. B. doppelte Pseudonyme oder unbekannte Stimmwerte."""
 
@@ -127,6 +140,15 @@ class Auszaehlung:
     def ergebnis(self) -> str:
         """Das Ergebniswort (`ergebnis_wort`): angenommen, abgelehnt oder kein_beschluss."""
         return ergebnis_wort(self.angenommen, self.stimmberechtigte)
+
+    @property
+    def fall(self) -> str:
+        """Welcher Begründungssatz gilt (GP-139) — dieselbe Reihenfolge wie in `auszaehlen`."""
+        if self.stimmberechtigte == 0:
+            return FALL_LEERER_KREIS
+        if not self.beteiligung_erreicht:
+            return FALL_BETEILIGUNG_VERFEHLT
+        return FALL_ANGENOMMEN if self.angenommen else FALL_KEINE_MEHRHEIT
 
 
 def auszaehlen(
@@ -250,6 +272,20 @@ class Personenwahl:
     def ergebnis(self) -> str:
         """Das Ergebniswort (`ergebnis_wort`) — dieselben drei Wörter wie bei der Sachfrage."""
         return ergebnis_wort(self.angenommen, self.stimmberechtigte)
+
+    @property
+    def fall(self) -> str:
+        """Welcher Begründungssatz gilt (GP-139) — dieselbe Reihenfolge wie in `personenwahl_auszaehlen`.
+        Ohne Bewerbung gibt es keinen Platz; mit Bewerbung steht jede auf einem Platz."""
+        if not self.plaetze:
+            return FALL_KEINE_BEWERBUNG
+        if self.stimmberechtigte == 0:
+            return FALL_LEERER_KREIS
+        if self.gewonnen_id is not None:
+            return FALL_GEWAEHLT
+        if not self.beteiligung_erreicht:
+            return FALL_BETEILIGUNG_VERFEHLT
+        return FALL_KEINE_ZUSTIMMUNG
 
 
 def personenwahl_auszaehlen(

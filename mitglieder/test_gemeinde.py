@@ -693,3 +693,15 @@ def test_ohne_fehler_kein_alert(client, buerger):
     html = client.get(reverse('gemeinde:konto')).content.decode()
     assert 'role="alert"' not in html.split('<main id="inhalt"', 1)[1]
     assert not html.split('<title>', 1)[1].startswith('Fehler:')
+
+
+def test_sprachwechsel_auf_der_anmeldeseite_bleibt_dem_gemeindekonto_offen(client, buerger):
+    """Gegenlesen GP-078: Nur eine Umleitung, die das Gemeindekonto als Gast von einer Parteiseite zur
+    Anmeldung schickt, wird zur Auskunft. Der Sprachwechsel auf der Anmeldeseite leitet ebenfalls auf
+    /anmelden/ um — er ist ein erlaubter Weg und muss samt Sprach-Cookie durchgehen."""
+    from django.conf import settings
+
+    client.force_login(buerger)
+    antwort = client.post(reverse('set_language'), {'language': 'en', 'next': '/anmelden/?next=/profil/'})
+    assert antwort.status_code == 302 and antwort['Location'] == '/anmelden/?next=/profil/'
+    assert antwort.cookies[settings.LANGUAGE_COOKIE_NAME].value == 'en'

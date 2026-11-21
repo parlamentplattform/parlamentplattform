@@ -515,6 +515,9 @@ def test_gedruckte_karten_mit_der_alten_adresse_gelten_weiter(client):
 def test_die_neue_pruefadresse_sagt_dasselbe_wie_die_alte(client):
     m = geprueftes_mitglied()
     aw.ausweis_code_sicherstellen(m)
+    # Fester Schlüssel mit Buchstaben: Ein Zufallswert nur aus Ziffern gliche seiner Großschreibung.
+    Mitglied.objects.filter(pk=m.pk).update(ausweis_schluessel='abcdef0123456789abcdef01')
+    m.refresh_from_db()
     antwort = client.get(f'/ausweis/{m.ausweis_schluessel}/')
     assert 'no-store' in antwort['Cache-Control'] and 'data-stand="gueltig"' in antwort.content.decode()
     for falsch in ('0' * 24, m.ausweis_schluessel[:-1], m.ausweis_schluessel.upper(), m.ausweis_code, 'None', '%C3%BC' * 12):

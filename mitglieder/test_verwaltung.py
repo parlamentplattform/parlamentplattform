@@ -991,13 +991,15 @@ def test_ausschluss_verweist_auf_paragraf_4_absatz_5():
 
 @pytest.mark.parametrize('wert', ['0', '-1', '-72'])
 def test_wartefrist_des_adresswechsels_faellt_nie_unter_eine_stunde(wert):
-    from parameter.models import Parameter
+    from parameter.models import WERTBEREICHE, Parameter
 
     Parameter.objects.update_or_create(
         schluessel='adresswechsel-wartefrist-stunden',
         defaults={'wert': wert, 'einheit': 'Stunden', 'beschreibung': 'Wartefrist', 'quelle': '§ 4'},
     )
-    assert Adresswechsel.wartefrist_stunden() == 1
+    # Die Untergrenze führt das Register; hebt es sie an, folgt die Lesestelle — und dieser Test.
+    untergrenze = max(1, WERTBEREICHE['adresswechsel-wartefrist-stunden'][0])
+    assert Adresswechsel.wartefrist_stunden() == untergrenze >= 1
 
 
 def test_wartefrist_des_adresswechsels_folgt_einem_gueltigen_registerwert():

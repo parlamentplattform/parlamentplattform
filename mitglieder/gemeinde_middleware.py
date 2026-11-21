@@ -28,6 +28,7 @@ class GemeindezugangBegrenzen(MiddlewareMixin):
         request.user = AnonymousUser()
         request._cached_user = request.user
         request._acached_user = request.user
+        request.gemeindekonto_als_gast = True  # nur dann wird eine Umleitung zur Anmeldung zur Auskunft
         if name == "anstoss:senden":
             return None  # dieselbe öffentliche Rückmeldung wie ohne Konto
         if request.method not in {"GET", "HEAD", "OPTIONS"}:
@@ -38,8 +39,10 @@ class GemeindezugangBegrenzen(MiddlewareMixin):
     def process_response(self, request, response):
         # GP-078: Eine geschützte Parteiseite schickte das angemeldete Gemeindekonto zur Anmeldung —
         # ein Kreis ohne Ausgang. Statt der Umleitung kommt dieselbe Auskunft wie bei Schreibwegen.
+        # Nur wo das Konto als Gast behandelt wurde: Auf den erlaubten Wegen (Sprachwechsel auf der
+        # Anmeldeseite, Gemeinde- und Anmeldewege) bleibt eine Umleitung nach /anmelden/, was sie ist.
         if (
-            getattr(request, "gemeindekonto", None) is not None
+            getattr(request, "gemeindekonto_als_gast", False)
             and response.status_code == 302
             and urlsplit(response.get("Location", "")).path == resolve_url(settings.LOGIN_URL)
         ):

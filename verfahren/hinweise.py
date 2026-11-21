@@ -156,7 +156,14 @@ def kachel_sperre(code: str | None) -> dict | None:
     if not code or code not in HINWEISE:
         return None
     link, link_text = _link(code)
-    return {"code": code, "kurz": HINWEISE[code].get("kurz") or _hinweistext(code), "link": link, "link_text": link_text}
+    return {
+        "code": code,
+        "kurz": HINWEISE[code].get("kurz") or _hinweistext(code),
+        # Die Antragsseite nennt denselben Grund als Satz (GP-070)
+        "text": _hinweistext(code),
+        "link": link,
+        "link_text": link_text,
+    }
 
 
 def kachel_feld(request) -> str | None:

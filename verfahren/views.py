@@ -1265,11 +1265,15 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
     if archiviert:
         letzter = antrag.kommentare.filter(archiviert_am__isnull=False).order_by("-archiviert_am").first()
         letzte_phase = letzter.phase if letzter else ""
+    from verfahren.hinweise import kachel_sperre, mitwirkungssperre
     from verfahren.models import Meldung
 
     entwurf = chatkern.abstimmungschat(antrag)
     fenster = chatkern.faden_fenster(antrag, nutzer, nach_engagement=entwurf is not None, ab=ab)
+    # GP-070: Wer nicht mitberaten darf, sieht statt Eingabe und Reaktionsknöpfen den Grund
+    sperre = mitwirkungssperre(nutzer) if nutzer is not None and nutzer.is_authenticated else None
     lage = {
+        "sperre": kachel_sperre(sperre),
         "faden": fenster["faden"],
         "bearbeitungsfenster": antrag.kommentare.model.bearbeitungsfenster_minuten(),
         "faden_mehr": fenster["mehr"],
@@ -1283,7 +1287,7 @@ def _chat_lage(antrag, nutzer, ab: int | None = None) -> dict:
         "ruht": chatkern.ruht_wegen_werkstatt(antrag),
         "archiviert": archiviert,
         "archiv_phase": letzte_phase,
-        "darf_reagieren": chatkern.darf_reagieren(antrag, nutzer),
+        "darf_reagieren": sperre is None and chatkern.darf_reagieren(antrag, nutzer),
         # Grenzen aus dem Register, damit Feld und Hinweis nennen, was der Server prüft (GP-083)
         "zeichen_hoechst": chatkern.chat_zeichen_hoechstzahl(),
         "kritik_mindest": chatkern.kritik_mindestzeichen(),
@@ -1454,6 +1458,32 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     }
 
 
+def _handlungssperren(antrag, nutzer) -> dict:
+    """GP-070: Dieselbe Rechnung wie Kachel und Feed (`handlungslage`) für die Formulare der Antragsseite —
+    wer nicht handeln darf, sieht statt des Knopfs den Grund samt Link, denselben wie im Parlament.
+    `mitwirkung` gilt für Unterstützen, Bewerben und Chat, `stimme` für Abstimmen und Zustimmungswahl,
+    `bewerben` zusätzlich für das Stimmrecht bei Personenwahlen am heutigen Tag (wie `bewerben`)."""
+    from verfahren.hinweise import handlungslage, kachel_sperre
+
+    lage = handlungslage(nutzer)
+    if not lage.angemeldet:
+        return {"mitwirkung": None, "stimme": None, "bewerben": None}
+    stimme = lage.stimmsperre(nutzer, antrag) if antrag.phase == Phase.ABSTIMMUNG.value else None
+    bewerben = lage.mitwirkung
+    if bewerben is None and antrag.art == Antragsart.MANDAT and antrag.phase in (
+        Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value
+    ):
+        if not nutzer.ist_stimmberechtigt(
+            Gegenstand.PERSONENWAHL, timezone.localdate(), uebergang=uebergangsregel_fuer(antrag)
+        ):
+            bewerben = "nicht_stimmberechtigt"
+    return {
+        "mitwirkung": kachel_sperre(lage.mitwirkung),
+        "stimme": kachel_sperre(stimme),
+        "bewerben": kachel_sperre(bewerben),
+    }
+
+
 def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     """Die Antragsseite. `chat_fehler`/`chat_entwurf` kommen von `kommentieren` ohne JavaScript:
     Statt eines Redirects mit Flash steht die Seite mit Fehler und Entwurf im Chat (Befund B2)."""
@@ -1544,6 +1574,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             ab = antrag.stimmabgaben.filter(pseudonym=reg.pseudonym).first()
             meine_stimme = ab.stimme if ab else None
     ist_favorit = request.user.is_authenticated and antrag.favoriten.filter(mitglied=request.user).exists()
+    sperren = _handlungssperren(antrag, request.user)
     # Entwurfsschleife (§ 5 Abs 12, F-66/F-67): der Vorschlag des Expertenrats am Antrag.
     entwurf = getattr(antrag, "entwurf", None)
     schleife = None
@@ -1619,6 +1650,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "frist": frist,
             "aussetzung": aussetzung,
             "unterstuetzt_von_mir": unterstuetzt_von_mir,
+            "sperren": sperren,
             "meine_stimme": meine_stimme,
             "phase_offen": antrag.phase in (Phase.UNTERSTUETZUNG.value, Phase.BERATUNG.value),
             "abstimmung_laeuft": antrag.phase == Phase.ABSTIMMUNG.value,

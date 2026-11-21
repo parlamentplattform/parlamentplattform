@@ -69,7 +69,9 @@ Formular — mit htmx in der getauschten Zone, ohne JavaScript auf der neu gezei
   {% if chat.fehler %}<p class="chat-fehler" role="alert">{{ chat.fehler.text }}{% if chat.fehler.link %} <a href="{{ chat.fehler.link }}">{{ chat.fehler.link_text }} ›</a>{% endif %}</p>{% endif %}
 
   {% if chat.offen %}
-    {% if user.is_authenticated %}
+    {% if chat.sperre and not chat.entwurf %}{# ein schon geschriebener Entwurf bleibt samt Fehler im Formular stehen #}
+    {% include "verfahren/_sperre_satz.html" with sperre=chat.sperre %}
+    {% elif user.is_authenticated %}
     <form method="post" action="{% url 'verfahren:kommentieren' antrag.pk %}" class="chatzeile" id="chat-eingabe"
       hx-post="{% url 'verfahren:kommentieren' antrag.pk %}" hx-target="#chat-faden" hx-select="#chat-faden" hx-swap="outerHTML"
       @htmx:after-request="gesendet($event)">

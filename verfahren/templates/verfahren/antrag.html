@@ -148,7 +148,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
     {% elif antrag.phase == "unterstuetzung" %}
     <div class="karte handlung">
       <h3>{% translate "Unterstützen" %}</h3>
-      {% if user.is_authenticated and not eigener_teilnehmerkreis %}
+      {% if sperren.mitwirkung %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.mitwirkung %}
+      {% elif user.is_authenticated and not eigener_teilnehmerkreis %}
         <p>{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}</p>
       {% elif user.is_authenticated and vertrauensfrage and not vertrauensfrage.unterstuetzen_erlaubt %}
         <p>{% blocktranslate with tag=vertrauensfrage.stichtag|date:"d.m.Y" %}Unterstützen kann nur, wer am Tag der Einbringung ({{ tag }}) für Personenwahlen stimmberechtigt war (§ 7 Abs 10 lit c).{% endblocktranslate %}</p>
@@ -179,7 +181,7 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
           <div class="b-kopf"><strong>{{ b.mitglied.anzeigename }}</strong> · {% translate "beworben am" %} {{ b.erstellt_am|date:"d.m.Y" }}{% if b.rueckgabezusage %} · {% translate "Rückgabezusage:" %} {{ b.get_rueckgabezusage_display }}{% endif %}</div>
           {% if b.vorstellung %}<div>{{ b.vorstellung|linebreaksbr }}</div>{% endif %}
         </div>
-        {% if kandidatur.zustimmen_offen and user.is_authenticated and eigene_oertliche_stimmabgabe %}
+        {% if kandidatur.zustimmen_offen and user.is_authenticated and eigene_oertliche_stimmabgabe and not sperren.stimme %}
         <form method="post" action="{% url 'verfahren:kandidatur_zustimmen' antrag.pk b.pk %}">{% csrf_token %}
           {% if b.pk in kandidatur.meine_zustimmungen %}
             <button type="submit" class="btn">&#10003; {% translate "Zugestimmt" %}</button>
@@ -193,7 +195,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <p class="leer">{% translate "Noch keine Bewerbung — die erste kann Ihre sein." %}</p>
       {% endfor %}
       {% if kandidatur.zurueckgezogene %}<p class="erk">{% blocktranslate count n=kandidatur.zurueckgezogene|length %}Eine Bewerbung wurde zurückgezogen — dokumentiert im Audit-Log.{% plural %}{{ n }} Bewerbungen wurden zurückgezogen — dokumentiert im Audit-Log.{% endblocktranslate %}</p>{% endif %}
-      {% if kandidatur.zustimmen_offen and user.is_authenticated and not eigene_oertliche_stimmabgabe %}
+      {% if kandidatur.zustimmen_offen and sperren.stimme %}
+      {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}
+      {% elif kandidatur.zustimmen_offen and user.is_authenticated and not eigene_oertliche_stimmabgabe %}
       <p>{% translate "Für Sie ist hier keine Stimmabgabe möglich." %}</p>
       {% elif kandidatur.zustimmen_offen and user.is_authenticated %}
       <p class="hilfe">{% translate "Ihre Zustimmungen werden unter einem Pseudonym erfasst und nach Fristende in der nachrechenbaren Liste veröffentlicht." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>
@@ -210,6 +214,8 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
           <span>{% translate "Ihre Bewerbung steht — Sie werden als wählbar geführt." %}</span>
           <button type="submit" class="btn-still">{% translate "Bewerbung zurückziehen" %}</button>
         </form>
+      {% elif sperren.bewerben %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.bewerben %}
       {% elif not eigener_teilnehmerkreis %}
         <p>{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}</p>
       {% else %}
@@ -241,7 +247,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
       <h3>{% translate "Abstimmen" %}</h3>
       {% if beteiligung %}<p class="meta">{% blocktranslate with abgegeben=beteiligung.abgegeben berechtigte=beteiligung.berechtigte|default_if_none:"–" %}{{ abgegeben }} von {{ berechtigte }} Stimmberechtigten{% endblocktranslate %}{% if beteiligung.prozent is not None %} ({{ beteiligung.prozent }} % {% translate "Beteiligung" %}){% endif %} · {% include "verfahren/_tendenz.html" with tendenz=beteiligung.tendenz %}</p>{% endif %}
       {% if vertrauensfrage.legende %}<p class="erk vf-legende">{{ vertrauensfrage.legende.0 }} · {{ vertrauensfrage.legende.1 }}</p>{% endif %}
-      {% if user.is_authenticated and not eigene_oertliche_stimmabgabe %}
+      {% if sperren.stimme %}
+        {% include "verfahren/_sperre_satz.html" with sperre=sperren.stimme %}
+      {% elif user.is_authenticated and not eigene_oertliche_stimmabgabe %}
         <p>{% translate "Für Sie ist hier keine Stimmabgabe möglich." %}</p>
       {% elif user.is_authenticated %}
         {% if meine_stimme %}<p>{% translate "Ihre aktuelle Stimme:" %} <strong>{{ meine_stimme|phase_name }}</strong> — {% translate "Sie können sie bis zum Fristende ändern." %} <a href="{% url 'verfahren:eigene_stimme' antrag.pk %}">{% translate "Prüfcode anzeigen" %}</a></p>{% endif %}

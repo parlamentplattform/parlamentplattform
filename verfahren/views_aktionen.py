@@ -858,9 +858,13 @@ def abstimmen(request, pk):
         gegenstand_fuer(antrag), stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
         # Ungeprüfte und ruhende Konten sind nie stimmberechtigt — der Kachel-Hinweis nennt den Grund
+        # — und die Antragsseite dieselbe Sperrseite wie beim Unterstützen; die Seite zur Anwartschaft
+        # nur, wenn wirklich die Anwartschaft fehlt (GP-070)
         code = mitwirkungssperre(request.user) or "nicht_stimmberechtigt"
         return _abbruch(
-            request, feld, code, lambda: render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+            request, feld, code,
+            lambda: _mitwirkung_gesperrt(request)
+            or render(request, "verfahren/nicht_stimmberechtigt.html", status=403),
         )
     if request.user.adresswechsel_offen:
         # F-51: Solange die Anmeldeadresse in Änderung ist, gehört das Konto vielleicht nicht
@@ -1241,7 +1245,8 @@ def kandidatur_zustimmen(request, pk, bewerbung_pk):
     if not request.user.ist_stimmberechtigt(
         Gegenstand.PERSONENWAHL, stichtag, uebergang=uebergangsregel_fuer(antrag)
     ):
-        return render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
+        # Gesperrte Konten erfahren den wahren Grund, nicht den zur Anwartschaft (GP-070)
+        return _mitwirkung_gesperrt(request) or render(request, "verfahren/nicht_stimmberechtigt.html", status=403)
     if request.user.adresswechsel_offen:
         messages.error(
             request,

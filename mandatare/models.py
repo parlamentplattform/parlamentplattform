@@ -783,6 +783,17 @@ class Rechenschaft(models.Model):
             return self.beschluss_aus_antrag(self.antrag)
         return self.beschluss_plattform
 
+    @property
+    def beschluss_quelle(self) -> str:
+        """Woher der gezeigte Beschluss der Plattform stammt: „antrag“ (aus dem verknüpften Antrag),
+        „verwaltung“ (Nachtrag der Verwaltung ohne Antrag) oder „mandatar“ (Angabe des Mandatars ohne
+        verknüpften Antrag) — Leser sollen eine Selbstangabe von einem Beschluss unterscheiden (GP-111)."""
+        if self.antrag_id is not None:
+            return "antrag"
+        if self.nachgetragen_am is not None:
+            return "verwaltung"
+        return "mandatar"
+
     def beschluss_nachziehen(self) -> None:
         """Den gespeicherten Beschluss auf den Stand des Antrags bringen, sobald der entschieden
         ist — idempotent, damit auch Export und Datenbank den Stand des Registers tragen."""

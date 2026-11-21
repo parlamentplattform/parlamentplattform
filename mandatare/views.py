@@ -632,6 +632,7 @@ def rechenschaft_json(request):
                 "gegenstand": z["r"].gegenstand,
                 "sitzung_am": z["r"].sitzung_am.isoformat(),
                 "beschluss_plattform": z["beschluss"],
+                "beschluss_quelle": z["r"].beschluss_quelle,
                 "antrag": z["r"].antrag_id,
                 "aufgabe": z["r"].aufgabe_id,
                 "stimme": z["r"].stimme,

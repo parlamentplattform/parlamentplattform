@@ -140,6 +140,49 @@ def ausfuehren(lauf: Lauf, jetzt=None) -> bool:
     return True
 
 
+#: Ab wie vielen Takten ohne neuen Beginn ein Lauf als überfällig gilt (GP-155): Ein Takt kann sich um
+#: einen Neustart oder Deploy verschieben, drei Takte in Folge nicht. Registerwert folgt.
+UEBERFAELLIG_TAKTE = 3
+
+
+def betriebsstand(name: str, jetzt=None) -> dict:
+    """Der Stand eines Laufs für die Maschinenadresse (GP-155) — ohne Fehlertext und ohne Inhalte.
+
+    `status` ist „ok“, „noch_nicht_gelaufen“, „ueberfaellig“ (der letzte Beginn liegt mehr als
+    `UEBERFAELLIG_TAKTE` Takte zurück: der Faden steht oder ein Lauf hängt) oder „fehler“ (der Lauf brach
+    ab, oder einzelne Verfahren scheiterten — `fehler` zählt sie, wie der Lauf sie in seinem Stand
+    zählt). Zeilen von früheren Fassungen ohne Fehlerzähler gelten als fehlerfrei."""
+    jetzt = jetzt or timezone.now()
+    lauf = next(lauf for lauf in LAEUFE if lauf.name == name)
+    takt = lauf.takt_minuten()
+    zeile = Hintergrundlauf.objects.filter(name=name).first()
+    begonnen = zeile.zuletzt_begonnen if zeile else None
+    beendet = zeile.zuletzt_beendet if zeile else None
+    stand = zeile.zuletzt_stand if zeile and isinstance(zeile.zuletzt_stand, dict) else {}
+    zahl = stand.get("fehler")
+    fehler = zahl if isinstance(zahl, int) and not isinstance(zahl, bool) and zahl > 0 else 0
+    abgebrochen = bool(zeile and zeile.fehler)
+    ueberfaellig = begonnen is not None and jetzt - begonnen > timedelta(minutes=UEBERFAELLIG_TAKTE * takt)
+    if begonnen is None:
+        status = "noch_nicht_gelaufen"
+    elif ueberfaellig:
+        status = "ueberfaellig"
+    elif fehler or abgebrochen:
+        status = "fehler"
+    else:
+        status = "ok"
+    return {
+        "lauf": name,
+        "status": status,
+        "takt_minuten": takt,
+        "zuletzt_begonnen": begonnen.isoformat() if begonnen else None,
+        "zuletzt_beendet": beendet.isoformat() if beendet else None,
+        "ueberfaellig": ueberfaellig,
+        "fehler": fehler,
+        "abgebrochen": abgebrochen,
+    }
+
+
 def faellige_ausfuehren(jetzt=None) -> list[str]:
     """Alle fälligen Läufe — der Einstieg für den Faden in gunicorn.conf.py. Gibt die Namen der
     ausgeführten Läufe zurück."""

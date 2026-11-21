@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from django.db import connection
 from django.http import JsonResponse
+from django.views.decorators.cache import never_cache
 
 
 def gesund(request):
@@ -24,3 +25,16 @@ def gesund(request):
         # 503 heißt für Render: Instanz neu starten bzw. Deploy nicht übernehmen — beides gewollt.
         return JsonResponse({"status": "datenbank"}, status=503)
     return JsonResponse({"status": "ok"})
+
+
+@never_cache
+def fristen(request):
+    """Der Stand des Fristen-Wächters (GP-155), nach dem Muster von `/sicherung/status.json`.
+
+    Steht der Hintergrundfaden oder scheitert ein Verfahren bei jedem Lauf, stand das bisher nur im
+    Serverprotokoll; Fristen liefen dann nur noch beim Seitenaufruf ab. 200 nur bei einem pünktlichen,
+    fehlerfreien Lauf, sonst 503 — für die äußere Wache. Keine Fehlertexte, keine Inhalte."""
+    from verfahren.hintergrund import betriebsstand
+
+    stand = betriebsstand("fristen")
+    return JsonResponse(stand, status=200 if stand["status"] == "ok" else 503)

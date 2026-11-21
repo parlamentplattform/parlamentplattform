@@ -6,12 +6,14 @@ eigene, auditierte Mitgliederverwaltung unter /verwaltung/ (F-51).
 
 from django.urls import include, path
 
-from config.gesund import gesund
+from config.gesund import fristen, gesund
 
 urlpatterns = [
     path("gemeinde/", include("mitglieder.gemeinde_urls")),
     # Gesundheitscheck mit Datenbankberührung (Befund #94) — vor den App-Routen, damit er gilt.
     path("gesund/", gesund, name="gesund"),
+    # Stand des Fristen-Wächters für die äußere Wache (GP-155): 503, wenn überfällig oder fehlerhaft.
+    path("gesund/fristen.json", fristen, name="gesund_fristen"),
     path("", include("verfahren.urls")),
     path("", include("mitglieder.urls")),
     path("", include("uebersicht.urls")),

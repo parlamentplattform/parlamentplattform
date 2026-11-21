@@ -592,9 +592,21 @@ def fenster_aktion(request, antrag_id: int):
         except SteckplatzStumm as grund:
             messages.info(request, str(grund))
         else:
-            EntwurfsBeitrag.objects.create(
-                entwurf=entwurf, mitglied=request.user, text=lauf.antwort[:4000], ki_lauf=lauf
-            )
+            with transaction.atomic():  # Beitrag und Protokoll gemeinsam oder gar nicht (GP-045)
+                EntwurfsBeitrag.objects.create(
+                    entwurf=entwurf, mitglied=request.user, text=lauf.antwort[:4000], ki_lauf=lauf
+                )
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "gremien_ki_lauf",
+                        "gremium": Gremium.EXPERTENRAT_1.value,
+                        "zweck": Zweck.EINSCHAETZUNG.value,
+                        "antrag": antrag.pk,
+                        "runde": entwurf.runde,
+                        "fassung": fassung.nummer,
+                        "lauf": lauf.pk,
+                    }
+                )
             messages.success(
                 request,
                 _("KI-Einschätzung festgehalten — deutlich gekennzeichnet: Sie schlägt vor, entschieden wird hier."),
@@ -2211,8 +2223,18 @@ def koordination_test(request, test_id: int):
         except SteckplatzStumm as grund:
             messages.info(request, str(grund))
         else:
-            test.ki_lauf = lauf
-            test.save(update_fields=["ki_lauf"])
+            with transaction.atomic():  # Lauf und Protokoll gemeinsam oder gar nicht (GP-045)
+                test.ki_lauf = lauf
+                test.save(update_fields=["ki_lauf"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "gremien_ki_lauf",
+                        "gremium": Gremium.KOORDINATIONSRAT.value,
+                        "zweck": Zweck.PARAMETERVORSCHLAG.value,
+                        "test": test.pk,
+                        "lauf": lauf.pk,
+                    }
+                )
             messages.success(request, _("Einschätzung festgehalten — sie schlägt vor, entschieden wird hier."))
     else:
         messages.error(request, _("Unbekannte Handlung."))

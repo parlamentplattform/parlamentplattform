@@ -274,3 +274,42 @@ def test_gp084_an_einer_personenwahl_entsteht_keine_beanstandung(client, ordnung
     antwort = client.post(reverse("verfahren:beanstanden", args=[antrag.pk]), {"text": "Falsch."})
     assert antwort.status_code == 404
     assert Beanstandung.objects.count() == 0 and AuditEintrag.objects.count() == vorher
+
+
+# ── GP-066: Ergebniskarte für verfallen und zurückgewiesen ───────────────────────────────────
+
+
+def test_gp066_verfallener_antrag_nennt_zahl_schwelle_frist_und_naechsten_schritt(client, ordnung):  # noqa: F811
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from plattform_core.eligibility import monate_addieren
+    from verfahren.models import Antrag, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG
+
+    leute = [mitglied_anlegen(f"v{i}") for i in range(2)]
+    antrag = antrag_einbringen(leute[0], **ANTRAG, ordnung=ordnung)
+    antrag.unterstuetzungen.create(mitglied=leute[1])
+    Antrag.objects.filter(pk=antrag.pk).update(phase_beginn=antrag.phase_beginn - timedelta(days=400))
+    html = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    antrag.refresh_from_db()
+    assert antrag.phase == "verfallen"
+    policy = antrag.policy()
+    frist = timezone.localdate(antrag.phase_beginn)
+    karte = html.split('id="ergebnis-ende"')[1].split("</div>")[0]
+    assert f"1 von {policy.unterstuetzung_schwelle} Unterstützungen" in karte
+    assert frist.strftime("%d.%m.%Y") in karte
+    wieder = monate_addieren(frist, policy.wiedereinbringung_sperre_monate)
+    assert wieder.strftime("%d.%m.%Y") in karte and "§ 5 Abs 3 lit b" in karte
+
+
+def test_gp066_zurueckgewiesener_antrag_nennt_grund_und_naechsten_schritt(client, ordnung):  # noqa: F811
+    from verfahren.models import Antrag, antrag_einbringen
+    from verfahren.test_views_aktionen import ANTRAG
+
+    antrag = antrag_einbringen(mitglied_anlegen("z0"), **ANTRAG, ordnung=ordnung)
+    Antrag.objects.filter(pk=antrag.pk).update(phase="zurueckgewiesen", zurueckweisung_begruendung="Stimmt mit Antrag 1 überein.")
+    html = client.get(reverse("verfahren:antrag", args=[antrag.pk])).content.decode()
+    karte = html.split('id="ergebnis-ende"')[1].split("</div>")[0]
+    assert "Stimmt mit Antrag 1 überein." in karte and "Parteischiedsgericht" in karte

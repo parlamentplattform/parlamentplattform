@@ -1461,6 +1461,25 @@ def _vertrauensfrage_lage(antrag, nutzer, jetzt) -> dict | None:
     }
 
 
+def _verfall_lage(antrag, policy, unterstuetzungen: int, vertrauensfrage) -> dict | None:
+    """GP-066: Das Ende eines verfallenen Antrags auf der Seite statt nur im Archiv — erreichte Zahl gegen
+    die eingefrorene Schwelle, das Fristende (der Phasenbeginn des Verfalls ist das Fristende) und der
+    nächste Schritt nach § 5 Abs 3 lit b. Bei der Vertrauensfrage gilt statt der Wiedereinbringung
+    § 7 Abs 10 lit g; dazu nennt die Karte keinen Schritt. Nach dem Verfall nimmt der Antrag keine
+    Unterstützung mehr an — die heutige Zahl ist die bei Fristende."""
+    if antrag.phase != Phase.VERFALLEN.value:
+        return None
+    from plattform_core.eligibility import monate_addieren
+
+    frist = timezone.localdate(antrag.phase_beginn)
+    return {
+        "erreicht": unterstuetzungen,
+        "schwelle": vertrauensfrage["schwelle"] if vertrauensfrage else policy.unterstuetzung_schwelle,
+        "frist": frist,
+        "wieder_ab": None if vertrauensfrage else monate_addieren(frist, policy.wiedereinbringung_sperre_monate),
+    }
+
+
 def _handlungssperren(antrag, nutzer) -> dict:
     """GP-070: Dieselbe Rechnung wie Kachel und Feed (`handlungslage`) für die Formulare der Antragsseite —
     wer nicht handeln darf, sieht statt des Knopfs den Grund samt Link, denselben wie im Parlament.
@@ -1611,6 +1630,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
     from verfahren import archiv as archivkern
 
     archiv = _archiv_lage(antrag, geoeffnet=request.GET.get("archiv") or None)
+    unterstuetzungen = antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count()
     return render(
         request,
         "verfahren/antrag.html",
@@ -1653,7 +1673,8 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
             "ergebnis": ergebnis,
             "kandidatur": kandidatur,
             "schleife": schleife,
-            "unterstuetzungen": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
+            "unterstuetzungen": unterstuetzungen,
+            "verfall": _verfall_lage(antrag, policy, unterstuetzungen, vertrauensfrage),
             "chat": chat,
             "archiv": archiv,
             "zustandekommen": archivkern.zustandekommen(antrag, archiv["zeitleiste"]),

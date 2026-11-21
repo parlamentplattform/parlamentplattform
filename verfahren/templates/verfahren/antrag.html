@@ -81,7 +81,14 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   {% if antrag.hervorgehoben %}<div class="band-gold"><strong>{% translate "Vom Integritätsrat hervorgehoben (§ 5 Abs 10 lit b):" %}</strong> {{ antrag.hervorhebung_begruendung|default:_("Begründung folgt.") }}</div>{% endif %}
   {# § 6 Abs 3 lit d: Die Aussetzung ist zu veröffentlichen — also auch hier, wo die Frist steht (Befund #30) #}
   {% if aussetzung %}<div class="band-gold aussetzung-band"><strong>{% blocktranslate with seit=aussetzung.beginn|date:"d.m.Y" nummer=aussetzung.beschluss.nummer %}Ausgesetzt seit {{ seit }} durch Beschluss {{ nummer }} des Integritätsrats — die Frist ruht (§ 6 Abs 3 lit d).{% endblocktranslate %}</strong> {{ aussetzung.begruendung }} <a href="{% url 'gremien:beschluss' aussetzung.beschluss.nummer %}">{% translate "Zum Beschluss" %}</a></div>{% endif %}
-  {% if antrag.zurueckweisung_begruendung %}<div class="karte"><strong>{% if vertrauensfrage.sperre.stand == "festgestellt" %}{% translate "Nicht eröffnet (§ 7 Abs 10 lit b):" %}{% else %}{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}{% endif %}</strong> {{ antrag.zurueckweisung_begruendung }}</div>{% endif %}
+  {% if antrag.zurueckweisung_begruendung %}<div class="karte" id="ergebnis-ende"><strong>{% if vertrauensfrage.sperre.stand == "festgestellt" %}{% translate "Nicht eröffnet (§ 7 Abs 10 lit b):" %}{% else %}{% translate "Formal zurückgewiesen (§ 5 Abs 2):" %}{% endif %}</strong> {{ antrag.zurueckweisung_begruendung }}{% if not vertrauensfrage %}
+    {# GP-066: der nächste Schritt — die Zurückweisung ist bekämpfbar (§ 5 Abs 2) #}
+    <br>{% translate "Die Zurückweisung ist beim Parteischiedsgericht bekämpfbar (§ 5 Abs 2)." %}{% endif %}</div>{% endif %}
+  {% if verfall %}
+  {# GP-066: Ende mit Begründung auf der Seite — erreichte Zahl gegen die Schwelle, Fristende, nächster Schritt #}
+  <div class="karte" id="ergebnis-ende"><strong>{% blocktranslate with n=verfall.erreicht frist=verfall.frist|date:"d.m.Y" count m=verfall.schwelle %}Verfallen: {{ n }} von {{ m }} Unterstützung bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% plural %}Verfallen: {{ n }} von {{ m }} Unterstützungen bis zum Fristende am {{ frist }} (§ 5 Abs 3 lit b).{% endblocktranslate %}</strong>{% if verfall.wieder_ab %}
+    <br>{% blocktranslate with ab=verfall.wieder_ab|date:"d.m.Y" %}Neu einbringen lässt sich der Antrag ab {{ ab }} (§ 5 Abs 3 lit b).{% endblocktranslate %}{% endif %}</div>
+  {% endif %}
 </header>
 
 <nav class="zonenleiste" aria-label="{% translate 'Zonen dieser Seite' %}">

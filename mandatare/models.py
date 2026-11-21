@@ -1509,6 +1509,10 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
             endgueltig_ab, frist_tag, tue_a, tue_b, tue_c = faellig(vf, mandat)
             if not (tue_a or tue_b or tue_c):
                 continue
+            if tue_b:
+                from mandatare.sitzung import sitzungen_sperren
+
+                sitzungen_sperren(mandat)  # vor dem ersten Audit-Eintrag: keine Verklemmung mit einer Livemeldung
             # (a) Ruhen wird zum Ende
             if tue_a:
                 vf.wirkungen_endgueltig_am = endgueltig_ab

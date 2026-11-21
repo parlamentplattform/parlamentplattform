@@ -2076,6 +2076,9 @@ def verwaltung_aktion(request):
         if ende is None:
             messages.error(request, _enddatum_meldung(mandat))
             return redirect("mandatare:verwaltung")
+        from mandatare.sitzung import sitzungen_sperren
+
+        sitzungen_sperren(mandat)  # vor dem ersten Audit-Eintrag: keine Verklemmung mit einer Livemeldung
         mandat.beendet = ende
         mandat.save(update_fields=["beendet"])
         AuditEintrag.anhaengen(

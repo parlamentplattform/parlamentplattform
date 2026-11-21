@@ -51,8 +51,10 @@ def stream_pruefen(url: str) -> str:
 
 
 def _gesperrt(sitzung: Sitzung, jetzt) -> Sitzung:
-    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf."""
-    frisch = Sitzung.objects.select_for_update().select_related("mandat").get(pk=sitzung.pk)
+    """Die Sitzung unter Zeilensperre neu laden und prüfen, dass sie läuft und geschrieben werden darf.
+    Gesperrt wird nur die Sitzung, nicht das Mandat: Das Mandatsende hält die Mandatszeile und sperrt
+    dann die Sitzungen — eine Meldung, die beide in umgekehrter Folge sperrte, verklemmte sich mit ihm."""
+    frisch = Sitzung.objects.select_for_update(of=("self",)).select_related("mandat").get(pk=sitzung.pk)
     if not darf_live_melden(frisch.mandat):
         raise SitzungFehler(_("Der Live-Modus steht nur einem aktiven Mandat mit nicht ruhender Befugnis offen."))
     if not frisch.laeuft(jetzt):
@@ -223,6 +225,14 @@ ANLASS_MANDATSENDE = "mandat_beendet"
 ANLASS_VERTRETUNGSENDE = "vertretung_beendet"
 ANLASS_ZUORDNUNG = "gemeinde_zuordnung"
 OEFFENTLICHE_ANLAESSE = frozenset({ANLASS_MANDATSENDE, ANLASS_VERTRETUNGSENDE, ANLASS_ZUORDNUNG})
+
+
+def sitzungen_sperren(mandat: Mandat) -> None:
+    """Die offenen Sitzungen eines Mandats sperren — aufzurufen vor dem ersten Audit-Eintrag einer
+    Transaktion, die sie später beendet (Mandatsende, Ende der Vertretung). Eine Livemeldung sperrt
+    zuerst die Sitzung und hängt dann an die Kette an; wer zuerst anhängt und dann die Sitzung sperrt,
+    wartet auf sie, während sie auf seinen Eintrag wartet (PostgreSQL: „deadlock detected“)."""
+    list(Sitzung.objects.select_for_update(of=("self",)).filter(mandat=mandat, ende__isnull=True).values_list("pk", flat=True))
 
 
 def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None, *, termine: bool = True) -> None:

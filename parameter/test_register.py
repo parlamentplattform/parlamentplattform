@@ -373,6 +373,28 @@ def test_jede_stellgroesse_wird_vom_code_gelesen():
     assert "ki-antwort-hoechsttokens" in gelesen  # Cluster D hat seine Stelle angebunden
 
 
+def test_jeder_gelesene_schluessel_steht_im_erstbestand():
+    """Gegenlesen der Schlusspflege 0.115.0, die Gegenrichtung: Ein Schlüssel, den der Code per Literal aus
+    dem Register liest, steht im Erstbestand. Sonst gälte still der Rückfallwert des Aufrufs, und die
+    Registerseite wüsste von der Stellgröße nichts (so stand `ki-laeufe-je-seite` bis zur Schlusspflege da)."""
+    import pathlib
+    import re
+
+    wurzel = pathlib.Path(__file__).resolve().parent.parent
+    muster = re.compile(r"(?:\bzahl|_registerzahl|_register)\(\s*[\"']([a-z0-9-]+)[\"']")
+    gelesen: dict[str, str] = {}
+    for datei in wurzel.rglob("*.py"):
+        teile = set(datei.parts)
+        if teile & {".venv", "venv", "migrations", "tests", "docs"} or datei.name.startswith("test_"):
+            continue
+        for schluessel in muster.findall(datei.read_text(encoding="utf-8")):
+            gelesen.setdefault(schluessel, datei.relative_to(wurzel).as_posix())
+    im_register = {e["schluessel"] for e in ERSTBESTAND}
+    fehlend = {schluessel: ort for schluessel, ort in sorted(gelesen.items()) if schluessel not in im_register}
+    assert not fehlend, f"Gelesen, aber nicht im Erstbestand: {fehlend}"
+    assert "ki-laeufe-je-seite" in gelesen  # die Suche findet die Lesestellen — sonst bewiese die Zeile oben nichts
+
+
 def test_versionsschilder_sind_als_solche_gekennzeichnet():
     """Die vier Versionsschilder tragen die Einheit „Regelfassung“ — und nur sie. Daran hängt
     der Satz auf der Registerseite, der sie von den Stellgrößen unterscheidet."""

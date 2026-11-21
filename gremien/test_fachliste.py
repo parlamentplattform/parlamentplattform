@@ -263,7 +263,7 @@ def test_die_pflege_der_fachliste_ist_der_verwaltung_vorbehalten(client):
     assert not Fachliste.objects.exists()
 
 
-# --- GP-009 (Rest): Selbsterklärung, Wiederaufnahme, Grund in der Kette ----------------------
+# --- GP-009 (Rest): Selbsterklärung, Wiederaufnahme, Grund nur am Eintrag --------------------
 
 
 def _audit(typ):

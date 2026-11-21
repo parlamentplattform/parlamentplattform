@@ -266,7 +266,14 @@ def mein(request):
         .select_related("antrag")
         .order_by("gremium", "berufen_am")
     )
-    if not rollen:
+    # Was dieser Person zur Umsetzung zugewiesen und überfällig ist (GP-025) — dieselben Angaben, die
+    # die öffentliche Beschlussseite zeigt. Dann führt der Knopf nicht ohne Umweg in den Bereich.
+    ueberfaellig = list(
+        GremienBeschluss.objects.filter(
+            umsetzung_durch=request.user, status=BeschlussStatus.ENTSCHIEDEN, umsetzung_frist__lt=heute
+        ).order_by("umsetzung_frist", "pk")
+    )
+    if not rollen and not ueberfaellig:
         return redirect("gremien:uebersicht")
     # Je Gremium eine Kachel — mit allen Anträgen, für die die Person dort gelost ist (GP-167).
     je_gremium = {}
@@ -284,9 +291,9 @@ def mein(request):
             bereich["antraege"].append(rolle.antrag)
         bereich["endet_am"] = max(bereich["endet_am"], rolle.endet_am)
     bereiche = list(je_gremium.values())
-    if len(bereiche) == 1:
+    if len(bereiche) == 1 and not ueberfaellig:
         return redirect(bereiche[0]["url"])
-    return render(request, "gremien/mein.html", {"bereiche": bereiche})
+    return render(request, "gremien/mein.html", {"bereiche": bereiche, "ueberfaellig": ueberfaellig})
 
 
 # ── Arbeitsbereich Expertenrat, Gruppe 1 ─────────────────────────────────────
@@ -1200,10 +1207,21 @@ def beschluesse_fuer(gremium: str, nutzer, grenze: int = 12) -> list[dict]:
         .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
         .order_by("-entschieden_am")[:grenze]
     )
+    # Dahinter jeder ältere Beschluss, dessen Umsetzungsfrist verstrichen ist (GP-025): „überfällig seit“
+    # rückt nicht aus dem Blick, nur weil der Rat seither mehr als `grenze` Mal entschieden hat.
+    ueberfaellige = list(
+        GremienBeschluss.objects.filter(
+            gremium=gremium, status=BeschlussStatus.ENTSCHIEDEN, umsetzung_frist__lt=timezone.localdate()
+        )
+        .exclude(pk__in=[b.pk for b in erledigte])
+        .select_related("antrag")
+        .prefetch_related("stimmen__mitglied", "umsetzungsvermerke__rolle__mitglied")
+        .order_by("umsetzung_frist", "pk")
+    )
     # eine Abfrage je Seite (Befund #77): Nenner und — bei offenen — Filter des Zählers (Befund B4)
-    personen = personen_fuer(offene + erledigte)
+    personen = personen_fuer(offene + erledigte + ueberfaellige)
     zeilen = []
-    for beschluss in offene + erledigte:
+    for beschluss in offene + erledigte + ueberfaellige:
         stimmen = list(beschluss.stimmen.all())
         zeilen.append(
             {

@@ -332,13 +332,8 @@ VERSIONSSCHILDER = {"kategorien-regel", "weicherfilter-regel", "faecher-regel", 
 
 #: Stellgrößen, deren lesende Stelle noch in einem anderen Bauschritt liegt. Sobald eine Stelle
 #: liest, gehört ihr Schlüssel hier gestrichen; der Wächter wird dann für sie scharf.
-# Seit 0.46 liest jede Stellgröße eine Stelle im Code. Folgewelle 0.115.0: Die Lesestellen dieser
-# Registerwerte bringen die anderen Pakete derselben Welle an; nach der Zusammenführung leert die
-# Schlusspflege die Menge wieder.
-NOCH_NICHT_ANGEBUNDEN: set[str] = {
-    "parlament-gruppe-hoechstzahl", "umsetzung-seite-hoechstzahl", "verwaltung-liste-seitengroesse",
-    "mandatare-liste-seite", "audit-pruefstand-ueberfaellig-takte",
-}
+# Seit 0.46 liest jede Stellgröße eine Stelle im Code (seit der Schlusspflege 0.115.0 wieder leer).
+NOCH_NICHT_ANGEBUNDEN: set[str] = set()
 
 
 def _gelesene_schluessel() -> set[str]:

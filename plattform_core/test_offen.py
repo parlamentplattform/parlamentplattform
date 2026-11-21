@@ -50,19 +50,7 @@ OFFENE_ADRESSEN = {
     'mandatare:rechenschaft_json': {},
 }
 
-#: Ansichten, die den Dekorator in diesem Zweig noch nicht tragen — die anderen Pakete der Folgewelle
-#: bringen ihn an. Die Schlusspflege leert diese Menge nach der Zusammenführung.
-NOCH_OHNE_DEKORATOR = {
-    'verfahren:audit_json', 'verfahren:export', 'verfahren:umsetzung_json', 'gremien:protokoll',
-    'mandatare:rechenschaft_json',
-}
-
-
-@pytest.mark.parametrize('name', [
-    pytest.param(name, marks=pytest.mark.xfail(strict=False, reason='Dekorator folgt mit der Zusammenführung'))
-    if name in NOCH_OHNE_DEKORATOR else name
-    for name in sorted(OFFENE_ADRESSEN)
-])
+@pytest.mark.parametrize('name', sorted(OFFENE_ADRESSEN))
 def test_jede_offene_adresse_traegt_den_dekorator(name):
     from django.urls import resolve, reverse
 
@@ -90,7 +78,7 @@ def test_keine_adresse_ist_offen_ohne_in_der_liste_zu_stehen():
     gekennzeichnet = _gekennzeichnete_adressen()
     assert gekennzeichnet <= set(OFFENE_ADRESSEN), sorted(gekennzeichnet - set(OFFENE_ADRESSEN))
     # Die Suche findet die Ansichten, die den Dekorator schon tragen — sonst bewiese die Zeile oben nichts.
-    assert set(OFFENE_ADRESSEN) - NOCH_OHNE_DEKORATOR <= gekennzeichnet
+    assert set(OFFENE_ADRESSEN) <= gekennzeichnet
 
 
 def test_der_dekorator_kennzeichnet_die_ansicht():

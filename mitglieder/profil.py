@@ -682,7 +682,11 @@ def daten_export(mitglied: Mitglied) -> dict:
         "oertliche_verfahrenskreise": list(m.oertliche_verfahrenskreise.order_by("antrag_id").values(
             "antrag_id", "antrag__teilnehmerkreis_am"
         )),
-        "ausweis": {"ausgestellt_am": m.ausweis_ausgestellt_am, "code": m.ausweis_code or None},
+        "ausweis": {
+            "ausgestellt_am": m.ausweis_ausgestellt_am,
+            "code": m.ausweis_code or None,
+            "schluessel": m.ausweis_schluessel,
+        },
         "wohnsitz_art": m.wohnsitz_art_aktuell,
         "wohnsitz": _gemeinde_export(m.wohnsitz) or ({"name": m.gemeinde} if m.gemeinde else None),
         "wiener_bezirk": m.wiener_hauptbezirk or None,

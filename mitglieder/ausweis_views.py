@@ -1,9 +1,13 @@
 """Der Mitgliedsausweis im Web (FB-K8): der eigene Ausweis zum Herunterladen und die öffentliche
 Prüfseite, auf die der QR-Code der Karte führt.
 
-Die Prüfseite nennt keinen Namen — sie bestätigt nur, dass zu Nummer und Code eine bestehende
+Die Prüfseite nennt keinen Namen — sie bestätigt nur, dass zur Adresse eine bestehende
 Mitgliedschaft mit geprüftem Nachweis gehört (oder eben nicht). Wer die Karte in der Hand hat,
 vergleicht Nummer und Person selbst; wer die Adresse errät, erfährt nichts über einen Menschen.
+
+Zwei Adressformen (GP-091): Neue Karten tragen allein einen Zufallsschlüssel; gedruckte Karten mit
+Konto-ID und Prüfcode gelten weiter. Beide Routen heißen gleich — der Anstoß speichert zu Routen
+mit Kennung nur den Routennamen.
 """
 
 from __future__ import annotations
@@ -22,12 +26,14 @@ from django.views.decorators.http import require_POST
 from mitglieder.ausweis import (
     STUFE_KURZ,
     ausweis_erstellbar,
-    ausweis_gueltig,
     ausweis_moeglich,
     ausweis_pdf,
+    ausweis_stand,
+    code_passt,
     dateiname,
+    mitglied_zum_schluessel,
 )
-from mitglieder.models import Identitaetsstufe, Mitglied
+from mitglieder.models import Mitglied
 
 log = logging.getLogger(__name__)
 
@@ -63,15 +69,23 @@ def ausweis_pdf_view(request):
 
 @never_cache
 def ausweis_pruefen(request, nummer: int, code: str):
-    """Die Prüfseite hinter dem QR-Code: gültig oder nicht — ohne Personenbezug. Datum und Nachweis
-    in der Sprache der Seite."""
+    """Die Prüfseite hinter dem QR-Code gedruckter Karten (alte Adressform mit Konto-ID und Code):
+    gültig oder nicht — ohne Personenbezug."""
     mitglied = Mitglied.objects.filter(pk=nummer).first() if 0 < nummer < 2**63 else None
-    gueltig = ausweis_gueltig(mitglied, code)
-    import secrets
-    ausstaendig = bool(mitglied and ausweis_moeglich(mitglied)
-        and mitglied.identitaetsstufe == Identitaetsstufe.UNGEPRUEFT
-        and mitglied.ausweis_code and code.isascii()
-        and secrets.compare_digest(mitglied.ausweis_code.encode(), code.encode()))
+    return _pruefseite(request, mitglied if code_passt(mitglied, code) else None)
+
+
+@never_cache
+def ausweis_pruefen_schluessel(request, schluessel: str):
+    """Die Prüfseite hinter dem QR-Code neuer Karten: Die Adresse trägt allein den Zufallsschlüssel."""
+    return _pruefseite(request, mitglied_zum_schluessel(schluessel))
+
+
+def _pruefseite(request, mitglied):
+    """`mitglied`: das Konto, dessen Code oder Schlüssel gestimmt hat — sonst None. Datum und
+    Nachweis in der Sprache der Seite."""
+    stand = ausweis_stand(mitglied) if mitglied is not None else "ungueltig"
+    gueltig, ausstaendig = stand == "gueltig", stand == "ausstaendig"
     angaben = None
     if gueltig:
         beitritt = mitglied.beitritt or timezone.localdate(mitglied.ausweis_ausgestellt_am)

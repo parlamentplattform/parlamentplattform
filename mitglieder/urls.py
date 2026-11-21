@@ -21,6 +21,8 @@ urlpatterns = [
     path("profil/ausweis/mail/", ausweis_views.ausweis_probe, name="profil_ausweis_probe"),
     path("profil/ausweis.pdf", ausweis_views.ausweis_pdf_view, name="profil_ausweis"),
     path("ausweis/<int:nummer>/<str:code>/", ausweis_views.ausweis_pruefen, name="ausweis_pruefen"),
+    # GP-091: neue Karten ohne Konto-ID in der Adresse — derselbe Routenname wie die alte Form
+    path("ausweis/<str:schluessel>/", ausweis_views.ausweis_pruefen_schluessel, name="ausweis_pruefen"),
     path("verwaltung/", verwaltung.liste, name="verwaltung"),
     path("verwaltung/beitraege/", beitraege_views.verwaltung_beitraege, name="verwaltung_beitraege"),
     path("verwaltung/beitraege/erinnern/", beitraege_views.beitrag_erinnern, name="beitrag_erinnern"),

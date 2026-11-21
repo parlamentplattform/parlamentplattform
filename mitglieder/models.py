@@ -167,6 +167,16 @@ class Mitglied(AbstractUser):
         default="",
         help_text="Prüfcode des Mitgliedsausweises (FB-K8) — einmal vergeben, damit gedruckte QR-Codes gültig bleiben.",
     )
+    ausweis_schluessel = models.CharField(
+        max_length=32,
+        null=True,
+        blank=True,
+        unique=True,
+        default=None,
+        help_text="Zufallsschlüssel der Prüfadresse des Mitgliedsausweises (GP-091) — allein er steht in der "
+        "Adresse hinter dem QR-Code, nie die Konto-ID. Einmal vergeben; leer, solange kein Ausweis mit der "
+        "neuen Adresse ausgestellt ist.",
+    )
     ausweis_ausgestellt_am = models.DateTimeField(
         null=True,
         blank=True,

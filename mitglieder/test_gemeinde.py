@@ -524,6 +524,7 @@ GEMEINDEEXPORT_AUSNAHMEN = {
     "willkommen_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
     "freischaltung_post_am": "Parteipost; ein Gemeindekonto bekommt keine",
     "ausweis_ausgestellt_am": "Mitgliedsausweis; ein Gemeindekonto bekommt keinen",
+    "ausweis_schluessel": "Mitgliedsausweis; ein Gemeindekonto bekommt keinen",
     "beitrag_zuletzt_am": "Mitgliedsbeitrag; ein Gemeindekonto zahlt keinen",
     **{f: "Datenbankregel gemeindekonto_ohne_parteidaten: beim Gemeindekonto stets leer" for f in (
         "beitritt", "mitgliedsnummer", "beitragsreferenz_stamm", "ausweis_code", "identitaetsstufe",

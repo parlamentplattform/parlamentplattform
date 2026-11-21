@@ -5,6 +5,7 @@ Zeilenabstände, Ruhezone des QR-Codes, Einpassen langer Namen, Buchstaben auße
 import re
 import struct
 import zlib
+from datetime import timedelta
 from io import BytesIO
 
 import pytest
@@ -169,7 +170,7 @@ def test_der_pruefcode_wird_einmal_vergeben_und_auditiert_ohne_werte():
     m.refresh_from_db()
     assert m.ausweis_code == code
     assert audit("ausweis_ausgestellt") == [{"typ": "ausweis_ausgestellt", "mitglied": m.pk}]
-    assert aw.pruef_url(m) == f"https://parlament.ddoe.at/ausweis/{m.pk}/{code}/"
+    assert aw.pruef_url(m) == f"https://parlament.ddoe.at/ausweis/{m.ausweis_schluessel}/"
 
 
 def test_zwei_gleichzeitige_erste_aufrufe_vergeben_genau_einen_code():
@@ -197,7 +198,7 @@ def test_die_angaben_der_karte_sind_deutsch_kurz_und_ohne_adresse(settings):
     a = aw.ausweis_daten(m)
     assert a.name == "Anna Müller-Öhlinger" and a.nummer == m.mitgliedsnummer and a.nummer_text == f"{m.mitgliedsnummer:06d}"
     assert re.fullmatch(r"[A-Za-zäöüÄÖÜ]+ \d{4}", a.seit) and a.stufe == "Beitrag verbucht"
-    assert a.plattform == "parlament.ddoe.at" and a.pruef_adresse == f"parlament.ddoe.at/ausweis/{m.pk}/{a.code}"
+    assert a.plattform == "parlament.ddoe.at" and a.pruef_adresse == f"parlament.ddoe.at/ausweis/{m.ausweis_schluessel}"
     assert "Eferding" not in (a.name, a.seit, a.stufe, a.ausgestellt)
     m.identitaetsstufe = Identitaetsstufe.PRAESENZ
     assert aw.ausweis_daten(m).stufe == "persönlich geprüft"
@@ -208,7 +209,7 @@ def test_die_angaben_der_karte_sind_deutsch_kurz_und_ohne_adresse(settings):
     assert aw.ausweis_daten(m).name == "Aurora"  # ohne Klarname der Anzeigename, nie die Adresse
     settings.DDOE_BASIS_URL = "https://demo.example.org/"
     a = aw.ausweis_daten(m)
-    assert a.plattform == "demo.example.org" and a.pruef_url == f"https://demo.example.org/ausweis/{m.pk}/{a.code}/"
+    assert a.plattform == "demo.example.org" and a.pruef_url == f"https://demo.example.org/ausweis/{m.ausweis_schluessel}/"
     assert "demo.example.org" in PdfReader(BytesIO(aw.ausweis_pdf(m))).pages[0].extract_text()
 
 
@@ -461,3 +462,66 @@ def test_nach_dem_austritt_ist_der_ausweis_nicht_mehr_gueltig(client):
     m = Mitglied.objects.get(pk=m.pk)
     assert not aw.ausweis_moeglich(m)
     assert 'data-stand="ungueltig"' in client.get(f"/ausweis/{m.pk}/{code}/").content.decode()
+
+
+# ── Prüfadresse ohne Konto-ID (GP-091) ───────────────────────────────────────────────────────
+
+
+def test_die_pruefadresse_traegt_weder_konto_id_noch_die_zahl_des_platzhalters(client, monkeypatch):
+    """Wer die Karte scannt, kennt den Klarnamen. Trüge die Adresse die Konto-ID, fände er unter
+    „Mitglied n“ alle Beiträge desselben Menschen — an der Einwilligung zum Klarnamen vorbei."""
+    monkeypatch.setattr(aw.secrets, 'token_hex', lambda n: 'ab' * n)  # keine Ziffer aus dem Zufall
+    m = geprueftes_mitglied(pseudonym_oeffentlich='', klarname_oeffentlich=False)
+    zahl = m.anzeigename.split()[-1]
+    assert m.anzeigename == f'Mitglied {m.pk}' and zahl == str(m.pk)
+    a = aw.ausweis_daten(m)
+    m.refresh_from_db()
+    assert a.pruef_url == aw.pruef_url(m) == f'https://parlament.ddoe.at/ausweis/{"ab" * 12}/'
+    assert zahl not in a.pruef_url.removeprefix('https://parlament.ddoe.at') and zahl not in a.pruef_adresse
+    assert m.ausweis_schluessel == 'ab' * 12 and len(m.ausweis_schluessel) == aw.SCHLUESSEL_LAENGE
+    html = client.get(f'/ausweis/{m.ausweis_schluessel}/').content.decode()
+    assert 'data-stand="gueltig"' in html and f'Nr. {m.mitgliedsnummer:06d} ist gültig' in html
+    assert 'Anna' not in html and 'Müller' not in html
+
+
+def test_der_adressschluessel_ist_zufall_und_je_konto_verschieden():
+    a, b = geprueftes_mitglied('a'), geprueftes_mitglied('b')
+    aw.ausweis_code_sicherstellen(a)
+    aw.ausweis_code_sicherstellen(b)
+    assert re.fullmatch(r'[0-9a-f]{24}', a.ausweis_schluessel) and a.ausweis_schluessel != b.ausweis_schluessel
+    assert a.ausweis_schluessel not in (a.ausweis_code, str(a.pk))
+    doppelt = Mitglied.objects.get(pk=a.pk)
+    aw.ausweis_code_sicherstellen(doppelt)
+    assert doppelt.ausweis_schluessel == a.ausweis_schluessel  # einmal vergeben, bleibt
+
+
+def test_gedruckte_karten_mit_der_alten_adresse_gelten_weiter(client):
+    """Altbestand: Code vor dieser Fassung vergeben, kein Schlüssel. Die alte Adresse sagt weiter
+    „gültig“; der nächste Ausweis bekommt den Schlüssel dazu — Code und Ausstellung bleiben."""
+    m = geprueftes_mitglied()
+    damals = timezone.now() - timedelta(days=30)
+    Mitglied.objects.filter(pk=m.pk).update(ausweis_code='0123456789', ausweis_ausgestellt_am=damals)
+    m.refresh_from_db()
+    assert m.ausweis_schluessel is None
+    assert 'data-stand="gueltig"' in client.get(f'/ausweis/{m.pk}/0123456789/').content.decode()
+    a = aw.ausweis_daten(m)
+    m.refresh_from_db()
+    assert (m.ausweis_code, m.ausweis_ausgestellt_am) == ('0123456789', damals) and a.code == '0123456789'
+    assert audit('ausweis_ausgestellt') == []  # keine zweite Ausstellung
+    assert 'data-stand="gueltig"' in client.get(f'/ausweis/{m.pk}/0123456789/').content.decode()
+    assert 'data-stand="gueltig"' in client.get(f'/ausweis/{m.ausweis_schluessel}/').content.decode()
+
+
+def test_die_neue_pruefadresse_sagt_dasselbe_wie_die_alte(client):
+    m = geprueftes_mitglied()
+    aw.ausweis_code_sicherstellen(m)
+    antwort = client.get(f'/ausweis/{m.ausweis_schluessel}/')
+    assert 'no-store' in antwort['Cache-Control'] and 'data-stand="gueltig"' in antwort.content.decode()
+    for falsch in ('0' * 24, m.ausweis_schluessel[:-1], m.ausweis_schluessel.upper(), m.ausweis_code, 'None', '%C3%BC' * 12):
+        html = client.get(f'/ausweis/{falsch}/').content.decode()
+        assert 'data-stand="ungueltig"' in html and f'{m.mitgliedsnummer:06d}' not in html
+    neu = mitglied_anlegen('neu', stufe=Identitaetsstufe.UNGEPRUEFT)
+    aw.ausweis_code_sicherstellen(neu)
+    assert 'data-stand="ausstaendig"' in client.get(f'/ausweis/{neu.ausweis_schluessel}/').content.decode()
+    austreten(m)
+    assert 'data-stand="ungueltig"' in client.get(f'/ausweis/{m.ausweis_schluessel}/').content.decode()

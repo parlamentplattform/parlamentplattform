@@ -64,6 +64,7 @@ from ki.anbieter import SteckplatzStumm, anbieter_waehlen
 from ki.auftraege import auftrag_laden
 from ki.models import Zweck, lauf_ausfuehren
 from mandatare.models import Mandat, Vertrauensfrage, VertrauensfrageArt
+from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.models import Mitglied, Mitgliedsstatus
 from mitglieder.verwaltung import nur_admins
 from parameter.models import Parameter, ParameterTest, Status, TestStatus, wert_ausserhalb
@@ -153,7 +154,7 @@ def nur_gremium(*gremien: str):
         @wraps(ansicht)
         def innen(request, *args, **kwargs):
             if not request.user.is_authenticated:
-                return redirect("mitglieder:login")
+                return zur_anmeldung(request)
             request.abgelaufene_rolle = None
             if not (Rolle.hat(request.user, *gremien) or request.user.hat_adminrechte):
                 fruehere = _ruhende_rolle(request.user, *gremien) or Rolle.letzte(request.user, *gremien)
@@ -248,7 +249,7 @@ def mein(request):
     einen Antrag gelost ist und zugleich im Koordinationsrat sitzt, soll nicht raten müssen,
     wohin der Knopf führt."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     heute = timezone.localdate()
     rollen = list(
         Rolle.objects.filter(mitglied=request.user, beendet_grund="", endet_am__gte=heute)
@@ -2399,7 +2400,7 @@ def ueberlastung_melden(request):
     Integrations- und Berichtswesenrat besetzt ist) und dessen Mitglieder. Die Meldung ist
     sofort öffentlich; die 30-Tage-Frist des Koordinationsrats läuft ab jetzt."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     if not (request.user.hat_adminrechte or Rolle.hat(request.user, Gremium.BERICHTSWESENRAT)):
         messages.error(request, _("Überlastung meldet nur eine berichtspflichtige Stelle (§ 6 Abs 10)."))
         return redirect("verfahren:umsetzung")
@@ -2465,7 +2466,7 @@ def rat_beschluss(request, gremium: str):
         raise Http404("Kein solches Gremium.")
     zurueck = _bereich_url(gremium)
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     if not Rolle.hat(request.user, gremium):
         messages.error(request, _("Beschlüsse anlegen kann nur, wer in diesem Rat eine aktive Rolle hat."))
         return redirect(zurueck)

@@ -438,6 +438,10 @@ html.js .zu-ohne-js{display:none}
   .regler-feld{width:100%}
   .tabs{display:grid}
   .fokus-knopf{display:none}  /* am Handy ist jedes Feld ein Bildschirm — kein Fokus-Modus */
+  /* Ein Regelverweis in der Brotkrume (GP-074) bekommt eine eigene Zeile: ganz lesbar, 24 px antippbar */
+  .feld-kopf:has(.bk a){height:auto;min-height:44px;flex-wrap:wrap;row-gap:0;padding-top:4px;padding-bottom:4px}
+  .feld-kopf .bk:has(a){order:1;flex-basis:100%;margin-left:0;overflow:visible;white-space:normal}
+  .feld-kopf .bk a{display:inline-block;max-width:100%;min-height:24px;line-height:24px;vertical-align:middle}
   .parlament.fokus>.feld[hidden]{display:flex!important}  /* auch nicht über ?fokus= ohne JavaScript */
 }
 /* ── Hauptfenster & Listen ── */

@@ -317,3 +317,32 @@ def test_gp175_am_letzten_tag_endet_heute_um_uhrzeit(ordnung):  # noqa: F811
     zeile = render_to_string("verfahren/_filter_zeile.html", {"z": k, "meine_unterstuetzungen": set()}, request=anfrage)
     for teil in (kachel, zeile):
         assert "endet heute um 12:41" in teil
+
+
+# ── GP-109: Zahlenparameter öffentlicher Ansichten antworten ohne Ausnahme ─────────────────────
+
+SELTSAME_ZAHLEN = ("²", "１２", "9" * 26, "-3", "1.5", "")
+
+
+@pytest.mark.parametrize("wert", SELTSAME_ZAHLEN)
+def test_gp109_zahlenparameter_ohne_serverfehler(client, ordnung, wert):  # noqa: F811
+    person, vorlage = _bestand(ordnung, 1)
+    _ast()
+    seite = reverse("verfahren:antrag", args=[vorlage.pk])
+    parlament = reverse("verfahren:parlament")
+    adressen = [
+        f"{seite}?ab={wert}", f"{seite}?antwort_auf={wert}",
+        f"{parlament}?mehr=abstimmung&seite={wert}", f"{parlament}?mehr=gemerkt&seite={wert}",
+        f"{parlament}?fach=gp-verkehr&ast_seite={wert}",
+    ]
+    client.raise_request_exception = False
+    for adresse in adressen:
+        assert client.get(adresse).status_code == 200, adresse
+    client.force_login(person)
+    for adresse in adressen + [f"{reverse('verfahren:gespraeche')}?seite={wert}"]:
+        assert client.get(adresse).status_code == 200, adresse
+    antwort = client.post(
+        reverse("verfahren:kommentieren", args=[vorlage.pk]),
+        {"text": "Ein Beitrag mit seltsamer Bezugszahl.", "antwort_auf": wert, "bezug_absatz": wert},
+    )
+    assert antwort.status_code in (200, 302), antwort.status_code

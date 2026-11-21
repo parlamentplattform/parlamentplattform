@@ -578,6 +578,7 @@ def kommentieren(request, pk):
     """Einen Beitrag in den Chat schreiben (FB-G1) — als eigener Faden oder als Antwort."""
     from verfahren.chat import BeitragZuLang, ChatGesperrt, beitrag_schreiben, kritik_mindestzeichen
     from verfahren.hinweise import HINWEISE, kachel_sperre
+    from verfahren.views import ganze_zahl
 
     antrag = get_object_or_404(Antrag, pk=pk)
     # Der Entwurf begleitet jeden Fehler zurück ins Formular — nichts Eingegebenes geht verloren
@@ -602,7 +603,7 @@ def kommentieren(request, pk):
     if roh:
         antwort_auf = Kommentar.objects.filter(
             pk=roh, antrag=antrag, archiviert_am__isnull=True
-        ).first() if roh.isdigit() else None
+        ).first() if ganze_zahl(roh) is not None else None  # GP-109
         if antwort_auf is None:
             entwurf["antwort_auf"] = ""
             return _chat_antwort(
@@ -617,7 +618,7 @@ def kommentieren(request, pk):
     try:
         beitrag = beitrag_schreiben(
             antrag, request.user, form.cleaned_data["text"], antwort_auf,
-            ist_kritik=entwurf["ist_kritik"], bezug_absatz=int(absatz) if absatz.isdigit() else None,
+            ist_kritik=entwurf["ist_kritik"], bezug_absatz=ganze_zahl(absatz),
         )
     except ChatGesperrt as fehler:
         return _chat_antwort(request, antrag, fehler=_chat_fehler(str(fehler)), entwurf=entwurf)

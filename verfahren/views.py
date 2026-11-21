@@ -1344,7 +1344,7 @@ def gespraeche(request):
     groesse = groesse if groesse >= 1 else max(gesamt, 1)
     seiten = max(1, -(-gesamt // groesse))
     roh = request.GET.get("seite", "")
-    seite = min(max(int(roh), 1), seiten) if roh.isdigit() else 1
+    seite = min(max(ganze_zahl(roh) or 1, 1), seiten)  # GP-109
     anfang = (seite - 1) * groesse
 
     def _adresse(nummer):
@@ -1403,11 +1403,12 @@ def _antwort_vorgabe(antrag, roh):
     Mit JavaScript setzt Alpine das Ziel; ohne ist „Antworten“ ein Link mit diesem Parameter,
     und die Seite belegt das Formular damit vor. Es zählen nur laufende, sichtbare Beiträge
     desselben Antrags — dieselbe Prüfung, die `kommentieren` beim Senden anstellt."""
-    if not (roh and str(roh).isdigit()):
+    nummer = ganze_zahl(roh)  # GP-109: „²“ ist isdigit, aber keine Zahl
+    if nummer is None:
         return None
     return (
         Kommentar.objects.filter(
-            pk=int(roh),
+            pk=nummer,
             antrag=antrag,
             archiviert_am__isnull=True,
             system=False,
@@ -1780,7 +1781,7 @@ def antrag_detail(request, pk, chat_fehler=None, chat_entwurf=None):
         vollzug = list(antrag.vollzug.select_related("durch"))
     ab = request.GET.get("ab", "")
     chat = _chat_lage(
-        antrag, request.user, ab=int(ab) if ab.isdigit() else None, zeitfolge=request.GET.get("reihung") == "zeit"
+        antrag, request.user, ab=ganze_zahl(ab), zeitfolge=request.GET.get("reihung") == "zeit"
     )
     # GP-068: Erst „neu“ rechnen (oben), dann den Lesestand setzen — am Server, wie im Chat einer Sitzung:
     # Das trägt beim ersten Besuch, im ruhenden Chat und ohne JavaScript.

@@ -365,6 +365,11 @@ def profil(request):
             # Die Karte „Nachrichten“ nennt ganz Österreich nur, solange Bundesanträge an alle gehen.
             "post_bund": zahl("post-neuer-antrag-bund", 1) == 1,  # Literal: der Registerwächter liest den Aufruf
             "adresswechsel": Adresswechsel.offener(mitglied),
+            # GP-066: die eigenen Anträge mit ihrer Phase — auch verfallene und zurückgewiesene;
+            # Reihung offengelegt: zuletzt eingebracht zuerst.
+            "eigene_antraege": mitglied.antraege.order_by("-eingebracht_am", "-pk").only(
+                "pk", "titel", "phase", "eingebracht_am"
+            ),
             # FB-K8: Vorschau des Mitgliedsausweises (Vorder- und Rückseite) — erst mit geprüftem Nachweis
             **_ausweis_vorschau(mitglied),
         },

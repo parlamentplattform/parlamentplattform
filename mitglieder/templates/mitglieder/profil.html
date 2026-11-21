@@ -1,5 +1,5 @@
 {% extends "verfahren/base.html" %}
-{% load i18n static %}
+{% load i18n static phasen %}
 {% block titel %}{% translate "Profil" %}{% endblock %}
 {% block inhalt %}
 {% comment %}
@@ -71,6 +71,17 @@ Alles ohne Skript — jede Handlung ist ein echtes POST-Formular oder ein Link.
 </form>
 
 <div class="pf-grid">
+
+{# ── Eigene Anträge (GP-066) ─────────────────────────────────────────── #}
+<div class="karte" id="meine-antraege">
+  <p class="phasen-titel">{% translate "Meine Anträge" %}</p>
+  {% if eigene_antraege %}
+  <p class="meta">{% translate "zuletzt eingebracht zuerst" %}</p>
+  <ul>
+    {% for a in eigene_antraege %}<li><a href="{% url 'verfahren:antrag' a.pk %}">{{ a.titel }}</a> <span class="meta">· {{ a.phase|phase_name }} · {{ a.eingebracht_am|date:"d.m.Y" }}</span></li>{% endfor %}
+  </ul>
+  {% else %}<p class="leer">{% translate "Noch keine eigenen Anträge." %}</p>{% endif %}
+</div>
 
 {# ── Sprache ─────────────────────────────────────────────────────────── #}
 <div class="karte" id="sprache">

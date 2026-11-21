@@ -1371,3 +1371,27 @@ def test_export_deckt_jede_mittelbare_rueckbeziehung_ab(client, ordnung):  # noq
                 break
             assert teil in knoten, (schluessel, pfad, teil)
             knoten = knoten[teil]
+
+
+# --- Eigene Anträge im Profil (GP-066, AF-13) ---------------------------------
+
+
+def test_profil_nennt_die_eigenen_antraege_mit_phase(client, ordnung):  # noqa: F811
+    anna = mitglied_anlegen('anna')
+    bert = mitglied_anlegen('bert')
+    eigener = antrag_einbringen(anna, titel='Annas Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    Antrag.objects.filter(pk=eigener.pk).update(phase='verfallen')
+    antrag_einbringen(bert, titel='Berts Antrag', wortlaut='W', begruendung='B', ordnung=ordnung)
+    client.force_login(anna)
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert f'href="{reverse("verfahren:antrag", args=[eigener.pk])}"' in karte
+    assert 'Annas Antrag' in karte and 'verfallen' in karte
+    assert 'Berts Antrag' not in karte
+
+
+def test_profil_ohne_eigene_antraege_bleibt_ruhig(client):
+    client.force_login(mitglied_anlegen('anna'))
+    html = client.get(reverse('mitglieder:profil')).content.decode()
+    karte = html.split('id="meine-antraege"', 1)[1].split('</div>', 1)[0]
+    assert 'Noch keine eigenen Anträge.' in karte

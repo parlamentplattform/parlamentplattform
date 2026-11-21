@@ -76,6 +76,7 @@ FESTWERTE: dict[str, dict] = {
 #: Leerbare Bezüge, die eine Datenbankregel dennoch verlangt: „Modell“ → Feldnamen.
 PFLICHTBEZUEGE: dict[str, tuple] = {
     "Kommentar": ("antrag",),  # Regel kommentar_genau_ein_bezug: Antrag oder Sitzung
+    "Lesestand": ("antrag",),  # Regel lesestand_genau_ein_bezug: Antrag oder Sitzung
 }
 
 #: Felder des Kontos selbst: Feldname → Pfad im Export.

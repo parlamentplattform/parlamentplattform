@@ -379,12 +379,12 @@ def login_einloesen(request, token: str):
         if mitglied is None or not mitglied.is_active:
             return render(request, "mitglieder/token_ungueltig.html", status=400)
         return link_seite(request, _("Anmelden"), _("Jetzt anmelden"))
-    mitglied = EinmalToken.einloesen(token, EinmalToken.Zweck.LOGIN)
+    mitglied, gemerkt = EinmalToken.einloesen_mit_ziel(token, EinmalToken.Zweck.LOGIN)
     if mitglied is None or not mitglied.is_active:
         return render(request, "mitglieder/token_ungueltig.html", status=400)
     dj_login(request, mitglied)
     # GP-100: zurück zur angefragten Seite, erneut geprüft; ein Gemeindekonto nur auf Gemeindewege.
-    ziel = ziel_pruefen(EinmalToken.ziel_von(token))
+    ziel = ziel_pruefen(gemerkt)
     if ziel and (mitglied.parteikonto or ist_gemeindeweg(ziel)):
         return redirect(ziel)
     return redirect("verfahren:parlament" if mitglied.parteikonto else "gemeinde:konto")

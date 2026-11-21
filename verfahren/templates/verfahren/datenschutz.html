@@ -37,10 +37,10 @@
   <ul>
     <li>{% blocktranslate %}<strong>Konto:</strong> Vor- und Nachname, E-Mail-Adresse (zugleich Anmeldename; es gibt kein
     Passwort), Wohnsitzgemeinde und auf Wunsch Nebenwohnsitz, Beitrittsdatum, Mitgliedsnummer, Identitätsstufe
-    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert.{% endblocktranslate %}</li>
+    und Mitgliedsstatus. Das Geburtsjahr wird bei der Anmeldung nur geprüft (§ 4 Abs 1) und nicht gespeichert. Jeder Wechsel Ihres Mitgliedsstatus wird mit Tag und vorigem Stand festgehalten, ohne Begründung, damit die Zahl der Stimmberechtigten an einem Stichtag nachrechenbar bleibt (§ 4 Abs 4).{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Adresswechsel:</strong> wenn die Verwaltung Ihre Anmeldeadresse ändert, die neue Adresse, wann der Wechsel beantragt, bestätigt und wirksam wurde und welche Verwaltungskonten beteiligt waren. Nach einem Austritt bleibt davon nur der Vorgang ohne Adresse.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Mitgliedsausweis:</strong> ein Prüfcode, über den der QR-Code des Ausweises Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Der Code bleibt gleich, damit gedruckte Ausweise gültig bleiben.{% endblocktranslate %}</li>
-    <li>{% blocktranslate %}<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Mitgliedsausweis:</strong> ein Prüfcode und ein Zufallsschlüssel für die Adresse hinter dem QR-Code, über die der Ausweis Ihre Mitgliedschaft bestätigt, und der Zeitpunkt der ersten Ausstellung. Beide bleiben gleich, damit gedruckte Ausweise gültig bleiben.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Anmeldung:</strong> wann Ihr Konto angelegt wurde und wann Sie sich zuletzt angemeldet haben. Fordern Sie den Anmeldelink von einer geschützten Seite aus an, merkt sich die Plattform an diesem Link die Adresse dieser Seite, bis Sie ihn einlösen, und führt Sie danach dorthin.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Beitrag:</strong> eine Zahlungsreferenz, gebildet aus der Konto-Kennung und einem festen Stamm,
     und die Buchung des Beitragseingangs (Datum, Betrag, Umsatzkennung und ob der Name der Überweisung zu Ihrem
     passte); keine Kontonummer des Mitglieds. Für den Abgleich liest die Plattform die Umsätze des Parteikontos — aus
@@ -49,6 +49,7 @@
     <li>{% blocktranslate %}<strong>Verfahrensbeiträge:</strong> Anträge, Beratungsbeiträge, Bewerbungen und Vorstellungen — sie
     sind öffentlich, unter Ihrem Anzeigenamen (§ 5 Abs 3 lit a); Ihr Klarname erscheint nur mit Ihrer Einwilligung.
     Unterstützungen und Reaktionen speichert die Plattform mit Ihrem Konto; öffentlich ist davon nur die Zahl.{% endblocktranslate %}</li>
+    <li>{% blocktranslate %}<strong>Lesestand:</strong> Öffnen Sie angemeldet einen Antrag oder eine Sitzung, merkt sich die Plattform je Antrag oder Sitzung den Zeitpunkt Ihres letzten Besuchs, um neue Beiträge zu kennzeichnen. Er ist nicht öffentlich und wird mit dem Austritt gelöscht.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Stimmregister:</strong> Ihre Stimmen stehen unter einem Pseudonym in der veröffentlichten
     Stimmliste. Die Zuordnung Pseudonym → Konto liegt getrennt bei der Plattform und ist zugriffsbeschränkt — sie ist
     nicht kryptografisch geheim.{% endblocktranslate %}</li>
@@ -61,7 +62,7 @@
     vorher auf Anfrage bei der Verwaltung (plattform@ddoe.at).{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Fachliste:</strong> wenn Sie darauf stehen, Name, Fachgebiete, Interessenbindungen und
     Honorare — öffentlich mit Ihrer Einwilligung (§ 6 Abs 7, § 8 Abs 4). Nach einem Widerruf steht statt des Namens
-    eine Kennung; der sachliche Inhalt bleibt.{% endblocktranslate %}</li>
+    eine Kennung; der sachliche Inhalt bleibt. Erklären Sie die Einwilligung im Profil selbst, speichert die Plattform, wann Sie sie erklärt und wann Sie sie zurückgenommen haben; diese Zeitpunkte bleiben nach dem Austritt.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>Gremienrollen:</strong> Ihre Berufungen in Räte und Gremien mit Beginn und Ende; die
     Besetzung ist öffentlich.{% endblocktranslate %}</li>
     <li>{% blocktranslate %}<strong>KI-Aufträge:</strong> Jeder Aufruf des KI-Anbieters steht mit dem Konto, das ihn ausgelöst hat, dauerhaft im Lauf-Archiv — mit Eingabe, Antwort und Verbrauch. Bei Berichten zu einem Antrag (betroffene Gesetze, Rechtsfolgen) ist die Eingabe am Antrag und im Archivexport öffentlich nachlesbar; das Konto dahinter nicht. Eingaben zur Einschätzung für die Gremien-Werkstatt, zu Entwürfen vor dem Einbringen und zu Parametertests zeigt die Plattform nicht an.{% endblocktranslate %}</li>
@@ -111,7 +112,7 @@
 
 <div class="karte" id="speicherdauer">
   <h2>{% translate "Wie lange" %}</h2>
-  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode Ihres Mitgliedsausweises und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
+  <p>{% blocktranslate %}Ihr Konto besteht bis zum Austritt. Mit dem Austritt werden Name, E-Mail-Adresse und Wohnsitz geleert, und das Konto lässt sich nicht mehr anmelden. Ein Ausschluss sperrt das Konto; Name, E-Mail-Adresse und Wohnsitz bleiben dabei stehen. Was nach dem Austritt bleibt: Ihre Verfahrensbeiträge unter Ihrem Pseudonym oder als „Ehemaliges Mitglied n“ — pseudonymisiert, nicht anonymisiert, denn sie sind Teil eines öffentlichen Verfahrens, das nachrechenbar bleiben muss (§ 5 Abs 8) — und die Zuordnung im Stimmregister, bis die Verfahrensordnung eine Löschfrist beschließt (§ 8 Abs 6); eine solche Frist gibt es heute noch nicht. Aus Gründen der Buchhaltung bleiben außerdem Ihre Mitgliedsnummer, der Stamm Ihrer Zahlungsreferenz und die verbuchten Beitragseingänge (Datum, Betrag, Umsatzkennung) am geschlossenen Konto sowie die Liste der an Ihr Konto gesandten Nachrichten (ohne Inhalt), Ihre Anstöße mit Kontobezug, ein Gemeindezugang, der Prüfcode und der Adressschlüssel Ihres Mitgliedsausweises, der Verlauf Ihrer Statuswechsel, die Zeitpunkte Ihrer Erklärung zur Fachliste und der Zeitpunkt Ihrer letzten Anmeldung. Die Audit-Kette wird nie gelöscht; sie enthält keine Namen.{% endblocktranslate %}</p>
   <p>{% blocktranslate with tage=sicherung_tage %}Sicherungskopien der Datenbank bleiben {{ tage }} Tage; so lange stehen darin auch Angaben, die nach einem Austritt in der Datenbank schon geleert sind.{% endblocktranslate %}</p>
 </div>
 

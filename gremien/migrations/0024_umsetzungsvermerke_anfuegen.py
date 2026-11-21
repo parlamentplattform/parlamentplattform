@@ -60,6 +60,20 @@ def vermerke_des_rates_uebertragen(apps, schema_editor):
             GremienBeschluss.objects.filter(pk=beschluss.pk).update(umsetzungsvermerk='')
 
 
+def rueckweg_pruefen(apps, schema_editor):
+    """Der Rückweg löschte mit der Tabelle jeden Vermerk des Rates — vorwärts wurde das Feld am Beschluss
+    geleert, zurückgeschrieben würde nichts. Solange kein Vermerk besteht, verliert er nichts; sonst bricht
+    er ab (Gesamtprüfung 0.115.0, Muster verfahren 0025)."""
+    from django.db.migrations.exceptions import IrreversibleError
+
+    Umsetzungsvermerk = apps.get_model('gremien', 'Umsetzungsvermerk')
+    if Umsetzungsvermerk.objects.using(schema_editor.connection.alias).exists():
+        raise IrreversibleError(
+            'gremien 0024 lässt sich nicht zurücknehmen: Der Rückweg löschte die Umsetzungsvermerke des Rates. '
+            'Vorwärts beheben (docs/BETRIEB-RENDER.md).'
+        )
+
+
 class Migration(migrations.Migration):
     """GP-025, GP-034: Umsetzungsvermerke des Rates werden angefügt, nie ersetzt.
 
@@ -137,5 +151,7 @@ class Migration(migrations.Migration):
                 'unique_together': {('beschluss', 'nummer')},
             },
         ),
-        migrations.RunPython(vermerke_des_rates_uebertragen, migrations.RunPython.noop),
+        # Der Rückweg bricht ab, sobald ein Vermerk besteht (`rueckweg_pruefen`); nur eine Datenbank ohne
+        # Vermerke (leer, Testläufe) lässt sich zurücknehmen. Zurückrollen ist ohnehin ausgeschlossen.
+        migrations.RunPython(vermerke_des_rates_uebertragen, rueckweg_pruefen),
     ]

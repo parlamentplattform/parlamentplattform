@@ -867,6 +867,7 @@ DIREKT_ORDNER = {
     "KategorieAbo.mitglied": "abos",
     "Favorit.mitglied": "favoriten",
     "FilterProfil.mitglied": "filterprofile",
+    "Lesestand.mitglied": "lesestaende",
     "Bewerbung.mitglied": "bewerbungen",
     "Kommentar.mitglied": "kommentare",
     "Reaktion.mitglied": "reaktionen",
@@ -895,6 +896,32 @@ DIREKT_ORDNER = {
 }
 
 
+def test_export_fuehrt_die_lesestaende_je_antrag_und_sitzung(client, ordnung):  # noqa: F811
+    """Gesamtprüfung 0.115.0 (datenschutz): Der Zeitpunkt des letzten Besuchs je Antrag und je Sitzung
+    ist ein Datum über das Konto und steht im Export; fremde Lesestände nicht."""
+    from datetime import UTC, datetime
+
+    from mandatare.models import Aufgabe, Sitzung
+    from mandatare.test_mandatare import mandat_anlegen
+    from verfahren.models import Lesestand
+
+    anna, berta = mitglied_anlegen("anna"), mitglied_anlegen("berta")
+    antrag = antrag_einbringen(berta, **ANTRAG, ordnung=ordnung)
+    mandat = mandat_anlegen(berta)
+    tag = Aufgabe.objects.create(mandat=mandat, titel="Sitzungstag", sitzungstag=True,
+                                 frist=datetime(2026, 1, 5, 18, tzinfo=UTC))
+    sitzung = Sitzung.objects.create(mandat=mandat, aufgabe=tag, beginn=datetime(2026, 1, 5, 17, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=anna, antrag=antrag, gelesen_bis=datetime(2026, 2, 3, 4, 5, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=anna, sitzung=sitzung, gelesen_bis=datetime(2026, 3, 4, 5, 6, tzinfo=UTC))
+    Lesestand.objects.create(mitglied=berta, antrag=antrag, gelesen_bis=datetime(2026, 4, 5, 6, 7, tzinfo=UTC))
+    client.force_login(anna)
+    staende = sorted(json.loads(client.get(EXPORT).content)["lesestaende"], key=lambda z: z["gelesen_bis"])
+    assert staende == [
+        {"antrag": antrag.pk, "sitzung": None, "gelesen_bis": "2026-02-03T04:05:00Z"},
+        {"antrag": None, "sitzung": sitzung.pk, "gelesen_bis": "2026-03-04T05:06:00Z"},
+    ]
+
+
 def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # noqa: F811
     """Wächter zu Befund FP-14: Für jede Rückbeziehung von `Mitglied` (auch die mit
     `related_name="+"`) liefert der Export einen Schlüssel — oder sie steht hier mit Grund als
@@ -908,7 +935,6 @@ def test_export_deckt_jede_rueckbeziehung_des_mitglieds_ab(client, ordnung):  # 
         "Adresswechsel.bestaetigt_von": "fremde Vorgänge: Adressen anderer Mitglieder, die dieses Konto als Verwaltung bestätigt hat",
         "WunschVermerk.durch": "Vermerk der Gruppe 2 an einem fremden Kommentar — Verfahrensprotokoll, kein Datum über den Menschen",
         "Hinweis.erledigt_von": "Erledigungsvermerk an einem Hinweis der Zukunftswerkstatt — Verfahrensprotokoll",
-        "Lesestand.mitglied": "Lesestände: technischer Zeiger, beim Austritt gelöscht, kein Inhalt",
         "LogEntry.user": "Django-Admin-Protokoll: die Admin-Oberfläche ist nicht eingebunden, die Tabelle bleibt leer",
         "Mitglied_groups.mitglied": "Django-Gruppen: nicht verwendet — Rechte laufen über ist_admin und Rollen",
         "Mitglied_user_permissions.mitglied": "Django-Einzelrechte: nicht verwendet — Rechte laufen über ist_admin und Rollen",
@@ -1317,13 +1343,13 @@ MITTELBAR_AUSNAHMEN = {
     "Kommentar > Reaktion.kommentar": "Reaktionen anderer; eigene stehen unter reaktionen",
     "Kommentar > WunschVermerk.kommentar": "Vermerk der Gruppe 2 am Kommentar — Verfahrensprotokoll",
     "Sitzung > Kommentar.sitzung": "Beiträge anderer in der Live-Sitzung; eigene stehen unter kommentare",
-    "Sitzung > Lesestand.sitzung": "Lesestände: technischer Zeiger, kein Inhalt",
+    "Sitzung > Lesestand.sitzung": "Lesestände anderer zur Sitzung; eigene stehen unter lesestaende",
     "ParameterTest > Hinweis.parametertest": "Hinweis der Zukunftswerkstatt zum Test — Verfahrensprotokoll",
 }
 #: Direkte Rückbeziehungen ohne eigenen Ordner (siehe AUSNAHMEN oben) — dort steigt der Wächter nicht ab.
 DIREKT_OHNE_ORDNER = {
     "EinmalToken.mitglied", "Adresswechsel.beantragt_von", "Adresswechsel.bestaetigt_von", "WunschVermerk.durch",
-    "Hinweis.erledigt_von", "Lesestand.mitglied", "LogEntry.user", "Mitglied_groups.mitglied",
+    "Hinweis.erledigt_von", "LogEntry.user", "Mitglied_groups.mitglied",
     "Mitglied_user_permissions.mitglied",
 }
 

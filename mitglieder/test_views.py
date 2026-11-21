@@ -826,6 +826,32 @@ def test_alter_anmeldelink_ohne_ziel_fuehrt_wie_bisher_ins_parlament(client):
     assert antwort['Location'] == reverse('verfahren:parlament')
 
 
+def test_einloesen_leert_das_gemerkte_ziel(client):
+    """Gesamtprüfung 0.115.0 (datenschutz): Das Ziel samt Abfrageteil bleibt nach dem Einlösen nicht am
+    Konto stehen — gelesen wird es vorher, geleert in derselben Anweisung, die den Link entwertet."""
+    from django.test import Client
+
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto()
+    token = EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel='/parlament/?suche=geheimes+thema')
+    antwort = client.post(reverse('mitglieder:login_einloesen', args=[token]))
+    assert antwort['Location'] == '/parlament/?suche=geheimes+thema'
+    zeile = EinmalToken.objects.get(mitglied=konto)
+    assert zeile.verbraucht_am is not None and zeile.ziel == ''
+    # Ein zweiter Klick auf denselben Link findet nichts mehr und führt nicht mehr dorthin.
+    assert Client().post(reverse('mitglieder:login_einloesen', args=[token])).status_code == 400
+
+
+def test_entwerten_leert_die_gemerkten_ziele(client):
+    from mitglieder.auth_flows import EinmalToken
+
+    konto = _aktives_konto()
+    EinmalToken.ausstellen(konto, EinmalToken.Zweck.LOGIN, ziel='/parlament/?suche=geheimes+thema')
+    assert EinmalToken.entwerten(konto) == 1
+    assert list(EinmalToken.objects.filter(mitglied=konto).values_list('ziel', flat=True)) == ['']
+
+
 @pytest.mark.parametrize('pfad', ['/beitrag/', '/verwaltung/', '/willkommen/'])
 def test_eigene_umleitungen_zur_anmeldung_tragen_das_ziel(client, pfad):
     antwort = client.get(pfad)

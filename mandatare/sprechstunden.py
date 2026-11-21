@@ -4,7 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -20,11 +20,36 @@ from verfahren.models import AuditEintrag
 
 
 def kommende_in(gemeinde, jetzt):
+    """Die kommenden Termine am Ort: die eines aktiven, hier zugeordneten Mandats — und jeder abgesagte bis
+    zu seinem Ende, auch wenn das Mandat inzwischen geendet hat oder umgeordnet ist: Wer den Termin gesehen
+    hat, liest die Absage statt einer leeren Liste (GP-116)."""
+    gueltig = Q(mandat__in=aktive_gemeindemandate(jetzt), mandat__gemeinde=F("gemeinde"))
+    # Abgesagte nur von Parteikonten ohne Testkennzeichen — wie die Sitzungen der Ortsseite; Testkonten erscheinen nie
+    abgesagt = Q(abgesagt_am__isnull=False, mandat__mitglied__parteikonto=True, mandat__mitglied__testkonto=False)
     return (
-        Sprechstunde.objects.filter(gemeinde=gemeinde, ende__gt=jetzt, mandat__in=aktive_gemeindemandate(jetzt))
-        .filter(mandat__gemeinde=F("gemeinde"))
+        Sprechstunde.objects.filter(gemeinde=gemeinde, ende__gt=jetzt)
+        .filter(gueltig | abgesagt)
         .select_related("mandat__mitglied").defer("mandat__foto").order_by(*SPRECHSTUNDENREIHUNG)
     )
+
+
+def termine_absagen(mandat, anlass: str, jetzt=None, *, ausser_gemeinde_id=None) -> list[int]:
+    """Die kommenden, nicht abgesagten Sprechstunden eines Mandats mit Stempel und Audit-Eintrag (Anlass)
+    absagen — bei Mandatsende, Ende der Vertretung, geänderter Zuordnung oder Kontosperre (GP-116).
+    `ausser_gemeinde_id`: Termine an diesem Ort bleiben (die neue Zuordnung). Rückgabe: die Termine."""
+    jetzt = jetzt or timezone.now()
+    termine = Sprechstunde.objects.select_for_update().filter(mandat=mandat, ende__gt=jetzt, abgesagt_am__isnull=True)
+    if ausser_gemeinde_id is not None:
+        termine = termine.exclude(gemeinde_id=ausser_gemeinde_id)
+    abgesagt = []
+    with transaction.atomic():
+        for termin in termine.select_related("gemeinde"):
+            termin.abgesagt_am = jetzt
+            termin.save(update_fields=["abgesagt_am"])
+            AuditEintrag.anhaengen({"typ": "sprechstunde_abgesagt", "mandat": mandat.pk, "termin": termin.pk,
+                                    "gemeinde": termin.gemeinde.kennziffer, "anlass": anlass})
+            abgesagt.append(termin.pk)
+    return abgesagt
 
 
 class SprechstundenFormular(forms.Form):

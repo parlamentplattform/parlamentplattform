@@ -31,6 +31,7 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch, Q
 from django.http import Http404, HttpResponse, JsonResponse
@@ -43,6 +44,7 @@ from django.utils.translation import gettext_lazy, ngettext
 from django.views.decorators.http import require_POST
 
 from mandatare import views_live
+from mandatare.eingabe import kennung
 from mandatare.models import (
     FOTO_HOECHSTGROESSE,
     Aufgabe,
@@ -70,11 +72,13 @@ from mandatare.models import (
     vertrauensfrage_entscheidung_vermerken,
     vertrauensfragen_fortschreiben,
 )
-from mandatare.sitzung import darf_live_melden
+from mandatare.sitzung import darf_live_melden, mandatsende_folgen
+from mandatare.sprechstunden import termine_absagen
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
+from plattform_core.phases import END_PHASEN
 from plattform_core.rechenschaft import berichtsmonate
 from verfahren.models import (
     Antrag,
@@ -105,6 +109,8 @@ BEGRUENDUNG_MAX = 4000
 RECHENSCHAFT_AUSZUG = 5
 #: Berichte auf der öffentlichen Detailseite — der Rest steht vollständig unter `berichte`.
 BERICHTE_AUSZUG = 12
+#: Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert folgt.
+MANDATE_SEITE = 50
 #: Ein zweiter, gleichlautender Report desselben Mandats binnen dieser Sekunden ist eine
 #: Doppelabsendung (Doppelklick, Zurück + neu senden), kein neuer Report.
 DOPPELABSENDUNG_SEKUNDEN = 120
@@ -471,11 +477,30 @@ def _ausstaende_fuer(mandate, heute: date | None = None) -> dict[int, dict]:
 
 
 def liste(request):
-    mandate = list(
-        _mandat_queryset()
-        .filter(beendet__isnull=True)
-        .annotate(rechenschaft_anzahl=Count("rechenschaft"))
-    )
+    """Alle Mandate, seitenweise (GP-191): erst die offenen als Karten in der Ordnung des Modells (Ebene, Gebiet,
+    Antritt), dann die beendeten als Zeilen, zuletzt beendet zuerst. Eine Folge, eine Seitenzählung — so steht
+    jedes Mandat auf genau einer Seite, und die Gesamtzahl gilt für beide Teile."""
+    offen = Mandat.objects.filter(beendet__isnull=True)
+    beendet = Mandat.objects.filter(beendet__isnull=False)
+    n_offen, n_beendet = offen.count(), beendet.count()
+    seite = Paginator(range(n_offen + n_beendet), MANDATE_SEITE).get_page(request.GET.get("seite"))
+    anfang, ende = max(0, seite.start_index() - 1), seite.end_index()  # 0-basiert, Ende ausschließlich
+    mandate = []
+    if anfang < n_offen:
+        mandate = list(
+            _mandat_queryset()
+            .filter(beendet__isnull=True)
+            .order_by(*Mandat._meta.ordering, "pk")
+            .annotate(rechenschaft_anzahl=Count("rechenschaft"))[anfang:min(ende, n_offen)]
+        )
+    # Beendete Mandate bleiben verlinkt — ihre Seite trägt Register und Ausstände weiter (GP-114)
+    ehemalige = []
+    if ende > n_offen:
+        ehemalige = list(
+            beendet.select_related("mitglied").defer("foto").order_by("-beendet", "-pk")[
+                max(0, anfang - n_offen):ende - n_offen
+            ]
+        )
     ausstaende = _ausstaende_fuer(mandate)
     fuer_karten = []
     for m in mandate:
@@ -495,7 +520,13 @@ def liste(request):
         "mandatare/liste.html",
         {
             "karten": fuer_karten,
-            "ehemalige": Mandat.objects.filter(beendet__isnull=False).count(),
+            "ehemalige": ehemalige,
+            "n_offen": n_offen,
+            "n_beendet": n_beendet,
+            "gesamt": n_offen + n_beendet,
+            # die Seite, auf der die beendeten Mandate beginnen — Ziel des Hinweises auf den anderen Seiten
+            "beendet_ab_seite": n_offen // MANDATE_SEITE + 1,
+            "seite": seite,
             "kandidaturen": kandidaturen,
         },
     )
@@ -575,23 +606,45 @@ def rechenschaft_mandat(request, pk: int):
     )
 
 
+#: Die Arten eines Ausstands im Register, in dieser Reihenfolge je Sitzungstag (`art` im JSON).
+AUSSTANDSARTEN = (
+    ("rechenschaft", "rechenschaften", gettext_lazy("Rechenschaft")),
+    ("sammelbericht", "sammelberichte", gettext_lazy("Sammelbericht")),
+    ("monatsbericht", "monatsberichte", gettext_lazy("Monatsbericht")),
+)
+
+
+def _posten(pflichten: dict) -> list[dict]:
+    """Alle offenen Pflichten eines Mandats als eine Reihe mit `art` — Rechenschaft und Sammelbericht je
+    Sitzungstag, Monatsbericht je Monat —, älteste Fälligkeit zuerst (GP-114)."""
+    posten = []
+    for art, schluessel, name in AUSSTANDSARTEN:
+        for p in pflichten[schluessel]:
+            posten.append({**p, "art": art, "art_name": name})
+    posten.sort(key=lambda p: p["faellig"])
+    return posten
+
+
 def _rechenschaft_gesamt(ebene: str):
+    """Einträge und Ausstände des Gesamtregisters. Ausstände aller drei Arten und aller Mandate — auch in der
+    Nachfrist und nach dem Mandatsende: Die Pflicht aus der letzten Sitzung überlebt das Ende (§ 7 Abs 5), die
+    Zähler frieren mit der Nachfrist ein (`Mandat.offene_pflichten_fuer`), so wie die Mandatsseite sie zeigt."""
     eintraege = Rechenschaft.objects.select_related(
         "mandat__mitglied", "antrag", "aufgabe", "freiwillige_begruendung", "punkt"
     ).defer("mandat__foto")
     if ebene in Ebene.values:
         eintraege = eintraege.filter(mandat__ebene=ebene)
     eintraege = eintraege.order_by("-sitzung_am", "-eingetragen_am")
-    aktive = _mandat_queryset().filter(beendet__isnull=True)
+    mandate = _mandat_queryset()
     if ebene in Ebene.values:
-        aktive = aktive.filter(ebene=ebene)
-    aktive = list(aktive)
-    pflichten = _ausstaende_fuer(aktive)
+        mandate = mandate.filter(ebene=ebene)
+    mandate = list(mandate)
+    pflichten = _ausstaende_fuer(mandate)
     ausstaende = []
-    for m in aktive:
-        offen = pflichten[m.pk]
-        if offen["rechenschaften"]:
-            ausstaende.append({"mandat": m, "rechenschaften": offen["rechenschaften"]})
+    for m in mandate:
+        posten = _posten(pflichten[m.pk])
+        if posten:
+            ausstaende.append({"mandat": m, "posten": posten})
     return eintraege, ausstaende
 
 
@@ -632,6 +685,7 @@ def rechenschaft_json(request):
                 "gegenstand": z["r"].gegenstand,
                 "sitzung_am": z["r"].sitzung_am.isoformat(),
                 "beschluss_plattform": z["beschluss"],
+                "beschluss_quelle": z["r"].beschluss_quelle,
                 "antrag": z["r"].antrag_id,
                 "aufgabe": z["r"].aufgabe_id,
                 "stimme": z["r"].stimme,
@@ -654,15 +708,17 @@ def rechenschaft_json(request):
             {
                 "mandat": block["mandat"].pk,
                 "mandatar": block["mandat"].mitglied.anzeigename,
-                "aufgabe": p["aufgabe"].pk,
-                "sitzungstag": p["sitzungstag"].isoformat(),
+                "art": p["art"],
+                "aufgabe": p["aufgabe"].pk if "aufgabe" in p else None,
+                "sitzungstag": p["sitzungstag"].isoformat() if "sitzungstag" in p else None,
+                "monat": p["monat"].strftime("%Y-%m") if "monat" in p else None,
                 "faellig": p["faellig"].isoformat(),
                 "lage": p["lage"].status,
                 "seit_tagen": p["lage"].seit_tagen,
                 "resttage": p["lage"].resttage,
             }
             for block in ausstaende
-            for p in block["rechenschaften"]
+            for p in block["posten"]
         ],
         "vertrauensfragen": _vertrauensfragen_json(ebene),
         "ebene": ebene or None,
@@ -898,8 +954,8 @@ def vertrauensfrage_stellen(request, pk: int):
     ausstaende = mandat.anlass_ausstaende()
     fehler = ""
     if request.method == "POST":
-        gewaehlte_pks = {a for a in request.POST.getlist("anlass") if a.isdigit()}
-        gewaehlte = [z["r"] for z in anlaesse if str(z["r"].pk) in gewaehlte_pks]
+        gewaehlte_pks = {kennung(a) for a in request.POST.getlist("anlass")} - {None}
+        gewaehlte = [z["r"] for z in anlaesse if z["r"].pk in gewaehlte_pks]
         kennungen = [k for k in request.POST.getlist("ausstand") if k in {a["kennung"] for a in ausstaende}]
         begruendung = (request.POST.get("begruendung") or "").strip()[:BEGRUENDUNG_MAX]
         bestehend = _doppelte_vertrauensfrage(request, mandat)
@@ -1135,9 +1191,9 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
     """Eine vergangene Sitzungstag-Aufgabe dieses Mandats — sonst None. Nach dem Ende der Pflichten
     (Mandatsende oder Ende der Vertretung, § 7 Abs 10 lit f Z 8) nur Sitzungstage bis zu diesem Tag
     (danach bestand keine Pflicht, § 7 Abs 5)."""
-    if not (pk or "").isdigit():
+    if kennung(pk) is None:
         return None
-    aufgabe = mandat.aufgaben.filter(pk=int(pk), sitzungstag=True, frist__isnull=False).first()
+    aufgabe = mandat.aufgaben.filter(pk=kennung(pk), sitzungstag=True, frist__isnull=False).first()
     if aufgabe is None:
         return None
     # Ein Sitzungstag, dessen Sitzung im Live-Modus beendet ist, ist vorbei — auch vor der Uhrzeit der Aufgabe
@@ -1149,15 +1205,17 @@ def _eigener_sitzungstag(mandat: Mandat, pk: str) -> Aufgabe | None:
 
 
 @require_POST
+@transaction.atomic
 def mein_aktion(request):
     """Alle Handlungen des Mandatars — ein POST je Handlung, Dispatch über `aktion`.
     Jede prüft: eigenes Mandat (offen — oder beendet in der Nachfrist, dann nur Sammelbericht,
     Rechenschaft und Monatsbericht); Mitwirkung erlaubt (Status aktiv, Identität geprüft).
-    Jede auditiert. Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
+    Jede auditiert — in einer Transaktion: Scheitert der Audit-Eintrag, bleibt auch die Handlung
+    nicht bestehen (GP-118). Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
     if not request.user.is_authenticated:
         return redirect("mitglieder:login")
     pk = (request.POST.get("mandat") or "").strip()
-    mandat = Mandat.objects.filter(pk=int(pk)).first() if pk.isdigit() else None
+    mandat = Mandat.objects.filter(pk=kennung(pk)).first() if kennung(pk) is not None else None
     aktion = request.POST.get("aktion", "")
     if mandat is None or mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
@@ -1185,9 +1243,9 @@ def mein_aktion(request):
             return antwort
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
-        if not aufgabe_pk.isdigit():
+        if kennung(aufgabe_pk) is None:
             raise Http404("Aufgabe unbekannt.")  # sonst ValueError → 500 bei verformter Eingabe
-        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk), mandat=mandat)
+        aufgabe = get_object_or_404(Aufgabe, pk=kennung(aufgabe_pk), mandat=mandat)
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status
@@ -1396,8 +1454,8 @@ def _freiwillige_begruendung(request, mandat: Mandat) -> None:
     Begründung ein — einmal je Eintrag; der Eintrag selbst bleibt unverändert, die Begründung steht daneben."""
     roh = (request.POST.get("rechenschaft") or "").strip()
     eintrag = (
-        Rechenschaft.objects.filter(pk=int(roh), mandat=mandat, nachgetragen_am__isnull=False).first()
-        if roh.isdigit() else None
+        Rechenschaft.objects.filter(pk=kennung(roh), mandat=mandat, nachgetragen_am__isnull=False).first()
+        if kennung(roh) is not None else None
     )
     text = (request.POST.get("text") or "").strip()[:BEGRUENDUNG_MAX]
     if eintrag is None or not text:
@@ -1426,9 +1484,9 @@ def _rechenschaft_anlegen(request, mandat: Mandat) -> bool:
     punkt = None
     roh = (request.POST.get("punkt") or "").strip()
     if roh:
-        punkt = Tagesordnungspunkt.objects.filter(pk=int(roh), sitzung__mandat=mandat).select_related(
+        punkt = Tagesordnungspunkt.objects.filter(pk=kennung(roh), sitzung__mandat=mandat).select_related(
             "sitzung__aufgabe", "antrag"
-        ).first() if roh.isdigit() else None
+        ).first() if kennung(roh) is not None else None
         tag = punkt.sitzung.aufgabe.sitzungstag_datum if punkt is not None else None
         if punkt is None or tag is None or tag > timezone.localdate() or (
             mandat.pflichtende is not None and tag > mandat.pflichtende
@@ -1608,18 +1666,18 @@ def _datum_aus_eingabe(wert: str) -> date | None:
 
 def _vertrauensfrage_der_verwaltung(request) -> Vertrauensfrage:
     pk = (request.POST.get("vertrauensfrage") or "").strip()
-    if not pk.isdigit():
+    if kennung(pk) is None:
         raise Http404("Vertrauensfrage unbekannt.")
-    return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=int(pk))
+    return get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), pk=kennung(pk))
 
 
 def _mandat_der_verwaltung(request, *, sperren=False) -> Mandat:
     """Das Mandat aus `POST["mandat"]` — eine verformte Kennung antwortet 404, nicht 500 (ValueError im Feld)."""
     pk = (request.POST.get("mandat") or "").strip()
-    if not pk.isascii() or not pk.isdecimal() or len(pk) > 18:
+    if kennung(pk) is None:
         raise Http404("Mandat unbekannt.")
     mandate = Mandat.objects.select_for_update() if sperren else Mandat.objects.all()
-    return get_object_or_404(mandate, pk=int(pk))
+    return get_object_or_404(mandate, pk=kennung(pk))
 
 
 @transaction.atomic
@@ -1643,6 +1701,8 @@ def _gemeinde_zuordnen(request) -> None:
         "typ": "mandat_gemeinde_zugeordnet", "mandat": mandat.pk,
         "vorher_gemeinde": vorher, "gemeinde": nachher, "durch": request.user.pk,
     })
+    # Termine am bisherigen Ort verwaisten sonst still (GP-116)
+    termine_absagen(mandat, "gemeinde_zuordnung", ausser_gemeinde_id=nachher)
     messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
 
@@ -1820,8 +1880,8 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
     antrag_pk = (request.POST.get("antrag") or "").strip().lstrip("#")
     if antrag_pk:
         antrag = (
-            Antrag.objects.filter(pk=int(antrag_pk)).exclude(art__in=[Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE]).first()
-            if antrag_pk.isdigit() else None
+            Antrag.objects.filter(pk=kennung(antrag_pk)).exclude(art__in=[Antragsart.MANDAT, Antragsart.VERTRAUENSFRAGE]).first()
+            if kennung(antrag_pk) is not None else None
         )
         if antrag is None:
             messages.error(request, _("Diese Antragsnummer gibt es nicht — oder sie ist keine Sach- oder Mandatsfrage."))
@@ -1845,6 +1905,75 @@ def _rechenschaft_nachtragen(request, mandat: Mandat) -> None:
     messages.success(request, _("Nachgetragen — im Register als Nachtrag der Verwaltung gekennzeichnet."))
 
 
+def _anlegen_pruefen(d: dict) -> str:
+    """Offenkundige Fehlgriffe beim Anlegen (GP-115) — leer heißt: in Ordnung. Ein angetretenes Mandat liegt
+    nicht in der Zukunft (sonst verliehe es die Rolle vor dem Antritt); eine verknüpfte Kandidatur ist
+    entschieden, und das Mitglied hat sich in ihr beworben."""
+    if d["angetreten"] > timezone.localdate():
+        return _("Der Tag des Antritts liegt in der Zukunft — angelegt wird ein Mandat ab dem Antritt.")
+    kandidatur = d.get("kandidatur")
+    if kandidatur is None:
+        return ""
+    if not Bewerbung.objects.filter(antrag=kandidatur, mitglied=d["mitglied"], zurueckgezogen=False).exists():
+        return _("In dieser Kandidatur hat das Mitglied keine Bewerbung — bitte die Kandidatur prüfen.")
+    if kandidatur.phase not in END_PHASEN:
+        return _("Diese Kandidatur läuft noch — verknüpft wird eine entschiedene Kandidatur.")
+    return ""
+
+
+def _enddatum(mandat: Mandat, roh: str) -> date | None:
+    """Das eingegebene Ende eines Mandats — None, wenn es kein Datum ist oder nicht zwischen dem Antritt
+    und heute liegt (GP-113)."""
+    tag = _datum_aus_eingabe(roh)
+    if tag is None or tag > timezone.localdate() or (mandat.angetreten is not None and tag < mandat.angetreten):
+        return None
+    return tag
+
+
+def _enddatum_meldung(mandat: Mandat) -> str:
+    return _("Das Ende des Mandats liegt zwischen dem Antritt (%(ab)s) und heute.") % {
+        "ab": mandat.angetreten.strftime("%d.%m.%Y") if mandat.angetreten else "–"
+    }
+
+
+def _berichtigen(request, mandat: Mandat) -> None:
+    """Berichtigung der Stammdaten eines Mandats (GP-115): je geändertem Feld ein Vermerk mit altem und
+    neuem Wert im Audit, mit dem handelnden Konto. Ohne Änderung geschieht nichts. Das Ende eines
+    beendeten Mandats wird nur hier berichtigt, in denselben Grenzen wie beim Beenden (GP-113);
+    beendet wird ein offenes Mandat nur über „Mandat beenden“."""
+    neu = {
+        "bezeichnung": (request.POST.get("bezeichnung") or "").strip()[:120],
+        "gebiet": (request.POST.get("gebiet") or "").strip()[:120],
+    }
+    if not neu["bezeichnung"]:
+        messages.error(request, _("Die Bezeichnung des Mandats darf nicht leer sein."))
+        return
+    roh = (request.POST.get("beendet") or "").strip()
+    if mandat.beendet is not None and roh:
+        ende = _enddatum(mandat, roh)
+        if ende is None:
+            messages.error(request, _enddatum_meldung(mandat))
+            return
+        neu["beendet"] = ende
+    geaendert = [feld for feld, wert in neu.items() if getattr(mandat, feld) != wert]
+    if not geaendert:
+        messages.info(request, _("Keine Änderung — nichts berichtigt."))
+        return
+    for feld in geaendert:
+        alt = getattr(mandat, feld)
+        setattr(mandat, feld, neu[feld])
+        AuditEintrag.anhaengen(
+            {
+                "typ": "mandat_berichtigt", "mandat": mandat.pk, "feld": feld,
+                "alt": alt.isoformat() if isinstance(alt, date) else alt,
+                "neu": neu[feld].isoformat() if isinstance(neu[feld], date) else neu[feld],
+                "durch": request.user.pk,
+            }
+        )
+    mandat.save(update_fields=geaendert)
+    messages.success(request, _("Mandat „%(bezeichnung)s“ berichtigt.") % {"bezeichnung": mandat.bezeichnung})
+
+
 def _im_integritaetsrat(mitglied) -> bool:
     from gremien.models import Gremium, Rolle
 
@@ -1853,8 +1982,10 @@ def _im_integritaetsrat(mitglied) -> bool:
 
 @nur_admins
 @require_POST
+@transaction.atomic
 def verwaltung_aktion(request):
-    """Eine Verwaltungsseite, mehrere kleine Handlungen — jede auditiert."""
+    """Eine Verwaltungsseite, mehrere kleine Handlungen — jede auditiert, in einer Transaktion mit
+    ihrem Audit-Eintrag (GP-118)."""
     aktion = request.POST.get("aktion", "")
 
     if _verwaltung_vertrauen(request, aktion):
@@ -1886,6 +2017,21 @@ def verwaltung_aktion(request):
                   "keine neue Mandatsvereinbarung möglich (§ 7 Abs 10 lit f Z 3)."),
             )
             return redirect("mandatare:verwaltung")
+        fehler = _anlegen_pruefen(d)
+        if fehler:
+            messages.error(request, fehler)
+            return redirect("mandatare:verwaltung")
+        # Unter Sperre des Mitglieds: Zwei gleichzeitige Absendungen sehen einander (GP-115)
+        Mitglied.objects.select_for_update().filter(pk=d["mitglied"].pk).first()
+        gleiches = Mandat.objects.filter(
+            mitglied=d["mitglied"], bezeichnung=d["bezeichnung"], ebene=d["ebene"], gebiet=d["gebiet"], beendet__isnull=True,
+        ).first()
+        if gleiches is not None:
+            messages.info(
+                request,
+                _("Mandat „%(bezeichnung)s“ ist bereits angelegt — kein zweites Mal.") % {"bezeichnung": gleiches.bezeichnung},
+            )
+            return redirect("mandatare:verwaltung")
         mandat = Mandat.objects.create(
             mitglied=d["mitglied"],
             bezeichnung=d["bezeichnung"],
@@ -1913,14 +2059,25 @@ def verwaltung_aktion(request):
                 % {"bezeichnung": mandat.bezeichnung, "datum": mandat.beendet.strftime("%d.%m.%Y")},
             )
             return redirect("mandatare:verwaltung")
-        mandat.beendet = timezone.localdate()
+        roh = (request.POST.get("datum") or "").strip()
+        ende = _enddatum(mandat, roh) if roh else timezone.localdate()
+        if ende is None:
+            messages.error(request, _enddatum_meldung(mandat))
+            return redirect("mandatare:verwaltung")
+        mandat.beendet = ende
         mandat.save(update_fields=["beendet"])
-        AuditEintrag.anhaengen({"typ": "mandat_beendet", "mandat": mandat.pk, "durch": request.user.pk})
+        AuditEintrag.anhaengen(
+            {"typ": "mandat_beendet", "mandat": mandat.pk, "beendet": ende.isoformat(), "durch": request.user.pk}
+        )
+        mandatsende_folgen(mandat, "mandat_beendet")  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
         messages.info(
             request,
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")
             % {"bezeichnung": mandat.bezeichnung},
         )
+
+    elif aktion == "berichtigen":
+        _berichtigen(request, _mandat_der_verwaltung(request, sperren=True))
 
     elif aktion == "foto":
         mandat = _mandat_der_verwaltung(request)
@@ -1947,8 +2104,8 @@ def verwaltung_aktion(request):
             return redirect("mandatare:verwaltung")
         antrag = None
         antrag_pk = (request.POST.get("antrag") or "").strip()
-        if antrag_pk.isdigit():
-            antrag = Antrag.objects.filter(pk=int(antrag_pk)).first()
+        if kennung(antrag_pk) is not None:
+            antrag = Antrag.objects.filter(pk=kennung(antrag_pk)).first()
         frist = None
         if (request.POST.get("frist") or "").strip():
             # Die Verwaltung nimmt weiterhin ein reines Datum an (dann 23:59 Ortszeit);
@@ -1974,9 +2131,9 @@ def verwaltung_aktion(request):
 
     elif aktion == "aufgabe_status":
         aufgabe_pk = (request.POST.get("aufgabe") or "").strip()
-        if not aufgabe_pk.isdigit():
+        if kennung(aufgabe_pk) is None:
             raise Http404("Aufgabe unbekannt.")
-        aufgabe = get_object_or_404(Aufgabe, pk=int(aufgabe_pk))
+        aufgabe = get_object_or_404(Aufgabe, pk=kennung(aufgabe_pk))
         status = request.POST.get("status", "")
         if status in Aufgabenstatus.values:
             aufgabe.status = status

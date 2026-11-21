@@ -197,9 +197,10 @@ def stream_setzen(sitzung: Sitzung, url: str, jetzt=None) -> None:
     sitzung.stream = url
 
 
-def sitzung_beenden(sitzung: Sitzung, jetzt=None) -> None:
+def sitzung_beenden(sitzung: Sitzung, jetzt=None, anlass: str = "") -> None:
     """Den Live-Modus beenden — das Ende wird einmal gesetzt, danach ist die Seite das Protokoll.
-    Ein Mandatar, dessen Befugnis inzwischen ruht, darf trotzdem beenden: Beenden schreibt nichts Neues."""
+    Ein Mandatar, dessen Befugnis inzwischen ruht, darf trotzdem beenden: Beenden schreibt nichts Neues.
+    `anlass` nennt im Audit, warum die Plattform beendet hat (etwa „mandat_beendet“, GP-116)."""
     jetzt = jetzt or timezone.now()
     with transaction.atomic():
         frisch = Sitzung.objects.select_for_update().get(pk=sitzung.pk)
@@ -207,5 +208,21 @@ def sitzung_beenden(sitzung: Sitzung, jetzt=None) -> None:
             raise SitzungFehler(_("Die Sitzung ist schon beendet."))
         frisch.ende = jetzt
         frisch.save(update_fields=["ende"])
-        AuditEintrag.anhaengen({"typ": "sitzung_beendet", "mandat": frisch.mandat_id, "sitzung": frisch.pk})
+        ereignis = {"typ": "sitzung_beendet", "mandat": frisch.mandat_id, "sitzung": frisch.pk}
+        if anlass:
+            ereignis["anlass"] = anlass
+        AuditEintrag.anhaengen(ereignis)
     sitzung.ende = jetzt
+
+
+def mandatsende_folgen(mandat: Mandat, anlass: str, jetzt=None) -> None:
+    """Was mit dem Ende eines Mandats oder der Vertretung geschieht (GP-116): Kommende Sprechstunden
+    werden mit Anlass abgesagt und bleiben bis zu ihrem Ende als abgesagt sichtbar; eine laufende
+    Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen."""
+    from mandatare.sprechstunden import termine_absagen
+
+    jetzt = jetzt or timezone.now()
+    termine_absagen(mandat, anlass, jetzt)
+    for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True):
+        if sitzung.laeuft(jetzt):
+            sitzung_beenden(sitzung, jetzt, anlass=anlass)

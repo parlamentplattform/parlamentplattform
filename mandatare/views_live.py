@@ -17,6 +17,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -24,6 +25,7 @@ from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.http import require_POST
 
+from mandatare.eingabe import kennung
 from mandatare.gemeindesitzungsquellen import aktuelle_quellen
 from mandatare.models import (
     Aufgabe,
@@ -82,9 +84,9 @@ def _antrag_aus_eingabe(roh: str) -> tuple[Antrag | None, bool]:
     roh = (roh or "").strip().lstrip("#")
     if not roh:
         return None, False
-    if not roh.isdigit():
+    if kennung(roh) is None:
         return None, True
-    antrag = Antrag.objects.filter(pk=int(roh)).exclude(art__in=["mandat", "vertrauensfrage"]).first()
+    antrag = Antrag.objects.filter(pk=kennung(roh)).exclude(art__in=["mandat", "vertrauensfrage"]).first()
     return antrag, True
 
 
@@ -195,10 +197,10 @@ def _live_kontext(request, mandat: Mandat, sitzung: Sitzung | None, fehler: str 
 
 
 def _antwort_vorgabe(sitzung: Sitzung, roh) -> Kommentar | None:
-    if not (roh and str(roh).isdigit()):
+    if kennung(roh) is None:
         return None
     return (
-        Kommentar.objects.filter(pk=int(roh), sitzung=sitzung, geloescht=False, ausgeblendet_am__isnull=True)
+        Kommentar.objects.filter(pk=kennung(roh), sitzung=sitzung, geloescht=False, ausgeblendet_am__isnull=True)
         .select_related("mitglied")
         .first()
     )
@@ -212,9 +214,9 @@ def live(request, pk: int):
     sitzung = None
     wahl = (request.GET.get("sitzung") or "").strip()
     if wahl:
-        if not wahl.isdigit():
+        if kennung(wahl) is None:
             return redirect("mandatare:live", pk=mandat.pk)
-        sitzung = get_object_or_404(Sitzung, pk=int(wahl), mandat=mandat)
+        sitzung = get_object_or_404(Sitzung, pk=kennung(wahl), mandat=mandat)
     else:
         sitzung = mandat.sitzungen.filter(ende__isnull=True).order_by("-beginn").first() or mandat.sitzungen.order_by(
             "-beginn"
@@ -339,13 +341,14 @@ def live_beitrag_aktion(request, pk: int, sitzung_pk: int, beitrag_pk: int):
         if grund not in BeitragsMeldung.Grund.values:
             messages.error(request, _("Bitte einen Grund wählen."))
             return redirect(_live_ziel(mandat, sitzung, anker))
-        _meldung, neu = BeitragsMeldung.objects.get_or_create(
-            kommentar=beitrag,
-            mitglied=request.user,
-            defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
-        )
-        if neu:
-            AuditEintrag.anhaengen({"typ": "beitrag_gemeldet", "sitzung": sitzung.pk, "beitrag": beitrag.pk, "grund": grund})
+        with transaction.atomic():  # Meldung und Audit-Eintrag stehen gemeinsam oder gar nicht (GP-118)
+            _meldung, neu = BeitragsMeldung.objects.get_or_create(
+                kommentar=beitrag,
+                mitglied=request.user,
+                defaults={"grund": grund, "erlaeuterung": (request.POST.get("erlaeuterung") or "").strip()[:500]},
+            )
+            if neu:
+                AuditEintrag.anhaengen({"typ": "beitrag_gemeldet", "sitzung": sitzung.pk, "beitrag": beitrag.pk, "grund": grund})
         messages.success(request, _("Danke — die Meldung liegt der Verwaltung vor."))
     elif aktion == "beantwortet":
         if request.user.pk != mandat.mitglied_id or not darf_live_melden(mandat):
@@ -397,9 +400,9 @@ def sitzung_karte(mandat: Mandat) -> dict:
 
 
 def _eigener_punkt(mandat: Mandat, roh: str) -> Tagesordnungspunkt | None:
-    if not (roh or "").isdigit():
+    if kennung(roh) is None:
         return None
-    return Tagesordnungspunkt.objects.filter(pk=int(roh), sitzung__mandat=mandat).select_related("sitzung").first()
+    return Tagesordnungspunkt.objects.filter(pk=kennung(roh), sitzung__mandat=mandat).select_related("sitzung").first()
 
 
 def sitzung_aktion(request, mandat: Mandat, aktion: str) -> None:
@@ -410,7 +413,7 @@ def sitzung_aktion(request, mandat: Mandat, aktion: str) -> None:
     try:
         if aktion == "sitzung_beginnen":
             roh = (post.get("aufgabe") or "").strip()
-            aufgabe = Aufgabe.objects.filter(pk=int(roh), mandat=mandat).first() if roh.isdigit() else None
+            aufgabe = Aufgabe.objects.filter(pk=kennung(roh), mandat=mandat).first() if kennung(roh) is not None else None
             if aufgabe is None:
                 raise SitzungFehler(_("Bitte den Sitzungstag wählen."))
             punkte = (post.get("tagesordnung") or "").splitlines()
@@ -425,8 +428,8 @@ def sitzung_aktion(request, mandat: Mandat, aktion: str) -> None:
                 punkt = None
             berichtigt = None
             roh = (post.get("berichtigt") or "").strip()
-            if roh.isdigit():
-                berichtigt = Livemeldung.objects.filter(pk=int(roh), sitzung=laufend).first()
+            if kennung(roh) is not None:
+                berichtigt = Livemeldung.objects.filter(pk=kennung(roh), sitzung=laufend).first()
             meldung_abgeben(
                 laufend, post.get("text", ""), punkt, post.get("stimme", ""), post.get("abgestimmt") == "on", berichtigt
             )

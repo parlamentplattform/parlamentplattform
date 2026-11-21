@@ -59,15 +59,29 @@ def test_das_ereignis_traegt_die_stimmberechtigten_des_einbringungstags_als_zahl
 
 
 def test_die_zahl_ist_dieselbe_wie_die_grundgesamtheit_der_einbringung(client, menschen, ordnung):  # noqa: F811
-    '''Wo die Ordnung einen Anteil kennt, nennt schon `antrag_eingebracht` die Stimmberechtigten des
-    Kreises — beide Ereignisse derselben Einbringung nennen dieselbe Zahl.'''
+    '''Kennt die Ordnung einen Anteil (Erstbestand: fünf Prozent), nennt schon `antrag_eingebracht` die
+    Stimmberechtigten des Kreises und die eingefrorene Ordnung führt sie als Grundgesamtheit — beide
+    Ereignisse derselben Einbringung nennen dieselbe Zahl. Die Ordnung der Tests kennt keinen Anteil;
+    ohne ihn hier zu setzen, verglich der Test nichts.'''
     leute, ort, _fremdort = menschen
     _ungeprueft('neuling', ort)
+    ordnung.regeln = {**ordnung.regeln, 'unterstuetzung_anteil': 0.05}
+    ordnung.save(update_fields=['regeln'])
     antrag = _einbringen(client, leute['autor'])
     eingebracht = AuditEintrag.objects.get(ereignis__typ='antrag_eingebracht', ereignis__antrag=antrag.pk).ereignis
-    if 'stimmberechtigte' in eingebracht:
-        assert eingebracht['stimmberechtigte'] == _ereignis(antrag)['stimmberechtigte']
-    assert antrag.policy_snapshot.get('unterstuetzung_grundgesamtheit', 0) in (0, _ereignis(antrag)['stimmberechtigte'])
+    assert eingebracht['stimmberechtigte'] == _ereignis(antrag)['stimmberechtigte'] == 2
+    assert antrag.policy_snapshot['unterstuetzung_grundgesamtheit'] == 2 == antrag.kreis_stimmberechtigte()
+
+
+def test_ohne_anteil_nennt_nur_das_kreisereignis_die_zahl(client, menschen, ordnung):  # noqa: F811
+    '''Ohne Anteil in der Ordnung rechnet die Einbringung keine Grundgesamtheit: `antrag_eingebracht`
+    trägt keine Zahl, das Ereignis zum festgehaltenen Kreis schon.'''
+    leute, _ort, _fremdort = menschen
+    antrag = _einbringen(client, leute['autor'])
+    eingebracht = AuditEintrag.objects.get(ereignis__typ='antrag_eingebracht', ereignis__antrag=antrag.pk).ereignis
+    assert 'stimmberechtigte' not in eingebracht
+    assert antrag.policy_snapshot.get('unterstuetzung_grundgesamtheit', 0) == 0
+    assert _ereignis(antrag)['stimmberechtigte'] == 2 == antrag.kreis_stimmberechtigte()
 
 
 def test_die_antragsseite_zeigt_die_zahl_und_das_wort_selbstauskunft(client, menschen, ordnung):  # noqa: F811

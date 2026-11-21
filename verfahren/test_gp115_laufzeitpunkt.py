@@ -64,3 +64,22 @@ def test_ein_vorlauf_vor_einem_gremienbeschluss_datiert_die_veroeffentlichung_ni
     vf = Vertrauensfrage.objects.get(antrag=antrag)
     assert vf.ergebnis_am == t0 + tage(14)
     assert vf.ergebnis_veroeffentlicht_am == lauf
+
+
+def test_die_fortschreibung_reicht_ihren_zeitpunkt_an_den_vorlauf_weiter(ordnung, altmandat, monkeypatch):  # noqa: F811
+    '''Die Aufrufstelle selbst: Liegt ein fälliger Gremienbeschluss zum Antrag vor, rechnet
+    `fortschreiben` auf dessen Frist zurück und nennt dem Vorlauf den eigenen Zeitpunkt. Ohne diese
+    Weitergabe gälte das Ergebnis als zur Beschlussfrist veröffentlicht — die Anfechtungsfrist (lit h)
+    liefe dann schon, bevor es jemand lesen konnte.'''
+    from gremien.models import GremienBeschluss
+
+    antrag, t0 = _abgestimmt(ordnung, altmandat, 'reihe')
+    beschlussfrist, lauf = t0 + tage(20), t0 + tage(120)
+    monkeypatch.setattr(
+        GremienBeschluss, 'faellige_zu_antrag', classmethod(lambda cls, antrag_id, jetzt: [(0, beschlussfrist)])
+    )
+    assert antrag.fortschreiben(lauf)
+    vf = Vertrauensfrage.objects.get(antrag=antrag)
+    assert vf.ergebnis_am == t0 + tage(14)
+    assert vf.ergebnis_veroeffentlicht_am == lauf
+    assert vf.anfechtungsfrist_ende == lauf + tage(7)

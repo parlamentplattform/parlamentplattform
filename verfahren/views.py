@@ -1489,15 +1489,19 @@ def _abstimmungslage(antrag, entwurf, nutzer) -> dict:
     vorlage = antrag.aktueller_text()
     wortlaut = fassung.wortlaut if fassung else ""
     teile = wortdiff.vergleichen(vorlage.wortlaut if vorlage else "", wortlaut)
+    # GP-003: Zwischen abgelaufener Schleifenfrist und Beratungsende nennt die Zone den Beginn der
+    # Endabstimmung und den zum Fristende festgestellten Stand — keine Frist in der Vergangenheit.
+    warte = entwurf.endabstimmung_wartet()
     return {
         "abstimmung": {
             "entwurf": entwurf,
             "vorschlag": fassung,
             "frist": entwurf.review_frist,
+            "endabstimmung_ab": warte["ab"] if warte else None,
             "diff": teile,
             "diff_stand": wortdiff.zusammenfassung(teile),
             "absaetze": wortdiff.absaetze(wortlaut),
-            "stand": chatkern.abstimmung_stand(antrag, entwurf),
+            "stand": warte["stand"] if warte else chatkern.abstimmung_stand(antrag, entwurf),
             "reihung": vorschlagschat.REIHUNG,
             "unterstuetzer": antrag.unterstuetzungen.filter(zurueckgezogen_am__isnull=True, mitglied__testkonto=False).count(),
         }

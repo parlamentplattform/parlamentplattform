@@ -171,3 +171,31 @@ def test_ohne_festgestellten_nenner_nennt_die_karte_keine_kopfzahl(client, ordnu
     inhalt = _seite(client, antrag)
     karte = inhalt.split('id="abstimmen"', 1)[1].split('</div>', 1)[0]
     assert 'Mindestbeteiligung' not in karte
+
+
+# --- GP-003 (Auflage): Zone 3 in der Wartezeit vor der Endabstimmung --------------------------------
+
+
+def _zone3_kopf(client, antrag):
+    inhalt = _seite(client, antrag)
+    return inhalt.split('class="vorschlagskopf"', 1)[1].split('</article>', 1)[0]
+
+
+def test_in_der_wartezeit_nennt_zone_3_den_beginn_der_endabstimmung_und_den_festgestellten_stand(client, ordnung):  # noqa: F811
+    from gremien.test_werkstatt import _nur_die_unterstuetzerfrist_verstreicht, einreichen, werkstatt_lage
+
+    antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
+    entwurf = einreichen(client, antrag, er)
+    client.logout()
+    vorher = _zone3_kopf(client, antrag)
+    assert 'Beratung bis' in vorher and 'Endabstimmung ab' not in vorher
+    frist = _nur_die_unterstuetzerfrist_verstreicht(entwurf)
+    kopf = _zone3_kopf(client, antrag)
+    entwurf.refresh_from_db()
+    warte = entwurf.endabstimmung_wartet()
+    assert warte is not None and warte['ab'] > timezone.now() > frist
+    assert f'Endabstimmung ab {timezone.localtime(warte["ab"]):%d.%m.%Y %H:%M}' in kopf
+    assert 'Beratung bis' not in kopf and f'{timezone.localtime(frist):%d.%m.%Y %H:%M}' not in kopf
+    stand = warte['stand']
+    assert f'„Passt alles": {stand["ja"]} 👍 / {stand["nein"]} 👎' in kopf
+

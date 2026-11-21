@@ -207,7 +207,9 @@ def test_oeffentliches_audit_enthaelt_keine_privaten_kreiszuordnungen(ordnung, o
     antrag = vorbereiten(ordnung, autor)
     kreis_festhalten(antrag)
     event = AuditEintrag.objects.get(ereignis__typ="teilnehmerkreis_festgehalten").ereignis
-    assert set(event) == {"typ", "antrag", "fassung", "gebiet", "festgehalten_am", "zeit"}
+    # dazu seit GP-057 zwei Angaben ohne Kontobezug: der Stichtag und eine Zahl
+    assert set(event) == {"typ", "antrag", "fassung", "gebiet", "festgehalten_am", "zeit", "stichtag", "stimmberechtigte"}
+    assert event["stimmberechtigte"] == 1 and "konten" not in event
     with pytest.raises(ProtectedError):
         autor.delete()
 

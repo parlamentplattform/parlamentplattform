@@ -781,6 +781,25 @@ class Antrag(models.Model):
         """Das Ergebniswort zum Anzeigen, übersetzt — leer, solange kein Ergebnis festgestellt ist."""
         return ERGEBNIS_NAMEN.get(self.ergebnis, "")
 
+    def kreis_stimmberechtigte(self) -> int | None:
+        """Wie viele im festgehaltenen örtlichen Kreis am Einbringungstag stimmberechtigt waren
+        (GP-057) — gelesen aus dem Ereignis `teilnehmerkreis_festgehalten`, nie neu gezählt.
+
+        None heißt „nicht festgehalten“: Kreise von vor dieser Fassung tragen die Zahl nicht, und
+        Verfahren ohne örtlichen Kreis haben keine."""
+        if self.teilnahmegebiet is None or self.ebene == Ebene.BUND:
+            return None
+        ereignis = (
+            AuditEintrag.objects.filter(ereignis__typ="teilnehmerkreis_festgehalten", ereignis__antrag=self.pk)
+            .order_by("lfd")
+            .values_list("ereignis", flat=True)
+            .first()
+        )
+        anzahl = (ereignis or {}).get("stimmberechtigte")
+        if isinstance(anzahl, bool) or not isinstance(anzahl, int) or anzahl < 0:
+            return None
+        return anzahl
+
     def stimmliste_zeilen(self) -> list[list]:
         """Die veröffentlichte Stimmliste als Zeilen einfacher Werte — die Eingabe der Prüfsumme
         (`plattform_core.tally.stimmliste_pruefsumme`), Zeile für Zeile so, wie der Export sie nennt.

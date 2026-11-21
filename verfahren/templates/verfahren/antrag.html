@@ -25,6 +25,9 @@ ohne JavaScript stehen alle Zonen untereinander und die Reiter sind Ankerlinks.
   <p class="meldung" id="teilnehmerkreis"><strong>{% translate "Teilnehmerkreis:" %}</strong>
     {% blocktranslate with ort=antrag.gebiet tag=antrag.teilnehmerkreis_am|date:"d.m.Y H:i" fassung=antrag.teilnahmegebiet.fassung %}{{ ort }} · Hauptwohnsitz bei Einbringung am {{ tag }} · Regelstand {{ fassung }}.{% endblocktranslate %}
     {% if antrag.ebene == "gemeinde" %}{{ antrag.teilnahmegebiet.kennung }}{% endif %}
+    {# GP-057: Kreisgröße am Einbringungstag (aus der Audit-Kette) und Prüfgrundlage des Wohnsitzes #}
+    {% with n=antrag.kreis_stimmberechtigte %}{% if n is None %}{% translate "Stimmberechtigte am Einbringungstag: nicht festgehalten." %}{% else %}{% blocktranslate %}Stimmberechtigte am Einbringungstag: {{ n }}.{% endblocktranslate %}{% endif %}{% endwith %}
+    {% translate "Hauptwohnsitz laut Selbstauskunft, nicht amtlich geprüft." %}
     {% if user.is_authenticated and eigener_teilnehmerkreis %}{% translate "Sie gehören zum örtlichen Kreis; die allgemeinen Voraussetzungen gelten zusätzlich." %}
     {% elif user.is_authenticated %}{% translate "Sie gehören nicht zum festgehaltenen örtlichen Teilnehmerkreis." %}
     {% if ohne_oertliche_zuordnung %}{% translate "Ihr Konto hat keine örtliche Zuordnung; die Bundesebene steht Ihnen offen." %} <a href="{% url 'verfahren:parlament' %}">{% translate "Zum Parlament" %}</a>{% elif wien_ohne_bezirk %}<a href="{% url 'mitglieder:profil' %}#wohnsitz">{% translate "Gemeindebezirk wählen ›" %}</a>{% else %}<a href="{% url 'verfahren:parlament' %}?fokus=region">{% translate "Verfahren Ihrer Region ›" %}</a>{% endif %}{% endif %}

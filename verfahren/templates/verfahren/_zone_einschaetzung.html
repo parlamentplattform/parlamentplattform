@@ -123,7 +123,8 @@ zeigen Skelett-Umrisse ehrlich, was kommen wird — statt einer leeren Fläche.
     <details class="klappe">
       <summary>{% translate "Lauf" %} #{{ h.lauf.pk }} · {{ h.stand|date:"d.m.Y H:i" }} · {% if h.lauf.erfolgreich %}{% translate "erledigt" %}{% else %}{% translate "gescheitert" %}{% endif %}</summary>
       <p class="meta">{{ h.modell }} · {{ h.auftrag_version }}</p>
-      {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe=h.lauf.eingabe %}
+      {% include "verfahren/_ki_textstand.html" with textstand=h.textstand eingabe="" %}
+      {% if h.lauf.eingabe %}<p class="meta"><a href="{% url 'verfahren:archiv_export' antrag.pk 'md' %}">{% translate "Tatsächlich verwendeten Text im Antragsarchiv nachlesen" %}</a> · {% translate "Lauf" %} #{{ h.lauf.pk }}</p>{% endif %}
       {% include "verfahren/_ki_quellenstand.html" with quellenstand=h.quellenstand %}
       {% if h.lauf.erfolgreich %}
         {% include "verfahren/_ki_folgenreihung.html" with ergebnis=h %}

@@ -1277,8 +1277,9 @@ def protokoll(request, gremium: str, jahr: int):
                 "ergebnis": b.ergebnis,
                 "entschieden_am": b.entschieden_am.isoformat() if b.entschieden_am else None,
                 "regel_version": b.regel_version,
-                "abgegeben": auswertung.abgegeben,
-                "noetig": auswertung.noetig,
+                # Geschlossen: die Zahlen des Beschlusszeitpunkts; ist keine festgehalten, keine (GP-035).
+                "abgegeben": auswertung.abgegeben if auswertung else None,
+                "noetig": auswertung.noetig if auswertung else None,
                 "stimmen": [
                     {
                         "mitglied": s.mitglied.anzeigename,

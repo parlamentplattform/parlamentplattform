@@ -1236,6 +1236,13 @@ class GremienBeschluss(models.Model):
         "wiederherstellen kann, statt ihn zu erraten (§ 5 Abs 2: die Zurückweisung ist beim "
         "Parteischiedsgericht bekämpfbar).",
     )
+    festgehalten = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Die Auszählung zum Beschlusszeitpunkt: abgegebene und nötige Stimmen, aktive Rollen, "
+        "Zählung je Option. Ein geschlossener Beschluss zeigt nur diese Zahlen. Leer, solange er offen "
+        "ist, und wenn er ohne Auswertung geschlossen wurde.",
+    )
 
     antrag = models.ForeignKey(
         Antrag, on_delete=models.CASCADE, null=True, blank=True, related_name="gremienbeschluesse"
@@ -1340,21 +1347,58 @@ class GremienBeschluss(models.Model):
 
         Solange der Beschluss offen ist, zählen nur die Stimmen der Personen, deren Rolle zählt
         (`_aktive_personen`; Listen reichen die Menge als `personen` durch, `personen_fuer`).
-        Ein entschiedener Beschluss bleibt, wie er ausgewertet wurde: alle gespeicherten Stimmen,
-        Nenner `aktive` oder der heutige. Der Kern (`plattform_core.gremienbeschluss`) bleibt
-        unverändert — gefiltert wird davor."""
+        Der Kern (`plattform_core.gremienbeschluss`) bleibt unverändert — gefiltert wird davor.
+
+        Ein geschlossener Beschluss bleibt, wie er ausgewertet wurde (GP-035): Er gibt die beim
+        Schließen festgehaltenen Zahlen zurück — nie eine Rechnung mit der Besetzung von heute, die
+        sich mit jeder späteren Berufung änderte und dem Audit-Eintrag widerspräche. Ist nichts
+        festgehalten (ohne Auswertung geschlossen, oder älter als die Kette), ist die Antwort None:
+        Eine Zahl wird nicht nachträglich erfunden."""
         from plattform_core.gremienbeschluss import auswerten
 
-        stimmen = list(self.stimmen.all())
-        if self.offen:
-            if personen is None:
-                personen = self._aktive_personen()
-            stimmen = [s for s in stimmen if s.mitglied_id in personen]
-            if aktive is None:
-                aktive = len(personen)
-        elif aktive is None:
-            aktive = self.aktive_rollen()
+        if not self.offen:
+            return self._festgehaltene_auswertung()
+        if personen is None:
+            personen = self._aktive_personen()
+        stimmen = [s for s in self.stimmen.all() if s.mitglied_id in personen]
+        if aktive is None:
+            aktive = len(personen)
         return auswerten([s.option for s in stimmen], self.optionswerte(), aktive)
+
+    def _festgehaltene_auswertung(self):
+        """Die Auszählung zum Beschlusszeitpunkt aus `festgehalten` — oder None.
+
+        Aus dem Audit nachgetragene Altbeschlüsse kennen die Zahl der aktiven Rollen nicht (der
+        Eintrag trug sie nicht): `aktive` ist dann None, und die Anzeige lässt sie weg."""
+        from plattform_core.gremienbeschluss import Auswertung
+
+        fest = self.festgehalten
+        if not fest:
+            return None
+        abgegeben, noetig = fest["abgegeben"], fest["noetig"]
+        ergebnis = self.ergebnis or None
+        beschlussfaehig = fest.get("beschlussfaehig", abgegeben > 0 and abgegeben >= noetig)
+        return Auswertung(
+            zaehlung=dict(fest.get("zaehlung") or {}),
+            abgegeben=abgegeben,
+            aktive=fest.get("aktive"),
+            noetig=noetig,
+            beschlussfaehig=beschlussfaehig,
+            ergebnis=ergebnis,
+            gleichstand=fest.get("gleichstand", beschlussfaehig and ergebnis is None),
+            version=self.regel_version,
+        )
+
+    def auszaehlung_festhalten(self, ergebnis) -> None:
+        """Schreibt die Auszählung des Beschlusszeitpunkts an den Beschluss (GP-035). Speichert nicht."""
+        self.festgehalten = {
+            "abgegeben": ergebnis.abgegeben,
+            "aktive": ergebnis.aktive,
+            "noetig": ergebnis.noetig,
+            "zaehlung": dict(ergebnis.zaehlung),
+            "beschlussfaehig": ergebnis.beschlussfaehig,
+            "gleichstand": ergebnis.gleichstand,
+        }
 
     def alle_haben_gestimmt(self) -> bool:
         personen = self._aktive_personen()
@@ -1426,7 +1470,10 @@ class GremienBeschluss(models.Model):
         else:
             self.status = BeschlussStatus.OHNE_ERGEBNIS
             self.ergebnis = ""
-        self.save(update_fields=["status", "ergebnis", "regel_version", "entschieden_am"])
+        # Die Zahlen des Beschlusszeitpunkts bleiben am Beschluss (GP-035) — dieselben, die unten
+        # in die Kette gehen. Seiten und Protokoll lesen danach nur noch sie.
+        self.auszaehlung_festhalten(ergebnis)
+        self.save(update_fields=["status", "ergebnis", "regel_version", "entschieden_am", "festgehalten"])
         # Die Wirkungstabelle steht am Ende des Moduls. Sie hier auszulösen und nicht bei den
         # Aufrufern ist Absicht: Ein Aufrufer, der sie vergisst, hinterließe einen Beschluss,
         # der entschieden aussieht und nichts bewirkt hat.
@@ -1440,6 +1487,7 @@ class GremienBeschluss(models.Model):
                 "ergebnis": self.ergebnis,
                 "zaehlung": ergebnis.zaehlung,
                 "abgegeben": ergebnis.abgegeben,
+                "aktive": ergebnis.aktive,
                 "noetig": ergebnis.noetig,
                 "regel_version": ergebnis.version,
             }
@@ -1623,11 +1671,13 @@ def pruefbeschluss_wirkung(beschluss, jetzt=None) -> None:
         # wie der Vermerk darunter.
         ergebnis = Pruefung.Ergebnis.OHNE_ERGEBNIS.value
         begruendung = (
-            "Die Prüfung der Gruppe 2 blieb ohne Ergebnis: "
+            "Die Prüfung der Gruppe 2 blieb ohne Ergebnis"
             + (
-                "Gleichstand der Stimmen."
+                "."  # ohne festgehaltene Auszählung nennt der Vermerk keine Zahl (GP-035)
+                if auswertung is None
+                else ": Gleichstand der Stimmen."
                 if auswertung.gleichstand
-                else f"{auswertung.abgegeben} von {auswertung.noetig} nötigen Stimmen bis zum Fristende."
+                else f": {auswertung.abgegeben} von {auswertung.noetig} nötigen Stimmen bis zum Fristende."
             )
             + " Der Vorschlag geht weiter an die Unterstützer, ohne dass Gruppe 2 ihn validiert hat "
             "(§ 5 Abs 12: Untätigkeit hemmt nie)."

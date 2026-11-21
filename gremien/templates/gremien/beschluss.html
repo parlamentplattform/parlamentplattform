@@ -17,13 +17,13 @@ Ein einzelner Beschluss unter seiner zitierfähigen Nummer — damit eine Begrü
   {% if eintrag.beschluss.antrag %}
   <p class="meta">{% translate "Betrifft:" %} <a href="{% url 'verfahren:antrag' eintrag.beschluss.antrag.pk %}">{{ eintrag.beschluss.antrag.titel }}</a></p>
   {% endif %}
-  <p class="meta">{% blocktranslate with a=eintrag.auswertung.abgegeben n=eintrag.auswertung.noetig r=eintrag.auswertung.aktive %}{{ a }} von {{ n }} nötigen Stimmen bei {{ r }} aktiven Rollen{% endblocktranslate %}
+  <p class="meta">{% if not eintrag.auswertung %}{% translate "Keine Auszählung zum Beschlusszeitpunkt festgehalten." %}{% elif eintrag.auswertung.aktive is None %}{% blocktranslate with a=eintrag.auswertung.abgegeben n=eintrag.auswertung.noetig %}{{ a }} von {{ n }} nötigen Stimmen{% endblocktranslate %}{% else %}{% blocktranslate with a=eintrag.auswertung.abgegeben n=eintrag.auswertung.noetig r=eintrag.auswertung.aktive %}{{ a }} von {{ n }} nötigen Stimmen bei {{ r }} aktiven Rollen{% endblocktranslate %}{% endif %}
     {% if eintrag.beschluss.frist %} · {% blocktranslate with frist=eintrag.beschluss.frist|date:"d.m.Y H:i" %}Frist {{ frist }}{% endblocktranslate %}{% endif %}
     {% if eintrag.beschluss.regel_version %} · {% blocktranslate with v=eintrag.beschluss.regel_version %}Auszählregel Fassung {{ v }}{% endblocktranslate %}{% endif %}</p>
 
-  {% for o in eintrag.beschluss.optionen %}
+  {% if eintrag.auswertung %}{% for o in eintrag.beschluss.optionen %}
   <div class="zeile"><span>{{ o.name }}</span><span class="meta">{% for wert, anzahl in eintrag.auswertung.zaehlung.items %}{% if wert == o.wert %}{{ anzahl }}{% endif %}{% endfor %}</span></div>
-  {% endfor %}
+  {% endfor %}{% endif %}
 
   {% if eintrag.beschluss.status == "entschieden" %}
   <p style="margin-top:10px"><strong>{% translate "Beschlossen:" %} {% for o in eintrag.beschluss.optionen %}{% if o.wert == eintrag.beschluss.ergebnis %}{{ o.name }}{% endif %}{% endfor %}</strong>

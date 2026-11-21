@@ -192,3 +192,169 @@ def test_altbestand_urteile_ohne_pruefung_werden_berichtigt(client, ordnung):  #
         assert {p.pk: p.ergebnis for p in Pruefung.objects.all()} == {
             ohne.pk: 'ergebnislos', unbesetzt.pk: 'ungeprueft', einzeln.pk: 'validiert', echt.pk: 'validiert',
         }
+
+
+# --- GP-035 · Entschiedene Beschlüsse zeigen den heutigen Nenner -------------------------------
+
+
+def _rat(anzahl, gremium=Gremium.KOORDINATIONSRAT, praefix='nenner'):
+    from gremien.test_werkstatt import mitglied_anlegen, rolle_geben
+
+    leute = [mitglied_anlegen(f'{praefix}{i}') for i in range(anzahl)]
+    return leute, [rolle_geben(m, gremium) for m in leute]
+
+
+def _zur_frist_geschlossen(leute, stimmen, **felder):
+    """Ein Beschluss des Koordinationsrats, den die Frist schließt: `stimmen` der Leute stimmen „dafür“."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from gremien.models import GremienBeschluss, GremienStimme
+    from gremien.test_beschluesse import beschluss_anlegen
+
+    jetzt = timezone.now()
+    beschluss = beschluss_anlegen(angelegt_von=leute[0], frist=jetzt - timedelta(hours=1), **felder)
+    for m in leute[:stimmen]:
+        GremienStimme.objects.create(beschluss=beschluss, mitglied=m, option='dafuer', begruendung='Weil.')
+    GremienBeschluss.faellige_abschliessen(jetzt)
+    beschluss.refresh_from_db()
+    return beschluss
+
+
+def _protokoll_eintrag(client, beschluss):
+    import json
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    jahr = timezone.localtime(beschluss.angelegt_am).year
+    daten = json.loads(client.get(reverse('gremien:protokoll', args=[beschluss.gremium, jahr])).content)
+    return next(e for e in daten['beschluesse'] if e['nummer'] == beschluss.nummer)
+
+
+def _rollen_beenden(rollen):
+    for rolle in rollen:
+        rolle.beendet_grund = 'Rücktritt'
+        rolle.save(update_fields=['beendet_grund'])
+
+
+def test_spaetere_rollenaenderungen_aendern_die_zahlen_eines_beschlusses_nicht(client):
+    """GP-035: Einzelseite, Liste, Ratsbereich und Protokoll rechneten bei geschlossenen Beschlüssen
+    mit der heutigen Besetzung („3 von 1 nötigen Stimmen“). Die Zahlen des Beschlusszeitpunkts stehen
+    jetzt am Beschluss und stimmen mit dem Audit-Eintrag überein — was auch später im Rat geschieht."""
+    from django.urls import reverse
+
+    from gremien.models import BeschlussStatus
+    from gremien.test_werkstatt import mitglied_anlegen, rolle_geben
+
+    leute, rollen = _rat(5)
+    beschluss = _zur_frist_geschlossen(leute, 3)
+    assert beschluss.status == BeschlussStatus.ENTSCHIEDEN
+    audit = ereignisse('gremienbeschluss_ausgewertet', beschluss=beschluss.pk)[0]
+    assert (audit['abgegeben'], audit['noetig'], audit['aktive']) == (3, 3, 5)
+    assert audit['zaehlung'] == {'dafuer': 3, 'dagegen': 0}
+
+    def gelesen():
+        client.logout()
+        einzel = client.get(reverse('gremien:beschluss', args=[beschluss.nummer])).content.decode()
+        liste = client.get(reverse('gremien:beschluesse')).content.decode()
+        client.force_login(leute[0])
+        bereich = client.get(reverse('gremien:koordination')).content.decode()
+        client.logout()
+        eintrag = _protokoll_eintrag(client, beschluss)
+        return (
+            '3 von 3 nötigen Stimmen bei 5 aktiven Rollen' in einzel,
+            '3 von 3 nötigen Stimmen' in liste,
+            '3 von 3 nötigen Stimmen' in bereich,
+            (eintrag['abgegeben'], eintrag['noetig']),
+        )
+
+    erwartet = (True, True, True, (audit['abgegeben'], audit['noetig']))
+    assert gelesen() == erwartet
+    _rollen_beenden(rollen[1:])  # der Rat schrumpft auf eine Person
+    assert gelesen() == erwartet
+    for i in range(8):  # und wächst auf neun
+        rolle_geben(mitglied_anlegen(f'zuwachs{i}'), Gremium.KOORDINATIONSRAT)
+    assert gelesen() == erwartet
+
+
+def test_ein_beschluss_ohne_ergebnis_behaelt_seinen_nenner(client):
+    """GP-035, Gegenrichtung: Ein an der Beschlussfähigkeit gescheiterter Beschluss („1 von 3“) sieht
+    nach einem Schrumpfen des Rats nicht aus, als wäre er beschlussfähig gewesen („1 von 1“)."""
+    from django.urls import reverse
+
+    from gremien.models import BeschlussStatus
+
+    leute, rollen = _rat(5)
+    beschluss = _zur_frist_geschlossen(leute, 1)
+    assert beschluss.status == BeschlussStatus.OHNE_ERGEBNIS
+    _rollen_beenden(rollen[1:])
+    einzel = client.get(reverse('gremien:beschluss', args=[beschluss.nummer])).content.decode()
+    assert '1 von 3 nötigen Stimmen bei 5 aktiven Rollen' in einzel
+    eintrag = _protokoll_eintrag(client, beschluss)
+    assert (eintrag['abgegeben'], eintrag['noetig']) == (1, 3)
+
+
+def test_altbestand_die_zahlen_kommen_aus_dem_audit_oder_gar_nicht(client):
+    """GP-035, Altbestand: Ein vor dieser Fassung geschlossener Beschluss bekommt die Zahlen seines
+    Audit-Eintrags nachgetragen. Wo die Kette keine trägt, wird keine erfunden: Die Seite sagt, dass
+    keine Auszählung festgehalten ist, und das Protokoll nennt keine Zahl."""
+    import importlib
+
+    from django.apps import apps
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from gremien.models import BeschlussStatus, GremienBeschluss
+    from gremien.test_beschluesse import beschluss_anlegen
+
+    migration = importlib.import_module('gremien.migrations.0023_beschluss_auszaehlung_festgehalten')
+    leute, rollen = _rat(5)
+    jetzt = timezone.now()
+    # Wie vor dieser Fassung: geschlossen, nichts am Beschluss, der Eintrag der Kette ohne „aktive“.
+    mit_audit = beschluss_anlegen(
+        angelegt_von=leute[0], gegenstand='Mit Eintrag in der Kette', status=BeschlussStatus.ENTSCHIEDEN,
+        ergebnis='dafuer', regel_version=1, entschieden_am=jetzt,
+    )
+    AuditEintrag.anhaengen(
+        {
+            'typ': 'gremienbeschluss_ausgewertet', 'gremium': mit_audit.gremium, 'beschluss': mit_audit.pk,
+            'status': 'entschieden', 'ergebnis': 'dafuer', 'zaehlung': {'dafuer': 3, 'dagegen': 0},
+            'abgegeben': 3, 'noetig': 3, 'regel_version': 1,
+        }
+    )
+    juenger = _zur_frist_geschlossen(leute, 2, gegenstand='Eintrag mit aktiven Rollen')
+    GremienBeschluss.objects.filter(pk=juenger.pk).update(festgehalten=None)
+    ohne_audit = beschluss_anlegen(
+        angelegt_von=leute[0], gegenstand='Älter als die Kette', status=BeschlussStatus.ENTSCHIEDEN,
+        ergebnis='dafuer', entschieden_am=jetzt,
+    )
+    offener = beschluss_anlegen(angelegt_von=leute[0], gegenstand='Noch offen')
+    _rollen_beenden(rollen[1:])
+    for _lauf in range(2):  # beliebig oft wiederholbar
+        migration.auszaehlung_aus_dem_audit_nachtragen(apps, None)
+        mit_audit.refresh_from_db()
+        ohne_audit.refresh_from_db()
+        offener.refresh_from_db()
+        assert mit_audit.festgehalten == {
+            'abgegeben': 3, 'noetig': 3, 'zaehlung': {'dafuer': 3, 'dagegen': 0}, 'quelle': 'audit',
+        }
+        assert ohne_audit.festgehalten is None and offener.festgehalten is None
+        juenger.refresh_from_db()
+        assert juenger.festgehalten == {
+            'abgegeben': 2, 'noetig': 3, 'aktive': 5, 'zaehlung': {'dafuer': 2, 'dagegen': 0}, 'quelle': 'audit',
+        }
+    einzel = client.get(reverse('gremien:beschluss', args=[mit_audit.nummer])).content.decode()
+    assert '3 von 3 nötigen Stimmen' in einzel and 'aktiven Rollen' not in einzel
+    einzel = client.get(reverse('gremien:beschluss', args=[ohne_audit.nummer])).content.decode()
+    assert 'Keine Auszählung zum Beschlusszeitpunkt festgehalten' in einzel
+    assert 'nötigen Stimmen' not in einzel
+    liste = client.get(reverse('gremien:beschluesse')).content.decode()
+    zeile = liste.split('Älter als die Kette')[1].split('class="zeile"')[0]
+    assert 'Keine Auszählung zum Beschlusszeitpunkt festgehalten' in zeile and 'nötigen Stimmen' not in zeile
+    eintrag = _protokoll_eintrag(client, ohne_audit)
+    assert eintrag['abgegeben'] is None and eintrag['noetig'] is None
+    # Der offene Beschluss rechnet weiter mit der Besetzung von heute.
+    einzel = client.get(reverse('gremien:beschluss', args=[offener.nummer])).content.decode()
+    assert '0 von 1 nötigen Stimmen bei 1 aktiven Rollen' in einzel

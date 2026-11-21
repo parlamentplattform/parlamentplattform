@@ -2401,6 +2401,58 @@ class Fachliste(models.Model):
         )
 
 
+class FachlistenEinwilligung(models.Model):
+    """Die selbst erklärte Einwilligung eines Mitglieds, öffentlich auf der Fachliste geführt zu werden
+    (§ 6 Abs 7, § 8 Abs 4; GP-009).
+
+    Bis 0.114 hielt nur die Verwaltung beim Eintragen fest, dass die Einwilligung vorliege. Jetzt erklärt
+    das Mitglied sie im Profil selbst und widerruft sie dort. Nur anfügend: Ein Widerruf trägt sein
+    Datum in die offene Erklärung, eine neue Erklärung ist eine neue Zeile."""
+
+    mitglied = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="fachlisten_einwilligungen"
+    )
+    erklaert_am = models.DateTimeField(default=timezone.now)
+    widerrufen_am = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-erklaert_am", "-pk"]
+        verbose_name = "Einwilligung zur Fachliste"
+        verbose_name_plural = "Einwilligungen zur Fachliste"
+
+    def __str__(self) -> str:
+        return f"Einwilligung {self.pk} ({'widerrufen' if self.widerrufen_am else 'offen'})"
+
+    @classmethod
+    def offene(cls):
+        return cls.objects.filter(widerrufen_am__isnull=True)
+
+    @classmethod
+    def liegt_vor(cls, mitglied) -> bool:
+        return cls.offene().filter(mitglied=mitglied).exists()
+
+    @classmethod
+    def erklaeren(cls, mitglied) -> bool:
+        """Legt eine Erklärung an, wenn keine offen ist — True, wenn sich etwas geändert hat."""
+        if cls.liegt_vor(mitglied):
+            return False
+        cls.objects.create(mitglied=mitglied)
+        return True
+
+    @classmethod
+    def widerrufen(cls, mitglied, jetzt=None) -> bool:
+        """Widerruft die offene Erklärung; ein Eintrag der Fachliste zeigt danach den Schlüssel statt des
+        Namens (§ 8 Abs 4) — True, wenn sich etwas geändert hat."""
+        jetzt = jetzt or timezone.now()
+        geaendert = bool(cls.offene().filter(mitglied=mitglied).update(widerrufen_am=jetzt))
+        eintrag = Fachliste.objects.filter(mitglied=mitglied, einwilligung_widerrufen_am__isnull=True).first()
+        if eintrag is not None:
+            eintrag.einwilligung_widerrufen_am = timezone.localdate(jetzt)
+            eintrag.save(update_fields=["einwilligung_widerrufen_am"])
+            geaendert = True
+        return geaendert
+
+
 def unvereinbarkeiten_laden() -> tuple[set[int], set[int]]:
     """Die beiden Mengen, aus denen sich jede Unvereinbarkeit ergibt — zwei Abfragen für die
     ganze Liste statt zwei je Kopf (Befund #44): Mitglieder mit aktiver Rolle im Integritätsrat

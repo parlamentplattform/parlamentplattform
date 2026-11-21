@@ -1,0 +1,17 @@
+{% load i18n %}{% if zeigen %}
+<div class="karte" id="fachliste-einwilligung">
+  <p class="phasen-titel">{% translate "Fachliste" %}</p>
+  {% if eintrag %}<p class="pf-wert"><code>{{ eintrag.schluessel }}</code>{% if not eintrag.gefuehrt %} <span class="chip klein still">{% translate "gestrichen" %}</span>{% endif %}</p>{% endif %}
+  <form method="post" action="{% url 'gremien:fachliste_einwilligung' %}">{% csrf_token %}
+    {% if erklaert %}
+    <p>{% translate "Ihre Einwilligung liegt vor: Sie dürfen mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste stehen." %}</p>
+    <input type="hidden" name="aktion" value="widerrufen">
+    <button type="submit" class="btn-linie">{% translate "Einwilligung widerrufen" %}</button>
+    {% else %}
+    <p>{% translate "Ich willige ein, mit Namen, Fachgebieten, Interessenbindungen und Honoraren öffentlich auf der Fachliste geführt zu werden (§ 6 Abs 7, § 8 Abs 4)." %}</p>
+    <input type="hidden" name="aktion" value="erklaeren">
+    <button type="submit" class="btn">{% translate "Einwilligung erklären" %}</button>
+    {% endif %}
+  </form>
+</div>
+{% endif %}

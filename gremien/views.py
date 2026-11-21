@@ -13,6 +13,7 @@ from functools import wraps
 
 from django import forms
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -35,6 +36,7 @@ from gremien.models import (
     EntwurfsFassung,
     EntwurfsStatus,
     Fachliste,
+    FachlistenEinwilligung,
     GremienBeschluss,
     GremienStimme,
     Gremium,
@@ -848,18 +850,71 @@ class FachlistenFormular(forms.Form):
     )
 
 
+def _fachliste_waehlbar():
+    """Wer auf die Fachliste darf: aktive Parteimitglieder, keine Testkonten."""
+    return Mitglied.parteikonten.filter(is_active=True, status=Mitgliedsstatus.AKTIV, testkonto=False)
+
+
 @nur_admins
 def fachliste_verwaltung(request):
     eintraege = list(
         Fachliste.objects.select_related("mitglied").prefetch_related("fachgebiete").order_by("gestrichen_am", "schluessel")
     )
-    return render(request, "gremien/verwaltung_fachliste.html", {"form": FachlistenFormular(), "eintraege": eintraege})
+    # Wer im Profil selbst eingewilligt hat und noch nicht auf der Liste steht (GP-009).
+    selbst_erklaert = list(
+        _fachliste_waehlbar()
+        .filter(fachlisten_einwilligungen__widerrufen_am__isnull=True, fachlisteneintrag__isnull=True)
+        .distinct()
+        .order_by("last_name", "first_name", "username")
+    )
+    return render(
+        request,
+        "gremien/verwaltung_fachliste.html",
+        {"form": FachlistenFormular(), "eintraege": eintraege, "selbst_erklaert": selbst_erklaert},
+    )
+
+
+@login_required
+@require_POST
+def fachliste_einwilligung(request):
+    """Das Mitglied erklärt oder widerruft im Profil selbst seine Einwilligung zur Fachliste (GP-009)."""
+    if not _fachliste_waehlbar().filter(pk=request.user.pk).exists():
+        return render(request, "gremien/kein_zugang.html", status=403)
+    aktion = request.POST.get("aktion", "")
+    with transaction.atomic():
+        if aktion == "erklaeren" and FachlistenEinwilligung.erklaeren(request.user):
+            aktion_audit = "erklaert"
+        elif aktion == "widerrufen" and FachlistenEinwilligung.widerrufen(request.user):
+            aktion_audit = "widerrufen"
+        else:
+            aktion_audit = ""
+        if aktion_audit:
+            eintrag = Fachliste.objects.filter(mitglied=request.user).first()
+            AuditEintrag.anhaengen(
+                {
+                    "typ": "fachliste_einwilligung",
+                    "aktion": aktion_audit,
+                    "eintrag": eintrag.pk if eintrag else None,
+                    "durch": request.user.pk,
+                }
+            )
+    if aktion_audit == "erklaert":
+        messages.success(request, _("Einwilligung zur Fachliste erklärt — die Verwaltung kann Sie eintragen."))
+    elif aktion_audit == "widerrufen":
+        messages.info(request, _("Einwilligung zur Fachliste widerrufen — auf der Liste steht statt Ihres Namens der Schlüssel."))
+    return redirect(reverse("mitglieder:profil") + "#fachliste-einwilligung")
+
+
+def _einwilligung_festgestellt(request, mitglied) -> tuple[bool, bool]:
+    """(liegt vor, selbst erklärt): der Haken der Verwaltung oder die Erklärung des Mitglieds."""
+    selbst = FachlistenEinwilligung.liegt_vor(mitglied)
+    return selbst or bool(request.POST.get("einwilligung")), selbst
 
 
 @nur_admins
 @require_POST
 def fachliste_aktion(request):
-    """Eintragen und Streichen — jede Handlung auditiert, nichts wird gelöscht (Grundregel 7)."""
+    """Eintragen, Streichen, Wiederaufnehmen — jede Handlung auditiert, nichts wird gelöscht (Grundregel 7)."""
     aktion = request.POST.get("aktion", "")
 
     if aktion == "eintragen":
@@ -868,7 +923,8 @@ def fachliste_aktion(request):
             messages.error(request, _("Bitte alle Pflichtfelder prüfen."))
             return redirect("gremien:fachliste_verwaltung")
         d = form.cleaned_data
-        if not d["einwilligung"]:
+        einwilligung, selbst_erklaert = _einwilligung_festgestellt(request, d["mitglied"])
+        if not einwilligung:
             messages.error(
                 request,
                 _("Nicht eingetragen — ohne Einwilligung des Mitglieds steht niemand auf der Fachliste (§ 8 Abs 4)."),
@@ -894,6 +950,7 @@ def fachliste_aktion(request):
                     "eintrag": eintrag.pk,
                     "fachgebiete": sorted(k.slug for k in d["fachgebiete"]),
                     "einwilligung": True,
+                    "selbst_erklaert": selbst_erklaert,
                     "durch": request.user.pk,
                 }
             )
@@ -912,9 +969,47 @@ def fachliste_aktion(request):
             with transaction.atomic():
                 eintrag.gestrichen_am, eintrag.gestrichen_grund = timezone.localdate(), grund[:200]
                 eintrag.save(update_fields=["gestrichen_am", "gestrichen_grund"])
-                # Ohne den frei geschriebenen Grund: Er betrifft eine Person, und die Kette fügt nur an.
-                AuditEintrag.anhaengen({"typ": "fachliste_gestrichen", "eintrag": eintrag.pk, "durch": request.user.pk})
+                # Mit dem Grund (GP-009): Er steht ohnehin öffentlich am Eintrag, und eine Wiederaufnahme
+                # leert ihn dort — die Kette behält ihn.
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "fachliste_gestrichen",
+                        "eintrag": eintrag.pk,
+                        "grund": eintrag.gestrichen_grund,
+                        "durch": request.user.pk,
+                    }
+                )
             messages.info(request, _("Gestrichen — der Eintrag bleibt lesbar, lost aber nicht mehr mit."))
+
+    elif aktion == "wieder_aufnehmen":
+        eintrag = get_object_or_404(Fachliste.objects.select_related("mitglied"), pk=_kennung(request.POST.get("eintrag")))
+        einwilligung, selbst_erklaert = _einwilligung_festgestellt(request, eintrag.mitglied)
+        if eintrag.gefuehrt:
+            messages.info(request, _("Dieser Eintrag wird bereits geführt."))
+        elif not _fachliste_waehlbar().filter(pk=eintrag.mitglied_id).exists():
+            messages.error(request, _("Nicht wieder aufgenommen — nur aktive Mitglieder stehen auf der Fachliste."))
+        elif not einwilligung:
+            messages.error(
+                request,
+                _("Nicht wieder aufgenommen — ohne Einwilligung des Mitglieds steht niemand auf der Fachliste (§ 8 Abs 4)."),
+            )
+        else:
+            with transaction.atomic():
+                # Derselbe Eintrag mit demselben Schlüssel: Aus ihm wurde vielleicht schon gelost. Streichung
+                # und Grund stehen in der Kette (`fachliste_gestrichen`).
+                eintrag.gestrichen_am, eintrag.gestrichen_grund = None, ""
+                eintrag.einwilligung_widerrufen_am = None  # die Einwilligung liegt wieder vor
+                eintrag.save(update_fields=["gestrichen_am", "gestrichen_grund", "einwilligung_widerrufen_am"])
+                AuditEintrag.anhaengen(
+                    {
+                        "typ": "fachliste_wieder_aufgenommen",
+                        "eintrag": eintrag.pk,
+                        "einwilligung": True,
+                        "selbst_erklaert": selbst_erklaert,
+                        "durch": request.user.pk,
+                    }
+                )
+            messages.success(request, _("Wieder aufgenommen — der Eintrag lost wieder mit."))
 
     return redirect("gremien:fachliste_verwaltung")
 

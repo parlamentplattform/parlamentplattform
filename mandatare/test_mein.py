@@ -722,3 +722,36 @@ def test_schreibender_aufruf_eines_gastes_traegt_kein_ziel(client):
     """Ein POST ist kein Ziel einer Anmeldung: Die Umleitung bleibt die bloße Anmeldeseite."""
     antwort = client.post(AKTION, {'aktion': 'report', 'mandat': 1})
     assert antwort.status_code == 302 and antwort['Location'] == reverse('mitglieder:login')
+
+
+# ── GP-104: In der Nachfrist führt die eigene Mandatsseite in den Bereich ──────────────────
+
+
+def _karte_vertrauen(client, mandat) -> str:
+    html = client.get(reverse('mandatare:detail', args=[mandat.pk])).content.decode()
+    return html.split('<h2 id="vertrauen">')[1].split('Alle Vertrauensfragen')[0]
+
+
+def test_mandatsseite_verlinkt_in_der_nachfrist_den_eigenen_bereich(client):
+    """Nach dem Mandatsende läuft die Nachfrist für Rechenschaft und Berichte. Die öffentliche Seite des
+    Mandats zeigt der Person selbst den Weg nach /mandatare/mein/ — niemandem sonst, und nach der
+    Nachfrist nicht mehr."""
+    from mandatare.models import NACHFRIST_TAGE
+
+    heute = timezone.localdate()
+    m = mitglied_anlegen('frueher')
+    mandat = mandat_anlegen(m, angetreten=heute - timedelta(days=400), beendet=heute - timedelta(days=NACHFRIST_TAGE))
+    ziel = f'href="{MEIN}"'
+    assert ziel not in _karte_vertrauen(client, mandat)  # Gast
+    client.force_login(mitglied_anlegen('fremd'))
+    assert ziel not in _karte_vertrauen(client, mandat)  # fremde Person
+    client.force_login(m)
+    assert ziel in _karte_vertrauen(client, mandat)  # letzter Tag der Nachfrist
+    assert client.get(MEIN).status_code == 200  # der Link führt nicht ins Leere
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=heute - timedelta(days=NACHFRIST_TAGE + 1))
+    assert ziel not in _karte_vertrauen(client, mandat)  # Nachfrist vorbei: kein Bereich, kein Link
+
+
+def test_mandatsseite_verlinkt_den_bereich_auch_beim_offenen_mandat(client):
+    m, mandat = mandatar(client, 'offen')
+    assert f'href="{MEIN}"' in _karte_vertrauen(client, mandat)

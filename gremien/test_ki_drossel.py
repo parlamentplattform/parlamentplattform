@@ -27,6 +27,16 @@ def attrappe(settings, monkeypatch):
     monkeypatch.setattr(mitglieder.botschutz.time, 'time', lambda: 1_800_000_000.0)
 
 
+def _grenze(wert: int) -> None:
+    """Setzt die Stundengrenze an der Lesestelle selbst — der Test hängt nicht am Erstbestand."""
+    from parameter.models import Parameter
+
+    Parameter.objects.update_or_create(
+        schluessel='gremien-ki-je-stunde',
+        defaults={'wert': str(wert), 'beschreibung': 'KI-Anfragen je Konto und Stunde in den Räten.', 'quelle': 'GP-046'},
+    )
+
+
 def _fenster(client, ordnung):  # noqa: F811
     antrag, _unterstuetzer, er = werkstatt_lage(ordnung)
     client.force_login(er[0])
@@ -48,8 +58,8 @@ def test_dieselbe_anforderung_zur_selben_fassung_erzeugt_einen_lauf(client, ordn
     assert KILauf.objects.filter(antrag=antrag).count() == 1
 
 
-def test_ueber_der_stundengrenze_entsteht_kein_lauf(client, ordnung, attrappe, monkeypatch):  # noqa: F811
-    monkeypatch.setattr(views, '_ki_je_stunde', lambda: 2)
+def test_ueber_der_stundengrenze_entsteht_kein_lauf(client, ordnung, attrappe):  # noqa: F811
+    _grenze(2)
     antrag, er, aktion = _fenster(client, ordnung)
     from gremien.models import EntwurfsFassung
 
@@ -66,7 +76,8 @@ def test_ueber_der_stundengrenze_entsteht_kein_lauf(client, ordnung, attrappe, m
     assert KILauf.objects.filter(antrag=antrag).count() == 3
 
 
-def test_auch_der_koordinationsrat_fragt_die_zukunftswerkstatt_nur_einmal_je_stand(client, attrappe, monkeypatch):
+def test_auch_der_koordinationsrat_fragt_die_zukunftswerkstatt_nur_einmal_je_stand(client, attrappe):
+    _grenze(1)
     leute = korat()
     test, _beschluss = _ausgewerteter_test(client, leute)
     client.force_login(leute[0])
@@ -75,25 +86,35 @@ def test_auch_der_koordinationsrat_fragt_die_zukunftswerkstatt_nur_einmal_je_sta
     client.post(ziel, {'aktion': 'zukunftswerkstatt'})
     client.post(ziel, {'aktion': 'zukunftswerkstatt'})
     assert KILauf.objects.count() == vorher + 1
-    monkeypatch.setattr(views, '_ki_je_stunde', lambda: 1)
     type(test).objects.filter(pk=test.pk).update(hypothese='Eine neue Hypothese.')  # ein neuer Stand
     antwort = client.post(ziel, {'aktion': 'zukunftswerkstatt'}, follow=True)
     assert KILauf.objects.count() == vorher + 1  # neuer Stand, aber die Stundengrenze ist erreicht
     assert 'Stundengrenze' in antwort.content.decode()
 
 
-def test_die_stundengrenze_kommt_aus_dem_register_und_sperrt_nie_ganz():
-    """Gegenlesen: Die Grenze ist eine Stellgröße (`gremien-ki-je-stunde`); ohne Registereintrag gilt der
-    eingebaute Zielwert. Ein Wert unter 1 sperrte die Räte ganz aus — die Lesestelle klammert auf 1."""
+def test_die_stundengrenze_kommt_aus_dem_register_und_0_heisst_keine_grenze():
+    """GP-046, Folgewelle: Die Grenze ist eine Stellgröße (`gremien-ki-je-stunde`) mit Startwert 0 = keine
+    Grenze (die Zahl ist eine offene Frage an den Gründer, E-13.4). Ohne Registereintrag gilt der Startwert;
+    0 und Werte darunter sperren nie, jeder Wert ab 1 drosselt."""
     from parameter.models import Parameter
 
+    assert not hasattr(views, 'GREMIEN_KI_JE_STUNDE')  # keine harte Zahl neben dem Register
     Parameter.objects.filter(schluessel='gremien-ki-je-stunde').delete()
-    assert views._ki_je_stunde() == views.GREMIEN_KI_JE_STUNDE
-    eintrag = Parameter.objects.create(
-        schluessel='gremien-ki-je-stunde', wert='3', beschreibung='KI-Anfragen je Konto und Stunde in den Räten.',
-        quelle='GP-046',
-    )
+    assert views._ki_je_stunde() == 0
+    _grenze(3)
     assert views._ki_je_stunde() == 3
-    for wert in ('0', '-5'):
-        Parameter.objects.filter(pk=eintrag.pk).update(wert=wert)
-        assert views._ki_je_stunde() == 1
+
+
+def test_bei_grenze_0_greift_die_drossel_nie(client, ordnung, attrappe):  # noqa: F811
+    from gremien.models import EntwurfsFassung
+    from mitglieder.models import Drosselzaehler
+
+    _grenze(0)
+    antrag, er, aktion = _fenster(client, ordnung)
+    entwurf = antrag.entwurf
+    for nummer in (2, 3, 4, 5):
+        EntwurfsFassung.objects.create(entwurf=entwurf, nummer=nummer, wortlaut=f'Fassung {nummer}.', verfasst_von=er[0])
+        antwort = client.post(aktion, {'aktion': 'ki_einschaetzung'}, follow=True)
+        assert 'Stundengrenze' not in antwort.content.decode()
+    assert KILauf.objects.filter(antrag=antrag).count() == 4
+    assert not Drosselzaehler.objects.filter(zweck='gremien_ki').exists()

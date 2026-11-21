@@ -943,6 +943,17 @@ def test_bestand_zaehlt_keine_testkonten_und_die_liste_kennzeichnet_sie(client):
     assert 'Testkonto' in zeile.split('</tr>', 1)[0]
 
 
+def test_blaetterzeile_sagt_dass_sie_testkonten_mitzaehlt(client):
+    """Gesamtprüfung 0.115.0 (oberflaeche): Oben zählt der Bestand ohne Testkonten, die Blätterzeile
+    zählt jede Zeile der Liste — sie sagt deshalb, dass Testkonten darin stehen."""
+    client.force_login(admin_anlegen())
+    test = mitglied_anlegen('probe')
+    Mitglied.objects.filter(pk=test.pk).update(testkonto=True)
+    antwort = client.get(reverse('mitglieder:verwaltung'))
+    assert antwort.context['zahlen']['gesamt'] == 1
+    assert 'Konten 1–2 von 2, Testkonten eingeschlossen, neueste Kontoanlage zuerst' in antwort.content.decode()
+
+
 # --- GP-188 Punkte 3 und 4 (KM-26) -------------------------------------------
 
 

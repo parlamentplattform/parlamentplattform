@@ -1534,11 +1534,46 @@ def integritaet(request):
             # Offen ist eine Prüfung, über die noch abgestimmt wird — nicht eine, die ohne Ergebnis schloss (GP-033).
             "regelpruefung_offen": Regelpruefung.objects.filter(beschluss__status=BeschlussStatus.OFFEN).exists(),
             "jahr": timezone.localdate().year,
-            "offene_antraege": Antrag.objects.exclude(
-                phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)
-            ).order_by("-phase_beginn")[:50],
+            **_antragsauswahl(
+                request,
+                Antrag.objects.exclude(phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)),
+                "offene_antraege",
+            ),
         },
     )
+
+
+#: Wie viele Anträge ein Auswahlfeld der Räte höchstens zeigt; die Suche darüber findet jeden (GP-041).
+AUSWAHL_HOECHSTENS = 50
+
+
+def _antragsauswahl(request, basis, schluessel: str) -> dict:
+    """Die Anträge für ein Auswahlfeld eines Rates (GP-041).
+
+    Bis 0.114 standen dort nur die 50 jüngsten — ein älterer angenommener Antrag war über die
+    Oberfläche nicht mehr erreichbar. Die Suche (`antrag_suche`: Nummer oder Teil des Titels)
+    findet jeden Antrag der Grundmenge; `antrag=<nummer>` wählt einen vor, etwa aus einem Verweis.
+    Ohne Suche bleibt es bei den jüngsten, wie bisher."""
+    def nummer(roh: str):
+        roh = (roh or "").strip()
+        return int(roh) if roh.isascii() and roh.isdigit() and len(roh) <= 18 else None
+
+    def voran(antrag) -> None:
+        if antrag is not None:
+            auswahl[:] = [antrag] + [a for a in auswahl if a.pk != antrag.pk]
+
+    suche = (request.GET.get("antrag_suche") or "").strip()[:200]
+    treffer = basis.filter(titel__icontains=suche) if suche else basis
+    auswahl = list(treffer.order_by("-phase_beginn", "-pk")[:AUSWAHL_HOECHSTENS])
+    if nummer(suche) is not None:  # die Nummer zuerst, dann die Titel, in denen sie vorkommt
+        voran(basis.filter(pk=nummer(suche)).first())
+    vorgewaehlt = basis.filter(pk=nummer(request.GET.get("antrag"))).first() if nummer(request.GET.get("antrag")) else None
+    voran(vorgewaehlt)
+    return {
+        schluessel: auswahl,
+        "antrag_suche": suche,
+        "antrag_vorgewaehlt": vorgewaehlt.pk if vorgewaehlt else None,
+    }
 
 
 @nur_gremium(Gremium.INTEGRITAETSRAT)
@@ -1830,10 +1865,12 @@ def koordination(request):
             "entschiedene": entschiedene,
             "ueberlastungen": ueberlastungen,
             "vollzugsberichte": list(Vollzugseintrag.objects.select_related("antrag").order_by("-erstellt_am")[:10]),
-            "laufende": list(
-                Antrag.objects.exclude(phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value))
-                .filter(hervorgehoben=False)
-                .order_by("-phase_beginn")[:50]
+            **_antragsauswahl(
+                request,
+                Antrag.objects.exclude(phase__in=(Phase.ZURUECKGEWIESEN.value, Phase.VERFALLEN.value)).filter(
+                    hervorgehoben=False
+                ),
+                "laufende",
             ),
             "hinweise": list(Hinweis.objects.select_related("parametertest__parameter")[:20]),
             "tests": tests,

@@ -72,14 +72,17 @@ from mandatare.models import (
     vertrauensfrage_entscheidung_vermerken,
     vertrauensfragen_fortschreiben,
 )
-from mandatare.sitzung import darf_live_melden, mandatsende_folgen
+from mandatare.sitzung import ANLASS_MANDATSENDE, ANLASS_ZUORDNUNG, darf_live_melden, mandatsende_folgen
 from mandatare.sprechstunden import termine_absagen
+from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
 from mitglieder.post import region_benachrichtigen
 from mitglieder.verwaltung import nur_admins
+from parameter.models import zahl
 from plattform_core import Phase
 from plattform_core.phases import END_PHASEN
 from plattform_core.rechenschaft import berichtsmonate
+from plattform_core.schema import offenes_format
 from verfahren.models import (
     Antrag,
     Antragsart,
@@ -109,8 +112,6 @@ BEGRUENDUNG_MAX = 4000
 RECHENSCHAFT_AUSZUG = 5
 #: Berichte auf der öffentlichen Detailseite — der Rest steht vollständig unter `berichte`.
 BERICHTE_AUSZUG = 12
-#: Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert folgt.
-MANDATE_SEITE = 50
 #: Ein zweiter, gleichlautender Report desselben Mandats binnen dieser Sekunden ist eine
 #: Doppelabsendung (Doppelklick, Zurück + neu senden), kein neuer Report.
 DOPPELABSENDUNG_SEKUNDEN = 120
@@ -476,6 +477,12 @@ def _ausstaende_fuer(mandate, heute: date | None = None) -> dict[int, dict]:
 # ── Öffentlich ────────────────────────────────────────────────────────────────────────────
 
 
+def mandate_je_seite() -> int:
+    """Mandate je Seite der öffentlichen Liste `/mandatare/` (GP-191) — Registerwert
+    `mandatare-liste-seite`; mindestens eines, damit ein verformter Wert die Seite nicht bricht."""
+    return max(1, zahl("mandatare-liste-seite", 50))
+
+
 def liste(request):
     """Alle Mandate, seitenweise (GP-191): erst die offenen als Karten in der Ordnung des Modells (Ebene, Gebiet,
     Antritt), dann die beendeten als Zeilen, zuletzt beendet zuerst. Eine Folge, eine Seitenzählung — so steht
@@ -483,7 +490,8 @@ def liste(request):
     offen = Mandat.objects.filter(beendet__isnull=True)
     beendet = Mandat.objects.filter(beendet__isnull=False)
     n_offen, n_beendet = offen.count(), beendet.count()
-    seite = Paginator(range(n_offen + n_beendet), MANDATE_SEITE).get_page(request.GET.get("seite"))
+    je_seite = mandate_je_seite()
+    seite = Paginator(range(n_offen + n_beendet), je_seite).get_page(request.GET.get("seite"))
     anfang, ende = max(0, seite.start_index() - 1), seite.end_index()  # 0-basiert, Ende ausschließlich
     mandate = []
     if anfang < n_offen:
@@ -525,7 +533,7 @@ def liste(request):
             "n_beendet": n_beendet,
             "gesamt": n_offen + n_beendet,
             # die Seite, auf der die beendeten Mandate beginnen — Ziel des Hinweises auf den anderen Seiten
-            "beendet_ab_seite": n_offen // MANDATE_SEITE + 1,
+            "beendet_ab_seite": n_offen // je_seite + 1,
             "seite": seite,
             "kandidaturen": kandidaturen,
         },
@@ -667,6 +675,7 @@ def rechenschaft(request):
     )
 
 
+@offenes_format
 def rechenschaft_json(request):
     """Das Register maschinenlesbar — ohne Personenbezug über den Anzeigenamen hinaus."""
     ebene = (request.GET.get("ebene") or "").strip()
@@ -944,7 +953,7 @@ def vertrauensfrage_stellen(request, pk: int):
     Einbringungstags (Stimmberechtigte, Schwelle — lit c). Der regionale Weg steht offen, sobald die
     Plattform Gliederungen führt."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     gesperrt = _mitwirkung_gesperrt(request)
     if gesperrt is not None:
         return gesperrt
@@ -1021,7 +1030,7 @@ def stellungnahme(request, antrag_pk: int):
     Eintrag bleibt, wie er war (append-only). Die Fachoperation prüft Person und Phase; zurück geht es
     auf die Antragsseite zur Karte der Stellungnahmen (Teiltemplate `mandatare/_stellungnahmen.html`)."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     vf = get_object_or_404(Vertrauensfrage.objects.select_related("antrag", "mandat"), antrag_id=antrag_pk)
     if vf.mandat.mitglied_id != request.user.pk:
         return render(request, "mandatare/kein_zugang.html", status=403)
@@ -1046,7 +1055,7 @@ def nur_mandatare(ansicht):
     @wraps(ansicht)
     def innen(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect("mitglieder:login")
+            return zur_anmeldung(request)
         if not _zugaengliche_mandate(request.user).exists():
             return render(request, "mandatare/kein_zugang.html", status=403)
         return ansicht(request, *args, **kwargs)
@@ -1213,7 +1222,7 @@ def mein_aktion(request):
     Jede auditiert — in einer Transaktion: Scheitert der Audit-Eintrag, bleibt auch die Handlung
     nicht bestehen (GP-118). Ein Validierungsfehler rendert den Bereich mit der Eingabe neu."""
     if not request.user.is_authenticated:
-        return redirect("mitglieder:login")
+        return zur_anmeldung(request)
     pk = (request.POST.get("mandat") or "").strip()
     mandat = Mandat.objects.filter(pk=kennung(pk)).first() if kennung(pk) is not None else None
     aktion = request.POST.get("aktion", "")
@@ -1702,7 +1711,7 @@ def _gemeinde_zuordnen(request) -> None:
         "vorher_gemeinde": vorher, "gemeinde": nachher, "durch": request.user.pk,
     })
     # Termine am bisherigen Ort verwaisten sonst still (GP-116)
-    termine_absagen(mandat, "gemeinde_zuordnung", ausser_gemeinde_id=nachher)
+    termine_absagen(mandat, ANLASS_ZUORDNUNG, ausser_gemeinde_id=nachher)
     messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
 
@@ -1761,7 +1770,10 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
             messages.info(request, _("Die Anfechtung ist bereits vermerkt."))
             return True
         tag = _datum_aus_eingabe(request.POST.get("datum", ""))
-        ergebnistag = timezone.localdate(vf.ergebnis_am)
+        # Die Veröffentlichung ist der Lauf, der das Ergebnis festgestellt hat — nach einem Stillstand des
+        # Fristenlaufs später als das Abstimmungsende; Altbestand ohne Vermerk: das Abstimmungsende (GP-106).
+        veroeffentlicht = vf.veroeffentlicht_am
+        ergebnistag = timezone.localdate(veroeffentlicht)
         if tag is not None and not ergebnistag <= tag <= timezone.localdate():
             # Eine Anfechtung, die noch nicht erhoben ist oder vor dem Ergebnis läge, hielte die Wirkungen an (GP-110)
             messages.error(
@@ -1774,7 +1786,7 @@ def _verwaltung_vertrauen(request, aktion: str) -> bool:
         # Veröffentlichung gerechnet — am siebten Tag eingebracht heißt rechtzeitig, gleich zu welcher Uhrzeit.
         # Am Ergebnistag liegt der Vermerk nie vor der Veröffentlichung.
         jetzt = timezone.make_aware(datetime.combine(tag, time.min)) if tag is not None else timezone.now()
-        jetzt = max(jetzt, vf.ergebnis_am)
+        jetzt = max(jetzt, veroeffentlicht)
         vertrauensfrage_anfechtung_vermerken(vf, request.POST.get("aktenkennung", ""), jetzt=jetzt, durch=request.user.pk)
         vf.refresh_from_db()
         if vf.wirkungen_ab is None:
@@ -2069,7 +2081,7 @@ def verwaltung_aktion(request):
         AuditEintrag.anhaengen(
             {"typ": "mandat_beendet", "mandat": mandat.pk, "beendet": ende.isoformat(), "durch": request.user.pk}
         )
-        mandatsende_folgen(mandat, "mandat_beendet")  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
+        mandatsende_folgen(mandat, ANLASS_MANDATSENDE)  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
         messages.info(
             request,
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")

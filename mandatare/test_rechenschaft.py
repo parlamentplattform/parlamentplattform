@@ -439,3 +439,28 @@ def test_register_fuehrt_alle_drei_ausstandsarten_auch_nach_dem_mandatsende(clie
     assert 'Keine Ausstände.' not in register()
     liste = client.get(reverse('mandatare:liste')).content.decode()
     assert f'href="{reverse("mandatare:detail", args=[mandat.pk])}"' in liste
+
+
+# ── GP-199: Das Register ist ein offenes Format ───────────────────────────────────────────
+
+
+def test_rechenschaft_json_traegt_die_kopfzeile_der_offenen_formate(client):
+    """docs/SCHEMA.md: Jede Antwort eines offenen Formats trägt `Access-Control-Allow-Origin: *` — auf
+    GET und HEAD; die Antwort hängt nicht von der Anmeldung ab, eine schreibende Anfrage bekommt sie nicht."""
+    url = reverse('mandatare:rechenschaft_json')
+    mandat_anlegen(mitglied_anlegen('gp199anna'))
+    gast = client.get(url)
+    assert gast.status_code == 200 and gast['Access-Control-Allow-Origin'] == '*'
+    assert client.head(url)['Access-Control-Allow-Origin'] == '*'
+    assert client.get(url + '?ebene=land')['Access-Control-Allow-Origin'] == '*'
+    assert not client.post(url).has_header('Access-Control-Allow-Origin')
+
+    def ohne_zeitstempel(antwort):
+        daten = json.loads(antwort.content)
+        daten.pop('exportiert_am')
+        return daten
+
+    client.force_login(mitglied_anlegen('gp199bert'))
+    angemeldet = client.get(url)
+    assert angemeldet['Access-Control-Allow-Origin'] == '*'
+    assert ohne_zeitstempel(angemeldet) == ohne_zeitstempel(gast)

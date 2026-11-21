@@ -215,14 +215,33 @@ def sitzung_beenden(sitzung: Sitzung, jetzt=None, anlass: str = "") -> None:
     sitzung.ende = jetzt
 
 
-def mandatsende_folgen(mandat: Mandat, anlass: str, jetzt=None) -> None:
+#: Die Anlässe, mit denen die Plattform Sprechstunden absagt und eine laufende Sitzung beendet (GP-116).
+#: Sie stehen im öffentlichen Protokoll und nennen nur, was am Mandat ohnehin öffentlich ist: dass es
+#: endete, dass die Vertretung endete, dass es einem anderen Ort zugeordnet wurde. Warum ein Mandat
+#: endete — Austritt, Sperre, Ausschluss —, steht dort nie.
+ANLASS_MANDATSENDE = "mandat_beendet"
+ANLASS_VERTRETUNGSENDE = "vertretung_beendet"
+ANLASS_ZUORDNUNG = "gemeinde_zuordnung"
+OEFFENTLICHE_ANLAESSE = frozenset({ANLASS_MANDATSENDE, ANLASS_VERTRETUNGSENDE, ANLASS_ZUORDNUNG})
+
+
+def mandatsende_folgen(mandat: Mandat, anlass: str = ANLASS_MANDATSENDE, jetzt=None) -> None:
     """Was mit dem Ende eines Mandats oder der Vertretung geschieht (GP-116): Kommende Sprechstunden
     werden mit Anlass abgesagt und bleiben bis zu ihrem Ende als abgesagt sichtbar; eine laufende
-    Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen."""
+    Sitzung endet, damit Live-Status und Chat nicht bis zur Höchstdauer offen stehen.
+
+    Das Mandat darf schon beendet, das Konto schon inaktiv sein (Austritt: erst das Ende, dann die
+    Folgen) — gelesen werden nur die Termine und Sitzungen des Mandats. Ein zweiter Aufruf findet
+    nichts mehr und schreibt nichts. Absagen und Sitzungsende stehen gemeinsam oder gar nicht.
+    `anlass` ist eines der `OEFFENTLICHE_ANLAESSE`; jedes andere Wort wird zu `ANLASS_MANDATSENDE`,
+    damit kein Aufrufer den Grund des Endes ins öffentliche Protokoll schreibt."""
     from mandatare.sprechstunden import termine_absagen
 
+    if anlass not in OEFFENTLICHE_ANLAESSE:
+        anlass = ANLASS_MANDATSENDE
     jetzt = jetzt or timezone.now()
-    termine_absagen(mandat, anlass, jetzt)
-    for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True):
-        if sitzung.laeuft(jetzt):
-            sitzung_beenden(sitzung, jetzt, anlass=anlass)
+    with transaction.atomic():
+        termine_absagen(mandat, anlass, jetzt)
+        for sitzung in Sitzung.objects.filter(mandat=mandat, ende__isnull=True).order_by("pk"):
+            if sitzung.laeuft(jetzt):
+                sitzung_beenden(sitzung, jetzt, anlass=anlass)

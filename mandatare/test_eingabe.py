@@ -99,3 +99,35 @@ def test_zahlenparameter_der_verwaltung_antworten_ohne_serverfehler(client, lage
         ):
             assert client.post(aktion, daten).status_code in ERLAUBT, daten
     assert Mandat.objects.get(pk=mandat.pk).beendet is None
+
+
+def test_uebrige_handlungen_der_verwaltung_antworten_ohne_serverfehler(client, lage):
+    """Folgewelle GP-109: die Vermerke zur Vertrauensfrage, Berichtigung, Zuordnung und das Anlegen —
+    jede Kennung aus dem Formular geht über `kennung` oder ein Formularfeld, keine über `isdigit`."""
+    _mitglied, mandat, _sitzung = lage
+    client.force_login(admin_anlegen())
+    aktion = reverse('mandatare:verwaltung_aktion')
+    for wert in VERFORMT:
+        for daten in (
+            {'aktion': 'rueckgabezusage', 'mandat': wert, 'wert': 'abgegeben'},
+            {'aktion': 'lit_h', 'mandat': wert, 'datum': '2026-09-20'},
+            {'aktion': 'entscheidung', 'vertrauensfrage': wert, 'entscheidung': 'bestaetigt'},
+            {'aktion': 'bestaetigung_durch_wahl', 'mandat': wert},
+            {'aktion': 'berichtigen', 'mandat': wert, 'bezeichnung': 'Neu'},
+            {'aktion': 'gemeinde_zuordnen', 'mandat': wert, 'gemeindekennziffer': wert},
+            {'aktion': 'gemeinde_zuordnen', 'mandat': mandat.pk, 'gemeindekennziffer': wert},
+            {'aktion': 'foto', 'mandat': wert},
+            {'aktion': 'anlegen', 'mitglied': wert, 'kandidatur': wert, 'bezeichnung': 'Rat', 'angetreten': '2026-01-01'},
+        ):
+            assert client.post(aktion, daten).status_code in ERLAUBT, daten
+    assert Mandat.objects.count() == 1
+
+
+def test_keine_isdigit_pruefung_mehr_in_den_ansichten_der_mandatare():
+    """Die Eigenschaft, die bleibt: Keine Ansicht der App prüft Eingaben mit `str.isdigit`."""
+    from pathlib import Path
+
+    for datei in sorted(Path(__file__).parent.glob('*.py')):
+        if datei.name.startswith('test_'):
+            continue
+        assert '.isdigit(' not in datei.read_text(encoding='utf-8'), datei.name

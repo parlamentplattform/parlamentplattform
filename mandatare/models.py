@@ -222,18 +222,26 @@ class Mandat(models.Model):
         """Die Bestätigung nach § 7 Abs 10 lit f Z 3 vermerken — durch angenommenen Bestätigungsantrag
         (`grund="antrag"`) oder Wahl in ein Organ bzw. eine Gliederungsleitung (`grund="wahl"`; mit
         `rolle`, wenn es die von der Mitgliederversammlung bestätigte Berufung in einen Rat ist).
-        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent."""
+        Hebt die Kandidatursperre auf; die übrigen Wirkungen bleiben. Idempotent.
+
+        Vermerk und Audit-Eintrag stehen in einer Transaktion (GP-129) — hier in der Methode, weil sie
+        auch von außerhalb der App gerufen wird. Scheitert der Eintrag, bleibt die Sperre, auch am Objekt."""
         if self.bestaetigt_am is not None:
             return False
         jetzt = jetzt or timezone.now()
-        self.bestaetigt_am = timezone.localdate(jetzt)
-        self.save(update_fields=["bestaetigt_am"])
         ereignis = {"typ": "vertrauen_bestaetigt", "mandat": self.pk, "grund": grund}
         if rolle is not None:
             ereignis["rolle"] = rolle
         if durch is not None:
             ereignis["durch"] = durch  # Vermerk der Verwaltung: das handelnde Konto (GP-119)
-        AuditEintrag.anhaengen(ereignis)
+        try:
+            with transaction.atomic():
+                self.bestaetigt_am = timezone.localdate(jetzt)
+                self.save(update_fields=["bestaetigt_am"])
+                AuditEintrag.anhaengen(ereignis)
+        except BaseException:
+            self.bestaetigt_am = None  # die Datenbank wurde zurückgerollt — das Objekt folgt ihr
+            raise
         return True
 
     @property
@@ -1103,13 +1111,20 @@ class Vertrauensfrage(models.Model):
         return self.angefochten_am <= ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
 
     def endgueltig_ab(self):
-        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz): sieben Tage nach der
-        Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der bestätigenden Entscheidung; None,
-        solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis aufgehoben wurde."""
+        """Ab wann das Ruhen zum Ende wird (lit f letzter Unterabsatz: „mit Ablauf der Anfechtungsfrist
+        nach lit h“): sieben Tage nach der Veröffentlichung ohne rechtzeitige Anfechtung, sonst mit der
+        bestätigenden Entscheidung; None, solange eine rechtzeitige Anfechtung offen ist oder das Ergebnis
+        aufgehoben wurde.
+
+        Dieselbe Frist wie `anfechtung_rechtzeitig` (GP-106): Sie zählt ab dem Lauf, der das Ergebnis
+        festgestellt hat (`ergebnis_veroeffentlicht_am`), nie vor dem Beginn der Wirkungen. Sonst wurde das
+        Ruhen nach einem Stillstand des Fristenlaufs im ersten Lauf endgültig, während die Anfechtung noch
+        offenstand. Altbestände ohne Vermerk rechnen wie bisher ab `wirkungen_ab`."""
         if self.wirkungen_ab is None or self.entscheidung == Entscheidung.AUFGEHOBEN:
             return None
         if not self.anfechtung_rechtzeitig:
-            return self.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+            ab = max(self.wirkungen_ab, self.ergebnis_veroeffentlicht_am or self.wirkungen_ab)
+            return ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
         if self.entscheidung == Entscheidung.BESTAETIGT and self.entschieden_am is not None:
             return self.entschieden_am
         return None
@@ -1511,12 +1526,16 @@ def vertrauensfragen_fortschreiben(jetzt=None) -> int:
                         "rueckgabezusage": mandat.rueckgabezusage,
                     }
                 )
-                from mandatare.sitzung import mandatsende_folgen
+                from mandatare.sitzung import ANLASS_VERTRETUNGSENDE, mandatsende_folgen
 
-                mandatsende_folgen(mandat, "vertretung_beendet", jetzt)  # GP-116
+                mandatsende_folgen(mandat, ANLASS_VERTRETUNGSENDE, jetzt)  # GP-116
             # (c) Mandatsvereinbarung endet (Z 5) — nur mit lit h, nach Frist UND Endgültigkeit
             if tue_c:
-                tag = max(frist_tag, timezone.localdate(endgueltig_ab))
+                # Der Tag bleibt der Fristtag (Z 5: „mit Ablauf dieser Frist“); später nur bei rechtzeitiger
+                # Anfechtung, dann mit der Entscheidung (Z 5 letzter Satz). Die Anfechtungsfrist ab der
+                # tatsächlichen Veröffentlichung (GP-106) verschiebt nur, wann vollzogen wird — nicht den Tag.
+                grenze = endgueltig_ab if vf.anfechtung_rechtzeitig else vf.wirkungen_ab + timedelta(days=ANFECHTUNGSFRIST_TAGE)
+                tag = max(frist_tag, timezone.localdate(grenze))
                 mandat.mandatsvereinbarung_endet_am = tag
                 mandat.save(update_fields=["mandatsvereinbarung_endet_am"])
                 AuditEintrag.anhaengen(

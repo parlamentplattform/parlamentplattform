@@ -153,7 +153,7 @@ pflegt der Mandatar in seinem eigenen Bereich; die Verwaltung kann weiter eingre
         <span class="chip klein">{{ vf.get_art_display }}</span>
         <a href="{% url 'verfahren:antrag' vf.antrag.pk %}">{% blocktranslate with nr=vf.antrag.pk %}Antrag #{{ nr }}{% endblocktranslate %}</a>
         · {% translate "eingebracht" %} {{ vf.antrag.eingebracht_am|date:"d.m.Y" }}
-        {% if vf.ergebnis_wort %} · <strong>{{ vf.ergebnis_wort }}</strong> · {{ vf.ergebnis_am|date:"d.m.Y" }}{% else %} · {{ vf.antrag.phase|phase_name }}{% endif %}
+        {% if vf.ergebnis_wort %} · <strong>{{ vf.ergebnis_wort }}</strong> · {{ vf.veroeffentlicht_am|date:"d.m.Y" }}{% else %} · {{ vf.antrag.phase|phase_name }}{% endif %}
         {% if vf.rechtsschutz_stand %} · {{ vf.rechtsschutz_stand }}{% if vf.aktenkennung %} ({{ vf.aktenkennung }}){% endif %}{% if vf.entschieden_am %} · {{ vf.entschieden_am|date:"d.m.Y" }}{% endif %}{% endif %}
       </div>
       {% if vf.ergebnis_am and not vf.angefochten_am %}

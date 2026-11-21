@@ -487,16 +487,17 @@ def fenster_aktion(request, antrag_id: int):
             messages.error(request, _("Ein Entwurfsfenster öffnet nur während der Beratung."))
             return redirect("gremien:fenster", antrag_id=antrag.pk)
         if entwurf is None:
-            entwurf = Entwurf.objects.create(antrag=antrag)
-            grundlage = antrag.aktueller_text()
-            EntwurfsFassung.objects.create(
-                entwurf=entwurf,
-                nummer=1,
-                wortlaut=grundlage.wortlaut if grundlage else "",
-                begruendung="Arbeitsgrundlage: übernommener Antragswortlaut.",
-                verfasst_von=request.user,
-            )
-            AuditEintrag.anhaengen({"typ": "entwurfsfenster_geoeffnet", "antrag": antrag.pk})
+            with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-129)
+                entwurf = Entwurf.objects.create(antrag=antrag)
+                grundlage = antrag.aktueller_text()
+                EntwurfsFassung.objects.create(
+                    entwurf=entwurf,
+                    nummer=1,
+                    wortlaut=grundlage.wortlaut if grundlage else "",
+                    begruendung="Arbeitsgrundlage: übernommener Antragswortlaut.",
+                    verfasst_von=request.user,
+                )
+                AuditEintrag.anhaengen({"typ": "entwurfsfenster_geoeffnet", "antrag": antrag.pk})
             messages.success(request, _("Entwurfsfenster geöffnet — der Antragswortlaut ist die Arbeitsgrundlage."))
         return redirect("gremien:fenster", antrag_id=antrag.pk)
 
@@ -596,23 +597,24 @@ def fenster_aktion(request, antrag_id: int):
             messages.error(request, _("Solange über die Einreichung abgestimmt wird, ruht der Vollzugsbezug."))
             return redirect("gremien:fenster", antrag_id=antrag.pk)
         alt, neu = entwurf.vollzugsbezug, request.POST.get("vollzugsbezug") == "ja"
-        if alt != neu:
-            with transaction.atomic():
+        # Bezug, Nachlosung und ihre Einträge gemeinsam oder gar nicht (GP-129).
+        with transaction.atomic():
+            if alt != neu:
                 entwurf.vollzugsbezug = neu
                 entwurf.save(update_fields=["vollzugsbezug"])
                 AuditEintrag.anhaengen(
                     {"typ": "vollzugsbezug_gesetzt", "antrag": antrag.pk, "runde": entwurf.runde, "alt": alt, "neu": neu}
                 )
+            # § 6 Abs 7: „zwei unabhängig voneinander besetzte Gruppen“ — Gruppe 2 wird gelost,
+            # sobald feststeht, dass sie gebraucht wird (Befund #14/#37). Einmal je Antrag.
+            gelost = gruppe_2_nachziehen(antrag) if entwurf.vollzugsbezug else None
         messages.success(
             request,
             _("Vollzugs-/Beschaffungsbezug: %(wert)s.")
             % {"wert": _("ja — Gruppe 2 prüft") if entwurf.vollzugsbezug else _("nein")},
         )
-        if entwurf.vollzugsbezug:
-            # § 6 Abs 7: „zwei unabhängig voneinander besetzte Gruppen“ — Gruppe 2 wird gelost,
-            # sobald feststeht, dass sie gebraucht wird (Befund #14/#37). Einmal je Antrag.
-            if gruppe_2_nachziehen(antrag) is not None:
-                messages.info(request, _("Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost."))
+        if gelost is not None:
+            messages.info(request, _("Gruppe 2 wurde für diesen Antrag aus der Fachliste gelost."))
 
     elif aktion == "einreichung":
         if entwurf.einreichungsbeschluss() is not None:
@@ -624,7 +626,8 @@ def fenster_aktion(request, antrag_id: int):
                 _("Die Überarbeitungsfrist ist verstrichen — die zuletzt vorgelegte Fassung geht zur Endabstimmung (§ 5 Abs 12)."),
             )
         else:
-            beschluss = entwurf.einreichungsbeschluss_anlegen(request.user)
+            with transaction.atomic():  # Beschluss und Eintrag gemeinsam oder gar nicht (GP-129)
+                beschluss = entwurf.einreichungsbeschluss_anlegen(request.user)
             if beschluss is None:
                 messages.error(request, _("Ohne Fassung gibt es nichts einzureichen."))
             else:
@@ -1092,7 +1095,8 @@ def pruefung(request):
     )
     zeilen = []
     for entwurf in offene:
-        entwurf.fortschreiben(entwurf.antrag)  # legt eine fehlende Abstimmung an, wertet fällige aus
+        with transaction.atomic():  # Fortschreibung und ihre Einträge gemeinsam oder gar nicht (GP-129)
+            entwurf.fortschreiben(entwurf.antrag)  # legt eine fehlende Abstimmung an, wertet fällige aus
         beschluss = entwurf.beschluesse.filter(
             gremium=Gremium.EXPERTENRAT_2, status=BeschlussStatus.OFFEN
         ).first()
@@ -2062,6 +2066,7 @@ def koordination_beschluss(request):
 
 @nur_gremium(Gremium.KOORDINATIONSRAT)
 @require_POST
+@transaction.atomic  # Beschluss, Erledigung und Einträge gemeinsam oder gar nicht (GP-129)
 def koordination_hinweis(request, hinweis_id: int):
     """Ein Eintrag des Posteingangs wird erledigt: Beschluss, Kenntnis oder Verwerfen mit Grund."""
     if not Rolle.hat(request.user, Gremium.KOORDINATIONSRAT):
@@ -2150,7 +2155,8 @@ def koordination_test(request, test_id: int):
         messages.error(request, _("Das geht nur bei einem ausgewerteten Test."))
         return redirect("gremien:koordination")
     if aktion == "einfuehrung":
-        beschluss = _einfuehrung_anlegen(test, request.user)
+        with transaction.atomic():  # Beschluss und Eintrag gemeinsam oder gar nicht (GP-129)
+            beschluss = _einfuehrung_anlegen(test, request.user)
         if beschluss is None:
             messages.info(request, _("Über die Einführung wird bereits abgestimmt."))
         else:
@@ -2160,13 +2166,14 @@ def koordination_test(request, test_id: int):
         if not grund:
             messages.error(request, _("Verwerfen braucht einen Grund — er bleibt stehen."))
             return redirect("gremien:koordination")
-        test.status = TestStatus.VERWORFEN
-        test.auswertung = (test.auswertung + f"\n\nVerworfen: {grund}")[:4000]
-        test.save(update_fields=["status", "auswertung"])
-        Hinweis.objects.filter(parametertest=test, status=HinweisStatus.OFFEN).update(
-            status=HinweisStatus.VERWORFEN, grund=grund[:500], erledigt_von=request.user, erledigt_am=timezone.now()
-        )
-        AuditEintrag.anhaengen({"typ": "parametertest_verworfen", "test": test.pk, "grund": grund[:500]})
+        with transaction.atomic():  # Handlung und Protokoll gemeinsam oder gar nicht (GP-129)
+            test.status = TestStatus.VERWORFEN
+            test.auswertung = (test.auswertung + f"\n\nVerworfen: {grund}")[:4000]
+            test.save(update_fields=["status", "auswertung"])
+            Hinweis.objects.filter(parametertest=test, status=HinweisStatus.OFFEN).update(
+                status=HinweisStatus.VERWORFEN, grund=grund[:500], erledigt_von=request.user, erledigt_am=timezone.now()
+            )
+            AuditEintrag.anhaengen({"typ": "parametertest_verworfen", "test": test.pk, "grund": grund[:500]})
         messages.success(request, _("Verworfen — der alte Wert gilt weiter, der Grund bleibt stehen."))
     elif aktion == "zukunftswerkstatt":
         g = test.gegenueberstellung()
@@ -2409,10 +2416,11 @@ def ueberlastung_melden(request):
     if not stelle or not begruendung:
         messages.error(request, _("Stelle und Begründung sind Pflicht — die Meldung wird veröffentlicht."))
         return redirect("verfahren:umsetzung")
-    meldung = Ueberlastungsmeldung.objects.create(
-        stelle=stelle, begruendung=begruendung[:4000], gemeldet_von=request.user
-    )
-    AuditEintrag.anhaengen({"typ": "ueberlastung_gemeldet", "meldung": meldung.pk, "stelle": stelle})
+    with transaction.atomic():  # Meldung und Protokoll gemeinsam oder gar nicht (GP-129)
+        meldung = Ueberlastungsmeldung.objects.create(
+            stelle=stelle, begruendung=begruendung[:4000], gemeldet_von=request.user
+        )
+        AuditEintrag.anhaengen({"typ": "ueberlastung_gemeldet", "meldung": meldung.pk, "stelle": stelle})
     messages.success(
         request,
         _("Überlastungsmeldung veröffentlicht — der Koordinationsrat hat bis %(datum)s Zeit für einen Vorschlag.")

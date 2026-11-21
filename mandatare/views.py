@@ -81,6 +81,7 @@ from mitglieder.verwaltung import nur_admins
 from plattform_core import Phase
 from plattform_core.phases import END_PHASEN
 from plattform_core.rechenschaft import berichtsmonate
+from plattform_core.schema import offenes_format
 from verfahren.models import (
     Antrag,
     Antragsart,
@@ -668,6 +669,7 @@ def rechenschaft(request):
     )
 
 
+@offenes_format
 def rechenschaft_json(request):
     """Das Register maschinenlesbar — ohne Personenbezug über den Anzeigenamen hinaus."""
     ebene = (request.GET.get("ebene") or "").strip()

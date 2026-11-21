@@ -169,3 +169,83 @@ def test_altbestand_abgesagter_termin_eines_beendeten_mandats_bleibt_bis_zum_end
     type(mandat.mitglied).objects.filter(pk=mandat.mitglied_id).update(testkonto=True)
     seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
     assert "Öffentlicher Raum A" not in seite
+
+
+# ── GP-116 (Folgewelle): die Folgen für ein schon beendetes Mandat, mit neutralem Anlass ──────
+
+
+def _laufende_sitzung(mandat):
+    from mandatare.sitzung import sitzung_beginnen
+    from mandatare.test_sitzung_modelle import sitzungstag
+
+    return sitzung_beginnen(mandat, sitzungstag(mandat), punkte=["Budget"])
+
+
+def test_folgen_fuer_ein_schon_beendetes_mandat_sagen_ab_beenden_die_sitzung_und_wiederholen_sich_nicht(mandat):
+    """Der Austritt setzt erst `Mandat.beendet` und ruft dann die Folgen: Das Mandat ist schon beendet, das
+    Konto nicht mehr aktiv. Auch Altbestand — ein vor dieser Fassung beendetes Mandat mit verwaistem Termin —
+    wird so abgesagt. Ein zweiter Aufruf schreibt nichts mehr."""
+    from mandatare.models import Sitzung
+    from mandatare.sitzung import ANLASS_MANDATSENDE, mandatsende_folgen
+    from mitglieder.models import Mitgliedsstatus
+
+    termin = _termin(mandat)
+    sitzung = _laufende_sitzung(mandat)
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=timezone.localdate() - timedelta(days=5))
+    type(mandat.mitglied).objects.filter(pk=mandat.mitglied_id).update(status=Mitgliedsstatus.AUSGETRETEN, is_active=False)
+    mandat = Mandat.objects.get(pk=mandat.pk)
+    assert mandat.beendet is not None and ANLASS_MANDATSENDE == "mandat_beendet"
+    mandatsende_folgen(mandat, ANLASS_MANDATSENDE)
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is not None
+    assert not Sitzung.objects.get(pk=sitzung.pk).laeuft()
+    assert [e["anlass"] for e in _absagen_audit()] == ["mandat_beendet"]
+    assert AuditEintrag.objects.filter(ereignis__typ="sitzung_beendet", ereignis__anlass="mandat_beendet").count() == 1
+    seite = Client().get(reverse("gemeinde:ort", args=[mandat.gemeinde.kennziffer])).content.decode()
+    assert "Öffentlicher Raum A" in seite and "Abgesagt" in seite
+    zahl = AuditEintrag.objects.count()
+    mandatsende_folgen(mandat, ANLASS_MANDATSENDE)
+    assert AuditEintrag.objects.count() == zahl  # idempotent
+
+
+@pytest.mark.parametrize("wort", ["austritt", "kontosperre", "ausschluss", ""])
+def test_das_oeffentliche_protokoll_nennt_nie_warum_das_mandat_endete(mandat, wort):
+    """Die Einträge „sprechstunde_abgesagt“ und „sitzung_beendet“ stehen im öffentlichen Protokoll. Ein
+    Anlass, der Austritt, Sperre oder Ausschluss verriete, wird zum neutralen Wort für das Mandatsende."""
+    from mandatare.sitzung import OEFFENTLICHE_ANLAESSE, mandatsende_folgen
+
+    _termin(mandat)
+    _laufende_sitzung(mandat)
+    Mandat.objects.filter(pk=mandat.pk).update(beendet=timezone.localdate())
+    mandatsende_folgen(Mandat.objects.get(pk=mandat.pk), wort)
+    eintraege = [e.ereignis for e in AuditEintrag.objects.filter(ereignis__typ__in=["sprechstunde_abgesagt", "sitzung_beendet"])]
+    assert len(eintraege) == 2
+    assert {e["anlass"] for e in eintraege} == {"mandat_beendet"}
+    assert OEFFENTLICHE_ANLAESSE == {"mandat_beendet", "vertretung_beendet", "gemeinde_zuordnung"}
+    for e in AuditEintrag.objects.all():
+        assert wort == "" or wort not in str(e.ereignis)
+
+
+def test_folgen_des_mandatsendes_stehen_gemeinsam_oder_gar_nicht(mandat):
+    """Scheitert der Audit-Eintrag zum Ende der Sitzung, bleibt auch die Absage des Termins nicht stehen."""
+    from unittest import mock
+
+    from django.db import IntegrityError
+
+    from mandatare.models import Sitzung
+    from mandatare.sitzung import ANLASS_MANDATSENDE, mandatsende_folgen
+
+    termin = _termin(mandat)
+    sitzung = _laufende_sitzung(mandat)
+    echt = AuditEintrag.anhaengen
+
+    def nur_die_absage(ereignis, *args, **kwargs):
+        if ereignis.get("typ") == "sitzung_beendet":
+            raise IntegrityError("Audit scheitert")
+        return echt(ereignis, *args, **kwargs)
+
+    with mock.patch.object(AuditEintrag, "anhaengen", side_effect=nur_die_absage), pytest.raises(IntegrityError):
+        mandatsende_folgen(mandat, ANLASS_MANDATSENDE)
+    termin.refresh_from_db()
+    assert termin.abgesagt_am is None and not _absagen_audit()
+    assert Sitzung.objects.get(pk=sitzung.pk).ende is None

@@ -72,7 +72,7 @@ from mandatare.models import (
     vertrauensfrage_entscheidung_vermerken,
     vertrauensfragen_fortschreiben,
 )
-from mandatare.sitzung import darf_live_melden, mandatsende_folgen
+from mandatare.sitzung import ANLASS_MANDATSENDE, ANLASS_ZUORDNUNG, darf_live_melden, mandatsende_folgen
 from mandatare.sprechstunden import termine_absagen
 from mitglieder.anmeldeziel import zur_anmeldung
 from mitglieder.models import Gemeinde, Identitaetsstufe, Mitglied, Mitgliedsstatus
@@ -1711,7 +1711,7 @@ def _gemeinde_zuordnen(request) -> None:
         "vorher_gemeinde": vorher, "gemeinde": nachher, "durch": request.user.pk,
     })
     # Termine am bisherigen Ort verwaisten sonst still (GP-116)
-    termine_absagen(mandat, "gemeinde_zuordnung", ausser_gemeinde_id=nachher)
+    termine_absagen(mandat, ANLASS_ZUORDNUNG, ausser_gemeinde_id=nachher)
     messages.success(request, _("Zuordnung für die öffentliche Gemeindeübersicht gespeichert."))
 
 
@@ -2081,7 +2081,7 @@ def verwaltung_aktion(request):
         AuditEintrag.anhaengen(
             {"typ": "mandat_beendet", "mandat": mandat.pk, "beendet": ende.isoformat(), "durch": request.user.pk}
         )
-        mandatsende_folgen(mandat, "mandat_beendet")  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
+        mandatsende_folgen(mandat, ANLASS_MANDATSENDE)  # Sprechstunden absagen, laufende Sitzung beenden (GP-116)
         messages.info(
             request,
             _("Mandat „%(bezeichnung)s“ als beendet vermerkt — bleibt dokumentiert.")

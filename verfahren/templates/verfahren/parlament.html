@@ -75,7 +75,7 @@ mit Alpine schaltet der Knopf ⤢/⤡ je Feld um, Esc stellt das 2×2 wieder her
       {% endif %}
       <form method="get" action="{{ request.path }}" class="feld-suche" role="search"
         hx-get="{{ request.path }}" hx-target="#feld-favoriten" hx-select="#feld-favoriten" hx-swap="outerHTML transition:true" hx-indicator="#feld-favoriten">
-        <input type="search" name="suche" value="{{ suchtext }}" placeholder="{% translate 'Lebensbereich oder Antrag suchen …' %}"
+        <input type="search" name="suche" value="{{ suchtext }}" placeholder="{% translate 'Suchen …' %}"
           aria-label="{% translate 'Lebensbereich oder Antrag suchen' %}">
       </form>
       {% include "verfahren/_fokus_knopf.html" with feld="favoriten" %}
